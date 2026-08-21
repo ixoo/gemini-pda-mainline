@@ -4739,8 +4739,13 @@ local readback. Its unique live result distinguishes local writer success from
 later cross-version recovery; the clock backend, observer, BigiDVFS, protected
 transports, DA921x action, and CPU8/CPU9 requests all remain absent. The
 prebuild definition passes its exact contract and 13 negative source/config
-mutations. It is not a boot candidate until Buildbox, package, DT, container,
-and experiment-specific validation all pass. See the
+mutations. Corrected exact commit `c1d59f3` built successfully on Buildbox.
+Exact padded candidate `53e03cb...e5c` passed all 32 LK gates, rejected 15 DT
+mutations, and its tooling rejected 19 live and nine recovery mutations,
+including crossed retained-slot attribution. It is admitted for one guarded
+boot2 deployment and one physical selection. The next action is to deploy,
+verify the full readback, shut down, and arm the exact observer before that
+selection. See the
 [manual checkpoint control](../experiments/2026-08-21-mainline-manual-checkpoint-control/README.md).
 
 The next ordered work is:

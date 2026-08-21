@@ -1,0 +1,80 @@
+Manual checkpoint control candidate
+===================================
+
+Result: pass
+Boot candidate: yes
+Device access: none
+Hardware write: none
+Native VM build: none
+
+Exact inputs
+------------
+
+Repository build commit: c1d59f3b1783f70e92b4ab27d11c5809f9722869
+Build profile: da921x-manual-checkpoint-control
+Kernel release: 7.1.3-gemini-checkpoint-ctl
+Image SHA-256: e796316372ed008aed2abccd4ed2acadf640105f6a641aff2dd0e48e61245959
+Image.gz SHA-256: 638a9732387c5b742905ed2b71698be9cda69cfb231ecf8400fb6c2a4ee9800a
+Control DTB SHA-256: b638674b9be209219d51b7dd02538f7a0bc8b402bab7336188cb95011cd912dd
+Configuration SHA-256: 411692b59d20ed2ed67fd64274e4f980119ff0607df4297342594a13b4ecf321
+System.map SHA-256: 100b461163bfce3e4c15b69c5e7b2effdcfb760942ce4e55b9af61ade82468fa
+Serviceability ramdisk SHA-256: e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f
+
+Candidate identities
+--------------------
+
+Raw Android-v0 file: gemini-mt6797-manual-checkpoint-control.boot.img
+Raw size: 6,893,568
+Raw SHA-256: 4338ac1ee770ea23087694f7c166226c2297874fd595751d1a235565ecee3805
+Padded size: 16,777,216
+Padded SHA-256: 53e03cb7100cbb355b7513320428cea8bf39c8c81da9b89a52c91cadd24e8e5c
+Candidate SHA256SUMS SHA-256: 14b92d7864899601f9d7bd889ecf837483ffc58ced5d880b03eee727d81a4107
+
+Validation
+----------
+
+- Complete fetched-package checksum inventory: pass
+- Two independent DT constructions: byte-identical
+- Two independent raw assemblies: byte-identical
+- Two independent padding constructions: byte-identical
+- LK Android-v0 gates: 32 of 32
+- Independent negative DT mutations rejected: 15
+- Definition source/configuration mutations rejected: 13
+- Live runtime unsafe mutations rejected: 19
+- Retained recovery unsafe mutations rejected: 9
+- Manual first and second records: exact once each
+- Unique live result marker: exact once
+- Existing checkpoint writer and manual initcall: linked
+- Clock-entry, same-value-action, and GAEL tokens: absent
+- Clock, BigiDVFS, protected-transport, and same-value actions: absent
+- Protected calls: zero
+- DA921x register-data writes: zero
+- Retained-RAM writes: at most two, each locally read back in full
+- CPU8/CPU9 admission: closed
+- DT builder SHA-256:
+  172ebff5f77e5212fe59fd06fd98761c76e87f4e326c1b7a9e5269b606ec4aa7
+- Candidate builder SHA-256:
+  641867c5f52eb2f9427f30ede4c3c4fe942379c062ce6a4291a33669d354dc49
+- Independent validator SHA-256:
+  2ee968b95f6584d9d97ee66ca2bbd719c14f5283b2b28c374c2ff00e913b7140
+- Guarded installer SHA-256:
+  55aa4aaab9ac18c444625c44a65fdd3fab47bdb9b15ee46e25e77c52b5091a68
+- Runtime collector SHA-256:
+  6bb8454d416d710f3808770d9e8561a7341c578d9ae858299a9234787f94e5db
+- Remote read-only probe SHA-256:
+  114d637fdbfb7f7fd09f960f2b0b231a79ad12d60e8f9427dca2fb8d53a2f77e
+- Live validator SHA-256:
+  ae39d5b4755c974c29f94b9c1b8ea909d278e52488d309e5e5ad74583d669dc8
+- Retained validator SHA-256:
+  52dc1ec02e24cbedfe03623b3e177899b8b5abd4cb80df484cd035dd6632460a
+- Runtime offline tests SHA-256:
+  b99831d71a3908c871b9ea0ab09b092638bc3b20967cde7e64f18d9297bd3b18
+
+Runtime hypothesis
+------------------
+
+The exact live marker must prove both existing-writer calls and both full
+local readbacks while the proven serviceability path remains healthy. Only
+that exact pass permits one native USB-shell reboot. Changed-ID Gemian then
+checks both exact slots, bounded pstore payload, and unchanged boot2. Returned
+empty data is classified separately and cannot erase the local live result.

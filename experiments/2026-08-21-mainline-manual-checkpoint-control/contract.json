@@ -54,6 +54,39 @@
     "protected_backends": "absent",
     "native_reboot": "only_after_exact_live_pass"
   },
+  "build": {
+    "repository_commit": "c1d59f3b1783f70e92b4ab27d11c5809f9722869",
+    "patchset_sha256": "bb09ea11865a354ac9466baf5f1b547dd3911e9e3a4e2494c0c43788a9d78dc3",
+    "config_inputs_sha256": "130259939642f991e81a117ecd3900c99774b466a5c74185d79fa091217bcf19",
+    "image_sha256": "e796316372ed008aed2abccd4ed2acadf640105f6a641aff2dd0e48e61245959",
+    "image_gzip_sha256": "638a9732387c5b742905ed2b71698be9cda69cfb231ecf8400fb6c2a4ee9800a",
+    "config_sha256": "411692b59d20ed2ed67fd64274e4f980119ff0607df4297342594a13b4ecf321",
+    "system_map_sha256": "100b461163bfce3e4c15b69c5e7b2effdcfb760942ce4e55b9af61ade82468fa",
+    "base_dtb_sha256": "dad6997c565d10dcacab23dea46166ac45f6594da2aab697b105b3fb2dcc474e",
+    "build_provenance_sha256": "39e5bb68be28a2b41fc1250a0271b38b2b9d103afe81961e14b6d6060d5a593e",
+    "package_checksums_sha256": "9d5fef4e7a100813c5d53451ae2a24a5c37efc37db7e19ef34a4f90df146e69d"
+  },
+  "candidate": {
+    "dtb_sha256": "b638674b9be209219d51b7dd02538f7a0bc8b402bab7336188cb95011cd912dd",
+    "ramdisk_sha256": "e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f",
+    "raw_size": 6893568,
+    "raw_sha256": "4338ac1ee770ea23087694f7c166226c2297874fd595751d1a235565ecee3805",
+    "padded_size": 16777216,
+    "padded_sha256": "53e03cb7100cbb355b7513320428cea8bf39c8c81da9b89a52c91cadd24e8e5c",
+    "candidate_checksums_sha256": "14b92d7864899601f9d7bd889ecf837483ffc58ced5d880b03eee727d81a4107",
+    "lk_gates": "32-of-32",
+    "negative_dtb_mutations_rejected": 15
+  },
+  "offline_validation": {
+    "source_and_configuration_mutations_rejected": 13,
+    "dt_mutations_rejected": 15,
+    "live_runtime_mutations_rejected": 19,
+    "retained_recovery_mutations_rejected": 9,
+    "independent_raw_assemblies": "byte-identical",
+    "independent_padding_constructions": "byte-identical",
+    "device_access": false,
+    "hardware_write": false
+  },
   "decision": {
     "live_pass_and_both_recovered": "writer_and_cross_version_recovery_pass",
     "live_pass_and_recovered_empty": "writer_local_path_pass_recovery_not_an_oracle",
@@ -76,6 +109,6 @@
     "cpu_off": false,
     "owner_registration": false,
     "automatic_retry": false,
-    "boot_candidate": false
+    "boot_candidate": true
   }
 }

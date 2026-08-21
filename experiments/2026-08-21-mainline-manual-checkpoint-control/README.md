@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-21-mainline-manual-checkpoint-control` |
-| Status | running; patch-integrity correction selected after Buildbox attempt 1 |
+| Status | running; exact candidate admitted offline, deployment pending |
 | Subsystem | pstore/ramoops, retained-RAM observation, arm64 serviceability |
 | Device variant | Gemini PDA x27, named project unit |
 | Date(s) | 2026-08-21 |
@@ -35,8 +35,16 @@ version recovery path. Returned empty slots alone remain non-causal evidence.
 - Build backend: Buildbox only from an exact clean pushed commit
 - Boot path: guarded live-GPT logical boot2 only
 
-Exact build, package, DTB, and candidate identities remain pending Buildbox
-validation.
+Buildbox produced Image.gz
+`638a9732387c5b742905ed2b71698be9cda69cfb231ecf8400fb6c2a4ee9800a`
+from exact clean pushed commit
+`c1d59f3b1783f70e92b4ab27d11c5809f9722869`. The exact proven-serviceability
+DTB is
+`b638674b9be209219d51b7dd02538f7a0bc8b402bab7336188cb95011cd912dd`.
+The admitted raw Android-v0 candidate is
+`4338ac1ee770ea23087694f7c166226c2297874fd595751d1a235565ecee3805`;
+its exact 16 MiB boot2 image is
+`53e03cb7100cbb355b7513320428cea8bf39c8c81da9b89a52c91cadd24e8e5c`.
 
 ## Safety assessment
 
@@ -68,10 +76,23 @@ single physical selection.
 - `kernel/manifest.json`: named canonical-series Buildbox profile
 - `scripts/validate.py`: patch, profile, record, CRC, and safety validation
 - `scripts/test-validate.py`: negative source and configuration mutations
+- `scripts/build-serviceability-dtb.sh`: pinned current-package derivative of
+  the exact runtime-proven serviceability DT contract
+- `scripts/build-candidate.sh`: pinned package, DT, ramdisk, and Android-v0
+  candidate construction
+- `scripts/test-candidate.sh`: independent package, configuration, symbol, DT,
+  container, and mutation validator
+- `scripts/install-boot2.sh`: empty-slot preflight plus guarded live-GPT boot2
+  installation, readback, and shutdown
+- `scripts/remote-runtime-probe.sh`: read-only serviceability and unique live
+  two-readback capture
+- `scripts/validate-runtime.py`: exact live classifier
+- `scripts/validate-retained.py`: changed-ID Gemian slot/pstore classifier that
+  distinguishes recovered-empty from local writer failure
+- `scripts/collect-runtime.sh`: pre-armed USB observer, pass-gated native
+  reboot, and bounded changed-ID recovery
+- `scripts/test-runtime-tools.py`: offline live and recovery safety mutations
 - `contract.json`: frozen writer boundary, safety scope, and decision map
-
-Candidate, installer, live probe, retained recovery, and independent container
-tooling will be added only after the exact Buildbox package exists.
 
 ## Procedure
 
@@ -107,6 +128,22 @@ independent `git apply --numstat` parsing now reports Kconfig `22/1` and C
 hardware inference. See the
 [attempt-1 receipt](results/buildbox-attempt-1-patch-reject-20260821.txt).
 
+The corrected exact commit built successfully on x86_64 Buildbox for arm64;
+no VM build occurred. The package has release
+`7.1.3-gemini-checkpoint-ctl`, contains the two exact record strings and one
+live marker exactly once, links the existing checkpoint writer plus isolated
+late initcall, and omits the clock-entry, same-value action, and GAEL markers.
+The profile keeps ten CPU nodes but `maxcpus=8`, with CPU8/CPU9 admission
+closed. See the [Buildbox result](results/build-c1d59f3.txt).
+
+Two DT constructions, raw assemblies, and padding constructions were byte-
+identical. Independent validation passed all 32 LK gates and rejected 15 DT
+mutations. The definition rejects 13 source/configuration mutations; the live
+and recovery tools reject 19 and nine unsafe mutations respectively. No
+device access occurred. Exact candidate `53e03cb...e5c` is admitted for one
+guarded boot2 deployment and one physical selection. See the
+[candidate result](results/candidate-4338ac1e.txt).
+
 ## Analysis
 
 Clock-entry candidates combined a new Image/configuration, the shared writer,
@@ -118,12 +155,16 @@ registration and probe behavior.
 
 ## Conclusion
 
-Pending Buildbox and runtime evidence. No checkpoint, persistence, or hardware-
-support claim has yet been made.
+The exact Buildbox package, proven-serviceability DT derivative, Android-v0
+container, and decision-bearing runtime/recovery tools passed offline
+validation. Candidate `53e03cb...e5c` is admitted for one guarded deployment;
+no checkpoint, persistence, or new hardware-support claim has yet been made.
 
 ## Follow-up
 
-If the live two-write oracle passes, redesign the next enabled-clock-node probe
-to expose a live result rather than relying on returned empty slots. If this
-control loses serviceability or refuses locally, stop clock and CPU8 work and
-repair the shared writer on the exact proven base. CPU8 and CPU9 remain closed.
+Guardedly deploy the exact admitted candidate, shut down, then arm the exact
+collector before the single physical selection. If the live two-write oracle
+passes, redesign the next enabled-clock-node probe to expose a live result
+rather than relying on returned empty slots. If this control loses
+serviceability or refuses locally, stop clock and CPU8 work and repair the
+shared writer on the exact proven base. CPU8 and CPU9 remain closed.

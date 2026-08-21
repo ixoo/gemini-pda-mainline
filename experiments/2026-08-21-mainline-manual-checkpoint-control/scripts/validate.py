@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the exact manual retained-checkpoint control definition."""
+"""Validate the exact manual retained-checkpoint control and admission."""
 
 from __future__ import annotations
 
@@ -210,10 +210,28 @@ def main() -> None:
     require(contract["scope"]["protected_clock_reads"] == 0, "protected read scope changed")
     require(contract["scope"]["cpu_on"] is False and contract["scope"]["cpu_off"] is False,
             "CPU scope changed")
-    require(contract["scope"]["boot_candidate"] is False,
-            "prebuild definition was promoted")
+    require(contract["build"]["repository_commit"] ==
+            "c1d59f3b1783f70e92b4ab27d11c5809f9722869",
+            "admitted build commit changed")
+    require(contract["candidate"]["padded_sha256"] ==
+            "53e03cb7100cbb355b7513320428cea8bf39c8c81da9b89a52c91cadd24e8e5c",
+            "admitted candidate changed")
+    require(contract["candidate"]["lk_gates"] == "32-of-32",
+            "LK gate result changed")
+    require(contract["offline_validation"] == {
+        "source_and_configuration_mutations_rejected": 13,
+        "dt_mutations_rejected": 15,
+        "live_runtime_mutations_rejected": 19,
+        "retained_recovery_mutations_rejected": 9,
+        "independent_raw_assemblies": "byte-identical",
+        "independent_padding_constructions": "byte-identical",
+        "device_access": False,
+        "hardware_write": False,
+    }, "offline admission evidence changed")
+    require(contract["scope"]["boot_candidate"] is True,
+            "exact offline-admitted candidate was demoted")
 
-    print("validation=mainline-manual-checkpoint-control-prebuild")
+    print("validation=mainline-manual-checkpoint-control-admission")
     print(f"profile={PROFILE}")
     print(f"profile_fragments={len(profile['fragments'])}")
     print(f"canonical_patch_count={len(series)}")
@@ -223,7 +241,7 @@ def main() -> None:
     print("cpu8_cpu9_admission=closed")
     print("device_access=none")
     print("hardware_write=none")
-    print("boot_candidate=false")
+    print("boot_candidate=true")
     print("result=pass")
 
 
