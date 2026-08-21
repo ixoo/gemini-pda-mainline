@@ -1,0 +1,86 @@
+Clock-entry observation-control runtime attempt 1
+=================================================
+
+Result: neither
+Reason: exact mainline USB did not appear before automatic Gemian return
+Artifact disposition: rejected; do not repeat
+Clock-driver initialization: not established
+Clock-backend probe entry: not established
+Protected clock/BigiDVFS transports: disabled by construction
+CPU8/CPU9 admission: closed
+
+Exact candidate
+---------------
+
+Kernel release: 7.1.3-gemini-clock-backend-entry-ledger
+Raw Android-v0 SHA-256: a36425f3e9cec23ff9281d9151e54ce780ff5abc8d98aa8df190a300a786eb4e
+Full boot2 SHA-256: fc2a9a1a53de1373cf75d14f163a5b9921219996882f58e0b5395595872230bf
+Control DTB SHA-256: dad6997c565d10dcacab23dea46166ac45f6594da2aab697b105b3fb2dcc474e
+Serviceability initramfs SHA-256: e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f
+
+Cycle attribution
+-----------------
+
+The exact candidate passed guarded deployment, independent full-partition
+readback, and clean shutdown before one owner-selected boot2 cycle. The exact
+USB/netcat collector was armed and waiting before physical selection. It
+captured no exact mainline interface before the owner reported that the device
+had returned automatically to Gemian. The obsolete listener was stopped only
+after Gemian was reachable again.
+
+Gemian boot ID changed from
+`f6d212e0-adf8-449d-a835-2cfd38a7642f` at deployment to
+`62696f5f-eea9-4686-93f8-fe6770a0551b` at recovery. No host or USB reboot
+command was sent. Screen state and elapsed return timing are not used to
+locate the boundary.
+
+Read-only recovery
+------------------
+
+- Recovery kernel: 3.18.41+ on aarch64
+- Active root: `/dev/mmcblk0p29`
+- Live-GPT boot2: `/dev/mmcblk0p30`, inactive and unmounted
+- Boot2 size/read-only state: 16777216 bytes / writable
+- Pstore directory: present
+- Pstore file count: 0
+- `driver-init` record count: 0
+- `probe-enter` record count: 0
+- Retained classification: neither
+- Slot 171 header: `444247430000000000000000`
+- Slot 172 header: `444247430000000000000000`
+- Slot 173 header: `444247430000000000000000`
+- Slot 174 header: `444247430000000000000000`
+- Each complete 4 KiB slot SHA-256:
+  `d58e2f4ee9541fa1f2a2d07247ffb6a1fa6a31fefaa83c3715fcfe4fd3ec9998`
+- Exact ledger record count across owned slots 173--174: 0
+- Owned-slot payload state: erased `0xff`; neither exact record is present
+- `/proc/last_kmsg` SHA-256:
+  `8964100f947293ded847b8ca1a9313b43624ccd5c72d120aa84234c4998e0f53`
+- `last_kmsg` disposition: known generic 74-byte header; no mainline log
+- Post-cycle full boot2 SHA-256:
+  `fc2a9a1a53de1373cf75d14f163a5b9921219996882f58e0b5395595872230bf`
+- Private pstore archive SHA-256:
+  `a9aa2249d161002b21027320452eed254225ab019d546f8207c9e1612fa4c543`
+- Private pstore manifest SHA-256:
+  `1a41c4380598891f66cdd63d4801cecb2a649c8a86649f2e3f9762b505f671da`
+
+No pstore entry was removed. Recovery performed no device-memory write,
+partition write, driver change, CPU request, reboot request, or power action.
+A redundant size-only read of `last_kmsg` was abandoned after stalling; its
+successful exact content hash already matches the known generic record.
+
+Interpretation
+--------------
+
+Changing the failed clock-entry DTB back to the package base DTB disabled the
+clock node but did not restore exact mainline serviceability. Enabled clock-node
+population is therefore not the next discriminator. The control retained the
+same Image, configuration, and built-in `driver-init` checkpoint. Empty returned
+slots cannot distinguish failure before driver init from refusal or failure in
+the shared checkpoint path, so they do not prove that the call site was absent.
+
+Do not repeat this artifact. The next non-identical device candidate must first
+re-establish the last runtime-proven serviceability boundary on the current
+canonical tree with the experimental clock-entry writer disabled and the exact
+successful DA921x same-value DT resource contract retained. It must send no
+action token and make no protected call, provider write, or CPU8/CPU9 request.

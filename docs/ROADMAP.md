@@ -4697,23 +4697,39 @@ directory positively proves the first checkpoint and registration without
 depending on returned empty RAM. See the
 [clock-entry observation control](../experiments/2026-08-21-mainline-clock-entry-observation-control/README.md).
 
+That control is now complete and stopped. Its exact collector was armed before
+the single physical selection, but no mainline USB interface appeared before
+an automatic changed-boot-ID Gemian return. Immediate recovery found empty
+pstore, all four retained slots byte-identical to the known empty image, the
+known generic `last_kmsg`, and exact unchanged boot2. Disabling the clock node
+therefore did not restore serviceability; it does not establish driver init or
+checkpoint success, and the exact artifact must not be repeated. The next
+boundary moves back to a non-identical current-tree serviceability control with
+the experimental clock-entry writer disabled and the last successful DA921x
+same-value DT resource contract retained.
+
 The next ordered work is:
 
-1. Run the one validated base-DTB control. If exact USB and the driver directory
-   appear, issue one boot-ID-gated native reboot through the USB shell and
-   require Gemian to recover `driver-init` only. If USB appears without the
-   driver, split the checkpoint gates. If USB never appears, return to the last
-   runtime-proven Image/DT baseline. Do not repeat any branch unchanged.
-2. Only after the control passes, isolate enabled clock-node population and
+1. Build and run one current-tree serviceability control derived from the last
+   runtime-proven `da921x-same-value-write` Image/DT contract. Disable the
+   clock-entry writer, retain exact DT resources `cspm`, `scp-cfg`, and
+   `devapc-ao`, and send no action token. Require exact USB/netcat, CPU0--7,
+   keyboard, and one boot-ID-gated native return; CPU8/9 and all writes remain
+   closed. Do not repeat the old successful artifact or either stopped
+   clock-entry artifact unchanged.
+2. Only after that serviceability control passes, isolate the manual checkpoint
+   mechanism independently before enabled clock-node population. Do not rely on
+   empty returned RAM as proof that a checkpoint call did not execute.
+3. Only after the checkpoint control passes, isolate enabled clock-node population and
    read-free probe entry. Do not enable or sample BigiDVFS until clock-backend
    registration and probe entry are positively established.
-3. Compose the validated readers, DA921x, and the platform-state source under
+4. Compose the validated readers, DA921x, and the platform-state source under
    one transition/hotplug owner.
-4. Revise A34 to accept only the complete direct-state ABI and applicable
+5. Revise A34 to accept only the complete direct-state ABI and applicable
    BL31 replay-clear contract, prove the atomic `CLOSED / UNINITIALIZED` to
    `AVAILABLE / IDLE` publication, and keep both CPU vetoes closed until that
    proof passes.
-5. Only then build one decision-bearing CPU8 candidate with one request,
+6. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
 The eventual CPU8 candidate must have a single CPU8 request, strict

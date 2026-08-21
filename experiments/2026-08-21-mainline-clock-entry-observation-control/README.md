@@ -2,11 +2,13 @@
 
 ## Status
 
-Source/evidence audit complete; exact non-identical control selected,
-constructed, independently validated, and deployed to inactive logical
-`boot2`. The full readback matched and Gemian is confirmed shut down. No new
-kernel build occurred. The exact USB collector must be armed before one
-physical selection.
+Complete and stopped after one physical selection. The exact collector was
+armed before selection, but no mainline USB interface appeared before the
+device returned automatically to changed-boot-ID Gemian. Immediate recovery
+found empty pstore, all four retained slots byte-identical to the known empty
+image, the known generic `last_kmsg`, and exact unchanged `boot2`. The result is
+`neither`: serviceability, clock-driver init, and probe entry were not
+established. Do not repeat this artifact.
 
 ## Question
 
@@ -78,10 +80,14 @@ readback, and clean shutdown.
 
 ## Next action
 
-Push the sanitized deployment evidence and arm the exact USB collector before
-one physical selection. Do not repeat the artifact. If exact USB appears, the
-collector will classify the live driver-registration oracle and one
-boot-ID-gated native reboot will return to Gemian for retained recovery.
+Return to the last runtime-proven Image/DT configuration boundary without
+repeating its closed artifact. Build one non-identical current-tree
+serviceability control with the experimental clock-entry writer disabled and
+the exact successful DA921x same-value DT resource contract retained. Its only
+runtime question is whether exact USB/netcat, CPU0--7, keyboard, and native
+return still work; no action token, protected call, provider write, or CPU8/9
+request is permitted. Do not re-enable the clock node or split checkpoint
+gates until that baseline passes.
 
 See [`results/candidate-a36425f3.txt`](results/candidate-a36425f3.txt) for the
 exact package, container, DT-delta, and mutation evidence.
@@ -92,3 +98,11 @@ p29. External power was present at 100%/Good, both TEE identities remained
 exact, all four retained slots were valid-empty, the full readback matched,
 no fresh backup was made, and shutdown is confirmed. See
 [`results/deployment-attempt-1-success.txt`](results/deployment-attempt-1-success.txt).
+
+The one runtime attempt changed Gemian boot ID from
+`f6d212e0-adf8-449d-a835-2cfd38a7642f` to
+`62696f5f-eea9-4686-93f8-fe6770a0551b`. The pre-armed exact collector captured
+no mainline interface. Pstore contained zero files; slots 171--174 each
+retained exact empty SHA-256 `d58e2f4e...c9998`; and post-cycle boot2 remained
+exactly `fc2a9a1a...30bf`. See
+[`results/runtime-attempt-1-neither-20260821.txt`](results/runtime-attempt-1-neither-20260821.txt).
