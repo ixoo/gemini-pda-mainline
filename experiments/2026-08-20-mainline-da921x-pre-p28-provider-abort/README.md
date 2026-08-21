@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-20-mainline-da921x-pre-p28-provider-abort` |
-| Status | stack-safe QEMU reached semantics; release-response ABI fix pending generation |
+| Status | canonical patch `0301` imported; focused Buildbox/QEMU proof pending |
 | Subsystem | MT6797 CPU8 membership owner and DA921x Buck B provider |
 | Device variant | Planet Gemini PDA named development unit |
 | Date(s) | 2026-08-20 America/New_York |
@@ -86,6 +86,13 @@ The remediation is one fail-closed production condition before proof
 construction: a noncanonical provider-call ABI becomes `-EPROTO` and follows
 the existing terminal provider-fault path. It adds no caller, hardware action,
 or production reachability.
+Buildbox generated that exact condition from clean pushed commit
+`06b4768509ff421e24110ec73b68d2f7851f8ff7`. The one-file patch passed
+pinned-parent, source, exact replay, and strict checkpatch validation with zero
+errors, warnings, or checks. Canonical patch `0301` has SHA-256
+`577316da88e4cb569c8d84670ec8090db14456789ee08c1efbfae71d8b748dd8`.
+The bounded generation result is in
+[`results/release-abi-fix-generation-attempt-1-success-20260820.txt`](results/release-abi-fix-generation-attempt-1-success-20260820.txt).
 
 ## Question or hypothesis
 
@@ -169,7 +176,7 @@ connection. A26 and A14 remain unchanged; CPU8 and CPU9 admission stays closed.
    Attempt 2 reached semantics and exposed the missing release-response ABI
    check: five cases passed and one failed.
 6. Generate and import the one-condition `0301` remediation from the exact
-   canonical `0300` parent, then rebuild and run one distinct QEMU proof.
+   canonical `0300` parent. Complete. Rebuild and run one distinct QEMU proof.
 7. Record exact package, config, Image, QEMU, and suite identities.
 
 ## Decision rule

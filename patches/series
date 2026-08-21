@@ -290,3 +290,4 @@ v7.1.3/0297-arm64-add-exact-pre-P28-A72-provider-abort.patch
 v7.1.3/0298-regulator-make-DA921x-provider-endpoint-injectable.patch
 v7.1.3/0299-regulator-test-DA921x-pre-P28-membership-abort.patch
 v7.1.3/0300-regulator-move-DA921x-membership-test-state-off-stack.patch
+v7.1.3/0301-arm64-reject-malformed-A72-provider-release-ABI.patch

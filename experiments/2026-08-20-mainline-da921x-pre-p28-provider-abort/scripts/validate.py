@@ -24,6 +24,10 @@ EXPECTED_STACK_PATCH = {
     "0300-regulator-move-DA921x-membership-test-state-off-stack.patch":
         "a4ad7024887d4477f219846abbe744ad5432b682b2a47b0329c6425ceded93da",
 }
+EXPECTED_RELEASE_ABI_PATCH = {
+    "0301-arm64-reject-malformed-A72-provider-release-ABI.patch":
+        "577316da88e4cb569c8d84670ec8090db14456789ee08c1efbfae71d8b748dd8",
+}
 
 
 def require(condition: bool, message: str) -> None:
@@ -74,7 +78,7 @@ def main() -> None:
 
     require(
         contract["status"]
-        == "release-abi-fix-generation-pending",
+        == "canonical-release-abi-fix-imported-build-pending",
             "experiment status changed")
     safety = contract["safety"]
     require(safety["default_off"] and safety["hardware_free"],
@@ -103,12 +107,14 @@ def main() -> None:
     require(contract["stack_fix_patch"]["sha256"] == stack_sha256,
             "stack-fix patch contract changed")
     release_abi = contract["release_abi_fix"]
-    require(
-        release_abi["canonical_name"]
-        == "0301-arm64-reject-malformed-A72-provider-release-ABI.patch",
-        "release-ABI canonical name changed",
+    release_name, release_sha256 = next(
+        iter(EXPECTED_RELEASE_ABI_PATCH.items())
     )
-    require(release_abi["generation"] == "pending",
+    require(release_abi["canonical_name"] == release_name,
+            "release-ABI canonical name changed")
+    require(release_abi["sha256"] == release_sha256,
+            "release-ABI patch contract changed")
+    require(release_abi["generation"] == "pass",
             "release-ABI generation status changed")
     require(release_abi["production_reachability_changed"] is False,
             "release-ABI fix changed production reachability")
@@ -119,12 +125,16 @@ def main() -> None:
     ]
     expected_suffix = [
         f"v7.1.3/{name}"
-        for name in (*EXPECTED_PATCHES, *EXPECTED_STACK_PATCH)
+        for name in (
+            *EXPECTED_PATCHES,
+            *EXPECTED_STACK_PATCH,
+            *EXPECTED_RELEASE_ABI_PATCH,
+        )
     ]
     require(canonical[-len(expected_suffix):] == expected_suffix,
             "canonical patch suffix changed")
     for name, expected_sha256 in (
-        EXPECTED_PATCHES | EXPECTED_STACK_PATCH
+        EXPECTED_PATCHES | EXPECTED_STACK_PATCH | EXPECTED_RELEASE_ABI_PATCH
     ).items():
         patch = REPO / "patches/v7.1.3" / name
         require(patch.is_file(), f"canonical patch missing: {name}")
@@ -281,8 +291,8 @@ def main() -> None:
         require(token in buildbox, f"Buildbox command token missing: {token}")
 
     print("validation=da921x-pre-p28-provider-abort-contract")
-    print("status=release-abi-fix-generation-pending")
-    print("canonical_patch_count=5")
+    print("status=canonical-release-abi-fix-imported-build-pending")
+    print("canonical_patch_count=6")
     print("logical_patches=6")
     print("kunit_cases=6")
     print("hardware_action=none")

@@ -1,0 +1,27 @@
+From cb226124a1a4f42b9a793f072f6696fcde894008 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 20 Aug 2026 20:08:00 +0000
+Subject: [PATCH 1/1] arm64: reject malformed A72 provider release ABI
+
+Require the provider call ABI before accepting release proof.
+
+Treat a mismatched callback response as terminal ambiguity.
+---
+ arch/arm64/kernel/mt6797_a72_membership.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+index 3357edd..7da7399 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -1531,6 +1531,10 @@ mt6797_a72_membership_run_provider_abort(struct mt6797_a72_transaction *transact
+ 	ret = mt6797_a72_provider_release(&handle, response);
+ 	if (ret)
+ 		goto out_fault;
++	if (response->abi != MT6797_A72_PROVIDER_CALL_ABI) {
++		ret = -EPROTO;
++		goto out_fault;
++	}
+ 
+ 	proof.abi = MT6797_A72_PROVIDER_ABORT_ABI;
+ 	proof.operation = transaction->identity.operation;

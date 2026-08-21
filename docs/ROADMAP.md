@@ -4358,8 +4358,10 @@ five passed, while malformed release-response mutation 1 showed that the abort
 wrapper did not validate the provider callback ABI before constructing its
 internal proof. Mutations 2--14 were rejected. The next ordered action is one
 pinned fail-closed patch requiring the canonical provider-call ABI before
-confirmation, followed by a distinct focused Buildbox/QEMU proof. That proof
-must pass before this roadmap advances.
+confirmation. Canonical patch `0301` now implements and strictly validates
+that four-line condition from the exact tree through `0300`. The next ordered
+action is a distinct focused Buildbox/QEMU proof. That proof must pass before
+this roadmap advances.
 
 The candidate must have a single CPU8 request, strict checkpoints before and
 after each power step, a bounded timeout, and a fail-closed rollback. CPU9
