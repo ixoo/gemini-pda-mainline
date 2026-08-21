@@ -67,7 +67,7 @@ def main() -> None:
 
     acquire = between(
         owner,
-        "int mt6797_a72_membership_run_provider_acquire(",
+        "int\nmt6797_a72_membership_run_provider_acquire(",
         "static bool\nmt6797_a72_provider_abort_proof_valid(",
     )
     abort = between(

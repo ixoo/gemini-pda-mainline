@@ -17,6 +17,11 @@ passed contract, edited-source, patch-inventory, and exact replay validation.
 Strict checkpatch rejected 74 formatting checks with zero warnings and zero
 errors, so no validated package was published. The exact bounded result is in
 [`results/patch-generation-attempt-1-checkpatch-20260820.txt`](results/patch-generation-attempt-1-checkpatch-20260820.txt).
+Attempt 2 on `0e2a1a74642d58542834cb876dc3d80b1663cd4e` applied all
+four source phases, then exposed one stale validator boundary for the newly
+wrapped acquire signature; no package was accepted. The bounded trace result
+is in
+[`results/patch-generation-attempt-2-validator-boundary-20260820.txt`](results/patch-generation-attempt-2-validator-boundary-20260820.txt).
 
 ## Question or hypothesis
 
