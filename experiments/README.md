@@ -28,8 +28,9 @@ the loop. Positive identity-gated observations are unaffected.
   one MT6797-only raw status read before watchdog initialization, an immutable
   typed snapshot, and four MMIO-free KUnit cases. Canonical patch `0303`
   passed deterministic Buildbox generation, replay, semantic validation, and
-  strict style; compile and QEMU proof remain pending. No classifier,
-  lifecycle caller, boot candidate, or device action exists.
+  strict style. Its exact Buildbox profile compiled, and the sole network-free
+  QEMU suite passed all four cases with zero failures or skips. No MT6797 MMIO,
+  classifier, lifecycle caller, boot candidate, or device action exists.
 - [2026-08-21 mainline A72 A34 provenance-owner audit](2026-08-21-mainline-a72-a34-provenance-owner-audit/README.md)
   — proves that pinned LK preserves raw TOPRGU `WDT_STATUS` and selects a
   one-read capture before mainline watchdog initialization. It separately

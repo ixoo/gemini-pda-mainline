@@ -4424,13 +4424,19 @@ call, CPU veto change, boot image, or device action. After that independent
 capture is proven, audit a strict retained-ram-console reader and the
 cold/platform-epoch combiner before implementing the production A34 owner.
 
-Canonical patch `0303` now implements that capture-only boundary. Its exact
-Buildbox generation, replay, semantic validation, and strict style checks pass,
-and isolated source and focused KUnit profiles are pinned. The next ordered
-action is the exact Buildbox compile followed by the four-case network-free
-QEMU proof. Do not begin the ram-console/cold-epoch combiner unless invalid,
-exact, every-bit, and second-capture immutability all pass without a production
-MT6797 device or MMIO access.
+Canonical patch `0303` now implements and closes that capture-only boundary.
+Its exact Buildbox generation, replay, semantic validation, strict style,
+cross-compile, and link checks pass. The sole network-free QEMU suite passes
+invalid, exact, every-bit, and second-capture immutability with zero failures
+or skips and without a production MT6797 device or MMIO access.
+
+The next ordered boundary is a strict read-only retained-ram-console and cold-
+platform-epoch combiner audit. First freeze the preloader header bounds,
+signature, record offsets, exact status values, and corruption behavior from
+the pinned LK/vendor layouts; then determine which independently observable
+tuple proves a fresh secure-platform epoch. Do not map the retained region,
+classify raw TOPRGU status, call the A34 evaluator, or publish the lifecycle
+until that audit selects a smallest separately testable implementation.
 
 The eventual CPU8 candidate must have a single CPU8 request, strict
 checkpoints before and after each power step, a bounded timeout, and a

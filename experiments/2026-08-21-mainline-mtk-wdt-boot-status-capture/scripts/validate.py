@@ -53,6 +53,23 @@ def main() -> None:
             generation["result_commit"] ==
             "74dfe36901692119a949973af6ea52fa9367a8f0",
             "validated generation identity")
+    build = contract["validated_build"]
+    require(build["repository_commit"] ==
+            "dfd8e39e7e8ad67eea31d37d0886c0bc0c60d536" and
+            build["profile"] == "mtk-wdt-boot-status-kunit" and
+            build["kernel_release"] ==
+            "7.1.3-gemini-mtk-wdt-boot-status-kunit" and
+            build["config_sha256"] ==
+            "1d3e186fc5a7c84c1847113780706db824fa95048c1facfa0137af27993305ab" and
+            build["image_sha256"] ==
+            "5ca6702e038da758f04fb39a690ea3641b823e321cb09c1ba65f36f53480b3ef",
+            "validated Buildbox build identity")
+    qemu = contract["validated_qemu"]
+    require(qemu["runner_version"] == "11.0.2" and
+            qemu["suites"] == 1 and qemu["tests"] == 4 and
+            qemu["failed"] == 0 and qemu["skipped"] == 0 and
+            qemu["result"] == "pass",
+            "validated focused QEMU identity")
 
     for script in ("source_edits.py", "validate_source.py",
                    "validate_patches.py", "classify-kunit.py",
@@ -120,8 +137,10 @@ def main() -> None:
         require(token in design, f"design token: {token}")
     require("authorizes no device work" in readme and
             "canonical patch `0303`" in readme and
-            "Compile and QEMU proof" in readme and
-            "no boot or device result is claimed" in readme,
+            "sole network-free QEMU suite passed all four" in readme and
+            "no production MMIO capture ran" in readme and
+            "There is no reset" in readme and
+            "classification, A34 caller" in readme,
             "current status is not overstated")
 
     generation_receipt = (
@@ -137,6 +156,36 @@ def main() -> None:
     ):
         require(token in generation_receipt,
                 f"generation receipt token: {token}")
+
+    build_receipt = (
+        HERE / "results/buildbox-build-validated-20260821.txt"
+    ).read_text()
+    for token in (
+        f"repository_commit={build['repository_commit']}",
+        f"package={build['package']}",
+        f"config_sha256={build['config_sha256']}",
+        f"image_sha256={build['image_sha256']}",
+        "mtk_wdt_object=compiled", "snapshot_symbol=linked",
+        "focused_kunit_symbols=4", "dtb_count=119",
+        "package_checksums=pass", "device_action=none", "result=pass",
+    ):
+        require(token in build_receipt, f"build receipt token: {token}")
+    qemu_receipt = (
+        HERE / "results/qemu-kunit-validated-20260821.txt"
+    ).read_text()
+    for token in (
+        f"repository_commit={build['repository_commit']}",
+        f"raw_log_sha256={qemu['raw_log_sha256']}",
+        "suites=1", "tests=4", "failed=0", "skipped=0",
+        "mtk_wdt_boot_status_invalid_test=pass",
+        "mtk_wdt_boot_status_exact_test=pass",
+        "mtk_wdt_boot_status_every_bit_test=pass",
+        "mtk_wdt_boot_status_immutable_test=pass",
+        "production_capture=not-executed-no-matching-device",
+        "tap_summary=pass:4_fail:0_skip:0_total:4",
+        "device_action=none", "result=pass",
+    ):
+        require(token in qemu_receipt, f"QEMU receipt token: {token}")
 
     generator = (HERE / "scripts/generate-on-buildbox").read_text()
     for token in (
@@ -183,8 +232,11 @@ def main() -> None:
     print("boot_candidate=false")
     print("buildbox_generation=pass")
     print("checkpatch_warnings=0")
-    print("buildbox_compile=pending")
-    print("qemu_kunit=pending")
+    print("buildbox_compile=pass")
+    print("qemu_suites=1")
+    print("qemu_tests=4")
+    print("qemu_failed=0")
+    print("qemu_skipped=0")
     print("result=pass")
 
 

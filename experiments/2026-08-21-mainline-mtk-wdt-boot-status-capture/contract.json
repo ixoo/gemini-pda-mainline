@@ -28,6 +28,29 @@
     "checkpatch_sha256": "baf2114408b6d89419b4f34245abbeda084d1e93c249a47d678d7cefe1ed33d5",
     "result_commit": "74dfe36901692119a949973af6ea52fa9367a8f0"
   },
+  "validated_build": {
+    "repository_commit": "dfd8e39e7e8ad67eea31d37d0886c0bc0c60d536",
+    "profile": "mtk-wdt-boot-status-kunit",
+    "kernel_release": "7.1.3-gemini-mtk-wdt-boot-status-kunit",
+    "package": "linux-7.1.3-gemini-mtk-wdt-boot-status-kunit-03e9c5d2-fa67aaa1",
+    "sha256_manifest": "3cec87b49dd8b81b866085e67eb80923e526e75199ceddfd5fce2b1966ac0dc2",
+    "build_provenance_sha256": "e5d54355b08c956a3d15a67bd07ddecbc583a66ed611736526ff363f2fd12dd3",
+    "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+    "patchset_sha256": "03e9c5d2f574a813d0588ffa967da5f655656412f7c4fd938ff4715ca2166728",
+    "config_sha256": "1d3e186fc5a7c84c1847113780706db824fa95048c1facfa0137af27993305ab",
+    "image_sha256": "5ca6702e038da758f04fb39a690ea3641b823e321cb09c1ba65f36f53480b3ef",
+    "image_gzip_sha256": "6986ac919de0e1ee8aa9e8cb12e1b73962024d31685a068cb26d9cb1fcfdecd3"
+  },
+  "validated_qemu": {
+    "observed_utc": "2026-08-21T12:36:25Z",
+    "runner_version": "11.0.2",
+    "raw_log_sha256": "582b9027fb4ccc4f4598cc497761110490eb2ccac98ab38c6297676b826800d3",
+    "suites": 1,
+    "tests": 4,
+    "failed": 0,
+    "skipped": 0,
+    "result": "pass"
+  },
   "tests": {
     "cases": ["invalid", "exact", "every-bit", "immutable"],
     "mmio": false,

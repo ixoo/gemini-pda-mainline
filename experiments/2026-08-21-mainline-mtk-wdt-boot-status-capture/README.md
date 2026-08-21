@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-21-mainline-mtk-wdt-boot-status-capture` |
-| Status | canonical patch generated and strictly validated; Buildbox proof pending |
+| Status | canonical capture-only patch proven by Buildbox compile and focused QEMU KUnit |
 | Subsystem | MediaTek TOPRGU watchdog reset-status observation |
 | Device variant | MT6797/Gemini contract; hardware-free implementation phase |
 | Date(s) | 2026-08-21 America/New_York |
@@ -61,6 +61,10 @@ reboot, or shut down hardware.
   records the first attempt's strict style rejection and cleanup boundary.
 - [`results/patch-generation-validated-20260821.txt`](results/patch-generation-validated-20260821.txt)
   records the corrected patch's exact Buildbox identity and safety result.
+- [`results/buildbox-build-validated-20260821.txt`](results/buildbox-build-validated-20260821.txt)
+  records the exact clean cross-build and package identity.
+- [`results/qemu-kunit-validated-20260821.txt`](results/qemu-kunit-validated-20260821.txt)
+  records the exact four-case focused runtime proof.
 - [`source/mtk_wdt.h`](source/mtk_wdt.h) is the deterministic new-header input.
 - [`scripts/source_edits.py`](scripts/source_edits.py) applies the source delta.
 - [`scripts/validate_source.py`](scripts/validate_source.py) enforces ordering,
@@ -118,8 +122,13 @@ review findings were corrected for a distinct second attempt. Buildbox
 generated canonical patch `0303`, replayed it byte-for-byte, passed exact
 source validation, and passed strict checkpatch with zero errors, warnings, or
 checks. The checksum-validated review package was fetched and its exact patch
-is admitted with isolated source and KUnit profiles. Compile and QEMU proof
-remain pending; no boot or device result is claimed.
+is admitted with isolated source and KUnit profiles. The exact clean Buildbox
+profile compiled and linked, all 119 DTBs and package checksums passed, and the
+validated package was fetched. Its sole network-free QEMU suite passed all four
+cases with zero failures or skips: invalid output clearing, exact-word
+round-trip, every individual bit, and second-capture immutability. QEMU had no
+matching MT6797 device, so no production MMIO capture ran. There is no reset
+classification, A34 caller, boot candidate, or device result.
 
 ## Analysis
 
@@ -138,13 +147,14 @@ not add device discovery or a production consumer.
 ## Conclusion
 
 `confirmed` for deterministic patch generation, replay, semantic validation,
-and strict style at the exact revisions. `Inconclusive` for compile and focused
-KUnit until the isolated Buildbox proof passes. This authorizes no device work.
+strict style, cross-compile, link, and the four pure snapshot behaviors at the
+exact revisions. This does not confirm physical `WDT_STATUS` values or reset
+semantics and authorizes no device work.
 
 ## Follow-up
 
 The authoritative order remains in
-[`docs/ROADMAP.md`](../../docs/ROADMAP.md). Generate and review the single
-capture-only patch, admit isolated profiles, then prove compile and the four
-focused KUnit cases on Buildbox. Only after that may the separate retained-
-ram-console/cold-platform-epoch combiner be audited.
+[`docs/ROADMAP.md`](../../docs/ROADMAP.md). The capture-only boundary is now
+closed. Audit the separate strict retained-ram-console reader and cold-
+platform-epoch combiner before adding any A34 production caller or lifecycle
+publication.
