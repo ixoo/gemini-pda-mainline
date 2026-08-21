@@ -26,6 +26,12 @@ def added_lines(text: str) -> str:
     )
 
 
+def unfolded_headers(text: str) -> str:
+    header, separator, _body = text.partition("\n\n")
+    require(bool(separator), "RFC 2822 patch header terminator")
+    return " ".join(line.strip() for line in header.splitlines())
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--patch-dir", type=Path, required=True)
@@ -50,7 +56,7 @@ def main() -> None:
 
     require(
         "Subject: [PATCH 1/2] soc: mediatek: add one-shot protected readback observer"
-        in observer,
+        in unfolded_headers(observer),
         "observer patch subject",
     )
     for path in (
@@ -65,7 +71,7 @@ def main() -> None:
 
     require(
         "Subject: [PATCH 2/2] arm64: dts: mediatek: add Gemini protected readback candidate"
-        in dts,
+        in unfolded_headers(dts),
         "candidate DT patch subject",
     )
     require("mt6797-gemini-pda-protected-readback.dts" in dts,

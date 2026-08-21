@@ -2,9 +2,11 @@
 
 ## Status
 
-Implementation is prepared for exact Buildbox generation. No patch, kernel,
-boot image, secure read, hardware semaphore access, or device action has yet
-occurred in this experiment.
+Implementation is prepared for exact Buildbox generation. The first generation
+attempt reached and passed source validation, then stopped fail-closed on a
+validator-only folded-header mismatch. No patch package was admitted, and no
+kernel build, boot image, secure read, hardware semaphore access, or device
+action has yet occurred in this experiment.
 
 ## Question
 
@@ -49,6 +51,17 @@ the candidate and keeps composition closed.
   [`contract.json`](contract.json).
 - Patch generation and kernel compilation run only on Buildbox from a clean
   pushed commit. No native VM kernel build is permitted.
+
+### Generation attempts
+
+1. At `2026-08-21T17:20:30Z`, Buildbox job
+   `192b1af59eabf69bf1993f3bc8e94c8422bca2da-protected-readback-observer-patchgen`
+   passed the complete generated-source validator, including exact call counts,
+   raw-field coverage, candidate-only enables, and absence of write/CPU/owner
+   effects. It then rejected the second patch because `git format-patch` folded
+   the long email `Subject:` header while the validator required one physical
+   line. The partial package was cleaned and no job record was promoted. This
+   is a validator false negative, not implementation or hardware evidence.
 
 The firmware prerequisite is the
 [protected-readback firmware audit](../2026-08-21-mainline-protected-readback-firmware-audit/README.md),
