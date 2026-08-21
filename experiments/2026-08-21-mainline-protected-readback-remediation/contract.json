@@ -28,6 +28,18 @@
       "patch_created": false,
       "kernel_behavior_changed_by_fix": false,
       "device_action": false
+    },
+    {
+      "repository_commit": "dfc5e400ecf49f819449b915308aeea91d383717",
+      "failure": "strict-checkpatch-rejected-patch-0316",
+      "source_validation": "pass",
+      "generated_patch_count": 3,
+      "patch_replay": "pass",
+      "strict_checkpatch": "0-errors-6-warnings-16-checks",
+      "root_cause": "raw-template-leading-backslash-and-continuation-layout",
+      "kernel_behavior_changed_by_fix": false,
+      "compile_started": false,
+      "device_action": false
     }
   ],
   "scope": {

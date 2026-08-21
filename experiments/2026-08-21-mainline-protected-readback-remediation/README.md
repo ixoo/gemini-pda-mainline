@@ -12,6 +12,17 @@ settle call. The bounded receipt is in
 The check now selects the call expression explicitly; generated kernel behavior
 is unchanged.
 
+The second generation attempt from `dfc5e400ecf4` passed source validation,
+generated all three deterministic patches, and reproduced the edited source by
+exact replay. Strict checkpatch then rejected patch `0316` with zero errors,
+six warnings, and sixteen checks: the raw-string templates emitted one leading
+backslash, and several otherwise valid continuations did not use the strict
+kernel layout. The bounded receipt is in
+[`results/buildbox-generation-attempt-dfc5e400.txt`](results/buildbox-generation-attempt-dfc5e400.txt).
+The templates now strip only their leading newline and use shorter internal
+helper names plus conventional continuations; transport ordering and effects
+are unchanged.
+
 No device kernel, boot image, partition, firmware service, or hardware
 semaphore has been used by this experiment.
 

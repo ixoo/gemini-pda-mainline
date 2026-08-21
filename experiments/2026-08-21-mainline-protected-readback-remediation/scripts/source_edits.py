@@ -19,7 +19,7 @@ def replace_once(path: Path, old: str, new: str) -> None:
     path.write_text(text.replace(old, new, 1), encoding="utf-8")
 
 
-CLOCK_INTERNAL_HEADER = dedent(r"""\
+CLOCK_INTERNAL_HEADER = dedent(r"""
 /* SPDX-License-Identifier: GPL-2.0-only */
 #ifndef __MT6797_PROTECTED_READBACK_INTERNAL_H
 #define __MT6797_PROTECTED_READBACK_INTERNAL_H
@@ -34,23 +34,21 @@ enum mt6797_dvfsp_clock_window {
 };
 
 struct mt6797_dvfsp_clock_transport_ops {
-	void (*write)(void *context, enum mt6797_dvfsp_clock_window window,
-		      u32 offset, u32 value);
-	u32 (*read)(void *context, enum mt6797_dvfsp_clock_window window,
-		    u32 offset);
+	void (*write)(void *context, u32 window, u32 offset, u32 value);
+	u32 (*read)(void *context, u32 window, u32 offset);
 	void (*delay_us)(void *context, unsigned int usec);
 	void (*settle_ns)(void *context, unsigned int nsec);
 };
 
-int mt6797_dvfsp_clock_transport_snapshot(
-	const struct mt6797_dvfsp_clock_transport_ops *ops, void *context,
-	struct mt6797_dvfsp_clock_readback *readback);
+int mt6797_clock_snapshot(const struct mt6797_dvfsp_clock_transport_ops *ops,
+                          void *context,
+                          struct mt6797_dvfsp_clock_readback *readback);
 
 #endif /* __MT6797_PROTECTED_READBACK_INTERNAL_H */
-""")
+""").lstrip("\n")
 
 
-CLOCK_SOURCE = dedent(r"""\
+CLOCK_SOURCE = dedent(r"""
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Disabled-only MT6797 MCUMIXED/DVFSP clock-window readback transport.
@@ -111,61 +109,57 @@ struct mt6797_dvfsp_clock_backend {
 	u64 sample_generation;
 };
 
-static void __iomem *
-mt6797_dvfsp_clock_window_base(struct mt6797_dvfsp_clock_backend *backend,
-				       enum mt6797_dvfsp_clock_window window)
+static void mt6797_clock_write(void *context, u32 window, u32 offset,
+			       u32 value)
 {
+	struct mt6797_dvfsp_clock_backend *backend = context;
+	void __iomem *base = backend->cspm;
+
 	if (window == MT6797_DVFSP_CLOCK_WINDOW_MCUMIXED)
-		return backend->mcumixed;
-
-	return backend->cspm;
+		base = backend->mcumixed;
+	writel(value, base + offset);
 }
 
-static void mt6797_dvfsp_clock_write(
-	void *context, enum mt6797_dvfsp_clock_window window, u32 offset,
-	u32 value)
+static u32 mt6797_clock_read(void *context, u32 window, u32 offset)
 {
 	struct mt6797_dvfsp_clock_backend *backend = context;
+	void __iomem *base = backend->cspm;
 
-	writel(value, mt6797_dvfsp_clock_window_base(backend, window) + offset);
+	if (window == MT6797_DVFSP_CLOCK_WINDOW_MCUMIXED)
+		base = backend->mcumixed;
+	return readl(base + offset);
 }
 
-static u32 mt6797_dvfsp_clock_read(
-	void *context, enum mt6797_dvfsp_clock_window window, u32 offset)
-{
-	struct mt6797_dvfsp_clock_backend *backend = context;
-
-	return readl(mt6797_dvfsp_clock_window_base(backend, window) + offset);
-}
-
-static void mt6797_dvfsp_clock_delay_us(void *context, unsigned int usec)
+static void mt6797_clock_delay_us(void *context, unsigned int usec)
 {
 	udelay(usec);
 }
 
-static void mt6797_dvfsp_clock_settle_ns(void *context, unsigned int nsec)
+static void mt6797_clock_settle_ns(void *context, unsigned int nsec)
 {
 	ndelay(nsec);
 }
 
 static const struct mt6797_dvfsp_clock_transport_ops
 mt6797_dvfsp_clock_ops = {
-	.write = mt6797_dvfsp_clock_write,
-	.read = mt6797_dvfsp_clock_read,
-	.delay_us = mt6797_dvfsp_clock_delay_us,
-	.settle_ns = mt6797_dvfsp_clock_settle_ns,
+	.write = mt6797_clock_write,
+	.read = mt6797_clock_read,
+	.delay_us = mt6797_clock_delay_us,
+	.settle_ns = mt6797_clock_settle_ns,
 };
 
-static int mt6797_dvfsp_clock_semaphore_acquire(
-	const struct mt6797_dvfsp_clock_transport_ops *ops, void *context)
+static int
+mt6797_clock_acquire(const struct mt6797_dvfsp_clock_transport_ops *ops,
+		     void *context)
 {
+	const u32 cspm = MT6797_DVFSP_CLOCK_WINDOW_CSPM;
 	unsigned int i;
 
 	for (i = 0; i < MT6797_DVFSP_SEMAPHORE_RETRIES; i++) {
-		ops->write(context, MT6797_DVFSP_CLOCK_WINDOW_CSPM,
+		ops->write(context, cspm,
 			   MT6797_DVFSP_SEMAPHORE,
 			   MT6797_DVFSP_SEMAPHORE_REQUEST);
-		if (ops->read(context, MT6797_DVFSP_CLOCK_WINDOW_CSPM,
+		if (ops->read(context, cspm,
 			      MT6797_DVFSP_SEMAPHORE) &
 		    MT6797_DVFSP_SEMAPHORE_HELD)
 			return 0;
@@ -175,18 +169,21 @@ static int mt6797_dvfsp_clock_semaphore_acquire(
 	return -ETIMEDOUT;
 }
 
-static int mt6797_dvfsp_clock_semaphore_release(
-	const struct mt6797_dvfsp_clock_transport_ops *ops, void *context)
+static int
+mt6797_clock_release(const struct mt6797_dvfsp_clock_transport_ops *ops,
+		     void *context)
 {
+	const u32 cspm = MT6797_DVFSP_CLOCK_WINDOW_CSPM;
 	unsigned int i;
+	u32 semaphore;
 
 	for (i = 0; i < MT6797_DVFSP_SEMAPHORE_RETRIES; i++) {
-		ops->write(context, MT6797_DVFSP_CLOCK_WINDOW_CSPM,
+		ops->write(context, cspm,
 			   MT6797_DVFSP_SEMAPHORE,
 			   MT6797_DVFSP_SEMAPHORE_REQUEST);
-		if (!(ops->read(context, MT6797_DVFSP_CLOCK_WINDOW_CSPM,
-			       MT6797_DVFSP_SEMAPHORE) &
-		      MT6797_DVFSP_SEMAPHORE_HELD))
+		semaphore = ops->read(context, cspm,
+				      MT6797_DVFSP_SEMAPHORE);
+		if (!(semaphore & MT6797_DVFSP_SEMAPHORE_HELD))
 			return 0;
 		ops->delay_us(context, MT6797_DVFSP_SEMAPHORE_POLL_US);
 	}
@@ -194,11 +191,13 @@ static int mt6797_dvfsp_clock_semaphore_release(
 	return -ETIMEDOUT;
 }
 
-int mt6797_dvfsp_clock_transport_snapshot(
-	const struct mt6797_dvfsp_clock_transport_ops *ops, void *context,
-	struct mt6797_dvfsp_clock_readback *readback)
+int mt6797_clock_snapshot(const struct mt6797_dvfsp_clock_transport_ops *ops,
+			  void *context,
+			  struct mt6797_dvfsp_clock_readback *readback)
 {
 	struct mt6797_dvfsp_clock_readback observed = { };
+	const u32 cspm = MT6797_DVFSP_CLOCK_WINDOW_CSPM;
+	const u32 mcumixed = MT6797_DVFSP_CLOCK_WINDOW_MCUMIXED;
 	unsigned int i;
 	int ret;
 
@@ -209,46 +208,39 @@ int mt6797_dvfsp_clock_transport_snapshot(
 	    !ops->settle_ns)
 		return -EINVAL;
 
-	ops->write(context, MT6797_DVFSP_CLOCK_WINDOW_CSPM,
+	ops->write(context, cspm,
 		   MT6797_DVFSP_CSPM_POWERON_EN,
 		   MT6797_DVFSP_CSPM_POWERON_VALUE);
-	ops->read(context, MT6797_DVFSP_CLOCK_WINDOW_CSPM,
+	ops->read(context, cspm,
 		  MT6797_DVFSP_CSPM_POWERON_EN);
 
-	ret = mt6797_dvfsp_clock_semaphore_acquire(ops, context);
+	ret = mt6797_clock_acquire(ops, context);
 	if (ret)
 		return ret;
 
 	/* The recovered owner requires this boundary before MCUMIXED access. */
 	ops->settle_ns(context, MT6797_DVFSP_SEMAPHORE_SETTLE_NS);
-	observed.armplldiv_muxsel = ops->read(
-		context, MT6797_DVFSP_CLOCK_WINDOW_MCUMIXED,
-		MT6797_ARMPLLDIV_MUXSEL);
-	observed.armplldiv_ckdiv = ops->read(
-		context, MT6797_DVFSP_CLOCK_WINDOW_MCUMIXED,
-		MT6797_ARMPLLDIV_CKDIV);
+	observed.armplldiv_muxsel = ops->read(context, mcumixed,
+					      MT6797_ARMPLLDIV_MUXSEL);
+	observed.armplldiv_ckdiv = ops->read(context, mcumixed,
+					     MT6797_ARMPLLDIV_CKDIV);
 	for (i = 0; i < MT6797_ARMPLL_WORDS; i++) {
-		observed.pll_ll[i] = ops->read(
-			context, MT6797_DVFSP_CLOCK_WINDOW_MCUMIXED,
+		observed.pll_ll[i] = ops->read(context, mcumixed,
 			MT6797_ARMPLL_LL + i * sizeof(u32));
-		observed.pll_l[i] = ops->read(
-			context, MT6797_DVFSP_CLOCK_WINDOW_MCUMIXED,
+		observed.pll_l[i] = ops->read(context, mcumixed,
 			MT6797_ARMPLL_L + i * sizeof(u32));
-		observed.pll_cci[i] = ops->read(
-			context, MT6797_DVFSP_CLOCK_WINDOW_MCUMIXED,
+		observed.pll_cci[i] = ops->read(context, mcumixed,
 			MT6797_ARMPLL_CCI + i * sizeof(u32));
 	}
 
 	for (i = 0; i < ARRAY_SIZE(mt6797_dvfsp_cspm_swctrl_offset); i++)
-		observed.cspm_swctrl[i] = ops->read(
-			context, MT6797_DVFSP_CLOCK_WINDOW_CSPM,
+		observed.cspm_swctrl[i] = ops->read(context, cspm,
 			mt6797_dvfsp_cspm_swctrl_offset[i]);
 	for (i = 0; i < ARRAY_SIZE(mt6797_dvfsp_cspm_hwsta_offset); i++)
-		observed.cspm_hwsta[i] = ops->read(
-			context, MT6797_DVFSP_CLOCK_WINDOW_CSPM,
+		observed.cspm_hwsta[i] = ops->read(context, cspm,
 			mt6797_dvfsp_cspm_hwsta_offset[i]);
 
-	ret = mt6797_dvfsp_clock_semaphore_release(ops, context);
+	ret = mt6797_clock_release(ops, context);
 	if (ret)
 		return ret;
 
@@ -262,8 +254,8 @@ mt6797_dvfsp_clock_mark_fault(struct mt6797_dvfsp_clock_backend *backend)
 	backend->faulted = true;
 }
 
-int mt6797_dvfsp_clock_backend_read(
-	struct device *dev, struct mt6797_dvfsp_clock_readback *readback)
+int mt6797_dvfsp_clock_backend_read(struct device *dev,
+				    struct mt6797_dvfsp_clock_readback *readback)
 {
 	struct mt6797_dvfsp_clock_readback observed = { };
 	struct mt6797_dvfsp_clock_backend *backend;
@@ -292,8 +284,8 @@ int mt6797_dvfsp_clock_backend_read(
 
 	local_irq_save(flags);
 	spin_lock(&backend->semaphore_lock);
-	ret = mt6797_dvfsp_clock_transport_snapshot(
-		&mt6797_dvfsp_clock_ops, backend, &observed);
+	ret = mt6797_clock_snapshot(&mt6797_dvfsp_clock_ops, backend,
+				     &observed);
 	if (ret) {
 		mt6797_dvfsp_clock_mark_fault(backend);
 		goto out_spin;
@@ -325,8 +317,8 @@ static int mt6797_dvfsp_clock_backend_probe(struct platform_device *pdev)
 	if (!backend)
 		return -ENOMEM;
 
-	backend->mcumixed = devm_platform_ioremap_resource_byname(
-		pdev, "mcumixed");
+	backend->mcumixed = devm_platform_ioremap_resource_byname(pdev,
+							 "mcumixed");
 	if (IS_ERR(backend->mcumixed))
 		return PTR_ERR(backend->mcumixed);
 
@@ -365,10 +357,10 @@ module_platform_driver(mt6797_dvfsp_clock_backend_driver);
 
 MODULE_DESCRIPTION("MT6797 protected CPU clock readback transport");
 MODULE_LICENSE("GPL");
-""")
+""").lstrip("\n")
 
 
-BIGIDVFS_HEADER_EXTENSION = dedent(r"""\
+BIGIDVFS_HEADER_EXTENSION = dedent(r"""
 
 #include <linux/soc/mediatek/mt6797-bigidvfs-backend.h>
 
@@ -376,13 +368,14 @@ struct mt6797_bigidvfs_transport_ops {
 	int (*read)(void *context, u32 address, u32 *value);
 };
 
-int mt6797_bigidvfs_transport_snapshot(
-	const struct mt6797_bigidvfs_transport_ops *ops, void *context,
-	struct mt6797_bigidvfs_readback *readback);
-""")
+int
+mt6797_bigidvfs_snapshot(const struct mt6797_bigidvfs_transport_ops *ops,
+			 void *context,
+			 struct mt6797_bigidvfs_readback *readback);
+""").lstrip("\n")
 
 
-BIGIDVFS_SOURCE = dedent(r"""\
+BIGIDVFS_SOURCE = dedent(r"""
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Disabled-only MT6797 BigiDVFS secure-register readback transport.
@@ -458,9 +451,10 @@ static const struct mt6797_bigidvfs_transport_ops mt6797_bigidvfs_ops = {
 	.read = mt6797_bigidvfs_secure_read,
 };
 
-static int mt6797_bigidvfs_read_sample(
-	const struct mt6797_bigidvfs_transport_ops *ops, void *context,
-	struct mt6797_bigidvfs_raw_sample *sample)
+static int
+mt6797_bigidvfs_read_sample(const struct mt6797_bigidvfs_transport_ops *ops,
+			    void *context,
+			    struct mt6797_bigidvfs_raw_sample *sample)
 {
 	unsigned int i;
 	int ret;
@@ -475,9 +469,10 @@ static int mt6797_bigidvfs_read_sample(
 	return 0;
 }
 
-int mt6797_bigidvfs_transport_snapshot(
-	const struct mt6797_bigidvfs_transport_ops *ops, void *context,
-	struct mt6797_bigidvfs_readback *readback)
+int
+mt6797_bigidvfs_snapshot(const struct mt6797_bigidvfs_transport_ops *ops,
+			 void *context,
+			 struct mt6797_bigidvfs_readback *readback)
 {
 	struct mt6797_bigidvfs_raw_sample first = { };
 	struct mt6797_bigidvfs_raw_sample second = { };
@@ -507,14 +502,14 @@ int mt6797_bigidvfs_transport_snapshot(
 	return 0;
 }
 
-static void mt6797_bigidvfs_mark_fault(
-	struct mt6797_bigidvfs_backend *backend)
+static void
+mt6797_bigidvfs_mark_fault(struct mt6797_bigidvfs_backend *backend)
 {
 	backend->faulted = true;
 }
 
-int mt6797_bigidvfs_backend_read(
-	struct device *dev, struct mt6797_bigidvfs_readback *readback)
+int mt6797_bigidvfs_backend_read(struct device *dev,
+				 struct mt6797_bigidvfs_readback *readback)
 {
 	struct mt6797_bigidvfs_readback observed = { };
 	struct mt6797_bigidvfs_backend *backend;
@@ -536,8 +531,8 @@ int mt6797_bigidvfs_backend_read(
 		goto out_unlock;
 	}
 
-	ret = mt6797_bigidvfs_transport_snapshot(
-		&mt6797_bigidvfs_ops, backend, &observed);
+	ret = mt6797_bigidvfs_snapshot(&mt6797_bigidvfs_ops, backend,
+					&observed);
 	if (ret) {
 		if (ret != -EAGAIN)
 			mt6797_bigidvfs_mark_fault(backend);
@@ -595,10 +590,10 @@ module_platform_driver(mt6797_bigidvfs_backend_driver);
 
 MODULE_DESCRIPTION("Disabled MT6797 BigiDVFS secure readback transport");
 MODULE_LICENSE("GPL");
-""")
+""").lstrip("\n")
 
 
-TEST_SOURCE = dedent(r"""\
+TEST_SOURCE = dedent(r"""
 // SPDX-License-Identifier: GPL-2.0-only
 #include <kunit/test.h>
 #include <linux/errno.h>
@@ -622,7 +617,7 @@ enum mt6797_clock_test_event_kind {
 
 struct mt6797_clock_test_event {
 	enum mt6797_clock_test_event_kind kind;
-	enum mt6797_dvfsp_clock_window window;
+	u32 window;
 	u32 offset;
 	u32 value;
 };
@@ -642,10 +637,9 @@ struct mt6797_bigidvfs_test_state {
 	bool unstable;
 };
 
-static void mt6797_clock_test_record(
-	struct mt6797_clock_test_state *state,
-	enum mt6797_clock_test_event_kind kind,
-	enum mt6797_dvfsp_clock_window window, u32 offset, u32 value)
+static void mt6797_clock_test_record(struct mt6797_clock_test_state *state,
+				     enum mt6797_clock_test_event_kind kind,
+				     u32 window, u32 offset, u32 value)
 {
 	struct mt6797_clock_test_event *event;
 
@@ -658,16 +652,14 @@ static void mt6797_clock_test_record(
 	event->value = value;
 }
 
-static void mt6797_clock_test_write(
-	void *context, enum mt6797_dvfsp_clock_window window, u32 offset,
-	u32 value)
+static void mt6797_clock_test_write(void *context, u32 window, u32 offset,
+				    u32 value)
 {
 	mt6797_clock_test_record(context, MT6797_CLOCK_TEST_WRITE, window,
 				 offset, value);
 }
 
-static u32 mt6797_clock_test_read(
-	void *context, enum mt6797_dvfsp_clock_window window, u32 offset)
+static u32 mt6797_clock_test_read(void *context, u32 window, u32 offset)
 {
 	struct mt6797_clock_test_state *state = context;
 	u32 value = ((u32)window << 28) | offset;
@@ -725,16 +717,18 @@ mt6797_bigidvfs_test_ops = {
 	.read = mt6797_bigidvfs_test_read,
 };
 
-static void mt6797_expect_clock_zero(
-	struct kunit *test, const struct mt6797_dvfsp_clock_readback *readback)
+static void
+mt6797_expect_clock_zero(struct kunit *test,
+			 const struct mt6797_dvfsp_clock_readback *readback)
 {
 	struct mt6797_dvfsp_clock_readback zero = { };
 
 	KUNIT_EXPECT_EQ(test, memcmp(readback, &zero, sizeof(*readback)), 0);
 }
 
-static void mt6797_expect_bigidvfs_zero(
-	struct kunit *test, const struct mt6797_bigidvfs_readback *readback)
+static void
+mt6797_expect_bigidvfs_zero(struct kunit *test,
+			    const struct mt6797_bigidvfs_readback *readback)
 {
 	struct mt6797_bigidvfs_readback zero = { };
 
@@ -751,8 +745,7 @@ static void mt6797_clock_snapshot_order_test(struct kunit *test)
 	state = kunit_kzalloc(test, sizeof(*state), GFP_KERNEL);
 	KUNIT_ASSERT_NOT_NULL(test, state);
 	memset(&readback, 0xa5, sizeof(readback));
-	ret = mt6797_dvfsp_clock_transport_snapshot(
-		&mt6797_clock_test_ops, state, &readback);
+	ret = mt6797_clock_snapshot(&mt6797_clock_test_ops, state, &readback);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	KUNIT_ASSERT_EQ(test, state->event_count, 25U);
 	KUNIT_EXPECT_EQ(test, state->events[2].kind,
@@ -792,8 +785,7 @@ static void mt6797_clock_acquire_timeout_test(struct kunit *test)
 	KUNIT_ASSERT_NOT_NULL(test, state);
 	state->acquire_timeout = true;
 	memset(&readback, 0xa5, sizeof(readback));
-	ret = mt6797_dvfsp_clock_transport_snapshot(
-		&mt6797_clock_test_ops, state, &readback);
+	ret = mt6797_clock_snapshot(&mt6797_clock_test_ops, state, &readback);
 	KUNIT_EXPECT_EQ(test, ret, -ETIMEDOUT);
 	KUNIT_EXPECT_EQ(test, state->semaphore_reads, 200U);
 	KUNIT_EXPECT_EQ(test, state->event_count, 602U);
@@ -810,8 +802,7 @@ static void mt6797_clock_release_timeout_test(struct kunit *test)
 	KUNIT_ASSERT_NOT_NULL(test, state);
 	state->release_timeout = true;
 	memset(&readback, 0xa5, sizeof(readback));
-	ret = mt6797_dvfsp_clock_transport_snapshot(
-		&mt6797_clock_test_ops, state, &readback);
+	ret = mt6797_clock_snapshot(&mt6797_clock_test_ops, state, &readback);
 	KUNIT_EXPECT_EQ(test, ret, -ETIMEDOUT);
 	KUNIT_EXPECT_EQ(test, state->semaphore_reads, 201U);
 	KUNIT_EXPECT_EQ(test, state->event_count, 623U);
@@ -835,8 +826,8 @@ static void mt6797_bigidvfs_snapshot_order_test(struct kunit *test)
 	int ret;
 
 	memset(&readback, 0xa5, sizeof(readback));
-	ret = mt6797_bigidvfs_transport_snapshot(
-		&mt6797_bigidvfs_test_ops, &state, &readback);
+	ret = mt6797_bigidvfs_snapshot(&mt6797_bigidvfs_test_ops, &state,
+					&readback);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	KUNIT_EXPECT_EQ(test, state.calls, 8U);
 	KUNIT_EXPECT_EQ(test, memcmp(state.addresses, expected,
@@ -858,8 +849,8 @@ static void mt6797_bigidvfs_faults_test(struct kunit *test)
 		memset(&state, 0, sizeof(state));
 		state.fault_call = fault;
 		memset(&readback, 0xa5, sizeof(readback));
-		ret = mt6797_bigidvfs_transport_snapshot(
-			&mt6797_bigidvfs_test_ops, &state, &readback);
+		ret = mt6797_bigidvfs_snapshot(&mt6797_bigidvfs_test_ops,
+					       &state, &readback);
 		KUNIT_EXPECT_EQ(test, ret, -EIO);
 		KUNIT_EXPECT_EQ(test, state.calls, fault);
 		mt6797_expect_bigidvfs_zero(test, &readback);
@@ -875,8 +866,8 @@ static void mt6797_bigidvfs_unstable_test(struct kunit *test)
 	int ret;
 
 	memset(&readback, 0xa5, sizeof(readback));
-	ret = mt6797_bigidvfs_transport_snapshot(
-		&mt6797_bigidvfs_test_ops, &state, &readback);
+	ret = mt6797_bigidvfs_snapshot(&mt6797_bigidvfs_test_ops, &state,
+					&readback);
 	KUNIT_EXPECT_EQ(test, ret, -EAGAIN);
 	KUNIT_EXPECT_EQ(test, state.calls, 8U);
 	mt6797_expect_bigidvfs_zero(test, &readback);
@@ -900,7 +891,7 @@ static struct kunit_suite mt6797_protected_readback_suite = {
 kunit_test_suite(mt6797_protected_readback_suite);
 
 MODULE_LICENSE("GPL");
-""")
+""").lstrip("\n")
 
 
 def apply_clock(root: Path) -> None:

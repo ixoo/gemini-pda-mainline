@@ -37,7 +37,7 @@ def main() -> None:
 
     for token in (
         "MT6797_DVFSP_SEMAPHORE_SETTLE_NS\t200",
-        "int mt6797_dvfsp_clock_transport_snapshot",
+        "mt6797_clock_snapshot(",
         "memset(readback, 0, sizeof(*readback))",
         "ops->settle_ns(context, MT6797_DVFSP_SEMAPHORE_SETTLE_NS)",
         "*readback = observed",
@@ -45,14 +45,14 @@ def main() -> None:
         require(token in clock, f"clock token: {token}")
     clock_snapshot = body(
         clock,
-        "int mt6797_dvfsp_clock_transport_snapshot",
+        "mt6797_clock_snapshot(",
         "static void\nmt6797_dvfsp_clock_mark_fault",
     )
     require(
-        clock_snapshot.index("mt6797_dvfsp_clock_semaphore_acquire")
+        clock_snapshot.index("mt6797_clock_acquire")
         < clock_snapshot.index("ops->settle_ns(context")
         < clock_snapshot.index("observed.armplldiv_muxsel")
-        < clock_snapshot.index("mt6797_dvfsp_clock_semaphore_release")
+        < clock_snapshot.index("mt6797_clock_release")
         < clock_snapshot.index("*readback = observed"),
         "clock acquire-settle-read-release-publish order",
     )
@@ -68,14 +68,14 @@ def main() -> None:
         "clock caller record cleared before device validation",
     )
     require(
-        wrapper.index("mt6797_dvfsp_clock_transport_snapshot")
+        wrapper.index("mt6797_clock_snapshot")
         < wrapper.index("++backend->sample_generation")
         < wrapper.index("*readback = observed"),
         "clock generation and publication after complete transport",
     )
 
     for token in (
-        "int mt6797_bigidvfs_transport_snapshot",
+        "mt6797_bigidvfs_snapshot(",
         "mt6797_bigidvfs_read_sample(ops, context, &first)",
         "mt6797_bigidvfs_read_sample(ops, context, &second)",
         "memcmp(&first, &second, sizeof(first))",
@@ -85,7 +85,7 @@ def main() -> None:
         require(token in big, f"BigiDVFS token: {token}")
     big_snapshot = body(
         big,
-        "int mt6797_bigidvfs_transport_snapshot",
+        "mt6797_bigidvfs_snapshot(",
         "static void mt6797_bigidvfs_mark_fault",
     )
     require(big_snapshot.count("mt6797_bigidvfs_read_sample(") == 2,
@@ -112,7 +112,7 @@ def main() -> None:
         "BigiDVFS caller record cleared before device validation",
     )
     require(
-        big_wrapper.index("mt6797_bigidvfs_transport_snapshot")
+        big_wrapper.index("mt6797_bigidvfs_snapshot")
         < big_wrapper.index("++backend->sample_generation")
         < big_wrapper.index("*readback = observed"),
         "BigiDVFS generation and publication after stable transport",
@@ -123,8 +123,8 @@ def main() -> None:
     for token in (
         "struct mt6797_dvfsp_clock_transport_ops",
         "struct mt6797_bigidvfs_transport_ops",
-        "mt6797_dvfsp_clock_transport_snapshot",
-        "mt6797_bigidvfs_transport_snapshot",
+        "mt6797_clock_snapshot",
+        "mt6797_bigidvfs_snapshot",
     ):
         require(token in internal, f"internal test seam: {token}")
 
