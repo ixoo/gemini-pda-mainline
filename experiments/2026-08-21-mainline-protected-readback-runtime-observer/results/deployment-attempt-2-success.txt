@@ -1,0 +1,52 @@
+Protected-readback candidate deployment attempt 2
+=================================================
+
+Result: write-synced-flushed-full-readback-verified
+Evidence completed by: 2026-08-21T17:51:16Z
+Shutdown: confirmed unreachable
+Reboot: no
+
+Prerequisite and target gates
+-----------------------------
+
+Live kernel: 3.18.41+
+Live architecture: aarch64
+tee1 target: /dev/mmcblk0p24
+tee2 target: /dev/mmcblk0p25
+tee1 SHA-256: 2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3
+tee2 SHA-256: 2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3
+Power: battery present, 40%, Good, one external source online
+Logical target: boot2
+Resolved target: /dev/mmcblk0p30
+Active root: /dev/mmcblk0p29
+Target inactive: yes
+Target unmounted: yes
+Target writable: yes
+Target size: 16777216
+
+Write and readback
+------------------
+
+Predecessor SHA-256: 85dbd8d020cc6d3527743f05d4a1071a8f573407a5519ae1584127e55e33bae9
+Fresh predecessor backup: no
+Candidate SHA-256: 30ec9c56d6be78635f0ccf3ea626727763d71590c23778774c5c6366e4a5e75a
+Device-side post-flush SHA-256: 30ec9c56d6be78635f0ccf3ea626727763d71590c23778774c5c6366e4a5e75a
+Independent streamed readback SHA-256: 30ec9c56d6be78635f0ccf3ea626727763d71590c23778774c5c6366e4a5e75a
+Independent byte comparison: match
+Temporary readback removed: yes
+
+Shutdown
+--------
+
+Evidence synchronized before shutdown: yes
+Clean poweroff requested: yes
+Post-poweroff SSH reachability: unreachable
+Automatic reboot requested: no
+Next action: owner physically selects boot2 once
+
+Private evidence SHA256SUMS:
+304c266b87c447f1a7489b7b2696b9e50de4da938b9fc0a2bccdd5ae973132e8
+
+This proves the exact bytes installed in logical boot2 and the required clean
+handoff to the owner. It does not prove physical boot selection, kernel entry,
+either protected-readback transport, or runtime serviceability.

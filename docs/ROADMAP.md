@@ -4607,15 +4607,19 @@ candidate DTB at commit `1bd49d9`. Package provenance, configuration, linked
 symbols, and a decompiled DTB comparison pass offline: the derivative changes
 only the model label, enables the two read-only backends, and adds the one-shot
 observer. This is build evidence, not runtime evidence, and no device action
-has occurred for it.
+was justified by it alone.
+
+The exact Android-v0/LK candidate is now assembled and independently validated,
+both live TEE identities match the audited payload, and guarded logical
+`boot2` deployment has a matching full-partition readback followed by confirmed
+shutdown. The remaining action in this gate is one physical `boot2` selection
+and its strict runtime classification; deployment alone is not runtime evidence.
 
 The next ordered work is:
 
-1. Assemble that exact kernel and candidate DTB with the pinned serviceability
-   initramfs into an independently reproduced and validated Android-v0/LK
-   candidate. Require the exact live `tee1` and `tee2` identities, guarded
-   `boot2` installation with full readback and shutdown, then one physical boot
-   yielding exact raw records, no CPU request, and ordinary A53/USB/console
+1. Physically select the exact installed `boot2` candidate once. Require one
+   clock record, one BigiDVFS record, the terminal completion receipt, no CPU
+   request, CPUs 0--7 online with 8--9 offline, and ordinary USB/console
    serviceability before interpreting the result.
 2. Compose the validated readers, DA921x, and the platform-state source under
    one transition/hotplug owner.

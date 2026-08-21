@@ -5,9 +5,10 @@
 Buildbox generation, canonical admission, the exact isolated kernel build, and
 offline boot-image validation are complete. The package, merged configuration,
 linked symbols, candidate DTB, and Android-v0/LK container pass their exact
-gates. The live TEE identity gate also passes; guarded deployment is deferred
-only by the power gate. No protected firmware API read, hardware semaphore
-access, `boot2` write, or boot has yet occurred in this experiment.
+gates. The live TEE identity gate and guarded `boot2` deployment now pass, and
+the device is shut down awaiting one physical `boot2` selection. No protected
+firmware API read, hardware semaphore access, or candidate boot has yet occurred
+in this experiment.
 
 One guarded deployment attempt reached the exact known-good Gemian system. An
 independent live-GPT check then confirmed that both unmounted 5 MiB `tee1` and
@@ -17,6 +18,14 @@ was online; its gate requires at least 40% with external power or 80% without
 it. The device was deliberately left running because no successful write had
 occurred. See
 [`results/deployment-attempt-1-power-gate.txt`](results/deployment-attempt-1-power-gate.txt).
+
+After AC came online and the battery reached 40%, attempt 2 re-ran every gate.
+It resolved inactive, unmounted logical `boot2` as `/dev/mmcblk0p30`, recorded
+the predecessor checksum, wrote the exact padded candidate, synchronized and
+flushed it, and obtained matching device-side and independently streamed
+full-partition readback checksums. The temporary readback was removed and the
+device cleanly powered off; it was confirmed unreachable and was not rebooted.
+See [`results/deployment-attempt-2-success.txt`](results/deployment-attempt-2-success.txt).
 
 ## Question
 
@@ -174,10 +183,8 @@ protected-state/resource owner, a DA921x provider path, or a CPU transition.
 
 ## Decision rule
 
-The generation, canonical admission, Buildbox link, and exact candidate-DTB
-validation gates now pass. Assemble only that package with the pinned
-serviceability initramfs into one independently reproduced and validated
-Android-v0/LK candidate. Require the named live TEE identities before guarded
-deployment, then spend one physical `boot2` selection on the stated runtime
-classifier. Composition under the transition owner remains the next gate and
-cannot begin from compile-only or partial runtime evidence.
+The generation, canonical admission, Buildbox link, candidate-DTB, container,
+live TEE, guarded deployment, full-readback, and shutdown gates now pass. Spend
+one physical `boot2` selection on the stated runtime classifier. Composition
+under the transition owner remains the next gate and cannot begin from
+compile-only, deployment-only, or partial runtime evidence.

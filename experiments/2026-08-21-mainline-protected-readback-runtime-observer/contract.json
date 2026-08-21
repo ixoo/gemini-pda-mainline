@@ -101,8 +101,10 @@
     "probe_device_actions": false
   },
   "deployment": {
-    "result": "deferred_power_gate",
-    "attempts": 1,
+    "result": "write_synced_flushed_full_readback_verified_shutdown",
+    "attempt_count": 2,
+    "attempt_1_result": "deferred_power_gate",
+    "attempt_2_result": "success",
     "live_os": "3.18.41+",
     "live_architecture": "aarch64",
     "tee1_target": "/dev/mmcblk0p24",
@@ -112,13 +114,22 @@
     "tee2_sha256": "2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3",
     "power_recheck_utc": "2026-08-21T17:46:35Z",
     "battery_present": true,
-    "battery_capacity_percent": 38,
+    "battery_capacity_percent_at_write": 40,
     "battery_health": "Good",
-    "external_power_online": false,
-    "candidate_staged": false,
-    "boot2_written": false,
-    "shutdown_requested": false,
-    "next_action": "retry after the documented power threshold passes"
+    "external_power_online_at_write": true,
+    "boot2_target": "/dev/mmcblk0p30",
+    "active_root": "/dev/mmcblk0p29",
+    "predecessor_sha256": "85dbd8d020cc6d3527743f05d4a1071a8f573407a5519ae1584127e55e33bae9",
+    "candidate_sha256": "30ec9c56d6be78635f0ccf3ea626727763d71590c23778774c5c6366e4a5e75a",
+    "readback_sha256": "30ec9c56d6be78635f0ccf3ea626727763d71590c23778774c5c6366e4a5e75a",
+    "fresh_predecessor_backup": false,
+    "candidate_staged": true,
+    "boot2_written": true,
+    "temporary_readback_removed": true,
+    "shutdown_confirmed_unreachable": true,
+    "reboot_requested": false,
+    "private_evidence_manifest_sha256": "304c266b87c447f1a7489b7b2696b9e50de4da938b9fc0a2bccdd5ae973132e8",
+    "next_action": "owner physically selects boot2 once"
   },
   "runtime": null,
   "named_firmware_gate": {
@@ -143,7 +154,7 @@
     "cpu8_cpu9_admission": "closed",
     "device_access": true,
     "device_partition_reads": ["tee1", "tee2"],
-    "device_storage_write": false,
+    "device_storage_write": "logical_boot2_only",
     "boot_candidate": true
   }
 }
