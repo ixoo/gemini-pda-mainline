@@ -1,0 +1,62 @@
+Protected-readback observer Android-v0/LK candidate
+===================================================
+
+Result: pass
+Boot candidate: true
+Device access: none
+Hardware write: none
+
+Inputs
+------
+
+Kernel package: linux-7.1.3-gemini-protected-readback-observer-e90eb76f-50826861
+Repository commit: 1bd49d97673731509f0e2c7dcadbb2f03ed343ca
+Build profile: protected-readback-observer
+Kernel release: 7.1.3-gemini-protected-readback-ro
+Image: 670d963560c654df75f7282959141a0170d04eb2babf26a9ea56869e321b36e3
+Image.gz: 95d11ee7f26cba1085d24af60f6d60b029fcaf8dfca3e93df5e9bbf55dc013e5
+Candidate DTB: 34f24e49600e16e9b00f25ecba1d0806c4ce325944e176acccc6751a236b8998
+Serviceability initramfs: e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f
+Serializer: 569ca6f2b365f119c8c3668cb3d63724b29e76447e47638d707983ee8eafadf4
+LK analyzer: aa25edb2cf9675ab0c90d2655bbf1ad845b41e697f0b40ba1f357cec7646eb95
+Builder: 13e9b0b09568cf87001f5afe22470f957a980e994bce2f142be9d61e4122edca
+Independent validator: dba6ba9fd59e67afeac5292542ec5d21691cb83735c9c7091b4f3e0ff3d0bbbb
+
+Container
+---------
+
+Artifact: candidate-protected-readback-ro-a3cb0e1c
+Raw file: gemini-mt6797-protected-readback-ro.boot.img
+Raw size: 7636992
+Raw SHA-256: a3cb0e1c79447345d700fefc5eb68f3d136c893db8a87ecf0ebf54d0ffc0189c
+Padded size: 16777216
+Padded SHA-256: 30ec9c56d6be78635f0ccf3ea626727763d71590c23778774c5c6366e4a5e75a
+Artifact SHA256SUMS: f1ceff04a7631af3ee2c3b3614d9fd025f956a2453a75b0cc6d3fd6cde24580a
+LK name: gemini-prbro
+LK command line: bootopt=64S3,32N2,64N2
+Kernel address: 0x40200000
+Ramdisk address: 0x45000000
+Second address: 0x40f00000
+Tags address: 0x44000000
+Android page size: 2048
+
+Validation
+----------
+
+- Complete fetched-package checksum inventory: pass
+- Exact package, config, linked-symbol, DTB, and initramfs identities: pass
+- Runtime marker uniqueness for clock, BigiDVFS, and completion records: pass
+- Independent raw assemblies: byte-identical
+- Independent 16 MiB padding constructions: byte-identical
+- Retained-LK analyzer: 32 of 32 gates pass
+- Independent Android-v0 layout and canonical image-ID reconstruction: pass
+- Negative magic mutation: rejected
+- Negative kernel mutation: rejected
+- Negative DTB mutation: rejected
+- Negative initramfs mutation: rejected
+- Negative canonical image-ID mutation: rejected
+- Negative nonzero padded-tail mutation: rejected
+
+The artifact is now an exact offline-valid boot candidate. Live TEE identities,
+the guarded boot2 target, full-partition write/readback, physical selection,
+and the one-shot runtime result remain unobserved.

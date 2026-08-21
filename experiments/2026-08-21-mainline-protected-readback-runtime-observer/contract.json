@@ -67,7 +67,27 @@
     "modules_built": false,
     "hardware_evidence": false
   },
-  "candidate": null,
+  "candidate": {
+    "result": "validated_offline",
+    "artifact": "candidate-protected-readback-ro-a3cb0e1c",
+    "boot_file": "gemini-mt6797-protected-readback-ro.boot.img",
+    "raw_sha256": "a3cb0e1c79447345d700fefc5eb68f3d136c893db8a87ecf0ebf54d0ffc0189c",
+    "raw_size": 7636992,
+    "padded_sha256": "30ec9c56d6be78635f0ccf3ea626727763d71590c23778774c5c6366e4a5e75a",
+    "padded_size": 16777216,
+    "artifact_manifest_sha256": "f1ceff04a7631af3ee2c3b3614d9fd025f956a2453a75b0cc6d3fd6cde24580a",
+    "ramdisk_sha256": "e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f",
+    "lk_name": "gemini-prbro",
+    "lk_cmdline": "bootopt=64S3,32N2,64N2",
+    "lk_gates_passed": 32,
+    "independent_raw_assemblies": "byte_identical",
+    "independent_padding_constructions": "byte_identical",
+    "negative_mutations_rejected": 6,
+    "build_script_sha256": "13e9b0b09568cf87001f5afe22470f957a980e994bce2f142be9d61e4122edca",
+    "validator_sha256": "dba6ba9fd59e67afeac5292542ec5d21691cb83735c9c7091b4f3e0ff3d0bbbb",
+    "device_action": false,
+    "boot_candidate": true
+  },
   "runtime": null,
   "named_firmware_gate": {
     "logical_partitions": ["tee1", "tee2"],
@@ -90,6 +110,6 @@
     "cpu_off": false,
     "cpu8_cpu9_admission": "closed",
     "device_action": false,
-    "boot_candidate": false
+    "boot_candidate": true
   }
 }

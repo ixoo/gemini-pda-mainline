@@ -2,9 +2,10 @@
 
 ## Status
 
-Buildbox generation, canonical admission, and the exact isolated kernel build
-are complete. The package, merged configuration, linked symbols, and candidate
-DTB pass offline validation. Boot-image assembly is pending. No boot image,
+Buildbox generation, canonical admission, the exact isolated kernel build, and
+offline boot-image validation are complete. The package, merged configuration,
+linked symbols, candidate DTB, and Android-v0/LK container pass their exact
+gates. Live TEE identity validation and guarded deployment are pending. No
 secure read, hardware semaphore access, or device action has yet occurred in
 this experiment.
 
@@ -104,6 +105,23 @@ decompiled base-versus-candidate DTB comparison finds only the model label,
 the two backend status changes from `disabled` to `okay`, and the new observer
 node with its two phandles. It contains no CPU or owner change. See
 [`results/build-1bd49d9.txt`](results/build-1bd49d9.txt).
+
+### Validated boot candidate
+
+The candidate builder pins every package member, the candidate DTB, the
+serviceability initramfs, and both LK serializer/analyzer tools. Two raw
+assemblies are byte-identical, two independent 16 MiB padding constructions
+are byte-identical, and the retained-LK analyzer passes all 32 gates. A separate
+Python validator reconstructs the Android-v0 layout and canonical image ID,
+verifies every input and runtime marker, and rejects six mutations spanning
+the magic, kernel, DTB, initramfs, image ID, and padded tail.
+
+The validated raw candidate is `a3cb0e1c79447345d700fefc5eb68f3d136c893db8a87ecf0ebf54d0ffc0189c`
+at 7,636,992 bytes. Its exact `boot2`-sized form is
+`30ec9c56d6be78635f0ccf3ea626727763d71590c23778774c5c6366e4a5e75a`
+at 16,777,216 bytes. This promotes the artifact to `boot_candidate=true`;
+it does not claim a device write, boot, or hardware result. See
+[`results/candidate-a3cb0e1c.txt`](results/candidate-a3cb0e1c.txt).
 
 The firmware prerequisite is the
 [protected-readback firmware audit](../2026-08-21-mainline-protected-readback-firmware-audit/README.md),
