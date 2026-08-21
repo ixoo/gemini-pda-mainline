@@ -1,0 +1,4 @@
+# Default-off pure A34 predicate. It has no production caller and cannot open
+# the software owner, initialize an attempt, perform an effect, or issue CPU_ON.
+CONFIG_ARM64_MT6797_A72_A34_ELIGIBILITY_EVALUATOR=y
+CONFIG_LOCALVERSION="-gemini-a34-eligibility"

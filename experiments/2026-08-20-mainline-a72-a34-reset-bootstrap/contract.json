@@ -1,0 +1,86 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-20-mainline-a72-a34-reset-bootstrap",
+  "decision_contract": {
+    "path": "experiments/2026-08-20-mainline-cpu8-gate7-remaining-boundary-audit/contract.json",
+    "sha256": "237ebf71d91b5a4be568d68e1eb98e7a4bf6fde388e656707720886d6e24275f",
+    "selected_boundary": "A34_ELIGIBILITY_EVALUATOR"
+  },
+  "parent": {
+    "source_state": "1db1fb912bc7a0f35e4511f314d4300e52d0ab4f687b4b06a1556d8b687b5f3b",
+    "source_integrity": "608267dc1bcb809d42075df33ed2320bba86831f18607a6d7e7c186b1d27c97f",
+    "last_patch": "patches/v7.1.3/0301-arm64-reject-malformed-A72-provider-release-ABI.patch",
+    "last_patch_sha256": "577316da88e4cb569c8d84670ec8090db14456789ee08c1efbfae71d8b748dd8"
+  },
+  "parent_source_files": {
+    "arch/arm64/Kconfig": "3d68d6d08ff9f6da5a014bda607dc4dcf4b86a3753fcd13af04c48bc65a52987",
+    "arch/arm64/Kconfig.platforms": "c6cad2cd07fae22439b7221ca217b87ae5d2ccb4426244802dcf45e578bc0783",
+    "arch/arm64/kernel/Makefile": "75e9b95431c33cfb3b17e484889c891acd00e8d93be26ea0f70e3e811846a89a",
+    "arch/arm64/kernel/smp.c": "f9f23ef0702733df793e969f200a4237bd28ebc5e3d5069e413f32e95b5e6599",
+    "arch/arm64/include/asm/mt6797_a72_membership.h": "6126bbad3bdfe998d3281edcffd28a8f637d098218337085561bc00ebb396d30",
+    "arch/arm64/kernel/mt6797_a72_membership.c": "8287ce26bcb05bcfe2ab58e1d76218a8a767ec99d82f981ae9a7d1f95234741d",
+    "arch/arm64/kernel/mt6797_psci.c": "7e3329797e0f2eebc4372aa47c84c09e3c2ed85e5121f9492898727db5e4f83d",
+    "drivers/watchdog/mtk_wdt.c": "08c7e94770ad4ccbf299beca17fe43de473167a1dde12fa0bd4d8dd159c4714d"
+  },
+  "expected_patch": "patches/v7.1.3/0302-arm64-add-A72-A34-eligibility-evaluator.patch",
+  "observation": {
+    "abi": 1,
+    "accepted_reset_provenance": ["platform", "external"],
+    "private_replay_proof": "owner-safe-zero",
+    "max_cpus": 8,
+    "nr_cpus": 10,
+    "possible_mask": "0x3ff",
+    "present_mask": "0x3ff",
+    "online_mask": "0x0ff",
+    "cpu8_mpidr": "0x200",
+    "cpu9_mpidr": "0x201",
+    "target_cpuhp_state": "CPUHP_OFFLINE",
+    "owner": "exact-initial-CLOSED",
+    "p30": "all-zero-FREE",
+    "first_generation": 1,
+    "first_cookie": "0xa7200001"
+  },
+  "provenance_sources": {
+    "existing_watchdog_class_reason": "nondiscriminating-not-accepted",
+    "production_reset_owner": "unresolved",
+    "private_replay_owner": "unresolved"
+  },
+  "reset_source_audit": {
+    "vendor_commit": "d388d350cb2dda8f23b99be6fa5db9628896e87f",
+    "vendor_mt6797_wdt_blob": "42c396ca9816dc3f7b5c572c963428ff5bfe62ca",
+    "vendor_mt6797_wdt_header_blob": "8abce566a326bc59704f33bd5c1f1f16dd1dbd9c",
+    "mainline_exact_mtk_wdt_sha256": "08c7e94770ad4ccbf299beca17fe43de473167a1dde12fa0bd4d8dd159c4714d",
+    "candidate": "read-WDT_STATUS-offset-0x0c-after-ioremap-before-mtk_wdt_init",
+    "status": "inconclusive-until-LK-preservation-and-reset-class-semantics-proven"
+  },
+  "result": {
+    "exact": 0,
+    "null": "-EINVAL",
+    "mismatch": "-EPERM",
+    "state_change": false,
+    "opens_owner": false
+  },
+  "tests": {
+    "observation_mutations": "every-byte",
+    "accepted_reset_provenance_cases": 2,
+    "kunit_cases": 5,
+    "qemu_production_hook": false
+  },
+  "scope": {
+    "default_off": true,
+    "hardware_free": true,
+    "production_init_caller": false,
+    "opens_owner": false,
+    "state_mutation": false,
+    "transaction_caller": false,
+    "provider_call": false,
+    "p27_p28_effect": false,
+    "p30_mutation": false,
+    "cpu_on": false,
+    "cpu_off": false,
+    "boot_veto_change": false,
+    "build_before_signed_audit_push": false,
+    "device_action": false,
+    "boot_candidate": false
+  }
+}

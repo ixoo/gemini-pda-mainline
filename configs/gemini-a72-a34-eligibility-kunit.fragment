@@ -1,0 +1,4 @@
+# Hardware-free exact-input and every-byte mutation coverage.
+CONFIG_KUNIT=y
+CONFIG_ARM64_MT6797_A72_A34_ELIGIBILITY_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-a34-eligibility-kunit"

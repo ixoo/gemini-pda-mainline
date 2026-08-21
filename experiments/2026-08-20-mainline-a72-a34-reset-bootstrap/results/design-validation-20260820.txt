@@ -1,0 +1,15 @@
+experiment=2026-08-20-mainline-a72-a34-reset-bootstrap
+parent_source_state=1db1fb912bc7a0f35e4511f314d4300e52d0ab4f687b4b06a1556d8b687b5f3b
+expected_patch=0302
+kunit_cases=5
+classifier_mutations=8
+production_hook=none
+opens_owner=no
+reset_provenance_owner=unresolved
+private_replay_owner=unresolved
+reset_provenance_candidate=toprgu-wdt-status-preinit-read
+reset_provenance_candidate_state=inconclusive
+build_prerequisite=signed-audit-push
+hardware_effect=no
+device_action=no
+result=pass

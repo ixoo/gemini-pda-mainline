@@ -131,6 +131,23 @@ strict style gates. Fetch transfers only the checksum-covered patch review and
 provenance. These lanes do not compile a kernel, create a boot candidate,
 access the Gemini, or authorize a physical I2C transaction.
 
+## Mainline Gate-7 A34 evaluator patch-generation lane
+
+The hardware-free A34 eligibility evaluator is generated only from the exact
+clean, pushed project commit:
+
+```sh
+./scripts/buildbox generate-a72-a34-eligibility-patch
+./scripts/buildbox fetch-a72-a34-eligibility-patch
+```
+
+The lane verifies the managed Linux source state and every edited parent file,
+generates one normal `git format-patch` with an explicitly synthetic,
+non-certifying experiment author, replays it, runs source and strict style
+validation, and exports only its checksum-covered patch review and provenance.
+It does not compile a kernel, install a boot candidate, access the Gemini, open
+the A72 lifecycle owner, perform a hardware action, or issue `CPU_ON`/`CPU_OFF`.
+
 ## Gemian pre-isolation rollback patch-generation lane
 
 The first Gate 4 rollback discriminator has a separate source-preparation lane:
