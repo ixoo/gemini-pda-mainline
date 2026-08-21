@@ -55,9 +55,16 @@ recovered prefix has these decision branches:
 
 After the predecessor returned, a bounded read-only `/dev/mem` header check
 from known-good Gemian found slots 171--174 at `0x444bb000`--`0x444be000` all
-equal to `434742440000000000000000`: the exact persistent-RAM signature followed
-by zero start and size fields. No memory write occurred. This does not replace
-the candidate's own fail-closed DT/header validation.
+equal to raw bytes `444247430000000000000000`: little-endian signature
+`0x43474244` followed by zero start and size fields. No memory write occurred.
+This does not replace the candidate's own fail-closed DT/header validation.
+
+The first installer preflight correctly stopped before candidate upload or any
+storage write because its host-side raw-byte check had encoded the signature
+in integer display order. A bounded read-only audit showed all four slots were
+still valid and empty and exposed the required little-endian byte order. The
+preflight and this record were corrected before deployment. See
+[`results/deployment-attempt-1-preflight-validator-rejected.txt`](results/deployment-attempt-1-preflight-validator-rejected.txt).
 
 ## Provenance
 

@@ -8,7 +8,7 @@ umask 077
 
 readonly SOURCE_SHA256=7f5bddb91bf38fb5de9cce5bde5c1aa7bac4a114a7619d25f49621fb715b912d
 readonly EXPECTED_TARGET=gemini@192.168.1.50
-readonly EXPECTED_HEADER=434742440000000000000000
+readonly EXPECTED_HEADER=444247430000000000000000
 
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }
 for command in awk chmod mktemp python3 rm sha256sum ssh stat; do

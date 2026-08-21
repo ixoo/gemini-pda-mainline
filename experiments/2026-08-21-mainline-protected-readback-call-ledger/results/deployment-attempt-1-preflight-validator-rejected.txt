@@ -1,0 +1,27 @@
+Protected-readback call-ledger deployment attempt 1
+===================================================
+
+Result: failed closed before upload
+Reason: host raw-signature endianness mismatch
+Candidate upload: no
+Device storage write: no
+Retained-RAM write: no
+Shutdown request: no
+
+The guarded wrapper stopped at its bounded read-only retained-slot preflight.
+It compared raw memory against `434742440000000000000000`, which is the
+signature integer followed by zero metadata in display order. The exact
+in-memory bytes are little-endian.
+
+A separate bounded read-only audit of the first 256 bytes in slots 171--174 at
+`0x444bb000`--`0x444be000` found each slot identical:
+
+- raw header: `444247430000000000000000`
+- decoded signature: `0x43474244`
+- start: zero
+- size: zero
+- following payload bytes: erased (`ff`)
+
+Gemian boot ID was `3846422e-5a1a-4bf6-8603-c22446fe208c`, kernel was
+`3.18.41+`, and pstore exposed no files. The installer raw-byte expectation and
+the experiment's raw-header documentation were corrected before any retry.
