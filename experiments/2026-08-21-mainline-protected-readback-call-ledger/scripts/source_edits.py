@@ -83,11 +83,11 @@ static bool gemini_prb_write(void __iomem *slot, const char *record)
 		return false;
 
 	memcpy_toio((u8 __iomem *)slot + GEMINI_PRB_HEADER_SIZE, record, len);
-	wmb();
+	wmb(); /* Commit payload before producer metadata. */
 	writel(len, (u8 __iomem *)slot + 4);
-	wmb();
+	wmb(); /* Commit start before the final size field. */
 	writel(len, (u8 __iomem *)slot + 8);
-	mb();
+	mb(); /* Order the complete local readback after the commit. */
 
 	if (readl(slot) != GEMINI_PRB_SIGNATURE ||
 	    readl((u8 __iomem *)slot + 4) != len ||
@@ -281,7 +281,6 @@ static inline void gemini_arm64_entry_ledger_post_reserved_checkpoint(void)
 #endif
 """).lstrip("\n")
     addition = dedent(r"""
-
 #ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_LEDGER
 bool gemini_protected_readback_ledger_checkpoint(unsigned int checkpoint);
 #else
@@ -291,8 +290,12 @@ gemini_protected_readback_ledger_checkpoint(unsigned int checkpoint)
 	return true;
 }
 #endif
-""")
-    replace_once(header, anchor, anchor.removesuffix("\n#endif\n") + addition + "\n#endif\n")
+""").lstrip("\n")
+    replace_once(
+        header,
+        anchor,
+        anchor.removesuffix("\n#endif\n") + "\n" + addition + "\n#endif\n",
+    )
 
     observer = root / (
         "drivers/soc/mediatek/mt6797-protected-readback-observer.c"
