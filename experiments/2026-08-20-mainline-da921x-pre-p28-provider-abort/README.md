@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-20-mainline-da921x-pre-p28-provider-abort` |
-| Status | Buildbox compile passed; patch `0300` stack-fix tooling ready |
+| Status | Buildbox compile passed; patch `0300` style remediation ready |
 | Subsystem | MT6797 CPU8 membership owner and DA921x Buck B provider |
 | Device variant | Planet Gemini PDA named development unit |
 | Date(s) | 2026-08-20 America/New_York |
@@ -57,6 +57,12 @@ the verified tree through `0299`. That boundary is preserved. A separate
 one-patch generator pins the current source state and will produce reviewable
 follow-up `0300`; the bounded parent-boundary result is in
 [`results/stack-fix-generation-attempt-1-parent-boundary-20260820.txt`](results/stack-fix-generation-attempt-1-parent-boundary-20260820.txt).
+The dedicated generator then passed its source, one-file patch, and exact replay
+validators. Strict checkpatch rejected 16 continuation-style checks with zero
+errors and zero warnings. The storage change was refactored through short
+test-only helpers to eliminate only those reported continuations. The bounded
+result is in
+[`results/stack-fix-generation-attempt-2-checkpatch-20260820.txt`](results/stack-fix-generation-attempt-2-checkpatch-20260820.txt).
 
 ## Question or hypothesis
 

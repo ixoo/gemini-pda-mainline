@@ -61,7 +61,7 @@ def main() -> None:
 
     require(
         contract["status"]
-        == "stack-fix-tooling-ready",
+        == "stack-fix-checkpatch-remediation-ready",
             "experiment status changed")
     safety = contract["safety"]
     require(safety["default_off"] and safety["hardware_free"],
@@ -227,7 +227,7 @@ def main() -> None:
         require(token in buildbox, f"Buildbox command token missing: {token}")
 
     print("validation=da921x-pre-p28-provider-abort-contract")
-    print("status=stack-fix-tooling-ready")
+    print("status=stack-fix-checkpatch-remediation-ready")
     print("canonical_patch_count=4")
     print("logical_patches=5")
     print("kunit_cases=6")
