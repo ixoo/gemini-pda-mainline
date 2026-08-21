@@ -4350,9 +4350,12 @@ logical patches: acquire fail-stop mapping, exact positive abort/P29 admission,
 an injectable instance of the production DA921x callback endpoint, and the
 focused registry integration KUnit suite. Buildbox generated and strictly
 validated all four patches, and their exact identities are now pinned at the
-end of the canonical series. The next ordered action is the focused Buildbox
-compile, followed only on success by the isolated QEMU proof. Both must pass
-before this roadmap advances.
+end of the canonical series. The focused Buildbox compile passed, but the first
+QEMU run stopped before provider semantics because large automatic test state
+overflowed the arm64 kernel stack. The next ordered action is to regenerate the
+test patch with KUnit-managed heap state, rebuild it on Buildbox, and run one
+distinct isolated QEMU proof. That proof must pass before this roadmap
+advances.
 
 The candidate must have a single CPU8 request, strict checkpoints before and
 after each power step, a bounded timeout, and a fail-closed rollback. CPU9

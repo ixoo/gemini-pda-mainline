@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-20-mainline-da921x-pre-p28-provider-abort` |
-| Status | four canonical patches imported; Buildbox compile pending |
+| Status | Buildbox compile passed; QEMU stack remediation pending regeneration |
 | Subsystem | MT6797 CPU8 membership owner and DA921x Buck B provider |
 | Device variant | Planet Gemini PDA named development unit |
 | Date(s) | 2026-08-20 America/New_York |
@@ -41,6 +41,16 @@ identities are pinned in [`contract.json`](contract.json) and verified against
 the canonical import by [`scripts/validate.py`](scripts/validate.py). The
 bounded result is in
 [`results/patch-generation-attempt-5-success-20260820.txt`](results/patch-generation-attempt-5-success-20260820.txt).
+
+The exact focused Buildbox build from signed commit
+`14723ceee84f94fd5ce6b9b26f5f1357ec5e637f` compiled and passed package
+validation. QEMU attempt 1 then failed before provider semantics: the first
+case's large automatic membership state overflowed the 16 KiB arm64 kernel
+stack while being cleared. The fail-closed classifier rejected the incomplete
+KTAP. The remediation moves all six cases and the release-callback snapshot to
+KUnit-managed heap state; it changes test storage only, not the production
+owner/provider implementation. The bounded failure is in
+[`results/qemu-attempt-1-stack-overflow-20260820.txt`](results/qemu-attempt-1-stack-overflow-20260820.txt).
 
 ## Question or hypothesis
 
@@ -101,8 +111,11 @@ connection. A26 and A14 remain unchanged; CPU8 and CPU9 admission stays closed.
    Complete.
 3. Fetch only the validated patch package, review it, and import it at the end
    of canonical `patches/series`. Complete.
-4. Build the exact integration KUnit profile on Buildbox. Pending.
-5. Run the focused suite under QEMU with no network and classify the KTAP.
+4. Build the exact integration KUnit profile on Buildbox. Initial compile
+   passed; stack-safe test regeneration and rebuild pending.
+5. Run the focused suite under QEMU with no network and classify the KTAP. The
+   first run failed before provider semantics; a distinct stack-safe run is
+   pending.
 6. Record exact package, config, Image, QEMU, and suite identities.
 
 ## Decision rule

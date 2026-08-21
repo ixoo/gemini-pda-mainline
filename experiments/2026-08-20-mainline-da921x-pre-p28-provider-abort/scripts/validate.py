@@ -50,7 +50,9 @@ def main() -> None:
     )
     buildbox = (REPO / "scripts/buildbox").read_text(encoding="utf-8")
 
-    require(contract["status"] == "canonical-patches-imported-build-pending",
+    require(
+        contract["status"]
+        == "qemu-stack-remediation-patch-generation-pending",
             "experiment status changed")
     safety = contract["safety"]
     require(safety["default_off"] and safety["hardware_free"],
@@ -151,6 +153,12 @@ def main() -> None:
     require(test.count("KUNIT_CASE(") == 6, "KUnit inventory changed")
     require(".name = \"da9213-legacy-membership-provider\"" in test,
             "KUnit suite changed")
+    require("struct da9213_membership_test_state" in test,
+            "heap-backed KUnit state missing")
+    require(test.count("kunit_kzalloc(test, sizeof(*state), GFP_KERNEL)") == 6,
+            "KUnit heap-state allocation inventory changed")
+    require("mt6797_a72_membership_snapshot(&synthetic->snapshot)" in test,
+            "release callback retained a stack-local snapshot")
     for forbidden in (
         "i2c_add_adapter",
         "i2c_new_client",
@@ -164,6 +172,10 @@ def main() -> None:
             "source validator patch count changed")
     require("patches=4" in patch_validator,
             "patch validator patch count changed")
+    require("KUnit heap-state allocation inventory changed"
+            in source_validator, "source stack-safety validation missing")
+    require("KUnit heap-state allocation inventory changed"
+            in patch_validator, "patch stack-safety validation missing")
     for token in (
         "EXPECTED_PROFILE=da921x-pre-p28-provider-abort-kunit",
         "CONFIG_ARM64_MT6797_A72_P24_OWNER_TEST_SEED=y",
@@ -193,7 +205,7 @@ def main() -> None:
         require(token in buildbox, f"Buildbox command token missing: {token}")
 
     print("validation=da921x-pre-p28-provider-abort-contract")
-    print("status=canonical-patches-imported-build-pending")
+    print("status=qemu-stack-remediation-patch-generation-pending")
     print("canonical_patch_count=4")
     print("logical_patches=4")
     print("kunit_cases=6")

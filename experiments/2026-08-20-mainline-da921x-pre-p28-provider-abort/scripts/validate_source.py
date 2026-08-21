@@ -135,7 +135,15 @@ def main() -> None:
     require("da9213-legacy-membership-test.o" in makefile,
             "integration KUnit object missing")
     require(test.count("KUNIT_CASE(") == 6, "KUnit case count changed")
+    require(test.count("kunit_kzalloc(test, sizeof(*state), GFP_KERNEL)") == 6,
+            "KUnit heap-state allocation inventory changed")
+    require(test.count("struct mt6797_a72_owner_snapshot snapshot;") == 2,
+            "owner snapshot escaped heap-backed state")
+    require(test.count("struct mt6797_a72_transaction transaction;") == 1,
+            "transaction escaped heap-backed state")
     for token in (
+        "struct da9213_membership_test_state",
+        "mt6797_a72_membership_snapshot(&synthetic->snapshot)",
         "da9213_membership_positive_abort_success",
         "da9213_membership_acquire_transport_faults",
         "da9213_membership_acquire_malformed_success",
