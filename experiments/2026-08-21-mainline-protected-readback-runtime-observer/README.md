@@ -3,9 +3,10 @@
 ## Status
 
 Buildbox generation is complete and the exact three-patch bundle is admitted to
-the canonical series. The isolated kernel profile and Buildbox link validation
-are still pending. No kernel build, boot image, secure read, hardware semaphore
-access, or device action has yet occurred in this experiment.
+the canonical series. The isolated `protected-readback-observer` kernel profile
+is prepared; Buildbox link validation is still pending. No kernel build, boot
+image, secure read, hardware semaphore access, or device action has yet occurred
+in this experiment.
 
 ## Question
 
@@ -103,6 +104,11 @@ The candidate is read-only at runtime, but installation still follows the
 guarded logical-`boot2` policy: live GPT resolution, inactive/unmounted target,
 stable power, exact-size padded image, full readback checksum, then clean
 shutdown. No fresh partition backup is required.
+
+The build profile inherits the hardware-passed serviceability fragments through
+`gemini-smp8.fragment`, then adds only the protected-clock backend, the
+BigiDVFS backend, and the observer. It does not select an A72 observer, a
+protected-state/resource owner, a DA921x provider path, or a CPU transition.
 
 ## Decision rule
 

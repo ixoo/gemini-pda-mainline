@@ -18,6 +18,17 @@
     "patches/v7.1.3/0321-soc-mediatek-add-one-shot-protected-readback-observer.patch",
     "patches/v7.1.3/0322-arm64-dts-mediatek-add-Gemini-protected-readback-candidate.patch"
   ],
+  "build_profile": {
+    "name": "protected-readback-observer",
+    "patch_series": "patches/series",
+    "serviceability_through": "configs/gemini-smp8.fragment",
+    "effect_fragments": [
+      "configs/gemini-dvfsp-clock-backend.fragment",
+      "configs/gemini-dvfsp-bigidvfs-readonly.fragment",
+      "configs/gemini-protected-readback-observer.fragment"
+    ],
+    "localversion": "-gemini-protected-readback-ro"
+  },
   "generation": {
     "result": "validated",
     "recorded_utc": "2026-08-21T17:26:49Z",

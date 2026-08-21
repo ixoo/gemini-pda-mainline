@@ -1,0 +1,6 @@
+# Candidate-only one-shot protected-readback observer. Apply after the exact
+# eight-A53 serviceability profile and both read-only backend fragments. The
+# separate candidate DTB activates the two transports and this observer; the
+# ordinary Gemini DTB remains unchanged.
+CONFIG_MTK_MT6797_PROTECTED_READBACK_OBSERVER=y
+CONFIG_LOCALVERSION="-gemini-protected-readback-ro"
