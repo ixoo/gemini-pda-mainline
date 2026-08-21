@@ -1,0 +1,34 @@
+From a45cd47c9584f2749532a102562318d7693bb3a0 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 21 Aug 2026 23:01:00 +0000
+Subject: [PATCH] soc: mediatek: fix protected readback test settle name
+
+Give the numeric 200 ns expectation a distinct preprocessor name from the existing test event kind so the focused KUnit object compiles.
+
+Change no production source, event ordering, test count, hardware operation, firmware call, or CPU operation.
+---
+ drivers/soc/mediatek/mt6797-protected-readback-test.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-protected-readback-test.c b/drivers/soc/mediatek/mt6797-protected-readback-test.c
+index 00143e0..ccff649 100644
+--- a/drivers/soc/mediatek/mt6797-protected-readback-test.c
++++ b/drivers/soc/mediatek/mt6797-protected-readback-test.c
+@@ -9,7 +9,7 @@
+ #define MT6797_CLOCK_TEST_EVENTS		700
+ #define MT6797_CLOCK_TEST_SEMAPHORE	0x440
+ #define MT6797_CLOCK_TEST_MUXSEL		0x270
+-#define MT6797_CLOCK_TEST_SETTLE_NS	200
++#define MT6797_CLOCK_TEST_SETTLE_DELAY_NS	200
+ #define MT6797_CLOCK_TEST_DATA_READS	18
+ 
+ enum mt6797_clock_test_event_kind {
+@@ -160,7 +160,7 @@ static void mt6797_clock_snapshot_order_test(struct kunit *test)
+ 	KUNIT_EXPECT_EQ(test, state->events[4].kind,
+ 			MT6797_CLOCK_TEST_SETTLE_NS);
+ 	KUNIT_EXPECT_EQ(test, state->events[4].value,
+-			MT6797_CLOCK_TEST_SETTLE_NS);
++			MT6797_CLOCK_TEST_SETTLE_DELAY_NS);
+ 	KUNIT_EXPECT_EQ(test, state->events[5].kind,
+ 			MT6797_CLOCK_TEST_READ);
+ 	KUNIT_EXPECT_EQ(test, state->events[5].window,

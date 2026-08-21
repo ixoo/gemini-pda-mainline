@@ -77,6 +77,12 @@ name. The exact job-log identity and bounded diagnosis are in
 A generated one-patch follow-up renames only the numeric test expectation;
 production code, event ordering, and all six cases remain unchanged.
 
+Buildbox generated that exact follow-up from clean commit `1ad1ce0d1e0f` and
+the prepared source through `0318`. Source validation, exact replay, and strict
+checkpatch passed with zero findings. The identity is recorded in
+[`results/buildbox-compile-fix-generation-1ad1ce0d.txt`](results/buildbox-compile-fix-generation-1ad1ce0d.txt),
+and the exact patch is admitted canonically as `0319`.
+
 No device kernel, boot image, partition, firmware service, or hardware
 semaphore has been used by this experiment.
 
