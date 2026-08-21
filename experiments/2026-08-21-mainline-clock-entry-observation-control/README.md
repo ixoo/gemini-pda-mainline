@@ -3,8 +3,10 @@
 ## Status
 
 Source/evidence audit complete; exact non-identical control selected,
-constructed, and independently validated. No new kernel build or device action
-has occurred. The candidate is ready for guarded deployment.
+constructed, independently validated, and deployed to inactive logical
+`boot2`. The full readback matched and Gemian is confirmed shut down. No new
+kernel build occurred. The exact USB collector must be armed before one
+physical selection.
 
 ## Question
 
@@ -76,9 +78,17 @@ readback, and clean shutdown.
 
 ## Next action
 
-Commit and push the exact inputs, then install the validated base-DTB control
-to inactive logical `boot2` through the standing guarded workflow. After clean
-shutdown, arm the USB collector before one physical selection.
+Push the sanitized deployment evidence and arm the exact USB collector before
+one physical selection. Do not repeat the artifact. If exact USB appears, the
+collector will classify the live driver-registration oracle and one
+boot-ID-gated native reboot will return to Gemian for retained recovery.
 
 See [`results/candidate-a36425f3.txt`](results/candidate-a36425f3.txt) for the
 exact package, container, DT-delta, and mutation evidence.
+
+Deployment attempt 1 replaced exact predecessor `444ffc4a...278de` with full
+control `fc2a9a1a...30bf` on live-GPT-resolved inactive p30 while Gemian used
+p29. External power was present at 100%/Good, both TEE identities remained
+exact, all four retained slots were valid-empty, the full readback matched,
+no fresh backup was made, and shutdown is confirmed. See
+[`results/deployment-attempt-1-success.txt`](results/deployment-attempt-1-success.txt).

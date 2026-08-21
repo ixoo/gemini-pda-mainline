@@ -63,6 +63,26 @@
     "attribution_mutations_rejected": 1,
     "safety_mutations_rejected": 1
   },
+  "deployment": {
+    "result": "write_synced_flushed_full_readback_verified",
+    "attempt": 1,
+    "target_logical_name": "boot2",
+    "target": "/dev/mmcblk0p30",
+    "root": "/dev/mmcblk0p29",
+    "boot_id": "f6d212e0-adf8-449d-a835-2cfd38a7642f",
+    "predecessor_sha256": "444ffc4a3631e75d05e567f6304fdd1607695adbd1f3c8b5654714633e6278de",
+    "candidate_sha256": "fc2a9a1a53de1373cf75d14f163a5b9921219996882f58e0b5395595872230bf",
+    "readback_sha256": "fc2a9a1a53de1373cf75d14f163a5b9921219996882f58e0b5395595872230bf",
+    "tee1_sha256": "2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3",
+    "tee2_sha256": "2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3",
+    "power": "external|100|Good|present",
+    "retained_slots_prewrite": "171-174_exact_empty",
+    "fresh_predecessor_backup": false,
+    "reboot": false,
+    "shutdown": "confirmed_unreachable",
+    "private_summary_sha256": "e899df2afe0fddf19812af89e0661568fa01fb4e5dd8ed1ab06b618bc640818b",
+    "private_manifest_sha256": "63cad33dffee972942a5e30d74d2630ae3124bb4545911e7b1035b8dc894c837"
+  },
   "scope": {
     "protected_clock_reads": 0,
     "bigidvfs_reads": 0,

@@ -1,0 +1,38 @@
+Clock-entry observation-control deployment attempt 1
+====================================================
+
+Result: write, sync, flush, and full readback verified
+Target: live-GPT logical boot2 at /dev/mmcblk0p30
+Active root: /dev/mmcblk0p29
+Target inactive: yes
+Target mounted: no
+Power: external, 100%, Good, present
+
+Predecessor full SHA-256:
+444ffc4a3631e75d05e567f6304fdd1607695adbd1f3c8b5654714633e6278de
+Candidate full SHA-256:
+fc2a9a1a53de1373cf75d14f163a5b9921219996882f58e0b5395595872230bf
+Full readback SHA-256:
+fc2a9a1a53de1373cf75d14f163a5b9921219996882f58e0b5395595872230bf
+
+TEE1 SHA-256:
+2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3
+TEE2 SHA-256:
+2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3
+
+Deployment Gemian boot ID: f6d212e0-adf8-449d-a835-2cfd38a7642f
+Retained slots 171-174 before write: exact valid-empty headers
+Fresh predecessor backup: no
+Temporary readback removed: yes
+Reboot requested: no
+Shutdown: requested after evidence flush and confirmed unreachable
+
+Private deployment summary SHA-256:
+e899df2afe0fddf19812af89e0661568fa01fb4e5dd8ed1ab06b618bc640818b
+Private deployment manifest SHA-256:
+63cad33dffee972942a5e30d74d2630ae3124bb4545911e7b1035b8dc894c837
+
+Next action: arm the exact USB collector, then physically select boot2 once.
+Do not repeat the artifact. If the exact control becomes serviceable, collect
+the live driver-registration oracle and issue one boot-ID-gated native reboot
+through USB; otherwise allow its natural return to Gemian.
