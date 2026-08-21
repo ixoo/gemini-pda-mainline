@@ -4745,15 +4745,24 @@ mutations, and its tooling rejected 19 live and nine recovery mutations,
 including crossed retained-slot attribution. It is admitted for one guarded
 boot2 deployment and one physical selection. Guarded deployment resolved
 inactive live-GPT boot2, confirmed slots 171--174 empty, matched the exact full
-readback, and shut the device down. The next action is to arm the exact
-observer before the one physical selection. See the
+readback, and shut the device down. The one selection stayed fully serviceable
+but reported exact live result `first=0 second=0 retained_writes=0`; the
+classifier correctly withheld its automatic reboot. After read-only live
+diagnostics, a separately recorded native return reached changed-ID Gemian with
+unchanged boot2, empty slots 171--174, and empty pstore. This localizes the
+negative result inside the shared writer's first-call DT/resource, mapping,
+prefix, write, or readback boundary; returned empty RAM is not the causal
+oracle. See the
 [manual checkpoint control](../experiments/2026-08-21-mainline-manual-checkpoint-control/README.md).
 
 The next ordered work is:
 
-1. Isolate the manual checkpoint mechanism independently on the exact
-   serviceability-proven base before enabled clock-node population. Do not rely
-   on empty returned RAM as proof that a checkpoint call did not execute.
+1. Instrument the exact first shared-writer call on the serviceability-proven
+   base with one live failure-stage result distinguishing DT/resource, mapping,
+   prefix/header, write/commit, and full-readback refusal. Keep clock-node
+   population, protected transports, retries, and CPU requests absent; do not
+   repeat the boolean-only manual candidate or treat returned empty RAM as the
+   causal oracle.
 2. Only after the checkpoint control passes, isolate enabled clock-node population and
    read-free probe entry. Do not enable or sample BigiDVFS until clock-backend
    registration and probe entry are positively established.

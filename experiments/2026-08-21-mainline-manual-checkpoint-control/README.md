@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-21-mainline-manual-checkpoint-control` |
-| Status | running; exact candidate deployed and shut down, runtime pending |
+| Status | complete; first checkpoint refused locally, serviceability passed |
 | Subsystem | pstore/ramoops, retained-RAM observation, arm64 serviceability |
 | Device variant | Gemini PDA x27, named project unit |
 | Date(s) | 2026-08-21 |
@@ -154,6 +154,24 @@ matched the synchronized/flushed full 16 MiB readback to
 clean shutdown. See the
 [deployment receipt](results/deployment-20260821.txt).
 
+The pre-armed observer captured exact release
+`7.1.3-gemini-checkpoint-ctl` on mainline boot ID
+`517b88d0-9fb1-4fa5-9300-a57dac005041`. USB/netcat, keyboard, one read-only
+DA921x client, and CPU0--7 were healthy; CPU8--9 remained offline and all
+clock, BigiDVFS, protected-readback, same-value-action, storage, and CPU-action
+paths remained absent. The unique live marker was:
+
+`GEMINI_MANUAL_CHECKPOINT_CONTROL_LIVE_V1 first=0 second=0 retained_writes=0 protected_calls=0 cpu_requests=0`
+
+The classifier rejected the expected two-write oracle and correctly withheld
+automatic reboot. Read-only diagnostics on the same boot confirmed exact live
+model bytes `MT6797X\0`, all five required ramoops property values, and no
+mapping warning in dmesg. A separately recorded native USB-shell reboot was
+then sent after classification. Changed-ID Gemian returned as
+`dc1a8916-158e-4956-b931-09d39d225f6c`; boot2 remained exact, all four slot
+headers were empty, and pstore had zero files. See the
+[runtime receipt](results/runtime-attempt-1-20260821.txt).
+
 ## Analysis
 
 Clock-entry candidates combined a new Image/configuration, the shared writer,
@@ -163,18 +181,30 @@ two direct calls while keeping every clock and protected-transport path absent.
 It therefore separates a general writer/mapping/prefix failure from clock-node
 registration and probe behavior.
 
+The exact control stayed serviceable while its first call returned false and
+the second remained correctly gated. This rules out the writer call itself as
+the cause of the earlier quick returns and localizes the negative result inside
+the shared writer's first-call path. The live DT bytes close the obvious model
+and property-value mismatches, but this candidate intentionally exposes only a
+boolean. It cannot distinguish `of_address_to_resource`, `ioremap_wc`, prefix
+validation, payload/metadata write, or full readback refusal. Returned empty
+RAM is consistent with the live zero-write result but adds no causal precision.
+
 ## Conclusion
 
-The exact Buildbox package, proven-serviceability DT derivative, Android-v0
-container, and decision-bearing runtime/recovery tools passed offline
-validation. Candidate `53e03cb...e5c` passed guarded deployment and full
-readback, and the device is shut down ready for the one physical selection.
-No checkpoint, persistence, or new hardware-support claim has yet been made.
+Exact candidate `53e03cb...e5c` completed its one physical selection. It
+preserved the full CPU0--7 serviceability foundation and proved that the first
+shared-writer call refused locally before any successful record; the second
+call was not attempted. This is a useful negative result, not a checkpoint or
+persistence pass. CPU8 and CPU9 remain closed, and no new hardware-support
+claim is made.
 
 ## Follow-up
 
-Arm the exact collector before the single physical selection. If the live two-
-write oracle passes, redesign the next enabled-clock-node probe to expose a
-live result rather than relying on returned empty slots. If this control loses
-serviceability or refuses locally, stop clock and CPU8 work and repair the
-shared writer on the exact proven base. CPU8 and CPU9 remain closed.
+Add one decision-bearing live failure-stage result to the exact first shared-
+writer call on this serviceability-proven base. It must distinguish DT/resource
+validation, mapping, prefix/header validation, write/commit, and full-readback
+failure without enabling the clock node, either protected transport, a retry,
+or any CPU request. Do not repeat this boolean-only candidate. CPU8 and CPU9
+remain closed until the writer boundary is repaired or removed from the clock-
+population observation design.

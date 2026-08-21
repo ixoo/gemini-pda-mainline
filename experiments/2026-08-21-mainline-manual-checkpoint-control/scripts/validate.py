@@ -230,6 +230,23 @@ def main() -> None:
     }, "offline admission evidence changed")
     require(contract["scope"]["boot_candidate"] is True,
             "exact offline-admitted candidate was demoted")
+    runtime = contract["runtime"]
+    require(runtime["physical_selections"] == 1,
+            "runtime selection count changed")
+    require(runtime["mainline_boot_id"] ==
+            "517b88d0-9fb1-4fa5-9300-a57dac005041",
+            "mainline runtime identity changed")
+    require(runtime["classification"] ==
+            "manual-checkpoint-first-refused-serviceable",
+            "runtime classification changed")
+    require(runtime["manual_first"] == 0 and runtime["manual_second"] == 0 and
+            runtime["retained_writes"] == 0,
+            "manual refusal result changed")
+    require(runtime["protected_calls"] == 0 and runtime["cpu_requests"] == 0,
+            "runtime safety result changed")
+    require(runtime["post_return_boot2_sha256"] ==
+            contract["candidate"]["padded_sha256"],
+            "post-return boot2 identity changed")
 
     print("validation=mainline-manual-checkpoint-control-admission")
     print(f"profile={PROFILE}")
@@ -242,6 +259,8 @@ def main() -> None:
     print("device_access=none")
     print("hardware_write=none")
     print("boot_candidate=true")
+    print("runtime_result=manual-checkpoint-first-refused-serviceable")
+    print("runtime_retained_writes=0")
     print("result=pass")
 
 
