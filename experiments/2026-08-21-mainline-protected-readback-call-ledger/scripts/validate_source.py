@@ -77,7 +77,7 @@ def main() -> None:
         < writer.index("memcpy_toio")
         < writer.index("wmb();")
         < writer.index("writel(len,")
-        < writer.index("mb();")
+        < writer.index("\tmb();")
         < writer.index("readl(slot)"),
         "empty-check then payload-before-metadata and full readback",
     )
