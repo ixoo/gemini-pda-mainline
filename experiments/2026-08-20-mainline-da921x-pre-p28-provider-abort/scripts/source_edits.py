@@ -51,9 +51,8 @@ def add_acquire_failstop(root: Path) -> None:
 
     replacement = dedent("""\
     static bool
-    mt6797_a72_provider_acquire_response_valid(
-    \tconst struct mt6797_a72_provider_response *response,
-    \tconst struct mt6797_a72_transaction *transaction)
+    mt6797_a72_provider_acquire_response_valid(const struct mt6797_a72_provider_response *response,
+    \t\t\t\t\t   const struct mt6797_a72_transaction *transaction)
     {
     \tif (!response || !transaction)
     \t\treturn false;
@@ -74,8 +73,7 @@ def add_acquire_failstop(root: Path) -> None:
     }
 
     static bool
-    mt6797_a72_provider_refusal_response_valid(
-    \tconst struct mt6797_a72_provider_response *response)
+    mt6797_a72_provider_refusal_response_valid(const struct mt6797_a72_provider_response *response)
     {
     \tif (!response)
     \t\treturn false;
@@ -92,10 +90,9 @@ def add_acquire_failstop(root: Path) -> None:
     }
 
     static int
-    mt6797_a72_membership_latch_provider_fault(
-    \tstruct mt6797_a72_transaction *transaction,
-    \tenum mt6797_a72_provider_state expected_state,
-    \tenum mt6797_a72_owner_fault cause, int error)
+    mt6797_a72_membership_latch_provider_fault(struct mt6797_a72_transaction *transaction,
+    \t\t\t\t\t   enum mt6797_a72_provider_state expected_state,
+    \t\t\t\t\t   enum mt6797_a72_owner_fault cause, int error)
     {
     \tunsigned long flags;
     \tint ret = -EPERM;
@@ -131,13 +128,17 @@ def add_acquire_failstop(root: Path) -> None:
     \treturn ret;
     }
 
-    int mt6797_a72_membership_run_provider_acquire(
-    \tstruct mt6797_a72_transaction *transaction,
-    \tstruct mt6797_a72_provider_response *response)
+    int
+    mt6797_a72_membership_run_provider_acquire(struct mt6797_a72_transaction *transaction,
+    \t\t\t\t\t   struct mt6797_a72_provider_response *response)
     {
     \tstruct mt6797_a72_provider_request request = { };
     \tstruct mt6797_a72_provider_acquire_proof proof = { };
     \tstruct mt6797_a72_provider_rejection rejection = { };
+    \tenum mt6797_a72_provider_state expected_state =
+    \t\tMT6797_A72_PROVIDER_ACQUIRE_INFLIGHT;
+    \tenum mt6797_a72_owner_fault fault_cause =
+    \t\tMT6797_A72_FAULT_PROVIDER_ACQUIRE_RETURN;
     \tint ret;
 
     \tif (!transaction || !response)
@@ -162,8 +163,9 @@ def add_acquire_failstop(root: Path) -> None:
     \t\t\t\t\t\t\ttransaction)) {
     \t\t\tret = -EPROTO;
     \t\t\tmt6797_a72_membership_latch_provider_fault(transaction,
-    \t\t\t\tMT6797_A72_PROVIDER_ACQUIRE_INFLIGHT,
-    \t\t\t\tMT6797_A72_FAULT_PROVIDER_ACQUIRE_RETURN, ret);
+    \t\t\t\t\t\t\t\t   expected_state,
+    \t\t\t\t\t\t\t\t   fault_cause,
+    \t\t\t\t\t\t\t\t   ret);
     \t\t\treturn ret;
     \t\t}
     \t\tproof.abi = MT6797_A72_PROVIDER_ACQUIRE_ABI;
@@ -179,13 +181,14 @@ def add_acquire_failstop(root: Path) -> None:
     \t\tproof.transaction_generation = transaction->identity.generation;
     \t\tproof.transaction_cookie = transaction->identity.cookie;
     \t\tproof.origin_generation = response->origin_generation;
-    \t\tret = mt6797_a72_membership_confirm_provider_acquire(
-    \t\t\ttransaction, &proof);
+    \t\tret = mt6797_a72_membership_confirm_provider_acquire(transaction,
+    \t\t\t\t\t\t\t\t\t &proof);
     \t\tif (ret &&
     \t\t    IS_ENABLED(CONFIG_ARM64_MT6797_A72_PRE_P28_PROVIDER_ABORT))
     \t\t\tmt6797_a72_membership_latch_provider_fault(transaction,
-    \t\t\t\tMT6797_A72_PROVIDER_ACQUIRE_INFLIGHT,
-    \t\t\t\tMT6797_A72_FAULT_PROVIDER_ACQUIRE_RETURN, ret);
+    \t\t\t\t\t\t\t\t   expected_state,
+    \t\t\t\t\t\t\t\t   fault_cause,
+    \t\t\t\t\t\t\t\t   ret);
     \t\treturn ret;
     \t}
 
@@ -199,15 +202,16 @@ def add_acquire_failstop(root: Path) -> None:
     \t\trejection.transaction_generation =
     \t\t\ttransaction->identity.generation;
     \t\trejection.transaction_cookie = transaction->identity.cookie;
-    \t\tif (!mt6797_a72_membership_reject_provider_acquire(
-    \t\t\t    transaction, &rejection))
+    \t\tif (!mt6797_a72_membership_reject_provider_acquire(transaction,
+    \t\t\t\t\t\t\t\t       &rejection))
     \t\t\treturn -EOPNOTSUPP;
     \t}
 
     \tif (IS_ENABLED(CONFIG_ARM64_MT6797_A72_PRE_P28_PROVIDER_ABORT))
     \t\tmt6797_a72_membership_latch_provider_fault(transaction,
-    \t\t\tMT6797_A72_PROVIDER_ACQUIRE_INFLIGHT,
-    \t\t\tMT6797_A72_FAULT_PROVIDER_ACQUIRE_RETURN, ret);
+    \t\t\t\t\t\t\t   expected_state,
+    \t\t\t\t\t\t\t   fault_cause,
+    \t\t\t\t\t\t\t   ret);
     \treturn ret;
     }
 
@@ -303,22 +307,21 @@ def add_positive_abort(root: Path) -> None:
         "\tstruct mt6797_a72_provider_response *response);\n",
         "int mt6797_a72_membership_run_provider_acquire(struct mt6797_a72_transaction *transaction,\n"
         "\tstruct mt6797_a72_provider_response *response);\n"
-        "int mt6797_a72_membership_begin_provider_abort(\n"
-        "\tstruct mt6797_a72_transaction *transaction);\n"
-        "int mt6797_a72_membership_confirm_provider_abort(\n"
-        "\tstruct mt6797_a72_transaction *transaction,\n"
-        "\tconst struct mt6797_a72_provider_abort_proof *proof);\n"
-        "int mt6797_a72_membership_run_provider_abort(\n"
-        "\tstruct mt6797_a72_transaction *transaction,\n"
-        "\tstruct mt6797_a72_provider_response *response);\n",
+        "int\n"
+        "mt6797_a72_membership_begin_provider_abort(struct mt6797_a72_transaction *transaction);\n"
+        "int\n"
+        "mt6797_a72_membership_confirm_abort(struct mt6797_a72_transaction *transaction,\n"
+        "\t\t\t\t    const struct mt6797_a72_provider_abort_proof *proof);\n"
+        "int\n"
+        "mt6797_a72_membership_run_provider_abort(struct mt6797_a72_transaction *transaction,\n"
+        "\t\t\t\t\t struct mt6797_a72_provider_response *response);\n",
     )
     replace_once(
         header,
         "static inline int\nmt6797_a72_membership_begin_p28_preparation(\n",
         dedent("""\
         static inline int
-        mt6797_a72_membership_begin_provider_abort(
-        \tstruct mt6797_a72_transaction *transaction)
+        mt6797_a72_membership_begin_provider_abort(struct mt6797_a72_transaction *transaction)
         {
         \tif (transaction)
         \t\tmemset(transaction, 0, sizeof(*transaction));
@@ -326,9 +329,8 @@ def add_positive_abort(root: Path) -> None:
         }
 
         static inline int
-        mt6797_a72_membership_confirm_provider_abort(
-        \tstruct mt6797_a72_transaction *transaction,
-        \tconst struct mt6797_a72_provider_abort_proof *proof)
+        mt6797_a72_membership_confirm_abort(struct mt6797_a72_transaction *transaction,
+        \t\t\t\t    const struct mt6797_a72_provider_abort_proof *proof)
         {
         \t(void)proof;
         \tif (transaction)
@@ -337,9 +339,8 @@ def add_positive_abort(root: Path) -> None:
         }
 
         static inline int
-        mt6797_a72_membership_run_provider_abort(
-        \tstruct mt6797_a72_transaction *transaction,
-        \tstruct mt6797_a72_provider_response *response)
+        mt6797_a72_membership_run_provider_abort(struct mt6797_a72_transaction *transaction,
+        \t\t\t\t\t struct mt6797_a72_provider_response *response)
         {
         \t(void)response;
         \tif (transaction)
@@ -361,9 +362,8 @@ def add_positive_abort(root: Path) -> None:
 
     implementation = dedent("""\
     static bool
-    mt6797_a72_provider_abort_proof_valid(
-    \tconst struct mt6797_a72_provider_abort_proof *proof,
-    \tconst struct mt6797_a72_transaction *transaction)
+    mt6797_a72_provider_abort_proof_valid(const struct mt6797_a72_provider_abort_proof *proof,
+    \t\t\t\t\t      const struct mt6797_a72_transaction *transaction)
     {
     \tif (!proof || !transaction)
     \t\treturn false;
@@ -389,8 +389,8 @@ def add_positive_abort(root: Path) -> None:
     \t\tproof->origin_generation == proof->released_identity.generation;
     }
 
-    int mt6797_a72_membership_begin_provider_abort(
-    \tstruct mt6797_a72_transaction *transaction)
+    int
+    mt6797_a72_membership_begin_provider_abort(struct mt6797_a72_transaction *transaction)
     {
     \tunsigned long flags;
     \tint ret = -EPERM;
@@ -445,9 +445,9 @@ def add_positive_abort(root: Path) -> None:
     \treturn ret;
     }
 
-    int mt6797_a72_membership_confirm_provider_abort(
-    \tstruct mt6797_a72_transaction *transaction,
-    \tconst struct mt6797_a72_provider_abort_proof *proof)
+    int
+    mt6797_a72_membership_confirm_abort(struct mt6797_a72_transaction *transaction,
+    \t\t\t\t    const struct mt6797_a72_provider_abort_proof *proof)
     {
     \tunsigned long flags;
     \tint ret = -EPERM;
@@ -496,12 +496,16 @@ def add_positive_abort(root: Path) -> None:
     \treturn ret;
     }
 
-    int mt6797_a72_membership_run_provider_abort(
-    \tstruct mt6797_a72_transaction *transaction,
-    \tstruct mt6797_a72_provider_response *response)
+    int
+    mt6797_a72_membership_run_provider_abort(struct mt6797_a72_transaction *transaction,
+    \t\t\t\t\t struct mt6797_a72_provider_response *response)
     {
     \tstruct mt6797_a72_provider_abort_proof proof = { };
     \tstruct mt6797_a72_provider_handle handle;
+    \tenum mt6797_a72_provider_state expected_state =
+    \t\tMT6797_A72_PROVIDER_RELEASE_INFLIGHT;
+    \tenum mt6797_a72_owner_fault fault_cause =
+    \t\tMT6797_A72_FAULT_PROVIDER_RELEASE_RETURN;
     \tint ret;
 
     \tif (!transaction || !response)
@@ -535,7 +539,7 @@ def add_positive_abort(root: Path) -> None:
     \tproof.transaction_generation = transaction->identity.generation;
     \tproof.transaction_cookie = transaction->identity.cookie;
     \tproof.origin_generation = response->origin_generation;
-    \tret = mt6797_a72_membership_confirm_provider_abort(transaction, &proof);
+    \tret = mt6797_a72_membership_confirm_abort(transaction, &proof);
     \tif (!ret)
     \t\treturn 0;
 
@@ -543,8 +547,9 @@ def add_positive_abort(root: Path) -> None:
     \tif (!ret)
     \t\tret = -EPROTO;
     \tmt6797_a72_membership_latch_provider_fault(transaction,
-    \t\tMT6797_A72_PROVIDER_RELEASE_INFLIGHT,
-    \t\tMT6797_A72_FAULT_PROVIDER_RELEASE_RETURN, ret);
+    \t\t\t\t\t\t   expected_state,
+    \t\t\t\t\t\t   fault_cause,
+    \t\t\t\t\t\t   ret);
     \treturn ret;
     }
 
@@ -560,8 +565,7 @@ def add_positive_abort(root: Path) -> None:
         "static bool\nmt6797_a72_p29_rollback_valid(\n",
         dedent("""\
         static bool
-        mt6797_a72_p29_provider_predecessor_valid(
-        \tconst struct mt6797_a72_transaction *transaction)
+        mt6797_a72_p29_provider_predecessor_valid(const struct mt6797_a72_transaction *transaction)
         {
         \tif (!transaction ||
         \t    transaction->provider_rejection_valid ==
@@ -570,8 +574,7 @@ def add_positive_abort(root: Path) -> None:
 
         \tif (transaction->provider_rejection_valid)
         \t\treturn !transaction->provider_acquire_valid &&
-        \t\t\t(!IS_ENABLED(
-        \t\t\t\tCONFIG_ARM64_MT6797_A72_PRE_P28_PROVIDER_ABORT) ||
+        \t\t\t(!IS_ENABLED(CONFIG_ARM64_MT6797_A72_PRE_P28_PROVIDER_ABORT) ||
         \t\t\t transaction->budgets.provider_abort ==
         \t\t\t\tMT6797_A72_BUDGET_AVAILABLE);
 
@@ -579,8 +582,8 @@ def add_positive_abort(root: Path) -> None:
         \t\ttransaction->provider_abort_valid &&
         \t\ttransaction->budgets.provider_abort ==
         \t\t\tMT6797_A72_BUDGET_CONSUMED &&
-        \t\tmt6797_a72_provider_abort_proof_valid(
-        \t\t\t&transaction->provider_abort_proof, transaction);
+        \t\tmt6797_a72_provider_abort_proof_valid(&transaction->provider_abort_proof,
+        \t\t\t\t\t\t      transaction);
         }
 
         static bool
@@ -617,7 +620,7 @@ def add_injectable_endpoint(root: Path) -> None:
         \tstruct i2c_adapter *adapter;
         \tu16 address;
         \tconst struct da9213_legacy_provider_transport_ops *ops;
-        \tstruct mutex lock;
+        \tstruct mutex lock; /* Serializes one endpoint lifecycle. */
         \tstruct da9213_legacy_provider_result transaction;
         };
 
@@ -627,12 +630,12 @@ def add_injectable_endpoint(root: Path) -> None:
     replace_once(
         header,
         "int da9213_legacy_provider_transaction_release(struct i2c_adapter *adapter,\n",
-        "int da9213_legacy_provider_test_register(\n"
-        "\tstruct da9213_legacy_provider_endpoint *endpoint,\n"
-        "\tstruct i2c_adapter *adapter, u16 address,\n"
-        "\tconst struct da9213_legacy_provider_transport_ops *ops);\n"
-        "void da9213_legacy_provider_test_unregister(\n"
-        "\tstruct da9213_legacy_provider_endpoint *endpoint);\n"
+        "int\n"
+        "da9213_legacy_provider_test_register(struct da9213_legacy_provider_endpoint *endpoint,\n"
+        "\t\t\t\t     struct i2c_adapter *adapter, u16 address,\n"
+        "\t\t\t\t     const struct da9213_legacy_provider_transport_ops *ops);\n"
+        "void\n"
+        "da9213_legacy_provider_test_unregister(struct da9213_legacy_provider_endpoint *endpoint);\n"
         "int da9213_legacy_provider_transaction_release(struct i2c_adapter *adapter,\n",
     )
     replace_once(
@@ -708,10 +711,10 @@ def add_injectable_endpoint(root: Path) -> None:
         "static void da9213_legacy_provider_unregister(void *context)\n",
         dedent("""\
         #if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_MEMBERSHIP_KUNIT_TEST)
-        int da9213_legacy_provider_test_register(
-        \tstruct da9213_legacy_provider_endpoint *endpoint,
-        \tstruct i2c_adapter *adapter, u16 address,
-        \tconst struct da9213_legacy_provider_transport_ops *ops)
+        int
+        da9213_legacy_provider_test_register(struct da9213_legacy_provider_endpoint *endpoint,
+        \t\t\t\t     struct i2c_adapter *adapter, u16 address,
+        \t\t\t\t     const struct da9213_legacy_provider_transport_ops *ops)
         {
         \tif (!endpoint || !adapter || !ops)
         \t\treturn -EINVAL;
@@ -725,8 +728,8 @@ def add_injectable_endpoint(root: Path) -> None:
         \t\t\t\t\t    endpoint);
         }
 
-        void da9213_legacy_provider_test_unregister(
-        \tstruct da9213_legacy_provider_endpoint *endpoint)
+        void
+        da9213_legacy_provider_test_unregister(struct da9213_legacy_provider_endpoint *endpoint)
         {
         \tmt6797_a72_provider_unregister(&da9213_legacy_provider_ops, endpoint);
         }
@@ -756,7 +759,7 @@ def add_injectable_endpoint(root: Path) -> None:
         "\tcontext = &chip->provider_endpoint;\n"
         "#endif\n"
         "\tret = mt6797_a72_provider_register(&da9213_legacy_provider_ops,\n"
-        "\t\t\t\t\t    context);\n",
+        "\t\t\t\t\t   context);\n",
     )
     replace_once(
         driver,

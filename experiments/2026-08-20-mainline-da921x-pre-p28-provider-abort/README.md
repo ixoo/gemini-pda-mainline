@@ -12,6 +12,12 @@
 | Investigator(s) | Project maintainers |
 | Tracking issue | Roadmap Gate 7 |
 
+Attempt 1 on published commit `feaa97f601925b68484ec222f385adca70175215`
+passed contract, edited-source, patch-inventory, and exact replay validation.
+Strict checkpatch rejected 74 formatting checks with zero warnings and zero
+errors, so no validated package was published. The exact bounded result is in
+[`results/patch-generation-attempt-1-checkpatch-20260820.txt`](results/patch-generation-attempt-1-checkpatch-20260820.txt).
+
 ## Question or hypothesis
 
 Can the current closed membership owner consume exactly one successful DA921x
