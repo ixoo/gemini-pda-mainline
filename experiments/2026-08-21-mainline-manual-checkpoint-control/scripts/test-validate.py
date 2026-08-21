@@ -34,6 +34,7 @@ def main() -> None:
     VALIDATOR.validate_patch(original)
     mutations = (
         original.replace("-- \n2.39.5", "Signed-off-by: Synthetic <nobody@example.invalid>\n-- \n2.39.5", 1),
+        original.replace("@@ -126,10 +126,31 @@", "@@ -126,10 +126,32 @@", 1),
         original.replace("GMCP-20260821-A", "GMCP-WRONG", 1),
         original.replace("9576f05d", "00000000", 1),
         original.replace("checkpoint=manual-second", "checkpoint=manual-first", 1),

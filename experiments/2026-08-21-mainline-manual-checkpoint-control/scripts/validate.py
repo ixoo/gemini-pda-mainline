@@ -56,6 +56,39 @@ def added_lines(text: str) -> str:
     )
 
 
+def validate_hunk_counts(text: str) -> None:
+    lines = text.splitlines()
+    hunks = 0
+    for index, line in enumerate(lines):
+        match = re.match(
+            r"^@@ -\d+(?:,(\d+))? \+\d+(?:,(\d+))? @@",
+            line,
+        )
+        if not match:
+            continue
+        hunks += 1
+        expected_old = int(match.group(1) or "1")
+        expected_new = int(match.group(2) or "1")
+        actual_old = 0
+        actual_new = 0
+        for body_line in lines[index + 1:]:
+            if (body_line.startswith("@@ ") or body_line.startswith("diff --git ")
+                    or body_line == "-- "):
+                break
+            require(bool(body_line), "unprefixed blank line in patch hunk")
+            prefix = body_line[0]
+            require(prefix in " +-\\", f"invalid patch-hunk prefix: {prefix!r}")
+            if prefix in " -":
+                actual_old += 1
+            if prefix in " +":
+                actual_new += 1
+        require(actual_old == expected_old,
+                f"old hunk count changed: {actual_old} != {expected_old}")
+        require(actual_new == expected_new,
+                f"new hunk count changed: {actual_new} != {expected_new}")
+    require(hunks == 4, "patch hunk inventory changed")
+
+
 def validate_patch(text: str) -> None:
     header, separator, _body = text.partition("\n\n")
     require(bool(separator), "patch header terminator changed")
@@ -77,6 +110,7 @@ def validate_patch(text: str) -> None:
         paths == ("fs/pstore/Kconfig", "fs/pstore/gemini_protected_readback_ledger.c"),
         "patch path inventory changed",
     )
+    validate_hunk_counts(text)
 
     added = added_lines(text)
     require(added.count(f"config {MODE}") == 1, "manual mode declaration changed")

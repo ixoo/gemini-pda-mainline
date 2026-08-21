@@ -11,14 +11,14 @@ Keep the mode default off.  Report the local result in dmesg, preserve
 serviceability on refusal, and make no device, regulator, CPU, storage, reset,
 or power operation.
 ---
- fs/pstore/Kconfig                            | 25 ++++++++++++++++++-
- fs/pstore/gemini_protected_readback_ledger.c | 37 +++++++++++++++++++++++++++-
- 2 files changed, 60 insertions(+), 2 deletions(-)
+ fs/pstore/Kconfig                            | 22 +++++++++++++++++++++-
+ fs/pstore/gemini_protected_readback_ledger.c | 29 ++++++++++++++++++++++++++++-
+ 2 files changed, 51 insertions(+), 2 deletions(-)
 
 diff --git a/fs/pstore/Kconfig b/fs/pstore/Kconfig
 --- a/fs/pstore/Kconfig
 +++ b/fs/pstore/Kconfig
-@@ -126,10 +126,33 @@ config PSTORE_GEMINI_ARM64_ENTRY_LEDGER
+@@ -126,10 +126,31 @@ config PSTORE_GEMINI_ARM64_ENTRY_LEDGER
  	  If unsure, say N.
  
 +config PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_CONTROL
@@ -54,7 +54,7 @@ diff --git a/fs/pstore/Kconfig b/fs/pstore/Kconfig
 diff --git a/fs/pstore/gemini_protected_readback_ledger.c b/fs/pstore/gemini_protected_readback_ledger.c
 --- a/fs/pstore/gemini_protected_readback_ledger.c
 +++ b/fs/pstore/gemini_protected_readback_ledger.c
-@@ -2,6 +2,7 @@
+@@ -2,5 +2,6 @@
  /* Experiment-only retained ledger around the first protected readback. */
  
 +#include <linux/init.h>
@@ -79,7 +79,7 @@ diff --git a/fs/pstore/gemini_protected_readback_ledger.c b/fs/pstore/gemini_pro
  static const char * const gemini_prb_records[] = {
  	"====0.000000-D\n"
  	"GEMINI_CLOCK_BACKEND_ENTRY_LEDGER_V1 token=GCBE-20260821-A "
-@@ -218,3 +228,28 @@ bool gemini_protected_readback_ledger_checkpoint(unsigned int checkpoint)
+@@ -218,3 +228,21 @@ bool gemini_protected_readback_ledger_checkpoint(unsigned int checkpoint)
  
  	return written;
  }
@@ -103,4 +103,3 @@ diff --git a/fs/pstore/gemini_protected_readback_ledger.c b/fs/pstore/gemini_pro
 +#endif
 -- 
 2.39.5
-

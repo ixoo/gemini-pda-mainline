@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-21-mainline-manual-checkpoint-control` |
-| Status | running; prebuild definition selected |
+| Status | running; patch-integrity correction selected after Buildbox attempt 1 |
 | Subsystem | pstore/ramoops, retained-RAM observation, arm64 serviceability |
 | Device variant | Gemini PDA x27, named project unit |
 | Date(s) | 2026-08-21 |
@@ -95,6 +95,17 @@ tooling will be added only after the exact Buildbox package exists.
 The predecessor serviceability control passed on one exact selection. The
 shared writer remains unproved independently because all earlier returned slot
 captures were empty even after a known serviceable mainline boot.
+
+Buildbox attempt 1 fetched exact signed commit `733c9e36d4e77bf33d5ce71e9924fe3ede021bf2`
+and applied canonical patches `0001` through `0326`, then rejected patch `0327`
+as corrupt at its second file boundary. The failure occurred before
+configuration, compilation, packaging, candidate assembly, or device access.
+Review found incorrect hand-authored unified-diff line counts. The correction
+adds an exact four-hunk count validator plus a thirteenth negative mutation;
+independent `git apply --numstat` parsing now reports Kconfig `22/1` and C
+`29/1`. Attempt 1 produced no package or boot candidate and cannot be used for
+hardware inference. See the
+[attempt-1 receipt](results/buildbox-attempt-1-patch-reject-20260821.txt).
 
 ## Analysis
 

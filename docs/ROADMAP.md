@@ -4738,7 +4738,7 @@ isolated late initcall and permits at most two short records, each with a full
 local readback. Its unique live result distinguishes local writer success from
 later cross-version recovery; the clock backend, observer, BigiDVFS, protected
 transports, DA921x action, and CPU8/CPU9 requests all remain absent. The
-prebuild definition passes its exact contract and 12 negative source/config
+prebuild definition passes its exact contract and 13 negative source/config
 mutations. It is not a boot candidate until Buildbox, package, DT, container,
 and experiment-specific validation all pass. See the
 [manual checkpoint control](../experiments/2026-08-21-mainline-manual-checkpoint-control/README.md).

@@ -1,0 +1,38 @@
+Manual retained-checkpoint control Buildbox attempt 1
+=====================================================
+
+Result: rejected before configuration or compilation
+Repository commit: 733c9e36d4e77bf33d5ce71e9924fe3ede021bf2
+Profile: da921x-manual-checkpoint-control
+Backend: buildbox
+Native VM fallback: none
+
+Observed boundary
+-----------------
+
+- Buildbox fetched the exact pushed commit and prepared its managed checkout.
+- Canonical patches 0001 through 0326 applied.
+- Patch 0327 was rejected as corrupt at line 54, the next file boundary.
+- No kernel configuration, compilation, package, candidate assembly, device
+  access, boot2 write, retained-RAM write, reboot, or power action occurred.
+
+Cause and correction
+--------------------
+
+The hand-authored unified-diff counts did not match the patch bodies. The
+Kconfig hunk declared 33 new lines but contained 31; the first C hunk declared
+6/7 lines but contained 5/6; the final C hunk declared 28 new lines but
+contained 21. The file-level statistics were also corrected to Kconfig 22/1,
+C 29/1, and 51 total insertions with two deletions.
+
+The exact prebuild validator now counts all four unified-diff hunks and rejects
+any body/header mismatch. Its negative suite includes an explicit corrupted
+hunk mutation and rejects 13 unsafe or malformed variants. Independent
+`git apply --numstat` parsing reports:
+
+    22  1  fs/pstore/Kconfig
+    29  1  fs/pstore/gemini_protected_readback_ledger.c
+
+Hardware inference: none
+Package authority: none
+Boot candidate: false
