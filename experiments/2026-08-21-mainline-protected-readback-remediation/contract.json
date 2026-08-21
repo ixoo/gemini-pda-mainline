@@ -34,7 +34,47 @@
     "patch_replay": "pass",
     "strict_checkpatch": "0-errors-0-warnings-0-checks"
   },
-  "validated_build": null,
+  "validated_build": {
+    "repository_commit": "df2c4dcef8c00131d0e2b8c69a451a544bd1c6d6",
+    "buildbox_job": "df2c4dcef8c00131d0e2b8c69a451a544bd1c6d6-protected-readback-kunit-m0",
+    "package": "linux-7.1.3-gemini-protected-readback-kunit-fad36c6a-97dda91b",
+    "generated_utc": "2026-08-21T17:03:06Z",
+    "profile": "protected-readback-kunit",
+    "kernel_release": "7.1.3-gemini-protected-readback-kunit",
+    "patch_count": 308,
+    "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+    "patchset_sha256": "fad36c6ae4629d9798a7341b254432e13d3be64f8e3934211c97492c131e670f",
+    "config_sha256": "404a63821919ca5ae4eaa566cdc144b76a1683e30472f6f98341d0ef8becd95c",
+    "image_sha256": "8e78ad91f1a7c206b3514f55e2d92536c6309e39082d832bf5b4c36128e5367d",
+    "image_gzip_sha256": "19adc5e5ef0f91801663b7b28c16cd050967df1127cca1201f9d40a2e638bea5",
+    "system_map_sha256": "3ada6ad61def9c0f2ba993a31a48345cbea8c84db5c61665d6680cbd31e1c213",
+    "sha256sums_sha256": "022fc54ebc235bd2a9ebe55ff6bbf8dcce1c838da3bca73270d21d2153532afd",
+    "job_log_sha256": "950d3babd9f015dbf73e7993010cf991d815d811db8ba60a9361d3370492a943",
+    "job_log_bytes": 170772,
+    "package_checksums": "pass",
+    "linked_symbols": [
+      "mt6797_clock_snapshot",
+      "mt6797_bigidvfs_snapshot",
+      "mt6797_protected_readback_suite",
+      "mt6797_protected_readback_cases"
+    ],
+    "runtime": {
+      "runner": "qemu-system-aarch64-11.0.2",
+      "machine": "virt-cortex-a53-four-vcpu-no-network",
+      "suite": "mt6797-protected-readback",
+      "planned_cases": 6,
+      "passed_cases": 6,
+      "failed_cases": 0,
+      "skipped_cases": 0,
+      "raw_log_sha256": "f121635030d2eb0f3b3c9de21ea59f6cfc0fb43e530bf9340d686937c2e619af",
+      "qemu_exit": 124,
+      "exit_interpretation": "bounded-timeout-after-complete-ktap-pass",
+      "post_test_state": "expected-vm-rootfs-panic",
+      "classifier": "pass",
+      "hardware_write": false,
+      "device_action": false
+    }
+  },
   "failed_builds": [
     {
       "repository_commit": "2aa38a008b34264c3bbe6d12bb1864acb0ee1c6d",

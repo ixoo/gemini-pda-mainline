@@ -2,10 +2,13 @@
 
 ## Status
 
-Exact Buildbox generation is complete. The three logical patches are generated,
-source-validated, replayed exactly, strict-clean, and admitted canonically as
-`0316`--`0318`. The isolated Buildbox compile and focused no-network KUnit run
-are next; no patch from this experiment has been used on the Gemini.
+The remediation and compile follow-up are complete through canonical patch
+`0319`. Exact clean commit `df2c4dcef8c` compiled and linked on Buildbox, its
+validated package was fetched by checksum, and the focused no-network QEMU run
+passed all six KUnit cases with no failures or skips. The protected-clock and
+BigiDVFS DT nodes remain disabled, so the next gate is a separately named
+read-only device candidate. No patch from this experiment has yet been used on
+the Gemini.
 
 The first
 generation attempt from `b2f0bcddddb1` passed repository checkout, managed
@@ -83,6 +86,22 @@ checkpatch passed with zero findings. The identity is recorded in
 [`results/buildbox-compile-fix-generation-1ad1ce0d.txt`](results/buildbox-compile-fix-generation-1ad1ce0d.txt),
 and the exact patch is admitted canonically as `0319`.
 
+The repeated isolated build from exact clean commit `df2c4dcef8c` applied all
+308 canonical patches, compiled both production transports and the test object,
+linked the kernel, and passed package checksum validation. The package and job
+log identities, including the linked symbols, are in
+[`results/buildbox-build-df2c4dce.txt`](results/buildbox-build-df2c4dce.txt).
+
+The first QEMU execution produced six passing cases and the expected post-test
+rootfs panic. The initial classifier rejected those valid results because it
+expected KUnit to remove the `_test` suffix from case names; this kernel retains
+it. The retained raw log was not rerun or changed. After correcting only the
+expected-name inventory, that same raw log classified as an exact 6/6 pass.
+The bounded classifier failure and final evidence are in
+[`results/qemu-attempt-1-classifier-schema-failure-20260821.txt`](results/qemu-attempt-1-classifier-schema-failure-20260821.txt)
+and
+[`results/qemu-attempt-1-success-20260821.txt`](results/qemu-attempt-1-success-20260821.txt).
+
 No device kernel, boot image, partition, firmware service, or hardware
 semaphore has been used by this experiment.
 
@@ -114,13 +133,16 @@ The prerequisite named-firmware and arbitration decision is recorded by the
 
 ## Scope
 
-Three logical patches are generated:
+Three logical remediation patches are generated:
 
 1. `0316` repairs the protected-clock
    acquire/settle/read/release/publication order;
 2. `0317` makes BigiDVFS take two exact fixed read-only samples; and
 3. `0318` adds a focused in-memory KUnit suite for ordering, timeouts, all
    eight secure read fault ordinals, and instability.
+
+Follow-up patch `0319` changes only the test numeric settle constant's name to
+remove a C preprocessor collision discovered by the first isolated compile.
 
 The test seam exposes only transport callbacks inside the MediaTek SoC driver
 directory. The production clock callback retains the exact existing CSPM
@@ -134,6 +156,7 @@ Patch generation passes only if exact source hashes, deterministic editing,
 source validation, replay, and strict checkpatch all pass. Compilation then
 uses the isolated `protected-readback-kunit` profile. A focused no-network QEMU
 run must report all six cases passing before a read-only device candidate can
-be considered.
+be considered. That condition is now satisfied; it does not itself make the
+KUnit package or either disabled backend a device boot candidate.
 
 No result here opens the protected-state owner or CPU8/CPU9 admission.

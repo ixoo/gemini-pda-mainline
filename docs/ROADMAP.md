@@ -4595,22 +4595,26 @@ device run with the two current transports: patch `0197` omits the recovered
 MCUMIXED read, while patch `0198` can leave a partial caller record and does
 not reject a four-call sample that changes mid-observation.
 
-1. Complete the
-   [protected-readback remediation](../experiments/2026-08-21-mainline-protected-readback-remediation/README.md):
-   repair the protected-clock settle boundary, make both readbacks publish
-   all-zero on failure, add a stable two-sample rule for BigiDVFS, and pass the
-   focused hardware-free ordering, fault, and instability tests.
-2. Build one exact read-only validation candidate. Enable only the two
+The
+[protected-readback remediation](../experiments/2026-08-21-mainline-protected-readback-remediation/README.md)
+is now complete through patch `0319`. Both transports publish only complete
+stable records, the recovered 200 ns clock settle is enforced, and the exact
+six-case hardware-free suite passes with no failures or skips. Both device
+nodes remain disabled and no owner or CPU admission is opened.
+
+The next ordered work is:
+
+1. Build one exact read-only validation candidate. Enable only the two
    transports and a bounded one-shot observer; require the named TEE identity,
    exact raw records, no CPU request, and ordinary A53/USB/console
    serviceability before interpreting the result.
-3. Compose the validated readers, DA921x, and the platform-state source under
+2. Compose the validated readers, DA921x, and the platform-state source under
    one transition/hotplug owner.
-4. Revise A34 to accept only the complete direct-state ABI and applicable
+3. Revise A34 to accept only the complete direct-state ABI and applicable
    BL31 replay-clear contract, prove the atomic `CLOSED / UNINITIALIZED` to
    `AVAILABLE / IDLE` publication, and keep both CPU vetoes closed until that
    proof passes.
-5. Only then build one decision-bearing CPU8 candidate with one request,
+4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
 The eventual CPU8 candidate must have a single CPU8 request, strict
