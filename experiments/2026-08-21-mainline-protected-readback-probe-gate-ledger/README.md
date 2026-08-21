@@ -8,7 +8,9 @@ or changed retained payload before changed-boot-ID Gemian recovery. Neither
 protected transport was reached or tested. This non-identical successor is now
 generated, reviewed, and admitted canonically as patch `0324`. The exact
 Buildbox kernel and independently validated Android-v0/16 MiB candidate now
-pass offline. Guarded deployment is pending. No native VM build occurred.
+pass offline. The source-pinned guarded installer, USB collector, strict USB
+validator, and retained-record classifier also pass their offline contracts.
+Guarded deployment is pending. No native VM build occurred.
 
 ## Question
 
@@ -95,6 +97,8 @@ byte-identical and no device was accessed. See
 
 ## Next action
 
-Commit and push the sanitized build/candidate evidence and reproducible tools,
-then prepare the guarded `boot2` installer and exact runtime classifiers. After
-those pass offline, deploy once, verify full-partition readback, and shut down.
+Commit and push the reproducible deployment/runtime tools, then install the
+exact candidate once through the guarded `boot2` workflow. Require exact live
+empty retained slots, a matching full-partition readback, and confirmed clean
+shutdown. Arm the USB and recovery collectors before the owner selects
+`boot2`; classify exactly one physical selection with the table above.
