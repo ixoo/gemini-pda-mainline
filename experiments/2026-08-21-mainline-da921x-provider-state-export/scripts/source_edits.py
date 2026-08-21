@@ -246,18 +246,14 @@ def apply_tests(root: Path) -> None:
     )
     replace_once(
         test,
-        dedent("""\
-        \t\treg = messages[0].buf[0];
-        \t\tmessages[1].buf[0] = fake->registers[reg];
-        \t\treturn 2;
-        """),
-        dedent("""\
-        \t\treg = messages[0].buf[0];
-        \t\tif (fake->mutate_snapshot && fake->operation_calls == 6)
-        \t\t\tfake->registers[reg] ^= 1;
-        \t\tmessages[1].buf[0] = fake->registers[reg];
-        \t\treturn 2;
-        """),
+        "\t\treg = messages[0].buf[0];\n"
+        "\t\tmessages[1].buf[0] = fake->registers[reg];\n"
+        "\t\treturn 2;\n",
+        "\t\treg = messages[0].buf[0];\n"
+        "\t\tif (fake->mutate_snapshot && fake->operation_calls == 6)\n"
+        "\t\t\tfake->registers[reg] ^= 1;\n"
+        "\t\tmessages[1].buf[0] = fake->registers[reg];\n"
+        "\t\treturn 2;\n",
     )
 
     anchor = "static void da9213_membership_positive_abort_success(struct kunit *test)\n"

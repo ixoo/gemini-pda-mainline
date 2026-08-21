@@ -13,6 +13,13 @@ fail-closed receipt is in
 The guard now reports the rejected anchor's first line so the next retry can
 correct only the attributable mismatch.
 
+The diagnostic retry from `dd97fab23092` confirmed that `dedent()` had stripped
+the two leading tabs from the transfer-body anchor. The second bounded receipt
+is in
+[`results/buildbox-generation-attempt-dd97fab2.txt`](results/buildbox-generation-attempt-dd97fab2.txt).
+That one anchor now uses explicit tab-preserving strings; no proposed kernel
+behavior changed.
+
 ## Question
 
 Can the already registered DA921x A72 provider export one fresh, stable,

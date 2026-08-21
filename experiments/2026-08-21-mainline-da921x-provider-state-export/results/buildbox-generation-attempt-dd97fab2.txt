@@ -1,0 +1,12 @@
+repository_commit=dd97fab23092239aa4578bb3bc633833547bb88a
+buildbox_job=dd97fab23092239aa4578bb3bc633833547bb88a-da921x-provider-state-patchgen
+parent_integrity=pass
+parent_file_hashes=pass
+registry_edit=pass
+provider_edit=pass
+failure=membership-transfer-anchor-leading-tabs-stripped
+rejected_anchor=reg-equals-messages-zero-buf-zero
+generated_patch_package=none
+compile=not-run
+device_action=none
+boot_candidate=false
