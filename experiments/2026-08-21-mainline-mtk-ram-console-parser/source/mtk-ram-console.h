@@ -17,7 +17,7 @@ int mtk_ram_console_parse(const void *buffer, size_t buffer_size,
 #else
 static inline int
 mtk_ram_console_parse(const void *buffer, size_t buffer_size,
-			      struct mtk_ram_console_snapshot *snapshot)
+			  struct mtk_ram_console_snapshot *snapshot)
 {
 	(void)buffer;
 	(void)buffer_size;

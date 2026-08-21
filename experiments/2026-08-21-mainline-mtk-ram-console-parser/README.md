@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-21-mainline-mtk-ram-console-parser` |
-| Status | generation lane prepared; no canonical patch admitted yet |
+| Status | first strict style rejection recorded; corrected generation lane prepared |
 | Subsystem | MediaTek retained preloader/LK ram-console wire format |
 | Device variant | MT6797/Gemini contract; hardware-free implementation phase |
 | Date(s) | 2026-08-21 America/New_York |
@@ -49,6 +49,8 @@ reboot, or shut down hardware.
 - [`contract.json`](contract.json) pins the audit and prepared source state.
 - [`results/test-matrix.tsv`](results/test-matrix.tsv) separates parser claims
   from deferred hardware/authority claims.
+- [`results/patch-generation-attempt-1-checkpatch-20260821.txt`](results/patch-generation-attempt-1-checkpatch-20260821.txt)
+  records the first exact generation's strict alignment rejection.
 - [`source/mtk-ram-console.c`](source/mtk-ram-console.c) and
   [`source/mtk-ram-console.h`](source/mtk-ram-console.h) are deterministic
   source inputs.
@@ -93,10 +95,13 @@ After committing and pushing a clean input:
 
 ## Observations
 
-The audit selected only the pure parser. Source assets and a Buildbox-only
-generation lane are prepared. No generated patch, compile result, QEMU result,
-physical capture, reset interpretation, boot candidate, or device result is
-claimed yet.
+The audit selected only the pure parser. The first exact Buildbox generation
+passed source semantics, patch inventory, and byte-for-byte replay, then strict
+checkpatch rejected one continuation-line alignment in the disabled-config
+header stub. Its partial package was removed and no patch was admitted. The
+indentation is corrected for a distinct retry. No validated generated patch,
+compile result, QEMU result, physical capture, reset interpretation, boot
+candidate, or device result is claimed yet.
 
 ## Analysis
 

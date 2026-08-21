@@ -125,8 +125,9 @@ def main() -> None:
 
     readme = (HERE / "README.md").read_text()
     design = (HERE / "DESIGN.md").read_text()
-    require("no canonical patch admitted yet" in readme and
-            "No generated patch, compile result, QEMU result" in readme and
+    require("first strict style rejection recorded" in readme and
+            "checkpatch rejected one continuation-line" in readme and
+            "No validated generated patch" in readme and
             "`inconclusive` pending exact Buildbox generation" in readme,
             "status is not overstated")
     for token in (
