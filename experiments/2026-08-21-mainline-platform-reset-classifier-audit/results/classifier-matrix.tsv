@@ -1,0 +1,11 @@
+id	input_or_path	exact_source_semantics	linux_transport	decision	next
+C01	raw-status-zero-plus-retained-status-zero	no-represented-TOPRGU-cause;retained-word-is-lossy-projection-of-raw	both-available	reject-no-power-on-stage-proof	direct-recovery-state-audit
+C02	software-watchdog-or-kernel-stage-reset	ordinary-RGU-reset-class	available-as-cause-only	reject	keep-A34-closed
+C03	hardware-watchdog-SPM-thermal-security-or-request-reset	represented-RGU-cause-with-no-complete-external-state-recovery-proof	available-as-cause-only	reject	keep-A34-closed
+C04	unknown-or-reserved-raw-bit	no-complete-pinned-semantics	preserved-raw	reject	keep-A34-closed
+C05	retained-status-not-exact-projection-of-raw	contradictory-or-corrupt-observations	both-available	reject	keep-A34-closed
+T01	preloader-power-on-class-4	raw-zero-plus-entry-INTERVAL-stage-3	private-cell-only	reject-not-transported	direct-recovery-state-audit
+T02	LK-private-non-RGU-boolean	consumes-preloader-INTERVAL-bit2-before-overwrite	private-LK-state-only	reject-not-transported	direct-recovery-state-audit
+T03	direct-preloader-cell-read	exact-cell-static-xrefs-confined-to-classifier	unsafe-live-access	reject-permanently	no-repeat
+T04	modify-LK-to-export-class	would-create-transport-by-changing-bootloader	separate-LK-partition	reject-as-next-boot2-step	retain-current-boot-contract
+N01	direct-A34-recovery-state-attestation	prove-every-reset-dependent-prefix-directly	audit-required	select-audit	no-implementation-until-complete

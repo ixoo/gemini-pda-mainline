@@ -307,6 +307,19 @@ raw word useful evidence; it does not make any bit pattern a completed-reset
 or fresh-secure-epoch attestation. See the [A34 provenance-owner
 audit](../../experiments/2026-08-21-mainline-a72-a34-provenance-owner-audit/README.md).
 
+The exact shipping preloader refines that boundary. Its TOPRGU initializer
+captures raw status and entry-time `INTERVAL` before changing either. It maps
+raw status into the retained preloader word, while a separate private
+classifier assigns power-off/on class `4` only for raw zero plus the default
+stage marker `INTERVAL[1:0] == 3`. The retained word is therefore a lossy
+projection of raw status, not independent evidence. The positive class is not
+written to ram-console; preloader and pinned LK overwrite the interval, and LK
+does not export its derived Boolean. The analyzed preloader-private cell is
+also not safely readable from Linux: one bounded read-only Gemian access did
+not return and made the unit unreachable, so that access route is closed to
+repetition. See the [platform-reset classifier
+audit](../../experiments/2026-08-21-mainline-platform-reset-classifier-audit/README.md).
+
 The IRQ-bearing watchdog description did not register a watchdog device,
 while the otherwise equivalent no-IRQ description bound `10007000.watchdog`
 to `mtk-wdt`, exposed `/dev/watchdog0`, and reported a 31-second timeout with

@@ -4519,6 +4519,31 @@ no production caller. Until that classifier is frozen and proven, the
 production A34 owner, lifecycle opener, CPU8 request, boot image, and device
 attempt remain closed.
 
+That
+[platform-reset classifier audit](../experiments/2026-08-21-mainline-platform-reset-classifier-audit/README.md)
+is now complete, with no admissible positive result from the current inputs.
+Exact private-preloader analysis proves that the retained preloader status is
+a lossy projection of the same raw TOPRGU status already captured by patch
+`0303`; agreement is therefore correlated by construction. The preloader does
+have a stronger power-off/on classifier: raw status zero plus entry-time
+`INTERVAL[1:0] == 3` produces private class `4`. But the retained writer does
+not receive that class, preloader and pinned LK both overwrite the interval
+before Linux, and LK exports neither its private Boolean nor the original
+value. A direct read-only access to the analyzed preloader cell stalled
+known-good Gemian before returning data and is permanently rejected. Changing
+LK would cross the separate bootloader-partition contract and is not the next
+boot2 kernel step.
+
+Do not implement a reset-cause classifier with a manufactured raw-zero
+positive. The next ordered boundary is an audit of direct, immutable A34
+recovery-state attestation. It must determine whether owner-safe observers can
+prove the complete exact recovered tuple—external DA921x Buck B, SPM power/
+reset/isolation/SRAM state, TOPRGU PWRAP reset, protected clocks, CCI/DCM,
+CPU8/CPU9 physical and generic state, the proven BL31 replay clear, and the
+complete empty Linux owner tuple—without relying on reset cause. Any missing,
+mutable, unsafe, or contradictory prefix keeps A34 closed. No implementation,
+build, boot image, or device attempt follows until that audit is complete.
+
 The eventual CPU8 candidate must have a single CPU8 request, strict
 checkpoints before and after each power step, a bounded timeout, and a
 fail-closed rollback. CPU9

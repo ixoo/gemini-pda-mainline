@@ -1,0 +1,8 @@
+audit=pass
+classifier_rows=10
+current_snapshot_positive_rows=0
+preloader_power_on_class=source-confirmed-but-not-transported
+direct_preloader_cell=reject-no-repeat
+next=direct-A34-recovery-state-attestation-audit
+a34_owner=closed
+device_write=none

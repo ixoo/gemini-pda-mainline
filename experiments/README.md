@@ -23,6 +23,15 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-21 mainline platform-reset classifier audit](2026-08-21-mainline-platform-reset-classifier-audit/README.md)
+  — reconstructs the exact shipping preloader's raw-status projection and its
+  separate entry-time `INTERVAL` power-off/on classifier. The positive class
+  is source-confirmed but is not transported through retained ram-console or
+  pinned LK; the two implemented Linux snapshots therefore have no honest
+  positive classifier row. One bounded read-only attempt to access the
+  preloader-private cell stalled Gemian and is permanently rejected. The next
+  action is a direct A34 recovery-state attestation audit; no classifier,
+  build, boot candidate, or CPU8 request is admitted.
 - [2026-08-21 mainline secure replay epoch audit](2026-08-21-mainline-secure-replay-epoch-audit/README.md)
   — confirms from the exact duplicate preloader and `tee1`/`tee2` images that
   the regular secure handoff reaches a BL31 primary entry which explicitly
