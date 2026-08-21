@@ -36,6 +36,18 @@ def main() -> None:
     parent = contract["parent"]
     require(sha256(ROOT / parent["last_patch"]) == parent["last_patch_sha256"],
             "canonical parent patch")
+    expected_patch = ROOT / contract["expected_patch"]
+    require(expected_patch.is_file(), "canonical evaluator patch")
+    require(sha256(expected_patch) == contract["expected_patch_sha256"],
+            "canonical evaluator patch identity")
+    generation = contract["validated_generation"]
+    require(generation["repository_commit"] ==
+            "6d1aea564cea147256ef6a6c5f56681b07f3343b" and
+            generation["package"] ==
+            "a72-a34-eligibility-patch-6d1aea564cea" and
+            generation["result_commit"] ==
+            "369ba0f889cba4161e2905b38f051b41e7eb4b7a",
+            "validated Buildbox generation identity")
 
     scope = contract["scope"]
     require(scope["default_off"] and scope["hardware_free"],
@@ -129,6 +141,19 @@ def main() -> None:
     require("CONFIG_ARM64_MT6797_A72_A34_ELIGIBILITY_KUNIT_TEST=y" in
             test_fragment and "CONFIG_KUNIT=y" in test_fragment,
             "focused KUnit fragment")
+    manifest = json.loads((ROOT / "kernel/manifest.json").read_text())
+    profiles = manifest["config"]["profiles"]
+    require(profiles["a72-a34-eligibility"]["fragments"][-1] ==
+            "configs/gemini-a72-a34-eligibility.fragment",
+            "evaluator build profile")
+    require(profiles["a72-a34-eligibility-kunit"]["fragments"][-2:] == [
+        "configs/gemini-a72-a34-eligibility.fragment",
+        "configs/gemini-a72-a34-eligibility-kunit.fragment",
+    ], "focused KUnit build profile")
+    series = (ROOT / "patches/series").read_text().splitlines()
+    require(series[-1] ==
+            "v7.1.3/0302-arm64-add-A72-A34-eligibility-evaluator.patch",
+            "canonical patch ordering")
     runner = (HERE / "scripts/run-kunit-qemu").read_text()
     classifier = (HERE / "scripts/classify-kunit.py").read_text()
     for marker in ("-machine virt -cpu cortex-a53 -smp 4", "-nic none",
@@ -154,7 +179,9 @@ def main() -> None:
                    "Future reset-provenance candidate",
                    "cannot make the evaluator input true"):
         require(marker in design, f"design marker: {marker}")
-    require("no kernel patch or build yet" in readme,
+    require("canonical evaluator patch generated and validated; build pending"
+            in readme and
+            "no kernel build or device work has been attempted" in readme,
             "current status is not overstated")
     require(not re.search(r"/Users/|BEGIN (?:RSA|OPENSSH|EC) PRIVATE KEY|IMEI",
                           design + readme), "no private material")
@@ -170,7 +197,9 @@ def main() -> None:
     print("private_replay_owner=unresolved")
     print("reset_provenance_candidate=toprgu-wdt-status-preinit-read")
     print("reset_provenance_candidate_state=inconclusive")
-    print("build_prerequisite=signed-audit-push")
+    print("signed_audit_prerequisite=satisfied")
+    print("canonical_patch=validated")
+    print("build_state=pending")
     print("hardware_effect=no")
     print("device_action=no")
     print("result=pass")

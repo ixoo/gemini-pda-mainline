@@ -1118,6 +1118,43 @@
                     "configs/gemini-a72-pre-p28-provider-abort-kunit.fragment"
                 ]
             },
+            "a72-a34-eligibility": {
+                "base": "defconfig",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-usbdiag.fragment",
+                    "configs/gemini-clk-ignore-unused.fragment",
+                    "configs/gemini-observability.fragment",
+                    "configs/gemini-fbcon-rotation.fragment",
+                    "configs/gemini-keyboard.fragment",
+                    "configs/gemini-keyboard-wrrd.fragment",
+                    "configs/gemini-keyboard-manual-reboot.fragment",
+                    "configs/gemini-smp8.fragment",
+                    "configs/gemini-a72-a41-kernel-identity.fragment",
+                    "configs/gemini-a72-p30-protocol.fragment",
+                    "configs/gemini-a72-p24-closed-owner.fragment",
+                    "configs/gemini-a72-a34-eligibility.fragment"
+                ]
+            },
+            "a72-a34-eligibility-kunit": {
+                "base": "defconfig",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-usbdiag.fragment",
+                    "configs/gemini-clk-ignore-unused.fragment",
+                    "configs/gemini-observability.fragment",
+                    "configs/gemini-fbcon-rotation.fragment",
+                    "configs/gemini-keyboard.fragment",
+                    "configs/gemini-keyboard-wrrd.fragment",
+                    "configs/gemini-keyboard-manual-reboot.fragment",
+                    "configs/gemini-smp8.fragment",
+                    "configs/gemini-a72-a41-kernel-identity.fragment",
+                    "configs/gemini-a72-p30-protocol.fragment",
+                    "configs/gemini-a72-p24-closed-owner.fragment",
+                    "configs/gemini-a72-a34-eligibility.fragment",
+                    "configs/gemini-a72-a34-eligibility-kunit.fragment"
+                ]
+            },
             "da921x-legacy-lifecycle": {
                 "base": "defconfig",
                 "fragments": [
