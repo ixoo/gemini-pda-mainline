@@ -4571,13 +4571,24 @@ The default-off capture-only source is now generated as four logical patches
 and admitted canonically through `0311`; exact Buildbox replay, semantic
 validation, strict checkpatch, isolated arm64 compilation, Gemini DTB
 generation, and package checks passed at commit `aa7dc4f`. The node remains
-disabled. This closes capture-source construction, not runtime ownership. The
-next ordered work is:
+disabled. This closes capture-source construction, not runtime ownership.
 
-1. Export fresh read-only DA921x state from its existing root-adapter-locked
-   owner. Keep the export transaction-local and add no writer or consumer.
-2. Validate the disabled protected clock/BigiDVFS readers on the named
-   firmware, then compose them, DA921x, and the platform-state source under one
+The fresh read-only DA921x provider-state export is now admitted canonically
+through `0315`. Exact Buildbox generation, replay, strict checkpatch, isolated
+arm64 compilation, package validation, and a hardware-free QEMU run all pass.
+The run exercised exactly four new stable-snapshot cases and six inherited
+provider-transaction cases with zero failures or skips. The export remains a
+transaction-local observer: it performs two immediate five-register samples,
+does no write or delay, adds no A34 consumer, and does not open either CPU
+veto. See the
+[DA921x provider-state experiment](../experiments/2026-08-21-mainline-da921x-provider-state-export/README.md).
+
+This closes the provider-export prerequisite, not runtime ownership. The next
+ordered work is:
+
+1. Validate the disabled protected clock/BigiDVFS readers on the named
+   firmware.
+2. Compose those readers, DA921x, and the platform-state source under one
    transition/hotplug owner.
 3. Revise A34 to accept only the complete direct-state ABI and applicable
    BL31 replay-clear contract, prove the atomic `CLOSED / UNINITIALIZED` to

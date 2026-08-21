@@ -4,7 +4,8 @@
 
 The three logical patches and one compile-only tag correction are generated,
 replay-validated, strict-clean, and canonically admitted through `0315`. The
-corrected isolated Buildbox compile remains pending. No patch from this
+corrected isolated Buildbox compile and focused hardware-free QEMU run pass.
+All ten exact KUnit cases pass with zero failures and skips. No patch from this
 experiment has been used on the Gemini.
 
 The first generation attempt from exact commit `9346a72ebfc1` passed the
@@ -69,6 +70,17 @@ identity is recorded in
 [`results/buildbox-tag-fix-generation-256329aa.txt`](results/buildbox-tag-fix-generation-256329aa.txt),
 and canonical patch `0315` is now admitted for the corrected compile.
 
+The corrected compile from exact clean commit `037009eef8e4` applied all 304
+canonical patches, built the isolated profile, generated the Gemini DTB, and
+validated every package checksum. The exact Buildbox identity is recorded in
+[`results/buildbox-compile-037009ee.txt`](results/buildbox-compile-037009ee.txt).
+The fetched package then ran under an isolated four-vCPU Cortex-A53 QEMU
+machine with no network. The classifier observed exactly the four new
+provider-snapshot cases followed by the six inherited provider-transaction
+cases; all ten passed. The expected post-test root-filesystem panic occurred
+only after complete KTAP success. The bounded runtime receipt is in
+[`results/qemu-attempt-1-success-20260821.txt`](results/qemu-attempt-1-success-20260821.txt).
+
 ## Question
 
 Can the already registered DA921x A72 provider export one fresh, stable,
@@ -114,7 +126,7 @@ The hardware-free KUnit extension uses the existing unregistered in-memory I2C
 adapter. It proves success, every negative and short read ordinal, an unstable
 pair, the absent-provider boundary, and the optional-callback boundary.
 
-## Planned procedure
+## Completed procedure
 
 1. Generate three logical patches on the exact Buildbox parent.
 2. Require edited-source validation, exact replay, and strict checkpatch with
@@ -123,8 +135,8 @@ pair, the absent-provider boundary, and the optional-callback boundary.
    the patches to the canonical series.
 4. Add an isolated KUnit build profile and compile it through the explicit
    Buildbox backend.
-5. Run the focused hardware-free suite under QEMU if the existing runner can
-   consume the exact profile without broadening the test boundary.
+5. Run the focused hardware-free suite under QEMU with an exact-profile
+   derivative of the existing runner and no broader KUnit test inventory.
 6. Record and push evidence before selecting the protected-state composition
    step.
 

@@ -55,8 +55,56 @@ def main() -> None:
         "patch_replay": "pass",
         "strict_checkpatch": "0-errors-0-warnings-0-checks",
     }, "validated Buildbox generation identity")
-    require(contract["validated_build"] is None,
-            "build remains pending")
+    require(contract["validated_build"] == {
+        "repository_commit": "037009eef8e4ae2d05e7dd944b66e198907e9e03",
+        "buildbox_job": (
+            "037009eef8e4ae2d05e7dd944b66e198907e9e03-"
+            "da921x-provider-state-kunit-m0"
+        ),
+        "artifact": (
+            "linux-7.1.3-gemini-da921x-provider-state-kunit-"
+            "9aed726d-2f92b4db"
+        ),
+        "profile": "da921x-provider-state-kunit",
+        "kernel_release": "7.1.3-gemini-da921x-provider-state-kunit",
+        "generated_utc": "2026-08-21T16:12:45Z",
+        "source_sha256": (
+            "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc"
+        ),
+        "patchset_sha256": (
+            "9aed726d33654b164badd5029465db36412cd61cd2e01bffb20abc802744f92b"
+        ),
+        "patch_count": 304,
+        "config_sha256": (
+            "c2c5d3bb46fc3807d2573520c00fadacce3e6edbafb6055a2889631fb114ec6d"
+        ),
+        "image_sha256": (
+            "012863beb73026ecc69d9c0733d762e37653ded914d026bcdcbf02c6d7fec3d8"
+        ),
+        "image_gzip_sha256": (
+            "7ee18b2f97c744e01ddd52be9ea3e92f9f86c09d888dd59c3c517aba4128469c"
+        ),
+        "sha256sums_sha256": (
+            "1afb6f3df000cc6c2c00f9e401291cdb5bf4b6ee51b8dc1de19e12debdf7f323"
+        ),
+        "package_checksums": "pass",
+        "qemu": {
+            "observed_utc": "2026-08-21T16:15:46Z",
+            "runner": "qemu-system-aarch64-11.0.2",
+            "machine": "virt-cortex-a53-four-vcpu-no-network",
+            "raw_log_sha256": (
+                "84ab9797417b0dce39b136cc041c1adc4308d1c5836e7e5383dd62ea044f0080"
+            ),
+            "suite": "da9213-legacy-membership-provider",
+            "planned_cases": 10,
+            "passed_cases": 10,
+            "failed_cases": 0,
+            "skipped_cases": 0,
+            "post_test_state": "expected-vm-rootfs-panic",
+            "qemu_exit": 124,
+            "classifier": "pass",
+        },
+    }, "validated Buildbox compile and QEMU identity")
     patch_hashes = []
     for relative in contract["expected_patches"]:
         path = ROOT / relative
@@ -118,6 +166,33 @@ def main() -> None:
     ):
         require(buildbox.count(command) >= 2,
                 f"Buildbox command: {command}")
+
+    runner = (HERE / "scripts/run-kunit-qemu").read_text()
+    classifier = (HERE / "scripts/classify-kunit.py").read_text()
+    for token in (
+        "EXPECTED_PROFILE=da921x-provider-state-kunit",
+        "qemu-system-aarch64",
+        "-nic none",
+        "focused KUnit test inventory changed",
+    ):
+        require(token in runner, f"QEMU runner token: {token}")
+    for token in (
+        'PROFILE = "da921x-provider-state-kunit"',
+        '"da9213_provider_snapshot_success"',
+        '"da9213_provider_snapshot_transport_faults"',
+        '"da9213_provider_snapshot_unstable"',
+        '"da9213_provider_snapshot_registry_guards"',
+        'require(ktap.count("1..10") == 1',
+        'print("tests=10")',
+        'print("cpu8_cpu9_admission=closed")',
+    ):
+        require(token in classifier, f"QEMU classifier token: {token}")
+
+    for name in (
+        "buildbox-compile-037009ee.txt",
+        "qemu-attempt-1-success-20260821.txt",
+    ):
+        require((HERE / "results" / name).is_file(), f"result receipt: {name}")
 
     fix = contract["compile_fix"]
     require(fix["expected_patch"] ==
