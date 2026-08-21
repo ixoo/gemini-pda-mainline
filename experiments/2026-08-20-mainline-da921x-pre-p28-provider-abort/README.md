@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-20-mainline-da921x-pre-p28-provider-abort` |
-| Status | canonical patch `0301` imported; focused Buildbox/QEMU proof pending |
+| Status | hardware-free pre-P28 provider-abort proof passed |
 | Subsystem | MT6797 CPU8 membership owner and DA921x Buck B provider |
 | Device variant | Planet Gemini PDA named development unit |
 | Date(s) | 2026-08-20 America/New_York |
@@ -94,6 +94,15 @@ errors, warnings, or checks. Canonical patch `0301` has SHA-256
 The bounded generation result is in
 [`results/release-abi-fix-generation-attempt-1-success-20260820.txt`](results/release-abi-fix-generation-attempt-1-success-20260820.txt).
 
+The final focused Buildbox rebuild from exact signed commit
+`69b28e95caf96f46ee7da90a338ebbf3c8a58208` passed package validation with
+canonical patches through `0301`. QEMU attempt 3 passed all six focused test
+families with zero failures or skips, including all fourteen malformed release
+responses. The classifier accepted the complete KTAP before the expected
+bounded rootfs-panic timeout. This closes the hardware-free pre-P28
+owner/provider inverse only; the exact identities and result are in
+[`results/qemu-attempt-3-success-20260820.txt`](results/qemu-attempt-3-success-20260820.txt).
+
 ## Question or hypothesis
 
 Can the current closed membership owner consume exactly one successful DA921x
@@ -176,8 +185,9 @@ connection. A26 and A14 remain unchanged; CPU8 and CPU9 admission stays closed.
    Attempt 2 reached semantics and exposed the missing release-response ABI
    check: five cases passed and one failed.
 6. Generate and import the one-condition `0301` remediation from the exact
-   canonical `0300` parent. Complete. Rebuild and run one distinct QEMU proof.
-7. Record exact package, config, Image, QEMU, and suite identities.
+   canonical `0300` parent. Complete.
+7. Rebuild, run one distinct QEMU proof, and record exact package, config,
+   Image, QEMU, and suite identities. Complete: six pass, zero fail or skip.
 
 ## Decision rule
 
@@ -189,6 +199,6 @@ retry or speculative inverse.
 
 ## Follow-up
 
-Passing this experiment will close only the pre-P28 owner/provider inverse.
-It will not authorize a physical provider call or CPU8 boot. The next boundary
-must be selected separately by [Roadmap Gate 7](../../docs/ROADMAP.md#7-bring-up-cpu8).
+This experiment closes only the hardware-free pre-P28 owner/provider inverse.
+It does not authorize a physical provider call or CPU8 boot. The next boundary
+is selected separately by [Roadmap Gate 7](../../docs/ROADMAP.md#7-bring-up-cpu8).

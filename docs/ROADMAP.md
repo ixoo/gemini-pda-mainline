@@ -4359,9 +4359,18 @@ wrapper did not validate the provider callback ABI before constructing its
 internal proof. Mutations 2--14 were rejected. The next ordered action is one
 pinned fail-closed patch requiring the canonical provider-call ABI before
 confirmation. Canonical patch `0301` now implements and strictly validates
-that four-line condition from the exact tree through `0300`. The next ordered
-action is a distinct focused Buildbox/QEMU proof. That proof must pass before
-this roadmap advances.
+that four-line condition from the exact tree through `0300`. The distinct
+focused Buildbox/QEMU proof now passes all six families with zero failures or
+skips, including every malformed acquire/release response and the exact
+positive abort/P29 path. This closes the hardware-free pre-P28 provider inverse
+but does not make the lifecycle owner, P28, CPU_ON, or CPU8 admission reachable.
+
+The next ordered action is a fresh Gate-7 remaining-boundary audit against the
+canonical tree through `0301`. It must identify the smallest independently
+testable step among the still-closed lifecycle opener/caller, P28 effect
+executor, A41 READY completion, and P24/P30 request path, and must reject a
+physical provider write or CPU8 boot until the selected boundary has its own
+attributable evidence and fail-closed recovery rule.
 
 The candidate must have a single CPU8 request, strict checkpoints before and
 after each power step, a bounded timeout, and a fail-closed rollback. CPU9

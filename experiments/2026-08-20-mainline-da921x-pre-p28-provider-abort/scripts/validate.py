@@ -78,7 +78,7 @@ def main() -> None:
 
     require(
         contract["status"]
-        == "canonical-release-abi-fix-imported-build-pending",
+        == "hardware-free-pre-p28-provider-abort-proof-passed",
             "experiment status changed")
     safety = contract["safety"]
     require(safety["default_off"] and safety["hardware_free"],
@@ -290,8 +290,17 @@ def main() -> None:
     ):
         require(token in buildbox, f"Buildbox command token missing: {token}")
 
+    attempt_3 = contract["runtime_attempt_3"]
+    require(attempt_3["build"] == "pass" and attempt_3["qemu"] == "pass",
+            "final Buildbox/QEMU proof changed")
+    require(attempt_3["suite_result"] == "6-pass-0-fail-0-skip",
+            "final suite result changed")
+    require(attempt_3["hardware_action"] == "none" and
+            attempt_3["device_action"] == "none",
+            "final proof gained a hardware or device action")
+
     print("validation=da921x-pre-p28-provider-abort-contract")
-    print("status=canonical-release-abi-fix-imported-build-pending")
+    print("status=hardware-free-pre-p28-provider-abort-proof-passed")
     print("canonical_patch_count=6")
     print("logical_patches=6")
     print("kunit_cases=6")
