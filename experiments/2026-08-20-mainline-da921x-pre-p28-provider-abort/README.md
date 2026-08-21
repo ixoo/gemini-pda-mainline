@@ -27,6 +27,11 @@ semantic and replay validation and reduced strict checkpatch from 74 to 17
 alignment-only checks, with patch `0298` already clean. The remaining exact
 column corrections and bounded result are recorded in
 [`results/patch-generation-attempt-3-checkpatch-20260820.txt`](results/patch-generation-attempt-3-checkpatch-20260820.txt).
+Attempt 4 on `52451875a7bd1e7daa554b0d2b8feeeb8a9a4e1e` left only one
+four-column continuation offset in patch `0297`; the other three patches were
+strict-clean and all semantic/replay validators passed. The bounded result is
+in
+[`results/patch-generation-attempt-4-checkpatch-20260820.txt`](results/patch-generation-attempt-4-checkpatch-20260820.txt).
 
 ## Question or hypothesis
 

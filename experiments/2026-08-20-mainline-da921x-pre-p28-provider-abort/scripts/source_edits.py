@@ -361,7 +361,7 @@ def add_positive_abort(root: Path) -> None:
     implementation = dedent("""\
     static bool
     mt6797_a72_provider_abort_proof_valid(const struct mt6797_a72_provider_abort_proof *proof,
-    \t\t\t\t\t  const struct mt6797_a72_transaction *transaction)
+    \t\t\t\t      const struct mt6797_a72_transaction *transaction)
     {
     \tif (!proof || !transaction)
     \t\treturn false;
