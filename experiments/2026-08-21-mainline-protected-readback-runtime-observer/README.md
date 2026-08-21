@@ -123,6 +123,22 @@ at 16,777,216 bytes. This promotes the artifact to `boot_candidate=true`;
 it does not claim a device write, boot, or hardware result. See
 [`results/candidate-a3cb0e1c.txt`](results/candidate-a3cb0e1c.txt).
 
+### Deployment and runtime tools
+
+The source-pinned guarded installer adds an exact live-GPT identity and
+full-partition checksum gate for both `tee1` and `tee2` before retaining all
+existing `boot2` target, power, write, full-readback, and clean-shutdown gates.
+It never makes a fresh partition backup. The read-only USB/netcat probe captures
+the kernel identity, candidate model, CPU state, and only the three tagged
+observer records; it requests no reboot or device change.
+
+The classifier accepts only one successful ABI-1/generation-1 clock record,
+one successful ABI-1/generation-1 BigiDVFS record, the exact completion receipt,
+CPUs 0--7 online, CPUs 8--9 offline, the exact release/model, and the forced
+`maxcpus=8` policy. Offline tests pass the positive fixture and reject or
+distinguish nine attribution, transport, and safety mutations. See
+[`results/runtime-tools-offline.txt`](results/runtime-tools-offline.txt).
+
 The firmware prerequisite is the
 [protected-readback firmware audit](../2026-08-21-mainline-protected-readback-firmware-audit/README.md),
 and the transport prerequisite is the

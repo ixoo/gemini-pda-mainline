@@ -1,0 +1,60 @@
+Protected-readback deployment and runtime tools
+===============================================
+
+Result: pass offline
+Device access: none
+Hardware write: none
+
+Tool identities
+---------------
+
+Installer: 7f5bddb91bf38fb5de9cce5bde5c1aa7bac4a114a7619d25f49621fb715b912d
+Remote read-only probe: 190ad3e7b83b90e1517d946780240e135b7c99185d4b0dcd9016fceada5a592c
+Runtime validator: 18419fe6ebf625a64be3a892ff5c9d5af5248e5a4cc0478ca04ebff2066169b7
+Runtime collector: a64b67249ad9a0ad55100b872bf54568797906c421da657d6404237682cbff93
+Offline tests: 6dfe18c02c79f3d1d300c04f1e53313c09dbd98904a0245caa4201b1b70d2841
+
+Deployment gates
+----------------
+
+- Source-pinned derivation from the established guarded installer: pass
+- Exact candidate directory, artifact manifest, size, and padded checksum: pass
+- Exact SSH target and project-local mode-0600 identity: retained
+- Passwordless sudo and exact known-good Gemian identity: retained
+- Live GPT resolution of unique tee1, tee2, and boot2 partitions: pass offline
+- tee1 and tee2 distinct, unmounted, on mmcblk0, and matching by-partlabel: pass offline
+- Exact full-partition tee1 and tee2 SHA-256 required before every boot2 gate: pass offline
+- Inactive, unmounted, writable, exact-size boot2 target: retained
+- Stable two-sample power gate: retained
+- Predecessor checksum without fresh backup: retained
+- Exact staged candidate, bounded write, sync, flush, and full readback: retained
+- Independent host-streamed full readback and byte comparison: retained
+- Clean shutdown with unreachable confirmation and no reboot: retained
+
+The live TEE hash required for each named partition is
+2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3.
+
+Runtime classifier gates
+------------------------
+
+- Exact padded candidate identity, kernel release, candidate DT model, and arm64: required
+- CPU possible/present 0-9, online 0-7, offline 8-9, and maxcpus=8: required
+- Exactly one complete clock record: required
+- Exactly one complete BigiDVFS record: required
+- Exactly one attempts=1/calls=1/cpu_requests=0/owner_registration=0 receipt: required
+- Both return codes zero, both ABIs one, and both generations one: required
+- No partition access, storage write, binding change, secure-write request,
+  owner request, CPU-admission request, or reboot request from the probe: required
+
+Offline result
+--------------
+
+Positive classification: pass
+Negative mutations rejected or distinguished: 9
+Installer source-pinned derivation: pass
+Live TEE identity gate: pass
+Runtime probe read-only contract: pass
+
+This validates the tools and fixtures only. It does not establish current live
+TEE identities, a boot2 deployment, USB/console serviceability, or either
+protected-readback transport on hardware.

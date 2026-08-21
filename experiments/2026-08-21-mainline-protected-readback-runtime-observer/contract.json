@@ -88,6 +88,18 @@
     "device_action": false,
     "boot_candidate": true
   },
+  "runtime_tools": {
+    "result": "validated_offline",
+    "installer_sha256": "7f5bddb91bf38fb5de9cce5bde5c1aa7bac4a114a7619d25f49621fb715b912d",
+    "probe_sha256": "190ad3e7b83b90e1517d946780240e135b7c99185d4b0dcd9016fceada5a592c",
+    "validator_sha256": "18419fe6ebf625a64be3a892ff5c9d5af5248e5a4cc0478ca04ebff2066169b7",
+    "collector_sha256": "a64b67249ad9a0ad55100b872bf54568797906c421da657d6404237682cbff93",
+    "tests_sha256": "6dfe18c02c79f3d1d300c04f1e53313c09dbd98904a0245caa4201b1b70d2841",
+    "positive_classification": "pass",
+    "negative_mutations_rejected_or_distinguished": 9,
+    "live_tee_identity_gate": true,
+    "probe_device_actions": false
+  },
   "runtime": null,
   "named_firmware_gate": {
     "logical_partitions": ["tee1", "tee2"],
