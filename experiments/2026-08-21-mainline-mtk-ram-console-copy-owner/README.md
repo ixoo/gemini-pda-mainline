@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-21-mainline-mtk-ram-console-copy-owner` |
-| Status | implementation and Buildbox patch generation pending |
+| Status | deterministic patches validated; canonical admission pending compile and KUnit |
 | Subsystem | MediaTek retained ram-console and reserved memory |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-21 America/New_York |
@@ -67,7 +67,25 @@ attempt is authorized by this experiment.
 
 ## Observations
 
-Pending deterministic generation and proof.
+Generation attempt 1 stopped before creating patches because the deterministic
+DT edit emitted the consumer at column zero while the source validator required
+a root child. Attempt 2 passed source validation and exact three-patch replay,
+then strict checkpatch rejected two test-only continuation-style checks.
+Both rejections are preserved in `results/`.
+
+Attempt 3 at pushed commit
+`89c69bff8271a186f82191995d94ba7cef9c4ea8` passed source validation,
+three-patch inventory, exact replay, and strict checkpatch with zero errors,
+warnings, or checks. The validated review contains:
+
+- `0305`: the closed one-`memory-region` binding;
+- `0306`: the copy owner, typed snapshot getter, and seven focused KUnit
+  cases; and
+- `0307`: the exact Gemini reservation label and disabled consumer.
+
+The three canonical files are byte-identical to the fetched validated review.
+All 99 manifest profiles retain the canonical-subsequence invariant. Compile
+and QEMU execution remain pending the signed admission commit.
 
 ## Analysis
 
@@ -79,9 +97,11 @@ evidence only.
 
 ## Conclusion
 
-Pending. A successful build and KUnit run will close only the immutable copy
-transport. It will not establish a fresh secure epoch, open A34, admit CPU8 or
-CPU9, or justify a device attempt.
+`confirmed` for deterministic source generation, exact patch replay, strict
+style, and repository-side admission semantics. Compile and KUnit remain
+pending. Even after those pass, this closes only the immutable copy transport;
+it does not establish a fresh secure epoch, open A34, admit CPU8 or CPU9, or
+justify a device attempt.
 
 ## Follow-up
 

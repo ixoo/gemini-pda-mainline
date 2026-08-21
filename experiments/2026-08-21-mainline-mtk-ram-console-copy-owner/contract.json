@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "repository_parent": "851648127fc19d79c117c68ca5c9e97e047c92a4",
+  "decision": {
+    "selected_boundary": "ONE_SHOT_RETAINED_RAM_COPY_OWNER",
+    "audit_readme": "experiments/2026-08-21-mainline-retained-ram-console-copy-owner-audit/README.md",
+    "audit_readme_sha256": "f08604e9e4e56cb032078b14e85238858c9d1c6b37de3d5de3e40b8a2a7b79fa",
+    "audit_design": "experiments/2026-08-21-mainline-retained-ram-console-copy-owner-audit/DESIGN.md",
+    "audit_design_sha256": "02caa1a6776deef18682ea2e7c8ec2e4a2186a8ba8a79fb956f07a1d257abc80",
+    "audit_matrix": "experiments/2026-08-21-mainline-retained-ram-console-copy-owner-audit/results/decision-matrix.tsv",
+    "audit_matrix_sha256": "e78344a895142e7629ece068faa4e5b42216dde9d2028de37bba78b0558cbd7a"
+  },
+  "parent": {
+    "source_state": "6a904f3dbbaf8c7946d6a11c13fe768e16e63db6dd5650f2ad3aa57c8b830209",
+    "last_patch": "patches/v7.1.3/0304-soc-mediatek-add-retained-ram-console-parser.patch",
+    "last_patch_sha256": "5d0f76141311b3036eddeca5672ef090d36b1fd040038a2bd011373ac9a1fc99"
+  },
+  "source": {
+    "binding": "experiments/2026-08-21-mainline-mtk-ram-console-copy-owner/source/mediatek,mt6797-ram-console.yaml",
+    "binding_sha256": "872d36c87d2a073426c63bfd09285abb45f72485a9bd826ca68bbaa5342cfcd8",
+    "reader": "experiments/2026-08-21-mainline-mtk-ram-console-copy-owner/source/mtk-ram-console-reader.c",
+    "reader_sha256": "77607b4ea07a8434e0852ad4b2f14182a7457bafbb6d72044a0ec4d6d877fad0",
+    "header": "experiments/2026-08-21-mainline-mtk-ram-console-copy-owner/source/mtk-ram-console.h",
+    "header_sha256": "8f57cb82bcdce7a282b3840009729df1deb5e64c385a5c8ff3c7c4436bd632ab",
+    "matrix": "experiments/2026-08-21-mainline-mtk-ram-console-copy-owner/results/test-matrix.tsv",
+    "matrix_sha256": "6971d2c9f596beb145163d5f4c33ee0c95eab2ba84310417dd4fee730519265b"
+  },
+  "expected_patches": [
+    {
+      "path": "patches/v7.1.3/0305-dt-bindings-soc-mediatek-document-retained-ram-console.patch",
+      "sha256": "c8caa94ef8e67af0d8f30cd1739f6925f2b4d3153f77a0c7c9b5740780181c47"
+    },
+    {
+      "path": "patches/v7.1.3/0306-soc-mediatek-add-retained-ram-console-copy-owner.patch",
+      "sha256": "84ff43773e409908f69a0d879562793bfdd0aac875e850aa77aa3c630ad9f57f"
+    },
+    {
+      "path": "patches/v7.1.3/0307-arm64-dts-mediatek-add-Gemini-ram-console-reader.patch",
+      "sha256": "bf80c1e63a396a4d670853956180bfc4d7c600d8f482bae2524bb60b29408cd5"
+    }
+  ],
+  "validated_generation": {
+    "repository_commit": "89c69bff8271a186f82191995d94ba7cef9c4ea8",
+    "baseline_commit": "61d2bece6860ab9455e6e5db9aec730d482b9f86",
+    "result_commit": "5eb582611a1bd703e909d304ed4dc0dcd1d03f6a",
+    "package_sha256s_sha256": "d7d71adaca9d20525794123bd673e0567cf2548b2b688765c931065d67ae8433",
+    "generation_sha256": "cc7c62602a5a17adf842ce3091aa9dc690ef116d0b6720449dca5fc2cc5f29b4",
+    "checkpatch_sha256": "66f04c03246ced9d8ae76871df35a630097ef2d36cfbfaf9a722644f64a2630b",
+    "receipt": "experiments/2026-08-21-mainline-mtk-ram-console-copy-owner/results/patch-generation-validated-20260821.txt",
+    "receipt_sha256": "9d39b9bffc2eda54613c5ca5d8e39e121e1e59a5a9965542c21402cc1a0f79f4",
+    "replay": "pass",
+    "checkpatch_errors": 0,
+    "checkpatch_warnings": 0,
+    "checkpatch_checks": 0,
+    "compile": "not-run",
+    "qemu": "not-run"
+  },
+  "expected_kunit_cases": 7,
+  "physical_map_calls": 1,
+  "physical_unmap_calls": 1,
+  "copy_attempt_limit": 1,
+  "dt_default_enabled": false,
+  "raw_export": false,
+  "reset_classifier": false,
+  "secure_epoch_authority": false,
+  "a34_caller": false,
+  "hardware_write": false,
+  "device_action": false,
+  "boot_candidate": false
+}
