@@ -55,6 +55,15 @@
     "invariant_mutations_rejected": 8,
     "hardware_evidence": false
   },
+  "build_validation": {
+    "result": "regeneration_required",
+    "attempt_1_repository_commit": "922c0dd2322236bc40df959b23063036bcaafd1b",
+    "attempt_1_stage": "post-merge-config-retention",
+    "attempt_1_failure": "PSTORE_GEMINI_PROTECTED_READBACK_LEDGER_not_retained",
+    "attempt_1_compilation_started": false,
+    "attempt_1_artifact_produced": false,
+    "native_vm_build": false
+  },
   "scope": {
     "protected_clock_reads": 0,
     "bigidvfs_reads": 0,

@@ -1,0 +1,34 @@
+clock-backend entry-ledger Buildbox attempt 1
+================================================
+
+Repository commit: 922c0dd2322236bc40df959b23063036bcaafd1b
+Profile: clock-backend-entry-ledger
+Backend: buildbox
+Modules requested: false
+
+Result
+------
+
+stage=post-merge-config-retention
+result=rejected
+reason=CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_LEDGER_requested_y_not_retained
+compilation_started=false
+artifact_produced=false
+boot_candidate=false
+device_action=none
+native_vm_build=none
+
+Diagnosis
+---------
+
+The base retained-RAM writer introduced by canonical patch 0323 depended on
+CONFIG_MTK_MT6797_PROTECTED_READBACK_OBSERVER=y. The isolated clock-backend
+entry experiment intentionally disables that observer and places both new
+checkpoint call sites in CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND=y. Kconfig
+therefore removed the base writer before it could retain the new mode symbol.
+
+The correction is to regenerate patch 0325 from its unchanged canonical 0324
+parent while broadening the base writer's built-in dependency to either the
+historical observer or the clock backend that owns the new call sites. The
+writer remains default n, the new mode still requires the built-in clock
+backend, and runtime scope is unchanged.

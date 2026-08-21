@@ -118,6 +118,12 @@ static const char * const gemini_prb_records[] = {
     replace_once(ledger, old_gate, new_gate)
 
     kconfig = root / "fs/pstore/Kconfig"
+    replace_once(
+        kconfig,
+        "\tdepends on MTK_MT6797_PROTECTED_READBACK_OBSERVER=y\n",
+        "\tdepends on MTK_MT6797_PROTECTED_READBACK_OBSERVER=y || "
+        "MTK_MT6797_DVFSP_CLOCK_BACKEND=y\n",
+    )
     mode_config = dedent(r'''
 config PSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER
 	bool "Gemini clock-backend init/probe entry ledger"

@@ -5,9 +5,12 @@
 The predecessor probe/gate candidate produced an exact changed-cycle
 `neither`: neither observer record survived and neither protected transport
 was reached. The linked initcall order is clock backend, BigiDVFS backend, then
-observer. This non-identical, zero-protected-call successor is generated,
-manually reviewed, and admitted canonically as patch `0325`. Build validation
-is next.
+observer. This non-identical, zero-protected-call successor was generated,
+manually reviewed, and admitted canonically as patch `0325`. Its first
+Buildbox build failed closed before compilation because the base writer still
+depended only on the disabled observer. Patch regeneration now broadens that
+hidden dependency only to the clock backend that owns the new call sites; no
+artifact from the rejected build is a boot candidate.
 
 ## Question
 
@@ -51,6 +54,8 @@ metadata, and full-readback gates. There is no clear, overwrite, or retry.
   power operation in the new runtime path.
 - The clock probe retains only its existing allocation, resource-map, clock-
   handle, lock-init, and driver-data operations.
+- The base writer remains opt-in and is available only when either its
+  historical observer or the new clock-backend call site is built in.
 - Patch generation and compilation run only on Buildbox from a clean pushed
   commit and the integrity-verified managed source through canonical `0324`.
 - The generated patch uses a synthetic, non-certifying experiment author with
@@ -58,9 +63,9 @@ metadata, and full-readback gates. There is no clear, overwrite, or retry.
 
 ## Next action
 
-Build the isolated profile on Buildbox and independently validate an exact
-Android-v0/16 MiB candidate before any device action. Repository-wide ordering
-remains in
+Regenerate and re-admit patch `0325`, then build the isolated profile on
+Buildbox and independently validate an exact Android-v0/16 MiB candidate before
+any device action. Repository-wide ordering remains in
 [`docs/ROADMAP.md`](../../docs/ROADMAP.md).
 
 ## Generation and admission
@@ -74,3 +79,10 @@ patch validation, byte-identical replay, and strict checkpatch with 0 errors,
 call sites, one clock-only DT node, and no protected/secure call. The fetched
 and admitted patch bytes are identical. See
 [`results/generation-178fb2f.txt`](results/generation-178fb2f.txt).
+
+The first build attempt at exact commit `922c0dd` rejected the profile before
+compilation: `CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_LEDGER=y` was not retained
+because the experiment intentionally disables the observer required by patch
+`0323`. This exposed a Kconfig dependency omitted from the original design,
+not a source compile or hardware result. See
+[`results/build-attempt-1-kconfig-rejected.txt`](results/build-attempt-1-kconfig-rejected.txt).
