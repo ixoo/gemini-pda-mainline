@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-21-mainline-protected-readback-remediation",
+  "repository_parent": "74f27f7db8618c3564ad780e092e543571b43926",
+  "parent": {
+    "source_state": "905fb7f5ead29cbe65eaf7f66e41433aea417c2ee15d751ebda6ddf79f19ad8e",
+    "canonical_last_patch": "patches/v7.1.3/0315-arm64-rename-read-only-provider-snapshot-record.patch",
+    "clock_source_sha256": "7ea9f1b73d964883ec96f0add87748e1f536a79f44a7a0f8f0e223ecc9407e43",
+    "clock_header_sha256": "f13b88cd262f476e8ac0e55fda3cdf115041dabefa69a5ff5e3ca8c1dcc8bcf5",
+    "bigidvfs_source_sha256": "5af61b256244549d8b08fd1bbd1b1e875b7c7a484b86cae702040a094f38afb1",
+    "bigidvfs_header_sha256": "ba3430ec9e3fe54448d1c93ed744ae06e4b5c6113f800de03226105fc26f3329",
+    "kconfig_sha256": "84afa801aeedaeacf00b432e6b13ba2ffdf437dbd716adea20d6890a20251b91",
+    "makefile_sha256": "32bb8f64506de4f2f3c26e4ee472797c6b13a900e8bc02d2527f6b7b45de8971"
+  },
+  "expected_patches": [
+    "patches/v7.1.3/0316-soc-mediatek-make-protected-clock-snapshots-atomic.patch",
+    "patches/v7.1.3/0317-soc-mediatek-require-stable-BigiDVFS-snapshots.patch",
+    "patches/v7.1.3/0318-soc-mediatek-test-protected-readback-transports.patch"
+  ],
+  "validated_generation": null,
+  "validated_build": null,
+  "scope": {
+    "clock_settle_ns": 200,
+    "clock_settle_count": 1,
+    "bigidvfs_samples": 2,
+    "bigidvfs_reads_on_success": 8,
+    "secure_write": false,
+    "new_clock_or_regulator_write": false,
+    "opens_owner": false,
+    "cpu_on": false,
+    "cpu_off": false,
+    "device_action": false,
+    "boot_candidate": false
+  }
+}

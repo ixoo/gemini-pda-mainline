@@ -4595,9 +4595,11 @@ device run with the two current transports: patch `0197` omits the recovered
 MCUMIXED read, while patch `0198` can leave a partial caller record and does
 not reject a four-call sample that changes mid-observation.
 
-1. Repair the protected-clock settle boundary and make both readbacks publish
-   all-zero on failure. Add a stable two-sample rule for BigiDVFS and focused
-   hardware-free ordering, fault, and instability tests.
+1. Complete the
+   [protected-readback remediation](../experiments/2026-08-21-mainline-protected-readback-remediation/README.md):
+   repair the protected-clock settle boundary, make both readbacks publish
+   all-zero on failure, add a stable two-sample rule for BigiDVFS, and pass the
+   focused hardware-free ordering, fault, and instability tests.
 2. Build one exact read-only validation candidate. Enable only the two
    transports and a bounded one-shot observer; require the named TEE identity,
    exact raw records, no CPU request, and ordinary A53/USB/console

@@ -1854,6 +1854,16 @@
                     "configs/gemini-dvfsp-bigidvfs-readonly.fragment"
                 ]
             },
+            "protected-readback-kunit": {
+                "base": "defconfig",
+                "patch_series": "patches/series",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-dvfsp-clock-backend.fragment",
+                    "configs/gemini-dvfsp-bigidvfs-readonly.fragment",
+                    "configs/gemini-protected-readback-kunit.fragment"
+                ]
+            },
             "dvfsp-resource-owner-readonly": {
                 "base": "defconfig",
                 "patch_series": "patches/series",

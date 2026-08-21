@@ -1,0 +1,5 @@
+# Hardware-free MT6797 protected-clock and BigiDVFS transport coverage.
+# Both board DT nodes remain disabled; the suite uses only in-memory callbacks.
+CONFIG_KUNIT=y
+CONFIG_MTK_MT6797_PROTECTED_READBACK_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-protected-readback-kunit"
