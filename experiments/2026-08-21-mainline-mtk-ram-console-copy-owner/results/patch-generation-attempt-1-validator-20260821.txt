@@ -1,0 +1,16 @@
+experiment=2026-08-21-mainline-mtk-ram-console-copy-owner
+observed_date=2026-08-21
+repository_commit=68ccc3df38e1bff11c7e37dc37636ac1dbe31bc8
+buildbox_job=68ccc3df38e1bff11c7e37dc37636ac1dbe31bc8-mtk-ram-console-copy-owner-patchgen
+stage=post-edit-source-validation
+result=rejected
+reason=DT-consumer-indentation-mismatch
+detail=source_edits-used-dedent-and-emitted-the-root-consumer-at-column-zero
+patches_generated=0
+checkpatch=not-run
+compile=not-run
+qemu=not-run
+hardware_action=none
+device_action=none
+boot_candidate=false
+disposition=fix-explicit-DT-indentation-and-regenerate-from-a-new-pushed-commit

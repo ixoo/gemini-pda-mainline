@@ -87,15 +87,12 @@ def apply_dt(root: Path) -> None:
     replace_once(
         dts,
         "\treserved-memory {\n",
-        dedent("""\
-        \tram-console {
-        \t\tcompatible = "mediatek,mt6797-ram-console";
-        \t\tmemory-region = <&ram_console_reserved>;
-        \t\tstatus = "disabled";
-        \t};
-
-        \treserved-memory {
-        """),
+        "\tram-console {\n"
+        "\t\tcompatible = \"mediatek,mt6797-ram-console\";\n"
+        "\t\tmemory-region = <&ram_console_reserved>;\n"
+        "\t\tstatus = \"disabled\";\n"
+        "\t};\n\n"
+        "\treserved-memory {\n",
     )
     replace_once(
         dts,
