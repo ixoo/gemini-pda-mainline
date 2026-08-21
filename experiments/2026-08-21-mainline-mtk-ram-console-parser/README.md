@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-21-mainline-mtk-ram-console-parser` |
-| Status | two strict alignment rejections recorded; corrected generation lane prepared |
+| Status | three strict alignment rejections recorded; corrected generation lane prepared |
 | Subsystem | MediaTek retained preloader/LK ram-console wire format |
 | Device variant | MT6797/Gemini contract; hardware-free implementation phase |
 | Date(s) | 2026-08-21 America/New_York |
@@ -53,6 +53,8 @@ reboot, or shut down hardware.
   records the first exact generation's strict alignment rejection.
 - [`results/patch-generation-attempt-2-checkpatch-20260821.txt`](results/patch-generation-attempt-2-checkpatch-20260821.txt)
   records the second exact generation's narrower alignment rejection.
+- [`results/patch-generation-attempt-3-checkpatch-20260821.txt`](results/patch-generation-attempt-3-checkpatch-20260821.txt)
+  records the third exact generation's prototype-only alignment rejection.
 - [`source/mtk-ram-console.c`](source/mtk-ram-console.c) and
   [`source/mtk-ram-console.h`](source/mtk-ram-console.h) are deterministic
   source inputs.
@@ -102,9 +104,12 @@ passed source semantics, patch inventory, and byte-for-byte replay, then strict
 checkpatch rejected one continuation-line alignment in the disabled-config
 header stub. A first correction still placed the continuation four columns too
 far right because the split return type leaves the function at column one; the
-second exact Buildbox attempt rejected that remaining check. Both partial
-packages were removed and no patch was admitted. The continuation now matches
-the opening parenthesis for a distinct third attempt. No validated generated
+second exact Buildbox attempt rejected that remaining check. Correcting both
+continuations then made the split definition pass, while the one-line `int`
+prototype required its original four-column offset; the third exact attempt
+rejected only that prototype. All three partial packages were removed and no
+patch was admitted. Definition and prototype now each align with their own
+opening parenthesis for a distinct fourth attempt. No validated generated
 patch, compile result, QEMU result, physical capture, reset interpretation,
 boot candidate, or device result is claimed yet.
 
