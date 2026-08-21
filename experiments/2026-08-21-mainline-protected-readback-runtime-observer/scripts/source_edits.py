@@ -64,7 +64,7 @@ mt6797_readback_get_backend(struct device *dev, const char *property)
 
 static void
 mt6797_readback_log_clock(struct device *dev, int ret,
-			   const struct mt6797_dvfsp_clock_readback *record)
+			  const struct mt6797_dvfsp_clock_readback *record)
 {
 	dev_info(dev,
 		 MT6797_READBACK_TAG
@@ -89,7 +89,7 @@ mt6797_readback_log_clock(struct device *dev, int ret,
 
 static void
 mt6797_readback_log_bigidvfs(struct device *dev, int ret,
-			      const struct mt6797_bigidvfs_readback *record)
+			     const struct mt6797_bigidvfs_readback *record)
 {
 	dev_info(dev,
 		 MT6797_READBACK_TAG
@@ -113,13 +113,13 @@ static int mt6797_readback_observer_probe(struct platform_device *pdev)
 	int bigidvfs_ret;
 	int ret;
 
-	clock_backend = mt6797_readback_get_backend(
-		dev, "mediatek,clock-backend");
+	clock_backend = mt6797_readback_get_backend(dev,
+						    "mediatek,clock-backend");
 	if (IS_ERR(clock_backend))
 		return dev_err_probe(dev, PTR_ERR(clock_backend),
 				     "clock backend unavailable\n");
-	bigidvfs_backend = mt6797_readback_get_backend(
-		dev, "mediatek,bigidvfs-backend");
+	bigidvfs_backend = mt6797_readback_get_backend(dev,
+						       "mediatek,bigidvfs-backend");
 	if (IS_ERR(bigidvfs_backend)) {
 		ret = dev_err_probe(dev, PTR_ERR(bigidvfs_backend),
 				    "BigiDVFS backend unavailable\n");
@@ -127,7 +127,7 @@ static int mt6797_readback_observer_probe(struct platform_device *pdev)
 	}
 
 	clock_ret = mt6797_dvfsp_clock_backend_read(&clock_backend->dev,
-						   &clock);
+						    &clock);
 	bigidvfs_ret = mt6797_bigidvfs_backend_read(&bigidvfs_backend->dev,
 						    &bigidvfs);
 	mt6797_readback_log_clock(dev, clock_ret, &clock);
@@ -236,18 +236,23 @@ CANDIDATE_DTS = dedent(r"""
 """).lstrip("\n")
 
 
-def apply_observer(root: Path) -> None:
-    source = root / "drivers/soc/mediatek/mt6797-protected-readback-observer.c"
+def apply_binding(root: Path) -> None:
     binding = root / (
         "Documentation/devicetree/bindings/soc/mediatek/"
         "mediatek,mt6797-protected-readback-observer.yaml"
     )
-    if source.exists() or binding.exists():
-        raise SystemExit("observer output already exists")
-    source.parent.mkdir(parents=True, exist_ok=True)
+    if binding.exists():
+        raise SystemExit("observer binding already exists")
     binding.parent.mkdir(parents=True, exist_ok=True)
-    source.write_text(OBSERVER_SOURCE, encoding="utf-8")
     binding.write_text(OBSERVER_BINDING, encoding="utf-8")
+
+
+def apply_observer(root: Path) -> None:
+    source = root / "drivers/soc/mediatek/mt6797-protected-readback-observer.c"
+    if source.exists():
+        raise SystemExit("observer source already exists")
+    source.parent.mkdir(parents=True, exist_ok=True)
+    source.write_text(OBSERVER_SOURCE, encoding="utf-8")
 
     kconfig = root / "drivers/soc/mediatek/Kconfig"
     observer_config = dedent(r"""
@@ -300,10 +305,14 @@ def apply_dts(root: Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-root", type=Path, required=True)
-    parser.add_argument("--step", choices=("observer", "dts"), required=True)
+    parser.add_argument(
+        "--step", choices=("binding", "observer", "dts"), required=True
+    )
     args = parser.parse_args()
     root = args.source_root.resolve()
-    if args.step == "observer":
+    if args.step == "binding":
+        apply_binding(root)
+    elif args.step == "observer":
         apply_observer(root)
     else:
         apply_dts(root)

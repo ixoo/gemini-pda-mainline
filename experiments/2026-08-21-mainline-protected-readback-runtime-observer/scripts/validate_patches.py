@@ -8,8 +8,9 @@ from pathlib import Path
 
 
 PATCHES = (
-    "0320-soc-mediatek-add-one-shot-protected-readback-observer.patch",
-    "0321-arm64-dts-mediatek-add-Gemini-protected-readback-candidate.patch",
+    "0320-dt-bindings-soc-mediatek-add-MT6797-protected-readback-observer.patch",
+    "0321-soc-mediatek-add-one-shot-protected-readback-observer.patch",
+    "0322-arm64-dts-mediatek-add-Gemini-protected-readback-candidate.patch",
 )
 
 
@@ -38,15 +39,16 @@ def main() -> None:
     args = parser.parse_args()
     patch_dir = args.patch_dir.resolve()
     found = tuple(sorted(path.name for path in patch_dir.glob("*.patch")))
-    require(found == PATCHES, "two exact patch filenames")
+    require(found == PATCHES, "three exact patch filenames")
     require(
         (patch_dir / "series").read_text() == "\n".join(PATCHES) + "\n",
         "generated series",
     )
 
-    observer = (patch_dir / PATCHES[0]).read_text()
-    dts = (patch_dir / PATCHES[1]).read_text()
-    for data in (observer, dts):
+    binding = (patch_dir / PATCHES[0]).read_text()
+    observer = (patch_dir / PATCHES[1]).read_text()
+    dts = (patch_dir / PATCHES[2]).read_text()
+    for data in (binding, observer, dts):
         require("Signed-off-by:" not in data, "no synthetic certification")
         require(
             "From: Gemini Mainline Experiment <gemini-mainline@example.invalid>"
@@ -55,7 +57,19 @@ def main() -> None:
         )
 
     require(
-        "Subject: [PATCH 1/2] soc: mediatek: add one-shot protected readback observer"
+        "Subject: [PATCH 1/3] dt-bindings: soc: mediatek: add MT6797 protected readback observer"
+        in unfolded_headers(binding),
+        "binding patch subject",
+    )
+    require(
+        "mediatek,mt6797-protected-readback-observer.yaml" in binding,
+        "binding patch path",
+    )
+    require("drivers/soc/mediatek/Kconfig" not in binding,
+            "binding is a separate logical patch")
+
+    require(
+        "Subject: [PATCH 2/3] soc: mediatek: add one-shot protected readback observer"
         in unfolded_headers(observer),
         "observer patch subject",
     )
@@ -63,14 +77,13 @@ def main() -> None:
         "drivers/soc/mediatek/mt6797-protected-readback-observer.c",
         "drivers/soc/mediatek/Kconfig",
         "drivers/soc/mediatek/Makefile",
-        "mediatek,mt6797-protected-readback-observer.yaml",
     ):
         require(path in observer, f"observer patch path: {path}")
     require('status = "okay"' not in observer,
             "observer implementation does not activate hardware")
 
     require(
-        "Subject: [PATCH 2/2] arm64: dts: mediatek: add Gemini protected readback candidate"
+        "Subject: [PATCH 3/3] arm64: dts: mediatek: add Gemini protected readback candidate"
         in unfolded_headers(dts),
         "candidate DT patch subject",
     )
@@ -84,7 +97,7 @@ def main() -> None:
     require(added_lines(dts).count('status = "okay";') == 3,
             "exact three candidate-only enables")
 
-    added = added_lines(observer + dts)
+    added = added_lines(binding + observer + dts)
     for forbidden in (
         "MT6797_BIGIDVFS_FID_WRITE",
         "cpu_up(",
@@ -95,7 +108,7 @@ def main() -> None:
     ):
         require(forbidden not in added, f"forbidden added effect: {forbidden}")
 
-    print("generated_patch_count=2")
+    print("generated_patch_count=3")
     for index, patch in enumerate(PATCHES, start=1):
         print(f"patch_{index}={patch}")
     print("observer_calls=clock-1,bigidvfs-1")

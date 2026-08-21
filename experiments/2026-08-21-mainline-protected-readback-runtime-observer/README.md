@@ -2,11 +2,11 @@
 
 ## Status
 
-Implementation is prepared for exact Buildbox generation. The first generation
-attempt reached and passed source validation, then stopped fail-closed on a
-validator-only folded-header mismatch. No patch package was admitted, and no
-kernel build, boot image, secure read, hardware semaphore access, or device
-action has yet occurred in this experiment.
+Implementation is prepared for exact Buildbox generation. Two generation
+attempts passed source validation and stopped fail-closed at successively later
+review gates. No patch package was admitted, and no kernel build, boot image,
+secure read, hardware semaphore access, or device action has yet occurred in
+this experiment.
 
 ## Question
 
@@ -62,6 +62,14 @@ the candidate and keeps composition closed.
    the long email `Subject:` header while the validator required one physical
    line. The partial package was cleaned and no job record was promoted. This
    is a validator false negative, not implementation or hardware evidence.
+2. At `2026-08-21T17:22:29Z`, Buildbox job
+   `0753ef68d7e9dafe75e9f068a2252d2593cfaaa8-protected-readback-observer-patchgen`
+   passed source validation, exact patch validation, and replay. Strict
+   `checkpatch` then rejected the combined binding/driver patch and five C
+   alignment checks. The partial package was cleaned and no job record was
+   promoted. The remedy is a separate binding patch plus corrected alignment;
+   the intentional adjacent format strings remain narrowly suppressed because
+   they preserve each raw record as one atomic log entry.
 
 The firmware prerequisite is the
 [protected-readback firmware audit](../2026-08-21-mainline-protected-readback-firmware-audit/README.md),
@@ -84,7 +92,7 @@ shutdown. No fresh partition backup is required.
 
 ## Decision rule
 
-First generate two exact patches, replay them, and require strict checkpatch.
+First generate three exact patches, replay them, and require strict checkpatch.
 Then admit them canonically, add one isolated profile, and require a successful
 Buildbox link plus exact candidate DTB validation. Only that validated package
 may be assembled into one boot2 candidate. Composition under the transition

@@ -91,7 +91,7 @@ Commands:
   generate-protected-readback-observer
                         Generate the one-shot runtime observer review
   fetch-protected-readback-observer
-                        Fetch only that validated two-patch review
+                        Fetch only that validated three-patch review
   build-gemian-observer Fetch pushed HEAD and compile the fixed Gemian observer
   fetch-gemian-observer Fetch its validated compile-review bundle for HEAD
   build-gemian-provenance-observer
@@ -6086,7 +6086,8 @@ case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
 (cd "${package}" && sha256sum --check --strict SHA256SUMS >/dev/null)
 grep -Fx "repository_commit=${commit}" \
   "${package}/provenance/generation.txt" >/dev/null
-for marker in generated_patch_count=2 \
+for marker in generated_patch_count=3 \
+  checkpatch_intentional_ignore=QUOTED_STRING_SPLIT-for-one-atomic-raw-record \
   observer_calls=clock-1,bigidvfs-1 defer_before_hardware_access=yes \
   automatic_retry_after_access=no raw_fields=complete \
   candidate_dtb_enables=clock,bigidvfs,observer \
@@ -6163,7 +6164,7 @@ case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
 (cd "${package}" && sha256sum --check --strict SHA256SUMS >/dev/null)
 grep -Fx "repository_commit=${commit}" \
   "${package}/provenance/generation.txt" >/dev/null
-grep -Fx 'generated_patch_count=2' \
+grep -Fx 'generated_patch_count=3' \
   "${package}/provenance/generation.txt" >/dev/null
 tar -C "$(dirname "${package}")" -cf - -- "$(basename "${package}")"
 REMOTE
@@ -6172,7 +6173,7 @@ REMOTE
     cd "${temporary}/${package_name}"
     sha256sum --check --strict SHA256SUMS >/dev/null
     grep -Fx "repository_commit=${sha}" provenance/generation.txt >/dev/null
-    grep -Fx 'generated_patch_count=2' provenance/generation.txt >/dev/null
+    grep -Fx 'generated_patch_count=3' provenance/generation.txt >/dev/null
   )
   mv "${temporary}/${package_name}" "${destination}"
   rmdir "${temporary}"
