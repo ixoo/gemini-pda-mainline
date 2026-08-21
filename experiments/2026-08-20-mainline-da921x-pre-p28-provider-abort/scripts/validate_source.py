@@ -188,7 +188,7 @@ def main() -> None:
         require(forbidden not in test, f"hardware KUnit token: {forbidden}")
 
     print("validation=da921x-pre-p28-provider-abort-edited-source")
-    print("logical_patches=4")
+    print("logical_patches=5")
     print("kunit_cases=6")
     print("acquire_failure_ordinals=22")
     print("release_failure_ordinals=22")

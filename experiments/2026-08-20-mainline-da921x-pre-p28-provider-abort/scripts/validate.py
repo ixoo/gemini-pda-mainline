@@ -38,6 +38,15 @@ def main() -> None:
     patch_validator = (ROOT / "scripts/validate_patches.py").read_text(
         encoding="utf-8"
     )
+    stack_source_validator = (
+        ROOT / "scripts/validate_stack_fix_source.py"
+    ).read_text(encoding="utf-8")
+    stack_patch_validator = (
+        ROOT / "scripts/validate_stack_fix_patch.py"
+    ).read_text(encoding="utf-8")
+    stack_generator = (
+        ROOT / "scripts/generate-stack-fix-on-buildbox"
+    ).read_text(encoding="utf-8")
     runner = (ROOT / "scripts/run-kunit-qemu").read_text(encoding="utf-8")
     classifier = (ROOT / "scripts/classify-kunit.py").read_text(
         encoding="utf-8"
@@ -52,7 +61,7 @@ def main() -> None:
 
     require(
         contract["status"]
-        == "qemu-stack-remediation-patch-generation-pending",
+        == "stack-fix-tooling-ready",
             "experiment status changed")
     safety = contract["safety"]
     require(safety["default_off"] and safety["hardware_free"],
@@ -70,7 +79,7 @@ def main() -> None:
         require(not safety[field], f"unsafe contract permission: {field}")
     require(contract["implementation"]["production_reachability"] is False,
             "production reachability changed")
-    require(contract["implementation"]["logical_patches"] == 4,
+    require(contract["implementation"]["logical_patches"] == 5,
             "logical patch count changed")
     require(contract["proof"]["cases"] == 6, "KUnit case count changed")
     require(contract["generated_patches"]["sha256"] == EXPECTED_PATCHES,
@@ -168,14 +177,25 @@ def main() -> None:
         "cpu_down(",
     ):
         require(forbidden not in test, f"hardware test token: {forbidden}")
-    require("logical_patches=4" in source_validator,
+    require("logical_patches=5" in source_validator,
             "source validator patch count changed")
     require("patches=4" in patch_validator,
             "patch validator patch count changed")
     require("KUnit heap-state allocation inventory changed"
-            in source_validator, "source stack-safety validation missing")
+            in stack_source_validator,
+            "source stack-safety validation missing")
     require("KUnit heap-state allocation inventory changed"
-            in patch_validator, "patch stack-safety validation missing")
+            in stack_patch_validator,
+            "patch stack-safety validation missing")
+    for token in (
+        "PARENT_SOURCE_STATE=a44f45709ef40655d871ff81d0829906781febbd9c3eafc62725e71216f543a0",
+        "PARENT_INTEGRITY=17cbaf6af621fa568df2fe855740e288f77d59bd02f536abc61245cffd836d02",
+        "PARENT_TEST_SHA256=6429347abb04eb06f290a270ff7b6c87ede89e0c74f0424a7a621276e2958058",
+        "generated_patch_count=1",
+        "production_code_changed=false",
+    ):
+        require(token in stack_generator,
+                f"stack-fix generator token missing: {token}")
     for token in (
         "EXPECTED_PROFILE=da921x-pre-p28-provider-abort-kunit",
         "CONFIG_ARM64_MT6797_A72_P24_OWNER_TEST_SEED=y",
@@ -201,13 +221,15 @@ def main() -> None:
         "fetch-da921x-pre-p28-provider-abort-patches",
         "mainline-da921x-pre-p28-provider-abort-patch-generation",
         "generated_patch_count=4",
+        "generate-da921x-pre-p28-provider-abort-stack-fix",
+        "fetch-da921x-pre-p28-provider-abort-stack-fix",
     ):
         require(token in buildbox, f"Buildbox command token missing: {token}")
 
     print("validation=da921x-pre-p28-provider-abort-contract")
-    print("status=qemu-stack-remediation-patch-generation-pending")
+    print("status=stack-fix-tooling-ready")
     print("canonical_patch_count=4")
-    print("logical_patches=4")
+    print("logical_patches=5")
     print("kunit_cases=6")
     print("hardware_action=none")
     print("device_action=none")

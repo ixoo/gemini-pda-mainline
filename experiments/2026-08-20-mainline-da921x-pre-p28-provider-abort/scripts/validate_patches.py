@@ -99,18 +99,6 @@ def main() -> None:
         require(token in combined, f"generated patch token missing: {token}")
     require(additions(texts[3]).count("KUNIT_CASE(") == 6,
             "KUnit case count changed")
-    require(
-        additions(texts[3]).count(
-            "kunit_kzalloc(test, sizeof(*state), GFP_KERNEL)"
-        ) == 6,
-        "KUnit heap-state allocation inventory changed",
-    )
-    for token in (
-        "struct da9213_membership_test_state",
-        "mt6797_a72_membership_snapshot(&synthetic->snapshot)",
-    ):
-        require(token in additions(texts[3]),
-                f"stack-remediation token missing: {token}")
     for forbidden in (
         "i2c_add_adapter",
         "i2c_new_client",

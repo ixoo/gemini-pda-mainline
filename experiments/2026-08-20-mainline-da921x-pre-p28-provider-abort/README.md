@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-20-mainline-da921x-pre-p28-provider-abort` |
-| Status | Buildbox compile passed; QEMU stack remediation pending regeneration |
+| Status | Buildbox compile passed; patch `0300` stack-fix tooling ready |
 | Subsystem | MT6797 CPU8 membership owner and DA921x Buck B provider |
 | Device variant | Planet Gemini PDA named development unit |
 | Date(s) | 2026-08-20 America/New_York |
@@ -51,6 +51,12 @@ KTAP. The remediation moves all six cases and the release-callback snapshot to
 KUnit-managed heap state; it changes test storage only, not the production
 owner/provider implementation. The bounded failure is in
 [`results/qemu-attempt-1-stack-overflow-20260820.txt`](results/qemu-attempt-1-stack-overflow-20260820.txt).
+The original four-patch generator correctly refused to run after canonical
+import because its prepared-parent pin ends at `0295`, while Buildbox now holds
+the verified tree through `0299`. That boundary is preserved. A separate
+one-patch generator pins the current source state and will produce reviewable
+follow-up `0300`; the bounded parent-boundary result is in
+[`results/stack-fix-generation-attempt-1-parent-boundary-20260820.txt`](results/stack-fix-generation-attempt-1-parent-boundary-20260820.txt).
 
 ## Question or hypothesis
 
@@ -69,6 +75,8 @@ only with an exact positive-abort proof.
 - Prepared parent source-state SHA-256:
   `2e804ec33835f0e14b050773c52d1d39acf573e6e71eee8257f8c282b54c8f2a`.
 - [`contract.json`](contract.json) pins all edited parent file identities.
+- Stack-fix parent: the verified canonical tree through `0299`, source-state
+  `a44f45709ef40655d871ff81d0829906781febbd9c3eafc62725e71216f543a0`.
 - Patch generation and kernel builds run only on Buildbox from a clean pushed
   repository commit. No native VM build is permitted.
 - The focused proof uses an unregistered in-memory I2C adapter. It registers
@@ -90,12 +98,17 @@ connection. A26 and A14 remain unchanged; CPU8 and CPU9 admission stays closed.
 - [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox) creates normal
   `git format-patch` output, replays it, validates the edited source, and runs
   strict checkpatch.
+- [`scripts/generate-stack-fix-on-buildbox`](scripts/generate-stack-fix-on-buildbox)
+  creates only follow-up `0300` from the separately pinned `0299` parent.
 - [`source/da9213-legacy-membership-test.c`](source/da9213-legacy-membership-test.c)
   is the hardware-free integration KUnit source.
 - [`scripts/validate.py`](scripts/validate.py),
   [`scripts/validate_source.py`](scripts/validate_source.py), and
   [`scripts/validate_patches.py`](scripts/validate_patches.py) fail closed on
   contract, source, patch, profile, and forbidden-effect drift.
+- [`scripts/validate_stack_fix_source.py`](scripts/validate_stack_fix_source.py)
+  and [`scripts/validate_stack_fix_patch.py`](scripts/validate_stack_fix_patch.py)
+  require the six heap allocations and the one-file remediation boundary.
 - [`scripts/run-kunit-qemu`](scripts/run-kunit-qemu) accepts only the exact
   published Buildbox package and one focused KUnit suite; its separate
   [`scripts/classify-kunit.py`](scripts/classify-kunit.py) requires exact KTAP
@@ -111,8 +124,9 @@ connection. A26 and A14 remain unchanged; CPU8 and CPU9 admission stays closed.
    Complete.
 3. Fetch only the validated patch package, review it, and import it at the end
    of canonical `patches/series`. Complete.
-4. Build the exact integration KUnit profile on Buildbox. Initial compile
-   passed; stack-safe test regeneration and rebuild pending.
+4. Generate and import follow-up `0300`, then rebuild the exact integration
+   KUnit profile on Buildbox. The initial compile passed; the stack-safe rebuild
+   is pending.
 5. Run the focused suite under QEMU with no network and classify the KTAP. The
    first run failed before provider semantics; a distinct stack-safe run is
    pending.
