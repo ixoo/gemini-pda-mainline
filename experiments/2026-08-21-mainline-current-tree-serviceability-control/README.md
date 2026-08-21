@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-21-mainline-current-tree-serviceability-control` |
-| Status | running; exact boot candidate independently validated |
+| Status | running; exact candidate installed and device shut down |
 | Subsystem | arm64 boot, USB/netcat serviceability, DA921x read-only path |
 | Device variant | Gemini PDA x27, named project unit |
 | Date(s) | 2026-08-21 |
@@ -81,9 +81,10 @@ sync/flush, match a full readback, and shut down cleanly without rebooting.
 - `scripts/test-runtime-tools.py`: offline safety and attribution mutations
 - `contract.json`: frozen question, safety gates, and decision table
 
-The Buildbox package and candidate passed offline validation. Guarded
-installation and the exact USB runtime attempt remain pending. The runtime
-collector must be armed before the one physical selection.
+The Buildbox package and candidate passed offline validation. Guarded boot2
+installation and its full readback passed, and the device was shut down. The
+exact USB runtime attempt remains pending; its collector must be armed before
+the one physical selection.
 
 ## Procedure
 
@@ -121,6 +122,12 @@ The clock-entry/shared writer, protected-readback paths, BigiDVFS backend, and
 same-value action are not enabled. No device access occurred during this
 validation.
 
+Guarded deployment resolved logical boot2 as inactive `/dev/mmcblk0p30` while
+Gemian used `/dev/mmcblk0p29`. It replaced predecessor
+`fc2a9a1a...30bf`, synchronized and flushed the write, matched the full 16 MiB
+readback to `7084f2ee...d52a3`, and confirmed clean shutdown. No fresh backup,
+reboot request, or write to another partition occurred.
+
 ## Analysis
 
 The predecessor changed DT node population but retained the clock-entry Image
@@ -133,9 +140,10 @@ CPU8 work until the current-tree delta is localized offline.
 
 ## Conclusion
 
-Exact candidate `7084f2ee...d52a3` is admitted for one guarded boot2
-installation and one physical selection. Runtime serviceability remains
-unproved; a compile and offline-valid candidate are not device-support claims.
+Exact candidate `7084f2ee...d52a3` is installed and admitted for one physical
+selection after the observer is armed. Runtime serviceability remains unproved;
+a compile, offline validation, and verified installation are not device-support
+claims.
 
 ## Follow-up
 

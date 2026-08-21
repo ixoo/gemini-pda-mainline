@@ -4714,7 +4714,10 @@ writer and same-value action, while its DT restores the proven three-window
 handoff and USB/keyboard serviceability contract. Candidate
 `7084f2ee...d52a3` passed all 32 LK gates and rejected 15 negative DT
 mutations. This admits one guarded installation and one runtime attempt; it
-does not yet establish serviceability.
+does not yet establish serviceability. Guarded deployment has now replaced
+the exact stopped predecessor on inactive live-GPT boot2, matched the full
+16 MiB readback to `7084f2ee...d52a3`, and confirmed clean shutdown. The next
+action is to arm the exact observer before the one physical selection.
 
 The next ordered work is:
 

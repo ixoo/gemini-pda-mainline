@@ -70,6 +70,15 @@
     "lk_gates": "32-of-32",
     "negative_dtb_mutations_rejected": 15
   },
+  "deployment": {
+    "gemian_boot_id": "62696f5f-eea9-4686-93f8-fe6770a0551b",
+    "active_root": "/dev/mmcblk0p29",
+    "boot2": "/dev/mmcblk0p30",
+    "predecessor_sha256": "fc2a9a1a53de1373cf75d14f163a5b9921219996882f58e0b5395595872230bf",
+    "full_readback_sha256": "7084f2ee87af103dfcf1dfad9956f54c2a9df8d37b5f6d0388ba45464d8d52a3",
+    "fresh_backup": false,
+    "shutdown": "confirmed-unreachable"
+  },
   "decision": {
     "serviceable": "admit_independent_checkpoint_mechanism_control",
     "no_exact_usb_before_return": "stop_and_localize_current_tree_profile_delta",
