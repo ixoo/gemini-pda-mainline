@@ -1,6 +1,6 @@
 {
   "schema": "gemini-mainline-da921x-pre-p28-provider-abort-v1",
-  "status": "stack-fix-checkpatch-remediation-ready",
+  "status": "canonical-stack-fix-imported-build-pending",
   "parent": {
     "kernel_release": "7.1.3",
     "source_state_sha256": "2e804ec33835f0e14b050773c52d1d39acf573e6e71eee8257f8c282b54c8f2a",
@@ -68,8 +68,13 @@
     "parent_source_state": "a44f45709ef40655d871ff81d0829906781febbd9c3eafc62725e71216f543a0",
     "parent_source_integrity": "17cbaf6af621fa568df2fe855740e288f77d59bd02f536abc61245cffd836d02",
     "parent_test_sha256": "6429347abb04eb06f290a270ff7b6c87ede89e0c74f0424a7a621276e2958058",
+    "repository_commit": "597c528b80c671b9e3b27ed74889462ccc8b13a0",
+    "buildbox_package": "da921x-pre-p28-provider-abort-stack-fix-597c528b80c6",
+    "sha256": "a4ad7024887d4477f219846abbe744ad5432b682b2a47b0329c6425ceded93da",
+    "final_test_sha256": "15ae022bb92d1b60b5f379a4aff1e74c365e0345b39c587af3a433f63ed5298f",
+    "strict_checkpatch": "0-errors-0-warnings-0-checks",
     "production_code_changed": false,
-    "generation": "attempt-2-strict-checkpatch-16-checks"
+    "generation": "pass"
   },
   "safety": {
     "default_off": true,

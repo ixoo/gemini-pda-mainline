@@ -20,6 +20,10 @@ EXPECTED_PATCHES = {
     "0299-regulator-test-DA921x-pre-P28-membership-abort.patch":
         "d95024c58b3bbea892310e8712e88ccf86d6bb032a16150eef898a2df4dd0854",
 }
+EXPECTED_STACK_PATCH = {
+    "0300-regulator-move-DA921x-membership-test-state-off-stack.patch":
+        "a4ad7024887d4477f219846abbe744ad5432b682b2a47b0329c6425ceded93da",
+}
 
 
 def require(condition: bool, message: str) -> None:
@@ -61,7 +65,7 @@ def main() -> None:
 
     require(
         contract["status"]
-        == "stack-fix-checkpatch-remediation-ready",
+        == "canonical-stack-fix-imported-build-pending",
             "experiment status changed")
     safety = contract["safety"]
     require(safety["default_off"] and safety["hardware_free"],
@@ -84,15 +88,25 @@ def main() -> None:
     require(contract["proof"]["cases"] == 6, "KUnit case count changed")
     require(contract["generated_patches"]["sha256"] == EXPECTED_PATCHES,
             "generated patch contract changed")
+    stack_name, stack_sha256 = next(iter(EXPECTED_STACK_PATCH.items()))
+    require(contract["stack_fix_patch"]["canonical_name"] == stack_name,
+            "stack-fix canonical name changed")
+    require(contract["stack_fix_patch"]["sha256"] == stack_sha256,
+            "stack-fix patch contract changed")
 
     canonical = [
         line.strip() for line in (REPO / "patches/series").read_text().splitlines()
         if line.strip() and not line.lstrip().startswith("#")
     ]
-    expected_suffix = [f"v7.1.3/{name}" for name in EXPECTED_PATCHES]
+    expected_suffix = [
+        f"v7.1.3/{name}"
+        for name in (*EXPECTED_PATCHES, *EXPECTED_STACK_PATCH)
+    ]
     require(canonical[-len(expected_suffix):] == expected_suffix,
             "canonical patch suffix changed")
-    for name, expected_sha256 in EXPECTED_PATCHES.items():
+    for name, expected_sha256 in (
+        EXPECTED_PATCHES | EXPECTED_STACK_PATCH
+    ).items():
         patch = REPO / "patches/v7.1.3" / name
         require(patch.is_file(), f"canonical patch missing: {name}")
         actual_sha256 = hashlib.sha256(patch.read_bytes()).hexdigest()
@@ -227,8 +241,8 @@ def main() -> None:
         require(token in buildbox, f"Buildbox command token missing: {token}")
 
     print("validation=da921x-pre-p28-provider-abort-contract")
-    print("status=stack-fix-checkpatch-remediation-ready")
-    print("canonical_patch_count=4")
+    print("status=canonical-stack-fix-imported-build-pending")
+    print("canonical_patch_count=5")
     print("logical_patches=5")
     print("kunit_cases=6")
     print("hardware_action=none")

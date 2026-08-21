@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-20-mainline-da921x-pre-p28-provider-abort` |
-| Status | Buildbox compile passed; patch `0300` style remediation ready |
+| Status | canonical patch `0300` imported; stack-safe Buildbox rebuild pending |
 | Subsystem | MT6797 CPU8 membership owner and DA921x Buck B provider |
 | Device variant | Planet Gemini PDA named development unit |
 | Date(s) | 2026-08-20 America/New_York |
@@ -63,6 +63,15 @@ errors and zero warnings. The storage change was refactored through short
 test-only helpers to eliminate only those reported continuations. The bounded
 result is in
 [`results/stack-fix-generation-attempt-2-checkpatch-20260820.txt`](results/stack-fix-generation-attempt-2-checkpatch-20260820.txt).
+Attempt 3 on exact clean commit
+`597c528b80c671b9e3b27ed74889462ccc8b13a0` passed pinned-parent,
+source, one-file patch, exact replay, and strict checkpatch validation. The
+validated package `da921x-pre-p28-provider-abort-stack-fix-597c528b80c6`
+contains patch `0300` with SHA-256
+`a4ad7024887d4477f219846abbe744ad5432b682b2a47b0329c6425ceded93da`
+and zero errors, warnings, or checks. The exact patch is now at the end of the
+canonical series. The bounded result is in
+[`results/stack-fix-generation-attempt-3-success-20260820.txt`](results/stack-fix-generation-attempt-3-success-20260820.txt).
 
 ## Question or hypothesis
 
@@ -131,8 +140,8 @@ connection. A26 and A14 remain unchanged; CPU8 and CPU9 admission stays closed.
 3. Fetch only the validated patch package, review it, and import it at the end
    of canonical `patches/series`. Complete.
 4. Generate and import follow-up `0300`, then rebuild the exact integration
-   KUnit profile on Buildbox. The initial compile passed; the stack-safe rebuild
-   is pending.
+   KUnit profile on Buildbox. Patch generation and import are complete; the
+   stack-safe rebuild is pending.
 5. Run the focused suite under QEMU with no network and classify the KTAP. The
    first run failed before provider semantics; a distinct stack-safe run is
    pending.

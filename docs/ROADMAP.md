@@ -4350,10 +4350,12 @@ fail-stop mapping, exact positive abort/P29 admission, the injectable production
 DA921x callback endpoint, and focused registry integration tests. Buildbox
 generated and strictly validated them, and the focused compile passed. The
 first QEMU run stopped before provider semantics because large automatic test
-state overflowed the arm64 kernel stack. The next ordered action is a separate
-one-file follow-up patch `0300` that moves that state to KUnit-managed heap
-storage, followed by a Buildbox rebuild and one distinct isolated QEMU proof.
-That proof must pass before this roadmap advances.
+state overflowed the arm64 kernel stack. Separate one-file follow-up patch
+`0300` now strictly validates and is pinned at the end of the canonical series;
+it moves that state to KUnit-managed heap storage without changing production
+code. The next ordered action is the focused Buildbox rebuild, followed only on
+success by one distinct isolated QEMU proof. That proof must pass before this
+roadmap advances.
 
 The candidate must have a single CPU8 request, strict checkpoints before and
 after each power step, a bounded timeout, and a fail-closed rollback. CPU9
