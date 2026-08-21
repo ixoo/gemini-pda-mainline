@@ -1,0 +1,8 @@
+id	input	observation_owner	preservation	can_supply_authority_alone	result	next_boundary
+R01	TOPRGU-WDT_STATUS-raw	mtk-wdt	LK-has-no-reader-call-and-no-status-write;mainline-can-read-after-map-before-init	no	capture-selected	one-read-raw-snapshot
+R02	preloader-ram-console-status	preloader-retained-header	LK-and-vendor-kernel-layouts-agree;current-mainline-reserves-no-map-region	no	defer	strict-header-reader-and-enum-audit
+R03	LK-command-line-boot-reason	LK-from-preloader-boot-argument	available-after-LK-string-construction	no	reject-alone	use-only-as-secondary-consistency-input
+R04	secure-private-big_on-zero	secure-firmware	image-byte-zero;CPU_ON-sets;deferred-teardown-clears	no	fresh-epoch-required	cold-platform-epoch-plus-complete-writer-exclusion
+R05	Linux-owner-and-topology-zero	arm64-membership-owner	pure-A34-evaluator-proven	no	reject-as-reset-proof	revalidate-only-after-independent-authority
+R06	ordinary-Linux-reboot	unowned-cross-layer	secure-epoch-and-private-replay-preservation-unproven	no	rejected	keep-owner-closed
+R07	active-PSCI-AFFINITY_INFO	secure-firmware	may-enter-state-changing-unbounded-power_off_big	no	rejected	never-use-as-private-reader

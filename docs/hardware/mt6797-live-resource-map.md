@@ -298,6 +298,15 @@ and [boot-policy audit](../../experiments/2026-07-12-mt6797-watchdog-recovery/re
 The current config also sets `CONFIG_WATCHDOG_HANDLE_BOOT_ENABLED=y`, which
 keeps a firmware-running timer pinged before userspace takes over.
 
+At exact public Planet LK revision `f4988d74bb70a0a15d7f362f412afba7e7fcda46`,
+the MT6797 watchdog has a raw `WDT_STATUS` reader for offset `0x0c`, but that
+reader has no caller and LK initialization does not write the status register.
+Exact Linux 7.1.3 maps TOPRGU before `mtk_wdt_init()`, providing a read-only
+capture point before Linux changes watchdog controls. Preservation makes the
+raw word useful evidence; it does not make any bit pattern a completed-reset
+or fresh-secure-epoch attestation. See the [A34 provenance-owner
+audit](../../experiments/2026-08-21-mainline-a72-a34-provenance-owner-audit/README.md).
+
 The IRQ-bearing watchdog description did not register a watchdog device,
 while the otherwise equivalent no-IRQ description bound `10007000.watchdog`
 to `mtk-wdt`, exposed `/dev/watchdog0`, and reported a 31-second timeout with

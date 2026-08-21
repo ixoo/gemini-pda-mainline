@@ -4402,17 +4402,31 @@ attempts or open the `CLOSED / UNINITIALIZED` state. No transaction caller,
 provider call, P27/P28 effect, P30 arm, PSCI call, CPU_ON/OFF, boot-veto change,
 boot image, or device action was added.
 
-The next ordered boundary is the production A34 owner, kept separate from the
-proven evaluator. First resolve its two independent authority inputs. The
-pinned vendor source identifies TOPRGU `WDT_STATUS` offset
-`0x0c` as a finer reset-class latch, and exact mainline through patch `0301`
-does not read it. Audit a read immediately after watchdog resource mapping and
-before `mtk_wdt_init()`, but do not accept it until LK preservation and exact
-reset-class semantics are proven. This candidate cannot replace the separate
-owner-safe private replay-zero proof, which remains unresolved.
+The
+[production A34 provenance-owner audit](../experiments/2026-08-21-mainline-a72-a34-provenance-owner-audit/README.md)
+resolves the first observation boundary without pretending it is complete
+authority. Pinned LK has a raw TOPRGU `WDT_STATUS` reader but no caller and no
+write to that register; mainline can therefore capture offset `0x0c` once
+after resource mapping and before `mtk_wdt_init()`. The audit also identifies
+the exact secure payload's private A72 replay byte as zero in the image, with
+CPU_ON as its set writer and deferred secure teardown as its clear writer.
+That proof is owner-safe only for a proven fresh secure-platform epoch. Raw
+TOPRGU status, Linux zero state, an active `AFFINITY_INFO` call, or an ordinary
+Linux reboot cannot supply A34 authority alone.
 
-The candidate must have a single CPU8 request, strict checkpoints before and
-after each power step, a bounded timeout, and a fail-closed rollback. CPU9
+The next ordered boundary is one default-off, capture-only patch in the
+existing MediaTek watchdog owner. It must store exactly one raw 32-bit status
+word plus explicit validity before watchdog initialization, expose only a
+typed read-only snapshot, and test invalid, exact, every-bit, and immutable
+behavior without MMIO. It must add no reset classifier, ram-console mapping,
+A34 production caller, lifecycle publication, provider action, P30 arm, PSCI
+call, CPU veto change, boot image, or device action. After that independent
+capture is proven, audit a strict retained-ram-console reader and the
+cold/platform-epoch combiner before implementing the production A34 owner.
+
+The eventual CPU8 candidate must have a single CPU8 request, strict
+checkpoints before and after each power step, a bounded timeout, and a
+fail-closed rollback. CPU9
 remains offline and is tested later as a separate hypothesis.
 
 Exit: CPU8 reaches an attributable online checkpoint, executes a bounded

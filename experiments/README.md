@@ -23,6 +23,14 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-21 mainline A72 A34 provenance-owner audit](2026-08-21-mainline-a72-a34-provenance-owner-audit/README.md)
+  — proves that pinned LK preserves raw TOPRGU `WDT_STATUS` and selects a
+  one-read capture before mainline watchdog initialization. It separately
+  identifies the secure payload's zero-initial private A72 replay byte and its
+  two lifecycle writer families, while rejecting raw reset status, Linux zero,
+  active affinity queries, and ordinary reboot as standalone A34 authority.
+  The next slice is capture-only: no lifecycle publication, CPU request, boot
+  candidate, or device action is authorized.
 - [2026-08-20 mainline DA921x pre-P28 provider abort](2026-08-20-mainline-da921x-pre-p28-provider-abort/README.md)
   — implements the next default-off production seam selected by the Gate-7
   review: ambiguous acquire/release returns become reset-only faults, while

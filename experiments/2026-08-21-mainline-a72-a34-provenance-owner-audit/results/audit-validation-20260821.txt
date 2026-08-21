@@ -1,0 +1,12 @@
+command=python3 experiments/2026-08-21-mainline-a72-a34-provenance-owner-audit/scripts/validate.py
+result=pass
+audit=pass
+repository_parent=8513b645fb122e766779f276e30ce74b4af82ec5
+canonical_patch_sha256=f07b490279cedf9ee7c4f9d294c4b4e966db72715a78b2d25c2abd64b3fd861b
+authority_rows=7
+toprgu_capture=selected
+standalone_authority_rows=0
+ordinary_reboot=rejected
+active_affinity_reader=rejected
+production_a34_open=forbidden
+device_action=none
