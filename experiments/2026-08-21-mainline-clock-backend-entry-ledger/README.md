@@ -14,8 +14,9 @@ follow-up `0326` against that exact source state. It broadens the hidden
 dependency only to the clock backend that owns the new call sites. That
 follow-up is now generated, manually reviewed, and admitted canonically. The
 corrected Buildbox kernel and independently validated Android-v0/16 MiB
-candidate are ready for one guarded deployment; no artifact from any rejected
-attempt is a boot candidate.
+candidate passed one guarded deployment to `boot2` with exact full readback;
+the device is shut down awaiting the attributable boot. No artifact from any
+rejected attempt is a boot candidate.
 
 ## Question
 
@@ -68,11 +69,9 @@ metadata, and full-readback gates. There is no clear, overwrite, or retry.
 
 ## Next action
 
-Commit and push the exact build, candidate, and runtime-tool evidence, then
-install the validated 16 MiB image to live-resolved inactive `boot2` under the
-standing guarded workflow and shut down. Arm the USB collector before the owner
-selects `boot2`; after its return to changed-ID Gemian, recover and classify the
-two retained records. Repository-wide ordering remains in
+Push the sanitized deployment evidence and arm the USB collector before the
+owner selects `boot2`. After its return to changed-ID Gemian, recover and
+classify the two retained records. Repository-wide ordering remains in
 [`docs/ROADMAP.md`](../../docs/ROADMAP.md).
 
 ## Generation and admission
@@ -149,3 +148,11 @@ collector claims only serviceability; the changed-cycle Gemian recovery and
 retained classifier own the driver-init/probe boundary. Offline positive and
 negative tests pass; see
 [`results/runtime-tools-offline.txt`](results/runtime-tools-offline.txt).
+
+Deployment attempt 1 live-resolved inactive `boot2` as `/dev/mmcblk0p30` with
+Gemian rooted on p29, found all four retained slots empty, and replaced exact
+predecessor `6cb729ef...2e62`. External power was present at 100%/Good; both TEE
+partitions retained their audited identity. The synced/flushed full readback
+matches `444ffc4a...278de`, no fresh backup was made, and shutdown is confirmed.
+See
+[`results/deployment-attempt-1-success.txt`](results/deployment-attempt-1-success.txt).

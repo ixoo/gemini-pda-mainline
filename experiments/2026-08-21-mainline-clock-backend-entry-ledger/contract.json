@@ -108,6 +108,26 @@
     "serviceability_positive_cases": 1,
     "serviceability_safety_mutations_rejected": 1
   },
+  "deployment": {
+    "result": "write_synced_flushed_full_readback_verified",
+    "attempt": 1,
+    "target_logical_name": "boot2",
+    "target": "/dev/mmcblk0p30",
+    "root": "/dev/mmcblk0p29",
+    "boot_id": "a18bed92-3027-4658-b0f1-90206c056274",
+    "predecessor_sha256": "6cb729efacea914b993221f0f85a1ab7e67eb6bca915802a8236bb31edab2e62",
+    "candidate_sha256": "444ffc4a3631e75d05e567f6304fdd1607695adbd1f3c8b5654714633e6278de",
+    "readback_sha256": "444ffc4a3631e75d05e567f6304fdd1607695adbd1f3c8b5654714633e6278de",
+    "tee1_sha256": "2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3",
+    "tee2_sha256": "2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3",
+    "power": "external|100|Good|present",
+    "retained_slots_prewrite": "171-174_exact_empty",
+    "fresh_predecessor_backup": false,
+    "reboot": false,
+    "shutdown": "confirmed_unreachable",
+    "private_summary_sha256": "8bbe08f705d18bd26728d4188a915860a00f479ccb09e62443a3d588be2fd6a2",
+    "private_manifest_sha256": "23947a5620b71d91e7cdb1ae43647d4c4c7b1938044f59d17dd4c4dab595752b"
+  },
   "kconfig_follow_up": {
     "result": "canonical_patch_admitted",
     "expected_patch": "patches/v7.1.3/0326-pstore-make-protected-readback-base-writer-usable-by-clock.patch",

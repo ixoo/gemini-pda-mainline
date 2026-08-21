@@ -1,0 +1,33 @@
+Clock-backend entry-ledger deployment attempt 1
+================================================
+
+Result: PASS; exact candidate installed and device shut down.
+
+Target logical name: boot2
+Resolved target: /dev/mmcblk0p30
+Known-good root: /dev/mmcblk0p29
+Gemian boot ID: a18bed92-3027-4658-b0f1-90206c056274
+Predecessor SHA256: 6cb729efacea914b993221f0f85a1ab7e67eb6bca915802a8236bb31edab2e62
+Candidate SHA256: 444ffc4a3631e75d05e567f6304fdd1607695adbd1f3c8b5654714633e6278de
+Full readback SHA256: 444ffc4a3631e75d05e567f6304fdd1607695adbd1f3c8b5654714633e6278de
+TEE1 SHA256: 2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3
+TEE2 SHA256: 2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3
+Power: external, 100%, Good, present
+Private deployment summary SHA256: 8bbe08f705d18bd26728d4188a915860a00f479ccb09e62443a3d588be2fd6a2
+Private deployment manifest SHA256: 23947a5620b71d91e7cdb1ae43647d4c4c7b1938044f59d17dd4c4dab595752b
+
+Guards and actions
+------------------
+
+- live GPT contained exactly one unmounted, writable, inactive `boot2`;
+- the active Gemian root was a distinct partition;
+- slots 171, 172, 173, and 174 had exact empty headers before the write;
+- both live TEE partitions matched the audited exact payload;
+- candidate fit the exact 16 MiB target;
+- predecessor checksum recorded; no fresh backup created under project policy;
+- write, sync, device flush, and exact full-partition readback passed;
+- temporary readback was removed;
+- no reboot was requested;
+- clean shutdown completed and post-shutdown SSH was unreachable.
+
+Next action: arm the USB/netcat collector, then physically select `boot2` once.
