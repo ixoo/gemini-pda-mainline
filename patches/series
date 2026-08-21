@@ -305,3 +305,6 @@ v7.1.3/0312-arm64-add-read-only-provider-state-snapshot.patch
 v7.1.3/0313-regulator-export-stable-DA921x-provider-state.patch
 v7.1.3/0314-regulator-test-stable-DA921x-provider-state.patch
 v7.1.3/0315-arm64-rename-read-only-provider-snapshot-record.patch
+v7.1.3/0316-soc-mediatek-make-protected-clock-snapshots-atomic.patch
+v7.1.3/0317-soc-mediatek-require-stable-BigiDVFS-snapshots.patch
+v7.1.3/0318-soc-mediatek-test-protected-readback-transports.patch

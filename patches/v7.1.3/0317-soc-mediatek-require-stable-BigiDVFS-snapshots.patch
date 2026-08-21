@@ -1,0 +1,206 @@
+From 0a5f7dbac4a523661d3e794ef15290efb33687f7 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 21 Aug 2026 22:02:00 +0000
+Subject: [PATCH 2/3] soc: mediatek: require stable BigiDVFS snapshots
+
+Take two complete fixed four-word samples through the exact read-only firmware FID and publish only an exact match. Leave failures all-zero and instability retryable.
+
+Add no secure write, retry loop, owner registration, policy decision, or CPU operation.
+---
+ .../soc/mediatek/mt6797-bigidvfs-backend.c    | 116 +++++++++++++-----
+ .../mt6797-protected-readback-internal.h      |  10 ++
+ 2 files changed, 98 insertions(+), 28 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-bigidvfs-backend.c b/drivers/soc/mediatek/mt6797-bigidvfs-backend.c
+index f11200d..f8108e4 100644
+--- a/drivers/soc/mediatek/mt6797-bigidvfs-backend.c
++++ b/drivers/soc/mediatek/mt6797-bigidvfs-backend.c
+@@ -10,6 +10,7 @@
+ #include <linux/arm-smccc.h>
+ #include <linux/device.h>
+ #include <linux/errno.h>
++#include <linux/kernel.h>
+ #include <linux/module.h>
+ #include <linux/mutex.h>
+ #include <linux/of.h>
+@@ -19,12 +20,25 @@
+ 
+ #include <linux/soc/mediatek/mt6797-bigidvfs-backend.h>
+ 
++#include "mt6797-protected-readback-internal.h"
++
+ struct mt6797_bigidvfs_backend {
+ 	struct mutex operation_lock;
+ 	bool faulted;
+ 	u64 sample_generation;
+ };
+ 
++struct mt6797_bigidvfs_raw_sample {
++	u32 word[4];
++};
++
++static const u32 mt6797_bigidvfs_addresses[] = {
++	MT6797_BIGIDVFS_PLL_PCW,
++	MT6797_BIGIDVFS_PLL_ENABLE_POSDIV,
++	MT6797_BIGIDVFS_SRAM_SELECTOR,
++	MT6797_BIGIDVFS_CONTROL,
++};
++
+ static bool mt6797_bigidvfs_address_allowed(u32 address)
+ {
+ 	switch (address) {
+@@ -38,7 +52,7 @@ static bool mt6797_bigidvfs_address_allowed(u32 address)
+ 	}
+ }
+ 
+-static int mt6797_bigidvfs_secure_read(u32 address, u32 *value)
++static int mt6797_bigidvfs_secure_read(void *context, u32 address, u32 *value)
+ {
+ 	struct arm_smccc_res result;
+ 
+@@ -55,19 +69,78 @@ static int mt6797_bigidvfs_secure_read(u32 address, u32 *value)
+ 	return 0;
+ }
+ 
+-static void mt6797_bigidvfs_mark_fault(
+-	struct mt6797_bigidvfs_backend *backend)
++static const struct mt6797_bigidvfs_transport_ops bigidvfs_ops = {
++	.read = mt6797_bigidvfs_secure_read,
++};
++
++static int
++mt6797_bigidvfs_read_sample(const struct mt6797_bigidvfs_transport_ops *ops,
++			    void *context,
++			    struct mt6797_bigidvfs_raw_sample *sample)
++{
++	unsigned int i;
++	int ret;
++
++	for (i = 0; i < ARRAY_SIZE(mt6797_bigidvfs_addresses); i++) {
++		ret = ops->read(context, mt6797_bigidvfs_addresses[i],
++				&sample->word[i]);
++		if (ret)
++			return ret;
++	}
++
++	return 0;
++}
++
++int
++mt6797_bigidvfs_snapshot(const struct mt6797_bigidvfs_transport_ops *ops,
++			 void *context,
++			 struct mt6797_bigidvfs_readback *readback)
++{
++	struct mt6797_bigidvfs_raw_sample first = { };
++	struct mt6797_bigidvfs_raw_sample second = { };
++	struct mt6797_bigidvfs_readback observed = { };
++	int ret;
++
++	if (!readback)
++		return -EINVAL;
++	memset(readback, 0, sizeof(*readback));
++	if (!ops || !ops->read)
++		return -EINVAL;
++
++	ret = mt6797_bigidvfs_read_sample(ops, context, &first);
++	if (ret)
++		return ret;
++	ret = mt6797_bigidvfs_read_sample(ops, context, &second);
++	if (ret)
++		return ret;
++	if (memcmp(&first, &second, sizeof(first)))
++		return -EAGAIN;
++
++	observed.pll_pcw = second.word[0];
++	observed.pll_enable_posdiv = second.word[1];
++	observed.sram_selector = second.word[2];
++	observed.control = second.word[3];
++	*readback = observed;
++	return 0;
++}
++
++static void
++mt6797_bigidvfs_mark_fault(struct mt6797_bigidvfs_backend *backend)
+ {
+ 	backend->faulted = true;
+ }
+ 
+-int mt6797_bigidvfs_backend_read(
+-	struct device *dev, struct mt6797_bigidvfs_readback *readback)
++int mt6797_bigidvfs_backend_read(struct device *dev,
++				 struct mt6797_bigidvfs_readback *readback)
+ {
++	struct mt6797_bigidvfs_readback observed = { };
+ 	struct mt6797_bigidvfs_backend *backend;
+ 	int ret;
+ 
+-	if (!dev || !readback)
++	if (!readback)
++		return -EINVAL;
++	memset(readback, 0, sizeof(*readback));
++	if (!dev)
+ 		return -EINVAL;
+ 
+ 	backend = dev_get_drvdata(dev);
+@@ -80,32 +153,19 @@ int mt6797_bigidvfs_backend_read(
+ 		goto out_unlock;
+ 	}
+ 
+-	ret = mt6797_bigidvfs_secure_read(MT6797_BIGIDVFS_PLL_PCW,
+-					  &readback->pll_pcw);
+-	if (ret)
+-		goto fault;
+-	ret = mt6797_bigidvfs_secure_read(MT6797_BIGIDVFS_PLL_ENABLE_POSDIV,
+-					  &readback->pll_enable_posdiv);
+-	if (ret)
+-		goto fault;
+-	ret = mt6797_bigidvfs_secure_read(MT6797_BIGIDVFS_SRAM_SELECTOR,
+-					  &readback->sram_selector);
+-	if (ret)
+-		goto fault;
+-	ret = mt6797_bigidvfs_secure_read(MT6797_BIGIDVFS_CONTROL,
+-					  &readback->control);
+-	if (ret)
+-		goto fault;
++	ret = mt6797_bigidvfs_snapshot(&bigidvfs_ops, backend, &observed);
++	if (ret) {
++		if (ret != -EAGAIN)
++			mt6797_bigidvfs_mark_fault(backend);
++		goto out_unlock;
++	}
+ 
+ 	if (++backend->sample_generation == 0)
+ 		backend->sample_generation = 1;
+-	readback->abi = MT6797_BIGIDVFS_BACKEND_ABI;
+-	readback->reserved = 0;
+-	readback->sample_generation = backend->sample_generation;
+-	goto out_unlock;
++	observed.abi = MT6797_BIGIDVFS_BACKEND_ABI;
++	observed.sample_generation = backend->sample_generation;
++	*readback = observed;
+ 
+-fault:
+-	mt6797_bigidvfs_mark_fault(backend);
+ out_unlock:
+ 	mutex_unlock(&backend->operation_lock);
+ 	return ret;
+diff --git a/drivers/soc/mediatek/mt6797-protected-readback-internal.h b/drivers/soc/mediatek/mt6797-protected-readback-internal.h
+index cf58644..ee4f7b7 100644
+--- a/drivers/soc/mediatek/mt6797-protected-readback-internal.h
++++ b/drivers/soc/mediatek/mt6797-protected-readback-internal.h
+@@ -21,5 +21,15 @@ struct mt6797_dvfsp_clock_transport_ops {
+ int mt6797_clock_snapshot(const struct mt6797_dvfsp_clock_transport_ops *ops,
+ 			  void *context,
+ 			  struct mt6797_dvfsp_clock_readback *readback);
++#include <linux/soc/mediatek/mt6797-bigidvfs-backend.h>
++
++struct mt6797_bigidvfs_transport_ops {
++	int (*read)(void *context, u32 address, u32 *value);
++};
++
++int
++mt6797_bigidvfs_snapshot(const struct mt6797_bigidvfs_transport_ops *ops,
++			 void *context,
++			 struct mt6797_bigidvfs_readback *readback);
+ 
+ #endif /* __MT6797_PROTECTED_READBACK_INTERNAL_H */

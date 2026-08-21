@@ -2,7 +2,12 @@
 
 ## Status
 
-Implementation and exact Buildbox patch generation are in progress. The first
+Exact Buildbox generation is complete. The three logical patches are generated,
+source-validated, replayed exactly, strict-clean, and admitted canonically as
+`0316`--`0318`. The isolated Buildbox compile and focused no-network KUnit run
+are next; no patch from this experiment has been used on the Gemini.
+
+The first
 generation attempt from `b2f0bcddddb1` passed repository checkout, managed
 source integrity, and all six pinned source-file identities, then failed closed
 in source validation before patch creation. The validator compared the
@@ -55,6 +60,14 @@ and two fake-ops calls were wrapped. The bounded receipt is in
 The help now names the covered fault classes and the shorter test-only ops name
 keeps both calls on one line; test semantics are unchanged.
 
+Generation from exact clean commit `7aa57a690f9c` passed the managed-source and
+six pinned-file checks, semantic source validation, exact three-patch inventory,
+replay, and strict checkpatch for every patch with zero findings. The validated
+identities are recorded in
+[`results/buildbox-generation-7aa57a69.txt`](results/buildbox-generation-7aa57a69.txt)
+and [`contract.json`](contract.json). Those exact bytes are canonical patches
+`0316`--`0318`.
+
 No device kernel, boot image, partition, firmware service, or hardware
 semaphore has been used by this experiment.
 
@@ -88,10 +101,11 @@ The prerequisite named-firmware and arbitration decision is recorded by the
 
 Three logical patches are generated:
 
-1. repair the protected-clock acquire/settle/read/release/publication order;
-2. make BigiDVFS take two exact fixed read-only samples; and
-3. add a focused in-memory KUnit suite for ordering, timeouts, all eight secure
-   read fault ordinals, and instability.
+1. `0316` repairs the protected-clock
+   acquire/settle/read/release/publication order;
+2. `0317` makes BigiDVFS take two exact fixed read-only samples; and
+3. `0318` adds a focused in-memory KUnit suite for ordering, timeouts, all
+   eight secure read fault ordinals, and instability.
 
 The test seam exposes only transport callbacks inside the MediaTek SoC driver
 directory. The production clock callback retains the exact existing CSPM
