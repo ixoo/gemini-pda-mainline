@@ -4636,11 +4636,17 @@ commit `36027e9` now passes, as do two independent Android-v0 assemblies, two
 padding paths, all 32 LK gates, and six negative container mutations. The DTB
 and initramfs remain byte-identical to the predecessor. Exact full-`boot2`
 candidate `3ce494c971c24c9edab73aac592d0ba8dd0bbd25f06051245f7846f95d0c715a`
-is offline-valid; guarded deployment and runtime attribution remain pending.
+is offline-valid. Guarded deployment resolved inactive, unmounted live-GPT
+`boot2` as p30 while Gemian used p29. The first write passed its device-side
+full checksum but a changing final power sample stopped the run before the
+independent readback and shutdown. A resumed pass found the exact candidate,
+skipped rewriting it, repeated all gates, independently streamed and compared
+the full 16 MiB, and confirmed clean shutdown. Runtime attribution remains
+pending.
 
 The next ordered work is:
 
-1. Deploy and run the two-checkpoint retained-RAM successor once. Require exact
+1. Run the two-checkpoint retained-RAM successor once. Require exact
    reserved-memory and empty-slot gates, one write per owned slot with ordered
    readback, and known-good Gemian recovery. Use the recovered prefix to split
    the first protected-clock call from the later BigiDVFS call; do not infer a

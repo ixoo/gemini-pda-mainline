@@ -4,9 +4,9 @@
 
 Design, live read-only slot preflight, deterministic Buildbox patch generation,
 strict review, canonical admission through patch `0323`, the exact Buildbox
-kernel, and reproducible Android-v0 candidate construction are complete.
-Deployment and the single device attempt remain pending. No native VM build or
-new-candidate device action occurred.
+kernel, reproducible Android-v0 candidate construction, guarded deployment,
+full readback, and clean shutdown are complete. The single device attempt
+remains pending. No native VM build occurred.
 
 The rejected predecessor returned to changed-boot-ID Gemian before exposing
 mainline USB and left no pstore, `last_kmsg`, or observer record. Its two reads
@@ -66,6 +66,16 @@ still valid and empty and exposed the required little-endian byte order. The
 preflight and this record were corrected before deployment. See
 [`results/deployment-attempt-1-preflight-validator-rejected.txt`](results/deployment-attempt-1-preflight-validator-rejected.txt).
 
+The corrected deployment passed the empty-slot, live TEE, GPT, inactive-root,
+power, predecessor, staging, write, sync, flush, and device-side full checksum
+gates. Its final power sample then changed, so it stopped before the independent
+host readback and shutdown. A resumed pass found the exact candidate already
+present, skipped rewriting it, repeated the gates, streamed and byte-compared
+the full 16 MiB, removed the temporary readback, and confirmed clean shutdown.
+No fresh partition backup was made. See
+[`results/deployment-attempt-2-write-final-power-gate.txt`](results/deployment-attempt-2-write-final-power-gate.txt)
+and [`results/deployment-attempt-3-success.txt`](results/deployment-attempt-3-success.txt).
+
 ## Provenance
 
 - Canonical parent ends at patch `0322`.
@@ -100,6 +110,11 @@ byte-for-byte. The 7,639,040-byte raw container is `199e618a...c17`; the exact
 initramfs remains exact, and all six container mutations are rejected. See
 [`results/candidate-199e618a.txt`](results/candidate-199e618a.txt).
 
+The USB completion classifier and retained-record classifier now pass their
+offline positive and mutation tests. The USB probe is read-only and makes no
+partition, driver, CPU, reboot, or power request. See
+[`results/runtime-tools-offline.txt`](results/runtime-tools-offline.txt).
+
 ## Scope and safety
 
 The only new runtime effects are at most two short writes to already reserved
@@ -116,8 +131,8 @@ device down without rebooting. No fresh partition backup is required.
 
 ## Decision rule
 
-Install only exact padded candidate `3ce494c9...715a` after the installer
-repeats the live empty-slot preflight and passes the TEE, GPT, inactive-target,
-power, predecessor, and staging gates. Require full `boot2` readback and clean
-shutdown before one physical selection. Recover the two slots from Gemian
-before any second candidate or composition work.
+Arm both exact observation paths, then physically select `boot2` once. Accept
+either a strict USB completion record or changed-boot-ID Gemian recovery with
+the retained prefix. Recover the two slots before any second candidate or
+composition work. Do not infer a kernel result from screen state or the generic
+watchdog-class boot-reason token.

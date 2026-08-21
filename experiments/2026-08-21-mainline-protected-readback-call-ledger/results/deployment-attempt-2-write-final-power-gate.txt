@@ -1,0 +1,30 @@
+Protected-readback call-ledger deployment attempt 2
+===================================================
+
+Result: candidate written and device-side full checksum passed; final gate failed
+Failure: power state changed between final samples
+Independent host readback: not reached
+Shutdown: not requested
+
+Pre-write gates
+---------------
+
+- Known-good Gemian boot ID: 3846422e-5a1a-4bf6-8603-c22446fe208c
+- Root: /dev/mmcblk0p29
+- Live-GPT logical boot2: /dev/mmcblk0p30
+- boot2 inactive, unmounted, writable, 16 MiB, without holders or swap: pass
+- Slots 171--174 raw headers: 444247430000000000000000
+- Retained slots exact-empty: pass
+- tee1 and tee2 SHA-256: 2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3
+- Stable initial power: present, 84%, Good, external power online
+- Predecessor SHA-256: 30ec9c56d6be78635f0ccf3ea626727763d71590c23778774c5c6366e4a5e75a
+- Fresh predecessor backup: no
+
+Write result
+------------
+
+The exact staged 16 MiB candidate was written only to resolved boot2, synced,
+flushed, and read back on-device. Its full post-flush SHA-256 was
+`3ce494c971c24c9edab73aac592d0ba8dd0bbd25f06051245f7846f95d0c715a`.
+The subsequent final gate observed changing power telemetry and stopped before
+the independent host readback and shutdown. The device remained on Gemian.

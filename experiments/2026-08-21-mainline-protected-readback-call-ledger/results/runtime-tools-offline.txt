@@ -1,0 +1,23 @@
+Protected-readback call-ledger runtime tools
+============================================
+
+Result: pass
+Device access: none
+Hardware write: none
+
+- Retained decision branches tested: 3
+- Retained malformed/duplicate/foreign mutations rejected: 3
+- Exact USB completion classification: pass
+- Wrong USB kernel identity mutation: rejected
+- Source-pinned USB collector derivation: pass
+- Source-pinned USB classifier derivation: pass
+- USB runtime probe read-only contract: pass
+
+Tool identities
+---------------
+
+USB collector: 2e37a83fa8bec300bf47e4e4233d97bf825271be97e5376f86829eb6ce62ffc1
+USB probe: 4e7d26aaf2be80b12b7cca84d2946f3bbaf420b5e1700ad7e4ecae97f415ca94
+USB classifier wrapper: 2d760b225ac950b2f202ba0f0f31304eb75c46eb4574c7e79b2938c2ae59ff94
+Retained classifier: bd7fa34d9c2731619505323000847a537c18c6fb2a0cb34a766f3d3a6ad904de
+Offline test: 03a8cfcd655c23f3dcc249ec896be9f61525e84eee8a2b5ba5be19154471c7b8

@@ -1,0 +1,24 @@
+Protected-readback call-ledger deployment attempt 3
+===================================================
+
+Result: pass; exact candidate already present, rewrite skipped
+Target logical name: boot2
+Target: /dev/mmcblk0p30
+Root: /dev/mmcblk0p29
+Candidate SHA-256: 3ce494c971c24c9edab73aac592d0ba8dd0bbd25f06051245f7846f95d0c715a
+Independent readback SHA-256: 3ce494c971c24c9edab73aac592d0ba8dd0bbd25f06051245f7846f95d0c715a
+Private deployment summary SHA-256: fc182f6061156ea768a1d450d71ee23e684f2600106f327bcb2a0cebb532e39a
+Fresh predecessor backup: no
+Temporary readback removed: yes
+Shutdown: confirmed unreachable
+Reboot: no
+
+All four retained-slot headers again matched raw little-endian empty value
+`444247430000000000000000`. The two audited TEE partitions matched
+`2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3`.
+Stable power was present, 85%, Good, with external power online. Live GPT,
+inactive/unmounted target, boot ID, target size/writability, holders, swap,
+staging, full-partition checksum, and byte comparison all passed.
+
+The device is powered off and ready for exactly one owner-selected boot2 cycle
+after both runtime observation paths are armed.

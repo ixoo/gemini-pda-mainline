@@ -101,7 +101,37 @@
     "retained_ram_write": false,
     "shutdown": false
   },
-  "deployment": null,
+  "deployment": {
+    "result": "pass",
+    "initial_write_attempt": {
+      "result": "write_verified_device_side_then_final_power_gate_failed",
+      "target": "/dev/mmcblk0p30",
+      "root": "/dev/mmcblk0p29",
+      "predecessor_sha256": "30ec9c56d6be78635f0ccf3ea626727763d71590c23778774c5c6366e4a5e75a",
+      "candidate_sha256": "3ce494c971c24c9edab73aac592d0ba8dd0bbd25f06051245f7846f95d0c715a",
+      "post_flush_full_partition_sha256": "3ce494c971c24c9edab73aac592d0ba8dd0bbd25f06051245f7846f95d0c715a",
+      "final_gate_failure": "power_state_changed_between_samples",
+      "independent_host_readback": false,
+      "shutdown": false
+    },
+    "resumed_verification": {
+      "result": "pass_skipped_already_matching",
+      "target": "/dev/mmcblk0p30",
+      "root": "/dev/mmcblk0p29",
+      "candidate_sha256": "3ce494c971c24c9edab73aac592d0ba8dd0bbd25f06051245f7846f95d0c715a",
+      "readback_sha256": "3ce494c971c24c9edab73aac592d0ba8dd0bbd25f06051245f7846f95d0c715a",
+      "tee1_sha256": "2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3",
+      "tee2_sha256": "2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3",
+      "retained_slots_prewrite": "exact_empty",
+      "power": "present=1 capacity=85 health=Good external=1",
+      "boot_id": "3846422e-5a1a-4bf6-8603-c22446fe208c",
+      "fresh_predecessor_backup": false,
+      "temporary_readback_removed": true,
+      "shutdown": "confirmed_unreachable",
+      "reboot": false,
+      "deployment_summary_sha256": "fc182f6061156ea768a1d450d71ee23e684f2600106f327bcb2a0cebb532e39a"
+    }
+  },
   "runtime": null,
   "scope": {
     "new_protected_reads": 0,
