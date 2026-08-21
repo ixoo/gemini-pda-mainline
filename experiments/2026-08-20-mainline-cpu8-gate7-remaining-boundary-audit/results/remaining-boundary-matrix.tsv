@@ -1,0 +1,7 @@
+id	boundary	current_state	hard_dependencies	independent_test	hardware_effect	decision
+B01	A34 eligibility evaluator	frozen predicate; no implementation	explicit reset provenance and owner-safe private replay-zero fields plus exact zero topology/mapping/ledgers	yes: injected immutable input only	none	selected
+B02	production A34 reset/bootstrap owner	unresolved; owner CLOSED	B01 evaluator, known-good platform/external-reset provenance producer, private replay owner, serialized atomic publication	no	software lifecycle open only	defer
+B03	production transaction caller	absent; admission hooks return EOPNOTSUPP	production A34 opener, A41 READY, A36 capture, P27/P28 executors, P30/P32 integration	no	eventually CPU_ON	defer
+B04	P28 effect executor	attestation ledger only	P27 executor/inverse, exact HELD provider, A36 prestate, lifecycle owner, hardware rollback	no	isolation, PWRAP, SRAM and selector	defer
+B05	A41 READY completion	identity-only source profile returns EAGAIN	evidence-only CPU8/CPU9 execution or trusted pre-Linux attestation, then complete commit/verification	no	capability and mitigation finalization	defer
+B06	P24/P30 request path	models and hooks exist without a positive caller	A34, A41 READY, A36, P27/P28, P30E/P32 and A26 review	no	CPU_ON and startup publication	defer

@@ -1,0 +1,8 @@
+experiment=2026-08-20-mainline-cpu8-gate7-remaining-boundary-audit
+canonical_prefix_entries=293
+selected_boundary=A34_ELIGIBILITY_EVALUATOR
+independent_hardware_free=yes
+transaction_caller=no
+cpu_on=no
+device_action=no
+result=pass

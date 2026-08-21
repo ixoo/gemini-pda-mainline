@@ -4372,6 +4372,42 @@ executor, A41 READY completion, and P24/P30 request path, and must reject a
 physical provider write or CPU8 boot until the selected boundary has its own
 attributable evidence and fail-closed recovery rule.
 
+That
+[remaining-boundary audit](../experiments/2026-08-20-mainline-cpu8-gate7-remaining-boundary-audit/README.md)
+is complete. It re-derives the dependency order from the exact Buildbox source
+through patch `0301` and rejects the apparent A41 shortcut: the selected
+non-fixture profile has no CPU8/CPU9 target observations, returns `-EAGAIN`
+from both preparation and validation, and cannot form a plan identity. P28 is
+also not independently admissible because P27/P28 remain attestation ledgers
+without current-mainline effect executors and inverses. The P24/P30 caller is
+downstream of both boundaries plus A36, P30E/P32, and A26 review.
+
+The audit's fidelity review found one earlier boundary: frozen P13/A34 requires
+a known-good platform or external reset plus owner-safe private replay-zero
+proof, explicitly not an ordinary Linux reboot assumption. The reset and
+bootstrap owners remain unresolved. A boot-time caller based only on software
+zero state would therefore open the lifecycle without its required authority.
+
+The next ordered implementation is the smallest honest separable part of A34:
+a default-off, pure eligibility evaluator with no production caller and no
+state transition. Its immutable input must include explicit non-default reset
+provenance and private replay-zero proof, both A72 CPUs present, possible,
+offline, CPUHP-consistent, and non-aliased at MPIDRs `0x200` and `0x201`, plus
+empty membership/provider/controller/transaction/fault/P30 state. Exhaustively
+test the exact positive tuple and every field mutation. A positive result only
+means “eligible”; it does not initialize attempts or open the
+`CLOSED / UNINITIALIZED` state. Keep the future production reset/bootstrap
+owner, transaction caller, provider call, P27/P28 effect, P30 arm, PSCI call, CPU_ON/OFF,
+boot-veto change, boot image, and device action outside this slice.
+
+After the evaluator is proven, close the production A34 owner as a separate
+boundary. The pinned vendor source identifies TOPRGU `WDT_STATUS` offset
+`0x0c` as a finer reset-class latch, and exact mainline through patch `0301`
+does not read it. Audit a read immediately after watchdog resource mapping and
+before `mtk_wdt_init()`, but do not accept it until LK preservation and exact
+reset-class semantics are proven. This candidate cannot replace the separate
+owner-safe private replay-zero proof, which remains unresolved.
+
 The candidate must have a single CPU8 request, strict checkpoints before and
 after each power step, a bounded timeout, and a fail-closed rollback. CPU9
 remains offline and is tested later as a separate hypothesis.

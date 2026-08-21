@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-20-mainline-cpu8-gate7-remaining-boundary-audit",
+  "repository_parent": "7bbd19fb71ff7ae5053cf5f676ce5980169c9c5c",
+  "canonical_prefix": {
+    "entry_count": 293,
+    "sha256": "27ba2e5ef3af8ef619f15e9e5a4e713a880cf32d35d0b0775e1afac5f43af340",
+    "last_entry": "v7.1.3/0301-arm64-reject-malformed-A72-provider-release-ABI.patch"
+  },
+  "pinned_inputs": {
+    "patches/v7.1.3/0159-arm64-add-closed-A72-transaction-owner-model.patch": "39cd3a9e158f2d7ed3e95856002f450709f5886f11e66c9920bb62952394e515",
+    "patches/v7.1.3/0162-arm64-add-dormant-P31-attempt-consumption.patch": "8518993e00adb44f7b3afe737b4879e6a4477bbd89b3ab7fd9a9e01066eb5fc8",
+    "patches/v7.1.3/0301-arm64-reject-malformed-A72-provider-release-ABI.patch": "577316da88e4cb569c8d84670ec8090db14456789ee08c1efbfae71d8b748dd8",
+    "configs/gemini-a72-p24-closed-owner.fragment": "e1dbda2f698c58bc43b8eafd61c4903bbec7e534dd45bb211c7c3e22b141c3be",
+    "configs/gemini-a72-p24-closed-hooks.fragment": "7a2f3e9fa98ae0310a6bef1a66b731b69fd74e252d5cd924f4693589ebc320f3",
+    "docs/hardware/mt6797-live-resource-map.md": "69d08e7fc3009fdea82abc1b797a724f8fe521d86b49696418cd90caebcee79e",
+    "experiments/2026-08-05-a72-membership-admission-contract/results/phase-contract.tsv": "4831ab9187756b999af6b636e45b33dd08f552f7a7622fc3bd1a47dd327df06a",
+    "experiments/2026-08-05-a72-membership-admission-contract/results/admission-lock-contract.tsv": "d3c10bf62bb89df8301fb2c06145b06ebbdbe8be29437a555a27c33a8ffd0ae5"
+  },
+  "exact_source": {
+    "source_state": "1db1fb912bc7a0f35e4511f314d4300e52d0ab4f687b4b06a1556d8b687b5f3b",
+    "source_integrity": "608267dc1bcb809d42075df33ed2320bba86831f18607a6d7e7c186b1d27c97f",
+    "arch/arm64/kernel/mt6797_a72_membership.c": "8287ce26bcb05bcfe2ab58e1d76218a8a767ec99d82f981ae9a7d1f95234741d",
+    "arch/arm64/kernel/mt6797_psci.c": "7e3329797e0f2eebc4372aa47c84c09e3c2ed85e5121f9492898727db5e4f83d",
+    "arch/arm64/kernel/late_cpu_profile.c": "22ecfb06e8d00972ffdecad6019c11f2b4d695a38c90aa3bbd6977c4c22bc29b",
+    "arch/arm64/kernel/late_cpu_startup.c": "240a7fc677f841994f707631633f59b27b05fd3803cf9353fbd1f6e8cfb5fbb8",
+    "arch/arm64/include/asm/mt6797_a72_membership.h": "6126bbad3bdfe998d3281edcffd28a8f637d098218337085561bc00ebb396d30"
+  },
+  "selected_boundary": "A34_ELIGIBILITY_EVALUATOR",
+  "implementation_scope": {
+    "default_off": true,
+    "hardware_free": true,
+    "injected_evaluator": true,
+    "reset_provenance_input_required": true,
+    "private_replay_input_required": true,
+    "production_init_caller": false,
+    "opens_owner": false,
+    "transaction_caller": false,
+    "cpu_on": false,
+    "cpu_off": false,
+    "provider_call": false,
+    "p27_or_p28_effect": false,
+    "device_action": false
+  }
+}
