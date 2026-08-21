@@ -31,6 +31,15 @@ anchor. The bounded receipt is in
 The validator now names that exact two-line boundary; kernel source generation
 is unchanged.
 
+Generation from `95aa616ed925` again passed source validation, exact three-patch
+inventory, and replay. Strict checkpatch reduced patch `0316` to two errors,
+two warnings, and two checks, all from three continuation sites. The bounded
+receipt is in
+[`results/buildbox-generation-attempt-95aa616e.txt`](results/buildbox-generation-attempt-95aa616e.txt).
+Two unnecessary production wraps are now single lines and the private-header
+prototype uses the same tab continuation as its accepted definition; semantics
+remain unchanged.
+
 No device kernel, boot image, partition, firmware service, or hardware
 semaphore has been used by this experiment.
 

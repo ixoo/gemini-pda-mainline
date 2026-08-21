@@ -41,8 +41,8 @@ struct mt6797_dvfsp_clock_transport_ops {
 };
 
 int mt6797_clock_snapshot(const struct mt6797_dvfsp_clock_transport_ops *ops,
-                          void *context,
-                          struct mt6797_dvfsp_clock_readback *readback);
+			  void *context,
+			  struct mt6797_dvfsp_clock_readback *readback);
 
 #endif /* __MT6797_PROTECTED_READBACK_INTERNAL_H */
 """).lstrip("\n")
@@ -141,7 +141,7 @@ static void mt6797_clock_settle_ns(void *context, unsigned int nsec)
 }
 
 static const struct mt6797_dvfsp_clock_transport_ops
-mt6797_dvfsp_clock_ops = {
+mt6797_clock_ops = {
 	.write = mt6797_clock_write,
 	.read = mt6797_clock_read,
 	.delay_us = mt6797_clock_delay_us,
@@ -284,8 +284,7 @@ int mt6797_dvfsp_clock_backend_read(struct device *dev,
 
 	local_irq_save(flags);
 	spin_lock(&backend->semaphore_lock);
-	ret = mt6797_clock_snapshot(&mt6797_dvfsp_clock_ops, backend,
-				     &observed);
+	ret = mt6797_clock_snapshot(&mt6797_clock_ops, backend, &observed);
 	if (ret) {
 		mt6797_dvfsp_clock_mark_fault(backend);
 		goto out_spin;
@@ -317,8 +316,7 @@ static int mt6797_dvfsp_clock_backend_probe(struct platform_device *pdev)
 	if (!backend)
 		return -ENOMEM;
 
-	backend->mcumixed = devm_platform_ioremap_resource_byname(pdev,
-							 "mcumixed");
+	backend->mcumixed = devm_platform_ioremap_resource_byname(pdev, "mcumixed");
 	if (IS_ERR(backend->mcumixed))
 		return PTR_ERR(backend->mcumixed);
 

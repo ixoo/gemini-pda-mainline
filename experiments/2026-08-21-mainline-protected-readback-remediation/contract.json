@@ -50,6 +50,17 @@
       "kernel_behavior_changed_by_fix": false,
       "compile_started": false,
       "device_action": false
+    },
+    {
+      "repository_commit": "95aa616ed92548f470af2a872a64159bdb2ba85b",
+      "failure": "strict-checkpatch-rejected-patch-0316-continuations",
+      "source_validation": "pass",
+      "generated_patch_count": 3,
+      "patch_replay": "pass",
+      "strict_checkpatch": "2-errors-2-warnings-2-checks",
+      "kernel_behavior_changed_by_fix": false,
+      "compile_started": false,
+      "device_action": false
     }
   ],
   "scope": {
