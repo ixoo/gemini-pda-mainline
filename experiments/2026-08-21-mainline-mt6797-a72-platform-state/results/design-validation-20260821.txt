@@ -1,0 +1,25 @@
+Validation date: 2026-08-21 America/New_York
+Phase: deterministic Buildbox generation input
+Kernel build: not run
+Device action: none
+
+Commands:
+  bash -n scripts/buildbox experiments/2026-08-21-mainline-mt6797-a72-platform-state/scripts/generate-on-buildbox
+  shellcheck scripts/buildbox experiments/2026-08-21-mainline-mt6797-a72-platform-state/scripts/generate-on-buildbox
+  python3 -c 'parse every experiment Python script with ast.parse'
+  PYTHONDONTWRITEBYTECODE=1 python3 experiments/2026-08-21-mainline-mt6797-a72-platform-state/scripts/validate.py
+  python3 -m json.tool experiments/2026-08-21-mainline-mt6797-a72-platform-state/contract.json
+  git diff --check
+
+bash_syntax=pass
+shellcheck=pass
+python_syntax=pass
+json_syntax=pass
+git_diff_check=pass
+validation=mt6797-a72-platform-state-generation-input
+result=pass
+expected_patches=2
+platform_samples=2-no-loop
+hardware_write=none
+a34_caller=none
+device_action=none
