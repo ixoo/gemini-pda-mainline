@@ -22,6 +22,11 @@ four source phases, then exposed one stale validator boundary for the newly
 wrapped acquire signature; no package was accepted. The bounded trace result
 is in
 [`results/patch-generation-attempt-2-validator-boundary-20260820.txt`](results/patch-generation-attempt-2-validator-boundary-20260820.txt).
+Attempt 3 on `700a87bf4967e8ab44d954c83d7d2a7f96f69eb4` restored all
+semantic and replay validation and reduced strict checkpatch from 74 to 17
+alignment-only checks, with patch `0298` already clean. The remaining exact
+column corrections and bounded result are recorded in
+[`results/patch-generation-attempt-3-checkpatch-20260820.txt`](results/patch-generation-attempt-3-checkpatch-20260820.txt).
 
 ## Question or hypothesis
 

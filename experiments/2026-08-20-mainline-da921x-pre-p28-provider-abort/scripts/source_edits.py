@@ -181,8 +181,7 @@ def add_acquire_failstop(root: Path) -> None:
     \t\tproof.transaction_generation = transaction->identity.generation;
     \t\tproof.transaction_cookie = transaction->identity.cookie;
     \t\tproof.origin_generation = response->origin_generation;
-    \t\tret = mt6797_a72_membership_confirm_provider_acquire(transaction,
-    \t\t\t\t\t\t\t\t\t &proof);
+    \t\tret = mt6797_a72_membership_confirm_provider_acquire(transaction, &proof);
     \t\tif (ret &&
     \t\t    IS_ENABLED(CONFIG_ARM64_MT6797_A72_PRE_P28_PROVIDER_ABORT))
     \t\t\tmt6797_a72_membership_latch_provider_fault(transaction,
@@ -202,8 +201,7 @@ def add_acquire_failstop(root: Path) -> None:
     \t\trejection.transaction_generation =
     \t\t\ttransaction->identity.generation;
     \t\trejection.transaction_cookie = transaction->identity.cookie;
-    \t\tif (!mt6797_a72_membership_reject_provider_acquire(transaction,
-    \t\t\t\t\t\t\t\t       &rejection))
+    \t\tif (!mt6797_a72_membership_reject_provider_acquire(transaction, &rejection))
     \t\t\treturn -EOPNOTSUPP;
     \t}
 
@@ -363,7 +361,7 @@ def add_positive_abort(root: Path) -> None:
     implementation = dedent("""\
     static bool
     mt6797_a72_provider_abort_proof_valid(const struct mt6797_a72_provider_abort_proof *proof,
-    \t\t\t\t\t      const struct mt6797_a72_transaction *transaction)
+    \t\t\t\t\t  const struct mt6797_a72_transaction *transaction)
     {
     \tif (!proof || !transaction)
     \t\treturn false;

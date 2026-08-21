@@ -413,7 +413,7 @@ static void da9213_membership_unregister_synthetic(void)
 {
 	if (registered_synthetic)
 		mt6797_a72_provider_unregister(&da9213_membership_synthetic_ops,
-						       registered_synthetic);
+					       registered_synthetic);
 	registered_synthetic = NULL;
 }
 
@@ -476,7 +476,7 @@ static void da9213_membership_positive_abort_success(struct kunit *test)
 	KUNIT_EXPECT_EQ(test, snapshot.provider_identity.generation, (u64)0);
 	KUNIT_EXPECT_EQ(test, snapshot.provider_identity.cookie, (u64)0);
 	KUNIT_EXPECT_EQ(test,
-			 snapshot.active.provider_identity.generation, (u64)0);
+			snapshot.active.provider_identity.generation, (u64)0);
 	KUNIT_EXPECT_EQ(test, snapshot.active.provider_identity.cookie, (u64)0);
 	rollback = da9213_membership_p29(&transaction);
 	ret = mt6797_a72_membership_complete_p29_rollback(&transaction,
@@ -489,8 +489,8 @@ static void da9213_membership_positive_abort_success(struct kunit *test)
 			(u32)MT6797_A72_PROVIDER_NONE);
 	KUNIT_EXPECT_EQ(test, snapshot.retired_mask, (u32)BIT(0));
 	KUNIT_EXPECT_EQ(test,
-			 snapshot.retired[0].p28_preparation.stage,
-			 (u32)MT6797_A72_P28_STAGE_NONE);
+			snapshot.retired[0].p28_preparation.stage,
+			(u32)MT6797_A72_P28_STAGE_NONE);
 	KUNIT_EXPECT_EQ(test, snapshot.retired[0].budgets.cpu_on,
 			(u8)MT6797_A72_BUDGET_AVAILABLE);
 	da9213_membership_unregister_endpoint();
@@ -519,14 +519,12 @@ static void da9213_membership_acquire_transport_faults(struct kunit *test)
 			KUNIT_ASSERT_EQ(test, ret, 0);
 			ret = da9213_membership_seed_p27(&transaction);
 			KUNIT_ASSERT_EQ(test, ret, 0);
-			ret = mt6797_a72_membership_run_provider_acquire(&transaction,
-								       &response);
+			ret = mt6797_a72_membership_run_provider_acquire(&transaction, &response);
 			KUNIT_EXPECT_LT_MSG(test, ret, 0, "mode=%u ordinal=%u",
 					    mode, ordinal);
 			KUNIT_EXPECT_EQ(test, fake.operation_calls, ordinal);
 			expect_fault(test, MT6797_A72_FAULT_PROVIDER_ACQUIRE_RETURN);
-			ret = mt6797_a72_membership_run_provider_acquire(&transaction,
-								       &response);
+			ret = mt6797_a72_membership_run_provider_acquire(&transaction, &response);
 			KUNIT_EXPECT_EQ(test, ret, -EPERM);
 			KUNIT_EXPECT_EQ(test, fake.operation_calls, ordinal);
 			da9213_membership_unregister_endpoint();
@@ -584,8 +582,7 @@ static void da9213_membership_release_transport_faults(struct kunit *test)
 			KUNIT_ASSERT_EQ(test, ret, 0);
 			ret = da9213_membership_seed_p27(&transaction);
 			KUNIT_ASSERT_EQ(test, ret, 0);
-			ret = mt6797_a72_membership_run_provider_acquire(&transaction,
-								       &response);
+			ret = mt6797_a72_membership_run_provider_acquire(&transaction, &response);
 			KUNIT_ASSERT_EQ(test, ret, 0);
 			held_generation = transaction.provider_identity.generation;
 			fake.operation_calls = 0;
@@ -593,8 +590,7 @@ static void da9213_membership_release_transport_faults(struct kunit *test)
 				fake.short_ordinal = ordinal;
 			else
 				fake.fail_ordinal = ordinal;
-			ret = mt6797_a72_membership_run_provider_abort(&transaction,
-								     &response);
+			ret = mt6797_a72_membership_run_provider_abort(&transaction, &response);
 			KUNIT_EXPECT_LT_MSG(test, ret, 0, "mode=%u ordinal=%u",
 					    mode, ordinal);
 			KUNIT_EXPECT_EQ(test, fake.operation_calls, ordinal);
@@ -604,8 +600,7 @@ static void da9213_membership_release_transport_faults(struct kunit *test)
 					held_generation);
 			KUNIT_EXPECT_EQ(test, snapshot.active.budgets.provider_abort,
 					(u8)MT6797_A72_BUDGET_CONSUMED);
-			ret = mt6797_a72_membership_run_provider_abort(&transaction,
-								     &response);
+			ret = mt6797_a72_membership_run_provider_abort(&transaction, &response);
 			KUNIT_EXPECT_EQ(test, ret, -EPERM);
 			KUNIT_EXPECT_EQ(test, fake.operation_calls, ordinal);
 			da9213_membership_unregister_endpoint();
@@ -629,11 +624,9 @@ static void da9213_membership_release_malformed_success(struct kunit *test)
 		KUNIT_ASSERT_EQ(test, ret, 0);
 		ret = da9213_membership_seed_p27(&transaction);
 		KUNIT_ASSERT_EQ(test, ret, 0);
-		ret = mt6797_a72_membership_run_provider_acquire(&transaction,
-								   &response);
+		ret = mt6797_a72_membership_run_provider_acquire(&transaction, &response);
 		KUNIT_ASSERT_EQ(test, ret, 0);
-		ret = mt6797_a72_membership_run_provider_abort(&transaction,
-							      &response);
+		ret = mt6797_a72_membership_run_provider_abort(&transaction, &response);
 		KUNIT_EXPECT_LT_MSG(test, ret, 0, "mutation=%u", mutation);
 		KUNIT_EXPECT_EQ(test, synthetic.release_calls, 1U);
 		KUNIT_EXPECT_EQ(test, synthetic.release_entry_provider_state,
@@ -708,8 +701,7 @@ static void da9213_membership_abort_guards_and_p29(struct kunit *test)
 		KUNIT_ASSERT_EQ(test, ret, 0);
 		ret = da9213_membership_seed_p27(&transaction);
 		KUNIT_ASSERT_EQ(test, ret, 0);
-		ret = mt6797_a72_membership_run_provider_acquire(&transaction,
-								   &response);
+		ret = mt6797_a72_membership_run_provider_acquire(&transaction, &response);
 		KUNIT_ASSERT_EQ(test, ret, 0);
 		stale = transaction;
 		stale.provider_identity.cookie++;
@@ -717,12 +709,10 @@ static void da9213_membership_abort_guards_and_p29(struct kunit *test)
 		ret = mt6797_a72_membership_run_provider_abort(&stale, &response);
 		KUNIT_EXPECT_EQ(test, ret, -EPERM);
 		KUNIT_EXPECT_EQ(test, fake.total_calls, calls);
-		ret = mt6797_a72_membership_run_provider_abort(&transaction,
-								 &response);
+		ret = mt6797_a72_membership_run_provider_abort(&transaction, &response);
 		KUNIT_ASSERT_EQ(test, ret, 0);
 		calls = fake.total_calls;
-		ret = mt6797_a72_membership_run_provider_abort(&transaction,
-								&response);
+		ret = mt6797_a72_membership_run_provider_abort(&transaction, &response);
 		KUNIT_EXPECT_EQ(test, ret, -EPERM);
 		KUNIT_EXPECT_EQ(test, fake.total_calls, calls);
 		rollback = da9213_membership_p29(&transaction);
@@ -731,8 +721,7 @@ static void da9213_membership_abort_guards_and_p29(struct kunit *test)
 								  &rollback);
 		KUNIT_EXPECT_EQ_MSG(test, ret, -EPERM, "mutation=%u", mutation);
 		rollback = da9213_membership_p29(&transaction);
-		ret = mt6797_a72_membership_complete_p29_rollback(&transaction,
-									 &rollback);
+		ret = mt6797_a72_membership_complete_p29_rollback(&transaction, &rollback);
 		KUNIT_EXPECT_EQ(test, ret, 0);
 		da9213_membership_unregister_endpoint();
 	}
