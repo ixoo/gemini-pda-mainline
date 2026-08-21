@@ -1,0 +1,41 @@
+Protected-readback probe/gate Buildbox kernel
+==============================================
+
+Result: PASS.
+Hardware evidence: no.
+Device action: none.
+Native VM build: no.
+
+Repository commit: 1343e6cac5807a48e8b7813b28df7094b814a01a
+Buildbox job: 1343e6cac5807a48e8b7813b28df7094b814a01a-protected-readback-probe-gate-ledger-m0
+Package: linux-7.1.3-gemini-protected-readback-probe-gate-ledger-6fadb1b3-a8ebd1eb
+Generated UTC: 2026-08-21T19:15:21Z
+Build profile: protected-readback-probe-gate-ledger
+Kernel release: 7.1.3-gemini-protected-readback-probe-gate
+Source SHA256: be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+Patchset SHA256: 6fadb1b396865a3e6a01b5be92ee57ac1c7446675d6395b687a8711cf465ecf6
+Config inputs SHA256: a8ebd1eb0ea7028ba5bd4e0bf8fb4f269fea222256b3ccad76c10691950250ae
+Config SHA256: 621c58329ba311006c1d5910614d45e11ef1b959faff4e81618664b0e3d20b77
+Package manifest SHA256: 22a722ce42045f61011555ab468d47f0a0eb7f559a85d5d7b7233a107ecf2489
+Build JSON SHA256: 966babff6b53cebe09e6228320b679ddeb75f3c904b3e74cb8621f1fcc700519
+Image SHA256: 9b314fcf4b5403ba696889d4f0b210ff68dc6dbc413faf6287ce425315e2075a
+Image.gz SHA256: 7a0a380edc6fb7a048b5c6e4afb88239f8c335587944a5c70291ffd362deb893
+Candidate DTB SHA256: 34f24e49600e16e9b00f25ecba1d0806c4ce325944e176acccc6751a236b8998
+System.map SHA256: 38a32ac2ebb9e718281c6e47c2f6518a97eb2cd1daad5bab3e169c152d145e57
+Canonical patch count: 313
+Config fragment count: 13
+Modules built: no
+
+Validated configuration and linkage:
+- protected-clock backend built in;
+- read-only BigiDVFS backend built in;
+- one-shot protected-readback observer built in;
+- base protected-readback ledger built in;
+- probe/gate mode built in;
+- older retained-ledger modes off;
+- CPU8/CPU9 admission and A72 power paths off;
+- DTB byte-identical to the rejected predecessor;
+- package checksum inventory passed.
+
+The build was submitted only through `./scripts/build-kernel --backend buildbox`.
+No native VM build or automatic fallback occurred.

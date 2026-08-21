@@ -1,0 +1,42 @@
+Protected-readback probe/gate Android-v0 candidate
+==================================================
+
+Result: PASS; exact padded image is an offline-valid boot candidate.
+Hardware evidence: no.
+Device access: none.
+Hardware write: none.
+
+Build repository commit: 1343e6cac5807a48e8b7813b28df7094b814a01a
+Build profile: protected-readback-probe-gate-ledger
+Kernel release: 7.1.3-gemini-protected-readback-probe-gate
+Build package: linux-7.1.3-gemini-protected-readback-probe-gate-ledger-6fadb1b3-a8ebd1eb
+Build package manifest SHA256: 22a722ce42045f61011555ab468d47f0a0eb7f559a85d5d7b7233a107ecf2489
+Image SHA256: 9b314fcf4b5403ba696889d4f0b210ff68dc6dbc413faf6287ce425315e2075a
+Image.gz SHA256: 7a0a380edc6fb7a048b5c6e4afb88239f8c335587944a5c70291ffd362deb893
+Candidate DTB SHA256: 34f24e49600e16e9b00f25ecba1d0806c4ce325944e176acccc6751a236b8998
+Config SHA256: 621c58329ba311006c1d5910614d45e11ef1b959faff4e81618664b0e3d20b77
+System.map SHA256: 38a32ac2ebb9e718281c6e47c2f6518a97eb2cd1daad5bab3e169c152d145e57
+Serviceability ramdisk SHA256: e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f
+Raw Android-v0 SHA256: c04de4167c392e046cfad0aad30b2801781a44b8963f9a37dbc69d8b0baca233
+Raw Android-v0 size: 7639040
+Padded boot2 SHA256: 6cb729efacea914b993221f0f85a1ab7e67eb6bca915802a8236bb31edab2e62
+Padded boot2 size: 16777216
+Candidate manifest SHA256: 57144fa24ad69a6b2b69817fad86c66c0dda0eed1bf1b005db13cfa01748854a
+Builder SHA256: d1284d96ac9f564b518fb9b68c5bb7469f421a2a14734e9062a46e079e72206f
+Independent validator SHA256: 244a456b6d1042a08f466c692445364a96b98d43a12b08428585acca7644301a
+
+Validation:
+- package checksum inventory passed;
+- exact package/profile/release/input identities passed;
+- both ledger mode symbols and both protected-read backends are built in;
+- CPU/owner admission remains closed;
+- fixed probe-enter and gate-passed records are each unique in the image;
+- two independent raw Android-v0 assemblies are byte-identical;
+- two independent 16 MiB padding constructions are byte-identical;
+- all 32 LK contract gates pass;
+- the independent validator rejected all six container mutations;
+- no device access or hardware write occurred.
+
+The unchanged serviceability ramdisk was extracted byte-exactly from the prior
+validated container into a temporary managed path, verified by SHA256, and
+removed after each build/validation run. No duplicate retained ramdisk remains.

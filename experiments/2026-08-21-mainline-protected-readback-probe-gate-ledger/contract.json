@@ -53,6 +53,44 @@
     "invariant_mutations_rejected": 8,
     "hardware_evidence": false
   },
+  "validated_build": {
+    "result": "pass",
+    "repository_commit": "1343e6cac5807a48e8b7813b28df7094b814a01a",
+    "job": "1343e6cac5807a48e8b7813b28df7094b814a01a-protected-readback-probe-gate-ledger-m0",
+    "package": "linux-7.1.3-gemini-protected-readback-probe-gate-ledger-6fadb1b3-a8ebd1eb",
+    "generated_utc": "2026-08-21T19:15:21Z",
+    "kernel_release": "7.1.3-gemini-protected-readback-probe-gate",
+    "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+    "patchset_sha256": "6fadb1b396865a3e6a01b5be92ee57ac1c7446675d6395b687a8711cf465ecf6",
+    "config_inputs_sha256": "a8ebd1eb0ea7028ba5bd4e0bf8fb4f269fea222256b3ccad76c10691950250ae",
+    "config_sha256": "621c58329ba311006c1d5910614d45e11ef1b959faff4e81618664b0e3d20b77",
+    "package_manifest_sha256": "22a722ce42045f61011555ab468d47f0a0eb7f559a85d5d7b7233a107ecf2489",
+    "image_sha256": "9b314fcf4b5403ba696889d4f0b210ff68dc6dbc413faf6287ce425315e2075a",
+    "image_gzip_sha256": "7a0a380edc6fb7a048b5c6e4afb88239f8c335587944a5c70291ffd362deb893",
+    "candidate_dtb_sha256": "34f24e49600e16e9b00f25ecba1d0806c4ce325944e176acccc6751a236b8998",
+    "system_map_sha256": "38a32ac2ebb9e718281c6e47c2f6518a97eb2cd1daad5bab3e169c152d145e57",
+    "patch_count": 313,
+    "modules_built": false,
+    "native_vm_build": false,
+    "hardware_evidence": false
+  },
+  "candidate": {
+    "result": "pass",
+    "artifact": "candidate-protected-readback-probe-gate-c04de416",
+    "raw_sha256": "c04de4167c392e046cfad0aad30b2801781a44b8963f9a37dbc69d8b0baca233",
+    "raw_size": 7639040,
+    "padded_sha256": "6cb729efacea914b993221f0f85a1ab7e67eb6bca915802a8236bb31edab2e62",
+    "padded_size": 16777216,
+    "artifact_manifest_sha256": "57144fa24ad69a6b2b69817fad86c66c0dda0eed1bf1b005db13cfa01748854a",
+    "ramdisk_sha256": "e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f",
+    "candidate_dtb_sha256": "34f24e49600e16e9b00f25ecba1d0806c4ce325944e176acccc6751a236b8998",
+    "builder_sha256": "d1284d96ac9f564b518fb9b68c5bb7469f421a2a14734e9062a46e079e72206f",
+    "validator_sha256": "244a456b6d1042a08f466c692445364a96b98d43a12b08428585acca7644301a",
+    "lk_gates": "32-of-32",
+    "negative_mutations_rejected": 6,
+    "boot_candidate": true,
+    "hardware_evidence": false
+  },
   "scope": {
     "new_protected_reads": 0,
     "total_clock_reads": 1,
@@ -64,6 +102,6 @@
     "cpu_off": false,
     "owner_registration": false,
     "automatic_retry": false,
-    "boot_candidate": false
+    "boot_candidate": true
   }
 }

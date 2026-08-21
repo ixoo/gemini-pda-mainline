@@ -4655,9 +4655,10 @@ gate.
 
 The non-identical probe/gate successor is now admitted canonically as patch
 `0324`. Its default-off mode preserves the historical call-ledger profile while
-moving the same two records to probe entry and the full pre-call gate. Exact
-Buildbox compilation of the isolated successor profile is the next unfinished
-part of this step.
+moving the same two records to probe entry and the full pre-call gate. Its exact
+isolated Buildbox kernel and independently validated Android-v0/16 MiB candidate
+now pass offline. Guarded deployment, readback, shutdown, and one attributable
+physical selection remain unfinished parts of this step.
 
 The next ordered work is:
 
