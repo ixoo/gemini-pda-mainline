@@ -187,6 +187,19 @@ under one root-adapter lock with retries disabled, and rejects writes, delays,
 loops, A34 callers, CPU operations, or device actions. Generation does not
 contact the Gemini.
 
+If the exact compile exposes the known C tag-namespace collision in the first
+admission, generate and fetch the single mechanical record-tag correction from
+the prepared source through patch `0314` with:
+
+```sh
+./scripts/buildbox generate-da921x-provider-state-tag-fix
+./scripts/buildbox fetch-da921x-provider-state-tag-fix
+```
+
+That lane permits only the thirteen `struct` tag renames across the public
+record, registry, provider, and KUnit source. It preserves the existing
+lifecycle enum and changes no behavior.
+
 After canonical admission, compile and fetch the isolated focused profile with:
 
 ```sh

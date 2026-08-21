@@ -32,6 +32,23 @@
     "strict_checkpatch": "0-errors-0-warnings-0-checks"
   },
   "validated_build": null,
+  "failed_builds": [
+    {
+      "repository_commit": "cc53dd4d40fea3d9a541fe6af01b6746cb979367",
+      "profile": "da921x-provider-state-kunit",
+      "parent_source_state": "913c8e4fa1070bd6fbe47f878af213b7c2e2fdaa026b3e457fd5f19a02f512b2",
+      "failure": "provider-state-struct-tag-collides-with-lifecycle-enum",
+      "compile_reached_new_sources": true,
+      "runtime": false,
+      "device_action": false
+    }
+  ],
+  "compile_fix": {
+    "expected_patch": "patches/v7.1.3/0315-arm64-rename-read-only-provider-snapshot-record.patch",
+    "parent_source_state": "913c8e4fa1070bd6fbe47f878af213b7c2e2fdaa026b3e457fd5f19a02f512b2",
+    "parent_source_integrity": "bc735cfce917df05a47231802021ca2ea5c4d83e888ad78c6f99a2c03460be79",
+    "validated_generation": null
+  },
   "scope": {
     "samples": 2,
     "reads_on_success": 10,

@@ -113,6 +113,8 @@ def main() -> None:
     for command in (
         "generate-da921x-provider-state-patches",
         "fetch-da921x-provider-state-patches",
+        "generate-da921x-provider-state-tag-fix",
+        "fetch-da921x-provider-state-tag-fix",
     ):
         require(buildbox.count(command) >= 2,
                 f"Buildbox command: {command}")

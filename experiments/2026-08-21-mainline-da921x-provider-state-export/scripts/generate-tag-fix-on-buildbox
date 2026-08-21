@@ -1,0 +1,172 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+export LC_ALL=C
+
+readonly PARENT_SOURCE_STATE=913c8e4fa1070bd6fbe47f878af213b7c2e2fdaa026b3e457fd5f19a02f512b2
+readonly PARENT_INTEGRITY=bc735cfce917df05a47231802021ca2ea5c4d83e888ad78c6f99a2c03460be79
+readonly PROVIDER_HEADER_SHA256=267294066f3364d9dfa4c819b2dcf16d8ce8aaad593247b725f4ba9dfde475fc
+readonly MEMBERSHIP_SHA256=ffcdead063469a7ed4c514bd32d0d350ec331831bad927faf7643a22caa639b6
+readonly REGULATOR_SHA256=3002be1b69d1805e3ef3e9d4e949ff33ea8cafdbf0be93eacf40962d1e8417e0
+readonly MEMBERSHIP_TEST_SHA256=be0024e91af639c2ca8111ed1ab1e2b931e42de15d0c6e83f41c01d239e884a9
+readonly PATCH=0315-arm64-rename-read-only-provider-snapshot-record.patch
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+
+[[ "$#" -eq 3 ]] || die 'expected PROJECT_COMMIT SOURCE_ROOT OUTPUT_ROOT'
+readonly project_commit=$1
+readonly source_root=$2
+readonly output_root=$3
+[[ "$project_commit" =~ ^[0-9a-f]{40}$ ]] || die 'invalid project commit'
+[[ "$source_root" == /workspace/gemini-pda/src/linux-7.1.3-series-source ]] ||
+	die 'unexpected managed series source root'
+[[ "$output_root" == /workspace/gemini-pda/* ]] || die 'unsafe output root'
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+experiment_dir="$(cd -- "$script_dir/.." && pwd -P)"
+repository_dir="$(cd -- "$experiment_dir/../.." && pwd -P)"
+readonly script_dir experiment_dir repository_dir
+[[ "$(git -C "$repository_dir" rev-parse HEAD)" == "$project_commit" ]] ||
+	die 'project checkout does not match requested commit'
+[[ -z "$(git -C "$repository_dir" status --porcelain)" ]] ||
+	die 'project checkout is dirty'
+[[ -f "$source_root/.gemini-source-state" && ! -L "$source_root/.gemini-source-state" ]] ||
+	die 'prepared source state marker absent or unsafe'
+[[ "$(<"$source_root/.gemini-source-state")" == "$PARENT_SOURCE_STATE" ]] ||
+	die 'prepared parent source state changed'
+integrity="$(python3 "$repository_dir/scripts/source-tree-integrity" verify "$source_root")"
+readonly integrity
+[[ "$integrity" == "source_tree_integrity=$PARENT_INTEGRITY" ]] ||
+	die 'prepared parent integrity changed'
+for command in git perl python3 sha256sum; do
+	command -v "$command" >/dev/null 2>&1 || die "missing command: $command"
+done
+
+check_file() {
+	local expected=$1
+	local relative=$2
+	printf '%s  %s\n' "$expected" "$source_root/$relative" |
+		sha256sum --check --status || die "parent source changed: $relative"
+}
+check_file "$PROVIDER_HEADER_SHA256" include/linux/mt6797-a72-provider.h
+check_file "$MEMBERSHIP_SHA256" arch/arm64/kernel/mt6797_a72_membership.c
+check_file "$REGULATOR_SHA256" drivers/regulator/da9213-legacy-regulator.c
+check_file "$MEMBERSHIP_TEST_SHA256" drivers/regulator/da9213-legacy-membership-test.c
+
+readonly work_root=/workspace/gemini-pda/da921x-provider-state-tag-fix-work
+readonly package="$output_root/da921x-provider-state-tag-fix-${project_commit:0:12}"
+readonly partial="${package}.partial.$$"
+mkdir -p "$work_root" "$output_root"
+[[ ! -e "$partial" ]] || die 'stale output partial exists'
+if [[ -d "$package" && ! -L "$package" ]]; then
+	grep -Fx "repository_commit=$project_commit" \
+		"$package/provenance/generation.txt" >/dev/null ||
+		die 'existing package commit mismatch'
+	(cd "$package" && sha256sum --check --strict SHA256SUMS >/dev/null)
+	printf 'Generated DA921x provider-state tag fix at %s\n' "$package"
+	exit 0
+fi
+[[ ! -e "$package" ]] || die 'unsafe existing package path'
+
+work="$(mktemp -d "$work_root/generation.XXXXXX")"
+readonly work
+cleanup() {
+	[[ ! -d "$work" || "$work" != "$work_root"/generation.* ]] || rm -rf -- "$work"
+	[[ ! -d "$partial" || "$partial" != "$output_root"/*.partial.* ]] || rm -rf -- "$partial"
+}
+trap cleanup EXIT
+
+for relative in \
+  include/linux/mt6797-a72-provider.h \
+  arch/arm64/kernel/mt6797_a72_membership.c \
+  drivers/regulator/da9213-legacy-regulator.c \
+  drivers/regulator/da9213-legacy-membership-test.c; do
+	mkdir -p "$work/source/$(dirname "$relative")"
+	cp -- "$source_root/$relative" "$work/source/$relative"
+done
+mkdir -p "$partial/patches" "$partial/provenance"
+git -C "$work/source" init --quiet
+git -C "$work/source" config user.name 'Gemini Mainline Experiment'
+git -C "$work/source" config user.email gemini-mainline@example.invalid
+git -C "$work/source" add -- .
+GIT_AUTHOR_DATE=2026-08-21T22:00:00Z \
+GIT_COMMITTER_DATE=2026-08-21T22:00:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'DA921x provider-state tag-fix parent'
+baseline_commit="$(git -C "$work/source" rev-parse HEAD)"
+readonly baseline_commit
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/source_edits.py" \
+	--source-root "$work/source" --step tag-fix
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_tag_fix_source.py" \
+	--source-root "$work/source"
+git -C "$work/source" diff --check
+git -C "$work/source" add -- .
+git -C "$work/source" diff --cached --check
+GIT_AUTHOR_NAME='Gemini Mainline Experiment' \
+GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid \
+GIT_COMMITTER_NAME='Gemini Mainline Experiment' \
+GIT_COMMITTER_EMAIL=gemini-mainline@example.invalid \
+GIT_AUTHOR_DATE=2026-08-21T22:01:00Z \
+GIT_COMMITTER_DATE=2026-08-21T22:01:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'arm64: rename read-only provider snapshot record' \
+		-m 'Avoid the existing A72 provider lifecycle enum tag while preserving the snapshot function, fields, callback, and tests exactly.' \
+		-m 'This is a compile-only name correction with no hardware or lifecycle behavior change.'
+fixed_commit="$(git -C "$work/source" rev-parse HEAD)"
+readonly fixed_commit
+
+git -C "$work/source" format-patch -1 --no-signature --numbered \
+	--start-number 1 --output-directory "$partial/patches" >/dev/null
+generated="$(find "$partial/patches" -maxdepth 1 -type f \
+	-name '0001-*.patch' -print)"
+[[ -n "$generated" ]] || die 'normal tag-fix patch absent'
+mv -- "$generated" "$partial/patches/$PATCH"
+printf '%s\n' "$PATCH" >"$partial/patches/series"
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_tag_fix_patch.py" \
+	--patch-dir "$partial/patches"
+
+git clone --quiet "$work/source" "$work/verify"
+git -C "$work/verify" checkout --quiet --detach "$baseline_commit"
+git -C "$work/verify" config user.name 'Gemini Mainline Experiment'
+git -C "$work/verify" config user.email gemini-mainline@example.invalid
+git -C "$work/verify" am --quiet --committer-date-is-author-date \
+	"$partial/patches/$PATCH"
+[[ "$(git -C "$work/verify" rev-parse HEAD)" == "$fixed_commit" ]] ||
+	die 'patch replay did not reproduce fixed commit'
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_tag_fix_source.py" \
+	--source-root "$work/verify"
+[[ -z "$(git -C "$work/verify" status --porcelain)" ]] ||
+	die 'verification source is dirty'
+
+if ! perl "$source_root/scripts/checkpatch.pl" --no-tree --strict \
+	--ignore MISSING_SIGN_OFF,FILE_PATH_CHANGES,COMMIT_LOG_LONG_LINE \
+	"$partial/patches/$PATCH" >"$partial/provenance/checkpatch.txt"; then
+	cat "$partial/provenance/checkpatch.txt" >&2
+	die 'strict checkpatch rejected tag-fix patch'
+fi
+
+cat >"$partial/provenance/generation.txt" <<EOF
+purpose=experiment-only-da921x-provider-state-tag-fix
+repository_commit=$project_commit
+parent_source_state=$PARENT_SOURCE_STATE
+parent_source_integrity=$PARENT_INTEGRITY
+baseline_commit=$baseline_commit
+fixed_commit=$fixed_commit
+generated_patch_count=1
+renamed_struct_uses=13
+lifecycle_enum=unchanged
+behavior_change=none
+hardware_write=none
+device_action=none
+boot_candidate=false
+EOF
+printf '%s\n' "$PATCH" >"$partial/provenance/patches.txt"
+(
+	cd "$partial"
+	find patches provenance -type f -print0 | sort -z |
+		xargs -0 sha256sum >SHA256SUMS
+	sha256sum --check --strict SHA256SUMS >/dev/null
+)
+mv -- "$partial" "$package"
+printf 'Generated DA921x provider-state tag fix at %s\n' "$package"

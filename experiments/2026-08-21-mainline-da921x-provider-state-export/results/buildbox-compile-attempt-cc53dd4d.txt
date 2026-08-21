@@ -1,0 +1,16 @@
+repository_commit=cc53dd4d40fea3d9a541fe6af01b6746cb979367
+profile=da921x-provider-state-kunit
+patch_count=303
+canonical_patch_tail=0312-0314
+prepared_source_state=913c8e4fa1070bd6fbe47f878af213b7c2e2fdaa026b3e457fd5f19a02f512b2
+compile_reached=arch/arm64/kernel/mt6797_a72_membership.c
+compile_reached=drivers/regulator/da9213-legacy-membership-test.c
+failure=provider-state-struct-tag-collides-with-lifecycle-enum
+existing_tag=enum-mt6797_a72_provider_state
+new_conflicting_tag=struct-mt6797_a72_provider_state
+remediation=rename-struct-tag-only
+kernel_package=none
+runtime=not-run
+hardware_write=none
+device_action=none
+boot_candidate=false

@@ -20,6 +20,16 @@ def replace_once(path: Path, old: str, new: str) -> None:
     path.write_text(text.replace(old, new, 1), encoding="utf-8")
 
 
+def replace_count(path: Path, old: str, new: str, expected: int) -> None:
+    text = path.read_text(encoding="utf-8")
+    count = text.count(old)
+    if count != expected:
+        raise SystemExit(
+            f"{path}: expected {expected} occurrences of {old!r}, found {count}"
+        )
+    path.write_text(text.replace(old, new), encoding="utf-8")
+
+
 def apply_registry(root: Path) -> None:
     header = root / "include/linux/mt6797-a72-provider.h"
     membership = root / "arch/arm64/kernel/mt6797_a72_membership.c"
@@ -418,10 +428,25 @@ def apply_tests(root: Path) -> None:
     )
 
 
+def apply_tag_fix(root: Path) -> None:
+    old = "struct mt6797_a72_provider_state"
+    new = "struct mt6797_a72_provider_snapshot"
+    replacements = {
+        "include/linux/mt6797-a72-provider.h": 3,
+        "arch/arm64/kernel/mt6797_a72_membership.c": 2,
+        "drivers/regulator/da9213-legacy-regulator.c": 2,
+        "drivers/regulator/da9213-legacy-membership-test.c": 6,
+    }
+
+    for relative, expected in replacements.items():
+        replace_count(root / relative, old, new, expected)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-root", type=Path, required=True)
-    parser.add_argument("--step", choices=("registry", "provider", "tests"),
+    parser.add_argument("--step",
+                        choices=("registry", "provider", "tests", "tag-fix"),
                         required=True)
     args = parser.parse_args()
     root = args.source_root.resolve()
@@ -430,8 +455,10 @@ def main() -> None:
         apply_registry(root)
     elif args.step == "provider":
         apply_provider(root)
-    else:
+    elif args.step == "tests":
         apply_tests(root)
+    else:
+        apply_tag_fix(root)
 
 
 if __name__ == "__main__":

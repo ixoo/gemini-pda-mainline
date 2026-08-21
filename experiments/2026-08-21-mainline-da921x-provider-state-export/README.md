@@ -3,8 +3,10 @@
 ## Status
 
 The three logical patches are generated, replay-validated, strict-clean, and
-canonically admitted through `0314`. The isolated Buildbox compile remains
-pending. No patch from this experiment has been used on the Gemini.
+canonically admitted through `0314`. The first isolated Buildbox compile found
+a C tag-name collision before linking; one mechanical follow-up rename is now
+prepared for generation. No patch from this experiment has been used on the
+Gemini.
 
 The first generation attempt from exact commit `9346a72ebfc1` passed the
 managed-source integrity and all pinned parent-file checks, then stopped before
@@ -49,7 +51,17 @@ replay, and strict checkpatch gates with zero errors, warnings, or checks. The
 validated package and exact patch identities are recorded in
 [`results/buildbox-generation-80d271fc.txt`](results/buildbox-generation-80d271fc.txt)
 and [`contract.json`](contract.json). Those exact bytes are now canonical
-patches `0312`--`0314`; compilation is the next gate.
+patches `0312`--`0314`.
+
+The exact compile from signed commit `cc53dd4d40fe` applied all 303 patches and
+reached both the new registry and KUnit objects. It then failed because C uses
+one tag namespace for `struct` and `enum`: the new snapshot record reused the
+existing lifecycle enum's `mt6797_a72_provider_state` tag. The bounded receipt
+is in
+[`results/buildbox-compile-attempt-cc53dd4d.txt`](results/buildbox-compile-attempt-cc53dd4d.txt).
+The remediation changes only the record tag to
+`mt6797_a72_provider_snapshot` at its thirteen exact uses; field layout,
+functions, callbacks, tests, and the lifecycle enum remain unchanged.
 
 ## Question
 
