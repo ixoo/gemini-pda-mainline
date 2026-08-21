@@ -1,0 +1,82 @@
+Clock-backend entry-ledger runtime attempt 1
+============================================
+
+Result: neither
+Reason: clock driver init was not reached, or the shared checkpoint refused
+Artifact disposition: rejected; do not repeat
+Clock-backend probe entry: not established
+Protected clock/BigiDVFS transports: disabled by construction
+CPU8/CPU9 admission: closed
+
+Exact candidate
+---------------
+
+Kernel release: 7.1.3-gemini-clock-backend-entry-ledger
+Raw Android-v0 SHA-256: 1c5a410b07b0fd971b2105f14cb97dea05168c5d5cf73dc67a47c2892a171768
+Full boot2 SHA-256: 444ffc4a3631e75d05e567f6304fdd1607695adbd1f3c8b5654714633e6278de
+Candidate DTB SHA-256: d93cba886584ebf3f9b30a9341f4dbea8f90fb35745200464265449a7811c920
+Serviceability initramfs SHA-256: e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f
+
+Cycle attribution
+-----------------
+
+The exact candidate passed guarded deployment, independent full-partition
+readback, and clean shutdown before one owner-selected boot2 cycle. The device
+returned automatically to known-good Gemian. Its boot ID changed from
+`a18bed92-3027-4658-b0f1-90206c056274` at deployment to
+`f6d212e0-adf8-449d-a835-2cfd38a7642f` at recovery.
+
+The exact USB collector was armed before physical selection but reached its
+900-second total deadline shortly after selection and captured no interface.
+It did not cover the complete attempt, so USB absence is not primary negative
+evidence. Screen state and the automatic return are not used to locate the
+boundary.
+
+Read-only recovery
+------------------
+
+- Recovery kernel: 3.18.41+ on aarch64
+- Active root: `/dev/mmcblk0p29`
+- Live-GPT boot2: `/dev/mmcblk0p30`, inactive and unmounted
+- Pstore directory: present
+- Pstore file count: 0
+- `driver-init` record count: 0
+- `probe-enter` record count: 0
+- Retained classification: neither
+- Slot 171 header: `444247430000000000000000`
+- Slot 172 header: `444247430000000000000000`
+- Slot 173 header: `444247430000000000000000`
+- Slot 174 header: `444247430000000000000000`
+- Each complete 4 KiB slot SHA-256:
+  `d58e2f4ee9541fa1f2a2d07247ffb6a1fa6a31fefaa83c3715fcfe4fd3ec9998`
+- Owned-slot payload state: erased `0xff`; neither exact record is present
+- `/proc/last_kmsg` size: 74
+- `/proc/last_kmsg` SHA-256:
+  `8964100f947293ded847b8ca1a9313b43624ccd5c72d120aa84234c4998e0f53`
+- `last_kmsg` disposition: known generic header; no mainline log
+- Post-cycle full boot2 SHA-256:
+  `444ffc4a3631e75d05e567f6304fdd1607695adbd1f3c8b5654714633e6278de`
+- Private pstore archive SHA-256:
+  `a9aa2249d161002b21027320452eed254225ab019d546f8207c9e1612fa4c543`
+- Private pstore manifest SHA-256:
+  `efe5765a4ecb692555e6bd62166f875cf85f9f64901b4d4e258ceb97d378caa3`
+
+No pstore entry was removed. Recovery performed no device-memory write,
+partition write, driver change, CPU request, reboot request, or power action.
+
+Interpretation
+--------------
+
+Neither clock-backend checkpoint was recovered. The experiment therefore did
+not establish execution of the clock driver's init function or its probe. It
+also cannot distinguish failure to reach driver init from refusal inside the
+shared exact-DT, reservation, prefix, mapping, or first-write path.
+
+The candidate deliberately made no protected read, so it provides no result
+about either protected transport. It also provides no CPU8/CPU9 admission or
+hardware-support claim.
+
+Do not repeat this artifact. Before another device boot, the next discriminator
+must split the shared checkpoint preconditions through an independent durable
+observation path or move to an earlier positively attributable stage. A new
+candidate must remain storage-free, protected-call-free, and CPU/owner-closed.

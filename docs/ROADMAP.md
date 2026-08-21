@@ -4676,25 +4676,36 @@ initcall order. The missing record was the observer probe's first operation.
 The next discriminator must therefore move before the observer and must not
 call either transport.
 
+The isolated clock-backend-entry successor is now complete. It kept the
+observer and BigiDVFS disabled, made zero protected calls, and recorded before
+clock-backend registration and at probe entry. Its exact candidate passed
+Buildbox, independent container validation, guarded deployment, full readback,
+shutdown, and one physical selection. Changed-ID Gemian recovered empty
+pstore, four exact empty retained slots, the known generic `last_kmsg`, and the
+unchanged candidate. The strict result is `neither`: driver init was not
+established, or the shared exact-DT/reservation/prefix/map/write path refused.
+Do not repeat it. See the
+[clock-backend entry result](../experiments/2026-08-21-mainline-clock-backend-entry-ledger/results/runtime-attempt-1-neither-20260821.txt).
+
 The next ordered work is:
 
-1. Build and run one isolated clock-backend-entry successor with the observer
-   and BigiDVFS node disabled and zero protected calls. Preserve the exact
-   board, kernel baseline, initramfs, retained reservation, two-write maximum,
-   and CPU/owner closures. Record once immediately before clock-backend
-   platform-driver registration and once as the clock-backend probe's first
-   operation. `neither`, init-only, both-with-return, and serviceable runtime
-   then distinguish an earlier/shared-gate failure, registration/binding
-   boundary, entered clock probe, and completed read-free clock probe. Do not
-   enable or sample BigiDVFS until this prerequisite closes. See the
-   [probe/gate ledger result and boundary audit](../experiments/2026-08-21-mainline-protected-readback-probe-gate-ledger/README.md).
-2. Compose the validated readers, DA921x, and the platform-state source under
+1. Audit the shared retained-checkpoint preconditions and the last independent
+   positively attributable stage. Select one durable observation path that can
+   distinguish failure to reach clock-driver init from exact-DT, reservation,
+   prefix, mapping, or first-write refusal. Do not build or boot another
+   candidate until that path has a decision-changing positive control; retain
+   zero protected calls and all CPU/owner closures.
+2. Once that audit identifies a valid observation boundary, run at most one
+   non-identical successor that splits the selected refusal from clock-driver
+   init. Do not enable or sample BigiDVFS until clock-backend registration and
+   read-free probe entry are positively established.
+3. Compose the validated readers, DA921x, and the platform-state source under
    one transition/hotplug owner.
-3. Revise A34 to accept only the complete direct-state ABI and applicable
+4. Revise A34 to accept only the complete direct-state ABI and applicable
    BL31 replay-clear contract, prove the atomic `CLOSED / UNINITIALIZED` to
    `AVAILABLE / IDLE` publication, and keep both CPU vetoes closed until that
    proof passes.
-4. Only then build one decision-bearing CPU8 candidate with one request,
+5. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
 The eventual CPU8 candidate must have a single CPU8 request, strict

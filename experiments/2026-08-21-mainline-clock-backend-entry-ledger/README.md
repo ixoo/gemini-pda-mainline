@@ -14,9 +14,13 @@ follow-up `0326` against that exact source state. It broadens the hidden
 dependency only to the clock backend that owns the new call sites. That
 follow-up is now generated, manually reviewed, and admitted canonically. The
 corrected Buildbox kernel and independently validated Android-v0/16 MiB
-candidate passed one guarded deployment to `boot2` with exact full readback;
-the device is shut down awaiting the attributable boot. No artifact from any
-rejected attempt is a boot candidate.
+candidate passed one guarded deployment to `boot2` with exact full readback
+and one attributable physical selection. Changed-ID Gemian recovery found
+empty pstore, all four retained slots still exactly empty, the known generic
+74-byte `last_kmsg`, and the exact candidate still installed. The strict result
+is `neither`: clock-driver init was not established, or the shared checkpoint
+path refused. The artifact is rejected and must not be repeated. No artifact
+from any rejected attempt is a boot candidate.
 
 ## Question
 
@@ -69,9 +73,11 @@ metadata, and full-readback gates. There is no clear, overwrite, or retry.
 
 ## Next action
 
-Push the sanitized deployment evidence and arm the USB collector before the
-owner selects `boot2`. After its return to changed-ID Gemian, recover and
-classify the two retained records. Repository-wide ordering remains in
+Do not repeat this candidate. Split the shared exact-DT, reservation, prefix,
+mapping, and first-write preconditions through an independent durable
+observation path, or move to an earlier positively attributable stage. Keep
+the next discriminator protected-call-free and preserve all CPU/owner
+closures. Repository-wide ordering remains in
 [`docs/ROADMAP.md`](../../docs/ROADMAP.md).
 
 ## Generation and admission
@@ -156,3 +162,15 @@ partitions retained their audited identity. The synced/flushed full readback
 matches `444ffc4a...278de`, no fresh backup was made, and shutdown is confirmed.
 See
 [`results/deployment-attempt-1-success.txt`](results/deployment-attempt-1-success.txt).
+
+One physical selection returned automatically to changed-boot-ID Gemian. The
+pre-armed USB collector reached its total deadline shortly after selection and
+did not cover the complete attempt, so its empty result is secondary only.
+Immediate read-only recovery found no pstore files or exact ledger records,
+all four 4 KiB slots had the same valid-empty header and full-slot checksum,
+and the 74-byte `last_kmsg` matched the known generic header. Full inactive
+`boot2` still matched `444ffc4a...278de`. This is strict `neither`: neither
+clock driver init nor probe entry is established, and the result cannot split
+an earlier boundary from refusal by the shared checkpoint path. Reject the
+artifact without repetition; see
+[`results/runtime-attempt-1-neither-20260821.txt`](results/runtime-attempt-1-neither-20260821.txt).
