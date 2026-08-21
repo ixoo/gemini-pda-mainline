@@ -32,6 +32,27 @@
     "checkpatch_sha256": "546dba86abde16d4f5e422afeda64eecff1a631adf09473fc24d0062a15c75f1",
     "result_commit": "369ba0f889cba4161e2905b38f051b41e7eb4b7a"
   },
+  "validated_build": {
+    "repository_commit": "cd44cada028f24289fe0565ffc16ce7853eaff25",
+    "profile": "a72-a34-eligibility-kunit",
+    "kernel_release": "7.1.3-gemini-a34-eligibility-kunit",
+    "package": "linux-7.1.3-gemini-a72-a34-eligibility-kunit-cec7b216-3c5237c6",
+    "sha256_manifest": "1cd6fd7e29c88c0e640d76308dcf96125d9be8d8a31e9f30accd61308022006c",
+    "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+    "patchset_sha256": "cec7b2162e2526b3e31b94ad4b4023120fb3bef8fbdb4a25055a34e8d4122fcc",
+    "config_sha256": "b4d9dbe348aa6df91982e3d49bda6804424b6a2dd58d05f1e3a7294a4e5cfc15",
+    "image_sha256": "031fd8f4b4c0162aeb729ecfbad34cc024117a191c97aabd55e6f6a04d2f0e92"
+  },
+  "validated_qemu": {
+    "observed_utc": "2026-08-21T12:03:49Z",
+    "runner_version": "11.0.2",
+    "raw_log_sha256": "a08e68de3fac523e374699a73b6166bd2af3e2dc793f74396955409e0ce8b66f",
+    "suites": 1,
+    "tests": 5,
+    "failed": 0,
+    "skipped": 0,
+    "result": "pass"
+  },
   "observation": {
     "abi": 1,
     "accepted_reset_provenance": ["platform", "external"],

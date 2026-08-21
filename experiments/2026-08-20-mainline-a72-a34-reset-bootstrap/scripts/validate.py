@@ -48,6 +48,23 @@ def main() -> None:
             generation["result_commit"] ==
             "369ba0f889cba4161e2905b38f051b41e7eb4b7a",
             "validated Buildbox generation identity")
+    build = contract["validated_build"]
+    require(build["repository_commit"] ==
+            "cd44cada028f24289fe0565ffc16ce7853eaff25" and
+            build["profile"] == "a72-a34-eligibility-kunit" and
+            build["kernel_release"] ==
+            "7.1.3-gemini-a34-eligibility-kunit" and
+            build["config_sha256"] ==
+            "b4d9dbe348aa6df91982e3d49bda6804424b6a2dd58d05f1e3a7294a4e5cfc15" and
+            build["image_sha256"] ==
+            "031fd8f4b4c0162aeb729ecfbad34cc024117a191c97aabd55e6f6a04d2f0e92",
+            "validated Buildbox build identity")
+    qemu = contract["validated_qemu"]
+    require(qemu["runner_version"] == "11.0.2" and
+            qemu["suites"] == 1 and qemu["tests"] == 5 and
+            qemu["failed"] == 0 and qemu["skipped"] == 0 and
+            qemu["result"] == "pass",
+            "validated focused QEMU result")
 
     scope = contract["scope"]
     require(scope["default_off"] and scope["hardware_free"],
@@ -168,8 +185,35 @@ def main() -> None:
     require([row["id"] for row in rows] ==
             [f"A34-{number:02d}" for number in range(1, 13)],
             "test matrix identity")
-    require(all(row["evidence_state"] == "design-frozen" for row in rows),
-            "design evidence status")
+    expected_evidence = {
+        "A34-01": "buildbox-pass",
+        "A34-12": "source-validated",
+    }
+    require(all(row["evidence_state"] ==
+                expected_evidence.get(row["id"], "qemu-pass")
+                for row in rows), "final evidence status")
+
+    build_receipt = (HERE / "results/buildbox-build-validated-20260821.txt").read_text()
+    qemu_receipt = (HERE / "results/qemu-kunit-validated-20260821.txt").read_text()
+    for marker in (
+        "repository_commit=cd44cada028f24289fe0565ffc16ce7853eaff25",
+        "profile=a72-a34-eligibility-kunit",
+        "a34_evaluator_object=compiled",
+        "a34_kunit_object=compiled",
+        "package_checksums=pass",
+        "boot_candidate=false",
+        "result=pass",
+    ):
+        require(marker in build_receipt, f"build receipt marker: {marker}")
+    for marker in (
+        "suites=1", "tests=5", "failed=0", "skipped=0",
+        "mt6797_a34_every_byte_mutation_test=pass",
+        "mt6797_a34_admission_remains_closed_test=pass",
+        "tap_summary=pass:5_fail:0_skip:0_total:5",
+        "hardware_effect=none", "device_action=none",
+        "boot_candidate=false", "result=pass",
+    ):
+        require(marker in qemu_receipt, f"QEMU receipt marker: {marker}")
 
     design = (HERE / "DESIGN.md").read_text()
     readme = (HERE / "README.md").read_text()
@@ -179,9 +223,10 @@ def main() -> None:
                    "Future reset-provenance candidate",
                    "cannot make the evaluator input true"):
         require(marker in design, f"design marker: {marker}")
-    require("canonical evaluator patch generated and validated; build pending"
+    require("pure evaluator proven by Buildbox compile and focused QEMU KUnit"
             in readme and
-            "no kernel build or device work has been attempted" in readme,
+            "No production reset or private-replay" in readme and
+            "no device work was attempted" in readme,
             "current status is not overstated")
     require(not re.search(r"/Users/|BEGIN (?:RSA|OPENSSH|EC) PRIVATE KEY|IMEI",
                           design + readme), "no private material")
@@ -199,7 +244,11 @@ def main() -> None:
     print("reset_provenance_candidate_state=inconclusive")
     print("signed_audit_prerequisite=satisfied")
     print("canonical_patch=validated")
-    print("build_state=pending")
+    print("buildbox_compile=pass")
+    print("qemu_suites=1")
+    print("qemu_tests=5")
+    print("qemu_failed=0")
+    print("qemu_skipped=0")
     print("hardware_effect=no")
     print("device_action=no")
     print("result=pass")

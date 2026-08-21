@@ -1,13 +1,13 @@
 id	boundary	positive_requirement	negative_requirement	evidence_state
-A34-01	configuration	pure evaluator compiled only when default-off config selected	no production caller or state publication	design-frozen
-A34-02	reset provenance	explicit known-good platform and explicit external reset each accepted	unknown, default, and ordinary Linux reboot provenance reject	design-frozen
-A34-03	private replay proof	owner-safe proof plus exact zero replay value	unknown, inferred, or nonzero replay state rejects	design-frozen
-A34-04	topology identity	max=8 nr=10 present=possible=0x3ff online=0x0ff	any count or mask mutation rejects	design-frozen
-A34-05	target method	CPU8 and CPU9 both use mediatek,mt6797-psci	null, substituted, or one-sided method rejects	design-frozen
-A34-06	target state and mapping	both CPUHP_OFFLINE; CPU8=0x200 CPU9=0x201 non-aliased	any state, mapping, or alias mutation rejects	design-frozen
-A34-07	P30 pristine	entire zero/FREE snapshot	any mutated byte rejects	design-frozen
-A34-08	owner pristine	complete initial CLOSED snapshot plus zero internal seeds	any owner or seed byte mutation rejects	design-frozen
-A34-09	pure result	exact input returns eligible with byte-identical live owner	no blocker clear, attempt initialization, generation mint, or open	design-frozen
-A34-10	exhaustive representation	mutate every byte of one valid immutable observation	every mutation returns EPERM and preserves live owner	design-frozen
-A34-11	admission isolation	positive evaluation leaves owner CLOSED	preflight remains EAGAIN and no begin_up caller exists	design-frozen
-A34-12	device boundary	no hardware or device operation	no production hook, boot candidate, or physical execution	design-frozen
+A34-01	configuration	pure evaluator compiled only when default-off config selected	no production caller or state publication	buildbox-pass
+A34-02	reset provenance	explicit known-good platform and explicit external reset each accepted	unknown, default, and ordinary Linux reboot provenance reject	qemu-pass
+A34-03	private replay proof	owner-safe proof plus exact zero replay value	unknown, inferred, or nonzero replay state rejects	qemu-pass
+A34-04	topology identity	max=8 nr=10 present=possible=0x3ff online=0x0ff	any count or mask mutation rejects	qemu-pass
+A34-05	target method	CPU8 and CPU9 both use mediatek,mt6797-psci	null, substituted, or one-sided method rejects	qemu-pass
+A34-06	target state and mapping	both CPUHP_OFFLINE; CPU8=0x200 CPU9=0x201 non-aliased	any state, mapping, or alias mutation rejects	qemu-pass
+A34-07	P30 pristine	entire zero/FREE snapshot	any mutated byte rejects	qemu-pass
+A34-08	owner pristine	complete initial CLOSED snapshot plus zero internal seeds	any owner or seed byte mutation rejects	qemu-pass
+A34-09	pure result	exact input returns eligible with byte-identical live owner	no blocker clear, attempt initialization, generation mint, or open	qemu-pass
+A34-10	exhaustive representation	mutate every byte of one valid immutable observation	every mutation returns EPERM and preserves live owner	qemu-pass
+A34-11	admission isolation	positive evaluation leaves owner CLOSED	preflight remains EAGAIN and no begin_up caller exists	qemu-pass
+A34-12	device boundary	no hardware or device operation	no production hook, boot candidate, or physical execution	source-validated
