@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -14,6 +15,10 @@ HERE = Path(__file__).resolve().parents[1]
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise SystemExit(f"validation failed: {message}")
+
+
+def sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def main() -> None:
@@ -29,10 +34,36 @@ def main() -> None:
         "patches/v7.1.3/0313-regulator-export-stable-DA921x-provider-state.patch",
         "patches/v7.1.3/0314-regulator-test-stable-DA921x-provider-state.patch",
     ], "three logical patch identities")
-    require(contract["validated_generation"] is None,
-            "generation remains pending")
+    require(contract["validated_generation"] == {
+        "repository_commit": "80d271fc17601d53835eb09dd4c585de3f4e1378",
+        "buildbox_job": (
+            "80d271fc17601d53835eb09dd4c585de3f4e1378-"
+            "da921x-provider-state-patchgen"
+        ),
+        "package": "da921x-provider-state-patches-80d271fc1760",
+        "baseline_commit": "e0b6bb338557c4e26fcd6e122208deb624f7a3c8",
+        "result_commit": "5197911de74bc75b59226ac76354a9091bca0b5b",
+        "sha256sums_sha256": (
+            "244bee5940f3710f0271c81627bf76f43a0ae8208d0d501ac8bf753b568a1341"
+        ),
+        "patch_sha256": [
+            "0e323b6fee4797661da868cbeeafcff2bcdee5dbe2fab023fcab70e2890d13fc",
+            "81d0980afa67d09377acb077ebf1f4c5291d3ea339a7c859aa642f1b20a88f97",
+            "1b238a683f57cf9d8eb58caa4c296397f5ff9a9e460a02e2a04d87a285617c7f",
+        ],
+        "source_validation": "pass",
+        "patch_replay": "pass",
+        "strict_checkpatch": "0-errors-0-warnings-0-checks",
+    }, "validated Buildbox generation identity")
     require(contract["validated_build"] is None,
             "build remains pending")
+    patch_hashes = []
+    for relative in contract["expected_patches"]:
+        path = ROOT / relative
+        require(path.is_file(), f"canonical patch exists: {relative}")
+        patch_hashes.append(sha256(path))
+    require(patch_hashes == contract["validated_generation"]["patch_sha256"],
+            "canonical patch bytes match Buildbox")
     require(contract["scope"] == {
         "samples": 2,
         "reads_on_success": 10,
@@ -85,6 +116,28 @@ def main() -> None:
     ):
         require(buildbox.count(command) >= 2,
                 f"Buildbox command: {command}")
+
+    series = (ROOT / "patches/series").read_text().splitlines()
+    require(series[-3:] == [
+        path.removeprefix("patches/")
+        for path in contract["expected_patches"]
+    ], "canonical series tail")
+    fragment = (
+        ROOT / "configs/gemini-da921x-provider-state-kunit.fragment"
+    ).read_text()
+    for token in (
+        "CONFIG_KUNIT=y",
+        "CONFIG_REGULATOR_DA9213_LEGACY_MEMBERSHIP_KUNIT_TEST=y",
+        'CONFIG_LOCALVERSION="-gemini-da921x-provider-state-kunit"',
+    ):
+        require(token in fragment, f"profile fragment token: {token}")
+    manifest = json.loads((ROOT / "kernel/manifest.json").read_text())
+    profile = manifest["config"]["profiles"]["da921x-provider-state-kunit"]
+    require(profile["patch_series"] == "patches/series",
+            "profile selects canonical series")
+    require(profile["fragments"][-1] ==
+            "configs/gemini-da921x-provider-state-kunit.fragment",
+            "profile selects snapshot KUnit fragment")
 
     print("design_validation=pass")
     print("expected_patch_count=3")

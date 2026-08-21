@@ -1,0 +1,97 @@
+From 2ed92cc1f3e113fe4ccf9694c31d57b2bcd8c12a Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 21 Aug 2026 21:02:00 +0000
+Subject: [PATCH 2/3] regulator: export stable DA921x provider state
+
+Take two immediate five-register samples under the endpoint and root-adapter locks with transport retries disabled. Publish only an exact match and leave the lifecycle transaction untouched.
+
+Perform no write, delay, loop, retry, lifecycle transition, CPU operation, or device action.
+---
+ drivers/regulator/da9213-legacy-regulator.c | 60 +++++++++++++++++++++
+ 1 file changed, 60 insertions(+)
+
+diff --git a/drivers/regulator/da9213-legacy-regulator.c b/drivers/regulator/da9213-legacy-regulator.c
+index 6725007..b88b333 100644
+--- a/drivers/regulator/da9213-legacy-regulator.c
++++ b/drivers/regulator/da9213-legacy-regulator.c
+@@ -15,6 +15,7 @@
+ #include <linux/mutex.h>
+ #include <linux/of.h>
+ #include <linux/regulator/driver.h>
++#include <linux/string.h>
+ 
+ #include "da9213-legacy-observer.h"
+ #include "da9213-legacy-write-contract.h"
+@@ -1281,6 +1282,62 @@ out_fault:
+ 	return ret;
+ }
+ 
++static int
++da9213_provider_snapshot(void *context,
++			 struct mt6797_a72_provider_state *state)
++{
++	struct da9213_legacy_provider_endpoint *endpoint = context;
++	struct da9213_legacy_provider_snapshot first = { };
++	struct da9213_legacy_provider_snapshot second = { };
++	struct da9213_legacy_provider_result result = { };
++	unsigned int saved_retries;
++	int ret;
++
++	if (!state)
++		return -EINVAL;
++	memset(state, 0, sizeof(*state));
++	if (!endpoint ||
++	    !da9213_provider_transport_valid(endpoint->adapter, endpoint->ops))
++		return -EINVAL;
++
++	mutex_lock(&endpoint->lock);
++	i2c_lock_bus(endpoint->adapter, I2C_LOCK_ROOT_ADAPTER);
++	saved_retries = endpoint->adapter->retries;
++	endpoint->adapter->retries = 0;
++
++	ret = da9213_legacy_provider_snapshot(endpoint->adapter,
++					      endpoint->address, endpoint->ops,
++					      &result, &first);
++	if (ret)
++		goto out;
++	ret = da9213_legacy_provider_snapshot(endpoint->adapter,
++					      endpoint->address, endpoint->ops,
++					      &result, &second);
++	if (ret)
++		goto out;
++	if (memcmp(&first, &second, sizeof(first))) {
++		ret = -EAGAIN;
++		goto out;
++	}
++
++	*state = (struct mt6797_a72_provider_state) {
++		.abi = MT6797_A72_PROVIDER_STATE_ABI,
++		.valid = 1,
++		.control_a = second.control_a,
++		.status_b = second.status_b,
++		.buckb_cont = second.buckb_cont,
++		.vbuckb_a = second.vbuckb_a,
++		.vbuckb_b = second.vbuckb_b,
++	};
++	ret = 0;
++
++out:
++	da9213_provider_restore_retries(endpoint->adapter, saved_retries);
++	i2c_unlock_bus(endpoint->adapter, I2C_LOCK_ROOT_ADAPTER);
++	mutex_unlock(&endpoint->lock);
++	return ret;
++}
++
+ static const struct da9213_legacy_provider_transport_ops
+ da9213_legacy_positive_provider_ops = {
+ 	.transfer = __i2c_transfer,
+@@ -1366,6 +1423,9 @@ static int da9213_legacy_provider_release(void *context,
+ static const struct mt6797_a72_provider_ops da9213_legacy_provider_ops = {
+ 	.acquire = da9213_legacy_provider_acquire,
+ 	.release = da9213_legacy_provider_release,
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION)
++	.snapshot = da9213_provider_snapshot,
++#endif
+ };
+ 
+ #if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_MEMBERSHIP_KUNIT_TEST)

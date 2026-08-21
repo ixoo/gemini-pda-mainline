@@ -2,8 +2,9 @@
 
 ## Status
 
-Implementation input is prepared for Buildbox generation. No kernel patch has
-yet been admitted, compiled, or used on the Gemini.
+The three logical patches are generated, replay-validated, strict-clean, and
+canonically admitted through `0314`. The isolated Buildbox compile remains
+pending. No patch from this experiment has been used on the Gemini.
 
 The first generation attempt from exact commit `9346a72ebfc1` passed the
 managed-source integrity and all pinned parent-file checks, then stopped before
@@ -42,6 +43,13 @@ one equivalent continuation-alignment check in a test-only zero-record helper,
 again with zero errors and zero warnings. The receipt is in
 [`results/buildbox-generation-attempt-6f9b051c.txt`](results/buildbox-generation-attempt-6f9b051c.txt).
 The helper now has a shorter private name with ordinary aligned arguments.
+
+Generation from exact clean commit `80d271fc1760` passed all source, inventory,
+replay, and strict checkpatch gates with zero errors, warnings, or checks. The
+validated package and exact patch identities are recorded in
+[`results/buildbox-generation-80d271fc.txt`](results/buildbox-generation-80d271fc.txt)
+and [`contract.json`](contract.json). Those exact bytes are now canonical
+patches `0312`--`0314`; compilation is the next gate.
 
 ## Question
 

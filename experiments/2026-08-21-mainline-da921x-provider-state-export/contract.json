@@ -15,7 +15,22 @@
     "patches/v7.1.3/0313-regulator-export-stable-DA921x-provider-state.patch",
     "patches/v7.1.3/0314-regulator-test-stable-DA921x-provider-state.patch"
   ],
-  "validated_generation": null,
+  "validated_generation": {
+    "repository_commit": "80d271fc17601d53835eb09dd4c585de3f4e1378",
+    "buildbox_job": "80d271fc17601d53835eb09dd4c585de3f4e1378-da921x-provider-state-patchgen",
+    "package": "da921x-provider-state-patches-80d271fc1760",
+    "baseline_commit": "e0b6bb338557c4e26fcd6e122208deb624f7a3c8",
+    "result_commit": "5197911de74bc75b59226ac76354a9091bca0b5b",
+    "sha256sums_sha256": "244bee5940f3710f0271c81627bf76f43a0ae8208d0d501ac8bf753b568a1341",
+    "patch_sha256": [
+      "0e323b6fee4797661da868cbeeafcff2bcdee5dbe2fab023fcab70e2890d13fc",
+      "81d0980afa67d09377acb077ebf1f4c5291d3ea339a7c859aa642f1b20a88f97",
+      "1b238a683f57cf9d8eb58caa4c296397f5ff9a9e460a02e2a04d87a285617c7f"
+    ],
+    "source_validation": "pass",
+    "patch_replay": "pass",
+    "strict_checkpatch": "0-errors-0-warnings-0-checks"
+  },
   "validated_build": null,
   "scope": {
     "samples": 2,

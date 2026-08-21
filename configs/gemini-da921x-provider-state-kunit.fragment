@@ -1,0 +1,5 @@
+# Hardware-free stable DA921x provider-state export coverage on the existing
+# unregistered in-memory I2C adapter and closed pre-P28 owner.
+CONFIG_KUNIT=y
+CONFIG_REGULATOR_DA9213_LEGACY_MEMBERSHIP_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-da921x-provider-state-kunit"

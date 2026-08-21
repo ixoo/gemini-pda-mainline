@@ -1,0 +1,196 @@
+From 5197911de74bc75b59226ac76354a9091bca0b5b Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 21 Aug 2026 21:03:00 +0000
+Subject: [PATCH 3/3] regulator: test stable DA921x provider state
+
+Use the existing unregistered fake adapter to cover the exact ten-read success, every transfer fault, unstable samples, and registry callback guards without physical hardware.
+---
+ .../regulator/da9213-legacy-membership-test.c | 147 ++++++++++++++++++
+ 1 file changed, 147 insertions(+)
+
+diff --git a/drivers/regulator/da9213-legacy-membership-test.c b/drivers/regulator/da9213-legacy-membership-test.c
+index 5146d14..a150e09 100644
+--- a/drivers/regulator/da9213-legacy-membership-test.c
++++ b/drivers/regulator/da9213-legacy-membership-test.c
+@@ -18,6 +18,7 @@
+ #define DA9213_MEMBERSHIP_TEST_RETRIES	3
+ #define DA9213_MEMBERSHIP_MUTATIONS	14
+ #define DA9213_MEMBERSHIP_P29_MUTATIONS	9
++#define DA9213_PROVIDER_SNAPSHOT_ACTIONS	10
+ 
+ struct da9213_membership_fake {
+ 	struct i2c_adapter adapter;
+@@ -30,6 +31,7 @@ struct da9213_membership_fake {
+ 	unsigned int fail_ordinal;
+ 	unsigned int short_ordinal;
+ 	unsigned int write_count;
++	bool mutate_snapshot;
+ 	u8 write_registers[2];
+ 	u8 write_values[2];
+ 	bool locked;
+@@ -121,6 +123,8 @@ static int da9213_membership_transfer(struct i2c_adapter *adapter,
+ 	    messages[0].len == 1 && messages[1].len == 1 &&
+ 	    messages[0].buf && messages[1].buf) {
+ 		reg = messages[0].buf[0];
++		if (fake->mutate_snapshot && fake->operation_calls == 6)
++			fake->registers[reg] ^= 1;
+ 		messages[1].buf[0] = fake->registers[reg];
+ 		return 2;
+ 	}
+@@ -472,6 +476,145 @@ static void expect_fault(struct kunit *test,
+ 			(u8)MT6797_A72_BUDGET_CONSUMED);
+ }
+ 
++static void
++expect_snapshot_zero(struct kunit *test,
++		     const struct mt6797_a72_provider_state *state)
++{
++	struct mt6797_a72_provider_state zero = { };
++
++	KUNIT_EXPECT_EQ(test, memcmp(state, &zero, sizeof(*state)), 0);
++}
++
++static void da9213_provider_snapshot_success(struct kunit *test)
++{
++	struct mt6797_a72_provider_state observed;
++	struct da9213_membership_test_state *state;
++	int ret;
++
++	state = kunit_kzalloc(test, sizeof(*state), GFP_KERNEL);
++	KUNIT_ASSERT_NOT_NULL(test, state);
++	da9213_membership_fake_init(&state->fake);
++	ret = da9213_membership_register_state(state);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	memset(&observed, 0xa5, sizeof(observed));
++	ret = mt6797_a72_provider_snapshot(&observed);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	KUNIT_EXPECT_EQ(test, observed.abi,
++			MT6797_A72_PROVIDER_STATE_ABI);
++	KUNIT_EXPECT_EQ(test, observed.valid, 1U);
++	KUNIT_EXPECT_EQ(test, observed.control_a, 0x7bU);
++	KUNIT_EXPECT_EQ(test, observed.status_b, 0xc1U);
++	KUNIT_EXPECT_EQ(test, observed.buckb_cont, 0U);
++	KUNIT_EXPECT_EQ(test, observed.vbuckb_a, 0x46U);
++	KUNIT_EXPECT_EQ(test, observed.vbuckb_b, 0x46U);
++	KUNIT_EXPECT_EQ(test, observed.reserved, 0U);
++	KUNIT_EXPECT_EQ(test, state->fake.operation_calls,
++			DA9213_PROVIDER_SNAPSHOT_ACTIONS);
++	KUNIT_EXPECT_EQ(test, state->fake.total_calls,
++			DA9213_PROVIDER_SNAPSHOT_ACTIONS);
++	KUNIT_EXPECT_EQ(test, state->fake.lock_calls, 1U);
++	KUNIT_EXPECT_EQ(test, state->fake.unlock_calls, 1U);
++	KUNIT_EXPECT_EQ(test, state->fake.write_count, 0U);
++	KUNIT_EXPECT_EQ(test, state->fake.delay_calls, 0U);
++	KUNIT_EXPECT_FALSE(test, state->fake.transfer_unlocked);
++	KUNIT_EXPECT_FALSE(test, state->fake.retry_nonzero);
++	KUNIT_EXPECT_EQ(test, state->fake.adapter.retries,
++			DA9213_MEMBERSHIP_TEST_RETRIES);
++	KUNIT_EXPECT_EQ(test, state->endpoint.transaction.total_transfers, 0U);
++	da9213_membership_unregister_endpoint();
++}
++
++static void da9213_provider_snapshot_transport_faults(struct kunit *test)
++{
++	struct da9213_membership_test_state *state;
++	unsigned int mode;
++	unsigned int ordinal;
++
++	state = kunit_kzalloc(test, sizeof(*state), GFP_KERNEL);
++	KUNIT_ASSERT_NOT_NULL(test, state);
++	for (mode = 0; mode < 2; mode++) {
++		for (ordinal = 1; ordinal <= DA9213_PROVIDER_SNAPSHOT_ACTIONS;
++		     ordinal++) {
++			struct mt6797_a72_provider_state observed;
++			int ret;
++
++			da9213_membership_fake_init(&state->fake);
++			if (mode)
++				state->fake.short_ordinal = ordinal;
++			else
++				state->fake.fail_ordinal = ordinal;
++			ret = da9213_membership_register_state(state);
++			KUNIT_ASSERT_EQ(test, ret, 0);
++			memset(&observed, 0xa5, sizeof(observed));
++			ret = mt6797_a72_provider_snapshot(&observed);
++			KUNIT_EXPECT_LT_MSG(test, ret, 0,
++					    "mode=%u ordinal=%u", mode,
++					    ordinal);
++			expect_snapshot_zero(test, &observed);
++			KUNIT_EXPECT_EQ(test, state->fake.operation_calls,
++					ordinal);
++			KUNIT_EXPECT_EQ(test, state->fake.lock_calls, 1U);
++			KUNIT_EXPECT_EQ(test, state->fake.unlock_calls, 1U);
++			KUNIT_EXPECT_EQ(test, state->fake.write_count, 0U);
++			KUNIT_EXPECT_EQ(test, state->fake.delay_calls, 0U);
++			KUNIT_EXPECT_FALSE(test, state->fake.transfer_unlocked);
++			KUNIT_EXPECT_FALSE(test, state->fake.retry_nonzero);
++			KUNIT_EXPECT_EQ(test, state->fake.adapter.retries,
++					DA9213_MEMBERSHIP_TEST_RETRIES);
++			da9213_membership_unregister_endpoint();
++		}
++	}
++}
++
++static void da9213_provider_snapshot_unstable(struct kunit *test)
++{
++	struct mt6797_a72_provider_state observed;
++	struct da9213_membership_test_state *state;
++	int ret;
++
++	state = kunit_kzalloc(test, sizeof(*state), GFP_KERNEL);
++	KUNIT_ASSERT_NOT_NULL(test, state);
++	da9213_membership_fake_init(&state->fake);
++	state->fake.mutate_snapshot = true;
++	ret = da9213_membership_register_state(state);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	memset(&observed, 0xa5, sizeof(observed));
++	ret = mt6797_a72_provider_snapshot(&observed);
++	KUNIT_EXPECT_EQ(test, ret, -EAGAIN);
++	expect_snapshot_zero(test, &observed);
++	KUNIT_EXPECT_EQ(test, state->fake.operation_calls,
++			DA9213_PROVIDER_SNAPSHOT_ACTIONS);
++	KUNIT_EXPECT_EQ(test, state->fake.lock_calls, 1U);
++	KUNIT_EXPECT_EQ(test, state->fake.unlock_calls, 1U);
++	KUNIT_EXPECT_EQ(test, state->fake.write_count, 0U);
++	KUNIT_EXPECT_EQ(test, state->fake.delay_calls, 0U);
++	da9213_membership_unregister_endpoint();
++}
++
++static void da9213_provider_snapshot_registry_guards(struct kunit *test)
++{
++	struct da9213_membership_test_state *state;
++	struct mt6797_a72_provider_state observed;
++	int ret;
++
++	state = kunit_kzalloc(test, sizeof(*state), GFP_KERNEL);
++	KUNIT_ASSERT_NOT_NULL(test, state);
++	ret = mt6797_a72_provider_snapshot(NULL);
++	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
++	memset(&observed, 0xa5, sizeof(observed));
++	ret = mt6797_a72_provider_snapshot(&observed);
++	KUNIT_EXPECT_EQ(test, ret, -ENODEV);
++	expect_snapshot_zero(test, &observed);
++
++	ret = da9213_membership_register_synthetic(&state->synthetic);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	memset(&observed, 0xa5, sizeof(observed));
++	ret = mt6797_a72_provider_snapshot(&observed);
++	KUNIT_EXPECT_EQ(test, ret, -EOPNOTSUPP);
++	expect_snapshot_zero(test, &observed);
++	da9213_membership_unregister_synthetic();
++}
++
+ static void da9213_membership_positive_abort_success(struct kunit *test)
+ {
+ 	struct da9213_membership_test_state *state;
+@@ -789,6 +932,10 @@ static void da9213_membership_test_exit(struct kunit *test)
+ }
+ 
+ static struct kunit_case da9213_membership_test_cases[] = {
++	KUNIT_CASE(da9213_provider_snapshot_success),
++	KUNIT_CASE(da9213_provider_snapshot_transport_faults),
++	KUNIT_CASE(da9213_provider_snapshot_unstable),
++	KUNIT_CASE(da9213_provider_snapshot_registry_guards),
+ 	KUNIT_CASE(da9213_membership_positive_abort_success),
+ 	KUNIT_CASE(da9213_membership_acquire_transport_faults),
+ 	KUNIT_CASE(da9213_membership_acquire_malformed_success),
