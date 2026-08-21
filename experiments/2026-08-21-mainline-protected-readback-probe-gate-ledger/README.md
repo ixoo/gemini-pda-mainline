@@ -5,10 +5,9 @@
 The previous exact call-ledger candidate is rejected as `neither`: its one
 physical selection exposed no mainline USB, pstore, `last_kmsg`, fixed record,
 or changed retained payload before changed-boot-ID Gemian recovery. Neither
-protected transport was reached or tested. This non-identical successor is
-implemented as deterministic Buildbox patch-generation input and awaits exact
-generation, review, canonical admission, and compilation. No native VM build
-is permitted.
+protected transport was reached or tested. This non-identical successor is now
+generated, reviewed, and admitted canonically as patch `0324`. Exact Buildbox
+compilation remains pending. No native VM build is permitted.
 
 ## Question
 
@@ -69,8 +68,18 @@ that actually reaches the first protected call.
 - Any validated `boot2` installation uses the standing guarded workflow and
   ends in confirmed clean shutdown; no fresh partition backup is required.
 
+## Generation and admission
+
+Exact pushed commit `f16b57f` generated one patch on Buildbox from the managed,
+integrity-verified source through canonical `0323`. The generator pins the
+prepared source state, every touched parent file, and the canonical parent
+patch identity. Source semantics, patch shape, byte-identical replay, strict
+checkpatch, package checksums, manual review, the 105-profile canonical-series
+audit, and all eight invariant mutations pass. The fetched and admitted patch
+bytes are identical. See [`results/generation-f16b57f.txt`](results/generation-f16b57f.txt).
+
 ## Next action
 
-Commit and push the deterministic generator and profile, generate the exact
-one-patch review on Buildbox, fetch and review it, then admit it only if replay,
-strict style, profile-series invariants, and mutation checks all pass.
+Commit and push canonical `0324`, then compile only the isolated
+`protected-readback-probe-gate-ledger` profile on Buildbox and fetch only its
+validated package.

@@ -1,0 +1,168 @@
+From b26673818e6173b4bd11c2cc3df885c58b210140 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 21 Aug 2026 23:31:00 +0000
+Subject: [PATCH] pstore: add Gemini protected readback probe/gate mode
+
+Move the isolated ledger records to observer entry and the final exact gate before the first protected read so a single recovery can separate entry failure from later setup.
+
+Preserve the historical call-ledger mode, both existing read-only transports, the two-write ceiling, and all CPU and owner closures.
+---
+ .../mt6797-protected-readback-observer.c      | 16 ++++++
+ fs/pstore/Kconfig                             | 15 ++++++
+ fs/pstore/gemini_protected_readback_ledger.c  | 49 ++++++++++++++++++-
+ 3 files changed, 79 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-protected-readback-observer.c b/drivers/soc/mediatek/mt6797-protected-readback-observer.c
+index f7f3f58..063126d 100644
+--- a/drivers/soc/mediatek/mt6797-protected-readback-observer.c
++++ b/drivers/soc/mediatek/mt6797-protected-readback-observer.c
+@@ -93,6 +93,12 @@ static int mt6797_readback_observer_probe(struct platform_device *pdev)
+ 	int bigidvfs_ret;
+ 	int ret;
+ 
++#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_PROBE_GATE_LEDGER
++	if (!gemini_protected_readback_ledger_checkpoint(0))
++		return dev_err_probe(dev, -EIO,
++				     "probe-enter ledger checkpoint failed\n");
++#endif
++
+ 	clock_backend = mt6797_readback_get_backend(dev,
+ 						    "mediatek,clock-backend");
+ 	if (IS_ERR(clock_backend))
+@@ -106,18 +112,28 @@ static int mt6797_readback_observer_probe(struct platform_device *pdev)
+ 		goto put_clock;
+ 	}
+ 
++#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_PROBE_GATE_LEDGER
++	if (!gemini_protected_readback_ledger_checkpoint(1)) {
++		ret = dev_err_probe(dev, -EIO,
++				    "gate-passed ledger checkpoint failed\n");
++		goto put_bigidvfs;
++	}
++#else
+ 	if (!gemini_protected_readback_ledger_checkpoint(0)) {
+ 		ret = dev_err_probe(dev, -EIO,
+ 				    "before-clock ledger checkpoint failed\n");
+ 		goto put_bigidvfs;
+ 	}
++#endif
+ 	clock_ret = mt6797_dvfsp_clock_backend_read(&clock_backend->dev,
+ 						    &clock);
++#ifndef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_PROBE_GATE_LEDGER
+ 	if (!gemini_protected_readback_ledger_checkpoint(1)) {
+ 		ret = dev_err_probe(dev, -EIO,
+ 				    "after-clock ledger checkpoint failed\n");
+ 		goto put_bigidvfs;
+ 	}
++#endif
+ 	bigidvfs_ret = mt6797_bigidvfs_backend_read(&bigidvfs_backend->dev,
+ 						    &bigidvfs);
+ 	mt6797_readback_log_clock(dev, clock_ret, &clock);
+diff --git a/fs/pstore/Kconfig b/fs/pstore/Kconfig
+index 9189162..3a98725 100644
+--- a/fs/pstore/Kconfig
++++ b/fs/pstore/Kconfig
+@@ -149,6 +149,21 @@ config PSTORE_GEMINI_PROTECTED_READBACK_LEDGER
+ 	  This experiment-only option performs no storage, firmware, regulator,
+ 	  clock, CPU, timer, watchdog, reset, or power operation. If unsure, say N.
+ 
++config PSTORE_GEMINI_PROTECTED_READBACK_PROBE_GATE_LEDGER
++	bool "Gemini protected-readback probe/gate ledger mode"
++	depends on PSTORE_GEMINI_PROTECTED_READBACK_LEDGER=y
++	default n
++	help
++	  Move the isolated protected-readback ledger's two retained records to
++	  observer probe entry and the final exact gate immediately before the
++	  first protected read. The entry record requires only the exact Gemini
++	  compatibility, ramoops reservation, no-map property, and empty slots;
++	  the second retains the complete model, DT, prefix, and readback gates.
++
++	  This experiment-only mode adds no retained write, protected read, retry,
++	  owner, CPU, storage, firmware-write, reset, or power operation. The base
++	  call-ledger behavior is unchanged when this mode is disabled.
++
+ config PSTORE_GEMINI_POST_RAMOOPS_CHECKPOINT
+ 	bool "Gemini post-ramoops retained checkpoint"
+ 	depends on PSTORE_RAM=y
+diff --git a/fs/pstore/gemini_protected_readback_ledger.c b/fs/pstore/gemini_protected_readback_ledger.c
+index 168d96f..38868e6 100644
+--- a/fs/pstore/gemini_protected_readback_ledger.c
++++ b/fs/pstore/gemini_protected_readback_ledger.c
+@@ -18,6 +18,16 @@
+ 
+ static bool gemini_prb_armed;
+ 
++#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_PROBE_GATE_LEDGER
++static const char * const gemini_prb_records[] = {
++	"====0.000000-D\n"
++	"GEMINI_PROTECTED_READBACK_LEDGER_V2 token=GPRB-20260821-B "
++	"checkpoint=probe-enter slot=173 crc32=06a9b43b\n",
++	"====0.000000-D\n"
++	"GEMINI_PROTECTED_READBACK_LEDGER_V2 token=GPRB-20260821-B "
++	"checkpoint=gate-passed slot=174 crc32=41e86ca4\n",
++};
++#else
+ static const char * const gemini_prb_records[] = {
+ 	"====0.000000-D\n"
+ 	"GEMINI_PROTECTED_READBACK_LEDGER_V1 token=GPRB-20260821-A "
+@@ -26,6 +36,7 @@ static const char * const gemini_prb_records[] = {
+ 	"GEMINI_PROTECTED_READBACK_LEDGER_V1 token=GPRB-20260821-A "
+ 	"checkpoint=after-clock slot=174 crc32=e477a18e\n",
+ };
++#endif
+ 
+ static bool gemini_prb_slot_empty(void __iomem *slot)
+ {
+@@ -79,6 +90,31 @@ static bool gemini_prb_write(void __iomem *slot, const char *record)
+ 	return true;
+ }
+ 
++#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_PROBE_GATE_LEDGER
++static bool gemini_prb_minimal_dt(void)
++{
++	struct device_node *node;
++	struct resource resource;
++	bool exact = false;
++
++	if (!of_machine_is_compatible("planet,gemini-pda"))
++		return false;
++
++	node = of_find_node_by_path("/reserved-memory/ramoops@44410000");
++	if (!node)
++		return false;
++	if (of_device_is_compatible(node, "ramoops") &&
++	    !of_address_to_resource(node, 0, &resource) &&
++	    resource.start == GEMINI_PRB_RESERVE_BASE &&
++	    resource_size(&resource) == GEMINI_PRB_RESERVE_SIZE &&
++	    of_property_read_bool(node, "no-map"))
++		exact = true;
++	of_node_put(node);
++
++	return exact;
++}
++#endif
++
+ static bool gemini_prb_exact_dt(void)
+ {
+ 	struct device_node *node;
+@@ -149,8 +185,19 @@ bool gemini_protected_readback_ledger_checkpoint(unsigned int checkpoint)
+ 	bool written = false;
+ 
+ 	if (checkpoint > 1 || (checkpoint == 0 && gemini_prb_armed) ||
+-	    (checkpoint == 1 && !gemini_prb_armed) || !gemini_prb_exact_dt())
++	    (checkpoint == 1 && !gemini_prb_armed))
++		return false;
++#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_PROBE_GATE_LEDGER
++	if (checkpoint == 0) {
++		if (!gemini_prb_minimal_dt())
++			return false;
++	} else if (!gemini_prb_exact_dt()) {
++		return false;
++	}
++#else
++	if (!gemini_prb_exact_dt())
+ 		return false;
++#endif
+ 
+ 	ledger = ioremap_wc(GEMINI_PRB_LEDGER_BASE,
+ 			    GEMINI_PRB_SLOT_COUNT * GEMINI_PRB_SLOT_SIZE);

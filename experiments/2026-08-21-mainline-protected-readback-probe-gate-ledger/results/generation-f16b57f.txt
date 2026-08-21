@@ -1,0 +1,45 @@
+Protected-readback probe/gate ledger generation
+================================================
+
+Result: PASS; exact one-patch Buildbox review admitted canonically as 0324.
+Hardware evidence: no.
+Device action: none.
+Boot candidate: false.
+Native VM build: no.
+
+Repository commit: f16b57fbe1dd247d1c938375d200af32657e209b
+Buildbox job: f16b57fbe1dd247d1c938375d200af32657e209b-protected-readback-probe-gate-ledger-patchgen
+Buildbox package: protected-readback-probe-gate-ledger-f16b57fbe1dd
+Package SHA256SUMS SHA256: 775bc937d6b43614e53ac6900b6bb1794bec3d8ac402d72384158c626c1b4d57
+Prepared parent source state: 2fcc42acf845abc0bc3f6f52ff8d54f07b514d8f89fe0ab7b96d7d03b37fa64f
+Canonical parent patch: 0323-pstore-add-Gemini-protected-readback-call-ledger.patch
+Canonical parent patch SHA256: 0dd0dba2e10d5477fa7dcef74b0e2135ae8b1aeeb0a66e67c31040039d83f486
+Generated parent commit: 9f5770ebea5be051e345c9587884f16409e76a94
+Generated result commit: b26673818e6173b4bd11c2cc3df885c58b210140
+Generated patch: 0324-pstore-add-Gemini-protected-readback-probe-gate-mode.patch
+Generated/canonical patch SHA256: fe19fb59c86339cd1aa5cd3a6eb8f317fda9ed8f719a8aac3d062716111acfb5
+Generated-versus-canonical comparison: byte-identical
+Strict checkpatch: 0 errors, 0 warnings, 0 checks
+Manifest profiles checked after admission: 105
+Invariant mutations rejected: 8
+
+Validated semantics:
+- default-off probe/gate mode layered on the existing call ledger;
+- historical before-clock/after-clock behavior unchanged while mode is off;
+- fixed probe-enter record in retained slot 173;
+- fixed gate-passed record in retained slot 174;
+- checkpoint zero uses exact board/reservation/no-map plus empty-prefix safety;
+- checkpoint one retains the complete model, DT-property, and prefix gate;
+- unchanged payload-before-metadata writer and full readback;
+- maximum two retained writes and no retry or clear;
+- no new retained writer, protected read, secure write, owner, or CPU request;
+- existing protected reads remain clock-1 and BigiDVFS-1;
+- no storage, reset, reboot, or power action.
+
+The Buildbox generator first failed closed before generation because its managed
+prepared source had advanced from the pre-0323 state to the integrity-verified
+canonical tree through 0323. A signed correction pinned and reused that exact
+managed state and its touched-file hashes; no duplicate source extraction was
+created. The retry then passed source validation, patch-shape validation,
+byte-identical replay, strict style, package checksums, manual review, canonical
+byte comparison, the full manifest-series audit, and all invariant mutations.

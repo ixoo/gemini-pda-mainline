@@ -4653,6 +4653,12 @@ failure may be inferred. Reject this artifact without repetition. The first
 remaining boundary is observer probe entry versus refusal by the exact ledger
 gate.
 
+The non-identical probe/gate successor is now admitted canonically as patch
+`0324`. Its default-off mode preserves the historical call-ledger profile while
+moving the same two records to probe entry and the full pre-call gate. Exact
+Buildbox compilation of the isolated successor profile is the next unfinished
+part of this step.
+
 The next ordered work is:
 
 1. Build and run one non-identical two-checkpoint successor. Preserve every

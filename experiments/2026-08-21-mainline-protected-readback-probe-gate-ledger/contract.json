@@ -40,7 +40,18 @@
     "usb_completion": "both_protected_reads_returned"
   },
   "generation": {
-    "result": "pending_buildbox"
+    "result": "canonical_patch_admitted",
+    "repository_commit": "f16b57fbe1dd247d1c938375d200af32657e209b",
+    "job": "f16b57fbe1dd247d1c938375d200af32657e209b-protected-readback-probe-gate-ledger-patchgen",
+    "package": "protected-readback-probe-gate-ledger-f16b57fbe1dd",
+    "generated_parent_commit": "9f5770ebea5be051e345c9587884f16409e76a94",
+    "generated_result_commit": "b26673818e6173b4bd11c2cc3df885c58b210140",
+    "sha256sums_sha256": "775bc937d6b43614e53ac6900b6bb1794bec3d8ac402d72384158c626c1b4d57",
+    "patch_sha256": "fe19fb59c86339cd1aa5cd3a6eb8f317fda9ed8f719a8aac3d062716111acfb5",
+    "strict_checkpatch": "0 errors, 0 warnings, 0 checks",
+    "profiles_checked": 105,
+    "invariant_mutations_rejected": 8,
+    "hardware_evidence": false
   },
   "scope": {
     "new_protected_reads": 0,
