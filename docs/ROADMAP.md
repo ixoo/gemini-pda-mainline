@@ -4657,21 +4657,37 @@ The non-identical probe/gate successor is now admitted canonically as patch
 `0324`. Its default-off mode preserves the historical call-ledger profile while
 moving the same two records to probe entry and the full pre-call gate. Its exact
 isolated Buildbox kernel and independently validated Android-v0/16 MiB candidate
-now pass offline. Guarded deployment, readback, shutdown, and one attributable
-physical selection remain unfinished parts of this step.
+passed offline. Guarded deployment then resolved inactive live-GPT `boot2` as
+p30 while Gemian used p29, replaced exact predecessor `3ce494c9...715a` with
+`6cb729ef...2e62`, matched the full readback, and confirmed clean shutdown.
+
+One physical selection returned automatically to changed-boot-ID Gemian.
+Immediate recovery found empty pstore, both owned headers valid-empty, both
+120-byte record regions still erased, the known generic 74-byte `last_kmsg`
+header, and exact unchanged `boot2`. The USB collector was rearmed only after
+selection began, so its negative window is not primary evidence. The retained
+result is nevertheless strict `neither`: observer entry or its minimal
+gate/mapping/write path was not established, and neither protected call was
+reached. Reject patch-0324 candidate `6cb729ef...2e62` without repetition.
+
+The linked-image/source audit places clock-backend registration, BigiDVFS-
+backend registration, and observer registration consecutively in device-
+initcall order. The missing record was the observer probe's first operation.
+The next discriminator must therefore move before the observer and must not
+call either transport.
 
 The next ordered work is:
 
-1. Build and run one non-identical two-checkpoint successor. Preserve every
-   candidate input and the two-write maximum, but record `probe-enter` under a
-   minimal exact board/reservation/empty-slot safety gate and `gate-passed`
-   after backend acquisition and the complete current ledger gate immediately
-   before the clock call. Use the recovered prefix to distinguish probe not
-   entered, pre-call setup/gate refusal, and reaching the first protected call;
-   two records without USB do not alone prove clock nonreturn because the
-   unchanged BigiDVFS call still follows. Do not infer a result from screen
-   state or the generic boot-reason token. See the
-   [probe/gate ledger experiment](../experiments/2026-08-21-mainline-protected-readback-probe-gate-ledger/README.md).
+1. Build and run one isolated clock-backend-entry successor with the observer
+   and BigiDVFS node disabled and zero protected calls. Preserve the exact
+   board, kernel baseline, initramfs, retained reservation, two-write maximum,
+   and CPU/owner closures. Record once immediately before clock-backend
+   platform-driver registration and once as the clock-backend probe's first
+   operation. `neither`, init-only, both-with-return, and serviceable runtime
+   then distinguish an earlier/shared-gate failure, registration/binding
+   boundary, entered clock probe, and completed read-free clock probe. Do not
+   enable or sample BigiDVFS until this prerequisite closes. See the
+   [probe/gate ledger result and boundary audit](../experiments/2026-08-21-mainline-protected-readback-probe-gate-ledger/README.md).
 2. Compose the validated readers, DA921x, and the platform-state source under
    one transition/hotplug owner.
 3. Revise A34 to accept only the complete direct-state ABI and applicable

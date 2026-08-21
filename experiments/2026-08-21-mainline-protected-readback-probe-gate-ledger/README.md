@@ -10,7 +10,9 @@ generated, reviewed, and admitted canonically as patch `0324`. The exact
 Buildbox kernel and independently validated Android-v0/16 MiB candidate now
 pass offline. The source-pinned guarded installer, USB collector, strict USB
 validator, and retained-record classifier also pass their offline contracts.
-Guarded deployment is pending. No native VM build occurred.
+Guarded deployment and one physical selection are complete. The runtime result
+is `neither`; the artifact is rejected without repetition. No native VM build
+occurred.
 
 ## Question
 
@@ -45,7 +47,7 @@ retains its original before-clock/after-clock behavior.
 
 | Recovered evidence | Interpretation | Decision-changing next action |
 | --- | --- | --- |
-| neither | Probe did not enter, or the minimal board/reservation safety gate refused | Keep both transports unattributed; localize driver binding versus the minimal gate |
+| neither | Probe did not enter, or the minimal board/reservation gate, mapping, prefix check, or fixed write refused | Keep both transports unattributed; move before the observer and isolate its predecessor init/probe path |
 | `probe-enter` only | Probe entered, but did not cross backend acquisition plus the full exact gate | Keep both transports unattributed; split acquisition from the full gate without another identical boot |
 | `probe-enter` + `gate-passed`, no USB completion | The first protected call was reached; failure remains at or after that call | Isolate the clock call with an after-return observation before testing BigiDVFS again |
 | exact USB completion | Both protected reads returned and the observer completed | Validate the bounded runtime record, then resume composition prerequisites |
@@ -95,10 +97,36 @@ all six mutations. The 7,639,040-byte raw image is `c04de416...a233`; the exact
 byte-identical and no device was accessed. See
 [`results/candidate-c04de416.txt`](results/candidate-c04de416.txt).
 
+The source-pinned installer resolved inactive live-GPT `boot2` as p30 while
+Gemian used p29, required all four retained-slot headers to be exact-empty,
+recorded predecessor `3ce494c9...715a`, and wrote candidate
+`6cb729ef...2e62`. The independent full-partition readback matched, no fresh
+backup was made, and the device shut down cleanly. See
+[`results/deployment-attempt-1-success.txt`](results/deployment-attempt-1-success.txt).
+
+One physical selection returned automatically to changed-boot-ID Gemian. The
+normal pstore view exposed no files; bounded raw recovery found both owned
+headers valid-empty and both 120-byte payload regions still erased. The
+generic 74-byte `last_kmsg` header was unchanged and inactive `boot2` still
+matched exactly. Therefore the strict result is `neither`: the observer did
+not reach its first record, or the minimal gate/mapping/write path refused.
+Neither protected transport was reached. The USB collector was rearmed only
+after physical selection began, so its negative window is not used as primary
+evidence. See
+[`results/runtime-attempt-1-neither-20260821.txt`](results/runtime-attempt-1-neither-20260821.txt).
+
+The linked image contains the ledger and observer probe/initcall. Link order
+places the clock-backend and BigiDVFS-backend device initcalls immediately
+before the observer initcall, while the record is the observer probe's first
+operation. The next useful discriminator therefore moves earlier and removes
+both protected calls: isolate clock-backend driver registration and probe
+entry before evaluating BigiDVFS or the observer again. See
+[`results/post-result-boundary-audit-20260821.txt`](results/post-result-boundary-audit-20260821.txt).
+
 ## Next action
 
-Commit and push the reproducible deployment/runtime tools, then install the
-exact candidate once through the guarded `boot2` workflow. Require exact live
-empty retained slots, a matching full-partition readback, and confirmed clean
-shutdown. Arm the USB and recovery collectors before the owner selects
-`boot2`; classify exactly one physical selection with the table above.
+Reject this exact artifact without repetition. Preserve its runtime result as
+the boundary input for a new experiment that makes no protected call and
+isolates clock-backend driver registration from the first clock-backend probe
+operation. The repository-wide sequence remains owned by
+[`docs/ROADMAP.md`](../../docs/ROADMAP.md).

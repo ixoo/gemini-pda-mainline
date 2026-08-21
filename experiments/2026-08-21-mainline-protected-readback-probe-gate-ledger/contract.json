@@ -34,7 +34,7 @@
     "recovery_reader": "known-good Gemian pstore"
   },
   "decision_boundary": {
-    "neither": "probe_not_entered_or_minimal_gate_refused",
+    "neither": "probe_not_entered_or_minimal_gate_mapping_prefix_write_refused",
     "probe_enter_only": "backend_acquisition_or_complete_gate_not_crossed",
     "both_without_usb": "first_protected_call_reached_failure_at_or_after_call",
     "usb_completion": "both_protected_reads_returned"
@@ -90,6 +90,52 @@
     "negative_mutations_rejected": 6,
     "boot_candidate": true,
     "hardware_evidence": false
+  },
+  "deployment": {
+    "result": "write_synced_flushed_full_readback_verified",
+    "tool_commit": "b844f67076d33bda38f82c6c1d0a1db54add15f3",
+    "target": "/dev/mmcblk0p30",
+    "root": "/dev/mmcblk0p29",
+    "previous_sha256": "3ce494c971c24c9edab73aac592d0ba8dd0bbd25f06051245f7846f95d0c715a",
+    "candidate_sha256": "6cb729efacea914b993221f0f85a1ab7e67eb6bca915802a8236bb31edab2e62",
+    "readback_sha256": "6cb729efacea914b993221f0f85a1ab7e67eb6bca915802a8236bb31edab2e62",
+    "boot_id": "af5d0971-8e9d-495c-b527-14d93b147947",
+    "retained_slots_prewrite": "exact_empty",
+    "power": "present=1 capacity=95 health=Good external=1",
+    "fresh_predecessor_backup": false,
+    "shutdown": "confirmed_unreachable",
+    "reboot": false,
+    "deployment_summary_sha256": "b2cc62462771c9b1815d6e3995522d10198aeaf44c099e256c25665fe796a198"
+  },
+  "runtime": {
+    "attempt": 1,
+    "result": "neither",
+    "reason": "observer_not_entered_or_minimal_gate_mapping_write_refused",
+    "candidate_sha256": "6cb729efacea914b993221f0f85a1ab7e67eb6bca915802a8236bb31edab2e62",
+    "previous_gemian_boot_id": "af5d0971-8e9d-495c-b527-14d93b147947",
+    "recovery_gemian_boot_id": "a18bed92-3027-4658-b0f1-90206c056274",
+    "boot_id_changed": true,
+    "usb_observation": "collector_rearmed_after_selection_no_interface_before_recovery_incomplete_window",
+    "pstore_file_count": 0,
+    "probe_enter_record_count": 0,
+    "gate_passed_record_count": 0,
+    "retained_slot_headers": {
+      "171": "444247430000000000000000",
+      "172": "444247430000000000000000",
+      "173": "444247430000000000000000",
+      "174": "444247430000000000000000"
+    },
+    "owned_payload_state": "erased_ff",
+    "owned_payload_sha256_120_bytes": "9088fee917e5a748c2f0b4f5458c1cbdabbd696291c69be6e605bae0ef779e8f",
+    "last_kmsg_size": 74,
+    "last_kmsg_sha256": "8964100f947293ded847b8ca1a9313b43624ccd5c72d120aa84234c4998e0f53",
+    "post_cycle_boot2_sha256": "6cb729efacea914b993221f0f85a1ab7e67eb6bca915802a8236bb31edab2e62",
+    "private_pstore_manifest_sha256": "635500eea4713467c1ad02d37bac463b1df54622131a3b826301693d443d0cc3",
+    "clock_transport_result": "not_reached",
+    "bigidvfs_transport_result": "not_reached",
+    "cpu8_cpu9_admission": "closed",
+    "artifact_disposition": "rejected_do_not_repeat",
+    "next_discriminator": "clock_backend_driver_init_then_probe_entry_zero_protected_calls"
   },
   "scope": {
     "new_protected_reads": 0,

@@ -1,0 +1,78 @@
+Protected-readback probe/gate-ledger runtime attempt 1
+=======================================================
+
+Result: neither
+Reason: observer did not enter, or minimal gate/mapping/write refused
+Artifact disposition: rejected; do not repeat
+Clock transport result: not reached
+BigiDVFS transport result: not reached
+CPU8/CPU9 admission: closed
+
+Exact candidate
+---------------
+
+Kernel release: 7.1.3-gemini-protected-readback-probe-gate
+Raw Android-v0 SHA-256: c04de4167c392e046cfad0aad30b2801781a44b8963f9a37dbc69d8b0baca233
+Full boot2 SHA-256: 6cb729efacea914b993221f0f85a1ab7e67eb6bca915802a8236bb31edab2e62
+Candidate DTB SHA-256: 34f24e49600e16e9b00f25ecba1d0806c4ce325944e176acccc6751a236b8998
+Serviceability initramfs SHA-256: e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f
+
+Cycle attribution
+-----------------
+
+The exact candidate passed guarded deployment, independent full-partition
+readback, and clean shutdown before one owner-selected boot2 cycle. The device
+returned automatically to known-good Gemian. Its boot ID changed from
+`af5d0971-8e9d-495c-b527-14d93b147947` at deployment to
+`a18bed92-3027-4658-b0f1-90206c056274` at recovery.
+
+The first USB collector expired before physical selection and captured
+nothing. A replacement collector was armed immediately after selection began
+and observed no exact mainline interface before Gemian returned. Because that
+window did not cover the beginning of the selection, USB absence is not used
+as primary negative evidence. Screen state and the automatic return are also
+not used to locate the boundary.
+
+Read-only recovery
+------------------
+
+- Recovery kernel: 3.18.41+ on aarch64
+- Pstore directory: present
+- Pstore file count: 0
+- `probe-enter` record count: 0
+- `gate-passed` record count: 0
+- Retained classification: neither
+- Slot 171 header: `444247430000000000000000`
+- Slot 172 header: `444247430000000000000000`
+- Slot 173 header: `444247430000000000000000`
+- Slot 174 header: `444247430000000000000000`
+- Slot 173 120-byte payload SHA-256:
+  `9088fee917e5a748c2f0b4f5458c1cbdabbd696291c69be6e605bae0ef779e8f`
+- Slot 174 120-byte payload SHA-256:
+  `9088fee917e5a748c2f0b4f5458c1cbdabbd696291c69be6e605bae0ef779e8f`
+- Payload state: erased `0xff`; neither exact record is present
+- `/proc/last_kmsg` size: 74
+- `/proc/last_kmsg` SHA-256:
+  `8964100f947293ded847b8ca1a9313b43624ccd5c72d120aa84234c4998e0f53`
+- `last_kmsg` disposition: known generic header; no mainline log
+- Post-cycle full boot2 SHA-256:
+  `6cb729efacea914b993221f0f85a1ab7e67eb6bca915802a8236bb31edab2e62`
+- Private pstore-capture manifest SHA-256:
+  `635500eea4713467c1ad02d37bac463b1df54622131a3b826301693d443d0cc3`
+
+No pstore entry was removed. The recovery performed no device storage write,
+retained-RAM write, driver change, CPU request, or reboot request. Gemian's
+vendor CPU numbering/state is outside this candidate's admission claim and is
+not interpreted here.
+
+Interpretation
+--------------
+
+The exact first record was the observer probe's first operation. Its absence
+means the attempt did not establish observer entry, or the minimal
+board/reservation/empty-slot gate, mapping, or fixed-record write refused.
+Neither backend was acquired and neither protected call can be attributed.
+
+Do not repeat this artifact. The next discriminator must move before the
+observer, execute no protected call, and distinguish clock-backend driver
+registration from the clock-backend probe's first operation.

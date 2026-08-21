@@ -1,0 +1,67 @@
+Protected-readback post-result boundary audit
+==============================================
+
+Result: predecessor initcall/probe split selected
+Device access: none
+Native VM build: none
+
+Linked-image facts
+------------------
+
+System.map package:
+linux-7.1.3-gemini-protected-readback-probe-gate-ledger-6fadb1b3-a8ebd1eb
+
+ffff8000803c155c T gemini_protected_readback_ledger_checkpoint
+ffff80008055d7f0 t mt6797_readback_observer_probe
+ffff800080a518c4 t mt6797_dvfsp_clock_backend_driver_init
+ffff800080a518ec t mt6797_bigidvfs_backend_driver_init
+ffff800080a51914 t mt6797_readback_observer_driver_init
+ffff800080aa3d40 d clock-backend device initcall
+ffff800080aa3d44 d BigiDVFS-backend device initcall
+ffff800080aa3d48 d protected-readback-observer device initcall
+
+Source facts
+------------
+
+- Clock-backend driver registration precedes BigiDVFS-backend registration,
+  which precedes observer registration in device-initcall order.
+- The `probe-enter` record is the first operation in the observer probe.
+- Before any protected read, the clock-backend probe allocates state, maps the
+  MCUMIXED and CSPM resources, acquires the I2C clock handle, initializes locks,
+  and publishes driver data.
+- The BigiDVFS probe validates `method = "smc"`, allocates state, initializes a
+  mutex, and publishes driver data. It makes no secure call during probe.
+- The protected clock and BigiDVFS reads occur only later from the observer.
+- The image links all three probes and all three initcalls; compile/link
+  omission is excluded.
+
+Inference
+---------
+
+The runtime `neither` result places the first unobserved boundary no later
+than the observer's first operation. It does not by itself distinguish an
+earlier boot failure, clock/BigiDVFS registration or probe behavior, observer
+binding failure, or refusal by the observer record's own minimal gate.
+
+Historical post-LK live-FDT evidence establishes the exact Gemini compatible,
+ramoops reservation, and no-map properties for closely related serviceable
+candidates, and deployment proved all four slot headers empty. Those facts
+make the minimal gate plausible but do not prove its evaluation in this exact
+failed cycle.
+
+Decision-bearing successor
+--------------------------
+
+Use an isolated, default-off clock-backend-entry profile with no observer,
+no BigiDVFS node, and zero protected calls. Retain at most two fixed writes:
+
+1. one immediately before clock-backend platform-driver registration;
+2. one as the clock-backend probe's first operation.
+
+Neither record moves the unknown boundary before the clock initcall or into
+the shared safety gate. The first record alone locates failure in registration,
+matching, or entry before the probe operation. Both records prove clock probe
+entry and move the next split inside that read-free probe. A serviceable boot
+with both records closes the clock-backend probe prerequisite before BigiDVFS
+is isolated separately. Do not re-enable the observer or either protected read
+in this successor.
