@@ -307,28 +307,30 @@ gemini_protected_readback_ledger_checkpoint(unsigned int checkpoint)
         "#include <linux/platform_device.h>\n",
         "#include <linux/platform_device.h>\n#include <linux/pstore_ram.h>\n",
     )
-    old = dedent(r"""
-	clock_ret = mt6797_dvfsp_clock_backend_read(&clock_backend->dev,
-						    &clock);
-	bigidvfs_ret = mt6797_bigidvfs_backend_read(&bigidvfs_backend->dev,
-						    &bigidvfs);
-""").lstrip("\n")
-    new = dedent(r"""
-	if (!gemini_protected_readback_ledger_checkpoint(0)) {
-		ret = dev_err_probe(dev, -EIO,
-				    "before-clock ledger checkpoint failed\n");
-		goto put_bigidvfs;
-	}
-	clock_ret = mt6797_dvfsp_clock_backend_read(&clock_backend->dev,
-						    &clock);
-	if (!gemini_protected_readback_ledger_checkpoint(1)) {
-		ret = dev_err_probe(dev, -EIO,
-				    "after-clock ledger checkpoint failed\n");
-		goto put_bigidvfs;
-	}
-	bigidvfs_ret = mt6797_bigidvfs_backend_read(&bigidvfs_backend->dev,
-						    &bigidvfs);
-""").lstrip("\n")
+    old = (
+        "\tclock_ret = mt6797_dvfsp_clock_backend_read(&clock_backend->dev,\n"
+        "\t\t\t\t\t\t    &clock);\n"
+        "\tbigidvfs_ret = "
+        "mt6797_bigidvfs_backend_read(&bigidvfs_backend->dev,\n"
+        "\t\t\t\t\t\t    &bigidvfs);\n"
+    )
+    new = (
+        "\tif (!gemini_protected_readback_ledger_checkpoint(0)) {\n"
+        "\t\tret = dev_err_probe(dev, -EIO,\n"
+        "\t\t\t\t    \"before-clock ledger checkpoint failed\\n\");\n"
+        "\t\tgoto put_bigidvfs;\n"
+        "\t}\n"
+        "\tclock_ret = mt6797_dvfsp_clock_backend_read(&clock_backend->dev,\n"
+        "\t\t\t\t\t\t    &clock);\n"
+        "\tif (!gemini_protected_readback_ledger_checkpoint(1)) {\n"
+        "\t\tret = dev_err_probe(dev, -EIO,\n"
+        "\t\t\t\t    \"after-clock ledger checkpoint failed\\n\");\n"
+        "\t\tgoto put_bigidvfs;\n"
+        "\t}\n"
+        "\tbigidvfs_ret = "
+        "mt6797_bigidvfs_backend_read(&bigidvfs_backend->dev,\n"
+        "\t\t\t\t\t\t    &bigidvfs);\n"
+    )
     replace_once(observer, old, new)
     replace_once(
         observer,
