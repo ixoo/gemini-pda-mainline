@@ -61,8 +61,9 @@ that actually reaches the first protected call.
 - There is no new writer body, protected read, secure write, retry, owner,
   CPU request, storage operation, reset, reboot, or power operation.
 - Patch generation and compilation run only on Buildbox from a clean pushed
-  commit. The managed pristine source and exact canonical `0323` patch are
-  pinned and replayed before generating the one-patch delta.
+  commit. The managed prepared source through canonical `0323`, each touched
+  parent file, and the exact canonical `0323` patch identity are pinned before
+  generating the one-patch delta; no duplicate source extraction is created.
 - The generated patch uses a synthetic, non-certifying experiment author with
   no DCO sign-off and is not submission-ready.
 - Any validated `boot2` installation uses the standing guarded workflow and

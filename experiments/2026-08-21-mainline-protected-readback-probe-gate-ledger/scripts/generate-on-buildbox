@@ -3,12 +3,13 @@
 set -euo pipefail
 export LC_ALL=C
 
-readonly PARENT_SOURCE_STATE=6404b05308f392c3753bfdd5e36c35c4cc666ae931bfdc9dc5ca6c15f72bb7de
-readonly PSTORE_KCONFIG_SHA256=add1aacb2bd70673becf231e69c4ad029f001ad1a07dba7104f907d095a950b2
-readonly PSTORE_MAKEFILE_SHA256=bd4eb47ab55df200534a5954b8c05241deac9f47024a3aed4195136f097b3d7e
-readonly PSTORE_RAM_SHA256=c8859d9cf246a8ebc31cc933b476c39288961a8d3df090cf0915d9eeb1e65218
-readonly PSTORE_HEADER_SHA256=47ce44198f98f4a972a1c8d5edfb38183a8ac2001707b55e4de71612edd108fb
-readonly OBSERVER_SHA256=8f69fdff44181bc0f8bcd827d8d2c81aff18678f023c76854420667d2f469f3d
+readonly PARENT_SOURCE_STATE=2fcc42acf845abc0bc3f6f52ff8d54f07b514d8f89fe0ab7b96d7d03b37fa64f
+readonly PSTORE_KCONFIG_SHA256=3b35bca9d582ef9a442091c48e552df13920e6140ab8a4e423611a6a43784f27
+readonly PSTORE_MAKEFILE_SHA256=cc4f78cdff34d4bc5ea0fdc2246c82966bac77983f9bf22bf4025e46713f386f
+readonly PSTORE_RAM_SHA256=e02ac9017852cf4b64298937be7eccc9b9ba0dcd4bc5e4376c40160c39f67688
+readonly PSTORE_HEADER_SHA256=251a8945c3294f4f4ba76d3eb8685a4d1993a1add9b832577a02e32480669837
+readonly OBSERVER_SHA256=1257bb8c1347b01f051b56e0248db66c81db132f321378ef90eb7076b265961a
+readonly LEDGER_SHA256=e9fe2873bc0d28f25836d4ab233e82119d8ef5adf04d94bc43157217f1f2d493
 readonly PARENT_PATCH=0323-pstore-add-Gemini-protected-readback-call-ledger.patch
 readonly PARENT_PATCH_SHA256=0dd0dba2e10d5477fa7dcef74b0e2135ae8b1aeeb0a66e67c31040039d83f486
 
@@ -55,6 +56,7 @@ check_file "$PSTORE_RAM_SHA256" fs/pstore/ram.c
 check_file "$PSTORE_HEADER_SHA256" include/linux/pstore_ram.h
 check_file "$OBSERVER_SHA256" \
 	drivers/soc/mediatek/mt6797-protected-readback-observer.c
+check_file "$LEDGER_SHA256" fs/pstore/gemini_protected_readback_ledger.c
 
 readonly parent_patch_path="$repository_dir/patches/v7.1.3/$PARENT_PATCH"
 [[ -f "$parent_patch_path" && ! -L "$parent_patch_path" ]] ||
@@ -92,6 +94,7 @@ for relative in \
   fs/pstore/Kconfig \
   fs/pstore/Makefile \
   fs/pstore/ram.c \
+  fs/pstore/gemini_protected_readback_ledger.c \
   include/linux/pstore_ram.h \
   drivers/soc/mediatek/mt6797-protected-readback-observer.c; do
 	mkdir -p "$work/source/$(dirname "$relative")"
@@ -104,13 +107,11 @@ git -C "$work/source" add -- .
 GIT_AUTHOR_DATE=2026-08-21T23:30:00Z \
 GIT_COMMITTER_DATE=2026-08-21T23:30:00Z \
 	git -C "$work/source" commit --quiet --no-gpg-sign \
-		-m 'protected-readback probe/gate pristine parent'
+		-m 'protected-readback probe/gate canonical parent'
 baseline_commit="$(git -C "$work/source" rev-parse HEAD)"
 readonly baseline_commit
 
-git -C "$work/source" am --quiet --committer-date-is-author-date \
-	"$parent_patch_path"
-parent_commit="$(git -C "$work/source" rev-parse HEAD)"
+parent_commit="$baseline_commit"
 readonly parent_commit
 PYTHONDONTWRITEBYTECODE=1 python3 \
 	"$repository_dir/experiments/2026-08-21-mainline-protected-readback-call-ledger/scripts/validate_source.py" \
