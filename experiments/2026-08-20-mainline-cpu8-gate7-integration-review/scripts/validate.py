@@ -29,6 +29,7 @@ FILES = {
     "patches/v7.1.3/0294-regulator-add-positive-DA921x-Buck-B-provider-transaction.patch": "4dc1bf5d42aaed8b1d63dbfaf6726d4c20d37ac757b74db38f6df1cf1f59462f",
     "patches/v7.1.3/0295-regulator-test-positive-DA921x-Buck-B-provider-transaction.patch": "1b5cdbdb417176b8488a95994db3df1a6ae95f4b5ab1b17c198dd81c7ddb6a39",
     "experiments/2026-08-20-mainline-da921x-positive-provider-transaction/results/kunit-qemu-20260820.txt": "83f0a7204a3885ac30681564ec62a346a410723f133a607da6f15af47d96f0b8",
+    "experiments/2026-08-20-mainline-cpu8-gate7-integration-review/results/buildbox-reconstruction-20260820.txt": "737ac91a79338c156aacdc86a9737b0df64a0dc2521881bf779ddad8d48429e1",
     "experiments/2026-08-05-a72-membership-admission-contract/DESIGN.md": "81dd80cd598347bd41857e8cc0c0702c489759d866324f0e5aa7db51c555ee6a",
     "experiments/2026-08-05-a72-safe-off-ownership-contract/README.md": "7d52ee67ed285520a5b1a9f36634e0fb66e3d5f7685082d7d9b0a58c5ad74f8f",
     "experiments/2026-08-05-a72-a41-immutable-plan/results/evidence-audit.tsv": "b170c25e68071d62df96e2d150a5687245ec10e697afcaeacee3d4070007aff8",
@@ -188,12 +189,26 @@ def main() -> None:
     require({"p28-effect", "cpu-on", "cpu-off", "device-action"} <= forbidden,
             "next slice lost forbidden effects")
 
+    buildbox = contract["buildbox"]
+    require(
+        buildbox["validation_repository_commit"]
+        == "948522804fe49b9885937a06e041c48d6bd86800",
+        "Buildbox validation commit changed",
+    )
+    require(
+        buildbox["corrected_reconstruction_validation"] == "passed"
+        and buildbox["drift_rejected"],
+        "Buildbox reconstruction proof changed",
+    )
+    require(buildbox["patch_count"] == 284, "Buildbox patch count changed")
+    require(not buildbox["native_vm_fallback"], "native VM fallback appeared")
+
     print("validation=mainline-cpu8-gate7-integration-review")
     print("matrix_rows=15")
     print("positive_provider_proof=passed")
     print("direct_p28_integration=rejected")
     print("next=hardware-free-pre-p28-positive-provider-abort-and-fault-terminal")
-    print("buildbox_reconstruction_validation=deferred-dns-unavailable")
+    print("buildbox_reconstruction_validation=passed")
     print("hardware_action=none")
     print("device_action=none")
     print("cpu8_cpu9_admission=closed")

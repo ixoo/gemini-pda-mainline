@@ -41,9 +41,12 @@ The positive provider implementation and compiled Image were present, so this
 specific observation is documentation-only; it does not establish the scope
 of any other drift. Commit `d3c2aeecbbce5f8feaf7d00549580d318e7e03e6`
 repairs the wrapper so reuse additionally requires a recursive content, mode,
-path, and symlink digest. Buildbox DNS was unavailable before the corrected
-tree could be reconstructed, so that remote validation remains deferred and
-no VM fallback was used.
+path, and symlink digest. Buildbox later became available. At repository
+commit `948522804fe49b9885937a06e041c48d6bd86800`, the wrapper rejected the
+drifted tree, reconstructed all 284 selected patches, verified source digest
+`4367166c3c33eee345df7427aa808c693af6178bb0f795894a942219ccb58aa2`
+before and after the build, and reproduced the validated positive-provider
+package. No VM fallback was used.
 
 ## Safety assessment
 
@@ -67,6 +70,8 @@ provider call remains a later, separate admission decision.
   canonical ordering, source semantics, matrix, contract, and safety markers.
 - [`results/audit-validation-20260820.txt`](results/audit-validation-20260820.txt)
   records the sanitized validator result.
+- [`results/buildbox-reconstruction-20260820.txt`](results/buildbox-reconstruction-20260820.txt)
+  records the exact remote reconstruction and package receipt.
 
 Run from the repository root:
 

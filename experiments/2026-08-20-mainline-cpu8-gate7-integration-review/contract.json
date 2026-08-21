@@ -89,7 +89,16 @@
   },
   "buildbox": {
     "prepared_source_integrity_fix_commit": "d3c2aeecbbce5f8feaf7d00549580d318e7e03e6",
-    "corrected_reconstruction_validation": "deferred-buildbox-dns-unavailable",
+    "validation_repository_commit": "948522804fe49b9885937a06e041c48d6bd86800",
+    "corrected_reconstruction_validation": "passed",
+    "drift_rejected": true,
+    "patch_count": 284,
+    "source_tree_integrity_sha256": "4367166c3c33eee345df7427aa808c693af6178bb0f795894a942219ccb58aa2",
+    "source_state_sha256": "2e804ec33835f0e14b050773c52d1d39acf573e6e71eee8257f8c282b54c8f2a",
+    "package": "linux-7.1.3-gemini-da921x-positive-provider-kunit-343d09a3-47ebccd5",
+    "image_sha256": "bc286932cba5885f0d54e675b999fd71b9e200c3f2e7b620b3da2e1e8e07a1a9",
+    "config_sha256": "3f96e1a0a3edd82d3e82be3573159211d61361c87440a90e654c8e49a691ac46",
+    "generated_utc": "2026-08-20T23:57:22Z",
     "native_vm_fallback": false
   }
 }
