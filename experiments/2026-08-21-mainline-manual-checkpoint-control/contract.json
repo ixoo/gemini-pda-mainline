@@ -87,6 +87,17 @@
     "device_access": false,
     "hardware_write": false
   },
+  "deployment": {
+    "gemian_boot_id": "95420439-c958-4eca-8c4d-9db2342755bf",
+    "active_root": "/dev/mmcblk0p29",
+    "boot2": "/dev/mmcblk0p30",
+    "predecessor_sha256": "7084f2ee87af103dfcf1dfad9956f54c2a9df8d37b5f6d0388ba45464d8d52a3",
+    "prewrite_slots": "171-174-exact-empty",
+    "prewrite_retained_ram_writes": 0,
+    "full_readback_sha256": "53e03cb7100cbb355b7513320428cea8bf39c8c81da9b89a52c91cadd24e8e5c",
+    "fresh_backup": false,
+    "shutdown": "confirmed-unreachable"
+  },
   "decision": {
     "live_pass_and_both_recovered": "writer_and_cross_version_recovery_pass",
     "live_pass_and_recovered_empty": "writer_local_path_pass_recovery_not_an_oracle",

@@ -1,0 +1,30 @@
+Manual checkpoint control deployment
+====================================
+
+Result: write-synced-flushed-full-readback-verified
+Deployment Gemian boot ID: 95420439-c958-4eca-8c4d-9db2342755bf
+Active root: /dev/mmcblk0p29
+Live-GPT logical target: boot2
+Resolved target: /dev/mmcblk0p30
+Predecessor SHA-256: 7084f2ee87af103dfcf1dfad9956f54c2a9df8d37b5f6d0388ba45464d8d52a3
+Candidate SHA-256: 53e03cb7100cbb355b7513320428cea8bf39c8c81da9b89a52c91cadd24e8e5c
+Full readback SHA-256: 53e03cb7100cbb355b7513320428cea8bf39c8c81da9b89a52c91cadd24e8e5c
+Power: battery present, 100%, Good, external power online
+Fresh predecessor backup: no
+Reboot: no
+Shutdown: confirmed unreachable
+
+Retained-slot preflight
+-----------------------
+
+Slot 171 header: 444247430000000000000000
+Slot 172 header: 444247430000000000000000
+Slot 173 header: 444247430000000000000000
+Slot 174 header: 444247430000000000000000
+Prewrite classification: exact empty
+Preflight retained-RAM writes: none
+
+The deployment used the exact ignored local candidate and the live GPT. It
+did not create a fresh partition backup, touch another boot partition, reboot,
+or write retained RAM during preflight. The next action is to arm the exact
+runtime collector before the owner physically selects boot2 once.

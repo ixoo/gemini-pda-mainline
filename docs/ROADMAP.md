@@ -4743,9 +4743,10 @@ mutations. Corrected exact commit `c1d59f3` built successfully on Buildbox.
 Exact padded candidate `53e03cb...e5c` passed all 32 LK gates, rejected 15 DT
 mutations, and its tooling rejected 19 live and nine recovery mutations,
 including crossed retained-slot attribution. It is admitted for one guarded
-boot2 deployment and one physical selection. The next action is to deploy,
-verify the full readback, shut down, and arm the exact observer before that
-selection. See the
+boot2 deployment and one physical selection. Guarded deployment resolved
+inactive live-GPT boot2, confirmed slots 171--174 empty, matched the exact full
+readback, and shut the device down. The next action is to arm the exact
+observer before the one physical selection. See the
 [manual checkpoint control](../experiments/2026-08-21-mainline-manual-checkpoint-control/README.md).
 
 The next ordered work is:

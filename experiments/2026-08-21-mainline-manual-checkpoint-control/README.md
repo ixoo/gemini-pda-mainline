@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-21-mainline-manual-checkpoint-control` |
-| Status | running; exact candidate admitted offline, deployment pending |
+| Status | running; exact candidate deployed and shut down, runtime pending |
 | Subsystem | pstore/ramoops, retained-RAM observation, arm64 serviceability |
 | Device variant | Gemini PDA x27, named project unit |
 | Date(s) | 2026-08-21 |
@@ -144,6 +144,16 @@ device access occurred. Exact candidate `53e03cb...e5c` is admitted for one
 guarded boot2 deployment and one physical selection. See the
 [candidate result](results/candidate-4338ac1e.txt).
 
+Guarded deployment from Gemian boot ID
+`95420439-c958-4eca-8c4d-9db2342755bf` resolved inactive logical boot2 as
+`/dev/mmcblk0p30` while root remained `/dev/mmcblk0p29`. Slots 171--174 had
+exact empty headers before the write and the preflight performed no retained-
+RAM write. The installer replaced exact predecessor `7084f2ee...d52a3`,
+matched the synchronized/flushed full 16 MiB readback to
+`53e03cb...e5c`, created no fresh backup, requested no reboot, and confirmed
+clean shutdown. See the
+[deployment receipt](results/deployment-20260821.txt).
+
 ## Analysis
 
 Clock-entry candidates combined a new Image/configuration, the shared writer,
@@ -157,14 +167,14 @@ registration and probe behavior.
 
 The exact Buildbox package, proven-serviceability DT derivative, Android-v0
 container, and decision-bearing runtime/recovery tools passed offline
-validation. Candidate `53e03cb...e5c` is admitted for one guarded deployment;
-no checkpoint, persistence, or new hardware-support claim has yet been made.
+validation. Candidate `53e03cb...e5c` passed guarded deployment and full
+readback, and the device is shut down ready for the one physical selection.
+No checkpoint, persistence, or new hardware-support claim has yet been made.
 
 ## Follow-up
 
-Guardedly deploy the exact admitted candidate, shut down, then arm the exact
-collector before the single physical selection. If the live two-write oracle
-passes, redesign the next enabled-clock-node probe to expose a live result
-rather than relying on returned empty slots. If this control loses
+Arm the exact collector before the single physical selection. If the live two-
+write oracle passes, redesign the next enabled-clock-node probe to expose a
+live result rather than relying on returned empty slots. If this control loses
 serviceability or refuses locally, stop clock and CPU8 work and repair the
 shared writer on the exact proven base. CPU8 and CPU9 remain closed.
