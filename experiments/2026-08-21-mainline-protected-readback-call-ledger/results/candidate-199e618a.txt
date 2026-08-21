@@ -1,0 +1,52 @@
+Protected-readback call-ledger Android-v0/LK candidate
+=====================================================
+
+Result: pass
+Boot candidate: true
+Device access: none
+Hardware write: none
+
+Inputs
+------
+
+Repository commit: 36027e9e5381cae6223ad64abe2a9e2368f0aba9
+Build profile: protected-readback-call-ledger
+Kernel release: 7.1.3-gemini-protected-readback-ledger
+Image: 5b8682eb9eb5ed81ad238d1e265d0200c58fc009b1c9b1053531641ff721c60b
+Image.gz: 2beabfc3f40f635e27d9085604416b301024098ad2a1ad4cebe99ac8000a5c59
+Candidate DTB: 34f24e49600e16e9b00f25ecba1d0806c4ce325944e176acccc6751a236b8998
+Serviceability initramfs: e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f
+Serializer: 569ca6f2b365f119c8c3668cb3d63724b29e76447e47638d707983ee8eafadf4
+LK analyzer: aa25edb2cf9675ab0c90d2655bbf1ad845b41e697f0b40ba1f357cec7646eb95
+Builder: e1c68f80e047d51a138359dd7c1e5c2dbc9cc26e8aa1acb8b91a67d124716dea
+Independent validator: 0bfe8d58402dbf524df1279e92ffc3b008398c557cc1ae9d446bf24b7b0e011b
+
+Container
+---------
+
+Artifact: candidate-protected-readback-ledger-199e618a
+Raw file: gemini-mt6797-protected-readback-ledger.boot.img
+Raw size: 7639040
+Raw SHA-256: 199e618af834d140746c367f7789407da39ce61dd2b1f9bab40fe63150285c17
+Padded size: 16777216
+Padded SHA-256: 3ce494c971c24c9edab73aac592d0ba8dd0bbd25f06051245f7846f95d0c715a
+Artifact SHA256SUMS: a4c5f0f463071aa46613230d1d9d1fb364664bb6722f701f218099402860c545
+LK name: gemini-prbro
+LK command line: bootopt=64S3,32N2,64N2
+
+Validation
+----------
+
+- Complete fetched-package checksum inventory: pass
+- Exact package, config, linked-symbol, DTB, and initramfs identities: pass
+- Unique before-clock, after-clock, clock, BigiDVFS, and completion markers: pass
+- Independent raw assemblies: byte-identical
+- Independent 16 MiB padding constructions: byte-identical
+- Retained-LK analyzer: 32 of 32 gates pass
+- Independent Android-v0 layout and canonical image-ID reconstruction: pass
+- Negative magic, kernel, DTB, initramfs, canonical-ID, and padded-tail
+  mutations: all rejected
+
+The artifact is an exact offline-valid boot candidate. Live empty-slot and TEE
+identities, guarded boot2 deployment, full readback, physical selection, and
+the one-shot retained-ledger result remain unobserved.

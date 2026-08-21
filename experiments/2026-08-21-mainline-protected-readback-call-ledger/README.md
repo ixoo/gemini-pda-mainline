@@ -3,9 +3,10 @@
 ## Status
 
 Design, live read-only slot preflight, deterministic Buildbox patch generation,
-strict review, and canonical admission through patch `0323` are complete.
-Buildbox compilation, candidate construction, deployment, and the single device
-attempt remain pending. No native VM build or device action occurred.
+strict review, canonical admission through patch `0323`, the exact Buildbox
+kernel, and reproducible Android-v0 candidate construction are complete.
+Deployment and the single device attempt remain pending. No native VM build or
+new-candidate device action occurred.
 
 The rejected predecessor returned to changed-boot-ID Gemian before exposing
 mainline USB and left no pstore, `last_kmsg`, or observer record. Its two reads
@@ -78,6 +79,20 @@ patch replay, strict checkpatch, fetched-versus-admitted bytes, the 104-profile
 canonical-series audit, and all eight invariant mutations pass. See
 [`results/generation-32e4874.txt`](results/generation-32e4874.txt).
 
+Exact clean pushed commit `36027e9` then built the isolated profile on
+Buildbox with no modules. The fetched package passed its complete checksum
+inventory and pins release `7.1.3-gemini-protected-readback-ledger`. Both
+readback backends, the observer, and the call ledger are built in; all older
+ledger options and all CPU8/CPU9 admission paths remain off. The candidate DTB
+is byte-identical to the rejected predecessor. See
+[`results/build-36027e9.txt`](results/build-36027e9.txt).
+
+Two independent Android-v0 assemblies and two independent padding paths agree
+byte-for-byte. The 7,639,040-byte raw container is `199e618a...c17`; the exact
+16 MiB `boot2` image is `3ce494c9...715a`. All 32 LK gates pass, the serviceable
+initramfs remains exact, and all six container mutations are rejected. See
+[`results/candidate-199e618a.txt`](results/candidate-199e618a.txt).
+
 ## Scope and safety
 
 The only new runtime effects are at most two short writes to already reserved
@@ -94,8 +109,8 @@ device down without rebooting. No fresh partition backup is required.
 
 ## Decision rule
 
-Build the isolated profile on Buildbox from the clean pushed canonical commit.
-Only an exact candidate with verified DT, configuration, linked symbols,
-container, live empty-slot preflight, full `boot2` readback, and clean shutdown
-may receive one physical selection. Recover the two slots from Gemian before
-any second candidate or composition work.
+Install only exact padded candidate `3ce494c9...715a` after the installer
+repeats the live empty-slot preflight and passes the TEE, GPT, inactive-target,
+power, predecessor, and staging gates. Require full `boot2` readback and clean
+shutdown before one physical selection. Recover the two slots from Gemian
+before any second candidate or composition work.

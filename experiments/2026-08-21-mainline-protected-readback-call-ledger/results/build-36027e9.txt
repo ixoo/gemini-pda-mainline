@@ -1,0 +1,51 @@
+Protected-readback call-ledger exact Buildbox result
+====================================================
+
+Result: pass; validated offline, not hardware evidence
+Generated UTC: 2026-08-21T18:23:50Z
+Repository commit: 36027e9e5381cae6223ad64abe2a9e2368f0aba9
+Repository dirty: false
+Buildbox job: 36027e9e5381cae6223ad64abe2a9e2368f0aba9-protected-readback-call-ledger-m0
+Package: linux-7.1.3-gemini-protected-readback-call-ledger-dcaf4a13-127eb9b3
+Kernel release: 7.1.3-gemini-protected-readback-ledger
+Build profile: protected-readback-call-ledger
+Build architecture: x86_64
+Target architecture: arm64
+Compiler: aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0
+Linker: GNU ld (GNU Binutils for Debian) 2.40
+Modules built: false
+Native VM build: false
+
+Package identities
+------------------
+
+SHA256SUMS: 38a44be3495dc24df6c7c3d021239cb37ed1a486d021876fde077394ca9f596e
+Source: be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+Patch set: dcaf4a13b4d404a5d97aef15b1f75031897921f90872f70ca5b236659758e79b
+Patch count: 312
+Config inputs: 127eb9b37054de0278fcfbd3174ebc503f2717717cc1d3bc994c8a5dbe30c763
+Resolved config: a4565fec73f962a0ab1b0e7856b426b538c9fb9023f29fd112f31b2abf45298b
+Image: 5b8682eb9eb5ed81ad238d1e265d0200c58fc009b1c9b1053531641ff721c60b
+Image.gz: 2beabfc3f40f635e27d9085604416b301024098ad2a1ad4cebe99ac8000a5c59
+System.map: a84c97a82aa81aef2c5a02fd95fbb8060fb3f789a34068fc2bb89c52feddd313
+Candidate DTB: 34f24e49600e16e9b00f25ecba1d0806c4ce325944e176acccc6751a236b8998
+
+Offline gates
+-------------
+
+- The complete package checksum inventory passes.
+- Provenance names the exact clean pushed commit, isolated profile, thirteen
+  fragments, source, patch set, compiler, linker, and no modules.
+- The clock backend, BigiDVFS backend, one-shot observer, and protected-readback
+  call ledger are built in.
+- The pre-ramoops, arm64-entry, and post-ramoops ledgers are all disabled.
+- A72 power, A72 platform state, DA9211, KUnit, owner registration, and CPU8/9
+  requests remain excluded.
+- System.map contains both protected-readback transports, the observer probe
+  and initcall, and the ledger checkpoint.
+- Both fixed ledger payloads and all three existing observer payloads occur
+  exactly once in Image.
+- The candidate DTB is byte-identical to the predecessor candidate DTB.
+
+This proves reproducible compilation and package identity only. It does not
+prove observer entry, either transport return, or any CPU8/CPU9 behavior.
