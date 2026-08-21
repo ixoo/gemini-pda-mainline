@@ -445,7 +445,7 @@ static int mt6797_bigidvfs_secure_read(void *context, u32 address, u32 *value)
 	return 0;
 }
 
-static const struct mt6797_bigidvfs_transport_ops mt6797_bigidvfs_ops = {
+static const struct mt6797_bigidvfs_transport_ops bigidvfs_ops = {
 	.read = mt6797_bigidvfs_secure_read,
 };
 
@@ -529,8 +529,7 @@ int mt6797_bigidvfs_backend_read(struct device *dev,
 		goto out_unlock;
 	}
 
-	ret = mt6797_bigidvfs_snapshot(&mt6797_bigidvfs_ops, backend,
-					&observed);
+	ret = mt6797_bigidvfs_snapshot(&bigidvfs_ops, backend, &observed);
 	if (ret) {
 		if (ret != -EAGAIN)
 			mt6797_bigidvfs_mark_fault(backend);

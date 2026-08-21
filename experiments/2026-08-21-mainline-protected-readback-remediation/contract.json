@@ -61,6 +61,18 @@
       "kernel_behavior_changed_by_fix": false,
       "compile_started": false,
       "device_action": false
+    },
+    {
+      "repository_commit": "6c473f391ac6780ef9963e1e58d530a388d894f3",
+      "failure": "strict-checkpatch-rejected-patch-0317-one-alignment",
+      "source_validation": "pass",
+      "generated_patch_count": 3,
+      "patch_replay": "pass",
+      "patch_0316_strict_checkpatch": "0-errors-0-warnings-0-checks",
+      "patch_0317_strict_checkpatch": "0-errors-0-warnings-1-check",
+      "kernel_behavior_changed_by_fix": false,
+      "compile_started": false,
+      "device_action": false
     }
   ],
   "scope": {
