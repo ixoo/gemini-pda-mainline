@@ -1,0 +1,17 @@
+experiment=2026-08-21-mainline-protected-readback-remediation
+observed_utc=2026-08-21
+repository_commit=05ddc25b151ad1613a5ebeb712d444409a4cfd5a
+buildbox_job=05ddc25b151ad1613a5ebeb712d444409a4cfd5a-protected-readback-remediation-patchgen
+managed_source_state=905fb7f5ead29cbe65eaf7f66e41433aea417c2ee15d751ebda6ddf79f19ad8e
+repository_checkout=pass
+managed_source_integrity=pass
+pinned_source_identities=pass
+failure_stage=source-validation
+failure=bigidvfs-snapshot-end-anchor-not-found
+root_cause=validator-retained-one-line-helper-anchor-after-strict-layout-edit
+remediation=match-exact-two-line-private-helper-boundary
+kernel_source_generation_changed=false
+patch_created=false
+compile_started=false
+device_action=none
+boot_candidate=false

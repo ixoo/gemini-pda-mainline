@@ -40,6 +40,16 @@
       "kernel_behavior_changed_by_fix": false,
       "compile_started": false,
       "device_action": false
+    },
+    {
+      "repository_commit": "05ddc25b151ad1613a5ebeb712d444409a4cfd5a",
+      "failure": "validator-retained-one-line-bigidvfs-end-anchor",
+      "managed_source_integrity": "pass",
+      "pinned_source_identities": "pass",
+      "patch_created": false,
+      "kernel_behavior_changed_by_fix": false,
+      "compile_started": false,
+      "device_action": false
     }
   ],
   "scope": {

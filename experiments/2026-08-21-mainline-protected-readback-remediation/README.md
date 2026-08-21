@@ -23,6 +23,14 @@ The templates now strip only their leading newline and use shorter internal
 helper names plus conventional continuations; transport ordering and effects
 are unchanged.
 
+The third attempt from `05ddc25b151a` stopped before patch creation because the
+strict-layout edit split the private BigiDVFS fault helper's return type and
+name across two lines while the validator retained the old one-line end
+anchor. The bounded receipt is in
+[`results/buildbox-generation-attempt-05ddc25b.txt`](results/buildbox-generation-attempt-05ddc25b.txt).
+The validator now names that exact two-line boundary; kernel source generation
+is unchanged.
+
 No device kernel, boot image, partition, firmware service, or hardware
 semaphore has been used by this experiment.
 

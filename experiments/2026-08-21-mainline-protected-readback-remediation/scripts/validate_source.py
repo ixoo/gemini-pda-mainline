@@ -86,7 +86,7 @@ def main() -> None:
     big_snapshot = body(
         big,
         "mt6797_bigidvfs_snapshot(",
-        "static void mt6797_bigidvfs_mark_fault",
+        "static void\nmt6797_bigidvfs_mark_fault",
     )
     require(big_snapshot.count("mt6797_bigidvfs_read_sample(") == 2,
             "two complete BigiDVFS samples")
