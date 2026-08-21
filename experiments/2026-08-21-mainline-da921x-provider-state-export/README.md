@@ -2,11 +2,10 @@
 
 ## Status
 
-The three logical patches are generated, replay-validated, strict-clean, and
-canonically admitted through `0314`. The first isolated Buildbox compile found
-a C tag-name collision before linking; one mechanical follow-up rename is now
-prepared for generation. No patch from this experiment has been used on the
-Gemini.
+The three logical patches and one compile-only tag correction are generated,
+replay-validated, strict-clean, and canonically admitted through `0315`. The
+corrected isolated Buildbox compile remains pending. No patch from this
+experiment has been used on the Gemini.
 
 The first generation attempt from exact commit `9346a72ebfc1` passed the
 managed-source integrity and all pinned parent-file checks, then stopped before
@@ -62,6 +61,13 @@ is in
 The remediation changes only the record tag to
 `mt6797_a72_provider_snapshot` at its thirteen exact uses; field layout,
 functions, callbacks, tests, and the lifecycle enum remain unchanged.
+
+Buildbox generated that exact one-patch correction from clean commit
+`256329aa5b04` and the prepared source through `0314`. Source validation,
+exact replay, and strict checkpatch passed with zero findings. The exact
+identity is recorded in
+[`results/buildbox-tag-fix-generation-256329aa.txt`](results/buildbox-tag-fix-generation-256329aa.txt),
+and canonical patch `0315` is now admitted for the corrected compile.
 
 ## Question
 

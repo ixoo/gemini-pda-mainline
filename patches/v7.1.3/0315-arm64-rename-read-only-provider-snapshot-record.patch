@@ -1,0 +1,134 @@
+From 2cf2834f94a1b6c2b78ae719748fb95d76ea91d4 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 21 Aug 2026 22:01:00 +0000
+Subject: [PATCH 1/1] arm64: rename read-only provider snapshot record
+
+Avoid the existing A72 provider lifecycle enum tag while preserving the snapshot function, fields, callback, and tests exactly.
+
+This is a compile-only name correction with no hardware or lifecycle behavior change.
+---
+ arch/arm64/kernel/mt6797_a72_membership.c         |  4 ++--
+ drivers/regulator/da9213-legacy-membership-test.c | 12 ++++++------
+ drivers/regulator/da9213-legacy-regulator.c       |  4 ++--
+ include/linux/mt6797-a72-provider.h               |  6 +++---
+ 4 files changed, 13 insertions(+), 13 deletions(-)
+
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+index 6ba613f..d8bbf9e 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -112,9 +112,9 @@ int mt6797_a72_provider_release(
+ }
+ EXPORT_SYMBOL_GPL(mt6797_a72_provider_release);
+ 
+-int mt6797_a72_provider_snapshot(struct mt6797_a72_provider_state *state)
++int mt6797_a72_provider_snapshot(struct mt6797_a72_provider_snapshot *state)
+ {
+-	struct mt6797_a72_provider_state observed = { };
++	struct mt6797_a72_provider_snapshot observed = { };
+ 	u32 raw;
+ 	int ret;
+ 
+diff --git a/drivers/regulator/da9213-legacy-membership-test.c b/drivers/regulator/da9213-legacy-membership-test.c
+index a150e09..2445f3a 100644
+--- a/drivers/regulator/da9213-legacy-membership-test.c
++++ b/drivers/regulator/da9213-legacy-membership-test.c
+@@ -478,16 +478,16 @@ static void expect_fault(struct kunit *test,
+ 
+ static void
+ expect_snapshot_zero(struct kunit *test,
+-		     const struct mt6797_a72_provider_state *state)
++		     const struct mt6797_a72_provider_snapshot *state)
+ {
+-	struct mt6797_a72_provider_state zero = { };
++	struct mt6797_a72_provider_snapshot zero = { };
+ 
+ 	KUNIT_EXPECT_EQ(test, memcmp(state, &zero, sizeof(*state)), 0);
+ }
+ 
+ static void da9213_provider_snapshot_success(struct kunit *test)
+ {
+-	struct mt6797_a72_provider_state observed;
++	struct mt6797_a72_provider_snapshot observed;
+ 	struct da9213_membership_test_state *state;
+ 	int ret;
+ 
+@@ -535,7 +535,7 @@ static void da9213_provider_snapshot_transport_faults(struct kunit *test)
+ 	for (mode = 0; mode < 2; mode++) {
+ 		for (ordinal = 1; ordinal <= DA9213_PROVIDER_SNAPSHOT_ACTIONS;
+ 		     ordinal++) {
+-			struct mt6797_a72_provider_state observed;
++			struct mt6797_a72_provider_snapshot observed;
+ 			int ret;
+ 
+ 			da9213_membership_fake_init(&state->fake);
+@@ -568,7 +568,7 @@ static void da9213_provider_snapshot_transport_faults(struct kunit *test)
+ 
+ static void da9213_provider_snapshot_unstable(struct kunit *test)
+ {
+-	struct mt6797_a72_provider_state observed;
++	struct mt6797_a72_provider_snapshot observed;
+ 	struct da9213_membership_test_state *state;
+ 	int ret;
+ 
+@@ -594,7 +594,7 @@ static void da9213_provider_snapshot_unstable(struct kunit *test)
+ static void da9213_provider_snapshot_registry_guards(struct kunit *test)
+ {
+ 	struct da9213_membership_test_state *state;
+-	struct mt6797_a72_provider_state observed;
++	struct mt6797_a72_provider_snapshot observed;
+ 	int ret;
+ 
+ 	state = kunit_kzalloc(test, sizeof(*state), GFP_KERNEL);
+diff --git a/drivers/regulator/da9213-legacy-regulator.c b/drivers/regulator/da9213-legacy-regulator.c
+index b88b333..6a50a65 100644
+--- a/drivers/regulator/da9213-legacy-regulator.c
++++ b/drivers/regulator/da9213-legacy-regulator.c
+@@ -1284,7 +1284,7 @@ out_fault:
+ 
+ static int
+ da9213_provider_snapshot(void *context,
+-			 struct mt6797_a72_provider_state *state)
++			 struct mt6797_a72_provider_snapshot *state)
+ {
+ 	struct da9213_legacy_provider_endpoint *endpoint = context;
+ 	struct da9213_legacy_provider_snapshot first = { };
+@@ -1320,7 +1320,7 @@ da9213_provider_snapshot(void *context,
+ 		goto out;
+ 	}
+ 
+-	*state = (struct mt6797_a72_provider_state) {
++	*state = (struct mt6797_a72_provider_snapshot) {
+ 		.abi = MT6797_A72_PROVIDER_STATE_ABI,
+ 		.valid = 1,
+ 		.control_a = second.control_a,
+diff --git a/include/linux/mt6797-a72-provider.h b/include/linux/mt6797-a72-provider.h
+index 0d78bbd..90b06cf 100644
+--- a/include/linux/mt6797-a72-provider.h
++++ b/include/linux/mt6797-a72-provider.h
+@@ -49,7 +49,7 @@ struct mt6797_a72_provider_response {
+ 	struct mt6797_a72_provider_handle held_handle;
+ };
+ 
+-struct mt6797_a72_provider_state {
++struct mt6797_a72_provider_snapshot {
+ 	u32 abi;
+ 	u32 valid;
+ 	u32 control_a;
+@@ -68,7 +68,7 @@ struct mt6797_a72_provider_ops {
+ 			const struct mt6797_a72_provider_handle *handle,
+ 			struct mt6797_a72_provider_response *response);
+ 	int (*snapshot)(void *context,
+-			struct mt6797_a72_provider_state *state);
++			struct mt6797_a72_provider_snapshot *state);
+ };
+ 
+ int mt6797_a72_provider_register(const struct mt6797_a72_provider_ops *ops,
+@@ -79,6 +79,6 @@ int mt6797_a72_provider_acquire(const struct mt6797_a72_provider_request *reques
+ 					struct mt6797_a72_provider_response *response);
+ int mt6797_a72_provider_release(const struct mt6797_a72_provider_handle *handle,
+ 					struct mt6797_a72_provider_response *response);
+-int mt6797_a72_provider_snapshot(struct mt6797_a72_provider_state *state);
++int mt6797_a72_provider_snapshot(struct mt6797_a72_provider_snapshot *state);
+ 
+ #endif /* __LINUX_MT6797_A72_PROVIDER_H */

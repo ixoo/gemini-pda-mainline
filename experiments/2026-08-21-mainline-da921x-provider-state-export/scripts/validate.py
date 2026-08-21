@@ -119,11 +119,25 @@ def main() -> None:
         require(buildbox.count(command) >= 2,
                 f"Buildbox command: {command}")
 
+    fix = contract["compile_fix"]
+    require(fix["expected_patch"] ==
+            "patches/v7.1.3/0315-arm64-rename-read-only-provider-snapshot-record.patch",
+            "compile-fix patch identity")
+    fix_patch = ROOT / fix["expected_patch"]
+    require(fix_patch.is_file(), "canonical compile-fix patch exists")
+    require(sha256(fix_patch) ==
+            fix["validated_generation"]["patch_sha256"],
+            "canonical compile-fix bytes match Buildbox")
+    require(fix["validated_generation"]["strict_checkpatch"] ==
+            "0-errors-0-warnings-0-checks",
+            "compile-fix strict checkpatch")
+
     series = (ROOT / "patches/series").read_text().splitlines()
-    require(series[-3:] == [
+    require(series[-4:] == [
         path.removeprefix("patches/")
         for path in contract["expected_patches"]
-    ], "canonical series tail")
+    ] + [fix["expected_patch"].removeprefix("patches/")],
+            "canonical series tail")
     fragment = (
         ROOT / "configs/gemini-da921x-provider-state-kunit.fragment"
     ).read_text()
