@@ -23,6 +23,14 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-21 mainline A34 direct recovery-state audit](2026-08-21-mainline-a34-direct-recovery-state-audit/README.md)
+  — proves that the exact historical first CPU8 cycle returned its DA921x,
+  six-word SPM, twelve-word secure, protected-clock, and DCM tuple to the
+  identical pre-attempt values, but finds no complete current-mainline
+  owner-safe transport. The present readers are private, probe-time, disabled,
+  or incomplete; MT6797 A72 CCI state and an atomic compositor are absent.
+  A34 and CPU8 remain closed while the CCI/platform-state ownership boundary
+  is audited.
 - [2026-08-21 mainline platform-reset classifier audit](2026-08-21-mainline-platform-reset-classifier-audit/README.md)
   — reconstructs the exact shipping preloader's raw-status projection and its
   separate entry-time `INTERVAL` power-off/on classifier. The positive class

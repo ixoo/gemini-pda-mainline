@@ -320,6 +320,17 @@ not return and made the unit unreachable, so that access route is closed to
 repetition. See the [platform-reset classifier
 audit](../../experiments/2026-08-21-mainline-platform-reset-classifier-audit/README.md).
 
+The direct A34 recovery-state audit also distinguishes the historical raw
+reference from a current owner-safe observation. The exact first natural CPU8
+cycle returned identical pre/post DA921x, six-word SPM, twelve-word secure,
+protected-clock, and MP2 DCM values. Current mainline cannot yet reproduce that
+claim: its A72 power observer is a probe-time cache with only two SPM words,
+DCM, and one PLL word; it exposes no PWRAP reset state or generation, and the
+Gemini DTS deletes its node. The protected clock and secure readback nodes are
+disabled, the DA921x fresh snapshot is private to its provider transaction,
+and no MT6797 A72 CCI state source or atomic compositor exists. See the
+[direct recovery-state audit](../../experiments/2026-08-21-mainline-a34-direct-recovery-state-audit/README.md).
+
 The IRQ-bearing watchdog description did not register a watchdog device,
 while the otherwise equivalent no-IRQ description bound `10007000.watchdog`
 to `mtk-wdt`, exposed `/dev/watchdog0`, and reported a 31-second timeout with

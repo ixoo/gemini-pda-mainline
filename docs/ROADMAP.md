@@ -4544,6 +4544,38 @@ complete empty Linux owner tuple—without relying on reset cause. Any missing,
 mutable, unsafe, or contradictory prefix keeps A34 closed. No implementation,
 build, boot image, or device attempt follows until that audit is complete.
 
+That
+[direct recovery-state attestation audit](../experiments/2026-08-21-mainline-a34-direct-recovery-state-audit/README.md)
+is now complete. The exact historical first natural CPU8 cycle supplies a
+coherent direct-state reference: its pre-attempt and post-off DA921x,
+six-word SPM, twelve-word secure, protected-clock, and MP2 DCM observations are
+identical. Current mainline does not yet have a complete positive tuple. Its
+DA921x snapshot is private to a provider transaction, its A72 power observer
+is a stale probe-time subset whose Gemini DT node is deleted, TOPRGU has no
+reset-state getter, the protected readers remain disabled and uncomposed, and
+MT6797 has no A72 CCI description or state source. The current A34 ABI also
+contains no hardware tuple or production collector. Do not use the old
+caller-supplied A36 constants as observations.
+
+The next ordered work is:
+
+1. Audit the exact MT6797 A72 CCI and platform-state ownership boundary. Name
+   the CCI port/control and status registers, complete SPM field semantics,
+   TOPRGU bit-state accessor, safe read paths, and writer serialization. Do
+   not add a magic physical mapping or CCI write.
+2. Implement one default-off, capture-only platform-state source for the
+   source-backed SPM physical/control, TOPRGU PWRAP, MP2 DCM, and CCI fields.
+   It must publish a typed immutable record and have no A34 caller.
+3. Export fresh read-only DA921x state from its existing root-adapter-locked
+   owner, validate the disabled protected clock/BigiDVFS readers on the named
+   firmware, then compose every source under one transition/hotplug owner.
+4. Revise A34 to accept only the complete direct-state ABI and applicable
+   BL31 replay-clear contract, prove the atomic `CLOSED / UNINITIALIZED` to
+   `AVAILABLE / IDLE` publication, and keep both CPU vetoes closed until that
+   proof passes.
+5. Only then build one decision-bearing CPU8 candidate with one request,
+   strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
+
 The eventual CPU8 candidate must have a single CPU8 request, strict
 checkpoints before and after each power step, a bounded timeout, and a
 fail-closed rollback. CPU9

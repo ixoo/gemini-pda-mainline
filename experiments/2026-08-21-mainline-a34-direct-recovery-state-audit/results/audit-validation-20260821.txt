@@ -1,0 +1,7 @@
+audit=pass
+state_rows=13
+historical_reference=pre-post-identical
+current_complete_direct_tuple=absent
+selected_next=A72-CCI-and-platform-state-ownership-audit
+a34_owner=closed
+device_write=none

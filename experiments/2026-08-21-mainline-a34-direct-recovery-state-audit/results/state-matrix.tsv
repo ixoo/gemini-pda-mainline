@@ -1,0 +1,14 @@
+id	state	accepted_reference	current_mainline_source	fresh_owner_safe	decision
+D01	DA921x-control-status-buckB	first-cycle-and-Gate6-exact-values	private-provider-snapshot-and-stored-preflight	no-exported-fresh-readonly-source	partial-gap
+D02	SPM-six-word-reference	first-cycle-pre-equals-post	probe-time-two-word-cache	no	gap
+D03	CPU8-CPU9-physical-state	SPM-status-and-per-core-source-attribution	generic-offline-only-in-A34	no	gap
+D04	TOPRGU-PWRAP-reset	first-cycle-bit-clear	locked-assert-deassert-no-status	no	gap
+D05	MP2-DCM	first-cycle-pre-equals-post-zero	probe-time-cache-on-deleted-node	no	gap
+D06	protected-B-and-CCI-clocks	first-cycle-exact-clock-record	bounded-disabled-readback-backends	no-runtime-A34-composition	partial-gap
+D07	secure-SRAM-BPLL-control	first-cycle-twelve-zero-words	bounded-disabled-four-word-SMC-backend	no-current-A34-composition	partial-gap
+D08	A72-CCI-snoop-DVM	secure-off-writer-attributed	no-MT6797-CCI-DT-or-read-source	no	gap
+D09	generic-CPU-topology-state	exact-A34-reference	caller-supplied-pure-evaluator	no-production-collector	partial-gap
+D10	Linux-owner-P30-attempt-state	exact-A34-zero-reference	separate-snapshot-and-internal-fields	no-atomic-compositor	partial-gap
+D11	BL31-private-replay-zero	exact-primary-entry-clear	static-firmware-contract	no-current-boot-composite-proof	partial-gap
+D12	cross-owner-immutable-publication	none	absent	no	gap
+D13	complete-direct-A34-tuple	none	absent	no	reject-keep-closed
