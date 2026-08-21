@@ -125,9 +125,11 @@ def main() -> None:
 
     readme = (HERE / "README.md").read_text()
     design = (HERE / "DESIGN.md").read_text()
-    require("first strict style rejection recorded" in readme and
+    require("two strict alignment rejections recorded" in readme and
             "checkpatch rejected one continuation-line" in readme and
-            "No validated generated patch" in readme and
+            "second exact Buildbox attempt rejected" in readme and
+            "No validated generated" in readme and
+            "patch, compile result" in readme and
             "`inconclusive` pending exact Buildbox generation" in readme,
             "status is not overstated")
     for token in (

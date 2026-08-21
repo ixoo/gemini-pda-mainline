@@ -21,7 +21,7 @@
     "c": "experiments/2026-08-21-mainline-mtk-ram-console-parser/source/mtk-ram-console.c",
     "c_sha256": "e173ecad2ed9eaf016a496b84ca411c22ba6d14d2273c55a2a5c40b2d62f80a7",
     "header": "experiments/2026-08-21-mainline-mtk-ram-console-parser/source/mtk-ram-console.h",
-    "header_sha256": "299bb850b817bab2f87845e30b4c015701061897cd6b0072e4b1d4342ecb1b9d",
+    "header_sha256": "7ddc0bc44e405b7fdfcb7dfd6a2fad2899b05e16e7a4fe6f6dcd7298516cf2d6",
     "matrix": "experiments/2026-08-21-mainline-mtk-ram-console-parser/results/test-matrix.tsv",
     "matrix_sha256": "6c62e188608dfaa8d05334933094c2a98e73d1e610d29c5268e12627bc31e00f"
   },
