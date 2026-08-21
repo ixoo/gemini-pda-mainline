@@ -1,0 +1,217 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+export LC_ALL=C
+
+readonly PARENT_SOURCE_STATE=905fb7f5ead29cbe65eaf7f66e41433aea417c2ee15d751ebda6ddf79f19ad8e
+readonly PROVIDER_HEADER_SHA256=f5f64753c34017eb5048e77f0c06efa973d19a5f2c592b500de1e92f1cdda060
+readonly MEMBERSHIP_SHA256=88391c4128ab61bb38dcd0daf0c8d76323cdbec0a77ee34ef9282f8b96c49a8e
+readonly REGULATOR_SHA256=a21eaa62b223fc938efb23d29b9c5a208686f6129d251a26c59a0cfa3c744321
+readonly MEMBERSHIP_TEST_SHA256=15ae022bb92d1b60b5f379a4aff1e74c365e0345b39c587af3a433f63ed5298f
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+
+[[ "$#" -eq 3 ]] || die 'expected PROJECT_COMMIT SOURCE_ROOT OUTPUT_ROOT'
+readonly project_commit=$1
+readonly source_root=$2
+readonly output_root=$3
+[[ "$project_commit" =~ ^[0-9a-f]{40}$ ]] || die 'invalid project commit'
+[[ "$source_root" == /workspace/gemini-pda/src/linux-7.1.3 ]] ||
+	die 'unexpected managed source root'
+[[ "$output_root" == /workspace/gemini-pda/* ]] || die 'unsafe output root'
+[[ -f "$source_root/.gemini-source-state" && ! -L "$source_root/.gemini-source-state" ]] ||
+	die 'prepared source state marker absent or unsafe'
+[[ "$(<"$source_root/.gemini-source-state")" == "$PARENT_SOURCE_STATE" ]] ||
+	die 'prepared parent source state changed'
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+experiment_dir="$(cd -- "$script_dir/.." && pwd -P)"
+repository_dir="$(cd -- "$experiment_dir/../.." && pwd -P)"
+readonly script_dir experiment_dir repository_dir
+[[ "$(git -C "$repository_dir" rev-parse HEAD)" == "$project_commit" ]] ||
+	die 'project checkout does not match requested commit'
+[[ -z "$(git -C "$repository_dir" status --porcelain)" ]] ||
+	die 'project checkout is dirty'
+for command in git perl python3 sha256sum; do
+	command -v "$command" >/dev/null 2>&1 || die "missing command: $command"
+done
+python3 "$repository_dir/scripts/source-tree-integrity" verify "$source_root" |
+	grep -E '^source_tree_integrity=[0-9a-f]{64}$' >/dev/null ||
+	die 'prepared source integrity verification failed'
+
+check_file() {
+	local expected=$1
+	local relative=$2
+	printf '%s  %s\n' "$expected" "$source_root/$relative" |
+		sha256sum --check --status || die "parent source changed: $relative"
+}
+check_file "$PROVIDER_HEADER_SHA256" include/linux/mt6797-a72-provider.h
+check_file "$MEMBERSHIP_SHA256" arch/arm64/kernel/mt6797_a72_membership.c
+check_file "$REGULATOR_SHA256" drivers/regulator/da9213-legacy-regulator.c
+check_file "$MEMBERSHIP_TEST_SHA256" drivers/regulator/da9213-legacy-membership-test.c
+
+readonly work_root=/workspace/gemini-pda/da921x-provider-state-work
+readonly package="$output_root/da921x-provider-state-patches-${project_commit:0:12}"
+readonly partial="${package}.partial.$$"
+mkdir -p "$work_root" "$output_root"
+[[ ! -e "$partial" ]] || die 'stale output partial exists'
+
+if [[ -d "$package" && ! -L "$package" ]]; then
+	grep -Fx "repository_commit=$project_commit" \
+		"$package/provenance/generation.txt" >/dev/null ||
+		die 'existing package commit mismatch'
+	(cd "$package" && sha256sum --check --strict SHA256SUMS >/dev/null)
+	printf 'Generated DA921x provider-state patch review at %s\n' "$package"
+	exit 0
+fi
+[[ ! -e "$package" ]] || die 'unsafe existing package path'
+
+work="$(mktemp -d "$work_root/generation.XXXXXX")"
+readonly work
+cleanup() {
+	[[ ! -d "$work" || "$work" != "$work_root"/generation.* ]] || rm -rf -- "$work"
+	[[ ! -d "$partial" || "$partial" != "$output_root"/*.partial.* ]] || rm -rf -- "$partial"
+}
+trap cleanup EXIT
+
+for relative in \
+  include/linux/mt6797-a72-provider.h \
+  arch/arm64/kernel/mt6797_a72_membership.c \
+  drivers/regulator/da9213-legacy-regulator.c \
+  drivers/regulator/da9213-legacy-membership-test.c; do
+	mkdir -p "$work/source/$(dirname "$relative")"
+	cp -- "$source_root/$relative" "$work/source/$relative"
+done
+git -C "$work/source" init --quiet
+git -C "$work/source" config user.name 'Gemini Mainline Experiment'
+git -C "$work/source" config user.email gemini-mainline@example.invalid
+git -C "$work/source" add -- .
+GIT_AUTHOR_DATE=2026-08-21T21:00:00Z \
+GIT_COMMITTER_DATE=2026-08-21T21:00:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'DA921x provider-state export parent'
+baseline_commit="$(git -C "$work/source" rev-parse HEAD)"
+readonly baseline_commit
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/source_edits.py" \
+	--source-root "$work/source" --step registry
+git -C "$work/source" diff --check
+git -C "$work/source" add -- include/linux/mt6797-a72-provider.h \
+	arch/arm64/kernel/mt6797_a72_membership.c
+git -C "$work/source" diff --cached --check
+GIT_AUTHOR_NAME='Gemini Mainline Experiment' \
+GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid \
+GIT_COMMITTER_NAME='Gemini Mainline Experiment' \
+GIT_COMMITTER_EMAIL=gemini-mainline@example.invalid \
+GIT_AUTHOR_DATE=2026-08-21T21:01:00Z \
+GIT_COMMITTER_DATE=2026-08-21T21:01:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'arm64: add read-only provider state snapshot' \
+		-m 'Extend the platform-private provider registry with an optional typed state callback. Validate and publish only one complete record while leaving every error destination all-zero.' \
+		-m 'Add no provider write, lifecycle caller, CPU operation, boot candidate, or device action.'
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/source_edits.py" \
+	--source-root "$work/source" --step provider
+git -C "$work/source" diff --check
+git -C "$work/source" add -- drivers/regulator/da9213-legacy-regulator.c
+git -C "$work/source" diff --cached --check
+GIT_AUTHOR_NAME='Gemini Mainline Experiment' \
+GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid \
+GIT_COMMITTER_NAME='Gemini Mainline Experiment' \
+GIT_COMMITTER_EMAIL=gemini-mainline@example.invalid \
+GIT_AUTHOR_DATE=2026-08-21T21:02:00Z \
+GIT_COMMITTER_DATE=2026-08-21T21:02:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'regulator: export stable DA921x provider state' \
+		-m 'Take two immediate five-register samples under the endpoint and root-adapter locks with transport retries disabled. Publish only an exact match and leave the lifecycle transaction untouched.' \
+		-m 'Perform no write, delay, loop, retry, lifecycle transition, CPU operation, or device action.'
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/source_edits.py" \
+	--source-root "$work/source" --step tests
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_source.py" \
+	--source-root "$work/source"
+git -C "$work/source" diff --check
+git -C "$work/source" add -- drivers/regulator/da9213-legacy-membership-test.c
+git -C "$work/source" diff --cached --check
+GIT_AUTHOR_NAME='Gemini Mainline Experiment' \
+GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid \
+GIT_COMMITTER_NAME='Gemini Mainline Experiment' \
+GIT_COMMITTER_EMAIL=gemini-mainline@example.invalid \
+GIT_AUTHOR_DATE=2026-08-21T21:03:00Z \
+GIT_COMMITTER_DATE=2026-08-21T21:03:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'regulator: test stable DA921x provider state' \
+		-m 'Use the existing unregistered fake adapter to cover the exact ten-read success, every transfer fault, unstable samples, and registry callback guards without physical hardware.'
+result_commit="$(git -C "$work/source" rev-parse HEAD)"
+readonly result_commit
+
+mkdir -p "$partial/patches" "$partial/provenance"
+mapfile -t generated < <(git -C "$work/source" format-patch \
+	--no-signature --output-directory "$partial/patches" \
+	"${baseline_commit}..${result_commit}")
+[[ "${#generated[@]}" -eq 3 ]] || die 'generated patch count changed'
+readonly patch_1=0312-arm64-add-read-only-provider-state-snapshot.patch
+readonly patch_2=0313-regulator-export-stable-DA921x-provider-state.patch
+readonly patch_3=0314-regulator-test-stable-DA921x-provider-state.patch
+mv -- "${generated[0]}" "$partial/patches/$patch_1"
+mv -- "${generated[1]}" "$partial/patches/$patch_2"
+mv -- "${generated[2]}" "$partial/patches/$patch_3"
+printf '%s\n%s\n%s\n' "$patch_1" "$patch_2" "$patch_3" \
+	>"$partial/patches/series"
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_patches.py" \
+	--patch-dir "$partial/patches"
+
+git clone --quiet "$work/source" "$work/verify"
+git -C "$work/verify" checkout --quiet --detach "$baseline_commit"
+git -C "$work/verify" config user.name 'Gemini Mainline Experiment'
+git -C "$work/verify" config user.email gemini-mainline@example.invalid
+git -C "$work/verify" am --quiet --committer-date-is-author-date \
+	"$partial/patches/$patch_1" "$partial/patches/$patch_2" \
+	"$partial/patches/$patch_3"
+[[ "$(git -C "$work/verify" rev-parse HEAD)" == "$result_commit" ]] ||
+	die 'patch replay did not reproduce generated commit'
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_source.py" \
+	--source-root "$work/verify"
+[[ -z "$(git -C "$work/verify" status --porcelain)" ]] ||
+	die 'verification source is dirty'
+
+for patch in "$patch_1" "$patch_2" "$patch_3"; do
+	if ! perl "$source_root/scripts/checkpatch.pl" --no-tree --strict \
+		--ignore MISSING_SIGN_OFF,FILE_PATH_CHANGES,COMMIT_LOG_LONG_LINE \
+		"$partial/patches/$patch" \
+		>"$partial/provenance/checkpatch-${patch%.patch}.txt"; then
+		cat "$partial/provenance/checkpatch-${patch%.patch}.txt" >&2
+		die "strict checkpatch rejected $patch"
+	fi
+done
+
+cat >"$partial/provenance/generation.txt" <<EOF
+purpose=experiment-only-da921x-provider-state-export
+repository_commit=$project_commit
+parent_source_state=$PARENT_SOURCE_STATE
+baseline_commit=$baseline_commit
+result_commit=$result_commit
+generated_patch_count=3
+snapshot_samples=2-no-loop
+success_reads=10
+root_adapter_locks=1
+adapter_retries=0-restored
+hardware_write=none
+delay=none
+a34_caller=none
+opens_owner=false
+cpu_on=false
+cpu_off=false
+device_action=none
+boot_candidate=false
+EOF
+printf '%s\n%s\n%s\n' "$patch_1" "$patch_2" "$patch_3" \
+	>"$partial/provenance/patches.txt"
+(
+	cd "$partial"
+	find patches provenance -type f -print0 | sort -z |
+		xargs -0 sha256sum >SHA256SUMS
+	sha256sum --check --strict SHA256SUMS >/dev/null
+)
+mv -- "$partial" "$package"
+printf 'Generated DA921x provider-state patch review at %s\n' "$package"

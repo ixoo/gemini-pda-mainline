@@ -173,6 +173,20 @@ The lane verifies the exact canonical source through patch `0307`, replays the
 four generated patches, and rejects polling, hardware writes, A34 callers, CPU
 operations, and DT enablement.
 
+The DA921x provider-state export follows the platform-state source and
+generates three logically separated patches for the platform-private registry
+ABI, the stable read-only DA921x callback, and its hardware-free KUnit proof:
+
+```sh
+./scripts/buildbox generate-da921x-provider-state-patches
+./scripts/buildbox fetch-da921x-provider-state-patches
+```
+
+The lane pins every edited file, takes two immediate five-register samples
+under one root-adapter lock with retries disabled, and rejects writes, delays,
+loops, A34 callers, CPU operations, or device actions. Generation does not
+contact the Gemini.
+
 After canonical admission, compile and fetch the isolated focused profile with:
 
 ```sh

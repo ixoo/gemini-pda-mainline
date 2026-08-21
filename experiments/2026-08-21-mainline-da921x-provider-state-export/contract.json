@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-21-mainline-da921x-provider-state-export",
+  "repository_parent": "4b7535ee4a956c91ef6df3ba8451554af3410d35",
+  "parent": {
+    "source_state": "905fb7f5ead29cbe65eaf7f66e41433aea417c2ee15d751ebda6ddf79f19ad8e",
+    "canonical_last_patch": "patches/v7.1.3/0311-arm64-dts-mediatek-add-MT6797-A72-platform-state-source.patch",
+    "provider_header_sha256": "f5f64753c34017eb5048e77f0c06efa973d19a5f2c592b500de1e92f1cdda060",
+    "membership_sha256": "88391c4128ab61bb38dcd0daf0c8d76323cdbec0a77ee34ef9282f8b96c49a8e",
+    "regulator_sha256": "a21eaa62b223fc938efb23d29b9c5a208686f6129d251a26c59a0cfa3c744321",
+    "membership_test_sha256": "15ae022bb92d1b60b5f379a4aff1e74c365e0345b39c587af3a433f63ed5298f"
+  },
+  "expected_patches": [
+    "patches/v7.1.3/0312-arm64-add-read-only-provider-state-snapshot.patch",
+    "patches/v7.1.3/0313-regulator-export-stable-DA921x-provider-state.patch",
+    "patches/v7.1.3/0314-regulator-test-stable-DA921x-provider-state.patch"
+  ],
+  "validated_generation": null,
+  "validated_build": null,
+  "scope": {
+    "samples": 2,
+    "reads_on_success": 10,
+    "adapter_retries": 0,
+    "polling": false,
+    "hardware_write": false,
+    "delay": false,
+    "a34_caller": false,
+    "opens_owner": false,
+    "cpu_on": false,
+    "cpu_off": false,
+    "device_action": false,
+    "boot_candidate": false
+  }
+}
