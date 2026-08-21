@@ -4348,8 +4348,11 @@ The
 owns that implementation. Its deterministic Buildbox tooling freezes four
 logical patches: acquire fail-stop mapping, exact positive abort/P29 admission,
 an injectable instance of the production DA921x callback endpoint, and the
-focused registry integration KUnit suite. Patch generation, canonical import,
-Buildbox compile, and QEMU proof must pass before this roadmap advances.
+focused registry integration KUnit suite. Buildbox generated and strictly
+validated all four patches, and their exact identities are now pinned at the
+end of the canonical series. The next ordered action is the focused Buildbox
+compile, followed only on success by the isolated QEMU proof. Both must pass
+before this roadmap advances.
 
 The candidate must have a single CPU8 request, strict checkpoints before and
 after each power step, a bounded timeout, and a fail-closed rollback. CPU9

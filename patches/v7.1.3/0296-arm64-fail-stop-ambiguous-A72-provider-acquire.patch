@@ -1,0 +1,220 @@
+From 7d184ada13b6c45dec74c78c367a0d8281bf2b5c Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 20 Aug 2026 20:01:00 +0000
+Subject: [PATCH 1/4] arm64: fail-stop ambiguous A72 provider acquire returns
+
+Validate every positive response field and retain unknown ownership.
+
+Publish one reset-only terminal with no retry or speculative release.
+---
+ .../arm64/include/asm/mt6797_a72_membership.h |   4 +-
+ arch/arm64/kernel/mt6797_a72_membership.c     | 149 +++++++++++++++---
+ 2 files changed, 126 insertions(+), 27 deletions(-)
+
+diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
+index 291478a..162746c 100644
+--- a/arch/arm64/include/asm/mt6797_a72_membership.h
++++ b/arch/arm64/include/asm/mt6797_a72_membership.h
+@@ -21,7 +21,7 @@
+  * callback seam can return a read-only refusal, but it has no bootstrap,
+  * CPUHP effect, P30 handoff, P14/P15, hardware mutation, or CPU_ON operation.
+  */
+-#define MT6797_A72_TRANSACTION_ABI 1
++#define MT6797_A72_TRANSACTION_ABI 2
+ #define MT6797_A72_OPERATION_SLOTS 4
+ 
+ enum mt6797_a72_owner_health {
+@@ -77,6 +77,8 @@ enum mt6797_a72_owner_fault {
+ 	MT6797_A72_FAULT_IDENTITY,
+ 	MT6797_A72_FAULT_DOUBLE_RELEASE,
+ 	MT6797_A72_FAULT_P30_QUARANTINE,
++	MT6797_A72_FAULT_PROVIDER_ACQUIRE_RETURN,
++	MT6797_A72_FAULT_PROVIDER_RELEASE_RETURN,
+ };
+ 
+ #define MT6797_A72_ATTEMPT_CPU8_UP BIT(0)
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+index 2dabce1..7a3ea48 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -1207,13 +1207,95 @@ out_state:
+ 	return ret;
+ }
+ 
+-int mt6797_a72_membership_run_provider_acquire(
+-	struct mt6797_a72_transaction *transaction,
+-	struct mt6797_a72_provider_response *response)
++static bool
++mt6797_a72_provider_acquire_response_valid(const struct mt6797_a72_provider_response *response,
++					   const struct mt6797_a72_transaction *transaction)
++{
++	if (!response || !transaction)
++		return false;
++
++	return response->abi == MT6797_A72_PROVIDER_CALL_ABI &&
++		response->returned == 1 && response->vote_requested == 1 &&
++		response->provider_mutated == 1 && response->rail_mutated == 1 &&
++		response->settle_us == MT6797_A72_PROVIDER_ACQUIRE_SETTLE_US &&
++		response->da921x_page == MT6797_A72_A36_DA921X_PAGE &&
++		response->buckb_enabled == 1 &&
++		response->buckb_vsel == MT6797_A72_A36_BUCKB_VSEL &&
++		response->origin == MT6797_A72_PROVIDER_ORIGIN_M01 &&
++		!response->reserved && response->origin_generation &&
++		response->held_handle.generation == response->origin_generation &&
++		response->held_handle.generation ==
++			transaction->identity.generation &&
++		response->held_handle.cookie == transaction->identity.cookie;
++}
++
++static bool
++mt6797_a72_provider_refusal_response_valid(const struct mt6797_a72_provider_response *response)
++{
++	if (!response)
++		return false;
++
++	return response->abi == MT6797_A72_PROVIDER_CALL_ABI &&
++		response->returned == 1 && !response->vote_requested &&
++		!response->provider_mutated && !response->rail_mutated &&
++		!response->settle_us && !response->da921x_page &&
++		!response->buckb_enabled && !response->buckb_vsel &&
++		!response->origin && !response->reserved &&
++		!response->origin_generation &&
++		!response->held_handle.generation &&
++		!response->held_handle.cookie;
++}
++
++static int
++mt6797_a72_membership_latch_provider_fault(struct mt6797_a72_transaction *transaction,
++					   enum mt6797_a72_provider_state expected_state,
++					   enum mt6797_a72_owner_fault cause, int error)
++{
++	unsigned long flags;
++	int ret = -EPERM;
++
++	if (!transaction || !error)
++		return -EINVAL;
++
++	mutex_lock(&a72_transition_lock);
++	raw_spin_lock_irqsave(&a72_state_lock, flags);
++	if (a72_owner.health == MT6797_A72_OWNER_AVAILABLE &&
++	    a72_owner.phase == MT6797_A72_PHASE_ON_ISSUED &&
++	    a72_owner.active.valid &&
++	    a72_owner.active.identity.operation ==
++		    ARM64_LATE_CPU_STARTUP_OP_CPU8_UP &&
++	    a72_owner.provider_state == expected_state &&
++	    !memcmp(&a72_owner.active.identity, &transaction->identity,
++		    sizeof(a72_owner.active.identity))) {
++		if (!a72_owner.first_fault.valid) {
++			a72_owner.first_fault.identity =
++				a72_owner.active.identity;
++			a72_owner.first_fault.detail = (u32)error;
++			a72_owner.first_fault.cause = cause;
++			a72_owner.first_fault.valid = 1;
++		}
++		a72_owner.provider_state = MT6797_A72_PROVIDER_FAULT_UNKNOWN;
++		a72_owner.health = MT6797_A72_OWNER_FAULTED;
++		a72_owner.phase = MT6797_A72_PHASE_FAULT;
++		*transaction = a72_owner.active;
++		ret = 0;
++	}
++	raw_spin_unlock_irqrestore(&a72_state_lock, flags);
++	mutex_unlock(&a72_transition_lock);
++	return ret;
++}
++
++int
++mt6797_a72_membership_run_provider_acquire(struct mt6797_a72_transaction *transaction,
++					   struct mt6797_a72_provider_response *response)
+ {
+ 	struct mt6797_a72_provider_request request = { };
+ 	struct mt6797_a72_provider_acquire_proof proof = { };
+ 	struct mt6797_a72_provider_rejection rejection = { };
++	enum mt6797_a72_provider_state expected_state =
++		MT6797_A72_PROVIDER_ACQUIRE_INFLIGHT;
++	enum mt6797_a72_owner_fault fault_cause =
++		MT6797_A72_FAULT_PROVIDER_ACQUIRE_RETURN;
+ 	int ret;
+ 
+ 	if (!transaction || !response)
+@@ -1233,6 +1315,16 @@ int mt6797_a72_membership_run_provider_acquire(
+ 	request.transaction_cookie = transaction->identity.cookie;
+ 	ret = mt6797_a72_provider_acquire(&request, response);
+ 	if (!ret) {
++		if (IS_ENABLED(CONFIG_ARM64_MT6797_A72_PRE_P28_PROVIDER_ABORT) &&
++		    !mt6797_a72_provider_acquire_response_valid(response,
++							transaction)) {
++			ret = -EPROTO;
++			mt6797_a72_membership_latch_provider_fault(transaction,
++								   expected_state,
++								   fault_cause,
++								   ret);
++			return ret;
++		}
+ 		proof.abi = MT6797_A72_PROVIDER_ACQUIRE_ABI;
+ 		proof.operation = transaction->identity.operation;
+ 		proof.settle_us = response->settle_us;
+@@ -1240,36 +1332,41 @@ int mt6797_a72_membership_run_provider_acquire(
+ 		proof.buckb_enabled = response->buckb_enabled;
+ 		proof.buckb_vsel = response->buckb_vsel;
+ 		proof.origin = response->origin;
+-		proof.held_identity.generation = response->held_handle.generation;
++		proof.held_identity.generation =
++			response->held_handle.generation;
+ 		proof.held_identity.cookie = response->held_handle.cookie;
+ 		proof.transaction_generation = transaction->identity.generation;
+ 		proof.transaction_cookie = transaction->identity.cookie;
+ 		proof.origin_generation = response->origin_generation;
+-		return mt6797_a72_membership_confirm_provider_acquire(transaction,
+-								       &proof);
++		ret = mt6797_a72_membership_confirm_provider_acquire(transaction, &proof);
++		if (ret &&
++		    IS_ENABLED(CONFIG_ARM64_MT6797_A72_PRE_P28_PROVIDER_ABORT))
++			mt6797_a72_membership_latch_provider_fault(transaction,
++								   expected_state,
++								   fault_cause,
++								   ret);
++		return ret;
+ 	}
+ 
+-	/* The read-only provider may return a structured refusal before any vote. */
+-	if (ret != -EOPNOTSUPP ||
+-	    response->abi != MT6797_A72_PROVIDER_CALL_ABI ||
+-	    response->returned != 1 || response->vote_requested ||
+-	    response->provider_mutated || response->rail_mutated ||
+-	    response->reserved)
+-		return ret;
++	/* The read-only provider may return a structured refusal before a vote. */
++	if (ret == -EOPNOTSUPP &&
++	    mt6797_a72_provider_refusal_response_valid(response)) {
++		rejection.abi = MT6797_A72_PROVIDER_REJECT_ABI;
++		rejection.operation = transaction->identity.operation;
++		rejection.result = MT6797_A72_PROVIDER_REJECTED_BEFORE_VOTE;
++		rejection.returned = response->returned;
++		rejection.transaction_generation =
++			transaction->identity.generation;
++		rejection.transaction_cookie = transaction->identity.cookie;
++		if (!mt6797_a72_membership_reject_provider_acquire(transaction, &rejection))
++			return -EOPNOTSUPP;
++	}
+ 
+-	rejection.abi = MT6797_A72_PROVIDER_REJECT_ABI;
+-	rejection.operation = transaction->identity.operation;
+-	rejection.result = MT6797_A72_PROVIDER_REJECTED_BEFORE_VOTE;
+-	rejection.returned = response->returned;
+-	rejection.vote_requested = response->vote_requested;
+-	rejection.provider_mutated = response->provider_mutated;
+-	rejection.rail_mutated = response->rail_mutated;
+-	rejection.transaction_generation = transaction->identity.generation;
+-	rejection.transaction_cookie = transaction->identity.cookie;
+-	ret = mt6797_a72_membership_reject_provider_acquire(
+-		transaction, &rejection);
+-	if (!ret)
+-		return -EOPNOTSUPP;
++	if (IS_ENABLED(CONFIG_ARM64_MT6797_A72_PRE_P28_PROVIDER_ABORT))
++		mt6797_a72_membership_latch_provider_fault(transaction,
++							   expected_state,
++							   fault_cause,
++							   ret);
+ 	return ret;
+ }
+ 

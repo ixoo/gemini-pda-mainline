@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-20-mainline-da921x-pre-p28-provider-abort` |
-| Status | source tooling prepared; Buildbox patch generation pending |
+| Status | four canonical patches imported; Buildbox compile pending |
 | Subsystem | MT6797 CPU8 membership owner and DA921x Buck B provider |
 | Device variant | Planet Gemini PDA named development unit |
 | Date(s) | 2026-08-20 America/New_York |
@@ -32,6 +32,15 @@ four-column continuation offset in patch `0297`; the other three patches were
 strict-clean and all semantic/replay validators passed. The bounded result is
 in
 [`results/patch-generation-attempt-4-checkpatch-20260820.txt`](results/patch-generation-attempt-4-checkpatch-20260820.txt).
+Attempt 5 on exact clean commit
+`809b0caf263bb180a4dddf2a52b06fb3fc5bcb56` passed contract,
+edited-source, inventory, exact replay, and strict checkpatch validation. The
+validated package `da921x-pre-p28-provider-abort-patches-809b0caf263b` contains
+four patches with zero errors, warnings, or checks. Their exact SHA-256
+identities are pinned in [`contract.json`](contract.json) and verified against
+the canonical import by [`scripts/validate.py`](scripts/validate.py). The
+bounded result is in
+[`results/patch-generation-attempt-5-success-20260820.txt`](results/patch-generation-attempt-5-success-20260820.txt).
 
 ## Question or hypothesis
 
@@ -87,11 +96,12 @@ connection. A26 and A14 remain unchanged; CPU8 and CPU9 admission stays closed.
 
 ## Planned procedure
 
-1. Commit and push the source tooling and isolated profiles.
+1. Commit and push the source tooling and isolated profiles. Complete.
 2. Generate four normal patches on the integrity-verified Buildbox parent.
+   Complete.
 3. Fetch only the validated patch package, review it, and import it at the end
-   of canonical `patches/series`.
-4. Build the exact integration KUnit profile on Buildbox.
+   of canonical `patches/series`. Complete.
+4. Build the exact integration KUnit profile on Buildbox. Pending.
 5. Run the focused suite under QEMU with no network and classify the KTAP.
 6. Record exact package, config, Image, QEMU, and suite identities.
 

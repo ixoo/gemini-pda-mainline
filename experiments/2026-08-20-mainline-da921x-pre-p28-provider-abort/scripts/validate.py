@@ -3,12 +3,23 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent.parent
 REPO = ROOT.parents[1]
+EXPECTED_PATCHES = {
+    "0296-arm64-fail-stop-ambiguous-A72-provider-acquire.patch":
+        "d388b62ff544e8efa93ccea91aaafba9927134cc77c355a647e8a11e8ef507f8",
+    "0297-arm64-add-exact-pre-P28-A72-provider-abort.patch":
+        "07dae4c535b80171243a48f7841567b15b485d7969493e54b99e9a9716252b46",
+    "0298-regulator-make-DA921x-provider-endpoint-injectable.patch":
+        "00975eeb0da3138d617f87c9448483d9165fe3e813b56ff5dd2e3009ce37968f",
+    "0299-regulator-test-DA921x-pre-P28-membership-abort.patch":
+        "d95024c58b3bbea892310e8712e88ccf86d6bb032a16150eef898a2df4dd0854",
+}
 
 
 def require(condition: bool, message: str) -> None:
@@ -39,7 +50,7 @@ def main() -> None:
     )
     buildbox = (REPO / "scripts/buildbox").read_text(encoding="utf-8")
 
-    require(contract["status"] == "source-tooling-ready",
+    require(contract["status"] == "canonical-patches-imported-build-pending",
             "experiment status changed")
     safety = contract["safety"]
     require(safety["default_off"] and safety["hardware_free"],
@@ -60,6 +71,22 @@ def main() -> None:
     require(contract["implementation"]["logical_patches"] == 4,
             "logical patch count changed")
     require(contract["proof"]["cases"] == 6, "KUnit case count changed")
+    require(contract["generated_patches"]["sha256"] == EXPECTED_PATCHES,
+            "generated patch contract changed")
+
+    canonical = [
+        line.strip() for line in (REPO / "patches/series").read_text().splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    expected_suffix = [f"v7.1.3/{name}" for name in EXPECTED_PATCHES]
+    require(canonical[-len(expected_suffix):] == expected_suffix,
+            "canonical patch suffix changed")
+    for name, expected_sha256 in EXPECTED_PATCHES.items():
+        patch = REPO / "patches/v7.1.3" / name
+        require(patch.is_file(), f"canonical patch missing: {name}")
+        actual_sha256 = hashlib.sha256(patch.read_bytes()).hexdigest()
+        require(actual_sha256 == expected_sha256,
+                f"canonical patch identity changed: {name}")
 
     profiles = manifest["config"]["profiles"]
     positive = profiles["da921x-positive-provider"]["fragments"]
@@ -76,6 +103,15 @@ def main() -> None:
         == "configs/gemini-a72-pre-p28-provider-abort-kunit.fragment",
         "KUnit profile fragment changed",
     )
+    for profile_name in (
+        "da921x-pre-p28-provider-abort",
+        "da921x-pre-p28-provider-abort-kunit",
+    ):
+        profile_series = profiles[profile_name].get(
+            "patch_series", manifest["patch_series"]
+        )
+        require(profile_series == "patches/series",
+                f"{profile_name} no longer selects canonical patches")
     abort_fragment = (
         REPO / "configs/gemini-a72-pre-p28-provider-abort.fragment"
     ).read_text()
@@ -157,7 +193,8 @@ def main() -> None:
         require(token in buildbox, f"Buildbox command token missing: {token}")
 
     print("validation=da921x-pre-p28-provider-abort-contract")
-    print("status=source-tooling-ready")
+    print("status=canonical-patches-imported-build-pending")
+    print("canonical_patch_count=4")
     print("logical_patches=4")
     print("kunit_cases=6")
     print("hardware_action=none")
