@@ -191,7 +191,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_source.py" \
 
 for patch in "$patch_1" "$patch_2" "$patch_3"; do
 	if ! perl "$source_root/scripts/checkpatch.pl" --no-tree --strict \
-		--ignore MISSING_SIGN_OFF,FILE_PATH_CHANGES,COMMIT_LOG_LONG_LINE,QUOTED_STRING_SPLIT \
+		--ignore MISSING_SIGN_OFF,FILE_PATH_CHANGES,COMMIT_LOG_LONG_LINE,SPLIT_STRING \
 		"$partial/patches/$patch" \
 		>"$partial/provenance/checkpatch-${patch%.patch}.txt"; then
 		cat "$partial/provenance/checkpatch-${patch%.patch}.txt" >&2
@@ -206,7 +206,7 @@ parent_source_state=$PARENT_SOURCE_STATE
 baseline_commit=$baseline_commit
 result_commit=$result_commit
 generated_patch_count=3
-checkpatch_intentional_ignore=QUOTED_STRING_SPLIT-for-one-atomic-raw-record
+checkpatch_intentional_ignore=SPLIT_STRING-for-one-atomic-raw-record
 observer_calls=clock-1,bigidvfs-1
 defer_before_hardware_access=yes
 automatic_retry_after_access=no

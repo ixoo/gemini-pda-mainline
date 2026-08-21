@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation is prepared for exact Buildbox generation. Two generation
+Implementation is prepared for exact Buildbox generation. Three generation
 attempts passed source validation and stopped fail-closed at successively later
 review gates. No patch package was admitted, and no kernel build, boot image,
 secure read, hardware semaphore access, or device action has yet occurred in
@@ -70,6 +70,14 @@ the candidate and keeps composition closed.
    promoted. The remedy is a separate binding patch plus corrected alignment;
    the intentional adjacent format strings remain narrowly suppressed because
    they preserve each raw record as one atomic log entry.
+3. At `2026-08-21T17:25:01Z`, Buildbox job
+   `081528c518560c21292428fa43c446f10f070cfb-protected-readback-observer-patchgen`
+   passed the three-patch split, all source and patch validators, replay, and
+   every prior C alignment check. The remaining adjacent-string diagnostic was
+   not suppressed because the supplied name described its text rather than the
+   pinned checker's internal `SPLIT_STRING` type. The partial package was
+   cleaned and no job record was promoted. Reading the pinned checker confirmed
+   the exact narrow type; no generated implementation change is required.
 
 The firmware prerequisite is the
 [protected-readback firmware audit](../2026-08-21-mainline-protected-readback-firmware-audit/README.md),

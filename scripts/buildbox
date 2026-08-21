@@ -6087,7 +6087,7 @@ case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
 grep -Fx "repository_commit=${commit}" \
   "${package}/provenance/generation.txt" >/dev/null
 for marker in generated_patch_count=3 \
-  checkpatch_intentional_ignore=QUOTED_STRING_SPLIT-for-one-atomic-raw-record \
+  checkpatch_intentional_ignore=SPLIT_STRING-for-one-atomic-raw-record \
   observer_calls=clock-1,bigidvfs-1 defer_before_hardware_access=yes \
   automatic_retry_after_access=no raw_fields=complete \
   candidate_dtb_enables=clock,bigidvfs,observer \
