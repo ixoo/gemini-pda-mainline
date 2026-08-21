@@ -37,7 +37,19 @@
     "slot_174_header": "434742440000000000000000",
     "memory_write": false
   },
-  "generation": null,
+  "generation": {
+    "result": "canonical_patch_admitted",
+    "repository_commit": "32e4874c6e0b3b57e79c760383ec6c6b80cf3573",
+    "job": "32e4874c6e0b3b57e79c760383ec6c6b80cf3573-protected-readback-call-ledger-patchgen",
+    "package": "protected-readback-call-ledger-32e4874c6e0b",
+    "generated_result_commit": "09a4d99431ce184b509bd14cffdc3aa440822ad2",
+    "sha256sums_sha256": "8cf4d8ec8e1ec7d7f724fadd117aea224fa7c193165bdd77f0450e9cb068094c",
+    "patch_sha256": "0dd0dba2e10d5477fa7dcef74b0e2135ae8b1aeeb0a66e67c31040039d83f486",
+    "strict_checkpatch": "0 errors, 0 warnings, 0 checks",
+    "profiles_checked": 104,
+    "invariant_mutations_rejected": 8,
+    "hardware_evidence": false
+  },
   "validated_build": null,
   "candidate": null,
   "deployment": null,

@@ -2,9 +2,10 @@
 
 ## Status
 
-Design and live read-only slot preflight are complete. Patch generation,
-canonical admission, Buildbox compilation, candidate construction, deployment,
-and the single device attempt remain pending.
+Design, live read-only slot preflight, deterministic Buildbox patch generation,
+strict review, and canonical admission through patch `0323` are complete.
+Buildbox compilation, candidate construction, deployment, and the single device
+attempt remain pending. No native VM build or device action occurred.
 
 The rejected predecessor returned to changed-boot-ID Gemian before exposing
 mainline USB and left no pstore, `last_kmsg`, or observer record. Its two reads
@@ -72,6 +73,11 @@ required the pre-LK derivative model string even though pinned LK rewrites the
 runtime root model to `MT6797X`. It was not admitted, compiled, or used on the
 device. The generator now pins the proven post-LK fingerprint instead.
 
+Exact clean pushed commit `32e4874` then generated one patch. Source semantics,
+patch replay, strict checkpatch, fetched-versus-admitted bytes, the 104-profile
+canonical-series audit, and all eight invariant mutations pass. See
+[`results/generation-32e4874.txt`](results/generation-32e4874.txt).
+
 ## Scope and safety
 
 The only new runtime effects are at most two short writes to already reserved
@@ -88,8 +94,8 @@ device down without rebooting. No fresh partition backup is required.
 
 ## Decision rule
 
-Generate and validate one canonical patch, then build the isolated profile on
-Buildbox. Only an exact candidate with verified DT, configuration, linked
-symbols, container, live empty-slot preflight, full `boot2` readback, and clean
-shutdown may receive one physical selection. Recover the two slots from Gemian
-before any second candidate or composition work.
+Build the isolated profile on Buildbox from the clean pushed canonical commit.
+Only an exact candidate with verified DT, configuration, linked symbols,
+container, live empty-slot preflight, full `boot2` readback, and clean shutdown
+may receive one physical selection. Recover the two slots from Gemian before
+any second candidate or composition work.

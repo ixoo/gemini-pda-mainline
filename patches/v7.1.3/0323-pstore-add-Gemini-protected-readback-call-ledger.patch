@@ -1,0 +1,326 @@
+From 09a4d99431ce184b509bd14cffdc3aa440822ad2 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 21 Aug 2026 22:31:00 +0000
+Subject: [PATCH] pstore: add Gemini protected readback call ledger
+
+Bracket the first protected-clock read with two fail-closed retained records so known-good Gemian can localize a pre-USB return.
+
+Keep the exact two read-only transports, skip normal ramoops only in the isolated profile, and add no retry, owner, or CPU operation.
+---
+ .../mt6797-protected-readback-observer.c      |  15 +-
+ fs/pstore/Kconfig                             |  23 +++
+ fs/pstore/Makefile                            |   1 +
+ fs/pstore/gemini_protected_readback_ledger.c  | 174 ++++++++++++++++++
+ fs/pstore/ram.c                               |   4 +
+ include/linux/pstore_ram.h                    |  10 +
+ 6 files changed, 226 insertions(+), 1 deletion(-)
+ create mode 100644 fs/pstore/gemini_protected_readback_ledger.c
+
+diff --git a/drivers/soc/mediatek/mt6797-protected-readback-observer.c b/drivers/soc/mediatek/mt6797-protected-readback-observer.c
+index ccaedae..f7f3f58 100644
+--- a/drivers/soc/mediatek/mt6797-protected-readback-observer.c
++++ b/drivers/soc/mediatek/mt6797-protected-readback-observer.c
+@@ -9,10 +9,12 @@
+ 
+ #include <linux/device.h>
+ #include <linux/err.h>
++#include <linux/errno.h>
+ #include <linux/module.h>
+ #include <linux/of.h>
+ #include <linux/of_platform.h>
+ #include <linux/platform_device.h>
++#include <linux/pstore_ram.h>
+ 
+ #include <linux/soc/mediatek/mt6797-bigidvfs-backend.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-clock-backend.h>
+@@ -104,8 +106,18 @@ static int mt6797_readback_observer_probe(struct platform_device *pdev)
+ 		goto put_clock;
+ 	}
+ 
++	if (!gemini_protected_readback_ledger_checkpoint(0)) {
++		ret = dev_err_probe(dev, -EIO,
++				    "before-clock ledger checkpoint failed\n");
++		goto put_bigidvfs;
++	}
+ 	clock_ret = mt6797_dvfsp_clock_backend_read(&clock_backend->dev,
+ 						    &clock);
++	if (!gemini_protected_readback_ledger_checkpoint(1)) {
++		ret = dev_err_probe(dev, -EIO,
++				    "after-clock ledger checkpoint failed\n");
++		goto put_bigidvfs;
++	}
+ 	bigidvfs_ret = mt6797_bigidvfs_backend_read(&bigidvfs_backend->dev,
+ 						    &bigidvfs);
+ 	mt6797_readback_log_clock(dev, clock_ret, &clock);
+@@ -114,9 +126,10 @@ static int mt6797_readback_observer_probe(struct platform_device *pdev)
+ 		 MT6797_READBACK_TAG
+ 		 " state=complete attempts=1 clock_calls=1 bigidvfs_calls=1"
+ 		 " cpu_requests=0 owner_registration=0\n");
+-	put_device(&bigidvfs_backend->dev);
+ 	ret = 0;
+ 
++put_bigidvfs:
++	put_device(&bigidvfs_backend->dev);
+ put_clock:
+ 	put_device(&clock_backend->dev);
+ 	return ret;
+diff --git a/fs/pstore/Kconfig b/fs/pstore/Kconfig
+index a25cd3b..9189162 100644
+--- a/fs/pstore/Kconfig
++++ b/fs/pstore/Kconfig
+@@ -126,6 +126,29 @@ config PSTORE_GEMINI_ARM64_ENTRY_LEDGER
+ 	  clocks, I2C, CPU admission, timers, watchdogs, or restart controls.
+ 	  If unsure, say N.
+ 
++config PSTORE_GEMINI_PROTECTED_READBACK_LEDGER
++	bool "Gemini protected-readback retained call ledger"
++	depends on PSTORE_RAM=y
++	depends on ARM64 && ARCH_MEDIATEK && OF
++	depends on MTK_MT6797_PROTECTED_READBACK_OBSERVER=y
++	depends on !PSTORE_GEMINI_PRE_RAMOOPS_LEDGER
++	depends on !PSTORE_GEMINI_ARM64_ENTRY_LEDGER
++	default n
++	help
++	  Write at most two short records into exact otherwise-unused dmesg
++	  zones in the existing Gemini ramoops reservation. The records bracket
++	  the first protected-clock read in the one-shot readback observer.
++
++	  The writer requires the exact candidate model, complete DT reservation
++	  contract, and valid empty persistent-RAM headers before its first write.
++	  It writes payload before metadata, fully reads back every record, never
++	  retries or clears, and stops the observer before the next protected read
++	  on any mismatch. Normal ramoops registration is skipped only for this
++	  isolated option so known-good Gemian can recover the records.
++
++	  This experiment-only option performs no storage, firmware, regulator,
++	  clock, CPU, timer, watchdog, reset, or power operation. If unsure, say N.
++
+ config PSTORE_GEMINI_POST_RAMOOPS_CHECKPOINT
+ 	bool "Gemini post-ramoops retained checkpoint"
+ 	depends on PSTORE_RAM=y
+diff --git a/fs/pstore/Makefile b/fs/pstore/Makefile
+index c675ba4..b4de9d8 100644
+--- a/fs/pstore/Makefile
++++ b/fs/pstore/Makefile
+@@ -13,6 +13,7 @@ pstore-$(CONFIG_PSTORE_PMSG)	+= pmsg.o
+ ramoops-objs += ram.o ram_core.o
+ obj-$(CONFIG_PSTORE_RAM)	+= ramoops.o
+ obj-$(CONFIG_PSTORE_GEMINI_ARM64_ENTRY_LEDGER) += gemini_entry_ledger.o
++obj-$(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_LEDGER) += gemini_protected_readback_ledger.o
+ 
+ pstore_zone-objs += zone.o
+ obj-$(CONFIG_PSTORE_ZONE)	+= pstore_zone.o
+diff --git a/fs/pstore/gemini_protected_readback_ledger.c b/fs/pstore/gemini_protected_readback_ledger.c
+new file mode 100644
+index 0000000..168d96f
+--- /dev/null
++++ b/fs/pstore/gemini_protected_readback_ledger.c
+@@ -0,0 +1,174 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* Experiment-only retained ledger around the first protected readback. */
++
++#include <linux/io.h>
++#include <linux/of.h>
++#include <linux/of_address.h>
++#include <linux/pstore_ram.h>
++#include <linux/string.h>
++
++#define GEMINI_PRB_RESERVE_BASE		0x44410000ULL
++#define GEMINI_PRB_RESERVE_SIZE		0x000e0000ULL
++#define GEMINI_PRB_LEDGER_BASE		0x444bb000ULL
++#define GEMINI_PRB_SLOT_SIZE		0x00001000UL
++#define GEMINI_PRB_SLOT_COUNT		4
++#define GEMINI_PRB_FIRST_OWNED_SLOT	2
++#define GEMINI_PRB_HEADER_SIZE		12
++#define GEMINI_PRB_SIGNATURE		0x43474244
++
++static bool gemini_prb_armed;
++
++static const char * const gemini_prb_records[] = {
++	"====0.000000-D\n"
++	"GEMINI_PROTECTED_READBACK_LEDGER_V1 token=GPRB-20260821-A "
++	"checkpoint=before-clock slot=173 crc32=08f2fe56\n",
++	"====0.000000-D\n"
++	"GEMINI_PROTECTED_READBACK_LEDGER_V1 token=GPRB-20260821-A "
++	"checkpoint=after-clock slot=174 crc32=e477a18e\n",
++};
++
++static bool gemini_prb_slot_empty(void __iomem *slot)
++{
++	return readl(slot) == GEMINI_PRB_SIGNATURE &&
++	       readl((u8 __iomem *)slot + 4) == 0 &&
++	       readl((u8 __iomem *)slot + 8) == 0;
++}
++
++static bool gemini_prb_slot_exact(void __iomem *slot, const char *record)
++{
++	size_t len = strlen(record);
++	size_t i;
++
++	if (readl(slot) != GEMINI_PRB_SIGNATURE ||
++	    readl((u8 __iomem *)slot + 4) != len ||
++	    readl((u8 __iomem *)slot + 8) != len)
++		return false;
++	for (i = 0; i < len; i++)
++		if (readb((u8 __iomem *)slot + GEMINI_PRB_HEADER_SIZE + i) !=
++		    record[i])
++			return false;
++
++	return true;
++}
++
++static bool gemini_prb_write(void __iomem *slot, const char *record)
++{
++	size_t len = strlen(record);
++	size_t i;
++
++	if (!gemini_prb_slot_empty(slot) ||
++	    len > GEMINI_PRB_SLOT_SIZE - GEMINI_PRB_HEADER_SIZE)
++		return false;
++
++	memcpy_toio((u8 __iomem *)slot + GEMINI_PRB_HEADER_SIZE, record, len);
++	wmb(); /* Commit payload before producer metadata. */
++	writel(len, (u8 __iomem *)slot + 4);
++	wmb(); /* Commit start before the final size field. */
++	writel(len, (u8 __iomem *)slot + 8);
++	mb(); /* Order the complete local readback after the commit. */
++
++	if (readl(slot) != GEMINI_PRB_SIGNATURE ||
++	    readl((u8 __iomem *)slot + 4) != len ||
++	    readl((u8 __iomem *)slot + 8) != len)
++		return false;
++	for (i = 0; i < len; i++)
++		if (readb((u8 __iomem *)slot + GEMINI_PRB_HEADER_SIZE + i) !=
++		    record[i])
++			return false;
++
++	return true;
++}
++
++static bool gemini_prb_exact_dt(void)
++{
++	struct device_node *node;
++	struct resource resource;
++	const char *model;
++	u32 value;
++	bool exact = false;
++
++	if (!of_machine_is_compatible("planet,gemini-pda") ||
++	    of_property_read_string(of_root, "model", &model) ||
++	    strcmp(model, "MT6797X"))
++		return false;
++
++	node = of_find_node_by_path("/reserved-memory/ramoops@44410000");
++	if (!node)
++		return false;
++	if (!of_device_is_compatible(node, "ramoops") ||
++	    of_address_to_resource(node, 0, &resource) ||
++	    resource.start != GEMINI_PRB_RESERVE_BASE ||
++	    resource_size(&resource) != GEMINI_PRB_RESERVE_SIZE ||
++	    !of_property_read_bool(node, "no-map"))
++		goto out;
++
++	if (of_property_read_u32(node, "record-size", &value) ||
++	    value != 0x1000)
++		goto out;
++	if (of_property_read_u32(node, "console-size", &value) ||
++	    value != 0x10000)
++		goto out;
++	if (of_property_read_u32(node, "ftrace-size", &value) ||
++	    value != 0x1000)
++		goto out;
++	if (of_property_read_u32(node, "pmsg-size", &value) ||
++	    value != 0x20000)
++		goto out;
++	if (of_property_read_u32(node, "mem-type", &value) || value)
++		goto out;
++	exact = true;
++out:
++	of_node_put(node);
++	return exact;
++}
++
++static bool gemini_prb_prefix_valid(void __iomem *ledger,
++				    unsigned int checkpoint)
++{
++	unsigned int i;
++
++	for (i = 0; i < GEMINI_PRB_SLOT_COUNT; i++) {
++		void __iomem *slot = (u8 __iomem *)ledger +
++				       i * GEMINI_PRB_SLOT_SIZE;
++
++		if (checkpoint == 1 && i == GEMINI_PRB_FIRST_OWNED_SLOT) {
++			if (!gemini_prb_slot_exact(slot, gemini_prb_records[0]))
++				return false;
++		} else if (!gemini_prb_slot_empty(slot)) {
++			return false;
++		}
++	}
++
++	return true;
++}
++
++bool gemini_protected_readback_ledger_checkpoint(unsigned int checkpoint)
++{
++	void __iomem *ledger;
++	void __iomem *slot;
++	bool written = false;
++
++	if (checkpoint > 1 || (checkpoint == 0 && gemini_prb_armed) ||
++	    (checkpoint == 1 && !gemini_prb_armed) || !gemini_prb_exact_dt())
++		return false;
++
++	ledger = ioremap_wc(GEMINI_PRB_LEDGER_BASE,
++			    GEMINI_PRB_SLOT_COUNT * GEMINI_PRB_SLOT_SIZE);
++	if (!ledger)
++		return false;
++	if (!gemini_prb_prefix_valid(ledger, checkpoint))
++		goto out;
++
++	slot = (u8 __iomem *)ledger +
++	       (GEMINI_PRB_FIRST_OWNED_SLOT + checkpoint) *
++	       GEMINI_PRB_SLOT_SIZE;
++	written = gemini_prb_write(slot, gemini_prb_records[checkpoint]);
++out:
++	iounmap(ledger);
++	if (checkpoint == 0 && written)
++		gemini_prb_armed = true;
++	else if (checkpoint == 1)
++		gemini_prb_armed = false;
++
++	return written;
++}
+diff --git a/fs/pstore/ram.c b/fs/pstore/ram.c
+index 4e070a6..6b857b4 100644
+--- a/fs/pstore/ram.c
++++ b/fs/pstore/ram.c
+@@ -1157,6 +1157,10 @@ static int __init ramoops_init(void)
+ #ifdef CONFIG_PSTORE_GEMINI_ARM64_ENTRY_LEDGER
+ 	if (of_machine_is_compatible("planet,gemini-pda"))
+ 		return 0;
++#endif
++#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_LEDGER
++	if (of_machine_is_compatible("planet,gemini-pda"))
++		return 0;
+ #endif
+ 	ramoops_register_dummy();
+ 	ret = platform_driver_register(&ramoops_driver);
+diff --git a/include/linux/pstore_ram.h b/include/linux/pstore_ram.h
+index 39a7c12..06331e4 100644
+--- a/include/linux/pstore_ram.h
++++ b/include/linux/pstore_ram.h
+@@ -55,4 +55,14 @@ static inline void gemini_arm64_entry_ledger_post_reserved_checkpoint(void)
+ }
+ #endif
+ 
++#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_LEDGER
++bool gemini_protected_readback_ledger_checkpoint(unsigned int checkpoint);
++#else
++static inline bool
++gemini_protected_readback_ledger_checkpoint(unsigned int checkpoint)
++{
++	return true;
++}
++#endif
++
+ #endif

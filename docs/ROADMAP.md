@@ -4627,6 +4627,13 @@ protected-clock read and one after it returns but before BigiDVFS. That prefix
 separates observer-not-entered, clock-read-nonreturn, and later failure without
 adding another protected read or repeating a measurement-identical artifact.
 
+That successor is now admitted canonically as patch `0323`. Deterministic
+Buildbox generation, source semantics, byte-identical replay, strict style, the
+104-profile series audit, and eight invariant mutations pass. Manual review
+also corrected a stopped pre-LK model assumption to the runtime-proven
+`MT6797X` fingerprint before admission. No kernel package or device action has
+yet occurred; the next action is the exact isolated Buildbox build.
+
 The next ordered work is:
 
 1. Build and run the two-checkpoint retained-RAM successor once. Require exact

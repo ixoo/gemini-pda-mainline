@@ -312,3 +312,4 @@ v7.1.3/0319-soc-mediatek-fix-protected-readback-test-settle-name.patch
 v7.1.3/0320-dt-bindings-soc-mediatek-add-MT6797-protected-readback-observer.patch
 v7.1.3/0321-soc-mediatek-add-one-shot-protected-readback-observer.patch
 v7.1.3/0322-arm64-dts-mediatek-add-Gemini-protected-readback-candidate.patch
+v7.1.3/0323-pstore-add-Gemini-protected-readback-call-ledger.patch
