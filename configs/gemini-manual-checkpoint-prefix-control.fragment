@@ -1,0 +1,4 @@
+# Read-only live reason for the first rejected manual-checkpoint prefix header.
+# The parent stage oracle, write ceiling, and clock/protected/CPU vetoes remain.
+CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_PREFIX_CONTROL=y
+CONFIG_LOCALVERSION="-gemini-checkpoint-prefix"

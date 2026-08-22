@@ -1,0 +1,132 @@
+From 716d9e801e85ebbf977531b57a9bbc288737c40c Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 22 Aug 2026 05:15:00 +0000
+Subject: [PATCH] pstore: report Gemini manual checkpoint prefix reason
+
+The isolated manual checkpoint passes its exact DT and retained mapping
+gates, then refuses the live four-slot prefix before its first write.
+Add a default-off diagnostic that snapshots the first rejected slot header
+after the existing predicate returns false.
+
+Keep the predicate, call count, write ceiling, and all action paths
+unchanged.  The diagnostic performs three bounded retained-memory reads
+only on refusal and reports the slot index, signature, start, size, and a
+fixed reason.
+---
+ fs/pstore/Kconfig                            | 14 ++++++++++++++
+ fs/pstore/gemini_protected_readback_ledger.c | 60 +++++++++++++++++++++++++++-
+ 2 files changed, 73 insertions(+), 1 deletion(-)
+
+diff --git a/fs/pstore/Kconfig b/fs/pstore/Kconfig
+--- a/fs/pstore/Kconfig
++++ b/fs/pstore/Kconfig
+@@ -160,6 +160,20 @@ config PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_STAGE_CONTROL
+ 	  owner, CPU, storage, timer, retry, reset, or power behavior. If unsure,
+ 	  say N.
+ 
++config PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_PREFIX_CONTROL
++	bool "Gemini manual checkpoint live prefix reason"
++	depends on PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_STAGE_CONTROL=y
++	default n
++	help
++	  After the unchanged four-slot prefix predicate refuses the isolated
++	  manual checkpoint, snapshot the first rejected header and report its
++	  slot index, signature, start, size, and a fixed failure reason.
++
++	  This adds exactly three bounded retained-memory reads after refusal. It
++	  changes no predicate, write, protected call, clock, I2C, regulator,
++	  owner, CPU, storage, timer, retry, reset, or power behavior. If unsure,
++	  say N.
++
+ config PSTORE_GEMINI_PROTECTED_READBACK_LEDGER
+ 	bool "Gemini protected-readback retained call ledger"
+ 	depends on PSTORE_RAM=y
+diff --git a/fs/pstore/gemini_protected_readback_ledger.c b/fs/pstore/gemini_protected_readback_ledger.c
+--- a/fs/pstore/gemini_protected_readback_ledger.c
++++ b/fs/pstore/gemini_protected_readback_ledger.c
+@@ -24,6 +24,52 @@ static const char *gemini_prb_stage = "not-run";
+ #define GEMINI_PRB_SET_STAGE(stage) ((void)(stage))
+ #endif
+ 
++#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_PREFIX_CONTROL
++static unsigned int gemini_prb_prefix_checkpoint = ~0U;
++static unsigned int gemini_prb_prefix_slot_index = ~0U;
++static const char *gemini_prb_prefix_reason = "not-run";
++static u32 gemini_prb_prefix_signature;
++static u32 gemini_prb_prefix_start;
++static u32 gemini_prb_prefix_size;
++
++static void gemini_prb_capture_prefix(unsigned int checkpoint,
++				      unsigned int slot_index,
++				      bool expected_empty,
++				      void __iomem *slot)
++{
++	u32 signature = readl(slot);
++	u32 start = readl((u8 __iomem *)slot + 4);
++	u32 size = readl((u8 __iomem *)slot + 8);
++
++	gemini_prb_prefix_checkpoint = checkpoint;
++	gemini_prb_prefix_slot_index = slot_index;
++	gemini_prb_prefix_signature = signature;
++	gemini_prb_prefix_start = start;
++	gemini_prb_prefix_size = size;
++	if (signature != GEMINI_PRB_SIGNATURE)
++		gemini_prb_prefix_reason = "bad-signature";
++	else if (expected_empty && start)
++		gemini_prb_prefix_reason = "nonzero-start";
++	else if (expected_empty && size)
++		gemini_prb_prefix_reason = "nonzero-size";
++	else if (expected_empty)
++		gemini_prb_prefix_reason = "unstable-or-other";
++	else
++		gemini_prb_prefix_reason = "exact-record-refused";
++}
++#else
++static inline void gemini_prb_capture_prefix(unsigned int checkpoint,
++					     unsigned int slot_index,
++					     bool expected_empty,
++					     void __iomem *slot)
++{
++	(void)checkpoint;
++	(void)slot_index;
++	(void)expected_empty;
++	(void)slot;
++}
++#endif
++
+ static bool gemini_prb_armed;
+ 
+ #ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_CONTROL
+@@ -203,10 +249,14 @@ static bool gemini_prb_prefix_valid(void __iomem *ledger,
+ 				       i * GEMINI_PRB_SLOT_SIZE;
+ 
+ 		if (checkpoint == 1 && i == GEMINI_PRB_FIRST_OWNED_SLOT) {
+-			if (!gemini_prb_slot_exact(slot, gemini_prb_records[0]))
++			if (!gemini_prb_slot_exact(slot, gemini_prb_records[0])) {
++				gemini_prb_capture_prefix(checkpoint, i, false,
++							  slot);
+ 				return false;
++			}
+ 		} else if (!gemini_prb_slot_empty(slot)) {
++			gemini_prb_capture_prefix(checkpoint, i, true, slot);
+ 			return false;
+ 		}
+ 	}
+ 
+@@ -285,6 +335,14 @@ static int __init gemini_protected_readback_manual_control_init(void)
+ 		first, second, gemini_prb_stage, first + second, 0, 0);
+ #endif
+ 
++#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_PREFIX_CONTROL
++	pr_info("%s cp=%u slot=%u why=%s hdr=%08x/%u/%u reads=3\n",
++		"GEMINI_MANUAL_CHECKPOINT_PREFIX_V1",
++		gemini_prb_prefix_checkpoint, gemini_prb_prefix_slot_index,
++		gemini_prb_prefix_reason, gemini_prb_prefix_signature,
++		gemini_prb_prefix_start, gemini_prb_prefix_size);
++#endif
++
+ 	return 0;
+ }
+ late_initcall(gemini_protected_readback_manual_control_init);
+-- 
+2.39.5

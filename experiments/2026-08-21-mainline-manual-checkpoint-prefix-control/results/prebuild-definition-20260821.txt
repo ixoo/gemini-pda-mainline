@@ -1,0 +1,45 @@
+Manual checkpoint live prefix-reason prebuild definition
+========================================================
+
+Result: pass
+Device access: none
+Hardware write: none
+Native VM build: none
+Boot candidate: no
+
+Definition
+----------
+
+Profile: da921x-manual-checkpoint-prefix-control
+Parent profile: da921x-manual-checkpoint-stage-control
+Expected release: 7.1.3-gemini-checkpoint-prefix
+Canonical patch: v7.1.3/0329-pstore-report-Gemini-manual-checkpoint-prefix-reason.patch
+Canonical patch count: 321
+Profile fragments: 24
+Manifest profiles audited: 110
+Patch parse: Kconfig 14/0, C 59/1
+Buildbox exact prepared-source git-apply check: pass
+
+Safety and mutation validation
+------------------------------
+
+Historical prefix predicates changed: no
+Fixed prefix reasons: 5
+Post-refusal retained-header reads: 3
+Payload reads added: 0
+New retained writes: 0
+Inherited retained-write ceiling: 2
+Protected calls: 0
+Clock and BigiDVFS reads: 0
+DA921x register-data writes: 0
+CPU8/CPU9 requests: 0
+Automatic retry: no
+Unsafe source/configuration mutations rejected: 16
+Manifest-series self-test mutations rejected: 8
+Strict checkpatch warnings: 0
+Strict checkpatch errors: one intentionally absent synthetic-author sign-off
+
+The patch retains the explicitly synthetic, non-certifying experiment author
+and no `Signed-off-by`. It is not submission-ready. Repository policy forbids
+inventing a DCO certification. No compile, candidate assembly, device access,
+or hardware-support claim occurred in this prebuild validation.

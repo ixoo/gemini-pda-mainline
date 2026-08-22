@@ -4779,15 +4779,26 @@ owned slots, and empty pstore. The recovery result does not reveal what the
 mainline late initcall read and cannot override the live stage. Reject exact
 candidate `43e7f44e...eac3` without repetition.
 
+The selected successor is the default-off
+`da921x-manual-checkpoint-prefix-control` profile. Canonical patch `0329`
+leaves both historical prefix predicates and their loop order unchanged. Only
+after the predicate refuses, it performs three bounded `readl()` operations on
+the first rejected 12-byte header and reports relative slot, signature, start,
+size, and one fixed reason. It adds no payload read, write, protected call,
+clock operation, DA921x action, or CPU request. Its prebuild definition passes
+exact application to the prepared `0328` source, all 110 profile-series
+invariants, 16 negative source/configuration mutations, and strict style with
+zero warnings. It is not yet compiled or a boot candidate.
+
 The next ordered work is:
 
-1. Instrument the exact first shared-writer prefix check on the serviceability-
-   proven base with one read-only live reason marker: first failing slot index
-   plus bounded signature, start, and size fields. Distinguish a bad signature,
-   nonzero empty-slot metadata, and any other exact-header mismatch before any
-   write. Keep the prefix policy unchanged and clock-node population,
-   protected transports, retries, and CPU requests absent; do not repeat the
-   stage candidate or treat returned empty RAM as the causal oracle.
+1. Build the exact clean pushed prefix-control definition on Buildbox, admit
+   one independently validated Android-v0 candidate, and make one observer-
+   armed boot2 selection. Require the first failing slot index and bounded
+   signature/start/size marker before any native return. Keep the prefix policy
+   unchanged and clock-node population, protected transports, retries, and CPU
+   requests absent; do not repeat the stage candidate or treat returned empty
+   RAM as the causal oracle.
 2. Only after the checkpoint control passes, isolate enabled clock-node population and
    read-free probe entry. Do not enable or sample BigiDVFS until clock-backend
    registration and probe entry are positively established.
