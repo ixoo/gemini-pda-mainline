@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-22-mainline-manual-checkpoint-map-control` |
-| Status | running; exact candidate installed and device shut down, awaiting one observer-armed selection |
+| Status | complete; exact runtime pass, both mainline mapping views matched all ones |
 | Subsystem | pstore retained RAM, arm64 mapping-model attribution |
 | Device variant | Gemini PDA x27, named project unit |
 | Date(s) | 2026-08-22 |
@@ -143,6 +143,17 @@ recovery policy. The write, sync, flush, and full-partition readback all
 produced exact `dd513384...693b5b`; the Gemini then shut down and remained
 unreachable. See the [deployment receipt](results/deployment-20260822.txt).
 
+The one observer-armed selection booted exact release
+`7.1.3-gemini-checkpoint-map` and padded candidate `dd513384...693b5b`. USB,
+keyboard, DA921x presence, CPU0--7, and all safety closures passed. The fixed
+stage was `map-control-observed`; the prefix marker was absent; and the map
+marker reported `why=views-match-other`. Both the ramoops-model and parallel
+views returned `ffffffff/4294967295/4294967295` after exactly three reads each,
+with zero retained writes. Only after exact classification did the observer
+request a native reboot. Changed-ID Gemian returned with unchanged boot2,
+empty retained slots, and empty pstore. See the
+[runtime receipt](results/runtime-attempt-1-views-match-other-20260822.txt).
+
 ## Analysis
 
 `ramoops_init()` being skipped explains the absence of pstore files and proves
@@ -151,21 +162,27 @@ why that mapper returned all ones. The new control isolates only the remaining
 mapping-model variable while keeping the physical address, header width,
 runtime phase, DT, and serviceability base fixed.
 
-An exact-empty vmap-model header paired with an all-ones parallel header would
-justify replacing the ledger's mapper before any retained write. If both views
-are empty, the earlier all-ones result was not stable across builds and the
-writer still remains closed. Any other match, mismatch, or map failure stops at
-read-only attribution.
+The observed `views-match-other` result rejects a difference between
+`ioremap_wc()` and the exact persistent-RAM vmap model: both mainline views
+read the same all-ones header. Replacing only the parallel mapper would preserve
+the observed value and is therefore not justified. Gemian read the same
+physical header as exact empty before and after the mainline boot, so the
+remaining discriminator is shared by both mainline views versus Gemian's
+mapping/boot phase, or by a content transition around the OS handoffs. The
+result does not establish which of those two explanations is causal.
 
 ## Conclusion
 
-The exact read-only mapping-control candidate is independently admitted for one
-guarded boot2 selection. It is not runtime-proven and makes no new
-hardware-support claim. CPU8 and CPU9 remain closed.
+The exact read-only mapping-control candidate completed its one selection and
+positively rejected mapping-model substitution as the next fix. It makes no
+new hardware-support claim. CPU8 and CPU9 remain closed.
 
 ## Follow-up
 
-Pre-arm the exact observer, then make one physical boot2 selection. Do not
-manually reboot after selection: the observer requests a native return to
-Gemian only after exact live attribution. Do not register ramoops, restore the
-writer, populate clock nodes, or open any CPU request in this discriminator.
+Audit the exact arm64 `/dev/mem` page-protection path used by Gemian and every
+mainline owner or initialization path that can change reservation
+`0x44410000..0x444c0000` before the manual checkpoint. Select another boot only
+if one read-only same-boot observation can distinguish a mapping-contract
+difference from a boot-phase content transition. Do not substitute the mapper,
+register ramoops, restore the writer, populate clock nodes, or open any CPU
+request before that audit.

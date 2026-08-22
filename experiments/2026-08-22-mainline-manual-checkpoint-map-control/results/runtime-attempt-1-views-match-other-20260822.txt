@@ -1,0 +1,88 @@
+Manual checkpoint mapping-control runtime attempt 1
+===================================================
+
+Date (UTC): 2026-08-22
+Result: pass
+Runtime classification: manual-checkpoint-map-pass
+Runtime reason: decision-map-views-match-other
+Candidate padded SHA-256: dd513384c78ee8378e1e4bf515f89b99ca87ed6ed86c1d38ec37f8aadd693b5b
+Kernel release: 7.1.3-gemini-checkpoint-map
+Mainline boot ID: 8668dafc-4b2d-4986-8fd6-51484ccae96f
+Uptime at capture: 52.37 seconds
+
+Serviceability and closures
+---------------------------
+
+Architecture: aarch64
+Model: MT6797X
+CPU possible/present: 0-9
+CPU online: 0-7
+CPU offline: 8-9
+USB device controller: present
+USB/netcat capture: pass on first try
+Keyboard matrix: present
+DA921x I2C client: present
+Same-value action attributes: absent
+Clock backend devices: absent
+BigiDVFS backend devices: absent
+Protected-readback devices: absent
+Block-device mounts: zero
+Device storage reads/writes: none
+Protected calls: zero
+CPU admission requests: zero
+
+Exact checkpoint observation
+----------------------------
+
+Historical marker: first=0 second=0 retained_writes=0 protected_calls=0 cpu_requests=0
+Stage marker: first=0 second=0 stage=map-control-observed writes=0 protected=0 cpu=0
+Prefix marker count: 0
+Map marker count: 1
+Record: 171
+Physical header: 0x444bb000
+Reason: views-match-other
+Ramoops-model header: ffffffff/4294967295/4294967295
+Parallel header: ffffffff/4294967295/4294967295
+Ramoops-model reads: 3
+Parallel reads: 3
+Retained writes: 0
+
+Changed-ID recovery
+-------------------
+
+Native reboot command sent only after exact live classification: yes
+Native return to changed-ID Gemian: pass
+Returned Gemian boot ID SHA-256: 6f2bad7ebf0fee452f1533b7933c8a141c77fdffd054f06b773d6f88013a286b
+Active root: /dev/mmcblk0p29
+Logical boot2: /dev/mmcblk0p30
+Boot2 full SHA-256: dd513384c78ee8378e1e4bf515f89b99ca87ed6ed86c1d38ec37f8aadd693b5b
+Slot 173 header: 444247430000000000000000
+Slot 174 header: 444247430000000000000000
+Pstore files: 0
+Retained classification: live-pass-recovered-empty
+Retained reason: cross-version-recovery-empty-not-live-stage-failure
+Device memory writes: none
+Device partition writes: none
+
+Decision
+--------
+
+The exact `persistent_ram_vmap()` model and the existing parallel
+`ioremap_wc()` mapper agree on the same all-ones header. Replacing only the
+parallel mapper would therefore preserve the observed value and is rejected as
+the next fix. Because Gemian observed exact empty before and after this boot,
+the remaining distinction is a mapping contract shared by both mainline views
+versus Gemian, or a content transition around the OS boot handoffs. Static
+audit must localize those alternatives before another physical selection.
+
+Private source identities
+-------------------------
+
+Runtime capture SHA-256: 0098fd82ccf6d0fcdb79ee133375a01bfb807f8a269638631f50132204964ec2
+Classification SHA-256: f4cbf122c68bc315c6260c6c103d713a652951bf8f0f10cf55c27fabcecac147
+Observer events SHA-256: 52304b2856b2b2c04309e0197b04189e85327bc1c4b55d582fecff6c26e05ca5
+Retained classification SHA-256: ca59f82a36e751a413cda6d74f8625f6c6dcb733df69bf894df387f88bbd880a
+Retained capture SHA-256: bdb9e0cee424cae1ca91ac02c2a4db66ffc5fe80557f71bcbae1dd0d3664c243
+USB topology SHA-256: 2dab2114c43ed57b09fe01aac8eb77a110d0c54fdf44e7c9d70c86244514cd58
+Raw private capture committed: no
+Credentials, serials, MAC addresses, IMEI, calibration, or personal identifiers committed: no

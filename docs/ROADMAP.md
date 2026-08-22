@@ -4805,20 +4805,23 @@ canonical patch `0330`. Its exact Buildbox package, two independent DT
 constructions, two independent container and padding constructions, 32 LK
 gates, fixed five-result runtime oracle, and negative mutation suites pass.
 The admitted padded candidate is `dd513384...693b5b`. Guarded inactive-boot2
-installation, full readback, and shutdown now pass; it has not yet run on
-hardware. The immediate action is observer arming and one physical selection. See the
+installation, full readback, shutdown, and the single observer-armed selection
+all pass. Both mainline mapping models returned the same all-ones header after
+three reads each, with zero writes; exact serviceability passed and only then
+returned natively to changed-ID Gemian, where the slots remained empty. This
+rejects mapper substitution as the next fix. See the
 [manual checkpoint mapping control](../experiments/2026-08-22-mainline-manual-checkpoint-map-control/README.md).
 
 The next ordered work is:
 
-1. Run the single admitted mapping-control selection. If the ramoops mapping
-   model is exact empty, replace the ledger's parallel mapper with one
-   persistent-RAM mapping contract before any write. If both views are empty,
-   reject the prior all-ones result as unstable. For matching other data, a
-   true mismatch, or mapping failure, localize that exact state before another
-   boot. Keep normal ramoops registration, the prefix predicate, writer,
-   clock-node population, protected transports, retries, transition-owner
-   registration, and CPU requests absent.
+1. Before another boot, audit the exact arm64 `/dev/mem` mapping protection used
+   by known-good Gemian and every mainline reservation owner, clear, poison, or
+   initialization path that can affect `0x44410000..0x444c0000` before the
+   manual checkpoint. If static evidence cannot distinguish mapping contract
+   from boot-phase content transition, define one same-boot, read-only
+   observation that does. Keep normal ramoops registration, the prefix
+   predicate, writer, clock-node population, protected transports, retries,
+   transition-owner registration, and CPU requests absent.
 2. Only after the checkpoint control passes, isolate enabled clock-node population and
    read-free probe entry. Do not enable or sample BigiDVFS until clock-backend
    registration and probe entry are positively established.

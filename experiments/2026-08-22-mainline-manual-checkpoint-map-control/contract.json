@@ -120,6 +120,26 @@
     "automatic_reboot": false,
     "result": "write-synced-flushed-full-readback-verified"
   },
+  "runtime_result": {
+    "attempt": 1,
+    "mainline_boot_id": "8668dafc-4b2d-4986-8fd6-51484ccae96f",
+    "classification": "manual-checkpoint-map-pass",
+    "reason": "decision-map-views-match-other",
+    "stage": "map-control-observed",
+    "ramoops_model_header": "ffffffff/4294967295/4294967295",
+    "parallel_header": "ffffffff/4294967295/4294967295",
+    "ramoops_model_reads": 3,
+    "parallel_reads": 3,
+    "retained_writes": 0,
+    "serviceability": "pass",
+    "cpu_online": "0-7",
+    "cpu_offline": "8-9",
+    "native_reboot_to_changed_gemian": "pass",
+    "changed_gemian_boot_id_sha256": "6f2bad7ebf0fee452f1533b7933c8a141c77fdffd054f06b773d6f88013a286b",
+    "retained_recovery": "live-pass-recovered-empty",
+    "boot2_full_sha256_after_return": "dd513384c78ee8378e1e4bf515f89b99ca87ed6ed86c1d38ec37f8aadd693b5b",
+    "result": "pass"
+  },
   "scope": {
     "retained_ram_writes": 0,
     "retained_header_reads_maximum": 6,
