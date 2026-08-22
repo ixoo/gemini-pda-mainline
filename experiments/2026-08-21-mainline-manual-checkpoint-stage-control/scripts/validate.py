@@ -163,10 +163,25 @@ def main() -> None:
             "protected read scope changed")
     require(contract["scope"]["cpu_on"] is False and
             contract["scope"]["cpu_off"] is False, "CPU scope changed")
-    require(contract["scope"]["boot_candidate"] is False,
-            "prebuild definition was promoted")
+    build = contract["build"]
+    require(build["repository_commit"] ==
+            "f4b48199932fdab458f4fae2e8f2d7a097c551ea", "build commit changed")
+    require(build["build_backend"] == "buildbox", "build backend changed")
+    candidate = contract["candidate"]
+    require(candidate["raw_sha256"] ==
+            "07d2f185818ec7b823379c4b9291a9d2a5fcbf5341be295d4ab573e18a4386d0",
+            "raw candidate changed")
+    require(candidate["padded_sha256"] ==
+            "43e7f44eeef694ef876f7686ae03e2a779a118141e7f9efa060ccc1182c8eac3",
+            "padded candidate changed")
+    require(candidate["lk_gates"] == "32-of-32" and
+            candidate["dt_mutations_rejected"] == 15,
+            "candidate validation changed")
+    require(candidate["boot_candidate"] is True and
+            contract["scope"]["boot_candidate"] is True,
+            "validated candidate was demoted")
 
-    print("validation=mainline-manual-checkpoint-stage-control-prebuild")
+    print("validation=mainline-manual-checkpoint-stage-control-admission")
     print(f"profile={PROFILE}")
     print(f"profile_fragments={len(profile['fragments'])}")
     print(f"canonical_patch_count={len(series)}")
@@ -175,9 +190,11 @@ def main() -> None:
     print("new_retained_writes=0")
     print("protected_calls=0")
     print("cpu8_cpu9_admission=closed")
+    print("LK_gates=32-of-32")
+    print("independent_DT_mutations_rejected=15")
     print("device_access=none")
     print("hardware_write=none")
-    print("boot_candidate=false")
+    print("boot_candidate=true")
     print("result=pass")
 
 

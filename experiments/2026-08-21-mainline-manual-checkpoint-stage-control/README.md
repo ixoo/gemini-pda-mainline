@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-21-mainline-manual-checkpoint-stage-control` |
-| Status | running; prebuild definition |
+| Status | running; exact candidate admitted, deployment pending |
 | Subsystem | pstore retained writer, live refusal attribution, serviceability |
 | Device variant | Gemini PDA x27, named project unit |
 | Date(s) | 2026-08-21 |
@@ -35,8 +35,10 @@ next action. The old boolean marker remains unchanged for comparison.
 - Build backend: Buildbox only from an exact clean pushed commit
 - Boot path: guarded live-GPT logical boot2 only
 
-Exact build, package, DTB, and candidate identities remain pending Buildbox
-validation.
+The exact Buildbox package is
+`linux-7.1.3-gemini-da921x-manual-checkpoint-stage-control-f7245421-75cbd9fd`.
+Its raw Android-v0 candidate is `07d2f185...386d0`; the exact 16 MiB boot2
+image is `43e7f44e...eac3`.
 
 ## Safety assessment
 
@@ -65,9 +67,14 @@ observer must be armed before the single physical selection.
   safety validator
 - `scripts/test-validate.py`: negative source/configuration mutations
 - `contract.json`: frozen hypothesis, stage decisions, and safety scope
+- `scripts/build-candidate.sh` and `scripts/test-candidate.sh`: two-way exact
+  container construction and independent admission
+- `scripts/install-boot2.sh`: source-pinned live-GPT write/readback/shutdown
+- `scripts/collect-runtime.sh`, `scripts/remote-runtime-probe.sh`,
+  `scripts/validate-runtime.py`, and `scripts/validate-retained.py`: pre-armed
+  fixed-stage capture, native Gemian return, and bounded recovery
 
-Build, candidate, deployment, and runtime tooling will be added only after the
-exact Buildbox package exists.
+Deployment and runtime evidence remain pending.
 
 ## Procedure
 
@@ -94,7 +101,9 @@ the expected model and five ramoops property values, but the boolean marker
 could not distinguish the remaining resource, mapping, prefix, or write/readback
 boundaries. Changed-ID recovery was empty and adds no causal precision.
 
-No build or device access has occurred for this new definition.
+Buildbox fetched exact clean commit `f4b4819`, applied the canonical series,
+compiled release `7.1.3-gemini-checkpoint-stage`, and validated the complete
+package inventory. No native VM build occurred.
 
 The prebuild definition passes its exact fragment/profile contract, seven
 unified-diff hunk counts, Buildbox prepared-source apply check, canonical-series
@@ -102,6 +111,14 @@ audit across 109 profiles, and 14 negative source/configuration mutations.
 Strict checkpatch reports no warning and only the intentionally absent
 synthetic-author sign-off. See the
 [prebuild receipt](results/prebuild-definition-20260821.txt).
+
+The exact package and candidate pass two independent raw assemblies, two
+independent padding constructions, all 32 LK Android-v0 gates, exact Image,
+configuration, symbol, and provenance checks, and 15 independent DT
+mutations. The runtime tools accept all eight fixed outcomes while rejecting
+24 unsafe live mutations and eight retained-recovery mutations. No device
+access occurred during build or admission. See the [build receipt](results/build-f4b4819.txt)
+and [candidate receipt](results/candidate-07d2f185.txt).
 
 ## Analysis
 
@@ -114,8 +131,9 @@ clock-node population control.
 
 ## Conclusion
 
-Pending exact Buildbox and runtime evidence. No stage, checkpoint,
-persistence, or hardware-support claim has yet been made.
+Exact candidate admitted. Deployment and the one physical runtime selection
+remain pending. No live stage, checkpoint, persistence, or hardware-support
+claim has yet been made.
 
 ## Follow-up
 

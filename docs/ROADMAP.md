@@ -4761,8 +4761,10 @@ the historical boolean marker and adds one live fixed stage selected from DT/
 resource, mapping, prefix/header, write precondition, metadata readback,
 payload readback, or success. The prebuild definition passes exact application
 to the prepared `0327` source, all 109 manifest-profile series invariants, and
-14 negative source/configuration mutations. It is not a boot candidate until
-the Buildbox package and experiment-specific candidate tooling pass. See the
+14 negative source/configuration mutations. Its exact Buildbox package,
+serviceability DT derivation, Android-v0 container, independent DT mutations,
+and pre-armed runtime observer now pass, so the next action is the single
+guarded boot2 deployment and physical selection. See the
 [manual checkpoint stage control](../experiments/2026-08-21-mainline-manual-checkpoint-stage-control/README.md).
 
 The next ordered work is:
