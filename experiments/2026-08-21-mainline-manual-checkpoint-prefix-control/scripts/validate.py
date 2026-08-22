@@ -204,7 +204,7 @@ def main() -> None:
         "prefix fragment changed",
     )
     series = (ROOT / "patches/series").read_text(encoding="utf-8").splitlines()
-    require(series[-1] == PATCH, "prefix patch is not canonical tip")
+    require(PATCH in series, "prefix patch left the canonical series")
     require(
         series.count(PATCH) == 1 and len(series) == len(set(series)),
         "canonical series duplicate changed",

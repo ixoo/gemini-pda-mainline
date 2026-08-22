@@ -4794,24 +4794,26 @@ readback and shutdown. The one physical selection remained serviceable and
 reported the first rejected header as relative slot zero with all three words
 equal to `0xffffffff`. Only after exact attribution did it return natively to
 changed-ID Gemian, where the same physical slot remained an exact empty record.
-This rejects a stale/nonempty record as the observed cause and localizes the
-next discriminator to the parallel `ioremap_wc()` view versus the ramoops-owned
-mapping. Reject the exact prefix-control candidate without repetition. See the
+This rejects a stale/nonempty record as the observed cause. Exact source audit
+then found that the ledger profile deliberately skips `ramoops_init()`, so no
+owned ramoops mapping exists in that boot; only the parallel `ioremap_wc()` view
+does. Reject the exact prefix-control candidate without repetition. See the
 [manual checkpoint prefix control](../experiments/2026-08-21-mainline-manual-checkpoint-prefix-control/README.md).
 
 The next ordered work is:
 
-1. Add one default-off, read-only owner-mapping discriminator on the same proven
-   serviceability base. It must snapshot the first header through the already-
-   owned ramoops dmesg-zone mapping and compare it with the current parallel
-   mapping without any retained write. Require exact DT and zone-index
-   attribution, one bounded snapshot per view, and a unique result that
-   distinguishes owner-empty/parallel-all-ones from both-views-empty and true
-   owner-data mismatch. Keep the prefix predicate, clock-node population,
-   protected transports, retries, owner registration, and CPU requests absent.
-   If the owner view is exact empty, move the checkpoint writer onto that
-   single-owner mapping contract; otherwise stop and localize ramoops zone
-   construction before another boot.
+1. Add one default-off, read-only mapping-model discriminator on the same proven
+   serviceability base. Keep normal ramoops registration skipped. Snapshot the
+   first header once through the current parallel `ioremap_wc()` view and once
+   through the internal `persistent_ram_vmap()` model that normal ramoops would
+   select, without invoking the prefix predicate or writer. Require exact
+   physical-slot attribution and a unique result that distinguishes ramoops-
+   model-empty/parallel-all-ones from both-views-empty, matching other data,
+   mapping failure, and a true view mismatch. Keep clock-node population,
+   protected transports, retries, transition-owner registration, and CPU
+   requests absent. If the ramoops mapping model is exact empty, replace the
+   ledger's parallel mapper with a single persistent-RAM mapping contract;
+   otherwise stop and localize the mapping model before another boot.
 2. Only after the checkpoint control passes, isolate enabled clock-node population and
    read-free probe entry. Do not enable or sample BigiDVFS until clock-backend
    registration and probe entry are positively established.

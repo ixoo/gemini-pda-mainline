@@ -1,0 +1,212 @@
+From 3d9e62e03f6380ad3ed7bf2da6c1d5f507d1fb46 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 22 Aug 2026 15:30:00 +0000
+Subject: [PATCH] pstore: compare Gemini ramoops mapping models
+
+The isolated manual checkpoint's parallel ioremap_wc() view read all ones
+where known-good Gemian read an exact empty ramoops header. The ledger also
+skips normal ramoops registration deliberately, leaving no existing owner
+mapping to inspect.
+
+Add a default-off read-only control. Compare the parallel mapping with the
+model used by persistent_ram_vmap(). Bypass the prefix predicate.
+Bypass the writer too. Compare one three-word snapshot per view.
+Do not register ramoops or add any retained write,
+protected call, clock operation, owner, or CPU request.
+---
+ fs/pstore/Kconfig                            | 15 +++++
+ fs/pstore/gemini_protected_readback_ledger.c | 77 +++++++++++++++++++++++++++-
+ fs/pstore/ram_core.c                         | 27 ++++++++++
+ fs/pstore/ram_internal.h                     |  5 ++
+ 4 files changed, 123 insertions(+), 1 deletion(-)
+
+diff --git a/fs/pstore/Kconfig b/fs/pstore/Kconfig
+--- a/fs/pstore/Kconfig
++++ b/fs/pstore/Kconfig
+@@ -174,6 +174,21 @@ config PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_PREFIX_CONTROL
+ 	  owner, CPU, storage, timer, retry, reset, or power behavior. If unsure,
+ 	  say N.
+ 
++config PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_MAP_CONTROL
++	bool "Gemini manual checkpoint ramoops mapping control"
++	depends on PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_PREFIX_CONTROL=y
++	default n
++	help
++	  Compare the first rejected header through the ledger's parallel
++	  ioremap_wc() view and the read-only mapping model used by ramoops
++	  persistent RAM. Report both three-word snapshots and a fixed result.
++
++	  This mode bypasses the prefix predicate and retained writer. It performs
++	  at most three reads through each mapping, unmaps both views, and adds no
++	  write, ramoops registration, protected call, clock, I2C, regulator,
++	  transition owner, CPU, storage, timer, retry, reset, or power operation.
++	  If unsure, say N.
++
+ config PSTORE_GEMINI_PROTECTED_READBACK_LEDGER
+ 	bool "Gemini protected-readback retained call ledger"
+ 	depends on PSTORE_RAM=y
+diff --git a/fs/pstore/gemini_protected_readback_ledger.c b/fs/pstore/gemini_protected_readback_ledger.c
+--- a/fs/pstore/gemini_protected_readback_ledger.c
++++ b/fs/pstore/gemini_protected_readback_ledger.c
+@@ -8,6 +8,8 @@
+ #include <linux/pstore_ram.h>
+ #include <linux/string.h>
+ 
++#include "ram_internal.h"
++
+ #define GEMINI_PRB_RESERVE_BASE		0x44410000ULL
+ #define GEMINI_PRB_RESERVE_SIZE		0x000e0000ULL
+ #define GEMINI_PRB_LEDGER_BASE		0x444bb000ULL
+@@ -68,6 +70,62 @@ static inline void gemini_prb_capture_prefix(unsigned int checkpoint,
+ }
+ #endif
+ 
++#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_MAP_CONTROL
++static const char *gemini_prb_map_reason = "not-run";
++static u32 gemini_prb_map_parallel_signature;
++static u32 gemini_prb_map_parallel_start;
++static u32 gemini_prb_map_parallel_size;
++static u32 gemini_prb_map_ramoops_signature;
++static u32 gemini_prb_map_ramoops_start;
++static u32 gemini_prb_map_ramoops_size;
++static unsigned int gemini_prb_map_ramoops_reads;
++
++static bool gemini_prb_header_empty(u32 signature, u32 start, u32 size)
++{
++	return signature == GEMINI_PRB_SIGNATURE && !start && !size;
++}
++
++static void gemini_prb_capture_map_control(void __iomem *ledger)
++{
++	bool mapped;
++
++	gemini_prb_map_parallel_signature = readl(ledger);
++	gemini_prb_map_parallel_start = readl((u8 __iomem *)ledger + 4);
++	gemini_prb_map_parallel_size = readl((u8 __iomem *)ledger + 8);
++	mapped = persistent_ram_gemini_snapshot_header(GEMINI_PRB_LEDGER_BASE,
++						       &gemini_prb_map_ramoops_signature,
++						       &gemini_prb_map_ramoops_start,
++						       &gemini_prb_map_ramoops_size);
++	if (!mapped) {
++		gemini_prb_map_reason = "ramoops-map-unavailable";
++		return;
++	}
++
++	gemini_prb_map_ramoops_reads = 3;
++	if (gemini_prb_header_empty(gemini_prb_map_ramoops_signature,
++				    gemini_prb_map_ramoops_start,
++				    gemini_prb_map_ramoops_size) &&
++	    gemini_prb_map_parallel_signature == ~0U &&
++	    gemini_prb_map_parallel_start == ~0U &&
++	    gemini_prb_map_parallel_size == ~0U)
++		gemini_prb_map_reason = "ramoops-empty-parallel-all-ones";
++	else if (gemini_prb_header_empty(gemini_prb_map_ramoops_signature,
++					 gemini_prb_map_ramoops_start,
++					 gemini_prb_map_ramoops_size) &&
++		 gemini_prb_header_empty(gemini_prb_map_parallel_signature,
++					 gemini_prb_map_parallel_start,
++					 gemini_prb_map_parallel_size))
++		gemini_prb_map_reason = "both-empty";
++	else if (gemini_prb_map_ramoops_signature ==
++		 gemini_prb_map_parallel_signature &&
++		 gemini_prb_map_ramoops_start == gemini_prb_map_parallel_start &&
++		 gemini_prb_map_ramoops_size == gemini_prb_map_parallel_size)
++		gemini_prb_map_reason = "views-match-other";
++	else
++		gemini_prb_map_reason = "views-differ";
++}
++#endif
++
+ static bool gemini_prb_armed;
+ 
+ #ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_CONTROL
+@@ -296,6 +354,13 @@ bool gemini_protected_readback_ledger_checkpoint(unsigned int checkpoint)
+ 		GEMINI_PRB_SET_STAGE("map-refused");
+ 		return false;
+ 	}
++#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_MAP_CONTROL
++	if (checkpoint == 0) {
++		gemini_prb_capture_map_control(ledger);
++		GEMINI_PRB_SET_STAGE("map-control-observed");
++		goto out;
++	}
++#endif
+ 	if (!gemini_prb_prefix_valid(ledger, checkpoint)) {
+ 		GEMINI_PRB_SET_STAGE("prefix-refused");
+ 		goto out;
+@@ -334,7 +399,8 @@ static int __init gemini_protected_readback_manual_control_init(void)
+ 		first, second, gemini_prb_stage, first + second, 0, 0);
+ #endif
+ 
+-#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_PREFIX_CONTROL
++#if defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_PREFIX_CONTROL) && \
++	!defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_MAP_CONTROL)
+ 	pr_info("%s cp=%u slot=%u why=%s hdr=%08x/%u/%u reads=3\n",
+ 		"GEMINI_MANUAL_CHECKPOINT_PREFIX_V1",
+ 		gemini_prb_prefix_checkpoint, gemini_prb_prefix_slot_index,
+@@ -343,6 +409,15 @@ static int __init gemini_protected_readback_manual_control_init(void)
+ 		gemini_prb_prefix_start, gemini_prb_prefix_size);
+ #endif
+ 
++#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_MAP_CONTROL
++	pr_info("%s r=171 p=%llx why=%s rh=%08x/%u/%u ph=%08x/%u/%u rr=%u pr=3 w=0\n",
++		"GEMINI_MANUAL_CHECKPOINT_MAP_CONTROL_V1", GEMINI_PRB_LEDGER_BASE,
++		gemini_prb_map_reason, gemini_prb_map_ramoops_signature,
++		gemini_prb_map_ramoops_start, gemini_prb_map_ramoops_size,
++		gemini_prb_map_parallel_signature, gemini_prb_map_parallel_start,
++		gemini_prb_map_parallel_size, gemini_prb_map_ramoops_reads);
++#endif
++
+ 	return 0;
+ }
+ late_initcall(gemini_protected_readback_manual_control_init);
+diff --git a/fs/pstore/ram_core.c b/fs/pstore/ram_core.c
+--- a/fs/pstore/ram_core.c
++++ b/fs/pstore/ram_core.c
+@@ -468,6 +468,33 @@ static void *persistent_ram_vmap(phys_addr_t start, size_t size,
+ 	return vaddr + offset_in_page(start);
+ }
+ 
++#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_MAP_CONTROL
++bool persistent_ram_gemini_snapshot_header(phys_addr_t start, u32 *signature,
++					   u32 *record_start,
++					   u32 *record_size)
++{
++	struct persistent_ram_buffer *buffer;
++	void *vaddr;
++
++	if (!signature || !record_start || !record_size ||
++	    !pfn_valid(start >> PAGE_SHIFT))
++		return false;
++
++	vaddr = persistent_ram_vmap(start, sizeof(*buffer),
++				    MEM_TYPE_WCOMBINE);
++	if (!vaddr)
++		return false;
++
++	buffer = vaddr;
++	*signature = READ_ONCE(buffer->sig);
++	*record_start = atomic_read(&buffer->start);
++	*record_size = atomic_read(&buffer->size);
++	vunmap(vaddr - offset_in_page(start));
++
++	return true;
++}
++#endif
++
+ static void *persistent_ram_iomap(phys_addr_t start, size_t size,
+ 		unsigned int memtype, char *label)
+ {
+diff --git a/fs/pstore/ram_internal.h b/fs/pstore/ram_internal.h
+--- a/fs/pstore/ram_internal.h
++++ b/fs/pstore/ram_internal.h
+@@ -83,2 +83,7 @@ void persistent_ram_free_old(struct persistent_ram_zone *prz);
+ ssize_t persistent_ram_ecc_string(struct persistent_ram_zone *prz,
+ 	char *str, size_t len);
++
++#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_MAP_CONTROL
++bool persistent_ram_gemini_snapshot_header(phys_addr_t start, u32 *signature,
++					   u32 *record_start, u32 *record_size);
++#endif
+-- 
+2.39.5

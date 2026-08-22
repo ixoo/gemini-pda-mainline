@@ -1,0 +1,4 @@
+# Read-only comparison of the parallel ledger map and ramoops mapping model.
+# The mode bypasses the prefix predicate and retained writer completely.
+CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_MAP_CONTROL=y
+CONFIG_LOCALVERSION="-gemini-checkpoint-map"

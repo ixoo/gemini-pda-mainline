@@ -1,0 +1,98 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-22-mainline-manual-checkpoint-map-control",
+  "question": "does_the_persistent_ram_vmap_model_read_exact_empty_while_the_parallel_ioremap_wc_view_reads_all_ones",
+  "foundation": {
+    "experiment": "2026-08-21-mainline-manual-checkpoint-prefix-control",
+    "evidence_commit": "c5d0be76bf1ac135c57d814e259971fa72dbd366",
+    "kernel_release": "7.1.3-gemini-checkpoint-prefix",
+    "padded_sha256": "ced1f56fc56833ce47b63a98205a373276f5d666007190ec0d3bd5adb98f3901",
+    "runtime": "manual-checkpoint-prefix-pass",
+    "reason": "decision-prefix-bad-signature",
+    "parallel_header": "ffffffff/4294967295/4294967295",
+    "gemian_physical_header": "444247430000000000000000",
+    "repeat_exact_artifact": false
+  },
+  "source_audit": {
+    "normal_ramoops_registration_in_parent": false,
+    "skip_condition": "PSTORE_GEMINI_PROTECTED_READBACK_LEDGER_on_planet_gemini_pda",
+    "parallel_mapper": "ioremap_wc",
+    "comparison_mapper": "persistent_ram_vmap",
+    "comparison_protection": "pgprot_writecombine_PAGE_KERNEL",
+    "memory_model": "CONFIG_SPARSEMEM_VMEMMAP=y",
+    "physical_header": "0x444bb000",
+    "downstream_record": 171
+  },
+  "profile": {
+    "name": "da921x-manual-checkpoint-map-control",
+    "parent": "da921x-manual-checkpoint-prefix-control",
+    "patch_series": "patches/series",
+    "final_fragment": "configs/gemini-manual-checkpoint-map-control.fragment",
+    "expected_release": "7.1.3-gemini-checkpoint-map",
+    "build_backend": "buildbox",
+    "native_vm_build": false
+  },
+  "patch": {
+    "path": "patches/v7.1.3/0330-pstore-compare-Gemini-ramoops-mapping-models.patch",
+    "sha256": "a8c1f85ee511fc6ea4ec8b0075b92ec32d85aaa3cd619558a4827558d9085e53",
+    "submission_ready": false,
+    "synthetic_author": true,
+    "synthetic_signoff": false,
+    "mode_symbol": "PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_MAP_CONTROL",
+    "normal_ramoops_registration": false,
+    "prefix_predicate_invoked": false,
+    "retained_writer_invoked": false
+  },
+  "runtime_oracle": {
+    "kernel_release": "7.1.3-gemini-checkpoint-map",
+    "historical_marker": "GEMINI_MANUAL_CHECKPOINT_CONTROL_LIVE_V1",
+    "required_historical_result": "first=0 second=0 retained_writes=0 protected_calls=0 cpu_requests=0",
+    "stage_marker": "GEMINI_MANUAL_CHECKPOINT_STAGE_V1",
+    "required_stage": "map-control-observed",
+    "prefix_marker_count": 0,
+    "map_marker": "GEMINI_MANUAL_CHECKPOINT_MAP_CONTROL_V1",
+    "map_marker_count": 1,
+    "physical_slot": "0x444bb000",
+    "downstream_record": 171,
+    "reason_values": [
+      "ramoops-empty-parallel-all-ones",
+      "both-empty",
+      "views-match-other",
+      "views-differ",
+      "ramoops-map-unavailable"
+    ],
+    "ramoops_model_reads_maximum": 3,
+    "parallel_reads": 3,
+    "retained_writes": 0,
+    "cpu_online": "0-7",
+    "cpu_offline": "8-9"
+  },
+  "decision": {
+    "ramoops-empty-parallel-all-ones": "replace_the_parallel_mapper_with_one_persistent_ram_mapping_contract_before_any_write",
+    "both-empty": "reject_the_parent_all_ones_as_nonrepeatable_and_keep_the_writer_closed",
+    "views-match-other": "identify_the_matching_record_state_without_writing",
+    "views-differ": "localize_the_nonempty_view_difference_without_writing",
+    "ramoops-map-unavailable": "audit_pfn_valid_and_persistent_ram_vmap_without_another_boot",
+    "identity_stage_or_serviceability_mismatch": "reject_without_inference",
+    "physical_selections": 1
+  },
+  "scope": {
+    "retained_ram_writes": 0,
+    "retained_header_reads_maximum": 6,
+    "retained_payload_reads": 0,
+    "normal_ramoops_registration": false,
+    "pstore_record_scan": false,
+    "protected_clock_reads": 0,
+    "bigidvfs_reads": 0,
+    "secure_calls": 0,
+    "device_mmio": 0,
+    "i2c_transactions_added": 0,
+    "da921x_register_data_writes": 0,
+    "storage_access": false,
+    "cpu_on": false,
+    "cpu_off": false,
+    "transition_owner_registration": false,
+    "automatic_retry": false,
+    "boot_candidate": false
+  }
+}

@@ -167,16 +167,19 @@ words are internally consistent with `bad-signature` but contradict both the
 pre-deployment and changed-ID Gemian views of physical slot `0x444bb000`, which
 read exact empty header `444247430000000000000000`.
 
-The exact prepared 7.1.3 source explains a concrete mapping-model boundary.
-The isolated ledger creates a parallel `ioremap_wc()` mapping. Upstream
-`persistent_ram_buffer_map()` instead selects `persistent_ram_vmap()` whenever
-`pfn_valid()` is true; the exact configuration uses
+The exact prepared 7.1.3 source explains a more specific boundary. Canonical
+patch `0323` deliberately makes `ramoops_init()` return before driver
+registration whenever the protected-readback ledger is enabled on Gemini.
+There is therefore no already-owned ramoops mapping in this profile; the
+isolated ledger creates only its parallel `ioremap_wc()` mapping. Upstream
+`persistent_ram_buffer_map()` would instead select `persistent_ram_vmap()`
+whenever `pfn_valid()` is true; the exact configuration uses
 `CONFIG_SPARSEMEM_VMEMMAP=y`, and that path vmaps the PFNs with
 `pgprot_writecombine(PAGE_KERNEL)`. Slot `0x444bb000` is ramoops dmesg record
-171 inside the active `0x44410000`/`0xe0000` reservation. The next discriminator
-must therefore compare the parallel mapping with the already-owned ramoops zone
-mapping. This is a source-backed inference, not yet a claim that either mapping
-is universally wrong on the hardware.
+171 inside the `0x44410000`/`0xe0000` reservation. The next discriminator must
+compare those two mapping models without registering ramoops or writing the
+reservation. This is a source-backed inference, not yet a claim that either
+mapping is universally wrong on the hardware.
 
 The snapshot is deliberately after the existing predicate. If all three words
 appear valid despite the refusal, `unstable-or-other` identifies a changed or
@@ -188,14 +191,15 @@ Exact candidate `ced1f56f...f3901` completed one guarded boot2 deployment and
 one physical selection. It passed identity and serviceability and attributed
 the unchanged prefix refusal to an all-ones read from relative slot zero. That
 result rejects a stale/nonempty-record explanation and localizes the next work
-to the parallel-map versus ramoops-owned-map boundary. It does not validate a
-retained write or change hardware support. CPU8 and CPU9 remain closed, and
-this exact candidate must not be repeated.
+to the ledger's ramoops-registration skip and parallel-map boundary. It does
+not validate a retained write or change hardware support. CPU8 and CPU9 remain
+closed, and this exact candidate must not be repeated.
 
 ## Follow-up
 
 Use the ordered work in [the roadmap](../../docs/ROADMAP.md). The immediate
-successor must be a default-off, read-only owner-mapping discriminator with no
-retained write, clock action, protected transport, owner registration, or CPU
-request. Do not change the prefix policy or proceed to clock-node population
-until mainline can attribute the empty header through the ramoops-owned view.
+successor must be a default-off, read-only mapping-model discriminator with no
+ramoops registration, retained write, clock action, protected transport,
+transition-owner registration, or CPU request. Do not change the prefix policy
+or proceed to clock-node population until mainline can attribute the empty
+header through the mapping model that ramoops would use.

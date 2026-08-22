@@ -142,7 +142,7 @@
     "identity_stage_or_serviceability_mismatch": "reject_without_inference",
     "physical_selections": 1,
     "observed_result": "bad-signature-all-ones",
-    "selected_next_discriminator": "compare_the_parallel_ioremap_wc_header_with_the_ramoops_owned_zone_mapping_without_writes"
+    "selected_next_discriminator": "compare_parallel_ioremap_wc_with_the_read_only_persistent_ram_vmap_model_without_registering_ramoops_or_writing"
   },
   "scope": {
     "retained_ram_maximum_writes": 2,

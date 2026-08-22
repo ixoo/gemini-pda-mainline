@@ -319,3 +319,4 @@ v7.1.3/0326-pstore-make-protected-readback-base-writer-usable-by-clock.patch
 v7.1.3/0327-pstore-add-Gemini-manual-checkpoint-control.patch
 v7.1.3/0328-pstore-report-Gemini-manual-checkpoint-stage.patch
 v7.1.3/0329-pstore-report-Gemini-manual-checkpoint-prefix-reason.patch
+v7.1.3/0330-pstore-compare-Gemini-ramoops-mapping-models.patch

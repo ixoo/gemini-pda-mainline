@@ -87,12 +87,14 @@ Interpretation
 Gemian observed physical slot 0x444bb000 as the exact empty header both before
 deployment and after the changed-ID return. The mainline parallel ioremap_wc()
 view read all three header words as 0xffffffff. This rejects a stale/nonempty
-record as the observed prefix-refusal cause. The exact 7.1.3 source uses a
-separate pfn_valid()/persistent_ram_vmap() owner path for ramoops on this
-CONFIG_SPARSEMEM_VMEMMAP=y build. The next discriminator must compare the
-parallel mapping with the already-owned ramoops zone mapping without writing.
-This does not yet prove a retained write path or change CPU8/CPU9 admission.
-Do not repeat this exact candidate.
+record as the observed prefix-refusal cause. The exact 7.1.3 source also shows
+that this ledger profile deliberately returns from ramoops_init() before driver
+registration, so no owned ramoops zone exists in the live boot. The
+CONFIG_SPARSEMEM_VMEMMAP=y build contains a separate
+pfn_valid()/persistent_ram_vmap() mapping model that normal ramoops would use.
+The next discriminator must compare the two mapping models without registering
+ramoops or writing. This does not yet prove a retained write path or change
+CPU8/CPU9 admission. Do not repeat this exact candidate.
 
 Sanitized private source receipts
 ---------------------------------
