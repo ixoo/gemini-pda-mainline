@@ -1,0 +1,25 @@
+Protected-readback raw-entry-ledger runtime-tool validation
+Date: 2026-08-22 America/New_York
+
+[identities]
+classify_retained_sha256=24fd81de804bc683020cd8d657d06e7eed0fa694828518fa179773ab768467f1
+test_runtime_tools_sha256=524b226f9937ebcf148000e4ec68d88ef85d7f88d0e037afe99219c9f98fb496
+install_boot2_sha256=da280082777151560915a98e56cff3a57b8f1a960aa53baa2c42c5b60d781b26
+candidate_padded_sha256=7c403a38197f948eff8cc02779ac55d1a172e3898e8663cc98fb8e22a2dc41a9
+
+[decision-map]
+neither=raw-entry-mapping-or-first-commit-not-established
+record_173_only=protected-clock-call-entered-and-did-not-return
+records_173_and_174=protected-clock-call-returned
+record_174_without_173=rejected-attribution
+
+[validation]
+retained_decision_branches=3
+retained_negative_mutations_rejected=3
+unsafe_capture_mutations_rejected=1
+installer_help_and_identity_contract=pass
+fresh_partition_backup=not-required
+clean_shutdown_after_verified_write=required
+device_access=none
+hardware_write=none
+result=pass

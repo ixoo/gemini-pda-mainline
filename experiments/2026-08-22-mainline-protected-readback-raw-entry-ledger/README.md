@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-22-mainline-protected-readback-raw-entry-ledger` |
-| Status | defined; Buildbox build and device attempt pending |
+| Status | offline candidate admitted; guarded deployment pending |
 | Subsystem | MT6797 protected clock read / retained ramoops checkpoint |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-22 America/New_York |
@@ -65,6 +65,31 @@ watchdog, reset, or power operation. CPU8 and CPU9 admission remain closed.
 - `configs/gemini-protected-readback-raw-entry-ledger.fragment`
 - `contract.json`
 - `scripts/validate.py`
+- `scripts/build-candidate.sh`
+- `scripts/test-candidate.sh`
+- `scripts/install-boot2.sh`
+- `scripts/classify-retained.py`
+- `scripts/test-runtime-tools.py`
+
+## Build and candidate evidence
+
+Buildbox produced exact release `7.1.3-gemini-protected-raw` from repository
+commit `b7bd915994ce7c2a944cc79669aac0c076ad9541`. The fetched package passed its
+complete checksum inventory. The pinned builder then produced raw Android-v0
+candidate `0ad7160c2089811f4cdbd1de2a996939ef6273dee02be9e28e372fc2509bf597`
+and exact 16 MiB image
+`7c403a38197f948eff8cc02779ac55d1a172e3898e8663cc98fb8e22a2dc41a9`.
+
+Two independent raw assemblies and two independent padding constructions were
+byte-identical. The retained-LK analyzer passed all 32 gates. The independent
+validator reconstructed the Android-v0 layout and canonical image ID and
+rejected mutations to the magic, kernel, DTB, initramfs, image ID, and padded
+tail. See `results/build-b7bd9159.txt` and `results/candidate-0ad7160c.txt`.
+
+The retained classifier independently implements the three decision branches
+above. Offline tests cover all branches, malformed/duplicate/foreign records,
+an unsafe capture entry, and the exact guarded-installer identity. See
+`results/runtime-tools-offline.txt`.
 
 ## Procedure
 
@@ -99,8 +124,9 @@ protected-clock read returned.
 
 ## Conclusion
 
-Pending build and runtime evidence. This definition makes no hardware-support
-claim and does not open CPU8 or CPU9 admission.
+The exact offline candidate is admitted for one guarded `boot2` deployment and
+runtime attempt. Hardware evidence remains pending. This result makes no
+hardware-support claim and does not open CPU8 or CPU9 admission.
 
 ## Follow-up
 
