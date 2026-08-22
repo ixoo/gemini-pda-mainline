@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-21-mainline-manual-checkpoint-prefix-control` |
-| Status | running; prebuild definition admitted, Buildbox build pending |
+| Status | running; exact Buildbox candidate admitted, device deployment pending |
 | Subsystem | pstore retained writer, live prefix-header attribution |
 | Device variant | Gemini PDA x27, named project unit |
 | Date(s) | 2026-08-21 |
@@ -37,6 +37,12 @@ attempt to repair the header.
 - Build backend: Buildbox only from an exact clean pushed commit
 - Boot path: guarded live-GPT logical boot2 only
 
+Buildbox fetched exact clean commit `49f8e7f`, compiled release
+`7.1.3-gemini-checkpoint-prefix`, and produced package
+`linux-7.1.3-gemini-da921x-manual-checkpoint-prefix-control-b0fce1cc-f81f3888`.
+The admitted raw Android-v0 candidate is `1d69e033...5e6ee`; its exact 16 MiB
+boot2 image is `ced1f56f...f3901`.
+
 ## Safety assessment
 
 Patch `0329` and its profile are default off. The profile inherits the exact
@@ -67,9 +73,12 @@ observer must be armed before one physical selection.
   canonical-tip validator
 - `scripts/test-validate.py`: negative source/configuration mutations
 - `contract.json`: frozen hypothesis, result map, and safety scope
-
-Candidate construction, device installation, and runtime tooling are not yet
-admitted. They will be added only after the exact Buildbox package exists.
+- `scripts/build-candidate.sh` and `scripts/test-candidate.sh`: exact two-way
+  construction and independent package, DT, Image, symbol, and container gates
+- `scripts/install-boot2.sh`: source-pinned live-GPT write/readback/shutdown
+- `scripts/collect-runtime.sh`, `scripts/remote-runtime-probe.sh`,
+  `scripts/validate-runtime.py`, and `scripts/validate-retained.py`: exact
+  pre-armed reason capture, native Gemian return, and bounded recovery
 
 ## Procedure
 
@@ -108,6 +117,19 @@ profiles, eight series-invariant self-test mutations, and 16 unsafe source or
 configuration mutations pass. See the
 [prebuild receipt](results/prebuild-definition-20260821.txt).
 
+The Buildbox package passes its full checksum inventory and binds the clean
+pushed commit, profile, 24 configuration fragments, cross toolchain, Image,
+configuration, symbols, DTBs, and release. No native VM build occurred. See
+the [build receipt](results/build-49f8e7f.txt).
+
+Two independent serviceability-DT derivations, two raw assemblies, and two
+padding constructions are byte-identical. The exact candidate passes all 32
+LK Android-v0 gates, 15 independent DT mutations, exact Image markers and
+reason strings, configuration and symbols, 16 definition mutations, and the
+offline runtime tools. Those tools accept four header-consistent live reasons
+while rejecting 32 unsafe live mutations and eight retained mutations. See the
+[candidate receipt](results/candidate-1d69e033.txt).
+
 ## Analysis
 
 The parent stage result eliminates sequence, DT/resource, and mapping refusal.
@@ -122,13 +144,15 @@ otherwise non-reproduced read rather than silently claiming an empty header.
 
 ## Conclusion
 
-The prebuild definition is admitted for one exact Buildbox build. No compile,
-candidate, device write, runtime prefix reason, persistence result, or
-hardware-support claim is made. CPU8 and CPU9 remain closed.
+Exact candidate `ced1f56f...f3901` is admitted for one guarded boot2
+deployment and one physical selection. No device write, runtime prefix reason,
+persistence result, or hardware-support claim is made yet. CPU8 and CPU9
+remain closed.
 
 ## Follow-up
 
-Complete the definition gates, build on Buildbox, and admit at most one exact
-candidate. The live reason must select the next correction or observation;
-do not change the prefix policy or proceed to clock-node population until the
-header mismatch is attributable.
+Commit and push this candidate admission, install it through the guarded live
+GPT workflow, confirm full readback, shut down, and arm the observer before one
+physical selection. The live reason must select the next correction or
+observation; do not change the prefix policy or proceed to clock-node
+population until the header mismatch is attributable.

@@ -1,0 +1,68 @@
+Manual checkpoint live prefix-reason candidate
+==============================================
+
+Result: pass
+Boot candidate: yes
+Device access: none
+Hardware write: none
+Native VM build: none
+
+Exact identities
+----------------
+
+Repository build commit: 49f8e7f31c29cecde992a048103f2591e6a1aef1
+Kernel release: 7.1.3-gemini-checkpoint-prefix
+Image SHA-256: 6340299f8ef5cc33bdf4828a0bbd3e453cb569cf57804cfd8526922859c757dd
+Image.gz SHA-256: ed2f64374f0f0d5b40b012ba3c914e3c6fadd5d9e073300679e035f15c7ab0dd
+Control DTB SHA-256: b638674b9be209219d51b7dd02538f7a0bc8b402bab7336188cb95011cd912dd
+Configuration SHA-256: 4ab905bd150c5890d7a38962aafb12c695a33ac873630623144110131cd28205
+System.map SHA-256: a9547ad04f47043b5f865637d80b6fcc408e05a2334d69b01a1440871f4a6b6d
+Serviceability ramdisk SHA-256: e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f
+
+Raw file: gemini-mt6797-manual-checkpoint-prefix-control.boot.img
+Raw size: 6,895,616
+Raw SHA-256: 1d69e03378ae880d1b4f52f6350cd27e9be322478dcec0c022d91d7d0885e6ee
+Padded size: 16,777,216
+Padded SHA-256: ced1f56fc56833ce47b63a98205a373276f5d666007190ec0d3bd5adb98f3901
+Candidate SHA256SUMS SHA-256: bab777146bff18c83c698cfee6f957a806252a696720ae0f1f59d947c8886990
+
+Validation
+----------
+
+- Complete fetched-package checksum inventory: pass
+- Two independent DT constructions: byte-identical
+- Two independent raw assemblies: byte-identical
+- Two independent padding constructions: byte-identical
+- LK Android-v0 gates: 32 of 32
+- Independent negative DT mutations rejected: 15
+- Definition source/configuration mutations rejected: 16
+- Header-consistent live reasons accepted offline: 4
+- Unsafe live runtime mutations rejected: 32
+- Unsafe retained recovery mutations rejected: 8
+- Historical boolean, stage, and prefix-reason markers: exact once each
+- Manual writer, initcall, stage, and prefix state: linked
+- Clock, BigiDVFS, protected transport, same-value action, and CPU requests: absent
+- New retained header reads: exactly three after existing prefix refusal
+- New retained writes: zero
+- Protected calls: zero
+- DA921x register-data writes: zero
+- CPU8/CPU9 admission: closed
+
+Tool identities
+---------------
+
+DT builder: 2f9ff903cba756eb4b64b9b9c70a007ffe728f7ad8ef5633a3443c38e74e8dac
+Candidate builder: f6e60660fff1521ce213b7b733c3110848cde4a6090e6ff561560842bf6db5d6
+Independent validator: 0b7cdfea858d539d57e7b2743e5a5bf2ad705b2bf3cfc0cb22016a96d2158918
+Guarded installer: 2cd4262573ff536fae37e8017aab85e90fb453e8191e35181687c16819f85ef7
+Runtime collector: 14e9a974f1e3477ea318705926b77d66b6549896604ec8775cf2cedeaf78427c
+Remote probe: 2c96d3b6a096b68bb18522fc35b7550f593d6e541c6ab33d7029810c4fec35dd
+Live validator: a4d88ba70410ab53529d1d74f5f342a6bb082043cd15a9f936426f9482c6dd48
+Retained validator: 1f2f886225240b5cb738784cd88ed0499f0b97121830a3a8fc8468afddb7899a
+Runtime offline tests: 480e7f2219626c61b2bf3f399273a1b235393910d60afc9be1e54f69cab30fe1
+
+The single live result must preserve exact identity, fixed prefix-refused
+stage, and serviceability. One header-consistent prefix reason selects the
+next engineering action. The observer requests a native reboot only after
+that exact capture; changed-ID Gemian recovery must remain empty and cannot
+override the live reason.

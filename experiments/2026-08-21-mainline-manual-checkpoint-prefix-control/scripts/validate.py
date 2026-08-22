@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the exact manual-checkpoint live prefix-reason definition."""
+"""Validate the exact manual-checkpoint live prefix-reason admission."""
 
 from __future__ import annotations
 
@@ -225,6 +225,36 @@ def main() -> None:
     )
     require(contract["runtime_oracle"]["required_stage"] == "prefix-refused",
             "required parent stage changed")
+    require(
+        contract["build"]
+        == {
+            "repository_commit": "49f8e7f31c29cecde992a048103f2591e6a1aef1",
+            "package": "linux-7.1.3-gemini-da921x-manual-checkpoint-prefix-control-b0fce1cc-f81f3888",
+            "image_sha256": "6340299f8ef5cc33bdf4828a0bbd3e453cb569cf57804cfd8526922859c757dd",
+            "image_gzip_sha256": "ed2f64374f0f0d5b40b012ba3c914e3c6fadd5d9e073300679e035f15c7ab0dd",
+            "config_sha256": "4ab905bd150c5890d7a38962aafb12c695a33ac873630623144110131cd28205",
+            "system_map_sha256": "a9547ad04f47043b5f865637d80b6fcc408e05a2334d69b01a1440871f4a6b6d",
+            "build_backend": "buildbox",
+            "sha256sums": "passed",
+        },
+        "exact Buildbox contract changed",
+    )
+    require(
+        contract["candidate"]
+        == {
+            "raw_sha256": "1d69e03378ae880d1b4f52f6350cd27e9be322478dcec0c022d91d7d0885e6ee",
+            "raw_size": 6895616,
+            "padded_sha256": "ced1f56fc56833ce47b63a98205a373276f5d666007190ec0d3bd5adb98f3901",
+            "padded_size": 16777216,
+            "candidate_manifest_sha256": "bab777146bff18c83c698cfee6f957a806252a696720ae0f1f59d947c8886990",
+            "control_dtb_sha256": "b638674b9be209219d51b7dd02538f7a0bc8b402bab7336188cb95011cd912dd",
+            "ramdisk_sha256": "e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f",
+            "lk_gates": "32-of-32",
+            "dt_mutations_rejected": 15,
+            "boot_candidate": True,
+        },
+        "exact candidate contract changed",
+    )
     scope = contract["scope"]
     require(scope["retained_ram_maximum_writes"] == 2, "write ceiling changed")
     require(scope["new_retained_writes"] == 0, "prefix mode added retained writes")
@@ -233,7 +263,7 @@ def main() -> None:
     require(scope["protected_clock_reads"] == 0, "protected read scope changed")
     require(scope["cpu_on"] is False and scope["cpu_off"] is False,
             "CPU scope changed")
-    require(scope["boot_candidate"] is False, "prebuild definition became a candidate")
+    require(scope["boot_candidate"] is True, "admitted candidate was withdrawn")
 
     print("validation=mainline-manual-checkpoint-prefix-control-definition")
     print(f"profile={PROFILE}")
@@ -247,7 +277,7 @@ def main() -> None:
     print("cpu8_cpu9_admission=closed")
     print("device_access=none")
     print("hardware_write=none")
-    print("boot_candidate=false")
+    print("boot_candidate=true")
     print("result=pass")
 
 
