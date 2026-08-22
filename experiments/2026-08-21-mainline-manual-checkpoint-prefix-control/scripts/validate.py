@@ -255,6 +255,64 @@ def main() -> None:
         },
         "exact candidate contract changed",
     )
+    require(
+        contract["deployment"]
+        == {
+            "gemian_boot_id": "0605bc6f-e5b0-4ea8-9264-9f011eab8ecb",
+            "active_root": "/dev/mmcblk0p29",
+            "target_logical_name": "boot2",
+            "target_device": "/dev/mmcblk0p30",
+            "predecessor_sha256": "43e7f44eeef694ef876f7686ae03e2a779a118141e7f9efa060ccc1182c8eac3",
+            "fresh_predecessor_backup": False,
+            "preflight_slots_171_through_174": "exact-empty",
+            "full_readback_sha256": "ced1f56fc56833ce47b63a98205a373276f5d666007190ec0d3bd5adb98f3901",
+            "shutdown": "confirmed-unreachable",
+            "automatic_reboot": False,
+            "result": "write-synced-flushed-full-readback-verified",
+        },
+        "exact deployment contract changed",
+    )
+    require(
+        contract["runtime_result"]
+        == {
+            "physical_selections": 1,
+            "mainline_boot_id": "b8445157-25f9-4dac-a192-7bc86faaee03",
+            "kernel_release": "7.1.3-gemini-checkpoint-prefix",
+            "uptime_seconds_at_capture": "137.86",
+            "classification": "manual-checkpoint-prefix-pass",
+            "reason": "decision-prefix-bad-signature",
+            "historical_marker_count": 1,
+            "stage_marker_count": 1,
+            "prefix_marker_count": 1,
+            "first": 0,
+            "second": 0,
+            "retained_writes": 0,
+            "stage": "prefix-refused",
+            "checkpoint": 0,
+            "relative_slot": 0,
+            "physical_slot": "0x444bb000",
+            "header_signature": "ffffffff",
+            "header_start": 4294967295,
+            "header_size": 4294967295,
+            "header_reads": 3,
+            "protected_calls": 0,
+            "cpu_requests": 0,
+            "serviceability": "passed",
+            "cpu_online": "0-7",
+            "cpu_offline": "8-9",
+            "observer_timing": "initial_prearmed_interface_wait_timed_out_then_same_boot_exact_interface_capture",
+            "native_reboot_after_live_pass": True,
+            "changed_id_gemian_return": "passed",
+            "returned_boot_id_sha256": "540351d7ca7f73ff1c2ba493613e2415f434922fd99186be2692f19b6759dc01",
+            "returned_boot2_sha256": "ced1f56fc56833ce47b63a98205a373276f5d666007190ec0d3bd5adb98f3901",
+            "returned_owned_slots": "exact-empty",
+            "returned_pstore_files": 0,
+            "retained_classification": "live-pass-recovered-empty",
+            "retained_reason": "cross-version-recovery-empty-not-live-stage-failure",
+            "repeat_exact_candidate": False,
+        },
+        "exact runtime result changed",
+    )
     scope = contract["scope"]
     require(scope["retained_ram_maximum_writes"] == 2, "write ceiling changed")
     require(scope["new_retained_writes"] == 0, "prefix mode added retained writes")
@@ -278,6 +336,9 @@ def main() -> None:
     print("device_access=none")
     print("hardware_write=none")
     print("boot_candidate=true")
+    print("physical_selections=1")
+    print("runtime_result=decision-prefix-bad-signature")
+    print("repeat_exact_candidate=false")
     print("result=pass")
 
 

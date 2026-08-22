@@ -5,10 +5,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-21-mainline-manual-checkpoint-prefix-control` |
-| Status | running; exact Buildbox candidate admitted, device deployment pending |
+| Status | complete; exact runtime result attributed, candidate retired from repetition |
 | Subsystem | pstore retained writer, live prefix-header attribution |
 | Device variant | Gemini PDA x27, named project unit |
-| Date(s) | 2026-08-21 |
+| Date(s) | 2026-08-21 to 2026-08-22 |
 | Investigator(s) | Julien Etienne, Codex |
 | Tracking issue | Gate 7 / CPU8 prerequisite localization |
 
@@ -130,13 +130,53 @@ offline runtime tools. Those tools accept four header-consistent live reasons
 while rejecting 32 unsafe live mutations and eight retained mutations. See the
 [candidate receipt](results/candidate-1d69e033.txt).
 
+Guarded deployment from known-good Gemian resolved logical boot2 as
+`/dev/mmcblk0p30` while root remained `/dev/mmcblk0p29`. Slots 171 through 174
+were exact empty records before the write. The installer recorded predecessor
+`43e7f44e...eac3`, used no fresh backup, wrote exact padded candidate
+`ced1f56f...f3901`, matched that value across the full 16 MiB readback, and
+confirmed clean shutdown without an automatic reboot. See the
+[deployment receipt](results/deployment-20260822.txt).
+
+The pre-armed observer's first interface wait saw an early USB topology change
+but timed out before the exact gadget became ready. That non-attributable wait
+is retained privately as timing evidence. When the exact interface later
+appeared, the unchanged collector captured the same qualifying mainline boot;
+this was not another candidate build or a repeated physical selection.
+
+Exact release `7.1.3-gemini-checkpoint-prefix`, boot image identity, USB/netcat,
+keyboard, one DA921x client, and CPUs 0--7 all passed; CPUs 8--9 remained
+offline. The same-value attribute, clock backend, BigiDVFS backend, and
+protected-readback device remained absent. All three expected markers appeared
+once. The live result was `first=0 second=0 retained_writes=0`,
+`stage=prefix-refused`, and
+`cp=0 slot=0 why=bad-signature hdr=ffffffff/4294967295/4294967295 reads=3`.
+Only after that exact classification did the collector send one native reboot.
+Changed-ID Gemian returned with unchanged boot2, exact empty owned slots 173
+and 174, and no pstore file. See the
+[runtime receipt](results/runtime-attempt-1-bad-signature-20260822.txt).
+
 ## Analysis
 
-The parent stage result eliminates sequence, DT/resource, and mapping refusal.
-Because `gemini_prb_prefix_valid()` walks relative slots 0 through 3 and
-returns on the first mismatch, a post-refusal snapshot at that return point
-identifies the earliest rejected header without altering the decision. Raw
-signature/start/size values keep the fixed reason independently auditable.
+The parent stage result eliminates sequence, DT/resource, and a null mapping;
+it did not prove that the returned virtual mapping reads the retained DRAM
+contents correctly. Because `gemini_prb_prefix_valid()` walks relative slots 0
+through 3 and returns on the first mismatch, the new snapshot attributes the
+earliest rejected header without altering the decision. Its three all-ones
+words are internally consistent with `bad-signature` but contradict both the
+pre-deployment and changed-ID Gemian views of physical slot `0x444bb000`, which
+read exact empty header `444247430000000000000000`.
+
+The exact prepared 7.1.3 source explains a concrete mapping-model boundary.
+The isolated ledger creates a parallel `ioremap_wc()` mapping. Upstream
+`persistent_ram_buffer_map()` instead selects `persistent_ram_vmap()` whenever
+`pfn_valid()` is true; the exact configuration uses
+`CONFIG_SPARSEMEM_VMEMMAP=y`, and that path vmaps the PFNs with
+`pgprot_writecombine(PAGE_KERNEL)`. Slot `0x444bb000` is ramoops dmesg record
+171 inside the active `0x44410000`/`0xe0000` reservation. The next discriminator
+must therefore compare the parallel mapping with the already-owned ramoops zone
+mapping. This is a source-backed inference, not yet a claim that either mapping
+is universally wrong on the hardware.
 
 The snapshot is deliberately after the existing predicate. If all three words
 appear valid despite the refusal, `unstable-or-other` identifies a changed or
@@ -144,15 +184,18 @@ otherwise non-reproduced read rather than silently claiming an empty header.
 
 ## Conclusion
 
-Exact candidate `ced1f56f...f3901` is admitted for one guarded boot2
-deployment and one physical selection. No device write, runtime prefix reason,
-persistence result, or hardware-support claim is made yet. CPU8 and CPU9
-remain closed.
+Exact candidate `ced1f56f...f3901` completed one guarded boot2 deployment and
+one physical selection. It passed identity and serviceability and attributed
+the unchanged prefix refusal to an all-ones read from relative slot zero. That
+result rejects a stale/nonempty-record explanation and localizes the next work
+to the parallel-map versus ramoops-owned-map boundary. It does not validate a
+retained write or change hardware support. CPU8 and CPU9 remain closed, and
+this exact candidate must not be repeated.
 
 ## Follow-up
 
-Commit and push this candidate admission, install it through the guarded live
-GPT workflow, confirm full readback, shut down, and arm the observer before one
-physical selection. The live reason must select the next correction or
-observation; do not change the prefix policy or proceed to clock-node
-population until the header mismatch is attributable.
+Use the ordered work in [the roadmap](../../docs/ROADMAP.md). The immediate
+successor must be a default-off, read-only owner-mapping discriminator with no
+retained write, clock action, protected transport, owner registration, or CPU
+request. Do not change the prefix policy or proceed to clock-node population
+until mainline can attribute the empty header through the ramoops-owned view.

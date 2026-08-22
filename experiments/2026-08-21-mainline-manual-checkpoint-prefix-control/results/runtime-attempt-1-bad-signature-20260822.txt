@@ -1,0 +1,107 @@
+Manual checkpoint prefix-control runtime receipt
+================================================
+
+Date (UTC): 2026-08-22
+Experiment: 2026-08-21-mainline-manual-checkpoint-prefix-control
+Physical boot2 selections: 1
+Candidate padded SHA-256: ced1f56fc56833ce47b63a98205a373276f5d666007190ec0d3bd5adb98f3901
+Expected kernel release: 7.1.3-gemini-checkpoint-prefix
+
+Observer timing
+---------------
+
+The pre-armed collector observed an early USB-topology change, but its first
+bounded interface wait expired before the exact gadget became ready. That
+non-attributable timing capture remains private. When the exact interface later
+appeared, the unchanged collector was rerun against the same qualifying
+mainline boot. This was not a new candidate or a repeated physical selection.
+
+Exact live identity and serviceability
+--------------------------------------
+
+Mainline boot ID: b8445157-25f9-4dac-a192-7bc86faaee03
+Uptime at exact capture: 137.86 seconds
+Installed full SHA-256: ced1f56fc56833ce47b63a98205a373276f5d666007190ec0d3bd5adb98f3901
+Kernel release: 7.1.3-gemini-checkpoint-prefix
+Architecture: aarch64
+CPU possible: 0-9
+CPU present: 0-9
+CPU online: 0-7
+CPU offline: 8-9
+USB gadget controllers: 1
+Keyboard matrix inputs: 1
+DA921x I2C clients: 1
+Same-value write attributes: 0
+Clock backend devices: 0
+BigiDVFS backend devices: 0
+Protected-readback devices: 0
+Block mounts: 0
+Device partition reads: none
+Device storage writes: none
+Driver binding changes: none
+Protected or secure calls: none
+Owner registration requests: none
+CPU admission requests: none
+
+Decision-bearing live result
+----------------------------
+
+Historical marker count: 1
+Stage marker count: 1
+Prefix-reason marker count: 1
+Historical marker: GEMINI_MANUAL_CHECKPOINT_CONTROL_LIVE_V1 first=0 second=0 retained_writes=0 protected_calls=0 cpu_requests=0
+Stage marker: GEMINI_MANUAL_CHECKPOINT_STAGE_V1 first=0 second=0 stage=prefix-refused writes=0 protected=0 cpu=0
+Prefix marker: GEMINI_MANUAL_CHECKPOINT_PREFIX_V1 cp=0 slot=0 why=bad-signature hdr=ffffffff/4294967295/4294967295 reads=3
+Runtime classification: manual-checkpoint-prefix-pass
+Runtime reason: decision-prefix-bad-signature
+Physical slot for relative slot zero: 0x444bb000
+Ramoops downstream record index: 171
+New retained header reads: 3
+New retained writes: 0
+Protected calls: 0
+CPU requests: 0
+
+Only after the exact live classifier passed did the collector issue one native
+reboot. No automatic retry or CPU action occurred.
+
+Changed-ID recovery
+-------------------
+
+Native reboot command sent: yes
+Changed-ID Gemian return: passed
+Returned boot ID SHA-256: 540351d7ca7f73ff1c2ba493613e2415f434922fd99186be2692f19b6759dc01
+Active root: /dev/mmcblk0p29
+Live-GPT logical boot2: /dev/mmcblk0p30
+Boot2 full SHA-256: ced1f56fc56833ce47b63a98205a373276f5d666007190ec0d3bd5adb98f3901
+Slot 173 header: 444247430000000000000000
+Slot 174 header: 444247430000000000000000
+Pstore file count: 0
+Device memory writes: none
+Device partition writes: none
+Retained classification: live-pass-recovered-empty
+Retained reason: cross-version-recovery-empty-not-live-stage-failure
+
+Interpretation
+--------------
+
+Gemian observed physical slot 0x444bb000 as the exact empty header both before
+deployment and after the changed-ID return. The mainline parallel ioremap_wc()
+view read all three header words as 0xffffffff. This rejects a stale/nonempty
+record as the observed prefix-refusal cause. The exact 7.1.3 source uses a
+separate pfn_valid()/persistent_ram_vmap() owner path for ramoops on this
+CONFIG_SPARSEMEM_VMEMMAP=y build. The next discriminator must compare the
+parallel mapping with the already-owned ramoops zone mapping without writing.
+This does not yet prove a retained write path or change CPU8/CPU9 admission.
+Do not repeat this exact candidate.
+
+Sanitized private source receipts
+---------------------------------
+
+Classification SHA-256: 31da051ed968cf6b4614ddf920f743564d8ba21a6a5c8ffa5400c45b1281446c
+Observer events SHA-256: 106e851fc2bf225be6805686f598b2782ad25a9c7b443d2408c252cddd0cbba7
+Runtime transcript SHA-256: 6b7189342318508837f7ff928a10aa848112f7f03c6ef94139f79c70167fe5a9
+Retained classification SHA-256: 888b6c121f472c897122b036754dc1d48f2494a03126b8c84b8a848fc5bb64e6
+Retained slots SHA-256: d69a6a00ebe8e6ec1eaadbbe237da2d9a882fb97ce4de0acd3a095b9b8e8acec
+USB topology SHA-256: 7958d546c9ebd19c2f2088f640d8c74dfa187200550c509f65b8cf915c2eb6b1
+Raw runtime capture committed: no
+Credentials, serials, IMEI, calibration, or personal identifiers committed: no

@@ -1,0 +1,54 @@
+Manual checkpoint prefix-control guarded deployment receipt
+===========================================================
+
+Date (UTC): 2026-08-22
+Experiment: 2026-08-21-mainline-manual-checkpoint-prefix-control
+Candidate admission commit: d8481ef24fca60f95c983ae4bfc976c1c16fa752
+Candidate raw SHA-256: 1d69e03378ae880d1b4f52f6350cd27e9be322478dcec0c022d91d7d0885e6ee
+Candidate padded SHA-256: ced1f56fc56833ce47b63a98205a373276f5d666007190ec0d3bd5adb98f3901
+Candidate padded size: 16777216
+
+Known-good deployment state
+---------------------------
+
+Gemian boot ID: 0605bc6f-e5b0-4ea8-9264-9f011eab8ecb
+Active root: /dev/mmcblk0p29
+Live-GPT logical boot2: /dev/mmcblk0p30
+External power: online
+Battery capacity: 100
+Battery health: Good
+Target mounted: no
+Target active root: no
+Target writable: yes
+
+Retained-RAM preflight
+----------------------
+
+Slot 171 header: 444247430000000000000000
+Slot 172 header: 444247430000000000000000
+Slot 173 header: 444247430000000000000000
+Slot 174 header: 444247430000000000000000
+Classification: exact-empty
+Retained-RAM write: none
+
+Write and verification
+----------------------
+
+Predecessor full-partition SHA-256: 43e7f44eeef694ef876f7686ae03e2a779a118141e7f9efa060ccc1182c8eac3
+Fresh predecessor backup: no
+Recovery basis: verified project-wide device backup captured at project start
+Write: exact-size padded image to resolved logical boot2 only
+Sync and device flush: passed
+Full-partition readback SHA-256: ced1f56fc56833ce47b63a98205a373276f5d666007190ec0d3bd5adb98f3901
+Temporary readback removed: yes
+Shutdown requested after evidence flush: yes
+Post-shutdown reachability: unreachable
+Automatic reboot: no
+Result: write-synced-flushed-full-readback-verified
+
+Sanitized private source receipt
+--------------------------------
+
+Deployment summary SHA-256: abfa372242f56b35194992c4688431de10889f59c99b6be121173461e6bc5287
+Raw partition content retained or committed: no
+Credentials, serials, IMEI, calibration, or personal identifiers committed: no
