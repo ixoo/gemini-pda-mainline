@@ -24,7 +24,8 @@ diff --git a/fs/pstore/Kconfig b/fs/pstore/Kconfig
 --- a/fs/pstore/Kconfig
 +++ b/fs/pstore/Kconfig
 @@ -189,6 +189,24 @@ config PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_MAP_CONTROL
- 	  reset, or power operation. If unsure, say N.
+ 	  transition owner, CPU, storage, timer, retry, reset, or power operation.
+ 	  If unsure, say N.
  
 +config PSTORE_GEMINI_PROTECTED_READBACK_RAW_ENTRY_LEDGER
 +	bool "Gemini protected-readback raw-entry ledger"
@@ -47,7 +48,6 @@ diff --git a/fs/pstore/Kconfig b/fs/pstore/Kconfig
  config PSTORE_GEMINI_PROTECTED_READBACK_LEDGER
  	bool "Gemini protected-readback retained call ledger"
  	depends on PSTORE_RAM=y
- 	depends on ARM64 && ARCH_MEDIATEK && OF
 diff --git a/drivers/soc/mediatek/mt6797-protected-readback-observer.c b/drivers/soc/mediatek/mt6797-protected-readback-observer.c
 index 063126d..9538b2c 100644
 --- a/drivers/soc/mediatek/mt6797-protected-readback-observer.c

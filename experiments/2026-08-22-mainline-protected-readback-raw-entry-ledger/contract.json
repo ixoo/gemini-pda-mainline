@@ -22,7 +22,7 @@
   },
   "patch": {
     "path": "patches/v7.1.3/0331-pstore-accept-Gemini-raw-entry-ledger.patch",
-    "sha256": "f312b82218f59da54026d1e90d39f75de1ad28ffaac9e7eb867219800a7260f2",
+    "sha256": "a7fb0bd2e9b010f5b04afa648c473496e67a288f21f211b246b8f952e0445b55",
     "submission_ready": false,
     "synthetic_author": true,
     "synthetic_signoff": false,
