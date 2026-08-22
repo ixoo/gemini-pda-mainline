@@ -4825,8 +4825,10 @@ The next ordered work is:
    records 173 and 174 with the valid signature written last, and require full
    local readback. Gemian recovery of the first record only means the one
    protected-clock read did not return; recovery of both means it returned.
-   Keep normal ramoops registration, BigiDVFS, retries, transition-owner
-   registration, and CPU requests absent. See the mapping control's
+   Keep normal ramoops registration, BigiDVFS calls, retries, transition-owner
+   registration, and CPU requests absent. This successor is now defined as the
+   [protected-readback raw-entry ledger](../experiments/2026-08-22-mainline-protected-readback-raw-entry-ledger/README.md).
+   See the mapping control's
    [post-runtime source audit](../experiments/2026-08-22-mainline-manual-checkpoint-map-control/results/post-runtime-source-audit-20260822.txt).
 2. Only after the checkpoint control passes, isolate enabled clock-node population and
    read-free probe entry. Do not enable or sample BigiDVFS until clock-backend

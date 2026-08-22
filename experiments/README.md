@@ -23,6 +23,13 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-22 protected-readback raw-entry ledger](2026-08-22-mainline-protected-readback-raw-entry-ledger/README.md)
+  — defines the decision-bearing two-record successor after proving Gemian
+  normalizes invalid retained headers before recovery collection. It requires
+  exact raw all-ones entry, commits only records 173 and 174 with the signature
+  last and full readback, and brackets exactly one protected-clock read while
+  removing the BigiDVFS call. Buildbox and device evidence remain pending;
+  CPU8 and CPU9 admission remain closed.
 - [2026-08-21 mainline MT6797 A72 platform-state source](2026-08-21-mainline-mt6797-a72-platform-state/README.md)
   — generated, replayed, and strictly checked four logical patches for the
   selected default-off source: a locked read-only TOPRGU reset-status callback,

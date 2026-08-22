@@ -1,0 +1,5 @@
+# Exact raw-entry successor to the protected-readback two-record ledger.
+# Normal ramoops remains skipped; one clock read is bracketed by two owned
+# signature-last retained commits with full local readback and no retry.
+CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_RAW_ENTRY_LEDGER=y
+CONFIG_LOCALVERSION="-gemini-protected-raw"
