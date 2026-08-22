@@ -41,6 +41,18 @@
     "dt_mutations_rejected": 15,
     "boot_candidate": true
   },
+  "deployment": {
+    "gemian_boot_id": "dc1a8916-158e-4956-b931-09d39d225f6c",
+    "active_root": "/dev/mmcblk0p29",
+    "target": "/dev/mmcblk0p30",
+    "target_logical_name": "boot2",
+    "predecessor_sha256": "53e03cb7100cbb355b7513320428cea8bf39c8c81da9b89a52c91cadd24e8e5c",
+    "readback_sha256": "43e7f44eeef694ef876f7686ae03e2a779a118141e7f9efa060ccc1182c8eac3",
+    "retained_slots_171_174": "exact-empty",
+    "fresh_backup": false,
+    "shutdown": "confirmed-unreachable",
+    "reboot": false
+  },
   "patch": {
     "path": "patches/v7.1.3/0328-pstore-report-Gemini-manual-checkpoint-stage.patch",
     "submission_ready": false,

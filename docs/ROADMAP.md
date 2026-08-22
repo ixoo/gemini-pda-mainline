@@ -4763,8 +4763,9 @@ payload readback, or success. The prebuild definition passes exact application
 to the prepared `0327` source, all 109 manifest-profile series invariants, and
 14 negative source/configuration mutations. Its exact Buildbox package,
 serviceability DT derivation, Android-v0 container, independent DT mutations,
-and pre-armed runtime observer now pass, so the next action is the single
-guarded boot2 deployment and physical selection. See the
+and pre-armed runtime observer now pass. Its guarded inactive-boot2 deployment
+and full readback also pass, and the device is shut down; the next action is
+the single observer-armed physical boot2 selection. See the
 [manual checkpoint stage control](../experiments/2026-08-21-mainline-manual-checkpoint-stage-control/README.md).
 
 The next ordered work is:

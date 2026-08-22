@@ -1,0 +1,29 @@
+Manual checkpoint live-stage deployment
+=======================================
+
+Result: write, sync, flush, and full readback verified
+Runtime attempt: not started
+Native VM build: none
+Fresh predecessor backup: no
+Automatic reboot: no
+
+Gemian boot ID: dc1a8916-158e-4956-b931-09d39d225f6c
+Gemian kernel: 3.18.41+
+Active root: /dev/mmcblk0p29
+Live-GPT target: /dev/mmcblk0p30
+Logical target: boot2
+Target size: 16,777,216
+Power: external, 100%, Good
+
+Predecessor SHA-256: 53e03cb7100cbb355b7513320428cea8bf39c8c81da9b89a52c91cadd24e8e5c
+Candidate SHA-256: 43e7f44eeef694ef876f7686ae03e2a779a118141e7f9efa060ccc1182c8eac3
+Full readback SHA-256: 43e7f44eeef694ef876f7686ae03e2a779a118141e7f9efa060ccc1182c8eac3
+Retained slots 171--174 before write: exact-empty headers
+Retained-RAM write: none
+
+The target was inactive, unmounted, writable, and distinct from the active
+root. The exact candidate fit the partition. The installer recorded the
+predecessor without creating a new backup, wrote the padded image, synchronized
+and flushed it, and matched a full-partition readback. It then requested a
+clean shutdown and confirmed the device unreachable. The owner can now
+physically select boot2 once while the exact USB/netcat observer is armed.

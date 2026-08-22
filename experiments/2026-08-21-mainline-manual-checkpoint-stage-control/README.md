@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-21-mainline-manual-checkpoint-stage-control` |
-| Status | running; exact candidate admitted, deployment pending |
+| Status | running; exact candidate deployed and shut down, runtime pending |
 | Subsystem | pstore retained writer, live refusal attribution, serviceability |
 | Device variant | Gemini PDA x27, named project unit |
 | Date(s) | 2026-08-21 |
@@ -74,7 +74,7 @@ observer must be armed before the single physical selection.
   `scripts/validate-runtime.py`, and `scripts/validate-retained.py`: pre-armed
   fixed-stage capture, native Gemian return, and bounded recovery
 
-Deployment and runtime evidence remain pending.
+Runtime evidence remains pending.
 
 ## Procedure
 
@@ -120,6 +120,14 @@ mutations. The runtime tools accept all eight fixed outcomes while rejecting
 access occurred during build or admission. See the [build receipt](results/build-f4b4819.txt)
 and [candidate receipt](results/candidate-07d2f185.txt).
 
+From exact Gemian boot ID `dc1a8916...5f6c`, the guarded live-GPT workflow
+resolved inactive logical boot2 as p30 while root remained p29. Power was
+external, full, and good; slots 171--174 were exact-empty. The predecessor was
+the previous manual control, and the write, sync, flush, and full-partition
+readback matched `43e7f44e...eac3`. No fresh backup was made under the standing
+project policy. The device was shut down cleanly and confirmed unreachable;
+it was not rebooted. See the [deployment receipt](results/deployment-20260821.txt).
+
 ## Analysis
 
 The new fixed stage values align exactly with the existing early returns. A
@@ -131,9 +139,9 @@ clock-node population control.
 
 ## Conclusion
 
-Exact candidate admitted. Deployment and the one physical runtime selection
-remain pending. No live stage, checkpoint, persistence, or hardware-support
-claim has yet been made.
+Exact candidate deployed and shut down. The pre-armed one physical runtime
+selection remains pending. No live stage, checkpoint, persistence, or
+hardware-support claim has yet been made.
 
 ## Follow-up
 
