@@ -4814,14 +4814,20 @@ rejects mapper substitution as the next fix. See the
 
 The next ordered work is:
 
-1. Before another boot, audit the exact arm64 `/dev/mem` mapping protection used
-   by known-good Gemian and every mainline reservation owner, clear, poison, or
-   initialization path that can affect `0x44410000..0x444c0000` before the
-   manual checkpoint. If static evidence cannot distinguish mapping contract
-   from boot-phase content transition, define one same-boot, read-only
-   observation that does. Keep normal ramoops registration, the prefix
-   predicate, writer, clock-node population, protected transports, retries,
-   transition-owner registration, and CPU requests absent.
+1. The required no-boot source audit is complete. Pinned Gemian creates 175
+   4-KiB ramoops dump records and initializes record 171 at `0x444bb000`.
+   Its invalid-header path converts all ones to the exact empty header before
+   the userspace `/dev/mem` collector runs. The prior Gemian empty observations
+   therefore do not describe either raw handoff, and no mapping bug follows
+   from the matching mainline all-ones views. Do not spend another boot on a
+   mapping-protection comparison. Implement one default-off exact-raw-entry
+   successor: require all-ones headers in records 171--174, commit only owned
+   records 173 and 174 with the valid signature written last, and require full
+   local readback. Gemian recovery of the first record only means the one
+   protected-clock read did not return; recovery of both means it returned.
+   Keep normal ramoops registration, BigiDVFS, retries, transition-owner
+   registration, and CPU requests absent. See the mapping control's
+   [post-runtime source audit](../experiments/2026-08-22-mainline-manual-checkpoint-map-control/results/post-runtime-source-audit-20260822.txt).
 2. Only after the checkpoint control passes, isolate enabled clock-node population and
    read-free probe entry. Do not enable or sample BigiDVFS until clock-backend
    registration and probe entry are positively established.

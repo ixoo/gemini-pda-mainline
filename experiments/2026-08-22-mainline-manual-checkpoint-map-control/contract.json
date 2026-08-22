@@ -140,6 +140,19 @@
     "boot2_full_sha256_after_return": "dd513384c78ee8378e1e4bf515f89b99ca87ed6ed86c1d38ec37f8aadd693b5b",
     "result": "pass"
   },
+  "post_runtime_source_audit": {
+    "gemian_kernel_commit": "d388d350cb2dda8f23b99be6fa5db9628896e87f",
+    "device_kernel_release": "3.18.41+",
+    "device_platform_driver": "ramoops",
+    "dump_record_count": 175,
+    "record_171_initialized_by_gemian": true,
+    "invalid_header_action": "write_signature_and_zap_start_and_size",
+    "gemian_empty_is_raw_handoff_evidence": false,
+    "gemian_empty_is_post_mainline_raw_evidence": false,
+    "mapping_bug_inferred": false,
+    "selected_successor": "exact_raw_entry_two_record_ledger",
+    "result": "static-causal-explanation-confirmed"
+  },
   "scope": {
     "retained_ram_writes": 0,
     "retained_header_reads_maximum": 6,

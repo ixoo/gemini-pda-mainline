@@ -171,6 +171,21 @@ remaining discriminator is shared by both mainline views versus Gemian's
 mapping/boot phase, or by a content transition around the OS handoffs. The
 result does not establish which of those two explanations is causal.
 
+A post-runtime audit resolves that remaining ambiguity without another boot.
+The pinned Gemian configuration registers ramoops at `0x44410000` with a
+`0xe0000` region, 4-KiB dump records, two 64-KiB console regions, a 4-KiB
+ftrace region, and a 64-KiB pmsg region. That leaves 175 dump records, indices
+0--174, so record 171 at `0x444bb000` is initialized on every Gemian boot.
+Gemian's `persistent_ram_post_init()` treats the observed all-ones signature as
+invalid, writes signature `0x43474244`, and zaps start and size to zero. The
+live returned Gemian also had the `ramoops` platform driver bound. Therefore
+both Gemian exact-empty observations occurred *after* Gemian normalized the
+record; neither is evidence of the raw value handed to or left by mainline.
+The isolated mainline profile deliberately skipped that same initialization,
+so its two matching all-ones views are consistent with an uninitialized raw
+record. See the
+[post-runtime source audit](results/post-runtime-source-audit-20260822.txt).
+
 ## Conclusion
 
 The exact read-only mapping-control candidate completed its one selection and
@@ -179,10 +194,11 @@ new hardware-support claim. CPU8 and CPU9 remain closed.
 
 ## Follow-up
 
-Audit the exact arm64 `/dev/mem` page-protection path used by Gemian and every
-mainline owner or initialization path that can change reservation
-`0x44410000..0x444c0000` before the manual checkpoint. Select another boot only
-if one read-only same-boot observation can distinguish a mapping-contract
-difference from a boot-phase content transition. Do not substitute the mapper,
-register ramoops, restore the writer, populate clock nodes, or open any CPU
-request before that audit.
+Do not spend another boot on a normal-versus-write-combine read. Define an
+exact raw-entry successor that requires all-ones headers in records 171--174,
+keeps normal ramoops registration skipped, and commits only owned records 173
+and 174. Each record must commit payload, start, and size before writing the
+valid signature last, then pass a full local readback. Gemian recovery of only
+record 173 localizes a non-returning protected-clock read; recovery of both
+records proves it returned. Keep BigiDVFS, retries, transition ownership, and
+all CPU requests absent.
