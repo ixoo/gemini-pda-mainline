@@ -4804,9 +4804,9 @@ The default-off mapping-model discriminator in item 1 is now implemented as
 canonical patch `0330`. Its exact Buildbox package, two independent DT
 constructions, two independent container and padding constructions, 32 LK
 gates, fixed five-result runtime oracle, and negative mutation suites pass.
-The admitted padded candidate is `dd513384...693b5b`; it has not yet run on
-hardware. The immediate action is guarded inactive-boot2 installation, full
-readback, shutdown, observer arming, and one physical selection. See the
+The admitted padded candidate is `dd513384...693b5b`. Guarded inactive-boot2
+installation, full readback, and shutdown now pass; it has not yet run on
+hardware. The immediate action is observer arming and one physical selection. See the
 [manual checkpoint mapping control](../experiments/2026-08-22-mainline-manual-checkpoint-map-control/README.md).
 
 The next ordered work is:

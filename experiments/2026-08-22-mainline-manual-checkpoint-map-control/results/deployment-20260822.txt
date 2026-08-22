@@ -1,0 +1,54 @@
+Manual checkpoint mapping-control guarded deployment receipt
+============================================================
+
+Date (UTC): 2026-08-22
+Experiment: 2026-08-22-mainline-manual-checkpoint-map-control
+Candidate admission commit: bf5057bd01a4a5b9e99a2377a098f60c74b99573
+Candidate raw SHA-256: ecd021b2c25f48a1481ff0653c4c0b053490bdb60266100b8b270e90f2299cae
+Candidate padded SHA-256: dd513384c78ee8378e1e4bf515f89b99ca87ed6ed86c1d38ec37f8aadd693b5b
+Candidate padded size: 16777216
+
+Known-good deployment state
+---------------------------
+
+Gemian boot ID: 7f11e139-fee2-4acd-a144-3f48c0755db3
+Active root: /dev/mmcblk0p29
+Live-GPT logical boot2: /dev/mmcblk0p30
+External power: online
+Battery capacity: 100
+Battery health: Good
+Target mounted: no
+Target active root: no
+Target writable: yes
+
+Retained-RAM preflight
+----------------------
+
+Slot 171 header: 444247430000000000000000
+Slot 172 header: 444247430000000000000000
+Slot 173 header: 444247430000000000000000
+Slot 174 header: 444247430000000000000000
+Classification: exact-empty
+Retained-RAM write: none
+
+Write and verification
+----------------------
+
+Predecessor full-partition SHA-256: ced1f56fc56833ce47b63a98205a373276f5d666007190ec0d3bd5adb98f3901
+Fresh predecessor backup: no
+Recovery basis: verified project-wide device backup captured at project start
+Write: exact-size padded image to resolved logical boot2 only
+Sync and device flush: passed
+Full-partition readback SHA-256: dd513384c78ee8378e1e4bf515f89b99ca87ed6ed86c1d38ec37f8aadd693b5b
+Temporary readback removed: yes
+Shutdown requested after evidence flush: yes
+Post-shutdown reachability: unreachable
+Automatic reboot: no
+Result: write-synced-flushed-full-readback-verified
+
+Sanitized private source receipt
+--------------------------------
+
+Deployment summary SHA-256: e2769db17ab5ae34977b719cfddfb5df460abf44adc0b785cebe45c3f29c80d2
+Raw partition content retained or committed: no
+Credentials, serials, IMEI, calibration, or personal identifiers committed: no

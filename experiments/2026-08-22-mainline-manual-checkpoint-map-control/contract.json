@@ -106,6 +106,20 @@
     "boot_candidate": true,
     "result": "pass"
   },
+  "deployment": {
+    "admission_commit": "bf5057bd01a4a5b9e99a2377a098f60c74b99573",
+    "known_good_boot_id": "7f11e139-fee2-4acd-a144-3f48c0755db3",
+    "active_root": "/dev/mmcblk0p29",
+    "resolved_boot2": "/dev/mmcblk0p30",
+    "predecessor_sha256": "ced1f56fc56833ce47b63a98205a373276f5d666007190ec0d3bd5adb98f3901",
+    "readback_sha256": "dd513384c78ee8378e1e4bf515f89b99ca87ed6ed86c1d38ec37f8aadd693b5b",
+    "external_power": true,
+    "fresh_predecessor_backup": false,
+    "retained_slots_prewrite": "exact-empty",
+    "shutdown_confirmed": true,
+    "automatic_reboot": false,
+    "result": "write-synced-flushed-full-readback-verified"
+  },
   "scope": {
     "retained_ram_writes": 0,
     "retained_header_reads_maximum": 6,

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-22-mainline-manual-checkpoint-map-control` |
-| Status | running; exact Buildbox candidate admitted, awaiting guarded deployment |
+| Status | running; exact candidate installed and device shut down, awaiting one observer-armed selection |
 | Subsystem | pstore retained RAM, arm64 mapping-model attribution |
 | Device variant | Gemini PDA x27, named project unit |
 | Date(s) | 2026-08-22 |
@@ -135,6 +135,14 @@ mutations, five header-consistent runtime outcomes, 26 unsafe runtime
 mutations, and six unsafe retained-recovery mutations pass their expected
 classification. See the [candidate receipt](results/candidate-ecd021b2.txt).
 
+Guarded deployment resolved live-GPT logical boot2 as `/dev/mmcblk0p30` while
+Gemian root remained `/dev/mmcblk0p29`. External power was online, all four
+bounded retained headers were exact empty, the predecessor was
+`ced1f56f...f3901`, and no fresh backup was created under the standing project
+recovery policy. The write, sync, flush, and full-partition readback all
+produced exact `dd513384...693b5b`; the Gemini then shut down and remained
+unreachable. See the [deployment receipt](results/deployment-20260822.txt).
+
 ## Analysis
 
 `ramoops_init()` being skipped explains the absence of pstore files and proves
@@ -157,7 +165,7 @@ hardware-support claim. CPU8 and CPU9 remain closed.
 
 ## Follow-up
 
-Guardedly install this exact candidate to inactive logical boot2, require a
-matching full-partition readback, shut down, and pre-arm the observer before
-one physical selection. Do not register ramoops, restore the writer, populate
-clock nodes, or open any CPU request in this discriminator.
+Pre-arm the exact observer, then make one physical boot2 selection. Do not
+manually reboot after selection: the observer requests a native return to
+Gemian only after exact live attribution. Do not register ramoops, restore the
+writer, populate clock nodes, or open any CPU request in this discriminator.
