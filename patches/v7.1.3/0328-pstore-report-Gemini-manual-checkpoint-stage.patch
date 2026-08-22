@@ -1,0 +1,150 @@
+From 2e32c807a41f8ad99e776b4920be77b3c8d3f498 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 22 Aug 2026 04:15:00 +0000
+Subject: [PATCH] pstore: report Gemini manual checkpoint stage
+
+The isolated manual checkpoint remained serviceable, but its first boolean
+call refused before any retained write. Add a default-off diagnostic mode
+that reports the exact refusal boundary in the same live boot.
+
+Keep the existing call count, write ceiling, payload-before-metadata
+ordering, full readback, and no-retry behavior. The historical manual
+profile and every non-manual profile retain their existing live output.
+---
+ fs/pstore/Kconfig                            | 13 +++++++
+ fs/pstore/gemini_protected_readback_ledger.c | 48 +++++++++++++++++----
+ 2 files changed, 52 insertions(+), 9 deletions(-)
+
+diff --git a/fs/pstore/Kconfig b/fs/pstore/Kconfig
+--- a/fs/pstore/Kconfig
++++ b/fs/pstore/Kconfig
+@@ -147,6 +147,19 @@ config PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_CONTROL
+ 	  nonempty slot and performs no storage, firmware, I2C, regulator, clock,
+ 	  owner, CPU, timer, watchdog, reset, or power operation.  If unsure,
+ 	  say N.
++
++config PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_STAGE_CONTROL
++	bool "Gemini manual checkpoint live failure stage"
++	depends on PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_CONTROL=y
++	default n
++	help
++	  Expose one live result distinguishing sequence, exact-DT/resource,
++	  mapping, prefix/header, write-precondition, metadata-readback, and
++	  payload-readback refusal in the isolated manual checkpoint control.
++
++	  This changes no retained write, protected call, clock, I2C, regulator,
++	  owner, CPU, storage, timer, retry, reset, or power behavior. If unsure,
++	  say N.
+ 
+ config PSTORE_GEMINI_PROTECTED_READBACK_LEDGER
+ 	bool "Gemini protected-readback retained call ledger"
+diff --git a/fs/pstore/gemini_protected_readback_ledger.c b/fs/pstore/gemini_protected_readback_ledger.c
+--- a/fs/pstore/gemini_protected_readback_ledger.c
++++ b/fs/pstore/gemini_protected_readback_ledger.c
+@@ -16,6 +16,13 @@
+ #define GEMINI_PRB_HEADER_SIZE		12
+ #define GEMINI_PRB_SIGNATURE		0x43474244
+ 
++#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_STAGE_CONTROL
++static const char *gemini_prb_stage = "not-run";
++#define GEMINI_PRB_SET_STAGE(stage) (gemini_prb_stage = (stage))
++#else
++#define GEMINI_PRB_SET_STAGE(stage) ((void)(stage))
++#endif
++
+ static bool gemini_prb_armed;
+ 
+ #ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_CONTROL
+@@ -86,9 +93,11 @@ static bool gemini_prb_write(void __iomem *slot, const char *record)
+ 	size_t len = strlen(record);
+ 	size_t i;
+ 
+-	if (!gemini_prb_slot_empty(slot) ||
+-	    len > GEMINI_PRB_SLOT_SIZE - GEMINI_PRB_HEADER_SIZE)
++	if (!gemini_prb_slot_empty(slot) ||
++	    len > GEMINI_PRB_SLOT_SIZE - GEMINI_PRB_HEADER_SIZE) {
++		GEMINI_PRB_SET_STAGE("write-precondition-refused");
+ 		return false;
++	}
+ 
+ 	memcpy_toio((u8 __iomem *)slot + GEMINI_PRB_HEADER_SIZE, record, len);
+ 	wmb(); /* Commit payload before producer metadata. */
+@@ -99,13 +108,19 @@ static bool gemini_prb_write(void __iomem *slot, const char *record)
+ 
+ 	if (readl(slot) != GEMINI_PRB_SIGNATURE ||
+ 	    readl((u8 __iomem *)slot + 4) != len ||
+-	    readl((u8 __iomem *)slot + 8) != len)
++	    readl((u8 __iomem *)slot + 8) != len) {
++		GEMINI_PRB_SET_STAGE("metadata-readback-refused");
+ 		return false;
+-	for (i = 0; i < len; i++)
++	}
++	for (i = 0; i < len; i++) {
+ 		if (readb((u8 __iomem *)slot + GEMINI_PRB_HEADER_SIZE + i) !=
+-		    record[i])
++		    record[i]) {
++			GEMINI_PRB_SET_STAGE("payload-readback-refused");
+ 			return false;
++		}
++	}
+ 
++	GEMINI_PRB_SET_STAGE("success");
+ 	return true;
+ }
+ 
+@@ -204,9 +219,12 @@ bool gemini_protected_readback_ledger_checkpoint(unsigned int checkpoint)
+ 	void __iomem *slot;
+ 	bool written = false;
+ 
++	GEMINI_PRB_SET_STAGE("call-entry");
+ 	if (checkpoint > 1 || (checkpoint == 0 && gemini_prb_armed) ||
+-	    (checkpoint == 1 && !gemini_prb_armed))
++	    (checkpoint == 1 && !gemini_prb_armed)) {
++		GEMINI_PRB_SET_STAGE("sequence-refused");
+ 		return false;
++	}
+ #ifdef CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER
+ 	if (!gemini_prb_minimal_dt())
+ 		return false;
+@@ -217,17 +235,23 @@ bool gemini_protected_readback_ledger_checkpoint(unsigned int checkpoint)
+ 	} else if (!gemini_prb_exact_dt()) {
+ 		return false;
+ 	}
+ #else
+-	if (!gemini_prb_exact_dt())
++	if (!gemini_prb_exact_dt()) {
++		GEMINI_PRB_SET_STAGE("dt-refused");
+ 		return false;
++	}
+ #endif
+ 
+ 	ledger = ioremap_wc(GEMINI_PRB_LEDGER_BASE,
+ 			    GEMINI_PRB_SLOT_COUNT * GEMINI_PRB_SLOT_SIZE);
+-	if (!ledger)
++	if (!ledger) {
++		GEMINI_PRB_SET_STAGE("map-refused");
+ 		return false;
+-	if (!gemini_prb_prefix_valid(ledger, checkpoint))
++	}
++	if (!gemini_prb_prefix_valid(ledger, checkpoint)) {
++		GEMINI_PRB_SET_STAGE("prefix-refused");
+ 		goto out;
++	}
+ 
+ 	slot = (u8 __iomem *)ledger +
+ 	       (GEMINI_PRB_FIRST_OWNED_SLOT + checkpoint) *
+@@ -255,6 +282,12 @@ static int __init gemini_protected_readback_manual_control_init(void)
+ 		"cpu_requests=0\n",
+ 		first, second, first + second);
+ 
++#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_STAGE_CONTROL
++	pr_info("%s first=%u second=%u stage=%s writes=%u protected=%u cpu=%u\n",
++		"GEMINI_MANUAL_CHECKPOINT_STAGE_V1",
++		first, second, gemini_prb_stage, first + second, 0, 0);
++#endif
++
+ 	return 0;
+ }
+ late_initcall(gemini_protected_readback_manual_control_init);
+-- 
+2.39.5

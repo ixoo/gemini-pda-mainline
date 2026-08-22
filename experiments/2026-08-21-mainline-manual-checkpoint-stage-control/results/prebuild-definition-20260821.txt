@@ -1,0 +1,41 @@
+Manual checkpoint live-stage prebuild definition
+================================================
+
+Result: pass
+Device access: none
+Hardware write: none
+Native VM build: none
+Boot candidate: no
+
+Definition
+----------
+
+Profile: da921x-manual-checkpoint-stage-control
+Parent profile: da921x-manual-checkpoint-control
+Expected release: 7.1.3-gemini-checkpoint-stage
+Canonical patch: v7.1.3/0328-pstore-report-Gemini-manual-checkpoint-stage.patch
+Canonical patch count: 320
+Profile fragments: 23
+Manifest profiles audited: 109
+Patch parse: Kconfig 13/0, C 39/9
+Buildbox exact prepared-source git-apply check: pass
+
+Safety and mutation validation
+------------------------------
+
+Fixed decision stages: 8
+New retained writes: 0
+Inherited retained-write ceiling: 2
+Protected calls: 0
+Clock and BigiDVFS reads: 0
+DA921x register-data writes: 0
+CPU8/CPU9 requests: 0
+Automatic retry: no
+Unsafe source/configuration mutations rejected: 14
+Strict checkpatch warnings: 0
+Strict checkpatch errors: one intentionally absent synthetic-author sign-off
+
+The patch retains the explicitly synthetic, non-certifying experiment author
+and no `Signed-off-by`. It is not submission-ready. Repository policy forbids
+inventing a DCO certification. No compile, candidate assembly, device access,
+or hardware-support claim occurred in this prebuild validation.

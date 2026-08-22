@@ -4755,6 +4755,16 @@ prefix, write, or readback boundary; returned empty RAM is not the causal
 oracle. See the
 [manual checkpoint control](../experiments/2026-08-21-mainline-manual-checkpoint-control/README.md).
 
+The named next implementation is the default-off
+`da921x-manual-checkpoint-stage-control` profile. Canonical patch `0328` keeps
+the historical boolean marker and adds one live fixed stage selected from DT/
+resource, mapping, prefix/header, write precondition, metadata readback,
+payload readback, or success. The prebuild definition passes exact application
+to the prepared `0327` source, all 109 manifest-profile series invariants, and
+14 negative source/configuration mutations. It is not a boot candidate until
+the Buildbox package and experiment-specific candidate tooling pass. See the
+[manual checkpoint stage control](../experiments/2026-08-21-mainline-manual-checkpoint-stage-control/README.md).
+
 The next ordered work is:
 
 1. Instrument the exact first shared-writer call on the serviceability-proven

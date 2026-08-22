@@ -1,0 +1,4 @@
+# Decision-bearing live refusal stage for the exact manual checkpoint call.
+# The parent retains the two-write ceiling and every clock/protected/CPU veto.
+CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_STAGE_CONTROL=y
+CONFIG_LOCALVERSION="-gemini-checkpoint-stage"
