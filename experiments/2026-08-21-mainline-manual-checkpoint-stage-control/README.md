@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-21-mainline-manual-checkpoint-stage-control` |
-| Status | running; exact candidate deployed and shut down, runtime pending |
+| Status | complete; exact live stage localized to prefix validation |
 | Subsystem | pstore retained writer, live refusal attribution, serviceability |
 | Device variant | Gemini PDA x27, named project unit |
 | Date(s) | 2026-08-21 |
@@ -74,7 +74,8 @@ observer must be armed before the single physical selection.
   `scripts/validate-runtime.py`, and `scripts/validate-retained.py`: pre-armed
   fixed-stage capture, native Gemian return, and bounded recovery
 
-Runtime evidence remains pending.
+The exact runtime and changed-ID recovery evidence is recorded in the
+[runtime receipt](results/runtime-attempt-1-prefix-refused-20260821.txt).
 
 ## Procedure
 
@@ -128,23 +129,53 @@ readback matched `43e7f44e...eac3`. No fresh backup was made under the standing
 project policy. The device was shut down cleanly and confirmed unreachable;
 it was not rebooted. See the [deployment receipt](results/deployment-20260821.txt).
 
+The observer was armed before the one physical selection. Mainline boot ID
+`461d67ea-04ef-4347-a2d1-a46ada9f1112` reached the exact USB/netcat oracle on
+release `7.1.3-gemini-checkpoint-stage`. CPU0--7, keyboard, and the read-only
+DA921x client were healthy; CPU8--9 remained offline, and the clock, BigiDVFS,
+protected-readback, same-value-action, storage, and CPU-action paths remained
+absent. The historical and new markers each appeared exactly once:
+
+`GEMINI_MANUAL_CHECKPOINT_CONTROL_LIVE_V1 first=0 second=0 retained_writes=0 protected_calls=0 cpu_requests=0`
+
+`GEMINI_MANUAL_CHECKPOINT_STAGE_V1 first=0 second=0 stage=prefix-refused writes=0 protected=0 cpu=0`
+
+The exact classifier accepted `decision-stage-prefix-refused` and only then
+sent one native reboot. Changed-ID Gemian returned, boot2 still matched
+`43e7f44e...eac3`, owned slots 173 and 174 were exact-empty, and pstore had
+zero files. Returned empty RAM is only a cross-version recovery observation;
+it does not override the live stage. See the
+[runtime receipt](results/runtime-attempt-1-prefix-refused-20260821.txt).
+
 ## Analysis
 
-The new fixed stage values align exactly with the existing early returns. A
-single live marker therefore turns the already proven refusal into a
-decision-bearing observation without moving the call site or changing the
-retained write protocol. `success` also remains meaningful: it would prove the
-unchanged writer locally and admit a live stage oracle for the later enabled-
-clock-node population control.
+The new fixed stage values align exactly with the existing early returns. The
+accepted live marker proves that exact DT validation and `ioremap_wc()` both
+completed, then the first call rejected the four-slot live prefix before
+selecting or writing owned slot 173. No write precondition, metadata readback,
+payload readback, protected transport, or CPU path was reached.
+
+The earlier Gemian preflight proved the same physical slots empty before
+deployment, while changed-ID Gemian recovered them empty afterward. Those
+observations do not reveal which header bytes the mainline mapping saw during
+the late initcall. The next discriminator must therefore capture the first
+failing live slot and its bounded signature/start/size fields before any
+write. It must preserve the exact serviceability DT, mapping, call count, and
+zero-action scope.
 
 ## Conclusion
 
-Exact candidate deployed and shut down. The pre-armed one physical runtime
-selection remains pending. No live stage, checkpoint, persistence, or
-hardware-support claim has yet been made.
+Exact candidate `43e7f44e...eac3` completed its one physical selection and
+preserved the CPU0--7 serviceability foundation. It localized the first
+checkpoint refusal to live four-slot prefix validation after successful DT
+and mapping gates. This is not a checkpoint or persistence pass. CPU8 and
+CPU9 remain closed, and no new hardware-support claim is made.
 
 ## Follow-up
 
-Use the one live stage to repair or remove the refusing boundary before clock-
-node population. Do not repeat the boolean-only candidate. CPU8 and CPU9 remain
-closed.
+Add one default-off, read-only live prefix-reason marker to this exact first
+call. Capture the first failing slot index plus its bounded signature, start,
+and size fields before any write; distinguish a bad signature, nonzero empty-
+slot metadata, and any other exact-header mismatch. Do not repeat this stage
+candidate, change the prefix policy, enable the clock node, or request a CPU
+until that observation identifies the mismatch.

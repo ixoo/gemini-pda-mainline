@@ -80,6 +80,26 @@
     "cpu_offline": "8-9",
     "native_reboot": "only_after_exact_identity_and_serviceability_capture"
   },
+  "runtime_result": {
+    "physical_selections": 1,
+    "classification": "manual-checkpoint-stage-pass",
+    "reason": "decision-stage-prefix-refused",
+    "mainline_boot_id": "461d67ea-04ef-4347-a2d1-a46ada9f1112",
+    "historical_marker_count": 1,
+    "stage_marker_count": 1,
+    "first": 0,
+    "second": 0,
+    "retained_writes": 0,
+    "protected_calls": 0,
+    "cpu_requests": 0,
+    "serviceability": "passed",
+    "native_reboot": "sent_after_exact_live_pass",
+    "changed_boot_id_return": "passed",
+    "returned_boot_id_sha256": "15aa4466ab4a8b91e149c6ae2179f1b26f808e7ec5066ea763d40087ab0278ff",
+    "post_return_boot2_sha256": "43e7f44eeef694ef876f7686ae03e2a779a118141e7f9efa060ccc1182c8eac3",
+    "owned_slots_173_174": "exact-empty",
+    "pstore_files": 0
+  },
   "decision": {
     "dt-refused": "split_or_repair_live_resource_conversion_gate",
     "map-refused": "replace_or_repair_retained_mapping_contract",

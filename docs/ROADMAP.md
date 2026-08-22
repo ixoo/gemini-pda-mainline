@@ -4768,14 +4768,26 @@ and full readback also pass, and the device is shut down; the next action is
 the single observer-armed physical boot2 selection. See the
 [manual checkpoint stage control](../experiments/2026-08-21-mainline-manual-checkpoint-stage-control/README.md).
 
+That single selection is now complete. Exact release, candidate identity,
+USB/netcat, keyboard, read-only DA921x presence, and CPU0--7 serviceability all
+passed. The unique markers reported `first=0 second=0 writes=0` and
+`stage=prefix-refused`; thus exact DT/resource conversion and retained mapping
+completed, but the live four-slot prefix rejected before selecting or writing
+owned slot 173. Only after that exact capture did the collector request one
+native reboot. Changed-ID Gemian returned with exact unchanged boot2, empty
+owned slots, and empty pstore. The recovery result does not reveal what the
+mainline late initcall read and cannot override the live stage. Reject exact
+candidate `43e7f44e...eac3` without repetition.
+
 The next ordered work is:
 
-1. Instrument the exact first shared-writer call on the serviceability-proven
-   base with one live failure-stage result distinguishing DT/resource, mapping,
-   prefix/header, write/commit, and full-readback refusal. Keep clock-node
-   population, protected transports, retries, and CPU requests absent; do not
-   repeat the boolean-only manual candidate or treat returned empty RAM as the
-   causal oracle.
+1. Instrument the exact first shared-writer prefix check on the serviceability-
+   proven base with one read-only live reason marker: first failing slot index
+   plus bounded signature, start, and size fields. Distinguish a bad signature,
+   nonzero empty-slot metadata, and any other exact-header mismatch before any
+   write. Keep the prefix policy unchanged and clock-node population,
+   protected transports, retries, and CPU requests absent; do not repeat the
+   stage candidate or treat returned empty RAM as the causal oracle.
 2. Only after the checkpoint control passes, isolate enabled clock-node population and
    read-free probe entry. Do not enable or sample BigiDVFS until clock-backend
    registration and probe entry are positively established.
