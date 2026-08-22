@@ -321,3 +321,4 @@ v7.1.3/0328-pstore-report-Gemini-manual-checkpoint-stage.patch
 v7.1.3/0329-pstore-report-Gemini-manual-checkpoint-prefix-reason.patch
 v7.1.3/0330-pstore-compare-Gemini-ramoops-mapping-models.patch
 v7.1.3/0331-pstore-accept-Gemini-raw-entry-ledger.patch
+v7.1.3/0332-pstore-qualify-Gemini-manual-raw-entry-write.patch

@@ -1,0 +1,7 @@
+# One-record raw-entry writer qualification at the serviceability-proven manual
+# late initcall. Every protected backend, observer, and CPU request stays absent.
+CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_RAW_WRITE_QUALIFICATION=y
+# CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_PREFIX_CONTROL is not set
+# CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_MAP_CONTROL is not set
+# CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_RAW_ENTRY_LEDGER is not set
+CONFIG_LOCALVERSION="-gemini-checkpoint-raw-write"

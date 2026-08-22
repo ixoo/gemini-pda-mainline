@@ -1,0 +1,116 @@
+From 278dde78728ed4814599bd1f9bdd4c96f9fca665 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 22 Aug 2026 23:00:00 +0000
+Subject: [PATCH] pstore: qualify Gemini manual raw-entry write
+
+The protected-readback raw-entry attempt recovered neither record, but its
+first checkpoint remained after observer probe entry and clock-backend
+acquisition.  Qualify the writer independently at the already proven manual
+late initcall before returning to the protected transport.
+
+Add a default-off mode that accepts only the exact all-ones four-slot prefix,
+commits only owned record 173 with the valid signature last, requires full
+local readback, and reports its exact live stage.  Make checkpoint one
+unavailable in this mode so the logical and physical write ceiling is one.
+
+Keep the clock backend, protected observer, BigiDVFS, normal ramoops
+registration, retries, clears, transition owner, and CPU requests absent.
+---
+ fs/pstore/Kconfig                            | 18 ++++++++++++++++++
+ fs/pstore/gemini_protected_readback_ledger.c | 21 +++++++++++++++++++--
+ 2 files changed, 37 insertions(+), 2 deletions(-)
+
+diff --git a/fs/pstore/Kconfig b/fs/pstore/Kconfig
+--- a/fs/pstore/Kconfig
++++ b/fs/pstore/Kconfig
+@@ -203,6 +203,24 @@ config PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_MAP_CONTROL
+ 	  transition owner, CPU, storage, timer, retry, reset, or power operation.
+ 	  If unsure, say N.
+ 
++config PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_RAW_WRITE_QUALIFICATION
++	bool "Gemini manual checkpoint raw-entry write qualification"
++	depends on PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_STAGE_CONTROL=y
++	depends on !PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_PREFIX_CONTROL
++	depends on !PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_MAP_CONTROL
++	depends on !PSTORE_GEMINI_PROTECTED_READBACK_RAW_ENTRY_LEDGER
++	default n
++	help
++	  At the isolated serviceability-proven late initcall, require exact
++	  all-ones headers in records 171 through 174 and commit only record 173.
++	  Write payload, start, and size before the valid signature, then require
++	  a complete local readback and report the exact live stage.
++
++	  This mode makes checkpoint one unavailable and adds no second write,
++	  clear, retry, normal ramoops registration, protected call, clock,
++	  BigiDVFS, transition owner, CPU, storage, reset, or power operation.
++	  If unsure, say N.
++
+ config PSTORE_GEMINI_PROTECTED_READBACK_RAW_ENTRY_LEDGER
+ 	bool "Gemini protected-readback raw-entry ledger"
+ 	depends on PSTORE_GEMINI_PROTECTED_READBACK_LEDGER=y
+diff --git a/fs/pstore/gemini_protected_readback_ledger.c b/fs/pstore/gemini_protected_readback_ledger.c
+--- a/fs/pstore/gemini_protected_readback_ledger.c
++++ b/fs/pstore/gemini_protected_readback_ledger.c
+@@ -186,7 +186,8 @@ static bool gemini_prb_slot_empty(void __iomem *slot)
+ 
+ static bool gemini_prb_slot_available(void __iomem *slot)
+ {
+-#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_RAW_ENTRY_LEDGER
++#if defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_RAW_ENTRY_LEDGER) || \
++	defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_RAW_WRITE_QUALIFICATION)
+ 	return readl(slot) == ~0U &&
+ 	       readl((u8 __iomem *)slot + 4) == ~0U &&
+ 	       readl((u8 __iomem *)slot + 8) == ~0U;
+@@ -223,9 +224,10 @@ static bool gemini_prb_write(void __iomem *slot, const char *record)
+ 	memcpy_toio((u8 __iomem *)slot + GEMINI_PRB_HEADER_SIZE, record, len);
+ 	wmb(); /* Commit payload before producer metadata. */
+ 	writel(len, (u8 __iomem *)slot + 4);
+ 	wmb(); /* Commit start before size. */
+ 	writel(len, (u8 __iomem *)slot + 8);
+-#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_RAW_ENTRY_LEDGER
++#if defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_RAW_ENTRY_LEDGER) || \
++	defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_RAW_WRITE_QUALIFICATION)
+ 	wmb(); /* Make a raw record valid only after payload and metadata. */
+ 	writel(GEMINI_PRB_SIGNATURE, slot);
+ #endif
+@@ -327,8 +329,12 @@ bool gemini_protected_readback_ledger_checkpoint(unsigned int checkpoint)
+ 	bool written = false;
+ 
+ 	GEMINI_PRB_SET_STAGE("call-entry");
++#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_RAW_WRITE_QUALIFICATION
++	if (checkpoint != 0 || gemini_prb_armed) {
++#else
+ 	if (checkpoint > 1 || (checkpoint == 0 && gemini_prb_armed) ||
+ 	    (checkpoint == 1 && !gemini_prb_armed)) {
++#endif
+ 		GEMINI_PRB_SET_STAGE("sequence-refused");
+ 		return false;
+ 	}
+@@ -386,7 +393,11 @@ static int __init gemini_protected_readback_manual_control_init(void)
+ 	bool second;
+ 
+ 	first = gemini_protected_readback_ledger_checkpoint(0);
++#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_RAW_WRITE_QUALIFICATION
++	second = false;
++#else
+ 	second = first && gemini_protected_readback_ledger_checkpoint(1);
++#endif
+ 	pr_info("GEMINI_MANUAL_CHECKPOINT_CONTROL_LIVE_V1 "
+ 		"first=%u second=%u retained_writes=%u protected_calls=0 "
+ 		"cpu_requests=0\n",
+@@ -401,6 +412,13 @@ static int __init gemini_protected_readback_manual_control_init(void)
+ 		first, second, gemini_prb_stage, first + second, 0, 0);
+ #endif
+ 
++#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_RAW_WRITE_QUALIFICATION
++	pr_info("%s commit=%u stage=%s writes=%u protected=%u clock=%u "
++		"bigidvfs=%u cpu=%u\n",
++		"GEMINI_MANUAL_RAW_WRITE_QUALIFICATION_LIVE_V1",
++		first, gemini_prb_stage, first, 0, 0, 0, 0);
++#endif
++
+ #if defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_PREFIX_CONTROL) && \
+ 	!defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_MAP_CONTROL)
+ 	pr_info("%s cp=%u slot=%u why=%s hdr=%08x/%u/%u reads=3\n",
+-- 
+2.39.5

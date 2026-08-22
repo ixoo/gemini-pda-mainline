@@ -24,6 +24,7 @@ the loop. Positive identity-gated observations are unaffected.
 ### Current DA921x, I2C6, and A72 line
 
 - [2026-08-22 protected-readback raw-entry ledger](2026-08-22-mainline-protected-readback-raw-entry-ledger/README.md)
+- [2026-08-22 manual checkpoint raw-write qualification](2026-08-22-mainline-manual-checkpoint-raw-write-qualification/README.md)
   — defines the decision-bearing two-record successor after proving Gemian
   normalizes invalid retained headers before recovery collection. It requires
   exact raw all-ones entry, commits only records 173 and 174 with the signature
