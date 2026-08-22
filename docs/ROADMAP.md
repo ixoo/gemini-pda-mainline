@@ -4812,27 +4812,35 @@ returned natively to changed-ID Gemian, where the slots remained empty. This
 rejects mapper substitution as the next fix. See the
 [manual checkpoint mapping control](../experiments/2026-08-22-mainline-manual-checkpoint-map-control/README.md).
 
+The exact raw-entry successor is also complete and stopped. Buildbox produced
+release `7.1.3-gemini-protected-raw`; candidate `7c403a38...41a9` passed its
+independent container and mutation gates, was written to inactive live-GPT
+`boot2`, fully read back, and shut down cleanly. The pre-armed collector
+confirmed the disconnect and changed-ID Gemian return, but Gemian recovered
+neither owned record. Because the first checkpoint was still reached only
+after observer probe entry and clock-backend acquisition, this result does not
+establish that raw validation or the first commit ran, and it provides no
+evidence that the protected-clock read began or failed. Reject the exact
+candidate without repetition. See the
+[protected-readback raw-entry ledger](../experiments/2026-08-22-mainline-protected-readback-raw-entry-ledger/README.md).
+
 The next ordered work is:
 
-1. The required no-boot source audit is complete. Pinned Gemian creates 175
-   4-KiB ramoops dump records and initializes record 171 at `0x444bb000`.
-   Its invalid-header path converts all ones to the exact empty header before
-   the userspace `/dev/mem` collector runs. The prior Gemian empty observations
-   therefore do not describe either raw handoff, and no mapping bug follows
-   from the matching mainline all-ones views. Do not spend another boot on a
-   mapping-protection comparison. Implement one default-off exact-raw-entry
-   successor: require all-ones headers in records 171--174, commit only owned
-   records 173 and 174 with the valid signature written last, and require full
-   local readback. Gemian recovery of the first record only means the one
-   protected-clock read did not return; recovery of both means it returned.
-   Keep normal ramoops registration, BigiDVFS calls, retries, transition-owner
-   registration, and CPU requests absent. This successor is now defined as the
-   [protected-readback raw-entry ledger](../experiments/2026-08-22-mainline-protected-readback-raw-entry-ledger/README.md).
-   See the mapping control's
-   [post-runtime source audit](../experiments/2026-08-22-mainline-manual-checkpoint-map-control/results/post-runtime-source-audit-20260822.txt).
-2. Only after the checkpoint control passes, isolate enabled clock-node population and
-   read-free probe entry. Do not enable or sample BigiDVFS until clock-backend
-   registration and probe entry are positively established.
+1. Qualify one raw-entry retained write independently of the observer and every
+   protected backend. Reuse the exact serviceability-proven late initcall and
+   mapping control, require all-ones headers in records 171--174, commit only
+   record 173 with payload, start, size, and valid signature in that order, and
+   require full local readback. Report an exact live failure/success stage over
+   USB before the native return to Gemian. A live successful commit plus Gemian
+   recovery closes the raw writer and cross-version format boundary; live
+   success without recovery isolates record format/recovery semantics; a live
+   failure remains inside the reported validation/write/readback stage. Add no
+   second record, clock-node dependency, protected call, BigiDVFS action,
+   transition owner, retry, or CPU request.
+2. Only after that qualification passes, place the first durable checkpoint
+   before clock-backend acquisition, then isolate enabled clock-node population
+   and read-free probe entry. Do not enable or sample BigiDVFS until
+   clock-backend registration and probe entry are positively established.
 3. Compose the validated readers, DA921x, and the platform-state source under
    one transition/hotplug owner.
 4. Revise A34 to accept only the complete direct-state ABI and applicable

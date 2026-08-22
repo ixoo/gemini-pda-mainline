@@ -1,0 +1,36 @@
+Protected-readback raw-entry-ledger boot2 deployment
+Date: 2026-08-22 America/New_York
+
+[admission]
+repository_commit=52e16b82adfa760c4b3cdaa249d195f66d9ec163
+origin=https://github.com/ixoo/gemini-pda-mainline.git
+candidate_sha256=7c403a38197f948eff8cc02779ac55d1a172e3898e8663cc98fb8e22a2dc41a9
+candidate_size=16777216
+deployment_summary_sha256=496472f99fb44069ccea7d239f7e1eb5894f4f4dbca9ecb2d39b27cefa0d7e14
+
+[live-gates]
+known_good_kernel=3.18.41+
+known_good_architecture=aarch64
+target_logical_name=boot2
+resolved_target=/dev/mmcblk0p30
+active_root=/dev/mmcblk0p29
+target_is_active_root=no
+target_is_mounted=no
+predecessor_sha256=dd513384c78ee8378e1e4bf515f89b99ca87ed6ed86c1d38ec37f8aadd693b5b
+fresh_predecessor_backup=no
+power_online=1
+power_capacity_percent=100
+power_health=Good
+retained_slots_prewrite=exact-empty
+retained_ram_write=none
+
+[write-and-power]
+write=completed
+sync_and_flush=completed
+full_partition_readback_sha256=7c403a38197f948eff8cc02779ac55d1a172e3898e8663cc98fb8e22a2dc41a9
+candidate_readback_match=yes
+temporary_readback_removed=yes
+shutdown=requested-after-evidence-flush
+shutdown=confirmed-unreachable
+automatic_reboot=no
+result=write-synced-flushed-full-readback-verified

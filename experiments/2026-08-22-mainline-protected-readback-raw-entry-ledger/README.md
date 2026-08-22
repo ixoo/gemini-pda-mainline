@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-22-mainline-protected-readback-raw-entry-ledger` |
-| Status | offline candidate admitted; guarded deployment pending |
+| Status | runtime complete: neither record recovered; clock attribution not established |
 | Subsystem | MT6797 protected clock read / retained ramoops checkpoint |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-22 America/New_York |
@@ -91,6 +91,20 @@ above. Offline tests cover all branches, malformed/duplicate/foreign records,
 an unsafe capture entry, and the exact guarded-installer identity. See
 `results/runtime-tools-offline.txt`.
 
+## Runtime evidence
+
+The exact padded candidate was written to live-GPT-resolved inactive `boot2`,
+synced, flushed, and fully read back as
+`7c403a38197f948eff8cc02779ac55d1a172e3898e8663cc98fb8e22a2dc41a9`.
+The installer created no fresh partition backup and confirmed the clean
+shutdown. See `results/deployment-7c403a38.txt`.
+
+The armed collector confirmed the disconnect and a return to Gemian
+`3.18.41+` with a changed boot ID. Gemian exposed no pstore records. The strict
+classifier therefore returned `neither`; a bounded post-recovery `/dev/mem`
+read found records 171--174 normalized to exact empty headers. See
+`results/runtime-attempt-1-neither-20260822.txt`.
+
 ## Procedure
 
 1. Validate the exact patch, profile, canonical-series placement, default-off
@@ -124,13 +138,15 @@ protected-clock read returned.
 
 ## Conclusion
 
-The exact offline candidate is admitted for one guarded `boot2` deployment and
-runtime attempt. Hardware evidence remains pending. This result makes no
-hardware-support claim and does not open CPU8 or CPU9 admission.
+The protected-clock call is not attributable from this attempt. Neither owned
+record recovered, so the result does not distinguish observer entry, clock
+backend acquisition, raw-entry validation, address mapping, or the first
+signature-last commit. It is not evidence that the protected-clock call failed
+or even began. This result makes no hardware-support claim and does not open
+CPU8 or CPU9 admission.
 
 ## Follow-up
 
-If both records recover, proceed to the separately ordered read-free clock-node
-population experiment. If only record 173 recovers, localize inside the
-protected-clock transport without repeating this artifact. If neither
-recovers, repair the exact raw-entry commit path before another protected call.
+Do not repeat this artifact. The ordered successor and its decision map are in
+Roadmap Gate 7; this experiment remains the exact runtime chronology and
+rejected branch.
