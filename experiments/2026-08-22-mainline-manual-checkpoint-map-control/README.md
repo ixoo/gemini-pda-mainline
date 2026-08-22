@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-22-mainline-manual-checkpoint-map-control` |
-| Status | running; prebuild definition only, not compiled or admitted |
+| Status | running; exact Buildbox candidate admitted, awaiting guarded deployment |
 | Subsystem | pstore retained RAM, arm64 mapping-model attribution |
 | Device variant | Gemini PDA x27, named project unit |
 | Date(s) | 2026-08-22 |
@@ -34,8 +34,11 @@ writing the reservation.
 - Parent profile: `da921x-manual-checkpoint-prefix-control`
 - New profile: `da921x-manual-checkpoint-map-control`
 - Expected release: `7.1.3-gemini-checkpoint-map`
-- Build backend: Buildbox only from an exact clean pushed commit
-- Boot path if admitted later: guarded live-GPT logical boot2 only
+- Build commit: `0ada85aab04a3ebaaa4275fad235016292774946`
+- Build backend: Buildbox only; no native VM build
+- Package: `linux-7.1.3-gemini-da921x-manual-checkpoint-map-control-ccfe6c0b-526176f2`
+- Admitted padded candidate: `dd513384...693b5b`, exactly 16 MiB
+- Boot path: guarded live-GPT logical boot2 only
 
 Exact prepared source audit found that canonical patch `0323` deliberately
 makes `ramoops_init()` return before platform-driver registration whenever the
@@ -75,6 +78,14 @@ before the standing guarded boot2 workflow may install it.
 - `scripts/validate.py`: exact patch, fragment, profile, contract, and safety
   validator
 - `scripts/test-validate.py`: negative source and configuration mutations
+- `scripts/build-serviceability-dtb.sh`: source-pinned, two-construction DT
+  derivation
+- `scripts/build-candidate.sh` and `scripts/test-candidate.sh`: deterministic
+  assembly and independent package/DT/container/symbol admission
+- `scripts/install-boot2.sh`: guarded live-GPT write, readback, and shutdown
+- `scripts/collect-runtime.sh`, `scripts/remote-runtime-probe.sh`, and the
+  runtime validators: pre-armed exact live oracle and bounded changed-ID
+  recovery
 
 ## Procedure
 
@@ -111,6 +122,19 @@ intentionally absent synthetic-author sign-off. All 111 manifest profiles pass
 the canonical-series invariant. See the
 [prebuild definition receipt](results/prebuild-definition-20260822.txt).
 
+Buildbox fetched the exact clean pushed definition commit and produced release
+`7.1.3-gemini-checkpoint-map`. Its complete package inventory, provenance,
+configuration, Image compression, and symbols passed. See the
+[Buildbox receipt](results/build-0ada85a.txt).
+
+Two independent serviceability-DT constructions, raw assemblies, and padding
+constructions are byte-identical. The raw Android-v0 image is 6,899,712 bytes
+with SHA-256 `ecd021b2...299cae`; the exact 16 MiB boot2 form is
+`dd513384...693b5b`. All 32 LK gates, 15 negative DT mutations, 17 definition
+mutations, five header-consistent runtime outcomes, 26 unsafe runtime
+mutations, and six unsafe retained-recovery mutations pass their expected
+classification. See the [candidate receipt](results/candidate-ecd021b2.txt).
+
 ## Analysis
 
 `ramoops_init()` being skipped explains the absence of pstore files and proves
@@ -127,13 +151,13 @@ read-only attribution.
 
 ## Conclusion
 
-The read-only mapping-control definition is statically admissible for a
-Buildbox build. It is not compiled, is not a boot candidate, and makes no new
+The exact read-only mapping-control candidate is independently admitted for one
+guarded boot2 selection. It is not runtime-proven and makes no new
 hardware-support claim. CPU8 and CPU9 remain closed.
 
 ## Follow-up
 
-Use the ordered work in [the roadmap](../../docs/ROADMAP.md). Build and
-independently validate this exact definition before considering one physical
-selection; do not register ramoops, restore the writer, populate clock nodes,
-or open any CPU request in this discriminator.
+Guardedly install this exact candidate to inactive logical boot2, require a
+matching full-partition readback, shut down, and pre-arm the observer before
+one physical selection. Do not register ramoops, restore the writer, populate
+clock nodes, or open any CPU request in this discriminator.

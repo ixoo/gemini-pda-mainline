@@ -4800,20 +4800,25 @@ owned ramoops mapping exists in that boot; only the parallel `ioremap_wc()` view
 does. Reject the exact prefix-control candidate without repetition. See the
 [manual checkpoint prefix control](../experiments/2026-08-21-mainline-manual-checkpoint-prefix-control/README.md).
 
+The default-off mapping-model discriminator in item 1 is now implemented as
+canonical patch `0330`. Its exact Buildbox package, two independent DT
+constructions, two independent container and padding constructions, 32 LK
+gates, fixed five-result runtime oracle, and negative mutation suites pass.
+The admitted padded candidate is `dd513384...693b5b`; it has not yet run on
+hardware. The immediate action is guarded inactive-boot2 installation, full
+readback, shutdown, observer arming, and one physical selection. See the
+[manual checkpoint mapping control](../experiments/2026-08-22-mainline-manual-checkpoint-map-control/README.md).
+
 The next ordered work is:
 
-1. Add one default-off, read-only mapping-model discriminator on the same proven
-   serviceability base. Keep normal ramoops registration skipped. Snapshot the
-   first header once through the current parallel `ioremap_wc()` view and once
-   through the internal `persistent_ram_vmap()` model that normal ramoops would
-   select, without invoking the prefix predicate or writer. Require exact
-   physical-slot attribution and a unique result that distinguishes ramoops-
-   model-empty/parallel-all-ones from both-views-empty, matching other data,
-   mapping failure, and a true view mismatch. Keep clock-node population,
-   protected transports, retries, transition-owner registration, and CPU
-   requests absent. If the ramoops mapping model is exact empty, replace the
-   ledger's parallel mapper with a single persistent-RAM mapping contract;
-   otherwise stop and localize the mapping model before another boot.
+1. Run the single admitted mapping-control selection. If the ramoops mapping
+   model is exact empty, replace the ledger's parallel mapper with one
+   persistent-RAM mapping contract before any write. If both views are empty,
+   reject the prior all-ones result as unstable. For matching other data, a
+   true mismatch, or mapping failure, localize that exact state before another
+   boot. Keep normal ramoops registration, the prefix predicate, writer,
+   clock-node population, protected transports, retries, transition-owner
+   registration, and CPU requests absent.
 2. Only after the checkpoint control passes, isolate enabled clock-node population and
    read-free probe entry. Do not enable or sample BigiDVFS until clock-backend
    registration and probe entry are positively established.

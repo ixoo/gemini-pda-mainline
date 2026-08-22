@@ -1,0 +1,70 @@
+Manual checkpoint mapping-control candidate
+===========================================
+
+Result: pass
+Boot candidate: yes
+Device access: none
+Hardware write: none
+Native VM build: none
+
+Exact identities
+----------------
+
+Repository build commit: 0ada85aab04a3ebaaa4275fad235016292774946
+Kernel release: 7.1.3-gemini-checkpoint-map
+Image SHA-256: 0185e3cb9e5f765382a1abf4cc6ddc1bca16e927a7719572595fe8005cd08a90
+Image.gz SHA-256: bd6fb838a8564a37174802f869850da754a6a5ced14023154e618789c9fb57d3
+Control DTB SHA-256: b638674b9be209219d51b7dd02538f7a0bc8b402bab7336188cb95011cd912dd
+Configuration SHA-256: 8bbabdd444c855f0d49eb9622320bcf325f1930d90f784b1f959dbe2d365ba8e
+System.map SHA-256: e835f09373ac67ae2d471529ddc31ac0d1e098790af3273bd8812d4e685bb53e
+Serviceability ramdisk SHA-256: e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f
+
+Raw file: gemini-mt6797-manual-checkpoint-map-control.boot.img
+Raw size: 6,899,712
+Raw SHA-256: ecd021b2c25f48a1481ff0653c4c0b053490bdb60266100b8b270e90f2299cae
+Padded size: 16,777,216
+Padded SHA-256: dd513384c78ee8378e1e4bf515f89b99ca87ed6ed86c1d38ec37f8aadd693b5b
+Candidate SHA256SUMS SHA-256: af056a2eea1c410b68688b3d4b385d1b6f53d5e3fca3c12f66893eee6fccdbad
+
+Validation
+----------
+
+- Complete fetched-package checksum inventory: pass
+- Two independent DT constructions: byte-identical
+- Two independent raw assemblies: byte-identical
+- Two independent padding constructions: byte-identical
+- LK Android-v0 gates: 32 of 32
+- Independent negative DT mutations rejected: 15
+- Definition source/configuration mutations rejected: 17
+- Header-consistent live results accepted offline: 5
+- Unsafe live runtime mutations rejected: 26
+- Unsafe retained recovery mutations rejected: 6
+- Historical boolean, map stage, and map-result markers: exact once each
+- Prefix-result marker: absent
+- Persistent-RAM vmap helper and exact map state: linked
+- Clock, BigiDVFS, protected transport, same-value action, and CPU requests: absent
+- Retained header reads: parallel exactly three, vmap maximum three
+- Retained writes: zero
+- Protected calls: zero
+- DA921x register-data writes: zero
+- CPU8/CPU9 admission: closed
+
+Tool identities
+---------------
+
+DT builder: 6da5815213e2b1269ae264545fba80dfcd0b60617df91f794daa2fceb3a3d5db
+Candidate builder: 9b058ae57553fc8dcf6987f51da6fa67451651ec3ea8cb264fae640f7e2a57af
+Independent validator: 16e77a4179d211e6a0d7ce7155a77f9260d5c081cb21b47b83a68e77b2577197
+Guarded installer: 75bcc25f7546e53285875367446847a98f60fd208982f33ad4c4158fcc5b8fda
+Runtime collector: 6387f611763cbcb4260485fe029c322759b288df4e4111e4a1b2e244b71ec335
+Remote probe: c9ee55ddc6f558f734e5400e8e689004b6767869fcbd2da3b474465cf69d7acf
+Live validator: 04ee5557c5b06b0c0a2f8598fd602b9803039678a1c8831d0ccb28a2d1fe15a9
+Retained validator: 83f249449fc52741e4e5d09a10957b2345b6794968e93e654d766a7b23f54b10
+Runtime offline tests: 03904dcd7a4368a3ff5b020727b5b4abdf1cafcb7f003f68346791ce6ea39277
+
+The single live result must preserve exact identity, fixed
+`map-control-observed` stage, absent prefix marker, zero writes, and full
+serviceability. One header-consistent mapping result selects the next
+engineering action. The observer requests a native reboot only after that
+exact capture; changed-ID Gemian recovery must remain empty and cannot
+override the live result.
