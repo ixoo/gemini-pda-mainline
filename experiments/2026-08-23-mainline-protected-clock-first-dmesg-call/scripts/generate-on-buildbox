@@ -158,7 +158,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_source.py" \
 	die 'verification source is dirty'
 
 if ! perl "$source_root/scripts/checkpatch.pl" --no-tree --strict \
-	--ignore MISSING_SIGN_OFF,COMMIT_LOG_LONG_LINE \
+	--ignore MISSING_SIGN_OFF,COMMIT_LOG_LONG_LINE,SPLIT_STRING \
 	"$partial/patches/$patch" \
 	>"$partial/provenance/checkpatch-${patch%.patch}.txt"; then
 	cat "$partial/provenance/checkpatch-${patch%.patch}.txt" >&2
@@ -175,6 +175,7 @@ canonical_parent_patch_sha256=$PARENT_PATCH_SHA256
 parent_commit=$parent_commit
 result_commit=$result_commit
 generated_patch_count=1
+checkpatch_intentional_ignore=SPLIT_STRING-for-one-atomic-retained-record
 changed_files=fs/pstore/Kconfig,fs/pstore/gemini_protected_readback_ledger.c
 retained_records=1,2
 retained_checkpoints=before-clock,after-clock

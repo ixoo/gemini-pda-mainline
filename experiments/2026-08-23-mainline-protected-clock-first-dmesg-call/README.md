@@ -71,3 +71,10 @@ before source validation because Bash rejected a multiline conditional. No
 source edit or review artifact was created. The condition is split into exact
 file-safety and value checks for the next attempt; see the
 [rejected tooling attempt](results/generation-attempt-1-shell-condition-rejected.txt).
+
+Attempt 2 at exact commit `698877be` passed source semantics, patch shape, and
+byte-identical replay. Strict checkpatch then rejected only two `SPLIT_STRING`
+warnings for the fixed atomic retained-record literals. The implementation is
+unchanged for the next attempt; its review command now carries the same narrow,
+provenance-recorded exception used by the earlier atomic record patches. See
+the [review-policy rejection](results/generation-attempt-2-split-string-review-rejected.txt).

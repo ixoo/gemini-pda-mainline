@@ -7073,7 +7073,9 @@ case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
 (cd "${package}" && sha256sum --check --strict SHA256SUMS >/dev/null)
 grep -Fx "repository_commit=${commit}" \
   "${package}/provenance/generation.txt" >/dev/null
-for marker in generated_patch_count=1 retained_records=1,2 \
+for marker in generated_patch_count=1 \
+  checkpatch_intentional_ignore=SPLIT_STRING-for-one-atomic-retained-record \
+  retained_records=1,2 \
   retained_checkpoints=before-clock,after-clock retained_maximum_writes=2 \
   new_retained_writer=0 new_call_site=0 signature_last=yes full_readback=yes \
   protected_clock_reads=1 bigidvfs_reads=0 secure_calls=0 \
