@@ -86,13 +86,13 @@
     "native_reboot": "only_after_exact_live_probe_complete_and_serviceability_pass"
   },
   "candidate": {
-    "repository_commit": null,
-    "package": null,
-    "image_sha256": null,
-    "serviceability_clock_dtb_sha256": null,
-    "raw_container_sha256": null,
-    "padded_boot2_sha256": null,
-    "boot_candidate": false
+    "repository_commit": "d8d98fccee89a77fd5a6bc1da3f55cb3d1366b60",
+    "package": "linux-7.1.3-gemini-da921x-clock-entry-first-dmesg-104d4497-aae6ea5f",
+    "image_sha256": "984acb29964a7e111da333d457d1bea48c6952cad2fd95c61b9bedf89d1d0c0e",
+    "serviceability_clock_dtb_sha256": "7c1d5f69924a8280e36ff111b411c4fbecd32243e8d0da9e9f6f4b333a21e100",
+    "raw_container_sha256": "251e792573bd9961d3f2b90563cff85d851c6502008d97e1ae502fbacda49b83",
+    "padded_boot2_sha256": "40b7c663b835bcf4c48f4149f14aa416343e3e322ab78a0aa38448afff9455b4",
+    "boot_candidate": true
   },
   "decision": {
     "live_probe_complete_and_records_1_2": "read_free_clock_probe_qualified",
@@ -115,6 +115,6 @@
     "owner_registration": false,
     "automatic_retry": false,
     "reset_or_power_action": false,
-    "boot_candidate": false
+    "boot_candidate": true
   }
 }

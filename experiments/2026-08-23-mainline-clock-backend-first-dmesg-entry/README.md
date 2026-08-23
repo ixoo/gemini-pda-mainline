@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-23-mainline-clock-backend-first-dmesg-entry` |
-| Status | definition; not yet a boot candidate |
+| Status | exact boot candidate admitted; device deployment pending |
 | Subsystem | read-free clock-backend registration and probe entry |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-23 America/New_York |
@@ -65,8 +65,17 @@ the acquired clock is not enabled. CPU8 and CPU9 admission remain closed.
 - `patches/v7.1.3/0334-pstore-qualify-Gemini-clock-entry-in-first-dmesg.patch`
 - `configs/gemini-clock-backend-first-dmesg.fragment`
 - `contract.json`
+- `scripts/build-serviceability-clock-dtb.sh`
+- `scripts/build-candidate.sh`
+- `scripts/test-candidate.py`
 - `scripts/validate.py`
 - `scripts/test-validate.py`
+- `scripts/install-boot2.sh`
+- `scripts/remote-runtime-probe.sh`
+- `scripts/validate-runtime.py`
+- `scripts/validate-retained.py`
+- `scripts/test-runtime-tools.py`
+- `scripts/collect-runtime.sh`
 
 ## Procedure
 
@@ -102,9 +111,20 @@ or CPU8/CPU9 admission.
 
 ## Conclusion
 
-The local definition gates pass: exact patch identity and parse, record CRC and
-length checks, inherited writer/call-site checks, 16 unsafe mutations, all 115
-manifest-profile series invariants, eight invariant-auditor mutations, JSON,
-and whitespace. Exact prepared-source apply, style, configuration, and compile
-checks remain with Buildbox. The definition is not a boot candidate. See the
-[prebuild result](results/prebuild-definition-20260823.txt).
+The exact pushed commit `d8d98fc` built successfully on Buildbox as package
+`linux-7.1.3-gemini-da921x-clock-entry-first-dmesg-104d4497-aae6ea5f`.
+Strict checkpatch reports zero errors and zero warnings. The fetched package
+passed its complete checksum inventory; its substantive Image, Image.gz,
+configuration, and System.map are byte-identical to the two preceding
+metadata-only builds.
+
+The exact serviceability-plus-clock DT is independently reproducible. Two raw
+container assemblies and two padding constructions are byte-identical; all 32
+LK gates pass, and the independent candidate validator rejects all 16 unsafe
+DT mutations. The admitted raw container is `251e7925...49b83`; its exact
+16 MiB `boot2` form is `40b7c663...455b4`. Live and retained-result validators
+accept only the exact read-free probe-complete result and reject 24 unsafe live
+plus 12 unsafe retained mutations. No device access or hardware write occurred
+during admission. See the [build result](results/build-d8d98fc-success.txt),
+[candidate admission](results/candidate-admission-251e7925.txt), and
+[runtime-tool preflight](results/runtime-tooling-preflight-20260823.txt).

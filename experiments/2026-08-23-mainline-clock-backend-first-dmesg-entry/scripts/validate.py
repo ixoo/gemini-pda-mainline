@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the first-dmesg clock-backend entry definition."""
+"""Validate the first-dmesg clock-backend definition and admission record."""
 
 from __future__ import annotations
 
@@ -17,6 +17,18 @@ PROFILE = "da921x-clock-entry-first-dmesg"
 PARENT = "da921x-current-service-control"
 SYMBOL = "PSTORE_GEMINI_CLOCK_BACKEND_FIRST_DMESG_ENTRY_QUALIFICATION"
 PREFIX = "GEMINI_CLOCK_BACKEND_FIRST_DMESG_V1 token=GCBF-20260823-A"
+CANDIDATE = {
+    "repository_commit": "d8d98fccee89a77fd5a6bc1da3f55cb3d1366b60",
+    "package": "linux-7.1.3-gemini-da921x-clock-entry-first-dmesg-104d4497-aae6ea5f",
+    "image_sha256": "984acb29964a7e111da333d457d1bea48c6952cad2fd95c61b9bedf89d1d0c0e",
+    "serviceability_clock_dtb_sha256":
+        "7c1d5f69924a8280e36ff111b411c4fbecd32243e8d0da9e9f6f4b333a21e100",
+    "raw_container_sha256":
+        "251e792573bd9961d3f2b90563cff85d851c6502008d97e1ae502fbacda49b83",
+    "padded_boot2_sha256":
+        "40b7c663b835bcf4c48f4149f14aa416343e3e322ab78a0aa38448afff9455b4",
+    "boot_candidate": True,
+}
 
 
 def require(condition: bool, message: str) -> None:
@@ -108,8 +120,9 @@ def main() -> None:
             "protected-read scope opened")
     require(contract["scope"]["mapped_mmio_transactions"] == 0,
             "MMIO-transaction scope opened")
-    require(contract["candidate"]["boot_candidate"] is False,
-            "definition was promoted without admission")
+    require(contract["candidate"] == CANDIDATE, "candidate admission changed")
+    require(contract["scope"]["boot_candidate"] is True,
+            "scope does not admit the exact candidate")
     validate_patch_text(patch)
 
     for record in contract["ledger"]["records"]:
@@ -234,7 +247,7 @@ def main() -> None:
     print("cpu8_cpu9_admission=closed")
     print("device_access=none")
     print("hardware_write=none")
-    print("boot_candidate=false")
+    print("boot_candidate=true")
     print("result=pass")
 
 
