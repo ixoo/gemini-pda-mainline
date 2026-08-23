@@ -25,7 +25,7 @@
   },
   "patch": {
     "path": "patches/v7.1.3/0334-pstore-qualify-Gemini-clock-entry-in-first-dmesg.patch",
-    "sha256": "1661dd251fd3e368d2c482bf486b93d4a9bbfd98914687b8dcd78c40fd611be4",
+    "sha256": "5d589ced4619c697d5e8f6edf68d11b98245d3027b000958a094f8e4745a4c3a",
     "submission_ready": false,
     "synthetic_author": true,
     "synthetic_signoff": false,

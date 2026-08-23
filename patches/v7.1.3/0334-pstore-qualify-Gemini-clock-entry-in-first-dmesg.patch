@@ -4,9 +4,10 @@ Date: Sun, 23 Aug 2026 02:05:00 +0000
 Subject: [PATCH] pstore: qualify Gemini clock entry in first dmesg
 
 Reuse the protected-call-free clock driver-init and probe-entry checkpoints
-with the now-qualified signature-last writer in consecutive dmesg records 1
-and 2.  This makes changed-ID Gemian recovery distinguish driver registration,
-platform-device population, probe entry, and read-free probe completion.
+with the now-qualified signature-last writer in consecutive dmesg records
+1 and 2. This makes changed-ID Gemian recovery distinguish driver
+registration, platform-device population, probe entry, and read-free probe
+completion.
 
 Keep both protected transports, BigiDVFS, owner registration, and CPU requests
 disabled.  The clock probe retains only allocation, resource mapping,
