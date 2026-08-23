@@ -4849,13 +4849,26 @@ closes the writer, warm-retention, record-format, and first-record enumeration
 boundaries. Do not repeat the sparse record-173 or first-record artifacts. See
 the [first-dmesg result](../experiments/2026-08-22-mainline-first-dmesg-raw-write-qualification/README.md).
 
+The clock-backend first-dmesg successor is also complete and stopped. Exact
+live attribution plus both exact retained records prove driver init, platform
+population, probe entry, and read-free probe completion. Its full
+serviceability oracle failed for an independently localized reason: the clock
+backend claimed the `0x11015000--0x11015fff` CSPM resource before the existing
+handoff provider, whose `-EBUSY` failure left I2C6 deferred and the DA921x
+client absent. No protected clock read, BigiDVFS read, register transaction,
+clock enable, DA921x write, or CPU request occurred. This qualifies the narrow
+entry boundary but rejects the candidate as a composition foundation. Do not
+repeat it or proceed to a protected read on the overlapping resource model. See
+the [clock-entry split result](../experiments/2026-08-23-mainline-clock-backend-first-dmesg-entry/results/runtime-attempt-1-read-free-pass-resource-conflict-20260823.txt).
+
 The next ordered work is:
 
-1. Place the now-qualified durable checkpoint before clock-backend acquisition,
-   then isolate enabled clock-node population and read-free probe entry. Keep
-   the protected clock transport and BigiDVFS sampling disabled until
-   clock-backend registration and probe entry are positively established.
-2. After read-free probe entry passes, qualify exactly one protected clock read
+1. Give the handoff and clock-backend paths one CSPM resource owner or an
+   explicit shared-access contract. Requalify read-free clock probe completion
+   only with the handoff bound, I2C6 plus DA921x restored, and the complete
+   console, keyboard, USB, CPU0--7, and recovery baseline. Keep every protected
+   clock and BigiDVFS read disabled in this step.
+2. Only after that coexistence pass, qualify exactly one protected clock read
    with a before-call checkpoint, an after-return checkpoint, bounded failure
    attribution, zero retry, and no CPU request. Do not enable BigiDVFS in the
    same candidate.

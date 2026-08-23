@@ -208,6 +208,20 @@ backend is justified even though the generic MediaTek PLL math and cpufreq/OPP
 framework remain reusable. The source-derived field map and staged ownership
 plan are in the [CPU clock backend source design](../../experiments/2026-07-12-mt6797-clock-power-reset-recovery/results/mt6797-cpu-clock-backend.md) and [source audit](../../experiments/2026-07-12-mt6797-clock-power-reset-recovery/results/mt6797-cpu-clock-backend-current-72-20260714.txt).
 
+Direct named-unit runtime evidence now establishes a software ownership
+conflict in the first composed clock-backend candidate. With the clock node
+enabled, `/proc/iomem` attributed `0x1001a000--0x1001afff` (`mcumixed`) and
+`0x11015000--0x11015fff` (`cspm`) to the clock backend. The existing handoff
+provider then failed its overlapping CSPM request with `-EBUSY`, and I2C6
+remained deferred on that unavailable supplier. Confidence is high for this
+exact Linux 7.1.3 composition because the live resource owner, handoff error,
+I2C6 dependency, absent DA921x client, three exact clock-entry markers, and two
+retained checkpoints agree. This proves a current driver/resource-model
+conflict, not a hardware prohibition on coordinated access. A future
+composition must expose one CSPM owner or an explicit shared accessor before a
+protected clock transaction. See the
+[clock-entry runtime result](../../experiments/2026-08-23-mainline-clock-backend-first-dmesg-entry/results/runtime-attempt-1-read-free-pass-resource-conflict-20260823.txt).
+
 The firmware/power audit separates the initial Cortex-A72-on sequence between
 Linux and retained secure firmware. Linux performs the external buck enable,
 temporary TOPRGU PWRAP reset, MP2 reset release, external-buck isolation
@@ -277,7 +291,7 @@ The vendor DT resource nodes are:
 | thermal controller | `0x1100b000 + 0x1000` | SPI 78 LOW | `INFRA_THERM` (`therm-main`) | Linux 7.1.3's generic `auxadc_thermal` bank architecture is reusable; the local disabled variant supplies MT6797 timing, valid-mask, buffer, IRQ/protection, and conversion data. Keep the DT resource disabled pending calibration and runtime safety evidence |
 | thermal AUXADC | `0x11001000 + 0x1000` | SPI 74 | `INFRA_AUXADC` (`auxadc-main`) | Reuse the generic `mt6577_auxadc` register-shape layer as a candidate for channel 11 and the clock contract; keep the node disabled until the indirect thermal-controller path is implemented and validated |
 | EEM/PTP calibration | `0x1100b000 + 0x1000` (shared with thermal controller) | SPI 129 LOW | `MFG_BG3D`, `SCP_SYS_MFG`, `INFRA_THERM` | no MT6797 EEM/SVS match; Linux SVS phase/error and OPP-adjustment patterns are reusable, but MT6797 EEM register, efuse, clock/power, and DA9214 contracts need a dedicated variant/provider; do not add an independent overlapping MMIO node |
-| DVFSP/CSPM | `0x11015000 + 0x1000`; CSRAM `0x0012a000 + 0x3000` | SPI 161 LOW | `INFRA_I2C_APPM` (`i2c`) | mainline read-only stopped-state handoff maps CSPM only; no PCM loader/start path or writable provider |
+| DVFSP/CSPM | `0x11015000 + 0x1000`; CSRAM `0x0012a000 + 0x3000` | SPI 161 LOW | `INFRA_I2C_APPM` (`i2c`) | mainline read-only stopped-state handoff maps CSPM only; an independently mapping clock backend conflicts with that claim and is rejected pending one owner/shared accessor; no PCM loader/start path or writable provider |
 
 The TOPRGU watchdog is a separate always-on safety resource at
 `0x10007000`. The vendor DT and live flattened tree agree on `GIC_SPI 137`

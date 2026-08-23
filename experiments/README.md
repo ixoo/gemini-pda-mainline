@@ -23,6 +23,14 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-23 clock-backend first-dmesg entry](2026-08-23-mainline-clock-backend-first-dmesg-entry/README.md)
+  — exact live markers and both pstore/direct retained records prove driver
+  init, platform population, probe entry, and read-free probe completion. The
+  strict serviceability oracle separately failed because the clock backend
+  claimed the handoff provider's CSPM window, producing `-EBUSY`, deferred
+  I2C6, and no DA921x client. The exact artifact is stopped; the next boundary
+  is a single-owner or explicit shared-access CSPM contract before any
+  protected clock read or CPU request.
 - [2026-08-22 protected-readback raw-entry ledger](2026-08-22-mainline-protected-readback-raw-entry-ledger/README.md)
 - [2026-08-22 manual checkpoint raw-write qualification](2026-08-22-mainline-manual-checkpoint-raw-write-qualification/README.md)
   — defines the decision-bearing two-record successor after proving Gemian

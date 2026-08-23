@@ -154,3 +154,25 @@ flushed its evidence and shut the device down without rebooting, which an
 independent SSH check confirmed. This proves storage deployment, not execution;
 the next action is one physically selected `boot2` start with the runtime
 collector already armed. See the [verified deployment](results/deployment-1-write-readback-shutdown-20260823.txt).
+
+The single runtime answered the narrow question but rejected the candidate as a
+serviceable foundation. Exact USB attribution found the admitted full-partition
+checksum, release, CPUs 0--7, keyboard, one bound clock-backend device, and all
+three unique live markers. The strict classifier nevertheless stopped because
+the expected DA921x I2C client was absent. Read-only follow-up localized that
+failure: `/proc/iomem` showed the clock backend owning both `mcumixed` at
+`0x1001a000--0x1001afff` and `cspm` at `0x11015000--0x11015fff`; the handoff
+provider then failed its overlapping CSPM request with `-EBUSY`, leaving I2C6
+deferred on that unavailable supplier. No protected call, register transaction,
+clock enable, DA921x data write, or CPU request occurred.
+
+Because the serviceability oracle failed, the collector correctly withheld its
+automatic reboot. After a separate exact, read-only conflict snapshot, one
+recovery-only native return reached changed-ID Gemian. The retained validator
+then recovered both exact 118-byte records through pstore and direct RAM. This
+independently proves driver init, platform population, probe entry, and read-free
+probe completion, but it does not admit a protected read on the conflicting
+resource model. Reject this exact artifact without repetition. The next kernel
+boundary must give CSPM one owner or an explicit shared-access contract while
+restoring the handoff, I2C6, DA921x, and complete serviceability baseline. See
+the [split runtime result](results/runtime-attempt-1-read-free-pass-resource-conflict-20260823.txt).
