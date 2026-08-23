@@ -23,6 +23,11 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-23 clock-backend CSPM coexistence](2026-08-23-mainline-clock-backend-cspm-coexistence/README.md)
+  — defines the single-owner successor: the handoff retains CSPM, the clock
+  backend keeps only MCUMIXED and consumes a transfer-lease-serialized handoff
+  callback. Buildbox and one read-free serviceability runtime remain pending;
+  protected reads, BigiDVFS, and CPU requests stay closed.
 - [2026-08-23 clock-backend first-dmesg entry](2026-08-23-mainline-clock-backend-first-dmesg-entry/README.md)
   — exact live markers and both pstore/direct retained records prove driver
   init, platform population, probe entry, and read-free probe completion. The

@@ -1,0 +1,325 @@
+From 0000000000000000000000000000000000000335 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 23 Aug 2026 16:30:00 -0400
+Subject: [PATCH] soc: mediatek: share CSPM through the MT6797 handoff
+
+The clock readback backend and the DVFSP handoff both describe and request
+the same CSPM aperture.  Enabling the clock backend first therefore makes
+the handoff fail with -EBUSY and strands its I2C6 consumers.
+
+Keep the handoff as the single resource owner.  Make the clock backend an
+access-controller consumer and execute a future clock snapshot through a
+bounded handoff callback.  Serialize that callback with both handoff state
+and the complete I2C6 transfer lease, so enabling the I2C_APPM clock and
+arbitrating the CSPM semaphore cannot overlap an admitted I2C6 transfer.
+
+The callback is dormant unless an existing clock-read caller invokes it.
+The coexistence profile enables only the read-free backend probe and adds
+an exact live marker; it does not instantiate the protected-read observer.
+This is an experiment-only contract and is not submission-ready.
+---
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi           |  6 +-
+ .../soc/mediatek/mt6797-dvfsp-clock-backend.c      | 90 +++++++++++++++-------
+ drivers/soc/mediatek/mt6797-dvfsp-handoff.c        | 31 ++++++++
+ fs/pstore/Kconfig                                  |  9 ++-
+ include/linux/soc/mediatek/mt6797-dvfsp-handoff.h  | 17 ++++
+ 5 files changed, 119 insertions(+), 34 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -680,11 +680,11 @@
+ 
+ 	dvfsp_clock_backend: dvfsp-clock-backend@1001a000 {
+ 		compatible = "mediatek,mt6797-dvfsp-clock-backend";
+-		reg = <0 0x1001a000 0 0x1000>,
+-		      <0 0x11015000 0 0x1000>;
+-		reg-names = "mcumixed", "cspm";
++		reg = <0 0x1001a000 0 0x1000>;
++		reg-names = "mcumixed";
+ 		clocks = <&infrasys CLK_INFRA_I2C_APPM>;
+ 		clock-names = "i2c";
++		access-controllers = <&dvfsp_handoff>;
+ 		status = "disabled";
+ 	};
+ 
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c b/drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c
+@@ -21,6 +21,7 @@
+ #include <linux/string.h>
+ 
+ #include <linux/soc/mediatek/mt6797-dvfsp-clock-backend.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-handoff.h>
+ 
+ #include "mt6797-protected-readback-internal.h"
+ 
+@@ -47,9 +48,14 @@ static const u32 mt6797_dvfsp_cspm_hwsta_offset[4] = {
+ 	0x614, 0x618, 0x61c, 0x620,
+ };
+ 
++struct mt6797_dvfsp_clock_access {
++	void __iomem *mcumixed;
++	void __iomem *cspm;
++};
++
+ struct mt6797_dvfsp_clock_backend {
+ 	void __iomem *mcumixed;
+-	void __iomem *cspm;
++	struct mt6797_dvfsp_handoff *handoff;
+ 	struct clk *i2c_clk;
+ 	struct mutex operation_lock;
+ 	spinlock_t semaphore_lock;
+@@ -57,24 +63,30 @@ struct mt6797_dvfsp_clock_backend {
+ 	u64 sample_generation;
+ };
+ 
++struct mt6797_dvfsp_clock_call {
++	struct mt6797_dvfsp_clock_backend *backend;
++	struct mt6797_dvfsp_clock_readback *readback;
++	bool snapshot_attempted;
++};
++
+ static void mt6797_clock_write(void *context, u32 window, u32 offset,
+ 			       u32 value)
+ {
+-	struct mt6797_dvfsp_clock_backend *backend = context;
+-	void __iomem *base = backend->cspm;
++	struct mt6797_dvfsp_clock_access *access = context;
++	void __iomem *base = access->cspm;
+ 
+ 	if (window == MT6797_DVFSP_CLOCK_WINDOW_MCUMIXED)
+-		base = backend->mcumixed;
++		base = access->mcumixed;
+ 	writel(value, base + offset);
+ }
+ 
+ static u32 mt6797_clock_read(void *context, u32 window, u32 offset)
+ {
+-	struct mt6797_dvfsp_clock_backend *backend = context;
+-	void __iomem *base = backend->cspm;
++	struct mt6797_dvfsp_clock_access *access = context;
++	void __iomem *base = access->cspm;
+ 
+ 	if (window == MT6797_DVFSP_CLOCK_WINDOW_MCUMIXED)
+-		base = backend->mcumixed;
++		base = access->mcumixed;
+ 	return readl(base + offset);
+ }
+ 
+@@ -216,6 +230,33 @@ int mt6797_clock_snapshot(const struct mt6797_dvfsp_clock_transport_ops *ops,
+ 	return 0;
+ }
+ 
++static int mt6797_dvfsp_clock_execute(void *context, void __iomem *cspm)
++{
++	struct mt6797_dvfsp_clock_call *call = context;
++	struct mt6797_dvfsp_clock_backend *backend = call->backend;
++	struct mt6797_dvfsp_clock_access access = {
++		.mcumixed = backend->mcumixed,
++		.cspm = cspm,
++	};
++	unsigned long flags;
++	int ret;
++
++	ret = clk_prepare_enable(backend->i2c_clk);
++	if (ret)
++		return ret;
++
++	call->snapshot_attempted = true;
++	local_irq_save(flags);
++	spin_lock(&backend->semaphore_lock);
++	ret = mt6797_clock_snapshot(&mt6797_clock_ops, &access,
++				    call->readback);
++	spin_unlock(&backend->semaphore_lock);
++	local_irq_restore(flags);
++	clk_disable_unprepare(backend->i2c_clk);
++
++	return ret;
++}
++
+ static void
+ mt6797_dvfsp_clock_mark_fault(struct mt6797_dvfsp_clock_backend *backend)
+ {
+@@ -226,8 +268,8 @@ int mt6797_dvfsp_clock_backend_read(struct device *dev,
+ 				    struct mt6797_dvfsp_clock_readback *readback)
+ {
+ 	struct mt6797_dvfsp_clock_readback observed = { };
++	struct mt6797_dvfsp_clock_call call = { };
+ 	struct mt6797_dvfsp_clock_backend *backend;
+-	unsigned long flags;
+ 	int ret;
+ 
+ 	if (!readback)
+@@ -247,29 +289,21 @@ int mt6797_dvfsp_clock_backend_read(struct device *dev,
+ 		goto out_unlock;
+ 	}
+ 
+-	ret = clk_prepare_enable(backend->i2c_clk);
+-	if (ret)
+-		goto out_unlock;
+-
+-	local_irq_save(flags);
+-	spin_lock(&backend->semaphore_lock);
+-	ret = mt6797_clock_snapshot(&mt6797_clock_ops, backend, &observed);
+-	if (ret) {
++	call.backend = backend;
++	call.readback = &observed;
++	ret = mt6797_dvfsp_cspm_execute(backend->handoff,
++					mt6797_dvfsp_clock_execute, &call);
++	if (ret && call.snapshot_attempted)
+ 		mt6797_dvfsp_clock_mark_fault(backend);
+-		goto out_spin;
+-	}
++	if (ret)
++		goto out_unlock;
+ 
+ 	if (++backend->sample_generation == 0)
+ 		backend->sample_generation = 1;
+ 	observed.abi = MT6797_DVFSP_CLOCK_BACKEND_ABI;
+ 	observed.sample_generation = backend->sample_generation;
+ 	*readback = observed;
+ 
+-out_spin:
+-	spin_unlock(&backend->semaphore_lock);
+-	local_irq_restore(flags);
+-	clk_disable_unprepare(backend->i2c_clk);
+-
+ out_unlock:
+ 	mutex_unlock(&backend->operation_lock);
+ 	return ret;
+@@ -300,9 +337,10 @@ static int mt6797_dvfsp_clock_backend_probe(struct platform_device *pdev)
+ 	if (IS_ERR(backend->mcumixed))
+ 		return PTR_ERR(backend->mcumixed);
+ 
+-	backend->cspm = devm_platform_ioremap_resource_byname(pdev, "cspm");
+-	if (IS_ERR(backend->cspm))
+-		return PTR_ERR(backend->cspm);
++	backend->handoff = mt6797_dvfsp_handoff_get(&pdev->dev);
++	if (IS_ERR(backend->handoff))
++		return dev_err_probe(&pdev->dev, PTR_ERR(backend->handoff),
++				     "CSPM handoff supplier unavailable\n");
+ 
+ 	backend->i2c_clk = devm_clk_get(&pdev->dev, "i2c");
+ 	if (IS_ERR(backend->i2c_clk))
+@@ -313,12 +351,16 @@ static int mt6797_dvfsp_clock_backend_probe(struct platform_device *pdev)
+ 	spin_lock_init(&backend->semaphore_lock);
+ 	platform_set_drvdata(pdev, backend);
+ 	dev_info(&pdev->dev,
+-		 "protected clock readback transport ready; owner unregistered\n");
++		 "protected clock readback transport ready; "
++		 "CSPM owner=handoff; state owner unregistered\n");
+ 
+ #ifdef CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_FIRST_DMESG_ENTRY_QUALIFICATION
+ 	dev_info(&pdev->dev,
+ 		 "GEMINI_CLOCK_BACKEND_FIRST_DMESG_LIVE_V1 "
+ 		 "stage=probe-complete writes=2 protected=0 bigidvfs=0 cpu=0\n");
++	dev_info(&pdev->dev, "%s %s\n",
++		 "GEMINI_CLOCK_BACKEND_CSPM_COEXISTENCE_V1",
++		 "state=ready cspm_owner=handoff protected=0 bigidvfs=0 cpu=0");
+ #endif
+ 	ret = 0;
+ 	return ret;
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+@@ -1175,6 +1175,37 @@ static const struct attribute_group mt6797_dvfsp_handoff_group = {
+ 	.attrs = mt6797_dvfsp_handoff_attrs,
+ };
+ 
++int mt6797_dvfsp_cspm_execute(struct mt6797_dvfsp_handoff *handoff,
++			      mt6797_dvfsp_cspm_execute_t execute, void *context)
++{
++	int ret;
++
++	if (!handoff || !execute)
++		return -EINVAL;
++
++	/*
++	 * Match the I2C6 admission lock order and retain transfer_lock until the
++	 * callback returns.  This excludes the complete admitted transfer, not
++	 * merely its entry and exit validation snapshots.
++	 */
++	mutex_lock(&handoff->transfer_lock);
++	mutex_lock(&handoff->lock);
++	if (handoff->state != MT6797_DVFSP_READY ||
++	    atomic_read(&handoff->permission) !=
++		    MT6797_DVFSP_PERMISSION_READY) {
++		ret = -EHOSTDOWN;
++		goto out_unlock;
++	}
++
++	ret = execute(context, handoff->cspm);
++
++out_unlock:
++	mutex_unlock(&handoff->lock);
++	mutex_unlock(&handoff->transfer_lock);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_cspm_execute);
++
+ int
+ mt6797_dvfsp_handoff_begin_i2c6_transfer(
+ 	struct mt6797_dvfsp_handoff *handoff,
+diff --git a/fs/pstore/Kconfig b/fs/pstore/Kconfig
+--- a/fs/pstore/Kconfig
++++ b/fs/pstore/Kconfig
+@@ -317,10 +317,11 @@ config PSTORE_GEMINI_CLOCK_BACKEND_FIRST_DMESG_ENTRY_QUALIFICATION
+ 	  and fully read back both records.
+ 
+ 	  The intended derivative enables only the clock-backend node on the exact
+-	  serviceability DT. The probe may allocate memory, map its described
+-	  resources, acquire a clock handle without enabling it, initialize locks,
+-	  and publish driver data. It makes no protected or BigiDVFS read, MMIO
+-	  access, clock enable, owner registration, CPU request, retry, reset, or
++	  serviceability DT. The probe may allocate memory, map only its disjoint
++	  MCUMIXED resource, resolve the already-bound CSPM handoff supplier,
++	  acquire a clock handle without enabling it, initialize locks, and publish
++	  driver data. It makes no protected or BigiDVFS read, MMIO access, clock
++	  enable, owner registration, CPU request, retry, reset, or
+ 	  power operation. If unsure, say N.
+ 
+ config PSTORE_GEMINI_POST_RAMOOPS_CHECKPOINT
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+@@ -10,6 +10,14 @@
+ 
+ struct device;
+ struct mt6797_dvfsp_handoff;
++
++/*
++ * The callback is sleepable, runs with handoff state and the I2C6 transfer
++ * lease excluded, and must not retain the CSPM mapping or re-enter handoff
++ * operations.  The mapping remains owned by the handoff provider.
++ */
++typedef int (*mt6797_dvfsp_cspm_execute_t)(void *context,
++					  void __iomem *cspm);
+ 
+ struct mt6797_dvfsp_i2c6_lease {
+ 	u64 generation;
+@@ -421,6 +430,8 @@ struct mt6797_dvfsp_i2c6_fw_ops {
+ struct mt6797_dvfsp_handoff *
+ mt6797_dvfsp_handoff_get(struct device *consumer);
+ int mt6797_dvfsp_handoff_require_ready(struct mt6797_dvfsp_handoff *handoff);
++int mt6797_dvfsp_cspm_execute(struct mt6797_dvfsp_handoff *handoff,
++			      mt6797_dvfsp_cspm_execute_t execute, void *context);
+ int mt6797_dvfsp_handoff_begin_i2c6_transfer(
+ 	struct mt6797_dvfsp_handoff *handoff,
+ 	struct mt6797_dvfsp_i2c6_lease *lease);
+@@ -510,6 +522,13 @@ mt6797_dvfsp_handoff_require_ready(struct mt6797_dvfsp_handoff *handoff)
+ 	return -ENODEV;
+ }
+ 
++static inline int
++mt6797_dvfsp_cspm_execute(struct mt6797_dvfsp_handoff *handoff,
++			  mt6797_dvfsp_cspm_execute_t execute, void *context)
++{
++	return -ENODEV;
++}
++
+ static inline int
+ mt6797_dvfsp_handoff_begin_i2c6_transfer(
+ 	struct mt6797_dvfsp_handoff *handoff,
+-- 
+2.50.1

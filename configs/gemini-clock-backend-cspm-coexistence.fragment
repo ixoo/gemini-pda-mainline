@@ -1,0 +1,6 @@
+# Read-free successor to the clock-entry profile. The canonical patch makes
+# the handoff the sole CSPM resource owner; this fragment changes identity and
+# reiterates that neither protected transport caller is present.
+# CONFIG_MTK_MT6797_DVFSP_BIGIDVFS_BACKEND is not set
+# CONFIG_MTK_MT6797_PROTECTED_READBACK_OBSERVER is not set
+CONFIG_LOCALVERSION="-gemini-clock-cspm-coexist"
