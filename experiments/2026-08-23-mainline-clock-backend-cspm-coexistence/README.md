@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-23-mainline-clock-backend-cspm-coexistence` |
-| Status | exact candidate admitted; named-device evidence pending |
+| Status | complete; named-device read-free coexistence passed |
 | Subsystem | DVFSP handoff, CSPM ownership, I2C6, DA921x |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-23 America/New_York |
@@ -119,18 +119,42 @@ candidate passes all 32 LK gates and an independent validator that rejects all
 occurred during admission. See the [Buildbox result](results/build-67e40d76-success.txt)
 and [candidate admission](results/candidate-admission-dc093771.txt).
 
+The exact 16-MiB image was written to live-GPT logical `boot2`, synchronized,
+flushed, and matched by a full-partition readback before the device shut down.
+No fresh partition backup was made; recovery remains the verified project-wide
+backup captured at project start. See the [deployment result](results/deployment-1-write-readback-shutdown-20260823.txt).
+
+One owner-selected boot reached the exact release with CPUs 0--7, USB/netcat,
+keyboard, I2C6, one DA921x client, the handoff ready, and the clock backend
+bound. `/proc/iomem` attributed the sole CSPM range to the handoff and the
+disjoint MCUMIXED range to the clock backend. All protected-read, BigiDVFS,
+MMIO, clock-enable, DA921x-write, CPU-request, storage, and binding-change
+counters remained zero. Native reboot returned to a changed-ID Gemian boot,
+which recovered both exact retained checkpoints through pstore and direct RAM.
+
+The first read-only classification on this same live boot was a false reject:
+the probe expected `/proc/iomem` owner lines to end after the device name, while
+Linux appended the resource names `cspm` and `mcumixed`. Commit `f8bc04ed`
+corrected only that fail-closed oracle. A corrected read-only probe then passed
+on the same boot; no second artifact or physical boot was used. See the
+[runtime result](results/runtime-attempt-1-coexistence-pass-20260823.txt).
+
 ## Analysis
 
-Build and offline admission pass. Named-device coexistence evidence remains
-pending and is the only basis for qualifying this ownership model.
+Build, offline admission, deployment, live ownership, serviceability, and
+cross-version retained recovery all pass. The single-owner contract removes
+the predecessor's software resource conflict while keeping the clock callback
+dormant. This establishes composability only; it does not exercise or qualify
+a protected clock transaction.
 
 ## Conclusion
 
-The exact candidate is admitted for one named-device boot. A compile and
-offline admission establish only source/configuration/container coherence;
-only that runtime can qualify resource coexistence.
+The named Gemini qualifies the read-free CSPM coexistence contract: the handoff
+is the sole CSPM owner, the clock backend owns only MCUMIXED, and I2C6/DA921x
+serviceability is preserved. CPU8 and CPU9 remain deliberately offline.
 
 ## Follow-up
 
-Only a coexistence pass may advance the roadmap to exactly one protected clock
-read with before-call and after-return attribution.
+Proceed to a separately built and gated experiment containing exactly one
+protected clock read with before-call and after-return attribution, bounded
+failure handling, zero retry, and no BigiDVFS or CPU request.

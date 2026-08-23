@@ -222,6 +222,19 @@ composition must expose one CSPM owner or an explicit shared accessor before a
 protected clock transaction. See the
 [clock-entry runtime result](../../experiments/2026-08-23-mainline-clock-backend-first-dmesg-entry/results/runtime-attempt-1-read-free-pass-resource-conflict-20260823.txt).
 
+The single-owner successor resolves that software conflict on the named unit.
+In the exact Linux 7.1.3 coexistence runtime, `/proc/iomem` attributed
+`0x11015000--0x11015fff` (`cspm`) only to `11015000.dvfsp-handoff` and
+`0x1001a000--0x1001afff` (`mcumixed`) only to
+`1001a000.dvfsp-clock-backend`. The handoff, I2C6, clock backend, and DA921x
+client were all bound and the handoff was ready; no `-EBUSY`, protected read,
+mapped-MMIO transaction, clock enable, DA921x write, or CPU request occurred.
+Confidence is high for read-free coexistence because the exact live ownership
+map, full serviceability oracle, entry markers, changed-ID reboot, and two
+retained records agree. A protected transaction remains untested and requires
+its own bounded experiment. See the
+[coexistence runtime result](../../experiments/2026-08-23-mainline-clock-backend-cspm-coexistence/results/runtime-attempt-1-coexistence-pass-20260823.txt).
+
 The firmware/power audit separates the initial Cortex-A72-on sequence between
 Linux and retained secure firmware. Linux performs the external buck enable,
 temporary TOPRGU PWRAP reset, MP2 reset release, external-buck isolation

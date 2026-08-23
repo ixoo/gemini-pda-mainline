@@ -4865,29 +4865,27 @@ Patch `0335` now defines the single-owner successor. The handoff retains the
 only CSPM resource request; the clock backend keeps only its disjoint MCUMIXED
 resource and resolves the handoff through `access-controllers`. Any future
 clock snapshot executes inside the handoff's state lock and complete I2C6
-transfer lease, but the selected coexistence profile contains no caller, so
-its first runtime remains read-free. Buildbox and named-device evidence are
-pending; this definition does not yet qualify the contract. See the
-[coexistence experiment](../experiments/2026-08-23-mainline-clock-backend-cspm-coexistence/README.md).
+transfer lease. The exact Buildbox candidate passed on the named unit with the
+handoff as the sole CSPM owner, the clock backend as the sole MCUMIXED owner,
+and I2C6, DA921x, keyboard, USB, and CPU0--7 serviceability intact. Every
+protected-read, BigiDVFS, mapped-MMIO, clock-enable, DA921x-write, and CPU
+action remained zero; changed-ID Gemian recovered both exact retained records.
+This closes read-free resource coexistence only. See the
+[coexistence result](../experiments/2026-08-23-mainline-clock-backend-cspm-coexistence/results/runtime-attempt-1-coexistence-pass-20260823.txt).
 
 The next ordered work is:
 
-1. Validate, Buildbox-compile, and run the defined single-owner coexistence
-   candidate once. Qualify it only with the handoff bound, I2C6 plus DA921x
-   restored, exactly one CSPM owner, and the complete console, keyboard, USB,
-   CPU0--7, and recovery baseline. Keep every protected clock and BigiDVFS read
-   disabled in this step.
-2. Only after that coexistence pass, qualify exactly one protected clock read
+1. Qualify exactly one protected clock read
    with a before-call checkpoint, an after-return checkpoint, bounded failure
    attribution, zero retry, and no CPU request. Do not enable BigiDVFS in the
    same candidate.
-3. Compose the validated readers, DA921x, and the platform-state source under
+2. Compose the validated readers, DA921x, and the platform-state source under
    one transition/hotplug owner.
-4. Revise A34 to accept only the complete direct-state ABI and applicable
+3. Revise A34 to accept only the complete direct-state ABI and applicable
    BL31 replay-clear contract, prove the atomic `CLOSED / UNINITIALIZED` to
    `AVAILABLE / IDLE` publication, and keep both CPU vetoes closed until that
    proof passes.
-5. Only then build one decision-bearing CPU8 candidate with one request,
+4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
 The eventual CPU8 candidate must have a single CPU8 request, strict
