@@ -1,0 +1,143 @@
+From a1b2c3d4e5f60718293a4b5c6d7e8f9012345678 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 23 Aug 2026 02:05:00 +0000
+Subject: [PATCH] pstore: qualify Gemini clock entry in first dmesg
+
+Reuse the protected-call-free clock driver-init and probe-entry checkpoints
+with the now-qualified signature-last writer in consecutive dmesg records 1
+and 2.  This makes changed-ID Gemian recovery distinguish driver registration,
+platform-device population, probe entry, and read-free probe completion.
+
+Keep both protected transports, BigiDVFS, owner registration, and CPU requests
+disabled.  The clock probe retains only allocation, resource mapping,
+clock-handle lookup, lock initialization, and driver-data publication.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c | 15 +++++++++++++
+ fs/pstore/Kconfig                                 | 20 +++++++++++++++++
+ fs/pstore/gemini_protected_readback_ledger.c      | 24 ++++++++++++++++++---
+ 3 files changed, 55 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c b/drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c
+@@ -286,6 +286,11 @@ static int mt6797_dvfsp_clock_backend_probe(struct platform_device *pdev)
+ 		return dev_err_probe(&pdev->dev, -EIO,
+ 				     "probe-enter ledger checkpoint failed\n");
+ #endif
++#ifdef CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_FIRST_DMESG_ENTRY_QUALIFICATION
++	dev_info(&pdev->dev,
++		 "GEMINI_CLOCK_BACKEND_FIRST_DMESG_LIVE_V1 "
++		 "stage=probe-enter writes=2 protected=0 bigidvfs=0 cpu=0\n");
++#endif
+ 
+ 	backend = devm_kzalloc(&pdev->dev, sizeof(*backend), GFP_KERNEL);
+ 	if (!backend)
+@@ -312,6 +317,11 @@ static int mt6797_dvfsp_clock_backend_probe(struct platform_device *pdev)
+ 	dev_info(&pdev->dev,
+ 		 "protected clock readback transport ready; owner unregistered\n");
+ 
++#ifdef CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_FIRST_DMESG_ENTRY_QUALIFICATION
++	dev_info(&pdev->dev,
++		 "GEMINI_CLOCK_BACKEND_FIRST_DMESG_LIVE_V1 "
++		 "stage=probe-complete writes=2 protected=0 bigidvfs=0 cpu=0\n");
++#endif
+ 	ret = 0;
+ 	return ret;
+ }
+@@ -337,6 +347,11 @@ static int __init mt6797_dvfsp_clock_backend_driver_init(void)
+ 	if (!gemini_protected_readback_ledger_checkpoint(0))
+ 		return -EIO;
+ 
++#ifdef CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_FIRST_DMESG_ENTRY_QUALIFICATION
++	pr_info("GEMINI_CLOCK_BACKEND_FIRST_DMESG_LIVE_V1 "
++		"stage=driver-init writes=1 protected=0 bigidvfs=0 cpu=0\n");
++#endif
++
+ 	return platform_driver_register(&mt6797_dvfsp_clock_backend_driver);
+ }
+ module_init(mt6797_dvfsp_clock_backend_driver_init);
+diff --git a/fs/pstore/Kconfig b/fs/pstore/Kconfig
+--- a/fs/pstore/Kconfig
++++ b/fs/pstore/Kconfig
+@@ -269,6 +269,26 @@ config PSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER
+ 	  ceiling, and no-clear/no-retry policy. The historical call-ledger and
+ 	  probe/gate modes are unchanged when this mode is disabled.
+ 
++config PSTORE_GEMINI_CLOCK_BACKEND_FIRST_DMESG_ENTRY_QUALIFICATION
++	bool "Gemini clock-backend first-dmesg entry qualification"
++	depends on PSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER=y
++	depends on !PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_RAW_WRITE_QUALIFICATION
++	depends on !PSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION
++	depends on !PSTORE_GEMINI_PROTECTED_READBACK_RAW_ENTRY_LEDGER
++	default n
++	help
++	  Move the existing protected-call-free clock driver-init and probe-entry
++	  checkpoints from sparse records 173 and 174 to consecutive dmesg records
++	  1 and 2. Require exact all-ones entry headers, commit each signature last,
++	  and fully read back both records.
++
++	  The intended derivative enables only the clock-backend node on the exact
++	  serviceability DT. The probe may allocate memory, map its described
++	  resources, acquire a clock handle without enabling it, initialize locks,
++	  and publish driver data. It makes no protected or BigiDVFS read, MMIO
++	  access, clock enable, owner registration, CPU request, retry, reset, or
++	  power operation. If unsure, say N.
++
+ config PSTORE_GEMINI_POST_RAMOOPS_CHECKPOINT
+ 	bool "Gemini post-ramoops retained checkpoint"
+ 	depends on PSTORE_RAM=y
+diff --git a/fs/pstore/gemini_protected_readback_ledger.c b/fs/pstore/gemini_protected_readback_ledger.c
+--- a/fs/pstore/gemini_protected_readback_ledger.c
++++ b/fs/pstore/gemini_protected_readback_ledger.c
+@@ -12,9 +12,14 @@
+ #define GEMINI_PRB_RESERVE_BASE		0x44410000ULL
+ #define GEMINI_PRB_RESERVE_SIZE		0x000e0000ULL
+ #define GEMINI_PRB_SLOT_SIZE		0x00001000UL
+-#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION
++#if defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION) || \
++	defined(CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_FIRST_DMESG_ENTRY_QUALIFICATION)
+ #define GEMINI_PRB_LEDGER_BASE		GEMINI_PRB_RESERVE_BASE
++#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION
+ #define GEMINI_PRB_SLOT_COUNT		1
++#else
++#define GEMINI_PRB_SLOT_COUNT		2
++#endif
+ #define GEMINI_PRB_FIRST_OWNED_SLOT	0
+ #else
+ #define GEMINI_PRB_LEDGER_BASE		0x444bb000ULL
+@@ -136,5 +141,14 @@ static bool gemini_prb_armed;
+ 
+-#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION
++#ifdef CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_FIRST_DMESG_ENTRY_QUALIFICATION
++static const char * const gemini_prb_records[] = {
++	"====0.000000-D\n"
++	"GEMINI_CLOCK_BACKEND_FIRST_DMESG_V1 token=GCBF-20260823-A "
++	"checkpoint=driver-init slot=1 crc32=6197fd57\n",
++	"====0.000000-D\n"
++	"GEMINI_CLOCK_BACKEND_FIRST_DMESG_V1 token=GCBF-20260823-A "
++	"checkpoint=probe-enter slot=2 crc32=61636940\n",
++};
++#elif defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION)
+ static const char * const gemini_prb_records[] = {
+ 	"====0.000000-D\n"
+ 	"GEMINI_MANUAL_CHECKPOINT_CONTROL_V1 token=GMCP-20260822-B "
+@@ -187,6 +201,7 @@ static bool gemini_prb_slot_available(void __iomem *slot)
+ #if defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_RAW_ENTRY_LEDGER) || \
+ 	defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_RAW_WRITE_QUALIFICATION) || \
+-	defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION)
++	defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION) || \
++	defined(CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_FIRST_DMESG_ENTRY_QUALIFICATION)
+ 	return readl(slot) == ~0U &&
+ 	       readl((u8 __iomem *)slot + 4) == ~0U &&
+ 	       readl((u8 __iomem *)slot + 8) == ~0U;
+@@ -229,6 +244,7 @@ static bool gemini_prb_write(void __iomem *slot, const char *record)
+ #if defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_RAW_ENTRY_LEDGER) || \
+ 	defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_RAW_WRITE_QUALIFICATION) || \
+-	defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION)
++	defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION) || \
++	defined(CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_FIRST_DMESG_ENTRY_QUALIFICATION)
+ 	wmb(); /* Make a raw record valid only after payload and metadata. */
+ 	writel(GEMINI_PRB_SIGNATURE, slot);
+ #endif
+-- 
+2.39.5
