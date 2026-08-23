@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-23-mainline-clock-backend-first-dmesg-entry` |
-| Status | exact boot candidate admitted; device deployment pending |
+| Status | candidate admitted; stale-record preflight refused; cold Gemian start pending |
 | Subsystem | read-free clock-backend registration and probe entry |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-23 America/New_York |
@@ -128,3 +128,12 @@ plus 12 unsafe retained mutations. No device access or hardware write occurred
 during admission. See the [build result](results/build-d8d98fc-success.txt),
 [candidate admission](results/candidate-admission-251e7925.txt), and
 [runtime-tool preflight](results/runtime-tooling-preflight-20260823.txt).
+
+The first deployment preflight refused before invoking the partition writer:
+record 1 still held the predecessor's exact valid 119-byte evidence while
+record 2 was empty, and `boot2` still matched the predecessor candidate. No
+partition or retained-memory write occurred. Gemian was then shut down cleanly
+and became unreachable, preserving the no-clear/no-overwrite rule. The next
+action is one ordinary cold Gemian start, followed by the same guarded install
+once both record headers are freshly empty. See the
+[preflight refusal](results/deployment-preflight-1-stale-record-refusal-20260823.txt).
