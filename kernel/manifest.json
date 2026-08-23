@@ -1102,6 +1102,36 @@
                     "configs/gemini-manual-checkpoint-raw-write.fragment"
                 ]
             },
+            "da921x-first-dmesg-raw-write": {
+                "base": "defconfig",
+                "patch_series": "patches/series",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-usbdiag.fragment",
+                    "configs/gemini-clk-ignore-unused.fragment",
+                    "configs/gemini-observability.fragment",
+                    "configs/gemini-fbcon-rotation.fragment",
+                    "configs/gemini-keyboard.fragment",
+                    "configs/gemini-keyboard-wrrd.fragment",
+                    "configs/gemini-keyboard-manual-reboot.fragment",
+                    "configs/gemini-smp8.fragment",
+                    "configs/gemini-a72-observer.fragment",
+                    "configs/gemini-a72-observer-initcall-blacklist.fragment",
+                    "configs/gemini-dvfsp-handoff-owner.fragment",
+                    "configs/gemini-dvfsp-i2c6-consumer.fragment",
+                    "configs/gemini-da921x-legacy-bind.fragment",
+                    "configs/gemini-da921x-resource-only-provider.fragment",
+                    "configs/gemini-da921x-provider-modules-control.fragment",
+                    "configs/gemini-arm64-entry-ledger.fragment",
+                    "configs/gemini-da921x-lk-clock-readonly-provider.fragment",
+                    "configs/gemini-i2c6-firmware-writer-transaction-window.fragment",
+                    "configs/gemini-da921x-same-value-write.fragment",
+                    "configs/gemini-current-service-control.fragment",
+                    "configs/gemini-manual-checkpoint-control.fragment",
+                    "configs/gemini-manual-checkpoint-stage-control.fragment",
+                    "configs/gemini-first-dmesg-raw-write.fragment"
+                ]
+            },
             "da921x-same-value-write-kunit": {
                 "base": "defconfig",
                 "fragments": [

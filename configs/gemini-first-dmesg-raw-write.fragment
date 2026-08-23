@@ -1,0 +1,8 @@
+# One-record signature-last writer at the first cross-version dmesg slot.
+# Every protected backend, observer, active console write, and CPU request stays absent.
+CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION=y
+# CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_RAW_WRITE_QUALIFICATION is not set
+# CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_PREFIX_CONTROL is not set
+# CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_MAP_CONTROL is not set
+# CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_RAW_ENTRY_LEDGER is not set
+CONFIG_LOCALVERSION="-gemini-checkpoint-first-dmesg"
