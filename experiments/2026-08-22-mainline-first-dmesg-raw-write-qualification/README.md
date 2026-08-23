@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-22-mainline-first-dmesg-raw-write-qualification` |
-| Status | exact candidate admitted; boot2 deployment pending |
+| Status | complete: live write, warm retention, and Gemian enumeration pass |
 | Subsystem | retained ramoops writer / downstream dmesg enumeration |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-22 America/New_York |
@@ -143,10 +143,32 @@ does not yet make a hardware-support claim. See the
 [Buildbox result](results/build-41a7b69-success.txt) and
 [candidate admission](results/candidate-admission-bcb8b61a.txt).
 
+Guarded deployment from published tooling commit `ed4289d5` resolved inactive
+live-GPT `boot2`, found first dmesg records 1 and 2 exact empty, recorded the
+predecessor checksum, wrote the exact admitted 16 MiB payload, and required
+matching post-flush plus independent full readbacks before a confirmed clean
+shutdown. No fresh partition backup was created. See the
+[deployment result](results/deployment-b96ec109.txt).
+
+The pre-armed physical selection passed exact release, container identity,
+USB/netcat, keyboard, read-only DA921x presence, CPUs 0--7 online with 8--9
+offline, and every zero-action gate. Its unique live marker reported one
+record-1 commit, stage success, one full local readback, and zero protected,
+clock, BigiDVFS, DA921x-write, or CPU action. Only then did the collector send
+one native reboot.
+
+Changed-ID Gemian mounted pstore, exposed exactly one 119-byte
+`dmesg-ramoops-0`, and recovered the exact record once. The independent direct
+RAM read found record 1 with valid `DBGC`, start 119, size 119, and the same
+exact record at payload offset 12; record 2 remained exact empty. Exact
+`boot2` identity was unchanged. This is a full first-dmesg cross-version
+enumeration pass and proves that the predecessor's record-173 miss was sparse
+placement rather than a writer, retention, or record-format failure. See the
+[runtime result](results/runtime-attempt-1-enumeration-pass-20260823.txt).
+
 ## Follow-up
 
-Install the exact admitted padded image to live-resolved inactive `boot2`, shut
-the device down, pre-arm the observer, and spend one physical selection. The
-changed-ID result chooses between a protected-call successor and a remaining
-Gemian pstore/backend recovery investigation. The ordered successor after this
-qualification remains owned by Roadmap Gate 7.
+Do not repeat this artifact. The positive pstore branch selects the first
+durable pre-clock-backend checkpoint and read-free probe-entry successor; it
+does not authorize a protected clock read or CPU8/CPU9 action by itself. The
+ordered successor is owned by Roadmap Gate 7.

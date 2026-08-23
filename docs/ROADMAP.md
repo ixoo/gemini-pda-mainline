@@ -4842,22 +4842,23 @@ successor must use record 1 rather than overwrite the live console. Do not
 repeat the exact record-173 artifact. See the
 [manual raw-write qualification](../experiments/2026-08-22-mainline-manual-checkpoint-raw-write-qualification/README.md).
 
+The first-dmesg qualification is complete. Exact live attribution proved one
+signature-last commit and full local readback; changed-ID Gemian recovered the
+exact record once through pstore and independently in direct retained RAM. This
+closes the writer, warm-retention, record-format, and first-record enumeration
+boundaries. Do not repeat the sparse record-173 or first-record artifacts. See
+the [first-dmesg result](../experiments/2026-08-22-mainline-first-dmesg-raw-write-qualification/README.md).
+
 The next ordered work is:
 
-1. Move the already qualified one-record raw write from sparse dmesg record 173
-   to first dmesg record 1 at `0x44410000`. Before deployment, require that
-   exact physical record to be empty in known-good Gemian; at the proven late
-   initcall, require its exact all-ones mainline entry header, commit one
-   payload/start/size/signature-last record, and require a full local readback.
-   Recovery must bind a changed boot ID to the exact boot2 checksum and capture
-   pstore contents, the direct record-1 header/payload, ramoops registration
-   lines, and pstore mount state. Do not use the nonempty primary console ring,
-   repeat record 173, add a second record, or instantiate a clock backend,
-   protected observer, BigiDVFS action, transition owner, retry, or CPU request.
-2. Only after first-record Gemian recovery passes, place the first durable checkpoint
-   before clock-backend acquisition, then isolate enabled clock-node population
-   and read-free probe entry. Do not enable or sample BigiDVFS until
+1. Place the now-qualified durable checkpoint before clock-backend acquisition,
+   then isolate enabled clock-node population and read-free probe entry. Keep
+   the protected clock transport and BigiDVFS sampling disabled until
    clock-backend registration and probe entry are positively established.
+2. After read-free probe entry passes, qualify exactly one protected clock read
+   with a before-call checkpoint, an after-return checkpoint, bounded failure
+   attribution, zero retry, and no CPU request. Do not enable BigiDVFS in the
+   same candidate.
 3. Compose the validated readers, DA921x, and the platform-state source under
    one transition/hotplug owner.
 4. Revise A34 to accept only the complete direct-state ABI and applicable
