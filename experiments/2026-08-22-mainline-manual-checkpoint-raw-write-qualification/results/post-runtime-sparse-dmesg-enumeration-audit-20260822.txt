@@ -1,0 +1,57 @@
+Manual checkpoint raw-write post-runtime sparse-dmesg enumeration audit
+Date: 2026-08-22 America/New_York
+
+[inputs]
+operation=read-only-source-layout-and-live-header-audit
+gemian_public_source_commit=d388d350cb2dda8f23b99be6fa5db9628896e87f
+gemian_ram.c_blob=5c731b031e38bcb1f4bdc4ad7aa7f96497365c17
+gemian_ram_core.c_blob=f5d0712097db21fc0c69699165ed2d270645eb05
+exact_live_binary_audit_sha256=ac8d935d3aeaa6eeec84fdf8f4422afd669b8330d3681a96f31484926d784900
+cross_version_layout_validator_sha256=a7de63b42004754afd70caeed60f30697f2fc94b3093f16f205968fa6ade35dc
+runtime_result=results/runtime-attempt-1-live-pass-retained-sparse-record-20260822.txt
+hardware_write=none
+
+[exact-layout]
+reservation=[0x44410000,0x444f0000)
+record_size=0x1000
+gemian_dmesg=[0x44410000,0x444bf000)
+gemian_dmesg_record_count=175
+gemian_primary_console=[0x444bf000,0x444cf000)
+record_1_address=0x44410000
+record_173_address=0x444bd000
+record_173_region=dmesg
+
+[pinned-reader-control-flow]
+ramoops_get_next_prz=selects-exactly-one-index-per-call-and-increments-read-counter
+empty_selected_dmesg_zone=returns-null-without-scanning-a-later-dmesg-zone
+ramoops_pstore_read=tries-one-dmesg-zone-then-console-bconsole-ftrace-pmsg
+pstore_get_records=stops-when-backend-read-returns-zero
+record_173_sparse_reachability=unreachable-after-earlier-empty-dmesg-zones
+record_header_parser=accepts-====seconds.nanoseconds-non-C-newline-as-uncompressed
+manual_record_prefix=accepted-by-pinned-parser
+
+[runtime-correlation]
+record_1_header=444247430000000000000000
+record_2_header=444247430000000000000000
+record_3_header=444247430000000000000000
+record_4_header=444247430000000000000000
+record_173_header=444247437900000079000000
+record_174_header=444247430000000000000000
+primary_console_header=44424743fc8e0000f4ff0000
+pstore_mount=/sys/fs/pstore:pstore
+pstore_file_count=0
+ramoops_backend_registration=present
+interpretation=The valid retained record at 173 is behind empty dmesg records and is not enumerated; its payload format is not the rejected boundary.
+
+[decision]
+raw_writer_and_full_readback=qualified
+warm_retention=qualified
+record_173_cross_version_enumeration=disqualified
+console_zone_relocation=not-selected-live-ring-is-nonempty-and-owned-by-normal-console
+selected_successor_location=record-1-at-0x44410000
+successor_preflight=Require exact empty record 1 in known-good Gemian and exact all-ones entry through the mainline mapping before one signature-last write.
+successor_recovery=Capture pstore files, direct record-1 header/payload, ramoops registration lines, mount state, and changed boot ID.
+protected_calls_in_successor=0
+cpu8_cpu9_admission=closed
+repeat_exact_artifact=no
+result=sparse-dmesg-enumeration-root-cause-established

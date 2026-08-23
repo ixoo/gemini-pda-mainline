@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-22-mainline-manual-checkpoint-raw-write-qualification` |
-| Status | exact Buildbox candidate admitted; one device attempt pending |
+| Status | runtime complete: write/readback and warm retention passed; sparse record 173 was not enumerated |
 | Subsystem | retained ramoops record writer / cross-version recovery |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-22 America/New_York |
@@ -88,9 +88,10 @@ admission remain closed.
 The fetched package passed its complete checksum inventory. Two independent DT
 constructions, raw assemblies, and padding constructions were byte-identical;
 all 32 LK gates passed; 15 DT mutations, 24 unsafe live mutations, and 9 unsafe
-retained-recovery mutations were rejected offline. The guarded installer still
-must resolve the live GPT and pass every inactive-target, geometry, power,
-write, readback, and shutdown gate before this candidate is selectable.
+retained-recovery mutations were rejected offline. The guarded installer then
+resolved the live GPT and passed every inactive-target, geometry, power,
+write, readback, and shutdown gate. See the
+[deployment receipt](results/deployment-c10f2c03.txt).
 
 ## Procedure
 
@@ -124,10 +125,30 @@ No branch authorizes a protected clock call or CPU8/CPU9 admission.
 
 ## Conclusion
 
-The exact candidate is built and independently admitted. Runtime evidence is
-pending one guarded deployment and one physical boot2 selection. This makes no
-hardware-support claim and does not open CPU8 or CPU9 admission.
+The one guarded deployment and physical selection are complete. Exact mainline
+identity and serviceability passed, and the live marker reported
+`commit=1 stage=success writes=1` with exactly one local full readback and zero
+protected, clock, BigiDVFS, DA921x-write, or CPU actions. After the collector's
+identity-gated native reboot, changed-ID Gemian found the exact committed
+record 173 still valid in retained RAM and record 174 still empty. The writer,
+signature-last commit, local readback, and warm-retention boundaries therefore
+pass. See the
+[runtime receipt](results/runtime-attempt-1-live-pass-retained-sparse-record-20260822.txt).
+
+Gemian exposed no pstore file, so the original strict retained classifier
+correctly rejected the stronger cross-version-recovery claim. The pinned
+reader audit explains the result: record 173 is a sparse dmesg record behind
+172 empty records, while the downstream reader advances only one dmesg index
+per backend call and pstore stops when the backend returns zero. Its parser
+accepts the record prefix, so this is an enumeration-position failure rather
+than a raw-format failure. A live read-only probe also confirmed exact empty
+headers in records 1--4 and a nonempty primary console, selecting record 1 as
+the safe successor rather than overwriting the active console ring. See the
+[post-runtime audit](results/post-runtime-sparse-dmesg-enumeration-audit-20260822.txt).
+
+This makes no hardware-support claim and does not open CPU8 or CPU9 admission.
 
 ## Follow-up
 
-The ordered successor after this qualification is owned by Roadmap Gate 7.
+Do not repeat this artifact. The ordered successor after this qualification is
+owned by Roadmap Gate 7.

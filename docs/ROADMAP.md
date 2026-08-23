@@ -4824,20 +4824,37 @@ evidence that the protected-clock read began or failed. Reject the exact
 candidate without repetition. See the
 [protected-readback raw-entry ledger](../experiments/2026-08-22-mainline-protected-readback-raw-entry-ledger/README.md).
 
+The independent manual raw-write qualification is now complete. Exact release
+`7.1.3-gemini-checkpoint-raw-write` and candidate `c10f2c03...c631` passed the
+Buildbox, container, guarded inactive-boot2 write/readback, shutdown, identity,
+USB/netcat, keyboard, DA921x-presence, and CPU0--7 serviceability gates. Its
+live marker proved one signature-last write and one complete local readback at
+record 173 with zero protected, clock, BigiDVFS, DA921x-write, or CPU action.
+After the identity-gated native reboot, changed-ID Gemian found that exact
+record still valid in retained RAM and record 174 still empty, but exposed no
+pstore file. This qualifies the raw writer and warm retention, not
+cross-version enumeration. The pinned downstream reader explains the miss:
+record 173 is behind empty dmesg records, the backend advances only one dmesg
+index per read call, and pstore stops on the first zero return. The same parser
+accepts the written `====0.000000-D` prefix. A bounded live probe confirmed
+records 1--4 are exact empty while the primary console ring is nonempty, so the
+successor must use record 1 rather than overwrite the live console. Do not
+repeat the exact record-173 artifact. See the
+[manual raw-write qualification](../experiments/2026-08-22-mainline-manual-checkpoint-raw-write-qualification/README.md).
+
 The next ordered work is:
 
-1. Qualify one raw-entry retained write independently of the observer and every
-   protected backend. Reuse the exact serviceability-proven late initcall and
-   mapping control, require all-ones headers in records 171--174, commit only
-   record 173 with payload, start, size, and valid signature in that order, and
-   require full local readback. Report an exact live failure/success stage over
-   USB before the native return to Gemian. A live successful commit plus Gemian
-   recovery closes the raw writer and cross-version format boundary; live
-   success without recovery isolates record format/recovery semantics; a live
-   failure remains inside the reported validation/write/readback stage. Add no
-   second record, clock-node dependency, protected call, BigiDVFS action,
-   transition owner, retry, or CPU request.
-2. Only after that qualification passes, place the first durable checkpoint
+1. Move the already qualified one-record raw write from sparse dmesg record 173
+   to first dmesg record 1 at `0x44410000`. Before deployment, require that
+   exact physical record to be empty in known-good Gemian; at the proven late
+   initcall, require its exact all-ones mainline entry header, commit one
+   payload/start/size/signature-last record, and require a full local readback.
+   Recovery must bind a changed boot ID to the exact boot2 checksum and capture
+   pstore contents, the direct record-1 header/payload, ramoops registration
+   lines, and pstore mount state. Do not use the nonempty primary console ring,
+   repeat record 173, add a second record, or instantiate a clock backend,
+   protected observer, BigiDVFS action, transition owner, retry, or CPU request.
+2. Only after first-record Gemian recovery passes, place the first durable checkpoint
    before clock-backend acquisition, then isolate enabled clock-node population
    and read-free probe entry. Do not enable or sample BigiDVFS until
    clock-backend registration and probe entry are positively established.
