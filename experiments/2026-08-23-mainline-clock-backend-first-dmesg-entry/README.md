@@ -145,3 +145,12 @@ mistakenly pinned the raw-container checksum as the artifact-manifest checksum.
 `boot2` remained the predecessor. The wrapper now pins the independently
 validated manifest identity, and the definition plus candidate validators
 enforce that relationship. See the [manifest-pin refusal](results/deployment-preflight-2-installer-manifest-pin-refusal-20260823.txt).
+
+The corrected, pushed installer then resolved logical `boot2` from the live GPT,
+proved both retained headers empty, and installed the exact admitted candidate.
+The full 16 MiB partition readback matched `40b7c663...455b4`; no fresh backup
+was created, and the known-good Gemian root remained distinct. The installer
+flushed its evidence and shut the device down without rebooting, which an
+independent SSH check confirmed. This proves storage deployment, not execution;
+the next action is one physically selected `boot2` start with the runtime
+collector already armed. See the [verified deployment](results/deployment-1-write-readback-shutdown-20260823.txt).
