@@ -1,0 +1,14 @@
+experiment=2026-08-23-mainline-protected-clock-first-dmesg-call
+attempt=1
+repository_commit=ee05a0f3d992e18febab21aeea916fc0e441cdbc
+buildbox_job=ee05a0f3d992e18febab21aeea916fc0e441cdbc-protected-clock-first-dmesg-call-patchgen
+phase=generator-wrapper
+failure=unexpected-argument-newline-to-conditional-binary-operator
+prepared_source_validation=not-started
+source_edit=none
+generated_patch_count=0
+kernel_build=none
+device_access=none
+hardware_write=none
+boot_candidate=false
+result=rejected-tooling-parse

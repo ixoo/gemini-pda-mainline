@@ -65,3 +65,9 @@ kernel build, candidate construction, device access, or hardware action.
 Generate and review patch `0336`, then admit its profile and complete offline
 definition, Buildbox, candidate, deployment, and runtime gates before spending
 one physical boot.
+
+Generation attempt 1 at exact commit `ee05a0f3` stopped in the Buildbox wrapper
+before source validation because Bash rejected a multiline conditional. No
+source edit or review artifact was created. The condition is split into exact
+file-safety and value checks for the next attempt; see the
+[rejected tooling attempt](results/generation-attempt-1-shell-condition-rejected.txt).

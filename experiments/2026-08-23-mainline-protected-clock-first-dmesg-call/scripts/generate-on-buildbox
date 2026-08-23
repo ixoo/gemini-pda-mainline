@@ -28,8 +28,9 @@ readonly output_root=$3
 [[ "$(<"$source_root/.gemini-source-state")" == "$PARENT_SOURCE_STATE" ]] ||
 	die 'prepared parent source state changed'
 [[ -f "$source_root/.gemini-source-integrity" &&
-	"$(<"$source_root/.gemini-source-integrity")" ==
-		"$PARENT_SOURCE_INTEGRITY" ]] ||
+	! -L "$source_root/.gemini-source-integrity" ]] ||
+	die 'prepared source integrity marker absent or unsafe'
+[[ "$(<"$source_root/.gemini-source-integrity")" == "$PARENT_SOURCE_INTEGRITY" ]] ||
 	die 'prepared parent integrity marker changed'
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
