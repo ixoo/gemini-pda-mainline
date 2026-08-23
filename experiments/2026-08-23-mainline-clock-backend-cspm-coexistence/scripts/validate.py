@@ -106,13 +106,36 @@ def main() -> None:
     require(contract["patch"]["path"] == PATCH_REL, "contract patch path changed")
     require(hashlib.sha256(patch_path.read_bytes()).hexdigest() ==
             contract["patch"]["sha256"], "patch identity changed")
-    require(contract["candidate"] is None, "unbuilt candidate was admitted")
+    candidate = contract["candidate"]
+    require(candidate["build_repository_commit"] ==
+            "67e40d761f9e83063742a8e36ffb001c6fa3d38e",
+            "candidate build commit changed")
+    require(candidate["package_manifest_sha256"] ==
+            "703ceb7815c4e443f4504000be2c032eb452ff5aa941bfb3da56d3225933e4c2",
+            "candidate package manifest changed")
+    require(candidate["control_dtb_sha256"] ==
+            "8033f913a4cfd78c2fca9d901c5838285717e9929fc577ea369d7066423c2126",
+            "candidate DT changed")
+    require(candidate["raw_sha256"] ==
+            "dc09377159237c99ef779fbc24824df6c14b8258a9dd237cb7a113e9ed61e6f2",
+            "raw candidate identity changed")
+    require(candidate["padded_sha256"] ==
+            "ae4010449e72ed4d02643616073e8d74f7cad25adb4afb5db69030d39eb324e7",
+            "padded candidate identity changed")
+    require(candidate["padded_size"] == 16_777_216,
+            "candidate partition geometry changed")
+    require(candidate["lk_gates"] == "32-of-32",
+            "candidate LK gate count changed")
+    require(candidate["negative_dtb_mutations_rejected"] == 19,
+            "candidate mutation gate count changed")
+    require(candidate["boot_candidate"] is True,
+            "independently validated candidate was not admitted")
     require(contract["scope"]["clock_backend_protected_reads"] == 0,
             "protected read scope opened")
     require(contract["scope"]["clock_backend_mmio_transactions"] == 0,
             "clock MMIO scope opened")
-    require(contract["scope"]["boot_candidate"] is False,
-            "definition incorrectly claims a boot candidate")
+    require(contract["scope"]["boot_candidate"] is True,
+            "admitted candidate scope changed")
     require(contract["runtime_oracle"]["coexistence_marker"] == MARKER,
             "runtime marker contract changed")
     validate_patch_text(patch)
@@ -159,7 +182,7 @@ def main() -> None:
     print("cpu8_cpu9_admission=closed")
     print("device_access=none")
     print("hardware_write=none")
-    print("boot_candidate=false")
+    print("boot_candidate=true")
     print("result=pass")
 
 
