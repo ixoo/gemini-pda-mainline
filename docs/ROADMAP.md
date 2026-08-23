@@ -4873,6 +4873,18 @@ action remained zero; changed-ID Gemian recovered both exact retained records.
 This closes read-free resource coexistence only. See the
 [coexistence result](../experiments/2026-08-23-mainline-clock-backend-cspm-coexistence/results/runtime-attempt-1-coexistence-pass-20260823.txt).
 
+Patch `0336` now defines the selected one-read successor. Its isolated
+Buildbox profile, deterministic serviceability/observer DT, Android-v0/LK
+container, independent candidate validator, retained-record recovery oracle,
+and live/runtime mutation suites pass offline. BigiDVFS remains disabled in
+DT; the only admitted protected operation is one handoff-owned clock snapshot
+with no caller retry or CPU request. This is candidate readiness, not runtime
+support. The immediate ordered action is to commit and push the exact
+sanitized tooling, then perform one guarded live-GPT `boot2` deployment with
+full readback and shutdown before the single observer-armed physical
+selection. See the
+[one-read experiment](../experiments/2026-08-23-mainline-protected-clock-first-dmesg-call/README.md).
+
 The next ordered work is:
 
 1. Qualify exactly one protected clock read

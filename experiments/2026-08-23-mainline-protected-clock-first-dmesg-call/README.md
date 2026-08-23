@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-23-mainline-protected-clock-first-dmesg-call` |
-| Status | exact patch and offline profile admitted; Buildbox build pending |
+| Status | exact candidate independently validated; deployment pending |
 | Subsystem | MT6797 protected clock readback, CSPM handoff, retained RAM |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-23 America/New_York |
@@ -60,11 +60,57 @@ The generated patch uses a clearly synthetic, non-certifying experiment author
 without a DCO sign-off and remains not submission-ready. Generation performs no
 kernel build, candidate construction, device access, or hardware action.
 
-## Next action
+## Build and candidate
 
-Build the exact pushed profile on Buildbox, fetch only its validated package,
-then complete candidate-DT, container, deployment, and runtime gates before
-spending one physical boot.
+Buildbox produced exact release `7.1.3-gemini-clock-one-read` from repository
+commit `da8cad285d7c92d7dcd1d0cecc104d2f8908308a`; no native VM build was run.
+Only the validated package was fetched. See the
+[Buildbox result](results/buildbox-build-pass.txt).
+
+The deterministic Android-v0/LK candidate combines that package with the
+unchanged serviceability ramdisk and a reproducible DT that enables the
+single-owner clock backend plus the clock-only observer. BigiDVFS is compiled
+only as the observer's link dependency and remains disabled in DT. Exact
+padded boot2 SHA-256 is
+`3892e776c183027851d73bec8bf938732c43ddad030a80ddee42240537ba35f6`.
+All 32 LK gates and 23 independent DT mutations passed; see the
+[candidate result](results/candidate-validation-pass.txt).
+
+This candidate is deliberately not read-free. It performs one bounded
+handoff-owned CSPM clock snapshot, including the existing semaphore polling
+inside that single transaction and one I2C clock enable/disable pair. It makes
+zero observer retries, BigiDVFS calls, secure calls, DA921x data writes, or CPU
+requests.
+
+## Deployment and runtime procedure
+
+The guarded installer requires both retained-RAM record headers to be exactly
+empty, resolves logical `boot2` from the live GPT, records the predecessor
+checksum without making a fresh backup, writes only when needed, verifies a
+matching full-partition readback, and shuts down after success. It never
+automatically reboots after the write.
+
+One physical boot has two independent result paths:
+
+1. The read-only USB/netcat probe requires one complete ABI-1/generation-1
+   clock snapshot, one exact terminal receipt with one clock call and zero
+   BigiDVFS calls, full USB/keyboard/I2C6/DA921x serviceability, and exactly one
+   CSPM and MCUMIXED owner.
+2. After the bounded native return to a changed-ID Gemian boot, direct retained
+   RAM must contain exact `before-clock` record 1 and `after-clock` record 2;
+   pstore enumeration is recorded separately and may be either available or
+   absent without weakening the direct-RAM attribution.
+
+The runtime tools accept one exact live result and two bounded retained
+recovery forms. They reject 51 unsafe live mutations and 12 retained-record
+mutations offline.
+
+## Current boundary
+
+The exact candidate and its deployment/runtime tooling are admitted offline.
+No device deployment or protected-clock runtime result is claimed here yet.
+The ordered execution sequence remains owned by
+[Roadmap Gate 7](../../docs/ROADMAP.md#7-bring-up-cpu8).
 
 Generation attempt 1 at exact commit `ee05a0f3` stopped in the Buildbox wrapper
 before source validation because Bash rejected a multiline conditional. No
