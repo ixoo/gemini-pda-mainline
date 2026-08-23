@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-23-mainline-protected-clock-first-dmesg-call",
+  "question": "does_exactly_one_handoff_owned_protected_clock_snapshot_return",
+  "foundation": {
+    "coexistence_result": "experiments/2026-08-23-mainline-clock-backend-cspm-coexistence/results/runtime-attempt-1-coexistence-pass-20260823.txt",
+    "coexistence_result_sha256": "03c93606b3449a26f65cbf910cc88d4c2a6fc27cd61ff35264c0529afb0829f6",
+    "canonical_parent": "patches/v7.1.3/0335-soc-mediatek-share-CSPM-through-MT6797-handoff.patch",
+    "canonical_parent_sha256": "b9df9e90fb6fbcd12809048490b1c5cf28a906eadc78ae19bf7f269dfe95a798",
+    "prepared_source_state": "2582139b7abd84a14bac1e92164cae8e5452a3fdcb2a79f685bd07955a8813dc",
+    "prepared_source_integrity": "c7086dc76b6c057b8dae2c1073bb1910886019ffd060ef654f539459d20188bd",
+    "repeat_exact_artifact": false
+  },
+  "patch_generation": {
+    "backend": "buildbox",
+    "expected_patch": "patches/v7.1.3/0336-pstore-qualify-Gemini-protected-clock-call-in-first-dmesg.patch",
+    "edited_files": [
+      "fs/pstore/Kconfig",
+      "fs/pstore/gemini_protected_readback_ledger.c"
+    ],
+    "new_writer": false,
+    "new_call_site": false,
+    "device_access": false,
+    "boot_candidate": false
+  },
+  "ledger": {
+    "reservation": "0x44410000+0x000e0000",
+    "owned_records": [1, 2],
+    "owned_addresses": ["0x44410000", "0x44411000"],
+    "entry_header": "ffffffffffffffffffffffff",
+    "record_token": "GPCF-20260823-A",
+    "record_1": "before-clock",
+    "record_2": "after-clock",
+    "maximum_commits": 2,
+    "commit_order": ["payload", "start", "size", "signature"],
+    "signature_last": true,
+    "full_local_readback": true,
+    "retry": false,
+    "clear": false
+  },
+  "scope": {
+    "protected_clock_reads_maximum": 1,
+    "bigidvfs_reads": 0,
+    "secure_calls": 0,
+    "i2c_data_transactions_added": 0,
+    "da921x_register_data_writes": 0,
+    "storage_access_during_runtime": false,
+    "owner_registration": false,
+    "cpu_on": false,
+    "cpu_off": false,
+    "automatic_retry": false
+  }
+}

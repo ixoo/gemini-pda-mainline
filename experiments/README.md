@@ -23,11 +23,19 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-23 protected clock call in first dmesg](2026-08-23-mainline-protected-clock-first-dmesg-call/README.md)
+  — defines the next single-transaction gate: relocate the existing clock-only
+  observer's `before-clock` and `after-clock` checkpoints to recoverable first-
+  dmesg records 1 and 2. The patch-generation phase adds no writer or caller;
+  the eventual candidate permits one protected clock call, zero BigiDVFS
+  calls, no retry, and no CPU request.
 - [2026-08-23 clock-backend CSPM coexistence](2026-08-23-mainline-clock-backend-cspm-coexistence/README.md)
   — defines the single-owner successor: the handoff retains CSPM, the clock
   backend keeps only MCUMIXED and consumes a transfer-lease-serialized handoff
-  callback. Buildbox and one read-free serviceability runtime remain pending;
-  protected reads, BigiDVFS, and CPU requests stay closed.
+  callback. The exact Buildbox candidate passed one named-device read-free
+  serviceability runtime with the sole CSPM and MCUMIXED owners attributed,
+  both retained records recovered, and every protected, BigiDVFS, and CPU
+  action zero.
 - [2026-08-23 clock-backend first-dmesg entry](2026-08-23-mainline-clock-backend-first-dmesg-entry/README.md)
   — exact live markers and both pstore/direct retained records prove driver
   init, platform population, probe entry, and read-free probe completion. The

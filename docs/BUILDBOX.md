@@ -187,6 +187,20 @@ under one root-adapter lock with retries disabled, and rejects writes, delays,
 loops, A34 callers, CPU operations, or device actions. Generation does not
 contact the Gemini.
 
+The protected-clock first-dmesg call discriminator also has a source-review
+lane:
+
+```sh
+./scripts/buildbox generate-protected-clock-first-dmesg-call
+./scripts/buildbox fetch-protected-clock-first-dmesg-call
+```
+
+It pins the exact prepared source through canonical patch `0335`, relocates the
+existing clock-only observer's two retained call checkpoints to first-dmesg
+records 1 and 2, replays the resulting format-patch, and runs source and strict
+style validation. The lane adds no writer or call site, compiles no kernel,
+constructs no candidate, and performs no device action.
+
 If the exact compile exposes the known C tag-namespace collision in the first
 admission, generate and fetch the single mechanical record-tag correction from
 the prepared source through patch `0314` with:
