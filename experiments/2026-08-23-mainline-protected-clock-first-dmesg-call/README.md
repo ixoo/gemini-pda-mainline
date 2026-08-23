@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-23-mainline-protected-clock-first-dmesg-call` |
-| Status | exact candidate independently validated; deployment pending |
+| Status | one protected clock snapshot passed live and retained validation |
 | Subsystem | MT6797 protected clock readback, CSPM handoff, retained RAM |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-23 America/New_York |
@@ -118,14 +118,27 @@ without a `/dev/mem` write. See the
 After the cold ordinary-Gemian start, deployment passed an exact 16 MiB
 readback and shut the device down; see the
 [deployment result](results/deployment-1-write-readback-shutdown.txt). The
-selected boot reached full
-serviceability and logged one complete `ret=0`, ABI-2, generation-1 clock
-snapshot plus the exact one-call terminal receipt. The initial classifier
-correctly withheld reboot because its oracle had stale ABI 1. Canonical patch
-`0221` explicitly advances `MT6797_DVFSP_CLOCK_BACKEND_ABI` from 1 to 2 when
-the CSPM live-state fields are added, so the tooling is being corrected on the
-same live boot before changed-ID retained-record recovery. No second protected
-call or repeated boot is involved.
+selected boot reached full serviceability and logged exactly one complete
+`ret=0`, ABI-2, generation-1 clock snapshot plus the exact one-call terminal
+receipt. The initial classifier correctly withheld reboot because its oracle
+had stale ABI 1. Canonical patch `0221` explicitly advances
+`MT6797_DVFSP_CLOCK_BACKEND_ABI` from 1 to 2 when the CSPM live-state fields
+are added. The corrected read-only classifier passed on the same live boot;
+no second protected call or repeated boot occurred.
+
+Only after the exact live pass did the collector request one native reboot.
+Changed-ID Gemian recovered exact `before-clock` record 1 and `after-clock`
+record 2 both through pstore and independently through direct retained RAM;
+the full `boot2` checksum remained exact. The runtime and retained mutation
+oracles therefore classify attempt 1 as a narrow pass. See the
+[runtime result](results/runtime-attempt-1-pass-20260823.txt).
+
+This result qualifies one handoff-owned protected clock snapshot with
+single-owner CSPM/MCUMIXED attribution and the existing I2C6, DA921x,
+keyboard, USB, and CPU0--7 serviceability baseline. It does not qualify a
+retry, BigiDVFS, a write, resume/error recovery, or CPU8/CPU9 admission. The
+next ordered work is composition of the validated readers, DA921x, and the
+platform-state source under one transition/hotplug owner.
 
 The ordered execution sequence remains owned by
 [Roadmap Gate 7](../../docs/ROADMAP.md#7-bring-up-cpu8).

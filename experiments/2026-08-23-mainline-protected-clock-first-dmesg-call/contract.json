@@ -82,7 +82,14 @@
     "runtime_unsafe_mutations_rejected": 51,
     "retained_unsafe_mutations_rejected": 12,
     "deployment_status": "write-synced-flushed-full-readback-verified-and-shutdown",
-    "runtime_status": "attempt-1-live-call-returned-ret0-abi2-generation1; stale-abi1-oracle-correction-and-retained-recovery-pending"
+    "runtime_status": "attempt-1-pass-one-clock-call-ret0-abi2-generation1-with-exact-live-serviceability-and-retained-before-after-recovery",
+    "runtime_result": "experiments/2026-08-23-mainline-protected-clock-first-dmesg-call/results/runtime-attempt-1-pass-20260823.txt",
+    "runtime_result_sha256": "07f149dcf5bcc5d77deaf0cf1df7ab499d708797cf5e93fe49f0b38f50e5f1b4",
+    "protected_clock_calls": 1,
+    "protected_clock_caller_retries": 0,
+    "native_reboot_to_changed_gemian": "pass",
+    "retained_records_1_2": "exact-via-pstore-and-direct-ram",
+    "cpu8_cpu9_admission": "closed"
   },
   "ledger": {
     "reservation": "0x44410000+0x000e0000",

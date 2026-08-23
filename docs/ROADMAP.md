@@ -4878,8 +4878,8 @@ Buildbox profile, deterministic serviceability/observer DT, Android-v0/LK
 container, independent candidate validator, retained-record recovery oracle,
 and live/runtime mutation suites pass offline. BigiDVFS remains disabled in
 DT; the only admitted protected operation is one handoff-owned clock snapshot
-with no caller retry or CPU request. This is candidate readiness, not runtime
-support. The exact sanitized tooling is now committed and pushed. Deployment
+with no caller retry or CPU request. The exact sanitized tooling is committed
+and pushed. Deployment
 preflight first failed closed on exact retained predecessor checkpoints; an
 ordinary cold Gemian cycle cleared them without a memory write. The guarded
 live-GPT `boot2` deployment then passed full readback and shutdown. Its single
@@ -4887,18 +4887,22 @@ selection reached exact serviceability and returned one complete `ret=0`,
 ABI-2, generation-1 clock snapshot with the exact one-call terminal receipt.
 The pre-armed classifier withheld reboot only because its oracle incorrectly
 required ABI 1; canonical patch `0221` explicitly advanced this backend ABI to
-2 with the CSPM live-state fields. The immediate ordered action is to commit
-that evidence-only oracle correction, reclassify the same live boot without a
-second protected call, then request the bounded Gemian return and recover the
-two retained records. See the
+2 with the CSPM live-state fields. The corrected read-only oracle then passed
+on the same live boot without a second protected call. Only after exact live
+attribution did the collector request the bounded native return. Changed-ID
+Gemian recovered exact before/after records through pstore and independently
+through direct retained RAM, with boot2 unchanged. This closes exactly one
+handoff-owned protected clock snapshot and its failure-attribution boundary;
+it does not qualify BigiDVFS, retries, writes, resume/error recovery, or CPU
+admission. See the
 [one-read experiment](../experiments/2026-08-23-mainline-protected-clock-first-dmesg-call/README.md).
 
 The next ordered work is:
 
-1. Qualify exactly one protected clock read
-   with a before-call checkpoint, an after-return checkpoint, bounded failure
-   attribution, zero retry, and no CPU request. Do not enable BigiDVFS in the
-   same candidate.
+1. ~~Qualify exactly one protected clock read with a before-call checkpoint,
+   an after-return checkpoint, bounded failure attribution, zero retry, and no
+   CPU request.~~ Passed on the named device with ABI 2/generation 1 and exact
+   live plus retained evidence; BigiDVFS remained disabled.
 2. Compose the validated readers, DA921x, and the platform-state source under
    one transition/hotplug owner.
 3. Revise A34 to accept only the complete direct-state ABI and applicable

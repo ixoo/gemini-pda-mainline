@@ -235,6 +235,24 @@ retained records agree. A protected transaction remains untested and requires
 its own bounded experiment. See the
 [coexistence runtime result](../../experiments/2026-08-23-mainline-clock-backend-cspm-coexistence/results/runtime-attempt-1-coexistence-pass-20260823.txt).
 
+The bounded one-read successor now qualifies exactly one protected clock
+snapshot on the same named unit. With the handoff as the sole CSPM owner and
+the clock backend as the sole MCUMIXED owner, the transaction returned
+`ret=0`, ABI 2, generation 1. It captured mux select `0x00000054`, divider
+`0x00000000`, LL PLL words `0xf0000101/0xc1114000/0x00114000`, L PLL words
+`0xf0000101/0x400c4000/0x000c4000`, CCI PLL words
+`0xf0000101/0xc10c1d89/0x000c1d89`, three `0xbabebabe` CSPM software-control
+words, and four `0xbabebabe` hardware-status words. One I2C clock
+enable/disable pair occurred; there was no caller retry, BigiDVFS call, secure
+call, DA921x data write, or CPU request. I2C6, DA921x, keyboard, USB, and
+CPU0--7 serviceability remained present. Exact before/after records were then
+recovered through both pstore and direct retained RAM after the native return
+to changed-ID Gemian. Confidence is high for this one snapshot because the
+live value/owner/serviceability oracle and the independent retained paths
+agree. This is not evidence for retries, BigiDVFS, writes, resume/error
+recovery, or CPU8/CPU9 admission. See the
+[one-read runtime result](../../experiments/2026-08-23-mainline-protected-clock-first-dmesg-call/results/runtime-attempt-1-pass-20260823.txt).
+
 The firmware/power audit separates the initial Cortex-A72-on sequence between
 Linux and retained secure firmware. Linux performs the external buck enable,
 temporary TOPRGU PWRAP reset, MP2 reset release, external-buck isolation
