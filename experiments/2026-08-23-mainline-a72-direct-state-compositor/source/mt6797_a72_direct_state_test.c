@@ -76,8 +76,9 @@ static struct mt6797_a72_direct_source_snapshot direct_source(void)
 	};
 }
 
-static int direct_snapshot_callback(
-	void *context, struct mt6797_a72_direct_source_snapshot *snapshot)
+static int
+direct_snapshot_callback(void *context,
+			 struct mt6797_a72_direct_source_snapshot *snapshot)
 {
 	struct direct_test_state *state = context;
 

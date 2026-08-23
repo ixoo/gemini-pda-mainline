@@ -74,6 +74,11 @@ must leave the A72 owner byte-identical and still `CLOSED / UNINITIALIZED`.
   the new direct-state ABI. The source editor had completed, but no patch was
   packaged or admitted.
 - The validator now scopes that count to the direct-state definition itself.
+- Buildbox submission `38c17b2a` then completed semantic validation and exact
+  replay, but strict checkpatch rejected declarations split immediately after
+  `(` and its generic MAINTAINERS warning for new experiment-review files. The
+  declarations now use normal kernel continuation style; only the named
+  `FILE_PATH_CHANGES` heuristic is ignored during generation.
 
 No generated patch, compile, or KUnit result exists yet. Repository-side
 definition validation remains the current phase.

@@ -4,8 +4,9 @@ static DEFINE_MUTEX(a72_direct_source_registry_lock);
 static const struct mt6797_a72_direct_source_ops *a72_direct_source_ops;
 static void *a72_direct_source_context;
 
-int mt6797_a72_direct_source_register(
-	const struct mt6797_a72_direct_source_ops *ops, void *context)
+int
+mt6797_a72_direct_source_register(const struct mt6797_a72_direct_source_ops *ops,
+				  void *context)
 {
 	int ret = 0;
 
@@ -25,8 +26,9 @@ int mt6797_a72_direct_source_register(
 }
 EXPORT_SYMBOL_GPL(mt6797_a72_direct_source_register);
 
-void mt6797_a72_direct_source_unregister(
-	const struct mt6797_a72_direct_source_ops *ops, void *context)
+void
+mt6797_a72_direct_source_unregister(const struct mt6797_a72_direct_source_ops *ops,
+				    void *context)
 {
 	mutex_lock(&a72_direct_source_registry_lock);
 	if (a72_direct_source_ops == ops &&
@@ -38,8 +40,8 @@ void mt6797_a72_direct_source_unregister(
 }
 EXPORT_SYMBOL_GPL(mt6797_a72_direct_source_unregister);
 
-static void mt6797_a72_direct_owner_snapshot_locked(
-	struct mt6797_a72_owner_snapshot *snapshot)
+static void
+mt6797_a72_direct_owner_snapshot_locked(struct mt6797_a72_owner_snapshot *snapshot)
 {
 	memset(snapshot, 0, sizeof(*snapshot));
 	snapshot->active = a72_owner.active;
@@ -62,8 +64,8 @@ static void mt6797_a72_direct_owner_snapshot_locked(
 	snapshot->controller_present = !!a72_owner.controller;
 }
 
-static bool mt6797_a72_direct_owner_pristine_locked(
-	struct mt6797_a72_owner_snapshot *snapshot)
+static bool
+mt6797_a72_direct_owner_pristine_locked(struct mt6797_a72_owner_snapshot *snapshot)
 {
 	const struct mt6797_a72_owner_snapshot expected = {
 		.diagnostic_blockers = MT6797_A72_BLOCK_MASK,
@@ -79,8 +81,8 @@ static bool mt6797_a72_direct_owner_pristine_locked(
 		!a72_owner.next_cookie;
 }
 
-static bool mt6797_a72_direct_topology_valid(
-	const struct mt6797_a72_direct_topology *topology)
+static bool
+mt6797_a72_direct_topology_valid(const struct mt6797_a72_direct_topology *topology)
 {
 	return topology->cpu8_possible == 1 &&
 		topology->cpu9_possible == 1 &&
@@ -89,8 +91,8 @@ static bool mt6797_a72_direct_topology_valid(
 		!topology->cpu8_online && !topology->cpu9_online;
 }
 
-static bool mt6797_a72_direct_source_valid(
-	const struct mt6797_a72_direct_source_snapshot *source)
+static bool
+mt6797_a72_direct_source_valid(const struct mt6797_a72_direct_source_snapshot *source)
 {
 	u32 provider_raw;
 
@@ -110,9 +112,9 @@ static bool mt6797_a72_direct_source_valid(
 		source->bigidvfs.sample_generation;
 }
 
-static int mt6797_a72_direct_state_snapshot_locked(
-	const struct mt6797_a72_direct_topology *topology,
-	struct mt6797_a72_direct_state_snapshot *snapshot)
+static int
+mt6797_a72_direct_state_snapshot_locked(const struct mt6797_a72_direct_topology *topology,
+					struct mt6797_a72_direct_state_snapshot *snapshot)
 {
 	struct mt6797_a72_direct_state_snapshot observed = { };
 	struct mt6797_a72_owner_snapshot owner_after;
@@ -165,8 +167,8 @@ out_unlock:
 	return ret;
 }
 
-int mt6797_a72_direct_state_snapshot(
-	struct mt6797_a72_direct_state_snapshot *snapshot)
+int
+mt6797_a72_direct_state_snapshot(struct mt6797_a72_direct_state_snapshot *snapshot)
 {
 	struct mt6797_a72_direct_topology topology;
 	int ret;
@@ -196,9 +198,9 @@ out_unlock:
 EXPORT_SYMBOL_GPL(mt6797_a72_direct_state_snapshot);
 
 #ifdef CONFIG_ARM64_MT6797_A72_DIRECT_STATE_KUNIT_TEST
-int mt6797_a72_direct_state_test_snapshot(
-	const struct mt6797_a72_direct_topology *topology,
-	struct mt6797_a72_direct_state_snapshot *snapshot)
+int
+mt6797_a72_direct_state_test_snapshot(const struct mt6797_a72_direct_topology *topology,
+				      struct mt6797_a72_direct_state_snapshot *snapshot)
 {
 	int ret;
 
