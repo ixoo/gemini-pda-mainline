@@ -26,6 +26,28 @@
     "0337-arm64-add-closed-A72-direct-state-compositor.patch",
     "0338-arm64-test-closed-A72-direct-state-compositor.patch"
   ],
+  "patch_generation": {
+    "repository_commit": "24bc92a7ce25c08e69c7e22e03f39b698a91e120",
+    "package": "a72-direct-state-compositor-24bc92a7ce25",
+    "parent_commit": "7a1ffaf21bac1aa1a81639f84d850a36d0b98d24",
+    "core_commit": "eda933da9b705cb02f6ef89d6c3ff0b28d9d3585",
+    "result_commit": "c72d2e147bcabf31d74a11d7366bb06b2b62da6f",
+    "patch_sha256": {
+      "patches/v7.1.3/0337-arm64-add-closed-A72-direct-state-compositor.patch": "145dc11213cf42e064d6fd465cb2074dea5eea505b64dcc629b460bb00ac5f2c",
+      "patches/v7.1.3/0338-arm64-test-closed-A72-direct-state-compositor.patch": "a2e95ca18b3a4eef7721b36af94322b71a61cb13442f77da83f9c67df6547690"
+    },
+    "checkpatch": "0 errors, 0 warnings, 0 checks",
+    "checkpatch_intentional_ignore": "FILE_PATH_CHANGES-for-experiment-review-new-files",
+    "exact_replay": true,
+    "boot_candidate": false
+  },
+  "offline_definition": {
+    "profile": "a72-direct-state-kunit",
+    "fragment": "configs/gemini-a72-direct-state-kunit.fragment",
+    "runner": "qemu-system-aarch64",
+    "network": "none",
+    "physical_source": false
+  },
   "owner_order": [
     "cpu_hotplug_lock_read",
     "a72_transition_lock",

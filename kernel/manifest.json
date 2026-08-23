@@ -1481,6 +1481,25 @@
                     "configs/gemini-a72-a34-eligibility-kunit.fragment"
                 ]
             },
+            "a72-direct-state-kunit": {
+                "base": "defconfig",
+                "patch_series": "patches/series",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-usbdiag.fragment",
+                    "configs/gemini-clk-ignore-unused.fragment",
+                    "configs/gemini-observability.fragment",
+                    "configs/gemini-fbcon-rotation.fragment",
+                    "configs/gemini-keyboard.fragment",
+                    "configs/gemini-keyboard-wrrd.fragment",
+                    "configs/gemini-keyboard-manual-reboot.fragment",
+                    "configs/gemini-smp8.fragment",
+                    "configs/gemini-a72-a41-kernel-identity.fragment",
+                    "configs/gemini-a72-p30-protocol.fragment",
+                    "configs/gemini-a72-p24-closed-owner.fragment",
+                    "configs/gemini-a72-direct-state-kunit.fragment"
+                ]
+            },
             "mtk-wdt-boot-status": {
                 "base": "defconfig",
                 "fragments": [

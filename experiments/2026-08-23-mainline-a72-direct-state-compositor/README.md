@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-23-mainline-a72-direct-state-compositor` |
-| Status | hardware-free implementation prepared for Buildbox generation |
+| Status | generated patches admitted; Buildbox compile pending |
 | Subsystem | MT6797 A72 direct-state composition and hotplug ownership |
 | Device variant | Gemini PDA contract; injected KUnit phase |
 | Date(s) | 2026-08-23 America/New_York |
@@ -54,6 +54,11 @@ must leave the A72 owner byte-identical and still `CLOSED / UNINITIALIZED`.
   edited source semantics.
 - [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox) generates two
   normal format patches, replays them, and runs strict checkpatch.
+- [`scripts/run-kunit-qemu`](scripts/run-kunit-qemu) accepts only the exact
+  fetched Buildbox package for the current published commit and runs the sole
+  focused suite under bounded no-network arm64 QEMU.
+- [`scripts/classify-kunit.py`](scripts/classify-kunit.py) requires all seven
+  named cases, exact KTAP summaries, and the expected post-test rootfs panic.
 
 ## Procedure
 
@@ -88,9 +93,13 @@ must leave the A72 owner byte-identical and still `CLOSED / UNINITIALIZED`.
 - Buildbox submission `46a5dac3` proved the core patch strict-clean and found
   only two continuation-column checks in the KUnit patch. Both short calls are
   now kept on one line.
+- Buildbox submission `24bc92a7` generated two checksum-covered patches from
+  canonical patch `0336`. Semantic validation, exact replay, and strict
+  checkpatch all passed. The admitted patch hashes are pinned in
+  [`contract.json`](contract.json).
 
-No generated patch, compile, or KUnit result exists yet. Repository-side
-definition validation remains the current phase.
+The generated patches and isolated `a72-direct-state-kunit` profile are now
+admitted. No compile or KUnit runtime result exists yet.
 
 ## Analysis
 
@@ -102,8 +111,8 @@ eligibility, or CPU8/CPU9 admission.
 
 ## Conclusion
 
-`inconclusive`: the implementation definition is ready for exact Buildbox
-generation, but no generated patch or compiled result is yet admitted.
+`inconclusive`: the exact implementation patches are admitted and source-clean,
+but the focused profile has not yet compiled or executed in QEMU.
 
 ## Follow-up
 

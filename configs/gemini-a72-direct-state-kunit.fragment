@@ -1,0 +1,7 @@
+# Hardware-free direct-state composition under the CPU-hotplug and A72 owner
+# locks. The suite uses only its injected source and leaves A34 and hardware
+# operations closed.
+CONFIG_KUNIT=y
+CONFIG_ARM64_MT6797_A72_DIRECT_STATE_KUNIT_TEST=y
+# CONFIG_ARM64_MT6797_A72_A34_ELIGIBILITY_EVALUATOR is not set
+CONFIG_LOCALVERSION="-gemini-direct-state-kunit"

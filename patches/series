@@ -326,3 +326,5 @@ v7.1.3/0333-pstore-qualify-Gemini-first-dmesg-raw-write.patch
 v7.1.3/0334-pstore-qualify-Gemini-clock-entry-in-first-dmesg.patch
 v7.1.3/0335-soc-mediatek-share-CSPM-through-MT6797-handoff.patch
 v7.1.3/0336-pstore-qualify-Gemini-protected-clock-call-in-first-dmesg.patch
+v7.1.3/0337-arm64-add-closed-A72-direct-state-compositor.patch
+v7.1.3/0338-arm64-test-closed-A72-direct-state-compositor.patch

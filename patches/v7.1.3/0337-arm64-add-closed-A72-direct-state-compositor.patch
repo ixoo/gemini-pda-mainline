@@ -1,0 +1,395 @@
+From eda933da9b705cb02f6ef89d6c3ff0b28d9d3585 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 23 Aug 2026 21:01:00 +0000
+Subject: [PATCH 1/2] arm64: add closed A72 direct-state compositor
+
+Compose one complete injected physical record while CPU8 and CPU9 are possible, present, and offline under CPU-hotplug and A72 transition ownership.
+
+Keep the source hardware-free and the owner pristine CLOSED / UNINITIALIZED; reject every partial or changed record with an all-zero destination.
+---
+ arch/arm64/Kconfig.platforms                  |  14 ++
+ .../arm64/include/asm/mt6797_a72_membership.h |  63 +++++
+ arch/arm64/kernel/mt6797_a72_membership.c     | 220 ++++++++++++++++++
+ include/linux/mt6797-a72-direct-state.h       |  29 +++
+ 4 files changed, 326 insertions(+)
+ create mode 100644 include/linux/mt6797-a72-direct-state.h
+
+diff --git a/arch/arm64/Kconfig.platforms b/arch/arm64/Kconfig.platforms
+index 4542beb..052a501 100644
+--- a/arch/arm64/Kconfig.platforms
++++ b/arch/arm64/Kconfig.platforms
+@@ -223,6 +223,20 @@ config ARM64_MT6797_A72_P24_TRANSACTION_OWNER_MODEL
+ 	  opener. It rejects before P31/A38, allocates no token, and cannot issue
+ 	  CPU_ON.
+ 
++config ARM64_MT6797_A72_DIRECT_STATE_COMPOSITOR
++	bool "Compose closed MT6797 A72 direct physical state"
++	depends on HOTPLUG_CPU
++	depends on ARM64_MT6797_A72_P24_TRANSACTION_OWNER_MODEL
++	default n
++	help
++	  Add a single default-off composition boundary under the CPU-hotplug
++	  read lock and the A72 transition owner. It accepts only one complete
++	  injected physical source while CPU8 and CPU9 are possible, present,
++	  and offline and the owner remains pristine CLOSED / UNINITIALIZED.
++
++	  This option supplies no physical reader, owner opener, A34 decision,
++	  hardware operation, CPU_ON, or CPU_OFF. If unsure, say N.
++
+ config ARM64_MT6797_A72_A34_ELIGIBILITY_EVALUATOR
+ 	bool "Evaluate the exact MT6797 A72 A34 zero-state tuple"
+ 	depends on ARM64_MT6797_A72_P24_TRANSACTION_OWNER_MODEL
+diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
+index 2928da1..ebea57d 100644
+--- a/arch/arm64/include/asm/mt6797_a72_membership.h
++++ b/arch/arm64/include/asm/mt6797_a72_membership.h
+@@ -7,6 +7,7 @@
+ #include <linux/cpu.h>
+ #include <linux/errno.h>
+ #include <linux/mt6797-a72-provider.h>
++#include <linux/mt6797-a72-direct-state.h>
+ #include <linux/string.h>
+ #include <linux/types.h>
+ 
+@@ -479,6 +480,68 @@ struct mt6797_a72_owner_snapshot {
+ 	u32 controller_present;
+ };
+ 
++#define MT6797_A72_DIRECT_STATE_ABI 1
++
++struct mt6797_a72_direct_topology {
++	u32 cpu8_possible;
++	u32 cpu9_possible;
++	u32 cpu8_present;
++	u32 cpu9_present;
++	u32 cpu8_online;
++	u32 cpu9_online;
++};
++
++struct mt6797_a72_direct_state_snapshot {
++	u32 abi;
++	u32 valid;
++	u32 cpu8_possible;
++	u32 cpu9_possible;
++	u32 cpu8_present;
++	u32 cpu9_present;
++	u32 cpu8_online;
++	u32 cpu9_online;
++	struct mt6797_a72_direct_source_snapshot source;
++	struct mt6797_a72_owner_snapshot owner;
++};
++
++#ifdef CONFIG_ARM64_MT6797_A72_DIRECT_STATE_COMPOSITOR
++int mt6797_a72_direct_source_register(const struct mt6797_a72_direct_source_ops *ops,
++				      void *context);
++void mt6797_a72_direct_source_unregister(const struct mt6797_a72_direct_source_ops *ops,
++					 void *context);
++int mt6797_a72_direct_state_snapshot(struct mt6797_a72_direct_state_snapshot *snapshot);
++#else
++static inline int
++mt6797_a72_direct_source_register(const struct mt6797_a72_direct_source_ops *ops,
++				  void *context)
++{
++	(void)ops;
++	(void)context;
++	return -EOPNOTSUPP;
++}
++
++static inline void
++mt6797_a72_direct_source_unregister(const struct mt6797_a72_direct_source_ops *ops,
++				    void *context)
++{
++	(void)ops;
++	(void)context;
++}
++
++static inline int
++mt6797_a72_direct_state_snapshot(struct mt6797_a72_direct_state_snapshot *snapshot)
++{
++	if (snapshot)
++		memset(snapshot, 0, sizeof(*snapshot));
++	return -EOPNOTSUPP;
++}
++#endif
++
++#ifdef CONFIG_ARM64_MT6797_A72_DIRECT_STATE_KUNIT_TEST
++int mt6797_a72_direct_state_test_snapshot(const struct mt6797_a72_direct_topology *topology,
++					  struct mt6797_a72_direct_state_snapshot *snapshot);
++#endif
++
+ enum mt6797_a72_a34_reset_provenance {
+ 	MT6797_A72_A34_RESET_UNKNOWN,
+ 	MT6797_A72_A34_RESET_PLATFORM,
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+index d8bbf9e..6158d3f 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -15,6 +15,7 @@
+ 
+ #include <linux/compiler.h>
+ #include <linux/cpumask.h>
++#include <linux/cpu.h>
+ #include <linux/errno.h>
+ #include <linux/mt6797-a72-provider.h>
+ #include <linux/mutex.h>
+@@ -175,6 +176,225 @@ static struct mt6797_a72_owner_state a72_owner = {
+ 	.provider_state = MT6797_A72_PROVIDER_NONE,
+ };
+ 
++#ifdef CONFIG_ARM64_MT6797_A72_DIRECT_STATE_COMPOSITOR
++static DEFINE_MUTEX(a72_direct_source_registry_lock);
++
++static const struct mt6797_a72_direct_source_ops *a72_direct_source_ops;
++static void *a72_direct_source_context;
++
++int
++mt6797_a72_direct_source_register(const struct mt6797_a72_direct_source_ops *ops,
++				  void *context)
++{
++	int ret = 0;
++
++	if (!ops || !ops->snapshot)
++		return -EINVAL;
++
++	mutex_lock(&a72_direct_source_registry_lock);
++	if (a72_direct_source_ops) {
++		ret = -EBUSY;
++	} else {
++		a72_direct_source_ops = ops;
++		a72_direct_source_context = context;
++	}
++	mutex_unlock(&a72_direct_source_registry_lock);
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_a72_direct_source_register);
++
++void
++mt6797_a72_direct_source_unregister(const struct mt6797_a72_direct_source_ops *ops,
++				    void *context)
++{
++	mutex_lock(&a72_direct_source_registry_lock);
++	if (a72_direct_source_ops == ops &&
++	    a72_direct_source_context == context) {
++		a72_direct_source_ops = NULL;
++		a72_direct_source_context = NULL;
++	}
++	mutex_unlock(&a72_direct_source_registry_lock);
++}
++EXPORT_SYMBOL_GPL(mt6797_a72_direct_source_unregister);
++
++static void
++mt6797_a72_direct_owner_snapshot_locked(struct mt6797_a72_owner_snapshot *snapshot)
++{
++	memset(snapshot, 0, sizeof(*snapshot));
++	snapshot->active = a72_owner.active;
++	memcpy(snapshot->retired, a72_owner.retired,
++	       sizeof(snapshot->retired));
++	snapshot->provider_identity = a72_owner.provider_identity;
++	snapshot->first_fault = a72_owner.first_fault;
++	snapshot->diagnostic_blockers = a72_owner.diagnostic_blockers;
++	snapshot->controller_cookie = a72_owner.controller_cookie;
++	snapshot->abi = MT6797_A72_TRANSACTION_ABI;
++	snapshot->health = a72_owner.health;
++	snapshot->phase = a72_owner.phase;
++	snapshot->members = a72_owner.members;
++	snapshot->provider_state = a72_owner.provider_state;
++	snapshot->bootstrap_valid = a72_owner.bootstrap_valid;
++	snapshot->members_valid = a72_owner.members_valid;
++	snapshot->attempts_available = a72_owner.attempts_available;
++	snapshot->attempts_consumed = a72_owner.attempts_consumed;
++	snapshot->retired_mask = a72_owner.retired_mask;
++	snapshot->controller_present = !!a72_owner.controller;
++}
++
++static bool
++mt6797_a72_direct_owner_pristine_locked(struct mt6797_a72_owner_snapshot *snapshot)
++{
++	const struct mt6797_a72_owner_snapshot expected = {
++		.diagnostic_blockers = MT6797_A72_BLOCK_MASK,
++		.abi = MT6797_A72_TRANSACTION_ABI,
++		.health = MT6797_A72_OWNER_CLOSED,
++		.phase = MT6797_A72_PHASE_UNINITIALIZED,
++		.provider_state = MT6797_A72_PROVIDER_NONE,
++	};
++
++	mt6797_a72_direct_owner_snapshot_locked(snapshot);
++	return !memcmp(snapshot, &expected, sizeof(expected)) &&
++		!a72_owner.controller && !a72_owner.next_generation &&
++		!a72_owner.next_cookie;
++}
++
++static bool
++mt6797_a72_direct_topology_valid(const struct mt6797_a72_direct_topology *topology)
++{
++	return topology->cpu8_possible == 1 &&
++		topology->cpu9_possible == 1 &&
++		topology->cpu8_present == 1 &&
++		topology->cpu9_present == 1 &&
++		!topology->cpu8_online && !topology->cpu9_online;
++}
++
++static bool
++mt6797_a72_direct_source_valid(const struct mt6797_a72_direct_source_snapshot *source)
++{
++	u32 provider_raw;
++
++	provider_raw = source->provider.control_a |
++		source->provider.status_b | source->provider.buckb_cont |
++		source->provider.vbuckb_a | source->provider.vbuckb_b;
++	return source->abi == MT6797_A72_DIRECT_SOURCE_ABI &&
++		source->valid == 1 && !source->reserved[0] &&
++		!source->reserved[1] &&
++		source->provider.abi == MT6797_A72_PROVIDER_STATE_ABI &&
++		source->provider.valid == 1 && !source->provider.reserved &&
++		!(provider_raw & ~0xffU) && source->platform.valid &&
++		source->clock.abi == MT6797_DVFSP_CLOCK_BACKEND_ABI &&
++		!source->clock.reserved && source->clock.sample_generation &&
++		source->bigidvfs.abi == MT6797_BIGIDVFS_BACKEND_ABI &&
++		!source->bigidvfs.reserved &&
++		source->bigidvfs.sample_generation;
++}
++
++static int
++mt6797_a72_direct_state_snapshot_locked(const struct mt6797_a72_direct_topology *topology,
++					struct mt6797_a72_direct_state_snapshot *snapshot)
++{
++	struct mt6797_a72_direct_state_snapshot observed = { };
++	struct mt6797_a72_owner_snapshot owner_after;
++	unsigned long flags;
++	int ret;
++
++	if (!mt6797_a72_direct_topology_valid(topology))
++		return -EPERM;
++
++	raw_spin_lock_irqsave(&a72_state_lock, flags);
++	if (!mt6797_a72_direct_owner_pristine_locked(&observed.owner)) {
++		raw_spin_unlock_irqrestore(&a72_state_lock, flags);
++		return -EPERM;
++	}
++	raw_spin_unlock_irqrestore(&a72_state_lock, flags);
++
++	mutex_lock(&a72_direct_source_registry_lock);
++	if (!a72_direct_source_ops) {
++		ret = -ENODEV;
++		goto out_unlock;
++	}
++	ret = a72_direct_source_ops->snapshot(a72_direct_source_context,
++					      &observed.source);
++	if (ret)
++		goto out_unlock;
++	if (!mt6797_a72_direct_source_valid(&observed.source)) {
++		ret = -EPROTO;
++		goto out_unlock;
++	}
++
++	raw_spin_lock_irqsave(&a72_state_lock, flags);
++	if (!mt6797_a72_direct_owner_pristine_locked(&owner_after) ||
++	    memcmp(&observed.owner, &owner_after, sizeof(owner_after)))
++		ret = -EPERM;
++	raw_spin_unlock_irqrestore(&a72_state_lock, flags);
++	if (ret)
++		goto out_unlock;
++
++	observed.abi = MT6797_A72_DIRECT_STATE_ABI;
++	observed.valid = 1;
++	observed.cpu8_possible = topology->cpu8_possible;
++	observed.cpu9_possible = topology->cpu9_possible;
++	observed.cpu8_present = topology->cpu8_present;
++	observed.cpu9_present = topology->cpu9_present;
++	observed.cpu8_online = topology->cpu8_online;
++	observed.cpu9_online = topology->cpu9_online;
++	*snapshot = observed;
++out_unlock:
++	mutex_unlock(&a72_direct_source_registry_lock);
++	return ret;
++}
++
++int
++mt6797_a72_direct_state_snapshot(struct mt6797_a72_direct_state_snapshot *snapshot)
++{
++	struct mt6797_a72_direct_topology topology;
++	int ret;
++
++	if (!snapshot)
++		return -EINVAL;
++	memset(snapshot, 0, sizeof(*snapshot));
++
++	cpus_read_lock();
++	mutex_lock(&a72_transition_lock);
++	if (nr_cpu_ids <= 9) {
++		ret = -ENODEV;
++		goto out_unlock;
++	}
++	topology.cpu8_possible = cpu_possible(8);
++	topology.cpu9_possible = cpu_possible(9);
++	topology.cpu8_present = cpu_present(8);
++	topology.cpu9_present = cpu_present(9);
++	topology.cpu8_online = cpu_online(8);
++	topology.cpu9_online = cpu_online(9);
++	ret = mt6797_a72_direct_state_snapshot_locked(&topology, snapshot);
++out_unlock:
++	mutex_unlock(&a72_transition_lock);
++	cpus_read_unlock();
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_a72_direct_state_snapshot);
++
++#ifdef CONFIG_ARM64_MT6797_A72_DIRECT_STATE_KUNIT_TEST
++int
++mt6797_a72_direct_state_test_snapshot(const struct mt6797_a72_direct_topology *topology,
++				      struct mt6797_a72_direct_state_snapshot *snapshot)
++{
++	int ret;
++
++	if (!topology || !snapshot)
++		return -EINVAL;
++	memset(snapshot, 0, sizeof(*snapshot));
++	cpus_read_lock();
++	mutex_lock(&a72_transition_lock);
++	ret = mt6797_a72_direct_state_snapshot_locked(topology, snapshot);
++	mutex_unlock(&a72_transition_lock);
++	cpus_read_unlock();
++	return ret;
++}
++#endif
++#endif
++
+ #ifdef CONFIG_ARM64_MT6797_A72_A34_ELIGIBILITY_EVALUATOR
+ static const struct mt6797_a72_a34_observation a34_expected = {
+ 	.abi = MT6797_A72_A34_ELIGIBILITY_ABI,
+diff --git a/include/linux/mt6797-a72-direct-state.h b/include/linux/mt6797-a72-direct-state.h
+new file mode 100644
+index 0000000..6cca387
+--- /dev/null
++++ b/include/linux/mt6797-a72-direct-state.h
+@@ -0,0 +1,29 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __LINUX_MT6797_A72_DIRECT_STATE_H
++#define __LINUX_MT6797_A72_DIRECT_STATE_H
++
++#include <linux/mt6797-a72-provider.h>
++#include <linux/soc/mediatek/mt6797-a72-platform-state.h>
++#include <linux/soc/mediatek/mt6797-bigidvfs-backend.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-clock-backend.h>
++#include <linux/types.h>
++
++#define MT6797_A72_DIRECT_SOURCE_ABI	1
++
++/* Hardware-only raw composition; this record is not an A34 decision. */
++struct mt6797_a72_direct_source_snapshot {
++	u32 abi;
++	u32 valid;
++	u32 reserved[2];
++	struct mt6797_a72_provider_snapshot provider;
++	struct mt6797_a72_platform_state platform;
++	struct mt6797_dvfsp_clock_readback clock;
++	struct mt6797_bigidvfs_readback bigidvfs;
++};
++
++struct mt6797_a72_direct_source_ops {
++	int (*snapshot)(void *context,
++			struct mt6797_a72_direct_source_snapshot *snapshot);
++};
++
++#endif /* __LINUX_MT6797_A72_DIRECT_STATE_H */
