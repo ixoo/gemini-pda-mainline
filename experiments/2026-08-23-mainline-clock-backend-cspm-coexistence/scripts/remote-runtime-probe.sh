@@ -63,8 +63,8 @@ $BB printf 'protected_readback_devices='; $BB find /sys/bus/platform/devices -ma
 $BB printf 'handoff_bound=%s\ni2c6_bound=%s\nclock_backend_bound=%s\n' "$handoff_bound" "$i2c6_bound" "$clock_backend_bound"
 $BB printf 'handoff_state=%s\ni2c6_handoff_ready_count=%s\n' "$handoff_state" "$i2c6_handoff_ready_count"
 $BB printf 'cspm_range_count='; $BB grep -Ec '^[[:space:]]*11015000-11015fff : ' /proc/iomem || true
-$BB printf 'cspm_handoff_owner_count='; $BB grep -Ec '^[[:space:]]*11015000-11015fff : 11015000\.dvfsp-handoff$' /proc/iomem || true
-$BB printf 'mcumixed_clock_owner_count='; $BB grep -Ec '^[[:space:]]*1001a000-1001afff : 1001a000\.dvfsp-clock-backend$' /proc/iomem || true
+$BB printf 'cspm_handoff_owner_count='; $BB grep -Ec '^[[:space:]]*11015000-11015fff : 11015000\.dvfsp-handoff cspm$' /proc/iomem || true
+$BB printf 'mcumixed_clock_owner_count='; $BB grep -Ec '^[[:space:]]*1001a000-1001afff : 1001a000\.dvfsp-clock-backend mcumixed$' /proc/iomem || true
 $BB printf 'clock_prefix_count=%s\ncoexistence_exact_count=%s\n' "$clock_prefix_count" "$coexistence_exact_count"
 $BB printf 'driver_init_exact_count=%s\nprobe_enter_exact_count=%s\n' "$driver_exact_count" "$enter_exact_count"
 $BB printf 'probe_complete_exact_count=%s\nowner_exact_count=%s\n' "$complete_exact_count" "$owner_exact_count"
