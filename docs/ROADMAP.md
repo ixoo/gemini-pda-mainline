@@ -4908,6 +4908,8 @@ The next ordered work is:
    CPU-hotplug read lock followed by the existing A72 membership transition
    lock as the outer boundary; the first implementation is a default-off,
    hardware-free injected compositor with A34 and all hardware effects closed.
+   The [implementation experiment](../experiments/2026-08-23-mainline-a72-direct-state-compositor/README.md)
+   owns its exact generated identities and test chronology.
 3. Revise A34 to accept only the complete direct-state ABI and applicable
    BL31 replay-clear contract, prove the atomic `CLOSED / UNINITIALIZED` to
    `AVAILABLE / IDLE` publication, and keep both CPU vetoes closed until that

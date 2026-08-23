@@ -201,6 +201,21 @@ records 1 and 2, replays the resulting format-patch, and runs source and strict
 style validation. The lane adds no writer or call site, compiles no kernel,
 constructs no candidate, and performs no device action.
 
+The closed A72 direct-state compositor has a separate hardware-free review
+lane:
+
+```sh
+./scripts/buildbox generate-a72-direct-state-compositor
+./scripts/buildbox fetch-a72-direct-state-compositor
+```
+
+It pins the prepared source through canonical patch `0336` and generates a
+core patch plus its focused injected KUnit suite. The core holds the Linux
+CPU-hotplug read lock and the A72 transition lock around one complete source
+record, rejects every partial record with an all-zero result, and requires the
+owner to remain pristine `CLOSED / UNINITIALIZED`. It calls no physical reader,
+opens no lifecycle, and performs no hardware or CPU operation.
+
 If the exact compile exposes the known C tag-namespace collision in the first
 admission, generate and fetch the single mechanical record-tag correction from
 the prepared source through patch `0314` with:

@@ -23,6 +23,10 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-23 mainline A72 direct-state compositor](2026-08-23-mainline-a72-direct-state-compositor/README.md)
+  — implements the audit's first hardware-free owner boundary as one closed
+  core patch and one injected KUnit patch, generated and validated only on
+  Buildbox before any physical source is connected.
 - [2026-08-23 mainline A72 direct-state compositor audit](2026-08-23-mainline-a72-direct-state-compositor-audit/README.md)
   — confirms that no current path holds both the Linux CPU-hotplug lock and
   the A72 membership transition lock across DA921x, platform, protected-clock,

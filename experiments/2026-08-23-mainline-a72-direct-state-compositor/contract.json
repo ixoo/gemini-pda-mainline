@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-23-mainline-a72-direct-state-compositor",
+  "repository_parent": "a8734f1dc03050a7192a5d6c8b1b9fe0cae6216b",
+  "canonical_parent": "patches/v7.1.3/0336-pstore-qualify-Gemini-protected-clock-call-in-first-dmesg.patch",
+  "prepared_source_state": "e321876084d9f2250fbb0a76e5deded87499e65d7c131daa5117023275d3e30b",
+  "prepared_source_integrity": "56230cbfa53d3ba7de0d214ce74848baa2d8a05ba401c4a9b5fa9105f7938af4",
+  "parent_files": {
+    "arch/arm64/Kconfig.platforms": "790d7655f7e3ed9bf50d90e90d504329aac0c94787eae63b0c5d9cd437ca401a",
+    "arch/arm64/Kconfig": "a501ea703384bd17a82261f5ddfec85ca164203645d51028b91dc906df1285a9",
+    "arch/arm64/kernel/Makefile": "def993a4a91d472560169d9d7e2a69a308ea4c26887e511ffddc57e385bfe78b",
+    "arch/arm64/kernel/mt6797_a72_membership.c": "45a55d0351e8999fa569afdc87942f6857a7b8b22dd7b4d7eeafe103bb09ee65",
+    "arch/arm64/include/asm/mt6797_a72_membership.h": "eb89649b8fe956f5ce9b8f5b1084f65dce66f70392a883ca7b7ea473de697ef7"
+  },
+  "new_files": [
+    "include/linux/mt6797-a72-direct-state.h",
+    "arch/arm64/kernel/mt6797_a72_direct_state_test.c"
+  ],
+  "source_templates": {
+    "mt6797-a72-direct-state.h": "39d423ad9688b1b158256a250bda3d63359c2af4241ab1dbddf2ebd663920562",
+    "mt6797_a72_direct_state_membership.c.inc": "4cbcca4e7f8dc4a01fb7c97de4a49c2280905c3398b557191441f50267cf7c54",
+    "mt6797_a72_direct_state_membership.h.inc": "d18fa37cd762628ffa475460732fc6376497367f36e0c9892894d0f94f1b5c23",
+    "mt6797_a72_direct_state_test.c": "8dc3639b0dd2bda4821025bd2bbc062fde1a60ad850b9a6d51ca2923eda9ac1e"
+  },
+  "patches": [
+    "0337-arm64-add-closed-A72-direct-state-compositor.patch",
+    "0338-arm64-test-closed-A72-direct-state-compositor.patch"
+  ],
+  "owner_order": [
+    "cpu_hotplug_lock_read",
+    "a72_transition_lock",
+    "direct_state_source_registry_lock",
+    "injected_source_callback"
+  ],
+  "scope": {
+    "default_off": true,
+    "hardware_free": true,
+    "physical_reader_callers": 0,
+    "a34_abi_change": false,
+    "lifecycle_publication": false,
+    "dt_enablement": false,
+    "hardware_operation": false,
+    "cpu_on": false,
+    "cpu_off": false,
+    "device_action": false,
+    "boot_candidate": false
+  }
+}
