@@ -24,10 +24,10 @@ the loop. Positive identity-gated observations are unaffected.
 ### Current DA921x, I2C6, and A72 line
 
 - [2026-08-23 protected clock call in first dmesg](2026-08-23-mainline-protected-clock-first-dmesg-call/README.md)
-  — defines the next single-transaction gate: relocate the existing clock-only
+  — admits the next single-transaction gate: relocate the existing clock-only
   observer's `before-clock` and `after-clock` checkpoints to recoverable first-
-  dmesg records 1 and 2. The patch-generation phase adds no writer or caller;
-  the eventual candidate permits one protected clock call, zero BigiDVFS
+  dmesg records 1 and 2. The admitted patch adds no writer or caller; the
+  eventual candidate permits one protected clock call, zero BigiDVFS
   calls, no retry, and no CPU request.
 - [2026-08-23 clock-backend CSPM coexistence](2026-08-23-mainline-clock-backend-cspm-coexistence/README.md)
   — defines the single-owner successor: the handoff retains CSPM, the clock

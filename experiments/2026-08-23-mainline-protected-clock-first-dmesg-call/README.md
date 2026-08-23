@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-23-mainline-protected-clock-first-dmesg-call` |
-| Status | patch-generation definition pending review |
+| Status | exact patch and offline profile admitted; Buildbox build pending |
 | Subsystem | MT6797 protected clock readback, CSPM handoff, retained RAM |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-23 America/New_York |
@@ -62,9 +62,9 @@ kernel build, candidate construction, device access, or hardware action.
 
 ## Next action
 
-Generate and review patch `0336`, then admit its profile and complete offline
-definition, Buildbox, candidate, deployment, and runtime gates before spending
-one physical boot.
+Build the exact pushed profile on Buildbox, fetch only its validated package,
+then complete candidate-DT, container, deployment, and runtime gates before
+spending one physical boot.
 
 Generation attempt 1 at exact commit `ee05a0f3` stopped in the Buildbox wrapper
 before source validation because Bash rejected a multiline conditional. No
@@ -78,3 +78,10 @@ warnings for the fixed atomic retained-record literals. The implementation is
 unchanged for the next attempt; its review command now carries the same narrow,
 provenance-recorded exception used by the earlier atomic record patches. See
 the [review-policy rejection](results/generation-attempt-2-split-string-review-rejected.txt).
+
+Attempt 3 at exact commit `0e84916b` passed source semantics, patch shape,
+byte-identical replay, and the narrow recorded checkpatch policy. Manual review
+admitted exact patch SHA-256
+`97394ab84b4f0fc68f69388a8456a6f82321f2597405b9f23c253949ecf7033f`
+and its isolated full-service profile. The admitted definition is not yet a
+boot candidate; see the [generation result](results/generation-attempt-3-pass.txt).

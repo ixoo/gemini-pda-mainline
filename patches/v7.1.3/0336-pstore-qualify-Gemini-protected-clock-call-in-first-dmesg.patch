@@ -1,0 +1,73 @@
+From 1dd2f7f257a9deca0acc40264ae3686f39c2f45a Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 23 Aug 2026 20:11:00 +0000
+Subject: [PATCH] pstore: qualify Gemini protected clock call in first dmesg
+
+Move the existing clock-only before-call and after-return records to consecutive first-dmesg zones so changed-ID Gemian recovery can classify exactly one handoff-owned protected clock call.
+
+Retain the existing writer, call sites, one-call ceiling, zero BigiDVFS calls, no retry, and all owner and CPU closures.
+---
+ fs/pstore/Kconfig                            | 17 +++++++++++++++++
+ fs/pstore/gemini_protected_readback_ledger.c | 14 ++++++++++++--
+ 2 files changed, 29 insertions(+), 2 deletions(-)
+
+diff --git a/fs/pstore/Kconfig b/fs/pstore/Kconfig
+index d2c8f11..fa1c777 100644
+--- a/fs/pstore/Kconfig
++++ b/fs/pstore/Kconfig
+@@ -248,6 +248,23 @@ config PSTORE_GEMINI_PROTECTED_READBACK_RAW_ENTRY_LEDGER
+ 	  registration, BigiDVFS read, owner, CPU, storage, reset, or power
+ 	  operation. If unsure, say N.
+ 
++config PSTORE_GEMINI_PROTECTED_CLOCK_FIRST_DMESG_CALL_QUALIFICATION
++	bool "Gemini protected-clock first-dmesg call qualification"
++	depends on PSTORE_GEMINI_PROTECTED_READBACK_RAW_ENTRY_LEDGER=y
++	depends on !PSTORE_GEMINI_CLOCK_BACKEND_FIRST_DMESG_ENTRY_QUALIFICATION
++	default n
++	help
++	  Move the existing clock-only observer's before-call and after-return
++	  records from sparse dmesg zones 173 and 174 to consecutive records 1
++	  and 2. Retain the qualified all-ones entry-header gate, signature-last
++	  commit, full local readback, two-write ceiling, and no-clear/no-retry
++	  policy.
++
++	  The observer still makes exactly one protected clock read and zero
++	  BigiDVFS reads. This mode adds no caller, transport operation, secure
++	  call, owner registration, CPU request, storage, reset, or power action.
++	  If unsure, say N.
++
+ config PSTORE_GEMINI_PROTECTED_READBACK_LEDGER
+ 	bool "Gemini protected-readback retained call ledger"
+ 	depends on PSTORE_RAM=y
+diff --git a/fs/pstore/gemini_protected_readback_ledger.c b/fs/pstore/gemini_protected_readback_ledger.c
+index d79e16e..be82544 100644
+--- a/fs/pstore/gemini_protected_readback_ledger.c
++++ b/fs/pstore/gemini_protected_readback_ledger.c
+@@ -14,7 +14,8 @@
+ #define GEMINI_PRB_RESERVE_SIZE		0x000e0000ULL
+ #define GEMINI_PRB_SLOT_SIZE		0x00001000UL
+ #if defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION) || \
+-	defined(CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_FIRST_DMESG_ENTRY_QUALIFICATION)
++	defined(CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_FIRST_DMESG_ENTRY_QUALIFICATION) || \
++	defined(CONFIG_PSTORE_GEMINI_PROTECTED_CLOCK_FIRST_DMESG_CALL_QUALIFICATION)
+ #define GEMINI_PRB_LEDGER_BASE		GEMINI_PRB_RESERVE_BASE
+ #ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION
+ #define GEMINI_PRB_SLOT_COUNT		1
+@@ -141,7 +142,16 @@ static void gemini_prb_capture_map_control(void __iomem *ledger)
+ 
+ static bool gemini_prb_armed;
+ 
+-#ifdef CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_FIRST_DMESG_ENTRY_QUALIFICATION
++#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_CLOCK_FIRST_DMESG_CALL_QUALIFICATION
++static const char * const gemini_prb_records[] = {
++	"====0.000000-D\n"
++	"GEMINI_PROTECTED_CLOCK_FIRST_DMESG_V1 token=GPCF-20260823-A "
++	"checkpoint=before-clock slot=1 crc32=183854b2\n",
++	"====0.000000-D\n"
++	"GEMINI_PROTECTED_CLOCK_FIRST_DMESG_V1 token=GPCF-20260823-A "
++	"checkpoint=after-clock slot=2 crc32=d14b85aa\n",
++};
++#elif defined(CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_FIRST_DMESG_ENTRY_QUALIFICATION)
+ static const char * const gemini_prb_records[] = {
+ 	"====0.000000-D\n"
+ 	"GEMINI_CLOCK_BACKEND_FIRST_DMESG_V1 token=GCBF-20260823-A "

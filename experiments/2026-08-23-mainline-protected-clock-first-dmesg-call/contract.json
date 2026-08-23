@@ -13,7 +13,14 @@
   },
   "patch_generation": {
     "backend": "buildbox",
+    "repository_commit": "0e84916b3f20a6d422baebf0ad1387e95e1fb4c5",
+    "parent_commit": "753efdf255c90e7a556bb0d88d3c113cc65c3f2e",
+    "result_commit": "1dd2f7f257a9deca0acc40264ae3686f39c2f45a",
     "expected_patch": "patches/v7.1.3/0336-pstore-qualify-Gemini-protected-clock-call-in-first-dmesg.patch",
+    "patch_sha256": "97394ab84b4f0fc68f69388a8456a6f82321f2597405b9f23c253949ecf7033f",
+    "bundle_manifest_sha256": "cae56d8a4ec3c491128c81255e57feefa08d7742f6c13fc7353f68e40a564844",
+    "checkpatch": "0 errors, 0 warnings, 0 checks",
+    "intentional_checkpatch_ignore": "SPLIT_STRING-for-one-atomic-retained-record",
     "edited_files": [
       "fs/pstore/Kconfig",
       "fs/pstore/gemini_protected_readback_ledger.c"
@@ -21,6 +28,16 @@
     "new_writer": false,
     "new_call_site": false,
     "device_access": false,
+    "boot_candidate": false
+  },
+  "offline_definition": {
+    "profile": "da921x-protected-clock-first-dmesg-call",
+    "fragment": "configs/gemini-protected-clock-first-dmesg-call.fragment",
+    "clock_backend_compiled": true,
+    "bigidvfs_backend_compile_dependency_only": true,
+    "candidate_clock_node": "enabled",
+    "candidate_bigidvfs_node": "disabled",
+    "candidate_observer_node": "enabled",
     "boot_candidate": false
   },
   "ledger": {
