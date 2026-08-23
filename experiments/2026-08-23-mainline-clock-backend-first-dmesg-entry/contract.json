@@ -92,6 +92,7 @@
     "serviceability_clock_dtb_sha256": "7c1d5f69924a8280e36ff111b411c4fbecd32243e8d0da9e9f6f4b333a21e100",
     "raw_container_sha256": "251e792573bd9961d3f2b90563cff85d851c6502008d97e1ae502fbacda49b83",
     "padded_boot2_sha256": "40b7c663b835bcf4c48f4149f14aa416343e3e322ab78a0aa38448afff9455b4",
+    "artifact_manifest_sha256": "e19c8662b9e9f848bde83a9bd64e076b121c0bb6dcc43f9890404888e4b14243",
     "boot_candidate": true
   },
   "decision": {

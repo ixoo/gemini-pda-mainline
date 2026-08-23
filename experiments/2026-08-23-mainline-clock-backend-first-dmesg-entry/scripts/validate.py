@@ -17,6 +17,12 @@ PROFILE = "da921x-clock-entry-first-dmesg"
 PARENT = "da921x-current-service-control"
 SYMBOL = "PSTORE_GEMINI_CLOCK_BACKEND_FIRST_DMESG_ENTRY_QUALIFICATION"
 PREFIX = "GEMINI_CLOCK_BACKEND_FIRST_DMESG_V1 token=GCBF-20260823-A"
+SOURCE_ARTIFACT_MANIFEST_SHA256 = (
+    "d6df5940e4b6f471363bb853c9be14679b4d8934055f15a90de5b31c5b42b945"
+)
+ARTIFACT_MANIFEST_SHA256 = (
+    "e19c8662b9e9f848bde83a9bd64e076b121c0bb6dcc43f9890404888e4b14243"
+)
 CANDIDATE = {
     "repository_commit": "d8d98fccee89a77fd5a6bc1da3f55cb3d1366b60",
     "package": "linux-7.1.3-gemini-da921x-clock-entry-first-dmesg-104d4497-aae6ea5f",
@@ -27,6 +33,7 @@ CANDIDATE = {
         "251e792573bd9961d3f2b90563cff85d851c6502008d97e1ae502fbacda49b83",
     "padded_boot2_sha256":
         "40b7c663b835bcf4c48f4149f14aa416343e3e322ab78a0aa38448afff9455b4",
+    "artifact_manifest_sha256": ARTIFACT_MANIFEST_SHA256,
     "boot_candidate": True,
 }
 
@@ -99,6 +106,7 @@ def main() -> None:
     manifest = json.loads((ROOT / "kernel/manifest.json").read_text(encoding="utf-8"))
     patch_path = ROOT / PATCH_REL
     patch = patch_path.read_text(encoding="utf-8")
+    installer = (EXPERIMENT / "scripts/install-boot2.sh").read_text(encoding="utf-8")
     fragment = (ROOT / FRAGMENT_REL).read_text(encoding="utf-8")
     series = (ROOT / "patches/series").read_text(encoding="utf-8").splitlines()
 
@@ -121,6 +129,13 @@ def main() -> None:
     require(contract["scope"]["mapped_mmio_transactions"] == 0,
             "MMIO-transaction scope opened")
     require(contract["candidate"] == CANDIDATE, "candidate admission changed")
+    manifest_replacement = (
+        f'        "{SOURCE_ARTIFACT_MANIFEST_SHA256}",\n'
+        f'        "{ARTIFACT_MANIFEST_SHA256}",\n'
+        "        1,\n"
+    )
+    require(installer.count(manifest_replacement) == 1,
+            "installer does not pin the exact candidate artifact manifest")
     require(contract["scope"]["boot_candidate"] is True,
             "scope does not admit the exact candidate")
     validate_patch_text(patch)

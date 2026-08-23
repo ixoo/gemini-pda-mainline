@@ -32,6 +32,9 @@ RAMDISK_SHA256 = "e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc
 DTB_SHA256 = "7c1d5f69924a8280e36ff111b411c4fbecd32243e8d0da9e9f6f4b333a21e100"
 RAW_SHA256 = "251e792573bd9961d3f2b90563cff85d851c6502008d97e1ae502fbacda49b83"
 PADDED_SHA256 = "40b7c663b835bcf4c48f4149f14aa416343e3e322ab78a0aa38448afff9455b4"
+ARTIFACT_MANIFEST_SHA256 = (
+    "e19c8662b9e9f848bde83a9bd64e076b121c0bb6dcc43f9890404888e4b14243"
+)
 BOOT_FILE = "gemini-mt6797-clock-entry-first-dmesg.boot.img"
 FILES = {
     "boot2-padded.img",
@@ -196,7 +199,10 @@ def mutation_rejected(dtb: Path, mutation: list[str]) -> bool:
 
 
 def verify_manifest(candidate: Path) -> None:
-    lines = (candidate / "SHA256SUMS").read_text(encoding="ascii").splitlines()
+    manifest = candidate / "SHA256SUMS"
+    require(digest(manifest.read_bytes()) == ARTIFACT_MANIFEST_SHA256,
+            "candidate manifest identity changed")
+    lines = manifest.read_text(encoding="ascii").splitlines()
     seen: set[str] = set()
     for line in lines:
         expected, name = line.split(maxsplit=1)
@@ -379,6 +385,7 @@ def main() -> None:
     print(f"kernel_release={RELEASE}")
     print(f"candidate_sha256={RAW_SHA256}")
     print(f"padded_sha256={PADDED_SHA256}")
+    print(f"artifact_manifest_sha256={ARTIFACT_MANIFEST_SHA256}")
     print(f"dtb_sha256={DTB_SHA256}")
     print("lk_gates=32-of-32")
     print(f"negative_dtb_mutations_rejected={rejected}")

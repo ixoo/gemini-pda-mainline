@@ -122,10 +122,11 @@ The exact serviceability-plus-clock DT is independently reproducible. Two raw
 container assemblies and two padding constructions are byte-identical; all 32
 LK gates pass, and the independent candidate validator rejects all 16 unsafe
 DT mutations. The admitted raw container is `251e7925...49b83`; its exact
-16 MiB `boot2` form is `40b7c663...455b4`. Live and retained-result validators
-accept only the exact read-free probe-complete result and reject 24 unsafe live
-plus 12 unsafe retained mutations. No device access or hardware write occurred
-during admission. See the [build result](results/build-d8d98fc-success.txt),
+16 MiB `boot2` form is `40b7c663...455b4`, and its artifact manifest is
+`e19c8662...14243`. Live and retained-result validators accept only the exact
+read-free probe-complete result and reject 24 unsafe live plus 12 unsafe
+retained mutations. No device access or hardware write occurred during
+admission. See the [build result](results/build-d8d98fc-success.txt),
 [candidate admission](results/candidate-admission-251e7925.txt), and
 [runtime-tool preflight](results/runtime-tooling-preflight-20260823.txt).
 
@@ -137,3 +138,10 @@ and became unreachable, preserving the no-clear/no-overwrite rule. The next
 action is one ordinary cold Gemian start, followed by the same guarded install
 once both record headers are freshly empty. See the
 [preflight refusal](results/deployment-preflight-1-stale-record-refusal-20260823.txt).
+
+The next cold Gemian preflight proved both retained headers exactly empty, but
+the installer refused before its partition writer because its wrapper had
+mistakenly pinned the raw-container checksum as the artifact-manifest checksum.
+`boot2` remained the predecessor. The wrapper now pins the independently
+validated manifest identity, and the definition plus candidate validators
+enforce that relationship. See the [manifest-pin refusal](results/deployment-preflight-2-installer-manifest-pin-refusal-20260823.txt).
