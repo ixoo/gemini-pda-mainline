@@ -1,0 +1,30 @@
+Manual checkpoint raw-write qualification Buildbox build
+========================================================
+
+Result: pass
+Device access: none
+Hardware write: none
+Native VM build: none
+
+Repository commit: 24f0a696e1cedbf80f382ca04e9d812254c7e18f
+Buildbox job: 24f0a696e1cedbf80f382ca04e9d812254c7e18f-da921x-manual-checkpoint-raw-write-m0
+Build backend: buildbox
+Build profile: da921x-manual-checkpoint-raw-write
+Kernel release: 7.1.3-gemini-checkpoint-raw-write
+Package: linux-7.1.3-gemini-da921x-manual-checkpoint-raw-write-998c2550-6b67b930
+Generated UTC: 2026-08-23T00:41:15Z
+
+Image SHA-256: bf1b3fb57605fb207d2bf2cd9a8cc98c7127327195dc4d14a78169e6f58db715
+Image.gz SHA-256: 0c9b5db9fdadeb0c32d93a23bc6f8cbab0b50bf095a86ed05c19283e13e951f6
+Configuration SHA-256: ce61fec47cba4ab06f176aa68956aad81951b9f7b208e80a4f85a3b38f379341
+System.map SHA-256: 85805de3dab0fa0a9e4595cb4e4123f3a4cc17c145271e663bb6359711d53613
+Build JSON SHA-256: 1bd62a99576b8746b68caf2ba71e4cefbc7c2b156d439475a173ab199907f4f3
+Package SHA256SUMS SHA-256: 579cedd1396c4b86b9e9c9600ca9feab3590c59852db19fcec059cf2ff8435cd
+Source SHA-256: be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+Patchset SHA-256: 998c25502319902d12381cb2be50867f588bf193387d452d4af1c4c3a43a531b
+Configuration-input SHA-256: 6b67b930274024c6ca6929a056dac70b65b0fb3d74deb71bbb13da9a4c8e397f
+
+Buildbox fetched the clean pushed commit, applied the 321 selected canonical
+patches including patch 0332, compiled the kernel and DTBs, packaged the exact
+24-fragment profile, and passed its complete SHA256SUMS inventory. No source
+tree was copied to or from Buildbox; only the validated package was fetched.

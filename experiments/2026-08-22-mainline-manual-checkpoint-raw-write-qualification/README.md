@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-22-mainline-manual-checkpoint-raw-write-qualification` |
-| Status | defined; Buildbox build and device attempt pending |
+| Status | exact Buildbox candidate admitted; one device attempt pending |
 | Subsystem | retained ramoops record writer / cross-version recovery |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-22 America/New_York |
@@ -63,6 +63,34 @@ admission remain closed.
 - `contract.json`
 - `scripts/validate.py`
 - `scripts/test-validate.py`
+- `scripts/build-serviceability-dtb.sh`
+- `scripts/build-candidate.sh`
+- `scripts/test-candidate.sh`
+- `scripts/install-boot2.sh`
+- `scripts/collect-runtime.sh`
+- `scripts/remote-runtime-probe.sh`
+- `scripts/validate-runtime.py`
+- `scripts/validate-retained.py`
+- `scripts/test-runtime-tools.py`
+
+## Admitted candidate
+
+- Repository build commit: `24f0a696e1cedbf80f382ca04e9d812254c7e18f`
+- Buildbox job:
+  `24f0a696e1cedbf80f382ca04e9d812254c7e18f-da921x-manual-checkpoint-raw-write-m0`
+- Package:
+  `linux-7.1.3-gemini-da921x-manual-checkpoint-raw-write-998c2550-6b67b930`
+- Raw Android-v0 image SHA-256:
+  `6a2f698fe05a67a96ccb8ff282ac62668170e229125fe3ddeae3257ac135adf3`
+- Exact 16 MiB boot2 SHA-256:
+  `c10f2c03490fe1aa8ded11895a2d1817dd649edaffa307d0635fe2d69ce1c631`
+
+The fetched package passed its complete checksum inventory. Two independent DT
+constructions, raw assemblies, and padding constructions were byte-identical;
+all 32 LK gates passed; 15 DT mutations, 24 unsafe live mutations, and 9 unsafe
+retained-recovery mutations were rejected offline. The guarded installer still
+must resolve the live GPT and pass every inactive-target, geometry, power,
+write, readback, and shutdown gate before this candidate is selectable.
 
 ## Procedure
 
@@ -96,8 +124,9 @@ No branch authorizes a protected clock call or CPU8/CPU9 admission.
 
 ## Conclusion
 
-Pending build and runtime evidence. This definition makes no hardware-support
-claim and does not open CPU8 or CPU9 admission.
+The exact candidate is built and independently admitted. Runtime evidence is
+pending one guarded deployment and one physical boot2 selection. This makes no
+hardware-support claim and does not open CPU8 or CPU9 admission.
 
 ## Follow-up
 

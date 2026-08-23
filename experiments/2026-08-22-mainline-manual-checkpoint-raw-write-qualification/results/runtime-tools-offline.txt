@@ -1,0 +1,20 @@
+Manual checkpoint raw-write qualification runtime tools
+=======================================================
+
+Result: pass
+Device access: none
+Hardware write: none
+
+Exact live results accepted: 1
+Unsafe live mutations rejected: 24
+Independent retained recovery forms accepted: 2
+Unsafe retained recovery mutations rejected: 9
+
+The live classifier requires the exact padded candidate, release,
+serviceability state, CPU closure, one control marker, one stage marker, and
+one raw-write success marker. The retained classifier requires a changed-ID
+known-good Gemian capture bound to the exact boot2 checksum and accepts only
+the exact `manual-first` record from slot 173, either in bounded pstore payload
+or in a Gemian-normalized direct slot. It rejects an empty recovery, any second
+record, foreign or duplicate records, unsafe target identity, malformed
+encoding, memory writes, and partition writes.

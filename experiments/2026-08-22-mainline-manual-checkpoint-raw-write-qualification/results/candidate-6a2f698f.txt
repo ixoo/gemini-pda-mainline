@@ -1,0 +1,69 @@
+Manual checkpoint raw-write qualification candidate
+===================================================
+
+Result: pass
+Boot candidate: yes
+Device access: none
+Hardware write: none
+Native VM build: none
+
+Exact identities
+----------------
+
+Repository build commit: 24f0a696e1cedbf80f382ca04e9d812254c7e18f
+Buildbox job: 24f0a696e1cedbf80f382ca04e9d812254c7e18f-da921x-manual-checkpoint-raw-write-m0
+Build profile: da921x-manual-checkpoint-raw-write
+Kernel release: 7.1.3-gemini-checkpoint-raw-write
+Package: linux-7.1.3-gemini-da921x-manual-checkpoint-raw-write-998c2550-6b67b930
+Image SHA-256: bf1b3fb57605fb207d2bf2cd9a8cc98c7127327195dc4d14a78169e6f58db715
+Image.gz SHA-256: 0c9b5db9fdadeb0c32d93a23bc6f8cbab0b50bf095a86ed05c19283e13e951f6
+Serviceability DTB SHA-256: b638674b9be209219d51b7dd02538f7a0bc8b402bab7336188cb95011cd912dd
+Configuration SHA-256: ce61fec47cba4ab06f176aa68956aad81951b9f7b208e80a4f85a3b38f379341
+System.map SHA-256: 85805de3dab0fa0a9e4595cb4e4123f3a4cc17c145271e663bb6359711d53613
+Serviceability ramdisk SHA-256: e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f
+
+Raw file: gemini-mt6797-manual-checkpoint-raw-write.boot.img
+Raw size: 6,895,616
+Raw SHA-256: 6a2f698fe05a67a96ccb8ff282ac62668170e229125fe3ddeae3257ac135adf3
+Padded size: 16,777,216
+Padded SHA-256: c10f2c03490fe1aa8ded11895a2d1817dd649edaffa307d0635fe2d69ce1c631
+Candidate SHA256SUMS SHA-256: 65c6c3a48c2cbef17f48e816d7d05a5c6c03adf0eee1bbbe6ea4587ed099385e
+
+Validation
+----------
+
+- Complete fetched-package checksum inventory: pass
+- Two independent serviceability DT constructions: byte-identical
+- Two independent raw Android-v0 assemblies: byte-identical
+- Two independent 16 MiB padding constructions: byte-identical
+- LK Android-v0 gates: 32 of 32
+- Independent negative DT mutations rejected: 15
+- Definition source/configuration mutations rejected: 12
+- Exact one-record live result accepted offline: 1
+- Unsafe live runtime mutations rejected: 24
+- Independent retained-recovery forms accepted offline: 2
+- Unsafe retained recovery mutations rejected: 9
+- Historical control, stage, and raw-write markers: exact once each
+- Unused second-record text: absent after compiler reachability reduction
+- Retained writes: exactly one
+- Full local readbacks: exactly one
+- Clock, BigiDVFS, protected observer/transport, DA921x action, and CPU requests: absent
+- CPU8/CPU9 admission: closed
+
+Tool identities
+---------------
+
+DT builder: 9095b2b724043b84120f037197a58381d9f2998091c69900e8e78d3f19d14ae1
+Candidate builder: 656c57cbd4d33da0b10a65a0cffc2baf55e25be092805334350268cc364938fc
+Independent candidate validator: c37b04a81ab1eab765bcb3fa7f6b258777ad4a28d137b5963ea15fbc22c08812
+Guarded installer: 08ca1ee8627b723452e7634503202476cfb3c504d4557abef4f739fdddd7df93
+Runtime collector: 4c7e39c15c672767f2b19f928318e6bd0e77ebf880a13dcc2804d2365c56e876
+Remote probe: e4ece8ef8aab1b13cefbeee12dcfdf9e1fa39a03e24f69ef95185c9ced2a6aa3
+Live validator: e37b3dedc7897037fa76954e02c6d4175f3067b68b35dab2126bcbd520b893a5
+Retained validator: 959bdc19902b158aa130719ccabe6ce0140bbc4432397c76c9da1b9e9b7d1e4f
+Runtime offline tests: 8904209b72a9ae5981ef274766b7021a3d33ac5f15628b46f8ee85a3d20b40ce
+
+The single live attempt must preserve exact identity and serviceability and
+report `commit=1 stage=success writes=1 protected=0 clock=0 bigidvfs=0 cpu=0`.
+Only then may the observer request one native reboot and require changed-ID
+Gemian recovery of `manual-first` from owned record 173.
