@@ -268,8 +268,7 @@ static void direct_source_mutations_rejected(struct kunit *test)
 	     mutation <= DIRECT_MUTATION_BIGIDVFS_GENERATION; mutation++) {
 		state->mutation = mutation;
 		memset(&observed, 0xa5, sizeof(observed));
-		ret = mt6797_a72_direct_state_test_snapshot(&topology,
-						     &observed);
+		ret = mt6797_a72_direct_state_test_snapshot(&topology, &observed);
 		KUNIT_EXPECT_EQ_MSG(test, ret, -EPROTO,
 				    "mutation %u accepted", mutation);
 		expect_zero(test, &observed);
@@ -310,8 +309,7 @@ static void direct_topology_mutations_rejected(struct kunit *test)
 			break;
 		}
 		memset(&observed, 0xa5, sizeof(observed));
-		ret = mt6797_a72_direct_state_test_snapshot(&topology,
-						     &observed);
+		ret = mt6797_a72_direct_state_test_snapshot(&topology, &observed);
 		KUNIT_EXPECT_EQ_MSG(test, ret, -EPERM,
 				    "topology field %u accepted", index);
 		expect_zero(test, &observed);

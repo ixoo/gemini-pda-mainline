@@ -85,6 +85,9 @@ must leave the A72 owner byte-identical and still `CLOSED / UNINITIALIZED`.
 - Buildbox submission `bc774b52` passed semantics and replay; strict
   checkpatch found one remaining continuation-column mismatch in the public
   registration prototype. That exact whitespace is corrected.
+- Buildbox submission `46a5dac3` proved the core patch strict-clean and found
+  only two continuation-column checks in the KUnit patch. Both short calls are
+  now kept on one line.
 
 No generated patch, compile, or KUnit result exists yet. Repository-side
 definition validation remains the current phase.
