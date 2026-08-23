@@ -23,12 +23,18 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-23 mainline A72 direct-state compositor audit](2026-08-23-mainline-a72-direct-state-compositor-audit/README.md)
+  — confirms that no current path holds both the Linux CPU-hotplug lock and
+  the A72 membership transition lock across DA921x, platform, protected-clock,
+  BigiDVFS, generic-CPU, and Linux-owner state. It selects a default-off,
+  hardware-free injected source registry plus one owner-held complete-record
+  snapshot; A34 publication, hardware operations, and CPU8/CPU9 stay closed.
 - [2026-08-23 protected clock call in first dmesg](2026-08-23-mainline-protected-clock-first-dmesg-call/README.md)
-  — admits the next single-transaction gate: relocate the existing clock-only
-  observer's `before-clock` and `after-clock` checkpoints to recoverable first-
-  dmesg records 1 and 2. The admitted patch adds no writer or caller; the
-  eventual candidate permits one protected clock call, zero BigiDVFS
-  calls, no retry, and no CPU request.
+  — exact attempt 1 passed one handoff-owned ABI-2/generation-1 clock snapshot
+  with sole CSPM/MCUMIXED ownership and full serviceability. Exact before/after
+  records were recovered through pstore and direct retained RAM after the
+  native Gemian return; BigiDVFS, retries, writes, and CPU requests stayed
+  absent.
 - [2026-08-23 clock-backend CSPM coexistence](2026-08-23-mainline-clock-backend-cspm-coexistence/README.md)
   — defines the single-owner successor: the handoff retains CSPM, the clock
   backend keeps only MCUMIXED and consumes a transfer-lease-serialized handoff

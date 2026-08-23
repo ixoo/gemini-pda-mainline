@@ -4904,7 +4904,10 @@ The next ordered work is:
    CPU request.~~ Passed on the named device with ABI 2/generation 1 and exact
    live plus retained evidence; BigiDVFS remained disabled.
 2. Compose the validated readers, DA921x, and the platform-state source under
-   one transition/hotplug owner.
+   one transition/hotplug owner. The source/lock audit selects the Linux
+   CPU-hotplug read lock followed by the existing A72 membership transition
+   lock as the outer boundary; the first implementation is a default-off,
+   hardware-free injected compositor with A34 and all hardware effects closed.
 3. Revise A34 to accept only the complete direct-state ABI and applicable
    BL31 replay-clear contract, prove the atomic `CLOSED / UNINITIALIZED` to
    `AVAILABLE / IDLE` publication, and keep both CPU vetoes closed until that

@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-23-mainline-a72-direct-state-compositor-audit",
+  "repository_commit": "cb24e51645bc84ab3e1754de0ea529093458db4a",
+  "canonical_parent": "patches/v7.1.3/0336-pstore-qualify-Gemini-protected-clock-call-in-first-dmesg.patch",
+  "prepared_source_state": "e321876084d9f2250fbb0a76e5deded87499e65d7c131daa5117023275d3e30b",
+  "prepared_source_integrity": "56230cbfa53d3ba7de0d214ce74848baa2d8a05ba401c4a9b5fa9105f7938af4",
+  "source_files": {
+    "arch/arm64/kernel/mt6797_a72_membership.c": "45a55d0351e8999fa569afdc87942f6857a7b8b22dd7b4d7eeafe103bb09ee65",
+    "arch/arm64/include/asm/mt6797_a72_membership.h": "eb89649b8fe956f5ce9b8f5b1084f65dce66f70392a883ca7b7ea473de697ef7",
+    "include/linux/mt6797-a72-provider.h": "f3f2d8dfcf992d379e1ce249e08eb15b3c0215a20e7c548b8849bd1bb44db275",
+    "include/linux/soc/mediatek/mt6797-a72-platform-state.h": "1131bce832164f6b9b8e4849bdcdf6345960e07a1e6e4d1b3dbece5c3ff24b90",
+    "include/linux/soc/mediatek/mt6797-dvfsp-clock-backend.h": "f13b88cd262f476e8ac0e55fda3cdf115041dabefa69a5ff5e3ca8c1dcc8bcf5",
+    "include/linux/soc/mediatek/mt6797-bigidvfs-backend.h": "ba3430ec9e3fe54448d1c93ed744ae06e4b5c6113f800de03226105fc26f3329"
+  },
+  "existing_readers": {
+    "da921x": "mt6797_a72_provider_snapshot",
+    "platform": "mt6797_a72_platform_state_snapshot",
+    "clock": "mt6797_dvfsp_clock_backend_read",
+    "bigidvfs": "mt6797_bigidvfs_backend_read"
+  },
+  "selected_owner": {
+    "hotplug_lock": "cpus_read_lock",
+    "transition_lock": "a72_transition_lock",
+    "owner_state_lock": "a72_state_lock",
+    "source_registry": "single-callback-held-through-snapshot",
+    "publication": "local-complete-record-only",
+    "failure_output": "all-zero"
+  },
+  "rejected_owners": [
+    "independent-probe-time-reader-calls",
+    "mt6797_a72_membership_snapshot-alone",
+    "reader-local-locks-alone",
+    "mt6797_dvfsp_resource_owner-transition-lock-alone"
+  ],
+  "first_implementation": {
+    "default_off": true,
+    "hardware_free": true,
+    "injected_source": true,
+    "a34_abi_change": false,
+    "lifecycle_publication": false,
+    "dt_enablement": false,
+    "hardware_operation": false,
+    "cpu_request": false,
+    "device_action": false
+  }
+}
