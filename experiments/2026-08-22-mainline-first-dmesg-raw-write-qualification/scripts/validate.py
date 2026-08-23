@@ -185,7 +185,7 @@ def main() -> None:
     print("cpu8_cpu9_admission=closed")
     print("device_access=none")
     print("hardware_write=none")
-    print("boot_candidate=false")
+    print(f"boot_candidate={str(contract['candidate']['boot_candidate']).lower()}")
     print("result=pass")
 
 

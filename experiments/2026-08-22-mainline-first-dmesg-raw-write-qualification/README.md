@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-22-mainline-first-dmesg-raw-write-qualification` |
-| Status | corrected after pre-compile Kconfig rejection; Buildbox retry pending |
+| Status | exact candidate admitted; boot2 deployment pending |
 | Subsystem | retained ramoops writer / downstream dmesg enumeration |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-22 America/New_York |
@@ -66,6 +66,15 @@ CPU9 admission remain closed.
 - `contract.json`
 - `scripts/validate.py`
 - `scripts/test-validate.py`
+- `scripts/build-serviceability-dtb.sh`
+- `scripts/build-candidate.sh`
+- `scripts/test-candidate.sh`
+- `scripts/install-boot2.sh`
+- `scripts/remote-runtime-probe.sh`
+- `scripts/validate-runtime.py`
+- `scripts/validate-retained.py`
+- `scripts/collect-runtime.sh`
+- `scripts/test-runtime-tools.py`
 
 ## Procedure
 
@@ -118,9 +127,26 @@ option while the new option still excludes the historical mode and its profile
 explicitly disables it. No binary or candidate was produced. See the
 [failed build result](results/build-dd9b3ec-kconfig-recursion.txt).
 
-The corrected definition is not yet a boot candidate and makes no
-hardware-support claim.
+The corrected commit `41a7b69` built successfully on Buildbox as exact release
+`7.1.3-gemini-checkpoint-first-dmesg`. The fetched package passes its complete
+checksum manifest. Two independent serviceability-DT constructions are
+byte-identical to runtime-proven SHA-256 `b638674b...12dd`.
+
+Two independent Android-v0 assemblies and two independent padding methods are
+byte-identical. The raw container is 6,895,616 bytes with SHA-256
+`bcb8b61a...e5b5c`; the exact 16 MiB `boot2` payload is
+`b96ec109...9e96`. Independent admission passes all 32 LK gates, rejects 15
+DT/container mutations, and confirms the exact configuration, unique record
+and live markers, writer symbols, zero protected-call paths, and closed CPU8/9
+admission. The candidate is admitted for one physical `boot2` selection; this
+does not yet make a hardware-support claim. See the
+[Buildbox result](results/build-41a7b69-success.txt) and
+[candidate admission](results/candidate-admission-bcb8b61a.txt).
 
 ## Follow-up
 
-The ordered successor after this qualification is owned by Roadmap Gate 7.
+Install the exact admitted padded image to live-resolved inactive `boot2`, shut
+the device down, pre-arm the observer, and spend one physical selection. The
+changed-ID result chooses between a protected-call successor and a remaining
+Gemian pstore/backend recovery investigation. The ordered successor after this
+qualification remains owned by Roadmap Gate 7.

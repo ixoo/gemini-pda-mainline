@@ -64,6 +64,20 @@
     "cpu_offline": "8-9",
     "native_reboot": "only_after_exact_live_attribution"
   },
+  "candidate": {
+    "repository_commit": "41a7b69627338277e5b53216a68d26c71b504d21",
+    "package": "linux-7.1.3-gemini-da921x-first-dmesg-raw-write-57033d7a-b9dfdf4b",
+    "image_sha256": "42b2240c843b72a47b7534721fd47b5d9c88420c2d2e31e007133d8bc3e483e8",
+    "image_gzip_sha256": "d03e492461ebeba59a6d473c6cca1f1e1a5cc6781608634e006af6e6e6432d04",
+    "serviceability_dtb_sha256": "b638674b9be209219d51b7dd02538f7a0bc8b402bab7336188cb95011cd912dd",
+    "raw_container_sha256": "bcb8b61a74b6209bda287df0f949ad24344a8edc40bf28e8cb8c829c506e5b5c",
+    "raw_container_size": 6895616,
+    "padded_boot2_sha256": "b96ec109b3f020fdaf0cdc6ca1733d012051e6607b5520a11d32a6441f569e96",
+    "padded_boot2_size": 16777216,
+    "lk_gates": "32-of-32",
+    "independent_validation": "pass",
+    "boot_candidate": true
+  },
   "decision": {
     "live_success_and_pstore_record_recovered": "raw_writer_warm_retention_and_cross_version_enumeration_pass",
     "live_success_and_direct_record_only": "recovery_service_or_backend_enumeration_remains",
@@ -83,6 +97,6 @@
     "cpu_off": false,
     "owner_registration": false,
     "automatic_retry": false,
-    "boot_candidate": false
+    "boot_candidate": true
   }
 }
