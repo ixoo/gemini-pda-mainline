@@ -15,8 +15,9 @@
 ## Question or hypothesis
 
 Which existing lock can honestly own a combined DA921x, protected-clock,
-BigiDVFS, platform-state, generic-CPU, and Linux-owner snapshot, and what
-smallest new boundary is required before A34 can consume it?
+BigiDVFS, and platform-state snapshot while the Linux A72 owner remains closed
+and CPU8/CPU9 hotplug is excluded, and what smallest new boundary is required
+before A34 can consume it?
 
 The hypothesis is that the existing A72 membership owner must be the outer
 owner because it alone can serialize its transaction state with CPU8/CPU9
@@ -76,8 +77,9 @@ python3 experiments/2026-08-23-mainline-a72-direct-state-compositor-audit/script
    each lock excludes.
 4. Compare the A72 membership transition lock and Linux CPU-hotplug lock with
    the independent DVFSP resource-owner lock.
-5. Freeze one outer-owner and callback contract that composes the readers
-   without changing A34 or enabling a hardware path.
+5. Freeze one outer-owner and callback contract that composes the four
+   physical readers plus the A72 owner and CPU8/CPU9 mask predicate without
+   changing A34 or enabling a hardware path.
 6. Run the offline validator and record the exact result.
 
 ## Observations
@@ -96,7 +98,10 @@ python3 experiments/2026-08-23-mainline-a72-direct-state-compositor-audit/script
   membership owner, and its device tuple requires unrelated thermal and
   calibration sources.
 - No current call path holds the CPU-hotplug lock and `a72_transition_lock`
-  while consuming all four owner-local readers and the generic/Linux state.
+  while consuming all four owner-local readers and the A72 owner state.
+- The exact CPUHP state is private to `kernel/cpu.c`; no current exported
+  getter can honestly add it to this compositor. P30 and the applicable BL31
+  replay-clear proof also have separate owners.
 
 The exact source hashes and lock decision are in the
 [source/lock receipt](results/source-lock-audit-20260823.txt).
@@ -112,10 +117,16 @@ samples.
 The smallest honest implementation is a default-off source registry plus one
 snapshot entry point in the A72 membership owner. That entry point takes the
 CPU-hotplug read lock, then `a72_transition_lock`, invokes one registered
-hardware-only compositor into local storage, captures the generic and Linux
-owner state, validates the complete record, and publishes it only at the end.
-The first implementation is hardware-free and injected; the later platform
-binding may call the already-existing readers in the frozen order.
+hardware-only compositor into local storage, captures the A72 owner plus
+CPU8/CPU9 possible/present/offline predicate, validates the complete record,
+and publishes it only at the end. The first implementation is hardware-free
+and injected; the later platform binding may call the already-existing
+readers in the frozen order.
+
+The internal CPUHP states, complete P30 record, generic topology identity, and
+applicable BL31 replay-clear proof are deliberately deferred to the separate
+A34 ABI/publication gate. This audit does not invent a getter or copy a caller-
+supplied constant for any of them.
 
 This does not prove that separately timed physical fields equal the historical
 reference tuple. It defines who may take that measurement and how project-
@@ -127,16 +138,17 @@ reader failures and platform change detection.
 
 `confirmed`: the A72 membership owner, nested inside the Linux CPU-hotplug
 read lock, is the only current ownership boundary suitable for the complete
-direct-state snapshot.
+physical direct-state snapshot.
 
 `rejected`: independent probe-time reads, `mt6797_a72_membership_snapshot()`
 alone, local reader mutexes alone, or the separate DVFSP resource-owner mutex
 as A34 atomicity.
 
 `selected`: add a default-off, hardware-free, injected direct-state source
-registry and owner-held snapshot entry point. It must retain exact zero-on-
-failure semantics and must not revise A34, publish `AVAILABLE / IDLE`, enable
-a DT node, perform a hardware operation, or request CPU8/CPU9.
+registry and owner-held physical snapshot entry point. It must retain exact
+zero-on-failure semantics and must not revise A34, publish `AVAILABLE / IDLE`,
+invent CPUHP/P30/replay fields, enable a DT node, perform a hardware operation,
+or request CPU8/CPU9.
 
 ## Follow-up
 

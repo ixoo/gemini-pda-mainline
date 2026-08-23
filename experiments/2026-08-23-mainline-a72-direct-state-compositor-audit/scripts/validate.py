@@ -45,6 +45,9 @@ require(implementation["default_off"] and
 for field in ("a34_abi_change", "lifecycle_publication", "dt_enablement",
               "hardware_operation", "cpu_request", "device_action"):
     require(implementation[field] is False, f"forbidden scope opened: {field}")
+for field in ("cpuhp_state_export", "p30_composition",
+              "bl31_replay_composition"):
+    require(implementation[field] is False, f"deferred field opened: {field}")
 
 for text in (readme, design):
     require("cpu_hotplug_lock (read)" in text or "CPU-hotplug read lock" in text,
@@ -55,6 +58,8 @@ for text in (readme, design):
 
 require("current_atomic_compositor=absent" in result,
         "negative source finding is missing")
+require("cpuhp_state_export=absent-deferred-to-a34-revision" in result,
+        "private CPUHP state boundary is missing")
 require("result=confirmed-owner-contract" in result,
         "audit result is not confirmed")
 require("Compose the validated readers" in roadmap,

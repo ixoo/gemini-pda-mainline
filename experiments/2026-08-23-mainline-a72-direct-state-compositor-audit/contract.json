@@ -24,7 +24,7 @@
     "transition_lock": "a72_transition_lock",
     "owner_state_lock": "a72_state_lock",
     "source_registry": "single-callback-held-through-snapshot",
-    "publication": "local-complete-record-only",
+    "publication": "local-complete-physical-record-plus-owner-and-cpu8-cpu9-mask-predicate-only",
     "failure_output": "all-zero"
   },
   "rejected_owners": [
@@ -37,6 +37,9 @@
     "default_off": true,
     "hardware_free": true,
     "injected_source": true,
+    "cpuhp_state_export": false,
+    "p30_composition": false,
+    "bl31_replay_composition": false,
     "a34_abi_change": false,
     "lifecycle_publication": false,
     "dt_enablement": false,

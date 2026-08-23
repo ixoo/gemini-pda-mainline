@@ -44,16 +44,15 @@ CPU-hotplug or A72 transition lock.
 
 ## Publication rule
 
-The caller record is cleared before lookup. All source and generic/Linux
+The caller record is cleared before lookup. All source and A72 owner/mask
 fields are assembled in local storage. The owner publishes only after:
 
 - CPU8 and CPU9 are possible and present but offline;
-- both targets are at `CPUHP_OFFLINE`;
 - the A72 owner is exactly `CLOSED / UNINITIALIZED` with no live controller,
   member, provider hold, attempt, retired transaction, or first fault;
 - every hardware record has its exact ABI, valid bit, generation, reserved,
   and field-shape contract;
-- generic possible, present, and online masks remain exact; and
+- the CPU8/CPU9 possible, present, and online predicates remain exact; and
 - a final owner-state check still matches the initial owner state.
 
 Every error returns a specific errno and leaves the complete caller record
@@ -70,6 +69,15 @@ Registration is not A34 registration and cannot change the A72 owner health,
 phase, blockers, attempt budget, generation, cookie, provider state, or CPU
 admission hooks.
 
+## Deferred A34 fields
+
+This compositor does not publish the private per-CPU CPUHP states, complete
+P30 record, generic topology/method identity, reset/replay authority, or an
+A34 eligibility result. No owner-safe exported CPUHP getter exists in the
+current source. Those fields, their exact owners, and the atomic
+`CLOSED / UNINITIALIZED` to `AVAILABLE / IDLE` publication belong to the
+separate A34 revision after the physical compositor passes.
+
 ## Hardware-free proof matrix
 
 The focused tests must cover:
@@ -78,7 +86,7 @@ The focused tests must cover:
 2. absent and duplicate source registration;
 3. every callback error with a zero destination;
 4. each record ABI, validity, generation, reserved, and shape mutation;
-5. CPU8-online, CPU9-online, and generic mask mutations;
+5. CPU8-online, CPU9-online, and CPU8/CPU9 possible/present mutations;
 6. non-closed owner, live controller, provider hold, transaction, retired
    state, attempt, and first-fault mutations;
 7. callback output mutation after an initial valid fixture;
@@ -87,7 +95,8 @@ The focused tests must cover:
 
 ## Explicit exclusions
 
-No A34 ABI revision, reset/replay classifier, `AVAILABLE / IDLE` publication,
+No A34 ABI revision, CPUHP/P30 getter, reset/replay classifier,
+`AVAILABLE / IDLE` publication,
 blocker clear, provider acquire/release, register read in the first patch,
 MMIO/SMC/I2C operation, retry, poll, setter, DT enablement, CPU veto change,
 CPU_ON, CPU_OFF, boot image, device access, or partition write belongs to the

@@ -26,9 +26,10 @@ the loop. Positive identity-gated observations are unaffected.
 - [2026-08-23 mainline A72 direct-state compositor audit](2026-08-23-mainline-a72-direct-state-compositor-audit/README.md)
   — confirms that no current path holds both the Linux CPU-hotplug lock and
   the A72 membership transition lock across DA921x, platform, protected-clock,
-  BigiDVFS, generic-CPU, and Linux-owner state. It selects a default-off,
-  hardware-free injected source registry plus one owner-held complete-record
-  snapshot; A34 publication, hardware operations, and CPU8/CPU9 stay closed.
+  BigiDVFS, and A72 owner state. It selects a default-off, hardware-free
+  injected source registry plus one owner-held physical snapshot; private
+  CPUHP/P30/replay fields, A34 publication, hardware operations, and CPU8/CPU9
+  stay closed.
 - [2026-08-23 protected clock call in first dmesg](2026-08-23-mainline-protected-clock-first-dmesg-call/README.md)
   — exact attempt 1 passed one handoff-owned ABI-2/generation-1 clock snapshot
   with sole CSPM/MCUMIXED ownership and full serviceability. Exact before/after
