@@ -38,11 +38,15 @@ def main() -> None:
         require(record in header, f"source record missing {record}")
     require("MT6797_A72_DIRECT_STATE_ABI 1" in membership_header,
             "composite ABI")
+    direct_header = membership_header[
+        membership_header.index("#define MT6797_A72_DIRECT_STATE_ABI 1"):
+        membership_header.index("enum mt6797_a72_a34_reset_provenance")
+    ]
     for field in (
         "cpu8_possible", "cpu9_possible", "cpu8_present", "cpu9_present",
         "cpu8_online", "cpu9_online",
     ):
-        require(membership_header.count(f"u32 {field};") == 2,
+        require(direct_header.count(f"u32 {field};") == 2,
                 f"topology/composite field {field}")
 
     start = membership.index(

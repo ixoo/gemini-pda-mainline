@@ -69,8 +69,14 @@ must leave the A72 owner byte-identical and still `CLOSED / UNINITIALIZED`.
 
 ## Observations
 
+- Buildbox submission `bf563205` stopped before patch creation because the
+  source validator counted older `cpu8_online`/`cpu9_online` fields outside
+  the new direct-state ABI. The source editor had completed, but no patch was
+  packaged or admitted.
+- The validator now scopes that count to the direct-state definition itself.
+
 No generated patch, compile, or KUnit result exists yet. Repository-side
-definition validation is the current phase.
+definition validation remains the current phase.
 
 ## Analysis
 
