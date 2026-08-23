@@ -70,7 +70,7 @@ def main() -> None:
         "source->bigidvfs.sample_generation",
     ):
         require(token in direct, f"direct-state requirement {token}")
-    production = direct[direct.index("int mt6797_a72_direct_state_snapshot("):]
+    production = direct[direct.index("mt6797_a72_direct_state_snapshot("):]
     order = [
         production.index("cpus_read_lock();"),
         production.index("mutex_lock(&a72_transition_lock);"),

@@ -79,6 +79,9 @@ must leave the A72 owner byte-identical and still `CLOSED / UNINITIALIZED`.
   `(` and its generic MAINTAINERS warning for new experiment-review files. The
   declarations now use normal kernel continuation style; only the named
   `FILE_PATH_CHANGES` heuristic is ignored during generation.
+- Buildbox submission `0ceb6509` stopped before packaging when the semantic
+  validator still searched for the declaration's old return-type layout. Its
+  production-wrapper anchor now uses the stable function name instead.
 
 No generated patch, compile, or KUnit result exists yet. Repository-side
 definition validation remains the current phase.
