@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-22-mainline-first-dmesg-raw-write-qualification` |
-| Status | prebuild definition validated; Buildbox build pending |
+| Status | corrected after pre-compile Kconfig rejection; Buildbox retry pending |
 | Subsystem | retained ramoops writer / downstream dmesg enumeration |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-22 America/New_York |
@@ -108,8 +108,18 @@ all 114 manifest-profile series invariants, 14 unsafe definition mutations,
 eight invariant-auditor mutations, JSON and whitespace gates, and strict style
 gate with only the policy-required synthetic-signoff and inherited split-string
 diagnostics explicitly excluded. See the
-[prebuild result](results/prebuild-definition-20260822.txt). It is not yet a
-boot candidate and makes no hardware-support claim.
+[prebuild result](results/prebuild-definition-20260822.txt).
+
+The first Buildbox submission of commit `dd9b3ec` stopped during Kconfig before
+compilation because both raw-write options carried reverse negative
+dependencies. Kconfig treats that redundant mutual exclusion as a recursive
+dependency. The correction removes the reverse dependency from the historical
+option while the new option still excludes the historical mode and its profile
+explicitly disables it. No binary or candidate was produced. See the
+[failed build result](results/build-dd9b3ec-kconfig-recursion.txt).
+
+The corrected definition is not yet a boot candidate and makes no
+hardware-support claim.
 
 ## Follow-up
 

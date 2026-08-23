@@ -1,0 +1,26 @@
+First dmesg raw-write qualification Buildbox attempt at dd9b3ec
+Date: 2026-08-22 America/New_York
+
+[identity]
+repository_commit=dd9b3ec6e7f72ef1508958c54ee2061e1ddc1a05
+profile=da921x-first-dmesg-raw-write
+backend=buildbox
+native_vm_build=none
+
+[result]
+source_extraction=completed
+canonical_patches_applied=325
+configuration=failed-before-compilation
+failure=Kconfig-recursive-dependency
+dependency_cycle=PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_RAW_WRITE_QUALIFICATION<->PSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION
+kernel_compilation=not-started
+package=none
+boot_candidate=false
+device_access=none
+hardware_write=none
+
+[remediation]
+cause=Both mutually exclusive options carried reverse negative dependencies, which Kconfig treats as a recursive dependency.
+change=Remove the redundant dependency from the historical option; retain the new option's exclusion of the historical mode and the fragment's explicit historical-mode disablement.
+safety_effect=none-the-two-options-remain-mutually-exclusive-in-the-selected-profile
+result=corrected-definition-requires-new-commit-and-buildbox-retry

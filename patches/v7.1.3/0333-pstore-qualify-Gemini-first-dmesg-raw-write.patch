@@ -16,22 +16,14 @@ readback, and report a distinct live marker.
 Do not use the nonempty console ring or add a second write, protected call,
 clock backend, BigiDVFS action, retry, transition owner, or CPU request.
 ---
- fs/pstore/Kconfig                            | 24 ++++++++++++++++
+ fs/pstore/Kconfig                            | 23 ++++++++++++++++
  fs/pstore/gemini_protected_readback_ledger.c | 36 ++++++++++++++++++++++----
- 2 files changed, 54 insertions(+), 6 deletions(-)
+ 2 files changed, 53 insertions(+), 6 deletions(-)
 
 diff --git a/fs/pstore/Kconfig b/fs/pstore/Kconfig
 --- a/fs/pstore/Kconfig
 +++ b/fs/pstore/Kconfig
-@@ -210,6 +210,7 @@ config PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_RAW_WRITE_QUALIFICATION
- 	depends on !PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_PREFIX_CONTROL
- 	depends on !PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_MAP_CONTROL
- 	depends on !PSTORE_GEMINI_PROTECTED_READBACK_RAW_ENTRY_LEDGER
-+	depends on !PSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION
- 	default n
- 	help
- 	  At the isolated serviceability-proven late initcall, require exact
-@@ -223,6 +224,29 @@ config PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_RAW_WRITE_QUALIFICATION
+@@ -223,6 +223,29 @@ config PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_RAW_WRITE_QUALIFICATION
  	  BigiDVFS, transition owner, CPU, storage, reset, or power operation.
  	  If unsure, say N.
  
