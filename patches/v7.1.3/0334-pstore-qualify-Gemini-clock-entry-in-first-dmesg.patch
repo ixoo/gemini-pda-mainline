@@ -9,9 +9,10 @@ with the now-qualified signature-last writer in consecutive dmesg records
 registration, platform-device population, probe entry, and read-free probe
 completion.
 
-Keep both protected transports, BigiDVFS, owner registration, and CPU requests
-disabled.  The clock probe retains only allocation, resource mapping,
-clock-handle lookup, lock initialization, and driver-data publication.
+Keep both protected transports, BigiDVFS, owner registration, and CPU
+requests disabled.  The clock probe retains only allocation, resource
+mapping, clock-handle lookup, lock initialization, and driver-data
+publication.
 ---
  drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c | 15 +++++++++++++
  fs/pstore/Kconfig                                 | 20 +++++++++++++++++
