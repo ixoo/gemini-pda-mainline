@@ -77,12 +77,12 @@
     "full_partition_readback_required": true,
     "shutdown_after_verified_write": true,
     "automatic_reboot_after_write": false,
-    "live_oracle": "one ABI-1 generation-1 protected clock record and one exact terminal receipt",
+    "live_oracle": "one ABI-2 generation-1 protected clock record and one exact terminal receipt",
     "retained_oracle": "exact before-clock record 1 and after-clock record 2 after changed-ID Gemian",
     "runtime_unsafe_mutations_rejected": 51,
     "retained_unsafe_mutations_rejected": 12,
-    "deployment_status": "preflight-1-safe-refusal-exact-coexistence-records; cold-start ordinary Gemian pending",
-    "runtime_status": "pending"
+    "deployment_status": "write-synced-flushed-full-readback-verified-and-shutdown",
+    "runtime_status": "attempt-1-live-call-returned-ret0-abi2-generation1; stale-abi1-oracle-correction-and-retained-recovery-pending"
   },
   "ledger": {
     "reservation": "0x44410000+0x000e0000",

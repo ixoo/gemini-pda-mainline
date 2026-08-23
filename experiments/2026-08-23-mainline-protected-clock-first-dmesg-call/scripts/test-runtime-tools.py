@@ -199,16 +199,31 @@ def main() -> None:
     for required in (
         "$BB dmesg", "clock_shape_count", "terminal_exact_count",
         "bigidvfs_record_count", "cspm_handoff_owner_count", "observer_bound",
+        "clock ret=0 abi=2 generation=1",
     ):
         require(probe.count(required) >= 1, f"probe requirement changed: {required}")
-    for forbidden in ("/dev/mem", "cpu_up", "cpu_down", "/bin/reboot", "writel"):
+    for forbidden in (
+        "/dev/mem", "cpu_up", "cpu_down", "/bin/reboot", "writel",
+        "clock ret=0 abi=1 generation=1",
+    ):
         require(forbidden not in probe, f"probe gained forbidden effect: {forbidden}")
+
+    abi_patch = (
+        SCRIPT_DIR.parents[2]
+        / "patches/v7.1.3/0221-soc-mediatek-add-MT6797-CSPM-live-state-readback.patch"
+    )
+    abi_source = abi_patch.read_text(encoding="utf-8")
+    require(abi_source.count("-#define MT6797_DVFSP_CLOCK_BACKEND_ABI\t1") == 1,
+            "canonical clock ABI predecessor changed")
+    require(abi_source.count("+#define MT6797_DVFSP_CLOCK_BACKEND_ABI\t2") == 1,
+            "canonical clock ABI successor changed")
 
     print("validation=protected-clock-first-dmesg-runtime-tools")
     print("live_results_accepted=1")
     print(f"live_unsafe_mutations_rejected={len(live_mutations)}")
     print("retained_recovery_forms_accepted=2")
     print(f"retained_unsafe_mutations_rejected={len(retained_mutations)}")
+    print("clock_backend_abi=2")
     print("device_access=none")
     print("hardware_write=none")
     print("result=pass")

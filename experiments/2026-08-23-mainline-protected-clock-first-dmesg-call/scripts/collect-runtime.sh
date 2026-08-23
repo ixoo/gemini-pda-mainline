@@ -34,8 +34,8 @@ text = source.read_text(encoding="utf-8")
 replacements = (
     ("# clock-entry oracle, and recover both retained records after changed-ID Gemian.",
      "# one-read oracle, and recover both retained records after changed-ID Gemian.", 1),
-    ("e2a595f41846a1d89836ae252879bfdf0ae19308dc0bce234b4eed511290dbdc", "ee8f057e9bd7309e01968ca22cc845bd5bbeee0caad250445543e98619b488d7", 1),
-    ("dd6baafed2a1902c470caf149ee31c92a03407e85b13fe974429f09af95af0dc", "d716e6dd8d9915d3fbbbaed76828877839495c9a40db34514116e03da323ebee", 1),
+    ("e2a595f41846a1d89836ae252879bfdf0ae19308dc0bce234b4eed511290dbdc", "641492bb60444c0b38c72c1b683b8b3dcff970eab2825dd664d769f5f139e59b", 1),
+    ("dd6baafed2a1902c470caf149ee31c92a03407e85b13fe974429f09af95af0dc", "69f8697b26f92303c161c97e26aa1fdd75e062d48ac7955852578b7137949bd2", 1),
     ("caebd9f33cff7ba7c7ac71575b094fc22a193e59d3f4c52b707f4bd27054cc1b", "8f1b3d6a5fc9f18d7206a1c0cde233341cb55b22b40ddf4c18abf8685a27291d", 1),
     ("40b7c663b835bcf4c48f4149f14aa416343e3e322ab78a0aa38448afff9455b4", "3892e776c183027851d73bec8bf938732c43ddad030a80ddee42240537ba35f6", 1),
     ("clock-entry-first-dmesg-attempt-1", "protected-clock-first-dmesg-attempt-1", 1),

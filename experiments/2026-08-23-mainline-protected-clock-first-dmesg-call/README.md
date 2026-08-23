@@ -40,7 +40,7 @@ disabled in DT and no secure call is permitted.
 
 ## Decision map
 
-- Exact records 1 and 2 plus one successful ABI-1/generation-1 live clock
+- Exact records 1 and 2 plus one successful ABI-2/generation-1 live clock
   record qualify the protected clock transport for later composition.
 - Record 1 only proves call entry and localizes a non-returning reset to the
   clock transaction; do not add BigiDVFS or retry it unchanged.
@@ -92,7 +92,7 @@ automatically reboots after the write.
 
 One physical boot has two independent result paths:
 
-1. The read-only USB/netcat probe requires one complete ABI-1/generation-1
+1. The read-only USB/netcat probe requires one complete ABI-2/generation-1
    clock snapshot, one exact terminal receipt with one clock call and zero
    BigiDVFS calls, full USB/keyboard/I2C6/DA921x serviceability, and exactly one
    CSPM and MCUMIXED owner.
@@ -107,13 +107,26 @@ mutations offline.
 
 ## Current boundary
 
-The exact candidate and its deployment/runtime tooling are admitted offline.
+The exact candidate and its deployment/runtime tooling were admitted offline.
 Deployment preflight 1 failed closed before any partition write because records
 1 and 2 still contained the exact checkpoints from the successful predecessor
 coexistence boot. Read-only inspection attributed both records exactly. Gemian
-was then shut down cleanly so an ordinary cold start can clear retained RAM
-without a `/dev/mem` write. No protected-clock runtime result is claimed here
-yet. See the [safe refusal](results/deployment-preflight-1-stale-coexistence-records.txt).
+was then shut down cleanly so an ordinary cold start could clear retained RAM
+without a `/dev/mem` write. See the
+[safe refusal](results/deployment-preflight-1-stale-coexistence-records.txt).
+
+After the cold ordinary-Gemian start, deployment passed an exact 16 MiB
+readback and shut the device down; see the
+[deployment result](results/deployment-1-write-readback-shutdown.txt). The
+selected boot reached full
+serviceability and logged one complete `ret=0`, ABI-2, generation-1 clock
+snapshot plus the exact one-call terminal receipt. The initial classifier
+correctly withheld reboot because its oracle had stale ABI 1. Canonical patch
+`0221` explicitly advances `MT6797_DVFSP_CLOCK_BACKEND_ABI` from 1 to 2 when
+the CSPM live-state fields are added, so the tooling is being corrected on the
+same live boot before changed-ID retained-record recovery. No second protected
+call or repeated boot is involved.
+
 The ordered execution sequence remains owned by
 [Roadmap Gate 7](../../docs/ROADMAP.md#7-bring-up-cpu8).
 

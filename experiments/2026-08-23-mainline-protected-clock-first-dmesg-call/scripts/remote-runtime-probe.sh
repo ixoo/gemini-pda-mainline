@@ -8,7 +8,7 @@ BB=/bin/busybox
 
 readonly INSTALLED_FULL_SHA256=3892e776c183027851d73bec8bf938732c43ddad030a80ddee42240537ba35f6
 readonly CLOCK_PREFIX='GEMINI_PROTECTED_READBACK_V1 clock ret='
-readonly CLOCK_SUCCESS_PREFIX='GEMINI_PROTECTED_READBACK_V1 clock ret=0 abi=1 generation=1 '
+readonly CLOCK_SUCCESS_PREFIX='GEMINI_PROTECTED_READBACK_V1 clock ret=0 abi=2 generation=1 '
 readonly TERMINAL_PREFIX='GEMINI_PROTECTED_READBACK_V1 state=complete'
 readonly TERMINAL_EXACT='GEMINI_PROTECTED_READBACK_V1 state=complete attempts=1 clock_calls=1 bigidvfs_calls=0 cpu_requests=0 owner_registration=0'
 readonly BIGIDVFSP_PREFIX='GEMINI_PROTECTED_READBACK_V1 bigidvfs ret='
@@ -18,7 +18,7 @@ dmesg="$($BB dmesg)"
 clock_prefix_count="$(printf '%s\n' "$dmesg" | $BB grep -Fc "$CLOCK_PREFIX" || true)"
 clock_success_prefix_count="$(printf '%s\n' "$dmesg" | $BB grep -Fc "$CLOCK_SUCCESS_PREFIX" || true)"
 clock_shape_count="$(printf '%s\n' "$dmesg" | $BB grep -Ec \
-	'GEMINI_PROTECTED_READBACK_V1 clock ret=0 abi=1 generation=1 muxsel=0x[[:xdigit:]]{8} ckdiv=0x[[:xdigit:]]{8} pll_ll=0x[[:xdigit:]]{8},0x[[:xdigit:]]{8},0x[[:xdigit:]]{8} pll_l=0x[[:xdigit:]]{8},0x[[:xdigit:]]{8},0x[[:xdigit:]]{8} pll_cci=0x[[:xdigit:]]{8},0x[[:xdigit:]]{8},0x[[:xdigit:]]{8} cspm_swctrl=0x[[:xdigit:]]{8},0x[[:xdigit:]]{8},0x[[:xdigit:]]{8} cspm_hwsta=0x[[:xdigit:]]{8},0x[[:xdigit:]]{8},0x[[:xdigit:]]{8},0x[[:xdigit:]]{8}$' || true)"
+	'GEMINI_PROTECTED_READBACK_V1 clock ret=0 abi=2 generation=1 muxsel=0x[[:xdigit:]]{8} ckdiv=0x[[:xdigit:]]{8} pll_ll=0x[[:xdigit:]]{8},0x[[:xdigit:]]{8},0x[[:xdigit:]]{8} pll_l=0x[[:xdigit:]]{8},0x[[:xdigit:]]{8},0x[[:xdigit:]]{8} pll_cci=0x[[:xdigit:]]{8},0x[[:xdigit:]]{8},0x[[:xdigit:]]{8} cspm_swctrl=0x[[:xdigit:]]{8},0x[[:xdigit:]]{8},0x[[:xdigit:]]{8} cspm_hwsta=0x[[:xdigit:]]{8},0x[[:xdigit:]]{8},0x[[:xdigit:]]{8},0x[[:xdigit:]]{8}$' || true)"
 terminal_prefix_count="$(printf '%s\n' "$dmesg" | $BB grep -Fc "$TERMINAL_PREFIX" || true)"
 terminal_exact_count="$(printf '%s\n' "$dmesg" | $BB grep -Fc "$TERMINAL_EXACT" || true)"
 bigidvfs_record_count="$(printf '%s\n' "$dmesg" | $BB grep -Fc "$BIGIDVFSP_PREFIX" || true)"

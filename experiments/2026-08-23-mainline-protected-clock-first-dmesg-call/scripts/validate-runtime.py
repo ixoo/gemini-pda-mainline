@@ -143,6 +143,7 @@ def main() -> int:
     print(f"runtime_classification={result}")
     print(f"runtime_reason={reason}")
     print("protected_clock_call=returned" if accepted else "protected_clock_call=unproved")
+    print("clock_backend_abi=2" if accepted else "clock_backend_abi=unproved")
     print("retained_records_1_2=pending-changed-id-recovery")
     print("protected_clock_calls=1")
     print("protected_clock_caller_retries=0")

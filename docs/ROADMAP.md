@@ -4880,12 +4880,17 @@ and live/runtime mutation suites pass offline. BigiDVFS remains disabled in
 DT; the only admitted protected operation is one handoff-owned clock snapshot
 with no caller retry or CPU request. This is candidate readiness, not runtime
 support. The exact sanitized tooling is now committed and pushed. Deployment
-preflight then failed closed before any partition write because records 1 and
-2 retained the exact prior coexistence checkpoints. Read-only attribution
-passed and Gemian was shut down cleanly. The immediate ordered action is one
-ordinary cold Gemian start to clear retained RAM through power loss, followed
-by the same guarded live-GPT `boot2` deployment with full readback and shutdown
-before the single observer-armed physical selection. See the
+preflight first failed closed on exact retained predecessor checkpoints; an
+ordinary cold Gemian cycle cleared them without a memory write. The guarded
+live-GPT `boot2` deployment then passed full readback and shutdown. Its single
+selection reached exact serviceability and returned one complete `ret=0`,
+ABI-2, generation-1 clock snapshot with the exact one-call terminal receipt.
+The pre-armed classifier withheld reboot only because its oracle incorrectly
+required ABI 1; canonical patch `0221` explicitly advanced this backend ABI to
+2 with the CSPM live-state fields. The immediate ordered action is to commit
+that evidence-only oracle correction, reclassify the same live boot without a
+second protected call, then request the bounded Gemian return and recover the
+two retained records. See the
 [one-read experiment](../experiments/2026-08-23-mainline-protected-clock-first-dmesg-call/README.md).
 
 The next ordered work is:
