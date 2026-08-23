@@ -24,7 +24,7 @@ struct mt6797_a72_direct_state_snapshot {
 
 #ifdef CONFIG_ARM64_MT6797_A72_DIRECT_STATE_COMPOSITOR
 int mt6797_a72_direct_source_register(const struct mt6797_a72_direct_source_ops *ops,
-				       void *context);
+				      void *context);
 void mt6797_a72_direct_source_unregister(const struct mt6797_a72_direct_source_ops *ops,
 					 void *context);
 int mt6797_a72_direct_state_snapshot(struct mt6797_a72_direct_state_snapshot *snapshot);

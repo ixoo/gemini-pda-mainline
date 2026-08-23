@@ -19,7 +19,7 @@
   "source_templates": {
     "mt6797-a72-direct-state.h": "39d423ad9688b1b158256a250bda3d63359c2af4241ab1dbddf2ebd663920562",
     "mt6797_a72_direct_state_membership.c.inc": "73eb821cc0985feed4280ee987883fc4e4a2486fb1e9a9058dfa5c34001c271a",
-    "mt6797_a72_direct_state_membership.h.inc": "2530ebbef3527ffdb60d8ed5112e22ad2bee905a080fcf46d1b19fe6b8242e2a",
+    "mt6797_a72_direct_state_membership.h.inc": "9e4a5752324c4d720b2da01bb322ae6b2f5623a143311b81e9b81463e891c132",
     "mt6797_a72_direct_state_test.c": "9bd4253fc530bf0d5511420dac9cf7ac09047b7eed881021c15e6d172301d334"
   },
   "patches": [

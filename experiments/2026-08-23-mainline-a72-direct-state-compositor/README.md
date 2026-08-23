@@ -82,6 +82,9 @@ must leave the A72 owner byte-identical and still `CLOSED / UNINITIALIZED`.
 - Buildbox submission `0ceb6509` stopped before packaging when the semantic
   validator still searched for the declaration's old return-type layout. Its
   production-wrapper anchor now uses the stable function name instead.
+- Buildbox submission `bc774b52` passed semantics and replay; strict
+  checkpatch found one remaining continuation-column mismatch in the public
+  registration prototype. That exact whitespace is corrected.
 
 No generated patch, compile, or KUnit result exists yet. Repository-side
 definition validation remains the current phase.
