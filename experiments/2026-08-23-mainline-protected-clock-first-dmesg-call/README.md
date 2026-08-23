@@ -108,7 +108,12 @@ mutations offline.
 ## Current boundary
 
 The exact candidate and its deployment/runtime tooling are admitted offline.
-No device deployment or protected-clock runtime result is claimed here yet.
+Deployment preflight 1 failed closed before any partition write because records
+1 and 2 still contained the exact checkpoints from the successful predecessor
+coexistence boot. Read-only inspection attributed both records exactly. Gemian
+was then shut down cleanly so an ordinary cold start can clear retained RAM
+without a `/dev/mem` write. No protected-clock runtime result is claimed here
+yet. See the [safe refusal](results/deployment-preflight-1-stale-coexistence-records.txt).
 The ordered execution sequence remains owned by
 [Roadmap Gate 7](../../docs/ROADMAP.md#7-bring-up-cpu8).
 

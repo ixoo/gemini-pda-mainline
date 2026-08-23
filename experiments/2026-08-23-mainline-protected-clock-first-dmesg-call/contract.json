@@ -81,7 +81,7 @@
     "retained_oracle": "exact before-clock record 1 and after-clock record 2 after changed-ID Gemian",
     "runtime_unsafe_mutations_rejected": 51,
     "retained_unsafe_mutations_rejected": 12,
-    "deployment_status": "pending",
+    "deployment_status": "preflight-1-safe-refusal-exact-coexistence-records; cold-start ordinary Gemian pending",
     "runtime_status": "pending"
   },
   "ledger": {

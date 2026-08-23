@@ -1,0 +1,22 @@
+experiment=2026-08-23-mainline-protected-clock-first-dmesg-call
+attempt=deployment-preflight-1
+repository_commit=e89e61e9c1d388cd27ad2157fb96bcb6c58c6aae
+candidate_padded_sha256=3892e776c183027851d73bec8bf938732c43ddad030a80ddee42240537ba35f6
+known_good_kernel=3.18.41+
+known_good_architecture=aarch64
+known_good_boot_id=66ed2d37-62c0-4665-b7c6-deaadc9a9708
+record_1_header=444247437600000076000000
+record_1_sha256=f76041b9c6fbc2bf4c3ed9a176074e476b98f8f322d82bcf11ed93b222ac2f5c
+record_1_marker=GEMINI_CLOCK_BACKEND_FIRST_DMESG_V1 token=GCBF-20260823-A checkpoint=driver-init slot=1 crc32=6197fd57
+record_2_header=444247437600000076000000
+record_2_sha256=a933204da4fe7824bb8f61c890776ace480612da4811a3da49cb2707e1054281
+record_2_marker=GEMINI_CLOCK_BACKEND_FIRST_DMESG_V1 token=GCBF-20260823-A checkpoint=probe-enter slot=2 crc32=61636940
+record_attribution=exact-prior-clock-entry-coexistence-checkpoints
+partition_writer_invoked=false
+device_partition_writes=none
+device_memory_writes=none
+retained_record_clear=none
+shutdown=requested-cleanly
+post_shutdown_reachability=unreachable
+next_action=cold-start-ordinary-gemian-then-repeat-guarded-install
+result=safe-refusal-exact-predecessor-records
