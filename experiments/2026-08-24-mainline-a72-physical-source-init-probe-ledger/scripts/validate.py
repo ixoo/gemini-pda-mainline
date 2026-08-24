@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the checked-in pre-capture experiment definition."""
+"""Validate the checked-in A72 observer init/probe experiment definition."""
 
 from __future__ import annotations
 
@@ -26,57 +26,51 @@ def main() -> None:
     require(contract["schema"] == 1, "schema")
     require(
         contract["experiment"]
-        == "2026-08-24-mainline-a72-physical-source-precapture-ledger",
+        == "2026-08-24-mainline-a72-physical-source-init-probe-ledger",
         "experiment identity",
     )
     require(
         contract["prepared_source_state"]
-        == "268ebef69a7575d23004b137a3334989b82b444cbf3a773850626566275b8fb8",
+        == "1c2210e46275423d9db88b0841b3a6dd9e478ef95c498efdae83218c5690020d",
         "parent source state",
     )
     require(
         contract["prepared_source_integrity"]
-        == "9f18bf45f6d001892044d8b1f1303b5e26c49e2fcd19dab637a994355fc6c65f",
+        == "48d65aa58cb0b75ecf73359f4b0a912b8f439b99bae6d2bd6c9286e9cbd5f72f",
         "parent source integrity",
     )
     parent = ROOT / contract["canonical_parent"]
     require(parent.is_file() and not parent.is_symlink(), "canonical parent")
     require(
         sha256(parent)
-        == "94076d20cf542941016e72996d5bdc1a8c03cedbd6e284763e424d8841dde4c9",
+        == "db53a84c440067862610733670637675e63b9f25fe345eaf141b1b53572ec75e",
         "canonical parent identity",
     )
-    require(contract["retained"] == {
-        "token": "GAPC-20260824-A",
-        "slots": [1, 2],
-        "checkpoints": ["probe-enter", "sources-held"],
-        "maximum_writes": 2,
-        "overwrite": False,
-        "clear": False,
-        "retry": False,
-    }, "retained contract")
-    for key in (
-        "direct_source_registrations",
-        "platform_snapshots",
-        "provider_snapshots",
-        "clock_calls",
-        "bigidvfs_calls",
-        "provider_transactions",
-        "publisher_calls",
-        "owner_mutations",
-        "cpu_requests",
-    ):
-        require(contract["runtime"][key] == 0, f"zero runtime effect: {key}")
+    require(
+        contract["retained"]
+        == {
+            "token": "GAIP-20260824-A",
+            "slots": [1, 2],
+            "checkpoints": ["driver-init", "probe-enter"],
+            "maximum_writes": 2,
+            "overwrite": False,
+            "clear": False,
+            "retry": False,
+        },
+        "retained contract",
+    )
+    require(all(value == 0 for value in contract["runtime_effects"].values()),
+            "zero runtime effects")
 
     manifest = json.loads((ROOT / "kernel/manifest.json").read_text())
     profile = manifest["config"]["profiles"][
-        "a72-physical-source-precapture-ledger"
+        "a72-physical-source-init-probe-ledger"
     ]
     require(profile["base"] == "defconfig", "profile base")
     require(profile["patch_series"] == "patches/series", "profile series")
     require(
         profile["fragments"][-1]
-        == "configs/gemini-a72-physical-source-precapture-ledger.fragment",
+        == "configs/gemini-a72-physical-source-init-probe-ledger.fragment",
         "profile fragment",
     )
     fragment = (ROOT / profile["fragments"][-1]).read_text()
@@ -91,52 +85,35 @@ def main() -> None:
         "# CONFIG_MTK_MT6797_I2C6_FW_WRITER_TRANSACTION_WINDOW is not set",
         "# CONFIG_REGULATOR_DA9213_LEGACY_SAME_VALUE_WRITE is not set",
         "# CONFIG_KUNIT is not set",
-        'CONFIG_LOCALVERSION="-gemini-a72-precapture"',
+        'CONFIG_LOCALVERSION="-gemini-a72-init-probe"',
     ):
         require(token in fragment, f"fragment token: {token}")
 
     buildbox = (ROOT / "scripts/buildbox").read_text()
     for command in (
-        "generate-a72-physical-source-precapture-ledger",
-        "fetch-a72-physical-source-precapture-ledger",
+        "generate-a72-physical-source-init-probe-ledger",
+        "fetch-a72-physical-source-init-probe-ledger",
     ):
         require(buildbox.count(command) == 2, f"Buildbox command: {command}")
     roadmap = (ROOT / "docs/ROADMAP.md").read_text()
     require(
-        "2026-08-24-mainline-a72-physical-source-precapture-ledger/README.md"
+        "2026-08-24-mainline-a72-physical-source-init-probe-ledger/README.md"
         in roadmap,
         "roadmap link",
     )
     predecessor = ROOT / contract["predecessor_result"]
     require(predecessor.is_file(), "predecessor runtime result")
     require(
-        "runtime_classification=rejected-before-first-physical-source-checkpoint"
+        "runtime_classification=rejected-before-probe-enter-checkpoint"
         in predecessor.read_text(),
         "predecessor classification",
     )
-    for name, source_hash in (
-        (
-            "build-candidate.sh",
-            "9e02338db6bab33f0bf57714d071829fdf9d9e3df6ae199c0e76f1e25ec97398",
-        ),
-        (
-            "validate-candidate.sh",
-            "dac54074b9997e7d27f35f422ad25763561192f806c7695231c3d8170b2f6b59",
-        ),
-        (
-            "install-boot2.sh",
-            "5019ea5fb3859759be49690e3cd83f2abe583350a358ca3bc56aa189c4a789e4",
-        ),
-    ):
-        tool = EXPERIMENT / "scripts" / name
-        require(tool.is_file() and not tool.is_symlink(), f"candidate tool: {name}")
-        require(source_hash in tool.read_text(encoding="utf-8"),
-                f"candidate source pin: {name}")
 
-    print("validation=a72-physical-source-precapture-definition")
-    print("profile=a72-physical-source-precapture-ledger")
-    print("retained_checkpoints=probe-enter,sources-held")
-    print("capture_calls=0")
+    print("validation=a72-physical-source-init-probe-definition")
+    print("profile=a72-physical-source-init-probe-ledger")
+    print("retained_checkpoints=driver-init,probe-enter")
+    print("allocations=0")
+    print("source_lookups=0")
     print(f"boot_candidate={str(contract['candidate']['boot_candidate']).lower()}")
     print("result=pass")
 

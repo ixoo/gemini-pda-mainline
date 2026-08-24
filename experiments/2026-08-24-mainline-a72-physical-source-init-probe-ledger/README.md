@@ -1,0 +1,58 @@
+# Experiment: A72 physical-source init/probe ledger
+
+## Status
+
+Definition frozen. The rejected pre-capture candidate left both records exact
+empty, so it did not establish its first probe checkpoint. This non-identical
+successor moves record 1 into the observer's built-in init path before
+`platform_driver_register()` and makes record 2 the first probe operation. A
+successful probe record returns immediately, before allocation or any source
+lookup.
+
+## Hypothesis
+
+The physical-source observer reaches its built-in driver init. If driver
+registration binds the enabled DT node, its probe also begins. The two retained
+records distinguish those boundaries without depending on USB, console, or
+ordinary dmesg survival.
+
+## Exact evidence
+
+1. `GEMINI_A72_INIT_PROBE_V1 token=GAIP-20260824-A checkpoint=driver-init
+   slot=1 crc32=85e5f336`
+2. `GEMINI_A72_INIT_PROBE_V1 token=GAIP-20260824-A checkpoint=probe-enter
+   slot=2 crc32=85116721`
+
+Both use the already-qualified first-dmesg slots, payload-before-metadata,
+signature-last commit, barriers, and full readback. There is no overwrite,
+clear, repair, or retry.
+
+## Decision table
+
+| Retained result | Interpretation | Next action |
+| --- | --- | --- |
+| Neither | Observer init was not reached, or its first checkpoint refused | Move to an earlier independent init/writer boundary; do not repeat |
+| `driver-init` only | Built-in init ran; probe entry was not established | Isolate registration return and match/bind before source work |
+| Both | Built-in init and probe entry ran | Split allocation and the three source lookups in a later candidate |
+| Malformed or foreign | Attribution failed | Reject without path inference |
+
+## Safety and build contract
+
+- At most two short writes occur only in retained records 1 and 2.
+- The enabled probe path returns before allocation, phandle parsing, device
+  reference acquisition, platform/provider/clock/BigiDVFS reads, direct-source
+  registration, publication, owner mutation, or CPU requests.
+- The normal physical-source path remains unchanged when the experiment mode
+  is disabled.
+- Patch generation and kernel compilation use Buildbox from exact clean,
+  signed, pushed commits. A native VM build is not authorized.
+- A package is not a boot candidate. Independent package, configuration, DT,
+  Android-v0, marker, and padding validation remains mandatory.
+
+## Current result
+
+The canonical parent is exact patch `0359` and the managed Buildbox source
+state and integrity are pinned in `contract.json`. The next action is to
+generate the one logical `0360` patch on Buildbox, fetch only its validated
+review package, and admit the byte-identical patch after replay and invariant
+checks.

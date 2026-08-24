@@ -5062,6 +5062,11 @@ The next ordered work is:
    then return without allocations or source acquisition. Keep capture,
    provider transactions, publication, owner mutation, and CPU8/CPU9 requests
    closed.
+   The linked
+   [init/probe ledger experiment](../experiments/2026-08-24-mainline-a72-physical-source-init-probe-ledger/README.md)
+   now freezes that exact successor against canonical parent `0359`. Its first
+   action is one Buildbox-only patch-generation review; no package, candidate,
+   or device action exists yet.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

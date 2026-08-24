@@ -241,6 +241,23 @@ This lane accepts only the exact managed source through `0355`, changes only
 the physical-source production observer, requires one `kvzalloc_obj`/`kvfree`
 pair around the existing transaction, and adds no hardware or device action.
 
+The runtime-rejected physical-source path has two later retained-boundary
+generation lanes. The historical pre-capture lane generated canonical patches
+`0357`--`0359`; its current successor pins the exact managed source through
+`0359` and moves the two records to built-in init before registration and first
+probe entry:
+
+```sh
+./scripts/buildbox generate-a72-physical-source-init-probe-ledger
+./scripts/buildbox fetch-a72-physical-source-init-probe-ledger
+```
+
+The successor changes only Kconfig help, the two record identities, and the
+observer init/probe call sites. Its enabled path returns before allocation or
+source lookup and performs no physical snapshot, provider transaction,
+publication, owner mutation, CPU request, candidate construction, or device
+action.
+
 The protected-clock first-dmesg call discriminator also has a source-review
 lane:
 
