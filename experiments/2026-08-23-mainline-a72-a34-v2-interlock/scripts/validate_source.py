@@ -36,7 +36,7 @@ def validate_interlock(root: Path) -> None:
     snapshot = section(
         header,
         "struct arm64_late_cpu_startup_snapshot {",
-        "\n};\n\n#ifdef CONFIG_ARM64_LATE_CPU_STARTUP_FAILSTOP",
+        "\n};\n\n#define ARM64_LATE_CPU_BOOTSTRAP_CLAIM_ABI 1",
     )
     require("bootstrap_claim" not in snapshot,
             "bootstrap claim leaked into public P30 snapshot")
