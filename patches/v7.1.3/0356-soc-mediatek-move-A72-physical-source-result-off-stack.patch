@@ -1,0 +1,70 @@
+From aab1965f2329b938a35a4db20c1f47c4149348f4 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 24 Aug 2026 23:01:00 +0000
+Subject: [PATCH 1/1] soc: mediatek: move A72 physical-source result off stack
+
+Allocate the large one-shot direct-state result before acquiring device references, and release it after logging and reference teardown.
+
+This removes the remaining production kernel-stack object exposed during candidate admission without changing the observer transaction or hardware effects.
+---
+ .../mt6797-a72-physical-source-observer.c     | 20 +++++++++++++------
+ 1 file changed, 14 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-physical-source-observer.c b/drivers/soc/mediatek/mt6797-a72-physical-source-observer.c
+index 35de1a7..04171a7 100644
+--- a/drivers/soc/mediatek/mt6797-a72-physical-source-observer.c
++++ b/drivers/soc/mediatek/mt6797-a72-physical-source-observer.c
+@@ -12,6 +12,7 @@
+ #include <linux/of_platform.h>
+ #include <linux/platform_device.h>
+ #include <linux/pstore_ram.h>
++#include <linux/slab.h>
+ #include <linux/string.h>
+ 
+ #include <linux/soc/mediatek/mt6797-a72-platform-state.h>
+@@ -219,14 +220,19 @@ mt6797_a72_physical_source_probe(struct platform_device *pdev)
+ 	struct mt6797_a72_physical_source_context context = {
+ 		.readers = &mt6797_a72_physical_source_readers,
+ 	};
+-	struct mt6797_a72_direct_state_snapshot snapshot;
++	struct mt6797_a72_direct_state_snapshot *snapshot;
+ 	struct device *dev = &pdev->dev;
+ 	int ret;
+ 
++	snapshot = kvzalloc_obj(*snapshot);
++	if (!snapshot)
++		return -ENOMEM;
+ 	context.platform = mt6797_a72_physical_source_get_device(dev, "mediatek,platform-state");
+-	if (IS_ERR(context.platform))
+-		return dev_err_probe(dev, PTR_ERR(context.platform),
+-				     "platform-state source unavailable\n");
++	if (IS_ERR(context.platform)) {
++		ret = dev_err_probe(dev, PTR_ERR(context.platform),
++				    "platform-state source unavailable\n");
++		goto free_snapshot;
++	}
+ 	context.clock = mt6797_a72_physical_source_get_device(dev, "mediatek,clock-backend");
+ 	if (IS_ERR(context.clock)) {
+ 		ret = dev_err_probe(dev, PTR_ERR(context.clock),
+@@ -241,17 +247,19 @@ mt6797_a72_physical_source_probe(struct platform_device *pdev)
+ 	}
+ 
+ 	ret = mt6797_a72_physical_source_run(&context, &mt6797_physical_runtime,
+-					     &snapshot);
++					     snapshot);
+ 	if (ret)
+ 		dev_err_probe(dev, ret, "direct physical snapshot failed\n");
+ 	else
+-		mt6797_a72_physical_source_log(dev, &snapshot);
++		mt6797_a72_physical_source_log(dev, snapshot);
+ 
+ 	put_device(context.bigidvfs);
+ put_clock:
+ 	put_device(context.clock);
+ put_platform:
+ 	put_device(context.platform);
++free_snapshot:
++	kvfree(snapshot);
+ 	return ret;
+ }
+ 

@@ -162,6 +162,43 @@ def main() -> None:
         "production_changed": False,
         "hardware_operations": False,
     }, "stack-fix contract")
+    require(contract["production_stack_fix"] == {
+        "status": "validated",
+        "stopped_attempts": 2,
+        "canonical_parent":
+            "patches/v7.1.3/0355-soc-mediatek-move-A72-physical-source-KUnit-snapshots-off-stack.patch",
+        "prepared_source_state":
+            "3f1b291eaa793e8f5275bc3091fc2146312e1aeb65a81a5721f33805609cdc2c",
+        "prepared_source_integrity":
+            "55cbc60b8a4670d88cff2eedb55f4af2b72e0fb9e960660e7360f747b60269d8",
+        "parent_observer_sha256":
+            "10e030caabfc420e676f46882e4ce24bdd21d77febcba1c8bc6e829331d9334d",
+        "generated_patch_count": 1,
+        "repository_commit":
+            "7ef7c6a0f149b215bc912dab3c380eafb6bf2aec",
+        "buildbox_job":
+            "7ef7c6a0f149b215bc912dab3c380eafb6bf2aec-a72-physical-source-production-stack-fix-patchgen",
+        "package": "a72-physical-source-production-stack-fix-7ef7c6a0f149",
+        "parent_commit": "10c8fb871bf3a0a98c2862451facdf88a576ab69",
+        "result_commit": "aab1965f2329b938a35a4db20c1f47c4149348f4",
+        "sha256sums_sha256":
+            "013eec31f076d6933ccb12a43a4cfcfc9ba7d832d41fdaa62f624119c1e25059",
+        "patch":
+            "0356-soc-mediatek-move-A72-physical-source-result-off-stack.patch",
+        "patch_sha256":
+            "94076d20cf542941016e72996d5bdc1a8c03cedbd6e284763e424d8841dde4c9",
+        "canonical_admission": "0356",
+        "compile": "pending",
+        "qemu": "pending",
+        "changed_files": [
+            "drivers/soc/mediatek/mt6797-a72-physical-source-observer.c",
+        ],
+        "production_direct_state_stack_objects": 0,
+        "production_result_allocations": 1,
+        "production_result_frees": 1,
+        "transaction_changed": False,
+        "hardware_operations": False,
+    }, "production stack-fix contract")
 
     canonical = [ROOT / "patches/v7.1.3" / patch
                  for patch in contract["patches"]]
@@ -173,13 +210,23 @@ def main() -> None:
     series = (ROOT / "patches/series").read_text().splitlines()
     expected_tail = [f"v7.1.3/{patch}" for patch in contract["patches"]]
     expected_tail.append(f"v7.1.3/{contract['stack_fix']['patch']}")
-    require(series[-6:] == expected_tail,
+    expected_tail.append(f"v7.1.3/{contract['production_stack_fix']['patch']}")
+    require(series[-7:] == expected_tail,
             "canonical series tail")
     stack_patch = ROOT / "patches/v7.1.3" / contract["stack_fix"]["patch"]
     require(stack_patch.is_file() and not stack_patch.is_symlink(),
             "canonical stack-fix patch")
     require(sha256(stack_patch) == contract["stack_fix"]["patch_sha256"],
             "canonical stack-fix identity")
+    production_stack_patch = (
+        ROOT / "patches/v7.1.3" / contract["production_stack_fix"]["patch"]
+    )
+    require(production_stack_patch.is_file()
+            and not production_stack_patch.is_symlink(),
+            "canonical production stack-fix patch")
+    require(sha256(production_stack_patch)
+            == contract["production_stack_fix"]["patch_sha256"],
+            "canonical production stack-fix identity")
 
     manifest = json.loads((ROOT / "kernel/manifest.json").read_text())
     profile = manifest["config"]["profiles"]["a72-physical-source-kunit"]
@@ -470,20 +517,39 @@ def main() -> None:
     ):
         require(token in production_stack_attempt_2,
                 f"production stack attempt 2 token: {token}")
+    production_stack_receipt = (
+        EXPERIMENT
+        / "results/buildbox-production-stack-fix-generation-7ef7c6a0.txt"
+    ).read_text()
+    for token in (
+        "source_validation=pass",
+        "patch_boundary=one-production-observer-pass",
+        "patch_replay=byte-exact-pass",
+        "strict_checkpatch=0-errors-0-warnings-0-checks",
+        "canonical_admission=0356",
+        "production_direct_state_stack_objects=0",
+        "transaction_changed=false",
+        "compile=pending",
+        "qemu=pending",
+        "boot_candidate=false",
+    ):
+        require(token in production_stack_receipt,
+                f"production stack receipt token: {token}")
     readme = (EXPERIMENT / "README.md").read_text()
-    require("candidate admission paused for production stack repair" in readme,
-            "candidate pause status")
+    require("production stack repair admitted; repeated proof pending" in readme,
+            "production repair status")
     require("roughly 32 KiB direct-state" in readme,
             "production stack discovery")
     print("validation=a72-physical-source-admission")
     print("prepared_source=exact-through-0349")
     print("generated_patch_count=5")
     print("focused_tests=4")
-    print("canonical_admission=0350-0355")
+    print("canonical_admission=0350-0356")
     print("compile=pass")
     print("qemu=2-pass-2-test-stack-fault")
     print("stack_fix=generated-admitted-compile-pass")
     print("qemu_after_fix=pass-4-of-4")
+    print("production_stack_fix=generated-admitted-compile-pending")
     print("phase_b=hardware-free-complete")
     print("hardware_operations=0")
     print("device_action=none")

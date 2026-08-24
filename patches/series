@@ -345,3 +345,4 @@ v7.1.3/0352-dt-bindings-soc-mediatek-add-A72-physical-source-observer.patch
 v7.1.3/0353-arm64-dts-mediatek-add-Gemini-physical-source-candidate.patch
 v7.1.3/0354-soc-mediatek-test-A72-physical-source-observer.patch
 v7.1.3/0355-soc-mediatek-move-A72-physical-source-KUnit-snapshots-off-stack.patch
+v7.1.3/0356-soc-mediatek-move-A72-physical-source-result-off-stack.patch

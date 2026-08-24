@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-24-mainline-a72-physical-source-observer` |
-| Status | candidate admission paused for production stack repair |
+| Status | production stack repair admitted; repeated proof pending |
 | Subsystem | A72 direct-state sources and retained attribution |
 | Device variant | hardware-free implementation/KUnit stage |
 | Date(s) | 2026-08-24 America/New_York |
@@ -136,3 +136,11 @@ then strict checkpatch stopped on its typed-allocation rule. The retry replaces
 only `kvzalloc(sizeof(*snapshot), GFP_KERNEL)` with the Linux 7.1
 `kvzalloc_obj(*snapshot)` helper; allocation semantics and every transaction
 boundary remain unchanged.
+
+The third attempt passed source validation, the one-production-file boundary,
+byte-exact replay, and strict checkpatch with zero errors, warnings, or checks.
+Its exact checksum-covered patch is canonical `0356`. It replaces the roughly
+32 KiB production probe stack object with one typed allocation and matching
+free while leaving the observer transaction and hardware effects unchanged.
+The exact Buildbox compile and four-case no-network QEMU repeat are now the
+remaining gates before candidate construction.
