@@ -79,6 +79,8 @@ and call with that pattern has been mechanically corrected in both files.
 A fourth attempt confirmed those checks were gone and then stopped on the
 continuation columns for the same nine argument lists. Most calls are now
 single-line and every remaining continuation aligns with its opening
-parenthesis; the test template received the same complete alignment pass.
-Patch generation remains pending. There is no boot candidate and no device
-action.
+parenthesis; the test template received the same complete alignment pass. A
+fifth attempt then enforced the final kernel convention: tabs must cover the
+aligned portion and spaces only the remainder. All production and test
+continuations now use that exact tab-plus-space form. Patch generation remains
+pending. There is no boot candidate and no device action.

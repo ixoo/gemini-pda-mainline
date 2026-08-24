@@ -33,7 +33,7 @@ mt6797_a72_physical_source_readers = {
 
 int
 mt6797_a72_physical_source_capture(void *context,
-                                   struct mt6797_a72_direct_source_snapshot *snapshot)
+				   struct mt6797_a72_direct_source_snapshot *snapshot)
 {
 	struct mt6797_a72_physical_source_context *source = context;
 	const struct mt6797_a72_physical_source_reader_ops *readers;
@@ -87,8 +87,8 @@ mt6797_a72_physical_source_ops = {
 
 int
 mt6797_a72_physical_source_run(struct mt6797_a72_physical_source_context *context,
-                               const struct mt6797_a72_physical_source_runtime_ops *runtime,
-                               struct mt6797_a72_direct_state_snapshot *snapshot)
+			       const struct mt6797_a72_physical_source_runtime_ops *runtime,
+			       struct mt6797_a72_direct_state_snapshot *snapshot)
 {
 	int ret;
 
@@ -141,7 +141,7 @@ mt6797_a72_physical_source_get_device(struct device *dev,
 
 static void
 mt6797_a72_physical_source_log(struct device *dev,
-                               const struct mt6797_a72_direct_state_snapshot *state)
+			       const struct mt6797_a72_direct_state_snapshot *state)
 {
 	const struct mt6797_a72_direct_source_snapshot *source = &state->source;
 	const struct mt6797_a72_platform_state *platform = &source->platform;
