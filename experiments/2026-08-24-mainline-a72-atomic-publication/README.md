@@ -100,6 +100,11 @@ separation, and exact replay. Strict checkpatch then rejected three finalizer
 declarations ending in `(`. The retry changes only emitted C wrapping and the
 matching validator anchors; all decision and effect boundaries are unchanged.
 
+Commit `b9cb931b` removed those line-ending checks; strict checkpatch then
+required the second argument in the same three declarations to align under the
+opening parenthesis. Every semantic and replay gate still passed. The next
+retry changes only that continuation alignment.
+
 No kernel has been compiled, no generated patch has been admitted, and no
 QEMU or device action has occurred.
 
