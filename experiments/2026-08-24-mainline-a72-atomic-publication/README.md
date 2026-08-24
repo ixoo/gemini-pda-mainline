@@ -78,6 +78,12 @@ cases covering finalizer success and failure, exact publication and repeat,
 replay rejection, source rejection, topology rejection, P30 collision, and a
 final-owner mismatch.
 
+The first submitted definition, commit `c697f934`, failed closed before any
+source phase was committed. The semantic validator checks the unchanged
+MT6797 PSCI boot and disable vetoes, but the bounded generation workspace had
+not copied that read-only source file. The corrected definition pins and
+copies its exact hash; the file remains outside every generated patch.
+
 No kernel has been compiled, no generated patch has been admitted, and no
 QEMU or device action has occurred.
 

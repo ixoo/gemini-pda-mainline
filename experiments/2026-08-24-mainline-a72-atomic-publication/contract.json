@@ -10,6 +10,7 @@
     "arch/arm64/kernel/late_cpu_startup.c": "d229dcf2c68c13e041e4c59987d8938adc790077062008d9e5ebe1baf0fe7861",
     "arch/arm64/include/asm/mt6797_a72_membership.h": "219f2b003fb4a3f61c2c53a15ef26d75af4557bf5c91e7953eead50bbeac4bd3",
     "arch/arm64/kernel/mt6797_a72_membership.c": "11496914baca3fc8ac613b813265489741acdcd6e4945162840938061981a680",
+    "arch/arm64/kernel/mt6797_psci.c": "634062ea1c0034439a07d48abafd03081ee81466d88658f80354b24f2acf9e4d",
     "arch/arm64/Kconfig": "7b352827184b56e6eb01d86fdd05e0a9f46ba9e0989f001fc72c64c76e081cf8",
     "arch/arm64/Kconfig.platforms": "c30e2d4a83cc035c8b069272dae0a1e56c6ba92ff601816aa507d42868dcd0ec",
     "arch/arm64/kernel/Makefile": "634ecce25eee183765606e99aa55bba686641e2922f3c6b867ec0a10ccf60e69"
@@ -18,6 +19,12 @@
     "0345-arm64-finalize-P30-pristine-bootstrap-claim.patch",
     "0346-arm64-add-atomic-A72-bootstrap-publisher.patch",
     "0347-arm64-test-atomic-A72-bootstrap-publication.patch"
+  ],
+  "generation_attempts": [
+    {
+      "repository_commit": "c697f934d18048b3b99cda45d698b0b6a9bf34f1",
+      "classification": "rejected-validator-source-subset"
+    }
   ],
   "tests": {
     "suite": "mt6797-a72-atomic-publication",
