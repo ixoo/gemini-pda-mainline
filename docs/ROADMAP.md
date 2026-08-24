@@ -5082,7 +5082,13 @@ The next ordered work is:
    identical retry is disallowed. **Selected next:** place two independent
    retained records at distinct global initcall levels earlier than the
    observer device initcall, then return without registering the observer or
-   performing any source or CPU action.
+   performing any source or CPU action. The linked
+   [global initcall ledger experiment](../experiments/2026-08-24-mainline-a72-global-initcall-ledger/README.md)
+   freezes that successor at the `subsys_initcall` and `fs_initcall`
+   boundaries. It reuses the qualified signature-last retained writer for at
+   most two records and suppresses observer registration; source acquisition,
+   capture, provider transactions, publication, owner mutation, and CPU
+   requests remain closed. Exact Buildbox patch generation is next.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
