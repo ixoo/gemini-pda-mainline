@@ -122,6 +122,12 @@ scrubs it on every exit; the other places large observations and preservation
 records in the existing KUnit-managed per-case allocation. Neither follow-up
 adds a physical reader or hardware action.
 
+Buildbox submission `5d7122c0` stopped before source copying or patch creation
+because Bash rejected a line break between the equality operator and its
+right-hand operand in the prepared-source integrity gate. Keeping that guarded
+comparison on one line corrects the generator syntax without changing the
+kernel edits or their pinned parent.
+
 ## Analysis
 
 The split keeps the outer ownership proof independent from physical reader
