@@ -1,0 +1,31 @@
+A72 platform-state source only: guarded boot2 deployment
+Date: 2026-08-24 America/New_York
+
+experiment=2026-08-24-mainline-a72-platform-state-only
+result=write-synced-flushed-full-readback-verified
+target_logical_name=boot2
+target=/dev/mmcblk0p30
+active_root=/dev/mmcblk0p29
+predecessor_sha256=070e0ff4b019dd35e91ba91413b9ae958cf5e71e3573ed81bc9dd7d1cf3cc4ef
+fresh_predecessor_backup=no
+candidate_sha256=012f7eac6884e65baab075ef286929f610a63f2ea065eba45865bd046492a23f
+readback_sha256=012f7eac6884e65baab075ef286929f610a63f2ea065eba45865bd046492a23f
+tee1_sha256=2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3
+tee2_sha256=2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3
+deployment_boot_id=ea90f911-32aa-4437-a424-77da985a1ebd
+power=online-100-percent-good
+prewrite_record_1_header=444247437800000078000000
+prewrite_record_1_sha256=dd39c08c5de7d9cde7ccf9f62707521475ce1ff35b3833f06443939bcff79e06
+prewrite_record_2_header=444247437800000078000000
+prewrite_record_2_sha256=ad7909f9294e69f1efc13354c997b864a40c89a5c9f1cef9a445aa4f9f58b239
+prewrite_records=exact-stage27-control-pair
+retained_ram_write=none
+temporary_readback_removed=yes
+shutdown=confirmed-unreachable
+reboot=no
+private_deployment_summary_sha256=26df8c49a508bc8a44d7449e5a2f49cc37d324435bbb7fc4a54ac08400bfbf65
+private_deployment_manifest_sha256=19c3e1efa847a10fc18d02bf22a37a89f2b69b8e052f4f93db5d2faa35c1e863
+next_action=prearm-live-observer-then-owner-selects-boot2-once
+
+No serial, credential, raw partition content, calibration data, or private
+device artifact is included in this sanitized receipt.

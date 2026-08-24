@@ -5,7 +5,9 @@
 Exact DT-only candidate reconstructed twice, independently validated, and
 accepted as the next boot candidate. The first deployment preflight safely
 stopped before the partition writer because the preceding successful control
-left its two exact retained records; guarded device deployment remains pending.
+left its two exact retained records. After byte-attributing that pair, the
+guarded `boot2` write, full readback, and clean shutdown all passed. Runtime
+selection is pending.
 
 ## Hypothesis
 
@@ -48,6 +50,12 @@ Offline validation passed all 32 LK/container gates and rejected all six
 independent mutations. Two DT derivations and two candidate constructions were
 byte-identical. The exact 16 MiB payload is therefore eligible for the standing
 guarded `boot2` deployment workflow.
+
+The installed 16 MiB `boot2` payload read back as
+`012f7eac6884e65baab075ef286929f610a63f2ea065eba45865bd046492a23f`.
+The predecessor was the proven Stage-27 control, no fresh partition backup was
+created, and the device was confirmed unreachable after the requested clean
+shutdown.
 
 ## Runtime decision map
 
