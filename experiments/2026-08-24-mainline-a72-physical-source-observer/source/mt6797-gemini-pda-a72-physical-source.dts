@@ -1,0 +1,28 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Copyright (c) 2026 Julien Etienne
+ */
+
+#include "mt6797-gemini-pda.dts"
+
+/ {
+	a72-physical-source-observer {
+		compatible = "mediatek,mt6797-a72-physical-source-observer";
+		mediatek,platform-state = <&a72_platform_state>;
+		mediatek,clock-backend = <&dvfsp_clock_backend>;
+		mediatek,bigidvfs-backend = <&dvfsp_bigidvfs_backend>;
+		status = "okay";
+	};
+};
+
+&a72_platform_state {
+	status = "okay";
+};
+
+&dvfsp_clock_backend {
+	status = "okay";
+};
+
+&dvfsp_bigidvfs_backend {
+	status = "okay";
+};

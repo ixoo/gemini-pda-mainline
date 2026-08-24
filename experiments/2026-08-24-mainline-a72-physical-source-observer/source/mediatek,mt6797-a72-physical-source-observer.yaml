@@ -1,0 +1,44 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/soc/mediatek/mediatek,mt6797-a72-physical-source-observer.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: MediaTek MT6797 A72 direct physical-source observer
+
+description: |
+  Candidate-only one-shot observer that composes the disabled platform-state,
+  protected clock, secure BigiDVFS, and separately registered DA921x read-only
+  sources through the closed A72 direct-state boundary. It does not publish a
+  transition decision or request a CPU, clock, regulator, or firmware change.
+
+maintainers:
+  - Julien Etienne <julien.etienne@gmail.com>
+
+properties:
+  compatible:
+    const: mediatek,mt6797-a72-physical-source-observer
+
+  mediatek,platform-state:
+    $ref: /schemas/types.yaml#/definitions/phandle
+    description: MT6797 A72 platform-state source
+
+  mediatek,clock-backend:
+    $ref: /schemas/types.yaml#/definitions/phandle
+    description: MT6797 protected clock readback transport
+
+  mediatek,bigidvfs-backend:
+    $ref: /schemas/types.yaml#/definitions/phandle
+    description: MT6797 secure BigiDVFS readback transport
+
+  status:
+    enum: [ disabled, okay ]
+
+required:
+  - compatible
+  - mediatek,platform-state
+  - mediatek,clock-backend
+  - mediatek,bigidvfs-backend
+
+additionalProperties: false
+...

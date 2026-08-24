@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-24-mainline-a72-physical-source-observer",
+  "canonical_parent": "patches/v7.1.3/0349-regulator-test-read-only-DA921x-provider-snapshot.patch",
+  "prepared_source_state": "6e3b726cd84b346409bb14b6fb66652b7a52aae60a4636b39229e949275d961f",
+  "prepared_source_integrity": "75be833a675873a374e1b4ef1c77ba0557307b4d054eab793e31930d097785dd",
+  "source_files": {
+    "drivers/soc/mediatek/Kconfig": "6c3279d60ce69bec699bdcacb1abb23ccfeb0b7f1dd926b42062d88aec7b147b",
+    "drivers/soc/mediatek/Makefile": "d24018e5561312249ef0743b3471d184588a504329b39fa7580bdefc4b398e0d",
+    "fs/pstore/Kconfig": "04038cb9a1fadea83f5957debe20586e117665a24cfa2f80db590997e6594018",
+    "fs/pstore/gemini_protected_readback_ledger.c": "8bdba6319719c2d083fcfd4e60e2b78d5251b436d4959241bad88396878b024d",
+    "arch/arm64/boot/dts/mediatek/Makefile": "a82046b54ec73518a0182c4a56e942586377159d4c337f48211e874fce4414ce"
+  },
+  "production": {
+    "source_registrations": 1,
+    "public_direct_snapshots": 1,
+    "source_unregistrations": 1,
+    "component_order": [
+      "platform",
+      "provider",
+      "clock",
+      "before-bigidvfs",
+      "bigidvfs",
+      "after-bigidvfs"
+    ],
+    "retained_token": "GPSQ-20260824-A",
+    "retained_slots": [1, 2],
+    "maximum_retained_writes": 2,
+    "clock_calls": 1,
+    "bigidvfs_calls": 1,
+    "bigidvfs_smc_reads": 8,
+    "compositor_retries": 0
+  },
+  "test": {
+    "focused_cases": 4,
+    "physical_i2c": false,
+    "mmio": false,
+    "retained_ram": false,
+    "smc": false,
+    "device_action": false
+  },
+  "exclusions": {
+    "provider_transactions": false,
+    "publisher_calls": false,
+    "a34_evaluation": false,
+    "owner_mutations": false,
+    "cpu_requests": false,
+    "boot_candidate": false
+  },
+  "generation": {
+    "patch_count": 5,
+    "logical_boundaries": ["ledger", "observer", "binding", "dts", "tests"],
+    "status": "pending"
+  },
+  "decision": {
+    "result": "implementation-input-ready",
+    "selected_next": "buildbox-patch-generation",
+    "device_action": false,
+    "boot_candidate": false
+  }
+}

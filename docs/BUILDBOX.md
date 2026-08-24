@@ -200,6 +200,21 @@ transaction window to remain unselected. It validates all ten negative and
 short read ordinals and all five second-sample mismatches without a physical
 adapter, build candidate, or device action.
 
+The staged Phase B physical-source observer follows canonical patch `0349` and
+generates five logical changes for retained attribution, the temporary direct
+source, its binding, a separate candidate DT, and injected tests:
+
+```sh
+./scripts/buildbox generate-a72-physical-source-patches
+./scripts/buildbox fetch-a72-physical-source-patches
+```
+
+The lane pins the exact prepared source, replays the generated series, and
+rejects provider transactions, publisher calls, owner mutation, CPU requests,
+and synthetic sign-offs. It creates only a patch review; compilation and the
+no-network KUnit run occur after canonical admission, and device deployment is
+a later separately gated step.
+
 The protected-clock first-dmesg call discriminator also has a source-review
 lane:
 

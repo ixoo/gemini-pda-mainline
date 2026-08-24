@@ -23,6 +23,12 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-24 mainline A72 physical-source observer](2026-08-24-mainline-a72-physical-source-observer/README.md)
+  — prepares Phase B as a deterministic five-patch Buildbox review: the exact
+  two-record retained mode, temporary direct-source observer, binding,
+  candidate-only DT, and four injected KUnit cases. The current stage is
+  source input only; generation, canonical admission, compile, and QEMU remain
+  pending, with no boot candidate or device action.
 - [2026-08-24 mainline DA921x read-only snapshot separation](2026-08-24-mainline-da921x-readonly-snapshot-separation/README.md)
   — implements the physical-source contract's hardware-free Phase A as a
   deterministic two-patch Buildbox review. Exact canonical patches `0348` and

@@ -1,0 +1,306 @@
+// SPDX-License-Identifier: GPL-2.0-only
+#include <asm/mt6797_a72_membership.h>
+
+#include <kunit/test.h>
+#include <linux/errno.h>
+#include <linux/kernel.h>
+#include <linux/string.h>
+
+#include "mt6797-a72-physical-source-observer-internal.h"
+
+enum mt6797_a72_physical_source_test_event {
+	MT6797_SOURCE_PLATFORM,
+	MT6797_SOURCE_PROVIDER,
+	MT6797_SOURCE_CLOCK,
+	MT6797_SOURCE_CHECKPOINT_0,
+	MT6797_SOURCE_BIGIDVFS,
+	MT6797_SOURCE_CHECKPOINT_1,
+	MT6797_SOURCE_REGISTER,
+	MT6797_SOURCE_DIRECT_SNAPSHOT,
+	MT6797_SOURCE_UNREGISTER,
+};
+
+struct mt6797_a72_physical_source_test_state {
+	enum mt6797_a72_physical_source_test_event events[16];
+	unsigned int event_count;
+	int fail_stage;
+	int register_ret;
+	int direct_ret;
+	const struct mt6797_a72_direct_source_ops *registered_ops;
+	void *registered_context;
+};
+
+static struct mt6797_a72_physical_source_test_state *runtime_state;
+
+static void mt6797_source_event(
+	struct mt6797_a72_physical_source_test_state *state,
+	enum mt6797_a72_physical_source_test_event event)
+{
+	if (state->event_count < ARRAY_SIZE(state->events))
+		state->events[state->event_count++] = event;
+}
+
+static int mt6797_source_platform(
+	struct device *dev, struct mt6797_a72_platform_state *snapshot)
+{
+	struct mt6797_a72_physical_source_test_state *state = (void *)dev;
+
+	mt6797_source_event(state, MT6797_SOURCE_PLATFORM);
+	if (state->fail_stage == MT6797_SOURCE_PLATFORM)
+		return -EIO;
+	memset(snapshot, 0x11, sizeof(*snapshot));
+	snapshot->valid = true;
+	return 0;
+}
+
+static int mt6797_source_provider(
+	struct mt6797_a72_provider_snapshot *snapshot)
+{
+	struct mt6797_a72_physical_source_test_state *state = runtime_state;
+
+	mt6797_source_event(state, MT6797_SOURCE_PROVIDER);
+	if (state->fail_stage == MT6797_SOURCE_PROVIDER)
+		return -EIO;
+	memset(snapshot, 0, sizeof(*snapshot));
+	snapshot->abi = MT6797_A72_PROVIDER_STATE_ABI;
+	snapshot->valid = 1;
+	snapshot->control_a = 0x56;
+	return 0;
+}
+
+static int mt6797_source_clock(
+	struct device *dev, struct mt6797_dvfsp_clock_readback *snapshot)
+{
+	struct mt6797_a72_physical_source_test_state *state = (void *)dev;
+
+	mt6797_source_event(state, MT6797_SOURCE_CLOCK);
+	if (state->fail_stage == MT6797_SOURCE_CLOCK)
+		return -EIO;
+	memset(snapshot, 0, sizeof(*snapshot));
+	snapshot->abi = MT6797_DVFSP_CLOCK_BACKEND_ABI;
+	snapshot->sample_generation = 1;
+	return 0;
+}
+
+static bool mt6797_source_checkpoint(unsigned int checkpoint)
+{
+	struct mt6797_a72_physical_source_test_state *state = runtime_state;
+	int event = checkpoint ? MT6797_SOURCE_CHECKPOINT_1 :
+				 MT6797_SOURCE_CHECKPOINT_0;
+
+	mt6797_source_event(state, event);
+	return state->fail_stage != event;
+}
+
+static int mt6797_source_bigidvfs(
+	struct device *dev, struct mt6797_bigidvfs_readback *snapshot)
+{
+	struct mt6797_a72_physical_source_test_state *state = (void *)dev;
+
+	mt6797_source_event(state, MT6797_SOURCE_BIGIDVFS);
+	if (state->fail_stage == MT6797_SOURCE_BIGIDVFS)
+		return -EIO;
+	memset(snapshot, 0, sizeof(*snapshot));
+	snapshot->abi = MT6797_BIGIDVFS_BACKEND_ABI;
+	snapshot->sample_generation = 1;
+	return 0;
+}
+
+static const struct mt6797_a72_physical_source_reader_ops test_readers = {
+	.platform = mt6797_source_platform,
+	.provider = mt6797_source_provider,
+	.clock = mt6797_source_clock,
+	.checkpoint = mt6797_source_checkpoint,
+	.bigidvfs = mt6797_source_bigidvfs,
+};
+
+static void mt6797_source_context_init(
+	struct mt6797_a72_physical_source_context *context,
+	struct mt6797_a72_physical_source_test_state *state)
+{
+	context->platform = (void *)state;
+	context->clock = (void *)state;
+	context->bigidvfs = (void *)state;
+	context->readers = &test_readers;
+	runtime_state = state;
+}
+
+static void mt6797_source_expect_zero(
+	struct kunit *test,
+	const struct mt6797_a72_direct_source_snapshot *snapshot)
+{
+	struct mt6797_a72_direct_source_snapshot zero = { };
+
+	KUNIT_EXPECT_EQ(test, memcmp(snapshot, &zero, sizeof(*snapshot)), 0);
+}
+
+static void mt6797_source_capture_order_test(struct kunit *test)
+{
+	static const enum mt6797_a72_physical_source_test_event expected[] = {
+		MT6797_SOURCE_PLATFORM,
+		MT6797_SOURCE_PROVIDER,
+		MT6797_SOURCE_CLOCK,
+		MT6797_SOURCE_CHECKPOINT_0,
+		MT6797_SOURCE_BIGIDVFS,
+		MT6797_SOURCE_CHECKPOINT_1,
+	};
+	struct mt6797_a72_physical_source_context context;
+	struct mt6797_a72_physical_source_test_state state = {
+		.fail_stage = -1,
+	};
+	struct mt6797_a72_direct_source_snapshot snapshot;
+	int ret;
+
+	mt6797_source_context_init(&context, &state);
+	memset(&snapshot, 0xa5, sizeof(snapshot));
+	ret = mt6797_a72_physical_source_capture(&context, &snapshot);
+	KUNIT_ASSERT_EQ(test, ret, 0);
+	KUNIT_EXPECT_EQ(test, state.event_count, ARRAY_SIZE(expected));
+	KUNIT_EXPECT_EQ(test, memcmp(state.events, expected, sizeof(expected)), 0);
+	KUNIT_EXPECT_EQ(test, snapshot.abi,
+			MT6797_A72_DIRECT_SOURCE_ABI);
+	KUNIT_EXPECT_EQ(test, snapshot.valid, 1U);
+}
+
+static void mt6797_source_capture_failures_test(struct kunit *test)
+{
+	struct mt6797_a72_physical_source_context context;
+	struct mt6797_a72_physical_source_test_state state;
+	struct mt6797_a72_direct_source_snapshot snapshot;
+	int stage;
+	int ret;
+
+	for (stage = MT6797_SOURCE_PLATFORM;
+	     stage <= MT6797_SOURCE_CHECKPOINT_1; stage++) {
+		memset(&state, 0, sizeof(state));
+		state.fail_stage = stage;
+		mt6797_source_context_init(&context, &state);
+		memset(&snapshot, 0xa5, sizeof(snapshot));
+		ret = mt6797_a72_physical_source_capture(&context, &snapshot);
+		KUNIT_EXPECT_EQ(test, ret, -EIO);
+		KUNIT_EXPECT_EQ(test, state.event_count,
+				(unsigned int)stage + 1);
+		mt6797_source_expect_zero(test, &snapshot);
+	}
+}
+
+static int mt6797_source_register(
+	const struct mt6797_a72_direct_source_ops *ops, void *context)
+{
+	struct mt6797_a72_physical_source_test_state *state = runtime_state;
+
+	mt6797_source_event(state, MT6797_SOURCE_REGISTER);
+	if (state->register_ret)
+		return state->register_ret;
+	state->registered_ops = ops;
+	state->registered_context = context;
+	return 0;
+}
+
+static int mt6797_source_direct_snapshot(
+	struct mt6797_a72_direct_state_snapshot *snapshot)
+{
+	struct mt6797_a72_physical_source_test_state *state = runtime_state;
+	int ret;
+
+	mt6797_source_event(state, MT6797_SOURCE_DIRECT_SNAPSHOT);
+	if (state->direct_ret)
+		return state->direct_ret;
+	ret = state->registered_ops->snapshot(state->registered_context,
+					      &snapshot->source);
+	if (ret)
+		return ret;
+	snapshot->abi = MT6797_A72_DIRECT_STATE_ABI;
+	snapshot->valid = 1;
+	return 0;
+}
+
+static void mt6797_source_unregister(
+	const struct mt6797_a72_direct_source_ops *ops, void *context)
+{
+	struct mt6797_a72_physical_source_test_state *state = runtime_state;
+
+	mt6797_source_event(state, MT6797_SOURCE_UNREGISTER);
+	if (state->registered_ops == ops &&
+	    state->registered_context == context) {
+		state->registered_ops = NULL;
+		state->registered_context = NULL;
+	}
+}
+
+static const struct mt6797_a72_physical_source_runtime_ops test_runtime = {
+	.register_source = mt6797_source_register,
+	.snapshot = mt6797_source_direct_snapshot,
+	.unregister_source = mt6797_source_unregister,
+};
+
+static void mt6797_source_lifecycle_test(struct kunit *test)
+{
+	struct mt6797_a72_physical_source_context context;
+	struct mt6797_a72_physical_source_test_state state = {
+		.fail_stage = -1,
+	};
+	struct mt6797_a72_direct_state_snapshot snapshot;
+	int ret;
+
+	mt6797_source_context_init(&context, &state);
+	ret = mt6797_a72_physical_source_run(&context, &test_runtime,
+					     &snapshot);
+	KUNIT_ASSERT_EQ(test, ret, 0);
+	KUNIT_EXPECT_EQ(test, state.events[0], MT6797_SOURCE_REGISTER);
+	KUNIT_EXPECT_EQ(test, state.events[1], MT6797_SOURCE_DIRECT_SNAPSHOT);
+	KUNIT_EXPECT_EQ(test, state.events[state.event_count - 1],
+			MT6797_SOURCE_UNREGISTER);
+	KUNIT_EXPECT_PTR_EQ(test, state.registered_ops, NULL);
+	KUNIT_EXPECT_PTR_EQ(test, state.registered_context, NULL);
+	KUNIT_EXPECT_EQ(test, snapshot.abi, MT6797_A72_DIRECT_STATE_ABI);
+	KUNIT_EXPECT_EQ(test, snapshot.valid, 1U);
+}
+
+static void mt6797_source_lifecycle_failures_test(struct kunit *test)
+{
+	struct mt6797_a72_physical_source_context context;
+	struct mt6797_a72_physical_source_test_state state = {
+		.register_ret = -EBUSY,
+	};
+	struct mt6797_a72_direct_state_snapshot snapshot;
+	struct mt6797_a72_direct_state_snapshot zero = { };
+	int ret;
+
+	mt6797_source_context_init(&context, &state);
+	memset(&snapshot, 0xa5, sizeof(snapshot));
+	ret = mt6797_a72_physical_source_run(&context, &test_runtime,
+					     &snapshot);
+	KUNIT_EXPECT_EQ(test, ret, -EBUSY);
+	KUNIT_EXPECT_EQ(test, state.event_count, 1U);
+	KUNIT_EXPECT_EQ(test, memcmp(&snapshot, &zero, sizeof(snapshot)), 0);
+
+	memset(&state, 0, sizeof(state));
+	state.fail_stage = -1;
+	state.direct_ret = -EPERM;
+	mt6797_source_context_init(&context, &state);
+	memset(&snapshot, 0xa5, sizeof(snapshot));
+	ret = mt6797_a72_physical_source_run(&context, &test_runtime,
+					     &snapshot);
+	KUNIT_EXPECT_EQ(test, ret, -EPERM);
+	KUNIT_EXPECT_EQ(test, state.event_count, 3U);
+	KUNIT_EXPECT_EQ(test, state.events[2], MT6797_SOURCE_UNREGISTER);
+	KUNIT_EXPECT_EQ(test, memcmp(&snapshot, &zero, sizeof(snapshot)), 0);
+}
+
+static struct kunit_case mt6797_a72_physical_source_cases[] = {
+	KUNIT_CASE(mt6797_source_capture_order_test),
+	KUNIT_CASE(mt6797_source_capture_failures_test),
+	KUNIT_CASE(mt6797_source_lifecycle_test),
+	KUNIT_CASE(mt6797_source_lifecycle_failures_test),
+	{ }
+};
+
+static struct kunit_suite mt6797_a72_physical_source_suite = {
+	.name = "mt6797-a72-physical-source",
+	.test_cases = mt6797_a72_physical_source_cases,
+};
+
+kunit_test_suite(mt6797_a72_physical_source_suite);
+
+MODULE_LICENSE("GPL");

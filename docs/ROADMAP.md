@@ -4974,12 +4974,19 @@ The next ordered work is:
    absent, and its one no-network QEMU suite passes all five cases with zero
    failures or skips. Phase A is complete without a hardware operation,
    device action, or boot candidate.
-   **Selected next:** implement and review the contract's candidate-only
-   Phase B observer. It must compose platform, DA921x, protected-clock, and
-   BigiDVFS records under the existing outer owner and retain exactly the two
-   declared checkpoints around the first attributable BigiDVFS call. Keep
+   The selected
+   [Phase B physical-source observer](../experiments/2026-08-24-mainline-a72-physical-source-observer/README.md)
+   now pins the exact post-`0349` Buildbox source and prepares five logical
+   review patches: retained attribution, the temporary direct source, its
+   binding, a separate candidate DT, and focused injected tests. This is
+   deterministic implementation input only; it has not yet generated or
+   admitted a patch, compiled a kernel, created a boot candidate, or touched
+   the device.
+   **Selected next:** sign and push that input, generate and byte-admit the
+   five-patch review, then compile one isolated profile on Buildbox and run
+   only its four hardware-free cases in no-network arm64 QEMU. Keep
    publication, provider acquire/release, and CPU8/CPU9 requests closed until
-   that observer has passed generation, compilation, and hardware-free tests.
+   all four gates pass. Only then select one guarded observer candidate.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
