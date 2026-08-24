@@ -108,6 +108,18 @@ def main() -> None:
         in predecessor.read_text(),
         "predecessor classification",
     )
+    runtime = ROOT / (
+        "experiments/2026-08-24-mainline-a72-physical-source-init-probe-ledger/"
+        "results/runtime-attempt-1-before-driver-init-20260824.txt"
+    )
+    require(runtime.is_file(), "runtime result")
+    runtime_text = runtime.read_text()
+    require(
+        "runtime_classification=before-driver-init-or-writer-refused" in runtime_text,
+        "runtime classification",
+    )
+    require("retained_records_1_2=exact-empty" in runtime_text, "empty records")
+    require(contract["decision"]["boot_candidate"] is False, "candidate retired")
 
     print("validation=a72-physical-source-init-probe-definition")
     print("profile=a72-physical-source-init-probe-ledger")

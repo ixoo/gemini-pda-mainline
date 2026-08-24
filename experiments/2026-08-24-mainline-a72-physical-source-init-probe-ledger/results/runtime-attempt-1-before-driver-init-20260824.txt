@@ -1,0 +1,69 @@
+experiment=2026-08-24-mainline-a72-physical-source-init-probe-ledger
+attempt=1
+date=2026-08-24
+selected_candidate_raw_sha256=366316486f475a4af373f1db4b2d71cae0418ff607d4d2ad5ff8e7cb7efd81e3
+selected_candidate_padded_sha256=4185b85192f036df09d547cdf68991e885c6d4849927e684a5923cde15c0a03c
+owner_selected_boot2=yes
+mainline_usb_census=single-census-no-network-interface
+mainline_netcat_endpoint=not-observed
+automatic_gemian_return=host-observed
+recovery_kernel=3.18.41+
+recovery_architecture=aarch64
+recovery_boot_id=6ac4e0b6-2979-4a5b-851c-af7282fec216
+deployment_boot_id=ea0b76e9-0459-4bf1-a787-661b0e8bacd1
+recovery_boot_id_changed=true
+active_root=/dev/mmcblk0p29
+boot2_device=/dev/mmcblk0p30
+boot2_readback_sha256=4185b85192f036df09d547cdf68991e885c6d4849927e684a5923cde15c0a03c
+record_1_header=444247430000000000000000
+record_1_size=4096
+record_1_sha256=d58e2f4ee9541fa1f2a2d07247ffb6a1fa6a31fefaa83c3715fcfe4fd3ec9998
+record_1_payload_sha256=64bc1c47adca1573e573eb351e566f54469ee4e3200ec97a69dcd1e3c24bde53
+record_1_token_lines=0
+record_2_header=444247430000000000000000
+record_2_size=4096
+record_2_sha256=d58e2f4ee9541fa1f2a2d07247ffb6a1fa6a31fefaa83c3715fcfe4fd3ec9998
+record_2_payload_sha256=64bc1c47adca1573e573eb351e566f54469ee4e3200ec97a69dcd1e3c24bde53
+record_2_token_lines=0
+retained_records_1_2=exact-empty
+pstore_mounted=yes
+pstore_file_count=0
+ramoops_registration_lines=4
+device_memory_writes=none
+device_partition_writes=none
+private_capture_sha256=592d5fd30e30be4c0f33dba4b3c876b7a7820dd12f46bcbda89461df7af10e9a
+private_classification_sha256=25bed546ca97315b19ef4e3d3c7437229fca6b80bee7ec0960a6d40568d7d59b
+runtime_classification=before-driver-init-or-writer-refused
+observer_driver_init=not-established
+observer_probe_entry=not-established
+allocations=0-by-linked-candidate-contract
+source_lookups=0-by-linked-candidate-contract
+platform_snapshots=0-by-linked-candidate-contract
+provider_snapshots=0-by-linked-candidate-contract
+clock_calls=0-by-linked-candidate-contract
+bigidvfs_calls=0-by-linked-candidate-contract
+provider_transactions=0-by-linked-candidate-contract
+publisher_calls=0-by-linked-candidate-contract
+owner_mutations=0-by-linked-candidate-contract
+cpu8_cpu9_requests=0-by-linked-candidate-contract
+repeat_identical_candidate=no
+selected_next=move-to-earlier-independent-initcall-writer-boundaries
+
+The owner selected boot2 once. A host census did not find the Gemini USB
+network interface or netcat endpoint, and bounded SSH polling then observed an
+automatic return to exact changed-ID Gemian. Read-only recovery verified the
+candidate remained byte-exact on inactive boot2, pstore was mounted and empty,
+and both owned retained records were exact empty.
+
+This proves neither the observer's device-init checkpoint nor its first probe
+checkpoint committed. It does not distinguish the observer initcall not being
+reached from the retained writer refusing there. The exact candidate performs
+no allocation, source lookup, snapshot, provider transaction, publication,
+owner mutation, or CPU request before that first successful checkpoint, so
+none of those paths is implicated. An identical retry cannot resolve the
+ambiguity and is rejected.
+
+The next candidate must put two independent retained boundaries earlier than
+the observer's device initcall, at distinct global initcall levels. It must
+perform no observer registration, allocation, source lookup, capture,
+provider/clock/BigiDVFS operation, owner mutation, publication, or CPU request.

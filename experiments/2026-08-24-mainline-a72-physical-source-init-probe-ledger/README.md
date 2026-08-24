@@ -111,3 +111,17 @@ GPT agreement, two direct 4 KiB retained reads, mounted pstore, and zero memory
 or partition writes. Its three accepted outcomes map exactly to the decision
 table above; 16 attribution and safety mutations are rejected. See the
 [tooling receipt](results/recovery-tooling-validation-20260824.txt).
+
+Runtime attempt 1 then returned automatically to changed-ID Gemian. Read-only
+recovery verified unchanged boot2, mounted but empty pstore, and exact empty
+headers in both retained slots. Therefore neither `driver-init` nor
+`probe-enter` committed. This does not distinguish an unreached observer
+device initcall from writer refusal at that point, but the candidate's strict
+order proves allocation, source lookup, capture, provider/clock/BigiDVFS work,
+publication, owner mutation, and CPU requests were not implicated. See the
+[runtime receipt](results/runtime-attempt-1-before-driver-init-20260824.txt).
+
+An identical retry is rejected. The next experiment moves two independent
+records earlier than the observer device initcall, at distinct global initcall
+levels, and returns without registering the observer or performing any of the
+closed effects above.

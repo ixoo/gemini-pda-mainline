@@ -5070,9 +5070,19 @@ The next ordered work is:
    line and one needlessly split registration call. The retry changes only
    those two formatting details and passes every source, replay, and strict
    style gate. Its fetched bytes are canonical patch `0360` with zero errors,
-   warnings, or checks. No kernel package, candidate, or device action exists
-   yet. **Selected next:** compile the exact isolated init/probe profile on
-   Buildbox.
+   warnings, or checks. The exact isolated profile then compiles on Buildbox;
+   its fetched package, deterministic Android-v0 assembly, independent
+   padding, and all 32 LK gates pass. Guarded inactive-boot2 deployment and
+   full readback pass, followed by a clean shutdown. Runtime attempt 1 returns
+   automatically to changed-ID Gemian. Read-only recovery verifies unchanged
+   boot2, empty pstore, and both `driver-init` and `probe-enter` slots exact
+   empty. The linked runtime receipt therefore rejects the artifact before an
+   established observer device initcall; allocation, source lookup, capture,
+   providers, publication, owner mutation, and CPU requests remain closed. An
+   identical retry is disallowed. **Selected next:** place two independent
+   retained records at distinct global initcall levels earlier than the
+   observer device initcall, then return without registering the observer or
+   performing any source or CPU action.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
