@@ -4962,10 +4962,16 @@ The next ordered work is:
    platform, DA921x, clock, and BigiDVFS under the existing outer owner with
    two retained checkpoints around the first attributable BigiDVFS call. The
    contract itself performed no build or device action.
-   **Selected next:** implement and prove the hardware-free DA921x read-only
-   snapshot separation on Buildbox with the positive writable provider option
-   off. Add no physical adapter, boot candidate, device action, provider
-   acquire/release, A34/P30/publication, or CPU request.
+   The named
+   [DA921x read-only snapshot separation](../experiments/2026-08-24-mainline-da921x-readonly-snapshot-separation/README.md)
+   now owns the implementation input for that hardware-free Phase A. It pins
+   the canonical through-`0347` source, factors only the read endpoint and
+   callback, and specifies an isolated five-case proof with the positive
+   provider and firmware-writer transaction window off.
+   **Selected next:** generate and admit its two patches on Buildbox, then run
+   the isolated no-modules Buildbox compile, symbol-absence check, and QEMU
+   KUnit proof. Add no physical adapter, boot candidate, device action,
+   provider acquire/release, A34/P30/publication, or CPU request.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

@@ -23,6 +23,12 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-24 mainline DA921x read-only snapshot separation](2026-08-24-mainline-da921x-readonly-snapshot-separation/README.md)
+  — implements the physical-source contract's hardware-free Phase A as a
+  deterministic two-patch Buildbox review. The stable two-sample callback is
+  factored onto a read-only endpoint while the delayed positive transaction,
+  firmware-writer window, and Buck-B writer remain absent. Five isolated
+  in-memory KUnit cases are specified; generation and build are pending.
 - [2026-08-24 mainline A72 physical-source qualification contract](2026-08-24-mainline-a72-physical-source-qualification-contract/README.md)
   — freezes two ordered phases before a physical direct-state observation.
   First, separate the stable DA921x snapshot from the positive writable

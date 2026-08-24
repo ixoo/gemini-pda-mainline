@@ -187,6 +187,19 @@ under one root-adapter lock with retries disabled, and rejects writes, delays,
 loops, A34 callers, CPU operations, or device actions. Generation does not
 contact the Gemini.
 
+The follow-up read-only snapshot separation uses the canonical through-`0347`
+tree and generates only the provider factoring patch plus its isolated test:
+
+```sh
+./scripts/buildbox generate-da921x-readonly-snapshot-patches
+./scripts/buildbox fetch-da921x-readonly-snapshot-patches
+```
+
+This lane requires the positive provider transaction and firmware-writer
+transaction window to remain unselected. It validates all ten negative and
+short read ordinals and all five second-sample mismatches without a physical
+adapter, build candidate, or device action.
+
 The protected-clock first-dmesg call discriminator also has a source-review
 lane:
 

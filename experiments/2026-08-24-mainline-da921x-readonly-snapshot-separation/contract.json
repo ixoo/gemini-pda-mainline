@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-24-mainline-da921x-readonly-snapshot-separation",
+  "repository_parent": "c08b2e819bd4c9bc28aea76b16fb437545831f3d",
+  "canonical_parent": "patches/v7.1.3/0347-arm64-test-atomic-A72-bootstrap-publication.patch",
+  "prepared_source_state": "ac57421ae45c6e55ba34f2cac4131647e89762ad5988baf1b47364c2c75e77cb",
+  "prepared_source_integrity": "d87fe0d866aec4825c2e2c2bf5f1df628299692e5bad63e581b07c64d0f3c22d",
+  "source_files": {
+    "drivers/regulator/da9213-legacy-regulator.c": "77faf36fa817ad9b76cb629dab99a70d78880455c23b075303bd30579c97c587",
+    "drivers/regulator/da9213-legacy-provider-contract.h": "8f827505f694c45a614ab88507566e13551fae33b3d6fc54e3dc234123d3ca1f",
+    "drivers/regulator/Kconfig": "48f8d3705d719b49f4eb0b608217f17af4141b56c8e370f14584d794f55970bf",
+    "drivers/regulator/Makefile": "a049c4776f45a66dd90f4eae81d7a7b86aeb53946d9c14767e4d9c3042d540fe"
+  },
+  "patches": [
+    "0348-regulator-separate-read-only-DA921x-provider-snapshot.patch",
+    "0349-regulator-test-read-only-DA921x-provider-snapshot.patch"
+  ],
+  "production": {
+    "samples": 2,
+    "reads_per_sample": 5,
+    "register_order": ["0x56", "0x51", "0x5e", "0xd9", "0xda"],
+    "endpoint_mutexes": 1,
+    "root_adapter_locks": 1,
+    "adapter_retries": "zero-then-restored",
+    "positive_provider_transaction": false,
+    "writer_transaction_window": false
+  },
+  "test": {
+    "focused_cases": 5,
+    "negative_transfer_ordinals": 10,
+    "short_transfer_ordinals": 10,
+    "second_sample_mismatches": 5,
+    "physical_i2c": false
+  },
+  "exclusions": {
+    "buckb_writer_linked": false,
+    "provider_action": false,
+    "direct_source_registration": false,
+    "a34": false,
+    "p30": false,
+    "mmio": false,
+    "smc": false,
+    "cpu_request": false,
+    "device_action": false,
+    "boot_candidate": false
+  },
+  "result": "pending-generation"
+}
