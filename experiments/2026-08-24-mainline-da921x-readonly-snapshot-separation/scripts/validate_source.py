@@ -42,7 +42,9 @@ def main() -> None:
     require(endpoint.index("#if IS_ENABLED(") < endpoint.index("transaction;"),
             "mutable transaction is positive-only")
 
-    owner = driver.index("#if IS_ENABLED(CONFIG_ARM64_MT6797_A72_PROVIDER_OWNER)")
+    owner = driver.index(
+        "static const u8 da9213_legacy_provider_snapshot_regs[]"
+    )
     positive = driver.index(
         "#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION)",
         owner,
