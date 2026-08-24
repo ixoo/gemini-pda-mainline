@@ -201,9 +201,21 @@
     "builder_sha256": "9e02338db6bab33f0bf57714d071829fdf9d9e3df6ae199c0e76f1e25ec97398",
     "independent_validator_sha256": "dac54074b9997e7d27f35f422ad25763561192f806c7695231c3d8170b2f6b59"
   },
+  "deployment": {
+    "attempts": 1,
+    "status": "safe-refusal-stale-retained-records",
+    "record_1_header": "444247437900000079000000",
+    "record_2_header": "444247437800000078000000",
+    "attribution": "matches-prior-protected-clock-record-headers-and-prefix",
+    "partition_writer_invoked": false,
+    "device_partition_writes": false,
+    "device_memory_writes": false,
+    "shutdown_confirmed": true,
+    "selected_next": "cold-start-ordinary-gemian-then-repeat-guarded-install"
+  },
   "decision": {
-    "result": "guarded-observer-candidate-validated",
-    "selected_next": "deploy-exact-candidate-to-live-resolved-boot2-and-shut-down",
+    "result": "deployment-safely-refused-stale-retained-records",
+    "selected_next": "cold-start-ordinary-gemian-then-repeat-guarded-install",
     "device_action": false,
     "boot_candidate": true
   }

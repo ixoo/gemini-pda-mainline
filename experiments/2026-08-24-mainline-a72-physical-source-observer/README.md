@@ -183,3 +183,12 @@ all 32 LK gates pass. The contract is therefore promoted to
 `boot_candidate=true`. The selected next action is one guarded `boot2` install
 under the repository's standing live-GPT/readback policy, followed by a clean
 shutdown for physical slot selection.
+
+Deployment preflight attempt 1 stopped before the live `boot2` gate because
+records 1 and 2 still held the prior protected-clock result: their observed
+headers are `DBGC` with lengths 121 and 120 and their bounded payload prefixes
+match that retained format. No partition writer ran and no device-memory write
+was made. Gemian was shut down cleanly and is confirmed unreachable. Following
+the already-proven stale-record workflow, the next action is one ordinary cold
+Gemian start to normalize those records without `/dev/mem`, then the same
+guarded installer may be retried.

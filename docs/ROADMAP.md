@@ -5009,6 +5009,11 @@ The next ordered work is:
    **Selected next:** deploy that exact candidate once to live-resolved `boot2`,
    verify the full-partition readback, and shut the device down for owner slot
    selection.
+   Deployment preflight attempt 1 safely refused before the `boot2` gate because
+   records 1 and 2 still matched the prior protected-clock headers and payload
+   prefix. No partition or device-memory write occurred. Gemian is cleanly shut
+   down; cold-start ordinary Gemian once to normalize retained RAM, then repeat
+   the same guarded installation.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
