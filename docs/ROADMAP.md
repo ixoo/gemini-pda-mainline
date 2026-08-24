@@ -5090,8 +5090,12 @@ The next ordered work is:
    capture, provider transactions, publication, owner mutation, and CPU
    requests remain closed. Exact Buildbox source validation, three-file scope,
    byte-identical replay, and strict checkpatch all pass; fetched patch `0361`
-   is admitted byte-for-byte with zero errors, warnings, or checks. The
-   isolated Buildbox profile build is next; no candidate exists yet.
+   is admitted byte-for-byte with zero errors, warnings, or checks. The exact
+   isolated Buildbox profile compiles; the fetched package, deterministic
+   Android-v0 assembly, independent padding, and all 32 LK gates pass. Exact
+   padded candidate `e9d56502...6125a` is accepted for one guarded inactive
+   `boot2` deployment and two-boundary runtime observation; no device write has
+   occurred yet.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

@@ -57,5 +57,14 @@ patch semantic checks, exact three-file scope, byte-identical replay, and
 strict checkpatch all pass; checkpatch reports zero errors, warnings, and
 checks. The fetched patch is admitted byte-for-byte with SHA-256
 `ec7e185fdcbf7eedb55652b25173a431e0e02157e05c8a7a534478d4b2ee5b7b`.
-The next action is an isolated Buildbox kernel build of profile
-`a72-global-initcall-ledger`; no candidate exists yet.
+The exact isolated Buildbox build of profile `a72-global-initcall-ledger`
+passes and produces release `7.1.3-gemini-a72-initcalls`. Its fetched package
+validates against the signed repository commit and exact config, Image, DT,
+System.map, and manifest identities. Two deterministic Android-v0 assemblies,
+two independent 16 MiB padding constructions, and an independent analyzer all
+agree; all 32 LK gates pass. The accepted raw candidate is
+`41a181f631456be55ae28b75ee525226dd7b41da844c5c4ed5a0acd3f13c5156`
+and its exact padded Boot2 image is
+`e9d565021de9ed1164aa78a78795d6a3dabd7af656aaa3df791e23424e66125a`.
+The next action is guarded installation to live-GPT inactive `boot2`, full
+readback verification, and clean shutdown. No device write has occurred yet.

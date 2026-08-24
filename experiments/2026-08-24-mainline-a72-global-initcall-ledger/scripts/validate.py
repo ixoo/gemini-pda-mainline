@@ -143,9 +143,38 @@ def main() -> None:
     series = (ROOT / "patches/series").read_text().splitlines()
     require(series[-1] == f"v7.1.3/{generation['patch']}",
             "canonical series tail")
-    require(contract["candidate"]["status"] == "not-built", "candidate pending")
-    require(contract["candidate"]["boot_candidate"] is False,
-            "no candidate before build")
+    candidate = contract["candidate"]
+    require(candidate["status"] == "validated", "candidate validated")
+    require(candidate["repository_commit"]
+            == "16567a0bf48286e00579ecc9838cef399e7c5919",
+            "candidate repository commit")
+    require(candidate["kernel_release"] == "7.1.3-gemini-a72-initcalls",
+            "candidate release")
+    require(candidate["raw_sha256"]
+            == "41a181f631456be55ae28b75ee525226dd7b41da844c5c4ed5a0acd3f13c5156",
+            "raw candidate identity")
+    require(candidate["raw_size"] == 6_909_952, "raw candidate size")
+    require(candidate["padded_sha256"]
+            == "e9d565021de9ed1164aa78a78795d6a3dabd7af656aaa3df791e23424e66125a",
+            "padded candidate identity")
+    require(candidate["padded_size"] == 16_777_216,
+            "padded candidate size")
+    require(candidate["lk_gates"] == "32-of-32",
+            "LK validation gates")
+    require(candidate["independent_validation"] is True,
+            "independent candidate validation")
+    require(candidate["boot_candidate"] is True, "candidate accepted")
+    for name, expected in {
+        "build-candidate.sh":
+            "c8ed57de3c3ad87691cc43d5d84fb75b87ac3a95b375a6020ecf892ef6b0b053",
+        "validate-candidate.sh":
+            "5a52e1211054493e264076c0178cc251912f5d728db92694bc87b6f7b3c1bcfe",
+        "install-boot2.sh":
+            "c1c3a364d945fb869c994bfada673cc71a89eb94c6db6be518a16fe88f3447a0",
+    }.items():
+        path = EXPERIMENT / "scripts" / name
+        require(path.is_file() and not path.is_symlink() and sha256(path) == expected,
+                f"candidate tool identity: {name}")
 
     print("validation=a72-global-initcall-ledger-definition")
     print("profile=a72-global-initcall-ledger")
@@ -154,7 +183,7 @@ def main() -> None:
     print("allocations=0")
     print("source_lookups=0")
     print("cpu_requests=0")
-    print("boot_candidate=false")
+    print("boot_candidate=true")
     print("result=pass")
 
 
