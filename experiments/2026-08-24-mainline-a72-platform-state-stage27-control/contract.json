@@ -1,0 +1,83 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-24-mainline-a72-platform-state-stage27-control",
+  "predecessor": "experiments/2026-08-24-mainline-a72-platform-state-only",
+  "question": "minimum-platform-state-probe-on-exact-stage27-serviceability-dt",
+  "build": {
+    "repository_commit": "26274db63316bbb24eeb9bfa8de21759da666b9e",
+    "profile": "a72-early-initcall-ledger",
+    "kernel_release": "7.1.3-gemini-a72-early",
+    "backend": "buildbox",
+    "new_kernel_build": false,
+    "native_vm_build": false,
+    "image_sha256": "6a990065ed3be26bb1ec113a578baba68600733d00f46bff45783569a22bfce0",
+    "image_gzip_sha256": "00992be8c2ccb222c42eecfd92c43b81305f12d756cc2e2a7fc533299e2ce293",
+    "config_sha256": "d951032cfaee8e05c5ff0c69e689a1384375d2ddce657481722451261ba332dd",
+    "system_map_sha256": "16807a1bfadb4175156f162ae0656326afc93ed636dec48b829a0d67224b23c8",
+    "package_manifest_sha256": "4753b29adba9e4cc340d7768c44a04a40d31c7e403a287ccf363cbfc5bb5f890"
+  },
+  "dt": {
+    "source": "runtime-proven-stage27-lifecycle",
+    "source_sha256": "7ee8421ea03b604e30e1760f6fb5bc98d4d2566694a9da189326ce2c10e0c806",
+    "derived_sha256": "57e11e4392edfdb9fa695ac3f87b82aad4043bc2a61b78646bf97344bae101fd",
+    "derived_size": 27031,
+    "changed_contracts": 3,
+    "reverse_semantic_proof": "byte-identical-sorted-dts",
+    "stage27_serviceability_state_preserved": true
+  },
+  "candidate": {
+    "status": "validated",
+    "artifact": "candidate-a72-platform-state-stage27-70ca589d",
+    "ramdisk_sha256": "e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f",
+    "raw_sha256": "70ca589dbfc7649c38648a008e5197702295f396610ee2336fef5325f31b9546",
+    "raw_size": 6909952,
+    "padded_sha256": "662e86846e783cf29b13c388f9e88217fe7bd32933eef4f32df86e44def0b16b",
+    "padded_size": 16777216,
+    "artifact_manifest_sha256": "ed0eccbe2250cbb80aaf57f28b1b30f47fc0dde8b305eb94b256586ec2d78ba4",
+    "lk_name": "gemini-a72min",
+    "lk_cmdline": "bootopt=64S3,32N2,64N2",
+    "lk_gates_passed": 32,
+    "negative_mutations_rejected": 6,
+    "boot_candidate": true
+  },
+  "runtime_effects": {
+    "retained_write_attempts_maximum": 2,
+    "managed_allocations": 1,
+    "spm_syscon_lookups": 1,
+    "exclusive_reset_handle_acquisitions": 1,
+    "reset_assertions": 0,
+    "reset_deassertions": 0,
+    "ioremap_resources": 2,
+    "register_reads": 0,
+    "register_data_writes": 0,
+    "platform_snapshots": 0,
+    "protected_calls": 0,
+    "provider_transactions": 0,
+    "publisher_calls": 0,
+    "owner_mutations": 0,
+    "cpu_requests": 0
+  },
+  "tooling": {
+    "dt_builder_sha256": "dfffd518be001ff2de582571b013e1392879a72ee770dca1729298e462fdeb5c",
+    "candidate_builder_sha256": "fe6d84bed40362b0cc04077a60af6f129fca2914f74afdaaba7098b16d4c5ecc",
+    "candidate_validator_sha256": "25a83e9188658935fd8c586f18e7a1208e9082c520a6b1ca2b2007087ffddad6",
+    "installer_sha256": "13efd0159643a5a498e2748baa47e98910d4da497b1533b8e5f47ac5d44d89c8",
+    "collector_sha256": "239730f184500dab38f51e0d9913638a825235c537f485ce9269b48004f83291",
+    "remote_probe_sha256": "84cd91e6b842b86fbd8b62eb042be0e1873a9738625743aaf3896d5d5dda9d77",
+    "runtime_validator_sha256": "c1ab2bae4f8b2f4f2d462707fb4191d34cb129946c41447d2ac653da57a6073d",
+    "runtime_tests_sha256": "9cdc7ad5181c52447e9d6d7dad47318838c25c607a12495468c311d74d7fd591",
+    "runtime_accepted_branches": 2,
+    "runtime_rejected_mutations": 11
+  },
+  "deployment": {
+    "status": "pending",
+    "target_logical_name": "boot2",
+    "fresh_predecessor_backup_required": false,
+    "shutdown_after_verified_write": true
+  },
+  "runtime": {
+    "status": "pending",
+    "attempts_allowed": 1,
+    "cpu8_cpu9_admission": "closed"
+  }
+}

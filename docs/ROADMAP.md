@@ -5159,11 +5159,18 @@ The next ordered work is:
    current physical-source DT rather than the byte-exact Stage-27 control and,
    among many unrelated changes, disabled the USB controller and T-PHY. Its
    no-network/changed-Gemian result is inconclusive and does not implicate the
-   provider. **Selected next:** derive a corrected DT from the exact proven
-   Stage-27 DT, adding only the platform-state node and the minimum SPM-syscon
-   and watchdog-reset provider contracts required for its probe. Preserve the
-   proven USB, display, keyboard, and all other board state byte-for-byte where
-   those provider references do not require a change.
+   provider. The linked
+   [corrected Stage-27 platform-state discriminator](../experiments/2026-08-24-mainline-a72-platform-state-stage27-control/README.md)
+   now derives from the exact proven Stage-27 DT and adds only the platform-state
+   node plus its minimum SPM-syscon and watchdog-reset provider contracts.
+   Reversing those additions recovers the byte-identical sorted Stage-27
+   semantic tree, and the proven USB, T-PHY, I2C5, keyboard, framebuffer, and
+   SCP state is explicitly gated. Its deterministic raw and padded candidates,
+   all 32 LK gates, six container mutations, and eleven runtime-classifier
+   mutations pass without a new kernel build. **Selected next:** commit and
+   push this exact definition, guarded-write it once to live-GPT `boot2`, shut
+   down, pre-arm USB/netcat collection, and spend one physical selection on
+   the provider probe/resource boundary with CPU8 and CPU9 still closed.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

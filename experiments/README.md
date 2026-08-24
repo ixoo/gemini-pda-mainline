@@ -23,6 +23,16 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-24 A72 platform-state probe on the exact Stage-27 control DT](2026-08-24-mainline-a72-platform-state-stage27-control/README.md)
+  — corrects the confounded physical-source-DT attempt by deriving from the
+  byte-exact runtime-proven Stage-27 DT and adding only the platform-state node,
+  SPM syscon compatible, and watchdog reset-provider contract. Reversing those
+  three additions recovers a byte-identical sorted Stage-27 semantic tree;
+  USB, T-PHY, I2C5, keyboard, framebuffer, and SCP state are explicitly
+  preserved. The deterministic candidate passes all 32 LK gates, six container
+  mutations, and eleven runtime-classifier mutations without a new kernel
+  build. One guarded deployment and physical `boot2` selection are pending;
+  CPUs 8–9 remain closed.
 - [2026-08-24 mainline A72 early initcall ledger](2026-08-24-mainline-a72-early-initcall-ledger/README.md)
   — defines the successor after neither subsys nor fs checkpoint was retained:
   independent pure/core records plus one separately gated slot-2 primary
