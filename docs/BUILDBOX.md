@@ -258,6 +258,22 @@ source lookup and performs no physical snapshot, provider transaction,
 publication, owner mutation, CPU request, candidate construction, or device
 action.
 
+The later global-initcall and early-initcall successors each have their own
+one-patch generation lane:
+
+```sh
+./scripts/buildbox generate-a72-global-initcall-ledger
+./scripts/buildbox fetch-a72-global-initcall-ledger
+./scripts/buildbox generate-a72-early-initcall-ledger
+./scripts/buildbox fetch-a72-early-initcall-ledger
+```
+
+The early lane pins the exact managed source through `0361`, moves the primary
+records to pure and core initcalls, and permits one separately gated record-2
+refusal marker only after the pure checkpoint fails. Both lanes suppress
+observer registration and add no source, provider, owner, CPU, candidate, or
+device action.
+
 The protected-clock first-dmesg call discriminator also has a source-review
 lane:
 

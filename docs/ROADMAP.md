@@ -5109,6 +5109,14 @@ The next ordered work is:
    independent first-dmesg records to pure and core initcalls and add exact
    writer/refusal attribution, with all observer, source, provider, owner, and
    CPU actions still closed. Screen color and reset timing remain excluded.
+   The linked
+   [early initcall ledger experiment](../experiments/2026-08-24-mainline-a72-early-initcall-ledger/README.md)
+   freezes that successor at pure and core initcalls. If the primary pure
+   checkpoint fails, a separately gated slot-2 marker can attribute that
+   refusal without overwriting slot 1 or exceeding two write attempts. The
+   definition is pinned to the exact managed source through `0361`; Buildbox
+   generation, replay, and strict style validation are next. No kernel build,
+   candidate, or device action has occurred.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

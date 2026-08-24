@@ -23,6 +23,15 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-24 mainline A72 early initcall ledger](2026-08-24-mainline-a72-early-initcall-ledger/README.md)
+  — defines the successor after neither subsys nor fs checkpoint was retained:
+  independent pure/core records plus one separately gated slot-2 primary
+  refusal marker. Observer, source, provider, owner, and CPU actions remain
+  closed; Buildbox patch generation is next.
+- [2026-08-24 mainline A72 global initcall ledger](2026-08-24-mainline-a72-global-initcall-ledger/README.md)
+  — canonical patch `0361`, exact Buildbox candidate, guarded boot2 deployment,
+  and changed-ID recovery completed. Both subsys/fs records were exact empty;
+  the candidate is retired with automatic-reset retention explicitly unproved.
 - [2026-08-24 mainline A72 physical-source observer](2026-08-24-mainline-a72-physical-source-observer/README.md)
   — implements Phase B as canonical patches `0350`--`0354`: the exact
   two-record retained mode, temporary direct-source observer, binding,
