@@ -401,14 +401,14 @@ def direct_test(text: str) -> str:
     )
     text = replace_once(
         text,
-        "\tKUNIT_EXPECT_EQ(test, observed.cpu8_online, 0U);\n"
-        "\tKUNIT_EXPECT_EQ(test, observed.cpu9_online, 0U);\n",
-        "\tKUNIT_EXPECT_EQ(test, observed.cpu8_online, 0U);\n"
-        "\tKUNIT_EXPECT_EQ(test, observed.cpu9_online, 0U);\n"
-        "\tKUNIT_EXPECT_EQ(test, observed.cpu8_method_valid, 1U);\n"
-        "\tKUNIT_EXPECT_EQ(test, observed.cpu9_method_valid, 1U);\n"
-        "\tKUNIT_EXPECT_EQ(test, observed.cpu8_mpidr, (u64)0x200);\n"
-        "\tKUNIT_EXPECT_EQ(test, observed.cpu9_mpidr, (u64)0x201);\n",
+        "\tKUNIT_EXPECT_EQ(test, observed->cpu8_online, 0U);\n"
+        "\tKUNIT_EXPECT_EQ(test, observed->cpu9_online, 0U);\n",
+        "\tKUNIT_EXPECT_EQ(test, observed->cpu8_online, 0U);\n"
+        "\tKUNIT_EXPECT_EQ(test, observed->cpu9_online, 0U);\n"
+        "\tKUNIT_EXPECT_EQ(test, observed->cpu8_method_valid, 1U);\n"
+        "\tKUNIT_EXPECT_EQ(test, observed->cpu9_method_valid, 1U);\n"
+        "\tKUNIT_EXPECT_EQ(test, observed->cpu8_mpidr, (u64)0x200);\n"
+        "\tKUNIT_EXPECT_EQ(test, observed->cpu9_mpidr, (u64)0x201);\n",
         "direct success target identity",
     )
     text = replace_once(
