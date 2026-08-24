@@ -1,0 +1,22 @@
+From 3323d0df89bcfd34b9ce1098f9f1be73f1d0711e Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 24 Aug 2026 16:46:00 +0000
+Subject: [PATCH 1/1] pstore: fix A72 pre-capture ledger dependency
+
+Remove the reverse negative dependency from the older physical-source ledger. The new pre-capture mode retains the one-way exclusion, avoiding a Kconfig dependency cycle without changing runtime source.
+---
+ fs/pstore/Kconfig | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/fs/pstore/Kconfig b/fs/pstore/Kconfig
+index d90c883..97d76e3 100644
+--- a/fs/pstore/Kconfig
++++ b/fs/pstore/Kconfig
+@@ -269,7 +269,6 @@ config PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER
+ 	bool "Gemini A72 physical-source retained ledger"
+ 	depends on PSTORE_GEMINI_PROTECTED_READBACK_LEDGER=y
+ 	depends on MTK_MT6797_A72_PHYSICAL_SOURCE_OBSERVER=y
+-	depends on !PSTORE_GEMINI_A72_PHYSICAL_SOURCE_PRECAPTURE_LEDGER
+ 	depends on !PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_CONTROL
+ 	depends on !PSTORE_GEMINI_PROTECTED_READBACK_PROBE_GATE_LEDGER
+ 	depends on !PSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER

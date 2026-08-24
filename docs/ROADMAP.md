@@ -5039,8 +5039,9 @@ The next ordered work is:
    No candidate exists. The selected correction removes only the old mode's
    reverse dependency; the new mode retains the one-way exclusion and no
    runtime source changes.
-   **Selected next:** generate and admit that one-line Kconfig follow-up on
-   Buildbox, then retry the exact isolated profile.
+   Exact Buildbox generation, one-file validation, byte-identical replay, and
+   strict checkpatch pass for the one-line correction, now canonical `0358`.
+   **Selected next:** retry the exact isolated profile through `0358`.
    Deployment preflight attempt 1 safely refused before the `boot2` gate because
    records 1 and 2 still matched the prior protected-clock headers and payload
    prefix. No partition or device-memory write occurred. Gemian was cleanly shut

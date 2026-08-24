@@ -65,3 +65,11 @@ The new mode still requires the old mode off, so exclusivity remains one-way
 without a cycle. Runtime source and the two checkpoint boundaries are
 unchanged. Generate and admit that exact Kconfig-only patch before retrying the
 Buildbox profile.
+
+Exact commit `3488562f545579e6c82e4e6b57d372563b92498e` generated the
+Kconfig-only follow-up on Buildbox from the managed source through `0357`.
+Parent integrity, one-file/one-deletion validation, byte-identical replay, and
+strict checkpatch with zero errors, warnings, or checks pass. The fetched bytes
+are canonical patch `0358`; see the
+[fix-generation receipt](results/buildbox-kconfig-fix-generation-3488562f.txt).
+The next action is to retry the unchanged isolated profile through `0358`.
