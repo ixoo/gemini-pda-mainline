@@ -4909,12 +4909,18 @@ The next ordered work is:
    tests while leaving A34, hardware effects, and CPU requests closed. The
    [implementation experiment](../experiments/2026-08-23-mainline-a72-direct-state-compositor/README.md)
    owns its exact generated identities and test chronology.
-3. **Selected next:** revise A34 to accept only the complete direct-state ABI
-   and applicable BL31 replay-clear contract, prove the atomic
-   `CLOSED / UNINITIALIZED` to `AVAILABLE / IDLE` publication, and keep both
-   CPU vetoes closed until that proof passes. First freeze the exact input,
-   owner, lock, single-publication, and fail-closed contracts against the
-   canonical tree through the compositor before changing production state.
+3. The
+   [A34 publication contract audit](../experiments/2026-08-23-mainline-a72-a34-publication-contract-audit/README.md)
+   rejects publication from the current ABIs. Direct-state `valid=1` is structural,
+   not a recovered-value predicate; the current boot has no positive owner for
+   BL31 replay-clear applicability; and P30 has no pristine bootstrap
+   interlock. A34-v1 also duplicates caller-supplied state instead of consuming
+   the compositor-owned record. **Selected next:** implement and prove the
+   default-off A34-v2 evaluator and P30 bootstrap interlock with injected,
+   hardware-free tests. Do not publish `AVAILABLE / IDLE`, bind a physical
+   reader, or relax either CPU veto in that slice. Only after those inputs and
+   exclusion rules pass may a separate review add the atomic single
+   publication commit point.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

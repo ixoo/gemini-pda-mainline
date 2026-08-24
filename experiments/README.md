@@ -23,6 +23,13 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-23 mainline A72 A34 publication contract audit](2026-08-23-mainline-a72-a34-publication-contract-audit/README.md)
+  — rejects production publication from the current inputs: direct-state
+  `valid=1` proves stable record shape rather than recovered raw values, the
+  current boot has no positive replay-applicability owner, and P30 has no
+  bootstrap interlock. It selects a default-off A34-v2 evaluator plus P30
+  interlock proof while keeping lifecycle publication and both CPU vetoes
+  closed.
 - [2026-08-23 mainline A72 direct-state compositor](2026-08-23-mainline-a72-direct-state-compositor/README.md)
   — implements the audit's first hardware-free owner boundary as one closed
   core patch and one injected KUnit patch, generated and validated only on

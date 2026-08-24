@@ -1,0 +1,15 @@
+id	boundary	canonical_state	publication_requirement	decision
+A01	direct-record-shape	ABI-valid-stable-compositor-pass	exact-complete-record	satisfied
+A02	direct-raw-value-eligibility	shape-only-validator	field-level-recovered-state-predicate	missing-block
+A03	target-topology	CPU8-CPU9-possible-present-offline	same-owner-target-identity	partial
+A04	target-method-and-mpidr	caller-supplied-in-A34-v1	compositor-owned-identity	missing-block
+A05	membership-owner	pristine-before-and-after-source	pristine-through-commit	partial
+A06	private-next-identity	checked-zero-not-in-record	owner-local-first-generation-cookie	partial
+A07	secure-replay-clear	static-primary-BL31-clear	current-boot-applicability-plus-zero	missing-block
+A08	P30-pristine	snapshot-API-private-lock-no-claim	pristine-bootstrap-interlock	missing-block
+A09	A34-input-ownership	caller-supplied-ABI-v1	one-direct-record-plus-replay-authority	missing-block
+A10	publication-store	absent	one-state-lock-commit-health-last	separable-after-A02-A08
+A11	CPU-up-veto	hard-reject-plus-closed-admission	unchanged-through-proof	satisfied
+A12	CPU-disable-veto	cpu-can-disable-false	unchanged-through-proof	satisfied
+A13	production-callers	zero	remain-zero-in-hardware-free-slice	satisfied
+A14	production-publication	absent	all-authorities-and-interlock	stop
