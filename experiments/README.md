@@ -23,6 +23,11 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-24 mainline A72 atomic bootstrap publication](2026-08-24-mainline-a72-atomic-publication/README.md)
+  — defines the audit-selected three-patch hardware-free phase: a P30 nested
+  finalizer, one default-off no-caller publisher, and eight injected failure
+  and success cases. Both CPU vetoes, physical binding, hardware effects, and
+  device action remain closed.
 - [2026-08-24 mainline A72 atomic publication contract audit](2026-08-24-mainline-a72-atomic-publication-audit/README.md)
   — finds that the current separate P30 release cannot close both the
   prepare-entry race and the post-commit failure window. It selects a nested

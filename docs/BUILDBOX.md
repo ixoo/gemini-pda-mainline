@@ -223,6 +223,8 @@ the exact clean pushed repository commit and the managed source through patch
 ```sh
 ./scripts/buildbox generate-a34-v2-interlock
 ./scripts/buildbox fetch-a34-v2-interlock
+./scripts/buildbox generate-a72-atomic-publication
+./scripts/buildbox fetch-a72-atomic-publication
 ```
 
 That lane creates three normal patches for the pristine P30 claim,

@@ -1,0 +1,244 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+export LC_ALL=C
+
+readonly PARENT_SOURCE_STATE=5f830ffd6050d3831b2a6a5d94b6f8a8125444215f93828de714c5f551dcf0ad
+readonly PARENT_SOURCE_INTEGRITY=6e8edea4e04443353bcc5bc5c6da8eed3914bcca529e864f8af9af52a9ef502d
+readonly LATE_HEADER_SHA256=748ee669310d35ee1170c8fcd07a192de37d4384b6e4cf76178ed42067816a27
+readonly LATE_SOURCE_SHA256=d229dcf2c68c13e041e4c59987d8938adc790077062008d9e5ebe1baf0fe7861
+readonly MEMBERSHIP_HEADER_SHA256=219f2b003fb4a3f61c2c53a15ef26d75af4557bf5c91e7953eead50bbeac4bd3
+readonly MEMBERSHIP_SOURCE_SHA256=11496914baca3fc8ac613b813265489741acdcd6e4945162840938061981a680
+readonly KCONFIG_SHA256=7b352827184b56e6eb01d86fdd05e0a9f46ba9e0989f001fc72c64c76e081cf8
+readonly PLATFORMS_SHA256=c30e2d4a83cc035c8b069272dae0a1e56c6ba92ff601816aa507d42868dcd0ec
+readonly MAKEFILE_SHA256=634ecce25eee183765606e99aa55bba686641e2922f3c6b867ec0a10ccf60e69
+readonly PARENT_PATCH=0344-arm64-revise-A34-for-direct-state-v2.patch
+readonly PARENT_PATCH_SHA256=c7f39812d182f85a9b7db3f47cf8de4219efcdf36bfb4b99dae5026fac6bb192
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+
+[[ "$#" -eq 3 ]] || die 'expected PROJECT_COMMIT SOURCE_ROOT OUTPUT_ROOT'
+readonly project_commit=$1
+readonly source_root=$2
+readonly output_root=$3
+[[ "$project_commit" =~ ^[0-9a-f]{40}$ ]] || die 'invalid project commit'
+[[ "$source_root" == /workspace/gemini-pda/src/linux-7.1.3-series-source ]] ||
+	die 'unexpected managed source root'
+[[ "$output_root" == /workspace/gemini-pda/* ]] || die 'unsafe output root'
+[[ -f "$source_root/.gemini-source-state" &&
+	! -L "$source_root/.gemini-source-state" ]] ||
+	die 'prepared source state marker absent or unsafe'
+[[ "$(<"$source_root/.gemini-source-state")" == "$PARENT_SOURCE_STATE" ]] ||
+	die 'prepared parent source state changed'
+[[ -f "$source_root/.gemini-source-integrity" &&
+	! -L "$source_root/.gemini-source-integrity" ]] ||
+	die 'prepared source integrity marker absent or unsafe'
+[[ "$(<"$source_root/.gemini-source-integrity")" == "$PARENT_SOURCE_INTEGRITY" ]] ||
+	die 'prepared parent integrity marker changed'
+
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+experiment_dir=$(cd -- "$script_dir/.." && pwd -P)
+repository_dir=$(cd -- "$experiment_dir/../.." && pwd -P)
+readonly script_dir experiment_dir repository_dir
+[[ "$(git -C "$repository_dir" rev-parse HEAD)" == "$project_commit" ]] ||
+	die 'project checkout does not match requested commit'
+[[ -z "$(git -C "$repository_dir" status --porcelain)" ]] ||
+	die 'project checkout is dirty'
+for command in git perl python3 sha256sum; do
+	command -v "$command" >/dev/null 2>&1 || die "missing command: $command"
+done
+integrity=$(python3 "$repository_dir/scripts/source-tree-integrity" \
+	verify "$source_root")
+[[ "$integrity" == "source_tree_integrity=$PARENT_SOURCE_INTEGRITY" ]] ||
+	die 'prepared source integrity verification failed'
+
+check_file() {
+	local expected=$1
+	local relative=$2
+	printf '%s  %s\n' "$expected" "$source_root/$relative" |
+		sha256sum --check --status || die "parent source changed: $relative"
+}
+check_file "$LATE_HEADER_SHA256" arch/arm64/include/asm/late_cpu_startup.h
+check_file "$LATE_SOURCE_SHA256" arch/arm64/kernel/late_cpu_startup.c
+check_file "$MEMBERSHIP_HEADER_SHA256" arch/arm64/include/asm/mt6797_a72_membership.h
+check_file "$MEMBERSHIP_SOURCE_SHA256" arch/arm64/kernel/mt6797_a72_membership.c
+check_file "$KCONFIG_SHA256" arch/arm64/Kconfig
+check_file "$PLATFORMS_SHA256" arch/arm64/Kconfig.platforms
+check_file "$MAKEFILE_SHA256" arch/arm64/kernel/Makefile
+
+readonly parent_patch_path="$repository_dir/patches/v7.1.3/$PARENT_PATCH"
+[[ -f "$parent_patch_path" && ! -L "$parent_patch_path" ]] ||
+	die 'canonical parent patch absent or unsafe'
+printf '%s  %s\n' "$PARENT_PATCH_SHA256" "$parent_patch_path" |
+	sha256sum --check --status || die 'canonical parent patch changed'
+
+readonly work_root=/workspace/gemini-pda/a72-atomic-publication-work
+readonly package="$output_root/a72-atomic-publication-${project_commit:0:12}"
+readonly partial="${package}.partial.$$"
+mkdir -p "$work_root" "$output_root"
+[[ ! -e "$partial" ]] || die 'stale output partial exists'
+
+if [[ -d "$package" && ! -L "$package" ]]; then
+	grep -Fx "repository_commit=$project_commit" \
+		"$package/provenance/generation.txt" >/dev/null ||
+		die 'existing package commit mismatch'
+	(cd "$package" && sha256sum --check --strict SHA256SUMS >/dev/null)
+	printf 'Generated atomic publication patches at %s\n' "$package"
+	exit 0
+fi
+[[ ! -e "$package" ]] || die 'unsafe existing package path'
+
+work=$(mktemp -d "$work_root/generation.XXXXXX")
+readonly work
+cleanup() {
+	[[ ! -d "$work" || "$work" != "$work_root"/generation.* ]] ||
+		rm -rf -- "$work"
+	[[ ! -d "$partial" || "$partial" != "$output_root"/*.partial.* ]] ||
+		rm -rf -- "$partial"
+}
+trap cleanup EXIT
+
+for relative in \
+	arch/arm64/include/asm/late_cpu_startup.h \
+	arch/arm64/kernel/late_cpu_startup.c \
+	arch/arm64/include/asm/mt6797_a72_membership.h \
+	arch/arm64/kernel/mt6797_a72_membership.c \
+	arch/arm64/Kconfig \
+	arch/arm64/Kconfig.platforms \
+	arch/arm64/kernel/Makefile; do
+	mkdir -p "$work/source/$(dirname "$relative")"
+	cp -- "$source_root/$relative" "$work/source/$relative"
+done
+git -C "$work/source" init --quiet
+git -C "$work/source" config user.name 'Gemini Mainline Experiment'
+git -C "$work/source" config user.email gemini-mainline@example.invalid
+git -C "$work/source" add -- .
+GIT_AUTHOR_DATE=2026-08-24T10:30:00Z \
+GIT_COMMITTER_DATE=2026-08-24T10:30:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'Atomic A72 publication canonical parent'
+parent_commit=$(git -C "$work/source" rev-parse HEAD)
+readonly parent_commit
+
+commit_phase() {
+	local date=$1
+	local subject=$2
+	local body=$3
+	git -C "$work/source" diff --check
+	git -C "$work/source" add -- .
+	git -C "$work/source" diff --cached --check
+	GIT_AUTHOR_NAME='Gemini Mainline Experiment' \
+	GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid \
+	GIT_COMMITTER_NAME='Gemini Mainline Experiment' \
+	GIT_COMMITTER_EMAIL=gemini-mainline@example.invalid \
+	GIT_AUTHOR_DATE="$date" GIT_COMMITTER_DATE="$date" \
+		git -C "$work/source" commit --quiet --no-gpg-sign \
+			-m "$subject" -m "$body"
+}
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/source_edits.py" \
+	--source-root "$work/source" --phase finalizer
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_source.py" \
+	--source-root "$work/source" --phase finalizer
+commit_phase 2026-08-24T10:31:00Z \
+	'arm64: finalize P30 pristine bootstrap claim' \
+	'Finalize one opaque pristine claim while retaining the P30 raw lock across a typed non-sleeping callback. This closes the prepare-entry gap and leaves failures before any owner commit.'
+finalizer_commit=$(git -C "$work/source" rev-parse HEAD)
+readonly finalizer_commit
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/source_edits.py" \
+	--source-root "$work/source" --phase publisher
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_source.py" \
+	--source-root "$work/source" --phase publisher
+commit_phase 2026-08-24T10:32:00Z \
+	'arm64: add atomic A72 bootstrap publisher' \
+	'Compose exact direct-state-v2 and replay input while retaining CPU-hotplug and transition ownership, then publish the pristine owner under the nested P30 finalizer. Keep the path default-off, without a production caller, physical binding, hardware operation, or CPU-veto change.'
+publisher_commit=$(git -C "$work/source" rev-parse HEAD)
+readonly publisher_commit
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/source_edits.py" \
+	--source-root "$work/source" --phase tests
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_source.py" \
+	--source-root "$work/source" --phase tests
+commit_phase 2026-08-24T10:33:00Z \
+	'arm64: test atomic A72 bootstrap publication' \
+	'Exercise exact finalization and one-shot injected publication, including replay, source, topology, P30, final-owner, and repeat rejection. Retain both CPU vetoes and zero hardware effects.'
+result_commit=$(git -C "$work/source" rev-parse HEAD)
+readonly result_commit
+
+mkdir -p "$partial/patches" "$partial/provenance"
+mapfile -t generated < <(git -C "$work/source" format-patch \
+	--no-signature --output-directory "$partial/patches" \
+	"${parent_commit}..${result_commit}")
+[[ "${#generated[@]}" -eq 3 ]] || die 'generated patch count changed'
+readonly finalizer_patch=0345-arm64-finalize-P30-pristine-bootstrap-claim.patch
+readonly publisher_patch=0346-arm64-add-atomic-A72-bootstrap-publisher.patch
+readonly test_patch=0347-arm64-test-atomic-A72-bootstrap-publication.patch
+mv -- "${generated[0]}" "$partial/patches/$finalizer_patch"
+mv -- "${generated[1]}" "$partial/patches/$publisher_patch"
+mv -- "${generated[2]}" "$partial/patches/$test_patch"
+printf '%s\n%s\n%s\n' "$finalizer_patch" "$publisher_patch" \
+	"$test_patch" >"$partial/patches/series"
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_patch.py" \
+	--patch-dir "$partial/patches"
+
+git clone --quiet "$work/source" "$work/verify"
+git -C "$work/verify" checkout --quiet --detach "$parent_commit"
+git -C "$work/verify" config user.name 'Gemini Mainline Experiment'
+git -C "$work/verify" config user.email gemini-mainline@example.invalid
+git -C "$work/verify" am --quiet --committer-date-is-author-date \
+	"$partial/patches/$finalizer_patch" \
+	"$partial/patches/$publisher_patch" \
+	"$partial/patches/$test_patch"
+[[ "$(git -C "$work/verify" rev-parse HEAD)" == "$result_commit" ]] ||
+	die 'patch replay did not reproduce generated commit'
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_source.py" \
+	--source-root "$work/verify" --phase tests
+[[ -z "$(git -C "$work/verify" status --porcelain)" ]] ||
+	die 'verification source is dirty'
+
+for patch in "$finalizer_patch" "$publisher_patch" "$test_patch"; do
+	if ! perl "$source_root/scripts/checkpatch.pl" --no-tree --strict \
+		--ignore MISSING_SIGN_OFF,COMMIT_LOG_LONG_LINE \
+		"$partial/patches/$patch" \
+		>"$partial/provenance/checkpatch-${patch%.patch}.txt"; then
+		cat "$partial/provenance/checkpatch-${patch%.patch}.txt" >&2
+		die "strict checkpatch rejected $patch"
+	fi
+done
+
+cat >"$partial/provenance/generation.txt" <<EOF
+purpose=experiment-only-a72-atomic-publication
+repository_commit=$project_commit
+parent_source_state=$PARENT_SOURCE_STATE
+parent_source_integrity=$PARENT_SOURCE_INTEGRITY
+canonical_parent_patch=$PARENT_PATCH
+canonical_parent_patch_sha256=$PARENT_PATCH_SHA256
+parent_commit=$parent_commit
+finalizer_commit=$finalizer_commit
+publisher_commit=$publisher_commit
+result_commit=$result_commit
+generated_patch_count=3
+finalizer_changed_files=2
+publisher_changed_files=3
+test_changed_files=3
+focused_tests=8
+production_callers=0
+physical_reader_binding=false
+production_replay_source=false
+cpu_veto_change=false
+hardware_operations=0
+cpu_requests=0
+device_action=none
+boot_candidate=false
+EOF
+printf '%s\n%s\n%s\n' "$finalizer_patch" "$publisher_patch" \
+	"$test_patch" >"$partial/provenance/patches.txt"
+(
+	cd "$partial"
+	find patches provenance -type f -print0 | sort -z |
+		xargs -0 sha256sum >SHA256SUMS
+	sha256sum --check --strict SHA256SUMS >/dev/null
+)
+mv -- "$partial" "$package"
+printf 'Generated atomic publication patches at %s\n' "$package"
