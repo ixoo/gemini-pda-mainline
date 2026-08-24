@@ -79,12 +79,60 @@
     "lk_cmdline": "bootopt=64S3,32N2,64N2",
     "lk_gates": "32-of-32",
     "independent_validation": true,
-    "boot_candidate": true
+    "boot_candidate": false
+  },
+  "deployment": {
+    "status": "write-synced-flushed-full-readback-verified",
+    "receipt": "experiments/2026-08-24-mainline-a72-global-initcall-ledger/results/deployment-20260824.txt",
+    "receipt_sha256": "39d11b5ab5207423874b5e33490a2ac18a763bdc146e8a1129fba0df983d414f",
+    "target_logical_name": "boot2",
+    "target": "/dev/mmcblk0p30",
+    "active_root": "/dev/mmcblk0p29",
+    "predecessor_sha256": "4185b85192f036df09d547cdf68991e885c6d4849927e684a5923cde15c0a03c",
+    "fresh_predecessor_backup": false,
+    "candidate_sha256": "e9d565021de9ed1164aa78a78795d6a3dabd7af656aaa3df791e23424e66125a",
+    "readback_sha256": "e9d565021de9ed1164aa78a78795d6a3dabd7af656aaa3df791e23424e66125a",
+    "deployment_boot_id": "6ac4e0b6-2979-4a5b-851c-af7282fec216",
+    "records_1_2_prewrite": "exact-empty",
+    "retained_ram_write": false,
+    "temporary_readback_removed": true,
+    "shutdown": "confirmed-unreachable",
+    "reboot": false
+  },
+  "recovery": {
+    "status": "runtime-complete",
+    "classifier_sha256": "5250345332b75511dc30b3e8b5b743e78a0ae8d96214eb8fd89ae4e0eb30ef3a",
+    "collector_sha256": "b5fb7f8d1fc919abac99a80adbebc9b3c344345e6da631cc36060b9ea82bab7b",
+    "negative_test_sha256": "57a3302ea5319bc6636a8ecb4e37087778ce31d90aff84b2cb18c9f619a1f99d",
+    "tooling_receipt": "experiments/2026-08-24-mainline-a72-global-initcall-ledger/results/recovery-tooling-validation-20260824.txt",
+    "tooling_receipt_sha256": "3295086954c6b259b65f5bc858efc8bdc080acf2ef1d4a525fb26a4382417ae5",
+    "requires_changed_boot_id": true,
+    "device_memory_writes": 0,
+    "device_partition_writes": 0,
+    "accepted_classifications": [
+      "before-subsys-init-or-writer-refused",
+      "subsys-init-only",
+      "subsys-and-fs-initcalls"
+    ]
+  },
+  "runtime": {
+    "attempt": 1,
+    "receipt": "experiments/2026-08-24-mainline-a72-global-initcall-ledger/results/runtime-attempt-1-before-subsys-or-unretained-20260824.txt",
+    "receipt_sha256": "f2c7cb35eb600bf94672d86ed4a4c38515382f76f9780871090cb2cc60993af9",
+    "recovery_boot_id": "ca6e280a-1d4b-4db3-ae9e-9d3234d4082c",
+    "boot2_full_sha256": "e9d565021de9ed1164aa78a78795d6a3dabd7af656aaa3df791e23424e66125a",
+    "pstore_file_count": 0,
+    "record_1_header": "444247430000000000000000",
+    "record_2_header": "444247430000000000000000",
+    "classification": "before-subsys-init-or-writer-refused",
+    "project_interpretation": "subsys-and-fs-checkpoints-not-retained",
+    "automatic_reset_retention": "not-independently-proven",
+    "repeat_identical_candidate": false
   },
   "decision": {
-    "result": "exact-boot-candidate-validated",
-    "selected_next": "install-inactive-boot2-and-shut-down",
-    "device_action": false,
-    "boot_candidate": true
+    "result": "both-global-initcall-records-exact-empty",
+    "selected_next": "pure-and-core-initcall-boundaries-with-refusal-attribution",
+    "device_action": true,
+    "boot_candidate": false
   }
 }

@@ -163,7 +163,7 @@ def main() -> None:
             "LK validation gates")
     require(candidate["independent_validation"] is True,
             "independent candidate validation")
-    require(candidate["boot_candidate"] is True, "candidate accepted")
+    require(candidate["boot_candidate"] is False, "candidate retired")
     for name, expected in {
         "build-candidate.sh":
             "c8ed57de3c3ad87691cc43d5d84fb75b87ac3a95b375a6020ecf892ef6b0b053",
@@ -176,6 +176,138 @@ def main() -> None:
         require(path.is_file() and not path.is_symlink() and sha256(path) == expected,
                 f"candidate tool identity: {name}")
 
+    deployment = contract["deployment"]
+    require(
+        deployment["status"] == "write-synced-flushed-full-readback-verified",
+        "deployment status",
+    )
+    require(deployment["target_logical_name"] == "boot2" and
+            deployment["target"] == "/dev/mmcblk0p30" and
+            deployment["active_root"] == "/dev/mmcblk0p29",
+            "deployment target identity")
+    require(deployment["candidate_sha256"] == candidate["padded_sha256"] and
+            deployment["readback_sha256"] == candidate["padded_sha256"],
+            "deployment full readback")
+    require(deployment["predecessor_sha256"]
+            == "4185b85192f036df09d547cdf68991e885c6d4849927e684a5923cde15c0a03c",
+            "deployment predecessor")
+    require(deployment["fresh_predecessor_backup"] is False,
+            "project backup policy")
+    require(deployment["records_1_2_prewrite"] == "exact-empty" and
+            deployment["retained_ram_write"] is False,
+            "retained prewrite state")
+    require(deployment["temporary_readback_removed"] is True and
+            deployment["shutdown"] == "confirmed-unreachable" and
+            deployment["reboot"] is False,
+            "deployment shutdown")
+    receipt = ROOT / deployment["receipt"]
+    require(receipt.is_file() and not receipt.is_symlink(),
+            "deployment receipt")
+    require(sha256(receipt) == deployment["receipt_sha256"],
+            "deployment receipt identity")
+    receipt_text = receipt.read_text()
+    for token in (
+        "result=write-synced-flushed-full-readback-verified",
+        "target_logical_name=boot2",
+        "fresh_predecessor_backup=no",
+        f"candidate_sha256={candidate['padded_sha256']}",
+        f"readback_sha256={candidate['padded_sha256']}",
+        "dmesg_records_1_2_prewrite=exact-empty",
+        "shutdown=confirmed-unreachable",
+        "reboot=no",
+    ):
+        require(token in receipt_text, f"deployment receipt token: {token}")
+
+    recovery = contract["recovery"]
+    require(
+        recovery["status"] == "runtime-complete",
+        "recovery status",
+    )
+    require(recovery["requires_changed_boot_id"] is True,
+            "changed-ID recovery gate")
+    require(recovery["device_memory_writes"] == 0 and
+            recovery["device_partition_writes"] == 0,
+            "read-only recovery")
+    require(
+        recovery["accepted_classifications"]
+        == [
+            "before-subsys-init-or-writer-refused",
+            "subsys-init-only",
+            "subsys-and-fs-initcalls",
+        ],
+        "recovery decision branches",
+    )
+    for name, key in {
+        "classify-recovery.py": "classifier_sha256",
+        "collect-recovery.sh": "collector_sha256",
+        "test-recovery-tools.py": "negative_test_sha256",
+    }.items():
+        path = EXPERIMENT / "scripts" / name
+        require(path.is_file() and not path.is_symlink() and
+                sha256(path) == recovery[key],
+                f"recovery tool identity: {name}")
+
+    tooling_receipt = ROOT / recovery["tooling_receipt"]
+    require(tooling_receipt.is_file() and not tooling_receipt.is_symlink(),
+            "recovery tooling receipt")
+    require(sha256(tooling_receipt) == recovery["tooling_receipt_sha256"],
+            "recovery tooling receipt identity")
+    tooling_text = tooling_receipt.read_text()
+    require("valid_branches_accepted=3" in tooling_text and
+            "unsafe_mutations_rejected=16" in tooling_text and
+            "device_memory_writes=none" in tooling_text and
+            "device_partition_writes=none" in tooling_text,
+            "recovery tooling result")
+
+    runtime = contract["runtime"]
+    require(runtime["attempt"] == 1, "runtime attempt")
+    require(runtime["boot2_full_sha256"] == candidate["padded_sha256"],
+            "runtime boot2 identity")
+    require(runtime["recovery_boot_id"] != deployment["deployment_boot_id"],
+            "runtime changed boot ID")
+    require(runtime["pstore_file_count"] == 0 and
+            runtime["record_1_header"] == "444247430000000000000000" and
+            runtime["record_2_header"] == "444247430000000000000000",
+            "runtime exact empty records")
+    require(runtime["classification"]
+            == "before-subsys-init-or-writer-refused",
+            "runtime classification")
+    require(runtime["project_interpretation"]
+            == "subsys-and-fs-checkpoints-not-retained" and
+            runtime["automatic_reset_retention"]
+            == "not-independently-proven",
+            "runtime inference limit")
+    require(runtime["repeat_identical_candidate"] is False,
+            "runtime no-repeat decision")
+    runtime_receipt = ROOT / runtime["receipt"]
+    require(runtime_receipt.is_file() and not runtime_receipt.is_symlink(),
+            "runtime receipt")
+    require(sha256(runtime_receipt) == runtime["receipt_sha256"],
+            "runtime receipt identity")
+    runtime_text = runtime_receipt.read_text()
+    for token in (
+        "recovery_boot_id_changed=true",
+        f"boot2_readback_sha256={candidate['padded_sha256']}",
+        "retained_records_1_2=exact-empty",
+        "runtime_classification=before-subsys-init-or-writer-refused",
+        "project_interpretation=subsys-and-fs-checkpoints-not-retained",
+        "automatic_reset_retention=not-independently-proven",
+        "repeat_identical_candidate=no",
+    ):
+        require(token in runtime_text, f"runtime receipt token: {token}")
+
+    require(
+        contract["decision"]
+        == {
+            "result": "both-global-initcall-records-exact-empty",
+            "selected_next":
+                "pure-and-core-initcall-boundaries-with-refusal-attribution",
+            "device_action": True,
+            "boot_candidate": False,
+        },
+        "current decision",
+    )
+
     print("validation=a72-global-initcall-ledger-definition")
     print("profile=a72-global-initcall-ledger")
     print("retained_checkpoints=subsys-init,fs-init")
@@ -183,7 +315,10 @@ def main() -> None:
     print("allocations=0")
     print("source_lookups=0")
     print("cpu_requests=0")
-    print("boot_candidate=true")
+    print("deployment=full-readback-verified-and-shut-down")
+    print("recovery_result=both-global-initcall-records-exact-empty")
+    print("automatic_reset_retention=not-independently-proven")
+    print("boot_candidate=false")
     print("result=pass")
 
 

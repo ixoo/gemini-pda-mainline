@@ -1,0 +1,74 @@
+experiment=2026-08-24-mainline-a72-global-initcall-ledger
+attempt=1
+date=2026-08-24
+selected_candidate_raw_sha256=41a181f631456be55ae28b75ee525226dd7b41da844c5c4ed5a0acd3f13c5156
+selected_candidate_padded_sha256=e9d565021de9ed1164aa78a78795d6a3dabd7af656aaa3df791e23424e66125a
+owner_selected_boot2=yes
+mainline_usb_census=not-run
+mainline_netcat_endpoint=not-tested
+automatic_gemian_return=owner-observed
+recovery_kernel=3.18.41+
+recovery_architecture=aarch64
+recovery_boot_id=ca6e280a-1d4b-4db3-ae9e-9d3234d4082c
+deployment_boot_id=6ac4e0b6-2979-4a5b-851c-af7282fec216
+recovery_boot_id_changed=true
+active_root=/dev/mmcblk0p29
+boot2_device=/dev/mmcblk0p30
+boot2_readback_sha256=e9d565021de9ed1164aa78a78795d6a3dabd7af656aaa3df791e23424e66125a
+record_1_header=444247430000000000000000
+record_1_size=4096
+record_1_sha256=d58e2f4ee9541fa1f2a2d07247ffb6a1fa6a31fefaa83c3715fcfe4fd3ec9998
+record_1_payload_sha256=64bc1c47adca1573e573eb351e566f54469ee4e3200ec97a69dcd1e3c24bde53
+record_1_token_lines=0
+record_2_header=444247430000000000000000
+record_2_size=4096
+record_2_sha256=d58e2f4ee9541fa1f2a2d07247ffb6a1fa6a31fefaa83c3715fcfe4fd3ec9998
+record_2_payload_sha256=64bc1c47adca1573e573eb351e566f54469ee4e3200ec97a69dcd1e3c24bde53
+record_2_token_lines=0
+retained_records_1_2=exact-empty
+pstore_mounted=yes
+pstore_file_count=0
+ramoops_registration_lines=4
+device_memory_writes=none
+device_partition_writes=none
+private_capture_sha256=ee7a2ce9d168fb7cd627b9cd5d8a1d85ac5a06ddd7759a448b0433ee29894099
+private_classification_sha256=b6d16df7999bcf96938d26d4be1fc25578c65c36c0219e58305af15a53d4bb01
+runtime_classification=before-subsys-init-or-writer-refused
+runtime_reason=both-global-initcall-records-exact-empty
+project_interpretation=subsys-and-fs-checkpoints-not-retained
+subsys_initcall_checkpoint=not-established
+fs_initcall_checkpoint=not-established
+automatic_reset_retention=not-independently-proven
+observer_registrations=0-by-linked-candidate-contract
+allocations=0-by-linked-candidate-contract
+source_lookups=0-by-linked-candidate-contract
+platform_snapshots=0-by-linked-candidate-contract
+provider_snapshots=0-by-linked-candidate-contract
+clock_calls=0-by-linked-candidate-contract
+bigidvfs_calls=0-by-linked-candidate-contract
+provider_transactions=0-by-linked-candidate-contract
+publisher_calls=0-by-linked-candidate-contract
+owner_mutations=0-by-linked-candidate-contract
+cpu8_cpu9_requests=0-by-linked-candidate-contract
+repeat_identical_candidate=no
+selected_next=move-to-pure-and-core-initcall-boundaries-with-refusal-attribution
+
+The owner selected boot2 once and observed an automatic return to Gemian.
+Read-only recovery required and found a changed Gemian boot ID, the exact
+candidate still installed on inactive boot2, mounted but empty pstore, and
+exact empty headers in both owned first-dmesg records.
+
+Therefore neither the subsys-init nor fs-init checkpoint was retained. The
+candidate's ordering leaves observer registration, allocation, source lookup,
+capture, provider transactions, publication, owner mutation, and CPU requests
+outside the implicated region. The empty records do not distinguish an
+unreached subsys initcall from a writer refusal. In addition, the prior
+first-record retention qualification used a controlled native reboot, so this
+result does not independently establish retention across the observed
+automatic reset mechanism.
+
+An identical candidate cannot resolve either ambiguity and is retired. The
+next discriminator moves record 1 to the earliest pure initcall and record 2
+to a later core initcall, while preserving the first-dmesg placement and
+signature-last transaction. It must add exact writer/refusal attribution,
+perform no observer or source operation, and keep CPU8/CPU9 admission closed.

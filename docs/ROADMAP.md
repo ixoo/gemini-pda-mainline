@@ -5092,10 +5092,23 @@ The next ordered work is:
    byte-identical replay, and strict checkpatch all pass; fetched patch `0361`
    is admitted byte-for-byte with zero errors, warnings, or checks. The exact
    isolated Buildbox profile compiles; the fetched package, deterministic
-   Android-v0 assembly, independent padding, and all 32 LK gates pass. Exact
-   padded candidate `e9d56502...6125a` is accepted for one guarded inactive
-   `boot2` deployment and two-boundary runtime observation; no device write has
-   occurred yet.
+   Android-v0 assembly, independent padding, and all 32 LK gates pass. Guarded
+   deployment resolves live-GPT inactive `boot2` as `/dev/mmcblk0p30`, records
+   its predecessor without making a redundant backup, writes exact padded
+   candidate `e9d56502...6125a`, matches the full 16 MiB readback, and shuts
+   down cleanly without reboot. Both retained headers were exact empty before
+   the write. Runtime attempt 1 returns automatically to changed-ID Gemian.
+   Read-only recovery verifies the exact candidate remains installed, pstore
+   is mounted and empty, and both `subsys-init` and `fs-init` records are exact
+   empty. Neither checkpoint was retained. This excludes the later observer,
+   source, provider, publication, owner, and CPU paths from the implicated
+   region, but does not distinguish an unreached subsys initcall from writer
+   refusal. The controlled-native-reboot qualification does not independently
+   prove retention across this automatic reset, so the result is not promoted
+   beyond that observation. The artifact is retired. **Selected next:** move
+   independent first-dmesg records to pure and core initcalls and add exact
+   writer/refusal attribution, with all observer, source, provider, owner, and
+   CPU actions still closed. Screen color and reset timing remain excluded.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

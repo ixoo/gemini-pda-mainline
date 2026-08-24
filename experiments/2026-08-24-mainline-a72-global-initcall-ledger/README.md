@@ -66,5 +66,34 @@ agree; all 32 LK gates pass. The accepted raw candidate is
 `41a181f631456be55ae28b75ee525226dd7b41da844c5c4ed5a0acd3f13c5156`
 and its exact padded Boot2 image is
 `e9d565021de9ed1164aa78a78795d6a3dabd7af656aaa3df791e23424e66125a`.
-The next action is guarded installation to live-GPT inactive `boot2`, full
-readback verification, and clean shutdown. No device write has occurred yet.
+Guarded deployment resolved inactive `boot2` from the live GPT as
+`/dev/mmcblk0p30`, with Gemian rooted on `/dev/mmcblk0p29`. The predecessor
+hash was recorded without creating a redundant backup. After write, sync, and
+flush, a full 16 MiB readback matched the padded candidate exactly. Both
+retained headers were exact empty immediately before the write, no retained
+RAM was modified, and the device then shut down cleanly without reboot. The
+[sanitized deployment receipt](results/deployment-20260824.txt) records the
+exact identities and gates.
+
+The read-only recovery path was frozen and mutation-tested before the boot. It
+requires changed-ID exact Gemian, the unchanged full `boot2` checksum, live GPT
+agreement, two direct 4 KiB retained reads, mounted pstore, and zero memory or
+partition writes. Its three intended branches and 16 unsafe mutations pass;
+see the [tooling receipt](results/recovery-tooling-validation-20260824.txt).
+
+Runtime attempt 1 returned automatically to changed-ID Gemian. Read-only
+recovery verified unchanged `boot2`, mounted but empty pstore, and both
+`subsys-init` and `fs-init` records exact empty. Thus neither checkpoint was
+retained. The result excludes the later observer registration and all source,
+provider, publication, owner, and CPU actions from the implicated region, but
+does not distinguish an unreached subsys initcall from writer refusal. Because
+the prior positive first-record retention test used a controlled native
+reboot, this result also does not independently prove retention across this
+automatic reset. See the
+[runtime receipt](results/runtime-attempt-1-before-subsys-or-unretained-20260824.txt).
+
+This exact candidate is retired. The selected successor moves independent
+records to the earlier pure and core initcall levels and adds writer/refusal
+attribution, while retaining first-dmesg placement, signature-last writes, and
+the complete zero-hardware-action contract. Screen color and reset timing
+remain excluded from the inference.
