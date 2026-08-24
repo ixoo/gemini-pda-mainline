@@ -90,3 +90,13 @@ byte-identical replay, and strict checkpatch with zero errors, warnings, or
 checks pass. The fetched bytes are canonical patch `0359`; see the
 [control-flow fix receipt](results/buildbox-control-flow-fix-generation-183269b2.txt).
 The next action is to retry the unchanged isolated profile through `0359`.
+
+The retry from signed exact commit
+`94b3e6a12d0701ddedaa442a794b08b3563130f5` compiled and passed the
+Buildbox package validator. The fetched package has release
+`7.1.3-gemini-a72-precapture`; see the
+[kernel build receipt](results/buildbox-kernel-94b3e6a1-pass.txt).
+Offline preassembly with the unchanged serviceability ramdisk passes all 32 LK
+gates and fixes the raw and padded candidate identities. The next action is to
+run the pinned builder and a separately pinned independent validator before
+any device access.

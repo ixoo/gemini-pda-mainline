@@ -104,6 +104,20 @@ def main() -> None:
         in predecessor.read_text(),
         "predecessor classification",
     )
+    for name, source_hash in (
+        (
+            "build-candidate.sh",
+            "9e02338db6bab33f0bf57714d071829fdf9d9e3df6ae199c0e76f1e25ec97398",
+        ),
+        (
+            "validate-candidate.sh",
+            "dac54074b9997e7d27f35f422ad25763561192f806c7695231c3d8170b2f6b59",
+        ),
+    ):
+        tool = EXPERIMENT / "scripts" / name
+        require(tool.is_file() and not tool.is_symlink(), f"candidate tool: {name}")
+        require(source_hash in tool.read_text(encoding="utf-8"),
+                f"candidate source pin: {name}")
 
     print("validation=a72-physical-source-precapture-definition")
     print("profile=a72-physical-source-precapture-ledger")
