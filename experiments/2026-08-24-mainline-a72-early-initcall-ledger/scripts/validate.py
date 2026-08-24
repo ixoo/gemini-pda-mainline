@@ -274,14 +274,47 @@ def main() -> None:
         receipt = EXPERIMENT / "results" / name
         require(receipt.is_file() and not receipt.is_symlink() and
                 sha256(receipt) == expected, f"{name} identity")
+    runtime = contract["runtime"]
+    require(runtime["status"] == "complete-candidate-retired" and
+            runtime["attempt"] == 1 and
+            runtime["recovery_boot_id"]
+            == "9a06ac83-21f4-4d7c-8522-5a93c33c372e" and
+            runtime["boot2_full_sha256"] == candidate["padded_sha256"] and
+            runtime["pstore_file_count"] == 0 and
+            runtime["record_1_header"] == "444247430000000000000000" and
+            runtime["record_2_header"] == "444247430000000000000000" and
+            runtime["records"] == "exact-empty" and
+            runtime["raw_classifier"]
+            == "before-pure-init-or-both-writers-refused" and
+            runtime["project_interpretation"]
+            == "no-early-ledger-record-survived-return" and
+            runtime["execution_position"] == "unresolved" and
+            runtime["automatic_reset_retention"] == "not-proven" and
+            runtime["last_kmsg_sha256"]
+            == "8964100f947293ded847b8ca1a9313b43624ccd5c72d120aa84234c4998e0f53" and
+            runtime["reboot_reason_sha256"]
+            == "648058eef22545fb030e2d5b42cb51f191eb98744a7e20c110bbba8d2c3d8415" and
+            runtime["device_memory_writes"] is False and
+            runtime["device_partition_writes"] is False and
+            runtime["candidate_retired"] is True,
+            "exact runtime result")
+    runtime_receipt = (
+        EXPERIMENT /
+        "results/runtime-attempt-1-records-not-retained-20260824.txt"
+    )
+    require(runtime_receipt.is_file() and not runtime_receipt.is_symlink() and
+            sha256(runtime_receipt)
+            == "d4a0076eef91c2319b1e11fbc2cdddc61ce2501a45efb782dec989776f7441e3",
+            "runtime receipt identity")
     require(
         contract["decision"]
         == {
-            "result": "boot2-deployed-readback-verified-shutdown",
+            "result":
+                "no-early-ledger-record-survived-execution-unresolved",
             "selected_next":
-                "one-owner-physical-boot2-selection-then-read-only-recovery",
-            "device_action": True,
-            "boot_candidate": True,
+                "exact-kernel-stage27-dtb-live-serviceability-control",
+            "device_action": False,
+            "boot_candidate": False,
         },
         "current decision",
     )
@@ -299,8 +332,11 @@ def main() -> None:
     print("deployment=write-synced-flushed-full-readback-verified")
     print("shutdown=confirmed-unreachable")
     print("recovery_valid_branches=5")
-    print("device_action=true")
-    print("boot_candidate=true")
+    print("runtime_records=exact-empty")
+    print("runtime_execution_position=unresolved")
+    print("candidate_retired=true")
+    print("device_action=false")
+    print("boot_candidate=false")
     print("result=pass")
 
 

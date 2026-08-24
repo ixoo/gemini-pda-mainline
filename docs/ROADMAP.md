@@ -5133,7 +5133,18 @@ The next ordered work is:
    `ca6e280a...d4082c`, accepts the five decision-table outcomes, and rejects
    18 stale, malformed, conflicting, or unsafe mutations. **Selected next:**
    one owner-selected `boot2` attempt, then bounded read-only changed-ID
-   Gemian recovery. Screen state and reset timing remain excluded.
+   Gemian recovery. That attempt returns with a changed Gemian boot ID, exact
+   unchanged boot2, empty pstore, and both early records exact empty.
+   `last_kmsg` and the reboot record contain only the known generic
+   watchdog-class state with no mainline identity. The earlier entry-ledger
+   positive control reached `/init` and USB yet returned with the same empty
+   headers, so this result establishes only that no record survived; it does
+   not establish execution before pure init. The artifact is retired and an
+   identical retry is prohibited. **Selected next:** recontainer this exact
+   kernel with the runtime-proven Stage-27 DTB and pre-arm a live USB/netcat
+   collector. Read identity and early-ledger state before any reboot. This is
+   a DT-only serviceability control, requires no kernel build, and keeps every
+   provider, owner, publication, and CPU action closed.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
