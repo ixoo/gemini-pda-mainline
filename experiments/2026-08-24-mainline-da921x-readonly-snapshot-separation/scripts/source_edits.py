@@ -37,8 +37,8 @@ def apply_core(root: Path) -> None:
         header,
         "struct i2c_adapter;\nstruct i2c_msg;\n",
         "struct device;\nstruct i2c_adapter;\nstruct i2c_msg;\n\n"
-        "typedef int (*da9213_legacy_provider_read_transfer_t)(\n"
-        "\tstruct i2c_adapter *adapter, struct i2c_msg *messages, int count);\n",
+        "typedef int (*da9213_provider_read_transfer_t)(struct i2c_adapter *adapter,\n"
+        "\t\t\t\t\t struct i2c_msg *messages, int count);\n",
     )
     replace_once(
         header,
@@ -71,7 +71,7 @@ def apply_core(root: Path) -> None:
             \tstruct device *dev;
             \tstruct i2c_adapter *adapter;
             \tu16 address;
-            \tda9213_legacy_provider_read_transfer_t read_transfer;
+            \tda9213_provider_read_transfer_t read_transfer;
             \tstruct mutex lock; /* Serializes one endpoint lifecycle. */
             #if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION)
             \tconst struct da9213_legacy_provider_transport_ops *ops;
@@ -95,13 +95,13 @@ def apply_core(root: Path) -> None:
             void
             da9213_legacy_provider_test_unregister(struct da9213_legacy_provider_endpoint *endpoint);
             int
-            da9213_legacy_provider_snapshot_test_register(
-            \tstruct da9213_legacy_provider_endpoint *endpoint,
+            da9213_provider_snapshot_test_register(struct da9213_legacy_provider_endpoint
+            \t\t\t\t\t       *endpoint,
             \tstruct i2c_adapter *adapter, u16 address,
-            \tda9213_legacy_provider_read_transfer_t read_transfer);
+            \tda9213_provider_read_transfer_t read_transfer);
             void
-            da9213_legacy_provider_snapshot_test_unregister(
-            \tstruct da9213_legacy_provider_endpoint *endpoint);
+            da9213_provider_snapshot_test_unregister(struct da9213_legacy_provider_endpoint
+            \t\t\t\t\t\t *endpoint);
             int da9213_legacy_provider_transaction_release(struct i2c_adapter *adapter,
             """
         ),
@@ -135,8 +135,8 @@ def apply_core(root: Path) -> None:
         };
 
         static bool
-        da9213_provider_read_transport_valid(
-        \tconst struct da9213_legacy_provider_endpoint *endpoint)
+        da9213_provider_read_transport_valid(const struct da9213_legacy_provider_endpoint
+        \t\t\t\t     *endpoint)
         {
         \treturn endpoint && endpoint->adapter && endpoint->read_transfer &&
         \t\tendpoint->adapter->lock_ops &&
@@ -145,8 +145,8 @@ def apply_core(root: Path) -> None:
         }
 
         static int
-        da9213_legacy_provider_snapshot_read(
-        \tstruct da9213_legacy_provider_endpoint *endpoint, u8 reg, u8 *value)
+        da9213_provider_snapshot_read(struct da9213_legacy_provider_endpoint *endpoint,
+        \t\t\t      u8 reg, u8 *value)
         {
         \tstruct i2c_msg messages[2] = { };
         \tu8 data = 0;
@@ -172,9 +172,8 @@ def apply_core(root: Path) -> None:
         }
 
         static int
-        da9213_legacy_provider_snapshot_sample(
-        \tstruct da9213_legacy_provider_endpoint *endpoint,
-        \tstruct da9213_legacy_provider_snapshot *snapshot)
+        da9213_provider_snapshot_sample(struct da9213_legacy_provider_endpoint *endpoint,
+        \t\t\t\tstruct da9213_legacy_provider_snapshot *snapshot)
         {
         \tu8 *values = (u8 *)snapshot;
         \tunsigned int i;
@@ -184,8 +183,8 @@ def apply_core(root: Path) -> None:
         \t\t     ARRAY_SIZE(da9213_legacy_provider_snapshot_regs));
         \tfor (i = 0; i < ARRAY_SIZE(da9213_legacy_provider_snapshot_regs);
         \t     i++) {
-        \t\tret = da9213_legacy_provider_snapshot_read(
-        \t\t\tendpoint, da9213_legacy_provider_snapshot_regs[i],
+        \t\tret = da9213_provider_snapshot_read(endpoint,
+        \t\t\tda9213_legacy_provider_snapshot_regs[i],
         \t\t\t&values[i]);
         \t\tif (ret)
         \t\t\treturn ret;
@@ -215,10 +214,10 @@ def apply_core(root: Path) -> None:
         \tsaved_retries = endpoint->adapter->retries;
         \tendpoint->adapter->retries = 0;
 
-        \tret = da9213_legacy_provider_snapshot_sample(endpoint, &first);
+        \tret = da9213_provider_snapshot_sample(endpoint, &first);
         \tif (ret)
         \t\tgoto out;
-        \tret = da9213_legacy_provider_snapshot_sample(endpoint, &second);
+        \tret = da9213_provider_snapshot_sample(endpoint, &second);
         \tif (ret)
         \t\tgoto out;
         \tif (memcmp(&first, &second, sizeof(first))) {
@@ -420,10 +419,10 @@ def apply_core(root: Path) -> None:
         """\
         #if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_PROVIDER_SNAPSHOT_KUNIT_TEST)
         int
-        da9213_legacy_provider_snapshot_test_register(
-        \tstruct da9213_legacy_provider_endpoint *endpoint,
+        da9213_provider_snapshot_test_register(struct da9213_legacy_provider_endpoint
+        \t\t\t\t\t       *endpoint,
         \tstruct i2c_adapter *adapter, u16 address,
-        \tda9213_legacy_provider_read_transfer_t read_transfer)
+        \tda9213_provider_read_transfer_t read_transfer)
         {
         \tif (!endpoint || !adapter || !read_transfer)
         \t\treturn -EINVAL;
@@ -438,8 +437,8 @@ def apply_core(root: Path) -> None:
         }
 
         void
-        da9213_legacy_provider_snapshot_test_unregister(
-        \tstruct da9213_legacy_provider_endpoint *endpoint)
+        da9213_provider_snapshot_test_unregister(struct da9213_legacy_provider_endpoint
+        \t\t\t\t\t\t *endpoint)
         {
         \tmt6797_a72_provider_unregister(&da9213_legacy_provider_ops, endpoint);
         }
@@ -530,7 +529,8 @@ def apply_tests(root: Path) -> None:
         makefile,
         "obj-$(CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_KUNIT_TEST) += da9213-legacy-provider-test.o\n",
         "obj-$(CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_KUNIT_TEST) += da9213-legacy-provider-test.o\n"
-        "obj-$(CONFIG_REGULATOR_DA9213_LEGACY_PROVIDER_SNAPSHOT_KUNIT_TEST) += da9213-legacy-provider-snapshot-test.o\n",
+        "obj-$(CONFIG_REGULATOR_DA9213_LEGACY_PROVIDER_SNAPSHOT_KUNIT_TEST) += \\\n"
+        "\tda9213-legacy-provider-snapshot-test.o\n",
     )
     if test.exists():
         raise SystemExit(f"{test}: refusing to overwrite existing test")

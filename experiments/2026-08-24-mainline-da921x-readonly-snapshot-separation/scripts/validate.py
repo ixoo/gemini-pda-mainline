@@ -65,7 +65,7 @@ def main() -> None:
     source_edits = (EXPERIMENT / "scripts/source_edits.py").read_text()
     for token in (
         "da9213_provider_read_transport_valid",
-        "da9213_legacy_provider_snapshot_sample",
+        "da9213_provider_snapshot_sample",
         ".snapshot = da9213_provider_snapshot",
         "provider_endpoint.read_transfer = __i2c_transfer",
         "CONFIG_REGULATOR_DA9213_LEGACY_PROVIDER_SNAPSHOT_KUNIT_TEST",

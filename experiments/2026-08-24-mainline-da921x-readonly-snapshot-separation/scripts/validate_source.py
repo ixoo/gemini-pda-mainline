@@ -25,7 +25,7 @@ def main() -> None:
     driver = (root / "drivers/regulator/da9213-legacy-regulator.c").read_text()
 
     for token in (
-        "da9213_legacy_provider_read_transfer_t",
+        "da9213_provider_read_transfer_t",
         "struct device *dev;",
         "read_transfer;",
         "CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION",
@@ -54,8 +54,8 @@ def main() -> None:
         "da9213_legacy_provider_snapshot_regs[]",
         "0x56, 0x51, 0x5e, 0xd9, 0xda",
         "da9213_provider_read_transport_valid",
-        "da9213_legacy_provider_snapshot_read",
-        "da9213_legacy_provider_snapshot_sample",
+        "da9213_provider_snapshot_read",
+        "da9213_provider_snapshot_sample",
         "da9213_provider_snapshot(void *context",
         "mutex_lock(&endpoint->lock)",
         "i2c_lock_bus(endpoint->adapter, I2C_LOCK_ROOT_ADAPTER)",
@@ -69,7 +69,7 @@ def main() -> None:
         "mutex_unlock(&endpoint->lock)",
     ):
         require(token in readonly, f"read-only production token {token}")
-    require(readonly.count("da9213_legacy_provider_snapshot_sample(") == 3,
+    require(readonly.count("da9213_provider_snapshot_sample(") == 3,
             "one helper definition and exactly two complete samples")
     require(readonly.count("read_transfer(") == 1,
             "one transport call site")
@@ -80,8 +80,8 @@ def main() -> None:
         "mutex_lock(&endpoint->lock)",
         "i2c_lock_bus(endpoint->adapter",
         "endpoint->adapter->retries = 0",
-        "da9213_legacy_provider_snapshot_sample(endpoint, &first)",
-        "da9213_legacy_provider_snapshot_sample(endpoint, &second)",
+        "da9213_provider_snapshot_sample(endpoint, &first)",
+        "da9213_provider_snapshot_sample(endpoint, &second)",
         "memcmp(&first, &second, sizeof(first))",
         "endpoint->adapter->retries = saved_retries",
         "i2c_unlock_bus(endpoint->adapter",
