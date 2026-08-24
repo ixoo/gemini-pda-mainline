@@ -70,5 +70,27 @@ integrity, the three-file boundary, source semantics, byte-identical replay,
 and strict checkpatch with zero errors, warnings, or checks. The fetched patch
 is byte-identical to canonical `0360`; see the
 [generation receipt](results/buildbox-generation-4d223912.txt). The next action
-is to commit and push that admission, then compile the exact isolated profile
+was to commit and push that admission, then compile the exact isolated profile
 on Buildbox.
+
+That exact Buildbox compile now passes from signed, pushed commit `0023bd92`.
+The fetched package is
+`linux-7.1.3-gemini-a72-physical-source-init-probe-ledger-fc79cccb-4de8297d`,
+with kernel release `7.1.3-gemini-a72-init-probe`; all package checksums and
+provenance checks pass. See the
+[build receipt](results/buildbox-kernel-0023bd92-pass.txt).
+
+Offline deterministic assembly computes raw Android-v0 identity
+`36631648...d81e3` (6,909,952 bytes) and exact 16 MiB padded identity
+`4185b851...a03c`; the LK analyzer passes all 32 gates. The next gate is to run
+the source-pinned builder and independent validator against those exact
+identities. No device access or write has occurred for this successor.
+
+That independent admission now passes. The two raw assemblies and two padding
+constructions are byte-identical, both retained records occur exactly once,
+all predecessor experiment markers are absent, and every effect after probe
+entry is zero. See the
+[candidate receipt](results/candidate-validation-36631648-pass.txt) and exact
+[predeployment decision record](results/predeployment-hypothesis-20260824.txt).
+The candidate is eligible for one guarded write to the live-GPT-resolved,
+inactive `boot2`, followed by a clean shutdown; it is not a CPU-support claim.

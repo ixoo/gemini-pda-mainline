@@ -49,15 +49,25 @@
     "strict_checkpatch": "0-errors-0-warnings-0-checks"
   },
   "candidate": {
-    "status": "not-built",
+    "status": "independently-validated",
     "profile": "a72-physical-source-init-probe-ledger",
+    "repository_commit": "0023bd9251f009b768ba32e94211926bdd60a0fd",
+    "package": "linux-7.1.3-gemini-a72-physical-source-init-probe-ledger-fc79cccb-4de8297d",
+    "package_manifest_sha256": "2b26ad6807c1db2a9c8d745beb2fbb18a5e3e10e6cac7ef1a122fc7835dd0202",
+    "kernel_release": "7.1.3-gemini-a72-init-probe",
     "dtb": "dtbs/mediatek/mt6797-gemini-pda-a72-physical-source.dtb",
-    "boot_candidate": false
+    "raw_sha256": "366316486f475a4af373f1db4b2d71cae0418ff607d4d2ad5ff8e7cb7efd81e3",
+    "raw_size": 6909952,
+    "padded_sha256": "4185b85192f036df09d547cdf68991e885c6d4849927e684a5923cde15c0a03c",
+    "padded_size": 16777216,
+    "manifest_sha256": "991ac2ed13d6e7f66908484a992e1a6e1dba437d0ec4d173de9b1655b5b0fedf",
+    "lk_gates": "32-of-32",
+    "boot_candidate": true
   },
   "decision": {
-    "result": "canonical-0360-admitted",
-    "selected_next": "build-exact-init-probe-profile-on-buildbox",
+    "result": "exact-boot-candidate-passed-independent-validation",
+    "selected_next": "guarded-install-to-live-gpt-resolved-inactive-boot2-and-shutdown",
     "device_action": false,
-    "boot_candidate": false
+    "boot_candidate": true
   }
 }
