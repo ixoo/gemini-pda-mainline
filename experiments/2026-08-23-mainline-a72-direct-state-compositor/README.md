@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-23-mainline-a72-direct-state-compositor` |
-| Status | generated patches admitted; Buildbox compile pending |
+| Status | first compile rejected for stack safety; follow-up defined |
 | Subsystem | MT6797 A72 direct-state composition and hotplug ownership |
 | Device variant | Gemini PDA contract; injected KUnit phase |
 | Date(s) | 2026-08-23 America/New_York |
@@ -54,6 +54,12 @@ must leave the A72 owner byte-identical and still `CLOSED / UNINITIALIZED`.
   edited source semantics.
 - [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox) generates two
   normal format patches, replays them, and runs strict checkpatch.
+- [`scripts/generate-stack-fix-on-buildbox`](scripts/generate-stack-fix-on-buildbox)
+  preserves those admitted patches and generates two stack-safety follow-ups
+  from the exact prepared source through patch `0338`.
+- [`scripts/stack_source_edits.py`](scripts/stack_source_edits.py) moves the
+  production workspace under the existing transition lock and the large test
+  records into KUnit-managed per-case storage.
 - [`scripts/run-kunit-qemu`](scripts/run-kunit-qemu) accepts only the exact
   fetched Buildbox package for the current published commit and runs the sole
   focused suite under bounded no-network arm64 QEMU.
@@ -69,8 +75,11 @@ must leave the A72 owner byte-identical and still `CLOSED / UNINITIALIZED`.
 4. Require exact replay, semantic source validation, strict checkpatch, and a
    checksum-covered review package.
 5. Admit the reviewed patches canonically and add an isolated KUnit profile.
-6. Build that profile on Buildbox and run the focused suite under no-network
-   arm64 QEMU.
+6. Build that profile on Buildbox. Reject the package before QEMU if the new
+   compositor or its focused suite introduces an over-limit stack frame.
+7. Generate, review, and canonically admit stack-safety follow-ups if needed.
+8. Rebuild on Buildbox, require the new frame warnings to be absent, then run
+   the focused suite under no-network arm64 QEMU.
 
 ## Observations
 
@@ -99,7 +108,19 @@ must leave the A72 owner byte-identical and still `CLOSED / UNINITIALIZED`.
   [`contract.json`](contract.json).
 
 The generated patches and isolated `a72-direct-state-kunit` profile are now
-admitted. No compile or KUnit runtime result exists yet.
+admitted. Buildbox compilation of exact repository commit `0dbe657d` completed
+and produced a checksum-valid package, but GCC found ten newly introduced
+over-limit stack frames: two production frames of 33,312 and 66,880 bytes and
+eight focused-test frames ranging from 33,600 to 100,944 bytes. The exact
+result is retained in
+[`results/buildbox-attempt-1-stack-rejection-20260823.txt`](results/buildbox-attempt-1-stack-rejection-20260823.txt).
+
+The compile package is rejected before QEMU and is not a boot candidate. Two
+follow-up patches are now defined against the exact prepared source through
+patch `0338`: one uses a transition-lock-serialized static workspace and
+scrubs it on every exit; the other places large observations and preservation
+records in the existing KUnit-managed per-case allocation. Neither follow-up
+adds a physical reader or hardware action.
 
 ## Analysis
 
@@ -111,8 +132,10 @@ eligibility, or CPU8/CPU9 admission.
 
 ## Conclusion
 
-`inconclusive`: the exact implementation patches are admitted and source-clean,
-but the focused profile has not yet compiled or executed in QEMU.
+`rejected-stack-safety`: the exact implementation compiled and its artifact
+validated, but the first compile exposed unsafe stack allocation. No QEMU or
+device execution was performed. The bounded repair is defined and awaits
+Buildbox generation, review, admission, and recompilation.
 
 ## Follow-up
 

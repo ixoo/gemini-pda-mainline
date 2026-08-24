@@ -41,6 +41,42 @@
     "exact_replay": true,
     "boot_candidate": false
   },
+  "compile_attempts": [
+    {
+      "attempt": 1,
+      "repository_commit": "0dbe657dbec405253d06f8653da6a421f60e8f0b",
+      "buildbox_job": "0dbe657dbec405253d06f8653da6a421f60e8f0b-a72-direct-state-kunit-m0",
+      "package": "linux-7.1.3-gemini-a72-direct-state-kunit-c5d6b0e1-b766a25d",
+      "kernel_release": "7.1.3-gemini-direct-state-kunit",
+      "patchset_sha256": "c5d6b0e10355367fc62be6168a00b4634daeb5e2cc1960403135db9e472c4b53",
+      "config_sha256": "8582ce081e57cb134420f5e06d34a6d28d482c997e4bccf92c81869737bbe1d9",
+      "image_gzip_sha256": "a7cea4cf39bf8b4ff5adc81d0d7d22bbbe3463892d320a6a1aa3269b270242cd",
+      "build_exit": 0,
+      "artifact_validation": "pass",
+      "classification": "rejected-stack-safety",
+      "introduced_frame_warning_count": 10,
+      "production_frame_warning_count": 2,
+      "kunit_frame_warning_count": 8,
+      "qemu_run": false,
+      "boot_candidate": false,
+      "evidence": "results/buildbox-attempt-1-stack-rejection-20260823.txt"
+    }
+  ],
+  "stack_fix_definition": {
+    "prepared_source_state": "08ad5389a1cf831f13ad410da5d74b17a58d8c05c8ab05459f3568e47c4a41a1",
+    "prepared_source_integrity": "4f812300aa0171cfbb91a645de62e1daff8d73a0200357a281a2cae7b053191a",
+    "parent_files": {
+      "arch/arm64/kernel/mt6797_a72_membership.c": "e810919bbf38e33207efe0652f366d06bad4fbb2e341ba367d5c746e5fbdcb74",
+      "arch/arm64/kernel/mt6797_a72_direct_state_test.c": "95d468188b09df8a64f4f5b05097db0a27e519131a47a7c444b2e0bafd99e3e4"
+    },
+    "canonical_parent": "patches/v7.1.3/0338-arm64-test-closed-A72-direct-state-compositor.patch",
+    "patches": [
+      "0339-arm64-move-A72-direct-state-workspace-off-stack.patch",
+      "0340-arm64-move-A72-direct-state-KUnit-state-off-stack.patch"
+    ],
+    "generated": false,
+    "boot_candidate": false
+  },
   "offline_definition": {
     "profile": "a72-direct-state-kunit",
     "fragment": "configs/gemini-a72-direct-state-kunit.fragment",
