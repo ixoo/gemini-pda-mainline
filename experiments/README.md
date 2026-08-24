@@ -29,9 +29,10 @@ the loop. Positive identity-gated observations are unaffected.
   software state, initializes a mutex, and binds without a secure call. The
   stable two-sample function has no caller. The deterministic candidate passes
   all 32 LK gates, six container mutations, and fourteen runtime mutations
-  without a new kernel build. The selected next action is one guarded
-  deployment, shutdown, and owner-selected `boot2` attempt with the exact
-  USB/netcat collector pre-armed.
+  without a new kernel build. Its guarded live-GPT `boot2` deployment matched
+  the exact clock-backend predecessor, passed the full 16 MiB readback, and
+  ended in a confirmed clean shutdown without a fresh backup or retained-RAM
+  write. One exact owner-selected runtime remains pending.
 - [2026-08-24 A72 clock-backend probe on the passed Stage-27 platform DT](2026-08-24-mainline-a72-clock-backend-stage27-control/README.md)
   — keeps the exact runtime-passed Stage-27 plus platform-state DT and adds
   only one read-free clock-backend resource node. Removing that node recovers

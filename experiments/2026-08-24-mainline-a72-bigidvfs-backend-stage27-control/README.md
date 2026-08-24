@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-24-mainline-a72-bigidvfs-backend-stage27-control` |
-| Status | `ready for one boot` — offline validation passed |
+| Status | `deployed` — exact full readback and shutdown passed; one boot pending |
 | Subsystem | MT6797 BigiDVFS secure-readback backend resource composition |
 | Device variant | Gemini PDA, named project device |
 | Date | 2026-08-24 |
@@ -90,5 +90,13 @@ serviceable branches and rejects fourteen isolation, serviceability, and
 prohibited-action mutations.
 
 No new kernel build was required: the exact Buildbox package already contains
-the backend. No device was accessed and no hardware was written during
-construction or offline validation.
+the backend. The offline definition is published at signed commit `b458a58a`.
+
+The guarded deployment then resolved inactive, unmounted live-GPT `boot2` as
+`/dev/mmcblk0p30` while Gemian used `/dev/mmcblk0p29`, matched the exact passed
+clock-backend predecessor, verified stable power and both TEE copies, and
+wrote, synced, flushed, and matched the complete 16 MiB readback to
+`0b17da983293f68f227931c964021b43efb1cdd57b4d0cf4db3bd70312f6092a`.
+It made no fresh partition backup and no retained-RAM write, removed its
+temporary readback, and ended with the requested clean shutdown confirmed by
+unreachability. See the [sanitized deployment receipt](results/deployment-20260824.txt).

@@ -1,0 +1,28 @@
+A72 BigiDVFS-backend Stage-27 control candidate: guarded boot2 deployment
+Date: 2026-08-24 America/New_York
+
+experiment=2026-08-24-mainline-a72-bigidvfs-backend-stage27-control
+definition_commit=b458a58a
+target_logical_name=boot2
+target=/dev/mmcblk0p30
+active_root=/dev/mmcblk0p29
+deployment_boot_id=52965f9c-d272-44bd-a5e6-1a70419d45ed
+predecessor_sha256=4c5276ecf3fe60d7df55fd1fe44235432fcd928d2174704e5928bae7d84056e4
+candidate_sha256=0b17da983293f68f227931c964021b43efb1cdd57b4d0cf4db3bd70312f6092a
+readback_sha256=0b17da983293f68f227931c964021b43efb1cdd57b4d0cf4db3bd70312f6092a
+tee1_sha256=2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3
+tee2_sha256=2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3
+power=online-100-percent-good
+prewrite_records=exact-stage27-control-pair
+retained_ram_write=no
+fresh_predecessor_backup=no
+write=completed
+sync_and_flush=completed
+full_partition_readback=matched
+temporary_readback_removed=yes
+shutdown_after_verified_write=confirmed-unreachable
+automatic_reboot=no
+private_summary_sha256=43eaad2f733b57942a8c38739bbeec39bae8e3afcea80d63f97edc00c006928a
+private_manifest_sha256=0c917a14ee3da9f22946443d6e564efcf5105b504115e9c2a6de3beb368915a7
+next_action=prearm-one-runtime-collector-then-owner-selects-boot2
+result=pass

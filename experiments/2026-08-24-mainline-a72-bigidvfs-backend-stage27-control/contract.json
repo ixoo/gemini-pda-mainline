@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "experiment": "2026-08-24-mainline-a72-bigidvfs-backend-stage27-control",
-  "definition_commit": null,
+  "definition_commit": "b458a58a",
   "predecessor": "experiments/2026-08-24-mainline-a72-clock-backend-stage27-control",
   "question": "read-free-bigidvfs-backend-probe-on-passed-stage27-reader-baseline",
   "build": {
@@ -74,7 +74,17 @@
     "runtime_rejected_mutations": 14
   },
   "deployment": {
-    "status": "pending"
+    "status": "passed",
+    "target_logical_name": "boot2",
+    "target": "/dev/mmcblk0p30",
+    "active_root": "/dev/mmcblk0p29",
+    "boot_id": "52965f9c-d272-44bd-a5e6-1a70419d45ed",
+    "predecessor_sha256": "4c5276ecf3fe60d7df55fd1fe44235432fcd928d2174704e5928bae7d84056e4",
+    "readback_sha256": "0b17da983293f68f227931c964021b43efb1cdd57b4d0cf4db3bd70312f6092a",
+    "fresh_predecessor_backup": false,
+    "retained_ram_write": false,
+    "clean_shutdown_confirmed": true,
+    "receipt": "results/deployment-20260824.txt"
   },
   "runtime": {
     "status": "pending",

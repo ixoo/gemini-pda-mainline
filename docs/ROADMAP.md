@@ -5208,12 +5208,16 @@ The next ordered work is:
    has no caller. The sole DT node is reversible to the byte-identical sorted
    passed predecessor; two assemblies, two padding paths, all 32 LK gates, six
    container mutations, and fourteen runtime mutations pass without a kernel
-   build or device action. **Selected next:** publish the exact candidate,
-   return the current successful mainline boot normally to Gemian, perform one
-   guarded full-readback `boot2` deployment and shutdown, then pre-arm one
-   owner-selected runtime. A bound pass closes all three cumulative read-free
-   reader probes and advances to an audit of the physical observer/caller
-   before any first read.
+   build. Signed definition commit `b458a58a` is pushed. The guarded deployment
+   then resolved inactive, unmounted live-GPT `boot2` as `/dev/mmcblk0p30`,
+   matched the exact clock-backend predecessor and stable-power/TEE gates, and
+   passed the write, flush, full 16 MiB readback, cleanup, and clean-shutdown
+   gates without a fresh backup or retained-RAM write. The exact readback is
+   `0b17da983293f68f227931c964021b43efb1cdd57b4d0cf4db3bd70312f6092a`.
+   **Selected next:** pre-arm one USB/netcat runtime collector, then have the
+   owner physically select `boot2` once. A bound pass closes all three
+   cumulative read-free reader probes and advances to an audit of the physical
+   observer/caller before any first read.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
