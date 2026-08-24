@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-24-mainline-a72-atomic-publication` |
-| Status | definition complete; Buildbox generation pending |
+| Status | generated, reviewed, and canonically admitted; Buildbox compile pending |
 | Subsystem | MT6797 A72 bootstrap owner and P30 pristine finalization |
 | Device variant | Gemini PDA contract; injected hardware-free phase |
 | Date(s) | 2026-08-24 America/New_York |
@@ -128,8 +128,16 @@ strict-clean, and patch `0347` had zero checks and only four line-length
 warnings in nested KUnit assertions. Semantic validation and exact replay
 again passed. The retry splits only those four assertion arguments.
 
-No kernel has been compiled, no generated patch has been admitted, and no
-QEMU or device action has occurred.
+Signed and pushed commit `40c623ee` passed all three cumulative semantic
+validators, the three-patch separation validator, byte-exact replay, and
+strict checkpatch with `0 errors, 0 warnings, 0 checks` for every patch. The
+checksum-covered package is `a72-atomic-publication-40c623eeaa70`; exact
+admitted patch identities are recorded in [`contract.json`](contract.json).
+
+The reviewed bytes are canonical patches `0345`--`0347`. The isolated
+`a72-atomic-publication-kunit` profile selects the injected publisher test and
+its existing P30 and membership-owner suites. No kernel has yet been compiled,
+and no QEMU or device action has occurred.
 
 ## Analysis
 
@@ -146,10 +154,13 @@ and writes `AVAILABLE` last.
 
 ## Conclusion
 
-The deterministic definition is ready for Buildbox generation. It makes no
-compile, runtime, or hardware-support claim and defines no boot candidate.
+The three normal patches are generated, exactly replayed, strictly checked,
+and admitted to the canonical series. This makes no compile, runtime, or
+hardware-support claim and defines no boot candidate.
 
 ## Follow-up
 
-The authoritative sequence remains in
+Compile the isolated profile on Buildbox, reject any new over-limit stack
+frame, then run only its focused no-network arm64 KUnit suites. The
+authoritative sequence remains in
 [Roadmap Gate 7](../../docs/ROADMAP.md#7-bring-up-cpu8).

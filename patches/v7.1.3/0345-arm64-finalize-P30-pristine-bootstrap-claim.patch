@@ -1,0 +1,110 @@
+From 0a8fce29cab485301076626aa7d83bc56d150f7b Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 24 Aug 2026 10:31:00 +0000
+Subject: [PATCH 1/3] arm64: finalize P30 pristine bootstrap claim
+
+Finalize one opaque pristine claim while retaining the P30 raw lock across a typed non-sleeping callback. This closes the prepare-entry gap and leaves failures before any owner commit.
+---
+ arch/arm64/include/asm/late_cpu_startup.h | 16 ++++++++++++
+ arch/arm64/kernel/late_cpu_startup.c      | 31 ++++++++++++++++++++---
+ 2 files changed, 44 insertions(+), 3 deletions(-)
+
+diff --git a/arch/arm64/include/asm/late_cpu_startup.h b/arch/arm64/include/asm/late_cpu_startup.h
+index 0627615..8098f5b 100644
+--- a/arch/arm64/include/asm/late_cpu_startup.h
++++ b/arch/arm64/include/asm/late_cpu_startup.h
+@@ -143,9 +143,14 @@ struct arm64_late_cpu_bootstrap_claim {
+ 	u64 cookie;
+ };
+ 
++typedef int (*arm64_late_cpu_bootstrap_commit_t)(void *context);
++
+ #ifdef CONFIG_ARM64_LATE_CPU_STARTUP_FAILSTOP
+ int arm64_late_cpu_startup_claim_pristine(struct arm64_late_cpu_bootstrap_claim *claim);
+ int arm64_late_cpu_startup_release_pristine(struct arm64_late_cpu_bootstrap_claim *claim);
++int
++arm64_late_cpu_startup_finalize_pristine(struct arm64_late_cpu_bootstrap_claim *claim,
++					 arm64_late_cpu_bootstrap_commit_t commit, void *context);
+ int arm64_late_cpu_startup_prepare(const struct arm64_late_cpu_up_token *token);
+ int arm64_late_cpu_startup_abort_unissued(
+ 	const struct arm64_late_cpu_up_token *token);
+@@ -200,6 +205,17 @@ arm64_late_cpu_startup_release_pristine(struct arm64_late_cpu_bootstrap_claim *c
+ 	return -EOPNOTSUPP;
+ }
+ 
++static inline int
++arm64_late_cpu_startup_finalize_pristine(struct arm64_late_cpu_bootstrap_claim *claim,
++					 arm64_late_cpu_bootstrap_commit_t commit,
++					 void *context)
++{
++	(void)claim;
++	(void)commit;
++	(void)context;
++	return -EOPNOTSUPP;
++}
++
+ static inline bool arm64_late_cpu_startup_quarantined(void)
+ {
+ 	return false;
+diff --git a/arch/arm64/kernel/late_cpu_startup.c b/arch/arm64/kernel/late_cpu_startup.c
+index 088bfcd..096d1a4 100644
+--- a/arch/arm64/kernel/late_cpu_startup.c
++++ b/arch/arm64/kernel/late_cpu_startup.c
+@@ -191,14 +191,14 @@ static bool late_startup_target_online_locked(u32 cpu)
+ #endif
+ }
+ 
+-static bool late_startup_pristine_locked(void)
++static bool late_startup_pristine_locked(u64 allowed_claim_cookie)
+ {
+ 	static const struct arm64_late_cpu_up_token zero_token;
+ 	static const struct arm64_late_cpu_startup_terminal zero_terminal;
+ 	unsigned int i;
+ 
+ 	if (atomic_read(&late_startup.state) != ARM64_LATE_CPU_STARTUP_FREE ||
+-	    late_startup.bootstrap_claim_cookie ||
++	    late_startup.bootstrap_claim_cookie != allowed_claim_cookie ||
+ 	    memcmp(&late_startup.token, &zero_token, sizeof(zero_token)) ||
+ 	    memcmp(&late_startup.quarantine_token, &zero_token,
+ 		   sizeof(zero_token)) ||
+@@ -227,7 +227,7 @@ int arm64_late_cpu_startup_claim_pristine(struct arm64_late_cpu_bootstrap_claim
+ 		return -EINVAL;
+ 	*claim = (struct arm64_late_cpu_bootstrap_claim){};
+ 	raw_spin_lock_irqsave(&late_startup.lock, flags);
+-	if (!late_startup_pristine_locked()) {
++	if (!late_startup_pristine_locked(0)) {
+ 		ret = -EBUSY;
+ 		goto out;
+ 	}
+@@ -264,6 +264,31 @@ int arm64_late_cpu_startup_release_pristine(struct arm64_late_cpu_bootstrap_clai
+ 	return ret;
+ }
+ 
++int
++arm64_late_cpu_startup_finalize_pristine(struct arm64_late_cpu_bootstrap_claim *claim,
++					 arm64_late_cpu_bootstrap_commit_t commit,
++					 void *context)
++{
++	unsigned long flags;
++	int ret;
++
++	if (!claim || claim->abi != ARM64_LATE_CPU_BOOTSTRAP_CLAIM_ABI ||
++	    claim->reserved || !claim->cookie || !commit)
++		return -EINVAL;
++	raw_spin_lock_irqsave(&late_startup.lock, flags);
++	if (claim->cookie != late_startup.bootstrap_claim_cookie) {
++		ret = -ESTALE;
++	} else if (!late_startup_pristine_locked(claim->cookie)) {
++		ret = -EBUSY;
++	} else {
++		late_startup.bootstrap_claim_cookie = 0;
++		*claim = (struct arm64_late_cpu_bootstrap_claim){};
++		ret = commit(context);
++	}
++	raw_spin_unlock_irqrestore(&late_startup.lock, flags);
++	return ret;
++}
++
+ int arm64_late_cpu_startup_prepare(const struct arm64_late_cpu_up_token *token)
+ {
+ 	unsigned long flags;

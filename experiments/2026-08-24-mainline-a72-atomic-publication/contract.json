@@ -80,8 +80,33 @@
       "checkpatch_0345": "0 errors, 0 warnings, 0 checks",
       "checkpatch_0346": "0 errors, 0 warnings, 0 checks",
       "checkpatch_0347": "0 errors, 4 warnings, 0 checks"
+    },
+    {
+      "repository_commit": "40c623eeaa707b861a572d385a25967c502af49e",
+      "classification": "pass"
     }
   ],
+  "generation": {
+    "repository_commit": "40c623eeaa707b861a572d385a25967c502af49e",
+    "package": "a72-atomic-publication-40c623eeaa70",
+    "result_commit": "db4d388fabd2921ee1c8e25007d7b85371b85b17",
+    "semantic_validation": "pass",
+    "exact_replay": true,
+    "checkpatch": "0 errors, 0 warnings, 0 checks",
+    "patch_sha256": {
+      "patches/v7.1.3/0345-arm64-finalize-P30-pristine-bootstrap-claim.patch": "e84b1096911dd2e1375aac856702bf7d9508803e4984006ddca07a99fbd09aba",
+      "patches/v7.1.3/0346-arm64-add-atomic-A72-bootstrap-publisher.patch": "7229672d0eb94614dd3bdfb2fb1661ab54f420f6dd6211a0b4e84223fbc0ade8",
+      "patches/v7.1.3/0347-arm64-test-atomic-A72-bootstrap-publication.patch": "ea2d2250dcec3abb14f92c35968403198b0b2f1a022fbdf2c77e2e92976691d1"
+    },
+    "production_callers": 0,
+    "injected_owner_publication": true,
+    "physical_reader_binding": false,
+    "production_replay_source": false,
+    "hardware_operations": 0,
+    "cpu_requests": 0,
+    "device_action": false,
+    "boot_candidate": false
+  },
   "tests": {
     "suite": "mt6797-a72-atomic-publication",
     "cases": 8,

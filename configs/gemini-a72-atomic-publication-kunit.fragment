@@ -1,0 +1,5 @@
+# Hardware-free nested P30 finalization and injected atomic A72 owner
+# publication. There is no production caller or physical source binding.
+CONFIG_KUNIT=y
+CONFIG_ARM64_MT6797_A72_ATOMIC_PUBLICATION_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-a72-atomic-kunit"

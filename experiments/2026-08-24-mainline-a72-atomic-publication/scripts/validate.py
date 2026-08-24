@@ -17,6 +17,15 @@ PARENT_PATCH = (
 PARENT_PATCH_SHA256 = (
     "c7f39812d182f85a9b7db3f47cf8de4219efcdf36bfb4b99dae5026fac6bb192"
 )
+PATCH_SHA256 = {
+    "patches/v7.1.3/0345-arm64-finalize-P30-pristine-bootstrap-claim.patch":
+        "e84b1096911dd2e1375aac856702bf7d9508803e4984006ddca07a99fbd09aba",
+    "patches/v7.1.3/0346-arm64-add-atomic-A72-bootstrap-publisher.patch":
+        "7229672d0eb94614dd3bdfb2fb1661ab54f420f6dd6211a0b4e84223fbc0ade8",
+    "patches/v7.1.3/0347-arm64-test-atomic-A72-bootstrap-publication.patch":
+        "ea2d2250dcec3abb14f92c35968403198b0b2f1a022fbdf2c77e2e92976691d1",
+}
+PROFILE = "a72-atomic-publication-kunit"
 
 
 def require(condition: bool, message: str) -> None:
@@ -39,6 +48,10 @@ def main() -> None:
             "mt6797_a72_atomic_publication_test.inc").read_text()
     buildbox = (ROOT / "scripts/buildbox").read_text()
     docs = (ROOT / "docs/BUILDBOX.md").read_text()
+    manifest = json.loads((ROOT / "kernel/manifest.json").read_text())
+    series = (ROOT / "patches/series").read_text().splitlines()
+    fragment = (ROOT / "configs/"
+                "gemini-a72-atomic-publication-kunit.fragment").read_text()
 
     require(contract["experiment"] == EXPERIMENT.name, "experiment identity")
     require(contract["repository_parent"] ==
@@ -133,7 +146,35 @@ def main() -> None:
             "checkpatch_0346": "0 errors, 0 warnings, 0 checks",
             "checkpatch_0347": "0 errors, 4 warnings, 0 checks",
         },
+        {
+            "repository_commit":
+                "40c623eeaa707b861a572d385a25967c502af49e",
+            "classification": "pass",
+        },
     ], "generation attempt chronology")
+    require(contract["generation"] == {
+        "repository_commit":
+            "40c623eeaa707b861a572d385a25967c502af49e",
+        "package": "a72-atomic-publication-40c623eeaa70",
+        "result_commit": "db4d388fabd2921ee1c8e25007d7b85371b85b17",
+        "semantic_validation": "pass",
+        "exact_replay": True,
+        "checkpatch": "0 errors, 0 warnings, 0 checks",
+        "patch_sha256": PATCH_SHA256,
+        "production_callers": 0,
+        "injected_owner_publication": True,
+        "physical_reader_binding": False,
+        "production_replay_source": False,
+        "hardware_operations": 0,
+        "cpu_requests": 0,
+        "device_action": False,
+        "boot_candidate": False,
+    }, "successful generation result")
+    for relative, expected in PATCH_SHA256.items():
+        require(sha256(ROOT / relative) == expected,
+                f"admitted patch identity {relative}")
+    require([f"patches/{relative}" for relative in series[-3:]] ==
+            list(PATCH_SHA256), "canonical patch order")
     require(contract["tests"] == {
         "suite": "mt6797-a72-atomic-publication",
         "cases": 8,
@@ -204,10 +245,22 @@ def main() -> None:
         require(token in buildbox, f"Buildbox command {token}")
     require("./scripts/buildbox generate-a72-atomic-publication" in docs,
             "Buildbox documentation")
+    profile = manifest["config"]["profiles"][PROFILE]
+    require(profile["base"] == "defconfig" and
+            profile["patch_series"] == "patches/series",
+            "isolated profile base")
+    require(profile["fragments"][-1] ==
+            "configs/gemini-a72-atomic-publication-kunit.fragment",
+            "isolated profile fragment")
+    require("CONFIG_KUNIT=y" in fragment and
+            "CONFIG_ARM64_MT6797_A72_ATOMIC_PUBLICATION_KUNIT_TEST=y" in
+            fragment and
+            'CONFIG_LOCALVERSION="-gemini-a72-atomic-kunit"' in fragment,
+            "isolated profile contract")
     for token in (
-        "definition complete; Buildbox generation pending",
+        "generated, reviewed, and canonically admitted",
         "no production caller", "candidate is defined",
-        "failed closed before any", "no generated patch has been admitted",
+        "failed closed before any", "No kernel has yet been compiled",
     ):
         require(token in readme, f"README closure {token}")
 
