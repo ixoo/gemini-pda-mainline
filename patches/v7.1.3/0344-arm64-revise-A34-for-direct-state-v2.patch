@@ -1,0 +1,372 @@
+From 2473e240ec5dd9d2adae7bc503538b687a8547a0 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 24 Aug 2026 03:03:00 +0000
+Subject: [PATCH 3/3] arm64: revise A34 for direct-state v2
+
+Replace duplicated caller fields and reset provenance with one exact direct-state-v2 record and one typed applicable primary-BL31 replay-clear record. Keep the over-strict evaluator pure, default-off, and without a production caller.
+---
+ arch/arm64/Kconfig                            |  7 +-
+ arch/arm64/Kconfig.platforms                  | 14 +--
+ .../arm64/include/asm/mt6797_a72_membership.h | 49 +++-------
+ .../kernel/mt6797_a72_a34_evaluator_test.c    | 87 ++++++++++--------
+ arch/arm64/kernel/mt6797_a72_membership.c     | 92 +++++++++++--------
+ 5 files changed, 129 insertions(+), 120 deletions(-)
+
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 90ff9b1..57dd31a 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -2580,9 +2580,10 @@ config ARM64_MT6797_A72_A34_ELIGIBILITY_KUNIT_TEST
+ 	select ARM64_MT6797_A72_P24_OWNER_TEST_SEED
+ 	select ARM64_MT6797_A72_A34_ELIGIBILITY_EVALUATOR
+ 	help
+-	  Exercise both accepted reset-provenance values, null input, every
+-	  byte mutation, explicit missing provenance, and unchanged CLOSED
+-	  admission without hardware or CPU operations. The suite has no
++	  Exercise the exact direct-state-v2 and typed primary-BL31 replay
++	  fixture, null input, every-byte mutation, missing replay authority,
++	  and unchanged CLOSED admission without hardware or CPU operations.
++	  The over-strict fixture is not physical evidence and the suite has no
+ 	  production hook.
+ 
+ config ARM64_MT6797_A72_DIRECT_STATE_KUNIT_TEST
+diff --git a/arch/arm64/Kconfig.platforms b/arch/arm64/Kconfig.platforms
+index 052a501..86a9583 100644
+--- a/arch/arm64/Kconfig.platforms
++++ b/arch/arm64/Kconfig.platforms
+@@ -238,16 +238,16 @@ config ARM64_MT6797_A72_DIRECT_STATE_COMPOSITOR
+ 	  hardware operation, CPU_ON, or CPU_OFF. If unsure, say N.
+ 
+ config ARM64_MT6797_A72_A34_ELIGIBILITY_EVALUATOR
+-	bool "Evaluate the exact MT6797 A72 A34 zero-state tuple"
++	bool "Evaluate exact MT6797 A72 direct and replay state"
+ 	depends on ARM64_MT6797_A72_P24_TRANSACTION_OWNER_MODEL
+ 	help
+-	  Add a pure, default-off evaluator for the frozen A34 tuple. Its
+-	  immutable input must carry explicit platform/external-reset
+-	  provenance and owner-safe private replay-zero proof.
++	  Add a pure, default-off evaluator for one exact direct-state-v2
++	  record and one typed applicable primary-BL31 replay-clear record.
++	  The evaluator has no production caller or physical source binding.
+ 
+-	  This option has no production caller and cannot open the owner,
+-	  initialize an attempt, call a provider, perform a hardware effect,
+-	  arm P30, or issue CPU_ON or CPU_OFF.
++	  This option cannot open the owner, initialize an attempt, call a
++	  provider, perform a hardware effect, arm P30, or issue CPU_ON or
++	  CPU_OFF.
+ 
+ config ARM64_MT6797_A72_P24_ADMISSION_HOOKS
+ 	bool "Install closed MT6797 A72 CPU-up admission hooks"
+diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
+index dae61f2..2076a46 100644
+--- a/arch/arm64/include/asm/mt6797_a72_membership.h
++++ b/arch/arm64/include/asm/mt6797_a72_membership.h
+@@ -25,9 +25,7 @@
+  */
+ #define MT6797_A72_TRANSACTION_ABI 2
+ #define MT6797_A72_OPERATION_SLOTS 4
+-#define MT6797_A72_A34_ELIGIBILITY_ABI 1
+-#define MT6797_A72_A34_FIRST_GENERATION 1ULL
+-#define MT6797_A72_A34_FIRST_COOKIE 0xa7200001ULL
++#define MT6797_A72_A34_ELIGIBILITY_ABI 2
+ 
+ enum mt6797_a72_owner_health {
+ 	MT6797_A72_OWNER_CLOSED,
+@@ -550,43 +548,26 @@ int mt6797_a72_direct_state_test_snapshot(const struct mt6797_a72_direct_topolog
+ 					  struct mt6797_a72_direct_state_snapshot *snapshot);
+ #endif
+ 
+-enum mt6797_a72_a34_reset_provenance {
+-	MT6797_A72_A34_RESET_UNKNOWN,
+-	MT6797_A72_A34_RESET_PLATFORM,
+-	MT6797_A72_A34_RESET_EXTERNAL,
+-	MT6797_A72_A34_RESET_ORDINARY_LINUX,
++#define MT6797_A72_A34_REPLAY_ABI 1
++
++enum mt6797_a72_a34_replay_proof {
++	MT6797_A72_A34_REPLAY_UNKNOWN,
++	MT6797_A72_A34_REPLAY_APPLICABLE_PRIMARY_BL31_CLEAR,
+ };
+ 
+-enum mt6797_a72_a34_private_replay_proof {
+-	MT6797_A72_A34_PRIVATE_REPLAY_UNKNOWN,
+-	MT6797_A72_A34_PRIVATE_REPLAY_OWNER_SAFE_ZERO,
++struct mt6797_a72_a34_replay {
++	u32 abi;
++	u32 valid;
++	u32 proof;
++	u32 private_replay_value;
++	u32 reserved[4];
+ };
+ 
+ struct mt6797_a72_a34_observation {
+ 	u32 abi;
+-	u32 reset_provenance;
+-	u32 private_replay_proof;
+-	u32 private_replay_value;
+-	u32 max_cpus;
+-	u32 nr_cpus;
+-	u32 possible_count;
+-	u32 present_count;
+-	u32 online_count;
+-	u32 possible_mask;
+-	u32 present_mask;
+-	u32 online_mask;
+-	u32 cpu8_method_valid;
+-	u32 cpu9_method_valid;
+-	u32 cpuhp_state_cpu8;
+-	u32 cpuhp_state_cpu9;
+-	u64 cpu8_mpidr;
+-	u64 cpu9_mpidr;
+-	struct mt6797_a72_owner_snapshot owner;
+-	u64 owner_next_generation;
+-	u64 owner_next_cookie;
+-	u64 first_generation;
+-	u64 first_cookie;
+-	struct arm64_late_cpu_startup_snapshot p30;
++	u32 reserved[3];
++	struct mt6797_a72_direct_state_snapshot direct;
++	struct mt6797_a72_a34_replay replay;
+ };
+ 
+ #ifdef CONFIG_ARM64_MT6797_A72_A34_ELIGIBILITY_EVALUATOR
+diff --git a/arch/arm64/kernel/mt6797_a72_a34_evaluator_test.c b/arch/arm64/kernel/mt6797_a72_a34_evaluator_test.c
+index 827b9fc..6fb2024 100644
+--- a/arch/arm64/kernel/mt6797_a72_a34_evaluator_test.c
++++ b/arch/arm64/kernel/mt6797_a72_a34_evaluator_test.c
+@@ -18,30 +18,47 @@ mt6797_a34_fill_valid(struct mt6797_a72_a34_observation *observation)
+ {
+ 	memset(observation, 0, sizeof(*observation));
+ 	observation->abi = MT6797_A72_A34_ELIGIBILITY_ABI;
+-	observation->reset_provenance = MT6797_A72_A34_RESET_PLATFORM;
+-	observation->private_replay_proof =
+-		MT6797_A72_A34_PRIVATE_REPLAY_OWNER_SAFE_ZERO;
+-	observation->max_cpus = 8;
+-	observation->nr_cpus = 10;
+-	observation->possible_count = 10;
+-	observation->present_count = 10;
+-	observation->online_count = 8;
+-	observation->possible_mask = GENMASK(9, 0);
+-	observation->present_mask = GENMASK(9, 0);
+-	observation->online_mask = GENMASK(7, 0);
+-	observation->cpu8_method_valid = 1;
+-	observation->cpu9_method_valid = 1;
+-	observation->cpuhp_state_cpu8 = CPUHP_OFFLINE;
+-	observation->cpuhp_state_cpu9 = CPUHP_OFFLINE;
+-	observation->cpu8_mpidr = 0x200;
+-	observation->cpu9_mpidr = 0x201;
+-	observation->owner.diagnostic_blockers = MT6797_A72_BLOCK_MASK;
+-	observation->owner.abi = MT6797_A72_TRANSACTION_ABI;
+-	observation->owner.health = MT6797_A72_OWNER_CLOSED;
+-	observation->owner.phase = MT6797_A72_PHASE_UNINITIALIZED;
+-	observation->owner.provider_state = MT6797_A72_PROVIDER_NONE;
+-	observation->first_generation = MT6797_A72_A34_FIRST_GENERATION;
+-	observation->first_cookie = MT6797_A72_A34_FIRST_COOKIE;
++	observation->direct.abi = MT6797_A72_DIRECT_STATE_ABI;
++	observation->direct.valid = 1;
++	observation->direct.cpu8_possible = 1;
++	observation->direct.cpu9_possible = 1;
++	observation->direct.cpu8_present = 1;
++	observation->direct.cpu9_present = 1;
++	observation->direct.cpu8_method_valid = 1;
++	observation->direct.cpu9_method_valid = 1;
++	observation->direct.cpu8_mpidr = 0x200;
++	observation->direct.cpu9_mpidr = 0x201;
++	observation->direct.source.abi = MT6797_A72_DIRECT_SOURCE_ABI;
++	observation->direct.source.valid = 1;
++	observation->direct.source.provider.abi =
++		MT6797_A72_PROVIDER_STATE_ABI;
++	observation->direct.source.provider.valid = 1;
++	observation->direct.source.provider.control_a = 0x7b;
++	observation->direct.source.provider.status_b = 0xc1;
++	observation->direct.source.provider.vbuckb_a = 0x46;
++	observation->direct.source.provider.vbuckb_b = 0x46;
++	observation->direct.source.platform.spm_pwr_status = 0x2a00005c;
++	observation->direct.source.platform.spm_pwr_status_2nd = 0x2a00004c;
++	observation->direct.source.platform.spm_cpu_pwr_status = 0x00350c08;
++	observation->direct.source.platform.spm_cpu_pwr_status_2nd = 0x00350cff;
++	observation->direct.source.platform.spm_mp2_cpusys_pwr_con =
++		0x00010132;
++	observation->direct.source.platform.spm_cpu_ext_buck_iso = 0x00000002;
++	observation->direct.source.platform.valid = true;
++	observation->direct.source.clock.abi =
++		MT6797_DVFSP_CLOCK_BACKEND_ABI;
++	observation->direct.source.clock.sample_generation = 1;
++	observation->direct.source.bigidvfs.abi = MT6797_BIGIDVFS_BACKEND_ABI;
++	observation->direct.source.bigidvfs.sample_generation = 1;
++	observation->direct.owner.diagnostic_blockers = MT6797_A72_BLOCK_MASK;
++	observation->direct.owner.abi = MT6797_A72_TRANSACTION_ABI;
++	observation->direct.owner.health = MT6797_A72_OWNER_CLOSED;
++	observation->direct.owner.phase = MT6797_A72_PHASE_UNINITIALIZED;
++	observation->direct.owner.provider_state = MT6797_A72_PROVIDER_NONE;
++	observation->replay.abi = MT6797_A72_A34_REPLAY_ABI;
++	observation->replay.valid = 1;
++	observation->replay.proof =
++		MT6797_A72_A34_REPLAY_APPLICABLE_PRIMARY_BL31_CLEAR;
+ }
+ 
+ static int mt6797_a34_test_init(struct kunit *test)
+@@ -88,17 +105,11 @@ mt6797_a34_expect_result_unchanged(struct kunit *test,
+ 			   sizeof(*state->before));
+ }
+ 
+-static void mt6797_a34_exact_provenance_test(struct kunit *test)
++static void mt6797_a34_exact_direct_replay_test(struct kunit *test)
+ {
+ 	struct mt6797_a34_test_state *state = test->priv;
+-	u32 provenance;
+ 
+-	for (provenance = MT6797_A72_A34_RESET_PLATFORM;
+-	     provenance <= MT6797_A72_A34_RESET_EXTERNAL; provenance++) {
+-		mt6797_a34_fill_valid(state->observation);
+-		state->observation->reset_provenance = provenance;
+-		mt6797_a34_expect_result_unchanged(test, state, 0);
+-	}
++	mt6797_a34_expect_result_unchanged(test, state, 0);
+ }
+ 
+ static void mt6797_a34_null_test(struct kunit *test)
+@@ -134,16 +145,14 @@ static void mt6797_a34_every_byte_mutation_test(struct kunit *test)
+ 			   sizeof(*state->before));
+ }
+ 
+-static void mt6797_a34_missing_provenance_test(struct kunit *test)
++static void mt6797_a34_missing_replay_test(struct kunit *test)
+ {
+ 	struct mt6797_a34_test_state *state = test->priv;
+ 
+-	state->observation->reset_provenance =
+-		MT6797_A72_A34_RESET_ORDINARY_LINUX;
++	state->observation->replay.proof = MT6797_A72_A34_REPLAY_UNKNOWN;
+ 	mt6797_a34_expect_result_unchanged(test, state, -EPERM);
+ 	mt6797_a34_fill_valid(state->observation);
+-	state->observation->private_replay_proof =
+-		MT6797_A72_A34_PRIVATE_REPLAY_UNKNOWN;
++	state->observation->replay.valid = 0;
+ 	mt6797_a34_expect_result_unchanged(test, state, -EPERM);
+ }
+ 
+@@ -163,10 +172,10 @@ static void mt6797_a34_admission_remains_closed_test(struct kunit *test)
+ }
+ 
+ static struct kunit_case mt6797_a34_test_cases[] = {
+-	KUNIT_CASE(mt6797_a34_exact_provenance_test),
++	KUNIT_CASE(mt6797_a34_exact_direct_replay_test),
+ 	KUNIT_CASE(mt6797_a34_null_test),
+ 	KUNIT_CASE(mt6797_a34_every_byte_mutation_test),
+-	KUNIT_CASE(mt6797_a34_missing_provenance_test),
++	KUNIT_CASE(mt6797_a34_missing_replay_test),
+ 	KUNIT_CASE(mt6797_a34_admission_remains_closed_test),
+ 	{}
+ };
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+index 97f842a..7d06e1c 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -430,50 +430,68 @@ mt6797_a72_direct_state_test_snapshot(const struct mt6797_a72_direct_topology *t
+ #ifdef CONFIG_ARM64_MT6797_A72_A34_ELIGIBILITY_EVALUATOR
+ static const struct mt6797_a72_a34_observation a34_expected = {
+ 	.abi = MT6797_A72_A34_ELIGIBILITY_ABI,
+-	.private_replay_proof =
+-		MT6797_A72_A34_PRIVATE_REPLAY_OWNER_SAFE_ZERO,
+-	.max_cpus = 8,
+-	.nr_cpus = 10,
+-	.possible_count = 10,
+-	.present_count = 10,
+-	.online_count = 8,
+-	.possible_mask = GENMASK(9, 0),
+-	.present_mask = GENMASK(9, 0),
+-	.online_mask = GENMASK(7, 0),
+-	.cpu8_method_valid = 1,
+-	.cpu9_method_valid = 1,
+-	.cpuhp_state_cpu8 = CPUHP_OFFLINE,
+-	.cpuhp_state_cpu9 = CPUHP_OFFLINE,
+-	.cpu8_mpidr = 0x200,
+-	.cpu9_mpidr = 0x201,
+-	.owner = {
+-		.diagnostic_blockers = MT6797_A72_BLOCK_MASK,
+-		.abi = MT6797_A72_TRANSACTION_ABI,
+-		.health = MT6797_A72_OWNER_CLOSED,
+-		.phase = MT6797_A72_PHASE_UNINITIALIZED,
+-		.provider_state = MT6797_A72_PROVIDER_NONE,
++	.direct = {
++		.abi = MT6797_A72_DIRECT_STATE_ABI,
++		.valid = 1,
++		.cpu8_possible = 1,
++		.cpu9_possible = 1,
++		.cpu8_present = 1,
++		.cpu9_present = 1,
++		.cpu8_method_valid = 1,
++		.cpu9_method_valid = 1,
++		.cpu8_mpidr = 0x200,
++		.cpu9_mpidr = 0x201,
++		.source = {
++			.abi = MT6797_A72_DIRECT_SOURCE_ABI,
++			.valid = 1,
++			.provider = {
++				.abi = MT6797_A72_PROVIDER_STATE_ABI,
++				.valid = 1,
++				.control_a = 0x7b,
++				.status_b = 0xc1,
++				.vbuckb_a = 0x46,
++				.vbuckb_b = 0x46,
++			},
++			.platform = {
++				.spm_pwr_status = 0x2a00005c,
++				.spm_pwr_status_2nd = 0x2a00004c,
++				.spm_cpu_pwr_status = 0x00350c08,
++				.spm_cpu_pwr_status_2nd = 0x00350cff,
++				.spm_mp2_cpusys_pwr_con = 0x00010132,
++				.spm_cpu_ext_buck_iso = 0x00000002,
++				.valid = true,
++			},
++			.clock = {
++				.abi = MT6797_DVFSP_CLOCK_BACKEND_ABI,
++				.sample_generation = 1,
++			},
++			.bigidvfs = {
++				.abi = MT6797_BIGIDVFS_BACKEND_ABI,
++				.sample_generation = 1,
++			},
++		},
++		.owner = {
++			.diagnostic_blockers = MT6797_A72_BLOCK_MASK,
++			.abi = MT6797_A72_TRANSACTION_ABI,
++			.health = MT6797_A72_OWNER_CLOSED,
++			.phase = MT6797_A72_PHASE_UNINITIALIZED,
++			.provider_state = MT6797_A72_PROVIDER_NONE,
++		},
++	},
++	.replay = {
++		.abi = MT6797_A72_A34_REPLAY_ABI,
++		.valid = 1,
++		.proof =
++			MT6797_A72_A34_REPLAY_APPLICABLE_PRIMARY_BL31_CLEAR,
+ 	},
+-	.first_generation = MT6797_A72_A34_FIRST_GENERATION,
+-	.first_cookie = MT6797_A72_A34_FIRST_COOKIE,
+ };
+ 
+ int
+-mt6797_a72_a34_evaluate(const struct mt6797_a72_a34_observation
+-			      *observation)
++mt6797_a72_a34_evaluate(const struct mt6797_a72_a34_observation *observation)
+ {
+-	size_t tail = offsetof(struct mt6797_a72_a34_observation,
+-			       private_replay_proof);
+-
+ 	if (!observation)
+ 		return -EINVAL;
+-	if (observation->abi != MT6797_A72_A34_ELIGIBILITY_ABI ||
+-	    (observation->reset_provenance !=
+-		MT6797_A72_A34_RESET_PLATFORM &&
+-	     observation->reset_provenance !=
+-		MT6797_A72_A34_RESET_EXTERNAL) ||
+-	    memcmp((const u8 *)observation + tail,
+-		   (const u8 *)&a34_expected + tail,
+-		   sizeof(*observation) - tail))
++	if (memcmp(observation, &a34_expected, sizeof(*observation)))
+ 		return -EPERM;
+ 	return 0;
+ }

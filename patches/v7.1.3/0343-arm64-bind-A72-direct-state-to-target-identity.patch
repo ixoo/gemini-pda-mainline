@@ -1,0 +1,163 @@
+From f33bada53d219e1df9198f5f269d10cfe6ec2f42 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 24 Aug 2026 03:02:00 +0000
+Subject: [PATCH 2/3] arm64: bind A72 direct state to target identity
+
+Advance the direct-state ABI with compositor-owned CPU method and MPIDR identity for CPU8 and CPU9. Preserve the closed owner, offline topology, zero-on-error behavior, and hardware-free injected tests.
+---
+ .../arm64/include/asm/mt6797_a72_membership.h | 10 +++++++-
+ .../kernel/mt6797_a72_direct_state_test.c     | 24 +++++++++++++++++--
+ arch/arm64/kernel/mt6797_a72_membership.c     | 19 ++++++++++++++-
+ 3 files changed, 49 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
+index ebea57d..dae61f2 100644
+--- a/arch/arm64/include/asm/mt6797_a72_membership.h
++++ b/arch/arm64/include/asm/mt6797_a72_membership.h
+@@ -480,7 +480,7 @@ struct mt6797_a72_owner_snapshot {
+ 	u32 controller_present;
+ };
+ 
+-#define MT6797_A72_DIRECT_STATE_ABI 1
++#define MT6797_A72_DIRECT_STATE_ABI 2
+ 
+ struct mt6797_a72_direct_topology {
+ 	u32 cpu8_possible;
+@@ -489,6 +489,10 @@ struct mt6797_a72_direct_topology {
+ 	u32 cpu9_present;
+ 	u32 cpu8_online;
+ 	u32 cpu9_online;
++	u32 cpu8_method_valid;
++	u32 cpu9_method_valid;
++	u64 cpu8_mpidr;
++	u64 cpu9_mpidr;
+ };
+ 
+ struct mt6797_a72_direct_state_snapshot {
+@@ -500,6 +504,10 @@ struct mt6797_a72_direct_state_snapshot {
+ 	u32 cpu9_present;
+ 	u32 cpu8_online;
+ 	u32 cpu9_online;
++	u32 cpu8_method_valid;
++	u32 cpu9_method_valid;
++	u64 cpu8_mpidr;
++	u64 cpu9_mpidr;
+ 	struct mt6797_a72_direct_source_snapshot source;
+ 	struct mt6797_a72_owner_snapshot owner;
+ };
+diff --git a/arch/arm64/kernel/mt6797_a72_direct_state_test.c b/arch/arm64/kernel/mt6797_a72_direct_state_test.c
+index 4a0c844..21e7248 100644
+--- a/arch/arm64/kernel/mt6797_a72_direct_state_test.c
++++ b/arch/arm64/kernel/mt6797_a72_direct_state_test.c
+@@ -44,6 +44,10 @@ static struct mt6797_a72_direct_topology direct_topology(void)
+ 		.cpu9_possible = 1,
+ 		.cpu8_present = 1,
+ 		.cpu9_present = 1,
++		.cpu8_method_valid = 1,
++		.cpu9_method_valid = 1,
++		.cpu8_mpidr = 0x200,
++		.cpu9_mpidr = 0x201,
+ 	};
+ }
+ 
+@@ -205,6 +209,10 @@ static void direct_snapshot_success(struct kunit *test)
+ 	KUNIT_EXPECT_EQ(test, observed->cpu9_present, 1U);
+ 	KUNIT_EXPECT_EQ(test, observed->cpu8_online, 0U);
+ 	KUNIT_EXPECT_EQ(test, observed->cpu9_online, 0U);
++	KUNIT_EXPECT_EQ(test, observed->cpu8_method_valid, 1U);
++	KUNIT_EXPECT_EQ(test, observed->cpu9_method_valid, 1U);
++	KUNIT_EXPECT_EQ(test, observed->cpu8_mpidr, (u64)0x200);
++	KUNIT_EXPECT_EQ(test, observed->cpu9_mpidr, (u64)0x201);
+ 	KUNIT_EXPECT_EQ(test, observed->source.provider.vbuckb_a, 0x46U);
+ 	KUNIT_EXPECT_EQ(test, observed->owner.health,
+ 			MT6797_A72_OWNER_CLOSED);
+@@ -291,7 +299,7 @@ static void direct_topology_mutations_rejected(struct kunit *test)
+ 	int ret;
+ 
+ 	KUNIT_ASSERT_EQ(test, direct_register(test, state), 0);
+-	for (index = 0; index < 6; index++) {
++	for (index = 0; index < 10; index++) {
+ 		topology = direct_topology();
+ 		switch (index) {
+ 		case 0:
+@@ -309,9 +317,21 @@ static void direct_topology_mutations_rejected(struct kunit *test)
+ 		case 4:
+ 			topology.cpu8_online ^= 1;
+ 			break;
+-		default:
++		case 5:
+ 			topology.cpu9_online ^= 1;
+ 			break;
++		case 6:
++			topology.cpu8_method_valid ^= 1;
++			break;
++		case 7:
++			topology.cpu9_method_valid ^= 1;
++			break;
++		case 8:
++			topology.cpu8_mpidr ^= 1;
++			break;
++		default:
++			topology.cpu9_mpidr ^= 1;
++			break;
+ 		}
+ 		memset(observed, 0xa5, sizeof(*observed));
+ 		ret = mt6797_a72_direct_state_test_snapshot(&topology, observed);
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+index ae27130..97f842a 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -24,6 +24,7 @@
+ #include <linux/stddef.h>
+ #include <linux/string.h>
+ 
++#include <asm/cpu_ops.h>
+ #include <asm/memory.h>
+ #include <asm/mt6797_a72_membership.h>
+ #include <asm/smp.h>
+@@ -31,6 +32,8 @@
+ #include <asm/mt6797_a72_p30e.h>
+ #endif
+ 
++extern const struct cpu_operations mt6797_psci_ops;
++
+ static DEFINE_MUTEX(a72_transition_lock);
+ static DEFINE_RAW_SPINLOCK(a72_state_lock);
+ static DEFINE_MUTEX(a72_provider_registry_lock);
+@@ -274,7 +277,11 @@ mt6797_a72_direct_topology_valid(const struct mt6797_a72_direct_topology *topolo
+ 		topology->cpu9_possible == 1 &&
+ 		topology->cpu8_present == 1 &&
+ 		topology->cpu9_present == 1 &&
+-		!topology->cpu8_online && !topology->cpu9_online;
++		!topology->cpu8_online && !topology->cpu9_online &&
++		topology->cpu8_method_valid == 1 &&
++		topology->cpu9_method_valid == 1 &&
++		topology->cpu8_mpidr == 0x200 &&
++		topology->cpu9_mpidr == 0x201;
+ }
+ 
+ static bool
+@@ -352,6 +359,10 @@ mt6797_a72_direct_state_snapshot_locked(const struct mt6797_a72_direct_topology
+ 	observed->cpu9_present = topology->cpu9_present;
+ 	observed->cpu8_online = topology->cpu8_online;
+ 	observed->cpu9_online = topology->cpu9_online;
++	observed->cpu8_method_valid = topology->cpu8_method_valid;
++	observed->cpu9_method_valid = topology->cpu9_method_valid;
++	observed->cpu8_mpidr = topology->cpu8_mpidr;
++	observed->cpu9_mpidr = topology->cpu9_mpidr;
+ 	*snapshot = *observed;
+ out_unlock:
+ 	mutex_unlock(&a72_direct_source_registry_lock);
+@@ -382,6 +393,12 @@ mt6797_a72_direct_state_snapshot(struct mt6797_a72_direct_state_snapshot *snapsh
+ 	topology.cpu9_present = cpu_present(9);
+ 	topology.cpu8_online = cpu_online(8);
+ 	topology.cpu9_online = cpu_online(9);
++	topology.cpu8_method_valid =
++		get_cpu_ops(8) == &mt6797_psci_ops;
++	topology.cpu9_method_valid =
++		get_cpu_ops(9) == &mt6797_psci_ops;
++	topology.cpu8_mpidr = cpu_logical_map(8);
++	topology.cpu9_mpidr = cpu_logical_map(9);
+ 	ret = mt6797_a72_direct_state_snapshot_locked(&topology, snapshot);
+ out_unlock:
+ 	mutex_unlock(&a72_transition_lock);

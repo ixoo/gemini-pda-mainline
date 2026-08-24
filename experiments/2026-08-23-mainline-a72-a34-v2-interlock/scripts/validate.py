@@ -58,14 +58,47 @@ def main() -> None:
             "prepared source integrity")
     require(sha256(PARENT_PATCH) == PARENT_PATCH_SHA256,
             "canonical parent patch")
-    require(series[-1] ==
-            "v7.1.3/0341-arm64-fix-A72-direct-state-preflight-target-test.patch",
-            "definition parent is not canonical tail")
+    require(series[-4:] == [
+        "v7.1.3/0341-arm64-fix-A72-direct-state-preflight-target-test.patch",
+        "v7.1.3/0342-arm64-add-P30-pristine-bootstrap-claim.patch",
+        "v7.1.3/0343-arm64-bind-A72-direct-state-to-target-identity.patch",
+        "v7.1.3/0344-arm64-revise-A34-for-direct-state-v2.patch",
+    ], "canonical admission order")
     require(contract["patches"] == [
         "0342-arm64-add-P30-pristine-bootstrap-claim.patch",
         "0343-arm64-bind-A72-direct-state-to-target-identity.patch",
         "0344-arm64-revise-A34-for-direct-state-v2.patch",
     ], "planned patch order")
+    attempts = contract["generation_attempts"]
+    require(len(attempts) == 5, "generation attempt count")
+    require([attempt["classification"] for attempt in attempts] == [
+        "rejected-validator-snapshot-boundary",
+        "rejected-source-anchor-direct-test",
+        "rejected-validator-direct-header-boundary",
+        "rejected-strict-style",
+        "pass",
+    ], "generation chronology")
+    generation = contract["generation"]
+    require(generation["repository_commit"] ==
+            "91b6993a4ffcc4fa511f29fe2c3d7f7c7ceefa33",
+            "generation repository commit")
+    require(generation["result_commit"] ==
+            "2473e240ec5dd9d2adae7bc503538b687a8547a0",
+            "generated source result")
+    require(generation["semantic_validation"] == "pass" and
+            generation["exact_replay"] is True,
+            "generation replay result")
+    require(generation["checkpatch"] == "0 errors, 0 warnings, 0 checks",
+            "strict checkpatch result")
+    for relative, expected in generation["patch_sha256"].items():
+        require(sha256(ROOT / relative) == expected,
+                f"admitted patch identity {relative}")
+    require(generation["production_callers"] == 0 and
+            generation["owner_publication"] is False and
+            generation["physical_reader_binding"] is False and
+            generation["device_action"] is False and
+            generation["boot_candidate"] is False,
+            "generation scope closure")
     require(contract["scope"]["production_callers"] == 0,
             "production caller scope")
     require(all(contract["scope"][key] is False for key in (
@@ -132,7 +165,7 @@ def main() -> None:
     require("./scripts/buildbox generate-a34-v2-interlock" in docs,
             "Buildbox documentation")
     for token in (
-        "Buildbox generation pending", "no production caller",
+        "Buildbox compile pending", "no production caller",
         "not physical evidence", "No boot candidate",
     ):
         require(token in readme, f"README closure {token}")
@@ -146,7 +179,8 @@ def main() -> None:
                 f"missing or unsafe definition file {relative}")
 
     print("validation=a34-v2-interlock-definition")
-    print("planned_patch_count=3")
+    print("admitted_patch_count=3")
+    print("generation=pass")
     print("build_backend=buildbox")
     print("production_callers=0")
     print("owner_publication=false")

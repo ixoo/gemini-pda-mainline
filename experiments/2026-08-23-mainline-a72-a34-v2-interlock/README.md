@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-23-mainline-a72-a34-v2-interlock` |
-| Status | implementation definition; Buildbox generation pending |
+| Status | generated review admitted; Buildbox compile pending |
 | Subsystem | MT6797 A72 A34 input and P30 pristine exclusion |
 | Device variant | Gemini PDA contract; injected hardware-free phase |
 | Date(s) | 2026-08-23 America/New_York |
@@ -74,8 +74,19 @@ every case.
 
 ## Observations
 
-Buildbox generation, canonical admission, compilation, and QEMU execution are
-pending.
+The first three generation commits failed closed before patch creation: two
+repository-side validators used boundaries that included adjacent declarations,
+and one direct-test edit used the pre-stack-fix value rather than the pinned
+pointer workspace. Commit `940d7e05` then passed every semantic phase and
+exact replay but strict checkpatch rejected eight declaration lines ending in
+`(`. Those failures changed only the deterministic editor or its validators.
+
+Signed and pushed commit `91b6993a` passed all three cumulative source
+validators, the three-patch separation validator, byte-exact replay, and
+strict checkpatch with `0 errors, 0 warnings, 0 checks` for every patch. The
+checksum-covered package is `a34-v2-interlock-91b6993a4ffc`; exact admitted
+patch identities are recorded in [`contract.json`](contract.json). No kernel
+was compiled and no QEMU or device action occurred during generation.
 
 ## Analysis
 
@@ -97,8 +108,9 @@ owner, a hardware-free pass cannot open A34 in production.
 
 ## Conclusion
 
-Pending Buildbox generation and focused execution. No boot candidate is
-defined.
+The three normal patches are generated, exactly replayed, strictly checked,
+and admitted to the canonical series. Isolated Buildbox compilation and
+focused no-network execution remain pending. No boot candidate is defined.
 
 ## Follow-up
 

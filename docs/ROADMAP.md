@@ -4915,12 +4915,15 @@ The next ordered work is:
    not a recovered-value predicate; the current boot has no positive owner for
    BL31 replay-clear applicability; and P30 has no pristine bootstrap
    interlock. A34-v1 also duplicates caller-supplied state instead of consuming
-   the compositor-owned record. **Selected next:** implement and prove the
-   default-off A34-v2 evaluator and P30 bootstrap interlock with injected,
-   hardware-free tests. Do not publish `AVAILABLE / IDLE`, bind a physical
-   reader, or relax either CPU veto in that slice. Only after those inputs and
-   exclusion rules pass may a separate review add the atomic single
-   publication commit point.
+   the compositor-owned record. Canonical patches `0342`--`0344` now implement
+   the default-off P30 pristine claim, direct-state ABI 2 target identity, and
+   A34 ABI 2 over one direct record plus typed replay applicability. Their
+   exact Buildbox generation, semantic validation, replay, and strict style
+   gates pass. **Selected next:** compile the isolated profile and run only its
+   focused P30, direct-state, and A34-v2 suites under no-network arm64 QEMU.
+   Do not publish `AVAILABLE / IDLE`, bind a physical reader, or relax either
+   CPU veto in that slice. Only after those inputs and exclusion rules pass may
+   a separate review add the atomic single publication commit point.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

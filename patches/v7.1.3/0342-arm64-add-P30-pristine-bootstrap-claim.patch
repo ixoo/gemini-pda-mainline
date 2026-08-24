@@ -1,0 +1,258 @@
+From ba297d17a42b928ab72336cd1c51dcdea4edc846 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 24 Aug 2026 03:01:00 +0000
+Subject: [PATCH 1/3] arm64: add P30 pristine bootstrap claim
+
+Claim exact pristine P30 state with an opaque cookie and exclude the sole pristine-to-active prepare edge until release. Add hardware-free KUnit coverage without exposing the claim in the public snapshot.
+---
+ arch/arm64/include/asm/late_cpu_startup.h | 26 +++++++
+ arch/arm64/kernel/late_cpu_startup.c      | 82 +++++++++++++++++++++++
+ arch/arm64/kernel/late_cpu_startup_test.c | 61 +++++++++++++++++
+ 3 files changed, 169 insertions(+)
+
+diff --git a/arch/arm64/include/asm/late_cpu_startup.h b/arch/arm64/include/asm/late_cpu_startup.h
+index 46bc06b..0627615 100644
+--- a/arch/arm64/include/asm/late_cpu_startup.h
++++ b/arch/arm64/include/asm/late_cpu_startup.h
+@@ -3,6 +3,7 @@
+ #define __ASM_LATE_CPU_STARTUP_H
+ 
+ #include <linux/bits.h>
++#include <linux/errno.h>
+ #include <linux/types.h>
+ 
+ #include <asm/late_cpu_profile.h>
+@@ -134,7 +135,17 @@ struct arm64_late_cpu_startup_snapshot {
+ 	u32 retired_mask;
+ };
+ 
++#define ARM64_LATE_CPU_BOOTSTRAP_CLAIM_ABI 1
++
++struct arm64_late_cpu_bootstrap_claim {
++	u32 abi;
++	u32 reserved;
++	u64 cookie;
++};
++
+ #ifdef CONFIG_ARM64_LATE_CPU_STARTUP_FAILSTOP
++int arm64_late_cpu_startup_claim_pristine(struct arm64_late_cpu_bootstrap_claim *claim);
++int arm64_late_cpu_startup_release_pristine(struct arm64_late_cpu_bootstrap_claim *claim);
+ int arm64_late_cpu_startup_prepare(const struct arm64_late_cpu_up_token *token);
+ int arm64_late_cpu_startup_abort_unissued(
+ 	const struct arm64_late_cpu_up_token *token);
+@@ -174,6 +185,21 @@ void arm64_late_cpu_startup_snapshot(
+ 	struct arm64_late_cpu_startup_snapshot *snapshot);
+ bool arm64_late_cpu_startup_quarantined(void);
+ #else
++static inline int
++arm64_late_cpu_startup_claim_pristine(struct arm64_late_cpu_bootstrap_claim *claim)
++{
++	if (claim)
++		*claim = (struct arm64_late_cpu_bootstrap_claim){};
++	return -EOPNOTSUPP;
++}
++
++static inline int
++arm64_late_cpu_startup_release_pristine(struct arm64_late_cpu_bootstrap_claim *claim)
++{
++	(void)claim;
++	return -EOPNOTSUPP;
++}
++
+ static inline bool arm64_late_cpu_startup_quarantined(void)
+ {
+ 	return false;
+diff --git a/arch/arm64/kernel/late_cpu_startup.c b/arch/arm64/kernel/late_cpu_startup.c
+index 373b5b8..088bfcd 100644
+--- a/arch/arm64/kernel/late_cpu_startup.c
++++ b/arch/arm64/kernel/late_cpu_startup.c
+@@ -20,6 +20,8 @@
+ struct arm64_late_cpu_startup_control {
+ 	raw_spinlock_t lock;
+ 	atomic_t state;
++	u64 bootstrap_claim_cookie;
++	u64 next_bootstrap_claim_cookie;
+ 	struct arm64_late_cpu_up_token token;
+ 	struct arm64_late_cpu_up_token
+ 		retired_token[ARM64_LATE_CPU_STARTUP_OPERATION_SLOTS];
+@@ -43,6 +45,7 @@ struct arm64_late_cpu_startup_control {
+ static struct arm64_late_cpu_startup_control late_startup = {
+ 	.lock = __RAW_SPIN_LOCK_UNLOCKED(late_startup.lock),
+ 	.state = ATOMIC_INIT(ARM64_LATE_CPU_STARTUP_FREE),
++	.next_bootstrap_claim_cookie = 1,
+ 	.published = COMPLETION_INITIALIZER(late_startup.published),
+ 	.quarantined = ATOMIC_INIT(0),
+ };
+@@ -188,6 +191,79 @@ static bool late_startup_target_online_locked(u32 cpu)
+ #endif
+ }
+ 
++static bool late_startup_pristine_locked(void)
++{
++	static const struct arm64_late_cpu_up_token zero_token;
++	static const struct arm64_late_cpu_startup_terminal zero_terminal;
++	unsigned int i;
++
++	if (atomic_read(&late_startup.state) != ARM64_LATE_CPU_STARTUP_FREE ||
++	    late_startup.bootstrap_claim_cookie ||
++	    memcmp(&late_startup.token, &zero_token, sizeof(zero_token)) ||
++	    memcmp(&late_startup.quarantine_token, &zero_token,
++		   sizeof(zero_token)) ||
++	    memcmp(&late_startup.terminal, &zero_terminal,
++		   sizeof(zero_terminal)) ||
++	    late_startup.success_effects ||
++	    atomic_read(&late_startup.quarantined) ||
++	    late_startup.quarantine_cause || late_startup.retired_mask ||
++	    late_startup.completion_consumed || late_startup.online_validated ||
++	    late_startup.park_committed || late_startup.stuck_interlock)
++		return false;
++	for (i = 0; i < ARM64_LATE_CPU_STARTUP_OPERATION_SLOTS; i++)
++		if (memcmp(&late_startup.retired_token[i], &zero_token,
++			   sizeof(zero_token)))
++			return false;
++	return true;
++}
++
++int arm64_late_cpu_startup_claim_pristine(struct arm64_late_cpu_bootstrap_claim *claim)
++{
++	unsigned long flags;
++	u64 cookie;
++	int ret = 0;
++
++	if (!claim)
++		return -EINVAL;
++	*claim = (struct arm64_late_cpu_bootstrap_claim){};
++	raw_spin_lock_irqsave(&late_startup.lock, flags);
++	if (!late_startup_pristine_locked()) {
++		ret = -EBUSY;
++		goto out;
++	}
++	cookie = late_startup.next_bootstrap_claim_cookie++;
++	if (!cookie) {
++		ret = -EOVERFLOW;
++		goto out;
++	}
++	late_startup.bootstrap_claim_cookie = cookie;
++	claim->abi = ARM64_LATE_CPU_BOOTSTRAP_CLAIM_ABI;
++	claim->cookie = cookie;
++out:
++	raw_spin_unlock_irqrestore(&late_startup.lock, flags);
++	return ret;
++}
++
++int arm64_late_cpu_startup_release_pristine(struct arm64_late_cpu_bootstrap_claim *claim)
++{
++	unsigned long flags;
++	int ret;
++
++	if (!claim || claim->abi != ARM64_LATE_CPU_BOOTSTRAP_CLAIM_ABI ||
++	    claim->reserved || !claim->cookie)
++		return -EINVAL;
++	raw_spin_lock_irqsave(&late_startup.lock, flags);
++	if (claim->cookie != late_startup.bootstrap_claim_cookie) {
++		ret = -ESTALE;
++	} else {
++		late_startup.bootstrap_claim_cookie = 0;
++		*claim = (struct arm64_late_cpu_bootstrap_claim){};
++		ret = 0;
++	}
++	raw_spin_unlock_irqrestore(&late_startup.lock, flags);
++	return ret;
++}
++
+ int arm64_late_cpu_startup_prepare(const struct arm64_late_cpu_up_token *token)
+ {
+ 	unsigned long flags;
+@@ -202,6 +278,10 @@ int arm64_late_cpu_startup_prepare(const struct arm64_late_cpu_up_token *token)
+ 		return slot;
+ 
+ 	raw_spin_lock_irqsave(&late_startup.lock, flags);
++	if (late_startup.bootstrap_claim_cookie) {
++		ret = -EBUSY;
++		goto out;
++	}
+ 	if (atomic_read(&late_startup.quarantined)) {
+ 		ret = -ESHUTDOWN;
+ 		goto out;
+@@ -823,6 +903,8 @@ void arm64_late_cpu_startup_test_reset(void)
+ 	       sizeof(late_startup.quarantine_token));
+ 	memset(&late_startup.terminal, 0, sizeof(late_startup.terminal));
+ 	late_startup.success_effects = 0;
++	late_startup.bootstrap_claim_cookie = 0;
++	late_startup.next_bootstrap_claim_cookie = 1;
+ 	late_startup.quarantine_cause = ARM64_LATE_CPU_QUARANTINE_NONE;
+ 	late_startup.retired_mask = 0;
+ 	late_startup.completion_consumed = false;
+diff --git a/arch/arm64/kernel/late_cpu_startup_test.c b/arch/arm64/kernel/late_cpu_startup_test.c
+index 5bd367a..8d915c0 100644
+--- a/arch/arm64/kernel/late_cpu_startup_test.c
++++ b/arch/arm64/kernel/late_cpu_startup_test.c
+@@ -686,7 +686,68 @@ static void late_cpu_startup_prearmed_target_claim_test(struct kunit *test)
+ 			0);
+ }
+ 
++static void late_cpu_startup_bootstrap_claim_excludes_prepare_test(struct kunit *test)
++{
++	struct arm64_late_cpu_startup_snapshot before = {};
++	struct arm64_late_cpu_startup_snapshot after = {};
++	struct arm64_late_cpu_bootstrap_claim claim;
++	struct arm64_late_cpu_bootstrap_claim second;
++
++	arm64_late_cpu_startup_snapshot(&before);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_claim_pristine(&claim), 0);
++	KUNIT_EXPECT_EQ(test, claim.abi,
++			(u32)ARM64_LATE_CPU_BOOTSTRAP_CLAIM_ABI);
++	KUNIT_EXPECT_NE(test, claim.cookie, (u64)0);
++	memset(&second, 0xa5, sizeof(second));
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_claim_pristine(&second), -EBUSY);
++	KUNIT_EXPECT_EQ(test, second.abi, (u32)0);
++	KUNIT_EXPECT_EQ(test, second.cookie, (u64)0);
++	KUNIT_EXPECT_EQ(test, arm64_late_cpu_startup_prepare(&cpu8_token),
++			-EBUSY);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_release_pristine(&claim), 0);
++	arm64_late_cpu_startup_snapshot(&after);
++	KUNIT_EXPECT_MEMEQ(test, &before, &after, sizeof(before));
++	KUNIT_EXPECT_EQ(test, arm64_late_cpu_startup_prepare(&cpu8_token), 0);
++}
++
++static void late_cpu_startup_bootstrap_claim_identity_test(struct kunit *test)
++{
++	struct arm64_late_cpu_bootstrap_claim claim;
++	struct arm64_late_cpu_bootstrap_claim wrong;
++
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_claim_pristine(&claim), 0);
++	wrong = claim;
++	wrong.cookie++;
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_release_pristine(&wrong), -ESTALE);
++	KUNIT_EXPECT_EQ(test, arm64_late_cpu_startup_prepare(&cpu8_token),
++			-EBUSY);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_release_pristine(&claim), 0);
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_release_pristine(&claim), -EINVAL);
++}
++
++static void late_cpu_startup_bootstrap_claim_rejects_nonpristine_test(struct kunit *test)
++{
++	struct arm64_late_cpu_bootstrap_claim claim;
++
++	KUNIT_ASSERT_EQ(test, arm64_late_cpu_startup_prepare(&cpu8_token), 0);
++	memset(&claim, 0xa5, sizeof(claim));
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_claim_pristine(&claim), -EBUSY);
++	KUNIT_EXPECT_EQ(test, claim.abi, (u32)0);
++	KUNIT_EXPECT_EQ(test, claim.cookie, (u64)0);
++}
++
+ static struct kunit_case late_cpu_startup_test_cases[] = {
++	KUNIT_CASE(late_cpu_startup_bootstrap_claim_excludes_prepare_test),
++	KUNIT_CASE(late_cpu_startup_bootstrap_claim_identity_test),
++	KUNIT_CASE(late_cpu_startup_bootstrap_claim_rejects_nonpristine_test),
+ 	KUNIT_CASE(late_cpu_startup_invalid_token_test),
+ 	KUNIT_CASE(late_cpu_startup_abort_is_one_shot_test),
+ 	KUNIT_CASE(late_cpu_startup_unproven_cpu_on_test),
