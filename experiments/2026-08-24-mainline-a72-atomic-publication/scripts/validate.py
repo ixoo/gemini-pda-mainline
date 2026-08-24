@@ -76,6 +76,14 @@ def main() -> None:
                 "21953be69ce08bed84b7e629728cb857af9b93a5",
             "classification": "rejected-validator-kconfig-symbol-spelling",
         },
+        {
+            "repository_commit":
+                "3204c1878b59fe3c22474638c8f7d3c683b68938",
+            "classification": "rejected-strict-finalizer-style",
+            "semantic_validation": "pass",
+            "exact_replay": True,
+            "checkpatch_0345": "0 errors, 0 warnings, 3 checks",
+        },
     ], "generation attempt chronology")
     require(contract["tests"] == {
         "suite": "mt6797-a72-atomic-publication",

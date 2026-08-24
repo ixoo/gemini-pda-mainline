@@ -95,6 +95,11 @@ preprocessor form `CONFIG_ARM64_…` instead of the Kconfig declaration form
 `config ARM64_…`. No patch package was emitted; only that validator spelling
 changed for the retry.
 
+Commit `3204c187` passed all three cumulative semantic validators, patch
+separation, and exact replay. Strict checkpatch then rejected three finalizer
+declarations ending in `(`. The retry changes only emitted C wrapping and the
+matching validator anchors; all decision and effect boundaries are unchanged.
+
 No kernel has been compiled, no generated patch has been admitted, and no
 QEMU or device action has occurred.
 

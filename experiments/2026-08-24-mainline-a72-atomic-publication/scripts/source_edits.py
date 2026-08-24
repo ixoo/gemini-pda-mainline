@@ -46,8 +46,9 @@ def finalizer(root: Path) -> None:
         "int arm64_late_cpu_startup_release_pristine(struct arm64_late_cpu_bootstrap_claim *claim);\n"
         "int arm64_late_cpu_startup_prepare",
         "int arm64_late_cpu_startup_release_pristine(struct arm64_late_cpu_bootstrap_claim *claim);\n"
-        "int arm64_late_cpu_startup_finalize_pristine(\n"
-        "\tstruct arm64_late_cpu_bootstrap_claim *claim,\n"
+        "int\n"
+        "arm64_late_cpu_startup_finalize_pristine("
+        "struct arm64_late_cpu_bootstrap_claim *claim,\n"
         "\tarm64_late_cpu_bootstrap_commit_t commit, void *context);\n"
         "int arm64_late_cpu_startup_prepare",
     )
@@ -62,8 +63,7 @@ arm64_late_cpu_startup_release_pristine(struct arm64_late_cpu_bootstrap_claim *c
 ''').lstrip("\n")
     finalize_stub = dedent(r'''
 static inline int
-arm64_late_cpu_startup_finalize_pristine(
-	struct arm64_late_cpu_bootstrap_claim *claim,
+arm64_late_cpu_startup_finalize_pristine(struct arm64_late_cpu_bootstrap_claim *claim,
 	arm64_late_cpu_bootstrap_commit_t commit, void *context)
 {
 	(void)claim;
@@ -92,8 +92,8 @@ arm64_late_cpu_startup_finalize_pristine(
         "\tif (!late_startup_pristine_locked(0)) {\n",
     )
     finalize_function = dedent(r'''
-int arm64_late_cpu_startup_finalize_pristine(
-	struct arm64_late_cpu_bootstrap_claim *claim,
+int
+arm64_late_cpu_startup_finalize_pristine(struct arm64_late_cpu_bootstrap_claim *claim,
 	arm64_late_cpu_bootstrap_commit_t commit, void *context)
 {
 	unsigned long flags;
@@ -129,12 +129,11 @@ def publisher(root: Path) -> None:
     header = root / "arch/arm64/include/asm/mt6797_a72_membership.h"
     api = dedent(r'''
 #ifdef CONFIG_ARM64_MT6797_A72_BOOTSTRAP_PUBLISHER
-int mt6797_a72_membership_publish_bootstrap(
-	const struct mt6797_a72_a34_replay *replay);
+int
+mt6797_a72_membership_publish_bootstrap(const struct mt6797_a72_a34_replay *replay);
 #else
 static inline int
-mt6797_a72_membership_publish_bootstrap(
-	const struct mt6797_a72_a34_replay *replay)
+mt6797_a72_membership_publish_bootstrap(const struct mt6797_a72_a34_replay *replay)
 {
 	(void)replay;
 	return -EOPNOTSUPP;
@@ -142,8 +141,8 @@ mt6797_a72_membership_publish_bootstrap(
 #endif
 
 #ifdef CONFIG_ARM64_MT6797_A72_ATOMIC_PUBLICATION_KUNIT_TEST
-int mt6797_a72_membership_test_publish_bootstrap(
-	const struct mt6797_a72_direct_topology *topology,
+int
+mt6797_a72_membership_test_publish_bootstrap(const struct mt6797_a72_direct_topology *topology,
 	const struct mt6797_a72_a34_replay *replay,
 	bool dirty_owner_before_finalize);
 #endif
@@ -180,8 +179,7 @@ struct mt6797_a72_bootstrap_workspace {
 static struct mt6797_a72_bootstrap_workspace a72_bootstrap_workspace;
 
 static int
-mt6797_a72_bootstrap_replay_valid(
-	const struct mt6797_a72_a34_replay *replay)
+mt6797_a72_bootstrap_replay_valid(const struct mt6797_a72_a34_replay *replay)
 {
 	if (!replay)
 		return -EINVAL;
@@ -203,14 +201,15 @@ static int mt6797_a72_bootstrap_owner_precheck(void)
 {
 	struct mt6797_a72_bootstrap_workspace *workspace =
 		&a72_bootstrap_workspace;
+	struct mt6797_a72_owner_snapshot *owner_after =
+		&workspace->owner_after;
 	unsigned long flags;
 	int ret;
 
 	raw_spin_lock_irqsave(&a72_state_lock, flags);
 	if (a72_owner.health == MT6797_A72_OWNER_AVAILABLE)
 		ret = -EALREADY;
-	else if (!mt6797_a72_direct_owner_pristine_locked(
-			 &workspace->owner_after))
+	else if (!mt6797_a72_direct_owner_pristine_locked(owner_after))
 		ret = -EPERM;
 	else
 		ret = 0;
@@ -266,8 +265,7 @@ out:
 }
 
 static int
-mt6797_a72_membership_publish_bootstrap_locked(
-	const struct mt6797_a72_direct_topology *topology,
+mt6797_a72_membership_publish_bootstrap_locked(const struct mt6797_a72_direct_topology *topology,
 	const struct mt6797_a72_a34_replay *replay,
 	bool dirty_owner_before_finalize)
 {
@@ -286,8 +284,8 @@ mt6797_a72_membership_publish_bootstrap_locked(
 	ret = mt6797_a72_bootstrap_replay_valid(replay);
 	if (ret)
 		goto out_clear;
-	ret = mt6797_a72_direct_state_snapshot_locked(
-		topology, &workspace->observation.direct);
+	ret = mt6797_a72_direct_state_snapshot_locked(topology,
+						      &workspace->observation.direct);
 	if (ret)
 		goto out_clear;
 	workspace->observation.abi = MT6797_A72_A34_ELIGIBILITY_ABI;
@@ -308,11 +306,10 @@ mt6797_a72_membership_publish_bootstrap_locked(
 #else
 	(void)dirty_owner_before_finalize;
 #endif
-	ret = arm64_late_cpu_startup_finalize_pristine(
-		&workspace->claim, mt6797_a72_bootstrap_commit, workspace);
+	ret = arm64_late_cpu_startup_finalize_pristine(&workspace->claim,
+			mt6797_a72_bootstrap_commit, workspace);
 	if (workspace->claim.cookie) {
-		release_ret = arm64_late_cpu_startup_release_pristine(
-			&workspace->claim);
+		release_ret = arm64_late_cpu_startup_release_pristine(&workspace->claim);
 		if (release_ret)
 			ret = release_ret;
 	}
@@ -321,8 +318,8 @@ out_clear:
 	return ret;
 }
 
-int mt6797_a72_membership_publish_bootstrap(
-	const struct mt6797_a72_a34_replay *replay)
+int
+mt6797_a72_membership_publish_bootstrap(const struct mt6797_a72_a34_replay *replay)
 {
 	struct mt6797_a72_direct_topology topology = {};
 	int ret;
@@ -343,8 +340,8 @@ int mt6797_a72_membership_publish_bootstrap(
 	topology.cpu9_method_valid = get_cpu_ops(9) == &mt6797_psci_ops;
 	topology.cpu8_mpidr = cpu_logical_map(8);
 	topology.cpu9_mpidr = cpu_logical_map(9);
-	ret = mt6797_a72_membership_publish_bootstrap_locked(
-		&topology, replay, false);
+	ret = mt6797_a72_membership_publish_bootstrap_locked(&topology, replay,
+						      false);
 out_unlock:
 	mutex_unlock(&a72_transition_lock);
 	cpus_read_unlock();
@@ -352,8 +349,8 @@ out_unlock:
 }
 
 #ifdef CONFIG_ARM64_MT6797_A72_ATOMIC_PUBLICATION_KUNIT_TEST
-int mt6797_a72_membership_test_publish_bootstrap(
-	const struct mt6797_a72_direct_topology *topology,
+int
+mt6797_a72_membership_test_publish_bootstrap(const struct mt6797_a72_direct_topology *topology,
 	const struct mt6797_a72_a34_replay *replay,
 	bool dirty_owner_before_finalize)
 {
@@ -363,8 +360,8 @@ int mt6797_a72_membership_test_publish_bootstrap(
 		return -EINVAL;
 	cpus_read_lock();
 	mutex_lock(&a72_transition_lock);
-	ret = mt6797_a72_membership_publish_bootstrap_locked(
-		topology, replay, dirty_owner_before_finalize);
+	ret = mt6797_a72_membership_publish_bootstrap_locked(topology, replay,
+						dirty_owner_before_finalize);
 	mutex_unlock(&a72_transition_lock);
 	cpus_read_unlock();
 	return ret;

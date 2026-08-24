@@ -40,7 +40,7 @@ def main() -> None:
     require("late_startup_pristine_locked(u64 allowed_claim_cookie)" in
             late_source, "claim-aware pristine predicate")
     finalizer = late_source.index(
-        "int arm64_late_cpu_startup_finalize_pristine(")
+        "arm64_late_cpu_startup_finalize_pristine(")
     prepare = late_source.index("int arm64_late_cpu_startup_prepare(")
     require(finalizer < prepare, "finalizer must precede prepare")
     body = late_source[finalizer:prepare]
@@ -84,7 +84,7 @@ def main() -> None:
     locked = membership_source.index(
         "mt6797_a72_membership_publish_bootstrap_locked(")
     public = membership_source.index(
-        "int mt6797_a72_membership_publish_bootstrap(")
+        "mt6797_a72_membership_publish_bootstrap(")
     locked_body = membership_source[locked:public]
     for token in (
         "mt6797_a72_bootstrap_owner_precheck()",
@@ -130,7 +130,7 @@ def main() -> None:
             "mutex_lock(&a72_transition_lock);" in membership_source[public:],
             "outer lock lifetime")
     require(membership_source.count(
-        "int mt6797_a72_membership_publish_bootstrap(") == 1,
+        "mt6797_a72_membership_publish_bootstrap(") == 1,
         "production publisher definition count")
     for forbidden in (
         "arm64_late_cpu_startup_prepare(", "mt6797_a72_provider_acquire(",
