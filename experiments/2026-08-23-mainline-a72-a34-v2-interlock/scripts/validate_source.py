@@ -113,7 +113,7 @@ def validate_direct(root: Path) -> None:
     direct_header = section(
         header,
         "#define MT6797_A72_DIRECT_STATE_ABI 2",
-        "\n#define MT6797_A72_A34_ELIGIBILITY_ABI",
+        "\n#ifdef CONFIG_ARM64_MT6797_A72_DIRECT_STATE_COMPOSITOR",
     )
     for field in (
         "cpu8_possible", "cpu9_possible", "cpu8_present", "cpu9_present",
