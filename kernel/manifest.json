@@ -1495,6 +1495,34 @@
                     "configs/gemini-a72-physical-source-kunit.fragment"
                 ]
             },
+            "a72-physical-source-candidate": {
+                "base": "defconfig",
+                "patch_series": "patches/series",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-usbdiag.fragment",
+                    "configs/gemini-clk-ignore-unused.fragment",
+                    "configs/gemini-observability.fragment",
+                    "configs/gemini-fbcon-rotation.fragment",
+                    "configs/gemini-keyboard.fragment",
+                    "configs/gemini-keyboard-wrrd.fragment",
+                    "configs/gemini-keyboard-manual-reboot.fragment",
+                    "configs/gemini-smp8.fragment",
+                    "configs/gemini-a72-a41-kernel-identity.fragment",
+                    "configs/gemini-a72-p30-protocol.fragment",
+                    "configs/gemini-a72-p24-closed-owner.fragment",
+                    "configs/gemini-a72-p24-closed-hooks.fragment",
+                    "configs/gemini-dvfsp-handoff-owner.fragment",
+                    "configs/gemini-da921x-legacy-bind.fragment",
+                    "configs/gemini-da921x-resource-only-provider.fragment",
+                    "configs/gemini-da921x-provider-modules-control.fragment",
+                    "configs/gemini-da921x-provider-owner-refusal.fragment",
+                    "configs/gemini-mt6797-a72-platform-state.fragment",
+                    "configs/gemini-dvfsp-clock-backend.fragment",
+                    "configs/gemini-dvfsp-bigidvfs-readonly.fragment",
+                    "configs/gemini-a72-physical-source-candidate.fragment"
+                ]
+            },
             "a72-a34-eligibility": {
                 "base": "defconfig",
                 "fragments": [

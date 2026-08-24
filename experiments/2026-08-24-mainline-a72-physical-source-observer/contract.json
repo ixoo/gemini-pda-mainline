@@ -164,6 +164,26 @@
     "transaction_changed": false,
     "hardware_operations": false
   },
+  "candidate": {
+    "status": "definition-pending-build",
+    "profile": "a72-physical-source-candidate",
+    "dtb": "dtbs/mediatek/mt6797-gemini-pda-a72-physical-source.dtb",
+    "retained_token": "GPSQ-20260824-A",
+    "retained_slots": [1, 2],
+    "retained_writes_maximum": 2,
+    "platform_calls": 1,
+    "provider_snapshots": 1,
+    "clock_calls": 1,
+    "bigidvfs_calls": 1,
+    "bigidvfs_smc_reads": 8,
+    "provider_transactions": 0,
+    "publisher_calls": 0,
+    "owner_mutations": 0,
+    "cpu_requests": 0,
+    "device_access": false,
+    "hardware_write": false,
+    "boot_candidate": false
+  },
   "decision": {
     "result": "production-stack-fix-build-and-qemu-pass",
     "selected_next": "construct-and-independently-validate-guarded-observer-candidate",

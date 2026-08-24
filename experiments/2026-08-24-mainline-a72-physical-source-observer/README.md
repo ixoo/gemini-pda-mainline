@@ -151,3 +151,12 @@ hardware-free gate without I2C, MMIO, retained-RAM, SMC, provider transaction,
 publisher, owner, CPU, or device action. The selected next step is to construct
 and independently validate the narrow non-KUnit physical-source observer
 candidate before any `boot2` deployment.
+
+The candidate definition is the `a72-physical-source-candidate` profile and
+`mt6797-gemini-pda-a72-physical-source.dtb`. It keeps the exact serviceability
+and direct-source composition proven above, restores the runtime module policy,
+removes KUnit, selects only the physical-source ledger, and explicitly closes
+every earlier retained discriminator plus the A34, publisher, positive-provider,
+firmware-writer, same-value-write, and CPU-request paths. It remains
+`boot_candidate=false` until the exact pushed profile compiles on Buildbox and
+an independent package/container validator passes.
