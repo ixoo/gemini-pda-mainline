@@ -84,6 +84,11 @@ MT6797 PSCI boot and disable vetoes, but the bounded generation workspace had
 not copied that read-only source file. The corrected definition pins and
 copies its exact hash; the file remains outside every generated patch.
 
+Commit `8a8d88e9` then failed the exact-file gate because the recorded value was
+the adjacent generic arm64 `psci.c` hash rather than the MT6797-specific
+`mt6797_psci.c` hash. The source-state and integrity markers remained exact.
+The definition now pins the correct MT6797 veto file identity `7e332979…`.
+
 No kernel has been compiled, no generated patch has been admitted, and no
 QEMU or device action has occurred.
 

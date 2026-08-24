@@ -58,13 +58,20 @@ def main() -> None:
         "0347-arm64-test-atomic-A72-bootstrap-publication.patch",
     ], "planned patch order")
     require(contract["parent_files"]["arch/arm64/kernel/mt6797_psci.c"] ==
-            "634062ea1c0034439a07d48abafd03081ee81466d88658f80354b24f2acf9e4d",
+            "7e3329797e0f2eebc4372aa47c84c09e3c2ed85e5121f9492898727db5e4f83d",
             "PSCI source identity")
-    require(contract["generation_attempts"] == [{
-        "repository_commit":
-            "c697f934d18048b3b99cda45d698b0b6a9bf34f1",
-        "classification": "rejected-validator-source-subset",
-    }], "generation attempt chronology")
+    require(contract["generation_attempts"] == [
+        {
+            "repository_commit":
+                "c697f934d18048b3b99cda45d698b0b6a9bf34f1",
+            "classification": "rejected-validator-source-subset",
+        },
+        {
+            "repository_commit":
+                "8a8d88e9f0d99c25d4d872863280e01f5fcdc53f",
+            "classification": "rejected-pinned-psci-file-identity",
+        },
+    ], "generation attempt chronology")
     require(contract["tests"] == {
         "suite": "mt6797-a72-atomic-publication",
         "cases": 8,
@@ -110,7 +117,7 @@ def main() -> None:
         "PARENT_SOURCE_STATE=5f830ffd", "PARENT_SOURCE_INTEGRITY=6e8edea4",
         "PARENT_PATCH=0344-", "--phase finalizer", "--phase publisher",
         "--phase tests", 'git -C "$work/verify" am', "checkpatch.pl",
-        "PSCI_SOURCE_SHA256=634062ea", "generated_patch_count=3",
+        "PSCI_SOURCE_SHA256=7e332979", "generated_patch_count=3",
         "boot_candidate=false",
     ):
         require(token in generator, f"generator invariant {token}")

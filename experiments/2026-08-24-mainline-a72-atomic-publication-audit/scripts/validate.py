@@ -96,6 +96,7 @@ def main() -> None:
     for token in (
         f"repository_input={INPUT_COMMIT}",
         "a34_production_callers=0", "direct_snapshot_production_callers=0",
+        "mt6797_psci_source_sha256=7e3329797e0f2eebc4372aa47c84c09e3c2ed85e5121f9492898727db5e4f83d",
         "p30_claim_production_callers=0",
         "production_available_assignment_count=0",
         "p30_release_is_fallible=true", "p30_nested_finalize_api=false",
