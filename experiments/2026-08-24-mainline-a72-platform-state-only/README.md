@@ -7,7 +7,9 @@ accepted as the next boot candidate. The first deployment preflight safely
 stopped before the partition writer because the preceding successful control
 left its two exact retained records. After byte-attributing that pair, the
 guarded `boot2` write, full readback, and clean shutdown all passed. Runtime
-selection is pending.
+attempt 1 then returned automatically to a changed-ID Gemian boot without ever
+exposing the mainline USB interface or netcat endpoint. The platform-state
+provider's probe/resource-acquisition path is implicated.
 
 ## Hypothesis
 
@@ -74,6 +76,20 @@ Stage-27 control. The installer therefore accepts only either two byte-exact
 empty 4 KiB records or the byte-exact known Stage-27 `pure-init`/`core-init`
 pair. Any other retained content still aborts before partition inspection or
 writing. No retained-memory write or clear is performed.
+
+## Runtime result
+
+The observer was armed at `2026-08-24T22:56:33Z`, before the owner selected
+`boot2`. It recorded no mainline USB topology change and no netcat capture, then
+classified `no-mainline-network-before-changed-Gemian-return`. Direct SSH
+confirmed Gemian `3.18.41+`, root `/dev/mmcblk0p29`, and a changed boot ID
+`3dd69469-8429-4c1a-aa9b-cdd4a942c47a`. The owner's automatic-reboot report is
+corroborating only.
+
+This does not prove which individual resource acquisition fails, nor does it
+show a CPU request: `maxcpus=8` remained in force and the observer, clock, and
+BigiDVFS nodes were disabled. The next boot must be based on a source audit of
+the platform-state probe; repeating this payload would add no evidence.
 
 ## Associated code
 

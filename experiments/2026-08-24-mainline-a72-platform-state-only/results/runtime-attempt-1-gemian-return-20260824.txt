@@ -1,0 +1,52 @@
+A72 platform-state source only: runtime attempt 1
+Date: 2026-08-24 America/New_York
+
+[candidate]
+repository_commit=26274db63316bbb24eeb9bfa8de21759da666b9e
+kernel_release=7.1.3-gemini-a72-early
+full_boot2_sha256=012f7eac6884e65baab075ef286929f610a63f2ea065eba45865bd046492a23f
+derived_dtb_sha256=8e806c5305b6a2808fab59d3a25739d39cd3196a3498a1af21136dd7221923e1
+attempt=1-of-1
+
+[observer]
+armed_utc=2026-08-24T22:56:33Z
+deployment_boot_id=ea90f911-32aa-4437-a424-77da985a1ebd
+mainline_usb_interface_observed=no
+mainline_netcat_observed=no
+runtime_capture_completed=no
+collector_exit_status=3
+observer_classification=no-mainline-network-before-changed-Gemian-return
+owner_report=automatic-reboot-to-Gemian
+owner_report_role=corroborating-only
+
+[recovery]
+kernel_release=3.18.41+
+architecture=aarch64
+recovery_boot_id=3dd69469-8429-4c1a-aa9b-cdd4a942c47a
+recovery_boot_id_changed=yes
+active_root=/dev/mmcblk0p29
+
+[safety]
+platform_snapshot_request=none
+clock_backend=disabled-by-exact-DT
+bigidvfs_backend=disabled-by-exact-DT
+physical_source_observer=disabled-by-exact-DT
+owner_registration_request=none
+cpu_admission_request=none
+cpu8_cpu9_admission=closed
+repeat_same_payload=no
+
+[private-capture-identities]
+observer_events_sha256=8e41002d9498f1d2077f3f8266705a1cc58a8326396325f7140fe66aa5ccde29
+usb_topology_sha256=320b4071d881f0ad88490aa5675b7d1c040e959df75bd56b379082bd2d21a468
+capture_manifest_sha256=2745399bf83ca931fe835673f2558f17ac7177a95807129da0dd1a383e3d748b
+
+[interpretation]
+exact_current_kernel_general_failure=rejected-by-stage27-control
+platform_state_provider_enablement=implicated
+individual_probe_resource_failure=not-yet-isolated
+selected_next=source-audit-platform-state-probe-before-next-discriminator
+result=failed-serviceability-before-mainline-network
+
+No serial, credential, unrestricted dmesg, raw partition content, calibration
+data, or personal identifier is included in this sanitized receipt.

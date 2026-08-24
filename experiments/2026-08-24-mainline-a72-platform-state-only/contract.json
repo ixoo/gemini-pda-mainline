@@ -102,5 +102,27 @@
       "private_manifest_sha256": "19c3e1efa847a10fc18d02bf22a37a89f2b69b8e052f4f93db5d2faa35c1e863"
     }
   },
-  "runtime": {"status": "pending"}
+  "runtime": {
+    "status": "no-mainline-network-before-changed-Gemian-return",
+    "attempts": 1,
+    "observer_armed_utc": "2026-08-24T22:56:33Z",
+    "deployment_boot_id": "ea90f911-32aa-4437-a424-77da985a1ebd",
+    "recovery_boot_id": "3dd69469-8429-4c1a-aa9b-cdd4a942c47a",
+    "recovery_boot_id_changed": true,
+    "recovery_kernel": "3.18.41+",
+    "recovery_root": "/dev/mmcblk0p29",
+    "mainline_usb_interface_observed": false,
+    "mainline_netcat_observed": false,
+    "runtime_capture_completed": false,
+    "collector_exit_status": 3,
+    "owner_report": "automatic-reboot-to-Gemian",
+    "owner_report_role": "corroborating-only",
+    "observer_events_sha256": "8e41002d9498f1d2077f3f8266705a1cc58a8326396325f7140fe66aa5ccde29",
+    "usb_topology_sha256": "320b4071d881f0ad88490aa5675b7d1c040e959df75bd56b379082bd2d21a468",
+    "capture_manifest_sha256": "2745399bf83ca931fe835673f2558f17ac7177a95807129da0dd1a383e3d748b",
+    "result": "platform-state-provider-probe-or-resource-acquisition-implicated",
+    "cpu8_cpu9_admission": "closed",
+    "repeat_same_payload": false,
+    "selected_next": "source-audit-platform-state-probe-before-next-discriminator"
+  }
 }
