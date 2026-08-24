@@ -40,8 +40,9 @@
     "cpu_requests": 0
   },
   "generation": {
-    "status": "defined-awaiting-buildbox-generation",
+    "status": "validated-admitted",
     "patch": "0362-pstore-add-Gemini-A72-early-initcall-ledger.patch",
+    "patch_sha256": "65771c690b9c19833160d8547898b2f97b8b0149518092700eab3ef8b861a5a9",
     "patch_count": 1,
     "changed_files": [
       "fs/pstore/Kconfig",
@@ -69,13 +70,30 @@
         "byte_identical_replay": true,
         "strict_checkpatch": false,
         "package": false
+      },
+      {
+        "attempt": 3,
+        "repository_commit": "e9b9d2fcff2e7e5be1871840606f05531529d34c",
+        "result": "pass",
+        "receipt": "experiments/2026-08-24-mainline-a72-early-initcall-ledger/results/generation-attempt-3-success.txt",
+        "receipt_sha256": "7258cffba16a01dd2e33b953c26771807e1ed9b43ec1090db42f2c23ccf093d6",
+        "result_commit": "2371b752dc86e084f28ddcfff5bd2f85689df813",
+        "source_validation": true,
+        "patch_shape_validation": true,
+        "byte_identical_replay": true,
+        "checkpatch": {
+          "errors": 0,
+          "warnings": 0,
+          "checks": 0
+        },
+        "package": "a72-early-initcall-ledger-e9b9d2fcff2e"
       }
     ],
-    "canonical_admission": false
+    "canonical_admission": true
   },
   "decision": {
-    "result": "definition-ready-for-buildbox-generation",
-    "selected_next": "generate-validate-and-admit-patch-0362",
+    "result": "canonical-patch-admitted",
+    "selected_next": "build-isolated-profile-on-buildbox",
     "device_action": false,
     "boot_candidate": false
   }

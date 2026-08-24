@@ -2,7 +2,7 @@
 
 ## Status
 
-Definition frozen for Buildbox patch generation. The predecessor's exact
+Canonical patch `0362` generated, validated, and admitted. The predecessor's exact
 `subsys-init` and `fs-init` records were both empty after an automatic return
 to changed-ID Gemian. The candidate is retired. This successor moves the
 primary records to pure and core initcall levels and adds one bounded fallback
@@ -63,6 +63,15 @@ signature-last commit, barriers, and complete local readback.
 
 The exact canonical parent is patch `0361` and the managed Buildbox source
 state through that patch is pinned by its state, integrity, and three touched
-file hashes. The next action is offline source generation, byte-identical
-replay, strict style validation, and canonical admission of one patch. No
-device action is selected at this stage.
+file hashes. Generation attempt 1 stopped before patch creation because its
+validator did not normalize an adjacent split C string. Attempt 2 passed
+source, patch-shape, and byte-identical replay gates, then strict checkpatch
+rejected one missing blank line. The validator-only and formatting-only
+corrections are recorded separately.
+
+Attempt 3 passes exact source validation, the exact three-file boundary,
+byte-identical replay, and strict checkpatch with zero errors, warnings, or
+checks. The fetched patch is admitted byte-for-byte as canonical `0362` with
+SHA-256 `65771c690b9c19833160d8547898b2f97b8b0149518092700eab3ef8b861a5a9`.
+The next action is one isolated profile build on Buildbox. No kernel build,
+candidate, device action, or CPU admission has occurred yet.

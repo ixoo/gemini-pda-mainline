@@ -143,53 +143,51 @@ def main() -> None:
         require(path.is_file() and not path.is_symlink() and
                 sha256(path) == expected, f"definition tool identity: {name}")
 
-    require(
-        contract["generation"]
-        == {
-            "status": "defined-awaiting-buildbox-generation",
-            "patch": "0362-pstore-add-Gemini-A72-early-initcall-ledger.patch",
-            "patch_count": 1,
-            "changed_files": [
+    generation = contract["generation"]
+    require(generation["status"] == "validated-admitted",
+            "generation admitted")
+    require(generation["patch"]
+            == "0362-pstore-add-Gemini-A72-early-initcall-ledger.patch",
+            "generated patch name")
+    require(generation["patch_count"] == 1 and
+            generation["changed_files"]
+            == [
                 "fs/pstore/Kconfig",
                 "fs/pstore/gemini_protected_readback_ledger.c",
                 "drivers/soc/mediatek/mt6797-a72-physical-source-observer.c",
-            ],
-            "attempts": [
-                {
-                    "attempt": 1,
-                    "repository_commit":
-                        "6ef73766a2c6ab133f39cd6e4bcfcd6a8abea8f8",
-                    "result": "validator-split-string-rejected",
-                    "receipt":
-                        "experiments/2026-08-24-mainline-a72-early-initcall-ledger/"
-                        "results/generation-attempt-1-validator-split-string-rejected.txt",
-                    "receipt_sha256":
-                        "b1f964dc45e7a75be5c00d02cfce284a1ad2a1c65b9e33be1a62a81f1e5dc3d8",
-                    "generated_patch": False,
-                    "package": False,
-                },
-                {
-                    "attempt": 2,
-                    "repository_commit":
-                        "07546d99dfaa86244860446f34e145068f50f895",
-                    "result": "checkpatch-blank-line-rejected",
-                    "receipt":
-                        "experiments/2026-08-24-mainline-a72-early-initcall-ledger/"
-                        "results/generation-attempt-2-checkpatch-blank-line-rejected.txt",
-                    "receipt_sha256":
-                        "4fb49ec84d045b89d8fc35345cd53b6c5eb94041061ffb45b06a334cbed5dfd2",
-                    "source_validation": True,
-                    "patch_shape_validation": True,
-                    "byte_identical_replay": True,
-                    "strict_checkpatch": False,
-                    "package": False,
-                }
-            ],
-            "canonical_admission": False,
-        },
-        "generation state",
-    )
-    for attempt in contract["generation"]["attempts"]:
+            ], "generation scope")
+    generated_patch = ROOT / "patches/v7.1.3" / generation["patch"]
+    require(generated_patch.is_file() and not generated_patch.is_symlink(),
+            "canonical generated patch")
+    require(sha256(generated_patch) == generation["patch_sha256"]
+            == "65771c690b9c19833160d8547898b2f97b8b0149518092700eab3ef8b861a5a9",
+            "canonical generated patch identity")
+    require(generation["canonical_admission"] is True,
+            "canonical admission")
+    series = (ROOT / "patches/series").read_text().splitlines()
+    require(series[-1] == f"v7.1.3/{generation['patch']}",
+            "canonical series tail")
+    require([attempt["attempt"] for attempt in generation["attempts"]]
+            == [1, 2, 3], "generation attempt chronology")
+    require(generation["attempts"][0]["result"]
+            == "validator-split-string-rejected",
+            "attempt-1 result")
+    require(generation["attempts"][1]["result"]
+            == "checkpatch-blank-line-rejected",
+            "attempt-2 result")
+    success = generation["attempts"][2]
+    require(success["repository_commit"]
+            == "e9b9d2fcff2e7e5be1871840606f05531529d34c" and
+            success["result_commit"]
+            == "2371b752dc86e084f28ddcfff5bd2f85689df813",
+            "attempt-3 source identities")
+    require(success["source_validation"] is True and
+            success["patch_shape_validation"] is True and
+            success["byte_identical_replay"] is True and
+            success["checkpatch"]
+            == {"errors": 0, "warnings": 0, "checks": 0},
+            "attempt-3 validation")
+    for attempt in generation["attempts"]:
         attempt_receipt = ROOT / attempt["receipt"]
         require(attempt_receipt.is_file() and not attempt_receipt.is_symlink(),
                 f"attempt-{attempt['attempt']} receipt")
@@ -198,8 +196,8 @@ def main() -> None:
     require(
         contract["decision"]
         == {
-            "result": "definition-ready-for-buildbox-generation",
-            "selected_next": "generate-validate-and-admit-patch-0362",
+            "result": "canonical-patch-admitted",
+            "selected_next": "build-isolated-profile-on-buildbox",
             "device_action": False,
             "boot_candidate": False,
         },

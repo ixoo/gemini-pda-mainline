@@ -5114,9 +5114,14 @@ The next ordered work is:
    freezes that successor at pure and core initcalls. If the primary pure
    checkpoint fails, a separately gated slot-2 marker can attribute that
    refusal without overwriting slot 1 or exceeding two write attempts. The
-   definition is pinned to the exact managed source through `0361`; Buildbox
-   generation, replay, and strict style validation are next. No kernel build,
-   candidate, or device action has occurred.
+   definition is pinned to the exact managed source through `0361`. The first
+   generation stops on a validator-only split-string assertion. The second
+   passes source, patch-shape, and byte-identical replay gates, then strict
+   style review rejects one missing blank line. The isolated corrections are
+   recorded. Attempt 3 passes every source, shape, replay, and strict style
+   gate; fetched patch `0362` is admitted byte-for-byte with zero errors,
+   warnings, or checks. The isolated Buildbox profile compile is next. No
+   kernel build, candidate, or device action has occurred.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
