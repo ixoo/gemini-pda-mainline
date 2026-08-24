@@ -43,10 +43,14 @@ capture_manifest_sha256=2745399bf83ca931fe835673f2558f17ac7177a95807129da0dd1a38
 
 [interpretation]
 exact_current_kernel_general_failure=rejected-by-stage27-control
-platform_state_provider_enablement=implicated
-individual_probe_resource_failure=not-yet-isolated
-selected_next=source-audit-platform-state-probe-before-next-discriminator
-result=failed-serviceability-before-mainline-network
+platform_state_provider_enablement=not-attributable
+candidate_usb_controller_status=disabled
+control_usb_controller_status=okay
+candidate_usb_tphy_status=disabled
+control_usb_tphy_status=okay
+individual_probe_resource_failure=not-proved
+selected_next=derive-minimum-platform-state-contract-from-exact-stage27-control
+result=inconclusive-dt-baseline-confounded
 
 No serial, credential, unrestricted dmesg, raw partition content, calibration
 data, or personal identifier is included in this sanitized receipt.

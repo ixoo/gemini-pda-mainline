@@ -5154,7 +5154,16 @@ The next ordered work is:
    the three enabled physical-source providers against the otherwise exact
    current serviceability DT, beginning with the read-only A72 platform-state
    source alone. Do not reintroduce observer registration, BigiDVFS, owner,
-   publication, or CPU requests in that first isolation.
+   publication, or CPU requests in that first isolation. The first attempted
+   platform-state-only image is not a valid isolation: it was derived from the
+   current physical-source DT rather than the byte-exact Stage-27 control and,
+   among many unrelated changes, disabled the USB controller and T-PHY. Its
+   no-network/changed-Gemian result is inconclusive and does not implicate the
+   provider. **Selected next:** derive a corrected DT from the exact proven
+   Stage-27 DT, adding only the platform-state node and the minimum SPM-syscon
+   and watchdog-reset provider contracts required for its probe. Preserve the
+   proven USB, display, keyboard, and all other board state byte-for-byte where
+   those provider references do not require a change.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

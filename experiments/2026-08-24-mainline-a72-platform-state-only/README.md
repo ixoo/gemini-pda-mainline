@@ -8,8 +8,11 @@ stopped before the partition writer because the preceding successful control
 left its two exact retained records. After byte-attributing that pair, the
 guarded `boot2` write, full readback, and clean shutdown all passed. Runtime
 attempt 1 then returned automatically to a changed-ID Gemian boot without ever
-exposing the mainline USB interface or netcat endpoint. The platform-state
-provider's probe/resource-acquisition path is implicated.
+exposing the mainline USB interface or netcat endpoint. A post-result semantic
+DT audit found that this was not a one-variable derivative of the proven
+Stage-27 control: among many unrelated differences, it disabled the USB
+controller and T-PHY. The platform-state provider is therefore not implicated
+by this attempt; the runtime result is inconclusive.
 
 ## Hypothesis
 
@@ -65,7 +68,7 @@ shutdown.
 | --- | --- | --- |
 | USB/netcat plus platform-state bound | First read-only source probe is serviceable | Enable the clock backend alone next |
 | USB/netcat but source unbound | Kernel remains serviceable; platform resource acquisition failed | Capture the bounded probe status and repair that source contract |
-| Changed-ID Gemian before exact mainline identity | Platform-state enablement is implicated at the live boundary | Audit its exclusive reset/resource acquisition before another boot |
+| Changed-ID Gemian before exact mainline identity | Only attributable if the serviceability DT is otherwise identical | Audit the exact DT delta before assigning a provider result |
 
 CPU8 and CPU9 remain closed by `maxcpus=8`. One physical selection is allowed;
 do not repeat the exact payload without a new observation path.
@@ -86,10 +89,17 @@ confirmed Gemian `3.18.41+`, root `/dev/mmcblk0p29`, and a changed boot ID
 `3dd69469-8429-4c1a-aa9b-cdd4a942c47a`. The owner's automatic-reboot report is
 corroborating only.
 
-This does not prove which individual resource acquisition fails, nor does it
-show a CPU request: `maxcpus=8` remained in force and the observer, clock, and
-BigiDVFS nodes were disabled. The next boot must be based on a source audit of
-the platform-state probe; repeating this payload would add no evidence.
+The candidate DT had `/usb@11271000`, `/t-phy@11290000`, and its primary USB
+PHY disabled while the proven control had all three `okay`. It also disabled
+the previously live I2C5, GPIO expander, and keyboard nodes, removed the chosen
+framebuffer and SCP node, and added other current-tree contracts. Therefore no
+USB was expected from this DT even if `/init` ran. This does not prove a
+platform-state probe failure or a CPU request: `maxcpus=8` remained in force
+and the observer, clock, and BigiDVFS nodes were disabled.
+
+This payload is retired and must not be repeated. The next discriminator must
+start with the byte-exact proven Stage-27 DT and add only the minimum
+platform-state node plus its SPM-syscon and watchdog-reset provider contracts.
 
 ## Associated code
 
@@ -108,5 +118,7 @@ the platform-state probe; repeating this payload would add no evidence.
   runtime classifier.
 - `scripts/collect-runtime.sh`: pre-armed USB/netcat collector; a successful
   mainline boot remains running.
+- `results/post-runtime-dt-attribution-audit-20260824.txt`: exact reason the
+  attempted runtime cannot be attributed to the platform-state provider.
 
 Private artifacts remain below `artifacts/`.

@@ -120,9 +120,14 @@
     "observer_events_sha256": "8e41002d9498f1d2077f3f8266705a1cc58a8326396325f7140fe66aa5ccde29",
     "usb_topology_sha256": "320b4071d881f0ad88490aa5675b7d1c040e959df75bd56b379082bd2d21a468",
     "capture_manifest_sha256": "2745399bf83ca931fe835673f2558f17ac7177a95807129da0dd1a383e3d748b",
-    "result": "platform-state-provider-probe-or-resource-acquisition-implicated",
+    "result": "inconclusive-dt-baseline-confounded",
+    "platform_state_provider_implicated": false,
+    "usb_controller_status_in_control": "okay",
+    "usb_controller_status_in_candidate": "disabled",
+    "usb_tphy_status_in_control": "okay",
+    "usb_tphy_status_in_candidate": "disabled",
     "cpu8_cpu9_admission": "closed",
     "repeat_same_payload": false,
-    "selected_next": "source-audit-platform-state-probe-before-next-discriminator"
+    "selected_next": "derive-minimum-platform-state-contract-from-exact-stage27-control"
   }
 }
