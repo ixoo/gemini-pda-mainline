@@ -44,5 +44,13 @@ clock, BigiDVFS, publication, owner mutation, or CPU-request paths.
 
 ## Next action
 
-Generate and admit the one-patch pre-capture ledger, then compile its isolated
-profile on Buildbox. No native VM kernel build is authorized.
+Exact pushed commit `112bbdc8c5fd09da1a2aad5ee234dc8bf4fba7c4`
+generated the one-patch delta on Buildbox from the integrity-verified managed
+source through `0356`. Source validation, the exact three-file boundary,
+byte-identical replay, and strict checkpatch with zero errors, warnings, or
+checks pass. The fetched patch is byte-identical to canonical `0357`; see the
+[generation receipt](results/buildbox-generation-112bbdc8.txt).
+
+Compile the isolated profile on Buildbox. No native VM kernel build is
+authorized, and the experiment remains `boot_candidate=false` until package,
+binary, DT, and independent container gates pass.

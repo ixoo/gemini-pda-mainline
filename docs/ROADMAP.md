@@ -5031,7 +5031,12 @@ The next ordered work is:
    [pre-capture ledger experiment](../experiments/2026-08-24-mainline-a72-physical-source-precapture-ledger/README.md)
    now freezes that successor: `probe-enter`, `sources-held`, then deliberate
    reference release without registering or running the direct-source capture.
-   **Selected next:** generate and admit its one canonical patch on Buildbox.
+   Exact Buildbox generation, source validation, three-file boundary review,
+   byte-identical replay, and strict checkpatch now pass; fetched patch `0357`
+   is admitted byte-for-byte.
+   **Selected next:** compile the isolated pre-capture profile on Buildbox,
+   then require package, linked/excluded-symbol, DT, and independent container
+   validation before any deployment.
    Deployment preflight attempt 1 safely refused before the `boot2` gate because
    records 1 and 2 still matched the prior protected-clock headers and payload
    prefix. No partition or device-memory write occurred. Gemian was cleanly shut

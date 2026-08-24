@@ -34,7 +34,16 @@
       "fs/pstore/gemini_protected_readback_ledger.c",
       "drivers/soc/mediatek/mt6797-a72-physical-source-observer.c"
     ],
-    "status": "pending"
+    "status": "validated",
+    "repository_commit": "112bbdc8c5fd09da1a2aad5ee234dc8bf4fba7c4",
+    "buildbox_job": "112bbdc8c5fd09da1a2aad5ee234dc8bf4fba7c4-a72-physical-source-precapture-patchgen",
+    "package": "a72-physical-source-precapture-112bbdc8c5fd",
+    "parent_commit": "8b1ec74c7be6570facc5ad93b7228452b5656d43",
+    "result_commit": "bde19bc859be8cae09a3ee4aac05d6000bcefc63",
+    "patch_sha256": "833b4e5af1246760f3e6339ec34fd36e8c5b1b368529a46ea651fb4060d8d237",
+    "package_sha256s_sha256": "d57096dcb93c482e9ff82d6f23a9732ab45f3d150c781b5b9dfabd41f56a29d9",
+    "canonical_admission": "0357",
+    "strict_checkpatch": "0-errors-0-warnings-0-checks"
   },
   "build": {
     "backend": "buildbox",
@@ -42,8 +51,8 @@
     "status": "pending"
   },
   "decision": {
-    "result": "offline-definition-pending",
-    "selected_next": "generate-one-canonical-patch-on-buildbox",
+    "result": "canonical-patch-admitted-build-pending",
+    "selected_next": "compile-isolated-profile-on-buildbox",
     "device_action": false,
     "boot_candidate": false
   }

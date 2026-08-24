@@ -1,0 +1,143 @@
+From bde19bc859be8cae09a3ee4aac05d6000bcefc63 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 24 Aug 2026 16:31:00 +0000
+Subject: [PATCH 1/1] pstore: soc: add Gemini A72 pre-capture ledger
+
+Record physical-source probe entry and successful acquisition of all three bound source devices, then release them without running the capture.
+
+Reuse the qualified first-dmesg writer and keep physical snapshots, provider transactions, owner mutation, publication, and CPU requests closed.
+---
+ .../mt6797-a72-physical-source-observer.c     | 17 +++++++++++++
+ fs/pstore/Kconfig                             | 24 +++++++++++++++++++
+ fs/pstore/gemini_protected_readback_ledger.c  | 20 ++++++++++++----
+ 3 files changed, 57 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-physical-source-observer.c b/drivers/soc/mediatek/mt6797-a72-physical-source-observer.c
+index 04171a7..03f98ff 100644
+--- a/drivers/soc/mediatek/mt6797-a72-physical-source-observer.c
++++ b/drivers/soc/mediatek/mt6797-a72-physical-source-observer.c
+@@ -224,6 +224,12 @@ mt6797_a72_physical_source_probe(struct platform_device *pdev)
+ 	struct device *dev = &pdev->dev;
+ 	int ret;
+ 
++#ifdef CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_PRECAPTURE_LEDGER
++	if (!gemini_protected_readback_ledger_checkpoint(0))
++		return dev_err_probe(dev, -EIO,
++				     "probe-enter ledger checkpoint failed\n");
++#endif
++
+ 	snapshot = kvzalloc_obj(*snapshot);
+ 	if (!snapshot)
+ 		return -ENOMEM;
+@@ -246,6 +252,17 @@ mt6797_a72_physical_source_probe(struct platform_device *pdev)
+ 		goto put_clock;
+ 	}
+ 
++#ifdef CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_PRECAPTURE_LEDGER
++	if (!gemini_protected_readback_ledger_checkpoint(1)) {
++		ret = dev_err_probe(dev, -EIO,
++				    "sources-held ledger checkpoint failed\n");
++		goto put_bigidvfs;
++	}
++	dev_info(dev, "pre-capture ledger complete; capture disabled\n");
++	ret = 0;
++	goto put_bigidvfs;
++#endif
++
+ 	ret = mt6797_a72_physical_source_run(&context, &mt6797_physical_runtime,
+ 					     snapshot);
+ 	if (ret)
+diff --git a/fs/pstore/Kconfig b/fs/pstore/Kconfig
+index df61a11..d90c883 100644
+--- a/fs/pstore/Kconfig
++++ b/fs/pstore/Kconfig
+@@ -269,6 +269,7 @@ config PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER
+ 	bool "Gemini A72 physical-source retained ledger"
+ 	depends on PSTORE_GEMINI_PROTECTED_READBACK_LEDGER=y
+ 	depends on MTK_MT6797_A72_PHYSICAL_SOURCE_OBSERVER=y
++	depends on !PSTORE_GEMINI_A72_PHYSICAL_SOURCE_PRECAPTURE_LEDGER
+ 	depends on !PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_CONTROL
+ 	depends on !PSTORE_GEMINI_PROTECTED_READBACK_PROBE_GATE_LEDGER
+ 	depends on !PSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER
+@@ -288,6 +289,29 @@ config PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER
+ 	  provider transaction, owner mutation, CPU request, reset, or power action.
+ 	  If unsure, say N.
+ 
++config PSTORE_GEMINI_A72_PHYSICAL_SOURCE_PRECAPTURE_LEDGER
++	bool "Gemini A72 physical-source pre-capture ledger"
++	depends on PSTORE_GEMINI_PROTECTED_READBACK_LEDGER=y
++	depends on MTK_MT6797_A72_PHYSICAL_SOURCE_OBSERVER=y
++	depends on !PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER
++	depends on !PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_CONTROL
++	depends on !PSTORE_GEMINI_PROTECTED_READBACK_PROBE_GATE_LEDGER
++	depends on !PSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER
++	depends on !PSTORE_GEMINI_PROTECTED_READBACK_RAW_ENTRY_LEDGER
++	depends on !PSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION
++	depends on !PSTORE_GEMINI_CLOCK_BACKEND_FIRST_DMESG_ENTRY_QUALIFICATION
++	depends on !PSTORE_GEMINI_PROTECTED_CLOCK_FIRST_DMESG_CALL_QUALIFICATION
++	default n
++	help
++	  Give the physical-source observer one retained record at probe entry and
++	  one after all three bound source devices are held. Release the references
++	  and return success after the second record without running the capture.
++
++	  Reuse the qualified first-dmesg writer with at most two short writes and
++	  no overwrite, clear, retry, physical snapshot, provider transaction,
++	  owner mutation, CPU request, reset, reboot, or power action.
++	  If unsure, say N.
++
+ config PSTORE_GEMINI_PROTECTED_READBACK_LEDGER
+ 	bool "Gemini protected-readback retained call ledger"
+ 	depends on PSTORE_RAM=y
+diff --git a/fs/pstore/gemini_protected_readback_ledger.c b/fs/pstore/gemini_protected_readback_ledger.c
+index b5dbcff..d202864 100644
+--- a/fs/pstore/gemini_protected_readback_ledger.c
++++ b/fs/pstore/gemini_protected_readback_ledger.c
+@@ -16,7 +16,8 @@
+ #if defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION) || \
+ 	defined(CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_FIRST_DMESG_ENTRY_QUALIFICATION) || \
+ 	defined(CONFIG_PSTORE_GEMINI_PROTECTED_CLOCK_FIRST_DMESG_CALL_QUALIFICATION) || \
+-	defined(CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER)
++	defined(CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER) || \
++	defined(CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_PRECAPTURE_LEDGER)
+ #define GEMINI_PRB_LEDGER_BASE		GEMINI_PRB_RESERVE_BASE
+ #ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION
+ #define GEMINI_PRB_SLOT_COUNT		1
+@@ -143,7 +144,16 @@ static void gemini_prb_capture_map_control(void __iomem *ledger)
+ 
+ static bool gemini_prb_armed;
+ 
+-#ifdef CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER
++#ifdef CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_PRECAPTURE_LEDGER
++static const char * const gemini_prb_records[] = {
++	"====0.000000-D\n"
++	"GEMINI_A72_PRECAPTURE_V1 token=GAPC-20260824-A "
++	"checkpoint=probe-enter slot=1 crc32=b8f6c566\n",
++	"====0.000000-D\n"
++	"GEMINI_A72_PRECAPTURE_V1 token=GAPC-20260824-A "
++	"checkpoint=sources-held slot=2 crc32=9e7fd3e6\n",
++};
++#elif defined(CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER)
+ static const char * const gemini_prb_records[] = {
+ 	"====0.000000-D\n"
+ 	"GEMINI_A72_PHYSICAL_SOURCE_V1 token=GPSQ-20260824-A "
+@@ -223,7 +233,8 @@ static bool gemini_prb_slot_empty(void __iomem *slot)
+ 
+ static bool gemini_prb_slot_available(void __iomem *slot)
+ {
+-#if defined(CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER) || \
++#if defined(CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_PRECAPTURE_LEDGER) || \
++	defined(CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER) || \
+ 	defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_RAW_ENTRY_LEDGER) || \
+ 	defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_RAW_WRITE_QUALIFICATION) || \
+ 	defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION) || \
+@@ -269,7 +280,8 @@ static bool gemini_prb_write(void __iomem *slot, const char *record)
+ 	writel(len, (u8 __iomem *)slot + 4);
+ 	wmb(); /* Commit start before size. */
+ 	writel(len, (u8 __iomem *)slot + 8);
+-#if defined(CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER) || \
++#if defined(CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_PRECAPTURE_LEDGER) || \
++	defined(CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER) || \
+ 	defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_RAW_ENTRY_LEDGER) || \
+ 	defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_RAW_WRITE_QUALIFICATION) || \
+ 	defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION) || \

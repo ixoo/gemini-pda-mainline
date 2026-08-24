@@ -1,0 +1,36 @@
+experiment=2026-08-24-mainline-a72-physical-source-precapture-ledger
+repository_commit=112bbdc8c5fd09da1a2aad5ee234dc8bf4fba7c4
+buildbox_job=112bbdc8c5fd09da1a2aad5ee234dc8bf4fba7c4-a72-physical-source-precapture-patchgen
+package=a72-physical-source-precapture-112bbdc8c5fd
+parent_source_state=268ebef69a7575d23004b137a3334989b82b444cbf3a773850626566275b8fb8
+parent_source_integrity=9f18bf45f6d001892044d8b1f1303b5e26c49e2fcd19dab637a994355fc6c65f
+canonical_parent=0356-soc-mediatek-move-A72-physical-source-result-off-stack.patch
+canonical_parent_sha256=94076d20cf542941016e72996d5bdc1a8c03cedbd6e284763e424d8841dde4c9
+parent_commit=8b1ec74c7be6570facc5ad93b7228452b5656d43
+result_commit=bde19bc859be8cae09a3ee4aac05d6000bcefc63
+generated_patch_count=1
+canonical_admission=0357
+patch_sha256=833b4e5af1246760f3e6339ec34fd36e8c5b1b368529a46ea651fb4060d8d237
+package_sha256s_sha256=d57096dcb93c482e9ff82d6f23a9732ab45f3d150c781b5b9dfabd41f56a29d9
+generation_provenance_sha256=9823a64d93b9bf75b2a3507beceb1fc7b08b303a3dcca834a3fe02aa6b881881
+source_validation=pass
+patch_validation=pass
+patch_replay=byte-exact-pass
+strict_checkpatch=0-errors-0-warnings-0-checks
+changed_files=fs/pstore/Kconfig,fs/pstore/gemini_protected_readback_ledger.c,drivers/soc/mediatek/mt6797-a72-physical-source-observer.c
+retained_token=GAPC-20260824-A
+retained_checkpoints=probe-enter,sources-held
+retained_slots=1,2
+retained_maximum_writes=2
+capture_calls_in_precapture_path=0
+provider_transactions=0
+publisher_calls=0
+owner_mutations=0
+cpu_requests=0
+device_action=none
+boot_candidate=false
+result=pass
+
+The fetched patch is byte-identical to canonical patch 0357. The synthetic
+experiment author has no DCO sign-off; this archive is not submission-ready.
+The next gate is an exact Buildbox compile of the isolated pre-capture profile.
