@@ -4976,15 +4976,14 @@ The next ordered work is:
    device action, or boot candidate.
    The selected
    [Phase B physical-source observer](../experiments/2026-08-24-mainline-a72-physical-source-observer/README.md)
-   now pins the exact post-`0349` Buildbox source and prepares five logical
-   review patches: retained attribution, the temporary direct source, its
-   binding, a separate candidate DT, and focused injected tests. This is
-   deterministic implementation input only; it has not yet generated or
-   admitted a patch, compiled a kernel, created a boot candidate, or touched
-   the device.
-   **Selected next:** sign and push that input, generate and byte-admit the
-   five-patch review, then compile one isolated profile on Buildbox and run
-   only its four hardware-free cases in no-network arm64 QEMU. Keep
+   now owns canonical patches `0350`--`0354`: retained attribution, the
+   temporary direct source, its binding, a separate candidate DT, and focused
+   injected tests. Exact Buildbox generation, semantic validation, byte-exact
+   replay, strict style review, and canonical admission pass. It has not yet
+   compiled a kernel, created a boot candidate, or touched the device.
+   **Selected next:** compile the isolated `a72-physical-source-kunit` profile
+   on Buildbox and run only its four hardware-free cases in no-network arm64
+   QEMU. Keep
    publication, provider acquire/release, and CPU8/CPU9 requests closed until
    all four gates pass. Only then select one guarded observer candidate.
 4. Only then build one decision-bearing CPU8 candidate with one request,

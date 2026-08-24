@@ -339,3 +339,8 @@ v7.1.3/0346-arm64-add-atomic-A72-bootstrap-publisher.patch
 v7.1.3/0347-arm64-test-atomic-A72-bootstrap-publication.patch
 v7.1.3/0348-regulator-separate-read-only-DA921x-provider-snapshot.patch
 v7.1.3/0349-regulator-test-read-only-DA921x-provider-snapshot.patch
+v7.1.3/0350-pstore-add-Gemini-A72-physical-source-ledger-mode.patch
+v7.1.3/0351-soc-mediatek-add-A72-direct-physical-source-observer.patch
+v7.1.3/0352-dt-bindings-soc-mediatek-add-A72-physical-source-observer.patch
+v7.1.3/0353-arm64-dts-mediatek-add-Gemini-physical-source-candidate.patch
+v7.1.3/0354-soc-mediatek-test-A72-physical-source-observer.patch

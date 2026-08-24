@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-24-mainline-a72-physical-source-observer` |
-| Status | deterministic implementation input; generation pending |
+| Status | generated and admitted; Buildbox compile/KUnit pending |
 | Subsystem | A72 direct-state sources and retained attribution |
 | Device variant | hardware-free implementation/KUnit stage |
 | Date(s) | 2026-08-24 America/New_York |
@@ -82,5 +82,9 @@ single-line and every remaining continuation aligns with its opening
 parenthesis; the test template received the same complete alignment pass. A
 fifth attempt then enforced the final kernel convention: tabs must cover the
 aligned portion and spaces only the remainder. All production and test
-continuations now use that exact tab-plus-space form. Patch generation remains
-pending. There is no boot candidate and no device action.
+continuations now use that exact tab-plus-space form. The sixth attempt passed
+all source, boundary, replay, and strict style gates from exact commit
+`8d0d49042331f54eeef475f9601bc9de2a5722ea` and produced the five
+checksum-covered patches admitted as canonical `0350`--`0354`. The isolated
+`a72-physical-source-kunit` profile is selected next for Buildbox compile and
+no-network QEMU. There is no boot candidate and no device action.

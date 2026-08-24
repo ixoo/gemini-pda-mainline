@@ -112,10 +112,13 @@ def main() -> None:
     require([sha256(path) for path in canonical] == generation["patch_sha256"],
             "canonical patch identities")
     series = (ROOT / "patches/series").read_text().splitlines()
-    require(series[-2:] == [
+    phase_a_series = [
         "v7.1.3/0348-regulator-separate-read-only-DA921x-provider-snapshot.patch",
         "v7.1.3/0349-regulator-test-read-only-DA921x-provider-snapshot.patch",
-    ], "canonical series tail")
+    ]
+    phase_a_index = series.index(phase_a_series[0])
+    require(series[phase_a_index:phase_a_index + 2] == phase_a_series,
+            "canonical Phase A series order")
 
     manifest = json.loads((ROOT / "kernel/manifest.json").read_text())
     profile = manifest["config"]["profiles"]["da921x-readonly-snapshot-kunit"]

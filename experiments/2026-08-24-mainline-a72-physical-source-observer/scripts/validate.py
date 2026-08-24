@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import zlib
 from pathlib import Path
@@ -15,6 +16,10 @@ EXPERIMENT = Path(__file__).resolve().parents[1]
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise AssertionError(message)
+
+
+def sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def main() -> None:
@@ -66,8 +71,62 @@ def main() -> None:
         "intentional_checkpatch_ignore":
             "SPLIT_STRING-for-two-atomic-retained-records",
         "stopped_attempts": 5,
-        "status": "pending",
+        "status": "validated",
+        "repository_commit":
+            "8d0d49042331f54eeef475f9601bc9de2a5722ea",
+        "buildbox_job":
+            "8d0d49042331f54eeef475f9601bc9de2a5722ea-a72-physical-source-patchgen",
+        "package": "a72-physical-source-8d0d49042331",
+        "parent_commit": "a796fdef26e26c896db6147de3f4166a87bebb99",
+        "result_commit": "31d96ca391708d74228e6b8621bf7931ed2a8e7e",
+        "sha256sums_sha256":
+            "36a69869b23a34e66b4285235b7562a1e104b576e96cb1bc70cba3c34a173547",
+        "patch_sha256": [
+            "b13b8e2451e6807b6fcdf0863c774e9219616f09d7cb58d1575ebcd10c84badd",
+            "d6f173fe53251644e671f49961b11e15b39f337923bfe9501a7efde6c19bf5c7",
+            "209c9304567976287e385e48d46797d837876a7b38bbf880a3a554659ca42c9c",
+            "bba2c1ba68ac231d9360e428c39d8fda2e40698e2f14c821de69383f23ed0756",
+            "c9d35ee189e081099520a18becc3f839c04085aaa7fc1863c9c62270944a8aca",
+        ],
+        "canonical_admission": "0350-0354",
     }, "generation contract")
+    require(contract["build"] == {
+        "profile": "a72-physical-source-kunit",
+        "backend": "buildbox",
+        "status": "pending",
+        "qemu": "pending",
+    }, "build contract")
+
+    canonical = [ROOT / "patches/v7.1.3" / patch
+                 for patch in contract["patches"]]
+    require(all(path.is_file() and not path.is_symlink() for path in canonical),
+            "canonical patch inventory")
+    require([sha256(path) for path in canonical]
+            == contract["generation"]["patch_sha256"],
+            "canonical patch identities")
+    series = (ROOT / "patches/series").read_text().splitlines()
+    require(series[-5:] == [f"v7.1.3/{patch}"
+                            for patch in contract["patches"]],
+            "canonical series tail")
+
+    manifest = json.loads((ROOT / "kernel/manifest.json").read_text())
+    profile = manifest["config"]["profiles"]["a72-physical-source-kunit"]
+    require(profile["base"] == "defconfig", "profile base")
+    require(profile["patch_series"] == "patches/series", "profile series")
+    require(profile["fragments"][-1]
+            == "configs/gemini-a72-physical-source-kunit.fragment",
+            "profile final fragment")
+    fragment = (
+        ROOT / "configs/gemini-a72-physical-source-kunit.fragment"
+    ).read_text()
+    for token in (
+        "CONFIG_MTK_MT6797_A72_PHYSICAL_SOURCE_KUNIT_TEST=y",
+        "CONFIG_ARM64_MT6797_A72_DIRECT_STATE_COMPOSITOR=y",
+        "# CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER is not set",
+        "# CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION is not set",
+        "# CONFIG_MTK_MT6797_I2C6_FW_WRITER_TRANSACTION_WINDOW is not set",
+    ):
+        require(token in fragment, f"profile token: {token}")
 
     source_dir = EXPERIMENT / "source"
     observer = (source_dir / "mt6797-a72-physical-source-observer.c").read_text()
@@ -166,10 +225,40 @@ def main() -> None:
         in (ROOT / "docs/ROADMAP.md").read_text(),
         "roadmap selection",
     )
-    print("validation=a72-physical-source-input")
+    runner = (EXPERIMENT / "scripts/run-kunit-qemu").read_text()
+    classifier = (EXPERIMENT / "scripts/classify-kunit.py").read_text()
+    for token in (
+        "EXPECTED_PROFILE=a72-physical-source-kunit",
+        "CONFIG_MTK_MT6797_A72_PHYSICAL_SOURCE_KUNIT_TEST=y",
+        "PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER=y",
+        "-nic none",
+    ):
+        require(token in runner, f"QEMU runner token: {token}")
+    for token in (
+        'SUITE = "mt6797-a72-physical-source"',
+        '"mt6797_source_capture_failures_test"',
+        'print("tests=4")',
+        'print("boot_candidate=false")',
+    ):
+        require(token in classifier, f"classifier token: {token}")
+    receipt = (
+        EXPERIMENT / "results/buildbox-generation-8d0d4904.txt"
+    ).read_text()
+    for token in (
+        "source_validation=pass-all-five-phases",
+        "patch_replay=byte-exact-pass",
+        "strict_checkpatch=0-errors-0-warnings-0-checks",
+        "canonical_admission=0350-0354",
+        "compile=pending",
+        "boot_candidate=false",
+    ):
+        require(token in receipt, f"generation receipt token: {token}")
+    print("validation=a72-physical-source-admission")
     print("prepared_source=exact-through-0349")
     print("generated_patch_count=5")
     print("focused_tests=4")
+    print("canonical_admission=0350-0354")
+    print("compile=pending")
     print("hardware_operations=0")
     print("device_action=none")
     print("boot_candidate=false")

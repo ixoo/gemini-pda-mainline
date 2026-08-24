@@ -52,11 +52,38 @@
     "logical_boundaries": ["ledger", "observer", "binding", "dts", "tests"],
     "intentional_checkpatch_ignore": "SPLIT_STRING-for-two-atomic-retained-records",
     "stopped_attempts": 5,
-    "status": "pending"
+    "status": "validated",
+    "repository_commit": "8d0d49042331f54eeef475f9601bc9de2a5722ea",
+    "buildbox_job": "8d0d49042331f54eeef475f9601bc9de2a5722ea-a72-physical-source-patchgen",
+    "package": "a72-physical-source-8d0d49042331",
+    "parent_commit": "a796fdef26e26c896db6147de3f4166a87bebb99",
+    "result_commit": "31d96ca391708d74228e6b8621bf7931ed2a8e7e",
+    "sha256sums_sha256": "36a69869b23a34e66b4285235b7562a1e104b576e96cb1bc70cba3c34a173547",
+    "patch_sha256": [
+      "b13b8e2451e6807b6fcdf0863c774e9219616f09d7cb58d1575ebcd10c84badd",
+      "d6f173fe53251644e671f49961b11e15b39f337923bfe9501a7efde6c19bf5c7",
+      "209c9304567976287e385e48d46797d837876a7b38bbf880a3a554659ca42c9c",
+      "bba2c1ba68ac231d9360e428c39d8fda2e40698e2f14c821de69383f23ed0756",
+      "c9d35ee189e081099520a18becc3f839c04085aaa7fc1863c9c62270944a8aca"
+    ],
+    "canonical_admission": "0350-0354"
+  },
+  "patches": [
+    "0350-pstore-add-Gemini-A72-physical-source-ledger-mode.patch",
+    "0351-soc-mediatek-add-A72-direct-physical-source-observer.patch",
+    "0352-dt-bindings-soc-mediatek-add-A72-physical-source-observer.patch",
+    "0353-arm64-dts-mediatek-add-Gemini-physical-source-candidate.patch",
+    "0354-soc-mediatek-test-A72-physical-source-observer.patch"
+  ],
+  "build": {
+    "profile": "a72-physical-source-kunit",
+    "backend": "buildbox",
+    "status": "pending",
+    "qemu": "pending"
   },
   "decision": {
-    "result": "implementation-input-ready",
-    "selected_next": "buildbox-patch-generation",
+    "result": "canonical-review-ready",
+    "selected_next": "buildbox-compile-and-hardware-free-kunit",
     "device_action": false,
     "boot_candidate": false
   }

@@ -1,0 +1,103 @@
+From 9309284805c748c2d1bdf3d8464aab503a6106a3 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 24 Aug 2026 20:01:00 +0000
+Subject: [PATCH 1/5] pstore: add Gemini A72 physical-source ledger mode
+
+Give the candidate-only direct source exact first-dmesg records before and after its one BigiDVFS read. Reuse the qualified all-ones gate, signature-last commit, full readback, two-write ceiling, and no-clear/no-retry policy.
+---
+ fs/pstore/Kconfig                            | 25 +++++++++++++++++++-
+ fs/pstore/gemini_protected_readback_ledger.c | 20 ++++++++++++----
+ 2 files changed, 40 insertions(+), 5 deletions(-)
+
+diff --git a/fs/pstore/Kconfig b/fs/pstore/Kconfig
+index fa1c777..df61a11 100644
+--- a/fs/pstore/Kconfig
++++ b/fs/pstore/Kconfig
+@@ -265,11 +265,34 @@ config PSTORE_GEMINI_PROTECTED_CLOCK_FIRST_DMESG_CALL_QUALIFICATION
+ 	  call, owner registration, CPU request, storage, reset, or power action.
+ 	  If unsure, say N.
+ 
++config PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER
++	bool "Gemini A72 physical-source retained ledger"
++	depends on PSTORE_GEMINI_PROTECTED_READBACK_LEDGER=y
++	depends on MTK_MT6797_A72_PHYSICAL_SOURCE_OBSERVER=y
++	depends on !PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_CONTROL
++	depends on !PSTORE_GEMINI_PROTECTED_READBACK_PROBE_GATE_LEDGER
++	depends on !PSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER
++	depends on !PSTORE_GEMINI_PROTECTED_READBACK_RAW_ENTRY_LEDGER
++	depends on !PSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION
++	depends on !PSTORE_GEMINI_CLOCK_BACKEND_FIRST_DMESG_ENTRY_QUALIFICATION
++	depends on !PSTORE_GEMINI_PROTECTED_CLOCK_FIRST_DMESG_CALL_QUALIFICATION
++	default n
++	help
++	  Give the candidate-only direct physical-source callback consecutive
++	  retained records 1 and 2 immediately before and after its one BigiDVFS
++	  read. Require both raw headers to be all ones before the first write.
++
++	  Reuse the qualified payload, start, size, signature-last, barrier, full
++	  readback, no-overwrite, no-clear, and no-retry protocol. This mode makes
++	  at most two short retained-RAM writes and adds no storage, firmware write,
++	  provider transaction, owner mutation, CPU request, reset, or power action.
++	  If unsure, say N.
++
+ config PSTORE_GEMINI_PROTECTED_READBACK_LEDGER
+ 	bool "Gemini protected-readback retained call ledger"
+ 	depends on PSTORE_RAM=y
+ 	depends on ARM64 && ARCH_MEDIATEK && OF
+-	depends on MTK_MT6797_PROTECTED_READBACK_OBSERVER=y || MTK_MT6797_DVFSP_CLOCK_BACKEND=y || PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_CONTROL=y
++	depends on MTK_MT6797_PROTECTED_READBACK_OBSERVER=y || MTK_MT6797_A72_PHYSICAL_SOURCE_OBSERVER=y || MTK_MT6797_DVFSP_CLOCK_BACKEND=y || PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_CONTROL=y
+ 	depends on !PSTORE_GEMINI_PRE_RAMOOPS_LEDGER
+ 	depends on !PSTORE_GEMINI_ARM64_ENTRY_LEDGER
+ 	default n
+diff --git a/fs/pstore/gemini_protected_readback_ledger.c b/fs/pstore/gemini_protected_readback_ledger.c
+index be82544..b5dbcff 100644
+--- a/fs/pstore/gemini_protected_readback_ledger.c
++++ b/fs/pstore/gemini_protected_readback_ledger.c
+@@ -15,7 +15,8 @@
+ #define GEMINI_PRB_SLOT_SIZE		0x00001000UL
+ #if defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION) || \
+ 	defined(CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_FIRST_DMESG_ENTRY_QUALIFICATION) || \
+-	defined(CONFIG_PSTORE_GEMINI_PROTECTED_CLOCK_FIRST_DMESG_CALL_QUALIFICATION)
++	defined(CONFIG_PSTORE_GEMINI_PROTECTED_CLOCK_FIRST_DMESG_CALL_QUALIFICATION) || \
++	defined(CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER)
+ #define GEMINI_PRB_LEDGER_BASE		GEMINI_PRB_RESERVE_BASE
+ #ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION
+ #define GEMINI_PRB_SLOT_COUNT		1
+@@ -142,7 +143,16 @@ static void gemini_prb_capture_map_control(void __iomem *ledger)
+ 
+ static bool gemini_prb_armed;
+ 
+-#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_CLOCK_FIRST_DMESG_CALL_QUALIFICATION
++#ifdef CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER
++static const char * const gemini_prb_records[] = {
++	"====0.000000-D\n"
++	"GEMINI_A72_PHYSICAL_SOURCE_V1 token=GPSQ-20260824-A "
++	"checkpoint=before-bigidvfs slot=1 crc32=47eaad49\n",
++	"====0.000000-D\n"
++	"GEMINI_A72_PHYSICAL_SOURCE_V1 token=GPSQ-20260824-A "
++	"checkpoint=after-bigidvfs slot=2 crc32=d03ca6dc\n",
++};
++#elif defined(CONFIG_PSTORE_GEMINI_PROTECTED_CLOCK_FIRST_DMESG_CALL_QUALIFICATION)
+ static const char * const gemini_prb_records[] = {
+ 	"====0.000000-D\n"
+ 	"GEMINI_PROTECTED_CLOCK_FIRST_DMESG_V1 token=GPCF-20260823-A "
+@@ -213,7 +223,8 @@ static bool gemini_prb_slot_empty(void __iomem *slot)
+ 
+ static bool gemini_prb_slot_available(void __iomem *slot)
+ {
+-#if defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_RAW_ENTRY_LEDGER) || \
++#if defined(CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER) || \
++	defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_RAW_ENTRY_LEDGER) || \
+ 	defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_RAW_WRITE_QUALIFICATION) || \
+ 	defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION) || \
+ 	defined(CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_FIRST_DMESG_ENTRY_QUALIFICATION)
+@@ -258,7 +269,8 @@ static bool gemini_prb_write(void __iomem *slot, const char *record)
+ 	writel(len, (u8 __iomem *)slot + 4);
+ 	wmb(); /* Commit start before size. */
+ 	writel(len, (u8 __iomem *)slot + 8);
+-#if defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_RAW_ENTRY_LEDGER) || \
++#if defined(CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER) || \
++	defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_RAW_ENTRY_LEDGER) || \
+ 	defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_RAW_WRITE_QUALIFICATION) || \
+ 	defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION) || \
+ 	defined(CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_FIRST_DMESG_ENTRY_QUALIFICATION)
