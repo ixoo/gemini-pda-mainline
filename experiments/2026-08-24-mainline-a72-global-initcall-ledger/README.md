@@ -2,7 +2,8 @@
 
 ## Status
 
-Definition frozen. The rejected predecessor left both observer `driver-init`
+Patch generated, validated, and admitted as canonical `0361`. The rejected
+predecessor left both observer `driver-init`
 and `probe-enter` records exact empty after a changed-ID Gemian cycle. This
 non-identical successor moves both records out of the observer and into the
 retained-ledger translation unit at two earlier global initcall levels. The
@@ -50,8 +51,11 @@ no overwrite, no clear, and no retry.
 
 ## Current result
 
-The canonical parent is exact patch `0360`. The managed Buildbox parent source
-state, integrity, three touched-file hashes, and predecessor runtime receipt
-are pinned in `contract.json`. The next action is one exact Buildbox generation
-of canonical patch `0361`, followed by replay, strict style, and invariant
-checks before admission.
+The canonical parent is exact patch `0360`. Buildbox generated patch `0361`
+from the pinned parent source state and three touched-file hashes. Source and
+patch semantic checks, exact three-file scope, byte-identical replay, and
+strict checkpatch all pass; checkpatch reports zero errors, warnings, and
+checks. The fetched patch is admitted byte-for-byte with SHA-256
+`ec7e185fdcbf7eedb55652b25173a431e0e02157e05c8a7a534478d4b2ee5b7b`.
+The next action is an isolated Buildbox kernel build of profile
+`a72-global-initcall-ledger`; no candidate exists yet.

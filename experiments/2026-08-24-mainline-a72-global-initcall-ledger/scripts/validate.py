@@ -128,7 +128,21 @@ def main() -> None:
         "2026-08-24-mainline-a72-global-initcall-ledger/README.md" in roadmap,
         "roadmap link",
     )
-    require(contract["generation"]["status"] == "not-run", "generation pending")
+    generation = contract["generation"]
+    generated_patch = ROOT / "patches/v7.1.3" / generation["patch"]
+    require(generation["status"] == "validated-admitted",
+            "generation admitted")
+    require(generated_patch.is_file() and not generated_patch.is_symlink(),
+            "canonical generated patch")
+    require(sha256(generated_patch) == generation["patch_sha256"],
+            "canonical generated patch identity")
+    require(generation["canonical_admission"] is True,
+            "canonical admission")
+    require(generation["checkpatch"] == {"errors": 0, "warnings": 0, "checks": 0},
+            "strict checkpatch result")
+    series = (ROOT / "patches/series").read_text().splitlines()
+    require(series[-1] == f"v7.1.3/{generation['patch']}",
+            "canonical series tail")
     require(contract["candidate"]["status"] == "not-built", "candidate pending")
     require(contract["candidate"]["boot_candidate"] is False,
             "no candidate before build")

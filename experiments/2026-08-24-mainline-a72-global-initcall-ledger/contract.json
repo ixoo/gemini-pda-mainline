@@ -39,15 +39,23 @@
     "cpu_requests": 0
   },
   "generation": {
-    "status": "not-run",
+    "status": "validated-admitted",
+    "repository_commit": "ebbb2ea22ce225219ec52639e420c28dc78999c8",
     "patch": "0361-pstore-add-Gemini-A72-global-initcall-ledger.patch",
+    "patch_sha256": "ec7e185fdcbf7eedb55652b25173a431e0e02157e05c8a7a534478d4b2ee5b7b",
     "patch_count": 1,
     "changed_files": [
       "fs/pstore/Kconfig",
       "fs/pstore/gemini_protected_readback_ledger.c",
       "drivers/soc/mediatek/mt6797-a72-physical-source-observer.c"
     ],
-    "canonical_admission": null
+    "result_commit": "ad2f66730376a1f3d36a2dcad7491cae3e50829e",
+    "checkpatch": {
+      "errors": 0,
+      "warnings": 0,
+      "checks": 0
+    },
+    "canonical_admission": true
   },
   "candidate": {
     "status": "not-built",
@@ -56,8 +64,8 @@
     "boot_candidate": false
   },
   "decision": {
-    "result": "definition-frozen",
-    "selected_next": "generate-exact-0361-on-buildbox",
+    "result": "patch-generated-validated-and-admitted",
+    "selected_next": "build-isolated-profile-on-buildbox",
     "device_action": false,
     "boot_candidate": false
   }

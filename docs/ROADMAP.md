@@ -5088,7 +5088,10 @@ The next ordered work is:
    boundaries. It reuses the qualified signature-last retained writer for at
    most two records and suppresses observer registration; source acquisition,
    capture, provider transactions, publication, owner mutation, and CPU
-   requests remain closed. Exact Buildbox patch generation is next.
+   requests remain closed. Exact Buildbox source validation, three-file scope,
+   byte-identical replay, and strict checkpatch all pass; fetched patch `0361`
+   is admitted byte-for-byte with zero errors, warnings, or checks. The
+   isolated Buildbox profile build is next; no candidate exists yet.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
