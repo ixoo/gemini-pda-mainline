@@ -1,0 +1,26 @@
+A72 platform-state Stage-27 minimum-contract candidate: guarded deployment
+Date: 2026-08-24 America/New_York
+
+experiment=2026-08-24-mainline-a72-platform-state-stage27-control
+definition_commit=23f1843a
+origin=https://github.com/ixoo/gemini-pda-mainline.git
+result=write-synced-flushed-full-readback-verified
+target_logical_name=boot2
+target=/dev/mmcblk0p30
+active_root=/dev/mmcblk0p29
+predecessor_sha256=012f7eac6884e65baab075ef286929f610a63f2ea065eba45865bd046492a23f
+candidate_sha256=662e86846e783cf29b13c388f9e88217fe7bd32933eef4f32df86e44def0b16b
+readback_sha256=662e86846e783cf29b13c388f9e88217fe7bd32933eef4f32df86e44def0b16b
+tee1_sha256=2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3
+tee2_sha256=2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3
+deployment_boot_id=3dd69469-8429-4c1a-aa9b-cdd4a942c47a
+power=online-100-percent-good
+prewrite_records=exact-empty
+retained_ram_write=none
+fresh_predecessor_backup=no
+temporary_readback_removed=yes
+shutdown_after_verified_write=confirmed-unreachable
+automatic_reboot=no
+private_summary_sha256=042dd56fed7241c6385cd40a549168d2b837a2aff90b8f526c055d929f581830
+private_manifest_sha256=586074d776d16931e77fa3612632e063152a6e0a58a433760b53251ed41be6ae
+next_action=prearm-usb-netcat-collector-then-owner-selects-boot2-once

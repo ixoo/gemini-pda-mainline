@@ -31,8 +31,9 @@ the loop. Positive identity-gated observations are unaffected.
   USB, T-PHY, I2C5, keyboard, framebuffer, and SCP state are explicitly
   preserved. The deterministic candidate passes all 32 LK gates, six container
   mutations, and eleven runtime-classifier mutations without a new kernel
-  build. One guarded deployment and physical `boot2` selection are pending;
-  CPUs 8–9 remain closed.
+  build. Its guarded live-GPT `boot2` write, full 16 MiB readback, and clean
+  shutdown now pass; one pre-armed physical `boot2` selection remains pending
+  with CPUs 8–9 closed.
 - [2026-08-24 mainline A72 early initcall ledger](2026-08-24-mainline-a72-early-initcall-ledger/README.md)
   — defines the successor after neither subsys nor fs checkpoint was retained:
   independent pure/core records plus one separately gated slot-2 primary

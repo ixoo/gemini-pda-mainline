@@ -5167,10 +5167,13 @@ The next ordered work is:
    semantic tree, and the proven USB, T-PHY, I2C5, keyboard, framebuffer, and
    SCP state is explicitly gated. Its deterministic raw and padded candidates,
    all 32 LK gates, six container mutations, and eleven runtime-classifier
-   mutations pass without a new kernel build. **Selected next:** commit and
-   push this exact definition, guarded-write it once to live-GPT `boot2`, shut
-   down, pre-arm USB/netcat collection, and spend one physical selection on
-   the provider probe/resource boundary with CPU8 and CPU9 still closed.
+   mutations pass without a new kernel build. Signed definition commit
+   `23f1843a` is pushed. The guarded live-GPT write resolves inactive `boot2`,
+   records the retired confounded predecessor, matches the exact full 16 MiB
+   readback, and cleanly shuts down the device with no backup or retained-RAM
+   write. **Selected next:** pre-arm USB/netcat collection and spend one physical
+   selection on the provider probe/resource boundary with CPU8 and CPU9 still
+   closed.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-24-mainline-a72-platform-state-stage27-control` |
-| Status | `running` — offline validation complete; one runtime pending |
+| Status | `running` — guarded deployment complete; one runtime pending |
 | Subsystem | MT6797 Cortex-A72 platform-state source |
 | Device variant | Gemini PDA, named project device |
 | Date | 2026-08-24 |
@@ -118,5 +118,16 @@ and all six container mutations are rejected. The runtime classifier accepts
 the bound and unbound serviceable branches and rejects the inherited seven
 provider mutations plus four Stage-27-state mutations.
 
-No runtime conclusion is claimed yet. The experiment is selected for one
-guarded deployment and one physical `boot2` selection.
+The exact 16 MiB payload was committed and pushed in signed definition commit
+`23f1843a`, then deployed from known-good Gemian. Live GPT resolved inactive
+logical `boot2` as `/dev/mmcblk0p30` while root was `/dev/mmcblk0p29`. The
+predecessor was the retired confounded payload `012f7eac...a23f`; both TEE slots
+matched the expected identity, power was online at 100% and good, both retained
+records were exact empty, and no retained-memory write or fresh partition
+backup occurred. Write, sync, flush, and full 16 MiB readback produced exact
+`662e8684...0b16b`. The device was then cleanly shut down and independently
+confirmed unreachable. Sanitized deployment evidence is in
+[`results/deployment-20260824.txt`](results/deployment-20260824.txt).
+
+No runtime conclusion is claimed yet. The device is powered off and ready for
+one physical `boot2` selection after the USB/netcat collector is pre-armed.
