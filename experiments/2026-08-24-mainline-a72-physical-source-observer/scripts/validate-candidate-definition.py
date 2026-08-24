@@ -98,8 +98,14 @@ def main() -> None:
             candidate_contract["owner_mutations"] == 0 and
             candidate_contract["cpu_requests"] == 0,
             "action path opened")
-    require(candidate_contract["boot_candidate"] is False,
-            "unbuilt definition was promoted to boot candidate")
+    require(candidate_contract["status"] in (
+        "definition-pending-build",
+        "build-passed-assembly-pending",
+        "validated",
+    ), "candidate lifecycle state changed")
+    require(candidate_contract["boot_candidate"] is
+            (candidate_contract["status"] == "validated"),
+            "candidate promotion does not match its validated lifecycle state")
 
     print("validation=a72-physical-source-candidate-definition")
     print(f"profile={PROFILE}")
@@ -117,7 +123,7 @@ def main() -> None:
     print("cpu_requests=0")
     print("device_access=none")
     print("hardware_write=none")
-    print("boot_candidate=false")
+    print(f"boot_candidate={str(candidate_contract['boot_candidate']).lower()}")
     print("result=pass")
 
 

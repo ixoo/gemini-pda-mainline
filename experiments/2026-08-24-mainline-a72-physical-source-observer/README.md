@@ -160,3 +160,26 @@ every earlier retained discriminator plus the A34, publisher, positive-provider,
 firmware-writer, same-value-write, and CPU-request paths. It remains
 `boot_candidate=false` until the exact pushed profile compiles on Buildbox and
 an independent package/container validator passes.
+
+The exact profile at `f3bf03f4c2515e9c1ac5049c6544c618aaeb8af1` now compiles
+on Buildbox and its fetched package passes every checksum. The required source,
+transport, and retained symbols are linked; A34, publisher, provider-transaction,
+and same-value writer symbols are absent. The package DT enables only the
+candidate observer and its platform, protected-clock, and BigiDVFS sources,
+keeps the unrelated resource owner disabled, and resolves all three phandles.
+Two independent Android-v0 admissions produce raw candidate
+`1d0c1420ca2a1ea7c88d22ffeda44c2fa14d238ebceeb73ce7d56133bac4f005`
+and padded image
+`aa02ab666e63e7011139c1057bda99cdbab89245d41f9cad59dae30743b41246`;
+all 32 LK gates pass. The checked-in builder must reproduce those identities,
+and the separate validator must pass before the contract promotes the artifact
+to `boot_candidate=true`.
+
+Both the checked-in builder and independent validator now reproduce and accept
+that exact candidate. The artifact manifest, zero padding, final configuration,
+linked and excluded symbols, three DT references, four enabled candidate nodes,
+disabled unrelated resource owner, marker inventory, payload identities, and
+all 32 LK gates pass. The contract is therefore promoted to
+`boot_candidate=true`. The selected next action is one guarded `boot2` install
+under the repository's standing live-GPT/readback policy, followed by a clean
+shutdown for physical slot selection.

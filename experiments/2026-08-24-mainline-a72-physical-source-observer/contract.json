@@ -165,7 +165,7 @@
     "hardware_operations": false
   },
   "candidate": {
-    "status": "definition-pending-build",
+    "status": "validated",
     "profile": "a72-physical-source-candidate",
     "dtb": "dtbs/mediatek/mt6797-gemini-pda-a72-physical-source.dtb",
     "retained_token": "GPSQ-20260824-A",
@@ -182,12 +182,29 @@
     "cpu_requests": 0,
     "device_access": false,
     "hardware_write": false,
-    "boot_candidate": false
+    "boot_candidate": true,
+    "repository_commit": "f3bf03f4c2515e9c1ac5049c6544c618aaeb8af1",
+    "buildbox_job": "f3bf03f4c2515e9c1ac5049c6544c618aaeb8af1-a72-physical-source-candidate-m0",
+    "package": "linux-7.1.3-gemini-a72-physical-source-candidate-b2cd59e6-a48e2c2d",
+    "kernel_release": "7.1.3-gemini-a72-physical-source",
+    "patchset_sha256": "b2cd59e6a288613b94bf9bd7b68ee6fa80bc55be3789c2838f217f0934f40a8e",
+    "config_sha256": "39a5a007937d10f50e79da865feda843a06c0ed98301333b9f5c24bbd1808f99",
+    "image_gzip_sha256": "9ecefb990bd0cf136d32f443ebb59597de48a814df84e2dccf3669c600aac3b9",
+    "dtb_sha256": "fe67420ca4e2955a73a4a3f2e442af3534b621820cf77ae035be9bf98756425d",
+    "candidate_sha256": "1d0c1420ca2a1ea7c88d22ffeda44c2fa14d238ebceeb73ce7d56133bac4f005",
+    "candidate_size": 6912000,
+    "padded_sha256": "aa02ab666e63e7011139c1057bda99cdbab89245d41f9cad59dae30743b41246",
+    "padded_size": 16777216,
+    "lk_gates_expected": 32,
+    "lk_gates_passed": 32,
+    "artifact_manifest_sha256": "683adfea30e7b7c82eb304705fe699b579ebbb0525c38ee57b296df75f0652ed",
+    "builder_sha256": "9e02338db6bab33f0bf57714d071829fdf9d9e3df6ae199c0e76f1e25ec97398",
+    "independent_validator_sha256": "dac54074b9997e7d27f35f422ad25763561192f806c7695231c3d8170b2f6b59"
   },
   "decision": {
-    "result": "production-stack-fix-build-and-qemu-pass",
-    "selected_next": "construct-and-independently-validate-guarded-observer-candidate",
+    "result": "guarded-observer-candidate-validated",
+    "selected_next": "deploy-exact-candidate-to-live-resolved-boot2-and-shut-down",
     "device_action": false,
-    "boot_candidate": false
+    "boot_candidate": true
   }
 }

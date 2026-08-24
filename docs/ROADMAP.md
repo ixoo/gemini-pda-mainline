@@ -5003,7 +5003,12 @@ The next ordered work is:
    candidate whose unique evidence is the two exact retained records around
    the one BigiDVFS call plus the complete all-or-zero source snapshot. Keep
    publication, provider acquire/release, and CPU8/CPU9 requests closed until
-   all four gates pass. Only then deploy one guarded observer candidate.
+   all four gates pass. Exact Buildbox commit `f3bf03f4c2515e9c1ac5049c6544c618aaeb8af1`
+   and the independent Android-v0 validator now pass those gates and select
+   candidate `1d0c1420ca2a1ea7c88d22ffeda44c2fa14d238ebceeb73ce7d56133bac4f005`.
+   **Selected next:** deploy that exact candidate once to live-resolved `boot2`,
+   verify the full-partition readback, and shut the device down for owner slot
+   selection.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
