@@ -76,5 +76,9 @@ the one explicitly scoped checker exception, matching the existing retained
 ledger precedent. A third attempt then stopped on ordinary strict line-wrap
 checks in the new observer before reaching its test patch; every declaration
 and call with that pattern has been mechanically corrected in both files.
+A fourth attempt confirmed those checks were gone and then stopped on the
+continuation columns for the same nine argument lists. Most calls are now
+single-line and every remaining continuation aligns with its opening
+parenthesis; the test template received the same complete alignment pass.
 Patch generation remains pending. There is no boot candidate and no device
 action.
