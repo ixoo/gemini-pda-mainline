@@ -23,6 +23,14 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-24 mainline A72 production-input ownership audit](2026-08-24-mainline-a72-production-input-ownership-audit/README.md)
+  — rejects a production publisher caller after auditing replay applicability
+  and physical direct state as independent authorities. Canonical Linux has no
+  positive current-boot primary-BL31 applicability producer or physical
+  source registration; the qualified clock record also contradicts A34's
+  static zero vector in 17 of 18 raw words, while the physical BigiDVFS record
+  remains unqualified. No build, boot candidate, device action, or CPU request
+  occurred.
 - [2026-08-24 mainline A72 atomic bootstrap publication](2026-08-24-mainline-a72-atomic-publication/README.md)
   — admits the audit-selected three-patch hardware-free phase: a P30 nested
   finalizer, one default-off no-caller publisher, and eight injected failure

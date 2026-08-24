@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-24-mainline-a72-production-input-ownership-audit",
+  "repository_commit": "84325e329b4c2605071c9704a2e49572121077fd",
+  "origin_url": "https://github.com/ixoo/gemini-pda-mainline.git",
+  "canonical_tail": "patches/v7.1.3/0347-arm64-test-atomic-A72-bootstrap-publication.patch",
+  "canonical_tail_sha256": "53a59d1976d95eaba1095fbdb8811f20d8c9e2a1e875368fa716f26e907b1a83",
+  "canonical_series_sha256": "1b492d16d685bfd09031a3567e033ce7d3f3c54eaf05e442fd385a8635d74056",
+  "prepared_source_state": "ac57421ae45c6e55ba34f2cac4131647e89762ad5988baf1b47364c2c75e77cb",
+  "prepared_source_integrity": "d87fe0d866aec4825c2e2c2bf5f1df628299692e5bad63e581b07c64d0f3c22d",
+  "source_files": {
+    "arch/arm64/include/asm/mt6797_a72_membership.h": "b43f9e1c8f9a98651a583917b15cd7968c12733b21c077c0eec076dea5b8447e",
+    "arch/arm64/kernel/mt6797_a72_membership.c": "376ba674e7d9afc7be8bb89fef51bf0b3515704f43389d7075f631737edef980",
+    "include/linux/mt6797-a72-direct-state.h": "39d423ad9688b1b158256a250bda3d63359c2af4241ab1dbddf2ebd663920562",
+    "drivers/regulator/da9213-legacy-regulator.c": "77faf36fa817ad9b76cb629dab99a70d78880455c23b075303bd30579c97c587",
+    "drivers/soc/mediatek/mt6797-a72-platform-state.c": "214ae21bf98e7d47e8ec8c24d0c542ebb27e3ba110694f81e04482ff78b108b6",
+    "drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c": "e002e420b7dfbdf147db9b46109b474ba26e2dad496ce88d96e240561f203866",
+    "drivers/soc/mediatek/mt6797-bigidvfs-backend.c": "454c4bf3d3d049d0586a86784d0a101067005863b1e18190f9d0ddaf5be8932d",
+    "arch/arm64/boot/dts/mediatek/mt6797.dtsi": "e83520a2abf511acf6ce6b32efb5a71ea4f8dc95fb05670a8dead1b021c25479",
+    "arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts": "08f8b007379e52daa441d8b48731f8cd4a0549a3c1d887791762db68320fdbd8"
+  },
+  "prior_evidence": {
+    "protected_clock_runtime": {
+      "path": "experiments/2026-08-23-mainline-protected-clock-first-dmesg-call/results/runtime-attempt-1-pass-20260823.txt",
+      "sha256": "07f149dcf5bcc5d77deaf0cf1df7ab499d708797cf5e93fe49f0b38f50e5f1b4"
+    },
+    "secure_replay_provenance": {
+      "path": "experiments/2026-08-21-mainline-secure-replay-epoch-audit/results/provenance-20260821.txt",
+      "sha256": "9bd2738927aab7f7f492e59d57da615f9f28a4ddc5f59e02c827ad4f3e4b46a4"
+    },
+    "platform_reset_classifier": {
+      "path": "experiments/2026-08-21-mainline-platform-reset-classifier-audit/results/classifier-matrix.tsv",
+      "sha256": "7fc7a8cdca2a330d4b32576dabb5bbf8b954270a808a32fbddbbbf37e81a2fc1"
+    }
+  },
+  "call_graph": {
+    "direct_source_register_production_call_sites": 0,
+    "direct_source_register_test_call_sites": 3,
+    "direct_source_register_test_files": 2,
+    "bootstrap_publisher_production_call_sites": 0,
+    "positive_replay_production_producers": 0
+  },
+  "exact_vector": {
+    "comparison": "full-record-memcmp",
+    "expected_clock_raw_words_zero": 18,
+    "qualified_clock_raw_words_nonzero": 17,
+    "qualified_clock_matches_expected": false,
+    "bigidvfs_physical_runtime_qualified": false
+  },
+  "decision": {
+    "overall": "rejected-current-production-inputs",
+    "replay": "blocked-no-current-boot-primary-bl31-applicability-owner",
+    "physical": "blocked-no-production-adapter-a34-clock-vector-mismatch-and-unqualified-physical-fields",
+    "publication": "stopped",
+    "selected_next": "offline-staged-physical-source-qualification-contract",
+    "build": false,
+    "boot_candidate": false,
+    "device_action": false,
+    "cpu_request": false
+  }
+}

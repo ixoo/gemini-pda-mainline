@@ -1,0 +1,16 @@
+id	authority	canonical_input	required_positive	decision
+R01	primary-BL31-clear	conditional-static-clear-range	current-boot-applicability	partial-block
+R02	platform-reset-classifier	no-positive-Linux-transport	owned-positive-current-boot-row	missing-block
+R03	replay-record	caller-borrowed-typed-ABI	production-init-invalidate-owner	missing-block
+R04	replay-substitutes	TOPRGU-ram-console-LK-log-reboot-zero	independent-source-backed-authority	rejected
+P01	direct-source-registry	single-owner-lifetime-safe	production-physical-adapter	missing-block
+P02	DA921x-source	stable-device-managed-reader	adapter-call-under-outer-owner	partial
+P03	platform-source	stable-reader-base-node-disabled	current-mainline-composed-sample	missing-block
+P04	protected-clock-source	one-qualified-physical-read	joint-snapshot-and-exact-predicate	partial
+P05	protected-clock-vector	17-of-18-raw-words-nonzero	canonical-expected-all-zero	mismatch-block
+P06	BigiDVFS-source	firmware-ABI-confirmed-node-disabled	named-device-mainline-runtime	missing-block
+P07	BigiDVFS-vector	four-static-zero-raw-words	physical-attributable-values	unsupported-block
+P08	direct-shape-validator	ABI-reserved-generation-only	complete-field-A34-predicate	partial
+L01	atomic-lock-order	CPUHP-transition-source-P30-state	retain-through-both-inputs	satisfied
+C01	publisher-callers	zero-production-callers	remain-zero-until-both-authorities	satisfied
+C02	production-publication	owner-closed-uninitialized	both-inputs-owned-and-admissible	stop

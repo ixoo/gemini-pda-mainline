@@ -4939,13 +4939,24 @@ The next ordered work is:
    Buildbox profile has no atomic-test or unused-suite warning, and its strict
    no-network arm64 run passes the 20 late-startup plus eight atomic-publication
    cases with zero failures or skips and no unrelated suite registration.
-   **Selected next:** perform an offline production-input ownership audit that
-   treats positive primary-BL31 replay applicability and the physical
-   direct-state source as distinct authorities. Freeze each exact producer,
-   initialization and invalidation lifetime, lock/order contract, and failure
-   result before adding a production publisher caller. The audit must reject a
-   correlated reset inference, test seed, caller-supplied constant, stale
-   snapshot, hardware action, CPU request, build candidate, or device boot.
+   The offline
+   [production-input ownership audit](../experiments/2026-08-24-mainline-a72-production-input-ownership-audit/README.md)
+   now treats replay applicability and physical direct state as independent
+   authorities and rejects a production publisher caller. Canonical Linux has
+   no positive current-boot owner for the conditional primary-BL31 clear and
+   no production direct-source registration. The physical branch also has an
+   exact data blocker: A34's static zero protected-clock vector contradicts
+   the already qualified named-device record. BigiDVFS's named-firmware ABI is
+   confirmed, but its named-device mainline runtime and the composed platform
+   record remain unqualified. The linked audit owns the exact field counts,
+   producer lifetimes, complete lock order, zero-on-failure behavior, and
+   rejected replay substitutes; it performed no build, hardware action,
+   device boot, or CPU request.
+   **Selected next:** freeze a separate staged physical-source qualification
+   contract. It must retain the owner lock order, attribute platform, DA921x,
+   protected-clock, and the first named-device BigiDVFS return, and add no A34
+   publication, replay inference, provider action, or CPU request. Only that
+   separate experiment may review a Buildbox build and one physical attempt.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
