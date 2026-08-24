@@ -1,0 +1,242 @@
+From 2083c4d9c71815ad15b2c6f7e760edca634d2c1c Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 23 Aug 2026 23:02:00 +0000
+Subject: [PATCH 2/2] arm64: move A72 direct-state KUnit state off stack
+
+Keep large observations and preservation snapshots in the existing KUnit-managed per-case allocation and check zero records without a stack-sized reference object.
+---
+ .../kernel/mt6797_a72_direct_state_test.c     | 111 +++++++++---------
+ 1 file changed, 58 insertions(+), 53 deletions(-)
+
+diff --git a/arch/arm64/kernel/mt6797_a72_direct_state_test.c b/arch/arm64/kernel/mt6797_a72_direct_state_test.c
+index cee0ace..fc2fac5 100644
+--- a/arch/arm64/kernel/mt6797_a72_direct_state_test.c
++++ b/arch/arm64/kernel/mt6797_a72_direct_state_test.c
+@@ -27,6 +27,11 @@ enum direct_source_mutation {
+ 
+ struct direct_test_state {
+ 	struct mt6797_a72_direct_source_snapshot source;
++	struct mt6797_a72_direct_state_snapshot observed;
++	struct mt6797_a72_owner_snapshot owner_before;
++	struct mt6797_a72_owner_snapshot owner_after;
++	struct arm64_late_cpu_startup_snapshot p30_before;
++	struct arm64_late_cpu_startup_snapshot p30_after;
+ 	enum direct_source_mutation mutation;
+ 	int callback_result;
+ 	u32 calls;
+@@ -159,9 +164,8 @@ static int direct_register(struct kunit *test, struct direct_test_state *state)
+ static void expect_zero(struct kunit *test,
+ 			const struct mt6797_a72_direct_state_snapshot *snapshot)
+ {
+-	const struct mt6797_a72_direct_state_snapshot zero = { };
+-
+-	KUNIT_EXPECT_EQ(test, memcmp(snapshot, &zero, sizeof(zero)), 0);
++	KUNIT_EXPECT_PTR_EQ(test,
++			    memchr_inv(snapshot, 0, sizeof(*snapshot)), NULL);
+ }
+ 
+ static int direct_test_init(struct kunit *test)
+@@ -180,41 +184,42 @@ static int direct_test_init(struct kunit *test)
+ static void direct_snapshot_success(struct kunit *test)
+ {
+ 	struct direct_test_state *state = test->priv;
+-	struct mt6797_a72_direct_state_snapshot observed;
+-	struct mt6797_a72_owner_snapshot before;
+-	struct mt6797_a72_owner_snapshot after;
++	struct mt6797_a72_direct_state_snapshot *observed = &state->observed;
+ 	struct mt6797_a72_direct_topology topology = direct_topology();
+-	struct arm64_late_cpu_startup_snapshot p30_before;
+-	struct arm64_late_cpu_startup_snapshot p30_after;
+ 	int preflight_before;
+ 	int preflight_after;
+ 	int ret;
+ 
+ 	KUNIT_ASSERT_EQ(test, direct_register(test, state), 0);
+-	mt6797_a72_membership_snapshot(&before);
+-	arm64_late_cpu_startup_snapshot(&p30_before);
++	mt6797_a72_membership_snapshot(&state->owner_before);
++	arm64_late_cpu_startup_snapshot(&state->p30_before);
+ 	preflight_before = mt6797_a72_membership_preflight_up(8, CPUHP_OFFLINE);
+-	memset(&observed, 0xa5, sizeof(observed));
+-	ret = mt6797_a72_direct_state_test_snapshot(&topology, &observed);
++	memset(observed, 0xa5, sizeof(*observed));
++	ret = mt6797_a72_direct_state_test_snapshot(&topology, observed);
+ 	KUNIT_ASSERT_EQ(test, ret, 0);
+-	KUNIT_EXPECT_EQ(test, observed.abi, MT6797_A72_DIRECT_STATE_ABI);
+-	KUNIT_EXPECT_EQ(test, observed.valid, 1U);
+-	KUNIT_EXPECT_EQ(test, observed.cpu8_possible, 1U);
+-	KUNIT_EXPECT_EQ(test, observed.cpu9_possible, 1U);
+-	KUNIT_EXPECT_EQ(test, observed.cpu8_present, 1U);
+-	KUNIT_EXPECT_EQ(test, observed.cpu9_present, 1U);
+-	KUNIT_EXPECT_EQ(test, observed.cpu8_online, 0U);
+-	KUNIT_EXPECT_EQ(test, observed.cpu9_online, 0U);
+-	KUNIT_EXPECT_EQ(test, observed.source.provider.vbuckb_a, 0x46U);
+-	KUNIT_EXPECT_EQ(test, observed.owner.health,
++	KUNIT_EXPECT_EQ(test, observed->abi, MT6797_A72_DIRECT_STATE_ABI);
++	KUNIT_EXPECT_EQ(test, observed->valid, 1U);
++	KUNIT_EXPECT_EQ(test, observed->cpu8_possible, 1U);
++	KUNIT_EXPECT_EQ(test, observed->cpu9_possible, 1U);
++	KUNIT_EXPECT_EQ(test, observed->cpu8_present, 1U);
++	KUNIT_EXPECT_EQ(test, observed->cpu9_present, 1U);
++	KUNIT_EXPECT_EQ(test, observed->cpu8_online, 0U);
++	KUNIT_EXPECT_EQ(test, observed->cpu9_online, 0U);
++	KUNIT_EXPECT_EQ(test, observed->source.provider.vbuckb_a, 0x46U);
++	KUNIT_EXPECT_EQ(test, observed->owner.health,
+ 			MT6797_A72_OWNER_CLOSED);
+ 	KUNIT_EXPECT_EQ(test, state->calls, 1U);
+-	mt6797_a72_membership_snapshot(&after);
+-	arm64_late_cpu_startup_snapshot(&p30_after);
++	mt6797_a72_membership_snapshot(&state->owner_after);
++	arm64_late_cpu_startup_snapshot(&state->p30_after);
+ 	preflight_after = mt6797_a72_membership_preflight_up(8, CPUHP_OFFLINE);
+-	KUNIT_EXPECT_EQ(test, memcmp(&before, &after, sizeof(before)), 0);
+-	KUNIT_EXPECT_EQ(test, memcmp(&p30_before, &p30_after,
+-				     sizeof(p30_before)), 0);
++	KUNIT_EXPECT_EQ(test,
++			memcmp(&state->owner_before,
++			       &state->owner_after,
++			       sizeof(state->owner_before)), 0);
++	KUNIT_EXPECT_EQ(test,
++			memcmp(&state->p30_before,
++			       &state->p30_after,
++			       sizeof(state->p30_before)), 0);
+ 	KUNIT_EXPECT_EQ(test, preflight_before, -EAGAIN);
+ 	KUNIT_EXPECT_EQ(test, preflight_after, preflight_before);
+ }
+@@ -222,19 +227,19 @@ static void direct_snapshot_success(struct kunit *test)
+ static void direct_registry_guards(struct kunit *test)
+ {
+ 	struct direct_test_state *state = test->priv;
+-	struct mt6797_a72_direct_state_snapshot observed;
++	struct mt6797_a72_direct_state_snapshot *observed = &state->observed;
+ 	struct mt6797_a72_direct_topology topology = direct_topology();
+ 	int ret;
+ 
+-	memset(&observed, 0xa5, sizeof(observed));
+-	ret = mt6797_a72_direct_state_test_snapshot(&topology, &observed);
++	memset(observed, 0xa5, sizeof(*observed));
++	ret = mt6797_a72_direct_state_test_snapshot(&topology, observed);
+ 	KUNIT_EXPECT_EQ(test, ret, -ENODEV);
+-	expect_zero(test, &observed);
++	expect_zero(test, observed);
+ 	KUNIT_ASSERT_EQ(test, direct_register(test, state), 0);
+ 	ret = mt6797_a72_direct_source_register(&direct_source_ops, state);
+ 	KUNIT_EXPECT_EQ(test, ret, -EBUSY);
+ 	mt6797_a72_direct_source_unregister(&direct_source_ops, test);
+-	ret = mt6797_a72_direct_state_test_snapshot(&topology, &observed);
++	ret = mt6797_a72_direct_state_test_snapshot(&topology, observed);
+ 	KUNIT_EXPECT_EQ(test, ret, 0);
+ 	KUNIT_EXPECT_EQ(test, state->calls, 1U);
+ }
+@@ -242,23 +247,23 @@ static void direct_registry_guards(struct kunit *test)
+ static void direct_callback_failure_zeroes(struct kunit *test)
+ {
+ 	struct direct_test_state *state = test->priv;
+-	struct mt6797_a72_direct_state_snapshot observed;
++	struct mt6797_a72_direct_state_snapshot *observed = &state->observed;
+ 	struct mt6797_a72_direct_topology topology = direct_topology();
+ 	int ret;
+ 
+ 	KUNIT_ASSERT_EQ(test, direct_register(test, state), 0);
+ 	state->callback_result = -EIO;
+-	memset(&observed, 0xa5, sizeof(observed));
+-	ret = mt6797_a72_direct_state_test_snapshot(&topology, &observed);
++	memset(observed, 0xa5, sizeof(*observed));
++	ret = mt6797_a72_direct_state_test_snapshot(&topology, observed);
+ 	KUNIT_EXPECT_EQ(test, ret, -EIO);
+-	expect_zero(test, &observed);
++	expect_zero(test, observed);
+ 	KUNIT_EXPECT_EQ(test, state->calls, 1U);
+ }
+ 
+ static void direct_source_mutations_rejected(struct kunit *test)
+ {
+ 	struct direct_test_state *state = test->priv;
+-	struct mt6797_a72_direct_state_snapshot observed;
++	struct mt6797_a72_direct_state_snapshot *observed = &state->observed;
+ 	struct mt6797_a72_direct_topology topology = direct_topology();
+ 	enum direct_source_mutation mutation;
+ 	int ret;
+@@ -267,11 +272,11 @@ static void direct_source_mutations_rejected(struct kunit *test)
+ 	for (mutation = DIRECT_MUTATION_ABI;
+ 	     mutation <= DIRECT_MUTATION_BIGIDVFS_GENERATION; mutation++) {
+ 		state->mutation = mutation;
+-		memset(&observed, 0xa5, sizeof(observed));
+-		ret = mt6797_a72_direct_state_test_snapshot(&topology, &observed);
++		memset(observed, 0xa5, sizeof(*observed));
++		ret = mt6797_a72_direct_state_test_snapshot(&topology, observed);
+ 		KUNIT_EXPECT_EQ_MSG(test, ret, -EPROTO,
+ 				    "mutation %u accepted", mutation);
+-		expect_zero(test, &observed);
++		expect_zero(test, observed);
+ 	}
+ 	KUNIT_EXPECT_EQ(test, state->calls,
+ 			(u32)DIRECT_MUTATION_BIGIDVFS_GENERATION);
+@@ -280,7 +285,7 @@ static void direct_source_mutations_rejected(struct kunit *test)
+ static void direct_topology_mutations_rejected(struct kunit *test)
+ {
+ 	struct direct_test_state *state = test->priv;
+-	struct mt6797_a72_direct_state_snapshot observed;
++	struct mt6797_a72_direct_state_snapshot *observed = &state->observed;
+ 	struct mt6797_a72_direct_topology topology;
+ 	unsigned int index;
+ 	int ret;
+@@ -308,11 +313,11 @@ static void direct_topology_mutations_rejected(struct kunit *test)
+ 			topology.cpu9_online ^= 1;
+ 			break;
+ 		}
+-		memset(&observed, 0xa5, sizeof(observed));
+-		ret = mt6797_a72_direct_state_test_snapshot(&topology, &observed);
++		memset(observed, 0xa5, sizeof(*observed));
++		ret = mt6797_a72_direct_state_test_snapshot(&topology, observed);
+ 		KUNIT_EXPECT_EQ_MSG(test, ret, -EPERM,
+ 				    "topology field %u accepted", index);
+-		expect_zero(test, &observed);
++		expect_zero(test, observed);
+ 	}
+ 	KUNIT_EXPECT_EQ(test, state->calls, 0U);
+ }
+@@ -320,34 +325,34 @@ static void direct_topology_mutations_rejected(struct kunit *test)
+ static void direct_open_owner_rejected(struct kunit *test)
+ {
+ 	struct direct_test_state *state = test->priv;
+-	struct mt6797_a72_direct_state_snapshot observed;
++	struct mt6797_a72_direct_state_snapshot *observed = &state->observed;
+ 	struct mt6797_a72_direct_topology topology = direct_topology();
+ 	int ret;
+ 
+ 	KUNIT_ASSERT_EQ(test, direct_register(test, state), 0);
+ 	mt6797_a72_membership_test_seed_available();
+-	memset(&observed, 0xa5, sizeof(observed));
+-	ret = mt6797_a72_direct_state_test_snapshot(&topology, &observed);
++	memset(observed, 0xa5, sizeof(*observed));
++	ret = mt6797_a72_direct_state_test_snapshot(&topology, observed);
+ 	KUNIT_EXPECT_EQ(test, ret, -EPERM);
+-	expect_zero(test, &observed);
++	expect_zero(test, observed);
+ 	KUNIT_EXPECT_EQ(test, state->calls, 0U);
+ }
+ 
+ static void direct_unregister_closes_source(struct kunit *test)
+ {
+ 	struct direct_test_state *state = test->priv;
+-	struct mt6797_a72_direct_state_snapshot observed;
++	struct mt6797_a72_direct_state_snapshot *observed = &state->observed;
+ 	struct mt6797_a72_direct_topology topology = direct_topology();
+ 	int ret;
+ 
+ 	KUNIT_ASSERT_EQ(test, direct_register(test, state), 0);
+-	ret = mt6797_a72_direct_state_test_snapshot(&topology, &observed);
++	ret = mt6797_a72_direct_state_test_snapshot(&topology, observed);
+ 	KUNIT_ASSERT_EQ(test, ret, 0);
+ 	mt6797_a72_direct_source_unregister(&direct_source_ops, state);
+-	memset(&observed, 0xa5, sizeof(observed));
+-	ret = mt6797_a72_direct_state_test_snapshot(&topology, &observed);
++	memset(observed, 0xa5, sizeof(*observed));
++	ret = mt6797_a72_direct_state_test_snapshot(&topology, observed);
+ 	KUNIT_EXPECT_EQ(test, ret, -ENODEV);
+-	expect_zero(test, &observed);
++	expect_zero(test, observed);
+ }
+ 
+ static struct kunit_case direct_state_cases[] = {

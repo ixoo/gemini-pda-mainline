@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-23-mainline-a72-direct-state-compositor` |
-| Status | first compile rejected for stack safety; follow-up defined |
+| Status | stack fixes admitted; Buildbox recompile pending |
 | Subsystem | MT6797 A72 direct-state composition and hotplug ownership |
 | Device variant | Gemini PDA contract; injected KUnit phase |
 | Date(s) | 2026-08-23 America/New_York |
@@ -145,6 +145,13 @@ replay. Strict checkpatch then found only two continuation-column checks in
 the KUnit owner/P30 preservation comparisons. Their nested `memcmp()` calls
 are now placed on normal macro-continuation lines with aligned arguments.
 
+Submission `6805c496` generated both follow-up patches from the exact prepared
+source through patch `0338`. Both source phases and the generated-patch
+contract passed, exact replay reproduced commit `2083c4d9`, and strict
+checkpatch reported zero errors, warnings, or checks for both patches. The
+reviewed bytes are admitted as canonical patches `0339` and `0340`; their
+SHA-256 identities are pinned in [`contract.json`](contract.json).
+
 ## Analysis
 
 The split keeps the outer ownership proof independent from physical reader
@@ -155,10 +162,11 @@ eligibility, or CPU8/CPU9 admission.
 
 ## Conclusion
 
-`rejected-stack-safety`: the exact implementation compiled and its artifact
-validated, but the first compile exposed unsafe stack allocation. No QEMU or
-device execution was performed. The bounded repair is defined and awaits
-Buildbox generation, review, admission, and recompilation.
+`pending-stack-recompile`: the exact implementation compiled and its artifact
+validated, but the first compile exposed unsafe stack allocation. The two
+checksum-identified repairs are now admitted after semantic validation, exact
+replay, and strict checkpatch. No QEMU or device execution has occurred; the
+focused profile must now rebuild without any newly introduced stack warning.
 
 ## Follow-up
 

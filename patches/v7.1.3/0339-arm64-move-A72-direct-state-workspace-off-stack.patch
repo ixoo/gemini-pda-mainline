@@ -1,0 +1,130 @@
+From 743f9602c3d6b3becaca7c7a08054c96da6adbb7 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 23 Aug 2026 23:01:00 +0000
+Subject: [PATCH 1/2] arm64: move A72 direct-state workspace off stack
+
+Serialize one static workspace under the existing A72 transition owner, keep the pristine reference in read-only storage, and scrub workspace state on every exit.
+---
+ arch/arm64/kernel/mt6797_a72_membership.c | 71 ++++++++++++++---------
+ 1 file changed, 43 insertions(+), 28 deletions(-)
+
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+index 6158d3f..ae27130 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -242,19 +242,27 @@ mt6797_a72_direct_owner_snapshot_locked(struct mt6797_a72_owner_snapshot *snapsh
+ 	snapshot->controller_present = !!a72_owner.controller;
+ }
+ 
++static const struct mt6797_a72_owner_snapshot a72_direct_expected_owner = {
++	.diagnostic_blockers = MT6797_A72_BLOCK_MASK,
++	.abi = MT6797_A72_TRANSACTION_ABI,
++	.health = MT6797_A72_OWNER_CLOSED,
++	.phase = MT6797_A72_PHASE_UNINITIALIZED,
++	.provider_state = MT6797_A72_PROVIDER_NONE,
++};
++
++struct mt6797_a72_direct_state_workspace {
++	struct mt6797_a72_direct_state_snapshot observed;
++	struct mt6797_a72_owner_snapshot owner_after;
++};
++
++static struct mt6797_a72_direct_state_workspace a72_direct_workspace;
++
+ static bool
+ mt6797_a72_direct_owner_pristine_locked(struct mt6797_a72_owner_snapshot *snapshot)
+ {
+-	const struct mt6797_a72_owner_snapshot expected = {
+-		.diagnostic_blockers = MT6797_A72_BLOCK_MASK,
+-		.abi = MT6797_A72_TRANSACTION_ABI,
+-		.health = MT6797_A72_OWNER_CLOSED,
+-		.phase = MT6797_A72_PHASE_UNINITIALIZED,
+-		.provider_state = MT6797_A72_PROVIDER_NONE,
+-	};
+-
+ 	mt6797_a72_direct_owner_snapshot_locked(snapshot);
+-	return !memcmp(snapshot, &expected, sizeof(expected)) &&
++	return !memcmp(snapshot, &a72_direct_expected_owner,
++		       sizeof(a72_direct_expected_owner)) &&
+ 		!a72_owner.controller && !a72_owner.next_generation &&
+ 		!a72_owner.next_cookie;
+ }
+@@ -294,18 +302,23 @@ static int
+ mt6797_a72_direct_state_snapshot_locked(const struct mt6797_a72_direct_topology *topology,
+ 					struct mt6797_a72_direct_state_snapshot *snapshot)
+ {
+-	struct mt6797_a72_direct_state_snapshot observed = { };
+-	struct mt6797_a72_owner_snapshot owner_after;
++	struct mt6797_a72_direct_state_workspace *workspace =
++		&a72_direct_workspace;
++	struct mt6797_a72_direct_state_snapshot *observed =
++		&workspace->observed;
++	struct mt6797_a72_owner_snapshot *owner_after =
++		&workspace->owner_after;
+ 	unsigned long flags;
+-	int ret;
++	int ret = -EPERM;
+ 
++	memset(workspace, 0, sizeof(*workspace));
+ 	if (!mt6797_a72_direct_topology_valid(topology))
+-		return -EPERM;
++		goto out_clear;
+ 
+ 	raw_spin_lock_irqsave(&a72_state_lock, flags);
+-	if (!mt6797_a72_direct_owner_pristine_locked(&observed.owner)) {
++	if (!mt6797_a72_direct_owner_pristine_locked(&observed->owner)) {
+ 		raw_spin_unlock_irqrestore(&a72_state_lock, flags);
+-		return -EPERM;
++		goto out_clear;
+ 	}
+ 	raw_spin_unlock_irqrestore(&a72_state_lock, flags);
+ 
+@@ -315,33 +328,35 @@ mt6797_a72_direct_state_snapshot_locked(const struct mt6797_a72_direct_topology
+ 		goto out_unlock;
+ 	}
+ 	ret = a72_direct_source_ops->snapshot(a72_direct_source_context,
+-					      &observed.source);
++					      &observed->source);
+ 	if (ret)
+ 		goto out_unlock;
+-	if (!mt6797_a72_direct_source_valid(&observed.source)) {
++	if (!mt6797_a72_direct_source_valid(&observed->source)) {
+ 		ret = -EPROTO;
+ 		goto out_unlock;
+ 	}
+ 
+ 	raw_spin_lock_irqsave(&a72_state_lock, flags);
+-	if (!mt6797_a72_direct_owner_pristine_locked(&owner_after) ||
+-	    memcmp(&observed.owner, &owner_after, sizeof(owner_after)))
++	if (!mt6797_a72_direct_owner_pristine_locked(owner_after) ||
++	    memcmp(&observed->owner, owner_after, sizeof(*owner_after)))
+ 		ret = -EPERM;
+ 	raw_spin_unlock_irqrestore(&a72_state_lock, flags);
+ 	if (ret)
+ 		goto out_unlock;
+ 
+-	observed.abi = MT6797_A72_DIRECT_STATE_ABI;
+-	observed.valid = 1;
+-	observed.cpu8_possible = topology->cpu8_possible;
+-	observed.cpu9_possible = topology->cpu9_possible;
+-	observed.cpu8_present = topology->cpu8_present;
+-	observed.cpu9_present = topology->cpu9_present;
+-	observed.cpu8_online = topology->cpu8_online;
+-	observed.cpu9_online = topology->cpu9_online;
+-	*snapshot = observed;
++	observed->abi = MT6797_A72_DIRECT_STATE_ABI;
++	observed->valid = 1;
++	observed->cpu8_possible = topology->cpu8_possible;
++	observed->cpu9_possible = topology->cpu9_possible;
++	observed->cpu8_present = topology->cpu8_present;
++	observed->cpu9_present = topology->cpu9_present;
++	observed->cpu8_online = topology->cpu8_online;
++	observed->cpu9_online = topology->cpu9_online;
++	*snapshot = *observed;
+ out_unlock:
+ 	mutex_unlock(&a72_direct_source_registry_lock);
++out_clear:
++	memset(workspace, 0, sizeof(*workspace));
+ 	return ret;
+ }
+ 

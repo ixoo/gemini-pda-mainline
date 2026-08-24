@@ -76,10 +76,10 @@ def main() -> None:
     for relative, expected in generation["patch_sha256"].items():
         require(sha256(ROOT / relative) == expected,
                 f"admitted patch identity {relative}")
-    require(series[-2:] == [
+    require(series[-4:-2] == [
         "v7.1.3/0337-arm64-add-closed-A72-direct-state-compositor.patch",
         "v7.1.3/0338-arm64-test-closed-A72-direct-state-compositor.patch",
-    ], "canonical tail")
+    ], "canonical initial patch order")
     attempts = contract["compile_attempts"]
     require(len(attempts) == 1, "compile attempt count")
     attempt = attempts[0]
@@ -118,9 +118,25 @@ def main() -> None:
         "0339-arm64-move-A72-direct-state-workspace-off-stack.patch",
         "0340-arm64-move-A72-direct-state-KUnit-state-off-stack.patch",
     ], "stack-fix patch order")
-    require(stack_fix["generated"] is False and
+    require(stack_fix["generated"] is True and
             stack_fix["boot_candidate"] is False,
-            "stack-fix definition phase")
+            "stack-fix generation phase")
+    stack_generation = stack_fix["generation"]
+    require(stack_generation["repository_commit"] ==
+            "6805c496112680caeb92b8e36bfd5aa34773f2a3",
+            "stack generation commit")
+    require(stack_generation["exact_replay"] is True,
+            "stack exact replay")
+    require(stack_generation["checkpatch"] ==
+            "0 errors, 0 warnings, 0 checks",
+            "stack strict checkpatch")
+    for relative, expected in stack_generation["patch_sha256"].items():
+        require(sha256(ROOT / relative) == expected,
+                f"stack patch identity {relative}")
+    require(series[-2:] == [
+        "v7.1.3/0339-arm64-move-A72-direct-state-workspace-off-stack.patch",
+        "v7.1.3/0340-arm64-move-A72-direct-state-KUnit-state-off-stack.patch",
+    ], "canonical stack-fix tail")
     require(contract["owner_order"] == [
         "cpu_hotplug_lock_read", "a72_transition_lock",
         "direct_state_source_registry_lock", "injected_source_callback",
@@ -225,14 +241,14 @@ def main() -> None:
         'print("opens_owner=false")',
     ):
         require(token in classifier, f"QEMU classifier {token}")
-    require("`rejected-stack-safety`" in readme,
+    require("`pending-stack-recompile`" in readme,
             "current phase statement")
 
     print("validation=a72-direct-state-definition")
     print(f"source_templates={len(source_files)}")
     print("generated_patch_count=2")
     print("compile_attempt_1=rejected-stack-safety")
-    print("stack_fix_generated=false")
+    print("stack_fix_generated=true")
     print(f"manifest_profiles={len(manifest['config']['profiles'])}")
     print(f"canonical_patch_count={len(series)}")
     print("physical_reader_callers=0")
