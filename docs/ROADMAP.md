@@ -5140,10 +5140,12 @@ The next ordered work is:
    positive control reached `/init` and USB yet returned with the same empty
    headers, so this result establishes only that no record survived; it does
    not establish execution before pure init. The artifact is retired and an
-   identical retry is prohibited. **Selected next:** recontainer this exact
-   kernel with the runtime-proven Stage-27 DTB and pre-arm a live USB/netcat
-   collector. Read identity and early-ledger state before any reboot. This is
-   a DT-only serviceability control, requires no kernel build, and keeps every
+   identical retry is prohibited. **Selected next:** the linked
+   [A72 early live DT control](../experiments/2026-08-24-mainline-a72-early-live-control/README.md)
+   recontainers this exact kernel with the runtime-proven Stage-27 DTB and
+   pre-arms a live USB/netcat collector. Its exact two-construction candidate
+   and independent validation pass without a kernel build. Deploy it once,
+   read identity and early-ledger state before any reboot, and leave every
    provider, owner, publication, and CPU action closed.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
