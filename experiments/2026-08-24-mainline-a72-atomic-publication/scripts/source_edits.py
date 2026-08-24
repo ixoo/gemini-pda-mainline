@@ -416,6 +416,12 @@ def tests(root: Path) -> None:
     fragment = fragment.removeprefix(license_header)
     replace_once(
         test_path,
+        "static struct kunit_suite mt6797_a72_owner_suite = {\n",
+        ("static struct kunit_suite mt6797_a72_owner_suite "
+         "__maybe_unused = {\n"),
+    )
+    replace_once(
+        test_path,
         "\nkunit_test_suite(mt6797_a72_owner_suite);\n\n"
         'MODULE_LICENSE("GPL");\n',
         "\n#ifdef CONFIG_ARM64_MT6797_A72_ATOMIC_PUBLICATION_KUNIT_TEST\n"

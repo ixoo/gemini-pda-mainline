@@ -125,6 +125,18 @@
       "stage": "configuration-validation",
       "compile_started": false,
       "reason": "inherited P30 fragment explicitly disabled the selected late-startup KUnit suite"
+    },
+    {
+      "repository_commit": "8a263f5b12529cb1c20679c9490d11382a1902b3",
+      "classification": "rejected-new-unused-shared-owner-suite-warning",
+      "stage": "compile-review",
+      "compile_started": true,
+      "package": "linux-7.1.3-gemini-a72-atomic-publication-kunit-fd389883-fb1ade23",
+      "frame_warning_total": 2,
+      "inherited_production_frame_warnings": 2,
+      "membership_test_frame_warnings": 0,
+      "new_unused_owner_suite_warnings": 1,
+      "evidence": "results/buildbox-compile-rejected-8a263f5b-20260824.txt"
     }
   ],
   "build": {

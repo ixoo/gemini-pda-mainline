@@ -58,6 +58,8 @@ def main() -> None:
                       "buildbox-compile-e5de89b7-20260824.txt").read_text()
     mixed_evidence = (EXPERIMENT / "results/"
                       "kunit-qemu-mixed-e5de89b7-20260824.txt").read_text()
+    rejected_build_evidence = (EXPERIMENT / "results/"
+        "buildbox-compile-rejected-8a263f5b-20260824.txt").read_text()
 
     require(contract["experiment"] == EXPERIMENT.name, "experiment identity")
     require(contract["repository_parent"] ==
@@ -191,15 +193,33 @@ def main() -> None:
         "device_action": False,
         "boot_candidate": False,
     }, "successful generation result")
-    require(contract["build_attempts"] == [{
-        "repository_commit":
-            "84c94b0460db492ab89565cfe0f361491b770b96",
-        "classification": "rejected-fragment-override-closure",
-        "stage": "configuration-validation",
-        "compile_started": False,
-        "reason": ("inherited P30 fragment explicitly disabled the selected "
-                   "late-startup KUnit suite"),
-    }], "build attempt chronology")
+    require(contract["build_attempts"] == [
+        {
+            "repository_commit":
+                "84c94b0460db492ab89565cfe0f361491b770b96",
+            "classification": "rejected-fragment-override-closure",
+            "stage": "configuration-validation",
+            "compile_started": False,
+            "reason": ("inherited P30 fragment explicitly disabled the "
+                       "selected late-startup KUnit suite"),
+        },
+        {
+            "repository_commit":
+                "8a263f5b12529cb1c20679c9490d11382a1902b3",
+            "classification":
+                "rejected-new-unused-shared-owner-suite-warning",
+            "stage": "compile-review",
+            "compile_started": True,
+            "package": ("linux-7.1.3-gemini-a72-atomic-publication-kunit-"
+                        "fd389883-fb1ade23"),
+            "frame_warning_total": 2,
+            "inherited_production_frame_warnings": 2,
+            "membership_test_frame_warnings": 0,
+            "new_unused_owner_suite_warnings": 1,
+            "evidence":
+                "results/buildbox-compile-rejected-8a263f5b-20260824.txt",
+        },
+    ], "build attempt chronology")
     require(contract["build"] == {
         "repository_commit":
             "e5de89b7b5affc859a2f491d1b795fa3d41dd14a",
@@ -269,6 +289,7 @@ def main() -> None:
         "a72_owner.health = MT6797_A72_OWNER_AVAILABLE",
         "CONFIG_ARM64_MT6797_A72_ATOMIC_PUBLICATION_KUNIT_TEST",
         "kunit_test_suite(atomic_publication_test_suite)",
+        "__maybe_unused = {",
     ):
         require(token in edits, f"source editor contract {token}")
     for token in (
@@ -286,7 +307,10 @@ def main() -> None:
         require(token in patch_validator, f"patch validator marker {token}")
     for token in (
         "PARENT_SOURCE_STATE=5f830ffd", "PARENT_SOURCE_INTEGRITY=6e8edea4",
-        "CURRENT_SOURCE_STATE=c7652bad", "CURRENT_SOURCE_INTEGRITY=88aa62a3",
+        "PRE_ISOLATION_SOURCE_STATE=c7652bad",
+        "PRE_ISOLATION_SOURCE_INTEGRITY=88aa62a3",
+        "ISOLATED_SOURCE_STATE=2062f915",
+        "ISOLATED_SOURCE_INTEGRITY=0cdaed40",
         "PARENT_PATCH=0344-", "--phase finalizer", "--phase publisher",
         "--phase tests", 'git -C "$work/verify" am', "checkpatch.pl",
         "PSCI_SOURCE_SHA256=7e332979", "generated_patch_count=3",
@@ -344,6 +368,15 @@ def main() -> None:
         "result=rejected-profile-registered-unrelated-owner-suite",
     ):
         require(token in mixed_evidence, f"mixed QEMU evidence {token}")
+    for token in (
+        "repository_commit=8a263f5b12529cb1c20679c9490d11382a1902b3",
+        "frame_warning_total=2",
+        "membership_test_frame_warnings=0",
+        "new_unused_owner_suite_warnings=1",
+        "result=rejected-new-unused-shared-owner-suite-warning",
+    ):
+        require(token in rejected_build_evidence,
+                f"rejected build evidence {token}")
     profile = manifest["config"]["profiles"][PROFILE]
     require(profile["base"] == "defconfig" and
             profile["patch_series"] == "patches/series",
@@ -359,13 +392,14 @@ def main() -> None:
             'CONFIG_LOCALVERSION="-gemini-a72-atomic-kunit"' in fragment,
             "isolated profile contract")
     for token in (
-        "compiled; atomic KUnit passes",
+        "atomic KUnit passes; compile-hygiene regeneration pending",
         "no production caller", "candidate is defined",
         "failed closed before any", "atomic-publication suite passed 8/8",
         "failed closed before", "reverse-applies the exact three",
         "Patches `0345` and `0346` are byte-identical",
         "a72-atomic-publication-b7677583d47a",
-        "Build the exact regenerated profile",
+        "Compile review nevertheless rejected",
+        "Regenerate the compile-hygiene-only `0347`",
     ):
         require(token in readme, f"README closure {token}")
 
@@ -377,6 +411,7 @@ def main() -> None:
         "scripts/run-kunit-qemu", "scripts/classify-kunit.py",
         "results/buildbox-compile-e5de89b7-20260824.txt",
         "results/kunit-qemu-mixed-e5de89b7-20260824.txt",
+        "results/buildbox-compile-rejected-8a263f5b-20260824.txt",
     ):
         path = EXPERIMENT / relative
         require(path.is_file() and not path.is_symlink(),

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-24-mainline-a72-atomic-publication` |
-| Status | compiled; atomic KUnit passes; isolated `0347` regenerated; rebuild pending |
+| Status | atomic KUnit passes; compile-hygiene regeneration pending |
 | Subsystem | MT6797 A72 bootstrap owner and P30 pristine finalization |
 | Device variant | Gemini PDA contract; injected hardware-free phase |
 | Date(s) | 2026-08-24 America/New_York |
@@ -181,6 +181,16 @@ All semantic phases, patch separation, exact replay, and strict checkpatch
 again pass; the new package is `a72-atomic-publication-b7677583d47a` and all
 three exact identities are pinned in [`contract.json`](contract.json).
 
+The exact admitted rebuild at signed and pushed commit `8a263f5b` compiled and
+packaged successfully. Isolating registration also removed all 27 inherited
+membership-test frame warnings because the historical cases are no longer
+reachable; only the two previously classified production frame warnings
+remain. Compile review nevertheless rejected the package because the shared
+but unregistered `mt6797_a72_owner_suite` descriptor produced one new
+`defined but not used` warning. The generator now marks only that descriptor
+`__maybe_unused`; it does not change a case, helper, production path, or suite
+registration.
+
 ## Analysis
 
 The finalizer clears the logical claim only while retaining the private P30
@@ -204,7 +214,7 @@ the KUnit stack. No hardware-support claim or boot candidate is defined.
 
 ## Follow-up
 
-Build the exact regenerated profile on Buildbox and require a clean 28-case
-late-startup plus atomic-publication QEMU result. The authoritative sequence
-remains in
+Regenerate the compile-hygiene-only `0347`, build the exact profile on
+Buildbox, and require a clean 28-case late-startup plus atomic-publication
+QEMU result. The authoritative sequence remains in
 [Roadmap Gate 7](../../docs/ROADMAP.md#7-bring-up-cpu8).

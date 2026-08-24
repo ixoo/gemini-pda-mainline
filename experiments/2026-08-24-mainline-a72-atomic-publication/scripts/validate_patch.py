@@ -56,6 +56,8 @@ def main() -> None:
             "generated focused test count")
     require("kunit_test_suite(atomic_publication_test_suite);" in texts[2],
             "isolated atomic suite registration absent")
+    require("mt6797_a72_owner_suite __maybe_unused" in texts[2],
+            "unregistered shared owner suite warning not closed")
     require("kunit_test_suites(" not in texts[2],
             "unrelated owner suite registration present")
     combined = "\n".join(texts)

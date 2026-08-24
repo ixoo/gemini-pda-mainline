@@ -5,8 +5,10 @@ export LC_ALL=C
 
 readonly PARENT_SOURCE_STATE=5f830ffd6050d3831b2a6a5d94b6f8a8125444215f93828de714c5f551dcf0ad
 readonly PARENT_SOURCE_INTEGRITY=6e8edea4e04443353bcc5bc5c6da8eed3914bcca529e864f8af9af52a9ef502d
-readonly CURRENT_SOURCE_STATE=c7652badc345119ce6d5f842b01cc48d79d502944390aa90a20d9e3d2bf7cda7
-readonly CURRENT_SOURCE_INTEGRITY=88aa62a3c1e8f412c421020f7ca4fa160a3dfa056a3c35567d240f9b9867a922
+readonly PRE_ISOLATION_SOURCE_STATE=c7652badc345119ce6d5f842b01cc48d79d502944390aa90a20d9e3d2bf7cda7
+readonly PRE_ISOLATION_SOURCE_INTEGRITY=88aa62a3c1e8f412c421020f7ca4fa160a3dfa056a3c35567d240f9b9867a922
+readonly ISOLATED_SOURCE_STATE=2062f915be6fed32012f7aa9cab6380ce28851fb7de6c39d8f20fc4d157907b7
+readonly ISOLATED_SOURCE_INTEGRITY=0cdaed40861c247e4fade6014c32249750601e6cb5ee1f402b6c7d5807e85281
 readonly LATE_HEADER_SHA256=748ee669310d35ee1170c8fcd07a192de37d4384b6e4cf76178ed42067816a27
 readonly LATE_SOURCE_SHA256=d229dcf2c68c13e041e4c59987d8938adc790077062008d9e5ebe1baf0fe7861
 readonly MEMBERSHIP_HEADER_SHA256=219f2b003fb4a3f61c2c53a15ef26d75af4557bf5c91e7953eead50bbeac4bd3
@@ -41,9 +43,13 @@ case "$source_state" in
 		source_mode=parent
 		expected_source_integrity=$PARENT_SOURCE_INTEGRITY
 		;;
-	"$CURRENT_SOURCE_STATE")
-		source_mode=current-series-reverse
-		expected_source_integrity=$CURRENT_SOURCE_INTEGRITY
+	"$PRE_ISOLATION_SOURCE_STATE")
+		source_mode=pre-isolation-series-reverse
+		expected_source_integrity=$PRE_ISOLATION_SOURCE_INTEGRITY
+		;;
+	"$ISOLATED_SOURCE_STATE")
+		source_mode=isolated-series-reverse
+		expected_source_integrity=$ISOLATED_SOURCE_INTEGRITY
 		;;
 	*) die 'prepared source is neither exact parent nor reversible current series' ;;
 esac
@@ -131,7 +137,7 @@ for relative in \
 	mkdir -p "$work/source/$(dirname "$relative")"
 	cp -- "$source_root/$relative" "$work/source/$relative"
 done
-if [[ "$source_mode" == current-series-reverse ]]; then
+if [[ "$source_mode" == pre-isolation-series-reverse ]]; then
 	python3 - "$work/source/arch/arm64/kernel/mt6797_a72_membership_test.c" <<'PY'
 import sys
 from pathlib import Path
@@ -145,6 +151,8 @@ if text.count(old) != 1 or new in text:
     raise SystemExit("pre-isolation suite registration changed")
 path.write_text(text.replace(old, new), encoding="utf-8")
 PY
+fi
+if [[ "$source_mode" != parent ]]; then
 	for patch in \
 		0347-arm64-test-atomic-A72-bootstrap-publication.patch \
 		0346-arm64-add-atomic-A72-bootstrap-publisher.patch \

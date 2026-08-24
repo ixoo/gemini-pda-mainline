@@ -184,6 +184,8 @@ def main() -> None:
             "existing membership KUnit object selection")
     require("kunit_test_suite(atomic_publication_test_suite);" in
             membership_test, "isolated atomic suite registration")
+    require("mt6797_a72_owner_suite __maybe_unused" in membership_test,
+            "unregistered shared owner suite is not marked maybe-unused")
     require("kunit_test_suites(" not in membership_test[test_start:],
             "unrelated owner suite registered by atomic profile")
     for forbidden in (
