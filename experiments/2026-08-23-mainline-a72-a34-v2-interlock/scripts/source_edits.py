@@ -38,25 +38,23 @@ def interlock_header(text: str) -> str:
         "\tu64 cookie;\n"
         "};\n\n"
         "#ifdef CONFIG_ARM64_LATE_CPU_STARTUP_FAILSTOP\n"
-        "int arm64_late_cpu_startup_claim_pristine(\n"
-        "\tstruct arm64_late_cpu_bootstrap_claim *claim);\n"
-        "int arm64_late_cpu_startup_release_pristine(\n"
-        "\tstruct arm64_late_cpu_bootstrap_claim *claim);\n"
+        "int arm64_late_cpu_startup_claim_pristine(struct arm64_late_cpu_bootstrap_claim *claim);\n"
+        "int arm64_late_cpu_startup_release_pristine(struct arm64_late_cpu_bootstrap_claim *claim);\n"
         "int arm64_late_cpu_startup_prepare",
         "late header claim declarations",
     )
     text = replace_once(
         text,
         "#else\nstatic inline bool arm64_late_cpu_startup_quarantined(void)\n",
-        "#else\nstatic inline int arm64_late_cpu_startup_claim_pristine(\n"
-        "\tstruct arm64_late_cpu_bootstrap_claim *claim)\n"
+        "#else\nstatic inline int\n"
+        "arm64_late_cpu_startup_claim_pristine(struct arm64_late_cpu_bootstrap_claim *claim)\n"
         "{\n"
         "\tif (claim)\n"
         "\t\t*claim = (struct arm64_late_cpu_bootstrap_claim){};\n"
         "\treturn -EOPNOTSUPP;\n"
         "}\n\n"
-        "static inline int arm64_late_cpu_startup_release_pristine(\n"
-        "\tstruct arm64_late_cpu_bootstrap_claim *claim)\n"
+        "static inline int\n"
+        "arm64_late_cpu_startup_release_pristine(struct arm64_late_cpu_bootstrap_claim *claim)\n"
         "{\n"
         "\t(void)claim;\n"
         "\treturn -EOPNOTSUPP;\n"
@@ -110,8 +108,7 @@ def interlock_source(text: str) -> str:
 	return true;
 }
 
-int arm64_late_cpu_startup_claim_pristine(
-	struct arm64_late_cpu_bootstrap_claim *claim)
+int arm64_late_cpu_startup_claim_pristine(struct arm64_late_cpu_bootstrap_claim *claim)
 {
 	unsigned long flags;
 	u64 cookie;
@@ -138,8 +135,7 @@ out:
 	return ret;
 }
 
-int arm64_late_cpu_startup_release_pristine(
-	struct arm64_late_cpu_bootstrap_claim *claim)
+int arm64_late_cpu_startup_release_pristine(struct arm64_late_cpu_bootstrap_claim *claim)
 {
 	unsigned long flags;
 	int ret;
@@ -193,8 +189,7 @@ int arm64_late_cpu_startup_release_pristine(
 
 
 def interlock_test(text: str) -> str:
-    tests = r'''static void late_cpu_startup_bootstrap_claim_excludes_prepare_test(
-	struct kunit *test)
+    tests = r'''static void late_cpu_startup_bootstrap_claim_excludes_prepare_test(struct kunit *test)
 {
 	struct arm64_late_cpu_startup_snapshot before = {};
 	struct arm64_late_cpu_startup_snapshot after = {};
@@ -240,8 +235,7 @@ static void late_cpu_startup_bootstrap_claim_identity_test(struct kunit *test)
 			arm64_late_cpu_startup_release_pristine(&claim), -EINVAL);
 }
 
-static void late_cpu_startup_bootstrap_claim_rejects_nonpristine_test(
-	struct kunit *test)
+static void late_cpu_startup_bootstrap_claim_rejects_nonpristine_test(struct kunit *test)
 {
 	struct arm64_late_cpu_bootstrap_claim claim;
 
