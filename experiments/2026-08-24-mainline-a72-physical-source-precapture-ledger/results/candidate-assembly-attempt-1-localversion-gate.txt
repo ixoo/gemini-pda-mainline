@@ -1,0 +1,11 @@
+experiment=2026-08-24-mainline-a72-physical-source-precapture-ledger
+definition_commit=e0ec34f01665c22341843eccc711b7f551bfa6a6
+attempt=1
+result=stopped-before-assembly
+reason=inherited-builder-localversion-gate-not-retargeted
+observed_localversion=gemini-a72-precapture
+stale_expected_localversion=gemini-a72-physical-source
+candidate_produced=false
+device_access=none
+hardware_write=none
+selected_next=retarget-builder-and-independent-validator-localversion-gates

@@ -100,7 +100,8 @@
     "strict_checkpatch": "0-errors-0-warnings-0-checks"
   },
   "candidate": {
-    "status": "definition-pending-assembly",
+    "status": "definition-fix-pending-assembly",
+    "assembly_attempts": 1,
     "boot_candidate": false,
     "dtb": "dtbs/mediatek/mt6797-gemini-pda-a72-physical-source.dtb",
     "dtb_sha256": "fe67420ca4e2955a73a4a3f2e442af3534b621820cf77ae035be9bf98756425d",

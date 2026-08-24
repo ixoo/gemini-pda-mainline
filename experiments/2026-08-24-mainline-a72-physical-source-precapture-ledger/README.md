@@ -100,3 +100,10 @@ Offline preassembly with the unchanged serviceability ramdisk passes all 32 LK
 gates and fixes the raw and padded candidate identities. The next action is to
 run the pinned builder and a separately pinned independent validator before
 any device access.
+
+Assembly attempt 1 from definition `e0ec34f0` stopped before serialization
+because one inherited builder assertion still named the predecessor's local
+version. No candidate or device action occurred. The
+[stopped assembly receipt](results/candidate-assembly-attempt-1-localversion-gate.txt)
+selects the same exact local-version correction in both the builder and the
+independent validator before retrying.

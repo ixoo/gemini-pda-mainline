@@ -48,6 +48,7 @@ replacements = (
     ("readonly RAW_SIZE=6912000", "readonly RAW_SIZE=6909952", 1),
     ("readonly BOOT_NAME=gemini-a72src", "readonly BOOT_NAME=gemini-a72pre", 1),
     ("readonly BOOT_FILE=gemini-mt6797-a72-physical-source.boot.img", "readonly BOOT_FILE=gemini-mt6797-a72-precapture.boot.img", 1),
+    ('CONFIG_LOCALVERSION="-gemini-a72-physical-source"', 'CONFIG_LOCALVERSION="-gemini-a72-precapture"', 1),
     ("'CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER=y' \\", "'# CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER is not set' \\\n\t'CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_PRECAPTURE_LEDGER=y' \\", 1),
     ("\tPSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION \\\n\tPSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER \\", "\tPSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION \\\n\tPSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER \\\n\tPSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER \\", 1),
     ("GEMINI_A72_PHYSICAL_SOURCE_V1 token=GPSQ-20260824-A checkpoint=before-bigidvfs slot=1 crc32=47eaad49", "GEMINI_A72_PRECAPTURE_V1 token=GAPC-20260824-A checkpoint=probe-enter slot=1 crc32=b8f6c566", 1),
