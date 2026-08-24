@@ -131,7 +131,7 @@ def main() -> None:
 
     for name, expected in {
         "source_edits.py":
-            "c52e399c3992ac874b7838dbe16d49892fcecfe5f6dbfed0bda70f6889c9b59b",
+            "db3cdf8f2dce7065524c19fbf2175edbdbc7fe3358456a8c57b1f99c1bbd3715",
         "validate_source.py":
             "8c74b3ee4d3d849e66cdc47baf05decf21eaa55267c0d8b115d1f8f50ad1faf5",
         "validate_patch.py":
@@ -167,18 +167,34 @@ def main() -> None:
                         "b1f964dc45e7a75be5c00d02cfce284a1ad2a1c65b9e33be1a62a81f1e5dc3d8",
                     "generated_patch": False,
                     "package": False,
+                },
+                {
+                    "attempt": 2,
+                    "repository_commit":
+                        "07546d99dfaa86244860446f34e145068f50f895",
+                    "result": "checkpatch-blank-line-rejected",
+                    "receipt":
+                        "experiments/2026-08-24-mainline-a72-early-initcall-ledger/"
+                        "results/generation-attempt-2-checkpatch-blank-line-rejected.txt",
+                    "receipt_sha256":
+                        "4fb49ec84d045b89d8fc35345cd53b6c5eb94041061ffb45b06a334cbed5dfd2",
+                    "source_validation": True,
+                    "patch_shape_validation": True,
+                    "byte_identical_replay": True,
+                    "strict_checkpatch": False,
+                    "package": False,
                 }
             ],
             "canonical_admission": False,
         },
         "generation state",
     )
-    attempt = contract["generation"]["attempts"][0]
-    attempt_receipt = ROOT / attempt["receipt"]
-    require(attempt_receipt.is_file() and not attempt_receipt.is_symlink(),
-            "attempt-1 receipt")
-    require(sha256(attempt_receipt) == attempt["receipt_sha256"],
-            "attempt-1 receipt identity")
+    for attempt in contract["generation"]["attempts"]:
+        attempt_receipt = ROOT / attempt["receipt"]
+        require(attempt_receipt.is_file() and not attempt_receipt.is_symlink(),
+                f"attempt-{attempt['attempt']} receipt")
+        require(sha256(attempt_receipt) == attempt["receipt_sha256"],
+                f"attempt-{attempt['attempt']} receipt identity")
     require(
         contract["decision"]
         == {

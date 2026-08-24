@@ -1,0 +1,16 @@
+experiment=2026-08-24-mainline-a72-early-initcall-ledger
+attempt=2
+repository_commit=07546d99dfaa86244860446f34e145068f50f895
+backend=buildbox
+source_validation=pass
+patch_shape_validation=pass
+byte_identical_replay=pass
+strict_checkpatch_errors=0
+strict_checkpatch_warnings=0
+strict_checkpatch_checks=1
+check=blank-line-required-after-array-declaration
+validated_package=none
+kernel_compile=not-run
+device_action=none
+hardware_action=none
+correction=add-one-blank-line-between-record-array-and-refusal-record

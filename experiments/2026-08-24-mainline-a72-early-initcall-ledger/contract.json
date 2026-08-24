@@ -57,6 +57,18 @@
         "receipt_sha256": "b1f964dc45e7a75be5c00d02cfce284a1ad2a1c65b9e33be1a62a81f1e5dc3d8",
         "generated_patch": false,
         "package": false
+      },
+      {
+        "attempt": 2,
+        "repository_commit": "07546d99dfaa86244860446f34e145068f50f895",
+        "result": "checkpatch-blank-line-rejected",
+        "receipt": "experiments/2026-08-24-mainline-a72-early-initcall-ledger/results/generation-attempt-2-checkpatch-blank-line-rejected.txt",
+        "receipt_sha256": "4fb49ec84d045b89d8fc35345cd53b6c5eb94041061ffb45b06a334cbed5dfd2",
+        "source_validation": true,
+        "patch_shape_validation": true,
+        "byte_identical_replay": true,
+        "strict_checkpatch": false,
+        "package": false
       }
     ],
     "canonical_admission": false

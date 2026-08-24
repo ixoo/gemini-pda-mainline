@@ -92,7 +92,7 @@ def apply(root: Path) -> None:
         "\t\"====0.000000-D\\n\"\n"
         "\t\"GEMINI_A72_EARLY_INIT_V1 token=GAEI-20260824-A \"\n"
         "\t\"checkpoint=core-init outcome=commit slot=2 crc32=57dd63b5\\n\",\n"
-        "};\n"
+        "};\n\n"
         "static const char gemini_prb_refusal_record[] =\n"
         "\t\"====0.000000-D\\n\"\n"
         "\t\"GEMINI_A72_EARLY_INIT_V1 token=GAEI-20260824-A \"\n"
