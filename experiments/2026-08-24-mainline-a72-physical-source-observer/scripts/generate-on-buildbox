@@ -195,7 +195,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_source.py" \
 
 for patch in "${patches[@]}"; do
 	if ! perl "$source_root/scripts/checkpatch.pl" --no-tree --strict \
-		--ignore MISSING_SIGN_OFF,COMMIT_LOG_LONG_LINE,FILE_PATH_CHANGES \
+		--ignore MISSING_SIGN_OFF,COMMIT_LOG_LONG_LINE,FILE_PATH_CHANGES,SPLIT_STRING \
 		"$partial/patches/$patch" \
 		>"$partial/provenance/checkpatch-${patch%.patch}.txt"; then
 		cat "$partial/provenance/checkpatch-${patch%.patch}.txt" >&2
@@ -227,6 +227,7 @@ publisher_calls=0
 owner_mutations=0
 cpu_requests=0
 hardware_free_tests=4
+checkpatch_intentional_ignore=SPLIT_STRING-for-two-atomic-retained-records
 device_action=none
 boot_candidate=false
 EOF

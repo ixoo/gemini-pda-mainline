@@ -63,6 +63,9 @@ def main() -> None:
     require(contract["generation"] == {
         "patch_count": 5,
         "logical_boundaries": ["ledger", "observer", "binding", "dts", "tests"],
+        "intentional_checkpatch_ignore":
+            "SPLIT_STRING-for-two-atomic-retained-records",
+        "stopped_attempts": 2,
         "status": "pending",
     }, "generation contract")
 
@@ -121,6 +124,7 @@ def main() -> None:
         "publisher_calls=0",
         "owner_mutations=0",
         "cpu_requests=0",
+        "checkpatch_intentional_ignore=SPLIT_STRING-for-two-atomic-retained-records",
         "boot_candidate=false",
     ):
         require(token in generator, f"generator token: {token}")

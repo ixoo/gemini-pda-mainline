@@ -68,4 +68,10 @@ Commands after this input is signed and pushed:
 ## Current result
 
 The exact current Buildbox parent and edited-file hashes have been audited.
-Patch generation is pending. There is no boot candidate and no device action.
+The first generation attempt stopped on a source-validator assumption about an
+adjacent C string literal. After that validator was corrected, all semantic
+and replay checks passed and strict checkpatch stopped only on its
+`SPLIT_STRING` warning for the two atomic retained records. That warning is now
+the one explicitly scoped checker exception, matching the existing retained
+ledger precedent. Patch generation remains pending. There is no boot
+candidate and no device action.

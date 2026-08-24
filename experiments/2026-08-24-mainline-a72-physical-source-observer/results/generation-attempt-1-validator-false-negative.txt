@@ -1,0 +1,11 @@
+experiment=2026-08-24-mainline-a72-physical-source-observer
+repository_commit=acfdcb567c9d197a9bb9404de1650be23af0f76d
+backend=buildbox
+phase=source-validation
+failure=adjacent-C-string-record-identity-not-reconstructed
+kernel_source_edit_failure=false
+patch_package_accepted=false
+compile=false
+device_action=none
+boot_candidate=false
+decision=correct-validator-and-regenerate-from-new-pushed-commit

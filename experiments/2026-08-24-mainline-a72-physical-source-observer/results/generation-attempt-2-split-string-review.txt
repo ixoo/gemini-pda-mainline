@@ -1,0 +1,16 @@
+experiment=2026-08-24-mainline-a72-physical-source-observer
+repository_commit=a94e02af8f8474180d5c0089bf565bf987bfa4eb
+backend=buildbox
+source_validation=pass-all-five-phases
+patch_boundary_validation=pass
+patch_replay=pass
+strict_checkpatch=stopped
+strict_checkpatch_errors=0
+strict_checkpatch_warnings=2
+strict_checkpatch_type=SPLIT_STRING
+reason=two-atomic-retained-records-are-adjacent-C-string-literals
+patch_package_accepted=false
+compile=false
+device_action=none
+boot_candidate=false
+decision=document-one-intentional-checker-exception-and-regenerate

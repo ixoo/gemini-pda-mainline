@@ -8456,6 +8456,7 @@ for marker in generated_patch_count=5 source_registrations=1 \
   retained_maximum_writes=2 clock_calls=1 bigidvfs_calls=1 \
   bigidvfs_smc_reads=8 compositor_retries=0 provider_transactions=0 \
   publisher_calls=0 owner_mutations=0 cpu_requests=0 hardware_free_tests=4 \
+  checkpatch_intentional_ignore=SPLIT_STRING-for-two-atomic-retained-records \
   device_action=none boot_candidate=false; do
   grep -Fx "${marker}" "${package}/provenance/generation.txt" >/dev/null
 done
