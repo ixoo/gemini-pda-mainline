@@ -110,6 +110,11 @@ checkpatch required the accepted visual alignment to use tabs where possible.
 The next retry encodes column 41 as five tabs plus one space; no C token or
 contract changes.
 
+Commit `01a0de12` cleared strict checkpatch for patch `0345`. Patch `0346`
+then reached strict review and exposed six continuation-alignment checks in
+its declarations and calls. All semantic phases and exact replay still
+passed. The next retry changes only those continuation columns.
+
 No kernel has been compiled, no generated patch has been admitted, and no
 QEMU or device action has occurred.
 
