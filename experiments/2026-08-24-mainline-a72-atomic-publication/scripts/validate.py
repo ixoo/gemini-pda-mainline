@@ -157,6 +157,11 @@ def main() -> None:
                 "40c623eeaa707b861a572d385a25967c502af49e",
             "classification": "pass",
         },
+        {
+            "repository_commit":
+                "d0b836d33d541b4ad1781577df6bc53dbe3d6154",
+            "classification": "rejected-managed-source-state-advanced",
+        },
     ], "generation attempt chronology")
     require(contract["generation"] == {
         "repository_commit":
@@ -271,10 +276,13 @@ def main() -> None:
         require(token in patch_validator, f"patch validator marker {token}")
     for token in (
         "PARENT_SOURCE_STATE=5f830ffd", "PARENT_SOURCE_INTEGRITY=6e8edea4",
+        "CURRENT_SOURCE_STATE=c7652bad", "CURRENT_SOURCE_INTEGRITY=88aa62a3",
         "PARENT_PATCH=0344-", "--phase finalizer", "--phase publisher",
         "--phase tests", 'git -C "$work/verify" am', "checkpatch.pl",
         "PSCI_SOURCE_SHA256=7e332979", "generated_patch_count=3",
-        "MEMBERSHIP_TEST_SHA256=1bf20757", "boot_candidate=false",
+        "MEMBERSHIP_TEST_SHA256=1bf20757",
+        'git -C "$work/source" apply --reverse',
+        "source_input_mode=$source_mode", "boot_candidate=false",
     ):
         require(token in generator, f"generator invariant {token}")
     require(test.count("KUNIT_CASE(") == 8, "focused fixture count")
@@ -344,6 +352,7 @@ def main() -> None:
         "compiled; atomic KUnit passes",
         "no production caller", "candidate is defined",
         "failed closed before any", "atomic-publication suite passed 8/8",
+        "failed closed before", "reverse-applies the exact three",
         "Regenerate the isolated suite registration",
     ):
         require(token in readme, f"README closure {token}")

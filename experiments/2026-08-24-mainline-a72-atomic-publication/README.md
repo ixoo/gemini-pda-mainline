@@ -163,6 +163,15 @@ atomic option is selected; the owner symbol remains selected solely to build
 the shared object and test seed. Regeneration and a new exact build remain
 pending.
 
+The first regeneration submission, commit `d0b836d3`, failed closed before
+copying or editing a source file because Buildbox's single managed prepared
+tree had advanced from parent patch `0344` to the admitted series through
+`0347`. The generator now accepts either the exact parent state or the exact
+integrity-pinned current state. For the latter it copies only the nine bounded
+files into its existing temporary workspace, reverse-applies the exact three
+admitted patch identities there, and requires every reconstructed parent file
+hash before generating. It does not create or retain another source root.
+
 ## Analysis
 
 The finalizer clears the logical claim only while retaining the private P30

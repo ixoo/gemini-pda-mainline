@@ -84,6 +84,10 @@
     {
       "repository_commit": "40c623eeaa707b861a572d385a25967c502af49e",
       "classification": "pass"
+    },
+    {
+      "repository_commit": "d0b836d33d541b4ad1781577df6bc53dbe3d6154",
+      "classification": "rejected-managed-source-state-advanced"
     }
   ],
   "generation": {
