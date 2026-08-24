@@ -30,7 +30,9 @@ the loop. Positive identity-gated observations are unaffected.
   semantic validation, replay, strict style review, byte-identical admission,
   and compile pass. QEMU passed both capture cases, then exposed two test-only
   stack-sized lifecycle fixtures; a pinned KUnit-managed-allocation follow-up
-  is staged. There is no boot candidate or device action.
+  passed exact Buildbox generation/replay/style gates and is admitted as
+  test-only patch `0355`. Rebuild and QEMU remain pending; there is no boot
+  candidate or device action.
 - [2026-08-24 mainline DA921x read-only snapshot separation](2026-08-24-mainline-da921x-readonly-snapshot-separation/README.md)
   — implements the physical-source contract's hardware-free Phase A as a
   deterministic two-patch Buildbox review. Exact canonical patches `0348` and

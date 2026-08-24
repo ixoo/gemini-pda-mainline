@@ -109,7 +109,7 @@ def main() -> None:
             "8787bda750c85e7df35828172d43a19c137c9b4c2434f95c493852f48aa3bcfd",
     }, "build contract")
     require(contract["stack_fix"] == {
-        "status": "generation-pending",
+        "status": "validated",
         "stopped_attempts": 1,
         "canonical_parent":
             "patches/v7.1.3/0354-soc-mediatek-test-A72-physical-source-observer.patch",
@@ -120,6 +120,22 @@ def main() -> None:
         "parent_test_sha256":
             "068748f876c2720ade9b96d17db90ef61ed78145a757e212322f57728bf7ee05",
         "generated_patch_count": 1,
+        "repository_commit":
+            "b3752361529188aa0481b18c590c51dde8d752f0",
+        "buildbox_job":
+            "b3752361529188aa0481b18c590c51dde8d752f0-a72-physical-source-stack-fix-patchgen",
+        "package": "a72-physical-source-stack-fix-b37523615291",
+        "parent_commit": "083f52fbb0412942c57aefcbeae6f19b349fe25f",
+        "result_commit": "11af8683e0bcdc20acad6e4a2e56a749a774ae5e",
+        "sha256sums_sha256":
+            "826cf5f5d06d7583d303aa6bd1b0d9295cc7b869e2c124ef1137c146e96ece19",
+        "patch":
+            "0355-soc-mediatek-move-A72-physical-source-KUnit-snapshots-off-stack.patch",
+        "patch_sha256":
+            "70e316293c0b825b619572e759bba20c18403d43b3e6413cfd54763cb3242ae8",
+        "canonical_admission": "0355",
+        "compile": "pending",
+        "qemu": "pending",
         "changed_files": [
             "drivers/soc/mediatek/mt6797-a72-physical-source-observer-test.c",
         ],
@@ -137,9 +153,15 @@ def main() -> None:
             == contract["generation"]["patch_sha256"],
             "canonical patch identities")
     series = (ROOT / "patches/series").read_text().splitlines()
-    require(series[-5:] == [f"v7.1.3/{patch}"
-                            for patch in contract["patches"]],
+    expected_tail = [f"v7.1.3/{patch}" for patch in contract["patches"]]
+    expected_tail.append(f"v7.1.3/{contract['stack_fix']['patch']}")
+    require(series[-6:] == expected_tail,
             "canonical series tail")
+    stack_patch = ROOT / "patches/v7.1.3" / contract["stack_fix"]["patch"]
+    require(stack_patch.is_file() and not stack_patch.is_symlink(),
+            "canonical stack-fix patch")
+    require(sha256(stack_patch) == contract["stack_fix"]["patch_sha256"],
+            "canonical stack-fix identity")
 
     manifest = json.loads((ROOT / "kernel/manifest.json").read_text())
     profile = manifest["config"]["profiles"]["a72-physical-source-kunit"]
@@ -337,14 +359,26 @@ def main() -> None:
         "boot_candidate=false",
     ):
         require(token in stack_attempt, f"stack attempt receipt token: {token}")
+    stack_receipt = (
+        EXPERIMENT / "results/buildbox-stack-fix-generation-b3752361.txt"
+    ).read_text()
+    for token in (
+        "source_validation=pass",
+        "patch_boundary=test-only-one-file-pass",
+        "patch_replay=byte-exact-pass",
+        "strict_checkpatch=0-errors-0-warnings-0-checks",
+        "canonical_admission=0355",
+        "boot_candidate=false",
+    ):
+        require(token in stack_receipt, f"stack generation receipt token: {token}")
     print("validation=a72-physical-source-admission")
     print("prepared_source=exact-through-0349")
     print("generated_patch_count=5")
     print("focused_tests=4")
-    print("canonical_admission=0350-0354")
+    print("canonical_admission=0350-0355")
     print("compile=pass")
     print("qemu=2-pass-2-test-stack-fault")
-    print("stack_fix=generation-pending")
+    print("stack_fix=generated-admitted-compile-pending")
     print("hardware_operations=0")
     print("device_action=none")
     print("boot_candidate=false")

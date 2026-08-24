@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-24-mainline-a72-physical-source-observer` |
-| Status | Buildbox compile passed; KUnit stack-fixture repair staged |
+| Status | KUnit stack-fixture repair admitted; rebuild/QEMU pending |
 | Subsystem | A72 direct-state sources and retained attribution |
 | Device variant | hardware-free implementation/KUnit stage |
 | Date(s) | 2026-08-24 America/New_York |
@@ -104,4 +104,8 @@ from KUnit-managed memory before the compile and all four cases are rerun. Its
 first generation attempt validated the source change, then stopped on a local
 validator that expected `[PATCH]` rather than the generator's intentional
 numbered `[PATCH 1/1]` subject. That exact folded subject is now accepted for
-the retry. There is no boot candidate and no device action.
+the retry. The second attempt passed source validation, one-file boundary
+validation, exact replay, and strict checkpatch, and its byte-identical output
+is canonical patch `0355`. The isolated profile must now compile again and all
+four focused cases must pass before any candidate selection. There is no boot
+candidate and no device action.

@@ -1,0 +1,86 @@
+From 11af8683e0bcdc20acad6e4a2e56a749a774ae5e Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 24 Aug 2026 22:01:00 +0000
+Subject: [PATCH 1/1] soc: mediatek: move A72 physical-source KUnit snapshots
+ off stack
+
+Allocate the two large direct-state lifecycle fixtures from KUnit-managed memory and check failure clearing without another stack-sized zero record.
+
+This changes only hardware-free tests after QEMU exposed the kernel-stack boundary; production source and behavior are unchanged.
+---
+ ...mt6797-a72-physical-source-observer-test.c | 29 +++++++++++--------
+ 1 file changed, 17 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-physical-source-observer-test.c b/drivers/soc/mediatek/mt6797-a72-physical-source-observer-test.c
+index 3fb95ea..2b40631 100644
+--- a/drivers/soc/mediatek/mt6797-a72-physical-source-observer-test.c
++++ b/drivers/soc/mediatek/mt6797-a72-physical-source-observer-test.c
+@@ -245,12 +245,14 @@ static void mt6797_source_lifecycle_test(struct kunit *test)
+ 	struct mt6797_a72_physical_source_test_state state = {
+ 		.fail_stage = -1,
+ 	};
+-	struct mt6797_a72_direct_state_snapshot snapshot;
++	struct mt6797_a72_direct_state_snapshot *snapshot;
+ 	int ret;
+ 
++	snapshot = kunit_kzalloc(test, sizeof(*snapshot), GFP_KERNEL);
++	KUNIT_ASSERT_NOT_NULL(test, snapshot);
+ 	mt6797_source_context_init(&context, &state);
+ 	ret = mt6797_a72_physical_source_run(&context, &test_runtime,
+-					     &snapshot);
++					     snapshot);
+ 	KUNIT_ASSERT_EQ(test, ret, 0);
+ 	KUNIT_EXPECT_EQ(test, state.events[0], MT6797_SOURCE_REGISTER);
+ 	KUNIT_EXPECT_EQ(test, state.events[1], MT6797_SOURCE_DIRECT_SNAPSHOT);
+@@ -258,8 +260,8 @@ static void mt6797_source_lifecycle_test(struct kunit *test)
+ 			MT6797_SOURCE_UNREGISTER);
+ 	KUNIT_EXPECT_PTR_EQ(test, state.registered_ops, NULL);
+ 	KUNIT_EXPECT_PTR_EQ(test, state.registered_context, NULL);
+-	KUNIT_EXPECT_EQ(test, snapshot.abi, MT6797_A72_DIRECT_STATE_ABI);
+-	KUNIT_EXPECT_EQ(test, snapshot.valid, 1U);
++	KUNIT_EXPECT_EQ(test, snapshot->abi, MT6797_A72_DIRECT_STATE_ABI);
++	KUNIT_EXPECT_EQ(test, snapshot->valid, 1U);
+ }
+ 
+ static void mt6797_source_lifecycle_failures_test(struct kunit *test)
+@@ -268,29 +270,32 @@ static void mt6797_source_lifecycle_failures_test(struct kunit *test)
+ 	struct mt6797_a72_physical_source_test_state state = {
+ 		.register_ret = -EBUSY,
+ 	};
+-	struct mt6797_a72_direct_state_snapshot snapshot;
+-	struct mt6797_a72_direct_state_snapshot zero = { };
++	struct mt6797_a72_direct_state_snapshot *snapshot;
+ 	int ret;
+ 
++	snapshot = kunit_kzalloc(test, sizeof(*snapshot), GFP_KERNEL);
++	KUNIT_ASSERT_NOT_NULL(test, snapshot);
+ 	mt6797_source_context_init(&context, &state);
+-	memset(&snapshot, 0xa5, sizeof(snapshot));
++	memset(snapshot, 0xa5, sizeof(*snapshot));
+ 	ret = mt6797_a72_physical_source_run(&context, &test_runtime,
+-					     &snapshot);
++					     snapshot);
+ 	KUNIT_EXPECT_EQ(test, ret, -EBUSY);
+ 	KUNIT_EXPECT_EQ(test, state.event_count, 1U);
+-	KUNIT_EXPECT_EQ(test, memcmp(&snapshot, &zero, sizeof(snapshot)), 0);
++	KUNIT_EXPECT_PTR_EQ(test, memchr_inv(snapshot, 0, sizeof(*snapshot)),
++			    NULL);
+ 
+ 	memset(&state, 0, sizeof(state));
+ 	state.fail_stage = -1;
+ 	state.direct_ret = -EPERM;
+ 	mt6797_source_context_init(&context, &state);
+-	memset(&snapshot, 0xa5, sizeof(snapshot));
++	memset(snapshot, 0xa5, sizeof(*snapshot));
+ 	ret = mt6797_a72_physical_source_run(&context, &test_runtime,
+-					     &snapshot);
++					     snapshot);
+ 	KUNIT_EXPECT_EQ(test, ret, -EPERM);
+ 	KUNIT_EXPECT_EQ(test, state.event_count, 3U);
+ 	KUNIT_EXPECT_EQ(test, state.events[2], MT6797_SOURCE_UNREGISTER);
+-	KUNIT_EXPECT_EQ(test, memcmp(&snapshot, &zero, sizeof(snapshot)), 0);
++	KUNIT_EXPECT_PTR_EQ(test, memchr_inv(snapshot, 0, sizeof(*snapshot)),
++			    NULL);
+ }
+ 
+ static struct kunit_case mt6797_a72_physical_source_cases[] = {
