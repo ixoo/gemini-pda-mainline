@@ -280,18 +280,20 @@ static void expect_zero(struct kunit *test,
     )
     replace_once(
         test,
-        "memcmp(&before, &after, sizeof(before))",
-        "memcmp(&state->owner_before,\n"
+        "KUNIT_EXPECT_EQ(test, memcmp(&before, &after, sizeof(before)), 0);",
+        "KUNIT_EXPECT_EQ(test,\n"
+        "\t\t\tmemcmp(&state->owner_before,\n"
         "\t\t\t       &state->owner_after,\n"
-        "\t\t\t       sizeof(state->owner_before))",
+        "\t\t\t       sizeof(state->owner_before)), 0);",
     )
     replace_once(
         test,
-        "memcmp(&p30_before, &p30_after,\n"
-        "\t\t\t\t     sizeof(p30_before))",
-        "memcmp(&state->p30_before,\n"
+        "KUNIT_EXPECT_EQ(test, memcmp(&p30_before, &p30_after,\n"
+        "\t\t\t\t     sizeof(p30_before)), 0);",
+        "KUNIT_EXPECT_EQ(test,\n"
+        "\t\t\tmemcmp(&state->p30_before,\n"
         "\t\t\t       &state->p30_after,\n"
-        "\t\t\t       sizeof(state->p30_before))",
+        "\t\t\t       sizeof(state->p30_before)), 0);",
     )
     replace_once(test, old_state, new_state)
 

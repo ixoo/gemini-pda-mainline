@@ -140,6 +140,11 @@ already-existing `kunit_kzalloc()` line to appear among added lines. The source
 gate continues to require that allocation; the patch gate now requires the
 actually added heap-resident records and observation pointers.
 
+Submission `f1f0088b` passed source validation, patch validation, and exact
+replay. Strict checkpatch then found only two continuation-column checks in
+the KUnit owner/P30 preservation comparisons. Their nested `memcmp()` calls
+are now placed on normal macro-continuation lines with aligned arguments.
+
 ## Analysis
 
 The split keeps the outer ownership proof independent from physical reader
