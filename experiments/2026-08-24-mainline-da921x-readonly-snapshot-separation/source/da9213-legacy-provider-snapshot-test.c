@@ -44,8 +44,7 @@ da9213_snapshot_adapter_fake(struct i2c_adapter *adapter)
 	return container_of(adapter, struct da9213_snapshot_fake, adapter);
 }
 
-static void da9213_snapshot_lock(struct i2c_adapter *adapter,
-				  unsigned int flags)
+static void da9213_snapshot_lock(struct i2c_adapter *adapter, unsigned int flags)
 {
 	struct da9213_snapshot_fake *fake = da9213_snapshot_adapter_fake(adapter);
 
@@ -62,8 +61,7 @@ static int da9213_snapshot_trylock(struct i2c_adapter *adapter,
 	return 0;
 }
 
-static void da9213_snapshot_unlock(struct i2c_adapter *adapter,
-				    unsigned int flags)
+static void da9213_snapshot_unlock(struct i2c_adapter *adapter, unsigned int flags)
 {
 	struct da9213_snapshot_fake *fake = da9213_snapshot_adapter_fake(adapter);
 
@@ -129,8 +127,8 @@ da9213_snapshot_register(struct da9213_legacy_provider_endpoint *endpoint,
 	int ret;
 
 	ret = da9213_provider_snapshot_test_register(endpoint, &fake->adapter,
-		DA9213_SNAPSHOT_TEST_ADDRESS,
-		da9213_snapshot_transfer);
+						     DA9213_SNAPSHOT_TEST_ADDRESS,
+						     da9213_snapshot_transfer);
 	if (!ret)
 		registered_endpoint = endpoint;
 	return ret;
@@ -146,7 +144,7 @@ da9213_snapshot_unregister(struct da9213_legacy_provider_endpoint *endpoint)
 
 static void
 da9213_snapshot_expect_zero(struct kunit *test,
-			     const struct mt6797_a72_provider_snapshot *snapshot)
+			    const struct mt6797_a72_provider_snapshot *snapshot)
 {
 	const struct mt6797_a72_provider_snapshot zero = { };
 
@@ -155,7 +153,7 @@ da9213_snapshot_expect_zero(struct kunit *test,
 
 static void
 da9213_snapshot_expect_transport_closed(struct kunit *test,
-					 const struct da9213_snapshot_fake *fake)
+					const struct da9213_snapshot_fake *fake)
 {
 	KUNIT_EXPECT_EQ(test, fake->lock_calls, 1U);
 	KUNIT_EXPECT_EQ(test, fake->unlock_calls, 1U);
@@ -214,7 +212,7 @@ static void da9213_snapshot_transfer_faults_test(struct kunit *test)
 			else
 				state->fake.fail_ordinal = ordinal;
 			ret = da9213_snapshot_register(&state->endpoint,
-						&state->fake);
+						       &state->fake);
 			KUNIT_ASSERT_EQ(test, ret, 0);
 			memset(&snapshot, 0xa5, sizeof(snapshot));
 			ret = mt6797_a72_provider_snapshot(&snapshot);
@@ -272,8 +270,9 @@ static void da9213_snapshot_registry_lifetime_test(struct kunit *test)
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	da9213_snapshot_fake_init(&state->duplicate_fake);
 	ret = da9213_provider_snapshot_test_register(&state->duplicate,
-		&state->duplicate_fake.adapter,
-		DA9213_SNAPSHOT_TEST_ADDRESS, da9213_snapshot_transfer);
+						     &state->duplicate_fake.adapter,
+						     DA9213_SNAPSHOT_TEST_ADDRESS,
+						     da9213_snapshot_transfer);
 	KUNIT_EXPECT_EQ(test, ret, -EBUSY);
 	da9213_snapshot_unregister(&state->duplicate);
 	memset(&snapshot, 0xa5, sizeof(snapshot));
