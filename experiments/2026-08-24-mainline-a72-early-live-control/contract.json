@@ -77,10 +77,20 @@
     "runtime_rejected_mutations": 5
   },
   "deployment": {
-    "status": "pending",
+    "status": "write-synced-flushed-full-readback-verified",
     "target_logical_name": "boot2",
+    "target": "/dev/mmcblk0p30",
+    "active_root": "/dev/mmcblk0p29",
+    "predecessor_sha256": "d2951eade3c08c889ecaeb1376f85262c44ad729048ddc3164c1db39acced609",
+    "candidate_sha256": "070e0ff4b019dd35e91ba91413b9ae958cf5e71e3573ed81bc9dd7d1cf3cc4ef",
+    "readback_sha256": "070e0ff4b019dd35e91ba91413b9ae958cf5e71e3573ed81bc9dd7d1cf3cc4ef",
+    "deployment_boot_id": "9a06ac83-21f4-4d7c-8522-5a93c33c372e",
+    "prewrite_record_1_header": "444247430000000000000000",
+    "prewrite_record_2_header": "444247430000000000000000",
+    "prewrite_records": "exact-empty",
+    "power": "online-100-percent-good",
     "fresh_predecessor_backup": false,
-    "shutdown_after_verified_write": true,
+    "shutdown_after_verified_write": "confirmed-unreachable",
     "automatic_reboot": false
   }
 }

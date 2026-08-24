@@ -3,8 +3,9 @@
 ## Status
 
 Exact candidate constructed twice and independently validated. All 32 LK gates
-and six negative structural mutations passed. Guarded deployment and one live
-USB/netcat observation are pending.
+and six negative structural mutations passed. Guarded deployment resolved the
+inactive logical `boot2`, wrote and fully read back the exact payload, then
+confirmed clean shutdown. One pre-armed live USB/netcat observation is pending.
 
 ## Hypothesis
 
@@ -78,5 +79,7 @@ without a new independent observation path.
   classifier.
 - `scripts/collect-runtime.sh`: pre-armed USB observer and netcat collector;
   it leaves a successful mainline boot running.
+- `results/deployment-20260824.txt`: sanitized live-GPT, predecessor, power,
+  full-readback, and shutdown receipt.
 
 Private captures and the candidate remain below ignored `artifacts/` paths.
