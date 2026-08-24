@@ -65,9 +65,9 @@
     "boot_candidate": true
   },
   "decision": {
-    "result": "exact-boot-candidate-passed-independent-validation",
-    "selected_next": "guarded-install-to-live-gpt-resolved-inactive-boot2-and-shutdown",
-    "device_action": false,
+    "result": "boot2-write-readback-verified-device-shutdown",
+    "selected_next": "owner-physically-selects-boot2-once-then-changed-id-recovery",
+    "device_action": true,
     "boot_candidate": true
   }
 }

@@ -94,3 +94,13 @@ entry is zero. See the
 [predeployment decision record](results/predeployment-hypothesis-20260824.txt).
 The candidate is eligible for one guarded write to the live-GPT-resolved,
 inactive `boot2`, followed by a clean shutdown; it is not a CPU-support claim.
+
+Deployment attempt 1 then resolved live GPT `boot2` as `/dev/mmcblk0p30`
+while Gemian root was `/dev/mmcblk0p29`. The guarded write replaced predecessor
+`825cfc42...392a2`, synchronized and flushed, and matched exact 16 MiB readback
+`4185b851...a03c`. Both retained slots were exact empty before the write; the
+installer made no retained-RAM write. The device is confirmed shut down without
+a reboot. See the [deployment receipt](results/deployment-1-write-readback-shutdown-20260824.txt).
+
+The next action is one owner-selected physical boot of `boot2`, followed by a
+changed-boot-ID Gemian recovery and exact reads of retained records 1 and 2.
