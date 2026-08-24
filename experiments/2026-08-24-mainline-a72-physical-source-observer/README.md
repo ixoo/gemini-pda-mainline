@@ -73,5 +73,8 @@ adjacent C string literal. After that validator was corrected, all semantic
 and replay checks passed and strict checkpatch stopped only on its
 `SPLIT_STRING` warning for the two atomic retained records. That warning is now
 the one explicitly scoped checker exception, matching the existing retained
-ledger precedent. Patch generation remains pending. There is no boot
-candidate and no device action.
+ledger precedent. A third attempt then stopped on ordinary strict line-wrap
+checks in the new observer before reaching its test patch; every declaration
+and call with that pattern has been mechanically corrected in both files.
+Patch generation remains pending. There is no boot candidate and no device
+action.

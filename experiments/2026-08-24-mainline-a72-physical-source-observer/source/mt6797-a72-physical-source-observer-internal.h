@@ -33,10 +33,10 @@ struct mt6797_a72_physical_source_runtime_ops {
 				  void *context);
 };
 
-int mt6797_a72_physical_source_capture(
-	void *context, struct mt6797_a72_direct_source_snapshot *snapshot);
-int mt6797_a72_physical_source_run(
-	struct mt6797_a72_physical_source_context *context,
+int mt6797_a72_physical_source_capture(void *context,
+			struct mt6797_a72_direct_source_snapshot *snapshot);
+int
+mt6797_a72_physical_source_run(struct mt6797_a72_physical_source_context *context,
 	const struct mt6797_a72_physical_source_runtime_ops *runtime,
 	struct mt6797_a72_direct_state_snapshot *snapshot);
 

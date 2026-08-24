@@ -32,16 +32,17 @@ struct mt6797_a72_physical_source_test_state {
 
 static struct mt6797_a72_physical_source_test_state *runtime_state;
 
-static void mt6797_source_event(
-	struct mt6797_a72_physical_source_test_state *state,
+static void
+mt6797_source_event(struct mt6797_a72_physical_source_test_state *state,
 	enum mt6797_a72_physical_source_test_event event)
 {
 	if (state->event_count < ARRAY_SIZE(state->events))
 		state->events[state->event_count++] = event;
 }
 
-static int mt6797_source_platform(
-	struct device *dev, struct mt6797_a72_platform_state *snapshot)
+static int
+mt6797_source_platform(struct device *dev,
+			struct mt6797_a72_platform_state *snapshot)
 {
 	struct mt6797_a72_physical_source_test_state *state = (void *)dev;
 
@@ -53,8 +54,8 @@ static int mt6797_source_platform(
 	return 0;
 }
 
-static int mt6797_source_provider(
-	struct mt6797_a72_provider_snapshot *snapshot)
+static int
+mt6797_source_provider(struct mt6797_a72_provider_snapshot *snapshot)
 {
 	struct mt6797_a72_physical_source_test_state *state = runtime_state;
 
@@ -68,8 +69,9 @@ static int mt6797_source_provider(
 	return 0;
 }
 
-static int mt6797_source_clock(
-	struct device *dev, struct mt6797_dvfsp_clock_readback *snapshot)
+static int
+mt6797_source_clock(struct device *dev,
+		     struct mt6797_dvfsp_clock_readback *snapshot)
 {
 	struct mt6797_a72_physical_source_test_state *state = (void *)dev;
 
@@ -92,8 +94,9 @@ static bool mt6797_source_checkpoint(unsigned int checkpoint)
 	return state->fail_stage != event;
 }
 
-static int mt6797_source_bigidvfs(
-	struct device *dev, struct mt6797_bigidvfs_readback *snapshot)
+static int
+mt6797_source_bigidvfs(struct device *dev,
+			struct mt6797_bigidvfs_readback *snapshot)
 {
 	struct mt6797_a72_physical_source_test_state *state = (void *)dev;
 
@@ -114,8 +117,8 @@ static const struct mt6797_a72_physical_source_reader_ops test_readers = {
 	.bigidvfs = mt6797_source_bigidvfs,
 };
 
-static void mt6797_source_context_init(
-	struct mt6797_a72_physical_source_context *context,
+static void
+mt6797_source_context_init(struct mt6797_a72_physical_source_context *context,
 	struct mt6797_a72_physical_source_test_state *state)
 {
 	context->platform = (void *)state;
@@ -125,8 +128,8 @@ static void mt6797_source_context_init(
 	runtime_state = state;
 }
 
-static void mt6797_source_expect_zero(
-	struct kunit *test,
+static void
+mt6797_source_expect_zero(struct kunit *test,
 	const struct mt6797_a72_direct_source_snapshot *snapshot)
 {
 	struct mt6797_a72_direct_source_snapshot zero = { };
@@ -184,8 +187,9 @@ static void mt6797_source_capture_failures_test(struct kunit *test)
 	}
 }
 
-static int mt6797_source_register(
-	const struct mt6797_a72_direct_source_ops *ops, void *context)
+static int
+mt6797_source_register(const struct mt6797_a72_direct_source_ops *ops,
+			void *context)
 {
 	struct mt6797_a72_physical_source_test_state *state = runtime_state;
 
@@ -197,8 +201,8 @@ static int mt6797_source_register(
 	return 0;
 }
 
-static int mt6797_source_direct_snapshot(
-	struct mt6797_a72_direct_state_snapshot *snapshot)
+static int
+mt6797_source_direct_snapshot(struct mt6797_a72_direct_state_snapshot *snapshot)
 {
 	struct mt6797_a72_physical_source_test_state *state = runtime_state;
 	int ret;
@@ -215,8 +219,9 @@ static int mt6797_source_direct_snapshot(
 	return 0;
 }
 
-static void mt6797_source_unregister(
-	const struct mt6797_a72_direct_source_ops *ops, void *context)
+static void
+mt6797_source_unregister(const struct mt6797_a72_direct_source_ops *ops,
+			  void *context)
 {
 	struct mt6797_a72_physical_source_test_state *state = runtime_state;
 

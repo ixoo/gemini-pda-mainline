@@ -31,8 +31,9 @@ mt6797_a72_physical_source_readers = {
 	.bigidvfs = mt6797_bigidvfs_backend_read,
 };
 
-int mt6797_a72_physical_source_capture(
-	void *context, struct mt6797_a72_direct_source_snapshot *snapshot)
+int
+mt6797_a72_physical_source_capture(void *context,
+				    struct mt6797_a72_direct_source_snapshot *snapshot)
 {
 	struct mt6797_a72_physical_source_context *source = context;
 	const struct mt6797_a72_physical_source_reader_ops *readers;
@@ -84,8 +85,8 @@ mt6797_a72_physical_source_ops = {
 	.snapshot = mt6797_a72_physical_source_capture,
 };
 
-int mt6797_a72_physical_source_run(
-	struct mt6797_a72_physical_source_context *context,
+int
+mt6797_a72_physical_source_run(struct mt6797_a72_physical_source_context *context,
 	const struct mt6797_a72_physical_source_runtime_ops *runtime,
 	struct mt6797_a72_direct_state_snapshot *snapshot)
 {
@@ -139,8 +140,9 @@ mt6797_a72_physical_source_get_device(struct device *dev,
 	return &source->dev;
 }
 
-static void mt6797_a72_physical_source_log(
-	struct device *dev, const struct mt6797_a72_direct_state_snapshot *state)
+static void
+mt6797_a72_physical_source_log(struct device *dev,
+				const struct mt6797_a72_direct_state_snapshot *state)
 {
 	const struct mt6797_a72_direct_source_snapshot *source = &state->source;
 	const struct mt6797_a72_platform_state *platform = &source->platform;
@@ -222,28 +224,28 @@ mt6797_a72_physical_source_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	int ret;
 
-	context.platform = mt6797_a72_physical_source_get_device(
-		dev, "mediatek,platform-state");
+	context.platform = mt6797_a72_physical_source_get_device(dev,
+						 "mediatek,platform-state");
 	if (IS_ERR(context.platform))
 		return dev_err_probe(dev, PTR_ERR(context.platform),
 				     "platform-state source unavailable\n");
-	context.clock = mt6797_a72_physical_source_get_device(
-		dev, "mediatek,clock-backend");
+	context.clock = mt6797_a72_physical_source_get_device(dev,
+					      "mediatek,clock-backend");
 	if (IS_ERR(context.clock)) {
 		ret = dev_err_probe(dev, PTR_ERR(context.clock),
 				    "clock source unavailable\n");
 		goto put_platform;
 	}
-	context.bigidvfs = mt6797_a72_physical_source_get_device(
-		dev, "mediatek,bigidvfs-backend");
+	context.bigidvfs = mt6797_a72_physical_source_get_device(dev,
+						 "mediatek,bigidvfs-backend");
 	if (IS_ERR(context.bigidvfs)) {
 		ret = dev_err_probe(dev, PTR_ERR(context.bigidvfs),
 				    "BigiDVFS source unavailable\n");
 		goto put_clock;
 	}
 
-	ret = mt6797_a72_physical_source_run(
-		&context, &mt6797_a72_physical_source_runtime, &snapshot);
+	ret = mt6797_a72_physical_source_run(&context,
+		&mt6797_a72_physical_source_runtime, &snapshot);
 	if (ret)
 		dev_err_probe(dev, ret, "direct physical snapshot failed\n");
 	else

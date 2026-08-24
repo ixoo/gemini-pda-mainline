@@ -139,7 +139,7 @@ def validate_observer(root: Path) -> None:
 
     capture = section(
         observer,
-        "int mt6797_a72_physical_source_capture(",
+        "mt6797_a72_physical_source_capture(",
         "static const struct mt6797_a72_direct_source_ops",
     )
     order = (
@@ -168,7 +168,7 @@ def validate_observer(root: Path) -> None:
 
     run = section(
         observer,
-        "int mt6797_a72_physical_source_run(",
+        "mt6797_a72_physical_source_run(",
         "static const struct mt6797_a72_physical_source_runtime_ops",
     )
     lifecycle = (
@@ -186,7 +186,7 @@ def validate_observer(root: Path) -> None:
     get_device = section(
         observer,
         "mt6797_a72_physical_source_get_device",
-        "static void mt6797_a72_physical_source_log",
+        "mt6797_a72_physical_source_log",
     )
     for token in (
         "of_find_device_by_node",

@@ -65,7 +65,7 @@ def main() -> None:
         "logical_boundaries": ["ledger", "observer", "binding", "dts", "tests"],
         "intentional_checkpatch_ignore":
             "SPLIT_STRING-for-two-atomic-retained-records",
-        "stopped_attempts": 2,
+        "stopped_attempts": 3,
         "status": "pending",
     }, "generation contract")
 
