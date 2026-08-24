@@ -184,8 +184,8 @@ def apply_core(root: Path) -> None:
         \tfor (i = 0; i < ARRAY_SIZE(da9213_legacy_provider_snapshot_regs);
         \t     i++) {
         \t\tret = da9213_provider_snapshot_read(endpoint,
-        \t\t\tda9213_legacy_provider_snapshot_regs[i],
-        \t\t\t&values[i]);
+        \t\t\t\t\t\t    da9213_legacy_provider_snapshot_regs[i],
+        \t\t\t\t\t\t    &values[i]);
         \t\tif (ret)
         \t\t\treturn ret;
         \t}
