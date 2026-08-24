@@ -52,6 +52,12 @@ def main() -> None:
     series = (ROOT / "patches/series").read_text().splitlines()
     fragment = (ROOT / "configs/"
                 "gemini-a72-atomic-publication-kunit.fragment").read_text()
+    runner = (EXPERIMENT / "scripts/run-kunit-qemu").read_text()
+    classifier = (EXPERIMENT / "scripts/classify-kunit.py").read_text()
+    build_evidence = (EXPERIMENT / "results/"
+                      "buildbox-compile-e5de89b7-20260824.txt").read_text()
+    mixed_evidence = (EXPERIMENT / "results/"
+                      "kunit-qemu-mixed-e5de89b7-20260824.txt").read_text()
 
     require(contract["experiment"] == EXPERIMENT.name, "experiment identity")
     require(contract["repository_parent"] ==
@@ -179,6 +185,43 @@ def main() -> None:
         "reason": ("inherited P30 fragment explicitly disabled the selected "
                    "late-startup KUnit suite"),
     }], "build attempt chronology")
+    require(contract["build"] == {
+        "repository_commit":
+            "e5de89b7b5affc859a2f491d1b795fa3d41dd14a",
+        "profile": PROFILE,
+        "package": ("linux-7.1.3-gemini-a72-atomic-publication-kunit-"
+                    "f371203d-fb1ade23"),
+        "kernel_release": "7.1.3-gemini-a72-atomic-kunit",
+        "source_sha256":
+            "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+        "patchset_sha256":
+            "f371203dcbaa77ea0a616d5f93bf60355878c74e021a94461114114365a0b820",
+        "config_sha256":
+            "5681d90b3bd01e5b0e25b99d6dc3421725e0eef8be0445c2767b2a7602a3591c",
+        "image_sha256":
+            "4c1fdf90a78fa3e05f2ad17029762657006dabad5e1ce7abf392534a5b1423bc",
+        "build_log_sha256":
+            "987cb23429a4c866c317d4b9c475db01995ab49575fc36f228caf1551ef56fc6",
+        "frame_warning_total": 29,
+        "inherited_production_frame_warnings": 2,
+        "inherited_membership_test_frame_warnings": 27,
+        "atomic_test_region_frame_warnings": 0,
+        "classification":
+            "pass-no-new-atomic-frame-warning-with-inherited-debt",
+        "evidence": "results/buildbox-compile-e5de89b7-20260824.txt",
+    }, "successful build evidence")
+    require(contract["runtime_attempts"] == [{
+        "repository_commit":
+            "e5de89b7b5affc859a2f491d1b795fa3d41dd14a",
+        "classification":
+            "rejected-profile-registered-unrelated-owner-suite",
+        "late_startup": "pass:20_fail:0_skip:0_total:20",
+        "owner_suite": "pass:3_fail:23_skip:0_total:26",
+        "atomic_publication": "pass:8_fail:0_skip:0_total:8",
+        "raw_log_sha256":
+            "6585d0bb91aed22a71153d94cfd99df14aa662e725e058efa275f3f505cbaed5",
+        "evidence": "results/kunit-qemu-mixed-e5de89b7-20260824.txt",
+    }], "runtime attempt chronology")
     for relative, expected in PATCH_SHA256.items():
         require(sha256(ROOT / relative) == expected,
                 f"admitted patch identity {relative}")
@@ -210,6 +253,7 @@ def main() -> None:
         "mt6797_a72_direct_state_snapshot_locked(",
         "a72_owner.health = MT6797_A72_OWNER_AVAILABLE",
         "CONFIG_ARM64_MT6797_A72_ATOMIC_PUBLICATION_KUNIT_TEST",
+        "kunit_test_suite(atomic_publication_test_suite)",
     ):
         require(token in edits, f"source editor contract {token}")
     for token in (
@@ -254,6 +298,34 @@ def main() -> None:
         require(token in buildbox, f"Buildbox command {token}")
     require("./scripts/buildbox generate-a72-atomic-publication" in docs,
             "Buildbox documentation")
+    for token in (
+        "EXPECTED_PROFILE=a72-atomic-publication-kunit",
+        "CONFIG_ARM64_MT6797_A72_ATOMIC_PUBLICATION_KUNIT_TEST=y",
+        "focused KUnit inventory changed",
+    ):
+        require(token in runner, f"QEMU runner contract {token}")
+    for token in (
+        'PROFILE = "a72-atomic-publication-kunit"',
+        '"arm64-late-cpu-startup"',
+        '"mt6797-a72-atomic-publication"',
+        '"1..2", "1..20", "1..8"',
+        "production_owner_publication=false",
+    ):
+        require(token in classifier, f"QEMU classifier contract {token}")
+    for token in (
+        "frame_warning_total=29",
+        "inherited_membership_test_frame_warnings=27",
+        "atomic_test_region_frame_warnings=0",
+        "result=pass-no-new-atomic-frame-warning-with-inherited-debt",
+    ):
+        require(token in build_evidence, f"build evidence {token}")
+    for token in (
+        "suite_arm64-late-cpu-startup=pass:20_fail:0_skip:0_total:20",
+        "suite_mt6797-a72-p24-owner=pass:3_fail:23_skip:0_total:26",
+        "suite_mt6797-a72-atomic-publication=pass:8_fail:0_skip:0_total:8",
+        "result=rejected-profile-registered-unrelated-owner-suite",
+    ):
+        require(token in mixed_evidence, f"mixed QEMU evidence {token}")
     profile = manifest["config"]["profiles"][PROFILE]
     require(profile["base"] == "defconfig" and
             profile["patch_series"] == "patches/series",
@@ -269,9 +341,10 @@ def main() -> None:
             'CONFIG_LOCALVERSION="-gemini-a72-atomic-kunit"' in fragment,
             "isolated profile contract")
     for token in (
-        "generated, reviewed, and canonically admitted",
+        "compiled; atomic KUnit passes",
         "no production caller", "candidate is defined",
-        "failed closed before any", "No kernel has yet been compiled",
+        "failed closed before any", "atomic-publication suite passed 8/8",
+        "Regenerate the isolated suite registration",
     ):
         require(token in readme, f"README closure {token}")
 
@@ -280,6 +353,9 @@ def main() -> None:
         "source/mt6797_a72_atomic_publication_test.inc",
         "scripts/source_edits.py", "scripts/validate_source.py",
         "scripts/validate_patch.py", "scripts/generate-on-buildbox",
+        "scripts/run-kunit-qemu", "scripts/classify-kunit.py",
+        "results/buildbox-compile-e5de89b7-20260824.txt",
+        "results/kunit-qemu-mixed-e5de89b7-20260824.txt",
     ):
         path = EXPERIMENT / relative
         require(path.is_file() and not path.is_symlink(),

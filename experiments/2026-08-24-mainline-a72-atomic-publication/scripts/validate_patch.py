@@ -54,6 +54,10 @@ def main() -> None:
     require("KUNIT_CASE(" not in texts[1], "tests leaked into publisher patch")
     require(texts[2].count("KUNIT_CASE(") == 8,
             "generated focused test count")
+    require("kunit_test_suite(atomic_publication_test_suite);" in texts[2],
+            "isolated atomic suite registration absent")
+    require("kunit_test_suites(" not in texts[2],
+            "unrelated owner suite registration present")
     combined = "\n".join(texts)
     for forbidden in (
         "arch/arm64/kernel/mt6797_psci.c", "drivers/", "arch/arm64/boot/dts/",

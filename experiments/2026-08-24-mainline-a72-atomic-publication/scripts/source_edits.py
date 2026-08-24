@@ -420,8 +420,7 @@ def tests(root: Path) -> None:
         'MODULE_LICENSE("GPL");\n',
         "\n#ifdef CONFIG_ARM64_MT6797_A72_ATOMIC_PUBLICATION_KUNIT_TEST\n"
         + fragment
-        + "\nkunit_test_suites(&mt6797_a72_owner_suite,\n"
-        + "\t\t  &atomic_publication_test_suite);\n"
+        + "\nkunit_test_suite(atomic_publication_test_suite);\n"
         + "#else\n"
         + "kunit_test_suite(mt6797_a72_owner_suite);\n"
         + "#endif\n\n"

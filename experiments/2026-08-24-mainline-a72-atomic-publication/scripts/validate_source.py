@@ -182,6 +182,10 @@ def main() -> None:
             "test publisher selection")
     require("select ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST" in kconfig,
             "existing membership KUnit object selection")
+    require("kunit_test_suite(atomic_publication_test_suite);" in
+            membership_test, "isolated atomic suite registration")
+    require("kunit_test_suites(" not in membership_test[test_start:],
+            "unrelated owner suite registered by atomic profile")
     for forbidden in (
         "cpu_up(", "psci_cpu_on", "writel(", "readl(", "i2c_transfer(",
     ):

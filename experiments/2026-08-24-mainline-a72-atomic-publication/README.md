@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-24-mainline-a72-atomic-publication` |
-| Status | generated, reviewed, and canonically admitted; Buildbox compile pending |
+| Status | compiled; atomic KUnit passes; isolated suite regeneration pending |
 | Subsystem | MT6797 A72 bootstrap owner and P30 pristine finalization |
 | Device variant | Gemini PDA contract; injected hardware-free phase |
 | Date(s) | 2026-08-24 America/New_York |
@@ -136,8 +136,7 @@ admitted patch identities are recorded in [`contract.json`](contract.json).
 
 The reviewed bytes are canonical patches `0345`--`0347`. The isolated
 `a72-atomic-publication-kunit` profile selects the injected publisher test and
-its existing P30 and membership-owner suites. No kernel has yet been compiled,
-and no QEMU or device action has occurred.
+the supporting P30 and membership-owner machinery.
 
 The first exact admission build, commit `84c94b04`, failed closed during
 configuration validation before compilation. The inherited blocked P30
@@ -145,6 +144,24 @@ fragment explicitly requested the late-startup KUnit suite off, while the new
 atomic suite selected it only indirectly. The retry explicitly overrides both
 the late-startup and membership-owner KUnit suites in the final isolated
 fragment, matching its declared focused coverage; no patch byte changed.
+
+Signed and pushed commit `e5de89b7` compiled and produced validated package
+`linux-7.1.3-gemini-a72-atomic-publication-kunit-f371203d-fb1ade23`. Its 29
+over-limit frame warnings comprise two previously classified production
+warnings and 27 warnings in the pre-existing membership-owner tests. Every
+membership-test warning ends before line 1255, where the new atomic region
+begins; the atomic region introduced zero over-limit frames.
+
+The first no-network QEMU run made the profile boundary observable. The
+late-startup suite passed 20/20 and the atomic-publication suite passed 8/8.
+The selected owner symbol also registered its unrelated 26-case historical
+suite; 23 cases faulted when their pre-existing 6--75 KiB automatic state
+crossed the guarded KUnit stack. This is inherited test debt, not an atomic
+publication failure, but the overall run is rejected rather than reported as
+a pass. The test generator now registers only the atomic suite when the
+atomic option is selected; the owner symbol remains selected solely to build
+the shared object and test seed. Regeneration and a new exact build remain
+pending.
 
 ## Analysis
 
@@ -162,12 +179,14 @@ and writes `AVAILABLE` last.
 ## Conclusion
 
 The three normal patches are generated, exactly replayed, strictly checked,
-and admitted to the canonical series. This makes no compile, runtime, or
-hardware-support claim and defines no boot candidate.
+and admitted to the canonical series. The exact atomic mechanism compiles and
+its eight cases pass, but the first profile run is not a complete proof because
+it also registered an unrelated inherited suite that cannot safely execute on
+the KUnit stack. No hardware-support claim or boot candidate is defined.
 
 ## Follow-up
 
-Compile the isolated profile on Buildbox, reject any new over-limit stack
-frame, then run only its focused no-network arm64 KUnit suites. The
-authoritative sequence remains in
+Regenerate the isolated suite registration, rebuild the exact profile on
+Buildbox, and require a clean 28-case late-startup plus atomic-publication
+QEMU result. The authoritative sequence remains in
 [Roadmap Gate 7](../../docs/ROADMAP.md#7-bring-up-cpu8).
