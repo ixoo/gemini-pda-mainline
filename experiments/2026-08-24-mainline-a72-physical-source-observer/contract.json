@@ -237,10 +237,32 @@
     },
     "selected_next": "owner-physically-selects-boot2-once"
   },
+  "runtime": {
+    "attempts": 1,
+    "status": "rejected-before-first-physical-source-checkpoint",
+    "candidate_sha256": "aa02ab666e63e7011139c1057bda99cdbab89245d41f9cad59dae30743b41246",
+    "bounded_observation_seconds_at_least": 120,
+    "usb_interface_observed": false,
+    "netcat_endpoint_observed": false,
+    "automatic_gemian_return_observed": false,
+    "owner_restart_to_gemian": true,
+    "recovery_boot_id": "dc479ada-a35a-4ede-8eab-6bc68f84aba4",
+    "recovery_boot_id_changed": true,
+    "record_1_header": "444247430000000000000000",
+    "record_1_sha256": "d58e2f4ee9541fa1f2a2d07247ffb6a1fa6a31fefaa83c3715fcfe4fd3ec9998",
+    "record_2_header": "444247430000000000000000",
+    "record_2_sha256": "d58e2f4ee9541fa1f2a2d07247ffb6a1fa6a31fefaa83c3715fcfe4fd3ec9998",
+    "retained_records": "exact-empty",
+    "pstore_file_count": 0,
+    "complete_summary": false,
+    "bigidvfs_call_reached": false,
+    "device_memory_writes": false,
+    "device_partition_writes": false
+  },
   "decision": {
-    "result": "candidate-deployed-readback-verified-device-shutdown",
-    "selected_next": "owner-physically-selects-boot2-once",
+    "result": "runtime-rejected-before-first-physical-source-checkpoint",
+    "selected_next": "add-earlier-retained-entry-and-source-acquisition-boundaries",
     "device_action": true,
-    "boot_candidate": true
+    "boot_candidate": false
   }
 }

@@ -5014,9 +5014,19 @@ The next ordered work is:
    predecessor backup or retained-RAM write occurred. The
    [deployment receipt](../experiments/2026-08-24-mainline-a72-physical-source-observer/results/deployment-2-write-readback-shutdown-20260824.txt)
    owns the exact identities.
-   **Selected next:** physically select `boot2` once, then collect the two exact
-   retained checkpoints and complete physical-source summary before choosing a
-   CPU8 action.
+   Runtime attempt 1 exposed neither the mainline USB/netcat endpoint nor an
+   automatic Gemian return during at least 120 seconds. Changed-ID Gemian
+   recovery then found boot2 unchanged, pstore empty, and both retained slots
+   still exact empty. The
+   [runtime receipt](../experiments/2026-08-24-mainline-a72-physical-source-observer/results/runtime-attempt-1-before-record-1-20260824.txt)
+   rejects the candidate before its first `before-bigidvfs` checkpoint; by the
+   exact call order, BigiDVFS was not reached. It cannot distinguish failure
+   before observer probe, source deferral, or the platform/provider/clock/first
+   checkpoint path. An identical retry is disallowed.
+   **Selected next:** add one durable boundary before source acquisition and a
+   second after all three DT source devices are held but before capture, then
+   repeat the offline Buildbox/container gates. Keep publication, provider
+   transactions, owner mutation, and CPU requests closed.
    Deployment preflight attempt 1 safely refused before the `boot2` gate because
    records 1 and 2 still matched the prior protected-clock headers and payload
    prefix. No partition or device-memory write occurred. Gemian was cleanly shut

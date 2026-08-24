@@ -206,3 +206,19 @@ down without reboot and is confirmed unreachable. The exact sanitized
 [deployment receipt](results/deployment-2-write-readback-shutdown-20260824.txt)
 is now the handoff: physically select `boot2` once, then collect records 1 and 2
 plus the complete physical-source summary before interpreting the result.
+
+Runtime attempt 1 did not expose the mainline USB/netcat endpoint and did not
+return automatically to Gemian during a bounded observation of at least 120
+seconds. After the owner restarted ordinary Gemian, its changed boot ID and
+unchanged full boot2 checksum passed attribution. Direct retained-RAM recovery
+found records 1 and 2 still exact empty with identical empty-record hashes;
+pstore was mounted but contained zero files. The exact
+[runtime receipt](results/runtime-attempt-1-before-record-1-20260824.txt)
+therefore rejects this candidate before its first `before-bigidvfs` checkpoint.
+Because the sole BigiDVFS call is ordered after that commit, it was not reached.
+The evidence does not yet separate pre-observer boot failure, source deferral,
+or failure in platform, read-only DA921x, protected-clock, or the checkpoint
+itself. An identical retry is disallowed. The selected next observation path
+moves durable attribution earlier: one boundary before source acquisition and
+one after all three DT source devices are held but before capture. Publication,
+provider transactions, owner mutation, and CPU requests remain closed.
