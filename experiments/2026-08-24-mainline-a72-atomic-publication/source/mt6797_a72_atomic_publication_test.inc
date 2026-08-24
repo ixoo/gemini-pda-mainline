@@ -316,7 +316,9 @@ static void atomic_publication_source_rejections_test(struct kunit *test)
 	mt6797_a72_membership_snapshot(&state->owner_before);
 	KUNIT_EXPECT_EQ(test,
 			mt6797_a72_membership_test_publish_bootstrap(&state->topology,
-								     &state->replay, false), -ENODEV);
+								     &state->replay,
+								     false),
+			-ENODEV);
 	KUNIT_ASSERT_EQ(test, atomic_register_source(test, state), 0);
 	state->source_result = -EIO;
 	KUNIT_EXPECT_EQ(test,
@@ -326,7 +328,9 @@ static void atomic_publication_source_rejections_test(struct kunit *test)
 	state->source.provider.control_a ^= 1;
 	KUNIT_EXPECT_EQ(test,
 			mt6797_a72_membership_test_publish_bootstrap(&state->topology,
-								     &state->replay, false), -EPERM);
+								     &state->replay,
+								     false),
+			-EPERM);
 	KUNIT_EXPECT_EQ(test, state->source_calls, (u32)2);
 	mt6797_a72_membership_snapshot(&state->owner_after);
 	expect_owner_equal(test, &state->owner_before, &state->owner_after);
@@ -340,7 +344,9 @@ static void atomic_publication_topology_rejection_test(struct kunit *test)
 	state->topology.cpu9_present = 0;
 	KUNIT_EXPECT_EQ(test,
 			mt6797_a72_membership_test_publish_bootstrap(&state->topology,
-								     &state->replay, false), -EPERM);
+								     &state->replay,
+								     false),
+			-EPERM);
 	KUNIT_EXPECT_EQ(test, state->source_calls, (u32)0);
 	mt6797_a72_membership_snapshot(&state->owner_after);
 	KUNIT_EXPECT_EQ(test, state->owner_after.health,
@@ -358,7 +364,9 @@ static void atomic_publication_p30_busy_test(struct kunit *test)
 			arm64_late_cpu_startup_claim_pristine(&claim), 0);
 	KUNIT_EXPECT_EQ(test,
 			mt6797_a72_membership_test_publish_bootstrap(&state->topology,
-								     &state->replay, false), -EBUSY);
+								     &state->replay,
+								     false),
+			-EBUSY);
 	KUNIT_EXPECT_EQ(test, state->source_calls, (u32)1);
 	KUNIT_ASSERT_EQ(test,
 			arm64_late_cpu_startup_release_pristine(&claim), 0);

@@ -123,6 +123,16 @@ def main() -> None:
             "checkpatch_0346": "0 errors, 0 warnings, 0 checks",
             "checkpatch_0347": "0 errors, 1 warning, 17 checks",
         },
+        {
+            "repository_commit":
+                "7e20180e65b9dac8e824a4e591284fae90f7f0f5",
+            "classification": "rejected-strict-test-line-length",
+            "semantic_validation": "pass",
+            "exact_replay": True,
+            "checkpatch_0345": "0 errors, 0 warnings, 0 checks",
+            "checkpatch_0346": "0 errors, 0 warnings, 0 checks",
+            "checkpatch_0347": "0 errors, 4 warnings, 0 checks",
+        },
     ], "generation attempt chronology")
     require(contract["tests"] == {
         "suite": "mt6797-a72-atomic-publication",

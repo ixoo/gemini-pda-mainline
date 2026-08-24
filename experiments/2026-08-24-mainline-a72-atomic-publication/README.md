@@ -123,6 +123,11 @@ entry, the retry appends the guarded suite to the exact, hash-pinned existing
 membership KUnit source and selects that existing object. This changes no test
 case or production path and removes the new-file condition by construction.
 
+Commit `7e20180e` confirmed that structure: patches `0345` and `0346` were
+strict-clean, and patch `0347` had zero checks and only four line-length
+warnings in nested KUnit assertions. Semantic validation and exact replay
+again passed. The retry splits only those four assertion arguments.
+
 No kernel has been compiled, no generated patch has been admitted, and no
 QEMU or device action has occurred.
 
