@@ -23,6 +23,15 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-24 A72 BigiDVFS-backend probe on the passed Stage-27 reader DT](2026-08-24-mainline-a72-bigidvfs-backend-stage27-control/README.md)
+  — keeps the exact runtime-passed Stage-27 platform/clock DT and adds only the
+  read-free BigiDVFS-backend node. Probe validates the `smc` method, allocates
+  software state, initializes a mutex, and binds without a secure call. The
+  stable two-sample function has no caller. The deterministic candidate passes
+  all 32 LK gates, six container mutations, and fourteen runtime mutations
+  without a new kernel build. The selected next action is one guarded
+  deployment, shutdown, and owner-selected `boot2` attempt with the exact
+  USB/netcat collector pre-armed.
 - [2026-08-24 A72 clock-backend probe on the passed Stage-27 platform DT](2026-08-24-mainline-a72-clock-backend-stage27-control/README.md)
   — keeps the exact runtime-passed Stage-27 plus platform-state DT and adds
   only one read-free clock-backend resource node. Removing that node recovers

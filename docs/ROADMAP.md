@@ -5201,6 +5201,19 @@ The next ordered work is:
    probe effects and add only its minimum read-free resource contract to this
    exact passed DT. Do not add a platform snapshot, protected read, BigiDVFS
    operation, observer, publication, or CPU request in that discriminator.
+   That audit and offline construction are now complete in the linked
+   [Stage-27 BigiDVFS-backend discriminator](../experiments/2026-08-24-mainline-a72-bigidvfs-backend-stage27-control/README.md).
+   Its probe only validates `method = "smc"`, allocates software state,
+   initializes a mutex, and publishes driver data. The secure-read function
+   has no caller. The sole DT node is reversible to the byte-identical sorted
+   passed predecessor; two assemblies, two padding paths, all 32 LK gates, six
+   container mutations, and fourteen runtime mutations pass without a kernel
+   build or device action. **Selected next:** publish the exact candidate,
+   return the current successful mainline boot normally to Gemian, perform one
+   guarded full-readback `boot2` deployment and shutdown, then pre-arm one
+   owner-selected runtime. A bound pass closes all three cumulative read-free
+   reader probes and advances to an audit of the physical observer/caller
+   before any first read.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
