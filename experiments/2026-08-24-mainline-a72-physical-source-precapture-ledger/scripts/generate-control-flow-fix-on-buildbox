@@ -1,0 +1,144 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+export LC_ALL=C
+
+readonly PARENT_SOURCE_STATE=1c9ea34123fe39c102cdef8c15d8f95ab798ad30b908429c783954e66717cb1e
+readonly PARENT_SOURCE_INTEGRITY=a3e5b3adf75689034597cf1272e7a5581fed7eafaaf6223e321be8994c10185f
+readonly OBSERVER_SHA256=0b7bf83b8547e74b1cfd02ae8b93b6ad331aaab82be7e51582dd8ea92895bc25
+readonly PARENT_PATCH=0358-pstore-fix-A72-pre-capture-ledger-dependency.patch
+readonly PARENT_PATCH_SHA256=698dc2269f6d77bb0ef892628eda44ca0b743400889cfe669fd9af8c2ef5f9ca
+readonly PATCH=0359-soc-mediatek-fix-A72-pre-capture-cleanup-label.patch
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+[[ "$#" -eq 3 ]] || die 'expected PROJECT_COMMIT SOURCE_ROOT OUTPUT_ROOT'
+readonly project_commit=$1 source_root=$2 output_root=$3
+[[ "$project_commit" =~ ^[0-9a-f]{40}$ ]] || die 'invalid project commit'
+[[ "$source_root" == /workspace/gemini-pda/src/linux-7.1.3-series-source ]] ||
+	die 'unexpected managed source root'
+[[ "$output_root" == /workspace/gemini-pda/* ]] || die 'unsafe output root'
+[[ -f "$source_root/.gemini-source-state" && ! -L "$source_root/.gemini-source-state" ]] ||
+	die 'prepared source state marker absent or unsafe'
+[[ "$(<"$source_root/.gemini-source-state")" == "$PARENT_SOURCE_STATE" ]] ||
+	die 'prepared parent source state changed'
+[[ -f "$source_root/.gemini-source-integrity" && ! -L "$source_root/.gemini-source-integrity" ]] ||
+	die 'prepared source integrity marker absent or unsafe'
+[[ "$(<"$source_root/.gemini-source-integrity")" == "$PARENT_SOURCE_INTEGRITY" ]] ||
+	die 'prepared source integrity marker changed'
+
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+repository_dir=$(cd -- "$script_dir/../../.." && pwd -P)
+readonly script_dir repository_dir
+[[ "$(git -C "$repository_dir" rev-parse HEAD)" == "$project_commit" ]] ||
+	die 'project checkout does not match requested commit'
+[[ -z "$(git -C "$repository_dir" status --porcelain)" ]] ||
+	die 'project checkout is dirty'
+for command in git perl python3 sha256sum; do
+	command -v "$command" >/dev/null 2>&1 || die "missing command: $command"
+done
+integrity=$(python3 "$repository_dir/scripts/source-tree-integrity" verify "$source_root")
+readonly integrity
+[[ "$integrity" == "source_tree_integrity=$PARENT_SOURCE_INTEGRITY" ]] ||
+	die 'prepared source integrity verification failed'
+readonly relative=drivers/soc/mediatek/mt6797-a72-physical-source-observer.c
+printf '%s  %s\n' "$OBSERVER_SHA256" "$source_root/$relative" |
+	sha256sum --check --status || die 'parent observer changed'
+readonly parent_patch_path="$repository_dir/patches/v7.1.3/$PARENT_PATCH"
+[[ -f "$parent_patch_path" && ! -L "$parent_patch_path" ]] ||
+	die 'canonical parent patch absent or unsafe'
+printf '%s  %s\n' "$PARENT_PATCH_SHA256" "$parent_patch_path" |
+	sha256sum --check --status || die 'canonical parent patch changed'
+
+readonly work_root=/workspace/gemini-pda/a72-physical-source-precapture-control-flow-fix-work
+readonly package="$output_root/a72-physical-source-precapture-control-flow-fix-${project_commit:0:12}"
+readonly partial="${package}.partial.$$"
+mkdir -p "$work_root" "$output_root"
+if [[ -d "$package" && ! -L "$package" ]]; then
+	grep -Fx "repository_commit=$project_commit" "$package/provenance/generation.txt" >/dev/null ||
+		die 'existing package commit mismatch'
+	(cd "$package" && sha256sum --check --strict SHA256SUMS >/dev/null)
+	printf 'Generated A72 pre-capture control-flow fix at %s\n' "$package"
+	exit 0
+fi
+[[ ! -e "$package" && ! -e "$partial" ]] || die 'unsafe existing output path'
+work=$(mktemp -d "$work_root/generation.XXXXXX")
+readonly work
+cleanup() {
+	[[ ! -d "$work" || "$work" != "$work_root"/generation.* ]] || rm -rf -- "$work"
+	[[ ! -d "$partial" || "$partial" != "$output_root"/*.partial.* ]] || rm -rf -- "$partial"
+}
+trap cleanup EXIT
+
+mkdir -p "$work/source/$(dirname "$relative")"
+cp -- "$source_root/$relative" "$work/source/$relative"
+git -C "$work/source" init --quiet
+git -C "$work/source" config user.name 'Gemini Mainline Experiment'
+git -C "$work/source" config user.email gemini-mainline@example.invalid
+git -C "$work/source" add -- .
+GIT_AUTHOR_DATE=2026-08-24T17:00:00Z GIT_COMMITTER_DATE=2026-08-24T17:00:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'A72 pre-capture control-flow-fix canonical parent'
+parent_commit=$(git -C "$work/source" rev-parse HEAD)
+readonly parent_commit
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/control_flow_fix_edits.py" --source-root "$work/source"
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_control_flow_fix.py" --source-root "$work/source"
+git -C "$work/source" diff --check
+git -C "$work/source" add -- .
+git -C "$work/source" diff --cached --check
+GIT_AUTHOR_NAME='Gemini Mainline Experiment' \
+GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid \
+GIT_COMMITTER_NAME='Gemini Mainline Experiment' \
+GIT_COMMITTER_EMAIL=gemini-mainline@example.invalid \
+GIT_AUTHOR_DATE=2026-08-24T17:01:00Z GIT_COMMITTER_DATE=2026-08-24T17:01:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'soc: mediatek: fix A72 pre-capture cleanup label' \
+		-m 'Define the guarded cleanup label used by both pre-capture exits immediately before the existing BigiDVFS, clock, platform, and snapshot release chain. This changes no hardware action.'
+result_commit=$(git -C "$work/source" rev-parse HEAD)
+readonly result_commit
+
+mkdir -p "$partial/patches" "$partial/provenance"
+git -C "$work/source" format-patch -1 --no-signature --numbered --start-number 1 \
+	--output-directory "$partial/patches" >/dev/null
+generated=$(find "$partial/patches" -maxdepth 1 -type f -name '0001-*.patch' -print)
+[[ -n "$generated" ]] || die 'normal control-flow fix patch absent'
+mv -- "$generated" "$partial/patches/$PATCH"
+printf '%s\n' "$PATCH" >"$partial/patches/series"
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_control_flow_fix_patch.py" --patch-dir "$partial/patches"
+git clone --quiet "$work/source" "$work/verify"
+git -C "$work/verify" checkout --quiet --detach "$parent_commit"
+git -C "$work/verify" config user.name 'Gemini Mainline Experiment'
+git -C "$work/verify" config user.email gemini-mainline@example.invalid
+git -C "$work/verify" am --quiet --committer-date-is-author-date "$partial/patches/$PATCH"
+[[ "$(git -C "$work/verify" rev-parse HEAD)" == "$result_commit" ]] ||
+	die 'patch replay did not reproduce generated commit'
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_control_flow_fix.py" --source-root "$work/verify"
+if ! perl "$source_root/scripts/checkpatch.pl" --no-tree --strict \
+	--ignore MISSING_SIGN_OFF,COMMIT_LOG_LONG_LINE \
+	"$partial/patches/$PATCH" >"$partial/provenance/checkpatch.txt"; then
+	cat "$partial/provenance/checkpatch.txt" >&2
+	die 'strict checkpatch rejected control-flow fix'
+fi
+cat >"$partial/provenance/generation.txt" <<EOF
+purpose=experiment-only-a72-physical-source-precapture-control-flow-fix
+repository_commit=$project_commit
+parent_source_state=$PARENT_SOURCE_STATE
+parent_source_integrity=$PARENT_SOURCE_INTEGRITY
+canonical_parent_patch=$PARENT_PATCH
+canonical_parent_patch_sha256=$PARENT_PATCH_SHA256
+parent_commit=$parent_commit
+result_commit=$result_commit
+generated_patch_count=1
+changed_files=$relative
+added_cleanup_labels=1
+hardware_actions_changed=false
+device_action=none
+boot_candidate=false
+EOF
+printf '%s\n' "$PATCH" >"$partial/provenance/patches.txt"
+(
+	cd "$partial"
+	find patches provenance -type f -print0 | sort -z | xargs -0 sha256sum >SHA256SUMS
+	sha256sum --check --strict SHA256SUMS >/dev/null
+)
+mv -- "$partial" "$package"
+printf 'Generated A72 pre-capture control-flow fix at %s\n' "$package"

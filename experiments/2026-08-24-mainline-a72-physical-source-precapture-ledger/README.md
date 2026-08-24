@@ -72,4 +72,13 @@ Parent integrity, one-file/one-deletion validation, byte-identical replay, and
 strict checkpatch with zero errors, warnings, or checks pass. The fetched bytes
 are canonical patch `0358`; see the
 [fix-generation receipt](results/buildbox-kconfig-fix-generation-3488562f.txt).
-The next action is to retry the unchanged isolated profile through `0358`.
+
+The retry at exact commit
+`bc1d7fecb5f8c485e4d39b89bbdec9e1bcf81fff` passed configuration and entered
+compilation, then stopped because the two guarded exits added by `0357` target
+`put_bigidvfs` while the existing release statement has no label. No package
+or candidate was produced. The
+[second stopped-attempt receipt](results/build-attempt-2-missing-cleanup-label.txt)
+selects one guarded label immediately before the unchanged BigiDVFS, clock,
+platform, and snapshot release chain. Generate and admit that exact
+control-flow-only follow-up before another Buildbox compile.

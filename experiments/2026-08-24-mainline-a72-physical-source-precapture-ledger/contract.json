@@ -48,10 +48,10 @@
   "build": {
     "backend": "buildbox",
     "profile": "a72-physical-source-precapture-ledger",
-    "attempts": 1,
-    "status": "stopped-recursive-kconfig-dependency",
-    "repository_commit": "e686b47f16c3db284980cb8db850bfa8df807256",
-    "compile_started": false,
+    "attempts": 2,
+    "status": "stopped-missing-cleanup-label",
+    "repository_commit": "bc1d7fecb5f8c485e4d39b89bbdec9e1bcf81fff",
+    "compile_started": true,
     "package": null
   },
   "kconfig_fix": {
@@ -74,9 +74,22 @@
     "canonical_admission": "0358",
     "strict_checkpatch": "0-errors-0-warnings-0-checks"
   },
+  "control_flow_fix": {
+    "status": "generation-pending",
+    "canonical_parent": "patches/v7.1.3/0358-pstore-fix-A72-pre-capture-ledger-dependency.patch",
+    "prepared_source_state": "1c9ea34123fe39c102cdef8c15d8f95ab798ad30b908429c783954e66717cb1e",
+    "prepared_source_integrity": "a3e5b3adf75689034597cf1272e7a5581fed7eafaaf6223e321be8994c10185f",
+    "parent_observer_sha256": "0b7bf83b8547e74b1cfd02ae8b93b6ad331aaab82be7e51582dd8ea92895bc25",
+    "patch": "0359-soc-mediatek-fix-A72-pre-capture-cleanup-label.patch",
+    "changed_files": [
+      "drivers/soc/mediatek/mt6797-a72-physical-source-observer.c"
+    ],
+    "added_cleanup_labels": 1,
+    "hardware_actions_changed": false
+  },
   "decision": {
-    "result": "kconfig-fix-admitted-build-retry-pending",
-    "selected_next": "retry-isolated-profile-on-buildbox",
+    "result": "compile-failure-needs-control-flow-fix",
+    "selected_next": "generate-and-admit-guarded-cleanup-label",
     "device_action": false,
     "boot_candidate": false
   }

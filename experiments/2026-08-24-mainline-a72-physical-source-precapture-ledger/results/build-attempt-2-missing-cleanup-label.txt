@@ -1,0 +1,17 @@
+experiment=2026-08-24-mainline-a72-physical-source-precapture-ledger
+attempt=2
+backend=buildbox
+profile=a72-physical-source-precapture-ledger
+repository_commit=bc1d7fecb5f8c485e4d39b89bbdec9e1bcf81fff
+prepared_source_state=1c9ea34123fe39c102cdef8c15d8f95ab798ad30b908429c783954e66717cb1e
+prepared_source_integrity=a3e5b3adf75689034597cf1272e7a5581fed7eafaaf6223e321be8994c10185f
+compile_started=true
+compile_result=failed
+source_file=drivers/soc/mediatek/mt6797-a72-physical-source-observer.c
+source_line=263
+compiler_error=label-put_bigidvfs-used-but-not-defined
+root_cause=0357-added-two-guarded-gotos-but-assumed-an-absent-cleanup-label
+package_produced=false
+boot_candidate=false
+device_action=none
+selected_next=add-one-guarded-cleanup-label-before-existing-bigidvfs-release
