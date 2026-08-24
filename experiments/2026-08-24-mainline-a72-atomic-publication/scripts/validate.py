@@ -23,7 +23,7 @@ PATCH_SHA256 = {
     "patches/v7.1.3/0346-arm64-add-atomic-A72-bootstrap-publisher.patch":
         "7229672d0eb94614dd3bdfb2fb1661ab54f420f6dd6211a0b4e84223fbc0ade8",
     "patches/v7.1.3/0347-arm64-test-atomic-A72-bootstrap-publication.patch":
-        "ea2d2250dcec3abb14f92c35968403198b0b2f1a022fbdf2c77e2e92976691d1",
+        "aa6ecee3bb4cbd9e5a449ac0adc22a85595c9ec3df0552b383ae4830710c1f14",
 }
 PROFILE = "a72-atomic-publication-kunit"
 
@@ -162,12 +162,22 @@ def main() -> None:
                 "d0b836d33d541b4ad1781577df6bc53dbe3d6154",
             "classification": "rejected-managed-source-state-advanced",
         },
+        {
+            "repository_commit":
+                "b7677583d47a2416a15a29cdfb523a34ce64a28b",
+            "classification": "pass",
+        },
     ], "generation attempt chronology")
     require(contract["generation"] == {
         "repository_commit":
-            "40c623eeaa707b861a572d385a25967c502af49e",
-        "package": "a72-atomic-publication-40c623eeaa70",
-        "result_commit": "db4d388fabd2921ee1c8e25007d7b85371b85b17",
+            "b7677583d47a2416a15a29cdfb523a34ce64a28b",
+        "package": "a72-atomic-publication-b7677583d47a",
+        "result_commit": "96406f5483e00c96375dde586bf83c5ab2e323d8",
+        "source_input_mode": "current-series-reverse",
+        "source_input_state":
+            "c7652badc345119ce6d5f842b01cc48d79d502944390aa90a20d9e3d2bf7cda7",
+        "source_input_integrity":
+            "88aa62a3c1e8f412c421020f7ca4fa160a3dfa056a3c35567d240f9b9867a922",
         "semantic_validation": "pass",
         "exact_replay": True,
         "checkpatch": "0 errors, 0 warnings, 0 checks",
@@ -353,7 +363,9 @@ def main() -> None:
         "no production caller", "candidate is defined",
         "failed closed before any", "atomic-publication suite passed 8/8",
         "failed closed before", "reverse-applies the exact three",
-        "Regenerate the isolated suite registration",
+        "Patches `0345` and `0346` are byte-identical",
+        "a72-atomic-publication-b7677583d47a",
+        "Build the exact regenerated profile",
     ):
         require(token in readme, f"README closure {token}")
 

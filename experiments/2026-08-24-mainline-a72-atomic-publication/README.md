@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-24-mainline-a72-atomic-publication` |
-| Status | compiled; atomic KUnit passes; isolated suite regeneration pending |
+| Status | compiled; atomic KUnit passes; isolated `0347` regenerated; rebuild pending |
 | Subsystem | MT6797 A72 bootstrap owner and P30 pristine finalization |
 | Device variant | Gemini PDA contract; injected hardware-free phase |
 | Date(s) | 2026-08-24 America/New_York |
@@ -172,6 +172,15 @@ files into its existing temporary workspace, reverse-applies the exact three
 admitted patch identities there, and requires every reconstructed parent file
 hash before generating. It does not create or retain another source root.
 
+Signed and pushed commit `b7677583` then regenerated successfully from that
+reversible current-series input. Patches `0345` and `0346` are byte-identical
+to their admitted predecessors. The new `0347` differs only in its generated
+commit identity, insertion count, blob identity, and replacement of the
+two-suite registration with `kunit_test_suite(atomic_publication_test_suite)`.
+All semantic phases, patch separation, exact replay, and strict checkpatch
+again pass; the new package is `a72-atomic-publication-b7677583d47a` and all
+three exact identities are pinned in [`contract.json`](contract.json).
+
 ## Analysis
 
 The finalizer clears the logical claim only while retaining the private P30
@@ -195,7 +204,7 @@ the KUnit stack. No hardware-support claim or boot candidate is defined.
 
 ## Follow-up
 
-Regenerate the isolated suite registration, rebuild the exact profile on
-Buildbox, and require a clean 28-case late-startup plus atomic-publication
-QEMU result. The authoritative sequence remains in
+Build the exact regenerated profile on Buildbox and require a clean 28-case
+late-startup plus atomic-publication QEMU result. The authoritative sequence
+remains in
 [Roadmap Gate 7](../../docs/ROADMAP.md#7-bring-up-cpu8).
