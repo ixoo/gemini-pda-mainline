@@ -23,6 +23,12 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-24 mainline A72 atomic publication contract audit](2026-08-24-mainline-a72-atomic-publication-audit/README.md)
+  — finds that the current separate P30 release cannot close both the
+  prepare-entry race and the post-commit failure window. It selects a nested
+  P30 finalizer that retains the P30 lock across one non-sleeping owner commit,
+  with no production caller, physical binding, CPU-veto change, or device
+  action.
 - [2026-08-23 mainline A72 A34-v2 evaluator and P30 interlock](2026-08-23-mainline-a72-a34-v2-interlock/README.md)
   — defines the audit-selected three-patch, hardware-free phase: an opaque
   pristine P30 claim, direct-state ABI 2 target identity, and A34 ABI 2 over

@@ -4923,12 +4923,17 @@ The next ordered work is:
    new over-limit stack warning, and its P30, direct-state-v2, and A34-v2
    suites pass all 32 cases under no-network arm64 QEMU. The
    [implementation experiment](../experiments/2026-08-23-mainline-a72-a34-v2-interlock/README.md)
-   owns the exact identities and classifications. **Selected next:** perform a
-   separate hardware-free review of the atomic single membership publication
-   commit point under the proven P30 claim, while retaining both CPU vetoes
-   and adding no physical reader binding or device action. Production positive
-   replay authority and physical source binding remain separate prerequisites
-   for a later decision-bearing candidate.
+   owns the exact identities and classifications. The separate
+   [atomic-publication audit](../experiments/2026-08-24-mainline-a72-atomic-publication-audit/README.md)
+   found that releasing the logical P30 claim before the owner store permits a
+   `prepare()` race, while releasing it afterward leaves a fallible operation
+   after publication. It selects a nested P30 finalizer that retains the P30
+   raw lock across one non-sleeping commit under `a72_state_lock`.
+   **Selected next:** implement and prove that default-off finalizer plus one
+   injected atomic publisher, with both CPU vetoes unchanged, no production
+   caller, no physical reader binding, and no device action. Production
+   positive replay authority and physical source binding remain separate
+   prerequisites for a later decision-bearing candidate.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

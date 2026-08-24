@@ -1,0 +1,7 @@
+option	p30_prepare_gap	postcommit_fallible	lock_order	result
+release-claim-before-owner-commit	yes	no	valid	reject-prepare-race
+owner-commit-before-fallible-release	no	yes	valid	reject-stranded-open-owner
+owner-state-lock-then-p30-release	no	yes	inverted	reject-lock-inversion
+retain-claim-after-owner-commit	no	no	valid	reject-blocks-future-p30
+reuse-kunit-available-seed	not-applicable	no	not-applicable	reject-no-a34-or-p30-proof
+p30-lock-nested-owner-commit-finalizer	no	no	valid	selected
