@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-23-mainline-a72-direct-state-compositor` |
-| Status | stack fixes admitted; Buildbox recompile pending |
+| Status | offline test-target correction defined; Buildbox generation pending |
 | Subsystem | MT6797 A72 direct-state composition and hotplug ownership |
 | Device variant | Gemini PDA contract; injected KUnit phase |
 | Date(s) | 2026-08-23 America/New_York |
@@ -60,6 +60,12 @@ must leave the A72 owner byte-identical and still `CLOSED / UNINITIALIZED`.
 - [`scripts/stack_source_edits.py`](scripts/stack_source_edits.py) moves the
   production workspace under the existing transition lock and the large test
   records into KUnit-managed per-case storage.
+- [`scripts/generate-target-fix-on-buildbox`](scripts/generate-target-fix-on-buildbox)
+  reconstructs the exact source through patch `0340` and generates the
+  test-only CPU-hotplug target correction.
+- [`scripts/target_fix_edits.py`](scripts/target_fix_edits.py) replaces only
+  the two preservation probes' invalid `CPUHP_OFFLINE` argument with the
+  admission API's required `CPUHP_ONLINE` target.
 - [`scripts/run-kunit-qemu`](scripts/run-kunit-qemu) accepts only the exact
   fetched Buildbox package for the current published commit and runs the sole
   focused suite under bounded no-network arm64 QEMU.
@@ -80,6 +86,9 @@ must leave the A72 owner byte-identical and still `CLOSED / UNINITIALIZED`.
 7. Generate, review, and canonically admit stack-safety follow-ups if needed.
 8. Rebuild on Buildbox, require the new frame warnings to be absent, then run
    the focused suite under no-network arm64 QEMU.
+9. If the offline classifier rejects a test-contract mismatch, preserve that
+   result and generate one exact test-only follow-up before repeating the same
+   compile and QEMU gates.
 
 ## Observations
 
@@ -152,6 +161,30 @@ checkpatch reported zero errors, warnings, or checks for both patches. The
 reviewed bytes are admitted as canonical patches `0339` and `0340`; their
 SHA-256 identities are pinned in [`contract.json`](contract.json).
 
+Buildbox compilation of the repaired series at exact repository commit
+`a0e5ff3a` completed and its package validated. The prior ten compositor and
+focused-test frame warnings are absent; the log contains only the two known
+pre-existing frames outside this change. The checksum-covered result is
+retained in
+[`results/buildbox-attempt-2-stack-pass-20260824.txt`](results/buildbox-attempt-2-stack-pass-20260824.txt).
+
+The first no-network arm64 QEMU run then executed the sole seven-case suite.
+Six cases passed. `direct_snapshot_success` reported one failed expectation:
+the test passed `CPUHP_OFFLINE` to `mt6797_a72_membership_preflight_up()` and
+expected `-EAGAIN`, while the API correctly returned `-EINVAL` because its
+contract accepts only `CPUHP_ONLINE`. The compositor itself returned success,
+all composed-record checks passed, the before/after owner and lifecycle
+records remained byte-identical, and the post-call preflight result remained
+unchanged. The exact sanitized failure is retained in
+[`results/qemu-attempt-1-target-mismatch-20260824.txt`](results/qemu-attempt-1-target-mismatch-20260824.txt).
+
+The correction therefore changes only those two bracketing test calls from
+`CPUHP_OFFLINE` to `CPUHP_ONLINE`. It changes no production code, expected
+closed-owner result, lock, source record, hardware operation, owner lifecycle,
+CPU request, or boot policy. A Buildbox-only generator now pins and
+reconstructs the canonical source through patch `0340` before producing one
+normal patch for review.
+
 ## Analysis
 
 The split keeps the outer ownership proof independent from physical reader
@@ -160,13 +193,21 @@ complete-record validation, failure behavior, and closed-owner preservation.
 It cannot establish a physical value, firmware call, device support, A34
 eligibility, or CPU8/CPU9 admission.
 
+The first QEMU rejection is a test-contract defect, not evidence that the
+compositor mutated admission state: both probes returned the same `-EINVAL`,
+and every state-preservation comparison passed. Using `CPUHP_ONLINE` makes the
+probe reach the intended closed-owner branch, where `-EAGAIN` is the existing
+contract, without relaxing that contract or opening admission.
+
 ## Conclusion
 
-`pending-stack-recompile`: the exact implementation compiled and its artifact
-validated, but the first compile exposed unsafe stack allocation. The two
-checksum-identified repairs are now admitted after semantic validation, exact
-replay, and strict checkpatch. No QEMU or device execution has occurred; the
-focused profile must now rebuild without any newly introduced stack warning.
+`pending-target-fix-generation`: the stack-safe implementation now compiles
+without any newly introduced frame warning. The first offline run proved six
+cases and exposed one invalid test target; it did not expose a compositor,
+state-preservation, or production failure. The two-call, test-only correction
+must now be generated and reviewed on Buildbox, admitted canonically, rebuilt,
+and rerun under the same no-network classifier. This remains hardware-free and
+is not a boot candidate.
 
 ## Follow-up
 

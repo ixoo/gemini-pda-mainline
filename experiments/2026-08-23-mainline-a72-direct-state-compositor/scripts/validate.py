@@ -41,6 +41,16 @@ def main() -> None:
     stack_generator = (
         EXPERIMENT / "scripts/generate-stack-fix-on-buildbox"
     ).read_text()
+    target_edits = (EXPERIMENT / "scripts/target_fix_edits.py").read_text()
+    target_validator = (
+        EXPERIMENT / "scripts/validate_target_fix_source.py"
+    ).read_text()
+    target_patch_validator = (
+        EXPERIMENT / "scripts/validate_target_fix_patch.py"
+    ).read_text()
+    target_generator = (
+        EXPERIMENT / "scripts/generate-target-fix-on-buildbox"
+    ).read_text()
     buildbox = (ROOT / "scripts/buildbox").read_text()
     runner = (EXPERIMENT / "scripts/run-kunit-qemu").read_text()
     classifier = (EXPERIMENT / "scripts/classify-kunit.py").read_text()
@@ -81,7 +91,7 @@ def main() -> None:
         "v7.1.3/0338-arm64-test-closed-A72-direct-state-compositor.patch",
     ], "canonical initial patch order")
     attempts = contract["compile_attempts"]
-    require(len(attempts) == 1, "compile attempt count")
+    require(len(attempts) == 2, "compile attempt count")
     attempt = attempts[0]
     require(attempt["repository_commit"] ==
             "0dbe657dbec405253d06f8653da6a421f60e8f0b",
@@ -107,6 +117,31 @@ def main() -> None:
         "qemu_run=false", "device_action=none", "boot_candidate=false",
     ):
         require(token in evidence, f"compile evidence {token}")
+    attempt = attempts[1]
+    require(attempt["repository_commit"] ==
+            "a0e5ff3a74f391812ee1998fa714db96f8c7093c",
+            "stack-safe compile commit")
+    require(attempt["build_exit"] == 0 and
+            attempt["artifact_validation"] == "pass",
+            "stack-safe compile artifact result")
+    require(attempt["classification"] == "pass-stack-safety",
+            "stack-safe compile classification")
+    require(attempt["introduced_frame_warning_count"] == 0 and
+            attempt["production_frame_warning_count"] == 0 and
+            attempt["kunit_frame_warning_count"] == 0 and
+            attempt["inherited_frame_warning_count"] == 2,
+            "stack-safe compile warning counts")
+    require(attempt["qemu_run"] is True and
+            attempt["boot_candidate"] is False,
+            "stack-safe compile execution scope")
+    evidence = (EXPERIMENT / attempt["evidence"]).read_text()
+    for token in (
+        "classification=pass-stack-safety",
+        "introduced_frame_warning_count=0",
+        "inherited_frame_warning_count=2",
+        "qemu_run=true", "device_action=none", "boot_candidate=false",
+    ):
+        require(token in evidence, f"stack-safe compile evidence {token}")
     stack_fix = contract["stack_fix_definition"]
     require(stack_fix["prepared_source_state"] ==
             "08ad5389a1cf831f13ad410da5d74b17a58d8c05c8ab05459f3568e47c4a41a1",
@@ -137,6 +172,62 @@ def main() -> None:
         "v7.1.3/0339-arm64-move-A72-direct-state-workspace-off-stack.patch",
         "v7.1.3/0340-arm64-move-A72-direct-state-KUnit-state-off-stack.patch",
     ], "canonical stack-fix tail")
+    qemu_attempts = contract["qemu_attempts"]
+    require(len(qemu_attempts) == 1, "QEMU attempt count")
+    qemu = qemu_attempts[0]
+    require(qemu["repository_commit"] ==
+            "a0e5ff3a74f391812ee1998fa714db96f8c7093c",
+            "QEMU attempt commit")
+    require(qemu["network"] == "none" and qemu["tests"] == 7 and
+            qemu["passed"] == 6 and qemu["failed"] == 1,
+            "QEMU rejected test inventory")
+    require(qemu["classification"] ==
+            "rejected-test-target-contract" and
+            qemu["failing_case"] == "direct_snapshot_success",
+            "QEMU target-contract classification")
+    require(qemu["expected_errno"] == "-EAGAIN" and
+            qemu["observed_errno"] == "-EINVAL" and
+            qemu["incorrect_target"] == "CPUHP_OFFLINE" and
+            qemu["required_target"] == "CPUHP_ONLINE",
+            "QEMU target mismatch")
+    require(qemu["boot_candidate"] is False,
+            "rejected QEMU promoted to boot candidate")
+    qemu_evidence = (EXPERIMENT / qemu["evidence"]).read_text()
+    for token in (
+        "passed=6", "failed=1",
+        "failing_assertion=preflight_before_expected_minus_EAGAIN_observed_minus_EINVAL",
+        "preflight_target=CPUHP_OFFLINE",
+        "admission_contract_target=CPUHP_ONLINE",
+        "owner_preservation=pass", "lifecycle_preservation=pass",
+        "classification=rejected-test-target-contract",
+        "device_action=none", "boot_candidate=false",
+    ):
+        require(token in qemu_evidence, f"QEMU evidence {token}")
+    target_fix = contract["target_fix_definition"]
+    require(target_fix["prepared_source_state"] ==
+            stack_fix["prepared_source_state"], "target-fix prepared source")
+    require(target_fix["prepared_source_integrity"] ==
+            stack_fix["prepared_source_integrity"],
+            "target-fix prepared integrity")
+    require(target_fix["canonical_parent"] ==
+            "patches/v7.1.3/0340-arm64-move-A72-direct-state-KUnit-state-off-stack.patch",
+            "target-fix canonical parent")
+    require(target_fix["canonical_parent_test_sha256"] ==
+            "fb339b4e802a4775d2a598834c598f641a1e1089bd296ac98fa234bd2fdd11e6",
+            "target-fix reconstructed parent")
+    require(target_fix["patch"] ==
+            "0341-arm64-fix-A72-direct-state-preflight-target-test.patch",
+            "target-fix patch name")
+    require(target_fix["generated"] is False and
+            target_fix["changed_file_count"] == 1 and
+            target_fix["changed_test_call_count"] == 2 and
+            target_fix["production_code_change"] is False and
+            target_fix["boot_candidate"] is False,
+            "target-fix definition scope")
+    require(target_fix["incorrect_target"] == "CPUHP_OFFLINE" and
+            target_fix["required_target"] == "CPUHP_ONLINE" and
+            target_fix["expected_closed_result"] == "-EAGAIN",
+            "target-fix semantic correction")
     require(contract["owner_order"] == [
         "cpu_hotplug_lock_read", "a72_transition_lock",
         "direct_state_source_registry_lock", "injected_source_callback",
@@ -205,11 +296,33 @@ def main() -> None:
                 f"stack generator parent {relative}")
     require("generated_patch_count=2" in stack_generator,
             "stack generator patch count")
+    require("text.count(old) == 2" in target_edits and
+            "text.replace(old, new)" in target_edits,
+            "target deterministic editor")
+    require("production_code_changes=0" in target_validator and
+            "preflight_target=CPUHP_ONLINE" in target_validator,
+            "target source validator closure")
+    require("generated_patch_count=1" in target_patch_validator and
+            "two-line substitution" in target_patch_validator,
+            "target patch validator closure")
+    require("PARENT_SOURCE_STATE=" +
+            target_fix["prepared_source_state"] in target_generator,
+            "target generator source pin")
+    require("PARENT_SOURCE_INTEGRITY=" +
+            target_fix["prepared_source_integrity"] in target_generator,
+            "target generator integrity pin")
+    require("STACK_TEST_RESULT_SHA256=" +
+            target_fix["canonical_parent_test_sha256"] in target_generator,
+            "target generator reconstructed parent pin")
+    require("generated_patch_count=1" in target_generator,
+            "target generator patch count")
     for command in (
         "generate-a72-direct-state-compositor",
         "fetch-a72-direct-state-compositor",
         "generate-a72-direct-state-stack-fix",
         "fetch-a72-direct-state-stack-fix",
+        "generate-a72-direct-state-target-fix",
+        "fetch-a72-direct-state-target-fix",
     ):
         require(command in buildbox, f"Buildbox command {command}")
     offline = contract["offline_definition"]
@@ -241,14 +354,17 @@ def main() -> None:
         'print("opens_owner=false")',
     ):
         require(token in classifier, f"QEMU classifier {token}")
-    require("`pending-stack-recompile`" in readme,
+    require("`pending-target-fix-generation`" in readme,
             "current phase statement")
 
     print("validation=a72-direct-state-definition")
     print(f"source_templates={len(source_files)}")
     print("generated_patch_count=2")
     print("compile_attempt_1=rejected-stack-safety")
+    print("compile_attempt_2=pass-stack-safety")
     print("stack_fix_generated=true")
+    print("qemu_attempt_1=rejected-test-target-contract")
+    print("target_fix_generated=false")
     print(f"manifest_profiles={len(manifest['config']['profiles'])}")
     print(f"canonical_patch_count={len(series)}")
     print("physical_reader_callers=0")

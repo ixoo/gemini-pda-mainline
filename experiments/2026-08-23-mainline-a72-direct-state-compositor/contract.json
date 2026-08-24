@@ -60,6 +60,27 @@
       "qemu_run": false,
       "boot_candidate": false,
       "evidence": "results/buildbox-attempt-1-stack-rejection-20260823.txt"
+    },
+    {
+      "attempt": 2,
+      "repository_commit": "a0e5ff3a74f391812ee1998fa714db96f8c7093c",
+      "buildbox_job": "a0e5ff3a74f391812ee1998fa714db96f8c7093c-a72-direct-state-kunit-m0",
+      "package": "linux-7.1.3-gemini-a72-direct-state-kunit-e55e225e-b766a25d",
+      "kernel_release": "7.1.3-gemini-direct-state-kunit",
+      "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+      "patchset_sha256": "e55e225e9445e5eafa8c805efe5812ea98d39cb03e900f8aad66f9fda2a8151e",
+      "config_sha256": "8582ce081e57cb134420f5e06d34a6d28d482c997e4bccf92c81869737bbe1d9",
+      "image_gzip_sha256": "c791797120c9dae9952a44fa6d9e29594488fadf2908dfcb4fd4566dd8e9658b",
+      "build_exit": 0,
+      "artifact_validation": "pass",
+      "classification": "pass-stack-safety",
+      "introduced_frame_warning_count": 0,
+      "production_frame_warning_count": 0,
+      "kunit_frame_warning_count": 0,
+      "inherited_frame_warning_count": 2,
+      "qemu_run": true,
+      "boot_candidate": false,
+      "evidence": "results/buildbox-attempt-2-stack-pass-20260824.txt"
     }
   ],
   "stack_fix_definition": {
@@ -88,6 +109,43 @@
       "checkpatch": "0 errors, 0 warnings, 0 checks",
       "exact_replay": true
     },
+    "boot_candidate": false
+  },
+  "qemu_attempts": [
+    {
+      "attempt": 1,
+      "observed_utc": "2026-08-24T00:20:25Z",
+      "repository_commit": "a0e5ff3a74f391812ee1998fa714db96f8c7093c",
+      "package": "linux-7.1.3-gemini-a72-direct-state-kunit-e55e225e-b766a25d",
+      "kernel_release": "7.1.3-gemini-direct-state-kunit",
+      "runner": "qemu-system-aarch64-11.0.2",
+      "network": "none",
+      "tests": 7,
+      "passed": 6,
+      "failed": 1,
+      "classification": "rejected-test-target-contract",
+      "failing_case": "direct_snapshot_success",
+      "expected_errno": "-EAGAIN",
+      "observed_errno": "-EINVAL",
+      "incorrect_target": "CPUHP_OFFLINE",
+      "required_target": "CPUHP_ONLINE",
+      "boot_candidate": false,
+      "evidence": "results/qemu-attempt-1-target-mismatch-20260824.txt"
+    }
+  ],
+  "target_fix_definition": {
+    "prepared_source_state": "08ad5389a1cf831f13ad410da5d74b17a58d8c05c8ab05459f3568e47c4a41a1",
+    "prepared_source_integrity": "4f812300aa0171cfbb91a645de62e1daff8d73a0200357a281a2cae7b053191a",
+    "canonical_parent": "patches/v7.1.3/0340-arm64-move-A72-direct-state-KUnit-state-off-stack.patch",
+    "canonical_parent_test_sha256": "fb339b4e802a4775d2a598834c598f641a1e1089bd296ac98fa234bd2fdd11e6",
+    "patch": "0341-arm64-fix-A72-direct-state-preflight-target-test.patch",
+    "generated": false,
+    "changed_file_count": 1,
+    "changed_test_call_count": 2,
+    "production_code_change": false,
+    "incorrect_target": "CPUHP_OFFLINE",
+    "required_target": "CPUHP_ONLINE",
+    "expected_closed_result": "-EAGAIN",
     "boot_candidate": false
   },
   "offline_definition": {
