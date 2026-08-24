@@ -48,11 +48,26 @@
   "build": {
     "backend": "buildbox",
     "profile": "a72-physical-source-precapture-ledger",
-    "status": "pending"
+    "attempts": 1,
+    "status": "stopped-recursive-kconfig-dependency",
+    "repository_commit": "e686b47f16c3db284980cb8db850bfa8df807256",
+    "compile_started": false,
+    "package": null
+  },
+  "kconfig_fix": {
+    "status": "pending",
+    "canonical_parent": "patches/v7.1.3/0357-pstore-soc-add-Gemini-A72-pre-capture-ledger.patch",
+    "prepared_source_state": "26d1061e83ab875d1d2da2f539d880caeab8631731beb03c56cce12d9d0842f3",
+    "prepared_source_integrity": "5b6f5a7431579670b7562be665a7bd7ef11dc669a7aec8da185a56cb46c83ac3",
+    "parent_kconfig_sha256": "08c223eabbe2d7fa4943f4f1400d1464bcb13e9812983f7fea68cb09a9389154",
+    "patch": "0358-pstore-fix-A72-pre-capture-ledger-dependency.patch",
+    "changed_files": ["fs/pstore/Kconfig"],
+    "removed_dependencies": 1,
+    "runtime_source_changed": false
   },
   "decision": {
-    "result": "canonical-patch-admitted-build-pending",
-    "selected_next": "compile-isolated-profile-on-buildbox",
+    "result": "build-stopped-kconfig-fix-pending",
+    "selected_next": "generate-one-line-kconfig-fix-on-buildbox",
     "device_action": false,
     "boot_candidate": false
   }

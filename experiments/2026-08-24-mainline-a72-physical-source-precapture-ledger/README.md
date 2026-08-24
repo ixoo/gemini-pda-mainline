@@ -54,3 +54,14 @@ checks pass. The fetched patch is byte-identical to canonical `0357`; see the
 Compile the isolated profile on Buildbox. No native VM kernel build is
 authorized, and the experiment remains `boot_candidate=false` until package,
 binary, DT, and independent container gates pass.
+
+The first build at exact commit
+`e686b47f16c3db284980cb8db850bfa8df807256` stopped during `defconfig`
+before compilation: Kconfig rejects reciprocal negative dependencies between
+the old physical-source mode and the new pre-capture mode. No package or
+candidate was produced. The [stopped-attempt receipt](results/build-attempt-1-recursive-kconfig-dependency.txt)
+selects a one-line follow-up: remove only the old mode's reverse dependency.
+The new mode still requires the old mode off, so exclusivity remains one-way
+without a cycle. Runtime source and the two checkpoint boundaries are
+unchanged. Generate and admit that exact Kconfig-only patch before retrying the
+Buildbox profile.

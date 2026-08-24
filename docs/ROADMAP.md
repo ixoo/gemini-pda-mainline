@@ -5034,9 +5034,13 @@ The next ordered work is:
    Exact Buildbox generation, source validation, three-file boundary review,
    byte-identical replay, and strict checkpatch now pass; fetched patch `0357`
    is admitted byte-for-byte.
-   **Selected next:** compile the isolated pre-capture profile on Buildbox,
-   then require package, linked/excluded-symbol, DT, and independent container
-   validation before any deployment.
+   The first isolated build stopped during `defconfig` before compilation or
+   packaging because reciprocal negative Kconfig dependencies form a cycle.
+   No candidate exists. The selected correction removes only the old mode's
+   reverse dependency; the new mode retains the one-way exclusion and no
+   runtime source changes.
+   **Selected next:** generate and admit that one-line Kconfig follow-up on
+   Buildbox, then retry the exact isolated profile.
    Deployment preflight attempt 1 safely refused before the `boot2` gate because
    records 1 and 2 still matched the prior protected-clock headers and payload
    prefix. No partition or device-memory write occurred. Gemian was cleanly shut

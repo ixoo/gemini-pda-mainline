@@ -1,0 +1,26 @@
+experiment=2026-08-24-mainline-a72-physical-source-precapture-ledger
+repository_commit=e686b47f16c3db284980cb8db850bfa8df807256
+backend=buildbox
+profile=a72-physical-source-precapture-ledger
+patch_series_through=0357
+source_prepare=passed
+defconfig=failed-before-compilation
+compile=not-started
+package=none
+artifact=none
+error=recursive-kconfig-dependency
+dependency_cycle=PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER<->PSTORE_GEMINI_A72_PHYSICAL_SOURCE_PRECAPTURE_LEDGER
+cause=reciprocal-negative-dependencies
+selected_fix=remove-only-old-mode-dependency-on-new-mode
+new_mode_still_requires_old_mode_off=true
+runtime_source_changed=false
+device_action=none
+boot_candidate=false
+result=stopped-before-compilation
+
+The build stopped during `defconfig`; no target source compiled and no package
+or candidate exists. Kconfig cannot express reciprocal negative dependencies.
+The pre-capture mode alone retains `depends on
+!PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER`, which is sufficient to keep the
+experiment modes exclusive without a cycle. The follow-up changes one Kconfig
+line and no runtime source.
