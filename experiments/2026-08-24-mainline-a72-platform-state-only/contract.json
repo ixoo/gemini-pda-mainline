@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-24-mainline-a72-platform-state-only",
+  "predecessor": "experiments/2026-08-24-mainline-a72-early-live-control",
+  "question": "is-the-first-read-only-platform-state-source-serviceable-alone",
+  "kernel": {
+    "repository_commit": "26274db63316bbb24eeb9bfa8de21759da666b9e",
+    "profile": "a72-early-initcall-ledger",
+    "release": "7.1.3-gemini-a72-early",
+    "image_gzip_sha256": "00992be8c2ccb222c42eecfd92c43b81305f12d756cc2e2a7fc533299e2ce293",
+    "config_sha256": "d951032cfaee8e05c5ff0c69e689a1384375d2ddce657481722451261ba332dd",
+    "kernel_delta": false,
+    "native_vm_build": false
+  },
+  "dt": {
+    "source_sha256": "fe67420ca4e2955a73a4a3f2e442af3534b621820cf77ae035be9bf98756425d",
+    "derived_sha256": "8e806c5305b6a2808fab59d3a25739d39cd3196a3498a1af21136dd7221923e1",
+    "derived_size": 27710,
+    "artifact_manifest_sha256": "a2f8c7dc128fb0f418fa5310bc07409622f67d841179617cb62c2aaee2ac04c6",
+    "a72_platform_state": "okay",
+    "dvfsp_clock_backend": "disabled",
+    "dvfsp_bigidvfs_backend": "disabled",
+    "physical_source_observer": "disabled",
+    "changed_properties": 3
+  },
+  "candidate": {
+    "status": "validated",
+    "artifact": "candidate-a72-platform-state-only-f3210fb3",
+    "raw_sha256": "f3210fb38f9d3d5a61e23d60dc7f9d65b05b0a08cd5ef15033786a4f1bc50aff",
+    "raw_size": 6909952,
+    "padded_sha256": "012f7eac6884e65baab075ef286929f610a63f2ea065eba45865bd046492a23f",
+    "padded_size": 16777216,
+    "artifact_manifest_sha256": "07f89b083539be006efe1e8407694153daa00b581b95394e40844bd71d54c7da",
+    "lk_name": "gemini-a72plat",
+    "lk_cmdline": "bootopt=64S3,32N2,64N2",
+    "lk_gates_expected": 32,
+    "lk_gates_passed": 32,
+    "negative_mutations_rejected": 6,
+    "independent_dtb_derivations": true,
+    "independent_candidate_constructions": true,
+    "independent_validation": true,
+    "boot_candidate": true
+  },
+  "effects": {
+    "provider_probe": 1,
+    "snapshot_calls": 0,
+    "clock_backend_probes": 0,
+    "bigidvfs_backend_probes": 0,
+    "observer_registrations": 0,
+    "register_data_writes": 0,
+    "protected_calls": 0,
+    "provider_transactions": 0,
+    "publisher_calls": 0,
+    "owner_mutations": 0,
+    "cpu_requests": 0
+  },
+  "tooling": {
+    "dt_builder_sha256": "b9687654d61b22139ad3145ad27d642a1f351b59c06a4946d76f3a32f297b91e",
+    "candidate_builder_sha256": "a3f15ca3a29d41ceafde524ff7beff671c9587cb24fd383fb6473985b3b55b9d",
+    "candidate_validator_sha256": "67c38b09c69760ed9c3d31aed596a68491410a522965cac23208163d323ec116",
+    "installer_sha256": "ae2baf3416f1b0242fd22be7f30c8ff73859be6596ac1304f77a517ca843e1ad",
+    "collector_sha256": "e3ab9abd24e536513b0eaa12f1065d133183574757d2f5ad5b17e9b5f03daad6",
+    "remote_probe_sha256": "c1d206cbdea16ca0f6ba68b429618bf0004a4beb50f586164e95f13e6a0980ca",
+    "runtime_validator_sha256": "73e43ae3e4ec1df35f59b88caabaf17ab4b2f54ba1b5cfc51a7cff982a4d060d",
+    "runtime_tests_sha256": "a84308b9011a737b5412efda552fd5ec2462bcfda06f04f8f7a8294122a11366",
+    "runtime_accepted_branches": 2,
+    "runtime_rejected_mutations": 7
+  },
+  "deployment": {"status": "pending"},
+  "runtime": {"status": "pending"}
+}
