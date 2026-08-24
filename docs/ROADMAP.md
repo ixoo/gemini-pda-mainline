@@ -5178,7 +5178,22 @@ The next ordered work is:
    artifact. **Selected next:** audit the clock backend's probe effects and add
    only its minimum resource contract to this exact passed DT. Keep protected
    clock reads, BigiDVFS, observer registration, publication, and CPU8/CPU9
-   admission closed.
+   admission closed. That audit and offline construction are now complete in
+   the linked
+   [Stage-27 clock-backend discriminator](../experiments/2026-08-24-mainline-a72-clock-backend-stage27-control/README.md).
+   It keeps the exact passed kernel, ramdisk, and DT state and adds one node
+   whose probe maps only MCUMIXED, resolves the already-bound handoff supplier,
+   and acquires but does not enable the I2C_APPM clock. Removing the node
+   recovers the byte-identical sorted predecessor tree. Two DT derivations,
+   two candidate assemblies, two padding paths, all 32 LK gates, six container
+   mutations, and twelve runtime mutations pass; no new kernel build or device
+   action occurred. **Selected next:** publish this sole accepted candidate,
+   return the current positive mainline boot to Gemian over USB, perform one
+   guarded full-readback `boot2` deployment and shutdown, then pre-arm one
+   owner-selected runtime. A bound pass advances to the BigiDVFS backend's
+   minimum read-free probe contract; an unbound but serviceable result repairs
+   only the clock resource contract; a changed-ID Gemian return before exact
+   mainline identity requires an earlier durable probe boundary.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

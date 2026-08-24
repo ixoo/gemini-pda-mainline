@@ -23,6 +23,18 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-24 A72 clock-backend probe on the passed Stage-27 platform DT](2026-08-24-mainline-a72-clock-backend-stage27-control/README.md)
+  — keeps the exact runtime-passed Stage-27 plus platform-state DT and adds
+  only one read-free clock-backend resource node. Removing that node recovers
+  the byte-identical sorted predecessor semantic tree. The existing Buildbox
+  package already contains patch `0335`, whose probe maps only MCUMIXED,
+  resolves the handoff supplier, and acquires but does not enable the I2C_APPM
+  clock. The deterministic candidate passes all 32 LK gates, six container
+  mutations, and twelve runtime-classifier mutations without a new kernel
+  build. Protected reads, BigiDVFS, platform snapshots, publications, and CPU
+  requests remain closed. The selected next action is one guarded deployment,
+  shutdown, and owner-selected `boot2` attempt with the USB/netcat collector
+  pre-armed.
 - [2026-08-24 A72 platform-state probe on the exact Stage-27 control DT](2026-08-24-mainline-a72-platform-state-stage27-control/README.md)
   — corrects the confounded physical-source-DT attempt by deriving from the
   byte-exact runtime-proven Stage-27 DT and adding only the platform-state node,
