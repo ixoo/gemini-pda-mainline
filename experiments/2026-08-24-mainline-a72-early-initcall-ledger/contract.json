@@ -124,10 +124,38 @@
     "device_access": false,
     "hardware_write": false
   },
+  "deployment": {
+    "status": "write-synced-flushed-full-readback-verified",
+    "target_logical_name": "boot2",
+    "target": "/dev/mmcblk0p30",
+    "active_root": "/dev/mmcblk0p29",
+    "predecessor_sha256": "e9d565021de9ed1164aa78a78795d6a3dabd7af656aaa3df791e23424e66125a",
+    "fresh_predecessor_backup": false,
+    "candidate_sha256": "d2951eade3c08c889ecaeb1376f85262c44ad729048ddc3164c1db39acced609",
+    "readback_sha256": "d2951eade3c08c889ecaeb1376f85262c44ad729048ddc3164c1db39acced609",
+    "deployment_boot_id": "ca6e280a-1d4b-4db3-ae9e-9d3234d4082c",
+    "prewrite_record_1_header": "444247430000000000000000",
+    "prewrite_record_2_header": "444247430000000000000000",
+    "prewrite_records": "exact-empty",
+    "retained_ram_write": false,
+    "power": "online-100-percent-good",
+    "shutdown": "confirmed-unreachable",
+    "reboot": false
+  },
+  "recovery_tooling": {
+    "status": "frozen",
+    "classifier_sha256": "768c2060e0657933843cad252473e9970df283d4f26bf60d81d75e530d1aee82",
+    "collector_sha256": "370f669b6ba1569068378a829bbd714aa1c008d9df0d82d2c0b4569c5e448ea2",
+    "tests_sha256": "dc2e7e25666482d661843371e82eab43ba4664800610e178088d139ef82b858e",
+    "valid_branches": 5,
+    "unsafe_mutations_rejected": 18,
+    "device_access": false,
+    "hardware_write": false
+  },
   "decision": {
-    "result": "exact-boot-candidate-validated",
-    "selected_next": "guarded-boot2-deployment-and-shutdown",
-    "device_action": false,
+    "result": "boot2-deployed-readback-verified-shutdown",
+    "selected_next": "one-owner-physical-boot2-selection-then-read-only-recovery",
+    "device_action": true,
     "boot_candidate": true
   }
 }

@@ -231,12 +231,56 @@ def main() -> None:
             sha256(build_receipt)
             == "a3e6257a676901f5255f7df9d2f81db98291f0598483db47df9e17dc65c041bc",
             "build and candidate receipt")
+    deployment = contract["deployment"]
+    require(deployment["status"]
+            == "write-synced-flushed-full-readback-verified" and
+            deployment["target_logical_name"] == "boot2" and
+            deployment["target"] == "/dev/mmcblk0p30" and
+            deployment["active_root"] == "/dev/mmcblk0p29" and
+            deployment["predecessor_sha256"]
+            == "e9d565021de9ed1164aa78a78795d6a3dabd7af656aaa3df791e23424e66125a" and
+            deployment["fresh_predecessor_backup"] is False and
+            deployment["candidate_sha256"]
+            == candidate["padded_sha256"] and
+            deployment["readback_sha256"]
+            == candidate["padded_sha256"] and
+            deployment["deployment_boot_id"]
+            == "ca6e280a-1d4b-4db3-ae9e-9d3234d4082c" and
+            deployment["prewrite_records"] == "exact-empty" and
+            deployment["retained_ram_write"] is False and
+            deployment["shutdown"] == "confirmed-unreachable" and
+            deployment["reboot"] is False,
+            "exact boot2 deployment")
+    recovery = contract["recovery_tooling"]
+    require(recovery["status"] == "frozen" and
+            recovery["classifier_sha256"]
+            == "768c2060e0657933843cad252473e9970df283d4f26bf60d81d75e530d1aee82" and
+            recovery["collector_sha256"]
+            == "370f669b6ba1569068378a829bbd714aa1c008d9df0d82d2c0b4569c5e448ea2" and
+            recovery["tests_sha256"]
+            == "dc2e7e25666482d661843371e82eab43ba4664800610e178088d139ef82b858e" and
+            recovery["valid_branches"] == 5 and
+            recovery["unsafe_mutations_rejected"] == 18 and
+            recovery["device_access"] is False and
+            recovery["hardware_write"] is False,
+            "frozen recovery tooling")
+    receipts = {
+        "deployment-20260824.txt":
+            "08ea5fc0fe1aed0b1043f4026dcfb1f875335b4a7f9f140424895c5d24fec35c",
+        "recovery-tooling-validation-20260824.txt":
+            "d92a23ea08304e3cefa2a2f77ce4133e19063151b77a0f28a654f1ab62cc405f",
+    }
+    for name, expected in receipts.items():
+        receipt = EXPERIMENT / "results" / name
+        require(receipt.is_file() and not receipt.is_symlink() and
+                sha256(receipt) == expected, f"{name} identity")
     require(
         contract["decision"]
         == {
-            "result": "exact-boot-candidate-validated",
-            "selected_next": "guarded-boot2-deployment-and-shutdown",
-            "device_action": False,
+            "result": "boot2-deployed-readback-verified-shutdown",
+            "selected_next":
+                "one-owner-physical-boot2-selection-then-read-only-recovery",
+            "device_action": True,
             "boot_candidate": True,
         },
         "current decision",
@@ -252,7 +296,10 @@ def main() -> None:
     print("cpu_requests=0")
     print("buildbox_build=passed")
     print("lk_gates=32-of-32")
-    print("device_action=false")
+    print("deployment=write-synced-flushed-full-readback-verified")
+    print("shutdown=confirmed-unreachable")
+    print("recovery_valid_branches=5")
+    print("device_action=true")
     print("boot_candidate=true")
     print("result=pass")
 

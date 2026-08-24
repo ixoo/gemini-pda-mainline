@@ -5124,11 +5124,16 @@ The next ordered work is:
    signed commit `26274db6`; its fetched package checksums, deterministic
    Android-v0 assembly, independent padding, and all 32 LK gates pass. The
    exact padded candidate is `d2951ead...d609`. It performs no observer,
-   source, provider, clock, owner, publication, or CPU action. **Selected
-   next:** install it to live-GPT inactive `boot2`, require a matching full
-   16 MiB readback and clean shutdown, then pin the five-outcome recovery
-   classifier to that deployment boot ID before one physical `boot2`
-   selection.
+   source, provider, clock, owner, publication, or CPU action. Guarded
+   deployment resolves live-GPT inactive `boot2` as `/dev/mmcblk0p30`,
+   confirms both retained headers exact empty, records predecessor
+   `e9d56502...6125a` without a redundant backup, writes the exact candidate,
+   and matches the full 16 MiB readback. Clean shutdown is confirmed without
+   reboot. The recovery classifier is frozen to deployment boot ID
+   `ca6e280a...d4082c`, accepts the five decision-table outcomes, and rejects
+   18 stale, malformed, conflicting, or unsafe mutations. **Selected next:**
+   one owner-selected `boot2` attempt, then bounded read-only changed-ID
+   Gemian recovery. Screen state and reset timing remain excluded.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

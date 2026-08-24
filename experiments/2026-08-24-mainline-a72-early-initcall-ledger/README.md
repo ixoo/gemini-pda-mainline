@@ -3,12 +3,14 @@
 ## Status
 
 Canonical patch `0362` generated, validated, admitted, and built on Buildbox.
-The exact LK candidate is independently validated and awaits one guarded
-`boot2` deployment. The predecessor's exact `subsys-init` and `fs-init`
-records were both empty after an automatic return to changed-ID Gemian. That
-candidate is retired. This successor moves the primary records to pure and
-core initcall levels and adds one bounded fallback record that attributes a
-failed pure checkpoint when record 2 remains safely available.
+The exact LK candidate is independently validated, installed to live-GPT
+inactive `boot2`, fully read back, and shut down. Recovery tooling is frozen
+to that deployment boot ID. The device now awaits one owner-selected `boot2`
+attempt. The predecessor's exact `subsys-init` and `fs-init` records were
+both empty after an automatic return to changed-ID Gemian. That candidate is
+retired. This successor moves the primary records to pure and core initcall
+levels and adds one bounded fallback record that attributes a failed pure
+checkpoint when record 2 remains safely available.
 
 ## Hypothesis
 
@@ -86,6 +88,18 @@ reassembled and validated. Its raw SHA-256 is
 the exact 16 MiB `boot2` image SHA-256 is
 `d2951eade3c08c889ecaeb1376f85262c44ad729048ddc3164c1db39acced609`.
 No device access, device write, or CPU admission occurred during build or
-candidate validation. The next action is the guarded live-GPT `boot2` install,
-full readback, and clean shutdown; recovery tooling will then be pinned to that
-deployment boot ID before the owner selects `boot2`.
+candidate validation. Guarded deployment then resolved live-GPT inactive
+`boot2` as `/dev/mmcblk0p30` while Gemian root remained
+`/dev/mmcblk0p29`. Both record headers were exact empty. The predecessor
+checksum was recorded without creating a redundant backup; the exact padded
+candidate was written, synced, flushed, and matched by a full 16 MiB readback.
+Gemian shutdown was confirmed unreachable without reboot.
+
+The recovery classifier is pinned to deployment boot ID
+`ca6e280a-1d4b-4db3-ae9e-9d3234d4082c` and exact installed SHA-256
+`d2951eade3c08c889ecaeb1376f85262c44ad729048ddc3164c1db39acced609`.
+It accepts exactly the five decision-table branches, rejects core without pure
+and malformed, conflicting, stale, or unsafe captures, and passed 18 mutation
+tests. The next action is one physical `boot2` selection followed by bounded,
+read-only changed-ID Gemian recovery. Screen state and reset timing remain
+non-attributable observations.
