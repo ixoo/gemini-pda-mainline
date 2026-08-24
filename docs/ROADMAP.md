@@ -5187,9 +5187,11 @@ The next ordered work is:
    recovers the byte-identical sorted predecessor tree. Two DT derivations,
    two candidate assemblies, two padding paths, all 32 LK gates, six container
    mutations, and twelve runtime mutations pass; no new kernel build or device
-   action occurred. **Selected next:** publish this sole accepted candidate,
-   return the current positive mainline boot to Gemian over USB, perform one
-   guarded full-readback `boot2` deployment and shutdown, then pre-arm one
+   action occurred. Signed definition commit `98c08486` is pushed. The current
+   positive mainline boot returned normally to changed-ID Gemian over USB, and
+   the guarded live-GPT `boot2` deployment passed the exact predecessor, TEE,
+   power, write, flush, full-readback, cleanup, and shutdown gates without a
+   fresh backup or retained-RAM write. **Selected next:** pre-arm one
    owner-selected runtime. A bound pass advances to the BigiDVFS backend's
    minimum read-free probe contract; an unbound but serviceable result repairs
    only the clock resource contract; a changed-ID Gemian return before exact

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-24-mainline-a72-clock-backend-stage27-control` |
-| Status | `ready for one boot` — offline validation passed |
+| Status | `deployed` — exact full readback passed and device shut down |
 | Subsystem | MT6797 DVFSP clock backend and A72 platform-state composition |
 | Device variant | Gemini PDA, named project device |
 | Date | 2026-08-24 |
@@ -121,3 +121,25 @@ prohibited-action mutations.
 No new kernel build was required: the exact Buildbox package already contains
 the read-free clock backend. No device was accessed and no hardware was written
 during construction or offline validation.
+
+## Deployment
+
+Signed definition commit `98c08486` was pushed before device action. The
+current positive mainline boot was identified over USB as
+`7.1.3-gemini-a72-early` with boot ID
+`68900296-22f4-43ea-a353-3bb5087c0045`, then requested its validated normal
+reboot. Changed-ID Gemian returned as `3.18.41+` with boot ID
+`5052f982-abab-456f-b843-317a2904d9c8`.
+
+The guarded installer resolved inactive logical `boot2` as `/dev/mmcblk0p30`
+while root was `/dev/mmcblk0p29`. The exact passed platform-state predecessor,
+both TEE slots, online power at 100% with Good health, and the accepted retained
+record pair all matched. No retained-memory write or fresh partition backup
+occurred. Write, sync, flush, and full 16 MiB readback produced exact
+`4c5276ec...56e4`; the temporary readback was removed and clean shutdown was
+confirmed by loss of reachability. Sanitized evidence is in
+[`results/deployment-20260824.txt`](results/deployment-20260824.txt).
+
+The next action is to pre-arm the exact USB/netcat collector and then have the
+owner physically select `boot2` once. No boot selection or automatic reboot
+was requested by deployment.

@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "experiment": "2026-08-24-mainline-a72-clock-backend-stage27-control",
-  "definition_commit": null,
+  "definition_commit": "98c08486",
   "predecessor": "experiments/2026-08-24-mainline-a72-platform-state-stage27-control",
   "question": "read-free-clock-backend-probe-on-passed-stage27-platform-baseline",
   "build": {
@@ -74,7 +74,25 @@
     "runtime_rejected_mutations": 12
   },
   "deployment": {
-    "status": "pending"
+    "status": "write-synced-flushed-full-readback-verified",
+    "target_logical_name": "boot2",
+    "target": "/dev/mmcblk0p30",
+    "active_root": "/dev/mmcblk0p29",
+    "predecessor_sha256": "662e86846e783cf29b13c388f9e88217fe7bd32933eef4f32df86e44def0b16b",
+    "candidate_sha256": "4c5276ecf3fe60d7df55fd1fe44235432fcd928d2174704e5928bae7d84056e4",
+    "readback_sha256": "4c5276ecf3fe60d7df55fd1fe44235432fcd928d2174704e5928bae7d84056e4",
+    "tee1_sha256": "2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3",
+    "tee2_sha256": "2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3",
+    "deployment_boot_id": "5052f982-abab-456f-b843-317a2904d9c8",
+    "power": "online-100-percent-good",
+    "prewrite_records": "exact-stage27-control-pair",
+    "retained_ram_write": false,
+    "fresh_predecessor_backup_required": false,
+    "temporary_readback_removed": true,
+    "shutdown_after_verified_write": "confirmed-unreachable",
+    "automatic_reboot": false,
+    "private_summary_sha256": "e80baf02adb0a1652cc4803c7c2d366581e9da77cb6d0e85148630dea183aa07",
+    "private_manifest_sha256": "3a2b284fd1a62f0a3046d6bb8ec784f7e2464155c33053a718342cd872bf51e3"
   },
   "runtime": {
     "status": "pending",
