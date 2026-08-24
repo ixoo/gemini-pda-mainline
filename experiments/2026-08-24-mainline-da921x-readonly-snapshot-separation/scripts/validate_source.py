@@ -105,7 +105,9 @@ def main() -> None:
     require("CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE" not in ops,
             "snapshot registration is unconditional under owner")
     register_start = driver.index("static int da9213_legacy_register_owner")
-    register_end = driver.index("#endif", register_start)
+    register_end = driver.index(
+        "static int da9213_legacy_validate_node", register_start
+    )
     register = driver[register_start:register_end]
     for token in (
         "context = &chip->provider_endpoint",
