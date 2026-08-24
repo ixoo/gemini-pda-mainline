@@ -22,7 +22,7 @@ readonly PARENT_PATCH=0344-arm64-revise-A34-for-direct-state-v2.patch
 readonly PARENT_PATCH_SHA256=c7f39812d182f85a9b7db3f47cf8de4219efcdf36bfb4b99dae5026fac6bb192
 readonly FINALIZER_PATCH_SHA256=e84b1096911dd2e1375aac856702bf7d9508803e4984006ddca07a99fbd09aba
 readonly PUBLISHER_PATCH_SHA256=7229672d0eb94614dd3bdfb2fb1661ab54f420f6dd6211a0b4e84223fbc0ade8
-readonly TEST_PATCH_SHA256=aa6ecee3bb4cbd9e5a449ac0adc22a85595c9ec3df0552b383ae4830710c1f14
+readonly TEST_PATCH_SHA256=53a59d1976d95eaba1095fbdb8811f20d8c9e2a1e875368fa716f26e907b1a83
 
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 
@@ -149,6 +149,20 @@ new = "kunit_test_suite(atomic_publication_test_suite);"
 text = path.read_text(encoding="utf-8")
 if text.count(old) != 1 or new in text:
     raise SystemExit("pre-isolation suite registration changed")
+path.write_text(text.replace(old, new), encoding="utf-8")
+PY
+fi
+if [[ "$source_mode" == isolated-series-reverse ]]; then
+	python3 - "$work/source/arch/arm64/kernel/mt6797_a72_membership_test.c" <<'PY'
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+old = "static struct kunit_suite mt6797_a72_owner_suite = {"
+new = "static struct kunit_suite mt6797_a72_owner_suite __maybe_unused = {"
+text = path.read_text(encoding="utf-8")
+if text.count(old) != 1 or new in text:
+    raise SystemExit("isolated shared-suite declaration changed")
 path.write_text(text.replace(old, new), encoding="utf-8")
 PY
 fi

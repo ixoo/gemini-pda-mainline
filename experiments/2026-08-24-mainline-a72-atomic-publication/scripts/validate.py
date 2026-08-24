@@ -23,7 +23,7 @@ PATCH_SHA256 = {
     "patches/v7.1.3/0346-arm64-add-atomic-A72-bootstrap-publisher.patch":
         "7229672d0eb94614dd3bdfb2fb1661ab54f420f6dd6211a0b4e84223fbc0ade8",
     "patches/v7.1.3/0347-arm64-test-atomic-A72-bootstrap-publication.patch":
-        "aa6ecee3bb4cbd9e5a449ac0adc22a85595c9ec3df0552b383ae4830710c1f14",
+        "53a59d1976d95eaba1095fbdb8811f20d8c9e2a1e875368fa716f26e907b1a83",
 }
 PROFILE = "a72-atomic-publication-kunit"
 
@@ -169,17 +169,22 @@ def main() -> None:
                 "b7677583d47a2416a15a29cdfb523a34ce64a28b",
             "classification": "pass",
         },
+        {
+            "repository_commit":
+                "c2f0cad473235a7935e125c53793042ab1e36c3c",
+            "classification": "pass",
+        },
     ], "generation attempt chronology")
     require(contract["generation"] == {
         "repository_commit":
-            "b7677583d47a2416a15a29cdfb523a34ce64a28b",
-        "package": "a72-atomic-publication-b7677583d47a",
-        "result_commit": "96406f5483e00c96375dde586bf83c5ab2e323d8",
-        "source_input_mode": "current-series-reverse",
+            "c2f0cad473235a7935e125c53793042ab1e36c3c",
+        "package": "a72-atomic-publication-c2f0cad47323",
+        "result_commit": "4a6a270a32e7a036216fc68971a42179b2053906",
+        "source_input_mode": "isolated-series-reverse",
         "source_input_state":
-            "c7652badc345119ce6d5f842b01cc48d79d502944390aa90a20d9e3d2bf7cda7",
+            "2062f915be6fed32012f7aa9cab6380ce28851fb7de6c39d8f20fc4d157907b7",
         "source_input_integrity":
-            "88aa62a3c1e8f412c421020f7ca4fa160a3dfa056a3c35567d240f9b9867a922",
+            "0cdaed40861c247e4fade6014c32249750601e6cb5ee1f402b6c7d5807e85281",
         "semantic_validation": "pass",
         "exact_replay": True,
         "checkpatch": "0 errors, 0 warnings, 0 checks",
@@ -316,6 +321,7 @@ def main() -> None:
         "PSCI_SOURCE_SHA256=7e332979", "generated_patch_count=3",
         "MEMBERSHIP_TEST_SHA256=1bf20757",
         'git -C "$work/source" apply --reverse',
+        "isolated shared-suite declaration changed",
         "source_input_mode=$source_mode", "boot_candidate=false",
     ):
         require(token in generator, f"generator invariant {token}")
@@ -392,14 +398,14 @@ def main() -> None:
             'CONFIG_LOCALVERSION="-gemini-a72-atomic-kunit"' in fragment,
             "isolated profile contract")
     for token in (
-        "atomic KUnit passes; compile-hygiene regeneration pending",
+        "compile-hygiene patch admitted; exact rebuild pending",
         "no production caller", "candidate is defined",
         "failed closed before any", "atomic-publication suite passed 8/8",
         "failed closed before", "reverse-applies the exact three",
         "Patches `0345` and `0346` are byte-identical",
-        "a72-atomic-publication-b7677583d47a",
+        "a72-atomic-publication-c2f0cad47323",
         "Compile review nevertheless rejected",
-        "Regenerate the compile-hygiene-only `0347`",
+        "Build the exact profile on Buildbox",
     ):
         require(token in readme, f"README closure {token}")
 

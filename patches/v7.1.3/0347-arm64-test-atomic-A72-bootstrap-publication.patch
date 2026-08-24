@@ -1,4 +1,4 @@
-From 96406f5483e00c96375dde586bf83c5ab2e323d8 Mon Sep 17 00:00:00 2001
+From 4a6a270a32e7a036216fc68971a42179b2053906 Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Mon, 24 Aug 2026 10:33:00 +0000
 Subject: [PATCH 3/3] arm64: test atomic A72 bootstrap publication
@@ -6,8 +6,8 @@ Subject: [PATCH 3/3] arm64: test atomic A72 bootstrap publication
 Exercise exact finalization and one-shot injected publication, including replay, source, topology, P30, final-owner, and repeat rejection. Retain both CPU vetoes and zero hardware effects.
 ---
  arch/arm64/Kconfig                            |  21 +
- .../arm64/kernel/mt6797_a72_membership_test.c | 417 ++++++++++++++++++
- 2 files changed, 438 insertions(+)
+ .../arm64/kernel/mt6797_a72_membership_test.c | 419 +++++++++++++++++-
+ 2 files changed, 439 insertions(+), 1 deletion(-)
 
 diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
 index 57dd31a..d280f31 100644
@@ -42,10 +42,17 @@ index 57dd31a..d280f31 100644
  	bool "MT6797 A72 provider-owner callback boundary"
  	depends on ARM64_MT6797_A72_P24_TRANSACTION_OWNER_MODEL
 diff --git a/arch/arm64/kernel/mt6797_a72_membership_test.c b/arch/arm64/kernel/mt6797_a72_membership_test.c
-index 9bd392b..b2e7384 100644
+index 9bd392b..cde057c 100644
 --- a/arch/arm64/kernel/mt6797_a72_membership_test.c
 +++ b/arch/arm64/kernel/mt6797_a72_membership_test.c
-@@ -1255,6 +1255,423 @@ static struct kunit_suite mt6797_a72_owner_suite = {
+@@ -1249,12 +1249,429 @@ static struct kunit_case mt6797_a72_owner_cases[] = {
+ 	{ }
+ };
+ 
+-static struct kunit_suite mt6797_a72_owner_suite = {
++static struct kunit_suite mt6797_a72_owner_suite __maybe_unused = {
+ 	.name = "mt6797-a72-p24-owner",
+ 	.init = mt6797_a72_owner_test_init,
  	.test_cases = mt6797_a72_owner_cases,
  };
  

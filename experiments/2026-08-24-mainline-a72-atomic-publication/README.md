@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-24-mainline-a72-atomic-publication` |
-| Status | atomic KUnit passes; compile-hygiene regeneration pending |
+| Status | compile-hygiene patch admitted; exact rebuild pending |
 | Subsystem | MT6797 A72 bootstrap owner and P30 pristine finalization |
 | Device variant | Gemini PDA contract; injected hardware-free phase |
 | Date(s) | 2026-08-24 America/New_York |
@@ -191,6 +191,14 @@ but unregistered `mt6797_a72_owner_suite` descriptor produced one new
 `__maybe_unused`; it does not change a case, helper, production path, or suite
 registration.
 
+Signed and pushed commit `c2f0cad4` regenerated that compile-hygiene-only
+change successfully from the exact isolated-series state. Patches `0345` and
+`0346` remain byte-identical. Patch `0347` changes only generated metadata and
+the shared historical suite descriptor's `__maybe_unused` annotation; the
+atomic-only registration remains unchanged. All semantic phases, patch
+separation, exact replay, and strict checkpatch pass in package
+`a72-atomic-publication-c2f0cad47323`.
+
 ## Analysis
 
 The finalizer clears the logical claim only while retaining the private P30
@@ -208,13 +216,13 @@ and writes `AVAILABLE` last.
 
 The three normal patches are generated, exactly replayed, strictly checked,
 and admitted to the canonical series. The exact atomic mechanism compiles and
-its eight cases pass, but the first profile run is not a complete proof because
-it also registered an unrelated inherited suite that cannot safely execute on
-the KUnit stack. No hardware-support claim or boot candidate is defined.
+its eight cases pass, while the compile-hygiene regeneration isolates their
+registration without changing production behavior. A new exact build and
+focused run are still required before this hardware-free proof closes. No
+hardware-support claim or boot candidate is defined.
 
 ## Follow-up
 
-Regenerate the compile-hygiene-only `0347`, build the exact profile on
-Buildbox, and require a clean 28-case late-startup plus atomic-publication
-QEMU result. The authoritative sequence remains in
+Build the exact profile on Buildbox and require a clean 28-case late-startup
+plus atomic-publication QEMU result. The authoritative sequence remains in
 [Roadmap Gate 7](../../docs/ROADMAP.md#7-bring-up-cpu8).
