@@ -64,3 +64,11 @@ declaration and a register call split before its sole argument. No patch was
 admitted and no compile, candidate, or device action occurred. The
 [stopped-attempt receipt](results/generation-attempt-1-checkpatch.txt) selects
 only those two formatting corrections before regeneration.
+
+Generation attempt 2 from exact signed commit `4d223912` passes parent source
+integrity, the three-file boundary, source semantics, byte-identical replay,
+and strict checkpatch with zero errors, warnings, or checks. The fetched patch
+is byte-identical to canonical `0360`; see the
+[generation receipt](results/buildbox-generation-4d223912.txt). The next action
+is to commit and push that admission, then compile the exact isolated profile
+on Buildbox.

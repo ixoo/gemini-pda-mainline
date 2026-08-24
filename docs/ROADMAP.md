@@ -5068,8 +5068,11 @@ The next ordered work is:
    Buildbox generation passes semantic validation, the three-file boundary,
    and byte-identical replay, then stops on two strict style checks: one blank
    line and one needlessly split registration call. The retry changes only
-   those two formatting details. No patch, package, candidate, or device action
-   exists yet.
+   those two formatting details and passes every source, replay, and strict
+   style gate. Its fetched bytes are canonical patch `0360` with zero errors,
+   warnings, or checks. No kernel package, candidate, or device action exists
+   yet. **Selected next:** compile the exact isolated init/probe profile on
+   Buildbox.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

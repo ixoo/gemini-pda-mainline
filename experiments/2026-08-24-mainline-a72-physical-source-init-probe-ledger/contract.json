@@ -29,8 +29,8 @@
     "cpu_requests": 0
   },
   "generation": {
-    "status": "attempt-1-stopped-strict-checkpatch",
-    "attempts": 1,
+    "status": "validated",
+    "attempts": 2,
     "patch": "0360-soc-mediatek-move-A72-ledger-before-registration.patch",
     "patch_count": 1,
     "changed_files": [
@@ -38,10 +38,15 @@
       "fs/pstore/gemini_protected_readback_ledger.c",
       "drivers/soc/mediatek/mt6797-a72-physical-source-observer.c"
     ],
-    "repository_commit": "4c28d9c726f591c300222ede034bd5da22e87ea8",
-    "package": null,
-    "patch_sha256": null,
-    "canonical_admission": null
+    "repository_commit": "4d2239127c8e21b3f3af6ad683cd9cb4e7ed3239",
+    "buildbox_job": "4d2239127c8e21b3f3af6ad683cd9cb4e7ed3239-a72-physical-source-init-probe-patchgen",
+    "package": "a72-physical-source-init-probe-4d2239127c8e",
+    "parent_commit": "53552272b64397b13a941beb7d095b7a91c05188",
+    "result_commit": "edd0a03c929ec1305ee5adeae624fbf76e2094ce",
+    "patch_sha256": "5853c59fa6c1f27dc9ec6e3b772c1d7d19c513921ac099917fd3d4e36797494a",
+    "package_sha256s_sha256": "f14ff157b882c337e5c94a359022471abbc3ad97711486697fe8ae1e8ecdede4",
+    "canonical_admission": "0360",
+    "strict_checkpatch": "0-errors-0-warnings-0-checks"
   },
   "candidate": {
     "status": "not-built",
@@ -50,8 +55,8 @@
     "boot_candidate": false
   },
   "decision": {
-    "result": "generation-stopped-on-two-style-checks",
-    "selected_next": "regenerate-after-blank-line-and-register-call-format-fix",
+    "result": "canonical-0360-admitted",
+    "selected_next": "build-exact-init-probe-profile-on-buildbox",
     "device_action": false,
     "boot_candidate": false
   }

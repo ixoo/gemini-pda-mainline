@@ -1,0 +1,129 @@
+From edd0a03c929ec1305ee5adeae624fbf76e2094ce Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 24 Aug 2026 17:31:00 +0000
+Subject: [PATCH 1/1] soc: mediatek: move A72 ledger before registration
+
+Record the physical-source observer built-in init before platform driver registration and its first probe operation, then return before allocation or source lookup.
+
+Reuse the qualified first-dmesg writer and keep physical snapshots, provider transactions, publication, owner mutation, and CPU requests closed.
+---
+ .../mt6797-a72-physical-source-observer.c     | 31 +++++++++----------
+ fs/pstore/Kconfig                             | 10 +++---
+ fs/pstore/gemini_protected_readback_ledger.c  |  8 ++---
+ 3 files changed, 24 insertions(+), 25 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-physical-source-observer.c b/drivers/soc/mediatek/mt6797-a72-physical-source-observer.c
+index f77ce19..e91b196 100644
+--- a/drivers/soc/mediatek/mt6797-a72-physical-source-observer.c
++++ b/drivers/soc/mediatek/mt6797-a72-physical-source-observer.c
+@@ -6,6 +6,7 @@
+ #include <linux/device.h>
+ #include <linux/err.h>
+ #include <linux/errno.h>
++#include <linux/init.h>
+ #include <linux/module.h>
+ #include <linux/mt6797-a72-provider.h>
+ #include <linux/of.h>
+@@ -225,9 +226,11 @@ mt6797_a72_physical_source_probe(struct platform_device *pdev)
+ 	int ret;
+ 
+ #ifdef CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_PRECAPTURE_LEDGER
+-	if (!gemini_protected_readback_ledger_checkpoint(0))
++	if (!gemini_protected_readback_ledger_checkpoint(1))
+ 		return dev_err_probe(dev, -EIO,
+ 				     "probe-enter ledger checkpoint failed\n");
++	dev_info(dev, "init/probe ledger complete; source lookup disabled\n");
++	return 0;
+ #endif
+ 
+ 	snapshot = kvzalloc_obj(*snapshot);
+@@ -252,17 +255,6 @@ mt6797_a72_physical_source_probe(struct platform_device *pdev)
+ 		goto put_clock;
+ 	}
+ 
+-#ifdef CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_PRECAPTURE_LEDGER
+-	if (!gemini_protected_readback_ledger_checkpoint(1)) {
+-		ret = dev_err_probe(dev, -EIO,
+-				    "sources-held ledger checkpoint failed\n");
+-		goto put_bigidvfs;
+-	}
+-	dev_info(dev, "pre-capture ledger complete; capture disabled\n");
+-	ret = 0;
+-	goto put_bigidvfs;
+-#endif
+-
+ 	ret = mt6797_a72_physical_source_run(&context, &mt6797_physical_runtime,
+ 					     snapshot);
+ 	if (ret)
+@@ -270,9 +262,6 @@ mt6797_a72_physical_source_probe(struct platform_device *pdev)
+ 	else
+ 		mt6797_a72_physical_source_log(dev, snapshot);
+ 
+-#ifdef CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_PRECAPTURE_LEDGER
+-put_bigidvfs:
+-#endif
+ 	put_device(context.bigidvfs);
+ put_clock:
+ 	put_device(context.clock);
+@@ -297,7 +286,17 @@ static struct platform_driver mt6797_a72_physical_source_driver = {
+ 		.suppress_bind_attrs = true,
+ 	},
+ };
+-builtin_platform_driver(mt6797_a72_physical_source_driver);
++
++static int __init mt6797_a72_physical_source_init(void)
++{
++#ifdef CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_PRECAPTURE_LEDGER
++	if (!gemini_protected_readback_ledger_checkpoint(0))
++		return -EIO;
++#endif
++
++	return platform_driver_register(&mt6797_a72_physical_source_driver);
++}
++device_initcall(mt6797_a72_physical_source_init);
+ 
+ MODULE_DESCRIPTION("MT6797 A72 candidate-only direct physical-source observer");
+ MODULE_LICENSE("GPL");
+diff --git a/fs/pstore/Kconfig b/fs/pstore/Kconfig
+index 97d76e3..2795962 100644
+--- a/fs/pstore/Kconfig
++++ b/fs/pstore/Kconfig
+@@ -302,13 +302,13 @@ config PSTORE_GEMINI_A72_PHYSICAL_SOURCE_PRECAPTURE_LEDGER
+ 	depends on !PSTORE_GEMINI_PROTECTED_CLOCK_FIRST_DMESG_CALL_QUALIFICATION
+ 	default n
+ 	help
+-	  Give the physical-source observer one retained record at probe entry and
+-	  one after all three bound source devices are held. Release the references
+-	  and return success after the second record without running the capture.
++	  Give the physical-source observer one retained record in its built-in
++	  init before driver registration and one as the first probe operation.
++	  Return before allocation or source lookup after the second record.
+ 
+ 	  Reuse the qualified first-dmesg writer with at most two short writes and
+-	  no overwrite, clear, retry, physical snapshot, provider transaction,
+-	  owner mutation, CPU request, reset, reboot, or power action.
++	  no overwrite, clear, retry, allocation, physical snapshot, provider
++	  transaction, owner mutation, CPU request, reset, reboot, or power action.
+ 	  If unsure, say N.
+ 
+ config PSTORE_GEMINI_PROTECTED_READBACK_LEDGER
+diff --git a/fs/pstore/gemini_protected_readback_ledger.c b/fs/pstore/gemini_protected_readback_ledger.c
+index d202864..93fa045 100644
+--- a/fs/pstore/gemini_protected_readback_ledger.c
++++ b/fs/pstore/gemini_protected_readback_ledger.c
+@@ -147,11 +147,11 @@ static bool gemini_prb_armed;
+ #ifdef CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_PRECAPTURE_LEDGER
+ static const char * const gemini_prb_records[] = {
+ 	"====0.000000-D\n"
+-	"GEMINI_A72_PRECAPTURE_V1 token=GAPC-20260824-A "
+-	"checkpoint=probe-enter slot=1 crc32=b8f6c566\n",
++	"GEMINI_A72_INIT_PROBE_V1 token=GAIP-20260824-A "
++	"checkpoint=driver-init slot=1 crc32=85e5f336\n",
+ 	"====0.000000-D\n"
+-	"GEMINI_A72_PRECAPTURE_V1 token=GAPC-20260824-A "
+-	"checkpoint=sources-held slot=2 crc32=9e7fd3e6\n",
++	"GEMINI_A72_INIT_PROBE_V1 token=GAIP-20260824-A "
++	"checkpoint=probe-enter slot=2 crc32=85116721\n",
+ };
+ #elif defined(CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER)
+ static const char * const gemini_prb_records[] = {
