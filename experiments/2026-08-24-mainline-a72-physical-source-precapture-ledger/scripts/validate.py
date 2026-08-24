@@ -113,6 +113,10 @@ def main() -> None:
             "validate-candidate.sh",
             "dac54074b9997e7d27f35f422ad25763561192f806c7695231c3d8170b2f6b59",
         ),
+        (
+            "install-boot2.sh",
+            "5019ea5fb3859759be49690e3cd83f2abe583350a358ca3bc56aa189c4a789e4",
+        ),
     ):
         tool = EXPERIMENT / "scripts" / name
         require(tool.is_file() and not tool.is_symlink(), f"candidate tool: {name}")
@@ -123,7 +127,7 @@ def main() -> None:
     print("profile=a72-physical-source-precapture-ledger")
     print("retained_checkpoints=probe-enter,sources-held")
     print("capture_calls=0")
-    print("boot_candidate=false")
+    print(f"boot_candidate={str(contract['candidate']['boot_candidate']).lower()}")
     print("result=pass")
 
 

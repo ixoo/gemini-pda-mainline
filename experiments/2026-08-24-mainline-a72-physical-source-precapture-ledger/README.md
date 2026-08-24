@@ -107,3 +107,17 @@ version. No candidate or device action occurred. The
 [stopped assembly receipt](results/candidate-assembly-attempt-1-localversion-gate.txt)
 selects the same exact local-version correction in both the builder and the
 independent validator before retrying.
+
+Assembly attempt 2 from corrected definition `3e1300fa` produced the exact raw
+and padded identities fixed above. The separate validator passed the complete
+package inventory, source pins, configuration and linked/excluded symbols,
+unique/absent record inventory, unchanged physical-source DT wiring,
+independent padding, and all 32 LK gates. The
+[candidate validation receipt](results/candidate-validation-6397a032-pass.txt)
+promotes this artifact to `boot_candidate=true`.
+
+Before the one physical selection, the exact kernel/DT/config hypothesis,
+unique records, and decision branches are fixed in the
+[predeployment statement](results/predeployment-hypothesis-20260824.txt).
+The next action is a guarded live-GPT `boot2` deployment with full-partition
+readback followed by clean shutdown, never an automatic reboot.

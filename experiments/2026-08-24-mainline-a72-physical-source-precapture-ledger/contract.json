@@ -100,9 +100,10 @@
     "strict_checkpatch": "0-errors-0-warnings-0-checks"
   },
   "candidate": {
-    "status": "definition-fix-pending-assembly",
-    "assembly_attempts": 1,
-    "boot_candidate": false,
+    "status": "validated",
+    "assembly_attempts": 2,
+    "definition_commit": "3e1300fa7d30557cf53a2fdbac9b1afddd6661e9",
+    "boot_candidate": true,
     "dtb": "dtbs/mediatek/mt6797-gemini-pda-a72-physical-source.dtb",
     "dtb_sha256": "fe67420ca4e2955a73a4a3f2e442af3534b621820cf77ae035be9bf98756425d",
     "ramdisk_sha256": "e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f",
@@ -111,11 +112,12 @@
     "padded_sha256": "825cfc4299a375efbf48b3f6b6e0bd1234b08f4610702f76cbe91138dd5392a2",
     "padded_size": 16777216,
     "lk_gates": 32,
+    "artifact_manifest_sha256": "e19e69b29752a01178f81ed97d86b7feb5a6f2031eb484b6929f481b03795f54",
     "device_action": false
   },
   "decision": {
-    "result": "build-passed-candidate-validation-pending",
-    "selected_next": "assemble-and-independently-validate-candidate",
+    "result": "candidate-validated-deployment-pending",
+    "selected_next": "guardedly-install-boot2-and-shutdown",
     "device_action": false,
     "boot_candidate": false
   }
