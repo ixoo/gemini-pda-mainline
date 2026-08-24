@@ -32,8 +32,12 @@ the loop. Positive identity-gated observations are unaffected.
   preserved. The deterministic candidate passes all 32 LK gates, six container
   mutations, and eleven runtime-classifier mutations without a new kernel
   build. Its guarded live-GPT `boot2` write, full 16 MiB readback, and clean
-  shutdown now pass; one pre-armed physical `boot2` selection remains pending
-  with CPUs 8–9 closed.
+  shutdown passed. The single pre-armed runtime then proved exact live
+  serviceability with the platform-state driver bound, Stage-27 USB/T-PHY/I2C5/
+  keyboard state intact, CPUs 0–7 online and 8–9 closed, and every snapshot,
+  clock, secure-call, owner, and CPU request absent. The artifact is retired;
+  the selected next boundary is the clock backend's minimum probe/resource
+  contract on this exact passed DT.
 - [2026-08-24 mainline A72 early initcall ledger](2026-08-24-mainline-a72-early-initcall-ledger/README.md)
   — defines the successor after neither subsys nor fs checkpoint was retained:
   independent pure/core records plus one separately gated slot-2 primary

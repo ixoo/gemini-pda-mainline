@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-24-mainline-a72-platform-state-stage27-control` |
-| Status | `running` — guarded deployment complete; one runtime pending |
+| Status | `completed` — exact live provider-bound serviceability pass |
 | Subsystem | MT6797 Cortex-A72 platform-state source |
 | Device variant | Gemini PDA, named project device |
 | Date | 2026-08-24 |
@@ -104,10 +104,9 @@ The offline result is recorded in
 | Changed-ID Gemian before exact mainline identity | With the confounding DT deltas removed, the minimum provider probe/resource boundary is implicated, but no CPU or snapshot action occurred | Add an earlier durable probe-entry/completion discriminator; do not repeat this payload unchanged |
 | Neither exact live mainline nor changed-ID Gemian | Observation incomplete | Preserve state and diagnose transport/boot selection without assigning a kernel result |
 
-One owner-selected `boot2` attempt is allowed after the exact candidate is
-committed, pushed, deployed, fully read back, and the device is shut down. A
-successful mainline result remains running; an identical retry is prohibited
-unless it adds a decision-changing independent observation path.
+The one owner-selected `boot2` attempt was consumed. The exact payload is now
+retired; an identical retry is prohibited unless it adds a decision-changing
+independent observation path.
 
 ## Observations and conclusion
 
@@ -129,5 +128,36 @@ backup occurred. Write, sync, flush, and full 16 MiB readback produced exact
 confirmed unreachable. Sanitized deployment evidence is in
 [`results/deployment-20260824.txt`](results/deployment-20260824.txt).
 
-No runtime conclusion is claimed yet. The device is powered off and ready for
-one physical `boot2` selection after the USB/netcat collector is pre-armed.
+The collector was armed before physical selection. Attempt 1 exposed the exact
+USB interface and completed its netcat probe on the first try. Exact live
+identity was:
+
+- full installed candidate
+  `662e86846e783cf29b13c388f9e88217fe7bd32933eef4f32df86e44def0b16b`;
+- kernel `7.1.3-gemini-a72-early`, boot ID
+  `68900296-22f4-43ea-a353-3bb5087c0045`, and uptime 48.90 seconds;
+- CPUs possible/present `0-9`, online `0-7`, offline `8-9`, with one exact
+  `maxcpus=8` token;
+- one platform-state device with its driver symlink bound;
+- zero clock-backend, BigiDVFS-backend, and physical-observer devices; and
+- exact `okay` status for USB, T-PHY, I2C5, and keyboard.
+
+The probe requested no platform snapshot, storage access, binding change,
+regulator or clock action, secure call, observer or owner registration, CPU
+admission, or reboot. Pstore exposed no file and no early marker; consistent
+with the positive control, this is not used as a negative oracle. The owner's
+working-console report corroborates the exact network identity. Mainline was
+deliberately left running.
+
+Conclusion: **confirmed** for this exact revision and named device. The
+read-only platform-state driver's minimum probe/resource contract binds without
+regressing the Stage-27 serviceability baseline. This proves resource
+acquisition only, not a platform snapshot, register value, reset action,
+protected/clock/BigiDVFS call, publication, CPU power transition, or CPU8/CPU9
+admission. Sanitized evidence is in
+[`results/runtime-attempt-1-serviceable-20260824.txt`](results/runtime-attempt-1-serviceable-20260824.txt).
+
+Per the predeclared decision map, the next discriminator keeps this exact
+passed DT and kernel, adds only the clock backend's minimum resource contract,
+and still performs no protected clock snapshot, BigiDVFS call, publication, or
+CPU request. That contract must be audited before construction.

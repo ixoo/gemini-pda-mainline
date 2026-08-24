@@ -5171,9 +5171,14 @@ The next ordered work is:
    `23f1843a` is pushed. The guarded live-GPT write resolves inactive `boot2`,
    records the retired confounded predecessor, matches the exact full 16 MiB
    readback, and cleanly shuts down the device with no backup or retained-RAM
-   write. **Selected next:** pre-arm USB/netcat collection and spend one physical
-   selection on the provider probe/resource boundary with CPU8 and CPU9 still
-   closed.
+   write. The one pre-armed runtime is an exact live pass: the platform-state
+   source binds, the Stage-27 USB/T-PHY/I2C5/keyboard state remains intact,
+   CPUs 0--7 are online and 8--9 closed, and every platform snapshot, clock,
+   secure-call, owner, publication, and CPU request is absent. Retire the
+   artifact. **Selected next:** audit the clock backend's probe effects and add
+   only its minimum resource contract to this exact passed DT. Keep protected
+   clock reads, BigiDVFS, observer registration, publication, and CPU8/CPU9
+   admission closed.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
