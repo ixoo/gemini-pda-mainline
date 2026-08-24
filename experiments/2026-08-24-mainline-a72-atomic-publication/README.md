@@ -48,8 +48,8 @@ candidate is defined.
 
 ## Associated code
 
-- [`source/mt6797_a72_atomic_publication_test.c`](source/mt6797_a72_atomic_publication_test.c)
-  defines the eight-case injected suite.
+- [`source/mt6797_a72_atomic_publication_test.inc`](source/mt6797_a72_atomic_publication_test.inc)
+  defines the eight-case injected suite fragment.
 - [`scripts/source_edits.py`](scripts/source_edits.py) applies the finalizer,
   publisher, and test phases to the exact managed source.
 - [`scripts/validate_source.py`](scripts/validate_source.py) checks cumulative
@@ -114,6 +114,14 @@ Commit `01a0de12` cleared strict checkpatch for patch `0345`. Patch `0346`
 then reached strict review and exposed six continuation-alignment checks in
 its declarations and calls. All semantic phases and exact replay still
 passed. The next retry changes only those continuation columns.
+
+Commit `e6e2efda` cleared strict checkpatch for patches `0345` and `0346`.
+Patch `0347` then exposed 17 continuation-alignment checks and the generic
+warning raised for every new source file about a possible `MAINTAINERS`
+update. Rather than suppress strict review or add an unjustified maintainer
+entry, the retry appends the guarded suite to the exact, hash-pinned existing
+membership KUnit source and selects that existing object. This changes no test
+case or production path and removes the new-file condition by construction.
 
 No kernel has been compiled, no generated patch has been admitted, and no
 QEMU or device action has occurred.

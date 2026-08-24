@@ -406,11 +406,26 @@ config ARM64_MT6797_A72_BOOTSTRAP_PUBLISHER
 
 
 def tests(root: Path) -> None:
-    test_path = root / "arch/arm64/kernel/mt6797_a72_atomic_publication_test.c"
-    if test_path.exists():
-        raise SystemExit(f"refusing to overwrite {test_path}")
-    test_path.write_bytes(
-        (SOURCE_DIR / "mt6797_a72_atomic_publication_test.c").read_bytes()
+    test_path = root / "arch/arm64/kernel/mt6797_a72_membership_test.c"
+    fragment = (
+        SOURCE_DIR / "mt6797_a72_atomic_publication_test.inc"
+    ).read_text(encoding="utf-8")
+    license_header = "// SPDX-License-Identifier: GPL-2.0-only\n\n"
+    if not fragment.startswith(license_header):
+        raise SystemExit("atomic publication fixture license header changed")
+    fragment = fragment.removeprefix(license_header)
+    replace_once(
+        test_path,
+        "\nkunit_test_suite(mt6797_a72_owner_suite);\n\n"
+        'MODULE_LICENSE("GPL");\n',
+        "\n#ifdef CONFIG_ARM64_MT6797_A72_ATOMIC_PUBLICATION_KUNIT_TEST\n"
+        + fragment
+        + "\nkunit_test_suites(&mt6797_a72_owner_suite,\n"
+        + "\t\t  &atomic_publication_test_suite);\n"
+        + "#else\n"
+        + "kunit_test_suite(mt6797_a72_owner_suite);\n"
+        + "#endif\n\n"
+        + 'MODULE_LICENSE("GPL");\n',
     )
 
     kconfig = root / "arch/arm64/Kconfig"
@@ -424,6 +439,7 @@ config ARM64_MT6797_A72_ATOMIC_PUBLICATION_KUNIT_TEST
 	select ARM64_MT6797_A72_P24_TRANSACTION_OWNER_MODEL
 	select ARM64_MT6797_A72_P24_ADMISSION_HOOKS
 	select ARM64_MT6797_A72_P24_OWNER_TEST_SEED
+	select ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST
 	select ARM64_MT6797_A72_DIRECT_STATE_COMPOSITOR
 	select ARM64_MT6797_A72_A34_ELIGIBILITY_EVALUATOR
 	select ARM64_MT6797_A72_BOOTSTRAP_PUBLISHER
@@ -441,20 +457,6 @@ config ARM64_MT6797_A72_ATOMIC_PUBLICATION_KUNIT_TEST
         "config ARM64_MT6797_A72_PROVIDER_OWNER\n",
         config + "config ARM64_MT6797_A72_PROVIDER_OWNER\n",
     )
-
-    makefile = root / "arch/arm64/kernel/Makefile"
-    anchor = (
-        "obj-$(CONFIG_ARM64_MT6797_A72_DIRECT_STATE_KUNIT_TEST) "
-        "+= mt6797_a72_direct_state_test.o\n"
-    )
-    replace_once(
-        makefile,
-        anchor,
-        anchor
-        + "obj-$(CONFIG_ARM64_MT6797_A72_ATOMIC_PUBLICATION_KUNIT_TEST) "
-        "+= mt6797_a72_atomic_publication_test.o\n",
-    )
-
 
 def main() -> None:
     parser = argparse.ArgumentParser()

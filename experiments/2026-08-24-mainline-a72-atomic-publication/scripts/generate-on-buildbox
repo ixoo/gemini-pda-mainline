@@ -9,6 +9,7 @@ readonly LATE_HEADER_SHA256=748ee669310d35ee1170c8fcd07a192de37d4384b6e4cf76178e
 readonly LATE_SOURCE_SHA256=d229dcf2c68c13e041e4c59987d8938adc790077062008d9e5ebe1baf0fe7861
 readonly MEMBERSHIP_HEADER_SHA256=219f2b003fb4a3f61c2c53a15ef26d75af4557bf5c91e7953eead50bbeac4bd3
 readonly MEMBERSHIP_SOURCE_SHA256=11496914baca3fc8ac613b813265489741acdcd6e4945162840938061981a680
+readonly MEMBERSHIP_TEST_SHA256=1bf20757aa9b76e01074bba8c33b76db25ea063f9d6406c64dc742764cb637ed
 readonly PSCI_SOURCE_SHA256=7e3329797e0f2eebc4372aa47c84c09e3c2ed85e5121f9492898727db5e4f83d
 readonly KCONFIG_SHA256=7b352827184b56e6eb01d86fdd05e0a9f46ba9e0989f001fc72c64c76e081cf8
 readonly PLATFORMS_SHA256=c30e2d4a83cc035c8b069272dae0a1e56c6ba92ff601816aa507d42868dcd0ec
@@ -63,6 +64,7 @@ check_file "$LATE_HEADER_SHA256" arch/arm64/include/asm/late_cpu_startup.h
 check_file "$LATE_SOURCE_SHA256" arch/arm64/kernel/late_cpu_startup.c
 check_file "$MEMBERSHIP_HEADER_SHA256" arch/arm64/include/asm/mt6797_a72_membership.h
 check_file "$MEMBERSHIP_SOURCE_SHA256" arch/arm64/kernel/mt6797_a72_membership.c
+check_file "$MEMBERSHIP_TEST_SHA256" arch/arm64/kernel/mt6797_a72_membership_test.c
 check_file "$PSCI_SOURCE_SHA256" arch/arm64/kernel/mt6797_psci.c
 check_file "$KCONFIG_SHA256" arch/arm64/Kconfig
 check_file "$PLATFORMS_SHA256" arch/arm64/Kconfig.platforms
@@ -105,6 +107,7 @@ for relative in \
 	arch/arm64/kernel/late_cpu_startup.c \
 	arch/arm64/include/asm/mt6797_a72_membership.h \
 	arch/arm64/kernel/mt6797_a72_membership.c \
+	arch/arm64/kernel/mt6797_a72_membership_test.c \
 	arch/arm64/kernel/mt6797_psci.c \
 	arch/arm64/Kconfig \
 	arch/arm64/Kconfig.platforms \
@@ -224,7 +227,7 @@ result_commit=$result_commit
 generated_patch_count=3
 finalizer_changed_files=2
 publisher_changed_files=3
-test_changed_files=3
+test_changed_files=2
 focused_tests=8
 production_callers=0
 physical_reader_binding=false

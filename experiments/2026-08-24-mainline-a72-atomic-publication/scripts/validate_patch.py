@@ -43,8 +43,7 @@ def main() -> None:
     }, "publisher patch separation")
     require(changed_files(texts[2]) == {
         "arch/arm64/Kconfig",
-        "arch/arm64/kernel/Makefile",
-        "arch/arm64/kernel/mt6797_a72_atomic_publication_test.c",
+        "arch/arm64/kernel/mt6797_a72_membership_test.c",
     }, "test patch separation")
     require("arm64_late_cpu_startup_finalize_pristine" in texts[0],
             "finalizer absent")
@@ -70,7 +69,7 @@ def main() -> None:
     print("generated_patch_count=3")
     print("finalizer_patch_files=2")
     print("publisher_patch_files=3")
-    print("test_patch_files=3")
+    print("test_patch_files=2")
     print("focused_tests=8")
     print("production_callers=0")
     print("physical_reader_binding=false")

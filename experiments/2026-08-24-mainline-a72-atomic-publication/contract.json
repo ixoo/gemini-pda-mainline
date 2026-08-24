@@ -10,6 +10,7 @@
     "arch/arm64/kernel/late_cpu_startup.c": "d229dcf2c68c13e041e4c59987d8938adc790077062008d9e5ebe1baf0fe7861",
     "arch/arm64/include/asm/mt6797_a72_membership.h": "219f2b003fb4a3f61c2c53a15ef26d75af4557bf5c91e7953eead50bbeac4bd3",
     "arch/arm64/kernel/mt6797_a72_membership.c": "11496914baca3fc8ac613b813265489741acdcd6e4945162840938061981a680",
+    "arch/arm64/kernel/mt6797_a72_membership_test.c": "1bf20757aa9b76e01074bba8c33b76db25ea063f9d6406c64dc742764cb637ed",
     "arch/arm64/kernel/mt6797_psci.c": "7e3329797e0f2eebc4372aa47c84c09e3c2ed85e5121f9492898727db5e4f83d",
     "arch/arm64/Kconfig": "7b352827184b56e6eb01d86fdd05e0a9f46ba9e0989f001fc72c64c76e081cf8",
     "arch/arm64/Kconfig.platforms": "c30e2d4a83cc035c8b069272dae0a1e56c6ba92ff601816aa507d42868dcd0ec",
@@ -61,6 +62,15 @@
       "exact_replay": true,
       "checkpatch_0345": "0 errors, 0 warnings, 0 checks",
       "checkpatch_0346": "0 errors, 0 warnings, 6 checks"
+    },
+    {
+      "repository_commit": "e6e2efdac7a56bddae08d281b632ad1c04c17055",
+      "classification": "rejected-strict-test-style",
+      "semantic_validation": "pass",
+      "exact_replay": true,
+      "checkpatch_0345": "0 errors, 0 warnings, 0 checks",
+      "checkpatch_0346": "0 errors, 0 warnings, 0 checks",
+      "checkpatch_0347": "0 errors, 1 warning, 17 checks"
     }
   ],
   "tests": {

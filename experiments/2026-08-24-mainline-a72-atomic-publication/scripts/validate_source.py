@@ -28,6 +28,9 @@ def main() -> None:
     membership_source = (
         root / "arch/arm64/kernel/mt6797_a72_membership.c"
     ).read_text()
+    membership_test = (
+        root / "arch/arm64/kernel/mt6797_a72_membership_test.c"
+    ).read_text()
     platforms = (root / "arch/arm64/Kconfig.platforms").read_text()
     psci = (root / "arch/arm64/kernel/mt6797_psci.c").read_text()
 
@@ -144,8 +147,7 @@ def main() -> None:
     require("return false;" in can_disable, "CPU-disable veto changed")
 
     if args.phase == "publisher":
-        require(not (root / "arch/arm64/kernel/"
-                     "mt6797_a72_atomic_publication_test.c").exists(),
+        require("atomic_publication_test_state" not in membership_test,
                 "tests leaked into publisher phase")
         print("validation=a72-atomic-publication-source")
         print("phase=publisher")
@@ -156,10 +158,11 @@ def main() -> None:
         print("result=pass")
         return
 
-    test = (root / "arch/arm64/kernel/"
-            "mt6797_a72_atomic_publication_test.c").read_text()
+    test_start = membership_test.index(
+        "#ifdef CONFIG_ARM64_MT6797_A72_ATOMIC_PUBLICATION_KUNIT_TEST")
+    test_end = membership_test.index("#endif", test_start)
+    test = membership_test[test_start:test_end]
     kconfig = (root / "arch/arm64/Kconfig").read_text()
-    makefile = (root / "arch/arm64/kernel/Makefile").read_text()
     require(test.count("KUNIT_CASE(") == 8, "focused test case count")
     for token in (
         "atomic_finalizer_success_test",
@@ -177,8 +180,8 @@ def main() -> None:
             kconfig, "test Kconfig")
     require("select ARM64_MT6797_A72_BOOTSTRAP_PUBLISHER" in kconfig,
             "test publisher selection")
-    require("mt6797_a72_atomic_publication_test.o" in makefile,
-            "test Makefile object")
+    require("select ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST" in kconfig,
+            "existing membership KUnit object selection")
     for forbidden in (
         "cpu_up(", "psci_cpu_on", "writel(", "readl(", "i2c_transfer(",
     ):

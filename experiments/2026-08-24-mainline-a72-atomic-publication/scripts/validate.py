@@ -36,7 +36,7 @@ def main() -> None:
     patch_validator = (EXPERIMENT / "scripts/validate_patch.py").read_text()
     generator = (EXPERIMENT / "scripts/generate-on-buildbox").read_text()
     test = (EXPERIMENT / "source/"
-            "mt6797_a72_atomic_publication_test.c").read_text()
+            "mt6797_a72_atomic_publication_test.inc").read_text()
     buildbox = (ROOT / "scripts/buildbox").read_text()
     docs = (ROOT / "docs/BUILDBOX.md").read_text()
 
@@ -60,6 +60,10 @@ def main() -> None:
     require(contract["parent_files"]["arch/arm64/kernel/mt6797_psci.c"] ==
             "7e3329797e0f2eebc4372aa47c84c09e3c2ed85e5121f9492898727db5e4f83d",
             "PSCI source identity")
+    require(contract["parent_files"][
+                "arch/arm64/kernel/mt6797_a72_membership_test.c"] ==
+            "1bf20757aa9b76e01074bba8c33b76db25ea063f9d6406c64dc742764cb637ed",
+            "membership test source identity")
     require(contract["generation_attempts"] == [
         {
             "repository_commit":
@@ -109,6 +113,16 @@ def main() -> None:
             "checkpatch_0345": "0 errors, 0 warnings, 0 checks",
             "checkpatch_0346": "0 errors, 0 warnings, 6 checks",
         },
+        {
+            "repository_commit":
+                "e6e2efdac7a56bddae08d281b632ad1c04c17055",
+            "classification": "rejected-strict-test-style",
+            "semantic_validation": "pass",
+            "exact_replay": True,
+            "checkpatch_0345": "0 errors, 0 warnings, 0 checks",
+            "checkpatch_0346": "0 errors, 0 warnings, 0 checks",
+            "checkpatch_0347": "0 errors, 1 warning, 17 checks",
+        },
     ], "generation attempt chronology")
     require(contract["tests"] == {
         "suite": "mt6797-a72-atomic-publication",
@@ -156,10 +170,12 @@ def main() -> None:
         "PARENT_PATCH=0344-", "--phase finalizer", "--phase publisher",
         "--phase tests", 'git -C "$work/verify" am', "checkpatch.pl",
         "PSCI_SOURCE_SHA256=7e332979", "generated_patch_count=3",
-        "boot_candidate=false",
+        "MEMBERSHIP_TEST_SHA256=1bf20757", "boot_candidate=false",
     ):
         require(token in generator, f"generator invariant {token}")
     require(test.count("KUNIT_CASE(") == 8, "focused fixture count")
+    require(test.startswith("// SPDX-License-Identifier: GPL-2.0-only\n"),
+            "focused fixture license")
     for token in (
         "atomic_finalizer_success_test",
         "atomic_publication_success_repeat_test",
@@ -187,7 +203,7 @@ def main() -> None:
 
     for relative in (
         "README.md", "contract.json",
-        "source/mt6797_a72_atomic_publication_test.c",
+        "source/mt6797_a72_atomic_publication_test.inc",
         "scripts/source_edits.py", "scripts/validate_source.py",
         "scripts/validate_patch.py", "scripts/generate-on-buildbox",
     ):
