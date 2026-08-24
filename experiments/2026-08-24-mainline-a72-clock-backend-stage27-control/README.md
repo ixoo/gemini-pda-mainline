@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-24-mainline-a72-clock-backend-stage27-control` |
-| Status | `deployed` — exact full readback passed and device shut down |
+| Status | `completed` — exact live clock-backend-bound serviceability pass |
 | Subsystem | MT6797 DVFSP clock backend and A72 platform-state composition |
 | Device variant | Gemini PDA, named project device |
 | Date | 2026-08-24 |
@@ -143,3 +143,40 @@ confirmed by loss of reachability. Sanitized evidence is in
 The next action is to pre-arm the exact USB/netcat collector and then have the
 owner physically select `boot2` once. No boot selection or automatic reboot
 was requested by deployment.
+
+## Runtime observation and conclusion
+
+The collector was armed before physical selection. Attempt 1 exposed the exact
+USB interface and completed its netcat probe on the first try. Exact live
+identity was:
+
+- full installed candidate
+  `4c5276ecf3fe60d7df55fd1fe44235432fcd928d2174704e5928bae7d84056e4`;
+- kernel `7.1.3-gemini-a72-early`, boot ID
+  `fd8c1632-a124-44f2-8628-2f113b0e57d2`, and uptime 47.92 seconds;
+- CPUs possible/present `0-9`, online `0-7`, offline `8-9`, with one exact
+  `maxcpus=8` token;
+- one bound platform-state device and one bound clock-backend device;
+- zero BigiDVFS-backend and physical-observer devices; and
+- exact `okay` status for USB, T-PHY, I2C5, and keyboard.
+
+The probe requested no platform snapshot, protected clock read, storage access,
+binding change, regulator or clock action, secure call, observer or owner
+registration, CPU admission, or reboot. Pstore exposed no file and no early
+marker; consistent with the positive control, this is not used as a negative
+oracle. The owner's boot-started report is corroborating only. Mainline was
+deliberately left running.
+
+Conclusion: **confirmed** for this exact revision and named device. The
+platform-state source and read-free clock backend bind cumulatively without
+regressing the Stage-27 serviceability baseline. This proves their minimum
+resource composition only, not a platform snapshot, protected clock read,
+BigiDVFS operation, register value, publication, CPU power transition, or
+CPU8/CPU9 admission. Sanitized evidence is in
+[`results/runtime-attempt-1-serviceable-20260824.txt`](results/runtime-attempt-1-serviceable-20260824.txt).
+
+Per the predeclared decision map, the exact payload is retired. The next
+discriminator keeps this exact passed kernel and DT state, adds only the
+BigiDVFS backend's minimum read-free probe/resource contract, and still
+performs no platform snapshot, protected read, BigiDVFS operation, publication,
+or CPU request. That contract must be audited before construction.

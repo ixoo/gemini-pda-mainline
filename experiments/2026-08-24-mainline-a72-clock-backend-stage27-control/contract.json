@@ -95,11 +95,35 @@
     "private_manifest_sha256": "3a2b284fd1a62f0a3046d6bb8ec784f7e2464155c33053a718342cd872bf51e3"
   },
   "runtime": {
-    "status": "pending",
-    "attempts_maximum": 1,
+    "status": "serviceable-clock-backend-bound",
+    "attempts": 1,
+    "candidate_retired": true,
+    "boot_id": "fd8c1632-a124-44f2-8628-2f113b0e57d2",
+    "uptime_seconds": 47.92,
+    "kernel_release": "7.1.3-gemini-a72-early",
+    "cpu_possible": "0-9",
+    "cpu_present": "0-9",
+    "cpu_online": "0-7",
+    "cpu_offline": "8-9",
+    "platform_state_devices": 1,
+    "platform_state_bound": true,
+    "clock_backend_devices": 1,
+    "clock_backend_bound": true,
+    "bigidvfs_backend_devices": 0,
+    "physical_observer_devices": 0,
+    "stage27_serviceability_dt_state": "exact",
     "platform_snapshot_requested": false,
     "clock_backend_read_requested": false,
     "cpu8_cpu9_admission": "closed",
-    "native_reboot_requested": false
+    "native_reboot_requested": false,
+    "successful_mainline_left_running": true,
+    "owner_report": "boot2-started",
+    "owner_report_role": "corroborating-only",
+    "classification_sha256": "1e2d171ab20b49752f12e3c1477bc8fdcccb3f5b2e18f6c9306c1fc44422208a",
+    "runtime_sha256": "5e591ab65509a11a8110eab5cfafb5b5736f62b57e46e9ba9722b83757ae947c",
+    "observer_events_sha256": "21bc688e2a8bc31370ac421d078cf8e3d09ce03e3bdd89b8b8bfa4ff66f5b2eb",
+    "private_capture_manifest_sha256": "d82bb6b3ecf12b5142b0a6ef50790116f4672badce572bafe5a0bae3ff121bd9",
+    "result": "pass",
+    "selected_next": "audit-and-add-only-bigidvfs-backend-minimum-read-free-contract"
   }
 }

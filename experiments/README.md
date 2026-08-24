@@ -34,8 +34,13 @@ the loop. Positive identity-gated observations are unaffected.
   build. Protected reads, BigiDVFS, platform snapshots, publications, and CPU
   requests remain closed. Its guarded live-GPT `boot2` write, exact predecessor
   gate, full 16 MiB readback, and clean shutdown passed without a fresh backup
-  or retained-RAM write. The selected next action is one owner-selected
-  `boot2` attempt with the USB/netcat collector pre-armed.
+  or retained-RAM write. The one pre-armed runtime then proved exact live
+  serviceability with both platform-state and clock-backend drivers bound,
+  Stage-27 USB/T-PHY/I2C5/keyboard state intact, CPUs 0–7 online and 8–9
+  closed, and every platform snapshot, protected read, BigiDVFS, publication,
+  and CPU request absent. The artifact is retired; the selected next boundary
+  is the BigiDVFS backend's minimum read-free probe/resource contract on this
+  exact passed DT.
 - [2026-08-24 A72 platform-state probe on the exact Stage-27 control DT](2026-08-24-mainline-a72-platform-state-stage27-control/README.md)
   — corrects the confounded physical-source-DT attempt by deriving from the
   byte-exact runtime-proven Stage-27 DT and adding only the platform-state node,

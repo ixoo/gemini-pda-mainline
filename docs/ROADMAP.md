@@ -5192,10 +5192,15 @@ The next ordered work is:
    the guarded live-GPT `boot2` deployment passed the exact predecessor, TEE,
    power, write, flush, full-readback, cleanup, and shutdown gates without a
    fresh backup or retained-RAM write. **Selected next:** pre-arm one
-   owner-selected runtime. A bound pass advances to the BigiDVFS backend's
-   minimum read-free probe contract; an unbound but serviceable result repairs
-   only the clock resource contract; a changed-ID Gemian return before exact
-   mainline identity requires an earlier durable probe boundary.
+   owner-selected runtime. That attempt is now an exact live bound pass: the
+   platform-state source and clock backend both bind, the Stage-27
+   USB/T-PHY/I2C5/keyboard state remains intact, CPUs 0--7 are online and 8--9
+   closed, and every platform snapshot, protected clock read, BigiDVFS,
+   observer, publication, and CPU request is absent. Mainline remains running
+   and the artifact is retired. **Selected next:** audit the BigiDVFS backend's
+   probe effects and add only its minimum read-free resource contract to this
+   exact passed DT. Do not add a platform snapshot, protected read, BigiDVFS
+   operation, observer, publication, or CPU request in that discriminator.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
