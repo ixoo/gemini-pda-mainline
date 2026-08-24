@@ -4993,10 +4993,13 @@ The next ordered work is:
    direct-state result on its kernel stack. Pinned one-file patch `0356` now
    moves that result to fail-closed typed dynamic storage and passes exact
    Buildbox generation, path-boundary validation, byte-exact replay, and strict
-   style validation. The exact Buildbox compile plus all four no-network cases
-   must now pass again before candidate construction resumes.
-   **Selected next:** prove that admitted production stack repair, then select
-   and validate one guarded physical-source observer
+   style validation. Exact commit `a3d784695695f3c9ef601f51c33b9caf890624de`
+   then compiles the through-`0356` isolated profile on Buildbox, its fetched
+   package passes all integrity checks, and the repeated no-network QEMU suite
+   passes all four cases with zero failures or skips. No physical I2C, MMIO,
+   retained-RAM, SMC, provider transaction, publisher, owner, CPU, or device
+   action occurred.
+   **Selected next:** construct and independently validate one guarded physical-source observer
    candidate whose unique evidence is the two exact retained records around
    the one BigiDVFS call plus the complete all-or-zero source snapshot. Keep
    publication, provider acquire/release, and CPU8/CPU9 requests closed until

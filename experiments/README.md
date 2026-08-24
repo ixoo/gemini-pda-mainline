@@ -35,10 +35,10 @@ the loop. Positive identity-gated observations are unaffected.
   QEMU cases with zero failures or skips, completing hardware-free Phase B.
   Candidate admission then found the same roughly 32 KiB result still on the
   production probe stack. Pinned one-file patch `0356` replaces it with typed
-  dynamic storage and passes exact Buildbox generation, replay, and strict
-  style gates. Its repeated compile and four-case no-network proof now precede
-  the one guarded observer candidate; there is no boot candidate or device
-  action yet.
+  dynamic storage and passes exact Buildbox generation, replay, strict style,
+  compilation, package-integrity, and repeated four-case no-network QEMU
+  gates. The one guarded observer candidate is now selected for construction;
+  there is no boot candidate or device action yet.
 - [2026-08-24 mainline DA921x read-only snapshot separation](2026-08-24-mainline-da921x-readonly-snapshot-separation/README.md)
   — implements the physical-source contract's hardware-free Phase A as a
   deterministic two-patch Buildbox review. Exact canonical patches `0348` and

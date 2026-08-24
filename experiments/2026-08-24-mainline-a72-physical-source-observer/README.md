@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-24-mainline-a72-physical-source-observer` |
-| Status | production stack repair admitted; repeated proof pending |
+| Status | hardware-free proof complete; candidate construction pending |
 | Subsystem | A72 direct-state sources and retained attribution |
 | Device variant | hardware-free implementation/KUnit stage |
 | Date(s) | 2026-08-24 America/New_York |
@@ -142,5 +142,12 @@ byte-exact replay, and strict checkpatch with zero errors, warnings, or checks.
 Its exact checksum-covered patch is canonical `0356`. It replaces the roughly
 32 KiB production probe stack object with one typed allocation and matching
 free while leaving the observer transaction and hardware effects unchanged.
-The exact Buildbox compile and four-case no-network QEMU repeat are now the
-remaining gates before candidate construction.
+Exact commit `a3d784695695f3c9ef601f51c33b9caf890624de` then compiled the
+through-`0356` isolated profile on Buildbox. The fetched package passed every
+checksum, and the repeated no-network QEMU run again passed all four focused
+cases with zero failures or skips. Linked-symbol review keeps the physical
+source present and the writer paths absent. This completes the repaired
+hardware-free gate without I2C, MMIO, retained-RAM, SMC, provider transaction,
+publisher, owner, CPU, or device action. The selected next step is to construct
+and independently validate the narrow non-KUnit physical-source observer
+candidate before any `boot2` deployment.
