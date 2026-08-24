@@ -79,8 +79,11 @@ def validate_ledger(root: Path) -> None:
             "GEMINI_A72_PHYSICAL_SOURCE_V1 token=GPSQ-20260824-A "
             f"checkpoint={checkpoint} slot={slot}"
         )
-        require(f"{line} crc32={checksum}" in records,
-                f"record identity: {checkpoint}")
+        require(
+            f'"checkpoint={checkpoint} slot={slot} crc32={checksum}\\n"'
+            in records,
+            f"record identity: {checkpoint}",
+        )
         require(f"{zlib.crc32(line.encode()):08x}" == checksum,
                 f"record CRC: {checkpoint}")
 
