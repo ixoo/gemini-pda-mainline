@@ -139,6 +139,13 @@ The reviewed bytes are canonical patches `0345`--`0347`. The isolated
 its existing P30 and membership-owner suites. No kernel has yet been compiled,
 and no QEMU or device action has occurred.
 
+The first exact admission build, commit `84c94b04`, failed closed during
+configuration validation before compilation. The inherited blocked P30
+fragment explicitly requested the late-startup KUnit suite off, while the new
+atomic suite selected it only indirectly. The retry explicitly overrides both
+the late-startup and membership-owner KUnit suites in the final isolated
+fragment, matching its declared focused coverage; no patch byte changed.
+
 ## Analysis
 
 The finalizer clears the logical claim only while retaining the private P30

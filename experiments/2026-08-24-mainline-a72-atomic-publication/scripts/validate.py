@@ -170,6 +170,15 @@ def main() -> None:
         "device_action": False,
         "boot_candidate": False,
     }, "successful generation result")
+    require(contract["build_attempts"] == [{
+        "repository_commit":
+            "84c94b0460db492ab89565cfe0f361491b770b96",
+        "classification": "rejected-fragment-override-closure",
+        "stage": "configuration-validation",
+        "compile_started": False,
+        "reason": ("inherited P30 fragment explicitly disabled the selected "
+                   "late-startup KUnit suite"),
+    }], "build attempt chronology")
     for relative, expected in PATCH_SHA256.items():
         require(sha256(ROOT / relative) == expected,
                 f"admitted patch identity {relative}")
@@ -253,6 +262,8 @@ def main() -> None:
             "configs/gemini-a72-atomic-publication-kunit.fragment",
             "isolated profile fragment")
     require("CONFIG_KUNIT=y" in fragment and
+            "CONFIG_ARM64_LATE_CPU_STARTUP_KUNIT_TEST=y" in fragment and
+            "CONFIG_ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST=y" in fragment and
             "CONFIG_ARM64_MT6797_A72_ATOMIC_PUBLICATION_KUNIT_TEST=y" in
             fragment and
             'CONFIG_LOCALVERSION="-gemini-a72-atomic-kunit"' in fragment,
