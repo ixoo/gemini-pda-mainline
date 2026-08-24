@@ -365,7 +365,7 @@ def main() -> None:
     ):
         require(token in production_stack_generator,
                 f"production stack generator token: {token}")
-    require("snapshot = kvzalloc(sizeof(*snapshot), GFP_KERNEL)"
+    require("snapshot = kvzalloc_obj(*snapshot)"
             in production_stack_editor, "production result allocation edit")
     require("kvfree(snapshot);" in production_stack_editor,
             "production result free edit")
@@ -455,6 +455,21 @@ def main() -> None:
     ):
         require(token in production_stack_attempt,
                 f"production stack attempt token: {token}")
+    production_stack_attempt_2 = (
+        EXPERIMENT
+        / "results/production-stack-fix-generation-attempt-2-typed-allocation.txt"
+    ).read_text()
+    for token in (
+        "source_validation=pass",
+        "patch_replay=byte-exact-pass",
+        "strict_checkpatch=stopped-prefer-kvzalloc_obj",
+        "selected_remediation=typed-kvzalloc_obj-helper",
+        "transaction_changed=false",
+        "generated_artifact=none",
+        "boot_candidate=false",
+    ):
+        require(token in production_stack_attempt_2,
+                f"production stack attempt 2 token: {token}")
     readme = (EXPERIMENT / "README.md").read_text()
     require("candidate admission paused for production stack repair" in readme,
             "candidate pause status")

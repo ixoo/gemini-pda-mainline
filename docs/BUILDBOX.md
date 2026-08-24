@@ -238,7 +238,7 @@ one-file repair with:
 ```
 
 This lane accepts only the exact managed source through `0355`, changes only
-the physical-source production observer, requires one `kvzalloc`/`kvfree`
+the physical-source production observer, requires one `kvzalloc_obj`/`kvfree`
 pair around the existing transaction, and adds no hardware or device action.
 
 The protected-clock first-dmesg call discriminator also has a source-review

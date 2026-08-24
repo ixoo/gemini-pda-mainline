@@ -35,13 +35,13 @@ def main() -> None:
         "one production result pointer",
     )
     require(
-        probe.count("snapshot = kvzalloc(sizeof(*snapshot), GFP_KERNEL);") == 1,
+        probe.count("snapshot = kvzalloc_obj(*snapshot);") == 1,
         "one sleepable allocation with vmalloc fallback",
     )
     require(probe.count("if (!snapshot)\n\t\treturn -ENOMEM;") == 1,
             "allocation failure closes the probe")
     require(probe.count("kvfree(snapshot);") == 1, "one matching result free")
-    require(probe.index("kvzalloc(") < probe.index("mediatek,platform-state"),
+    require(probe.index("kvzalloc_obj(") < probe.index("mediatek,platform-state"),
             "allocation occurs before device references")
     require(probe.index("kvfree(snapshot);") > probe.index("put_device(context.platform)"),
             "result remains live through reference release")

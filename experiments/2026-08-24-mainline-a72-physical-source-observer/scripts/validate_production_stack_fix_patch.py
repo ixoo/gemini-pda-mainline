@@ -37,7 +37,7 @@ def main() -> None:
         ) is not None,
         "exact numbered patch subject",
     )
-    require("snapshot = kvzalloc(sizeof(*snapshot), GFP_KERNEL);" in text,
+    require("snapshot = kvzalloc_obj(*snapshot);" in text,
             "allocation present")
     require("kvfree(snapshot);" in text, "matching free present")
     require("Signed-off-by: Gemini Mainline Experiment" not in text,

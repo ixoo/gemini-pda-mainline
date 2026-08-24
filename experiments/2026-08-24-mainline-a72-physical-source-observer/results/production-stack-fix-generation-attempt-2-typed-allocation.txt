@@ -1,0 +1,15 @@
+repository_commit=255a8b1dc29342b4bf8f0bfb82cc45ab0e129dff
+buildbox_job=255a8b1dc29342b4bf8f0bfb82cc45ab0e129dff-a72-physical-source-production-stack-fix-patchgen
+parent_source_state=3f1b291eaa793e8f5275bc3091fc2146312e1aeb65a81a5721f33805609cdc2c
+parent_source_integrity=55cbc60b8a4670d88cff2eedb55f4af2b72e0fb9e960660e7360f747b60269d8
+source_validation=pass
+patch_boundary=one-production-observer-pass
+patch_replay=byte-exact-pass
+strict_checkpatch=stopped-prefer-kvzalloc_obj
+production_direct_state_stack_objects=0
+selected_remediation=typed-kvzalloc_obj-helper
+transaction_changed=false
+generated_artifact=none
+hardware_operations=0
+device_action=none
+boot_candidate=false

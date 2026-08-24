@@ -122,7 +122,7 @@ hardware-free gate is complete. The next step is to select and validate one
 guarded physical-source observer candidate. Candidate admission first found
 that the production probe still declared the same roughly 32 KiB direct-state
 result on its kernel stack. The candidate is therefore paused while a pinned
-one-file follow-up moves that result to a fail-closed `kvzalloc`/`kvfree`
+one-file follow-up moves that result to a fail-closed `kvzalloc_obj`/`kvfree`
 allocation, after which the exact Buildbox compile and all four no-network
 QEMU cases must pass again. There has still been no device action or boot
 candidate in this experiment. The first production-repair generation attempt
@@ -130,3 +130,9 @@ validated the edited source and then stopped before artifact creation because
 the patch validator expected Git to fold the exact subject while `format-patch`
 kept it on one line. The retry accepts only that exact numbered one-line
 subject; the source edit is unchanged.
+
+The second attempt passed source, path-boundary, and byte-exact replay checks,
+then strict checkpatch stopped on its typed-allocation rule. The retry replaces
+only `kvzalloc(sizeof(*snapshot), GFP_KERNEL)` with the Linux 7.1
+`kvzalloc_obj(*snapshot)` helper; allocation semantics and every transaction
+boundary remain unchanged.

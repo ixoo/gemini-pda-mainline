@@ -84,7 +84,7 @@ mt6797_a72_physical_source_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	int ret;
 
-	snapshot = kvzalloc(sizeof(*snapshot), GFP_KERNEL);
+	snapshot = kvzalloc_obj(*snapshot);
 	if (!snapshot)
 		return -ENOMEM;
 	context.platform = mt6797_a72_physical_source_get_device(dev, "mediatek,platform-state");
