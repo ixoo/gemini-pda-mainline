@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-23-mainline-a72-direct-state-compositor` |
-| Status | offline test-target correction defined; Buildbox generation pending |
+| Status | offline test-target correction admitted; Buildbox rebuild pending |
 | Subsystem | MT6797 A72 direct-state composition and hotplug ownership |
 | Device variant | Gemini PDA contract; injected KUnit phase |
 | Date(s) | 2026-08-23 America/New_York |
@@ -193,6 +193,13 @@ generator now pins that newer state and its exact membership and focused-test
 file hashes directly; it no longer attempts to replay the two already-applied
 stack patches.
 
+Submission `27a0d08b` pinned that exact post-`0340` prepared state, changed
+only the two bracketing KUnit target arguments, and generated one
+checksum-covered patch. Source validation, patch-scope validation, exact
+replay to commit `1ee2d4e8`, and strict checkpatch all passed. The reviewed
+bytes are admitted as canonical patch `0341` with SHA-256
+`03da9d3a0a42e637309ea8efda236a163b5380a5e0fd4139a0731a8b27bb92cb`.
+
 ## Analysis
 
 The split keeps the outer ownership proof independent from physical reader
@@ -209,13 +216,13 @@ contract, without relaxing that contract or opening admission.
 
 ## Conclusion
 
-`pending-target-fix-generation`: the stack-safe implementation now compiles
+`pending-target-fix-rebuild`: the stack-safe implementation now compiles
 without any newly introduced frame warning. The first offline run proved six
 cases and exposed one invalid test target; it did not expose a compositor,
 state-preservation, or production failure. The two-call, test-only correction
-must now be generated and reviewed on Buildbox, admitted canonically, rebuilt,
-and rerun under the same no-network classifier. This remains hardware-free and
-is not a boot candidate.
+is now generated, reviewed, and admitted. The focused profile must rebuild
+from the exact admitted bytes and rerun under the same no-network classifier.
+This remains hardware-free and is not a boot candidate.
 
 ## Follow-up
 

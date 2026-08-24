@@ -86,7 +86,7 @@ def main() -> None:
     for relative, expected in generation["patch_sha256"].items():
         require(sha256(ROOT / relative) == expected,
                 f"admitted patch identity {relative}")
-    require(series[-4:-2] == [
+    require(series[-5:-3] == [
         "v7.1.3/0337-arm64-add-closed-A72-direct-state-compositor.patch",
         "v7.1.3/0338-arm64-test-closed-A72-direct-state-compositor.patch",
     ], "canonical initial patch order")
@@ -168,7 +168,7 @@ def main() -> None:
     for relative, expected in stack_generation["patch_sha256"].items():
         require(sha256(ROOT / relative) == expected,
                 f"stack patch identity {relative}")
-    require(series[-2:] == [
+    require(series[-3:-1] == [
         "v7.1.3/0339-arm64-move-A72-direct-state-workspace-off-stack.patch",
         "v7.1.3/0340-arm64-move-A72-direct-state-KUnit-state-off-stack.patch",
     ], "canonical stack-fix tail")
@@ -222,7 +222,7 @@ def main() -> None:
     require(target_fix["patch"] ==
             "0341-arm64-fix-A72-direct-state-preflight-target-test.patch",
             "target-fix patch name")
-    require(target_fix["generated"] is False and
+    require(target_fix["generated"] is True and
             target_fix["changed_file_count"] == 1 and
             target_fix["changed_test_call_count"] == 2 and
             target_fix["production_code_change"] is False and
@@ -232,6 +232,25 @@ def main() -> None:
             target_fix["required_target"] == "CPUHP_ONLINE" and
             target_fix["expected_closed_result"] == "-EAGAIN",
             "target-fix semantic correction")
+    target_generation = target_fix["generation"]
+    require(target_generation["repository_commit"] ==
+            "27a0d08b5306a206d86c5748705db2107c52f7eb",
+            "target generation commit")
+    require(target_generation["canonical_parent_commit"] ==
+            "eeb1ce73b12d7376b6aa09d642632987154dd91d" and
+            target_generation["result_commit"] ==
+            "1ee2d4e8006d4ecddd66c7cc7df948d3c6eb0a8a",
+            "target generation commits")
+    require(target_generation["exact_replay"] is True and
+            target_generation["checkpatch"] ==
+            "0 errors, 0 warnings, 0 checks",
+            "target generation validation")
+    for relative, expected in target_generation["patch_sha256"].items():
+        require(sha256(ROOT / relative) == expected,
+                f"target patch identity {relative}")
+    require(series[-1] ==
+            "v7.1.3/0341-arm64-fix-A72-direct-state-preflight-target-test.patch",
+            "canonical target-fix tail")
     require(contract["owner_order"] == [
         "cpu_hotplug_lock_read", "a72_transition_lock",
         "direct_state_source_registry_lock", "injected_source_callback",
@@ -361,7 +380,7 @@ def main() -> None:
         'print("opens_owner=false")',
     ):
         require(token in classifier, f"QEMU classifier {token}")
-    require("`pending-target-fix-generation`" in readme,
+    require("`pending-target-fix-rebuild`" in readme,
             "current phase statement")
 
     print("validation=a72-direct-state-definition")
@@ -371,7 +390,7 @@ def main() -> None:
     print("compile_attempt_2=pass-stack-safety")
     print("stack_fix_generated=true")
     print("qemu_attempt_1=rejected-test-target-contract")
-    print("target_fix_generated=false")
+    print("target_fix_generated=true")
     print(f"manifest_profiles={len(manifest['config']['profiles'])}")
     print(f"canonical_patch_count={len(series)}")
     print("physical_reader_callers=0")

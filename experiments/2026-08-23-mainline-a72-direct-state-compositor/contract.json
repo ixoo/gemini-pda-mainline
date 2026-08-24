@@ -140,13 +140,24 @@
     "canonical_parent_membership_sha256": "38e3cc51c879ed1319d124aa9eb021ab8342d00d52499d4bf06228a9f290f8f4",
     "canonical_parent_test_sha256": "fb339b4e802a4775d2a598834c598f641a1e1089bd296ac98fa234bd2fdd11e6",
     "patch": "0341-arm64-fix-A72-direct-state-preflight-target-test.patch",
-    "generated": false,
+    "generated": true,
     "changed_file_count": 1,
     "changed_test_call_count": 2,
     "production_code_change": false,
     "incorrect_target": "CPUHP_OFFLINE",
     "required_target": "CPUHP_ONLINE",
     "expected_closed_result": "-EAGAIN",
+    "generation": {
+      "repository_commit": "27a0d08b5306a206d86c5748705db2107c52f7eb",
+      "package": "a72-direct-state-target-fix-27a0d08b5306",
+      "canonical_parent_commit": "eeb1ce73b12d7376b6aa09d642632987154dd91d",
+      "result_commit": "1ee2d4e8006d4ecddd66c7cc7df948d3c6eb0a8a",
+      "patch_sha256": {
+        "patches/v7.1.3/0341-arm64-fix-A72-direct-state-preflight-target-test.patch": "03da9d3a0a42e637309ea8efda236a163b5380a5e0fd4139a0731a8b27bb92cb"
+      },
+      "checkpatch": "0 errors, 0 warnings, 0 checks",
+      "exact_replay": true
+    },
     "boot_candidate": false
   },
   "offline_definition": {
