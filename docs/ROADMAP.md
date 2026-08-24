@@ -5065,8 +5065,11 @@ The next ordered work is:
    The linked
    [init/probe ledger experiment](../experiments/2026-08-24-mainline-a72-physical-source-init-probe-ledger/README.md)
    now freezes that exact successor against canonical parent `0359`. Its first
-   action is one Buildbox-only patch-generation review; no package, candidate,
-   or device action exists yet.
+   Buildbox generation passes semantic validation, the three-file boundary,
+   and byte-identical replay, then stops on two strict style checks: one blank
+   line and one needlessly split registration call. The retry changes only
+   those two formatting details. No patch, package, candidate, or device action
+   exists yet.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

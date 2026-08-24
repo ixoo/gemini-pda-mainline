@@ -56,3 +56,11 @@ state and integrity are pinned in `contract.json`. The next action is to
 generate the one logical `0360` patch on Buildbox, fetch only its validated
 review package, and admit the byte-identical patch after replay and invariant
 checks.
+
+Generation attempt 1 from exact commit `4c28d9c7` passed source semantics, the
+three-file boundary, format-patch validation, and byte-identical replay. Strict
+checkpatch stopped on two style checks: a blank line after the platform-driver
+declaration and a register call split before its sole argument. No patch was
+admitted and no compile, candidate, or device action occurred. The
+[stopped-attempt receipt](results/generation-attempt-1-checkpatch.txt) selects
+only those two formatting corrections before regeneration.

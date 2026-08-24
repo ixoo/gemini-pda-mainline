@@ -103,14 +103,13 @@ def apply(root: Path) -> None:
     replace_once(
         observer,
         "builtin_platform_driver(mt6797_a72_physical_source_driver);\n",
-        "static int __init mt6797_a72_physical_source_init(void)\n"
+        "\nstatic int __init mt6797_a72_physical_source_init(void)\n"
         "{\n"
         f"#ifdef {MODE}\n"
         "\tif (!gemini_protected_readback_ledger_checkpoint(0))\n"
         "\t\treturn -EIO;\n"
         "#endif\n\n"
-        "\treturn platform_driver_register(\n"
-        "\t\t&mt6797_a72_physical_source_driver);\n"
+        "\treturn platform_driver_register(&mt6797_a72_physical_source_driver);\n"
         "}\n"
         "device_initcall(mt6797_a72_physical_source_init);\n",
     )

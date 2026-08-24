@@ -1,0 +1,29 @@
+experiment=2026-08-24-mainline-a72-physical-source-init-probe-ledger
+attempt=1
+date=2026-08-24
+repository_commit=4c28d9c726f591c300222ede034bd5da22e87ea8
+buildbox_job=4c28d9c726f591c300222ede034bd5da22e87ea8-a72-physical-source-init-probe-patchgen
+parent_source_state=1c2210e46275423d9db88b0841b3a6dd9e478ef95c498efdae83218c5690020d
+parent_source_integrity=48d65aa58cb0b75ecf73359f4b0a912b8f439b99bae6d2bd6c9286e9cbd5f72f
+source_validation=passed
+three_file_boundary=passed
+patch_replay=byte-identical
+semantic_errors=0
+semantic_warnings=0
+strict_checkpatch_errors=0
+strict_checkpatch_warnings=0
+strict_checkpatch_checks=2
+check_1=blank-line-required-after-platform-driver-declaration
+check_2=platform-driver-register-call-should-not-end-line-with-open-parenthesis
+patch_admitted=false
+kernel_compile_started=false
+package_created=false
+candidate_created=false
+device_action=none
+selected_next=add-one-blank-line-and-collapse-one-register-call-then-regenerate
+
+The generator completed deterministic source validation, the exact three-file
+boundary check, normal format-patch creation, and byte-identical replay. Strict
+checkpatch then rejected only the declaration spacing and a call split that
+fits on one line. The retry changes only those two generated formatting details;
+record bytes, call sites, runtime effects, and the parent source stay exact.

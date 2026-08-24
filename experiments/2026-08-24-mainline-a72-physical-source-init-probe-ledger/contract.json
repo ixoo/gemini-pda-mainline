@@ -29,7 +29,8 @@
     "cpu_requests": 0
   },
   "generation": {
-    "status": "definition-frozen",
+    "status": "attempt-1-stopped-strict-checkpatch",
+    "attempts": 1,
     "patch": "0360-soc-mediatek-move-A72-ledger-before-registration.patch",
     "patch_count": 1,
     "changed_files": [
@@ -37,7 +38,7 @@
       "fs/pstore/gemini_protected_readback_ledger.c",
       "drivers/soc/mediatek/mt6797-a72-physical-source-observer.c"
     ],
-    "repository_commit": null,
+    "repository_commit": "4c28d9c726f591c300222ede034bd5da22e87ea8",
     "package": null,
     "patch_sha256": null,
     "canonical_admission": null
@@ -49,8 +50,8 @@
     "boot_candidate": false
   },
   "decision": {
-    "result": "definition-frozen-generation-pending",
-    "selected_next": "buildbox-generate-and-fetch-canonical-0360",
+    "result": "generation-stopped-on-two-style-checks",
+    "selected_next": "regenerate-after-blank-line-and-register-call-format-fix",
     "device_action": false,
     "boot_candidate": false
   }
