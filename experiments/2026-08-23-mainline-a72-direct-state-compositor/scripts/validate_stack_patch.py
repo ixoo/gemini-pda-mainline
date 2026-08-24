@@ -43,7 +43,8 @@ def main() -> None:
     for token in (
         "a72_direct_state_workspace", "a72_direct_expected_owner",
         "memset(workspace, 0, sizeof(*workspace));",
-        "kunit_kzalloc(test, sizeof(*state), GFP_KERNEL)",
+        "struct mt6797_a72_direct_state_snapshot *observed =",
+        "struct mt6797_a72_owner_snapshot owner_before;",
         "memchr_inv(snapshot, 0, sizeof(*snapshot))",
     ):
         require(token in combined, f"required stack token {token}")

@@ -134,6 +134,12 @@ workspace type for the removed function-local record. The large-record
 prohibition now scopes that token to the compositor function body; global
 effect prohibitions remain scoped to the whole compositor section.
 
+Submission `c2cac541` passed both core and KUnit source validators and reached
+the generated-patch validator. That patch-only gate incorrectly required the
+already-existing `kunit_kzalloc()` line to appear among added lines. The source
+gate continues to require that allocation; the patch gate now requires the
+actually added heap-resident records and observation pointers.
+
 ## Analysis
 
 The split keeps the outer ownership proof independent from physical reader
