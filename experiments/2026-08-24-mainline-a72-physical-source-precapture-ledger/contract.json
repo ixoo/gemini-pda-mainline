@@ -16,6 +16,24 @@
     "retry": false
   },
   "runtime": {
+    "attempts": 1,
+    "status": "rejected-before-probe-enter-checkpoint",
+    "candidate_sha256": "825cfc4299a375efbf48b3f6b6e0bd1234b08f4610702f76cbe91138dd5392a2",
+    "bounded_observation_seconds_at_least": 120,
+    "usb_device_enumerated": true,
+    "usb_network_interface_observed": false,
+    "netcat_endpoint_observed": false,
+    "automatic_gemian_return_observed": true,
+    "recovery_boot_id": "ea0b76e9-0459-4bf1-a787-661b0e8bacd1",
+    "recovery_boot_id_changed": true,
+    "record_1_header": "444247430000000000000000",
+    "record_1_sha256": "d58e2f4ee9541fa1f2a2d07247ffb6a1fa6a31fefaa83c3715fcfe4fd3ec9998",
+    "record_2_header": "444247430000000000000000",
+    "record_2_sha256": "d58e2f4ee9541fa1f2a2d07247ffb6a1fa6a31fefaa83c3715fcfe4fd3ec9998",
+    "retained_records": "exact-empty",
+    "pstore_file_count": 0,
+    "observer_probe_entry": "not-established",
+    "source_device_acquisition": "not-reached-by-ledger-order",
     "direct_source_registrations": 0,
     "platform_snapshots": 0,
     "provider_snapshots": 0,
@@ -129,9 +147,9 @@
     "shutdown": "confirmed-unreachable"
   },
   "decision": {
-    "result": "deployment-verified-runtime-pending",
-    "selected_next": "one-physical-boot2-selection-and-record-recovery",
-    "device_action": false,
+    "result": "runtime-rejected-before-probe-enter-checkpoint",
+    "selected_next": "driver-init-before-register-and-probe-entry-ledger",
+    "device_action": true,
     "boot_candidate": false
   }
 }

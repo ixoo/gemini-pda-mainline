@@ -2,11 +2,15 @@
 
 ## Status
 
-The first physical-source candidate is rejected before its first retained
-`before-bigidvfs` checkpoint. Changed-ID Gemian recovery found both owned
-first-dmesg records exact empty, pstore empty, and the exact candidate still on
-boot2. The result proves that BigiDVFS was not reached but cannot distinguish
-observer non-entry, source deferral, or a platform/provider/clock failure.
+Runtime attempt 1 rejects this successor before its first `probe-enter`
+checkpoint. The host saw a GNU/Linux USB device but no Gemini network/netcat
+interface, and the owner then observed a delayed automatic return to Gemian.
+Changed-ID recovery found the exact candidate still on boot2, pstore empty,
+and both owned first-dmesg records exact empty. The result does not establish
+whether the observer probe never ran or its first checkpoint refused. Because
+allocations and all three source-device acquisitions follow a successful first
+checkpoint, they were not reached by the candidate's successful-path ledger
+order.
 
 This non-identical successor moves the two qualified first-dmesg records
 earlier and intentionally makes no physical-source capture:
@@ -127,5 +131,18 @@ both owned records exact empty, wrote the exact padded candidate, synchronized
 and flushed it, matched the full-partition readback, and cleanly shut the
 Gemini down without reboot. See the
 [sanitized deployment receipt](results/deployment-1-write-readback-shutdown-20260824.txt).
-The next action is one physical `boot2` selection followed by changed-boot-ID
-Gemian recovery and extraction of records 1 and 2.
+
+Runtime attempt 1 exposed a physical GNU/Linux USB device but no usable
+Gemini USB network interface or netcat endpoint, then returned automatically
+to Gemian after the bounded observation. Changed-ID recovery matched the exact
+boot2 candidate and found both records exact empty with zero-length payloads;
+pstore was mounted and empty. The
+[runtime receipt](results/runtime-attempt-1-before-probe-enter-20260824.txt)
+therefore rejects this artifact without claiming observer probe entry or any
+source acquisition. An identical retry is disallowed.
+
+The selected next diagnostic puts record 1 in the observer driver-init path
+before `platform_driver_register()` and record 2 at the first probe operation,
+then exits without allocations or source acquisition. This distinguishes
+pre-init failure from registration/probe failure while keeping capture,
+provider transactions, publication, owner mutation, and CPU requests closed.

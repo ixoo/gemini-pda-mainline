@@ -1,0 +1,66 @@
+experiment=2026-08-24-mainline-a72-physical-source-precapture-ledger
+attempt=1
+date=2026-08-24
+selected_candidate_raw_sha256=6397a032ffef624dcb9104b5788d292cfb2774c078fd8c498dc0912b189e7373
+selected_candidate_padded_sha256=825cfc4299a375efbf48b3f6b6e0bd1234b08f4610702f76cbe91138dd5392a2
+owner_selected_boot2=yes
+usb_device_enumeration=gnu-linux-device-without-network-interface
+mainline_usb_interface=not-observed
+mainline_netcat_endpoint=not-observed
+automatic_gemian_return=owner-observed-delayed
+bounded_observation_seconds_at_least=120
+recovery_kernel=3.18.41+
+recovery_architecture=aarch64
+recovery_boot_id=ea0b76e9-0459-4bf1-a787-661b0e8bacd1
+deployment_boot_id=dc479ada-a35a-4ede-8eab-6bc68f84aba4
+recovery_boot_id_changed=true
+active_root=/dev/mmcblk0p29
+boot2_device=/dev/mmcblk0p30
+boot2_readback_sha256=825cfc4299a375efbf48b3f6b6e0bd1234b08f4610702f76cbe91138dd5392a2
+record_1_header=444247430000000000000000
+record_1_length_start=0
+record_1_length_end=0
+record_1_payload_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+record_1_sha256=d58e2f4ee9541fa1f2a2d07247ffb6a1fa6a31fefaa83c3715fcfe4fd3ec9998
+record_1_token_lines=0
+record_2_header=444247430000000000000000
+record_2_length_start=0
+record_2_length_end=0
+record_2_payload_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+record_2_sha256=d58e2f4ee9541fa1f2a2d07247ffb6a1fa6a31fefaa83c3715fcfe4fd3ec9998
+record_2_token_lines=0
+retained_records_1_2=exact-empty
+pstore_mounted=yes
+pstore_file_count=0
+device_memory_writes=none
+device_partition_writes=none
+runtime_classification=rejected-before-probe-enter-checkpoint
+observer_probe_entry=not-established
+source_device_acquisition=not-reached-by-ledger-order
+platform_snapshots=0-by-linked-candidate-contract
+provider_snapshots=0-by-linked-candidate-contract
+clock_calls=0-by-linked-candidate-contract
+bigidvfs_calls=0-by-linked-candidate-contract
+cpu8_cpu9_requests=0-by-linked-candidate-contract
+repeat_identical_candidate=no
+selected_next=add-driver-init-before-register-and-probe-entry-retained-boundaries
+
+Observation and inference remain separate. The host observed a GNU/Linux USB
+device but never the exact Gemini network interface or netcat endpoint. The
+owner then observed a delayed automatic reboot. Changed-ID Gemian recovery
+found the exact candidate still on inactive boot2, pstore mounted and empty,
+and both owned first-dmesg records exact empty.
+
+The result proves that the first `probe-enter` record did not commit. It does
+not distinguish the observer probe never running from the checkpoint being
+called and refusing. Because every allocation and all three source-device
+acquisitions are ordered after a successful first checkpoint, none of those
+operations was reached by the candidate's successful-path ledger order. An
+identical retry cannot resolve the ambiguity and is rejected.
+
+The next candidate must write one durable record in the observer's built-in
+driver-init path before `platform_driver_register()` and a second as the first
+probe operation. It must then return without allocations, source acquisition,
+capture, publication, provider transaction, owner mutation, or CPU requests.
+Those two boundaries distinguish failure before observer init, failure between
+driver registration and probe entry, and successful probe entry.

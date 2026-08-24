@@ -5041,12 +5041,27 @@ The next ordered work is:
    runtime source changes.
    Exact Buildbox generation, one-file validation, byte-identical replay, and
    strict checkpatch pass for the one-line correction, now canonical `0358`.
-   **Selected next:** retry the exact isolated profile through `0358`.
-   Deployment preflight attempt 1 safely refused before the `boot2` gate because
-   records 1 and 2 still matched the prior protected-clock headers and payload
-   prefix. No partition or device-memory write occurred. Gemian was cleanly shut
-   down; the subsequent cold start normalized retained RAM, and deployment
-   attempt 2 completed as recorded above.
+   The next compile exposed one missing cleanup label; pinned control-flow-only
+   patch `0359` adds that label without changing hardware effects and passes
+   Buildbox generation, replay, and strict style gates. The exact through-`0359`
+   profile then compiles on Buildbox, its fetched package validates, and the
+   separately checked Android-v0 candidate passes all 32 LK gates. Guarded
+   deployment resolves inactive boot2 from the live GPT, matches the exact
+   full-partition readback, and shuts down cleanly without reboot.
+   Runtime attempt 1 exposes a GNU/Linux USB device but no usable Gemini USB
+   network/netcat interface, then returns automatically to changed-ID Gemian.
+   Recovery finds the exact candidate still installed, pstore empty, and both
+   `probe-enter` and `sources-held` records exact empty. The
+   [runtime receipt](../experiments/2026-08-24-mainline-a72-physical-source-precapture-ledger/results/runtime-attempt-1-before-probe-enter-20260824.txt)
+   rejects the artifact before its first durable boundary. Since all
+   allocations and source acquisitions follow that successful checkpoint,
+   this result does not implicate any one source device. An identical retry is
+   disallowed.
+   **Selected next:** place record 1 in the observer driver-init path before
+   `platform_driver_register()` and record 2 at the first probe operation,
+   then return without allocations or source acquisition. Keep capture,
+   provider transactions, publication, owner mutation, and CPU8/CPU9 requests
+   closed.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
