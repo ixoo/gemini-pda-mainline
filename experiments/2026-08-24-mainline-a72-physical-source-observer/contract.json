@@ -78,12 +78,34 @@
   "build": {
     "profile": "a72-physical-source-kunit",
     "backend": "buildbox",
-    "status": "pending",
-    "qemu": "pending"
+    "status": "passed",
+    "repository_commit": "98cf0ff383944420601a19c8a73f4e9d3c3b6beb",
+    "package": "linux-7.1.3-gemini-a72-physical-source-kunit-d3da89b6-186d9a17",
+    "patchset_sha256": "d3da89b6189839b3bc0419d28d3c04b8195f6d65d6fd15911b0feb5b4192cb9c",
+    "config_sha256": "4a5cc00123c7456c7d7028f8f3ddfa3798b352d510d389bb0424918835dd2e50",
+    "qemu": "failed-test-stack-fixture",
+    "qemu_passed": 2,
+    "qemu_failed": 2,
+    "qemu_log_sha256": "8787bda750c85e7df35828172d43a19c137c9b4c2434f95c493852f48aa3bcfd"
+  },
+  "stack_fix": {
+    "status": "generation-pending",
+    "canonical_parent": "patches/v7.1.3/0354-soc-mediatek-test-A72-physical-source-observer.patch",
+    "prepared_source_state": "419101daee0a40c89b12669b94bcec87674fafaa18624a75d2a5c5473766ba72",
+    "prepared_source_integrity": "c0380951cceda5a3a034cd7119ddf7f4b96f1d28c94655ad36f48aac7f4f6db9",
+    "parent_test_sha256": "068748f876c2720ade9b96d17db90ef61ed78145a757e212322f57728bf7ee05",
+    "generated_patch_count": 1,
+    "changed_files": [
+      "drivers/soc/mediatek/mt6797-a72-physical-source-observer-test.c"
+    ],
+    "direct_state_stack_objects": 0,
+    "kunit_heap_snapshots": 2,
+    "production_changed": false,
+    "hardware_operations": false
   },
   "decision": {
-    "result": "canonical-review-ready",
-    "selected_next": "buildbox-compile-and-hardware-free-kunit",
+    "result": "test-stack-remediation-staged",
+    "selected_next": "generate-and-admit-0355-then-rebuild-and-rerun-kunit",
     "device_action": false,
     "boot_candidate": false
   }

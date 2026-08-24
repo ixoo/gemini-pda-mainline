@@ -27,9 +27,10 @@ the loop. Positive identity-gated observations are unaffected.
   — implements Phase B as canonical patches `0350`--`0354`: the exact
   two-record retained mode, temporary direct-source observer, binding,
   candidate-only DT, and four injected KUnit cases. Exact Buildbox generation,
-  semantic validation, replay, strict style review, and byte-identical
-  admission pass. Compile and QEMU remain pending, with no boot candidate or
-  device action.
+  semantic validation, replay, strict style review, byte-identical admission,
+  and compile pass. QEMU passed both capture cases, then exposed two test-only
+  stack-sized lifecycle fixtures; a pinned KUnit-managed-allocation follow-up
+  is staged. There is no boot candidate or device action.
 - [2026-08-24 mainline DA921x read-only snapshot separation](2026-08-24-mainline-da921x-readonly-snapshot-separation/README.md)
   — implements the physical-source contract's hardware-free Phase A as a
   deterministic two-patch Buildbox review. Exact canonical patches `0348` and

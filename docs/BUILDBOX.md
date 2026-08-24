@@ -215,6 +215,19 @@ and synthetic sign-offs. It creates only a patch review; compilation and the
 no-network KUnit run occur after canonical admission, and device deployment is
 a later separately gated step.
 
+If that KUnit run exposes a stack-only fixture defect, its pinned test-only
+follow-up is generated and fetched with:
+
+```sh
+./scripts/buildbox generate-a72-physical-source-stack-fix
+./scripts/buildbox fetch-a72-physical-source-stack-fix
+```
+
+This lane accepts only the exact managed source through `0354`, changes only
+the physical-source KUnit file, and proves that the two large direct-state
+fixtures use KUnit-managed allocation. It changes no production source and
+performs no hardware or device action.
+
 The protected-clock first-dmesg call discriminator also has a source-review
 lane:
 

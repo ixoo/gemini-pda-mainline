@@ -93,9 +93,40 @@ def main() -> None:
     require(contract["build"] == {
         "profile": "a72-physical-source-kunit",
         "backend": "buildbox",
-        "status": "pending",
-        "qemu": "pending",
+        "status": "passed",
+        "repository_commit":
+            "98cf0ff383944420601a19c8a73f4e9d3c3b6beb",
+        "package":
+            "linux-7.1.3-gemini-a72-physical-source-kunit-d3da89b6-186d9a17",
+        "patchset_sha256":
+            "d3da89b6189839b3bc0419d28d3c04b8195f6d65d6fd15911b0feb5b4192cb9c",
+        "config_sha256":
+            "4a5cc00123c7456c7d7028f8f3ddfa3798b352d510d389bb0424918835dd2e50",
+        "qemu": "failed-test-stack-fixture",
+        "qemu_passed": 2,
+        "qemu_failed": 2,
+        "qemu_log_sha256":
+            "8787bda750c85e7df35828172d43a19c137c9b4c2434f95c493852f48aa3bcfd",
     }, "build contract")
+    require(contract["stack_fix"] == {
+        "status": "generation-pending",
+        "canonical_parent":
+            "patches/v7.1.3/0354-soc-mediatek-test-A72-physical-source-observer.patch",
+        "prepared_source_state":
+            "419101daee0a40c89b12669b94bcec87674fafaa18624a75d2a5c5473766ba72",
+        "prepared_source_integrity":
+            "c0380951cceda5a3a034cd7119ddf7f4b96f1d28c94655ad36f48aac7f4f6db9",
+        "parent_test_sha256":
+            "068748f876c2720ade9b96d17db90ef61ed78145a757e212322f57728bf7ee05",
+        "generated_patch_count": 1,
+        "changed_files": [
+            "drivers/soc/mediatek/mt6797-a72-physical-source-observer-test.c",
+        ],
+        "direct_state_stack_objects": 0,
+        "kunit_heap_snapshots": 2,
+        "production_changed": False,
+        "hardware_operations": False,
+    }, "stack-fix contract")
 
     canonical = [ROOT / "patches/v7.1.3" / patch
                  for patch in contract["patches"]]
@@ -241,6 +272,34 @@ def main() -> None:
         'print("boot_candidate=false")',
     ):
         require(token in classifier, f"classifier token: {token}")
+    stack_generator = (EXPERIMENT / "scripts/generate-stack-fix-on-buildbox").read_text()
+    stack_editor = (EXPERIMENT / "scripts/stack_fix_edits.py").read_text()
+    stack_source_validator = (
+        EXPERIMENT / "scripts/validate_stack_fix_source.py"
+    ).read_text()
+    stack_patch_validator = (
+        EXPERIMENT / "scripts/validate_stack_fix_patch.py"
+    ).read_text()
+    for token in (
+        "PARENT_SOURCE_STATE=419101daee0a40c89b12669b94bcec87674fafaa18624a75d2a5c5473766ba72",
+        "TEST_SHA256=068748f876c2720ade9b96d17db90ef61ed78145a757e212322f57728bf7ee05",
+        "kunit_direct_state_stack_objects=0",
+        "production_changed=false",
+        "boot_candidate=false",
+    ):
+        require(token in stack_generator, f"stack generator token: {token}")
+    require(stack_editor.count("kunit_kzalloc(test, sizeof(*snapshot), GFP_KERNEL)")
+            == 2, "two KUnit-managed stack-fix allocations")
+    require("no direct-state snapshot remains on stack" in stack_source_validator,
+            "stack source boundary")
+    require("test-only path boundary" in stack_patch_validator,
+            "stack patch boundary")
+    for command in (
+        "generate-a72-physical-source-stack-fix",
+        "fetch-a72-physical-source-stack-fix",
+    ):
+        require(buildbox.count(command) >= 2,
+                f"Buildbox stack-fix command: {command}")
     receipt = (
         EXPERIMENT / "results/buildbox-generation-8d0d4904.txt"
     ).read_text()
@@ -253,12 +312,26 @@ def main() -> None:
         "boot_candidate=false",
     ):
         require(token in receipt, f"generation receipt token: {token}")
+    qemu_failure = (
+        EXPERIMENT / "results/qemu-98cf0ff3-stack-fixture-failure.txt"
+    ).read_text()
+    for token in (
+        "build=pass",
+        "passed_cases=2",
+        "failed_cases=2",
+        "failure_class=KUnit-worker-kernel-stack-boundary",
+        "production_changed=false",
+        "boot_candidate=false",
+    ):
+        require(token in qemu_failure, f"QEMU failure receipt token: {token}")
     print("validation=a72-physical-source-admission")
     print("prepared_source=exact-through-0349")
     print("generated_patch_count=5")
     print("focused_tests=4")
     print("canonical_admission=0350-0354")
-    print("compile=pending")
+    print("compile=pass")
+    print("qemu=2-pass-2-test-stack-fault")
+    print("stack_fix=generation-pending")
     print("hardware_operations=0")
     print("device_action=none")
     print("boot_candidate=false")

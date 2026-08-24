@@ -4979,11 +4979,15 @@ The next ordered work is:
    now owns canonical patches `0350`--`0354`: retained attribution, the
    temporary direct source, its binding, a separate candidate DT, and focused
    injected tests. Exact Buildbox generation, semantic validation, byte-exact
-   replay, strict style review, and canonical admission pass. It has not yet
-   compiled a kernel, created a boot candidate, or touched the device.
-   **Selected next:** compile the isolated `a72-physical-source-kunit` profile
-   on Buildbox and run only its four hardware-free cases in no-network arm64
-   QEMU. Keep
+   replay, strict style review, canonical admission, and the isolated Buildbox
+   compile pass. The first no-network QEMU run passed both capture cases, then
+   faulted both lifecycle cases while clearing a roughly 32 KiB test fixture
+   placed on the KUnit worker's kernel stack. The production callback did not
+   fault. A pinned test-only follow-up moves both fixtures to KUnit-managed
+   memory and changes no production file.
+   **Selected next:** generate and admit that `0355` follow-up, rebuild the
+   exact `a72-physical-source-kunit` profile on Buildbox, and require all four
+   no-network QEMU cases to pass. Keep
    publication, provider acquire/release, and CPU8/CPU9 requests closed until
    all four gates pass. Only then select one guarded observer candidate.
 4. Only then build one decision-bearing CPU8 candidate with one request,

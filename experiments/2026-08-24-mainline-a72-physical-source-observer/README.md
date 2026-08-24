@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-24-mainline-a72-physical-source-observer` |
-| Status | generated and admitted; Buildbox compile/KUnit pending |
+| Status | Buildbox compile passed; KUnit stack-fixture repair staged |
 | Subsystem | A72 direct-state sources and retained attribution |
 | Device variant | hardware-free implementation/KUnit stage |
 | Date(s) | 2026-08-24 America/New_York |
@@ -65,6 +65,13 @@ Commands after this input is signed and pushed:
 ./scripts/buildbox fetch-a72-physical-source-patches
 ```
 
+The QEMU-discovered KUnit stack-fixture follow-up uses:
+
+```sh
+./scripts/buildbox generate-a72-physical-source-stack-fix
+./scripts/buildbox fetch-a72-physical-source-stack-fix
+```
+
 ## Current result
 
 The exact current Buildbox parent and edited-file hashes have been audited.
@@ -86,5 +93,12 @@ continuations now use that exact tab-plus-space form. The sixth attempt passed
 all source, boundary, replay, and strict style gates from exact commit
 `8d0d49042331f54eeef475f9601bc9de2a5722ea` and produced the five
 checksum-covered patches admitted as canonical `0350`--`0354`. The isolated
-`a72-physical-source-kunit` profile is selected next for Buildbox compile and
-no-network QEMU. There is no boot candidate and no device action.
+`a72-physical-source-kunit` profile then compiled successfully on Buildbox at
+exact commit `98cf0ff383944420601a19c8a73f4e9d3c3b6beb`. No-network QEMU passed
+the capture-order and capture-failure cases, then faulted in both lifecycle
+cases while clearing a roughly 32 KiB direct-state fixture allocated on the
+KUnit worker's kernel stack. The trace identifies the test `memset`; it does
+not implicate the production callback. A test-only `0355` follow-up is now
+pinned to the exact through-`0354` source and will allocate those two fixtures
+from KUnit-managed memory before the compile and all four cases are rerun.
+There is no boot candidate and no device action.
