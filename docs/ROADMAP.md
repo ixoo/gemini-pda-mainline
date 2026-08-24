@@ -4935,12 +4935,17 @@ The next ordered work is:
    gates pass with both CPU vetoes unchanged, no physical reader binding, no
    production replay source, and no device action. The
    [implementation experiment](../experiments/2026-08-24-mainline-a72-atomic-publication/README.md)
-   owns the exact identities and rejected-attempt chronology.
-   **Selected next:** compile the isolated atomic-publication KUnit profile on
-   Buildbox, reject any newly introduced over-limit stack frame, and run only
-   its focused no-network arm64 suites. Production positive replay authority
-   and physical source binding remain separate prerequisites for a later
-   decision-bearing candidate.
+   owns the exact identities and rejected-attempt chronology. The final exact
+   Buildbox profile has no atomic-test or unused-suite warning, and its strict
+   no-network arm64 run passes the 20 late-startup plus eight atomic-publication
+   cases with zero failures or skips and no unrelated suite registration.
+   **Selected next:** perform an offline production-input ownership audit that
+   treats positive primary-BL31 replay applicability and the physical
+   direct-state source as distinct authorities. Freeze each exact producer,
+   initialization and invalidation lifetime, lock/order contract, and failure
+   result before adding a production publisher caller. The audit must reject a
+   correlated reset inference, test seed, caller-supplied constant, stale
+   snapshot, hardware action, CPU request, build candidate, or device boot.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

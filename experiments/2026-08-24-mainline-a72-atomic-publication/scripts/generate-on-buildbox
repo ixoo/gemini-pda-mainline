@@ -9,6 +9,8 @@ readonly PRE_ISOLATION_SOURCE_STATE=c7652badc345119ce6d5f842b01cc48d79d502944390
 readonly PRE_ISOLATION_SOURCE_INTEGRITY=88aa62a3c1e8f412c421020f7ca4fa160a3dfa056a3c35567d240f9b9867a922
 readonly ISOLATED_SOURCE_STATE=2062f915be6fed32012f7aa9cab6380ce28851fb7de6c39d8f20fc4d157907b7
 readonly ISOLATED_SOURCE_INTEGRITY=0cdaed40861c247e4fade6014c32249750601e6cb5ee1f402b6c7d5807e85281
+readonly FINAL_SOURCE_STATE=ac57421ae45c6e55ba34f2cac4131647e89762ad5988baf1b47364c2c75e77cb
+readonly FINAL_SOURCE_INTEGRITY=d87fe0d866aec4825c2e2c2bf5f1df628299692e5bad63e581b07c64d0f3c22d
 readonly LATE_HEADER_SHA256=748ee669310d35ee1170c8fcd07a192de37d4384b6e4cf76178ed42067816a27
 readonly LATE_SOURCE_SHA256=d229dcf2c68c13e041e4c59987d8938adc790077062008d9e5ebe1baf0fe7861
 readonly MEMBERSHIP_HEADER_SHA256=219f2b003fb4a3f61c2c53a15ef26d75af4557bf5c91e7953eead50bbeac4bd3
@@ -50,6 +52,10 @@ case "$source_state" in
 	"$ISOLATED_SOURCE_STATE")
 		source_mode=isolated-series-reverse
 		expected_source_integrity=$ISOLATED_SOURCE_INTEGRITY
+		;;
+	"$FINAL_SOURCE_STATE")
+		source_mode=final-series-reverse
+		expected_source_integrity=$FINAL_SOURCE_INTEGRITY
 		;;
 	*) die 'prepared source is neither exact parent nor reversible current series' ;;
 esac

@@ -54,12 +54,16 @@ def main() -> None:
                 "gemini-a72-atomic-publication-kunit.fragment").read_text()
     runner = (EXPERIMENT / "scripts/run-kunit-qemu").read_text()
     classifier = (EXPERIMENT / "scripts/classify-kunit.py").read_text()
-    build_evidence = (EXPERIMENT / "results/"
-                      "buildbox-compile-e5de89b7-20260824.txt").read_text()
+    initial_build_evidence = (EXPERIMENT / "results/"
+        "buildbox-compile-e5de89b7-20260824.txt").read_text()
     mixed_evidence = (EXPERIMENT / "results/"
                       "kunit-qemu-mixed-e5de89b7-20260824.txt").read_text()
     rejected_build_evidence = (EXPERIMENT / "results/"
         "buildbox-compile-rejected-8a263f5b-20260824.txt").read_text()
+    build_evidence = (EXPERIMENT / "results/"
+        "buildbox-compile-7017a09e-20260824.txt").read_text()
+    qemu_evidence = (EXPERIMENT / "results/"
+        "kunit-qemu-pass-7017a09e-20260824.txt").read_text()
 
     require(contract["experiment"] == EXPERIMENT.name, "experiment identity")
     require(contract["repository_parent"] ==
@@ -227,28 +231,35 @@ def main() -> None:
     ], "build attempt chronology")
     require(contract["build"] == {
         "repository_commit":
-            "e5de89b7b5affc859a2f491d1b795fa3d41dd14a",
+            "7017a09e18d71847c20a8379f84ecc7946ce7f67",
         "profile": PROFILE,
         "package": ("linux-7.1.3-gemini-a72-atomic-publication-kunit-"
-                    "f371203d-fb1ade23"),
+                    "2a28c409-fb1ade23"),
         "kernel_release": "7.1.3-gemini-a72-atomic-kunit",
         "source_sha256":
             "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
         "patchset_sha256":
-            "f371203dcbaa77ea0a616d5f93bf60355878c74e021a94461114114365a0b820",
+            "2a28c409ea7747fd6be860e1abfe0b8671e0114af67f6d7128c73ea76f0211f8",
         "config_sha256":
             "5681d90b3bd01e5b0e25b99d6dc3421725e0eef8be0445c2767b2a7602a3591c",
         "image_sha256":
-            "4c1fdf90a78fa3e05f2ad17029762657006dabad5e1ce7abf392534a5b1423bc",
+            "9f908f683c9b45e538f953ab60f118802df6ab93d6587a6551dcc0feee829c08",
+        "image_gzip_sha256":
+            "886dcdfb8fbdba94f2b672853fd0bdf3489abb3bf5d1334500820f3b00bbb4e6",
+        "build_json_sha256":
+            "d2c70472706d7e85b171236216024dabde8371487a215817dda3e057fab0a7b0",
         "build_log_sha256":
-            "987cb23429a4c866c317d4b9c475db01995ab49575fc36f228caf1551ef56fc6",
-        "frame_warning_total": 29,
+            "bd6af94a0af1e064067abefd2ee969fcde6471c09798cafcad2efc2f093fd3df",
+        "build_log_warning_total": 4,
+        "inherited_patch_apply_whitespace_warnings": 1,
+        "inherited_cpuhp_inventory_warnings": 1,
+        "frame_warning_total": 2,
         "inherited_production_frame_warnings": 2,
-        "inherited_membership_test_frame_warnings": 27,
-        "atomic_test_region_frame_warnings": 0,
-        "classification":
-            "pass-no-new-atomic-frame-warning-with-inherited-debt",
-        "evidence": "results/buildbox-compile-e5de89b7-20260824.txt",
+        "membership_test_warnings": 0,
+        "new_unused_owner_suite_warnings": 0,
+        "new_atomic_publication_warnings": 0,
+        "classification": "pass-no-new-atomic-publication-warning",
+        "evidence": "results/buildbox-compile-7017a09e-20260824.txt",
     }, "successful build evidence")
     require(contract["runtime_attempts"] == [{
         "repository_commit":
@@ -262,6 +273,22 @@ def main() -> None:
             "6585d0bb91aed22a71153d94cfd99df14aa662e725e058efa275f3f505cbaed5",
         "evidence": "results/kunit-qemu-mixed-e5de89b7-20260824.txt",
     }], "runtime attempt chronology")
+    require(contract["qemu"] == {
+        "repository_commit":
+            "7017a09e18d71847c20a8379f84ecc7946ce7f67",
+        "profile": PROFILE,
+        "runner_version": "11.0.2",
+        "network": "none",
+        "late_startup": "pass:20_fail:0_skip:0_total:20",
+        "atomic_publication": "pass:8_fail:0_skip:0_total:8",
+        "total": "pass:28_fail:0_skip:0_total:28",
+        "raw_log_sha256":
+            "0abd1dc19e2793e589b9567ab57c93d3ca310f09840c88c38a56f2a0a470dd62",
+        "qemu_exit": 124,
+        "post_test_state": "expected_vm_rootfs_panic",
+        "classification": "pass",
+        "evidence": "results/kunit-qemu-pass-7017a09e-20260824.txt",
+    }, "successful QEMU evidence")
     for relative, expected in PATCH_SHA256.items():
         require(sha256(ROOT / relative) == expected,
                 f"admitted patch identity {relative}")
@@ -316,6 +343,8 @@ def main() -> None:
         "PRE_ISOLATION_SOURCE_INTEGRITY=88aa62a3",
         "ISOLATED_SOURCE_STATE=2062f915",
         "ISOLATED_SOURCE_INTEGRITY=0cdaed40",
+        "FINAL_SOURCE_STATE=ac57421a",
+        "FINAL_SOURCE_INTEGRITY=d87fe0d8",
         "PARENT_PATCH=0344-", "--phase finalizer", "--phase publisher",
         "--phase tests", 'git -C "$work/verify" am', "checkpatch.pl",
         "PSCI_SOURCE_SHA256=7e332979", "generated_patch_count=3",
@@ -366,7 +395,8 @@ def main() -> None:
         "atomic_test_region_frame_warnings=0",
         "result=pass-no-new-atomic-frame-warning-with-inherited-debt",
     ):
-        require(token in build_evidence, f"build evidence {token}")
+        require(token in initial_build_evidence,
+                f"initial build evidence {token}")
     for token in (
         "suite_arm64-late-cpu-startup=pass:20_fail:0_skip:0_total:20",
         "suite_mt6797-a72-p24-owner=pass:3_fail:23_skip:0_total:26",
@@ -383,6 +413,28 @@ def main() -> None:
     ):
         require(token in rejected_build_evidence,
                 f"rejected build evidence {token}")
+    for token in (
+        "repository_commit=7017a09e18d71847c20a8379f84ecc7946ce7f67",
+        "patchset_sha256=2a28c409ea7747fd6be860e1abfe0b8671e0114af67f6d7128c73ea76f0211f8",
+        "build_log_warning_total=4",
+        "frame_warning_total=2",
+        "membership_test_warnings=0",
+        "new_unused_owner_suite_warnings=0",
+        "new_atomic_publication_warnings=0",
+        "result=pass-no-new-atomic-publication-warning",
+    ):
+        require(token in build_evidence, f"final build evidence {token}")
+    for token in (
+        "repository_commit=7017a09e18d71847c20a8379f84ecc7946ce7f67",
+        "raw_log_sha256=0abd1dc19e2793e589b9567ab57c93d3ca310f09840c88c38a56f2a0a470dd62",
+        "suite_arm64-late-cpu-startup=pass:20_fail:0_skip:0_total:20",
+        "suite_mt6797-a72-atomic-publication=pass:8_fail:0_skip:0_total:8",
+        "tap_summary=pass:28_fail:0_skip:0_total:28",
+        "production_owner_publication=false",
+        "boot_candidate=false",
+        "result=pass",
+    ):
+        require(token in qemu_evidence, f"final QEMU evidence {token}")
     profile = manifest["config"]["profiles"][PROFILE]
     require(profile["base"] == "defconfig" and
             profile["patch_series"] == "patches/series",
@@ -398,14 +450,16 @@ def main() -> None:
             'CONFIG_LOCALVERSION="-gemini-a72-atomic-kunit"' in fragment,
             "isolated profile contract")
     for token in (
-        "compile-hygiene patch admitted; exact rebuild pending",
+        "hardware-free atomic-publication proof complete",
         "no production caller", "candidate is defined",
         "failed closed before any", "atomic-publication suite passed 8/8",
         "failed closed before", "reverse-applies the exact three",
         "Patches `0345` and `0346` are byte-identical",
         "a72-atomic-publication-c2f0cad47323",
         "Compile review nevertheless rejected",
-        "Build the exact profile on Buildbox",
+        "All 20",
+        "28/28",
+        "Audit the production replay-applicability owner",
     ):
         require(token in readme, f"README closure {token}")
 
@@ -418,6 +472,8 @@ def main() -> None:
         "results/buildbox-compile-e5de89b7-20260824.txt",
         "results/kunit-qemu-mixed-e5de89b7-20260824.txt",
         "results/buildbox-compile-rejected-8a263f5b-20260824.txt",
+        "results/buildbox-compile-7017a09e-20260824.txt",
+        "results/kunit-qemu-pass-7017a09e-20260824.txt",
     ):
         path = EXPERIMENT / relative
         require(path.is_file() and not path.is_symlink(),

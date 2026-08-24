@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-24-mainline-a72-atomic-publication` |
-| Status | compile-hygiene patch admitted; exact rebuild pending |
+| Status | hardware-free atomic-publication proof complete |
 | Subsystem | MT6797 A72 bootstrap owner and P30 pristine finalization |
 | Device variant | Gemini PDA contract; injected hardware-free phase |
 | Date(s) | 2026-08-24 America/New_York |
@@ -199,6 +199,22 @@ atomic-only registration remains unchanged. All semantic phases, patch
 separation, exact replay, and strict checkpatch pass in package
 `a72-atomic-publication-c2f0cad47323`.
 
+Signed and pushed commit `7017a09e` then produced validated Buildbox package
+`linux-7.1.3-gemini-a72-atomic-publication-kunit-2a28c409-fb1ade23`.
+The atomic membership test source has zero warnings, the rejected unused-suite
+warning is gone, and the two remaining frame warnings plus the unrelated CPU
+hotplug inventory warning are byte-for-byte attributable to retained earlier
+builds. Package checksums and provenance pass.
+
+The strict no-network arm64 QEMU run registered exactly two suites. All 20
+late-startup cases and all eight atomic-publication cases passed, for 28/28
+with zero failures or skips. No historical owner suite was registered. The
+bounded runner reached only the expected post-test rootfs panic and timed out
+with its required exit 124. Exact evidence is in
+[`results/buildbox-compile-7017a09e-20260824.txt`](results/buildbox-compile-7017a09e-20260824.txt)
+and
+[`results/kunit-qemu-pass-7017a09e-20260824.txt`](results/kunit-qemu-pass-7017a09e-20260824.txt).
+
 ## Analysis
 
 The finalizer clears the logical claim only while retaining the private P30
@@ -215,14 +231,16 @@ and writes `AVAILABLE` last.
 ## Conclusion
 
 The three normal patches are generated, exactly replayed, strictly checked,
-and admitted to the canonical series. The exact atomic mechanism compiles and
-its eight cases pass, while the compile-hygiene regeneration isolates their
-registration without changing production behavior. A new exact build and
-focused run are still required before this hardware-free proof closes. No
-hardware-support claim or boot candidate is defined.
+admitted to the canonical series, and compiled from the exact clean pushed
+revision. The focused hardware-free proof passes all 28 required cases without
+registering the unrelated historical suite or introducing a new warning. This
+closes atomic publication mechanics only: it does not establish production
+positive replay authority, physical source binding, hardware support, or a
+boot candidate.
 
 ## Follow-up
 
-Build the exact profile on Buildbox and require a clean 28-case late-startup
-plus atomic-publication QEMU result. The authoritative sequence remains in
-[Roadmap Gate 7](../../docs/ROADMAP.md#7-bring-up-cpu8).
+Audit the production replay-applicability owner and physical direct-state
+binding as distinct inputs before adding any production publisher caller. The
+authoritative sequence remains in [Roadmap Gate
+7](../../docs/ROADMAP.md#7-bring-up-cpu8).

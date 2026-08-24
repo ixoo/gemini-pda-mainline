@@ -26,9 +26,10 @@ the loop. Positive identity-gated observations are unaffected.
 - [2026-08-24 mainline A72 atomic bootstrap publication](2026-08-24-mainline-a72-atomic-publication/README.md)
   — admits the audit-selected three-patch hardware-free phase: a P30 nested
   finalizer, one default-off no-caller publisher, and eight injected failure
-  and success cases. Exact generation, replay, and strict style pass; isolated
-  compilation and KUnit remain next. Both CPU vetoes, physical binding,
-  hardware effects, and device action remain closed.
+  and success cases. Exact generation, replay, strict style, warning-clean
+  isolated compilation, and the focused 28/28 no-network QEMU proof pass.
+  Both CPU vetoes, production replay authority, physical binding, hardware
+  effects, and device action remain closed.
 - [2026-08-24 mainline A72 atomic publication contract audit](2026-08-24-mainline-a72-atomic-publication-audit/README.md)
   — finds that the current separate P30 release cannot close both the
   prepare-entry race and the post-commit failure window. It selects a nested
