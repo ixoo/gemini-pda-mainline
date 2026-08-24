@@ -4964,14 +4964,16 @@ The next ordered work is:
    contract itself performed no build or device action.
    The named
    [DA921x read-only snapshot separation](../experiments/2026-08-24-mainline-da921x-readonly-snapshot-separation/README.md)
-   now owns the implementation input for that hardware-free Phase A. It pins
-   the canonical through-`0347` source, factors only the read endpoint and
-   callback, and specifies an isolated five-case proof with the positive
-   provider and firmware-writer transaction window off.
-   **Selected next:** generate and admit its two patches on Buildbox, then run
-   the isolated no-modules Buildbox compile, symbol-absence check, and QEMU
-   KUnit proof. Add no physical adapter, boot candidate, device action,
-   provider acquire/release, A34/P30/publication, or CPU request.
+   now owns the hardware-free Phase A implementation. Exact canonical patches
+   `0348` and `0349` pass Buildbox generation, semantic validation, replay,
+   strict checkpatch, package validation, and byte-identical admission. They
+   factor only the read endpoint and stable callback. The
+   positive writable provider option and its firmware-writer window remain
+   absent, as does the Buck-B writer.
+   **Selected next:** run the isolated no-modules Buildbox compile,
+   linked-symbol absence check, and five-case no-network QEMU KUnit proof. Add
+   no physical adapter, boot candidate, device action, provider
+   acquire/release, A34/P30/publication, or CPU request.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

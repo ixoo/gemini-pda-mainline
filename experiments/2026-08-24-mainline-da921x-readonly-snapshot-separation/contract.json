@@ -15,6 +15,22 @@
     "0348-regulator-separate-read-only-DA921x-provider-snapshot.patch",
     "0349-regulator-test-read-only-DA921x-provider-snapshot.patch"
   ],
+  "validated_generation": {
+    "repository_commit": "866d528c6454cd1fd49c4446ac432791984af61f",
+    "buildbox_job": "866d528c6454cd1fd49c4446ac432791984af61f-da921x-readonly-snapshot-patchgen",
+    "package": "da921x-readonly-snapshot-866d528c6454",
+    "parent_commit": "fd7b8191422ce4736406c49560603da11d73471c",
+    "result_commit": "9a937ed6aad8b508b6f67758446656ec0c4ac48c",
+    "sha256sums_sha256": "826041bc713c8ed0182dcdf8cf3860f9e13622213047b6c9c1b05d7407f3895c",
+    "patch_sha256": [
+      "d88c1f19b9d921223b94783d132f29b6f760f2634ecfade1d5fa91607cbb316b",
+      "f1ffac88aa2536246293d9718202eb94246b4ba69be0ddb62f9a2b6048b83445"
+    ],
+    "source_validation": "pass",
+    "patch_replay": "pass",
+    "strict_checkpatch": "0-errors-0-warnings-0-checks",
+    "canonical_admission": "0348-0349"
+  },
   "production": {
     "samples": 2,
     "reads_per_sample": 5,
@@ -44,5 +60,5 @@
     "device_action": false,
     "boot_candidate": false
   },
-  "result": "pending-generation"
+  "result": "generated-admitted-build-pending"
 }

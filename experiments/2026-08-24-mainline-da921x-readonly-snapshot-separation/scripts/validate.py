@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -14,6 +15,10 @@ EXPERIMENT = Path(__file__).resolve().parents[1]
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise AssertionError(message)
+
+
+def sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def main() -> None:
@@ -48,7 +53,66 @@ def main() -> None:
     }, "test contract")
     require(all(value is False for value in contract["exclusions"].values()),
             "all excluded effects remain false")
-    require(contract["result"] == "pending-generation", "result state")
+    generation = contract["validated_generation"]
+    require(generation == {
+        "repository_commit":
+            "866d528c6454cd1fd49c4446ac432791984af61f",
+        "buildbox_job":
+            "866d528c6454cd1fd49c4446ac432791984af61f-da921x-readonly-snapshot-patchgen",
+        "package": "da921x-readonly-snapshot-866d528c6454",
+        "parent_commit": "fd7b8191422ce4736406c49560603da11d73471c",
+        "result_commit": "9a937ed6aad8b508b6f67758446656ec0c4ac48c",
+        "sha256sums_sha256":
+            "826041bc713c8ed0182dcdf8cf3860f9e13622213047b6c9c1b05d7407f3895c",
+        "patch_sha256": [
+            "d88c1f19b9d921223b94783d132f29b6f760f2634ecfade1d5fa91607cbb316b",
+            "f1ffac88aa2536246293d9718202eb94246b4ba69be0ddb62f9a2b6048b83445",
+        ],
+        "source_validation": "pass",
+        "patch_replay": "pass",
+        "strict_checkpatch": "0-errors-0-warnings-0-checks",
+        "canonical_admission": "0348-0349",
+    }, "validated generation")
+    require(
+        contract["result"] == "generated-admitted-build-pending",
+        "result state",
+    )
+
+    canonical = [
+        ROOT / "patches/v7.1.3" / patch for patch in contract["patches"]
+    ]
+    require(all(path.is_file() and not path.is_symlink() for path in canonical),
+            "canonical patch inventory")
+    require([sha256(path) for path in canonical] == generation["patch_sha256"],
+            "canonical patch identities")
+    series = (ROOT / "patches/series").read_text().splitlines()
+    require(series[-2:] == [
+        "v7.1.3/0348-regulator-separate-read-only-DA921x-provider-snapshot.patch",
+        "v7.1.3/0349-regulator-test-read-only-DA921x-provider-snapshot.patch",
+    ], "canonical series tail")
+
+    manifest = json.loads((ROOT / "kernel/manifest.json").read_text())
+    profile = manifest["config"]["profiles"]["da921x-readonly-snapshot-kunit"]
+    require(profile["base"] == "defconfig", "profile base")
+    require(profile["patch_series"] == "patches/series", "profile series")
+    require(profile["fragments"][-1] ==
+            "configs/gemini-da921x-readonly-snapshot-kunit.fragment",
+            "profile fragment")
+    for forbidden_fragment in (
+        "configs/gemini-i2c6-firmware-writer-transaction-window.fragment",
+        "configs/gemini-da921x-positive-provider.fragment",
+        "configs/gemini-a72-pre-p28-provider-abort.fragment",
+    ):
+        require(forbidden_fragment not in profile["fragments"],
+                f"writer-related profile fragment {forbidden_fragment}")
+    fragment = (ROOT /
+                "configs/gemini-da921x-readonly-snapshot-kunit.fragment").read_text()
+    for token in (
+        "CONFIG_REGULATOR_DA9213_LEGACY_PROVIDER_SNAPSHOT_KUNIT_TEST=y",
+        "# CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION is not set",
+        "# CONFIG_MTK_MT6797_I2C6_FW_WRITER_TRANSACTION_WINDOW is not set",
+    ):
+        require(token in fragment, f"profile token {token}")
 
     generator = (EXPERIMENT / "scripts/generate-on-buildbox").read_text()
     for token in (
@@ -112,6 +176,33 @@ def main() -> None:
         in (ROOT / "docs/ROADMAP.md").read_text(),
         "Roadmap selection",
     )
+    runner = (EXPERIMENT / "scripts/run-kunit-qemu").read_text()
+    classifier = (EXPERIMENT / "scripts/classify-kunit.py").read_text()
+    for token in (
+        "EXPECTED_PROFILE=da921x-readonly-snapshot-kunit",
+        "CONFIG_REGULATOR_DA9213_LEGACY_PROVIDER_SNAPSHOT_KUNIT_TEST=y",
+        "da9213_legacy_provider_write_cont",
+        "-nic none",
+    ):
+        require(token in runner, f"runner token {token}")
+    for token in (
+        'SUITE = "da9213-legacy-provider-snapshot"',
+        '"da9213_snapshot_readonly_lifecycle_test"',
+        'print("writer_symbols=absent")',
+        'print("boot_candidate=false")',
+    ):
+        require(token in classifier, f"classifier token {token}")
+    receipt = (EXPERIMENT /
+               "results/buildbox-generation-866d528c.txt").read_text()
+    for token in (
+        "source_validation=pass",
+        "patch_replay=pass",
+        "strict_checkpatch=0-errors-0-warnings-0-checks",
+        "canonical_admission=0348-0349",
+        "compile=pending",
+        "boot_candidate=false",
+    ):
+        require(token in receipt, f"generation receipt token {token}")
 
     print("validation=da921x-readonly-snapshot-generation-input")
     print("prepared_source_state=exact")
@@ -122,6 +213,8 @@ def main() -> None:
     print("hardware_operations=0")
     print("device_action=none")
     print("boot_candidate=false")
+    print("canonical_admission=0348-0349")
+    print("compile=pending")
     print("result=pass")
 
 

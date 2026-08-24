@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-24-mainline-da921x-readonly-snapshot-separation` |
-| Status | implementation input prepared; generation and build pending |
+| Status | patches generated, validated, and admitted; isolated build pending |
 | Subsystem | DA921x provider registry and stable snapshot |
 | Device variant | hardware-free source and in-memory KUnit only |
 | Date(s) | 2026-08-24 America/New_York |
@@ -64,5 +64,16 @@ Commands after this input is signed and pushed:
 
 ## Current result
 
-`pending-generation`: no support claim, build result, boot candidate, or device
-action exists yet.
+Buildbox generation from exact clean commit
+`866d528c6454cd1fd49c4446ac432791984af61f` passed the pinned-source,
+semantic, exact replay, and strict checkpatch gates. The two generated files
+were fetched with validated package checksums and admitted byte-for-byte as
+canonical patches `0348` and `0349`. Their exact identities and generation
+receipt are in [`contract.json`](contract.json) and
+[`results/buildbox-generation-866d528c.txt`](results/buildbox-generation-866d528c.txt).
+
+The isolated `da921x-readonly-snapshot-kunit` profile explicitly disables the
+positive provider transaction and firmware-writer transaction window. Its
+Buildbox compile, linked-symbol inspection, and focused no-network QEMU proof
+remain pending. No support claim, boot candidate, hardware operation, device
+action, or CPU request exists yet.
