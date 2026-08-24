@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-23-mainline-a72-a34-v2-interlock",
+  "repository_parent": "83f9ef6c1a7a54f615f5e0d752ecc455c9a79566",
+  "canonical_parent": "patches/v7.1.3/0341-arm64-fix-A72-direct-state-preflight-target-test.patch",
+  "prepared_source_state": "c020a36a674ca8ac6516f022649f143cd1d1d8834f17e5de758bc3fe0268c72e",
+  "prepared_source_integrity": "54165d2bf54ca5b795d85314061fdfe0930e0b78e50927269b0746d1646625c3",
+  "parent_files": {
+    "arch/arm64/include/asm/late_cpu_startup.h": "8e601ae0e1b406f2afc1afad42692e0cdfaaaf5c0bdf32f8e70ea8e944c53d2b",
+    "arch/arm64/kernel/late_cpu_startup.c": "240a7fc677f841994f707631633f59b27b05fd3803cf9353fbd1f6e8cfb5fbb8",
+    "arch/arm64/kernel/late_cpu_startup_test.c": "8d33a5638e3471699a2e37c8ed17e4210bab19efbc4175c36fbc9966dff24ad5",
+    "arch/arm64/include/asm/mt6797_a72_membership.h": "021145a241b57118015cf7ea31f572dd3043dd5653cf4ee549806fbd6e3ca76e",
+    "arch/arm64/kernel/mt6797_a72_membership.c": "38e3cc51c879ed1319d124aa9eb021ab8342d00d52499d4bf06228a9f290f8f4",
+    "arch/arm64/kernel/mt6797_a72_direct_state_test.c": "241ca6de3c083a7eec00821046191403ae01e607fd91f01ad1dda7698c68c6ce",
+    "arch/arm64/kernel/mt6797_a72_a34_evaluator_test.c": "bbdfd64c863664f3e0d44e5e4881faca8ac5654bf28117a213804f3195553470",
+    "arch/arm64/Kconfig": "86cba7792ca9d6705d8f08fd8eb98768bb5c751e611ac919a259865353eb0609",
+    "arch/arm64/Kconfig.platforms": "b7bf367206337be393c68d551a53fbef87d26713dc184714aff539ea2ad2d18b"
+  },
+  "patches": [
+    "0342-arm64-add-P30-pristine-bootstrap-claim.patch",
+    "0343-arm64-bind-A72-direct-state-to-target-identity.patch",
+    "0344-arm64-revise-A34-for-direct-state-v2.patch"
+  ],
+  "scope": {
+    "default_off": true,
+    "hardware_free": true,
+    "production_callers": 0,
+    "owner_publication": false,
+    "physical_reader_binding": false,
+    "cpu_veto_change": false,
+    "cpu_on": false,
+    "cpu_off": false,
+    "device_action": false,
+    "boot_candidate": false
+  }
+}

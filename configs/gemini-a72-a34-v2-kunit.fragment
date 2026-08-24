@@ -1,0 +1,7 @@
+# Hardware-free P30 pristine-claim, direct-state-v2 identity, and A34-v2
+# exact-input coverage. There is no production caller or hardware source.
+CONFIG_KUNIT=y
+CONFIG_ARM64_LATE_CPU_STARTUP_KUNIT_TEST=y
+CONFIG_ARM64_MT6797_A72_DIRECT_STATE_KUNIT_TEST=y
+CONFIG_ARM64_MT6797_A72_A34_ELIGIBILITY_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-a34-v2-kunit"

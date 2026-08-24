@@ -23,6 +23,12 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-23 mainline A72 A34-v2 evaluator and P30 interlock](2026-08-23-mainline-a72-a34-v2-interlock/README.md)
+  — defines the audit-selected three-patch, hardware-free phase: an opaque
+  pristine P30 claim, direct-state ABI 2 target identity, and A34 ABI 2 over
+  one direct record plus typed primary-BL31 replay applicability. Production
+  publication, physical binding, both CPU vetoes, and device action remain
+  closed while exact Buildbox generation is pending.
 - [2026-08-23 mainline A72 A34 publication contract audit](2026-08-23-mainline-a72-a34-publication-contract-audit/README.md)
   — rejects production publication from the current inputs: direct-state
   `valid=1` proves stable record shape rather than recovered raw values, the

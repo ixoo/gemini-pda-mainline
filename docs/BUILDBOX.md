@@ -216,6 +216,21 @@ record, rejects every partial record with an all-zero result, and requires the
 owner to remain pristine `CLOSED / UNINITIALIZED`. It calls no physical reader,
 opens no lifecycle, and performs no hardware or CPU operation.
 
+The audit-selected A34-v2/P30-interlock successor is also generated only from
+the exact clean pushed repository commit and the managed source through patch
+`0341`:
+
+```sh
+./scripts/buildbox generate-a34-v2-interlock
+./scripts/buildbox fetch-a34-v2-interlock
+```
+
+That lane creates three normal patches for the pristine P30 claim,
+direct-state ABI 2 target identity, and the pure A34-v2 evaluator. It requires
+exact replay and strict checkpatch, and transfers only the checksum-covered
+review package. It adds no production caller, physical source binding,
+lifecycle publication, CPU request, boot candidate, or device action.
+
 If the exact compile exposes the known C tag-namespace collision in the first
 admission, generate and fetch the single mechanical record-tag correction from
 the prepared source through patch `0314` with:
