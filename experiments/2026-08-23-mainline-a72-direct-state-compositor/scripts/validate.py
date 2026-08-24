@@ -205,9 +205,10 @@ def main() -> None:
         require(token in qemu_evidence, f"QEMU evidence {token}")
     target_fix = contract["target_fix_definition"]
     require(target_fix["prepared_source_state"] ==
-            stack_fix["prepared_source_state"], "target-fix prepared source")
+            "80ea4453047c0328efbb0361a1b2b26065b79011bbfbff82f1c9cc02d047ac46",
+            "target-fix prepared source")
     require(target_fix["prepared_source_integrity"] ==
-            stack_fix["prepared_source_integrity"],
+            "f4d816c74678b80e20ad920e81850e4f111cf50f1137271fdf265dc8bb12a0c8",
             "target-fix prepared integrity")
     require(target_fix["canonical_parent"] ==
             "patches/v7.1.3/0340-arm64-move-A72-direct-state-KUnit-state-off-stack.patch",
@@ -215,6 +216,9 @@ def main() -> None:
     require(target_fix["canonical_parent_test_sha256"] ==
             "fb339b4e802a4775d2a598834c598f641a1e1089bd296ac98fa234bd2fdd11e6",
             "target-fix reconstructed parent")
+    require(target_fix["canonical_parent_membership_sha256"] ==
+            "38e3cc51c879ed1319d124aa9eb021ab8342d00d52499d4bf06228a9f290f8f4",
+            "target-fix membership parent")
     require(target_fix["patch"] ==
             "0341-arm64-fix-A72-direct-state-preflight-target-test.patch",
             "target-fix patch name")
@@ -311,9 +315,12 @@ def main() -> None:
     require("PARENT_SOURCE_INTEGRITY=" +
             target_fix["prepared_source_integrity"] in target_generator,
             "target generator integrity pin")
-    require("STACK_TEST_RESULT_SHA256=" +
+    require("TEST_SHA256=" +
             target_fix["canonical_parent_test_sha256"] in target_generator,
-            "target generator reconstructed parent pin")
+            "target generator test parent pin")
+    require("MEMBERSHIP_SHA256=" +
+            target_fix["canonical_parent_membership_sha256"] in
+            target_generator, "target generator membership parent pin")
     require("generated_patch_count=1" in target_generator,
             "target generator patch count")
     for command in (

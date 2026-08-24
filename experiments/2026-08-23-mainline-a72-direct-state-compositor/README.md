@@ -185,6 +185,14 @@ CPU request, or boot policy. A Buildbox-only generator now pins and
 reconstructs the canonical source through patch `0340` before producing one
 normal patch for review.
 
+Buildbox submission `3c84421a` stopped before patch creation because its
+series-source pin still named the pre-stack prepared state used to generate
+patches `0339` and `0340`. The managed series source had correctly advanced to
+the exact post-`0340` state during the validated rebuild. The target-fix
+generator now pins that newer state and its exact membership and focused-test
+file hashes directly; it no longer attempts to replay the two already-applied
+stack patches.
+
 ## Analysis
 
 The split keeps the outer ownership proof independent from physical reader

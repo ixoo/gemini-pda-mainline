@@ -3,15 +3,12 @@
 set -euo pipefail
 export LC_ALL=C
 
-readonly PARENT_SOURCE_STATE=08ad5389a1cf831f13ad410da5d74b17a58d8c05c8ab05459f3568e47c4a41a1
-readonly PARENT_SOURCE_INTEGRITY=4f812300aa0171cfbb91a645de62e1daff8d73a0200357a281a2cae7b053191a
-readonly MEMBERSHIP_SHA256=e810919bbf38e33207efe0652f366d06bad4fbb2e341ba367d5c746e5fbdcb74
-readonly TEST_SHA256=95d468188b09df8a64f4f5b05097db0a27e519131a47a7c444b2e0bafd99e3e4
-readonly STACK_CORE_PATCH=0339-arm64-move-A72-direct-state-workspace-off-stack.patch
-readonly STACK_CORE_PATCH_SHA256=2be018b127ae90f8d0e20cadd248c14c43302d329f58e84d1dcfce267b0ba05a
-readonly STACK_TEST_PATCH=0340-arm64-move-A72-direct-state-KUnit-state-off-stack.patch
-readonly STACK_TEST_PATCH_SHA256=46fb369ec4ee1a4fdb3a6bcec71f3c0a481e624495ed1eda75ad34b356fd2f03
-readonly STACK_TEST_RESULT_SHA256=fb339b4e802a4775d2a598834c598f641a1e1089bd296ac98fa234bd2fdd11e6
+readonly PARENT_SOURCE_STATE=80ea4453047c0328efbb0361a1b2b26065b79011bbfbff82f1c9cc02d047ac46
+readonly PARENT_SOURCE_INTEGRITY=f4d816c74678b80e20ad920e81850e4f111cf50f1137271fdf265dc8bb12a0c8
+readonly MEMBERSHIP_SHA256=38e3cc51c879ed1319d124aa9eb021ab8342d00d52499d4bf06228a9f290f8f4
+readonly TEST_SHA256=fb339b4e802a4775d2a598834c598f641a1e1089bd296ac98fa234bd2fdd11e6
+readonly PARENT_PATCH=0340-arm64-move-A72-direct-state-KUnit-state-off-stack.patch
+readonly PARENT_PATCH_SHA256=46fb369ec4ee1a4fdb3a6bcec71f3c0a481e624495ed1eda75ad34b356fd2f03
 
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 
@@ -59,16 +56,11 @@ check_file() {
 check_file "$MEMBERSHIP_SHA256" arch/arm64/kernel/mt6797_a72_membership.c
 check_file "$TEST_SHA256" arch/arm64/kernel/mt6797_a72_direct_state_test.c
 
-for record in \
-	"$STACK_CORE_PATCH_SHA256:$STACK_CORE_PATCH" \
-	"$STACK_TEST_PATCH_SHA256:$STACK_TEST_PATCH"; do
-	expected=${record%%:*}
-	patch=${record#*:}
-	path="$repository_dir/patches/v7.1.3/$patch"
-	[[ -f "$path" && ! -L "$path" ]] || die "canonical patch absent: $patch"
-	printf '%s  %s\n' "$expected" "$path" |
-		sha256sum --check --status || die "canonical patch changed: $patch"
-done
+readonly parent_patch_path="$repository_dir/patches/v7.1.3/$PARENT_PATCH"
+[[ -f "$parent_patch_path" && ! -L "$parent_patch_path" ]] ||
+	die 'canonical parent patch absent or unsafe'
+printf '%s  %s\n' "$PARENT_PATCH_SHA256" "$parent_patch_path" |
+	sha256sum --check --status || die 'canonical parent patch changed'
 
 readonly work_root=/workspace/gemini-pda/a72-direct-state-target-fix-work
 readonly package="$output_root/a72-direct-state-target-fix-${project_commit:0:12}"
@@ -109,17 +101,9 @@ git -C "$work/source" add -- .
 GIT_AUTHOR_DATE=2026-08-24T00:30:00Z \
 GIT_COMMITTER_DATE=2026-08-24T00:30:00Z \
 	git -C "$work/source" commit --quiet --no-gpg-sign \
-		-m 'A72 direct-state target-fix prepared parent'
-
-git -C "$work/source" am --quiet --committer-date-is-author-date \
-	"$repository_dir/patches/v7.1.3/$STACK_CORE_PATCH" \
-	"$repository_dir/patches/v7.1.3/$STACK_TEST_PATCH"
+		-m 'A72 direct-state target-fix canonical parent'
 canonical_parent_commit="$(git -C "$work/source" rev-parse HEAD)"
 readonly canonical_parent_commit
-check_file_result="$(sha256sum \
-	"$work/source/arch/arm64/kernel/mt6797_a72_direct_state_test.c")"
-[[ "${check_file_result%% *}" == "$STACK_TEST_RESULT_SHA256" ]] ||
-	die 'reconstructed canonical test parent changed'
 PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_stack_source.py" \
 	--source-root "$work/source" --phase tests
 
@@ -179,8 +163,8 @@ purpose=experiment-only-a72-direct-state-target-fix
 repository_commit=$project_commit
 parent_source_state=$PARENT_SOURCE_STATE
 parent_source_integrity=$PARENT_SOURCE_INTEGRITY
-canonical_parent_patch=$STACK_TEST_PATCH
-canonical_parent_patch_sha256=$STACK_TEST_PATCH_SHA256
+canonical_parent_patch=$PARENT_PATCH
+canonical_parent_patch_sha256=$PARENT_PATCH_SHA256
 canonical_parent_commit=$canonical_parent_commit
 result_commit=$result_commit
 generated_patch_count=1

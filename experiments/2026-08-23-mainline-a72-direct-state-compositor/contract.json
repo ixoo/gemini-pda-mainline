@@ -134,9 +134,10 @@
     }
   ],
   "target_fix_definition": {
-    "prepared_source_state": "08ad5389a1cf831f13ad410da5d74b17a58d8c05c8ab05459f3568e47c4a41a1",
-    "prepared_source_integrity": "4f812300aa0171cfbb91a645de62e1daff8d73a0200357a281a2cae7b053191a",
+    "prepared_source_state": "80ea4453047c0328efbb0361a1b2b26065b79011bbfbff82f1c9cc02d047ac46",
+    "prepared_source_integrity": "f4d816c74678b80e20ad920e81850e4f111cf50f1137271fdf265dc8bb12a0c8",
     "canonical_parent": "patches/v7.1.3/0340-arm64-move-A72-direct-state-KUnit-state-off-stack.patch",
+    "canonical_parent_membership_sha256": "38e3cc51c879ed1319d124aa9eb021ab8342d00d52499d4bf06228a9f290f8f4",
     "canonical_parent_test_sha256": "fb339b4e802a4775d2a598834c598f641a1e1089bd296ac98fa234bd2fdd11e6",
     "patch": "0341-arm64-fix-A72-direct-state-preflight-target-test.patch",
     "generated": false,
