@@ -5027,6 +5027,11 @@ The next ordered work is:
    second after all three DT source devices are held but before capture, then
    repeat the offline Buildbox/container gates. Keep publication, provider
    transactions, owner mutation, and CPU requests closed.
+   The linked
+   [pre-capture ledger experiment](../experiments/2026-08-24-mainline-a72-physical-source-precapture-ledger/README.md)
+   now freezes that successor: `probe-enter`, `sources-held`, then deliberate
+   reference release without registering or running the direct-source capture.
+   **Selected next:** generate and admit its one canonical patch on Buildbox.
    Deployment preflight attempt 1 safely refused before the `boot2` gate because
    records 1 and 2 still matched the prior protected-clock headers and payload
    prefix. No partition or device-memory write occurred. Gemian was cleanly shut
