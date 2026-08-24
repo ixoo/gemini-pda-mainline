@@ -71,6 +71,11 @@ def main() -> None:
                 "8a8d88e9f0d99c25d4d872863280e01f5fcdc53f",
             "classification": "rejected-pinned-psci-file-identity",
         },
+        {
+            "repository_commit":
+                "21953be69ce08bed84b7e629728cb857af9b93a5",
+            "classification": "rejected-validator-kconfig-symbol-spelling",
+        },
     ], "generation attempt chronology")
     require(contract["tests"] == {
         "suite": "mt6797-a72-atomic-publication",

@@ -173,7 +173,7 @@ def main() -> None:
         'name = "mt6797-a72-atomic-publication"',
     ):
         require(token in test, f"focused test {token}")
-    require("CONFIG_ARM64_MT6797_A72_ATOMIC_PUBLICATION_KUNIT_TEST" in
+    require("config ARM64_MT6797_A72_ATOMIC_PUBLICATION_KUNIT_TEST" in
             kconfig, "test Kconfig")
     require("select ARM64_MT6797_A72_BOOTSTRAP_PUBLISHER" in kconfig,
             "test publisher selection")

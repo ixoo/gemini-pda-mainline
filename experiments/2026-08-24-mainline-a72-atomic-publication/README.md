@@ -89,6 +89,12 @@ the adjacent generic arm64 `psci.c` hash rather than the MT6797-specific
 `mt6797_psci.c` hash. The source-state and integrity markers remained exact.
 The definition now pins the correct MT6797 veto file identity `7e332979…`.
 
+Commit `21953be6` passed the finalizer and publisher semantic phases, then the
+test validator rejected its own Kconfig query because it searched for the C
+preprocessor form `CONFIG_ARM64_…` instead of the Kconfig declaration form
+`config ARM64_…`. No patch package was emitted; only that validator spelling
+changed for the retry.
+
 No kernel has been compiled, no generated patch has been admitted, and no
 QEMU or device action has occurred.
 
