@@ -1,0 +1,45 @@
+experiment=2026-08-24-mainline-a72-physical-source-precapture-ledger
+attempt=1
+date=2026-08-24
+result=write-synced-flushed-full-readback-verified
+target_logical_name=boot2
+target_live_gpt=/dev/mmcblk0p30
+active_root=/dev/mmcblk0p29
+target_inactive=true
+target_unmounted=true
+target_writable=true
+power_gate=passed
+power_state=1|100|Good|1
+prewrite_record_1_header=444247430000000000000000
+prewrite_record_2_header=444247430000000000000000
+prewrite_records_1_2=exact-empty
+retained_ram_write=none
+predecessor_sha256=aa02ab666e63e7011139c1057bda99cdbab89245d41f9cad59dae30743b41246
+fresh_predecessor_backup=no-project-wide-starting-backup-is-recovery-source
+candidate_raw_sha256=6397a032ffef624dcb9104b5788d292cfb2774c078fd8c498dc0912b189e7373
+candidate_padded_sha256=825cfc4299a375efbf48b3f6b6e0bd1234b08f4610702f76cbe91138dd5392a2
+candidate_padded_size=16777216
+readback_sha256=825cfc4299a375efbf48b3f6b6e0bd1234b08f4610702f76cbe91138dd5392a2
+tee1_sha256=2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3
+tee2_sha256=2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3
+boot_id=dc479ada-a35a-4ede-8eab-6bc68f84aba4
+write_sync_flush=passed
+temporary_readback_removed=yes
+reboot=no
+shutdown=confirmed-unreachable
+raw_deployment_summary_sha256=4628aea4eeed265a8831630b878c255bb3a5be4e425ccf9b5177158d6966e834
+boot_candidate=true
+next_action=owner-physically-selects-boot2-once
+
+The exact independently validated pre-capture candidate replaced the
+live-GPT-resolved inactive boot2 predecessor. The guarded installer performed
+no retained-RAM write, wrote only boot2, synchronized and flushed the device,
+matched the full-partition readback, removed the temporary readback, and shut
+the Gemini down without rebooting it.
+
+The next boot tests only observer entry and acquisition of all three bound
+source devices. Record 1 alone selects per-source acquisition boundaries.
+Records 1 and 2 select localization inside the rejected capture path. Neither
+record selects an earlier observer/init boundary. No result from this candidate
+can claim a platform snapshot, protected call, provider transaction, CPU
+request, or CPU support.

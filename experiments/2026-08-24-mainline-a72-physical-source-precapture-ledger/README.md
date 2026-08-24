@@ -121,3 +121,11 @@ unique records, and decision branches are fixed in the
 [predeployment statement](results/predeployment-hypothesis-20260824.txt).
 The next action is a guarded live-GPT `boot2` deployment with full-partition
 readback followed by clean shutdown, never an automatic reboot.
+
+Deployment attempt 1 resolved inactive `boot2` from the live GPT, confirmed
+both owned records exact empty, wrote the exact padded candidate, synchronized
+and flushed it, matched the full-partition readback, and cleanly shut the
+Gemini down without reboot. See the
+[sanitized deployment receipt](results/deployment-1-write-readback-shutdown-20260824.txt).
+The next action is one physical `boot2` selection followed by changed-boot-ID
+Gemian recovery and extraction of records 1 and 2.

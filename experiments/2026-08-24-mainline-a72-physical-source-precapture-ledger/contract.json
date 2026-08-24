@@ -115,9 +115,22 @@
     "artifact_manifest_sha256": "e19e69b29752a01178f81ed97d86b7feb5a6f2031eb484b6929f481b03795f54",
     "device_action": false
   },
+  "deployment": {
+    "status": "verified-shutdown",
+    "attempts": 1,
+    "target_logical_name": "boot2",
+    "target_live_gpt": "/dev/mmcblk0p30",
+    "active_root": "/dev/mmcblk0p29",
+    "predecessor_sha256": "aa02ab666e63e7011139c1057bda99cdbab89245d41f9cad59dae30743b41246",
+    "readback_sha256": "825cfc4299a375efbf48b3f6b6e0bd1234b08f4610702f76cbe91138dd5392a2",
+    "prewrite_records": "exact-empty",
+    "fresh_backup": false,
+    "reboot": false,
+    "shutdown": "confirmed-unreachable"
+  },
   "decision": {
-    "result": "candidate-validated-deployment-pending",
-    "selected_next": "guardedly-install-boot2-and-shutdown",
+    "result": "deployment-verified-runtime-pending",
+    "selected_next": "one-physical-boot2-selection-and-record-recovery",
     "device_action": false,
     "boot_candidate": false
   }
