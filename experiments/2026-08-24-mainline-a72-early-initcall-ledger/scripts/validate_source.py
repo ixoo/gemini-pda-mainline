@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import re
 import zlib
 
 
@@ -66,6 +67,7 @@ def main() -> None:
             "three fixed record identities")
     require(records.count("token=GAEI-20260824-A") == 3,
             "three exact tokens")
+    normalized_records = re.sub(r'"\s*"', "", records)
     for checkpoint, outcome, slot, checksum in expected:
         line = (
             "GEMINI_A72_EARLY_INIT_V1 token=GAEI-20260824-A "
@@ -73,7 +75,7 @@ def main() -> None:
         )
         require(
             f"checkpoint={checkpoint} outcome={outcome} slot={slot} "
-            f"crc32={checksum}\\n" in records,
+            f"crc32={checksum}\\n" in normalized_records,
             f"record identity: {checkpoint}/{outcome}",
         )
         require(f"{zlib.crc32(line.encode()):08x}" == checksum,

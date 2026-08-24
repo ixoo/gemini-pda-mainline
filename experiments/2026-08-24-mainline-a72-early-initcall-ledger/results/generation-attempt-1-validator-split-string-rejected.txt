@@ -1,0 +1,13 @@
+experiment=2026-08-24-mainline-a72-early-initcall-ledger
+attempt=1
+repository_commit=6ef73766a2c6ab133f39cd6e4bcfcd6a8abea8f8
+backend=buildbox
+source_edits=applied
+source_validation=rejected
+reason=validator-required-refusal-marker-on-one-physical-source-line
+generated_patch=none
+package=none
+kernel_compile=not-run
+device_action=none
+hardware_action=none
+correction=normalize-adjacent-c-string-literals-in-validator-only

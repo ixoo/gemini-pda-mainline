@@ -48,6 +48,17 @@
       "fs/pstore/gemini_protected_readback_ledger.c",
       "drivers/soc/mediatek/mt6797-a72-physical-source-observer.c"
     ],
+    "attempts": [
+      {
+        "attempt": 1,
+        "repository_commit": "6ef73766a2c6ab133f39cd6e4bcfcd6a8abea8f8",
+        "result": "validator-split-string-rejected",
+        "receipt": "experiments/2026-08-24-mainline-a72-early-initcall-ledger/results/generation-attempt-1-validator-split-string-rejected.txt",
+        "receipt_sha256": "b1f964dc45e7a75be5c00d02cfce284a1ad2a1c65b9e33be1a62a81f1e5dc3d8",
+        "generated_patch": false,
+        "package": false
+      }
+    ],
     "canonical_admission": false
   },
   "decision": {

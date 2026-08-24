@@ -133,7 +133,7 @@ def main() -> None:
         "source_edits.py":
             "c52e399c3992ac874b7838dbe16d49892fcecfe5f6dbfed0bda70f6889c9b59b",
         "validate_source.py":
-            "2c1291bf0844119d1e75201fe2b891fa4922558cef503b5313ac300bc6118381",
+            "8c74b3ee4d3d849e66cdc47baf05decf21eaa55267c0d8b115d1f8f50ad1faf5",
         "validate_patch.py":
             "815aa775ba3c15f2014ec8fb0055233f8b85c2f925ccddd389e35021117b991e",
         "generate-on-buildbox":
@@ -154,10 +154,31 @@ def main() -> None:
                 "fs/pstore/gemini_protected_readback_ledger.c",
                 "drivers/soc/mediatek/mt6797-a72-physical-source-observer.c",
             ],
+            "attempts": [
+                {
+                    "attempt": 1,
+                    "repository_commit":
+                        "6ef73766a2c6ab133f39cd6e4bcfcd6a8abea8f8",
+                    "result": "validator-split-string-rejected",
+                    "receipt":
+                        "experiments/2026-08-24-mainline-a72-early-initcall-ledger/"
+                        "results/generation-attempt-1-validator-split-string-rejected.txt",
+                    "receipt_sha256":
+                        "b1f964dc45e7a75be5c00d02cfce284a1ad2a1c65b9e33be1a62a81f1e5dc3d8",
+                    "generated_patch": False,
+                    "package": False,
+                }
+            ],
             "canonical_admission": False,
         },
         "generation state",
     )
+    attempt = contract["generation"]["attempts"][0]
+    attempt_receipt = ROOT / attempt["receipt"]
+    require(attempt_receipt.is_file() and not attempt_receipt.is_symlink(),
+            "attempt-1 receipt")
+    require(sha256(attempt_receipt) == attempt["receipt_sha256"],
+            "attempt-1 receipt identity")
     require(
         contract["decision"]
         == {
