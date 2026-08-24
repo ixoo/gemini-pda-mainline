@@ -5120,8 +5120,15 @@ The next ordered work is:
    style review rejects one missing blank line. The isolated corrections are
    recorded. Attempt 3 passes every source, shape, replay, and strict style
    gate; fetched patch `0362` is admitted byte-for-byte with zero errors,
-   warnings, or checks. The isolated Buildbox profile compile is next. No
-   kernel build, candidate, or device action has occurred.
+   warnings, or checks. The isolated profile compiles on Buildbox from exact
+   signed commit `26274db6`; its fetched package checksums, deterministic
+   Android-v0 assembly, independent padding, and all 32 LK gates pass. The
+   exact padded candidate is `d2951ead...d609`. It performs no observer,
+   source, provider, clock, owner, publication, or CPU action. **Selected
+   next:** install it to live-GPT inactive `boot2`, require a matching full
+   16 MiB readback and clean shutdown, then pin the five-outcome recovery
+   classifier to that deployment boot ID before one physical `boot2`
+   selection.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

@@ -193,13 +193,51 @@ def main() -> None:
                 f"attempt-{attempt['attempt']} receipt")
         require(sha256(attempt_receipt) == attempt["receipt_sha256"],
                 f"attempt-{attempt['attempt']} receipt identity")
+    build = contract["build"]
+    require(build["status"] == "pass" and
+            build["repository_commit"]
+            == "26274db63316bbb24eeb9bfa8de21759da666b9e" and
+            build["backend"] == "buildbox" and
+            build["kernel_release"] == "7.1.3-gemini-a72-early" and
+            build["image_sha256"]
+            == "6a990065ed3be26bb1ec113a578baba68600733d00f46bff45783569a22bfce0" and
+            build["image_gzip_sha256"]
+            == "00992be8c2ccb222c42eecfd92c43b81305f12d756cc2e2a7fc533299e2ce293" and
+            build["dtb_sha256"]
+            == "fe67420ca4e2955a73a4a3f2e442af3534b621820cf77ae035be9bf98756425d" and
+            build["config_sha256"]
+            == "d951032cfaee8e05c5ff0c69e689a1384375d2ddce657481722451261ba332dd" and
+            build["sha256sums"] == "passed" and
+            build["native_vm_build"] is False,
+            "exact Buildbox result")
+    candidate = contract["candidate"]
+    require(candidate["status"] == "validated" and
+            candidate["raw_sha256"]
+            == "8bff90591b02f0c888e794c2abb28daf0768b754745f193b11b195f804f22789" and
+            candidate["raw_size"] == 6_909_952 and
+            candidate["padded_sha256"]
+            == "d2951eade3c08c889ecaeb1376f85262c44ad729048ddc3164c1db39acced609" and
+            candidate["padded_size"] == 16_777_216 and
+            candidate["lk_name"] == "gemini-a72early" and
+            candidate["lk_gates"] == "32-of-32" and
+            candidate["independent_validation"] is True and
+            candidate["device_access"] is False and
+            candidate["hardware_write"] is False,
+            "exact candidate result")
+    build_receipt = (
+        EXPERIMENT / "results/build-and-candidate-validation-20260824.txt"
+    )
+    require(build_receipt.is_file() and not build_receipt.is_symlink() and
+            sha256(build_receipt)
+            == "a3e6257a676901f5255f7df9d2f81db98291f0598483db47df9e17dc65c041bc",
+            "build and candidate receipt")
     require(
         contract["decision"]
         == {
-            "result": "canonical-patch-admitted",
-            "selected_next": "build-isolated-profile-on-buildbox",
+            "result": "exact-boot-candidate-validated",
+            "selected_next": "guarded-boot2-deployment-and-shutdown",
             "device_action": False,
-            "boot_candidate": False,
+            "boot_candidate": True,
         },
         "current decision",
     )
@@ -212,8 +250,10 @@ def main() -> None:
     print("allocations=0")
     print("source_lookups=0")
     print("cpu_requests=0")
+    print("buildbox_build=passed")
+    print("lk_gates=32-of-32")
     print("device_action=false")
-    print("boot_candidate=false")
+    print("boot_candidate=true")
     print("result=pass")
 
 

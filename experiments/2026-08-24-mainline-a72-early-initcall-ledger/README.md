@@ -2,12 +2,13 @@
 
 ## Status
 
-Canonical patch `0362` generated, validated, and admitted. The predecessor's exact
-`subsys-init` and `fs-init` records were both empty after an automatic return
-to changed-ID Gemian. The candidate is retired. This successor moves the
-primary records to pure and core initcall levels and adds one bounded fallback
-record that attributes a failed pure checkpoint when record 2 remains safely
-available.
+Canonical patch `0362` generated, validated, admitted, and built on Buildbox.
+The exact LK candidate is independently validated and awaits one guarded
+`boot2` deployment. The predecessor's exact `subsys-init` and `fs-init`
+records were both empty after an automatic return to changed-ID Gemian. That
+candidate is retired. This successor moves the primary records to pure and
+core initcall levels and adds one bounded fallback record that attributes a
+failed pure checkpoint when record 2 remains safely available.
 
 ## Hypothesis
 
@@ -73,5 +74,18 @@ Attempt 3 passes exact source validation, the exact three-file boundary,
 byte-identical replay, and strict checkpatch with zero errors, warnings, or
 checks. The fetched patch is admitted byte-for-byte as canonical `0362` with
 SHA-256 `65771c690b9c19833160d8547898b2f97b8b0149518092700eab3ef8b861a5a9`.
-The next action is one isolated profile build on Buildbox. No kernel build,
-candidate, device action, or CPU admission has occurred yet.
+
+Buildbox job
+`26274db63316bbb24eeb9bfa8de21759da666b9e-a72-early-initcall-ledger-m0`
+compiled exact release `7.1.3-gemini-a72-early` from clean signed repository
+commit `26274db63316bbb24eeb9bfa8de21759da666b9e`. Package checksums passed.
+The deterministic LK container uses the runtime-proven serviceability ramdisk
+and exact physical-source DTB, passes all 32 LK gates, and was independently
+reassembled and validated. Its raw SHA-256 is
+`8bff90591b02f0c888e794c2abb28daf0768b754745f193b11b195f804f22789`;
+the exact 16 MiB `boot2` image SHA-256 is
+`d2951eade3c08c889ecaeb1376f85262c44ad729048ddc3164c1db39acced609`.
+No device access, device write, or CPU admission occurred during build or
+candidate validation. The next action is the guarded live-GPT `boot2` install,
+full readback, and clean shutdown; recovery tooling will then be pinned to that
+deployment boot ID before the owner selects `boot2`.
