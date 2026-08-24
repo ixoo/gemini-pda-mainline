@@ -1,0 +1,17 @@
+repository_commit=8e9a0beb889649492452020873d911ec92fa4f68
+buildbox_job=8e9a0beb889649492452020873d911ec92fa4f68-a72-physical-source-stack-fix-patchgen
+parent_source_state=419101daee0a40c89b12669b94bcec87674fafaa18624a75d2a5c5473766ba72
+parent_source_integrity=c0380951cceda5a3a034cd7119ddf7f4b96f1d28c94655ad36f48aac7f4f6db9
+source_validation=pass
+direct_state_stack_objects=0
+kunit_heap_snapshots=2
+stop=patch-subject-validator
+cause=validator-required-unnumbered-subject-for-numbered-format-patch
+correction=accept-exact-numbered-and-folded-subject
+patch_replay=not-reached
+strict_checkpatch=not-reached
+generated_artifact=none
+production_changed=false
+hardware_operations=0
+device_action=none
+boot_candidate=false

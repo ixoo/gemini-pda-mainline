@@ -100,5 +100,8 @@ cases while clearing a roughly 32 KiB direct-state fixture allocated on the
 KUnit worker's kernel stack. The trace identifies the test `memset`; it does
 not implicate the production callback. A test-only `0355` follow-up is now
 pinned to the exact through-`0354` source and will allocate those two fixtures
-from KUnit-managed memory before the compile and all four cases are rerun.
-There is no boot candidate and no device action.
+from KUnit-managed memory before the compile and all four cases are rerun. Its
+first generation attempt validated the source change, then stopped on a local
+validator that expected `[PATCH]` rather than the generator's intentional
+numbered `[PATCH 1/1]` subject. That exact folded subject is now accepted for
+the retry. There is no boot candidate and no device action.

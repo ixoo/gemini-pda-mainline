@@ -31,8 +31,15 @@ def main() -> None:
     text = path.read_text(encoding="utf-8")
     touched = set(re.findall(r"^diff --git a/(.+?) b/", text, re.MULTILINE))
     require(touched == {EXPECTED_PATH}, "test-only path boundary")
-    require("Subject: [PATCH] soc: mediatek: move A72 physical-source KUnit"
-            in text, "exact patch subject")
+    require(
+        re.search(
+            r"^Subject: \[PATCH 1/1\] soc: mediatek: move A72 physical-source KUnit snapshots\n"
+            r" off stack$",
+            text,
+            re.MULTILINE,
+        ) is not None,
+        "exact numbered and folded patch subject",
+    )
     require("KUNIT_ASSERT_NOT_NULL(test, snapshot)" in text,
             "allocation failure gate present")
     require("Signed-off-by: Gemini Mainline Experiment" not in text,

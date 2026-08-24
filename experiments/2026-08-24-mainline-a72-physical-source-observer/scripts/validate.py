@@ -110,6 +110,7 @@ def main() -> None:
     }, "build contract")
     require(contract["stack_fix"] == {
         "status": "generation-pending",
+        "stopped_attempts": 1,
         "canonical_parent":
             "patches/v7.1.3/0354-soc-mediatek-test-A72-physical-source-observer.patch",
         "prepared_source_state":
@@ -294,6 +295,8 @@ def main() -> None:
             "stack source boundary")
     require("test-only path boundary" in stack_patch_validator,
             "stack patch boundary")
+    require("exact numbered and folded patch subject" in stack_patch_validator,
+            "stack patch subject boundary")
     for command in (
         "generate-a72-physical-source-stack-fix",
         "fetch-a72-physical-source-stack-fix",
@@ -324,6 +327,16 @@ def main() -> None:
         "boot_candidate=false",
     ):
         require(token in qemu_failure, f"QEMU failure receipt token: {token}")
+    stack_attempt = (
+        EXPERIMENT / "results/stack-fix-generation-attempt-1-subject-validator.txt"
+    ).read_text()
+    for token in (
+        "source_validation=pass",
+        "stop=patch-subject-validator",
+        "generated_artifact=none",
+        "boot_candidate=false",
+    ):
+        require(token in stack_attempt, f"stack attempt receipt token: {token}")
     print("validation=a72-physical-source-admission")
     print("prepared_source=exact-through-0349")
     print("generated_patch_count=5")
