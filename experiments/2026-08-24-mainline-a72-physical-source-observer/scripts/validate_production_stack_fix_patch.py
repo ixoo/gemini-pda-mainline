@@ -31,12 +31,11 @@ def main() -> None:
     require(touched == {EXPECTED_PATH}, "one production observer path")
     require(
         re.search(
-            r"^Subject: \[PATCH 1/1\] soc: mediatek: move A72 physical-source result off\n"
-            r" stack$",
+            r"^Subject: \[PATCH 1/1\] soc: mediatek: move A72 physical-source result off stack$",
             text,
             re.MULTILINE,
         ) is not None,
-        "exact numbered and folded patch subject",
+        "exact numbered patch subject",
     )
     require("snapshot = kvzalloc(sizeof(*snapshot), GFP_KERNEL);" in text,
             "allocation present")

@@ -374,6 +374,8 @@ def main() -> None:
             "production stack source boundary")
     require("one production observer path" in production_stack_patch_validator,
             "production stack patch boundary")
+    require("exact numbered patch subject" in production_stack_patch_validator,
+            "production stack exact subject boundary")
     for command in (
         "generate-a72-physical-source-production-stack-fix",
         "fetch-a72-physical-source-production-stack-fix",
@@ -440,6 +442,19 @@ def main() -> None:
         "boot_candidate=false",
     ):
         require(token in qemu_pass, f"QEMU pass receipt token: {token}")
+    production_stack_attempt = (
+        EXPERIMENT
+        / "results/production-stack-fix-generation-attempt-1-subject-validator.txt"
+    ).read_text()
+    for token in (
+        "source_validation=pass",
+        "stop=patch-subject-validator",
+        "source_change=unchanged-for-retry",
+        "generated_artifact=none",
+        "boot_candidate=false",
+    ):
+        require(token in production_stack_attempt,
+                f"production stack attempt token: {token}")
     readme = (EXPERIMENT / "README.md").read_text()
     require("candidate admission paused for production stack repair" in readme,
             "candidate pause status")

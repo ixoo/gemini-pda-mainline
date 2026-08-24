@@ -1,0 +1,15 @@
+repository_commit=b13701dda95f2585eb967db85992f314e6f26ca0
+buildbox_job=b13701dda95f2585eb967db85992f314e6f26ca0-a72-physical-source-production-stack-fix-patchgen
+parent_source_state=3f1b291eaa793e8f5275bc3091fc2146312e1aeb65a81a5721f33805609cdc2c
+parent_source_integrity=55cbc60b8a4670d88cff2eedb55f4af2b72e0fb9e960660e7360f747b60269d8
+source_validation=pass
+production_direct_state_stack_objects=0
+production_result_allocations=1
+production_result_frees=1
+stop=patch-subject-validator
+cause=validator-expected-folded-subject-format-patch-emitted-exact-one-line-subject
+source_change=unchanged-for-retry
+generated_artifact=none
+hardware_operations=0
+device_action=none
+boot_candidate=false

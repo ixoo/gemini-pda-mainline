@@ -125,4 +125,8 @@ result on its kernel stack. The candidate is therefore paused while a pinned
 one-file follow-up moves that result to a fail-closed `kvzalloc`/`kvfree`
 allocation, after which the exact Buildbox compile and all four no-network
 QEMU cases must pass again. There has still been no device action or boot
-candidate in this experiment.
+candidate in this experiment. The first production-repair generation attempt
+validated the edited source and then stopped before artifact creation because
+the patch validator expected Git to fold the exact subject while `format-patch`
+kept it on one line. The retry accepts only that exact numbered one-line
+subject; the source edit is unchanged.
