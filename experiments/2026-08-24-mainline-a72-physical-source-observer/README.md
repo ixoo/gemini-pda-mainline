@@ -192,3 +192,17 @@ was made. Gemian was shut down cleanly and is confirmed unreachable. Following
 the already-proven stale-record workflow, the next action is one ordinary cold
 Gemian start to normalize those records without `/dev/mem`, then the same
 guarded installer may be retried.
+
+That ordinary cold Gemian start changed the boot ID and normalized both record
+headers to exact empty state. Guarded deployment attempt 2 then resolved
+inactive, unmounted live-GPT `boot2` as `/dev/mmcblk0p30` while Gemian ran from
+`/dev/mmcblk0p29`, passed the stable-power and TEE identity gates, and replaced
+predecessor `3892e776c183027851d73bec8bf938732c43ddad030a80ddee42240537ba35f6`.
+After write, sync, and flush, both the local and independently streamed full
+partition reads matched padded candidate
+`aa02ab666e63e7011139c1057bda99cdbab89245d41f9cad59dae30743b41246`.
+No fresh predecessor backup or retained-RAM write occurred. The device was shut
+down without reboot and is confirmed unreachable. The exact sanitized
+[deployment receipt](results/deployment-2-write-readback-shutdown-20260824.txt)
+is now the handoff: physically select `boot2` once, then collect records 1 and 2
+plus the complete physical-source summary before interpreting the result.

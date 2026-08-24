@@ -202,21 +202,45 @@
     "independent_validator_sha256": "dac54074b9997e7d27f35f422ad25763561192f806c7695231c3d8170b2f6b59"
   },
   "deployment": {
-    "attempts": 1,
-    "status": "safe-refusal-stale-retained-records",
-    "record_1_header": "444247437900000079000000",
-    "record_2_header": "444247437800000078000000",
-    "attribution": "matches-prior-protected-clock-record-headers-and-prefix",
-    "partition_writer_invoked": false,
-    "device_partition_writes": false,
-    "device_memory_writes": false,
-    "shutdown_confirmed": true,
-    "selected_next": "cold-start-ordinary-gemian-then-repeat-guarded-install"
+    "attempts": 2,
+    "status": "verified-write-readback-shutdown",
+    "attempt_1": {
+      "status": "safe-refusal-stale-retained-records",
+      "record_1_header": "444247437900000079000000",
+      "record_2_header": "444247437800000078000000",
+      "attribution": "matches-prior-protected-clock-record-headers-and-prefix",
+      "partition_writer_invoked": false,
+      "device_partition_writes": false,
+      "device_memory_writes": false,
+      "shutdown_confirmed": true
+    },
+    "attempt_2": {
+      "status": "write-synced-flushed-full-readback-verified",
+      "boot_id": "4394d639-14de-4cec-b982-55bd13663654",
+      "record_1_header": "444247430000000000000000",
+      "record_2_header": "444247430000000000000000",
+      "records_prewrite": "exact-empty",
+      "retained_ram_write": false,
+      "target_logical_name": "boot2",
+      "target": "/dev/mmcblk0p30",
+      "active_root": "/dev/mmcblk0p29",
+      "predecessor_sha256": "3892e776c183027851d73bec8bf938732c43ddad030a80ddee42240537ba35f6",
+      "fresh_predecessor_backup": false,
+      "candidate_sha256": "aa02ab666e63e7011139c1057bda99cdbab89245d41f9cad59dae30743b41246",
+      "readback_sha256": "aa02ab666e63e7011139c1057bda99cdbab89245d41f9cad59dae30743b41246",
+      "independent_streamed_readback_sha256": "aa02ab666e63e7011139c1057bda99cdbab89245d41f9cad59dae30743b41246",
+      "tee1_sha256": "2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3",
+      "tee2_sha256": "2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3",
+      "shutdown_confirmed": true,
+      "reboot": false,
+      "evidence_sha256": "174b1894f1c4c0617c17e49b6eaa2f1ae5dd6c3c8aefeb56e22db04bf91f1399"
+    },
+    "selected_next": "owner-physically-selects-boot2-once"
   },
   "decision": {
-    "result": "deployment-safely-refused-stale-retained-records",
-    "selected_next": "cold-start-ordinary-gemian-then-repeat-guarded-install",
-    "device_action": false,
+    "result": "candidate-deployed-readback-verified-device-shutdown",
+    "selected_next": "owner-physically-selects-boot2-once",
+    "device_action": true,
     "boot_candidate": true
   }
 }

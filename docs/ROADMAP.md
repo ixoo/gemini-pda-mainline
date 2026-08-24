@@ -5006,14 +5006,22 @@ The next ordered work is:
    all four gates pass. Exact Buildbox commit `f3bf03f4c2515e9c1ac5049c6544c618aaeb8af1`
    and the independent Android-v0 validator now pass those gates and select
    candidate `1d0c1420ca2a1ea7c88d22ffeda44c2fa14d238ebceeb73ce7d56133bac4f005`.
-   **Selected next:** deploy that exact candidate once to live-resolved `boot2`,
-   verify the full-partition readback, and shut the device down for owner slot
-   selection.
+   Guarded deployment of that exact candidate is complete. After an ordinary
+   cold Gemian start normalized retained records 1 and 2, live GPT resolved
+   inactive, unmounted `boot2` as p30 while Gemian ran from p29. The write,
+   sync, flush, local full-partition readback, independently streamed readback,
+   and clean shutdown all passed for padded candidate `aa02ab666e63…`. No fresh
+   predecessor backup or retained-RAM write occurred. The
+   [deployment receipt](../experiments/2026-08-24-mainline-a72-physical-source-observer/results/deployment-2-write-readback-shutdown-20260824.txt)
+   owns the exact identities.
+   **Selected next:** physically select `boot2` once, then collect the two exact
+   retained checkpoints and complete physical-source summary before choosing a
+   CPU8 action.
    Deployment preflight attempt 1 safely refused before the `boot2` gate because
    records 1 and 2 still matched the prior protected-clock headers and payload
-   prefix. No partition or device-memory write occurred. Gemian is cleanly shut
-   down; cold-start ordinary Gemian once to normalize retained RAM, then repeat
-   the same guarded installation.
+   prefix. No partition or device-memory write occurred. Gemian was cleanly shut
+   down; the subsequent cold start normalized retained RAM, and deployment
+   attempt 2 completed as recorded above.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

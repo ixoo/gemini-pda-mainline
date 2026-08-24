@@ -1,0 +1,47 @@
+experiment=2026-08-24-mainline-a72-physical-source-observer
+attempt=2
+date=2026-08-24
+result=write-synced-flushed-full-readback-verified
+target_logical_name=boot2
+target_live_gpt=/dev/mmcblk0p30
+active_root=/dev/mmcblk0p29
+target_inactive=true
+target_unmounted=true
+target_writable=true
+power_gate=passed
+prewrite_record_1_header=444247430000000000000000
+prewrite_record_2_header=444247430000000000000000
+prewrite_records_1_2=exact-empty
+retained_ram_write=none
+predecessor_sha256=3892e776c183027851d73bec8bf938732c43ddad030a80ddee42240537ba35f6
+fresh_predecessor_backup=no-project-wide-starting-backup-is-recovery-source
+candidate_raw_sha256=1d0c1420ca2a1ea7c88d22ffeda44c2fa14d238ebceeb73ce7d56133bac4f005
+candidate_padded_sha256=aa02ab666e63e7011139c1057bda99cdbab89245d41f9cad59dae30743b41246
+candidate_padded_size=16777216
+readback_sha256=aa02ab666e63e7011139c1057bda99cdbab89245d41f9cad59dae30743b41246
+independent_streamed_readback_sha256=aa02ab666e63e7011139c1057bda99cdbab89245d41f9cad59dae30743b41246
+tee1_sha256=2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3
+tee2_sha256=2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3
+boot_id=4394d639-14de-4cec-b982-55bd13663654
+write_sync_flush=passed
+temporary_readback_removed=yes
+reboot=no
+shutdown=confirmed-unreachable
+raw_deployment_summary_sha256=174b1894f1c4c0617c17e49b6eaa2f1ae5dd6c3c8aefeb56e22db04bf91f1399
+boot_candidate=true
+next_action=owner-physically-selects-boot2-once
+
+The exact independently validated physical-source candidate replaced the
+live-GPT-resolved inactive boot2 predecessor. The guarded installer performed
+no retained-RAM write, wrote only boot2, synchronized and flushed the device,
+matched both the local full-partition readback and an independently streamed
+full-partition readback, removed the temporary readback, and shut the Gemini
+down without rebooting it.
+
+The next boot has one decision-bearing hypothesis. The enabled observer should
+capture platform, read-only DA921x, protected-clock, retained record 1, one
+BigiDVFS read, and retained record 2 in that order, then emit one complete
+GEMINI_A72_PHYSICAL_SOURCE_V1 summary. Records 1 and 2 plus the complete summary
+advance the physical-source qualification. Record 1 alone localizes failure at
+the BigiDVFS/second-commit boundary. Neither record localizes failure earlier.
+Records without the complete summary reject the composite snapshot.
