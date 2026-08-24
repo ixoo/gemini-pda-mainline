@@ -28,6 +28,13 @@ def main() -> None:
         "#ifdef CONFIG_ARM64_MT6797_A72_A34_ELIGIBILITY_EVALUATOR", start
     )
     direct = membership[start:end]
+    snapshot_start = direct.index(
+        "mt6797_a72_direct_state_snapshot_locked("
+    )
+    snapshot_end = direct.index(
+        "\nint\nmt6797_a72_direct_state_snapshot(", snapshot_start
+    )
+    snapshot_body = direct[snapshot_start:snapshot_end]
 
     for token in (
         "static const struct mt6797_a72_owner_snapshot "
@@ -47,8 +54,6 @@ def main() -> None:
             "workspace entry and exit scrub")
     for forbidden in (
         "const struct mt6797_a72_owner_snapshot expected =",
-        "struct mt6797_a72_direct_state_snapshot observed =",
-        "struct mt6797_a72_owner_snapshot owner_after;",
         "mt6797_a72_provider_snapshot(",
         "mt6797_a72_platform_state_snapshot(",
         "mt6797_dvfsp_clock_backend_read(",
@@ -56,6 +61,12 @@ def main() -> None:
         "arm_smccc_smc(", "readl(", "writel(", "cpu_up(", "cpu_down(",
     ):
         require(forbidden not in direct, f"core forbidden token {forbidden}")
+    for forbidden in (
+        "struct mt6797_a72_direct_state_snapshot observed =",
+        "struct mt6797_a72_owner_snapshot owner_after;",
+    ):
+        require(forbidden not in snapshot_body,
+                f"core function stack token {forbidden}")
 
     if args.phase == "tests":
         test = (

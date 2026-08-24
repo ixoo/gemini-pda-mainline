@@ -128,6 +128,12 @@ right-hand operand in the prepared-source integrity gate. Keeping that guarded
 comparison on one line corrects the generator syntax without changing the
 kernel edits or their pinned parent.
 
+Submission `93e7e006` then reached the edited core source and its semantic
+validator, which mistook the intended `owner_after` member of the static
+workspace type for the removed function-local record. The large-record
+prohibition now scopes that token to the compositor function body; global
+effect prohibitions remain scoped to the whole compositor section.
+
 ## Analysis
 
 The split keeps the outer ownership proof independent from physical reader
