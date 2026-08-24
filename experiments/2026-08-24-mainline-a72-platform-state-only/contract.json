@@ -58,7 +58,7 @@
     "dt_builder_sha256": "b9687654d61b22139ad3145ad27d642a1f351b59c06a4946d76f3a32f297b91e",
     "candidate_builder_sha256": "a3f15ca3a29d41ceafde524ff7beff671c9587cb24fd383fb6473985b3b55b9d",
     "candidate_validator_sha256": "67c38b09c69760ed9c3d31aed596a68491410a522965cac23208163d323ec116",
-    "installer_sha256": "ae2baf3416f1b0242fd22be7f30c8ff73859be6596ac1304f77a517ca843e1ad",
+    "installer_sha256": "63d68dd576d7aaf7526f6ddaca9f28ae662d5dc48b4636ce57167c6c446a4918",
     "collector_sha256": "e3ab9abd24e536513b0eaa12f1065d133183574757d2f5ad5b17e9b5f03daad6",
     "remote_probe_sha256": "c1d206cbdea16ca0f6ba68b429618bf0004a4beb50f586164e95f13e6a0980ca",
     "runtime_validator_sha256": "73e43ae3e4ec1df35f59b88caabaf17ab4b2f54ba1b5cfc51a7cff982a4d060d",
@@ -66,6 +66,21 @@
     "runtime_accepted_branches": 2,
     "runtime_rejected_mutations": 7
   },
-  "deployment": {"status": "pending"},
+  "deployment": {
+    "status": "pending",
+    "preflight_attempts": 1,
+    "attempt_1": {
+      "status": "safe-refusal-before-partition-writer",
+      "boot_id": "ea90f911-32aa-4437-a424-77da985a1ebd",
+      "record_1_header": "444247437800000078000000",
+      "record_1_sha256": "dd39c08c5de7d9cde7ccf9f62707521475ce1ff35b3833f06443939bcff79e06",
+      "record_2_header": "444247437800000078000000",
+      "record_2_sha256": "ad7909f9294e69f1efc13354c997b864a40c89a5c9f1cef9a445aa4f9f58b239",
+      "attribution": "exact-stage27-control-pair",
+      "device_partition_reads": false,
+      "device_partition_writes": false,
+      "retained_ram_writes": false
+    }
+  },
   "runtime": {"status": "pending"}
 }

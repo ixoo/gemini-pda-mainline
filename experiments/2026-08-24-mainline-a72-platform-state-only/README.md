@@ -3,7 +3,9 @@
 ## Status
 
 Exact DT-only candidate reconstructed twice, independently validated, and
-accepted as the next boot candidate. Device deployment is pending.
+accepted as the next boot candidate. The first deployment preflight safely
+stopped before the partition writer because the preceding successful control
+left its two exact retained records; guarded device deployment remains pending.
 
 ## Hypothesis
 
@@ -58,15 +60,22 @@ guarded `boot2` deployment workflow.
 CPU8 and CPU9 remain closed by `maxcpus=8`. One physical selection is allowed;
 do not repeat the exact payload without a new observation path.
 
+This experiment is attributed by exact live USB/netcat identity, not by the
+early-initcall records: its kernel writes the same record pair as the successful
+Stage-27 control. The installer therefore accepts only either two byte-exact
+empty 4 KiB records or the byte-exact known Stage-27 `pure-init`/`core-init`
+pair. Any other retained content still aborts before partition inspection or
+writing. No retained-memory write or clear is performed.
+
 ## Associated code
 
 - `scripts/build-platform-only-dtb.sh`: two-derivation exact DT transformer.
 - `scripts/build-candidate.sh`: source-pinned Android-v0 builder.
 - `scripts/validate-candidate.sh`: independent package, DT, layout, and
   mutation validator.
-- `scripts/install-boot2.sh`: source-pinned guarded `boot2` installer; it
-  records the predecessor identity, verifies full-partition readback, and
-  shuts down after success.
+- `scripts/install-boot2.sh`: source-pinned guarded `boot2` installer with the
+  exact retained-pair attribution gate; it records the predecessor identity,
+  verifies full-partition readback, and shuts down after success.
 - `scripts/remote-live-probe.sh`: bounded read-only netcat probe of exact live
   identity and provider isolation.
 - `scripts/validate-runtime.py`: accepts serviceable bound and unbound provider

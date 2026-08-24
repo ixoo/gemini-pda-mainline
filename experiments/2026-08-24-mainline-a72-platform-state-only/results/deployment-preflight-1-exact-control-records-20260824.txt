@@ -1,0 +1,23 @@
+A72 platform-state source only: deployment preflight attempt 1
+Date: 2026-08-24 America/New_York
+
+experiment=2026-08-24-mainline-a72-platform-state-only
+candidate_sha256=012f7eac6884e65baab075ef286929f610a63f2ea065eba45865bd046492a23f
+candidate_validated=true
+device_os=Gemian-3.18.41+
+boot_id=ea90f911-32aa-4437-a424-77da985a1ebd
+record_1_header=444247437800000078000000
+record_1_sha256=dd39c08c5de7d9cde7ccf9f62707521475ce1ff35b3833f06443939bcff79e06
+record_2_header=444247437800000078000000
+record_2_sha256=ad7909f9294e69f1efc13354c997b864a40c89a5c9f1cef9a445aa4f9f58b239
+record_attribution=exact-stage27-control-pure-and-core-pair
+initial_installer_result=safe-refusal-before-partition-writer
+partition_writer_invoked=false
+device_partition_reads=none
+device_partition_writes=none
+device_memory_writes=none
+retained_ram_writes=none
+shutdown=none
+remediation=accept-only-exact-empty-or-exact-stage27-control-pair
+remediated_preflight=pass
+result=safe-refusal-and-bounded-attribution-repair
