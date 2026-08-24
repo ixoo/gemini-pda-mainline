@@ -19,7 +19,7 @@ a static secure-entry proof does not attest current physical state.
 | --- | --- | --- | --- |
 | Replay applicability | No production initializer, storage owner, invalidator, or caller exists. The publisher borrows a caller record for one call. | Validated under the outer CPU-hotplug/A72 transition ownership, but the caller owns its bytes. | Null/malformed is `-EINVAL`/`-EPROTO`; unknown is `-ENODATA`; non-applicable/nonzero is `-EPERM`. Positive production input is absent. |
 | Direct-source registry | Static null at boot; one exact callback/context may register; exact-pair unregister clears it. | Registry mutex is held through the callback, preventing concurrent teardown. | Missing is `-ENODEV`; duplicate is `-EBUSY`; malformed output is `-EPROTO`. Production registration is absent. |
-| DA921x provider snapshot | Registers after successful I2C/provider probe; `devm_add_action_or_reset()` unregisters before device storage is released. | A72 provider registry, endpoint mutex, root-adapter lock; retries forced to zero; two complete samples. | Output starts zero; read error or instability returns error without publication. Raw transport is qualified, but no direct adapter calls it. |
+| DA921x provider snapshot | Registers after successful I2C/provider probe; `devm_add_action_or_reset()` unregisters before device storage is released. The callback and helper currently exist only under the positive writable provider Kconfig option. | A72 provider registry, endpoint mutex, root-adapter lock; retries forced to zero; two complete samples. | Output starts zero; read error or instability returns error without publication. A read-only profile cannot select the callback without compiling the Buck-B writer, so source separation is required before physical composition. |
 | A72 platform state | Device-managed after SPM/reset/MMIO probe; invalid when the platform device is unbound. Base node is disabled. | Source mutex across two complete samples; outer A72 transition lock must serialize PSCI. | Read error, CCI busy, or movement rejects; output remains zero. No current-mainline named-device composed sample exists. |
 | Protected clock/CSPM | Device-managed after MCUMIXED, handoff, and clock probe; generation starts at zero and advances per successful boot-local read. Base node is disabled. | Backend operation mutex, handoff execution/transfer ownership, clock enable, local IRQ exclusion, semaphore spinlock. | Output starts zero; an attempted protected error is sticky. The call performs bounded coordination writes. One named-device read is qualified, but its 17 nonzero raw words contradict A34's zero vector. |
 | BigiDVFS | Device-managed after exact `method = "smc"` probe; generation starts at zero and advances per successful boot-local read. Base node is disabled. | Backend operation mutex across two complete four-call samples. | Output starts zero; instability is `-EAGAIN`; other transport errors become sticky. Named-firmware ABI is confirmed; named-device mainline runtime is unqualified. |
@@ -98,17 +98,19 @@ The next experiment is a new, separately reviewed physical-source
 qualification contract, not an implementation authorization from this audit.
 Its offline design must require:
 
-1. a default-off diagnostic adapter with no production publisher caller;
-2. the exact outer and component lock order above;
-3. device-lifetime source registration only after every dependency is bound,
+1. a hardware-free first slice that separates the stable DA921x snapshot from
+   the writable positive-provider option and proves the writer stays absent;
+2. a later default-off diagnostic adapter with no production publisher caller;
+3. the exact outer and component lock order above;
+4. device-lifetime source registration only after every dependency is bound,
    and unregister-before-release cleanup;
-4. one complete staged snapshot, with zero retries at the compositor level;
-5. durable attribution immediately before and after the first named-device
+5. one complete staged snapshot, with zero retries at the compositor level;
+6. durable attribution immediately before and after the first named-device
    BigiDVFS call, while distinguishing platform, DA921x, and clock returns;
-6. exact raw output for every field, ABI, generation, and return code;
-7. no A34 evaluation, P30 claim, owner publication, provider acquire/release,
+7. exact raw output for every field, ABI, generation, and return code;
+8. no A34 evaluation, P30 claim, owner publication, provider acquire/release,
    CPU_ON, CPU_OFF, or CPU8/CPU9 request; and
-8. a predeclared stop on mismatch, timeout, sticky fault, or incomplete
+9. a predeclared stop on mismatch, timeout, sticky fault, or incomplete
    attribution.
 
 Only after that contract passes offline review may its own experiment admit a

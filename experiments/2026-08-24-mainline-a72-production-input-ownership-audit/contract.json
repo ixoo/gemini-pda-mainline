@@ -40,6 +40,11 @@
     "bootstrap_publisher_production_call_sites": 0,
     "positive_replay_production_producers": 0
   },
+  "provider_snapshot": {
+    "callback_config": "REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION",
+    "writable_transaction_compiled_with_callback": true,
+    "read_only_profile_available": false
+  },
   "exact_vector": {
     "comparison": "full-record-memcmp",
     "expected_clock_raw_words_zero": 18,
@@ -50,7 +55,7 @@
   "decision": {
     "overall": "rejected-current-production-inputs",
     "replay": "blocked-no-current-boot-primary-bl31-applicability-owner",
-    "physical": "blocked-no-production-adapter-a34-clock-vector-mismatch-and-unqualified-physical-fields",
+    "physical": "blocked-no-production-adapter-readonly-provider-snapshot-a34-clock-vector-mismatch-and-unqualified-physical-fields",
     "publication": "stopped",
     "selected_next": "offline-staged-physical-source-qualification-contract",
     "build": false,

@@ -4948,15 +4948,24 @@ The next ordered work is:
    exact data blocker: A34's static zero protected-clock vector contradicts
    the already qualified named-device record. BigiDVFS's named-firmware ABI is
    confirmed, but its named-device mainline runtime and the composed platform
-   record remain unqualified. The linked audit owns the exact field counts,
-   producer lifetimes, complete lock order, zero-on-failure behavior, and
-   rejected replay substitutes; it performed no build, hardware action,
-   device boot, or CPU request.
-   **Selected next:** freeze a separate staged physical-source qualification
-   contract. It must retain the owner lock order, attribute platform, DA921x,
-   protected-clock, and the first named-device BigiDVFS return, and add no A34
-   publication, replay inference, provider action, or CPU request. Only that
-   separate experiment may review a Buildbox build and one physical attempt.
+   record remain unqualified. Follow-up source review also finds that the
+   stable DA921x snapshot is compiled only with the positive writable provider
+   option. The linked audit owns the exact field counts, producer lifetimes,
+   complete lock order, zero-on-failure behavior, and rejected replay
+   substitutes; it performed no build, hardware action, device boot, or CPU
+   request.
+   The separate
+   [physical-source qualification contract](../experiments/2026-08-24-mainline-a72-physical-source-qualification-contract/README.md)
+   now freezes two phases. The first separates the DA921x read-only snapshot
+   from the writable transaction and proves the writer remains absent. Only
+   after that source proof may a candidate-only direct observer compose
+   platform, DA921x, clock, and BigiDVFS under the existing outer owner with
+   two retained checkpoints around the first attributable BigiDVFS call. The
+   contract itself performed no build or device action.
+   **Selected next:** implement and prove the hardware-free DA921x read-only
+   snapshot separation on Buildbox with the positive writable provider option
+   off. Add no physical adapter, boot candidate, device action, provider
+   acquire/release, A34/P30/publication, or CPU request.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

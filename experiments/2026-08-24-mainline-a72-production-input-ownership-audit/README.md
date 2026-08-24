@@ -115,7 +115,11 @@ them:
 
 - the DA921x callback is registered with the provider owner after successful
   I2C probe and removed by a managed device action; its provider-registry,
-  endpoint, and root-adapter locks cover two stable read samples;
+  endpoint, and root-adapter locks cover two stable read samples. However,
+  the callback and read-only helper are compiled only when the writable
+  `REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION` option is enabled;
+  no read-only profile can currently consume it without also compiling the
+  Buck-B writer;
 - the platform-state source is device-managed and takes two stable read-only
   samples under its mutex, but its base DT node is disabled and it has no
   direct-source adapter;
@@ -157,9 +161,10 @@ The positive hypothesis is rejected on both independent branches.
 Replay publication is blocked architecturally: a typed positive exists, but
 no current-boot owner can assert it. Binding physical readers cannot repair
 that gap. Conversely, replay authority would not make the physical input
-valid: the direct adapter is absent, two component sources still need exact
-named-device qualification in the composed path, and the current comparator
-already rejects the qualified clock payload.
+valid: the direct adapter is absent, the DA921x snapshot is coupled to a
+writable provider option, two component sources still need exact named-device
+qualification in the composed path, and the current comparator already
+rejects the qualified clock payload.
 
 The atomic publication mechanics remain useful. They correctly hold the CPU
 hotplug read lock and A72 transition mutex across direct capture, then use the
@@ -183,7 +188,7 @@ direct-state producer.
 `replay-block`: `blocked-no-current-boot-primary-bl31-applicability-owner`.
 
 `physical-block`:
-`blocked-no-production-adapter-a34-clock-vector-mismatch-and-unqualified-physical-fields`.
+`blocked-no-production-adapter-readonly-provider-snapshot-a34-clock-vector-mismatch-and-unqualified-physical-fields`.
 
 There is no production publisher caller, physical binding, A34 vector
 revision, build, boot candidate, device attempt, or CPU request admitted by

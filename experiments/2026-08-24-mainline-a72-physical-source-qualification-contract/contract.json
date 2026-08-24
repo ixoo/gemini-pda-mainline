@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-24-mainline-a72-physical-source-qualification-contract",
+  "repository_commit": "3d7eae1f33cfb8d8837df68ed6317e85c5cbfdba",
+  "canonical_tail": "patches/v7.1.3/0347-arm64-test-atomic-A72-bootstrap-publication.patch",
+  "prepared_source_state": "ac57421ae45c6e55ba34f2cac4131647e89762ad5988baf1b47364c2c75e77cb",
+  "prepared_source_integrity": "d87fe0d866aec4825c2e2c2bf5f1df628299692e5bad63e581b07c64d0f3c22d",
+  "source_files": {
+    "arch/arm64/kernel/mt6797_a72_membership.c": "376ba674e7d9afc7be8bb89fef51bf0b3515704f43389d7075f631737edef980",
+    "drivers/regulator/da9213-legacy-regulator.c": "77faf36fa817ad9b76cb629dab99a70d78880455c23b075303bd30579c97c587",
+    "drivers/regulator/Kconfig": "48f8d3705d719b49f4eb0b608217f17af4141b56c8e370f14584d794f55970bf",
+    "drivers/soc/mediatek/mt6797-a72-platform-state.c": "214ae21bf98e7d47e8ec8c24d0c542ebb27e3ba110694f81e04482ff78b108b6",
+    "drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c": "e002e420b7dfbdf147db9b46109b474ba26e2dad496ce88d96e240561f203866",
+    "drivers/soc/mediatek/mt6797-bigidvfs-backend.c": "454c4bf3d3d049d0586a86784d0a101067005863b1e18190f9d0ddaf5be8932d",
+    "drivers/soc/mediatek/mt6797-protected-readback-observer.c": "07b7e397e7f4a75b6d8ecdb4b09159080859b3351873f0327308f53e3b240a94",
+    "fs/pstore/gemini_protected_readback_ledger.c": "8bdba6319719c2d083fcfd4e60e2b78d5251b436d4959241bad88396878b024d"
+  },
+  "prior_evidence": {
+    "production_input_audit": {
+      "path": "experiments/2026-08-24-mainline-a72-production-input-ownership-audit/results/source-ownership-audit-20260824.txt",
+      "sha256": "1a5979a962c2d377e472435366e8706b49f47d8f2790c7a9a197671b6a8a55a2"
+    },
+    "direct_compositor_design": {
+      "path": "experiments/2026-08-23-mainline-a72-direct-state-compositor-audit/DESIGN.md",
+      "sha256": "6805fa594be660d8cf0ff6fabf4197a9273a38a6706ed4e26810fd08751f3268"
+    },
+    "protected_clock_runtime": {
+      "path": "experiments/2026-08-23-mainline-protected-clock-first-dmesg-call/results/runtime-attempt-1-pass-20260823.txt",
+      "sha256": "07f149dcf5bcc5d77deaf0cf1df7ab499d708797cf5e93fe49f0b38f50e5f1b4"
+    },
+    "bigidvfs_firmware_audit": {
+      "path": "experiments/2026-08-21-mainline-protected-readback-firmware-audit/results/audit-20260821.txt",
+      "sha256": "8e18f38d406c80f25456aa5d7530111db20cea04c55da2ca7a08a22e5e004d38"
+    }
+  },
+  "current_block": {
+    "provider_snapshot_callback_guard": "REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION",
+    "positive_option_compiles_buckb_writer": true,
+    "read_only_provider_snapshot_available": false,
+    "current_protected_observer_holds_a72_owner": false
+  },
+  "phase_a": {
+    "selected": true,
+    "hardware_free": true,
+    "provider_snapshot_always_with_provider_owner": true,
+    "positive_provider_transaction": false,
+    "physical_i2c": false,
+    "build_backend": "buildbox",
+    "boot_candidate": false,
+    "device_action": false
+  },
+  "phase_b_design": {
+    "selected_after_phase_a": true,
+    "source_registration": "temporary-candidate-only",
+    "public_direct_snapshot_calls": 1,
+    "component_order": ["platform", "da921x", "clock", "bigidvfs"],
+    "retained_token": "GPSQ-20260824-A",
+    "retained_slots": [1, 2],
+    "retained_checkpoints": ["before-bigidvfs", "after-bigidvfs"],
+    "maximum_retained_writes": 2,
+    "clock_calls": 1,
+    "bigidvfs_backend_calls": 1,
+    "bigidvfs_smc_reads": 8,
+    "compositor_retries": 0,
+    "publisher_calls": 0,
+    "cpu_requests": 0
+  },
+  "decision": {
+    "result": "confirmed-two-phase-contract",
+    "selected_next": "hardware-free-da921x-readonly-snapshot-separation",
+    "build": false,
+    "boot_candidate": false,
+    "device_action": false,
+    "hardware_operation": false,
+    "cpu_request": false
+  }
+}

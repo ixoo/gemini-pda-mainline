@@ -4,7 +4,7 @@ R02	platform-reset-classifier	no-positive-Linux-transport	owned-positive-current
 R03	replay-record	caller-borrowed-typed-ABI	production-init-invalidate-owner	missing-block
 R04	replay-substitutes	TOPRGU-ram-console-LK-log-reboot-zero	independent-source-backed-authority	rejected
 P01	direct-source-registry	single-owner-lifetime-safe	production-physical-adapter	missing-block
-P02	DA921x-source	stable-device-managed-reader	adapter-call-under-outer-owner	partial
+P02	DA921x-source	stable-reader-coupled-to-writable-option	read-only-snapshot-separation	writer-coupling-block
 P03	platform-source	stable-reader-base-node-disabled	current-mainline-composed-sample	missing-block
 P04	protected-clock-source	one-qualified-physical-read	joint-snapshot-and-exact-predicate	partial
 P05	protected-clock-vector	17-of-18-raw-words-nonzero	canonical-expected-all-zero	mismatch-block

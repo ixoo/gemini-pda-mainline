@@ -113,8 +113,8 @@ def main() -> None:
             "Roadmap does not name this audit")
     require("static zero protected-clock vector contradicts" in roadmap,
             "Roadmap does not retain the clock mismatch")
-    require("staged physical-source qualification" in roadmap,
-            "Roadmap does not name the selected next contract")
+    require("physical-source qualification contract" in roadmap,
+            "Roadmap does not name the selected successor contract")
 
     print("A72 production-input ownership audit validation passed")
 

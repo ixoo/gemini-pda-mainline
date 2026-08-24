@@ -1,0 +1,16 @@
+id	boundary	current_state	required_state	decision
+A01	direct-outer-owner	implemented-and-tested	call-public-direct-snapshot	satisfied
+A02	current-protected-observer	independent-clock-bigidvfs-probe	owner-held-complete-direct-record	rejected
+D01	DA921x-raw-values	qualified-read-only-values	stable-provider-snapshot	partial
+D02	DA921x-snapshot-config	coupled-to-positive-writer	available-with-writer-off	missing-block
+D03	DA921x-acquire-release	EOPNOTSUPP-when-positive-off	retain-zero-transfer-refusal	satisfied
+D04	DA921x-lifetime	device-managed-exact-unregister	retain-after-refactor	satisfied
+P01	platform-source	stable-default-off-reader	one-owner-held-physical-sample	phase-b
+P02	clock-source	one-qualified-clock-only-read	one-combined-owner-held-read	phase-b
+P03	BigiDVFS-source	firmware-ABI-only	one-attributable-physical-return	phase-b
+R01	retained-slots-1-2	qualified-two-record-protocol	new-token-before-after-bigidvfs	reusable
+L01	component-order	frozen-platform-provider-clock-big	sequential-under-outer-owner	satisfied
+S01	phase-a-hardware	none	none	satisfied
+S02	phase-a-writer	currently-coupled	positive-option-off-no-writer	selected
+C01	phase-a-build-candidate	none	remain-none	stop
+C02	phase-b-device-attempt	not-admitted	phase-a-pass-plus-separate-review	deferred
