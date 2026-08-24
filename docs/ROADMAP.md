@@ -4903,17 +4903,18 @@ The next ordered work is:
    an after-return checkpoint, bounded failure attribution, zero retry, and no
    CPU request.~~ Passed on the named device with ABI 2/generation 1 and exact
    live plus retained evidence; BigiDVFS remained disabled.
-2. Compose the validated readers, DA921x, and the platform-state source under
-   one transition/hotplug owner. The source/lock audit selects the Linux
-   CPU-hotplug read lock followed by the existing A72 membership transition
-   lock as the outer boundary; the first implementation is a default-off,
-   hardware-free injected compositor with A34 and all hardware effects closed.
-   The [implementation experiment](../experiments/2026-08-23-mainline-a72-direct-state-compositor/README.md)
+2. ~~Compose the validated readers, DA921x, and the platform-state source under
+   one transition/hotplug owner.~~ The default-off injected compositor now
+   passes its exact stack-safe Buildbox build and all seven no-network arm64
+   tests while leaving A34, hardware effects, and CPU requests closed. The
+   [implementation experiment](../experiments/2026-08-23-mainline-a72-direct-state-compositor/README.md)
    owns its exact generated identities and test chronology.
-3. Revise A34 to accept only the complete direct-state ABI and applicable
-   BL31 replay-clear contract, prove the atomic `CLOSED / UNINITIALIZED` to
-   `AVAILABLE / IDLE` publication, and keep both CPU vetoes closed until that
-   proof passes.
+3. **Selected next:** revise A34 to accept only the complete direct-state ABI
+   and applicable BL31 replay-clear contract, prove the atomic
+   `CLOSED / UNINITIALIZED` to `AVAILABLE / IDLE` publication, and keep both
+   CPU vetoes closed until that proof passes. First freeze the exact input,
+   owner, lock, single-publication, and fail-closed contracts against the
+   canonical tree through the compositor before changing production state.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

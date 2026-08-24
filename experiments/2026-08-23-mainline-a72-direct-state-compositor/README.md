@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-23-mainline-a72-direct-state-compositor` |
-| Status | offline test-target correction admitted; Buildbox rebuild pending |
+| Status | hardware-free compositor proof passed |
 | Subsystem | MT6797 A72 direct-state composition and hotplug ownership |
 | Device variant | Gemini PDA contract; injected KUnit phase |
 | Date(s) | 2026-08-23 America/New_York |
@@ -200,6 +200,19 @@ replay to commit `1ee2d4e8`, and strict checkpatch all passed. The reviewed
 bytes are admitted as canonical patch `0341` with SHA-256
 `03da9d3a0a42e637309ea8efda236a163b5380a5e0fd4139a0731a8b27bb92cb`.
 
+The exact admitted series at repository commit `9e8ed80c` then rebuilt on
+Buildbox. Its checksum-valid package retained zero compositor or focused-test
+frame warnings and only the same two inherited frames outside this change.
+The compile result is retained in
+[`results/buildbox-attempt-3-target-fix-pass-20260824.txt`](results/buildbox-attempt-3-target-fix-pass-20260824.txt).
+
+The second bounded no-network arm64 QEMU run passed the sole focused suite:
+all seven named cases passed with zero failures or skips, including the
+corrected closed-owner preservation probe. The classifier also proved the
+exact kernel identity, case inventory, summary, and expected post-test rootfs
+panic. The sanitized result is retained in
+[`results/qemu-attempt-2-pass-20260824.txt`](results/qemu-attempt-2-pass-20260824.txt).
+
 ## Analysis
 
 The split keeps the outer ownership proof independent from physical reader
@@ -214,15 +227,20 @@ and every state-preservation comparison passed. Using `CPUHP_ONLINE` makes the
 probe reach the intended closed-owner branch, where `-EAGAIN` is the existing
 contract, without relaxing that contract or opening admission.
 
+The passing rerun closes the injected, hardware-free composition boundary:
+registry exclusion, exact complete-record validation, all-zero failure output,
+topology refusal, closed-owner refusal, unregister behavior, and byte-stable
+owner/lifecycle preservation now have executable evidence. It does not prove
+any physical reader value, reset provenance, A34 eligibility/publication,
+provider effect, P30 arm, CPU request, or CPU8/CPU9 online transition.
+
 ## Conclusion
 
-`pending-target-fix-rebuild`: the stack-safe implementation now compiles
-without any newly introduced frame warning. The first offline run proved six
-cases and exposed one invalid test target; it did not expose a compositor,
-state-preservation, or production failure. The two-call, test-only correction
-is now generated, reviewed, and admitted. The focused profile must rebuild
-from the exact admitted bytes and rerun under the same no-network classifier.
-This remains hardware-free and is not a boot candidate.
+`pass-hardware-free`: the exact admitted implementation compiles without any
+newly introduced frame warning, and its focused no-network arm64 suite passes
+all seven cases with zero failures or skips. The compositor remains
+default-off, has no production physical reader caller, leaves the owner
+closed, and performs no hardware or CPU action. This is not a boot candidate.
 
 ## Follow-up
 

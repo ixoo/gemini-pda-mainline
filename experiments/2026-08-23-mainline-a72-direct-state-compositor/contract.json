@@ -81,6 +81,27 @@
       "qemu_run": true,
       "boot_candidate": false,
       "evidence": "results/buildbox-attempt-2-stack-pass-20260824.txt"
+    },
+    {
+      "attempt": 3,
+      "repository_commit": "9e8ed80cb9d50c53559de6c60ee7315d61997eaf",
+      "buildbox_job": "9e8ed80cb9d50c53559de6c60ee7315d61997eaf-a72-direct-state-kunit-m0",
+      "package": "linux-7.1.3-gemini-a72-direct-state-kunit-c67e2c32-b766a25d",
+      "kernel_release": "7.1.3-gemini-direct-state-kunit",
+      "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+      "patchset_sha256": "c67e2c322a81715bba53a79d53587268ff4d81be2d49fefc050fb3499af6a95a",
+      "config_sha256": "8582ce081e57cb134420f5e06d34a6d28d482c997e4bccf92c81869737bbe1d9",
+      "image_gzip_sha256": "809b20973862845f8c0ba35fc9f6b3addb1a3af9e38b19814b28a54f5ecb4e10",
+      "build_exit": 0,
+      "artifact_validation": "pass",
+      "classification": "pass-stack-safety",
+      "introduced_frame_warning_count": 0,
+      "production_frame_warning_count": 0,
+      "kunit_frame_warning_count": 0,
+      "inherited_frame_warning_count": 2,
+      "qemu_run": true,
+      "boot_candidate": false,
+      "evidence": "results/buildbox-attempt-3-target-fix-pass-20260824.txt"
     }
   ],
   "stack_fix_definition": {
@@ -131,6 +152,29 @@
       "required_target": "CPUHP_ONLINE",
       "boot_candidate": false,
       "evidence": "results/qemu-attempt-1-target-mismatch-20260824.txt"
+    },
+    {
+      "attempt": 2,
+      "observed_utc": "2026-08-24T00:34:46Z",
+      "repository_commit": "9e8ed80cb9d50c53559de6c60ee7315d61997eaf",
+      "package": "linux-7.1.3-gemini-a72-direct-state-kunit-c67e2c32-b766a25d",
+      "kernel_release": "7.1.3-gemini-direct-state-kunit",
+      "runner": "qemu-system-aarch64-11.0.2",
+      "network": "none",
+      "tests": 7,
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0,
+      "classification": "pass-hardware-free",
+      "physical_reader_callers": 0,
+      "hardware_effect": false,
+      "opens_owner": false,
+      "state_mutation": false,
+      "transaction_caller": false,
+      "cpu_on": false,
+      "cpu_off": false,
+      "boot_candidate": false,
+      "evidence": "results/qemu-attempt-2-pass-20260824.txt"
     }
   ],
   "target_fix_definition": {

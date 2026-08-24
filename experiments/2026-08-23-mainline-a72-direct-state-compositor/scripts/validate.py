@@ -91,7 +91,7 @@ def main() -> None:
         "v7.1.3/0338-arm64-test-closed-A72-direct-state-compositor.patch",
     ], "canonical initial patch order")
     attempts = contract["compile_attempts"]
-    require(len(attempts) == 2, "compile attempt count")
+    require(len(attempts) == 3, "compile attempt count")
     attempt = attempts[0]
     require(attempt["repository_commit"] ==
             "0dbe657dbec405253d06f8653da6a421f60e8f0b",
@@ -142,6 +142,35 @@ def main() -> None:
         "qemu_run=true", "device_action=none", "boot_candidate=false",
     ):
         require(token in evidence, f"stack-safe compile evidence {token}")
+    attempt = attempts[2]
+    require(attempt["repository_commit"] ==
+            "9e8ed80cb9d50c53559de6c60ee7315d61997eaf",
+            "target-fixed compile commit")
+    require(attempt["patchset_sha256"] ==
+            "c67e2c322a81715bba53a79d53587268ff4d81be2d49fefc050fb3499af6a95a",
+            "target-fixed compile patchset")
+    require(attempt["build_exit"] == 0 and
+            attempt["artifact_validation"] == "pass" and
+            attempt["classification"] == "pass-stack-safety",
+            "target-fixed compile result")
+    require(attempt["introduced_frame_warning_count"] == 0 and
+            attempt["production_frame_warning_count"] == 0 and
+            attempt["kunit_frame_warning_count"] == 0 and
+            attempt["inherited_frame_warning_count"] == 2,
+            "target-fixed compile warning counts")
+    require(attempt["qemu_run"] is True and
+            attempt["boot_candidate"] is False,
+            "target-fixed compile execution scope")
+    evidence = (EXPERIMENT / attempt["evidence"]).read_text()
+    for token in (
+        "repository_commit=9e8ed80cb9d50c53559de6c60ee7315d61997eaf",
+        "patchset_sha256=c67e2c322a81715bba53a79d53587268ff4d81be2d49fefc050fb3499af6a95a",
+        "classification=pass-stack-safety",
+        "introduced_frame_warning_count=0",
+        "inherited_frame_warning_count=2",
+        "qemu_run=true", "device_action=none", "boot_candidate=false",
+    ):
+        require(token in evidence, f"target-fixed compile evidence {token}")
     stack_fix = contract["stack_fix_definition"]
     require(stack_fix["prepared_source_state"] ==
             "08ad5389a1cf831f13ad410da5d74b17a58d8c05c8ab05459f3568e47c4a41a1",
@@ -173,7 +202,7 @@ def main() -> None:
         "v7.1.3/0340-arm64-move-A72-direct-state-KUnit-state-off-stack.patch",
     ], "canonical stack-fix tail")
     qemu_attempts = contract["qemu_attempts"]
-    require(len(qemu_attempts) == 1, "QEMU attempt count")
+    require(len(qemu_attempts) == 2, "QEMU attempt count")
     qemu = qemu_attempts[0]
     require(qemu["repository_commit"] ==
             "a0e5ff3a74f391812ee1998fa714db96f8c7093c",
@@ -203,6 +232,36 @@ def main() -> None:
         "device_action=none", "boot_candidate=false",
     ):
         require(token in qemu_evidence, f"QEMU evidence {token}")
+    qemu = qemu_attempts[1]
+    require(qemu["repository_commit"] ==
+            "9e8ed80cb9d50c53559de6c60ee7315d61997eaf",
+            "passing QEMU commit")
+    require(qemu["network"] == "none" and qemu["tests"] == 7 and
+            qemu["passed"] == 7 and qemu["failed"] == 0 and
+            qemu["skipped"] == 0,
+            "passing QEMU test inventory")
+    require(qemu["classification"] == "pass-hardware-free" and
+            qemu["physical_reader_callers"] == 0 and
+            qemu["hardware_effect"] is False and
+            qemu["opens_owner"] is False and
+            qemu["state_mutation"] is False and
+            qemu["transaction_caller"] is False and
+            qemu["cpu_on"] is False and qemu["cpu_off"] is False and
+            qemu["boot_candidate"] is False,
+            "passing QEMU scope closure")
+    qemu_evidence = (EXPERIMENT / qemu["evidence"]).read_text()
+    for token in (
+        "tests=7", "passed=7", "failed=0", "skipped=0",
+        "direct_snapshot_success=pass",
+        "direct_unregister_closes_source=pass",
+        "tap_summary=pass:7_fail:0_skip:0_total:7",
+        "classification=pass-hardware-free",
+        "physical_reader_callers=0", "hardware_effect=none",
+        "device_action=none", "boot_candidate=false",
+        "opens_owner=false", "state_mutation=false",
+        "transaction_caller=false", "cpu_on=false", "cpu_off=false",
+    ):
+        require(token in qemu_evidence, f"passing QEMU evidence {token}")
     target_fix = contract["target_fix_definition"]
     require(target_fix["prepared_source_state"] ==
             "80ea4453047c0328efbb0361a1b2b26065b79011bbfbff82f1c9cc02d047ac46",
@@ -380,7 +439,7 @@ def main() -> None:
         'print("opens_owner=false")',
     ):
         require(token in classifier, f"QEMU classifier {token}")
-    require("`pending-target-fix-rebuild`" in readme,
+    require("`pass-hardware-free`" in readme,
             "current phase statement")
 
     print("validation=a72-direct-state-definition")
@@ -388,8 +447,10 @@ def main() -> None:
     print("generated_patch_count=2")
     print("compile_attempt_1=rejected-stack-safety")
     print("compile_attempt_2=pass-stack-safety")
+    print("compile_attempt_3=pass-stack-safety")
     print("stack_fix_generated=true")
     print("qemu_attempt_1=rejected-test-target-contract")
+    print("qemu_attempt_2=pass-hardware-free")
     print("target_fix_generated=true")
     print(f"manifest_profiles={len(manifest['config']['profiles'])}")
     print(f"canonical_patch_count={len(series)}")
