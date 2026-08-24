@@ -228,6 +228,19 @@ the physical-source KUnit file, and proves that the two large direct-state
 fixtures use KUnit-managed allocation. It changes no production source and
 performs no hardware or device action.
 
+Candidate admission subsequently found the corresponding large production
+probe result still declared on the kernel stack. Generate and fetch its pinned
+one-file repair with:
+
+```sh
+./scripts/buildbox generate-a72-physical-source-production-stack-fix
+./scripts/buildbox fetch-a72-physical-source-production-stack-fix
+```
+
+This lane accepts only the exact managed source through `0355`, changes only
+the physical-source production observer, requires one `kvzalloc`/`kvfree`
+pair around the existing transaction, and adds no hardware or device action.
+
 The protected-clock first-dmesg call discriminator also has a source-review
 lane:
 

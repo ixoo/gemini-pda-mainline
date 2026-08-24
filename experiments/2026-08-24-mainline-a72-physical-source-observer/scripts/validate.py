@@ -343,6 +343,43 @@ def main() -> None:
     ):
         require(buildbox.count(command) >= 2,
                 f"Buildbox stack-fix command: {command}")
+    production_stack_generator = (
+        EXPERIMENT / "scripts/generate-production-stack-fix-on-buildbox"
+    ).read_text()
+    production_stack_editor = (
+        EXPERIMENT / "scripts/production_stack_fix_edits.py"
+    ).read_text()
+    production_stack_source_validator = (
+        EXPERIMENT / "scripts/validate_production_stack_fix_source.py"
+    ).read_text()
+    production_stack_patch_validator = (
+        EXPERIMENT / "scripts/validate_production_stack_fix_patch.py"
+    ).read_text()
+    for token in (
+        "PARENT_SOURCE_STATE=3f1b291eaa793e8f5275bc3091fc2146312e1aeb65a81a5721f33805609cdc2c",
+        "OBSERVER_SHA256=10e030caabfc420e676f46882e4ce24bdd21d77febcba1c8bc6e829331d9334d",
+        "production_direct_state_stack_objects=0",
+        "transaction_changed=false",
+        "physical_operations_added=0",
+        "boot_candidate=false",
+    ):
+        require(token in production_stack_generator,
+                f"production stack generator token: {token}")
+    require("snapshot = kvzalloc(sizeof(*snapshot), GFP_KERNEL)"
+            in production_stack_editor, "production result allocation edit")
+    require("kvfree(snapshot);" in production_stack_editor,
+            "production result free edit")
+    require("production direct-state result is not on the kernel stack"
+            in production_stack_source_validator,
+            "production stack source boundary")
+    require("one production observer path" in production_stack_patch_validator,
+            "production stack patch boundary")
+    for command in (
+        "generate-a72-physical-source-production-stack-fix",
+        "fetch-a72-physical-source-production-stack-fix",
+    ):
+        require(buildbox.count(command) >= 2,
+                f"Buildbox production stack-fix command: {command}")
     receipt = (
         EXPERIMENT / "results/buildbox-generation-8d0d4904.txt"
     ).read_text()
@@ -403,6 +440,11 @@ def main() -> None:
         "boot_candidate=false",
     ):
         require(token in qemu_pass, f"QEMU pass receipt token: {token}")
+    readme = (EXPERIMENT / "README.md").read_text()
+    require("candidate admission paused for production stack repair" in readme,
+            "candidate pause status")
+    require("roughly 32 KiB direct-state" in readme,
+            "production stack discovery")
     print("validation=a72-physical-source-admission")
     print("prepared_source=exact-through-0349")
     print("generated_patch_count=5")

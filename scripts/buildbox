@@ -88,6 +88,10 @@ Commands:
                         Generate the physical-source KUnit stack fix
   fetch-a72-physical-source-stack-fix
                         Fetch only that validated one-patch follow-up
+  generate-a72-physical-source-production-stack-fix
+                        Generate the physical-source production stack fix
+  fetch-a72-physical-source-production-stack-fix
+                        Fetch only that validated one-patch follow-up
   generate-da921x-provider-state-tag-fix
                         Generate the provider-state tag compile fix
   fetch-da921x-provider-state-tag-fix
@@ -8738,6 +8742,198 @@ REMOTE
   printf 'Artifact fetched to %s\n' "${destination}"
 }
 
+generate_a72_physical_source_production_stack_fix() {
+  local branch
+  local identity
+  local remote_command
+  local sha
+
+  require_command git
+  require_command jq
+  require_command ssh
+  identity="$(require_clean_pushed_head)"
+  IFS=$'\t' read -r sha branch <<< "${identity}"
+  printf -v remote_command 'bash -s -- %q %q' "${sha}" "${branch}"
+
+  printf 'Submitting A72 physical-source production stack fix %s to %s\n' \
+    "${sha}" "${BUILDBOX_HOST}"
+  ssh_buildbox "${remote_command}" <<'REMOTE'
+set -euo pipefail
+
+readonly commit="$1"
+readonly branch="$2"
+readonly remote_url=https://github.com/ixoo/gemini-pda-mainline.git
+readonly persistent_root="${HOME}/gemini-pda-buildbox"
+readonly mirror="${persistent_root}/repo.git"
+readonly workspace_root=/workspace/gemini-pda
+readonly checkout_root="${workspace_root}/checkouts"
+readonly checkout="${checkout_root}/${commit}"
+readonly source_root="${workspace_root}/src/linux-7.1.3-series-source"
+readonly artifact_root="${workspace_root}/a72-physical-source-production-stack-fix-artifacts"
+readonly job_root="${workspace_root}/jobs"
+readonly job_key="${commit}-a72-physical-source-production-stack-fix-patchgen"
+readonly job_record="${job_root}/${job_key}.json"
+readonly purpose=mainline-a72-physical-source-production-stack-fix-patch-generation
+readonly generator=experiments/2026-08-24-mainline-a72-physical-source-observer/scripts/generate-production-stack-fix-on-buildbox
+
+mkdir -p "${persistent_root}" "${checkout_root}" "${artifact_root}" \
+  "${job_root}"
+exec 9>"${persistent_root}/build.lock"
+flock 9
+
+if [[ ! -d "${mirror}" ]]; then
+  if [[ -e "${mirror}.partial" ]]; then
+    [[ -d "${mirror}.partial" && ! -L "${mirror}.partial" ]]
+    rm -rf -- "${mirror}.partial"
+  fi
+  git clone --mirror "${remote_url}" "${mirror}.partial"
+  mv "${mirror}.partial" "${mirror}"
+fi
+[[ "$(git --git-dir="${mirror}" remote get-url origin)" == "${remote_url}" ]]
+git --git-dir="${mirror}" fetch --prune origin \
+  "refs/heads/${branch}:refs/remotes/origin/${branch}"
+[[ "$(git --git-dir="${mirror}" rev-parse \
+  "refs/remotes/origin/${branch}")" == "${commit}" ]]
+
+if [[ ! -d "${checkout}" ]]; then
+  for stale_partial in "${checkout}".partial.*; do
+    [[ -d "${stale_partial}" && ! -L "${stale_partial}" ]] || continue
+    rm -rf -- "${stale_partial}"
+  done
+  partial="${checkout}.partial.$$"
+  trap 'test -n "${partial:-}" && test -d "${partial}" && rm -rf -- "${partial}"' EXIT
+  git clone --no-checkout "${mirror}" "${partial}"
+  git -C "${partial}" checkout --detach "${commit}"
+  [[ -z "$(git -C "${partial}" status --porcelain)" ]]
+  mv "${partial}" "${checkout}"
+  partial=""
+  trap - EXIT
+fi
+[[ "$(git -C "${checkout}" rev-parse HEAD)" == "${commit}" ]]
+[[ -z "$(git -C "${checkout}" status --porcelain)" ]]
+
+if [[ -f "${job_record}" ]] && jq -e \
+  --arg commit "${commit}" --arg purpose "${purpose}" '
+    .status == "validated" and .repository_commit == $commit and
+    .purpose == $purpose
+  ' "${job_record}" >/dev/null; then
+  package="$(jq -er '.package' "${job_record}")"
+  case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
+  [[ -d "${package}" && ! -L "${package}" ]]
+  (cd "${package}" && sha256sum --check --strict SHA256SUMS >/dev/null)
+  grep -Fx "repository_commit=${commit}" \
+    "${package}/provenance/generation.txt" >/dev/null
+  printf 'buildbox_job=%s\n' "${job_key}"
+  printf 'buildbox_package=%s\n' "${package}"
+  exit 0
+fi
+
+rm -f "${job_record}.partial"
+if ! output="$("${checkout}/${generator}" \
+  "${commit}" "${source_root}" "${artifact_root}")"; then
+  printf '%s\n' "${output}" >&2
+  printf 'error: A72 physical-source production stack-fix generator failed for %s\n' \
+    "${commit}" >&2
+  exit 1
+fi
+printf '%s\n' "${output}"
+package="$(printf '%s\n' "${output}" | sed -n \
+  's/^Generated A72 physical-source production stack fix at //p' | tail -n 1)"
+case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
+[[ -d "${package}" && ! -L "${package}" ]]
+(cd "${package}" && sha256sum --check --strict SHA256SUMS >/dev/null)
+grep -Fx "repository_commit=${commit}" \
+  "${package}/provenance/generation.txt" >/dev/null
+for marker in generated_patch_count=1 production_direct_state_stack_objects=0 \
+  production_result_allocations=1 production_result_frees=1 \
+  transaction_changed=false physical_operations_added=0 device_action=none \
+  boot_candidate=false; do
+  grep -Fx "${marker}" "${package}/provenance/generation.txt" >/dev/null
+done
+jq -n \
+  --arg status validated \
+  --arg repository_commit "${commit}" \
+  --arg purpose "${purpose}" \
+  --arg package "${package}" \
+  --arg package_name "$(basename "${package}")" \
+  '{status: $status, repository_commit: $repository_commit,
+    purpose: $purpose, package: $package, package_name: $package_name}' \
+  > "${job_record}.partial"
+mv "${job_record}.partial" "${job_record}"
+printf 'buildbox_job=%s\n' "${job_key}"
+printf 'buildbox_package=%s\n' "${package}"
+REMOTE
+}
+
+fetch_a72_physical_source_production_stack_fix() {
+  local destination
+  local job_info
+  local job_key
+  local package_name
+  local remote_command
+  local sha
+  local temporary
+
+  require_command git
+  require_command jq
+  require_command sha256sum
+  require_command ssh
+  require_command tar
+  sha="$(git -C "${REPO_DIR}" rev-parse HEAD)"
+  [[ "${sha}" =~ ^[0-9a-f]{40}$ ]] || die "invalid HEAD commit"
+  job_key="${sha}-a72-physical-source-production-stack-fix-patchgen"
+  printf -v remote_command 'test -f %q && cat %q' \
+    "/workspace/gemini-pda/jobs/${job_key}.json" \
+    "/workspace/gemini-pda/jobs/${job_key}.json"
+  job_info="$(ssh_buildbox "${remote_command}")" || \
+    die "no completed A72 physical-source production stack fix for ${sha}"
+  printf '%s' "${job_info}" | jq -e --arg commit "${sha}" '
+    .status == "validated" and .repository_commit == $commit and
+    .purpose == "mainline-a72-physical-source-production-stack-fix-patch-generation" and
+    (.package_name | test("^[A-Za-z0-9_.+-]+$"))
+  ' >/dev/null || die "A72 physical-source production stack-fix job record is invalid"
+  package_name="$(printf '%s' "${job_info}" | jq -er '.package_name')"
+  destination="${REPO_DIR}/artifacts/buildbox/${sha}/${package_name}"
+  [[ ! -e "${destination}" ]] || die "refusing to overwrite ${destination}"
+  mkdir -p "$(dirname "${destination}")"
+  temporary="$(mktemp -d "$(dirname "${destination}")/.fetch.XXXXXX")"
+  trap 'test -n "${temporary:-}" && test -d "${temporary}" && rm -rf -- "${temporary}"' EXIT
+
+  printf -v remote_command 'bash -s -- %q %q' "${job_key}" "${sha}"
+  ssh_buildbox "${remote_command}" <<'REMOTE' | tar -C "${temporary}" -xf -
+set -euo pipefail
+readonly job_key="$1"
+readonly commit="$2"
+readonly artifact_root=/workspace/gemini-pda/a72-physical-source-production-stack-fix-artifacts
+readonly record="/workspace/gemini-pda/jobs/${job_key}.json"
+[[ -f "${record}" && ! -L "${record}" ]]
+package="$(jq -er --arg commit "${commit}" '
+  select(.status == "validated" and .repository_commit == $commit and
+    .purpose == "mainline-a72-physical-source-production-stack-fix-patch-generation") |
+    .package
+' "${record}")"
+case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
+[[ -d "${package}" && ! -L "${package}" ]]
+(cd "${package}" && sha256sum --check --strict SHA256SUMS >/dev/null)
+grep -Fx "repository_commit=${commit}" \
+  "${package}/provenance/generation.txt" >/dev/null
+grep -Fx 'generated_patch_count=1' \
+  "${package}/provenance/generation.txt" >/dev/null
+tar -C "$(dirname "${package}")" -cf - -- "$(basename "${package}")"
+REMOTE
+  [[ -d "${temporary}/${package_name}" ]]
+  (
+    cd "${temporary}/${package_name}"
+    sha256sum --check --strict SHA256SUMS >/dev/null
+    grep -Fx "repository_commit=${sha}" provenance/generation.txt >/dev/null
+    grep -Fx 'generated_patch_count=1' provenance/generation.txt >/dev/null
+  )
+  mv "${temporary}/${package_name}" "${destination}"
+  rmdir "${temporary}"
+  trap - EXIT
+  printf 'Artifact fetched to %s\n' "${destination}"
+}
+
 readonly COMMAND="${1:-}"
 [[ -n "${COMMAND}" ]] || {
   usage
@@ -8781,6 +8977,8 @@ case "${COMMAND}" in
   fetch-a72-physical-source-patches) fetch_a72_physical_source_patches ;;
   generate-a72-physical-source-stack-fix) generate_a72_physical_source_stack_fix ;;
   fetch-a72-physical-source-stack-fix) fetch_a72_physical_source_stack_fix ;;
+  generate-a72-physical-source-production-stack-fix) generate_a72_physical_source_production_stack_fix ;;
+  fetch-a72-physical-source-production-stack-fix) fetch_a72_physical_source_production_stack_fix ;;
   generate-da921x-provider-state-tag-fix) generate_da921x_provider_state_tag_fix ;;
   fetch-da921x-provider-state-tag-fix) fetch_da921x_provider_state_tag_fix ;;
   generate-protected-readback-remediation) generate_protected_readback_remediation ;;

@@ -33,8 +33,10 @@ the loop. Positive identity-gated observations are unaffected.
   passed exact Buildbox generation/replay/style gates and is admitted as
   test-only patch `0355`. The exact rebuilt profile passes all four no-network
   QEMU cases with zero failures or skips, completing hardware-free Phase B.
-  One guarded observer candidate is next; there is no boot candidate or device
-  action yet.
+  Candidate admission then found the same roughly 32 KiB result still on the
+  production probe stack. A pinned production allocation repair and repeated
+  proof now precede the one guarded observer candidate; there is no boot
+  candidate or device action yet.
 - [2026-08-24 mainline DA921x read-only snapshot separation](2026-08-24-mainline-da921x-readonly-snapshot-separation/README.md)
   — implements the physical-source contract's hardware-free Phase A as a
   deterministic two-patch Buildbox review. Exact canonical patches `0348` and

@@ -4988,12 +4988,18 @@ The next ordered work is:
    one-file boundary, replay, strict style, and byte-identical admission pass.
    The exact through-`0355` Buildbox profile then compiles and its no-network
    QEMU suite passes all four cases with zero failures and skips. Hardware-free
-   Phase B is complete.
-   **Selected next:** select and validate one guarded physical-source observer
+   Phase B is complete. Candidate admission then caught a separate production
+   boundary before hardware: the probe still declares the same roughly 32 KiB
+   direct-state result on its kernel stack. A pinned one-file production repair
+   must move that result to fail-closed dynamic storage, pass strict generation
+   and replay, and repeat the exact Buildbox compile plus all four no-network
+   cases before candidate construction resumes.
+   **Selected next:** admit and prove that production stack repair, then select
+   and validate one guarded physical-source observer
    candidate whose unique evidence is the two exact retained records around
    the one BigiDVFS call plus the complete all-or-zero source snapshot. Keep
    publication, provider acquire/release, and CPU8/CPU9 requests closed until
-   all four gates pass. Only then select one guarded observer candidate.
+   all four gates pass. Only then deploy one guarded observer candidate.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

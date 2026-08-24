@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-24-mainline-a72-physical-source-observer` |
-| Status | hardware-free Phase B complete; candidate selection next |
+| Status | candidate admission paused for production stack repair |
 | Subsystem | A72 direct-state sources and retained attribution |
 | Device variant | hardware-free implementation/KUnit stage |
 | Date(s) | 2026-08-24 America/New_York |
@@ -72,6 +72,13 @@ The QEMU-discovered KUnit stack-fixture follow-up uses:
 ./scripts/buildbox fetch-a72-physical-source-stack-fix
 ```
 
+The candidate-review-discovered production result follow-up uses:
+
+```sh
+./scripts/buildbox generate-a72-physical-source-production-stack-fix
+./scripts/buildbox fetch-a72-physical-source-production-stack-fix
+```
+
 ## Current result
 
 The exact current Buildbox parent and edited-file hashes have been audited.
@@ -112,5 +119,10 @@ the repeated no-network QEMU run passed all four focused cases with zero
 failures and skips. The linked observer and direct-source symbols are present;
 writer, A34, publisher, and positive-provider symbols remain absent. Phase B's
 hardware-free gate is complete. The next step is to select and validate one
-guarded physical-source observer candidate; there has still been no device
-action or boot candidate in this experiment.
+guarded physical-source observer candidate. Candidate admission first found
+that the production probe still declared the same roughly 32 KiB direct-state
+result on its kernel stack. The candidate is therefore paused while a pinned
+one-file follow-up moves that result to a fail-closed `kvzalloc`/`kvfree`
+allocation, after which the exact Buildbox compile and all four no-network
+QEMU cases must pass again. There has still been no device action or boot
+candidate in this experiment.
