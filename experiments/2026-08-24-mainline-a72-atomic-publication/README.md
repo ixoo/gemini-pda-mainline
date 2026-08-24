@@ -105,6 +105,11 @@ required the second argument in the same three declarations to align under the
 opening parenthesis. Every semantic and replay gate still passed. The next
 retry changes only that continuation alignment.
 
+Commit `d31031b0` reached the same semantic and replay result, but strict
+checkpatch required the accepted visual alignment to use tabs where possible.
+The next retry encodes column 41 as five tabs plus one space; no C token or
+contract changes.
+
 No kernel has been compiled, no generated patch has been admitted, and no
 QEMU or device action has occurred.
 

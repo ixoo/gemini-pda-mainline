@@ -92,6 +92,14 @@ def main() -> None:
             "exact_replay": True,
             "checkpatch_0345": "0 errors, 0 warnings, 3 checks",
         },
+        {
+            "repository_commit":
+                "d31031b00024e539b9da57a7a48fa96245abefc9",
+            "classification": "rejected-strict-finalizer-indent",
+            "semantic_validation": "pass",
+            "exact_replay": True,
+            "checkpatch_0345": "5 errors, 5 warnings, 0 checks",
+        },
     ], "generation attempt chronology")
     require(contract["tests"] == {
         "suite": "mt6797-a72-atomic-publication",

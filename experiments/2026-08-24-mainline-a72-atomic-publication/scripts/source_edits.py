@@ -49,7 +49,7 @@ def finalizer(root: Path) -> None:
         "int\n"
         "arm64_late_cpu_startup_finalize_pristine("
         "struct arm64_late_cpu_bootstrap_claim *claim,\n"
-        "                                         "
+        "\t\t\t\t\t "
         "arm64_late_cpu_bootstrap_commit_t commit, void *context);\n"
         "int arm64_late_cpu_startup_prepare",
     )
@@ -65,8 +65,8 @@ arm64_late_cpu_startup_release_pristine(struct arm64_late_cpu_bootstrap_claim *c
     finalize_stub = dedent(r'''
 static inline int
 arm64_late_cpu_startup_finalize_pristine(struct arm64_late_cpu_bootstrap_claim *claim,
-                                         arm64_late_cpu_bootstrap_commit_t commit,
-                                         void *context)
+					 arm64_late_cpu_bootstrap_commit_t commit,
+					 void *context)
 {
 	(void)claim;
 	(void)commit;
@@ -96,8 +96,8 @@ arm64_late_cpu_startup_finalize_pristine(struct arm64_late_cpu_bootstrap_claim *
     finalize_function = dedent(r'''
 int
 arm64_late_cpu_startup_finalize_pristine(struct arm64_late_cpu_bootstrap_claim *claim,
-                                         arm64_late_cpu_bootstrap_commit_t commit,
-                                         void *context)
+					 arm64_late_cpu_bootstrap_commit_t commit,
+					 void *context)
 {
 	unsigned long flags;
 	int ret;
