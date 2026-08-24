@@ -2,10 +2,11 @@
 
 ## Status
 
-Exact candidate constructed twice and independently validated. All 32 LK gates
-and six negative structural mutations passed. Guarded deployment resolved the
-inactive logical `boot2`, wrote and fully read back the exact payload, then
-confirmed clean shutdown. One pre-armed live USB/netcat observation is pending.
+Complete and retired after one confirmed positive control. The pre-armed
+collector captured the exact kernel through `/init` and USB/netcat on its first
+attempt, with CPUs 0–7 online and 8–9 closed. No reboot was requested. Live
+pstore exposed no early record, so retained bytes remain unusable as a negative
+execution oracle.
 
 ## Hypothesis
 
@@ -81,5 +82,14 @@ without a new independent observation path.
   it leaves a successful mainline boot running.
 - `results/deployment-20260824.txt`: sanitized live-GPT, predecessor, power,
   full-readback, and shutdown receipt.
+- `results/runtime-attempt-1-serviceable-20260824.txt`: sanitized exact live
+  identity, CPU policy, ledger visibility, safety, and capture identities.
 
 Private captures and the candidate remain below ignored `artifacts/` paths.
+
+## Result
+
+The exact current kernel is serviceable with the runtime-proven Stage-27 DTB.
+This rejects a general kernel failure and moves the unresolved boundary into
+the current physical-source DT enablement path. The exact artifact is retired;
+an identical repeat is prohibited.

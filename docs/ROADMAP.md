@@ -5146,7 +5146,15 @@ The next ordered work is:
    pre-arms a live USB/netcat collector. Its exact two-construction candidate
    and independent validation pass without a kernel build. Deploy it once,
    read identity and early-ledger state before any reboot, and leave every
-   provider, owner, publication, and CPU action closed.
+   provider, owner, publication, and CPU action closed. That single attempt is
+   now a confirmed positive: exact live identity proves the current kernel
+   through `/init` and USB/netcat with Stage-27, while CPUs 8–9 remain closed
+   and no reboot is requested. Live pstore exposes no early record, so missing
+   records remain non-evidence. Retire the artifact. **Selected next:** isolate
+   the three enabled physical-source providers against the otherwise exact
+   current serviceability DT, beginning with the read-only A72 platform-state
+   source alone. Do not reintroduce observer registration, BigiDVFS, owner,
+   publication, or CPU requests in that first isolation.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

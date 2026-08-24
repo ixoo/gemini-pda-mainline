@@ -63,7 +63,20 @@
     "serial_capture": false,
     "native_reboot_request": false,
     "successful_boot_left_running": true,
-    "status": "pending"
+    "status": "serviceable-stage27-control-pass",
+    "attempts": 1,
+    "runtime_boot_id": "1b783f93-a2e7-4ad5-9d5f-a92c1e5a565e",
+    "runtime_uptime_seconds": 48.92,
+    "kernel_release": "7.1.3-gemini-a72-early",
+    "cpu_online": "0-7",
+    "cpu_offline": "8-9",
+    "pstore_file_count": 0,
+    "live_ledger": "no-early-record-exposed-live",
+    "native_reboot_requested": false,
+    "successful_mainline_left_running": true,
+    "runtime_sha256": "28237a6c265ff955a240fe9620c0851007d0fd8f0fbd708be990e3aa4cf4cf4b",
+    "classification_sha256": "8caaba272abaafbd492eb3dda8ae0a3d1540a3f6c31d841c8d35db4f4f2dac8a",
+    "capture_manifest_sha256": "e320978500e255dcdd906335664308e99fc57a2ede0e8f8428b21621ba491cef"
   },
   "tooling": {
     "builder_sha256": "168d7ab304bb508f25ac7d0d8c3f2421ac2ae487556643ce3b8ab88ac633304a",
@@ -92,5 +105,13 @@
     "fresh_predecessor_backup": false,
     "shutdown_after_verified_write": "confirmed-unreachable",
     "automatic_reboot": false
+  },
+  "decision": {
+    "result": "exact-current-kernel-serviceable-with-stage27-dtb",
+    "current_kernel_general_failure": false,
+    "returned_empty_records_negative_oracle": false,
+    "selected_next": "isolate-current-physical-source-dtb-provider-enablement",
+    "candidate_retired": true,
+    "cpu8_cpu9_admission": "closed"
   }
 }
