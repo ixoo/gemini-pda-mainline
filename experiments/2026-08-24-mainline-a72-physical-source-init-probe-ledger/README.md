@@ -104,3 +104,10 @@ a reboot. See the [deployment receipt](results/deployment-1-write-readback-shutd
 
 The next action is one owner-selected physical boot of `boot2`, followed by a
 changed-boot-ID Gemian recovery and exact reads of retained records 1 and 2.
+
+The read-only recovery path is prepared and mutation-tested before that boot.
+It requires changed-ID exact Gemian, the unchanged full `boot2` checksum, live
+GPT agreement, two direct 4 KiB retained reads, mounted pstore, and zero memory
+or partition writes. Its three accepted outcomes map exactly to the decision
+table above; 16 attribution and safety mutations are rejected. See the
+[tooling receipt](results/recovery-tooling-validation-20260824.txt).

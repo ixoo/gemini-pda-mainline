@@ -64,6 +64,20 @@
     "lk_gates": "32-of-32",
     "boot_candidate": true
   },
+  "recovery": {
+    "status": "offline-validated",
+    "changed_deployment_boot_id_required": "ea0b76e9-0459-4bf1-a787-661b0e8bacd1",
+    "boot2_full_sha256_required": "4185b85192f036df09d547cdf68991e885c6d4849927e684a5923cde15c0a03c",
+    "direct_record_bytes": [4096, 4096],
+    "valid_classifications": [
+      "before-driver-init-or-writer-refused",
+      "driver-init-only",
+      "driver-init-and-probe-enter"
+    ],
+    "unsafe_mutations_rejected": 16,
+    "device_memory_writes": 0,
+    "device_partition_writes": 0
+  },
   "decision": {
     "result": "boot2-write-readback-verified-device-shutdown",
     "selected_next": "owner-physically-selects-boot2-once-then-changed-id-recovery",
