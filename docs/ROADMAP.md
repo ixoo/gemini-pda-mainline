@@ -4986,8 +4986,12 @@ The next ordered work is:
    fault. Pinned test-only patch `0355` now moves both fixtures to KUnit-managed
    memory and changes no production file; its exact Buildbox generation,
    one-file boundary, replay, strict style, and byte-identical admission pass.
-   **Selected next:** rebuild the exact `a72-physical-source-kunit` profile on
-   Buildbox and require all four no-network QEMU cases to pass. Keep
+   The exact through-`0355` Buildbox profile then compiles and its no-network
+   QEMU suite passes all four cases with zero failures and skips. Hardware-free
+   Phase B is complete.
+   **Selected next:** select and validate one guarded physical-source observer
+   candidate whose unique evidence is the two exact retained records around
+   the one BigiDVFS call plus the complete all-or-zero source snapshot. Keep
    publication, provider acquire/release, and CPU8/CPU9 requests closed until
    all four gates pass. Only then select one guarded observer candidate.
 4. Only then build one decision-bearing CPU8 candidate with one request,

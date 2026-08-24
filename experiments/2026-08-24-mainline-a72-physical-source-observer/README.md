@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-24-mainline-a72-physical-source-observer` |
-| Status | KUnit stack-fixture repair admitted; rebuild/QEMU pending |
+| Status | hardware-free Phase B complete; candidate selection next |
 | Subsystem | A72 direct-state sources and retained attribution |
 | Device variant | hardware-free implementation/KUnit stage |
 | Date(s) | 2026-08-24 America/New_York |
@@ -106,6 +106,11 @@ validator that expected `[PATCH]` rather than the generator's intentional
 numbered `[PATCH 1/1]` subject. That exact folded subject is now accepted for
 the retry. The second attempt passed source validation, one-file boundary
 validation, exact replay, and strict checkpatch, and its byte-identical output
-is canonical patch `0355`. The isolated profile must now compile again and all
-four focused cases must pass before any candidate selection. There is no boot
-candidate and no device action.
+is canonical patch `0355`. Exact commit
+`ef0da357a74de3962286df331728a04d8fd7e5c1` then compiled on Buildbox, and
+the repeated no-network QEMU run passed all four focused cases with zero
+failures and skips. The linked observer and direct-source symbols are present;
+writer, A34, publisher, and positive-provider symbols remain absent. Phase B's
+hardware-free gate is complete. The next step is to select and validate one
+guarded physical-source observer candidate; there has still been no device
+action or boot candidate in this experiment.

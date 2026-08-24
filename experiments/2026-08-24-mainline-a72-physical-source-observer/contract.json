@@ -105,8 +105,18 @@
     "patch": "0355-soc-mediatek-move-A72-physical-source-KUnit-snapshots-off-stack.patch",
     "patch_sha256": "70e316293c0b825b619572e759bba20c18403d43b3e6413cfd54763cb3242ae8",
     "canonical_admission": "0355",
-    "compile": "pending",
-    "qemu": "pending",
+    "compile": "passed",
+    "qemu": "passed-4-of-4",
+    "verification_repository_commit": "ef0da357a74de3962286df331728a04d8fd7e5c1",
+    "verification_buildbox_job": "ef0da357a74de3962286df331728a04d8fd7e5c1-a72-physical-source-kunit-m0",
+    "verification_package": "linux-7.1.3-gemini-a72-physical-source-kunit-8c983929-186d9a17",
+    "verification_patchset_sha256": "8c9839297f8c8c2550fac345982c70391e9bd2cc7194a7580d05c18f5a3a27e6",
+    "verification_config_sha256": "4a5cc00123c7456c7d7028f8f3ddfa3798b352d510d389bb0424918835dd2e50",
+    "verification_image_sha256": "7670a5489bcac43fa16857c59154306440c5413ac7c592d15041231b06b2cdfb",
+    "verification_system_map_sha256": "f050748efeb74b35e32617de25c8b243575e6ecc0e23a4a60f02dbff1dc96411",
+    "verification_qemu_log_sha256": "2defcec28678b9d03feec1d9871ec549033fdad3e688541289557f382eb97797",
+    "verification_failed": 0,
+    "verification_skipped": 0,
     "changed_files": [
       "drivers/soc/mediatek/mt6797-a72-physical-source-observer-test.c"
     ],
@@ -116,8 +126,8 @@
     "hardware_operations": false
   },
   "decision": {
-    "result": "test-stack-remediation-admitted",
-    "selected_next": "rebuild-and-rerun-four-focused-kunit-cases",
+    "result": "hardware-free-phase-b-complete",
+    "selected_next": "select-one-guarded-physical-source-observer-candidate",
     "device_action": false,
     "boot_candidate": false
   }
