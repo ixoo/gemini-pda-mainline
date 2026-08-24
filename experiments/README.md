@@ -28,8 +28,9 @@ the loop. Positive identity-gated observations are unaffected.
   pristine P30 claim, direct-state ABI 2 target identity, and A34 ABI 2 over
   one direct record plus typed primary-BL31 replay applicability. Production
   publication, physical binding, both CPU vetoes, and device action remain
-  closed. Its three patches now pass exact Buildbox generation, replay, and
-  strict style; isolated compilation and execution remain pending.
+  closed. Its three patches pass exact Buildbox generation, replay, strict
+  style, isolated compilation with no new stack warning, and all 32 focused
+  no-network arm64 KUnit cases.
 - [2026-08-23 mainline A72 A34 publication contract audit](2026-08-23-mainline-a72-a34-publication-contract-audit/README.md)
   — rejects production publication from the current inputs: direct-state
   `valid=1` proves stable record shape rather than recovered raw values, the

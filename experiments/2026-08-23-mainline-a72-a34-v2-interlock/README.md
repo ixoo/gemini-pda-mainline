@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-23-mainline-a72-a34-v2-interlock` |
-| Status | generated review admitted; Buildbox compile pending |
+| Status | completed hardware-free compile and focused runtime proof |
 | Subsystem | MT6797 A72 A34 input and P30 pristine exclusion |
 | Device variant | Gemini PDA contract; injected hardware-free phase |
 | Date(s) | 2026-08-23 America/New_York |
@@ -88,6 +88,22 @@ checksum-covered package is `a34-v2-interlock-91b6993a4ffc`; exact admitted
 patch identities are recorded in [`contract.json`](contract.json). No kernel
 was compiled and no QEMU or device action occurred during generation.
 
+The exact admitted commit `b89e284f` then passed the isolated Buildbox compile
+and package validation as release `7.1.3-gemini-a34-v2-kunit`. Its build log
+introduced no over-limit stack frame. The two reported large frames—2,768
+bytes in the late CPU profile and 6,672 bytes in the membership token
+builder—are the same inherited warnings already classified by the parent
+direct-state experiment. The log also retained one unused CPUHP inventory
+helper warning and the canonical patch-0261 whitespace notice.
+
+The checksum-validated `Image` then ran under bounded arm64 QEMU with networking
+disabled. The exact three selected suites passed: 20 late-startup/P30 cases,
+five A34-v2 cases, and seven direct-state-v2 cases. All 32 passed with no
+failure or skip. The subsequent missing-root-filesystem panic is the declared
+post-test VM terminal state. Exact compile and runtime records are in
+[`results/buildbox-compile-pass-20260824.txt`](results/buildbox-compile-pass-20260824.txt)
+and [`results/kunit-qemu-pass-20260824.txt`](results/kunit-qemu-pass-20260824.txt).
+
 ## Analysis
 
 The P30 claim is deliberately narrower than a lifecycle state. It can be
@@ -109,11 +125,13 @@ owner, a hardware-free pass cannot open A34 in production.
 ## Conclusion
 
 The three normal patches are generated, exactly replayed, strictly checked,
-and admitted to the canonical series. Isolated Buildbox compilation and
-focused no-network execution remain pending. No boot candidate is defined.
+admitted to the canonical series, compiled on Buildbox without a new stack
+warning, and covered by 32/32 exact no-network arm64 KUnit tests. This closes
+the hardware-free A34-v2 input and P30 exclusion proof. It does not publish the
+membership owner, bind physical readers, or create a boot candidate.
 
 ## Follow-up
 
-If the exact source, replay, build, and KUnit gates pass, publish the evidence
-and perform a separate atomic-publication review. Do not fold publication into
-this experiment.
+The authoritative next action is in
+[Roadmap Gate 7](../../docs/ROADMAP.md#7-bring-up-cpu8). Atomic publication is
+not part of this completed experiment.

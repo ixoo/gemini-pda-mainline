@@ -42,9 +42,18 @@ def main() -> None:
     ).read_text()
     buildbox = (ROOT / "scripts/buildbox").read_text()
     docs = (ROOT / "docs/BUILDBOX.md").read_text()
+    roadmap = (ROOT / "docs/ROADMAP.md").read_text()
     manifest = json.loads((ROOT / "kernel/manifest.json").read_text())
     series = (ROOT / "patches/series").read_text().splitlines()
     fragment = (ROOT / "configs/gemini-a72-a34-v2-kunit.fragment").read_text()
+    runner = (EXPERIMENT / "scripts/run-kunit-qemu").read_text()
+    classifier = (EXPERIMENT / "scripts/classify-kunit.py").read_text()
+    build_result = (
+        EXPERIMENT / "results/buildbox-compile-pass-20260824.txt"
+    ).read_text()
+    qemu_result = (
+        EXPERIMENT / "results/kunit-qemu-pass-20260824.txt"
+    ).read_text()
 
     require(contract["experiment"] == EXPERIMENT.name, "experiment identity")
     require(contract["repository_parent"] ==
@@ -99,6 +108,65 @@ def main() -> None:
             generation["device_action"] is False and
             generation["boot_candidate"] is False,
             "generation scope closure")
+    build = contract["build"]
+    require(build["repository_commit"] ==
+            "b89e284f2ba7d663f3086f2b108e0ca1dcb0bca0",
+            "build repository commit")
+    require(build["buildbox_job"] ==
+            "b89e284f2ba7d663f3086f2b108e0ca1dcb0bca0-"
+            "a72-a34-v2-kunit-m0", "buildbox job")
+    require(build["package"] ==
+            "linux-7.1.3-gemini-a72-a34-v2-kunit-5bfb371e-0f62ecbf",
+            "build package")
+    require(build["kernel_release"] ==
+            "7.1.3-gemini-a34-v2-kunit", "kernel release")
+    require(build["source_sha256"] ==
+            "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+            "build source identity")
+    require(build["patchset_sha256"] ==
+            "5bfb371e092a88374d91695151e51971fcf22f0c97a8066baada28a853a56d19",
+            "build patchset identity")
+    require(build["config_sha256"] ==
+            "0779246848f2217146e1c1099265b55755a7c22598cdacedb44cece2c184d197",
+            "build configuration identity")
+    require(build["image_sha256"] ==
+            "bbe3d78dfd1b23bb8128e2ab7dacc825ad06e8801af8b739ecc575edfe2393fb",
+            "build Image identity")
+    require(build["image_gzip_sha256"] ==
+            "f85653844d56f6aa1852f52f357cdeebefb37ffcf9416f996543a058bad9c271",
+            "build Image.gz identity")
+    require(build["build_exit"] == 0 and
+            build["artifact_validation"] == "pass" and
+            build["classification"] == "pass-no-new-stack-warning" and
+            build["introduced_frame_warning_count"] == 0 and
+            build["inherited_frame_warning_count"] == 2 and
+            build["qemu_run"] is True and
+            build["boot_candidate"] is False,
+            "Buildbox compile classification")
+    require(build["evidence"] ==
+            "results/buildbox-compile-pass-20260824.txt",
+            "build evidence path")
+    qemu = contract["qemu"]
+    require(qemu["repository_commit"] == build["repository_commit"] and
+            qemu["profile"] == "a72-a34-v2-kunit" and
+            qemu["kernel_release"] == build["kernel_release"] and
+            qemu["image_sha256"] == build["image_sha256"],
+            "QEMU artifact identity")
+    require(qemu["runner"] == "qemu-system-aarch64-11.0.2" and
+            qemu["network"] == "none" and
+            qemu["suites"] == 3 and qemu["tests"] == 32 and
+            qemu["failed"] == 0 and qemu["skipped"] == 0 and
+            qemu["result"] == "pass" and
+            qemu["post_test_state"] == "expected-vm-rootfs-panic",
+            "focused QEMU result")
+    require(qemu["production_callers"] == 0 and
+            qemu["owner_publication"] is False and
+            qemu["physical_reader_binding"] is False and
+            qemu["device_action"] is False and
+            qemu["boot_candidate"] is False,
+            "QEMU scope closure")
+    require(qemu["evidence"] == "results/kunit-qemu-pass-20260824.txt",
+            "QEMU evidence path")
     require(contract["scope"]["production_callers"] == 0,
             "production caller scope")
     require(all(contract["scope"][key] is False for key in (
@@ -143,6 +211,40 @@ def main() -> None:
     require("kunit_kzalloc(" in test, "A34 KUnit state is not off-stack")
     require(test.count("KUNIT_CASE(") == 5, "A34-v2 test case count")
 
+    for token in (
+        "EXPECTED_PROFILE=a72-a34-v2-kunit", "sha256sum --check --strict",
+        "merge-base --is-ancestor", "-nic none", "timeout --signal=TERM 45",
+        "focused KUnit inventory changed", "classify-kunit.py",
+    ):
+        require(token in runner, f"QEMU runner invariant {token}")
+    for token in (
+        'PROFILE = "a72-a34-v2-kunit"', '"arm64-late-cpu-startup"',
+        '"mt6797-a72-a34-eligibility"', '"mt6797-a72-direct-state"',
+        '"1..3", "1..20", "1..5", "1..7"',
+        "expected post-test rootfs panic", "tests={total_tests}",
+        'print("owner_publication=false")',
+        'print("physical_reader_binding=false")',
+        'print("boot_candidate=false")',
+    ):
+        require(token in classifier, f"QEMU classifier invariant {token}")
+    for token in (
+        "repository_commit=b89e284f2ba7d663f3086f2b108e0ca1dcb0bca0",
+        "artifact_validation=pass",
+        "classification=pass-no-new-stack-warning",
+        "introduced_frame_warning_count=0",
+        "inherited_frame_warning_count=2",
+        "boot_candidate=false",
+    ):
+        require(token in build_result, f"build result invariant {token}")
+    for token in (
+        "repository_commit=b89e284f2ba7d663f3086f2b108e0ca1dcb0bca0",
+        "network=none", "suites=3", "tests=32", "failed=0",
+        "skipped=0", "tap_summary=pass:32_fail:0_skip:0_total:32",
+        "owner_publication=false", "physical_reader_binding=false",
+        "device_action=none", "boot_candidate=false",
+    ):
+        require(token in qemu_result, f"QEMU result invariant {token}")
+
     profile = manifest["config"]["profiles"]["a72-a34-v2-kunit"]
     require(profile["patch_series"] == "patches/series",
             "profile does not use canonical series")
@@ -165,14 +267,25 @@ def main() -> None:
     require("./scripts/buildbox generate-a34-v2-interlock" in docs,
             "Buildbox documentation")
     for token in (
-        "Buildbox compile pending", "no production caller",
-        "not physical evidence", "No boot candidate",
+        "completed hardware-free compile and focused runtime proof",
+        "no production caller", "not physical evidence",
+        "All 32 passed", "It does not publish",
     ):
         require(token in readme, f"README closure {token}")
+    for token in (
+        "all 32 cases under no-network arm64 QEMU",
+        "separate hardware-free review of the atomic single membership",
+        "retaining both CPU vetoes",
+        "Production positive", "physical source binding remain separate",
+    ):
+        require(token in roadmap, f"Roadmap next-step invariant {token}")
 
     for relative in (
         "scripts/source_edits.py", "scripts/validate_source.py",
         "scripts/validate_patch.py", "scripts/generate-on-buildbox",
+        "scripts/run-kunit-qemu", "scripts/classify-kunit.py",
+        "results/buildbox-compile-pass-20260824.txt",
+        "results/kunit-qemu-pass-20260824.txt",
     ):
         path = EXPERIMENT / relative
         require(path.exists() and not path.is_symlink(),
@@ -182,6 +295,12 @@ def main() -> None:
     print("admitted_patch_count=3")
     print("generation=pass")
     print("build_backend=buildbox")
+    print("compile=pass-no-new-stack-warning")
+    print("inherited_frame_warning_count=2")
+    print("qemu_suites=3")
+    print("qemu_tests=32")
+    print("qemu_failed=0")
+    print("qemu_skipped=0")
     print("production_callers=0")
     print("owner_publication=false")
     print("device_action=none")

@@ -4919,11 +4919,16 @@ The next ordered work is:
    the default-off P30 pristine claim, direct-state ABI 2 target identity, and
    A34 ABI 2 over one direct record plus typed replay applicability. Their
    exact Buildbox generation, semantic validation, replay, and strict style
-   gates pass. **Selected next:** compile the isolated profile and run only its
-   focused P30, direct-state, and A34-v2 suites under no-network arm64 QEMU.
-   Do not publish `AVAILABLE / IDLE`, bind a physical reader, or relax either
-   CPU veto in that slice. Only after those inputs and exclusion rules pass may
-   a separate review add the atomic single publication commit point.
+   gates pass. The exact isolated Buildbox profile now also compiles with no
+   new over-limit stack warning, and its P30, direct-state-v2, and A34-v2
+   suites pass all 32 cases under no-network arm64 QEMU. The
+   [implementation experiment](../experiments/2026-08-23-mainline-a72-a34-v2-interlock/README.md)
+   owns the exact identities and classifications. **Selected next:** perform a
+   separate hardware-free review of the atomic single membership publication
+   commit point under the proven P30 claim, while retaining both CPU vetoes
+   and adding no physical reader binding or device action. Production positive
+   replay authority and physical source binding remain separate prerequisites
+   for a later decision-bearing candidate.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
