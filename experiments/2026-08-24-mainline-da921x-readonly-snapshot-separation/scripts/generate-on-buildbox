@@ -28,8 +28,8 @@ readonly output_root=$3
 [[ -f "$source_root/.gemini-source-integrity" &&
 	! -L "$source_root/.gemini-source-integrity" ]] ||
 	die 'prepared source integrity marker absent or unsafe'
-[[ "$(<"$source_root/.gemini-source-integrity")" ==
-	"$PARENT_SOURCE_INTEGRITY" ]] || die 'prepared source integrity changed'
+[[ "$(<"$source_root/.gemini-source-integrity")" == "$PARENT_SOURCE_INTEGRITY" ]] ||
+	die 'prepared source integrity changed'
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 experiment_dir=$(cd -- "$script_dir/.." && pwd -P)
