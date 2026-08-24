@@ -82,3 +82,11 @@ or candidate was produced. The
 selects one guarded label immediately before the unchanged BigiDVFS, clock,
 platform, and snapshot release chain. Generate and admit that exact
 control-flow-only follow-up before another Buildbox compile.
+
+Exact pushed commit `183269b26bb809f44fd212adac92c21fe83f43b7`
+generated the control-flow-only follow-up on Buildbox from the managed source
+through `0358`. Parent integrity, the exact one-file/three-line boundary,
+byte-identical replay, and strict checkpatch with zero errors, warnings, or
+checks pass. The fetched bytes are canonical patch `0359`; see the
+[control-flow fix receipt](results/buildbox-control-flow-fix-generation-183269b2.txt).
+The next action is to retry the unchanged isolated profile through `0359`.

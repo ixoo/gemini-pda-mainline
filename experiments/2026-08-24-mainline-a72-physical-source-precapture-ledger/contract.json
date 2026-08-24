@@ -75,7 +75,7 @@
     "strict_checkpatch": "0-errors-0-warnings-0-checks"
   },
   "control_flow_fix": {
-    "status": "generation-pending",
+    "status": "validated",
     "canonical_parent": "patches/v7.1.3/0358-pstore-fix-A72-pre-capture-ledger-dependency.patch",
     "prepared_source_state": "1c9ea34123fe39c102cdef8c15d8f95ab798ad30b908429c783954e66717cb1e",
     "prepared_source_integrity": "a3e5b3adf75689034597cf1272e7a5581fed7eafaaf6223e321be8994c10185f",
@@ -85,11 +85,19 @@
       "drivers/soc/mediatek/mt6797-a72-physical-source-observer.c"
     ],
     "added_cleanup_labels": 1,
-    "hardware_actions_changed": false
+    "hardware_actions_changed": false,
+    "repository_commit": "183269b26bb809f44fd212adac92c21fe83f43b7",
+    "package": "a72-physical-source-precapture-control-flow-fix-183269b26bb8",
+    "parent_commit": "70116e5a96f5f367e2d15f2ccb0ee050bc588435",
+    "result_commit": "00c0b5546bc9be54cf797a59904a9a50d720d76d",
+    "patch_sha256": "db53a84c440067862610733670637675e63b9f25fe345eaf141b1b53572ec75e",
+    "package_sha256s_sha256": "ad3a3bf6969bb3820a7bb8234276e88c286face5599c9af4e692e23d416e6f14",
+    "canonical_admission": "0359",
+    "strict_checkpatch": "0-errors-0-warnings-0-checks"
   },
   "decision": {
-    "result": "compile-failure-needs-control-flow-fix",
-    "selected_next": "generate-and-admit-guarded-cleanup-label",
+    "result": "control-flow-fix-admitted-build-retry-pending",
+    "selected_next": "retry-isolated-profile-on-buildbox",
     "device_action": false,
     "boot_candidate": false
   }

@@ -1,0 +1,24 @@
+From 00c0b5546bc9be54cf797a59904a9a50d720d76d Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 24 Aug 2026 17:01:00 +0000
+Subject: [PATCH 1/1] soc: mediatek: fix A72 pre-capture cleanup label
+
+Define the guarded cleanup label used by both pre-capture exits immediately before the existing BigiDVFS, clock, platform, and snapshot release chain. This changes no hardware action.
+---
+ drivers/soc/mediatek/mt6797-a72-physical-source-observer.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-physical-source-observer.c b/drivers/soc/mediatek/mt6797-a72-physical-source-observer.c
+index 03f98ff..f77ce19 100644
+--- a/drivers/soc/mediatek/mt6797-a72-physical-source-observer.c
++++ b/drivers/soc/mediatek/mt6797-a72-physical-source-observer.c
+@@ -270,6 +270,9 @@ mt6797_a72_physical_source_probe(struct platform_device *pdev)
+ 	else
+ 		mt6797_a72_physical_source_log(dev, snapshot);
+ 
++#ifdef CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_PRECAPTURE_LEDGER
++put_bigidvfs:
++#endif
+ 	put_device(context.bigidvfs);
+ put_clock:
+ 	put_device(context.clock);
