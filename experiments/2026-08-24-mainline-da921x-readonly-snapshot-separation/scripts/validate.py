@@ -73,10 +73,36 @@ def main() -> None:
         "strict_checkpatch": "0-errors-0-warnings-0-checks",
         "canonical_admission": "0348-0349",
     }, "validated generation")
+    build = contract["validated_build"]
     require(
-        contract["result"] == "generated-admitted-build-pending",
-        "result state",
+        build["repository_commit"]
+        == "e1ecf96c2132de58681b4abb17a7fe409c5a704f",
+        "validated build commit",
     )
+    require(build["profile"] == "da921x-readonly-snapshot-kunit",
+            "validated build profile")
+    require(build["patch_count"] == 338, "validated build patch count")
+    require(build["modules_built"] is False, "validated build modules")
+    require(build["snapshot_symbol"] == "present",
+            "validated snapshot symbol")
+    require(build["writer_symbols"] == "absent",
+            "validated writer symbols")
+    require(build["qemu"] == {
+        "observed_utc": "2026-08-24T12:43:29Z",
+        "runner": "qemu-system-aarch64-11.0.2",
+        "machine": "virt-cortex-a53-four-vcpu-no-network",
+        "raw_log_sha256":
+            "26457e64180ec7e943480cf27853fdb11aa2f3acd83b25aca949ee7351a91001",
+        "suite": "da9213-legacy-provider-snapshot",
+        "planned_cases": 5,
+        "passed_cases": 5,
+        "failed_cases": 0,
+        "skipped_cases": 0,
+        "post_test_state": "expected-vm-rootfs-panic",
+        "qemu_exit": 124,
+        "classifier": "pass",
+    }, "validated QEMU result")
+    require(contract["result"] == "phase-a-pass", "result state")
 
     canonical = [
         ROOT / "patches/v7.1.3" / patch for patch in contract["patches"]
@@ -203,8 +229,33 @@ def main() -> None:
         "boot_candidate=false",
     ):
         require(token in receipt, f"generation receipt token {token}")
+    compile_receipt = (EXPERIMENT /
+                       "results/buildbox-compile-e1ecf96c.txt").read_text()
+    for token in (
+        "profile=da921x-readonly-snapshot-kunit",
+        "package_checksums=pass",
+        "modules_built=false",
+        "snapshot_symbol=present",
+        "writer_symbols=absent",
+        "build=pass",
+        "boot_candidate=false",
+    ):
+        require(token in compile_receipt, f"compile receipt token {token}")
+    runtime_receipt = (EXPERIMENT /
+                       "results/qemu-attempt-1-success-20260824.txt").read_text()
+    for token in (
+        "raw_log_sha256=26457e64180ec7e943480cf27853fdb11aa2f3acd83b25aca949ee7351a91001",
+        "writer_symbols=absent",
+        "suites=1",
+        "tests=5",
+        "failed=0",
+        "skipped=0",
+        "tap_summary=pass:5_fail:0_skip:0_total:5",
+        "result=pass",
+    ):
+        require(token in runtime_receipt, f"runtime receipt token {token}")
 
-    print("validation=da921x-readonly-snapshot-generation-input")
+    print("validation=da921x-readonly-snapshot-phase-a")
     print("prepared_source_state=exact")
     print("generated_patch_count=2")
     print("focused_tests=5")
@@ -214,7 +265,11 @@ def main() -> None:
     print("device_action=none")
     print("boot_candidate=false")
     print("canonical_admission=0348-0349")
-    print("compile=pending")
+    print("compile=pass")
+    print("snapshot_symbol=present")
+    print("writer_symbols=absent")
+    print("qemu=pass-5-of-5")
+    print("phase_a=complete")
     print("result=pass")
 
 

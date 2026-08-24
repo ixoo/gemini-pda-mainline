@@ -4969,11 +4969,17 @@ The next ordered work is:
    strict checkpatch, package validation, and byte-identical admission. They
    factor only the read endpoint and stable callback. The
    positive writable provider option and its firmware-writer window remain
-   absent, as does the Buck-B writer.
-   **Selected next:** run the isolated no-modules Buildbox compile,
-   linked-symbol absence check, and five-case no-network QEMU KUnit proof. Add
-   no physical adapter, boot candidate, device action, provider
-   acquire/release, A34/P30/publication, or CPU request.
+   absent, as does the Buck-B writer. The exact isolated no-modules Buildbox
+   profile compiles, linked-symbol inspection proves those writer paths are
+   absent, and its one no-network QEMU suite passes all five cases with zero
+   failures or skips. Phase A is complete without a hardware operation,
+   device action, or boot candidate.
+   **Selected next:** implement and review the contract's candidate-only
+   Phase B observer. It must compose platform, DA921x, protected-clock, and
+   BigiDVFS records under the existing outer owner and retain exactly the two
+   declared checkpoints around the first attributable BigiDVFS call. Keep
+   publication, provider acquire/release, and CPU8/CPU9 requests closed until
+   that observer has passed generation, compilation, and hardware-free tests.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

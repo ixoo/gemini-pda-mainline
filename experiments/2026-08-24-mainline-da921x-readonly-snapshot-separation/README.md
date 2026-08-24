@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-24-mainline-da921x-readonly-snapshot-separation` |
-| Status | patches generated, validated, and admitted; isolated build pending |
+| Status | Phase A complete: generated, admitted, compiled, and 5/5 KUnit pass |
 | Subsystem | DA921x provider registry and stable snapshot |
 | Device variant | hardware-free source and in-memory KUnit only |
 | Date(s) | 2026-08-24 America/New_York |
@@ -72,8 +72,16 @@ canonical patches `0348` and `0349`. Their exact identities and generation
 receipt are in [`contract.json`](contract.json) and
 [`results/buildbox-generation-866d528c.txt`](results/buildbox-generation-866d528c.txt).
 
-The isolated `da921x-readonly-snapshot-kunit` profile explicitly disables the
-positive provider transaction and firmware-writer transaction window. Its
-Buildbox compile, linked-symbol inspection, and focused no-network QEMU proof
-remain pending. No support claim, boot candidate, hardware operation, device
-action, or CPU request exists yet.
+The exact isolated `da921x-readonly-snapshot-kunit` profile explicitly disables
+the positive provider transaction and firmware-writer transaction window. Its
+Buildbox compile passed with modules disabled and all package checksums valid.
+Linked-symbol inspection found the read-only snapshot and found none of the
+Buck-B writer, positive acquire/release helpers, or same-value writer. The
+no-network arm64 QEMU run then executed exactly the one intended suite; all
+five cases passed with zero failures or skips. See the
+[`compile receipt`](results/buildbox-compile-e1ecf96c.txt) and
+[`runtime receipt`](results/qemu-attempt-1-success-20260824.txt).
+
+Phase A therefore passes. This is a hardware-free source proof, not a Gemini
+support claim or boot candidate. It performed no physical I2C, hardware
+operation, device action, CPU request, or partition write.

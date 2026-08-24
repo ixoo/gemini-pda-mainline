@@ -29,8 +29,10 @@ the loop. Positive identity-gated observations are unaffected.
   `0349` pass generation, semantic validation, replay, strict checkpatch, and
   byte-identical admission. The stable two-sample callback is factored onto a
   read-only endpoint while the delayed positive transaction, firmware-writer
-  window, and Buck-B writer remain absent. The isolated five-case Buildbox
-  compile and no-network KUnit proof are pending.
+  window, and Buck-B writer remain absent. The isolated no-modules Buildbox
+  compile passes, linked writer symbols are absent, and the exact no-network
+  QEMU suite passes all five cases with zero failures or skips. Phase A is
+  complete without a hardware operation, device action, or boot candidate.
 - [2026-08-24 mainline A72 physical-source qualification contract](2026-08-24-mainline-a72-physical-source-qualification-contract/README.md)
   — freezes two ordered phases before a physical direct-state observation.
   First, separate the stable DA921x snapshot from the positive writable
