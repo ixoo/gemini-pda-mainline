@@ -5401,7 +5401,14 @@ The next ordered work is:
    canonical order, with no source-tree copying or native build. **Selected
    next:** sign and push this parent-state repair, run generation attempt 6,
    and re-admit only its checksum-verified exact bytes. No QEMU or device
-   action occurred.
+   action occurred. Attempt 6 reconstructed exact post-0373 source and matched
+   its full integrity plus pinned pstore hashes, but safely stopped before edit
+   because the dedicated series' managed state marker is `0ec8eccb…` rather
+   than the legacy `c5bc1470…` marker. The generator now pins that observed
+   managed marker separately without weakening any content-identity gate.
+   **Selected next:** sign and push the marker repin, run attempt 7, and admit
+   only its checksum-verified corrected bytes. No build, QEMU, or device action
+   occurred.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

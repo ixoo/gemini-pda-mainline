@@ -63,6 +63,7 @@ def main() -> None:
     for value in (
         contract["canonical_parent_sha256"],
         contract["prepared_source_state"],
+        contract["generator_parent_source_state"],
         contract["prepared_source_integrity"],
         *contract["edited_parent_files"].values(),
         *contract["audited_dependencies"].values(),
@@ -196,8 +197,8 @@ def main() -> None:
     require(status == {
         "definition": "frozen",
         "source_audit": "pass-read-only-buildbox",
-        "generation_tooling": "pinned-0373-managed-parent-repair-pending-regeneration",
-        "patch_generation": "attempt-5-rejected-before-edit-parent-state-mismatch",
+        "generation_tooling": "pinned-managed-parent-marker-repair-pending-regeneration",
+        "patch_generation": "attempt-6-rejected-before-edit-parent-marker-mismatch",
         "kernel_build": "rejected-before-compile-kconfig-cycle",
         "boot_candidate": False,
         "device_action": "none",

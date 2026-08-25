@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-25-mainline-a72-platform-provider-protected-clock-third-read` |
-| Status | one-way Kconfig repair ready; pinned-parent regeneration pending |
+| Status | one-way Kconfig repair ready; managed-parent marker repin pending |
 | Subsystem | MT6797 A72 state, DA921x provider, DVFSP protected clock |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-25 America/New_York |
@@ -157,5 +157,12 @@ source from a manifest-selected canonical subsequence ending exactly at 0373;
 it does not copy a source tree or invoke a native build. All 136 profiles pass
 the series invariant, and a fourteenth tooling mutation rejects a wrong parent
 profile. See the [parent-state rejection](results/buildbox-generation-attempt-5-parent-state-rejected-20260825.txt).
+Attempt 6 prepared that exact post-0373 tree and independently matched its
+full integrity plus both edited pstore file hashes, then stopped because the
+managed series marker is `0ec8eccb…` rather than the legacy parent marker
+`c5bc1470…`. The generator now pins the observed managed marker separately
+while retaining every full integrity and file-identity gate. No source edit,
+package, kernel build, QEMU, hardware, or device action occurred. See the
+[marker rejection](results/buildbox-generation-attempt-6-parent-marker-rejected-20260825.txt).
 The ordered continuation is owned by the
 [Roadmap](../../docs/ROADMAP.md#7-bring-up-cpu8).

@@ -35,7 +35,9 @@ the loop. Positive identity-gated observations are unaffected.
   a reciprocal negative ledger dependency; a one-way exclusion repair is
   mutation-guarded. Its first regeneration safely rejected the now-advanced
   shared source state; a 136-profile canonical parent lane now reconstructs
-  exact post-0373 source before retry. No QEMU or device action has occurred.
+  exact post-0373 source. Its content hashes pass; a distinct managed state
+  marker is now separately pinned before retry. No QEMU or device action has
+  occurred.
 - [2026-08-25 A72 platform plus DA921x provider snapshot as the second read](2026-08-25-mainline-a72-platform-provider-snapshot-second-read/README.md)
   — keeps the exact passed platform reader, then brackets only one stable
   writer-free DA921x provider snapshot with retained records immediately before

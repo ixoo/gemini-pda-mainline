@@ -50,7 +50,7 @@ def main() -> None:
     )
 
     for token in (
-        contract["prepared_source_state"],
+        contract["generator_parent_source_state"],
         contract["prepared_source_integrity"],
         contract["canonical_parent_sha256"],
         "readonly PARENT_PATCH=0373-soc-mediatek-test-A72-platform-provider-readiness.patch",

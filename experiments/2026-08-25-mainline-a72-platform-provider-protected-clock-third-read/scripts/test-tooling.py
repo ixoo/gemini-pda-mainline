@@ -39,7 +39,7 @@ def main() -> None:
     tests = f"{exp}/source/mt6797-a72-platform-provider-clock-observer-test.c"
     source_validator = f"{exp}/scripts/validate_source.py"
     mutations = (
-        ("source-state", generator, "PARENT_SOURCE_STATE=c5bc1470", "PARENT_SOURCE_STATE=d5bc1470"),
+        ("source-state", generator, "PARENT_SOURCE_STATE=0ec8eccb", "PARENT_SOURCE_STATE=1ec8eccb"),
         ("patch-count", generator, "generated_patch_count=4", "generated_patch_count=5"),
         ("retry", generator, "protected_clock_caller_retries=0", "protected_clock_caller_retries=1"),
         ("write-ceiling", generator, "explicit_mmio_writes_maximum=401", "explicit_mmio_writes_maximum=402"),

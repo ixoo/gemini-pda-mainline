@@ -6,6 +6,7 @@
   "canonical_parent": "patches/v7.1.3/0373-soc-mediatek-test-A72-platform-provider-readiness.patch",
   "canonical_parent_sha256": "de668030d4dc0fbf6b207498e3d853ec3e3990309e226328e944f3199f5c440c",
   "prepared_source_state": "c5bc147006d9c6be991a0eea2d805bf3f8f0203459cdb0171b7bac5d1de31593",
+  "generator_parent_source_state": "0ec8eccb3d556814b66b7339b0f6bc25143efce007e27abd0c0681a24e291889",
   "prepared_source_integrity": "7d12af9736e3a75dc3dd084366ae9dc022b8bcc9a4e25324a8ad6e3bf107ea87",
   "edited_parent_files": {
     "drivers/soc/mediatek/Kconfig": "5123eb59cd1a1ad70a4f4483e262bc4028f4e6d92cbeb3e3e51add3bd95e47f3",
@@ -135,8 +136,8 @@
   "current_status": {
     "definition": "frozen",
     "source_audit": "pass-read-only-buildbox",
-    "generation_tooling": "pinned-0373-managed-parent-repair-pending-regeneration",
-    "patch_generation": "attempt-5-rejected-before-edit-parent-state-mismatch",
+    "generation_tooling": "pinned-managed-parent-marker-repair-pending-regeneration",
+    "patch_generation": "attempt-6-rejected-before-edit-parent-marker-mismatch",
     "kernel_build": "rejected-before-compile-kconfig-cycle",
     "boot_candidate": false,
     "device_action": "none"
