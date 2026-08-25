@@ -175,8 +175,40 @@
     "predecessor_retained_record_1_sha256": "047e5c5c6f3bfa3b8f86ba174c3e1ceb65926a190dbec7099f915ee5b7e371b2",
     "predecessor_retained_record_2_sha256": "2f0ad139001347459344b031abd8376f63ff455f1742d24569823f33d23918e0",
     "boot_candidate": true,
-    "deployment_status": "not-installed",
-    "device_action": false
+    "deployment_status": "write-synced-flushed-full-readback-verified-and-shut-down",
+    "device_action": true
+  },
+  "deployment": {
+    "repository_commit": "2fb031e14b09deaa9753f9d88907f0a7f19896a1",
+    "boot_id": "258b3f63-71ff-4351-9db5-6fa839fd3d89",
+    "target_logical_name": "boot2",
+    "target": "/dev/mmcblk0p30",
+    "root": "/dev/mmcblk0p29",
+    "predecessor_sha256": "f55bb272de24a62a0e4055624e8eb0ef35bc53432fa130463c867c43c059732e",
+    "readback_sha256": "1f7bd9600e11846af352abbec660db816c378094664f81d861b9fbd1f1f16aa2",
+    "retained_predecessor": "exact-completed-provider-pair",
+    "retained_record_1_sha256": "047e5c5c6f3bfa3b8f86ba174c3e1ceb65926a190dbec7099f915ee5b7e371b2",
+    "retained_record_2_sha256": "2f0ad139001347459344b031abd8376f63ff455f1742d24569823f33d23918e0",
+    "retained_ram_write": false,
+    "fresh_predecessor_backup": false,
+    "full_readback_verified": true,
+    "shutdown_confirmed": true,
+    "reboot": false
+  },
+  "runtime_tooling": {
+    "source_collector": "experiments/2026-08-25-mainline-a72-platform-provider-deferred-bind-repair/scripts/collect-runtime.sh",
+    "source_collector_sha256": "20f795c6d389b2d37216dbaa363386145fc6be5e29e2b63dee287afb6b6342a2",
+    "source_validator": "experiments/2026-08-25-mainline-a72-platform-provider-deferred-bind-repair/scripts/validate-runtime.py",
+    "source_validator_sha256": "8b88d26718faf70e98960e784d781e66041c37bbe45cd177bd4648fb5677db91",
+    "remote_probe_sha256": "cd5f30e02a2d93b5794deac72ddda57f10680c6b91d137a3d3d2fd439d7a7c4c",
+    "validator_sha256": "0ca1a9146b35c3c4a30300205b59513c7ac1a2c3fbf5433f6a687ee2260d682f",
+    "collector_sha256": "3ae4fca56691f5f9f07e0e2b122aaf0e8cdbdef80c2c12442e9a6495931d1f01",
+    "accepted_decision_branches": 4,
+    "rejected_mutations": 19,
+    "expected_output": "artifacts/runtime-captures/a72-platform-provider-clock-attempt-1",
+    "collector_reboot": false,
+    "offline_device_action": false,
+    "result": "pass-preboot"
   },
   "current_status": {
     "definition": "frozen",
@@ -186,7 +218,8 @@
     "kernel_build": "kunit-and-candidate-buildbox-pass",
     "offline_candidate_validation": "pass",
     "boot_candidate": true,
-    "deployment": "pending-guarded-boot2-install",
-    "device_action": "none"
+    "deployment": "write-verified-and-shut-down",
+    "runtime_tooling": "validated-and-pending-publication",
+    "device_action": "guarded-boot2-write"
   }
 }

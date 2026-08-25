@@ -5431,9 +5431,20 @@ The next ordered work is:
    completed provider retained pair or an exact empty pair, and retains the
    live-GPT, inactive-target, full-readback, no-fresh-backup, clean-shutdown,
    and no-reboot gates. No device access or hardware write occurred during
-   build or assembly. **Selected next:** publish this exact candidate evidence,
-   return the still-running provider-ready predecessor to Gemian, and make one
-   guarded `boot2` installation before the owner physically selects it.
+   build or assembly. Signed commit `2fb031e1` publishes those exact gates. The
+   guarded installer then returned the provider-ready predecessor to changed-ID
+   Gemian, resolved inactive live-GPT `boot2` as `/dev/mmcblk0p30`, matched the
+   exact `f55bb272` predecessor and completed provider retained pair, and
+   verified stable power plus both TEE identities. It wrote, synced, flushed,
+   and independently read back exact candidate `1f7bd960`, removed temporary
+   staging and readback data, and confirmed clean shutdown without a fresh
+   backup, retained-memory write, or reboot. The no-reboot runtime collector is
+   source-pinned to the passed provider-ready path, pins the exact new probe and
+   validator hashes, accepts four decision-bearing returned-call branches, and
+   rejects 19 stale, malformed, or unsafe mutations. **Selected next:** the
+   owner makes one physical `boot2` selection, then identity-gated collection
+   distinguishes exact live success, before-clock-only retention, a returned
+   terminal clock error, or a pre-clock failure without an unchanged retry.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

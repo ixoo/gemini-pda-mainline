@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-25-mainline-a72-platform-provider-protected-clock-third-read` |
-| Status | KUnit and device Buildbox profiles pass; exact boot candidate validated offline and awaiting guarded `boot2` install |
+| Status | exact candidate installed to `boot2`, full readback verified, device shut down, and runtime collector validated; first owner-selected boot pending |
 | Subsystem | MT6797 A72 state, DA921x provider, DVFSP protected clock |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-25 America/New_York |
@@ -197,7 +197,18 @@ fresh backup. No device access or hardware write has occurred for this step.
 See the [device compile receipt](results/buildbox-candidate-compile-20260825.txt),
 [DT validation](results/offline-dtb-validation-20260825.txt), and
 [container validation](results/offline-candidate-validation-20260825.txt).
-The next ordered action is to publish these exact gates, return the currently
-running predecessor to Gemian, and perform one guarded `boot2` installation.
+The previously selected publication and guarded deployment are complete. The
+installer resolved inactive live-GPT
+`boot2` as `/dev/mmcblk0p30`, required exact predecessor `f55bb272…`, matched
+the completed provider retained pair, stable external power and both TEE
+identities, then wrote and independently read back exact padded candidate
+`1f7bd960…`. It made no fresh backup or retained-memory write, removed staging
+and readback temporaries, and confirmed a clean shutdown without rebooting.
+See the [deployment receipt](results/deployment-boot2-20260825.txt). The next
+ordered action is one owner-selected `boot2` start followed by the prevalidated,
+identity-gated, no-reboot runtime collector. Its four accepted terminal
+branches and 19 rejected attribution/safety mutations are recorded in the
+[preboot tooling receipt](results/preboot-runtime-tooling-20260825.txt). The
+artifact must not be retried unchanged after a decision-bearing result.
 The ordered continuation is owned by the
 [Roadmap](../../docs/ROADMAP.md#7-bring-up-cpu8).

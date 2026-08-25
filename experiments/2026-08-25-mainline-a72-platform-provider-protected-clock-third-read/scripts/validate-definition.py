@@ -51,6 +51,10 @@ def main() -> None:
     candidate_receipt = read(
         exp / "results/offline-candidate-validation-20260825.txt"
     )
+    deployment_receipt = read(exp / "results/deployment-boot2-20260825.txt")
+    runtime_tooling_receipt = read(
+        exp / "results/preboot-runtime-tooling-20260825.txt"
+    )
 
     require(contract["schema"] == 1, "contract schema")
     require(contract["experiment"] == EXPERIMENT, "experiment identity")
@@ -216,9 +220,50 @@ def main() -> None:
         "predecessor_retained_record_1_sha256": "047e5c5c6f3bfa3b8f86ba174c3e1ceb65926a190dbec7099f915ee5b7e371b2",
         "predecessor_retained_record_2_sha256": "2f0ad139001347459344b031abd8376f63ff455f1742d24569823f33d23918e0",
         "boot_candidate": True,
-        "deployment_status": "not-installed",
-        "device_action": False,
+        "deployment_status": "write-synced-flushed-full-readback-verified-and-shut-down",
+        "device_action": True,
     }, "exact boot candidate")
+    require(contract["deployment"] == {
+        "repository_commit": "2fb031e14b09deaa9753f9d88907f0a7f19896a1",
+        "boot_id": "258b3f63-71ff-4351-9db5-6fa839fd3d89",
+        "target_logical_name": "boot2",
+        "target": "/dev/mmcblk0p30",
+        "root": "/dev/mmcblk0p29",
+        "predecessor_sha256": "f55bb272de24a62a0e4055624e8eb0ef35bc53432fa130463c867c43c059732e",
+        "readback_sha256": "1f7bd9600e11846af352abbec660db816c378094664f81d861b9fbd1f1f16aa2",
+        "retained_predecessor": "exact-completed-provider-pair",
+        "retained_record_1_sha256": "047e5c5c6f3bfa3b8f86ba174c3e1ceb65926a190dbec7099f915ee5b7e371b2",
+        "retained_record_2_sha256": "2f0ad139001347459344b031abd8376f63ff455f1742d24569823f33d23918e0",
+        "retained_ram_write": False,
+        "fresh_predecessor_backup": False,
+        "full_readback_verified": True,
+        "shutdown_confirmed": True,
+        "reboot": False,
+    }, "exact boot2 deployment")
+    require(contract["runtime_tooling"] == {
+        "source_collector": "experiments/2026-08-25-mainline-a72-platform-provider-deferred-bind-repair/scripts/collect-runtime.sh",
+        "source_collector_sha256": "20f795c6d389b2d37216dbaa363386145fc6be5e29e2b63dee287afb6b6342a2",
+        "source_validator": "experiments/2026-08-25-mainline-a72-platform-provider-deferred-bind-repair/scripts/validate-runtime.py",
+        "source_validator_sha256": "8b88d26718faf70e98960e784d781e66041c37bbe45cd177bd4648fb5677db91",
+        "remote_probe_sha256": "cd5f30e02a2d93b5794deac72ddda57f10680c6b91d137a3d3d2fd439d7a7c4c",
+        "validator_sha256": "0ca1a9146b35c3c4a30300205b59513c7ac1a2c3fbf5433f6a687ee2260d682f",
+        "collector_sha256": "3ae4fca56691f5f9f07e0e2b122aaf0e8cdbdef80c2c12442e9a6495931d1f01",
+        "accepted_decision_branches": 4,
+        "rejected_mutations": 19,
+        "expected_output": "artifacts/runtime-captures/a72-platform-provider-clock-attempt-1",
+        "collector_reboot": False,
+        "offline_device_action": False,
+        "result": "pass-preboot",
+    }, "exact preboot runtime tooling")
+    for relative, expected in (
+        ("scripts/remote-live-probe.sh", contract["runtime_tooling"]["remote_probe_sha256"]),
+        ("scripts/validate-runtime.py", contract["runtime_tooling"]["validator_sha256"]),
+        ("scripts/collect-runtime.sh", contract["runtime_tooling"]["collector_sha256"]),
+    ):
+        require(
+            hashlib.sha256((exp / relative).read_bytes()).hexdigest() == expected,
+            f"runtime tool hash: {relative}",
+        )
     for receipt, tokens in (
         (candidate_build_receipt, (
             "build_backend=buildbox",
@@ -238,6 +283,26 @@ def main() -> None:
             "boot2_padded_sha256=1f7bd9600e11846af352abbec660db816c378094664f81d861b9fbd1f1f16aa2",
             "lk_gates=32-of-32",
             "hardware_write=none",
+            "result=pass",
+        )),
+        (deployment_receipt, (
+            "target_logical_name=boot2",
+            "predecessor_sha256=f55bb272de24a62a0e4055624e8eb0ef35bc53432fa130463c867c43c059732e",
+            "readback_sha256=1f7bd9600e11846af352abbec660db816c378094664f81d861b9fbd1f1f16aa2",
+            "retained_predecessor=exact-completed-provider-pair",
+            "fresh_predecessor_backup=no",
+            "shutdown=confirmed-unreachable",
+            "reboot=no",
+            "result=pass",
+        )),
+        (runtime_tooling_receipt, (
+            "remote_probe_sha256=cd5f30e02a2d93b5794deac72ddda57f10680c6b91d137a3d3d2fd439d7a7c4c",
+            "validator_sha256=0ca1a9146b35c3c4a30300205b59513c7ac1a2c3fbf5433f6a687ee2260d682f",
+            "collector_sha256=3ae4fca56691f5f9f07e0e2b122aaf0e8cdbdef80c2c12442e9a6495931d1f01",
+            "runtime_accepted_branches=4",
+            "runtime_rejected_mutations=19",
+            "collector_reboot=no",
+            "device_action=none",
             "result=pass",
         )),
     ):
@@ -282,8 +347,9 @@ def main() -> None:
         "kernel_build": "kunit-and-candidate-buildbox-pass",
         "offline_candidate_validation": "pass",
         "boot_candidate": True,
-        "deployment": "pending-guarded-boot2-install",
-        "device_action": "none",
+        "deployment": "write-verified-and-shut-down",
+        "runtime_tooling": "validated-and-pending-publication",
+        "device_action": "guarded-boot2-write",
     }, "current status")
     require("/Users/" not in "\n".join((readme, design, audit)), "no host path")
 
@@ -294,7 +360,8 @@ def main() -> None:
     print("explicit_mmio_writes_maximum=401")
     print("explicit_mmio_reads_maximum=419")
     print("boot_candidate=true")
-    print("device_action=none")
+    print("runtime_tooling=validated-preboot")
+    print("device_action=guarded-boot2-write")
 
 
 if __name__ == "__main__":
