@@ -526,6 +526,24 @@ not-ready test. Exact replay, source invariants, strict checkpatch, and package
 checksums must pass before fetch. The lane performs no kernel compile, device
 access, retained-RAM access, candidate construction, or partition action.
 
+## A72 protected-clock third-reader generation
+
+The isolated third reader is generated only from a clean pushed project commit
+and the managed Linux 7.1.3 source pinned through canonical patch `0373`:
+
+```sh
+./scripts/buildbox generate-a72-platform-provider-clock-patches
+./scripts/buildbox fetch-a72-platform-provider-clock-patches
+```
+
+The lane pins the exact platform, provider, clock, handoff, retained-ledger,
+and public-interface inputs. It emits four experiment-only patches for the
+two-record ledger, three-phandle binding, one-shot observer, and eight-case
+hardware-free KUnit suite. Validation requires terminal no-retry behavior.
+It also requires exact source order after the protected-clock call, exact
+replay, strict checkpatch, and package checksums. It performs no kernel compile, device access,
+retained-RAM access, candidate construction, or partition action.
+
 ## Remote storage and concurrency
 
 Buildbox uses its persistent home volume for the Git mirror, verified kernel

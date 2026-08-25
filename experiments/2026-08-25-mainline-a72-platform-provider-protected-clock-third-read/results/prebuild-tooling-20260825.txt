@@ -1,0 +1,17 @@
+experiment=2026-08-25-mainline-a72-platform-provider-protected-clock-third-read
+validation=prebuild-generation-tooling
+tooling_validation=pass
+definition_validation=pass
+definition_rejected_mutations=14
+tooling_rejected_mutations=10
+generated_patch_count=4
+hardware_free_tests=8
+bash_syntax=pass
+python_compile=pass
+git_diff_check=pass
+native_vm_build=false
+patch_generation=pending
+kernel_build=pending
+boot_candidate=false
+device_action=none
+result=pass

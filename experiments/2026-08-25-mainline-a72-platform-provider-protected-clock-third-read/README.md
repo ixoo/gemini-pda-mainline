@@ -113,7 +113,10 @@ mutation gates.
 
 ## Current result
 
-The read-only Buildbox source audit passes and the definition is frozen. No
-patch generation, kernel build, boot image, device write, retained-memory write,
-or hardware call has occurred for this experiment. The ordered continuation is
-owned by the [Roadmap](../../docs/ROADMAP.md#7-bring-up-cpu8).
+The read-only Buildbox source audit passes and the definition is frozen. The
+Git-pinned submit/fetch integration, deterministic four-phase source editor,
+source and patch validators, four source templates, and strict no-native-build
+gate pass local syntax and tooling validation; ten unsafe tooling mutations are
+rejected. No patch generation, kernel build, boot image, device write, retained-
+memory write, or hardware call has occurred for this experiment. The ordered
+continuation is owned by the [Roadmap](../../docs/ROADMAP.md#7-bring-up-cpu8).
