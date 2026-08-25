@@ -27,7 +27,7 @@ readonly project_commit=$1
 readonly source_root=$2
 readonly output_root=$3
 [[ "$project_commit" =~ ^[0-9a-f]{40}$ ]] || die 'invalid project commit'
-[[ "$source_root" == /workspace/gemini-pda/src/linux-7.1.3-series-source ]] ||
+[[ "$source_root" == /workspace/gemini-pda/src/linux-7.1.3-series-a72-platform-provider-clock-parent-source ]] ||
 	die 'unexpected managed source root'
 [[ "$output_root" == /workspace/gemini-pda/* ]] || die 'unsafe output root'
 [[ -f "$source_root/.gemini-source-state" && ! -L "$source_root/.gemini-source-state" ]] ||

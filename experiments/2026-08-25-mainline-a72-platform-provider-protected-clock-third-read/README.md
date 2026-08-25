@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-25-mainline-a72-platform-provider-protected-clock-third-read` |
-| Status | first admitted set rejected at Kconfig; one-way repair pending regeneration |
+| Status | one-way Kconfig repair ready; pinned-parent regeneration pending |
 | Subsystem | MT6797 A72 state, DA921x provider, DVFSP protected clock |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-25 America/New_York |
@@ -150,5 +150,12 @@ reverse edge, preserving effective exclusion without a Kconfig recursion. A
 new tooling mutation recreates and rejects the cycle. No compiler, KUnit,
 QEMU, retained-memory, hardware, or device action ran. See the
 [configuration rejection](results/buildbox-kunit-config-rejected-20260825.txt).
+Generation attempt 5 then stopped before source editing because canonical
+admission had advanced Buildbox's shared managed source from parent 0373 to
+tail 0377. The corrected lane prepares a separately named, reusable managed
+source from a manifest-selected canonical subsequence ending exactly at 0373;
+it does not copy a source tree or invoke a native build. All 136 profiles pass
+the series invariant, and a fourteenth tooling mutation rejects a wrong parent
+profile. See the [parent-state rejection](results/buildbox-generation-attempt-5-parent-state-rejected-20260825.txt).
 The ordered continuation is owned by the
 [Roadmap](../../docs/ROADMAP.md#7-bring-up-cpu8).

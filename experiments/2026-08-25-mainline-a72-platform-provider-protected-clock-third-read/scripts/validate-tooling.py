@@ -66,8 +66,15 @@ def main() -> None:
     ):
         require(token in generator, f"generator pin: {token}")
     require("--backend vm" not in generator, "no native VM build")
-    require("/workspace/gemini-pda/src/linux-7.1.3-series-source" in generator,
+    require("/workspace/gemini-pda/src/linux-7.1.3-series-a72-platform-provider-clock-parent-source" in generator,
             "managed source root")
+    for token in (
+        "source_parent_profile=a72-platform-provider-clock-generator-parent",
+        'KERNEL_PROFILE="${source_parent_profile}"',
+        '"${checkout}/scripts/kernel" prepare',
+        "linux-7.1.3-series-a72-platform-provider-clock-parent-source",
+    ):
+        require(token in buildbox, f"pinned parent preparation: {token}")
     for patch in contract["planned_patches"]:
         require(patch in generator and patch in patch_validator,
                 f"generated patch gate: {patch}")

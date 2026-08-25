@@ -116,7 +116,7 @@ def main() -> None:
         [str(root / "scripts/validate-manifest-series")],
         check=True, capture_output=True, text=True,
     ).stdout
-    require("profiles_checked=135" in invariant,
+    require("profiles_checked=136" in invariant,
             "all manifest profiles checked")
     receipt = read(experiment / "results/buildbox-generation-20260825.txt")
     for token in (

@@ -5393,7 +5393,15 @@ The next ordered work is:
    its tooling oracle now rejects 13 mutations including recurrence of this
    cycle. **Selected next:** sign and push the generator repair, regenerate
    exact patch bytes on Buildbox, re-admit their checksums, and retry the same
-   isolated profile. No QEMU or device action occurred.
+   isolated profile. Generation attempt 5 safely stopped before source editing
+   because the shared managed source now ended at admitted patch 0377 rather
+   than pinned parent 0373. A preparation-only manifest profile now owns a
+   reusable canonical subsequence ending exactly at 0373 and reconstructs that
+   source state through `scripts/kernel prepare`; all 136 profiles preserve
+   canonical order, with no source-tree copying or native build. **Selected
+   next:** sign and push this parent-state repair, run generation attempt 6,
+   and re-admit only its checksum-verified exact bytes. No QEMU or device
+   action occurred.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

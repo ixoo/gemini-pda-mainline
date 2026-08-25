@@ -9595,7 +9595,9 @@ readonly mirror="${persistent_root}/repo.git"
 readonly workspace_root=/workspace/gemini-pda
 readonly checkout_root="${workspace_root}/checkouts"
 readonly checkout="${checkout_root}/${commit}"
-readonly source_root="${workspace_root}/src/linux-7.1.3-series-source"
+readonly source_parent_profile=a72-platform-provider-clock-generator-parent
+readonly source_root="${workspace_root}/src/linux-7.1.3-series-a72-platform-provider-clock-parent-source"
+readonly build_root="${workspace_root}/build"
 readonly artifact_root="${workspace_root}/a72-platform-provider-clock-artifacts"
 readonly job_root="${workspace_root}/jobs"
 readonly job_key="${commit}-a72-platform-provider-clock-patchgen"
@@ -9650,6 +9652,13 @@ if [[ -f "${job_record}" ]] && jq -e \
 fi
 
 rm -f "${job_record}.partial"
+env \
+  KERNEL_PROFILE="${source_parent_profile}" \
+  GEMINI_SOURCE_ROOT="${workspace_root}/src" \
+  GEMINI_BUILD_ROOT="${build_root}" \
+  GEMINI_ARTIFACT_ROOT="${workspace_root}/artifacts" \
+  GEMINI_CACHE_ROOT="${HOME}/.cache/gemini-pda" \
+  "${checkout}/scripts/kernel" prepare
 if ! output="$("${checkout}/${generator}" "${commit}" "${source_root}" "${artifact_root}")"; then
   printf '%s\n' "${output}" >&2
   printf 'error: A72 platform/provider/clock generator failed for %s\n' "${commit}" >&2

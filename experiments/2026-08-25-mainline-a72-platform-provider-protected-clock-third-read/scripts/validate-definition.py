@@ -196,8 +196,8 @@ def main() -> None:
     require(status == {
         "definition": "frozen",
         "source_audit": "pass-read-only-buildbox",
-        "generation_tooling": "one-way-kconfig-exclusion-repair-pending-regeneration",
-        "patch_generation": "attempt-4-admitted-compile-rejected-kconfig-cycle",
+        "generation_tooling": "pinned-0373-managed-parent-repair-pending-regeneration",
+        "patch_generation": "attempt-5-rejected-before-edit-parent-state-mismatch",
         "kernel_build": "rejected-before-compile-kconfig-cycle",
         "boot_candidate": False,
         "device_action": "none",
