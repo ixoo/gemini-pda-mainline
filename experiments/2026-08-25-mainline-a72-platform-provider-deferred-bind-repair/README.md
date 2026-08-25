@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-25-mainline-a72-platform-provider-deferred-bind-repair` |
-| Status | exact offline candidate and evidence paths pass; deployment pending |
+| Status | exact `boot2` deployment and shutdown pass; first runtime pending |
 | Subsystem | MT6797 A72 platform/provider snapshot dependency ordering |
 | Device variant | Gemini PDA, named project device |
 | Date | 2026-08-25 |
@@ -81,6 +81,12 @@ CPU request.
 - Read-only Gemian preflight finds the exact predecessor `before-provider`
   record followed by an exact-empty record while `boot2` remains the failed
   predecessor `ff902d12...`. No retained-memory or partition write occurred.
+- Signed publication commit `db5ba55a` is pushed to `origin/main`. The guarded
+  installer resolved inactive, unmounted live-GPT `boot2` as
+  `/dev/mmcblk0p30`, matched predecessor `ff902d12...`, stable power, and both
+  TEE identities, then passed write, sync, flush, full 16 MiB readback
+  `f55bb272...`, cleanup, and confirmed clean shutdown. It made no fresh
+  backup, retained-RAM write, primary-boot write, or reboot request.
 - Build backend: Buildbox only. A native VM kernel build is prohibited unless
   the owner explicitly requests that specific build.
 
@@ -116,10 +122,9 @@ reversible DT validation, deterministic Android-v0 assembly, live-GPT guarded
 
 ## Next
 
-Publish the exact candidate identities and guarded tools, then install only
-`f55bb272...` to live-GPT-resolved inactive `boot2`, require its full-partition
-readback, and shut down. Before the owner selects `boot2`, pre-arm both the
-USB/netcat live classifier and changed-ID Gemian recovery path. One boot can
+Pre-arm the USB/netcat live classifier before the owner selects `boot2`; keep
+the changed-ID Gemian recovery path ready if mainline returns automatically.
+One boot can
 then distinguish provider-ready completion, continued deferral, a bounded
 provider-read failure, or a later serviceability failure without an unchanged
 retry.

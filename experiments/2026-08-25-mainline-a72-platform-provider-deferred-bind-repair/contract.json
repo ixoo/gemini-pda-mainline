@@ -100,6 +100,19 @@
     "retained_ram_write": false,
     "device_partition_write": false
   },
+  "deployment": {
+    "publication_commit": "db5ba55adcee2d9ef064cf923ab4a6785db21561",
+    "target_logical_name": "boot2",
+    "target": "/dev/mmcblk0p30",
+    "active_root": "/dev/mmcblk0p29",
+    "predecessor_sha256": "ff902d12b95893872990ebf813f24ca298ca76c4f86d4650f3b696cbdc00d79f",
+    "readback_sha256": "f55bb272de24a62a0e4055624e8eb0ef35bc53432fa130463c867c43c059732e",
+    "full_partition_readback": "pass",
+    "fresh_predecessor_backup": false,
+    "retained_ram_write": false,
+    "reboot": false,
+    "shutdown": "confirmed-unreachable"
+  },
   "current_status": {
     "definition": "frozen",
     "patch_generation": "pass",
@@ -110,6 +123,7 @@
     "candidate_validation": "pass",
     "runtime_and_recovery_tools": "prearmed-and-mutation-tested",
     "boot_candidate": true,
-    "device_action": "read-only-preflight-only"
+    "device_action": "boot2-write-readback-and-shutdown-pass",
+    "runtime_attempt": "pending"
   }
 }

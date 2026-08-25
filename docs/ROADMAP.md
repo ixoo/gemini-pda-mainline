@@ -5336,10 +5336,14 @@ The next ordered work is:
    `f55bb272de24a62a0e4055624e8eb0ef35bc53432fa130463c867c43c059732e`.
    Read-only Gemian preflight confirms the current failed predecessor remains
    on `boot2` and the retained pair is exactly `before-provider` then empty;
-   no device write occurred. **Selected next:** publish these exact identities
-   and guarded tools, install only `f55bb272...` to live-GPT-resolved inactive
-   `boot2` with full readback and clean shutdown, then pre-arm one live and one
-   changed-ID recovery classifier before the single owner-selected boot.
+   no device write occurred. Signed publication commit `db5ba55a` is pushed.
+   The guarded installer then resolved inactive, unmounted live-GPT `boot2` as
+   `/dev/mmcblk0p30`, matched predecessor `ff902d12`, stable power, and both TEE
+   identities, and passed write, sync, flush, full readback `f55bb272`, cleanup,
+   and confirmed clean shutdown without a fresh backup, retained-RAM write, or
+   reboot. **Selected next:** pre-arm one live USB/netcat classifier, retain the
+   changed-ID Gemian recovery path, and spend one owner-selected boot on the
+   exact provider-ready candidate.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
