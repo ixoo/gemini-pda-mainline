@@ -12,9 +12,9 @@ struct mt6797_a72_platform_snapshot_observer_ops {
 			struct mt6797_a72_platform_state *snapshot);
 };
 
-int mt6797_a72_platform_snapshot_capture(
-	struct device *platform,
-	const struct mt6797_a72_platform_snapshot_observer_ops *ops,
-	void *context, struct mt6797_a72_platform_state *snapshot);
+int mt6797_platform_snapshot_capture(struct device *platform,
+				     const struct mt6797_a72_platform_snapshot_observer_ops *ops,
+				     void *context,
+				     struct mt6797_a72_platform_state *snapshot);
 
 #endif /* __MT6797_A72_PLATFORM_SNAPSHOT_OBSERVER_INTERNAL_H */

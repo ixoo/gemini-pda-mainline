@@ -76,6 +76,14 @@ insertion to the unique `gemini_prb_armed`/record-table adjacency. It likewise
 changes only generator attribution, not the intended generated source or
 runtime effects; no build, candidate, or device action occurred.
 
+Generation attempt 3 from signed commit `c7232392` passed all four phased
+source validators, the exact patch-shape validator, and byte-identical replay.
+Strict checkpatch then rejected patch `0364` for one short Kconfig help
+paragraph and six function/call layout checks. The correction changes only
+line wrapping and local helper naming, applies the same layout to the not-yet-
+checked KUnit patch, and preserves the validated call graph and effect counts.
+No kernel build, candidate, or device action occurred.
+
 ## Safety assessment
 
 CPU8 and CPU9 remain closed by exact `maxcpus=8`. The observer performs only

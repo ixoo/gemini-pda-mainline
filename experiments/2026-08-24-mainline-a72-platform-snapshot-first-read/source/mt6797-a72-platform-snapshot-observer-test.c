@@ -24,7 +24,7 @@ struct mt6797_a72_platform_snapshot_test_state {
 };
 
 static bool mt6797_platform_test_checkpoint(void *context,
-					     unsigned int checkpoint)
+					    unsigned int checkpoint)
 {
 	struct mt6797_a72_platform_snapshot_test_state *state = context;
 
@@ -33,9 +33,8 @@ static bool mt6797_platform_test_checkpoint(void *context,
 	return state->checkpoint_result[checkpoint];
 }
 
-static int mt6797_platform_test_snapshot(
-	void *context, struct device *dev,
-	struct mt6797_a72_platform_state *snapshot)
+static int mt6797_platform_test_snapshot(void *context, struct device *dev,
+					 struct mt6797_a72_platform_state *snapshot)
 {
 	struct mt6797_a72_platform_snapshot_test_state *state = context;
 
@@ -51,8 +50,8 @@ static const struct mt6797_a72_platform_snapshot_observer_ops test_ops = {
 	.snapshot = mt6797_platform_test_snapshot,
 };
 
-static void mt6797_platform_expect_zero(
-	struct kunit *test, const struct mt6797_a72_platform_state *snapshot)
+static void mt6797_platform_expect_zero(struct kunit *test,
+					const struct mt6797_a72_platform_state *snapshot)
 {
 	struct mt6797_a72_platform_state zero = { };
 
@@ -69,8 +68,8 @@ static void mt6797_platform_snapshot_success_test(struct kunit *test)
 	struct device platform = { };
 	int ret;
 
-	ret = mt6797_a72_platform_snapshot_capture(
-		&platform, &test_ops, &state, &snapshot);
+	ret = mt6797_platform_snapshot_capture(&platform, &test_ops, &state,
+					       &snapshot);
 	KUNIT_EXPECT_EQ(test, ret, 0);
 	KUNIT_EXPECT_TRUE(test, snapshot.valid);
 	KUNIT_EXPECT_EQ(test, snapshot.spm_pwr_status, (u32)0x12345678);
@@ -90,8 +89,8 @@ static void mt6797_platform_snapshot_before_failure_test(struct kunit *test)
 	struct device platform = { };
 	int ret;
 
-	ret = mt6797_a72_platform_snapshot_capture(
-		&platform, &test_ops, &state, &snapshot);
+	ret = mt6797_platform_snapshot_capture(&platform, &test_ops, &state,
+					       &snapshot);
 	KUNIT_EXPECT_EQ(test, ret, -EIO);
 	KUNIT_EXPECT_EQ(test, state.snapshot_calls, 0U);
 	KUNIT_EXPECT_EQ(test, state.event_count, 1U);
@@ -109,8 +108,8 @@ static void mt6797_platform_snapshot_read_failure_test(struct kunit *test)
 	struct device platform = { };
 	int ret;
 
-	ret = mt6797_a72_platform_snapshot_capture(
-		&platform, &test_ops, &state, &snapshot);
+	ret = mt6797_platform_snapshot_capture(&platform, &test_ops, &state,
+					       &snapshot);
 	KUNIT_EXPECT_EQ(test, ret, -EAGAIN);
 	KUNIT_EXPECT_EQ(test, state.snapshot_calls, 1U);
 	KUNIT_EXPECT_EQ(test, state.event_count, 2U);
@@ -120,8 +119,8 @@ static void mt6797_platform_snapshot_read_failure_test(struct kunit *test)
 	state.snapshot_valid = false;
 	state.event_count = 0;
 	state.snapshot_calls = 0;
-	ret = mt6797_a72_platform_snapshot_capture(
-		&platform, &test_ops, &state, &snapshot);
+	ret = mt6797_platform_snapshot_capture(&platform, &test_ops, &state,
+					       &snapshot);
 	KUNIT_EXPECT_EQ(test, ret, -ENODATA);
 	KUNIT_EXPECT_EQ(test, state.snapshot_calls, 1U);
 	mt6797_platform_expect_zero(test, &snapshot);
@@ -137,8 +136,8 @@ static void mt6797_platform_snapshot_after_failure_test(struct kunit *test)
 	struct device platform = { };
 	int ret;
 
-	ret = mt6797_a72_platform_snapshot_capture(
-		&platform, &test_ops, &state, &snapshot);
+	ret = mt6797_platform_snapshot_capture(&platform, &test_ops, &state,
+					       &snapshot);
 	KUNIT_EXPECT_EQ(test, ret, -EIO);
 	KUNIT_EXPECT_EQ(test, state.snapshot_calls, 1U);
 	KUNIT_EXPECT_EQ(test, state.event_count, 3U);

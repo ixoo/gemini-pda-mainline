@@ -123,7 +123,7 @@ def validate_observer(root: Path) -> None:
 
     capture = section(
         observer,
-        "int mt6797_a72_platform_snapshot_capture(",
+        "int mt6797_platform_snapshot_capture(",
         "static struct device *",
     )
     order = (
@@ -146,12 +146,12 @@ def validate_observer(root: Path) -> None:
         "static int mt6797_a72_platform_snapshot_probe",
         "static const struct of_device_id",
     )
-    require(probe.count("mt6797_a72_platform_snapshot_capture(") == 1,
+    require(probe.count("mt6797_platform_snapshot_capture(") == 1,
             "probe performs one capture")
     require(probe.count("put_device(platform)") == 1,
             "probe releases exact platform reference")
     require(
-        probe.index("mt6797_a72_platform_snapshot_capture(")
+        probe.index("mt6797_platform_snapshot_capture(")
         < probe.index("put_device(platform)"),
         "reference retained through capture",
     )
@@ -177,7 +177,7 @@ def validate_observer(root: Path) -> None:
         require(token in observer, f"terminal receipt: {token}")
     for token in (
         "struct mt6797_a72_platform_snapshot_observer_ops",
-        "mt6797_a72_platform_snapshot_capture",
+        "mt6797_platform_snapshot_capture",
     ):
         require(token in internal, f"injected interface: {token}")
 

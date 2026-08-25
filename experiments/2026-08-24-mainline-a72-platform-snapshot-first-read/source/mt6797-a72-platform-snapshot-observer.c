@@ -17,29 +17,28 @@
 
 #define MT6797_A72_PLATFORM_SNAPSHOT_TAG "GEMINI_A72_PLATFORM_SNAPSHOT_V1"
 
-static bool mt6797_a72_platform_snapshot_checkpoint(void *context,
-						     unsigned int checkpoint)
+static bool mt6797_platform_snapshot_checkpoint(void *context,
+						unsigned int checkpoint)
 {
 	return gemini_protected_readback_ledger_checkpoint(checkpoint);
 }
 
-static int mt6797_a72_platform_snapshot_read(
-	void *context, struct device *dev,
-	struct mt6797_a72_platform_state *snapshot)
+static int mt6797_platform_snapshot_read(void *context, struct device *dev,
+					 struct mt6797_a72_platform_state *snapshot)
 {
 	return mt6797_a72_platform_state_snapshot(dev, snapshot);
 }
 
 static const struct mt6797_a72_platform_snapshot_observer_ops
 mt6797_a72_platform_snapshot_ops = {
-	.checkpoint = mt6797_a72_platform_snapshot_checkpoint,
-	.snapshot = mt6797_a72_platform_snapshot_read,
+	.checkpoint = mt6797_platform_snapshot_checkpoint,
+	.snapshot = mt6797_platform_snapshot_read,
 };
 
-int mt6797_a72_platform_snapshot_capture(
-	struct device *platform,
-	const struct mt6797_a72_platform_snapshot_observer_ops *ops,
-	void *context, struct mt6797_a72_platform_state *snapshot)
+int mt6797_platform_snapshot_capture(struct device *platform,
+				     const struct mt6797_a72_platform_snapshot_observer_ops *ops,
+				     void *context,
+				     struct mt6797_a72_platform_state *snapshot)
 {
 	int ret;
 
@@ -91,8 +90,8 @@ mt6797_a72_platform_snapshot_get_device(struct device *dev)
 	return &source->dev;
 }
 
-static void mt6797_a72_platform_snapshot_log(
-	struct device *dev, const struct mt6797_a72_platform_state *snapshot)
+static void mt6797_a72_platform_snapshot_log(struct device *dev,
+					     const struct mt6797_a72_platform_state *snapshot)
 {
 	dev_info(dev,
 		 MT6797_A72_PLATFORM_SNAPSHOT_TAG
@@ -130,8 +129,9 @@ static int mt6797_a72_platform_snapshot_probe(struct platform_device *pdev)
 		return dev_err_probe(dev, PTR_ERR(platform),
 				     "platform-state source unavailable\n");
 
-	ret = mt6797_a72_platform_snapshot_capture(
-		platform, &mt6797_a72_platform_snapshot_ops, NULL, &snapshot);
+	ret = mt6797_platform_snapshot_capture(platform,
+					       &mt6797_a72_platform_snapshot_ops,
+					       NULL, &snapshot);
 	if (ret)
 		dev_err_probe(dev, ret, "platform snapshot failed\n");
 	else

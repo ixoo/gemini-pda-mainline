@@ -135,9 +135,8 @@ config MTK_MT6797_A72_PLATFORM_SNAPSHOT_OBSERVER
 	help
 	  Build the candidate-only observer that retains the bound A72 platform
 	  source, writes one checkpoint, takes exactly one stable two-sample
-	  snapshot, and writes one completion checkpoint.
-
-	  The snapshot performs 26 read-only register observations with no retry.
+	  snapshot, and writes one completion checkpoint. The snapshot performs
+	  26 read-only register observations with no retry.
 	  It adds no DA921x provider, clock, BigiDVFS, secure call, publication,
 	  owner mutation, CPU request, reset, or power action. If unsure, say N.
 
@@ -182,9 +181,10 @@ config MTK_MT6797_A72_PLATFORM_SNAPSHOT_KUNIT_TEST
 	depends on MTK_MT6797_A72_PLATFORM_SNAPSHOT_OBSERVER
 	default n
 	help
-	  Exercise exact checkpoint/snapshot order, one-shot success, every failure
-	  boundary, and all-zero failure output with injected in-memory operations.
-	  No MMIO, retained RAM, I2C, SMC, owner, publisher, or CPU action occurs.
+	  Exercise exact checkpoint/snapshot order, one-shot success, every
+	  failure boundary, and all-zero failure output with injected in-memory
+	  operations. No MMIO, retained RAM, I2C, SMC, owner, publisher, or CPU
+	  action occurs.
 
 ''').lstrip("\n")
     replace_once(
