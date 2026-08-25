@@ -54,6 +54,8 @@ def main() -> None:
         ("cpu-gate", contract, '"maxcpus": 8', '"maxcpus": 9'),
         ("bigidvfs", contract, '"bigidvfs_call": false', '"bigidvfs_call": true'),
         ("retry-rule", contract, '"probe_returns_success_after_clock_call_returns": true', '"probe_returns_success_after_clock_call_returns": false'),
+        ("candidate-sha", contract, '"padded_sha256": "1f7bd9600e11846a', '"padded_sha256": "0f7bd9600e11846a'),
+        ("deployment-state", contract, '"deployment": "pending-guarded-boot2-install"', '"deployment": "installed"'),
         ("safety-wording", readme, "deliberately not hardware-read-only", "hardware-read-only"),
         ("retained-wording", design, "Maximum retained write attempts are two", "Maximum retained write attempts are three"),
         ("audit-state", audit, "prepared_source_state=c5bc1470", "prepared_source_state=d5bc1470"),

@@ -44,6 +44,13 @@ def main() -> None:
     readme = read(exp / "README.md")
     design = read(exp / "DESIGN.md")
     audit = read(exp / "results/prebuild-source-audit-20260825.txt")
+    candidate_build_receipt = read(
+        exp / "results/buildbox-candidate-compile-20260825.txt"
+    )
+    dtb_receipt = read(exp / "results/offline-dtb-validation-20260825.txt")
+    candidate_receipt = read(
+        exp / "results/offline-candidate-validation-20260825.txt"
+    )
 
     require(contract["schema"] == 1, "contract schema")
     require(contract["experiment"] == EXPERIMENT, "experiment identity")
@@ -164,6 +171,79 @@ def main() -> None:
         "serviceability-or-closure-violation": "reject-candidate",
     }, "exact decision map")
 
+    candidate_build = contract["candidate_build"]
+    require(candidate_build == {
+        "backend": "buildbox",
+        "repository_commit": "5e4b0d584f76d4bf5a5e7e924b886d6b65ed4bd5",
+        "job": "5e4b0d584f76d4bf5a5e7e924b886d6b65ed4bd5-a72-platform-provider-clock-candidate-m0",
+        "artifact": "linux-7.1.3-gemini-a72-platform-provider-clock-candidate-30a9d055-622e6240",
+        "kernel_release": "7.1.3-gemini-a72-clock-third",
+        "patchset_sha256": "30a9d0551a20c76f5abd756a3611ddee4c03e0105fd429d9f3a3a2136520f4ba",
+        "config_sha256": "2facfaaec397287267701d3cc74a3362418f34b793a96dbcd88920e730f63755",
+        "image_sha256": "845fbcaf68e847d18f5f4e4dce2981f93b5d1106cf396308515e5372d0ba9c62",
+        "image_gzip_sha256": "c3a7a0f583c925c93537463d84c7fb0a04bb715c232a2595e920f8504d79c4ad",
+        "system_map_sha256": "1ae62d5eaf09ac4d990cb4e81cce6101721ea332aa182821b266667729701d02",
+        "package_manifest_sha256": "fc28c627cacc5c234937d85d8d3e5a342c66a2f35a3903a618a2ec1d741fedf0",
+        "modules_built": False,
+        "native_vm_build": False,
+        "result": "pass",
+    }, "exact device Buildbox build")
+    candidate_dtb = contract["candidate_dtb"]
+    require(candidate_dtb == {
+        "source_sha256": "923575e4e25498f2749bb440af78372e36bb318bf5717d05ced18be600ebd6c8",
+        "derived_sha256": "90cfc29b30fb036076a799f0223e0c8aae6469441e5917cbfa743f5d7ae6547d",
+        "derived_size": 27636,
+        "removed_nodes": 1,
+        "added_nodes": 1,
+        "added_reference_properties": 3,
+        "semantic_reverse_proof": "byte-identical-sorted-dts",
+        "sha256sums_sha256": "f930082aed85d5bab73ac07f8385c1fc7710a0ffb59483e567655bfc4ac890b6",
+        "offline_hardware_effects": 0,
+    }, "exact candidate DT")
+    candidate = contract["candidate"]
+    require(candidate == {
+        "repository_commit": "5e4b0d584f76d4bf5a5e7e924b886d6b65ed4bd5",
+        "profile": "a72-platform-provider-clock-candidate",
+        "kernel_release": "7.1.3-gemini-a72-clock-third",
+        "raw_sha256": "d2f4d2bdecbac924eaf4b6d2a4732b6e6be2847391b974da3b4bc6d2beeb3139",
+        "raw_size": 6912000,
+        "padded_sha256": "1f7bd9600e11846af352abbec660db816c378094664f81d861b9fbd1f1f16aa2",
+        "padded_size": 16777216,
+        "candidate_manifest_sha256": "2a600e48125d45b6281bb8c056ebbc1f107e2b3039791184b5e334f4414606d0",
+        "lk_gates_passed": 32,
+        "container_mutations_rejected": 6,
+        "predecessor_sha256_required": "f55bb272de24a62a0e4055624e8eb0ef35bc53432fa130463c867c43c059732e",
+        "predecessor_retained_record_1_sha256": "047e5c5c6f3bfa3b8f86ba174c3e1ceb65926a190dbec7099f915ee5b7e371b2",
+        "predecessor_retained_record_2_sha256": "2f0ad139001347459344b031abd8376f63ff455f1742d24569823f33d23918e0",
+        "boot_candidate": True,
+        "deployment_status": "not-installed",
+        "device_action": False,
+    }, "exact boot candidate")
+    for receipt, tokens in (
+        (candidate_build_receipt, (
+            "build_backend=buildbox",
+            "kernel_release=7.1.3-gemini-a72-clock-third",
+            "new_observer_warning=none",
+            "native_vm_build=none",
+            "result=pass",
+        )),
+        (dtb_receipt, (
+            "derived_dtb_sha256=90cfc29b30fb036076a799f0223e0c8aae6469441e5917cbfa743f5d7ae6547d",
+            "semantic_baseline_after_reverse_replacement=byte-identical-sorted-dts",
+            "hardware_write=none",
+            "result=pass",
+        )),
+        (candidate_receipt, (
+            "raw_candidate_sha256=d2f4d2bdecbac924eaf4b6d2a4732b6e6be2847391b974da3b4bc6d2beeb3139",
+            "boot2_padded_sha256=1f7bd9600e11846af352abbec660db816c378094664f81d861b9fbd1f1f16aa2",
+            "lk_gates=32-of-32",
+            "hardware_write=none",
+            "result=pass",
+        )),
+    ):
+        for token in tokens:
+            require(token in receipt, f"candidate receipt token: {token}")
+
     for token in (
         "deliberately not hardware-read-only",
         "at most 401 explicit MMIO writes",
@@ -199,8 +279,10 @@ def main() -> None:
         "source_audit": "pass-read-only-buildbox",
         "generation_tooling": "pass-attempt-7",
         "patch_generation": "pass-corrected-generated-fetched-and-admitted-byte-for-byte",
-        "kernel_build": "pending-retry",
-        "boot_candidate": False,
+        "kernel_build": "kunit-and-candidate-buildbox-pass",
+        "offline_candidate_validation": "pass",
+        "boot_candidate": True,
+        "deployment": "pending-guarded-boot2-install",
         "device_action": "none",
     }, "current status")
     require("/Users/" not in "\n".join((readme, design, audit)), "no host path")
@@ -211,7 +293,7 @@ def main() -> None:
     print("protected_clock_caller_retries=0")
     print("explicit_mmio_writes_maximum=401")
     print("explicit_mmio_reads_maximum=419")
-    print("boot_candidate=false")
+    print("boot_candidate=true")
     print("device_action=none")
 
 

@@ -5418,10 +5418,22 @@ The next ordered work is:
    physical writer symbols are absent. The sole no-network QEMU suite passes
    all eight cases with zero failures or skips. No physical I2C, clock backend,
    MMIO, retained RAM, native VM build, hardware write, CPU request, or device
-   action occurred. **Selected next:** publish this KUnit evidence, build the
-   separate device profile on Buildbox, and derive and independently validate
-   only its decision-bearing observer DT and boot container before one guarded
-   `boot2` attempt.
+   action occurred. Signed commit `5e4b0d58` publishes that KUnit evidence and
+   builds the separate device profile on Buildbox as exact release
+   `7.1.3-gemini-a72-clock-third`. The fetched package and checksum manifest
+   pass with no new observer warning. The decision-bearing DT replaces only the
+   passed provider observer, preserves platform/provider phandles, and adds the
+   exact bound clock-backend phandle; reversing that edit reproduces the sorted
+   predecessor DTS byte-for-byte. Two raw assemblies, two exact-padding paths,
+   all 32 LK gates, and six independent container corruptions pass. Raw
+   candidate `d2f4d2bd` pads to exact 16 MiB `1f7bd960`. Its guarded installer
+   pins current successful predecessor `f55bb272`, accepts only the exact
+   completed provider retained pair or an exact empty pair, and retains the
+   live-GPT, inactive-target, full-readback, no-fresh-backup, clean-shutdown,
+   and no-reboot gates. No device access or hardware write occurred during
+   build or assembly. **Selected next:** publish this exact candidate evidence,
+   return the still-running provider-ready predecessor to Gemian, and make one
+   guarded `boot2` installation before the owner physically selects it.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

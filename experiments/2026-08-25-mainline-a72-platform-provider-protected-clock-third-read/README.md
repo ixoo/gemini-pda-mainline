@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-25-mainline-a72-platform-provider-protected-clock-third-read` |
-| Status | isolated Buildbox compile and eight-case no-network QEMU suite pass; device candidate build pending |
+| Status | KUnit and device Buildbox profiles pass; exact boot candidate validated offline and awaiting guarded `boot2` install |
 | Subsystem | MT6797 A72 state, DA921x provider, DVFSP protected clock |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-25 America/New_York |
@@ -181,8 +181,23 @@ hardware write, CPU request, or device action occurred. See the [corrected
 generation receipt](results/buildbox-generation-attempt-7-20260825.txt),
 [Buildbox compile receipt](results/buildbox-kunit-compile-20260825.txt), and
 [QEMU result](results/kunit-qemu-pass-20260825.txt). The next ordered action is
-to build the separate device profile from the published KUnit evidence, then
-derive and independently validate only its decision-bearing observer DT and
-boot container before one guarded `boot2` attempt.
+complete: signed commit `5e4b0d58` builds the separate device profile on
+Buildbox as `7.1.3-gemini-a72-clock-third`, with no new observer warning and a
+checksum-verified fetched package. The decision-bearing DT replaces only the
+passed provider observer with the three-reader observer, preserves platform
+phandle `0x2f` and provider phandle `0x30`, and adds clock phandle `0x31`; its
+reverse replacement reproduces the sorted predecessor DTS byte-for-byte. Two
+raw assemblies and two exact-padding constructions agree. All 32 LK gates and
+six independent corruption mutations pass. Exact raw candidate `d2f4d2bd…`
+pads to 16 MiB `1f7bd960…`. The guarded installer pins the successful provider-
+ready predecessor `f55bb272…`, accepts only its exact completed retained pair
+or an exact empty pair, requires live-GPT inactive `boot2`, verifies the full
+partition after writing, and shuts Gemian down without rebooting or taking a
+fresh backup. No device access or hardware write has occurred for this step.
+See the [device compile receipt](results/buildbox-candidate-compile-20260825.txt),
+[DT validation](results/offline-dtb-validation-20260825.txt), and
+[container validation](results/offline-candidate-validation-20260825.txt).
+The next ordered action is to publish these exact gates, return the currently
+running predecessor to Gemian, and perform one guarded `boot2` installation.
 The ordered continuation is owned by the
 [Roadmap](../../docs/ROADMAP.md#7-bring-up-cpu8).
