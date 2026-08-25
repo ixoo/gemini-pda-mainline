@@ -92,6 +92,12 @@ after one line. Rewrapping the unchanged description resolves that false
 boundary without changing code or effects. No build, candidate, or device
 action occurred.
 
+Generation attempt 5 from signed commit `b58864e8` passed every source, shape,
+and replay validator and strict style for patches `0363`--`0365`. The final
+KUnit patch `0366` stopped on one check requiring a blank line between the
+suite declaration and registration macro. The correction adds only that blank
+line. No kernel build, candidate, or device action occurred.
+
 ## Safety assessment
 
 CPU8 and CPU9 remain closed by exact `maxcpus=8`. The observer performs only

@@ -156,6 +156,7 @@ static struct kunit_suite mt6797_a72_platform_snapshot_suite = {
 	.name = "mt6797-a72-platform-snapshot",
 	.test_cases = mt6797_a72_platform_snapshot_cases,
 };
+
 kunit_test_suite(mt6797_a72_platform_snapshot_suite);
 
 MODULE_LICENSE("GPL");
