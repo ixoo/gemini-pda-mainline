@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-25-mainline-a72-platform-provider-protected-clock-third-read` |
-| Status | exact candidate installed to `boot2`, full readback verified, device shut down, and runtime collector validated; first owner-selected boot pending |
+| Status | attempt 1 is an exact serviceable pre-clock `-EAGAIN`; failing stage is ambiguous between platform and provider snapshots; unchanged retry prohibited |
 | Subsystem | MT6797 A72 state, DA921x provider, DVFSP protected clock |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-25 America/New_York |
@@ -210,5 +210,23 @@ identity-gated, no-reboot runtime collector. Its four accepted terminal
 branches and 19 rejected attribution/safety mutations are recorded in the
 [preboot tooling receipt](results/preboot-runtime-tooling-20260825.txt). The
 artifact must not be retried unchanged after a decision-bearing result.
+Attempt 1 is decision-bearing and leaves mainline running. Exact release
+`7.1.3-gemini-a72-clock-third`, boot ID `574bb2c4…`, CPUs 0--7, USB, T-PHY,
+I2C5, keyboard, platform-state, provider, clock backend, and BigiDVFS backend
+all pass their identity and serviceability gates. The composed observer device
+exists but is unbound; it emits one capture failure and no snapshot record.
+Bounded follow-up dmesg identifies `-EAGAIN` at 46.168257 seconds. Exact source
+order therefore proves zero retained writes, zero protected-clock calls, zero
+gate pairs, and zero CPU requests. It cannot distinguish whether the unstable
+two-sample operation was the platform snapshot or the provider snapshot. The
+post-attempt classifier accepts only this exact failure plus its exact dmesg
+evidence and rejects 15 mutations. See the
+[runtime receipt](results/runtime-attempt-1-20260825.txt) and
+[bounded dmesg excerpt](results/runtime-attempt-1-dmesg-20260825.txt).
+
+The next discriminator adds an explicit platform-versus-provider failure stage
+without changing the hardware call order or retrying this exact artifact. Only
+after that hardware-free instrumentation passes may a distinct candidate make
+the still-unreached protected-clock attempt.
 The ordered continuation is owned by the
 [Roadmap](../../docs/ROADMAP.md#7-bring-up-cpu8).

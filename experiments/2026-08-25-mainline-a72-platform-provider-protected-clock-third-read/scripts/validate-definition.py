@@ -55,6 +55,7 @@ def main() -> None:
     runtime_tooling_receipt = read(
         exp / "results/preboot-runtime-tooling-20260825.txt"
     )
+    runtime_attempt_receipt = read(exp / "results/runtime-attempt-1-20260825.txt")
 
     require(contract["schema"] == 1, "contract schema")
     require(contract["experiment"] == EXPERIMENT, "experiment identity")
@@ -219,8 +220,8 @@ def main() -> None:
         "predecessor_sha256_required": "f55bb272de24a62a0e4055624e8eb0ef35bc53432fa130463c867c43c059732e",
         "predecessor_retained_record_1_sha256": "047e5c5c6f3bfa3b8f86ba174c3e1ceb65926a190dbec7099f915ee5b7e371b2",
         "predecessor_retained_record_2_sha256": "2f0ad139001347459344b031abd8376f63ff455f1742d24569823f33d23918e0",
-        "boot_candidate": True,
-        "deployment_status": "write-synced-flushed-full-readback-verified-and-shut-down",
+        "boot_candidate": False,
+        "deployment_status": "installed-and-runtime-rejected-no-unchanged-retry",
         "device_action": True,
     }, "exact boot candidate")
     require(contract["deployment"] == {
@@ -264,6 +265,51 @@ def main() -> None:
             hashlib.sha256((exp / relative).read_bytes()).hexdigest() == expected,
             f"runtime tool hash: {relative}",
         )
+    require(contract["runtime_attempt_1"] == {
+        "repository_commit": "757cce0c2b4c95ea6d1ac88b5ee4ab652b00f94a",
+        "boot_id": "574bb2c4-c372-48ec-9ebb-240f04bdd68a",
+        "kernel_release": "7.1.3-gemini-a72-clock-third",
+        "installed_full_sha256": "1f7bd9600e11846af352abbec660db816c378094664f81d861b9fbd1f1f16aa2",
+        "uptime_seconds_at_capture": "48.35",
+        "runtime_capture_sha256": "f2f8b3f7bce48d83f81f428ca6ba85053b0044378c0ddc645b8e1ad1d433e199",
+        "observer_events_sha256": "7bd81fd3485e586635af83c9a7395f77ba8cd12c4bef87eea96108ab79352c22",
+        "usb_topology_sha256": "01fa34cb6e045829f5a83d753d3c9edee0cf5b959a00b59565ed03e6025cadbf",
+        "error_evidence_sha256": "b48189a5f23c3ab55349390ca347a1811d9823f12855876a5b968d144a9e9779",
+        "post_attempt_validator_sha256": "28d58e666559f98b3152e0c5c91012decc53dd32a86e4776f140164512397d95",
+        "post_attempt_test_sha256": "b368ff46a0b3941cfc1703b3794b3208051ac45d7516a3fe008990d3c669f940",
+        "post_attempt_accepted_branches": 1,
+        "post_attempt_rejected_mutations": 15,
+        "stage27_serviceability": True,
+        "cpu_online": "0-7",
+        "cpu_offline": "8-9",
+        "platform_state_bound": True,
+        "provider_i2c_bound": True,
+        "clock_backend_bound": True,
+        "observer_devices": 1,
+        "observer_bound": False,
+        "snapshot_log_lines": 0,
+        "snapshot_failure_lines": 1,
+        "failure_errno": -11,
+        "failure_name": "EAGAIN",
+        "failure_stage": "ambiguous-platform-or-provider-snapshot",
+        "retained_write_attempts": 0,
+        "protected_clock_calls": 0,
+        "clock_gate_pairs": 0,
+        "cpu_requests": 0,
+        "native_reboot_requested": False,
+        "device_left_running": True,
+        "unchanged_retry_allowed": False,
+        "next_discriminator": "add-explicit-platform-versus-provider-failure-stage",
+    }, "exact runtime attempt 1")
+    for relative, expected in (
+        ("results/runtime-attempt-1-dmesg-20260825.txt", contract["runtime_attempt_1"]["error_evidence_sha256"]),
+        ("scripts/validate-runtime-attempt-1.py", contract["runtime_attempt_1"]["post_attempt_validator_sha256"]),
+        ("scripts/test-runtime-attempt-1.py", contract["runtime_attempt_1"]["post_attempt_test_sha256"]),
+    ):
+        require(
+            hashlib.sha256((exp / relative).read_bytes()).hexdigest() == expected,
+            f"attempt-1 evidence/tool hash: {relative}",
+        )
     for receipt, tokens in (
         (candidate_build_receipt, (
             "build_backend=buildbox",
@@ -304,6 +350,17 @@ def main() -> None:
             "collector_reboot=no",
             "device_action=none",
             "result=pass",
+        )),
+        (runtime_attempt_receipt, (
+            "boot_id=574bb2c4-c372-48ec-9ebb-240f04bdd68a",
+            "runtime_capture_sha256=f2f8b3f7bce48d83f81f428ca6ba85053b0044378c0ddc645b8e1ad1d433e199",
+            "runtime_gate=decision-bearing-pre-clock-failure",
+            "failure_errno=-11",
+            "failure_stage=ambiguous-platform-or-provider-snapshot",
+            "retained_write_attempts=0",
+            "protected_clock_calls=0",
+            "unchanged_retry_allowed=no",
+            "result=decision-bearing-pre-clock-failure",
         )),
     ):
         for token in tokens:
@@ -346,10 +403,11 @@ def main() -> None:
         "patch_generation": "pass-corrected-generated-fetched-and-admitted-byte-for-byte",
         "kernel_build": "kunit-and-candidate-buildbox-pass",
         "offline_candidate_validation": "pass",
-        "boot_candidate": True,
+        "boot_candidate": False,
         "deployment": "write-verified-and-shut-down",
-        "runtime_tooling": "validated-and-pending-publication",
-        "device_action": "guarded-boot2-write",
+        "runtime_tooling": "published-used-and-post-attempt-classified",
+        "runtime_attempt_1": "decision-bearing-pre-clock-eagain-stage-ambiguous",
+        "device_action": "guarded-boot2-write-and-one-owner-selected-boot",
     }, "current status")
     require("/Users/" not in "\n".join((readme, design, audit)), "no host path")
 
@@ -359,9 +417,10 @@ def main() -> None:
     print("protected_clock_caller_retries=0")
     print("explicit_mmio_writes_maximum=401")
     print("explicit_mmio_reads_maximum=419")
-    print("boot_candidate=true")
-    print("runtime_tooling=validated-preboot")
-    print("device_action=guarded-boot2-write")
+    print("boot_candidate=false")
+    print("runtime_tooling=published-used-and-classified")
+    print("runtime_attempt_1=decision-bearing-pre-clock-eagain")
+    print("device_action=guarded-write-and-one-boot")
 
 
 if __name__ == "__main__":

@@ -5445,6 +5445,16 @@ The next ordered work is:
    owner makes one physical `boot2` selection, then identity-gated collection
    distinguishes exact live success, before-clock-only retention, a returned
    terminal clock error, or a pre-clock failure without an unchanged retry.
+   That attempt is now an exact serviceable pre-clock failure: release
+   `7.1.3-gemini-a72-clock-third` reaches its USB console with CPUs 0--7 and all
+   platform/provider/clock suppliers bound, but the composed observer returns
+   `-EAGAIN` at 46.168257 seconds and remains unbound. Source order proves zero
+   retained writes and zero protected-clock calls. The current log cannot
+   distinguish platform-snapshot instability from provider-snapshot
+   instability. The unchanged artifact is retired. **Selected next:** add an
+   explicit pre-clock failure-stage result, prove it with hardware-free
+   mutations, then build one distinct candidate that preserves the exact
+   hardware ceiling and exposes which qualified prefix reader failed.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
