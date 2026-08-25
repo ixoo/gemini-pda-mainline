@@ -5353,7 +5353,19 @@ The next ordered work is:
    experiment that adds only the stable protected-clock observation after this
    passed platform/provider baseline, with independent before/after retained
    checkpoints and no BigiDVFS read, provider action, publication, owner
-   mutation, or CPU request.
+   mutation, or CPU request. The linked
+   [third-reader experiment](../experiments/2026-08-25-mainline-a72-platform-provider-protected-clock-third-read/README.md)
+   now freezes that boundary against exact post-`0373` Buildbox source. It
+   resolves all three bound suppliers before capture, preserves the passed
+   platform/provider prefix, brackets only one protected-clock call with two
+   independent records, and makes every post-call result terminal so the
+   platform core cannot repeat the hardware operation. Its safety contract
+   explicitly counts the clock gate and bounded CSPM power-on/semaphore writes;
+   it is not described as a passive read. The definition validator passes and
+   its mutation suite fails closed. No patch, build, boot candidate, retained-
+   memory write, or device action exists yet. **Selected next:** sign and push
+   the frozen definition, then generate the four exact post-`0373` patches on
+   Buildbox from that clean commit.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

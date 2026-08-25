@@ -1,0 +1,16 @@
+experiment=2026-08-25-mainline-a72-platform-provider-protected-clock-third-read
+validation=prebuild-definition
+definition_validation=pass
+retained_records=2
+protected_clock_calls=1
+protected_clock_caller_retries=0
+explicit_mmio_writes_maximum=401
+explicit_mmio_reads_maximum=419
+definition_rejected_mutations=14
+python_compile=pass
+git_diff_check=pass
+patch_generation=pending
+kernel_build=pending
+boot_candidate=false
+device_action=none
+result=pass

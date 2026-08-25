@@ -1,0 +1,136 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-25-mainline-a72-platform-provider-protected-clock-third-read",
+  "predecessor": "experiments/2026-08-25-mainline-a72-platform-provider-deferred-bind-repair",
+  "question": "can-one-protected-clock-snapshot-complete-after-the-qualified-platform-provider-prefix",
+  "canonical_parent": "patches/v7.1.3/0373-soc-mediatek-test-A72-platform-provider-readiness.patch",
+  "canonical_parent_sha256": "de668030d4dc0fbf6b207498e3d853ec3e3990309e226328e944f3199f5c440c",
+  "prepared_source_state": "c5bc147006d9c6be991a0eea2d805bf3f8f0203459cdb0171b7bac5d1de31593",
+  "prepared_source_integrity": "7d12af9736e3a75dc3dd084366ae9dc022b8bcc9a4e25324a8ad6e3bf107ea87",
+  "edited_parent_files": {
+    "drivers/soc/mediatek/Kconfig": "5123eb59cd1a1ad70a4f4483e262bc4028f4e6d92cbeb3e3e51add3bd95e47f3",
+    "drivers/soc/mediatek/Makefile": "a7e46de55987452a88088a28a2601f9f99bcb3f7e190b8546eb1179631c2b51d",
+    "fs/pstore/Kconfig": "99990c3df7398d3d7f92d12ff0364f64b3ef6726c02956b6cef31446532a2cdc",
+    "fs/pstore/gemini_protected_readback_ledger.c": "d9acd359bfbf34b2dafb2934dc0c6566aa40a8ebab26010428609bb32bbefb2e"
+  },
+  "audited_dependencies": {
+    "drivers/soc/mediatek/mt6797-a72-platform-state.c": "214ae21bf98e7d47e8ec8c24d0c542ebb27e3ba110694f81e04482ff78b108b6",
+    "drivers/regulator/da9213-legacy-regulator.c": "9800fb4449c9bbb6c97b788069f79a0b352c35265792f1f2db8a259f7b74d87d",
+    "drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c": "e002e420b7dfbdf147db9b46109b474ba26e2dad496ce88d96e240561f203866",
+    "drivers/soc/mediatek/mt6797-dvfsp-handoff.c": "bae208456b9b7424cf1957b8c28c7623348a82238eb01503fd6139f4e3768c0f",
+    "include/linux/mt6797-a72-provider.h": "f3f2d8dfcf992d379e1ce249e08eb15b3c0215a20e7c548b8849bd1bb44db275",
+    "include/linux/soc/mediatek/mt6797-a72-platform-state.h": "1131bce832164f6b9b8e4849bdcdf6345960e07a1e6e4d1b3dbece5c3ff24b90",
+    "include/linux/soc/mediatek/mt6797-dvfsp-clock-backend.h": "f13b88cd262f476e8ac0e55fda3cdf115041dabefa69a5ff5e3ca8c1dcc8bcf5",
+    "include/linux/pstore_ram.h": "251a8945c3294f4f4ba76d3eb8685a4d1993a1add9b832577a02e32480669837"
+  },
+  "planned_patches": [
+    "0374-pstore-add-Gemini-A72-platform-provider-clock-ledger.patch",
+    "0375-dt-bindings-soc-mediatek-add-A72-platform-provider-clock-observer.patch",
+    "0376-soc-mediatek-add-A72-platform-provider-clock-observer.patch",
+    "0377-soc-mediatek-test-A72-platform-provider-clock-observer.patch"
+  ],
+  "planned_profiles": {
+    "kunit": "a72-platform-provider-clock-kunit",
+    "candidate": "a72-platform-provider-clock-candidate"
+  },
+  "dependency_gate": {
+    "all_sources_resolved_before_capture": true,
+    "platform_lookup": "of_find_device_by_node-and-device_is_bound",
+    "provider_lookup": "of_find_i2c_device_by_node-and-device_is_bound",
+    "provider_compatible": "dlg,da9214-legacy",
+    "clock_lookup": "of_find_device_by_node-and-device_is_bound",
+    "clock_compatible": "mediatek,mt6797-dvfsp-clock-backend",
+    "not_ready_result": "-EPROBE_DEFER",
+    "not_ready_hardware_calls": 0,
+    "not_ready_retained_writes": 0
+  },
+  "call_order": [
+    "platform-snapshot",
+    "provider-snapshot",
+    "retained-before-clock",
+    "protected-clock-call",
+    "retained-after-clock"
+  ],
+  "retained_records": [
+    {
+      "slot": 1,
+      "checkpoint": "before-clock",
+      "token": "GAPC-20260825-A",
+      "crc32": "7a63713c"
+    },
+    {
+      "slot": 2,
+      "checkpoint": "after-clock",
+      "token": "GAPC-20260825-A",
+      "crc32": "5773d4f6"
+    }
+  ],
+  "clock_transport_ceiling": {
+    "backend_abi": 2,
+    "backend_calls": 1,
+    "caller_retries": 0,
+    "balanced_i2c_clock_enable_disable_pairs": 1,
+    "cspm_poweron_writes": 1,
+    "semaphore_request_writes_maximum": 400,
+    "explicit_mmio_writes_maximum": 401,
+    "fixed_payload_register_reads": 18,
+    "poweron_readbacks": 1,
+    "semaphore_reads_maximum": 400,
+    "explicit_mmio_reads_maximum": 419,
+    "acquire_poll_retries_maximum": 200,
+    "release_poll_retries_maximum": 200,
+    "settle_nanoseconds_after_acquire": 200,
+    "secure_calls": 0,
+    "fault_latches_maximum": 1
+  },
+  "runtime_ceiling": {
+    "platform_snapshot_calls": 1,
+    "platform_samples": 2,
+    "platform_register_observations": 26,
+    "provider_snapshots": 1,
+    "provider_samples": 2,
+    "provider_i2c_reads": 10,
+    "provider_i2c_writes": 0,
+    "retained_write_attempts_maximum": 2,
+    "protected_clock_calls": 1,
+    "bigidvfs_reads": 0,
+    "provider_acquires": 0,
+    "provider_releases": 0,
+    "publisher_calls": 0,
+    "owner_mutations": 0,
+    "cpu_requests": 0
+  },
+  "post_call_rule": {
+    "clock_error_is_terminal_observation": true,
+    "after_checkpoint_failure_is_terminal_observation": true,
+    "probe_returns_success_after_clock_call_returns": true,
+    "automatic_retry_after_clock_attempt": false,
+    "clock_result_logged": true,
+    "all_raw_fields_logged": true
+  },
+  "configuration": {
+    "maxcpus": 8,
+    "positive_provider_transaction": false,
+    "firmware_writer_transaction_window": false,
+    "same_value_writer": false,
+    "legacy_protected_readback_observer": false,
+    "bigidvfs_call": false,
+    "direct_state_compositor": false,
+    "production_publisher": false
+  },
+  "decision_map": {
+    "exact-live-success-and-both-records": "qualify-three-reader-composition",
+    "before-clock-only": "clock-call-entered-and-did-not-return",
+    "both-records-and-clock-error": "clock-call-returned-error-no-retry",
+    "no-clock-record": "failure-before-clock-call",
+    "serviceability-or-closure-violation": "reject-candidate"
+  },
+  "current_status": {
+    "definition": "frozen",
+    "source_audit": "pass-read-only-buildbox",
+    "patch_generation": "pending",
+    "kernel_build": "pending",
+    "boot_candidate": false,
+    "device_action": "none"
+  }
+}
