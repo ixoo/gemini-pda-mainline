@@ -135,9 +135,9 @@
   "current_status": {
     "definition": "frozen",
     "source_audit": "pass-read-only-buildbox",
-    "generation_tooling": "pass-attempt-4",
-    "patch_generation": "pass-generated-fetched-and-admitted-byte-for-byte",
-    "kernel_build": "pending",
+    "generation_tooling": "one-way-kconfig-exclusion-repair-pending-regeneration",
+    "patch_generation": "attempt-4-admitted-compile-rejected-kconfig-cycle",
+    "kernel_build": "rejected-before-compile-kconfig-cycle",
     "boot_candidate": false,
     "device_action": "none"
   }

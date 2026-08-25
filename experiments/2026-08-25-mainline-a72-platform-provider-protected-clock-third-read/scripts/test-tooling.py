@@ -34,6 +34,7 @@ def main() -> None:
     validator = Path("experiments") / EXPERIMENT / "scripts/validate-tooling.py"
     exp = f"experiments/{EXPERIMENT}"
     generator = f"{exp}/scripts/generate-on-buildbox"
+    edits = f"{exp}/scripts/source_edits.py"
     observer = f"{exp}/source/mt6797-a72-platform-provider-clock-observer.c"
     tests = f"{exp}/source/mt6797-a72-platform-provider-clock-observer-test.c"
     source_validator = f"{exp}/scripts/validate_source.py"
@@ -45,6 +46,7 @@ def main() -> None:
         ("clock-call", observer, "ops->clock(context, clock, &snapshot->clock)", "ops->clock(context, clock, &snapshot->clock) + ops->clock(context, clock, &snapshot->clock)"),
         ("clock-terminal", observer, "A returned hardware call is terminal", "A returned hardware call may retry"),
         ("style-open", observer, "static int mt6797_a72_ppc_platform(void *context, struct device *dev,", "static int mt6797_a72_ppc_platform(\n\tvoid *context, struct device *dev,"),
+        ("kconfig-cycle", edits, 'mode + "config PSTORE_GEMINI_A72_PLATFORM_PROVIDER_SNAPSHOT_LEDGER\\n",', 'mode + "config PSTORE_GEMINI_A72_PLATFORM_PROVIDER_SNAPSHOT_LEDGER\\n" "\\tdepends on !PSTORE_GEMINI_A72_PLATFORM_PROVIDER_CLOCK_LEDGER\\n",'),
         ("helper-endpoint", source_validator, '("get_platform", "static struct device *mt6797_a72_ppc_get_provider",', '("get_platform", "static struct device *mt6797_a72_ppc_get_platform",'),
         ("kunit-count", tests, "KUNIT_CASE(mt6797_a72_ppc_clock_identity_terminal_test)", "mt6797_a72_ppc_clock_identity_terminal_test"),
         ("generate-dispatch", "scripts/buildbox", "  generate-a72-platform-provider-clock-patches) generate_a72_platform_provider_clock_patches ;;", "  generate-a72-platform-provider-clock-broken) generate_a72_platform_provider_clock_patches ;;"),

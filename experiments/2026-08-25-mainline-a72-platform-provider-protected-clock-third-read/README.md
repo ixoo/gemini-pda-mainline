@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-25-mainline-a72-platform-provider-protected-clock-third-read` |
-| Status | patches admitted byte-for-byte; focused KUnit build pending |
+| Status | first admitted set rejected at Kconfig; one-way repair pending regeneration |
 | Subsystem | MT6797 A72 state, DA921x provider, DVFSP protected clock |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-25 America/New_York |
@@ -142,5 +142,13 @@ all 135 manifest profiles preserve canonical order after adding only the
 isolated eight-case KUnit and device profiles. No kernel build, boot image,
 retained-memory write, hardware call, or device action has occurred. See the
 [generation receipt](results/buildbox-generation-20260825.txt).
+The first focused Buildbox build from admitted commit `32ed7377` applied all
+377 patches but Kconfig rejected `defconfig` before compilation: the new and
+predecessor ledger symbols had reciprocal negative dependencies. The repair
+keeps the new mode's `depends on !...SNAPSHOT_LEDGER` gate and removes only the
+reverse edge, preserving effective exclusion without a Kconfig recursion. A
+new tooling mutation recreates and rejects the cycle. No compiler, KUnit,
+QEMU, retained-memory, hardware, or device action ran. See the
+[configuration rejection](results/buildbox-kunit-config-rejected-20260825.txt).
 The ordered continuation is owned by the
 [Roadmap](../../docs/ROADMAP.md#7-bring-up-cpu8).

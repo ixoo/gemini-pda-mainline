@@ -82,9 +82,15 @@ def main() -> None:
         "MTK_MT6797_A72_PLATFORM_PROVIDER_CLOCK_KUNIT_TEST",
     ):
         require(token in edits, f"deterministic source edit: {token}")
+    require(
+        '"\\tdepends on !PSTORE_GEMINI_A72_PLATFORM_PROVIDER_CLOCK_LEDGER\\n"'
+        not in edits,
+        "no generated reciprocal Kconfig dependency",
+    )
     for token in (
         "exact third-reader call order",
         "two-checkpoint sequence ceiling",
+        "no reciprocal Kconfig dependency",
         "terminal success return after clock attempt",
         "resolve/hold/release dependency order",
         "one protected-clock source caller",

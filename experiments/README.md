@@ -31,8 +31,10 @@ the loop. Positive identity-gated observations are unaffected.
   actions, publication, ownership mutation, and CPU requests remain closed.
   Four exact post-`0373` patches pass Buildbox generation, replay, strict style,
   checksum verification, byte-identical admission, and the 135-profile series
-  invariant. The focused eight-case Buildbox/QEMU proof is next; no kernel
-  build or device action has occurred.
+  invariant. The first focused build stopped in Kconfig before compilation on
+  a reciprocal negative ledger dependency; a one-way exclusion repair is
+  mutation-guarded and pending exact Buildbox regeneration. No QEMU or device
+  action has occurred.
 - [2026-08-25 A72 platform plus DA921x provider snapshot as the second read](2026-08-25-mainline-a72-platform-provider-snapshot-second-read/README.md)
   — keeps the exact passed platform reader, then brackets only one stable
   writer-free DA921x provider snapshot with retained records immediately before

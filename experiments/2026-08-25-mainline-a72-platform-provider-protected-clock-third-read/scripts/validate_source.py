@@ -53,8 +53,8 @@ def validate_ledger(root: Path) -> None:
     )
     require(
         "depends on !PSTORE_GEMINI_A72_PLATFORM_PROVIDER_CLOCK_LEDGER"
-        in old_mode,
-        "mutual exclusion with predecessor ledger",
+        not in old_mode,
+        "no reciprocal Kconfig dependency",
     )
     require(
         "MTK_MT6797_A72_PLATFORM_PROVIDER_CLOCK_OBSERVER=y ||" in kconfig,

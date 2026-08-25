@@ -68,14 +68,8 @@ config PSTORE_GEMINI_A72_PLATFORM_PROVIDER_CLOCK_LEDGER
         "config PSTORE_GEMINI_A72_PLATFORM_PROVIDER_SNAPSHOT_LEDGER\n",
         mode + "config PSTORE_GEMINI_A72_PLATFORM_PROVIDER_SNAPSHOT_LEDGER\n",
     )
-    replace_once(
-        kconfig,
-        "\tdepends on MTK_MT6797_A72_PLATFORM_PROVIDER_SNAPSHOT_OBSERVER=y\n"
-        "\tdepends on !PSTORE_GEMINI_A72_PLATFORM_SNAPSHOT_LEDGER\n",
-        "\tdepends on MTK_MT6797_A72_PLATFORM_PROVIDER_SNAPSHOT_OBSERVER=y\n"
-        "\tdepends on !PSTORE_GEMINI_A72_PLATFORM_PROVIDER_CLOCK_LEDGER\n"
-        "\tdepends on !PSTORE_GEMINI_A72_PLATFORM_SNAPSHOT_LEDGER\n",
-    )
+    # Keep the exclusion one-way. Kconfig rejects reciprocal negative
+    # dependencies as a recursive dependency before configuration can start.
     replace_once(
         kconfig,
         "MTK_MT6797_A72_PLATFORM_PROVIDER_SNAPSHOT_OBSERVER=y || "

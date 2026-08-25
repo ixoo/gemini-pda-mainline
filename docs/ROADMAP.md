@@ -5386,7 +5386,14 @@ The next ordered work is:
    or device action has occurred. **Selected next:** commit and push the exact
    admission, build the eight-case hardware-free KUnit profile on Buildbox,
    and run only that suite in no-network QEMU before considering the device
-   profile.
+   profile. That first Buildbox build applied all 377 patches, then stopped in
+   `defconfig` before compilation because the new and predecessor ledger modes
+   had reciprocal negative Kconfig dependencies. The one-way repair preserves
+   the new mode's exclusion of the predecessor but removes the reverse edge;
+   its tooling oracle now rejects 13 mutations including recurrence of this
+   cycle. **Selected next:** sign and push the generator repair, regenerate
+   exact patch bytes on Buildbox, re-admit their checksums, and retry the same
+   isolated profile. No QEMU or device action occurred.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
