@@ -72,7 +72,8 @@
   },
   "current_status": {
     "definition": "frozen",
-    "patch_generation": "pending",
+    "patch_generation": "pass",
+    "patch_admission": "pass",
     "build": "pending",
     "boot_candidate": false,
     "device_action": false

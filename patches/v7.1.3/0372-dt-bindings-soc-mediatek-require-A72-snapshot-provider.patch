@@ -1,0 +1,35 @@
+From 92f9b54c8be8f4215a49b869ad1ea764d7565a91 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 25 Aug 2026 19:02:00 +0000
+Subject: [PATCH 2/3] dt-bindings: soc: mediatek: require A72 snapshot provider
+
+Require the candidate-only observer to identify the bound legacy DA9214 endpoint that gates its one-shot capture.
+---
+ ...atek,mt6797-a72-platform-provider-snapshot-observer.yaml | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-a72-platform-provider-snapshot-observer.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-a72-platform-provider-snapshot-observer.yaml
+index 9613016..69bbfc7 100644
+--- a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-a72-platform-provider-snapshot-observer.yaml
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-a72-platform-provider-snapshot-observer.yaml
+@@ -22,9 +22,14 @@ properties:
+     $ref: /schemas/types.yaml#/definitions/phandle
+     description: Phandle to the bound MT6797 A72 platform-state source.
+ 
++  mediatek,provider:
++    $ref: /schemas/types.yaml#/definitions/phandle
++    description: Phandle to the bound legacy DA9214 regulator endpoint.
++
+ required:
+   - compatible
+   - mediatek,platform-state
++  - mediatek,provider
+ 
+ additionalProperties: false
+ 
+@@ -33,4 +38,5 @@ examples:
+     a72-platform-provider-snapshot-observer {
+         compatible = "mediatek,mt6797-a72-platform-provider-snapshot-observer";
+         mediatek,platform-state = <&a72_platform_state>;
++        mediatek,provider = <&da9214>;
+     };

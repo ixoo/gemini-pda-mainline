@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-25-mainline-a72-platform-provider-deferred-bind-repair` |
-| Status | planned; definition and hardware-free gates pending |
+| Status | three patches admitted; hardware-free compile pending |
 | Subsystem | MT6797 A72 platform/provider snapshot dependency ordering |
 | Device variant | Gemini PDA, named project device |
 | Date | 2026-08-25 |
@@ -59,6 +59,10 @@ CPU request.
   `7abaf44dfe744882e4fdbf46db13ae0ea4a558f197ec5a39137ede67e42da718`.
 - Planned canonical changes: `0371` production dependency gate, `0372`
   binding contract, and `0373` injected dependency tests.
+- Buildbox generation from exact signed commit `9a2ca827` passed source,
+  replay, strict-style, checksum, and byte-exact admission gates. The three
+  patches retain a clearly synthetic non-certifying author, have no synthetic
+  sign-off, and are not submission-ready.
 - Build backend: Buildbox only. A native VM kernel build is prohibited unless
   the owner explicitly requests that specific build.
 
@@ -93,7 +97,6 @@ reversible DT validation, deterministic Android-v0 assembly, live-GPT guarded
 
 ## Next
 
-Pass the definition and mutation gates, generate the three patches on Buildbox,
-admit them only after exact replay and strict style, then run the isolated
-Buildbox/QEMU profile. No device action is authorized by definition or patch
-generation alone.
+Compile the isolated KUnit profile on Buildbox, fetch only its validated
+package, then run the focused seven-case suite in no-network QEMU. No device
+action is authorized by patch admission or hardware-free testing alone.

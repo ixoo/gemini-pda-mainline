@@ -5318,9 +5318,12 @@ The next ordered work is:
    provider case must return `-EPROBE_DEFER` with zero platform, checkpoint, or
    provider calls; its ready case retains the same exact 26 platform
    observations plus ten read-only provider I2C transfers. Every later action
-   and CPU8/CPU9 admission remains closed. **Selected next:** pass the local
-   definition and mutation gates, then generate and admit the three patches on
-   Buildbox before any compile or device action.
+   and CPU8/CPU9 admission remains closed. Nine definition mutations fail
+   closed. Exact signed commit `9a2ca827` then passes Buildbox source, replay,
+   strict-style, checksum, and byte-exact admission gates for patches `0371`--
+   `0373`; all 133 profiles preserve canonical order. No kernel build or device
+   action occurred. **Selected next:** compile the isolated seven-case KUnit
+   profile on Buildbox and run it in no-network QEMU.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
