@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-25-mainline-a72-platform-provider-deferred-bind-repair",
+  "predecessor": "experiments/2026-08-25-mainline-a72-platform-provider-snapshot-second-read",
+  "question": "defer-before-any-capture-until-explicit-da921x-provider-is-bound",
+  "canonical_parent": "patches/v7.1.3/0370-soc-mediatek-test-A72-platform-provider-snapshot-observer.patch",
+  "canonical_parent_sha256": "53acfdd34be95c79f8bab4d83da0d002e0507e467805802b97616db13823bc49",
+  "prepared_source_state": "2fe5ef253a8c2fa73af53fa2f3b6a98df04da4faf35263ab145a69e2a6bd795e",
+  "prepared_source_integrity": "7abaf44dfe744882e4fdbf46db13ae0ea4a558f197ec5a39137ede67e42da718",
+  "edited_parent_files": {
+    "drivers/soc/mediatek/mt6797-a72-platform-provider-snapshot-observer.c": "033422db23554f70d2b50942d1310b54703ca8b5fa85e2a36dfabb96a26a06bb",
+    "drivers/soc/mediatek/mt6797-a72-platform-provider-snapshot-observer-internal.h": "82af31dc1493606076c898e6db90631fc4d460c9fb74ee0afa801bb6044ece92",
+    "drivers/soc/mediatek/mt6797-a72-platform-provider-snapshot-observer-test.c": "cad0dcfdb2777a196ae4f9b5d53b0af639e1f0b11e0b14963ed31762a70a1115",
+    "Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-a72-platform-provider-snapshot-observer.yaml": "afe12e2ecfde40f01d14befa199a73e4e719c734351326bd4e72a708599a7b2f"
+  },
+  "predecessor_runtime": {
+    "kernel_release": "7.1.3-gemini-a72-provider-read",
+    "observer_enodev_seconds": "1.146260",
+    "da921x_bound_seconds": "46.149957",
+    "retained_classification": "before-provider-only",
+    "provider_i2c_reads": 0,
+    "stage27_serviceability": "pass",
+    "cpu8_cpu9_admission": "closed"
+  },
+  "planned_patches": [
+    "0371-soc-mediatek-defer-A72-platform-provider-until-provider-ready.patch",
+    "0372-dt-bindings-soc-mediatek-require-A72-snapshot-provider.patch",
+    "0373-soc-mediatek-test-A72-platform-provider-readiness.patch"
+  ],
+  "profiles": {
+    "kunit": "a72-platform-provider-ready-kunit",
+    "candidate": "a72-platform-provider-ready-candidate"
+  },
+  "dependency_gate": {
+    "property": "mediatek,provider",
+    "compatible": "dlg,da9214-legacy",
+    "lookup": "of_find_i2c_device_by_node",
+    "readiness": "device_is_bound",
+    "not_ready_result": "-EPROBE_DEFER",
+    "not_ready_platform_calls": 0,
+    "not_ready_checkpoint_calls": 0,
+    "not_ready_provider_calls": 0,
+    "not_ready_hardware_access": false
+  },
+  "runtime_ceiling": {
+    "platform_snapshot_calls": 1,
+    "platform_samples": 2,
+    "platform_register_observations": 26,
+    "provider_snapshots": 1,
+    "provider_samples": 2,
+    "provider_i2c_reads": 10,
+    "provider_i2c_writes": 0,
+    "retained_write_attempts_maximum": 2,
+    "capture_retries": 0,
+    "protected_clock_reads": 0,
+    "bigidvfs_reads": 0,
+    "secure_calls": 0,
+    "provider_acquires": 0,
+    "provider_releases": 0,
+    "publisher_calls": 0,
+    "owner_mutations": 0,
+    "cpu_requests": 0
+  },
+  "configuration": {
+    "maxcpus": 8,
+    "positive_provider_transaction": false,
+    "firmware_writer_transaction_window": false,
+    "same_value_writer": false,
+    "protected_readback_observer": false,
+    "direct_state_compositor": false,
+    "production_publisher": false
+  },
+  "current_status": {
+    "definition": "frozen",
+    "patch_generation": "pending",
+    "build": "pending",
+    "boot_candidate": false,
+    "device_action": false
+  }
+}

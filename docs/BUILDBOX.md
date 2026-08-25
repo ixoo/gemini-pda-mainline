@@ -509,6 +509,23 @@ terminal and phase strings only in the child; and bounded task/coherency/
 terminal stack use. The package is compile-review-only, never a boot candidate,
 and performs no device action.
 
+## A72 platform/provider readiness repair generation
+
+The deferred-bind repair is generated only from a clean pushed project commit
+and the managed Linux 7.1.3 source pinned through canonical patch `0370`:
+
+```sh
+./scripts/buildbox generate-a72-platform-provider-ready-patches
+./scripts/buildbox fetch-a72-platform-provider-ready-patches
+```
+
+The isolated lane verifies the exact prepared-source state and integrity plus
+the four edited parent files. It emits three experiment-only format patches:
+the production provider-ready gate, its required DT phandle, and the injected
+not-ready test. Exact replay, source invariants, strict checkpatch, and package
+checksums must pass before fetch. The lane performs no kernel compile, device
+access, retained-RAM access, candidate construction, or partition action.
+
 ## Remote storage and concurrency
 
 Buildbox uses its persistent home volume for the Git mirror, verified kernel

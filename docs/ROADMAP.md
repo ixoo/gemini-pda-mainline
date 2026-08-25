@@ -5312,8 +5312,15 @@ The next ordered work is:
    artifact without an unchanged retry. **Selected next:** add a separate
    post-`0370` deferred-bind repair with an explicit DA921x provider phandle
    and a bound-device gate before the platform snapshot and first checkpoint.
-   Inject provider-not-ready and provider-ready cases; retain the same read
-   ceiling and keep every later action and CPU8/CPU9 admission closed.
+   The linked
+   [provider deferred-bind repair experiment](../experiments/2026-08-25-mainline-a72-platform-provider-deferred-bind-repair/README.md)
+   now freezes three post-`0370` patches and two isolated profiles. Its missing-
+   provider case must return `-EPROBE_DEFER` with zero platform, checkpoint, or
+   provider calls; its ready case retains the same exact 26 platform
+   observations plus ten read-only provider I2C transfers. Every later action
+   and CPU8/CPU9 admission remains closed. **Selected next:** pass the local
+   definition and mutation gates, then generate and admit the three patches on
+   Buildbox before any compile or device action.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
