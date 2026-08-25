@@ -113,6 +113,27 @@
     "reboot": false,
     "shutdown": "confirmed-unreachable"
   },
+  "runtime_attempt_1": {
+    "boot_id": "75276384-e76d-4e01-b527-7fde0273e043",
+    "kernel_release": "7.1.3-gemini-a72-provider-ready",
+    "installed_full_sha256": "f55bb272de24a62a0e4055624e8eb0ef35bc53432fa130463c867c43c059732e",
+    "provider_ready_gate": "passed",
+    "provider_ready_log_seconds": "46.168676",
+    "platform_snapshot_calls": 1,
+    "platform_register_observations": 26,
+    "provider_snapshots": 1,
+    "provider_samples": 2,
+    "provider_i2c_reads": 10,
+    "provider_i2c_writes": 0,
+    "provider_raw": "7b/c1/00/46/46",
+    "stage27_serviceability": "pass",
+    "cpu_online": "0-7",
+    "cpu_offline": "8-9",
+    "later_actions": 0,
+    "native_reboot_requested": false,
+    "mainline_left_running": true,
+    "result": "pass"
+  },
   "current_status": {
     "definition": "frozen",
     "patch_generation": "pass",
@@ -124,6 +145,7 @@
     "runtime_and_recovery_tools": "prearmed-and-mutation-tested",
     "boot_candidate": true,
     "device_action": "boot2-write-readback-and-shutdown-pass",
-    "runtime_attempt": "pending"
+    "runtime_attempt": "pass-provider-ready-composed-snapshot",
+    "selected_next": "isolated-protected-clock-third-read"
   }
 }

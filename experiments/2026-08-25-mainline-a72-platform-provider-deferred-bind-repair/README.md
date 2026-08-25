@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-25-mainline-a72-platform-provider-deferred-bind-repair` |
-| Status | exact `boot2` deployment and shutdown pass; first runtime pending |
+| Status | first runtime passes provider-ready composed snapshot |
 | Subsystem | MT6797 A72 platform/provider snapshot dependency ordering |
 | Device variant | Gemini PDA, named project device |
 | Date | 2026-08-25 |
@@ -87,6 +87,15 @@ CPU request.
   TEE identities, then passed write, sync, flush, full 16 MiB readback
   `f55bb272...`, cleanup, and confirmed clean shutdown. It made no fresh
   backup, retained-RAM write, primary-boot write, or reboot request.
+- The first owner-selected boot is an exact live pass. At 46.168676 seconds,
+  after DA921x bound, the observer emitted terminal
+  `provider_ready_gate=passed`. It completed one two-sample platform snapshot
+  with 26 observations and one two-sample provider snapshot with ten read-only
+  transfers; the stable provider tuple is `7b/c1/00/46/46`. Stage-27 USB,
+  T-PHY, I2C5, keyboard, all three suppliers, and CPUs 0--7 remained healthy.
+  CPUs 8--9 and every protected-clock, BigiDVFS, secure, provider-action,
+  publication, owner-mutation, and CPU-request path remained closed. The
+  collector sent no reboot and left mainline running.
 - Build backend: Buildbox only. A native VM kernel build is prohibited unless
   the owner explicitly requests that specific build.
 
@@ -122,9 +131,9 @@ reversible DT validation, deterministic Android-v0 assembly, live-GPT guarded
 
 ## Next
 
-Pre-arm the USB/netcat live classifier before the owner selects `boot2`; keep
-the changed-ID Gemian recovery path ready if mainline returns automatically.
-One boot can
-then distinguish provider-ready completion, continued deferral, a bounded
-provider-read failure, or a later serviceability failure without an unchanged
-retry.
+Retire this artifact: the explicit provider dependency and composed read-only
+tuple are qualified for this exact boot. Freeze the next third-reader boundary
+before changing code: add only one stable protected-clock observation after
+the passed platform/provider snapshot, retain independently recoverable
+before/after checkpoints, and keep BigiDVFS reads, provider actions,
+publication, owner mutation, and CPU admission closed.

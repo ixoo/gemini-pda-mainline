@@ -5341,9 +5341,19 @@ The next ordered work is:
    `/dev/mmcblk0p30`, matched predecessor `ff902d12`, stable power, and both TEE
    identities, and passed write, sync, flush, full readback `f55bb272`, cleanup,
    and confirmed clean shutdown without a fresh backup, retained-RAM write, or
-   reboot. **Selected next:** pre-arm one live USB/netcat classifier, retain the
-   changed-ID Gemian recovery path, and spend one owner-selected boot on the
-   exact provider-ready candidate.
+   reboot. The first owner-selected boot is an exact live pass at
+   `7.1.3-gemini-a72-provider-ready`: after DA921x bound, the observer emitted
+   `provider_ready_gate=passed` at 46.168676 seconds and completed one stable
+   two-sample platform snapshot (26 observations) plus one stable two-sample
+   provider snapshot (ten read-only transfers) with tuple
+   `7b/c1/00/46/46`. Stage-27 serviceability, all three suppliers, the composed
+   observer, and CPUs 0--7 remain healthy; CPUs 8--9 and every later action
+   remain closed. The collector sent no reboot and left mainline running.
+   Retire this artifact. **Selected next:** freeze one isolated third-reader
+   experiment that adds only the stable protected-clock observation after this
+   passed platform/provider baseline, with independent before/after retained
+   checkpoints and no BigiDVFS read, provider action, publication, owner
+   mutation, or CPU request.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
