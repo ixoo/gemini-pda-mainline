@@ -84,6 +84,14 @@ line wrapping and local helper naming, applies the same layout to the not-yet-
 checked KUnit patch, and preserves the validated call graph and effect counts.
 No kernel build, candidate, or device action occurred.
 
+Generation attempt 4 from signed commit `07f207fa` passed every semantic,
+shape, and replay validator and eliminated all six C layout checks. The sole
+remaining warning was a checkpatch parser ambiguity: a help-text continuation
+began with Kconfig's reserved word `source`, so the parser ended the paragraph
+after one line. Rewrapping the unchanged description resolves that false
+boundary without changing code or effects. No build, candidate, or device
+action occurred.
+
 ## Safety assessment
 
 CPU8 and CPU9 remain closed by exact `maxcpus=8`. The observer performs only

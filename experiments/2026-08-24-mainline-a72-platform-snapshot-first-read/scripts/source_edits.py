@@ -133,9 +133,9 @@ config MTK_MT6797_A72_PLATFORM_SNAPSHOT_OBSERVER
 	depends on MTK_MT6797_A72_PLATFORM_STATE
 	default n
 	help
-	  Build the candidate-only observer that retains the bound A72 platform
-	  source, writes one checkpoint, takes exactly one stable two-sample
-	  snapshot, and writes one completion checkpoint. The snapshot performs
+	  Build the candidate-only observer that retains the bound A72
+	  platform-state source, writes one checkpoint, takes exactly one stable
+	  two-sample snapshot, and writes one completion checkpoint. It performs
 	  26 read-only register observations with no retry.
 	  It adds no DA921x provider, clock, BigiDVFS, secure call, publication,
 	  owner mutation, CPU request, reset, or power action. If unsure, say N.
