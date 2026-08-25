@@ -29,6 +29,13 @@
     "0376-soc-mediatek-add-A72-platform-provider-clock-observer.patch",
     "0377-soc-mediatek-test-A72-platform-provider-clock-observer.patch"
   ],
+  "canonical_patch_sha256": {
+    "0374-pstore-add-Gemini-A72-platform-provider-clock-ledger.patch": "44419ec51c03331c9b23a67c926db66457398efd102353a6e8882ad0bd6e5bcb",
+    "0375-dt-bindings-soc-mediatek-add-A72-platform-provider-clock-observer.patch": "2803f25b2a15036a0e536fd1baeed15b0dd1109527f21cbd7b9954a7bf1529ba",
+    "0376-soc-mediatek-add-A72-platform-provider-clock-observer.patch": "a187004385ea33f79c2670ff4091cded04498c346681e9febb35c0e31f5fa7c3",
+    "0377-soc-mediatek-test-A72-platform-provider-clock-observer.patch": "45495394433324ccf9a92573176b9e8c1bd66ef84a05e00526885ebe19fcd890"
+  },
+  "canonical_series_sha256": "8e88fe2232c061d8ac84a7c4504df239df9fe3aba6321caa0f7de8f8ef29d9dd",
   "planned_profiles": {
     "kunit": "a72-platform-provider-clock-kunit",
     "candidate": "a72-platform-provider-clock-candidate"
@@ -128,8 +135,8 @@
   "current_status": {
     "definition": "frozen",
     "source_audit": "pass-read-only-buildbox",
-    "generation_tooling": "attempt-3-single-style-fix-pending",
-    "patch_generation": "attempt-3-semantic-pass-style-rejected",
+    "generation_tooling": "pass-attempt-4",
+    "patch_generation": "pass-generated-fetched-and-admitted-byte-for-byte",
     "kernel_build": "pending",
     "boot_candidate": false,
     "device_action": "none"

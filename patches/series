@@ -363,3 +363,7 @@ v7.1.3/0370-soc-mediatek-test-A72-platform-provider-snapshot-observer.patch
 v7.1.3/0371-soc-mediatek-defer-A72-platform-provider-until-provider-ready.patch
 v7.1.3/0372-dt-bindings-soc-mediatek-require-A72-snapshot-provider.patch
 v7.1.3/0373-soc-mediatek-test-A72-platform-provider-readiness.patch
+v7.1.3/0374-pstore-add-Gemini-A72-platform-provider-clock-ledger.patch
+v7.1.3/0375-dt-bindings-soc-mediatek-add-A72-platform-provider-clock-observer.patch
+v7.1.3/0376-soc-mediatek-add-A72-platform-provider-clock-observer.patch
+v7.1.3/0377-soc-mediatek-test-A72-platform-provider-clock-observer.patch

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-25-mainline-a72-platform-provider-protected-clock-third-read` |
-| Status | definition frozen; source generation pending |
+| Status | patches admitted byte-for-byte; focused KUnit build pending |
 | Subsystem | MT6797 A72 state, DA921x provider, DVFSP protected clock |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-25 America/New_York |
@@ -134,5 +134,13 @@ production log-function continuation-alignment check. The exact repair aligns
 that argument and also fixes two test-template issues found by a proactive
 strict diff check before attempt 4. Fresh Buildbox strict diagnostics now report
 zero errors, warnings, or checks for both production and test template diffs.
+Attempt 4 from signed commit `c89baef5` then passed all four source phases,
+the exact patch inventory and scope, byte-identical replay, and strict style
+with zero findings for every patch. The fetched checksum manifest passes;
+canonical patches `0374`--`0377` match the fetched package byte-for-byte, and
+all 135 manifest profiles preserve canonical order after adding only the
+isolated eight-case KUnit and device profiles. No kernel build, boot image,
+retained-memory write, hardware call, or device action has occurred. See the
+[generation receipt](results/buildbox-generation-20260825.txt).
 The ordered continuation is owned by the
 [Roadmap](../../docs/ROADMAP.md#7-bring-up-cpu8).

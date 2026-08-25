@@ -196,8 +196,8 @@ def main() -> None:
     require(status == {
         "definition": "frozen",
         "source_audit": "pass-read-only-buildbox",
-        "generation_tooling": "attempt-3-single-style-fix-pending",
-        "patch_generation": "attempt-3-semantic-pass-style-rejected",
+        "generation_tooling": "pass-attempt-4",
+        "patch_generation": "pass-generated-fetched-and-admitted-byte-for-byte",
         "kernel_build": "pending",
         "boot_candidate": False,
         "device_action": "none",

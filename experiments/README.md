@@ -23,6 +23,16 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-25 A72 platform/provider/protected-clock third read](2026-08-25-mainline-a72-platform-provider-protected-clock-third-read/README.md)
+  — freezes exactly one protected-clock call after the live-qualified platform
+  and provider prefix, with all three suppliers ready before capture and two
+  retained records only around that call. The source-counted ceiling includes
+  the balanced I2C clock gate and bounded CSPM MMIO writes; BigiDVFS, provider
+  actions, publication, ownership mutation, and CPU requests remain closed.
+  Four exact post-`0373` patches pass Buildbox generation, replay, strict style,
+  checksum verification, byte-identical admission, and the 135-profile series
+  invariant. The focused eight-case Buildbox/QEMU proof is next; no kernel
+  build or device action has occurred.
 - [2026-08-25 A72 platform plus DA921x provider snapshot as the second read](2026-08-25-mainline-a72-platform-provider-snapshot-second-read/README.md)
   — keeps the exact passed platform reader, then brackets only one stable
   writer-free DA921x provider snapshot with retained records immediately before

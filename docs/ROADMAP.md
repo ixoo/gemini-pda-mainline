@@ -5377,10 +5377,16 @@ The next ordered work is:
    no package was promoted. The style-only repair reduced attempt 3 to one
    production log-function alignment check after every semantic and replay gate
    passed again. The corrected production and test template diffs now each pass
-   a fresh strict Buildbox checkpatch diagnostic with zero findings; no package
-   or device action exists yet. **Selected next:** sign and push this final
-   alignment repair, rerun the Buildbox lane, and fetch only its checksum-
-   validated four-patch review.
+   a fresh strict Buildbox checkpatch diagnostic with zero findings. Attempt 4
+   from signed commit `c89baef5` passes every source, patch-scope, replay, and
+   strict-style gate. The fetched checksum manifest passes; canonical patches
+   `0374`--`0377` are byte-for-byte identical, and all 135 manifest profiles
+   preserve canonical order after adding only the isolated KUnit and device
+   profiles. No kernel build, boot image, retained-memory write, hardware call,
+   or device action has occurred. **Selected next:** commit and push the exact
+   admission, build the eight-case hardware-free KUnit profile on Buildbox,
+   and run only that suite in no-network QEMU before considering the device
+   profile.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
