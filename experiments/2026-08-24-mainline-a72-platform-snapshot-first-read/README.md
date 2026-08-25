@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-24-mainline-a72-platform-snapshot-first-read` |
-| Status | exact candidate deployed/read back; device shut down; runtime pending |
+| Status | complete; exact live platform snapshot passed; artifact retired |
 | Subsystem | MT6797 A72 platform-state read-only snapshot |
 | Device variant | Gemini PDA, named project device |
 | Date | 2026-08-24 |
@@ -148,8 +148,9 @@ its exact 16 MiB `boot2` image is
 `39f801f713a76c616ed8d9282fc0a662fb34c5a766d6839e4c47c757638bae43`.
 The sanitized receipt is
 [`results/offline-candidate-validation-20260825.txt`](results/offline-candidate-validation-20260825.txt).
-This is the owner-selected latest validated boot candidate, pending guarded
-deployment and one physical runtime; it is not yet physical-read evidence.
+This was the owner-selected validated boot candidate pending guarded
+deployment and one physical runtime; compile and container results alone were
+not physical-read evidence.
 
 Guarded deployment from changed-ID known-good Gemian then resolved inactive,
 unmounted logical `boot2` as `/dev/mmcblk0p30` while the active root was
@@ -160,7 +161,29 @@ clean shutdown passed without a fresh backup; recovery remains the verified
 project-wide backup captured at project start. The readback is exactly
 `39f801f713a76c616ed8d9282fc0a662fb34c5a766d6839e4c47c757638bae43`.
 See [`results/deployment-20260825.txt`](results/deployment-20260825.txt).
-No candidate boot or platform snapshot has yet been observed.
+
+The one pre-armed runtime then reached exact live release
+`7.1.3-gemini-a72-platform-read` with installed image `39f801f7`, changed boot
+ID `e6b374bd-e32a-485f-9268-156e946fd657`, Stage-27 USB/T-PHY/I2C5/keyboard
+serviceability, CPUs 0--7 online, CPUs 8--9 offline, and all three backends plus
+the candidate observer bound. Exactly one platform call completed two stable
+samples and 26 read-only register observations. The exact terminal raw record
+was:
+
+```text
+spm=2a00005c/2a00004c/003d8008/003d80ff
+mp2=00010132/00010332/00010332 iso=00000002 dcm=00000000
+cci=c0000000/00000000/00000000 pwrap=0
+```
+
+By the source-defined masks, the CPU8/CPU9 power-status intersections are
+clear, B-cluster external isolation is asserted, MP2 CCI request and global
+pending bits are clear, PWRAP reset is deasserted, and MP2 DCM bits 6:0 are
+zero. Provider snapshots, protected-clock reads, BigiDVFS reads, secure calls,
+publication, owner mutation, and CPU requests all remained zero. The candidate
+was deliberately left running and no reboot command was sent. The exact
+sanitized receipt is
+[`results/runtime-attempt-1-pass-20260825.txt`](results/runtime-attempt-1-pass-20260825.txt).
 
 ## Safety assessment
 
@@ -199,7 +222,8 @@ container, deployment, and pre-armed runtime gate passes.
 
 ## Next
 
-Pre-arm the one bounded USB/netcat runtime described by the decision map, then
-physically select `boot2` once. A successful candidate stays running for the
-exact live probe; an automatic Gemian return is classified from the changed
-boot ID and retained prefix without an unchanged retry.
+Retire this one-shot artifact without an unchanged retry. Define the next
+separate experiment around only the already separated DA921x read-only
+snapshot immediately after this passed platform snapshot, with independent
+before/after attribution. Keep protected-clock, BigiDVFS, publication, owner
+mutation, and CPU requests closed.

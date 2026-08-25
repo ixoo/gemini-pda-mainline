@@ -5254,10 +5254,19 @@ The next ordered work is:
    target, TEE, and stable-power gates; logical `boot2` resolved to
    `/dev/mmcblk0p30`. The predecessor was exact Bigi control `0b17da98`; write,
    sync, flush, full 16 MiB readback `39f801f7`, cleanup, and clean shutdown all
-   pass without a fresh backup. **Selected next:** pre-arm one bounded
-   USB/netcat runtime and physically select `boot2` once. Do not repeat an
-   unchanged artifact: use exact live serviceability/log evidence or the
-   changed-ID Gemian retained prefix to choose the next boundary.
+   pass without a fresh backup. The one pre-armed runtime is now an exact live
+   pass on `7.1.3-gemini-a72-platform-read`: Stage-27 serviceability remains
+   intact, CPUs 0--7 are online and 8--9 closed, all three backends and the
+   observer bind, and exactly one platform call completes two stable samples
+   and 26 read-only observations. Source-defined masks show CPU8/CPU9 off,
+   external B isolation asserted, CCI request/pending clear, PWRAP reset
+   deasserted, and MP2 DCM bits 6:0 clear. DA921x-provider, protected-clock,
+   BigiDVFS, secure, publication, owner, and CPU actions remain zero; mainline
+   is left running without a reboot request. **Selected next:** retire this
+   artifact and define one isolated successor that adds only the already
+   separated DA921x read-only snapshot immediately after the passed platform
+   snapshot, with its own before/after attribution. Keep protected-clock,
+   BigiDVFS, publication, owner mutation, and CPU requests closed.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
