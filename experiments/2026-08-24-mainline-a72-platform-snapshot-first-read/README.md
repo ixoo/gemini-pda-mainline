@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-24-mainline-a72-platform-snapshot-first-read` |
-| Status | hardware-free Buildbox compile and focused KUnit runtime pass |
+| Status | exact device candidate passes all offline gates; deployment pending |
 | Subsystem | MT6797 A72 platform-state read-only snapshot |
 | Device variant | Gemini PDA, named project device |
 | Date | 2026-08-24 |
@@ -129,6 +129,28 @@ sanitized runtime receipt is
 This closes the injected software boundary only; it is not physical-read or
 hardware-support evidence and is not a boot candidate.
 
+Signed commit `2dd7b176a2e54e086a0d7acd689e1aa330a4c358` then
+compiled the isolated device profile successfully on Buildbox. The fetched
+package is `7.1.3-gemini-a72-platform-read`, has exact `maxcpus=8`, links the
+three passed backends plus only the new observer, excludes every later reader,
+writer, publisher, owner, and CPU action, and passes its relative package
+manifest. The exact receipt is
+[`results/buildbox-candidate-compile-20260825.txt`](results/buildbox-candidate-compile-20260825.txt).
+
+The pinned builder combines only that package, the validated observer DT, and
+the exact serviceability ramdisk. Two raw assemblies and two independent
+padding constructions are byte-identical. All 32 Android-v0/LK gates pass, an
+independent parser rejects six container mutations, and the pre-armed runtime
+classifier rejects sixteen attribution, serviceability, boundary, count, and
+terminal-log mutations. The raw candidate is
+`7d87638c9626469d78e643ac3d7daf7fab5b42f11c54b3ab42df7e834d6ab9f8`;
+its exact 16 MiB `boot2` image is
+`39f801f713a76c616ed8d9282fc0a662fb34c5a766d6839e4c47c757638bae43`.
+The sanitized receipt is
+[`results/offline-candidate-validation-20260825.txt`](results/offline-candidate-validation-20260825.txt).
+This is the owner-selected latest validated boot candidate, pending guarded
+deployment and one physical runtime; it is not yet physical-read evidence.
+
 ## Safety assessment
 
 CPU8 and CPU9 remain closed by exact `maxcpus=8`. The observer performs only
@@ -166,7 +188,8 @@ container, deployment, and pre-armed runtime gate passes.
 
 ## Next
 
-Build the isolated `a72-platform-snapshot-candidate` profile on Buildbox,
-combine it only with the exact validated observer DT, and run the offline
-candidate gates. Do not change or reboot the currently healthy control boot
-until the new candidate is fully validated and ready for guarded deployment.
+Publish the exact candidate identities and guarded tooling, return the device
+from the currently healthy control boot to known-good Gemian, pass the retained
+record and live-GPT preflight, install only the exact validated image to
+inactive `boot2`, verify the full-partition readback, and shut down. Then
+pre-arm the one bounded USB/netcat runtime described by the decision map.

@@ -5243,8 +5243,16 @@ The next ordered work is:
    observer DT node and required source phandle from the exact passed
    BigiDVFS predecessor DT
    `d439ed8f4c226eda49f5bf652f16761ba3400bd0b80685bfc8f8da371d6ed9db`,
-   then run the offline container gates. No candidate construction or device
-   action has yet occurred for this boundary.
+   then run the offline container gates. Those gates now pass: exact Buildbox
+   package commit `2dd7b176`, independently reproduced observer DT
+   `3c6c54ff`, two raw and two padded assemblies, all 32 LK gates, six
+   container mutations, and sixteen runtime mutations validate. The selected
+   raw candidate is `7d87638c`; exact 16 MiB `boot2` identity is
+   `39f801f713a76c616ed8d9282fc0a662fb34c5a766d6839e4c47c757638bae43`.
+   **Selected next:** publish the identities and guarded tools, return the
+   healthy control to Gemian, run retained/live-GPT preflight, write and fully
+   read back only this inactive `boot2`, shut down, and pre-arm the one bounded
+   USB/netcat runtime. No device action has yet occurred for this boundary.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
