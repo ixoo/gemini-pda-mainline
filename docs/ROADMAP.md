@@ -5249,10 +5249,15 @@ The next ordered work is:
    container mutations, and sixteen runtime mutations validate. The selected
    raw candidate is `7d87638c`; exact 16 MiB `boot2` identity is
    `39f801f713a76c616ed8d9282fc0a662fb34c5a766d6839e4c47c757638bae43`.
-   **Selected next:** publish the identities and guarded tools, return the
-   healthy control to Gemian, run retained/live-GPT preflight, write and fully
-   read back only this inactive `boot2`, shut down, and pre-arm the one bounded
-   USB/netcat runtime. No device action has yet occurred for this boundary.
+   The signed identities and guarded tools are published at `5e10c880`.
+   Changed-ID Gemian then passed the exact retained-pair, live-GPT, inactive
+   target, TEE, and stable-power gates; logical `boot2` resolved to
+   `/dev/mmcblk0p30`. The predecessor was exact Bigi control `0b17da98`; write,
+   sync, flush, full 16 MiB readback `39f801f7`, cleanup, and clean shutdown all
+   pass without a fresh backup. **Selected next:** pre-arm one bounded
+   USB/netcat runtime and physically select `boot2` once. Do not repeat an
+   unchanged artifact: use exact live serviceability/log evidence or the
+   changed-ID Gemian retained prefix to choose the next boundary.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

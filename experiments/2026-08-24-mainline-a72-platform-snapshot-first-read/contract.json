@@ -89,7 +89,13 @@
     "runtime_mutations_rejected": 16,
     "maxcpus": 8,
     "boot_candidate": true,
-    "deployment_status": "pending",
-    "device_action": false
+    "deployment_status": "write-readback-shutdown-pass",
+    "deployment_boot_id": "e948eed1-1234-43f7-951d-8ba5da15c056",
+    "deployment_target": "/dev/mmcblk0p30",
+    "predecessor_sha256": "0b17da983293f68f227931c964021b43efb1cdd57b4d0cf4db3bd70312f6092a",
+    "readback_sha256": "39f801f713a76c616ed8d9282fc0a662fb34c5a766d6839e4c47c757638bae43",
+    "fresh_predecessor_backup": false,
+    "shutdown": "confirmed-unreachable",
+    "device_action": true
   }
 }

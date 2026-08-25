@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-24-mainline-a72-platform-snapshot-first-read` |
-| Status | exact device candidate passes all offline gates; deployment pending |
+| Status | exact candidate deployed/read back; device shut down; runtime pending |
 | Subsystem | MT6797 A72 platform-state read-only snapshot |
 | Device variant | Gemini PDA, named project device |
 | Date | 2026-08-24 |
@@ -151,6 +151,17 @@ The sanitized receipt is
 This is the owner-selected latest validated boot candidate, pending guarded
 deployment and one physical runtime; it is not yet physical-read evidence.
 
+Guarded deployment from changed-ID known-good Gemian then resolved inactive,
+unmounted logical `boot2` as `/dev/mmcblk0p30` while the active root was
+`/dev/mmcblk0p29`. The exact passed Bigi predecessor, both TEE identities,
+100% good/stable power, candidate size, and exact Stage-27 retained pair all
+matched. The write, sync, flush, full 16 MiB readback, temporary cleanup, and
+clean shutdown passed without a fresh backup; recovery remains the verified
+project-wide backup captured at project start. The readback is exactly
+`39f801f713a76c616ed8d9282fc0a662fb34c5a766d6839e4c47c757638bae43`.
+See [`results/deployment-20260825.txt`](results/deployment-20260825.txt).
+No candidate boot or platform snapshot has yet been observed.
+
 ## Safety assessment
 
 CPU8 and CPU9 remain closed by exact `maxcpus=8`. The observer performs only
@@ -188,8 +199,7 @@ container, deployment, and pre-armed runtime gate passes.
 
 ## Next
 
-Publish the exact candidate identities and guarded tooling, return the device
-from the currently healthy control boot to known-good Gemian, pass the retained
-record and live-GPT preflight, install only the exact validated image to
-inactive `boot2`, verify the full-partition readback, and shut down. Then
-pre-arm the one bounded USB/netcat runtime described by the decision map.
+Pre-arm the one bounded USB/netcat runtime described by the decision map, then
+physically select `boot2` once. A successful candidate stays running for the
+exact live probe; an automatic Gemian return is classified from the changed
+boot ID and retained prefix without an unchanged retry.
