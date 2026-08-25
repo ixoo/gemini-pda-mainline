@@ -23,6 +23,14 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-24 A72 platform snapshot as the first physical read](2026-08-24-mainline-a72-platform-snapshot-first-read/README.md)
+  — freezes the first decision-bearing read after the passed Stage-27
+  platform/clock/BigiDVFS control: one stable two-sample platform-state
+  snapshot, retained checkpoints immediately before and after it, and no
+  retry. The exact boundary is 26 read-only register observations with every
+  DA921x, protected-clock, BigiDVFS, publisher, owner, and CPU action closed.
+  Source templates, four-patch Buildbox generation, strict replay/style gates,
+  and the one-attempt decision map are defined; generation is next.
 - [2026-08-24 A72 BigiDVFS-backend probe on the passed Stage-27 reader DT](2026-08-24-mainline-a72-bigidvfs-backend-stage27-control/README.md)
   — keeps the exact runtime-passed Stage-27 platform/clock DT and adds only the
   read-free BigiDVFS-backend node. Probe validates the `smc` method, allocates

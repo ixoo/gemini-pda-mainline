@@ -5227,7 +5227,13 @@ The next ordered work is:
    before the first SPM read and a second only after one stable two-sample
    result. It must perform exactly one platform snapshot (26 read-only register
    observations), no retry, and no DA921x, protected-clock, BigiDVFS,
-   publication, owner, or CPU action.
+   publication, owner, or CPU action. The linked
+   [platform-snapshot first-read experiment](../experiments/2026-08-24-mainline-a72-platform-snapshot-first-read/README.md)
+   now pins canonical parent `0362`, the exact managed source state and edited
+   parent hashes, a four-patch Buildbox-only generator, one-shot observer,
+   binding, injected tests, and the one-attempt decision map. Patch generation
+   is next; no kernel build, candidate construction, or device action has yet
+   occurred for this boundary.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

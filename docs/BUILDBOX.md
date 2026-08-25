@@ -274,6 +274,22 @@ refusal marker only after the pure checkpoint fails. Both lanes suppress
 observer registration and add no source, provider, owner, CPU, candidate, or
 device action.
 
+The first physical-read discriminator has a separate four-patch generation
+lane:
+
+```sh
+./scripts/buildbox generate-a72-platform-snapshot-patches
+./scripts/buildbox fetch-a72-platform-snapshot-patches
+```
+
+It pins the exact managed source through canonical patch `0362`, brackets one
+platform-state snapshot with two retained records, and generates the one-shot
+observer, binding, and four injected tests. The admitted runtime path performs
+exactly one fixed two-sample snapshot (26 read-only register observations), no
+retry, and no DA921x, protected-clock, BigiDVFS, publisher, owner, or CPU
+operation. Patch generation itself compiles no kernel, constructs no boot
+candidate, and performs no device action.
+
 The protected-clock first-dmesg call discriminator also has a source-review
 lane:
 
