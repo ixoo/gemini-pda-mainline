@@ -45,6 +45,8 @@ def main() -> None:
     source_validator = read(exp / "scripts/validate_source.py")
     patch_validator = read(exp / "scripts/validate_patch.py")
     generator = read(exp / "scripts/generate-on-buildbox")
+    classifier = read(exp / "scripts/classify-kunit.py")
+    runner = read(exp / "scripts/run-kunit-qemu")
     buildbox = read(root / "scripts/buildbox")
     manifest = json.loads(read(root / "kernel/manifest.json"))
 
@@ -148,6 +150,23 @@ def main() -> None:
                 f"source edit and gate: {token}")
     require('"\\tif (!provider)\\n"' in edits, "capture provider gate edit")
     require("--backend vm" not in generator, "no native VM build")
+    require(classifier.count('"mt6797_platform_provider_') == 7,
+            "seven exact classifier cases")
+    for token in (
+        'PROFILE = "a72-platform-provider-ready-kunit"',
+        '"1..7"',
+        "pass:7 fail:0 skip:0 total:7",
+        "provider_transactions=0",
+        "boot_candidate=false",
+    ):
+        require(token in classifier, f"KUnit classifier boundary: {token}")
+    for token in (
+        "readonly EXPECTED_PROFILE=a72-platform-provider-ready-kunit",
+        "-nic none",
+        "timeout --signal=TERM 45",
+        "CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION=y",
+    ):
+        require(token in runner, f"KUnit runner boundary: {token}")
 
     for token in (
         "generate-a72-platform-provider-ready-patches",
