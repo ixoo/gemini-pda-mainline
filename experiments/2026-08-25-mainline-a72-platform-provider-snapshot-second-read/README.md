@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-25-mainline-a72-platform-provider-snapshot-second-read` |
-| Status | patches admitted; Buildbox compile and 6/6 KUnit pass; candidate build pending |
+| Status | complete; provider-not-ready boundary localized; artifact retired |
 | Subsystem | MT6797 A72 platform state and DA921x read-only provider snapshot |
 | Device variant | Gemini PDA, named project device |
 | Date | 2026-08-25 |
@@ -114,6 +114,78 @@ action. See the
 [`compile receipt`](results/buildbox-kunit-compile-20260825.txt) and
 [`QEMU receipt`](results/kunit-qemu-pass-20260825.txt).
 
+The isolated device profile then compiled exact published commit `2a936080`
+on Buildbox. The fetched package checksum manifest passes and pins release
+`7.1.3-gemini-a72-provider-read`, patchset `80b97d1e`, configuration
+`2838806a`, Image `661c6221`, and System.map `5071bd36`. No native VM build or
+device action occurred. See
+[`results/buildbox-candidate-compile-20260825.txt`](results/buildbox-candidate-compile-20260825.txt).
+
+The candidate DT starts from exact runtime-passed predecessor `3c6c54ff`. It
+removes the platform-only observer, retains its already assigned platform-state
+phandle, and adds only the composed observer and its one reference. Two
+derivations are byte-identical; replacing the composed observer with the old
+observer recovers the byte-identical sorted predecessor tree. DA921x, all three
+passed backends, and every Stage-27 serviceability node remain exact. The
+derived DT is `ee8baf00`. See
+[`results/offline-dtb-validation-20260825.txt`](results/offline-dtb-validation-20260825.txt).
+
+Two raw assemblies and two padding constructions are byte-identical. The exact
+raw candidate is `32059676`; the exact 16 MiB `boot2` identity is
+`ff902d12b95893872990ebf813f24ca298ca76c4f86d4650f3b696cbdc00d79f`.
+All 32 LK gates pass, six container corruptions fail closed, the live
+classifier accepts only its complete result and rejects 21 mutations, and the
+changed-ID recovery classifier accepts the three predeclared retained branches
+while rejecting 15 malformed or conflicting mutations. The guarded installer
+retains live-GPT resolution, inactive/unmounted target, power, sync, flush,
+full readback, and clean-shutdown gates and makes no fresh backup. See
+[`results/offline-candidate-validation-20260825.txt`](results/offline-candidate-validation-20260825.txt).
+
+The first guarded deployment invocation failed closed before any device write:
+the initially derived installer still accepted only the older Stage-27 control
+pair, while the running predecessor had produced the completed platform
+snapshot this experiment intentionally supersedes. Read-only Gemian recovery
+proved exact `GAPS-20260824-A` before/after records with slot hashes `11623055`
+and `7f79d34e`. The experiment-local wrapper now accepts only an exact empty
+pair or those two independently reconstructed full-slot identities; every
+other byte still fails closed, and it never clears or writes retained RAM.
+
+The corrected preflight and deployment then passed. Live GPT resolved inactive,
+unmounted logical `boot2` as `/dev/mmcblk0p30` while the active root was
+`/dev/mmcblk0p29`. The exact predecessor was `39f801f7`; TEE, stable-power,
+size, write, sync, flush, temporary-cleanup, and full 16 MiB readback gates all
+passed. The readback is exact candidate `ff902d12`, no fresh backup or retained-
+RAM write occurred, and the device shut down cleanly without reboot. See
+[`results/deployment-20260825.txt`](results/deployment-20260825.txt).
+
+The original pre-armed watcher expired after its bounded 1,800-second wait
+without observing a boot and therefore consumed no attempt. When the owner
+later selected `boot2`, a replacement collector attached during the same
+physical start and proved exact live release
+`7.1.3-gemini-a72-provider-read`, installed image `ff902d12`, boot ID
+`ef73506c-274f-4a1b-96fc-a0199ad9efac`, CPUs 0--7 online and 8--9 closed, and
+the complete Stage-27 USB/T-PHY/I2C5/keyboard serviceability set. All three
+backends and the DA921x I2C provider were bound by the 49.09-second capture,
+but the one composed observer device remained unbound with no terminal
+snapshot receipt.
+
+Live initcall timing localizes the dependency race. The observer first deferred
+at 0.788627 seconds while the platform source was unavailable. The platform
+source bound at 1.143926 seconds; the retried observer then reported
+`-ENODEV: platform/provider snapshot failed` at 1.146260 seconds and returned
+without another retry. The DA921x `1-0068` device did not bind until 46.149957
+seconds. Source audit independently proves that an empty A72 provider registry
+makes `mt6797_a72_provider_snapshot()` return `-ENODEV` before invoking the
+DA921x callback, so this attempt performed zero provider I2C reads.
+
+The validated USB shell then requested the normal return to Gemian. Changed-ID
+recovery verified that `boot2` remained exact `ff902d12`, record 1 was the
+exact `before-provider` record (`047e5c5c`), and record 2 was exact empty
+(`d58e2f4e`). No memory or partition write occurred during recovery. This
+independently proves that the qualified platform snapshot and first checkpoint
+completed, while provider registration had not. See
+[`results/runtime-attempt-1-provider-not-ready-20260825.txt`](results/runtime-attempt-1-provider-not-ready-20260825.txt).
+
 ## Safety assessment
 
 CPU8 and CPU9 remain closed by exact `maxcpus=8`. This definition adds only ten
@@ -123,9 +195,10 @@ register-data write, clock operation, secure call, provider action, regulator
 action, reset, reboot, power transition, publication, owner mutation, or CPU
 request.
 
-The hardware-free build and KUnit proof now pass, but this is not yet a boot
-candidate, device action, or hardware result. The isolated device profile must
-still compile and pass its container and DT-specific offline gates.
+The hardware-free build, DT reversal, container, classifier, recovery, and
+guarded deployment gates passed. The one runtime remained fully serviceable
+but exposed a provider-readiness dependency before any provider I2C transfer.
+The exact image is retired and must not be retried unchanged.
 
 ## Pre-boot decision map
 
@@ -143,8 +216,10 @@ container, deployment, and pre-armed runtime gate passes.
 
 ## Next
 
-Commit and push the sanitized KUnit evidence, then build the isolated
-`a72-platform-provider-snapshot-candidate` profile on Buildbox. Construct its
-DT as a reversible addition to the exact runtime-passed predecessor and run all
-offline/container mutations. Do not touch the currently running device until
-that exact candidate is validated and ready.
+Create a separate deferred-bind repair on canonical parent `0370`. Add an
+explicit DA921x provider phandle to the observer binding/DT and require that
+endpoint to be present and bound before taking the platform snapshot or writing
+the first checkpoint. Inject both provider-not-ready deferral and provider-ready
+single-capture tests. Preserve the same 26 platform observations, ten provider
+reads, two retained writes, `maxcpus=8`, and every later-action exclusion. Do
+not spend a second unchanged attempt.

@@ -5280,10 +5280,40 @@ The next ordered work is:
    retained-RAM write, or device action has occurred. The exact hardware-free
    profile now compiles on Buildbox, package checksums pass, linked writer and
    action symbols are absent, and no-network QEMU passes the sole six-case
-   suite with zero failures or skips. **Selected next:** build the isolated
-   device profile on Buildbox, derive its DT reversibly from the exact
-   runtime-passed predecessor, and run the offline/container mutation gates.
-   Do not deploy until those gates pass.
+   suite with zero failures or skips. The isolated device profile now compiles
+   exact commit `2a936080` on Buildbox. Its fetched package manifest passes.
+   The DT replaces only the passed platform-only observer with the composed
+   observer; two derivations match, and reversing that replacement recovers the
+   byte-identical sorted predecessor tree. Two raw assemblies, two padding
+   paths, all 32 LK gates, six container mutations, 21 live-classifier
+   mutations, and 15 recovery mutations pass. The selected raw candidate is
+   `32059676`; exact 16 MiB `boot2` identity is
+   `ff902d12b95893872990ebf813f24ca298ca76c4f86d4650f3b696cbdc00d79f`.
+   The first install invocation failed closed before any device write because
+   its inherited Stage-27 preflight did not accept the exact completed platform-
+   snapshot predecessor records. Read-only Gemian recovery proved the expected
+   `GAPS-20260824-A` full-slot pair (`11623055` and `7f79d34e`); the corrected
+   experiment-local gate accepts only that exact pair or exact empty slots and
+   never clears or writes retained RAM. The guarded deployment then resolved
+   inactive, unmounted live-GPT `boot2` as `/dev/mmcblk0p30`, matched exact
+   predecessor `39f801f7`, stable power and both TEE identities, and passed
+   write, sync, flush, cleanup, full 16 MiB readback `ff902d12`, and clean
+   shutdown without a fresh backup or reboot. The original bounded watcher
+   expired before the later physical start and consumed no attempt; a
+   replacement collector attached during that start and proved exact live
+   `7.1.3-gemini-a72-provider-read` with Stage-27 serviceability intact and
+   CPUs 8--9 closed. The observer first deferred before its platform supplier,
+   retried after that source bound at 1.143926 seconds, then returned
+   `-ENODEV` at 1.146260 seconds. DA921x `1-0068` did not bind until 46.149957
+   seconds, and the observer was not retried. Changed-ID Gemian recovery found
+   exact `before-provider` record 1 and exact-empty record 2 while `boot2`
+   remained `ff902d12`. Registry source proves this `-ENODEV` occurs before the
+   provider callback, so the attempt made zero provider I2C reads. Retire the
+   artifact without an unchanged retry. **Selected next:** add a separate
+   post-`0370` deferred-bind repair with an explicit DA921x provider phandle
+   and a bound-device gate before the platform snapshot and first checkpoint.
+   Inject provider-not-ready and provider-ready cases; retain the same read
+   ceiling and keep every later action and CPU8/CPU9 admission closed.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
