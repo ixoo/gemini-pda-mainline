@@ -196,8 +196,8 @@ def main() -> None:
     require(status == {
         "definition": "frozen",
         "source_audit": "pass-read-only-buildbox",
-        "generation_tooling": "validated-not-run",
-        "patch_generation": "pending",
+        "generation_tooling": "attempt-1-validator-section-fix-pending",
+        "patch_generation": "attempt-1-rejected-before-package",
         "kernel_build": "pending",
         "boot_candidate": False,
         "device_action": "none",

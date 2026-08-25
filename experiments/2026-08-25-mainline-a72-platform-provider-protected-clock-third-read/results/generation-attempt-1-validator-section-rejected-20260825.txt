@@ -1,0 +1,15 @@
+experiment=2026-08-25-mainline-a72-platform-provider-protected-clock-third-read
+attempt=1
+repository_commit=082537e914ceb9a0e4b3e7471d476009962474ce
+backend=buildbox
+phase=observer-source-validation
+completed_prior_phases=ledger,binding
+failure=dependency-property-mediatek-platform-state
+root_cause=validator-section-ended-at-own-helper-declaration
+generated_source_semantic_rejection=false
+patch_package_promoted=false
+kernel_compile=false
+native_vm_build=false
+device_action=none
+remedy=pin-three-explicit-helper-endpoints
+result=rejected-validator-false-negative

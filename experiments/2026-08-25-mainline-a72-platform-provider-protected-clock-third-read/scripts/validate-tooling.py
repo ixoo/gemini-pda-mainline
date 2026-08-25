@@ -92,6 +92,13 @@ def main() -> None:
         "hardware-free tests",
     ):
         require(token in source_validator, f"source invariant: {token}")
+    for endpoint in (
+        "static struct device *mt6797_a72_ppc_get_provider",
+        "static struct device *mt6797_a72_ppc_get_clock",
+        "static void mt6797_a72_ppc_log",
+    ):
+        require(endpoint in source_validator,
+                f"explicit dependency-helper endpoint: {endpoint}")
     require("exact four-patch series order" in patch_validator,
             "patch order invariant")
     require("exact changed-file boundary" in patch_validator,

@@ -36,6 +36,7 @@ def main() -> None:
     generator = f"{exp}/scripts/generate-on-buildbox"
     observer = f"{exp}/source/mt6797-a72-platform-provider-clock-observer.c"
     tests = f"{exp}/source/mt6797-a72-platform-provider-clock-observer-test.c"
+    source_validator = f"{exp}/scripts/validate_source.py"
     mutations = (
         ("source-state", generator, "PARENT_SOURCE_STATE=c5bc1470", "PARENT_SOURCE_STATE=d5bc1470"),
         ("patch-count", generator, "generated_patch_count=4", "generated_patch_count=5"),
@@ -43,6 +44,7 @@ def main() -> None:
         ("write-ceiling", generator, "explicit_mmio_writes_maximum=401", "explicit_mmio_writes_maximum=402"),
         ("clock-call", observer, "ops->clock(context, clock, &snapshot->clock)", "ops->clock(context, clock, &snapshot->clock) + ops->clock(context, clock, &snapshot->clock)"),
         ("clock-terminal", observer, "A returned hardware call is terminal", "A returned hardware call may retry"),
+        ("helper-endpoint", source_validator, '("get_platform", "static struct device *mt6797_a72_ppc_get_provider",', '("get_platform", "static struct device *mt6797_a72_ppc_get_platform",'),
         ("kunit-count", tests, "KUNIT_CASE(mt6797_a72_ppc_clock_identity_terminal_test)", "mt6797_a72_ppc_clock_identity_terminal_test"),
         ("generate-dispatch", "scripts/buildbox", "  generate-a72-platform-provider-clock-patches) generate_a72_platform_provider_clock_patches ;;", "  generate-a72-platform-provider-clock-broken) generate_a72_platform_provider_clock_patches ;;"),
         ("fetch-purpose", "scripts/buildbox", ".purpose == \"mainline-a72-platform-provider-clock-patch-generation\" and", ".purpose == \"mainline-a72-platform-provider-broken\" and"),

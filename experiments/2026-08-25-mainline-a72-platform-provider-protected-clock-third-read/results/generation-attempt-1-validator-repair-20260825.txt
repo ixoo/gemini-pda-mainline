@@ -1,0 +1,15 @@
+experiment=2026-08-25-mainline-a72-platform-provider-protected-clock-third-read
+attempt=1-remedy
+repair=three-explicit-dependency-helper-endpoints
+definition_validation=pass
+definition_rejected_mutations=14
+tooling_validation=pass
+tooling_rejected_mutations=11
+bash_syntax=pass
+git_diff_check=pass
+patch_generation=retry-pending
+kernel_compile=false
+native_vm_build=false
+boot_candidate=false
+device_action=none
+result=pass-offline-repair

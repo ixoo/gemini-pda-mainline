@@ -203,16 +203,18 @@ def validate_observer(root: Path) -> None:
         "terminal success return after clock attempt",
     )
 
-    for helper, prop, lookup, compatible in (
-        ("get_platform", "mediatek,platform-state", "of_find_device_by_node", None),
-        ("get_provider", "mediatek,provider", "of_find_i2c_device_by_node",
+    for helper, end, prop, lookup, compatible in (
+        ("get_platform", "static struct device *mt6797_a72_ppc_get_provider",
+         "mediatek,platform-state", "of_find_device_by_node", None),
+        ("get_provider", "static struct device *mt6797_a72_ppc_get_clock",
+         "mediatek,provider", "of_find_i2c_device_by_node",
          "dlg,da9214-legacy"),
-        ("get_clock", "mediatek,clock-backend", "of_find_device_by_node",
+        ("get_clock", "static void mt6797_a72_ppc_log",
+         "mediatek,clock-backend", "of_find_device_by_node",
          "mediatek,mt6797-dvfsp-clock-backend"),
     ):
         start = f"static struct device *mt6797_a72_ppc_{helper}"
-        next_start = "static struct device *" if helper != "get_clock" else "static void"
-        body = section(observer, start, next_start)
+        body = section(observer, start, end)
         require(prop in body, f"dependency property: {prop}")
         require(lookup in body, f"dependency lookup: {lookup}")
         require("device_is_bound" in body, f"dependency bound gate: {prop}")
