@@ -33,7 +33,7 @@ struct mt6797_a72_ppc_test_state {
 };
 
 static int mt6797_a72_ppc_test_platform(void *context, struct device *dev,
-	struct mt6797_a72_platform_state *snapshot)
+					struct mt6797_a72_platform_state *snapshot)
 {
 	struct mt6797_a72_ppc_test_state *state = context;
 
@@ -68,7 +68,7 @@ static bool mt6797_a72_ppc_test_checkpoint(void *context,
 }
 
 static int mt6797_a72_ppc_test_clock(void *context, struct device *dev,
-	struct mt6797_dvfsp_clock_readback *snapshot)
+				     struct mt6797_dvfsp_clock_readback *snapshot)
 {
 	struct mt6797_a72_ppc_test_state *state = context;
 
@@ -99,7 +99,7 @@ static struct mt6797_a72_ppc_test_state mt6797_a72_ppc_success_state(void)
 }
 
 static void mt6797_a72_ppc_expect_zero(struct kunit *test,
-	const struct mt6797_a72_platform_provider_clock_snapshot *snapshot)
+				       const void *snapshot)
 {
 	struct mt6797_a72_platform_provider_clock_snapshot zero = { };
 
@@ -107,14 +107,14 @@ static void mt6797_a72_ppc_expect_zero(struct kunit *test,
 }
 
 static int mt6797_a72_ppc_run(struct mt6797_a72_ppc_test_state *state,
-	struct mt6797_a72_platform_provider_clock_snapshot *snapshot)
+			      struct mt6797_a72_platform_provider_clock_snapshot *snapshot)
 {
 	struct device platform = { };
 	struct device provider = { };
 	struct device clock = { };
 
 	return mt6797_a72_ppc_capture(&platform, &provider, &clock, &test_ops,
-				       state, snapshot);
+				      state, snapshot);
 }
 
 static void mt6797_a72_ppc_success_test(struct kunit *test)
@@ -151,7 +151,7 @@ static void mt6797_a72_ppc_not_ready_test(struct kunit *test)
 	int ret;
 
 	ret = mt6797_a72_ppc_capture(&device, &device, NULL, &test_ops,
-				      &state, &snapshot);
+				     &state, &snapshot);
 	KUNIT_EXPECT_EQ(test, ret, -EPROBE_DEFER);
 	KUNIT_EXPECT_EQ(test, state.event_count, 0U);
 	mt6797_a72_ppc_expect_zero(test, &snapshot);

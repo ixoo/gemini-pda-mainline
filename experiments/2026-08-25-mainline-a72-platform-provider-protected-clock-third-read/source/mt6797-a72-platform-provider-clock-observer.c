@@ -175,7 +175,7 @@ static struct device *mt6797_a72_ppc_get_clock(struct device *dev)
 }
 
 static void mt6797_a72_ppc_log(struct device *dev,
-	const struct mt6797_a72_platform_provider_clock_snapshot *snapshot)
+			       const struct mt6797_a72_platform_provider_clock_snapshot *snapshot)
 {
 	const struct mt6797_a72_platform_state *platform = &snapshot->platform;
 	const struct mt6797_a72_provider_snapshot *provider = &snapshot->provider;

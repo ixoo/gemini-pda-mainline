@@ -5374,9 +5374,13 @@ The next ordered work is:
    all four source phases, exact patch scope, and replay on Buildbox. Strict
    checkpatch stopped the job only for seven declaration lines ending at an open
    parenthesis and one continuation-alignment check in the production patch;
-   no package was promoted. **Selected next:** sign and push the style-only
-   production/test-template repair, rerun the Buildbox lane, and fetch only its
-   checksum-validated four-patch review.
+   no package was promoted. The style-only repair reduced attempt 3 to one
+   production log-function alignment check after every semantic and replay gate
+   passed again. The corrected production and test template diffs now each pass
+   a fresh strict Buildbox checkpatch diagnostic with zero findings; no package
+   or device action exists yet. **Selected next:** sign and push this final
+   alignment repair, rerun the Buildbox lane, and fetch only its checksum-
+   validated four-patch review.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

@@ -128,5 +128,11 @@ scope, and byte-identical replay. Strict checkpatch then rejected only eight
 production-patch style checks: seven lines ending at an open parenthesis and one
 continuation alignment. The implementation and semantic validators had passed;
 no package was promoted. The style-only repair also removes the same declaration
-pattern from the later test patch before retry. The ordered continuation is
-owned by the [Roadmap](../../docs/ROADMAP.md#7-bring-up-cpu8).
+pattern from the later test patch before retry. Attempt 3 again passed all
+semantic, patch-scope, and replay gates; strict checkpatch reduced to one
+production log-function continuation-alignment check. The exact repair aligns
+that argument and also fixes two test-template issues found by a proactive
+strict diff check before attempt 4. Fresh Buildbox strict diagnostics now report
+zero errors, warnings, or checks for both production and test template diffs.
+The ordered continuation is owned by the
+[Roadmap](../../docs/ROADMAP.md#7-bring-up-cpu8).
