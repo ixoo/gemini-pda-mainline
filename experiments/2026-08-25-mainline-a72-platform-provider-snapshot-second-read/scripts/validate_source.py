@@ -128,7 +128,7 @@ def validate_observer(root: Path) -> None:
 
     capture = section(
         observer,
-        "int mt6797_platform_provider_snapshot_capture(",
+        "mt6797_platform_provider_snapshot_capture(",
         "static struct device *",
     )
     order = (

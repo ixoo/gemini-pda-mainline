@@ -19,21 +19,22 @@
 #define MT6797_A72_PLATFORM_PROVIDER_TAG \
 	"GEMINI_A72_PLATFORM_PROVIDER_SNAPSHOT_V1"
 
-static int mt6797_platform_provider_platform(
-	void *context, struct device *dev,
-	struct mt6797_a72_platform_state *snapshot)
+static int
+mt6797_platform_provider_platform(void *context, struct device *dev,
+				  struct mt6797_a72_platform_state *snapshot)
 {
 	return mt6797_a72_platform_state_snapshot(dev, snapshot);
 }
 
-static bool mt6797_platform_provider_checkpoint(void *context,
-						 unsigned int checkpoint)
+static bool
+mt6797_platform_provider_checkpoint(void *context, unsigned int checkpoint)
 {
 	return gemini_protected_readback_ledger_checkpoint(checkpoint);
 }
 
-static int mt6797_platform_provider_provider(
-	void *context, struct mt6797_a72_provider_snapshot *snapshot)
+static int
+mt6797_platform_provider_provider(void *context,
+				  struct mt6797_a72_provider_snapshot *snapshot)
 {
 	return mt6797_a72_provider_snapshot(snapshot);
 }
@@ -45,8 +46,8 @@ mt6797_a72_platform_provider_ops = {
 	.provider = mt6797_platform_provider_provider,
 };
 
-int mt6797_platform_provider_snapshot_capture(
-	struct device *platform,
+int
+mt6797_platform_provider_snapshot_capture(struct device *platform,
 	const struct mt6797_a72_platform_provider_observer_ops *ops,
 	void *context, struct mt6797_a72_platform_provider_snapshot *snapshot)
 {
@@ -111,8 +112,8 @@ mt6797_a72_platform_provider_get_device(struct device *dev)
 	return &source->dev;
 }
 
-static void mt6797_a72_platform_provider_log(
-	struct device *dev,
+static void
+mt6797_a72_platform_provider_log(struct device *dev,
 	const struct mt6797_a72_platform_provider_snapshot *snapshot)
 {
 	const struct mt6797_a72_platform_state *platform = &snapshot->platform;
@@ -162,8 +163,9 @@ static int mt6797_a72_platform_provider_probe(struct platform_device *pdev)
 		return dev_err_probe(dev, PTR_ERR(platform),
 				     "platform-state source unavailable\n");
 
-	ret = mt6797_platform_provider_snapshot_capture(
-		platform, &mt6797_a72_platform_provider_ops, NULL, &snapshot);
+	ret = mt6797_platform_provider_snapshot_capture(platform,
+						       &mt6797_a72_platform_provider_ops,
+						       NULL, &snapshot);
 	if (ret)
 		dev_err_probe(dev, ret, "platform/provider snapshot failed\n");
 	else

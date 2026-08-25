@@ -65,6 +65,14 @@ patch inventory, injected-test coverage, and Buildbox dispatch. Bash syntax,
 Python compilation, and ShellCheck pass. The sanitized receipt is
 [`results/prebuild-definition-20260825.txt`](results/prebuild-definition-20260825.txt).
 
+Buildbox generation attempt 1 from signed commit `3372cd01` passed every
+source phase, exact patch scope, and byte-identical replay. Strict checkpatch
+then rejected patch `0368` only for seven declaration/call line-layout checks,
+with zero errors or warnings. No patch was admitted, no kernel was built, and
+no device action occurred. The correction changes only those flagged line
+breaks. See
+[`results/generation-attempt-1-style-rejected.txt`](results/generation-attempt-1-style-rejected.txt).
+
 ## Safety assessment
 
 CPU8 and CPU9 remain closed by exact `maxcpus=8`. This definition adds only ten

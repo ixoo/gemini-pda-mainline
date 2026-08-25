@@ -1,0 +1,17 @@
+experiment=2026-08-25-mainline-a72-platform-provider-snapshot-second-read
+phase=buildbox-patch-generation
+attempt=1
+repository_commit=3372cd01f2e0641f7102820009f56411d3fbbfe6
+result=rejected-before-admission
+source_validation=ledger,observer,binding,tests-pass
+patch_scope_validation=pass
+patch_replay=pass
+failure=strict-checkpatch-seven-line-layout-checks-in-0368
+errors=0
+warnings=0
+checks=7
+affected_semantics=none
+patch_admitted=false
+kernel_build=false
+device_action=false
+next_action=reformat-only-flagged-declarations-and-calls-then-rerun
