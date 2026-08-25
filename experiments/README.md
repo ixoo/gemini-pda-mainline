@@ -23,6 +23,15 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-25 A72 platform plus DA921x provider snapshot as the second read](2026-08-25-mainline-a72-platform-provider-snapshot-second-read/README.md)
+  — keeps the exact passed platform reader, then brackets only one stable
+  writer-free DA921x provider snapshot with retained records immediately before
+  and after it. The frozen boundary is 26 platform observations plus ten fixed
+  read-only I2C transfers, with protected clocks, BigiDVFS, provider actions,
+  publication, owner mutation, and CPU requests closed. Exact post-`0366`
+  Buildbox source/dependency hashes and planned patches `0367`--`0370` are
+  pinned; the definition validator rejects eight mutations. Patch generation
+  is next.
 - [2026-08-24 A72 platform snapshot as the first physical read](2026-08-24-mainline-a72-platform-snapshot-first-read/README.md)
   — freezes the first decision-bearing read after the passed Stage-27
   platform/clock/BigiDVFS control: one stable two-sample platform-state
@@ -35,7 +44,8 @@ the loop. Positive identity-gated observations are unaffected.
   readback and shutdown. The one pre-armed runtime then proved exact live
   serviceability and one complete stable platform snapshot while CPUs 8--9
   and every later reader/action remained closed. The artifact is retired; the
-  next isolated reader is the already separated DA921x read-only snapshot.
+  next isolated reader is the already separated DA921x read-only snapshot in
+  the linked 2026-08-25 second-read experiment above.
 - [2026-08-24 A72 BigiDVFS-backend probe on the passed Stage-27 reader DT](2026-08-24-mainline-a72-bigidvfs-backend-stage27-control/README.md)
   — keeps the exact runtime-passed Stage-27 platform/clock DT and adds only the
   read-free BigiDVFS-backend node. Probe validates the `smc` method, allocates

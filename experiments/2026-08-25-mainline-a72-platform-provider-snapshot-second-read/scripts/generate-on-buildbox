@@ -1,0 +1,252 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+export LC_ALL=C
+
+readonly PARENT_SOURCE_STATE=214e7ca10cba99206c585a3c3f7a6aca707c244eeb7a535fea41f9eed7db994b
+readonly PARENT_SOURCE_INTEGRITY=b28fccedcbd5e114b5c33d0a5c21deb9e892d35455a965182559c5a1026afc9c
+readonly SOC_KCONFIG_SHA256=01de9e834d1a7f77cf5bf2f70ad4a07bae9b3293bb06eda1431992bc04e1511f
+readonly SOC_MAKEFILE_SHA256=22b3d07adddb0e8aec5d9169531b97e764483e1747458f85fe25bd7144a7a981
+readonly PSTORE_KCONFIG_SHA256=cc0aff15403b01b2f544abc4fa0caeb02c68df5437dd15f354381f9066c913ce
+readonly LEDGER_SHA256=82c6d15aee5d80c114d3db3c036af2011c873c2f1af2d8741957ef59c05f000c
+readonly MEMBERSHIP_SHA256=376ba674e7d9afc7be8bb89fef51bf0b3515704f43389d7075f631737edef980
+readonly PROVIDER_HEADER_SHA256=f3f2d8dfcf992d379e1ce249e08eb15b3c0215a20e7c548b8849bd1bb44db275
+readonly PLATFORM_HEADER_SHA256=1131bce832164f6b9b8e4849bdcdf6345960e07a1e6e4d1b3dbece5c3ff24b90
+readonly PLATFORM_SOURCE_SHA256=214ae21bf98e7d47e8ec8c24d0c542ebb27e3ba110694f81e04482ff78b108b6
+readonly PROVIDER_CONTRACT_SHA256=b5dacae8b41fe1e70f0314afdda844fb8641c62db24431e5346a0b83049cbc6c
+readonly REGULATOR_SOURCE_SHA256=9800fb4449c9bbb6c97b788069f79a0b352c35265792f1f2db8a259f7b74d87d
+readonly PARENT_PATCH=0366-soc-mediatek-test-A72-platform-snapshot-observer.patch
+readonly PARENT_PATCH_SHA256=a2affef6c20b3135470fcf8e96c56cd9abb622a147cd976dfe0d8da84c3d97bc
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+
+[[ "$#" -eq 3 ]] || die 'expected PROJECT_COMMIT SOURCE_ROOT OUTPUT_ROOT'
+readonly project_commit=$1
+readonly source_root=$2
+readonly output_root=$3
+[[ "$project_commit" =~ ^[0-9a-f]{40}$ ]] || die 'invalid project commit'
+[[ "$source_root" == /workspace/gemini-pda/src/linux-7.1.3-series-source ]] ||
+	die 'unexpected managed source root'
+[[ "$output_root" == /workspace/gemini-pda/* ]] || die 'unsafe output root'
+[[ -f "$source_root/.gemini-source-state" && ! -L "$source_root/.gemini-source-state" ]] ||
+	die 'prepared source state marker absent or unsafe'
+[[ "$(<"$source_root/.gemini-source-state")" == "$PARENT_SOURCE_STATE" ]] ||
+	die 'prepared parent source state changed'
+[[ -f "$source_root/.gemini-source-integrity" && ! -L "$source_root/.gemini-source-integrity" ]] ||
+	die 'prepared source integrity marker absent or unsafe'
+[[ "$(<"$source_root/.gemini-source-integrity")" == "$PARENT_SOURCE_INTEGRITY" ]] ||
+	die 'prepared source integrity marker changed'
+
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+experiment_dir=$(cd -- "$script_dir/.." && pwd -P)
+repository_dir=$(cd -- "$experiment_dir/../.." && pwd -P)
+readonly script_dir experiment_dir repository_dir
+[[ "$(git -C "$repository_dir" rev-parse HEAD)" == "$project_commit" ]] ||
+	die 'project checkout does not match requested commit'
+[[ -z "$(git -C "$repository_dir" status --porcelain)" ]] ||
+	die 'project checkout is dirty'
+for command in git perl python3 sha256sum; do
+	command -v "$command" >/dev/null 2>&1 || die "missing command: $command"
+done
+integrity=$(python3 "$repository_dir/scripts/source-tree-integrity" verify "$source_root")
+readonly integrity
+[[ "$integrity" == "source_tree_integrity=$PARENT_SOURCE_INTEGRITY" ]] ||
+	die 'prepared source integrity verification failed'
+
+readonly soc_kconfig=drivers/soc/mediatek/Kconfig
+readonly soc_makefile=drivers/soc/mediatek/Makefile
+readonly pstore_kconfig=fs/pstore/Kconfig
+readonly ledger=fs/pstore/gemini_protected_readback_ledger.c
+readonly membership=arch/arm64/kernel/mt6797_a72_membership.c
+readonly provider_header=include/linux/mt6797-a72-provider.h
+readonly platform_header=include/linux/soc/mediatek/mt6797-a72-platform-state.h
+readonly platform_source=drivers/soc/mediatek/mt6797-a72-platform-state.c
+readonly provider_contract=drivers/regulator/da9213-legacy-provider-contract.h
+readonly regulator_source=drivers/regulator/da9213-legacy-regulator.c
+for check in \
+	"$SOC_KCONFIG_SHA256  $source_root/$soc_kconfig" \
+	"$SOC_MAKEFILE_SHA256  $source_root/$soc_makefile" \
+	"$PSTORE_KCONFIG_SHA256  $source_root/$pstore_kconfig" \
+	"$LEDGER_SHA256  $source_root/$ledger" \
+	"$MEMBERSHIP_SHA256  $source_root/$membership" \
+	"$PROVIDER_HEADER_SHA256  $source_root/$provider_header" \
+	"$PLATFORM_HEADER_SHA256  $source_root/$platform_header" \
+	"$PLATFORM_SOURCE_SHA256  $source_root/$platform_source" \
+	"$PROVIDER_CONTRACT_SHA256  $source_root/$provider_contract" \
+	"$REGULATOR_SOURCE_SHA256  $source_root/$regulator_source"; do
+	printf '%s\n' "$check" | sha256sum --check --status ||
+		die 'parent source or audited dependency changed'
+done
+readonly parent_patch_path="$repository_dir/patches/v7.1.3/$PARENT_PATCH"
+[[ -f "$parent_patch_path" && ! -L "$parent_patch_path" ]] ||
+	die 'canonical parent patch absent or unsafe'
+printf '%s  %s\n' "$PARENT_PATCH_SHA256" "$parent_patch_path" |
+	sha256sum --check --status || die 'canonical parent patch changed'
+
+readonly work_root=/workspace/gemini-pda/a72-platform-provider-work
+readonly package="$output_root/a72-platform-provider-${project_commit:0:12}"
+readonly partial="${package}.partial.$$"
+mkdir -p "$work_root" "$output_root"
+[[ ! -e "$partial" ]] || die 'stale output partial exists'
+if [[ -d "$package" && ! -L "$package" ]]; then
+	grep -Fx "repository_commit=$project_commit" \
+		"$package/provenance/generation.txt" >/dev/null ||
+		die 'existing package commit mismatch'
+	(cd "$package" && sha256sum --check --strict SHA256SUMS >/dev/null)
+	printf 'Generated A72 platform/provider patches at %s\n' "$package"
+	exit 0
+fi
+[[ ! -e "$package" ]] || die 'unsafe existing package path'
+
+work=$(mktemp -d "$work_root/generation.XXXXXX")
+readonly work
+cleanup() {
+	[[ ! -d "$work" || "$work" != "$work_root"/generation.* ]] || rm -rf -- "$work"
+	[[ ! -d "$partial" || "$partial" != "$output_root"/*.partial.* ]] || rm -rf -- "$partial"
+}
+trap cleanup EXIT
+
+for relative in "$soc_kconfig" "$soc_makefile" "$pstore_kconfig" "$ledger"; do
+	mkdir -p "$work/source/$(dirname "$relative")"
+	cp -- "$source_root/$relative" "$work/source/$relative"
+done
+git -C "$work/source" init --quiet
+git -C "$work/source" config user.name 'Gemini Mainline Experiment'
+git -C "$work/source" config user.email gemini-mainline@example.invalid
+git -C "$work/source" add -- .
+GIT_AUTHOR_DATE=2026-08-25T01:10:00Z GIT_COMMITTER_DATE=2026-08-25T01:10:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'A72 platform/provider canonical parent'
+parent_commit=$(git -C "$work/source" rev-parse HEAD)
+readonly parent_commit
+
+commit_phase() {
+	local date=$1 subject=$2 body=$3
+	git -C "$work/source" diff --check
+	git -C "$work/source" add -- .
+	git -C "$work/source" diff --cached --check
+	GIT_AUTHOR_NAME='Gemini Mainline Experiment' \
+	GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid \
+	GIT_COMMITTER_NAME='Gemini Mainline Experiment' \
+	GIT_COMMITTER_EMAIL=gemini-mainline@example.invalid \
+	GIT_AUTHOR_DATE="$date" GIT_COMMITTER_DATE="$date" \
+		git -C "$work/source" commit --quiet --no-gpg-sign \
+			-m "$subject" -m "$body"
+}
+
+run_phase() {
+	local phase=$1
+	PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/source_edits.py" \
+		--source-root "$work/source" --phase "$phase"
+	PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_source.py" \
+		--source-root "$work/source" --phase "$phase"
+}
+
+run_phase ledger
+commit_phase 2026-08-25T01:11:00Z \
+	'pstore: add Gemini A72 platform/provider ledger' \
+	'Bracket only the DA921x provider snapshot after a passed platform read with exact first-dmesg records, signature-last commit, full readback, two-write ceiling, and no clear or retry.'
+
+run_phase observer
+commit_phase 2026-08-25T01:12:00Z \
+	'soc: mediatek: add A72 platform/provider snapshot observer' \
+	'Take one stable platform snapshot, bracket one stable read-only provider snapshot, clear every failure, and add no later reader, provider action, owner, publisher, or CPU action.'
+
+run_phase binding
+commit_phase 2026-08-25T01:13:00Z \
+	'dt-bindings: soc: mediatek: add A72 platform/provider observer' \
+	'Describe the candidate-only observer and its sole platform-state phandle without making it a state owner or transition consumer.'
+
+run_phase tests
+commit_phase 2026-08-25T01:14:00Z \
+	'soc: mediatek: test A72 platform/provider snapshot observer' \
+	'Use injected in-memory operations to cover exact order, one-shot success, every reader and checkpoint failure, invalid output, and all-zero failure state.'
+
+result_commit=$(git -C "$work/source" rev-parse HEAD)
+readonly result_commit
+mkdir -p "$partial/patches" "$partial/provenance"
+mapfile -t generated < <(git -C "$work/source" format-patch \
+	--no-signature --output-directory "$partial/patches" \
+	"${parent_commit}..${result_commit}")
+[[ "${#generated[@]}" -eq 4 ]] || die 'generated patch count changed'
+readonly patches=(
+	0367-pstore-add-Gemini-A72-platform-provider-ledger.patch
+	0368-soc-mediatek-add-A72-platform-provider-snapshot-observer.patch
+	0369-dt-bindings-soc-mediatek-add-A72-platform-provider-snapshot-observer.patch
+	0370-soc-mediatek-test-A72-platform-provider-snapshot-observer.patch
+)
+for index in "${!patches[@]}"; do
+	mv -- "${generated[$index]}" "$partial/patches/${patches[$index]}"
+done
+printf '%s\n' "${patches[@]}" >"$partial/patches/series"
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_patch.py" \
+	--patch-dir "$partial/patches"
+
+git clone --quiet "$work/source" "$work/verify"
+git -C "$work/verify" checkout --quiet --detach "$parent_commit"
+git -C "$work/verify" config user.name 'Gemini Mainline Experiment'
+git -C "$work/verify" config user.email gemini-mainline@example.invalid
+for patch in "${patches[@]}"; do
+	git -C "$work/verify" am --quiet --committer-date-is-author-date \
+		"$partial/patches/$patch"
+done
+[[ "$(git -C "$work/verify" rev-parse HEAD)" == "$result_commit" ]] ||
+	die 'patch replay did not reproduce generated commit'
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_source.py" \
+	--source-root "$work/verify" --phase tests
+[[ -z "$(git -C "$work/verify" status --porcelain)" ]] ||
+	die 'verification source is dirty'
+
+for patch in "${patches[@]}"; do
+	if ! perl "$source_root/scripts/checkpatch.pl" --no-tree --strict \
+		--ignore MISSING_SIGN_OFF,COMMIT_LOG_LONG_LINE,FILE_PATH_CHANGES,SPLIT_STRING \
+		"$partial/patches/$patch" \
+		>"$partial/provenance/checkpatch-${patch%.patch}.txt"; then
+		cat "$partial/provenance/checkpatch-${patch%.patch}.txt" >&2
+		die "strict checkpatch rejected $patch"
+	fi
+done
+
+cat >"$partial/provenance/generation.txt" <<EOF
+purpose=experiment-only-a72-platform-provider-second-read
+repository_commit=$project_commit
+parent_source_state=$PARENT_SOURCE_STATE
+parent_source_integrity=$PARENT_SOURCE_INTEGRITY
+canonical_parent_patch=$PARENT_PATCH
+canonical_parent_patch_sha256=$PARENT_PATCH_SHA256
+parent_commit=$parent_commit
+result_commit=$result_commit
+generated_patch_count=4
+retained_token=GAPP-20260825-A
+retained_checkpoints=before-provider,after-provider
+retained_slots=1,2
+retained_maximum_write_attempts=2
+platform_snapshot_calls=1
+platform_samples=2
+platform_register_observations=26
+provider_snapshots=1
+provider_samples=2
+provider_i2c_reads=10
+provider_i2c_writes=0
+observer_retries=0
+protected_clock_reads=0
+bigidvfs_reads=0
+secure_calls=0
+provider_acquires=0
+provider_releases=0
+publisher_calls=0
+owner_mutations=0
+cpu_requests=0
+hardware_free_tests=6
+device_action=none
+boot_candidate=false
+EOF
+printf '%s\n' "${patches[@]}" >"$partial/provenance/patches.txt"
+(
+	cd "$partial"
+	find patches provenance -type f -print0 | sort -z |
+		xargs -0 sha256sum >SHA256SUMS
+	sha256sum --check --strict SHA256SUMS >/dev/null
+)
+mv -- "$partial" "$package"
+printf 'Generated A72 platform/provider patches at %s\n' "$package"

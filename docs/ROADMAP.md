@@ -5263,10 +5263,18 @@ The next ordered work is:
    deasserted, and MP2 DCM bits 6:0 clear. DA921x-provider, protected-clock,
    BigiDVFS, secure, publication, owner, and CPU actions remain zero; mainline
    is left running without a reboot request. **Selected next:** retire this
-   artifact and define one isolated successor that adds only the already
-   separated DA921x read-only snapshot immediately after the passed platform
-   snapshot, with its own before/after attribution. Keep protected-clock,
-   BigiDVFS, publication, owner mutation, and CPU requests closed.
+   artifact. The linked
+   [platform/provider second-read experiment](../experiments/2026-08-25-mainline-a72-platform-provider-snapshot-second-read/README.md)
+   now freezes the isolated successor: exact post-`0366` prepared source and
+   dependency hashes, patches `0367`--`0370`, one passed platform snapshot,
+   retained records immediately before and after one stable writer-free
+   DA921x provider snapshot, six injected cases, and an eight-mutation
+   definition gate. Its admitted runtime ceiling is 26 platform observations
+   plus ten fixed read-only I2C transfers; protected-clock, BigiDVFS, provider
+   actions, publication, owner mutation, and CPU requests remain closed.
+   **Selected next:** generate and strictly validate the four patches on
+   Buildbox from the signed clean definition commit, then admit their exact
+   fetched bytes and run isolated KUnit before considering a device profile.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

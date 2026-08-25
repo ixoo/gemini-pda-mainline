@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-25-mainline-a72-platform-provider-snapshot-second-read",
+  "predecessor": "experiments/2026-08-24-mainline-a72-platform-snapshot-first-read",
+  "question": "one-stable-da921x-provider-snapshot-after-passed-platform-snapshot",
+  "canonical_parent": "patches/v7.1.3/0366-soc-mediatek-test-A72-platform-snapshot-observer.patch",
+  "canonical_parent_sha256": "a2affef6c20b3135470fcf8e96c56cd9abb622a147cd976dfe0d8da84c3d97bc",
+  "prepared_source_state": "214e7ca10cba99206c585a3c3f7a6aca707c244eeb7a535fea41f9eed7db994b",
+  "prepared_source_integrity": "b28fccedcbd5e114b5c33d0a5c21deb9e892d35455a965182559c5a1026afc9c",
+  "edited_parent_files": {
+    "fs/pstore/gemini_protected_readback_ledger.c": "82c6d15aee5d80c114d3db3c036af2011c873c2f1af2d8741957ef59c05f000c",
+    "fs/pstore/Kconfig": "cc0aff15403b01b2f544abc4fa0caeb02c68df5437dd15f354381f9066c913ce",
+    "drivers/soc/mediatek/Kconfig": "01de9e834d1a7f77cf5bf2f70ad4a07bae9b3293bb06eda1431992bc04e1511f",
+    "drivers/soc/mediatek/Makefile": "22b3d07adddb0e8aec5d9169531b97e764483e1747458f85fe25bd7144a7a981"
+  },
+  "audited_dependencies": {
+    "arch/arm64/kernel/mt6797_a72_membership.c": "376ba674e7d9afc7be8bb89fef51bf0b3515704f43389d7075f631737edef980",
+    "include/linux/mt6797-a72-provider.h": "f3f2d8dfcf992d379e1ce249e08eb15b3c0215a20e7c548b8849bd1bb44db275",
+    "include/linux/soc/mediatek/mt6797-a72-platform-state.h": "1131bce832164f6b9b8e4849bdcdf6345960e07a1e6e4d1b3dbece5c3ff24b90",
+    "drivers/soc/mediatek/mt6797-a72-platform-state.c": "214ae21bf98e7d47e8ec8c24d0c542ebb27e3ba110694f81e04482ff78b108b6",
+    "drivers/regulator/da9213-legacy-provider-contract.h": "b5dacae8b41fe1e70f0314afdda844fb8641c62db24431e5346a0b83049cbc6c",
+    "drivers/regulator/da9213-legacy-regulator.c": "9800fb4449c9bbb6c97b788069f79a0b352c35265792f1f2db8a259f7b74d87d"
+  },
+  "planned_patches": [
+    "0367-pstore-add-Gemini-A72-platform-provider-ledger.patch",
+    "0368-soc-mediatek-add-A72-platform-provider-snapshot-observer.patch",
+    "0369-dt-bindings-soc-mediatek-add-A72-platform-provider-snapshot-observer.patch",
+    "0370-soc-mediatek-test-A72-platform-provider-snapshot-observer.patch"
+  ],
+  "runtime_effects": {
+    "platform_snapshot_calls": 1,
+    "platform_samples": 2,
+    "platform_register_observations": 26,
+    "provider_snapshots": 1,
+    "provider_samples": 2,
+    "provider_registers_per_sample": 5,
+    "provider_i2c_reads": 10,
+    "provider_i2c_writes": 0,
+    "retained_write_attempts_maximum": 2,
+    "observer_retries": 0,
+    "protected_clock_reads": 0,
+    "bigidvfs_reads": 0,
+    "secure_calls": 0,
+    "provider_acquires": 0,
+    "provider_releases": 0,
+    "publisher_calls": 0,
+    "owner_mutations": 0,
+    "cpu_requests": 0
+  },
+  "retained_records": [
+    {
+      "slot": 1,
+      "checkpoint": "before-provider",
+      "token": "GAPP-20260825-A",
+      "crc32": "0150f9c7"
+    },
+    {
+      "slot": 2,
+      "checkpoint": "after-provider",
+      "token": "GAPP-20260825-A",
+      "crc32": "4fffb31e"
+    }
+  ],
+  "configuration": {
+    "maxcpus": 8,
+    "positive_provider_transaction": false,
+    "firmware_writer_transaction_window": false,
+    "platform_only_observer": false,
+    "full_physical_source_observer": false,
+    "protected_readback_observer": false,
+    "direct_state_compositor": false,
+    "production_publisher": false
+  },
+  "current_status": {
+    "definition": "frozen",
+    "patch_generation": "pending",
+    "build": "pending",
+    "boot_candidate": false,
+    "device_action": false
+  }
+}
