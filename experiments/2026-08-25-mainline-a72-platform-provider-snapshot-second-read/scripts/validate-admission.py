@@ -112,10 +112,35 @@ def main() -> None:
         "device_action=none",
     ):
         require(token in receipt, f"generation receipt token: {token}")
+    compile_receipt = read(
+        experiment / "results/buildbox-kunit-compile-20260825.txt")
+    for token in (
+        "profile=a72-platform-provider-snapshot-kunit",
+        "kernel_release=7.1.3-gemini-a72-provider-kunit",
+        "package_checksums=pass",
+        "writer_symbols=absent",
+        "native_vm_build=false",
+        "result=pass",
+    ):
+        require(token in compile_receipt, f"compile receipt token: {token}")
+    qemu_receipt = read(experiment / "results/kunit-qemu-pass-20260825.txt")
+    for token in (
+        "raw_log_sha256=64c404208135930ffffc88fa0f4553f21f64901640fcb772bb751e29148d1476",
+        "suites=1",
+        "tests=6",
+        "failed=0",
+        "skipped=0",
+        "tap_summary=pass:6_fail:0_skip:0_total:6",
+        "physical_i2c=false",
+        "device_action=none",
+        "result=pass",
+    ):
+        require(token in qemu_receipt, f"QEMU receipt token: {token}")
     print("admission_validation=pass")
     print("canonical_patches=4")
     print("isolated_profiles=2")
     print("focused_kunit_cases=6")
+    print("kunit_build_and_qemu=pass")
 
 
 if __name__ == "__main__":

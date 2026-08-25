@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-25-mainline-a72-platform-provider-snapshot-second-read` |
-| Status | patches generated and admitted byte-for-byte; KUnit build pending |
+| Status | patches admitted; Buildbox compile and 6/6 KUnit pass; candidate build pending |
 | Subsystem | MT6797 A72 platform state and DA921x read-only provider snapshot |
 | Device variant | Gemini PDA, named project device |
 | Date | 2026-08-25 |
@@ -102,6 +102,18 @@ profiles. See
 [`results/buildbox-generation-20260825.txt`](results/buildbox-generation-20260825.txt).
 No kernel build, boot candidate, retained-RAM write, or device action occurred.
 
+The isolated `a72-platform-provider-snapshot-kunit` Buildbox profile then
+compiled exact published commit `2c224492`. Package checksums pass; the required
+platform snapshot, provider snapshot, composition, and suite symbols are linked,
+while the Buck-B writer, positive provider transaction helpers, same-value
+writer, A34 evaluator, and atomic publisher symbols are absent. No-network arm64
+QEMU executed exactly the intended suite: all six cases passed with zero
+failures or skips. The VM performed no physical I2C, MMIO, retained-RAM, SMC,
+provider transaction, owner mutation, publication, CPU request, or device
+action. See the
+[`compile receipt`](results/buildbox-kunit-compile-20260825.txt) and
+[`QEMU receipt`](results/kunit-qemu-pass-20260825.txt).
+
 ## Safety assessment
 
 CPU8 and CPU9 remain closed by exact `maxcpus=8`. This definition adds only ten
@@ -111,9 +123,9 @@ register-data write, clock operation, secure call, provider action, regulator
 action, reset, reboot, power transition, publication, owner mutation, or CPU
 request.
 
-The exact patches are now admitted, but this is not yet a kernel build, boot
-candidate, device action, or hardware result. Buildbox KUnit must prove the six
-success/failure boundaries before the isolated device profile is built.
+The hardware-free build and KUnit proof now pass, but this is not yet a boot
+candidate, device action, or hardware result. The isolated device profile must
+still compile and pass its container and DT-specific offline gates.
 
 ## Pre-boot decision map
 
@@ -131,7 +143,8 @@ container, deployment, and pre-armed runtime gate passes.
 
 ## Next
 
-Commit and push the exact admitted series and isolated profiles, then build the
-hardware-free `a72-platform-provider-snapshot-kunit` profile on Buildbox. Run
-only its focused six-case suite with no network. Build the device profile only
-after that proof passes; do not touch the currently running device yet.
+Commit and push the sanitized KUnit evidence, then build the isolated
+`a72-platform-provider-snapshot-candidate` profile on Buildbox. Construct its
+DT as a reversible addition to the exact runtime-passed predecessor and run all
+offline/container mutations. Do not touch the currently running device until
+that exact candidate is validated and ready.

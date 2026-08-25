@@ -5277,9 +5277,13 @@ The next ordered work is:
    checksum manifest passes; canonical patches `0367`--`0370` are byte-for-byte
    identical, and isolated KUnit and device profiles preserve the canonical
    subsequence invariant across all 131 profiles. No kernel build, candidate,
-   retained-RAM write, or device action has occurred. **Selected next:** build
-   and run only the six-case hardware-free KUnit profile on Buildbox. Consider
-   the device profile only after that proof passes.
+   retained-RAM write, or device action has occurred. The exact hardware-free
+   profile now compiles on Buildbox, package checksums pass, linked writer and
+   action symbols are absent, and no-network QEMU passes the sole six-case
+   suite with zero failures or skips. **Selected next:** build the isolated
+   device profile on Buildbox, derive its DT reversibly from the exact
+   runtime-passed predecessor, and run the offline/container mutation gates.
+   Do not deploy until those gates pass.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

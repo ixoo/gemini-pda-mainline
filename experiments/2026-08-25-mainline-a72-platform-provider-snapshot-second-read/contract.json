@@ -49,6 +49,22 @@
     "kunit": "a72-platform-provider-snapshot-kunit",
     "candidate": "a72-platform-provider-snapshot-candidate"
   },
+  "kunit": {
+    "repository_commit": "2c2244929817c6cd3088a57958d1ad20784aeaca",
+    "job": "2c2244929817c6cd3088a57958d1ad20784aeaca-a72-platform-provider-snapshot-kunit-m0",
+    "artifact": "linux-7.1.3-gemini-a72-platform-provider-snapshot-kunit-80b97d1e-11c49fed",
+    "kernel_release": "7.1.3-gemini-a72-provider-kunit",
+    "patchset_sha256": "80b97d1e0c322e488fd7c62588e2a7d6b7e70625b23979e76adf308de707f2b0",
+    "config_sha256": "c90f8791ec0d17ab6f6a46b8169d967e2498f32907f86a3a18fad57477a64cb3",
+    "image_sha256": "f9e2f1368d619668d8350687da247258e0f8abdc8e8acea76126be4ba7119c4e",
+    "system_map_sha256": "24e8375040371350f3d6b1dbe1d811a5cf6ba51bbd78077053dd7ffd535b5ac6",
+    "raw_log_sha256": "64c404208135930ffffc88fa0f4553f21f64901640fcb772bb751e29148d1476",
+    "suites": 1,
+    "tests": 6,
+    "failed": 0,
+    "skipped": 0,
+    "result": "pass"
+  },
   "runtime_effects": {
     "platform_snapshot_calls": 1,
     "platform_samples": 2,
@@ -96,7 +112,7 @@
   "current_status": {
     "definition": "frozen",
     "patch_generation": "validated-and-byte-identical-admission",
-    "build": "pending",
+    "build": "kunit-compile-and-qemu-pass; candidate-pending",
     "boot_candidate": false,
     "device_action": false
   }

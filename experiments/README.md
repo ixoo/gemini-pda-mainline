@@ -32,8 +32,9 @@ the loop. Positive identity-gated observations are unaffected.
   Buildbox source/dependency hashes and patches `0367`--`0370` are pinned; the
   definition validator rejects eight mutations. Buildbox generation, replay,
   strict style, fetched checksums, byte-identical admission, and the 131-profile
-  series invariant pass. Isolated KUnit is next; no build or device action has
-  occurred.
+  series invariant pass. The isolated Buildbox compile and exact no-network
+  QEMU suite then pass all six cases with writer/action symbols absent. The
+  device candidate build is next; no device action has occurred.
 - [2026-08-24 A72 platform snapshot as the first physical read](2026-08-24-mainline-a72-platform-snapshot-first-read/README.md)
   — freezes the first decision-bearing read after the passed Stage-27
   platform/clock/BigiDVFS control: one stable two-sample platform-state
