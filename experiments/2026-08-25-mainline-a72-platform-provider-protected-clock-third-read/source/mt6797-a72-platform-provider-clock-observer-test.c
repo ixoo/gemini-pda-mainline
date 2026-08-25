@@ -32,8 +32,7 @@ struct mt6797_a72_ppc_test_state {
 	int clock_ret;
 };
 
-static int mt6797_a72_ppc_test_platform(
-	void *context, struct device *dev,
+static int mt6797_a72_ppc_test_platform(void *context, struct device *dev,
 	struct mt6797_a72_platform_state *snapshot)
 {
 	struct mt6797_a72_ppc_test_state *state = context;
@@ -45,8 +44,8 @@ static int mt6797_a72_ppc_test_platform(
 	return state->platform_ret;
 }
 
-static int mt6797_a72_ppc_test_provider(
-	void *context, struct mt6797_a72_provider_snapshot *snapshot)
+static int mt6797_a72_ppc_test_provider(void *context,
+					struct mt6797_a72_provider_snapshot *snapshot)
 {
 	struct mt6797_a72_ppc_test_state *state = context;
 
@@ -58,8 +57,8 @@ static int mt6797_a72_ppc_test_provider(
 	return state->provider_ret;
 }
 
-static bool mt6797_a72_ppc_test_checkpoint(
-	void *context, unsigned int checkpoint)
+static bool mt6797_a72_ppc_test_checkpoint(void *context,
+					   unsigned int checkpoint)
 {
 	struct mt6797_a72_ppc_test_state *state = context;
 
@@ -68,8 +67,7 @@ static bool mt6797_a72_ppc_test_checkpoint(
 	return state->checkpoint_result[checkpoint];
 }
 
-static int mt6797_a72_ppc_test_clock(
-	void *context, struct device *dev,
+static int mt6797_a72_ppc_test_clock(void *context, struct device *dev,
 	struct mt6797_dvfsp_clock_readback *snapshot)
 {
 	struct mt6797_a72_ppc_test_state *state = context;
@@ -100,8 +98,7 @@ static struct mt6797_a72_ppc_test_state mt6797_a72_ppc_success_state(void)
 	};
 }
 
-static void mt6797_a72_ppc_expect_zero(
-	struct kunit *test,
+static void mt6797_a72_ppc_expect_zero(struct kunit *test,
 	const struct mt6797_a72_platform_provider_clock_snapshot *snapshot)
 {
 	struct mt6797_a72_platform_provider_clock_snapshot zero = { };
@@ -109,8 +106,7 @@ static void mt6797_a72_ppc_expect_zero(
 	KUNIT_EXPECT_MEMEQ(test, snapshot, &zero, sizeof(zero));
 }
 
-static int mt6797_a72_ppc_run(
-	struct mt6797_a72_ppc_test_state *state,
+static int mt6797_a72_ppc_run(struct mt6797_a72_ppc_test_state *state,
 	struct mt6797_a72_platform_provider_clock_snapshot *snapshot)
 {
 	struct device platform = { };

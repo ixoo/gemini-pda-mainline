@@ -28,8 +28,8 @@ struct mt6797_a72_platform_provider_clock_ops {
 		     struct mt6797_dvfsp_clock_readback *snapshot);
 };
 
-int mt6797_a72_ppc_capture(
-	struct device *platform, struct device *provider, struct device *clock,
+int mt6797_a72_ppc_capture(struct device *platform, struct device *provider,
+			   struct device *clock,
 	const struct mt6797_a72_platform_provider_clock_ops *ops, void *context,
 	struct mt6797_a72_platform_provider_clock_snapshot *snapshot);
 

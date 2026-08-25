@@ -21,15 +21,14 @@
 #define MT6797_A72_PPC_TAG \
 	"GEMINI_A72_PLATFORM_PROVIDER_CLOCK_SNAPSHOT_V1"
 
-static int mt6797_a72_ppc_platform(
-	void *context, struct device *dev,
-	struct mt6797_a72_platform_state *snapshot)
+static int mt6797_a72_ppc_platform(void *context, struct device *dev,
+				   struct mt6797_a72_platform_state *snapshot)
 {
 	return mt6797_a72_platform_state_snapshot(dev, snapshot);
 }
 
-static int mt6797_a72_ppc_provider(
-	void *context, struct mt6797_a72_provider_snapshot *snapshot)
+static int mt6797_a72_ppc_provider(void *context,
+				   struct mt6797_a72_provider_snapshot *snapshot)
 {
 	return mt6797_a72_provider_snapshot(snapshot);
 }
@@ -39,9 +38,8 @@ static bool mt6797_a72_ppc_checkpoint(void *context, unsigned int checkpoint)
 	return gemini_protected_readback_ledger_checkpoint(checkpoint);
 }
 
-static int mt6797_a72_ppc_clock(
-	void *context, struct device *dev,
-	struct mt6797_dvfsp_clock_readback *snapshot)
+static int mt6797_a72_ppc_clock(void *context, struct device *dev,
+				struct mt6797_dvfsp_clock_readback *snapshot)
 {
 	return mt6797_dvfsp_clock_backend_read(dev, snapshot);
 }
@@ -54,8 +52,8 @@ mt6797_a72_ppc_ops = {
 	.clock = mt6797_a72_ppc_clock,
 };
 
-int mt6797_a72_ppc_capture(
-	struct device *platform, struct device *provider, struct device *clock,
+int mt6797_a72_ppc_capture(struct device *platform, struct device *provider,
+			   struct device *clock,
 	const struct mt6797_a72_platform_provider_clock_ops *ops, void *context,
 	struct mt6797_a72_platform_provider_clock_snapshot *snapshot)
 {
@@ -159,8 +157,8 @@ static struct device *mt6797_a72_ppc_get_clock(struct device *dev)
 	node = of_parse_phandle(dev->of_node, "mediatek,clock-backend", 0);
 	if (!node)
 		return ERR_PTR(-EINVAL);
-	if (!of_device_is_compatible(
-		    node, "mediatek,mt6797-dvfsp-clock-backend")) {
+	if (!of_device_is_compatible(node,
+				     "mediatek,mt6797-dvfsp-clock-backend")) {
 		of_node_put(node);
 		return ERR_PTR(-EINVAL);
 	}
@@ -176,8 +174,7 @@ static struct device *mt6797_a72_ppc_get_clock(struct device *dev)
 	return &clock->dev;
 }
 
-static void mt6797_a72_ppc_log(
-	struct device *dev,
+static void mt6797_a72_ppc_log(struct device *dev,
 	const struct mt6797_a72_platform_provider_clock_snapshot *snapshot)
 {
 	const struct mt6797_a72_platform_state *platform = &snapshot->platform;
@@ -270,7 +267,7 @@ static int mt6797_a72_ppc_probe(struct platform_device *pdev)
 	}
 
 	ret = mt6797_a72_ppc_capture(platform, provider, clock,
-				      &mt6797_a72_ppc_ops, NULL, &snapshot);
+				     &mt6797_a72_ppc_ops, NULL, &snapshot);
 	if (ret)
 		dev_err(dev, "platform/provider/clock capture failed: %d\n", ret);
 	else

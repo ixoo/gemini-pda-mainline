@@ -152,6 +152,15 @@ def main() -> None:
         "additionalProperties: false",
     ):
         require(token in binding, f"binding source boundary: {token}")
+    for label, source in (
+        ("observer", observer),
+        ("internal", internal),
+        ("tests", tests),
+    ):
+        require(
+            not any(line.rstrip().endswith("(") for line in source.splitlines()),
+            f"no declaration or call line ending at open parenthesis: {label}",
+        )
 
     for token in (
         "generate-a72-platform-provider-clock-patches",

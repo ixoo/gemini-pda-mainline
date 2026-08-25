@@ -44,6 +44,7 @@ def main() -> None:
         ("write-ceiling", generator, "explicit_mmio_writes_maximum=401", "explicit_mmio_writes_maximum=402"),
         ("clock-call", observer, "ops->clock(context, clock, &snapshot->clock)", "ops->clock(context, clock, &snapshot->clock) + ops->clock(context, clock, &snapshot->clock)"),
         ("clock-terminal", observer, "A returned hardware call is terminal", "A returned hardware call may retry"),
+        ("style-open", observer, "static int mt6797_a72_ppc_platform(void *context, struct device *dev,", "static int mt6797_a72_ppc_platform(\n\tvoid *context, struct device *dev,"),
         ("helper-endpoint", source_validator, '("get_platform", "static struct device *mt6797_a72_ppc_get_provider",', '("get_platform", "static struct device *mt6797_a72_ppc_get_platform",'),
         ("kunit-count", tests, "KUNIT_CASE(mt6797_a72_ppc_clock_identity_terminal_test)", "mt6797_a72_ppc_clock_identity_terminal_test"),
         ("generate-dispatch", "scripts/buildbox", "  generate-a72-platform-provider-clock-patches) generate_a72_platform_provider_clock_patches ;;", "  generate-a72-platform-provider-clock-broken) generate_a72_platform_provider_clock_patches ;;"),

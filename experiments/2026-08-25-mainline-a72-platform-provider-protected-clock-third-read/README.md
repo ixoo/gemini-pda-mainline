@@ -122,5 +122,11 @@ because the validator ended each dependency-helper section at that helper's own
 declaration and therefore inspected an empty string. This is a validator false
 negative before patch packaging; the generated source was not rejected on a
 semantic invariant. No kernel build, boot image, device write, retained-memory
-write, or hardware call has occurred for this experiment. The ordered
-continuation is owned by the [Roadmap](../../docs/ROADMAP.md#7-bring-up-cpu8).
+write, or hardware call has occurred for this experiment. Buildbox attempt 2
+with the repaired endpoint validator passed every source phase, exact patch
+scope, and byte-identical replay. Strict checkpatch then rejected only eight
+production-patch style checks: seven lines ending at an open parenthesis and one
+continuation alignment. The implementation and semantic validators had passed;
+no package was promoted. The style-only repair also removes the same declaration
+pattern from the later test patch before retry. The ordered continuation is
+owned by the [Roadmap](../../docs/ROADMAP.md#7-bring-up-cpu8).
