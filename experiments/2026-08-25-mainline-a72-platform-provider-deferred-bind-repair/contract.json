@@ -31,6 +31,14 @@
     "kunit": "a72-platform-provider-ready-kunit",
     "candidate": "a72-platform-provider-ready-candidate"
   },
+  "candidate_dtb": {
+    "predecessor_sha256": "ee8baf009bd3c94e59c91a4d4b6090e6280e4045b5a0ff8abdcd0c0ef2f6d1ac",
+    "derived_sha256": "923575e4e25498f2749bb440af78372e36bb318bf5717d05ced18be600ebd6c8",
+    "provider_phandle": "0x30",
+    "added_nodes": 0,
+    "added_properties": 2,
+    "reverse_normalization": "byte-identical-sorted-dts"
+  },
   "dependency_gate": {
     "property": "mediatek,provider",
     "compatible": "dlg,da9214-legacy",
@@ -74,7 +82,9 @@
     "definition": "frozen",
     "patch_generation": "pass",
     "patch_admission": "pass",
-    "build": "pending",
+    "kunit_build": "pass",
+    "kunit_runtime": "pass",
+    "candidate_build": "pending",
     "boot_candidate": false,
     "device_action": false
   }

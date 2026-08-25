@@ -54,6 +54,7 @@ def main() -> None:
         ("profile-name", f"experiments/{EXPERIMENT}/contract.json", '"a72-platform-provider-ready-kunit"', '"a72-platform-provider-broken-kunit"'),
         ("localversion", "configs/gemini-a72-platform-provider-ready-candidate.fragment", 'CONFIG_LOCALVERSION="-gemini-a72-provider-ready"', 'CONFIG_LOCALVERSION="-gemini-a72-provider-broken"'),
         ("kunit-plan", f"experiments/{EXPERIMENT}/scripts/classify-kunit.py", '"1..7"', '"1..8"'),
+        ("candidate-dtb", f"experiments/{EXPERIMENT}/contract.json", "923575e4e25498f2", "823575e4e25498f2"),
         ("buildbox-dispatch", "scripts/buildbox", "  generate-a72-platform-provider-ready-patches) generate_a72_platform_provider_ready_patches ;;", "  generate-a72-platform-provider-broken-patches) generate_a72_platform_provider_ready_patches ;;"),
     )
     rejected = 0

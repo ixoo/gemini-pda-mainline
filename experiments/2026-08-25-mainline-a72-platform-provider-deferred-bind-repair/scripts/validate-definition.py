@@ -47,6 +47,7 @@ def main() -> None:
     generator = read(exp / "scripts/generate-on-buildbox")
     classifier = read(exp / "scripts/classify-kunit.py")
     runner = read(exp / "scripts/run-kunit-qemu")
+    dt_builder = read(exp / "scripts/build-provider-ready-dtb.sh")
     buildbox = read(root / "scripts/buildbox")
     manifest = json.loads(read(root / "kernel/manifest.json"))
 
@@ -95,6 +96,14 @@ def main() -> None:
         "not_ready_provider_calls": 0,
         "not_ready_hardware_access": False,
     }, "exact dependency gate")
+    require(contract["candidate_dtb"] == {
+        "predecessor_sha256": "ee8baf009bd3c94e59c91a4d4b6090e6280e4045b5a0ff8abdcd0c0ef2f6d1ac",
+        "derived_sha256": "923575e4e25498f2749bb440af78372e36bb318bf5717d05ced18be600ebd6c8",
+        "provider_phandle": "0x30",
+        "added_nodes": 0,
+        "added_properties": 2,
+        "reverse_normalization": "byte-identical-sorted-dts",
+    }, "exact reversible candidate DT")
 
     parent = root / contract["canonical_parent"]
     require(hashlib.sha256(parent.read_bytes()).hexdigest()
@@ -167,6 +176,15 @@ def main() -> None:
         "CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION=y",
     ):
         require(token in runner, f"KUnit runner boundary: {token}")
+    for token in (
+        "readonly PROVIDER_PHANDLE=30",
+        "readonly OUTPUT_SHA256=923575e4e25498f2749bb440af78372e36bb318bf5717d05ced18be600ebd6c8",
+        "fdtput -t x",
+        "fdtput -d",
+        "added_nodes=0",
+        "added_properties=2",
+    ):
+        require(token in dt_builder, f"candidate DT boundary: {token}")
 
     for token in (
         "generate-a72-platform-provider-ready-patches",

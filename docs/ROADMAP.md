@@ -5321,9 +5321,15 @@ The next ordered work is:
    and CPU8/CPU9 admission remains closed. Nine definition mutations fail
    closed. Exact signed commit `9a2ca827` then passes Buildbox source, replay,
    strict-style, checksum, and byte-exact admission gates for patches `0371`--
-   `0373`; all 133 profiles preserve canonical order. No kernel build or device
-   action occurred. **Selected next:** compile the isolated seven-case KUnit
-   profile on Buildbox and run it in no-network QEMU.
+   `0373`; all 133 profiles preserve canonical order. Exact admitted commit
+   `5df73082` then compiles on Buildbox with no new observer warning, and the
+   sole no-network QEMU suite passes all seven cases with zero failures or
+   skips. The not-ready case proves zero platform, checkpoint, and provider
+   effects; no physical I2C, MMIO, retained RAM, native VM, or device action
+   occurred. **Selected next:** Buildbox-compile the isolated device profile,
+   derive only the provider phandle and observer reference from the exact
+   predecessor DT, and pass reversible-DT and container gates before any
+   `boot2` write.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

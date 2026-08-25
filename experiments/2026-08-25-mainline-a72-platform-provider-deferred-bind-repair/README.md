@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-25-mainline-a72-platform-provider-deferred-bind-repair` |
-| Status | three patches admitted; hardware-free compile pending |
+| Status | hardware-free compile and seven-case KUnit pass; candidate pending |
 | Subsystem | MT6797 A72 platform/provider snapshot dependency ordering |
 | Device variant | Gemini PDA, named project device |
 | Date | 2026-08-25 |
@@ -63,6 +63,12 @@ CPU request.
   replay, strict-style, checksum, and byte-exact admission gates. The three
   patches retain a clearly synthetic non-certifying author, have no synthetic
   sign-off, and are not submission-ready.
+- Exact admitted commit `5df73082` compiles as
+  `7.1.3-gemini-a72-provider-ready-kunit` on Buildbox with no new observer
+  warning. The sole no-network QEMU suite passes all seven cases, including
+  provider-not-ready with zero injected effects; eight classifier mutations
+  fail closed. No physical I2C, MMIO, retained RAM, device, or native VM action
+  occurred.
 - Build backend: Buildbox only. A native VM kernel build is prohibited unless
   the owner explicitly requests that specific build.
 
@@ -97,6 +103,7 @@ reversible DT validation, deterministic Android-v0 assembly, live-GPT guarded
 
 ## Next
 
-Compile the isolated KUnit profile on Buildbox, fetch only its validated
-package, then run the focused seven-case suite in no-network QEMU. No device
-action is authorized by patch admission or hardware-free testing alone.
+Build the isolated device profile on Buildbox, derive only the provider phandle
+and observer reference from the exact predecessor DT, and require byte-exact
+reverse normalization before constructing or selecting a candidate. No device
+action is authorized by the hardware-free pass alone.
