@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-24-mainline-a72-platform-snapshot-first-read` |
-| Status | `planned` — source audit and generation contract defined |
+| Status | generated and admitted byte-for-byte; Buildbox compile pending |
 | Subsystem | MT6797 A72 platform-state read-only snapshot |
 | Device variant | Gemini PDA, named project device |
 | Date | 2026-08-24 |
@@ -98,6 +98,17 @@ KUnit patch `0366` stopped on one check requiring a blank line between the
 suite declaration and registration macro. The correction adds only that blank
 line. No kernel build, candidate, or device action occurred.
 
+Generation attempt 6 from signed commit `f47ad7dc` passes all four phased
+source validators, exact patch inventory and file-scope validation,
+byte-identical replay, and strict checkpatch with zero errors, warnings, or
+checks for every patch. The fetched package's relative checksum manifest and
+an independent local patch validator pass. Canonical patches `0363`--`0366`
+are byte-identical to the fetched bytes, and the manifest-series invariant
+passes across all 129 profiles after adding isolated KUnit and candidate
+profiles. The exact receipt is in
+[`results/buildbox-generation-20260824.txt`](results/buildbox-generation-20260824.txt).
+No kernel build, candidate, retained-RAM write, or device action has occurred.
+
 ## Safety assessment
 
 CPU8 and CPU9 remain closed by exact `maxcpus=8`. The observer performs only
@@ -124,3 +135,12 @@ guarded live-GPT `boot2` write/readback/shutdown workflow.
 
 Only one owner-selected attempt is allowed after every offline, Buildbox,
 container, deployment, and pre-armed runtime gate passes.
+
+## Next
+
+Build the hardware-free `a72-platform-snapshot-kunit` profile on Buildbox and
+run its focused suite. Only after that passes, build the isolated
+`a72-platform-snapshot-candidate` profile on Buildbox, derive its DT from the
+exact passed BigiDVFS predecessor, and run the offline candidate gates. Do not
+change or reboot the currently healthy control boot until the new candidate is
+fully validated and ready for guarded deployment.

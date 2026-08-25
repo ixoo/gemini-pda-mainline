@@ -12,6 +12,12 @@
     "0365-dt-bindings-soc-mediatek-add-A72-platform-snapshot-observer.patch",
     "0366-soc-mediatek-test-A72-platform-snapshot-observer.patch"
   ],
+  "canonical_patch_sha256": {
+    "0363-pstore-add-Gemini-A72-platform-snapshot-ledger.patch": "370b732e8a60b7b75a32c2ae9fea1e1921d5bb5f27d5db857e50837b6d12142b",
+    "0364-soc-mediatek-add-A72-platform-snapshot-observer.patch": "06476a9a760fd53c6ef5dd42b89d795ddcd14e98503d057025c62abc619a9424",
+    "0365-dt-bindings-soc-mediatek-add-A72-platform-snapshot-observer.patch": "a48afaf6b0b4b859946cd8e1b06018658210cb31951bc24a76f22c3cf3342cf3",
+    "0366-soc-mediatek-test-A72-platform-snapshot-observer.patch": "a2affef6c20b3135470fcf8e96c56cd9abb622a147cd976dfe0d8da84c3d97bc"
+  },
   "runtime_effects": {
     "platform_snapshot_calls": 1,
     "stable_samples": 2,
@@ -30,7 +36,12 @@
   "generation": {
     "backend": "buildbox",
     "native_vm_build": false,
-    "status": "pending",
+    "status": "validated-and-byte-identical-admission",
+    "repository_commit": "f47ad7dc2f302e439d09363703c8dcc65c35a847",
+    "result_commit": "45752831d72b4139d30ef480643e02ef63486a3e",
+    "package_sha256sums": "ba7396a4eee0f1c5b038206c0cbb500c8c1a7d4e2199b10c39e6d71512ffc91a",
+    "series_sha256": "5b16f8541a5b059ba7ab0dab45b2d8a7e44a8901c59911a3e4488d98fc5dec5d",
+    "checkpatch": "zero-errors-zero-warnings-zero-checks-all-four",
     "boot_candidate": false,
     "device_action": false
   }

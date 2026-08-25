@@ -1,0 +1,243 @@
+From 732d883c18a31d86c092c7ecafa32bebde648044 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 25 Aug 2026 00:12:00 +0000
+Subject: [PATCH 2/4] soc: mediatek: add A72 platform-snapshot observer
+
+Retain only the bound platform-state source, take one stable two-sample read-only snapshot between exact checkpoints, clear every failure, and add no later reader, owner, publisher, or CPU action.
+---
+ drivers/soc/mediatek/Kconfig                  |  12 ++
+ drivers/soc/mediatek/Makefile                 |   1 +
+ ...-a72-platform-snapshot-observer-internal.h |  20 +++
+ .../mt6797-a72-platform-snapshot-observer.c   | 161 ++++++++++++++++++
+ 4 files changed, 194 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-a72-platform-snapshot-observer-internal.h
+ create mode 100644 drivers/soc/mediatek/mt6797-a72-platform-snapshot-observer.c
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index 4fc8221..c423ec8 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -270,6 +270,18 @@ config MTK_MT6797_DVFSP_BIGIDVFS_BACKEND
+ 	  state owner or clock provider. Its Device Tree node is disabled by
+ 	  default.
+ 
++config MTK_MT6797_A72_PLATFORM_SNAPSHOT_OBSERVER
++	bool "MediaTek MT6797 A72 one-shot platform-snapshot observer"
++	depends on MTK_MT6797_A72_PLATFORM_STATE
++	default n
++	help
++	  Build the candidate-only observer that retains the bound A72
++	  platform-state source, writes one checkpoint, takes exactly one stable
++	  two-sample snapshot, and writes one completion checkpoint. It performs
++	  26 read-only register observations with no retry.
++	  It adds no DA921x provider, clock, BigiDVFS, secure call, publication,
++	  owner mutation, CPU request, reset, or power action. If unsure, say N.
++
+ config MTK_MT6797_A72_PHYSICAL_SOURCE_OBSERVER
+ 	bool "MediaTek MT6797 A72 direct physical-source observer"
+ 	depends on ARM64_MT6797_A72_DIRECT_STATE_COMPOSITOR
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+index de9e47a..16ec95b 100644
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -40,6 +40,7 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_STATE_DECODERS) += mt6797-dvfsp-cspm-state.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-ppm.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-ppm-policy.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_BIGIDVFS_BACKEND) += mt6797-bigidvfs-backend.o
++obj-$(CONFIG_MTK_MT6797_A72_PLATFORM_SNAPSHOT_OBSERVER) += mt6797-a72-platform-snapshot-observer.o
+ obj-$(CONFIG_MTK_MT6797_A72_PHYSICAL_SOURCE_OBSERVER) += mt6797-a72-physical-source-observer.o
+ obj-$(CONFIG_MTK_MT6797_A72_PHYSICAL_SOURCE_KUNIT_TEST) += mt6797-a72-physical-source-observer-test.o
+ obj-$(CONFIG_MTK_MT6797_PROTECTED_READBACK_OBSERVER) += mt6797-protected-readback-observer.o
+diff --git a/drivers/soc/mediatek/mt6797-a72-platform-snapshot-observer-internal.h b/drivers/soc/mediatek/mt6797-a72-platform-snapshot-observer-internal.h
+new file mode 100644
+index 0000000..f25da22
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-a72-platform-snapshot-observer-internal.h
+@@ -0,0 +1,20 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __MT6797_A72_PLATFORM_SNAPSHOT_OBSERVER_INTERNAL_H
++#define __MT6797_A72_PLATFORM_SNAPSHOT_OBSERVER_INTERNAL_H
++
++#include <linux/soc/mediatek/mt6797-a72-platform-state.h>
++
++struct device;
++
++struct mt6797_a72_platform_snapshot_observer_ops {
++	bool (*checkpoint)(void *context, unsigned int checkpoint);
++	int (*snapshot)(void *context, struct device *dev,
++			struct mt6797_a72_platform_state *snapshot);
++};
++
++int mt6797_platform_snapshot_capture(struct device *platform,
++				     const struct mt6797_a72_platform_snapshot_observer_ops *ops,
++				     void *context,
++				     struct mt6797_a72_platform_state *snapshot);
++
++#endif /* __MT6797_A72_PLATFORM_SNAPSHOT_OBSERVER_INTERNAL_H */
+diff --git a/drivers/soc/mediatek/mt6797-a72-platform-snapshot-observer.c b/drivers/soc/mediatek/mt6797-a72-platform-snapshot-observer.c
+new file mode 100644
+index 0000000..2741c6f
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-a72-platform-snapshot-observer.c
+@@ -0,0 +1,161 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* Candidate-only MT6797 A72 platform-snapshot observer. */
++
++#include <linux/device.h>
++#include <linux/err.h>
++#include <linux/errno.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/of_platform.h>
++#include <linux/platform_device.h>
++#include <linux/pstore_ram.h>
++#include <linux/string.h>
++
++#include <linux/soc/mediatek/mt6797-a72-platform-state.h>
++
++#include "mt6797-a72-platform-snapshot-observer-internal.h"
++
++#define MT6797_A72_PLATFORM_SNAPSHOT_TAG "GEMINI_A72_PLATFORM_SNAPSHOT_V1"
++
++static bool mt6797_platform_snapshot_checkpoint(void *context,
++						unsigned int checkpoint)
++{
++	return gemini_protected_readback_ledger_checkpoint(checkpoint);
++}
++
++static int mt6797_platform_snapshot_read(void *context, struct device *dev,
++					 struct mt6797_a72_platform_state *snapshot)
++{
++	return mt6797_a72_platform_state_snapshot(dev, snapshot);
++}
++
++static const struct mt6797_a72_platform_snapshot_observer_ops
++mt6797_a72_platform_snapshot_ops = {
++	.checkpoint = mt6797_platform_snapshot_checkpoint,
++	.snapshot = mt6797_platform_snapshot_read,
++};
++
++int mt6797_platform_snapshot_capture(struct device *platform,
++				     const struct mt6797_a72_platform_snapshot_observer_ops *ops,
++				     void *context,
++				     struct mt6797_a72_platform_state *snapshot)
++{
++	int ret;
++
++	if (!snapshot)
++		return -EINVAL;
++	memset(snapshot, 0, sizeof(*snapshot));
++	if (!platform || !ops || !ops->checkpoint || !ops->snapshot)
++		return -EINVAL;
++	if (!ops->checkpoint(context, 0))
++		return -EIO;
++
++	ret = ops->snapshot(context, platform, snapshot);
++	if (ret)
++		goto out_clear;
++	if (!snapshot->valid) {
++		ret = -ENODATA;
++		goto out_clear;
++	}
++	if (!ops->checkpoint(context, 1)) {
++		ret = -EIO;
++		goto out_clear;
++	}
++
++	return 0;
++
++out_clear:
++	memset(snapshot, 0, sizeof(*snapshot));
++	return ret;
++}
++
++static struct device *
++mt6797_a72_platform_snapshot_get_device(struct device *dev)
++{
++	struct platform_device *source;
++	struct device_node *node;
++
++	node = of_parse_phandle(dev->of_node, "mediatek,platform-state", 0);
++	if (!node)
++		return ERR_PTR(-EINVAL);
++	source = of_find_device_by_node(node);
++	of_node_put(node);
++	if (!source)
++		return ERR_PTR(-EPROBE_DEFER);
++	if (!device_is_bound(&source->dev)) {
++		put_device(&source->dev);
++		return ERR_PTR(-EPROBE_DEFER);
++	}
++
++	return &source->dev;
++}
++
++static void mt6797_a72_platform_snapshot_log(struct device *dev,
++					     const struct mt6797_a72_platform_state *snapshot)
++{
++	dev_info(dev,
++		 MT6797_A72_PLATFORM_SNAPSHOT_TAG
++		 " valid=%u spm=%08x/%08x/%08x/%08x"
++		 " mp2=%08x/%08x/%08x iso=%08x dcm=%08x"
++		 " cci=%08x/%08x/%08x pwrap=%u\n",
++		 snapshot->valid, snapshot->spm_pwr_status,
++		 snapshot->spm_pwr_status_2nd,
++		 snapshot->spm_cpu_pwr_status,
++		 snapshot->spm_cpu_pwr_status_2nd,
++		 snapshot->spm_mp2_cpusys_pwr_con,
++		 snapshot->spm_mp2_cpu0_pwr_con,
++		 snapshot->spm_mp2_cpu1_pwr_con,
++		 snapshot->spm_cpu_ext_buck_iso, snapshot->mp2_sync_dcm,
++		 snapshot->cci_mp2_port_control, snapshot->cci_status_before,
++		 snapshot->cci_status_after, snapshot->pwrap_reset_asserted);
++	dev_info(dev,
++		 MT6797_A72_PLATFORM_SNAPSHOT_TAG
++		 " state=complete platform_calls=1 stable_samples=2"
++		 " register_observations=26 retained_writes=2 retries=0"
++		 " provider_snapshots=0 protected_clock_reads=0"
++		 " bigidvfs_reads=0 secure_calls=0 publisher_calls=0"
++		 " owner_mutations=0 cpu_requests=0\n");
++}
++
++static int mt6797_a72_platform_snapshot_probe(struct platform_device *pdev)
++{
++	struct mt6797_a72_platform_state snapshot;
++	struct device *platform;
++	struct device *dev = &pdev->dev;
++	int ret;
++
++	platform = mt6797_a72_platform_snapshot_get_device(dev);
++	if (IS_ERR(platform))
++		return dev_err_probe(dev, PTR_ERR(platform),
++				     "platform-state source unavailable\n");
++
++	ret = mt6797_platform_snapshot_capture(platform,
++					       &mt6797_a72_platform_snapshot_ops,
++					       NULL, &snapshot);
++	if (ret)
++		dev_err_probe(dev, ret, "platform snapshot failed\n");
++	else
++		mt6797_a72_platform_snapshot_log(dev, &snapshot);
++	put_device(platform);
++
++	return ret;
++}
++
++static const struct of_device_id mt6797_a72_platform_snapshot_of_match[] = {
++	{ .compatible = "mediatek,mt6797-a72-platform-snapshot-observer" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, mt6797_a72_platform_snapshot_of_match);
++
++static struct platform_driver mt6797_a72_platform_snapshot_driver = {
++	.probe = mt6797_a72_platform_snapshot_probe,
++	.driver = {
++		.name = "mt6797-a72-platform-snapshot-observer",
++		.of_match_table = mt6797_a72_platform_snapshot_of_match,
++		.suppress_bind_attrs = true,
++	},
++};
++builtin_platform_driver(mt6797_a72_platform_snapshot_driver);
++
++MODULE_DESCRIPTION("MT6797 A72 candidate-only platform-snapshot observer");
++MODULE_LICENSE("GPL");

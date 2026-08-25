@@ -29,8 +29,11 @@ the loop. Positive identity-gated observations are unaffected.
   snapshot, retained checkpoints immediately before and after it, and no
   retry. The exact boundary is 26 read-only register observations with every
   DA921x, protected-clock, BigiDVFS, publisher, owner, and CPU action closed.
-  Source templates, four-patch Buildbox generation, strict replay/style gates,
-  and the one-attempt decision map are defined; generation is next.
+  Source templates and the four-patch Buildbox lane now pass semantic, exact
+  scope, byte-identical replay, and strict style validation. The fetched
+  package checksum passes and canonical patches `0363`--`0366` are admitted
+  byte-for-byte with isolated KUnit and candidate profiles; Buildbox compile
+  is next.
 - [2026-08-24 A72 BigiDVFS-backend probe on the passed Stage-27 reader DT](2026-08-24-mainline-a72-bigidvfs-backend-stage27-control/README.md)
   — keeps the exact runtime-passed Stage-27 platform/clock DT and adds only the
   read-free BigiDVFS-backend node. Probe validates the `smc` method, allocates

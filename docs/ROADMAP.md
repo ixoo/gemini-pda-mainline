@@ -5231,9 +5231,15 @@ The next ordered work is:
    [platform-snapshot first-read experiment](../experiments/2026-08-24-mainline-a72-platform-snapshot-first-read/README.md)
    now pins canonical parent `0362`, the exact managed source state and edited
    parent hashes, a four-patch Buildbox-only generator, one-shot observer,
-   binding, injected tests, and the one-attempt decision map. Patch generation
-   is next; no kernel build, candidate construction, or device action has yet
-   occurred for this boundary.
+   binding, injected tests, and the one-attempt decision map. Buildbox attempt
+   6 passes every source, exact-scope, replay, and strict-style gate; fetched
+   patches `0363`--`0366` are admitted byte-for-byte, and all 129 manifest
+   profiles retain the series invariant. **Selected next:** Buildbox-compile
+   and run the isolated hardware-free KUnit profile, then Buildbox-compile the
+   device candidate profile. Only after both pass may the candidate derive
+   from the exact BigiDVFS predecessor DT and enter offline container gates.
+   No kernel build, candidate construction, or device action has yet occurred
+   for this boundary.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

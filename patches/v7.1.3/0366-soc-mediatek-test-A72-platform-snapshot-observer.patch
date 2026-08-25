@@ -1,0 +1,215 @@
+From 45752831d72b4139d30ef480643e02ef63486a3e Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 25 Aug 2026 00:14:00 +0000
+Subject: [PATCH 4/4] soc: mediatek: test A72 platform-snapshot observer
+
+Use injected in-memory operations to cover exact order, one-shot success, snapshot instability and invalidity, both checkpoint failures, and all-zero failure output.
+---
+ drivers/soc/mediatek/Kconfig                  |  11 ++
+ drivers/soc/mediatek/Makefile                 |   1 +
+ ...6797-a72-platform-snapshot-observer-test.c | 162 ++++++++++++++++++
+ 3 files changed, 174 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-a72-platform-snapshot-observer-test.c
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index c423ec8..c08b24b 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -282,6 +282,17 @@ config MTK_MT6797_A72_PLATFORM_SNAPSHOT_OBSERVER
+ 	  It adds no DA921x provider, clock, BigiDVFS, secure call, publication,
+ 	  owner mutation, CPU request, reset, or power action. If unsure, say N.
+ 
++config MTK_MT6797_A72_PLATFORM_SNAPSHOT_KUNIT_TEST
++	bool "KUnit tests for MT6797 A72 platform-snapshot observer"
++	depends on KUNIT=y
++	depends on MTK_MT6797_A72_PLATFORM_SNAPSHOT_OBSERVER
++	default n
++	help
++	  Exercise exact checkpoint/snapshot order, one-shot success, every
++	  failure boundary, and all-zero failure output with injected in-memory
++	  operations. No MMIO, retained RAM, I2C, SMC, owner, publisher, or CPU
++	  action occurs.
++
+ config MTK_MT6797_A72_PHYSICAL_SOURCE_OBSERVER
+ 	bool "MediaTek MT6797 A72 direct physical-source observer"
+ 	depends on ARM64_MT6797_A72_DIRECT_STATE_COMPOSITOR
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+index 16ec95b..32a5794 100644
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -41,6 +41,7 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-ppm.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-ppm-policy.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_BIGIDVFS_BACKEND) += mt6797-bigidvfs-backend.o
+ obj-$(CONFIG_MTK_MT6797_A72_PLATFORM_SNAPSHOT_OBSERVER) += mt6797-a72-platform-snapshot-observer.o
++obj-$(CONFIG_MTK_MT6797_A72_PLATFORM_SNAPSHOT_KUNIT_TEST) += mt6797-a72-platform-snapshot-observer-test.o
+ obj-$(CONFIG_MTK_MT6797_A72_PHYSICAL_SOURCE_OBSERVER) += mt6797-a72-physical-source-observer.o
+ obj-$(CONFIG_MTK_MT6797_A72_PHYSICAL_SOURCE_KUNIT_TEST) += mt6797-a72-physical-source-observer-test.o
+ obj-$(CONFIG_MTK_MT6797_PROTECTED_READBACK_OBSERVER) += mt6797-protected-readback-observer.o
+diff --git a/drivers/soc/mediatek/mt6797-a72-platform-snapshot-observer-test.c b/drivers/soc/mediatek/mt6797-a72-platform-snapshot-observer-test.c
+new file mode 100644
+index 0000000..8a40d8b
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-a72-platform-snapshot-observer-test.c
+@@ -0,0 +1,162 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* Injected tests for the MT6797 A72 platform-snapshot observer. */
++
++#include <kunit/test.h>
++#include <linux/device.h>
++#include <linux/errno.h>
++#include <linux/string.h>
++
++#include "mt6797-a72-platform-snapshot-observer-internal.h"
++
++enum mt6797_a72_platform_snapshot_event {
++	MT6797_PLATFORM_CHECKPOINT_0,
++	MT6797_PLATFORM_SNAPSHOT,
++	MT6797_PLATFORM_CHECKPOINT_1,
++};
++
++struct mt6797_a72_platform_snapshot_test_state {
++	enum mt6797_a72_platform_snapshot_event events[3];
++	unsigned int event_count;
++	unsigned int snapshot_calls;
++	bool checkpoint_result[2];
++	bool snapshot_valid;
++	int snapshot_ret;
++};
++
++static bool mt6797_platform_test_checkpoint(void *context,
++					    unsigned int checkpoint)
++{
++	struct mt6797_a72_platform_snapshot_test_state *state = context;
++
++	state->events[state->event_count++] = checkpoint ?
++		MT6797_PLATFORM_CHECKPOINT_1 : MT6797_PLATFORM_CHECKPOINT_0;
++	return state->checkpoint_result[checkpoint];
++}
++
++static int mt6797_platform_test_snapshot(void *context, struct device *dev,
++					 struct mt6797_a72_platform_state *snapshot)
++{
++	struct mt6797_a72_platform_snapshot_test_state *state = context;
++
++	state->events[state->event_count++] = MT6797_PLATFORM_SNAPSHOT;
++	state->snapshot_calls++;
++	snapshot->spm_pwr_status = 0x12345678;
++	snapshot->valid = state->snapshot_valid;
++	return state->snapshot_ret;
++}
++
++static const struct mt6797_a72_platform_snapshot_observer_ops test_ops = {
++	.checkpoint = mt6797_platform_test_checkpoint,
++	.snapshot = mt6797_platform_test_snapshot,
++};
++
++static void mt6797_platform_expect_zero(struct kunit *test,
++					const struct mt6797_a72_platform_state *snapshot)
++{
++	struct mt6797_a72_platform_state zero = { };
++
++	KUNIT_EXPECT_MEMEQ(test, snapshot, &zero, sizeof(zero));
++}
++
++static void mt6797_platform_snapshot_success_test(struct kunit *test)
++{
++	struct mt6797_a72_platform_snapshot_test_state state = {
++		.checkpoint_result = { true, true },
++		.snapshot_valid = true,
++	};
++	struct mt6797_a72_platform_state snapshot;
++	struct device platform = { };
++	int ret;
++
++	ret = mt6797_platform_snapshot_capture(&platform, &test_ops, &state,
++					       &snapshot);
++	KUNIT_EXPECT_EQ(test, ret, 0);
++	KUNIT_EXPECT_TRUE(test, snapshot.valid);
++	KUNIT_EXPECT_EQ(test, snapshot.spm_pwr_status, (u32)0x12345678);
++	KUNIT_EXPECT_EQ(test, state.snapshot_calls, 1U);
++	KUNIT_ASSERT_EQ(test, state.event_count, 3U);
++	KUNIT_EXPECT_EQ(test, state.events[0], MT6797_PLATFORM_CHECKPOINT_0);
++	KUNIT_EXPECT_EQ(test, state.events[1], MT6797_PLATFORM_SNAPSHOT);
++	KUNIT_EXPECT_EQ(test, state.events[2], MT6797_PLATFORM_CHECKPOINT_1);
++}
++
++static void mt6797_platform_snapshot_before_failure_test(struct kunit *test)
++{
++	struct mt6797_a72_platform_snapshot_test_state state = { };
++	struct mt6797_a72_platform_state snapshot = {
++		.valid = true,
++	};
++	struct device platform = { };
++	int ret;
++
++	ret = mt6797_platform_snapshot_capture(&platform, &test_ops, &state,
++					       &snapshot);
++	KUNIT_EXPECT_EQ(test, ret, -EIO);
++	KUNIT_EXPECT_EQ(test, state.snapshot_calls, 0U);
++	KUNIT_EXPECT_EQ(test, state.event_count, 1U);
++	mt6797_platform_expect_zero(test, &snapshot);
++}
++
++static void mt6797_platform_snapshot_read_failure_test(struct kunit *test)
++{
++	struct mt6797_a72_platform_snapshot_test_state state = {
++		.checkpoint_result = { true, true },
++		.snapshot_valid = true,
++		.snapshot_ret = -EAGAIN,
++	};
++	struct mt6797_a72_platform_state snapshot;
++	struct device platform = { };
++	int ret;
++
++	ret = mt6797_platform_snapshot_capture(&platform, &test_ops, &state,
++					       &snapshot);
++	KUNIT_EXPECT_EQ(test, ret, -EAGAIN);
++	KUNIT_EXPECT_EQ(test, state.snapshot_calls, 1U);
++	KUNIT_EXPECT_EQ(test, state.event_count, 2U);
++	mt6797_platform_expect_zero(test, &snapshot);
++
++	state.snapshot_ret = 0;
++	state.snapshot_valid = false;
++	state.event_count = 0;
++	state.snapshot_calls = 0;
++	ret = mt6797_platform_snapshot_capture(&platform, &test_ops, &state,
++					       &snapshot);
++	KUNIT_EXPECT_EQ(test, ret, -ENODATA);
++	KUNIT_EXPECT_EQ(test, state.snapshot_calls, 1U);
++	mt6797_platform_expect_zero(test, &snapshot);
++}
++
++static void mt6797_platform_snapshot_after_failure_test(struct kunit *test)
++{
++	struct mt6797_a72_platform_snapshot_test_state state = {
++		.checkpoint_result = { true, false },
++		.snapshot_valid = true,
++	};
++	struct mt6797_a72_platform_state snapshot;
++	struct device platform = { };
++	int ret;
++
++	ret = mt6797_platform_snapshot_capture(&platform, &test_ops, &state,
++					       &snapshot);
++	KUNIT_EXPECT_EQ(test, ret, -EIO);
++	KUNIT_EXPECT_EQ(test, state.snapshot_calls, 1U);
++	KUNIT_EXPECT_EQ(test, state.event_count, 3U);
++	mt6797_platform_expect_zero(test, &snapshot);
++}
++
++static struct kunit_case mt6797_a72_platform_snapshot_cases[] = {
++	KUNIT_CASE(mt6797_platform_snapshot_success_test),
++	KUNIT_CASE(mt6797_platform_snapshot_before_failure_test),
++	KUNIT_CASE(mt6797_platform_snapshot_read_failure_test),
++	KUNIT_CASE(mt6797_platform_snapshot_after_failure_test),
++	{ }
++};
++
++static struct kunit_suite mt6797_a72_platform_snapshot_suite = {
++	.name = "mt6797-a72-platform-snapshot",
++	.test_cases = mt6797_a72_platform_snapshot_cases,
++};
++
++kunit_test_suite(mt6797_a72_platform_snapshot_suite);
++
++MODULE_LICENSE("GPL");

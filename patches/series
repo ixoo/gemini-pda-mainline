@@ -352,3 +352,7 @@ v7.1.3/0359-soc-mediatek-fix-A72-pre-capture-cleanup-label.patch
 v7.1.3/0360-soc-mediatek-move-A72-ledger-before-registration.patch
 v7.1.3/0361-pstore-add-Gemini-A72-global-initcall-ledger.patch
 v7.1.3/0362-pstore-add-Gemini-A72-early-initcall-ledger.patch
+v7.1.3/0363-pstore-add-Gemini-A72-platform-snapshot-ledger.patch
+v7.1.3/0364-soc-mediatek-add-A72-platform-snapshot-observer.patch
+v7.1.3/0365-dt-bindings-soc-mediatek-add-A72-platform-snapshot-observer.patch
+v7.1.3/0366-soc-mediatek-test-A72-platform-snapshot-observer.patch

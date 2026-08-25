@@ -1,0 +1,14 @@
+# Hardware-free tests for the candidate-only first platform-read boundary.
+# Every checkpoint and snapshot operation is injected in memory; the profile
+# has no Device Tree node and performs no retained-RAM or hardware operation.
+CONFIG_KUNIT=y
+CONFIG_MTK_MT6797_A72_PLATFORM_STATE=y
+CONFIG_MTK_MT6797_A72_PLATFORM_SNAPSHOT_OBSERVER=y
+CONFIG_MTK_MT6797_A72_PLATFORM_SNAPSHOT_KUNIT_TEST=y
+# CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_LEDGER is not set
+# CONFIG_PSTORE_GEMINI_A72_PLATFORM_SNAPSHOT_LEDGER is not set
+# CONFIG_MTK_MT6797_A72_PHYSICAL_SOURCE_OBSERVER is not set
+# CONFIG_MTK_MT6797_PROTECTED_READBACK_OBSERVER is not set
+# CONFIG_ARM64_MT6797_A72_A34_ELIGIBILITY_EVALUATOR is not set
+# CONFIG_ARM64_MT6797_A72_BOOTSTRAP_PUBLISHER is not set
+CONFIG_LOCALVERSION="-gemini-a72-platform-kunit"
