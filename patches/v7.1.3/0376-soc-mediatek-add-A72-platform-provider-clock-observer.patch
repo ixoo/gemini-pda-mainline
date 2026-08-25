@@ -1,4 +1,4 @@
-From c98c68cbd6b2cb3c6d302d7fcaf8175028fccc14 Mon Sep 17 00:00:00 2001
+From e1a7ecc1ebcf7e54354b25ae52779f4a398ab768 Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Tue, 25 Aug 2026 23:13:00 +0000
 Subject: [PATCH 3/4] soc: mediatek: add A72 platform/provider/clock observer

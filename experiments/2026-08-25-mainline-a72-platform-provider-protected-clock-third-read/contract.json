@@ -31,10 +31,10 @@
     "0377-soc-mediatek-test-A72-platform-provider-clock-observer.patch"
   ],
   "canonical_patch_sha256": {
-    "0374-pstore-add-Gemini-A72-platform-provider-clock-ledger.patch": "44419ec51c03331c9b23a67c926db66457398efd102353a6e8882ad0bd6e5bcb",
-    "0375-dt-bindings-soc-mediatek-add-A72-platform-provider-clock-observer.patch": "2803f25b2a15036a0e536fd1baeed15b0dd1109527f21cbd7b9954a7bf1529ba",
-    "0376-soc-mediatek-add-A72-platform-provider-clock-observer.patch": "a187004385ea33f79c2670ff4091cded04498c346681e9febb35c0e31f5fa7c3",
-    "0377-soc-mediatek-test-A72-platform-provider-clock-observer.patch": "45495394433324ccf9a92573176b9e8c1bd66ef84a05e00526885ebe19fcd890"
+    "0374-pstore-add-Gemini-A72-platform-provider-clock-ledger.patch": "5ba8c4948e708a4c1e6c7f612f26f3d21e66c74163f75e4d4d8763ec5f9168d2",
+    "0375-dt-bindings-soc-mediatek-add-A72-platform-provider-clock-observer.patch": "410f1d3244c032c7073c02e94f8ed62caf3bc7bcfa580f6f832c0d4d8237219e",
+    "0376-soc-mediatek-add-A72-platform-provider-clock-observer.patch": "9db2240e9a4a9773e34261444b3b66f42659ad0af408eb9179ef17e2d82f84e5",
+    "0377-soc-mediatek-test-A72-platform-provider-clock-observer.patch": "6ae22e44a023ad788959e8f2a58f84275599265d8ee48966bd2266dacdc08a4f"
   },
   "canonical_series_sha256": "8e88fe2232c061d8ac84a7c4504df239df9fe3aba6321caa0f7de8f8ef29d9dd",
   "planned_profiles": {
@@ -136,9 +136,9 @@
   "current_status": {
     "definition": "frozen",
     "source_audit": "pass-read-only-buildbox",
-    "generation_tooling": "pinned-managed-parent-marker-repair-pending-regeneration",
-    "patch_generation": "attempt-6-rejected-before-edit-parent-marker-mismatch",
-    "kernel_build": "rejected-before-compile-kconfig-cycle",
+    "generation_tooling": "pass-attempt-7",
+    "patch_generation": "pass-corrected-generated-fetched-and-admitted-byte-for-byte",
+    "kernel_build": "pending-retry",
     "boot_candidate": false,
     "device_action": "none"
   }

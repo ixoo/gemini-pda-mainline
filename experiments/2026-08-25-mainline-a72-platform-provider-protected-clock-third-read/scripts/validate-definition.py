@@ -197,9 +197,9 @@ def main() -> None:
     require(status == {
         "definition": "frozen",
         "source_audit": "pass-read-only-buildbox",
-        "generation_tooling": "pinned-managed-parent-marker-repair-pending-regeneration",
-        "patch_generation": "attempt-6-rejected-before-edit-parent-marker-mismatch",
-        "kernel_build": "rejected-before-compile-kconfig-cycle",
+        "generation_tooling": "pass-attempt-7",
+        "patch_generation": "pass-corrected-generated-fetched-and-admitted-byte-for-byte",
+        "kernel_build": "pending-retry",
         "boot_candidate": False,
         "device_action": "none",
     }, "current status")

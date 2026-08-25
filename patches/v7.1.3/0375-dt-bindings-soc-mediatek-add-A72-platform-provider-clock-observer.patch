@@ -1,4 +1,4 @@
-From 3c9770a889ebc8ff5441fc941cd6cd37fc9ddbb2 Mon Sep 17 00:00:00 2001
+From 49b8ba97575735a0f61e9d33dd471ce41afbe546 Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Tue, 25 Aug 2026 23:12:00 +0000
 Subject: [PATCH 2/4] dt-bindings: soc: mediatek: add A72

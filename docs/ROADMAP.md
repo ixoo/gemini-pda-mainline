@@ -5408,7 +5408,14 @@ The next ordered work is:
    managed marker separately without weakening any content-identity gate.
    **Selected next:** sign and push the marker repin, run attempt 7, and admit
    only its checksum-verified corrected bytes. No build, QEMU, or device action
-   occurred.
+   occurred. Attempt 7 then reused the exact managed parent and passed every
+   source, scope, replay, strict-style, checksum, and byte-identity gate. The
+   reciprocal Kconfig edge is absent from corrected canonical patches
+   `0374`--`0377`, and all 136 profiles remain canonical subsequences.
+   **Selected next:** sign and push the corrected admission, retry the same
+   eight-case Buildbox KUnit profile, and run only that suite in no-network
+   QEMU before considering the device profile. No build retry, QEMU, or device
+   action has occurred.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

@@ -118,13 +118,13 @@ def main() -> None:
     ).stdout
     require("profiles_checked=136" in invariant,
             "all manifest profiles checked")
-    receipt = read(experiment / "results/buildbox-generation-20260825.txt")
+    receipt = read(experiment / "results/buildbox-generation-attempt-7-20260825.txt")
     for token in (
-        "repository_commit=c89baef5b5adc988f933b6118bf9f0dfe398b8b2",
+        "repository_commit=b0ad85d8907d2ec64a7a3c9b7d1e801e89a4c569",
         "canonical_patch_bytes=all-four-cmp-pass",
-        "profiles_checked=135",
+        "profiles_checked=136",
         "focused_kunit_cases=8",
-        "kernel_build=pending",
+        "kernel_build=pending-retry",
         "device_action=none",
     ):
         require(token in receipt, f"generation receipt token: {token}")
@@ -132,7 +132,7 @@ def main() -> None:
     print("canonical_patches=4")
     print("isolated_profiles=2")
     print("focused_kunit_cases=8")
-    print("kernel_build=pending")
+    print("kernel_build=pending-retry")
     print("device_action=none")
 
 

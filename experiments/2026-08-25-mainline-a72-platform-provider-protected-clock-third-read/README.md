@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-25-mainline-a72-platform-provider-protected-clock-third-read` |
-| Status | one-way Kconfig repair ready; managed-parent marker repin pending |
+| Status | corrected patches admitted byte-for-byte; focused KUnit rebuild pending |
 | Subsystem | MT6797 A72 state, DA921x provider, DVFSP protected clock |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-25 America/New_York |
@@ -164,5 +164,13 @@ managed series marker is `0ec8eccb…` rather than the legacy parent marker
 while retaining every full integrity and file-identity gate. No source edit,
 package, kernel build, QEMU, hardware, or device action occurred. See the
 [marker rejection](results/buildbox-generation-attempt-6-parent-marker-rejected-20260825.txt).
+Attempt 7 reused that verified managed parent and passed ledger, binding,
+observer, eight-case source validation, exact patch scope, byte-identical
+replay, and strict style with zero findings. The fetched checksum manifest
+passes; corrected canonical patches `0374`--`0377` match the package
+byte-for-byte, the reciprocal Kconfig edge is absent, and all 136 profiles
+remain canonical subsequences. No kernel build retry, QEMU, retained-memory,
+hardware, or device action has occurred. See the [corrected generation
+receipt](results/buildbox-generation-attempt-7-20260825.txt).
 The ordered continuation is owned by the
 [Roadmap](../../docs/ROADMAP.md#7-bring-up-cpu8).
