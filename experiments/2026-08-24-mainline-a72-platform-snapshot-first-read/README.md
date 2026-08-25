@@ -62,6 +62,13 @@ non-certifying author and no synthetic sign-off, replays all four patches, and
 runs source and strict style validation. Patch generation performs no build,
 device access, retained-memory write, or hardware operation.
 
+Generation attempt 1 from signed commit `876a9522` stopped before producing a
+patch because the intended layout insertion anchor also matched two raw-record
+conditionals. The correction narrows that edit to the unique adjacent
+first-dmesg layout lines; it does not change the generated source or admitted
+runtime effects. No build, candidate, retained-RAM write, or device action
+occurred in the failed attempt.
+
 ## Safety assessment
 
 CPU8 and CPU9 remain closed by exact `maxcpus=8`. The observer performs only

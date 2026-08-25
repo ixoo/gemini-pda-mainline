@@ -79,12 +79,18 @@ config PSTORE_GEMINI_A72_PLATFORM_SNAPSHOT_LEDGER
     )
 
     ledger = root / "fs/pstore/gemini_protected_readback_ledger.c"
-    replace_once(
-        ledger,
-        "\tdefined(CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER) || \\\n",
-        "\tdefined(CONFIG_PSTORE_GEMINI_A72_PLATFORM_SNAPSHOT_LEDGER) || \\\n"
-        "\tdefined(CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER) || \\\n",
+    layout_anchor = (
+        "\tdefined(CONFIG_PSTORE_GEMINI_PROTECTED_CLOCK_FIRST_DMESG_CALL_QUALIFICATION) || \\\n"
+        "\tdefined(CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER) || \\\n"
+        "\tdefined(CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_PRECAPTURE_LEDGER) || \\\n"
     )
+    layout_replacement = (
+        "\tdefined(CONFIG_PSTORE_GEMINI_PROTECTED_CLOCK_FIRST_DMESG_CALL_QUALIFICATION) || \\\n"
+        "\tdefined(CONFIG_PSTORE_GEMINI_A72_PLATFORM_SNAPSHOT_LEDGER) || \\\n"
+        "\tdefined(CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER) || \\\n"
+        "\tdefined(CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_PRECAPTURE_LEDGER) || \\\n"
+    )
+    replace_once(ledger, layout_anchor, layout_replacement)
     records = dedent(r'''
 #ifdef CONFIG_PSTORE_GEMINI_A72_PLATFORM_SNAPSHOT_LEDGER
 static const char * const gemini_prb_records[] = {
