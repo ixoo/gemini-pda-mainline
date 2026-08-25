@@ -1,0 +1,17 @@
+experiment=2026-08-25-mainline-a72-platform-provider-snapshot-second-read
+phase=buildbox-patch-generation
+attempt=2
+repository_commit=cfb1295e6a7dd48444692c31dff66029ad8a28b7
+result=rejected-before-admission
+source_validation=ledger,observer,binding,tests-pass
+patch_scope_validation=pass
+patch_replay=pass
+failure=strict-checkpatch-four-continuation-alignment-checks-in-0368
+errors=0
+warnings=0
+checks=4
+affected_semantics=none
+patch_admitted=false
+kernel_build=false
+device_action=false
+next_action=shorten-private-helper-names-align-continuations-then-rerun

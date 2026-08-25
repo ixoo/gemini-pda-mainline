@@ -73,6 +73,16 @@ no device action occurred. The correction changes only those flagged line
 breaks. See
 [`results/generation-attempt-1-style-rejected.txt`](results/generation-attempt-1-style-rejected.txt).
 
+Buildbox generation attempt 2 from signed commit `cfb1295e` again passed every
+source phase, exact patch scope, and byte-identical replay. The first correction
+removed all seven line-end checks; strict checkpatch stopped on four remaining
+continuation-alignment checks in patch `0368`, again with zero errors or
+warnings. No patch was admitted, no kernel was built, and no device action
+occurred. The second correction only shortens two private helper names and
+aligns their declarations and calls; the observer order and effects remain
+unchanged. See
+[`results/generation-attempt-2-alignment-rejected.txt`](results/generation-attempt-2-alignment-rejected.txt).
+
 ## Safety assessment
 
 CPU8 and CPU9 remain closed by exact `maxcpus=8`. This definition adds only ten

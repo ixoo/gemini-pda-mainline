@@ -46,10 +46,10 @@ mt6797_a72_platform_provider_ops = {
 	.provider = mt6797_platform_provider_provider,
 };
 
-int
-mt6797_platform_provider_snapshot_capture(struct device *platform,
-	const struct mt6797_a72_platform_provider_observer_ops *ops,
-	void *context, struct mt6797_a72_platform_provider_snapshot *snapshot)
+int mt6797_a72_pp_capture(struct device *platform,
+			  const struct mt6797_a72_platform_provider_observer_ops *ops,
+			  void *context,
+			  struct mt6797_a72_platform_provider_snapshot *snapshot)
 {
 	int ret;
 
@@ -112,9 +112,8 @@ mt6797_a72_platform_provider_get_device(struct device *dev)
 	return &source->dev;
 }
 
-static void
-mt6797_a72_platform_provider_log(struct device *dev,
-	const struct mt6797_a72_platform_provider_snapshot *snapshot)
+static void mt6797_a72_pp_log(struct device *dev,
+			      const struct mt6797_a72_platform_provider_snapshot *snapshot)
 {
 	const struct mt6797_a72_platform_state *platform = &snapshot->platform;
 	const struct mt6797_a72_provider_snapshot *provider = &snapshot->provider;
@@ -163,13 +162,13 @@ static int mt6797_a72_platform_provider_probe(struct platform_device *pdev)
 		return dev_err_probe(dev, PTR_ERR(platform),
 				     "platform-state source unavailable\n");
 
-	ret = mt6797_platform_provider_snapshot_capture(platform,
-						       &mt6797_a72_platform_provider_ops,
-						       NULL, &snapshot);
+	ret = mt6797_a72_pp_capture(platform,
+				    &mt6797_a72_platform_provider_ops,
+				    NULL, &snapshot);
 	if (ret)
 		dev_err_probe(dev, ret, "platform/provider snapshot failed\n");
 	else
-		mt6797_a72_platform_provider_log(dev, &snapshot);
+		mt6797_a72_pp_log(dev, &snapshot);
 	put_device(platform);
 
 	return ret;

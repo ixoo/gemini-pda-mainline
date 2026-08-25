@@ -21,9 +21,9 @@ struct mt6797_a72_platform_provider_observer_ops {
 			struct mt6797_a72_provider_snapshot *snapshot);
 };
 
-int
-mt6797_platform_provider_snapshot_capture(struct device *platform,
-	const struct mt6797_a72_platform_provider_observer_ops *ops,
-	void *context, struct mt6797_a72_platform_provider_snapshot *snapshot);
+int mt6797_a72_pp_capture(struct device *platform,
+			  const struct mt6797_a72_platform_provider_observer_ops *ops,
+			  void *context,
+			  struct mt6797_a72_platform_provider_snapshot *snapshot);
 
 #endif /* __MT6797_A72_PLATFORM_PROVIDER_SNAPSHOT_OBSERVER_INTERNAL_H */
