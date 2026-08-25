@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-24-mainline-a72-platform-snapshot-first-read` |
-| Status | generated and admitted byte-for-byte; Buildbox compile pending |
+| Status | hardware-free Buildbox compile and focused KUnit runtime pass |
 | Subsystem | MT6797 A72 platform-state read-only snapshot |
 | Device variant | Gemini PDA, named project device |
 | Date | 2026-08-24 |
@@ -109,6 +109,26 @@ profiles. The exact receipt is in
 [`results/buildbox-generation-20260824.txt`](results/buildbox-generation-20260824.txt).
 No kernel build, candidate, retained-RAM write, or device action has occurred.
 
+The exact admitted commit `6d7af739caa324662799f4162f43a16ca93ef5dd`
+then compiled successfully on Buildbox as the isolated
+`a72-platform-snapshot-kunit` profile. The fetched package passes its relative
+checksum manifest, contains exactly the one intended KUnit-test configuration,
+links the platform snapshot boundary, and excludes the audited later writer
+symbols. The compile receipt is
+[`results/buildbox-kunit-compile-20260825.txt`](results/buildbox-kunit-compile-20260825.txt).
+
+QEMU executed exactly the `mt6797-a72-platform-snapshot` suite: all four
+success, before-checkpoint failure, snapshot/validity failure, and
+after-checkpoint failure cases passed with zero failures or skips. The runner
+uses no network, device tree, retained RAM, MMIO, physical I2C, or device
+access; the expected no-root-filesystem panic occurred only after the passing
+KTAP result. The classifier also rejects eight changed-release, exit, suite,
+case, plan, failure, summary, or terminal-boundary fixtures. The exact
+sanitized runtime receipt is
+[`results/kunit-qemu-pass-6d7af739-20260825.txt`](results/kunit-qemu-pass-6d7af739-20260825.txt).
+This closes the injected software boundary only; it is not physical-read or
+hardware-support evidence and is not a boot candidate.
+
 ## Safety assessment
 
 CPU8 and CPU9 remain closed by exact `maxcpus=8`. The observer performs only
@@ -118,9 +138,17 @@ clock read, secure call, DA921x transaction, regulator action, publication,
 owner mutation, CPU request, reboot, or power action.
 
 The eventual candidate must preserve the exact passed Stage-27 DT and all three
-bound backends, add only one observer node referencing the platform-state
-source, reproduce byte-identically, pass LK/container mutations, and use the
-guarded live-GPT `boot2` write/readback/shutdown workflow.
+bound backends, add only one observer node plus the necessary previously absent
+platform-state phandle reference, reproduce byte-identically, pass
+LK/container mutations, and use the guarded live-GPT `boot2`
+write/readback/shutdown workflow. The exact passed predecessor DTB is
+`d439ed8f4c226eda49f5bf652f16761ba3400bd0b80685bfc8f8da371d6ed9db`;
+the independently reproduced observer DTB is
+`3c6c54ff07dde1ee3ea234feb39a0ceef72101414f16679e3881a5461570f284`.
+Removing the observer and its sole phandle property recovers a byte-identical
+sorted semantic tree to the predecessor. Two independent assemblies and the
+artifact checksum manifest pass; the sanitized receipt is
+[`results/offline-dtb-validation-20260825.txt`](results/offline-dtb-validation-20260825.txt).
 
 ## Pre-boot decision map
 
@@ -138,9 +166,7 @@ container, deployment, and pre-armed runtime gate passes.
 
 ## Next
 
-Build the hardware-free `a72-platform-snapshot-kunit` profile on Buildbox and
-run its focused suite. Only after that passes, build the isolated
-`a72-platform-snapshot-candidate` profile on Buildbox, derive its DT from the
-exact passed BigiDVFS predecessor, and run the offline candidate gates. Do not
-change or reboot the currently healthy control boot until the new candidate is
-fully validated and ready for guarded deployment.
+Build the isolated `a72-platform-snapshot-candidate` profile on Buildbox,
+combine it only with the exact validated observer DT, and run the offline
+candidate gates. Do not change or reboot the currently healthy control boot
+until the new candidate is fully validated and ready for guarded deployment.

@@ -5234,12 +5234,17 @@ The next ordered work is:
    binding, injected tests, and the one-attempt decision map. Buildbox attempt
    6 passes every source, exact-scope, replay, and strict-style gate; fetched
    patches `0363`--`0366` are admitted byte-for-byte, and all 129 manifest
-   profiles retain the series invariant. **Selected next:** Buildbox-compile
-   and run the isolated hardware-free KUnit profile, then Buildbox-compile the
-   device candidate profile. Only after both pass may the candidate derive
-   from the exact BigiDVFS predecessor DT and enter offline container gates.
-   No kernel build, candidate construction, or device action has yet occurred
-   for this boundary.
+   profiles retain the series invariant. The exact admitted commit `6d7af739`
+   now also passes the Buildbox compile and isolated QEMU runtime for the sole
+   hardware-free platform-snapshot KUnit suite: four of four cases pass, none
+   fail or skip, and eight classifier mutations fail closed. There was no
+   device, MMIO, retained-RAM, physical-I2C, or network action. **Selected
+   next:** Buildbox-compile the device candidate profile, derive only its
+   observer DT node and required source phandle from the exact passed
+   BigiDVFS predecessor DT
+   `d439ed8f4c226eda49f5bf652f16761ba3400bd0b80685bfc8f8da371d6ed9db`,
+   then run the offline container gates. No candidate construction or device
+   action has yet occurred for this boundary.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
