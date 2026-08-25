@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-25-mainline-a72-platform-provider-protected-clock-third-read` |
-| Status | corrected patches admitted byte-for-byte; focused KUnit rebuild pending |
+| Status | isolated Buildbox compile and eight-case no-network QEMU suite pass; device candidate build pending |
 | Subsystem | MT6797 A72 state, DA921x provider, DVFSP protected clock |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-25 America/New_York |
@@ -169,8 +169,20 @@ observer, eight-case source validation, exact patch scope, byte-identical
 replay, and strict style with zero findings. The fetched checksum manifest
 passes; corrected canonical patches `0374`--`0377` match the package
 byte-for-byte, the reciprocal Kconfig edge is absent, and all 136 profiles
-remain canonical subsequences. No kernel build retry, QEMU, retained-memory,
-hardware, or device action has occurred. See the [corrected generation
-receipt](results/buildbox-generation-attempt-7-20260825.txt).
+remain canonical subsequences. Exact admitted commit `8c400054` then compiles
+the isolated KUnit profile on Buildbox as
+`7.1.3-gemini-a72-clock-third-kunit`; its fetched package and checksum manifest
+pass, the required composition symbols are present, physical writer symbols
+are absent, and the new observer emits no compiler warning. The sole
+no-network QEMU suite passes all eight cases with zero failures or skips,
+including terminal clock-error, after-checkpoint-error, and invalid-identity
+paths. No physical I2C, clock backend, MMIO, retained RAM, native VM build,
+hardware write, CPU request, or device action occurred. See the [corrected
+generation receipt](results/buildbox-generation-attempt-7-20260825.txt),
+[Buildbox compile receipt](results/buildbox-kunit-compile-20260825.txt), and
+[QEMU result](results/kunit-qemu-pass-20260825.txt). The next ordered action is
+to build the separate device profile from the published KUnit evidence, then
+derive and independently validate only its decision-bearing observer DT and
+boot container before one guarded `boot2` attempt.
 The ordered continuation is owned by the
 [Roadmap](../../docs/ROADMAP.md#7-bring-up-cpu8).

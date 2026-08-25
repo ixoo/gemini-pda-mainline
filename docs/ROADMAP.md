@@ -5412,10 +5412,16 @@ The next ordered work is:
    source, scope, replay, strict-style, checksum, and byte-identity gate. The
    reciprocal Kconfig edge is absent from corrected canonical patches
    `0374`--`0377`, and all 136 profiles remain canonical subsequences.
-   **Selected next:** sign and push the corrected admission, retry the same
-   eight-case Buildbox KUnit profile, and run only that suite in no-network
-   QEMU before considering the device profile. No build retry, QEMU, or device
-   action has occurred.
+   Exact corrected-admission commit `8c400054` now compiles the isolated
+   Buildbox profile as `7.1.3-gemini-a72-clock-third-kunit`; its fetched package
+   and checksum manifest pass, required composition symbols are present, and
+   physical writer symbols are absent. The sole no-network QEMU suite passes
+   all eight cases with zero failures or skips. No physical I2C, clock backend,
+   MMIO, retained RAM, native VM build, hardware write, CPU request, or device
+   action occurred. **Selected next:** publish this KUnit evidence, build the
+   separate device profile on Buildbox, and derive and independently validate
+   only its decision-bearing observer DT and boot container before one guarded
+   `boot2` attempt.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
