@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-24-mainline-a72-bigidvfs-backend-stage27-control` |
-| Status | `deployed` — exact full readback and shutdown passed; one boot pending |
+| Status | `completed` — exact live three-backend read-free serviceability pass |
 | Subsystem | MT6797 BigiDVFS secure-readback backend resource composition |
 | Device variant | Gemini PDA, named project device |
 | Date | 2026-08-24 |
@@ -100,3 +100,41 @@ wrote, synced, flushed, and matched the complete 16 MiB readback to
 It made no fresh partition backup and no retained-RAM write, removed its
 temporary readback, and ended with the requested clean shutdown confirmed by
 unreachability. See the [sanitized deployment receipt](results/deployment-20260824.txt).
+
+## Runtime observation and conclusion
+
+The collector was armed before physical selection. Attempt 1 observed two USB
+topology changes, resolved the exact Gemini interface as `en7`, and completed
+the netcat probe on its first try. Exact live identity was:
+
+- full installed candidate
+  `0b17da983293f68f227931c964021b43efb1cdd57b4d0cf4db3bd70312f6092a`;
+- kernel `7.1.3-gemini-a72-early`, boot ID
+  `34730097-51c4-4c93-ae0f-87e257c0d6bc`, and uptime 50.33 seconds;
+- CPUs possible/present `0-9`, online `0-7`, offline `8-9`, with one exact
+  `maxcpus=8` token;
+- one bound platform-state device, one bound clock backend, and one bound
+  BigiDVFS backend;
+- zero physical-observer devices; and
+- exact `okay` status for USB, T-PHY, I2C5, and keyboard.
+
+The runtime probe requested no platform snapshot, protected-clock read,
+BigiDVFS read, storage access, binding change, regulator or clock action,
+secure call, observer or owner registration, CPU admission, or reboot. Pstore
+exposed no file and no early marker; that absence is not used as negative
+evidence. The owner's boot report is corroborating only. Mainline was
+deliberately left running.
+
+Conclusion: **confirmed** for this exact revision and named device. The
+platform-state, clock, and BigiDVFS backends all bind cumulatively without
+regressing the Stage-27 serviceability baseline. This proves the complete
+read-free reader composition only, not a platform snapshot, protected-clock
+read, BigiDVFS SMC, register value, publication, CPU power transition, or
+CPU8/CPU9 admission. The exact payload is retired. Sanitized evidence is in
+the [runtime receipt](results/runtime-attempt-1-serviceable-20260824.txt).
+
+The predeclared bound branch now applies. Source audit rejects reusing the old
+full physical observer as the first read because it performs platform,
+DA921x-provider, and protected-clock reads before its first retained
+checkpoint. The first independently attributable read boundary is therefore
+the stable platform-state snapshot alone; later readers remain excluded.

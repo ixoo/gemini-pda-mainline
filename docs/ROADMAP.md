@@ -5214,10 +5214,20 @@ The next ordered work is:
    passed the write, flush, full 16 MiB readback, cleanup, and clean-shutdown
    gates without a fresh backup or retained-RAM write. The exact readback is
    `0b17da983293f68f227931c964021b43efb1cdd57b4d0cf4db3bd70312f6092a`.
-   **Selected next:** pre-arm one USB/netcat runtime collector, then have the
-   owner physically select `boot2` once. A bound pass closes all three
-   cumulative read-free reader probes and advances to an audit of the physical
-   observer/caller before any first read.
+   The one pre-armed runtime is now an exact live pass: the platform-state,
+   clock, and BigiDVFS backends all bind, the Stage-27 USB/T-PHY/I2C5/keyboard
+   state remains intact, CPUs 0--7 are online and 8--9 closed, and every
+   platform snapshot, protected-clock read, BigiDVFS SMC, observer,
+   publication, and CPU request is absent. Mainline remains running and the
+   artifact is retired. The physical-observer source audit finds that its old
+   full callback performs platform, DA921x-provider, and protected-clock reads
+   before the first retained checkpoint, so reusing it would not isolate the
+   first read. **Selected next:** define one candidate-only platform-snapshot
+   observer on this exact passed DT, with a retained checkpoint immediately
+   before the first SPM read and a second only after one stable two-sample
+   result. It must perform exactly one platform snapshot (26 read-only register
+   observations), no retry, and no DA921x, protected-clock, BigiDVFS,
+   publication, owner, or CPU action.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

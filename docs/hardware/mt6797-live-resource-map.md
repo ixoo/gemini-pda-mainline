@@ -253,6 +253,16 @@ agree. This is not evidence for retries, BigiDVFS, writes, resume/error
 recovery, or CPU8/CPU9 admission. See the
 [one-read runtime result](../../experiments/2026-08-23-mainline-protected-clock-first-dmesg-call/results/runtime-attempt-1-pass-20260823.txt).
 
+A later exact Stage-27 serviceability runtime now proves the complete
+read-free reader composition. The platform-state source, single-owner clock
+backend, and resource-free BigiDVFS backend all bound concurrently while USB,
+T-PHY, I2C5, keyboard, and CPU0--7 remained serviceable and CPU8/9 stayed
+closed. The BigiDVFS probe validated only its `smc` method and initialized
+software state; it acquired no register window or clock. No platform snapshot,
+protected-clock read, BigiDVFS SMC, clock enable, publication, or CPU request
+occurred. This is a probe-composition result, not evidence of B-cluster register
+state. See the [three-backend runtime result](../../experiments/2026-08-24-mainline-a72-bigidvfs-backend-stage27-control/results/runtime-attempt-1-serviceable-20260824.txt).
+
 The firmware/power audit separates the initial Cortex-A72-on sequence between
 Linux and retained secure firmware. Linux performs the external buck enable,
 temporary TOPRGU PWRAP reset, MP2 reset release, external-buck isolation
