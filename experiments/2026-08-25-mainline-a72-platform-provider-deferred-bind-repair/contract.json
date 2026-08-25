@@ -78,14 +78,38 @@
     "direct_state_compositor": false,
     "production_publisher": false
   },
+  "candidate": {
+    "repository_commit": "db62ca343b1e0a1a0f6ead4a042d826a2554a6f2",
+    "kernel_release": "7.1.3-gemini-a72-provider-ready",
+    "profile": "a72-platform-provider-ready-candidate",
+    "image_sha256": "fcb64615beb07caa2aa871ead4e3ce09954626ebd696cc5ee5d47ce6ef168d39",
+    "image_gzip_sha256": "83e807d0edd5315eb85eebd96b90df7b7a5388c57c3cc6aaf6fb185d46c81978",
+    "raw_sha256": "041896e2ddd37b4fc42756a71d3e3a200fde73315f6425e6623f928c2c76bd0e",
+    "raw_size": 6909952,
+    "padded_sha256": "f55bb272de24a62a0e4055624e8eb0ef35bc53432fa130463c867c43c059732e",
+    "padded_size": 16777216,
+    "lk_gates": "32-of-32",
+    "container_mutations_rejected": 6,
+    "runtime_mutations_rejected": 22,
+    "recovery_mutations_rejected": 15
+  },
+  "predeployment": {
+    "known_good_os": "Gemian-3.18.41+",
+    "boot2_predecessor_sha256": "ff902d12b95893872990ebf813f24ca298ca76c4f86d4650f3b696cbdc00d79f",
+    "retained_pair": "exact-before-provider-only",
+    "retained_ram_write": false,
+    "device_partition_write": false
+  },
   "current_status": {
     "definition": "frozen",
     "patch_generation": "pass",
     "patch_admission": "pass",
     "kunit_build": "pass",
     "kunit_runtime": "pass",
-    "candidate_build": "pending",
-    "boot_candidate": false,
-    "device_action": false
+    "candidate_build": "pass",
+    "candidate_validation": "pass",
+    "runtime_and_recovery_tools": "prearmed-and-mutation-tested",
+    "boot_candidate": true,
+    "device_action": "read-only-preflight-only"
   }
 }

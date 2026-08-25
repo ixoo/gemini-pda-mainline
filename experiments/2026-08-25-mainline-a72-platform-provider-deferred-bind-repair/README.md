@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-25-mainline-a72-platform-provider-deferred-bind-repair` |
-| Status | hardware-free compile and seven-case KUnit pass; candidate pending |
+| Status | exact offline candidate and evidence paths pass; deployment pending |
 | Subsystem | MT6797 A72 platform/provider snapshot dependency ordering |
 | Device variant | Gemini PDA, named project device |
 | Date | 2026-08-25 |
@@ -69,6 +69,18 @@ CPU request.
   provider-not-ready with zero injected effects; eight classifier mutations
   fail closed. No physical I2C, MMIO, retained RAM, device, or native VM action
   occurred.
+- Exact clean commit `db62ca34` also compiles the isolated device profile on
+  Buildbox as `7.1.3-gemini-a72-provider-ready`. Its fetched package and
+  manifest pass with `Image.gz` `83e807d0...` and no new observer warning.
+- The exact predecessor DT `ee8baf00...` derives `923575e4...` by adding only
+  provider phandle `0x30` and the observer's `mediatek,provider` reference.
+  Removing both properties recovers the byte-identical sorted predecessor.
+- Two independent Android-v0 assemblies and padding paths produce raw
+  `041896e2...` and exact 16 MiB `boot2` `f55bb272...`. All 32 LK gates pass;
+  six container, 22 runtime, and 15 recovery mutations fail closed.
+- Read-only Gemian preflight finds the exact predecessor `before-provider`
+  record followed by an exact-empty record while `boot2` remains the failed
+  predecessor `ff902d12...`. No retained-memory or partition write occurred.
 - Build backend: Buildbox only. A native VM kernel build is prohibited unless
   the owner explicitly requests that specific build.
 
@@ -85,8 +97,9 @@ only DT lookup, device lookup, reference management, and bound-state testing;
 it does not access I2C, MMIO, retained RAM, storage, clocks, regulators, secure
 firmware, or CPUs.
 
-No unchanged predecessor retry is allowed. A physical attempt is eligible only
-after generated patch admission, isolated Buildbox compile, no-network KUnit,
+No unchanged predecessor retry is allowed. The repaired physical attempt is
+eligible only after generated patch admission, isolated Buildbox compile,
+no-network KUnit,
 reversible DT validation, deterministic Android-v0 assembly, live-GPT guarded
 `boot2` write/readback/shutdown, and a pre-armed result classifier.
 
@@ -103,7 +116,10 @@ reversible DT validation, deterministic Android-v0 assembly, live-GPT guarded
 
 ## Next
 
-Build the isolated device profile on Buildbox, derive only the provider phandle
-and observer reference from the exact predecessor DT, and require byte-exact
-reverse normalization before constructing or selecting a candidate. No device
-action is authorized by the hardware-free pass alone.
+Publish the exact candidate identities and guarded tools, then install only
+`f55bb272...` to live-GPT-resolved inactive `boot2`, require its full-partition
+readback, and shut down. Before the owner selects `boot2`, pre-arm both the
+USB/netcat live classifier and changed-ID Gemian recovery path. One boot can
+then distinguish provider-ready completion, continued deferral, a bounded
+provider-read failure, or a later serviceability failure without an unchanged
+retry.

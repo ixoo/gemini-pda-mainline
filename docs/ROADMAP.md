@@ -5326,10 +5326,20 @@ The next ordered work is:
    sole no-network QEMU suite passes all seven cases with zero failures or
    skips. The not-ready case proves zero platform, checkpoint, and provider
    effects; no physical I2C, MMIO, retained RAM, native VM, or device action
-   occurred. **Selected next:** Buildbox-compile the isolated device profile,
-   derive only the provider phandle and observer reference from the exact
-   predecessor DT, and pass reversible-DT and container gates before any
-   `boot2` write.
+   occurred. The isolated device profile now compiles exact clean commit
+   `db62ca34` on Buildbox as `7.1.3-gemini-a72-provider-ready`; its fetched
+   package and checksums pass. The candidate DT adds only provider phandle
+   `0x30` and the observer reference, derives as `923575e4`, and reverses to the
+   byte-identical sorted predecessor. Two raw assemblies, two padding paths,
+   all 32 LK gates, six container mutations, 22 live-classifier mutations, and
+   15 recovery mutations pass. Raw candidate `041896e2` pads to exact 16 MiB
+   `f55bb272de24a62a0e4055624e8eb0ef35bc53432fa130463c867c43c059732e`.
+   Read-only Gemian preflight confirms the current failed predecessor remains
+   on `boot2` and the retained pair is exactly `before-provider` then empty;
+   no device write occurred. **Selected next:** publish these exact identities
+   and guarded tools, install only `f55bb272...` to live-GPT-resolved inactive
+   `boot2` with full readback and clean shutdown, then pre-arm one live and one
+   changed-ID recovery classifier before the single owner-selected boot.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
