@@ -83,6 +83,15 @@ aligns their declarations and calls; the observer order and effects remain
 unchanged. See
 [`results/generation-attempt-2-alignment-rejected.txt`](results/generation-attempt-2-alignment-rejected.txt).
 
+Buildbox generation attempt 3 from signed commit `d1e0f816` made patch `0368`
+strict-style clean and reached patch `0370`. Every source phase, exact patch
+scope, and byte-identical replay passed; strict checkpatch stopped only on two
+test-helper continuation-alignment checks, with zero errors or warnings. No
+patch was admitted, no kernel was built, and no device action occurred. The
+third correction shortens only those two private KUnit helper names and aligns
+their declarations. See
+[`results/generation-attempt-3-test-alignment-rejected.txt`](results/generation-attempt-3-test-alignment-rejected.txt).
+
 ## Safety assessment
 
 CPU8 and CPU9 remain closed by exact `maxcpus=8`. This definition adds only ten

@@ -40,8 +40,8 @@ mt6797_platform_provider_test_platform(void *context, struct device *dev,
 	return state->platform_ret;
 }
 
-static bool mt6797_platform_provider_test_checkpoint(void *context,
-						       unsigned int checkpoint)
+static bool mt6797_pp_test_checkpoint(void *context,
+				      unsigned int checkpoint)
 {
 	struct mt6797_a72_platform_provider_test_state *state = context;
 
@@ -66,13 +66,12 @@ mt6797_platform_provider_test_provider(void *context,
 
 static const struct mt6797_a72_platform_provider_observer_ops test_ops = {
 	.platform = mt6797_platform_provider_test_platform,
-	.checkpoint = mt6797_platform_provider_test_checkpoint,
+	.checkpoint = mt6797_pp_test_checkpoint,
 	.provider = mt6797_platform_provider_test_provider,
 };
 
-static void
-mt6797_platform_provider_expect_zero(struct kunit *test,
-	const struct mt6797_a72_platform_provider_snapshot *snapshot)
+static void mt6797_pp_expect_zero(struct kunit *test,
+				  const struct mt6797_a72_platform_provider_snapshot *snapshot)
 {
 	struct mt6797_a72_platform_provider_snapshot zero = { };
 
@@ -130,7 +129,7 @@ static void mt6797_platform_provider_platform_error_test(struct kunit *test)
 	KUNIT_EXPECT_EQ(test, state.platform_calls, 1U);
 	KUNIT_EXPECT_EQ(test, state.provider_calls, 0U);
 	KUNIT_EXPECT_EQ(test, state.event_count, 1U);
-	mt6797_platform_provider_expect_zero(test, &snapshot);
+	mt6797_pp_expect_zero(test, &snapshot);
 }
 
 static void mt6797_platform_provider_platform_invalid_test(struct kunit *test)
@@ -146,7 +145,7 @@ static void mt6797_platform_provider_platform_invalid_test(struct kunit *test)
 	KUNIT_EXPECT_EQ(test, ret, -ENODATA);
 	KUNIT_EXPECT_EQ(test, state.provider_calls, 0U);
 	KUNIT_EXPECT_EQ(test, state.event_count, 1U);
-	mt6797_platform_provider_expect_zero(test, &snapshot);
+	mt6797_pp_expect_zero(test, &snapshot);
 }
 
 static void mt6797_platform_provider_before_failure_test(struct kunit *test)
@@ -163,7 +162,7 @@ static void mt6797_platform_provider_before_failure_test(struct kunit *test)
 	KUNIT_EXPECT_EQ(test, state.provider_calls, 0U);
 	KUNIT_ASSERT_EQ(test, state.event_count, 2U);
 	KUNIT_EXPECT_EQ(test, state.events[1], MT6797_PLATFORM_PROVIDER_BEFORE);
-	mt6797_platform_provider_expect_zero(test, &snapshot);
+	mt6797_pp_expect_zero(test, &snapshot);
 }
 
 static void mt6797_platform_provider_provider_failure_test(struct kunit *test)
@@ -179,14 +178,14 @@ static void mt6797_platform_provider_provider_failure_test(struct kunit *test)
 	KUNIT_EXPECT_EQ(test, ret, -EIO);
 	KUNIT_EXPECT_EQ(test, state.provider_calls, 1U);
 	KUNIT_EXPECT_EQ(test, state.event_count, 3U);
-	mt6797_platform_provider_expect_zero(test, &snapshot);
+	mt6797_pp_expect_zero(test, &snapshot);
 
 	state = mt6797_platform_provider_success_state();
 	state.provider_valid = false;
 	ret = mt6797_a72_pp_capture(&platform, &test_ops, &state, &snapshot);
 	KUNIT_EXPECT_EQ(test, ret, -ENODATA);
 	KUNIT_EXPECT_EQ(test, state.provider_calls, 1U);
-	mt6797_platform_provider_expect_zero(test, &snapshot);
+	mt6797_pp_expect_zero(test, &snapshot);
 }
 
 static void mt6797_platform_provider_after_failure_test(struct kunit *test)
@@ -202,7 +201,7 @@ static void mt6797_platform_provider_after_failure_test(struct kunit *test)
 	KUNIT_EXPECT_EQ(test, ret, -EIO);
 	KUNIT_EXPECT_EQ(test, state.provider_calls, 1U);
 	KUNIT_EXPECT_EQ(test, state.event_count, 4U);
-	mt6797_platform_provider_expect_zero(test, &snapshot);
+	mt6797_pp_expect_zero(test, &snapshot);
 }
 
 static struct kunit_case mt6797_a72_platform_provider_cases[] = {

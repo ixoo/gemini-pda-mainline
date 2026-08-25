@@ -1,0 +1,17 @@
+experiment=2026-08-25-mainline-a72-platform-provider-snapshot-second-read
+phase=buildbox-patch-generation
+attempt=3
+repository_commit=d1e0f81695036c5e7a6835bf375448ec3a289144
+result=rejected-before-admission
+source_validation=ledger,observer,binding,tests-pass
+patch_scope_validation=pass
+patch_replay=pass
+failure=strict-checkpatch-two-test-helper-continuation-alignment-checks-in-0370
+errors=0
+warnings=0
+checks=2
+affected_semantics=none
+patch_admitted=false
+kernel_build=false
+device_action=false
+next_action=shorten-private-kunit-helper-names-align-continuations-then-rerun
