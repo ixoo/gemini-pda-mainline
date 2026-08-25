@@ -103,10 +103,14 @@ static const char * const gemini_prb_records[] = {
 };
 #elif defined(CONFIG_PSTORE_GEMINI_A72_EARLY_INITCALL_LEDGER)
 ''').lstrip("\n")
+    records_anchor = (
+        "static bool gemini_prb_armed;\n\n"
+        "#ifdef CONFIG_PSTORE_GEMINI_A72_EARLY_INITCALL_LEDGER\n"
+    )
     replace_once(
         ledger,
-        "#ifdef CONFIG_PSTORE_GEMINI_A72_EARLY_INITCALL_LEDGER\n",
-        records,
+        records_anchor,
+        "static bool gemini_prb_armed;\n\n" + records,
     )
     raw_anchor = (
         "#if defined(CONFIG_PSTORE_GEMINI_A72_EARLY_INITCALL_LEDGER) || \\\n"

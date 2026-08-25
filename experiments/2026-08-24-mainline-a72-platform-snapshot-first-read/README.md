@@ -69,6 +69,13 @@ first-dmesg layout lines; it does not change the generated source or admitted
 runtime effects. No build, candidate, retained-RAM write, or device action
 occurred in the failed attempt.
 
+Generation attempt 2 from signed commit `2abfe96a` passed that layout edit and
+then stopped before patch creation because the early-init mode begins both the
+record table and its execution section. The second correction anchors the
+insertion to the unique `gemini_prb_armed`/record-table adjacency. It likewise
+changes only generator attribution, not the intended generated source or
+runtime effects; no build, candidate, or device action occurred.
+
 ## Safety assessment
 
 CPU8 and CPU9 remain closed by exact `maxcpus=8`. The observer performs only
