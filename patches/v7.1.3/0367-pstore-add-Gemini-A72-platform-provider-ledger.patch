@@ -1,0 +1,107 @@
+From 115c8e65c1f154926c9656a4fcac8967560fa22d Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 25 Aug 2026 01:11:00 +0000
+Subject: [PATCH 1/4] pstore: add Gemini A72 platform/provider ledger
+
+Bracket only the DA921x provider snapshot after a passed platform read with exact first-dmesg records, signature-last commit, full readback, two-write ceiling, and no clear or retry.
+---
+ fs/pstore/Kconfig                            | 28 +++++++++++++++++++-
+ fs/pstore/gemini_protected_readback_ledger.c | 18 ++++++++++---
+ 2 files changed, 42 insertions(+), 4 deletions(-)
+
+diff --git a/fs/pstore/Kconfig b/fs/pstore/Kconfig
+index 937ac01..cfe81ca 100644
+--- a/fs/pstore/Kconfig
++++ b/fs/pstore/Kconfig
+@@ -265,6 +265,32 @@ config PSTORE_GEMINI_PROTECTED_CLOCK_FIRST_DMESG_CALL_QUALIFICATION
+ 	  call, owner registration, CPU request, storage, reset, or power action.
+ 	  If unsure, say N.
+ 
++config PSTORE_GEMINI_A72_PLATFORM_PROVIDER_SNAPSHOT_LEDGER
++	bool "Gemini A72 platform/provider-snapshot retained ledger"
++	depends on PSTORE_GEMINI_PROTECTED_READBACK_LEDGER=y
++	depends on MTK_MT6797_A72_PLATFORM_PROVIDER_SNAPSHOT_OBSERVER=y
++	depends on !PSTORE_GEMINI_A72_PLATFORM_SNAPSHOT_LEDGER
++	depends on !PSTORE_GEMINI_A72_EARLY_INITCALL_LEDGER
++	depends on !PSTORE_GEMINI_A72_GLOBAL_INITCALL_LEDGER
++	depends on !PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER
++	depends on !PSTORE_GEMINI_A72_PHYSICAL_SOURCE_PRECAPTURE_LEDGER
++	depends on !PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_CONTROL
++	depends on !PSTORE_GEMINI_PROTECTED_READBACK_PROBE_GATE_LEDGER
++	depends on !PSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER
++	depends on !PSTORE_GEMINI_PROTECTED_READBACK_RAW_ENTRY_LEDGER
++	depends on !PSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION
++	depends on !PSTORE_GEMINI_CLOCK_BACKEND_FIRST_DMESG_ENTRY_QUALIFICATION
++	depends on !PSTORE_GEMINI_PROTECTED_CLOCK_FIRST_DMESG_CALL_QUALIFICATION
++	default n
++	help
++	  Give the candidate-only platform/provider observer one retained record
++	  immediately before its provider snapshot and one only after one valid
++	  two-sample provider result. Require both raw headers to be all ones.
++
++	  Reuse the qualified signature-last, full-readback, two-write, no-clear,
++	  and no-retry protocol. This mode adds no storage, register-data write,
++	  clock, BigiDVFS, owner, publisher, or CPU action. If unsure, say N.
++
+ config PSTORE_GEMINI_A72_PLATFORM_SNAPSHOT_LEDGER
+ 	bool "Gemini A72 platform-snapshot retained ledger"
+ 	depends on PSTORE_GEMINI_PROTECTED_READBACK_LEDGER=y
+@@ -393,7 +419,7 @@ config PSTORE_GEMINI_PROTECTED_READBACK_LEDGER
+ 	bool "Gemini protected-readback retained call ledger"
+ 	depends on PSTORE_RAM=y
+ 	depends on ARM64 && ARCH_MEDIATEK && OF
+-	depends on MTK_MT6797_PROTECTED_READBACK_OBSERVER=y || MTK_MT6797_A72_PLATFORM_SNAPSHOT_OBSERVER=y || MTK_MT6797_A72_PHYSICAL_SOURCE_OBSERVER=y || MTK_MT6797_DVFSP_CLOCK_BACKEND=y || PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_CONTROL=y
++	depends on MTK_MT6797_PROTECTED_READBACK_OBSERVER=y || MTK_MT6797_A72_PLATFORM_SNAPSHOT_OBSERVER=y || MTK_MT6797_A72_PLATFORM_PROVIDER_SNAPSHOT_OBSERVER=y || MTK_MT6797_A72_PHYSICAL_SOURCE_OBSERVER=y || MTK_MT6797_DVFSP_CLOCK_BACKEND=y || PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_CONTROL=y
+ 	depends on !PSTORE_GEMINI_PRE_RAMOOPS_LEDGER
+ 	depends on !PSTORE_GEMINI_ARM64_ENTRY_LEDGER
+ 	default n
+diff --git a/fs/pstore/gemini_protected_readback_ledger.c b/fs/pstore/gemini_protected_readback_ledger.c
+index 888aebf..f12485e 100644
+--- a/fs/pstore/gemini_protected_readback_ledger.c
++++ b/fs/pstore/gemini_protected_readback_ledger.c
+@@ -17,6 +17,7 @@
+ #if defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_FIRST_DMESG_WRITE_QUALIFICATION) || \
+ 	defined(CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_FIRST_DMESG_ENTRY_QUALIFICATION) || \
+ 	defined(CONFIG_PSTORE_GEMINI_PROTECTED_CLOCK_FIRST_DMESG_CALL_QUALIFICATION) || \
++	defined(CONFIG_PSTORE_GEMINI_A72_PLATFORM_PROVIDER_SNAPSHOT_LEDGER) || \
+ 	defined(CONFIG_PSTORE_GEMINI_A72_PLATFORM_SNAPSHOT_LEDGER) || \
+ 	defined(CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_LEDGER) || \
+ 	defined(CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_PRECAPTURE_LEDGER) || \
+@@ -148,7 +149,16 @@ static void gemini_prb_capture_map_control(void __iomem *ledger)
+ 
+ static bool gemini_prb_armed;
+ 
+-#ifdef CONFIG_PSTORE_GEMINI_A72_PLATFORM_SNAPSHOT_LEDGER
++#ifdef CONFIG_PSTORE_GEMINI_A72_PLATFORM_PROVIDER_SNAPSHOT_LEDGER
++static const char * const gemini_prb_records[] = {
++	"====0.000000-D\n"
++	"GEMINI_A72_PLATFORM_PROVIDER_SNAPSHOT_V1 token=GAPP-20260825-A "
++	"checkpoint=before-provider slot=1 crc32=0150f9c7\n",
++	"====0.000000-D\n"
++	"GEMINI_A72_PLATFORM_PROVIDER_SNAPSHOT_V1 token=GAPP-20260825-A "
++	"checkpoint=after-provider slot=2 crc32=4fffb31e\n",
++};
++#elif defined(CONFIG_PSTORE_GEMINI_A72_PLATFORM_SNAPSHOT_LEDGER)
+ static const char * const gemini_prb_records[] = {
+ 	"====0.000000-D\n"
+ 	"GEMINI_A72_PLATFORM_SNAPSHOT_V1 token=GAPS-20260824-A "
+@@ -270,7 +280,8 @@ static bool gemini_prb_slot_empty(void __iomem *slot)
+ 
+ static bool gemini_prb_slot_available(void __iomem *slot)
+ {
+-#if defined(CONFIG_PSTORE_GEMINI_A72_PLATFORM_SNAPSHOT_LEDGER) || \
++#if defined(CONFIG_PSTORE_GEMINI_A72_PLATFORM_PROVIDER_SNAPSHOT_LEDGER) || \
++	defined(CONFIG_PSTORE_GEMINI_A72_PLATFORM_SNAPSHOT_LEDGER) || \
+ 	defined(CONFIG_PSTORE_GEMINI_A72_EARLY_INITCALL_LEDGER) || \
+ 	defined(CONFIG_PSTORE_GEMINI_A72_GLOBAL_INITCALL_LEDGER) || \
+ 	defined(CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_PRECAPTURE_LEDGER) || \
+@@ -320,7 +331,8 @@ static bool gemini_prb_write(void __iomem *slot, const char *record)
+ 	writel(len, (u8 __iomem *)slot + 4);
+ 	wmb(); /* Commit start before size. */
+ 	writel(len, (u8 __iomem *)slot + 8);
+-#if defined(CONFIG_PSTORE_GEMINI_A72_PLATFORM_SNAPSHOT_LEDGER) || \
++#if defined(CONFIG_PSTORE_GEMINI_A72_PLATFORM_PROVIDER_SNAPSHOT_LEDGER) || \
++	defined(CONFIG_PSTORE_GEMINI_A72_PLATFORM_SNAPSHOT_LEDGER) || \
+ 	defined(CONFIG_PSTORE_GEMINI_A72_EARLY_INITCALL_LEDGER) || \
+ 	defined(CONFIG_PSTORE_GEMINI_A72_GLOBAL_INITCALL_LEDGER) || \
+ 	defined(CONFIG_PSTORE_GEMINI_A72_PHYSICAL_SOURCE_PRECAPTURE_LEDGER) || \

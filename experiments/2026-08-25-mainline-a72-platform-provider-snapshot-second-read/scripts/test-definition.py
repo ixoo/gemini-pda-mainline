@@ -41,8 +41,8 @@ def main() -> None:
         (
             "patch-name",
             "contract.json",
-            "0370-soc-mediatek-test-A72-platform-provider-snapshot-observer.patch",
-            "0371-soc-mediatek-test-A72-platform-provider-snapshot-observer.patch",
+            '    "0370-soc-mediatek-test-A72-platform-provider-snapshot-observer.patch"\n  ],',
+            '    "0371-soc-mediatek-test-A72-platform-provider-snapshot-observer.patch"\n  ],',
         ),
         (
             "kunit-case",

@@ -29,9 +29,11 @@ the loop. Positive identity-gated observations are unaffected.
   and after it. The frozen boundary is 26 platform observations plus ten fixed
   read-only I2C transfers, with protected clocks, BigiDVFS, provider actions,
   publication, owner mutation, and CPU requests closed. Exact post-`0366`
-  Buildbox source/dependency hashes and planned patches `0367`--`0370` are
-  pinned; the definition validator rejects eight mutations. Patch generation
-  is next.
+  Buildbox source/dependency hashes and patches `0367`--`0370` are pinned; the
+  definition validator rejects eight mutations. Buildbox generation, replay,
+  strict style, fetched checksums, byte-identical admission, and the 131-profile
+  series invariant pass. Isolated KUnit is next; no build or device action has
+  occurred.
 - [2026-08-24 A72 platform snapshot as the first physical read](2026-08-24-mainline-a72-platform-snapshot-first-read/README.md)
   — freezes the first decision-bearing read after the passed Stage-27
   platform/clock/BigiDVFS control: one stable two-sample platform-state

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-25-mainline-a72-platform-provider-snapshot-second-read` |
-| Status | definition frozen; patch generation pending |
+| Status | patches generated and admitted byte-for-byte; KUnit build pending |
 | Subsystem | MT6797 A72 platform state and DA921x read-only provider snapshot |
 | Device variant | Gemini PDA, named project device |
 | Date | 2026-08-25 |
@@ -92,6 +92,16 @@ third correction shortens only those two private KUnit helper names and aligns
 their declarations. See
 [`results/generation-attempt-3-test-alignment-rejected.txt`](results/generation-attempt-3-test-alignment-rejected.txt).
 
+Generation attempt 4 from signed commit `170f3732` passes every source phase,
+exact patch inventory and scope, byte-identical replay, injected-test structure,
+and strict checkpatch with zero errors, warnings, or checks for all four
+patches. The fetched package's full checksum manifest passes. Canonical patches
+`0367`--`0370` match the fetched files byte-for-byte, and the canonical-series
+invariant passes across all 131 profiles after adding isolated KUnit and device
+profiles. See
+[`results/buildbox-generation-20260825.txt`](results/buildbox-generation-20260825.txt).
+No kernel build, boot candidate, retained-RAM write, or device action occurred.
+
 ## Safety assessment
 
 CPU8 and CPU9 remain closed by exact `maxcpus=8`. This definition adds only ten
@@ -101,11 +111,9 @@ register-data write, clock operation, secure call, provider action, regulator
 action, reset, reboot, power transition, publication, owner mutation, or CPU
 request.
 
-This definition is not yet a patch, build, boot candidate, device action, or
-hardware result. Patch generation must first reproduce the exact prepared
-source, pass strict scope/replay/style gates, and preserve every manifest
-series invariant. Buildbox KUnit must then prove the six success/failure
-boundaries before any device-profile build is considered.
+The exact patches are now admitted, but this is not yet a kernel build, boot
+candidate, device action, or hardware result. Buildbox KUnit must prove the six
+success/failure boundaries before the isolated device profile is built.
 
 ## Pre-boot decision map
 
@@ -123,7 +131,7 @@ container, deployment, and pre-armed runtime gate passes.
 
 ## Next
 
-Generate the four planned patches on Buildbox from one signed, pushed, clean
-commit. Admit only byte-identical fetched patches after exact replay and strict
-style validation, then add isolated KUnit and device profiles without changing
-the default profile.
+Commit and push the exact admitted series and isolated profiles, then build the
+hardware-free `a72-platform-provider-snapshot-kunit` profile on Buildbox. Run
+only its focused six-case suite with no network. Build the device profile only
+after that proof passes; do not touch the currently running device yet.

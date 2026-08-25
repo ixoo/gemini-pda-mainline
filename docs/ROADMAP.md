@@ -5272,9 +5272,14 @@ The next ordered work is:
    definition gate. Its admitted runtime ceiling is 26 platform observations
    plus ten fixed read-only I2C transfers; protected-clock, BigiDVFS, provider
    actions, publication, owner mutation, and CPU requests remain closed.
-   **Selected next:** generate and strictly validate the four patches on
-   Buildbox from the signed clean definition commit, then admit their exact
-   fetched bytes and run isolated KUnit before considering a device profile.
+   Buildbox attempt 4 from signed commit `170f3732` passes every source,
+   exact-scope, replay, injected-test, and strict-style gate. The fetched
+   checksum manifest passes; canonical patches `0367`--`0370` are byte-for-byte
+   identical, and isolated KUnit and device profiles preserve the canonical
+   subsequence invariant across all 131 profiles. No kernel build, candidate,
+   retained-RAM write, or device action has occurred. **Selected next:** build
+   and run only the six-case hardware-free KUnit profile on Buildbox. Consider
+   the device profile only after that proof passes.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
