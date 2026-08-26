@@ -23,6 +23,12 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-27 MT6797 A72 serialized platform-effect owner](2026-08-27-mainline-a72-platform-effect-owner/README.md)
+  — implements the next default-off owner for attempt-bound P27 acquire and
+  inverse, external-isolation clear, and post-online MP2 DCM under the existing
+  platform-state resource mutex. Exact patch generation and hardware-free
+  Buildbox/QEMU proof are pending; there is no production caller or device
+  action.
 - [2026-08-26 Gemini retained transition ledger](2026-08-26-mainline-gemini-transition-ledger/README.md)
   — implements the selected compact, one-zone, two-copy retained last-stage
   owner. Canonical patches `0388`--`0389` pass exact-source generation, strict

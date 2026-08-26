@@ -1,0 +1,9 @@
+# Hardware-free coverage for the serialized MT6797 A72 platform-effect owner.
+# The focused suite injects every resource operation; the production APIs have
+# no caller, so no SPM, PWRAP, MCUCFG, watchdog, retained RAM, SMC, or CPU is
+# touched.
+CONFIG_KUNIT=y
+CONFIG_MTK_MT6797_A72_PLATFORM_STATE=y
+CONFIG_MTK_MT6797_A72_PLATFORM_EFFECTS=y
+CONFIG_MTK_MT6797_A72_PLATFORM_EFFECTS_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-a72-platform-effect-kunit"

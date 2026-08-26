@@ -5646,12 +5646,14 @@ The next ordered work is:
    zero failures or skips. The one-zone, alternating-copy owner remains
    default-off with zero physical backends, production callers, retained-RAM
    writes, CPU requests, device actions, or boot candidates. **Selected next:**
-   implement the injected serialized platform-effect owner and binder that
-   connects the proven one-shot executor, 15-second watchdog takeover, and
-   retained ledger while preserving the executor's rollback boundary. Prove
-   the owner and complete binder with injected tests and no-network QEMU before
-   adding the SRAM-LDO and CPU lifecycle bridges. Do not assemble or write a
-   device candidate before that hardware-free proof passes.
+   implement the [serialized platform-effect owner](../experiments/2026-08-27-mainline-a72-platform-effect-owner/README.md)
+   for attempt-bound P27 acquire/release, isolation clear, and post-online DCM
+   under the existing platform-state resource mutex. Prove that owner with
+   injected tests and no-network QEMU. Then add the BigiDVFS SRAM-LDO owner,
+   the PSCI/generic-hotplug lifecycle bridge, and finally the complete binder
+   around the proven executor, watchdog, and retained ledger. Do not assemble
+   or write a device candidate before all hardware-free owner and binder proofs
+   pass.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
