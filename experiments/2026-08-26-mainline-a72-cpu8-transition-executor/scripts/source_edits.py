@@ -98,6 +98,9 @@ INTERNAL_HEADER = dedent("""\
     \tatomic_t consumed;
     };
 
+    #define MT6797_A72_TRANSITION_CONTROLLER_INIT \\
+    \t{ .consumed = ATOMIC_INIT(0) }
+
     struct mt6797_a72_transition_request {
     \tunsigned int cpu;
     \tbool token_exact;
@@ -148,7 +151,6 @@ INTERNAL_HEADER = dedent("""\
     \tint (*dcm_update)(void *context);
     };
 
-    void mt6797_a72_transition_controller_init(struct mt6797_a72_transition_controller *controller);
     int mt6797_a72_transition_run(struct mt6797_a72_transition_controller *controller,
     \t\t\t      const struct mt6797_a72_transition_ops *ops,
     \t\t\t      void *context,
@@ -239,7 +241,7 @@ CORE_SOURCE = dedent("""\
     }
 
     static int mt6797_a72_owner_fault(struct mt6797_a72_transition_result *result,
-    \t\t\t\t   u32 unknown_mask)
+    \t\t\t\t  u32 unknown_mask)
     {
     \tresult->stage_errno = -EPROTO;
     \tresult->terminal = MT6797_A72_TRANSITION_ROLLBACK_FAULT_PREISO;
@@ -259,13 +261,6 @@ CORE_SOURCE = dedent("""\
     \tresult->terminal = MT6797_A72_TRANSITION_FAULT_RETAIN_POSTISO;
     \tmt6797_a72_transition_set_retained(result);
     \treturn stage_errno;
-    }
-
-    void
-    mt6797_a72_transition_controller_init(struct mt6797_a72_transition_controller *controller)
-    {
-    \tif (controller)
-    \t\tatomic_set(&controller->consumed, 0);
     }
 
     int
@@ -595,9 +590,9 @@ TEST_SOURCE = dedent("""\
     \t\t\t    const struct mt6797_a72_transition_request *request,
     \t\t\t    struct mt6797_a72_transition_result *result)
     {
-    \tstruct mt6797_a72_transition_controller controller;
+    \tstruct mt6797_a72_transition_controller controller =
+    \t\tMT6797_A72_TRANSITION_CONTROLLER_INIT;
 
-    \tmt6797_a72_transition_controller_init(&controller);
     \treturn mt6797_a72_transition_run(&controller, &mt6797_test_ops,
     \t\t\t\t  state, request, result);
     }
@@ -691,13 +686,13 @@ TEST_SOURCE = dedent("""\
     static void mt6797_transition_missing_op_test(struct kunit *test)
     {
     \tstruct mt6797_a72_transition_request request = mt6797_test_request();
-    \tstruct mt6797_a72_transition_controller controller;
+    \tstruct mt6797_a72_transition_controller controller =
+    \t\tMT6797_A72_TRANSITION_CONTROLLER_INIT;
     \tstruct mt6797_transition_test_state state = { };
     \tstruct mt6797_a72_transition_result result;
     \tstruct mt6797_a72_transition_ops ops = mt6797_test_ops;
     \tint ret;
 
-    \tmt6797_a72_transition_controller_init(&controller);
     \tops.dcm_update = NULL;
     \tret = mt6797_a72_transition_run(&controller, &ops, &state,
     \t\t\t\t\t&request, &result);
@@ -710,13 +705,13 @@ TEST_SOURCE = dedent("""\
     static void mt6797_transition_one_shot_test(struct kunit *test)
     {
     \tstruct mt6797_a72_transition_request request = mt6797_test_request();
-    \tstruct mt6797_a72_transition_controller controller;
+    \tstruct mt6797_a72_transition_controller controller =
+    \t\tMT6797_A72_TRANSITION_CONTROLLER_INIT;
     \tstruct mt6797_transition_test_state state = { };
     \tstruct mt6797_a72_transition_result result;
     \tunsigned int events;
     \tint ret;
 
-    \tmt6797_a72_transition_controller_init(&controller);
     \tret = mt6797_a72_transition_run(&controller, &mt6797_test_ops, &state,
     \t\t\t\t\t&request, &result);
     \tKUNIT_ASSERT_EQ(test, ret, 0);

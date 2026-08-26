@@ -36,6 +36,7 @@ def main() -> None:
         "MT6797_A72_TRANSITION_CPU_ON_WAIT_MS 10000U",
         "MT6797_A72_TRANSITION_RECOVERY_MS 15000U",
         "atomic_t consumed",
+        "MT6797_A72_TRANSITION_CONTROLLER_INIT",
         "cpu_off_requests",
         "rollback_mask",
         "retained_mask",
@@ -63,6 +64,7 @@ def main() -> None:
     require(source.count("ops->cpu_on(") == 1, "one CPU request callback")
     require("cpu_off(" not in source, "no CPU_OFF callback")
     require("watchdog_cancel" not in source, "no watchdog cancellation")
+    require("atomic_set(" not in source, "no callable one-shot reset")
     require(source.index("result->isolation_attempted = true;") <
             source.index("ops->isolation_clear(context)"),
             "isolation boundary recorded before callback")
@@ -113,6 +115,8 @@ def main() -> None:
         for token in forbidden:
             require(token not in test_source,
                     f"forbidden test physical token: {token}")
+        require("mt6797_a72_transition_controller_init" not in test_source,
+                "no test-only reset API")
     else:
         require(not (soc / "mt6797-a72-transition-test.c").exists(),
                 "test source absent from production phase")

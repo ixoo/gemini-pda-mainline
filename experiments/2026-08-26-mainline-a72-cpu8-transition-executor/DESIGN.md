@@ -12,7 +12,9 @@ The caller must serialize a controller and supply a request that proves:
 
 All callbacks are validated before the one-shot is consumed. A bad gate or
 incomplete operation table returns without a checkpoint or hardware callback.
-The one-shot is consumed before watchdog arming and can never be reset.
+The controller uses a construction-time initializer and exposes no reset
+function. Its one-shot is consumed before watchdog arming and cannot be reset
+through the executor API.
 
 ## Ordered stages
 

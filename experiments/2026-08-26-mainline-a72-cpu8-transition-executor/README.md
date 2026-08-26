@@ -38,6 +38,30 @@ reset, regulator, I2C, secure-call, PSCI, CPU-hotplug, retained-RAM, watchdog,
 or DCM operation itself. Those remain callbacks that a later patch must connect
 one at a time after the pure state machine passes.
 
+## Generation chronology
+
+- Clean pushed commit `f35a39d2` reached strict Checkpatch, but the generator
+  hid the diagnostic body when the command failed.
+- Commit `190f4299` exposed the exact result: 29 continuation-style checks, the
+  normal new-file MAINTAINERS warning, and the missing-sign-off error expected
+  for a synthetic non-certifying experiment archive.
+- Commit `9df7d930` fixed the reported wrapping and used the repository's
+  established `MISSING_SIGN_OFF,FILE_PATH_CHANGES` exception; two alignment
+  checks remained.
+- Commit `44ff3f0e` reduced the exact generated production patch to one helper
+  alignment check. The one-column correction is pending publication.
+- With that correction in the working tree, Buildbox Checkpatch file-mode
+  preflight reports zero errors and zero checks for the core, internal header,
+  and KUnit source. A subsequent semantic audit removed the callable controller
+  initializer so the executor API cannot reset a consumed one-shot; the revised
+  sources retain the same zero-error/zero-check result. The stdin-only filename
+  warnings are not source findings.
+
+See
+[`results/pre-admission-style-20260826.txt`](results/pre-admission-style-20260826.txt)
+for the bounded receipt. No generation attempt compiled a kernel or contacted
+the Gemini.
+
 ## Exit
 
 - Normal `git format-patch` output replays on the exact prepared source.
