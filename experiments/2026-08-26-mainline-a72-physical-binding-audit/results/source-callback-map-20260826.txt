@@ -1,0 +1,117 @@
+Mainline CPU8 physical-binding source audit
+Date: 2026-08-26 America/New_York
+
+repository_commit=84dfebce99353ae3473760bfc4fe201550cc383f
+canonical_series_entries=377
+canonical_series_tip=v7.1.3/0385-soc-mediatek-test-injected-A72-transition-executor.patch
+canonical_series_sha256=f459cc66e1d881fc5d7d3631825e1db6aa2e325bc84e84b70a097217429efee5
+manifest_sha256=ebcff48951a408263d025d59023700efb7161eaa33e355030ff7d28ce36fbc56
+prepared_source_state=66469bd0272084cbf607b068608096ec1e4ea075638393501e758d113e3c7106
+prepared_source_integrity=674cb5a9b47ee509f55f4ee512c356c0493331dc612c3eb5569cbb6a8180c49f
+
+Prepared-source file identities:
+  drivers/watchdog/mtk_wdt.c=6d17ddc7289c20c5e5427b58ad32b5475f4b298646db899380cf520d629349c7
+  drivers/soc/mediatek/mt6797-a72-platform-state.c=180c83da4fe67f56cf7757b69f0b7d94406f0bfdd3e89da364c94a3c41d8437a
+  drivers/soc/mediatek/mt6797-bigidvfs-backend.c=454c4bf3d3d049d0586a86784d0a101067005863b1e18190f9d0ddaf5be8932d
+  drivers/regulator/da9213-legacy-regulator.c=9800fb4449c9bbb6c97b788069f79a0b352c35265792f1f2db8a259f7b74d87d
+  arch/arm64/kernel/mt6797_psci.c=7e3329797e0f2eebc4372aa47c84c09e3c2ed85e5121f9492898727db5e4f83d
+  arch/arm64/kernel/smp.c=f9f23ef0702733df793e969f200a4237bd28ebc5e3d5069e413f32e95b5e6599
+  kernel/cpu.c=e19271407d0aadf6aab38d21fe41b940b08c46b8db5b6bb5bf3f4d1bf56295f9
+  fs/pstore/gemini_protected_readback_ledger.c=e8c242eb766962cbc894c8e3878b8b91b96145a11881dd91dea1f5482d34fecc
+
+Callback map (12 callbacks):
+
+checkpoint
+  class=new-owner-api
+  present owner=fs/pstore/gemini_protected_readback_ledger.c:472
+  finding=accepts only ordered checkpoint 0/1 and writes compile-time-fixed records
+  required=dedicated mutable last-stage transition ledger
+
+watchdog_arm
+  class=new-owner-api
+  present owner=drivers/watchdog/mtk_wdt.c:338-438
+  finding=internal start/set-timeout/ping primitives; no exclusive takeover
+  required=one-shot 15000 ms takeover plus blocking of later keepalive/config paths
+
+p27_acquire
+  class=extend-platform-owner
+  present owner=drivers/soc/mediatek/mt6797-a72-platform-state.c:40-55,250-275
+  finding=owns SPM/PWRAP/MCUCFG and mutex but exposes reads only
+  required=exact 0x218 mutation/readback, B-PLL ordering read, PWRAP assertion
+
+p27_release
+  class=extend-platform-owner
+  present owner=drivers/soc/mediatek/mt6797-a72-platform-state.c:40-55,250-275
+  finding=no inverse API or attempt-owned transaction
+  required=pre-isolation exact PWRAP/0x218 inverse with mismatch retention
+
+provider_acquire
+  class=reuse-existing-owner
+  present owner=arch/arm64/kernel/mt6797_a72_membership.c:77-96 and drivers/regulator/da9213-legacy-regulator.c:1229-1325
+  finding=serialized exact endpoint transaction returns generation/cookie handle
+  required=enable positive provider profile and validate full response
+
+provider_release
+  class=reuse-existing-owner
+  present owner=arch/arm64/kernel/mt6797_a72_membership.c:98-117 and drivers/regulator/da9213-legacy-regulator.c:1327-1393
+  finding=exact held-handle match plus restored-state verification
+  required=call only before isolation and validate full response
+
+isolation_clear
+  class=extend-platform-owner
+  present owner=drivers/soc/mediatek/mt6797-a72-platform-state.c:40-55,250-275
+  finding=source reads SPM 0x290 and PWRAP state but performs no mutation
+  required=exact 0x2-to-0 transition, PWRAP deassert, 240 us guard, retain boundary
+
+sram_enable
+  class=new-owner-api
+  present owner=drivers/soc/mediatek/mt6797-bigidvfs-backend.c:22-212
+  finding=only FID 0xc200035f reads; no set FID and no 0x102222b4 calibration sample
+  required=one exact 1.1 V service call plus stable selector/calibration verification
+
+cpu_on
+  class=lifecycle-bridge
+  present owner=arch/arm64/kernel/mt6797_psci.c:1461-1467
+  finding=MT6797 callback unconditionally returns -EAGAIN
+  required=exact-attempt CPU8-only delegation to cpu_psci_ops.cpu_boot
+
+online_wait
+  class=lifecycle-bridge
+  present owner=arch/arm64/kernel/smp.c:183-245 and kernel/cpu.c:1011-1047
+  finding=arm64 private completion precedes the remainder of generic CPUHP bring-up
+  required=generic successful-completion continuation; do not duplicate completion ownership
+
+ipi_proof
+  class=lifecycle-bridge
+  present owner=generic smp_call_function_single after completed CPU bring-up
+  finding=no current CPU8 caller; calling from PSCI acceptance conflates lifecycle stages
+  required=one synchronous CPU8 callback after generic completion, with CPU9 absent
+
+dcm_update
+  class=extend-platform-owner
+  present owner=drivers/soc/mediatek/mt6797-a72-platform-state.c:41-55,104-108
+  finding=reads low seven MP2 DCM bits but exposes no serialized write
+  required=post-online exact 0x00-to-0x0f-to-0x0d toggle/readback preserving upper bits
+
+classification_counts:
+  reuse-existing-owner=2
+  extend-platform-owner=4
+  new-owner-api=3
+  lifecycle-bridge=3
+
+selected_implementation_order:
+  1=exclusive-watchdog-takeover
+  2=retained-transition-stage-ledger
+  3=serialized-platform-effect-owner
+  4=bigidvfs-sram-set-verify-owner
+  5=psci-generic-hotplug-binder-and-one-late-caller
+  6=complete-injected-kunit-and-no-network-qemu-proof
+  7=one-decision-bearing-boot2-candidate
+
+kernel_build=none
+native_vm_build=none
+device_access=none
+retained_write=none
+cpu_request=none
+partition_write=none
+result=direct-binding-rejected-bounded-owner-work-required

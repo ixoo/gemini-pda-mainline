@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-26-mainline-a72-physical-binding-audit",
+  "repository_commit": "84dfebce99353ae3473760bfc4fe201550cc383f",
+  "canonical_series_entries": 377,
+  "canonical_series_sha256": "f459cc66e1d881fc5d7d3631825e1db6aa2e325bc84e84b70a097217429efee5",
+  "manifest_sha256": "ebcff48951a408263d025d59023700efb7161eaa33e355030ff7d28ce36fbc56",
+  "prepared_source_state": "66469bd0272084cbf607b068608096ec1e4ea075638393501e758d113e3c7106",
+  "prepared_source_integrity": "674cb5a9b47ee509f55f4ee512c356c0493331dc612c3eb5569cbb6a8180c49f",
+  "callbacks": [
+    {"name": "checkpoint", "class": "new-owner-api"},
+    {"name": "watchdog_arm", "class": "new-owner-api"},
+    {"name": "p27_acquire", "class": "extend-platform-owner"},
+    {"name": "p27_release", "class": "extend-platform-owner"},
+    {"name": "provider_acquire", "class": "reuse-existing-owner"},
+    {"name": "provider_release", "class": "reuse-existing-owner"},
+    {"name": "isolation_clear", "class": "extend-platform-owner"},
+    {"name": "sram_enable", "class": "new-owner-api"},
+    {"name": "cpu_on", "class": "lifecycle-bridge"},
+    {"name": "online_wait", "class": "lifecycle-bridge"},
+    {"name": "ipi_proof", "class": "lifecycle-bridge"},
+    {"name": "dcm_update", "class": "extend-platform-owner"}
+  ],
+  "class_counts": {
+    "reuse-existing-owner": 2,
+    "extend-platform-owner": 4,
+    "new-owner-api": 3,
+    "lifecycle-bridge": 3
+  },
+  "implementation_order": [
+    "exclusive-watchdog-takeover",
+    "retained-transition-stage-ledger",
+    "serialized-platform-effect-owner",
+    "bigidvfs-sram-set-verify-owner",
+    "psci-generic-hotplug-binder-and-one-late-caller",
+    "complete-injected-kunit-and-no-network-qemu-proof",
+    "one-decision-bearing-boot2-candidate"
+  ],
+  "source_receipt_sha256": "21f0d3b55569d1a0cdae8df07720ce1afa8c94ceac234f2c2599b94a782fbd10",
+  "kernel_build": false,
+  "device_action": false,
+  "result": "direct-binding-rejected-bounded-owner-work-required"
+}

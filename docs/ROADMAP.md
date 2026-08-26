@@ -5622,14 +5622,21 @@ The next ordered work is:
    `7.1.3-gemini-a72-transition-kunit`, and its sole no-network QEMU suite
    passes all seven cases with zero failures or skips. The executor remains
    default-off with zero physical backends, zero production callers, zero
-   physical CPU requests, and no boot candidate or device action. **Selected
-   next:** freeze the exact physical-binding layer against the current prepared
-   tree. Map every injected callback to a named existing owner or a narrowly
-   scoped new implementation, beginning with exclusive 15-second watchdog
-   takeover and ending with the one CPU8 request/IPI/DCM proof. Preserve the
-   executor's rollback boundary, prove the binder with injected tests and
-   no-network QEMU, and do not assemble or write a device candidate before
-   that hardware-free proof passes.
+   physical CPU requests, and no boot candidate or device action. The following
+   [physical-binding audit](../experiments/2026-08-26-mainline-a72-physical-binding-audit/README.md)
+   maps all 12 callbacks against the exact prepared tree. Only the DA921x
+   acquire/release pair is directly reusable. P27 acquire/release, isolation,
+   and DCM must extend the current serialized platform-state owner; watchdog,
+   retained-stage, and SRAM-LDO operations need narrow owner APIs; and CPU_ON,
+   online completion, and the IPI proof need a PSCI/generic-hotplug lifecycle
+   bridge. The existing pstore helper's two fixed records cannot encode the
+   transition's last attributable stage. **Selected next:** implement and
+   hardware-free-test the one-shot exclusive 15-second watchdog takeover.
+   Then add the retained last-stage ledger before the platform, SRAM, and CPU
+   lifecycle owners are composed. Preserve the executor's rollback boundary,
+   prove each owner and the complete binder with injected tests and no-network
+   QEMU, and do not assemble or write a device candidate before that proof
+   passes.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

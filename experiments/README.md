@@ -23,6 +23,28 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-26 A72 physical-binding audit](2026-08-26-mainline-a72-physical-binding-audit/README.md)
+  — maps all 12 callbacks in the proven one-shot CPU8 executor against the
+  exact prepared source. Only the DA921x acquire/release pair is directly
+  reusable; four callbacks belong in an extended platform-state transaction,
+  three need narrow owner APIs, and three need a PSCI/generic-hotplug lifecycle
+  bridge. It also rejects the existing fixed two-record pstore helper as a
+  per-stage transition journal. The ordered implementation begins with an
+  exclusive 15-second watchdog takeover, then a retained last-stage ledger;
+  no build, device action, or CPU request occurred.
+- [2026-08-26 A72 injected transition executor](2026-08-26-mainline-a72-cpu8-transition-executor/README.md)
+  — admits canonical patches `0384`--`0385` for a default-off one-shot CPU8
+  coordinator with injected operations and no physical backend or caller.
+  Exact Buildbox compilation and one bounded no-network QEMU run pass all
+  seven cases with zero failures or skips, proving watchdog-first ordering,
+  one CPU_ON, pre-isolation rollback, post-isolation retention, and the CPU9,
+  CPU_OFF, retry, and malformed-ownership vetoes.
+- [2026-08-26 CPU8 active-transition admission audit](2026-08-26-mainline-a72-cpu8-active-transition-audit/README.md)
+  — proves that configuration alone cannot produce a CPU8 request from the
+  exact tree through patch `0383`: production transition callers are absent,
+  P27/P28 are effect-free ledgers, BigiDVFS is read-only, the watchdog has no
+  recovery takeover, and the MT6797 boot callback remains closed. It selects
+  the injected executor above rather than spending an inert device boot.
 - [2026-08-25 A72 platform/provider/protected-clock third read](2026-08-25-mainline-a72-platform-provider-protected-clock-third-read/README.md)
   — freezes exactly one protected-clock call after the live-qualified platform
   and provider prefix, with all three suppliers ready before capture and two
