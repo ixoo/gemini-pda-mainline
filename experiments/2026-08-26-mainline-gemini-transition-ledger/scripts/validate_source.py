@@ -88,8 +88,11 @@ def main() -> None:
             "gemini_transition_ledger_corrupt_copy_test",
             "gemini_transition_ledger_terminal_one_shot_test",
             "latest.generation, 19U",
+            "last_write_word",
         ):
             require(token in test_source, f"test token: {token}")
+        require("GEMINI_LEDGER_TEST_WRITES" not in test_source,
+                "no unused full write-history stack fixture")
         for token in ("ioremap", "readl(", "writel(", "msleep", "udelay",
                       "cpu_up(", "psci_", "watchdog"):
             require(token not in test_source,

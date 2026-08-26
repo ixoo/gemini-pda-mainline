@@ -11,12 +11,11 @@
 #include "gemini_transition_ledger_internal.h"
 
 #define GEMINI_LEDGER_TEST_WORDS 32U
-#define GEMINI_LEDGER_TEST_WRITES 256U
 
 struct gemini_transition_ledger_test_state {
 	u32 words[GEMINI_LEDGER_TEST_WORDS];
-	u32 write_words[GEMINI_LEDGER_TEST_WRITES];
-	u32 write_values[GEMINI_LEDGER_TEST_WRITES];
+	u32 last_write_word;
+	u32 last_write_value;
 	unsigned int writes;
 	unsigned int barriers;
 	unsigned int drop_word;
@@ -34,10 +33,8 @@ static void ledger_test_write(void *context, unsigned int word, u32 value)
 {
 	struct gemini_transition_ledger_test_state *state = context;
 
-	if (state->writes < GEMINI_LEDGER_TEST_WRITES) {
-		state->write_words[state->writes] = word;
-		state->write_values[state->writes] = value;
-	}
+	state->last_write_word = word;
+	state->last_write_value = value;
 	state->writes++;
 	if (word < GEMINI_LEDGER_TEST_WORDS &&
 	    (!state->drop_enabled || word != state->drop_word))
@@ -160,8 +157,8 @@ static void gemini_transition_ledger_raw_header_test(struct kunit *test)
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	KUNIT_EXPECT_EQ(test, state.words[0],
 			GEMINI_TRANSITION_LEDGER_PSTORE_SIGNATURE);
-	KUNIT_EXPECT_EQ(test, state.write_words[state.writes - 1], 0U);
-	KUNIT_EXPECT_EQ(test, state.write_values[state.writes - 1],
+	KUNIT_EXPECT_EQ(test, state.last_write_word, 0U);
+	KUNIT_EXPECT_EQ(test, state.last_write_value,
 			GEMINI_TRANSITION_LEDGER_PSTORE_SIGNATURE);
 	KUNIT_ASSERT_TRUE(test, ledger_test_latest(&state, &latest, &copy));
 	KUNIT_EXPECT_EQ(test, latest.attempt_id, 3ULL);

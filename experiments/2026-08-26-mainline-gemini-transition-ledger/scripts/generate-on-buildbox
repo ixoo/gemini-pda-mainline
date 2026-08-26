@@ -4,7 +4,7 @@ set -euo pipefail
 readonly repository_commit="${1:?repository commit required}"
 readonly source_root="${2:?prepared source root required}"
 readonly artifact_root="${3:?artifact root required}"
-readonly expected_source_state=ac17326c4e9e02f4f711aa07d016bcefb71bc88bf3d029505e6ccf55d3dc83eb
+readonly expected_source_state=1a92e9021d98ea3ecadb4b71a75bd69f1989a92ad79d2ada4ca4a2d88a0bde74
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 readonly script_dir
 readonly package_name="${repository_commit}-gemini-transition-ledger-patches"
