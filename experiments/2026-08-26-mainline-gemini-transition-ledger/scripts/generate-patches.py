@@ -34,6 +34,7 @@ PATCHES = (
     "0388-pstore-add-Gemini-mutable-transition-ledger.patch",
     "0389-pstore-test-Gemini-mutable-transition-ledger.patch",
 )
+CANONICAL_PATCH_DIR = REPO_ROOT / "patches/v7.1.3"
 
 
 def sha256(path: Path) -> str:
@@ -71,16 +72,42 @@ def commit(root: Path, subject: str, body: str, timestamp: str) -> None:
 
 
 def prepare_parent(source_root: Path, destination: Path) -> None:
-    for relative, expected in PARENT_HASHES.items():
+    parent_ready = all(
+        (source_root / relative).is_file()
+        and not (source_root / relative).is_symlink()
+        and sha256(source_root / relative) == expected
+        for relative, expected in PARENT_HASHES.items()
+    ) and all(not (source_root / relative).exists() for relative in NEW_PATHS)
+    for relative in PARENT_HASHES:
         source = source_root / relative
-        if not source.is_file() or source.is_symlink() or sha256(source) != expected:
-            raise SystemExit(f"exact parent changed: {relative}")
+        if not source.is_file() or source.is_symlink():
+            raise SystemExit(f"source path is not an exact regular file: {relative}")
         target = destination / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source, target)
+    if parent_ready:
+        return
+
     for relative in NEW_PATHS:
-        if (source_root / relative).exists():
-            raise SystemExit(f"new path unexpectedly exists: {relative}")
+        source = source_root / relative
+        if not source.is_file() or source.is_symlink():
+            raise SystemExit(f"admitted source path is not exact: {relative}")
+        target = destination / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, target)
+    for patch in reversed(PATCHES):
+        canonical = CANONICAL_PATCH_DIR / patch
+        if not canonical.is_file() or canonical.is_symlink():
+            raise SystemExit(f"canonical patch unavailable: {patch}")
+        run("git", "apply", "--reverse", "--check", str(canonical),
+            cwd=destination)
+        run("git", "apply", "--reverse", str(canonical), cwd=destination)
+    for relative, expected in PARENT_HASHES.items():
+        if sha256(destination / relative) != expected:
+            raise SystemExit(f"reconstructed parent changed: {relative}")
+    for relative in NEW_PATHS:
+        if (destination / relative).exists():
+            raise SystemExit(f"reconstructed parent retained new path: {relative}")
 
 
 def validate_patch_text(path: Path, expected_subject: str) -> None:
