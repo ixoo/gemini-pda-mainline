@@ -445,14 +445,13 @@ TEST_SOURCE = dedent("""\
     \tstruct mtk_wdt_recovery_result result;
     \tstruct mtk_wdt_recovery_owner owner = {};
     \tu32 expected_length;
+    \tint ret;
 
-    \tKUNIT_ASSERT_EQ(test, 0,
-    \t\tmtk_wdt_recovery_execute(&owner, &mtk_wdt_recovery_test_ops,
-    \t\t\t\t\t &state,
-    \t\t\t\t\t MTK_WDT_RECOVERY_TIMEOUT_MS,
-    \t\t\t\t\t &result));
-    \texpected_length = WDT_LENGTH_TIMEOUT(
-    \t\tMTK_WDT_RECOVERY_TIMEOUT_SECONDS << 6);
+    \tret = mtk_wdt_recovery_execute(&owner,
+    \t\t\t\t       &mtk_wdt_recovery_test_ops, &state,
+    \t\t\t\t       MTK_WDT_RECOVERY_TIMEOUT_MS, &result);
+    \tKUNIT_ASSERT_EQ(test, 0, ret);
+    \texpected_length = WDT_LENGTH_TIMEOUT(MTK_WDT_RECOVERY_TIMEOUT_SECONDS << 6);
     \tKUNIT_EXPECT_TRUE(test, owner.owned);
     \tKUNIT_EXPECT_EQ(test, 41ULL, owner.identity);
     \tKUNIT_EXPECT_EQ(test, 1U, result.owned);
@@ -474,19 +473,18 @@ TEST_SOURCE = dedent("""\
     \tstruct mtk_wdt_recovery_test_context state = { .identity = 7 };
     \tstruct mtk_wdt_recovery_result result;
     \tstruct mtk_wdt_recovery_owner owner = {};
+    \tint ret;
 
-    \tKUNIT_EXPECT_EQ(test, -EINVAL,
-    \t\tmtk_wdt_recovery_execute(&owner, &mtk_wdt_recovery_test_ops,
-    \t\t\t\t\t &state,
-    \t\t\t\t\t MTK_WDT_RECOVERY_TIMEOUT_MS - 1,
-    \t\t\t\t\t &result));
+    \tret = mtk_wdt_recovery_execute(&owner,
+    \t\t\t\t       &mtk_wdt_recovery_test_ops, &state,
+    \t\t\t\t       MTK_WDT_RECOVERY_TIMEOUT_MS - 1, &result);
+    \tKUNIT_EXPECT_EQ(test, -EINVAL, ret);
     \tKUNIT_EXPECT_EQ(test, 0U, state.writes);
     \tstate.identity = 0;
-    \tKUNIT_EXPECT_EQ(test, -EOVERFLOW,
-    \t\tmtk_wdt_recovery_execute(&owner, &mtk_wdt_recovery_test_ops,
-    \t\t\t\t\t &state,
-    \t\t\t\t\t MTK_WDT_RECOVERY_TIMEOUT_MS,
-    \t\t\t\t\t &result));
+    \tret = mtk_wdt_recovery_execute(&owner,
+    \t\t\t\t       &mtk_wdt_recovery_test_ops, &state,
+    \t\t\t\t       MTK_WDT_RECOVERY_TIMEOUT_MS, &result);
+    \tKUNIT_EXPECT_EQ(test, -EOVERFLOW, ret);
     \tKUNIT_EXPECT_FALSE(test, owner.owned);
     \tKUNIT_EXPECT_EQ(test, 0U, state.writes);
     }
@@ -496,17 +494,16 @@ TEST_SOURCE = dedent("""\
     \tstruct mtk_wdt_recovery_test_context state = { .identity = 9 };
     \tstruct mtk_wdt_recovery_result result;
     \tstruct mtk_wdt_recovery_owner owner = {};
+    \tint ret;
 
-    \tKUNIT_ASSERT_EQ(test, 0,
-    \t\tmtk_wdt_recovery_execute(&owner, &mtk_wdt_recovery_test_ops,
-    \t\t\t\t\t &state,
-    \t\t\t\t\t MTK_WDT_RECOVERY_TIMEOUT_MS,
-    \t\t\t\t\t &result));
-    \tKUNIT_EXPECT_EQ(test, -EALREADY,
-    \t\tmtk_wdt_recovery_execute(&owner, &mtk_wdt_recovery_test_ops,
-    \t\t\t\t\t &state,
-    \t\t\t\t\t MTK_WDT_RECOVERY_TIMEOUT_MS,
-    \t\t\t\t\t &result));
+    \tret = mtk_wdt_recovery_execute(&owner,
+    \t\t\t\t       &mtk_wdt_recovery_test_ops, &state,
+    \t\t\t\t       MTK_WDT_RECOVERY_TIMEOUT_MS, &result);
+    \tKUNIT_ASSERT_EQ(test, 0, ret);
+    \tret = mtk_wdt_recovery_execute(&owner,
+    \t\t\t\t       &mtk_wdt_recovery_test_ops, &state,
+    \t\t\t\t       MTK_WDT_RECOVERY_TIMEOUT_MS, &result);
+    \tKUNIT_EXPECT_EQ(test, -EALREADY, ret);
     \tKUNIT_EXPECT_EQ(test, 3U, state.writes);
     \tKUNIT_EXPECT_EQ(test, 1U, result.owned);
     \tKUNIT_EXPECT_EQ(test, 9ULL, result.identity);
@@ -520,12 +517,12 @@ TEST_SOURCE = dedent("""\
     \t};
     \tstruct mtk_wdt_recovery_result result;
     \tstruct mtk_wdt_recovery_owner owner = {};
+    \tint ret;
 
-    \tKUNIT_EXPECT_EQ(test, -EIO,
-    \t\tmtk_wdt_recovery_execute(&owner, &mtk_wdt_recovery_test_ops,
-    \t\t\t\t\t &state,
-    \t\t\t\t\t MTK_WDT_RECOVERY_TIMEOUT_MS,
-    \t\t\t\t\t &result));
+    \tret = mtk_wdt_recovery_execute(&owner,
+    \t\t\t\t       &mtk_wdt_recovery_test_ops, &state,
+    \t\t\t\t       MTK_WDT_RECOVERY_TIMEOUT_MS, &result);
+    \tKUNIT_EXPECT_EQ(test, -EIO, ret);
     \tKUNIT_EXPECT_TRUE(test, owner.owned);
     \tKUNIT_EXPECT_EQ(test, 1U, result.owned);
     \tKUNIT_EXPECT_EQ(test, 3U, state.writes);
@@ -539,12 +536,12 @@ TEST_SOURCE = dedent("""\
     \t};
     \tstruct mtk_wdt_recovery_result result;
     \tstruct mtk_wdt_recovery_owner owner = {};
+    \tint ret;
 
-    \tKUNIT_EXPECT_EQ(test, -EIO,
-    \t\tmtk_wdt_recovery_execute(&owner, &mtk_wdt_recovery_test_ops,
-    \t\t\t\t\t &state,
-    \t\t\t\t\t MTK_WDT_RECOVERY_TIMEOUT_MS,
-    \t\t\t\t\t &result));
+    \tret = mtk_wdt_recovery_execute(&owner,
+    \t\t\t\t       &mtk_wdt_recovery_test_ops, &state,
+    \t\t\t\t       MTK_WDT_RECOVERY_TIMEOUT_MS, &result);
+    \tKUNIT_EXPECT_EQ(test, -EIO, ret);
     \tKUNIT_EXPECT_TRUE(test, owner.owned);
     \tKUNIT_EXPECT_EQ(test, 1U, result.owned);
     \tKUNIT_EXPECT_EQ(test, 3U, state.writes);
