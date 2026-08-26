@@ -148,13 +148,12 @@ INTERNAL_HEADER = dedent("""\
     \tint (*dcm_update)(void *context);
     };
 
-    void mt6797_a72_transition_controller_init(
-    \tstruct mt6797_a72_transition_controller *controller);
-    int mt6797_a72_transition_run(
-    \tstruct mt6797_a72_transition_controller *controller,
-    \tconst struct mt6797_a72_transition_ops *ops, void *context,
-    \tconst struct mt6797_a72_transition_request *request,
-    \tstruct mt6797_a72_transition_result *result);
+    void mt6797_a72_transition_controller_init(struct mt6797_a72_transition_controller *controller);
+    int mt6797_a72_transition_run(struct mt6797_a72_transition_controller *controller,
+    \t\t\t  const struct mt6797_a72_transition_ops *ops,
+    \t\t\t  void *context,
+    \t\t\t  const struct mt6797_a72_transition_request *request,
+    \t\t\t  struct mt6797_a72_transition_result *result);
 
     #endif /* __MT6797_A72_TRANSITION_INTERNAL_H */
     """)
@@ -178,19 +177,20 @@ CORE_SOURCE = dedent("""\
     \t\tops->online_wait && ops->ipi_proof && ops->dcm_update;
     }
 
-    static void mt6797_a72_transition_checkpoint(
-    \tconst struct mt6797_a72_transition_ops *ops, void *context,
-    \tstruct mt6797_a72_transition_result *result,
-    \tenum mt6797_a72_transition_phase phase,
-    \tenum mt6797_a72_transition_stage stage)
+    static void
+    mt6797_a72_transition_checkpoint(const struct mt6797_a72_transition_ops *ops,
+    \t\t\t\t void *context,
+    \t\t\t\t struct mt6797_a72_transition_result *result,
+    \t\t\t\t enum mt6797_a72_transition_phase phase,
+    \t\t\t\t enum mt6797_a72_transition_stage stage)
     {
     \tresult->last_stage = stage;
     \tresult->checkpoints++;
     \tops->checkpoint(context, phase, stage, result);
     }
 
-    static void mt6797_a72_transition_set_retained(
-    \tstruct mt6797_a72_transition_result *result)
+    static void
+    mt6797_a72_transition_set_retained(struct mt6797_a72_transition_result *result)
     {
     \tresult->retained_mask = 0;
     \tif (result->p27_owned)
@@ -201,9 +201,11 @@ CORE_SOURCE = dedent("""\
     \t\tresult->retained_mask |= MT6797_A72_TRANSITION_OWNED_CPU8;
     }
 
-    static int mt6797_a72_transition_rollback(
-    \tconst struct mt6797_a72_transition_ops *ops, void *context,
-    \tstruct mt6797_a72_transition_result *result, int stage_errno)
+    static int
+    mt6797_a72_transition_rollback(const struct mt6797_a72_transition_ops *ops,
+    \t\t\t       void *context,
+    \t\t\t       struct mt6797_a72_transition_result *result,
+    \t\t\t       int stage_errno)
     {
     \tint ret;
 
@@ -236,8 +238,8 @@ CORE_SOURCE = dedent("""\
     \treturn stage_errno;
     }
 
-    static int mt6797_a72_transition_ownership_fault(
-    \tstruct mt6797_a72_transition_result *result, u32 unknown_mask)
+    static int mt6797_a72_owner_fault(struct mt6797_a72_transition_result *result,
+    \t\t\t       u32 unknown_mask)
     {
     \tresult->stage_errno = -EPROTO;
     \tresult->terminal = MT6797_A72_TRANSITION_ROLLBACK_FAULT_PREISO;
@@ -249,8 +251,9 @@ CORE_SOURCE = dedent("""\
     \treturn -EPROTO;
     }
 
-    static int mt6797_a72_transition_postiso_fault(
-    \tstruct mt6797_a72_transition_result *result, int stage_errno)
+    static int
+    mt6797_a72_transition_postiso_fault(struct mt6797_a72_transition_result *result,
+    \t\t\t\t    int stage_errno)
     {
     \tresult->stage_errno = stage_errno;
     \tresult->terminal = MT6797_A72_TRANSITION_FAULT_RETAIN_POSTISO;
@@ -258,18 +261,19 @@ CORE_SOURCE = dedent("""\
     \treturn stage_errno;
     }
 
-    void mt6797_a72_transition_controller_init(
-    \tstruct mt6797_a72_transition_controller *controller)
+    void
+    mt6797_a72_transition_controller_init(struct mt6797_a72_transition_controller *controller)
     {
     \tif (controller)
     \t\tatomic_set(&controller->consumed, 0);
     }
 
-    int mt6797_a72_transition_run(
-    \tstruct mt6797_a72_transition_controller *controller,
-    \tconst struct mt6797_a72_transition_ops *ops, void *context,
-    \tconst struct mt6797_a72_transition_request *request,
-    \tstruct mt6797_a72_transition_result *result)
+    int
+    mt6797_a72_transition_run(struct mt6797_a72_transition_controller *controller,
+    \t\t\t  const struct mt6797_a72_transition_ops *ops,
+    \t\t\t  void *context,
+    \t\t\t  const struct mt6797_a72_transition_request *request,
+    \t\t\t  struct mt6797_a72_transition_result *result)
     {
     \tbool owned = false;
     \tu64 watchdog_identity = 0;
@@ -295,8 +299,8 @@ CORE_SOURCE = dedent("""\
     \tresult->terminal = MT6797_A72_TRANSITION_TERMINAL_NONE;
 
     \tmt6797_a72_transition_checkpoint(ops, context, result,
-    \t\tMT6797_A72_TRANSITION_BEFORE,
-    \t\tMT6797_A72_TRANSITION_STAGE_WATCHDOG);
+    \t\t\t\t\t MT6797_A72_TRANSITION_BEFORE,
+    \t\t\t\t\t MT6797_A72_TRANSITION_STAGE_WATCHDOG);
     \tret = ops->watchdog_arm(context, MT6797_A72_TRANSITION_RECOVERY_MS,
     \t\t\t\t&watchdog_identity);
     \tif (ret) {
@@ -312,102 +316,101 @@ CORE_SOURCE = dedent("""\
     \tresult->watchdog_armed = true;
     \tresult->watchdog_identity = watchdog_identity;
     \tmt6797_a72_transition_checkpoint(ops, context, result,
-    \t\tMT6797_A72_TRANSITION_AFTER,
-    \t\tMT6797_A72_TRANSITION_STAGE_WATCHDOG);
+    \t\t\t\t\t MT6797_A72_TRANSITION_AFTER,
+    \t\t\t\t\t MT6797_A72_TRANSITION_STAGE_WATCHDOG);
 
     \tmt6797_a72_transition_checkpoint(ops, context, result,
-    \t\tMT6797_A72_TRANSITION_BEFORE,
-    \t\tMT6797_A72_TRANSITION_STAGE_P27);
+    \t\t\t\t\t MT6797_A72_TRANSITION_BEFORE,
+    \t\t\t\t\t MT6797_A72_TRANSITION_STAGE_P27);
     \tret = ops->p27_acquire(context, &owned);
     \tresult->p27_owned = owned;
     \tif (ret)
     \t\treturn mt6797_a72_transition_rollback(ops, context, result, ret);
     \tif (!owned)
-    \t\treturn mt6797_a72_transition_ownership_fault(
-    \t\t\tresult, MT6797_A72_TRANSITION_OWNED_P27);
+    \t\treturn mt6797_a72_owner_fault(result, MT6797_A72_TRANSITION_OWNED_P27);
     \tmt6797_a72_transition_checkpoint(ops, context, result,
-    \t\tMT6797_A72_TRANSITION_AFTER,
-    \t\tMT6797_A72_TRANSITION_STAGE_P27);
+    \t\t\t\t\t MT6797_A72_TRANSITION_AFTER,
+    \t\t\t\t\t MT6797_A72_TRANSITION_STAGE_P27);
 
     \towned = false;
     \tmt6797_a72_transition_checkpoint(ops, context, result,
-    \t\tMT6797_A72_TRANSITION_BEFORE,
-    \t\tMT6797_A72_TRANSITION_STAGE_PROVIDER);
+    \t\t\t\t\t MT6797_A72_TRANSITION_BEFORE,
+    \t\t\t\t\t MT6797_A72_TRANSITION_STAGE_PROVIDER);
     \tret = ops->provider_acquire(context, &owned);
     \tresult->provider_owned = owned;
     \tif (ret)
     \t\treturn mt6797_a72_transition_rollback(ops, context, result, ret);
     \tif (!owned)
-    \t\treturn mt6797_a72_transition_ownership_fault(
-    \t\t\tresult, MT6797_A72_TRANSITION_OWNED_PROVIDER);
+    \t\treturn mt6797_a72_owner_fault(result,
+    \t\t\t\t\t       MT6797_A72_TRANSITION_OWNED_PROVIDER);
     \tmt6797_a72_transition_checkpoint(ops, context, result,
-    \t\tMT6797_A72_TRANSITION_AFTER,
-    \t\tMT6797_A72_TRANSITION_STAGE_PROVIDER);
+    \t\t\t\t\t MT6797_A72_TRANSITION_AFTER,
+    \t\t\t\t\t MT6797_A72_TRANSITION_STAGE_PROVIDER);
 
     \tmt6797_a72_transition_checkpoint(ops, context, result,
-    \t\tMT6797_A72_TRANSITION_BEFORE,
-    \t\tMT6797_A72_TRANSITION_STAGE_ISOLATION);
+    \t\t\t\t\t MT6797_A72_TRANSITION_BEFORE,
+    \t\t\t\t\t MT6797_A72_TRANSITION_STAGE_ISOLATION);
     \tresult->isolation_attempted = true;
     \tret = ops->isolation_clear(context);
     \tif (ret)
     \t\treturn mt6797_a72_transition_postiso_fault(result, ret);
     \tresult->isolation_crossed = true;
     \tmt6797_a72_transition_checkpoint(ops, context, result,
-    \t\tMT6797_A72_TRANSITION_AFTER,
-    \t\tMT6797_A72_TRANSITION_STAGE_ISOLATION);
+    \t\t\t\t\t MT6797_A72_TRANSITION_AFTER,
+    \t\t\t\t\t MT6797_A72_TRANSITION_STAGE_ISOLATION);
 
     \tmt6797_a72_transition_checkpoint(ops, context, result,
-    \t\tMT6797_A72_TRANSITION_BEFORE,
-    \t\tMT6797_A72_TRANSITION_STAGE_SRAM);
+    \t\t\t\t\t MT6797_A72_TRANSITION_BEFORE,
+    \t\t\t\t\t MT6797_A72_TRANSITION_STAGE_SRAM);
     \tret = ops->sram_enable(context);
     \tif (ret)
     \t\treturn mt6797_a72_transition_postiso_fault(result, ret);
     \tmt6797_a72_transition_checkpoint(ops, context, result,
-    \t\tMT6797_A72_TRANSITION_AFTER,
-    \t\tMT6797_A72_TRANSITION_STAGE_SRAM);
+    \t\t\t\t\t MT6797_A72_TRANSITION_AFTER,
+    \t\t\t\t\t MT6797_A72_TRANSITION_STAGE_SRAM);
 
     \tmt6797_a72_transition_checkpoint(ops, context, result,
-    \t\tMT6797_A72_TRANSITION_BEFORE,
-    \t\tMT6797_A72_TRANSITION_STAGE_CPU_ON);
+    \t\t\t\t\t MT6797_A72_TRANSITION_BEFORE,
+    \t\t\t\t\t MT6797_A72_TRANSITION_STAGE_CPU_ON);
     \tresult->cpu_requests++;
     \tret = ops->cpu_on(context, MT6797_A72_TRANSITION_CPU8);
     \tif (ret)
     \t\treturn mt6797_a72_transition_postiso_fault(result, ret);
     \tmt6797_a72_transition_checkpoint(ops, context, result,
-    \t\tMT6797_A72_TRANSITION_AFTER,
-    \t\tMT6797_A72_TRANSITION_STAGE_CPU_ON);
+    \t\t\t\t\t MT6797_A72_TRANSITION_AFTER,
+    \t\t\t\t\t MT6797_A72_TRANSITION_STAGE_CPU_ON);
 
     \tmt6797_a72_transition_checkpoint(ops, context, result,
-    \t\tMT6797_A72_TRANSITION_BEFORE,
-    \t\tMT6797_A72_TRANSITION_STAGE_ONLINE_WAIT);
+    \t\t\t\t\t MT6797_A72_TRANSITION_BEFORE,
+    \t\t\t\t\t MT6797_A72_TRANSITION_STAGE_ONLINE_WAIT);
     \tret = ops->online_wait(context, MT6797_A72_TRANSITION_CPU8,
     \t\t\t\tMT6797_A72_TRANSITION_CPU_ON_WAIT_MS);
     \tif (ret)
     \t\treturn mt6797_a72_transition_postiso_fault(result, ret);
     \tresult->cpu8_online = true;
     \tmt6797_a72_transition_checkpoint(ops, context, result,
-    \t\tMT6797_A72_TRANSITION_AFTER,
-    \t\tMT6797_A72_TRANSITION_STAGE_ONLINE_WAIT);
+    \t\t\t\t\t MT6797_A72_TRANSITION_AFTER,
+    \t\t\t\t\t MT6797_A72_TRANSITION_STAGE_ONLINE_WAIT);
 
     \tmt6797_a72_transition_checkpoint(ops, context, result,
-    \t\tMT6797_A72_TRANSITION_BEFORE,
-    \t\tMT6797_A72_TRANSITION_STAGE_IPI);
+    \t\t\t\t\t MT6797_A72_TRANSITION_BEFORE,
+    \t\t\t\t\t MT6797_A72_TRANSITION_STAGE_IPI);
     \tret = ops->ipi_proof(context, MT6797_A72_TRANSITION_CPU8);
     \tif (ret)
     \t\treturn mt6797_a72_transition_postiso_fault(result, ret);
     \tmt6797_a72_transition_checkpoint(ops, context, result,
-    \t\tMT6797_A72_TRANSITION_AFTER,
-    \t\tMT6797_A72_TRANSITION_STAGE_IPI);
+    \t\t\t\t\t MT6797_A72_TRANSITION_AFTER,
+    \t\t\t\t\t MT6797_A72_TRANSITION_STAGE_IPI);
 
     \tmt6797_a72_transition_checkpoint(ops, context, result,
-    \t\tMT6797_A72_TRANSITION_BEFORE,
-    \t\tMT6797_A72_TRANSITION_STAGE_DCM);
+    \t\t\t\t\t MT6797_A72_TRANSITION_BEFORE,
+    \t\t\t\t\t MT6797_A72_TRANSITION_STAGE_DCM);
     \tret = ops->dcm_update(context);
     \tif (ret)
     \t\treturn mt6797_a72_transition_postiso_fault(result, ret);
     \tmt6797_a72_transition_checkpoint(ops, context, result,
-    \t\tMT6797_A72_TRANSITION_AFTER,
-    \t\tMT6797_A72_TRANSITION_STAGE_DCM);
+    \t\t\t\t\t MT6797_A72_TRANSITION_AFTER,
+    \t\t\t\t\t MT6797_A72_TRANSITION_STAGE_DCM);
 
     \tresult->terminal = MT6797_A72_TRANSITION_CPU8_ONLINE_PROOF;
     \tmt6797_a72_transition_set_retained(result);
@@ -460,10 +463,11 @@ TEST_SOURCE = dedent("""\
     \treturn state->fail_stage == stage ? -EIO : 0;
     }
 
-    static void mt6797_test_checkpoint(
-    \tvoid *context, enum mt6797_a72_transition_phase phase,
-    \tenum mt6797_a72_transition_stage stage,
-    \tconst struct mt6797_a72_transition_result *result)
+    static void
+    mt6797_test_checkpoint(void *context,
+    \t\t\t enum mt6797_a72_transition_phase phase,
+    \t\t\t enum mt6797_a72_transition_stage stage,
+    \t\t\t const struct mt6797_a72_transition_result *result)
     {
     \tstruct mt6797_transition_test_state *state = context;
     \tunsigned int slot = phase == MT6797_A72_TRANSITION_BEFORE ?

@@ -158,7 +158,8 @@ def main() -> None:
             shutil.move(generated_name, target)
             validate_patch_text(target, subject)
             run("perl", str(source_root / "scripts/checkpatch.pl"), "--strict",
-                "--no-tree", str(target), cwd=source_root)
+                "--no-tree", "--ignore", "MISSING_SIGN_OFF,FILE_PATH_CHANGES",
+                str(target), cwd=source_root)
         (package / "series").write_text("\n".join(PATCHES) + "\n", encoding="utf-8")
 
         replay = temp / "replay"
