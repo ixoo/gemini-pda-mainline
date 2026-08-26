@@ -587,7 +587,7 @@ def apply_production(root: Path) -> None:
         driver,
         "#if IS_ENABLED(CONFIG_MEDIATEK_WATCHDOG_BOOT_STATUS_KUNIT_TEST)\n"
         "#include <kunit/test.h>\n#endif\n",
-        "#if IS_ENABLED(CONFIG_MEDIATEK_WATCHDOG_BOOT_STATUS_KUNIT_TEST) || \\\n+    IS_ENABLED(CONFIG_MEDIATEK_WATCHDOG_RECOVERY_TAKEOVER_KUNIT_TEST)\n"
+        "#if IS_ENABLED(CONFIG_MEDIATEK_WATCHDOG_BOOT_STATUS_KUNIT_TEST) || \\\n+\tIS_ENABLED(CONFIG_MEDIATEK_WATCHDOG_RECOVERY_TAKEOVER_KUNIT_TEST)\n"
         "#include <kunit/test.h>\n#endif\n",
     )
     replace_once(driver, "#define WDT_LENGTH_TIMEOUT(n)\t((n) << 5)\n",
@@ -595,7 +595,7 @@ def apply_production(root: Path) -> None:
                  "#define WDT_LENGTH_TIMEOUT_MASK\tGENMASK(15, 5)\n")
     replace_once(driver, "#define WDT_MODE_KEY\t\t0x22000000\n",
                  "#define WDT_MODE_KEY\t\t0x22000000\n"
-                 "#define WDT_MODE_RECOVERY_MASK \\\n+    \t(WDT_MODE_EN | WDT_MODE_IRQ_EN | WDT_MODE_AUTO_START | \\\n+    \t WDT_MODE_DUAL_EN)\n"
+                 "#define WDT_MODE_RECOVERY_MASK \\\n+\t(WDT_MODE_EN | WDT_MODE_IRQ_EN | WDT_MODE_AUTO_START | \\\n+\t WDT_MODE_DUAL_EN)\n"
                  "#define MTK_WDT_RECOVERY_TIMEOUT_SECONDS\t15U\n")
     replace_once(driver, "static unsigned int timeout;\n\n",
                  "static unsigned int timeout;\n\n" + RECOVERY_TYPES)
