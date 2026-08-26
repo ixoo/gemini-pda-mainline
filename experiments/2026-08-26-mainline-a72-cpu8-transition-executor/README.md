@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-26-mainline-a72-cpu8-transition-executor` |
-| Status | hardware-free compile passed; exact-commit QEMU proof pending |
+| Status | hardware-free executor proven; physical callback mapping next |
 | Subsystem | MT6797 CPU8 transition coordination and rollback boundary |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-26 America/New_York |
@@ -88,6 +88,15 @@ boot must execute exactly the named seven-case suite, reject any failure or
 skip, and observe the expected root-filesystem panic only after the suite pass.
 The runner, classifier, and eight-mutation self-test are frozen in
 [`results/qemu-tool-validation-20260826.txt`](results/qemu-tool-validation-20260826.txt).
+
+Clean pushed commit `78bf226f` then reproduced the identical patchset,
+configuration, Image, and symbol identities on Buildbox. Its sole no-network
+QEMU suite passed all seven exact cases with zero failures or skips; the
+classifier observed the expected bounded timeout and missing-root-filesystem
+panic only after the exact suite pass. No physical backend, production caller,
+MMIO, retained-memory access, SMC, CPU request, device access, or boot candidate
+was present. See
+[`results/kunit-qemu-pass-78bf226f-20260826.txt`](results/kunit-qemu-pass-78bf226f-20260826.txt).
 
 ## Exit
 

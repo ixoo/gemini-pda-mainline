@@ -5615,6 +5615,21 @@ The next ordered work is:
    CPU_OFF or retry, rolls back only exact attempt-owned P27/provider state
    before isolation, and retains power for reset recovery at or after the
    isolation attempt. Production membership publication remains closed.
+   The linked executor experiment now admits canonical patches `0384`--`0385`.
+   Both exact format-patches pass strict Checkpatch and replay validation; all
+   143 profiles preserve canonical series order. Exact clean commit `78bf226f`
+   compiles the focused profile on Buildbox as
+   `7.1.3-gemini-a72-transition-kunit`, and its sole no-network QEMU suite
+   passes all seven cases with zero failures or skips. The executor remains
+   default-off with zero physical backends, zero production callers, zero
+   physical CPU requests, and no boot candidate or device action. **Selected
+   next:** freeze the exact physical-binding layer against the current prepared
+   tree. Map every injected callback to a named existing owner or a narrowly
+   scoped new implementation, beginning with exclusive 15-second watchdog
+   takeover and ending with the one CPU8 request/IPI/DCM proof. Preserve the
+   executor's rollback boundary, prove the binder with injected tests and
+   no-network QEMU, and do not assemble or write a device candidate before
+   that hardware-free proof passes.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
