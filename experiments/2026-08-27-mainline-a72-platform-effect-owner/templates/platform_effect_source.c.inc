@@ -110,8 +110,10 @@ mt6797_a72_platform_effect_owner_p27_acquire(struct mt6797_a72_platform_effect_o
 		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, ret,
 						       result);
 	ret = mt6797_a72_platform_effect_read_exact_spm(owner, ops, context,
-		MT6797_A72_EFFECT_SPM_P27, MT6797_A72_EFFECT_P27_HELD,
-		&owner->result.spm_p27_after, result);
+							MT6797_A72_EFFECT_SPM_P27,
+							MT6797_A72_EFFECT_P27_HELD,
+							&owner->result.spm_p27_after,
+							result);
 	if (ret)
 		return ret;
 	owner->result.completed_effects |= MT6797_A72_EFFECT_P27_RESET_RELEASED;
@@ -203,8 +205,9 @@ mt6797_a72_platform_effect_owner_p27_release(struct mt6797_a72_platform_effect_o
 		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, ret,
 						       result);
 	ret = mt6797_a72_platform_effect_read_exact_spm(owner, ops, context,
-		MT6797_A72_EFFECT_SPM_P27, MT6797_A72_EFFECT_P27_BEFORE,
-		&value, result);
+							MT6797_A72_EFFECT_SPM_P27,
+							MT6797_A72_EFFECT_P27_BEFORE,
+							&value, result);
 	if (ret)
 		return ret;
 	owner->result.completed_effects |= MT6797_A72_EFFECT_P27_RESET_RESTORED;
@@ -252,8 +255,10 @@ mt6797_a72_effect_owner_isolate(struct mt6797_a72_platform_effect_owner *owner,
 	if (ret)
 		return ret;
 	ret = mt6797_a72_platform_effect_read_exact_spm(owner, ops, context,
-		MT6797_A72_EFFECT_SPM_ISOLATION,
-		MT6797_A72_EFFECT_ISOLATION_BEFORE, &owner->result.isolation_before, result);
+							MT6797_A72_EFFECT_SPM_ISOLATION,
+							MT6797_A72_EFFECT_ISOLATION_BEFORE,
+							&owner->result.isolation_before,
+							result);
 	if (ret)
 		return ret;
 	status = ops->pwrap_status(context);
@@ -271,8 +276,10 @@ mt6797_a72_effect_owner_isolate(struct mt6797_a72_platform_effect_owner *owner,
 		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, ret,
 						       result);
 	ret = mt6797_a72_platform_effect_read_exact_spm(owner, ops, context,
-		MT6797_A72_EFFECT_SPM_ISOLATION,
-		MT6797_A72_EFFECT_ISOLATION_AFTER, &owner->result.isolation_after, result);
+							MT6797_A72_EFFECT_SPM_ISOLATION,
+							MT6797_A72_EFFECT_ISOLATION_AFTER,
+							&owner->result.isolation_after,
+							result);
 	if (ret)
 		return ret;
 	owner->result.completed_effects |= MT6797_A72_EFFECT_ISOLATION_CLEARED;
@@ -471,7 +478,8 @@ mt6797_a72_platform_effect_p27_acquire(struct device *dev,
 		return dev && result ? -ENODEV : -EINVAL;
 	mutex_lock(&source->lock);
 	ret = mt6797_a72_platform_effect_owner_p27_acquire(&source->effect_owner,
-		&mt6797_platform_effect_ops, source, handle, result);
+							   &mt6797_platform_effect_ops,
+							   source, handle, result);
 	mutex_unlock(&source->lock);
 	return ret;
 }
@@ -490,7 +498,8 @@ mt6797_a72_platform_effect_p27_release(struct device *dev,
 		return dev && result ? -ENODEV : -EINVAL;
 	mutex_lock(&source->lock);
 	ret = mt6797_a72_platform_effect_owner_p27_release(&source->effect_owner,
-		&mt6797_platform_effect_ops, source, handle, result);
+							   &mt6797_platform_effect_ops,
+							   source, handle, result);
 	mutex_unlock(&source->lock);
 	return ret;
 }
