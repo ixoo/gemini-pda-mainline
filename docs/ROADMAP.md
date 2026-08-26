@@ -5470,9 +5470,12 @@ The next ordered work is:
    assemblies and two padding paths are byte-identical, the DT is byte-identical
    to the retired third-reader DT, all 32 LK gates pass, and six corruptions are
    rejected. Raw `8ca14ec2` pads to exact 16 MiB `8b6bedfd`, with `maxcpus=8`
-   and zero CPU requests. **Selected next:** publish exact guarded deployment
-   and no-reboot collection tools, replace only exact boot2 predecessor
-   `1f7bd960`, verify full readback, shut down, and make one selected boot.
+   and zero CPU requests. Its exact source-pinned deployment and no-reboot
+   collection tools now pass four returned-clock outcomes, all three admissible
+   pre-clock stages, and 24 fail-closed mutations. Candidate `8b6bedfd` is
+   selected. **Selected next:** from known-good Gemian, replace only exact
+   live-GPT boot2 predecessor `1f7bd960`, verify full readback, shut down, and
+   make one selected boot whose first read-only capture resolves the stage.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

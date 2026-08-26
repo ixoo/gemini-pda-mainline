@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-25-mainline-a72-platform-provider-failure-stage-attribution` |
-| Status | device package and same-DT candidate pass offline validation; deployment/runtime tooling pending |
+| Status | exact deployment/runtime tooling passes; candidate selected; device deployment pending |
 | Subsystem | MT6797 A72 platform/provider/protected-clock observer |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-25 America/New_York |
@@ -75,3 +75,22 @@ and no-reboot runtime collector. Only then may live-GPT `boot2` replace exact
 predecessor `1f7bd960`, pass a full-partition readback, and shut down for one
 owner-selected boot. That boot will distinguish `platform`, `provider`, or
 `before-clock` without repeating the retired ambiguous image.
+
+That tooling now passes. The source-pinned guarded installer accepts only exact
+predecessor `1f7bd960`, exact candidate manifest `1a733736`, and exact padded
+candidate `8b6bedfd`; it preserves the live-GPT, inactive/unmounted target,
+stable-power, full-partition checksum/readback, no-fresh-backup, cleanup,
+clean-shutdown, and no-reboot gates. The first read-only USB capture now records
+both the snapshot lines and the exact stage-bearing failure line. Four returned
+clock outcomes and exact `platform`, `provider`, and `before-clock` failures
+pass; 24 stale, malformed, duplicated, or unsafe mutations fail closed.
+
+While these tools were still unpublished and the old image remained installed,
+the owner selected `boot2`. The host saw neither its expected USB interface nor
+Gemian SSH during a bounded 50-second window. No kernel identity was available,
+so that observation is inconclusive and is not attributed to this candidate.
+
+Candidate `8b6bedfd` is now selected for deployment. The next action is to wait
+for known-good Gemian, replace only exact live-GPT `boot2` predecessor
+`1f7bd960`, verify the full readback, and shut down. One subsequent selected
+boot is the sole hardware attempt for this discriminator.
