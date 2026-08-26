@@ -1,6 +1,6 @@
 struct mt6797_a72_provider_handle;
 
-#define MT6797_A72_PLATFORM_EFFECT_ABI		1U
+#define MT6797_A72_PLATFORM_EFFECT_ABI 1U
 
 enum mt6797_a72_platform_effect_operation {
 	MT6797_A72_PLATFORM_EFFECT_NONE,
@@ -48,29 +48,29 @@ struct mt6797_a72_platform_effect_result {
 };
 
 #if IS_ENABLED(CONFIG_MTK_MT6797_A72_PLATFORM_EFFECTS)
-int mt6797_a72_platform_effect_p27_acquire(
-	struct device *dev,
-	const struct mt6797_a72_platform_effect_handle *handle,
-	struct mt6797_a72_platform_effect_result *result);
-int mt6797_a72_platform_effect_p27_release(
-	struct device *dev,
-	const struct mt6797_a72_platform_effect_handle *handle,
-	struct mt6797_a72_platform_effect_result *result);
-int mt6797_a72_platform_effect_isolation_clear(
-	struct device *dev,
-	const struct mt6797_a72_platform_effect_handle *handle,
-	const struct mt6797_a72_provider_handle *provider,
-	struct mt6797_a72_platform_effect_result *result);
-int mt6797_a72_platform_effect_dcm_update(
-	struct device *dev,
-	const struct mt6797_a72_platform_effect_handle *handle,
-	bool cpu8_online, bool cpu9_online,
-	struct mt6797_a72_platform_effect_result *result);
+int
+mt6797_a72_platform_effect_p27_acquire(struct device *dev,
+				       const struct mt6797_a72_platform_effect_handle *handle,
+				       struct mt6797_a72_platform_effect_result *result);
+int
+mt6797_a72_platform_effect_p27_release(struct device *dev,
+				       const struct mt6797_a72_platform_effect_handle *handle,
+				       struct mt6797_a72_platform_effect_result *result);
+int
+mt6797_a72_platform_effect_isolation_clear(struct device *dev,
+					   const struct mt6797_a72_platform_effect_handle *handle,
+					   const struct mt6797_a72_provider_handle *provider,
+					   struct mt6797_a72_platform_effect_result *result);
+int
+mt6797_a72_platform_effect_dcm_update(struct device *dev,
+				      const struct mt6797_a72_platform_effect_handle *handle,
+				      bool cpu8_online, bool cpu9_online,
+				      struct mt6797_a72_platform_effect_result *result);
 #else
-static inline int mt6797_a72_platform_effect_p27_acquire(
-	struct device *dev,
-	const struct mt6797_a72_platform_effect_handle *handle,
-	struct mt6797_a72_platform_effect_result *result)
+static inline int
+mt6797_a72_platform_effect_p27_acquire(struct device *dev,
+				       const struct mt6797_a72_platform_effect_handle *handle,
+				       struct mt6797_a72_platform_effect_result *result)
 {
 	(void)dev;
 	(void)handle;
@@ -79,10 +79,10 @@ static inline int mt6797_a72_platform_effect_p27_acquire(
 	return -EOPNOTSUPP;
 }
 
-static inline int mt6797_a72_platform_effect_p27_release(
-	struct device *dev,
-	const struct mt6797_a72_platform_effect_handle *handle,
-	struct mt6797_a72_platform_effect_result *result)
+static inline int
+mt6797_a72_platform_effect_p27_release(struct device *dev,
+				       const struct mt6797_a72_platform_effect_handle *handle,
+				       struct mt6797_a72_platform_effect_result *result)
 {
 	(void)dev;
 	(void)handle;
@@ -91,11 +91,11 @@ static inline int mt6797_a72_platform_effect_p27_release(
 	return -EOPNOTSUPP;
 }
 
-static inline int mt6797_a72_platform_effect_isolation_clear(
-	struct device *dev,
-	const struct mt6797_a72_platform_effect_handle *handle,
-	const struct mt6797_a72_provider_handle *provider,
-	struct mt6797_a72_platform_effect_result *result)
+static inline int
+mt6797_a72_platform_effect_isolation_clear(struct device *dev,
+					   const struct mt6797_a72_platform_effect_handle *handle,
+					   const struct mt6797_a72_provider_handle *provider,
+					   struct mt6797_a72_platform_effect_result *result)
 {
 	(void)dev;
 	(void)handle;
@@ -105,11 +105,11 @@ static inline int mt6797_a72_platform_effect_isolation_clear(
 	return -EOPNOTSUPP;
 }
 
-static inline int mt6797_a72_platform_effect_dcm_update(
-	struct device *dev,
-	const struct mt6797_a72_platform_effect_handle *handle,
-	bool cpu8_online, bool cpu9_online,
-	struct mt6797_a72_platform_effect_result *result)
+static inline int
+mt6797_a72_platform_effect_dcm_update(struct device *dev,
+				      const struct mt6797_a72_platform_effect_handle *handle,
+				      bool cpu8_online, bool cpu9_online,
+				      struct mt6797_a72_platform_effect_result *result)
 {
 	(void)dev;
 	(void)handle;

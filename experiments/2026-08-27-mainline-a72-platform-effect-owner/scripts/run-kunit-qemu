@@ -90,7 +90,7 @@ for symbol in \
 	mt6797_a72_platform_effect_dcm_update \
 	mt6797_a72_platform_effect_owner_p27_acquire \
 	mt6797_a72_platform_effect_owner_p27_release \
-	mt6797_a72_platform_effect_owner_isolation_clear \
+	mt6797_a72_effect_owner_isolate \
 	mt6797_a72_platform_effect_owner_dcm_update \
 	mt6797_platform_effect_success_test \
 	mt6797_platform_effect_p27_rejections_test \
