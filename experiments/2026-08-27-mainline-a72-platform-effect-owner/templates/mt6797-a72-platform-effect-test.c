@@ -511,8 +511,10 @@ mt6797_platform_effect_dcm_failures_test(struct kunit *test)
 		state.ignore_action = cases[i].ignore_action;
 		state.ignore_occurrence = cases[i].ignore_occurrence;
 		ret = mt6797_a72_platform_effect_owner_dcm_update(&owner, &test_ops, &state,
-			&test_handle, cases[i].cpu8_online,
-			cases[i].cpu9_online, &result);
+								  &test_handle,
+								  cases[i].cpu8_online,
+								  cases[i].cpu9_online,
+								  &result);
 		KUNIT_EXPECT_LT_MSG(test, ret, 0, "case=%u", i);
 		KUNIT_EXPECT_TRUE(test, result.sealed);
 		KUNIT_EXPECT_TRUE(test, result.p27_owned);
