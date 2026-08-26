@@ -233,11 +233,12 @@ require(contract["runtime_tooling"] == {
     "identity_mutations_rejected": 2,
     "bounded_chunks": 40,
     "observed_maximum_command_line": 812,
+    "required_consecutive_tcp_closures": 3,
     "remote_temporary_file": False,
     "device_storage_write": False,
     "reboot_request": False,
     "receipt_sha256":
-        "7c779c7fd53e0cd478ebb3ef103013e3d6339e61e1fe1b0cfb1d313de4c357c4",
+        "96c383237d102df40f32dbc018ec014214f8616cad41f44ae89686d2f716ec20",
     "result": "pass",
 }, "runtime tooling result")
 runtime_tooling_text = runtime_tooling_receipt.read_text(encoding="utf-8")
@@ -247,15 +248,50 @@ for token in (
     "maximum_command_line=812", "remote_temporary_file=false",
     "installer_fresh_backup=none",
     "installer_success_action=shutdown-without-reboot",
+    "installer_shutdown_confirmation=ssh-failure-plus-three-tcp-closures",
+    "shutdown_required_consecutive_closures=3",
     "device_action=none", "result=pass",
 ):
     require(token in runtime_tooling_text, f"runtime tooling receipt: {token}")
+deployment_receipt = EXP / "results/deployment-boot2-20260826.txt"
+require(sha256(deployment_receipt) == contract["deployment"]["receipt_sha256"],
+        "deployment receipt")
+require(contract["deployment"] == {
+    "published_tooling_commit": "6a38dc25",
+    "gemian_boot_id": "6ad7a635-13b4-4aae-9e3c-1a1ceddc7bd4",
+    "target": "/dev/mmcblk0p30",
+    "predecessor_sha256":
+        "9ac8e004cdba7955c0525eab7a4863f0df5474b4ff105408e6f06b1cbc846f78",
+    "candidate_sha256":
+        "6219357a1c505a8c08ad33f97940aed4a9c73bf37a691a31c66ebc63559fe4f7",
+    "readback_sha256":
+        "6219357a1c505a8c08ad33f97940aed4a9c73bf37a691a31c66ebc63559fe4f7",
+    "fresh_predecessor_backup": False,
+    "retained_ram_write": False,
+    "reboot_request": False,
+    "shutdown_confirmed": False,
+    "tcp22_open": True,
+    "receipt_sha256":
+        "9f490c11d78e6c818f7e89af90cb20b48301e2072b330954b5e113fbb640b559",
+    "result": "write-readback-pass-shutdown-unconfirmed",
+}, "deployment result")
+deployment_text = deployment_receipt.read_text(encoding="utf-8")
+for token in (
+    "fresh_predecessor_backup=no", "retained_ram_write=none",
+    "write=sync-flush-complete",
+    "independent_readback_sha256=6219357a1c505a8c08ad33f97940aed4a9c73bf37a691a31c66ebc63559fe4f7",
+    "reboot_request=none", "shutdown_confirmed=no",
+    "shutdown_state=half-responsive", "installer_false_confirmation=proven",
+    "next_action=confirm-physical-poweroff-before-boot2-selection",
+    "result=write-readback-pass-shutdown-unconfirmed",
+):
+    require(token in deployment_text, f"deployment receipt: {token}")
 require(contract["canonical_admission"] is True, "canonical admission")
 require(contract["dt_change"] is False, "no DT change")
 require(contract["native_vm_build"] is False, "no native build")
-require(contract["device_action"] is False, "no device action")
+require(contract["device_action"] is True, "device action recorded")
 require(contract["current_status"] ==
-        "candidate-and-deployment-tooling-pass-ready-for-boot2-install",
+        "boot2-write-readback-pass-shutdown-unconfirmed",
         "current status")
 receipt_path = EXP / "results/prebuild-tooling-20260826.txt"
 require(sha256(receipt_path) == contract["prebuild_receipt_sha256"],
@@ -297,5 +333,6 @@ print("buildbox_candidate=pass")
 print("candidate=32_lk_gates:6_mutations:pass")
 print("transport=bounded-memory-only")
 print("deployment_runtime_tooling=pass")
+print("deployment=write_readback_pass:shutdown_unconfirmed")
 print("native_vm_build=none")
-print("device_action=none")
+print("device_action=boot2-write-recorded")

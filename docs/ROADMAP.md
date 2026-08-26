@@ -5579,7 +5579,18 @@ The next ordered work is:
    inactive `boot2`, and require confirmed shutdown. Then pre-arm the bounded
    collector and spend one physical boot. Success must advance beyond the
    former unrelated-bit platform `-EAGAIN`; any new stage or A72-bit movement
-   selects the next source action. CPU8/CPU9 admission remains closed.
+   selects the next source action. CPU8/CPU9 admission remains closed. The
+   guarded deployment has now written, flushed, and independently read back
+   exact `6219357a` on live-GPT inactive `/dev/mmcblk0p30`; predecessor,
+   external power, TEE identity, and logically empty retained headers all
+   passed, with no fresh backup or reboot. The inherited installer then
+   misclassified a failed SSH session as shutdown even though TCP/22 remained
+   open and served an SSH banner. The device is half-responsive after its clean
+   poweroff request, so shutdown is not confirmed. The corrected installer now
+   requires three consecutive TCP connection failures and rejects this state.
+   **Selected next:** confirm actual physical power-off before any boot2
+   selection. Then pre-arm the bounded collector and spend the one planned
+   boot; do not rewrite the already verified partition.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

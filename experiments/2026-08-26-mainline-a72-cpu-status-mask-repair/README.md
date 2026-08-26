@@ -96,4 +96,19 @@ runtime collector converts the inherited one-line payload to 40 bounded
 in-memory commands with an observed maximum of 812 characters; it creates no
 remote file. Seven serviceable result branches pass and the inherited 23
 runtime mutations plus two retargeted identity mutations remain rejected. No
-native VM build, hardware write, or CPU request has occurred.
+native VM build or CPU request has occurred.
+
+The first real deployment exposed a shutdown-confirmation defect in the
+inherited installer: Gemian stopped accepting SSH sessions while its TCP/22
+listener remained open, so session failure alone falsely reported shutdown.
+The corrected wrapper now also requires TCP/22 to close and fails otherwise;
+it never sends a reboot or an additional poweroff request.
+
+The exact deployment itself passed every live-GPT, predecessor, power, TEE,
+retained-header, write, flush, full-partition, and independent-readback gate.
+Inactive `boot2` now contains exact `6219357a`. The clean Gemian poweroff
+request left the device half-responsive: SSH authentication still completed
+and TCP/22 still served a banner, but a session could not open. Therefore
+shutdown is explicitly unconfirmed and no physical `boot2` selection is
+allowed yet. The next action is to confirm actual power-off; only then may the
+bounded collector be armed and this candidate booted once.
