@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import re
 
 
 def require(condition: bool, message: str) -> None:
@@ -12,7 +13,24 @@ def require(condition: bool, message: str) -> None:
         raise SystemExit(f"FAIL: {message}")
 
 
+def public_definition_count(source: str, name: str) -> int:
+    """Count global int definitions across kernel-style line wrapping."""
+    pattern = re.compile(
+        rf"^[ \t]*int[ \t\r\n]+{re.escape(name)}[ \t\r\n]*\(",
+        re.MULTILINE,
+    )
+    return len(pattern.findall(source))
+
+
+def validate_definition_counter() -> None:
+    wrapped = "int\nexample(struct device *dev)\n{\n\treturn 0;\n}\n"
+    called = "\treturn example(dev);\n"
+    require(public_definition_count(wrapped + called, "example") == 1,
+            "definition counter accepts wrapped return type and rejects calls")
+
+
 def main() -> None:
+    validate_definition_counter()
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-root", type=Path, required=True)
     parser.add_argument("--phase", choices=("production", "tests"),
@@ -66,7 +84,7 @@ def main() -> None:
         "mt6797_a72_platform_effect_isolation_clear",
         "mt6797_a72_platform_effect_dcm_update",
     ):
-        require(source.count(f"int {name}(") == 1,
+        require(public_definition_count(source, name) == 1,
                 f"one production definition and no caller: {name}")
     p27_write = source.index(
         "ops->spm_update_bits(context, MT6797_A72_EFFECT_SPM_P27")
