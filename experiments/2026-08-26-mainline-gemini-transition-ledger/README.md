@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-26-mainline-gemini-transition-ledger` |
-| Status | compile collision repaired; exact replacement review admitted locally; rebuild pending |
+| Status | first build and QEMU pass; stack-clean fixture replacement admitted locally; rebuild pending |
 | Subsystem | pstore retained transition evidence |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-26 America/New_York |
@@ -83,6 +83,25 @@ Checkpatch, production/test validation, exact replay, and package checksums all
 passed. The replacement hashes are recorded in
 [`results/patch-regeneration-18d401f4.txt`](results/patch-regeneration-18d401f4.txt).
 
-The corrected focused profile has not yet compiled, so no runtime or hardware-
-support conclusion follows yet. No retained memory, watchdog, CPU, device, or
-partition was accessed.
+At that checkpoint the corrected focused profile had not yet compiled, so the
+regeneration alone supported no runtime or hardware-support conclusion. No
+retained memory, watchdog, CPU, device, or partition was accessed.
+
+## First compile and QEMU result
+
+Exact pushed commit `1660cb1e` compiled and passed complete package validation
+on Buildbox. Its single no-network QEMU suite passed all six cases with the
+expected post-test root-filesystem panic. This proves the injected in-memory
+owner contract, not the physical Gemini mapping or a production caller. Exact
+hashes and case results are in
+[`results/build-qemu-1660cb1e.txt`](results/build-qemu-1660cb1e.txt).
+
+That build also emitted six new `-Wframe-larger-than` warnings, all caused by
+two 256-entry write-history arrays in the test fixture. Only the last write was
+asserted. Commit `7d61de24` replaced those arrays with two last-write fields,
+removed no assertion, and regenerated the exact test patch. Strict Checkpatch,
+source validation, replay, package checksums, and the 145-profile invariant all
+passed; see
+[`results/patch-regeneration-7d61de24.txt`](results/patch-regeneration-7d61de24.txt).
+The stack-clean replacement still requires its exact Buildbox rebuild and
+bounded QEMU rerun before this milestone closes.

@@ -1,4 +1,4 @@
-From fe3780fcb2610cd16563e1cfc7a13739d173ab7d Mon Sep 17 00:00:00 2001
+From 5fe2fe51e0a7506414905d3d7163999bdfb178cd Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Thu, 27 Aug 2026 02:02:00 +0000
 Subject: [PATCH 2/2] pstore: test Gemini mutable transition ledger
@@ -8,8 +8,8 @@ corrupt-copy recovery, and terminal sealing in memory.
 ---
  fs/pstore/Kconfig                         |  12 +
  fs/pstore/Makefile                        |   1 +
- fs/pstore/gemini_transition_ledger_test.c | 311 ++++++++++++++++++++++
- 3 files changed, 324 insertions(+)
+ fs/pstore/gemini_transition_ledger_test.c | 308 ++++++++++++++++++++++
+ 3 files changed, 321 insertions(+)
  create mode 100644 fs/pstore/gemini_transition_ledger_test.c
 
 diff --git a/fs/pstore/Kconfig b/fs/pstore/Kconfig
@@ -49,10 +49,10 @@ index 6a0ed41..3baa9e6 100644
  obj-$(CONFIG_PSTORE_ZONE)	+= pstore_zone.o
 diff --git a/fs/pstore/gemini_transition_ledger_test.c b/fs/pstore/gemini_transition_ledger_test.c
 new file mode 100644
-index 0000000..6d4aed5
+index 0000000..42f83a3
 --- /dev/null
 +++ b/fs/pstore/gemini_transition_ledger_test.c
-@@ -0,0 +1,311 @@
+@@ -0,0 +1,308 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/* In-memory tests for the Gemini retained transition ledger. */
 +
@@ -66,12 +66,11 @@ index 0000000..6d4aed5
 +#include "gemini_transition_ledger_internal.h"
 +
 +#define GEMINI_LEDGER_TEST_WORDS 32U
-+#define GEMINI_LEDGER_TEST_WRITES 256U
 +
 +struct gemini_transition_ledger_test_state {
 +	u32 words[GEMINI_LEDGER_TEST_WORDS];
-+	u32 write_words[GEMINI_LEDGER_TEST_WRITES];
-+	u32 write_values[GEMINI_LEDGER_TEST_WRITES];
++	u32 last_write_word;
++	u32 last_write_value;
 +	unsigned int writes;
 +	unsigned int barriers;
 +	unsigned int drop_word;
@@ -89,10 +88,8 @@ index 0000000..6d4aed5
 +{
 +	struct gemini_transition_ledger_test_state *state = context;
 +
-+	if (state->writes < GEMINI_LEDGER_TEST_WRITES) {
-+		state->write_words[state->writes] = word;
-+		state->write_values[state->writes] = value;
-+	}
++	state->last_write_word = word;
++	state->last_write_value = value;
 +	state->writes++;
 +	if (word < GEMINI_LEDGER_TEST_WORDS &&
 +	    (!state->drop_enabled || word != state->drop_word))
@@ -215,8 +212,8 @@ index 0000000..6d4aed5
 +	KUNIT_ASSERT_EQ(test, ret, 0);
 +	KUNIT_EXPECT_EQ(test, state.words[0],
 +			GEMINI_TRANSITION_LEDGER_PSTORE_SIGNATURE);
-+	KUNIT_EXPECT_EQ(test, state.write_words[state.writes - 1], 0U);
-+	KUNIT_EXPECT_EQ(test, state.write_values[state.writes - 1],
++	KUNIT_EXPECT_EQ(test, state.last_write_word, 0U);
++	KUNIT_EXPECT_EQ(test, state.last_write_value,
 +			GEMINI_TRANSITION_LEDGER_PSTORE_SIGNATURE);
 +	KUNIT_ASSERT_TRUE(test, ledger_test_latest(&state, &latest, &copy));
 +	KUNIT_EXPECT_EQ(test, latest.attempt_id, 3ULL);
