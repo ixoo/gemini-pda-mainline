@@ -39,7 +39,7 @@ gemini_transition_ledger_read_wire(const struct gemini_transition_ledger_ops *op
 
 	for (word = 0; word < GEMINI_TRANSITION_LEDGER_COPY_WORDS; word++)
 		wire[word] = cpu_to_le32(ops->read(context,
-				gemini_transition_ledger_copy_word(copy, word)));
+					   gemini_transition_ledger_copy_word(copy, word)));
 }
 
 static bool
@@ -113,7 +113,8 @@ gemini_transition_ledger_ops_valid(const struct gemini_transition_ledger_ops *op
 
 int
 gemini_transition_ledger_owner_begin(struct gemini_transition_ledger_owner *owner,
-	const struct gemini_transition_ledger_ops *ops, void *context,
+				     const struct gemini_transition_ledger_ops *ops,
+				     void *context,
 	u64 attempt_id)
 {
 	struct gemini_transition_ledger_record latest;
@@ -142,7 +143,7 @@ gemini_transition_ledger_owner_begin(struct gemini_transition_ledger_owner *owne
 		return -EBADMSG;
 	if (committed) {
 		valid = gemini_transition_ledger_read_latest(ops, context,
-						     &latest, &copy);
+							     &latest, &copy);
 		if (!valid)
 			return -EBADMSG;
 		if (latest.generation == U32_MAX)
@@ -196,7 +197,8 @@ gemini_transition_ledger_fault(struct gemini_transition_ledger_owner *owner)
 
 int
 gemini_transition_ledger_owner_checkpoint(struct gemini_transition_ledger_owner *owner,
-	const struct gemini_transition_ledger_ops *ops, void *context,
+					  const struct gemini_transition_ledger_ops *ops,
+					  void *context,
 	u64 attempt_id, u32 phase, u32 stage, u32 terminal)
 {
 	__le32 readback[GEMINI_TRANSITION_LEDGER_COPY_WORDS];
@@ -370,7 +372,8 @@ int gemini_transition_ledger_begin(u64 attempt_id)
 		goto out_unlock;
 	}
 	ret = gemini_transition_ledger_owner_begin(&gemini_transition_ledger_owner,
-		&gemini_transition_ledger_mmio_ops, slot, attempt_id);
+						   &gemini_transition_ledger_mmio_ops,
+						   slot, attempt_id);
 	if (ret)
 		iounmap(slot);
 	else
@@ -382,7 +385,7 @@ out_unlock:
 EXPORT_SYMBOL_GPL(gemini_transition_ledger_begin);
 
 int gemini_transition_ledger_checkpoint(u64 attempt_id, u32 phase,
-					 u32 stage, u32 terminal)
+					u32 stage, u32 terminal)
 {
 	struct gemini_transition_ledger_owner *owner;
 	int ret;
@@ -395,8 +398,9 @@ int gemini_transition_ledger_checkpoint(u64 attempt_id, u32 phase,
 		goto out_unlock;
 	}
 	ret = gemini_transition_ledger_owner_checkpoint(owner,
-		&gemini_transition_ledger_mmio_ops,
-		gemini_transition_ledger_slot, attempt_id, phase, stage, terminal);
+						&gemini_transition_ledger_mmio_ops,
+						gemini_transition_ledger_slot,
+						attempt_id, phase, stage, terminal);
 	if (ret || phase == GEMINI_TRANSITION_LEDGER_TERMINAL) {
 		iounmap(gemini_transition_ledger_slot);
 		gemini_transition_ledger_slot = NULL;

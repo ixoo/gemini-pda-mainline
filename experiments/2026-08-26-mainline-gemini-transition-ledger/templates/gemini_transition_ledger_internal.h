@@ -49,15 +49,17 @@ struct gemini_transition_ledger_owner {
 
 int
 gemini_transition_ledger_owner_begin(struct gemini_transition_ledger_owner *owner,
-	const struct gemini_transition_ledger_ops *ops, void *context,
+				     const struct gemini_transition_ledger_ops *ops,
+				     void *context,
 	u64 attempt_id);
 int
 gemini_transition_ledger_owner_checkpoint(struct gemini_transition_ledger_owner *owner,
-	const struct gemini_transition_ledger_ops *ops, void *context,
+					  const struct gemini_transition_ledger_ops *ops,
+					  void *context,
 	u64 attempt_id, u32 phase, u32 stage, u32 terminal);
 bool
 gemini_transition_ledger_read_latest(const struct gemini_transition_ledger_ops *ops,
-	void *context,
+				     void *context,
 	struct gemini_transition_ledger_record *record,
 	u32 *copy_index);
 
