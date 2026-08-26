@@ -25,10 +25,11 @@ the loop. Positive identity-gated observations are unaffected.
 
 - [2026-08-26 MT6797 watchdog recovery takeover](2026-08-26-mainline-mtk-wdt-recovery-takeover/README.md)
   — admits canonical patches `0386`--`0387` for a default-off,
-  MT6797-only, irreversible 15-second watchdog owner. Exact-source generation,
-  replay, strict Checkpatch, and five in-memory cases are prepared with zero
-  physical watchdog calls or production callers; focused Buildbox compilation
-  and no-network QEMU execution are pending.
+  MT6797-only, irreversible 15-second watchdog owner. Exact clean commit
+  `773e5dbc` compiles on Buildbox, and its sole no-network QEMU suite passes
+  all five in-memory cases with zero failures or skips. There are zero physical
+  watchdog calls or production callers; the retained last-stage ledger is
+  next.
 - [2026-08-26 A72 physical-binding audit](2026-08-26-mainline-a72-physical-binding-audit/README.md)
   — maps all 12 callbacks in the proven one-shot CPU8 executor against the
   exact prepared source. Only the DA921x acquire/release pair is directly

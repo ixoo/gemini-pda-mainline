@@ -5630,13 +5630,19 @@ The next ordered work is:
    retained-stage, and SRAM-LDO operations need narrow owner APIs; and CPU_ON,
    online completion, and the IPI proof need a PSCI/generic-hotplug lifecycle
    bridge. The existing pstore helper's two fixed records cannot encode the
-   transition's last attributable stage. **Selected next:** implement and
-   hardware-free-test the one-shot exclusive 15-second watchdog takeover.
-   Then add the retained last-stage ledger before the platform, SRAM, and CPU
-   lifecycle owners are composed. Preserve the executor's rollback boundary,
-   prove each owner and the complete binder with injected tests and no-network
-   QEMU, and do not assemble or write a device candidate before that proof
-   passes.
+   transition's last attributable stage. The linked watchdog takeover
+   experiment now admits canonical patches `0386`--`0387`. Exact clean
+   commit `773e5dbc` compiles the focused profile on Buildbox as
+   `7.1.3-gemini-wdt-takeover-kunit`, and its sole no-network QEMU suite
+   passes all five cases with zero failures or skips. The owner is default-off,
+   fixes the recovery deadline at 15 seconds, blocks all five competing
+   operations after irreversible takeover, and retains ownership after either
+   readback mismatch. It still has zero physical watchdog calls and zero
+   production callers. **Selected next:** add the retained last-stage ledger
+   before the platform, SRAM, and CPU lifecycle owners are composed. Preserve
+   the executor's rollback boundary, prove each owner and the complete binder
+   with injected tests and no-network QEMU, and do not assemble or write a
+   device candidate before that proof passes.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

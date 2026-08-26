@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-26-mainline-mtk-wdt-recovery-takeover` |
-| Status | exact patches generated; hardware-free compile pending |
+| Status | hardware-free watchdog takeover proven; retained-stage ledger next |
 | Subsystem | MediaTek MT6797 TOPRGU watchdog |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-26 America/New_York |
@@ -88,19 +88,36 @@ receipt is
 Patches `0386` and `0387` are now admitted as the canonical review artifacts
 with the focused `mtk-wdt-recovery-takeover-kunit` profile.
 
-## Analysis
+## Hardware-free validation
 
-Patch generation proves source shape, replay, and review style. It does not yet
-prove that the canonical tree compiles or that the five cases execute. The
-focused profile and bounded no-network QEMU harness must be published in the
-same clean commit as the package used for runtime proof.
+Exact clean commit `773e5dbc` compiled the focused
+`mtk-wdt-recovery-takeover-kunit` profile on Buildbox as
+`7.1.3-gemini-wdt-takeover-kunit`. Package validation passed every
+checksum; the resolved configuration contains exactly the intended suite, and
+`System.map` contains the takeover, executor, five case, and suite symbols.
+The package records 376 patches, no modules, no native VM build, no device
+action, and no boot candidate. See
+[`results/buildbox-compile-773e5dbc.txt`](results/buildbox-compile-773e5dbc.txt).
+
+The same exact package then ran in one bounded 45-second arm64 QEMU boot with
+networking disabled. Its sole named suite passed all five exact cases with zero
+failures or skips. The classifier observed the expected root-filesystem panic
+only after the suite pass and rejected any other suite inventory. The tests
+used only the in-memory register transport: no watchdog MMIO, timer, retained
+RAM, SMC, CPU request, device access, or production caller was present. See
+[`results/kunit-qemu-pass-773e5dbc-20260826.txt`](results/kunit-qemu-pass-773e5dbc-20260826.txt).
 
 ## Conclusion
 
-`inconclusive` until Buildbox compilation and the focused QEMU suite pass.
+`confirmed` for the hardware-free owner boundary. The exact default-off
+implementation proves a 15-second one-shot takeover, write/readback ordering,
+five competing-operation gates, and irreversible ownership after either
+readback fault. This is not yet a physical watchdog invocation or a CPU8
+candidate.
 
 ## Follow-up
 
-After hardware-free proof, connect only the executor's `watchdog_arm` callback.
-No physical CPU8 candidate is permitted until the separate retained-stage
-ledger and all later physical owners are also proven.
+Implement and hardware-free-test the retained last-stage ledger next. Do not
+connect the executor's `watchdog_arm` callback or assemble a physical CPU8
+candidate until that ledger and the remaining platform, SRAM-LDO, and lifecycle
+owners are independently proven.
