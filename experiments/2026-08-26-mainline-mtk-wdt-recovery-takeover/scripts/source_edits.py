@@ -65,7 +65,7 @@ HEADER_BLOCK = dedent("""\
     #else
     static inline int
     mtk_wdt_recovery_takeover(struct device *dev, unsigned int timeout_ms,
-    \t\t\t      struct mtk_wdt_recovery_result *result)
+    \t\t\t  struct mtk_wdt_recovery_result *result)
     {
     \t(void)dev;
     \t(void)timeout_ms;
@@ -283,7 +283,7 @@ WATCHDOG_OPS = dedent("""\
     }
 
     static int mtk_wdt_set_timeout(struct watchdog_device *wdt_dev,
-    \t\t\t\tunsigned int timeout)
+    \t\t\t       unsigned int timeout)
     {
     \tstruct mtk_wdt_dev *mtk_wdt = watchdog_get_drvdata(wdt_dev);
     \tunsigned long flags;
@@ -448,7 +448,7 @@ TEST_SOURCE = dedent("""\
 
     \tKUNIT_ASSERT_EQ(test, 0,
     \t\tmtk_wdt_recovery_execute(&owner, &mtk_wdt_recovery_test_ops,
-    \t\t\t\t\t state.identity ? &state : NULL,
+    \t\t\t\t\t &state,
     \t\t\t\t\t MTK_WDT_RECOVERY_TIMEOUT_MS,
     \t\t\t\t\t &result));
     \texpected_length = WDT_LENGTH_TIMEOUT(
@@ -595,8 +595,8 @@ def apply_production(root: Path) -> None:
                  "#define WDT_LENGTH_TIMEOUT_MASK\tGENMASK(15, 5)\n")
     replace_once(driver, "#define WDT_MODE_KEY\t\t0x22000000\n",
                  "#define WDT_MODE_KEY\t\t0x22000000\n"
-                 "#define WDT_MODE_RECOVERY_MASK\t(WDT_MODE_EN | WDT_MODE_IRQ_EN | \\\n+    \t\t\t\t WDT_MODE_AUTO_START | WDT_MODE_DUAL_EN)\n"
-                 "#define MTK_WDT_RECOVERY_TIMEOUT_SECONDS \\\n+    \t(MTK_WDT_RECOVERY_TIMEOUT_MS / 1000U)\n")
+                 "#define WDT_MODE_RECOVERY_MASK \\\n+    \t(WDT_MODE_EN | WDT_MODE_IRQ_EN | WDT_MODE_AUTO_START | \\\n+    \t WDT_MODE_DUAL_EN)\n"
+                 "#define MTK_WDT_RECOVERY_TIMEOUT_SECONDS\t15U\n")
     replace_once(driver, "static unsigned int timeout;\n\n",
                  "static unsigned int timeout;\n\n" + RECOVERY_TYPES)
     replace_once(
@@ -604,7 +604,7 @@ def apply_production(root: Path) -> None:
         "\tbool use_auto_restart;\n#ifdef CONFIG_MEDIATEK_WATCHDOG_BOOT_STATUS_CAPTURE\n",
         "\tbool use_auto_restart;\n"
         "#if IS_ENABLED(CONFIG_MEDIATEK_WATCHDOG_RECOVERY_TAKEOVER)\n"
-        "\tspinlock_t recovery_lock;\n"
+        "\tspinlock_t recovery_lock; /* guards recovery ownership */\n"
         "\tstruct mtk_wdt_recovery_owner recovery;\n"
         "\tbool recovery_supported;\n"
         "#endif\n"
