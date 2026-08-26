@@ -2,6 +2,7 @@
 /* In-memory tests for the Gemini retained transition ledger. */
 
 #include <kunit/test.h>
+#include <linux/bitops.h>
 #include <linux/errno.h>
 #include <linux/gemini_transition_ledger.h>
 #include <linux/module.h>
@@ -22,16 +23,14 @@ struct gemini_transition_ledger_test_state {
 	bool drop_enabled;
 };
 
-static u32 gemini_transition_ledger_test_read(void *context,
-					      unsigned int word)
+static u32 ledger_test_read(void *context, unsigned int word)
 {
 	struct gemini_transition_ledger_test_state *state = context;
 
 	return word < GEMINI_LEDGER_TEST_WORDS ? state->words[word] : 0;
 }
 
-static void gemini_transition_ledger_test_write(void *context,
-						unsigned int word, u32 value)
+static void ledger_test_write(void *context, unsigned int word, u32 value)
 {
 	struct gemini_transition_ledger_test_state *state = context;
 
@@ -45,32 +44,54 @@ static void gemini_transition_ledger_test_write(void *context,
 		state->words[word] = value;
 }
 
-static void gemini_transition_ledger_test_barrier(void *context)
+static void ledger_test_barrier(void *context)
 {
 	struct gemini_transition_ledger_test_state *state = context;
 
 	state->barriers++;
 }
 
-static const struct gemini_transition_ledger_ops
-gemini_transition_ledger_test_ops = {
-	.read = gemini_transition_ledger_test_read,
-	.write = gemini_transition_ledger_test_write,
-	.barrier = gemini_transition_ledger_test_barrier,
+static const struct gemini_transition_ledger_ops ledger_test_ops = {
+	.read = ledger_test_read,
+	.write = ledger_test_write,
+	.barrier = ledger_test_barrier,
 };
 
-static void gemini_transition_ledger_test_empty(
-	struct gemini_transition_ledger_test_state *state)
+static void
+ledger_test_empty(struct gemini_transition_ledger_test_state *state)
 {
 	memset(state, 0, sizeof(*state));
 	state->words[0] = GEMINI_TRANSITION_LEDGER_PSTORE_SIGNATURE;
 }
 
-static unsigned int gemini_transition_ledger_test_copy_word(
-	unsigned int copy, unsigned int word)
+static unsigned int ledger_test_copy_word(unsigned int copy,
+					  unsigned int word)
 {
 	return GEMINI_TRANSITION_LEDGER_HEADER_WORDS +
 		copy * GEMINI_TRANSITION_LEDGER_COPY_WORDS + word;
+}
+
+static int ledger_test_begin(struct gemini_transition_ledger_owner *owner,
+			     struct gemini_transition_ledger_test_state *state,
+			     u64 attempt)
+{
+	return gemini_transition_ledger_owner_begin(owner, &ledger_test_ops,
+						    state, attempt);
+}
+
+static int ledger_test_checkpoint(struct gemini_transition_ledger_owner *owner,
+	struct gemini_transition_ledger_test_state *state, u64 attempt,
+	u32 phase, u32 stage, u32 terminal)
+{
+	return gemini_transition_ledger_owner_checkpoint(owner, &ledger_test_ops,
+		state, attempt, phase, stage, terminal);
+}
+
+static bool ledger_test_latest(struct gemini_transition_ledger_test_state *state,
+	struct gemini_transition_ledger_record *record, u32 *copy)
+{
+	return gemini_transition_ledger_read_latest(&ledger_test_ops, state,
+						    record, copy);
 }
 
 static void gemini_transition_ledger_sequence_test(struct kunit *test)
@@ -83,22 +104,18 @@ static void gemini_transition_ledger_sequence_test(struct kunit *test)
 	u32 stage;
 	int ret;
 
-	gemini_transition_ledger_test_empty(&state);
-	ret = gemini_transition_ledger_owner_begin(
-		&owner, &gemini_transition_ledger_test_ops, &state, attempt);
+	ledger_test_empty(&state);
+	ret = ledger_test_begin(&owner, &state, attempt);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	for (stage = 1; stage <= GEMINI_TRANSITION_LEDGER_MAX_STAGE; stage++) {
-		ret = gemini_transition_ledger_owner_checkpoint(
-			&owner, &gemini_transition_ledger_test_ops, &state,
-			attempt, GEMINI_TRANSITION_LEDGER_BEFORE, stage, 0);
+		ret = ledger_test_checkpoint(&owner, &state, attempt,
+			GEMINI_TRANSITION_LEDGER_BEFORE, stage, 0);
 		KUNIT_ASSERT_EQ(test, ret, 0);
-		ret = gemini_transition_ledger_owner_checkpoint(
-			&owner, &gemini_transition_ledger_test_ops, &state,
-			attempt, GEMINI_TRANSITION_LEDGER_AFTER, stage, 0);
+		ret = ledger_test_checkpoint(&owner, &state, attempt,
+			GEMINI_TRANSITION_LEDGER_AFTER, stage, 0);
 		KUNIT_ASSERT_EQ(test, ret, 0);
 	}
-	ret = gemini_transition_ledger_owner_checkpoint(
-		&owner, &gemini_transition_ledger_test_ops, &state, attempt,
+	ret = ledger_test_checkpoint(&owner, &state, attempt,
 		GEMINI_TRANSITION_LEDGER_TERMINAL,
 		GEMINI_TRANSITION_LEDGER_MAX_STAGE, 5);
 	KUNIT_ASSERT_EQ(test, ret, 0);
@@ -109,8 +126,7 @@ static void gemini_transition_ledger_sequence_test(struct kunit *test)
 			GEMINI_TRANSITION_LEDGER_PAYLOAD_BYTES);
 	KUNIT_EXPECT_EQ(test, state.words[2],
 			GEMINI_TRANSITION_LEDGER_PAYLOAD_BYTES);
-	KUNIT_ASSERT_TRUE(test, gemini_transition_ledger_read_latest(
-		&gemini_transition_ledger_test_ops, &state, &latest, &copy));
+	KUNIT_ASSERT_TRUE(test, ledger_test_latest(&state, &latest, &copy));
 	KUNIT_EXPECT_EQ(test, latest.attempt_id, attempt);
 	KUNIT_EXPECT_EQ(test, latest.generation, 19U);
 	KUNIT_EXPECT_EQ(test, latest.phase,
@@ -133,11 +149,9 @@ static void gemini_transition_ledger_raw_header_test(struct kunit *test)
 	state.writes = 0;
 	state.barriers = 0;
 	state.drop_enabled = false;
-	ret = gemini_transition_ledger_owner_begin(
-		&owner, &gemini_transition_ledger_test_ops, &state, 3);
+	ret = ledger_test_begin(&owner, &state, 3);
 	KUNIT_ASSERT_EQ(test, ret, 0);
-	ret = gemini_transition_ledger_owner_checkpoint(
-		&owner, &gemini_transition_ledger_test_ops, &state, 3,
+	ret = ledger_test_checkpoint(&owner, &state, 3,
 		GEMINI_TRANSITION_LEDGER_BEFORE, 1, 0);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	KUNIT_EXPECT_EQ(test, state.words[0],
@@ -145,8 +159,7 @@ static void gemini_transition_ledger_raw_header_test(struct kunit *test)
 	KUNIT_EXPECT_EQ(test, state.write_words[state.writes - 1], 0U);
 	KUNIT_EXPECT_EQ(test, state.write_values[state.writes - 1],
 			GEMINI_TRANSITION_LEDGER_PSTORE_SIGNATURE);
-	KUNIT_ASSERT_TRUE(test, gemini_transition_ledger_read_latest(
-		&gemini_transition_ledger_test_ops, &state, &latest, &copy));
+	KUNIT_ASSERT_TRUE(test, ledger_test_latest(&state, &latest, &copy));
 	KUNIT_EXPECT_EQ(test, latest.attempt_id, 3ULL);
 	KUNIT_EXPECT_EQ(test, latest.generation, 1U);
 }
@@ -159,34 +172,27 @@ static void gemini_transition_ledger_rejections_test(struct kunit *test)
 	unsigned int writes;
 	int ret;
 
-	gemini_transition_ledger_test_empty(&state);
-	ret = gemini_transition_ledger_owner_begin(
-		&owner, &gemini_transition_ledger_test_ops, &state, 0);
+	ledger_test_empty(&state);
+	ret = ledger_test_begin(&owner, &state, 0);
 	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
 	state.words[1] = 1;
 	state.words[2] = 2;
-	ret = gemini_transition_ledger_owner_begin(
-		&malformed, &gemini_transition_ledger_test_ops, &state, 9);
+	ret = ledger_test_begin(&malformed, &state, 9);
 	KUNIT_EXPECT_EQ(test, ret, -EBADMSG);
-	gemini_transition_ledger_test_empty(&state);
-	ret = gemini_transition_ledger_owner_begin(
-		&owner, &gemini_transition_ledger_test_ops, &state, 9);
+	ledger_test_empty(&state);
+	ret = ledger_test_begin(&owner, &state, 9);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	writes = state.writes;
-	ret = gemini_transition_ledger_owner_checkpoint(
-		&owner, &gemini_transition_ledger_test_ops, &state, 9,
+	ret = ledger_test_checkpoint(&owner, &state, 9,
 		GEMINI_TRANSITION_LEDGER_AFTER, 1, 0);
 	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
-	ret = gemini_transition_ledger_owner_checkpoint(
-		&owner, &gemini_transition_ledger_test_ops, &state, 9,
+	ret = ledger_test_checkpoint(&owner, &state, 9,
 		GEMINI_TRANSITION_LEDGER_BEFORE, 0, 0);
 	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
-	ret = gemini_transition_ledger_owner_checkpoint(
-		&owner, &gemini_transition_ledger_test_ops, &state, 9,
+	ret = ledger_test_checkpoint(&owner, &state, 9,
 		GEMINI_TRANSITION_LEDGER_BEFORE, 1, 1);
 	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
-	ret = gemini_transition_ledger_owner_checkpoint(
-		&owner, &gemini_transition_ledger_test_ops, &state, 10,
+	ret = ledger_test_checkpoint(&owner, &state, 10,
 		GEMINI_TRANSITION_LEDGER_BEFORE, 1, 0);
 	KUNIT_EXPECT_EQ(test, ret, -EACCES);
 	KUNIT_EXPECT_EQ(test, state.writes, writes);
@@ -200,31 +206,26 @@ static void gemini_transition_ledger_torn_write_test(struct kunit *test)
 	u32 copy;
 	int ret;
 
-	gemini_transition_ledger_test_empty(&state);
-	ret = gemini_transition_ledger_owner_begin(
-		&owner, &gemini_transition_ledger_test_ops, &state, 11);
+	ledger_test_empty(&state);
+	ret = ledger_test_begin(&owner, &state, 11);
 	KUNIT_ASSERT_EQ(test, ret, 0);
-	ret = gemini_transition_ledger_owner_checkpoint(
-		&owner, &gemini_transition_ledger_test_ops, &state, 11,
+	ret = ledger_test_checkpoint(&owner, &state, 11,
 		GEMINI_TRANSITION_LEDGER_BEFORE, 1, 0);
 	KUNIT_ASSERT_EQ(test, ret, 0);
-	state.drop_word = gemini_transition_ledger_test_copy_word(
-		1, GEMINI_TRANSITION_LEDGER_INTEGRITY_WORD);
+	state.drop_word = ledger_test_copy_word(1,
+		GEMINI_TRANSITION_LEDGER_INTEGRITY_WORD);
 	state.drop_enabled = true;
-	ret = gemini_transition_ledger_owner_checkpoint(
-		&owner, &gemini_transition_ledger_test_ops, &state, 11,
+	ret = ledger_test_checkpoint(&owner, &state, 11,
 		GEMINI_TRANSITION_LEDGER_AFTER, 1, 0);
 	KUNIT_EXPECT_EQ(test, ret, -EIO);
 	KUNIT_EXPECT_TRUE(test, owner.failed);
 	KUNIT_EXPECT_TRUE(test, owner.sealed);
 	state.drop_enabled = false;
-	KUNIT_ASSERT_TRUE(test, gemini_transition_ledger_read_latest(
-		&gemini_transition_ledger_test_ops, &state, &latest, &copy));
+	KUNIT_ASSERT_TRUE(test, ledger_test_latest(&state, &latest, &copy));
 	KUNIT_EXPECT_EQ(test, latest.generation, 1U);
 	KUNIT_EXPECT_EQ(test, latest.phase,
 			(u32)GEMINI_TRANSITION_LEDGER_BEFORE);
-	ret = gemini_transition_ledger_owner_checkpoint(
-		&owner, &gemini_transition_ledger_test_ops, &state, 11,
+	ret = ledger_test_checkpoint(&owner, &state, 11,
 		GEMINI_TRANSITION_LEDGER_AFTER, 1, 0);
 	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
 }
@@ -238,29 +239,24 @@ static void gemini_transition_ledger_corrupt_copy_test(struct kunit *test)
 	u32 copy;
 	int ret;
 
-	gemini_transition_ledger_test_empty(&state);
-	ret = gemini_transition_ledger_owner_begin(
-		&first, &gemini_transition_ledger_test_ops, &state, 21);
+	ledger_test_empty(&state);
+	ret = ledger_test_begin(&first, &state, 21);
 	KUNIT_ASSERT_EQ(test, ret, 0);
-	ret = gemini_transition_ledger_owner_checkpoint(
-		&first, &gemini_transition_ledger_test_ops, &state, 21,
+	ret = ledger_test_checkpoint(&first, &state, 21,
 		GEMINI_TRANSITION_LEDGER_BEFORE, 1, 0);
 	KUNIT_ASSERT_EQ(test, ret, 0);
-	ret = gemini_transition_ledger_owner_checkpoint(
-		&first, &gemini_transition_ledger_test_ops, &state, 21,
+	ret = ledger_test_checkpoint(&first, &state, 21,
 		GEMINI_TRANSITION_LEDGER_AFTER, 1, 0);
 	KUNIT_ASSERT_EQ(test, ret, 0);
-	state.words[gemini_transition_ledger_test_copy_word(
-		1, GEMINI_TRANSITION_LEDGER_INTEGRITY_WORD)] ^= BIT(0);
-	ret = gemini_transition_ledger_owner_begin(
-		&second, &gemini_transition_ledger_test_ops, &state, 22);
+	copy = ledger_test_copy_word(1,
+		GEMINI_TRANSITION_LEDGER_INTEGRITY_WORD);
+	state.words[copy] ^= BIT(0);
+	ret = ledger_test_begin(&second, &state, 22);
 	KUNIT_ASSERT_EQ(test, ret, 0);
-	ret = gemini_transition_ledger_owner_checkpoint(
-		&second, &gemini_transition_ledger_test_ops, &state, 22,
+	ret = ledger_test_checkpoint(&second, &state, 22,
 		GEMINI_TRANSITION_LEDGER_BEFORE, 1, 0);
 	KUNIT_ASSERT_EQ(test, ret, 0);
-	KUNIT_ASSERT_TRUE(test, gemini_transition_ledger_read_latest(
-		&gemini_transition_ledger_test_ops, &state, &latest, &copy));
+	KUNIT_ASSERT_TRUE(test, ledger_test_latest(&state, &latest, &copy));
 	KUNIT_EXPECT_EQ(test, latest.attempt_id, 22ULL);
 	KUNIT_EXPECT_EQ(test, latest.generation, 2U);
 	KUNIT_EXPECT_EQ(test, copy, 1U);
@@ -273,25 +269,20 @@ static void gemini_transition_ledger_terminal_one_shot_test(struct kunit *test)
 	unsigned int writes;
 	int ret;
 
-	gemini_transition_ledger_test_empty(&state);
-	ret = gemini_transition_ledger_owner_begin(
-		&owner, &gemini_transition_ledger_test_ops, &state, 31);
+	ledger_test_empty(&state);
+	ret = ledger_test_begin(&owner, &state, 31);
 	KUNIT_ASSERT_EQ(test, ret, 0);
-	ret = gemini_transition_ledger_owner_checkpoint(
-		&owner, &gemini_transition_ledger_test_ops, &state, 31,
+	ret = ledger_test_checkpoint(&owner, &state, 31,
 		GEMINI_TRANSITION_LEDGER_BEFORE, 1, 0);
 	KUNIT_ASSERT_EQ(test, ret, 0);
-	ret = gemini_transition_ledger_owner_checkpoint(
-		&owner, &gemini_transition_ledger_test_ops, &state, 31,
+	ret = ledger_test_checkpoint(&owner, &state, 31,
 		GEMINI_TRANSITION_LEDGER_TERMINAL, 1, 1);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	writes = state.writes;
-	ret = gemini_transition_ledger_owner_checkpoint(
-		&owner, &gemini_transition_ledger_test_ops, &state, 31,
+	ret = ledger_test_checkpoint(&owner, &state, 31,
 		GEMINI_TRANSITION_LEDGER_AFTER, 1, 0);
 	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
-	ret = gemini_transition_ledger_owner_begin(
-		&owner, &gemini_transition_ledger_test_ops, &state, 32);
+	ret = ledger_test_begin(&owner, &state, 32);
 	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
 	KUNIT_EXPECT_EQ(test, state.writes, writes);
 }
