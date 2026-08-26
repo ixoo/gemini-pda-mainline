@@ -80,7 +80,8 @@ static int ledger_test_begin(struct gemini_transition_ledger_owner *owner,
 }
 
 static int ledger_test_checkpoint(struct gemini_transition_ledger_owner *owner,
-	struct gemini_transition_ledger_test_state *state, u64 attempt,
+				  struct gemini_transition_ledger_test_state *state,
+				  u64 attempt,
 	u32 phase, u32 stage, u32 terminal)
 {
 	return gemini_transition_ledger_owner_checkpoint(owner, &ledger_test_ops,
@@ -88,7 +89,8 @@ static int ledger_test_checkpoint(struct gemini_transition_ledger_owner *owner,
 }
 
 static bool ledger_test_latest(struct gemini_transition_ledger_test_state *state,
-	struct gemini_transition_ledger_record *record, u32 *copy)
+			       struct gemini_transition_ledger_record *record,
+			       u32 *copy)
 {
 	return gemini_transition_ledger_read_latest(&ledger_test_ops, state,
 						    record, copy);
@@ -109,15 +111,17 @@ static void gemini_transition_ledger_sequence_test(struct kunit *test)
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	for (stage = 1; stage <= GEMINI_TRANSITION_LEDGER_MAX_STAGE; stage++) {
 		ret = ledger_test_checkpoint(&owner, &state, attempt,
-			GEMINI_TRANSITION_LEDGER_BEFORE, stage, 0);
+					     GEMINI_TRANSITION_LEDGER_BEFORE,
+					     stage, 0);
 		KUNIT_ASSERT_EQ(test, ret, 0);
 		ret = ledger_test_checkpoint(&owner, &state, attempt,
-			GEMINI_TRANSITION_LEDGER_AFTER, stage, 0);
+					     GEMINI_TRANSITION_LEDGER_AFTER,
+					     stage, 0);
 		KUNIT_ASSERT_EQ(test, ret, 0);
 	}
 	ret = ledger_test_checkpoint(&owner, &state, attempt,
-		GEMINI_TRANSITION_LEDGER_TERMINAL,
-		GEMINI_TRANSITION_LEDGER_MAX_STAGE, 5);
+				     GEMINI_TRANSITION_LEDGER_TERMINAL,
+				     GEMINI_TRANSITION_LEDGER_MAX_STAGE, 5);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	KUNIT_EXPECT_TRUE(test, owner.sealed);
 	KUNIT_EXPECT_FALSE(test, owner.active);
@@ -152,7 +156,7 @@ static void gemini_transition_ledger_raw_header_test(struct kunit *test)
 	ret = ledger_test_begin(&owner, &state, 3);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	ret = ledger_test_checkpoint(&owner, &state, 3,
-		GEMINI_TRANSITION_LEDGER_BEFORE, 1, 0);
+				     GEMINI_TRANSITION_LEDGER_BEFORE, 1, 0);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	KUNIT_EXPECT_EQ(test, state.words[0],
 			GEMINI_TRANSITION_LEDGER_PSTORE_SIGNATURE);
@@ -184,16 +188,16 @@ static void gemini_transition_ledger_rejections_test(struct kunit *test)
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	writes = state.writes;
 	ret = ledger_test_checkpoint(&owner, &state, 9,
-		GEMINI_TRANSITION_LEDGER_AFTER, 1, 0);
+				     GEMINI_TRANSITION_LEDGER_AFTER, 1, 0);
 	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
 	ret = ledger_test_checkpoint(&owner, &state, 9,
-		GEMINI_TRANSITION_LEDGER_BEFORE, 0, 0);
+				     GEMINI_TRANSITION_LEDGER_BEFORE, 0, 0);
 	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
 	ret = ledger_test_checkpoint(&owner, &state, 9,
-		GEMINI_TRANSITION_LEDGER_BEFORE, 1, 1);
+				     GEMINI_TRANSITION_LEDGER_BEFORE, 1, 1);
 	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
 	ret = ledger_test_checkpoint(&owner, &state, 10,
-		GEMINI_TRANSITION_LEDGER_BEFORE, 1, 0);
+				     GEMINI_TRANSITION_LEDGER_BEFORE, 1, 0);
 	KUNIT_EXPECT_EQ(test, ret, -EACCES);
 	KUNIT_EXPECT_EQ(test, state.writes, writes);
 }
@@ -210,13 +214,13 @@ static void gemini_transition_ledger_torn_write_test(struct kunit *test)
 	ret = ledger_test_begin(&owner, &state, 11);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	ret = ledger_test_checkpoint(&owner, &state, 11,
-		GEMINI_TRANSITION_LEDGER_BEFORE, 1, 0);
+				     GEMINI_TRANSITION_LEDGER_BEFORE, 1, 0);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	state.drop_word = ledger_test_copy_word(1,
-		GEMINI_TRANSITION_LEDGER_INTEGRITY_WORD);
+					GEMINI_TRANSITION_LEDGER_INTEGRITY_WORD);
 	state.drop_enabled = true;
 	ret = ledger_test_checkpoint(&owner, &state, 11,
-		GEMINI_TRANSITION_LEDGER_AFTER, 1, 0);
+				     GEMINI_TRANSITION_LEDGER_AFTER, 1, 0);
 	KUNIT_EXPECT_EQ(test, ret, -EIO);
 	KUNIT_EXPECT_TRUE(test, owner.failed);
 	KUNIT_EXPECT_TRUE(test, owner.sealed);
@@ -226,7 +230,7 @@ static void gemini_transition_ledger_torn_write_test(struct kunit *test)
 	KUNIT_EXPECT_EQ(test, latest.phase,
 			(u32)GEMINI_TRANSITION_LEDGER_BEFORE);
 	ret = ledger_test_checkpoint(&owner, &state, 11,
-		GEMINI_TRANSITION_LEDGER_AFTER, 1, 0);
+				     GEMINI_TRANSITION_LEDGER_AFTER, 1, 0);
 	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
 }
 
@@ -243,18 +247,18 @@ static void gemini_transition_ledger_corrupt_copy_test(struct kunit *test)
 	ret = ledger_test_begin(&first, &state, 21);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	ret = ledger_test_checkpoint(&first, &state, 21,
-		GEMINI_TRANSITION_LEDGER_BEFORE, 1, 0);
+				     GEMINI_TRANSITION_LEDGER_BEFORE, 1, 0);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	ret = ledger_test_checkpoint(&first, &state, 21,
-		GEMINI_TRANSITION_LEDGER_AFTER, 1, 0);
+				     GEMINI_TRANSITION_LEDGER_AFTER, 1, 0);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	copy = ledger_test_copy_word(1,
-		GEMINI_TRANSITION_LEDGER_INTEGRITY_WORD);
+				     GEMINI_TRANSITION_LEDGER_INTEGRITY_WORD);
 	state.words[copy] ^= BIT(0);
 	ret = ledger_test_begin(&second, &state, 22);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	ret = ledger_test_checkpoint(&second, &state, 22,
-		GEMINI_TRANSITION_LEDGER_BEFORE, 1, 0);
+				     GEMINI_TRANSITION_LEDGER_BEFORE, 1, 0);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	KUNIT_ASSERT_TRUE(test, ledger_test_latest(&state, &latest, &copy));
 	KUNIT_EXPECT_EQ(test, latest.attempt_id, 22ULL);
@@ -273,14 +277,14 @@ static void gemini_transition_ledger_terminal_one_shot_test(struct kunit *test)
 	ret = ledger_test_begin(&owner, &state, 31);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	ret = ledger_test_checkpoint(&owner, &state, 31,
-		GEMINI_TRANSITION_LEDGER_BEFORE, 1, 0);
+				     GEMINI_TRANSITION_LEDGER_BEFORE, 1, 0);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	ret = ledger_test_checkpoint(&owner, &state, 31,
-		GEMINI_TRANSITION_LEDGER_TERMINAL, 1, 1);
+				     GEMINI_TRANSITION_LEDGER_TERMINAL, 1, 1);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	writes = state.writes;
 	ret = ledger_test_checkpoint(&owner, &state, 31,
-		GEMINI_TRANSITION_LEDGER_AFTER, 1, 0);
+				     GEMINI_TRANSITION_LEDGER_AFTER, 1, 0);
 	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
 	ret = ledger_test_begin(&owner, &state, 32);
 	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
