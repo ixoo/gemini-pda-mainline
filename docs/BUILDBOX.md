@@ -570,6 +570,23 @@ the patches and runs strict Checkpatch, but does not compile a kernel, connect
 any physical backend, access the Gemini, create a candidate, or write retained
 memory.
 
+## Gemini retained transition-ledger generation
+
+The compact last-stage ledger follows the watchdog owner and is generated from
+the exact clean, pushed tree through canonical patch `0387`:
+
+```sh
+./scripts/buildbox generate-gemini-transition-ledger-patches
+./scripts/buildbox fetch-gemini-transition-ledger-patches
+```
+
+The lane emits one production-owner patch and one hardware-free KUnit patch.
+It pins the exact pstore Kconfig, Makefile, and ramoops source, replays both
+patches, and runs strict Checkpatch. Validation requires one retained zone,
+two alternating CRC-committed copies, 19 updates for a complete nine-stage run
+plus terminal state, zero production callers, and no physical retained-memory
+access or device action.
+
 ## Remote storage and concurrency
 
 Buildbox uses its persistent home volume for the Git mirror, verified kernel

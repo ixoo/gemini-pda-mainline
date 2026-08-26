@@ -23,6 +23,10 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-26 Gemini retained transition ledger](2026-08-26-mainline-gemini-transition-ledger/README.md)
+  — implements the selected compact, one-zone, two-copy retained last-stage
+  owner. Exact-source generation and hardware-free proof are in progress; the
+  physical API remains default-off with no production caller or device action.
 - [2026-08-26 MT6797 watchdog recovery takeover](2026-08-26-mainline-mtk-wdt-recovery-takeover/README.md)
   — admits canonical patches `0386`--`0387` for a default-off,
   MT6797-only, irreversible 15-second watchdog owner. Exact clean commit
