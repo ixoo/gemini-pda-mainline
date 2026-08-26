@@ -34,7 +34,9 @@
     "validate_source.py": "7897c20cc0dbbc07f6c0e8fbbc86f2ac2e996bcf54fecebe497f9742722068fe",
     "validate_patch.py": "462bfb734df25f283155ee6b931d7a421a7d976eb1c4ec21c752465f4b020000",
     "generate-patches.py": "9fa136a93cae45c0532bc0548c4724f31c129cd36e49f6a6423b383097e0d3f8",
-    "test-tooling.py": "76d593c53a8ee40bae09b89dfcf5e660e8ee0c2585235bc408b1fbb9effc71cf"
+    "test-tooling.py": "76d593c53a8ee40bae09b89dfcf5e660e8ee0c2585235bc408b1fbb9effc71cf",
+    "build-candidate.sh": "1e8156541aa3c0bfc79a7d1f387b95f3b6e67b7949c3fb2da258910744921e35",
+    "validate-candidate.sh": "b8c44549a50eb619970d7c9c0b2d2383b397fdbc6e27ba673ddb7fd37d149ab6"
   },
   "generated_package_sha256s_sha256": "fa889e9571202d44073e652a259c06602504994a18a862f09eac7ff3599aaba6",
   "tooling_rejected_mutations": 6,
@@ -59,6 +61,35 @@
     "raw_log_sha256": "e463a8ff79a08d60fb36849379955a4778e820037fa8ecc29365036279d355d3",
     "receipt_sha256": "7ff38e5d1ca38ac08fba407b8fe47ad6aa295b0fca6a30d338408bbeda556f6f",
     "result": "pass"
+  },
+  "device_build": {
+    "backend": "buildbox",
+    "repository_commit": "53398b8a4689e6a4150ec450e5c1e8a5ce37c6bc",
+    "profile": "a72-platform-provider-clock-stage-candidate",
+    "kernel_release": "7.1.3-gemini-a72-clock-stage",
+    "patchset_sha256": "0a30563dab641817532c400df1de03edd85ce17e4a2a907bd616df37bad19162",
+    "config_sha256": "d45758d0175786447635192d0ee0eff6d81f29df10482bc5828f1c3ac34b1265",
+    "image_sha256": "0088c87bbf39acdbb8147ba185687e87233c4c8e3c30daad633d57311e4885f8",
+    "image_gzip_sha256": "b158c810f117f62259c890dad517f769225e5ad7862d89ddfacd659aa68319b3",
+    "result": "pass"
+  },
+  "candidate": {
+    "dtb_sha256": "90cfc29b30fb036076a799f0223e0c8aae6469441e5917cbfa743f5d7ae6547d",
+    "dtb_vs_retired_third_reader": "byte-identical",
+    "raw_sha256": "8ca14ec2960b6934a7b1062de7c6013dc4e9dd3875c42d7cc96c0d7506e42429",
+    "raw_size": 6912000,
+    "padded_sha256": "8b6bedfd7187369104250af5524a36dd2339493df95588e372d54e360d6aeabb",
+    "padded_size": 16777216,
+    "manifest_sha256": "1a73373660e3b07d8ee830f940ab7fb31e0f791406e877b6c9824f133ce363ea",
+    "independent_assemblies": 2,
+    "independent_padding_paths": 2,
+    "lk_gates_passed": 32,
+    "container_mutations_rejected": 6,
+    "predecessor_sha256_required": "1f7bd9600e11846af352abbec660db816c378094664f81d861b9fbd1f1f16aa2",
+    "receipt_sha256": "5df519df2a4ee8af7ec0c56d1b05718618dc15e33897444749116ba0f44be4ea",
+    "boot_candidate": false,
+    "device_action": false,
+    "result": "pass-offline"
   },
   "failure_stages": {
     "none": 0,
@@ -85,5 +116,5 @@
   "dt_change": false,
   "native_vm_build": false,
   "device_action": false,
-  "current_status": "canonical-admission-buildbox-kunit-and-qemu-pass-device-build-pending"
+  "current_status": "device-build-and-offline-candidate-pass-deployment-tooling-pending"
 }

@@ -93,6 +93,19 @@ for token in (
     "result=pass",
 ):
     require(token in qemu_receipt, f"QEMU receipt: {token}")
+candidate_receipt = (EXP / "results/offline-candidate-validation-20260826.txt").read_text(encoding="utf-8")
+for token in (
+    "repository_commit=53398b8a4689e6a4150ec450e5c1e8a5ce37c6bc",
+    "profile=a72-platform-provider-clock-stage-candidate",
+    "kernel_release=7.1.3-gemini-a72-clock-stage",
+    "candidate_dtb_vs_retired_third_reader=byte-identical",
+    "boot2_padded_sha256=8b6bedfd7187369104250af5524a36dd2339493df95588e372d54e360d6aeabb",
+    "independent_candidate_assemblies=byte-identical",
+    "lk_gates=32-of-32", "container_negative_mutations_rejected=6",
+    "cpu_requests=0", "native_vm_build=none", "device_access=none",
+    "hardware_write=none", "result=pass",
+):
+    require(token in candidate_receipt, f"candidate receipt: {token}")
 for token in (
     "The exact prior image is retired", "out-of-band failure-stage result",
     "changes no supplier lookup", "same DT", "Buildbox compile",
@@ -109,4 +122,6 @@ print("canonical_patches=2")
 print("profiles_checked=138")
 print("buildbox_kunit=pass")
 print("kunit_qemu=pass:8_fail:0_skip:0_total:8")
+print("device_build=buildbox-pass")
+print("offline_candidate=pass:32_lk_gates:6_mutations")
 print("device_action=none")

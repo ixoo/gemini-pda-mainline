@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-25-mainline-a72-platform-provider-failure-stage-attribution` |
-| Status | Buildbox KUnit package validated; focused no-network QEMU suite passes 8/8; device profile pending |
+| Status | device package and same-DT candidate pass offline validation; deployment/runtime tooling pending |
 | Subsystem | MT6797 A72 platform/provider/protected-clock observer |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-25 America/New_York |
@@ -61,7 +61,17 @@ The test performed no physical I2C, clock-backend, MMIO, retained-RAM, secure,
 provider-transaction, owner, publication, or CPU operation. No native build or
 device action occurred.
 
-The next action is to publish this evidence, build the separate device profile
-on Buildbox, and assemble one exact same-DT candidate. Its one selected boot
-will distinguish `platform`, `provider`, or `before-clock` without repeating
-the retired ambiguous image.
+Exact evidence commit `53398b8a` then compiled the separate device profile on
+Buildbox as `7.1.3-gemini-a72-clock-stage`; its fetched package and checksum
+manifest pass. Two raw assemblies and two exact-padding paths are byte-for-byte
+identical. The decision-bearing DT is byte-identical to the retired third-reader
+DT, all 32 LK gates pass, and six corrupt-container mutations fail closed. Raw
+candidate `8ca14ec2` pads to exact 16 MiB `8b6bedfd`. The image retains
+`maxcpus=8`, one-call/no-retry ceilings, and zero CPU requests. No device access
+or hardware write occurred.
+
+The next action is to publish these exact identities with a guarded installer
+and no-reboot runtime collector. Only then may live-GPT `boot2` replace exact
+predecessor `1f7bd960`, pass a full-partition readback, and shut down for one
+owner-selected boot. That boot will distinguish `platform`, `provider`, or
+`before-clock` without repeating the retired ambiguous image.

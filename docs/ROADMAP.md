@@ -5464,7 +5464,15 @@ The next ordered work is:
    with zero failures or skips and no physical hardware action. **Selected
    next:** publish this evidence, build the isolated device profile on
    Buildbox, assemble the same-DT candidate, and spend one selected boot on the
-   exact pre-clock-stage discriminator.
+   exact pre-clock-stage discriminator. Exact published evidence commit
+   `53398b8a` builds that profile on Buildbox as
+   `7.1.3-gemini-a72-clock-stage`. Its package and checksums pass; two raw
+   assemblies and two padding paths are byte-identical, the DT is byte-identical
+   to the retired third-reader DT, all 32 LK gates pass, and six corruptions are
+   rejected. Raw `8ca14ec2` pads to exact 16 MiB `8b6bedfd`, with `maxcpus=8`
+   and zero CPU requests. **Selected next:** publish exact guarded deployment
+   and no-reboot collection tools, replace only exact boot2 predecessor
+   `1f7bd960`, verify full readback, shut down, and make one selected boot.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
