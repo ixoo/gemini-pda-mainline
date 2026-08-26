@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 
 
@@ -32,10 +33,17 @@ def sha256(path: Path) -> str:
 
 
 def run(*args: str, cwd: Path, env: dict[str, str] | None = None) -> str:
-    return subprocess.run(
-        args, cwd=cwd, env=env, check=True, text=True,
+    completed = subprocess.run(
+        args, cwd=cwd, env=env, check=False, text=True,
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-    ).stdout.strip()
+    )
+    if completed.returncode:
+        if completed.stdout:
+            print(completed.stdout.rstrip(), file=sys.stderr)
+        raise SystemExit(
+            f"command failed ({completed.returncode}): {' '.join(args)}"
+        )
+    return completed.stdout.strip()
 
 
 def commit(root: Path, subject: str, body: str, timestamp: str) -> None:
