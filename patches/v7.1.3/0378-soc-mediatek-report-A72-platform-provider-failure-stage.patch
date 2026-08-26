@@ -1,0 +1,146 @@
+From 21fda4ec3292ca275ccddfe341e761193fc15c93 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 26 Aug 2026 00:11:00 +0000
+Subject: [PATCH 1/2] soc: mediatek: report A72 platform/provider failure stage
+
+Preserve the zeroed pre-clock result while identifying the exact prefix
+boundary that returned an error.
+---
+ ...latform-provider-clock-observer-internal.h | 11 ++++-
+ ...797-a72-platform-provider-clock-observer.c | 48 ++++++++++++++++---
+ 2 files changed, 51 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-platform-provider-clock-observer-internal.h b/drivers/soc/mediatek/mt6797-a72-platform-provider-clock-observer-internal.h
+index 26abd5a..cad8bd0 100644
+--- a/drivers/soc/mediatek/mt6797-a72-platform-provider-clock-observer-internal.h
++++ b/drivers/soc/mediatek/mt6797-a72-platform-provider-clock-observer-internal.h
+@@ -8,6 +8,14 @@
+ 
+ struct device;
+ 
++enum mt6797_a72_ppc_failure_stage {
++	MT6797_A72_PPC_FAILURE_NONE,
++	MT6797_A72_PPC_FAILURE_DEPENDENCY,
++	MT6797_A72_PPC_FAILURE_PLATFORM,
++	MT6797_A72_PPC_FAILURE_PROVIDER,
++	MT6797_A72_PPC_FAILURE_BEFORE_CLOCK,
++};
++
+ struct mt6797_a72_platform_provider_clock_snapshot {
+ 	struct mt6797_a72_platform_state platform;
+ 	struct mt6797_a72_provider_snapshot provider;
+@@ -31,6 +39,7 @@ struct mt6797_a72_platform_provider_clock_ops {
+ int mt6797_a72_ppc_capture(struct device *platform, struct device *provider,
+ 			   struct device *clock,
+ 	const struct mt6797_a72_platform_provider_clock_ops *ops, void *context,
+-	struct mt6797_a72_platform_provider_clock_snapshot *snapshot);
++	struct mt6797_a72_platform_provider_clock_snapshot *snapshot,
++	enum mt6797_a72_ppc_failure_stage *failure_stage);
+ 
+ #endif /* __MT6797_A72_PLATFORM_PROVIDER_CLOCK_OBSERVER_INTERNAL_H */
+diff --git a/drivers/soc/mediatek/mt6797-a72-platform-provider-clock-observer.c b/drivers/soc/mediatek/mt6797-a72-platform-provider-clock-observer.c
+index 8ac2323..f7b9e07 100644
+--- a/drivers/soc/mediatek/mt6797-a72-platform-provider-clock-observer.c
++++ b/drivers/soc/mediatek/mt6797-a72-platform-provider-clock-observer.c
+@@ -55,36 +55,47 @@ mt6797_a72_ppc_ops = {
+ int mt6797_a72_ppc_capture(struct device *platform, struct device *provider,
+ 			   struct device *clock,
+ 	const struct mt6797_a72_platform_provider_clock_ops *ops, void *context,
+-	struct mt6797_a72_platform_provider_clock_snapshot *snapshot)
++	struct mt6797_a72_platform_provider_clock_snapshot *snapshot,
++	enum mt6797_a72_ppc_failure_stage *failure_stage)
+ {
+ 	int ret;
+ 
+-	if (!snapshot)
++	if (!snapshot || !failure_stage)
+ 		return -EINVAL;
++	*failure_stage = MT6797_A72_PPC_FAILURE_NONE;
+ 	memset(snapshot, 0, sizeof(*snapshot));
+-	if (!platform || !provider || !clock)
++	if (!platform || !provider || !clock) {
++		*failure_stage = MT6797_A72_PPC_FAILURE_DEPENDENCY;
+ 		return -EPROBE_DEFER;
++	}
+ 	if (!ops || !ops->platform || !ops->provider || !ops->checkpoint ||
+ 	    !ops->clock)
+ 		return -EINVAL;
+ 
+ 	ret = ops->platform(context, platform, &snapshot->platform);
+-	if (ret)
++	if (ret) {
++		*failure_stage = MT6797_A72_PPC_FAILURE_PLATFORM;
+ 		goto out_clear;
++	}
+ 	if (!snapshot->platform.valid) {
++		*failure_stage = MT6797_A72_PPC_FAILURE_PLATFORM;
+ 		ret = -ENODATA;
+ 		goto out_clear;
+ 	}
+ 
+ 	ret = ops->provider(context, &snapshot->provider);
+-	if (ret)
++	if (ret) {
++		*failure_stage = MT6797_A72_PPC_FAILURE_PROVIDER;
+ 		goto out_clear;
++	}
+ 	if (!snapshot->provider.valid) {
++		*failure_stage = MT6797_A72_PPC_FAILURE_PROVIDER;
+ 		ret = -ENODATA;
+ 		goto out_clear;
+ 	}
+ 
+ 	if (!ops->checkpoint(context, 0)) {
++		*failure_stage = MT6797_A72_PPC_FAILURE_BEFORE_CLOCK;
+ 		ret = -EIO;
+ 		goto out_clear;
+ 	}
+@@ -174,6 +185,25 @@ static struct device *mt6797_a72_ppc_get_clock(struct device *dev)
+ 	return &clock->dev;
+ }
+ 
++static const char *
++mt6797_a72_ppc_failure_stage_name(enum mt6797_a72_ppc_failure_stage stage)
++{
++	switch (stage) {
++	case MT6797_A72_PPC_FAILURE_NONE:
++		return "none";
++	case MT6797_A72_PPC_FAILURE_DEPENDENCY:
++		return "dependency";
++	case MT6797_A72_PPC_FAILURE_PLATFORM:
++		return "platform";
++	case MT6797_A72_PPC_FAILURE_PROVIDER:
++		return "provider";
++	case MT6797_A72_PPC_FAILURE_BEFORE_CLOCK:
++		return "before-clock";
++	default:
++		return "invalid";
++	}
++}
++
+ static void mt6797_a72_ppc_log(struct device *dev,
+ 			       const struct mt6797_a72_platform_provider_clock_snapshot *snapshot)
+ {
+@@ -243,6 +273,7 @@ static void mt6797_a72_ppc_log(struct device *dev,
+ static int mt6797_a72_ppc_probe(struct platform_device *pdev)
+ {
+ 	struct mt6797_a72_platform_provider_clock_snapshot snapshot;
++	enum mt6797_a72_ppc_failure_stage failure_stage;
+ 	struct device *platform;
+ 	struct device *provider;
+ 	struct device *clock;
+@@ -267,9 +298,12 @@ static int mt6797_a72_ppc_probe(struct platform_device *pdev)
+ 	}
+ 
+ 	ret = mt6797_a72_ppc_capture(platform, provider, clock,
+-				     &mt6797_a72_ppc_ops, NULL, &snapshot);
++				     &mt6797_a72_ppc_ops, NULL, &snapshot,
++				     &failure_stage);
+ 	if (ret)
+-		dev_err(dev, "platform/provider/clock capture failed: %d\n", ret);
++		dev_err(dev,
++			"platform/provider/clock capture failed: stage=%s ret=%d\n",
++			mt6797_a72_ppc_failure_stage_name(failure_stage), ret);
+ 	else
+ 		mt6797_a72_ppc_log(dev, &snapshot);
+ 	put_device(clock);

@@ -1,0 +1,171 @@
+From 8f7500226aeec854356fea02e70b750ba0cb3033 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 26 Aug 2026 00:12:00 +0000
+Subject: [PATCH 2/2] soc: mediatek: test A72 platform/provider failure stage
+
+Assert every pre-clock stage and preserve terminal no-retry behavior with
+injected in-memory operations.
+---
+ ...72-platform-provider-clock-observer-test.c | 43 +++++++++++++------
+ 1 file changed, 31 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-platform-provider-clock-observer-test.c b/drivers/soc/mediatek/mt6797-a72-platform-provider-clock-observer-test.c
+index a5ea61d..b8ab9b3 100644
+--- a/drivers/soc/mediatek/mt6797-a72-platform-provider-clock-observer-test.c
++++ b/drivers/soc/mediatek/mt6797-a72-platform-provider-clock-observer-test.c
+@@ -107,24 +107,27 @@ static void mt6797_a72_ppc_expect_zero(struct kunit *test,
+ }
+ 
+ static int mt6797_a72_ppc_run(struct mt6797_a72_ppc_test_state *state,
+-			      struct mt6797_a72_platform_provider_clock_snapshot *snapshot)
++			      struct mt6797_a72_platform_provider_clock_snapshot *snapshot,
++			      enum mt6797_a72_ppc_failure_stage *failure_stage)
+ {
+ 	struct device platform = { };
+ 	struct device provider = { };
+ 	struct device clock = { };
+ 
+ 	return mt6797_a72_ppc_capture(&platform, &provider, &clock, &test_ops,
+-				      state, snapshot);
++				      state, snapshot, failure_stage);
+ }
+ 
+ static void mt6797_a72_ppc_success_test(struct kunit *test)
+ {
+ 	struct mt6797_a72_ppc_test_state state = mt6797_a72_ppc_success_state();
+ 	struct mt6797_a72_platform_provider_clock_snapshot snapshot;
++	enum mt6797_a72_ppc_failure_stage failure_stage;
+ 	int ret;
+ 
+-	ret = mt6797_a72_ppc_run(&state, &snapshot);
++	ret = mt6797_a72_ppc_run(&state, &snapshot, &failure_stage);
+ 	KUNIT_EXPECT_EQ(test, ret, 0);
++	KUNIT_EXPECT_EQ(test, failure_stage, MT6797_A72_PPC_FAILURE_NONE);
+ 	KUNIT_EXPECT_TRUE(test, snapshot.valid);
+ 	KUNIT_EXPECT_TRUE(test, snapshot.clock_returned);
+ 	KUNIT_EXPECT_TRUE(test, snapshot.after_checkpoint);
+@@ -147,12 +150,14 @@ static void mt6797_a72_ppc_not_ready_test(struct kunit *test)
+ {
+ 	struct mt6797_a72_ppc_test_state state = mt6797_a72_ppc_success_state();
+ 	struct mt6797_a72_platform_provider_clock_snapshot snapshot;
++	enum mt6797_a72_ppc_failure_stage failure_stage;
+ 	struct device device = { };
+ 	int ret;
+ 
+ 	ret = mt6797_a72_ppc_capture(&device, &device, NULL, &test_ops,
+-				     &state, &snapshot);
++				     &state, &snapshot, &failure_stage);
+ 	KUNIT_EXPECT_EQ(test, ret, -EPROBE_DEFER);
++	KUNIT_EXPECT_EQ(test, failure_stage, MT6797_A72_PPC_FAILURE_DEPENDENCY);
+ 	KUNIT_EXPECT_EQ(test, state.event_count, 0U);
+ 	mt6797_a72_ppc_expect_zero(test, &snapshot);
+ }
+@@ -161,19 +166,22 @@ static void mt6797_a72_ppc_platform_failure_test(struct kunit *test)
+ {
+ 	struct mt6797_a72_ppc_test_state state = mt6797_a72_ppc_success_state();
+ 	struct mt6797_a72_platform_provider_clock_snapshot snapshot;
++	enum mt6797_a72_ppc_failure_stage failure_stage;
+ 	int ret;
+ 
+ 	state.platform_ret = -EAGAIN;
+-	ret = mt6797_a72_ppc_run(&state, &snapshot);
++	ret = mt6797_a72_ppc_run(&state, &snapshot, &failure_stage);
+ 	KUNIT_EXPECT_EQ(test, ret, -EAGAIN);
++	KUNIT_EXPECT_EQ(test, failure_stage, MT6797_A72_PPC_FAILURE_PLATFORM);
+ 	KUNIT_EXPECT_EQ(test, state.provider_calls, 0U);
+ 	KUNIT_EXPECT_EQ(test, state.clock_calls, 0U);
+ 	mt6797_a72_ppc_expect_zero(test, &snapshot);
+ 
+ 	state = mt6797_a72_ppc_success_state();
+ 	state.platform_valid = false;
+-	ret = mt6797_a72_ppc_run(&state, &snapshot);
++	ret = mt6797_a72_ppc_run(&state, &snapshot, &failure_stage);
+ 	KUNIT_EXPECT_EQ(test, ret, -ENODATA);
++	KUNIT_EXPECT_EQ(test, failure_stage, MT6797_A72_PPC_FAILURE_PLATFORM);
+ 	mt6797_a72_ppc_expect_zero(test, &snapshot);
+ }
+ 
+@@ -181,18 +189,21 @@ static void mt6797_a72_ppc_provider_failure_test(struct kunit *test)
+ {
+ 	struct mt6797_a72_ppc_test_state state = mt6797_a72_ppc_success_state();
+ 	struct mt6797_a72_platform_provider_clock_snapshot snapshot;
++	enum mt6797_a72_ppc_failure_stage failure_stage;
+ 	int ret;
+ 
+ 	state.provider_ret = -EIO;
+-	ret = mt6797_a72_ppc_run(&state, &snapshot);
++	ret = mt6797_a72_ppc_run(&state, &snapshot, &failure_stage);
+ 	KUNIT_EXPECT_EQ(test, ret, -EIO);
++	KUNIT_EXPECT_EQ(test, failure_stage, MT6797_A72_PPC_FAILURE_PROVIDER);
+ 	KUNIT_EXPECT_EQ(test, state.clock_calls, 0U);
+ 	mt6797_a72_ppc_expect_zero(test, &snapshot);
+ 
+ 	state = mt6797_a72_ppc_success_state();
+ 	state.provider_valid = false;
+-	ret = mt6797_a72_ppc_run(&state, &snapshot);
++	ret = mt6797_a72_ppc_run(&state, &snapshot, &failure_stage);
+ 	KUNIT_EXPECT_EQ(test, ret, -ENODATA);
++	KUNIT_EXPECT_EQ(test, failure_stage, MT6797_A72_PPC_FAILURE_PROVIDER);
+ 	mt6797_a72_ppc_expect_zero(test, &snapshot);
+ }
+ 
+@@ -200,11 +211,13 @@ static void mt6797_a72_ppc_before_failure_test(struct kunit *test)
+ {
+ 	struct mt6797_a72_ppc_test_state state = mt6797_a72_ppc_success_state();
+ 	struct mt6797_a72_platform_provider_clock_snapshot snapshot;
++	enum mt6797_a72_ppc_failure_stage failure_stage;
+ 	int ret;
+ 
+ 	state.checkpoint_result[0] = false;
+-	ret = mt6797_a72_ppc_run(&state, &snapshot);
++	ret = mt6797_a72_ppc_run(&state, &snapshot, &failure_stage);
+ 	KUNIT_EXPECT_EQ(test, ret, -EIO);
++	KUNIT_EXPECT_EQ(test, failure_stage, MT6797_A72_PPC_FAILURE_BEFORE_CLOCK);
+ 	KUNIT_EXPECT_EQ(test, state.clock_calls, 0U);
+ 	KUNIT_ASSERT_EQ(test, state.event_count, 3U);
+ 	KUNIT_EXPECT_EQ(test, state.events[2], MT6797_A72_PPC_BEFORE_CLOCK);
+@@ -215,11 +228,13 @@ static void mt6797_a72_ppc_clock_error_terminal_test(struct kunit *test)
+ {
+ 	struct mt6797_a72_ppc_test_state state = mt6797_a72_ppc_success_state();
+ 	struct mt6797_a72_platform_provider_clock_snapshot snapshot;
++	enum mt6797_a72_ppc_failure_stage failure_stage;
+ 	int ret;
+ 
+ 	state.clock_ret = -ETIMEDOUT;
+-	ret = mt6797_a72_ppc_run(&state, &snapshot);
++	ret = mt6797_a72_ppc_run(&state, &snapshot, &failure_stage);
+ 	KUNIT_EXPECT_EQ(test, ret, 0);
++	KUNIT_EXPECT_EQ(test, failure_stage, MT6797_A72_PPC_FAILURE_NONE);
+ 	KUNIT_EXPECT_FALSE(test, snapshot.valid);
+ 	KUNIT_EXPECT_TRUE(test, snapshot.clock_returned);
+ 	KUNIT_EXPECT_TRUE(test, snapshot.after_checkpoint);
+@@ -232,11 +247,13 @@ static void mt6797_a72_ppc_after_failure_terminal_test(struct kunit *test)
+ {
+ 	struct mt6797_a72_ppc_test_state state = mt6797_a72_ppc_success_state();
+ 	struct mt6797_a72_platform_provider_clock_snapshot snapshot;
++	enum mt6797_a72_ppc_failure_stage failure_stage;
+ 	int ret;
+ 
+ 	state.checkpoint_result[1] = false;
+-	ret = mt6797_a72_ppc_run(&state, &snapshot);
++	ret = mt6797_a72_ppc_run(&state, &snapshot, &failure_stage);
+ 	KUNIT_EXPECT_EQ(test, ret, 0);
++	KUNIT_EXPECT_EQ(test, failure_stage, MT6797_A72_PPC_FAILURE_NONE);
+ 	KUNIT_EXPECT_FALSE(test, snapshot.valid);
+ 	KUNIT_EXPECT_TRUE(test, snapshot.clock_returned);
+ 	KUNIT_EXPECT_FALSE(test, snapshot.after_checkpoint);
+@@ -248,11 +265,13 @@ static void mt6797_a72_ppc_clock_identity_terminal_test(struct kunit *test)
+ {
+ 	struct mt6797_a72_ppc_test_state state = mt6797_a72_ppc_success_state();
+ 	struct mt6797_a72_platform_provider_clock_snapshot snapshot;
++	enum mt6797_a72_ppc_failure_stage failure_stage;
+ 	int ret;
+ 
+ 	state.clock_abi = 1;
+-	ret = mt6797_a72_ppc_run(&state, &snapshot);
++	ret = mt6797_a72_ppc_run(&state, &snapshot, &failure_stage);
+ 	KUNIT_EXPECT_EQ(test, ret, 0);
++	KUNIT_EXPECT_EQ(test, failure_stage, MT6797_A72_PPC_FAILURE_NONE);
+ 	KUNIT_EXPECT_FALSE(test, snapshot.valid);
+ 	KUNIT_EXPECT_TRUE(test, snapshot.clock_returned);
+ 	KUNIT_EXPECT_EQ(test, state.clock_calls, 1U);
