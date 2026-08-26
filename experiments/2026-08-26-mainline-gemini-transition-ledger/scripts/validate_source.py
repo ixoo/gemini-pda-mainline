@@ -48,6 +48,7 @@ def main() -> None:
         "gemini_transition_ledger_integrity(wire)",
         "owner->sealed = true;",
         "owner->last_stage + 1 == stage",
+        "void (*sync)(void *context);",
         "EXPORT_SYMBOL_GPL(gemini_transition_ledger_begin)",
         "EXPORT_SYMBOL_GPL(gemini_transition_ledger_checkpoint)",
     ):
@@ -64,6 +65,8 @@ def main() -> None:
     require("release" not in public, "no release API")
     for token in ("cpu_up(", "add_cpu(", "psci_", "watchdog", "arm_smccc"):
         require(token not in source, f"forbidden production effect: {token}")
+    require("->barrier(" not in source,
+            "no collision with the architecture barrier() macro")
 
     if args.phase == "tests":
         test_source = (root / "fs/pstore/gemini_transition_ledger_test.c").read_text(

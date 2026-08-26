@@ -21,7 +21,7 @@
 struct gemini_transition_ledger_ops {
 	u32 (*read)(void *context, unsigned int word);
 	void (*write)(void *context, unsigned int word, u32 value);
-	void (*barrier)(void *context);
+	void (*sync)(void *context);
 };
 
 struct gemini_transition_ledger_record {

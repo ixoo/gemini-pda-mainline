@@ -108,7 +108,7 @@ gemini_transition_ledger_read_latest(const struct gemini_transition_ledger_ops *
 static bool
 gemini_transition_ledger_ops_valid(const struct gemini_transition_ledger_ops *ops)
 {
-	return ops && ops->read && ops->write && ops->barrier;
+	return ops && ops->read && ops->write && ops->sync;
 }
 
 int
@@ -231,29 +231,29 @@ gemini_transition_ledger_owner_checkpoint(struct gemini_transition_ledger_owner 
 
 	ops->write(context, gemini_transition_ledger_copy_word(target,
 			 GEMINI_TRANSITION_LEDGER_INTEGRITY_WORD), 0);
-	ops->barrier(context);
+	ops->sync(context);
 	for (word = 0; word < GEMINI_TRANSITION_LEDGER_INTEGRITY_WORD; word++)
 		ops->write(context, gemini_transition_ledger_copy_word(target,
 								 word),
 			   le32_to_cpu(wire[word]));
-	ops->barrier(context);
+	ops->sync(context);
 	ops->write(context, gemini_transition_ledger_copy_word(target,
 			 GEMINI_TRANSITION_LEDGER_INTEGRITY_WORD),
 		   le32_to_cpu(wire[GEMINI_TRANSITION_LEDGER_INTEGRITY_WORD]));
-	ops->barrier(context);
+	ops->sync(context);
 	gemini_transition_ledger_read_wire(ops, context, target, readback);
 	if (memcmp(wire, readback, sizeof(wire)))
 		return gemini_transition_ledger_fault(owner);
 
 	if (!owner->header_committed) {
 		ops->write(context, 1, GEMINI_TRANSITION_LEDGER_PAYLOAD_BYTES);
-		ops->barrier(context);
+		ops->sync(context);
 		ops->write(context, 2, GEMINI_TRANSITION_LEDGER_PAYLOAD_BYTES);
-		ops->barrier(context);
+		ops->sync(context);
 		if (owner->needs_signature) {
 			ops->write(context, 0,
 				   GEMINI_TRANSITION_LEDGER_PSTORE_SIGNATURE);
-			ops->barrier(context);
+			ops->sync(context);
 		}
 		if (ops->read(context, 0) !=
 			    GEMINI_TRANSITION_LEDGER_PSTORE_SIGNATURE ||
@@ -343,7 +343,7 @@ static const struct gemini_transition_ledger_ops
 gemini_transition_ledger_mmio_ops = {
 	.read = gemini_transition_ledger_mmio_read,
 	.write = gemini_transition_ledger_mmio_write,
-	.barrier = gemini_transition_ledger_mmio_barrier,
+	.sync = gemini_transition_ledger_mmio_barrier,
 };
 
 static DEFINE_MUTEX(gemini_transition_ledger_lock);

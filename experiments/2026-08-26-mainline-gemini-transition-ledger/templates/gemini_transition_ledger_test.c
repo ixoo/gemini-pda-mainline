@@ -54,7 +54,7 @@ static void ledger_test_barrier(void *context)
 static const struct gemini_transition_ledger_ops ledger_test_ops = {
 	.read = ledger_test_read,
 	.write = ledger_test_write,
-	.barrier = ledger_test_barrier,
+	.sync = ledger_test_barrier,
 };
 
 static void
