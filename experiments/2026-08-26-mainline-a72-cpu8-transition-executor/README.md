@@ -49,13 +49,15 @@ one at a time after the pure state machine passes.
   established `MISSING_SIGN_OFF,FILE_PATH_CHANGES` exception; two alignment
   checks remained.
 - Commit `44ff3f0e` reduced the exact generated production patch to one helper
-  alignment check. The one-column correction is pending publication.
-- With that correction in the working tree, Buildbox Checkpatch file-mode
-  preflight reports zero errors and zero checks for the core, internal header,
-  and KUnit source. A subsequent semantic audit removed the callable controller
-  initializer so the executor API cannot reset a consumed one-shot; the revised
-  sources retain the same zero-error/zero-check result. The stdin-only filename
-  warnings are not source findings.
+  alignment check.
+- Commit `829c2b66` published that correction and removed the callable
+  controller initializer so the executor API cannot reset a consumed one-shot.
+  The exact format-patch run cleared the production patch, then exposed 13
+  KUnit continuation-alignment checks that the earlier file-mode preflight did
+  not reproduce.
+- The current correction aligns every reported continuation with its opening
+  parenthesis. Publication and a new exact format-patch run are pending; only
+  that patch-mode result is authoritative for admission.
 
 See
 [`results/pre-admission-style-20260826.txt`](results/pre-admission-style-20260826.txt)

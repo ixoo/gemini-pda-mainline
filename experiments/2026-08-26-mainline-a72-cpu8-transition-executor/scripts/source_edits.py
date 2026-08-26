@@ -445,14 +445,14 @@ TEST_SOURCE = dedent("""\
     };
 
     static void mt6797_test_record(struct mt6797_transition_test_state *state,
-    \t\t\t\tunsigned int event)
+    \t\t\t       unsigned int event)
     {
     \tif (state->event_count < ARRAY_SIZE(state->events))
     \t\tstate->events[state->event_count++] = event;
     }
 
     static int mt6797_test_effect(struct mt6797_transition_test_state *state,
-    \t\t\t       enum mt6797_a72_transition_stage stage)
+    \t\t\t      enum mt6797_a72_transition_stage stage)
     {
     \tmt6797_test_record(state, MT6797_TEST_EVENT(stage, MT6797_TEST_EFFECT));
     \treturn state->fail_stage == stage ? -EIO : 0;
@@ -460,9 +460,9 @@ TEST_SOURCE = dedent("""\
 
     static void
     mt6797_test_checkpoint(void *context,
-    \t\t\t enum mt6797_a72_transition_phase phase,
-    \t\t\t enum mt6797_a72_transition_stage stage,
-    \t\t\t const struct mt6797_a72_transition_result *result)
+    \t\t       enum mt6797_a72_transition_phase phase,
+    \t\t       enum mt6797_a72_transition_stage stage,
+    \t\t       const struct mt6797_a72_transition_result *result)
     {
     \tstruct mt6797_transition_test_state *state = context;
     \tunsigned int slot = phase == MT6797_A72_TRANSITION_BEFORE ?
@@ -473,7 +473,7 @@ TEST_SOURCE = dedent("""\
     }
 
     static int mt6797_test_watchdog(void *context, unsigned int timeout_ms,
-    \t\t\t\t u64 *identity)
+    \t\t\t\tu64 *identity)
     {
     \tstruct mt6797_transition_test_state *state = context;
     \tint ret;
@@ -539,7 +539,7 @@ TEST_SOURCE = dedent("""\
     }
 
     static int mt6797_test_online_wait(void *context, unsigned int cpu,
-    \t\t\t\t    unsigned int timeout_ms)
+    \t\t\t\t   unsigned int timeout_ms)
     {
     \tstruct mt6797_transition_test_state *state = context;
 
@@ -587,8 +587,8 @@ TEST_SOURCE = dedent("""\
     }
 
     static int mt6797_test_run(struct mt6797_transition_test_state *state,
-    \t\t\t    const struct mt6797_a72_transition_request *request,
-    \t\t\t    struct mt6797_a72_transition_result *result)
+    \t\t\t   const struct mt6797_a72_transition_request *request,
+    \t\t\t   struct mt6797_a72_transition_result *result)
     {
     \tstruct mt6797_a72_transition_controller controller =
     \t\tMT6797_A72_TRANSITION_CONTROLLER_INIT;
@@ -642,11 +642,11 @@ TEST_SOURCE = dedent("""\
     \tfor (stage = MT6797_A72_TRANSITION_STAGE_WATCHDOG;
     \t     stage < MT6797_A72_TRANSITION_STAGE_COUNT; stage++) {
     \t\tKUNIT_EXPECT_EQ(test, state.events[event++],
-    \t\t\tMT6797_TEST_EVENT(stage, MT6797_TEST_BEFORE));
+    \t\t\t\tMT6797_TEST_EVENT(stage, MT6797_TEST_BEFORE));
     \t\tKUNIT_EXPECT_EQ(test, state.events[event++],
-    \t\t\tMT6797_TEST_EVENT(stage, MT6797_TEST_EFFECT));
+    \t\t\t\tMT6797_TEST_EVENT(stage, MT6797_TEST_EFFECT));
     \t\tKUNIT_EXPECT_EQ(test, state.events[event++],
-    \t\t\tMT6797_TEST_EVENT(stage, MT6797_TEST_AFTER));
+    \t\t\t\tMT6797_TEST_EVENT(stage, MT6797_TEST_AFTER));
     \t}
     }
 
@@ -754,7 +754,7 @@ TEST_SOURCE = dedent("""\
     \t\t\t\t    "stage=%u", stage);
     \t\tif (stage == MT6797_A72_TRANSITION_STAGE_WATCHDOG) {
     \t\t\tKUNIT_EXPECT_EQ(test, result.terminal,
-    \t\t\t\tMT6797_A72_TRANSITION_REJECTED_PRESTATE);
+    \t\t\t\t\tMT6797_A72_TRANSITION_REJECTED_PRESTATE);
     \t\t\tKUNIT_EXPECT_FALSE(test, result.watchdog_armed);
     \t\t\tcontinue;
     \t\t}
@@ -762,7 +762,7 @@ TEST_SOURCE = dedent("""\
     \t\tif (stage == MT6797_A72_TRANSITION_STAGE_P27 ||
     \t\t    stage == MT6797_A72_TRANSITION_STAGE_PROVIDER) {
     \t\t\tKUNIT_EXPECT_EQ(test, result.terminal,
-    \t\t\t\tMT6797_A72_TRANSITION_ROLLED_BACK_PREISO);
+    \t\t\t\t\tMT6797_A72_TRANSITION_ROLLED_BACK_PREISO);
     \t\t\tKUNIT_EXPECT_FALSE(test, result.p27_owned);
     \t\t\tKUNIT_EXPECT_FALSE(test, result.provider_owned);
     \t\t\tKUNIT_EXPECT_EQ(test, result.retained_mask, 0U);
@@ -805,11 +805,11 @@ TEST_SOURCE = dedent("""\
     \t\tKUNIT_EXPECT_EQ(test, ret, -EPROTO);
     \t\tif (stages[i] == MT6797_A72_TRANSITION_STAGE_WATCHDOG) {
     \t\t\tKUNIT_EXPECT_EQ(test, result.terminal,
-    \t\t\t\tMT6797_A72_TRANSITION_REJECTED_PRESTATE);
+    \t\t\t\t\tMT6797_A72_TRANSITION_REJECTED_PRESTATE);
     \t\t\tKUNIT_EXPECT_FALSE(test, result.watchdog_armed);
     \t\t} else {
     \t\t\tKUNIT_EXPECT_EQ(test, result.terminal,
-    \t\t\t\tMT6797_A72_TRANSITION_ROLLBACK_FAULT_PREISO);
+    \t\t\t\t\tMT6797_A72_TRANSITION_ROLLBACK_FAULT_PREISO);
     \t\t\tKUNIT_EXPECT_NE(test, result.retained_mask, 0U);
     \t\t}
     \t}
