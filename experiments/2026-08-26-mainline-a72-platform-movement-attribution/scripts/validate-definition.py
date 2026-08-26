@@ -113,6 +113,45 @@ require(contract["planned_kunit"] == {
     "physical_hardware": False,
     "boot_candidate": False,
 }, "planned KUnit")
+buildbox_receipt = EXP / "results/buildbox-kunit-20260826.txt"
+require(sha256(buildbox_receipt) ==
+        contract["buildbox_kunit"]["receipt_sha256"],
+        "Buildbox KUnit receipt")
+require(contract["buildbox_kunit"] == {
+    "repository_commit": "d2caf9df3962845a85cfb6983c957ec044f135c4",
+    "profile": "a72-platform-movement-kunit",
+    "kernel_release": "7.1.3-gemini-a72-movement-kunit",
+    "patchset_sha256":
+        "7a0467b79748619c3dff6011a17ea7040a5a50b63211f6e5d157503d1f47d81e",
+    "config_sha256":
+        "2b9ba71e0aaa9bebbea60c1f942a19fb78ed6848412a29241bc6f5e55a29662c",
+    "image_sha256":
+        "cf87036183923096e324f080f13b130ebc5473446668026b386d6315a08c3044",
+    "receipt_sha256":
+        "a27f6cee90836475eaaece09092703cbe926fbe0f99718d13699e5c0f0d5d5ec",
+    "result": "pass",
+}, "Buildbox KUnit result")
+qemu_receipt = EXP / "results/kunit-qemu-20260826.txt"
+require(sha256(qemu_receipt) == contract["kunit_qemu"]["receipt_sha256"],
+        "QEMU KUnit receipt")
+require(contract["kunit_qemu"] == {
+    "runner": "QEMU emulator version 11.0.2",
+    "machine": "virt-cortex-a53-four-vcpu-no-network",
+    "suites": 2,
+    "tests": 13,
+    "failed": 0,
+    "skipped": 0,
+    "emitted_suite_totals": [5, 8],
+    "initial_classifier_rejection":
+        "tool-expected-nonexistent-combined-total",
+    "kernel_test_failure": False,
+    "classifier_mutations_rejected": 6,
+    "raw_log_sha256":
+        "ad1de15b8e5dd8fdcca177f913b2cca21a947719649f7ce2d9e80286698607e2",
+    "receipt_sha256":
+        "1dba8019382cf87188cc759d4fe044dd40cc0c0a7ab58f34baa533aa28a2d8d0",
+    "result": "pass",
+}, "QEMU KUnit result")
 require(contract["candidate"] == {
     "profile": "a72-platform-movement-candidate",
     "kernel_release": "7.1.3-gemini-a72-movement",
@@ -124,6 +163,8 @@ require(contract["candidate"] == {
 require(contract["dt_change"] is False, "no DT change")
 require(contract["native_vm_build"] is False, "no native build")
 require(contract["device_action"] is False, "no device action")
+require(contract["current_status"] ==
+        "buildbox-kunit-and-qemu-pass-device-build-pending", "current status")
 receipt = (EXP / "results/prebuild-tooling-20260826.txt").read_text(encoding="utf-8")
 for token in (
     "generated_patch_count=2", "movement_bits=9", "third_read=none",
@@ -157,5 +198,8 @@ print("caller_retries=0")
 print("canonical_patches=2")
 print("profiles_checked=140")
 print("planned_kunit=2_suites:13_tests")
+print("buildbox_kunit=pass")
+print("kunit_qemu=2_suites:13_tests:pass")
+print("classifier_correction=per-suite-totals")
 print("native_vm_build=none")
 print("device_action=none")

@@ -24,9 +24,9 @@ def transcript() -> str:
         lines.extend((f"# Subtest: {suite}", "KTAP version 1", f"1..{len(cases)}"))
         lines.extend(f"ok {index} {case}" for index, case in enumerate(cases, start=1))
         lines.append(f"# {suite}: pass:{len(cases)} fail:0 skip:0 total:{len(cases)}")
+        lines.append(f"# Totals: pass:{len(cases)} fail:0 skip:0 total:{len(cases)}")
         lines.append(f"ok {suite_index} {suite}")
     lines.extend((
-        "# Totals: pass:13 fail:0 skip:0 total:13",
         classifier.PANIC_PREFIX,
         f"{classifier.PANIC_END_PREFIX} ]---",
     ))
@@ -38,8 +38,8 @@ classifier.classify_runtime(valid, classifier.EXPECTED_RELEASE, 124)
 mutations = (
     ("1..5", "1..4"),
     ("ok 4 mt6797_state_each_movement_test", "not ok 4 mt6797_state_each_movement_test"),
-    ("# Totals: pass:13 fail:0 skip:0 total:13",
-     "# Totals: pass:12 fail:1 skip:0 total:13"),
+    ("# Totals: pass:5 fail:0 skip:0 total:5",
+     "# Totals: pass:4 fail:1 skip:0 total:5"),
     (f"ok 2 {classifier.SUITES[1][0]}", f"ok 1 {classifier.SUITES[1][0]}"),
     (classifier.PANIC_PREFIX, "different terminal state"),
     (classifier.EXPECTED_RELEASE, "7.1.3-wrong"),

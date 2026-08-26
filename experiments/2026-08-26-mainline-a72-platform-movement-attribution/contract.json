@@ -35,15 +35,15 @@
   },
   "manifest_sha256": "0e6d852e631cc1bd1f32cdd295c71004a416ad9bfe199efbdfd95b0757816d46",
   "tooling_sha256": {
-    "classify-kunit.py": "0f4a4029b1ad1de14e22354676751e3b02155190487315bf8aa2cd3451063582",
+    "classify-kunit.py": "07bcd412b389365de4481dc3db3957985dfa5da721e704c6e9a4a9e02697748a",
     "generate-patches.py": "90747ed66668f48ef0b55c87fe4c6f1d5247aab7515b58b355f966c5345f7d8f",
     "run-kunit-qemu": "9e4f33cf04f0c4b67d2989b34719530339348433a6f610d355d5fcd644aa166c",
     "source_edits.py": "84637d024e632cd0e3d3a5000b71dc1b3a2d5b4a163abbacf4051e2f4c963230",
-    "test-kunit-classifier.py": "0e1e5272114247bd4841e1f3bb3cdd2fe641b062306ead9875e581c5d7868336",
+    "test-kunit-classifier.py": "5277b1ef53b1ed7489cfc50465d3bdf2feb34666e9ccbcd1f91398cdd679540f",
     "test-tooling.py": "42ba7a9e793d0738f7688a6ca39a21b67282a616439fd84a7735acd5d5d9fe7e",
     "validate_patch.py": "3e8f0c3ad2650dcb6e4dcdcdfc055fa3aad2fbb7224fa54b92193edc67311bbd",
     "validate_source.py": "1f0e13c1838b36c30935997c1022751ca22b16315d1f74238b9ec5b0f50e90d9",
-    "validate-definition.py": "1ddd8249a1e048989aec260d963b5811de0f78d29a7095a73c8a898fa8bc57bb"
+    "validate-definition.py": "b31b9d912108f78aa4bbbf66b60efdadcf0fddf8039d2508e672de595124d8e0"
   },
   "tooling_rejected_mutations": 8,
   "kunit_classifier_mutations_rejected": 6,
@@ -98,6 +98,31 @@
     "physical_hardware": false,
     "boot_candidate": false
   },
+  "buildbox_kunit": {
+    "repository_commit": "d2caf9df3962845a85cfb6983c957ec044f135c4",
+    "profile": "a72-platform-movement-kunit",
+    "kernel_release": "7.1.3-gemini-a72-movement-kunit",
+    "patchset_sha256": "7a0467b79748619c3dff6011a17ea7040a5a50b63211f6e5d157503d1f47d81e",
+    "config_sha256": "2b9ba71e0aaa9bebbea60c1f942a19fb78ed6848412a29241bc6f5e55a29662c",
+    "image_sha256": "cf87036183923096e324f080f13b130ebc5473446668026b386d6315a08c3044",
+    "receipt_sha256": "a27f6cee90836475eaaece09092703cbe926fbe0f99718d13699e5c0f0d5d5ec",
+    "result": "pass"
+  },
+  "kunit_qemu": {
+    "runner": "QEMU emulator version 11.0.2",
+    "machine": "virt-cortex-a53-four-vcpu-no-network",
+    "suites": 2,
+    "tests": 13,
+    "failed": 0,
+    "skipped": 0,
+    "emitted_suite_totals": [5, 8],
+    "initial_classifier_rejection": "tool-expected-nonexistent-combined-total",
+    "kernel_test_failure": false,
+    "classifier_mutations_rejected": 6,
+    "raw_log_sha256": "ad1de15b8e5dd8fdcca177f913b2cca21a947719649f7ce2d9e80286698607e2",
+    "receipt_sha256": "1dba8019382cf87188cc759d4fe044dd40cc0c0a7ab58f34baa533aa28a2d8d0",
+    "result": "pass"
+  },
   "candidate": {
     "profile": "a72-platform-movement-candidate",
     "kernel_release": "7.1.3-gemini-a72-movement",
@@ -109,5 +134,5 @@
   "dt_change": false,
   "native_vm_build": false,
   "device_action": false,
-  "current_status": "canonical-prebuild-evidence-ready-buildbox-kunit-pending"
+  "current_status": "buildbox-kunit-and-qemu-pass-device-build-pending"
 }

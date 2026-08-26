@@ -96,11 +96,13 @@ def classify_runtime(raw: str, expected_release: str, qemu_exit: int) -> None:
                     f"case absent or duplicated: {case}")
         summary = f"# {suite}: pass:{len(cases)} fail:0 skip:0 total:{len(cases)}"
         require(ktap.count(summary) == 1, f"suite summary changed: {suite}")
+        totals = f"# Totals: pass:{len(cases)} fail:0 skip:0 total:{len(cases)}"
+        require(ktap.count(totals) == 1, f"suite totals changed: {suite}")
         require(ktap.count(f"ok {suite_index} {suite}") == 1,
                 f"top-level suite result changed: {suite}")
 
-    require(ktap.count("# Totals: pass:13 fail:0 skip:0 total:13") == 1,
-            "global KUnit totals changed")
+    require(sum(line.startswith("# Totals: ") for line in ktap) == len(SUITES),
+            "unexpected KUnit totals inventory")
     last_result = ktap.index(f"ok 2 {SUITES[1][0]}")
     panics = [i for i, line in enumerate(ktap) if line.startswith(PANIC_PREFIX)]
     require(len(panics) == 1 and panics[0] > last_result,

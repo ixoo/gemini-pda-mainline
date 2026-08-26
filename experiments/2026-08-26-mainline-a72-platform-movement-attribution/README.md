@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-26-mainline-a72-platform-movement-attribution` |
-| Status | canonical prebuild and static-review gates pass; Buildbox KUnit pending |
+| Status | Buildbox compile and 13-test no-network QEMU KUnit gate pass; device build pending |
 | Subsystem | MT6797 A72 platform-state source and composed observer |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-26 America/New_York |
@@ -61,11 +61,10 @@ behavior.
 
 ## Validation and next action
 
-Generate two canonical patches: production failure detail and focused KUnit
-coverage. Audit their scope and every manifest-selected series before building.
-Compile and run the isolated no-network KUnit profile on Buildbox first. Only a
-clean committed and pushed revision may then build a distinct same-DT device
-candidate on Buildbox.
+The two canonical patches, their scope, and every manifest-selected series pass
+their prebuild audits. The isolated KUnit profile now compiles on Buildbox and
+passes its exact no-network QEMU contract. The next action is to commit and push
+that evidence, then build a distinct same-DT device candidate on Buildbox.
 
 The ordered continuation is owned only by
 [`docs/ROADMAP.md`](../../docs/ROADMAP.md#7-bring-up-cpu8).
@@ -82,9 +81,19 @@ zero errors, warnings, or checks.
 Two independent generations are byte-identical. Eight source-contract
 mutations and six KUnit-classifier mutations fail closed. Both isolated
 fragments validate, and all 140 manifest profiles preserve canonical series
-order. No native VM build or device action occurred.
+order.
 
-The next action is a clean signed commit and push, followed by
-`a72-platform-movement-kunit` on Buildbox. Only a passing package and exact
-13-test no-network QEMU transcript can authorize building the separate device
-profile.
+Buildbox compiled exact clean commit `d2caf9df` as release
+`7.1.3-gemini-a72-movement-kunit`; the fetched package passed its checksum and
+provenance gates. QEMU then ran the two focused suites and all 13 cases passed
+with zero failures or skips. The first classifier invocation rejected the raw
+log because the tool incorrectly expected one combined 13-test totals line;
+Linux emitted the actual per-suite totals of five and eight. The corrected
+classifier requires exactly those two totals, continues to reject all six
+negative mutations, and classifies the unchanged raw log as a pass. This was a
+tooling correction, not a kernel-test retry or kernel-source change.
+
+No native VM build or device action occurred. The next action is a clean signed
+evidence push, followed by the separate
+`a72-platform-movement-candidate` Buildbox build and same-DT candidate
+validation.

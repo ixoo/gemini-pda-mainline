@@ -5499,10 +5499,17 @@ The next ordered work is:
    the eight preserved composed-observer tests. Two generations are
    byte-identical, eight source mutations and six classifier mutations fail
    closed, all 140 profiles preserve canonical order, and both patches pass
-   strict Checkpatch with zero diagnostics. **Selected next:** commit and push
-   this exact prebuild state, compile `a72-platform-movement-kunit` on Buildbox,
-   and require one exact 13-test no-network QEMU pass before building any device
-   candidate.
+   strict Checkpatch with zero diagnostics. Exact clean commit `d2caf9df` now
+   compiles on Buildbox, and its no-network QEMU run passes both focused suites:
+   13 tests, zero failures, zero skips. The first classifier invocation exposed
+   a tooling-only assumption that Linux would emit one combined total; the
+   unchanged transcript instead contains the correct per-suite totals of five
+   and eight. The corrected fail-closed classifier accepts that transcript and
+   still rejects all six mutations. **Selected next:** publish this exact KUnit
+   evidence, build `a72-platform-movement-candidate` on Buildbox, assemble and
+   independently validate one distinct same-DT `maxcpus=8` candidate, then
+   spend one boot to identify the moving platform field. No native VM build,
+   extra hardware read, retry, CPU request, or unchanged artifact is allowed.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
