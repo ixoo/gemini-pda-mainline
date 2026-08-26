@@ -100,6 +100,8 @@ require(contract["transport_contract"] == {
     "reboot_request": False,
 }, "transport contract")
 require(contract["tooling_rejected_mutations"] == 8, "tooling mutations")
+require(contract["kunit_classifier_mutations_rejected"] == 6,
+        "KUnit classifier mutations")
 require(contract["deterministic_generations"] == 2, "deterministic generations")
 require(contract["profiles_checked"] == 142, "profiles checked")
 require(contract["planned_kunit"] == {
@@ -112,12 +114,66 @@ require(contract["planned_kunit"] == {
     "physical_hardware": False,
     "boot_candidate": False,
 }, "planned KUnit")
+buildbox_receipt = EXP / "results/buildbox-kunit-20260826.txt"
+require(sha256(buildbox_receipt) ==
+        contract["buildbox_kunit"]["receipt_sha256"],
+        "Buildbox KUnit receipt")
+require(contract["buildbox_kunit"] == {
+    "repository_commit": "7fb8f50d910185483028ebe4af254aa343c5b5ef",
+    "profile": "a72-cpu-status-mask-kunit",
+    "kernel_release": "7.1.3-gemini-a72-cpumask-kunit",
+    "patchset_sha256":
+        "fe4544a19ab1bf034ffe3b52c254c03c36ddd1449506329c39a33efee17cf69e",
+    "config_sha256":
+        "21baac2000c3f93d9bde5973ac457360bbb23f0d514518b5e9682d142ec0e861",
+    "image_sha256":
+        "cfb0b078dc24e3d6a98beb2c82be256d486189e97d8e418646dd19479a2c413a",
+    "receipt_sha256":
+        "3f722ee0a40f31c12fbd692a63d18454690054e10440cfc2fcb9d840e56ce660",
+    "result": "pass",
+}, "Buildbox KUnit result")
+buildbox_text = buildbox_receipt.read_text(encoding="utf-8")
+for token in (
+    "repository_dirty=false", "patch_count=372", "focused_kunit_configs=2",
+    "sha256sums=pass", "native_vm_build=none", "device_action=none",
+    "result=pass",
+):
+    require(token in buildbox_text, f"Buildbox KUnit receipt: {token}")
+qemu_receipt = EXP / "results/kunit-qemu-20260826.txt"
+require(sha256(qemu_receipt) == contract["kunit_qemu"]["receipt_sha256"],
+        "QEMU KUnit receipt")
+require(contract["kunit_qemu"] == {
+    "runner": "QEMU emulator version 11.0.2",
+    "machine": "virt-cortex-a53-four-vcpu-no-network",
+    "suites": 2,
+    "tests": 14,
+    "failed": 0,
+    "skipped": 0,
+    "emitted_suite_totals": [6, 8],
+    "classifier_mutations_rejected": 6,
+    "raw_log_sha256":
+        "7e9ad681b72ecedcdcfef913053cc46f5525bbaa86022830e9baaec6fa6a28dd",
+    "receipt_sha256":
+        "24d30e2ca8cbee97a2847d9da1918e58bf675fd8c12f03bc846450a3a5cf8e94",
+    "result": "pass",
+}, "QEMU KUnit result")
+qemu_text = qemu_receipt.read_text(encoding="utf-8")
+for token in (
+    "tests=14", "failed=0", "skipped=0",
+    "mt6797_state_each_a72_identity_bit_test=pass",
+    "emitted_suite_totals=pass:6_fail:0_skip:0_total:6,"
+        "pass:8_fail:0_skip:0_total:8",
+    "tap_summary=pass:14_fail:0_skip:0_total:14",
+    "qemu_exit=124", "cpu_requests=0", "device_action=none",
+    "boot_candidate=false",
+):
+    require(token in qemu_text, f"QEMU KUnit receipt: {token}")
 require(contract["canonical_admission"] is True, "canonical admission")
 require(contract["dt_change"] is False, "no DT change")
 require(contract["native_vm_build"] is False, "no native build")
 require(contract["device_action"] is False, "no device action")
 require(contract["current_status"] ==
-        "prebuild-gates-pass-ready-for-signed-buildbox-kunit-submission",
+        "hardware-free-gates-pass-ready-for-buildbox-candidate",
         "current status")
 receipt_path = EXP / "results/prebuild-tooling-20260826.txt"
 require(sha256(receipt_path) == contract["prebuild_receipt_sha256"],
@@ -152,6 +208,9 @@ print("third_read=none")
 print("canonical_patches=2")
 print("profiles_checked=142")
 print("planned_kunit=2_suites:14_tests")
+print("buildbox_kunit=pass")
+print("kunit_qemu=2_suites:14_tests:pass")
+print("classifier_mutations_rejected=6")
 print("transport=bounded-memory-only")
 print("native_vm_build=none")
 print("device_action=none")

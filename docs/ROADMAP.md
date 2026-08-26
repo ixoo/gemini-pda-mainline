@@ -5556,10 +5556,15 @@ The next ordered work is:
    mutations fail closed, all 142 profiles preserve canonical order, both
    patches pass strict Checkpatch with zero diagnostics, and the bounded
    console transport reproduces an exact payload larger than 20 KiB without a
-   remote file. **Selected next:** sign and push the frozen revision, compile
-   its 14 focused cases on Buildbox, and run those two suites in no-network
-   QEMU. Only after both hardware-free gates pass may the same-DT `maxcpus=8`
-   candidate profile be built; it still adds no CPU request.
+   remote file. Signed clean commit `7fb8f50d` is published and compiles on
+   Buildbox as exact release `7.1.3-gemini-a72-cpumask-kunit`; the fetched
+   package passes provenance and checksum validation. No-network QEMU passes
+   both focused suites: six platform cases and eight preserved composed cases,
+   14 total, with zero failures or skips. The fail-closed classifier rejects
+   all six mutations. **Selected next:** publish these hardware-free receipts,
+   then build the same-DT `maxcpus=8` device profile from the resulting exact
+   clean commit. It still adds no CPU request. Assemble and validate one
+   distinct candidate only after that Buildbox package passes.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

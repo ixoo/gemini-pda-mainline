@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-26-mainline-a72-cpu-status-mask-repair` |
-| Status | prebuild admission passed; Buildbox KUnit submission next |
+| Status | hardware-free gates passed; device-profile build next |
 | Subsystem | MT6797 A72 platform-state source and runtime transport |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-26 America/New_York |
@@ -70,6 +70,15 @@ pass strict Checkpatch with zero diagnostics. The bounded transport reproduces
 an exact payload larger than 20 KiB with 768-character chunks and an
 820-character maximum command line, without a remote file or storage write.
 
-The frozen prebuild definition passes. Its selected continuation is a signed,
-pushed, clean-tree Buildbox KUnit build followed by focused no-network QEMU
-validation. No native VM build, hardware write, or CPU request has occurred.
+Signed commit `7fb8f50d` is published and compiles on Buildbox as exact release
+`7.1.3-gemini-a72-cpumask-kunit`; its fetched package passes checksum and
+provenance validation. Focused no-network QEMU then passes both suites: six
+platform-state cases plus eight preserved composed-observer cases, 14 total,
+with zero failures and zero skips. The classifier rejects all six transcript
+mutations and observes the expected post-test rootfs panic only after both
+suites complete.
+
+The hardware-free gate is therefore closed. The selected continuation is a
+separate clean-tree Buildbox build of the same-DT `maxcpus=8` device profile,
+followed by deterministic candidate assembly and validation. No native VM
+build, hardware write, or CPU request has occurred.
