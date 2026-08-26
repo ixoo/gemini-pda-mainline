@@ -16,6 +16,8 @@ import sys
 SCRIPT_DIR = Path(__file__).resolve().parent
 ENCODER_PATH = SCRIPT_DIR / "encode-netcat-payload.py"
 ENCODER_SHA256 = "06a2ece3570440ec8194cc2568af3151abef9e7314480e960649a77b20ea7956"
+WRAPPER_SHA256 = "124f15e09c9c2812b35e91a3a30d347458729a7b2333b216d730ff6824e2dc86"
+MATERIALIZED_SHA256 = "de72e6cf61aec14c2deb56ee67a133ad323612d87812914e96a2644bca91d1c9"
 LEGACY = re.compile(
     rb"printf '%s' '([A-Za-z0-9+/]+={0,2})' \| "
     rb"/bin/busybox base64 -d \| /bin/busybox sh\n"
@@ -32,7 +34,7 @@ ENCODER = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(ENCODER)
 
 
-def bounded_command_stream(legacy: bytes) -> bytes:
+def bounded_command_stream(legacy: bytes, replacement: bytes | None = None) -> bytes:
     match = LEGACY.fullmatch(legacy)
     if match is None:
         raise ValueError("legacy probe command is not exact")
@@ -40,6 +42,12 @@ def bounded_command_stream(legacy: bytes) -> bytes:
     decoded = base64.b64decode(payload, validate=True)
     if not decoded:
         raise ValueError("probe payload is empty")
+    if replacement is not None:
+        if hashlib.sha256(decoded).hexdigest() != WRAPPER_SHA256:
+            raise ValueError("legacy wrapper identity changed")
+        if hashlib.sha256(replacement).hexdigest() != MATERIALIZED_SHA256:
+            raise ValueError("materialized probe identity changed")
+        payload = base64.b64encode(replacement)
     variable = ENCODER.VARIABLE
     lines = [f"{variable}=''" ]
     text = payload.decode("ascii")
@@ -60,8 +68,21 @@ def main() -> int:
     legacy = sys.stdin.buffer.read(MAX_INPUT + 1)
     if len(legacy) > MAX_INPUT:
         raise SystemExit("legacy probe command exceeds ceiling")
+    replacement = None
+    replacement_name = os.environ.get("GEMINI_MATERIALIZED_PROBE")
+    if replacement_name:
+        replacement_path = Path(replacement_name)
+        if (
+            not replacement_path.is_absolute()
+            or replacement_path.is_symlink()
+            or not replacement_path.is_file()
+        ):
+            raise SystemExit("materialized probe is missing or unsafe")
+        replacement = replacement_path.read_bytes()
+        if not replacement or len(replacement) > MAX_INPUT:
+            raise SystemExit("materialized probe size is unsafe")
     try:
-        commands = bounded_command_stream(legacy)
+        commands = bounded_command_stream(legacy, replacement)
     except (ValueError, base64.binascii.Error) as error:
         raise SystemExit(str(error)) from error
     real_nc = Path(os.environ.get("GEMINI_REAL_NC", "/usr/bin/nc"))

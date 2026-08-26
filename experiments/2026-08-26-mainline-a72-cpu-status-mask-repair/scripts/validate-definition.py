@@ -94,6 +94,11 @@ require(contract["preserved_ceiling"] == {
 require(contract["transport_contract"] == {
     "chunk_size": 768,
     "maximum_command_line": 820,
+    "source_wrapper_sha256":
+        "124f15e09c9c2812b35e91a3a30d347458729a7b2333b216d730ff6824e2dc86",
+    "materialized_probe_sha256":
+        "de72e6cf61aec14c2deb56ee67a133ad323612d87812914e96a2644bca91d1c9",
+    "materialized_derivation_levels": 2,
     "exact_payload_round_trip": True,
     "remote_temporary_file": False,
     "device_storage_write": False,
@@ -232,20 +237,29 @@ require(contract["runtime_tooling"] == {
     "source_mutations_rejected": 23,
     "identity_mutations_rejected": 2,
     "bounded_chunks": 40,
+    "materialized_payload_chunks": 12,
+    "materialized_control_commands": 3,
+    "materialized_generations": 2,
+    "materialized_derivation_levels": 2,
+    "transport_mutations_rejected": 5,
     "observed_maximum_command_line": 812,
     "required_consecutive_tcp_closures": 3,
     "remote_temporary_file": False,
     "device_storage_write": False,
     "reboot_request": False,
     "receipt_sha256":
-        "96c383237d102df40f32dbc018ec014214f8616cad41f44ae89686d2f716ec20",
+        "9bebe75741feae9d6a3acab1c8283f36a51becc2f51ae3a7d5332b7468302c1a",
     "result": "pass",
 }, "runtime tooling result")
 runtime_tooling_text = runtime_tooling_receipt.read_text(encoding="utf-8")
 for token in (
     "retargeted_serviceable_branches=7",
     "retargeted_identity_mutations_rejected=2", "bounded_chunks=40",
-    "maximum_command_line=812", "remote_temporary_file=false",
+    "materialized_payload_chunks=12", "materialized_control_commands=3",
+    "materialized_generations=2-byte-identical",
+    "transport_mutations_rejected=5", "maximum_command_line=812",
+    "source_wrapper_identity_pinned=true",
+    "materialized_probe_identity_pinned=true", "remote_temporary_file=false",
     "installer_fresh_backup=none",
     "installer_success_action=shutdown-without-reboot",
     "installer_shutdown_confirmation=ssh-failure-plus-three-tcp-closures",
@@ -269,29 +283,101 @@ require(contract["deployment"] == {
     "fresh_predecessor_backup": False,
     "retained_ram_write": False,
     "reboot_request": False,
-    "shutdown_confirmed": False,
-    "tcp22_open": True,
+    "initial_shutdown_confirmed": False,
+    "initial_tcp22_open": True,
+    "owner_physical_poweroff_reported": True,
+    "post_physical_poweroff_consecutive_tcp22_closures": 3,
+    "shutdown_confirmed": True,
     "receipt_sha256":
-        "9f490c11d78e6c818f7e89af90cb20b48301e2072b330954b5e113fbb640b559",
-    "result": "write-readback-pass-shutdown-unconfirmed",
+        "da5e602f87353e3bc67408eac2bc969c4408c6e1bb5848f82cf212ff869e6197",
+    "result": "write-readback-pass-physical-shutdown-confirmed",
 }, "deployment result")
 deployment_text = deployment_receipt.read_text(encoding="utf-8")
 for token in (
     "fresh_predecessor_backup=no", "retained_ram_write=none",
     "write=sync-flush-complete",
     "independent_readback_sha256=6219357a1c505a8c08ad33f97940aed4a9c73bf37a691a31c66ebc63559fe4f7",
-    "reboot_request=none", "shutdown_confirmed=no",
-    "shutdown_state=half-responsive", "installer_false_confirmation=proven",
-    "next_action=confirm-physical-poweroff-before-boot2-selection",
-    "result=write-readback-pass-shutdown-unconfirmed",
+    "reboot_request=none", "initial_shutdown_confirmed=no",
+    "initial_shutdown_state=half-responsive", "installer_false_confirmation=proven",
+    "owner_physical_poweroff_reported=yes",
+    "post_physical_poweroff_consecutive_tcp22_closures=3",
+    "shutdown_confirmed=yes", "shutdown_state=physical-off-confirmed",
+    "result=write-readback-pass-physical-shutdown-confirmed",
 ):
     require(token in deployment_text, f"deployment receipt: {token}")
+runtime_receipt = EXP / (
+    "results/runtime-attempt-1-platform-provider-clock-complete-20260826.txt"
+)
+require(sha256(runtime_receipt) == contract["runtime"]["receipt_sha256"],
+        "runtime receipt")
+require(contract["runtime"] == {
+    "candidate_sha256":
+        "6219357a1c505a8c08ad33f97940aed4a9c73bf37a691a31c66ebc63559fe4f7",
+    "kernel_release": "7.1.3-gemini-a72-cpumask",
+    "boot_id": "3fc79c42-2658-4fe9-9b18-0d3cb0416166",
+    "uptime_seconds": 161.60,
+    "classification": "serviceable-platform-provider-clock-complete",
+    "cpu_online": "0-7",
+    "cpu_offline": "8-9",
+    "maxcpus8_tokens": 1,
+    "platform_snapshot_calls": 1,
+    "platform_samples": 2,
+    "platform_register_observations": 26,
+    "provider_snapshots": 1,
+    "provider_samples": 2,
+    "provider_i2c_reads": 10,
+    "provider_i2c_writes": 0,
+    "retained_write_attempts": 2,
+    "protected_clock_calls": 1,
+    "protected_clock_ret": 0,
+    "protected_clock_abi": 2,
+    "protected_clock_generation": 1,
+    "clock_gate_pairs": 1,
+    "movement_mask": "none",
+    "failure_stage": "none",
+    "observer_retries": 0,
+    "bigidvfs_reads": 0,
+    "secure_calls": 0,
+    "provider_acquires": 0,
+    "provider_releases": 0,
+    "publisher_calls": 0,
+    "owner_mutations": 0,
+    "cpu_requests": 0,
+    "initial_collector_netcat_attempts": 6,
+    "same_boot_recovery": True,
+    "materialized_probe_sha256":
+        "de72e6cf61aec14c2deb56ee67a133ad323612d87812914e96a2644bca91d1c9",
+    "runtime_capture_sha256":
+        "df3ed6b26e53d83881838fd6266765e56e5c362729c5f693c2a12f9627f6bc62",
+    "classification_sha256":
+        "bd26c2d4677ae1b1f897d98e1ec16ed6561ed3be5e85be534a09b361a55f4c5f",
+    "capture_manifest_sha256":
+        "d9e9cc407b3aeb69f036327730765d76315476f88cd5e98758a4bd46664b17ce",
+    "device_left_running": True,
+    "reboot_request": False,
+    "receipt_sha256":
+        "8e38b3f425773a63ce871b3c21b2615cdc0a218ac9827971e35261989c841aaa",
+    "result": "pass",
+}, "runtime result")
+runtime_text = runtime_receipt.read_text(encoding="utf-8")
+for token in (
+    "runtime_classification=serviceable-platform-provider-clock-complete",
+    "cpu_online=0-7", "cpu_offline=8-9", "platform_samples=2",
+    "platform_register_observations=26", "provider_samples=2",
+    "provider_i2c_reads=10", "provider_i2c_writes=0",
+    "retained_write_attempts=2", "protected_clock_calls=1",
+    "protected_clock_ret=0", "clock_gate_pairs=1", "movement_mask=none",
+    "failure_stage=none", "observer_retries=0", "cpu_requests=0",
+    "initial_collector_netcat_attempts=6", "same_boot_recovery=yes",
+    "device_left_running=yes", "reboot_request=none", "result=pass",
+):
+    require(token in runtime_text, f"runtime receipt: {token}")
 require(contract["canonical_admission"] is True, "canonical admission")
 require(contract["dt_change"] is False, "no DT change")
 require(contract["native_vm_build"] is False, "no native build")
 require(contract["device_action"] is True, "device action recorded")
 require(contract["current_status"] ==
-        "boot2-write-readback-pass-shutdown-unconfirmed",
+        "runtime-platform-provider-clock-complete-ready-for-one-cpu8-request-design",
         "current status")
 receipt_path = EXP / "results/prebuild-tooling-20260826.txt"
 require(sha256(receipt_path) == contract["prebuild_receipt_sha256"],
@@ -312,13 +398,16 @@ for token in (
 for token in (
     "bits 7:6", "full raw CPU-status words", "exactly two completed reads",
     "all 32 LK gates pass", "makes no fresh backup",
+    "serviceable-platform-provider-clock-complete",
 ):
     require(token in readme, f"README token: {token}")
 for token in (
     "GENMASK(7, 6)", "No remote temporary file", "No DT change",
+    "two-wrapper chain",
 ):
     require(token in design, f"design token: {token}")
-require("/Users/" not in readme + design + receipt, "no host paths")
+require("/Users/" not in readme + design + receipt + runtime_text,
+        "no host paths")
 print("definition_validation=pass")
 print("cpu_status_mask=GENMASK(7,6)")
 print("complete_samples=2")
@@ -333,6 +422,7 @@ print("buildbox_candidate=pass")
 print("candidate=32_lk_gates:6_mutations:pass")
 print("transport=bounded-memory-only")
 print("deployment_runtime_tooling=pass")
-print("deployment=write_readback_pass:shutdown_unconfirmed")
+print("deployment=write_readback_pass:physical_shutdown_confirmed")
+print("runtime=serviceable_platform_provider_clock_complete")
 print("native_vm_build=none")
 print("device_action=boot2-write-recorded")

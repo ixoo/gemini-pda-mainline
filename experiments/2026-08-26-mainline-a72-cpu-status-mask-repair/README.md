@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-26-mainline-a72-cpu-status-mask-repair` |
-| Status | candidate and deployment tooling pass; boot2 install next |
+| Status | runtime platform/provider/protected-clock prefix complete; CPU8 request design next |
 | Subsystem | MT6797 A72 platform-state source and runtime transport |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-26 America/New_York |
@@ -44,8 +44,10 @@ Hardware-free tests must prove:
 5. no third read, retry, delay, or hardware action is introduced.
 
 The runtime transport also changes from one unbounded base64 shell line to
-bounded in-memory chunks. It creates no device file, storage write, or reboot
-request, and reconstructs the exact source-pinned probe before execution.
+bounded in-memory chunks. It materializes and hash-pins the concrete probe from
+the exact source-pinned wrapper chain before encoding, creates no device file,
+storage write, or reboot request, and reconstructs the exact concrete bytes in
+memory before execution.
 
 ## Safety assessment
 
@@ -92,11 +94,12 @@ container mutations are rejected.
 The source-pinned installer requires exact full-partition predecessor
 `9ac8e004`, resolves inactive `boot2` from the live GPT, makes no fresh backup,
 requires a full readback, and shuts down without reboot after success. The
-runtime collector converts the inherited one-line payload to 40 bounded
-in-memory commands with an observed maximum of 812 characters; it creates no
-remote file. Seven serviceable result branches pass and the inherited 23
-runtime mutations plus two retargeted identity mutations remain rejected. No
-native VM build or CPU request has occurred.
+runtime collector converts the concrete materialized probe to 12 payload
+chunks plus three control commands with an observed maximum of 812 characters;
+it creates no remote file. Two materializations are byte-identical, both
+source-wrapper and final-probe identities are pinned, seven serviceable result
+branches pass, and all runtime, identity, and transport mutations remain
+rejected. No native VM build or CPU request has occurred.
 
 The first real deployment exposed a shutdown-confirmation defect in the
 inherited installer: Gemian stopped accepting SSH sessions while its TCP/22
@@ -106,9 +109,36 @@ it never sends a reboot or an additional poweroff request.
 
 The exact deployment itself passed every live-GPT, predecessor, power, TEE,
 retained-header, write, flush, full-partition, and independent-readback gate.
-Inactive `boot2` now contains exact `6219357a`. The clean Gemian poweroff
-request left the device half-responsive: SSH authentication still completed
-and TCP/22 still served a banner, but a session could not open. Therefore
-shutdown is explicitly unconfirmed and no physical `boot2` selection is
-allowed yet. The next action is to confirm actual power-off; only then may the
-bounded collector be armed and this candidate booted once.
+Inactive `boot2` contains exact `6219357a`. The clean Gemian poweroff request
+first left the device half-responsive: SSH authentication still completed and
+TCP/22 still served a banner, but a session could not open. The owner then
+powered it off, and three consecutive TCP/22 connection failures confirmed the
+physical-off state before `boot2` selection.
+
+The selected boot is fully serviceable as exact release
+`7.1.3-gemini-a72-cpumask`, full candidate `6219357a`, and changed mainline boot
+ID `3fc79c42`. CPUs 0--7 remain online and CPUs 8--9 remain offline under the
+single `maxcpus=8` token. Its exact classification is
+`serviceable-platform-provider-clock-complete`. The one composed observation
+completed: one platform snapshot made exactly two samples and 26 register
+observations; the provider
+made exactly two samples and ten reads with zero writes; two retained records
+bracketed one protected-clock call returning zero at ABI 2/generation 1. The
+clock used one balanced gate pair. There was no movement, failure, retry,
+BigiDVFS read, secure call, provider acquire/release, publication, owner
+mutation, or CPU request.
+
+The initially armed collector made six unsuccessful netcat attempts because
+its shim bounded the source wrapper rather than the final derived probe. On the
+same still-running boot, exact two-level materialization produced concrete
+probe `de72e6cf`; 12 bounded payload chunks plus three control commands then
+captured and validated the complete frame. This is a tooling failure followed
+by same-boot recovery, not a repeated hardware observation. The collector now
+performs that materialization automatically and fails closed on either identity
+change.
+
+This closes the repaired read-only platform/provider/protected-clock prefix.
+The ordered next step is the first decision-bearing CPU8 candidate: exactly one
+CPU8 request, CPU9 kept offline, strict before/after checkpoints for every
+power step, a bounded timeout, and fail-closed rollback. The device remains on
+this serviceable mainline boot while that distinct candidate is designed.

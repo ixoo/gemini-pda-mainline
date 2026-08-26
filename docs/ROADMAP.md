@@ -5588,9 +5588,22 @@ The next ordered work is:
    open and served an SSH banner. The device is half-responsive after its clean
    poweroff request, so shutdown is not confirmed. The corrected installer now
    requires three consecutive TCP connection failures and rejects this state.
-   **Selected next:** confirm actual physical power-off before any boot2
-   selection. Then pre-arm the bounded collector and spend the one planned
-   boot; do not rewrite the already verified partition.
+   The owner then physically powered the device off, and three consecutive
+   TCP/22 connection failures confirmed the shutdown before selection. The one
+   planned boot is now captured from exact release
+   `7.1.3-gemini-a72-cpumask`, full candidate `6219357a`, and changed mainline
+   boot ID `3fc79c42`. It is serviceable with CPUs 0--7 online and 8--9 offline.
+   The composed observation completed exactly one platform snapshot/two
+   samples/26 reads, one provider snapshot/two samples/ten I2C reads and zero
+   writes, two retained checkpoints, and one protected-clock call returning
+   zero at ABI 2/generation 1 with one balanced gate pair. There is no movement,
+   failure, retry, BigiDVFS read, secure call, provider acquire/release,
+   publication, owner mutation, or CPU request. The initial collector made six
+   unsuccessful attempts because it bounded the source wrapper rather than the
+   concrete derived probe; exact two-level materialization then recovered the
+   complete frame on the same still-running boot. The automated collector now
+   pins both identities and materializes before chunking. This closes the
+   repaired read-only platform/provider/protected-clock prefix.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
