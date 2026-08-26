@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-26-mainline-a72-platform-movement-attribution` |
-| Status | exact same-DT movement candidate validated; guarded deployment pending |
+| Status | exact same-DT movement candidate installed and shut down; selected runtime boot pending |
 | Subsystem | MT6797 A72 platform-state source and composed observer |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-26 America/New_York |
@@ -62,9 +62,12 @@ behavior.
 ## Validation and next action
 
 The two canonical patches, their scope, and every manifest-selected series pass
-their prebuild audits. The isolated KUnit profile now compiles on Buildbox and
-passes its exact no-network QEMU contract. The next action is to commit and push
-that evidence, then build a distinct same-DT device candidate on Buildbox.
+their prebuild audits. The isolated KUnit profile compiles on Buildbox and
+passes its exact no-network QEMU contract. The distinct same-DT device candidate
+also compiles on Buildbox, passes its offline container gates, and is installed
+on live-GPT-resolved `boot2` with a matching full-partition readback. The device
+is shut down. The next action is one owner-selected `boot2` start with the
+no-reboot USB collector already armed.
 
 The ordered continuation is owned only by
 [`docs/ROADMAP.md`](../../docs/ROADMAP.md#7-bring-up-cpu8).
@@ -108,7 +111,17 @@ no-reboot USB collector accepts four completed clock outcomes, the exact
 movement-detail platform failure, and the two later pre-clock failure stages;
 23 unsafe runtime mutations fail closed.
 
-No native VM build or device action occurred. The next action is a clean signed
-evidence push, then a read-only Gemian preflight and guarded installation of
-exact full candidate `9ac8e004` to `boot2`. A successful write must end in a
-confirmed shutdown before the single owner-selected boot.
+From changed-ID Gemian boot `5047f3a3`, the read-only preflight resolved
+inactive and unmounted `boot2` as `/dev/mmcblk0p30`, matched exact predecessor
+`8b6bedfd`, stable external power, both TEE identities, and two logically empty
+retained headers. The guarded installer wrote exact full candidate `9ac8e004`,
+synced and flushed it, obtained the same full-partition checksum on independent
+readback, removed temporary readback data, and confirmed shutdown. It made no
+fresh partition backup, retained-RAM write, or reboot. An independent bounded
+SSH probe also timed out after shutdown.
+
+No native VM build occurred. The next action is one physical `boot2` selection.
+The screen may remain at the boot logo briefly; the decision point is whether
+the mainline USB console appears and, if so, which exact platform field moved.
+An automatic fallback to Gemian is also an admissible observation. Do not repeat
+the unchanged artifact after the first identity-gated capture.

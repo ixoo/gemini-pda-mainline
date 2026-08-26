@@ -5517,7 +5517,18 @@ The next ordered work is:
    run the live read-only boot2/retained-header preflight, install exact
    `9ac8e004`, and require confirmed shutdown. Then spend one owner-selected
    boot to identify the moving platform field. No native VM build, extra
-   hardware read, retry, CPU request, or unchanged artifact is allowed.
+   hardware read, retry, CPU request, or unchanged artifact is allowed. That
+   guarded deployment is now complete: changed-ID Gemian resolved inactive
+   live-GPT `boot2` as `/dev/mmcblk0p30`, matched exact predecessor `8b6bedfd`,
+   stable external power, both TEE identities, and two logically empty retained
+   headers. It wrote, synced, flushed, and independently read back exact full
+   candidate `9ac8e004`, removed temporary readback state, made no fresh backup
+   or retained-RAM write, and confirmed shutdown without reboot. **Selected
+   next:** pre-arm the identity-gated no-reboot USB collector and make one
+   physical `boot2` selection. Use its exact nine-bit platform movement line to
+   choose the next source-stability action; retire the artifact after this one
+   decision-bearing attempt whether it stays serviceable or falls back to
+   Gemian.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

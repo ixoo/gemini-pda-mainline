@@ -220,11 +220,36 @@ require(contract["deployment_runtime_tooling"] == {
         "49f5c7473f9fe7942c62ef459d9cd831826ced8c19a2039aab75d306ad331ec2",
     "result": "pass",
 }, "deployment/runtime tooling")
+deployment_receipt = EXP / "results/deployment-boot2-20260826.txt"
+require(sha256(deployment_receipt) == contract["deployment"]["receipt_sha256"],
+        "deployment receipt")
+require(contract["deployment"] == {
+    "deployment_tooling_commit":
+        "93f31189307a7fd76c1af9e98f73133c592ad658",
+    "kernel_source_commit":
+        "1ad025c40cb6716cb5a110319b715cc03f812551",
+    "boot_id": "5047f3a3-096e-41d1-b282-2e04f02c41de",
+    "target": "/dev/mmcblk0p30",
+    "active_root": "/dev/mmcblk0p29",
+    "predecessor_sha256":
+        "8b6bedfd7187369104250af5524a36dd2339493df95588e372d54e360d6aeabb",
+    "candidate_sha256":
+        "9ac8e004cdba7955c0525eab7a4863f0df5474b4ff105408e6f06b1cbc846f78",
+    "readback_sha256":
+        "9ac8e004cdba7955c0525eab7a4863f0df5474b4ff105408e6f06b1cbc846f78",
+    "fresh_predecessor_backup": False,
+    "retained_ram_write": False,
+    "shutdown": "confirmed-unreachable",
+    "independent_shutdown_check": "ssh-timeout",
+    "reboot": False,
+    "receipt_sha256": contract["deployment"]["receipt_sha256"],
+    "result": "pass",
+}, "deployment")
 require(contract["dt_change"] is False, "no DT change")
 require(contract["native_vm_build"] is False, "no native build")
-require(contract["device_action"] is False, "no device action")
+require(contract["device_action"] is True, "device action")
 require(contract["current_status"] ==
-        "validated-movement-candidate-ready-for-guarded-deployment",
+        "movement-candidate-installed-shut-down-runtime-boot-pending",
         "current status")
 receipt = (EXP / "results/prebuild-tooling-20260826.txt").read_text(encoding="utf-8")
 for token in (
@@ -266,4 +291,5 @@ print("device_build=buildbox:pass")
 print("candidate=validated:boot_candidate")
 print("runtime_classifier=23_mutations_rejected")
 print("native_vm_build=none")
-print("device_action=none")
+print("deployment=write-verified-and-shut-down")
+print("device_action=guarded-boot2-write")
