@@ -39,7 +39,7 @@ gemini_transition_ledger_read_wire(const struct gemini_transition_ledger_ops *op
 
 	for (word = 0; word < GEMINI_TRANSITION_LEDGER_COPY_WORDS; word++)
 		wire[word] = cpu_to_le32(ops->read(context,
-					   gemini_transition_ledger_copy_word(copy, word)));
+						   gemini_transition_ledger_copy_word(copy, word)));
 }
 
 static bool
@@ -398,7 +398,7 @@ int gemini_transition_ledger_checkpoint(u64 attempt_id, u32 phase,
 		goto out_unlock;
 	}
 	ret = gemini_transition_ledger_owner_checkpoint(owner,
-						&gemini_transition_ledger_mmio_ops,
+							&gemini_transition_ledger_mmio_ops,
 						gemini_transition_ledger_slot,
 						attempt_id, phase, stage, terminal);
 	if (ret || phase == GEMINI_TRANSITION_LEDGER_TERMINAL) {
