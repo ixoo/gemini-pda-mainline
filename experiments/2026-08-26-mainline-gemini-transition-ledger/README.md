@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-26-mainline-gemini-transition-ledger` |
-| Status | first build and QEMU pass; stack-clean fixture replacement admitted locally; rebuild pending |
+| Status | complete hardware-free Buildbox and QEMU proof; physical integration pending |
 | Subsystem | pstore retained transition evidence |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-26 America/New_York |
@@ -103,5 +103,17 @@ removed no assertion, and regenerated the exact test patch. Strict Checkpatch,
 source validation, replay, package checksums, and the 145-profile invariant all
 passed; see
 [`results/patch-regeneration-7d61de24.txt`](results/patch-regeneration-7d61de24.txt).
-The stack-clean replacement still requires its exact Buildbox rebuild and
-bounded QEMU rerun before this milestone closes.
+The exact stack-clean replacement at pushed commit `de9f35ef` compiled on
+Buildbox and passed complete package validation. It emitted no transition-ledger
+or test-fixture warning; the warning inventory contains only the inherited
+unused CPU helper and known patch `0261` whitespace notice. The fetched exact
+package then passed the sole bounded, no-network QEMU suite: all six named
+cases passed with zero failures or skips. Exact build, artifact, warning, and
+runtime identities are recorded in
+[`results/build-qemu-de9f35ef.txt`](results/build-qemu-de9f35ef.txt).
+
+This closes the mutable retained-ledger hardware-free milestone. It proves the
+default-off injected state machine, alternating-copy recovery, rejection
+rules, and one-shot terminal behavior. It does not prove the physical retained
+RAM mapping or any production caller; no device was accessed and no boot
+candidate was created.

@@ -26,9 +26,10 @@ the loop. Positive identity-gated observations are unaffected.
 - [2026-08-26 Gemini retained transition ledger](2026-08-26-mainline-gemini-transition-ledger/README.md)
   — implements the selected compact, one-zone, two-copy retained last-stage
   owner. Canonical patches `0388`--`0389` pass exact-source generation, strict
-  Checkpatch, and replay; focused Buildbox compilation and QEMU proof are next.
-  The physical API remains default-off with no production caller or device
-  action.
+  Checkpatch, replay, exact Buildbox compilation, and package validation. The
+  sole bounded no-network QEMU suite passes all six cases with zero failures,
+  skips, or new ledger warnings. The physical API remains default-off with no
+  production caller, device action, or boot candidate.
 - [2026-08-26 MT6797 watchdog recovery takeover](2026-08-26-mainline-mtk-wdt-recovery-takeover/README.md)
   — admits canonical patches `0386`--`0387` for a default-off,
   MT6797-only, irreversible 15-second watchdog owner. Exact clean commit

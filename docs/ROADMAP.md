@@ -5638,11 +5638,20 @@ The next ordered work is:
    fixes the recovery deadline at 15 seconds, blocks all five competing
    operations after irreversible takeover, and retains ownership after either
    readback mismatch. It still has zero physical watchdog calls and zero
-   production callers. **Selected next:** add the retained last-stage ledger
-   before the platform, SRAM, and CPU lifecycle owners are composed. Preserve
-   the executor's rollback boundary, prove each owner and the complete binder
-   with injected tests and no-network QEMU, and do not assemble or write a
-   device candidate before that proof passes.
+   production callers. The linked
+   [retained transition ledger](../experiments/2026-08-26-mainline-gemini-transition-ledger/README.md)
+   now admits canonical patches `0388`--`0389`. Exact clean commit `de9f35ef`
+   compiles the focused profile on Buildbox with zero new ledger warnings; its
+   validated package passes the sole no-network QEMU suite, all six cases, with
+   zero failures or skips. The one-zone, alternating-copy owner remains
+   default-off with zero physical backends, production callers, retained-RAM
+   writes, CPU requests, device actions, or boot candidates. **Selected next:**
+   implement the injected serialized platform-effect owner and binder that
+   connects the proven one-shot executor, 15-second watchdog takeover, and
+   retained ledger while preserving the executor's rollback boundary. Prove
+   the owner and complete binder with injected tests and no-network QEMU before
+   adding the SRAM-LDO and CPU lifecycle bridges. Do not assemble or write a
+   device candidate before that hardware-free proof passes.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
