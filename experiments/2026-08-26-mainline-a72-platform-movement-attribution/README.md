@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-26-mainline-a72-platform-movement-attribution` |
-| Status | exact same-DT movement candidate installed and shut down; selected runtime boot pending |
+| Status | decision-bearing runtime captured; over-broad CPU-status comparison proven; candidate retired |
 | Subsystem | MT6797 A72 platform-state source and composed observer |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-26 America/New_York |
@@ -120,8 +120,29 @@ readback, removed temporary readback data, and confirmed shutdown. It made no
 fresh partition backup, retained-RAM write, or reboot. An independent bounded
 SSH probe also timed out after shutdown.
 
-No native VM build occurred. The next action is one physical `boot2` selection.
-The screen may remain at the boot logo briefly; the decision point is whether
-the mainline USB console appears and, if so, which exact platform field moved.
-An automatic fallback to Gemian is also an admissible observation. Do not repeat
-the unchanged artifact after the first identity-gated capture.
+The single selected boot reached a serviceable exact mainline session as release
+`7.1.3-gemini-a72-movement` with changed boot ID `6f87ca7c`. The initial
+collector saw the exact USB interface and live shell banners but its one-line
+probe transport did not emit the required markers. A tiny read-only command
+passed over the same session. Sending the source-equivalent probe as bounded
+script lines then produced a complete transcript; mechanically removing only
+leading interactive prompt prefixes made the unchanged strict validator pass.
+
+The sole failure at 46.168459 seconds is `stage=platform ret=-11
+movement=003`. The first CPU-status word changed only at bit 11 and the second
+only at bits 11 and 13. Both words' source-backed CPU8/CPU9 identity bits 7:6
+were stable, their on-state intersection remained zero, and all MP2 cluster,
+CPU0, CPU1, external-isolation, DCM, CCI-port, and PWRAP comparisons were
+identical. The original platform-state design explicitly limits CPU8/CPU9
+identity to bits 7:6 and forbids unrelated full-word equality from invalidating
+A72 state. This proves the implementation's full-word CPU-status comparison is
+over-broad; it does not prove platform instability relevant to CPU8.
+
+The probe made no write or reboot request. After capture, the validated USB
+shell returned the device to changed-ID Gemian. Candidate `9ac8e004` is retired
+without an unchanged retry. No native VM build occurred. The selected next
+implementation masks both CPU-status stability comparisons to `GENMASK(7, 6)`,
+preserves the full raw words, proves unrelated-bit acceptance and A72-bit
+rejection in hardware-free tests, and only then builds one distinct same-DT
+candidate. It still makes no retry, additional read, provider action, retained
+write, protected-clock call, publication, owner mutation, or CPU request.

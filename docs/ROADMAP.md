@@ -5528,7 +5528,24 @@ The next ordered work is:
    physical `boot2` selection. Use its exact nine-bit platform movement line to
    choose the next source-stability action; retire the artifact after this one
    decision-bearing attempt whether it stays serviceable or falls back to
-   Gemian.
+   Gemian. That attempt is now captured from exact release
+   `7.1.3-gemini-a72-movement` with changed mainline boot ID `6f87ca7c` and full
+   serviceability. The sole failure is `stage=platform ret=-11 movement=003`:
+   CPU-status bit 11 moved in both words and bit 13 additionally moved in the
+   second, while source-backed CPU8/CPU9 bits 7:6 and every MP2, isolation, DCM,
+   CCI-port, and PWRAP comparison remained stable. The earlier owner audit
+   explicitly limits CPU8/CPU9 identity to bits 7:6 and forbids unrelated
+   full-word equality from invalidating A72 state. The initial one-line probe
+   transport returned only live shell banners; the same source-equivalent
+   read-only probe sent as bounded lines completed, and exact leading-prompt
+   normalization passed the unchanged validator. The probe requested no reboot;
+   the validated USB shell then returned the device to changed-ID Gemian.
+   Candidate `9ac8e004` is retired. **Selected next:** mask each CPU-status
+   stability comparison to `GENMASK(7, 6)`, retain both full raw words, prove
+   unrelated-bit acceptance and A72-bit rejection in hardware-free tests, fix
+   the collector to use bounded transport, and build one distinct same-DT
+   candidate. Preserve the exact two reads and all other gates; do not add a
+   retry, hardware operation, publication, owner mutation, or CPU request.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

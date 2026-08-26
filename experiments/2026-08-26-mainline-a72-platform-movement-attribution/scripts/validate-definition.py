@@ -175,7 +175,7 @@ require(contract["candidate"] == {
         "8b6bedfd7187369104250af5524a36dd2339493df95588e372d54e360d6aeabb",
     "receipt_sha256":
         "0c5f3a9c26b76f617aef05d2414446ee58223d1039801fbe77cace97631ee00d",
-    "boot_candidate": True,
+    "boot_candidate": False,
     "device_action": False,
 }, "validated candidate")
 candidate_receipt = EXP / "results/candidate-validation-20260826.txt"
@@ -245,11 +245,62 @@ require(contract["deployment"] == {
     "receipt_sha256": contract["deployment"]["receipt_sha256"],
     "result": "pass",
 }, "deployment")
+runtime_receipt = EXP / (
+    "results/runtime-attempt-1-cpu-status-unrelated-movement-20260826.txt"
+)
+require(sha256(runtime_receipt) == contract["runtime"]["receipt_sha256"],
+        "runtime receipt")
+require(contract["runtime"] == {
+    "kernel_release": "7.1.3-gemini-a72-movement",
+    "candidate_sha256":
+        "9ac8e004cdba7955c0525eab7a4863f0df5474b4ff105408e6f06b1cbc846f78",
+    "boot_id": "6f87ca7c-fdb4-46eb-9049-e26c4cbccb69",
+    "uptime_seconds": "169.13",
+    "failure_timestamp_seconds": "46.168459",
+    "classification": "serviceable-platform-movement-attributed",
+    "failure_stage": "platform",
+    "failure_errno": -11,
+    "movement_mask": "0x003",
+    "movement_fields": ["cpu", "cpu2"],
+    "cpu_status_xor": "0x00000800",
+    "cpu_status_2nd_xor": "0x00002800",
+    "a72_identity_mask": "0x000000c0",
+    "a72_identity_movement": False,
+    "a72_on_intersection_first": "0x00",
+    "a72_on_intersection_second": "0x00",
+    "other_platform_movement": False,
+    "provider_snapshot_calls": 0,
+    "retained_write_attempts": 0,
+    "protected_clock_calls": 0,
+    "clock_gate_pairs": 0,
+    "bigidvfs_reads": 0,
+    "secure_calls": 0,
+    "owner_mutations": 0,
+    "cpu_requests": 0,
+    "cpu_online": "0-7",
+    "cpu_offline": "8-9",
+    "transport_recovery": "bounded-direct-lines-prompt-prefix-normalization",
+    "normalization_exact": True,
+    "collector_reboot": False,
+    "post_capture_usb_reboot_to_gemian": True,
+    "changed_gemian_boot_id": "6ad7a635-13b4-4aae-9e3c-1a1ceddc7bd4",
+    "classification_sha256":
+        "1d9b876fef2e20c96732ca17184a279cd95d7906d38b30b990b7d976106b5aec",
+    "observer_events_sha256":
+        "fde34242c182d2a386e9b80d7a0a6f5f111ca60c4627ccbcdf2933733f3d47d9",
+    "runtime_sha256":
+        "efbdf848dc139635f03e8a28fcc3bdf750fdfedd1e20df7ba580e8d01cf0cb88",
+    "usb_topology_sha256":
+        "f5653579d11ff7103a4d87c5d4e3c3d6f5fb8a119f036ff8d35a1024aed987ce",
+    "receipt_sha256": contract["runtime"]["receipt_sha256"],
+    "candidate_retired": True,
+    "result": "pass-decision-bearing-overbroad-cpu-status-comparison",
+}, "runtime")
 require(contract["dt_change"] is False, "no DT change")
 require(contract["native_vm_build"] is False, "no native build")
 require(contract["device_action"] is True, "device action")
 require(contract["current_status"] ==
-        "movement-candidate-installed-shut-down-runtime-boot-pending",
+        "overbroad-cpu-status-comparison-proven-mask-repair-selected",
         "current status")
 receipt = (EXP / "results/prebuild-tooling-20260826.txt").read_text(encoding="utf-8")
 for token in (
@@ -288,8 +339,10 @@ print("buildbox_kunit=pass")
 print("kunit_qemu=2_suites:13_tests:pass")
 print("classifier_correction=per-suite-totals")
 print("device_build=buildbox:pass")
-print("candidate=validated:boot_candidate")
+print("candidate=retired-after-decision-bearing-boot")
 print("runtime_classifier=23_mutations_rejected")
 print("native_vm_build=none")
 print("deployment=write-verified-and-shut-down")
+print("runtime=movement-003:overbroad-cpu-status-comparison")
+print("selected_next=mask-cpu-status-stability-to-bits7:6")
 print("device_action=guarded-boot2-write")

@@ -50,7 +50,7 @@
     "validate_patch.py": "3e8f0c3ad2650dcb6e4dcdcdfc055fa3aad2fbb7224fa54b92193edc67311bbd",
     "validate-runtime.py": "518262924b0b50ad9a45af57eeb4c5a54ebd7f6b08972c69c14b66760f31ee6e",
     "validate_source.py": "1f0e13c1838b36c30935997c1022751ca22b16315d1f74238b9ec5b0f50e90d9",
-    "validate-definition.py": "4b711fc5cf12e6153fdfb7be77a6f994b749300bfda3555641c6256e3a47c64f"
+    "validate-definition.py": "fa717cc9cdbf7924375eb6776d1d1dc9a759096b9a64f21f0e0b96e5378f20d2"
   },
   "tooling_rejected_mutations": 8,
   "kunit_classifier_mutations_rejected": 6,
@@ -147,7 +147,7 @@
     "container_mutations_rejected": 6,
     "predecessor_sha256_required": "8b6bedfd7187369104250af5524a36dd2339493df95588e372d54e360d6aeabb",
     "receipt_sha256": "0c5f3a9c26b76f617aef05d2414446ee58223d1039801fbe77cace97631ee00d",
-    "boot_candidate": true,
+    "boot_candidate": false,
     "device_action": false
   },
   "device_build": {
@@ -192,8 +192,49 @@
     "receipt_sha256": "9e26c4dd88a668e82f14cd8d5719f7c8f3c4f005a004ab8696d0f92a5f67a021",
     "result": "pass"
   },
+  "runtime": {
+    "kernel_release": "7.1.3-gemini-a72-movement",
+    "candidate_sha256": "9ac8e004cdba7955c0525eab7a4863f0df5474b4ff105408e6f06b1cbc846f78",
+    "boot_id": "6f87ca7c-fdb4-46eb-9049-e26c4cbccb69",
+    "uptime_seconds": "169.13",
+    "failure_timestamp_seconds": "46.168459",
+    "classification": "serviceable-platform-movement-attributed",
+    "failure_stage": "platform",
+    "failure_errno": -11,
+    "movement_mask": "0x003",
+    "movement_fields": ["cpu", "cpu2"],
+    "cpu_status_xor": "0x00000800",
+    "cpu_status_2nd_xor": "0x00002800",
+    "a72_identity_mask": "0x000000c0",
+    "a72_identity_movement": false,
+    "a72_on_intersection_first": "0x00",
+    "a72_on_intersection_second": "0x00",
+    "other_platform_movement": false,
+    "provider_snapshot_calls": 0,
+    "retained_write_attempts": 0,
+    "protected_clock_calls": 0,
+    "clock_gate_pairs": 0,
+    "bigidvfs_reads": 0,
+    "secure_calls": 0,
+    "owner_mutations": 0,
+    "cpu_requests": 0,
+    "cpu_online": "0-7",
+    "cpu_offline": "8-9",
+    "transport_recovery": "bounded-direct-lines-prompt-prefix-normalization",
+    "normalization_exact": true,
+    "collector_reboot": false,
+    "post_capture_usb_reboot_to_gemian": true,
+    "changed_gemian_boot_id": "6ad7a635-13b4-4aae-9e3c-1a1ceddc7bd4",
+    "classification_sha256": "1d9b876fef2e20c96732ca17184a279cd95d7906d38b30b990b7d976106b5aec",
+    "observer_events_sha256": "fde34242c182d2a386e9b80d7a0a6f5f111ca60c4627ccbcdf2933733f3d47d9",
+    "runtime_sha256": "efbdf848dc139635f03e8a28fcc3bdf750fdfedd1e20df7ba580e8d01cf0cb88",
+    "usb_topology_sha256": "f5653579d11ff7103a4d87c5d4e3c3d6f5fb8a119f036ff8d35a1024aed987ce",
+    "receipt_sha256": "a831d32283d7a91ba91fb34e220af775189431f7adc43b8801482885933df6e8",
+    "candidate_retired": true,
+    "result": "pass-decision-bearing-overbroad-cpu-status-comparison"
+  },
   "dt_change": false,
   "native_vm_build": false,
   "device_action": true,
-  "current_status": "movement-candidate-installed-shut-down-runtime-boot-pending"
+  "current_status": "overbroad-cpu-status-comparison-proven-mask-repair-selected"
 }
