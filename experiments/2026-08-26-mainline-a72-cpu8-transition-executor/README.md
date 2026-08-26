@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-26-mainline-a72-cpu8-transition-executor` |
-| Status | generated and admitted for hardware-free build validation |
+| Status | hardware-free compile passed; exact-commit QEMU proof pending |
 | Subsystem | MT6797 CPU8 transition coordination and rollback boundary |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-26 America/New_York |
@@ -70,6 +70,24 @@ for the bounded style chronology and
 [`results/patch-generation-e5b6dce2.txt`](results/patch-generation-e5b6dce2.txt)
 for the successful package receipt. No generation attempt compiled a kernel or
 contacted the Gemini.
+
+## Hardware-free validation
+
+Clean pushed commit `bb198e5f` compiled the focused
+`a72-transition-executor-kunit` profile on Buildbox. Package validation passed
+all checksums; the resolved configuration contains exactly the intended KUnit
+suite, and `System.map` contains the executor plus all seven case functions.
+The package records `modules_built=false` and no device or hardware action.
+See [`results/buildbox-compile-bb198e5f.txt`](results/buildbox-compile-bb198e5f.txt).
+
+That first compile preceded the experiment-local QEMU runner and classifier.
+It is valid compile evidence, but it is not used as the runtime package: the
+proof tools must be published in the same clean commit as the tested package.
+After that exact-commit rebuild, one bounded 45-second, no-network arm64 QEMU
+boot must execute exactly the named seven-case suite, reject any failure or
+skip, and observe the expected root-filesystem panic only after the suite pass.
+The runner, classifier, and eight-mutation self-test are frozen in
+[`results/qemu-tool-validation-20260826.txt`](results/qemu-tool-validation-20260826.txt).
 
 ## Exit
 

@@ -55,3 +55,11 @@ attempt/watchdog/isolation/online state, exact CPU request/off/retry counts,
 checkpoint count, rollback and retained masks, and watchdog identity. The KUnit
 fixture also records exact before/effect/after callback order entirely in
 memory.
+
+Runtime proof is limited to the exact checksum-validated Buildbox package and
+the sole `mt6797-a72-transition-executor` suite. The runner permits no network,
+uses a 45-second timeout, and accepts the expected missing-root-filesystem panic
+only after all seven exact cases and the suite summary have passed. Its
+classifier mutation test rejects a failed case, extra suite, renamed case,
+changed totals or plan, missing post-test panic, wrong kernel release, and
+wrong QEMU exit status.
