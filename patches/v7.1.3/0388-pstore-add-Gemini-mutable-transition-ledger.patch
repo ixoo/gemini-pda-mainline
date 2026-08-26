@@ -1,4 +1,4 @@
-From f9c1a5ed2956935b649a016693ac8ff6f731817b Mon Sep 17 00:00:00 2001
+From 3a8ea6f49b95c4076eda61beb1f5a9d7e896bed5 Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Thu, 27 Aug 2026 02:01:00 +0000
 Subject: [PATCH 1/2] pstore: add Gemini mutable transition ledger
@@ -65,7 +65,7 @@ index b4de9d8..6a0ed41 100644
  obj-$(CONFIG_PSTORE_ZONE)	+= pstore_zone.o
 diff --git a/fs/pstore/gemini_transition_ledger.c b/fs/pstore/gemini_transition_ledger.c
 new file mode 100644
-index 0000000..950658a
+index 0000000..7861312
 --- /dev/null
 +++ b/fs/pstore/gemini_transition_ledger.c
 @@ -0,0 +1,412 @@
@@ -179,7 +179,7 @@ index 0000000..950658a
 +static bool
 +gemini_transition_ledger_ops_valid(const struct gemini_transition_ledger_ops *ops)
 +{
-+	return ops && ops->read && ops->write && ops->barrier;
++	return ops && ops->read && ops->write && ops->sync;
 +}
 +
 +int
@@ -302,29 +302,29 @@ index 0000000..950658a
 +
 +	ops->write(context, gemini_transition_ledger_copy_word(target,
 +			 GEMINI_TRANSITION_LEDGER_INTEGRITY_WORD), 0);
-+	ops->barrier(context);
++	ops->sync(context);
 +	for (word = 0; word < GEMINI_TRANSITION_LEDGER_INTEGRITY_WORD; word++)
 +		ops->write(context, gemini_transition_ledger_copy_word(target,
 +								 word),
 +			   le32_to_cpu(wire[word]));
-+	ops->barrier(context);
++	ops->sync(context);
 +	ops->write(context, gemini_transition_ledger_copy_word(target,
 +			 GEMINI_TRANSITION_LEDGER_INTEGRITY_WORD),
 +		   le32_to_cpu(wire[GEMINI_TRANSITION_LEDGER_INTEGRITY_WORD]));
-+	ops->barrier(context);
++	ops->sync(context);
 +	gemini_transition_ledger_read_wire(ops, context, target, readback);
 +	if (memcmp(wire, readback, sizeof(wire)))
 +		return gemini_transition_ledger_fault(owner);
 +
 +	if (!owner->header_committed) {
 +		ops->write(context, 1, GEMINI_TRANSITION_LEDGER_PAYLOAD_BYTES);
-+		ops->barrier(context);
++		ops->sync(context);
 +		ops->write(context, 2, GEMINI_TRANSITION_LEDGER_PAYLOAD_BYTES);
-+		ops->barrier(context);
++		ops->sync(context);
 +		if (owner->needs_signature) {
 +			ops->write(context, 0,
 +				   GEMINI_TRANSITION_LEDGER_PSTORE_SIGNATURE);
-+			ops->barrier(context);
++			ops->sync(context);
 +		}
 +		if (ops->read(context, 0) !=
 +			    GEMINI_TRANSITION_LEDGER_PSTORE_SIGNATURE ||
@@ -414,7 +414,7 @@ index 0000000..950658a
 +gemini_transition_ledger_mmio_ops = {
 +	.read = gemini_transition_ledger_mmio_read,
 +	.write = gemini_transition_ledger_mmio_write,
-+	.barrier = gemini_transition_ledger_mmio_barrier,
++	.sync = gemini_transition_ledger_mmio_barrier,
 +};
 +
 +static DEFINE_MUTEX(gemini_transition_ledger_lock);
@@ -483,7 +483,7 @@ index 0000000..950658a
 +EXPORT_SYMBOL_GPL(gemini_transition_ledger_checkpoint);
 diff --git a/fs/pstore/gemini_transition_ledger_internal.h b/fs/pstore/gemini_transition_ledger_internal.h
 new file mode 100644
-index 0000000..22fa61b
+index 0000000..f529f01
 --- /dev/null
 +++ b/fs/pstore/gemini_transition_ledger_internal.h
 @@ -0,0 +1,66 @@
@@ -510,7 +510,7 @@ index 0000000..22fa61b
 +struct gemini_transition_ledger_ops {
 +	u32 (*read)(void *context, unsigned int word);
 +	void (*write)(void *context, unsigned int word, u32 value);
-+	void (*barrier)(void *context);
++	void (*sync)(void *context);
 +};
 +
 +struct gemini_transition_ledger_record {

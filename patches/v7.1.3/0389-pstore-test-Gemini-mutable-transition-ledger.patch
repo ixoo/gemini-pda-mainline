@@ -1,4 +1,4 @@
-From 486678106b739f6671924dcff6dcafdd4e406373 Mon Sep 17 00:00:00 2001
+From fe3780fcb2610cd16563e1cfc7a13739d173ab7d Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Thu, 27 Aug 2026 02:02:00 +0000
 Subject: [PATCH 2/2] pstore: test Gemini mutable transition ledger
@@ -49,7 +49,7 @@ index 6a0ed41..3baa9e6 100644
  obj-$(CONFIG_PSTORE_ZONE)	+= pstore_zone.o
 diff --git a/fs/pstore/gemini_transition_ledger_test.c b/fs/pstore/gemini_transition_ledger_test.c
 new file mode 100644
-index 0000000..e99bf23
+index 0000000..6d4aed5
 --- /dev/null
 +++ b/fs/pstore/gemini_transition_ledger_test.c
 @@ -0,0 +1,311 @@
@@ -109,7 +109,7 @@ index 0000000..e99bf23
 +static const struct gemini_transition_ledger_ops ledger_test_ops = {
 +	.read = ledger_test_read,
 +	.write = ledger_test_write,
-+	.barrier = ledger_test_barrier,
++	.sync = ledger_test_barrier,
 +};
 +
 +static void

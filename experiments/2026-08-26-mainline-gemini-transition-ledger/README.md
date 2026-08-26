@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-26-mainline-gemini-transition-ledger` |
-| Status | canonical review admitted; Buildbox compile and QEMU proof pending |
+| Status | compile collision repaired; exact replacement review admitted locally; rebuild pending |
 | Subsystem | pstore retained transition evidence |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-26 America/New_York |
@@ -70,6 +70,19 @@ hashes and zero-effect boundary are recorded in
 [`results/patch-generation-439d4c49.txt`](results/patch-generation-439d4c49.txt).
 
 Canonical patches `0388` and `0389` now contain the default-off owner and its
-six in-memory cases. The focused profile is admitted but has not yet compiled;
-therefore no runtime or hardware-support conclusion follows yet. No retained
-memory, watchdog, CPU, device, or partition was accessed.
+six in-memory cases. The first Buildbox compile at `cb18db0a` rejected six
+calls through an ops member named `barrier`, because that token collided with
+arm64's function-like `barrier()` macro. The exact diagnostic and zero-device
+boundary are recorded in
+[`results/build-attempt-cb18db0a.txt`](results/build-attempt-cb18db0a.txt).
+
+Clean pushed commit `18d401f4` reconstructed the exact through-`0387` parent by
+reversing the admitted `0389` and `0388` patches in a bounded temporary file
+set, then regenerated the pair with the callback named `sync`. Strict
+Checkpatch, production/test validation, exact replay, and package checksums all
+passed. The replacement hashes are recorded in
+[`results/patch-regeneration-18d401f4.txt`](results/patch-regeneration-18d401f4.txt).
+
+The corrected focused profile has not yet compiled, so no runtime or hardware-
+support conclusion follows yet. No retained memory, watchdog, CPU, device, or
+partition was accessed.
