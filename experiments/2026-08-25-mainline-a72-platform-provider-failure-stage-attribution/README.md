@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-25-mainline-a72-platform-provider-failure-stage-attribution` |
-| Status | exact deployment/runtime tooling passes; candidate selected; device deployment pending |
+| Status | corrected deployment/runtime tooling passes live preflight; candidate selected; device write pending |
 | Subsystem | MT6797 A72 platform/provider/protected-clock observer |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-25 America/New_York |
@@ -94,3 +94,20 @@ Candidate `8b6bedfd` is now selected for deployment. The next action is to wait
 for known-good Gemian, replace only exact live-GPT `boot2` predecessor
 `1f7bd960`, verify the full readback, and shut down. One subsequent selected
 boot is the sole hardware attempt for this discriminator.
+
+Direct SSH outside the restricted host network then found exact known-good
+Gemian and live-GPT `boot2` predecessor `1f7bd960`. Deployment attempt 1 failed
+closed before staging or writing because both records had authoritative empty
+headers (`DBGC`, start zero, size zero) but noncanonical inert tail bytes, so
+their whole-page hashes differed from the installer's overly strict all-`0xff`
+empty-page identity. No partition or retained-RAM write occurred.
+
+The corrected installer now derives directly from the generic guarded
+live-GPT/TEE installer. Its outer gates still require the exact retired
+predecessor and accept only two retained states: both authoritative headers
+logically empty, regardless of ignored tail bytes, or the exact completed
+provider pair including both whole-page hashes. Every other header remains a
+hard stop. A dedicated read-only mode passed against the same boot ID and
+classified both observed headers as `exact-logically-empty-headers`, without a
+partition or retained-RAM write. After publishing this correction, retry the
+same guarded deployment, require full readback, and shut down.

@@ -37,7 +37,7 @@
     "test-tooling.py": "76d593c53a8ee40bae09b89dfcf5e660e8ee0c2585235bc408b1fbb9effc71cf",
     "build-candidate.sh": "1e8156541aa3c0bfc79a7d1f387b95f3b6e67b7949c3fb2da258910744921e35",
     "validate-candidate.sh": "b8c44549a50eb619970d7c9c0b2d2383b397fdbc6e27ba673ddb7fd37d149ab6",
-    "install-boot2.sh": "3ba61af134221f7661e82e52f5f38a33b5b9fe236c6cd0071f4404a8811b257b",
+    "install-boot2.sh": "48e60a645fca43ec811f8c5769d2629745c149389e044b634b0cffc3e748496b",
     "collect-runtime.sh": "c2ddc0360c63039bdc4569953d72f08e77e170fad0c310572752474b9ac0e91e",
     "remote-live-probe.sh": "37d31b04e83b5ea3863c4640fc34ddedda95e635bc47702ab4aeb251a7b89942",
     "validate-runtime.py": "29005d94a93518901f9509e81b48c358defb521e617a097a4e013272a0287c7f",
@@ -124,6 +124,10 @@
     "accepted_success_branches": 4,
     "accepted_failure_stages": 3,
     "rejected_mutations": 24,
+    "retained_logical_empty_header": "444247430000000000000000",
+    "retained_logical_empty_definition": "DBGC-start0-size0",
+    "retained_nonempty_alternative": "exact-completed-provider-pair",
+    "live_read_only_preflight": "pass-exact-logically-empty-headers",
     "fresh_partition_backup": false,
     "collector_reboot": false,
     "result": "pass"
@@ -131,5 +135,5 @@
   "dt_change": false,
   "native_vm_build": false,
   "device_action": false,
-  "current_status": "deployment-runtime-tooling-pass-candidate-selected-device-deployment-pending"
+  "current_status": "corrected-deployment-runtime-tooling-live-preflight-pass-candidate-selected-device-write-pending"
 }
