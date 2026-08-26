@@ -1,0 +1,424 @@
+From 7e858efe17605e696f5960da575e5fa7f326a977 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 26 Aug 2026 21:11:00 +0000
+Subject: [PATCH 1/2] soc: mediatek: add injected A72 transition executor
+
+Add a default-off one-shot coordinator with watchdog-first ordering,
+exact pre-isolation rollback, and no connected physical backend.
+---
+ drivers/soc/mediatek/Kconfig                  |  14 +
+ drivers/soc/mediatek/Makefile                 |   1 +
+ .../mediatek/mt6797-a72-transition-internal.h | 109 ++++++++
+ drivers/soc/mediatek/mt6797-a72-transition.c  | 250 ++++++++++++++++++
+ 4 files changed, 374 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-a72-transition-internal.h
+ create mode 100644 drivers/soc/mediatek/mt6797-a72-transition.c
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index 217a6b8..f777c88 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -73,6 +73,20 @@ config MTK_MT6797_A72_PLATFORM_STATE
+ 	  A later transition owner must serialize snapshots against PSCI.
+ 	  This source does not authorize CPU_ON or lifecycle publication.
+ 
++config MTK_MT6797_A72_TRANSITION_EXECUTOR
++	bool "MediaTek MT6797 Cortex-A72 injected transition executor"
++	depends on ARM64 && ARCH_MEDIATEK
++	default n
++	help
++	  Build the default-off, operation-injected coordinator for one bounded
++	  MT6797 CPU8 transition. It enforces watchdog-first ordering, one CPU_ON,
++	  exact pre-isolation rollback, and post-isolation power retention.
++
++	  This option adds no device binding, trigger, production caller, MMIO,
++	  regulator, reset, secure-call, PSCI, CPU-hotplug, retained-memory, or
++	  watchdog implementation. Physical operations remain unconnected. If
++	  unsure, say N.
++
+ config MTK_MT6797_DVFSP_HANDOFF
+ 	bool "MediaTek MT6797 stopped DVFSP firmware handoff"
+ 	depends on ARM64 && ARCH_MEDIATEK && OF && COMMON_CLK
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+index 6aa48d7..6e72979 100644
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -34,6 +34,7 @@ obj-$(CONFIG_MTK_DVFSRC) += mtk-dvfsrc.o
+ obj-$(CONFIG_MTK_INFRACFG) += mtk-infracfg.o
+ obj-$(CONFIG_MTK_MT6797_A72_POWER) += mt6797-a72-power.o
+ obj-$(CONFIG_MTK_MT6797_A72_PLATFORM_STATE) += mt6797-a72-platform-state.o
++obj-$(CONFIG_MTK_MT6797_A72_TRANSITION_EXECUTOR) += mt6797-a72-transition.o
+ obj-$(CONFIG_MTK_MT6797_A72_PLATFORM_STATE_KUNIT_TEST) += mt6797-a72-platform-state-test.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-handoff.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND) += mt6797-dvfsp-clock-backend.o
+diff --git a/drivers/soc/mediatek/mt6797-a72-transition-internal.h b/drivers/soc/mediatek/mt6797-a72-transition-internal.h
+new file mode 100644
+index 0000000..37da196
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-a72-transition-internal.h
+@@ -0,0 +1,109 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __MT6797_A72_TRANSITION_INTERNAL_H
++#define __MT6797_A72_TRANSITION_INTERNAL_H
++
++#include <linux/atomic.h>
++#include <linux/bitops.h>
++#include <linux/types.h>
++
++#define MT6797_A72_TRANSITION_CPU8 8U
++#define MT6797_A72_TRANSITION_CPU9 9U
++#define MT6797_A72_TRANSITION_CPU_ON_WAIT_MS 10000U
++#define MT6797_A72_TRANSITION_RECOVERY_MS 15000U
++
++#define MT6797_A72_TRANSITION_OWNED_P27 BIT(0)
++#define MT6797_A72_TRANSITION_OWNED_PROVIDER BIT(1)
++#define MT6797_A72_TRANSITION_OWNED_CPU8 BIT(2)
++
++enum mt6797_a72_transition_stage {
++	MT6797_A72_TRANSITION_STAGE_ENTRY,
++	MT6797_A72_TRANSITION_STAGE_WATCHDOG,
++	MT6797_A72_TRANSITION_STAGE_P27,
++	MT6797_A72_TRANSITION_STAGE_PROVIDER,
++	MT6797_A72_TRANSITION_STAGE_ISOLATION,
++	MT6797_A72_TRANSITION_STAGE_SRAM,
++	MT6797_A72_TRANSITION_STAGE_CPU_ON,
++	MT6797_A72_TRANSITION_STAGE_ONLINE_WAIT,
++	MT6797_A72_TRANSITION_STAGE_IPI,
++	MT6797_A72_TRANSITION_STAGE_DCM,
++	MT6797_A72_TRANSITION_STAGE_COUNT,
++};
++
++enum mt6797_a72_transition_phase {
++	MT6797_A72_TRANSITION_BEFORE,
++	MT6797_A72_TRANSITION_AFTER,
++};
++
++enum mt6797_a72_transition_terminal {
++	MT6797_A72_TRANSITION_TERMINAL_NONE,
++	MT6797_A72_TRANSITION_REJECTED_PRESTATE,
++	MT6797_A72_TRANSITION_ROLLED_BACK_PREISO,
++	MT6797_A72_TRANSITION_ROLLBACK_FAULT_PREISO,
++	MT6797_A72_TRANSITION_FAULT_RETAIN_POSTISO,
++	MT6797_A72_TRANSITION_CPU8_ONLINE_PROOF,
++};
++
++struct mt6797_a72_transition_controller {
++	atomic_t consumed;
++};
++
++#define MT6797_A72_TRANSITION_CONTROLLER_INIT \
++	{ .consumed = ATOMIC_INIT(0) }
++
++struct mt6797_a72_transition_request {
++	unsigned int cpu;
++	bool token_exact;
++	bool prefix_complete;
++	bool cpu8_online;
++	bool cpu9_online;
++};
++
++struct mt6797_a72_transition_result {
++	enum mt6797_a72_transition_terminal terminal;
++	enum mt6797_a72_transition_stage last_stage;
++	int stage_errno;
++	int rollback_errno;
++	bool attempted;
++	bool watchdog_armed;
++	bool isolation_attempted;
++	bool isolation_crossed;
++	bool p27_owned;
++	bool provider_owned;
++	bool cpu8_online;
++	bool cpu9_online;
++	unsigned int cpu_requests;
++	unsigned int cpu_off_requests;
++	unsigned int retries;
++	unsigned int checkpoints;
++	u32 rollback_mask;
++	u32 retained_mask;
++	u64 watchdog_identity;
++};
++
++struct mt6797_a72_transition_ops {
++	void (*checkpoint)(void *context,
++			   enum mt6797_a72_transition_phase phase,
++			   enum mt6797_a72_transition_stage stage,
++			   const struct mt6797_a72_transition_result *result);
++	int (*watchdog_arm)(void *context, unsigned int timeout_ms,
++			    u64 *identity);
++	int (*p27_acquire)(void *context, bool *owned);
++	int (*p27_release)(void *context);
++	int (*provider_acquire)(void *context, bool *owned);
++	int (*provider_release)(void *context);
++	int (*isolation_clear)(void *context);
++	int (*sram_enable)(void *context);
++	int (*cpu_on)(void *context, unsigned int cpu);
++	int (*online_wait)(void *context, unsigned int cpu,
++			   unsigned int timeout_ms);
++	int (*ipi_proof)(void *context, unsigned int cpu);
++	int (*dcm_update)(void *context);
++};
++
++int mt6797_a72_transition_run(struct mt6797_a72_transition_controller *controller,
++			      const struct mt6797_a72_transition_ops *ops,
++			      void *context,
++			      const struct mt6797_a72_transition_request *request,
++			      struct mt6797_a72_transition_result *result);
++
++#endif /* __MT6797_A72_TRANSITION_INTERNAL_H */
+diff --git a/drivers/soc/mediatek/mt6797-a72-transition.c b/drivers/soc/mediatek/mt6797-a72-transition.c
+new file mode 100644
+index 0000000..9c25170
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-a72-transition.c
+@@ -0,0 +1,250 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* Hardware-free coordinator for one MT6797 CPU8 transition. */
++
++#include <linux/errno.h>
++#include <linux/string.h>
++
++#include "mt6797-a72-transition-internal.h"
++
++static bool
++mt6797_a72_transition_ops_valid(const struct mt6797_a72_transition_ops *ops)
++{
++	return ops && ops->checkpoint && ops->watchdog_arm &&
++		ops->p27_acquire && ops->p27_release &&
++		ops->provider_acquire && ops->provider_release &&
++		ops->isolation_clear && ops->sram_enable && ops->cpu_on &&
++		ops->online_wait && ops->ipi_proof && ops->dcm_update;
++}
++
++static void
++mt6797_a72_transition_checkpoint(const struct mt6797_a72_transition_ops *ops,
++				 void *context,
++				 struct mt6797_a72_transition_result *result,
++				 enum mt6797_a72_transition_phase phase,
++				 enum mt6797_a72_transition_stage stage)
++{
++	result->last_stage = stage;
++	result->checkpoints++;
++	ops->checkpoint(context, phase, stage, result);
++}
++
++static void
++mt6797_a72_transition_set_retained(struct mt6797_a72_transition_result *result)
++{
++	result->retained_mask = 0;
++	if (result->p27_owned)
++		result->retained_mask |= MT6797_A72_TRANSITION_OWNED_P27;
++	if (result->provider_owned)
++		result->retained_mask |= MT6797_A72_TRANSITION_OWNED_PROVIDER;
++	if (result->cpu8_online)
++		result->retained_mask |= MT6797_A72_TRANSITION_OWNED_CPU8;
++}
++
++static int
++mt6797_a72_transition_rollback(const struct mt6797_a72_transition_ops *ops,
++			       void *context,
++			       struct mt6797_a72_transition_result *result,
++			       int stage_errno)
++{
++	int ret;
++
++	result->stage_errno = stage_errno;
++	if (result->provider_owned) {
++		ret = ops->provider_release(context);
++		if (ret) {
++			result->rollback_errno = ret;
++			result->terminal =
++				MT6797_A72_TRANSITION_ROLLBACK_FAULT_PREISO;
++			mt6797_a72_transition_set_retained(result);
++			return ret;
++		}
++		result->provider_owned = false;
++		result->rollback_mask |= MT6797_A72_TRANSITION_OWNED_PROVIDER;
++	}
++	if (result->p27_owned) {
++		ret = ops->p27_release(context);
++		if (ret) {
++			result->rollback_errno = ret;
++			result->terminal =
++				MT6797_A72_TRANSITION_ROLLBACK_FAULT_PREISO;
++			mt6797_a72_transition_set_retained(result);
++			return ret;
++		}
++		result->p27_owned = false;
++		result->rollback_mask |= MT6797_A72_TRANSITION_OWNED_P27;
++	}
++	result->terminal = MT6797_A72_TRANSITION_ROLLED_BACK_PREISO;
++	return stage_errno;
++}
++
++static int mt6797_a72_owner_fault(struct mt6797_a72_transition_result *result,
++				  u32 unknown_mask)
++{
++	result->stage_errno = -EPROTO;
++	result->terminal = MT6797_A72_TRANSITION_ROLLBACK_FAULT_PREISO;
++	result->retained_mask = unknown_mask;
++	if (result->p27_owned)
++		result->retained_mask |= MT6797_A72_TRANSITION_OWNED_P27;
++	if (result->provider_owned)
++		result->retained_mask |= MT6797_A72_TRANSITION_OWNED_PROVIDER;
++	return -EPROTO;
++}
++
++static int
++mt6797_a72_transition_postiso_fault(struct mt6797_a72_transition_result *result,
++				    int stage_errno)
++{
++	result->stage_errno = stage_errno;
++	result->terminal = MT6797_A72_TRANSITION_FAULT_RETAIN_POSTISO;
++	mt6797_a72_transition_set_retained(result);
++	return stage_errno;
++}
++
++int
++mt6797_a72_transition_run(struct mt6797_a72_transition_controller *controller,
++			  const struct mt6797_a72_transition_ops *ops,
++			  void *context,
++			  const struct mt6797_a72_transition_request *request,
++			  struct mt6797_a72_transition_result *result)
++{
++	bool owned = false;
++	u64 watchdog_identity = 0;
++	int ret;
++
++	if (!result)
++		return -EINVAL;
++	memset(result, 0, sizeof(*result));
++	result->last_stage = MT6797_A72_TRANSITION_STAGE_ENTRY;
++	result->terminal = MT6797_A72_TRANSITION_REJECTED_PRESTATE;
++	if (!controller || !request || !mt6797_a72_transition_ops_valid(ops))
++		return -EINVAL;
++	result->cpu8_online = request->cpu8_online;
++	result->cpu9_online = request->cpu9_online;
++	if (request->cpu != MT6797_A72_TRANSITION_CPU8)
++		return -EINVAL;
++	if (!request->token_exact || !request->prefix_complete ||
++	    request->cpu8_online || request->cpu9_online)
++		return -EPERM;
++	if (atomic_cmpxchg(&controller->consumed, 0, 1))
++		return -EALREADY;
++	result->attempted = true;
++	result->terminal = MT6797_A72_TRANSITION_TERMINAL_NONE;
++
++	mt6797_a72_transition_checkpoint(ops, context, result,
++					 MT6797_A72_TRANSITION_BEFORE,
++					 MT6797_A72_TRANSITION_STAGE_WATCHDOG);
++	ret = ops->watchdog_arm(context, MT6797_A72_TRANSITION_RECOVERY_MS,
++				&watchdog_identity);
++	if (ret) {
++		result->stage_errno = ret;
++		result->terminal = MT6797_A72_TRANSITION_REJECTED_PRESTATE;
++		return ret;
++	}
++	if (!watchdog_identity) {
++		result->stage_errno = -EPROTO;
++		result->terminal = MT6797_A72_TRANSITION_REJECTED_PRESTATE;
++		return -EPROTO;
++	}
++	result->watchdog_armed = true;
++	result->watchdog_identity = watchdog_identity;
++	mt6797_a72_transition_checkpoint(ops, context, result,
++					 MT6797_A72_TRANSITION_AFTER,
++					 MT6797_A72_TRANSITION_STAGE_WATCHDOG);
++
++	mt6797_a72_transition_checkpoint(ops, context, result,
++					 MT6797_A72_TRANSITION_BEFORE,
++					 MT6797_A72_TRANSITION_STAGE_P27);
++	ret = ops->p27_acquire(context, &owned);
++	result->p27_owned = owned;
++	if (ret)
++		return mt6797_a72_transition_rollback(ops, context, result, ret);
++	if (!owned)
++		return mt6797_a72_owner_fault(result, MT6797_A72_TRANSITION_OWNED_P27);
++	mt6797_a72_transition_checkpoint(ops, context, result,
++					 MT6797_A72_TRANSITION_AFTER,
++					 MT6797_A72_TRANSITION_STAGE_P27);
++
++	owned = false;
++	mt6797_a72_transition_checkpoint(ops, context, result,
++					 MT6797_A72_TRANSITION_BEFORE,
++					 MT6797_A72_TRANSITION_STAGE_PROVIDER);
++	ret = ops->provider_acquire(context, &owned);
++	result->provider_owned = owned;
++	if (ret)
++		return mt6797_a72_transition_rollback(ops, context, result, ret);
++	if (!owned)
++		return mt6797_a72_owner_fault(result,
++					       MT6797_A72_TRANSITION_OWNED_PROVIDER);
++	mt6797_a72_transition_checkpoint(ops, context, result,
++					 MT6797_A72_TRANSITION_AFTER,
++					 MT6797_A72_TRANSITION_STAGE_PROVIDER);
++
++	mt6797_a72_transition_checkpoint(ops, context, result,
++					 MT6797_A72_TRANSITION_BEFORE,
++					 MT6797_A72_TRANSITION_STAGE_ISOLATION);
++	result->isolation_attempted = true;
++	ret = ops->isolation_clear(context);
++	if (ret)
++		return mt6797_a72_transition_postiso_fault(result, ret);
++	result->isolation_crossed = true;
++	mt6797_a72_transition_checkpoint(ops, context, result,
++					 MT6797_A72_TRANSITION_AFTER,
++					 MT6797_A72_TRANSITION_STAGE_ISOLATION);
++
++	mt6797_a72_transition_checkpoint(ops, context, result,
++					 MT6797_A72_TRANSITION_BEFORE,
++					 MT6797_A72_TRANSITION_STAGE_SRAM);
++	ret = ops->sram_enable(context);
++	if (ret)
++		return mt6797_a72_transition_postiso_fault(result, ret);
++	mt6797_a72_transition_checkpoint(ops, context, result,
++					 MT6797_A72_TRANSITION_AFTER,
++					 MT6797_A72_TRANSITION_STAGE_SRAM);
++
++	mt6797_a72_transition_checkpoint(ops, context, result,
++					 MT6797_A72_TRANSITION_BEFORE,
++					 MT6797_A72_TRANSITION_STAGE_CPU_ON);
++	result->cpu_requests++;
++	ret = ops->cpu_on(context, MT6797_A72_TRANSITION_CPU8);
++	if (ret)
++		return mt6797_a72_transition_postiso_fault(result, ret);
++	mt6797_a72_transition_checkpoint(ops, context, result,
++					 MT6797_A72_TRANSITION_AFTER,
++					 MT6797_A72_TRANSITION_STAGE_CPU_ON);
++
++	mt6797_a72_transition_checkpoint(ops, context, result,
++					 MT6797_A72_TRANSITION_BEFORE,
++					 MT6797_A72_TRANSITION_STAGE_ONLINE_WAIT);
++	ret = ops->online_wait(context, MT6797_A72_TRANSITION_CPU8,
++				MT6797_A72_TRANSITION_CPU_ON_WAIT_MS);
++	if (ret)
++		return mt6797_a72_transition_postiso_fault(result, ret);
++	result->cpu8_online = true;
++	mt6797_a72_transition_checkpoint(ops, context, result,
++					 MT6797_A72_TRANSITION_AFTER,
++					 MT6797_A72_TRANSITION_STAGE_ONLINE_WAIT);
++
++	mt6797_a72_transition_checkpoint(ops, context, result,
++					 MT6797_A72_TRANSITION_BEFORE,
++					 MT6797_A72_TRANSITION_STAGE_IPI);
++	ret = ops->ipi_proof(context, MT6797_A72_TRANSITION_CPU8);
++	if (ret)
++		return mt6797_a72_transition_postiso_fault(result, ret);
++	mt6797_a72_transition_checkpoint(ops, context, result,
++					 MT6797_A72_TRANSITION_AFTER,
++					 MT6797_A72_TRANSITION_STAGE_IPI);
++
++	mt6797_a72_transition_checkpoint(ops, context, result,
++					 MT6797_A72_TRANSITION_BEFORE,
++					 MT6797_A72_TRANSITION_STAGE_DCM);
++	ret = ops->dcm_update(context);
++	if (ret)
++		return mt6797_a72_transition_postiso_fault(result, ret);
++	mt6797_a72_transition_checkpoint(ops, context, result,
++					 MT6797_A72_TRANSITION_AFTER,
++					 MT6797_A72_TRANSITION_STAGE_DCM);
++
++	result->terminal = MT6797_A72_TRANSITION_CPU8_ONLINE_PROOF;
++	mt6797_a72_transition_set_retained(result);
++	return 0;
++}

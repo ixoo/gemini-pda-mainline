@@ -1,0 +1,7 @@
+# Hardware-free coverage for the one-shot MT6797 CPU8 transition executor.
+# Every operation is an injected in-memory callback; no physical backend,
+# production caller, retained-RAM writer, watchdog, or CPU request is connected.
+CONFIG_KUNIT=y
+CONFIG_MTK_MT6797_A72_TRANSITION_EXECUTOR=y
+CONFIG_MTK_MT6797_A72_TRANSITION_EXECUTOR_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-a72-transition-kunit"

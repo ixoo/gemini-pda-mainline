@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-26-mainline-a72-cpu8-transition-executor` |
-| Status | hardware-free implementation in progress |
+| Status | generated and admitted for hardware-free build validation |
 | Subsystem | MT6797 CPU8 transition coordination and rollback boundary |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-26 America/New_York |
@@ -56,13 +56,20 @@ one at a time after the pure state machine passes.
   KUnit continuation-alignment checks that the earlier file-mode preflight did
   not reproduce.
 - The current correction aligns every reported continuation with its opening
-  parenthesis. Publication and a new exact format-patch run are pending; only
-  that patch-mode result is authoritative for admission.
+  parenthesis.
+- Commit `e5b6dce2` passed the authoritative Buildbox generation lane: both
+  normal format-patches passed strict Checkpatch, replayed on the exact parent,
+  and passed production, test, and replay source validation. The checksum-
+  covered package identifies zero physical backends, zero production callers,
+  and no device action or boot candidate. Patches `0384` and `0385` are now the
+  canonical review artifacts, with a focused hardware-free KUnit profile.
 
 See
 [`results/pre-admission-style-20260826.txt`](results/pre-admission-style-20260826.txt)
-for the bounded receipt. No generation attempt compiled a kernel or contacted
-the Gemini.
+for the bounded style chronology and
+[`results/patch-generation-e5b6dce2.txt`](results/patch-generation-e5b6dce2.txt)
+for the successful package receipt. No generation attempt compiled a kernel or
+contacted the Gemini.
 
 ## Exit
 

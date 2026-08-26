@@ -554,6 +554,14 @@ commit and the exact managed Linux source through canonical patch `0383`:
 ./scripts/buildbox fetch-a72-transition-executor-patches
 ```
 
+After the generated patches are reviewed and admitted to the canonical series,
+compile and fetch the hardware-free focused profile with:
+
+```sh
+KERNEL_PROFILE=a72-transition-executor-kunit ./scripts/build-kernel --backend buildbox
+KERNEL_PROFILE=a72-transition-executor-kunit ./scripts/buildbox fetch-package
+```
+
 This lane emits two experiment-only format patches: a default-off coordinator
 whose operations are all injected, and its hardware-free KUnit suite. It
 requires watchdog-first ordering, one CPU8 request, no CPU_OFF or retry, exact
