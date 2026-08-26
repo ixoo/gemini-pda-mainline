@@ -1,0 +1,39 @@
+From 9493d88694849c536102b7f670deef9c152bd6fe Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 26 Aug 2026 10:21:00 +0000
+Subject: [PATCH 1/2] soc: mediatek: mask A72 CPU-status stability
+
+Use only the source-backed CPU8/CPU9 identity bits for movement
+while preserving both complete raw status words.
+---
+ drivers/soc/mediatek/mt6797-a72-platform-state.c | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-platform-state.c b/drivers/soc/mediatek/mt6797-a72-platform-state.c
+index 1f624c8..817c0f0 100644
+--- a/drivers/soc/mediatek/mt6797-a72-platform-state.c
++++ b/drivers/soc/mediatek/mt6797-a72-platform-state.c
+@@ -28,6 +28,8 @@
+ #define MT6797_SPM_MP2_CPU1_PWR_CON		0x244
+ #define MT6797_SPM_CPU_EXT_BUCK_ISO		0x290
+ 
++#define MT6797_A72_CPU_PWR_STATUS_MASK		GENMASK(7, 6)
++
+ #define MT6797_MCUCFG_MP2_SYNC_DCM		0x274
+ #define MT6797_MCUCFG_MP2_SYNC_DCM_MASK		GENMASK(6, 0)
+ 
+@@ -117,9 +119,12 @@ mt6797_state_movement_mask(const struct mt6797_a72_platform_state *first,
+ {
+ 	u32 movement = 0;
+ 
+-	if (first->spm_cpu_pwr_status != second->spm_cpu_pwr_status)
++	if ((first->spm_cpu_pwr_status ^ second->spm_cpu_pwr_status) &
++	    MT6797_A72_CPU_PWR_STATUS_MASK)
+ 		movement |= MT6797_A72_PLATFORM_MOVED_SPM_CPU_PWR_STATUS;
+-	if (first->spm_cpu_pwr_status_2nd != second->spm_cpu_pwr_status_2nd)
++	if ((first->spm_cpu_pwr_status_2nd ^
++	     second->spm_cpu_pwr_status_2nd) &
++	    MT6797_A72_CPU_PWR_STATUS_MASK)
+ 		movement |= MT6797_A72_PLATFORM_MOVED_SPM_CPU_PWR_STATUS_2ND;
+ 	if (first->spm_mp2_cpusys_pwr_con != second->spm_mp2_cpusys_pwr_con)
+ 		movement |= MT6797_A72_PLATFORM_MOVED_MP2_CPUSYS_PWR_CON;

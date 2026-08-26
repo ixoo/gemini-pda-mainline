@@ -1,0 +1,106 @@
+From 548b82a66a5fdcef5223557b1ba41bec749edc26 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 26 Aug 2026 10:22:00 +0000
+Subject: [PATCH 2/2] soc: mediatek: test A72 CPU-status stability mask
+
+Prove all four A72 identity-bit movements and accept the exact
+observed unrelated-bit pair without losing raw evidence.
+---
+ .../mediatek/mt6797-a72-platform-state-test.c | 47 +++++++++++++++++--
+ 1 file changed, 44 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-platform-state-test.c b/drivers/soc/mediatek/mt6797-a72-platform-state-test.c
+index fd8a3fa..e4b1c72 100644
+--- a/drivers/soc/mediatek/mt6797-a72-platform-state-test.c
++++ b/drivers/soc/mediatek/mt6797-a72-platform-state-test.c
+@@ -91,7 +91,7 @@ static void mt6797_state_cci_busy_precedence_test(struct kunit *test)
+ 	int ret;
+ 
+ 	state.samples[0].cci_status_before = BIT(0);
+-	state.samples[1].spm_cpu_pwr_status = 1;
++	state.samples[1].spm_cpu_pwr_status = BIT(6);
+ 	ret = mt6797_a72_platform_state_capture(&test_ops, &state, &snapshot,
+ 						&failure);
+ 	KUNIT_EXPECT_EQ(test, ret, -EBUSY);
+@@ -107,10 +107,10 @@ static void mt6797_state_set_movement(struct mt6797_a72_platform_state *sample,
+ {
+ 	switch (movement) {
+ 	case MT6797_A72_PLATFORM_MOVED_SPM_CPU_PWR_STATUS:
+-		sample->spm_cpu_pwr_status = 1;
++		sample->spm_cpu_pwr_status = BIT(6);
+ 		break;
+ 	case MT6797_A72_PLATFORM_MOVED_SPM_CPU_PWR_STATUS_2ND:
+-		sample->spm_cpu_pwr_status_2nd = 1;
++		sample->spm_cpu_pwr_status_2nd = BIT(6);
+ 		break;
+ 	case MT6797_A72_PLATFORM_MOVED_MP2_CPUSYS_PWR_CON:
+ 		sample->spm_mp2_cpusys_pwr_con = 1;
+@@ -173,6 +173,38 @@ static void mt6797_state_each_movement_test(struct kunit *test)
+ 	}
+ }
+ 
++static void mt6797_state_each_a72_identity_bit_test(struct kunit *test)
++{
++	static const u32 status_bits[] = { BIT(6), BIT(7) };
++	unsigned int word;
++	unsigned int bit;
++
++	for (word = 0; word < 2; word++) {
++		for (bit = 0; bit < ARRAY_SIZE(status_bits); bit++) {
++			struct mt6797_state_test_context state = { };
++			struct mt6797_a72_platform_state_failure failure;
++			struct mt6797_a72_platform_state snapshot;
++			u32 expected;
++			int ret;
++
++			if (word == 0) {
++				state.samples[1].spm_cpu_pwr_status = status_bits[bit];
++				expected = MT6797_A72_PLATFORM_MOVED_SPM_CPU_PWR_STATUS;
++			} else {
++				state.samples[1].spm_cpu_pwr_status_2nd = status_bits[bit];
++				expected = MT6797_A72_PLATFORM_MOVED_SPM_CPU_PWR_STATUS_2ND;
++			}
++			ret = mt6797_a72_platform_state_capture(&test_ops, &state,
++								&snapshot, &failure);
++			KUNIT_EXPECT_EQ(test, ret, -EAGAIN);
++			KUNIT_EXPECT_EQ(test, state.calls, 2U);
++			KUNIT_EXPECT_TRUE(test, failure.samples_valid);
++			KUNIT_EXPECT_EQ(test, failure.movement_mask, expected);
++			mt6797_state_expect_zero(test, &snapshot, sizeof(snapshot));
++		}
++	}
++}
++
+ static void mt6797_state_masked_noise_test(struct kunit *test)
+ {
+ 	struct mt6797_state_test_context state = { };
+@@ -180,6 +212,10 @@ static void mt6797_state_masked_noise_test(struct kunit *test)
+ 	struct mt6797_a72_platform_state snapshot;
+ 	int ret;
+ 
++	state.samples[0].spm_cpu_pwr_status = 0x003dcf08;
++	state.samples[1].spm_cpu_pwr_status = 0x003dc708;
++	state.samples[0].spm_cpu_pwr_status_2nd = 0x003defff;
++	state.samples[1].spm_cpu_pwr_status_2nd = 0x003dc7ff;
+ 	state.samples[1].spm_pwr_status = 1;
+ 	state.samples[1].spm_pwr_status_2nd = 1;
+ 	state.samples[1].mp2_sync_dcm = BIT(7);
+@@ -189,6 +225,10 @@ static void mt6797_state_masked_noise_test(struct kunit *test)
+ 	KUNIT_EXPECT_EQ(test, ret, 0);
+ 	KUNIT_EXPECT_EQ(test, state.calls, 2U);
+ 	KUNIT_EXPECT_TRUE(test, snapshot.valid);
++	KUNIT_EXPECT_EQ(test, snapshot.spm_cpu_pwr_status,
++			(u32)0x003dc708);
++	KUNIT_EXPECT_EQ(test, snapshot.spm_cpu_pwr_status_2nd,
++			(u32)0x003dc7ff);
+ 	mt6797_state_expect_zero(test, &failure, sizeof(failure));
+ }
+ 
+@@ -197,6 +237,7 @@ static struct kunit_case mt6797_state_cases[] = {
+ 	KUNIT_CASE(mt6797_state_read_errors_test),
+ 	KUNIT_CASE(mt6797_state_cci_busy_precedence_test),
+ 	KUNIT_CASE(mt6797_state_each_movement_test),
++	KUNIT_CASE(mt6797_state_each_a72_identity_bit_test),
+ 	KUNIT_CASE(mt6797_state_masked_noise_test),
+ 	{ }
+ };

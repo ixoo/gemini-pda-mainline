@@ -5546,6 +5546,20 @@ The next ordered work is:
    the collector to use bounded transport, and build one distinct same-DT
    candidate. Preserve the exact two reads and all other gates; do not add a
    retry, hardware operation, publication, owner mutation, or CPU request.
+   The linked
+   [CPU-status mask repair](../experiments/2026-08-26-mainline-a72-cpu-status-mask-repair/README.md)
+   now admits canonical patches `0382`--`0383`. They mask only bits 7:6 while
+   preserving both full raw words, exactly two samples, CCI-busy precedence,
+   and all other comparisons. The exact observed bit-11/bit-13 pair is an
+   explicit accepted KUnit case; each A72 bit in each status word remains an
+   explicit `-EAGAIN` case. Two generations are byte-identical, eight source
+   mutations fail closed, all 142 profiles preserve canonical order, both
+   patches pass strict Checkpatch with zero diagnostics, and the bounded
+   console transport reproduces an exact payload larger than 20 KiB without a
+   remote file. **Selected next:** sign and push the frozen revision, compile
+   its 14 focused cases on Buildbox, and run those two suites in no-network
+   QEMU. Only after both hardware-free gates pass may the same-DT `maxcpus=8`
+   candidate profile be built; it still adds no CPU request.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
