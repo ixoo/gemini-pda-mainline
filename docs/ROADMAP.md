@@ -5492,7 +5492,17 @@ The next ordered work is:
    reads and the unchanged CCI-busy/read-error behavior in hardware-free tests,
    then build one distinct same-DT, `maxcpus=8` candidate. Do not add a retry,
    provider call, retained write, protected-clock call, publication, owner
-   mutation, or CPU request.
+   mutation, or CPU request. The
+   [movement-attribution implementation](../experiments/2026-08-26-mainline-a72-platform-movement-attribution/README.md)
+   now admits canonical patches `0380`--`0381`: a separate completed-pair
+   failure detail and exact nine-bit mask, plus five injected platform tests and
+   the eight preserved composed-observer tests. Two generations are
+   byte-identical, eight source mutations and six classifier mutations fail
+   closed, all 140 profiles preserve canonical order, and both patches pass
+   strict Checkpatch with zero diagnostics. **Selected next:** commit and push
+   this exact prebuild state, compile `a72-platform-movement-kunit` on Buildbox,
+   and require one exact 13-test no-network QEMU pass before building any device
+   candidate.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

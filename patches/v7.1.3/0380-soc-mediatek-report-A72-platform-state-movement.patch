@@ -1,0 +1,428 @@
+From 078f69a20bfe23def497affc39f06aab03d8387d Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 26 Aug 2026 02:11:00 +0000
+Subject: [PATCH 1/2] soc: mediatek: report A72 platform-state movement
+
+Preserve the exact two-sample transaction and expose a bounded failure
+detail that identifies which existing comparison moved.
+---
+ ...latform-provider-clock-observer-internal.h |   6 +-
+ ...797-a72-platform-provider-clock-observer.c |  63 ++++++--
+ .../mt6797-a72-platform-state-internal.h      |  17 +++
+ .../soc/mediatek/mt6797-a72-platform-state.c  | 135 +++++++++++++-----
+ .../soc/mediatek/mt6797-a72-platform-state.h  |  47 ++++++
+ 5 files changed, 220 insertions(+), 48 deletions(-)
+ create mode 100644 drivers/soc/mediatek/mt6797-a72-platform-state-internal.h
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-platform-provider-clock-observer-internal.h b/drivers/soc/mediatek/mt6797-a72-platform-provider-clock-observer-internal.h
+index cad8bd0..373d08c 100644
+--- a/drivers/soc/mediatek/mt6797-a72-platform-provider-clock-observer-internal.h
++++ b/drivers/soc/mediatek/mt6797-a72-platform-provider-clock-observer-internal.h
+@@ -28,7 +28,8 @@ struct mt6797_a72_platform_provider_clock_snapshot {
+ 
+ struct mt6797_a72_platform_provider_clock_ops {
+ 	int (*platform)(void *context, struct device *dev,
+-			struct mt6797_a72_platform_state *snapshot);
++			struct mt6797_a72_platform_state *snapshot,
++			struct mt6797_a72_platform_state_failure *failure);
+ 	int (*provider)(void *context,
+ 			struct mt6797_a72_provider_snapshot *snapshot);
+ 	bool (*checkpoint)(void *context, unsigned int checkpoint);
+@@ -40,6 +41,7 @@ int mt6797_a72_ppc_capture(struct device *platform, struct device *provider,
+ 			   struct device *clock,
+ 	const struct mt6797_a72_platform_provider_clock_ops *ops, void *context,
+ 	struct mt6797_a72_platform_provider_clock_snapshot *snapshot,
+-	enum mt6797_a72_ppc_failure_stage *failure_stage);
++	enum mt6797_a72_ppc_failure_stage *failure_stage,
++	struct mt6797_a72_platform_state_failure *platform_failure);
+ 
+ #endif /* __MT6797_A72_PLATFORM_PROVIDER_CLOCK_OBSERVER_INTERNAL_H */
+diff --git a/drivers/soc/mediatek/mt6797-a72-platform-provider-clock-observer.c b/drivers/soc/mediatek/mt6797-a72-platform-provider-clock-observer.c
+index f7b9e07..8ce6e67 100644
+--- a/drivers/soc/mediatek/mt6797-a72-platform-provider-clock-observer.c
++++ b/drivers/soc/mediatek/mt6797-a72-platform-provider-clock-observer.c
+@@ -22,9 +22,10 @@
+ 	"GEMINI_A72_PLATFORM_PROVIDER_CLOCK_SNAPSHOT_V1"
+ 
+ static int mt6797_a72_ppc_platform(void *context, struct device *dev,
+-				   struct mt6797_a72_platform_state *snapshot)
++	struct mt6797_a72_platform_state *snapshot,
++	struct mt6797_a72_platform_state_failure *failure)
+ {
+-	return mt6797_a72_platform_state_snapshot(dev, snapshot);
++	return mt6797_a72_platform_state_snapshot_detailed(dev, snapshot, failure);
+ }
+ 
+ static int mt6797_a72_ppc_provider(void *context,
+@@ -56,14 +57,16 @@ int mt6797_a72_ppc_capture(struct device *platform, struct device *provider,
+ 			   struct device *clock,
+ 	const struct mt6797_a72_platform_provider_clock_ops *ops, void *context,
+ 	struct mt6797_a72_platform_provider_clock_snapshot *snapshot,
+-	enum mt6797_a72_ppc_failure_stage *failure_stage)
++	enum mt6797_a72_ppc_failure_stage *failure_stage,
++	struct mt6797_a72_platform_state_failure *platform_failure)
+ {
+ 	int ret;
+ 
+-	if (!snapshot || !failure_stage)
++	if (!snapshot || !failure_stage || !platform_failure)
+ 		return -EINVAL;
+ 	*failure_stage = MT6797_A72_PPC_FAILURE_NONE;
+ 	memset(snapshot, 0, sizeof(*snapshot));
++	memset(platform_failure, 0, sizeof(*platform_failure));
+ 	if (!platform || !provider || !clock) {
+ 		*failure_stage = MT6797_A72_PPC_FAILURE_DEPENDENCY;
+ 		return -EPROBE_DEFER;
+@@ -72,7 +75,8 @@ int mt6797_a72_ppc_capture(struct device *platform, struct device *provider,
+ 	    !ops->clock)
+ 		return -EINVAL;
+ 
+-	ret = ops->platform(context, platform, &snapshot->platform);
++	ret = ops->platform(context, platform, &snapshot->platform,
++			    platform_failure);
+ 	if (ret) {
+ 		*failure_stage = MT6797_A72_PPC_FAILURE_PLATFORM;
+ 		goto out_clear;
+@@ -204,6 +208,47 @@ mt6797_a72_ppc_failure_stage_name(enum mt6797_a72_ppc_failure_stage stage)
+ 	}
+ }
+ 
++static void
++mt6797_a72_ppc_log_failure(struct device *dev,
++			   enum mt6797_a72_ppc_failure_stage stage, int ret,
++			   const struct mt6797_a72_platform_state_failure *failure)
++{
++	const struct mt6797_a72_platform_state *first = &failure->first;
++	const struct mt6797_a72_platform_state *second = &failure->second;
++
++	if (stage == MT6797_A72_PPC_FAILURE_PLATFORM && ret == -EAGAIN &&
++	    failure->samples_valid) {
++		dev_err(dev,
++			"platform/provider/clock capture failed: stage=platform ret=-11"
++			" movement=%03x cpu=%08x/%08x cpu2=%08x/%08x"
++			" cpusys=%08x/%08x cpu0=%08x/%08x cpu1=%08x/%08x"
++			" iso=%08x/%08x dcm=%08x/%08x cci-port=%08x/%08x"
++			" pwrap=%u/%u\n",
++			failure->movement_mask,
++			first->spm_cpu_pwr_status, second->spm_cpu_pwr_status,
++			first->spm_cpu_pwr_status_2nd,
++			second->spm_cpu_pwr_status_2nd,
++			first->spm_mp2_cpusys_pwr_con,
++			second->spm_mp2_cpusys_pwr_con,
++			first->spm_mp2_cpu0_pwr_con,
++			second->spm_mp2_cpu0_pwr_con,
++			first->spm_mp2_cpu1_pwr_con,
++			second->spm_mp2_cpu1_pwr_con,
++			first->spm_cpu_ext_buck_iso,
++			second->spm_cpu_ext_buck_iso,
++			first->mp2_sync_dcm, second->mp2_sync_dcm,
++			first->cci_mp2_port_control,
++			second->cci_mp2_port_control,
++			first->pwrap_reset_asserted,
++			second->pwrap_reset_asserted);
++		return;
++	}
++
++	dev_err(dev,
++		"platform/provider/clock capture failed: stage=%s ret=%d\n",
++		mt6797_a72_ppc_failure_stage_name(stage), ret);
++}
++
+ static void mt6797_a72_ppc_log(struct device *dev,
+ 			       const struct mt6797_a72_platform_provider_clock_snapshot *snapshot)
+ {
+@@ -273,6 +318,7 @@ static void mt6797_a72_ppc_log(struct device *dev,
+ static int mt6797_a72_ppc_probe(struct platform_device *pdev)
+ {
+ 	struct mt6797_a72_platform_provider_clock_snapshot snapshot;
++	struct mt6797_a72_platform_state_failure platform_failure;
+ 	enum mt6797_a72_ppc_failure_stage failure_stage;
+ 	struct device *platform;
+ 	struct device *provider;
+@@ -299,11 +345,10 @@ static int mt6797_a72_ppc_probe(struct platform_device *pdev)
+ 
+ 	ret = mt6797_a72_ppc_capture(platform, provider, clock,
+ 				     &mt6797_a72_ppc_ops, NULL, &snapshot,
+-				     &failure_stage);
++				     &failure_stage, &platform_failure);
+ 	if (ret)
+-		dev_err(dev,
+-			"platform/provider/clock capture failed: stage=%s ret=%d\n",
+-			mt6797_a72_ppc_failure_stage_name(failure_stage), ret);
++		mt6797_a72_ppc_log_failure(dev, failure_stage, ret,
++					   &platform_failure);
+ 	else
+ 		mt6797_a72_ppc_log(dev, &snapshot);
+ 	put_device(clock);
+diff --git a/drivers/soc/mediatek/mt6797-a72-platform-state-internal.h b/drivers/soc/mediatek/mt6797-a72-platform-state-internal.h
+new file mode 100644
+index 0000000..78ac8c6
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-a72-platform-state-internal.h
+@@ -0,0 +1,17 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __MT6797_A72_PLATFORM_STATE_INTERNAL_H
++#define __MT6797_A72_PLATFORM_STATE_INTERNAL_H
++
++#include <linux/soc/mediatek/mt6797-a72-platform-state.h>
++
++struct mt6797_state_capture_ops {
++	int (*read_once)(void *context,
++			 struct mt6797_a72_platform_state *sample);
++};
++
++int mt6797_a72_platform_state_capture(const struct mt6797_state_capture_ops *ops,
++				      void *context,
++				      struct mt6797_a72_platform_state *snapshot,
++				      struct mt6797_a72_platform_state_failure *failure);
++
++#endif /* __MT6797_A72_PLATFORM_STATE_INTERNAL_H */
+diff --git a/drivers/soc/mediatek/mt6797-a72-platform-state.c b/drivers/soc/mediatek/mt6797-a72-platform-state.c
+index 0730519..1f624c8 100644
+--- a/drivers/soc/mediatek/mt6797-a72-platform-state.c
++++ b/drivers/soc/mediatek/mt6797-a72-platform-state.c
+@@ -17,6 +17,8 @@
+ #include <linux/reset.h>
+ #include <linux/soc/mediatek/mt6797-a72-platform-state.h>
+ 
++#include "mt6797-a72-platform-state-internal.h"
++
+ #define MT6797_SPM_PWR_STATUS			0x180
+ #define MT6797_SPM_PWR_STATUS_2ND		0x184
+ #define MT6797_SPM_CPU_PWR_STATUS		0x188
+@@ -109,22 +111,34 @@ static int mt6797_state_read_once(struct mt6797_a72_platform_state_source *sourc
+ 	return 0;
+ }
+ 
+-static bool mt6797_state_moved(const struct mt6797_a72_platform_state *first,
+-			       const struct mt6797_a72_platform_state *second)
++static u32
++mt6797_state_movement_mask(const struct mt6797_a72_platform_state *first,
++			   const struct mt6797_a72_platform_state *second)
+ {
+-	return first->spm_cpu_pwr_status != second->spm_cpu_pwr_status ||
+-		first->spm_cpu_pwr_status_2nd !=
+-			second->spm_cpu_pwr_status_2nd ||
+-		first->spm_mp2_cpusys_pwr_con !=
+-			second->spm_mp2_cpusys_pwr_con ||
+-		first->spm_mp2_cpu0_pwr_con != second->spm_mp2_cpu0_pwr_con ||
+-		first->spm_mp2_cpu1_pwr_con != second->spm_mp2_cpu1_pwr_con ||
+-		first->spm_cpu_ext_buck_iso != second->spm_cpu_ext_buck_iso ||
+-		((first->mp2_sync_dcm ^ second->mp2_sync_dcm) &
+-		 MT6797_MCUCFG_MP2_SYNC_DCM_MASK) ||
+-		((first->cci_mp2_port_control ^
+-		  second->cci_mp2_port_control) & MT6797_CCI_MP2_REQUEST_MASK) ||
+-		first->pwrap_reset_asserted != second->pwrap_reset_asserted;
++	u32 movement = 0;
++
++	if (first->spm_cpu_pwr_status != second->spm_cpu_pwr_status)
++		movement |= MT6797_A72_PLATFORM_MOVED_SPM_CPU_PWR_STATUS;
++	if (first->spm_cpu_pwr_status_2nd != second->spm_cpu_pwr_status_2nd)
++		movement |= MT6797_A72_PLATFORM_MOVED_SPM_CPU_PWR_STATUS_2ND;
++	if (first->spm_mp2_cpusys_pwr_con != second->spm_mp2_cpusys_pwr_con)
++		movement |= MT6797_A72_PLATFORM_MOVED_MP2_CPUSYS_PWR_CON;
++	if (first->spm_mp2_cpu0_pwr_con != second->spm_mp2_cpu0_pwr_con)
++		movement |= MT6797_A72_PLATFORM_MOVED_MP2_CPU0_PWR_CON;
++	if (first->spm_mp2_cpu1_pwr_con != second->spm_mp2_cpu1_pwr_con)
++		movement |= MT6797_A72_PLATFORM_MOVED_MP2_CPU1_PWR_CON;
++	if (first->spm_cpu_ext_buck_iso != second->spm_cpu_ext_buck_iso)
++		movement |= MT6797_A72_PLATFORM_MOVED_CPU_EXT_BUCK_ISO;
++	if ((first->mp2_sync_dcm ^ second->mp2_sync_dcm) &
++	    MT6797_MCUCFG_MP2_SYNC_DCM_MASK)
++		movement |= MT6797_A72_PLATFORM_MOVED_MP2_SYNC_DCM;
++	if ((first->cci_mp2_port_control ^ second->cci_mp2_port_control) &
++	    MT6797_CCI_MP2_REQUEST_MASK)
++		movement |= MT6797_A72_PLATFORM_MOVED_CCI_MP2_PORT;
++	if (first->pwrap_reset_asserted != second->pwrap_reset_asserted)
++		movement |= MT6797_A72_PLATFORM_MOVED_PWRAP_RESET;
++
++	return movement;
+ }
+ 
+ static bool mt6797_state_cci_busy(const struct mt6797_a72_platform_state *sample)
+@@ -133,47 +147,94 @@ static bool mt6797_state_cci_busy(const struct mt6797_a72_platform_state *sample
+ 		MT6797_CCI_CHANGE_PENDING;
+ }
+ 
+-int mt6797_a72_platform_state_snapshot(struct device *dev,
+-				       struct mt6797_a72_platform_state *snapshot)
++int mt6797_a72_platform_state_capture(const struct mt6797_state_capture_ops *ops,
++				      void *context,
++				      struct mt6797_a72_platform_state *snapshot,
++				      struct mt6797_a72_platform_state_failure *failure)
+ {
+-	struct mt6797_a72_platform_state_source *source;
+ 	struct mt6797_a72_platform_state first;
+ 	struct mt6797_a72_platform_state second;
++	u32 movement;
+ 	int ret;
+ 
+-	if (!snapshot)
++	if (!snapshot || !failure)
+ 		return -EINVAL;
+ 	*snapshot = (struct mt6797_a72_platform_state){};
+-	if (!dev)
++	*failure = (struct mt6797_a72_platform_state_failure){};
++	if (!ops || !ops->read_once)
+ 		return -EINVAL;
+ 
+-	source = dev_get_drvdata(dev);
+-	if (!source)
+-		return -ENODEV;
+-
+-	mutex_lock(&source->lock);
+-	ret = mt6797_state_read_once(source, &first);
++	ret = ops->read_once(context, &first);
+ 	if (ret)
+-		goto out;
+-	ret = mt6797_state_read_once(source, &second);
++		return ret;
++	ret = ops->read_once(context, &second);
+ 	if (ret)
+-		goto out;
++		return ret;
++
++	movement = mt6797_state_movement_mask(&first, &second);
+ 	if (mt6797_state_cci_busy(&first) ||
+-	    mt6797_state_cci_busy(&second)) {
+-		ret = -EBUSY;
+-		goto out;
+-	}
+-	if (mt6797_state_moved(&first, &second)) {
+-		ret = -EAGAIN;
+-		goto out;
++	    mt6797_state_cci_busy(&second) || movement) {
++		failure->first = first;
++		failure->second = second;
++		failure->movement_mask = movement;
++		failure->samples_valid = true;
+ 	}
++	if (mt6797_state_cci_busy(&first) || mt6797_state_cci_busy(&second))
++		return -EBUSY;
++	if (movement)
++		return -EAGAIN;
+ 
+ 	*snapshot = second;
+ 	snapshot->valid = true;
+-out:
++	return 0;
++}
++
++static int mt6797_state_read_source(void *context,
++				    struct mt6797_a72_platform_state *sample)
++{
++	return mt6797_state_read_once(context, sample);
++}
++
++static const struct mt6797_state_capture_ops
++mt6797_state_capture_ops = {
++	.read_once = mt6797_state_read_source,
++};
++
++int mt6797_a72_platform_state_snapshot_detailed(struct device *dev,
++						struct mt6797_a72_platform_state *snapshot,
++						struct mt6797_a72_platform_state_failure *failure)
++{
++	struct mt6797_a72_platform_state_source *source;
++	int ret;
++
++	if (!snapshot || !failure)
++		return -EINVAL;
++	*snapshot = (struct mt6797_a72_platform_state){};
++	*failure = (struct mt6797_a72_platform_state_failure){};
++	if (!dev)
++		return -EINVAL;
++
++	source = dev_get_drvdata(dev);
++	if (!source)
++		return -ENODEV;
++
++	mutex_lock(&source->lock);
++	ret = mt6797_a72_platform_state_capture(&mt6797_state_capture_ops,
++						source, snapshot, failure);
+ 	mutex_unlock(&source->lock);
++
+ 	return ret;
+ }
++EXPORT_SYMBOL_GPL(mt6797_a72_platform_state_snapshot_detailed);
++
++int mt6797_a72_platform_state_snapshot(struct device *dev,
++				       struct mt6797_a72_platform_state *snapshot)
++{
++	struct mt6797_a72_platform_state_failure failure;
++
++	return mt6797_a72_platform_state_snapshot_detailed(dev, snapshot,
++						     &failure);
++}
+ EXPORT_SYMBOL_GPL(mt6797_a72_platform_state_snapshot);
+ 
+ static int mt6797_a72_platform_state_probe(struct platform_device *pdev)
+diff --git a/include/linux/soc/mediatek/mt6797-a72-platform-state.h b/include/linux/soc/mediatek/mt6797-a72-platform-state.h
+index 44b1dfe..5c97bce 100644
+--- a/include/linux/soc/mediatek/mt6797-a72-platform-state.h
++++ b/include/linux/soc/mediatek/mt6797-a72-platform-state.h
+@@ -2,6 +2,7 @@
+ #ifndef __LINUX_SOC_MEDIATEK_MT6797_A72_PLATFORM_STATE_H
+ #define __LINUX_SOC_MEDIATEK_MT6797_A72_PLATFORM_STATE_H
+ 
++#include <linux/bitops.h>
+ #include <linux/errno.h>
+ #include <linux/kconfig.h>
+ #include <linux/types.h>
+@@ -45,10 +46,56 @@ struct mt6797_a72_platform_state {
+ 	bool valid;
+ };
+ 
++enum mt6797_a72_platform_state_movement {
++	MT6797_A72_PLATFORM_MOVED_SPM_CPU_PWR_STATUS = BIT(0),
++	MT6797_A72_PLATFORM_MOVED_SPM_CPU_PWR_STATUS_2ND = BIT(1),
++	MT6797_A72_PLATFORM_MOVED_MP2_CPUSYS_PWR_CON = BIT(2),
++	MT6797_A72_PLATFORM_MOVED_MP2_CPU0_PWR_CON = BIT(3),
++	MT6797_A72_PLATFORM_MOVED_MP2_CPU1_PWR_CON = BIT(4),
++	MT6797_A72_PLATFORM_MOVED_CPU_EXT_BUCK_ISO = BIT(5),
++	MT6797_A72_PLATFORM_MOVED_MP2_SYNC_DCM = BIT(6),
++	MT6797_A72_PLATFORM_MOVED_CCI_MP2_PORT = BIT(7),
++	MT6797_A72_PLATFORM_MOVED_PWRAP_RESET = BIT(8),
++	MT6797_A72_PLATFORM_MOVED_ALL = GENMASK(8, 0),
++};
++
++/**
++ * struct mt6797_a72_platform_state_failure - completed refused pair
++ * @first: first completed raw sample
++ * @second: second completed raw sample
++ * @movement_mask: fields that differ under the stable-snapshot contract
++ * @samples_valid: both samples completed before refusal
++ *
++ * This is out-of-band failure evidence. It never authorizes a transition
++ * and is zero for read errors and successful stable snapshots.
++ */
++struct mt6797_a72_platform_state_failure {
++	struct mt6797_a72_platform_state first;
++	struct mt6797_a72_platform_state second;
++	u32 movement_mask;
++	bool samples_valid;
++};
++
+ #if IS_ENABLED(CONFIG_MTK_MT6797_A72_PLATFORM_STATE)
++int mt6797_a72_platform_state_snapshot_detailed(struct device *dev,
++						struct mt6797_a72_platform_state *snapshot,
++						struct mt6797_a72_platform_state_failure *failure);
+ int mt6797_a72_platform_state_snapshot(struct device *dev,
+ 				       struct mt6797_a72_platform_state *snapshot);
+ #else
++static inline int
++mt6797_a72_platform_state_snapshot_detailed(struct device *dev,
++					    struct mt6797_a72_platform_state *snapshot,
++					    struct mt6797_a72_platform_state_failure *failure)
++{
++	(void)dev;
++	if (snapshot)
++		*snapshot = (struct mt6797_a72_platform_state){};
++	if (failure)
++		*failure = (struct mt6797_a72_platform_state_failure){};
++	return -EOPNOTSUPP;
++}
++
+ static inline int mt6797_a72_platform_state_snapshot(struct device *dev,
+ 						     struct mt6797_a72_platform_state *snapshot)
+ {
