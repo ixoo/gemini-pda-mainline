@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-27-mainline-a72-platform-effect-owner` |
-| Status | implementation and proof tooling prepared; exact patch generation pending |
+| Status | canonical patches `0390`--`0391` admitted; exact Buildbox build and QEMU pending |
 | Subsystem | MT6797 CPU8 P27, external isolation, PWRAP, and MP2 DCM |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-27 America/New_York |
@@ -23,6 +23,7 @@ production CPU8 caller?
 
 - Parent repository commit: `67b3225f2e5105f4d5e71ae1b8fd61afb5de9c61`.
 - Canonical parent series: 389 patches through `0389`.
+- Patch-generation repository commit: `f0d504fc48928a36740c3c584f5576471a7f9e24`.
 - Prepared-source state: `ac9c2a550c465d56500045017afd7110e0ffb545538ac9ddda1c0d0d56a5853b`.
 - Build backend: Buildbox only.
 - Boot path and target partition: none in this phase.
@@ -54,13 +55,32 @@ image or candidate is selected.
 - [`scripts/classify-kunit.py`](scripts/classify-kunit.py) requires the eight
   named cases, exact totals, and post-test rootfs panic boundary.
 
+## Patch-generation result
+
+Buildbox generated and replayed the two exact patches from the pinned prepared
+source. Strict Checkpatch passed both patches with zero errors, warnings, or
+checks. Production and test source validation passed with one serialized
+platform-state resource owner, eight focused KUnit cases, zero production
+callers, zero physical-effect calls, and no device action or boot candidate.
+The generated format patches retain the experiment's synthetic archive
+identity, contain no synthetic `Signed-off-by`, and are not submission-ready;
+an upstream submission must identify the actual author and truthful DCO signer.
+
+- `0390-soc-mediatek-add-serialized-A72-platform-effects.patch`:
+  `76011b229fc61ba770520acf1ce3d7bbe0442768152081ae6edcb43d7f731cec`
+- `0391-soc-mediatek-test-serialized-A72-platform-effects.patch`:
+  `ca29af1b0e889ce652d3cb482eea547115de4ae06ee2c9556ef773b20124edfb`
+- Exact generation chronology and machine-readable provenance:
+  [`results/patch-generation-f0d504fc.txt`](results/patch-generation-f0d504fc.txt).
+
 ## Planned procedure
 
 1. Generate one production-owner patch and one injected-test patch from the
-   exact through-`0389` prepared source.
+   exact through-`0389` prepared source. **Complete.**
 2. Require strict Checkpatch, production/test validation, exact replay, and
-   package checksum validation before admission.
+   package checksum validation before admission. **Complete.**
 3. Admit the two exact patches and one focused configuration profile.
+   **Complete.**
 4. Build the exact clean pushed commit on Buildbox.
 5. Run the sole eight-case suite in bounded no-network arm64 QEMU.
 6. Publish sanitized evidence before beginning the BigiDVFS SRAM-LDO owner.
