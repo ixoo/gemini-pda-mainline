@@ -217,7 +217,7 @@ static void gemini_transition_ledger_torn_write_test(struct kunit *test)
 				     GEMINI_TRANSITION_LEDGER_BEFORE, 1, 0);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	state.drop_word = ledger_test_copy_word(1,
-					GEMINI_TRANSITION_LEDGER_INTEGRITY_WORD);
+						GEMINI_TRANSITION_LEDGER_INTEGRITY_WORD);
 	state.drop_enabled = true;
 	ret = ledger_test_checkpoint(&owner, &state, 11,
 				     GEMINI_TRANSITION_LEDGER_AFTER, 1, 0);
