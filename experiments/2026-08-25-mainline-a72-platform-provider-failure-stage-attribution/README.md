@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-25-mainline-a72-platform-provider-failure-stage-attribution` |
-| Status | corrected deployment/runtime tooling passes live preflight; candidate selected; device write pending |
+| Status | exact candidate deployed and device shut down; one attributed runtime pending |
 | Subsystem | MT6797 A72 platform/provider/protected-clock observer |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-25 America/New_York |
@@ -111,3 +111,19 @@ hard stop. A dedicated read-only mode passed against the same boot ID and
 classified both observed headers as `exact-logically-empty-headers`, without a
 partition or retained-RAM write. After publishing this correction, retry the
 same guarded deployment, require full readback, and shut down.
+
+Published installer commit `c0390a69` then repeated every live gate on the
+unchanged Gemian boot ID. It resolved inactive `boot2` as `/dev/mmcblk0p30`,
+matched exact predecessor `1f7bd960`, both logical-empty headers, stable
+external power at 100%, and both exact TEE identities. It staged only the exact
+candidate, wrote, synced, flushed, matched the post-gate full-partition hash,
+and passed an independent full readback plus byte comparison at `8b6bedfd`.
+Temporary staging and readback files were removed. No fresh backup or
+retained-RAM write occurred. The device then shut down without rebooting, and
+an independent direct-SSH check timed out.
+
+Deployment is therefore proven; execution is not. The no-reboot collector must
+be armed against deployment boot ID `35398152-947c-4526-8089-f04bf49ad4bd`
+before the owner makes one physical `boot2` selection. That first read-only USB
+capture will name the exact pre-clock failure stage or one of the already
+admitted returned-clock terminal outcomes.

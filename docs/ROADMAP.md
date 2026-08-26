@@ -5473,9 +5473,12 @@ The next ordered work is:
    and zero CPU requests. Its exact source-pinned deployment and no-reboot
    collection tools now pass four returned-clock outcomes, all three admissible
    pre-clock stages, and 24 fail-closed mutations. Candidate `8b6bedfd` is
-   selected. **Selected next:** from known-good Gemian, replace only exact
-   live-GPT boot2 predecessor `1f7bd960`, verify full readback, shut down, and
-   make one selected boot whose first read-only capture resolves the stage.
+   selected. Its guarded installer refused an over-strict inert-tail mismatch
+   before writing, was corrected to use the authoritative empty record header,
+   then replaced only exact live-GPT boot2 predecessor `1f7bd960`. Full
+   post-flush and independent readbacks match, and the device is shut down.
+   **Selected next:** pre-arm the no-reboot collector and make one selected
+   boot whose first read-only capture resolves the exact stage.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

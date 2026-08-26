@@ -41,7 +41,8 @@
     "collect-runtime.sh": "c2ddc0360c63039bdc4569953d72f08e77e170fad0c310572752474b9ac0e91e",
     "remote-live-probe.sh": "37d31b04e83b5ea3863c4640fc34ddedda95e635bc47702ab4aeb251a7b89942",
     "validate-runtime.py": "29005d94a93518901f9509e81b48c358defb521e617a097a4e013272a0287c7f",
-    "test-runtime.py": "da429e9dd2815151b0c66f39b13af10ba5c76987cab700934d4925b37f31fe81"
+    "test-runtime.py": "da429e9dd2815151b0c66f39b13af10ba5c76987cab700934d4925b37f31fe81",
+    "validate-definition.py": "40ae73f53cac77abb6779740db6157e1c49e4b68f1154ecb7b8287ce790d0bee"
   },
   "generated_package_sha256s_sha256": "fa889e9571202d44073e652a259c06602504994a18a862f09eac7ff3599aaba6",
   "tooling_rejected_mutations": 6,
@@ -93,7 +94,7 @@
     "predecessor_sha256_required": "1f7bd9600e11846af352abbec660db816c378094664f81d861b9fbd1f1f16aa2",
     "receipt_sha256": "5df519df2a4ee8af7ec0c56d1b05718618dc15e33897444749116ba0f44be4ea",
     "boot_candidate": true,
-    "device_action": false,
+    "device_action": true,
     "result": "pass-offline"
   },
   "failure_stages": {
@@ -132,8 +133,22 @@
     "collector_reboot": false,
     "result": "pass"
   },
+  "deployment": {
+    "repository_commit": "c0390a69",
+    "boot_id": "35398152-947c-4526-8089-f04bf49ad4bd",
+    "target": "/dev/mmcblk0p30",
+    "active_root": "/dev/mmcblk0p29",
+    "predecessor_sha256": "1f7bd9600e11846af352abbec660db816c378094664f81d861b9fbd1f1f16aa2",
+    "candidate_sha256": "8b6bedfd7187369104250af5524a36dd2339493df95588e372d54e360d6aeabb",
+    "readback_sha256": "8b6bedfd7187369104250af5524a36dd2339493df95588e372d54e360d6aeabb",
+    "fresh_predecessor_backup": false,
+    "retained_ram_write": false,
+    "shutdown": "confirmed-unreachable",
+    "reboot": false,
+    "result": "pass"
+  },
   "dt_change": false,
   "native_vm_build": false,
-  "device_action": false,
-  "current_status": "corrected-deployment-runtime-tooling-live-preflight-pass-candidate-selected-device-write-pending"
+  "device_action": true,
+  "current_status": "exact-candidate-deployed-shutdown-one-attributed-runtime-pending"
 }

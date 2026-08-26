@@ -66,7 +66,7 @@ require(contract["preserved_ceiling"] == {
 require(contract["snapshot_zero_on_pre_clock_failure"] is True, "zero snapshot")
 require(contract["dt_change"] is False, "no DT change")
 require(contract["native_vm_build"] is False, "no native build")
-require(contract["device_action"] is False, "no device action")
+require(contract["device_action"] is True, "verified device action")
 receipt = (EXP / "results/prebuild-tooling-20260825.txt").read_text(encoding="utf-8")
 for token in (
     "generated_patch_count=2", "tooling_rejected_mutations=6",
@@ -106,6 +106,33 @@ for token in (
     "hardware_write=none", "result=pass",
 ):
     require(token in candidate_receipt, f"candidate receipt: {token}")
+deployment = contract["deployment"]
+require(deployment == {
+    "repository_commit": "c0390a69",
+    "boot_id": "35398152-947c-4526-8089-f04bf49ad4bd",
+    "target": "/dev/mmcblk0p30",
+    "active_root": "/dev/mmcblk0p29",
+    "predecessor_sha256": "1f7bd9600e11846af352abbec660db816c378094664f81d861b9fbd1f1f16aa2",
+    "candidate_sha256": "8b6bedfd7187369104250af5524a36dd2339493df95588e372d54e360d6aeabb",
+    "readback_sha256": "8b6bedfd7187369104250af5524a36dd2339493df95588e372d54e360d6aeabb",
+    "fresh_predecessor_backup": False,
+    "retained_ram_write": False,
+    "shutdown": "confirmed-unreachable",
+    "reboot": False,
+    "result": "pass",
+}, "deployment contract")
+deployment_receipt = (EXP / "results/deployment-boot2-20260826.txt").read_text(encoding="utf-8")
+for token in (
+    "repository_commit=c0390a69", "target_logical_name=boot2",
+    "predecessor_sha256=1f7bd9600e11846af352abbec660db816c378094664f81d861b9fbd1f1f16aa2",
+    "candidate_sha256=8b6bedfd7187369104250af5524a36dd2339493df95588e372d54e360d6aeabb",
+    "readback_sha256=8b6bedfd7187369104250af5524a36dd2339493df95588e372d54e360d6aeabb",
+    "retained_ram_write=none", "fresh_predecessor_backup=no",
+    "post_gate_full_partition_checksum_verified=yes",
+    "independent_full_partition_readback_verified=yes",
+    "shutdown=confirmed-unreachable", "reboot=no", "result=pass",
+):
+    require(token in deployment_receipt, f"deployment receipt: {token}")
 for token in (
     "The exact prior image is retired", "out-of-band failure-stage result",
     "changes no supplier lookup", "same DT", "Buildbox compile",
@@ -124,4 +151,4 @@ print("buildbox_kunit=pass")
 print("kunit_qemu=pass:8_fail:0_skip:0_total:8")
 print("device_build=buildbox-pass")
 print("offline_candidate=pass:32_lk_gates:6_mutations")
-print("device_action=none")
+print("device_action=boot2-write-verified-shutdown")
