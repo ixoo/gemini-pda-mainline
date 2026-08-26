@@ -22,11 +22,18 @@ def public_definition_count(source: str, name: str) -> int:
     return len(pattern.findall(source))
 
 
+def collapse_whitespace(source: str) -> str:
+    """Keep token order stable while ignoring presentation-only wrapping."""
+    return " ".join(source.split())
+
+
 def validate_definition_counter() -> None:
     wrapped = "int\nexample(struct device *dev)\n{\n\treturn 0;\n}\n"
     called = "\treturn example(dev);\n"
     require(public_definition_count(wrapped + called, "example") == 1,
             "definition counter accepts wrapped return type and rejects calls")
+    require("write readback" in collapse_whitespace("write\n\treadback"),
+            "source order counter accepts wrapped tokens")
 
 
 def main() -> None:
@@ -48,6 +55,7 @@ def main() -> None:
     public = (root / "include/linux/soc/mediatek/mt6797-a72-platform-state.h").read_text(
         encoding="utf-8")
     combined = source + internal + public
+    ordered_source = collapse_whitespace(source)
 
     require(kconfig.count("config MTK_MT6797_A72_PLATFORM_EFFECTS\n") == 1,
             "production Kconfig")
@@ -86,27 +94,28 @@ def main() -> None:
     ):
         require(public_definition_count(source, name) == 1,
                 f"one production definition and no caller: {name}")
-    p27_write = source.index(
+    p27_write = ordered_source.index(
         "ops->spm_update_bits(context, MT6797_A72_EFFECT_SPM_P27")
-    p27_readback = source.index(
+    p27_readback = ordered_source.index(
         "MT6797_A72_EFFECT_P27_HELD, &owner->result.spm_p27_after")
-    bpll = source.index(
+    bpll = ordered_source.index(
         "ops->mcucfg_read(context, MT6797_A72_EFFECT_MCUCFG_BPLL")
-    pwrap = source.index("ret = ops->pwrap_assert(context);")
+    pwrap = ordered_source.index("ret = ops->pwrap_assert(context);")
     require(p27_write < p27_readback < bpll < pwrap,
             "P27 write/readback/B-PLL/PWRAP order")
-    isolation_write = source.index(
+    isolation_write = ordered_source.index(
         "ops->spm_update_bits(context, MT6797_A72_EFFECT_SPM_ISOLATION")
-    isolation_readback = source.index(
+    isolation_readback = ordered_source.index(
         "MT6797_A72_EFFECT_ISOLATION_AFTER,")
-    isolation_deassert = source.index("ret = ops->pwrap_deassert(context);",
-                                      isolation_write)
-    isolation_delay = source.index("ops->delay(context,", isolation_deassert)
+    isolation_deassert = ordered_source.index(
+        "ret = ops->pwrap_deassert(context);", isolation_write)
+    isolation_delay = ordered_source.index(
+        "ops->delay(context,", isolation_deassert)
     require(isolation_write < isolation_readback < isolation_deassert <
             isolation_delay, "isolation/readback/PWRAP/guard order")
-    dcm_toggle = source.index(
+    dcm_toggle = ordered_source.index(
         "expected |= MT6797_A72_EFFECT_DCM_TOGGLE_VALUE;")
-    dcm_final = source.index("expected &= ~BIT(1);", dcm_toggle)
+    dcm_final = ordered_source.index("expected &= ~BIT(1);", dcm_toggle)
     require(dcm_toggle < dcm_final, "DCM toggle before final")
     for token in ("cpu_up(", "add_cpu(", "psci_", "arm_smccc", "cpu_on(",
                   "watchdog", "gemini_transition_ledger", "regulator_"):
