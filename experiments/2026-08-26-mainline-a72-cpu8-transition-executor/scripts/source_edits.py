@@ -150,10 +150,10 @@ INTERNAL_HEADER = dedent("""\
 
     void mt6797_a72_transition_controller_init(struct mt6797_a72_transition_controller *controller);
     int mt6797_a72_transition_run(struct mt6797_a72_transition_controller *controller,
-    \t\t\t  const struct mt6797_a72_transition_ops *ops,
-    \t\t\t  void *context,
-    \t\t\t  const struct mt6797_a72_transition_request *request,
-    \t\t\t  struct mt6797_a72_transition_result *result);
+    \t\t\t      const struct mt6797_a72_transition_ops *ops,
+    \t\t\t      void *context,
+    \t\t\t      const struct mt6797_a72_transition_request *request,
+    \t\t\t      struct mt6797_a72_transition_result *result);
 
     #endif /* __MT6797_A72_TRANSITION_INTERNAL_H */
     """)
@@ -239,7 +239,7 @@ CORE_SOURCE = dedent("""\
     }
 
     static int mt6797_a72_owner_fault(struct mt6797_a72_transition_result *result,
-    \t\t\t       u32 unknown_mask)
+    \t\t\t\t   u32 unknown_mask)
     {
     \tresult->stage_errno = -EPROTO;
     \tresult->terminal = MT6797_A72_TRANSITION_ROLLBACK_FAULT_PREISO;
