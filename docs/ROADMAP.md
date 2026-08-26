@@ -5603,7 +5603,18 @@ The next ordered work is:
    concrete derived probe; exact two-level materialization then recovered the
    complete frame on the same still-running boot. The automated collector now
    pins both identities and materializes before chunking. This closes the
-   repaired read-only platform/provider/protected-clock prefix.
+   repaired read-only platform/provider/protected-clock prefix. A fresh
+   [exact-tree admission audit](../experiments/2026-08-26-mainline-a72-cpu8-active-transition-audit/README.md)
+   then proves that configuration alone cannot make the first CPU8 request:
+   the canonical tree has no production caller for any transition ledger or
+   CPU8 `cpu_up`, the platform and BigiDVFS backends are read-only, and the
+   MT6797 boot callback still rejects admission. **Selected next:** implement
+   and exhaustively test a default-off, injected one-shot executor before
+   connecting physical callbacks. It admits CPU8 only, arms a 15-second
+   hardware recovery watchdog before mutation, permits one CPU_ON and no
+   CPU_OFF or retry, rolls back only exact attempt-owned P27/provider state
+   before isolation, and retains power for reset recovery at or after the
+   isolation attempt. Production membership publication remains closed.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

@@ -1,0 +1,7 @@
+branch	request_reachable	rollback_complete	attribution	decision
+enable-current-fragments	no	no	no	reject-inert
+remove-mt6797-boot-veto-only	yes	no	no	reject-unowned-effects
+call-psci-directly-after-read-prefix	yes	no	partial	reject-missing-rail-platform-sram
+reuse-dormant-ledgers-as-effects	no	no	no	reject-ledgers-do-not-mutate
+manufacture-a34-replay-and-open-owner	partial	partial	partial	reject-false-production-authority
+default-off-injected-active-executor-then-physical-connect	yes	yes	yes	select

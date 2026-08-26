@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-26-mainline-a72-cpu8-active-transition-audit",
+  "repository_commit": "d06f45903b9a9124965e9f13de0ce0be0ffb462c",
+  "canonical_series_entries": 375,
+  "canonical_series_sha256": "6c9014fce707f89d01325b6cf76ce5d3a81e75759cf3b90751e417e8d688462f",
+  "manifest_sha256": "8d7767923c1bd27d71ebb50f81958194b56a3c35a66f43d5557903f65ad0e589",
+  "prepared_source_state": "b043a495401c1081e85e4ee47b4deda3c25acca48ad673ffb225482ab266531f",
+  "qualified_runtime_receipt_sha256": "8e38b3f425773a63ce871b3c21b2615cdc0a218ac9827971e35261989c841aaa",
+  "production_callers": {
+    "bootstrap_publish": 0,
+    "membership_begin_up": 0,
+    "membership_publish_up": 0,
+    "p27_begin": 0,
+    "provider_acquire": 0,
+    "p28_begin": 0,
+    "p30e_handoff": 0,
+    "p30_arm": 0,
+    "cpu8_cpu_up": 0
+  },
+  "missing_active_owners": [
+    "watchdog-recovery-takeover",
+    "p27-effects-and-inverse",
+    "p28-effects",
+    "bigidvfs-sram-ldo-set-verify",
+    "cpu8-request-coordinator",
+    "post-online-dcm-owner"
+  ],
+  "selected_contract": {
+    "cpu": 8,
+    "cpu9_offline": true,
+    "attempts": 1,
+    "cpu_requests": 1,
+    "cpu_off_requests": 0,
+    "retries": 0,
+    "cpu_on_wait_ms": 10000,
+    "recovery_timeout_ms": 15000,
+    "preisolation_inverse": ["provider", "p27"],
+    "postisolation_policy": "retain-power-and-reset",
+    "production_membership_publication": false,
+    "native_vm_build": false
+  },
+  "model": {
+    "stages": 9,
+    "success_checkpoints": 18,
+    "injected_stage_failures": 9,
+    "watchdog_arm_failures_rejected": 1,
+    "preisolation_failures_rolled_back": 2,
+    "postisolation_failures_retained": 6,
+    "entry_rejections": 3,
+    "result": "pass"
+  },
+  "source_audit_receipt_sha256": "dd359fcb2f33d892323c75e4a35e977bf724cbf32d16948d9872d7c8a247941f",
+  "decision_matrix_sha256": "9c3786f931fe5aedc2f236eb45829c2970799bda71c6a46d71e31884fb056b60",
+  "tooling_sha256": {
+    "transition_model.py": "cd369e7e1d3af2e418a252b8e34885d4a4c73e7d78ec851ddb45bfb1bb88456f",
+    "test_transition_model.py": "dadfc76a5120097f72a5e2c98c6a20394117444ca1c58ce08871392df27d082b",
+    "validate.py": "739f3fc3f9d8e8e3ca51bcc4bbea73934ff78426bc594eb8d03a727c9debbf59"
+  },
+  "kernel_build": false,
+  "device_action": false,
+  "result": "implementation-required-before-candidate"
+}
