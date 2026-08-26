@@ -1,0 +1,9 @@
+# Hardware-free coverage for the Gemini mutable transition ledger.
+# The focused suite uses only an injected word array; the physical mapping API
+# has no caller, so no retained RAM, MMIO, watchdog, SMC, or CPU is touched.
+CONFIG_KUNIT=y
+CONFIG_PSTORE=y
+CONFIG_PSTORE_RAM=y
+CONFIG_PSTORE_GEMINI_TRANSITION_LEDGER=y
+CONFIG_PSTORE_GEMINI_TRANSITION_LEDGER_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-transition-ledger-kunit"

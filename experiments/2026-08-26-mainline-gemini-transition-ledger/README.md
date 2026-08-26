@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-26-mainline-gemini-transition-ledger` |
-| Status | implementation and hardware-free proof in progress |
+| Status | canonical review admitted; Buildbox compile and QEMU proof pending |
 | Subsystem | pstore retained transition evidence |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-26 America/New_York |
@@ -47,6 +47,10 @@ No boot image or boot candidate is selected.
   replays two normal format patches.
 - [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox) is the bounded
   Git-pinned Buildbox entry point.
+- [`scripts/run-kunit-qemu`](scripts/run-kunit-qemu) verifies the exact package
+  and runs one bounded arm64 QEMU boot with networking disabled.
+- [`scripts/classify-kunit.py`](scripts/classify-kunit.py) accepts only the
+  named six-case suite and expected post-test root-filesystem panic.
 
 ## Planned procedure
 
@@ -57,7 +61,15 @@ No boot image or boot candidate is selected.
 4. Run the sole six-case suite in bounded no-network arm64 QEMU.
 5. Record sanitized evidence before moving to the platform-effect owner.
 
-## Current conclusion
+## Generation and admission
 
-Pending hardware-free generation and validation. No retained memory, watchdog,
-CPU, device, or partition was accessed.
+Exact clean commit `439d4c49` generated two normal patches from prepared-source
+state `f84562a7`. Both passed strict Checkpatch, production/test source
+validation, exact replay, and package checksum validation. The admitted patch
+hashes and zero-effect boundary are recorded in
+[`results/patch-generation-439d4c49.txt`](results/patch-generation-439d4c49.txt).
+
+Canonical patches `0388` and `0389` now contain the default-off owner and its
+six in-memory cases. The focused profile is admitted but has not yet compiled;
+therefore no runtime or hardware-support conclusion follows yet. No retained
+memory, watchdog, CPU, device, or partition was accessed.
