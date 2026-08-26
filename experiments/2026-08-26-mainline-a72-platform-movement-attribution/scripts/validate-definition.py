@@ -157,14 +157,75 @@ require(contract["candidate"] == {
     "kernel_release": "7.1.3-gemini-a72-movement",
     "same_dt_required": True,
     "maxcpus": 8,
-    "boot_candidate": False,
+    "dtb_sha256":
+        "90cfc29b30fb036076a799f0223e0c8aae6469441e5917cbfa743f5d7ae6547d",
+    "raw_sha256":
+        "fd070a56d1f247108935298ab1be61938987cab912b84fd64624e8a26a7a6d99",
+    "raw_size": 6912000,
+    "padded_sha256":
+        "9ac8e004cdba7955c0525eab7a4863f0df5474b4ff105408e6f06b1cbc846f78",
+    "padded_size": 16777216,
+    "manifest_sha256":
+        "ace809cb0da37d977f36f9db5c0618b153103767a89cd796e1ed02d783831b48",
+    "independent_assemblies": 2,
+    "independent_padding_paths": 2,
+    "lk_gates_passed": 32,
+    "container_mutations_rejected": 6,
+    "predecessor_sha256_required":
+        "8b6bedfd7187369104250af5524a36dd2339493df95588e372d54e360d6aeabb",
+    "receipt_sha256":
+        "0c5f3a9c26b76f617aef05d2414446ee58223d1039801fbe77cace97631ee00d",
+    "boot_candidate": True,
     "device_action": False,
-}, "planned candidate")
+}, "validated candidate")
+candidate_receipt = EXP / "results/candidate-validation-20260826.txt"
+require(sha256(candidate_receipt) == contract["candidate"]["receipt_sha256"],
+        "candidate receipt")
+build_receipt = EXP / "results/buildbox-candidate-20260826.txt"
+require(sha256(build_receipt) == contract["device_build"]["receipt_sha256"],
+        "device build receipt")
+require(contract["device_build"] == {
+    "backend": "buildbox",
+    "repository_commit": "1ad025c40cb6716cb5a110319b715cc03f812551",
+    "profile": "a72-platform-movement-candidate",
+    "kernel_release": "7.1.3-gemini-a72-movement",
+    "patchset_sha256":
+        "7a0467b79748619c3dff6011a17ea7040a5a50b63211f6e5d157503d1f47d81e",
+    "config_sha256":
+        "f0c86eeea98b478930745c5957cdff81cab05deec9710262b677936ec452736c",
+    "image_sha256":
+        "d1e244b4b3d757b6ee20d3ef0c2719a8f6cfc8f627b6381993ed7b702b26fb27",
+    "image_gzip_sha256":
+        "5413eace14655c31ef3355a769ec36986e7e458309d4fe5d374c4923b66b6814",
+    "receipt_sha256":
+        "d1c0a0e7dd221f5c4cbfc6ce8da900e8cf93d6e2888cd31fe777b422c88d5cc6",
+    "result": "pass",
+}, "device build result")
+tooling_receipt = EXP / "results/deployment-runtime-tooling-20260826.txt"
+require(sha256(tooling_receipt) ==
+        contract["deployment_runtime_tooling"]["receipt_sha256"],
+        "deployment/runtime tooling receipt")
+require(contract["deployment_runtime_tooling"] == {
+    "predecessor_sha256_required":
+        "8b6bedfd7187369104250af5524a36dd2339493df95588e372d54e360d6aeabb",
+    "runtime_gate": "serviceable-platform-movement-decision",
+    "accepted_success_branches": 4,
+    "accepted_failure_branches": 3,
+    "movement_mask": "nonzero-exact-nine-bit",
+    "rejected_mutations": 23,
+    "fresh_partition_backup": False,
+    "collector_reboot": False,
+    "installer_shutdown": True,
+    "receipt_sha256":
+        "49f5c7473f9fe7942c62ef459d9cd831826ced8c19a2039aab75d306ad331ec2",
+    "result": "pass",
+}, "deployment/runtime tooling")
 require(contract["dt_change"] is False, "no DT change")
 require(contract["native_vm_build"] is False, "no native build")
 require(contract["device_action"] is False, "no device action")
 require(contract["current_status"] ==
-        "buildbox-kunit-and-qemu-pass-device-build-pending", "current status")
+        "validated-movement-candidate-ready-for-guarded-deployment",
+        "current status")
 receipt = (EXP / "results/prebuild-tooling-20260826.txt").read_text(encoding="utf-8")
 for token in (
     "generated_patch_count=2", "movement_bits=9", "third_read=none",
@@ -201,5 +262,8 @@ print("planned_kunit=2_suites:13_tests")
 print("buildbox_kunit=pass")
 print("kunit_qemu=2_suites:13_tests:pass")
 print("classifier_correction=per-suite-totals")
+print("device_build=buildbox:pass")
+print("candidate=validated:boot_candidate")
+print("runtime_classifier=23_mutations_rejected")
 print("native_vm_build=none")
 print("device_action=none")

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-26-mainline-a72-platform-movement-attribution` |
-| Status | Buildbox compile and 13-test no-network QEMU KUnit gate pass; device build pending |
+| Status | exact same-DT movement candidate validated; guarded deployment pending |
 | Subsystem | MT6797 A72 platform-state source and composed observer |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-26 America/New_York |
@@ -93,7 +93,22 @@ classifier requires exactly those two totals, continues to reject all six
 negative mutations, and classifies the unchanged raw log as a pass. This was a
 tooling correction, not a kernel-test retry or kernel-source change.
 
+The separate device profile also compiled on Buildbox from exact clean commit
+`1ad025c4` as release `7.1.3-gemini-a72-movement`. Its kernel is assembled with
+the byte-identical retired failure-stage DT and the unchanged serviceability
+ramdisk. Two raw assemblies and two independent 16 MiB padding paths are
+byte-identical; all 32 LK gates pass; six container corruptions are rejected;
+and the exact movement-detail marker is present once. Raw candidate
+`fd070a56` pads to selected boot2 image `9ac8e004`.
+
+The source-pinned installer requires full predecessor `8b6bedfd`, resolves
+inactive and unmounted `boot2` from the live GPT, makes no fresh backup, requires
+a full post-flush readback, and shuts the device down without rebooting. The
+no-reboot USB collector accepts four completed clock outcomes, the exact
+movement-detail platform failure, and the two later pre-clock failure stages;
+23 unsafe runtime mutations fail closed.
+
 No native VM build or device action occurred. The next action is a clean signed
-evidence push, followed by the separate
-`a72-platform-movement-candidate` Buildbox build and same-DT candidate
-validation.
+evidence push, then a read-only Gemian preflight and guarded installation of
+exact full candidate `9ac8e004` to `boot2`. A successful write must end in a
+confirmed shutdown before the single owner-selected boot.
