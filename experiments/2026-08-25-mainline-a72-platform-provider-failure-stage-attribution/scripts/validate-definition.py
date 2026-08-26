@@ -74,6 +74,25 @@ for token in (
     "native_vm_build=none", "device_action=none", "result=pass",
 ):
     require(token in receipt, f"tooling receipt: {token}")
+build_receipt = (EXP / "results/buildbox-kunit-20260826.txt").read_text(encoding="utf-8")
+for token in (
+    "repository_commit=2e507bcbf5391a765a42ae7d90b39c0914292b77",
+    "profile=a72-platform-provider-clock-stage-kunit",
+    "kernel_release=7.1.3-gemini-a72-clock-stage-kunit",
+    "sha256sums=pass", "native_vm_build=none", "device_action=none",
+    "result=pass",
+):
+    require(token in build_receipt, f"Buildbox receipt: {token}")
+qemu_receipt = (EXP / "results/kunit-qemu-20260826.txt").read_text(encoding="utf-8")
+for token in (
+    "machine=virt-cortex-a53-four-vcpu-no-network", "tests=8",
+    "failed=0", "skipped=0", "mt6797_a72_ppc_platform_failure_test=pass",
+    "mt6797_a72_ppc_provider_failure_test=pass",
+    "mt6797_a72_ppc_before_failure_test=pass", "mmio=false",
+    "retained_ram=false", "cpu_requests=0", "boot_candidate=false",
+    "result=pass",
+):
+    require(token in qemu_receipt, f"QEMU receipt: {token}")
 for token in (
     "The exact prior image is retired", "out-of-band failure-stage result",
     "changes no supplier lookup", "same DT", "Buildbox compile",
@@ -88,4 +107,6 @@ print("protected_clock_calls=1")
 print("caller_retries=0")
 print("canonical_patches=2")
 print("profiles_checked=138")
+print("buildbox_kunit=pass")
+print("kunit_qemu=pass:8_fail:0_skip:0_total:8")
 print("device_action=none")

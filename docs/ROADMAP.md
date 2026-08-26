@@ -5454,7 +5454,17 @@ The next ordered work is:
    instability. The unchanged artifact is retired. **Selected next:** add an
    explicit pre-clock failure-stage result, prove it with hardware-free
    mutations, then build one distinct candidate that preserves the exact
-   hardware ceiling and exposes which qualified prefix reader failed.
+   hardware ceiling and exposes which qualified prefix reader failed. That
+   attribution derivative is now admitted as canonical patches `0378`--`0379`
+   with all 138 profiles preserving canonical order. Exact clean commit
+   `2e507bcb` compiles on Buildbox as
+   `7.1.3-gemini-a72-clock-stage-kunit`; its fetched package and checksum
+   manifest pass. The sole no-network QEMU suite passes all eight cases,
+   including exact `platform`, `provider`, and `before-clock` stage assertions,
+   with zero failures or skips and no physical hardware action. **Selected
+   next:** publish this evidence, build the isolated device profile on
+   Buildbox, assemble the same-DT candidate, and spend one selected boot on the
+   exact pre-clock-stage discriminator.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-25-mainline-a72-platform-provider-failure-stage-attribution` |
-| Status | two patches admitted byte-for-byte; 138 profile-series checks pass; isolated Buildbox KUnit compile pending |
+| Status | Buildbox KUnit package validated; focused no-network QEMU suite passes 8/8; device profile pending |
 | Subsystem | MT6797 A72 platform/provider/protected-clock observer |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-25 America/New_York |
@@ -50,6 +50,18 @@ The ordered continuation remains in
 The deterministic generator pins all three post-`0377` source templates and
 emits patches `0378` and `0379`. Source validation, exact patch inventory and
 scope, six tooling mutations, byte-for-byte admission, both isolated profile
-fragments, and all 138 manifest-series invariants pass. The next action is the
-isolated KUnit profile on Buildbox, followed by its no-network QEMU suite. No
-native build or device action has occurred for this derivative.
+fragments, and all 138 manifest-series invariants pass.
+
+Exact clean commit `2e507bcb` compiled on Buildbox as
+`7.1.3-gemini-a72-clock-stage-kunit`; its fetched package and checksum manifest
+pass. The sole no-network QEMU suite passes all eight cases with zero failures
+or skips. In particular, the injected platform, provider, and before-clock
+failures preserve the zero snapshot and report their exact out-of-band stage.
+The test performed no physical I2C, clock-backend, MMIO, retained-RAM, secure,
+provider-transaction, owner, publication, or CPU operation. No native build or
+device action occurred.
+
+The next action is to publish this evidence, build the separate device profile
+on Buildbox, and assemble one exact same-DT candidate. Its one selected boot
+will distinguish `platform`, `provider`, or `before-clock` without repeating
+the retired ambiguous image.
