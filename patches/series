@@ -375,3 +375,5 @@ v7.1.3/0382-soc-mediatek-mask-A72-CPU-status-stability.patch
 v7.1.3/0383-soc-mediatek-test-A72-CPU-status-stability-mask.patch
 v7.1.3/0384-soc-mediatek-add-injected-A72-transition-executor.patch
 v7.1.3/0385-soc-mediatek-test-injected-A72-transition-executor.patch
+v7.1.3/0386-watchdog-mediatek-add-one-shot-recovery-takeover.patch
+v7.1.3/0387-watchdog-mediatek-test-one-shot-recovery-takeover.patch

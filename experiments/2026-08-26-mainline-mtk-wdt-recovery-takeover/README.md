@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-26-mainline-mtk-wdt-recovery-takeover` |
-| Status | `running` |
+| Status | exact patches generated; hardware-free compile pending |
 | Subsystem | MediaTek MT6797 TOPRGU watchdog |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-26 America/New_York |
@@ -45,6 +45,14 @@ unless its dedicated configuration is selected.
   two-patch `git format-patch` output and replays it on the exact parent.
 - [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox) is the bounded
   Buildbox entry point.
+- [`scripts/run-kunit-qemu`](scripts/run-kunit-qemu) verifies the exact
+  Buildbox package and runs one 45-second arm64 QEMU boot with networking
+  disabled.
+- [`scripts/classify-kunit.py`](scripts/classify-kunit.py) accepts only the
+  named five-case suite with zero failures or skips and the expected post-test
+  root-filesystem panic.
+- [`scripts/test-kunit-classifier.py`](scripts/test-kunit-classifier.py)
+  rejects eight decision-changing mutations of a valid fixture.
 
 ## Procedure
 
@@ -55,18 +63,41 @@ unless its dedicated configuration is selected.
 5. Compile on Buildbox and run exactly the named suite in bounded no-network
    QEMU.
 
-## Observations
+## Generation chronology
 
-Pending patch generation.
+- Commit `f0b49148` added the clean-HEAD, exact-commit Buildbox submit/fetch
+  lane. Its first generation exposed one production macro error, two warnings,
+  and three alignment/comment checks.
+- Commit `c0e9aa11` corrected those findings and exposed literal patch-marker
+  text embedded in generated continuations.
+- Commit `ead2169b` removed the visible padding but retained the leading marker;
+  strict Checkpatch rejected the resulting complex macro.
+- Commit `da51388c` removed every marker and replaced the complex mask with
+  short, single-line parenthesized masks. Patch `0386` then passed, and patch
+  `0387` exposed eight test-only nested-call layout checks.
+- Commit `b134710a` stored executor return values before KUnit assertions. The
+  authoritative Buildbox generation then passed strict Checkpatch for both
+  patches, replayed them on the exact parent, and passed production, test, and
+  replay source validation.
+
+The checksum-covered package records a 15-second timeout, five competing
+operation gates, five focused in-memory cases, zero physical watchdog calls,
+zero production callers, and no device action or boot candidate. Its exact
+receipt is
+[`results/patch-generation-b134710a.txt`](results/patch-generation-b134710a.txt).
+Patches `0386` and `0387` are now admitted as the canonical review artifacts
+with the focused `mtk-wdt-recovery-takeover-kunit` profile.
 
 ## Analysis
 
-Pending.
+Patch generation proves source shape, replay, and review style. It does not yet
+prove that the canonical tree compiles or that the five cases execute. The
+focused profile and bounded no-network QEMU harness must be published in the
+same clean commit as the package used for runtime proof.
 
 ## Conclusion
 
-`inconclusive` until exact patch generation, Buildbox compilation, and the
-focused QEMU suite pass.
+`inconclusive` until Buildbox compilation and the focused QEMU suite pass.
 
 ## Follow-up
 

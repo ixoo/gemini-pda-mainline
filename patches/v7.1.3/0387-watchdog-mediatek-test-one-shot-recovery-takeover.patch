@@ -1,0 +1,231 @@
+From fa2695070210ab73022ad83efcadd0800cdd3d0a Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 27 Aug 2026 01:12:00 +0000
+Subject: [PATCH 2/2] watchdog: mediatek: test one-shot recovery takeover
+
+Cover exact write order, refusal, one-shot, and retained ownership
+after either hardware readback mismatch with an in-memory transport.
+---
+ drivers/watchdog/Kconfig   |  12 +++
+ drivers/watchdog/mtk_wdt.c | 185 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 197 insertions(+)
+
+diff --git a/drivers/watchdog/Kconfig b/drivers/watchdog/Kconfig
+index 9325ddb..971c3f6 100644
+--- a/drivers/watchdog/Kconfig
++++ b/drivers/watchdog/Kconfig
+@@ -941,6 +941,18 @@ config MEDIATEK_WATCHDOG_RECOVERY_TAKEOVER
+ 	  This option adds no caller, trigger, CPU operation, retained-memory
+ 	  write, or boot policy. If unsure, say N.
+ 
++config MEDIATEK_WATCHDOG_RECOVERY_TAKEOVER_KUNIT_TEST
++	bool "KUnit tests for MediaTek watchdog recovery takeover"
++	depends on KUNIT=y
++	depends on MEDIATEK_WATCHDOG_RECOVERY_TAKEOVER=y
++	default n
++	help
++	  Test exact write order, invalid-input refusal, one-shot ownership,
++	  and retained ownership after length or mode readback mismatch with an
++	  in-memory register transport. No watchdog MMIO or timer is used.
++
++	  If unsure, say N.
++
+ config MEDIATEK_WATCHDOG_BOOT_STATUS_CAPTURE
+ 	bool "Capture raw MediaTek watchdog boot status"
+ 	depends on MEDIATEK_WATCHDOG=y
+diff --git a/drivers/watchdog/mtk_wdt.c b/drivers/watchdog/mtk_wdt.c
+index f275de2..693dc5a 100644
+--- a/drivers/watchdog/mtk_wdt.c
++++ b/drivers/watchdog/mtk_wdt.c
+@@ -913,6 +913,191 @@ static struct kunit_suite mtk_wdt_boot_status_suite = {
+ kunit_test_suite(mtk_wdt_boot_status_suite);
+ #endif
+ 
++#if IS_ENABLED(CONFIG_MEDIATEK_WATCHDOG_RECOVERY_TAKEOVER_KUNIT_TEST)
++#define MTK_WDT_RECOVERY_TEST_WRITES 3
++
++struct mtk_wdt_recovery_test_context {
++	u32 mode;
++	u32 length;
++	u32 write_offset[MTK_WDT_RECOVERY_TEST_WRITES];
++	u32 write_value[MTK_WDT_RECOVERY_TEST_WRITES];
++	unsigned int writes;
++	u64 identity;
++	bool corrupt_length;
++	bool corrupt_mode;
++};
++
++static u32 mtk_wdt_recovery_test_read(void *context, u32 offset)
++{
++	struct mtk_wdt_recovery_test_context *state = context;
++
++	if (offset == WDT_LENGTH)
++		return state->length ^
++			(state->corrupt_length && state->writes ? BIT(5) : 0);
++	if (offset == WDT_MODE)
++		return state->mode ^
++			(state->corrupt_mode && state->writes ? WDT_MODE_IRQ_EN : 0);
++	return 0;
++}
++
++static void mtk_wdt_recovery_test_write(void *context, u32 offset, u32 value)
++{
++	struct mtk_wdt_recovery_test_context *state = context;
++
++	if (state->writes < MTK_WDT_RECOVERY_TEST_WRITES) {
++		state->write_offset[state->writes] = offset;
++		state->write_value[state->writes] = value;
++	}
++	state->writes++;
++	if (offset == WDT_LENGTH)
++		state->length = value & ~WDT_LENGTH_KEY;
++	else if (offset == WDT_MODE)
++		state->mode = value & ~WDT_MODE_KEY;
++}
++
++static u64 mtk_wdt_recovery_test_identity(void *context)
++{
++	struct mtk_wdt_recovery_test_context *state = context;
++
++	return state->identity;
++}
++
++static const struct mtk_wdt_recovery_register_ops
++mtk_wdt_recovery_test_ops = {
++	.read = mtk_wdt_recovery_test_read,
++	.write = mtk_wdt_recovery_test_write,
++	.next_identity = mtk_wdt_recovery_test_identity,
++};
++
++static void mtk_wdt_recovery_success_test(struct kunit *test)
++{
++	struct mtk_wdt_recovery_test_context state = {
++		.mode = WDT_MODE_IRQ_EN | WDT_MODE_DUAL_EN |
++			WDT_MODE_EXRST_EN | WDT_MODE_CNT_SEL,
++		.identity = 41,
++	};
++	struct mtk_wdt_recovery_result result;
++	struct mtk_wdt_recovery_owner owner = {};
++	u32 expected_length;
++	int ret;
++
++	ret = mtk_wdt_recovery_execute(&owner,
++				       &mtk_wdt_recovery_test_ops, &state,
++				       MTK_WDT_RECOVERY_TIMEOUT_MS, &result);
++	KUNIT_ASSERT_EQ(test, 0, ret);
++	expected_length = WDT_LENGTH_TIMEOUT(MTK_WDT_RECOVERY_TIMEOUT_SECONDS << 6);
++	KUNIT_EXPECT_TRUE(test, owner.owned);
++	KUNIT_EXPECT_EQ(test, 41ULL, owner.identity);
++	KUNIT_EXPECT_EQ(test, 1U, result.owned);
++	KUNIT_EXPECT_EQ(test, 41ULL, result.identity);
++	KUNIT_EXPECT_EQ(test, 3U, state.writes);
++	KUNIT_EXPECT_EQ(test, (u32)WDT_LENGTH, state.write_offset[0]);
++	KUNIT_EXPECT_EQ(test, (u32)WDT_MODE, state.write_offset[1]);
++	KUNIT_EXPECT_EQ(test, (u32)WDT_RST, state.write_offset[2]);
++	KUNIT_EXPECT_EQ(test, expected_length,
++			state.write_value[0] & WDT_LENGTH_TIMEOUT_MASK);
++	KUNIT_EXPECT_EQ(test, (u32)WDT_RST_RELOAD, state.write_value[2]);
++	KUNIT_EXPECT_EQ(test, WDT_MODE_EXRST_EN | WDT_MODE_CNT_SEL |
++			WDT_MODE_EN | WDT_MODE_AUTO_START,
++			result.mode_after);
++}
++
++static void mtk_wdt_recovery_rejections_test(struct kunit *test)
++{
++	struct mtk_wdt_recovery_test_context state = { .identity = 7 };
++	struct mtk_wdt_recovery_result result;
++	struct mtk_wdt_recovery_owner owner = {};
++	int ret;
++
++	ret = mtk_wdt_recovery_execute(&owner,
++				       &mtk_wdt_recovery_test_ops, &state,
++				       MTK_WDT_RECOVERY_TIMEOUT_MS - 1, &result);
++	KUNIT_EXPECT_EQ(test, -EINVAL, ret);
++	KUNIT_EXPECT_EQ(test, 0U, state.writes);
++	state.identity = 0;
++	ret = mtk_wdt_recovery_execute(&owner,
++				       &mtk_wdt_recovery_test_ops, &state,
++				       MTK_WDT_RECOVERY_TIMEOUT_MS, &result);
++	KUNIT_EXPECT_EQ(test, -EOVERFLOW, ret);
++	KUNIT_EXPECT_FALSE(test, owner.owned);
++	KUNIT_EXPECT_EQ(test, 0U, state.writes);
++}
++
++static void mtk_wdt_recovery_one_shot_test(struct kunit *test)
++{
++	struct mtk_wdt_recovery_test_context state = { .identity = 9 };
++	struct mtk_wdt_recovery_result result;
++	struct mtk_wdt_recovery_owner owner = {};
++	int ret;
++
++	ret = mtk_wdt_recovery_execute(&owner,
++				       &mtk_wdt_recovery_test_ops, &state,
++				       MTK_WDT_RECOVERY_TIMEOUT_MS, &result);
++	KUNIT_ASSERT_EQ(test, 0, ret);
++	ret = mtk_wdt_recovery_execute(&owner,
++				       &mtk_wdt_recovery_test_ops, &state,
++				       MTK_WDT_RECOVERY_TIMEOUT_MS, &result);
++	KUNIT_EXPECT_EQ(test, -EALREADY, ret);
++	KUNIT_EXPECT_EQ(test, 3U, state.writes);
++	KUNIT_EXPECT_EQ(test, 1U, result.owned);
++	KUNIT_EXPECT_EQ(test, 9ULL, result.identity);
++}
++
++static void mtk_wdt_recovery_length_fault_test(struct kunit *test)
++{
++	struct mtk_wdt_recovery_test_context state = {
++		.identity = 11,
++		.corrupt_length = true,
++	};
++	struct mtk_wdt_recovery_result result;
++	struct mtk_wdt_recovery_owner owner = {};
++	int ret;
++
++	ret = mtk_wdt_recovery_execute(&owner,
++				       &mtk_wdt_recovery_test_ops, &state,
++				       MTK_WDT_RECOVERY_TIMEOUT_MS, &result);
++	KUNIT_EXPECT_EQ(test, -EIO, ret);
++	KUNIT_EXPECT_TRUE(test, owner.owned);
++	KUNIT_EXPECT_EQ(test, 1U, result.owned);
++	KUNIT_EXPECT_EQ(test, 3U, state.writes);
++}
++
++static void mtk_wdt_recovery_mode_fault_test(struct kunit *test)
++{
++	struct mtk_wdt_recovery_test_context state = {
++		.identity = 13,
++		.corrupt_mode = true,
++	};
++	struct mtk_wdt_recovery_result result;
++	struct mtk_wdt_recovery_owner owner = {};
++	int ret;
++
++	ret = mtk_wdt_recovery_execute(&owner,
++				       &mtk_wdt_recovery_test_ops, &state,
++				       MTK_WDT_RECOVERY_TIMEOUT_MS, &result);
++	KUNIT_EXPECT_EQ(test, -EIO, ret);
++	KUNIT_EXPECT_TRUE(test, owner.owned);
++	KUNIT_EXPECT_EQ(test, 1U, result.owned);
++	KUNIT_EXPECT_EQ(test, 3U, state.writes);
++}
++
++static struct kunit_case mtk_wdt_recovery_cases[] = {
++	KUNIT_CASE(mtk_wdt_recovery_success_test),
++	KUNIT_CASE(mtk_wdt_recovery_rejections_test),
++	KUNIT_CASE(mtk_wdt_recovery_one_shot_test),
++	KUNIT_CASE(mtk_wdt_recovery_length_fault_test),
++	KUNIT_CASE(mtk_wdt_recovery_mode_fault_test),
++	{}
++};
++
++static struct kunit_suite mtk_wdt_recovery_suite = {
++	.name = "mtk-wdt-recovery-takeover",
++	.test_cases = mtk_wdt_recovery_cases,
++};
++
++kunit_test_suite(mtk_wdt_recovery_suite);
++#endif
++
+ module_param(timeout, uint, 0);
+ MODULE_PARM_DESC(timeout, "Watchdog heartbeat in seconds");
+ 

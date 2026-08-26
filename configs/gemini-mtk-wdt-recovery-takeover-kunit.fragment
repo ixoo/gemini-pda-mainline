@@ -1,0 +1,9 @@
+# Hardware-free coverage for the MT6797 watchdog recovery takeover.
+# The suite uses only an in-memory register transport; no physical watchdog,
+# production caller, retained-RAM writer, or CPU request is connected.
+CONFIG_KUNIT=y
+CONFIG_WATCHDOG=y
+CONFIG_MEDIATEK_WATCHDOG=y
+CONFIG_MEDIATEK_WATCHDOG_RECOVERY_TAKEOVER=y
+CONFIG_MEDIATEK_WATCHDOG_RECOVERY_TAKEOVER_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-wdt-takeover-kunit"

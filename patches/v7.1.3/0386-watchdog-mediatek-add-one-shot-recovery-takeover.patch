@@ -1,0 +1,490 @@
+From 1b2da02199f25d3b314b548218c35c05a083ab42 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 27 Aug 2026 01:11:00 +0000
+Subject: [PATCH 1/2] watchdog: mediatek: add one-shot recovery takeover
+
+Add a default-off MT6797-only 15-second recovery owner that blocks
+ordinary watchdog mutations after irreversible takeover.
+---
+ drivers/watchdog/Kconfig   |  15 +++
+ drivers/watchdog/mtk_wdt.c | 268 ++++++++++++++++++++++++++++++++-----
+ include/linux/mtk_wdt.h    |  26 ++++
+ 3 files changed, 279 insertions(+), 30 deletions(-)
+
+diff --git a/drivers/watchdog/Kconfig b/drivers/watchdog/Kconfig
+index 5423cdb..9325ddb 100644
+--- a/drivers/watchdog/Kconfig
++++ b/drivers/watchdog/Kconfig
+@@ -926,6 +926,21 @@ config MEDIATEK_WATCHDOG
+ 	  To compile this driver as a module, choose M here: the
+ 	  module will be called mtk_wdt.
+ 
++config MEDIATEK_WATCHDOG_RECOVERY_TAKEOVER
++	bool "MediaTek MT6797 one-shot recovery watchdog takeover"
++	depends on ARM64 && ARCH_MEDIATEK
++	depends on OF
++	depends on WATCHDOG=y && MEDIATEK_WATCHDOG=y
++	default n
++	help
++	  Add a private MT6797-only API that irreversibly takes ownership of
++	  the TOPRGU watchdog for one exact 15-second reset deadline. After
++	  takeover, ordinary ping, timeout, pretimeout, start, and stop calls
++	  are rejected before MMIO so no kicker can extend the deadline.
++
++	  This option adds no caller, trigger, CPU operation, retained-memory
++	  write, or boot policy. If unsure, say N.
++
+ config MEDIATEK_WATCHDOG_BOOT_STATUS_CAPTURE
+ 	bool "Capture raw MediaTek watchdog boot status"
+ 	depends on MEDIATEK_WATCHDOG=y
+diff --git a/drivers/watchdog/mtk_wdt.c b/drivers/watchdog/mtk_wdt.c
+index 21c47b9..f275de2 100644
+--- a/drivers/watchdog/mtk_wdt.c
++++ b/drivers/watchdog/mtk_wdt.c
+@@ -19,6 +19,8 @@
+ #include <dt-bindings/reset/mt8188-resets.h>
+ #include <dt-bindings/reset/mt8192-resets.h>
+ #include <dt-bindings/reset/mt8195-resets.h>
++#include <linux/atomic.h>
++#include <linux/bitops.h>
+ #include <linux/delay.h>
+ #include <linux/err.h>
+ #include <linux/init.h>
+@@ -34,13 +36,15 @@
+ #include <linux/watchdog.h>
+ #include <linux/interrupt.h>
+ 
+-#if IS_ENABLED(CONFIG_MEDIATEK_WATCHDOG_BOOT_STATUS_KUNIT_TEST)
++#if IS_ENABLED(CONFIG_MEDIATEK_WATCHDOG_BOOT_STATUS_KUNIT_TEST) || \
++	IS_ENABLED(CONFIG_MEDIATEK_WATCHDOG_RECOVERY_TAKEOVER_KUNIT_TEST)
+ #include <kunit/test.h>
+ #endif
+ 
+ #define WDT_MAX_TIMEOUT		31
+ #define WDT_MIN_TIMEOUT		2
+ #define WDT_LENGTH_TIMEOUT(n)	((n) << 5)
++#define WDT_LENGTH_TIMEOUT_MASK	GENMASK(15, 5)
+ 
+ #define WDT_LENGTH		0x04
+ #define WDT_LENGTH_KEY		0x8
+@@ -59,6 +63,10 @@
+ #define WDT_MODE_DUAL_EN	(1 << 6)
+ #define WDT_MODE_CNT_SEL	(1 << 8)
+ #define WDT_MODE_KEY		0x22000000
++#define WDT_MODE_RECOVERY_DISABLE_MASK (WDT_MODE_IRQ_EN | WDT_MODE_DUAL_EN)
++#define WDT_MODE_RECOVERY_ENABLE_MASK (WDT_MODE_EN | WDT_MODE_AUTO_START)
++#define WDT_MODE_RECOVERY_MASK (WDT_MODE_RECOVERY_DISABLE_MASK | WDT_MODE_RECOVERY_ENABLE_MASK)
++#define MTK_WDT_RECOVERY_TIMEOUT_SECONDS	15U
+ 
+ #define WDT_SWRST		0x14
+ #define WDT_SWRST_KEY		0x1209
+@@ -76,6 +84,21 @@
+ static bool nowayout = WATCHDOG_NOWAYOUT;
+ static unsigned int timeout;
+ 
++#if IS_ENABLED(CONFIG_MEDIATEK_WATCHDOG_RECOVERY_TAKEOVER)
++struct mtk_wdt_recovery_owner {
++	bool owned;
++	u64 identity;
++};
++
++struct mtk_wdt_recovery_register_ops {
++	u32 (*read)(void *context, u32 offset);
++	void (*write)(void *context, u32 offset, u32 value);
++	u64 (*next_identity)(void *context);
++};
++
++static atomic64_t mtk_wdt_recovery_identity = ATOMIC64_INIT(0);
++#endif
++
+ struct mtk_wdt_dev {
+ 	struct watchdog_device wdt_dev;
+ 	void __iomem *wdt_base;
+@@ -85,6 +108,11 @@ struct mtk_wdt_dev {
+ 	bool reset_by_toprgu;
+ 	bool has_swsysrst_en;
+ 	bool use_auto_restart;
++#if IS_ENABLED(CONFIG_MEDIATEK_WATCHDOG_RECOVERY_TAKEOVER)
++	spinlock_t recovery_lock; /* guards recovery ownership */
++	struct mtk_wdt_recovery_owner recovery;
++	bool recovery_supported;
++#endif
+ #ifdef CONFIG_MEDIATEK_WATCHDOG_BOOT_STATUS_CAPTURE
+ 	struct mtk_wdt_boot_status boot_status;
+ #endif
+@@ -95,6 +123,7 @@ struct mtk_wdt_data {
+ 	bool has_swsysrst_en;
+ 	bool use_auto_restart;
+ 	bool has_boot_status;
++	bool recovery_takeover;
+ 	unsigned int restart_priority;
+ };
+ 
+@@ -113,6 +142,7 @@ static const struct mtk_wdt_data mt6795_data = {
+ static const struct mtk_wdt_data mt6797_data = {
+ 	.toprgu_sw_rst_num = MT6797_TOPRGU_SW_RST_NUM,
+ 	.has_boot_status = true,
++	.recovery_takeover = true,
+ 	.use_auto_restart = true,
+ 	.restart_priority = 255,
+ };
+@@ -311,6 +341,146 @@ static int toprgu_register_reset_controller(struct platform_device *pdev,
+ 	return ret;
+ }
+ 
++#if IS_ENABLED(CONFIG_MEDIATEK_WATCHDOG_RECOVERY_TAKEOVER)
++static int
++mtk_wdt_recovery_execute(struct mtk_wdt_recovery_owner *owner,
++			 const struct mtk_wdt_recovery_register_ops *ops,
++			 void *context, unsigned int timeout_ms,
++			 struct mtk_wdt_recovery_result *result)
++{
++	u32 length;
++	u32 mode;
++
++	if (!result)
++		return -EINVAL;
++	*result = (struct mtk_wdt_recovery_result){};
++	if (!owner || !ops || !ops->read || !ops->write ||
++	    !ops->next_identity || timeout_ms != MTK_WDT_RECOVERY_TIMEOUT_MS)
++		return -EINVAL;
++	if (owner->owned) {
++		result->identity = owner->identity;
++		result->owned = 1;
++		return -EALREADY;
++	}
++
++	result->mode_before = ops->read(context, WDT_MODE);
++	owner->identity = ops->next_identity(context);
++	if (!owner->identity)
++		return -EOVERFLOW;
++
++	owner->owned = true;
++	result->identity = owner->identity;
++	result->owned = 1;
++	length = WDT_LENGTH_TIMEOUT(MTK_WDT_RECOVERY_TIMEOUT_SECONDS << 6);
++	mode = result->mode_before & ~(WDT_MODE_IRQ_EN | WDT_MODE_DUAL_EN);
++	mode |= WDT_MODE_EN | WDT_MODE_AUTO_START;
++	ops->write(context, WDT_LENGTH, length | WDT_LENGTH_KEY);
++	ops->write(context, WDT_MODE, mode | WDT_MODE_KEY);
++	ops->write(context, WDT_RST, WDT_RST_RELOAD);
++	result->length_after = ops->read(context, WDT_LENGTH);
++	result->mode_after = ops->read(context, WDT_MODE);
++
++	if ((result->length_after & WDT_LENGTH_TIMEOUT_MASK) != length ||
++	    (result->mode_after & WDT_MODE_RECOVERY_MASK) !=
++		    (WDT_MODE_EN | WDT_MODE_AUTO_START))
++		return -EIO;
++
++	return 0;
++}
++
++static u32 mtk_wdt_recovery_read(void *context, u32 offset)
++{
++	struct mtk_wdt_dev *mtk_wdt = context;
++
++	return ioread32(mtk_wdt->wdt_base + offset);
++}
++
++static void mtk_wdt_recovery_write(void *context, u32 offset, u32 value)
++{
++	struct mtk_wdt_dev *mtk_wdt = context;
++
++	iowrite32(value, mtk_wdt->wdt_base + offset);
++}
++
++static u64 mtk_wdt_recovery_next_identity(void *context)
++{
++	u64 identity;
++
++	(void)context;
++	identity = (u64)atomic64_inc_return(&mtk_wdt_recovery_identity);
++	if (!identity)
++		identity = (u64)atomic64_inc_return(&mtk_wdt_recovery_identity);
++	return identity;
++}
++
++static const struct mtk_wdt_recovery_register_ops
++mtk_wdt_recovery_ops = {
++	.read = mtk_wdt_recovery_read,
++	.write = mtk_wdt_recovery_write,
++	.next_identity = mtk_wdt_recovery_next_identity,
++};
++
++int mtk_wdt_recovery_takeover(struct device *dev, unsigned int timeout_ms,
++			      struct mtk_wdt_recovery_result *result)
++{
++	struct mtk_wdt_dev *mtk_wdt;
++	unsigned long flags;
++	int ret;
++
++	if (!result)
++		return -EINVAL;
++	*result = (struct mtk_wdt_recovery_result){};
++	if (!dev)
++		return -EINVAL;
++	mtk_wdt = dev_get_drvdata(dev);
++	if (!mtk_wdt)
++		return -ENODEV;
++	if (!mtk_wdt->recovery_supported)
++		return -EOPNOTSUPP;
++
++	spin_lock_irqsave(&mtk_wdt->recovery_lock, flags);
++	ret = mtk_wdt_recovery_execute(&mtk_wdt->recovery,
++				       &mtk_wdt_recovery_ops, mtk_wdt,
++				       timeout_ms, result);
++	if (result->owned) {
++		mtk_wdt->wdt_dev.timeout = MTK_WDT_RECOVERY_TIMEOUT_SECONDS;
++		mtk_wdt->wdt_dev.pretimeout = 0;
++		set_bit(WDOG_HW_RUNNING, &mtk_wdt->wdt_dev.status);
++	}
++	spin_unlock_irqrestore(&mtk_wdt->recovery_lock, flags);
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mtk_wdt_recovery_takeover);
++#endif
++
++static int mtk_wdt_mutation_begin(struct mtk_wdt_dev *mtk_wdt,
++				  unsigned long *flags)
++{
++#if IS_ENABLED(CONFIG_MEDIATEK_WATCHDOG_RECOVERY_TAKEOVER)
++	spin_lock_irqsave(&mtk_wdt->recovery_lock, *flags);
++	if (mtk_wdt->recovery.owned) {
++		spin_unlock_irqrestore(&mtk_wdt->recovery_lock, *flags);
++		return -EBUSY;
++	}
++#else
++	(void)mtk_wdt;
++	*flags = 0;
++#endif
++	return 0;
++}
++
++static void mtk_wdt_mutation_end(struct mtk_wdt_dev *mtk_wdt,
++				 unsigned long flags)
++{
++#if IS_ENABLED(CONFIG_MEDIATEK_WATCHDOG_RECOVERY_TAKEOVER)
++	spin_unlock_irqrestore(&mtk_wdt->recovery_lock, flags);
++#else
++	(void)mtk_wdt;
++	(void)flags;
++#endif
++}
++
+ static int mtk_wdt_restart(struct watchdog_device *wdt_dev,
+ 			   unsigned long action, void *data)
+ {
+@@ -335,21 +505,29 @@ static int mtk_wdt_restart(struct watchdog_device *wdt_dev,
+ 	return 0;
+ }
+ 
++static void mtk_wdt_ping_unlocked(struct mtk_wdt_dev *mtk_wdt)
++{
++	iowrite32(WDT_RST_RELOAD, mtk_wdt->wdt_base + WDT_RST);
++}
++
+ static int mtk_wdt_ping(struct watchdog_device *wdt_dev)
+ {
+ 	struct mtk_wdt_dev *mtk_wdt = watchdog_get_drvdata(wdt_dev);
+-	void __iomem *wdt_base = mtk_wdt->wdt_base;
+-
+-	iowrite32(WDT_RST_RELOAD, wdt_base + WDT_RST);
++	unsigned long flags;
++	int ret;
+ 
++	ret = mtk_wdt_mutation_begin(mtk_wdt, &flags);
++	if (ret)
++		return ret;
++	mtk_wdt_ping_unlocked(mtk_wdt);
++	mtk_wdt_mutation_end(mtk_wdt, flags);
+ 	return 0;
+ }
+ 
+-static int mtk_wdt_set_timeout(struct watchdog_device *wdt_dev,
+-				unsigned int timeout)
++static void mtk_wdt_set_timeout_unlocked(struct watchdog_device *wdt_dev,
++					 unsigned int timeout)
+ {
+ 	struct mtk_wdt_dev *mtk_wdt = watchdog_get_drvdata(wdt_dev);
+-	void __iomem *wdt_base = mtk_wdt->wdt_base;
+ 	u32 reg;
+ 
+ 	wdt_dev->timeout = timeout;
+@@ -366,10 +544,22 @@ static int mtk_wdt_set_timeout(struct watchdog_device *wdt_dev,
+ 	 */
+ 	reg = WDT_LENGTH_TIMEOUT((timeout - wdt_dev->pretimeout) << 6)
+ 			| WDT_LENGTH_KEY;
+-	iowrite32(reg, wdt_base + WDT_LENGTH);
++	iowrite32(reg, mtk_wdt->wdt_base + WDT_LENGTH);
++	mtk_wdt_ping_unlocked(mtk_wdt);
++}
+ 
+-	mtk_wdt_ping(wdt_dev);
++static int mtk_wdt_set_timeout(struct watchdog_device *wdt_dev,
++			       unsigned int timeout)
++{
++	struct mtk_wdt_dev *mtk_wdt = watchdog_get_drvdata(wdt_dev);
++	unsigned long flags;
++	int ret;
+ 
++	ret = mtk_wdt_mutation_begin(mtk_wdt, &flags);
++	if (ret)
++		return ret;
++	mtk_wdt_set_timeout_unlocked(wdt_dev, timeout);
++	mtk_wdt_mutation_end(mtk_wdt, flags);
+ 	return 0;
+ }
+ 
+@@ -399,31 +589,35 @@ static void mtk_wdt_init(struct watchdog_device *wdt_dev)
+ static int mtk_wdt_stop(struct watchdog_device *wdt_dev)
+ {
+ 	struct mtk_wdt_dev *mtk_wdt = watchdog_get_drvdata(wdt_dev);
+-	void __iomem *wdt_base = mtk_wdt->wdt_base;
++	unsigned long flags;
+ 	u32 reg;
++	int ret;
+ 
+-	reg = readl(wdt_base + WDT_MODE);
++	ret = mtk_wdt_mutation_begin(mtk_wdt, &flags);
++	if (ret)
++		return ret;
++	reg = readl(mtk_wdt->wdt_base + WDT_MODE);
+ 	reg &= ~WDT_MODE_EN;
+ 	reg |= WDT_MODE_KEY;
+-	iowrite32(reg, wdt_base + WDT_MODE);
+-
++	iowrite32(reg, mtk_wdt->wdt_base + WDT_MODE);
++	mtk_wdt_mutation_end(mtk_wdt, flags);
+ 	return 0;
+ }
+ 
+ static int mtk_wdt_start(struct watchdog_device *wdt_dev)
+ {
+-	u32 reg;
+ 	struct mtk_wdt_dev *mtk_wdt = watchdog_get_drvdata(wdt_dev);
+-	void __iomem *wdt_base = mtk_wdt->wdt_base;
++	unsigned long flags;
++	u32 reg;
+ 	int ret;
+ 
+-	ret = mtk_wdt_set_timeout(wdt_dev, wdt_dev->timeout);
+-	if (ret < 0)
++	ret = mtk_wdt_mutation_begin(mtk_wdt, &flags);
++	if (ret)
+ 		return ret;
+-
+-	reg = ioread32(wdt_base + WDT_MODE);
++	mtk_wdt_set_timeout_unlocked(wdt_dev, wdt_dev->timeout);
++	reg = ioread32(mtk_wdt->wdt_base + WDT_MODE);
+ 	if (wdt_dev->pretimeout)
+-		reg |= (WDT_MODE_IRQ_EN | WDT_MODE_DUAL_EN);
++		reg |= WDT_MODE_IRQ_EN | WDT_MODE_DUAL_EN;
+ 	else
+ 		reg &= ~(WDT_MODE_IRQ_EN | WDT_MODE_DUAL_EN);
+ 	if (mtk_wdt->disable_wdt_extrst)
+@@ -432,9 +626,9 @@ static int mtk_wdt_start(struct watchdog_device *wdt_dev)
+ 		reg |= WDT_MODE_CNT_SEL;
+ 	if (mtk_wdt->use_auto_restart)
+ 		reg |= WDT_MODE_AUTO_START;
+-	reg |= (WDT_MODE_EN | WDT_MODE_KEY);
+-	iowrite32(reg, wdt_base + WDT_MODE);
+-
++	reg |= WDT_MODE_EN | WDT_MODE_KEY;
++	iowrite32(reg, mtk_wdt->wdt_base + WDT_MODE);
++	mtk_wdt_mutation_end(mtk_wdt, flags);
+ 	return 0;
+ }
+ 
+@@ -442,23 +636,30 @@ static int mtk_wdt_set_pretimeout(struct watchdog_device *wdd,
+ 				  unsigned int timeout)
+ {
+ 	struct mtk_wdt_dev *mtk_wdt = watchdog_get_drvdata(wdd);
+-	void __iomem *wdt_base = mtk_wdt->wdt_base;
+-	u32 reg = ioread32(wdt_base + WDT_MODE);
++	unsigned long flags;
++	u32 reg;
++	int ret;
+ 
++	ret = mtk_wdt_mutation_begin(mtk_wdt, &flags);
++	if (ret)
++		return ret;
++	reg = ioread32(mtk_wdt->wdt_base + WDT_MODE);
+ 	if (timeout && !wdd->pretimeout) {
+ 		wdd->pretimeout = wdd->timeout / 2;
+-		reg |= (WDT_MODE_IRQ_EN | WDT_MODE_DUAL_EN);
++		reg |= WDT_MODE_IRQ_EN | WDT_MODE_DUAL_EN;
+ 	} else if (!timeout && wdd->pretimeout) {
+ 		wdd->pretimeout = 0;
+ 		reg &= ~(WDT_MODE_IRQ_EN | WDT_MODE_DUAL_EN);
+ 	} else {
++		mtk_wdt_mutation_end(mtk_wdt, flags);
+ 		return 0;
+ 	}
+ 
+ 	reg |= WDT_MODE_KEY;
+-	iowrite32(reg, wdt_base + WDT_MODE);
+-
+-	return mtk_wdt_set_timeout(wdd, wdd->timeout);
++	iowrite32(reg, mtk_wdt->wdt_base + WDT_MODE);
++	mtk_wdt_set_timeout_unlocked(wdd, wdd->timeout);
++	mtk_wdt_mutation_end(mtk_wdt, flags);
++	return 0;
+ }
+ 
+ static irqreturn_t mtk_wdt_isr(int irq, void *arg)
+@@ -506,11 +707,18 @@ static int mtk_wdt_probe(struct platform_device *pdev)
+ 	if (!mtk_wdt)
+ 		return -ENOMEM;
+ 
++#if IS_ENABLED(CONFIG_MEDIATEK_WATCHDOG_RECOVERY_TAKEOVER)
++	spin_lock_init(&mtk_wdt->recovery_lock);
++#endif
+ 	platform_set_drvdata(pdev, mtk_wdt);
+ 
+ 	wdt_data = of_device_get_match_data(dev);
+-	if (wdt_data)
++	if (wdt_data) {
+ 		mtk_wdt->use_auto_restart = wdt_data->use_auto_restart;
++#if IS_ENABLED(CONFIG_MEDIATEK_WATCHDOG_RECOVERY_TAKEOVER)
++		mtk_wdt->recovery_supported = wdt_data->recovery_takeover;
++#endif
++	}
+ 
+ 	mtk_wdt->wdt_base = devm_platform_ioremap_resource(pdev, 0);
+ 	if (IS_ERR(mtk_wdt->wdt_base))
+diff --git a/include/linux/mtk_wdt.h b/include/linux/mtk_wdt.h
+index 17129d0..cc94130 100644
+--- a/include/linux/mtk_wdt.h
++++ b/include/linux/mtk_wdt.h
+@@ -27,4 +27,30 @@ mtk_wdt_boot_status_snapshot(struct device *dev,
+ }
+ #endif
+ 
++#define MTK_WDT_RECOVERY_TIMEOUT_MS 15000U
++
++struct mtk_wdt_recovery_result {
++	u64 identity;
++	u32 mode_before;
++	u32 mode_after;
++	u32 length_after;
++	u32 owned;
++};
++
++#ifdef CONFIG_MEDIATEK_WATCHDOG_RECOVERY_TAKEOVER
++int mtk_wdt_recovery_takeover(struct device *dev, unsigned int timeout_ms,
++			      struct mtk_wdt_recovery_result *result);
++#else
++static inline int
++mtk_wdt_recovery_takeover(struct device *dev, unsigned int timeout_ms,
++			  struct mtk_wdt_recovery_result *result)
++{
++	(void)dev;
++	(void)timeout_ms;
++	if (result)
++		*result = (struct mtk_wdt_recovery_result){};
++	return -EOPNOTSUPP;
++}
++#endif
++
+ #endif
