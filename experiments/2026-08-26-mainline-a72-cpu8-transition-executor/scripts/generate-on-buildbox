@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly repository_commit="${1:?repository commit required}"
+readonly source_root="${2:?prepared source root required}"
+readonly artifact_root="${3:?artifact root required}"
+readonly expected_source_state=b043a495401c1081e85e4ee47b4deda3c25acca48ad673ffb225482ab266531f
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly script_dir
+readonly package_name="${repository_commit}-a72-transition-executor-patches"
+readonly destination="${artifact_root}/${package_name}"
+readonly temporary="${destination}.partial.$$"
+
+[[ "${repository_commit}" =~ ^[0-9a-f]{40}$ ]]
+[[ -d "${source_root}" && ! -L "${source_root}" ]]
+[[ -f "${source_root}/.gemini-source-state" &&
+   "$(<"${source_root}/.gemini-source-state")" == "${expected_source_state}" ]]
+[[ -d "${artifact_root}" && ! -L "${artifact_root}" ]]
+[[ ! -e "${destination}" ]]
+
+cleanup() {
+  if [[ -n "${temporary:-}" && -d "${temporary}" && ! -L "${temporary}" ]]; then
+    rm -rf -- "${temporary}"
+  fi
+}
+trap cleanup EXIT
+
+python3 "${script_dir}/generate-patches.py" \
+  --source-root "${source_root}" \
+  --repository-commit "${repository_commit}" \
+  --output "${temporary}"
+(
+  cd "${temporary}"
+  sha256sum --check --strict SHA256SUMS >/dev/null
+  grep -Fx "repository_commit=${repository_commit}" provenance.txt >/dev/null
+  grep -Fx 'generated_patch_count=2' provenance.txt >/dev/null
+  grep -Fx 'physical_backends=0' provenance.txt >/dev/null
+  grep -Fx 'production_callers=0' provenance.txt >/dev/null
+  grep -Fx 'device_action=none' provenance.txt >/dev/null
+  grep -Fx 'boot_candidate=false' provenance.txt >/dev/null
+)
+mv "${temporary}" "${destination}"
+trap - EXIT
+printf 'Generated A72 transition executor patches at %s\n' "${destination}"

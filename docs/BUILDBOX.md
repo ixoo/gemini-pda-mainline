@@ -544,6 +544,24 @@ It also requires exact source order after the protected-clock call, exact
 replay, strict checkpatch, and package checksums. It performs no kernel compile, device access,
 retained-RAM access, candidate construction, or partition action.
 
+## A72 CPU8 transition-executor generation
+
+The first active CPU8 coordinator is generated only from a clean pushed project
+commit and the exact managed Linux source through canonical patch `0383`:
+
+```sh
+./scripts/buildbox generate-a72-transition-executor-patches
+./scripts/buildbox fetch-a72-transition-executor-patches
+```
+
+This lane emits two experiment-only format patches: a default-off coordinator
+whose operations are all injected, and its hardware-free KUnit suite. It
+requires watchdog-first ordering, one CPU8 request, no CPU_OFF or retry, exact
+pre-isolation rollback, and post-isolation power retention. Generation replays
+the patches and runs strict Checkpatch, but does not compile a kernel, connect
+any physical backend, access the Gemini, create a candidate, or write retained
+memory.
+
 ## Remote storage and concurrency
 
 Buildbox uses its persistent home volume for the Git mirror, verified kernel
