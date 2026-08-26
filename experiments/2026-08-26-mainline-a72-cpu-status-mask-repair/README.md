@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-26-mainline-a72-cpu-status-mask-repair` |
-| Status | hardware-free gates passed; device-profile build next |
+| Status | candidate and deployment tooling pass; boot2 install next |
 | Subsystem | MT6797 A72 platform-state source and runtime transport |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-26 America/New_York |
@@ -56,10 +56,13 @@ mutation, publication, or CPU request. CPU8 and CPU9 remain offline through
 `maxcpus=8`. The collector transport operates only in the initramfs shell's
 memory and remains read-only.
 
-No device build or action is allowed until deterministic patches, mutation
-tests, canonical-series audits, strict Checkpatch, Buildbox KUnit compilation,
-and focused no-network QEMU KUnit all pass. The ordered continuation is owned
-only by [`docs/ROADMAP.md`](../../docs/ROADMAP.md#7-bring-up-cpu8).
+The device build was held until deterministic patches, mutation tests,
+canonical-series audits, strict Checkpatch, Buildbox KUnit compilation, and
+focused no-network QEMU KUnit all passed. A hardware action remains gated on
+an exact same-DT candidate, independent LK validation, the exact predecessor,
+live GPT resolution, stable power, full readback, and shutdown. The ordered
+continuation is owned only by
+[`docs/ROADMAP.md`](../../docs/ROADMAP.md#7-bring-up-cpu8).
 
 ## Current result
 
@@ -78,7 +81,19 @@ with zero failures and zero skips. The classifier rejects all six transcript
 mutations and observes the expected post-test rootfs panic only after both
 suites complete.
 
-The hardware-free gate is therefore closed. The selected continuation is a
-separate clean-tree Buildbox build of the same-DT `maxcpus=8` device profile,
-followed by deterministic candidate assembly and validation. No native VM
-build, hardware write, or CPU request has occurred.
+The hardware-free gate is therefore closed. Exact clean commit `8b087b98`
+builds the same-DT `maxcpus=8` device profile on Buildbox as
+`7.1.3-gemini-a72-cpumask`; the fetched package passes provenance and checksum
+validation. Two independent assemblies and two independent padding paths are
+byte-identical. Raw image `ebaddc69` pads to exact 16 MiB candidate
+`6219357a`; all 32 LK gates pass, the DT remains exact `90cfc29b`, and six
+container mutations are rejected.
+
+The source-pinned installer requires exact full-partition predecessor
+`9ac8e004`, resolves inactive `boot2` from the live GPT, makes no fresh backup,
+requires a full readback, and shuts down without reboot after success. The
+runtime collector converts the inherited one-line payload to 40 bounded
+in-memory commands with an observed maximum of 812 characters; it creates no
+remote file. Seven serviceable result branches pass and the inherited 23
+runtime mutations plus two retargeted identity mutations remain rejected. No
+native VM build, hardware write, or CPU request has occurred.

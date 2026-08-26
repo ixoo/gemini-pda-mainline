@@ -22,6 +22,10 @@ chunks of at most 768 characters, and emits bounded shell assignments to one
 in-memory variable. The final command prints a separating newline, decodes the
 variable directly into BusyBox `sh`, and unsets it. No remote temporary file,
 block-device access, partition read, retained write, or reboot command is used.
+The collector preserves the source-pinned predecessor observation loop but
+interposes an exact-input netcat shim: only the inherited legacy probe line is
+accepted, it is converted to the bounded stream before reaching the wire, and
+the real host netcat receives all original connection arguments unchanged.
 
 ## Exclusions
 

@@ -5564,7 +5564,22 @@ The next ordered work is:
    all six mutations. **Selected next:** publish these hardware-free receipts,
    then build the same-DT `maxcpus=8` device profile from the resulting exact
    clean commit. It still adds no CPU request. Assemble and validate one
-   distinct candidate only after that Buildbox package passes.
+   distinct candidate only after that Buildbox package passes. Exact published
+   commit `8b087b98` now builds that device profile on Buildbox as
+   `7.1.3-gemini-a72-cpumask`; package provenance and checksums pass. The DT is
+   byte-identical to movement attribution, two assemblies and two padding paths
+   agree, all 32 LK gates pass, and six corruptions are rejected. Raw
+   `ebaddc69` pads to selected exact candidate `6219357a`. Its installer
+   requires full-partition predecessor `9ac8e004`, no fresh backup, full
+   readback, and shutdown without reboot. Its runtime collector converts the
+   inherited legacy command into 40 in-memory chunks with an 812-character
+   observed maximum and no remote file; seven serviceable branches pass while
+   25 runtime/identity mutations fail closed. **Selected next:** publish this
+   candidate and tooling evidence, install exact `6219357a` to live-GPT
+   inactive `boot2`, and require confirmed shutdown. Then pre-arm the bounded
+   collector and spend one physical boot. Success must advance beyond the
+   former unrelated-bit platform `-EAGAIN`; any new stage or A72-bit movement
+   selects the next source action. CPU8/CPU9 admission remains closed.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

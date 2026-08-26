@@ -168,12 +168,94 @@ for token in (
     "boot_candidate=false",
 ):
     require(token in qemu_text, f"QEMU KUnit receipt: {token}")
+candidate_build_receipt = EXP / "results/buildbox-candidate-20260826.txt"
+require(sha256(candidate_build_receipt) ==
+        contract["buildbox_candidate"]["receipt_sha256"],
+        "Buildbox candidate receipt")
+require(contract["buildbox_candidate"] == {
+    "repository_commit": "8b087b98fcc4e2a03d82d89bee26c99818a81836",
+    "profile": "a72-cpu-status-mask-candidate",
+    "kernel_release": "7.1.3-gemini-a72-cpumask",
+    "patchset_sha256":
+        "fe4544a19ab1bf034ffe3b52c254c03c36ddd1449506329c39a33efee17cf69e",
+    "config_sha256":
+        "e2deb1f5495f71dbb8afd2e7ad5bee1f2af7c2a17a517aff19a9547305e6dc77",
+    "image_sha256":
+        "84096d9dc21e3393ee427c7550ecd19d104000fc6ba982bd4ab23bdd97a8bfd5",
+    "receipt_sha256":
+        "b8a807a83a2f6a69b8b8e52531bf07a291c1a64f0db668cbb7ebd88b16009201",
+    "result": "pass",
+}, "Buildbox candidate result")
+candidate_build_text = candidate_build_receipt.read_text(encoding="utf-8")
+for token in (
+    "repository_dirty=false", "patch_count=372", "sha256sums=pass",
+    "native_vm_build=none", "device_action=none", "result=pass",
+):
+    require(token in candidate_build_text, f"Buildbox candidate receipt: {token}")
+candidate_receipt = EXP / "results/candidate-validation-20260826.txt"
+require(sha256(candidate_receipt) == contract["candidate"]["receipt_sha256"],
+        "candidate receipt")
+require(contract["candidate"] == {
+    "raw_sha256":
+        "ebaddc69660a824de4ff0f2f59eafb9073a7b100ae3f737caf0f9b50f59cf98a",
+    "raw_size": 6912000,
+    "padded_sha256":
+        "6219357a1c505a8c08ad33f97940aed4a9c73bf37a691a31c66ebc63559fe4f7",
+    "padded_size": 16777216,
+    "predecessor_sha256":
+        "9ac8e004cdba7955c0525eab7a4863f0df5474b4ff105408e6f06b1cbc846f78",
+    "dtb_sha256":
+        "90cfc29b30fb036076a799f0223e0c8aae6469441e5917cbfa743f5d7ae6547d",
+    "candidate_manifest_sha256":
+        "fa59a909220097851bed92d6514b2bf3a5c3e1c336a5f7d920fe87737bbc1d08",
+    "lk_gates": 32,
+    "container_mutations_rejected": 6,
+    "receipt_sha256":
+        "10faf1da78688703c43887aebf40c44a96a95797ac1711b98865a664ed5671a7",
+    "result": "pass",
+}, "candidate result")
+candidate_text = candidate_receipt.read_text(encoding="utf-8")
+for token in (
+    "dtb_vs_movement_attribution=byte-identical",
+    "independent_raw_assemblies=2-byte-identical",
+    "independent_padding_paths=2-byte-identical", "lk_gates=32-of-32",
+    "container_mutations_rejected=6", "cpu_requests=0",
+    "boot_candidate=true", "result=pass",
+):
+    require(token in candidate_text, f"candidate receipt: {token}")
+runtime_tooling_receipt = EXP / "results/deployment-runtime-tooling-20260826.txt"
+require(sha256(runtime_tooling_receipt) ==
+        contract["runtime_tooling"]["receipt_sha256"],
+        "runtime tooling receipt")
+require(contract["runtime_tooling"] == {
+    "serviceable_branches": 7,
+    "source_mutations_rejected": 23,
+    "identity_mutations_rejected": 2,
+    "bounded_chunks": 40,
+    "observed_maximum_command_line": 812,
+    "remote_temporary_file": False,
+    "device_storage_write": False,
+    "reboot_request": False,
+    "receipt_sha256":
+        "7c779c7fd53e0cd478ebb3ef103013e3d6339e61e1fe1b0cfb1d313de4c357c4",
+    "result": "pass",
+}, "runtime tooling result")
+runtime_tooling_text = runtime_tooling_receipt.read_text(encoding="utf-8")
+for token in (
+    "retargeted_serviceable_branches=7",
+    "retargeted_identity_mutations_rejected=2", "bounded_chunks=40",
+    "maximum_command_line=812", "remote_temporary_file=false",
+    "installer_fresh_backup=none",
+    "installer_success_action=shutdown-without-reboot",
+    "device_action=none", "result=pass",
+):
+    require(token in runtime_tooling_text, f"runtime tooling receipt: {token}")
 require(contract["canonical_admission"] is True, "canonical admission")
 require(contract["dt_change"] is False, "no DT change")
 require(contract["native_vm_build"] is False, "no native build")
 require(contract["device_action"] is False, "no device action")
 require(contract["current_status"] ==
-        "hardware-free-gates-pass-ready-for-buildbox-candidate",
+        "candidate-and-deployment-tooling-pass-ready-for-boot2-install",
         "current status")
 receipt_path = EXP / "results/prebuild-tooling-20260826.txt"
 require(sha256(receipt_path) == contract["prebuild_receipt_sha256"],
@@ -193,7 +275,7 @@ for token in (
     require(token in receipt, f"prebuild receipt: {token}")
 for token in (
     "bits 7:6", "full raw CPU-status words", "exactly two completed reads",
-    "No device build or action",
+    "all 32 LK gates pass", "makes no fresh backup",
 ):
     require(token in readme, f"README token: {token}")
 for token in (
@@ -211,6 +293,9 @@ print("planned_kunit=2_suites:14_tests")
 print("buildbox_kunit=pass")
 print("kunit_qemu=2_suites:14_tests:pass")
 print("classifier_mutations_rejected=6")
+print("buildbox_candidate=pass")
+print("candidate=32_lk_gates:6_mutations:pass")
 print("transport=bounded-memory-only")
+print("deployment_runtime_tooling=pass")
 print("native_vm_build=none")
 print("device_action=none")
