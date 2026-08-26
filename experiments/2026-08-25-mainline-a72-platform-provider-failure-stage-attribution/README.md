@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-25-mainline-a72-platform-provider-failure-stage-attribution` |
-| Status | exact candidate deployed and device shut down; one attributed runtime pending |
+| Status | one exact runtime proved platform inter-sample movement; candidate retired |
 | Subsystem | MT6797 A72 platform/provider/protected-clock observer |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-25 America/New_York |
@@ -122,8 +122,27 @@ Temporary staging and readback files were removed. No fresh backup or
 retained-RAM write occurred. The device then shut down without rebooting, and
 an independent direct-SSH check timed out.
 
-Deployment is therefore proven; execution is not. The no-reboot collector must
-be armed against deployment boot ID `35398152-947c-4526-8089-f04bf49ad4bd`
-before the owner makes one physical `boot2` selection. That first read-only USB
-capture will name the exact pre-clock failure stage or one of the already
-admitted returned-clock terminal outcomes.
+Deployment is therefore proven. The no-reboot collector was armed against
+deployment boot ID `35398152-947c-4526-8089-f04bf49ad4bd` before one physical
+`boot2` selection. Its first USB session captured exact release
+`7.1.3-gemini-a72-clock-stage`, full candidate `8b6bedfd`, and changed mainline
+boot ID `02a6ca93-f08a-4e81-8961-d497cc953295`. At 46.169989 seconds the sole
+failure was `stage=platform ret=-11`. CPUs remained 0--7, every required
+serviceability supplier was bound, and USB, T-PHY, I2C5, and keyboard status
+were okay. The collector left mainline running and sent no reboot command.
+
+This is a decision-bearing `-EAGAIN`, not a generic platform refusal. The
+platform source returns `-EBUSY` for CCI change-pending and returns `-EAGAIN`
+only when one or more of its nine existing comparisons differ between the two
+completed samples. CCI busy is therefore excluded. The provider was never
+called, and there were zero retained writes, protected-clock calls, gate pairs,
+BigiDVFS reads, secure calls, owner mutations, publisher calls, or CPU requests.
+
+This candidate is retired after its one successful discriminator boot. The
+selected successor will preserve the same two reads and expose only a compact
+movement bitmask on `-EAGAIN`, identifying which existing comparison changed.
+It will add no hardware read, retry, provider call, retained write, protected
+clock call, publication, owner mutation, or CPU request. Exact chronology and
+capture hashes are in the
+[runtime receipt](results/runtime-attempt-1-platform-eagain-20260826.txt); the
+ordered continuation remains solely in `docs/ROADMAP.md`.

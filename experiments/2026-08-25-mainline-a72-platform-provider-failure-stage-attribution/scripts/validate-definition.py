@@ -133,6 +133,54 @@ for token in (
     "shutdown=confirmed-unreachable", "reboot=no", "result=pass",
 ):
     require(token in deployment_receipt, f"deployment receipt: {token}")
+runtime = contract["runtime"]
+require(runtime == {
+    "kernel_release": "7.1.3-gemini-a72-clock-stage",
+    "candidate_sha256": "8b6bedfd7187369104250af5524a36dd2339493df95588e372d54e360d6aeabb",
+    "boot_id": "02a6ca93-f08a-4e81-8961-d497cc953295",
+    "uptime_seconds": "48.31",
+    "failure_timestamp_seconds": "46.169989",
+    "classification": "serviceable-platform-provider-clock-stage-platform-eagain",
+    "reason": "exact-pre-clock-platform-eagain",
+    "failure_stage": "platform",
+    "failure_errno": -11,
+    "cci_busy": "excluded-by-distinct-ebusy-branch",
+    "platform_snapshot_calls": 1,
+    "provider_snapshot_calls": 0,
+    "retained_write_attempts": 0,
+    "protected_clock_calls": 0,
+    "clock_gate_pairs": 0,
+    "bigidvfs_reads": 0,
+    "secure_calls": 0,
+    "owner_mutations": 0,
+    "cpu_requests": 0,
+    "cpu_online": "0-7",
+    "cpu_offline": "8-9",
+    "successful_mainline_left_running": True,
+    "collector_reboot": False,
+    "classification_sha256": "b8b80f98184a82868995f309f57dfc36eebda8e6bae42e3333c37fd7291073fb",
+    "observer_events_sha256": "1a9b5d6ba05884eaf34b6928148de7ba6e11d1ec5f01ca2b8deba7388704cabe",
+    "runtime_sha256": "5b44d8e4df77ba0788dab8702e1d26edbb8ac8b4e377a0baa962378bce62c82c",
+    "usb_topology_sha256": "1e992bf9273e5778890c7171d9b54a1046ddd240114d7c64789e77daf69d3ee5",
+    "receipt_sha256": "151ad6bac4944cd7b14971f978beaa419b5399c8a9ec2431370d515da9a83492",
+    "result": "pass-decision-bearing-platform-inter-sample-movement",
+}, "runtime contract")
+runtime_receipt = (EXP / "results/runtime-attempt-1-platform-eagain-20260826.txt").read_text(
+    encoding="utf-8"
+)
+require(hashlib.sha256(runtime_receipt.encode()).hexdigest() == runtime["receipt_sha256"],
+        "runtime receipt hash")
+for token in (
+    "Kernel release: 7.1.3-gemini-a72-clock-stage",
+    "Mainline boot ID: 02a6ca93-f08a-4e81-8961-d497cc953295",
+    "platform/provider/clock capture failed: stage=platform ret=-11",
+    "Platform snapshot calls: 1", "Provider snapshots: 0",
+    "Retained-RAM write attempts: 0", "Protected-clock calls: 0",
+    "CPU online: 0-7", "CPU offline: 8-9",
+    "Successful mainline left running: yes", "Native reboot command sent: no",
+    "result=pass-decision-bearing-platform-inter-sample-movement",
+):
+    require(token in runtime_receipt, f"runtime receipt: {token}")
 for token in (
     "The exact prior image is retired", "out-of-band failure-stage result",
     "changes no supplier lookup", "same DT", "Buildbox compile",
@@ -152,3 +200,5 @@ print("kunit_qemu=pass:8_fail:0_skip:0_total:8")
 print("device_build=buildbox-pass")
 print("offline_candidate=pass:32_lk_gates:6_mutations")
 print("device_action=boot2-write-verified-shutdown")
+print("runtime=pass:platform-eagain:inter-sample-movement")
+print("next_discriminator=platform-movement-bitmask-no-extra-reads")

@@ -5477,8 +5477,22 @@ The next ordered work is:
    before writing, was corrected to use the authoritative empty record header,
    then replaced only exact live-GPT boot2 predecessor `1f7bd960`. Full
    post-flush and independent readbacks match, and the device is shut down.
-   **Selected next:** pre-arm the no-reboot collector and make one selected
-   boot whose first read-only capture resolves the exact stage.
+   The pre-armed no-reboot collector then captured exact release
+   `7.1.3-gemini-a72-clock-stage`, full candidate `8b6bedfd`, and changed
+   mainline boot ID `02a6ca93-f08a-4e81-8961-d497cc953295` on its first USB
+   session. At 46.169989 seconds the sole failure is `stage=platform ret=-11`;
+   the provider, retained checkpoints, and protected-clock path are untouched,
+   CPUs remain 0--7, and all required serviceability checks pass. The platform
+   source maps CCI change-pending to `-EBUSY` and maps only disagreement between
+   its two completed samples to `-EAGAIN`, so CCI busy is excluded and exact
+   inter-sample platform-state movement is proven. Candidate `8b6bedfd` is
+   retired after this decision-bearing boot. **Selected next:** preserve those
+   two existing samples and add a compact read-only movement bitmask that names
+   which of the nine existing platform comparisons changed. Prove zero extra
+   reads and the unchanged CCI-busy/read-error behavior in hardware-free tests,
+   then build one distinct same-DT, `maxcpus=8` candidate. Do not add a retry,
+   provider call, retained write, protected-clock call, publication, owner
+   mutation, or CPU request.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
