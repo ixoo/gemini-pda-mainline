@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-27-mainline-a72-bigidvfs-sram-owner` |
-| Status | canonical patches `0392`/`0393` validated; Buildbox compile pending |
+| Status | hardware-free owner proof complete; lifecycle bridge next |
 | Subsystem | MT6797 CPU8 secure SRAM-LDO request and readback |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-27 America/New_York |
@@ -66,6 +66,8 @@ attempted, every outcome seals the owner and later recovery remains reset-only.
   production owner and injected KUnit suite.
 - [`results/generation-8b93e3cf.txt`](results/generation-8b93e3cf.txt) records
   the exact generator, source-state, patch, and safety identities.
+- [`results/build-qemu-4dac56f5.txt`](results/build-qemu-4dac56f5.txt) records
+  the exact Buildbox compile and eight-case no-network QEMU proof.
 
 ## Procedure
 
@@ -110,6 +112,15 @@ package contained exactly `0392` and `0393`; its checksums verified after the
 only permitted package fetch. The canonical copies are byte-identical to that
 package.
 
+Exact clean published commit
+`4dac56f5db3379aa9f97d9f914ede707348d9f6c` compiled the focused profile on
+Buildbox as `7.1.3-gemini-a72-bigidvfs-sram-kunit`. The validated package
+contains all required owner and test symbols and excludes the platform-effect,
+executor, watchdog, ledger, provider, and protected-readback suites. Its sole
+no-network QEMU suite passed all eight named cases with zero failures or skips
+and the expected post-suite rootfs panic. The injected suite made zero secure,
+delay, MMIO, watchdog, retained-RAM, regulator, or physical CPU calls.
+
 ## Analysis
 
 Reusing the backend mutex preserves a single resource owner. Treating the set
@@ -120,13 +131,14 @@ and recovery policy outside this owner.
 
 ## Conclusion
 
-Source implementation, style, and replay proof pass. Buildbox compilation and
-focused QEMU runtime proof remain pending. No hardware support claim follows
-from the source audit or contract.
+Source implementation, style, replay, Buildbox compilation, symbol isolation,
+and focused QEMU runtime proof all pass. The default-off owner remains without
+a production caller or device action. No hardware support claim follows from
+this hardware-free milestone.
 
 ## Follow-up
 
-After exact patch generation, Buildbox compilation, and focused QEMU pass,
-advance the roadmap to the PSCI/generic-hotplug lifecycle bridge. Do not build
-or write a device candidate before the complete binder passes its own
+Implement and exhaustively prove the PSCI/generic-hotplug lifecycle bridge,
+then assemble the complete binder around all proven owners. Do not build or
+write a device candidate before the complete binder passes its own
 hardware-free gates.

@@ -5653,12 +5653,18 @@ The next ordered work is:
    manifest. The sole no-network QEMU suite passes all eight cases with zero
    failures or skips, zero physical-effect calls, zero production callers, and
    the expected post-suite rootfs panic. It is default-off, performs no device
-   action, and selects no boot candidate. **Selected next:** implement and
-   exhaustively prove the BigiDVFS SRAM-LDO owner, then add the PSCI/generic-
-   hotplug lifecycle bridge and finally the complete binder around the proven
-   executor, watchdog, retained ledger, and platform-effect owner. Do not
-   assemble or write a device candidate before all hardware-free owner and
-   binder proofs pass.
+   action, and selects no boot candidate. The linked
+   [BigiDVFS SRAM-LDO owner](../experiments/2026-08-27-mainline-a72-bigidvfs-sram-owner/README.md)
+   now admits canonical patches `0392`--`0393`. Exact clean published commit
+   `4dac56f5` compiles the focused profile on Buildbox as
+   `7.1.3-gemini-a72-bigidvfs-sram-kunit`; its sole no-network QEMU suite
+   passes all eight cases with zero failures or skips. The default-off owner
+   has zero secure calls in tests, physical-effect calls, production callers,
+   device actions, or boot candidates. **Selected next:** implement and
+   exhaustively prove the PSCI/generic-hotplug lifecycle bridge, then assemble
+   the complete binder around the proven executor, watchdog, retained ledger,
+   platform-effect owner, and SRAM-LDO owner. Do not assemble or write a device
+   candidate before all hardware-free lifecycle and binder proofs pass.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
