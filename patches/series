@@ -385,3 +385,8 @@ v7.1.3/0392-soc-mediatek-add-one-shot-A72-SRAM-LDO-owner.patch
 v7.1.3/0393-soc-mediatek-test-one-shot-A72-SRAM-LDO-owner.patch
 v7.1.3/0394-arm64-add-CPU-up-lifecycle-completion-bridge.patch
 v7.1.3/0395-soc-mediatek-test-split-A72-CPU-up-lifecycle.patch
+v7.1.3/0396-soc-mediatek-make-A72-retained-checkpoints-fallible.patch
+v7.1.3/0397-arm64-mediatek-add-CPU8-binder-ownership-states.patch
+v7.1.3/0398-dt-bindings-mediatek-add-MT6797-A72-binder.patch
+v7.1.3/0399-soc-mediatek-bind-the-MT6797-CPU8-transition.patch
+v7.1.3/0400-soc-mediatek-test-the-MT6797-CPU8-transition-binder.patch

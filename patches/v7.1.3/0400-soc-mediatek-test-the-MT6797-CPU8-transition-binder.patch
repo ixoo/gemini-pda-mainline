@@ -1,0 +1,686 @@
+From b4b760b40a5078cc8ba5b452fef7d46d719ff779 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 27 Aug 2026 18:05:00 +0000
+Subject: [PATCH 5/5] soc: mediatek: test the MT6797 CPU8 transition binder
+
+Exercise the exact success, retained-terminal failure, clean
+pre-isolation refusal, malformed-owner, and one-shot paths.
+---
+ drivers/soc/mediatek/Kconfig                  |  13 +
+ drivers/soc/mediatek/Makefile                 |   1 +
+ drivers/soc/mediatek/mt6797-a72-binder-test.c | 630 ++++++++++++++++++
+ 3 files changed, 644 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-a72-binder-test.c
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index 5feaf32..d88f62d 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -153,6 +153,19 @@ config MTK_MT6797_A72_DEFAULT_OFF_BINDER
+ 	  Device Tree does not instantiate or enable that device, so selecting
+ 	  this option alone cannot make a CPU request. If unsure, say N.
+ 
++config MTK_MT6797_A72_DEFAULT_OFF_BINDER_KUNIT_TEST
++	bool "KUnit tests for the MT6797 A72 default-off binder"
++	depends on KUNIT=y
++	depends on MTK_MT6797_A72_DEFAULT_OFF_BINDER
++	select ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST
++	select MTK_MT6797_A72_TRANSITION_EXECUTOR_KUNIT_TEST
++	default n
++	help
++	  Exercise the binder admission, split lifecycle, owner-response,
++	  terminal-evidence, P32-ordering, and one-shot contracts through
++	  injected operations only. No MMIO, secure call, watchdog, retained
++	  RAM, PSCI, CPU request, CPU_OFF, retry, or device action is used.
++
+ config MTK_MT6797_DVFSP_HANDOFF
+ 	bool "MediaTek MT6797 stopped DVFSP firmware handoff"
+ 	depends on ARM64 && ARCH_MEDIATEK && OF && COMMON_CLK
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+index 493c1bd..82a9d46 100644
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -37,6 +37,7 @@ obj-$(CONFIG_MTK_MT6797_A72_PLATFORM_STATE) += mt6797-a72-platform-state.o
+ obj-$(CONFIG_MTK_MT6797_A72_TRANSITION_EXECUTOR) += mt6797-a72-transition.o
+ obj-$(CONFIG_MTK_MT6797_A72_TRANSITION_EXECUTOR_KUNIT_TEST) += mt6797-a72-transition-test.o
+ obj-$(CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER) += mt6797-a72-binder.o
++obj-$(CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER_KUNIT_TEST) += mt6797-a72-binder-test.o
+ obj-$(CONFIG_MTK_MT6797_A72_PLATFORM_STATE_KUNIT_TEST) += mt6797-a72-platform-state-test.o
+ obj-$(CONFIG_MTK_MT6797_A72_PLATFORM_EFFECTS_KUNIT_TEST) += mt6797-a72-platform-effect-test.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-handoff.o
+diff --git a/drivers/soc/mediatek/mt6797-a72-binder-test.c b/drivers/soc/mediatek/mt6797-a72-binder-test.c
+new file mode 100644
+index 0000000..7841c3c
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-a72-binder-test.c
+@@ -0,0 +1,630 @@
++// SPDX-License-Identifier: GPL-2.0-only
++
++#include <kunit/test.h>
++#include <linux/errno.h>
++#include <linux/module.h>
++#include <linux/slab.h>
++#include <linux/string.h>
++
++#include "mt6797-a72-binder-internal.h"
++
++#define TEST_GENERATION 7ULL
++#define TEST_COOKIE 9ULL
++#define TEST_PROVIDER_GENERATION 17ULL
++#define TEST_PROVIDER_COOKIE 19ULL
++#define TEST_MAX_EVENTS 96U
++
++enum mt6797_binder_test_malformed {
++	TEST_MALFORMED_NONE,
++	TEST_MALFORMED_WATCHDOG,
++	TEST_MALFORMED_P27,
++	TEST_MALFORMED_PROVIDER,
++	TEST_MALFORMED_ISOLATION,
++	TEST_MALFORMED_SRAM,
++	TEST_MALFORMED_DCM,
++};
++
++enum mt6797_binder_test_event {
++	TEST_EVENT_LEDGER_BEGIN = 1,
++	TEST_EVENT_WATCHDOG,
++	TEST_EVENT_P27,
++	TEST_EVENT_PROVIDER,
++	TEST_EVENT_ISOLATION,
++	TEST_EVENT_SRAM,
++	TEST_EVENT_CPU_ON,
++	TEST_EVENT_SECONDARY,
++	TEST_EVENT_IPI,
++	TEST_EVENT_DCM,
++	TEST_EVENT_MEMBERSHIP,
++	TEST_EVENT_TERMINAL,
++	TEST_EVENT_FINALIZE,
++	TEST_EVENT_PROVIDER_RELEASE,
++	TEST_EVENT_P27_RELEASE,
++	TEST_EVENT_REJECT,
++};
++
++struct mt6797_binder_test_state {
++	struct mt6797_a72_binder binder;
++	enum mt6797_binder_test_malformed malformed;
++	unsigned int events[TEST_MAX_EVENTS];
++	unsigned int event_count;
++	unsigned int regular_checkpoints;
++	unsigned int terminal_checkpoints;
++	unsigned int cpu_boots;
++	unsigned int membership_publishes;
++	unsigned int membership_finalizes;
++	unsigned int membership_rejects;
++	unsigned int checkpoint_fail_stage;
++	bool terminal_fails;
++	bool cpu8_online;
++};
++
++static struct mt6797_binder_test_state *mt6797_binder_test_active;
++
++static void mt6797_binder_test_event(unsigned int event)
++{
++	struct mt6797_binder_test_state *state = mt6797_binder_test_active;
++
++	if (state->event_count < ARRAY_SIZE(state->events))
++		state->events[state->event_count++] = event;
++}
++
++static int mt6797_binder_test_ledger_begin(u64 attempt_id)
++{
++	mt6797_binder_test_event(TEST_EVENT_LEDGER_BEGIN);
++	return attempt_id == TEST_GENERATION ? 0 : -EPROTO;
++}
++
++static int mt6797_binder_test_ledger_checkpoint(u64 attempt_id, u32 phase,
++						u32 stage, u32 terminal)
++{
++	struct mt6797_binder_test_state *state = mt6797_binder_test_active;
++
++	if (attempt_id != TEST_GENERATION)
++		return -EPROTO;
++	if (phase == GEMINI_TRANSITION_LEDGER_TERMINAL) {
++		state->terminal_checkpoints++;
++		mt6797_binder_test_event(TEST_EVENT_TERMINAL);
++		return state->terminal_fails ? -ENOSPC : 0;
++	}
++	state->regular_checkpoints++;
++	if (phase == GEMINI_TRANSITION_LEDGER_BEFORE &&
++	    stage == state->checkpoint_fail_stage)
++		return -EUCLEAN;
++	(void)terminal;
++	return 0;
++}
++
++static bool mt6797_binder_test_provider_available(void)
++{
++	return true;
++}
++
++static int mt6797_binder_test_preflight(unsigned int cpu,
++					enum cpuhp_state target)
++{
++	return cpu == 8 && target == CPUHP_ONLINE ? 0 : -EPERM;
++}
++
++static int mt6797_binder_test_validate(unsigned int cpu, int tasks_frozen,
++				       enum cpuhp_state target)
++{
++	return !tasks_frozen && cpu == 8 && target == CPUHP_ONLINE ? 0 : -EPERM;
++}
++
++static int
++mt6797_binder_test_claim(struct mt6797_a72_transaction *transaction)
++{
++	memset(transaction, 0, sizeof(*transaction));
++	transaction->identity.abi = MT6797_A72_TRANSACTION_ABI;
++	transaction->identity.operation = ARM64_LATE_CPU_STARTUP_OP_CPU8_UP;
++	transaction->identity.target_cpu = 8;
++	transaction->identity.cpuhp_target = CPUHP_ONLINE;
++	transaction->identity.generation = TEST_GENERATION;
++	transaction->identity.cookie = TEST_COOKIE;
++	transaction->p30_token.generation = TEST_GENERATION;
++	transaction->p30_token.cookie = TEST_COOKIE;
++	transaction->p30_token_valid = 1;
++	transaction->public_preflight = MT6797_A72_PUBLIC_ADMISSION_CLAIMED;
++	transaction->a36_valid = 1;
++	transaction->p17_p18_published = 1;
++	transaction->valid = 1;
++	return 0;
++}
++
++static bool mt6797_binder_test_owns_token(const struct arm64_late_cpu_up_token *token)
++{
++	return token && token->generation == TEST_GENERATION &&
++		token->cookie == TEST_COOKIE;
++}
++
++static int
++mt6797_binder_test_reject(struct mt6797_a72_transaction *transaction)
++{
++	struct mt6797_binder_test_state *state = mt6797_binder_test_active;
++
++	if (!transaction || !transaction->valid)
++		return -EPROTO;
++	state->membership_rejects++;
++	mt6797_binder_test_event(TEST_EVENT_REJECT);
++	return 0;
++}
++
++static int mt6797_binder_test_begin_p27(struct mt6797_a72_transaction *transaction)
++{
++	return transaction && transaction->valid ? 0 : -EPROTO;
++}
++
++static int mt6797_binder_test_complete_p27(struct mt6797_a72_transaction *transaction,
++					   const struct mt6797_a72_p27_preparation *preparation)
++{
++	if (!transaction || !preparation ||
++	    preparation->generation != TEST_GENERATION ||
++	    preparation->cookie != TEST_COOKIE)
++		return -EPROTO;
++	transaction->p27_valid = 1;
++	return 0;
++}
++
++static int mt6797_binder_test_provider_acquire(struct mt6797_a72_transaction *transaction,
++					       struct mt6797_a72_provider_response *response)
++{
++	struct mt6797_binder_test_state *state = mt6797_binder_test_active;
++
++	memset(response, 0, sizeof(*response));
++	response->abi = MT6797_A72_PROVIDER_CALL_ABI;
++	response->returned = 1;
++	response->vote_requested = 1;
++	response->provider_mutated = 1;
++	response->rail_mutated = 1;
++	response->settle_us = MT6797_A72_PROVIDER_CALL_SETTLE_US;
++	response->da921x_page = MT6797_A72_PROVIDER_CALL_DA921X_PAGE;
++	response->buckb_enabled = 1;
++	response->buckb_vsel = MT6797_A72_PROVIDER_CALL_BUCKB_VSEL;
++	response->origin = MT6797_A72_PROVIDER_ORIGIN_M01;
++	response->origin_generation = TEST_PROVIDER_GENERATION;
++	response->held_handle.generation = TEST_PROVIDER_GENERATION;
++	response->held_handle.cookie = TEST_PROVIDER_COOKIE;
++	if (state->malformed == TEST_MALFORMED_PROVIDER)
++		response->reserved = 1;
++	transaction->provider_identity.generation = TEST_PROVIDER_GENERATION;
++	transaction->provider_identity.cookie = TEST_PROVIDER_COOKIE;
++	transaction->provider_acquire_proof.held_identity =
++		transaction->provider_identity;
++	mt6797_binder_test_event(TEST_EVENT_PROVIDER);
++	return 0;
++}
++
++static int mt6797_binder_test_provider_abort(struct mt6797_a72_transaction *transaction,
++					     struct mt6797_a72_provider_response *response)
++{
++	memset(response, 0, sizeof(*response));
++	response->abi = MT6797_A72_PROVIDER_CALL_ABI;
++	response->returned = 1;
++	response->vote_requested = 1;
++	response->provider_mutated = 1;
++	response->rail_mutated = 1;
++	response->settle_us = MT6797_A72_PROVIDER_CALL_SETTLE_US;
++	response->da921x_page = MT6797_A72_PROVIDER_CALL_DA921X_PAGE;
++	response->buckb_vsel = MT6797_A72_PROVIDER_CALL_BUCKB_VSEL;
++	response->origin = MT6797_A72_PROVIDER_ORIGIN_M01;
++	response->origin_generation = TEST_PROVIDER_GENERATION;
++	response->held_handle.generation = TEST_PROVIDER_GENERATION;
++	response->held_handle.cookie = TEST_PROVIDER_COOKIE;
++	transaction->provider_identity =
++		(struct mt6797_a72_provider_identity){};
++	mt6797_binder_test_event(TEST_EVENT_PROVIDER_RELEASE);
++	return 0;
++}
++
++static int mt6797_binder_test_begin_p28(struct mt6797_a72_transaction *transaction)
++{
++	return transaction && transaction->valid ? 0 : -EPROTO;
++}
++
++static int mt6797_binder_test_complete_p28(struct mt6797_a72_transaction *transaction,
++					   const struct mt6797_a72_p28_preparation *preparation)
++{
++	if (!transaction || !preparation ||
++	    preparation->transaction_generation != TEST_GENERATION ||
++	    preparation->transaction_cookie != TEST_COOKIE)
++		return -EPROTO;
++	transaction->p28_valid = 1;
++	return 0;
++}
++
++static int mt6797_binder_test_complete_p29(struct mt6797_a72_transaction *transaction,
++					   const struct mt6797_a72_p29_rollback_proof *rollback)
++{
++	if (mt6797_binder_test_active->malformed == TEST_MALFORMED_P27)
++		return -EPROTO;
++	return transaction && rollback &&
++		rollback->transaction_generation == TEST_GENERATION &&
++		rollback->transaction_cookie == TEST_COOKIE ? 0 : -EPROTO;
++}
++
++static int mt6797_binder_test_begin_cpu_on(struct mt6797_a72_transaction *transaction)
++{
++	return transaction && transaction->p28_valid ? 0 : -EPROTO;
++}
++
++static int mt6797_binder_test_publish_success(struct mt6797_a72_transaction *transaction)
++{
++	struct mt6797_binder_test_state *state = mt6797_binder_test_active;
++
++	if (!transaction || !state->cpu8_online)
++		return -EPROTO;
++	transaction->cpu8_success_published = 1;
++	state->membership_publishes++;
++	mt6797_binder_test_event(TEST_EVENT_MEMBERSHIP);
++	return 0;
++}
++
++static int mt6797_binder_test_finalize_success(struct mt6797_a72_transaction *transaction)
++{
++	struct mt6797_binder_test_state *state = mt6797_binder_test_active;
++
++	if (!transaction || !transaction->cpu8_success_published)
++		return -EPROTO;
++	state->membership_finalizes++;
++	mt6797_binder_test_event(TEST_EVENT_FINALIZE);
++	return 0;
++}
++
++static int mt6797_binder_test_watchdog(struct device *dev,
++				       unsigned int timeout_ms,
++				       struct mtk_wdt_recovery_result *result)
++{
++	struct mt6797_binder_test_state *state = mt6797_binder_test_active;
++
++	(void)dev;
++	memset(result, 0, sizeof(*result));
++	result->identity = state->malformed == TEST_MALFORMED_WATCHDOG ? 0 : 11;
++	result->owned = 1;
++	mt6797_binder_test_event(TEST_EVENT_WATCHDOG);
++	return timeout_ms == MTK_WDT_RECOVERY_TIMEOUT_MS ? 0 : -EINVAL;
++}
++
++static int mt6797_binder_test_p27(struct device *dev,
++				  const struct mt6797_a72_platform_effect_handle *handle,
++				  struct mt6797_a72_platform_effect_result *result)
++{
++	struct mt6797_binder_test_state *state = mt6797_binder_test_active;
++	u32 mask = MT6797_A72_EFFECT_P27_RESET_RELEASED |
++		MT6797_A72_EFFECT_BPLL_ORDER_READ |
++		MT6797_A72_EFFECT_PWRAP_ASSERTED;
++
++	(void)dev;
++	memset(result, 0, sizeof(*result));
++	result->abi = MT6797_A72_PLATFORM_EFFECT_ABI;
++	result->operation = MT6797_A72_PLATFORM_EFFECT_P27_ACQUIRE;
++	result->attempted_effects = mask;
++	result->completed_effects = mask;
++	result->p27_owned = true;
++	result->sealed = state->malformed != TEST_MALFORMED_P27;
++	mt6797_binder_test_event(TEST_EVENT_P27);
++	return handle->attempt_id == TEST_GENERATION &&
++		handle->cookie == TEST_COOKIE ? 0 : -EPROTO;
++}
++
++static int mt6797_binder_test_p27_release(struct device *dev,
++					  const struct mt6797_a72_platform_effect_handle *handle,
++					  struct mt6797_a72_platform_effect_result *result)
++{
++	u32 mask = MT6797_A72_EFFECT_P27_RESET_RELEASED |
++		MT6797_A72_EFFECT_BPLL_ORDER_READ |
++		MT6797_A72_EFFECT_PWRAP_ASSERTED |
++		MT6797_A72_EFFECT_PWRAP_DEASSERTED |
++		MT6797_A72_EFFECT_P27_RESET_RESTORED;
++
++	(void)dev;
++	memset(result, 0, sizeof(*result));
++	result->abi = MT6797_A72_PLATFORM_EFFECT_ABI;
++	result->operation = MT6797_A72_PLATFORM_EFFECT_P27_RELEASE;
++	result->attempted_effects = mask;
++	result->completed_effects = mask;
++	result->sealed = true;
++	mt6797_binder_test_event(TEST_EVENT_P27_RELEASE);
++	return handle->attempt_id == TEST_GENERATION ? 0 : -EPROTO;
++}
++
++static int mt6797_binder_test_isolation(struct device *dev,
++					const struct mt6797_a72_platform_effect_handle *handle,
++					const struct mt6797_a72_provider_handle *provider,
++					struct mt6797_a72_platform_effect_result *result)
++{
++	struct mt6797_binder_test_state *state = mt6797_binder_test_active;
++	u32 mask = MT6797_A72_EFFECT_P27_RESET_RELEASED |
++		MT6797_A72_EFFECT_BPLL_ORDER_READ |
++		MT6797_A72_EFFECT_PWRAP_ASSERTED |
++		MT6797_A72_EFFECT_PWRAP_DEASSERTED |
++		MT6797_A72_EFFECT_ISOLATION_CLEARED |
++		MT6797_A72_EFFECT_ISOLATION_GUARD;
++
++	(void)dev;
++	memset(result, 0, sizeof(*result));
++	result->abi = MT6797_A72_PLATFORM_EFFECT_ABI;
++	result->operation = MT6797_A72_PLATFORM_EFFECT_ISOLATION_CLEAR;
++	result->attempted_effects = mask;
++	result->completed_effects = mask;
++	result->p27_owned = true;
++	result->isolation_attempted = true;
++	result->isolation_crossed = true;
++	result->sealed = state->malformed != TEST_MALFORMED_ISOLATION;
++	mt6797_binder_test_event(TEST_EVENT_ISOLATION);
++	return handle->attempt_id == TEST_GENERATION &&
++		provider->generation == TEST_PROVIDER_GENERATION &&
++		provider->cookie == TEST_PROVIDER_COOKIE ? 0 : -EPROTO;
++}
++
++static int mt6797_binder_test_sram(struct device *dev,
++				   const struct mt6797_bigidvfs_sram_request *request,
++				   struct mt6797_bigidvfs_sram_result *result)
++{
++	struct mt6797_binder_test_state *state = mt6797_binder_test_active;
++	u32 steps = MT6797_BIGIDVFS_SRAM_SERVICE |
++		MT6797_BIGIDVFS_SRAM_SETTLE |
++		MT6797_BIGIDVFS_SRAM_SELECTOR_FIRST |
++		MT6797_BIGIDVFS_SRAM_CALIBRATION_FIRST |
++		MT6797_BIGIDVFS_SRAM_SELECTOR_SECOND |
++		MT6797_BIGIDVFS_SRAM_CALIBRATION_SECOND |
++		MT6797_BIGIDVFS_SRAM_SELECTOR_VALID |
++		MT6797_BIGIDVFS_SRAM_CALIBRATION_VALID;
++
++	(void)dev;
++	memset(result, 0, sizeof(*result));
++	result->abi = MT6797_BIGIDVFS_SRAM_OWNER_ABI;
++	result->attempted_steps = steps;
++	result->completed_steps = steps;
++	result->requested_mv_x100 = MT6797_BIGIDVFS_SRAM_TARGET_MV_X100;
++	result->selector_first = MT6797_BIGIDVFS_SRAM_SELECTOR_EXPECTED;
++	result->selector_second = MT6797_BIGIDVFS_SRAM_SELECTOR_EXPECTED;
++	result->attempt_id = request->attempt_id;
++	result->cookie = request->cookie;
++	result->effect_attempted = true;
++	result->verified = true;
++	result->sealed = state->malformed != TEST_MALFORMED_SRAM;
++	mt6797_binder_test_event(TEST_EVENT_SRAM);
++	return 0;
++}
++
++static int mt6797_binder_test_dcm(struct device *dev,
++				  const struct mt6797_a72_platform_effect_handle *handle,
++				  bool cpu8_online, bool cpu9_online,
++				  struct mt6797_a72_platform_effect_result *result)
++{
++	struct mt6797_binder_test_state *state = mt6797_binder_test_active;
++	u32 mask = MT6797_A72_EFFECT_P27_RESET_RELEASED |
++		MT6797_A72_EFFECT_BPLL_ORDER_READ |
++		MT6797_A72_EFFECT_PWRAP_ASSERTED |
++		MT6797_A72_EFFECT_PWRAP_DEASSERTED |
++		MT6797_A72_EFFECT_ISOLATION_CLEARED |
++		MT6797_A72_EFFECT_ISOLATION_GUARD |
++		MT6797_A72_EFFECT_DCM_TOGGLE | MT6797_A72_EFFECT_DCM_FINAL;
++
++	(void)dev;
++	memset(result, 0, sizeof(*result));
++	result->abi = MT6797_A72_PLATFORM_EFFECT_ABI;
++	result->operation = MT6797_A72_PLATFORM_EFFECT_DCM_UPDATE;
++	result->attempted_effects = mask;
++	result->completed_effects = mask;
++	result->p27_owned = true;
++	result->isolation_attempted = true;
++	result->isolation_crossed = true;
++	result->sealed = state->malformed != TEST_MALFORMED_DCM;
++	mt6797_binder_test_event(TEST_EVENT_DCM);
++	return handle->attempt_id == TEST_GENERATION && cpu8_online &&
++		!cpu9_online ? 0 : -EPROTO;
++}
++
++static bool mt6797_binder_test_cpu_online(unsigned int cpu)
++{
++	return cpu == 8 && mt6797_binder_test_active->cpu8_online;
++}
++
++static int mt6797_binder_test_ipi(unsigned int cpu, smp_call_func_t func,
++				  void *info, int wait)
++{
++	if (cpu != 8 || !wait)
++		return -EPROTO;
++	func(info);
++	mt6797_binder_test_event(TEST_EVENT_IPI);
++	return 0;
++}
++
++static const struct mt6797_a72_binder_backend_ops mt6797_binder_test_ops = {
++	.ledger_begin = mt6797_binder_test_ledger_begin,
++	.ledger_checkpoint = mt6797_binder_test_ledger_checkpoint,
++	.provider_available = mt6797_binder_test_provider_available,
++	.membership_preflight = mt6797_binder_test_preflight,
++	.membership_validate = mt6797_binder_test_validate,
++	.membership_claim = mt6797_binder_test_claim,
++	.membership_owns_token = mt6797_binder_test_owns_token,
++	.membership_reject = mt6797_binder_test_reject,
++	.membership_begin_p27 = mt6797_binder_test_begin_p27,
++	.membership_complete_p27 = mt6797_binder_test_complete_p27,
++	.membership_provider_acquire = mt6797_binder_test_provider_acquire,
++	.membership_provider_abort = mt6797_binder_test_provider_abort,
++	.membership_begin_p28 = mt6797_binder_test_begin_p28,
++	.membership_complete_p28 = mt6797_binder_test_complete_p28,
++	.membership_complete_p29 = mt6797_binder_test_complete_p29,
++	.membership_begin_cpu_on = mt6797_binder_test_begin_cpu_on,
++	.membership_publish_success = mt6797_binder_test_publish_success,
++	.membership_finalize_success = mt6797_binder_test_finalize_success,
++	.watchdog_takeover = mt6797_binder_test_watchdog,
++	.p27_acquire = mt6797_binder_test_p27,
++	.p27_release = mt6797_binder_test_p27_release,
++	.isolation_clear = mt6797_binder_test_isolation,
++	.sram_enable = mt6797_binder_test_sram,
++	.dcm_update = mt6797_binder_test_dcm,
++	.cpu_online = mt6797_binder_test_cpu_online,
++	.ipi_call = mt6797_binder_test_ipi,
++};
++
++static int mt6797_binder_test_cpu_boot(unsigned int cpu)
++{
++	struct mt6797_binder_test_state *state = mt6797_binder_test_active;
++
++	if (cpu != 8)
++		return -EPROTO;
++	state->cpu_boots++;
++	mt6797_binder_test_event(TEST_EVENT_CPU_ON);
++	return 0;
++}
++
++static int mt6797_binder_test_init(struct kunit *test)
++{
++	struct mt6797_binder_test_state *state;
++
++	state = kunit_kzalloc(test, sizeof(*state), GFP_KERNEL);
++	if (!state)
++		return -ENOMEM;
++	mt6797_binder_test_active = state;
++	mt6797_a72_binder_test_init(&state->binder, &mt6797_binder_test_ops);
++	test->priv = state;
++	return 0;
++}
++
++static int mt6797_binder_test_run_to_completion(struct mt6797_binder_test_state *state)
++{
++	int ret;
++
++	ret = mt6797_a72_binder_test_boot(&state->binder, 8,
++					  mt6797_binder_test_cpu_boot);
++	if (ret)
++		return ret;
++	state->cpu8_online = true;
++	mt6797_binder_test_event(TEST_EVENT_SECONDARY);
++	ret = mt6797_a72_binder_test_secondary_complete(&state->binder, 8);
++	if (ret)
++		return ret;
++	return mt6797_a72_binder_test_complete(&state->binder, 8,
++					       CPUHP_ONLINE);
++}
++
++static int mt6797_binder_test_find(const struct mt6797_binder_test_state *state,
++				   unsigned int event)
++{
++	unsigned int i;
++
++	for (i = 0; i < state->event_count; i++)
++		if (state->events[i] == event)
++			return i;
++	return -ENOENT;
++}
++
++static void mt6797_binder_success_test(struct kunit *test)
++{
++	struct mt6797_binder_test_state *state = test->priv;
++
++	KUNIT_ASSERT_EQ(test, mt6797_binder_test_run_to_completion(state), 0);
++	KUNIT_EXPECT_EQ(test, state->cpu_boots, 1U);
++	KUNIT_EXPECT_EQ(test, state->regular_checkpoints, 20U);
++	KUNIT_EXPECT_EQ(test, state->terminal_checkpoints, 1U);
++	KUNIT_EXPECT_EQ(test, state->membership_publishes, 1U);
++	KUNIT_EXPECT_EQ(test, state->membership_finalizes, 1U);
++	KUNIT_EXPECT_EQ(test, state->binder.result.cpu_off_requests, 0U);
++	KUNIT_EXPECT_EQ(test, state->binder.result.retries, 0U);
++	KUNIT_EXPECT_LT(test, mt6797_binder_test_find(state,
++						      TEST_EVENT_MEMBERSHIP),
++			mt6797_binder_test_find(state, TEST_EVENT_TERMINAL));
++	KUNIT_EXPECT_LT(test, mt6797_binder_test_find(state,
++						      TEST_EVENT_TERMINAL),
++			mt6797_binder_test_find(state, TEST_EVENT_FINALIZE));
++}
++
++static void mt6797_binder_terminal_failure_test(struct kunit *test)
++{
++	struct mt6797_binder_test_state *state = test->priv;
++	bool publish_p32 = false;
++	int ret;
++
++	state->terminal_fails = true;
++	KUNIT_EXPECT_EQ(test, mt6797_binder_test_run_to_completion(state),
++			-ENOSPC);
++	KUNIT_EXPECT_EQ(test, state->membership_publishes, 1U);
++	KUNIT_EXPECT_EQ(test, state->membership_finalizes, 0U);
++	ret = mt6797_a72_binder_test_failure(&state->binder, 8, -ENOSPC,
++					     &publish_p32);
++	KUNIT_EXPECT_EQ(test, ret, 0);
++	KUNIT_EXPECT_TRUE(test, publish_p32);
++	KUNIT_EXPECT_EQ(test, state->terminal_checkpoints, 1U);
++}
++
++static void mt6797_binder_preiso_checkpoint_test(struct kunit *test)
++{
++	struct mt6797_binder_test_state *state = test->priv;
++	bool publish_p32 = true;
++	int ret;
++
++	state->checkpoint_fail_stage = MT6797_A72_TRANSITION_STAGE_P27;
++	ret = mt6797_a72_binder_test_boot(&state->binder, 8,
++					  mt6797_binder_test_cpu_boot);
++	KUNIT_EXPECT_EQ(test, ret, -EUCLEAN);
++	KUNIT_EXPECT_EQ(test, state->cpu_boots, 0U);
++	KUNIT_EXPECT_EQ(test, state->membership_rejects, 1U);
++	ret = mt6797_a72_binder_test_failure(&state->binder, 8, -EUCLEAN,
++					     &publish_p32);
++	KUNIT_EXPECT_EQ(test, ret, 0);
++	KUNIT_EXPECT_FALSE(test, publish_p32);
++}
++
++static void mt6797_binder_malformed_owners_test(struct kunit *test)
++{
++	enum mt6797_binder_test_malformed malformed;
++
++	for (malformed = TEST_MALFORMED_WATCHDOG;
++	     malformed <= TEST_MALFORMED_DCM; malformed++) {
++		struct mt6797_binder_test_state *state;
++		bool publish_p32 = false;
++		int ret;
++
++		state = kunit_kzalloc(test, sizeof(*state), GFP_KERNEL);
++		KUNIT_ASSERT_NOT_NULL(test, state);
++		mt6797_binder_test_active = state;
++		state->malformed = malformed;
++		mt6797_a72_binder_test_init(&state->binder,
++					    &mt6797_binder_test_ops);
++		ret = mt6797_binder_test_run_to_completion(state);
++		KUNIT_EXPECT_LT_MSG(test, ret, 0, "malformed=%u", malformed);
++		ret = mt6797_a72_binder_test_failure(&state->binder, 8, ret,
++						     &publish_p32);
++		KUNIT_EXPECT_EQ(test, ret, 0);
++		if (malformed >= TEST_MALFORMED_ISOLATION)
++			KUNIT_EXPECT_TRUE_MSG(test, publish_p32,
++					      "malformed=%u", malformed);
++		KUNIT_EXPECT_EQ(test, state->binder.result.cpu_off_requests, 0U);
++		KUNIT_EXPECT_EQ(test, state->binder.result.retries, 0U);
++	}
++}
++
++static void mt6797_binder_one_shot_test(struct kunit *test)
++{
++	struct mt6797_binder_test_state *state = test->priv;
++	int ret;
++
++	KUNIT_ASSERT_EQ(test, mt6797_binder_test_run_to_completion(state), 0);
++	ret = mt6797_a72_binder_test_boot(&state->binder, 8,
++					  mt6797_binder_test_cpu_boot);
++	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
++	KUNIT_EXPECT_EQ(test, state->cpu_boots, 1U);
++}
++
++static struct kunit_case mt6797_binder_test_cases[] = {
++	KUNIT_CASE(mt6797_binder_success_test),
++	KUNIT_CASE(mt6797_binder_terminal_failure_test),
++	KUNIT_CASE(mt6797_binder_preiso_checkpoint_test),
++	KUNIT_CASE(mt6797_binder_malformed_owners_test),
++	KUNIT_CASE(mt6797_binder_one_shot_test),
++	{}
++};
++
++static struct kunit_suite mt6797_binder_test_suite = {
++	.name = "mt6797-a72-default-off-binder",
++	.init = mt6797_binder_test_init,
++	.test_cases = mt6797_binder_test_cases,
++};
++
++kunit_test_suite(mt6797_binder_test_suite);
++
++MODULE_LICENSE("GPL");

@@ -1,0 +1,58 @@
+From 7b2f73427656409c67af219eeebf32169f30f431 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 27 Aug 2026 18:03:00 +0000
+Subject: [PATCH 3/5] dt-bindings: mediatek: add MT6797 A72 binder
+
+Describe the default-off binder's three explicit supplier
+phandles without instantiating it in the base Device Tree.
+---
+ .../mediatek/mediatek,mt6797-a72-binder.yaml  | 40 +++++++++++++++++++
+ 1 file changed, 40 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-a72-binder.yaml
+
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-a72-binder.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-a72-binder.yaml
+new file mode 100644
+index 0000000..80690cb
+--- /dev/null
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-a72-binder.yaml
+@@ -0,0 +1,40 @@
++# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
++%YAML 1.2
++---
++$id: http://devicetree.org/schemas/soc/mediatek/mediatek,mt6797-a72-binder.yaml#
++$schema: http://devicetree.org/meta-schemas/core.yaml#
++
++title: MediaTek MT6797 Cortex-A72 transition binder
++
++maintainers:
++  - Julien Etienne <julien.etienne@gmail.com>
++
++description: |
++  The default-off binder joins the watchdog, serialized A72 platform-state,
++  and BigiDVFS SRAM-LDO supplier devices for one membership-owned CPU8
++  transition. The node does not arm or trigger a CPU request by itself.
++
++properties:
++  compatible:
++    const: mediatek,mt6797-a72-binder
++
++  mediatek,watchdog:
++    $ref: /schemas/types.yaml#/definitions/phandle
++    description: Bound MT6797 watchdog recovery-takeover supplier.
++
++  mediatek,platform-state:
++    $ref: /schemas/types.yaml#/definitions/phandle
++    description: Bound serialized MT6797 A72 platform-effect supplier.
++
++  mediatek,bigidvfs:
++    $ref: /schemas/types.yaml#/definitions/phandle
++    description: Bound MT6797 BigiDVFS SRAM-LDO supplier.
++
++required:
++  - compatible
++  - mediatek,watchdog
++  - mediatek,platform-state
++  - mediatek,bigidvfs
++
++additionalProperties: false
++...
