@@ -38,8 +38,8 @@ mt6797_a72_platform_effect_output(const struct mt6797_a72_platform_effect_owner 
 
 static int
 mt6797_a72_effect_fail(struct mt6797_a72_platform_effect_owner *owner,
-				enum mt6797_a72_platform_effect_state state, int error,
-				struct mt6797_a72_platform_effect_result *result)
+		       enum mt6797_a72_platform_effect_state state, int error,
+		       struct mt6797_a72_platform_effect_result *result)
 {
 	owner->state = state;
 	owner->result.error = error;
