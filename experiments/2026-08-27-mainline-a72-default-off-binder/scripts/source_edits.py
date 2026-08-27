@@ -205,12 +205,11 @@ def apply_tests(path: Path) -> None:
         "{\n"
         "\tstruct mt6797_transition_test_state *state = context;\n\n"
         "\tstate->membership_target = cpu;\n"
-        "\treturn mt6797_test_effect(\n"
-        "\t\tstate, MT6797_A72_TRANSITION_STAGE_MEMBERSHIP);\n"
+        "\treturn mt6797_test_effect(state,\n"
+        "\t\t\t\t  MT6797_A72_TRANSITION_STAGE_MEMBERSHIP);\n"
         "}\n\n"
         "static int\n"
-        "mt6797_test_terminal(\n"
-        "\t\tvoid *context,\n"
+        "mt6797_test_terminal(void *context,\n"
         "\t\tconst struct mt6797_a72_transition_result *result)\n"
         "{\n"
         "\tstruct mt6797_transition_test_state *state = context;\n\n"
@@ -328,7 +327,6 @@ def apply_tests(path: Path) -> None:
         "static void mt6797_transition_lifecycle_failure_test",
     )
     insert = r'''
-
 static void mt6797_transition_checkpoint_failures_test(struct kunit *test)
 {
 	enum mt6797_a72_transition_stage stage;
@@ -531,8 +529,8 @@ def apply_source_rest(path: Path) -> None:
         r"\t\t\tmt6797_a72_transition_set_retained\(result\);\n"
         r"\t\t\tmt6797_a72_transition_terminal\(controller\);\n"
         r"\t\t\treturn ret;\n",
-        "\t\t\treturn mt6797_a72_transition_terminal(\n"
-        "\t\t\t\tcontroller, ops, context, result,\n"
+        "\t\t\treturn mt6797_a72_transition_terminal(controller, ops,\n"
+        "\t\t\t\tcontext, result,\n"
         "\t\t\t\tMT6797_A72_TRANSITION_ROLLBACK_FAULT_PREISO,\n"
         "\t\t\t\tret, 0);\n",
         2,
@@ -542,8 +540,8 @@ def apply_source_rest(path: Path) -> None:
         "\tresult->terminal = MT6797_A72_TRANSITION_ROLLED_BACK_PREISO;\n"
         "\tmt6797_a72_transition_terminal(controller);\n"
         "\treturn stage_errno;\n",
-        "\treturn mt6797_a72_transition_terminal(\n"
-        "\t\tcontroller, ops, context, result,\n"
+        "\treturn mt6797_a72_transition_terminal(controller, ops, context,\n"
+        "\t\tresult,\n"
         "\t\tMT6797_A72_TRANSITION_ROLLED_BACK_PREISO, stage_errno, 0);\n",
     )
     replace_once(
@@ -571,8 +569,8 @@ def apply_source_rest(path: Path) -> None:
         "\t\t       u32 unknown_mask)\n"
         "{\n"
         "\tresult->stage_errno = -EPROTO;\n"
-        "\treturn mt6797_a72_transition_terminal(\n"
-        "\t\tcontroller, ops, context, result,\n"
+        "\treturn mt6797_a72_transition_terminal(controller, ops, context,\n"
+        "\t\tresult,\n"
         "\t\tMT6797_A72_TRANSITION_ROLLBACK_FAULT_PREISO, -EPROTO,\n"
         "\t\tunknown_mask);\n"
         "}\n",
@@ -598,13 +596,12 @@ def apply_source_rest(path: Path) -> None:
         "\t\t\t\t    int stage_errno)\n"
         "{\n"
         "\tresult->stage_errno = stage_errno;\n"
-        "\treturn mt6797_a72_transition_terminal(\n"
-        "\t\tcontroller, ops, context, result,\n"
+        "\treturn mt6797_a72_transition_terminal(controller, ops, context,\n"
+        "\t\tresult,\n"
         "\t\tMT6797_A72_TRANSITION_FAULT_RETAIN_POSTISO, stage_errno, 0);\n"
         "}\n\n"
         "static int\n"
-        "mt6797_a72_transition_checkpoint_stage(\n"
-        "\t\tstruct mt6797_a72_transition_controller *controller,\n"
+        "mt6797_a72_transition_checkpoint_stage(struct mt6797_a72_transition_controller *controller,\n"
         "\t\tconst struct mt6797_a72_transition_ops *ops, void *context,\n"
         "\t\tstruct mt6797_a72_transition_result *result,\n"
         "\t\tenum mt6797_a72_transition_phase phase,\n"
@@ -618,8 +615,8 @@ def apply_source_rest(path: Path) -> None:
         "\tif (stage == MT6797_A72_TRANSITION_STAGE_WATCHDOG &&\n"
         "\t    !result->watchdog_armed) {\n"
         "\t\tresult->stage_errno = ret;\n"
-        "\t\treturn mt6797_a72_transition_terminal(\n"
-        "\t\t\tcontroller, ops, context, result,\n"
+        "\t\treturn mt6797_a72_transition_terminal(controller, ops,\n"
+        "\t\t\tcontext, result,\n"
         "\t\t\tMT6797_A72_TRANSITION_REJECTED_PRESTATE, ret, 0);\n"
         "\t}\n"
         "\tif (!result->isolation_attempted)\n"
@@ -634,9 +631,8 @@ def apply_source_rest(path: Path) -> None:
         r"\tmt6797_a72_transition_checkpoint\(ops, context, result,\n"
         r"\t\t\t\t\t (MT6797_A72_TRANSITION_(?:BEFORE|AFTER)),\n"
         r"\t\t\t\t\t (MT6797_A72_TRANSITION_STAGE_[A-Z0-9_]+)\);",
-        "\tret = mt6797_a72_transition_checkpoint_stage(\n"
-        "\t\tcontroller, ops, context, result, \\1,\n"
-        "\t\t\\2);\n"
+        "\tret = mt6797_a72_transition_checkpoint_stage(controller, ops,\n"
+        "\t\tcontext, result, \\1, \\2);\n"
         "\tif (ret)\n"
         "\t\treturn ret;",
         18,
@@ -648,8 +644,8 @@ def apply_source_rest(path: Path) -> None:
         "\t\t\t\t\t\t MT6797_A72_TRANSITION_BEFORE,\n"
         "\t\t\t\t\t\t MT6797_A72_TRANSITION_STAGE_ONLINE_WAIT);\n",
         "\tif (lifecycle == MT6797_A72_TRANSITION_LIFECYCLE_CPU_ON_ACCEPTED) {\n"
-        "\t\tret = mt6797_a72_transition_checkpoint_stage(\n"
-        "\t\t\tcontroller, ops, context, result,\n"
+        "\t\tret = mt6797_a72_transition_checkpoint_stage(controller, ops,\n"
+        "\t\t\tcontext, result,\n"
         "\t\t\tMT6797_A72_TRANSITION_BEFORE,\n"
         "\t\t\tMT6797_A72_TRANSITION_STAGE_ONLINE_WAIT);\n"
         "\t\tif (ret)\n"
@@ -682,8 +678,8 @@ def apply_source_rest(path: Path) -> None:
         "\t\tmt6797_a72_transition_terminal(controller);\n"
         "\t\treturn ret;\n",
         "\t\tresult->stage_errno = ret;\n"
-        "\t\treturn mt6797_a72_transition_terminal(\n"
-        "\t\t\tcontroller, ops, context, result,\n"
+        "\t\treturn mt6797_a72_transition_terminal(controller, ops,\n"
+        "\t\t\tcontext, result,\n"
         "\t\t\tMT6797_A72_TRANSITION_REJECTED_PRESTATE, ret, 0);\n",
     )
     replace_once(
@@ -693,8 +689,8 @@ def apply_source_rest(path: Path) -> None:
         "\t\tmt6797_a72_transition_terminal(controller);\n"
         "\t\treturn -EPROTO;\n",
         "\t\tresult->stage_errno = -EPROTO;\n"
-        "\t\treturn mt6797_a72_transition_terminal(\n"
-        "\t\t\tcontroller, ops, context, result,\n"
+        "\t\treturn mt6797_a72_transition_terminal(controller, ops,\n"
+        "\t\t\tcontext, result,\n"
         "\t\t\tMT6797_A72_TRANSITION_REJECTED_PRESTATE, -EPROTO, 0);\n",
     )
     replace_once(
@@ -703,23 +699,23 @@ def apply_source_rest(path: Path) -> None:
         "\tmt6797_a72_transition_set_retained(result);\n"
         "\tmt6797_a72_transition_terminal(controller);\n"
         "\treturn 0;\n",
-        "\tret = mt6797_a72_transition_checkpoint_stage(\n"
-        "\t\tcontroller, ops, context, result, MT6797_A72_TRANSITION_BEFORE,\n"
+        "\tret = mt6797_a72_transition_checkpoint_stage(controller, ops,\n"
+        "\t\tcontext, result, MT6797_A72_TRANSITION_BEFORE,\n"
         "\t\tMT6797_A72_TRANSITION_STAGE_MEMBERSHIP);\n"
         "\tif (ret)\n"
         "\t\treturn ret;\n"
         "\tret = ops->membership_commit(context, MT6797_A72_TRANSITION_CPU8);\n"
         "\tif (ret)\n"
-        "\t\treturn mt6797_a72_transition_postiso_fault(\n"
-        "\t\t\tcontroller, ops, context, result, ret);\n"
+        "\t\treturn mt6797_a72_transition_postiso_fault(controller, ops,\n"
+        "\t\t\tcontext, result, ret);\n"
         "\tresult->membership_published = true;\n"
-        "\tret = mt6797_a72_transition_checkpoint_stage(\n"
-        "\t\tcontroller, ops, context, result, MT6797_A72_TRANSITION_AFTER,\n"
+        "\tret = mt6797_a72_transition_checkpoint_stage(controller, ops,\n"
+        "\t\tcontext, result, MT6797_A72_TRANSITION_AFTER,\n"
         "\t\tMT6797_A72_TRANSITION_STAGE_MEMBERSHIP);\n"
         "\tif (ret)\n"
         "\t\treturn ret;\n"
-        "\treturn mt6797_a72_transition_terminal(\n"
-        "\t\tcontroller, ops, context, result,\n"
+        "\treturn mt6797_a72_transition_terminal(controller, ops, context,\n"
+        "\t\tresult,\n"
         "\t\tMT6797_A72_TRANSITION_CPU8_ONLINE_PROOF, 0, 0);\n",
     )
     replace_once(
