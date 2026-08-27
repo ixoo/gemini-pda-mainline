@@ -177,8 +177,8 @@ def apply_production(root: Path) -> None:
         "\treturn mt6797_test_effect(state,\n"
         "\t\t\tMT6797_A72_TRANSITION_STAGE_ONLINE_WAIT);\n"
         "}\n",
-        "static int mt6797_test_secondary_complete(void *context,\n"
-        "\t\t\t\t\t   unsigned int cpu)\n"
+        "static int mt6797_test_secondary_complete(void *context, "
+        "unsigned int cpu)\n"
         "{\n"
         "\tstruct mt6797_transition_test_state *state = context;\n\n"
         "\tstate->online_target = cpu;\n"

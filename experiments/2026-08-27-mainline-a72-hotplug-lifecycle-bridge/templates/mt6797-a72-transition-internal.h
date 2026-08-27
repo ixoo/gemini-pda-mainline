@@ -111,30 +111,30 @@ struct mt6797_a72_transition_ops {
 	int (*dcm_update)(void *context);
 };
 
-int mt6797_a72_transition_begin(
-	struct mt6797_a72_transition_controller *controller,
-	const struct mt6797_a72_transition_ops *ops, void *context,
-	const struct mt6797_a72_transition_request *request,
-	struct mt6797_a72_transition_result *result);
-int mt6797_a72_transition_secondary_complete(
-	struct mt6797_a72_transition_controller *controller,
-	const struct mt6797_a72_transition_ops *ops, void *context,
-	unsigned int cpu, bool cpu8_online, bool cpu9_online,
-	struct mt6797_a72_transition_result *result);
-int mt6797_a72_transition_complete(
-	struct mt6797_a72_transition_controller *controller,
-	const struct mt6797_a72_transition_ops *ops, void *context,
-	unsigned int cpu, bool cpu8_online, bool cpu9_online,
-	struct mt6797_a72_transition_result *result);
-int mt6797_a72_transition_fail(
-	struct mt6797_a72_transition_controller *controller,
-	const struct mt6797_a72_transition_ops *ops, void *context,
-	unsigned int cpu, bool cpu8_online, bool cpu9_online, int error,
-	struct mt6797_a72_transition_result *result);
-int mt6797_a72_transition_run(
-	struct mt6797_a72_transition_controller *controller,
-	const struct mt6797_a72_transition_ops *ops, void *context,
-	const struct mt6797_a72_transition_request *request,
-	struct mt6797_a72_transition_result *result);
+int mt6797_a72_transition_begin(struct mt6797_a72_transition_controller *controller,
+				const struct mt6797_a72_transition_ops *ops,
+				void *context,
+				const struct mt6797_a72_transition_request *request,
+				struct mt6797_a72_transition_result *result);
+int mt6797_a72_transition_secondary_complete(struct mt6797_a72_transition_controller *controller,
+					     const struct mt6797_a72_transition_ops *ops,
+					     void *context, unsigned int cpu,
+					     bool cpu8_online, bool cpu9_online,
+					     struct mt6797_a72_transition_result *result);
+int mt6797_a72_transition_complete(struct mt6797_a72_transition_controller *controller,
+				   const struct mt6797_a72_transition_ops *ops,
+				   void *context, unsigned int cpu,
+				   bool cpu8_online, bool cpu9_online,
+				   struct mt6797_a72_transition_result *result);
+int mt6797_a72_transition_fail(struct mt6797_a72_transition_controller *controller,
+			       const struct mt6797_a72_transition_ops *ops,
+			       void *context, unsigned int cpu,
+			       bool cpu8_online, bool cpu9_online, int error,
+			       struct mt6797_a72_transition_result *result);
+int mt6797_a72_transition_run(struct mt6797_a72_transition_controller *controller,
+			      const struct mt6797_a72_transition_ops *ops,
+			      void *context,
+			      const struct mt6797_a72_transition_request *request,
+			      struct mt6797_a72_transition_result *result);
 
 #endif /* __MT6797_A72_TRANSITION_INTERNAL_H */

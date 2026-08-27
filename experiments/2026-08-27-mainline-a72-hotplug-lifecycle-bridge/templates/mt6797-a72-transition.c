@@ -41,18 +41,18 @@ mt6797_a72_transition_set_retained(struct mt6797_a72_transition_result *result)
 }
 
 static void
-mt6797_a72_transition_terminal(
-	struct mt6797_a72_transition_controller *controller)
+mt6797_a72_transition_terminal(struct mt6797_a72_transition_controller *controller)
 {
 	atomic_set_release(&controller->lifecycle,
 			   MT6797_A72_TRANSITION_LIFECYCLE_TERMINAL);
 }
 
 static int
-mt6797_a72_transition_rollback(
-	struct mt6797_a72_transition_controller *controller,
-	const struct mt6797_a72_transition_ops *ops, void *context,
-	struct mt6797_a72_transition_result *result, int stage_errno)
+mt6797_a72_transition_rollback(struct mt6797_a72_transition_controller *controller,
+			       const struct mt6797_a72_transition_ops *ops,
+			       void *context,
+			       struct mt6797_a72_transition_result *result,
+			       int stage_errno)
 {
 	int ret;
 
@@ -105,9 +105,9 @@ mt6797_a72_owner_fault(struct mt6797_a72_transition_controller *controller,
 }
 
 static int
-mt6797_a72_transition_postiso_fault(
-	struct mt6797_a72_transition_controller *controller,
-	struct mt6797_a72_transition_result *result, int stage_errno)
+mt6797_a72_transition_postiso_fault(struct mt6797_a72_transition_controller *controller,
+				    struct mt6797_a72_transition_result *result,
+				    int stage_errno)
 {
 	result->stage_errno = stage_errno;
 	result->terminal = MT6797_A72_TRANSITION_FAULT_RETAIN_POSTISO;
@@ -116,11 +116,11 @@ mt6797_a72_transition_postiso_fault(
 	return stage_errno;
 }
 
-int mt6797_a72_transition_begin(
-	struct mt6797_a72_transition_controller *controller,
-	const struct mt6797_a72_transition_ops *ops, void *context,
-	const struct mt6797_a72_transition_request *request,
-	struct mt6797_a72_transition_result *result)
+int mt6797_a72_transition_begin(struct mt6797_a72_transition_controller *controller,
+				const struct mt6797_a72_transition_ops *ops,
+				void *context,
+				const struct mt6797_a72_transition_request *request,
+				struct mt6797_a72_transition_result *result)
 {
 	bool owned = false;
 	u64 watchdog_identity = 0;
@@ -185,8 +185,8 @@ int mt6797_a72_transition_begin(
 		return mt6797_a72_transition_rollback(controller, ops, context,
 						      result, ret);
 	if (!owned)
-		return mt6797_a72_owner_fault(
-			controller, result, MT6797_A72_TRANSITION_OWNED_P27);
+		return mt6797_a72_owner_fault(controller, result,
+					      MT6797_A72_TRANSITION_OWNED_P27);
 	mt6797_a72_transition_checkpoint(ops, context, result,
 					 MT6797_A72_TRANSITION_AFTER,
 					 MT6797_A72_TRANSITION_STAGE_P27);
@@ -201,9 +201,8 @@ int mt6797_a72_transition_begin(
 		return mt6797_a72_transition_rollback(controller, ops, context,
 						      result, ret);
 	if (!owned)
-		return mt6797_a72_owner_fault(
-			controller, result,
-			MT6797_A72_TRANSITION_OWNED_PROVIDER);
+		return mt6797_a72_owner_fault(controller, result,
+					      MT6797_A72_TRANSITION_OWNED_PROVIDER);
 	mt6797_a72_transition_checkpoint(ops, context, result,
 					 MT6797_A72_TRANSITION_AFTER,
 					 MT6797_A72_TRANSITION_STAGE_PROVIDER);
@@ -249,11 +248,11 @@ int mt6797_a72_transition_begin(
 	return 0;
 }
 
-int mt6797_a72_transition_secondary_complete(
-	struct mt6797_a72_transition_controller *controller,
-	const struct mt6797_a72_transition_ops *ops, void *context,
-	unsigned int cpu, bool cpu8_online, bool cpu9_online,
-	struct mt6797_a72_transition_result *result)
+int mt6797_a72_transition_secondary_complete(struct mt6797_a72_transition_controller *controller,
+					     const struct mt6797_a72_transition_ops *ops,
+					     void *context, unsigned int cpu,
+					     bool cpu8_online, bool cpu9_online,
+					     struct mt6797_a72_transition_result *result)
 {
 	int ret;
 
@@ -285,11 +284,11 @@ int mt6797_a72_transition_secondary_complete(
 	return 0;
 }
 
-int mt6797_a72_transition_complete(
-	struct mt6797_a72_transition_controller *controller,
-	const struct mt6797_a72_transition_ops *ops, void *context,
-	unsigned int cpu, bool cpu8_online, bool cpu9_online,
-	struct mt6797_a72_transition_result *result)
+int mt6797_a72_transition_complete(struct mt6797_a72_transition_controller *controller,
+				   const struct mt6797_a72_transition_ops *ops,
+				   void *context, unsigned int cpu,
+				   bool cpu8_online, bool cpu9_online,
+				   struct mt6797_a72_transition_result *result)
 {
 	int ret;
 
@@ -334,11 +333,11 @@ int mt6797_a72_transition_complete(
 	return 0;
 }
 
-int mt6797_a72_transition_fail(
-	struct mt6797_a72_transition_controller *controller,
-	const struct mt6797_a72_transition_ops *ops, void *context,
-	unsigned int cpu, bool cpu8_online, bool cpu9_online, int error,
-	struct mt6797_a72_transition_result *result)
+int mt6797_a72_transition_fail(struct mt6797_a72_transition_controller *controller,
+			       const struct mt6797_a72_transition_ops *ops,
+			       void *context, unsigned int cpu,
+			       bool cpu8_online, bool cpu9_online, int error,
+			       struct mt6797_a72_transition_result *result)
 {
 	int lifecycle;
 
@@ -360,30 +359,30 @@ int mt6797_a72_transition_fail(
 	     !cpu8_online))
 		error = -EPROTO;
 	if (lifecycle == MT6797_A72_TRANSITION_LIFECYCLE_CPU_ON_ACCEPTED)
-		mt6797_a72_transition_checkpoint(
-			ops, context, result, MT6797_A72_TRANSITION_BEFORE,
-			MT6797_A72_TRANSITION_STAGE_ONLINE_WAIT);
+		mt6797_a72_transition_checkpoint(ops, context, result,
+						 MT6797_A72_TRANSITION_BEFORE,
+						 MT6797_A72_TRANSITION_STAGE_ONLINE_WAIT);
 	return mt6797_a72_transition_postiso_fault(controller, result, error);
 }
 
-int mt6797_a72_transition_run(
-	struct mt6797_a72_transition_controller *controller,
-	const struct mt6797_a72_transition_ops *ops, void *context,
-	const struct mt6797_a72_transition_request *request,
-	struct mt6797_a72_transition_result *result)
+int mt6797_a72_transition_run(struct mt6797_a72_transition_controller *controller,
+			      const struct mt6797_a72_transition_ops *ops,
+			      void *context,
+			      const struct mt6797_a72_transition_request *request,
+			      struct mt6797_a72_transition_result *result)
 {
 	int ret;
 
-	ret = mt6797_a72_transition_begin(controller, ops, context, request,
-					   result);
+	ret = mt6797_a72_transition_begin(controller, ops, context,
+					   request, result);
 	if (ret)
 		return ret;
-	ret = mt6797_a72_transition_secondary_complete(
-		controller, ops, context, MT6797_A72_TRANSITION_CPU8,
-		true, false, result);
+	ret = mt6797_a72_transition_secondary_complete(controller, ops, context,
+						       MT6797_A72_TRANSITION_CPU8,
+						       true, false, result);
 	if (ret)
 		return ret;
-	return mt6797_a72_transition_complete(
-		controller, ops, context, MT6797_A72_TRANSITION_CPU8,
-		true, false, result);
+	return mt6797_a72_transition_complete(controller, ops, context,
+					      MT6797_A72_TRANSITION_CPU8,
+					      true, false, result);
 }
