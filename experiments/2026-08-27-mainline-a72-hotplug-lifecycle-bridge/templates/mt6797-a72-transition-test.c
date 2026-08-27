@@ -190,7 +190,7 @@ static void mt6797_transition_split_success_test(struct kunit *test)
 	int ret;
 
 	ret = mt6797_a72_transition_begin(&controller, &mt6797_test_ops,
-					   &state, &request, &result);
+					  &state, &request, &result);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	KUNIT_EXPECT_EQ(test, atomic_read(&controller.lifecycle),
 			MT6797_A72_TRANSITION_LIFECYCLE_CPU_ON_ACCEPTED);
@@ -203,9 +203,10 @@ static void mt6797_transition_split_success_test(struct kunit *test)
 	KUNIT_EXPECT_EQ(test, state.secondary_target, 0U);
 	KUNIT_EXPECT_EQ(test, state.ipi_target, 0U);
 
-	ret = mt6797_a72_transition_secondary_complete(
-		&controller, &mt6797_test_ops, &state,
-		MT6797_A72_TRANSITION_CPU8, true, false, &result);
+	ret = mt6797_a72_transition_secondary_complete(&controller,
+						       &mt6797_test_ops, &state,
+						       MT6797_A72_TRANSITION_CPU8,
+						       true, false, &result);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	KUNIT_EXPECT_EQ(test, atomic_read(&controller.lifecycle),
 			MT6797_A72_TRANSITION_LIFECYCLE_SECONDARY_COMPLETE);
@@ -216,9 +217,9 @@ static void mt6797_transition_split_success_test(struct kunit *test)
 			MT6797_A72_TRANSITION_CPU8);
 	KUNIT_EXPECT_EQ(test, state.ipi_target, 0U);
 
-	ret = mt6797_a72_transition_complete(
-		&controller, &mt6797_test_ops, &state,
-		MT6797_A72_TRANSITION_CPU8, true, false, &result);
+	ret = mt6797_a72_transition_complete(&controller, &mt6797_test_ops,
+					     &state, MT6797_A72_TRANSITION_CPU8,
+					     true, false, &result);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	KUNIT_EXPECT_EQ(test, atomic_read(&controller.lifecycle),
 			MT6797_A72_TRANSITION_LIFECYCLE_TERMINAL);
@@ -310,7 +311,7 @@ static void mt6797_transition_missing_op_test(struct kunit *test)
 
 	ops.secondary_complete = NULL;
 	ret = mt6797_a72_transition_begin(&controller, &ops, &state,
-					   &request, &result);
+					  &request, &result);
 	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
 	KUNIT_EXPECT_FALSE(test, result.attempted);
 	KUNIT_EXPECT_EQ(test, result.checkpoints, 0U);
@@ -332,7 +333,7 @@ static void mt6797_transition_one_shot_test(struct kunit *test)
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	events = state.event_count;
 	ret = mt6797_a72_transition_begin(&controller, &mt6797_test_ops,
-					   &state, &request, &result);
+					  &state, &request, &result);
 	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
 	KUNIT_EXPECT_FALSE(test, result.attempted);
 	KUNIT_EXPECT_EQ(test, result.checkpoints, 0U);
@@ -410,11 +411,11 @@ static void mt6797_transition_lifecycle_failure_test(struct kunit *test)
 	int ret;
 
 	ret = mt6797_a72_transition_begin(&controller, &mt6797_test_ops,
-					   &state, &request, &result);
+					  &state, &request, &result);
 	KUNIT_ASSERT_EQ(test, ret, 0);
-	ret = mt6797_a72_transition_fail(
-		&controller, &mt6797_test_ops, &state,
-		MT6797_A72_TRANSITION_CPU8, false, false, -ETIMEDOUT, &result);
+	ret = mt6797_a72_transition_fail(&controller, &mt6797_test_ops,
+					 &state, MT6797_A72_TRANSITION_CPU8,
+					 false, false, -ETIMEDOUT, &result);
 	KUNIT_EXPECT_EQ(test, ret, -ETIMEDOUT);
 	KUNIT_EXPECT_EQ(test, result.terminal,
 			MT6797_A72_TRANSITION_FAULT_RETAIN_POSTISO);
@@ -423,9 +424,9 @@ static void mt6797_transition_lifecycle_failure_test(struct kunit *test)
 	KUNIT_EXPECT_EQ(test, result.last_stage,
 			MT6797_A72_TRANSITION_STAGE_ONLINE_WAIT);
 	events = state.event_count;
-	ret = mt6797_a72_transition_fail(
-		&controller, &mt6797_test_ops, &state,
-		MT6797_A72_TRANSITION_CPU8, false, false, -EIO, &result);
+	ret = mt6797_a72_transition_fail(&controller, &mt6797_test_ops,
+					 &state, MT6797_A72_TRANSITION_CPU8,
+					 false, false, -EIO, &result);
 	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
 	KUNIT_EXPECT_EQ(test, state.event_count, events);
 
@@ -433,15 +434,16 @@ static void mt6797_transition_lifecycle_failure_test(struct kunit *test)
 		MT6797_A72_TRANSITION_CONTROLLER_INIT;
 	state = (struct mt6797_transition_test_state) { };
 	ret = mt6797_a72_transition_begin(&controller, &mt6797_test_ops,
-					   &state, &request, &result);
+					  &state, &request, &result);
 	KUNIT_ASSERT_EQ(test, ret, 0);
-	ret = mt6797_a72_transition_secondary_complete(
-		&controller, &mt6797_test_ops, &state,
-		MT6797_A72_TRANSITION_CPU8, true, false, &result);
+	ret = mt6797_a72_transition_secondary_complete(&controller,
+						       &mt6797_test_ops, &state,
+						       MT6797_A72_TRANSITION_CPU8,
+						       true, false, &result);
 	KUNIT_ASSERT_EQ(test, ret, 0);
-	ret = mt6797_a72_transition_fail(
-		&controller, &mt6797_test_ops, &state,
-		MT6797_A72_TRANSITION_CPU8, true, false, -ENOMEM, &result);
+	ret = mt6797_a72_transition_fail(&controller, &mt6797_test_ops,
+					 &state, MT6797_A72_TRANSITION_CPU8,
+					 true, false, -ENOMEM, &result);
 	KUNIT_EXPECT_EQ(test, ret, -ENOMEM);
 	KUNIT_EXPECT_TRUE(test, result.cpu8_online);
 	KUNIT_EXPECT_EQ(test, result.checkpoints, 14U);
@@ -461,18 +463,19 @@ static void mt6797_transition_handoff_guards_test(struct kunit *test)
 	unsigned int events;
 	int ret;
 
-	ret = mt6797_a72_transition_complete(
-		&controller, &mt6797_test_ops, &state,
-		MT6797_A72_TRANSITION_CPU8, true, false, &result);
+	ret = mt6797_a72_transition_complete(&controller, &mt6797_test_ops,
+					     &state, MT6797_A72_TRANSITION_CPU8,
+					     true, false, &result);
 	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
 	KUNIT_EXPECT_EQ(test, state.event_count, 0U);
 
 	ret = mt6797_a72_transition_begin(&controller, &mt6797_test_ops,
-					   &state, &request, &result);
+					  &state, &request, &result);
 	KUNIT_ASSERT_EQ(test, ret, 0);
-	ret = mt6797_a72_transition_secondary_complete(
-		&controller, &mt6797_test_ops, &state,
-		MT6797_A72_TRANSITION_CPU9, true, false, &result);
+	ret = mt6797_a72_transition_secondary_complete(&controller,
+						       &mt6797_test_ops, &state,
+						       MT6797_A72_TRANSITION_CPU9,
+						       true, false, &result);
 	KUNIT_EXPECT_EQ(test, ret, -EPROTO);
 	KUNIT_EXPECT_EQ(test, result.terminal,
 			MT6797_A72_TRANSITION_FAULT_RETAIN_POSTISO);
@@ -483,21 +486,23 @@ static void mt6797_transition_handoff_guards_test(struct kunit *test)
 		MT6797_A72_TRANSITION_CONTROLLER_INIT;
 	state = (struct mt6797_transition_test_state) { };
 	ret = mt6797_a72_transition_begin(&controller, &mt6797_test_ops,
-					   &state, &request, &result);
+					  &state, &request, &result);
 	KUNIT_ASSERT_EQ(test, ret, 0);
-	ret = mt6797_a72_transition_secondary_complete(
-		&controller, &mt6797_test_ops, &state,
-		MT6797_A72_TRANSITION_CPU8, true, false, &result);
+	ret = mt6797_a72_transition_secondary_complete(&controller,
+						       &mt6797_test_ops, &state,
+						       MT6797_A72_TRANSITION_CPU8,
+						       true, false, &result);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	events = state.event_count;
-	ret = mt6797_a72_transition_secondary_complete(
-		&controller, &mt6797_test_ops, &state,
-		MT6797_A72_TRANSITION_CPU8, true, false, &result);
+	ret = mt6797_a72_transition_secondary_complete(&controller,
+						       &mt6797_test_ops, &state,
+						       MT6797_A72_TRANSITION_CPU8,
+						       true, false, &result);
 	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
 	KUNIT_EXPECT_EQ(test, state.event_count, events);
-	ret = mt6797_a72_transition_complete(
-		&controller, &mt6797_test_ops, &state,
-		MT6797_A72_TRANSITION_CPU8, false, false, &result);
+	ret = mt6797_a72_transition_complete(&controller, &mt6797_test_ops,
+					     &state, MT6797_A72_TRANSITION_CPU8,
+					     false, false, &result);
 	KUNIT_EXPECT_EQ(test, ret, -EPROTO);
 	KUNIT_EXPECT_FALSE(test, result.cpu8_online);
 	KUNIT_EXPECT_EQ(test, result.terminal,

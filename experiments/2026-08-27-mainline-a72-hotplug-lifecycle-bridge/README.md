@@ -137,6 +137,13 @@ alignment check: the compatibility wrapper's `request` continuation was one
 visual column past its opening parenthesis. Moving that continuation left by
 one space is the only source-template change from this attempt.
 
+The eighth Buildbox attempt from repository commit
+`1e7a1fc972252d86bd4a95717ce378d698ee9f7e` passed strict review for the
+production patch and reached the separate focused KUnit patch. That second
+patch had no errors or warnings and 18 call-formatting checks. The test template
+now aligns the seven `begin` continuations and keeps the first argument on each
+split lifecycle call's opening line; test behavior is unchanged.
+
 ## Current conclusion
 
 The bridge contract is frozen. Implementation remains hardware-free and must
