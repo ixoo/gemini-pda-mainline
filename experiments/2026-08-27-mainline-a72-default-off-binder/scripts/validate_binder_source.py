@@ -16,7 +16,7 @@ EXPECTED_NEW_HASHES = {
     "drivers/soc/mediatek/mt6797-a72-binder-internal.h":
         "2383cd4d792e580f1071b457ecade91c66a6c736a1b1af683538548dbc144ad5",
     "drivers/soc/mediatek/mt6797-a72-binder-test.c":
-        "d6212559e2389e9a0e1cb94588d4c78761e8b55e64d8c9bb62854eac9d3ed2ee",
+        "a245d3a13c4a23be4736847a7c757186c9903c8e760966e11e0e282c66077909",
     "Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-a72-binder.yaml":
         "1843b00a0510fe1ec8d4aefe8b0f870ad3d604b757d13836693863b33a79e248",
 }
