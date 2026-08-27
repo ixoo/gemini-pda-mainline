@@ -16,9 +16,9 @@ EXPECTED_HASHES = {
     "drivers/soc/mediatek/mt6797-a72-transition-internal.h":
         "71772cdb3691008ab488cfe24c67e10bb7d079173852df8f156ab8d8f90fef64",
     "drivers/soc/mediatek/mt6797-a72-transition.c":
-        "1babc4f64c5991a98ee04654113ce27efeb472e911b90a5f6a26deddd116ca6a",
+        "b312c3c6aed3ac8cf06bd168b3ee7d378bf96d44e6ebef0f3f9e8f7af785eabc",
     "drivers/soc/mediatek/mt6797-a72-transition-test.c":
-        "022c128cd88993fa3ab8e6a7d831c8a3efcfea0e41a09cb4b17398acc2c35324",
+        "d4d6dfcc02a4af8fae1fd80ffaec27fa851a00508c6abbe43e8bdb0085f009a5",
 }
 
 
