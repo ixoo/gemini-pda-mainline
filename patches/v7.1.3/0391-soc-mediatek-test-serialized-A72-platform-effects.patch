@@ -1,4 +1,4 @@
-From 4e32b81d3583fd5c59297010fa9c9a00ccb03e2c Mon Sep 17 00:00:00 2001
+From 45806cdb64d37e80f2c69fbde03c4a3afa0c68e0 Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Thu, 27 Aug 2026 03:02:00 +0000
 Subject: [PATCH 2/2] soc: mediatek: test serialized A72 platform effects

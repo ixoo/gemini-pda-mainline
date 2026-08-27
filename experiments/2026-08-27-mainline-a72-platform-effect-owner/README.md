@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-27-mainline-a72-platform-effect-owner` |
-| Status | first compile exposed an enum/macro collision; namespaced-state regeneration pending |
+| Status | namespaced-state patches regenerated; exact Buildbox rebuild and QEMU pending |
 | Subsystem | MT6797 CPU8 P27, external isolation, PWRAP, and MP2 DCM |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-27 America/New_York |
@@ -23,8 +23,12 @@ production CPU8 caller?
 
 - Parent repository commit: `67b3225f2e5105f4d5e71ae1b8fd61afb5de9c61`.
 - Canonical parent series: 389 patches through `0389`.
-- Patch-generation repository commit: `f0d504fc48928a36740c3c584f5576471a7f9e24`.
-- Prepared-source state: `ac9c2a550c465d56500045017afd7110e0ffb545538ac9ddda1c0d0d56a5853b`.
+- Current patch-generation repository commit: `879949b0aa83c9207b3155c8887bc3eaba998cb1`.
+- Canonical parent prepared-source state: `ac9c2a550c465d56500045017afd7110e0ffb545538ac9ddda1c0d0d56a5853b`.
+- Regeneration input state through the initially admitted patches:
+  `0989c203f05cd20a3b79ca7164905648006220c36a89fc90a74c9c26bb9d33ea`;
+  the generator reverse-replayed those exact patches and revalidated the
+  canonical parent hashes before applying the namespaced-state templates.
 - Build backend: Buildbox only.
 - Boot path and target partition: none in this phase.
 
@@ -67,17 +71,20 @@ identity, contain no synthetic `Signed-off-by`, and are not submission-ready;
 an upstream submission must identify the actual author and truthful DCO signer.
 
 - `0390-soc-mediatek-add-serialized-A72-platform-effects.patch`:
-  `76011b229fc61ba770520acf1ce3d7bbe0442768152081ae6edcb43d7f731cec`
+  `cfe0fccf5996b32ace8a072d70b84500512dee83a2cf33dfee479d384b21396a`
 - `0391-soc-mediatek-test-serialized-A72-platform-effects.patch`:
-  `ca29af1b0e889ce652d3cb482eea547115de4ae06ee2c9556ef773b20124edfb`
-- Exact generation chronology and machine-readable provenance:
+  `0405322bddf9af8fa58c391944d55a4c68af3daed3bc612df4fec05cf0f19a3d`
+- Current regeneration chronology and machine-readable provenance:
+  [`results/patch-regeneration-879949b0.txt`](results/patch-regeneration-879949b0.txt).
+- The superseded pre-compile generation remains recorded at
   [`results/patch-generation-f0d504fc.txt`](results/patch-generation-f0d504fc.txt).
 
 The first exact compile at repository commit `870c83b0` rejected the production
 and KUnit objects because the P27-held register-value macro and one owner-state
 enumerator had the same preprocessor name. The later undeclared-state messages
 were cascading diagnostics. The remediation namespaces every owner state as
-`MT6797_A72_EFFECT_STATE_*` and makes the validator reject recurrence. See
+`MT6797_A72_EFFECT_STATE_*` and makes the validator reject recurrence. The
+regenerated patch pair includes that remediation. See
 [`results/build-attempt-870c83b0.txt`](results/build-attempt-870c83b0.txt).
 
 ## Planned procedure
