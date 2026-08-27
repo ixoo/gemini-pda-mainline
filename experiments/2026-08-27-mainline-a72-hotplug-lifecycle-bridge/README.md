@@ -101,6 +101,14 @@ continuation contains five tabs before its final alignment spaces, while the
 generator anchor encoded four. The correction changes only that exact anchor;
 no kernel template or lifecycle contract changed.
 
+The third Buildbox attempt from repository commit
+`b9c822caa4e148f5bf89f1f367fad992152bd39b` applied the production edits and
+reached source validation. It stopped because the validator's general C
+definition regex did not recognize the new one-line arm64 dispatcher
+signature. Exact token counts replace that ambiguous helper for the two
+dispatchers and five split-executor entry points; the generated source is
+unchanged.
+
 ## Current conclusion
 
 The bridge contract is frozen. Implementation remains hardware-free and must

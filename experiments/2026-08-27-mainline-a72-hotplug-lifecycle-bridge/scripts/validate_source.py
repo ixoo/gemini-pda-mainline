@@ -17,14 +17,6 @@ def collapse_whitespace(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip()
 
 
-def definition_count(source: str, name: str) -> int:
-    pattern = re.compile(
-        rf"(?:^|\n)(?:[a-zA-Z_][\w\s\*]*\n)?{re.escape(name)}\s*\(",
-        re.MULTILINE,
-    )
-    return len(pattern.findall(source))
-
-
 def bounded(source: str, start: str, end: str, label: str) -> str:
     first = source.find(start)
     require(first >= 0, f"{label}: start")
@@ -67,7 +59,7 @@ def main() -> None:
                 f"one generic declaration for {name}")
         require(cpu_ops.count(f"(*{name.removeprefix('arch_')})(") == 1,
                 f"one cpu_operations field for {name}")
-        require(definition_count(smp, name) == 1,
+        require(smp.count(f"int {name}(") == 1,
                 f"one arm64 dispatcher for {name}")
         require(cpu_c.count(f"int __weak {name}(") == 1,
                 f"one no-op weak default for {name}")
@@ -146,7 +138,7 @@ def main() -> None:
         "mt6797_a72_transition_fail",
         "mt6797_a72_transition_run",
     ):
-        require(definition_count(source, name) == 1,
+        require(source.count(f"int {name}(") == 1,
                 f"one definition for {name}")
     begin = bounded(
         normalized_source,
