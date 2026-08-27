@@ -1,6 +1,7 @@
-int mt6797_bigidvfs_sram_enable(
-	struct device *dev, const struct mt6797_bigidvfs_sram_request *request,
-	struct mt6797_bigidvfs_sram_result *result)
+int
+mt6797_bigidvfs_sram_enable(struct device *dev,
+			    const struct mt6797_bigidvfs_sram_request *request,
+			    struct mt6797_bigidvfs_sram_result *result)
 {
 	struct mt6797_bigidvfs_backend *backend;
 	int ret;
@@ -20,8 +21,8 @@ int mt6797_bigidvfs_sram_enable(
 		goto out_unlock;
 	}
 	ret = mt6797_bigidvfs_sram_owner_execute(&backend->sram_owner,
-						  &mt6797_bigidvfs_sram_ops,
-						  backend, request, result);
+						 &mt6797_bigidvfs_sram_ops,
+						 backend, request, result);
 	if (ret && result->error)
 		mt6797_bigidvfs_mark_fault(backend);
 

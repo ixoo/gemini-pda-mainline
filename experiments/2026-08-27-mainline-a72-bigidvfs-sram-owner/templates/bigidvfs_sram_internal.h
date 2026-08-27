@@ -23,10 +23,11 @@ struct mt6797_bigidvfs_sram_owner {
 	struct mt6797_bigidvfs_sram_result result;
 };
 
-int mt6797_bigidvfs_sram_owner_execute(
-	struct mt6797_bigidvfs_sram_owner *owner,
-	const struct mt6797_bigidvfs_sram_ops *ops, void *context,
-	const struct mt6797_bigidvfs_sram_request *request,
-	struct mt6797_bigidvfs_sram_result *result);
+int
+mt6797_bigidvfs_sram_owner_execute(struct mt6797_bigidvfs_sram_owner *owner,
+				   const struct mt6797_bigidvfs_sram_ops *ops,
+				   void *context,
+				   const struct mt6797_bigidvfs_sram_request *request,
+				   struct mt6797_bigidvfs_sram_result *result);
 
 #endif /* __MT6797_BIGIDVFS_SRAM_INTERNAL_H */

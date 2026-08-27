@@ -60,11 +60,11 @@ static int mt6797_sram_test_read(void *context, u32 address, u32 *value)
 	if (address == MT6797_BIGIDVFS_SRAM_SELECTOR) {
 		if (state->read_count == 1) {
 			mt6797_sram_test_log(state,
-					      MT6797_SRAM_TEST_SELECTOR_FIRST);
+					     MT6797_SRAM_TEST_SELECTOR_FIRST);
 			*value = state->selector_first;
 		} else {
 			mt6797_sram_test_log(state,
-					      MT6797_SRAM_TEST_SELECTOR_SECOND);
+					     MT6797_SRAM_TEST_SELECTOR_SECOND);
 			*value = state->selector_second;
 		}
 		return 0;
@@ -72,11 +72,11 @@ static int mt6797_sram_test_read(void *context, u32 address, u32 *value)
 	if (address == MT6797_BIGIDVFS_SRAM_CALIBRATION) {
 		if (state->read_count == 2) {
 			mt6797_sram_test_log(state,
-					      MT6797_SRAM_TEST_CALIBRATION_FIRST);
+					     MT6797_SRAM_TEST_CALIBRATION_FIRST);
 			*value = state->calibration_first;
 		} else {
 			mt6797_sram_test_log(state,
-					      MT6797_SRAM_TEST_CALIBRATION_SECOND);
+					     MT6797_SRAM_TEST_CALIBRATION_SECOND);
 			*value = state->calibration_second;
 		}
 		return 0;
@@ -113,8 +113,7 @@ static struct mt6797_bigidvfs_sram_request mt6797_sram_test_request(void)
 	};
 }
 
-static void mt6797_sram_test_state_init(
-	struct mt6797_sram_test_state *state)
+static void mt6797_sram_test_state_init(struct mt6797_sram_test_state *state)
 {
 	*state = (struct mt6797_sram_test_state) {
 		.selector_first = MT6797_BIGIDVFS_SRAM_SELECTOR_EXPECTED,
@@ -143,11 +142,10 @@ static void mt6797_bigidvfs_sram_success_test(struct kunit *test)
 	int ret;
 
 	mt6797_sram_test_state_init(&state);
-	ret = mt6797_bigidvfs_sram_owner_execute(&owner,
-				&mt6797_sram_test_ops, &state, &request, &result);
+	ret = mt6797_bigidvfs_sram_owner_execute(&owner, &mt6797_sram_test_ops,
+						 &state, &request, &result);
 	KUNIT_ASSERT_EQ(test, ret, 0);
-	KUNIT_EXPECT_EQ(test, owner.state,
-			MT6797_BIGIDVFS_SRAM_OWNER_VERIFIED);
+	KUNIT_EXPECT_EQ(test, owner.state, MT6797_BIGIDVFS_SRAM_OWNER_VERIFIED);
 	KUNIT_EXPECT_EQ(test, state.log_count, ARRAY_SIZE(expected));
 	for (i = 0; i < ARRAY_SIZE(expected); i++)
 		KUNIT_EXPECT_EQ(test, state.log[i], expected[i]);
@@ -176,36 +174,35 @@ static void mt6797_bigidvfs_sram_guards_test(struct kunit *test)
 
 	mt6797_sram_test_state_init(&state);
 	request.abi++;
-	ret = mt6797_bigidvfs_sram_owner_execute(&owner,
-				&mt6797_sram_test_ops, &state, &request, &result);
+	ret = mt6797_bigidvfs_sram_owner_execute(&owner, &mt6797_sram_test_ops,
+						 &state, &request, &result);
 	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
 	request = mt6797_sram_test_request();
 	request.cpu = 9;
-	ret = mt6797_bigidvfs_sram_owner_execute(&owner,
-				&mt6797_sram_test_ops, &state, &request, &result);
+	ret = mt6797_bigidvfs_sram_owner_execute(&owner, &mt6797_sram_test_ops,
+						 &state, &request, &result);
 	KUNIT_EXPECT_EQ(test, ret, -EPERM);
 	request = mt6797_sram_test_request();
 	request.provider_held = false;
-	ret = mt6797_bigidvfs_sram_owner_execute(&owner,
-				&mt6797_sram_test_ops, &state, &request, &result);
+	ret = mt6797_bigidvfs_sram_owner_execute(&owner, &mt6797_sram_test_ops,
+						 &state, &request, &result);
 	KUNIT_EXPECT_EQ(test, ret, -EPERM);
 	request = mt6797_sram_test_request();
 	request.isolation_crossed = false;
-	ret = mt6797_bigidvfs_sram_owner_execute(&owner,
-				&mt6797_sram_test_ops, &state, &request, &result);
+	ret = mt6797_bigidvfs_sram_owner_execute(&owner, &mt6797_sram_test_ops,
+						 &state, &request, &result);
 	KUNIT_EXPECT_EQ(test, ret, -EPERM);
 	request = mt6797_sram_test_request();
 	request.cpu8_online = true;
-	ret = mt6797_bigidvfs_sram_owner_execute(&owner,
-				&mt6797_sram_test_ops, &state, &request, &result);
+	ret = mt6797_bigidvfs_sram_owner_execute(&owner, &mt6797_sram_test_ops,
+						 &state, &request, &result);
 	KUNIT_EXPECT_EQ(test, ret, -EPERM);
 	request = mt6797_sram_test_request();
 	request.cpu9_online = true;
-	ret = mt6797_bigidvfs_sram_owner_execute(&owner,
-				&mt6797_sram_test_ops, &state, &request, &result);
+	ret = mt6797_bigidvfs_sram_owner_execute(&owner, &mt6797_sram_test_ops,
+						 &state, &request, &result);
 	KUNIT_EXPECT_EQ(test, ret, -EPERM);
-	KUNIT_EXPECT_EQ(test, owner.state,
-			MT6797_BIGIDVFS_SRAM_OWNER_UNUSED);
+	KUNIT_EXPECT_EQ(test, owner.state, MT6797_BIGIDVFS_SRAM_OWNER_UNUSED);
 	KUNIT_EXPECT_EQ(test, state.log_count, 0U);
 }
 
@@ -220,16 +217,16 @@ static void mt6797_bigidvfs_sram_one_shot_test(struct kunit *test)
 	int ret;
 
 	mt6797_sram_test_state_init(&state);
-	ret = mt6797_bigidvfs_sram_owner_execute(&owner,
-				&mt6797_sram_test_ops, &state, &request, &result);
+	ret = mt6797_bigidvfs_sram_owner_execute(&owner, &mt6797_sram_test_ops,
+						 &state, &request, &result);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	calls = state.log_count;
-	ret = mt6797_bigidvfs_sram_owner_execute(&owner,
-				&mt6797_sram_test_ops, &state, &request, &result);
+	ret = mt6797_bigidvfs_sram_owner_execute(&owner, &mt6797_sram_test_ops,
+						 &state, &request, &result);
 	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
 	request.cookie++;
-	ret = mt6797_bigidvfs_sram_owner_execute(&owner,
-				&mt6797_sram_test_ops, &state, &request, &result);
+	ret = mt6797_bigidvfs_sram_owner_execute(&owner, &mt6797_sram_test_ops,
+						 &state, &request, &result);
 	KUNIT_EXPECT_EQ(test, ret, -EPERM);
 	KUNIT_EXPECT_EQ(test, state.log_count, calls);
 }
@@ -245,11 +242,10 @@ static void mt6797_bigidvfs_sram_service_failure_test(struct kunit *test)
 
 	mt6797_sram_test_state_init(&state);
 	state.set_error = -ETIMEDOUT;
-	ret = mt6797_bigidvfs_sram_owner_execute(&owner,
-				&mt6797_sram_test_ops, &state, &request, &result);
+	ret = mt6797_bigidvfs_sram_owner_execute(&owner, &mt6797_sram_test_ops,
+						 &state, &request, &result);
 	KUNIT_EXPECT_EQ(test, ret, -ETIMEDOUT);
-	KUNIT_EXPECT_EQ(test, owner.state,
-			MT6797_BIGIDVFS_SRAM_OWNER_FAULTED);
+	KUNIT_EXPECT_EQ(test, owner.state, MT6797_BIGIDVFS_SRAM_OWNER_FAULTED);
 	KUNIT_EXPECT_EQ(test, state.log_count, 1U);
 	KUNIT_EXPECT_EQ(test, result.attempted_steps,
 			MT6797_BIGIDVFS_SRAM_SERVICE);
@@ -273,8 +269,8 @@ static void mt6797_bigidvfs_sram_read_failures_test(struct kunit *test)
 		mt6797_sram_test_state_init(&state);
 		state.fault_read = fault;
 		ret = mt6797_bigidvfs_sram_owner_execute(&owner,
-					&mt6797_sram_test_ops, &state,
-					&request, &result);
+							 &mt6797_sram_test_ops,
+							 &state, &request, &result);
 		KUNIT_EXPECT_EQ(test, ret, -EIO);
 		KUNIT_EXPECT_EQ(test, owner.state,
 				MT6797_BIGIDVFS_SRAM_OWNER_FAULTED);
@@ -295,14 +291,14 @@ static void mt6797_bigidvfs_sram_instability_test(struct kunit *test)
 
 	mt6797_sram_test_state_init(&state);
 	state.selector_second ^= 1;
-	ret = mt6797_bigidvfs_sram_owner_execute(&owner,
-				&mt6797_sram_test_ops, &state, &request, &result);
+	ret = mt6797_bigidvfs_sram_owner_execute(&owner, &mt6797_sram_test_ops,
+						 &state, &request, &result);
 	KUNIT_EXPECT_EQ(test, ret, -EAGAIN);
 	memset(&owner, 0, sizeof(owner));
 	mt6797_sram_test_state_init(&state);
 	state.calibration_second ^= 1;
-	ret = mt6797_bigidvfs_sram_owner_execute(&owner,
-				&mt6797_sram_test_ops, &state, &request, &result);
+	ret = mt6797_bigidvfs_sram_owner_execute(&owner, &mt6797_sram_test_ops,
+						 &state, &request, &result);
 	KUNIT_EXPECT_EQ(test, ret, -EAGAIN);
 }
 
@@ -318,8 +314,8 @@ static void mt6797_bigidvfs_sram_selector_test(struct kunit *test)
 	mt6797_sram_test_state_init(&state);
 	state.selector_first = 0x8fa;
 	state.selector_second = 0x8fa;
-	ret = mt6797_bigidvfs_sram_owner_execute(&owner,
-				&mt6797_sram_test_ops, &state, &request, &result);
+	ret = mt6797_bigidvfs_sram_owner_execute(&owner, &mt6797_sram_test_ops,
+						 &state, &request, &result);
 	KUNIT_EXPECT_EQ(test, ret, -ERANGE);
 	KUNIT_EXPECT_FALSE(test, result.verified);
 	KUNIT_EXPECT_TRUE(test, result.sealed);
@@ -337,15 +333,15 @@ static void mt6797_bigidvfs_sram_calibration_test(struct kunit *test)
 	mt6797_sram_test_state_init(&state);
 	state.calibration_first = 0;
 	state.calibration_second = 0;
-	ret = mt6797_bigidvfs_sram_owner_execute(&owner,
-				&mt6797_sram_test_ops, &state, &request, &result);
+	ret = mt6797_bigidvfs_sram_owner_execute(&owner, &mt6797_sram_test_ops,
+						 &state, &request, &result);
 	KUNIT_EXPECT_EQ(test, ret, -ERANGE);
 	memset(&owner, 0, sizeof(owner));
 	mt6797_sram_test_state_init(&state);
 	state.calibration_first = 0x10001;
 	state.calibration_second = 0x10001;
-	ret = mt6797_bigidvfs_sram_owner_execute(&owner,
-				&mt6797_sram_test_ops, &state, &request, &result);
+	ret = mt6797_bigidvfs_sram_owner_execute(&owner, &mt6797_sram_test_ops,
+						 &state, &request, &result);
 	KUNIT_EXPECT_EQ(test, ret, -ERANGE);
 }
 

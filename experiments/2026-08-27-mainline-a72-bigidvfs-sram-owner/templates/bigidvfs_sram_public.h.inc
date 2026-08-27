@@ -48,13 +48,15 @@ struct mt6797_bigidvfs_sram_result {
 };
 
 #if IS_ENABLED(CONFIG_MTK_MT6797_A72_BIGIDVFS_SRAM_OWNER)
-int mt6797_bigidvfs_sram_enable(
-	struct device *dev, const struct mt6797_bigidvfs_sram_request *request,
-	struct mt6797_bigidvfs_sram_result *result);
+int
+mt6797_bigidvfs_sram_enable(struct device *dev,
+			    const struct mt6797_bigidvfs_sram_request *request,
+			    struct mt6797_bigidvfs_sram_result *result);
 #else
-static inline int mt6797_bigidvfs_sram_enable(
-	struct device *dev, const struct mt6797_bigidvfs_sram_request *request,
-	struct mt6797_bigidvfs_sram_result *result)
+static inline int
+mt6797_bigidvfs_sram_enable(struct device *dev,
+			    const struct mt6797_bigidvfs_sram_request *request,
+			    struct mt6797_bigidvfs_sram_result *result)
 {
 	(void)dev;
 	(void)request;

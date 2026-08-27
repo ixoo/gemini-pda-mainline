@@ -24,22 +24,22 @@ static const struct mt6797_bigidvfs_sram_ops mt6797_bigidvfs_sram_ops = {
 	.delay = mt6797_bigidvfs_sram_delay,
 };
 
-static bool mt6797_bigidvfs_sram_ops_valid(
-	const struct mt6797_bigidvfs_sram_ops *ops)
+static bool
+mt6797_bigidvfs_sram_ops_valid(const struct mt6797_bigidvfs_sram_ops *ops)
 {
 	return ops && ops->set && ops->read && ops->delay;
 }
 
-static bool mt6797_bigidvfs_sram_request_valid(
-	const struct mt6797_bigidvfs_sram_request *request)
+static bool
+mt6797_bigidvfs_sram_request_valid(const struct mt6797_bigidvfs_sram_request *request)
 {
 	return request && request->abi == MT6797_BIGIDVFS_SRAM_OWNER_ABI &&
 	       request->attempt_id && request->cookie;
 }
 
-static bool mt6797_bigidvfs_sram_request_matches(
-	const struct mt6797_bigidvfs_sram_request *left,
-	const struct mt6797_bigidvfs_sram_request *right)
+static bool
+mt6797_bigidvfs_sram_request_matches(const struct mt6797_bigidvfs_sram_request *left,
+				     const struct mt6797_bigidvfs_sram_request *right)
 {
 	return mt6797_bigidvfs_sram_request_valid(left) &&
 	       mt6797_bigidvfs_sram_request_valid(right) &&
@@ -47,16 +47,16 @@ static bool mt6797_bigidvfs_sram_request_matches(
 	       left->cookie == right->cookie;
 }
 
-static void mt6797_bigidvfs_sram_output(
-	const struct mt6797_bigidvfs_sram_owner *owner,
-	struct mt6797_bigidvfs_sram_result *result)
+static void
+mt6797_bigidvfs_sram_output(const struct mt6797_bigidvfs_sram_owner *owner,
+			    struct mt6797_bigidvfs_sram_result *result)
 {
 	*result = owner->result;
 }
 
-static int mt6797_bigidvfs_sram_fail(
-	struct mt6797_bigidvfs_sram_owner *owner, int error,
-	struct mt6797_bigidvfs_sram_result *result)
+static int
+mt6797_bigidvfs_sram_fail(struct mt6797_bigidvfs_sram_owner *owner, int error,
+			  struct mt6797_bigidvfs_sram_result *result)
 {
 	owner->state = MT6797_BIGIDVFS_SRAM_OWNER_FAULTED;
 	owner->result.error = error;
@@ -65,11 +65,11 @@ static int mt6797_bigidvfs_sram_fail(
 	return error;
 }
 
-static int mt6797_bigidvfs_sram_read(
-	struct mt6797_bigidvfs_sram_owner *owner,
-	const struct mt6797_bigidvfs_sram_ops *ops, void *context,
-	u32 address, u32 step, u32 *value,
-	struct mt6797_bigidvfs_sram_result *result)
+static int
+mt6797_bigidvfs_sram_read(struct mt6797_bigidvfs_sram_owner *owner,
+			  const struct mt6797_bigidvfs_sram_ops *ops,
+			  void *context, u32 address, u32 step, u32 *value,
+			  struct mt6797_bigidvfs_sram_result *result)
 {
 	int ret;
 
@@ -81,11 +81,12 @@ static int mt6797_bigidvfs_sram_read(
 	return 0;
 }
 
-int mt6797_bigidvfs_sram_owner_execute(
-	struct mt6797_bigidvfs_sram_owner *owner,
-	const struct mt6797_bigidvfs_sram_ops *ops, void *context,
-	const struct mt6797_bigidvfs_sram_request *request,
-	struct mt6797_bigidvfs_sram_result *result)
+int
+mt6797_bigidvfs_sram_owner_execute(struct mt6797_bigidvfs_sram_owner *owner,
+				   const struct mt6797_bigidvfs_sram_ops *ops,
+				   void *context,
+				   const struct mt6797_bigidvfs_sram_request *request,
+				   struct mt6797_bigidvfs_sram_result *result)
 {
 	int ret;
 
@@ -98,7 +99,7 @@ int mt6797_bigidvfs_sram_owner_execute(
 	if (owner->state != MT6797_BIGIDVFS_SRAM_OWNER_UNUSED) {
 		mt6797_bigidvfs_sram_output(owner, result);
 		if (!mt6797_bigidvfs_sram_request_matches(&owner->request,
-							request))
+							  request))
 			return -EPERM;
 		return -EALREADY;
 	}
@@ -128,27 +129,27 @@ int mt6797_bigidvfs_sram_owner_execute(
 	owner->result.completed_steps |= MT6797_BIGIDVFS_SRAM_SETTLE;
 
 	ret = mt6797_bigidvfs_sram_read(owner, ops, context,
-					 MT6797_BIGIDVFS_SRAM_SELECTOR,
-					 MT6797_BIGIDVFS_SRAM_SELECTOR_FIRST,
-					 &owner->result.selector_first, result);
+					MT6797_BIGIDVFS_SRAM_SELECTOR,
+					MT6797_BIGIDVFS_SRAM_SELECTOR_FIRST,
+					&owner->result.selector_first, result);
 	if (ret)
 		return ret;
 	ret = mt6797_bigidvfs_sram_read(owner, ops, context,
-					 MT6797_BIGIDVFS_SRAM_CALIBRATION,
-					 MT6797_BIGIDVFS_SRAM_CALIBRATION_FIRST,
-					 &owner->result.calibration_first, result);
+					MT6797_BIGIDVFS_SRAM_CALIBRATION,
+					MT6797_BIGIDVFS_SRAM_CALIBRATION_FIRST,
+					&owner->result.calibration_first, result);
 	if (ret)
 		return ret;
 	ret = mt6797_bigidvfs_sram_read(owner, ops, context,
-					 MT6797_BIGIDVFS_SRAM_SELECTOR,
-					 MT6797_BIGIDVFS_SRAM_SELECTOR_SECOND,
-					 &owner->result.selector_second, result);
+					MT6797_BIGIDVFS_SRAM_SELECTOR,
+					MT6797_BIGIDVFS_SRAM_SELECTOR_SECOND,
+					&owner->result.selector_second, result);
 	if (ret)
 		return ret;
 	ret = mt6797_bigidvfs_sram_read(owner, ops, context,
-					 MT6797_BIGIDVFS_SRAM_CALIBRATION,
-					 MT6797_BIGIDVFS_SRAM_CALIBRATION_SECOND,
-					 &owner->result.calibration_second, result);
+					MT6797_BIGIDVFS_SRAM_CALIBRATION,
+					MT6797_BIGIDVFS_SRAM_CALIBRATION_SECOND,
+					&owner->result.calibration_second, result);
 	if (ret)
 		return ret;
 

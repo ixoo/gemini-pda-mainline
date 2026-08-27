@@ -92,6 +92,13 @@ pre-existing read-path mutex rather than the new public adapter. The corrected
 validator bounds the internal execution and public adapter functions
 independently; no production or test template changed as a result.
 
+The second Buildbox generation attempt from repository commit
+`1cd1cf8aa99107d859bba625bd24375ff40fc5e0` passed the source validators and
+then stopped before patch emission because strict Checkpatch reported 17
+function-signature and continuation-alignment checks, with zero errors and
+zero warnings. The templates were normalized to the canonical kernel style;
+the API, transaction order, state machine, and test behavior did not change.
+
 ## Analysis
 
 Reusing the backend mutex preserves a single resource owner. Treating the set
