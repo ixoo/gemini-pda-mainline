@@ -1,0 +1,8 @@
+# Hardware-free coverage for the one-shot MT6797 A72 SRAM-LDO owner.
+# The focused suite injects the secure service, delay, and all readbacks; the
+# production API has no caller, so no SMCCC, hardware delay, or CPU is touched.
+CONFIG_KUNIT=y
+CONFIG_MTK_MT6797_DVFSP_BIGIDVFS_BACKEND=y
+CONFIG_MTK_MT6797_A72_BIGIDVFS_SRAM_OWNER=y
+CONFIG_MTK_MT6797_A72_BIGIDVFS_SRAM_OWNER_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-a72-bigidvfs-sram-kunit"
