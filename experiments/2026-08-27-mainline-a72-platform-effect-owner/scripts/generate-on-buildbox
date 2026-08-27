@@ -4,7 +4,8 @@ set -euo pipefail
 readonly repository_commit="${1:?repository commit required}"
 readonly source_root="${2:?prepared source root required}"
 readonly artifact_root="${3:?artifact root required}"
-readonly expected_source_state=ac9c2a550c465d56500045017afd7110e0ffb545538ac9ddda1c0d0d56a5853b
+readonly expected_parent_source_state=ac9c2a550c465d56500045017afd7110e0ffb545538ac9ddda1c0d0d56a5853b
+readonly expected_admitted_source_state=0989c203f05cd20a3b79ca7164905648006220c36a89fc90a74c9c26bb9d33ea
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 readonly script_dir
 readonly package_name="${repository_commit}-a72-platform-effect-patches"
@@ -13,8 +14,13 @@ readonly temporary="${destination}.partial.$$"
 
 [[ "${repository_commit}" =~ ^[0-9a-f]{40}$ ]]
 [[ -d "${source_root}" && ! -L "${source_root}" ]]
-[[ -f "${source_root}/.gemini-source-state" &&
-   "$(<"${source_root}/.gemini-source-state")" == "${expected_source_state}" ]]
+[[ -f "${source_root}/.gemini-source-state" ]]
+prepared_source_state="$(<"${source_root}/.gemini-source-state")"
+readonly prepared_source_state
+case "${prepared_source_state}" in
+  "${expected_parent_source_state}"|"${expected_admitted_source_state}") ;;
+  *) exit 1 ;;
+esac
 [[ -d "${artifact_root}" && ! -L "${artifact_root}" ]]
 [[ ! -e "${destination}" ]]
 
