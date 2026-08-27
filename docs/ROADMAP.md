@@ -5645,15 +5645,20 @@ The next ordered work is:
    validated package passes the sole no-network QEMU suite, all six cases, with
    zero failures or skips. The one-zone, alternating-copy owner remains
    default-off with zero physical backends, production callers, retained-RAM
-   writes, CPU requests, device actions, or boot candidates. **Selected next:**
-   implement the [serialized platform-effect owner](../experiments/2026-08-27-mainline-a72-platform-effect-owner/README.md)
-   for attempt-bound P27 acquire/release, isolation clear, and post-online DCM
-   under the existing platform-state resource mutex. Prove that owner with
-   injected tests and no-network QEMU. Then add the BigiDVFS SRAM-LDO owner,
-   the PSCI/generic-hotplug lifecycle bridge, and finally the complete binder
-   around the proven executor, watchdog, and retained ledger. Do not assemble
-   or write a device candidate before all hardware-free owner and binder proofs
-   pass.
+   writes, CPU requests, device actions, or boot candidates. The linked
+   [serialized platform-effect owner](../experiments/2026-08-27-mainline-a72-platform-effect-owner/README.md)
+   now admits canonical patches `0390`--`0391`. Exact clean published commit
+   `cdded6248` compiles the focused profile on Buildbox with zero new
+   platform-effect warnings; the fetched package passes its complete checksum
+   manifest. The sole no-network QEMU suite passes all eight cases with zero
+   failures or skips, zero physical-effect calls, zero production callers, and
+   the expected post-suite rootfs panic. It is default-off, performs no device
+   action, and selects no boot candidate. **Selected next:** implement and
+   exhaustively prove the BigiDVFS SRAM-LDO owner, then add the PSCI/generic-
+   hotplug lifecycle bridge and finally the complete binder around the proven
+   executor, watchdog, retained ledger, and platform-effect owner. Do not
+   assemble or write a device candidate before all hardware-free owner and
+   binder proofs pass.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

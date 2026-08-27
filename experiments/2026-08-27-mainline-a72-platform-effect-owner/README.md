@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-27-mainline-a72-platform-effect-owner` |
-| Status | namespaced-state patches regenerated; exact Buildbox rebuild and QEMU pending |
+| Status | exact Buildbox build and eight-case no-network QEMU proof complete |
 | Subsystem | MT6797 CPU8 P27, external isolation, PWRAP, and MP2 DCM |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-27 America/New_York |
@@ -87,6 +87,23 @@ were cascading diagnostics. The remediation namespaces every owner state as
 regenerated patch pair includes that remediation. See
 [`results/build-attempt-870c83b0.txt`](results/build-attempt-870c83b0.txt).
 
+## Build and hardware-free runtime result
+
+Exact clean published commit
+`cdded6248b7303c2117713682bb25bf5651d9789` compiled on Buildbox as
+`7.1.3-gemini-a72-platform-effect-kunit`. The fetched package passed its full
+checksum manifest. The build had zero new platform-effect warnings; its sole
+compiler warning is the pre-existing unrelated unused helper in
+`kernel/cpu.c`.
+
+The sole focused no-network arm64 QEMU suite passed all eight named cases with
+zero failures or skips. The runner proved that the focused configuration links
+no unrelated suites, the tests invoke no physical effect backend, and the
+production tree has no caller. The suite completed before the expected VM
+rootfs panic. No device action occurred and this is not a boot candidate. Exact
+build, package, image, log, and per-case identities are recorded in
+[`results/build-qemu-cdded624.txt`](results/build-qemu-cdded624.txt).
+
 ## Planned procedure
 
 1. Generate one production-owner patch and one injected-test patch from the
@@ -95,9 +112,11 @@ regenerated patch pair includes that remediation. See
    package checksum validation before admission. **Complete.**
 3. Admit the two exact patches and one focused configuration profile.
    **Complete.**
-4. Build the exact clean pushed commit on Buildbox.
+4. Build the exact clean pushed commit on Buildbox. **Complete.**
 5. Run the sole eight-case suite in bounded no-network arm64 QEMU.
+   **Complete.**
 6. Publish sanitized evidence before beginning the BigiDVFS SRAM-LDO owner.
+   **Complete with this record.**
 
 No result in this experiment establishes an MT6797 hardware effect until a
 later complete binder and decision-bearing device candidate cross their own
