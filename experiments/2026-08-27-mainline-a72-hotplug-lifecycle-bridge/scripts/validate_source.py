@@ -25,6 +25,22 @@ def bounded(source: str, start: str, end: str, label: str) -> str:
     return source[first:last + len(end)]
 
 
+def braced(source: str, start: str, label: str) -> str:
+    first = source.find(start)
+    require(first >= 0, f"{label}: start")
+    opening = source.find("{", first)
+    require(opening >= 0, f"{label}: opening brace")
+    depth = 0
+    for index in range(opening, len(source)):
+        if source[index] == "{":
+            depth += 1
+        elif source[index] == "}":
+            depth -= 1
+            if depth == 0:
+                return source[first:index + 1]
+    raise SystemExit(f"validation failed: {label}: closing brace")
+
+
 def ordered(source: str, tokens: tuple[str, ...], label: str) -> None:
     cursor = 0
     for token in tokens:
@@ -205,10 +221,9 @@ def main() -> None:
         ),
         "full handoff order",
     )
-    run = bounded(
+    run = braced(
         normalized_source,
         "int mt6797_a72_transition_run(",
-        "true, false, result);",
         "injected composition",
     )
     ordered(

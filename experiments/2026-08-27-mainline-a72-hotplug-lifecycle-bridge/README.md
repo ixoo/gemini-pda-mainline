@@ -116,6 +116,13 @@ check. Its helper used a whole-string search for every token, so both repeated
 failure. The corrected helper advances a cursor after each match, strengthening
 all order checks without changing source or test templates.
 
+The fifth Buildbox attempt from repository commit
+`d4bb33e8aef5eb8154ef5ffc58e7f562694ddee0` passed generic hook placement and
+stopped at the injected compatibility wrapper. Its bounded region ended at the
+first repeated `true, false, result);` call, which is the secondary handoff,
+before the final handoff call. Brace-balanced function extraction now validates
+the complete wrapper body; generated source remains unchanged.
+
 ## Current conclusion
 
 The bridge contract is frozen. Implementation remains hardware-free and must
