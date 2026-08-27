@@ -37,7 +37,7 @@ mt6797_a72_platform_effect_output(const struct mt6797_a72_platform_effect_owner 
 }
 
 static int
-mt6797_a72_platform_effect_fail(struct mt6797_a72_platform_effect_owner *owner,
+mt6797_a72_effect_fail(struct mt6797_a72_platform_effect_owner *owner,
 				enum mt6797_a72_platform_effect_state state, int error,
 				struct mt6797_a72_platform_effect_result *result)
 {
@@ -58,10 +58,10 @@ mt6797_a72_platform_effect_read_exact_spm(struct mt6797_a72_platform_effect_owne
 
 	ret = ops->spm_read(context, offset, observed);
 	if (ret)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, ret,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_FAULTED, ret,
 						       result);
 	if (*observed != expected)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, -ERANGE,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_FAULTED, -ERANGE,
 						       result);
 	return 0;
 }
@@ -83,12 +83,12 @@ mt6797_a72_platform_effect_owner_p27_acquire(struct mt6797_a72_platform_effect_o
 	if (!owner || !mt6797_a72_platform_effect_ops_valid(ops) ||
 	    !mt6797_a72_platform_effect_handle_valid(handle))
 		return -EINVAL;
-	if (owner->state != MT6797_A72_EFFECT_UNUSED) {
+	if (owner->state != MT6797_A72_EFFECT_STATE_UNUSED) {
 		mt6797_a72_platform_effect_output(owner, result);
 		return -EALREADY;
 	}
 
-	owner->state = MT6797_A72_EFFECT_P27_INFLIGHT;
+	owner->state = MT6797_A72_EFFECT_STATE_P27_INFLIGHT;
 	owner->handle = *handle;
 	owner->result = (struct mt6797_a72_platform_effect_result){
 		.abi = MT6797_A72_PLATFORM_EFFECT_ABI,
@@ -96,18 +96,18 @@ mt6797_a72_platform_effect_owner_p27_acquire(struct mt6797_a72_platform_effect_o
 	};
 	ret = ops->spm_read(context, MT6797_A72_EFFECT_SPM_P27, &value);
 	if (ret)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_REJECTED, ret,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_REJECTED, ret,
 						       result);
 	owner->result.spm_p27_before = value;
 	if (value != MT6797_A72_EFFECT_P27_BEFORE)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_REJECTED, -ERANGE,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_REJECTED, -ERANGE,
 						       result);
 
 	owner->result.p27_owned = true;
 	owner->result.attempted_effects |= MT6797_A72_EFFECT_P27_RESET_RELEASED;
 	ret = ops->spm_update_bits(context, MT6797_A72_EFFECT_SPM_P27, BIT(0), BIT(0));
 	if (ret)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, ret,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_FAULTED, ret,
 						       result);
 	ret = mt6797_a72_platform_effect_read_exact_spm(owner, ops, context,
 							MT6797_A72_EFFECT_SPM_P27,
@@ -122,24 +122,24 @@ mt6797_a72_platform_effect_owner_p27_acquire(struct mt6797_a72_platform_effect_o
 	ret = ops->mcucfg_read(context, MT6797_A72_EFFECT_MCUCFG_BPLL,
 			       &owner->result.bpll_ordering_value);
 	if (ret)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, ret,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_FAULTED, ret,
 						       result);
 	owner->result.completed_effects |= MT6797_A72_EFFECT_BPLL_ORDER_READ;
 
 	owner->result.attempted_effects |= MT6797_A72_EFFECT_PWRAP_ASSERTED;
 	ret = ops->pwrap_assert(context);
 	if (ret)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, ret,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_FAULTED, ret,
 						       result);
 	status = ops->pwrap_status(context);
 	if (status < 0)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, status,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_FAULTED, status,
 						       result);
 	if (status != 1)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, -EIO,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_FAULTED, -EIO,
 						       result);
 	owner->result.completed_effects |= MT6797_A72_EFFECT_PWRAP_ASSERTED;
-	owner->state = MT6797_A72_EFFECT_P27_HELD;
+	owner->state = MT6797_A72_EFFECT_STATE_P27_HELD;
 	mt6797_a72_platform_effect_output(owner, result);
 	return 0;
 }
@@ -165,12 +165,12 @@ mt6797_a72_platform_effect_owner_p27_release(struct mt6797_a72_platform_effect_o
 		mt6797_a72_platform_effect_output(owner, result);
 		return -EPERM;
 	}
-	if (owner->state != MT6797_A72_EFFECT_P27_HELD) {
+	if (owner->state != MT6797_A72_EFFECT_STATE_P27_HELD) {
 		mt6797_a72_platform_effect_output(owner, result);
 		return -EALREADY;
 	}
 
-	owner->state = MT6797_A72_EFFECT_RELEASE_INFLIGHT;
+	owner->state = MT6797_A72_EFFECT_STATE_RELEASE_INFLIGHT;
 	owner->result.operation = MT6797_A72_PLATFORM_EFFECT_P27_RELEASE;
 	ret = mt6797_a72_platform_effect_read_exact_spm(owner, ops, context,
 							MT6797_A72_EFFECT_SPM_P27,
@@ -179,30 +179,30 @@ mt6797_a72_platform_effect_owner_p27_release(struct mt6797_a72_platform_effect_o
 		return ret;
 	status = ops->pwrap_status(context);
 	if (status < 0)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, status,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_FAULTED, status,
 						       result);
 	if (status != 1)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, -EIO,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_FAULTED, -EIO,
 						       result);
 
 	owner->result.attempted_effects |= MT6797_A72_EFFECT_PWRAP_DEASSERTED;
 	ret = ops->pwrap_deassert(context);
 	if (ret)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, ret,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_FAULTED, ret,
 						       result);
 	status = ops->pwrap_status(context);
 	if (status < 0)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, status,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_FAULTED, status,
 						       result);
 	if (status != 0)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, -EIO,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_FAULTED, -EIO,
 						       result);
 	owner->result.completed_effects |= MT6797_A72_EFFECT_PWRAP_DEASSERTED;
 
 	owner->result.attempted_effects |= MT6797_A72_EFFECT_P27_RESET_RESTORED;
 	ret = ops->spm_update_bits(context, MT6797_A72_EFFECT_SPM_P27, BIT(0), 0);
 	if (ret)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, ret,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_FAULTED, ret,
 						       result);
 	ret = mt6797_a72_platform_effect_read_exact_spm(owner, ops, context,
 							MT6797_A72_EFFECT_SPM_P27,
@@ -214,7 +214,7 @@ mt6797_a72_platform_effect_owner_p27_release(struct mt6797_a72_platform_effect_o
 	owner->result.p27_owned = false;
 	owner->result.error = 0;
 	owner->result.sealed = true;
-	owner->state = MT6797_A72_EFFECT_RELEASED;
+	owner->state = MT6797_A72_EFFECT_STATE_RELEASED;
 	mt6797_a72_platform_effect_output(owner, result);
 	return 0;
 }
@@ -241,12 +241,12 @@ mt6797_a72_effect_owner_isolate(struct mt6797_a72_platform_effect_owner *owner,
 		mt6797_a72_platform_effect_output(owner, result);
 		return -EPERM;
 	}
-	if (owner->state != MT6797_A72_EFFECT_P27_HELD) {
+	if (owner->state != MT6797_A72_EFFECT_STATE_P27_HELD) {
 		mt6797_a72_platform_effect_output(owner, result);
 		return -EALREADY;
 	}
 
-	owner->state = MT6797_A72_EFFECT_ISOLATION_INFLIGHT;
+	owner->state = MT6797_A72_EFFECT_STATE_ISOLATION_INFLIGHT;
 	owner->result.operation = MT6797_A72_PLATFORM_EFFECT_ISOLATION_CLEAR;
 	owner->result.isolation_attempted = true;
 	ret = mt6797_a72_platform_effect_read_exact_spm(owner, ops, context,
@@ -263,17 +263,17 @@ mt6797_a72_effect_owner_isolate(struct mt6797_a72_platform_effect_owner *owner,
 		return ret;
 	status = ops->pwrap_status(context);
 	if (status < 0)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, status,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_FAULTED, status,
 						       result);
 	if (status != 1)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, -EIO,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_FAULTED, -EIO,
 						       result);
 
 	owner->result.attempted_effects |= MT6797_A72_EFFECT_ISOLATION_CLEARED;
 	ret = ops->spm_update_bits(context, MT6797_A72_EFFECT_SPM_ISOLATION,
 				   MT6797_A72_EFFECT_ISOLATION_MASK, 0);
 	if (ret)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, ret,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_FAULTED, ret,
 						       result);
 	ret = mt6797_a72_platform_effect_read_exact_spm(owner, ops, context,
 							MT6797_A72_EFFECT_SPM_ISOLATION,
@@ -288,21 +288,21 @@ mt6797_a72_effect_owner_isolate(struct mt6797_a72_platform_effect_owner *owner,
 	owner->result.attempted_effects |= MT6797_A72_EFFECT_PWRAP_DEASSERTED;
 	ret = ops->pwrap_deassert(context);
 	if (ret)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, ret,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_FAULTED, ret,
 						       result);
 	status = ops->pwrap_status(context);
 	if (status < 0)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, status,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_FAULTED, status,
 						       result);
 	if (status != 0)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, -EIO,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_FAULTED, -EIO,
 						       result);
 	owner->result.completed_effects |= MT6797_A72_EFFECT_PWRAP_DEASSERTED;
 
 	owner->result.attempted_effects |= MT6797_A72_EFFECT_ISOLATION_GUARD;
 	ops->delay(context, MT6797_A72_EFFECT_GUARD_MIN_US, MT6797_A72_EFFECT_GUARD_MAX_US);
 	owner->result.completed_effects |= MT6797_A72_EFFECT_ISOLATION_GUARD;
-	owner->state = MT6797_A72_EFFECT_ISOLATED;
+	owner->state = MT6797_A72_EFFECT_STATE_ISOLATED;
 	mt6797_a72_platform_effect_output(owner, result);
 	return 0;
 }
@@ -329,22 +329,22 @@ mt6797_a72_platform_effect_owner_dcm_update(struct mt6797_a72_platform_effect_ow
 		mt6797_a72_platform_effect_output(owner, result);
 		return -EPERM;
 	}
-	if (owner->state != MT6797_A72_EFFECT_ISOLATED) {
+	if (owner->state != MT6797_A72_EFFECT_STATE_ISOLATED) {
 		mt6797_a72_platform_effect_output(owner, result);
 		return -EALREADY;
 	}
 
-	owner->state = MT6797_A72_EFFECT_DCM_INFLIGHT;
+	owner->state = MT6797_A72_EFFECT_STATE_DCM_INFLIGHT;
 	owner->result.operation = MT6797_A72_PLATFORM_EFFECT_DCM_UPDATE;
 	if (!cpu8_online || cpu9_online)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, -EPERM,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_FAULTED, -EPERM,
 						       result);
 	ret = ops->mcucfg_read(context, MT6797_A72_EFFECT_MCUCFG_DCM, &owner->result.dcm_before);
 	if (ret)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, ret,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_FAULTED, ret,
 						       result);
 	if (owner->result.dcm_before & MT6797_A72_EFFECT_DCM_MASK)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, -ERANGE,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_FAULTED, -ERANGE,
 						       result);
 
 	expected = owner->result.dcm_before & ~MT6797_A72_EFFECT_DCM_MASK;
@@ -353,11 +353,11 @@ mt6797_a72_platform_effect_owner_dcm_update(struct mt6797_a72_platform_effect_ow
 	ops->mcucfg_write(context, MT6797_A72_EFFECT_MCUCFG_DCM, expected);
 	ret = ops->mcucfg_read(context, MT6797_A72_EFFECT_MCUCFG_DCM, &value);
 	if (ret)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, ret,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_FAULTED, ret,
 						       result);
 	owner->result.dcm_toggle = value;
 	if (value != expected)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, -EIO,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_FAULTED, -EIO,
 						       result);
 	owner->result.completed_effects |= MT6797_A72_EFFECT_DCM_TOGGLE;
 
@@ -366,16 +366,16 @@ mt6797_a72_platform_effect_owner_dcm_update(struct mt6797_a72_platform_effect_ow
 	ops->mcucfg_write(context, MT6797_A72_EFFECT_MCUCFG_DCM, expected);
 	ret = ops->mcucfg_read(context, MT6797_A72_EFFECT_MCUCFG_DCM, &value);
 	if (ret)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, ret,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_FAULTED, ret,
 						       result);
 	owner->result.dcm_final = value;
 	if (value != expected)
-		return mt6797_a72_platform_effect_fail(owner, MT6797_A72_EFFECT_FAULTED, -EIO,
+		return mt6797_a72_effect_fail(owner, MT6797_A72_EFFECT_STATE_FAULTED, -EIO,
 						       result);
 	owner->result.completed_effects |= MT6797_A72_EFFECT_DCM_FINAL;
 	owner->result.error = 0;
 	owner->result.sealed = true;
-	owner->state = MT6797_A72_EFFECT_COMPLETE;
+	owner->state = MT6797_A72_EFFECT_STATE_COMPLETE;
 	mt6797_a72_platform_effect_output(owner, result);
 	return 0;
 }

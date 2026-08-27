@@ -72,6 +72,7 @@ def main() -> None:
         "MT6797_A72_EFFECT_DCM_TOGGLE_VALUE",
         "MT6797_A72_EFFECT_DCM_FINAL_VALUE",
         "MT6797_A72_EFFECT_GUARD_MIN_US",
+        "MT6797_A72_EFFECT_STATE_P27_HELD",
         "owner->result.p27_owned = true;",
         "owner->result.isolation_attempted = true;",
         "owner->result.isolation_crossed = true;",
@@ -86,6 +87,8 @@ def main() -> None:
         "EXPORT_SYMBOL_GPL(mt6797_a72_platform_effect_dcm_update)",
     ):
         require(token in combined, f"production token: {token}")
+    require("\tMT6797_A72_EFFECT_P27_HELD," not in internal,
+            "register-value macro must not also name an owner state")
     for name in (
         "mt6797_a72_platform_effect_p27_acquire",
         "mt6797_a72_platform_effect_p27_release",

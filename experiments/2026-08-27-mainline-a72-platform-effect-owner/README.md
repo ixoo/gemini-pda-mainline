@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-27-mainline-a72-platform-effect-owner` |
-| Status | canonical patches `0390`--`0391` admitted; exact Buildbox build and QEMU pending |
+| Status | first compile exposed an enum/macro collision; namespaced-state regeneration pending |
 | Subsystem | MT6797 CPU8 P27, external isolation, PWRAP, and MP2 DCM |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-27 America/New_York |
@@ -72,6 +72,13 @@ an upstream submission must identify the actual author and truthful DCO signer.
   `ca29af1b0e889ce652d3cb482eea547115de4ae06ee2c9556ef773b20124edfb`
 - Exact generation chronology and machine-readable provenance:
   [`results/patch-generation-f0d504fc.txt`](results/patch-generation-f0d504fc.txt).
+
+The first exact compile at repository commit `870c83b0` rejected the production
+and KUnit objects because the P27-held register-value macro and one owner-state
+enumerator had the same preprocessor name. The later undeclared-state messages
+were cascading diagnostics. The remediation namespaces every owner state as
+`MT6797_A72_EFFECT_STATE_*` and makes the validator reject recurrence. See
+[`results/build-attempt-870c83b0.txt`](results/build-attempt-870c83b0.txt).
 
 ## Planned procedure
 
