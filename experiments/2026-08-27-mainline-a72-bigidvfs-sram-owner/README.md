@@ -84,6 +84,14 @@ the retained payload. The historical successful CPU8 path therefore used one
 set request followed by two independent selector/calibration samples through
 `REG_READ`.
 
+The first Buildbox generation attempt from repository commit
+`bd0da7fbbc81c38a38ba664df547ee2be1722447` reached the exact prepared source
+but stopped before patch emission with `shared backend serialization: order
+changed`. The validator had searched the whole backend and selected the
+pre-existing read-path mutex rather than the new public adapter. The corrected
+validator bounds the internal execution and public adapter functions
+independently; no production or test template changed as a result.
+
 ## Analysis
 
 Reusing the backend mutex preserves a single resource owner. Treating the set

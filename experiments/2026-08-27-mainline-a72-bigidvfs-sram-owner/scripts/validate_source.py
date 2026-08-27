@@ -32,6 +32,14 @@ def require_order(source: str, tokens: tuple[str, ...], label: str) -> None:
     require(positions == sorted(positions), f"{label}: order changed")
 
 
+def bounded_section(source: str, start: str, end: str, label: str) -> str:
+    start_position = source.find(start)
+    require(start_position >= 0, f"{label}: start absent")
+    end_position = source.find(end, start_position)
+    require(end_position >= 0, f"{label}: end absent")
+    return source[start_position:end_position + len(end)]
+
+
 def validate_helpers() -> None:
     wrapped = "int\nexample(struct device *dev)\n{\n\treturn 0;\n}\n"
     called = "\treturn example(dev);\n"
@@ -39,6 +47,9 @@ def validate_helpers() -> None:
             "definition counter distinguishes wrapped definitions from calls")
     require_order("alpha beta gamma", ("alpha", "beta", "gamma"),
                   "order helper")
+    require(bounded_section("before start middle end after", "start", "end",
+                            "section helper") == "start middle end",
+            "section helper bounds an assertion")
 
 
 def main() -> None:
@@ -116,8 +127,14 @@ def main() -> None:
             "public API export")
     require("EXPORT_SYMBOL_GPL(mt6797_bigidvfs_sram_owner_execute)" not in
             source, "internal owner is not exported")
-    require_order(
+    owner_execute = bounded_section(
         normalized,
+        "int mt6797_bigidvfs_sram_owner_execute(",
+        "int mt6797_bigidvfs_sram_enable(",
+        "internal SRAM owner",
+    )
+    require_order(
+        owner_execute,
         (
             "owner->state = MT6797_BIGIDVFS_SRAM_OWNER_INFLIGHT;",
             "owner->request = *request;",
@@ -133,8 +150,14 @@ def main() -> None:
         ),
         "consume-set-delay-two-sample-verify",
     )
-    require_order(
+    adapter = bounded_section(
         normalized,
+        "int mt6797_bigidvfs_sram_enable(",
+        "EXPORT_SYMBOL_GPL(mt6797_bigidvfs_sram_enable);",
+        "public SRAM adapter",
+    )
+    require_order(
+        adapter,
         (
             "mutex_lock(&backend->operation_lock);",
             "mt6797_bigidvfs_sram_owner_execute(&backend->sram_owner,",
