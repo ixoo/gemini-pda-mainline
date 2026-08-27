@@ -94,6 +94,13 @@ whitespace check reported three inherited trailing spaces in upstream
 and skips the generated-diff check only for that initial import; both actual
 generated commits, normal patches, and admission still require the check.
 
+The second Buildbox attempt from repository commit
+`3feef56ea267ad34cb160ab40ffe07d0b83c3701` passed that import and stopped at
+the first source edit because the exact `cpu_operations.cpu_up_rollback`
+continuation contains five tabs before its final alignment spaces, while the
+generator anchor encoded four. The correction changes only that exact anchor;
+no kernel template or lifecycle contract changed.
+
 ## Current conclusion
 
 The bridge contract is frozen. Implementation remains hardware-free and must

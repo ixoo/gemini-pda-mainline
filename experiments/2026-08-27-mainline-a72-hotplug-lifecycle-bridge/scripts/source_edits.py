@@ -67,16 +67,16 @@ def apply_production(root: Path) -> None:
         cpu_ops,
         "\tint\t\t(*cpu_up_rollback)(unsigned int cpu, "
         "enum cpuhp_state state,\n"
-        "\t\t\t\t   int error, const struct "
+        "\t\t\t\t\t   int error, const struct "
         "cpu_up_rollback_trace *trace);\n"
         "\tint\t\t(*cpu_boot)(unsigned int);\n",
         "\tint\t\t(*cpu_up_rollback)(unsigned int cpu, "
         "enum cpuhp_state state,\n"
-        "\t\t\t\t   int error, const struct "
+        "\t\t\t\t\t   int error, const struct "
         "cpu_up_rollback_trace *trace);\n"
         "\tint\t\t(*cpu_up_secondary_complete)(unsigned int cpu);\n"
         "\tint\t\t(*cpu_up_complete)(unsigned int cpu,\n"
-        "\t\t\t\t   enum cpuhp_state target);\n"
+        "\t\t\t\t\t   enum cpuhp_state target);\n"
         "\tint\t\t(*cpu_boot)(unsigned int);\n",
     )
     replace_once(
