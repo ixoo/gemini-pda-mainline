@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-27-mainline-a72-hotplug-lifecycle-bridge",
+  "repository_parent": "d3381e1a9827a02907e6e4a615b2aa27eb81518b",
+  "canonical_series_entries": 382,
+  "canonical_series_sha256": "2304d0c5d22ad84afd6e6ad60d60a390079c09f7c91c47efd0e9f5defeaf63ec",
+  "manifest_sha256": "46cc91d8b61eb575c34198025b3cf0341a458137cc5af5a45ad1c25c507790a5",
+  "prepared_source_state": "fbd9f19e0eeb36540d922bb65965afbf1a329d15c3f113f82b8a4443367f5246",
+  "handoffs": [
+    {
+      "name": "cpu_on_acceptance",
+      "owner": "mt6797-cpu-operations-cpu_boot",
+      "meaning": "psci-acceptance-only",
+      "executor_exit": "CPU_ON_ACCEPTED"
+    },
+    {
+      "name": "secondary_complete",
+      "owner": "arm64-and-generic-bringup_cpu",
+      "placement": "immediately-after-successful-__cpu_up",
+      "meaning": "cpu_online-observed-after-private-five-second-completion"
+    },
+    {
+      "name": "cpu_up_complete",
+      "owner": "generic-cpuhp",
+      "placement": "after-successful-cpuhp_up_callbacks-before-cpus-write-unlock",
+      "meaning": "requested-cpuhp-target-complete"
+    }
+  ],
+  "executor_stages_before_pause": [
+    "watchdog",
+    "p27",
+    "provider",
+    "isolation",
+    "sram",
+    "cpu_on"
+  ],
+  "executor_stages_after_resume": [
+    "secondary_complete",
+    "ipi",
+    "dcm"
+  ],
+  "generic_secondary_timeout_ms": 5000,
+  "private_online_timeout_removed": true,
+  "cpu_on_maximum": 1,
+  "cpu_off_maximum": 0,
+  "retry_maximum": 0,
+  "mt6797_cpu_boot_veto_preserved": true,
+  "mt6797_production_lifecycle_callbacks": 0,
+  "production_callers": 0,
+  "physical_effect_calls_in_tests": 0,
+  "native_vm_build": false,
+  "device_action": false,
+  "boot_candidate": false
+}

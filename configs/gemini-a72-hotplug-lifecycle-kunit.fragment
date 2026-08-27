@@ -1,0 +1,9 @@
+# Hardware-free coverage for the split MT6797 CPU8 hotplug lifecycle bridge.
+# Both lifecycle handoffs and every operation use injected in-memory callbacks;
+# no production caller, PSCI operation, physical CPU request, or device action
+# is connected.
+CONFIG_KUNIT=y
+CONFIG_MTK_MT6797_A72_TRANSITION_EXECUTOR=y
+CONFIG_MTK_MT6797_A72_TRANSITION_EXECUTOR_KUNIT_TEST=y
+# CONFIG_HOTPLUG_SPLIT_STARTUP is not set
+CONFIG_LOCALVERSION="-gemini-a72-lifecycle-kunit"

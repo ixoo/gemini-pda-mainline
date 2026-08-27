@@ -2017,6 +2017,22 @@
                     "configs/gemini-a72-transition-executor-kunit.fragment"
                 ]
             },
+            "a72-hotplug-lifecycle-kunit": {
+                "base": "defconfig",
+                "patch_series": "patches/series",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-usbdiag.fragment",
+                    "configs/gemini-clk-ignore-unused.fragment",
+                    "configs/gemini-observability.fragment",
+                    "configs/gemini-fbcon-rotation.fragment",
+                    "configs/gemini-keyboard.fragment",
+                    "configs/gemini-keyboard-wrrd.fragment",
+                    "configs/gemini-keyboard-manual-reboot.fragment",
+                    "configs/gemini-smp8.fragment",
+                    "configs/gemini-a72-hotplug-lifecycle-kunit.fragment"
+                ]
+            },
             "mtk-wdt-recovery-takeover-kunit": {
                 "base": "defconfig",
                 "patch_series": "patches/series",
