@@ -11,9 +11,9 @@
   "evidence": {
     "source_interface_map": {
       "path": "results/source-interface-map-20260827.txt",
-      "sha256": "e42eaba43f213c7c62dbaef6c9d7f509da01ef8a3b612f2cd20755444bcfce3e"
+      "sha256": "96d8a4f03d5efb844393fb6823fe2a072cdd34106ce4057dd4b1f87e7f66cf2c"
     },
-    "design_sha256": "ccad379a8162b2a486d9da5bf1d89d31a66fea9321e8cc7b14ce81e5e1cad842"
+    "design_sha256": "7de3e34b40e81dcee0ae60f4f972cdd85d5eebf9b3c8673860460de2c37606a3"
   },
   "current_closed_boundaries": {
     "mt6797_cpu_boot": "unconditional-minus-EAGAIN",
@@ -23,6 +23,7 @@
     "binder_arm_callers": 0,
     "cpu8_request_callers": 0,
     "physical_owner_callers": 0,
+    "membership_success_callers": 0,
     "binder_dt_node": "absent"
   },
   "interface_gaps": [
@@ -31,7 +32,8 @@
     "membership-available-state-still-refuses-cpu-up",
     "supplier-device-references-have-no-binder-owner",
     "arm64-cannot-consume-driver-private-executor-header",
-    "generic-failure-reaches-P32-without-binder-terminalization"
+    "generic-failure-reaches-P32-without-binder-terminalization",
+    "membership-owner-has-no-post-proof-CPU8-success-publication"
   ],
   "selected_repairs": [
     "fallible-regular-and-mandatory-terminal-checkpoints",
@@ -39,8 +41,11 @@
     "immutable-phandle-resolved-supplier-context",
     "narrow-public-binder-API-between-arm64-and-driver",
     "binder-failure-before-existing-P32-publication",
-    "no-late-caller-or-device-tree-enable-in-hardware-free-proof"
+    "no-late-caller-or-device-tree-enable-in-hardware-free-proof",
+    "exact-post-proof-CPU8-membership-success-publication-and-terminal-order"
   ],
+  "implementation_patch_count": 5,
+  "focused_kunit_cases": 21,
   "binder_contract": {
     "cpu": 8,
     "cpu9_offline": true,
@@ -50,7 +55,8 @@
     "hardware_free_cpu_requests": 0,
     "cpu_off_requests": 0,
     "retries": 0,
-    "regular_success_checkpoints": 18,
+    "executor_stages": 10,
+    "regular_success_checkpoints": 20,
     "terminal_commits": 1,
     "recovery_timeout_ms": 15000,
     "supplier_references": [
@@ -59,11 +65,13 @@
       "mt6797-bigidvfs-backend"
     ],
     "provider_transport": "registered-mt6797-a72-provider",
-    "identity": "one-membership-generation-cookie-pair",
+    "transaction_identity": "one-membership-generation-cookie-pair",
+    "provider_identity": "distinct-exact-handle-linked-by-owner-proof",
     "preisolation_inverse": [
       "provider",
       "p27"
     ],
+    "success_order": "CPUHP-IPI-DCM-membership-commit-terminal-evidence",
     "postisolation_policy": "retain-power-and-watchdog-reset",
     "physical_profile_default": false,
     "userspace_trigger": false

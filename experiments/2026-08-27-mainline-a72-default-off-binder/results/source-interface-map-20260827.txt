@@ -12,6 +12,7 @@ prepared_source_state=9d03c2ebbde4792b9db0a136c4a12e95c4343e47fb283f413a4acd7fd6
 Prepared-source file identities:
   arch/arm64/kernel/mt6797_psci.c=7e3329797e0f2eebc4372aa47c84c09e3c2ed85e5121f9492898727db5e4f83d
   arch/arm64/kernel/mt6797_a72_membership.c=376ba674e7d9afc7be8bb89fef51bf0b3515704f43389d7075f631737edef980
+  arch/arm64/kernel/mt6797_a72_membership_test.c=9e4fb28bb8ca1037df4086c54bf7ecfb3633a300959d2f95d4973c24870efd30
   arch/arm64/include/asm/mt6797_a72_membership.h=b43f9e1c8f9a98651a583917b15cd7968c12733b21c077c0eec076dea5b8447e
   drivers/soc/mediatek/mt6797-a72-transition.c=e328368822fbf16425e3506d344a52e0eb5a5e286af824c4463d4b539f571243
   drivers/soc/mediatek/mt6797-a72-transition-internal.h=2516bcdc66e345500a0f444a8300ce2c20438efaed10b08304d3d8796b157a6d
@@ -49,13 +50,20 @@ Interface findings:
   executor_header_scope=drivers/soc/mediatek-private
   mt6797_failure_hook=current-membership-P32-only
   required_failure_order=binder-terminal-before-membership-P32
+  membership_success_publication=absent
+  membership_member_writes=bootstrap-and-test-seed-only
+  required_success_order=CPUHP-IPI-DCM-membership-commit-terminal-evidence
   watchdog_device_argument=required
   platform_state_device_argument=required
   bigidvfs_device_argument=required
   provider_device_argument=registry-owned-none
+  provider_handle_identity=distinct-and-bound-by-transaction-proof
   required_supplier_references=3
   watchdog_timeout_ms=15000
   executor_timeout_ms=15000
+  required_executor_stages=10
+  required_regular_success_checkpoints=20
+  required_terminal_commits=1
 
 Selected contract repairs:
   1=fallible-regular-and-mandatory-terminal-checkpoints
@@ -64,6 +72,7 @@ Selected contract repairs:
   4=narrow-public-binder-API-between-arm64-and-driver
   5=binder-failure-before-existing-P32-publication
   6=no-late-caller-or-device-tree-enable-in-hardware-free-proof
+  7=exact-post-proof-CPU8-membership-success-publication-and-terminal-order
 
 kernel_build=none
 native_vm_build=none

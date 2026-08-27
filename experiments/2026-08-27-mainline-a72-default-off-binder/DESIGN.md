@@ -68,6 +68,24 @@ The CPU-boot handoff is the sole CPU_ON issuer and delegates exactly once to
 remain at the proven arm64/generic locations. The generic failure handoff must
 terminalize the binder before the existing P32 rollback publication runs.
 
+### Successful membership publication
+
+The current membership owner has no API that commits a successful CPU8
+transition; its `members` field changes only during bootstrap or test seeding.
+The binder must add one exact, separately checkpointed success handoff after
+generic CPUHP completion, the CPU8 IPI proof, and DCM verification. It accepts
+only the active CPU8 generation/cookie, held provider, completed P28 proof,
+CPU8 online, and CPU9 offline, then publishes member bit 0 while retaining the
+provider handle for the later, separate CPU9 experiment. This tenth executor
+stage raises the success path from 18 to 20 regular checkpoints.
+
+The terminal retained record follows successful membership publication so it
+cannot durably claim success before the runtime owner does. If membership
+publication fails, the terminal record carries a retained fault. If the final
+record itself fails, the now-truthful live membership remains published, but
+the binder still returns a retained fault and lets the watchdog reset. Neither
+case permits rollback or a CPU_OFF request.
+
 ## Physical callback mapping
 
 The binder context carries one attempt identity and the typed result from each
@@ -78,7 +96,7 @@ owner:
 3. `p27_acquire` / `p27_release`: serialized platform-effect owner using the
    attempt handle and complete result validation;
 4. `provider_acquire` / `provider_release`: existing membership/provider
-   wrappers and exact generation/cookie handle;
+   wrappers and the distinct exact provider handle linked to the transaction;
 5. `isolation_clear`: serialized platform-effect owner with the held provider;
 6. `sram_enable`: one 1.1 V BigiDVFS request carrying the same identity;
 7. `cpu_on`: one delegation to the generic PSCI CPU boot operation;
@@ -88,10 +106,11 @@ owner:
 10. `dcm_update`: the serialized platform-effect owner with CPU8 online and
     CPU9 offline.
 
-The watchdog identity is evidence, not the attempt identity. Platform,
-provider, SRAM, ledger, membership, and lifecycle records all use one
-generation/cookie pair. Compile-time checks keep the executor and watchdog
-recovery timeouts equal.
+The watchdog identity is evidence, not the attempt identity. Platform, SRAM,
+ledger, membership, and lifecycle records use the membership transaction
+generation/cookie pair. The provider lease has a distinct exact handle; its
+proof binds that handle to the transaction identity. Compile-time checks keep
+the executor and watchdog recovery timeouts equal.
 
 ## Lock and failure order
 
@@ -107,11 +126,12 @@ IPI, DCM, or retained-record ambiguity remains armed for watchdog reset.
 
 ## Hardware-free proof
 
-The focused KUnit suite must inject all external operations and prove exact
-success order, every ordinary and terminal checkpoint failure, every owner
-response corruption, pre-isolation inverse order, post-isolation retention,
-one CPU_ON, admission refusal, stale/duplicate lifecycle handoffs, failure
-before P32 publication, CPU9 absence, and zero CPU_OFF/retry.
+The 21 focused KUnit cases must inject all external operations and prove exact
+ten-stage success order, every ordinary and terminal checkpoint failure, every
+owner response corruption, real membership claim/publication/finalization/P32
+handoff, pre-isolation inverse order, post-isolation retention, one CPU_ON,
+admission refusal, stale/duplicate lifecycle handoffs, failure before P32
+publication, CPU9 absence, and zero CPU_OFF/retry.
 
 Static validation must prove that the binder profile has no late CPU caller,
 enabled binder DT node, physical test backend, or device-candidate profile.

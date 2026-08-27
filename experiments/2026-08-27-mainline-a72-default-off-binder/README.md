@@ -57,7 +57,7 @@ arm caller or binder Device Tree node; and no boot candidate is selected.
 
 ## Audit result
 
-Direct glue is rejected. The individual owners are sound, but five boundary
+Direct glue is rejected. The individual owners are sound, but seven boundary
 repairs are required before they can safely form a physical path:
 
 1. make regular executor checkpoints fallible and require a terminal retained
@@ -67,22 +67,29 @@ repairs are required before they can safely form a physical path:
 3. hold immutable references to the watchdog, platform-state, and BigiDVFS
    supplier devices, resolved by an unarmed default-off binder device;
 4. expose a narrow binder API so arm64 does not depend on the executor's
-   driver-private header; and
+   driver-private header;
 5. terminalize the binder before the existing P32 rollback publisher on a
-   generic CPU-up failure.
+   generic CPU-up failure; and
+6. add one exact post-proof membership success publication, because the current
+   owner never commits CPU8 membership outside bootstrap and test seeding.
 
 The current executor and watchdog constants both specify 15000 ms. The
-watchdog identity remains evidence only; the ledger, platform, provider, SRAM,
-membership, and lifecycle records must share one exact generation/cookie pair.
+watchdog identity remains evidence only. Ledger, platform, SRAM, membership,
+and lifecycle records share the membership transaction identity; the provider
+lease has its own exact generation/cookie handle, linked by the owner proof.
 
 ## Selected implementation
 
-Generate two logical patches from this contract:
+Generate five logical patches from this contract:
 
 1. repair the executor's retained-checkpoint contract and test every new
-   failure boundary; and
-2. add the default-off binder, typed physical adapters, MT6797 lifecycle
-   handoffs, focused injected KUnit tests, and a hardware-free profile.
+   failure boundary;
+2. add membership-owned admission, CPU_ON consumption, publication,
+   finalization, clean rejection, and four real-owner KUnit cases;
+3. add the closed DT binding without a base DT node;
+4. add the default-off binder, typed physical adapters, and MT6797 lifecycle
+   handoffs; and
+5. add five injected binder KUnit cases and the hardware-free profile.
 
 The binder proof adds no late CPU caller and no enabled binder DT node. Its
 static validator and sole bounded no-network QEMU run must demonstrate zero
@@ -94,5 +101,5 @@ caller and one enabled binder node.
 
 The authoritative ordered next step is
 [Roadmap Gate 7](../../docs/ROADMAP.md#7-bring-up-cpu8). This experiment
-constrains that work to the two hardware-free patches above; it does not admit
+constrains that work to the five hardware-free patches above; it does not admit
 a device candidate.

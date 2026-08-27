@@ -28,8 +28,10 @@ the loop. Positive identity-gated observations are unaffected.
   contract requires fallible regular and mandatory terminal retained
   checkpoints, one membership-owned CPU8 admission, three immutable supplier
   references, a narrow arm64/binder API, and binder terminalization before P32.
-  The audit performs no build, device action, or CPU request; implementation is
-  the sole Roadmap Gate 7 next step.
+  It also requires an exact post-proof CPU8 membership publication, absent from
+  the current owner. The frozen implementation is five logical hardware-free
+  patches with 21 focused KUnit cases. The audit performs no build, device
+  action, or CPU request; implementation is the sole Roadmap Gate 7 next step.
 - [2026-08-27 A72 PSCI/generic-hotplug lifecycle bridge](2026-08-27-mainline-a72-hotplug-lifecycle-bridge/README.md)
   — admits canonical patches `0394`--`0395` for two no-op-by-default lifecycle
   callbacks and a split transition executor. Exact clean published commit

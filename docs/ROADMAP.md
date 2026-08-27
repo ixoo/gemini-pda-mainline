@@ -5678,8 +5678,9 @@ The next ordered work is:
    rejects direct glue: executor checkpoints cannot currently propagate ledger
    failures, no terminal ledger commit exists, AVAILABLE membership still
    refuses CPU-up, supplier device references have no binder lifetime owner,
-   and generic failure reaches P32 before binder terminalization. **Selected
-   next:** implement the frozen two-patch repair-and-binder contract and prove
+   generic failure reaches P32 before binder terminalization, and the
+   membership owner has no post-proof CPU8 success publication. **Selected
+   next:** implement the frozen five-patch repair-and-binder contract and prove
    it with the focused exact-source Buildbox profile and one bounded
    no-network QEMU suite. This milestone adds no late CPU caller, enabled
    binder DT node, device candidate, or device action.
