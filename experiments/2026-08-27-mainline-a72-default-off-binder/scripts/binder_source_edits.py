@@ -734,12 +734,10 @@ def apply_provider_header(path: Path) -> None:
     text = replace_once(
         text,
         "void mt6797_a72_provider_unregister(const struct mt6797_a72_provider_ops *ops,\n"
-        "\t\t\t\t    void *context);\n"
-        "int mt6797_a72_provider_acquire(\n",
+        "\t\t\t    void *context);\n",
         "void mt6797_a72_provider_unregister(const struct mt6797_a72_provider_ops *ops,\n"
-        "\t\t\t\t    void *context);\n"
-        "bool mt6797_a72_provider_available(void);\n"
-        "int mt6797_a72_provider_acquire(\n",
+        "\t\t\t    void *context);\n"
+        "bool mt6797_a72_provider_available(void);\n",
         "provider presence declaration",
     )
     path.write_text(text, encoding="utf-8")
