@@ -86,6 +86,14 @@ generic CPU-up. They must remain authoritative. A direct `psci_ops.cpu_on()`, a
 second timeout, a new completion object, or IPI/DCM continuation at PSCI return
 would duplicate ownership and weaken attribution.
 
+The first Buildbox generation attempt from repository commit
+`a3176049965bf33d5237355daf0a574b86acf15f` reached the exact prepared source
+and stopped before applying an edit. The synthetic parent commit's generic
+whitespace check reported three inherited trailing spaces in upstream
+`include/linux/cpu.h`. The corrected generator preserves those parent bytes
+and skips the generated-diff check only for that initial import; both actual
+generated commits, normal patches, and admission still require the check.
+
 ## Current conclusion
 
 The bridge contract is frozen. Implementation remains hardware-free and must

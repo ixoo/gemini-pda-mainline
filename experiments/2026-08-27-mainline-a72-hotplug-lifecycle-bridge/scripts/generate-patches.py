@@ -59,9 +59,11 @@ def run(*args: str, cwd: Path, env: dict[str, str] | None = None) -> str:
     return completed.stdout.strip()
 
 
-def commit(root: Path, subject: str, body: str, timestamp: str) -> None:
+def commit(root: Path, subject: str, body: str, timestamp: str,
+           check_diff: bool = True) -> None:
     run("git", "add", "--", ".", cwd=root)
-    run("git", "diff", "--cached", "--check", cwd=root)
+    if check_diff:
+        run("git", "diff", "--cached", "--check", cwd=root)
     env = os.environ.copy()
     env.update({
         "GIT_AUTHOR_NAME": "Gemini Mainline Experiment",
@@ -149,6 +151,7 @@ def main() -> None:
             source, "MT6797 lifecycle post-0393 parent",
             "Exact relevant source copied from the canonical prepared tree through 0393.",
             "2026-08-27T11:00:00Z",
+            check_diff=False,
         )
         parent = run("git", "rev-parse", "HEAD", cwd=source)
 
