@@ -381,3 +381,5 @@ v7.1.3/0388-pstore-add-Gemini-mutable-transition-ledger.patch
 v7.1.3/0389-pstore-test-Gemini-mutable-transition-ledger.patch
 v7.1.3/0390-soc-mediatek-add-serialized-A72-platform-effects.patch
 v7.1.3/0391-soc-mediatek-test-serialized-A72-platform-effects.patch
+v7.1.3/0392-soc-mediatek-add-one-shot-A72-SRAM-LDO-owner.patch
+v7.1.3/0393-soc-mediatek-test-one-shot-A72-SRAM-LDO-owner.patch

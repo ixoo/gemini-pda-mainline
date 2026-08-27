@@ -1,0 +1,450 @@
+From fa1adaf23c154ddc295a5d349a7e9e1ada4328cd Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 27 Aug 2026 05:01:00 +0000
+Subject: [PATCH 1/2] soc: mediatek: add one-shot A72 SRAM-LDO owner
+
+Extend the serialized BigiDVFS backend with one exact CPU8 SRAM
+service and independent stable selector/calibration proof.
+---
+ drivers/soc/mediatek/Kconfig                  |  15 ++
+ .../soc/mediatek/mt6797-bigidvfs-backend.c    | 228 ++++++++++++++++++
+ .../mediatek/mt6797-bigidvfs-sram-internal.h  |  33 +++
+ .../soc/mediatek/mt6797-bigidvfs-backend.h    |  70 ++++++
+ 4 files changed, 346 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-bigidvfs-sram-internal.h
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index 5ff1b9e..61e7a71 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -325,6 +325,21 @@ config MTK_MT6797_DVFSP_BIGIDVFS_BACKEND
+ 	  state owner or clock provider. Its Device Tree node is disabled by
+ 	  default.
+ 
++config MTK_MT6797_A72_BIGIDVFS_SRAM_OWNER
++	bool "MediaTek MT6797 Cortex-A72 BigiDVFS SRAM-LDO owner"
++	depends on MTK_MT6797_DVFSP_BIGIDVFS_BACKEND
++	default n
++	help
++	  Extend the exact BigiDVFS backend with one serialized, attempt-bound,
++	  one-shot CPU8 SRAM-LDO request. The owner accepts only the fixed 1.1 V
++	  service, waits 240 microseconds, and requires two stable selector and
++	  calibration samples through the existing secure read transport.
++
++	  This option adds no production caller, generic voltage interface,
++	  inverse, retry, CPU request, regulator action, retained write, device
++	  trigger, or boot policy. Every post-call failure seals the owner and
++	  latches the backend fault. If unsure, say N.
++
+ config MTK_MT6797_A72_PLATFORM_PROVIDER_CLOCK_OBSERVER
+ 	bool "MediaTek MT6797 A72 platform/provider/protected-clock observer"
+ 	depends on ARM64_MT6797_A72_PROVIDER_OWNER
+diff --git a/drivers/soc/mediatek/mt6797-bigidvfs-backend.c b/drivers/soc/mediatek/mt6797-bigidvfs-backend.c
+index f8108e4..8b0cfd4 100644
+--- a/drivers/soc/mediatek/mt6797-bigidvfs-backend.c
++++ b/drivers/soc/mediatek/mt6797-bigidvfs-backend.c
+@@ -8,6 +8,7 @@
+  */
+ 
+ #include <linux/arm-smccc.h>
++#include <linux/delay.h>
+ #include <linux/device.h>
+ #include <linux/errno.h>
+ #include <linux/kernel.h>
+@@ -20,12 +21,16 @@
+ 
+ #include <linux/soc/mediatek/mt6797-bigidvfs-backend.h>
+ 
++#include "mt6797-bigidvfs-sram-internal.h"
+ #include "mt6797-protected-readback-internal.h"
+ 
+ struct mt6797_bigidvfs_backend {
+ 	struct mutex operation_lock;
+ 	bool faulted;
+ 	u64 sample_generation;
++#if IS_ENABLED(CONFIG_MTK_MT6797_A72_BIGIDVFS_SRAM_OWNER)
++	struct mt6797_bigidvfs_sram_owner sram_owner;
++#endif
+ };
+ 
+ struct mt6797_bigidvfs_raw_sample {
+@@ -45,6 +50,9 @@ static bool mt6797_bigidvfs_address_allowed(u32 address)
+ 	case MT6797_BIGIDVFS_PLL_PCW:
+ 	case MT6797_BIGIDVFS_PLL_ENABLE_POSDIV:
+ 	case MT6797_BIGIDVFS_SRAM_SELECTOR:
++#if IS_ENABLED(CONFIG_MTK_MT6797_A72_BIGIDVFS_SRAM_OWNER)
++	case MT6797_BIGIDVFS_SRAM_CALIBRATION:
++#endif
+ 	case MT6797_BIGIDVFS_CONTROL:
+ 		return true;
+ 	default:
+@@ -124,6 +132,186 @@ mt6797_bigidvfs_snapshot(const struct mt6797_bigidvfs_transport_ops *ops,
+ 	return 0;
+ }
+ 
++#if IS_ENABLED(CONFIG_MTK_MT6797_A72_BIGIDVFS_SRAM_OWNER)
++static int mt6797_bigidvfs_secure_sram_set(void *context, u32 mv_x100)
++{
++	struct arm_smccc_res result;
++
++	(void)context;
++	arm_smccc_smc(MT6797_BIGIDVFS_FID_SRAM_LDO_SET, mv_x100,
++		      0, 0, 0, 0, 0, 0, &result);
++	if (result.a0)
++		return -EIO;
++
++	return 0;
++}
++
++static void mt6797_bigidvfs_sram_delay(void *context, unsigned int min_us,
++				       unsigned int max_us)
++{
++	(void)context;
++	usleep_range(min_us, max_us);
++}
++
++static const struct mt6797_bigidvfs_sram_ops mt6797_bigidvfs_sram_ops = {
++	.set = mt6797_bigidvfs_secure_sram_set,
++	.read = mt6797_bigidvfs_secure_read,
++	.delay = mt6797_bigidvfs_sram_delay,
++};
++
++static bool
++mt6797_bigidvfs_sram_ops_valid(const struct mt6797_bigidvfs_sram_ops *ops)
++{
++	return ops && ops->set && ops->read && ops->delay;
++}
++
++static bool
++mt6797_bigidvfs_sram_request_valid(const struct mt6797_bigidvfs_sram_request *request)
++{
++	return request && request->abi == MT6797_BIGIDVFS_SRAM_OWNER_ABI &&
++	       request->attempt_id && request->cookie;
++}
++
++static bool
++mt6797_bigidvfs_sram_request_matches(const struct mt6797_bigidvfs_sram_request *left,
++				     const struct mt6797_bigidvfs_sram_request *right)
++{
++	return mt6797_bigidvfs_sram_request_valid(left) &&
++	       mt6797_bigidvfs_sram_request_valid(right) &&
++	       left->attempt_id == right->attempt_id &&
++	       left->cookie == right->cookie;
++}
++
++static void
++mt6797_bigidvfs_sram_output(const struct mt6797_bigidvfs_sram_owner *owner,
++			    struct mt6797_bigidvfs_sram_result *result)
++{
++	*result = owner->result;
++}
++
++static int
++mt6797_bigidvfs_sram_fail(struct mt6797_bigidvfs_sram_owner *owner, int error,
++			  struct mt6797_bigidvfs_sram_result *result)
++{
++	owner->state = MT6797_BIGIDVFS_SRAM_OWNER_FAULTED;
++	owner->result.error = error;
++	owner->result.sealed = true;
++	mt6797_bigidvfs_sram_output(owner, result);
++	return error;
++}
++
++static int
++mt6797_bigidvfs_sram_read(struct mt6797_bigidvfs_sram_owner *owner,
++			  const struct mt6797_bigidvfs_sram_ops *ops,
++			  void *context, u32 address, u32 step, u32 *value,
++			  struct mt6797_bigidvfs_sram_result *result)
++{
++	int ret;
++
++	owner->result.attempted_steps |= step;
++	ret = ops->read(context, address, value);
++	if (ret)
++		return mt6797_bigidvfs_sram_fail(owner, ret, result);
++	owner->result.completed_steps |= step;
++	return 0;
++}
++
++int
++mt6797_bigidvfs_sram_owner_execute(struct mt6797_bigidvfs_sram_owner *owner,
++				   const struct mt6797_bigidvfs_sram_ops *ops,
++				   void *context,
++				   const struct mt6797_bigidvfs_sram_request *request,
++				   struct mt6797_bigidvfs_sram_result *result)
++{
++	int ret;
++
++	if (!result)
++		return -EINVAL;
++	*result = (struct mt6797_bigidvfs_sram_result){};
++	if (!owner || !mt6797_bigidvfs_sram_ops_valid(ops) ||
++	    !mt6797_bigidvfs_sram_request_valid(request))
++		return -EINVAL;
++	if (owner->state != MT6797_BIGIDVFS_SRAM_OWNER_UNUSED) {
++		mt6797_bigidvfs_sram_output(owner, result);
++		if (!mt6797_bigidvfs_sram_request_matches(&owner->request,
++							  request))
++			return -EPERM;
++		return -EALREADY;
++	}
++	if (request->cpu != 8 || !request->provider_held ||
++	    !request->isolation_crossed || request->cpu8_online ||
++	    request->cpu9_online)
++		return -EPERM;
++
++	owner->state = MT6797_BIGIDVFS_SRAM_OWNER_INFLIGHT;
++	owner->request = *request;
++	owner->result = (struct mt6797_bigidvfs_sram_result) {
++		.abi = MT6797_BIGIDVFS_SRAM_OWNER_ABI,
++		.requested_mv_x100 = MT6797_BIGIDVFS_SRAM_TARGET_MV_X100,
++		.attempt_id = request->attempt_id,
++		.cookie = request->cookie,
++		.effect_attempted = true,
++	};
++	owner->result.attempted_steps |= MT6797_BIGIDVFS_SRAM_SERVICE;
++	ret = ops->set(context, MT6797_BIGIDVFS_SRAM_TARGET_MV_X100);
++	if (ret)
++		return mt6797_bigidvfs_sram_fail(owner, ret, result);
++	owner->result.completed_steps |= MT6797_BIGIDVFS_SRAM_SERVICE;
++
++	owner->result.attempted_steps |= MT6797_BIGIDVFS_SRAM_SETTLE;
++	ops->delay(context, MT6797_BIGIDVFS_SRAM_SETTLE_MIN_US,
++		   MT6797_BIGIDVFS_SRAM_SETTLE_MAX_US);
++	owner->result.completed_steps |= MT6797_BIGIDVFS_SRAM_SETTLE;
++
++	ret = mt6797_bigidvfs_sram_read(owner, ops, context,
++					MT6797_BIGIDVFS_SRAM_SELECTOR,
++					MT6797_BIGIDVFS_SRAM_SELECTOR_FIRST,
++					&owner->result.selector_first, result);
++	if (ret)
++		return ret;
++	ret = mt6797_bigidvfs_sram_read(owner, ops, context,
++					MT6797_BIGIDVFS_SRAM_CALIBRATION,
++					MT6797_BIGIDVFS_SRAM_CALIBRATION_FIRST,
++					&owner->result.calibration_first, result);
++	if (ret)
++		return ret;
++	ret = mt6797_bigidvfs_sram_read(owner, ops, context,
++					MT6797_BIGIDVFS_SRAM_SELECTOR,
++					MT6797_BIGIDVFS_SRAM_SELECTOR_SECOND,
++					&owner->result.selector_second, result);
++	if (ret)
++		return ret;
++	ret = mt6797_bigidvfs_sram_read(owner, ops, context,
++					MT6797_BIGIDVFS_SRAM_CALIBRATION,
++					MT6797_BIGIDVFS_SRAM_CALIBRATION_SECOND,
++					&owner->result.calibration_second, result);
++	if (ret)
++		return ret;
++
++	if (owner->result.selector_first != owner->result.selector_second ||
++	    owner->result.calibration_first != owner->result.calibration_second)
++		return mt6797_bigidvfs_sram_fail(owner, -EAGAIN, result);
++	owner->result.attempted_steps |= MT6797_BIGIDVFS_SRAM_SELECTOR_VALID;
++	if ((owner->result.selector_second &
++	     MT6797_BIGIDVFS_SRAM_SELECTOR_MASK) !=
++	    MT6797_BIGIDVFS_SRAM_SELECTOR_EXPECTED)
++		return mt6797_bigidvfs_sram_fail(owner, -ERANGE, result);
++	owner->result.completed_steps |= MT6797_BIGIDVFS_SRAM_SELECTOR_VALID;
++	owner->result.attempted_steps |= MT6797_BIGIDVFS_SRAM_CALIBRATION_VALID;
++	if ((owner->result.calibration_second &
++	     ~MT6797_BIGIDVFS_SRAM_CALIBRATION_MASK) ||
++	    !(owner->result.calibration_second &
++	      MT6797_BIGIDVFS_SRAM_CALIBRATION_MASK))
++		return mt6797_bigidvfs_sram_fail(owner, -ERANGE, result);
++	owner->result.completed_steps |= MT6797_BIGIDVFS_SRAM_CALIBRATION_VALID;
++	owner->state = MT6797_BIGIDVFS_SRAM_OWNER_VERIFIED;
++	owner->result.verified = true;
++	owner->result.sealed = true;
++	mt6797_bigidvfs_sram_output(owner, result);
++	return 0;
++}
++#endif
++
+ static void
+ mt6797_bigidvfs_mark_fault(struct mt6797_bigidvfs_backend *backend)
+ {
+@@ -172,6 +360,41 @@ out_unlock:
+ }
+ EXPORT_SYMBOL_GPL(mt6797_bigidvfs_backend_read);
+ 
++#if IS_ENABLED(CONFIG_MTK_MT6797_A72_BIGIDVFS_SRAM_OWNER)
++int
++mt6797_bigidvfs_sram_enable(struct device *dev,
++			    const struct mt6797_bigidvfs_sram_request *request,
++			    struct mt6797_bigidvfs_sram_result *result)
++{
++	struct mt6797_bigidvfs_backend *backend;
++	int ret;
++
++	if (!result)
++		return -EINVAL;
++	*result = (struct mt6797_bigidvfs_sram_result){};
++	if (!dev)
++		return -EINVAL;
++	backend = dev_get_drvdata(dev);
++	if (!backend)
++		return -ENODEV;
++
++	mutex_lock(&backend->operation_lock);
++	if (backend->faulted) {
++		ret = -EIO;
++		goto out_unlock;
++	}
++	ret = mt6797_bigidvfs_sram_owner_execute(&backend->sram_owner,
++						 &mt6797_bigidvfs_sram_ops,
++						 backend, request, result);
++	if (ret && result->error)
++		mt6797_bigidvfs_mark_fault(backend);
++
++out_unlock:
++	mutex_unlock(&backend->operation_lock);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_bigidvfs_sram_enable);
++#endif
+ static int mt6797_bigidvfs_backend_probe(struct platform_device *pdev)
+ {
+ 	struct mt6797_bigidvfs_backend *backend;
+@@ -188,8 +411,13 @@ static int mt6797_bigidvfs_backend_probe(struct platform_device *pdev)
+ 
+ 	mutex_init(&backend->operation_lock);
+ 	platform_set_drvdata(pdev, backend);
++#if IS_ENABLED(CONFIG_MTK_MT6797_A72_BIGIDVFS_SRAM_OWNER)
++	dev_info(&pdev->dev,
++		 "secure readback and one-shot SRAM owner ready; no caller\n");
++#else
+ 	dev_info(&pdev->dev,
+ 		 "secure readback transport ready; owner unregistered\n");
++#endif
+ 
+ 	return 0;
+ }
+diff --git a/drivers/soc/mediatek/mt6797-bigidvfs-sram-internal.h b/drivers/soc/mediatek/mt6797-bigidvfs-sram-internal.h
+new file mode 100644
+index 0000000..c528c0b
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-bigidvfs-sram-internal.h
+@@ -0,0 +1,33 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __MT6797_BIGIDVFS_SRAM_INTERNAL_H
++#define __MT6797_BIGIDVFS_SRAM_INTERNAL_H
++
++#include <linux/soc/mediatek/mt6797-bigidvfs-backend.h>
++
++enum mt6797_bigidvfs_sram_owner_state {
++	MT6797_BIGIDVFS_SRAM_OWNER_UNUSED,
++	MT6797_BIGIDVFS_SRAM_OWNER_INFLIGHT,
++	MT6797_BIGIDVFS_SRAM_OWNER_VERIFIED,
++	MT6797_BIGIDVFS_SRAM_OWNER_FAULTED,
++};
++
++struct mt6797_bigidvfs_sram_ops {
++	int (*set)(void *context, u32 mv_x100);
++	int (*read)(void *context, u32 address, u32 *value);
++	void (*delay)(void *context, unsigned int min_us, unsigned int max_us);
++};
++
++struct mt6797_bigidvfs_sram_owner {
++	enum mt6797_bigidvfs_sram_owner_state state;
++	struct mt6797_bigidvfs_sram_request request;
++	struct mt6797_bigidvfs_sram_result result;
++};
++
++int
++mt6797_bigidvfs_sram_owner_execute(struct mt6797_bigidvfs_sram_owner *owner,
++				   const struct mt6797_bigidvfs_sram_ops *ops,
++				   void *context,
++				   const struct mt6797_bigidvfs_sram_request *request,
++				   struct mt6797_bigidvfs_sram_result *result);
++
++#endif /* __MT6797_BIGIDVFS_SRAM_INTERNAL_H */
+diff --git a/include/linux/soc/mediatek/mt6797-bigidvfs-backend.h b/include/linux/soc/mediatek/mt6797-bigidvfs-backend.h
+index de04146..f54c64f 100644
+--- a/include/linux/soc/mediatek/mt6797-bigidvfs-backend.h
++++ b/include/linux/soc/mediatek/mt6797-bigidvfs-backend.h
+@@ -2,6 +2,9 @@
+ #ifndef __LINUX_SOC_MEDIATEK_MT6797_BIGIDVFS_BACKEND_H
+ #define __LINUX_SOC_MEDIATEK_MT6797_BIGIDVFS_BACKEND_H
+ 
++#include <linux/bitops.h>
++#include <linux/errno.h>
++#include <linux/kconfig.h>
+ #include <linux/types.h>
+ 
+ struct device;
+@@ -23,6 +26,73 @@ struct mt6797_bigidvfs_readback {
+ 	u32 control;
+ };
+ 
++#define MT6797_BIGIDVFS_SRAM_OWNER_ABI		1U
++#define MT6797_BIGIDVFS_FID_SRAM_LDO_SET	0xc20003bfUL
++#define MT6797_BIGIDVFS_SRAM_CALIBRATION	0x102222b4U
++#define MT6797_BIGIDVFS_SRAM_TARGET_MV_X100	110000U
++#define MT6797_BIGIDVFS_SRAM_SELECTOR_MASK	GENMASK(11, 0)
++#define MT6797_BIGIDVFS_SRAM_SELECTOR_EXPECTED	0x8fbU
++#define MT6797_BIGIDVFS_SRAM_CALIBRATION_MASK	GENMASK(15, 0)
++#define MT6797_BIGIDVFS_SRAM_SETTLE_MIN_US	240U
++#define MT6797_BIGIDVFS_SRAM_SETTLE_MAX_US	260U
++
++enum mt6797_bigidvfs_sram_step {
++	MT6797_BIGIDVFS_SRAM_SERVICE = BIT(0),
++	MT6797_BIGIDVFS_SRAM_SETTLE = BIT(1),
++	MT6797_BIGIDVFS_SRAM_SELECTOR_FIRST = BIT(2),
++	MT6797_BIGIDVFS_SRAM_CALIBRATION_FIRST = BIT(3),
++	MT6797_BIGIDVFS_SRAM_SELECTOR_SECOND = BIT(4),
++	MT6797_BIGIDVFS_SRAM_CALIBRATION_SECOND = BIT(5),
++	MT6797_BIGIDVFS_SRAM_SELECTOR_VALID = BIT(6),
++	MT6797_BIGIDVFS_SRAM_CALIBRATION_VALID = BIT(7),
++};
++
++struct mt6797_bigidvfs_sram_request {
++	u32 abi;
++	u32 cpu;
++	u64 attempt_id;
++	u64 cookie;
++	bool provider_held;
++	bool isolation_crossed;
++	bool cpu8_online;
++	bool cpu9_online;
++};
++
++struct mt6797_bigidvfs_sram_result {
++	u32 abi;
++	u32 attempted_steps;
++	u32 completed_steps;
++	u32 requested_mv_x100;
++	u32 selector_first;
++	u32 calibration_first;
++	u32 selector_second;
++	u32 calibration_second;
++	u64 attempt_id;
++	u64 cookie;
++	s32 error;
++	bool effect_attempted;
++	bool verified;
++	bool sealed;
++};
++
++#if IS_ENABLED(CONFIG_MTK_MT6797_A72_BIGIDVFS_SRAM_OWNER)
++int
++mt6797_bigidvfs_sram_enable(struct device *dev,
++			    const struct mt6797_bigidvfs_sram_request *request,
++			    struct mt6797_bigidvfs_sram_result *result);
++#else
++static inline int
++mt6797_bigidvfs_sram_enable(struct device *dev,
++			    const struct mt6797_bigidvfs_sram_request *request,
++			    struct mt6797_bigidvfs_sram_result *result)
++{
++	(void)dev;
++	(void)request;
++	if (result)
++		*result = (struct mt6797_bigidvfs_sram_result){};
++	return -EOPNOTSUPP;
++}
++#endif
+ int mt6797_bigidvfs_backend_read(
+ 	struct device *dev, struct mt6797_bigidvfs_readback *readback);
+ 

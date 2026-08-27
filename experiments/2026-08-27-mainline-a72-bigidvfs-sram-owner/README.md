@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-27-mainline-a72-bigidvfs-sram-owner` |
-| Status | ownership contract frozen; deterministic source generation in progress |
+| Status | canonical patches `0392`/`0393` validated; Buildbox compile pending |
 | Subsystem | MT6797 CPU8 secure SRAM-LDO request and readback |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-27 America/New_York |
@@ -62,6 +62,10 @@ attempted, every outcome seals the owner and later recovery remains reset-only.
   output package.
 - `scripts/run-kunit-qemu` and `scripts/classify-kunit.py` accept only the exact
   pushed Buildbox package and focused no-network suite.
+- Canonical patches `0392` and `0393` contain the byte-exact validated
+  production owner and injected KUnit suite.
+- [`results/generation-8b93e3cf.txt`](results/generation-8b93e3cf.txt) records
+  the exact generator, source-state, patch, and safety identities.
 
 ## Procedure
 
@@ -99,6 +103,13 @@ function-signature and continuation-alignment checks, with zero errors and
 zero warnings. The templates were normalized to the canonical kernel style;
 the API, transaction order, state machine, and test behavior did not change.
 
+The third Buildbox generation attempt from repository commit
+`8b93e3cf6e8437a4cd5c2802525fbdb5949212cb` passed production, test, and exact
+replay source validation plus strict Checkpatch for both patches. The bounded
+package contained exactly `0392` and `0393`; its checksums verified after the
+only permitted package fetch. The canonical copies are byte-identical to that
+package.
+
 ## Analysis
 
 Reusing the backend mutex preserves a single resource owner. Treating the set
@@ -109,8 +120,9 @@ and recovery policy outside this owner.
 
 ## Conclusion
 
-Implementation proof is pending. No hardware support claim follows from the
-source audit or contract.
+Source implementation, style, and replay proof pass. Buildbox compilation and
+focused QEMU runtime proof remain pending. No hardware support claim follows
+from the source audit or contract.
 
 ## Follow-up
 
