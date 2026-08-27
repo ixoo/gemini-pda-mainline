@@ -92,16 +92,16 @@ def apply_header(path: Path) -> None:
         "bool\n",
         "int mt6797_a72_membership_validate_up(unsigned int cpu, int tasks_frozen,\n"
         "\t\t\t\t      enum cpuhp_state target);\n"
-        "int mt6797_a72_membership_claim_cpu8(\n"
-        "\tstruct mt6797_a72_transaction *transaction);\n"
-        "int mt6797_a72_membership_reject_cpu8(\n"
-        "\tstruct mt6797_a72_transaction *transaction);\n"
-        "int mt6797_a72_membership_begin_cpu8_on(\n"
-        "\tstruct mt6797_a72_transaction *transaction);\n"
-        "int mt6797_a72_membership_publish_cpu8_success(\n"
-        "\tstruct mt6797_a72_transaction *transaction);\n"
-        "int mt6797_a72_membership_finalize_cpu8_success(\n"
-        "\tstruct mt6797_a72_transaction *transaction);\n"
+        "int mt6797_a72_membership_claim_cpu8("
+        "struct mt6797_a72_transaction *transaction);\n"
+        "int mt6797_a72_membership_reject_cpu8("
+        "struct mt6797_a72_transaction *transaction);\n"
+        "int mt6797_a72_membership_begin_cpu8_on("
+        "struct mt6797_a72_transaction *transaction);\n"
+        "int mt6797_a72_membership_publish_cpu8_success("
+        "struct mt6797_a72_transaction *transaction);\n"
+        "int mt6797_a72_membership_finalize_cpu8_success("
+        "struct mt6797_a72_transaction *transaction);\n"
         "bool\n",
         "binder membership prototypes",
     )
@@ -109,12 +109,12 @@ def apply_header(path: Path) -> None:
         text,
         "void mt6797_a72_membership_test_seed_available_cpu9(void);\n",
         "void mt6797_a72_membership_test_seed_available_cpu9(void);\n"
-        "int mt6797_a72_membership_test_publish_cpu8_success(\n"
-        "\tstruct mt6797_a72_transaction *transaction,\n"
-        "\tbool cpu8_online, bool cpu9_online);\n"
-        "int mt6797_a72_membership_test_finalize_cpu8_success(\n"
-        "\tstruct mt6797_a72_transaction *transaction,\n"
-        "\tbool cpu8_online, bool cpu9_online);\n",
+        "int mt6797_a72_membership_test_publish_cpu8_success("
+        "struct mt6797_a72_transaction *transaction,\n"
+        "\t\t\t\t\t\t    bool cpu8_online, bool cpu9_online);\n"
+        "int mt6797_a72_membership_test_finalize_cpu8_success("
+        "struct mt6797_a72_transaction *transaction,\n"
+        "\t\t\t\t\t\t     bool cpu8_online, bool cpu9_online);\n",
         "membership test prototypes",
     )
     path.write_text(text, encoding="utf-8")
@@ -311,8 +311,7 @@ int mt6797_a72_membership_validate_up(unsigned int cpu, int tasks_frozen,
 \treturn mt6797_a72_membership_check_up(cpu, tasks_frozen, target, false);
 }
 
-int mt6797_a72_membership_claim_cpu8(
-\tstruct mt6797_a72_transaction *transaction)
+int mt6797_a72_membership_claim_cpu8(struct mt6797_a72_transaction *transaction)
 {
 \tunsigned long flags;
 \tint ret = -EPERM;
@@ -348,8 +347,7 @@ int mt6797_a72_membership_claim_cpu8(
 \treturn ret;
 }
 
-int mt6797_a72_membership_reject_cpu8(
-\tstruct mt6797_a72_transaction *transaction)
+int mt6797_a72_membership_reject_cpu8(struct mt6797_a72_transaction *transaction)
 {
 \tunsigned long flags;
 \tint ret = -EPERM;
@@ -388,8 +386,7 @@ int mt6797_a72_membership_reject_cpu8(
 \treturn ret;
 }
 
-int mt6797_a72_membership_begin_cpu8_on(
-\tstruct mt6797_a72_transaction *transaction)
+int mt6797_a72_membership_begin_cpu8_on(struct mt6797_a72_transaction *transaction)
 {
 \tunsigned long flags;
 \tint ret = -EPERM;
@@ -422,9 +419,9 @@ int mt6797_a72_membership_begin_cpu8_on(
 \treturn ret;
 }
 
-static int mt6797_a72_membership_publish_cpu8_success_state(
-\tstruct mt6797_a72_transaction *transaction,
-\tbool cpu8_online, bool cpu9_online)
+static int mt6797_a72_publish_cpu8_success_state(struct mt6797_a72_transaction *transaction,
+\t\t\t\t\t\t bool cpu8_online,
+\t\t\t\t\t\t bool cpu9_online)
 {
 \tunsigned long flags;
 \tint ret = -EPERM;
@@ -460,16 +457,15 @@ static int mt6797_a72_membership_publish_cpu8_success_state(
 \treturn ret;
 }
 
-int mt6797_a72_membership_publish_cpu8_success(
-\tstruct mt6797_a72_transaction *transaction)
+int mt6797_a72_membership_publish_cpu8_success(struct mt6797_a72_transaction *transaction)
 {
-\treturn mt6797_a72_membership_publish_cpu8_success_state(
-\t\ttransaction, cpu_online(8), cpu_online(9));
+\treturn mt6797_a72_publish_cpu8_success_state(transaction,
+\t\t\t\t\t\t     cpu_online(8), cpu_online(9));
 }
 
-static int mt6797_a72_membership_finalize_cpu8_success_state(
-\tstruct mt6797_a72_transaction *transaction,
-\tbool cpu8_online, bool cpu9_online)
+static int mt6797_a72_finalize_cpu8_success_state(struct mt6797_a72_transaction *transaction,
+\t\t\t\t\t\t  bool cpu8_online,
+\t\t\t\t\t\t  bool cpu9_online)
 {
 \tunsigned long flags;
 \tint ret = -EPERM;
@@ -501,30 +497,29 @@ static int mt6797_a72_membership_finalize_cpu8_success_state(
 \treturn ret;
 }
 
-int mt6797_a72_membership_finalize_cpu8_success(
-\tstruct mt6797_a72_transaction *transaction)
+int mt6797_a72_membership_finalize_cpu8_success(struct mt6797_a72_transaction *transaction)
 {
-\treturn mt6797_a72_membership_finalize_cpu8_success_state(
-\t\ttransaction, cpu_online(8), cpu_online(9));
+\treturn mt6797_a72_finalize_cpu8_success_state(transaction,
+\t\t\t\t\t\t      cpu_online(8), cpu_online(9));
 }
 '''
     text = replace_once(text, old_gate, new_gate, "public admission gate")
     text = replace_once(
         text,
         "void mt6797_a72_membership_test_seed_available_cpu9(void)\n",
-        "int mt6797_a72_membership_test_publish_cpu8_success(\n"
-        "\tstruct mt6797_a72_transaction *transaction,\n"
-        "\tbool cpu8_online, bool cpu9_online)\n"
+        "int mt6797_a72_membership_test_publish_cpu8_success("
+        "struct mt6797_a72_transaction *transaction,\n"
+        "\t\t\t\t\t\t    bool cpu8_online, bool cpu9_online)\n"
         "{\n"
-        "\treturn mt6797_a72_membership_publish_cpu8_success_state(\n"
-        "\t\ttransaction, cpu8_online, cpu9_online);\n"
+        "\treturn mt6797_a72_publish_cpu8_success_state(transaction,\n"
+        "\t\t\t\t\t\t     cpu8_online, cpu9_online);\n"
         "}\n\n"
-        "int mt6797_a72_membership_test_finalize_cpu8_success(\n"
-        "\tstruct mt6797_a72_transaction *transaction,\n"
-        "\tbool cpu8_online, bool cpu9_online)\n"
+        "int mt6797_a72_membership_test_finalize_cpu8_success("
+        "struct mt6797_a72_transaction *transaction,\n"
+        "\t\t\t\t\t\t     bool cpu8_online, bool cpu9_online)\n"
         "{\n"
-        "\treturn mt6797_a72_membership_finalize_cpu8_success_state(\n"
-        "\t\ttransaction, cpu8_online, cpu9_online);\n"
+        "\treturn mt6797_a72_finalize_cpu8_success_state(transaction,\n"
+        "\t\t\t\t\t\t      cpu8_online, cpu9_online);\n"
         "}\n\n"
         "void mt6797_a72_membership_test_seed_available_cpu9(void)\n",
         "membership success test hooks",
@@ -537,8 +532,7 @@ def apply_membership_tests(path: Path) -> None:
     anchor = "static void mt6797_a72_owner_forged_token_rejected"
     addition = r'''#if IS_ENABLED(CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER)
 static int
-mt6797_a72_test_seed_cpu8_claimed(
-	struct mt6797_a72_transaction *transaction)
+mt6797_a72_test_seed_cpu8_claimed(struct mt6797_a72_transaction *transaction)
 {
 	struct mt6797_a72_entry_snapshot entry = mt6797_a72_entry_for_up(8);
 	struct arm64_late_cpu_ready_token ready = mt6797_a72_ready_token_for_up();
@@ -565,8 +559,7 @@ mt6797_a72_test_seed_cpu8_claimed(
 }
 
 static int
-mt6797_a72_test_seed_cpu8_claimed_p27(
-	struct mt6797_a72_transaction *transaction)
+mt6797_a72_test_seed_cpu8_claimed_p27(struct mt6797_a72_transaction *transaction)
 {
 	struct mt6797_a72_p27_preparation preparation;
 	int ret;
@@ -583,8 +576,7 @@ mt6797_a72_test_seed_cpu8_claimed_p27(
 }
 
 static int
-mt6797_a72_test_seed_cpu8_claimed_p28(
-	struct mt6797_a72_transaction *transaction)
+mt6797_a72_test_seed_cpu8_claimed_p28(struct mt6797_a72_transaction *transaction)
 {
 	struct mt6797_a72_provider_acquire_proof proof;
 	struct mt6797_a72_p28_preparation preparation;
@@ -597,8 +589,7 @@ mt6797_a72_test_seed_cpu8_claimed_p28(
 	if (ret)
 		return ret;
 	proof = mt6797_a72_provider_acquire_proof_for(transaction);
-	ret = mt6797_a72_membership_confirm_provider_acquire(transaction,
-							    &proof);
+	ret = mt6797_a72_membership_confirm_provider_acquire(transaction, &proof);
 	if (ret)
 		return ret;
 	ret = mt6797_a72_membership_begin_p28_preparation(transaction);
@@ -624,8 +615,8 @@ static void mt6797_a72_owner_binder_success_handoff(struct kunit *test)
 	KUNIT_EXPECT_EQ(test,
 			mt6797_a72_membership_begin_cpu8_on(&transaction),
 			-EPERM);
-	ret = mt6797_a72_membership_test_publish_cpu8_success(
-		&transaction, true, false);
+	ret = mt6797_a72_membership_test_publish_cpu8_success(&transaction,
+							      true, false);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	mt6797_a72_membership_snapshot(&snapshot);
 	KUNIT_EXPECT_EQ(test, snapshot.phase,
@@ -633,16 +624,15 @@ static void mt6797_a72_owner_binder_success_handoff(struct kunit *test)
 	KUNIT_EXPECT_EQ(test, snapshot.members, (u32)BIT(0));
 	KUNIT_EXPECT_TRUE(test, snapshot.active.cpu8_success_published);
 
-	ret = mt6797_a72_membership_test_finalize_cpu8_success(
-		&transaction, true, false);
+	ret = mt6797_a72_membership_test_finalize_cpu8_success(&transaction,
+							       true, false);
 	KUNIT_EXPECT_EQ(test, ret, 0);
 	mt6797_a72_membership_snapshot(&snapshot);
 	KUNIT_EXPECT_EQ(test, snapshot.phase, (u32)MT6797_A72_PHASE_IDLE);
 	KUNIT_EXPECT_EQ(test, snapshot.members, (u32)BIT(0));
 	KUNIT_EXPECT_EQ(test, snapshot.retired_mask, (u32)BIT(0));
 	KUNIT_EXPECT_FALSE(test, snapshot.active.valid);
-	KUNIT_EXPECT_TRUE(test,
-			 snapshot.retired[0].cpu8_success_published);
+	KUNIT_EXPECT_TRUE(test, snapshot.retired[0].cpu8_success_published);
 }
 
 static void mt6797_a72_owner_binder_p32_from_verifying(struct kunit *test)
@@ -654,13 +644,13 @@ static void mt6797_a72_owner_binder_p32_from_verifying(struct kunit *test)
 
 	ret = mt6797_a72_test_seed_cpu8_claimed_p28(&transaction);
 	KUNIT_ASSERT_EQ(test, ret, 0);
-	KUNIT_ASSERT_EQ(test,
-			mt6797_a72_membership_begin_cpu8_on(&transaction), 0);
-	KUNIT_ASSERT_EQ(test,
-			mt6797_a72_membership_test_publish_cpu8_success(
-				&transaction, true, false), 0);
-	ret = mt6797_a72_membership_publish_p32(
-		8, CPUHP_ONLINE, -ENOSPC, &trace);
+	ret = mt6797_a72_membership_begin_cpu8_on(&transaction);
+	KUNIT_ASSERT_EQ(test, ret, 0);
+	ret = mt6797_a72_membership_test_publish_cpu8_success(&transaction,
+							      true, false);
+	KUNIT_ASSERT_EQ(test, ret, 0);
+	ret = mt6797_a72_membership_publish_p32(8, CPUHP_ONLINE,
+						-ENOSPC, &trace);
 	KUNIT_EXPECT_EQ(test, ret, 0);
 	mt6797_a72_membership_snapshot(&snapshot);
 	KUNIT_EXPECT_EQ(test, snapshot.phase, (u32)MT6797_A72_PHASE_FAULT);
@@ -704,8 +694,7 @@ static void mt6797_a72_owner_binder_p29_without_provider(struct kunit *test)
 	KUNIT_EXPECT_EQ(test, snapshot.phase,
 			(u32)MT6797_A72_PHASE_REJECTED);
 	KUNIT_EXPECT_TRUE(test, snapshot.retired[0].p29_valid);
-	KUNIT_EXPECT_FALSE(test,
-			 snapshot.retired[0].provider_acquire_valid);
+	KUNIT_EXPECT_FALSE(test, snapshot.retired[0].provider_acquire_valid);
 }
 #endif
 
