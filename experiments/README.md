@@ -23,6 +23,13 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-27 A72 PSCI/generic-hotplug lifecycle bridge](2026-08-27-mainline-a72-hotplug-lifecycle-bridge/README.md)
+  — admits canonical patches `0394`--`0395` for two no-op-by-default lifecycle
+  callbacks and a split transition executor. Exact clean published commit
+  `f69199e3` compiles on Buildbox; its sole bounded no-network QEMU suite passes
+  all ten cases with zero failures or skips. MT6797 admission remains closed,
+  there are zero production callers or physical operations, and the complete
+  default-off binder is next.
 - [2026-08-27 MT6797 A72 serialized platform-effect owner](2026-08-27-mainline-a72-platform-effect-owner/README.md)
   — implements the next default-off owner for attempt-bound P27 acquire and
   inverse, external-isolation clear, and post-online MP2 DCM under the existing
@@ -47,11 +54,11 @@ the loop. Positive identity-gated observations are unaffected.
   — maps all 12 callbacks in the proven one-shot CPU8 executor against the
   exact prepared source. Only the DA921x acquire/release pair is directly
   reusable; four callbacks belong in an extended platform-state transaction,
-  three need narrow owner APIs, and three need a PSCI/generic-hotplug lifecycle
-  bridge. It also rejects the existing fixed two-record pstore helper as a
-  per-stage transition journal. The ordered implementation begins with an
-  exclusive 15-second watchdog takeover, then a retained last-stage ledger;
-  no build, device action, or CPU request occurred.
+  three need narrow owner APIs, and three needed a PSCI/generic-hotplug
+  lifecycle bridge. Those default-off owners and the lifecycle bridge now pass
+  their individual hardware-free proofs; the complete binder is next. It also
+  rejects the existing fixed two-record pstore helper as a per-stage transition
+  journal. No build, device action, or CPU request occurred in this audit.
 - [2026-08-26 A72 injected transition executor](2026-08-26-mainline-a72-cpu8-transition-executor/README.md)
   — admits canonical patches `0384`--`0385` for a default-off one-shot CPU8
   coordinator with injected operations and no physical backend or caller.

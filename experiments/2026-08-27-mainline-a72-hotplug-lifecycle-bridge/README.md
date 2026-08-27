@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-27-mainline-a72-hotplug-lifecycle-bridge` |
-| Status | contract frozen; implementation pending |
+| Status | hardware-free lifecycle bridge complete; production binding closed |
 | Subsystem | arm64 PSCI acceptance, secondary completion, and generic CPUHP continuation |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-27 America/New_York |
@@ -51,8 +51,8 @@ operation is selected.
   and resume semantics, failures, and test boundaries.
 - [`contract.json`](contract.json) records the exact machine-readable source
   and ownership map.
-- `templates/` will contain independently written source and test snippets.
-- `scripts/` will deterministically generate, validate, replay, build, and run
+- `templates/` contains independently written source and test snippets.
+- `scripts/` deterministically generates, validates, replays, builds, and runs
   the exact focused result through Buildbox.
 
 ## Procedure
@@ -146,29 +146,37 @@ split lifecycle call's opening line; test behavior is unchanged.
 
 ## Current conclusion
 
-The bridge contract is frozen. Exact Buildbox generation from repository commit
+The lifecycle bridge milestone is complete. Exact Buildbox generation from
+repository commit
 `07c14f63672a536fb9a312adcb89ba2d03961266` passed production/test source
 validation, strict patch review, deterministic replay, and package checksum
 verification. The fetched `0394` and `0395` bytes are now admitted to the
 canonical series; [the generation record](results/patch-generation-20260827.txt)
 pins their identities and invariant counts.
 
-The remaining hardware-free gate is an exact Buildbox compile followed by the
-focused ten-case QEMU KUnit proof. There is still no production lifecycle
-callback, physical-effect caller, boot candidate, or device action.
-
 The first exact admitted-tree Buildbox compile from commit
 `99f40ac0182c37cf18f60d055af02447cb82a000` passed for release
 `7.1.3-gemini-a72-lifecycle-kunit`; all package checksums and the required
 lifecycle/test symbols passed. The
 [compile record](results/buildbox-compile-99f40ac0.txt) pins the Image,
-configuration, System.map, source, and patchset identities. The QEMU harness is
-committed separately and requires a package built from that exact harness HEAD
-before it will run.
+configuration, System.map, source, and patchset identities.
+
+The exact clean published harness commit
+`f69199e31b5a8b7631ab439cbe040cc325e45252` reproduced the same source,
+patchset, configuration, Image, and System.map identities on Buildbox. Its sole
+bounded no-network QEMU suite passed all ten expected cases with zero failures
+or skips before the expected terminal rootfs panic. The
+[runtime record](results/kunit-qemu-pass-f69199e3-20260827.txt) pins the runner,
+package, raw-log checksum, test names, and result.
+
+The bridge remains hardware-free: there are zero physical backends, MMIO,
+retained-RAM writes, SMCs, production callers, physical CPU requests, CPU_OFF
+requests, or retries. The MT6797 production callback still vetoes CPU8, no
+device action occurred, and no boot candidate was selected.
 
 ## Follow-up
 
-After this bridge passes, assemble one complete default-off binder around the
+Assemble one complete default-off binder around the
 proven transition executor, watchdog takeover, retained stage ledger,
 platform-effect owner, DA921x provider, BigiDVFS SRAM owner, MT6797 admission
 gate, and the two lifecycle callbacks. Do not assemble or write a boot2

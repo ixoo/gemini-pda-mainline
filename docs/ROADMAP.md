@@ -5660,11 +5660,20 @@ The next ordered work is:
    `7.1.3-gemini-a72-bigidvfs-sram-kunit`; its sole no-network QEMU suite
    passes all eight cases with zero failures or skips. The default-off owner
    has zero secure calls in tests, physical-effect calls, production callers,
-   device actions, or boot candidates. **Selected next:** implement and
-   exhaustively prove the PSCI/generic-hotplug lifecycle bridge, then assemble
-   the complete binder around the proven executor, watchdog, retained ledger,
-   platform-effect owner, and SRAM-LDO owner. Do not assemble or write a device
-   candidate before all hardware-free lifecycle and binder proofs pass.
+   device actions, or boot candidates. The linked
+   [PSCI/generic-hotplug lifecycle bridge](../experiments/2026-08-27-mainline-a72-hotplug-lifecycle-bridge/README.md)
+   now admits canonical patches `0394`--`0395`. Exact clean published commit
+   `f69199e3` compiles on Buildbox as
+   `7.1.3-gemini-a72-lifecycle-kunit`; its sole no-network QEMU suite passes all
+   ten cases with zero failures or skips. The two callbacks occupy the exact
+   successful secondary-completion and full generic CPUHP-completion points,
+   while the current MT6797 boot veto remains in force and both callbacks stay
+   unset. There are zero production callers, physical calls, device actions,
+   or boot candidates. **Selected next:** assemble and exhaustively prove the
+   complete default-off binder around the executor, watchdog takeover,
+   retained ledger, serialized platform-effect owner, DA921x provider, SRAM
+   owner, MT6797 admission, and lifecycle callbacks. Do not write a device
+   candidate until the binder's hardware-free proof passes.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
