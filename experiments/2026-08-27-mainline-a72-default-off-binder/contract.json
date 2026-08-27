@@ -1,0 +1,96 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-27-mainline-a72-default-off-binder",
+  "repository_commit": "010fe5781bd18f21a23c91476389fa6e80343570",
+  "repository_origin": "https://github.com/ixoo/gemini-pda-mainline.git",
+  "canonical_series_entries": 384,
+  "canonical_series_tip": "patches/v7.1.3/0395-soc-mediatek-test-split-A72-CPU-up-lifecycle.patch",
+  "canonical_series_sha256": "739dac63e4db1ca606df8cb7518351078a742368787443e93e8dc5d18055c4f9",
+  "manifest_sha256": "57169050ce518a74b1ff04d87ebbe17794fa4684536472f6a5a1aa5c20c20c19",
+  "prepared_source_state": "9d03c2ebbde4792b9db0a136c4a12e95c4343e47fb283f413a4acd7fd6f311c0",
+  "evidence": {
+    "source_interface_map": {
+      "path": "results/source-interface-map-20260827.txt",
+      "sha256": "e42eaba43f213c7c62dbaef6c9d7f509da01ef8a3b612f2cd20755444bcfce3e"
+    },
+    "design_sha256": "ccad379a8162b2a486d9da5bf1d89d31a66fea9321e8cc7b14ce81e5e1cad842"
+  },
+  "current_closed_boundaries": {
+    "mt6797_cpu_boot": "unconditional-minus-EAGAIN",
+    "secondary_complete_callback": "unset",
+    "full_complete_callback": "unset",
+    "available_membership_preflight": "minus-EOPNOTSUPP",
+    "binder_arm_callers": 0,
+    "cpu8_request_callers": 0,
+    "physical_owner_callers": 0,
+    "binder_dt_node": "absent"
+  },
+  "interface_gaps": [
+    "executor-checkpoint-cannot-return-ledger-error",
+    "executor-has-no-terminal-ledger-commit",
+    "membership-available-state-still-refuses-cpu-up",
+    "supplier-device-references-have-no-binder-owner",
+    "arm64-cannot-consume-driver-private-executor-header",
+    "generic-failure-reaches-P32-without-binder-terminalization"
+  ],
+  "selected_repairs": [
+    "fallible-regular-and-mandatory-terminal-checkpoints",
+    "membership-owned-one-shot-CPU8-admission",
+    "immutable-phandle-resolved-supplier-context",
+    "narrow-public-binder-API-between-arm64-and-driver",
+    "binder-failure-before-existing-P32-publication",
+    "no-late-caller-or-device-tree-enable-in-hardware-free-proof"
+  ],
+  "binder_contract": {
+    "cpu": 8,
+    "cpu9_offline": true,
+    "cpuhp_target": "CPUHP_ONLINE",
+    "arms": 1,
+    "eventual_cpu_requests": 1,
+    "hardware_free_cpu_requests": 0,
+    "cpu_off_requests": 0,
+    "retries": 0,
+    "regular_success_checkpoints": 18,
+    "terminal_commits": 1,
+    "recovery_timeout_ms": 15000,
+    "supplier_references": [
+      "mt6797-watchdog",
+      "mt6797-a72-platform-state",
+      "mt6797-bigidvfs-backend"
+    ],
+    "provider_transport": "registered-mt6797-a72-provider",
+    "identity": "one-membership-generation-cookie-pair",
+    "preisolation_inverse": [
+      "provider",
+      "p27"
+    ],
+    "postisolation_policy": "retain-power-and-watchdog-reset",
+    "physical_profile_default": false,
+    "userspace_trigger": false
+  },
+  "implementation_order": [
+    "repair-fallible-and-terminal-checkpoint-contract",
+    "add-injected-binder-core-and-typed-adapters",
+    "add-default-off-mt6797-admission-and-lifecycle-handoffs",
+    "validate-exact-source-and-all-manifest-profiles",
+    "build-exact-clean-commit-on-buildbox",
+    "run-one-bounded-no-network-qemu-suite",
+    "publish-hardware-free-evidence",
+    "only-then-review-one-device-candidate-caller"
+  ],
+  "hardware_free_proof": {
+    "physical_backends": 0,
+    "mmio": false,
+    "retained_ram": false,
+    "smc": false,
+    "production_cpu_requests": 0,
+    "enabled_binder_dt_nodes": 0,
+    "network": false,
+    "device_action": false,
+    "boot_candidate": false
+  },
+  "kernel_build": false,
+  "native_vm_build": false,
+  "device_action": false,
+  "result": "direct-glue-rejected-contract-repairs-required"
+}

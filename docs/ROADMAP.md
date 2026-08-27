@@ -5673,7 +5673,16 @@ The next ordered work is:
    complete default-off binder around the executor, watchdog takeover,
    retained ledger, serialized platform-effect owner, DA921x provider, SRAM
    owner, MT6797 admission, and lifecycle callbacks. Do not write a device
-   candidate until the binder's hardware-free proof passes.
+   candidate until the binder's hardware-free proof passes. The exact
+   [binder interface audit](../experiments/2026-08-27-mainline-a72-default-off-binder/README.md)
+   rejects direct glue: executor checkpoints cannot currently propagate ledger
+   failures, no terminal ledger commit exists, AVAILABLE membership still
+   refuses CPU-up, supplier device references have no binder lifetime owner,
+   and generic failure reaches P32 before binder terminalization. **Selected
+   next:** implement the frozen two-patch repair-and-binder contract and prove
+   it with the focused exact-source Buildbox profile and one bounded
+   no-network QEMU suite. This milestone adds no late CPU caller, enabled
+   binder DT node, device candidate, or device action.
 4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
