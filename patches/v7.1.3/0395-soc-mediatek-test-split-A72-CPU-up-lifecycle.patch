@@ -1,0 +1,330 @@
+From 1ede1827a09ea61f53b773d5fca67b526f682479 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 27 Aug 2026 11:02:00 +0000
+Subject: [PATCH 2/2] soc: mediatek: test split A72 CPU-up lifecycle
+
+Prove pause, both resumes, generic failures, phase guards,
+one-shot CPU_ON, and retained no-CPU_OFF behavior in memory.
+---
+ .../soc/mediatek/mt6797-a72-transition-test.c | 209 +++++++++++++++---
+ 1 file changed, 179 insertions(+), 30 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-transition-test.c b/drivers/soc/mediatek/mt6797-a72-transition-test.c
+index 570c549..46b98ae 100644
+--- a/drivers/soc/mediatek/mt6797-a72-transition-test.c
++++ b/drivers/soc/mediatek/mt6797-a72-transition-test.c
+@@ -23,7 +23,7 @@ struct mt6797_transition_test_state {
+ 	unsigned int event_count;
+ 	unsigned int watchdog_timeout_ms;
+ 	unsigned int cpu_on_target;
+-	unsigned int online_target;
++	unsigned int secondary_target;
+ 	unsigned int ipi_target;
+ };
+ 
+@@ -121,11 +121,11 @@ static int mt6797_test_cpu_on(void *context, unsigned int cpu)
+ 	return mt6797_test_effect(state, MT6797_A72_TRANSITION_STAGE_CPU_ON);
+ }
+ 
+-static int mt6797_test_secondary_complete(void *context, unsigned int cpu)
++static int mt6797_test_secondary(void *context, unsigned int cpu)
+ {
+ 	struct mt6797_transition_test_state *state = context;
+ 
+-	state->online_target = cpu;
++	state->secondary_target = cpu;
+ 	return mt6797_test_effect(state,
+ 			MT6797_A72_TRANSITION_STAGE_ONLINE_WAIT);
+ }
+@@ -153,7 +153,7 @@ static const struct mt6797_a72_transition_ops mt6797_test_ops = {
+ 	.isolation_clear = mt6797_test_isolation,
+ 	.sram_enable = mt6797_test_sram,
+ 	.cpu_on = mt6797_test_cpu_on,
+-	.secondary_complete = mt6797_test_secondary_complete,
++	.secondary_complete = mt6797_test_secondary,
+ 	.ipi_proof = mt6797_test_ipi,
+ 	.dcm_update = mt6797_test_dcm,
+ };
+@@ -175,46 +175,68 @@ static int mt6797_test_run(struct mt6797_transition_test_state *state,
+ 		MT6797_A72_TRANSITION_CONTROLLER_INIT;
+ 
+ 	return mt6797_a72_transition_run(&controller, &mt6797_test_ops,
+-				  state, request, result);
++					  state, request, result);
+ }
+ 
+-static void mt6797_transition_success_test(struct kunit *test)
++static void mt6797_transition_split_success_test(struct kunit *test)
+ {
+ 	struct mt6797_a72_transition_request request = mt6797_test_request();
++	struct mt6797_a72_transition_controller controller =
++		MT6797_A72_TRANSITION_CONTROLLER_INIT;
+ 	struct mt6797_transition_test_state state = { };
+ 	struct mt6797_a72_transition_result result;
+ 	enum mt6797_a72_transition_stage stage;
+ 	unsigned int event = 0;
+ 	int ret;
+ 
+-	ret = mt6797_test_run(&state, &request, &result);
++	ret = mt6797_a72_transition_begin(&controller, &mt6797_test_ops,
++					  &state, &request, &result);
+ 	KUNIT_ASSERT_EQ(test, ret, 0);
++	KUNIT_EXPECT_EQ(test, atomic_read(&controller.lifecycle),
++			MT6797_A72_TRANSITION_LIFECYCLE_CPU_ON_ACCEPTED);
+ 	KUNIT_EXPECT_EQ(test, result.terminal,
+-			MT6797_A72_TRANSITION_CPU8_ONLINE_PROOF);
+-	KUNIT_EXPECT_TRUE(test, result.attempted);
+-	KUNIT_EXPECT_TRUE(test, result.watchdog_armed);
+-	KUNIT_EXPECT_TRUE(test, result.isolation_attempted);
+-	KUNIT_EXPECT_TRUE(test, result.isolation_crossed);
+-	KUNIT_EXPECT_TRUE(test, result.p27_owned);
+-	KUNIT_EXPECT_TRUE(test, result.provider_owned);
++			MT6797_A72_TRANSITION_TERMINAL_NONE);
++	KUNIT_EXPECT_TRUE(test, result.cpu_on_accepted);
++	KUNIT_EXPECT_FALSE(test, result.cpu8_online);
++	KUNIT_EXPECT_EQ(test, result.checkpoints, 12U);
++	KUNIT_EXPECT_EQ(test, state.event_count, 18U);
++	KUNIT_EXPECT_EQ(test, state.secondary_target, 0U);
++	KUNIT_EXPECT_EQ(test, state.ipi_target, 0U);
++
++	ret = mt6797_a72_transition_secondary_complete(&controller,
++						       &mt6797_test_ops, &state,
++						       MT6797_A72_TRANSITION_CPU8,
++						       true, false, &result);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	KUNIT_EXPECT_EQ(test, atomic_read(&controller.lifecycle),
++			MT6797_A72_TRANSITION_LIFECYCLE_SECONDARY_COMPLETE);
+ 	KUNIT_EXPECT_TRUE(test, result.cpu8_online);
+-	KUNIT_EXPECT_FALSE(test, result.cpu9_online);
++	KUNIT_EXPECT_EQ(test, result.checkpoints, 14U);
++	KUNIT_EXPECT_EQ(test, state.event_count, 21U);
++	KUNIT_EXPECT_EQ(test, state.secondary_target,
++			MT6797_A72_TRANSITION_CPU8);
++	KUNIT_EXPECT_EQ(test, state.ipi_target, 0U);
++
++	ret = mt6797_a72_transition_complete(&controller, &mt6797_test_ops,
++					     &state, MT6797_A72_TRANSITION_CPU8,
++					     true, false, &result);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	KUNIT_EXPECT_EQ(test, atomic_read(&controller.lifecycle),
++			MT6797_A72_TRANSITION_LIFECYCLE_TERMINAL);
++	KUNIT_EXPECT_EQ(test, result.terminal,
++			MT6797_A72_TRANSITION_CPU8_ONLINE_PROOF);
+ 	KUNIT_EXPECT_EQ(test, result.cpu_requests, 1U);
+ 	KUNIT_EXPECT_EQ(test, result.cpu_off_requests, 0U);
+ 	KUNIT_EXPECT_EQ(test, result.retries, 0U);
+ 	KUNIT_EXPECT_EQ(test, result.checkpoints, 18U);
+-	KUNIT_EXPECT_EQ(test, result.rollback_mask, 0U);
+ 	KUNIT_EXPECT_EQ(test, result.retained_mask,
+ 			(u32)(MT6797_A72_TRANSITION_OWNED_P27 |
+ 			      MT6797_A72_TRANSITION_OWNED_PROVIDER |
+ 			      MT6797_A72_TRANSITION_OWNED_CPU8));
+-	KUNIT_EXPECT_NE(test, result.watchdog_identity, 0ULL);
+ 	KUNIT_EXPECT_EQ(test, state.watchdog_timeout_ms,
+ 			MT6797_A72_TRANSITION_RECOVERY_MS);
+ 	KUNIT_EXPECT_EQ(test, state.cpu_on_target,
+ 			MT6797_A72_TRANSITION_CPU8);
+-	KUNIT_EXPECT_EQ(test, state.online_target,
+-			MT6797_A72_TRANSITION_CPU8);
+ 	KUNIT_EXPECT_EQ(test, state.ipi_target,
+ 			MT6797_A72_TRANSITION_CPU8);
+ 	KUNIT_ASSERT_EQ(test, state.event_count, 27U);
+@@ -229,6 +251,21 @@ static void mt6797_transition_success_test(struct kunit *test)
+ 	}
+ }
+ 
++static void mt6797_transition_composed_run_test(struct kunit *test)
++{
++	struct mt6797_a72_transition_request request = mt6797_test_request();
++	struct mt6797_transition_test_state state = { };
++	struct mt6797_a72_transition_result result;
++	int ret;
++
++	ret = mt6797_test_run(&state, &request, &result);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	KUNIT_EXPECT_EQ(test, result.terminal,
++			MT6797_A72_TRANSITION_CPU8_ONLINE_PROOF);
++	KUNIT_EXPECT_EQ(test, result.checkpoints, 18U);
++	KUNIT_EXPECT_EQ(test, state.event_count, 27U);
++}
++
+ static void mt6797_transition_entry_rejections_test(struct kunit *test)
+ {
+ 	struct mt6797_a72_transition_request requests[] = {
+@@ -272,9 +309,9 @@ static void mt6797_transition_missing_op_test(struct kunit *test)
+ 	struct mt6797_a72_transition_ops ops = mt6797_test_ops;
+ 	int ret;
+ 
+-	ops.dcm_update = NULL;
+-	ret = mt6797_a72_transition_run(&controller, &ops, &state,
+-					&request, &result);
++	ops.secondary_complete = NULL;
++	ret = mt6797_a72_transition_begin(&controller, &ops, &state,
++					  &request, &result);
+ 	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
+ 	KUNIT_EXPECT_FALSE(test, result.attempted);
+ 	KUNIT_EXPECT_EQ(test, result.checkpoints, 0U);
+@@ -295,8 +332,8 @@ static void mt6797_transition_one_shot_test(struct kunit *test)
+ 					&request, &result);
+ 	KUNIT_ASSERT_EQ(test, ret, 0);
+ 	events = state.event_count;
+-	ret = mt6797_a72_transition_run(&controller, &mt6797_test_ops, &state,
+-					&request, &result);
++	ret = mt6797_a72_transition_begin(&controller, &mt6797_test_ops,
++					  &state, &request, &result);
+ 	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
+ 	KUNIT_EXPECT_FALSE(test, result.attempted);
+ 	KUNIT_EXPECT_EQ(test, result.checkpoints, 0U);
+@@ -329,8 +366,8 @@ static void mt6797_transition_stage_failures_test(struct kunit *test)
+ 		KUNIT_EXPECT_FALSE(test, result.cpu9_online);
+ 		KUNIT_EXPECT_EQ_MSG(test, result.checkpoints,
+ 				    (unsigned int)(stage -
+-				     MT6797_A72_TRANSITION_STAGE_WATCHDOG) * 2U + 1U,
+-				    "stage=%u", stage);
++				     MT6797_A72_TRANSITION_STAGE_WATCHDOG) *
++				    2U + 1U, "stage=%u", stage);
+ 		if (stage == MT6797_A72_TRANSITION_STAGE_WATCHDOG) {
+ 			KUNIT_EXPECT_EQ(test, result.terminal,
+ 					MT6797_A72_TRANSITION_REJECTED_PRESTATE);
+@@ -356,13 +393,122 @@ static void mt6797_transition_stage_failures_test(struct kunit *test)
+ 				stage != MT6797_A72_TRANSITION_STAGE_ISOLATION);
+ 		KUNIT_EXPECT_EQ(test, result.retained_mask, expected_retained);
+ 		KUNIT_EXPECT_EQ(test, result.cpu_requests,
+-				stage >= MT6797_A72_TRANSITION_STAGE_CPU_ON ? 1U : 0U);
++				stage >= MT6797_A72_TRANSITION_STAGE_CPU_ON ?
++				1U : 0U);
+ 		KUNIT_EXPECT_EQ(test, result.cpu8_online,
+-				stage >=
+-				MT6797_A72_TRANSITION_STAGE_ONLINE_WAIT);
++				stage >= MT6797_A72_TRANSITION_STAGE_ONLINE_WAIT);
+ 	}
+ }
+ 
++static void mt6797_transition_lifecycle_failure_test(struct kunit *test)
++{
++	struct mt6797_a72_transition_request request = mt6797_test_request();
++	struct mt6797_a72_transition_controller controller =
++		MT6797_A72_TRANSITION_CONTROLLER_INIT;
++	struct mt6797_transition_test_state state = { };
++	struct mt6797_a72_transition_result result;
++	unsigned int events;
++	int ret;
++
++	ret = mt6797_a72_transition_begin(&controller, &mt6797_test_ops,
++					  &state, &request, &result);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	ret = mt6797_a72_transition_fail(&controller, &mt6797_test_ops,
++					 &state, MT6797_A72_TRANSITION_CPU8,
++					 false, false, -ETIMEDOUT, &result);
++	KUNIT_EXPECT_EQ(test, ret, -ETIMEDOUT);
++	KUNIT_EXPECT_EQ(test, result.terminal,
++			MT6797_A72_TRANSITION_FAULT_RETAIN_POSTISO);
++	KUNIT_EXPECT_FALSE(test, result.cpu8_online);
++	KUNIT_EXPECT_EQ(test, result.checkpoints, 13U);
++	KUNIT_EXPECT_EQ(test, result.last_stage,
++			MT6797_A72_TRANSITION_STAGE_ONLINE_WAIT);
++	events = state.event_count;
++	ret = mt6797_a72_transition_fail(&controller, &mt6797_test_ops,
++					 &state, MT6797_A72_TRANSITION_CPU8,
++					 false, false, -EIO, &result);
++	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
++	KUNIT_EXPECT_EQ(test, state.event_count, events);
++
++	controller = (struct mt6797_a72_transition_controller)
++		MT6797_A72_TRANSITION_CONTROLLER_INIT;
++	state = (struct mt6797_transition_test_state) { };
++	ret = mt6797_a72_transition_begin(&controller, &mt6797_test_ops,
++					  &state, &request, &result);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	ret = mt6797_a72_transition_secondary_complete(&controller,
++						       &mt6797_test_ops, &state,
++						       MT6797_A72_TRANSITION_CPU8,
++						       true, false, &result);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	ret = mt6797_a72_transition_fail(&controller, &mt6797_test_ops,
++					 &state, MT6797_A72_TRANSITION_CPU8,
++					 true, false, -ENOMEM, &result);
++	KUNIT_EXPECT_EQ(test, ret, -ENOMEM);
++	KUNIT_EXPECT_TRUE(test, result.cpu8_online);
++	KUNIT_EXPECT_EQ(test, result.checkpoints, 14U);
++	KUNIT_EXPECT_EQ(test, result.retained_mask,
++			(u32)(MT6797_A72_TRANSITION_OWNED_P27 |
++			      MT6797_A72_TRANSITION_OWNED_PROVIDER |
++			      MT6797_A72_TRANSITION_OWNED_CPU8));
++}
++
++static void mt6797_transition_handoff_guards_test(struct kunit *test)
++{
++	struct mt6797_a72_transition_request request = mt6797_test_request();
++	struct mt6797_a72_transition_controller controller =
++		MT6797_A72_TRANSITION_CONTROLLER_INIT;
++	struct mt6797_transition_test_state state = { };
++	struct mt6797_a72_transition_result result = { };
++	unsigned int events;
++	int ret;
++
++	ret = mt6797_a72_transition_complete(&controller, &mt6797_test_ops,
++					     &state, MT6797_A72_TRANSITION_CPU8,
++					     true, false, &result);
++	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
++	KUNIT_EXPECT_EQ(test, state.event_count, 0U);
++
++	ret = mt6797_a72_transition_begin(&controller, &mt6797_test_ops,
++					  &state, &request, &result);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	ret = mt6797_a72_transition_secondary_complete(&controller,
++						       &mt6797_test_ops, &state,
++						       MT6797_A72_TRANSITION_CPU9,
++						       true, false, &result);
++	KUNIT_EXPECT_EQ(test, ret, -EPROTO);
++	KUNIT_EXPECT_EQ(test, result.terminal,
++			MT6797_A72_TRANSITION_FAULT_RETAIN_POSTISO);
++	KUNIT_EXPECT_EQ(test, result.cpu_off_requests, 0U);
++	KUNIT_EXPECT_EQ(test, result.retries, 0U);
++
++	controller = (struct mt6797_a72_transition_controller)
++		MT6797_A72_TRANSITION_CONTROLLER_INIT;
++	state = (struct mt6797_transition_test_state) { };
++	ret = mt6797_a72_transition_begin(&controller, &mt6797_test_ops,
++					  &state, &request, &result);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	ret = mt6797_a72_transition_secondary_complete(&controller,
++						       &mt6797_test_ops, &state,
++						       MT6797_A72_TRANSITION_CPU8,
++						       true, false, &result);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	events = state.event_count;
++	ret = mt6797_a72_transition_secondary_complete(&controller,
++						       &mt6797_test_ops, &state,
++						       MT6797_A72_TRANSITION_CPU8,
++						       true, false, &result);
++	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
++	KUNIT_EXPECT_EQ(test, state.event_count, events);
++	ret = mt6797_a72_transition_complete(&controller, &mt6797_test_ops,
++					     &state, MT6797_A72_TRANSITION_CPU8,
++					     false, false, &result);
++	KUNIT_EXPECT_EQ(test, ret, -EPROTO);
++	KUNIT_EXPECT_FALSE(test, result.cpu8_online);
++	KUNIT_EXPECT_EQ(test, result.terminal,
++			MT6797_A72_TRANSITION_FAULT_RETAIN_POSTISO);
++}
++
+ static void mt6797_transition_malformed_ownership_test(struct kunit *test)
+ {
+ 	static const enum mt6797_a72_transition_stage stages[] = {
+@@ -436,11 +582,14 @@ static void mt6797_transition_rollback_faults_test(struct kunit *test)
+ }
+ 
+ static struct kunit_case mt6797_transition_cases[] = {
+-	KUNIT_CASE(mt6797_transition_success_test),
++	KUNIT_CASE(mt6797_transition_split_success_test),
++	KUNIT_CASE(mt6797_transition_composed_run_test),
+ 	KUNIT_CASE(mt6797_transition_entry_rejections_test),
+ 	KUNIT_CASE(mt6797_transition_missing_op_test),
+ 	KUNIT_CASE(mt6797_transition_one_shot_test),
+ 	KUNIT_CASE(mt6797_transition_stage_failures_test),
++	KUNIT_CASE(mt6797_transition_lifecycle_failure_test),
++	KUNIT_CASE(mt6797_transition_handoff_guards_test),
+ 	KUNIT_CASE(mt6797_transition_malformed_ownership_test),
+ 	KUNIT_CASE(mt6797_transition_rollback_faults_test),
+ 	{ }

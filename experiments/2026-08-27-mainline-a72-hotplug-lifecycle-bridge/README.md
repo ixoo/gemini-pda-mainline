@@ -146,9 +146,16 @@ split lifecycle call's opening line; test behavior is unchanged.
 
 ## Current conclusion
 
-The bridge contract is frozen. Implementation remains hardware-free and must
-pass source, replay, Buildbox, and focused QEMU proof before the roadmap can
-advance to the complete binder.
+The bridge contract is frozen. Exact Buildbox generation from repository commit
+`07c14f63672a536fb9a312adcb89ba2d03961266` passed production/test source
+validation, strict patch review, deterministic replay, and package checksum
+verification. The fetched `0394` and `0395` bytes are now admitted to the
+canonical series; [the generation record](results/patch-generation-20260827.txt)
+pins their identities and invariant counts.
+
+The remaining hardware-free gate is an exact Buildbox compile followed by the
+focused ten-case QEMU KUnit proof. There is still no production lifecycle
+callback, physical-effect caller, boot candidate, or device action.
 
 ## Follow-up
 
