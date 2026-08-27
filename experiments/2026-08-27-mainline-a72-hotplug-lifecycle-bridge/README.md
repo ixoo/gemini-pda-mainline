@@ -157,6 +157,15 @@ The remaining hardware-free gate is an exact Buildbox compile followed by the
 focused ten-case QEMU KUnit proof. There is still no production lifecycle
 callback, physical-effect caller, boot candidate, or device action.
 
+The first exact admitted-tree Buildbox compile from commit
+`99f40ac0182c37cf18f60d055af02447cb82a000` passed for release
+`7.1.3-gemini-a72-lifecycle-kunit`; all package checksums and the required
+lifecycle/test symbols passed. The
+[compile record](results/buildbox-compile-99f40ac0.txt) pins the Image,
+configuration, System.map, source, and patchset identities. The QEMU harness is
+committed separately and requires a package built from that exact harness HEAD
+before it will run.
+
 ## Follow-up
 
 After this bridge passes, assemble one complete default-off binder around the
