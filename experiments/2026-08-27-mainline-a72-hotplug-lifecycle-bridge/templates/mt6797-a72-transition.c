@@ -374,7 +374,7 @@ int mt6797_a72_transition_run(struct mt6797_a72_transition_controller *controlle
 	int ret;
 
 	ret = mt6797_a72_transition_begin(controller, ops, context,
-					   request, result);
+					  request, result);
 	if (ret)
 		return ret;
 	ret = mt6797_a72_transition_secondary_complete(controller, ops, context,

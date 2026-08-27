@@ -131,6 +131,12 @@ declarations, calls, and one generated compatibility-test callback. The source
 templates and deterministic edit now use aligned arguments without
 line-ending open parentheses; lifecycle behavior is unchanged.
 
+The seventh Buildbox attempt from repository commit
+`074cbebe73b10702364af24343449fbce86461c3` reduced strict review to one
+alignment check: the compatibility wrapper's `request` continuation was one
+visual column past its opening parenthesis. Moving that continuation left by
+one space is the only source-template change from this attempt.
+
 ## Current conclusion
 
 The bridge contract is frozen. Implementation remains hardware-free and must
