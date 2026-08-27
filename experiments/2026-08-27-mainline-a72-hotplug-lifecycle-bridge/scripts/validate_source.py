@@ -26,10 +26,11 @@ def bounded(source: str, start: str, end: str, label: str) -> str:
 
 
 def ordered(source: str, tokens: tuple[str, ...], label: str) -> None:
-    positions = [source.find(token) for token in tokens]
-    require(all(position >= 0 for position in positions),
-            f"{label}: missing token")
-    require(positions == sorted(positions), f"{label}: order")
+    cursor = 0
+    for token in tokens:
+        position = source.find(token, cursor)
+        require(position >= 0, f"{label}: missing token: {token}")
+        cursor = position + len(token)
 
 
 def main() -> None:

@@ -109,6 +109,13 @@ signature. Exact token counts replace that ambiguous helper for the two
 dispatchers and five split-executor entry points; the generated source is
 unchanged.
 
+The fourth Buildbox attempt from repository commit
+`08addaa15b4212fdd6ec4e2c452fa46b4515b75e` reached the hook-placement order
+check. Its helper used a whole-string search for every token, so both repeated
+`if (ret)` guards resolved to the first occurrence and produced a false order
+failure. The corrected helper advances a cursor after each match, strengthening
+all order checks without changing source or test templates.
+
 ## Current conclusion
 
 The bridge contract is frozen. Implementation remains hardware-free and must
