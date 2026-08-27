@@ -96,8 +96,7 @@ mt6797_a72_binder_production_backend = {
 };
 
 static bool
-mt6797_a72_binder_backend_valid(
-	const struct mt6797_a72_binder_backend_ops *ops)
+mt6797_a72_binder_backend_valid(const struct mt6797_a72_binder_backend_ops *ops)
 {
 	return ops && ops->ledger_begin && ops->ledger_checkpoint &&
 		ops->provider_available && ops->membership_preflight &&
@@ -116,18 +115,16 @@ mt6797_a72_binder_backend_valid(
 }
 
 static bool
-mt6797_a72_effect_result_shape(
-	const struct mt6797_a72_platform_effect_result *result,
-	enum mt6797_a72_platform_effect_operation operation)
+mt6797_a72_effect_result_shape(const struct mt6797_a72_platform_effect_result *result,
+			       enum mt6797_a72_platform_effect_operation operation)
 {
 	return result && result->abi == MT6797_A72_PLATFORM_EFFECT_ABI &&
 		result->operation == operation && result->sealed;
 }
 
 static bool
-mt6797_a72_provider_success(
-	const struct mt6797_a72_binder *binder,
-	const struct mt6797_a72_provider_response *response)
+mt6797_a72_provider_success(const struct mt6797_a72_binder *binder,
+			    const struct mt6797_a72_provider_response *response)
 {
 	const struct mt6797_a72_provider_identity *identity =
 		&binder->transaction.provider_identity;
@@ -147,9 +144,8 @@ mt6797_a72_provider_success(
 }
 
 static bool
-mt6797_a72_provider_release_success(
-	const struct mt6797_a72_binder *binder,
-	const struct mt6797_a72_provider_response *response)
+mt6797_a72_provider_release_success(const struct mt6797_a72_binder *binder,
+				    const struct mt6797_a72_provider_response *response)
 {
 	const struct mt6797_a72_provider_identity *identity =
 		&binder->transaction.provider_acquire_proof.held_identity;
@@ -169,10 +165,10 @@ mt6797_a72_provider_release_success(
 }
 
 static int
-mt6797_a72_binder_checkpoint(
-	void *context, enum mt6797_a72_transition_phase phase,
-	enum mt6797_a72_transition_stage stage,
-	const struct mt6797_a72_transition_result *result)
+mt6797_a72_binder_checkpoint(void *context,
+			     enum mt6797_a72_transition_phase phase,
+			     enum mt6797_a72_transition_stage stage,
+			     const struct mt6797_a72_transition_result *result)
 {
 	struct mt6797_a72_binder *binder = context;
 	u32 ledger_phase;
@@ -185,12 +181,12 @@ mt6797_a72_binder_checkpoint(
 	ledger_phase = phase == MT6797_A72_TRANSITION_BEFORE ?
 		GEMINI_TRANSITION_LEDGER_BEFORE :
 		GEMINI_TRANSITION_LEDGER_AFTER;
-	return binder->backend->ledger_checkpoint(
-		binder->transaction.identity.generation, ledger_phase, stage, 0);
+	return binder->backend->ledger_checkpoint(binder->transaction.identity.generation,
+						  ledger_phase, stage, 0);
 }
 
 static int mt6797_a72_binder_watchdog(void *context, unsigned int timeout_ms,
-				     u64 *identity)
+				      u64 *identity)
 {
 	struct mt6797_a72_binder *binder = context;
 	struct mtk_wdt_recovery_result result = { };
@@ -198,8 +194,8 @@ static int mt6797_a72_binder_watchdog(void *context, unsigned int timeout_ms,
 
 	if (!identity || timeout_ms != MTK_WDT_RECOVERY_TIMEOUT_MS)
 		return -EINVAL;
-	ret = binder->backend->watchdog_takeover(
-		binder->watchdog, timeout_ms, &result);
+	ret = binder->backend->watchdog_takeover(binder->watchdog, timeout_ms,
+						 &result);
 	if (ret)
 		return ret;
 	if (!result.identity || result.owned != 1)
@@ -217,21 +213,21 @@ static int mt6797_a72_binder_p27_acquire(void *context, bool *owned)
 	if (!owned)
 		return -EINVAL;
 	*owned = false;
-	ret = binder->backend->membership_begin_p27(
-		&binder->transaction);
+	ret = binder->backend->membership_begin_p27(&binder->transaction);
 	if (ret)
 		return ret;
-	ret = binder->backend->p27_acquire(
-		binder->platform_state, &binder->effect_handle, &binder->p27);
-	if (!mt6797_a72_effect_result_shape(
-		    &binder->p27, MT6797_A72_PLATFORM_EFFECT_P27_ACQUIRE)) {
+	ret = binder->backend->p27_acquire(binder->platform_state,
+					   &binder->effect_handle, &binder->p27);
+	if (!mt6797_a72_effect_result_shape(&binder->p27,
+					    MT6797_A72_PLATFORM_EFFECT_P27_ACQUIRE)) {
 		*owned = true;
 		return -EPROTO;
 	}
 	*owned = binder->p27.p27_owned;
 	if (ret) {
-		if (!*owned && (binder->p27.attempted_effects ||
-			       binder->p27.completed_effects)) {
+		if (!*owned &&
+		    (binder->p27.attempted_effects ||
+		     binder->p27.completed_effects)) {
 			*owned = true;
 			return -EPROTO;
 		}
@@ -248,8 +244,8 @@ static int mt6797_a72_binder_p27_acquire(void *context, bool *owned)
 	preparation.effect_mask = MT6797_A72_P27_EFFECT_MASK;
 	preparation.generation = binder->transaction.identity.generation;
 	preparation.cookie = binder->transaction.identity.cookie;
-	return binder->backend->membership_complete_p27(
-		&binder->transaction, &preparation);
+	return binder->backend->membership_complete_p27(&binder->transaction,
+							&preparation);
 }
 
 static int mt6797_a72_binder_p27_release(void *context)
@@ -259,12 +255,12 @@ static int mt6797_a72_binder_p27_release(void *context)
 	struct mt6797_a72_platform_effect_result result = { };
 	int ret;
 
-	ret = binder->backend->p27_release(
-		binder->platform_state, &binder->effect_handle, &result);
+	ret = binder->backend->p27_release(binder->platform_state,
+					   &binder->effect_handle, &result);
 	if (ret)
 		return ret;
-	if (!mt6797_a72_effect_result_shape(
-		    &result, MT6797_A72_PLATFORM_EFFECT_P27_RELEASE) ||
+	if (!mt6797_a72_effect_result_shape(&result,
+					    MT6797_A72_PLATFORM_EFFECT_P27_RELEASE) ||
 	    result.error || result.p27_owned ||
 	    result.attempted_effects != MT6797_A72_BINDER_P27_RELEASE_COMPLETE ||
 	    result.completed_effects != MT6797_A72_BINDER_P27_RELEASE_COMPLETE)
@@ -276,8 +272,8 @@ static int mt6797_a72_binder_p27_release(void *context)
 	rollback.transaction_generation =
 		binder->transaction.identity.generation;
 	rollback.transaction_cookie = binder->transaction.identity.cookie;
-	return binder->backend->membership_complete_p29(
-		&binder->transaction, &rollback);
+	return binder->backend->membership_complete_p29(&binder->transaction,
+							&rollback);
 }
 
 static int mt6797_a72_binder_provider_acquire(void *context, bool *owned)
@@ -289,8 +285,8 @@ static int mt6797_a72_binder_provider_acquire(void *context, bool *owned)
 		return -EINVAL;
 	*owned = false;
 	memset(&binder->provider, 0, sizeof(binder->provider));
-	ret = binder->backend->membership_provider_acquire(
-		&binder->transaction, &binder->provider);
+	ret = binder->backend->membership_provider_acquire(&binder->transaction,
+							   &binder->provider);
 	if (ret)
 		return ret;
 	if (!mt6797_a72_provider_success(binder, &binder->provider)) {
@@ -307,8 +303,8 @@ static int mt6797_a72_binder_provider_release(void *context)
 	int ret;
 
 	memset(&binder->provider, 0, sizeof(binder->provider));
-	ret = binder->backend->membership_provider_abort(
-		&binder->transaction, &binder->provider);
+	ret = binder->backend->membership_provider_abort(&binder->transaction,
+							 &binder->provider);
 	if (ret)
 		return ret;
 	if (!mt6797_a72_provider_release_success(binder, &binder->provider))
@@ -322,21 +318,19 @@ static int mt6797_a72_binder_isolation(void *context)
 	struct mt6797_a72_provider_handle provider;
 	int ret;
 
-	ret = binder->backend->membership_begin_p28(
-		&binder->transaction);
+	ret = binder->backend->membership_begin_p28(&binder->transaction);
 	if (ret)
 		return ret;
 	binder->p28_begun = true;
 	provider.generation = binder->transaction.provider_identity.generation;
 	provider.cookie = binder->transaction.provider_identity.cookie;
-	ret = binder->backend->isolation_clear(
-		binder->platform_state, &binder->effect_handle, &provider,
-		&binder->isolation);
+	ret = binder->backend->isolation_clear(binder->platform_state,
+					       &binder->effect_handle, &provider,
+					       &binder->isolation);
 	if (ret)
 		return ret;
-	if (!mt6797_a72_effect_result_shape(
-		    &binder->isolation,
-		    MT6797_A72_PLATFORM_EFFECT_ISOLATION_CLEAR) ||
+	if (!mt6797_a72_effect_result_shape(&binder->isolation,
+					    MT6797_A72_PLATFORM_EFFECT_ISOLATION_CLEAR) ||
 	    binder->isolation.error || !binder->isolation.p27_owned ||
 	    !binder->isolation.isolation_attempted ||
 	    !binder->isolation.isolation_crossed ||
@@ -371,8 +365,8 @@ static int mt6797_a72_binder_sram(void *context)
 	request.cookie = binder->transaction.identity.cookie;
 	request.provider_held = true;
 	request.isolation_crossed = true;
-	ret = binder->backend->sram_enable(
-		binder->bigidvfs, &request, &binder->sram);
+	ret = binder->backend->sram_enable(binder->bigidvfs, &request,
+					   &binder->sram);
 	if (ret)
 		return ret;
 	if (binder->sram.abi != MT6797_BIGIDVFS_SRAM_OWNER_ABI ||
@@ -406,8 +400,8 @@ static int mt6797_a72_binder_sram(void *context)
 	preparation.transaction_generation =
 		binder->transaction.identity.generation;
 	preparation.transaction_cookie = binder->transaction.identity.cookie;
-	return binder->backend->membership_complete_p28(
-		&binder->transaction, &preparation);
+	return binder->backend->membership_complete_p28(&binder->transaction,
+							&preparation);
 }
 
 static int mt6797_a72_binder_cpu_on(void *context, unsigned int cpu)
@@ -445,8 +439,8 @@ static int mt6797_a72_binder_ipi(void *context, unsigned int cpu)
 	if (cpu != MT6797_A72_TRANSITION_CPU8 ||
 	    !binder->backend->cpu_online(8) || binder->backend->cpu_online(9))
 		return -EPROTO;
-	return binder->backend->ipi_call(
-		cpu, mt6797_a72_binder_ipi_callback, NULL, 1);
+	return binder->backend->ipi_call(cpu, mt6797_a72_binder_ipi_callback,
+					 NULL, 1);
 }
 
 static int mt6797_a72_binder_dcm(void *context)
@@ -454,14 +448,15 @@ static int mt6797_a72_binder_dcm(void *context)
 	struct mt6797_a72_binder *binder = context;
 	int ret;
 
-	ret = binder->backend->dcm_update(
-		binder->platform_state, &binder->effect_handle,
-		binder->backend->cpu_online(8),
-		binder->backend->cpu_online(9), &binder->dcm);
+	ret = binder->backend->dcm_update(binder->platform_state,
+					  &binder->effect_handle,
+					  binder->backend->cpu_online(8),
+					  binder->backend->cpu_online(9),
+					  &binder->dcm);
 	if (ret)
 		return ret;
-	if (!mt6797_a72_effect_result_shape(
-		    &binder->dcm, MT6797_A72_PLATFORM_EFFECT_DCM_UPDATE) ||
+	if (!mt6797_a72_effect_result_shape(&binder->dcm,
+					    MT6797_A72_PLATFORM_EFFECT_DCM_UPDATE) ||
 	    binder->dcm.error || !binder->dcm.p27_owned ||
 	    !binder->dcm.isolation_attempted || !binder->dcm.isolation_crossed ||
 	    binder->dcm.attempted_effects != MT6797_A72_BINDER_DCM_COMPLETE ||
@@ -476,13 +471,12 @@ static int mt6797_a72_binder_membership(void *context, unsigned int cpu)
 
 	if (cpu != MT6797_A72_TRANSITION_CPU8)
 		return -EINVAL;
-	return binder->backend->membership_publish_success(
-		&binder->transaction);
+	return binder->backend->membership_publish_success(&binder->transaction);
 }
 
 static int
-mt6797_a72_binder_terminal(
-	void *context, const struct mt6797_a72_transition_result *result)
+mt6797_a72_binder_terminal(void *context,
+			   const struct mt6797_a72_transition_result *result)
 {
 	struct mt6797_a72_binder *binder = context;
 	int ret;
@@ -490,25 +484,21 @@ mt6797_a72_binder_terminal(
 	if (!binder->ledger_begun || !result ||
 	    result->terminal == MT6797_A72_TRANSITION_TERMINAL_NONE)
 		return -EPROTO;
-	ret = binder->backend->ledger_checkpoint(
-		binder->transaction.identity.generation,
-		GEMINI_TRANSITION_LEDGER_TERMINAL, result->last_stage,
-		result->terminal);
+	ret = binder->backend->ledger_checkpoint(binder->transaction.identity.generation,
+						 GEMINI_TRANSITION_LEDGER_TERMINAL,
+						 result->last_stage, result->terminal);
 	if (ret)
 		return ret;
 
 	switch (result->terminal) {
 	case MT6797_A72_TRANSITION_REJECTED_PRESTATE:
-		return binder->backend->membership_reject(
-			&binder->transaction);
+		return binder->backend->membership_reject(&binder->transaction);
 	case MT6797_A72_TRANSITION_ROLLED_BACK_PREISO:
 		if (result->rollback_mask & MT6797_A72_TRANSITION_OWNED_P27)
 			return 0;
-		return binder->backend->membership_reject(
-			&binder->transaction);
+		return binder->backend->membership_reject(&binder->transaction);
 	case MT6797_A72_TRANSITION_CPU8_ONLINE_PROOF:
-		return binder->backend->membership_finalize_success(
-			&binder->transaction);
+		return binder->backend->membership_finalize_success(&binder->transaction);
 	case MT6797_A72_TRANSITION_ROLLBACK_FAULT_PREISO:
 	case MT6797_A72_TRANSITION_FAULT_RETAIN_POSTISO:
 		return 0;
@@ -555,8 +545,11 @@ int mt6797_a72_binder_validate(unsigned int cpu, int tasks_frozen,
 
 	mutex_lock(&mt6797_a72_binder_publish_lock);
 	binder = mt6797_a72_binder_ready();
-	ret = binder ? binder->backend->membership_validate(
-		cpu, tasks_frozen, target) : -EAGAIN;
+	if (binder)
+		ret = binder->backend->membership_validate(cpu, tasks_frozen,
+							   target);
+	else
+		ret = -EAGAIN;
 	mutex_unlock(&mt6797_a72_binder_publish_lock);
 	return ret;
 }
@@ -579,53 +572,49 @@ static int mt6797_a72_binder_boot(struct mt6797_a72_binder *binder,
 	binder->effect_handle.attempt_id =
 		binder->transaction.identity.generation;
 	binder->effect_handle.cookie = binder->transaction.identity.cookie;
-	ret = binder->backend->ledger_begin(
-		binder->transaction.identity.generation);
+	ret = binder->backend->ledger_begin(binder->transaction.identity.generation);
 	if (ret) {
-		binder->backend->ledger_checkpoint(
-			binder->transaction.identity.generation,
-			GEMINI_TRANSITION_LEDGER_TERMINAL,
-			MT6797_A72_TRANSITION_STAGE_WATCHDOG,
-			MT6797_A72_TRANSITION_REJECTED_PRESTATE);
+		binder->backend->ledger_checkpoint(binder->transaction.identity.generation,
+						   GEMINI_TRANSITION_LEDGER_TERMINAL,
+						   MT6797_A72_TRANSITION_STAGE_WATCHDOG,
+						   MT6797_A72_TRANSITION_REJECTED_PRESTATE);
 		binder->backend->membership_reject(&binder->transaction);
 		return ret;
 	}
 	binder->ledger_begun = true;
 	if (!binder->backend->provider_available()) {
-		binder->backend->ledger_checkpoint(
-			binder->transaction.identity.generation,
-			GEMINI_TRANSITION_LEDGER_TERMINAL,
-			MT6797_A72_TRANSITION_STAGE_WATCHDOG,
-			MT6797_A72_TRANSITION_REJECTED_PRESTATE);
+		binder->backend->ledger_checkpoint(binder->transaction.identity.generation,
+						   GEMINI_TRANSITION_LEDGER_TERMINAL,
+						   MT6797_A72_TRANSITION_STAGE_WATCHDOG,
+						   MT6797_A72_TRANSITION_REJECTED_PRESTATE);
 		binder->backend->membership_reject(&binder->transaction);
 		return -ENODEV;
 	}
 	binder->cpu_boot = cpu_boot;
 	request.cpu = cpu;
-	request.token_exact = binder->backend->membership_owns_token(
-		&binder->transaction.p30_token);
+	request.token_exact =
+		binder->backend->membership_owns_token(&binder->transaction.p30_token);
 	request.prefix_complete = binder->transaction.a36_valid &&
 		binder->transaction.p17_p18_published &&
 		binder->transaction.public_preflight ==
 			MT6797_A72_PUBLIC_ADMISSION_CLAIMED;
 	request.cpu8_online = binder->backend->cpu_online(8);
 	request.cpu9_online = binder->backend->cpu_online(9);
-	ret = mt6797_a72_transition_begin(
-		&binder->transition, &mt6797_a72_binder_ops, binder,
-		&request, &binder->result);
+	ret = mt6797_a72_transition_begin(&binder->transition,
+					  &mt6797_a72_binder_ops, binder,
+					  &request, &binder->result);
 	if (ret && !binder->result.attempted) {
-		binder->backend->ledger_checkpoint(
-			binder->transaction.identity.generation,
-			GEMINI_TRANSITION_LEDGER_TERMINAL,
-			MT6797_A72_TRANSITION_STAGE_WATCHDOG,
-			MT6797_A72_TRANSITION_REJECTED_PRESTATE);
+		binder->backend->ledger_checkpoint(binder->transaction.identity.generation,
+						   GEMINI_TRANSITION_LEDGER_TERMINAL,
+						   MT6797_A72_TRANSITION_STAGE_WATCHDOG,
+						   MT6797_A72_TRANSITION_REJECTED_PRESTATE);
 		binder->backend->membership_reject(&binder->transaction);
 	}
 	return ret;
 }
 
 int mt6797_a72_binder_cpu_boot(unsigned int cpu,
-			      mt6797_a72_cpu_boot_fn cpu_boot)
+			       mt6797_a72_cpu_boot_fn cpu_boot)
 {
 	struct mt6797_a72_binder *binder;
 	int ret;
@@ -637,15 +626,17 @@ int mt6797_a72_binder_cpu_boot(unsigned int cpu,
 	return ret;
 }
 
-static int mt6797_a72_binder_drive_secondary(
-	struct mt6797_a72_binder *binder, unsigned int cpu)
+static int mt6797_a72_binder_drive_secondary(struct mt6797_a72_binder *binder,
+					     unsigned int cpu)
 {
 	if (!binder || !mt6797_a72_binder_backend_valid(binder->backend))
 		return -EINVAL;
-	return mt6797_a72_transition_secondary_complete(
-		&binder->transition, &mt6797_a72_binder_ops, binder, cpu,
-		binder->backend->cpu_online(8),
-		binder->backend->cpu_online(9), &binder->result);
+	return mt6797_a72_transition_secondary_complete(&binder->transition,
+							&mt6797_a72_binder_ops,
+							binder, cpu,
+							binder->backend->cpu_online(8),
+							binder->backend->cpu_online(9),
+							&binder->result);
 }
 
 int mt6797_a72_binder_secondary_complete(unsigned int cpu)
@@ -661,18 +652,19 @@ int mt6797_a72_binder_secondary_complete(unsigned int cpu)
 	return ret;
 }
 
-static int mt6797_a72_binder_finish(
-	struct mt6797_a72_binder *binder, unsigned int cpu,
-	enum cpuhp_state target)
+static int mt6797_a72_binder_finish(struct mt6797_a72_binder *binder,
+				    unsigned int cpu,
+				    enum cpuhp_state target)
 {
 	if (!binder || !mt6797_a72_binder_backend_valid(binder->backend))
 		return -EINVAL;
 	if (target != CPUHP_ONLINE)
 		return -EINVAL;
-	return mt6797_a72_transition_complete(
-		&binder->transition, &mt6797_a72_binder_ops, binder, cpu,
-		binder->backend->cpu_online(8),
-		binder->backend->cpu_online(9), &binder->result);
+	return mt6797_a72_transition_complete(&binder->transition,
+					      &mt6797_a72_binder_ops, binder, cpu,
+					      binder->backend->cpu_online(8),
+					      binder->backend->cpu_online(9),
+					      &binder->result);
 }
 
 int mt6797_a72_binder_complete(unsigned int cpu, enum cpuhp_state target)
@@ -687,9 +679,9 @@ int mt6797_a72_binder_complete(unsigned int cpu, enum cpuhp_state target)
 	return ret;
 }
 
-static int mt6797_a72_binder_fail(
-	struct mt6797_a72_binder *binder, unsigned int cpu, int error,
-	bool *publish_p32)
+static int mt6797_a72_binder_fail(struct mt6797_a72_binder *binder,
+				  unsigned int cpu, int error,
+				  bool *publish_p32)
 {
 	int lifecycle;
 
@@ -701,10 +693,11 @@ static int mt6797_a72_binder_fail(
 		return -EINVAL;
 	lifecycle = atomic_read_acquire(&binder->transition.lifecycle);
 	if (lifecycle != MT6797_A72_TRANSITION_LIFECYCLE_TERMINAL) {
-		mt6797_a72_transition_fail(
-			&binder->transition, &mt6797_a72_binder_ops, binder, cpu,
-			binder->backend->cpu_online(8),
-			binder->backend->cpu_online(9), error, &binder->result);
+		mt6797_a72_transition_fail(&binder->transition,
+					   &mt6797_a72_binder_ops, binder, cpu,
+					   binder->backend->cpu_online(8),
+					   binder->backend->cpu_online(9), error,
+					   &binder->result);
 	}
 	*publish_p32 =
 		binder->result.terminal ==
@@ -720,16 +713,17 @@ int mt6797_a72_binder_failure(unsigned int cpu, int error,
 
 	mutex_lock(&mt6797_a72_binder_publish_lock);
 	binder = mt6797_a72_binder_ready();
-	ret = binder ? mt6797_a72_binder_fail(
-		binder, cpu, error, publish_p32) : -EAGAIN;
+	if (binder)
+		ret = mt6797_a72_binder_fail(binder, cpu, error, publish_p32);
+	else
+		ret = -EAGAIN;
 	mutex_unlock(&mt6797_a72_binder_publish_lock);
 	return ret;
 }
 
 #if IS_ENABLED(CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER_KUNIT_TEST)
-void mt6797_a72_binder_test_init(
-	struct mt6797_a72_binder *binder,
-	const struct mt6797_a72_binder_backend_ops *backend)
+void mt6797_a72_binder_test_init(struct mt6797_a72_binder *binder,
+				 const struct mt6797_a72_binder_backend_ops *backend)
 {
 	memset(binder, 0, sizeof(*binder));
 	binder->backend = backend;
@@ -740,25 +734,27 @@ void mt6797_a72_binder_test_init(
 }
 
 int mt6797_a72_binder_test_boot(struct mt6797_a72_binder *binder,
-	unsigned int cpu, mt6797_a72_cpu_boot_fn cpu_boot)
+				unsigned int cpu,
+				mt6797_a72_cpu_boot_fn cpu_boot)
 {
 	return mt6797_a72_binder_boot(binder, cpu, cpu_boot);
 }
 
-int mt6797_a72_binder_test_secondary_complete(
-	struct mt6797_a72_binder *binder, unsigned int cpu)
+int mt6797_a72_binder_test_secondary_complete(struct mt6797_a72_binder *binder,
+					      unsigned int cpu)
 {
 	return mt6797_a72_binder_drive_secondary(binder, cpu);
 }
 
 int mt6797_a72_binder_test_complete(struct mt6797_a72_binder *binder,
-	unsigned int cpu, enum cpuhp_state target)
+				    unsigned int cpu, enum cpuhp_state target)
 {
 	return mt6797_a72_binder_finish(binder, cpu, target);
 }
 
 int mt6797_a72_binder_test_failure(struct mt6797_a72_binder *binder,
-	unsigned int cpu, int error, bool *publish_p32)
+				   unsigned int cpu, int error,
+				   bool *publish_p32)
 {
 	return mt6797_a72_binder_fail(binder, cpu, error, publish_p32);
 }
@@ -792,8 +788,8 @@ mt6797_a72_binder_resolve(struct device *dev, const char *property,
 		put_device(&pdev->dev);
 		return -EINVAL;
 	}
-	ret = devm_add_action_or_reset(
-		dev, mt6797_a72_binder_put_device, &pdev->dev);
+	ret = devm_add_action_or_reset(dev, mt6797_a72_binder_put_device,
+				       &pdev->dev);
 	if (ret)
 		return ret;
 	*supplier = &pdev->dev;
@@ -816,16 +812,16 @@ static int mt6797_a72_binder_probe(struct platform_device *pdev)
 	atomic_set(&binder->transition.lifecycle,
 		   MT6797_A72_TRANSITION_LIFECYCLE_IDLE);
 	atomic_set(&binder->boot_claimed, 0);
-	ret = mt6797_a72_binder_resolve(
-		&pdev->dev, "mediatek,watchdog", &binder->watchdog);
+	ret = mt6797_a72_binder_resolve(&pdev->dev, "mediatek,watchdog",
+					&binder->watchdog);
 	if (ret)
 		return ret;
-	ret = mt6797_a72_binder_resolve(
-		&pdev->dev, "mediatek,platform-state", &binder->platform_state);
+	ret = mt6797_a72_binder_resolve(&pdev->dev, "mediatek,platform-state",
+					&binder->platform_state);
 	if (ret)
 		return ret;
-	ret = mt6797_a72_binder_resolve(
-		&pdev->dev, "mediatek,bigidvfs", &binder->bigidvfs);
+	ret = mt6797_a72_binder_resolve(&pdev->dev, "mediatek,bigidvfs",
+					&binder->bigidvfs);
 	if (ret)
 		return ret;
 	if (!mt6797_a72_provider_available())

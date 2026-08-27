@@ -928,7 +928,7 @@ int mt6797_a72_binder_preflight(unsigned int cpu, enum cpuhp_state target);
 int mt6797_a72_binder_validate(unsigned int cpu, int tasks_frozen,
 \t\t\t       enum cpuhp_state target);
 int mt6797_a72_binder_cpu_boot(unsigned int cpu,
-\t\t\t      mt6797_a72_cpu_boot_fn cpu_boot);
+\t\t\t       mt6797_a72_cpu_boot_fn cpu_boot);
 int mt6797_a72_binder_secondary_complete(unsigned int cpu);
 int mt6797_a72_binder_complete(unsigned int cpu, enum cpuhp_state target);
 int mt6797_a72_binder_failure(unsigned int cpu, int error,
@@ -954,7 +954,7 @@ mt6797_a72_binder_validate(unsigned int cpu, int tasks_frozen,
 
 static inline int
 mt6797_a72_binder_cpu_boot(unsigned int cpu,
-\t\t\t  mt6797_a72_cpu_boot_fn cpu_boot)
+\t\t\t   mt6797_a72_cpu_boot_fn cpu_boot)
 {
 \t(void)cpu;
 \t(void)cpu_boot;

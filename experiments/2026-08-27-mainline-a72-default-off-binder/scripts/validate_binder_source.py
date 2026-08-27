@@ -10,11 +10,11 @@ from pathlib import Path
 
 EXPECTED_NEW_HASHES = {
     "include/linux/soc/mediatek/mt6797-a72-binder.h":
-        "2580cb7c1381b89683a7c1b4e4b58057b6b63e30df7520d1b5be15653728622a",
+        "46ff82bd82176dfbb79388ce2085bba1ebe745b7b295d07ccc853f58b62f38f8",
     "drivers/soc/mediatek/mt6797-a72-binder.c":
-        "a0d1ca123e6be122b3579898da19e13e5e723457a9457a2873dda627e16552bf",
+        "7d40050e22686f68bcad9dfe06ef8b1c3ebf8934abdb6311c78c1b9ef6283c1a",
     "drivers/soc/mediatek/mt6797-a72-binder-internal.h":
-        "9f4bbcd403748546622590f6a6c391429477400b01f4c41049db26f66b04728c",
+        "2383cd4d792e580f1071b457ecade91c66a6c736a1b1af683538548dbc144ad5",
     "drivers/soc/mediatek/mt6797-a72-binder-test.c":
         "d6212559e2389e9a0e1cb94588d4c78761e8b55e64d8c9bb62854eac9d3ed2ee",
     "Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-a72-binder.yaml":
