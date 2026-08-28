@@ -71,7 +71,7 @@ trap cleanup EXIT HUP INT TERM
 ssh_command=(
 	ssh -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=5
 	-o ServerAliveCountMax=6 -o IdentitiesOnly=yes -o IdentityAgent=none
-	-o StrictHostKeyChecking=yes -i "$identity"
+	-o StrictHostKeyChecking=yes -o UpdateHostKeys=no -i "$identity"
 )
 "${ssh_command[@]}" "$target" 'sudo -n /bin/bash -s' >"$workdir/remote-capture.txt" <<'REMOTE'
 set -euo pipefail
@@ -123,8 +123,9 @@ terminal_hex=$(single_value terminal_hex "$capture") || die 'runtime terminal tr
 [[ "$runtime_boot_id" =~ ^[0-9a-f-]{36}$ && "$runtime_boot_id" != "$install_boot_id" ]] ||
 	die 'no changed Gemian boot ID after deployment'
 [[ "$boot2_sha256" == "$CANDIDATE_SHA256" ]] || die 'installed boot2 identity changed'
-[[ "$ledger_hex" =~ ^[0-9a-f]{168}$ && "$entry_hex" =~ ^[0-9a-f]{8192}$ &&
-	"$terminal_hex" =~ ^[0-9a-f]{8192}$ ]] || die 'retained capture length changed'
+[[ "$ledger_hex" =~ ^[0-9a-f]{168}$ && "${#entry_hex}" == 8192 &&
+	! "$entry_hex" =~ [^0-9a-f] && "${#terminal_hex}" == 8192 &&
+	! "$terminal_hex" =~ [^0-9a-f] ]] || die 'retained capture length changed'
 python3 "$classifier" --ledger-hex "$ledger_hex" --entry-hex "$entry_hex" \
 	--terminal-hex "$terminal_hex" >"$workdir/classification.txt" ||
 	die 'retained records rejected attribution'

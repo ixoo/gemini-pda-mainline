@@ -129,7 +129,7 @@ fi
 ssh_command=(
 	ssh -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=5
 	-o ServerAliveCountMax=6 -o IdentitiesOnly=yes -o IdentityAgent=none
-	-o StrictHostKeyChecking=yes -i "$identity"
+	-o StrictHostKeyChecking=yes -o UpdateHostKeys=no -i "$identity"
 )
 retained_capture="$("${ssh_command[@]}" "$target" 'sudo -n /bin/bash -s' <<'REMOTE'
 set -euo pipefail
@@ -166,8 +166,10 @@ ledger_hex=$(field ledger_hex) || die 'transition-ledger field missing or duplic
 entry_hex=$(field entry_hex) || die 'entry-trace field missing or duplicated'
 terminal_hex=$(field terminal_hex) || die 'terminal-trace field missing or duplicated'
 [[ "$ledger_hex" =~ ^[0-9a-f]{168}$ ]] || die 'malformed transition-ledger bytes'
-[[ "$entry_hex" =~ ^[0-9a-f]{8192}$ ]] || die 'malformed entry-trace bytes'
-[[ "$terminal_hex" =~ ^[0-9a-f]{8192}$ ]] || die 'malformed terminal-trace bytes'
+[[ "${#entry_hex}" == 8192 && ! "$entry_hex" =~ [^0-9a-f] ]] ||
+	die 'malformed entry-trace bytes'
+[[ "${#terminal_hex}" == 8192 && ! "$terminal_hex" =~ [^0-9a-f] ]] ||
+	die 'malformed terminal-trace bytes'
 ledger_output=$(python3 "$ledger_validator" --hex "$ledger_hex") ||
 	die 'transition-ledger preflight rejected current retained bytes'
 grep -Fqx 'transition_ledger_state=logical-empty' <<<"$ledger_output" ||

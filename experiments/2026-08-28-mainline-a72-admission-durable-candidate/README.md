@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-admission-durable-candidate` |
-| Status | `running`; exact candidate validated offline, recovery and deployment gates pending |
+| Status | `running`; exact candidate selected, corrected live preflight and deployment pending |
 | Subsystem | arm64 CPU hotplug, MT6797 admission, retained evidence |
 | Device variant | Planet Computers Gemini PDA, named project device |
 | Date(s) | 2026-08-28 |
@@ -73,8 +73,11 @@ terminal transition ledger all agree.
 ## Conclusion
 
 Pending. The production Buildbox package and exact boot container passed
-independent offline validation. No device access, retained physical write,
-boot2 write, boot, or physical CPU request has occurred in this experiment.
+independent offline validation. A first read-only Gemian preflight confirmed
+all three retained headers were exact logical-empty, then failed closed because
+the host regex asked POSIX ERE to repeat 8,192 times. The corrected exact-length
+check is published before retry. No boot2 write, retained physical write,
+candidate boot, or physical CPU request has occurred in this experiment.
 
 ## Follow-up
 

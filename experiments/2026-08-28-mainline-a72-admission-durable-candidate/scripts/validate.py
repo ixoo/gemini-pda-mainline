@@ -93,6 +93,13 @@ offline = contract["offline_gates"]
 require(offline["admission_trace_mutation_tests"] == 10 and
         offline["recovery_decision_map_tests"] == 7 and
         offline["installer_derivation"] == "pass", "offline gate scope")
+live_correction = contract["live_preflight_tooling_correction"]
+live_record = EXPERIMENT / live_correction["record"]
+require(sha256(live_record) == live_correction["record_sha256"] and
+        live_correction["device_access"] == "read-only" and
+        live_correction["device_storage_write"] is False and
+        live_correction["retained_ram_write"] is False,
+        "live preflight tooling correction")
 
 config = config_path.read_text(encoding="utf-8")
 for token in (
@@ -137,10 +144,11 @@ require(contract["maximum_trace_record_writes"] == 2 and
         contract["retry_paths"] == 0, "bounded effects")
 require(contract["fresh_predecessor_backup"] is False and
         contract["native_vm_build"] is False and
+        contract["device_access"] == "read-only-retained-preflight" and
         contract["device_action"] is False and
         contract["boot_candidate"] is True,
         "selected-candidate safety state")
-require(contract["result"] == "offline-candidate-selected-device-preflight-pending",
+require(contract["result"] == "corrected-live-preflight-pending",
         "selected-candidate result")
 
 for relative in (
