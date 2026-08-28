@@ -119,6 +119,16 @@ require(attempt["repository_commit"] ==
 require(attempt["generated_patch_count"] == 0 and
         attempt["result"] == "fail-closed-indentation-corrected",
         "fourth Buildbox generation fail-closed result")
+attempt = contract["buildbox_generation_attempt_5"]
+require(attempt["repository_commit"] ==
+        "c28ac513a135df5db268543e19066c8aa6420c66" and
+        attempt["record"] ==
+        "results/buildbox-generation-attempt5-20260828.txt" and
+        sha256(EXPERIMENT / attempt["record"]) == attempt["record_sha256"],
+        "fifth Buildbox generation attempt record")
+require(attempt["generated_patch_count"] == 0 and
+        attempt["result"] == "fail-closed-test-style-corrected",
+        "fifth Buildbox generation fail-closed result")
 
 for relative in (
     "README.md", "DESIGN.md", "contract.json",

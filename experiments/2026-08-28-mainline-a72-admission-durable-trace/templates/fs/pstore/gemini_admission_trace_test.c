@@ -160,8 +160,8 @@ static void gemini_admission_trace_entry_reentry_test(struct kunit *test)
 	int ret;
 
 	KUNIT_ASSERT_NOT_NULL(test, context);
-	KUNIT_ASSERT_EQ(test, gemini_admission_trace_owner_entry(&owner,
-			&trace_test_ops, context), 0);
+	ret = gemini_admission_trace_owner_entry(&owner, &trace_test_ops, context);
+	KUNIT_ASSERT_EQ(test, ret, 0);
 	byte_writes = context->byte_writes[0];
 	ret = gemini_admission_trace_owner_entry(&owner, &trace_test_ops, context);
 	KUNIT_EXPECT_EQ(test, ret, 0);
@@ -197,10 +197,9 @@ static void gemini_admission_trace_terminal_records_test(struct kunit *test)
 		int ret;
 
 		KUNIT_ASSERT_NOT_NULL(test, context);
-		KUNIT_ASSERT_EQ(test, gemini_admission_trace_owner_entry(&owner,
-				&trace_test_ops, context), 0);
-		ret = gemini_admission_trace_owner_zero_request(&owner,
-			&trace_test_ops, context, result);
+		ret = gemini_admission_trace_owner_entry(&owner, &trace_test_ops, context);
+		KUNIT_ASSERT_EQ(test, ret, 0);
+		ret = gemini_admission_trace_owner_zero_request(&owner, &trace_test_ops, context, result);
 		KUNIT_EXPECT_EQ(test, ret, 0);
 		KUNIT_EXPECT_TRUE(test, owner.terminal_committed);
 		KUNIT_EXPECT_EQ(test, owner.commits, 2U);
@@ -215,25 +214,21 @@ static void gemini_admission_trace_terminal_gates_test(struct kunit *test)
 {
 	struct gemini_admission_trace_owner owner = { };
 	struct trace_test_context *context = trace_test_context(test);
+	const enum gemini_admission_trace_zero_result result =
+		GEMINI_ADMISSION_TRACE_ZERO_DERIVE;
 	int ret;
 
 	KUNIT_ASSERT_NOT_NULL(test, context);
-	ret = gemini_admission_trace_owner_zero_request(&owner,
-		&trace_test_ops, context,
-		GEMINI_ADMISSION_TRACE_ZERO_DERIVE);
+	ret = gemini_admission_trace_owner_zero_request(&owner, &trace_test_ops, context, result);
 	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
-	KUNIT_ASSERT_EQ(test, gemini_admission_trace_owner_entry(&owner,
-			&trace_test_ops, context), 0);
+	ret = gemini_admission_trace_owner_entry(&owner, &trace_test_ops, context);
+	KUNIT_ASSERT_EQ(test, ret, 0);
 	put_unaligned_le32(1, &context->slots[1][4]);
-	ret = gemini_admission_trace_owner_zero_request(&owner,
-		&trace_test_ops, context,
-		GEMINI_ADMISSION_TRACE_ZERO_DERIVE);
+	ret = gemini_admission_trace_owner_zero_request(&owner, &trace_test_ops, context, result);
 	KUNIT_EXPECT_EQ(test, ret, -EIO);
 	KUNIT_EXPECT_TRUE(test, owner.failed);
 	KUNIT_EXPECT_EQ(test, owner.commits, 1U);
-	ret = gemini_admission_trace_owner_zero_request(&owner,
-		&trace_test_ops, context,
-		GEMINI_ADMISSION_TRACE_ZERO_DERIVE);
+	ret = gemini_admission_trace_owner_zero_request(&owner, &trace_test_ops, context, result);
 	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
 }
 

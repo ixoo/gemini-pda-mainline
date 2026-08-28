@@ -1,0 +1,12 @@
+experiment=2026-08-28-mainline-a72-admission-durable-trace
+repository_commit=c28ac513a135df5db268543e19066c8aa6420c66
+backend=buildbox
+prepared_source_state=6fcc8878d91c8c0c34fc8b5591a98bc8fcf7de927847690a8ecb55207b33e6a4
+prepared_source_integrity=79523b2d2e61aafee04e3ced7e26b6e2771ced2f477bdb0508b5068e96971853
+passed_stage=patch-0415-strict-style
+failed_stage=patch-0416-strict-style
+failure=nested-KUnit-call-continuations-were-not-aligned
+generated_patch_count=0
+device_action=none
+boot_candidate=false
+result=fail-closed-test-style-corrected

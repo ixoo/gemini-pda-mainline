@@ -102,6 +102,11 @@ indentation. They now use tabs for each complete tab stop and spaces only for
 the alignment remainder, as required by strict kernel style. No package,
 build, device action, or candidate resulted.
 
+The fifth generation made patch `0415` clean and reached patch `0416`, where
+strict review rejected seven nested KUnit call continuations. The tests now
+store return values before assertions and keep bounded owner calls on one
+line. No package, kernel build, device action, or candidate resulted.
+
 ## Analysis
 
 An immutable entry in record 2 proves the controller core ran even when USB
