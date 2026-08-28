@@ -80,9 +80,9 @@ require(
 require(
     contract["native_vm_build"] is False and
     contract["device_action"] is False and
-    contract["boot_candidate"] is False and
-    contract["result"] == "production-profile-defined-build-pending",
-    "hardware-free definition state",
+    contract["boot_candidate"] is True and
+    contract["result"] == "validated-candidate-deployment-pending",
+    "validated candidate state",
 )
 definition = contract["definition_validation"]
 require(
@@ -299,11 +299,104 @@ for token in (
 ):
     require(token in production_config, f"production config token {token}")
 
+production_build = contract["production_buildbox"]
+require(
+    production_build["repository_commit"] ==
+    "c147e2ddc1acc93827b59f8e3bb38b9b2f4d3fb2" and
+    production_build["record"] ==
+    "results/buildbox-compile-c147e2dd-20260828.txt" and
+    sha256(EXPERIMENT / production_build["record"]) ==
+    production_build["record_sha256"],
+    "production Buildbox record",
+)
+require(
+    production_build["profile"] == "a72-admission-live-trigger-candidate" and
+    production_build["kernel_release"] == "7.1.3-gemini-a72-admission-live" and
+    production_build["patchset_sha256"] ==
+    "40a78b77c20ebaf946d0960fe0a5295c5b57e533efae09bb02990151ece4530f" and
+    production_build["config_sha256"] ==
+    "265f610b5200dff9184cd0dcca3c6993b572e167316e149a9856f05723c9eebd" and
+    production_build["image_sha256"] ==
+    "96c86abe4084333bf462f028c217c41eb0342ad080dae3014b439eef0f0cab18" and
+    production_build["image_gzip_sha256"] ==
+    "4b884c0176d4d3e7d96c35f84ce36f0e591b2b7a411fe217f43427824f8377f4" and
+    production_build["dtb_sha256"] ==
+    "1bd6ce2ded2e1186503cb0d9d00107964ec27abc48062b9210e1935d38d60509" and
+    production_build["package_manifest_sha256"] ==
+    "0b6c85b3d6d870c22513f64d3b61d0944a3e9729ad26c0297b4d29414d561f41" and
+    production_build["native_vm_build"] is False and
+    production_build["device_action"] is False and
+    production_build["result"] == "pass",
+    "production Buildbox identities",
+)
+
+candidate = contract["candidate"]
+require(
+    candidate["record"] == "results/candidate-validation-633f897a-20260828.txt" and
+    sha256(EXPERIMENT / candidate["record"]) == candidate["record_sha256"] and
+    sha256(SCRIPTS / "build-candidate.sh") == candidate["builder_sha256"] and
+    sha256(SCRIPTS / "validate-candidate.py") == candidate["validator_sha256"],
+    "candidate source-pinned construction records",
+)
+require(
+    candidate["ramdisk_sha256"] ==
+    "e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f" and
+    candidate["raw_sha256"] ==
+    "633f897ace3d0382dcc88bc064be03107ee3197bb8c7d0b686abab0e9e6b8135" and
+    candidate["raw_size"] == 6934528 and
+    candidate["padded_sha256"] ==
+    "4e0f86885a16df2f8b0c1efb4dd2e67394938bad1ef720adabf70ff4635ec0ef" and
+    candidate["padded_size"] == 16777216 and
+    candidate["artifact_manifest_sha256"] ==
+    "7a4c5eae292f2cd1766d2773e2d1b9d1fd660a120d9d5cdff9bad73ecbb97091" and
+    candidate["lk_name"] == "gemini-a72live" and
+    candidate["lk_cmdline"] == "bootopt=64S3,32N2,64N2" and
+    candidate["lk_gates"] == "32-of-32" and
+    candidate["cpu8_request_maximum"] == 1 and
+    candidate["cpu9_requests"] == 0 and candidate["cpu_off_requests"] == 0 and
+    candidate["retries"] == 0 and candidate["device_action"] is False and
+    candidate["boot_candidate"] is True and candidate["result"] == "pass",
+    "exact validated candidate",
+)
+
+runtime = contract["runtime_tools"]
+runtime_paths = {
+    "installer_sha256": "install-boot2.sh",
+    "remote_pretrigger_sha256": "remote-pretrigger.sh",
+    "pretrigger_validator_sha256": "validate-pretrigger.py",
+    "remote_trigger_sha256": "remote-trigger.sh",
+    "attempt_classifier_sha256": "classify-attempt.py",
+    "runtime_tests_sha256": "test-runtime.py",
+    "collector_sha256": "collect-live-trigger.sh",
+}
+require(
+    runtime["record"] == "results/offline-runtime-gates-20260828.txt" and
+    sha256(EXPERIMENT / runtime["record"]) == runtime["record_sha256"],
+    "offline runtime gate record",
+)
+for field, relative in runtime_paths.items():
+    require(sha256(SCRIPTS / relative) == runtime[field], f"runtime source {relative}")
+require(
+    runtime["pretrigger_accepted_branches"] == 1 and
+    runtime["attempt_accepted_branches"] == 3 and
+    runtime["unsafe_mutations_rejected"] == 13 and
+    runtime["pretrigger_fsync_before_trigger"] is True and
+    runtime["trigger_maximum"] == 1 and runtime["trigger_retry"] is False and
+    runtime["cpu9_requests"] == 0 and runtime["cpu_off_requests"] == 0 and
+    runtime["retries"] == 0 and runtime["reboot_requested"] is False and
+    runtime["device_action"] is False and runtime["result"] == "pass",
+    "bounded runtime tooling contract",
+)
+
 for relative in (
     "README.md", "DESIGN.md", "contract.json", "scripts/source_edits.py",
     "scripts/validate_source.py", "scripts/generate-patches.py",
     "scripts/generate-on-buildbox", "scripts/run-kunit-qemu",
-    "scripts/classify-kunit.py",
+    "scripts/classify-kunit.py", "scripts/build-candidate.sh",
+    "scripts/validate-candidate.py", "scripts/install-boot2.sh",
+    "scripts/remote-pretrigger.sh", "scripts/validate-pretrigger.py",
+    "scripts/remote-trigger.sh", "scripts/classify-attempt.py",
+    "scripts/test-runtime.py", "scripts/collect-live-trigger.sh",
     "results/local-definition-validation-20260828.txt",
     "results/buildbox-generation-attempt1-20260828.txt",
     "results/buildbox-generation-attempt2-20260828.txt",
@@ -311,13 +404,17 @@ for relative in (
     "results/canonical-integration-20260828.txt",
     "results/buildbox-compile-cc6e7f20-20260828.txt",
     "results/kunit-qemu-cc6e7f20-20260828.txt",
+    "results/buildbox-compile-c147e2dd-20260828.txt",
+    "results/candidate-validation-633f897a-20260828.txt",
+    "results/offline-runtime-gates-20260828.txt",
 ):
     path = EXPERIMENT / relative
     require(path.is_file() and not path.is_symlink(), f"exact file {relative}")
 
 for relative in (
     "source_edits.py", "validate_source.py", "generate-patches.py",
-    "classify-kunit.py",
+    "classify-kunit.py", "validate-candidate.py", "validate-pretrigger.py",
+    "classify-attempt.py", "test-runtime.py",
 ):
     path = SCRIPTS / relative
     ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
@@ -332,6 +429,27 @@ result = subprocess.run(
     check=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
 )
 require(result.returncode == 0, "KUnit runner syntax")
+for relative in ("build-candidate.sh", "install-boot2.sh", "collect-live-trigger.sh"):
+    result = subprocess.run(
+        ["bash", "-n", str(SCRIPTS / relative)], check=False,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+    )
+    require(result.returncode == 0, f"Bash syntax {relative}")
+for relative in ("remote-pretrigger.sh", "remote-trigger.sh"):
+    result = subprocess.run(
+        ["dash", "-n", str(SCRIPTS / relative)], check=False,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+    )
+    require(result.returncode == 0, f"remote dash syntax {relative}")
+result = subprocess.run(
+    ["python3", str(SCRIPTS / "test-runtime.py")], check=False,
+    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+)
+require(
+    result.returncode == 0 and "pretrigger_mutations_rejected=7" in result.stdout and
+    "attempt_mutations_rejected=6" in result.stdout and "result=pass" in result.stdout,
+    "offline runtime mutation tests",
+)
 
 spec = importlib.util.spec_from_file_location(
     "admission_live_source_edits", SCRIPTS / "source_edits.py"
@@ -397,5 +515,8 @@ print("cpu_off_paths=0")
 print("retry_paths=0")
 print("native_vm_build=none")
 print("device_action=none")
-print("boot_candidate=false")
+print("boot_candidate=true")
+print("production_buildbox=pass")
+print("candidate_lk_gates=32-of-32")
+print("runtime_unsafe_mutations_rejected=13")
 print("result=pass")

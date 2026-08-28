@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-admission-live-trigger` |
-| Status | `production profile defined; exact Buildbox build pending` |
+| Status | `exact validated candidate; deployment pending` |
 | Subsystem | MT6797 A72 admission controller, sysfs, CPU hotplug |
 | Device variant | Planet Computers Gemini PDA, named project device |
 | Date(s) | 2026-08-28 |
@@ -73,11 +73,17 @@ backup and never reboots Gemian automatically after the write.
 - `scripts/validate.py`: local definition and mutation validator.
 - `scripts/run-kunit-qemu`: clean, published, exact-package QEMU gate.
 - `scripts/classify-kunit.py`: exact two-suite/15-case KTAP classifier.
+- `scripts/build-candidate.sh` and `scripts/validate-candidate.py`: independent,
+  source-pinned LK construction and validation.
+- `scripts/install-boot2.sh`: live-GPT, predecessor-gated, full-readback boot2
+  installer with mandatory clean shutdown and no fresh partition backup.
+- `scripts/collect-live-trigger.sh`: exact-MAC USB watcher, durable pre-trigger
+  commit, one trigger session, and no-retry recovery monitor.
+- `scripts/remote-pretrigger.sh`, `scripts/validate-pretrigger.py`,
+  `scripts/remote-trigger.sh`, and `scripts/classify-attempt.py`: exact live
+  identity, armed-state, token, terminal-state, and transport-loss contract.
 
-Runtime collector, candidate construction, guarded boot2 installation, and
-classification scripts are intentionally deferred until hardware-free source
-proof passes. Private captures and candidates remain below ignored
-`artifacts/` paths.
+Private captures and candidates remain below ignored `artifacts/` paths.
 
 ## Procedure
 
@@ -148,6 +154,26 @@ uses release `7.1.3-gemini-a72-admission-live`. The controller remains inert at
 probe because the live-trigger mode is compiled in. All 156 manifest profiles
 remain canonical-order subsequences of the 412-entry series.
 
+Exact clean commit `c147e2dd` compiled that production profile on Buildbox as
+`7.1.3-gemini-a72-admission-live`. All 565 entries in the fetched package
+manifest pass. The build is pinned to patchset `40a78b77...`, resolved config
+`265f610b...`, `Image` `96c86abe...`, `Image.gz` `4b884c01...`, and unchanged
+production DTB `1bd6ce2d...`. No native VM build or device action occurred.
+
+Two independent LK constructions agree on raw container `633f897a...` and the
+exact 16 MiB boot2 image `4e0f8688...`. The established serviceability ramdisk
+is unchanged at `e0dffa04...`; the name is `gemini-a72live`, the command line is
+`bootopt=64S3,32N2,64N2`, and all 32 LK gates pass. Independent validation finds
+one controller, one binder, no standalone observer, one CPU8 request maximum,
+and zero CPU9, CPU_OFF, or retry paths.
+
+The runtime tooling now matches the kernel's exact full sysfs wire, including
+`operation_ret`, `cpu_requests`, and every zero-bounded counter. One accepted
+armed branch and three terminal branches pass; thirteen unsafe mutations fail
+closed. The host must fsync the accepted pre-trigger frame and trigger intent
+before opening the sole trigger connection. A commit-bearing transport loss is
+terminal and cannot be retried. No runtime tool requests a reboot.
+
 ## Analysis
 
 The new experiment separates two questions in one physical selection. If the
@@ -160,14 +186,12 @@ returning status identifies a precise terminal error or CPU8 outcome.
 ## Conclusion
 
 The retained-earlier-anchor direction is rejected. The serviceability-first
-one-shot trigger passes exact Buildbox compilation, package validation, and all
-15 focused hardware-free cases. No candidate, boot2 write, or physical CPU
-request has occurred yet. Its isolated production profile is defined but not
-built.
+one-shot trigger passes exact Buildbox compilation, package validation, all 15
+focused KUnit cases, exact LK construction, and the offline no-retry runtime
+gates. Candidate `4e0f8688...` is now a boot candidate. No boot2 write or
+physical CPU request has occurred yet.
 
 ## Follow-up
 
-Build the exact production profile on Buildbox, then pin the pre-trigger
-USB/netcat collector, one-attempt classifier, LK container, and guarded boot2
-installer to that fetched package. The ordered next step remains owned by
-`docs/ROADMAP.md`.
+Candidate `4e0f8688...` and its deployment/runtime gates are ready. The ordered
+next step remains owned by `docs/ROADMAP.md`.

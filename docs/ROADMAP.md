@@ -5828,11 +5828,22 @@ The next ordered work is:
    `a72-admission-live-trigger-candidate` production profile is now defined
    with the live trigger enabled, KUnit and split startup absent, controller
    probe still inert, and release `7.1.3-gemini-a72-admission-live`; all 156
-   profiles retain the 412-entry series invariant. **Selected next:** compile
-   that exact profile on Buildbox, then pin and validate the pre-trigger
-   USB/netcat collector, one-attempt classifier, LK container, and guarded
-   boot2 installer to its fetched package before selecting one distinct
-   physical candidate.
+   profiles retain the 412-entry series invariant. Exact clean commit
+   `c147e2dd` now compiles that profile on Buildbox as
+   `7.1.3-gemini-a72-admission-live`; all 565 fetched-package checksums pass.
+   Two independent LK constructions agree on raw container `633f897a...` and
+   exact boot2-sized candidate `4e0f8688...`; the established serviceability
+   ramdisk and production DTB are unchanged and all 32 LK gates pass. The
+   exact full-sysfs pre-trigger/terminal contract accepts one armed and three
+   terminal branches while rejecting 13 unsafe mutations. Its collector
+   fsyncs the accepted zero-execution frame and intent before one trigger
+   connection, forbids a retry after a commit-bearing transport loss, and
+   never requests a reboot. No native VM build or device action occurred.
+   **Selected next:** publish these offline gates, install exact `4e0f8688...`
+   only to live-GPT-resolved inactive boot2 with full readback and clean
+   shutdown, then pre-arm the host collector before one physical boot2
+   selection. Use the terminal status or attributable post-commit transport
+   loss to choose the next admission action without repeating the artifact.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
