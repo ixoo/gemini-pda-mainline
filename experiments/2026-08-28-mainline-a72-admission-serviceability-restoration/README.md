@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-admission-serviceability-restoration` |
-| Status | `offline complete; exact candidate validated, deployment pending` |
+| Status | `deployed and shut down; pre-trigger serviceability boot pending` |
 | Subsystem | MT6797 USB, keyboard, DVFSP handoff, dormant CPU8 controller |
 | Device variant | Planet Computers Gemini PDA, named project device |
 | Date(s) | 2026-08-28 |
@@ -101,6 +101,15 @@ container `b1ff92e8...`; two padding paths produce exact 16 MiB candidate
 `f4cb1b2c...`. All 32 LK gates and six negative mutations pass. No device was
 accessed and no kernel was built.
 
+After publishing signed definition commit `a2282470`, the proven control boot
+returned to changed-ID Gemian through the exact USB reboot wrapper. The guarded
+installer resolved inactive live-GPT `boot2` as `/dev/mmcblk0p30` while root
+remained `/dev/mmcblk0p29`, matched predecessor `c2b85cad...`, and wrote exact
+candidate `f4cb1b2c...`. The full-partition readback matched. Stable external
+power, unchanged TEE identities, no fresh backup, no retained-RAM write during
+installation, and clean shutdown with three closed TCP/22 checks are recorded
+in the deployment result.
+
 ## Analysis
 
 This repairs a candidate-construction regression rather than weakening the
@@ -112,8 +121,9 @@ serviceable when the omitted baseline transformation is restored.
 
 ## Conclusion
 
-Offline construction is confirmed. Runtime controller serviceability remains
-pending one physical boot2 selection; no CPU8 trigger is authorized in this
+Offline construction and guarded deployment are confirmed. The device is shut
+down and ready for one pre-armed physical boot2 selection. Runtime controller
+serviceability remains pending; no CPU8 trigger is authorized in this
 experiment.
 
 ## Follow-up

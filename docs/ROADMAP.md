@@ -5881,8 +5881,11 @@ The next ordered work is:
    graph while restoring all six serviceability nodes. Two independent
    constructions agree on exact boot2 image `f4cb1b2c...`; 32 LK gates and six
    corrupt-container mutations pass, and automatic CPU admission remains
-   closed. **Selected next:** deploy only that exact image, pre-arm its
-   read-only USB collector, and spend one boot proving controller/binder
+   closed. Signed definition `a2282470` is published. The guarded installer
+   then matched inactive live-GPT `boot2` predecessor `c2b85cad...`, wrote
+   exact `f4cb1b2c...`, passed its full-partition readback, and cleanly shut
+   down with no fresh backup or retained-RAM write. **Selected next:** pre-arm
+   its read-only USB collector and spend one boot proving controller/binder
    `armed` with zero trigger executions and CPU8/9 still offline. Return to the
    one-shot CPU8 trigger on this corrected DT only if that pre-trigger
    serviceability gate passes; otherwise partition only the remaining

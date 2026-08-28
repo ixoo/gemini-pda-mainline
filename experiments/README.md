@@ -31,8 +31,10 @@ the loop. Positive identity-gated observations are unaffected.
   controller/binder DT, reproduces exact restored DT `1478f2c8...`, and builds
   exact 16 MiB candidate `f4cb1b2c...`. Independent assembly, all 32 LK gates,
   and six corrupt-container mutations pass with automatic CPU admission still
-  closed. Publishing, guarded boot2 deployment, and one pre-trigger-only
-  serviceability boot are next.
+  closed. Signed definition `a2282470` is published; guarded inactive-boot2
+  deployment passed exact predecessor, full readback, and clean-shutdown gates
+  without a fresh backup or retained-RAM write. One pre-trigger-only
+  serviceability boot is next.
 - [2026-08-28 durable CPU8 admission physical candidate](2026-08-28-mainline-a72-admission-durable-candidate/README.md)
   — defines the production-only successor using the hardware-free-proven
   record-2 entry and record-3 zero-request trace. The DT graph is unchanged,

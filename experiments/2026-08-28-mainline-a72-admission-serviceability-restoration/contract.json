@@ -62,7 +62,23 @@
     "validate_candidate": "2499666d9061ef8648af0a85821d98640e2b15b97917bad997e80cd64220bf49",
     "validate_pretrigger": "5afa0f77e601f6407fc8a993ac0585148b8fc8567cb81947b576069f29b282e3"
   },
-  "deployment": null,
+  "deployment": {
+    "definition_commit": "a2282470200c9e33a32e9b66242be23110dd099c",
+    "gemian_boot_id": "9c462f2c-84a5-490a-a26d-ce863a5ab50a",
+    "target_logical_name": "boot2",
+    "target": "/dev/mmcblk0p30",
+    "root": "/dev/mmcblk0p29",
+    "predecessor_sha256": "c2b85cad08f77d641a07e68eda09617959ad1db6b36b60b20eb8f53733c6baab",
+    "candidate_sha256": "f4cb1b2c8bc3759a23515c41d6c3c9248c1095277cb158e082a5b322e6927c02",
+    "readback_sha256": "f4cb1b2c8bc3759a23515c41d6c3c9248c1095277cb158e082a5b322e6927c02",
+    "power": "external-online-battery-100-good-present",
+    "fresh_predecessor_backup": false,
+    "retained_ram_write": false,
+    "shutdown": "confirmed-unreachable-three-closed-tcp22-checks",
+    "private_summary_sha256": "e4c5a2ccca9935003c820ef01f508a3f8683e0123325a755596da61a3017c3cb",
+    "private_manifest_sha256": "3e4b6c0846649ce264de6e2033764251cb4daa5a0bb297101ce4c72c97139ac6",
+    "result": "pass"
+  },
   "runtime": null,
-  "current_status": "offline-complete-deployment-pending"
+  "current_status": "deployed-shutdown-runtime-pending"
 }
