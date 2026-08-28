@@ -1174,8 +1174,6 @@ elif [[ "${build_mode}" == scheduler || "${build_mode}" == register ]]; then
   )
   if [[ "${build_mode}" == register ]]; then
     changed_disassembly_symbols+=(
-      mt6797_a72_regcap_capture
-      mt6797_a72_regcap_cpuinfo_match
       mt6797_a72_regcap_emit
       mt6797_a72_regcap_identity
     )
@@ -1259,9 +1257,7 @@ if [[ "${build_mode}" == register ]]; then
         die "register comparison is missing inherited ${symbol}"
     done
   done
-  for symbol in mt6797_a72_regcap_capture \
-    mt6797_a72_regcap_cpuinfo_match mt6797_a72_regcap_emit \
-    mt6797_a72_regcap_identity; do
+  for symbol in mt6797_a72_regcap_emit mt6797_a72_regcap_identity; do
     grep -q " ${symbol}$" "${output}/System.map" || \
       die "register child is missing ${symbol}"
     ! grep -q " ${symbol}$" "${baseline_output}/System.map" || \
@@ -1270,17 +1266,27 @@ if [[ "${build_mode}" == register ]]; then
       "${output}/focused-disassembly/${symbol}.txt" || \
       die "register disassembly is missing ${symbol}"
   done
-  python3 - "${output}/focused-disassembly/mt6797_a72_regcap_capture.txt" <<'PY'
+  for symbol in mt6797_a72_regcap_capture \
+    mt6797_a72_regcap_cpuinfo_match; do
+    ! grep -q " ${symbol}$" "${output}/System.map" || \
+      die "pinned compiler stopped inlining ${symbol}"
+    ! grep -q " ${symbol}$" "${baseline_output}/System.map" || \
+      die "exact scheduler parent unexpectedly contains ${symbol}"
+  done
+  python3 - "${output}/focused-disassembly/mt6797_a72_sc_thread.txt" \
+    "${baseline_output}/focused-disassembly/mt6797_a72_sc_thread.txt" <<'PY'
 import pathlib
 import re
 import sys
 
-text = pathlib.Path(sys.argv[1]).read_text()
-mrs_count = len(re.findall(r"\bmrs\b", text))
-if mrs_count != 26:
+child = pathlib.Path(sys.argv[1]).read_text()
+parent = pathlib.Path(sys.argv[2]).read_text()
+child_mrs = len(re.findall(r"\bmrs\b", child))
+parent_mrs = len(re.findall(r"\bmrs\b", parent))
+if child_mrs - parent_mrs != 26:
     raise SystemExit(
-        "register capture system-register read count is {}, expected 26".format(
-            mrs_count
+        "register task mrs delta is {}, expected 26 (child={}, parent={})".format(
+            child_mrs - parent_mrs, child_mrs, parent_mrs
         )
     )
 forbidden = re.compile(
@@ -1288,10 +1294,12 @@ forbidden = re.compile(
     r"readl|writel|regulator|clk_|schedule_work|schedule_delayed_work|"
     r"sleep|delay|smc|hvc)[^>]*>"
 )
-match = forbidden.search(text)
+match = forbidden.search(child)
 if match:
     raise SystemExit("forbidden register-capture call: " + match.group(0))
-print("register_capture_mrs_count=26")
+print("register_task_child_mrs_count={}".format(child_mrs))
+print("register_task_parent_mrs_count={}".format(parent_mrs))
+print("register_task_mrs_delta=26")
 print("register_capture_forbidden_calls=none")
 PY
   for part in core aa64 a32isar a32mm; do
@@ -1330,12 +1338,14 @@ import sys
 
 expected = {
     "mt6797_a72_hold_workfn": 1024,
-    "mt6797_a72_regcap_capture": 1024,
-    "mt6797_a72_regcap_cpuinfo_match": 512,
     "mt6797_a72_regcap_emit": 1024,
     "mt6797_a72_regcap_identity": 512,
     "mt6797_a72_sc_terminal": 1024,
-    "mt6797_a72_sc_thread": 512,
+    "mt6797_a72_sc_thread": 1024,
+}
+inlined = {
+    "mt6797_a72_regcap_capture",
+    "mt6797_a72_regcap_cpuinfo_match",
 }
 seen = {}
 for line in pathlib.Path(sys.argv[1]).read_text().splitlines():
@@ -1343,6 +1353,8 @@ for line in pathlib.Path(sys.argv[1]).read_text().splitlines():
     if len(fields) < 3:
         continue
     name = fields[0].rsplit(":", 1)[-1]
+    if name in inlined:
+        raise SystemExit("pinned compiler stopped inlining: " + name)
     if name in expected:
         size = int(fields[1])
         if fields[2] != "static" or size > expected[name]:

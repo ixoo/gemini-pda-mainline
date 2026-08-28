@@ -74,6 +74,8 @@ one fixed decision map; the proven parent must not be rerun unchanged.
   local syntax, ShellCheck, serialization, exact-reversal, and mutation result.
 - [`results/source-generation-20260828.txt`](results/source-generation-20260828.txt):
   exact fourth-generation identity, style result, and admission decision.
+- [`results/compile-review-attempt1-20260828.txt`](results/compile-review-attempt1-20260828.txt):
+  both exact compile passes and the rejected standalone-symbol gate assumption.
 
 ## Procedure
 
@@ -145,12 +147,23 @@ reproduce them byte-for-byte. No kernel build has run.
 
 The Buildbox compile lane is now defined to compare that exact child against
 the scheduler-unpark parent under identical configuration and toolchain inputs.
-Its pre-package gates require four child-only functions, four complete output
-parts, both target-task capture phases, exactly 26 compiled `mrs` instructions
-in the capture function, no PSCI/MMIO/clock/regulator/sleep call, unchanged
-inherited scheduler terminals, identical compiler diagnostics, and bounded
-stack use for all capsule and affected scheduler functions. This definition is
-not a compile result or a boot candidate.
+Its pre-package gates require the two child-only standalone functions and the
+two expected inlined helpers, four complete output parts, both target-task
+capture phases, exactly 26 additional compiled `mrs` instructions in the child
+scheduler task relative to the parent, no PSCI/MMIO/clock/regulator/sleep call,
+unchanged inherited scheduler terminals, identical compiler diagnostics, and
+bounded stack use for every emitted capsule and affected scheduler function.
+This definition is not a successful compile result or a boot candidate.
+
+Compile attempt 1 at exact signed commit `44d3dce7` reconstructed and validated
+the source, then both child and exact scheduler-parent kernels compiled. The
+binary gate correctly stopped before packaging because pinned GCC 6.3 inlined
+the static capture and cpuinfo-match helpers, while the first lane definition
+incorrectly required standalone symbols for both. The admitted source remains
+unchanged. The corrected lane instead freezes that exact compiled shape and
+measures the fixed register-read inventory as the child-versus-parent task
+disassembly delta. Attempt 1 has no package, candidate, device write, or runtime
+claim.
 
 ## Analysis
 

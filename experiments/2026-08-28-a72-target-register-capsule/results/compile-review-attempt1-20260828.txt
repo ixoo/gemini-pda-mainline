@@ -1,0 +1,51 @@
+A72 target-register capsule Buildbox compile-review attempt 1
+Date: 2026-08-28
+
+Repository commit:
+  44d3dce7432abad6891102db7b16e897f5d20102
+Buildbox job key:
+  44d3dce7432abad6891102db7b16e897f5d20102-gemian-a72-register-capsule
+Source commit:
+  59e00a9144d782e148332009a835b99c43382467
+Scheduler-parent patchset SHA-256:
+  bd5799cecd14aa34a87562b09507a6d9f18f11cd138420bcba629f12793e7bfe
+Register-capsule patchset SHA-256:
+  71ef281aae8d0b99d0421b81bd3d61d82ab090125c4885977ba39d8280838469
+
+Source gate:
+  validation=a72-target-register-capsule-source
+  parent_reversal=byte-identical
+  changed_path=arch/arm64/kernel/psci.c
+  physical_actions=none
+
+Compile gate:
+  register_source_build=passed
+  baseline_source_build=passed
+
+Stopped binary gate:
+  missing disassembly: mt6797_a72_regcap_capture,
+    mt6797_a72_regcap_cpuinfo_match
+  error: compile-review line 1187 status 1
+
+Classification:
+  compile-gate-assumption-error
+
+The pinned GCC 6.3 build inlined the static capture and cpuinfo-match helpers
+into mt6797_a72_sc_thread. The lane incorrectly required those two source
+functions to survive as standalone linked symbols. This is not a source,
+kernel-compile, or runtime failure. Both exact trees compiled, then the gate
+stopped before diagnostics comparison, binary inspection, packaging, candidate
+assembly, or device action.
+
+Decision:
+  Reject attempt 1 as a compile-review package. Keep the admitted source patch
+  unchanged. Correct the binary gate to require the compiled form produced by
+  the pinned toolchain: capture and cpuinfo-match absent as standalone symbols,
+  identity and emit present, and exactly 26 additional mrs instructions in the
+  child scheduler task relative to its exact parent, with the forbidden-call
+  inventory still absent. Retry only from a new clean pushed commit.
+
+Package: none
+Boot candidate: none
+Device write: none
+Runtime claim: none

@@ -1377,8 +1377,6 @@ elif [[ "${mode}" == register ]]; then
     outputs/baseline/stack-usage.tar \
     outputs/baseline/stack-usage-files.nul \
     outputs/baseline/stack-usage-files.txt \
-    outputs/focused-disassembly/mt6797_a72_regcap_capture.txt \
-    outputs/focused-disassembly/mt6797_a72_regcap_cpuinfo_match.txt \
     outputs/focused-disassembly/mt6797_a72_regcap_emit.txt \
     outputs/focused-disassembly/mt6797_a72_regcap_identity.txt \
     outputs/focused-disassembly/mt6797_a72_sc_thread.txt \
@@ -1396,14 +1394,18 @@ elif [[ "${mode}" == register ]]; then
     .register_patchset_sha256 == $register_patchset and
     .purpose == "a72-target-register-capsule-compile-review-only"
   ' "${package}/provenance/build.json" >/dev/null
-  for symbol in mt6797_a72_regcap_capture \
-    mt6797_a72_regcap_cpuinfo_match mt6797_a72_regcap_emit \
-    mt6797_a72_regcap_identity; do
+  for symbol in mt6797_a72_regcap_emit mt6797_a72_regcap_identity; do
     grep -q " ${symbol}$" "${package}/outputs/System.map"
     ! grep -q " ${symbol}$" "${package}/outputs/baseline/System.map"
     grep -q "<${symbol}>:" \
       "${package}/outputs/focused-disassembly/${symbol}.txt"
     grep -q "^${symbol}=" "${package}/outputs/register-stack.txt"
+  done
+  for symbol in mt6797_a72_regcap_capture \
+    mt6797_a72_regcap_cpuinfo_match; do
+    ! grep -q " ${symbol}$" "${package}/outputs/System.map"
+    ! grep -q " ${symbol}$" "${package}/outputs/baseline/System.map"
+    ! grep -q "^${symbol}=" "${package}/outputs/register-stack.txt"
   done
   grep -aFq 'gemini-a72-regcap-v1 part=core result=%s' \
     "${package}/outputs/vmlinux"
