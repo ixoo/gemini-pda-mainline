@@ -1,0 +1,72 @@
+From 2f61660fa3782fdf5ef0968f24461e66c4a09d3c Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 28 Aug 2026 01:21:00 +0000
+Subject: [PATCH 1/1] arm64: mediatek: align A72 owner KUnit fixtures
+
+Keep CPU8-only state out of the CPU9 prestate fixture.
+
+Exercise the full plan-identity and Binder preflight contracts.
+---
+ .../arm64/kernel/mt6797_a72_membership_test.c | 21 ++++++++++++-------
+ 1 file changed, 13 insertions(+), 8 deletions(-)
+
+diff --git a/arch/arm64/kernel/mt6797_a72_membership_test.c b/arch/arm64/kernel/mt6797_a72_membership_test.c
+index c9ede08..6b75eba 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership_test.c
++++ b/arch/arm64/kernel/mt6797_a72_membership_test.c
+@@ -73,13 +73,6 @@ mt6797_a72_prestate_for_up(unsigned int cpu)
+ 		.abi = MT6797_A72_A36_PRESTATE_ABI,
+ 		.observer_window = MT6797_A72_OBSERVER_WINDOW_OPEN,
+ 		.call_shape = MT6797_A72_A36_CALL_SHAPE_TWO_ARG,
+-		.da921x_page = MT6797_A72_A36_DA921X_PAGE,
+-		.buckb_vsel = MT6797_A72_A36_BUCKB_VSEL,
+-		.spm_218 = MT6797_A72_A36_SPM_218,
+-		.spm_290 = MT6797_A72_A36_SPM_290,
+-		.secure_sentinels_stable = 1,
+-		.protected_clock_valid = 1,
+-		.pstore_console_available = 1,
+ 		.watchdog_owned = 1,
+ 		.secondary_entry_pa = __pa_symbol(secondary_entry),
+ 		.generation = 1,
+@@ -88,6 +81,13 @@ mt6797_a72_prestate_for_up(unsigned int cpu)
+ 
+ 	if (cpu == 8) {
+ 		prestate.operation = ARM64_LATE_CPU_STARTUP_OP_CPU8_UP;
++		prestate.da921x_page = MT6797_A72_A36_DA921X_PAGE;
++		prestate.buckb_vsel = MT6797_A72_A36_BUCKB_VSEL;
++		prestate.spm_218 = MT6797_A72_A36_SPM_218;
++		prestate.spm_290 = MT6797_A72_A36_SPM_290;
++		prestate.secure_sentinels_stable = 1;
++		prestate.protected_clock_valid = 1;
++		prestate.pstore_console_available = 1;
+ 		prestate.target_mpidr = 0x200;
+ 	} else {
+ 		prestate.operation = ARM64_LATE_CPU_STARTUP_OP_CPU9_UP;
+@@ -510,7 +510,8 @@ static void mt6797_a72_owner_p31_consumes_once(struct kunit *test)
+ 
+ 	mt6797_a72_owner_seed_available();
+ 	bad_ready = ready;
+-	bad_ready.plan_identity[0] = 0;
++	memset(bad_ready.plan_identity, 0,
++	       sizeof(bad_ready.plan_identity));
+ 	entry = mt6797_a72_entry_for_up(8);
+ 	ret = mt6797_a72_membership_begin_up(8, CPUHP_ONLINE,
+ 					     MT6797_A72_ATTEMPT_CPU8_UP,
+@@ -1091,6 +1092,8 @@ static void mt6797_a72_owner_r03_p29_rejects_and_retires(struct kunit *test)
+ 
+ 	ret = mt6797_a72_test_seed_cpu8_p27(&state->transaction);
+ 	KUNIT_ASSERT_EQ(test, ret, 0);
++	ret = mt6797_a72_membership_preflight_up(8, CPUHP_ONLINE);
++	KUNIT_ASSERT_EQ(test, ret, 0);
+ 	ret = mt6797_a72_membership_begin_provider_acquire(&state->transaction);
+ 	KUNIT_ASSERT_EQ(test, ret, 0);
+ 	rejection = mt6797_a72_provider_rejection_for(&state->transaction);
+@@ -1140,6 +1143,8 @@ static void mt6797_a72_owner_r03_p29_mutations_rejected(struct kunit *test)
+ 
+ 	ret = mt6797_a72_test_seed_cpu8_p27(&state->transaction);
+ 	KUNIT_ASSERT_EQ(test, ret, 0);
++	ret = mt6797_a72_membership_preflight_up(8, CPUHP_ONLINE);
++	KUNIT_ASSERT_EQ(test, ret, 0);
+ 	ret = mt6797_a72_membership_begin_provider_acquire(&state->transaction);
+ 	KUNIT_ASSERT_EQ(test, ret, 0);
+ 	rejection = mt6797_a72_provider_rejection_for(&state->transaction);

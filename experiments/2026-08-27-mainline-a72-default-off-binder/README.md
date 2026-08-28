@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-27-mainline-a72-default-off-binder` |
-| Status | Exact 0404 build passed; QEMU isolated eight stale owner fixtures; 0405 generator scope repair pending |
+| Status | Exact 0404 build passed; QEMU isolated eight stale owner fixtures; 0405 generated and pending canonical admission |
 | Subsystem | CPU8 admission, transition owners, PSCI, and generic hotplug lifecycle |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-27 America/New_York |
@@ -224,9 +224,25 @@ around the two late-startup-only assignments. Strict checkpatch reports zero
 errors, warnings, or checks across 10 lines.
 
 The common P30 reset remains visible to the owner suite, while production
-configuration and runtime behavior remain unchanged. A new exact Buildbox
-compile and one bounded single-thread TCG QEMU proof remain pending. Generation
-performed no physical or device action, and no boot candidate is admitted.
+configuration and runtime behavior remain unchanged. The exact 0404 Buildbox
+compile passed, and its bounded single-thread TCG QEMU proof emitted all 47
+cases: the owner suite passed 22/30, while the executor passed 12/12 and the
+binder passed 5/5. The eight failures reduce to three stale test-fixture
+classes: partial plan-identity invalidation, CPU8-only fields retained in the
+CPU9 prestate fixture, and two P29 paths that omit the Binder public-preflight
+claim. Exact identities and classification are in the
+[third runtime rejection evidence](results/kunit-qemu-owner-fixtures-91217dda-20260828.txt).
+
+Buildbox generated and replay-validated the test-only 0405 repair from exact
+repository commit `4fc67aaf2985668da34e1fc3d771ee121a0e8fe7`. It changes only
+`arch/arm64/kernel/mt6797_a72_membership_test.c`, repairs the three fixture
+classes above, retains all 47 cases, and changes no production file. The patch
+SHA-256 is
+`df13fbfdc7a974e8da8f3fbee1f6f61cddb359c8f781ddb5af0e44d9cf99ca49`;
+strict checkpatch reports zero errors, warnings, or checks. Generation and
+source replay performed no physical or device action. Canonical admission, a
+fresh Buildbox compile, and one new bounded QEMU proof remain pending. This
+profile is not a boot candidate.
 
 ## Follow-up
 
