@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-physical-candidate-admission-audit` |
-| Status | derived admission compiles and passes 5/5 in QEMU; unrelated owner-suite selection repair pending |
+| Status | derived admission compiles and passes 5/5 in QEMU; focused KUnit isolation patch integrated; rebuild pending |
 | Subsystem | MT6797 CPU8 A34/A36 membership admission and physical binder entry |
 | Device variant | Planet Gemini PDA, named development unit |
 | Date(s) | 2026-08-28 America/New_York |
@@ -82,7 +82,12 @@ symbol. This removes the unrelated suite without changing production logic.
 Its source-pinned [Buildbox generator](scripts/generate-runtime-isolation-fix-on-buildbox),
 [deterministic edit](scripts/runtime_isolation_edits.py), and
 [validator](scripts/validate_runtime_isolation_source.py) are ready for the
-same signed, pushed, clean generation workflow.
+same signed, pushed, clean generation workflow. The exact generator ran at
+commit `8b4a01a1`; strict checkpatch, exact-source replay, and semantic
+validation passed. The resulting three-line patch is canonical `0409`, and
+its exact identity is recorded in the
+[isolation generation receipt](results/runtime-isolation-generation-20260828.txt).
+Its Buildbox rebuild and focused QEMU rerun remain pending.
 
 ## Safety assessment
 

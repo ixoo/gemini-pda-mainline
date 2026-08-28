@@ -1,0 +1,53 @@
+From 384d458caf883b8b6d8eade9e7c14a3ee5b8ffa8 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 28 Aug 2026 12:41:00 +0000
+Subject: [PATCH 1/1] arm64: mediatek: isolate derived admission KUnit fixtures
+
+Select only the hidden owner fixture helpers needed by the derived suite.
+
+Do not execute the unrelated closed-owner regression suite.
+---
+ arch/arm64/Kconfig                        | 2 +-
+ arch/arm64/include/asm/late_cpu_startup.h | 2 +-
+ arch/arm64/kernel/late_cpu_startup.c      | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 728e8a1..6e9c1a4 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -2575,7 +2575,7 @@ config ARM64_MT6797_A72_DERIVED_ADMISSION_KUNIT_TEST
+ 	depends on KUNIT=y
+ 	depends on HOTPLUG_CPU
+ 	depends on ARM64_MT6797_A72_P30_PROTOCOL_MODEL
+-	select ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST
++	select ARM64_MT6797_A72_P24_OWNER_TEST_SEED
+ 	select ARM64_MT6797_A72_DIRECT_STATE_COMPOSITOR
+ 	select ARM64_MT6797_A72_A34_ELIGIBILITY_EVALUATOR
+ 	select ARM64_MT6797_A72_BOOTSTRAP_PUBLISHER
+diff --git a/arch/arm64/include/asm/late_cpu_startup.h b/arch/arm64/include/asm/late_cpu_startup.h
+index 28cb2f7..a3472fc 100644
+--- a/arch/arm64/include/asm/late_cpu_startup.h
++++ b/arch/arm64/include/asm/late_cpu_startup.h
+@@ -223,7 +223,7 @@ static inline bool arm64_late_cpu_startup_quarantined(void)
+ #endif
+ 
+ #if defined(CONFIG_ARM64_LATE_CPU_STARTUP_KUNIT_TEST) || \
+-	defined(CONFIG_ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST)
++	defined(CONFIG_ARM64_MT6797_A72_P24_OWNER_TEST_SEED)
+ void arm64_late_cpu_startup_test_reset(void);
+ #endif
+ 
+diff --git a/arch/arm64/kernel/late_cpu_startup.c b/arch/arm64/kernel/late_cpu_startup.c
+index 6718c8d..0fdf947 100644
+--- a/arch/arm64/kernel/late_cpu_startup.c
++++ b/arch/arm64/kernel/late_cpu_startup.c
+@@ -916,7 +916,7 @@ bool arm64_late_cpu_startup_quarantined(void)
+ }
+ 
+ #if defined(CONFIG_ARM64_LATE_CPU_STARTUP_KUNIT_TEST) || \
+-	defined(CONFIG_ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST)
++	defined(CONFIG_ARM64_MT6797_A72_P24_OWNER_TEST_SEED)
+ void arm64_late_cpu_startup_test_reset(void)
+ {
+ 	unsigned long flags;

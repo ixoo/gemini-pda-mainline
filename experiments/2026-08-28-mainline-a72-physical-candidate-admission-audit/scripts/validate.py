@@ -34,7 +34,7 @@ require(sha256(manifest) == CONTRACT["integrated_manifest_sha256"],
         "manifest hash")
 require(CONTRACT["audited_canonical_series_entries"] == 398,
         "audited series entries")
-require(CONTRACT["integrated_canonical_series_entries"] == 400,
+require(CONTRACT["integrated_canonical_series_entries"] == 401,
         "integrated series entries")
 require(CONTRACT["integrated_profile"] == "a72-derived-admission-kunit",
         "integrated profile")
@@ -87,6 +87,7 @@ require(CONTRACT["accepted_generator_commit"] ==
 generated_patches = {
     "0407": ROOT / "patches/v7.1.3/0407-arm64-mediatek-derive-CPU8-admission-from-current-boot-state.patch",
     "0408": ROOT / "patches/v7.1.3/0408-arm64-mediatek-test-source-derived-CPU8-admission.patch",
+    "0409": ROOT / "patches/v7.1.3/0409-arm64-mediatek-isolate-derived-admission-KUnit-fixtures.patch",
 }
 for number, path in generated_patches.items():
     require(sha256(path) == CONTRACT["generated_patch_sha256"][number],
@@ -133,6 +134,23 @@ require(CONTRACT["selected_runtime_isolation_repair"] ==
         "select-hidden-owner-test-seed-without-owner-kunit-suite",
         "runtime isolation repair")
 
+isolation = EXP / "results/runtime-isolation-generation-20260828.txt"
+require(sha256(isolation) == CONTRACT["runtime_isolation_generation_sha256"],
+        "runtime isolation generation hash")
+isolation_text = isolation.read_text(encoding="utf-8")
+for token in (
+    "strict_checkpatch=pass", "exact_source_replay=pass",
+    "semantic_validation=pass", "owner_kunit_suite_selected=false",
+    "owner_test_seed_selected=true", "production_semantics_changed=false",
+    "physical_operations=0", "native_vm_build=none", "device_action=none",
+    "boot_candidate=false", "result=pass",
+):
+    require(token in isolation_text, f"runtime isolation token: {token}")
+require(CONTRACT["runtime_isolation_patch_integrated"] is True,
+        "runtime isolation patch integrated")
+require(CONTRACT["runtime_isolation_kernel_build"] is False,
+        "runtime isolation rebuild pending")
+
 receipt = EXP / "results/source-admission-audit-20260828.txt"
 require(CONTRACT["source_receipt_sha256"] != "pending", "receipt hash pending")
 require(sha256(receipt) == CONTRACT["source_receipt_sha256"], "receipt hash")
@@ -167,7 +185,7 @@ for token in (
 readme = (EXP / "README.md").read_text(encoding="utf-8")
 design = (EXP / "DESIGN.md").read_text(encoding="utf-8")
 combined = (readme + design + receipt_text + local_text + generation_text +
-            runtime_text)
+            runtime_text + isolation_text)
 words = " ".join(combined.split())
 for token in (
     "No direct caller can satisfy the current graph",
@@ -181,7 +199,7 @@ require("/Users/" not in combined, "no personal absolute path")
 require(CONTRACT["kernel_build"] is True, "kernel build")
 require(CONTRACT["device_action"] is False, "no device action")
 require(CONTRACT["result"] ==
-        "derived-suite-passes-runtime-isolation-repair-pending",
+        "derived-suite-passes-runtime-isolation-integrated-awaiting-rebuild",
         "result")
 
 print("definition_validation=pass")
@@ -192,6 +210,7 @@ print("generated_patches=2")
 print("derived_kunit_cases=5")
 print("kernel_build=pass")
 print("qemu_derived_cases=pass:5_fail:0")
-print("runtime_isolation_repair=pending")
+print("runtime_isolation_repair=integrated")
+print("runtime_isolation_rebuild=pending")
 print("native_vm_build=none")
 print("device_action=none")
