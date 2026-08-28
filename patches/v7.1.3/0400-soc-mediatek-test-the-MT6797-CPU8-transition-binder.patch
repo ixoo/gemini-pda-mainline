@@ -1,4 +1,4 @@
-From b4b760b40a5078cc8ba5b452fef7d46d719ff779 Mon Sep 17 00:00:00 2001
+From 3498c436b82f1696024d79d8404b855420ccd2f3 Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Thu, 27 Aug 2026 18:05:00 +0000
 Subject: [PATCH 5/5] soc: mediatek: test the MT6797 CPU8 transition binder
@@ -13,7 +13,7 @@ pre-isolation refusal, malformed-owner, and one-shot paths.
  create mode 100644 drivers/soc/mediatek/mt6797-a72-binder-test.c
 
 diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
-index 5feaf32..d88f62d 100644
+index 5feaf32..b4f823a 100644
 --- a/drivers/soc/mediatek/Kconfig
 +++ b/drivers/soc/mediatek/Kconfig
 @@ -153,6 +153,19 @@ config MTK_MT6797_A72_DEFAULT_OFF_BINDER
@@ -24,8 +24,8 @@ index 5feaf32..d88f62d 100644
 +	bool "KUnit tests for the MT6797 A72 default-off binder"
 +	depends on KUNIT=y
 +	depends on MTK_MT6797_A72_DEFAULT_OFF_BINDER
-+	select ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST
-+	select MTK_MT6797_A72_TRANSITION_EXECUTOR_KUNIT_TEST
++	depends on ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST
++	depends on MTK_MT6797_A72_TRANSITION_EXECUTOR_KUNIT_TEST
 +	default n
 +	help
 +	  Exercise the binder admission, split lifecycle, owner-response,
