@@ -1,0 +1,79 @@
+arm64 late-CPU READY evidence-gap exact-source audit
+Date: 2026-08-28
+Mode: read-only source audit
+Build: none
+Device action by audit: none
+
+Repository parent:
+4811f771a292d16b0a7c8360ee1c5c80b39305ed
+
+Buildbox prepared source:
+/workspace/gemini-pda/src/linux-7.1.3-series-source
+state_marker=16b5e467943d87d5fedb162770a7e2229d5a40fed596eb54d9167abba15105ce
+
+Exact source SHA-256:
+22ecfb06e8d00972ffdecad6019c11f2b4d695a38c90aa3bbd6977c4c22bc29b  arch/arm64/kernel/late_cpu_profile.c
+d9cd9d378e0be9c7b8ee07cc0cfceb681d78f8f3deea7d0cb64bbce93a118ad9  arch/arm64/kernel/mt6797_a72_membership.c
+91b614753d9eafba04c29d544166ea283bc15a2d7482ad4f4fe8959f0a1e2f3f  drivers/soc/mediatek/mt6797-a72-admission-controller.c
+e6bde598f415d8da0ba4073c37d2c8c341a70afb1d0237fc130ad113e494cd36  arch/arm64/include/asm/late_cpu_profile.h
+35e4049b9ee32ac8324cda4c7c1c4b2d79f394080f4a763c460c77d7769dad6c  arch/arm64/kernel/mt6797_a72_p30e.c
+39828a36e0864b75b4337567d41a9055d4ac17cdc7f995e25631e2a50a348c6f  arch/arm64/kernel/mt6797_a72_p30e_asm.S
+eeaeab87dc5d7cc7d0f05df64c1396060f9c7578c41f0a3038c61ad25178228c  arch/arm64/include/asm/mt6797_a72_p30e.h
+17dac1b2a499bb21f8a0e160aff9fd9fd24343c0f6d0dc12a4f4cbafb99d0749  arch/arm64/kernel/head.S
+2af27545feff3adf6e3514f6a42ffb50b4edac714c7e7d719bd7a4448f13ba7e  arch/arm64/kernel/smp.c
+
+Exact findings:
+
+1. Controller order
+   - drivers/soc/mediatek/mt6797-a72-admission-controller.c:163 returns
+     arm64_get_late_cpu_ready_token().
+   - Live operation_ret=-11 with core_consumed=0 and zero requests therefore
+     stopped before source registration, derivation, publication, or CPU_ON.
+
+2. Private evidence object has no target producer
+   - late_cpu_profile.c:59-65 defines the private object and state.
+   - late_cpu_profile.c:634-664 proves an otherwise untouched object is
+     required at the seal boundary.
+   - late_cpu_profile.c:693-734 seals only EMPTY or IDENTITY.
+   - Exact write search found no production writer for observed target MPIDR,
+     MIDR, register images, target capability/policy, or system capability.
+
+3. Evidence shape
+   - late_cpu_profile.h:207-230 requires MIDR, ID registers, CTR, GIC, hyp,
+     SMCCC WA1/2/3, ASID, granule, and VA validity.
+   - late_cpu_profile.h:232-300 starts the full AArch64/AArch32 register image
+     and per-target cache/GIC/hyp/policy fields.
+
+4. Profile/READY coupling
+   - mt6797_a72_membership.c:1053-1085 requires both targets, MPIDRs 0x200 and
+     0x201, and nonzero plan/source/config/evidence identities.
+   - late_cpu_profile.c:933-976 refuses profile-declared runtime origin,
+     verifies runtime fields remain empty for production origin NONE, merges
+     only the core-owned binding, and unconditionally adds COMMIT_PATH.
+
+5. Commit is deliberately unavailable
+   - late_cpu_profile.c:1016-1038 is an intentional panic stub for ABI 7.
+   - smp.c:589-600 orders identity/evidence/profile preparation before system
+     and user feature finalization.
+   - late_cpu_profile.c:1147-1155 returns a token only in READY state.
+
+6. P30E comment/code contradiction
+   - mt6797_a72_p30e_asm.S:3-7 says dormant and not connected.
+   - head.S:368-391 actually calls target_claim from secondary_entry.
+   - smp.c:355-369 and 548-556 actually publish success/failure.
+   - mt6797_a72_p30e.h:5-8 defines a 160-byte wire, 32-byte target boot
+     identity, and 2,048-byte slot.
+   - The code is authoritative; the comments are stale.
+
+Decision:
+confirmed-three-layer-ready-gap
+
+Rejected shortcut:
+Do not clear or bypass READY. Provenance alone cannot supply target evidence or
+the architecture-owned capability commit.
+
+Selected evidence direction:
+Add one bounded target-local register capture after the exact repeatable
+Gemian-derived scheduler-context parent gate, preserving its existing power,
+CPU_OFF prohibition, watchdog, and recovery boundaries. Keep mainline policy
+and system-wide capability decisions separate from the target register capsule.

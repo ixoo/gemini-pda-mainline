@@ -5993,7 +5993,21 @@ The next ordered work is:
    do not fabricate or bypass the token. Future container construction must
    compose both serviceability and late-CPU provenance transforms. Require
    source-only failure-path validation and a Buildbox build before another
-   physical candidate.
+   physical candidate. The exact
+   [READY evidence-gap audit](../experiments/2026-08-28-mainline-a72-ready-evidence-gap-audit/README.md)
+   now confirms three independent closures: the private arm64 evidence object
+   has no target-register producer, the production MT6797 profile remains
+   fail-closed, and ABI 7 has no architecture-owned capability commit. P30E is
+   already connected to `secondary_entry` despite stale dormant comments and
+   has reserved capsule space, but it cannot break the current
+   READY-before-CPU_ON ordering cycle by itself. **Selected next:** derive one
+   bounded CPU8/CPU9 target-register capture child from the exact repeatable
+   Gemian scheduler-context parent. Run each capture on its target CPU only
+   after the complete parent gate, preserve all parent power, CPU_OFF,
+   watchdog, workload, and recovery behavior, and publish only an immutable
+   versioned evidence capsule. Keep mainline policy and system-wide capability
+   decisions out of that vendor-kernel capsule. Freeze source, schema,
+   failure-path, and negative-mutation validation before a Buildbox-only build.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

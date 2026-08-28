@@ -23,6 +23,16 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-28 arm64 late-CPU READY evidence-gap audit](2026-08-28-mainline-a72-ready-evidence-gap-audit/README.md)
+  — exact prepared-source review confirms that provenance alone cannot publish
+  READY. The private core object has no target-register evidence producer, the
+  production MT6797 profile remains deliberately fail-closed, and ABI 7 has no
+  architecture-owned capability commit. P30E is already connected to
+  `secondary_entry` despite stale dormant comments and has reserved capsule
+  space, but current READY-before-CPU_ON ordering prevents it from collecting
+  the missing evidence. The audit issued no build, trigger, CPU, or storage
+  action; the selected evidence direction is a bounded target-local register
+  capture on the exact repeatable Gemian-derived scheduler-context parent.
 - [2026-08-28 live CPU8 admission past retained-trace failure](2026-08-28-mainline-a72-admission-trace-softfail/README.md)
   — tests the uniquely localized `trace_entry()` `-EIO` obstruction without
   weakening automatic admission. Only the existing one-shot, root-triggered
