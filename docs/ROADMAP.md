@@ -5916,10 +5916,17 @@ The next ordered work is:
    `CONFIG_NVMEM_MTK_ATAG_DEVINFO=y` in one named fragment. Its definition
    validator confirms canonical provider/identity source order, the provider's
    read-only/no-write boundary, unchanged kernel source and DT, and zero
-   trigger or CPU action. **Selected next:** publish the clean definition,
-   compile that exact commit on Buildbox, and require the complete handoff/
-   I2C6/provider/clock/BigiDVFS/platform/binder graph to be bound before a new,
-   separately attributable one-shot.
+   trigger or CPU action. Signed definition `296ce7f4` is published and that
+   exact commit built successfully on Buildbox with both NVMEM options built in;
+   no native VM build ran. The fetched package passed its checksum manifest.
+   Deterministic assembly and an independent validator agree on exact
+   boot2-sized candidate `fd611a4c...`, all 32 LK gates, and six rejected
+   container corruptions while retaining DT `1478f2c8...`, ramdisk
+   `e0dffa04...`, and zero CPU requests. **Selected next:** publish and install
+   that exact candidate, then require the complete handoff/I2C6/provider/clock/
+   BigiDVFS/platform/binder graph to be bound over USB/netcat before a new,
+   separately attributable one-shot. Visible framebuffer console is not a
+   qualification requirement for that step and is not currently claimed.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

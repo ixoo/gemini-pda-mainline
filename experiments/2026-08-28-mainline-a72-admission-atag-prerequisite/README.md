@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-admission-atag-prerequisite` |
-| Status | `definition validated; Buildbox build pending` |
+| Status | `exact candidate independently validated; deployment pending` |
 | Subsystem | MT6797 NVMEM, DVFSP handoff, I2C6, and A72 admission |
 | Device variant | Planet Computers Gemini PDA, named project device |
 | Date(s) | 2026-08-28 |
@@ -40,6 +40,9 @@ clock backend, and A72 binder. The fetched and running configs both omitted
   `CONFIG_NVMEM=y` and `CONFIG_NVMEM_MTK_ATAG_DEVINFO=y`.
 - Build only through `./scripts/build-kernel --backend buildbox`; native VM
   builds are forbidden unless the owner explicitly asks for one.
+- Signed definition commit `296ce7f4` built successfully on Buildbox as
+  `7.1.3-gemini-a72-admission-live`. Its fetched config is `9b9118fd...` and
+  contains both required NVMEM built-ins.
 
 ## Safety assessment
 
@@ -63,6 +66,12 @@ bound over exact USB/netcat. The consumed predecessor must never be retried.
 - `scripts/validate-definition.py`: checks the exact profile/config/source and
   no-action boundary.
 - `results/prebuild-definition-20260828.txt`: sanitized source decision.
+- `scripts/build-candidate.sh`: source-pins the prior serviceability assembler
+  and substitutes only the exact Buildbox kernel package.
+- `scripts/validate-candidate.py`: independently checks inputs, NVMEM options,
+  Android-v0 layout, LK gates, padding, and negative mutations.
+- `results/build-and-candidate-20260828.txt`: sanitized exact build and
+  candidate receipt.
 
 Private fetched packages and runtime captures remain below ignored
 `artifacts/`.
@@ -98,6 +107,20 @@ setting. Its driver is the existing read-only ATAG parser, and the identity cell
 is already present in the exact admission DT. The whole-manifest invariant
 audit accepts all 156 profiles, and its self-test rejects all eight mutations.
 
+Buildbox compiled exact signed commit `296ce7f4`, including
+`drivers/nvmem/mediatek-atag-devinfo.o`; no native VM build ran. The fetched
+package passed its complete checksum manifest. Two independent container
+constructions agree on raw candidate `6971ee82...` and boot2-sized candidate
+`fd611a4c...`. The independent validator accepts all 32 LK gates, rejects six
+container corruptions, and confirms the exact two NVMEM built-ins, unchanged
+serviceability DT `1478f2c8...`, unchanged ramdisk `e0dffa04...`, and zero CPU
+requests.
+
+The owner reports that the currently running predecessor boot has no visibly
+working console framebuffer. Exact USB/netcat remains live and is the control
+and attribution channel, so this is recorded as a framebuffer limitation, not
+as a boot failure or a framebuffer-support result.
+
 ## Analysis
 
 This is a narrower successor than adding more admission logging or repeating
@@ -109,12 +132,15 @@ token.
 
 ## Conclusion
 
-The config-only definition is ready for an exact Buildbox build. No hardware
-support claim or CPU8 result follows from this definition alone.
+The config-only successor is now an exact independently validated boot2
+candidate. No hardware-support claim or CPU8 result follows from offline
+validation alone.
 
 ## Follow-up
 
-Build and validate the exact package. If its pre-trigger boot proves the entire
-supplier graph bound, publish a separate one-shot contract before one new CPU8
-request. If any link remains unbound, stop without triggering and use that
-specific binding failure as the next decision point.
+Publish this candidate, install exact `fd611a4c...` to inactive live-GPT
+`boot2`, verify its full-partition readback, and shut down. On its first boot,
+perform only read-only netcat qualification. If that proves the entire supplier
+graph bound, publish a separate one-shot contract before one new CPU8 request.
+If any link remains unbound, stop without triggering and use that specific
+binding failure as the next decision point.
