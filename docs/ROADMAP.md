@@ -5747,6 +5747,13 @@ The next ordered work is:
    next:** generate and replay its four logical patches against the exact
    post-`0414` managed source, then compile and run the isolated retained-owner
    and controller suites on Buildbox before defining another physical boot.
+   Exact generation at `64037634` now passes all four source stages, strict
+   review with the sole documented byte-exact string-split exception,
+   checksums, and full-series replay. Canonical patches `0415`--`0418` plus
+   the isolated `a72-admission-trace-kunit` profile are integrated, and all 153
+   manifest profiles satisfy the 410-entry canonical-series invariant.
+   **Selected next:** commit and publish this exact integration, compile that
+   profile on Buildbox, and run only its retained-owner and controller suites.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

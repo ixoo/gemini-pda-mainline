@@ -78,5 +78,31 @@
     "generated_patch_count": 0,
     "result": "fail-closed-line-length-corrected"
   },
-  "result": "hardware-free-definition"
+  "buildbox_generation": {
+    "repository_commit": "64037634f15b0ee94a69f74733288d5d885616f6",
+    "record": "results/buildbox-generation-20260828.txt",
+    "record_sha256": "5ecf6eddcf8f51217bb9b81bea2e75239e3202b624d9dce1e04923b23afdff48",
+    "attempt": 7,
+    "generated_patch_count": 4,
+    "generated_patch_sha256": {
+      "0415": "ce13f4465807d13788a5f3884bc89ba3f4ae1e2a54d435fffe35003c99830a6f",
+      "0416": "20abce9526e54e814659591dd945abecc96f0a0da1949b88f2b63ca01c347c45",
+      "0417": "13d4a214c7b9cfbe9100224bb04472713ef067697f204227442d2c20c24c699d",
+      "0418": "48e9ba46c89d65eff02d817d7e143a4acbddc27a3603432bbd368dd6eea18555"
+    },
+    "source_stage_validations": "4-of-4-pass",
+    "strict_checkpatch": "pass-with-exact-wire-split-string-exception",
+    "full_series_replay": "pass",
+    "result": "pass"
+  },
+  "integration": {
+    "series_entries": 410,
+    "series_sha256": "1270d27bcb23bb885905c1bfb73f6348b211bde6e77c702e82a3d226b3484260",
+    "manifest_sha256": "de3a3a688e364a72005adc92879e60b191bc280859ec6d88839a96ff01f2f888",
+    "profile": "a72-admission-trace-kunit",
+    "config_fragment_sha256": "0461e1fe961e9856c3a5ace2e3536893712fe6445efccf25c63fe204adc8b565",
+    "profiles_checked": 153,
+    "result": "pass"
+  },
+  "result": "hardware-free-patches-integrated-build-pending"
 }

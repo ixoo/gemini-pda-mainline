@@ -27,6 +27,10 @@ ledger as the sole owner of the admitted physical-request path?
 - Physical parent result: the retired admission candidate's single attempt
   returned without an exact live frame and with a logical-empty transition
   ledger.
+- Patch `From:` metadata is the clearly synthetic, non-certifying experiment
+  identity and carries no `Signed-off-by`. The archive is not
+  submission-ready; actual author metadata and a truthful DCO certification
+  are required before any upstream submission.
 
 ## Safety assessment
 
@@ -111,6 +115,14 @@ The sixth generation reduced patch `0416` to one 106-column loop call. A
 loop-local operations alias now shortens the unchanged entry and terminal
 calls. No package, kernel build, device action, or candidate resulted.
 
+The seventh exact-source generation passes all four semantic stages, strict
+review with only the documented exact-wire split-string exception, checksum
+validation, and full-series replay. Canonical patches `0415`--`0418` and the
+isolated `a72-admission-trace-kunit` profile are integrated. All 153 manifest
+profiles remain canonical-order subsequences of the 410-entry series. This is
+still hardware-free: compilation and the two focused suites are pending on
+Buildbox, and there is no candidate or device action.
+
 ## Analysis
 
 An immutable entry in record 2 proves the controller core ran even when USB
@@ -123,11 +135,13 @@ committed transition ledger proves the admitted request reached the binder.
 ## Conclusion
 
 Inconclusive for hardware. The successor evidence contract is frozen and its
-local exact-record, ordering, bounded-effect, source-anchor, and unsafe-
-mutation validation passes. It has not yet generated or compiled a patch,
-selected a candidate, accessed the device, or requested a CPU.
+local definition plus exact-source four-patch generation, strict review,
+checksum validation, and replay pass. The patches and isolated test profile
+are integrated, but have not yet compiled or run a suite, selected a
+candidate, accessed the device, or requested a physical CPU.
 
 ## Follow-up
 
-Generate, review, and hardware-free test the four-patch successor on Buildbox.
-The ordered next action remains owned by `docs/ROADMAP.md`.
+Build the isolated profile and run exactly the immutable retained-owner and
+controller suites on Buildbox. The ordered next action remains owned by
+`docs/ROADMAP.md`.

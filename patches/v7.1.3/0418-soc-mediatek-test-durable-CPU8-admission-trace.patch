@@ -1,0 +1,165 @@
+From f5dc5d5af666927624b14b4e8b53445c90361183 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 28 Aug 2026 23:14:00 +0000
+Subject: [PATCH 4/4] soc: mediatek: test durable CPU8 admission trace
+
+Prove trace ordering, exact terminal classification, fail-closed
+behavior, and unchanged one-shot CPU8 request semantics.
+---
+ .../mt6797-a72-admission-controller-test.c    | 68 ++++++++++++++++++-
+ 1 file changed, 66 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-admission-controller-test.c b/drivers/soc/mediatek/mt6797-a72-admission-controller-test.c
+index 1c3c8d1..5b7a3c8 100644
+--- a/drivers/soc/mediatek/mt6797-a72-admission-controller-test.c
++++ b/drivers/soc/mediatek/mt6797-a72-admission-controller-test.c
+@@ -12,6 +12,7 @@
+ #include "mt6797-a72-admission-controller-internal.h"
+ 
+ enum mt6797_a72_admission_test_event {
++	MT6797_ADMISSION_TRACE_ENTRY,
+ 	MT6797_ADMISSION_BINDER_READY,
+ 	MT6797_ADMISSION_READY_TOKEN,
+ 	MT6797_ADMISSION_SOURCE_REGISTER,
+@@ -19,6 +20,7 @@ enum mt6797_a72_admission_test_event {
+ 	MT6797_ADMISSION_PUBLISH,
+ 	MT6797_ADMISSION_ADD_CPU,
+ 	MT6797_ADMISSION_SOURCE_UNREGISTER,
++	MT6797_ADMISSION_TRACE_ZERO_REQUEST,
+ };
+ 
+ struct mt6797_a72_admission_test_context {
+@@ -33,6 +35,8 @@ struct mt6797_a72_admission_test_context {
+ 	bool same_task;
+ 	struct task_struct *operation_task;
+ 	unsigned int requested_cpu;
++	enum gemini_admission_trace_zero_result zero_result;
++	bool trace_zero_fails;
+ };
+ 
+ static void
+@@ -52,6 +56,28 @@ mt6797_a72_admission_test_event(struct mt6797_a72_admission_test_context *contex
+ 		context->same_task = false;
+ }
+ 
++static int mt6797_a72_admission_test_trace_entry(void *data)
++{
++	struct mt6797_a72_admission_test_context *context = data;
++
++	mt6797_a72_admission_test_event(context,
++					MT6797_ADMISSION_TRACE_ENTRY, false);
++	return context->fail_event == MT6797_ADMISSION_TRACE_ENTRY ? -ENOSPC : 0;
++}
++
++static int
++mt6797_a72_admission_test_trace_zero_request(void *data,
++					     enum gemini_admission_trace_zero_result result)
++{
++	struct mt6797_a72_admission_test_context *context = data;
++
++	mt6797_a72_admission_test_event(context,
++					MT6797_ADMISSION_TRACE_ZERO_REQUEST,
++					false);
++	context->zero_result = result;
++	return context->trace_zero_fails ? -ENOSPC : 0;
++}
++
+ static bool mt6797_a72_admission_test_binder_ready(void *data)
+ {
+ 	struct mt6797_a72_admission_test_context *context = data;
+@@ -129,6 +155,8 @@ mt6797_a72_admission_test_add_cpu(void *data, unsigned int cpu)
+ 
+ static const struct mt6797_a72_admission_controller_ops test_ops = {
+ 	.binder_ready = mt6797_a72_admission_test_binder_ready,
++	.trace_entry = mt6797_a72_admission_test_trace_entry,
++	.trace_zero_request = mt6797_a72_admission_test_trace_zero_request,
+ 	.ready_token = mt6797_a72_admission_test_ready_token,
+ 	.source_register = mt6797_a72_admission_test_register,
+ 	.source_unregister = mt6797_a72_admission_test_unregister,
+@@ -157,6 +185,7 @@ mt6797_a72_admission_test_context(struct kunit *test)
+ static void mt6797_a72_admission_success_test(struct kunit *test)
+ {
+ 	static const enum mt6797_a72_admission_test_event expected[] = {
++		MT6797_ADMISSION_TRACE_ENTRY,
+ 		MT6797_ADMISSION_BINDER_READY,
+ 		MT6797_ADMISSION_READY_TOKEN,
+ 		MT6797_ADMISSION_SOURCE_REGISTER,
+@@ -193,7 +222,7 @@ static void mt6797_a72_admission_preconsume_gates_test(struct kunit *test)
+ 	ret = mt6797_a72_admission_run(&context->controller, &test_ops, context);
+ 	KUNIT_EXPECT_EQ(test, ret, -EPROBE_DEFER);
+ 	KUNIT_EXPECT_EQ(test, atomic_read(&context->controller.consumed), 0);
+-	KUNIT_EXPECT_EQ(test, context->event_count, 1U);
++	KUNIT_EXPECT_EQ(test, context->event_count, 2U);
+ 	KUNIT_EXPECT_EQ(test, context->controller.cpu_requests, (u32)0);
+ 
+ 	context = mt6797_a72_admission_test_context(test);
+@@ -202,12 +231,17 @@ static void mt6797_a72_admission_preconsume_gates_test(struct kunit *test)
+ 	ret = mt6797_a72_admission_run(&context->controller, &test_ops, context);
+ 	KUNIT_EXPECT_EQ(test, ret, -EAGAIN);
+ 	KUNIT_EXPECT_EQ(test, atomic_read(&context->controller.consumed), 0);
+-	KUNIT_EXPECT_EQ(test, context->event_count, 2U);
++	KUNIT_EXPECT_EQ(test, context->event_count, 3U);
+ 	KUNIT_EXPECT_EQ(test, context->controller.cpu_requests, (u32)0);
+ }
+ 
+ static void mt6797_a72_admission_terminal_failures_test(struct kunit *test)
+ {
++	static const enum gemini_admission_trace_zero_result results[] = {
++		GEMINI_ADMISSION_TRACE_ZERO_SOURCE_REGISTER,
++		GEMINI_ADMISSION_TRACE_ZERO_DERIVE,
++		GEMINI_ADMISSION_TRACE_ZERO_PUBLISH,
++	};
+ 	static const int failures[] = {
+ 		MT6797_ADMISSION_SOURCE_REGISTER,
+ 		MT6797_ADMISSION_DERIVE,
+@@ -227,6 +261,10 @@ static void mt6797_a72_admission_terminal_failures_test(struct kunit *test)
+ 		KUNIT_EXPECT_EQ(test,
+ 				atomic_read(&context->controller.consumed), 1);
+ 		KUNIT_EXPECT_EQ(test, context->controller.cpu_requests, (u32)0);
++		KUNIT_EXPECT_EQ(test, context->events[context->event_count - 1],
++				MT6797_ADMISSION_TRACE_ZERO_REQUEST);
++		KUNIT_EXPECT_EQ(test, context->zero_result,
++				results[failure]);
+ 		KUNIT_EXPECT_TRUE(test, context->consumed_before_operation);
+ 		events = context->event_count;
+ 		ret = mt6797_a72_admission_run(&context->controller, &test_ops, context);
+@@ -252,6 +290,31 @@ static void mt6797_a72_admission_request_failure_test(struct kunit *test)
+ 	KUNIT_EXPECT_TRUE(test, context->consumed_before_operation);
+ }
+ 
++static void mt6797_a72_admission_trace_failures_test(struct kunit *test)
++{
++	struct mt6797_a72_admission_test_context *context;
++	int ret;
++
++	context = mt6797_a72_admission_test_context(test);
++	KUNIT_ASSERT_NOT_NULL(test, context);
++	context->fail_event = MT6797_ADMISSION_TRACE_ENTRY;
++	ret = mt6797_a72_admission_run(&context->controller, &test_ops, context);
++	KUNIT_EXPECT_EQ(test, ret, -ENOSPC);
++	KUNIT_EXPECT_EQ(test, atomic_read(&context->controller.consumed), 0);
++	KUNIT_EXPECT_EQ(test, context->event_count, 1U);
++
++	context = mt6797_a72_admission_test_context(test);
++	KUNIT_ASSERT_NOT_NULL(test, context);
++	context->fail_event = MT6797_ADMISSION_SOURCE_REGISTER;
++	context->trace_zero_fails = true;
++	ret = mt6797_a72_admission_run(&context->controller, &test_ops, context);
++	KUNIT_EXPECT_EQ(test, ret, -ENOSPC);
++	KUNIT_EXPECT_EQ(test, context->controller.trace_ret, -ENOSPC);
++	KUNIT_EXPECT_EQ(test, context->controller.cpu_requests, (u32)0);
++	KUNIT_EXPECT_EQ(test, context->events[context->event_count - 1],
++			MT6797_ADMISSION_TRACE_ZERO_REQUEST);
++}
++
+ static void mt6797_a72_admission_repeat_closed_test(struct kunit *test)
+ {
+ 	struct mt6797_a72_admission_test_context *context =
+@@ -274,6 +337,7 @@ static struct kunit_case mt6797_a72_admission_controller_cases[] = {
+ 	KUNIT_CASE(mt6797_a72_admission_preconsume_gates_test),
+ 	KUNIT_CASE(mt6797_a72_admission_terminal_failures_test),
+ 	KUNIT_CASE(mt6797_a72_admission_request_failure_test),
++	KUNIT_CASE(mt6797_a72_admission_trace_failures_test),
+ 	KUNIT_CASE(mt6797_a72_admission_repeat_closed_test),
+ 	{ }
+ };

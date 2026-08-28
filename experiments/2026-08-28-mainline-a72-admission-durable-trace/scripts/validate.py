@@ -70,8 +70,8 @@ require(contract["native_vm_build"] is False and
         contract["device_action"] is False and
         contract["boot_candidate"] is False,
         "hardware-free definition")
-require(contract["result"] == "hardware-free-definition",
-        "definition-only result")
+require(contract["result"] == "hardware-free-patches-integrated-build-pending",
+        "integrated build-pending result")
 definition = contract["definition_validation"]
 require(definition["record"] ==
         "results/local-definition-validation-20260828.txt" and
@@ -139,6 +139,68 @@ require(attempt["repository_commit"] ==
 require(attempt["generated_patch_count"] == 0 and
         attempt["result"] == "fail-closed-line-length-corrected",
         "sixth Buildbox generation fail-closed result")
+generation = contract["buildbox_generation"]
+require(generation["repository_commit"] ==
+        "64037634f15b0ee94a69f74733288d5d885616f6" and
+        generation["record"] == "results/buildbox-generation-20260828.txt" and
+        sha256(EXPERIMENT / generation["record"]) == generation["record_sha256"],
+        "successful Buildbox generation record")
+require(generation["attempt"] == 7 and
+        generation["generated_patch_count"] == 4 and
+        generation["source_stage_validations"] == "4-of-4-pass" and
+        generation["strict_checkpatch"] ==
+        "pass-with-exact-wire-split-string-exception" and
+        generation["full_series_replay"] == "pass" and
+        generation["result"] == "pass", "successful Buildbox generation")
+patch_names = {
+    "0415": "0415-pstore-add-Gemini-CPU8-admission-trace.patch",
+    "0416": "0416-pstore-test-Gemini-CPU8-admission-trace.patch",
+    "0417": "0417-soc-mediatek-retain-CPU8-admission-entry-and-rejections.patch",
+    "0418": "0418-soc-mediatek-test-durable-CPU8-admission-trace.patch",
+}
+for number, name in patch_names.items():
+    require(sha256(ROOT / "patches/v7.1.3" / name) ==
+            generation["generated_patch_sha256"][number],
+            f"integrated generated patch {number}")
+integration = contract["integration"]
+series_path = ROOT / "patches/series"
+manifest_path = ROOT / "kernel/manifest.json"
+config_path = ROOT / "configs/gemini-a72-admission-trace-kunit.fragment"
+require(sha256(series_path) == integration["series_sha256"] and
+        len(series_path.read_text(encoding="utf-8").splitlines()) ==
+        integration["series_entries"], "integrated canonical series")
+require(series_path.read_text(encoding="utf-8").splitlines()[-4:] == [
+    f"v7.1.3/{name}" for name in patch_names.values()
+], "integrated generated series tail")
+require(sha256(manifest_path) == integration["manifest_sha256"],
+        "integrated manifest")
+require(sha256(config_path) == integration["config_fragment_sha256"],
+        "integrated KUnit fragment")
+manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+profile = manifest["config"]["profiles"][integration["profile"]]
+require(profile["base"] == "defconfig" and
+        profile["patch_series"] == "patches/series" and
+        profile["fragments"][-1] ==
+        "configs/gemini-a72-admission-trace-kunit.fragment",
+        "isolated KUnit profile")
+config = config_path.read_text(encoding="utf-8")
+for token in (
+    "CONFIG_KUNIT=y",
+    "CONFIG_PSTORE_GEMINI_TRANSITION_LEDGER=y",
+    "CONFIG_PSTORE_GEMINI_ADMISSION_TRACE=y",
+    "CONFIG_PSTORE_GEMINI_ADMISSION_TRACE_KUNIT_TEST=y",
+    "CONFIG_ARM64_MT6797_A72_DERIVED_ADMISSION=y",
+    "CONFIG_MTK_MT6797_A72_ADMISSION_CONTROLLER=y",
+    "CONFIG_MTK_MT6797_A72_ADMISSION_CONTROLLER_KUNIT_TEST=y",
+    "# CONFIG_ARM64_MT6797_A72_DERIVED_ADMISSION_KUNIT_TEST is not set",
+    "# CONFIG_PSTORE_GEMINI_TRANSITION_LEDGER_KUNIT_TEST is not set",
+    "# CONFIG_HOTPLUG_SPLIT_STARTUP is not set",
+    'CONFIG_LOCALVERSION="-gemini-a72-admission-trace-kunit"',
+):
+    require(token in config, f"isolated config token {token}")
+require(integration["series_entries"] == 410 and
+        integration["profiles_checked"] == 153 and
+        integration["result"] == "pass", "integration invariant result")
 
 for relative in (
     "README.md", "DESIGN.md", "contract.json",
@@ -232,7 +294,7 @@ for script in (
     ast.parse(script.read_text(encoding="utf-8"), filename=str(script))
 subprocess.run(["bash", "-n", str(SCRIPTS / "generate-on-buildbox")], check=True)
 
-print("validation=a72-admission-durable-trace-definition")
+print("validation=a72-admission-durable-trace-integration")
 print("prepared_source=exact-post-0414")
 print("planned_patches=4")
 print("entry_slot=2")
@@ -244,6 +306,12 @@ print("cpu9_request_paths=0")
 print("cpu_off_paths=0")
 print("retry_paths=0")
 print("mutation_checks=pass")
+print("source_stage_validations=4-of-4-pass")
+print("generated_patches=4")
+print("full_series_replay=pass")
+print("integrated_series_entries=410")
+print("integrated_profiles_checked=153")
+print("integrated_profile=a72-admission-trace-kunit")
 print("native_vm_build=none")
 print("device_action=none")
 print("boot_candidate=false")

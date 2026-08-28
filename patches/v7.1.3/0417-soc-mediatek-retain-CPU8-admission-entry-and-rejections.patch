@@ -1,0 +1,148 @@
+From 2e662612888538f77abccaac11601789c164782b Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 28 Aug 2026 23:13:00 +0000
+Subject: [PATCH 3/4] soc: mediatek: retain CPU8 admission entry and rejections
+
+Retain controller-core entry before prerequisite gates and name each
+consumed failure that returns before the single CPU8 request.
+---
+ drivers/soc/mediatek/Kconfig                  |  1 +
+ ...mt6797-a72-admission-controller-internal.h |  4 ++
+ .../mt6797-a72-admission-controller.c         | 38 +++++++++++++++++--
+ 3 files changed, 40 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index 9b06edf..85237f0 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -504,6 +504,7 @@ config MTK_MT6797_A72_ADMISSION_CONTROLLER
+ 	depends on ARM64_MT6797_A72_DERIVED_ADMISSION
+ 	depends on MTK_MT6797_A72_DEFAULT_OFF_BINDER
+ 	depends on MTK_MT6797_A72_PHYSICAL_SOURCE_OBSERVER
++	depends on PSTORE_GEMINI_ADMISSION_TRACE=y
+ 	default n
+ 	help
+ 	  Build the candidate-only controller that consumes one boot-local
+diff --git a/drivers/soc/mediatek/mt6797-a72-admission-controller-internal.h b/drivers/soc/mediatek/mt6797-a72-admission-controller-internal.h
+index 76966a3..ee931b6 100644
+--- a/drivers/soc/mediatek/mt6797-a72-admission-controller-internal.h
++++ b/drivers/soc/mediatek/mt6797-a72-admission-controller-internal.h
+@@ -5,6 +5,7 @@
+ #include <asm/mt6797_a72_membership.h>
+ 
+ #include <linux/atomic.h>
++#include <linux/gemini_admission_trace.h>
+ #include <linux/types.h>
+ 
+ struct arm64_late_cpu_ready_token;
+@@ -12,6 +13,8 @@ struct arm64_late_cpu_ready_token;
+ struct mt6797_a72_admission_controller_ops {
+ 	bool (*binder_ready)(void *context);
+ 	const struct arm64_late_cpu_ready_token *(*ready_token)(void *context);
++	int (*trace_entry)(void *context);
++	int (*trace_zero_request)(void *context, enum gemini_admission_trace_zero_result result);
+ 	int (*source_register)(void *context);
+ 	void (*source_unregister)(void *context);
+ 	int (*derive_cpu8)(void *context,
+@@ -25,6 +28,7 @@ struct mt6797_a72_admission_controller_ops {
+ struct mt6797_a72_admission_controller_state {
+ 	atomic_t consumed;
+ 	u32 cpu_requests;
++	int trace_ret;
+ 	int operation_ret;
+ 	struct mt6797_a72_transaction transaction;
+ };
+diff --git a/drivers/soc/mediatek/mt6797-a72-admission-controller.c b/drivers/soc/mediatek/mt6797-a72-admission-controller.c
+index b1a5358..efa03ce 100644
+--- a/drivers/soc/mediatek/mt6797-a72-admission-controller.c
++++ b/drivers/soc/mediatek/mt6797-a72-admission-controller.c
+@@ -33,6 +33,7 @@ static bool
+ mt6797_a72_admission_ops_valid(const struct mt6797_a72_admission_controller_ops *ops)
+ {
+ 	return ops && ops->binder_ready && ops->ready_token &&
++		ops->trace_entry && ops->trace_zero_request &&
+ 		ops->source_register && ops->source_unregister &&
+ 		ops->derive_cpu8 && ops->publish_up && ops->add_cpu;
+ }
+@@ -50,6 +51,7 @@ mt6797_a72_admission_run(struct mt6797_a72_admission_controller_state *state,
+ 			 void *context)
+ {
+ 	const struct arm64_late_cpu_ready_token *ready;
++	enum gemini_admission_trace_zero_result zero_result = 0;
+ 	bool source_registered = false;
+ 	int ret;
+ 
+@@ -57,6 +59,9 @@ mt6797_a72_admission_run(struct mt6797_a72_admission_controller_state *state,
+ 		return -EINVAL;
+ 	if (atomic_read(&state->consumed))
+ 		return -EALREADY;
++	ret = ops->trace_entry(context);
++	if (ret)
++		return ret;
+ 	if (!ops->binder_ready(context))
+ 		return -EPROBE_DEFER;
+ 	ready = ops->ready_token(context);
+@@ -66,15 +71,21 @@ mt6797_a72_admission_run(struct mt6797_a72_admission_controller_state *state,
+ 		return -EALREADY;
+ 
+ 	ret = ops->source_register(context);
+-	if (ret)
++	if (ret) {
++		zero_result = GEMINI_ADMISSION_TRACE_ZERO_SOURCE_REGISTER;
+ 		goto out_terminal;
++	}
+ 	source_registered = true;
+ 	ret = ops->derive_cpu8(context, ready, &state->transaction);
+-	if (ret)
++	if (ret) {
++		zero_result = GEMINI_ADMISSION_TRACE_ZERO_DERIVE;
+ 		goto out_unregister;
++	}
+ 	ret = ops->publish_up(context, &state->transaction);
+-	if (ret)
++	if (ret) {
++		zero_result = GEMINI_ADMISSION_TRACE_ZERO_PUBLISH;
+ 		goto out_unregister;
++	}
+ 	state->cpu_requests++;
+ 	ret = ops->add_cpu(context, MT6797_A72_ADMISSION_CPU);
+ 
+@@ -82,10 +93,29 @@ out_unregister:
+ 	if (source_registered)
+ 		ops->source_unregister(context);
+ out_terminal:
++	if (!state->cpu_requests && zero_result) {
++		state->trace_ret = ops->trace_zero_request(context, zero_result);
++		if (state->trace_ret)
++			ret = state->trace_ret;
++	}
+ 	state->operation_ret = ret;
+ 	return ret;
+ }
+ 
++static int mt6797_a72_admission_trace_entry(void *context)
++{
++	(void)context;
++	return gemini_admission_trace_entry();
++}
++
++static int
++mt6797_a72_admission_trace_zero_request(void *context,
++					enum gemini_admission_trace_zero_result result)
++{
++	(void)context;
++	return gemini_admission_trace_zero_request(result);
++}
++
+ static bool mt6797_a72_admission_binder_ready(void *context)
+ {
+ 	(void)context;
+@@ -140,6 +170,8 @@ static const struct mt6797_a72_admission_controller_ops
+ mt6797_a72_admission_production_ops = {
+ 	.binder_ready = mt6797_a72_admission_binder_ready,
+ 	.ready_token = mt6797_a72_admission_ready_token,
++	.trace_entry = mt6797_a72_admission_trace_entry,
++	.trace_zero_request = mt6797_a72_admission_trace_zero_request,
+ 	.source_register = mt6797_a72_admission_source_register,
+ 	.source_unregister = mt6797_a72_admission_source_unregister,
+ 	.derive_cpu8 = mt6797_a72_admission_derive_cpu8,

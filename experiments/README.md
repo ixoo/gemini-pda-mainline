@@ -29,7 +29,9 @@ the loop. Positive identity-gated observations are unaffected.
   existing transition ledger remains the only request-path owner. Local
   definition, ordering, source-anchor, and unsafe-mutation checks pass with no
   build, device action, CPU request, CPU9 path, CPU_OFF, or retry. Exact-source
-  four-patch generation and hardware-free proof on Buildbox are next.
+  patches `0415`--`0418` now pass four semantic stages, strict review,
+  checksums, and replay and are integrated with an isolated KUnit profile.
+  Buildbox compilation and the two focused suites are next.
 - [2026-08-28 CPU8 admission physical candidate](2026-08-28-mainline-a72-cpu8-admission-candidate/README.md)
   — built the exact production-only owner chain on Buildbox and deployed one
   independently validated candidate with full boot2 readback. Its sole attempt
