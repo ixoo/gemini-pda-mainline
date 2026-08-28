@@ -43,7 +43,8 @@
     "ramdisk_sha256": "e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f",
     "lk_gates": "32-of-32",
     "negative_mutations_rejected": 6,
-    "independent_validation": "pass"
+    "independent_validation": "pass",
+    "installer_sha256": "16621a20ce5d12d3b7ada40ea8bbce71c60719fc28105b037d2e3acfc0db8f2a"
   },
   "display_context": {
     "observed_boot": "predecessor-f4cb1b2c",

@@ -70,6 +70,8 @@ bound over exact USB/netcat. The consumed predecessor must never be retried.
   and substitutes only the exact Buildbox kernel package.
 - `scripts/validate-candidate.py`: independently checks inputs, NVMEM options,
   Android-v0 layout, LK gates, padding, and negative mutations.
+- `scripts/install-boot2.sh`: source-pins the proven live-GPT installer and
+  retargets only the predecessor, candidate, evidence, and experiment pins.
 - `results/build-and-candidate-20260828.txt`: sanitized exact build and
   candidate receipt.
 
