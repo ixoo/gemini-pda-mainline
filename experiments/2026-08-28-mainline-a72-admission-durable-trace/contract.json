@@ -36,5 +36,12 @@
     "mutation_checks": "pass",
     "result": "pass"
   },
+  "buildbox_generation_attempt_1": {
+    "repository_commit": "50a62a43c599fccf83d7d4de9e9d23dce24f6332",
+    "record": "results/buildbox-generation-attempt1-20260828.txt",
+    "record_sha256": "5036de2628ea6523121869cef13bbb6a456b1ccf0cca47ff0223f686b411a8de",
+    "generated_patch_count": 0,
+    "result": "fail-closed-definition-corrected"
+  },
   "result": "hardware-free-definition"
 }

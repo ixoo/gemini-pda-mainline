@@ -79,6 +79,16 @@ require(definition["record"] ==
         "definition validation record")
 require(definition["mutation_checks"] == "pass" and
         definition["result"] == "pass", "definition validation result")
+attempt = contract["buildbox_generation_attempt_1"]
+require(attempt["repository_commit"] ==
+        "50a62a43c599fccf83d7d4de9e9d23dce24f6332" and
+        attempt["record"] ==
+        "results/buildbox-generation-attempt1-20260828.txt" and
+        sha256(EXPERIMENT / attempt["record"]) == attempt["record_sha256"],
+        "first Buildbox generation attempt record")
+require(attempt["generated_patch_count"] == 0 and
+        attempt["result"] == "fail-closed-definition-corrected",
+        "first Buildbox generation fail-closed result")
 
 for relative in (
     "README.md", "DESIGN.md", "contract.json",

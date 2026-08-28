@@ -202,8 +202,18 @@ def apply_trace_tests(root: Path, templates: Path) -> None:
 
 def apply_controller(root: Path) -> None:
     kconfig = root / "drivers/soc/mediatek/Kconfig"
-    anchor = "\tdepends on MTK_MT6797_A72_PHYSICAL_SOURCE_OBSERVER\n"
-    replace_once(kconfig, anchor, anchor + "\tdepends on PSTORE_GEMINI_ADMISSION_TRACE=y\n")
+    anchor = (
+        "config MTK_MT6797_A72_ADMISSION_CONTROLLER\n"
+        "\tbool \"MediaTek MT6797 one-shot CPU8 admission controller\"\n"
+        "\tdepends on ARM64 && ARCH_MEDIATEK && OF && HOTPLUG_CPU\n"
+        "\tdepends on ARM64_MT6797_A72_DERIVED_ADMISSION\n"
+        "\tdepends on MTK_MT6797_A72_DEFAULT_OFF_BINDER\n"
+        "\tdepends on MTK_MT6797_A72_PHYSICAL_SOURCE_OBSERVER\n"
+    )
+    replace_once(
+        kconfig, anchor,
+        anchor + "\tdepends on PSTORE_GEMINI_ADMISSION_TRACE=y\n",
+    )
 
     header = root / "drivers/soc/mediatek/mt6797-a72-admission-controller-internal.h"
     replace_once(

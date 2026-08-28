@@ -78,6 +78,13 @@ zero-request return. Normal ramoops registration is already bypassed while the
 transition-ledger profile is selected, leaving records 2 and 3 without a
 concurrent Linux owner.
 
+The first exact-source Buildbox generation stopped before producing a patch:
+the editor required a physical-source dependency line to be globally unique,
+but the controller and its KUnit option each contain that line. The corrected
+editor anchors the complete admission-controller Kconfig prefix, preserving
+the fail-closed one-match rule. No source package, build, device action, or
+candidate resulted from the rejected attempt.
+
 ## Analysis
 
 An immutable entry in record 2 proves the controller core ran even when USB
