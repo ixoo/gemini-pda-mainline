@@ -279,17 +279,22 @@ def apply_production_kconfig(path: Path) -> None:
 
 def apply_fixture_repairs(path: Path) -> None:
     text = path.read_text(encoding="utf-8")
+    repairs = 0
     for line in (
         "\t\t.watchdog_owned = 1,\n",
+        "\t\tprestate.da921x_page = MT6797_A72_A36_DA921X_PAGE;\n",
         "\t\tprestate.secure_sentinels_stable = 1;\n",
         "\t\tprestate.pstore_console_available = 1;\n",
         "\t\t.secure_sentinels_stable = 1,\n",
         "\t\t.pstore_console_available = 1,\n",
     ):
+        repairs += text.count(line)
         text = text.replace(line, "")
-    text = text.replace(
-        "\t\t.da921x_page = MT6797_A72_A36_DA921X_PAGE,\n", ""
-    )
+    page = "\t\t.da921x_page = MT6797_A72_A36_DA921X_PAGE,\n"
+    repairs += text.count(page)
+    text = text.replace(page, "")
+    if repairs != 4:
+        raise SystemExit(f"{path}: expected four obsolete A36 assertions")
     path.write_text(text, encoding="utf-8")
 
 
