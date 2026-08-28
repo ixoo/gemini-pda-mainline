@@ -34,7 +34,7 @@ require(sha256(manifest) == CONTRACT["integrated_manifest_sha256"],
         "manifest hash")
 require(CONTRACT["audited_canonical_series_entries"] == 398,
         "audited series entries")
-require(CONTRACT["integrated_canonical_series_entries"] == 401,
+require(CONTRACT["integrated_canonical_series_entries"] == 402,
         "integrated series entries")
 require(CONTRACT["integrated_profile"] == "a72-derived-admission-kunit",
         "integrated profile")
@@ -88,6 +88,7 @@ generated_patches = {
     "0407": ROOT / "patches/v7.1.3/0407-arm64-mediatek-derive-CPU8-admission-from-current-boot-state.patch",
     "0408": ROOT / "patches/v7.1.3/0408-arm64-mediatek-test-source-derived-CPU8-admission.patch",
     "0409": ROOT / "patches/v7.1.3/0409-arm64-mediatek-isolate-derived-admission-KUnit-fixtures.patch",
+    "0410": ROOT / "patches/v7.1.3/0410-arm64-mediatek-select-owner-model-for-derived-admission-tests.patch",
 }
 for number, path in generated_patches.items():
     require(sha256(path) == CONTRACT["generated_patch_sha256"][number],
@@ -176,6 +177,26 @@ require(CONTRACT["selected_dependency_repair"] ==
         "select-base-owner-model-before-hidden-test-seed",
         "selected dependency repair")
 
+dependency_generation = (
+    EXP / "results/owner-model-dependency-generation-20260828.txt"
+)
+require(sha256(dependency_generation) ==
+        CONTRACT["dependency_generation_sha256"],
+        "owner-model dependency generation hash")
+dependency_generation_text = dependency_generation.read_text(encoding="utf-8")
+for token in (
+    "strict_checkpatch=pass", "exact_source_replay=pass",
+    "semantic_validation=pass", "owner_model_selected=true",
+    "owner_test_seed_selected=true", "owner_kunit_suite_selected=false",
+    "production_semantics_changed=false", "physical_operations=0",
+    "native_vm_build=none", "device_action=none", "boot_candidate=false",
+    "result=pass",
+):
+    require(token in dependency_generation_text,
+            f"owner-model dependency generation token: {token}")
+require(CONTRACT["dependency_patch_integrated"] is True,
+        "dependency patch integrated")
+
 receipt = EXP / "results/source-admission-audit-20260828.txt"
 require(CONTRACT["source_receipt_sha256"] != "pending", "receipt hash pending")
 require(sha256(receipt) == CONTRACT["source_receipt_sha256"], "receipt hash")
@@ -210,7 +231,8 @@ for token in (
 readme = (EXP / "README.md").read_text(encoding="utf-8")
 design = (EXP / "DESIGN.md").read_text(encoding="utf-8")
 combined = (readme + design + receipt_text + local_text + generation_text +
-            runtime_text + isolation_text + failed_rebuild_text)
+            runtime_text + isolation_text + failed_rebuild_text +
+            dependency_generation_text)
 words = " ".join(combined.split())
 for token in (
     "No direct caller can satisfy the current graph",
@@ -224,7 +246,7 @@ require("/Users/" not in combined, "no personal absolute path")
 require(CONTRACT["kernel_build"] is True, "kernel build")
 require(CONTRACT["device_action"] is False, "no device action")
 require(CONTRACT["result"] ==
-        "derived-suite-passes-test-dependency-repair-defined",
+        "derived-suite-passes-test-dependency-repair-integrated-awaiting-rebuild",
         "result")
 
 print("definition_validation=pass")
@@ -237,6 +259,6 @@ print("kernel_build=pass")
 print("qemu_derived_cases=pass:5_fail:0")
 print("runtime_isolation_repair=integrated")
 print("runtime_isolation_rebuild=failed-safe-before-package")
-print("owner_model_dependency_repair=defined")
+print("owner_model_dependency_repair=integrated")
 print("native_vm_build=none")
 print("device_action=none")

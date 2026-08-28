@@ -1,0 +1,23 @@
+From a2d459715ccc5fad3d7ce1553c38ab7c804f0f3b Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 28 Aug 2026 13:11:00 +0000
+Subject: [PATCH 1/1] arm64: mediatek: select owner model for derived admission
+ tests
+
+Close the hidden fixture dependency without selecting its KUnit suite.
+---
+ arch/arm64/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 6e9c1a4..cb1272a 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -2575,6 +2575,7 @@ config ARM64_MT6797_A72_DERIVED_ADMISSION_KUNIT_TEST
+ 	depends on KUNIT=y
+ 	depends on HOTPLUG_CPU
+ 	depends on ARM64_MT6797_A72_P30_PROTOCOL_MODEL
++	select ARM64_MT6797_A72_P24_TRANSACTION_OWNER_MODEL
+ 	select ARM64_MT6797_A72_P24_OWNER_TEST_SEED
+ 	select ARM64_MT6797_A72_DIRECT_STATE_COMPOSITOR
+ 	select ARM64_MT6797_A72_A34_ELIGIBILITY_EVALUATOR
