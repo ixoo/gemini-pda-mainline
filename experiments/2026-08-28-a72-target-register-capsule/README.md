@@ -112,6 +112,15 @@ the identity. The definition now adds that read-side barrier and a thirteenth
 negative mutation. Attempt-1 patch SHA-256 `4b510a1b...` is rejected and must
 not be admitted or built.
 
+Generation attempt 2 added the barrier pair and again passed exact-parent
+reversal and all source mutations. The exact older Gemian `checkpatch.pl` could
+not run under Buildbox's current Perl because its own unescaped-brace regexes
+are incompatible. Linux 7.1.3 strict Checkpatch then identified only local
+formatting, barrier-comment, and the expected synthetic-signoff findings. Patch
+`4b00eb82...` is rejected before build while those substantive style findings
+are corrected. The experiment-only patch will remain explicitly
+non-submission-ready and without a synthetic `Signed-off-by`.
+
 ## Analysis
 
 Copying `cpu_data` alone would rely on source attribution for target locality.

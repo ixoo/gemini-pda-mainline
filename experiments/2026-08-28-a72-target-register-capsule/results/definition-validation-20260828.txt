@@ -60,3 +60,15 @@ attempt_1_decision=rejected-before-build
 attempt_1_reason=missing-explicit-read-barrier-before-terminal-identity-read
 attempt_1_kernel_build=none
 attempt_1_device_action=none
+
+Generation attempt 2:
+attempt_2_repository_commit=cec08a8d7386bf0643b6439dddcd0c69262045b5
+attempt_2_generated_patch_sha256=4b00eb827c23a224d7564ba0545ef49d90ab769e424d165c2af54b6718065683
+attempt_2_parent_reversal=byte-identical
+attempt_2_negative_mutations=13
+attempt_2_barrier_pair=present
+attempt_2_gemian_checkpatch=incompatible-with-current-perl
+attempt_2_linux_7_1_3_strict_checkpatch=style-findings-plus-expected-missing-signoff
+attempt_2_decision=rejected-before-build
+attempt_2_kernel_build=none
+attempt_2_device_action=none

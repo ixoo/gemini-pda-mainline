@@ -132,7 +132,7 @@ GIT_COMMITTER_DATE=2026-08-28T23:00:00Z \
 git -C "$work/source" commit --no-gpg-sign \
   -m 'diagnostic: capture A72 target-register capsules' \
   -m 'Read one fixed architectural register vector in each proven bound task.' \
-  -m 'Preserve the scheduler parent power, CPU_OFF, watchdog, and recovery boundaries.'
+  -m 'Keep parent power, CPU_OFF, watchdog, and recovery unchanged.'
 generated_source_commit="$(git -C "$work/source" rev-parse HEAD)"
 readonly generated_source_commit
 

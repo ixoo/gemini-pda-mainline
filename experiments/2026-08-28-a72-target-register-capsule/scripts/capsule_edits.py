@@ -72,8 +72,7 @@ static u64 mt6797_a72_regcap_mix(u64 identity, u64 value)
 	return (identity ^ value) * MT6797_A72_SC_HASH_PRIME;
 }
 
-static u64 mt6797_a72_regcap_identity(
-	const struct mt6797_a72_regcap_v1 *capsule)
+static u64 mt6797_a72_regcap_identity(const struct mt6797_a72_regcap_v1 *capsule)
 {
 	u64 identity = MT6797_A72_SC_HASH_INIT;
 
@@ -112,8 +111,7 @@ static u64 mt6797_a72_regcap_identity(
 	return identity;
 }
 
-static bool mt6797_a72_regcap_cpuinfo_match(
-	const struct mt6797_a72_regcap_v1 *capsule,
+static bool mt6797_a72_regcap_cpuinfo_match(const struct mt6797_a72_regcap_v1 *capsule,
 	const struct cpuinfo_arm64 *info)
 {
 	return capsule->cntfrq == info->reg_cntfrq &&
@@ -140,8 +138,8 @@ static bool mt6797_a72_regcap_cpuinfo_match(
 	       capsule->id_pfr1 == info->reg_id_pfr1;
 }
 
-static int mt6797_a72_regcap_capture(
-	struct mt6797_a72_regcap_v1 *capsule, int expected_cpu)
+static int mt6797_a72_regcap_capture(struct mt6797_a72_regcap_v1 *capsule,
+				      int expected_cpu)
 {
 	const struct cpuinfo_arm64 *info;
 	u64 expected_mpidr;
@@ -198,27 +196,29 @@ static int mt6797_a72_regcap_capture(
 	} else {
 		error = -EIO;
 	}
-	if (!error && (capsule->mpidr != expected_mpidr ||
-	    MIDR_IMPLEMENTOR(capsule->midr) != ARM_CPU_IMP_ARM ||
-	    MIDR_PARTNUM(capsule->midr) != ARM_CPU_PART_CORTEX_A72))
+	if (!error &&
+	    (capsule->mpidr != expected_mpidr ||
+	     MIDR_IMPLEMENTOR(capsule->midr) != ARM_CPU_IMP_ARM ||
+	     MIDR_PARTNUM(capsule->midr) != ARM_CPU_PART_CORTEX_A72))
 		error = -ENODEV;
 out_cpu:
 	put_cpu();
 publish:
 	capsule->error = error;
 	capsule->identity = mt6797_a72_regcap_identity(capsule);
+	/* Publish every field and the identity before exposing completion. */
 	smp_wmb();
 	WRITE_ONCE(capsule->complete, 1);
 	return error;
 }
 
-static noinline void mt6797_a72_regcap_emit(
-	const struct mt6797_a72_regcap_v1 *capsule)
+static noinline void mt6797_a72_regcap_emit(const struct mt6797_a72_regcap_v1 *capsule)
 {
 	u64 expected_mpidr = capsule->cpu == 8 ? 0x200ULL : 0x201ULL;
 	u32 complete = READ_ONCE(capsule->complete);
 	bool passed;
 
+	/* Pair with the capture-side barrier before consuming the capsule. */
 	smp_rmb();
 	passed = complete == 1 &&
 		capsule->abi == MT6797_A72_REGCAP_ABI &&
@@ -279,10 +279,11 @@ CAPTURE_CALL_CHILD = (
     "\telse if (cpu != result->expected_cpu)\n"
     "\t\terror = -EXDEV;\n"
     "\tif (!error) {\n"
-    '\t\tpr_emerg("gemini-a72-sc-phase cpu=%d phase=task-capture-before\\n", result->expected_cpu);\n'
-    "\t\terror = mt6797_a72_regcap_capture(&result->regcap,\n"
-    "\t\t\t\t\t\t result->expected_cpu);\n"
-    '\t\tpr_emerg("gemini-a72-sc-phase cpu=%d phase=task-capture-after\\n", result->expected_cpu);\n'
+    '\t\tpr_emerg("gemini-a72-sc-phase cpu=%d phase=task-capture-before\\n",\n'
+    "\t\t\t result->expected_cpu);\n"
+    "\t\terror = mt6797_a72_regcap_capture(&result->regcap, result->expected_cpu);\n"
+    '\t\tpr_emerg("gemini-a72-sc-phase cpu=%d phase=task-capture-after\\n",\n'
+    "\t\t\t result->expected_cpu);\n"
     "\t}\n\n"
     '\tpr_emerg("gemini-a72-sc-phase cpu=%d phase=task-ready-before\\n", result->expected_cpu);\n'
 )
