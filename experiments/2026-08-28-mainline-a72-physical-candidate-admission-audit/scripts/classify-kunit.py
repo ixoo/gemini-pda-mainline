@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Classify the isolated, hardware-free CPU8 admission KUnit suite."""
+"""Classify isolated, hardware-free CPU8 admission KUnit profiles."""
 
 from __future__ import annotations
 
@@ -12,17 +12,37 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
-PROFILE = "a72-derived-admission-kunit"
-SUITE = "mt6797-a72-derived-admission"
+DERIVED_SUITE = "mt6797-a72-derived-admission"
+CONTROLLER_SUITE = "mt6797-a72-admission-controller"
 PANIC_PREFIX = "Kernel panic - not syncing: VFS: Unable to mount root fs"
 PANIC_END_PREFIX = f"---[ end {PANIC_PREFIX}"
-EXPECTED_CASES = (
-    "mt6797_a72_derived_success_test",
-    "mt6797_a72_derived_source_rejections_test",
-    "mt6797_a72_derived_ready_rejection_test",
-    "mt6797_a72_legacy_assertions_rejected_test",
-    "mt6797_a72_derived_repeat_rejected_test",
-)
+EXPECTED_PROFILES = {
+    "a72-derived-admission-kunit": {
+        DERIVED_SUITE: (
+            "mt6797_a72_derived_success_test",
+            "mt6797_a72_derived_source_rejections_test",
+            "mt6797_a72_derived_ready_rejection_test",
+            "mt6797_a72_legacy_assertions_rejected_test",
+            "mt6797_a72_derived_repeat_rejected_test",
+        ),
+    },
+    "a72-admission-controller-kunit": {
+        DERIVED_SUITE: (
+            "mt6797_a72_derived_success_test",
+            "mt6797_a72_derived_source_rejections_test",
+            "mt6797_a72_derived_ready_rejection_test",
+            "mt6797_a72_legacy_assertions_rejected_test",
+            "mt6797_a72_derived_repeat_rejected_test",
+        ),
+        CONTROLLER_SUITE: (
+            "mt6797_a72_admission_success_test",
+            "mt6797_a72_admission_preconsume_gates_test",
+            "mt6797_a72_admission_terminal_failures_test",
+            "mt6797_a72_admission_request_failure_test",
+            "mt6797_a72_admission_repeat_closed_test",
+        ),
+    },
+}
 
 
 class ClassificationError(RuntimeError):
@@ -60,8 +80,9 @@ def clean_lines(raw: str) -> list[str]:
     return lines
 
 
-def validate_config(config: Path) -> None:
+def validate_config(config: Path, profile: str) -> None:
     text = config.read_text(encoding="utf-8")
+    lines = text.splitlines()
     required = (
         "CONFIG_KUNIT=y",
         "CONFIG_KUNIT_DEFAULT_ENABLED=y",
@@ -76,38 +97,74 @@ def validate_config(config: Path) -> None:
         "CONFIG_ARM64_MT6797_A72_DERIVED_ADMISSION_KUNIT_TEST=y",
     )
     for token in required:
-        require(token in text.splitlines(), f"configuration missing: {token}")
+        require(token in lines, f"configuration missing: {token}")
+    if profile == "a72-admission-controller-kunit":
+        for token in (
+            "CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER=y",
+            "CONFIG_MTK_MT6797_A72_PHYSICAL_SOURCE_OBSERVER=y",
+            "CONFIG_MTK_MT6797_A72_ADMISSION_CONTROLLER=y",
+            "CONFIG_MTK_MT6797_A72_ADMISSION_CONTROLLER_KUNIT_TEST=y",
+        ):
+            require(token in lines, f"controller configuration missing: {token}")
     excluded = (
         "CONFIG_ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST=y",
-        "CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER=y",
         "CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER_KUNIT_TEST=y",
+        "CONFIG_MTK_MT6797_A72_TRANSITION_EXECUTOR_KUNIT_TEST=y",
+        "CONFIG_MTK_MT6797_A72_PHYSICAL_SOURCE_KUNIT_TEST=y",
     )
+    if profile == "a72-derived-admission-kunit":
+        excluded += (
+            "CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER=y",
+            "CONFIG_MTK_MT6797_A72_ADMISSION_CONTROLLER=y",
+            "CONFIG_MTK_MT6797_A72_ADMISSION_CONTROLLER_KUNIT_TEST=y",
+        )
     for token in excluded:
-        require(token not in text.splitlines(), f"excluded path enabled: {token}")
+        require(token not in lines, f"excluded path enabled: {token}")
     focused = re.findall(r"^CONFIG_.*_KUNIT_TEST=y$", text, re.MULTILINE)
+    expected_focused = [
+        "CONFIG_ARM64_MT6797_A72_DERIVED_ADMISSION_KUNIT_TEST=y"
+    ]
+    if profile == "a72-admission-controller-kunit":
+        expected_focused.append(
+            "CONFIG_MTK_MT6797_A72_ADMISSION_CONTROLLER_KUNIT_TEST=y"
+        )
     require(
-        focused == ["CONFIG_ARM64_MT6797_A72_DERIVED_ADMISSION_KUNIT_TEST=y"],
+        focused == expected_focused,
         f"focused KUnit inventory changed: {focused}",
     )
 
 
-def classify_runtime(raw: str, expected_release: str) -> None:
+def classify_runtime(
+    raw: str,
+    expected_release: str,
+    expected_suites: dict[str, tuple[str, ...]],
+) -> None:
     lines = clean_lines(raw)
     releases = re.findall(r"Linux version ([^ ]+)", raw)
     require(releases == [expected_release], f"kernel release mismatch: {releases}")
     require("KTAP version 1" in lines, "top-level KTAP header absent")
     start = lines.index("KTAP version 1")
     ktap = lines[start:]
-    require(ktap.count("KTAP version 1") == 2, "unexpected KTAP header count")
-    require(ktap.count("1..1") == 1, "top-level suite plan changed")
-    require(ktap.count("1..5") == 1, "focused test plan changed")
+    suite_count = len(expected_suites)
+    test_count = sum(len(cases) for cases in expected_suites.values())
     require(
-        ktap.count(f"# Subtest: {SUITE}") == 1,
-        "focused suite absent or duplicated",
+        ktap.count("KTAP version 1") == suite_count + 1,
+        "unexpected KTAP header count",
     )
     require(
+        ktap.count(f"1..{suite_count}") == 1,
+        "top-level suite plan changed",
+    )
+    require(ktap.count("1..5") == suite_count, "focused test plans changed")
+    for suite in expected_suites:
+        require(
+            ktap.count(f"# Subtest: {suite}") == 1,
+            f"focused suite absent or duplicated: {suite}",
+        )
+    require(
         not any(
-            line.startswith("# Subtest: ") and line != f"# Subtest: {SUITE}"
+            line.startswith("# Subtest: ")
+            and line.removeprefix("# Subtest: ") not in expected_suites
             for line in ktap
         ),
         "an unexpected KUnit suite executed",
@@ -121,17 +178,40 @@ def classify_runtime(raw: str, expected_release: str) -> None:
         match = re.fullmatch(r"ok (\d+) ([A-Za-z0-9_]+)", line)
         if match:
             observed.append((int(match.group(1)), match.group(2)))
+    observed_cases = [case for _, case in observed]
+    expected_cases = [case for cases in expected_suites.values() for case in cases]
     require(
-        observed == list(enumerate(EXPECTED_CASES, start=1)),
+        sorted(observed_cases) == sorted(expected_cases),
         f"focused case inventory changed: {observed}",
     )
-    summary = f"# {SUITE}: pass:5 fail:0 skip:0 total:5"
-    totals = "# Totals: pass:5 fail:0 skip:0 total:5"
-    suite_result = f"ok 1 {SUITE}"
-    require(ktap.count(summary) == 1, "suite summary is not exact pass")
-    require(ktap.count(totals) == 1, "global KUnit totals are not exact pass")
-    require(ktap.count(suite_result) == 1, "top-level suite result absent")
-    result_index = ktap.index(suite_result)
+    for suite, cases in expected_suites.items():
+        summary = f"# {suite}: pass:{len(cases)} fail:0 skip:0 total:{len(cases)}"
+        require(ktap.count(summary) == 1, f"suite summary is not exact pass: {suite}")
+    expected_totals: dict[str, int] = {}
+    for cases in expected_suites.values():
+        totals = (
+            f"# Totals: pass:{len(cases)} fail:0 skip:0 total:{len(cases)}"
+        )
+        expected_totals[totals] = expected_totals.get(totals, 0) + 1
+    for totals, count in expected_totals.items():
+        require(
+            ktap.count(totals) == count,
+            f"per-suite KUnit totals are not exact pass: {totals}",
+        )
+    suite_results: list[tuple[int, str, int]] = []
+    for index, line in enumerate(ktap):
+        match = re.fullmatch(r"ok (\d+) ([a-z0-9-]+)", line)
+        if match and match.group(2) in expected_suites:
+            suite_results.append((int(match.group(1)), match.group(2), index))
+    require(
+        len(suite_results) == suite_count
+        and sorted(number for number, _, _ in suite_results)
+        == list(range(1, suite_count + 1))
+        and sorted(suite for _, suite, _ in suite_results)
+        == sorted(expected_suites),
+        f"top-level suite results changed: {suite_results}",
+    )
+    result_index = max(index for _, _, index in suite_results)
     panics = [
         index for index, line in enumerate(ktap) if line.startswith(PANIC_PREFIX)
     ]
@@ -190,7 +270,8 @@ def main() -> None:
         "package repository commit mismatch",
     )
     require(build["repository_dirty"] is False, "package source was dirty")
-    require(build["build_profile"] == PROFILE, "package profile mismatch")
+    profile = build["build_profile"]
+    require(profile in EXPECTED_PROFILES, "package profile mismatch")
     require(build["target_architecture"] == "arm64", "target is not arm64")
     require(build["modules_built"] is False, "unexpected module build")
 
@@ -210,10 +291,11 @@ def main() -> None:
         "System.map checksum mismatch",
     )
     require(config_sha256 == build["config_sha256"], "build config mismatch")
-    validate_config(config)
+    validate_config(config, profile)
 
     raw = raw_log.read_text(encoding="utf-8", errors="replace")
-    classify_runtime(raw, build["kernel_release"])
+    expected_suites = EXPECTED_PROFILES[profile]
+    classify_runtime(raw, build["kernel_release"], expected_suites)
     qemu_version = subprocess.run(
         ["qemu-system-aarch64", "--version"],
         check=True,
@@ -231,7 +313,7 @@ def main() -> None:
     print("phase=kunit-qemu")
     print(f"observed_utc={observed_utc}")
     print(f"repository_commit={args.repository_commit}")
-    print(f"profile={PROFILE}")
+    print(f"profile={profile}")
     print(f"kernel_release={build['kernel_release']}")
     print(f"image_sha256={image_sha256}")
     print(f"config_sha256={config_sha256}")
@@ -239,23 +321,28 @@ def main() -> None:
     print(f"raw_log_sha256={sha256(raw_log)}")
     print(f"runner_version={qemu_version.removeprefix('QEMU emulator version ')}")
     print("machine=virt-cortex-a53-four-vcpu-no-network")
-    print("suites=1")
-    print("tests=5")
+    test_count = sum(len(cases) for cases in expected_suites.values())
+    print(f"suites={len(expected_suites)}")
+    print(f"tests={test_count}")
     print("failed=0")
     print("skipped=0")
-    for case in EXPECTED_CASES:
-        print(f"{case}=pass")
-    print("tap_summary=pass:5_fail:0_skip:0_total:5")
+    for cases in expected_suites.values():
+        for case in cases:
+            print(f"{case}=pass")
+    print(f"aggregate_result=pass:{test_count}_fail:0_skip:0_total:{test_count}")
+    print(f"suite_summary_count={len(expected_suites)}")
     print("post_test_state=expected_vm_rootfs_panic")
     print(f"termination={args.termination}")
     print("result=pass")
     print("owner_kunit_suite=false")
+    print("stack_fault=false")
     print("network=false")
     print("mmio=false")
     print("retained_ram=false")
     print("watchdog=false")
     print("smc=false")
     print("production_cpu_requests=0")
+    print("physical_operations=0")
     print("device_action=none")
     print("boot_candidate=false")
 

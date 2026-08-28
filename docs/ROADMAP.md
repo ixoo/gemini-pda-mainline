@@ -5706,13 +5706,24 @@ The next ordered work is:
    same-task controller core. Exact pinned generation at `d95c42fe` passes
    strict checkpatch, exact-source replay, semantic validation, and manual
    review. Canonical patches `0411`--`0412` now add that default-off core and
-   its five injected tests with no base-DT enablement. **Selected next:**
-   compile the focused controller profile on Buildbox and prove the five
-   derived plus five controller cases in one bounded no-network run. The proof
-   must retain consumed-before-mutation, exactly one synchronous `add_cpu(8)`
-   call site, and ledger -> watchdog -> first mutation exclusively inside the
-   binder. Only after that proof may a separate decision-bearing physical
-   candidate be assembled.
+   its five injected tests with no base-DT enablement. Exact clean published
+   commit `f2d2a3b4` compiles the focused profile on Buildbox as
+   `7.1.3-gemini-a72-admission-kunit`; package provenance and checksums pass,
+   and exactly the derived-admission and controller KUnit suites are selected.
+   The final bounded no-network QEMU replay passes both suites and all ten
+   cases with zero failures, skips, stack faults, production CPU requests,
+   physical operations, or device actions. Consumed-before-mutation, the one
+   synchronous `add_cpu(8)` call site, and ledger -> watchdog -> first mutation
+   exclusively inside the binder remain intact. **Selected next:** define one
+   separate decision-bearing candidate DT that instantiates the proven
+   physical source, binder, and controller with exact supplier references.
+   Build it on Buildbox and validate its package, LK container, DT identity,
+   configuration, and full candidate checksum before any device write. The
+   single physical boot hypothesis is that exact current-boot source proof
+   admits one CPU8 request; retained controller/binder stage evidence must
+   distinguish pre-request refusal, binder failure, or CPU8 online. CPU9 stays
+   offline. Only then install the exact candidate to live-GPT inactive `boot2`,
+   verify full readback, shut down cleanly, and spend one attributable boot.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

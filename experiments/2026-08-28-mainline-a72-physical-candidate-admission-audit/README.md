@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-physical-candidate-admission-audit` |
-| Status | derived admission passes; controller patches are integrated and await focused Buildbox/QEMU validation |
+| Status | derived admission and one-shot controller pass focused Buildbox/QEMU validation; separate physical-candidate DT pending |
 | Subsystem | MT6797 CPU8 A34/A36 membership admission and physical binder entry |
 | Device variant | Planet Gemini PDA, named development unit |
 | Date(s) | 2026-08-28 America/New_York |
@@ -140,14 +140,29 @@ replay, semantic validation, and manual review. Canonical `0411` adds the
 default-off production core; `0412` adds its five injected cases. Their exact
 identities and rejection chronology are in the
 [controller generation receipt](results/controller-generation-20260828.txt).
-No controller kernel has been built yet, and no DT node, boot candidate, or
-physical CPU request exists.
+Exact clean published commit `f2d2a3b4` then built the focused
+`a72-admission-controller-kunit` profile on Buildbox as release
+`7.1.3-gemini-a72-admission-kunit`. The fetched package passed its complete
+checksum manifest. Its resolved configuration contains exactly the derived
+admission and controller `*_KUNIT_TEST` symbols; the owner, binder, executor,
+and physical-source KUnit suites are absent.
+
+The first no-network QEMU transcript passed all ten cases, but the strict
+classifier still expected one aggregate totals line from the earlier
+single-suite profile. KUnit instead emits one exact totals line for each suite.
+The backward-compatible classifier repair preserves the prior one-suite
+contract and requires the exact per-suite totals. An end-to-end durable-runner
+replay then passed both suites, all ten cases, with no failures, skips, stack
+fault, production CPU request, physical operation, or device action. Exact
+artifact and runtime identities are in the
+[controller Buildbox/QEMU receipt](results/controller-buildbox-qemu-20260828.txt).
+The base DT still has no controller node, so this is not a boot candidate.
 
 ## Safety assessment
 
-This audit and derived-admission integration are hardware-free. Buildbox built
-one KUnit-only kernel package, and QEMU ran it with networking disabled. No
-boot candidate was assembled. There has been no device connection,
+This audit and its admission/controller integrations are hardware-free.
+Buildbox built the focused KUnit-only packages, and QEMU ran them with
+networking disabled. No boot candidate was assembled. There has been no device connection,
 retained-RAM write, watchdog takeover, regulator or secure call, CPU request,
 partition write, reboot, or shutdown.
 
@@ -242,15 +257,20 @@ This is a source admission result, not hardware support.
 `confirmed` and integrated for the controller source slice at canonical
 `0411`--`0412`: one read-only binder gate, one exact source lifetime, one
 consumed-before-mutation same-task derive/publish/request path, and five
-operation-injected tests. This is generated and reviewed source only; compile
-and QEMU validation remain pending, and the base DT still cannot instantiate
-the path.
+operation-injected tests. Exact clean commit `f2d2a3b4` passes Buildbox package
+validation and the bounded no-network QEMU proof: five derived plus five
+controller cases, zero failures or skips, and no unrelated suite or hardware
+operation. The base DT still cannot instantiate the path. This closes the
+hardware-free controller proof, not physical CPU8 support.
 
 ## Follow-up
 
 The authoritative next work is in
-[Roadmap Gate 7](../../docs/ROADMAP.md#7-bring-up-cpu8). Build the focused
-controller profile on Buildbox and run the five derived plus five controller
-cases in one bounded no-network QEMU observation. Only that clean proof may
-admit a separate decision-bearing physical candidate for live-GPT inactive
-`boot2` under the standing safety gates.
+[Roadmap Gate 7](../../docs/ROADMAP.md#7-bring-up-cpu8). Define a separate,
+decision-bearing candidate DT that instantiates the already proven physical
+source, binder, and one-shot controller with their exact supplier references.
+Build and validate that exact candidate on Buildbox before assembly. Its one
+physical boot must distinguish controller admission, binder entry, the first
+terminal failure stage, or CPU8 online; CPU9 remains offline. Only an exact
+validated boot candidate may be installed to live-GPT inactive `boot2`, with
+full readback verification and clean shutdown under the standing safety gates.

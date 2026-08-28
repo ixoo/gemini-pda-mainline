@@ -272,10 +272,77 @@ require(CONTRACT["controller_kunit_cases"] == 5,
         "controller KUnit cases")
 require(CONTRACT["controller_source_integrated"] is True,
         "controller source integrated")
-require(CONTRACT["controller_kernel_build"] is False,
-        "controller build pending")
-require(CONTRACT["controller_qemu"] == "pending",
-        "controller QEMU pending")
+require(CONTRACT["controller_kernel_build"] is True,
+        "controller kernel build")
+require(CONTRACT["controller_build_commit"] ==
+        "f2d2a3b4fffc467e2c0ae5fd340d5ebd76eb943e",
+        "controller build commit")
+require(CONTRACT["controller_kernel_release"] ==
+        "7.1.3-gemini-a72-admission-kunit",
+        "controller kernel release")
+require(CONTRACT["controller_kernel_patchset_sha256"] ==
+        "b2f8f436b0e305b4fd0fa5538de5e2b0e9a4ebadfe3460453849ae12df4121b1",
+        "controller patchset hash")
+require(CONTRACT["controller_kernel_config_sha256"] ==
+        "4cb3393a70bc1aa1a7cbf5529500e62b2dbf4afd7ecad5efe1b8519090fe61a4",
+        "controller config hash")
+require(CONTRACT["controller_kernel_image_sha256"] ==
+        "f673de1fd0339f067b7dc1bd9837c01f3bdbe66bb2fdf41e3f239d1dc6dfb30d",
+        "controller Image hash")
+require(CONTRACT["controller_qemu"] == {
+    "suites": 2,
+    "tests": 10,
+    "failed": 0,
+    "skipped": 0,
+    "owner_kunit_suite": False,
+    "binder_kunit_suite": False,
+    "executor_kunit_suite": False,
+    "stack_fault": False,
+    "production_cpu_requests": 0,
+    "physical_operations": 0,
+    "device_action": False,
+}, "controller QEMU result")
+
+controller_runtime = (
+    EXP / "results/controller-buildbox-qemu-20260828.txt"
+)
+require(sha256(controller_runtime) ==
+        CONTRACT["controller_runtime_receipt_sha256"],
+        "controller Buildbox/QEMU receipt hash")
+controller_runtime_text = controller_runtime.read_text(encoding="utf-8")
+for token in (
+    "build_result=pass", "package_sha256s=pass",
+    "focused_kunit_symbol_count=2",
+    "owner_kunit_suite_selected=false",
+    "binder_kunit_suite_selected=false",
+    "executor_kunit_suite_selected=false",
+    "physical_source_kunit_suite_selected=false",
+    "production_controller_built=true", "base_dt_controller_node=false",
+    "classifier_repair=accept-exact-one-per-suite-totals-lines",
+    "classifier_prior_profile_revalidation=pass",
+    "durable_runner_replay=pass", "suites=2", "tests=10",
+    "failed=0", "skipped=0",
+    "suite_mt6797-a72-derived-admission=pass:5_fail:0_skip:0_total:5",
+    "suite_mt6797-a72-admission-controller=pass:5_fail:0_skip:0_total:5",
+    "aggregate_result=pass:10_fail:0_skip:0_total:10",
+    "suite_summary_count=2", "stack_fault=false", "network=false",
+    "production_cpu_requests=0", "physical_operations=0",
+    "native_vm_build=none", "device_action=none", "boot_candidate=false",
+    "result=pass",
+):
+    require(token in controller_runtime_text,
+            f"controller Buildbox/QEMU token: {token}")
+
+runner_text = (EXP / "scripts/run-kunit-qemu").read_text(encoding="utf-8")
+classifier_text = (
+    EXP / "scripts/classify-kunit.py"
+).read_text(encoding="utf-8")
+require("a72-admission-controller-kunit" in runner_text,
+        "runner controller profile")
+require("a72-admission-controller-kunit" in classifier_text,
+        "classifier controller profile")
+require("expected_totals" in classifier_text,
+        "classifier per-suite totals")
 
 receipt = EXP / "results/source-admission-audit-20260828.txt"
 require(CONTRACT["source_receipt_sha256"] != "pending", "receipt hash pending")
@@ -313,7 +380,7 @@ design = (EXP / "DESIGN.md").read_text(encoding="utf-8")
 combined = (readme + design + receipt_text + local_text + generation_text +
             runtime_text + isolation_text + failed_rebuild_text +
             dependency_generation_text + isolated_runtime_text +
-            controller_generation_text)
+            controller_generation_text + controller_runtime_text)
 words = " ".join(combined.split())
 for token in (
     "No direct caller can satisfy the current graph",
@@ -327,7 +394,7 @@ require("/Users/" not in combined, "no personal absolute path")
 require(CONTRACT["kernel_build"] is True, "kernel build")
 require(CONTRACT["device_action"] is False, "no device action")
 require(CONTRACT["result"] ==
-        "controller-source-integrated-build-pending",
+        "controller-hardware-free-validation-pass-awaiting-candidate-dt",
         "result")
 
 print("definition_validation=pass")
@@ -344,6 +411,8 @@ print("owner_model_dependency_repair=integrated")
 print("isolated_qemu=pass:5_fail:0")
 print("controller_patches=integrated:2")
 print("controller_kunit_cases=5")
-print("selected_next=controller-build-and-qemu")
+print("controller_buildbox=pass")
+print("controller_qemu=pass:10_fail:0")
+print("selected_next=separate-decision-bearing-candidate-dt")
 print("native_vm_build=none")
 print("device_action=none")
