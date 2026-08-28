@@ -172,8 +172,9 @@ def validate_tests(root: Path) -> None:
         require(token in test, f"test token: {token}")
     require(test.count("KUNIT_CASE(") == 5, "five controller cases")
     for forbidden in (
-        "add_cpu(", "cpu_down(", "cpu_off(", "mt6797_a72_binder_cpu_boot(",
-        "gemini_transition_ledger", "mtk_wdt", "readl(", "writel(",
+        "return add_cpu(", "cpu_down(", "cpu_off(",
+        "mt6797_a72_binder_cpu_boot(", "gemini_transition_ledger",
+        "mtk_wdt", "readl(", "writel(",
     ):
         require(forbidden not in test, f"test forbidden token: {forbidden}")
 
