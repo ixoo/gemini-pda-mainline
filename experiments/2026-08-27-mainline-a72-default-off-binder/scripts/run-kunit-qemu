@@ -127,6 +127,7 @@ readonly raw_parent
 
 set +e
 timeout --signal=TERM 45 qemu-system-aarch64 \
+	-accel tcg,thread=single \
 	-machine virt -cpu cortex-a53 -smp 4 -m 1024 \
 	-nographic -no-reboot -nic none -kernel "$image" \
 	>"$raw_log" 2>&1

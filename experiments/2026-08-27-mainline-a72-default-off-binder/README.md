@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-27-mainline-a72-default-off-binder` |
-| Status | Owner-test stack repair generated and admitted; exact rebuild pending |
+| Status | QEMU completed; 10 owner-test isolation failures exposed |
 | Subsystem | CPU8 admission, transition owners, PSCI, and generic hotplug lifecycle |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-27 America/New_York |
@@ -62,6 +62,9 @@ arm caller or binder Device Tree node; and no boot candidate is selected.
 - [`scripts/generate-owner-stack-fix-on-buildbox`](scripts/generate-owner-stack-fix-on-buildbox)
   generates one test-only follow-up from the exact full-series source after the
   first runtime attempt exposed oversized membership-owner fixtures.
+- [`scripts/generate-owner-state-isolation-fix-on-buildbox`](scripts/generate-owner-state-isolation-fix-on-buildbox)
+  generates the bounded follow-up for the coupled owner/P30 state and
+  configuration-aware PSCI-hook expectations exposed by the second run.
 
 ## Audit result
 
@@ -153,8 +156,23 @@ has SHA-256
 `28d73ca2035d457022c4d8589db7344599044d83a5b1a6d4bf130093136edaf7`.
 Strict checkpatch reports zero errors, warnings, or checks. Generation and
 replay observed zero production-file changes and performed no physical or
-device action. The corrected exact profile rebuild and bounded QEMU run remain
-pending; this revision is not a boot candidate.
+device action.
+
+The corrected exact profile rebuild passed on Buildbox. It removed the former
+40--75 KiB owner-test frames and retained one 5,632-byte warning in the P32
+case, below the 16 KiB arm64 task stack. The default multithreaded TCG launch
+then produced an empty serial log; an explicit single-thread TCG diagnostic
+booted immediately and completed all 47 cases. The stack overflow is gone,
+the executor passes 12/12, and the binder passes 5/5. The owner suite now
+passes 20/30 and exposes two stale pre-binder hook expectations plus eight
+subscenarios that reseed membership state without resetting the coupled P30
+test state. Exact identities are in the
+[second runtime rejection evidence](results/kunit-qemu-owner-isolation-1f26f2fc-20260828.txt).
+
+The harness now pins single-thread TCG for deterministic launch. The next
+revision is another test-only repair: isolate the coupled owner/P30 fixtures
+and make the hook expectations configuration-aware. No production path,
+device action, or boot candidate is admitted by these findings.
 
 ## Follow-up
 
