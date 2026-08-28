@@ -37,6 +37,32 @@ token minting, derived A36 validation, and identity binding all succeed. The
 same task must publish P17/P18 and call `add_cpu(8)` synchronously, because the
 binder admission owner is task-bound.
 
+## Exact selected source seam
+
+The post-`0410` source audit selects three deliberately narrow additions:
+
+- a locked, read-only `mt6797_a72_binder_available()` accessor that reveals
+  only whether the already published binder exists;
+- production register/unregister wrappers around the existing physical-source
+  callback, so the controller uses the already tested six-stage capture rather
+  than duplicating a reader; and
+- one operation-injected controller core whose atomic consumed flag is set
+  before source registration and the first owner mutation.
+
+`mt6797_a72_membership_derive_cpu8()` already performs source capture, A34
+bootstrap publication, entry derivation, P31 consumption, token minting, A36
+derivation, and identity binding under the existing CPU and owner locks. The
+controller therefore calls that entry once while the source is registered; it
+does not make a second observation or split capture from publication.
+
+The production platform driver resolves explicit binder, platform-state,
+clock-backend, and BigiDVFS phandles with managed device links before
+consumption. Binder absence and READY-token absence remain pre-consumption
+probe failures. Once consumed, every result is logged as terminal and probe
+returns success, preventing driver-core reprobe from creating another attempt.
+The driver registers at late init, exposes no unbind control, and has no remove
+callback.
+
 ## A36 repair
 
 A36 version 1 contains four dormant caller assertions that cannot be promoted

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-physical-candidate-admission-audit` |
-| Status | isolated derived admission builds and passes its only five QEMU cases; physical controller design is next |
+| Status | isolated derived admission passes; controller source seam and pinned generator are defined, not yet integrated |
 | Subsystem | MT6797 CPU8 A34/A36 membership admission and physical binder entry |
 | Device variant | Planet Gemini PDA, named development unit |
 | Date(s) | 2026-08-28 America/New_York |
@@ -126,6 +126,16 @@ There was no stack fault despite the known 7296-byte test-frame warning. The
 exact build and runtime identities, rejected wrapper chronology, and negative
 hardware assertions are in the
 [isolated runtime receipt](results/buildbox-kernel-qemu-isolated-20260828.txt).
+
+The subsequent read-only audit of the exact prepared post-`0410` source found
+the smallest production seam: one locked binder-availability accessor, wrappers
+around the existing physical-source registration lifetime, and one same-task
+consumed-before-mutation controller core. The exact file identities and selected
+interfaces are in the
+[controller source audit](results/controller-source-audit-20260828.txt), and the
+source-pinned [controller generator](scripts/generate-controller-on-buildbox)
+is defined against that exact state. At this checkpoint it has not generated a
+kernel patch, enabled a DT node, built a candidate, or made a CPU request.
 
 ## Safety assessment
 

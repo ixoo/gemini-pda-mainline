@@ -5696,15 +5696,21 @@ The next ordered work is:
    The last assertion is cyclic: the proven binder begins the retained ledger
    and takes over the watchdog only after `add_cpu(8)` reaches its CPU-boot
    callback. Arming it earlier would invert ledger-before-watchdog, while
-   claiming readiness as ownership would manufacture evidence. **Selected
-   next:** implement and exhaustively test one derived admission compositor
-   plus one consumed-before-mutation controller. It must derive entry/A36 and
-   the internally minted identity from the exact composed current-boot source,
-   reserve the obsolete page/recovery assertions to zero, publish P17/P18 and make one
-   same-task `add_cpu(8)` call, and leave ledger -> watchdog -> first mutation
-   exclusively inside the binder. Prove that source seam on Buildbox and in one
-   bounded no-network run before assembling a separate decision-bearing
-   physical candidate.
+   claiming readiness as ownership would manufacture evidence. Canonical
+   patches `0407`--`0410` now implement and isolate the derived admission
+   compositor. Exact clean commit `f991d1ac` compiles it on Buildbox, and its
+   sole no-network QEMU suite passes all five cases with no unrelated suite,
+   stack fault, physical operation, CPU request, or device action. The exact
+   post-`0410` source audit selects a locked read-only binder-ready accessor,
+   wrappers around the proven physical-source lifetime, and one injected
+   same-task controller core. **Selected next:** generate and review that
+   two-patch controller slice from the pinned Buildbox source, then compile a
+   focused profile and prove the five derived plus five controller cases in one
+   bounded no-network run. The controller must consume before owner mutation,
+   publish P17/P18, make exactly one synchronous `add_cpu(8)` call, and leave
+   ledger -> watchdog -> first mutation exclusively inside the binder. Only
+   after that proof may a separate decision-bearing physical candidate be
+   assembled.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
