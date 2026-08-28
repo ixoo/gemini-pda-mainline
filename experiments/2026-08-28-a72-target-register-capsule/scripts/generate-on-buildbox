@@ -1,0 +1,182 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+export LC_ALL=C
+
+readonly SOURCE_COMMIT=59e00a9144d782e148332009a835b99c43382467
+readonly SOURCE_URL=https://github.com/gemian/gemini-linux-kernel-3.18.git
+readonly PARENT_PATCHSET_SHA256=bd5799cecd14aa34a87562b09507a6d9f18f11cd138420bcba629f12793e7bfe
+readonly PARENT_PSCI_SHA256=a09af27d80e502a7c62e365f271ed74f6f09212935882e242d4d0f432ec29f34
+readonly GENERATED_PATCH=0001-diagnostic-capture-A72-target-register-capsules.patch
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+[[ "$#" -eq 3 ]] || die 'expected PROJECT_COMMIT SOURCE_ROOT OUTPUT_ROOT'
+readonly project_commit=$1 source_root=$2 output_root=$3
+[[ "$project_commit" =~ ^[0-9a-f]{40}$ ]] || die 'invalid project commit'
+[[ "$source_root" == /workspace/gemini-pda/* ]] || die 'unsafe source root'
+[[ "$output_root" == /workspace/gemini-pda/* ]] || die 'unsafe output root'
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+repository_dir="$(cd -- "$script_dir/../../.." && pwd -P)"
+readonly script_dir repository_dir
+[[ "$(git -C "$repository_dir" rev-parse HEAD)" == "$project_commit" ]] || \
+  die 'project checkout mismatch'
+[[ -z "$(git -C "$repository_dir" status --porcelain)" ]] || \
+  die 'project checkout is dirty'
+for command in awk cmp cp diff find git grep mkdir mktemp mv python3 rm \
+  sha256sum sort xargs; do
+  command -v "$command" >/dev/null || die "missing command: $command"
+done
+
+readonly mirror="$source_root/gemian-linux-kernel-3.18.git"
+readonly work_root=/workspace/gemini-pda/a72-register-capsule-work
+readonly package="$output_root/gemian-a72-register-capsule-${project_commit:0:12}"
+readonly partial="${package}.partial.$$"
+mkdir -p "$source_root" "$work_root" "$output_root"
+[[ ! -e "$partial" ]] || die 'stale output partial exists'
+if [[ -d "$package" && ! -L "$package" ]]; then
+  grep -Fx "repository_commit=$project_commit" \
+    "$package/provenance/generation.txt" >/dev/null || \
+    die 'existing package commit mismatch'
+  grep -Fx 'purpose=experiment-only-a72-register-capsule-source-review' \
+    "$package/provenance/generation.txt" >/dev/null || \
+    die 'existing package purpose mismatch'
+  (cd "$package" && sha256sum --check --strict SHA256SUMS >/dev/null)
+  printf 'Generated A72 register-capsule patch review at %s\n' "$package"
+  exit 0
+fi
+[[ ! -e "$package" ]] || die 'unsafe existing package path'
+
+if [[ ! -d "$mirror" ]]; then
+  git clone --mirror "$SOURCE_URL" "${mirror}.partial"
+  mv "${mirror}.partial" "$mirror"
+fi
+[[ "$(git --git-dir="$mirror" remote get-url origin)" == "$SOURCE_URL" ]] || \
+  die 'vendor mirror origin mismatch'
+git --git-dir="$mirror" fetch origin "$SOURCE_COMMIT"
+[[ "$(git --git-dir="$mirror" rev-parse FETCH_HEAD)" == "$SOURCE_COMMIT" ]] || \
+  die 'vendor source fetch mismatch'
+
+work="$(mktemp -d "$work_root/register-capsule.XXXXXX")"
+readonly work
+cleanup() {
+  [[ ! -d "$work" || "$work" != "$work_root"/register-capsule.* ]] || \
+    rm -rf -- "$work"
+  [[ ! -d "$partial" || "$partial" != "$output_root"/*.partial.* ]] || \
+    rm -rf -- "$partial"
+}
+trap cleanup EXIT
+git clone --no-checkout "$mirror" "$work/source"
+git -C "$work/source" checkout --detach "$SOURCE_COMMIT"
+git -C "$work/source" config user.name 'Gemini A72 experiment'
+git -C "$work/source" config user.email noreply@gemini-a72.invalid
+
+apply_series() {
+  local parent=$1 patch
+  while IFS= read -r patch; do
+    [[ "$patch" =~ ^[A-Za-z0-9_.+-]+\.patch$ ]] || \
+      die 'unsafe parent patch name'
+    git -C "$work/source" am --committer-date-is-author-date \
+      "$repository_dir/experiments/$parent/patches/$patch"
+  done <"$repository_dir/experiments/$parent/patches/series"
+}
+
+apply_series 2026-07-23-gemian-a72-owner-observer
+for patch in 0001-diagnostic-extend-A72-observer-rollback-ABI.patch \
+  0002-diagnostic-add-exact-A72-rollback-owner-operations.patch; do
+  git -C "$work/source" am --committer-date-is-author-date \
+    "$repository_dir/experiments/2026-08-02-a72-pre-isolation-rollback-discriminator/patches/$patch"
+done
+for parent in 2026-08-02-a72-one-way-cpu8-boundary \
+  2026-08-02-a72-cpu8-held-online 2026-08-03-a72-cpu8-late-hold \
+  2026-08-03-a72-cpu9-cluster-reuse \
+  2026-08-03-a72-cpu9-retention-window \
+  2026-08-03-a72-cpu9-terminal-attribution \
+  2026-08-03-a72-cpu9-bounded-coherency \
+  2026-08-03-a72-cpu9-multiline-integrity \
+  2026-08-03-a72-cpu9-parallel-disjoint-load \
+  2026-08-03-a72-scheduler-context; do
+  apply_series "$parent"
+done
+
+scheduler_dir="$repository_dir/experiments/2026-08-03-a72-scheduler-context/patches"
+parent_patchset_sha="$({
+  while IFS= read -r patch; do
+    sha256sum "$scheduler_dir/$patch" | awk '{print $1}'
+  done <"$scheduler_dir/series"
+} | sha256sum | awk '{print $1}')"
+readonly scheduler_dir parent_patchset_sha
+[[ "$parent_patchset_sha" == "$PARENT_PATCHSET_SHA256" ]] || \
+  die 'scheduler parent patchset identity changed'
+[[ "$(sha256sum "$work/source/arch/arm64/kernel/psci.c" | awk '{print $1}')" == \
+  "$PARENT_PSCI_SHA256" ]] || die 'scheduler parent psci.c changed'
+cp "$work/source/arch/arm64/kernel/psci.c" "$work/parent-psci.c"
+
+python3 "$script_dir/test_capsule_child.py" --self-test
+python3 "$script_dir/capsule_edits.py" --source "$work/source"
+git -C "$work/source" diff --check
+python3 "$script_dir/test_capsule_child.py" --source "$work/source" \
+  --parent-psci "$work/parent-psci.c"
+diff -u <(printf '%s\n' arch/arm64/kernel/psci.c) \
+  <(git -C "$work/source" diff --name-only) >/dev/null || \
+  die 'register-capsule changed-path inventory is not exact'
+git -C "$work/source" add -- arch/arm64/kernel/psci.c
+git -C "$work/source" diff --cached --check
+
+GIT_AUTHOR_NAME='Gemini A72 experiment' \
+GIT_AUTHOR_EMAIL=noreply@gemini-a72.invalid \
+GIT_COMMITTER_NAME='Gemini A72 experiment' \
+GIT_COMMITTER_EMAIL=noreply@gemini-a72.invalid \
+GIT_AUTHOR_DATE=2026-08-28T23:00:00Z \
+GIT_COMMITTER_DATE=2026-08-28T23:00:00Z \
+git -C "$work/source" commit --no-gpg-sign \
+  -m 'diagnostic: capture A72 target-register capsules' \
+  -m 'Read one fixed architectural register vector in each proven bound task.' \
+  -m 'Preserve the scheduler parent power, CPU_OFF, watchdog, and recovery boundaries.'
+generated_source_commit="$(git -C "$work/source" rev-parse HEAD)"
+readonly generated_source_commit
+
+mkdir -p "$partial/patches" "$partial/provenance"
+git -C "$work/source" format-patch -1 --no-signature --stdout HEAD \
+  >"$partial/patches/$GENERATED_PATCH"
+printf '%s\n' "$GENERATED_PATCH" >"$partial/patches/series"
+git -C "$work/source" diff-tree --no-commit-id --name-only -r HEAD \
+  >"$partial/provenance/changed-paths.txt"
+diff -u <(printf '%s\n' arch/arm64/kernel/psci.c) \
+  "$partial/provenance/changed-paths.txt" >/dev/null || \
+  die 'generated patch path inventory changed'
+python3 "$script_dir/test_capsule_child.py" --source "$work/source" \
+  --parent-psci "$work/parent-psci.c"
+[[ -z "$(git -C "$work/source" status --porcelain)" ]] || \
+  die 'generated source is dirty'
+generated_patch_sha="$(sha256sum "$partial/patches/$GENERATED_PATCH" | awk '{print $1}')"
+readonly generated_patch_sha
+cat >"$partial/provenance/generation.txt" <<EOF
+purpose=experiment-only-a72-register-capsule-source-review
+boot_candidate=false
+device_action=none
+repository_commit=$project_commit
+source_url=$SOURCE_URL
+source_commit=$SOURCE_COMMIT
+parent_scheduler_patchset_sha256=$parent_patchset_sha
+parent_psci_sha256=$PARENT_PSCI_SHA256
+generated_source_commit=$generated_source_commit
+generated_patch=$GENERATED_PATCH
+generated_patch_sha256=$generated_patch_sha
+generated_patch_count=1
+changed_path=arch/arm64/kernel/psci.c
+child_editor=experiments/2026-08-28-a72-target-register-capsule/scripts/capsule_edits.py
+child_validator=experiments/2026-08-28-a72-target-register-capsule/scripts/test_capsule_child.py
+generator=experiments/2026-08-28-a72-target-register-capsule/scripts/generate-on-buildbox
+native_vm_kernel_build=no
+EOF
+(
+  cd "$partial"
+  find patches provenance -type f -print0 | sort -z | \
+    xargs -0 sha256sum >SHA256SUMS
+  sha256sum --check --strict SHA256SUMS >/dev/null
+)
+mv "$partial" "$package"
+rm -rf -- "$work"
+trap - EXIT
+printf 'Generated A72 register-capsule patch review at %s\n' "$package"

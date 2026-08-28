@@ -1,0 +1,52 @@
+CPU8/CPU9 target-register capsule definition validation
+Date: 2026-08-28
+Repository parent: afb537f4
+Build: none
+Device action: none
+
+Commands:
+python3 -m py_compile \
+  experiments/2026-08-28-a72-target-register-capsule/scripts/capsule_edits.py \
+  experiments/2026-08-28-a72-target-register-capsule/scripts/test_capsule_child.py
+python3 experiments/2026-08-28-a72-target-register-capsule/scripts/test_capsule_child.py \
+  --self-test
+bash -n \
+  experiments/2026-08-28-a72-target-register-capsule/scripts/generate-on-buildbox \
+  scripts/buildbox
+shellcheck \
+  experiments/2026-08-28-a72-target-register-capsule/scripts/generate-on-buildbox \
+  scripts/buildbox
+./scripts/buildbox help
+git diff --check
+
+Result:
+validation=a72-target-register-capsule-definition
+identity_fields=32
+cpuinfo_comparisons=22
+negative_mutations=12
+physical_actions=none
+python_syntax=pass
+bash_syntax=pass
+shellcheck=pass
+buildbox_help_entries=2
+diff_check=pass
+
+Rejected mutations:
+- ABI change
+- canonical field-count change
+- removal of get_cpu preemption hold
+- replacement of put_cpu close
+- substitution of CPU0 data for this_cpu_ptr(cpu_data)
+- removal of REVIDR
+- cpu_data comparison bypass
+- removal of the publication barrier
+- non-WRITE_ONCE completion publication
+- removal of an identity field
+- removal/rename of one fixed output part
+- addition of a PSCI CPU_ON call
+
+Conclusion:
+validated-definition
+
+No kernel was generated or built. No candidate, partition, CPU, firmware,
+MMIO, power, storage, reboot, or device action occurred.
