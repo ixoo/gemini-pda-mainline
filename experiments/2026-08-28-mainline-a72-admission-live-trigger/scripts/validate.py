@@ -80,9 +80,9 @@ require(
 require(
     contract["native_vm_build"] is False and
     contract["device_action"] is True and
-    contract["boot_candidate"] is True and
-    contract["result"] == "deployed-shutdown-runtime-pending",
-    "verified deployment state",
+    contract["boot_candidate"] is False and
+    contract["result"] == "attempt1-pretrigger-nonserviceable-retired",
+    "retired attempt state",
 )
 definition = contract["definition_validation"]
 require(
@@ -412,6 +412,40 @@ require(
     "exact boot2 deployment and shutdown",
 )
 
+attempt = contract["attempt_1"]
+require(
+    attempt["record"] ==
+    "results/runtime-attempt1-pretrigger-nonserviceable-20260828.txt" and
+    sha256(EXPERIMENT / attempt["record"]) == attempt["record_sha256"] and
+    sha256(SCRIPTS / "collect-live-trigger.sh") == attempt["collector_sha256"] and
+    sha256(SCRIPTS / "collect-pretrigger-recovery.sh") ==
+    attempt["recovery_collector_sha256"],
+    "attempt-1 collectors and sanitized record",
+)
+require(
+    attempt["collector_status_sha256"] ==
+    "bbba7e032bd8b4f717c17acab0a53e98628b6a43d090e70f451ab28762c585ed" and
+    attempt["collector_events_sha256"] ==
+    "490a428ac8082802f543d123b233ec2fb2d13bc1b41ca8f2ff52e70e3986dca6" and
+    attempt["deployment_boot_id"] == deployment["deployment_boot_id"] and
+    attempt["gemian_recovery_boot_id"] ==
+    "7be70bda-fc3d-48d2-93f8-ee1a317c6919" and
+    attempt["exact_usb_observed"] is False and
+    attempt["pretrigger_sessions"] == 0 and attempt["trigger_sessions"] == 0 and
+    attempt["trigger_token_written"] is False and
+    attempt["cpu8_admission_actions"] == 0 and attempt["cpu9_requests"] == 0 and
+    attempt["cpu_off_requests"] == 0 and attempt["retries"] == 0 and
+    attempt["boot2_sha256"] == candidate["padded_sha256"] and
+    attempt["pstore_files"] == 0 and
+    attempt["transition_ledger_state"] == "logical-empty" and
+    attempt["admission_trace_state"] == "empty" and
+    attempt["retained_records_primary_evidence"] is False and
+    attempt["classification"] == "pretrigger-nonserviceable-zero-trigger" and
+    attempt["cpu8_trigger_hypothesis_tested"] is False and
+    attempt["artifact_retired"] is True and attempt["result"] == "pass",
+    "attempt-1 zero-trigger classification",
+)
+
 for relative in (
     "README.md", "DESIGN.md", "contract.json", "scripts/source_edits.py",
     "scripts/validate_source.py", "scripts/generate-patches.py",
@@ -421,6 +455,7 @@ for relative in (
     "scripts/remote-pretrigger.sh", "scripts/validate-pretrigger.py",
     "scripts/remote-trigger.sh", "scripts/classify-attempt.py",
     "scripts/test-runtime.py", "scripts/collect-live-trigger.sh",
+    "scripts/collect-pretrigger-recovery.sh",
     "results/local-definition-validation-20260828.txt",
     "results/buildbox-generation-attempt1-20260828.txt",
     "results/buildbox-generation-attempt2-20260828.txt",
@@ -432,6 +467,7 @@ for relative in (
     "results/candidate-validation-633f897a-20260828.txt",
     "results/offline-runtime-gates-20260828.txt",
     "results/deployment-boot2-4e0f8688-20260828.txt",
+    "results/runtime-attempt1-pretrigger-nonserviceable-20260828.txt",
 ):
     path = EXPERIMENT / relative
     require(path.is_file() and not path.is_symlink(), f"exact file {relative}")
@@ -454,7 +490,10 @@ result = subprocess.run(
     check=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
 )
 require(result.returncode == 0, "KUnit runner syntax")
-for relative in ("build-candidate.sh", "install-boot2.sh", "collect-live-trigger.sh"):
+for relative in (
+    "build-candidate.sh", "install-boot2.sh", "collect-live-trigger.sh",
+    "collect-pretrigger-recovery.sh",
+):
     result = subprocess.run(
         ["bash", "-n", str(SCRIPTS / relative)], check=False,
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
@@ -540,8 +579,10 @@ print("cpu_off_paths=0")
 print("retry_paths=0")
 print("native_vm_build=none")
 print("device_action=verified-boot2-write-and-shutdown")
-print("boot_candidate=true")
+print("boot_candidate=false")
 print("production_buildbox=pass")
 print("candidate_lk_gates=32-of-32")
 print("runtime_unsafe_mutations_rejected=13")
+print("attempt1_classification=pretrigger-nonserviceable-zero-trigger")
+print("attempt1_trigger_sessions=0")
 print("result=pass")

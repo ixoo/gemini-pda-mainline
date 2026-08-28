@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-admission-live-trigger` |
-| Status | `exact candidate deployed and shut down; runtime pending` |
+| Status | `complete; attempt 1 failed before live frame, zero-trigger, retired` |
 | Subsystem | MT6797 A72 admission controller, sysfs, CPU hotplug |
 | Device variant | Planet Computers Gemini PDA, named project device |
 | Date(s) | 2026-08-28 |
@@ -82,6 +82,8 @@ backup and never reboots Gemian automatically after the write.
 - `scripts/remote-pretrigger.sh`, `scripts/validate-pretrigger.py`,
   `scripts/remote-trigger.sh`, and `scripts/classify-attempt.py`: exact live
   identity, armed-state, token, terminal-state, and transport-loss contract.
+- `scripts/collect-pretrigger-recovery.sh`: source-pinned, read-only changed-ID
+  Gemian, boot2, pstore, and retained-record recovery.
 
 Private captures and candidates remain below ignored `artifacts/` paths.
 
@@ -183,24 +185,38 @@ the full-partition readback matched `4e0f8688...`. No fresh backup or retained
 RAM write occurred. Gemian was cleanly shut down, then three consecutive TCP/22
 closures confirmed it unreachable.
 
+The host collector was armed before the owner selected boot2. The owner saw no
+console, but screen state remains contextual. Across the selected boot, the
+host observed neither accepted Gemini USB MAC, opened no pre-trigger session,
+and had no mainline identity. It therefore wrote no trigger token and executed
+no CPU8 admission action. Gemian returned with changed boot ID
+`7be70bda-...`; that authoritative observation ended the wait without a retry.
+
+Read-only post-return recovery confirmed the 16 MiB boot2 partition still
+matched `4e0f8688...`, with zero pstore files, a logical-empty transition
+ledger, and empty admission entry/terminal records. Those retained results are
+corroborating only. The primary classification is
+`pretrigger-nonserviceable-zero-trigger`: this physical selection did not test
+the CPU8 trigger hypothesis. The artifact is retired and cannot be repeated.
+
 ## Analysis
 
-The new experiment separates two questions in one physical selection. If the
-armed frame never appears, the current DT/supplier population is nonserviceable
-even without controller activation. If it appears, the kernel and observation
-channel are proven before the action. A subsequent disconnect or reset is then
-localized to supplier resolution or the admission transaction, while a
-returning status identifies a precise terminal error or CPU8 outcome.
+The experiment separated the questions as intended. The armed frame never
+appeared, so the current production kernel/DT/configuration population did not
+establish the required serviceability baseline even with supplier resolution
+and admission disabled at controller probe. Since the token was never written,
+this result says nothing about whether the unchanged admission transaction can
+bring CPU8 online. It does show that deferring that transaction alone is not
+sufficient to recover the observation channel.
 
 ## Conclusion
 
-The retained-earlier-anchor direction is rejected. The serviceability-first
-one-shot trigger passes exact Buildbox compilation, package validation, all 15
-focused KUnit cases, exact LK construction, and the offline no-retry runtime
-gates. Candidate `4e0f8688...` is installed on inactive boot2 with a matching
-full readback and confirmed shutdown. No physical CPU request has occurred yet.
+The retained-earlier-anchor direction remains rejected, and the live trigger
+remains hardware-free proven. Physical attempt 1 is conclusively a
+zero-trigger pre-serviceability result: no CPU8 request occurred and CPU8
+support is not advanced. Candidate `4e0f8688...` is retired.
 
 ## Follow-up
 
-Candidate `4e0f8688...` and its verified deployment receipt are ready. The
-ordered next step remains owned by `docs/ROADMAP.md`.
+The exact attempt and recovery receipt are complete. The ordered next step
+remains owned by `docs/ROADMAP.md`.

@@ -5843,10 +5843,22 @@ The next ordered work is:
    predecessor `60902c7b...`, and wrote exact `4e0f8688...`; its full-partition
    readback matched. Stable external power, unchanged TEE identities, no fresh
    backup or retained-RAM write, and clean shutdown with three closed TCP/22
-   checks are recorded. **Selected next:** pre-arm the host collector before
-   one physical boot2 selection. Use the terminal status or attributable
-   post-commit transport loss to choose the next admission action without
-   repeating the artifact.
+   checks are recorded. The host collector was armed before one physical boot2
+   selection. No exact Gemini USB interface, mainline identity, pre-trigger
+   frame, or console appeared before changed-ID Gemian returned. Consequently
+   it opened zero pre-trigger sessions, wrote zero trigger tokens, and executed
+   zero CPU8 admission actions. Read-only recovery found exact boot2 unchanged,
+   zero pstore files, and empty admission/transition records; those retained
+   bytes are corroborating only. Exact classification is
+   `pretrigger-nonserviceable-zero-trigger`. The CPU8 trigger hypothesis was
+   not tested, and candidate `4e0f8688...` is retired. **Selected next:** pair
+   the exact current `Image.gz` and unchanged serviceability ramdisk with the
+   latest byte-exact runtime-proven Stage-27 cumulative reader DTB, which has
+   no admission-controller node. This single DT control must decide whether
+   the pre-trigger regression belongs to the current Image/configuration or to
+   the later full A72 DT/probe population. If serviceable, partition only the
+   post-Stage-27 node additions before returning to the dormant CPU8 trigger;
+   if not, stop DT work and isolate the current Image/configuration delta.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

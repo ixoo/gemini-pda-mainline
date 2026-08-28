@@ -28,7 +28,7 @@
   "pretrigger_live_frame_required": true,
   "native_vm_build": false,
   "device_action": true,
-  "boot_candidate": true,
+  "boot_candidate": false,
   "definition_validation": {
     "record": "results/local-definition-validation-20260828.txt",
     "record_sha256": "39cfe99e2033cf07fb8d8d8a1ff27a6a73562237c4ea835d491e88bfc25152b1",
@@ -209,5 +209,32 @@
     "reboot_requested": false,
     "result": "pass"
   },
-  "result": "deployed-shutdown-runtime-pending"
+  "attempt_1": {
+    "record": "results/runtime-attempt1-pretrigger-nonserviceable-20260828.txt",
+    "record_sha256": "79c2ca232a8e57c738fce665bc88b92e62605f52d43437b6f9f42d36cdb92575",
+    "collector_sha256": "69e3290661820a4555a3b43c2451d63e6bf05f81013bae864704cfa0a458580e",
+    "collector_status_sha256": "bbba7e032bd8b4f717c17acab0a53e98628b6a43d090e70f451ab28762c585ed",
+    "collector_events_sha256": "490a428ac8082802f543d123b233ec2fb2d13bc1b41ca8f2ff52e70e3986dca6",
+    "recovery_collector_sha256": "77e3daf78cda3c5c3b26c5faaa07dce9e690d9d7706e4015a81443e5e68d720c",
+    "deployment_boot_id": "e3731f9a-19d9-46cd-9ea6-7bd56c26d7cc",
+    "gemian_recovery_boot_id": "7be70bda-fc3d-48d2-93f8-ee1a317c6919",
+    "exact_usb_observed": false,
+    "pretrigger_sessions": 0,
+    "trigger_sessions": 0,
+    "trigger_token_written": false,
+    "cpu8_admission_actions": 0,
+    "cpu9_requests": 0,
+    "cpu_off_requests": 0,
+    "retries": 0,
+    "boot2_sha256": "4e0f86885a16df2f8b0c1efb4dd2e67394938bad1ef720adabf70ff4635ec0ef",
+    "pstore_files": 0,
+    "transition_ledger_state": "logical-empty",
+    "admission_trace_state": "empty",
+    "retained_records_primary_evidence": false,
+    "classification": "pretrigger-nonserviceable-zero-trigger",
+    "cpu8_trigger_hypothesis_tested": false,
+    "artifact_retired": true,
+    "result": "pass"
+  },
+  "result": "attempt1-pretrigger-nonserviceable-retired"
 }
