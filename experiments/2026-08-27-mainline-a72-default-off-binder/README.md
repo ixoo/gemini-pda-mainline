@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-27-mainline-a72-default-off-binder` |
-| Status | Exact 0404 build passed; QEMU isolated eight stale owner fixtures; 0405 generated and pending canonical admission |
+| Status | 0405 admitted; exact QEMU improved to 46/47 and isolated a missing P29 public claim; 0406 generation pending |
 | Subsystem | CPU8 admission, transition owners, PSCI, and generic hotplug lifecycle |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-27 America/New_York |
@@ -74,6 +74,9 @@ arm caller or binder Device Tree node; and no boot candidate is selected.
 - [`scripts/generate-owner-fixture-contract-fix-on-buildbox`](scripts/generate-owner-fixture-contract-fix-on-buildbox)
   generates the test-only repair for the three fixture-contract mismatches
   isolated by the exact 0404 QEMU run.
+- [`scripts/generate-owner-p29-claim-fix-on-buildbox`](scripts/generate-owner-p29-claim-fix-on-buildbox)
+  generates the test-only completion of the public preflight, validation, and
+  claim sequence in both legacy P29 fixtures.
 
 ## Audit result
 
@@ -243,6 +246,23 @@ strict checkpatch reports zero errors, warnings, or checks. Generation and
 source replay performed no physical or device action. Canonical admission, a
 fresh Buildbox compile, and one new bounded QEMU proof remain pending. This
 profile is not a boot candidate.
+
+The canonical 0405 admission is signed commit
+`9366cd4923cef87a4c3f57c1f954fb5257139942`. Its exact Buildbox profile build
+passed and produced package
+`linux-7.1.3-gemini-a72-default-off-binder-kunit-3b64bed4-010f5c59`.
+The sole new 45-second single-thread TCG run emitted all 47 cases and improved
+the owner suite from 22/30 to 29/30; the executor remained 12/12 and the binder
+remained 5/5. It proved that 0405 repaired all identity and CPU9 fixture drift.
+
+The remaining valid P29 rollback failed because its fixture stopped after
+public preflight and never validated and claimed CPU8. The mutation companion
+therefore passed before reaching its intended mutated-proof check. Exact
+identities are in the
+[fourth runtime rejection evidence](results/kunit-qemu-owner-p29-claim-9366cd49-20260828.txt).
+The next bounded test-only patch completes preflight, validation, and claim in
+both P29 fixtures. No second run of the same artifact is permitted, no device
+action occurred, and this package is not a boot candidate.
 
 ## Follow-up
 
