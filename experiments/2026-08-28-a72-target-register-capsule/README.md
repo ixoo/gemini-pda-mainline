@@ -66,6 +66,9 @@ one fixed decision map; the proven parent must not be rerun unchanged.
   reversal, semantic inventory, output-schema, and negative-mutation tests.
 - [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox): reconstructs
   the exact parent from public Git inputs and emits only the child patch.
+- [`scripts/build-on-buildbox`](scripts/build-on-buildbox): selects the exact
+  scheduler-unpark parent and the register-capsule comparison mode in the
+  shared Gemian compile-review lane.
 - [`patches/series`](patches/series): the exact admitted one-patch child series.
 - [`results/definition-validation-20260828.txt`](results/definition-validation-20260828.txt):
   local syntax, ShellCheck, serialization, exact-reversal, and mutation result.
@@ -139,6 +142,15 @@ The generated source commit is `5ce64e79...`; the admitted patch SHA-256 is
 checks when only the intentionally absent synthetic signoff is ignored. The
 patch and one-entry series are now admitted, and the generator is pinned to
 reproduce them byte-for-byte. No kernel build has run.
+
+The Buildbox compile lane is now defined to compare that exact child against
+the scheduler-unpark parent under identical configuration and toolchain inputs.
+Its pre-package gates require four child-only functions, four complete output
+parts, both target-task capture phases, exactly 26 compiled `mrs` instructions
+in the capture function, no PSCI/MMIO/clock/regulator/sleep call, unchanged
+inherited scheduler terminals, identical compiler diagnostics, and bounded
+stack use for all capsule and affected scheduler functions. This definition is
+not a compile result or a boot candidate.
 
 ## Analysis
 

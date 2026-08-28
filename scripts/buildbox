@@ -8,6 +8,7 @@ REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd -P)"
 readonly REPO_DIR
 readonly REMOTE_URL="https://github.com/ixoo/gemini-pda-mainline.git"
 readonly EXPECTED_SCHEDULER_UNPARK_PATCHSET_SHA256=bd5799cecd14aa34a87562b09507a6d9f18f11cd138420bcba629f12793e7bfe
+readonly EXPECTED_REGISTER_PATCHSET_SHA256=71ef281aae8d0b99d0421b81bd3d61d82ab090125c4885977ba39d8280838469
 readonly BUILDBOX_HOST="${BUILDBOX_HOST:-buildbox}"
 readonly CONNECT_TIMEOUT="${BUILDBOX_CONNECT_TIMEOUT:-5}"
 readonly DEFAULT_JOBS=64
@@ -309,6 +310,10 @@ Commands:
   build-gemian-scheduler-compile
                         Compare scheduler context and exact pair-v6 parent
   fetch-gemian-scheduler-compile
+                        Fetch that validated compile-review bundle for HEAD
+  build-gemian-register-capsule-compile
+                        Compare the register capsule with its scheduler parent
+  fetch-gemian-register-capsule-compile
                         Fetch that validated compile-review bundle for HEAD
 
 Environment:
@@ -956,7 +961,7 @@ build_gemian_observer() {
   local sha
 
   case "${mode}" in
-    observer|rollback|recovery|one-way|held|late|cpu9|window|terminal|coherence|multiline|parallel|scheduler) ;;
+    observer|rollback|recovery|one-way|held|late|cpu9|window|terminal|coherence|multiline|parallel|scheduler|register) ;;
     *) die "invalid Gemian compile-review mode: ${mode}" ;;
   esac
 
@@ -966,9 +971,10 @@ build_gemian_observer() {
   identity="$(require_clean_pushed_head)"
   IFS=$'\t' read -r sha branch <<< "${identity}"
   jobs="$(job_count)"
-  printf -v remote_command 'bash -s -- %q %q %q %q %q' \
+  printf -v remote_command 'bash -s -- %q %q %q %q %q %q' \
     "${sha}" "${branch}" "${jobs}" "${mode}" \
-    "${EXPECTED_SCHEDULER_UNPARK_PATCHSET_SHA256}"
+    "${EXPECTED_SCHEDULER_UNPARK_PATCHSET_SHA256}" \
+    "${EXPECTED_REGISTER_PATCHSET_SHA256}"
 
   printf 'Submitting Gemian %s compile review %s to %s\n' \
     "${mode}" "${sha}" "${BUILDBOX_HOST}"
@@ -980,6 +986,7 @@ readonly branch="$2"
 readonly jobs="$3"
 readonly mode="$4"
 readonly expected_scheduler_patchset="$5"
+readonly expected_register_patchset="$6"
 readonly remote_url=https://github.com/ixoo/gemini-pda-mainline.git
 readonly persistent_root="${HOME}/gemini-pda-buildbox"
 readonly mirror="${persistent_root}/repo.git"
@@ -1056,6 +1063,11 @@ case "${mode}" in
     readonly job_suffix=gemian-a72-scheduler
     readonly job_purpose=gemian-a72-scheduler-context-compile-review
     readonly build_script=experiments/2026-08-03-a72-scheduler-context/scripts/build-on-buildbox
+    ;;
+  register)
+    readonly job_suffix=gemian-a72-register-capsule
+    readonly job_purpose=gemian-a72-target-register-capsule-compile-review
+    readonly build_script=experiments/2026-08-28-a72-target-register-capsule/scripts/build-on-buildbox
     ;;
   *) exit 2 ;;
 esac
@@ -1359,6 +1371,50 @@ elif [[ "${mode}" == window ]]; then
     "${package}/outputs/vmlinux"
   grep -aFq 'gemini-a72-retain-v1 result=hps-down-held-first' \
     "${package}/outputs/vmlinux"
+  [[ "$(tar -tf "${package}/outputs/baseline/stack-usage.tar" | wc -l)" -gt 100 ]]
+elif [[ "${mode}" == register ]]; then
+  for required in outputs/register-stack.txt \
+    outputs/baseline/stack-usage.tar \
+    outputs/baseline/stack-usage-files.nul \
+    outputs/baseline/stack-usage-files.txt \
+    outputs/focused-disassembly/mt6797_a72_regcap_capture.txt \
+    outputs/focused-disassembly/mt6797_a72_regcap_cpuinfo_match.txt \
+    outputs/focused-disassembly/mt6797_a72_regcap_emit.txt \
+    outputs/focused-disassembly/mt6797_a72_regcap_identity.txt \
+    outputs/focused-disassembly/mt6797_a72_sc_thread.txt \
+    outputs/focused-disassembly/mt6797_a72_sc_terminal.txt \
+    outputs/baseline/focused-disassembly/mt6797_a72_sc_thread.txt \
+    outputs/baseline/focused-disassembly/mt6797_a72_sc_terminal.txt; do
+    [[ -s "${package}/${required}" ]]
+  done
+  jq -e --arg scheduler_patchset "${expected_scheduler_patchset}" \
+    --arg register_patchset "${expected_register_patchset}" '
+    .baseline_source_exact_scheduler_unpark == true and
+    .cpu9_startup_source_identical == true and
+    .baseline_stack_usage_file_count > 100 and
+    .scheduler_patchset_sha256 == $scheduler_patchset and
+    .register_patchset_sha256 == $register_patchset and
+    .purpose == "a72-target-register-capsule-compile-review-only"
+  ' "${package}/provenance/build.json" >/dev/null
+  for symbol in mt6797_a72_regcap_capture \
+    mt6797_a72_regcap_cpuinfo_match mt6797_a72_regcap_emit \
+    mt6797_a72_regcap_identity; do
+    grep -q " ${symbol}$" "${package}/outputs/System.map"
+    ! grep -q " ${symbol}$" "${package}/outputs/baseline/System.map"
+    grep -q "<${symbol}>:" \
+      "${package}/outputs/focused-disassembly/${symbol}.txt"
+    grep -q "^${symbol}=" "${package}/outputs/register-stack.txt"
+  done
+  grep -aFq 'gemini-a72-regcap-v1 part=core result=%s' \
+    "${package}/outputs/vmlinux"
+  grep -aFq 'gemini-a72-regcap-v1 part=aa64 result=%s' \
+    "${package}/outputs/vmlinux"
+  grep -aFq 'gemini-a72-regcap-v1 part=a32isar result=%s' \
+    "${package}/outputs/vmlinux"
+  grep -aFq 'gemini-a72-regcap-v1 part=a32mm result=%s' \
+    "${package}/outputs/vmlinux"
+  grep -aFq 'phase=task-capture-before' "${package}/outputs/vmlinux"
+  grep -aFq 'phase=task-capture-after' "${package}/outputs/vmlinux"
   [[ "$(tar -tf "${package}/outputs/baseline/stack-usage.tar" | wc -l)" -gt 100 ]]
 elif [[ "${mode}" == scheduler ]]; then
   for required in outputs/scheduler-stack.txt \
@@ -1671,11 +1727,19 @@ fetch_gemian_observer() {
       job_suffix=gemian-a72-scheduler
       job_purpose=gemian-a72-scheduler-context-compile-review
       ;;
+    register)
+      job_suffix=gemian-a72-register-capsule
+      job_purpose=gemian-a72-target-register-capsule-compile-review
+      ;;
     *) die "invalid Gemian compile-review mode: ${mode}" ;;
   esac
-  if [[ "${mode}" == scheduler ]]; then
+  if [[ "${mode}" == scheduler || "${mode}" == register ]]; then
     [[ "${EXPECTED_SCHEDULER_UNPARK_PATCHSET_SHA256}" =~ ^[0-9a-f]{64}$ ]] || \
       die "scheduler unpark child patchset hash pin is pending"
+  fi
+  if [[ "${mode}" == register ]]; then
+    [[ "${EXPECTED_REGISTER_PATCHSET_SHA256}" =~ ^[0-9a-f]{64}$ ]] || \
+      die "register-capsule patchset hash pin is pending"
   fi
   sha="$(git -C "${REPO_DIR}" rev-parse HEAD)"
   [[ "${sha}" =~ ^[0-9a-f]{40}$ ]] || die "invalid HEAD commit"
@@ -1698,9 +1762,10 @@ fetch_gemian_observer() {
   temporary="$(mktemp -d "$(dirname "${destination}")/.fetch.XXXXXX")"
   trap 'test -n "${temporary:-}" && test -d "${temporary}" && rm -rf -- "${temporary}"' EXIT
 
-  printf -v remote_command 'bash -s -- %q %q %q %q %q' \
+  printf -v remote_command 'bash -s -- %q %q %q %q %q %q' \
     "${job_key}" "${sha}" "${job_purpose}" "${mode}" \
-    "${EXPECTED_SCHEDULER_UNPARK_PATCHSET_SHA256}"
+    "${EXPECTED_SCHEDULER_UNPARK_PATCHSET_SHA256}" \
+    "${EXPECTED_REGISTER_PATCHSET_SHA256}"
   ssh_buildbox "${remote_command}" <<'REMOTE' | tar -C "${temporary}" -xf -
 set -euo pipefail
 readonly job_key="$1"
@@ -1708,6 +1773,7 @@ readonly commit="$2"
 readonly job_purpose="$3"
 readonly mode="$4"
 readonly expected_scheduler_patchset="$5"
+readonly expected_register_patchset="$6"
 readonly artifact_root=/workspace/gemini-pda/gemian-artifacts
 readonly record="/workspace/gemini-pda/jobs/${job_key}.json"
 [[ -f "${record}" && ! -L "${record}" ]]
@@ -1718,7 +1784,8 @@ package="$(jq -er --arg commit "${commit}" --arg purpose "${job_purpose}" '
 case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
 [[ -d "${package}" && ! -L "${package}" ]]
   jq -e --arg commit "${commit}" --arg mode "${mode}" \
-    --arg scheduler_patchset "${expected_scheduler_patchset}" '
+    --arg scheduler_patchset "${expected_scheduler_patchset}" \
+    --arg register_patchset "${expected_register_patchset}" '
   .repository_commit == $commit and .repository_dirty == false and
   .build_mode == $mode and
   .boot_candidate == false and
@@ -1739,7 +1806,12 @@ case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
     .baseline_source_exact_scheduler_phase_parent == true and
     .scheduler_phase_parent_patchset_sha256 ==
       "b2c971d4a1860ec09616a61dbd8a29fde488f7d99deb8bd6bfbf2c517b2c3493" and
-    .scheduler_patchset_sha256 == $scheduler_patchset))
+    .scheduler_patchset_sha256 == $scheduler_patchset) or
+   ($mode == "register" and
+    .purpose == "a72-target-register-capsule-compile-review-only" and
+    .baseline_source_exact_scheduler_unpark == true and
+    .scheduler_patchset_sha256 == $scheduler_patchset and
+    .register_patchset_sha256 == $register_patchset))
 ' "${package}/provenance/build.json" >/dev/null
 tar -C "$(dirname "${package}")" -cf - -- "$(basename "${package}")"
 REMOTE
@@ -11960,6 +12032,8 @@ case "${COMMAND}" in
   fetch-gemian-cpu9-parallel-compile) fetch_gemian_observer parallel ;;
   build-gemian-scheduler-compile) build_gemian_observer scheduler ;;
   fetch-gemian-scheduler-compile) fetch_gemian_observer scheduler ;;
+  build-gemian-register-capsule-compile) build_gemian_observer register ;;
+  fetch-gemian-register-capsule-compile) fetch_gemian_observer register ;;
   help|-h|--help) usage ;;
   *) usage >&2; exit 2 ;;
 esac
