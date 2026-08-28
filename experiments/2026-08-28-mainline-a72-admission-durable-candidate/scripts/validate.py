@@ -125,6 +125,19 @@ require(sha256(deployment_record) == deployment["record_sha256"] and
         deployment["shutdown"] == "confirmed-unreachable-and-tcp-closed" and
         deployment["reboot"] is False and deployment["result"] == "pass",
         "guarded boot2 deployment")
+runtime = contract["runtime_attempt_1"]
+runtime_record = EXPERIMENT / runtime["record"]
+require(sha256(runtime_record) == runtime["record_sha256"] and
+        runtime["boot_cycle"] == "confirmed-changed-id" and
+        runtime["console_visible"] is False and
+        runtime["mainline_usb_observed"] is False and
+        runtime["pstore_files"] == 0 and
+        runtime["transition_ledger_state"] == "logical-empty" and
+        runtime["entry_trace_state"] == "logical-empty" and
+        runtime["terminal_trace_state"] == "logical-empty" and
+        runtime["classification"] == "pre-controller-or-retention-failure" and
+        runtime["candidate_disposition"] == "retired-no-repeat" and
+        runtime["result"] == "pass", "runtime attempt 1")
 
 config = config_path.read_text(encoding="utf-8")
 for token in (
@@ -156,7 +169,7 @@ for forbidden in (
 require(contract["target_cpu"] == 8 and contract["excluded_cpu"] == 9,
         "CPU scope")
 require(contract["physical_boots_budget"] == 1 and
-        contract["physical_boots_used"] == 0, "one unused boot budget")
+        contract["physical_boots_used"] == 1, "one consumed boot budget")
 require(contract["entry_slot"] == 2 and
         contract["entry_address"] == "0x44411000" and
         contract["terminal_slot"] == 3 and
@@ -169,12 +182,14 @@ require(contract["maximum_trace_record_writes"] == 2 and
         contract["retry_paths"] == 0, "bounded effects")
 require(contract["fresh_predecessor_backup"] is False and
         contract["native_vm_build"] is False and
-        contract["device_access"] == "guarded-boot2-deployment" and
+        contract["device_access"] ==
+        "guarded-deployment-and-read-only-runtime-recovery" and
         contract["device_action"] is True and
-        contract["boot_candidate"] is True,
-        "selected-candidate safety state")
-require(contract["result"] == "deployed-shutdown-awaiting-one-boot",
-        "selected-candidate result")
+        contract["boot_candidate"] is False,
+        "retired-candidate safety state")
+require(contract["result"] ==
+        "attempt-1-pre-controller-or-retention-candidate-retired",
+        "retired-candidate result")
 
 for relative in (
     "README.md", "DESIGN.md", "contract.json", "scripts/validate.py",
@@ -191,7 +206,7 @@ subprocess.run([str(ROOT / "scripts/validate-manifest-series")], check=True,
 subprocess.run([str(ROOT / "scripts/test-manifest-series-invariant")],
                check=True, stdout=subprocess.DEVNULL)
 
-print("validation=a72-admission-durable-candidate-deployed")
+print("validation=a72-admission-durable-candidate-retired")
 print("parent_series_entries=410")
 print("profiles_checked=154")
 print("hardware_free_suites=2")
@@ -206,5 +221,7 @@ print("retry_paths=0")
 print("native_vm_build=none")
 print("device_action=guarded-boot2-write")
 print("shutdown=confirmed-unreachable-and-tcp-closed")
-print("boot_candidate=true")
+print("physical_boots_used=1")
+print("runtime_classification=pre-controller-or-retention-failure")
+print("boot_candidate=false")
 print("result=pass")

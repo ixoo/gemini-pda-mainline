@@ -100,10 +100,24 @@
     "reboot": false,
     "result": "pass"
   },
+  "runtime_attempt_1": {
+    "record": "results/runtime-attempt-1-precontroller-or-retention-20260828.txt",
+    "record_sha256": "381a7bdd6fea276a496aed06fceecfc24a2c68ed9e001a708d0b9e543a81ab50",
+    "boot_cycle": "confirmed-changed-id",
+    "console_visible": false,
+    "mainline_usb_observed": false,
+    "pstore_files": 0,
+    "transition_ledger_state": "logical-empty",
+    "entry_trace_state": "logical-empty",
+    "terminal_trace_state": "logical-empty",
+    "classification": "pre-controller-or-retention-failure",
+    "candidate_disposition": "retired-no-repeat",
+    "result": "pass"
+  },
   "target_cpu": 8,
   "excluded_cpu": 9,
   "physical_boots_budget": 1,
-  "physical_boots_used": 0,
+  "physical_boots_used": 1,
   "entry_slot": 2,
   "entry_address": "0x44411000",
   "terminal_slot": 3,
@@ -116,8 +130,8 @@
   "expected_boot2_predecessor_sha256": "fde53dca1dcbc36297897dbcd6086488d117bf45714833858e17987cb6579dd0",
   "fresh_predecessor_backup": false,
   "native_vm_build": false,
-  "device_access": "guarded-boot2-deployment",
+  "device_access": "guarded-deployment-and-read-only-runtime-recovery",
   "device_action": true,
-  "boot_candidate": true,
-  "result": "deployed-shutdown-awaiting-one-boot"
+  "boot_candidate": false,
+  "result": "attempt-1-pre-controller-or-retention-candidate-retired"
 }

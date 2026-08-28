@@ -5784,10 +5784,19 @@ The next ordered work is:
    inactive `boot2`. The full-partition readback matched; stable external
    power, unchanged TEE identities, no fresh backup, and clean shutdown with
    three closed TCP/22 checks are recorded. **Selected next:** the owner may
-   physically select `boot2` once. After a live result or automatic return to
-   changed-ID Gemian, recover records 1--3 as the primary result. USB/netcat is
-   a secondary positive path, not a prerequisite for attribution. Do not
-   repeat this candidate.
+   physically select `boot2` once. That one attempt showed no visible console
+   and no mainline USB path before an automatic return to changed-ID Gemian.
+   Exact post-reset recovery found the candidate unchanged on boot2, zero
+   pstore files, and logical-empty records 1--3. The exact classification is
+   `pre-controller-or-retention-failure`: there is no attributable controller
+   entry, CPU8 request, transition stage, or online state, and the empty records
+   cannot distinguish pre-controller failure from retained-data loss or
+   reinitialization. The candidate is retired and must not be repeated.
+   **Selected next:** move an independent retention-qualification anchor to an
+   earlier always-reached mainline boundary while keeping controller entry
+   separate. Before another CPU8 request candidate, prove that one result can
+   distinguish “early anchor never ran,” “anchor survived but controller did
+   not enter,” and “the retained region was lost or reinitialized.”
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

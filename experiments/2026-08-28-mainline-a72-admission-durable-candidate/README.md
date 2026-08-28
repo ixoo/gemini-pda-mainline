@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-admission-durable-candidate` |
-| Status | `running`; exact candidate deployed and device shut down, one boot pending |
+| Status | `complete`; attempt 1 classified pre-controller-or-retention and candidate retired |
 | Subsystem | arm64 CPU hotplug, MT6797 admission, retained evidence |
 | Device variant | Planet Computers Gemini PDA, named project device |
 | Date(s) | 2026-08-28 |
@@ -53,7 +53,9 @@ and shut down cleanly without reboot or a fresh backup.
    checksum offline. Complete.
 4. Select a candidate only if every gate passes. Complete.
 5. Install only exact live-GPT inactive `boot2`, verify full readback, and shut
-   down for one owner-selected boot. Complete; the device is off.
+   down for one owner-selected boot. Complete.
+6. Spend one boot and recover records 1--3 after any automatic return to
+   Gemian. Complete; no repeat is permitted.
 
 ## Decision map
 
@@ -71,7 +73,7 @@ terminal transition ledger all agree.
 
 ## Conclusion
 
-Pending. The production Buildbox package and exact boot container passed
+The production Buildbox package and exact boot container passed
 independent offline validation. A first read-only Gemian preflight confirmed
 all three retained headers were exact logical-empty, then failed closed because
 the host regex asked POSIX ERE to repeat 8,192 times. The corrected exact-length
@@ -83,11 +85,22 @@ with exact predecessor `fde53dca...` and all three records logical-empty. The
 guarded write then installed `60902c7b...` to live-GPT inactive `boot2`; its
 full-partition readback matched, and both SSH and three consecutive TCP/22
 checks confirmed clean shutdown. No fresh backup, retained physical write,
-candidate boot, or physical CPU request has occurred in this experiment.
+candidate boot, or physical CPU request had occurred at deployment time.
+
+The owner then selected boot2 once. No console was visible and no mainline USB
+path appeared before an automatic return to changed-ID Gemian. Read-only
+recovery confirmed the exact candidate remained on boot2, pstore contained no
+files, and records 1, 2, and 3 all retained exact logical-empty headers. This
+classifies the attempt as `pre-controller-or-retention-failure`: it proves
+neither controller entry nor a CPU8 request, and cannot distinguish a failure
+before the controller from loss or reinitialization of the retained payloads.
+The visual observation is serviceability evidence only. The candidate is
+retired and must not be repeated.
 
 ## Follow-up
 
-The owner may physically select `boot2` once. After either a live result or an
-automatic return to Gemian, recover records 1--3 with the published collector;
-do not repeat the candidate. The ordered next action remains owned by
-`docs/ROADMAP.md`.
+Move the evidence boundary earlier than controller probe with an independent
+retention-qualification anchor. It must distinguish “mainline never reached
+the early anchor,” “the early anchor survived but controller entry did not,”
+and “retained data was lost or reinitialized” before another CPU8 candidate is
+selected. The ordered next action remains owned by `docs/ROADMAP.md`.
