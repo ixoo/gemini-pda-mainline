@@ -69,6 +69,31 @@ definition_record = EXPERIMENT / definition["record"]
 require(sha256(definition_record) == definition["record_sha256"] and
         definition["result"] == "pass", "definition validation record")
 
+for section in ("production_build", "candidate", "offline_gates"):
+    evidence = contract[section]
+    key = "record" if section != "candidate" else "validation_record"
+    hash_key = "record_sha256" if section != "candidate" else "validation_record_sha256"
+    record = EXPERIMENT / evidence[key]
+    require(record.is_file() and not record.is_symlink(), f"{section} record")
+    require(sha256(record) == evidence[hash_key] and evidence["result"] == "pass",
+            f"{section} evidence")
+build = contract["production_build"]
+require(build["repository_commit"] == "eb87d46ae9d58df1ff336751103745d58eed59fe" and
+        build["backend"] == "buildbox" and build["native_vm_build"] is False,
+        "production Buildbox identity")
+candidate = contract["candidate"]
+require(candidate["raw_size"] == 6_934_528 and
+        candidate["raw_sha256"] ==
+        "ed6fc5294f5677ed1895bf1157649330c91dd1f6051a6677f2d26972915cd185" and
+        candidate["padded_size"] == 16_777_216 and
+        candidate["padded_sha256"] ==
+        "60902c7ba7e5cccd781082d6d17e1bcb273d184751ddc9dde6a64b2e2a58b8d1" and
+        candidate["lk_gates"] == 32, "exact candidate identity")
+offline = contract["offline_gates"]
+require(offline["admission_trace_mutation_tests"] == 10 and
+        offline["recovery_decision_map_tests"] == 7 and
+        offline["installer_derivation"] == "pass", "offline gate scope")
+
 config = config_path.read_text(encoding="utf-8")
 for token in (
     "CONFIG_MODULES=y",
@@ -113,12 +138,18 @@ require(contract["maximum_trace_record_writes"] == 2 and
 require(contract["fresh_predecessor_backup"] is False and
         contract["native_vm_build"] is False and
         contract["device_action"] is False and
-        contract["boot_candidate"] is False,
-        "definition-only safety state")
-require(contract["result"] == "production-definition-build-pending",
-        "definition result")
+        contract["boot_candidate"] is True,
+        "selected-candidate safety state")
+require(contract["result"] == "offline-candidate-selected-device-preflight-pending",
+        "selected-candidate result")
 
-for relative in ("README.md", "DESIGN.md", "contract.json", "scripts/validate.py"):
+for relative in (
+    "README.md", "DESIGN.md", "contract.json", "scripts/validate.py",
+    "scripts/build-candidate.sh", "scripts/validate-candidate.py",
+    "scripts/validate-admission-trace.py",
+    "scripts/validate-transition-ledger.py", "scripts/classify-recovery.py",
+    "scripts/install-boot2.sh", "scripts/collect-recovery.sh",
+):
     path = EXPERIMENT / relative
     require(path.is_file() and not path.is_symlink(), f"exact file {relative}")
 ast.parse((EXPERIMENT / "scripts/validate.py").read_text(encoding="utf-8"))
@@ -127,7 +158,7 @@ subprocess.run([str(ROOT / "scripts/validate-manifest-series")], check=True,
 subprocess.run([str(ROOT / "scripts/test-manifest-series-invariant")],
                check=True, stdout=subprocess.DEVNULL)
 
-print("validation=a72-admission-durable-candidate-definition")
+print("validation=a72-admission-durable-candidate-offline-selection")
 print("parent_series_entries=410")
 print("profiles_checked=154")
 print("hardware_free_suites=2")
@@ -141,5 +172,5 @@ print("cpu_off_paths=0")
 print("retry_paths=0")
 print("native_vm_build=none")
 print("device_action=none")
-print("boot_candidate=false")
+print("boot_candidate=true")
 print("result=pass")

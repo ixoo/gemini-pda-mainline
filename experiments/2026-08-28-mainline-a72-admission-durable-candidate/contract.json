@@ -35,6 +35,38 @@
     "record_sha256": "9a0dcb08fa935bab96b8ebc3adf1276b310e2e472bef5e5034178862d98fe7a6",
     "result": "pass"
   },
+  "production_build": {
+    "repository_commit": "eb87d46ae9d58df1ff336751103745d58eed59fe",
+    "backend": "buildbox",
+    "job": "eb87d46ae9d58df1ff336751103745d58eed59fe-a72-admission-durable-candidate-m0",
+    "package": "linux-7.1.3-gemini-a72-admission-durable-candidate-13dd59d3-a15d3567",
+    "kernel_release": "7.1.3-gemini-a72-admission-trace",
+    "record": "results/buildbox-compile-eb87d46a-20260828.txt",
+    "record_sha256": "7593083f61b460529312a3f37297b9694d8c61f7a5a6d3907cd148fecb186c36",
+    "native_vm_build": false,
+    "result": "pass"
+  },
+  "candidate": {
+    "artifact": "candidate-a72-admission-trace-ed6fc529",
+    "raw_file": "gemini-mt6797-a72-admission-trace.boot.img",
+    "raw_size": 6934528,
+    "raw_sha256": "ed6fc5294f5677ed1895bf1157649330c91dd1f6051a6677f2d26972915cd185",
+    "padded_size": 16777216,
+    "padded_sha256": "60902c7ba7e5cccd781082d6d17e1bcb273d184751ddc9dde6a64b2e2a58b8d1",
+    "artifact_manifest_sha256": "7cbaf0980b37f6efb49e3fe0e373be68afb7f2e7011e4bc6e5bd7fee141c1f1d",
+    "validation_record": "results/candidate-validation-ed6fc529-20260828.txt",
+    "validation_record_sha256": "09dea477b958894e4e36fb8b98f8cb613c26f28eb38786aa77c7436279c2af29",
+    "lk_gates": 32,
+    "result": "pass"
+  },
+  "offline_gates": {
+    "record": "results/offline-gates-20260828.txt",
+    "record_sha256": "0874f9f5553497ce8e5d3f0b9cdbd57f6a3259eae94f953647831ec02645a40a",
+    "admission_trace_mutation_tests": 10,
+    "recovery_decision_map_tests": 7,
+    "installer_derivation": "pass",
+    "result": "pass"
+  },
   "target_cpu": 8,
   "excluded_cpu": 9,
   "physical_boots_budget": 1,
@@ -52,6 +84,6 @@
   "fresh_predecessor_backup": false,
   "native_vm_build": false,
   "device_action": false,
-  "boot_candidate": false,
-  "result": "production-definition-build-pending"
+  "boot_candidate": true,
+  "result": "offline-candidate-selected-device-preflight-pending"
 }

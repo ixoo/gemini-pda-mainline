@@ -5768,6 +5768,22 @@ The next ordered work is:
    existing transition-ledger ownership, full readback, and clean shutdown.
    Only after those gates pass may one distinct candidate be selected and
    installed for one attributable owner-selected boot.
+   That production successor is now selected offline in the linked
+   [durable candidate record](../experiments/2026-08-28-mainline-a72-admission-durable-candidate/README.md).
+   Exact published commit `eb87d46a` compiled on Buildbox as
+   `7.1.3-gemini-a72-admission-trace`; its production DTB is byte-identical to
+   the retired candidate's DTB. Two independent constructions agree on raw
+   container `ed6fc529...` and exact boot2-sized image `60902c7b...`; all 32
+   LK gates pass. The record-2/record-3 classifier rejects ten malformed or
+   conflicting mutations, the combined three-record map passes all seven
+   decision cases, and the guarded installer requires all three live records
+   to be logical-empty before writing. No native VM build or device action
+   occurred. **Selected next:** publish these exact offline gates, run the
+   read-only live-GPT/power/record preflight, and—only if every identity is
+   exact—install `60902c7b...` to inactive `boot2`, verify its full-partition
+   readback, and shut down cleanly. Spend one owner-selected boot, then recover
+   records 1--3 from changed-ID Gemian as the primary result; USB/netcat is a
+   secondary positive path, not a prerequisite for attribution.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

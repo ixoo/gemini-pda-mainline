@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-admission-durable-candidate` |
-| Status | `running` production definition; no candidate or device action |
+| Status | `running`; exact candidate validated offline, recovery and deployment gates pending |
 | Subsystem | arm64 CPU hotplug, MT6797 admission, retained evidence |
 | Device variant | Planet Computers Gemini PDA, named project device |
 | Date(s) | 2026-08-28 |
@@ -25,6 +25,10 @@ CPU9, CPU_OFF, or a retry?
 - DT hypothesis: byte-identical to the retired admission candidate's proven
   supplier graph; only the kernel/configuration gains the durable trace.
 - Build backend: Buildbox only; no native VM build.
+- Production source: signed and published commit `eb87d46a`.
+- Exact validated package: `linux-7.1.3-gemini-a72-admission-durable-candidate-13dd59d3-a15d3567`.
+- Exact raw candidate: `ed6fc5294f5677ed1895bf1157649330c91dd1f6051a6677f2d26972915cd185`.
+- Exact boot2-sized candidate: `60902c7ba7e5cccd781082d6d17e1bcb273d184751ddc9dde6a64b2e2a58b8d1`.
 - Runtime target in this definition phase: none.
 
 ## Safety assessment
@@ -43,11 +47,11 @@ authorized by this definition alone.
 
 ## Procedure
 
-1. Validate, sign, and publish the isolated production profile.
+1. Validate, sign, and publish the isolated production profile. Complete.
 2. Build that exact clean commit only on Buildbox and fetch only its validated
-   package.
-3. Prove configuration, symbols, unchanged DT graph, container, full checksum,
-   retained recovery, installer, and one-attempt decision map offline.
+   package. Complete.
+3. Prove configuration, symbols, unchanged DT graph, container, and full
+   checksum offline. Complete. Retained recovery and installer proof remain.
 4. Select a candidate only if every gate passes.
 5. Install only exact live-GPT inactive `boot2`, verify full readback, and shut
    down for one owner-selected boot.
@@ -68,11 +72,12 @@ terminal transition ledger all agree.
 
 ## Conclusion
 
-Pending. The production profile is defined from the hardware-free-proven
-source, but no production build, package, candidate, device access, retained
-physical write, or CPU request has occurred.
+Pending. The production Buildbox package and exact boot container passed
+independent offline validation. No device access, retained physical write,
+boot2 write, boot, or physical CPU request has occurred in this experiment.
 
 ## Follow-up
 
-Publish the clean definition and build the profile on Buildbox. The ordered
-next action remains owned by `docs/ROADMAP.md`.
+Finish and mutation-test the exact retained-record classifier and boot2
+installer, then publish those gates before any device access. The ordered next
+action remains owned by `docs/ROADMAP.md`.
