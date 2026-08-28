@@ -5724,6 +5724,22 @@ The next ordered work is:
    distinguish pre-request refusal, binder failure, or CPU8 online. CPU9 stays
    offline. Only then install the exact candidate to live-GPT inactive `boot2`,
    verify full readback, shut down cleanly, and spend one attributable boot.
+   The exact candidate was built and independently validated, then installed
+   to live-GPT inactive `boot2` with a matching full-partition readback and
+   confirmed clean shutdown. Its first and only selection automatically
+   returned to changed-ID Gemian. The fixed 1,800-second USB collector had
+   expired before owner selection; an immediate replacement found no exact
+   network interface or live frame. Recovery found empty pstore, a
+   logical-empty transition ledger, only the known generic status-5
+   `last_kmsg`, and unchanged exact boot2. This establishes no attributable
+   CPU8 request, failure stage, or online state. The artifact is retired and
+   must not be repeated. **Selected next:** add one durable independent
+   controller-entry record before source/DT validation and one mutually
+   exclusive terminal record for the zero-request branch. Preserve the
+   existing transition ledger for the admitted one-request path, CPU9 veto,
+   zero CPU_OFF/retry policy, and Buildbox-only workflow. Prove record
+   placement, retention, mutual exclusion, and failure classification in
+   hardware-free tests before selecting a distinct candidate.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

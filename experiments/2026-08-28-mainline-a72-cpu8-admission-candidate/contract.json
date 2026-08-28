@@ -95,9 +95,30 @@
         "record_sha256": "4c0d147bf58384eaf89297753cbf57fb86dccb4ddd51c301ff0e131e7931c084",
         "result": "write-synced-flushed-full-readback-verified"
     },
+    "runtime_attempt_1": {
+        "deployment_boot_id": "e17a16ea-3241-462b-82b8-2b6e533cb1c4",
+        "recovery_boot_id": "655a4148-524f-400b-a0be-5bff29a04197",
+        "recovery_boot_id_changed": true,
+        "automatic_return_to_gemian": true,
+        "boot2_full_sha256": "fde53dca1dcbc36297897dbcd6086488d117bf45714833858e17987cb6579dd0",
+        "collector": "expired-before-selection-no-exact-live-frame",
+        "pstore_file_count": 0,
+        "transition_ledger_state": "logical-empty",
+        "transition_ledger_latest_copy": null,
+        "last_kmsg_sha256": "8964100f947293ded847b8ca1a9313b43624ccd5c72d120aa84234c4998e0f53",
+        "exact_candidate_runtime_identity": false,
+        "cpu8_request_established": false,
+        "cpu8_online_established": false,
+        "record_sha256": "0a02c999f6c5235d85c2584f75b461279ce5993223a8d082a791863ced954a9b",
+        "classification": "inconclusive-pretransport-evidence-path-failure",
+        "repeat_identical_candidate": false,
+        "candidate_retired": true,
+        "result": "inconclusive"
+    },
   "target_cpu": 8,
   "excluded_cpu": 9,
   "physical_boots_budget": 1,
+  "physical_boots_used": 1,
   "controller_nodes": 1,
   "binder_nodes": 1,
   "standalone_observer_nodes": 0,
@@ -111,6 +132,6 @@
   "cpu_off_paths": 0,
   "native_vm_build": false,
     "device_action": true,
-    "boot_candidate": true,
-    "result": "boot2-readback-verified-device-off-awaiting-physical-boot"
+    "boot_candidate": false,
+    "result": "attempt-1-inconclusive-pretransport-candidate-retired"
 }

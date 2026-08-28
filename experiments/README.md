@@ -23,6 +23,14 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-28 CPU8 admission physical candidate](2026-08-28-mainline-a72-cpu8-admission-candidate/README.md)
+  — built the exact production-only owner chain on Buildbox and deployed one
+  independently validated candidate with full boot2 readback. Its sole attempt
+  returned automatically without an exact live frame; changed-ID recovery
+  found empty pstore, a logical-empty transition ledger, and only the generic
+  status-5 last-kernel header. CPU8 request/online state remain unestablished,
+  the artifact is retired, and a durable entry plus zero-request terminal
+  record is the Roadmap-selected successor.
 - [2026-08-27 A72 complete default-off binder](2026-08-27-mainline-a72-default-off-binder/README.md)
   — audits the exact post-`0395` interfaces and rejects direct glue. The frozen
   contract requires fallible regular and mandatory terminal retained

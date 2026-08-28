@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-cpu8-admission-candidate` |
-| Status | `running` |
+| Status | complete; one attempt inconclusive before attributable transport, candidate retired |
 | Subsystem | arm64 CPU hotplug, MediaTek MT6797 power sequencing, Device Tree |
 | Device variant | Planet Computers Gemini PDA, named project device |
 | Date(s) | 2026-08-28 |
@@ -49,6 +49,8 @@ does not create a redundant backup.
 - `scripts/collect-runtime.sh`: pre-armed USB/netcat attempt-1 collector.
 - `scripts/remote-live-probe.sh`: bounded read-only CPU and ledger probe.
 - `scripts/validate-runtime.py`: exact success/rejection/failure decision map.
+- `results/runtime-attempt-1-inconclusive-pretransport-20260828.txt`: changed-cycle
+  recovery, empty retained paths, exact boot2 identity, and retirement record.
 
 ## Procedure
 
@@ -87,27 +89,42 @@ logical-empty. Every live GPT, inactive/unmounted target, TEE identity, power,
 size, and ledger gate then passed. The installer wrote candidate `fde53dca...`
 to live-resolved logical `boot2` (`/dev/mmcblk0p30`, with root on `p29`) and the
 full-partition readback matched exactly. No fresh backup was created. Shutdown
-was confirmed by SSH loss and three consecutive TCP/22 closures. No physical
-boot of this candidate has occurred yet.
+was confirmed by SSH loss and three consecutive TCP/22 closures.
+
+The pre-armed USB collector then expired after its fixed 1,800-second window
+before physical selection. Immediately after the owner selected boot2, a
+replacement probe saw no exact Gemini USB network interface or netcat frame;
+Gemian SSH initially timed out and the owner observed an automatic return.
+Changed-ID Gemian then reported the common watchdog-class reset token. The
+exact boot2 checksum remained `fde53dca...`, pstore was mounted with zero files,
+the transition ledger was still logical-empty with no valid copy, and the
+74-byte last-kernel record was only the known generic status-5 header. No exact
+candidate runtime identity, CPU8 request, transition stage, or online result
+survived.
 
 ## Analysis
 
-The exact package and LK candidate are validated, and the guarded deployment
-has crossed the reproducibility boundary without crossing the physical-boot
-boundary. The remaining boundary is one guarded physical boot. Success requires
-the exact kernel identity, CPU online list `0-8`, CPU9 offline, and the
-one-request admission record. A failure is useful only if the exact retained
-transition ledger identifies the last complete stage; screen color or reboot
-behavior alone is serviceability evidence.
+The deployment chain remains proven, but the physical hypothesis was not
+decided. An empty transition ledger excludes an attributable stage-1--4
+failure; it does not distinguish failure before the controller, a controller
+pre-request rejection, or clearing/refusal of the retained writer. The expired
+live collector removed the only independent oracle for the pre-request branch.
+The automatic return and generic watchdog record remain serviceability evidence
+only. The next candidate must persist an independent controller-entry record
+before validation and a separate pre-request terminal record, while retaining
+the existing transition ledger for an admitted physical request.
 
 ## Conclusion
 
-Inconclusive for hardware. The exact image remains `boot_candidate=true`, is
-fully readback-verified on logical `boot2`, and the device is shut down awaiting
-one physical selection; CPU8 support is not claimed.
+Inconclusive for hardware. The exact image completed its one permitted attempt
+without attributable runtime or retained CPU8 evidence and is now
+`boot_candidate=false`. It must not be repeated unchanged. CPU8 support is not
+claimed and CPU9 remains untouched.
 
 ## Follow-up
 
-Pre-arm the bounded USB/netcat collector. Spend exactly one physical boot and
-classify it from exact runtime or retained evidence; do not repeat an identical
-image without a new independent observation path.
+Freeze and hardware-free test a distinct candidate that writes one durable
+entry record before controller validation and one mutually exclusive terminal
+record for the zero-request branch. Keep the existing transition ledger for
+the one-request path, CPU9 disabled, CPU_OFF and retries absent, and Buildbox as
+the only build backend. Do not repeat this exact artifact.

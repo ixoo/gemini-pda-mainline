@@ -30,13 +30,14 @@ require(contract["prepared_source_integrity"] ==
         "01f388011bf406bfc56c8a8c7b60ea5b2ee769c6f2d608a471f1cce797eb4897",
         "exact post-0412 source integrity")
 require(contract["physical_boots_budget"] == 1, "one physical boot")
+require(contract["physical_boots_used"] == 1, "one physical boot consumed")
 require(contract["target_cpu"] == 8 and contract["excluded_cpu"] == 9,
         "CPU8 only")
 require(contract["device_action"] is True, "guarded deployment was recorded")
-require(contract["boot_candidate"] is True, "exact candidate is promoted")
+require(contract["boot_candidate"] is False, "exact candidate is retired")
 require(contract["result"] ==
-        "boot2-readback-verified-device-off-awaiting-physical-boot",
-        "deployed candidate phase")
+        "attempt-1-inconclusive-pretransport-candidate-retired",
+        "retired candidate phase")
 series = ROOT / "patches/series"
 require(sha256(series) == contract["integrated_series_sha256"],
         "integrated series hash")
@@ -140,6 +141,7 @@ for result in (
     "retained-ledger-initialization-plan-20260828.txt",
     "retained-ledger-initialization-20260828.txt",
     "deployment-20260828.txt",
+    "runtime-attempt-1-inconclusive-pretransport-20260828.txt",
 ):
     path = EXPERIMENT / "results" / result
     require(path.is_file() and not path.is_symlink(), f"result record {result}")
@@ -193,6 +195,34 @@ require(deployment["transition_ledger_state"] == "logical-empty" and
         deployment["result"] ==
         "write-synced-flushed-full-readback-verified",
         "deployment result")
+runtime = contract["runtime_attempt_1"]
+require(runtime["deployment_boot_id"] == deployment["boot_id"] and
+        runtime["recovery_boot_id"] != runtime["deployment_boot_id"] and
+        runtime["recovery_boot_id_changed"] is True and
+        runtime["automatic_return_to_gemian"] is True,
+        "changed recovery cycle")
+require(runtime["boot2_full_sha256"] == candidate["padded_sha256"] and
+        runtime["collector"] ==
+        "expired-before-selection-no-exact-live-frame" and
+        runtime["pstore_file_count"] == 0 and
+        runtime["transition_ledger_state"] == "logical-empty" and
+        runtime["transition_ledger_latest_copy"] is None,
+        "pretransport retained evidence")
+require(runtime["last_kmsg_sha256"] ==
+        "8964100f947293ded847b8ca1a9313b43624ccd5c72d120aa84234c4998e0f53" and
+        runtime["exact_candidate_runtime_identity"] is False and
+        runtime["cpu8_request_established"] is False and
+        runtime["cpu8_online_established"] is False,
+        "no attributable CPU8 runtime result")
+require(runtime["record_sha256"] ==
+        sha256(EXPERIMENT / "results" /
+               "runtime-attempt-1-inconclusive-pretransport-20260828.txt") and
+        runtime["classification"] ==
+        "inconclusive-pretransport-evidence-path-failure" and
+        runtime["repeat_identical_candidate"] is False and
+        runtime["candidate_retired"] is True and
+        runtime["result"] == "inconclusive",
+        "runtime retirement result")
 source_validator = (
     EXPERIMENT / "scripts/validate_source.py"
 ).read_text(encoding="utf-8")
@@ -217,6 +247,7 @@ subprocess.run(
 )
 print("validation=a72-cpu8-admission-candidate-definition-and-artifact")
 print("physical_boots_budget=1")
+print("physical_boots_used=1")
 print("target_cpu=8")
 print("excluded_cpu=9")
 print("standalone_observer_nodes=0")
@@ -231,6 +262,8 @@ print("runtime_decision_tests=4-of-4-pass")
 print("retained_ledger_initialization=exact-two-u32-pass-logical-empty")
 print("deployment=write-synced-flushed-full-readback-verified")
 print("shutdown=ssh-failure-plus-three-tcp-closures")
+print("runtime_attempt_1=inconclusive-pretransport-evidence-path-failure")
+print("repeat_identical_candidate=no")
 print("device_action=guarded-deployment-recorded")
-print("boot_candidate=true")
+print("boot_candidate=false")
 print("result=pass")
