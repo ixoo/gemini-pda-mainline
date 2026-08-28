@@ -1,0 +1,6 @@
+# Config-only repair for the live CPU8 admission candidate. The handoff DT
+# names the read-only LK devinfo identity cell, so its established NVMEM
+# provider must be built in before handoff, I2C6, the clock backend, and the
+# A72 binder can bind. This adds no writer or CPU action.
+CONFIG_NVMEM=y
+CONFIG_NVMEM_MTK_ATAG_DEVINFO=y

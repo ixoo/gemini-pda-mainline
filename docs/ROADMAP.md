@@ -5910,10 +5910,16 @@ The next ordered work is:
    the NVMEM bus is empty and ATAG devinfo is unbound; DVFSP handoff explicitly
    waits for `cpu-efuse-identity@58`, so I2C6 and the clock backend defer and the
    A72 binder remains unavailable. Both the fetched and running configs omit
-   `CONFIG_NVMEM_MTK_ATAG_DEVINFO`. **Selected next:** define and Buildbox-build
-   a config-only live-trigger successor with the built-in ATAG NVMEM provider,
-   then require the complete handoff/I2C6/provider/clock/BigiDVFS/platform/
-   binder graph to be bound before a new, separately attributable one-shot.
+   `CONFIG_NVMEM_MTK_ATAG_DEVINFO`. The
+   [ATAG prerequisite restoration](../experiments/2026-08-28-mainline-a72-admission-atag-prerequisite/README.md)
+   now pins exactly `CONFIG_NVMEM=y` and
+   `CONFIG_NVMEM_MTK_ATAG_DEVINFO=y` in one named fragment. Its definition
+   validator confirms canonical provider/identity source order, the provider's
+   read-only/no-write boundary, unchanged kernel source and DT, and zero
+   trigger or CPU action. **Selected next:** publish the clean definition,
+   compile that exact commit on Buildbox, and require the complete handoff/
+   I2C6/provider/clock/BigiDVFS/platform/binder graph to be bound before a new,
+   separately attributable one-shot.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

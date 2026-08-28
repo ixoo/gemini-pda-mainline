@@ -2357,6 +2357,7 @@
                     "configs/gemini-a72-pre-p28-provider-abort.fragment",
                     "configs/gemini-mt6797-a72-platform-state.fragment",
                     "configs/gemini-dvfsp-bigidvfs-readonly.fragment",
+                    "configs/gemini-a72-admission-atag-prerequisite.fragment",
                     "configs/gemini-a72-admission-live-trigger-candidate.fragment"
                 ]
             },

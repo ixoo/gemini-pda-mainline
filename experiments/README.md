@@ -23,6 +23,14 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-28 CPU8 admission ATAG prerequisite restoration](2026-08-28-mainline-a72-admission-atag-prerequisite/README.md)
+  — follows the terminal pre-core defer with a two-option, config-only repair.
+  Exact live evidence showed an empty NVMEM bus and unbound ATAG devinfo;
+  handoff waited for `cpu-efuse-identity@58`, followed by deferred I2C6, clock
+  backend, and A72 binder. The named isolated fragment adds only
+  `CONFIG_NVMEM=y` and `CONFIG_NVMEM_MTK_ATAG_DEVINFO=y`; the existing provider
+  is read-only, and there is no source, DT, trigger, CPU, storage, or reboot
+  action. Definition validation passes; exact Buildbox compilation is next.
 - [2026-08-28 serviceable same-boot CPU8 one-shot](2026-08-28-mainline-a72-admission-serviceable-one-shot/README.md)
   — executed exactly one token on serviceability-passed candidate
   `f4cb1b2c...` and boot ID `21bb6547...`. The terminal result is
