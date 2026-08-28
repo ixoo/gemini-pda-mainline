@@ -81,7 +81,7 @@ require(
     contract["native_vm_build"] is False and
     contract["device_action"] is False and
     contract["boot_candidate"] is False and
-    contract["result"] == "build-pass-kunit-pending",
+    contract["result"] == "hardware-free-proof-pass-production-pending",
     "hardware-free definition state",
 )
 definition = contract["definition_validation"]
@@ -236,6 +236,31 @@ require(
     "Buildbox compile result",
 )
 
+kunit = contract["kunit_qemu"]
+require(
+    kunit["repository_commit"] ==
+    "cc6e7f20dc808ea1ebe5d102cd96acfcfc1981a0" and
+    kunit["harness_commit"] ==
+    "03ce2d1a7dc50badb71e441d472af39661f06302" and
+    kunit["record"] == "results/kunit-qemu-cc6e7f20-20260828.txt" and
+    sha256(EXPERIMENT / kunit["record"]) == kunit["record_sha256"],
+    "KUnit runtime record",
+)
+require(
+    kunit["profile"] == "a72-admission-live-trigger-kunit" and
+    kunit["kernel_release"] ==
+    "7.1.3-gemini-a72-admission-live-kunit" and
+    kunit["raw_log_sha256"] ==
+    "44a9325bb895b584dc6b3f8a33197ef07bb4b498225a8b093c3fbec768436ea1" and
+    kunit["suites"] == 2 and kunit["tests"] == 15 and
+    kunit["failed"] == 0 and kunit["skipped"] == 0 and
+    kunit["physical_cpu_requests"] == 0 and
+    kunit["cpu_off_requests"] == 0 and kunit["retries"] == 0 and
+    kunit["network"] is False and kunit["device_action"] is False and
+    kunit["boot_candidate"] is False and kunit["result"] == "pass",
+    "KUnit runtime result",
+)
+
 for relative in (
     "README.md", "DESIGN.md", "contract.json", "scripts/source_edits.py",
     "scripts/validate_source.py", "scripts/generate-patches.py",
@@ -247,6 +272,7 @@ for relative in (
     "results/buildbox-generation-20260828.txt",
     "results/canonical-integration-20260828.txt",
     "results/buildbox-compile-cc6e7f20-20260828.txt",
+    "results/kunit-qemu-cc6e7f20-20260828.txt",
 ):
     path = EXPERIMENT / relative
     require(path.is_file() and not path.is_symlink(), f"exact file {relative}")

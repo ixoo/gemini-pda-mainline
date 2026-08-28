@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-admission-live-trigger` |
-| Status | `isolated Buildbox compile passed; no-network KUnit pending` |
+| Status | `hardware-free Buildbox compile and 15-case KUnit gate passed` |
 | Subsystem | MT6797 A72 admission controller, sysfs, CPU hotplug |
 | Device variant | Planet Computers Gemini PDA, named project device |
 | Date(s) | 2026-08-28 |
@@ -132,6 +132,14 @@ KUnit configurations, the live-trigger configuration, and the required trace,
 trigger, and controller symbols. No native VM build or device action occurred;
 the package remains hardware-free and is not a boot candidate.
 
+The exact published harness at `03ce2d1a` ran that unchanged package on QEMU
+`virt` with one single-threaded four-vCPU Cortex-A53 TCG instance and no
+network. Both focused suites passed: six immutable-trace cases and nine
+controller cases, including the three live-trigger cases, for 15 of 15 with
+zero failures or skips. The bounded run ended only at the expected post-test
+rootfs panic and timeout. There was no physical DT match, CPU request, CPU_OFF,
+retry, device action, or boot candidate.
+
 ## Analysis
 
 The new experiment separates two questions in one physical selection. If the
@@ -144,10 +152,12 @@ returning status identifies a precise terminal error or CPU8 outcome.
 ## Conclusion
 
 The retained-earlier-anchor direction is rejected. The serviceability-first
-one-shot trigger passes exact Buildbox compilation and package validation. No
-candidate, boot2 write, or physical CPU request has occurred yet.
+one-shot trigger passes exact Buildbox compilation, package validation, and all
+15 focused hardware-free cases. No candidate, boot2 write, or physical CPU
+request has occurred yet.
 
 ## Follow-up
 
-Run and classify the exact 15-case no-network KUnit proof. The ordered next
-step remains owned by `docs/ROADMAP.md`.
+Define and validate the separate production profile, pre-trigger USB/netcat
+collector, one-attempt classifier, LK container, and guarded boot2 installer.
+The ordered next step remains owned by `docs/ROADMAP.md`.
