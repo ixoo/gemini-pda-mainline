@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+from email import policy
+from email.parser import BytesParser
 import hashlib
 import os
 from pathlib import Path
@@ -82,13 +84,15 @@ def commit(root: Path, subject: str, body: str, timestamp: str,
 
 def validate_patch(path: Path, subject: str) -> None:
     patch = path.read_text(encoding="utf-8")
-    require = (
-        subject,
-        "From: Gemini Mainline Experiment <gemini-mainline@example.invalid>",
-    )
-    for token in require:
-        if token not in patch:
-            raise SystemExit(f"patch token changed in {path.name}: {token}")
+    message = BytesParser(policy=policy.default).parsebytes(path.read_bytes())
+    decoded_subject = str(message["Subject"] or "")
+    decoded_from = str(message["From"] or "")
+    if subject not in decoded_subject:
+        raise SystemExit(f"patch subject changed in {path.name}")
+    if decoded_from != (
+        "Gemini Mainline Experiment <gemini-mainline@example.invalid>"
+    ):
+        raise SystemExit(f"patch From header changed in {path.name}")
     for forbidden in ("Signed-off-by:", "/Users/", "device_action="):
         if forbidden in patch:
             raise SystemExit(f"forbidden patch token in {path.name}: {forbidden}")
