@@ -314,7 +314,7 @@ def apply_controller(root: Path) -> None:
 
 static int
 mt6797_a72_admission_trace_zero_request(void *context,
-                                        enum gemini_admission_trace_zero_result result)
+\t\t\t\t\tenum gemini_admission_trace_zero_result result)
 {
 \t(void)context;
 \treturn gemini_admission_trace_zero_request(result);
@@ -367,7 +367,7 @@ def apply_controller_tests(root: Path) -> None:
 
 static int
 mt6797_a72_admission_test_trace_zero_request(void *data,
-                                             enum gemini_admission_trace_zero_result result)
+\t\t\t\t\t     enum gemini_admission_trace_zero_result result)
 {
 \tstruct mt6797_a72_admission_test_context *context = data;
 

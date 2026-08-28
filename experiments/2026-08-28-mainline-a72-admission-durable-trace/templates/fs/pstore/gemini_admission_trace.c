@@ -86,9 +86,9 @@ gemini_admission_trace_slot_exact(const struct gemini_admission_trace_ops *ops,
 
 static int
 gemini_admission_trace_write(struct gemini_admission_trace_owner *owner,
-                             const struct gemini_admission_trace_ops *ops,
-                             void *context, unsigned int slot,
-                             const char *record)
+			     const struct gemini_admission_trace_ops *ops,
+			     void *context, unsigned int slot,
+			     const char *record)
 {
 	size_t length = strlen(record);
 	size_t index;
@@ -114,8 +114,8 @@ gemini_admission_trace_write(struct gemini_admission_trace_owner *owner,
 
 int
 gemini_admission_trace_owner_entry(struct gemini_admission_trace_owner *owner,
-                                   const struct gemini_admission_trace_ops *ops,
-                                   void *context)
+				   const struct gemini_admission_trace_ops *ops,
+				   void *context)
 {
 	const char *entry = gemini_admission_trace_entry_record;
 	const unsigned int entry_slot = GEMINI_ADMISSION_TRACE_ENTRY_SLOT;
@@ -143,9 +143,9 @@ gemini_admission_trace_owner_entry(struct gemini_admission_trace_owner *owner,
 
 int
 gemini_admission_trace_owner_zero_request(struct gemini_admission_trace_owner *owner,
-                                          const struct gemini_admission_trace_ops *ops,
-                                          void *context,
-                                          enum gemini_admission_trace_zero_result result)
+					  const struct gemini_admission_trace_ops *ops,
+					  void *context,
+					  enum gemini_admission_trace_zero_result result)
 {
 	const char *entry = gemini_admission_trace_entry_record;
 	const unsigned int entry_slot = GEMINI_ADMISSION_TRACE_ENTRY_SLOT;
@@ -211,7 +211,7 @@ out:
 
 static u32
 gemini_admission_trace_mmio_read_word(void *context, unsigned int slot,
-                                      unsigned int word)
+				      unsigned int word)
 {
 	void __iomem *base = context;
 
@@ -221,7 +221,7 @@ gemini_admission_trace_mmio_read_word(void *context, unsigned int slot,
 
 static void
 gemini_admission_trace_mmio_write_word(void *context, unsigned int slot,
-                                       unsigned int word, u32 value)
+				       unsigned int word, u32 value)
 {
 	void __iomem *base = context;
 
@@ -231,7 +231,7 @@ gemini_admission_trace_mmio_write_word(void *context, unsigned int slot,
 
 static u8
 gemini_admission_trace_mmio_read_byte(void *context, unsigned int slot,
-                                      unsigned int offset)
+				      unsigned int offset)
 {
 	void __iomem *base = context;
 
@@ -241,7 +241,7 @@ gemini_admission_trace_mmio_read_byte(void *context, unsigned int slot,
 
 static void
 gemini_admission_trace_mmio_write_byte(void *context, unsigned int slot,
-                                       unsigned int offset, u8 value)
+				       unsigned int offset, u8 value)
 {
 	void __iomem *base = context;
 
@@ -268,7 +268,7 @@ static struct gemini_admission_trace_owner gemini_admission_trace_owner;
 
 static int
 gemini_admission_trace_commit(enum gemini_admission_trace_zero_result result,
-                              bool entry)
+			      bool entry)
 {
 	struct gemini_admission_trace_owner *owner = &gemini_admission_trace_owner;
 	const struct gemini_admission_trace_ops *ops = &gemini_admission_trace_mmio_ops;

@@ -97,6 +97,11 @@ The third generation left only strict continuation-column findings in patch
 opening parentheses and keep production calls on single bounded lines. Again,
 no package was admitted and no build, device action, or candidate occurred.
 
+The fourth generation confirmed those columns but rejected their all-space
+indentation. They now use tabs for each complete tab stop and spaces only for
+the alignment remainder, as required by strict kernel style. No package,
+build, device action, or candidate resulted.
+
 ## Analysis
 
 An immutable entry in record 2 proves the controller core ran even when USB

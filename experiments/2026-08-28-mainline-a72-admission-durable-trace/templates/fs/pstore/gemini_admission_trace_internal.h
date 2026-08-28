@@ -29,12 +29,12 @@ struct gemini_admission_trace_owner {
 
 int
 gemini_admission_trace_owner_entry(struct gemini_admission_trace_owner *owner,
-                                   const struct gemini_admission_trace_ops *ops,
-                                   void *context);
+				   const struct gemini_admission_trace_ops *ops,
+				   void *context);
 int
 gemini_admission_trace_owner_zero_request(struct gemini_admission_trace_owner *owner,
-                                          const struct gemini_admission_trace_ops *ops,
-                                          void *context,
-                                          enum gemini_admission_trace_zero_result result);
+					  const struct gemini_admission_trace_ops *ops,
+					  void *context,
+					  enum gemini_admission_trace_zero_result result);
 
 #endif /* __GEMINI_ADMISSION_TRACE_INTERNAL_H */

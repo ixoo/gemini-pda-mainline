@@ -57,5 +57,12 @@
     "generated_patch_count": 0,
     "result": "fail-closed-alignment-corrected"
   },
+  "buildbox_generation_attempt_4": {
+    "repository_commit": "a55fd45861621065003df79c6cf51a75cebae2d2",
+    "record": "results/buildbox-generation-attempt4-20260828.txt",
+    "record_sha256": "94a61780834e62c90a746f3a2d64489994e6515657057204dcd544747bb6c6cd",
+    "generated_patch_count": 0,
+    "result": "fail-closed-indentation-corrected"
+  },
   "result": "hardware-free-definition"
 }
