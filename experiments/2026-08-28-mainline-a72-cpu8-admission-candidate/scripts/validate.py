@@ -55,6 +55,14 @@ require(
     '"mediatek,platform-state = <&a72_platform_state>;": 2' in source_validator,
     "binder and controller share the platform-state supplier",
 )
+patch_generator = (
+    EXPERIMENT / "scripts/generate-patches.py"
+).read_text(encoding="utf-8")
+require(
+    '"Enable the binder, controller, and their three owned sources in a\\n"'
+    in patch_generator,
+    "generated DT commit body is wrapped for strict checkpatch",
+)
 subprocess.run(
     ["python3", "-m", "py_compile",
      str(EXPERIMENT / "scripts/source_edits.py"),

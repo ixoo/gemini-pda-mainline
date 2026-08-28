@@ -130,7 +130,8 @@ def main() -> None:
              "Describe the candidate-only controller and its four explicit suppliers.",
              "2026-08-28T21:11:00Z"),
             ("dts", SUBJECTS[1],
-             "Enable the binder, controller, and their three owned sources in a separate Gemini derivative.",
+             "Enable the binder, controller, and their three owned sources in a\n"
+             "separate Gemini derivative.",
              "2026-08-28T21:12:00Z"),
         ):
             run("python3", str(SCRIPT_DIR / "source_edits.py"),

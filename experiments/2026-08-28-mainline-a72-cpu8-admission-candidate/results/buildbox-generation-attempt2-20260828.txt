@@ -1,0 +1,15 @@
+experiment=2026-08-28-mainline-a72-cpu8-admission-candidate
+operation=source-patch-generation
+repository_commit=2f99b630b38849c4971c305c5664f6d0604bc145
+prepared_source_state=9fd302b315e0da6860d00295b4865d732a72e60b58d0ec1fd3f80631b8c4ff10
+prepared_source_integrity=01f388011bf406bfc56c8a8c7b60ea5b2ee769c6f2d608a471f1cce797eb4897
+result=fail-before-package
+failure_class=strict-checkpatch-long-commit-description
+checkpatch_errors=0
+checkpatch_warnings=1
+warning=prefer-maximum-75-characters-per-line
+generated_package=false
+kernel_build=none
+native_vm_build=none
+device_action=none
+boot_candidate=false
