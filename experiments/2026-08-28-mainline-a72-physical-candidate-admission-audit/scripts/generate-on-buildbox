@@ -39,6 +39,10 @@ python3 "${script_dir}/generate-patches.py" \
   grep -Fx 'generated_patch_count=2' provenance.txt >/dev/null
   grep -Fx 'derived_production_entries=1' provenance.txt >/dev/null
   grep -Fx 'derived_kunit_cases=5' provenance.txt >/dev/null
+  grep -Fx 'ready_before_bootstrap=true' provenance.txt >/dev/null
+  grep -Fx 'bootstrap_publications=1' provenance.txt >/dev/null
+  grep -Fx 'production_source_snapshots=1' provenance.txt >/dev/null
+  grep -Fx 'success_starts_closed=true' provenance.txt >/dev/null
   grep -Fx 'caller_identity_words=0' provenance.txt >/dev/null
   grep -Fx 'caller_page_recovery_assertions=0' provenance.txt >/dev/null
   grep -Fx 'production_cpu_requests=0' provenance.txt >/dev/null

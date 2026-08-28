@@ -147,8 +147,8 @@ def main() -> None:
         )
         commit(
             source, SUBJECTS[0],
-            "Replace caller-predicted A36 recovery assertions with one exact\n"
-            "owner-derived CPU8 transaction from the composed boot snapshot.",
+            "Return the atomically published current-boot snapshot and derive\n"
+            "one CPU8 transaction without caller-predicted A36 assertions.",
             "2026-08-28T16:01:00Z",
         )
 
@@ -215,6 +215,10 @@ def main() -> None:
             "generated_patch_count=2\n"
             "derived_production_entries=1\n"
             "derived_kunit_cases=5\n"
+            "ready_before_bootstrap=true\n"
+            "bootstrap_publications=1\n"
+            "production_source_snapshots=1\n"
+            "success_starts_closed=true\n"
             "caller_identity_words=0\n"
             "caller_page_recovery_assertions=0\n"
             "production_cpu_requests=0\n"

@@ -79,29 +79,34 @@ def apply_header(path: Path) -> None:
         "#if IS_ENABLED(CONFIG_ARM64_MT6797_A72_DERIVED_ADMISSION)\n"
         "int\n"
         "mt6797_a72_membership_derive_cpu8("
-        "const struct mt6797_a72_direct_state_snapshot *direct,\n"
-        "\t\t\t\t  const struct arm64_late_cpu_ready_token *ready,\n"
+        "const struct arm64_late_cpu_ready_token *ready,\n"
         "\t\t\t\t  struct mt6797_a72_transaction *transaction);\n"
         "#else\n"
         "static inline int\n"
         "mt6797_a72_membership_derive_cpu8("
-        "const struct mt6797_a72_direct_state_snapshot *direct,\n"
-        "\t\t\t\t  const struct arm64_late_cpu_ready_token *ready,\n"
+        "const struct arm64_late_cpu_ready_token *ready,\n"
         "\t\t\t\t  struct mt6797_a72_transaction *transaction)\n"
         "{\n"
-        "\t(void)direct;\n"
         "\t(void)ready;\n"
         "\tif (transaction)\n"
         "\t\tmemset(transaction, 0, sizeof(*transaction));\n"
         "\treturn -EOPNOTSUPP;\n"
         "}\n"
+        "#endif\n"
+        "#ifdef CONFIG_ARM64_MT6797_A72_DERIVED_ADMISSION_KUNIT_TEST\n"
+        "int\n"
+        "mt6797_a72_membership_test_derive_cpu8("
+        "const struct mt6797_a72_direct_topology *topology,\n"
+        "\t\t\t\t       const struct arm64_late_cpu_ready_token *ready,\n"
+        "\t\t\t\t       struct mt6797_a72_transaction *transaction);\n"
         "#endif\n",
     )
 
 
 DERIVED_SOURCE = r'''
 struct mt6797_a72_derived_workspace {
-	struct mt6797_a72_a34_observation observation;
+	struct mt6797_a72_direct_state_snapshot direct;
+	struct mt6797_a72_a34_replay replay;
 	struct mt6797_a72_entry_snapshot entry;
 	struct mt6797_a72_a36_prestate prestate;
 };
@@ -156,31 +161,29 @@ mt6797_a72_derive_cpu8_prestate(const struct mt6797_a72_direct_state_snapshot *d
 	prestate->cookie = transaction->identity.cookie;
 }
 
-int
-mt6797_a72_membership_derive_cpu8(const struct mt6797_a72_direct_state_snapshot *direct,
-				  const struct arm64_late_cpu_ready_token *ready,
-				  struct mt6797_a72_transaction *transaction)
+static int
+mt6797_a72_membership_derive_cpu8_locked(const struct mt6797_a72_direct_topology *topology,
+					 const struct arm64_late_cpu_ready_token *ready,
+					 struct mt6797_a72_transaction *transaction)
 {
 	struct mt6797_a72_derived_workspace *workspace = &a72_derived_workspace;
 	int ret;
 
-	if (!direct || !transaction)
-		return -EINVAL;
-	memset(transaction, 0, sizeof(*transaction));
-
-	mutex_lock(&a72_transition_lock);
 	memset(workspace, 0, sizeof(*workspace));
-	workspace->observation.abi = MT6797_A72_A34_ELIGIBILITY_ABI;
-	workspace->observation.direct = *direct;
-	workspace->observation.replay.abi = MT6797_A72_A34_REPLAY_ABI;
-	workspace->observation.replay.valid = 1;
-	workspace->observation.replay.proof =
+	ret = mt6797_a72_ready_token_validate(8, ready);
+	if (ret)
+		goto out_clear;
+	workspace->replay.abi = MT6797_A72_A34_REPLAY_ABI;
+	workspace->replay.valid = 1;
+	workspace->replay.proof =
 		MT6797_A72_A34_REPLAY_APPLICABLE_PRIMARY_BL31_CLEAR;
-	ret = mt6797_a72_a34_evaluate(&workspace->observation);
+	ret = mt6797_a72_membership_publish_bootstrap_locked(topology,
+							     &workspace->replay, false,
+							     &workspace->direct);
 	if (ret)
 		goto out_clear;
 
-	mt6797_a72_derive_cpu8_entry(direct, &workspace->entry);
+	mt6797_a72_derive_cpu8_entry(&workspace->direct, &workspace->entry);
 	ret = mt6797_a72_membership_p31_consume_attempt(8, CPUHP_ONLINE,
 							MT6797_A72_ATTEMPT_CPU8_UP,
 							&workspace->entry);
@@ -197,7 +200,7 @@ mt6797_a72_membership_derive_cpu8(const struct mt6797_a72_direct_state_snapshot 
 	if (ret)
 		goto out_clear;
 
-	mt6797_a72_derive_cpu8_prestate(direct, transaction,
+	mt6797_a72_derive_cpu8_prestate(&workspace->direct, transaction,
 					&workspace->prestate);
 	ret = mt6797_a72_membership_validate_up_prestate(transaction,
 							 &workspace->prestate);
@@ -214,9 +217,69 @@ reject_frozen:
 	memset(transaction, 0, sizeof(*transaction));
 out_clear:
 	memset(workspace, 0, sizeof(*workspace));
-	mutex_unlock(&a72_transition_lock);
 	return ret;
 }
+
+static void
+mt6797_a72_membership_fill_cpu8_topology(struct mt6797_a72_direct_topology *topology)
+{
+	topology->cpu8_possible = cpu_possible(8);
+	topology->cpu9_possible = cpu_possible(9);
+	topology->cpu8_present = cpu_present(8);
+	topology->cpu9_present = cpu_present(9);
+	topology->cpu8_online = cpu_online(8);
+	topology->cpu9_online = cpu_online(9);
+	topology->cpu8_method_valid = get_cpu_ops(8) == &mt6797_psci_ops;
+	topology->cpu9_method_valid = get_cpu_ops(9) == &mt6797_psci_ops;
+	topology->cpu8_mpidr = cpu_logical_map(8);
+	topology->cpu9_mpidr = cpu_logical_map(9);
+}
+
+int
+mt6797_a72_membership_derive_cpu8(const struct arm64_late_cpu_ready_token *ready,
+				  struct mt6797_a72_transaction *transaction)
+{
+	struct mt6797_a72_direct_topology topology = {};
+	int ret;
+
+	if (!transaction)
+		return -EINVAL;
+	memset(transaction, 0, sizeof(*transaction));
+	cpus_read_lock();
+	mutex_lock(&a72_transition_lock);
+	if (nr_cpu_ids <= 9) {
+		ret = -ENODEV;
+		goto out_unlock;
+	}
+	mt6797_a72_membership_fill_cpu8_topology(&topology);
+	ret = mt6797_a72_membership_derive_cpu8_locked(&topology, ready,
+						       transaction);
+out_unlock:
+	mutex_unlock(&a72_transition_lock);
+	cpus_read_unlock();
+	return ret;
+}
+
+#ifdef CONFIG_ARM64_MT6797_A72_DERIVED_ADMISSION_KUNIT_TEST
+int
+mt6797_a72_membership_test_derive_cpu8(const struct mt6797_a72_direct_topology *topology,
+				       const struct arm64_late_cpu_ready_token *ready,
+				       struct mt6797_a72_transaction *transaction)
+{
+	int ret;
+
+	if (!topology || !transaction)
+		return -EINVAL;
+	memset(transaction, 0, sizeof(*transaction));
+	cpus_read_lock();
+	mutex_lock(&a72_transition_lock);
+	ret = mt6797_a72_membership_derive_cpu8_locked(topology, ready,
+						       transaction);
+	mutex_unlock(&a72_transition_lock);
+	cpus_read_unlock();
+	return ret;
+}
+#endif
 
 '''
 
@@ -252,6 +315,55 @@ def apply_source(path: Path) -> None:
         "\t\t    prestate->pstore_console_available ||\n"
         "\t\t    prestate->watchdog_owned ||\n",
     )
+    replace_once(
+        path,
+        "mt6797_a72_membership_publish_bootstrap_locked("
+        "const struct mt6797_a72_direct_topology *topology,\n"
+        "\t\t\t\t\t       const struct mt6797_a72_a34_replay *replay,\n"
+        "\t\t\t\t\t       bool dirty_owner_before_finalize)\n",
+        "mt6797_a72_membership_publish_bootstrap_locked("
+        "const struct mt6797_a72_direct_topology *topology,\n"
+        "\t\t\t\t\t       const struct mt6797_a72_a34_replay *replay,\n"
+        "\t\t\t\t\t       bool dirty_owner_before_finalize,\n"
+        "\t\t\t\t\t       struct mt6797_a72_direct_state_snapshot *published)\n",
+    )
+    replace_once(
+        path,
+        "\tif (workspace->claim.cookie) {\n"
+        "\t\trelease_ret = arm64_late_cpu_startup_release_pristine("
+        "&workspace->claim);\n"
+        "\t\tif (release_ret)\n"
+        "\t\t\tret = release_ret;\n"
+        "\t}\n"
+        "out_clear:\n",
+        "\tif (workspace->claim.cookie) {\n"
+        "\t\trelease_ret = arm64_late_cpu_startup_release_pristine("
+        "&workspace->claim);\n"
+        "\t\tif (release_ret)\n"
+        "\t\t\tret = release_ret;\n"
+        "\t}\n"
+        "\tif (!ret && published)\n"
+        "\t\t*published = workspace->observation.direct;\n"
+        "out_clear:\n",
+    )
+    replace_once(
+        path,
+        "\tret = mt6797_a72_membership_publish_bootstrap_locked("
+        "&topology, replay,\n"
+        "\t\t\t\t\t\t\t     false);\n",
+        "\tret = mt6797_a72_membership_publish_bootstrap_locked("
+        "&topology, replay,\n"
+        "\t\t\t\t\t\t\t     false, NULL);\n",
+    )
+    replace_once(
+        path,
+        "\tret = mt6797_a72_membership_publish_bootstrap_locked("
+        "topology, replay,\n"
+        "\t\t\t\t\t\t\t     dirty_owner_before_finalize);\n",
+        "\tret = mt6797_a72_membership_publish_bootstrap_locked("
+        "topology, replay,\n"
+        "\t\t\t\t\t\t\t     dirty_owner_before_finalize, NULL);\n",
+    )
     anchor = (
         "int\n"
         "mt6797_a72_membership_begin_up(unsigned int cpu, enum cpuhp_state target,\n"
@@ -270,11 +382,12 @@ def apply_production_kconfig(path: Path) -> None:
         "\tbool \"Source-derived MT6797 CPU8 admission\"\n"
         "\tdepends on ARM64_MT6797_A72_P24_TRANSACTION_OWNER_MODEL\n"
         "\tdepends on ARM64_MT6797_A72_A34_ELIGIBILITY_EVALUATOR\n"
+        "\tdepends on ARM64_MT6797_A72_BOOTSTRAP_PUBLISHER\n"
         "\thelp\n"
-        "\t  Derive one CPU8 entry and A36 record from the exact composed\n"
-        "\t  current-boot snapshot and immutable READY token. The owner\n"
-        "\t  mints and binds its own identity; this option makes no CPU\n"
-        "\t  request and performs no hardware operation.\n\n"
+        "\t  Capture one registered current-boot source and atomically\n"
+        "\t  publish its exact A34 bootstrap before deriving the CPU8\n"
+        "\t  entry and A36 record. The owner mints and binds its identity;\n"
+        "\t  this option makes no write or CPU request.\n\n"
     )
     replace_once(path, anchor, addition + anchor)
 
@@ -300,14 +413,16 @@ def apply_tests(root: Path, reference: Path) -> None:
         "\tdepends on HOTPLUG_CPU\n"
         "\tdepends on ARM64_MT6797_A72_P30_PROTOCOL_MODEL\n"
         "\tselect ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST\n"
+        "\tselect ARM64_MT6797_A72_DIRECT_STATE_COMPOSITOR\n"
         "\tselect ARM64_MT6797_A72_A34_ELIGIBILITY_EVALUATOR\n"
+        "\tselect ARM64_MT6797_A72_BOOTSTRAP_PUBLISHER\n"
         "\tselect ARM64_MT6797_A72_DERIVED_ADMISSION\n"
         "\thelp\n"
-        "\t  Derive the CPU8 entry and A36 record from one exact composed\n"
-        "\t  current-boot snapshot and the immutable READY token. Exercise\n"
-        "\t  The tests cover source rejection, obsolete assertion refusal,\n"
-        "\t  one-shot owner edge. Verify that repeat entry remains closed\n"
-        "\t  without requesting a CPU or performing a hardware operation.\n\n"
+        "\t  Capture one registered current-boot source and atomically\n"
+        "\t  publish A34 before deriving the CPU8 entry and A36 record.\n"
+        "\t  Tests cover supplier deferral, source mismatch, READY refusal,\n"
+        "\t  obsolete assertion refusal, and repeat closure without a CPU\n"
+        "\t  operation or hardware write.\n\n"
     )
     replace_once(kconfig, owner_config, addition + owner_config)
     makefile = root / "arch/arm64/kernel/Makefile"
