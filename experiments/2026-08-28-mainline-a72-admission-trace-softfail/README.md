@@ -95,6 +95,12 @@ boot, so this is recorded as a display-path observation rather than a kernel
 health or boot-failure result. The next attempt therefore makes USB/netcat the
 authoritative path and does not require a framebuffer console.
 
+From known-good Gemian boot `a30458b2...`, the guarded installer resolved
+logical `boot2` as inactive, unmounted `/dev/mmcblk0p30`, confirmed exact
+predecessor `fd611a4c...`, stable external power and empty retained records,
+then wrote `83dec186...`. Sync, flush, full-partition readback, and clean
+shutdown all passed. No fresh backup was made and no reboot was requested.
+
 ## Analysis
 
 The delta changes no hardware call site. It adds one policy bit to
@@ -108,7 +114,7 @@ instrumentation failure from being mistaken for the CPU8 result.
 
 ## Conclusion
 
-Offline validation is complete. One deployment and one boot remain pending.
+Offline validation and deployment are complete. One boot remains pending.
 This candidate is not a repeat: unlike the previous image, its exact root-only
 trigger continues beyond retained-trace `-EIO` and should expose the first real
 source-register, derive, publish, or CPU8 request result.
