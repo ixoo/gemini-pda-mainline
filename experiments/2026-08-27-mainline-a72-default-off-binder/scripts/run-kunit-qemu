@@ -72,7 +72,7 @@ for token in \
 	grep -Fx "$token" "$config" >/dev/null ||
 		die "configuration missing: $token"
 done
-grep -Fx '# CONFIG_HOTPLUG_SPLIT_STARTUP is not set' "$config" >/dev/null ||
+! grep -Eq '^CONFIG_HOTPLUG_SPLIT_STARTUP=(y|m)$' "$config" ||
 	die 'hardware-free profile unexpectedly enables the late startup caller'
 focused_test_count=$(grep -Ec '^CONFIG_.*_KUNIT_TEST=y$' "$config")
 focused_tests=$(grep -E '^CONFIG_.*_KUNIT_TEST=y$' "$config" | sort)
