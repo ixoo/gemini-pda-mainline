@@ -1,0 +1,11 @@
+experiment=2026-08-28-mainline-a72-admission-durable-trace
+repository_commit=332c143dd4a2b8ba34a6ebcae984f4e1afa946c1
+backend=buildbox
+prepared_source_state=6fcc8878d91c8c0c34fc8b5591a98bc8fcf7de927847690a8ecb55207b33e6a4
+prepared_source_integrity=79523b2d2e61aafee04e3ced7e26b6e2771ced2f477bdb0508b5068e96971853
+failed_stage=patch-0415-strict-style
+failure=continuation-columns-not-aligned-to-open-parentheses
+generated_patch_count=0
+device_action=none
+boot_candidate=false
+result=fail-closed-alignment-corrected

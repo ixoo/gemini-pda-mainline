@@ -226,8 +226,8 @@ def apply_controller(root: Path) -> None:
         "\tconst struct arm64_late_cpu_ready_token *(*ready_token)(void *context);\n",
         "\tconst struct arm64_late_cpu_ready_token *(*ready_token)(void *context);\n"
         "\tint (*trace_entry)(void *context);\n"
-        "\tint (*trace_zero_request)(void *context,\n"
-        "\t\t\t\tenum gemini_admission_trace_zero_result result);\n",
+        "\tint (*trace_zero_request)(void *context, "
+        "enum gemini_admission_trace_zero_result result);\n",
     )
     replace_once(
         header,
@@ -314,7 +314,7 @@ def apply_controller(root: Path) -> None:
 
 static int
 mt6797_a72_admission_trace_zero_request(void *context,
-\tenum gemini_admission_trace_zero_result result)
+                                        enum gemini_admission_trace_zero_result result)
 {
 \t(void)context;
 \treturn gemini_admission_trace_zero_request(result);
@@ -367,7 +367,7 @@ def apply_controller_tests(root: Path) -> None:
 
 static int
 mt6797_a72_admission_test_trace_zero_request(void *data,
-\tenum gemini_admission_trace_zero_result result)
+                                             enum gemini_admission_trace_zero_result result)
 {
 \tstruct mt6797_a72_admission_test_context *context = data;
 
@@ -387,8 +387,7 @@ mt6797_a72_admission_test_trace_zero_request(void *data,
         "static const struct mt6797_a72_admission_controller_ops test_ops = {\n"
         "\t.binder_ready = mt6797_a72_admission_test_binder_ready,\n"
         "\t.trace_entry = mt6797_a72_admission_test_trace_entry,\n"
-        "\t.trace_zero_request =\n"
-        "\t\tmt6797_a72_admission_test_trace_zero_request,\n",
+        "\t.trace_zero_request = mt6797_a72_admission_test_trace_zero_request,\n",
     )
     replace_once(
         source,

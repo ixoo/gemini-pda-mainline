@@ -92,6 +92,11 @@ suppressed check is now `SPLIT_STRING`, narrowly justified by the byte-exact
 immutable wire literals; all other strict findings remain fatal. The rejected
 attempt produced no admitted package, build, device action, or candidate.
 
+The third generation left only strict continuation-column findings in patch
+`0415`. The templates now align continued function parameters exactly to their
+opening parentheses and keep production calls on single bounded lines. Again,
+no package was admitted and no build, device action, or candidate occurred.
+
 ## Analysis
 
 An immutable entry in record 2 proves the controller core ran even when USB
