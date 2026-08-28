@@ -23,7 +23,8 @@ remaining physical failure, without touching CPU9 or retrying?
 - Prepared source: exact post-`0412` Buildbox state and integrity in the contract.
 - Build backend: Buildbox only; no native VM build.
 - Boot path: a separately validated Android boot-v0 image, logical `boot2` only.
-- Candidate identity: binding/DTS source integrated; kernel package and LK image pending.
+- Candidate identity: exact Buildbox package and independently validated LK image
+  are pinned in `contract.json` and the result records.
 
 ## Safety assessment
 
@@ -41,6 +42,8 @@ does not create a redundant backup.
 - `scripts/generate-patches.py`: isolated two-commit format-patch generator.
 - `scripts/generate-on-buildbox`: source-state and integrity-pinned Buildbox entry.
 - `scripts/validate.py`: local definition validation.
+- `scripts/build-candidate.sh`: hash-pinned deterministic LK assembly.
+- `scripts/validate-candidate.py`: independent package, binary-DTB, and LK validator.
 
 ## Procedure
 
@@ -61,21 +64,34 @@ The hardware-free controller has already passed two no-network KUnit suites,
 binding/DTS pair against the exact post-`0412` prepared source; strict
 checkpatch, semantic validation, and fresh replay passed. The byte-reviewed
 patches and production-only `a72-admission-candidate` profile are integrated.
-This experiment has made no device request, installation, or boot yet.
+The first production build stopped before compilation because the final config
+did not retain two pure derived-admission prerequisites; enabling those exact
+prerequisites produced a clean-source Buildbox package at commit `c5b5cd6e`.
+All package hashes, production config gates, linked symbols, and the compiled
+DT ownership graph passed independent checks. Deterministic assembly with the
+runtime-proven serviceability ramdisk produced raw candidate `d52d3c4e...` and
+16 MiB padded image `fde53dca...`; a separately implemented validator passed
+all 32 LK gates and the binary-DTB graph. No device access, installation, or
+boot has occurred in this experiment yet.
 
 ## Analysis
 
-The next boundary is an exact Buildbox compile of the production profile,
-including the new DTB and final merged config. Compile success will validate
-that graph but will not establish CPU8 support.
+The exact package and LK candidate are validated, but that only establishes
+reproducibility and internal consistency. The remaining boundary is one guarded
+physical boot. Success requires the exact kernel identity, CPU online list
+`0-8`, CPU9 offline, and the one-request admission record. A failure is useful
+only if the exact retained transition ledger identifies the last complete
+stage; screen color or reboot behavior alone is serviceability evidence.
 
 ## Conclusion
 
-Inconclusive for hardware. Source is integrated and awaiting the exact
-Buildbox kernel; `boot_candidate=false` until all later gates pass.
+Inconclusive for hardware. The exact image is now `boot_candidate=true` and
+awaits guarded deployment to logical `boot2`; CPU8 support is not claimed.
 
 ## Follow-up
 
-Integrate only byte-reviewed generated patches, then perform the smallest exact
-Buildbox device-profile build. Do not spend the one physical boot on a
-configuration-identical or marker-only derivative.
+Materialize and validate the live deployment/runtime tooling, install only if
+every boot2 safety gate passes, verify a full-partition readback, and shut the
+device down for owner selection. Spend exactly one physical boot and classify
+it from exact runtime or retained evidence; do not repeat an identical image
+without a new independent observation path.
