@@ -24,12 +24,12 @@ def validate_production(root: Path) -> None:
     kconfig = text(root, "arch/arm64/Kconfig.platforms")
     for token in (
         "#define MT6797_A72_A36_PRESTATE_ABI 2",
-        "mt6797_a72_membership_begin_cpu8_derived(",
+        "mt6797_a72_membership_derive_cpu8(",
         "const struct mt6797_a72_direct_state_snapshot *direct",
         "immutable owner-derived prestate record",
     ):
         require(token in header, f"header token: {token}")
-    require(header.count("mt6797_a72_membership_begin_cpu8_derived(") == 2,
+    require(header.count("mt6797_a72_membership_derive_cpu8(") == 2,
             "derived declaration and disabled stub")
     for token in (
         "config ARM64_MT6797_A72_DERIVED_ADMISSION",
@@ -67,16 +67,16 @@ def validate_production(root: Path) -> None:
         "add_cpu(", "cpu_up(", "cpu_down(", "cpu_off(",
     ):
         require(forbidden not in source, f"production forbidden: {forbidden}")
-    require(source.count("int mt6797_a72_membership_begin_cpu8_derived(") == 1,
+    require(source.count("mt6797_a72_membership_derive_cpu8(") == 1,
             "one derived production entry")
     require(source.index("mt6797_a72_a34_evaluate(&workspace->observation)") <
             source.index("mt6797_a72_membership_p31_consume_attempt(",
-                         source.index("int mt6797_a72_membership_begin_cpu8_derived(")),
+                         source.index("mt6797_a72_membership_derive_cpu8(")),
             "source validation before attempt consumption")
     require(source.index("mt6797_a72_membership_p31_consume_attempt(",
-                         source.index("int mt6797_a72_membership_begin_cpu8_derived(")) <
+                         source.index("mt6797_a72_membership_derive_cpu8(")) <
             source.index("mt6797_a72_membership_mint_up_token(",
-                         source.index("int mt6797_a72_membership_begin_cpu8_derived(")),
+                         source.index("mt6797_a72_membership_derive_cpu8(")),
             "P31 before mint")
 
 
