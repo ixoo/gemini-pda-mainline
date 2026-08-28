@@ -221,6 +221,17 @@ mt6797_a72_transaction_empty(const struct mt6797_a72_transaction *transaction)
     for name in OWNER_CASES:
         text = move_case_state(text, name)
 
+    text = replace_once(
+        text,
+        """\tret = mt6797_a72_membership_complete_p28_preparation(&state->transaction,
+\t\t\t\t\t\t\t      &preparation);
+""",
+        """\tret = mt6797_a72_membership_complete_p28_preparation(&state->transaction,
+\t\t\t\t\t\t\t     &preparation);
+""",
+        "P28 rejection continuation alignment",
+    )
+
     path.write_text(text, encoding="utf-8")
 
 
