@@ -47,7 +47,24 @@
     "retained_ram_writes": 0,
     "reboot_requests": 0
   },
-  "deployment": null,
+  "deployment": {
+    "published_definition_commit": "0436ca16",
+    "gemian_boot_id": "7be70bda-fc3d-48d2-93f8-ee1a317c6919",
+    "target": "/dev/mmcblk0p30",
+    "root": "/dev/mmcblk0p29",
+    "predecessor_sha256": "4e0f86885a16df2f8b0c1efb4dd2e67394938bad1ef720adabf70ff4635ec0ef",
+    "candidate_sha256": "c2b85cad08f77d641a07e68eda09617959ad1db6b36b60b20eb8f53733c6baab",
+    "readback_sha256": "c2b85cad08f77d641a07e68eda09617959ad1db6b36b60b20eb8f53733c6baab",
+    "external_power": true,
+    "battery_percent": 100,
+    "fresh_backup": false,
+    "retained_ram_write": false,
+    "shutdown_tcp_consecutive_failures": 3,
+    "shutdown_confirmed": true,
+    "reboot_requested": false,
+    "private_summary_sha256": "812f5585086e0e5d9fd0ef7ae0df9b942f4d1c85e8fa96d1be2c2de3e37baa85",
+    "result": "pass"
+  },
   "runtime": null,
-  "current_status": "offline-complete-deployment-pending"
+  "current_status": "deployed-shutdown-runtime-attempt-pending"
 }

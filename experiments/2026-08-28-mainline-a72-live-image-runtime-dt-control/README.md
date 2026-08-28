@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-live-image-runtime-dt-control` |
-| Status | `offline complete; candidate validated, deployment pending` |
+| Status | `deployed and shut down; runtime attempt 1 pending` |
 | Subsystem | MT6797 A72 DT population and pre-trigger serviceability |
 | Device variant | Planet Computers Gemini PDA, named project device |
 | Date(s) | 2026-08-28 |
@@ -85,6 +85,15 @@ byte-identical; all 32 LK gates and six corrupt-container mutations pass. The
 DT has the exact proven platform-state and composed-observer compatibles and no
 admission-controller or binder compatible.
 
+The published guarded installer then ran from exact Gemian boot ID
+`7be70bda-...`. Live GPT resolved active root `/dev/mmcblk0p29` and inactive
+logical boot2 `/dev/mmcblk0p30`; exact predecessor `4e0f8688...`, stable
+external power, 100 percent battery, unchanged TEE identities, and logical-empty
+retained records passed. The write was synced and flushed, and the complete
+partition readback matched `c2b85cad...`. No fresh backup or retained-RAM write
+occurred. A clean poweroff plus three consecutive closed TCP/22 checks confirms
+the device is shut down for one physical boot2 selection.
+
 ## Analysis
 
 This is a decision-bearing cross, not an identical retry. It changes only the
@@ -97,8 +106,8 @@ delta is sufficient and further DT partitioning is not justified.
 
 ## Conclusion
 
-Offline candidate construction is confirmed for the exact inputs. Hardware
-serviceability remains pending one physical selection.
+Offline candidate construction and guarded deployment are confirmed for the
+exact inputs. Hardware serviceability remains pending one physical selection.
 
 ## Follow-up
 

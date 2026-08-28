@@ -5859,8 +5859,11 @@ The next ordered work is:
    DT: it already proved the complete platform/provider/protected-clock prefix
    on this device while keeping CPU8/9 offline, and it has no admission
    controller or binder. Offline candidate `c2b85cad...` passes 32 LK gates,
-   independent assembly/padding, and six negative mutations. One physical boot
-   must decide whether the pre-trigger regression belongs to the current
+   independent assembly/padding, and six negative mutations. It is now
+   installed on live-GPT-resolved inactive boot2 with exact predecessor and
+   full-partition readback; no fresh backup or retained write occurred, and
+   three closed TCP/22 checks confirm clean shutdown. One physical boot must
+   decide whether the pre-trigger regression belongs to the current
    Image/configuration or to DT population after `90cfc29b`. If serviceable,
    partition only those later node additions before returning to the dormant
    CPU8 trigger; if not, stop DT work and isolate the current Image/config delta.
