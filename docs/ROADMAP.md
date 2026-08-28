@@ -5884,12 +5884,18 @@ The next ordered work is:
    closed. Signed definition `a2282470` is published. The guarded installer
    then matched inactive live-GPT `boot2` predecessor `c2b85cad...`, wrote
    exact `f4cb1b2c...`, passed its full-partition readback, and cleanly shut
-   down with no fresh backup or retained-RAM write. **Selected next:** pre-arm
-   its read-only USB collector and spend one boot proving controller/binder
-   `armed` with zero trigger executions and CPU8/9 still offline. Return to the
-   one-shot CPU8 trigger on this corrected DT only if that pre-trigger
-   serviceability gate passes; otherwise partition only the remaining
-   non-serviceability DT additions.
+   down with no fresh backup or retained-RAM write. Its pre-armed first boot
+   then passed on exact USB and release `7.1.3-gemini-a72-admission-live` with
+   changed mainline boot ID `21bb6547...`: one controller is bound, the group
+   is root-write-only/read-only as designed, state is exactly `armed`, CPUs
+   0--7 are online and 8--9 offline, and trigger executions, supplier
+   resolutions, core consumptions, CPU requests, CPU_OFF requests, and retries
+   are all zero. No trigger connection, write, or reboot occurred, and the
+   successful boot remains running. This proves the omitted serviceability
+   transform caused the blind full-candidate attempts. **Selected next:** on
+   this same live boot, publish a distinct exact-hash follow-up that revalidates
+   the armed frame, durably records intent, and sends the already
+   hardware-free-proven one-shot CPU8 token once with no retry.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

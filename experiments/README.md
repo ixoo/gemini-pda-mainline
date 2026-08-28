@@ -33,8 +33,11 @@ the loop. Positive identity-gated observations are unaffected.
   and six corrupt-container mutations pass with automatic CPU admission still
   closed. Signed definition `a2282470` is published; guarded inactive-boot2
   deployment passed exact predecessor, full readback, and clean-shutdown gates
-  without a fresh backup or retained-RAM write. One pre-trigger-only
-  serviceability boot is next.
+  without a fresh backup or retained-RAM write. Its first pre-armed boot then
+  proved exact USB, one bound controller, root-only armed status, CPU0--7
+  online/CPU8--9 offline, and zero trigger, supplier, core, CPU, CPU_OFF, or
+  retry actions. No trigger session or reboot occurred; the successful boot is
+  left running for a separately published one-shot follow-up.
 - [2026-08-28 durable CPU8 admission physical candidate](2026-08-28-mainline-a72-admission-durable-candidate/README.md)
   — defines the production-only successor using the hardware-free-proven
   record-2 entry and record-3 zero-request trace. The DT graph is unchanged,

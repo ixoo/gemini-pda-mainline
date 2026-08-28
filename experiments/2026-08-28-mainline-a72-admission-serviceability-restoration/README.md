@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-admission-serviceability-restoration` |
-| Status | `deployed and shut down; pre-trigger serviceability boot pending` |
+| Status | `runtime PASS; exact controller armed with zero execution` |
 | Subsystem | MT6797 USB, keyboard, DVFSP handoff, dormant CPU8 controller |
 | Device variant | Planet Computers Gemini PDA, named project device |
 | Date(s) | 2026-08-28 |
@@ -110,25 +110,34 @@ power, unchanged TEE identities, no fresh backup, no retained-RAM write during
 installation, and clean shutdown with three closed TCP/22 checks are recorded
 in the deployment result.
 
+The pre-armed collector then accepted the exact Gemini USB interface on its
+first netcat connection. Mainline boot ID `21bb6547...` reported the exact
+installed candidate and release, CPU0--7 online with CPU8--9 offline, zero
+block mounts, one bound admission controller, and the read-only status/root-
+write-only trigger group. Status was exactly `armed`: zero trigger executions,
+supplier resolutions, core consumptions, CPU requests, CPU9 requests,
+CPU_OFF requests, or retries. The collector opened no trigger session, sent no
+write, requested no reboot, and left the successful boot running.
+
 ## Analysis
 
 This repairs a candidate-construction regression rather than weakening the
 CPU8 transaction. The prior full artifact could not expose its dormant trigger
 over USB because the raw package DT disabled that USB path. Exact current Image
-serviceability with the proven DT rules out an Image/config failure. The next
-boot now asks only whether the full admission population can remain inert and
-serviceable when the omitted baseline transformation is restored.
+serviceability with the proven DT rules out an Image/config failure, and the
+positive armed-state runtime now proves the full admission population can
+remain inert and serviceable when the omitted baseline transformation is
+restored.
 
 ## Conclusion
 
-Offline construction and guarded deployment are confirmed. The device is shut
-down and ready for one pre-armed physical boot2 selection. Runtime controller
-serviceability remains pending; no CPU8 trigger is authorized in this
-experiment.
+Offline construction, guarded deployment, and runtime controller
+serviceability are confirmed. This experiment sent no CPU8 trigger and left
+the exact successful mainline boot running.
 
 ## Follow-up
 
-If exact `armed` status is serviceable, retain DT `1478f2c8...` as the corrected
-baseline and run the already hardware-free-proven one-shot CPU8 trigger as the
-next distinct attempt. Any pre-trigger failure stops and is attributed within
-the remaining non-serviceability DT additions.
+Retain DT `1478f2c8...` as the corrected baseline. Define and publish a distinct
+follow-up that revalidates this same boot's exact armed state, durably records
+intent, and invokes the already hardware-free-proven one-shot CPU8 trigger once
+with no retry.
