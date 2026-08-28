@@ -5815,10 +5815,14 @@ The next ordered work is:
    generation at `48c367ff` now passes both semantic stages, strict review,
    package checksums, and full replay. Canonical patches `0419`--`0420` and the
    isolated `a72-admission-live-trigger-kunit` profile are integrated; all 155
-   profiles satisfy the 412-entry canonical-series invariant. **Selected
-   next:** compile that exact isolated profile on Buildbox and run its focused
-   no-network KUnit suites. A compile or injected test remains hardware-free
-   and cannot select a boot candidate.
+   profiles satisfy the 412-entry canonical-series invariant. Exact clean
+   commit `cc6e7f20` compiles on Buildbox as
+   `7.1.3-gemini-a72-admission-live-kunit`; its complete fetched-package
+   checksum manifest and required configuration/symbol inventory pass. No
+   native VM build or device action occurred, and this remains hardware-free,
+   not a boot candidate. **Selected next:** run and classify its exact
+   no-network two-suite/15-case KUnit gate before defining the production
+   profile or another physical candidate.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

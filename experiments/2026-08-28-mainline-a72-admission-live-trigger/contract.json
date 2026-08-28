@@ -80,5 +80,20 @@
     "manifest_series_mutations_rejected": 8,
     "result": "pass"
   },
-  "result": "patches-integrated-build-pending"
+  "buildbox_compile": {
+    "repository_commit": "cc6e7f20dc808ea1ebe5d102cd96acfcfc1981a0",
+    "record": "results/buildbox-compile-cc6e7f20-20260828.txt",
+    "record_sha256": "b844c208600c9b9d150d725a0ce5032f20622a31b27c78ddfd63ce3474e2dc9d",
+    "profile": "a72-admission-live-trigger-kunit",
+    "kernel_release": "7.1.3-gemini-a72-admission-live-kunit",
+    "patchset_sha256": "40a78b77c20ebaf946d0960fe0a5295c5b57e533efae09bb02990151ece4530f",
+    "config_sha256": "307be2a705a577539158113c6b6c6826b64952105dad40735275841fb66c1abb",
+    "image_sha256": "2cd4b3857141044603f0d379798d31fd27f66fd63da18408fbdcd43f2102aae7",
+    "package_checksum": "pass",
+    "native_vm_build": false,
+    "device_action": false,
+    "boot_candidate": false,
+    "result": "pass"
+  },
+  "result": "build-pass-kunit-pending"
 }

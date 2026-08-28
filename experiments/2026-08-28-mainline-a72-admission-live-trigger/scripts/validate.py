@@ -81,7 +81,7 @@ require(
     contract["native_vm_build"] is False and
     contract["device_action"] is False and
     contract["boot_candidate"] is False and
-    contract["result"] == "patches-integrated-build-pending",
+    contract["result"] == "build-pass-kunit-pending",
     "hardware-free definition state",
 )
 definition = contract["definition_validation"]
@@ -210,20 +210,51 @@ require(
     "integration invariant result",
 )
 
+build = contract["buildbox_compile"]
+require(
+    build["repository_commit"] ==
+    "cc6e7f20dc808ea1ebe5d102cd96acfcfc1981a0" and
+    build["record"] == "results/buildbox-compile-cc6e7f20-20260828.txt" and
+    sha256(EXPERIMENT / build["record"]) == build["record_sha256"],
+    "Buildbox compile record",
+)
+require(
+    build["profile"] == "a72-admission-live-trigger-kunit" and
+    build["kernel_release"] ==
+    "7.1.3-gemini-a72-admission-live-kunit" and
+    build["patchset_sha256"] ==
+    "40a78b77c20ebaf946d0960fe0a5295c5b57e533efae09bb02990151ece4530f" and
+    build["config_sha256"] ==
+    "307be2a705a577539158113c6b6c6826b64952105dad40735275841fb66c1abb" and
+    build["image_sha256"] ==
+    "2cd4b3857141044603f0d379798d31fd27f66fd63da18408fbdcd43f2102aae7" and
+    build["package_checksum"] == "pass" and
+    build["native_vm_build"] is False and
+    build["device_action"] is False and
+    build["boot_candidate"] is False and
+    build["result"] == "pass",
+    "Buildbox compile result",
+)
+
 for relative in (
     "README.md", "DESIGN.md", "contract.json", "scripts/source_edits.py",
     "scripts/validate_source.py", "scripts/generate-patches.py",
-    "scripts/generate-on-buildbox",
+    "scripts/generate-on-buildbox", "scripts/run-kunit-qemu",
+    "scripts/classify-kunit.py",
     "results/local-definition-validation-20260828.txt",
     "results/buildbox-generation-attempt1-20260828.txt",
     "results/buildbox-generation-attempt2-20260828.txt",
     "results/buildbox-generation-20260828.txt",
     "results/canonical-integration-20260828.txt",
+    "results/buildbox-compile-cc6e7f20-20260828.txt",
 ):
     path = EXPERIMENT / relative
     require(path.is_file() and not path.is_symlink(), f"exact file {relative}")
 
-for relative in ("source_edits.py", "validate_source.py", "generate-patches.py"):
+for relative in (
+    "source_edits.py", "validate_source.py", "generate-patches.py",
+    "classify-kunit.py",
+):
     path = SCRIPTS / relative
     ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
 
@@ -232,6 +263,11 @@ result = subprocess.run(
     check=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
 )
 require(result.returncode == 0, "Buildbox entry-point syntax")
+result = subprocess.run(
+    ["bash", "-n", str(SCRIPTS / "run-kunit-qemu")],
+    check=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+)
+require(result.returncode == 0, "KUnit runner syntax")
 
 spec = importlib.util.spec_from_file_location(
     "admission_live_source_edits", SCRIPTS / "source_edits.py"

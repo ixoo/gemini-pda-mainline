@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-admission-live-trigger` |
-| Status | `canonical patches integrated; Buildbox compile pending` |
+| Status | `isolated Buildbox compile passed; no-network KUnit pending` |
 | Subsystem | MT6797 A72 admission controller, sysfs, CPU hotplug |
 | Device variant | Planet Computers Gemini PDA, named project device |
 | Date(s) | 2026-08-28 |
@@ -71,6 +71,8 @@ backup and never reboots Gemian automatically after the write.
 - `scripts/generate-patches.py`: two logical format-patches plus replay.
 - `scripts/generate-on-buildbox`: exact clean-commit Buildbox entry point.
 - `scripts/validate.py`: local definition and mutation validator.
+- `scripts/run-kunit-qemu`: clean, published, exact-package QEMU gate.
+- `scripts/classify-kunit.py`: exact two-suite/15-case KTAP classifier.
 
 Runtime collector, candidate construction, guarded boot2 installation, and
 classification scripts are intentionally deferred until hardware-free source
@@ -121,7 +123,14 @@ strict review, package checksums, and full replay. Canonical patches `0419` and
 `0420` are byte-identical to the validated package. The isolated
 `a72-admission-live-trigger-kunit` profile is selected, and all 155 manifest
 profiles remain canonical-order subsequences of the 412-entry series. No kernel
-build or device action has occurred yet.
+or device action had occurred at that generation boundary.
+
+Exact clean commit `cc6e7f20` then compiled on Buildbox as
+`7.1.3-gemini-a72-admission-live-kunit`. The fetched package has a complete
+passing checksum manifest, exact profile and commit provenance, both focused
+KUnit configurations, the live-trigger configuration, and the required trace,
+trigger, and controller symbols. No native VM build or device action occurred;
+the package remains hardware-free and is not a boot candidate.
 
 ## Analysis
 
@@ -135,10 +144,10 @@ returning status identifies a precise terminal error or CPU8 outcome.
 ## Conclusion
 
 The retained-earlier-anchor direction is rejected. The serviceability-first
-one-shot trigger is integrated for hardware-free compile and runtime proof; no
-kernel build, candidate, boot2 write, or physical CPU request has occurred yet.
+one-shot trigger passes exact Buildbox compilation and package validation. No
+candidate, boot2 write, or physical CPU request has occurred yet.
 
 ## Follow-up
 
-Compile the isolated profile on Buildbox and run the focused no-network KUnit
-suite. The ordered next step remains owned by `docs/ROADMAP.md`.
+Run and classify the exact 15-case no-network KUnit proof. The ordered next
+step remains owned by `docs/ROADMAP.md`.
