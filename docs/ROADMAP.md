@@ -5792,11 +5792,26 @@ The next ordered work is:
    entry, CPU8 request, transition stage, or online state, and the empty records
    cannot distinguish pre-controller failure from retained-data loss or
    reinitialization. The candidate is retired and must not be repeated.
-   **Selected next:** move an independent retention-qualification anchor to an
-   earlier always-reached mainline boundary while keeping controller entry
-   separate. Before another CPU8 request candidate, prove that one result can
-   distinguish “early anchor never ran,” “anchor survived but controller did
-   not enter,” and “the retained region was lost or reinitialized.”
+   The follow-up audit rejects that proposed earlier retained anchor. Exact
+   prior candidates already placed records at pure/core initcall, subsys/fs
+   initcall, and driver-init/probe boundaries, and all returned logical-empty
+   after automatic Gemian recovery. More importantly, the Stage-27 DT control
+   independently reached `/init` and USB/netcat while exposing the same empty
+   records. Retained emptiness is therefore not a valid negative execution
+   oracle across this reset path, regardless of an earlier placement.
+   **Selected next:** establish the live observation channel before the risky
+   action. The
+   [serviceability-first admission-trigger experiment](../experiments/2026-08-28-mainline-a72-admission-live-trigger/README.md)
+   keeps controller probe inert, resolves no supplier during boot, and exposes
+   one exact root-only token only in its isolated default-off profile. The host
+   must durably capture exact kernel/DT identity, USB/netcat serviceability,
+   CPU0--7 online with CPU8--9 offline, and armed zero-execution status before
+   sending that token once. It then invokes the unchanged admission core with
+   one CPU8 request maximum, CPU9 veto, and zero CPU_OFF/retry paths. A
+   disconnect or reset is attributable to the trigger boundary; a returning
+   status distinguishes prerequisite, zero-request, request-failure, and CPU8
+   online outcomes. Generate, replay, and prove its two patches plus focused
+   KUnit cases on Buildbox before defining another physical candidate.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

@@ -1,0 +1,17 @@
+validation=gemini-a72-admission-live-trigger-definition
+repository_base=11588ddead8dabac0043c07dd383505fb010ceb6
+planned_patches=2
+automatic_probe_action=0
+trigger_execution_maximum=1
+admission_core_maximum=1
+cpu8_request_maximum=1
+cpu9_request_paths=0
+cpu_off_paths=0
+retry_paths=0
+native_vm_build=none
+device_action=none
+boot_candidate=false
+python_syntax=pass
+bash_syntax=pass
+git_diff_check=pass
+result=pass

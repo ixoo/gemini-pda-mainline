@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "prepared_source_state": "3d5c7e6572d06e50cf7db20ceed9e702780be5549f41d58904d1eb76dfa01bea",
+  "prepared_source_integrity": "4f067fb09248e1d0f72fbe1446d8374e7445c514010090d630483db27497861b",
+  "parent_patch": "0418-soc-mediatek-test-durable-CPU8-admission-trace.patch",
+  "parent_patch_sha256": "48e9ba46c89d65eff02d817d7e143a4acbddc27a3603432bbd368dd6eea18555",
+  "parent_hashes": {
+    "drivers/soc/mediatek/Kconfig": "864c7a0745a1460ea0e9456ec81d727e98d0f65eb8ed8ca5423fbe32917273bb",
+    "drivers/soc/mediatek/mt6797-a72-admission-controller.c": "ee66b07cb75455d438c42032fe88249f0550e0f6cb6955e7cb232fda25027fae",
+    "drivers/soc/mediatek/mt6797-a72-admission-controller-internal.h": "24d47e11a0d7ae43d77292f05333292390a36775440ea1abb9e33cf76f3fabca",
+    "drivers/soc/mediatek/mt6797-a72-admission-controller-test.c": "5777a74faf8c2f48388aaf5f9624f7f7d77cb801b2853d1d6421fda5207b9f7f"
+  },
+  "planned_patches": 2,
+  "trigger_token": "run-a72-admission-20260828-a\n",
+  "trigger_group": "gemini_admission",
+  "trigger_attribute": "trigger",
+  "status_attribute": "status",
+  "trigger_mode": "0200-root-only",
+  "probe_supplier_resolution": false,
+  "automatic_probe_action": false,
+  "trigger_execution_maximum": 1,
+  "admission_core_maximum": 1,
+  "cpu8_request_maximum": 1,
+  "cpu9_request_paths": 0,
+  "cpu_off_paths": 0,
+  "retry_paths": 0,
+  "retained_records_primary_evidence": false,
+  "pretrigger_live_frame_required": true,
+  "native_vm_build": false,
+  "device_action": false,
+  "boot_candidate": false,
+  "definition_validation": {
+    "record": "results/local-definition-validation-20260828.txt",
+    "record_sha256": "39cfe99e2033cf07fb8d8d8a1ff27a6a73562237c4ea835d491e88bfc25152b1",
+    "python_syntax": "pass",
+    "bash_syntax": "pass",
+    "git_diff_check": "pass",
+    "result": "pass"
+  },
+  "result": "definition-ready"
+}
