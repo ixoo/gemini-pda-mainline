@@ -106,6 +106,33 @@ for token in (
 ):
     require(token in generation_text, f"Buildbox generation token: {token}")
 
+runtime = EXP / "results/buildbox-kernel-qemu-attempt1-20260828.txt"
+require(sha256(runtime) == CONTRACT["qemu_attempt_1_receipt_sha256"],
+        "Buildbox/QEMU attempt 1 hash")
+runtime_text = runtime.read_text(encoding="utf-8")
+for token in (
+    "build_result=pass",
+    "suite_mt6797-a72-derived-admission=pass:5_fail:0_skip:0_total:5",
+    "suite_mt6797-a72-p24-owner=pass:22_fail:4_skip:0_total:26",
+    "owner_failure_class=unrelated-owner-suite-selected-with-public-hooks-intentionally-absent",
+    "stack_fault=false",
+    "selected_repair=select-hidden-owner-test-seed-without-owner-kunit-suite",
+    "production_cpu_requests=0", "native_vm_build=none",
+    "device_action=none", "boot_candidate=false",
+):
+    require(token in runtime_text, f"Buildbox/QEMU token: {token}")
+require(CONTRACT["qemu_attempt_1"] == {
+    "derived_pass": 5,
+    "derived_fail": 0,
+    "owner_pass": 22,
+    "owner_fail": 4,
+    "stack_fault": False,
+    "result": "derived-suite-pass-profile-regression-suite-fail",
+}, "QEMU attempt 1 result")
+require(CONTRACT["selected_runtime_isolation_repair"] ==
+        "select-hidden-owner-test-seed-without-owner-kunit-suite",
+        "runtime isolation repair")
+
 receipt = EXP / "results/source-admission-audit-20260828.txt"
 require(CONTRACT["source_receipt_sha256"] != "pending", "receipt hash pending")
 require(sha256(receipt) == CONTRACT["source_receipt_sha256"], "receipt hash")
@@ -139,7 +166,8 @@ for token in (
 
 readme = (EXP / "README.md").read_text(encoding="utf-8")
 design = (EXP / "DESIGN.md").read_text(encoding="utf-8")
-combined = readme + design + receipt_text + local_text + generation_text
+combined = (readme + design + receipt_text + local_text + generation_text +
+            runtime_text)
 words = " ".join(combined.split())
 for token in (
     "No direct caller can satisfy the current graph",
@@ -150,10 +178,10 @@ for token in (
 ):
     require(token in words, f"documentation token: {token}")
 require("/Users/" not in combined, "no personal absolute path")
-require(CONTRACT["kernel_build"] is False, "no kernel build")
+require(CONTRACT["kernel_build"] is True, "kernel build")
 require(CONTRACT["device_action"] is False, "no device action")
 require(CONTRACT["result"] ==
-        "direct-caller-rejected-derived-admission-integrated-awaiting-build",
+        "derived-suite-passes-runtime-isolation-repair-pending",
         "result")
 
 print("definition_validation=pass")
@@ -162,6 +190,8 @@ print("selected_next=derived-membership-admission-compositor")
 print("model_cases=6")
 print("generated_patches=2")
 print("derived_kunit_cases=5")
-print("kernel_build=pending")
+print("kernel_build=pass")
+print("qemu_derived_cases=pass:5_fail:0")
+print("runtime_isolation_repair=pending")
 print("native_vm_build=none")
 print("device_action=none")

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-physical-candidate-admission-audit` |
-| Status | source audit complete; direct caller rejected; derived admission patches integrated; Buildbox kernel build pending |
+| Status | derived admission compiles and passes 5/5 in QEMU; unrelated owner-suite selection repair pending |
 | Subsystem | MT6797 CPU8 A34/A36 membership admission and physical binder entry |
 | Device variant | Planet Gemini PDA, named development unit |
 | Date(s) | 2026-08-28 America/New_York |
@@ -62,16 +62,35 @@ checkpatch, fresh exact-source replay, and semantic validation passed. The
 accepted patch identities and complete rejection chronology are in the
 [Buildbox generation receipt](results/buildbox-generation-20260828.txt).
 Exact patches `0407` and `0408` are now canonical entries 399 and 400, with the
-isolated `a72-derived-admission-kunit` profile. The kernel build and no-network
-KUnit execution remain pending.
+isolated `a72-derived-admission-kunit` profile. The first profile revision
+correctly stopped before compilation because an inherited fragment contradicted
+the KUnit dependency. After removing that fragment, exact commit `2dfbabea`
+built successfully on Buildbox as release
+`7.1.3-gemini-a72-derived-kunit`; all package checksums passed.
+
+The first bounded, no-network QEMU run then passed all five new derived cases.
+The 7296-byte frame warning in the repeat test did not produce a stack fault.
+However, the derived suite selected the complete owner KUnit suite solely to
+obtain its hidden reset/AVAILABLE fixtures. That unrelated suite ran without
+its intentionally omitted public-hook configuration and failed four of 26
+cases. The [build and runtime receipt](results/buildbox-kernel-qemu-attempt1-20260828.txt)
+records the exact package, hashes, cases, and failure classification.
+
+The selected repair is source-only: select the existing hidden owner fixture
+symbol directly and make the late-startup reset helper follow that hidden
+symbol. This removes the unrelated suite without changing production logic.
+Its source-pinned [Buildbox generator](scripts/generate-runtime-isolation-fix-on-buildbox),
+[deterministic edit](scripts/runtime_isolation_edits.py), and
+[validator](scripts/validate_runtime_isolation_source.py) are ready for the
+same signed, pushed, clean generation workflow.
 
 ## Safety assessment
 
-This audit and derived-admission integration are hardware-free. Buildbox has
-only generated and replay-validated source patches; no kernel package or boot
-image has yet been built. There has been no device connection, retained-RAM
-write, watchdog takeover, regulator or secure call, CPU request, partition
-write, reboot, or shutdown.
+This audit and derived-admission integration are hardware-free. Buildbox built
+one KUnit-only kernel package, and QEMU ran it with networking disabled. No
+boot candidate was assembled. There has been no device connection,
+retained-RAM write, watchdog takeover, regulator or secure call, CPU request,
+partition write, reboot, or shutdown.
 
 The direct-caller design is rejected before a build because it would have to
 assert recovery ownership that cannot yet exist. The existing binder remains
