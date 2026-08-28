@@ -101,6 +101,19 @@ predecessor `fd611a4c...`, stable external power and empty retained records,
 then wrote `83dec186...`. Sync, flush, full-partition readback, and clean
 shutdown all passed. No fresh backup was made and no reboot was requested.
 
+Attempt 1 ended in an automatic return to Gemian before the exact USB network
+interface appeared. The armed collector opened zero sessions and sent no
+trigger. Recovery boot `def2064d...` confirmed the candidate remained installed,
+pstore was empty, all three admission records were empty, and `last_kmsg` was
+the known generic 74-byte header. This is strictly a pre-trigger
+non-serviceability result; it does not test trace soft-failure or CPU8.
+
+An identical unobserved repeat is forbidden. A new host-only observer now
+records sanitized USB VID/PID/session and exact Gemini network transitions at a
+0.25-second cadence while the existing collector remains authoritative for
+packet readiness and netcat. This makes one repeat decision-changing even if
+the device returns to Gemian before the network interface becomes usable.
+
 ## Analysis
 
 The delta changes no hardware call site. It adds one policy bit to
@@ -114,7 +127,8 @@ instrumentation failure from being mistaken for the CPU8 result.
 
 ## Conclusion
 
-Offline validation and deployment are complete. One boot remains pending.
+Offline validation and deployment are complete. Attempt 1 did not reach the
+test boundary; one instrumented repeat remains pending.
 This candidate is not a repeat: unlike the previous image, its exact root-only
 trigger continues beyond retained-trace `-EIO` and should expose the first real
 source-register, derive, publish, or CPU8 request result.

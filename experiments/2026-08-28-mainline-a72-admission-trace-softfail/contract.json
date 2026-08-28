@@ -92,6 +92,30 @@
     "reboot_requested": false,
     "result": "pass"
   },
-  "runtime": "pending",
-  "result": "deployed-runtime-pending"
+  "runtime": {
+    "attempt_1": {
+      "record": "results/runtime-attempt1-pretrigger-nonserviceable-20260828.txt",
+      "record_sha256": "f1d0e7e2ae75afcf286d797d27a0aff821d07a9acbb05ba209b6ff85bc5f56cc",
+      "gemian_recovery_boot_id": "def2064d-67c9-42d1-9820-c4327a2926db",
+      "exact_usb_interface_observed": false,
+      "pretrigger_sessions": 0,
+      "trigger_sessions": 0,
+      "admission_actions": 0,
+      "admission_trace_state": "empty",
+      "transition_ledger_state": "logical-empty",
+      "trace_softfail_hypothesis_tested": false,
+      "classification": "pretrigger-nonserviceable-zero-trigger",
+      "result": "pass"
+    },
+    "repeatability_observer": {
+      "record": "results/usb-observer-offline-20260828.txt",
+      "record_sha256": "10e27fd35bf1da703ba8366476c545c72274d699ac70d0607fc4d5f9c023f3b6",
+      "source_sha256": "9af39a43f53525261b36a58e0032401f3c8b405e7d64c04e45616ca46462720f",
+      "poll_interval_seconds": 0.25,
+      "device_contact": false,
+      "result": "pass"
+    },
+    "attempt_2": "pending-subsecond-usb-observer-plus-existing-netcat-collector"
+  },
+  "result": "attempt1-pretrigger-nonserviceable-repeatability-measurement-ready"
 }
