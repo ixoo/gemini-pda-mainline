@@ -1,0 +1,16 @@
+validation=a72-admission-durable-trace-definition
+prepared_source=exact-post-0414
+planned_patches=4
+entry_slot=2
+terminal_slot=3
+maximum_trace_record_writes=2
+zero_request_outcomes=3
+cpu8_request_maximum=1
+cpu9_request_paths=0
+cpu_off_paths=0
+retry_paths=0
+mutation_checks=pass
+native_vm_build=none
+device_action=none
+boot_candidate=false
+result=pass

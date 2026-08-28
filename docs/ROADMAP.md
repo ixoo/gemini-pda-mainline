@@ -5740,6 +5740,13 @@ The next ordered work is:
    zero CPU_OFF/retry policy, and Buildbox-only workflow. Prove record
    placement, retention, mutual exclusion, and failure classification in
    hardware-free tests before selecting a distinct candidate.
+   The successor definition is now frozen in the
+   [durable admission-trace experiment](../experiments/2026-08-28-mainline-a72-admission-durable-trace/README.md).
+   Its local exact-record, commit-ordering, bounded-effect, source-anchor, and
+   unsafe-mutation checks pass without a build or device action. **Selected
+   next:** generate and replay its four logical patches against the exact
+   post-`0414` managed source, then compile and run the isolated retained-owner
+   and controller suites on Buildbox before defining another physical boot.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

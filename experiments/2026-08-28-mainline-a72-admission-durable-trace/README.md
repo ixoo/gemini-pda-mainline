@@ -1,0 +1,100 @@
+# Experiment: durable CPU8 admission entry and zero-request trace
+
+## Record
+
+| Field | Value |
+| --- | --- |
+| ID | `2026-08-28-mainline-a72-admission-durable-trace` |
+| Status | `running` hardware-free definition |
+| Subsystem | pstore retained records, MT6797 CPU8 admission controller |
+| Device variant | Planet Computers Gemini PDA, named project device |
+| Date(s) | 2026-08-28 |
+| Investigator(s) | Julien Etienne and Codex |
+| Tracking issue | Roadmap Gate 7, attributable CPU8 admission |
+
+## Question or hypothesis
+
+Can two immutable retained records distinguish controller-core entry from every
+consumed zero-request result, while leaving the existing mutable transition
+ledger as the sole owner of the admitted physical-request path?
+
+## Provenance and environment
+
+- Exact parent: canonical Linux source through patch `0414`.
+- Prepared Buildbox state and integrity: pinned in `contract.json`.
+- Build backend: Buildbox only; no native VM build.
+- Runtime target in this phase: none.
+- Physical parent result: the retired admission candidate's single attempt
+  returned without an exact live frame and with a logical-empty transition
+  ledger.
+
+## Safety assessment
+
+This definition and patch-generation phase is hardware-free. The proposed
+default-off writer owns only dmesg records 2 and 3 at `0x44411000` and
+`0x44412000`; record 1 remains exclusively owned by the existing transition
+ledger. Each writer accepts only the exact logical-empty header, commits a
+fixed payload before start and size metadata, performs ordered full readback,
+and never clears, repairs, retries, or overwrites a foreign record.
+
+The entry record may be recognized byte-for-byte during a deferred probe
+without another write. The terminal writer runs only after the admission core
+has consumed its one shot and before any CPU request, for exactly one of three
+fixed source-register, derive, or publish failures. It performs no storage,
+firmware, I2C, regulator, clock, CPU, watchdog, reset, reboot, or power action.
+The existing CPU9, CPU_OFF, and retry vetoes are unchanged.
+
+## Associated code
+
+- `DESIGN.md`: exact address, wire, ordering, ownership, and decision contract.
+- `contract.json`: prepared-source and parent-file identities.
+- `templates/`: new pstore owner, public API, and injected KUnit suite.
+- `scripts/source_edits.py`: deterministic four-stage source edits.
+- `scripts/validate_source.py`: source, ordering, effect, and test validator.
+- `scripts/generate-patches.py`: four logical format-patches and replay.
+- `scripts/generate-on-buildbox`: exact Git/source-state Buildbox entry point.
+- `scripts/validate.py`: local definition validator.
+
+## Procedure
+
+1. Freeze the exact two-slot wire and controller call ordering.
+2. Validate the definition and unsafe mutations without device access.
+3. Commit, sign, and push a clean tree.
+4. Generate and replay four logical patches against the exact managed
+   post-`0414` Buildbox source.
+5. Review and integrate the patches, then add an isolated KUnit profile.
+6. Commit and push cleanly; compile only with `--backend buildbox` and run the
+   focused no-network suites.
+7. Only after hardware-free proof, define a distinct production candidate and
+   its retained-runtime classifier. A build is not a boot candidate.
+
+## Observations
+
+The exact prepared source places the controller entry after DT supplier
+resolution but before binder readiness, ready-token, physical-source capture,
+transaction derivation, publication, or `add_cpu(8)`. The current transition
+ledger begins only in the binder's CPU-boot callback, so it cannot classify a
+zero-request return. Normal ramoops registration is already bypassed while the
+transition-ledger profile is selected, leaving records 2 and 3 without a
+concurrent Linux owner.
+
+## Analysis
+
+An immutable entry in record 2 proves the controller core ran even when USB
+never appears. A mutually exclusive record-3 terminal identifies the only
+three failures possible after one-shot consumption and before the request.
+Entry without terminal or transition evidence localizes the remaining branch
+to prerequisite deferral or interruption before consumption. Entry plus a
+committed transition ledger proves the admitted request reached the binder.
+
+## Conclusion
+
+Inconclusive for hardware. The successor evidence contract is frozen and its
+local exact-record, ordering, bounded-effect, source-anchor, and unsafe-
+mutation validation passes. It has not yet generated or compiled a patch,
+selected a candidate, accessed the device, or requested a CPU.
+
+## Follow-up
+
+Generate, review, and hardware-free test the four-patch successor on Buildbox.
+The ordered next action remains owned by `docs/ROADMAP.md`.

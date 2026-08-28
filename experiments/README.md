@@ -23,6 +23,13 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-28 durable CPU8 admission trace](2026-08-28-mainline-a72-admission-durable-trace/README.md)
+  — freezes two disjoint immutable retained records: controller-core entry in
+  record 2 and one of three consumed zero-request terminals in record 3. The
+  existing transition ledger remains the only request-path owner. Local
+  definition, ordering, source-anchor, and unsafe-mutation checks pass with no
+  build, device action, CPU request, CPU9 path, CPU_OFF, or retry. Exact-source
+  four-patch generation and hardware-free proof on Buildbox are next.
 - [2026-08-28 CPU8 admission physical candidate](2026-08-28-mainline-a72-cpu8-admission-candidate/README.md)
   — built the exact production-only owner chain on Buildbox and deployed one
   independently validated candidate with full boot2 readback. Its sole attempt

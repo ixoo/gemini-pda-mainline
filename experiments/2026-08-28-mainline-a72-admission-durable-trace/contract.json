@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-28-mainline-a72-admission-durable-trace",
+  "parent_patch": "0414-arm64-dts-mediatek-add-Gemini-CPU8-admission-candidate.patch",
+  "parent_patch_sha256": "ff95a36c89cee9fc45ddfeed6c318ca6273339fc6f695b3f3da6c8c5688fbd4c",
+  "prepared_source_state": "6fcc8878d91c8c0c34fc8b5591a98bc8fcf7de927847690a8ecb55207b33e6a4",
+  "prepared_source_integrity": "79523b2d2e61aafee04e3ced7e26b6e2771ced2f477bdb0508b5068e96971853",
+  "parent_hashes": {
+    "fs/pstore/Kconfig": "5a87fbe7cd4c6c3815d4ff2e275138fb810c147d24f460b31cd239316ebf4b94",
+    "fs/pstore/Makefile": "cedf8f145de913bf09be5fe10b8abf0f09a9ef7ee1aed4dc2d55f285a29fe84d",
+    "fs/pstore/ram.c": "a605ae6211498d9ea260920c719355cbe3af59351ba128ce26127db693d81de9",
+    "drivers/soc/mediatek/Kconfig": "bcf082d57d18ecfb519cc734c7a3d8f36851642032af3e182773c3dcca69045c",
+    "drivers/soc/mediatek/Makefile": "51cc36898980788ff5fb352cbfb36e22f363afe2e18b2e2d286a8e7b6b743f92",
+    "drivers/soc/mediatek/mt6797-a72-admission-controller.c": "b03d12563fd90967bfa2a58d5b1581a7c600a6ffe310fd876bbe464d093c8aef",
+    "drivers/soc/mediatek/mt6797-a72-admission-controller-internal.h": "3392018f167f81270cb6f52a2f0075a7b6d45359278fdf9bbea05e0c0be43f1b",
+    "drivers/soc/mediatek/mt6797-a72-admission-controller-test.c": "707b01baced8948687d02ed25d6a66f3b94cb5af60ba8efb88954b51337ea127"
+  },
+  "planned_patches": 4,
+  "entry_slot": 2,
+  "entry_address": "0x44411000",
+  "terminal_slot": 3,
+  "terminal_address": "0x44412000",
+  "maximum_trace_record_writes": 2,
+  "zero_request_outcomes": 3,
+  "cpu8_request_maximum": 1,
+  "cpu9_request_paths": 0,
+  "cpu_off_paths": 0,
+  "retry_paths": 0,
+  "normal_ramoops_registration": false,
+  "native_vm_build": false,
+  "device_action": false,
+  "boot_candidate": false,
+  "definition_validation": {
+    "record": "results/local-definition-validation-20260828.txt",
+    "record_sha256": "7cc3b18fc5b1456e1d700ed869e63f96269ec0abcb58f10fed57ce199091b36a",
+    "mutation_checks": "pass",
+    "result": "pass"
+  },
+  "result": "hardware-free-definition"
+}
