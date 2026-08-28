@@ -216,7 +216,11 @@ static noinline void mt6797_a72_regcap_emit(
 	const struct mt6797_a72_regcap_v1 *capsule)
 {
 	u64 expected_mpidr = capsule->cpu == 8 ? 0x200ULL : 0x201ULL;
-	bool passed = READ_ONCE(capsule->complete) == 1 &&
+	u32 complete = READ_ONCE(capsule->complete);
+	bool passed;
+
+	smp_rmb();
+	passed = complete == 1 &&
 		capsule->abi == MT6797_A72_REGCAP_ABI &&
 		capsule->fields == MT6797_A72_REGCAP_FIELDS &&
 		capsule->valid == MT6797_A72_REGCAP_VALID_MASK &&
@@ -230,7 +234,7 @@ static noinline void mt6797_a72_regcap_emit(
 	pr_emerg("gemini-a72-regcap-v1 part=core result=%s cpu=%u abi=%u fields=%u valid=%#x error=%d complete=%u identity=%016llx mpidr=%016llx midr=%08x revidr=%08x cntfrq=%08x ctr=%08x dczid=%08x clidr=%016llx\n",
 		 passed ? "pass" : "fault", capsule->cpu, capsule->abi,
 		 capsule->fields, capsule->valid, capsule->error,
-		 capsule->complete, (unsigned long long)capsule->identity,
+		 complete, (unsigned long long)capsule->identity,
 		 (unsigned long long)capsule->mpidr, capsule->midr,
 		 capsule->revidr, capsule->cntfrq, capsule->ctr,
 		 capsule->dczid, (unsigned long long)capsule->clidr);

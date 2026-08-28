@@ -145,6 +145,12 @@ def validate_semantics(child: str, parent: str) -> None:
     require(CAPSULE_BLOCK.index("smp_wmb();") <
             CAPSULE_BLOCK.index("WRITE_ONCE(capsule->complete, 1);"),
             "capsule publication barrier changed")
+    emit = CAPSULE_BLOCK.split(
+        "static noinline void mt6797_a72_regcap_emit", 1
+    )[1]
+    require(emit.index("READ_ONCE(capsule->complete)") <
+            emit.index("smp_rmb();") < emit.index("passed = complete == 1"),
+            "capsule publication read barrier changed")
     identity = CAPSULE_BLOCK.split(
         "static u64 mt6797_a72_regcap_identity", 1
     )[1].split("static bool mt6797_a72_regcap_cpuinfo_match", 1)[0]
@@ -213,6 +219,7 @@ def self_test() -> None:
             "if (mt6797_a72_regcap_cpuinfo_match(capsule, info)) {",
             "if (true || mt6797_a72_regcap_cpuinfo_match(capsule, info)) {", 1)),
         ("publication-barrier", child.replace("\tsmp_wmb();\n", "", 1)),
+        ("publication-read-barrier", child.replace("\tsmp_rmb();\n", "", 1)),
         ("publication-marker", child.replace(
             "WRITE_ONCE(capsule->complete, 1);", "capsule->complete = 1;", 1)),
         ("identity-field", child.replace(

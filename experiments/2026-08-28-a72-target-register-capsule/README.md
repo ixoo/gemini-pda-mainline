@@ -98,11 +98,19 @@ one fixed decision map; the proven parent must not be rerun unchanged.
   target evidence.
 
 The deterministic editor and validator now pass Python syntax, one positive
-definition case, exact field inventories, and twelve unsafe mutations. Both
+definition case, exact field inventories, and thirteen unsafe mutations. Both
 shell files pass `bash -n` and ShellCheck, and the Buildbox command is exposed
 by the local help path. No source generation, build, candidate, deployment, or
 new runtime result has occurred yet. See
 [`results/definition-validation-20260828.txt`](results/definition-validation-20260828.txt).
+
+Buildbox generation attempt 1 reconstructed and reversed the exact parent and
+produced a one-file child, but source review rejected that patch before build:
+the writer published `complete` after `smp_wmb()`, while the terminal reader did
+not explicitly execute the matching `smp_rmb()` before recomputing and printing
+the identity. The definition now adds that read-side barrier and a thirteenth
+negative mutation. Attempt-1 patch SHA-256 `4b510a1b...` is rejected and must
+not be admitted or built.
 
 ## Analysis
 

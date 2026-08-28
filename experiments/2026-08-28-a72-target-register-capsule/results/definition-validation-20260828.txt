@@ -23,7 +23,7 @@ Result:
 validation=a72-target-register-capsule-definition
 identity_fields=32
 cpuinfo_comparisons=22
-negative_mutations=12
+negative_mutations=13
 physical_actions=none
 python_syntax=pass
 bash_syntax=pass
@@ -40,6 +40,7 @@ Rejected mutations:
 - removal of REVIDR
 - cpu_data comparison bypass
 - removal of the publication barrier
+- removal of the publication read barrier
 - non-WRITE_ONCE completion publication
 - removal of an identity field
 - removal/rename of one fixed output part
@@ -50,3 +51,12 @@ validated-definition
 
 No kernel was generated or built. No candidate, partition, CPU, firmware,
 MMIO, power, storage, reboot, or device action occurred.
+
+Post-generation source review:
+attempt_1_repository_commit=df0eed771d7e7cea6a9fae9d7843b95d18f88a29
+attempt_1_generated_patch_sha256=4b510a1bfdfd0451a5981d65a7f3a202cc5018fde939cd9cad94dc2e87772291
+attempt_1_parent_reversal=byte-identical
+attempt_1_decision=rejected-before-build
+attempt_1_reason=missing-explicit-read-barrier-before-terminal-identity-read
+attempt_1_kernel_build=none
+attempt_1_device_action=none
