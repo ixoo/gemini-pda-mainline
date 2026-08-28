@@ -37,5 +37,22 @@
     "git_diff_check": "pass",
     "result": "pass"
   },
+  "buildbox_generation_attempt_1": {
+    "repository_commit": "a6353c01d5d2e26564d73c4d32f359f5acf8ce5b",
+    "record": "results/buildbox-generation-attempt1-20260828.txt",
+    "record_sha256": "45cfadd4dabef11770c900ce4a537221db2a432deecd09856d6e9d8ff818a326",
+    "source_stage_validations": "2-of-2-pass",
+    "admitted_generated_patch_count": 0,
+    "result": "fail-closed-style-corrected"
+  },
+  "buildbox_generation_attempt_2": {
+    "repository_commit": "bc63b46d770e9311840f28013c0d0859a54d9c49",
+    "record": "results/buildbox-generation-attempt2-20260828.txt",
+    "record_sha256": "adafe4fa5acbbe86bee5ff5ef5241352970a7233a9b39d64054508386930f46f",
+    "source_stage_validations": "2-of-2-pass",
+    "strict_production_patch": "pass",
+    "admitted_generated_patch_count": 0,
+    "result": "fail-closed-description-corrected"
+  },
   "result": "definition-ready"
 }

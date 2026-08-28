@@ -99,12 +99,45 @@ require(
     definition["result"] == "pass",
     "definition validation result",
 )
+attempt = contract["buildbox_generation_attempt_1"]
+require(
+    attempt["repository_commit"] ==
+    "a6353c01d5d2e26564d73c4d32f359f5acf8ce5b" and
+    attempt["record"] ==
+    "results/buildbox-generation-attempt1-20260828.txt" and
+    sha256(EXPERIMENT / attempt["record"]) == attempt["record_sha256"],
+    "first Buildbox generation attempt record",
+)
+require(
+    attempt["source_stage_validations"] == "2-of-2-pass" and
+    attempt["admitted_generated_patch_count"] == 0 and
+    attempt["result"] == "fail-closed-style-corrected",
+    "first Buildbox generation attempt result",
+)
+attempt = contract["buildbox_generation_attempt_2"]
+require(
+    attempt["repository_commit"] ==
+    "bc63b46d770e9311840f28013c0d0859a54d9c49" and
+    attempt["record"] ==
+    "results/buildbox-generation-attempt2-20260828.txt" and
+    sha256(EXPERIMENT / attempt["record"]) == attempt["record_sha256"],
+    "second Buildbox generation attempt record",
+)
+require(
+    attempt["source_stage_validations"] == "2-of-2-pass" and
+    attempt["strict_production_patch"] == "pass" and
+    attempt["admitted_generated_patch_count"] == 0 and
+    attempt["result"] == "fail-closed-description-corrected",
+    "second Buildbox generation attempt result",
+)
 
 for relative in (
     "README.md", "DESIGN.md", "contract.json", "scripts/source_edits.py",
     "scripts/validate_source.py", "scripts/generate-patches.py",
     "scripts/generate-on-buildbox",
     "results/local-definition-validation-20260828.txt",
+    "results/buildbox-generation-attempt1-20260828.txt",
+    "results/buildbox-generation-attempt2-20260828.txt",
 ):
     path = EXPERIMENT / relative
     require(path.is_file() and not path.is_symlink(), f"exact file {relative}")

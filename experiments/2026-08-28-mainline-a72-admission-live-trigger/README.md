@@ -104,6 +104,18 @@ runs the admission core from `late_initcall` probe. That places the risky action
 before the established userspace network observer. The proposed mode moves
 supplier resolution and the unchanged core behind the one-shot endpoint.
 
+The first exact-source Buildbox generation at `a6353c01` passed both semantic
+source stages and stopped during strict review of production patch `0419`.
+Function continuation layout, one alignment, an overlong commit description,
+and comments for acquire/release ordering were corrected. The rejected attempt
+admitted no patch package and performed no build or device action.
+
+The second generation at `bc63b46d` made production patch `0419` strict-clean
+and reached test patch `0420`. Its only finding was an overlong test-patch
+commit description; the generated code had zero warnings and zero checks. The
+description is now wrapped. Again, no patch package, build, or device action
+was admitted.
+
 ## Analysis
 
 The new experiment separates two questions in one physical selection. If the

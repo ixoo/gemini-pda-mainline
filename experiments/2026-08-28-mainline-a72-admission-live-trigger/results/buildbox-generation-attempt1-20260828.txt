@@ -1,0 +1,16 @@
+validation=gemini-a72-admission-live-trigger-buildbox-generation-attempt-1
+repository_commit=a6353c01d5d2e26564d73c4d32f359f5acf8ce5b
+prepared_source_state=3d5c7e6572d06e50cf7db20ceed9e702780be5549f41d58904d1eb76dfa01bea
+prepared_source_integrity=4f067fb09248e1d0f72fbe1446d8374e7445c514010090d630483db27497861b
+source_stage_validations=2-of-2-pass
+failed_patch=0419-soc-mediatek-arm-CPU8-admission-after-live-service.patch
+strict_errors=0
+strict_warnings=3
+strict_checks=8
+admitted_patch_package=none
+admitted_generated_patch_count=0
+kernel_build=none
+native_vm_build=none
+device_action=none
+boot_candidate=false
+result=fail-closed-style-corrected

@@ -142,7 +142,7 @@ def main() -> None:
             ),
             (
                 "tests", SUBJECTS[1],
-                "Prove invalid-token refusal, terminal result capture, and "
+                "Prove invalid-token refusal, terminal result capture, and\n"
                 "repeat closure with injected operations.",
                 "2026-08-28T23:42:00Z",
             ),
