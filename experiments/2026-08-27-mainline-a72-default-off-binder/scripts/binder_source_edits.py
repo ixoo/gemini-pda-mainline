@@ -868,8 +868,8 @@ def apply_test_kconfig(path: Path) -> None:
 \tbool "KUnit tests for the MT6797 A72 default-off binder"
 \tdepends on KUNIT=y
 \tdepends on MTK_MT6797_A72_DEFAULT_OFF_BINDER
-\tselect ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST
-\tselect MTK_MT6797_A72_TRANSITION_EXECUTOR_KUNIT_TEST
+\tdepends on ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST
+\tdepends on MTK_MT6797_A72_TRANSITION_EXECUTOR_KUNIT_TEST
 \tdefault n
 \thelp
 \t  Exercise the binder admission, split lifecycle, owner-response,

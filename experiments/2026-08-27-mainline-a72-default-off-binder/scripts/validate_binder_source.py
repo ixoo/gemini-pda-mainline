@@ -139,8 +139,8 @@ def main() -> None:
         "depends on PSTORE_GEMINI_TRANSITION_LEDGER",
         "\tdefault n\n",
         "config MTK_MT6797_A72_DEFAULT_OFF_BINDER_KUNIT_TEST\n",
-        "\tselect ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST\n",
-        "\tselect MTK_MT6797_A72_TRANSITION_EXECUTOR_KUNIT_TEST\n",
+        "\tdepends on ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST\n",
+        "\tdepends on MTK_MT6797_A72_TRANSITION_EXECUTOR_KUNIT_TEST\n",
     ), "binder Kconfig")
     require(makefile, (
         "obj-$(CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER) += mt6797-a72-binder.o",

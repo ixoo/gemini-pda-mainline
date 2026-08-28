@@ -1,7 +1,7 @@
 # Hardware-free coverage for the complete default-off MT6797 CPU8 binder.
 # The binder is built, but no DT node or late CPU caller instantiates it. Its
-# focused suite injects all physical operations and selects the executor and
-# membership-owner suites for 21 total cases. No MMIO, retained-RAM write,
+# focused suite injects all physical operations. The profile explicitly enables
+# the executor and membership-owner suites for 21 total cases. No MMIO,
 # watchdog action, regulator/SMC call, CPU request, CPU_OFF, retry, or device
 # action is possible in this profile.
 CONFIG_KUNIT=y
@@ -17,6 +17,8 @@ CONFIG_MTK_MT6797_A72_PLATFORM_EFFECTS=y
 CONFIG_MTK_MT6797_DVFSP_BIGIDVFS_BACKEND=y
 CONFIG_MTK_MT6797_A72_BIGIDVFS_SRAM_OWNER=y
 CONFIG_MTK_MT6797_A72_TRANSITION_EXECUTOR=y
+CONFIG_MTK_MT6797_A72_TRANSITION_EXECUTOR_KUNIT_TEST=y
+CONFIG_ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST=y
 CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER=y
 CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER_KUNIT_TEST=y
 # CONFIG_HOTPLUG_SPLIT_STARTUP is not set
