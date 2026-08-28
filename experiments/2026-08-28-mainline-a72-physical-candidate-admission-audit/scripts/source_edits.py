@@ -77,16 +77,17 @@ def apply_header(path: Path) -> None:
         declaration,
         declaration +
         "#if IS_ENABLED(CONFIG_ARM64_MT6797_A72_DERIVED_ADMISSION)\n"
-        "int mt6797_a72_membership_derive_cpu8("
+        "int\n"
+        "mt6797_a72_membership_derive_cpu8("
         "const struct mt6797_a72_direct_state_snapshot *direct,\n"
-        "\tconst struct arm64_late_cpu_ready_token *ready,\n"
-        "\tstruct mt6797_a72_transaction *transaction);\n"
+        "\t\t\t\t  const struct arm64_late_cpu_ready_token *ready,\n"
+        "\t\t\t\t  struct mt6797_a72_transaction *transaction);\n"
         "#else\n"
         "static inline int\n"
         "mt6797_a72_membership_derive_cpu8("
         "const struct mt6797_a72_direct_state_snapshot *direct,\n"
-        "\tconst struct arm64_late_cpu_ready_token *ready,\n"
-        "\tstruct mt6797_a72_transaction *transaction)\n"
+        "\t\t\t\t  const struct arm64_late_cpu_ready_token *ready,\n"
+        "\t\t\t\t  struct mt6797_a72_transaction *transaction)\n"
         "{\n"
         "\t(void)direct;\n"
         "\t(void)ready;\n"
@@ -157,8 +158,8 @@ mt6797_a72_derive_cpu8_prestate(const struct mt6797_a72_direct_state_snapshot *d
 
 int
 mt6797_a72_membership_derive_cpu8(const struct mt6797_a72_direct_state_snapshot *direct,
-	const struct arm64_late_cpu_ready_token *ready,
-	struct mt6797_a72_transaction *transaction)
+				  const struct arm64_late_cpu_ready_token *ready,
+				  struct mt6797_a72_transaction *transaction)
 {
 	struct mt6797_a72_derived_workspace *workspace = &a72_derived_workspace;
 	int ret;
@@ -181,29 +182,29 @@ mt6797_a72_membership_derive_cpu8(const struct mt6797_a72_direct_state_snapshot 
 
 	mt6797_a72_derive_cpu8_entry(direct, &workspace->entry);
 	ret = mt6797_a72_membership_p31_consume_attempt(8, CPUHP_ONLINE,
-		MT6797_A72_ATTEMPT_CPU8_UP,
-		&workspace->entry);
+							MT6797_A72_ATTEMPT_CPU8_UP,
+							&workspace->entry);
 	if (ret)
 		goto out_clear;
 	ret = mt6797_a72_membership_validate_entry(8, CPUHP_ONLINE,
-		MT6797_A72_ATTEMPT_CPU8_UP,
-		&workspace->entry);
+						   MT6797_A72_ATTEMPT_CPU8_UP,
+						   &workspace->entry);
 	if (ret)
 		goto out_clear;
 	ret = mt6797_a72_membership_mint_up_token(8, CPUHP_ONLINE,
-		MT6797_A72_ATTEMPT_CPU8_UP,
-		&workspace->entry, ready, transaction);
+						  MT6797_A72_ATTEMPT_CPU8_UP,
+						  &workspace->entry, ready, transaction);
 	if (ret)
 		goto out_clear;
 
 	mt6797_a72_derive_cpu8_prestate(direct, transaction,
 					&workspace->prestate);
 	ret = mt6797_a72_membership_validate_up_prestate(transaction,
-		&workspace->prestate);
+							 &workspace->prestate);
 	if (ret)
 		goto reject_frozen;
 	ret = mt6797_a72_membership_bind_a36_prestate(&transaction->identity,
-		&workspace->prestate, transaction);
+						      &workspace->prestate, transaction);
 	if (ret)
 		goto reject_frozen;
 	goto out_clear;
