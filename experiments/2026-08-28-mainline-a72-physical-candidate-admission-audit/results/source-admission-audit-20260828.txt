@@ -1,0 +1,60 @@
+Mainline CPU8 physical-candidate admission source audit
+Date: 2026-08-28 America/New_York
+
+repository_commit=28adce23c56944368689bf5062fba0828d3a02d2
+repository_origin=https://github.com/ixoo/gemini-pda-mainline.git
+canonical_series_entries=398
+canonical_series_sha256=3658f5ef79dd75fe079cdce4defca982778c94d033c9854e0ac4645f5c3eb4aa
+manifest_sha256=c163d06d4668cffeccd48ed735cb10da00bdebd117ab2fa90841d14982ed7d7a
+prepared_source_state=c0fd471b2fbc291a0793ba093fe95acbf972685031bde67cad7c89833292694c
+prepared_source_integrity=2b1b2e9ba54fc0361cc3e6bdfba3478059c7750ac715e0b5d8d8a8b2e38246b1
+
+Prepared-source file identities:
+  arch/arm64/include/asm/mt6797_a72_membership.h=f04be5e5152ca1e88da4b1701b72d266e650e84d28f2de35e40cc5276509182a
+  arch/arm64/kernel/mt6797_a72_membership.c=5bc397338407ab63b263a01d5777da355086c1cfaf642926facff07e37e8d898
+  arch/arm64/kernel/late_cpu_profile.c=22ecfb06e8d00972ffdecad6019c11f2b4d695a38c90aa3bbd6977c4c22bc29b
+  drivers/soc/mediatek/mt6797-a72-physical-source-observer.c=71f57d0bc5a708b0729104c9c562c480f6c27f112677fdad0e2c4ead8aea19e8
+  drivers/soc/mediatek/mt6797-a72-binder.c=7d40050e22686f68bcad9dfe06ef8b1c3ebf8934abdb6311c78c1b9ef6283c1a
+  include/linux/soc/mediatek/mt6797-a72-binder.h=46ff82bd82176dfbb79388ce2085bba1ebe745b7b295d07ccc853f58b62f38f8
+  fs/pstore/gemini_transition_ledger.c=83581a5a5a770f2d83fd1994cae2fcf41bbc4cd9f9dab87e691442ab6368d30b
+  drivers/watchdog/mtk_wdt.c=7daf615c14e7eebb065ea7a9e963e715fb163a27ddbc6a52d048ad0f0f744441
+  kernel/cpu.c=bb87f455ebdd3e2b74befbd097a3a35723ac6350cafbd322aa3caffa4f6b7302
+
+Production reachability:
+  publish_bootstrap_external_callers=0
+  membership_begin_up_external_callers=0
+  membership_publish_up_external_callers=0
+  add_cpu8_callers=0
+  enabled_binder_dt_nodes=0
+  enabled_candidate_controller_dt_nodes=0
+
+Exact current cycles:
+  begin_up_mints_generation_cookie_and_validates_caller_copy_in_same_call=yes
+  A36_da921x_page_source=absent-no-PAGE_CON-read
+  A36_secure_sentinels_stable_source=absent
+  A36_pstore_console_available_source=absent
+  A36_watchdog_owned_before_add_cpu=impossible
+  binder_entry=inside-add_cpu-MT6797-cpu_boot
+  binder_recovery_order=ledger-begin-before-watchdog-takeover-before-P27
+  direct_late_caller_safe=no
+
+Selected repair:
+  source=exact-composed-current-boot-snapshot
+  transaction_identity=membership-owner-derived
+  obsolete_page_and_recovery_assertions=reserved-zero
+  recovery_authority=binder-fallible-ledger-and-exact-watchdog-results
+  controller=consumed-before-mutation-one-task-one-add_cpu8
+  cpu9=absent
+  cpu_off=absent
+  retry=absent
+  userspace_trigger=absent
+
+kernel_build=none
+native_vm_build=none
+device_access=none
+retained_write=none
+watchdog_takeover=none
+cpu_request=none
+partition_write=none
+boot_candidate=false
+result=direct-caller-rejected-derived-admission-compositor-required

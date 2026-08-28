@@ -1,0 +1,24 @@
+Mainline CPU8 derived-admission local definition validation
+Date: 2026-08-28 America/New_York
+
+repository_parent=28adce23c56944368689bf5062fba0828d3a02d2
+bash_syntax=pass
+shellcheck=pass
+python_syntax=pass
+definition_validation=pass
+model_validation=pass
+model_cases=6
+model_success_cpu8_requests=1
+model_cpu9_requests=0
+model_cpu_off_requests=0
+model_retries=0
+generated_patch_count=planned-2
+derived_production_entries=planned-1-default-off
+derived_kunit_cases=planned-5
+source_generator_execution=deferred-until-signed-pushed-clean-commit
+buildbox_kernel_build=none
+native_vm_build=none
+device_action=none
+cpu_request=none
+boot_candidate=false
+result=local-model-and-source-generator-definition-pass

@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly repository_commit="${1:?repository commit required}"
+readonly source_root="${2:?prepared source root required}"
+readonly artifact_root="${3:?artifact root required}"
+readonly expected_parent_source_state=c0fd471b2fbc291a0793ba093fe95acbf972685031bde67cad7c89833292694c
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly script_dir
+readonly package_name="${repository_commit}-a72-derived-admission-patches"
+readonly destination="${artifact_root}/${package_name}"
+readonly temporary="${destination}.partial.$$"
+
+[[ "${repository_commit}" =~ ^[0-9a-f]{40}$ ]]
+[[ -d "${source_root}" && ! -L "${source_root}" ]]
+[[ -f "${source_root}/.gemini-source-state" ]]
+prepared_source_state="$(<"${source_root}/.gemini-source-state")"
+readonly prepared_source_state
+[[ "${prepared_source_state}" == "${expected_parent_source_state}" ]]
+[[ -d "${artifact_root}" && ! -L "${artifact_root}" ]]
+[[ ! -e "${destination}" ]]
+
+cleanup() {
+  if [[ -n "${temporary:-}" && -d "${temporary}" && ! -L "${temporary}" ]]; then
+    rm -rf -- "${temporary}"
+  fi
+}
+trap cleanup EXIT
+
+python3 "${script_dir}/generate-patches.py" \
+  --source-root "${source_root}" \
+  --repository-commit "${repository_commit}" \
+  --output "${temporary}"
+(
+  cd "${temporary}"
+  sha256sum --check --strict SHA256SUMS >/dev/null
+  grep -Fx "repository_commit=${repository_commit}" provenance.txt >/dev/null
+  grep -Fx "prepared_source_state=${expected_parent_source_state}" provenance.txt >/dev/null
+  grep -Fx 'generated_patch_count=2' provenance.txt >/dev/null
+  grep -Fx 'derived_production_entries=1' provenance.txt >/dev/null
+  grep -Fx 'derived_kunit_cases=5' provenance.txt >/dev/null
+  grep -Fx 'caller_identity_words=0' provenance.txt >/dev/null
+  grep -Fx 'caller_page_recovery_assertions=0' provenance.txt >/dev/null
+  grep -Fx 'production_cpu_requests=0' provenance.txt >/dev/null
+  grep -Fx 'cpu_off_call_sites=0' provenance.txt >/dev/null
+  grep -Fx 'retry_call_sites=0' provenance.txt >/dev/null
+  grep -Fx 'native_vm_build=none' provenance.txt >/dev/null
+  grep -Fx 'device_action=none' provenance.txt >/dev/null
+  grep -Fx 'boot_candidate=false' provenance.txt >/dev/null
+)
+mv "${temporary}" "${destination}"
+trap - EXIT
+printf 'Generated source-derived CPU8 admission patches at %s\n' "${destination}"

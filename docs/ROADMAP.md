@@ -5685,9 +5685,26 @@ The next ordered work is:
    records zero production callers, physical backends, physical CPU requests,
    CPU_OFF requests, retries, MMIO, retained-RAM access, or SMCs. This closes
    the hardware-free binder proof with no enabled binder DT node, device action,
-   or boot candidate. **Selected next:** design and validate one separate,
-   decision-bearing physical CPU8 candidate that enables the binder, adds one
-   late request, and preserves every proven attribution and fail-closed gate.
+   or boot candidate. The linked
+   [physical-candidate admission audit](../experiments/2026-08-28-mainline-a72-physical-candidate-admission-audit/README.md)
+   then rejects the apparent two-delta candidate. The exact source has no
+   production bootstrap, transaction, publication, or CPU8 request caller;
+   `begin_up()` mints an identity while requiring the caller to predict that
+   identity in A36; and dormant A36 still demands caller assertions for an
+   unobserved DA921x page, secure stability, retained-console availability, and
+   already-owned watchdog state.
+   The last assertion is cyclic: the proven binder begins the retained ledger
+   and takes over the watchdog only after `add_cpu(8)` reaches its CPU-boot
+   callback. Arming it earlier would invert ledger-before-watchdog, while
+   claiming readiness as ownership would manufacture evidence. **Selected
+   next:** implement and exhaustively test one derived admission compositor
+   plus one consumed-before-mutation controller. It must derive entry/A36 and
+   the internally minted identity from the exact composed current-boot source,
+   reserve the obsolete page/recovery assertions to zero, publish P17/P18 and make one
+   same-task `add_cpu(8)` call, and leave ledger -> watchdog -> first mutation
+   exclusively inside the binder. Prove that source seam on Buildbox and in one
+   bounded no-network run before assembling a separate decision-bearing
+   physical candidate.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-28-mainline-a72-physical-candidate-admission-audit",
+  "repository_commit": "28adce23c56944368689bf5062fba0828d3a02d2",
+  "canonical_series_entries": 398,
+  "canonical_series_sha256": "3658f5ef79dd75fe079cdce4defca982778c94d033c9854e0ac4645f5c3eb4aa",
+  "manifest_sha256": "c163d06d4668cffeccd48ed735cb10da00bdebd117ab2fa90841d14982ed7d7a",
+  "prepared_source_state": "c0fd471b2fbc291a0793ba093fe95acbf972685031bde67cad7c89833292694c",
+  "prepared_source_integrity": "2b1b2e9ba54fc0361cc3e6bdfba3478059c7750ac715e0b5d8d8a8b2e38246b1",
+  "direct_design": {
+    "binder_dt_enable": true,
+    "late_add_cpu8": true,
+    "safe": false,
+    "reason": "unsourced-a36-and-ledger-watchdog-order-cycle"
+  },
+  "external_production_callers": {
+    "publish_bootstrap": 0,
+    "membership_begin_up": 0,
+    "membership_publish_up": 0,
+    "add_cpu8": 0
+  },
+  "obsolete_a36_caller_assertions": [
+    "da921x_page",
+    "secure_sentinels_stable",
+    "pstore_console_available",
+    "watchdog_owned"
+  ],
+  "required_order": [
+    "exact-source-capture",
+    "a34-bootstrap-publication",
+    "owner-derived-cpu8-transaction",
+    "p17-p18-publication",
+    "one-add-cpu8",
+    "retained-ledger-begin",
+    "watchdog-takeover",
+    "p27-first-mutation"
+  ],
+  "selected_implementation": [
+    "derived-membership-admission-compositor",
+    "read-only-binder-ready-gate",
+    "one-task-consumed-before-mutation-controller",
+    "hardware-free-kunit-and-no-network-qemu",
+    "separate-one-boot-physical-candidate"
+  ],
+  "model_cases": 6,
+  "model_result": "pass",
+  "planned_generated_patches": 2,
+  "planned_derived_kunit_cases": 5,
+  "source_generator_execution": "deferred-until-signed-pushed-clean-commit",
+  "local_validation_sha256": "8caa48936f7d895d40d8a6dee76415a8c63ef2f1a0bea02ead71c8fa6837271a",
+  "source_receipt_sha256": "5e173c680a4463a1137926b5cc09337891d36b71c5c4d296fd7f7df2eb9bd1fc",
+  "kernel_build": false,
+  "device_action": false,
+  "result": "direct-caller-rejected-derived-admission-compositor-required"
+}
