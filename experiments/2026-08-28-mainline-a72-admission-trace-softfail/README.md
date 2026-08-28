@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-admission-trace-softfail` |
-| Status | `running` |
+| Status | `complete`; candidate retired after a serviceability-DT construction defect |
 | Subsystem | MT6797 CPU8 admission controller |
 | Device variant | Planet Gemini PDA, named project device |
 | Date(s) | 2026-08-28 |
@@ -114,6 +114,26 @@ records sanitized USB VID/PID/session and exact Gemini network transitions at a
 packet readiness and netcat. This makes one repeat decision-changing even if
 the device returns to Gemian before the network interface becomes usable.
 
+Attempt 2 used that independent observer. After the owner selected `boot2`, the
+host saw exact Gemian USB disappear, MediaTek preloader `0x0e8d:0x2000`, an
+otherwise unidentified `0x0e8d:0x20ff` stage, a second preloader enumeration,
+and finally changed-session Gemian USB. The exact mainline network interface
+never appeared, so the collector opened zero sessions and sent no trigger.
+Changed-ID Gemian `d473e30e...` still read exact installed candidate
+`83dec186...`; pstore was empty, both admission traces were empty, the
+transition ledger was logically empty, and `last_kmsg` was the same known
+generic 74-byte header. This independently localizes the attempt before the
+controller and still does not test CPU8 or trace soft-failure.
+
+The post-attempt construction audit found the cause. Candidate validation had
+recorded raw full-admission DTB `1bd6ce2d...`, not serviceability-restored DTB
+`1478f2c8...`. The former is the already-rejected raw DT whose USB controller,
+T-PHY/U2 port, I2C5, AW9523, and keyboard statuses require the proven
+serviceability transform. The builder accidentally derived from the durable
+raw-DT candidate instead of the serviceable ATAG lineage. The observed absence
+of mainline USB is therefore consistent with a known container defect and is
+not evidence against the trace-softfail kernel change.
+
 ## Analysis
 
 The delta changes no hardware call site. It adds one policy bit to
@@ -127,14 +147,18 @@ instrumentation failure from being mistaken for the CPU8 result.
 
 ## Conclusion
 
-Offline validation and deployment are complete. Attempt 1 did not reach the
-test boundary; one instrumented repeat remains pending.
-This candidate is not a repeat: unlike the previous image, its exact root-only
-trigger continues beyond retained-trace `-EIO` and should expose the first real
-source-register, derive, publish, or CPU8 request result.
+Offline kernel and focused KUnit validation passed, but the selected boot
+container used the wrong DT derivative. Neither physical attempt reached the
+root-only trigger or requested CPU8. The subsecond second attempt and retained
+recovery make the pre-controller result attributable, and the construction
+audit explains it with the known raw-DT serviceability defect. Candidate
+`83dec186...` is retired and must not be repeated.
 
 ## Follow-up
 
-If the core reaches `add_cpu(8)`, use its return and the resulting online mask
-to select the next hardware boundary. If it stops earlier, act on that named
-stage. Do not repeat an identical artifact.
+Assemble the already-built exact softtrace kernel with proven DT
+`1478f2c8...` and the unchanged serviceability ramdisk. Independently require
+the six restored serviceability nodes, complete controller/binder graph, exact
+package identities, deterministic LK construction, and all container gates.
+This correction needs no kernel rebuild. Only that non-identical, one-DT-change
+candidate may return to the live one-shot decision map.

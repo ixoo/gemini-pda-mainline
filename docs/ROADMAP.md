@@ -5950,7 +5950,24 @@ The next ordered work is:
    **Selected next:** keep trace failure fail-closed for automatic admission,
    but make it non-gating for the explicit live one-shot, report its return
    separately, preserve all one-shot/CPU8/CPU9/CPU_OFF gates, and build that
-   one-change candidate only on Buildbox.
+   one-change candidate only on Buildbox. That exact kernel change now passes
+   16 of 16 focused Buildbox/QEMU cases and the production package passed its
+   checksum and symbol gates. However, its container builder regressed to raw
+   full-admission DT `1bd6ce2d...` instead of proven serviceability-restored DT
+   `1478f2c8...`. Two owner-selected boots automatically returned to Gemian
+   before exact mainline USB appeared; the second added a 0.25-second host USB
+   observer and captured preloader, `0x0e8d:0x20ff`, another preloader, then
+   changed-session Gemian. It opened zero netcat sessions and sent zero
+   triggers. Read-only recovery matched installed boot2, found empty pstore,
+   admission traces, and transition ledger, and therefore confirms only a
+   pre-controller result. The construction audit makes that result consistent
+   with the already-known raw-DT serviceability defect, not a trace-softfail or
+   CPU8 result. Candidate `83dec186...` is retired. **Selected next:** perform
+   no kernel rebuild; assemble the exact already-validated softtrace package
+   with DT `1478f2c8...` and the unchanged serviceability ramdisk, require the
+   six restored serviceability nodes plus the complete admission graph in an
+   independent validator, and spend one boot only after deterministic LK and
+   full boot2 gates pass.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
