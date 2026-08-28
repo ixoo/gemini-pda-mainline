@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-27-mainline-a72-default-off-binder` |
-| Status | exact buildbox compile pass; bounded QEMU/KUnit harness pending publication |
+| Status | QEMU exposed owner-test stack overflow; test-only repair generation pending |
 | Subsystem | CPU8 admission, transition owners, PSCI, and generic hotplug lifecycle |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-27 America/New_York |
@@ -59,6 +59,9 @@ arm caller or binder Device Tree node; and no boot candidate is selected.
 - [`scripts/classify-kunit.py`](scripts/classify-kunit.py) requires all 47
   membership, executor, and binder results plus the expected post-test rootfs
   panic boundary.
+- [`scripts/generate-owner-stack-fix-on-buildbox`](scripts/generate-owner-stack-fix-on-buildbox)
+  generates one test-only follow-up from the exact full-series source after the
+  first runtime attempt exposed oversized membership-owner fixtures.
 
 ## Audit result
 
@@ -115,9 +118,24 @@ patch whitespace warning. Exact identities and the warning breakdown are in
 the [compile evidence](results/buildbox-compile-0f5a1d70.txt).
 
 The built package is intentionally not a boot candidate. It has no late CPU
-caller and no binder DT node, and it has not been written to any device. The
-next action is the single bounded, no-network QEMU/KUnit proof; a physical
-candidate remains a separate later change.
+caller and no binder DT node, and it has not been written to any device.
+
+## First QEMU result
+
+The first actual 45-second, no-network QEMU run reached the 30-case membership
+owner suite, then exposed the compiler's inherited large-frame warnings as a
+real arm64 kernel-stack defect. Seventeen cases faulted while clearing local
+40--75 KiB fixtures, three small cases passed, and one further case failed only
+after the preceding faults had corrupted shared owner state. The guest then
+panicked with `Kernel panic - not syncing: kernel stack overflow` before the
+remaining owner cases, executor suite, or binder suite could run.
+
+The raw log remains a private ignored artifact; its sanitized identity and
+classification are in the [runtime rejection evidence](results/kunit-qemu-stack-overflow-0f5a1d70-20260828.txt).
+This is a test-only blocker, not evidence about the physical CPU8 path. The
+next revision moves every large owner observation, transaction, and snapshot
+into one KUnit-managed per-case fixture. A new exact package will receive one
+new bounded run; a physical candidate remains a separate later change.
 
 ## Follow-up
 
