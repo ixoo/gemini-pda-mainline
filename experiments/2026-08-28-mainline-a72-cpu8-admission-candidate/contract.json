@@ -22,7 +22,13 @@
   "integrated_series_sha256": "7b6f7effa5d553ee095103760d40f14c17dbc112d5c8aaea243d7f89238243a5",
   "integrated_manifest_sha256": "e12f4e224e8765631dee05e796a614fc378be7e0d6b5c1ea77baa7f8ee067b4e",
   "integrated_profile": "a72-admission-candidate",
-  "integrated_config_fragment_sha256": "35eb84e92f7817a76f4b7b7b6f3b43a0df9336ac9678eee73b55a9cb2799540b",
+  "integrated_config_fragment_sha256": "2948234509f6a37c70ae078568cfa86a148b87384d34d23bc9c46ad768299ffa",
+  "kernel_build_attempt_1": {
+    "commit": "41fdaa36b8d928c9ac02dc7401b3bd70643a5546",
+    "result": "fail-before-compile",
+    "failure_class": "unmet-production-derived-admission-prerequisites",
+    "repair": "enable-a34-eligibility-and-bootstrap-publisher"
+  },
   "target_cpu": 8,
   "excluded_cpu": 9,
   "physical_boots_budget": 1,
