@@ -45,6 +45,7 @@ does not create a redundant backup.
 - `scripts/build-candidate.sh`: hash-pinned deterministic LK assembly.
 - `scripts/validate-candidate.py`: independent package, binary-DTB, and LK validator.
 - `scripts/install-boot2.sh`: live-GPT/TEE/ledger/power/readback/shutdown gates.
+- `scripts/initialize-transition-ledger.sh`: exact two-u32 logical-empty repair.
 - `scripts/collect-runtime.sh`: pre-armed USB/netcat attempt-1 collector.
 - `scripts/remote-live-probe.sh`: bounded read-only CPU and ledger probe.
 - `scripts/validate-runtime.py`: exact success/rejection/failure decision map.
@@ -80,7 +81,11 @@ boot has occurred in this experiment yet. The guarded installer and bounded
 runtime path are also materialized: transition-ledger preflight and all three
 serviceable runtime outcomes passed self-tests, including rejection of CPU9
 online. The installer creates no fresh partition backup and confirms shutdown
-with both SSH loss and three consecutive TCP/22 closures.
+with both SSH loss and three consecutive TCP/22 closures. The first read-only
+live preflight found the known pstore signature with stale `start=size=130`,
+which the transition ledger would reject before a CPU request. Its exact
+84-byte identity is now pinned for a two-u32 logical-empty initialization;
+that retained-RAM repair has not yet executed.
 
 ## Analysis
 

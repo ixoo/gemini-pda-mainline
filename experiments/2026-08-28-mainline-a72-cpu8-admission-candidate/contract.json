@@ -56,6 +56,7 @@
     },
     "deployment_tooling": {
         "installer_sha256": "4431779577626835706a81dbef1bd90e756fecbbdfb65c716cb3e39b9c4ebb5a",
+        "ledger_initializer_sha256": "e2ef0e24dd55c93c6dea04a3ceb41628e83f3b3c75fb3bbb26dd5573def6c0be",
         "transition_ledger_validator_sha256": "cefe3d19ad05c4facbdff7725667c33105d5d714c9d6b32d5ba993d5fccd9e85",
         "runtime_collector_sha256": "ddbe837a40b4f87740b69c35a73d6438e4fe9f47d96aad0cc1499693d11e3ecc",
         "runtime_probe_sha256": "7b99beca6b9228efa632065de93d9fd8337867733584ae697e9bcccac8432cfc",
@@ -64,6 +65,15 @@
         "runtime_decision_tests": "4-of-4-pass",
         "device_access": false,
         "result": "pass"
+    },
+    "retained_ledger_initialization": {
+        "observed_prefix_sha256": "b54428eae30bf9e947b8a16941e5e54eaddadc97579805bd555272a0115e497c",
+        "observed_header": [1128743492, 130, 130],
+        "planned_header": [1128743492, 0, 0],
+        "u32_writes": 2,
+        "device_partitions": false,
+        "device_action": false,
+        "result": "exact-plan-frozen"
     },
   "target_cpu": 8,
   "excluded_cpu": 9,

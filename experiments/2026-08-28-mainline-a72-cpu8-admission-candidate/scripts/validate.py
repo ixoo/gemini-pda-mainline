@@ -137,12 +137,14 @@ for result in (
     "candidate-validation-20260828.txt",
     "deployment-tooling-validation-20260828.txt",
     "predeployment-hypothesis-20260828.txt",
+    "retained-ledger-initialization-plan-20260828.txt",
 ):
     path = EXPERIMENT / "results" / result
     require(path.is_file() and not path.is_symlink(), f"result record {result}")
 tooling = contract["deployment_tooling"]
 for name, key in (
     ("install-boot2.sh", "installer_sha256"),
+    ("initialize-transition-ledger.sh", "ledger_initializer_sha256"),
     ("validate-transition-ledger.py", "transition_ledger_validator_sha256"),
     ("collect-runtime.sh", "runtime_collector_sha256"),
     ("remote-live-probe.sh", "runtime_probe_sha256"),
@@ -154,6 +156,18 @@ for name, key in (
 require(tooling["runtime_decision_tests"] == "4-of-4-pass" and
         tooling["device_access"] is False and tooling["result"] == "pass",
         "deployment tooling result")
+ledger_initialization = contract["retained_ledger_initialization"]
+require(ledger_initialization["observed_prefix_sha256"] ==
+        "b54428eae30bf9e947b8a16941e5e54eaddadc97579805bd555272a0115e497c",
+        "observed stale retained prefix")
+require(ledger_initialization["observed_header"] == [1128743492, 130, 130] and
+        ledger_initialization["planned_header"] == [1128743492, 0, 0],
+        "exact retained header transition")
+require(ledger_initialization["u32_writes"] == 2 and
+        ledger_initialization["device_partitions"] is False and
+        ledger_initialization["device_action"] is False and
+        ledger_initialization["result"] == "exact-plan-frozen",
+        "bounded retained initialization plan")
 source_validator = (
     EXPERIMENT / "scripts/validate_source.py"
 ).read_text(encoding="utf-8")
@@ -189,6 +203,7 @@ print("kernel_build=exact-buildbox-pass")
 print("lk_gates=32-of-32")
 print("deployment_tooling=validated")
 print("runtime_decision_tests=4-of-4-pass")
+print("retained_ledger_initialization=exact-two-u32-plan")
 print("device_action=none")
 print("boot_candidate=true")
 print("result=pass")
