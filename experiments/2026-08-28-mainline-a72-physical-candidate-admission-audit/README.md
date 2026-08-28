@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-physical-candidate-admission-audit` |
-| Status | derived admission compiles and passes 5/5 in QEMU; focused KUnit isolation patch integrated; rebuild pending |
+| Status | derived admission passes 5/5; first isolation rebuild exposed one missing test-only Kconfig dependency; focused repair defined |
 | Subsystem | MT6797 CPU8 A34/A36 membership admission and physical binder entry |
 | Device variant | Planet Gemini PDA, named development unit |
 | Date(s) | 2026-08-28 America/New_York |
@@ -76,7 +76,7 @@ its intentionally omitted public-hook configuration and failed four of 26
 cases. The [build and runtime receipt](results/buildbox-kernel-qemu-attempt1-20260828.txt)
 records the exact package, hashes, cases, and failure classification.
 
-The selected repair is source-only: select the existing hidden owner fixture
+The selected isolation is source-only: select the existing hidden owner fixture
 symbol directly and make the late-startup reset helper follow that hidden
 symbol. This removes the unrelated suite without changing production logic.
 Its source-pinned [Buildbox generator](scripts/generate-runtime-isolation-fix-on-buildbox),
@@ -88,6 +88,22 @@ validation passed. The resulting three-line patch is canonical `0409`, and
 its exact identity is recorded in the
 [isolation generation receipt](results/runtime-isolation-generation-20260828.txt).
 Its Buildbox rebuild and focused QEMU rerun remain pending.
+
+That rebuild stopped without a package. Patch `0409` correctly removed the
+unrelated owner KUnit suite, but the suite had also supplied the base P24
+transaction-owner model transitively. Kconfig therefore reported the hidden
+test seed and the three derived components selected with their owner-model
+dependency disabled. The exact failure is recorded in the
+[rebuild receipt](results/runtime-isolation-build-attempt-20260828.txt).
+
+The bounded follow-up is one Kconfig line: explicitly select the base owner
+model before its hidden test seed, while continuing not to select the owner
+KUnit suite. The source-pinned
+[dependency generator](scripts/generate-owner-model-dependency-fix-on-buildbox),
+[deterministic edit](scripts/owner_model_dependency_edits.py), and
+[validator](scripts/validate_owner_model_dependency_source.py) are defined
+against the exact prepared `0409` source. They change no production logic and
+must pass the same signed, pushed, clean Buildbox workflow before import.
 
 ## Safety assessment
 
@@ -187,7 +203,8 @@ This is a source admission result, not hardware support.
 ## Follow-up
 
 The authoritative next work is in
-[Roadmap Gate 7](../../docs/ROADMAP.md#7-bring-up-cpu8). Build the repaired
-hardware-free profile on Buildbox and run its bounded no-network tests before
+[Roadmap Gate 7](../../docs/ROADMAP.md#7-bring-up-cpu8). Generate and integrate
+the one-line dependency closure, then build the repaired hardware-free profile
+on Buildbox and run its bounded no-network tests before
 assembling one distinct physical candidate. Only a validated candidate may be
 installed to live-GPT inactive `boot2` under the standing safety gates.

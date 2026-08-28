@@ -151,6 +151,31 @@ require(CONTRACT["runtime_isolation_patch_integrated"] is True,
 require(CONTRACT["runtime_isolation_kernel_build"] is False,
         "runtime isolation rebuild pending")
 
+failed_rebuild = EXP / "results/runtime-isolation-build-attempt-20260828.txt"
+require(sha256(failed_rebuild) ==
+        CONTRACT["runtime_isolation_build_attempt_receipt_sha256"],
+        "runtime isolation failed rebuild hash")
+failed_rebuild_text = failed_rebuild.read_text(encoding="utf-8")
+for token in (
+    "build_result=fail", "package_created=false",
+    "failure_class=unmet-owner-model-test-dependency",
+    "owner_model_config=n", "owner_kunit_suite_selected=false",
+    "selected_repair=select-base-owner-model-before-hidden-test-seed",
+    "production_semantics_changed=false", "native_vm_build=none",
+    "device_action=none", "boot_candidate=false",
+):
+    require(token in failed_rebuild_text,
+            f"runtime isolation failed rebuild token: {token}")
+require(CONTRACT["runtime_isolation_build_attempt"] == {
+    "commit": "8f58958a1083001ce20bb7f531cbd248cc3794af",
+    "result": "fail-before-package",
+    "failure_class": "unmet-owner-model-test-dependency",
+    "device_action": False,
+}, "runtime isolation failed rebuild")
+require(CONTRACT["selected_dependency_repair"] ==
+        "select-base-owner-model-before-hidden-test-seed",
+        "selected dependency repair")
+
 receipt = EXP / "results/source-admission-audit-20260828.txt"
 require(CONTRACT["source_receipt_sha256"] != "pending", "receipt hash pending")
 require(sha256(receipt) == CONTRACT["source_receipt_sha256"], "receipt hash")
@@ -185,7 +210,7 @@ for token in (
 readme = (EXP / "README.md").read_text(encoding="utf-8")
 design = (EXP / "DESIGN.md").read_text(encoding="utf-8")
 combined = (readme + design + receipt_text + local_text + generation_text +
-            runtime_text + isolation_text)
+            runtime_text + isolation_text + failed_rebuild_text)
 words = " ".join(combined.split())
 for token in (
     "No direct caller can satisfy the current graph",
@@ -199,7 +224,7 @@ require("/Users/" not in combined, "no personal absolute path")
 require(CONTRACT["kernel_build"] is True, "kernel build")
 require(CONTRACT["device_action"] is False, "no device action")
 require(CONTRACT["result"] ==
-        "derived-suite-passes-runtime-isolation-integrated-awaiting-rebuild",
+        "derived-suite-passes-test-dependency-repair-defined",
         "result")
 
 print("definition_validation=pass")
@@ -211,6 +236,7 @@ print("derived_kunit_cases=5")
 print("kernel_build=pass")
 print("qemu_derived_cases=pass:5_fail:0")
 print("runtime_isolation_repair=integrated")
-print("runtime_isolation_rebuild=pending")
+print("runtime_isolation_rebuild=failed-safe-before-package")
+print("owner_model_dependency_repair=defined")
 print("native_vm_build=none")
 print("device_action=none")

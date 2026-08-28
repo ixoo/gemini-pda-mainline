@@ -77,9 +77,17 @@
   "selected_runtime_isolation_repair": "select-hidden-owner-test-seed-without-owner-kunit-suite",
   "runtime_isolation_patch_integrated": true,
   "runtime_isolation_kernel_build": false,
+  "runtime_isolation_build_attempt_receipt_sha256": "6fa2e275a3b8135687a0b371ef4bc5a983a200156415873a4190164b1f9e1757",
+  "runtime_isolation_build_attempt": {
+    "commit": "8f58958a1083001ce20bb7f531cbd248cc3794af",
+    "result": "fail-before-package",
+    "failure_class": "unmet-owner-model-test-dependency",
+    "device_action": false
+  },
+  "selected_dependency_repair": "select-base-owner-model-before-hidden-test-seed",
   "local_validation_sha256": "8caa48936f7d895d40d8a6dee76415a8c63ef2f1a0bea02ead71c8fa6837271a",
   "source_receipt_sha256": "5e173c680a4463a1137926b5cc09337891d36b71c5c4d296fd7f7df2eb9bd1fc",
   "kernel_build": true,
   "device_action": false,
-  "result": "derived-suite-passes-runtime-isolation-integrated-awaiting-rebuild"
+  "result": "derived-suite-passes-test-dependency-repair-defined"
 }

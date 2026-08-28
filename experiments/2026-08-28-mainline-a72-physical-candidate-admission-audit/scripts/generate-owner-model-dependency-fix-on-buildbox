@@ -1,0 +1,175 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+export LC_ALL=C
+
+readonly PARENT_SOURCE_STATE=ae928e700280af5faed285c0cdbfd78b5b1094104894661e586b6320d427eaf5
+readonly PARENT_SOURCE_INTEGRITY=5181861e9c5f698027e138494d29d3755d13b5102e6f2300cae7efda0d6ef53c
+readonly KCONFIG_SHA256=69cca5d4567fa41a89ddeb14e901884b005e3f53587253e00cc5c801f8634110
+readonly PARENT_PATCH=0409-arm64-mediatek-isolate-derived-admission-KUnit-fixtures.patch
+readonly PARENT_PATCH_SHA256=4f231db2f7fa5501232c16d725afb033a5add43dc13024d1e47b8542d4b88306
+readonly PATCH=0410-arm64-mediatek-select-owner-model-for-derived-admission-tests.patch
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+
+[[ "$#" -eq 3 ]] || die 'expected PROJECT_COMMIT SOURCE_ROOT OUTPUT_ROOT'
+readonly project_commit=$1
+readonly source_root=$2
+readonly output_root=$3
+[[ "$project_commit" =~ ^[0-9a-f]{40}$ ]] || die 'invalid project commit'
+[[ "$source_root" == /workspace/gemini-pda/src/linux-7.1.3-series-source ]] ||
+	die 'unexpected managed source root'
+[[ "$output_root" == /workspace/gemini-pda/* ]] || die 'unsafe output root'
+[[ -f "$source_root/.gemini-source-state" &&
+	! -L "$source_root/.gemini-source-state" ]] ||
+	die 'prepared source state marker absent or unsafe'
+[[ "$(<"$source_root/.gemini-source-state")" == "$PARENT_SOURCE_STATE" ]] ||
+	die 'prepared parent source state changed'
+[[ -f "$source_root/.gemini-source-integrity" &&
+	! -L "$source_root/.gemini-source-integrity" ]] ||
+	die 'prepared source integrity marker absent or unsafe'
+[[ "$(<"$source_root/.gemini-source-integrity")" == "$PARENT_SOURCE_INTEGRITY" ]] ||
+	die 'prepared source integrity marker changed'
+
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+experiment_dir=$(cd -- "$script_dir/.." && pwd -P)
+repository_dir=$(cd -- "$experiment_dir/../.." && pwd -P)
+readonly script_dir experiment_dir repository_dir
+[[ "$(git -C "$repository_dir" rev-parse HEAD)" == "$project_commit" ]] ||
+	die 'project checkout does not match requested commit'
+[[ -z "$(git -C "$repository_dir" status --porcelain)" ]] ||
+	die 'project checkout is dirty'
+for command in git perl python3 sha256sum; do
+	command -v "$command" >/dev/null 2>&1 || die "missing command: $command"
+done
+integrity=$(python3 "$repository_dir/scripts/source-tree-integrity" \
+	verify "$source_root")
+readonly integrity
+[[ "$integrity" == "source_tree_integrity=$PARENT_SOURCE_INTEGRITY" ]] ||
+	die 'prepared source integrity verification failed'
+
+readonly kconfig=arch/arm64/Kconfig
+printf '%s  %s\n' "$KCONFIG_SHA256" "$source_root/$kconfig" |
+	sha256sum --check --status || die 'parent Kconfig changed'
+readonly parent_patch_path="$repository_dir/patches/v7.1.3/$PARENT_PATCH"
+printf '%s  %s\n' "$PARENT_PATCH_SHA256" "$parent_patch_path" |
+	sha256sum --check --status || die 'canonical parent patch changed'
+
+readonly work_root=/workspace/gemini-pda/a72-derived-owner-dependency-work
+readonly package="$output_root/a72-derived-owner-dependency-${project_commit:0:12}"
+readonly partial="${package}.partial.$$"
+mkdir -p "$work_root" "$output_root"
+[[ ! -e "$partial" ]] || die 'stale output partial exists'
+if [[ -d "$package" && ! -L "$package" ]]; then
+	grep -Fx "repository_commit=$project_commit" \
+		"$package/provenance/generation.txt" >/dev/null ||
+		die 'existing package commit mismatch'
+	(cd "$package" && sha256sum --check --strict SHA256SUMS >/dev/null)
+	printf 'Generated owner-model dependency fix at %s\n' "$package"
+	exit 0
+fi
+[[ ! -e "$package" ]] || die 'unsafe existing package path'
+
+work=$(mktemp -d "$work_root/generation.XXXXXX")
+readonly work
+cleanup() {
+	[[ ! -d "$work" || "$work" != "$work_root"/generation.* ]] ||
+		rm -rf -- "$work"
+	[[ ! -d "$partial" || "$partial" != "$output_root"/*.partial.* ]] ||
+		rm -rf -- "$partial"
+}
+trap cleanup EXIT
+
+mkdir -p "$work/source/$(dirname "$kconfig")" \
+	"$partial/patches" "$partial/provenance"
+cp -- "$source_root/$kconfig" "$work/source/$kconfig"
+git -C "$work/source" init --quiet
+git -C "$work/source" config user.name 'Gemini Mainline Experiment'
+git -C "$work/source" config user.email gemini-mainline@example.invalid
+git -C "$work/source" add -- "$kconfig"
+GIT_AUTHOR_DATE=2026-08-28T13:10:00Z \
+GIT_COMMITTER_DATE=2026-08-28T13:10:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'Derived admission isolation canonical parent'
+parent_commit=$(git -C "$work/source" rev-parse HEAD)
+readonly parent_commit
+
+PYTHONDONTWRITEBYTECODE=1 python3 \
+	"$script_dir/owner_model_dependency_edits.py" --source-root "$work/source"
+PYTHONDONTWRITEBYTECODE=1 python3 \
+	"$script_dir/validate_owner_model_dependency_source.py" \
+	--source-root "$work/source" >"$partial/provenance/source-validation.txt"
+git -C "$work/source" diff --check
+git -C "$work/source" add -- "$kconfig"
+git -C "$work/source" diff --cached --check
+GIT_AUTHOR_NAME='Gemini Mainline Experiment' \
+GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid \
+GIT_COMMITTER_NAME='Gemini Mainline Experiment' \
+GIT_COMMITTER_EMAIL=gemini-mainline@example.invalid \
+GIT_AUTHOR_DATE=2026-08-28T13:11:00Z \
+GIT_COMMITTER_DATE=2026-08-28T13:11:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'arm64: mediatek: select owner model for derived admission tests' \
+		-m 'Close the hidden fixture dependency without selecting its KUnit suite.'
+result_commit=$(git -C "$work/source" rev-parse HEAD)
+readonly result_commit
+changed=$(git -C "$work/source" diff-tree --no-commit-id --name-only -r \
+	"$result_commit")
+readonly changed
+[[ "$changed" == "$kconfig" ]] || die 'dependency fix touched unexpected paths'
+
+generated=$(git -C "$work/source" format-patch -1 --no-signature --numbered \
+	--start-number 1 --output-directory "$partial/patches")
+readonly generated
+[[ -f "$generated" && ! -L "$generated" ]] || die 'generated patch absent'
+mv -- "$generated" "$partial/patches/$PATCH"
+printf '%s\n' "$PATCH" >"$partial/patches/series"
+
+git clone --quiet "$work/source" "$work/verify"
+git -C "$work/verify" checkout --quiet --detach "$parent_commit"
+git -C "$work/verify" config user.name 'Gemini Mainline Experiment'
+git -C "$work/verify" config user.email gemini-mainline@example.invalid
+git -C "$work/verify" am --quiet --committer-date-is-author-date \
+	"$partial/patches/$PATCH"
+[[ "$(git -C "$work/verify" rev-parse HEAD)" == "$result_commit" ]] ||
+	die 'patch replay did not reproduce generated commit'
+PYTHONDONTWRITEBYTECODE=1 python3 \
+	"$script_dir/validate_owner_model_dependency_source.py" \
+	--source-root "$work/verify" >/dev/null
+[[ -z "$(git -C "$work/verify" status --porcelain)" ]] ||
+	die 'verification source is dirty'
+
+if ! perl "$source_root/scripts/checkpatch.pl" --no-tree --strict \
+	--ignore MISSING_SIGN_OFF,COMMIT_LOG_LONG_LINE \
+	"$partial/patches/$PATCH" >"$partial/provenance/checkpatch.txt"; then
+	cat "$partial/provenance/checkpatch.txt" >&2
+	die 'strict checkpatch rejected dependency patch'
+fi
+
+cat >"$partial/provenance/generation.txt" <<EOF
+purpose=experiment-only-derived-admission-kunit-dependency-fix
+repository_commit=$project_commit
+parent_source_state=$PARENT_SOURCE_STATE
+parent_source_integrity=$PARENT_SOURCE_INTEGRITY
+canonical_parent_patch=$PARENT_PATCH
+canonical_parent_patch_sha256=$PARENT_PATCH_SHA256
+parent_commit=$parent_commit
+result_commit=$result_commit
+generated_patch_count=1
+changed_files=1
+owner_model_selected=true
+owner_test_seed_selected=true
+owner_kunit_suite_selected=false
+production_semantics_changed=false
+physical_operations=0
+device_action=none
+boot_candidate=false
+EOF
+printf '%s\n' "$PATCH" >"$partial/provenance/patches.txt"
+(
+	cd "$partial"
+	find patches provenance -type f -print | sort | xargs sha256sum >SHA256SUMS
+	sha256sum --check --strict SHA256SUMS >/dev/null
+)
+mv -- "$partial" "$package"
+printf 'Generated owner-model dependency fix at %s\n' "$package"
