@@ -75,22 +75,43 @@ post-`0420` prepared tree. Both source stages, strict checkpatch, independent
 replay, and replay source validation passed. The admitted patch SHA-256 values
 are `e5b55c5e...` and `01a6155c...`.
 
-Canonical integration now contains 414 patches. Both named profiles are
+Canonical integration contains 414 patches. Both named profiles are
 canonical-order subsequences and all 158 manifest profiles pass the invariant
-audit. No kernel build or device action has yet occurred.
+audit.
+
+Buildbox compiled both profiles from exact clean commit `f89406be...`. The
+hardware-free QEMU run reported all 6 admission-trace cases and all 10
+admission-controller cases passing, including both the new live soft-failure
+case and the unchanged automatic fail-closed control.
+
+The production package and LK container passed independent checksum, config,
+symbol, DT graph, reproducible assembly, zero-padding, and all 32 recovered LK
+container gates. The exact 16 MiB `boot2` payload is `83dec186...` and is now a
+validated boot candidate.
+
+The owner observed that the preceding mainline boot remained on the boot image
+without displaying a framebuffer console. USB/netcat was live on that same
+boot, so this is recorded as a display-path observation rather than a kernel
+health or boot-failure result. The next attempt therefore makes USB/netcat the
+authoritative path and does not require a framebuffer console.
 
 ## Analysis
 
-The generated delta changes no hardware call site. It adds one policy bit to
+The delta changes no hardware call site. It adds one policy bit to
 the injected controller operations, selects it in production only when the
 existing live-trigger Kconfig option is enabled, and preserves both trace
 return values alongside the real admission result. The pre-existing strict
 KUnit case remains the automatic fail-closed control; a new case covers live
-entry and terminal trace failures.
+entry and terminal trace failures. The runtime parser now requires those trace
+returns independently of the admission operation return, preventing another
+instrumentation failure from being mistaken for the CPU8 result.
 
 ## Conclusion
 
-Pending.
+Offline validation is complete. One deployment and one boot remain pending.
+This candidate is not a repeat: unlike the previous image, its exact root-only
+trigger continues beyond retained-trace `-EIO` and should expose the first real
+source-register, derive, publish, or CPU8 request result.
 
 ## Follow-up
 
