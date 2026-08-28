@@ -5870,10 +5870,23 @@ The next ordered work is:
    hardware action or reboot was requested. This rejects the current
    Image/configuration branch and localizes the regression to DT population
    after `90cfc29b`, its LK fixup consequences, or induced automatic probes.
-   **Selected next:** normalize and partition only that semantic DT delta, then
-   add one bounded node group to the proven control DT per physical boot until
-   serviceability fails. Return to the dormant CPU8 trigger only after the
-   smallest responsible group is repaired or excluded.
+   The first semantic-delta audit then found a candidate-construction defect
+   before a node-group bisection was needed: raw full-admission DT
+   `1bd6ce2d...` explicitly disables the USB controller/T-PHY/U2 port and the
+   I2C5/AW9523/keyboard serviceability path, and its builder omitted the exact
+   serviceability transform used by the proven controls. The
+   [serviceability-restoration experiment](../experiments/2026-08-28-mainline-a72-admission-serviceability-restoration/README.md)
+   source-pins that transform and produces full-admission DT `1478f2c8...`,
+   retaining the controller, binder, clock, BigiDVFS, calibration, and owner
+   graph while restoring all six serviceability nodes. Two independent
+   constructions agree on exact boot2 image `f4cb1b2c...`; 32 LK gates and six
+   corrupt-container mutations pass, and automatic CPU admission remains
+   closed. **Selected next:** deploy only that exact image, pre-arm its
+   read-only USB collector, and spend one boot proving controller/binder
+   `armed` with zero trigger executions and CPU8/9 still offline. Return to the
+   one-shot CPU8 trigger on this corrected DT only if that pre-trigger
+   serviceability gate passes; otherwise partition only the remaining
+   non-serviceability DT additions.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

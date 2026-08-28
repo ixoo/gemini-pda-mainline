@@ -23,6 +23,16 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-28 full-admission serviceability restoration](2026-08-28-mainline-a72-admission-serviceability-restoration/README.md)
+  — identifies that the prior full-admission candidate used its raw package
+  DT with USB/T-PHY and I2C5/AW9523/keyboard explicitly disabled, while the
+  current-Image/runtime-DT control proved the same Image serviceable. It
+  source-pins the established serviceability transform onto the full
+  controller/binder DT, reproduces exact restored DT `1478f2c8...`, and builds
+  exact 16 MiB candidate `f4cb1b2c...`. Independent assembly, all 32 LK gates,
+  and six corrupt-container mutations pass with automatic CPU admission still
+  closed. Publishing, guarded boot2 deployment, and one pre-trigger-only
+  serviceability boot are next.
 - [2026-08-28 durable CPU8 admission physical candidate](2026-08-28-mainline-a72-admission-durable-candidate/README.md)
   — defines the production-only successor using the hardware-free-proven
   record-2 entry and record-3 zero-request trace. The DT graph is unchanged,
