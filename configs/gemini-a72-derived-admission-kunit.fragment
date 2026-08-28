@@ -1,0 +1,6 @@
+# Hardware-free coverage for source-derived CPU8 admission from a real CLOSED
+# membership owner. The suite injects the read-only physical source and live
+# topology; it cannot request a CPU, invoke CPU_OFF, retry, or mutate hardware.
+CONFIG_KUNIT=y
+CONFIG_ARM64_MT6797_A72_DERIVED_ADMISSION_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-a72-derived-kunit"

@@ -22,14 +22,22 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-require(CONTRACT["schema"] == 1, "schema")
+require(CONTRACT["schema"] == 2, "schema")
 require(CONTRACT["experiment"] == EXP.name, "experiment")
 series = ROOT / "patches/series"
 manifest = ROOT / "kernel/manifest.json"
 require(len(series.read_text(encoding="utf-8").splitlines()) ==
-        CONTRACT["canonical_series_entries"], "series entries")
-require(sha256(series) == CONTRACT["canonical_series_sha256"], "series hash")
-require(sha256(manifest) == CONTRACT["manifest_sha256"], "manifest hash")
+        CONTRACT["integrated_canonical_series_entries"], "series entries")
+require(sha256(series) == CONTRACT["integrated_canonical_series_sha256"],
+        "series hash")
+require(sha256(manifest) == CONTRACT["integrated_manifest_sha256"],
+        "manifest hash")
+require(CONTRACT["audited_canonical_series_entries"] == 398,
+        "audited series entries")
+require(CONTRACT["integrated_canonical_series_entries"] == 400,
+        "integrated series entries")
+require(CONTRACT["integrated_profile"] == "a72-derived-admission-kunit",
+        "integrated profile")
 
 direct = CONTRACT["direct_design"]
 require(direct == {
@@ -67,8 +75,36 @@ require(CONTRACT["planned_generated_patches"] == 2, "planned patches")
 require(CONTRACT["planned_derived_kunit_cases"] == 5,
         "planned derived KUnit cases")
 require(CONTRACT["source_generator_execution"] ==
-        "deferred-until-signed-pushed-clean-commit",
+        "passed-on-buildbox-exact-prepared-source",
         "source generator execution")
+require(CONTRACT["initial_review_rejection"] ==
+        "success-fixture-used-seeded-owner-while-production-owner-starts-closed",
+        "initial review rejection")
+require(CONTRACT["accepted_generator_commit"] ==
+        "d1d1c2134345dbf8ebfe433d233d7318437108f9",
+        "accepted generator commit")
+
+generated_patches = {
+    "0407": ROOT / "patches/v7.1.3/0407-arm64-mediatek-derive-CPU8-admission-from-current-boot-state.patch",
+    "0408": ROOT / "patches/v7.1.3/0408-arm64-mediatek-test-source-derived-CPU8-admission.patch",
+}
+for number, path in generated_patches.items():
+    require(sha256(path) == CONTRACT["generated_patch_sha256"][number],
+            f"generated patch {number} hash")
+
+generation = EXP / "results/buildbox-generation-20260828.txt"
+require(sha256(generation) == CONTRACT["buildbox_generation_sha256"],
+        "Buildbox generation hash")
+generation_text = generation.read_text(encoding="utf-8")
+for token in (
+    "initial_review_rejection=success-fixture-used-seeded-owner-while-production-owner-starts-closed",
+    "strict_checkpatch=pass", "fresh_exact_source_replay=pass",
+    "source_semantic_validation=pass", "derived_kunit_cases=5",
+    "success_starts_closed=true", "production_cpu_requests=0",
+    "cpu_off_call_sites=0", "retry_call_sites=0",
+    "native_vm_build=none", "device_action=none", "boot_candidate=false",
+):
+    require(token in generation_text, f"Buildbox generation token: {token}")
 
 receipt = EXP / "results/source-admission-audit-20260828.txt"
 require(CONTRACT["source_receipt_sha256"] != "pending", "receipt hash pending")
@@ -103,7 +139,7 @@ for token in (
 
 readme = (EXP / "README.md").read_text(encoding="utf-8")
 design = (EXP / "DESIGN.md").read_text(encoding="utf-8")
-combined = readme + design + receipt_text + local_text
+combined = readme + design + receipt_text + local_text + generation_text
 words = " ".join(combined.split())
 for token in (
     "No direct caller can satisfy the current graph",
@@ -117,12 +153,15 @@ require("/Users/" not in combined, "no personal absolute path")
 require(CONTRACT["kernel_build"] is False, "no kernel build")
 require(CONTRACT["device_action"] is False, "no device action")
 require(CONTRACT["result"] ==
-        "direct-caller-rejected-derived-admission-compositor-required",
+        "direct-caller-rejected-derived-admission-integrated-awaiting-build",
         "result")
 
 print("definition_validation=pass")
 print("direct_late_caller=rejected")
 print("selected_next=derived-membership-admission-compositor")
 print("model_cases=6")
+print("generated_patches=2")
+print("derived_kunit_cases=5")
+print("kernel_build=pending")
 print("native_vm_build=none")
 print("device_action=none")

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-physical-candidate-admission-audit` |
-| Status | `completed` source audit; direct late caller rejected; derived admission compositor selected |
+| Status | source audit complete; direct caller rejected; derived admission patches integrated; Buildbox kernel build pending |
 | Subsystem | MT6797 CPU8 A34/A36 membership admission and physical binder entry |
 | Device variant | Planet Gemini PDA, named development unit |
 | Date(s) | 2026-08-28 America/New_York |
@@ -49,15 +49,29 @@ The source-pinned [Buildbox generator](scripts/generate-on-buildbox),
 [KUnit source](kernel/mt6797-a72-derived-admission-test.c) prepare two logical
 patches. Their local syntax, ShellCheck, model, and definition checks pass in
 the [local validation receipt](results/local-definition-validation-20260828.txt).
-They have not yet been executed against the prepared kernel source: repository
-policy correctly defers that Buildbox step until this exact work is signed,
-pushed, and clean.
+
+The first generator package, from repository commit `9bac9ac7`, passed its
+mechanical checks but was rejected during manual review: its success fixture
+seeded an available owner even though production begins CLOSED, so the
+production path would have returned `-EAGAIN`. It was never imported.
+
+The repaired generator at exact signed and pushed commit `d1d1c213` starts the
+success case from a real CLOSED owner, validates READY before source capture,
+and atomically publishes the exact captured bootstrap snapshot. Strict
+checkpatch, fresh exact-source replay, and semantic validation passed. The
+accepted patch identities and complete rejection chronology are in the
+[Buildbox generation receipt](results/buildbox-generation-20260828.txt).
+Exact patches `0407` and `0408` are now canonical entries 399 and 400, with the
+isolated `a72-derived-admission-kunit` profile. The kernel build and no-network
+KUnit execution remain pending.
 
 ## Safety assessment
 
-This audit is hardware-free. It made no kernel build, package, boot image,
-device connection, retained-RAM write, watchdog takeover, regulator or secure
-call, CPU request, partition write, reboot, or shutdown.
+This audit and derived-admission integration are hardware-free. Buildbox has
+only generated and replay-validated source patches; no kernel package or boot
+image has yet been built. There has been no device connection, retained-RAM
+write, watchdog takeover, regulator or secure call, CPU request, partition
+write, reboot, or shutdown.
 
 The direct-caller design is rejected before a build because it would have to
 assert recovery ownership that cannot yet exist. The existing binder remains
@@ -139,11 +153,12 @@ reject before owner mutation, but it cannot stand in for watchdog ownership.
 and a late `add_cpu(8)` caller at exact repository revision `28adce23` and
 prepared-source state `c0fd471b`.
 
-`confirmed` for the next bounded source slice: implement and exhaustively test
-one derived CPU8 admission compositor plus a one-shot controller, preserving
-ledger -> watchdog -> first-mutation ordering and keeping CPU9, CPU_OFF,
-retries, and userspace triggers absent. This is a source admission result, not
-hardware support.
+`confirmed` and integrated for the bounded source slice: one derived CPU8
+admission compositor with five hardware-free KUnit cases. It derives and
+closes the owner transaction but deliberately issues no CPU request, so ledger
+-> watchdog -> first-mutation ordering remains deferred to the later physical
+controller slice. CPU9, CPU_OFF, retries, and userspace triggers remain absent.
+This is a source admission result, not hardware support.
 
 ## Follow-up
 

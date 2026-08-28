@@ -396,3 +396,5 @@ v7.1.3/0403-arm64-expose-MT6797-A72-owner-KUnit-P30-reset.patch
 v7.1.3/0404-arm64-guard-late-CPU-online-KUnit-reset-state.patch
 v7.1.3/0405-arm64-mediatek-align-A72-owner-KUnit-fixtures.patch
 v7.1.3/0406-arm64-mediatek-claim-CPU8-in-P29-KUnit-fixtures.patch
+v7.1.3/0407-arm64-mediatek-derive-CPU8-admission-from-current-boot-state.patch
+v7.1.3/0408-arm64-mediatek-test-source-derived-CPU8-admission.patch

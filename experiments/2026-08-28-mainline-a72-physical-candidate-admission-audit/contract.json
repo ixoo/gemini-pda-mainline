@@ -1,10 +1,13 @@
 {
-  "schema": 1,
+  "schema": 2,
   "experiment": "2026-08-28-mainline-a72-physical-candidate-admission-audit",
-  "repository_commit": "28adce23c56944368689bf5062fba0828d3a02d2",
-  "canonical_series_entries": 398,
-  "canonical_series_sha256": "3658f5ef79dd75fe079cdce4defca982778c94d033c9854e0ac4645f5c3eb4aa",
-  "manifest_sha256": "c163d06d4668cffeccd48ed735cb10da00bdebd117ab2fa90841d14982ed7d7a",
+  "audited_repository_commit": "28adce23c56944368689bf5062fba0828d3a02d2",
+  "audited_canonical_series_entries": 398,
+  "audited_canonical_series_sha256": "3658f5ef79dd75fe079cdce4defca982778c94d033c9854e0ac4645f5c3eb4aa",
+  "integrated_canonical_series_entries": 400,
+  "integrated_canonical_series_sha256": "075dfaa835c4df38b1a38c99d8d8712cf814b664d09105fcf3d72c601f7b9485",
+  "integrated_manifest_sha256": "7f203185cae91e351de702945ad4f94a3d120bf1dbf8ff8b1e3b70f6cad7b758",
+  "integrated_profile": "a72-derived-admission-kunit",
   "prepared_source_state": "c0fd471b2fbc291a0793ba093fe95acbf972685031bde67cad7c89833292694c",
   "prepared_source_integrity": "2b1b2e9ba54fc0361cc3e6bdfba3478059c7750ac715e0b5d8d8a8b2e38246b1",
   "direct_design": {
@@ -46,10 +49,18 @@
   "model_result": "pass",
   "planned_generated_patches": 2,
   "planned_derived_kunit_cases": 5,
-  "source_generator_execution": "deferred-until-signed-pushed-clean-commit",
+  "source_generator_execution": "passed-on-buildbox-exact-prepared-source",
+  "initial_review_rejected_commit": "9bac9ac73ac8bb2f65db47dadd7c06aa6a84ce40",
+  "initial_review_rejection": "success-fixture-used-seeded-owner-while-production-owner-starts-closed",
+  "accepted_generator_commit": "d1d1c2134345dbf8ebfe433d233d7318437108f9",
+  "generated_patch_sha256": {
+    "0407": "6a26712437391d7cb5fe51d2762482c080c0eb090500a095128438449244be8f",
+    "0408": "c1a725f8f5756297a23c32ccc340875bc33bb802e6f19fc0789d0a94a9adaf37"
+  },
+  "buildbox_generation_sha256": "036b621f3b531cf82ef7bfc051920a5ce24a77f673316690a6eb4b88534a45b2",
   "local_validation_sha256": "8caa48936f7d895d40d8a6dee76415a8c63ef2f1a0bea02ead71c8fa6837271a",
   "source_receipt_sha256": "5e173c680a4463a1137926b5cc09337891d36b71c5c4d296fd7f7df2eb9bd1fc",
   "kernel_build": false,
   "device_action": false,
-  "result": "direct-caller-rejected-derived-admission-compositor-required"
+  "result": "direct-caller-rejected-derived-admission-integrated-awaiting-build"
 }

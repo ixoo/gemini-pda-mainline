@@ -1,0 +1,354 @@
+From c480220cc42a99f4a23098e97e5d118bff5e3c67 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 28 Aug 2026 16:01:00 +0000
+Subject: [PATCH 1/2] arm64: mediatek: derive CPU8 admission from current-boot
+ state
+
+Return the atomically published current-boot snapshot and derive
+one CPU8 transaction without caller-predicted A36 assertions.
+---
+ arch/arm64/Kconfig.platforms                  |  11 +
+ .../arm64/include/asm/mt6797_a72_membership.h |  25 ++-
+ arch/arm64/kernel/mt6797_a72_membership.c     | 202 +++++++++++++++++-
+ 3 files changed, 227 insertions(+), 11 deletions(-)
+
+diff --git a/arch/arm64/Kconfig.platforms b/arch/arm64/Kconfig.platforms
+index 9f24435..630bd4d 100644
+--- a/arch/arm64/Kconfig.platforms
++++ b/arch/arm64/Kconfig.platforms
+@@ -237,6 +237,17 @@ config ARM64_MT6797_A72_DIRECT_STATE_COMPOSITOR
+ 	  This option supplies no physical reader, owner opener, A34 decision,
+ 	  hardware operation, CPU_ON, or CPU_OFF. If unsure, say N.
+ 
++config ARM64_MT6797_A72_DERIVED_ADMISSION
++	bool "Source-derived MT6797 CPU8 admission"
++	depends on ARM64_MT6797_A72_P24_TRANSACTION_OWNER_MODEL
++	depends on ARM64_MT6797_A72_A34_ELIGIBILITY_EVALUATOR
++	depends on ARM64_MT6797_A72_BOOTSTRAP_PUBLISHER
++	help
++	  Capture one registered current-boot source and atomically
++	  publish its exact A34 bootstrap before deriving the CPU8
++	  entry and A36 record. The owner mints and binds its identity;
++	  this option makes no write or CPU request.
++
+ config ARM64_MT6797_A72_A34_ELIGIBILITY_EVALUATOR
+ 	bool "Evaluate exact MT6797 A72 direct and replay state"
+ 	depends on ARM64_MT6797_A72_P24_TRANSACTION_OWNER_MODEL
+diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
+index 838a30b..6811f1a 100644
+--- a/arch/arm64/include/asm/mt6797_a72_membership.h
++++ b/arch/arm64/include/asm/mt6797_a72_membership.h
+@@ -17,7 +17,7 @@
+  * Version of a dormant C owner-model layout, not a P17/P18/P24 token ABI or
+  * wire/hardware ABI. This slice consumes a P31 attempt and can mint a frozen
+  * token only in an explicitly opened test state; A36 only validates an
+- * immutable caller-supplied prestate record. A dormant P17/P18 ledger may
++ * immutable owner-derived prestate record. A dormant P17/P18 ledger may
+  * advance only the C phase to ON_ISSUED. The explicitly isolated provider
+  * callback seam can return a read-only refusal. A default-off A34 pure
+  * evaluator has no production caller and cannot bootstrap the owner, perform
+@@ -106,7 +106,7 @@ enum mt6797_a72_owner_fault {
+ #define MT6797_A72_OBSERVER_WINDOW_OPEN 1
+ 
+ /* A36 is an immutable prestate record, not a hardware access interface. */
+-#define MT6797_A72_A36_PRESTATE_ABI 1
++#define MT6797_A72_A36_PRESTATE_ABI 2
+ #define MT6797_A72_A36_CALL_SHAPE_NONE 0
+ #define MT6797_A72_A36_CALL_SHAPE_TWO_ARG 1
+ #define MT6797_A72_A36_DA921X_PAGE 0x80
+@@ -618,6 +618,27 @@ mt6797_a72_membership_begin_up(unsigned int cpu, enum cpuhp_state target,
+ 			       const struct arm64_late_cpu_ready_token *ready,
+ 			       const struct mt6797_a72_a36_prestate *prestate,
+ 			       struct mt6797_a72_transaction *transaction);
++#if IS_ENABLED(CONFIG_ARM64_MT6797_A72_DERIVED_ADMISSION)
++int
++mt6797_a72_membership_derive_cpu8(const struct arm64_late_cpu_ready_token *ready,
++				  struct mt6797_a72_transaction *transaction);
++#else
++static inline int
++mt6797_a72_membership_derive_cpu8(const struct arm64_late_cpu_ready_token *ready,
++				  struct mt6797_a72_transaction *transaction)
++{
++	(void)ready;
++	if (transaction)
++		memset(transaction, 0, sizeof(*transaction));
++	return -EOPNOTSUPP;
++}
++#endif
++#ifdef CONFIG_ARM64_MT6797_A72_DERIVED_ADMISSION_KUNIT_TEST
++int
++mt6797_a72_membership_test_derive_cpu8(const struct mt6797_a72_direct_topology *topology,
++				       const struct arm64_late_cpu_ready_token *ready,
++				       struct mt6797_a72_transaction *transaction);
++#endif
+ int
+ mt6797_a72_membership_validate_up_prestate(const struct mt6797_a72_transaction *transaction,
+ 						   const struct mt6797_a72_a36_prestate *prestate);
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+index bc7c37d..144b044 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -6,7 +6,7 @@
+  * Read-only admission callbacks may inspect CLOSED. A dormant P31 ledger
+  * consumes a one-shot attempt only in a test-seeded AVAILABLE state, then
+  * retains the transition lock across A28, frozen-token minting, and the
+- * immutable A36 prestate check. A dormant P17/P18 publication ledger may
++ * immutable owner-derived A36 check. A dormant P17/P18 publication ledger may
+  * advance only the C phase to ON_ISSUED; provider calls and all hardware,
+  * CPUHP, and CPU_ON effects remain absent. R03/P29 only records a returned
+  * before-vote rejection and an exact pre-isolation rollback; it performs no
+@@ -619,7 +619,8 @@ out:
+ static int
+ mt6797_a72_membership_publish_bootstrap_locked(const struct mt6797_a72_direct_topology *topology,
+ 					       const struct mt6797_a72_a34_replay *replay,
+-					       bool dirty_owner_before_finalize)
++					       bool dirty_owner_before_finalize,
++					       struct mt6797_a72_direct_state_snapshot *published)
+ {
+ 	struct mt6797_a72_bootstrap_workspace *workspace =
+ 		&a72_bootstrap_workspace;
+@@ -666,6 +667,8 @@ mt6797_a72_membership_publish_bootstrap_locked(const struct mt6797_a72_direct_to
+ 		if (release_ret)
+ 			ret = release_ret;
+ 	}
++	if (!ret && published)
++		*published = workspace->observation.direct;
+ out_clear:
+ 	memset(workspace, 0, sizeof(*workspace));
+ 	return ret;
+@@ -694,7 +697,7 @@ mt6797_a72_membership_publish_bootstrap(const struct mt6797_a72_a34_replay *repl
+ 	topology.cpu8_mpidr = cpu_logical_map(8);
+ 	topology.cpu9_mpidr = cpu_logical_map(9);
+ 	ret = mt6797_a72_membership_publish_bootstrap_locked(&topology, replay,
+-							     false);
++							     false, NULL);
+ out_unlock:
+ 	mutex_unlock(&a72_transition_lock);
+ 	cpus_read_unlock();
+@@ -714,7 +717,7 @@ mt6797_a72_membership_test_publish_bootstrap(const struct mt6797_a72_direct_topo
+ 	cpus_read_lock();
+ 	mutex_lock(&a72_transition_lock);
+ 	ret = mt6797_a72_membership_publish_bootstrap_locked(topology, replay,
+-							     dirty_owner_before_finalize);
++							     dirty_owner_before_finalize, NULL);
+ 	mutex_unlock(&a72_transition_lock);
+ 	cpus_read_unlock();
+ 	return ret;
+@@ -1181,16 +1184,16 @@ mt6797_a72_membership_validate_up_prestate(const struct mt6797_a72_transaction *
+ 
+ 	if (identity->operation == ARM64_LATE_CPU_STARTUP_OP_CPU8_UP) {
+ 		if (prestate->cpu8_online || prestate->cpu9_online ||
+-		    prestate->da921x_page != MT6797_A72_A36_DA921X_PAGE ||
++		    prestate->da921x_page ||
+ 		    prestate->buckb_enabled ||
+ 		    prestate->buckb_vsel != MT6797_A72_A36_BUCKB_VSEL ||
+ 		    prestate->spm_218 != MT6797_A72_A36_SPM_218 ||
+ 		    prestate->spm_290 != MT6797_A72_A36_SPM_290 ||
+ 		    prestate->toprgu_pwrap_reset || prestate->mp2_dcm ||
+-		    prestate->secure_sentinels_stable != 1 ||
++		    prestate->secure_sentinels_stable ||
+ 		    prestate->protected_clock_valid != 1 ||
+-		    prestate->pstore_console_available != 1 ||
+-		    prestate->watchdog_owned != 1 ||
++		    prestate->pstore_console_available ||
++		    prestate->watchdog_owned ||
+ 		    prestate->cpu8_cluster_dcm_published ||
+ 		    prestate->shared_write_set)
+ 			return -EPERM;
+@@ -1202,7 +1205,7 @@ mt6797_a72_membership_validate_up_prestate(const struct mt6797_a72_transaction *
+ 		    prestate->mp2_dcm || prestate->secure_sentinels_stable ||
+ 		    prestate->protected_clock_valid ||
+ 		    prestate->pstore_console_available ||
+-		    prestate->watchdog_owned != 1 ||
++		    prestate->watchdog_owned ||
+ 		    prestate->cpu8_cluster_dcm_published != 1 ||
+ 		    prestate->shared_write_set)
+ 			return -EPERM;
+@@ -2713,6 +2716,187 @@ int mt6797_a72_membership_validate_entry(unsigned int cpu,
+ 	return 0;
+ }
+ 
++#if IS_ENABLED(CONFIG_ARM64_MT6797_A72_DERIVED_ADMISSION)
++
++struct mt6797_a72_derived_workspace {
++	struct mt6797_a72_direct_state_snapshot direct;
++	struct mt6797_a72_a34_replay replay;
++	struct mt6797_a72_entry_snapshot entry;
++	struct mt6797_a72_a36_prestate prestate;
++};
++
++static struct mt6797_a72_derived_workspace a72_derived_workspace;
++
++static void
++mt6797_a72_derive_cpu8_entry(const struct mt6797_a72_direct_state_snapshot *direct,
++			     struct mt6797_a72_entry_snapshot *entry)
++{
++	entry->members = direct->owner.members;
++	entry->provider_state = direct->owner.provider_state;
++	entry->online_mask = (direct->cpu8_online ? BIT(0) : 0) |
++		(direct->cpu9_online ? BIT(1) : 0);
++	entry->cpuhp_state_cpu8 = direct->cpu8_online ?
++		CPUHP_ONLINE : CPUHP_OFFLINE;
++	entry->cpuhp_state_cpu9 = direct->cpu9_online ?
++		CPUHP_ONLINE : CPUHP_OFFLINE;
++	entry->observer_window = MT6797_A72_OBSERVER_WINDOW_OPEN;
++	entry->flags = (direct->cpu8_present ? MT6797_A72_ENTRY_CPU8_PRESENT : 0) |
++		(direct->cpu9_present ? MT6797_A72_ENTRY_CPU9_PRESENT : 0) |
++		(direct->cpu8_possible ? MT6797_A72_ENTRY_CPU8_POSSIBLE : 0) |
++		(direct->cpu9_possible ? MT6797_A72_ENTRY_CPU9_POSSIBLE : 0);
++	entry->cpu8_mpidr = direct->cpu8_mpidr;
++	entry->cpu9_mpidr = direct->cpu9_mpidr;
++}
++
++static void
++mt6797_a72_derive_cpu8_prestate(const struct mt6797_a72_direct_state_snapshot *direct,
++				const struct mt6797_a72_transaction *transaction,
++				struct mt6797_a72_a36_prestate *prestate)
++{
++	prestate->abi = MT6797_A72_A36_PRESTATE_ABI;
++	prestate->operation = ARM64_LATE_CPU_STARTUP_OP_CPU8_UP;
++	prestate->observer_window = MT6797_A72_OBSERVER_WINDOW_OPEN;
++	prestate->call_shape = MT6797_A72_A36_CALL_SHAPE_TWO_ARG;
++	prestate->cpu8_online = direct->cpu8_online;
++	prestate->cpu9_online = direct->cpu9_online;
++	prestate->buckb_enabled = direct->source.provider.buckb_cont;
++	prestate->buckb_vsel = direct->source.provider.vbuckb_b;
++	prestate->spm_218 = direct->source.platform.spm_mp2_cpusys_pwr_con;
++	prestate->spm_290 = direct->source.platform.spm_cpu_ext_buck_iso;
++	prestate->toprgu_pwrap_reset =
++		direct->source.platform.pwrap_reset_asserted;
++	prestate->mp2_dcm = direct->source.platform.mp2_sync_dcm;
++	prestate->protected_clock_valid =
++		direct->source.clock.abi == MT6797_DVFSP_CLOCK_BACKEND_ABI &&
++		direct->source.clock.sample_generation != 0;
++	prestate->target_mpidr = direct->cpu8_mpidr;
++	prestate->secondary_entry_pa = transaction->identity.cpu_on_entry_pa;
++	prestate->generation = transaction->identity.generation;
++	prestate->cookie = transaction->identity.cookie;
++}
++
++static int
++mt6797_a72_membership_derive_cpu8_locked(const struct mt6797_a72_direct_topology *topology,
++					 const struct arm64_late_cpu_ready_token *ready,
++					 struct mt6797_a72_transaction *transaction)
++{
++	struct mt6797_a72_derived_workspace *workspace = &a72_derived_workspace;
++	int ret;
++
++	memset(workspace, 0, sizeof(*workspace));
++	ret = mt6797_a72_ready_token_validate(8, ready);
++	if (ret)
++		goto out_clear;
++	workspace->replay.abi = MT6797_A72_A34_REPLAY_ABI;
++	workspace->replay.valid = 1;
++	workspace->replay.proof =
++		MT6797_A72_A34_REPLAY_APPLICABLE_PRIMARY_BL31_CLEAR;
++	ret = mt6797_a72_membership_publish_bootstrap_locked(topology,
++							     &workspace->replay, false,
++							     &workspace->direct);
++	if (ret)
++		goto out_clear;
++
++	mt6797_a72_derive_cpu8_entry(&workspace->direct, &workspace->entry);
++	ret = mt6797_a72_membership_p31_consume_attempt(8, CPUHP_ONLINE,
++							MT6797_A72_ATTEMPT_CPU8_UP,
++							&workspace->entry);
++	if (ret)
++		goto out_clear;
++	ret = mt6797_a72_membership_validate_entry(8, CPUHP_ONLINE,
++						   MT6797_A72_ATTEMPT_CPU8_UP,
++						   &workspace->entry);
++	if (ret)
++		goto out_clear;
++	ret = mt6797_a72_membership_mint_up_token(8, CPUHP_ONLINE,
++						  MT6797_A72_ATTEMPT_CPU8_UP,
++						  &workspace->entry, ready, transaction);
++	if (ret)
++		goto out_clear;
++
++	mt6797_a72_derive_cpu8_prestate(&workspace->direct, transaction,
++					&workspace->prestate);
++	ret = mt6797_a72_membership_validate_up_prestate(transaction,
++							 &workspace->prestate);
++	if (ret)
++		goto reject_frozen;
++	ret = mt6797_a72_membership_bind_a36_prestate(&transaction->identity,
++						      &workspace->prestate, transaction);
++	if (ret)
++		goto reject_frozen;
++	goto out_clear;
++
++reject_frozen:
++	mt6797_a72_membership_reject_frozen(&transaction->identity);
++	memset(transaction, 0, sizeof(*transaction));
++out_clear:
++	memset(workspace, 0, sizeof(*workspace));
++	return ret;
++}
++
++static void
++mt6797_a72_membership_fill_cpu8_topology(struct mt6797_a72_direct_topology *topology)
++{
++	topology->cpu8_possible = cpu_possible(8);
++	topology->cpu9_possible = cpu_possible(9);
++	topology->cpu8_present = cpu_present(8);
++	topology->cpu9_present = cpu_present(9);
++	topology->cpu8_online = cpu_online(8);
++	topology->cpu9_online = cpu_online(9);
++	topology->cpu8_method_valid = get_cpu_ops(8) == &mt6797_psci_ops;
++	topology->cpu9_method_valid = get_cpu_ops(9) == &mt6797_psci_ops;
++	topology->cpu8_mpidr = cpu_logical_map(8);
++	topology->cpu9_mpidr = cpu_logical_map(9);
++}
++
++int
++mt6797_a72_membership_derive_cpu8(const struct arm64_late_cpu_ready_token *ready,
++				  struct mt6797_a72_transaction *transaction)
++{
++	struct mt6797_a72_direct_topology topology = {};
++	int ret;
++
++	if (!transaction)
++		return -EINVAL;
++	memset(transaction, 0, sizeof(*transaction));
++	cpus_read_lock();
++	mutex_lock(&a72_transition_lock);
++	if (nr_cpu_ids <= 9) {
++		ret = -ENODEV;
++		goto out_unlock;
++	}
++	mt6797_a72_membership_fill_cpu8_topology(&topology);
++	ret = mt6797_a72_membership_derive_cpu8_locked(&topology, ready,
++						       transaction);
++out_unlock:
++	mutex_unlock(&a72_transition_lock);
++	cpus_read_unlock();
++	return ret;
++}
++
++#ifdef CONFIG_ARM64_MT6797_A72_DERIVED_ADMISSION_KUNIT_TEST
++int
++mt6797_a72_membership_test_derive_cpu8(const struct mt6797_a72_direct_topology *topology,
++				       const struct arm64_late_cpu_ready_token *ready,
++				       struct mt6797_a72_transaction *transaction)
++{
++	int ret;
++
++	if (!topology || !transaction)
++		return -EINVAL;
++	memset(transaction, 0, sizeof(*transaction));
++	cpus_read_lock();
++	mutex_lock(&a72_transition_lock);
++	ret = mt6797_a72_membership_derive_cpu8_locked(topology, ready,
++						       transaction);
++	mutex_unlock(&a72_transition_lock);
++	cpus_read_unlock();
++	return ret;
++}
++#endif
++
++#endif
++
+ int
+ mt6797_a72_membership_begin_up(unsigned int cpu, enum cpuhp_state target,
+ 			       u32 attempt,
