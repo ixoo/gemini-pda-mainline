@@ -55,15 +55,15 @@ def validate_production(root: Path) -> None:
             "one production binder-ready accessor")
 
     for token in (
-        "mt6797_a72_physical_source_context_init(",
-        "mt6797_a72_physical_source_register(",
-        "mt6797_a72_physical_source_unregister(",
+        "mt6797_a72_source_context_init(",
+        "mt6797_a72_source_register(",
+        "mt6797_a72_source_unregister(",
     ):
         require(token in physical_header, f"physical header token: {token}")
         require(token in physical, f"physical source token: {token}")
-    require(physical.count("mt6797_a72_physical_source_register(") == 1,
+    require(physical.count("mt6797_a72_source_register(") == 1,
             "one physical-source registration wrapper")
-    require(physical.count("mt6797_a72_physical_source_unregister(") == 1,
+    require(physical.count("mt6797_a72_source_unregister(") == 1,
             "one physical-source unregistration wrapper")
 
     for token in (
@@ -97,7 +97,7 @@ def validate_production(root: Path) -> None:
         "device_link_add(dev, &pdev->dev, DL_FLAG_AUTOREMOVE_CONSUMER)",
         ".suppress_bind_attrs = true",
         "late_initcall(mt6797_a72_admission_init);",
-        "cpu9_requests=0 cpu_off_requests=0 retries=0",
+        "requests=%u/0/0 retries=0",
     ):
         require(token in controller, f"controller token: {token}")
     consumed = controller.index("atomic_cmpxchg(&state->consumed, 0, 1)")

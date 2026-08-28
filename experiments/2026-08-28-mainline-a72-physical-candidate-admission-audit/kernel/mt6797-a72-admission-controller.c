@@ -30,25 +30,23 @@ struct mt6797_a72_admission_controller {
 };
 
 static bool
-mt6797_a72_admission_ops_valid(
-	const struct mt6797_a72_admission_controller_ops *ops)
+mt6797_a72_admission_ops_valid(const struct mt6797_a72_admission_controller_ops *ops)
 {
 	return ops && ops->binder_ready && ops->ready_token &&
 		ops->source_register && ops->source_unregister &&
 		ops->derive_cpu8 && ops->publish_up && ops->add_cpu;
 }
 
-void mt6797_a72_admission_controller_state_init(
-	struct mt6797_a72_admission_controller_state *state)
+void
+mt6797_a72_admission_state_init(struct mt6797_a72_admission_controller_state *state)
 {
 	memset(state, 0, sizeof(*state));
 	atomic_set(&state->consumed, 0);
 }
 
-int mt6797_a72_admission_controller_run(
-	struct mt6797_a72_admission_controller_state *state,
-	const struct mt6797_a72_admission_controller_ops *ops,
-	void *context)
+int
+mt6797_a72_admission_run(struct mt6797_a72_admission_controller_state *state,
+	const struct mt6797_a72_admission_controller_ops *ops, void *context)
 {
 	const struct arm64_late_cpu_ready_token *ready;
 	bool source_registered = false;
@@ -104,19 +102,19 @@ static int mt6797_a72_admission_source_register(void *context)
 {
 	struct mt6797_a72_admission_controller *controller = context;
 
-	return mt6797_a72_physical_source_register(&controller->source);
+	return mt6797_a72_source_register(&controller->source);
 }
 
 static void mt6797_a72_admission_source_unregister(void *context)
 {
 	struct mt6797_a72_admission_controller *controller = context;
 
-	mt6797_a72_physical_source_unregister(&controller->source);
+	mt6797_a72_source_unregister(&controller->source);
 }
 
 static int
-mt6797_a72_admission_derive_cpu8(
-	void *context, const struct arm64_late_cpu_ready_token *ready,
+mt6797_a72_admission_derive_cpu8(void *context,
+	const struct arm64_late_cpu_ready_token *ready,
 	struct mt6797_a72_transaction *transaction)
 {
 	(void)context;
@@ -124,8 +122,8 @@ mt6797_a72_admission_derive_cpu8(
 }
 
 static int
-mt6797_a72_admission_publish_up(
-	void *context, struct mt6797_a72_transaction *transaction)
+mt6797_a72_admission_publish_up(void *context,
+	struct mt6797_a72_transaction *transaction)
 {
 	(void)context;
 	return mt6797_a72_membership_publish_up(transaction);
@@ -196,35 +194,34 @@ static int mt6797_a72_admission_probe(struct platform_device *pdev)
 	controller = devm_kzalloc(dev, sizeof(*controller), GFP_KERNEL);
 	if (!controller)
 		return -ENOMEM;
-	mt6797_a72_admission_controller_state_init(&controller->state);
+	mt6797_a72_admission_state_init(&controller->state);
 	ret = mt6797_a72_admission_resolve(dev, "mediatek,binder",
-					  &controller->binder);
+					   &controller->binder);
 	if (ret)
 		return dev_err_probe(dev, ret, "binder unavailable\n");
 	ret = mt6797_a72_admission_resolve(dev, "mediatek,platform-state",
-					  &platform);
+					   &platform);
 	if (ret)
 		return dev_err_probe(dev, ret, "platform-state unavailable\n");
 	ret = mt6797_a72_admission_resolve(dev, "mediatek,clock-backend",
-					  &clock);
+					   &clock);
 	if (ret)
 		return dev_err_probe(dev, ret, "clock backend unavailable\n");
 	ret = mt6797_a72_admission_resolve(dev, "mediatek,bigidvfs-backend",
-					  &bigidvfs);
+					   &bigidvfs);
 	if (ret)
 		return dev_err_probe(dev, ret, "BigiDVFS backend unavailable\n");
-	mt6797_a72_physical_source_context_init(&controller->source, platform,
-						clock, bigidvfs);
-	ret = mt6797_a72_admission_controller_run(&controller->state,
-						  &mt6797_a72_admission_production_ops,
-						  controller);
+	mt6797_a72_source_context_init(&controller->source, platform, clock,
+				       bigidvfs);
+	ret = mt6797_a72_admission_run(&controller->state,
+				       &mt6797_a72_admission_production_ops,
+				       controller);
 	if (!atomic_read(&controller->state.consumed))
 		return dev_err_probe(dev, ret, "admission prerequisite unavailable\n");
 
 	platform_set_drvdata(pdev, controller);
 	dev_info(dev, MT6797_A72_ADMISSION_TAG
-		 " state=terminal ret=%d consumed=1 cpu8_requests=%u"
-		 " cpu9_requests=0 cpu_off_requests=0 retries=0\n",
+		 " state=terminal ret=%d consumed=1 requests=%u/0/0 retries=0\n",
 		 ret, controller->state.cpu_requests);
 	return 0;
 }

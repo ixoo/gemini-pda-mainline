@@ -103,14 +103,14 @@ def apply_source_header(path: Path) -> None:
         "\t\t\t\t   struct mt6797_a72_direct_source_snapshot *snapshot);\n"
     )
     addition = (
-        "void mt6797_a72_physical_source_context_init(\n"
-        "\tstruct mt6797_a72_physical_source_context *context,\n"
+        "void\n"
+        "mt6797_a72_source_context_init(struct mt6797_a72_physical_source_context *context,\n"
         "\tstruct device *platform, struct device *clock,\n"
         "\tstruct device *bigidvfs);\n"
-        "int mt6797_a72_physical_source_register(\n"
-        "\tstruct mt6797_a72_physical_source_context *context);\n"
-        "void mt6797_a72_physical_source_unregister(\n"
-        "\tstruct mt6797_a72_physical_source_context *context);\n"
+        "int\n"
+        "mt6797_a72_source_register(struct mt6797_a72_physical_source_context *context);\n"
+        "void\n"
+        "mt6797_a72_source_unregister(struct mt6797_a72_physical_source_context *context);\n"
     )
     replace_once(path, anchor, addition + anchor)
 
@@ -127,8 +127,8 @@ def apply_source_body(path: Path) -> None:
         "};\n\n"
     )
     init = (
-        "void mt6797_a72_physical_source_context_init(\n"
-        "\tstruct mt6797_a72_physical_source_context *context,\n"
+        "void\n"
+        "mt6797_a72_source_context_init(struct mt6797_a72_physical_source_context *context,\n"
         "\tstruct device *platform, struct device *clock,\n"
         "\tstruct device *bigidvfs)\n"
         "{\n"
@@ -147,17 +147,19 @@ def apply_source_body(path: Path) -> None:
         "};\n\n"
     )
     lifecycle = (
-        "int mt6797_a72_physical_source_register(\n"
-        "\tstruct mt6797_a72_physical_source_context *context)\n"
+        "int\n"
+        "mt6797_a72_source_register(struct mt6797_a72_physical_source_context *context)\n"
         "{\n"
-        "\treturn mt6797_a72_direct_source_register(\n"
-        "\t\t&mt6797_a72_physical_source_ops, context);\n"
+        "\tconst struct mt6797_a72_direct_source_ops *ops =\n"
+        "\t\t&mt6797_a72_physical_source_ops;\n\n"
+        "\treturn mt6797_a72_direct_source_register(ops, context);\n"
         "}\n\n"
-        "void mt6797_a72_physical_source_unregister(\n"
-        "\tstruct mt6797_a72_physical_source_context *context)\n"
+        "void\n"
+        "mt6797_a72_source_unregister(struct mt6797_a72_physical_source_context *context)\n"
         "{\n"
-        "\tmt6797_a72_direct_source_unregister(\n"
-        "\t\t&mt6797_a72_physical_source_ops, context);\n"
+        "\tconst struct mt6797_a72_direct_source_ops *ops =\n"
+        "\t\t&mt6797_a72_physical_source_ops;\n\n"
+        "\tmt6797_a72_direct_source_unregister(ops, context);\n"
         "}\n\n"
     )
     replace_once(path, source_ops, source_ops + lifecycle)

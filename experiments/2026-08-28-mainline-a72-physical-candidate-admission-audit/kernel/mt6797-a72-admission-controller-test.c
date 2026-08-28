@@ -36,8 +36,7 @@ struct mt6797_a72_admission_test_context {
 };
 
 static void
-mt6797_a72_admission_test_event(
-	struct mt6797_a72_admission_test_context *context,
+mt6797_a72_admission_test_event(struct mt6797_a72_admission_test_context *context,
 	enum mt6797_a72_admission_test_event event, bool operation)
 {
 	if (context->event_count < ARRAY_SIZE(context->events))
@@ -90,8 +89,8 @@ static void mt6797_a72_admission_test_unregister(void *data)
 }
 
 static int
-mt6797_a72_admission_test_derive(
-	void *data, const struct arm64_late_cpu_ready_token *ready,
+mt6797_a72_admission_test_derive(void *data,
+	const struct arm64_late_cpu_ready_token *ready,
 	struct mt6797_a72_transaction *transaction)
 {
 	struct mt6797_a72_admission_test_context *context = data;
@@ -106,8 +105,8 @@ mt6797_a72_admission_test_derive(
 }
 
 static int
-mt6797_a72_admission_test_publish(
-	void *data, struct mt6797_a72_transaction *transaction)
+mt6797_a72_admission_test_publish(void *data,
+	struct mt6797_a72_transaction *transaction)
 {
 	struct mt6797_a72_admission_test_context *context = data;
 
@@ -145,7 +144,7 @@ mt6797_a72_admission_test_context(struct kunit *test)
 	context = kunit_kzalloc(test, sizeof(*context), GFP_KERNEL);
 	if (!context)
 		return NULL;
-	mt6797_a72_admission_controller_state_init(&context->controller);
+	mt6797_a72_admission_state_init(&context->controller);
 	context->fail_event = -1;
 	context->binder_ready = true;
 	context->ready_available = true;
@@ -170,8 +169,7 @@ static void mt6797_a72_admission_success_test(struct kunit *test)
 	int ret;
 
 	KUNIT_ASSERT_NOT_NULL(test, context);
-	ret = mt6797_a72_admission_controller_run(&context->controller,
-						   &test_ops, context);
+	ret = mt6797_a72_admission_run(&context->controller, &test_ops, context);
 	KUNIT_EXPECT_EQ(test, ret, 0);
 	KUNIT_EXPECT_EQ(test, context->event_count, ARRAY_SIZE(expected));
 	KUNIT_EXPECT_EQ(test, memcmp(context->events, expected,
@@ -191,8 +189,7 @@ static void mt6797_a72_admission_preconsume_gates_test(struct kunit *test)
 	context = mt6797_a72_admission_test_context(test);
 	KUNIT_ASSERT_NOT_NULL(test, context);
 	context->binder_ready = false;
-	ret = mt6797_a72_admission_controller_run(&context->controller,
-						   &test_ops, context);
+	ret = mt6797_a72_admission_run(&context->controller, &test_ops, context);
 	KUNIT_EXPECT_EQ(test, ret, -EPROBE_DEFER);
 	KUNIT_EXPECT_EQ(test, atomic_read(&context->controller.consumed), 0);
 	KUNIT_EXPECT_EQ(test, context->event_count, 1U);
@@ -201,8 +198,7 @@ static void mt6797_a72_admission_preconsume_gates_test(struct kunit *test)
 	context = mt6797_a72_admission_test_context(test);
 	KUNIT_ASSERT_NOT_NULL(test, context);
 	context->ready_available = false;
-	ret = mt6797_a72_admission_controller_run(&context->controller,
-						   &test_ops, context);
+	ret = mt6797_a72_admission_run(&context->controller, &test_ops, context);
 	KUNIT_EXPECT_EQ(test, ret, -EAGAIN);
 	KUNIT_EXPECT_EQ(test, atomic_read(&context->controller.consumed), 0);
 	KUNIT_EXPECT_EQ(test, context->event_count, 2U);
@@ -225,16 +221,16 @@ static void mt6797_a72_admission_terminal_failures_test(struct kunit *test)
 		context = mt6797_a72_admission_test_context(test);
 		KUNIT_ASSERT_NOT_NULL(test, context);
 		context->fail_event = failures[failure];
-		ret = mt6797_a72_admission_controller_run(&context->controller,
-							   &test_ops, context);
+		ret = mt6797_a72_admission_run(&context->controller, &test_ops,
+						context);
 		KUNIT_EXPECT_EQ(test, ret, -EIO);
 		KUNIT_EXPECT_EQ(test,
 				atomic_read(&context->controller.consumed), 1);
 		KUNIT_EXPECT_EQ(test, context->controller.cpu_requests, (u32)0);
 		KUNIT_EXPECT_TRUE(test, context->consumed_before_operation);
 		events = context->event_count;
-		ret = mt6797_a72_admission_controller_run(&context->controller,
-							   &test_ops, context);
+		ret = mt6797_a72_admission_run(&context->controller, &test_ops,
+						context);
 		KUNIT_EXPECT_EQ(test, ret, -EALREADY);
 		KUNIT_EXPECT_EQ(test, context->event_count, events);
 	}
@@ -248,8 +244,7 @@ static void mt6797_a72_admission_request_failure_test(struct kunit *test)
 
 	KUNIT_ASSERT_NOT_NULL(test, context);
 	context->fail_event = MT6797_ADMISSION_ADD_CPU;
-	ret = mt6797_a72_admission_controller_run(&context->controller,
-						   &test_ops, context);
+	ret = mt6797_a72_admission_run(&context->controller, &test_ops, context);
 	KUNIT_EXPECT_EQ(test, ret, -EIO);
 	KUNIT_EXPECT_EQ(test, context->controller.cpu_requests, (u32)1);
 	KUNIT_EXPECT_EQ(test, context->requested_cpu, 8U);
@@ -266,12 +261,10 @@ static void mt6797_a72_admission_repeat_closed_test(struct kunit *test)
 	int ret;
 
 	KUNIT_ASSERT_NOT_NULL(test, context);
-	ret = mt6797_a72_admission_controller_run(&context->controller,
-						   &test_ops, context);
+	ret = mt6797_a72_admission_run(&context->controller, &test_ops, context);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	events = context->event_count;
-	ret = mt6797_a72_admission_controller_run(&context->controller,
-						   &test_ops, context);
+	ret = mt6797_a72_admission_run(&context->controller, &test_ops, context);
 	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
 	KUNIT_EXPECT_EQ(test, context->event_count, events);
 	KUNIT_EXPECT_EQ(test, context->controller.cpu_requests, (u32)1);

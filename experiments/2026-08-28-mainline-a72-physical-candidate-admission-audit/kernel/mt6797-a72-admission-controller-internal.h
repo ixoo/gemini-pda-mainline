@@ -29,11 +29,10 @@ struct mt6797_a72_admission_controller_state {
 	struct mt6797_a72_transaction transaction;
 };
 
-void mt6797_a72_admission_controller_state_init(
-	struct mt6797_a72_admission_controller_state *state);
-int mt6797_a72_admission_controller_run(
-	struct mt6797_a72_admission_controller_state *state,
-	const struct mt6797_a72_admission_controller_ops *ops,
-	void *context);
+void
+mt6797_a72_admission_state_init(struct mt6797_a72_admission_controller_state *state);
+int
+mt6797_a72_admission_run(struct mt6797_a72_admission_controller_state *state,
+	const struct mt6797_a72_admission_controller_ops *ops, void *context);
 
 #endif /* __MT6797_A72_ADMISSION_CONTROLLER_INTERNAL_H */
