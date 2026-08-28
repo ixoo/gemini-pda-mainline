@@ -81,7 +81,7 @@ require(
     contract["native_vm_build"] is False and
     contract["device_action"] is False and
     contract["boot_candidate"] is False and
-    contract["result"] == "hardware-free-proof-pass-production-pending",
+    contract["result"] == "production-profile-defined-build-pending",
     "hardware-free definition state",
 )
 definition = contract["definition_validation"]
@@ -178,9 +178,8 @@ require(
     "canonical series tail",
 )
 require(
-    sha256(manifest_path) == integration["manifest_sha256"] and
     sha256(config_path) == integration["config_fragment_sha256"],
-    "manifest and isolated config integration",
+    "isolated KUnit config integration",
 )
 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 profile = manifest["config"]["profiles"][integration["profile"]]
@@ -260,6 +259,45 @@ require(
     kunit["boot_candidate"] is False and kunit["result"] == "pass",
     "KUnit runtime result",
 )
+
+production = contract["production_profile"]
+production_config_path = ROOT / production["config_fragment"]
+require(
+    production["profile"] == "a72-admission-live-trigger-candidate" and
+    sha256(manifest_path) == production["manifest_sha256"] and
+    production["config_fragment"] ==
+    "configs/gemini-a72-admission-live-trigger-candidate.fragment" and
+    sha256(production_config_path) == production["config_fragment_sha256"],
+    "production profile identities",
+)
+production_manifest_profile = manifest["config"]["profiles"][production["profile"]]
+require(
+    production_manifest_profile["base"] == "defconfig" and
+    production_manifest_profile["patch_series"] == "patches/series" and
+    production_manifest_profile["fragments"][-1] ==
+    production["config_fragment"] and
+    production["profiles_checked"] == 156 and
+    production["manifest_series_mutations_rejected"] == 8 and
+    production["kernel_release"] ==
+    "7.1.3-gemini-a72-admission-live" and
+    production["automatic_probe_action"] is False and
+    production["live_trigger"] is True and production["kunit"] is False and
+    production["native_vm_build"] is False and
+    production["device_action"] is False and
+    production["boot_candidate"] is False and
+    production["result"] == "pass",
+    "production profile contract",
+)
+production_config = production_config_path.read_text(encoding="utf-8")
+for token in (
+    "CONFIG_MODULES=y",
+    "CONFIG_MTK_MT6797_A72_ADMISSION_CONTROLLER=y",
+    "CONFIG_MTK_MT6797_A72_ADMISSION_LIVE_TRIGGER=y",
+    "# CONFIG_KUNIT is not set",
+    "# CONFIG_HOTPLUG_SPLIT_STARTUP is not set",
+    'CONFIG_LOCALVERSION="-gemini-a72-admission-live"',
+):
+    require(token in production_config, f"production config token {token}")
 
 for relative in (
     "README.md", "DESIGN.md", "contract.json", "scripts/source_edits.py",

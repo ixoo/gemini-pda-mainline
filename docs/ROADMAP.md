@@ -5824,10 +5824,15 @@ The next ordered work is:
    both focused no-network QEMU suites: 15 of 15 named cases, zero failures or
    skips, including invalid-token refusal, terminal-result capture, and repeat
    closure. There was no physical DT match, physical CPU request, CPU_OFF,
-   retry, network, device action, or boot candidate. **Selected next:** define
-   and validate the separate production profile, pre-trigger USB/netcat
-   collector, one-attempt classifier, LK container, and guarded boot2
-   installer before selecting one distinct physical candidate.
+   retry, network, device action, or boot candidate. The separate
+   `a72-admission-live-trigger-candidate` production profile is now defined
+   with the live trigger enabled, KUnit and split startup absent, controller
+   probe still inert, and release `7.1.3-gemini-a72-admission-live`; all 156
+   profiles retain the 412-entry series invariant. **Selected next:** compile
+   that exact profile on Buildbox, then pin and validate the pre-trigger
+   USB/netcat collector, one-attempt classifier, LK container, and guarded
+   boot2 installer to its fetched package before selecting one distinct
+   physical candidate.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

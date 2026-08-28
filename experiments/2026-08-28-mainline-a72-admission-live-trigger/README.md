@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-admission-live-trigger` |
-| Status | `hardware-free Buildbox compile and 15-case KUnit gate passed` |
+| Status | `production profile defined; exact Buildbox build pending` |
 | Subsystem | MT6797 A72 admission controller, sysfs, CPU hotplug |
 | Device variant | Planet Computers Gemini PDA, named project device |
 | Date(s) | 2026-08-28 |
@@ -140,6 +140,14 @@ zero failures or skips. The bounded run ended only at the expected post-test
 rootfs panic and timeout. There was no physical DT match, CPU request, CPU_OFF,
 retry, device action, or boot candidate.
 
+The separate production profile is now named
+`a72-admission-live-trigger-candidate`. It keeps the complete physical source
+and owner chain plus modules needed by the established serviceability ramdisk,
+enables the default-off live trigger, excludes KUnit and split startup, and
+uses release `7.1.3-gemini-a72-admission-live`. The controller remains inert at
+probe because the live-trigger mode is compiled in. All 156 manifest profiles
+remain canonical-order subsequences of the 412-entry series.
+
 ## Analysis
 
 The new experiment separates two questions in one physical selection. If the
@@ -154,10 +162,12 @@ returning status identifies a precise terminal error or CPU8 outcome.
 The retained-earlier-anchor direction is rejected. The serviceability-first
 one-shot trigger passes exact Buildbox compilation, package validation, and all
 15 focused hardware-free cases. No candidate, boot2 write, or physical CPU
-request has occurred yet.
+request has occurred yet. Its isolated production profile is defined but not
+built.
 
 ## Follow-up
 
-Define and validate the separate production profile, pre-trigger USB/netcat
-collector, one-attempt classifier, LK container, and guarded boot2 installer.
-The ordered next step remains owned by `docs/ROADMAP.md`.
+Build the exact production profile on Buildbox, then pin the pre-trigger
+USB/netcat collector, one-attempt classifier, LK container, and guarded boot2
+installer to that fetched package. The ordered next step remains owned by
+`docs/ROADMAP.md`.
