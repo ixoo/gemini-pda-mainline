@@ -277,24 +277,12 @@ def apply_production_kconfig(path: Path) -> None:
     replace_once(path, anchor, addition + anchor)
 
 
-def apply_fixture_repairs(path: Path) -> None:
+def apply_fixture_repairs(path: Path, obsolete: tuple[str, ...]) -> None:
     text = path.read_text(encoding="utf-8")
-    repairs = 0
-    for line in (
-        "\t\t.watchdog_owned = 1,\n",
-        "\t\tprestate.da921x_page = MT6797_A72_A36_DA921X_PAGE;\n",
-        "\t\tprestate.secure_sentinels_stable = 1;\n",
-        "\t\tprestate.pstore_console_available = 1;\n",
-        "\t\t.secure_sentinels_stable = 1,\n",
-        "\t\t.pstore_console_available = 1,\n",
-    ):
-        repairs += text.count(line)
+    for line in obsolete:
+        if text.count(line) != 1:
+            raise SystemExit(f"{path}: expected one obsolete A36 assertion")
         text = text.replace(line, "")
-    page = "\t\t.da921x_page = MT6797_A72_A36_DA921X_PAGE,\n"
-    repairs += text.count(page)
-    text = text.replace(page, "")
-    if repairs != 4:
-        raise SystemExit(f"{path}: expected four obsolete A36 assertions")
     path.write_text(text, encoding="utf-8")
 
 
@@ -332,10 +320,22 @@ def apply_tests(root: Path, reference: Path) -> None:
         "mt6797_a72_derived_admission_test.o\n",
     )
     apply_fixture_repairs(
-        root / "arch/arm64/kernel/mt6797_a72_membership_test.c"
+        root / "arch/arm64/kernel/mt6797_a72_membership_test.c",
+        (
+            "\t\t.watchdog_owned = 1,\n",
+            "\t\tprestate.da921x_page = MT6797_A72_A36_DA921X_PAGE;\n",
+            "\t\tprestate.secure_sentinels_stable = 1;\n",
+            "\t\tprestate.pstore_console_available = 1;\n",
+        ),
     )
     apply_fixture_repairs(
-        root / "drivers/regulator/da9213-legacy-membership-test.c"
+        root / "drivers/regulator/da9213-legacy-membership-test.c",
+        (
+            "\t\t.da921x_page = MT6797_A72_A36_DA921X_PAGE,\n",
+            "\t\t.secure_sentinels_stable = 1,\n",
+            "\t\t.pstore_console_available = 1,\n",
+            "\t\t.watchdog_owned = 1,\n",
+        ),
     )
     target = root / "arch/arm64/kernel/mt6797_a72_derived_admission_test.c"
     shutil.copyfile(reference, target)

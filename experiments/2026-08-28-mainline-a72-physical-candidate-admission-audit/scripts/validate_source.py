@@ -120,8 +120,10 @@ def validate_tests(root: Path) -> None:
             "owner fixtures no secure assertion")
     require(".pstore_console_available = 1" not in owner_test,
             "owner fixtures no pstore assertion")
-    require(".da921x_page = MT6797_A72_A36_DA921X_PAGE" not in owner_test,
-            "owner fixtures no page assertion")
+    require("prestate.da921x_page = MT6797_A72_A36_DA921X_PAGE" not in
+            owner_test, "owner fixture no prestate page assertion")
+    require(".da921x_page = MT6797_A72_A36_DA921X_PAGE" in owner_test,
+            "owner provider proof retains page field")
     require(".watchdog_owned = 1" not in provider_test,
             "provider fixtures no watchdog assertion")
     require(".secure_sentinels_stable = 1" not in provider_test,
