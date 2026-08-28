@@ -76,35 +76,38 @@ All package hashes, production config gates, linked symbols, and the compiled
 DT ownership graph passed independent checks. Deterministic assembly with the
 runtime-proven serviceability ramdisk produced raw candidate `d52d3c4e...` and
 16 MiB padded image `fde53dca...`; a separately implemented validator passed
-all 32 LK gates and the binary-DTB graph. No device access, installation, or
-boot has occurred in this experiment yet. The guarded installer and bounded
+all 32 LK gates and the binary-DTB graph. The guarded installer and bounded
 runtime path are also materialized: transition-ledger preflight and all three
 serviceable runtime outcomes passed self-tests, including rejection of CPU9
-online. The installer creates no fresh partition backup and confirms shutdown
-with both SSH loss and three consecutive TCP/22 closures. The first read-only
-live preflight found the known pstore signature with stale `start=size=130`,
-which the transition ledger would reject before a CPU request. Its exact
-84-byte identity is now pinned for a two-u32 logical-empty initialization;
-that retained-RAM repair has not yet executed.
+online. The first read-only live preflight found the known pstore signature
+with stale `start=size=130`, which the transition ledger would reject before a
+CPU request. The frozen initializer performed exactly two retained u32 writes,
+changing only those words to zero; independent readback validated the ledger as
+logical-empty. Every live GPT, inactive/unmounted target, TEE identity, power,
+size, and ledger gate then passed. The installer wrote candidate `fde53dca...`
+to live-resolved logical `boot2` (`/dev/mmcblk0p30`, with root on `p29`) and the
+full-partition readback matched exactly. No fresh backup was created. Shutdown
+was confirmed by SSH loss and three consecutive TCP/22 closures. No physical
+boot of this candidate has occurred yet.
 
 ## Analysis
 
-The exact package and LK candidate are validated, but that only establishes
-reproducibility and internal consistency. The remaining boundary is one guarded
-physical boot. Success requires the exact kernel identity, CPU online list
-`0-8`, CPU9 offline, and the one-request admission record. A failure is useful
-only if the exact retained transition ledger identifies the last complete
-stage; screen color or reboot behavior alone is serviceability evidence.
+The exact package and LK candidate are validated, and the guarded deployment
+has crossed the reproducibility boundary without crossing the physical-boot
+boundary. The remaining boundary is one guarded physical boot. Success requires
+the exact kernel identity, CPU online list `0-8`, CPU9 offline, and the
+one-request admission record. A failure is useful only if the exact retained
+transition ledger identifies the last complete stage; screen color or reboot
+behavior alone is serviceability evidence.
 
 ## Conclusion
 
-Inconclusive for hardware. The exact image is now `boot_candidate=true` and
-awaits guarded deployment to logical `boot2`; CPU8 support is not claimed.
+Inconclusive for hardware. The exact image remains `boot_candidate=true`, is
+fully readback-verified on logical `boot2`, and the device is shut down awaiting
+one physical selection; CPU8 support is not claimed.
 
 ## Follow-up
 
-Materialize and validate the live deployment/runtime tooling, install only if
-every boot2 safety gate passes, verify a full-partition readback, and shut the
-device down for owner selection. Spend exactly one physical boot and classify
-it from exact runtime or retained evidence; do not repeat an identical image
-without a new independent observation path.
+Pre-arm the bounded USB/netcat collector. Spend exactly one physical boot and
+classify it from exact runtime or retained evidence; do not repeat an identical
+image without a new independent observation path.

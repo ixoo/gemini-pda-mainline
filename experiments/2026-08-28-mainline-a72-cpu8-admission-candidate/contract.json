@@ -70,10 +70,30 @@
         "observed_prefix_sha256": "b54428eae30bf9e947b8a16941e5e54eaddadc97579805bd555272a0115e497c",
         "observed_header": [1128743492, 130, 130],
         "planned_header": [1128743492, 0, 0],
+        "actual_header": [1128743492, 0, 0],
+        "actual_prefix_sha256": "edc2de70158c4d4b748e54f1d4f54355d50a4debdae19cd715f6962724193d9e",
         "u32_writes": 2,
         "device_partitions": false,
-        "device_action": false,
-        "result": "exact-plan-frozen"
+        "device_action": true,
+        "boot_id": "e17a16ea-3241-462b-82b8-2b6e533cb1c4",
+        "record_sha256": "3014b8c732ae97b08d115dc935e44badddcf56a4958c09a048d8b27c49406638",
+        "result": "pass-logical-empty"
+    },
+    "deployment": {
+        "target_logical_name": "boot2",
+        "target": "/dev/mmcblk0p30",
+        "root": "/dev/mmcblk0p29",
+        "predecessor_sha256": "6219357a1c505a8c08ad33f97940aed4a9c73bf37a691a31c66ebc63559fe4f7",
+        "fresh_predecessor_backup": false,
+        "candidate_sha256": "fde53dca1dcbc36297897dbcd6086488d117bf45714833858e17987cb6579dd0",
+        "readback_sha256": "fde53dca1dcbc36297897dbcd6086488d117bf45714833858e17987cb6579dd0",
+        "boot_id": "e17a16ea-3241-462b-82b8-2b6e533cb1c4",
+        "power": "1|100|Good|1",
+        "transition_ledger_state": "logical-empty",
+        "shutdown": "ssh-failure-plus-three-tcp-closures",
+        "reboot": false,
+        "record_sha256": "4c0d147bf58384eaf89297753cbf57fb86dccb4ddd51c301ff0e131e7931c084",
+        "result": "write-synced-flushed-full-readback-verified"
     },
   "target_cpu": 8,
   "excluded_cpu": 9,
@@ -90,7 +110,7 @@
   "retry_paths": 0,
   "cpu_off_paths": 0,
   "native_vm_build": false,
-    "device_action": false,
+    "device_action": true,
     "boot_candidate": true,
-    "result": "boot-candidate-and-tooling-validated-awaiting-guarded-deployment"
+    "result": "boot2-readback-verified-device-off-awaiting-physical-boot"
 }

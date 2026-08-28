@@ -32,11 +32,11 @@ require(contract["prepared_source_integrity"] ==
 require(contract["physical_boots_budget"] == 1, "one physical boot")
 require(contract["target_cpu"] == 8 and contract["excluded_cpu"] == 9,
         "CPU8 only")
-require(contract["device_action"] is False, "definition has no device action")
+require(contract["device_action"] is True, "guarded deployment was recorded")
 require(contract["boot_candidate"] is True, "exact candidate is promoted")
 require(contract["result"] ==
-        "boot-candidate-and-tooling-validated-awaiting-guarded-deployment",
-        "candidate phase")
+        "boot2-readback-verified-device-off-awaiting-physical-boot",
+        "deployed candidate phase")
 series = ROOT / "patches/series"
 require(sha256(series) == contract["integrated_series_sha256"],
         "integrated series hash")
@@ -138,6 +138,8 @@ for result in (
     "deployment-tooling-validation-20260828.txt",
     "predeployment-hypothesis-20260828.txt",
     "retained-ledger-initialization-plan-20260828.txt",
+    "retained-ledger-initialization-20260828.txt",
+    "deployment-20260828.txt",
 ):
     path = EXPERIMENT / "results" / result
     require(path.is_file() and not path.is_symlink(), f"result record {result}")
@@ -165,9 +167,32 @@ require(ledger_initialization["observed_header"] == [1128743492, 130, 130] and
         "exact retained header transition")
 require(ledger_initialization["u32_writes"] == 2 and
         ledger_initialization["device_partitions"] is False and
-        ledger_initialization["device_action"] is False and
-        ledger_initialization["result"] == "exact-plan-frozen",
-        "bounded retained initialization plan")
+        ledger_initialization["device_action"] is True and
+        ledger_initialization["actual_header"] == [1128743492, 0, 0] and
+        ledger_initialization["actual_prefix_sha256"] ==
+        "edc2de70158c4d4b748e54f1d4f54355d50a4debdae19cd715f6962724193d9e" and
+        ledger_initialization["record_sha256"] ==
+        sha256(EXPERIMENT / "results" /
+               "retained-ledger-initialization-20260828.txt") and
+        ledger_initialization["result"] == "pass-logical-empty",
+        "bounded retained initialization result")
+deployment = contract["deployment"]
+require(deployment["target_logical_name"] == "boot2" and
+        deployment["target"] == "/dev/mmcblk0p30" and
+        deployment["root"] == "/dev/mmcblk0p29",
+        "live-resolved inactive boot2 target")
+require(deployment["candidate_sha256"] == candidate["padded_sha256"] and
+        deployment["readback_sha256"] == candidate["padded_sha256"] and
+        deployment["fresh_predecessor_backup"] is False,
+        "exact deployment readback and backup policy")
+require(deployment["transition_ledger_state"] == "logical-empty" and
+        deployment["shutdown"] == "ssh-failure-plus-three-tcp-closures" and
+        deployment["reboot"] is False and
+        deployment["record_sha256"] ==
+        sha256(EXPERIMENT / "results" / "deployment-20260828.txt") and
+        deployment["result"] ==
+        "write-synced-flushed-full-readback-verified",
+        "deployment result")
 source_validator = (
     EXPERIMENT / "scripts/validate_source.py"
 ).read_text(encoding="utf-8")
@@ -203,7 +228,9 @@ print("kernel_build=exact-buildbox-pass")
 print("lk_gates=32-of-32")
 print("deployment_tooling=validated")
 print("runtime_decision_tests=4-of-4-pass")
-print("retained_ledger_initialization=exact-two-u32-plan")
-print("device_action=none")
+print("retained_ledger_initialization=exact-two-u32-pass-logical-empty")
+print("deployment=write-synced-flushed-full-readback-verified")
+print("shutdown=ssh-failure-plus-three-tcp-closures")
+print("device_action=guarded-deployment-recorded")
 print("boot_candidate=true")
 print("result=pass")
