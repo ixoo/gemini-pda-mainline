@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-27-mainline-a72-default-off-binder` |
-| Status | Exact 0404 build passed; QEMU isolated eight stale owner fixtures; 0405 generation pending |
+| Status | Exact 0404 build passed; QEMU isolated eight stale owner fixtures; 0405 generator scope repair pending |
 | Subsystem | CPU8 admission, transition owners, PSCI, and generic hotplug lifecycle |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-27 America/New_York |

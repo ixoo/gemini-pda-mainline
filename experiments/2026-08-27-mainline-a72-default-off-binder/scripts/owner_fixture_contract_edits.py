@@ -69,7 +69,7 @@ def main() -> None:
     ):
         start = text.find(f"static void {function}(struct kunit *test)")
         require(start >= 0, f"{function} absent")
-        end = text.find("\nstatic void ", start + 1)
+        end = text.find("\nstatic ", start + 1)
         require(end >= 0, f"{function} terminator absent")
         body = text[start:end]
         old = (

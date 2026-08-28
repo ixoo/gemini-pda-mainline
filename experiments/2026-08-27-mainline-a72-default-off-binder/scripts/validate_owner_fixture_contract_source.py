@@ -27,7 +27,7 @@ def require(condition: bool, message: str) -> None:
 def function(text: str, name: str) -> str:
     start = text.find(f"static void {name}(struct kunit *test)")
     require(start >= 0, f"function absent: {name}")
-    end = text.find("\nstatic void ", start + 1)
+    end = text.find("\nstatic ", start + 1)
     require(end >= 0, f"function terminator absent: {name}")
     return text[start:end]
 
