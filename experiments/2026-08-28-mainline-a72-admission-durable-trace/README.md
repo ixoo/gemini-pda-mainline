@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-admission-durable-trace` |
-| Status | `running` hardware-free definition |
+| Status | `hardware-free proof passed` |
 | Subsystem | pstore retained records, MT6797 CPU8 admission controller |
 | Device variant | Planet Computers Gemini PDA, named project device |
 | Date(s) | 2026-08-28 |
@@ -58,6 +58,9 @@ The existing CPU9, CPU_OFF, and retry vetoes are unchanged.
 - `scripts/generate-patches.py`: four logical format-patches and replay.
 - `scripts/generate-on-buildbox`: exact Git/source-state Buildbox entry point.
 - `scripts/validate.py`: local definition validator.
+- `scripts/run-kunit-qemu`: exact fetched-package, configuration, symbol, and
+  no-network QEMU gate.
+- `scripts/classify-kunit.py`: exact two-suite, twelve-case runtime classifier.
 
 ## Procedure
 
@@ -119,9 +122,18 @@ The seventh exact-source generation passes all four semantic stages, strict
 review with only the documented exact-wire split-string exception, checksum
 validation, and full-series replay. Canonical patches `0415`--`0418` and the
 isolated `a72-admission-trace-kunit` profile are integrated. All 153 manifest
-profiles remain canonical-order subsequences of the 410-entry series. This is
-still hardware-free: compilation and the two focused suites are pending on
-Buildbox, and there is no candidate or device action.
+profiles remain canonical-order subsequences of the 410-entry series.
+
+Exact clean commit `43eb3b06` compiles the isolated profile on Buildbox as
+`7.1.3-gemini-a72-admission-trace-kunit`. The fetched package passes its full
+checksum manifest and contains exactly the two intended KUnit suites. The
+first bounded QEMU transcript contained 12 passing cases, but the classifier
+failed closed because both six-case suites legitimately emit the same totals
+line twice. Signed harness correction `ba171ca0` counts that exact expected
+multiplicity. A fresh run of the unchanged package then passes both suites and
+all 12 cases with zero failures or skips, no network, no physical DT match,
+and zero physical CPU requests, CPU_OFF requests, or retries. No native VM
+build, device access, retained physical write, candidate, or boot occurred.
 
 ## Analysis
 
@@ -134,14 +146,15 @@ committed transition ledger proves the admitted request reached the binder.
 
 ## Conclusion
 
-Inconclusive for hardware. The successor evidence contract is frozen and its
-local definition plus exact-source four-patch generation, strict review,
-checksum validation, and replay pass. The patches and isolated test profile
-are integrated, but have not yet compiled or run a suite, selected a
-candidate, accessed the device, or requested a physical CPU.
+Passed for the hardware-free scope and still inconclusive for hardware. The
+successor evidence contract, exact-source patch generation, strict review,
+replay, Buildbox compile, package checksums, and both focused KUnit suites now
+pass. No production candidate has yet been defined or selected; the device was
+not accessed and no physical CPU was requested.
 
 ## Follow-up
 
-Build the isolated profile and run exactly the immutable retained-owner and
-controller suites on Buildbox. The ordered next action remains owned by
+Define the separate production profile, exact retained-runtime classifier,
+container gates, and one-attempt result-to-next-action map without changing
+the proven source or DT hypothesis. The ordered next action remains owned by
 `docs/ROADMAP.md`.

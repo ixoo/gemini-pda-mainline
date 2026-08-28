@@ -70,8 +70,8 @@ require(contract["native_vm_build"] is False and
         contract["device_action"] is False and
         contract["boot_candidate"] is False,
         "hardware-free definition")
-require(contract["result"] == "hardware-free-patches-integrated-build-pending",
-        "integrated build-pending result")
+require(contract["result"] == "hardware-free-build-and-kunit-pass",
+        "hardware-free build and KUnit result")
 definition = contract["definition_validation"]
 require(definition["record"] ==
         "results/local-definition-validation-20260828.txt" and
@@ -202,6 +202,52 @@ require(integration["series_entries"] == 410 and
         integration["profiles_checked"] == 153 and
         integration["result"] == "pass", "integration invariant result")
 
+build = contract["buildbox_compile"]
+build_record = EXPERIMENT / build["record"]
+require(build["repository_commit"] ==
+        "43eb3b06730ee50e023c0ae04f7de538af6b458f" and
+        build["profile"] == "a72-admission-trace-kunit" and
+        build["kernel_release"] ==
+        "7.1.3-gemini-a72-admission-trace-kunit" and
+        sha256(build_record) == build["record_sha256"],
+        "exact Buildbox compile record")
+require(build["focused_kunit_suites"] == 2 and
+        build["focused_kunit_cases"] == 12 and
+        build["native_vm_build"] is False and build["result"] == "pass",
+        "Buildbox compile result")
+for field in ("image_sha256", "config_sha256", "system_map_sha256"):
+    require(f"{field}={build[field]}" in
+            build_record.read_text(encoding="utf-8"),
+            f"Buildbox artifact identity {field}")
+
+classifier_attempt = contract["kunit_classifier_attempt_1"]
+classifier_attempt_record = EXPERIMENT / classifier_attempt["record"]
+require(classifier_attempt["harness_commit"] ==
+        "1438d547e82ca2f513c3270727387f4359d5feb2" and
+        sha256(classifier_attempt_record) ==
+        classifier_attempt["record_sha256"],
+        "first classifier attempt record")
+require(classifier_attempt["tests_passed"] == 12 and
+        classifier_attempt["kernel_or_test_change"] is False and
+        classifier_attempt["result"] ==
+        "fail-closed-classifier-corrected",
+        "first classifier attempt result")
+
+kunit = contract["kunit_qemu"]
+kunit_record = EXPERIMENT / kunit["record"]
+require(kunit["harness_commit"] ==
+        "ba171ca0e0dbd4f9fe2c0f1957039530c206cfd9" and
+        sha256(kunit_record) == kunit["record_sha256"],
+        "exact KUnit runtime record")
+require(kunit["suites"] == 2 and kunit["tests"] == 12 and
+        kunit["failed"] == 0 and kunit["skipped"] == 0 and
+        kunit["network"] is False and
+        kunit["physical_cpu_requests"] == 0 and
+        kunit["result"] == "pass", "exact KUnit runtime result")
+require(f"raw_log_sha256={kunit['raw_log_sha256']}" in
+        kunit_record.read_text(encoding="utf-8"),
+        "exact KUnit raw-log identity")
+
 for relative in (
     "README.md", "DESIGN.md", "contract.json",
     "templates/fs/pstore/gemini_admission_trace.c",
@@ -210,6 +256,7 @@ for relative in (
     "templates/include/linux/gemini_admission_trace.h",
     "scripts/source_edits.py", "scripts/validate_source.py",
     "scripts/generate-patches.py", "scripts/generate-on-buildbox",
+    "scripts/run-kunit-qemu", "scripts/classify-kunit.py",
 ):
     path = EXPERIMENT / relative
     require(path.is_file() and not path.is_symlink(), f"exact file {relative}")
@@ -290,9 +337,11 @@ require("source-tree-integrity\" verify" in buildbox,
 for script in (
     SCRIPTS / "source_edits.py", SCRIPTS / "validate_source.py",
     SCRIPTS / "generate-patches.py", SCRIPTS / "validate.py",
+    SCRIPTS / "classify-kunit.py",
 ):
     ast.parse(script.read_text(encoding="utf-8"), filename=str(script))
 subprocess.run(["bash", "-n", str(SCRIPTS / "generate-on-buildbox")], check=True)
+subprocess.run(["bash", "-n", str(SCRIPTS / "run-kunit-qemu")], check=True)
 
 print("validation=a72-admission-durable-trace-integration")
 print("prepared_source=exact-post-0414")
@@ -312,6 +361,11 @@ print("full_series_replay=pass")
 print("integrated_series_entries=410")
 print("integrated_profiles_checked=153")
 print("integrated_profile=a72-admission-trace-kunit")
+print("buildbox_compile=pass")
+print("focused_kunit_suites=2")
+print("focused_kunit_cases=12")
+print("kunit_qemu=pass")
+print("physical_cpu_requests=0")
 print("native_vm_build=none")
 print("device_action=none")
 print("boot_candidate=false")

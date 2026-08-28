@@ -5752,8 +5752,22 @@ The next ordered work is:
    checksums, and full-series replay. Canonical patches `0415`--`0418` plus
    the isolated `a72-admission-trace-kunit` profile are integrated, and all 153
    manifest profiles satisfy the 410-entry canonical-series invariant.
-   **Selected next:** commit and publish this exact integration, compile that
-   profile on Buildbox, and run only its retained-owner and controller suites.
+   Exact clean commit `43eb3b06` compiles that profile on Buildbox as
+   `7.1.3-gemini-a72-admission-trace-kunit`; the fetched package and complete
+   checksum manifest pass. Its first no-network QEMU transcript contained 12
+   passing cases, but the classifier failed closed because both six-case
+   suites emit the same totals line. Signed correction `ba171ca0` counts that
+   exact multiplicity, and a fresh unchanged-package run passes both suites:
+   12 tests, zero failures, zero skips, no physical DT match, and zero physical
+   CPU requests, CPU_OFF requests, or retries. No native VM build, device
+   access, retained physical write, or candidate occurred. **Selected next:**
+   define and validate the separate production profile, exact record-2/record-3
+   recovery classifier, LK container, full candidate checksum, guarded boot2
+   installer, and one-attempt result map. Preserve the proven source and DT
+   hypothesis, one CPU8 request maximum, CPU9 veto, zero CPU_OFF/retry policy,
+   existing transition-ledger ownership, full readback, and clean shutdown.
+   Only after those gates pass may one distinct candidate be selected and
+   installed for one attributable owner-selected boot.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
