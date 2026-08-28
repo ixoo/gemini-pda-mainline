@@ -68,7 +68,10 @@ static void mt6797_a72_owner_seed_available_cpu9(void)
 
     text = replace_once(
         text,
-        "\tKUNIT_EXPECT_EQ(test, ret, -EINVAL);\n\towner_observe(&state->after);\n",
+        "\tret = mt6797_psci_ops.cpu_up_preflight(8, CPUHP_AP_ONLINE);\n"
+        "\tKUNIT_EXPECT_EQ(test, ret, -EINVAL);\n"
+        "\towner_observe(&state->after);\n",
+        "\tret = mt6797_psci_ops.cpu_up_preflight(8, CPUHP_AP_ONLINE);\n"
         "\tKUNIT_EXPECT_EQ(test, ret,\n"
         "\t\tIS_ENABLED(CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER) ?\n"
         "\t\t\t-EAGAIN : -EINVAL);\n"
