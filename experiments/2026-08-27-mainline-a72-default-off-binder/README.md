@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-27-mainline-a72-default-off-binder` |
-| Status | Late-KUnit field-guard repair generated and admitted; exact rebuild pending |
+| Status | Exact 0404 build passed; QEMU isolated eight stale owner fixtures; 0405 generation pending |
 | Subsystem | CPU8 admission, transition owners, PSCI, and generic hotplug lifecycle |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-27 America/New_York |
@@ -71,6 +71,9 @@ arm caller or binder Device Tree node; and no boot candidate is selected.
 - [`scripts/generate-owner-reset-field-guard-fix-on-buildbox`](scripts/generate-owner-reset-field-guard-fix-on-buildbox)
   generates the one-file guard repair for two late-startup-only online fields
   exposed by the exact 0403 rebuild.
+- [`scripts/generate-owner-fixture-contract-fix-on-buildbox`](scripts/generate-owner-fixture-contract-fix-on-buildbox)
+  generates the test-only repair for the three fixture-contract mismatches
+  isolated by the exact 0404 QEMU run.
 
 ## Audit result
 
