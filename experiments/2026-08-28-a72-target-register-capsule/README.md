@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-a72-target-register-capsule` |
-| Status | `validated-definition` |
+| Status | `generated-source-review` |
 | Subsystem | MT6797 retained Cortex-A72 pair and arm64 ID-register evidence |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-28 |
@@ -66,8 +66,11 @@ one fixed decision map; the proven parent must not be rerun unchanged.
   reversal, semantic inventory, output-schema, and negative-mutation tests.
 - [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox): reconstructs
   the exact parent from public Git inputs and emits only the child patch.
+- [`patches/series`](patches/series): the exact admitted one-patch child series.
 - [`results/definition-validation-20260828.txt`](results/definition-validation-20260828.txt):
   local syntax, ShellCheck, serialization, exact-reversal, and mutation result.
+- [`results/source-generation-20260828.txt`](results/source-generation-20260828.txt):
+  exact fourth-generation identity, style result, and admission decision.
 
 ## Procedure
 
@@ -128,6 +131,15 @@ two declaration-alignment checks. Patch `79d592e6...` is therefore also
 rejected before build. The definition now uses canonical continuation alignment
 for those final two declarations.
 
+Generation attempt 4 from signed repository commit `74e3fe0e` again
+reconstructed the complete public parent chain and reversed the child to exact
+parent `psci.c`. All thirteen mutations and the exact one-path inventory pass.
+The generated source commit is `5ce64e79...`; the admitted patch SHA-256 is
+`f4070ea0...`. Linux 7.1.3 strict Checkpatch reports zero errors, warnings, or
+checks when only the intentionally absent synthetic signoff is ignored. The
+patch and one-entry series are now admitted, and the generator is pinned to
+reproduce them byte-for-byte. No kernel build has run.
+
 ## Analysis
 
 Copying `cpu_data` alone would rely on source attribution for target locality.
@@ -146,10 +158,11 @@ captured.
 
 ## Conclusion
 
-`validated-definition`: the smallest target-local capture child and its
-deterministic Buildbox generator are frozen. Local validation preserves the
-repeatable parent's power and recovery behavior and admits only the bounded
-read-only register capsule. No compile or hardware claim exists yet.
+`generated-source-review`: the smallest target-local capture child is admitted
+as one exact experiment-only patch after deterministic Buildbox reconstruction,
+byte-identical parent reversal, mutation testing, and clean strict style review
+under the documented non-certifying signoff exception. No compile or hardware
+claim exists yet.
 
 ## Follow-up
 

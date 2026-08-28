@@ -24,12 +24,14 @@ the loop. Positive identity-gated observations are unaffected.
 ### Current DA921x, I2C6, and A72 line
 
 - [2026-08-28 CPU8/CPU9 target-register capsule](2026-08-28-a72-target-register-capsule/README.md)
-  — freezes a capture-only child of the exact repeatable Gemian scheduler
+  — admits a capture-only child of the exact repeatable Gemian scheduler
   parent. Each already-bound target task reads one fixed architectural register
   vector, checks all overlapping fields against its existing per-CPU startup
   record, and publishes a versioned field-hashed capsule. CPU_ON, CPU_OFF,
   PSCI, firmware, MMIO, power, watchdog, workload, and recovery paths remain
-  unchanged. Deterministic source generation and Buildbox validation are next;
+  unchanged. Attempt 4 passed deterministic Buildbox generation,
+  byte-identical parent reversal, thirteen mutations, and strict style review;
+  exact patch `f4070ea0...` is admitted. The Buildbox compile review is next;
   no kernel, candidate, or new device result exists yet.
 - [2026-08-28 arm64 late-CPU READY evidence-gap audit](2026-08-28-mainline-a72-ready-evidence-gap-audit/README.md)
   — exact prepared-source review confirms that provenance alone cannot publish

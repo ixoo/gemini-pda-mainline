@@ -8,6 +8,7 @@ readonly SOURCE_URL=https://github.com/gemian/gemini-linux-kernel-3.18.git
 readonly PARENT_PATCHSET_SHA256=bd5799cecd14aa34a87562b09507a6d9f18f11cd138420bcba629f12793e7bfe
 readonly PARENT_PSCI_SHA256=a09af27d80e502a7c62e365f271ed74f6f09212935882e242d4d0f432ec29f34
 readonly GENERATED_PATCH=0001-diagnostic-capture-A72-target-register-capsules.patch
+readonly GENERATED_PATCH_SHA256=f4070ea05b799744af2808e49d39582cdbd8cbd009613977c14efa9827a22c53
 
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 [[ "$#" -eq 3 ]] || die 'expected PROJECT_COMMIT SOURCE_ROOT OUTPUT_ROOT'
@@ -27,6 +28,15 @@ for command in awk cmp cp diff find git grep mkdir mktemp mv python3 rm \
   sha256sum sort xargs; do
   command -v "$command" >/dev/null || die "missing command: $command"
 done
+
+readonly admitted_dir="$repository_dir/experiments/2026-08-28-a72-target-register-capsule/patches"
+[[ "$(<"$admitted_dir/series")" == "$GENERATED_PATCH" ]] || \
+  die 'admitted register-capsule series changed'
+[[ -f "$admitted_dir/$GENERATED_PATCH" && \
+   ! -L "$admitted_dir/$GENERATED_PATCH" ]] || \
+  die 'admitted register-capsule patch is absent or unsafe'
+[[ "$(sha256sum "$admitted_dir/$GENERATED_PATCH" | awk '{print $1}')" == \
+  "$GENERATED_PATCH_SHA256" ]] || die 'admitted register-capsule patch changed'
 
 readonly mirror="$source_root/gemian-linux-kernel-3.18.git"
 readonly work_root=/workspace/gemini-pda/a72-register-capsule-work
@@ -151,6 +161,11 @@ python3 "$script_dir/test_capsule_child.py" --source "$work/source" \
   die 'generated source is dirty'
 generated_patch_sha="$(sha256sum "$partial/patches/$GENERATED_PATCH" | awk '{print $1}')"
 readonly generated_patch_sha
+[[ "$generated_patch_sha" == "$GENERATED_PATCH_SHA256" ]] || \
+  die 'generated register-capsule patch identity changed'
+cmp "$partial/patches/$GENERATED_PATCH" \
+  "$admitted_dir/$GENERATED_PATCH" >/dev/null || \
+  die 'generated register-capsule patch differs from admitted patch'
 cat >"$partial/provenance/generation.txt" <<EOF
 purpose=experiment-only-a72-register-capsule-source-review
 boot_candidate=false
@@ -163,6 +178,8 @@ parent_psci_sha256=$PARENT_PSCI_SHA256
 generated_source_commit=$generated_source_commit
 generated_patch=$GENERATED_PATCH
 generated_patch_sha256=$generated_patch_sha
+admitted_patch_sha256=$GENERATED_PATCH_SHA256
+generated_matches_admitted=yes
 generated_patch_count=1
 changed_path=arch/arm64/kernel/psci.c
 child_editor=experiments/2026-08-28-a72-target-register-capsule/scripts/capsule_edits.py
