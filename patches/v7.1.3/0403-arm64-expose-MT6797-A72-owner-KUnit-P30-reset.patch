@@ -1,0 +1,55 @@
+From 838490c69626768b9611a70adc8b977af00114d1 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 28 Aug 2026 01:21:00 +0000
+Subject: [PATCH 1/1] arm64: expose P30 reset to MT6797 A72 owner KUnit
+
+Build the existing P30 test reset for the owner KUnit suite.
+
+Keep the online-state test helper private to its original suite.
+---
+ arch/arm64/include/asm/late_cpu_startup.h | 6 +++++-
+ arch/arm64/kernel/late_cpu_startup.c      | 5 ++++-
+ 2 files changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/include/asm/late_cpu_startup.h b/arch/arm64/include/asm/late_cpu_startup.h
+index 8098f5b..28cb2f7 100644
+--- a/arch/arm64/include/asm/late_cpu_startup.h
++++ b/arch/arm64/include/asm/late_cpu_startup.h
+@@ -222,8 +222,12 @@ static inline bool arm64_late_cpu_startup_quarantined(void)
+ }
+ #endif
+ 
+-#ifdef CONFIG_ARM64_LATE_CPU_STARTUP_KUNIT_TEST
++#if defined(CONFIG_ARM64_LATE_CPU_STARTUP_KUNIT_TEST) || \
++	defined(CONFIG_ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST)
+ void arm64_late_cpu_startup_test_reset(void);
++#endif
++
++#ifdef CONFIG_ARM64_LATE_CPU_STARTUP_KUNIT_TEST
+ void arm64_late_cpu_startup_test_set_online(u32 cpu, bool online);
+ #endif
+ 
+diff --git a/arch/arm64/kernel/late_cpu_startup.c b/arch/arm64/kernel/late_cpu_startup.c
+index 096d1a4..314d80e 100644
+--- a/arch/arm64/kernel/late_cpu_startup.c
++++ b/arch/arm64/kernel/late_cpu_startup.c
+@@ -915,7 +915,8 @@ bool arm64_late_cpu_startup_quarantined(void)
+ 	return atomic_read_acquire(&late_startup.quarantined);
+ }
+ 
+-#ifdef CONFIG_ARM64_LATE_CPU_STARTUP_KUNIT_TEST
++#if defined(CONFIG_ARM64_LATE_CPU_STARTUP_KUNIT_TEST) || \
++	defined(CONFIG_ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST)
+ void arm64_late_cpu_startup_test_reset(void)
+ {
+ 	unsigned long flags;
+@@ -943,7 +944,9 @@ void arm64_late_cpu_startup_test_reset(void)
+ 	atomic_set_release(&late_startup.state, ARM64_LATE_CPU_STARTUP_FREE);
+ 	raw_spin_unlock_irqrestore(&late_startup.lock, flags);
+ }
++#endif
+ 
++#ifdef CONFIG_ARM64_LATE_CPU_STARTUP_KUNIT_TEST
+ void arm64_late_cpu_startup_test_set_online(u32 cpu, bool online)
+ {
+ 	unsigned long flags;

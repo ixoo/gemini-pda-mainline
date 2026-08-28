@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-27-mainline-a72-default-off-binder` |
-| Status | 0402 compile rejected; reset-visibility repair generation pending |
+| Status | P30 reset-visibility repair generated and admitted; exact rebuild pending |
 | Subsystem | CPU8 admission, transition owners, PSCI, and generic hotplug lifecycle |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-27 America/New_York |
@@ -190,11 +190,21 @@ definition were guarded only by the standalone late-startup KUnit option,
 while this profile selects the owner KUnit option. The exact failure is in the
 [0402 compile evidence](results/buildbox-compile-fail-21ff0073-20260828.txt).
 
-The next bounded repair widens only that reset's preprocessor guard to either
-test configuration and keeps the online-state helper under its original
-narrower guard. It changes no production configuration or runtime path. A new
-exact Buildbox compile and one bounded single-thread TCG QEMU proof remain
-pending; no device action or boot candidate is admitted.
+Buildbox generated and replay-validated that bounded repair as the exact
+canonical
+[`0403` patch](../../patches/v7.1.3/0403-arm64-expose-MT6797-A72-owner-KUnit-P30-reset.patch),
+with SHA-256
+`862542ec2a89db3eda79358fecd823b720f173b891cdee47325266fa692833b9`.
+It widens only the existing reset's preprocessor guard to either test
+configuration and keeps the online-state helper under its original narrower
+guard. Strict checkpatch reports zero errors, warnings, or checks across 31
+lines. The patch changes two production-owned source files but adds only test
+preprocessor guards; it changes no production configuration, function body,
+or runtime path.
+
+A new exact Buildbox compile and one bounded single-thread TCG QEMU proof
+remain pending. Generation performed no physical or device action, and no boot
+candidate is admitted.
 
 ## Follow-up
 
