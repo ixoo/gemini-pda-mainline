@@ -1,0 +1,82 @@
+A72 target-register capsule offline-container review
+Date: 2026-08-28
+Result: PASS
+Device access: none
+Partition write: none
+Runtime result: not tested
+
+Accepted inputs
+---------------
+
+Compile repository commit:
+  f3627d4e9dc23bd102b827eb8011bdac61b6f8a6
+Compile package SHA256SUMS SHA-256:
+  6a1eb12128f69fe34ac2942a2a421d6d916939b22fb5966d7201e909489eadd9
+Scheduler-parent patchset SHA-256:
+  bd5799cecd14aa34a87562b09507a6d9f18f11cd138420bcba629f12793e7bfe
+Register-capsule patchset SHA-256:
+  71ef281aae8d0b99d0421b81bd3d61d82ab090125c4885977ba39d8280838469
+Kernel field SHA-256:
+  de81aa06953bf1f6a24a97c88f10f1406f6af0b100f0b3f7b34674240eeefdfa
+Known-good Gemian boot SHA-256:
+  1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513
+Retained ramdisk SHA-256:
+  a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4
+
+Exact candidate
+---------------
+
+Raw filename:
+  gemian-a72-target-register-capsule.boot.img
+Raw size:
+  14,815,232 bytes
+Raw SHA-256:
+  d4ae9ee1b2f799e06e0195d8b113ef52cbd2491aa54e331bb79309e34c61922d
+Legacy Android image ID:
+  a8a605389d5d869c9b29dd6a613eda8e3b8b6e95
+Full boot2 size:
+  16,777,216 bytes
+Full boot2 SHA-256:
+  f8e247e5f067fff562e00d1d96447b236c8ea2ec946c9e493589938b0b9d9f7f
+Zero-padded tail:
+  1,961,984 bytes
+
+Sidecar SHA-256 identities:
+  analysis.txt=98bde19fa9e38202909dcee8995ad4fb40ea57b315df4cbf2ac8672d10b7492e
+  provenance.txt=3c60e70e8c9df28dad086c91b5355ac939e9a55a9a550eb7af924cee7dd6d067
+  SHA256SUMS=d3a2d9f30d36e9227abf327af27e52c418461236e00a41a705f4514bdfbfe562
+
+Tooling SHA-256 identities:
+  assemble.py=ed7d52e4bb5f6137c587b446171dfd3fafc8f78fa70e59dacd19b251c7ca5701
+  build-candidate.sh=b5ea76570e6af821c6595cd455a6be05402f691aa74736791364756e59585501
+  test_candidate.py=4ed55ea232a1a3b5fa23a5ed55ffc031ad0b2fab1c632670c4e603aefb5d1aad
+
+Independent review
+------------------
+
+- Two ignored output roots independently constructed the same five regular,
+  non-symlink, single-link, mode-0600 files.
+- Each root performed two byte-identical raw Android-v0 assemblies.
+- Each root performed copy-and-truncate and zero-fill-then-overlay padding;
+  the two 16 MiB results are byte-identical.
+- Both roots and both manifests are byte-identical and pass strict checksums.
+- Independent parsing confirms Android-v0 magic, 2,048-byte pages, unchanged
+  addresses and command line, zero second/DT header fields, exact kernel and
+  retained-ramdisk extents, the recomputed legacy image ID, raw prefix, and
+  all-zero padded tail.
+- The validator pins the complete 12-assembler chain, builder, compile
+  manifest, source/patch identities, and all output identities.
+- Both validator runs reject all six candidate mutations, for 12/12 rejected
+  mutation cases across the two retained roots.
+- Executed candidate tooling contains no device path, SSH/netcat, reboot,
+  poweroff, or shutdown action.
+- Native VM kernel build: no.
+
+Decision and boundary
+---------------------
+
+Exact padded image f8e247e5... is accepted as the sole offline-container input
+for a separately reviewed guarded boot2 installer and fixed runtime decision
+map. This result does not itself perform or authorize a new target other than
+the already-standing boot2 policy, and it establishes no runtime, CPU8, CPU9,
+READY, or hardware-support claim.

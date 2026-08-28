@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-a72-target-register-capsule` |
-| Status | `generated-source-review` |
+| Status | `offline-candidate-validated` |
 | Subsystem | MT6797 retained Cortex-A72 pair and arm64 ID-register evidence |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-28 |
@@ -69,6 +69,12 @@ one fixed decision map; the proven parent must not be rerun unchanged.
 - [`scripts/build-on-buildbox`](scripts/build-on-buildbox): selects the exact
   scheduler-unpark parent and the register-capsule comparison mode in the
   shared Gemian compile-review lane.
+- [`scripts/assemble.py`](scripts/assemble.py): pins the proven scheduler
+  Android-v0 contract and substitutes only the accepted capsule kernel field.
+- [`scripts/build-candidate.sh`](scripts/build-candidate.sh): performs two raw
+  assemblies and two independent exact-size padding constructions offline.
+- [`scripts/test_candidate.py`](scripts/test_candidate.py): independently pins
+  and parses the complete container/tool chain and rejects candidate mutations.
 - [`patches/series`](patches/series): the exact admitted one-patch child series.
 - [`results/definition-validation-20260828.txt`](results/definition-validation-20260828.txt):
   local syntax, ShellCheck, serialization, exact-reversal, and mutation result.
@@ -76,6 +82,10 @@ one fixed decision map; the proven parent must not be rerun unchanged.
   exact fourth-generation identity, style result, and admission decision.
 - [`results/compile-review-attempt1-20260828.txt`](results/compile-review-attempt1-20260828.txt):
   both exact compile passes and the rejected standalone-symbol gate assumption.
+- [`results/compile-review-20260828.txt`](results/compile-review-20260828.txt):
+  accepted exact child-versus-parent Buildbox binary and stack review.
+- [`results/offline-container-review-20260828.txt`](results/offline-container-review-20260828.txt):
+  two-root deterministic Android-v0 and full boot2 candidate validation.
 
 ## Procedure
 
@@ -105,11 +115,11 @@ one fixed decision map; the proven parent must not be rerun unchanged.
   source. A same-day 12-second passive sample therefore supplied no substitute
   target evidence.
 
-The deterministic editor and validator now pass Python syntax, one positive
-definition case, exact field inventories, and thirteen unsafe mutations. Both
-shell files pass `bash -n` and ShellCheck, and the Buildbox command is exposed
-by the local help path. No source generation, build, candidate, deployment, or
-new runtime result has occurred yet. See
+At the definition stage, the deterministic editor and validator passed Python
+syntax, one positive definition case, exact field inventories, and thirteen
+unsafe mutations. Both shell files pass `bash -n` and ShellCheck, and the
+Buildbox command is exposed by the local help path. No source generation,
+build, candidate, deployment, or new runtime result had occurred at that gate. See
 [`results/definition-validation-20260828.txt`](results/definition-validation-20260828.txt).
 
 Buildbox generation attempt 1 reconstructed and reversed the exact parent and
@@ -145,7 +155,7 @@ checks when only the intentionally absent synthetic signoff is ignored. The
 patch and one-entry series are now admitted, and the generator is pinned to
 reproduce them byte-for-byte. No kernel build has run.
 
-The Buildbox compile lane is now defined to compare that exact child against
+The Buildbox compile lane compares that exact child against
 the scheduler-unpark parent under identical configuration and toolchain inputs.
 Its pre-package gates require the two child-only standalone functions and the
 two expected inlined helpers, four complete output parts, both target-task
@@ -153,7 +163,6 @@ capture phases, exactly 26 additional compiled `mrs` instructions in the child
 scheduler task relative to the parent, no PSCI/MMIO/clock/regulator/sleep call,
 unchanged inherited scheduler terminals, identical compiler diagnostics, and
 bounded stack use for every emitted capsule and affected scheduler function.
-This definition is not a successful compile result or a boot candidate.
 
 Compile attempt 1 at exact signed commit `44d3dce7` reconstructed and validated
 the source, then both child and exact scheduler-parent kernels compiled. The
@@ -164,6 +173,22 @@ unchanged. The corrected lane instead freezes that exact compiled shape and
 measures the fixed register-read inventory as the child-versus-parent task
 disassembly delta. Attempt 1 has no package, candidate, device write, or runtime
 claim.
+
+Compile attempt 2 at signed commit `f3627d4e` passed that corrected gate. Both
+exact trees compile, resolve byte-identical configurations, and emit identical
+inherited diagnostics. Child task disassembly contains exactly 26 `mrs`
+instructions while the exact parent contains zero, with no forbidden call.
+The two expected standalone helpers, four output records, both capture phases,
+all inherited scheduler terminals, and focused stack bounds pass. The fetched
+package independently validates; accepted `Image.gz-dtb` is `de81aa06...`.
+
+Offline candidate construction then retained two independent roots. Each root
+performed two byte-identical Android-v0 assemblies and two independent padding
+paths. Both complete five-file roots are byte-identical, strict manifests pass,
+the 12-assembler validator parses the header, extents, kernel, ramdisk, legacy
+image ID, and all-zero tail, and 12/12 mutation instances are rejected. The raw
+identity is `d4ae9ee1...`; exact 16 MiB boot2 identity is `f8e247e5...`. No
+device access, deployment, or runtime result occurred.
 
 ## Analysis
 
@@ -183,15 +208,15 @@ captured.
 
 ## Conclusion
 
-`generated-source-review`: the smallest target-local capture child is admitted
-as one exact experiment-only patch after deterministic Buildbox reconstruction,
-byte-identical parent reversal, mutation testing, and clean strict style review
-under the documented non-certifying signoff exception. No compile or hardware
-claim exists yet.
+`offline-candidate-validated`: the smallest target-local capture child is
+admitted, compiled against its exact scheduler parent, inspected in its actual
+inlined binary shape, and reproducibly packaged as one exact offline candidate.
+This establishes no runtime, READY, mainline policy, or hardware-support claim.
 
 ## Follow-up
 
 Continue only through the ordered action in
-[`docs/ROADMAP.md`](../../docs/ROADMAP.md): generate and validate the exact child
-patch on Buildbox, then perform the Buildbox-only binary review before defining
-a physical candidate.
+[`docs/ROADMAP.md`](../../docs/ROADMAP.md): freeze the guarded boot2 installer,
+read-only collector, and one-attempt decision map against exact candidate
+`f8e247e5...`; validate their failure paths and mutations, commit and push them,
+then deploy once under the standing boot2 authorization.

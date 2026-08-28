@@ -31,8 +31,12 @@ the loop. Positive identity-gated observations are unaffected.
   PSCI, firmware, MMIO, power, watchdog, workload, and recovery paths remain
   unchanged. Attempt 4 passed deterministic Buildbox generation,
   byte-identical parent reversal, thirteen mutations, and strict style review;
-  exact patch `f4070ea0...` is admitted. The Buildbox compile review is next;
-  no kernel, candidate, or new device result exists yet.
+  exact patch `f4070ea0...` is admitted. The corrected exact-parent Buildbox
+  review passes with a 26-to-zero compiled register-read delta, no forbidden
+  call, identical configuration/diagnostics, and bounded stack. Two independent
+  Android-v0 constructions and padding paths reproduce exact 16 MiB candidate
+  `f8e247e5...`; both complete validators reject all mutations. Guarded
+  deployment/runtime tooling is next; no new device result exists yet.
 - [2026-08-28 arm64 late-CPU READY evidence-gap audit](2026-08-28-mainline-a72-ready-evidence-gap-audit/README.md)
   — exact prepared-source review confirms that provenance alone cannot publish
   READY. The private core object has no target-register evidence producer, the

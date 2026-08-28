@@ -6008,6 +6008,20 @@ The next ordered work is:
    versioned evidence capsule. Keep mainline policy and system-wide capability
    decisions out of that vendor-kernel capsule. Freeze source, schema,
    failure-path, and negative-mutation validation before a Buildbox-only build.
+   The exact
+   [target-register capsule](../experiments/2026-08-28-a72-target-register-capsule/README.md)
+   now passes deterministic generation, byte-identical parent reversal,
+   thirteen source mutations, strict style, and the corrected exact-parent
+   Buildbox binary gate. Compiled child-task disassembly adds exactly 26
+   architectural reads over the parent and no forbidden call; configuration,
+   diagnostics, inherited scheduler behavior, and stack bounds pass. Two
+   independent Android-v0 roots reproduce exact 16 MiB candidate
+   `f8e247e5...` and reject all candidate mutations. **Selected next:** freeze
+   and validate the guarded inactive-boot2 installer, read-only collector, and
+   one-attempt capsule decision map against that exact identity. Commit and
+   push those tools before one deployment; do not change the scheduler parent,
+   workload, power sequence, CPU_OFF prohibition, watchdog recovery, or fixed
+   capsule schema.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

@@ -1,0 +1,74 @@
+A72 target-register capsule Buildbox compile review
+Date: 2026-08-28
+Result: PASS
+
+Exact inputs
+------------
+
+Repository commit:
+  f3627d4e9dc23bd102b827eb8011bdac61b6f8a6
+Source commit:
+  59e00a9144d782e148332009a835b99c43382467
+Scheduler-parent patchset SHA-256:
+  bd5799cecd14aa34a87562b09507a6d9f18f11cd138420bcba629f12793e7bfe
+Register-capsule patchset SHA-256:
+  71ef281aae8d0b99d0421b81bd3d61d82ab090125c4885977ba39d8280838469
+Buildbox job:
+  f3627d4e9dc23bd102b827eb8011bdac61b6f8a6-gemian-a72-register-capsule
+Validated package:
+  gemian-a72-register-compile-f3627d4e9dc2
+Package SHA256SUMS SHA-256:
+  6a1eb12128f69fe34ac2942a2a421d6d916939b22fb5966d7201e909489eadd9
+
+Source and build gates
+----------------------
+
+  validation=a72-target-register-capsule-source
+  parent_reversal=byte-identical
+  changed_path=arch/arm64/kernel/psci.c
+  physical_actions=none
+  register_source_build=passed
+  baseline_source_build=passed
+  diagnostic_comparison=identical
+
+Both trees use the same resolved configuration. Both compile logs contain the
+same inherited vendor diagnostics. Each tree retains 2,484 stack-usage files.
+
+Compiled binary gates
+---------------------
+
+The pinned compiler emits mt6797_a72_regcap_identity and
+mt6797_a72_regcap_emit as child-only symbols and inlines the capture and
+cpuinfo-match helpers into mt6797_a72_sc_thread. The exact scheduler parent has
+no regcap symbol. Child-versus-parent task disassembly proves:
+
+  register_task_child_mrs_count=26
+  register_task_parent_mrs_count=0
+  register_task_mrs_delta=26
+  register_capture_forbidden_calls=none
+
+The child image contains all four versioned capsule output parts and both
+target-task capture phases. The pair-v7 scheduler terminal and unpark lifecycle
+remain in both trees. PSCI, CPU_ON/OFF, MMIO, regulator, clock, sleep, retry,
+storage, reset, and device-action calls remain absent from the capsule delta.
+
+Accepted child outputs
+----------------------
+
+Image.gz-dtb SHA-256:
+  de81aa06953bf1f6a24a97c88f10f1406f6af0b100f0b3f7b34674240eeefdfa
+vmlinux SHA-256:
+  99ccb85aafe8ddd34b61d7b9b89f8292ce1a42bc6502c88acc0e368ef024a970
+System.map SHA-256:
+  69488e4b50da6cf17a2c06a2315d8f347af9ef2dab7dd05fa21e55e7eb7c1b0a
+
+Focused stack bytes:
+  mt6797_a72_hold_workfn=784
+  mt6797_a72_regcap_emit=112
+  mt6797_a72_regcap_identity=0
+  mt6797_a72_sc_terminal=224
+  mt6797_a72_sc_thread=96
+
+The fetched package independently passes its strict manifest and provenance
+checks. Its provenance remains boot_candidate=false. This is compile evidence,
+not a container, deployment, runtime, READY, or hardware-support claim.
