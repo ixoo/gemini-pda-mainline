@@ -106,9 +106,12 @@ def classify_runtime(raw: str, expected_release: str, qemu_exit: int) -> None:
         expected_ok.append(f"ok {suite_index} {suite}")
         summary = f"# {suite}: pass:{len(cases)} fail:0 skip:0 total:{len(cases)}"
         totals = f"# Totals: pass:{len(cases)} fail:0 skip:0 total:{len(cases)}"
+        totals_occurrences = sum(
+            len(other_cases) == len(cases) for _, other_cases in SUITES
+        )
         require(ktap.count(summary) == 1,
                 f"suite summary is not an exact pass: {suite}")
-        require(ktap.count(totals) == 1,
+        require(ktap.count(totals) == totals_occurrences,
                 f"suite totals are not an exact pass: {suite}")
     observed_ok = [line for line in ktap if re.fullmatch(r"ok \d+ \S+", line)]
     require(observed_ok == expected_ok,
