@@ -79,10 +79,10 @@ require(
 )
 require(
     contract["native_vm_build"] is False and
-    contract["device_action"] is False and
+    contract["device_action"] is True and
     contract["boot_candidate"] is True and
-    contract["result"] == "validated-candidate-deployment-pending",
-    "validated candidate state",
+    contract["result"] == "deployed-shutdown-runtime-pending",
+    "verified deployment state",
 )
 definition = contract["definition_validation"]
 require(
@@ -388,6 +388,30 @@ require(
     "bounded runtime tooling contract",
 )
 
+deployment = contract["deployment"]
+require(
+    deployment["record"] == "results/deployment-boot2-4e0f8688-20260828.txt" and
+    sha256(EXPERIMENT / deployment["record"]) == deployment["record_sha256"],
+    "sanitized deployment record",
+)
+require(
+    deployment["target_logical_name"] == "boot2" and
+    deployment["target"] == "/dev/mmcblk0p30" and
+    deployment["root"] == "/dev/mmcblk0p29" and
+    deployment["predecessor_sha256"] ==
+    "60902c7ba7e5cccd781082d6d17e1bcb273d184751ddc9dde6a64b2e2a58b8d1" and
+    deployment["candidate_sha256"] == candidate["padded_sha256"] and
+    deployment["readback_sha256"] == candidate["padded_sha256"] and
+    deployment["deployment_boot_id"] ==
+    "e3731f9a-19d9-46cd-9ea6-7bd56c26d7cc" and
+    deployment["external_power"] is True and
+    deployment["fresh_backup"] is False and
+    deployment["retained_ram_write"] is False and
+    deployment["shutdown_confirmed"] is True and
+    deployment["reboot_requested"] is False and deployment["result"] == "pass",
+    "exact boot2 deployment and shutdown",
+)
+
 for relative in (
     "README.md", "DESIGN.md", "contract.json", "scripts/source_edits.py",
     "scripts/validate_source.py", "scripts/generate-patches.py",
@@ -407,6 +431,7 @@ for relative in (
     "results/buildbox-compile-c147e2dd-20260828.txt",
     "results/candidate-validation-633f897a-20260828.txt",
     "results/offline-runtime-gates-20260828.txt",
+    "results/deployment-boot2-4e0f8688-20260828.txt",
 ):
     path = EXPERIMENT / relative
     require(path.is_file() and not path.is_symlink(), f"exact file {relative}")
@@ -514,7 +539,7 @@ print("cpu9_request_paths=0")
 print("cpu_off_paths=0")
 print("retry_paths=0")
 print("native_vm_build=none")
-print("device_action=none")
+print("device_action=verified-boot2-write-and-shutdown")
 print("boot_candidate=true")
 print("production_buildbox=pass")
 print("candidate_lk_gates=32-of-32")

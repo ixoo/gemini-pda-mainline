@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-admission-live-trigger` |
-| Status | `exact validated candidate; deployment pending` |
+| Status | `exact candidate deployed and shut down; runtime pending` |
 | Subsystem | MT6797 A72 admission controller, sysfs, CPU hotplug |
 | Device variant | Planet Computers Gemini PDA, named project device |
 | Date(s) | 2026-08-28 |
@@ -174,6 +174,15 @@ closed. The host must fsync the accepted pre-trigger frame and trigger intent
 before opening the sole trigger connection. A commit-bearing transport loss is
 terminal and cannot be retried. No runtime tool requests a reboot.
 
+The guarded deployment then ran from known-good Gemian boot ID
+`e3731f9a-...`. Live GPT resolved root as `/dev/mmcblk0p29` and inactive
+logical boot2 as `/dev/mmcblk0p30`. Exact predecessor `60902c7b...`, stable
+external power, 100 percent battery, unchanged TEE identities, and empty
+transition/admission retained records passed. The write was synced and flushed;
+the full-partition readback matched `4e0f8688...`. No fresh backup or retained
+RAM write occurred. Gemian was cleanly shut down, then three consecutive TCP/22
+closures confirmed it unreachable.
+
 ## Analysis
 
 The new experiment separates two questions in one physical selection. If the
@@ -188,10 +197,10 @@ returning status identifies a precise terminal error or CPU8 outcome.
 The retained-earlier-anchor direction is rejected. The serviceability-first
 one-shot trigger passes exact Buildbox compilation, package validation, all 15
 focused KUnit cases, exact LK construction, and the offline no-retry runtime
-gates. Candidate `4e0f8688...` is now a boot candidate. No boot2 write or
-physical CPU request has occurred yet.
+gates. Candidate `4e0f8688...` is installed on inactive boot2 with a matching
+full readback and confirmed shutdown. No physical CPU request has occurred yet.
 
 ## Follow-up
 
-Candidate `4e0f8688...` and its deployment/runtime gates are ready. The ordered
-next step remains owned by `docs/ROADMAP.md`.
+Candidate `4e0f8688...` and its verified deployment receipt are ready. The
+ordered next step remains owned by `docs/ROADMAP.md`.

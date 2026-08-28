@@ -5838,12 +5838,15 @@ The next ordered work is:
    terminal branches while rejecting 13 unsafe mutations. Its collector
    fsyncs the accepted zero-execution frame and intent before one trigger
    connection, forbids a retry after a commit-bearing transport loss, and
-   never requests a reboot. No native VM build or device action occurred.
-   **Selected next:** publish these offline gates, install exact `4e0f8688...`
-   only to live-GPT-resolved inactive boot2 with full readback and clean
-   shutdown, then pre-arm the host collector before one physical boot2
-   selection. Use the terminal status or attributable post-commit transport
-   loss to choose the next admission action without repeating the artifact.
+   never requests a reboot. No native VM build occurred. The guarded installer
+   then resolved inactive live-GPT boot2 as `/dev/mmcblk0p30`, matched exact
+   predecessor `60902c7b...`, and wrote exact `4e0f8688...`; its full-partition
+   readback matched. Stable external power, unchanged TEE identities, no fresh
+   backup or retained-RAM write, and clean shutdown with three closed TCP/22
+   checks are recorded. **Selected next:** pre-arm the host collector before
+   one physical boot2 selection. Use the terminal status or attributable
+   post-commit transport loss to choose the next admission action without
+   repeating the artifact.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
