@@ -6,7 +6,7 @@
   "audited_canonical_series_sha256": "3658f5ef79dd75fe079cdce4defca982778c94d033c9854e0ac4645f5c3eb4aa",
   "integrated_canonical_series_entries": 400,
   "integrated_canonical_series_sha256": "075dfaa835c4df38b1a38c99d8d8712cf814b664d09105fcf3d72c601f7b9485",
-  "integrated_manifest_sha256": "7f203185cae91e351de702945ad4f94a3d120bf1dbf8ff8b1e3b70f6cad7b758",
+  "integrated_manifest_sha256": "5a86690e466e618b8a313ebd98e8580b9815a01416922b30429faa1c76741945",
   "integrated_profile": "a72-derived-admission-kunit",
   "prepared_source_state": "c0fd471b2fbc291a0793ba093fe95acbf972685031bde67cad7c89833292694c",
   "prepared_source_integrity": "2b1b2e9ba54fc0361cc3e6bdfba3478059c7750ac715e0b5d8d8a8b2e38246b1",

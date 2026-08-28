@@ -2236,7 +2236,6 @@
                     "configs/gemini-smp8.fragment",
                     "configs/gemini-a72-a41-kernel-identity.fragment",
                     "configs/gemini-a72-p30-protocol.fragment",
-                    "configs/gemini-a72-p24-closed-owner.fragment",
                     "configs/gemini-a72-derived-admission-kunit.fragment"
                 ]
             },
