@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/soc/mediatek/mediatek,mt6797-a72-admission-controller.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: MediaTek MT6797 Cortex-A72 admission controller
+
+maintainers:
+  - Julien Etienne <julien.etienne@gmail.com>
+
+description: |
+  The candidate-only controller composes the MT6797 A72 platform-state, clock,
+  and BigiDVFS suppliers and submits one source-derived CPU8 transaction to the
+  default-off binder. The node provides no userspace trigger or retry control.
+
+properties:
+  compatible:
+    const: mediatek,mt6797-a72-admission-controller
+
+  mediatek,binder:
+    $ref: /schemas/types.yaml#/definitions/phandle
+    description: Bound MT6797 Cortex-A72 transition binder.
+
+  mediatek,platform-state:
+    $ref: /schemas/types.yaml#/definitions/phandle
+    description: Bound serialized MT6797 A72 platform-state supplier.
+
+  mediatek,clock-backend:
+    $ref: /schemas/types.yaml#/definitions/phandle
+    description: Bound MT6797 DVFSP clock readback and effect supplier.
+
+  mediatek,bigidvfs-backend:
+    $ref: /schemas/types.yaml#/definitions/phandle
+    description: Bound MT6797 BigiDVFS readback and SRAM-LDO supplier.
+
+required:
+  - compatible
+  - mediatek,binder
+  - mediatek,platform-state
+  - mediatek,clock-backend
+  - mediatek,bigidvfs-backend
+
+additionalProperties: false
+...

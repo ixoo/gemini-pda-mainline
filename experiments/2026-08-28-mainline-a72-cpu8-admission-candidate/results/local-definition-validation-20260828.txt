@@ -1,0 +1,9 @@
+validation=a72-cpu8-admission-candidate-definition
+physical_boots_budget=1
+target_cpu=8
+excluded_cpu=9
+standalone_observer_nodes=0
+native_vm_build=none
+device_action=none
+boot_candidate=false
+result=pass
