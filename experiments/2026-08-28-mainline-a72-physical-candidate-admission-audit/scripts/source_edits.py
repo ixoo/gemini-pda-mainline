@@ -306,7 +306,8 @@ def apply_tests(root: Path, reference: Path) -> None:
         "\t  Derive the CPU8 entry and A36 record from one exact composed\n"
         "\t  current-boot snapshot and the immutable READY token. Exercise\n"
         "\t  source rejection, obsolete caller-assertion refusal, and the\n"
-        "\t  one-shot owner edge without a CPU or hardware operation.\n\n"
+        "\t  one-shot owner edge. Verify that repeat entry remains closed\n"
+        "\t  without requesting a CPU or performing a hardware operation.\n\n"
     )
     replace_once(kconfig, owner_config, addition + owner_config)
     makefile = root / "arch/arm64/kernel/Makefile"

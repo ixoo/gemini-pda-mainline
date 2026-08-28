@@ -159,8 +159,8 @@ static void mt6797_a72_derived_success_test(struct kunit *test)
 	state->ready = mt6797_a72_exact_ready();
 	mt6797_a72_derived_seed_available();
 	ret = mt6797_a72_membership_derive_cpu8(&state->direct,
-							  &state->ready,
-							  &state->transaction);
+						&state->ready,
+						&state->transaction);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	a36 = &state->transaction.a36_prestate;
 	KUNIT_EXPECT_EQ(test, a36->abi, (u32)MT6797_A72_A36_PRESTATE_ABI);
@@ -186,15 +186,15 @@ static void mt6797_a72_derived_success_test(struct kunit *test)
 
 static void
 mt6797_a72_expect_source_rejection(struct kunit *test,
-				    struct mt6797_a72_derived_test_state *state)
+				   struct mt6797_a72_derived_test_state *state)
 {
 	int ret;
 
 	mt6797_a72_derived_seed_available();
 	memset(&state->transaction, 0xa5, sizeof(state->transaction));
 	ret = mt6797_a72_membership_derive_cpu8(&state->direct,
-							  &state->ready,
-							  &state->transaction);
+						&state->ready,
+						&state->transaction);
 	KUNIT_EXPECT_EQ(test, ret, -EPERM);
 	KUNIT_EXPECT_TRUE(test, mt6797_a72_transaction_empty(&state->transaction));
 	mt6797_a72_membership_snapshot(&state->owner);
@@ -236,8 +236,8 @@ static void mt6797_a72_derived_ready_rejection_test(struct kunit *test)
 	       sizeof(state->ready.plan_identity));
 	mt6797_a72_derived_seed_available();
 	ret = mt6797_a72_membership_derive_cpu8(&state->direct,
-							  &state->ready,
-							  &state->transaction);
+						&state->ready,
+						&state->transaction);
 	KUNIT_EXPECT_EQ(test, ret, -EPERM);
 	KUNIT_EXPECT_TRUE(test, mt6797_a72_transaction_empty(&state->transaction));
 	mt6797_a72_membership_snapshot(&state->owner);
@@ -257,8 +257,9 @@ static void mt6797_a72_legacy_assertions_rejected_test(struct kunit *test)
 	state->ready = mt6797_a72_exact_ready();
 	mt6797_a72_derived_seed_available();
 	ret = mt6797_a72_membership_begin_up(8, CPUHP_ONLINE,
-			MT6797_A72_ATTEMPT_CPU8_UP, &entry, &state->ready,
-			&a36, &state->transaction);
+					     MT6797_A72_ATTEMPT_CPU8_UP,
+					     &entry, &state->ready, &a36,
+					     &state->transaction);
 	KUNIT_EXPECT_EQ(test, ret, -EPERM);
 	KUNIT_EXPECT_TRUE(test, mt6797_a72_transaction_empty(&state->transaction));
 	mt6797_a72_membership_snapshot(&state->owner);
@@ -276,14 +277,14 @@ static void mt6797_a72_derived_repeat_rejected_test(struct kunit *test)
 	state->ready = mt6797_a72_exact_ready();
 	mt6797_a72_derived_seed_available();
 	KUNIT_ASSERT_EQ(test,
-		mt6797_a72_membership_derive_cpu8(&state->direct,
-							 &state->ready,
-							 &state->transaction), 0);
+			mt6797_a72_membership_derive_cpu8(&state->direct,
+							  &state->ready,
+							  &state->transaction), 0);
 	KUNIT_ASSERT_EQ(test,
-		mt6797_a72_membership_publish_up(&state->transaction), 0);
+			mt6797_a72_membership_publish_up(&state->transaction), 0);
 	memset(&second, 0xa5, sizeof(second));
 	ret = mt6797_a72_membership_derive_cpu8(&state->direct,
-							  &state->ready, &second);
+						&state->ready, &second);
 	KUNIT_EXPECT_EQ(test, ret, -EBUSY);
 	KUNIT_EXPECT_TRUE(test, mt6797_a72_transaction_empty(&second));
 }
