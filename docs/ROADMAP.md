@@ -5892,10 +5892,15 @@ The next ordered work is:
    resolutions, core consumptions, CPU requests, CPU_OFF requests, and retries
    are all zero. No trigger connection, write, or reboot occurred, and the
    successful boot remains running. This proves the omitted serviceability
-   transform caused the blind full-candidate attempts. **Selected next:** on
-   this same live boot, publish a distinct exact-hash follow-up that revalidates
-   the armed frame, durably records intent, and sends the already
-   hardware-free-proven one-shot CPU8 token once with no retry.
+   transform caused the blind full-candidate attempts. The owner additionally
+   reports no visibly working console framebuffer; that remains a display
+   limitation rather than a boot oracle because exact USB/netcat is live. The
+   [serviceable one-shot follow-up](../experiments/2026-08-28-mainline-a72-admission-serviceable-one-shot/README.md)
+   binds candidate, release, and exact live boot ID, preserves the byte-exact
+   proven trigger action, revalidates the armed frame, and rejects 13 unsafe
+   runtime mutations. **Selected next:** publish that exact definition, fsync
+   its same-boot frame and intent, and send the one-shot CPU8 token once with no
+   retry.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

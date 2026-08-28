@@ -23,6 +23,15 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-28 serviceable same-boot CPU8 one-shot](2026-08-28-mainline-a72-admission-serviceable-one-shot/README.md)
+  — binds the first action to exact serviceability-passed candidate
+  `f4cb1b2c...` and still-live boot ID `21bb6547...`. It preserves the
+  byte-exact Buildbox/KUnit-proven trigger action, requires a fresh armed frame
+  and durable intent before one token, accepts only CPU8-online, terminal
+  admission error, or post-commit transport loss, and forbids retry, CPU9,
+  CPU_OFF, storage, and reboot requests. Thirteen unsafe runtime mutations fail
+  closed. The owner observes no working visible console framebuffer, so the
+  exact live USB/netcat path is the sole control and attribution channel.
 - [2026-08-28 full-admission serviceability restoration](2026-08-28-mainline-a72-admission-serviceability-restoration/README.md)
   — identifies that the prior full-admission candidate used its raw package
   DT with USB/T-PHY and I2C5/AW9523/keyboard explicitly disabled, while the
