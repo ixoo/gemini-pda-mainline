@@ -23,6 +23,13 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-28 live CPU8 admission past retained-trace failure](2026-08-28-mainline-a72-admission-trace-softfail/README.md)
+  — tests the uniquely localized `trace_entry()` `-EIO` obstruction without
+  weakening automatic admission. Only the existing one-shot, root-triggered
+  live mode may continue while exposing entry and terminal trace results
+  separately from the actual admission result. Probe remains inert; CPU8 has
+  one request maximum, and CPU9, CPU_OFF, retry, storage, and reboot paths
+  remain absent. Generation, KUnit, and candidate builds use Buildbox only.
 - [2026-08-28 CPU8 admission ATAG one-shot](2026-08-28-mainline-a72-admission-atag-one-shot/README.md)
   — binds one unchanged trigger action to exact candidate `fd611a4c...`, live
   boot ID `515b4618...`, and the now-complete supplier graph. Its sole trigger

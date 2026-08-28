@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "prepared_source_state": "339cd91972289d196912c2c2aa18670ced6ca70769b1905930aaf08998f9ce7c",
+  "prepared_source_integrity": "ce015b21432cfbb8d16d79da4603d80732deef964f52f31da874f64c2d6bd1aa",
+  "parent_patch": "0420-soc-mediatek-test-live-CPU8-admission-trigger.patch",
+  "parent_patch_sha256": "69803f006467ed089c47c57ecb7cfcfb23d7c6fe0a8875ab16414204c90f78ae",
+  "planned_patches": 2,
+  "automatic_probe_action": false,
+  "live_trace_failure_advisory": true,
+  "automatic_trace_failure_fatal": true,
+  "trigger_execution_maximum": 1,
+  "admission_core_maximum": 1,
+  "cpu8_request_maximum": 1,
+  "cpu9_request_paths": 0,
+  "cpu_off_paths": 0,
+  "retry_paths": 0,
+  "native_vm_build": false,
+  "device_action": true,
+  "boot_candidate": false,
+  "result": "planned"
+}
