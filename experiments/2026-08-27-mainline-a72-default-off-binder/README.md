@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-27-mainline-a72-default-off-binder` |
-| Status | P30 reset-visibility repair generated and admitted; exact rebuild pending |
+| Status | 0403 compile rejected; late-KUnit field-guard repair generation pending |
 | Subsystem | CPU8 admission, transition owners, PSCI, and generic hotplug lifecycle |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-27 America/New_York |
@@ -68,6 +68,9 @@ arm caller or binder Device Tree node; and no boot candidate is selected.
 - [`scripts/generate-owner-reset-visibility-fix-on-buildbox`](scripts/generate-owner-reset-visibility-fix-on-buildbox)
   generates the guard-only repair for the P30 reset compile boundary exposed
   by the exact 0402 rebuild.
+- [`scripts/generate-owner-reset-field-guard-fix-on-buildbox`](scripts/generate-owner-reset-field-guard-fix-on-buildbox)
+  generates the one-file guard repair for two late-startup-only online fields
+  exposed by the exact 0403 rebuild.
 
 ## Audit result
 
@@ -202,9 +205,17 @@ lines. The patch changes two production-owned source files but adds only test
 preprocessor guards; it changes no production configuration, function body,
 or runtime path.
 
-A new exact Buildbox compile and one bounded single-thread TCG QEMU proof
-remain pending. Generation performed no physical or device action, and no boot
-candidate is admitted.
+The first exact 0403 rebuild passed the original declaration boundary, then
+failed while compiling the shared reset body because it still cleared the
+`test_online_cpu` and `test_online` fields that exist only under the standalone
+late-startup KUnit option. The exact failure is in the
+[0403 compile evidence](results/buildbox-compile-fail-a8942401-20260828.txt).
+
+The next bounded repair keeps just those two assignments under their owning
+test option. It leaves the common P30 reset visible to the owner suite and
+changes no production configuration or runtime path. A new exact Buildbox
+compile and one bounded single-thread TCG QEMU proof remain pending. No device
+action or boot candidate is admitted.
 
 ## Follow-up
 
