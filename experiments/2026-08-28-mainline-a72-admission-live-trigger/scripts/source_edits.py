@@ -121,14 +121,10 @@ struct mt6797_a72_admission_trigger_state {
 """
     replace_once(header, anchor, block + anchor)
     anchor = "void\nmt6797_a72_admission_state_init("
-    block = """void
-mt6797_a72_admission_trigger_state_init(
-\t\t\tstruct mt6797_a72_admission_trigger_state *state);
-int
-mt6797_a72_admission_trigger_run(
-\t\t\tstruct mt6797_a72_admission_trigger_state *state,
-\t\t\tconst struct mt6797_a72_admission_trigger_ops *ops,
-\t\t\tvoid *context, const char *buf, size_t count);
+    block = """void mt6797_a72_admission_trigger_state_init(struct mt6797_a72_admission_trigger_state *state);
+int mt6797_a72_admission_trigger_run(struct mt6797_a72_admission_trigger_state *state,
+\t\t\t\t     const struct mt6797_a72_admission_trigger_ops *ops,
+\t\t\t\t     void *context, const char *buf, size_t count);
 
 """
     replace_once(header, anchor, block + anchor)
@@ -168,20 +164,16 @@ mt6797_a72_admission_trigger_run(
         "};\n",
     )
     anchor = "int\nmt6797_a72_admission_run("
-    block = """void
-mt6797_a72_admission_trigger_state_init(
-\t\t\tstruct mt6797_a72_admission_trigger_state *state)
+    block = """void mt6797_a72_admission_trigger_state_init(struct mt6797_a72_admission_trigger_state *state)
 {
 \tmemset(state, 0, sizeof(*state));
 \tatomic_set(&state->consumed, 0);
 \tstate->operation_ret = -EINPROGRESS;
 }
 
-int
-mt6797_a72_admission_trigger_run(
-\t\t\tstruct mt6797_a72_admission_trigger_state *state,
-\t\t\tconst struct mt6797_a72_admission_trigger_ops *ops,
-\t\t\tvoid *context, const char *buf, size_t count)
+int mt6797_a72_admission_trigger_run(struct mt6797_a72_admission_trigger_state *state,
+\t\t\t\t     const struct mt6797_a72_admission_trigger_ops *ops,
+\t\t\t\t     void *context, const char *buf, size_t count)
 {
 \tint ret;
 
@@ -196,6 +188,7 @@ mt6797_a72_admission_trigger_run(
 \tWRITE_ONCE(state->executions, 1);
 \tret = ops->execute(context);
 \tWRITE_ONCE(state->operation_ret, ret);
+\t/* Publish the terminal result before complete becomes visible. */
 \tsmp_store_release(&state->complete, true);
 \treturn 0;
 }
@@ -247,9 +240,7 @@ mt6797_a72_admission_trigger_run(
 \treturn 0;
 }
 """
-    new_probe = """static int
-mt6797_a72_admission_prepare(
-\t\t\tstruct mt6797_a72_admission_controller *controller)
+    new_probe = """static int mt6797_a72_admission_prepare(struct mt6797_a72_admission_controller *controller)
 {
 \tstruct device *bigidvfs;
 \tstruct device *platform;
@@ -286,9 +277,9 @@ static int mt6797_a72_admission_execute(void *context)
 \tret = mt6797_a72_admission_prepare(controller);
 \tif (ret)
 \t\treturn ret;
-\treturn mt6797_a72_admission_run(
-\t\t&controller->state, &mt6797_a72_admission_production_ops,
-\t\tcontroller);
+\treturn mt6797_a72_admission_run(&controller->state,
+\t\t\t\t\t&mt6797_a72_admission_production_ops,
+\t\t\t\t\tcontroller);
 }
 
 static const struct mt6797_a72_admission_trigger_ops
@@ -300,12 +291,15 @@ static ssize_t status_show(struct device *dev, struct device_attribute *attr,
 \t\t\t   char *buf)
 {
 \tstruct mt6797_a72_admission_controller *controller = dev_get_drvdata(dev);
-\tbool complete = smp_load_acquire(&controller->trigger.complete);
-\tbool consumed = atomic_read(&controller->trigger.consumed);
+\tbool complete;
+\tbool consumed;
 \tconst char *trigger_state;
 \tssize_t len;
 
 \t(void)attr;
+\t/* Pair with terminal publication in the trigger runner. */
+\tcomplete = smp_load_acquire(&controller->trigger.complete);
+\tconsumed = atomic_read(&controller->trigger.consumed);
 \tif (!consumed)
 \t\ttrigger_state = "armed";
 \telse if (!complete)
@@ -336,10 +330,9 @@ static ssize_t trigger_store(struct device *dev,
 \tint ret;
 
 \t(void)attr;
-\tret = mt6797_a72_admission_trigger_run(
-\t\t&controller->trigger,
-\t\t&mt6797_a72_admission_trigger_production_ops,
-\t\tcontroller, buf, count);
+\tret = mt6797_a72_admission_trigger_run(&controller->trigger,
+\t\t\t\t\t       &mt6797_a72_admission_trigger_production_ops,
+\t\t\t\t\t       controller, buf, count);
 \tif (ret)
 \t\treturn ret;
 \tdev_info(dev, MT6797_A72_ADMISSION_LIVE_TAG
@@ -381,7 +374,7 @@ static int mt6797_a72_admission_probe(struct platform_device *pdev)
 
 \tif (IS_ENABLED(CONFIG_MTK_MT6797_A72_ADMISSION_LIVE_TRIGGER)) {
 \t\tret = devm_device_add_group(dev,
-\t\t\t\t    &mt6797_a72_admission_live_group);
+\t\t\t\t\t    &mt6797_a72_admission_live_group);
 \t\tif (ret)
 \t\t\treturn dev_err_probe(dev, ret,
 \t\t\t\t\t     "live trigger unavailable\\n");
@@ -439,10 +432,9 @@ static const struct mt6797_a72_admission_trigger_ops test_trigger_ops = {
 \tint ret;
 
 \tmt6797_a72_admission_trigger_state_init(&trigger);
-\tret = mt6797_a72_admission_trigger_run(
-\t\t&trigger, &test_trigger_ops, &context,
-\t\tMT6797_A72_ADMISSION_TRIGGER_TOKEN,
-\t\tsizeof(MT6797_A72_ADMISSION_TRIGGER_TOKEN) - 2);
+\tret = mt6797_a72_admission_trigger_run(&trigger, &test_trigger_ops,
+\t\t\t\t\t       &context, MT6797_A72_ADMISSION_TRIGGER_TOKEN,
+\t\t\t\t\t       sizeof(MT6797_A72_ADMISSION_TRIGGER_TOKEN) - 2);
 \tKUNIT_EXPECT_EQ(test, ret, -EINVAL);
 \tKUNIT_EXPECT_EQ(test, atomic_read(&trigger.consumed), 0);
 \tKUNIT_EXPECT_FALSE(test, trigger.complete);
@@ -458,10 +450,9 @@ static void mt6797_a72_admission_trigger_terminal_test(struct kunit *test)
 
 \tmt6797_a72_admission_trigger_state_init(&trigger);
 \tcontext.trigger_execute_ret = -EIO;
-\tret = mt6797_a72_admission_trigger_run(
-\t\t&trigger, &test_trigger_ops, &context,
-\t\tMT6797_A72_ADMISSION_TRIGGER_TOKEN,
-\t\tsizeof(MT6797_A72_ADMISSION_TRIGGER_TOKEN) - 1);
+\tret = mt6797_a72_admission_trigger_run(&trigger, &test_trigger_ops,
+\t\t\t\t\t       &context, MT6797_A72_ADMISSION_TRIGGER_TOKEN,
+\t\t\t\t\t       sizeof(MT6797_A72_ADMISSION_TRIGGER_TOKEN) - 1);
 \tKUNIT_EXPECT_EQ(test, ret, 0);
 \tKUNIT_EXPECT_EQ(test, atomic_read(&trigger.consumed), 1);
 \tKUNIT_EXPECT_TRUE(test, trigger.complete);
@@ -477,15 +468,13 @@ static void mt6797_a72_admission_trigger_repeat_closed_test(struct kunit *test)
 \tint ret;
 
 \tmt6797_a72_admission_trigger_state_init(&trigger);
-\tret = mt6797_a72_admission_trigger_run(
-\t\t&trigger, &test_trigger_ops, &context,
-\t\tMT6797_A72_ADMISSION_TRIGGER_TOKEN,
-\t\tsizeof(MT6797_A72_ADMISSION_TRIGGER_TOKEN) - 1);
+\tret = mt6797_a72_admission_trigger_run(&trigger, &test_trigger_ops,
+\t\t\t\t\t       &context, MT6797_A72_ADMISSION_TRIGGER_TOKEN,
+\t\t\t\t\t       sizeof(MT6797_A72_ADMISSION_TRIGGER_TOKEN) - 1);
 \tKUNIT_ASSERT_EQ(test, ret, 0);
-\tret = mt6797_a72_admission_trigger_run(
-\t\t&trigger, &test_trigger_ops, &context,
-\t\tMT6797_A72_ADMISSION_TRIGGER_TOKEN,
-\t\tsizeof(MT6797_A72_ADMISSION_TRIGGER_TOKEN) - 1);
+\tret = mt6797_a72_admission_trigger_run(&trigger, &test_trigger_ops,
+\t\t\t\t\t       &context, MT6797_A72_ADMISSION_TRIGGER_TOKEN,
+\t\t\t\t\t       sizeof(MT6797_A72_ADMISSION_TRIGGER_TOKEN) - 1);
 \tKUNIT_EXPECT_EQ(test, ret, -EALREADY);
 \tKUNIT_EXPECT_EQ(test, trigger.executions, (u32)1);
 \tKUNIT_EXPECT_EQ(test, context.trigger_execute_calls, 1U);

@@ -136,8 +136,8 @@ def main() -> None:
         stages = (
             (
                 "production", SUBJECTS[0],
-                "Keep probe inert, consume one exact root-only token before "
-                "supplier resolution, and expose bounded status.",
+                "Keep probe inert and consume one exact root-only token before\n"
+                "supplier resolution while exposing bounded status.",
                 "2026-08-28T23:41:00Z",
             ),
             (
