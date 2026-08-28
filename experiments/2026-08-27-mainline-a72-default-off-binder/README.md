@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-27-mainline-a72-default-off-binder` |
-| Status | Owner/P30 test-isolation repair generated and admitted; exact rebuild pending |
+| Status | 0402 compile rejected; reset-visibility repair generation pending |
 | Subsystem | CPU8 admission, transition owners, PSCI, and generic hotplug lifecycle |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-27 America/New_York |
@@ -65,6 +65,9 @@ arm caller or binder Device Tree node; and no boot candidate is selected.
 - [`scripts/generate-owner-state-isolation-fix-on-buildbox`](scripts/generate-owner-state-isolation-fix-on-buildbox)
   generates the bounded follow-up for the coupled owner/P30 state and
   configuration-aware PSCI-hook expectations exposed by the second run.
+- [`scripts/generate-owner-reset-visibility-fix-on-buildbox`](scripts/generate-owner-reset-visibility-fix-on-buildbox)
+  generates the guard-only repair for the P30 reset compile boundary exposed
+  by the exact 0402 rebuild.
 
 ## Audit result
 
@@ -181,9 +184,17 @@ errors, warnings, or checks.
 
 The patch changes only the membership-owner test source. Generation and replay
 observed zero production-file changes and performed no physical or device
-action. The exact profile rebuild and one bounded single-thread TCG QEMU proof
-remain pending; no production path or boot candidate is admitted by this
-test-isolation repair.
+action. The first exact profile rebuild was rejected while compiling the owner
+test: the existing `arm64_late_cpu_startup_test_reset()` declaration and
+definition were guarded only by the standalone late-startup KUnit option,
+while this profile selects the owner KUnit option. The exact failure is in the
+[0402 compile evidence](results/buildbox-compile-fail-21ff0073-20260828.txt).
+
+The next bounded repair widens only that reset's preprocessor guard to either
+test configuration and keeps the online-state helper under its original
+narrower guard. It changes no production configuration or runtime path. A new
+exact Buildbox compile and one bounded single-thread TCG QEMU proof remain
+pending; no device action or boot candidate is admitted.
 
 ## Follow-up
 
