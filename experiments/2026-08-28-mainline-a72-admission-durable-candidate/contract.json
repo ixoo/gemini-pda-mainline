@@ -86,6 +86,20 @@
     "retained_ram_write": false,
     "result": "pass-ready-for-guarded-install"
   },
+  "deployment": {
+    "record": "results/boot2-deployment-20260828.txt",
+    "record_sha256": "0847ba1b31af40d9d231dbf1297f24d27006cce79117136837ad6e3d5fd902dc",
+    "target_logical_name": "boot2",
+    "target": "/dev/mmcblk0p30",
+    "active_root": "/dev/mmcblk0p29",
+    "predecessor_sha256": "fde53dca1dcbc36297897dbcd6086488d117bf45714833858e17987cb6579dd0",
+    "candidate_sha256": "60902c7ba7e5cccd781082d6d17e1bcb273d184751ddc9dde6a64b2e2a58b8d1",
+    "readback_sha256": "60902c7ba7e5cccd781082d6d17e1bcb273d184751ddc9dde6a64b2e2a58b8d1",
+    "fresh_predecessor_backup": false,
+    "shutdown": "confirmed-unreachable-and-tcp-closed",
+    "reboot": false,
+    "result": "pass"
+  },
   "target_cpu": 8,
   "excluded_cpu": 9,
   "physical_boots_budget": 1,
@@ -102,8 +116,8 @@
   "expected_boot2_predecessor_sha256": "fde53dca1dcbc36297897dbcd6086488d117bf45714833858e17987cb6579dd0",
   "fresh_predecessor_backup": false,
   "native_vm_build": false,
-  "device_access": "read-only-preflight-passed",
-  "device_action": false,
+  "device_access": "guarded-boot2-deployment",
+  "device_action": true,
   "boot_candidate": true,
-  "result": "live-preflight-passed-deployment-pending"
+  "result": "deployed-shutdown-awaiting-one-boot"
 }

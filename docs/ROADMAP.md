@@ -5778,12 +5778,16 @@ The next ordered work is:
    conflicting mutations, the combined three-record map passes all seven
    decision cases, and the guarded installer requires all three live records
    to be logical-empty before writing. No native VM build or device action
-   occurred. **Selected next:** publish these exact offline gates, run the
-   read-only live-GPT/power/record preflight, and—only if every identity is
-   exact—install `60902c7b...` to inactive `boot2`, verify its full-partition
-   readback, and shut down cleanly. Spend one owner-selected boot, then recover
-   records 1--3 from changed-ID Gemian as the primary result; USB/netcat is a
-   secondary positive path, not a prerequisite for attribution.
+   occurred. The exact offline gates were published, the corrected read-only
+   preflight found predecessor `fde53dca...` and all three records
+   logical-empty, and the guarded installer wrote `60902c7b...` to live-GPT
+   inactive `boot2`. The full-partition readback matched; stable external
+   power, unchanged TEE identities, no fresh backup, and clean shutdown with
+   three closed TCP/22 checks are recorded. **Selected next:** the owner may
+   physically select `boot2` once. After a live result or automatic return to
+   changed-ID Gemian, recover records 1--3 as the primary result. USB/netcat is
+   a secondary positive path, not a prerequisite for attribution. Do not
+   repeat this candidate.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

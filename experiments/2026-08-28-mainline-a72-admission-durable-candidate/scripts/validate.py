@@ -112,6 +112,19 @@ require(sha256(live_record) == live["record_sha256"] and
         live["retained_ram_write"] is False and
         live["result"] == "pass-ready-for-guarded-install",
         "live preflight pass")
+deployment = contract["deployment"]
+deployment_record = EXPERIMENT / deployment["record"]
+require(sha256(deployment_record) == deployment["record_sha256"] and
+        deployment["target_logical_name"] == "boot2" and
+        deployment["target"] != deployment["active_root"] and
+        deployment["predecessor_sha256"] ==
+        contract["expected_boot2_predecessor_sha256"] and
+        deployment["candidate_sha256"] == candidate["padded_sha256"] and
+        deployment["readback_sha256"] == candidate["padded_sha256"] and
+        deployment["fresh_predecessor_backup"] is False and
+        deployment["shutdown"] == "confirmed-unreachable-and-tcp-closed" and
+        deployment["reboot"] is False and deployment["result"] == "pass",
+        "guarded boot2 deployment")
 
 config = config_path.read_text(encoding="utf-8")
 for token in (
@@ -156,11 +169,11 @@ require(contract["maximum_trace_record_writes"] == 2 and
         contract["retry_paths"] == 0, "bounded effects")
 require(contract["fresh_predecessor_backup"] is False and
         contract["native_vm_build"] is False and
-        contract["device_access"] == "read-only-preflight-passed" and
-        contract["device_action"] is False and
+        contract["device_access"] == "guarded-boot2-deployment" and
+        contract["device_action"] is True and
         contract["boot_candidate"] is True,
         "selected-candidate safety state")
-require(contract["result"] == "live-preflight-passed-deployment-pending",
+require(contract["result"] == "deployed-shutdown-awaiting-one-boot",
         "selected-candidate result")
 
 for relative in (
@@ -178,7 +191,7 @@ subprocess.run([str(ROOT / "scripts/validate-manifest-series")], check=True,
 subprocess.run([str(ROOT / "scripts/test-manifest-series-invariant")],
                check=True, stdout=subprocess.DEVNULL)
 
-print("validation=a72-admission-durable-candidate-offline-selection")
+print("validation=a72-admission-durable-candidate-deployed")
 print("parent_series_entries=410")
 print("profiles_checked=154")
 print("hardware_free_suites=2")
@@ -191,6 +204,7 @@ print("cpu9_request_paths=0")
 print("cpu_off_paths=0")
 print("retry_paths=0")
 print("native_vm_build=none")
-print("device_action=none")
+print("device_action=guarded-boot2-write")
+print("shutdown=confirmed-unreachable-and-tcp-closed")
 print("boot_candidate=true")
 print("result=pass")

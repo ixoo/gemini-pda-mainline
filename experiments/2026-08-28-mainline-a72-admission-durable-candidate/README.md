@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-admission-durable-candidate` |
-| Status | `running`; exact candidate and live preflight pass, deployment pending |
+| Status | `running`; exact candidate deployed and device shut down, one boot pending |
 | Subsystem | arm64 CPU hotplug, MT6797 admission, retained evidence |
 | Device variant | Planet Computers Gemini PDA, named project device |
 | Date(s) | 2026-08-28 |
@@ -33,17 +33,16 @@ CPU9, CPU_OFF, or a retry?
 
 ## Safety assessment
 
-The current phase only defines a production profile. It enables the immutable
+The production profile enables the immutable
 entry owner for retained record 2 and mutually exclusive zero-request owner
 for record 3 while preserving the mutable transition ledger's exclusive
 ownership of record 1. The controller still permits at most one synchronous
 `add_cpu(8)` call. CPU9, CPU_OFF, retries, userspace triggers, and all KUnit
 suites remain disabled.
 
-Any later deployment must resolve inactive logical `boot2` from the live GPT,
-require exact predecessor and power gates, perform a full-partition readback,
-and shut down cleanly without reboot or a fresh backup. No device action is
-authorized by this definition alone.
+Deployment resolved inactive logical `boot2` from the live GPT, required the
+exact predecessor and stable power gates, performed a full-partition readback,
+and shut down cleanly without reboot or a fresh backup.
 
 ## Procedure
 
@@ -51,10 +50,10 @@ authorized by this definition alone.
 2. Build that exact clean commit only on Buildbox and fetch only its validated
    package. Complete.
 3. Prove configuration, symbols, unchanged DT graph, container, and full
-   checksum offline. Complete. Retained recovery and installer proof remain.
-4. Select a candidate only if every gate passes.
+   checksum offline. Complete.
+4. Select a candidate only if every gate passes. Complete.
 5. Install only exact live-GPT inactive `boot2`, verify full readback, and shut
-   down for one owner-selected boot.
+   down for one owner-selected boot. Complete; the device is off.
 
 ## Decision map
 
@@ -80,12 +79,15 @@ check passed on retry. A subsequent install invocation exposed a second local
 pinning error before candidate upload: the derived installer used the artifact
 manifest checksum as the padded image checksum. The corrected wrapper now
 validates both identities independently and a fresh read-only preflight passes
-with exact predecessor `fde53dca...` and all three records logical-empty. No
-boot2 write, retained physical write, candidate boot, or physical CPU request
-has occurred in this experiment.
+with exact predecessor `fde53dca...` and all three records logical-empty. The
+guarded write then installed `60902c7b...` to live-GPT inactive `boot2`; its
+full-partition readback matched, and both SSH and three consecutive TCP/22
+checks confirmed clean shutdown. No fresh backup, retained physical write,
+candidate boot, or physical CPU request has occurred in this experiment.
 
 ## Follow-up
 
-Finish and mutation-test the exact retained-record classifier and boot2
-installer, then publish those gates before any device access. The ordered next
-action remains owned by `docs/ROADMAP.md`.
+The owner may physically select `boot2` once. After either a live result or an
+automatic return to Gemian, recover records 1--3 with the published collector;
+do not repeat the candidate. The ordered next action remains owned by
+`docs/ROADMAP.md`.
