@@ -52,6 +52,33 @@
     "usb_netcat": "live",
     "interpretation": "display-limitation-not-boot-failure"
   },
+  "deployment": {
+    "installer_commit": "539cd8da",
+    "gemian_boot_id": "09ed19d3-6ad9-4e65-b2d3-46ad56bc9bb7",
+    "target_logical_name": "boot2",
+    "target": "/dev/mmcblk0p30",
+    "active_root": "/dev/mmcblk0p29",
+    "predecessor_sha256": "f4cb1b2c8bc3759a23515c41d6c3c9248c1095277cb158e082a5b322e6927c02",
+    "readback_sha256": "fd611a4ca87fd1645e2fa75b3927d56e9e7eac89f3d84712e5555a3aab8f4cf0",
+    "fresh_backup": false,
+    "reboot_after_install": false,
+    "shutdown": "confirmed-unreachable-and-three-tcp-closures",
+    "result": "pass"
+  },
+  "runtime_pretrigger": {
+    "boot_id": "515b4618-5bf7-4125-9c08-38db55d6cc27",
+    "kernel_release": "7.1.3-gemini-a72-admission-live",
+    "visible_console_framebuffer": "frozen-boot-image-no-console",
+    "control_channel": "exact-live-usb-netcat",
+    "complete_prerequisite_graph": "bound",
+    "controller_state": "armed-zero-execution",
+    "cpu_online": "0-7",
+    "cpu_offline": "8-9",
+    "trigger_requests": 0,
+    "device_storage_writes": 0,
+    "validator_sha256": "87d94debea0f929f81451cfe9adfb0347acee1eb8a537967a50b3f15020189a2",
+    "result": "pass"
+  },
   "kernel_source_changes": 0,
   "dt_changes": 0,
   "manifest_invariant": {
@@ -71,5 +98,5 @@
   "build_backend": "buildbox",
   "native_vm_build": false,
   "next_runtime_gate": "read-only-complete-prerequisite-binding-before-trigger",
-  "current_status": "candidate-validated-deployment-pending"
+  "current_status": "pretrigger-graph-bound-one-shot-contract-pending"
 }

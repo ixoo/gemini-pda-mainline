@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-admission-atag-prerequisite` |
-| Status | `exact candidate independently validated; deployment pending` |
+| Status | `pre-trigger prerequisite graph bound; one-shot contract pending` |
 | Subsystem | MT6797 NVMEM, DVFSP handoff, I2C6, and A72 admission |
 | Device variant | Planet Computers Gemini PDA, named project device |
 | Date(s) | 2026-08-28 |
@@ -123,6 +123,28 @@ working console framebuffer. Exact USB/netcat remains live and is the control
 and attribution channel, so this is recorded as a framebuffer limitation, not
 as a boot failure or a framebuffer-support result.
 
+After signed installer commit `539cd8da` was published, exact USB/netcat
+revalidated predecessor boot ID `21bb6547...`, its terminal consumed state,
+zero CPU requests, CPU0--7 online, CPU8--9 offline, and zero block mounts. A
+boot-ID- and reboot-binary-gated native reboot returned the device to Gemian.
+There, the guarded installer resolved one inactive, unmounted 16 MiB live-GPT
+`boot2` at `/dev/mmcblk0p30`, distinct from active root `/dev/mmcblk0p29`, and
+matched predecessor `f4cb1b2c...`. Stable power and empty retained-record gates
+passed. It wrote exact `fd611a4c...`, synced and flushed it, matched a full
+partition readback, removed its temporary readback, and shut down cleanly. No
+fresh backup or automatic reboot occurred; three consecutive TCP/22 closures
+confirm the device is off.
+
+The owner physically selected `boot2`. The display remained on the boot image
+with no console, but exact USB/netcat became reachable and proved a new boot ID
+`515b4618...` on the intended release. CPU0--7 are online, CPU8--9 offline, and
+the controller is exactly armed with zero executions, consumptions, requests,
+CPU_OFF calls, or retries. The ATAG provider exposes one NVMEM device without
+reading any cell, and ATAG devinfo, DVFSP handoff, I2C6, DA921x, clock backend,
+BigiDVFS, platform state, A72 binder, and admission controller are all bound.
+The sysfs mount remains read-only. No trigger, partition read, storage write,
+NVMEM-cell read, or reboot occurred during qualification.
+
 ## Analysis
 
 This is a narrower successor than adding more admission logging or repeating
@@ -134,15 +156,12 @@ token.
 
 ## Conclusion
 
-The config-only successor is now an exact independently validated boot2
-candidate. No hardware-support claim or CPU8 result follows from offline
-validation alone.
+The config-only successor has closed the previously missing prerequisite graph
+on the named device without consuming the one-shot controller. CPU8 remains
+offline; this is prerequisite progress, not a CPU8-online result.
 
 ## Follow-up
 
-Publish this candidate, install exact `fd611a4c...` to inactive live-GPT
-`boot2`, verify its full-partition readback, and shut down. On its first boot,
-perform only read-only netcat qualification. If that proves the entire supplier
-graph bound, publish a separate one-shot contract before one new CPU8 request.
-If any link remains unbound, stop without triggering and use that specific
-binding failure as the next decision point.
+Publish a separate one-shot contract pinned to candidate `fd611a4c...` and boot
+ID `515b4618...` before one new CPU8 request. Visible framebuffer output is not
+required; exact USB/netcat remains the attribution and recovery channel.

@@ -5922,11 +5922,20 @@ The next ordered work is:
    Deterministic assembly and an independent validator agree on exact
    boot2-sized candidate `fd611a4c...`, all 32 LK gates, and six rejected
    container corruptions while retaining DT `1478f2c8...`, ramdisk
-   `e0dffa04...`, and zero CPU requests. **Selected next:** publish and install
-   that exact candidate, then require the complete handoff/I2C6/provider/clock/
-   BigiDVFS/platform/binder graph to be bound over USB/netcat before a new,
-   separately attributable one-shot. Visible framebuffer console is not a
-   qualification requirement for that step and is not currently claimed.
+   `e0dffa04...`, and zero CPU requests. Signed installer `539cd8da` was
+   published, then matched inactive live-GPT `boot2` predecessor `f4cb1b2c...`,
+   wrote exact `fd611a4c...`, passed its full-partition readback, and cleanly
+   shut down without a fresh backup or automatic reboot. **Selected next:**
+   physically select `boot2`, then require the complete handoff/I2C6/provider/
+   clock/BigiDVFS/platform/binder graph to be bound over USB/netcat before a
+   new, separately attributable one-shot. That first boot now passes on exact
+   boot ID `515b4618...`: the complete prerequisite graph is bound, the
+   controller remains armed with zero executions or CPU requests, CPUs 0--7
+   are online and 8--9 offline, and no partition, NVMEM-cell, sysfs, storage,
+   or reboot action occurred. The display remains frozen on the boot image,
+   while USB/netcat is live; framebuffer console is therefore not claimed.
+   **Selected next:** publish a one-shot contract pinned to this exact candidate
+   and boot ID before one new CPU8 request.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
