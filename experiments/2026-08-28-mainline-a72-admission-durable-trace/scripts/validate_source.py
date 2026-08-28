@@ -73,7 +73,7 @@ def validate_trace(root: Path) -> None:
     for terminal in TERMINALS:
         require(f'"{terminal}\\n"' in source, f"exact terminal {terminal}")
     ordered(
-        source[source.index("static int gemini_admission_trace_write("):],
+        source[source.index("gemini_admission_trace_write("):],
         (
             "ops->write_byte(context, slot,",
             "ops->sync(context);",

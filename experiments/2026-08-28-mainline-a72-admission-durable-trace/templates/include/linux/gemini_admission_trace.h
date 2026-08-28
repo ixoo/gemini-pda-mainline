@@ -12,16 +12,16 @@ enum gemini_admission_trace_zero_result {
 
 #ifdef CONFIG_PSTORE_GEMINI_ADMISSION_TRACE
 int gemini_admission_trace_entry(void);
-int gemini_admission_trace_zero_request(
-	enum gemini_admission_trace_zero_result result);
+int
+gemini_admission_trace_zero_request(enum gemini_admission_trace_zero_result result);
 #else
 static inline int gemini_admission_trace_entry(void)
 {
 	return -EOPNOTSUPP;
 }
 
-static inline int gemini_admission_trace_zero_request(
-	enum gemini_admission_trace_zero_result result)
+static inline int
+gemini_admission_trace_zero_request(enum gemini_admission_trace_zero_result result)
 {
 	return -EOPNOTSUPP;
 }

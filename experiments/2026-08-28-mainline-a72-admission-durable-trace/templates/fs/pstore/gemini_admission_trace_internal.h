@@ -27,11 +27,11 @@ struct gemini_admission_trace_owner {
 	bool failed;
 };
 
-int gemini_admission_trace_owner_entry(
-	struct gemini_admission_trace_owner *owner,
+int
+gemini_admission_trace_owner_entry(struct gemini_admission_trace_owner *owner,
 	const struct gemini_admission_trace_ops *ops, void *context);
-int gemini_admission_trace_owner_zero_request(
-	struct gemini_admission_trace_owner *owner,
+int
+gemini_admission_trace_owner_zero_request(struct gemini_admission_trace_owner *owner,
 	const struct gemini_admission_trace_ops *ops, void *context,
 	enum gemini_admission_trace_zero_result result);
 

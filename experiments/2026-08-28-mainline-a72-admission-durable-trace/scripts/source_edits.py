@@ -312,8 +312,9 @@ def apply_controller(root: Path) -> None:
 \treturn gemini_admission_trace_entry();
 }
 
-static int mt6797_a72_admission_trace_zero_request(
-\tvoid *context, enum gemini_admission_trace_zero_result result)
+static int
+mt6797_a72_admission_trace_zero_request(void *context,
+\tenum gemini_admission_trace_zero_result result)
 {
 \t(void)context;
 \treturn gemini_admission_trace_zero_request(result);
@@ -364,8 +365,9 @@ def apply_controller_tests(root: Path) -> None:
 \treturn context->fail_event == MT6797_ADMISSION_TRACE_ENTRY ? -ENOSPC : 0;
 }
 
-static int mt6797_a72_admission_test_trace_zero_request(
-\tvoid *data, enum gemini_admission_trace_zero_result result)
+static int
+mt6797_a72_admission_test_trace_zero_request(void *data,
+\tenum gemini_admission_trace_zero_result result)
 {
 \tstruct mt6797_a72_admission_test_context *context = data;
 

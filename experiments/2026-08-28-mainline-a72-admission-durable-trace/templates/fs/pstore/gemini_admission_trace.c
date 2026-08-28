@@ -53,9 +53,9 @@ gemini_admission_trace_fault(struct gemini_admission_trace_owner *owner)
 	return -EIO;
 }
 
-static bool gemini_admission_trace_slot_empty(
-	const struct gemini_admission_trace_ops *ops, void *context,
-	unsigned int slot)
+static bool
+gemini_admission_trace_slot_empty(const struct gemini_admission_trace_ops *ops,
+				  void *context, unsigned int slot)
 {
 	return ops->read_word(context, slot, 0) ==
 			GEMINI_ADMISSION_TRACE_PSTORE_SIGNATURE &&
@@ -63,9 +63,10 @@ static bool gemini_admission_trace_slot_empty(
 		ops->read_word(context, slot, 2) == 0;
 }
 
-static bool gemini_admission_trace_slot_exact(
-	const struct gemini_admission_trace_ops *ops, void *context,
-	unsigned int slot, const char *record)
+static bool
+gemini_admission_trace_slot_exact(const struct gemini_admission_trace_ops *ops,
+				  void *context, unsigned int slot,
+				  const char *record)
 {
 	size_t length = strlen(record);
 	size_t index;
@@ -83,8 +84,8 @@ static bool gemini_admission_trace_slot_exact(
 	return true;
 }
 
-static int gemini_admission_trace_write(
-	struct gemini_admission_trace_owner *owner,
+static int
+gemini_admission_trace_write(struct gemini_admission_trace_owner *owner,
 	const struct gemini_admission_trace_ops *ops, void *context,
 	unsigned int slot, const char *record)
 {
@@ -110,40 +111,42 @@ static int gemini_admission_trace_write(
 	return 0;
 }
 
-int gemini_admission_trace_owner_entry(
-	struct gemini_admission_trace_owner *owner,
+int
+gemini_admission_trace_owner_entry(struct gemini_admission_trace_owner *owner,
 	const struct gemini_admission_trace_ops *ops, void *context)
 {
+	const char *entry = gemini_admission_trace_entry_record;
+	const unsigned int entry_slot = GEMINI_ADMISSION_TRACE_ENTRY_SLOT;
+	const unsigned int terminal_slot = GEMINI_ADMISSION_TRACE_TERMINAL_SLOT;
 	int ret;
 
 	if (!owner || !gemini_admission_trace_ops_valid(ops))
 		return -EINVAL;
 	if (owner->failed || owner->terminal_committed)
 		return -EALREADY;
-	if (!gemini_admission_trace_slot_empty(ops, context,
-					      GEMINI_ADMISSION_TRACE_TERMINAL_SLOT))
+	if (!gemini_admission_trace_slot_empty(ops, context, terminal_slot))
 		return gemini_admission_trace_fault(owner);
-	if (gemini_admission_trace_slot_exact(ops, context,
-					     GEMINI_ADMISSION_TRACE_ENTRY_SLOT,
-					     gemini_admission_trace_entry_record)) {
+	if (gemini_admission_trace_slot_exact(ops, context, entry_slot, entry)) {
 		owner->entry_committed = true;
 		return 0;
 	}
 	if (owner->entry_committed)
 		return gemini_admission_trace_fault(owner);
-	ret = gemini_admission_trace_write(owner, ops, context,
-					   GEMINI_ADMISSION_TRACE_ENTRY_SLOT,
-					   gemini_admission_trace_entry_record);
+	ret = gemini_admission_trace_write(owner, ops, context, entry_slot,
+					   entry);
 	if (!ret)
 		owner->entry_committed = true;
 	return ret;
 }
 
-int gemini_admission_trace_owner_zero_request(
-	struct gemini_admission_trace_owner *owner,
+int
+gemini_admission_trace_owner_zero_request(struct gemini_admission_trace_owner *owner,
 	const struct gemini_admission_trace_ops *ops, void *context,
 	enum gemini_admission_trace_zero_result result)
 {
+	const char *entry = gemini_admission_trace_entry_record;
+	const unsigned int entry_slot = GEMINI_ADMISSION_TRACE_ENTRY_SLOT;
+	const unsigned int terminal_slot = GEMINI_ADMISSION_TRACE_TERMINAL_SLOT;
 	const char *record;
 	int ret;
 
@@ -156,14 +159,10 @@ int gemini_admission_trace_owner_zero_request(
 		return -EALREADY;
 	record = gemini_admission_trace_terminal_records[result];
 	if (!record ||
-	    !gemini_admission_trace_slot_exact(ops, context,
-					      GEMINI_ADMISSION_TRACE_ENTRY_SLOT,
-					      gemini_admission_trace_entry_record) ||
-	    !gemini_admission_trace_slot_empty(ops, context,
-					      GEMINI_ADMISSION_TRACE_TERMINAL_SLOT))
+	    !gemini_admission_trace_slot_exact(ops, context, entry_slot, entry) ||
+	    !gemini_admission_trace_slot_empty(ops, context, terminal_slot))
 		return gemini_admission_trace_fault(owner);
-	ret = gemini_admission_trace_write(owner, ops, context,
-					   GEMINI_ADMISSION_TRACE_TERMINAL_SLOT,
+	ret = gemini_admission_trace_write(owner, ops, context, terminal_slot,
 					   record);
 	if (!ret)
 		owner->terminal_committed = true;
@@ -207,8 +206,9 @@ out:
 	return exact;
 }
 
-static u32 gemini_admission_trace_mmio_read_word(
-	void *context, unsigned int slot, unsigned int word)
+static u32
+gemini_admission_trace_mmio_read_word(void *context, unsigned int slot,
+				     unsigned int word)
 {
 	void __iomem *base = context;
 
@@ -216,8 +216,9 @@ static u32 gemini_admission_trace_mmio_read_word(
 		     word * sizeof(u32));
 }
 
-static void gemini_admission_trace_mmio_write_word(
-	void *context, unsigned int slot, unsigned int word, u32 value)
+static void
+gemini_admission_trace_mmio_write_word(void *context, unsigned int slot,
+				      unsigned int word, u32 value)
 {
 	void __iomem *base = context;
 
@@ -225,8 +226,9 @@ static void gemini_admission_trace_mmio_write_word(
 		       word * sizeof(u32));
 }
 
-static u8 gemini_admission_trace_mmio_read_byte(
-	void *context, unsigned int slot, unsigned int offset)
+static u8
+gemini_admission_trace_mmio_read_byte(void *context, unsigned int slot,
+				     unsigned int offset)
 {
 	void __iomem *base = context;
 
@@ -234,8 +236,9 @@ static u8 gemini_admission_trace_mmio_read_byte(
 		     offset);
 }
 
-static void gemini_admission_trace_mmio_write_byte(
-	void *context, unsigned int slot, unsigned int offset, u8 value)
+static void
+gemini_admission_trace_mmio_write_byte(void *context, unsigned int slot,
+				      unsigned int offset, u8 value)
 {
 	void __iomem *base = context;
 
@@ -246,7 +249,7 @@ static void gemini_admission_trace_mmio_write_byte(
 static void gemini_admission_trace_mmio_sync(void *context)
 {
 	(void)context;
-	mb();
+	mb(); /* Commit each record phase before the next one. */
 }
 
 static const struct gemini_admission_trace_ops gemini_admission_trace_mmio_ops = {
@@ -260,8 +263,9 @@ static const struct gemini_admission_trace_ops gemini_admission_trace_mmio_ops =
 static DEFINE_MUTEX(gemini_admission_trace_lock);
 static struct gemini_admission_trace_owner gemini_admission_trace_owner;
 
-static int gemini_admission_trace_commit(
-	enum gemini_admission_trace_zero_result result, bool entry)
+static int
+gemini_admission_trace_commit(enum gemini_admission_trace_zero_result result,
+			       bool entry)
 {
 	void __iomem *slots;
 	int ret;
@@ -278,12 +282,10 @@ static int gemini_admission_trace_commit(
 		goto out_unlock;
 	}
 	if (entry)
-		ret = gemini_admission_trace_owner_entry(
-			&gemini_admission_trace_owner,
+		ret = gemini_admission_trace_owner_entry(&gemini_admission_trace_owner,
 			&gemini_admission_trace_mmio_ops, slots);
 	else
-		ret = gemini_admission_trace_owner_zero_request(
-			&gemini_admission_trace_owner,
+		ret = gemini_admission_trace_owner_zero_request(&gemini_admission_trace_owner,
 			&gemini_admission_trace_mmio_ops, slots, result);
 	iounmap(slots);
 out_unlock:
@@ -297,8 +299,8 @@ int gemini_admission_trace_entry(void)
 }
 EXPORT_SYMBOL_GPL(gemini_admission_trace_entry);
 
-int gemini_admission_trace_zero_request(
-	enum gemini_admission_trace_zero_result result)
+int
+gemini_admission_trace_zero_request(enum gemini_admission_trace_zero_result result)
 {
 	return gemini_admission_trace_commit(result, false);
 }

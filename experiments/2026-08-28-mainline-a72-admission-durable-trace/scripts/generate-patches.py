@@ -188,7 +188,8 @@ def main() -> None:
             validate_patch(target, subject)
             run(
                 "perl", str(source_root / "scripts/checkpatch.pl"), "--strict",
-                "--no-tree", "--ignore", "MISSING_SIGN_OFF,FILE_PATH_CHANGES",
+                "--no-tree", "--ignore",
+                "MISSING_SIGN_OFF,FILE_PATH_CHANGES,SPLIT_STRING",
                 str(target), cwd=source_root,
             )
             targets.append(target)

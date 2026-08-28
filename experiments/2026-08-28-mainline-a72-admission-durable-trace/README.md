@@ -85,6 +85,13 @@ editor anchors the complete admission-controller Kconfig prefix, preserving
 the fail-closed one-match rule. No source package, build, device action, or
 candidate resulted from the rejected attempt.
 
+The second generation passed source editing and semantic validation, then
+stopped during strict review of patch `0415`. Function continuations and an
+uncommented retained-write barrier required style corrections. The only
+suppressed check is now `SPLIT_STRING`, narrowly justified by the byte-exact
+immutable wire literals; all other strict findings remain fatal. The rejected
+attempt produced no admitted package, build, device action, or candidate.
+
 ## Analysis
 
 An immutable entry in record 2 proves the controller core ran even when USB

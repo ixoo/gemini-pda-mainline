@@ -89,6 +89,16 @@ require(attempt["repository_commit"] ==
 require(attempt["generated_patch_count"] == 0 and
         attempt["result"] == "fail-closed-definition-corrected",
         "first Buildbox generation fail-closed result")
+attempt = contract["buildbox_generation_attempt_2"]
+require(attempt["repository_commit"] ==
+        "2a43d27860ec91f3eb8826461ce087d37e67c0ad" and
+        attempt["record"] ==
+        "results/buildbox-generation-attempt2-20260828.txt" and
+        sha256(EXPERIMENT / attempt["record"]) == attempt["record_sha256"],
+        "second Buildbox generation attempt record")
+require(attempt["generated_patch_count"] == 0 and
+        attempt["result"] == "fail-closed-style-corrected",
+        "second Buildbox generation fail-closed result")
 
 for relative in (
     "README.md", "DESIGN.md", "contract.json",
@@ -162,6 +172,8 @@ for patch in (
 require("git\", \"apply\", \"--check" in generator,
         "generated series is replay-checked")
 require("scripts/checkpatch.pl" in generator, "strict kernel patch style check")
+require("MISSING_SIGN_OFF,FILE_PATH_CHANGES,SPLIT_STRING" in generator,
+        "only exact-wire split strings extend normal style exceptions")
 
 buildbox = (SCRIPTS / "generate-on-buildbox").read_text(encoding="utf-8")
 for marker in (
