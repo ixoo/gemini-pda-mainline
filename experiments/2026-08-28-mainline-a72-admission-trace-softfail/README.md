@@ -70,11 +70,23 @@ write must end in clean shutdown, never automatic reboot.
 
 ## Observations
 
-Pending.
+Buildbox generated two exact format-patches from its integrity-verified
+post-`0420` prepared tree. Both source stages, strict checkpatch, independent
+replay, and replay source validation passed. The admitted patch SHA-256 values
+are `e5b55c5e...` and `01a6155c...`.
+
+Canonical integration now contains 414 patches. Both named profiles are
+canonical-order subsequences and all 158 manifest profiles pass the invariant
+audit. No kernel build or device action has yet occurred.
 
 ## Analysis
 
-Pending.
+The generated delta changes no hardware call site. It adds one policy bit to
+the injected controller operations, selects it in production only when the
+existing live-trigger Kconfig option is enabled, and preserves both trace
+return values alongside the real admission result. The pre-existing strict
+KUnit case remains the automatic fail-closed control; a new case covers live
+entry and terminal trace failures.
 
 ## Conclusion
 

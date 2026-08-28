@@ -17,5 +17,23 @@
   "native_vm_build": false,
   "device_action": true,
   "boot_candidate": false,
-  "result": "planned"
+  "buildbox_generation": {
+    "repository_commit": "bc5212f5869820c4509316de62f825b6d918d4e4",
+    "record": "results/buildbox-generation-bc5212f5-20260828.txt",
+    "record_sha256": "7e0faf0b03907d584c97c37575fbd9506c90d6412cf5c78c0441c1f901b18377",
+    "generated_patch_count": 2,
+    "strict_checkpatch": "pass",
+    "replay_validation": "pass",
+    "result": "pass"
+  },
+  "integration": {
+    "record": "results/canonical-integration-20260828.txt",
+    "record_sha256": "f31196af820e4e09670c4f23bfaaee8e20dbd58f52892342ac393d561e6f0d49",
+    "canonical_patch_count": 414,
+    "profiles_checked": 158,
+    "kunit_profile": "a72-admission-trace-softfail-kunit",
+    "candidate_profile": "a72-admission-trace-softfail-candidate",
+    "result": "pass"
+  },
+  "result": "generated-integrated-build-pending"
 }

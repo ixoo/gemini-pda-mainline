@@ -1,0 +1,94 @@
+From c8ff4235de6e995feb3dbcd3b6ac38959005a4ee Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 29 Aug 2026 01:01:00 +0000
+Subject: [PATCH 1/2] soc: mediatek: keep live admission past trace failure
+
+Keep trace errors visible while only the explicit live-trigger mode
+continues to the unchanged one-shot CPU8 admission core.
+---
+ ...mt6797-a72-admission-controller-internal.h |  2 ++
+ .../mt6797-a72-admission-controller.c         | 21 +++++++++++++------
+ 2 files changed, 17 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-admission-controller-internal.h b/drivers/soc/mediatek/mt6797-a72-admission-controller-internal.h
+index 67fedc5..10f418f 100644
+--- a/drivers/soc/mediatek/mt6797-a72-admission-controller-internal.h
++++ b/drivers/soc/mediatek/mt6797-a72-admission-controller-internal.h
+@@ -11,6 +11,7 @@
+ struct arm64_late_cpu_ready_token;
+ 
+ struct mt6797_a72_admission_controller_ops {
++	bool allow_trace_failure;
+ 	bool (*binder_ready)(void *context);
+ 	const struct arm64_late_cpu_ready_token *(*ready_token)(void *context);
+ 	int (*trace_entry)(void *context);
+@@ -42,6 +43,7 @@ struct mt6797_a72_admission_trigger_state {
+ struct mt6797_a72_admission_controller_state {
+ 	atomic_t consumed;
+ 	u32 cpu_requests;
++	int trace_entry_ret;
+ 	int trace_ret;
+ 	int operation_ret;
+ 	struct mt6797_a72_transaction transaction;
+diff --git a/drivers/soc/mediatek/mt6797-a72-admission-controller.c b/drivers/soc/mediatek/mt6797-a72-admission-controller.c
+index e1220f4..1421260 100644
+--- a/drivers/soc/mediatek/mt6797-a72-admission-controller.c
++++ b/drivers/soc/mediatek/mt6797-a72-admission-controller.c
+@@ -93,9 +93,9 @@ mt6797_a72_admission_run(struct mt6797_a72_admission_controller_state *state,
+ 		return -EINVAL;
+ 	if (atomic_read(&state->consumed))
+ 		return -EALREADY;
+-	ret = ops->trace_entry(context);
+-	if (ret)
+-		return ret;
++	state->trace_entry_ret = ops->trace_entry(context);
++	if (state->trace_entry_ret && !ops->allow_trace_failure)
++		return state->trace_entry_ret;
+ 	if (!ops->binder_ready(context))
+ 		return -EPROBE_DEFER;
+ 	ready = ops->ready_token(context);
+@@ -129,7 +129,7 @@ out_unregister:
+ out_terminal:
+ 	if (!state->cpu_requests && zero_result) {
+ 		state->trace_ret = ops->trace_zero_request(context, zero_result);
+-		if (state->trace_ret)
++		if (state->trace_ret && !ops->allow_trace_failure)
+ 			ret = state->trace_ret;
+ 	}
+ 	state->operation_ret = ret;
+@@ -202,6 +202,8 @@ static int mt6797_a72_admission_add_cpu(void *context, unsigned int cpu)
+ 
+ static const struct mt6797_a72_admission_controller_ops
+ mt6797_a72_admission_production_ops = {
++	.allow_trace_failure =
++		IS_ENABLED(CONFIG_MTK_MT6797_A72_ADMISSION_LIVE_TRIGGER),
+ 	.binder_ready = mt6797_a72_admission_binder_ready,
+ 	.ready_token = mt6797_a72_admission_ready_token,
+ 	.trace_entry = mt6797_a72_admission_trace_entry,
+@@ -324,6 +326,10 @@ static ssize_t status_show(struct device *dev, struct device_attribute *attr,
+ 			     "operation_ret=%d core_consumed=%d ",
+ 			     READ_ONCE(controller->trigger.operation_ret),
+ 			     atomic_read(&controller->state.consumed));
++	len += sysfs_emit_at(buf, len,
++			     "entry_trace_ret=%d terminal_trace_ret=%d ",
++			     READ_ONCE(controller->state.trace_entry_ret),
++			     READ_ONCE(controller->state.trace_ret));
+ 	len += sysfs_emit_at(buf, len,
+ 			     "cpu_requests=%u cpu9_requests=0 ",
+ 			     READ_ONCE(controller->state.cpu_requests));
+@@ -345,10 +351,13 @@ static ssize_t trigger_store(struct device *dev,
+ 	if (ret)
+ 		return ret;
+ 	dev_info(dev, MT6797_A72_ADMISSION_LIVE_TAG
+-		 " state=terminal ret=%d core_consumed=%d requests=%u/0/0 "
+-		 "retries=0\n",
++		 " state=terminal operation_ret=%d core_consumed=%d "
++		 "entry_trace_ret=%d terminal_trace_ret=%d "
++		 "requests=%u/0/0 retries=0\n",
+ 		 READ_ONCE(controller->trigger.operation_ret),
+ 		 atomic_read(&controller->state.consumed),
++		 READ_ONCE(controller->state.trace_entry_ret),
++		 READ_ONCE(controller->state.trace_ret),
+ 		 READ_ONCE(controller->state.cpu_requests));
+ 	return count;
+ }

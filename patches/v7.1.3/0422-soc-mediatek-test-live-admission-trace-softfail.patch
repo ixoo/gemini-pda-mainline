@@ -1,0 +1,59 @@
+From 398d4fb6d02eac3c211aa9d6f1c2437598a40dc4 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 29 Aug 2026 01:02:00 +0000
+Subject: [PATCH 2/2] soc: mediatek: test live admission trace softfail
+
+Prove live entry and terminal trace errors are advisory while the
+automatic policy remains fail-closed.
+---
+ .../mt6797-a72-admission-controller-test.c    | 30 +++++++++++++++++++
+ 1 file changed, 30 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-admission-controller-test.c b/drivers/soc/mediatek/mt6797-a72-admission-controller-test.c
+index 51bc9cd..314a4d6 100644
+--- a/drivers/soc/mediatek/mt6797-a72-admission-controller-test.c
++++ b/drivers/soc/mediatek/mt6797-a72-admission-controller-test.c
+@@ -329,6 +329,35 @@ static void mt6797_a72_admission_trace_failures_test(struct kunit *test)
+ 			MT6797_ADMISSION_TRACE_ZERO_REQUEST);
+ }
+ 
++static void mt6797_a72_admission_live_trace_softfail_test(struct kunit *test)
++{
++	struct mt6797_a72_admission_controller_ops live_ops = test_ops;
++	struct mt6797_a72_admission_test_context *context;
++	int ret;
++
++	live_ops.allow_trace_failure = true;
++	context = mt6797_a72_admission_test_context(test);
++	KUNIT_ASSERT_NOT_NULL(test, context);
++	context->fail_event = MT6797_ADMISSION_TRACE_ENTRY;
++	ret = mt6797_a72_admission_run(&context->controller, &live_ops, context);
++	KUNIT_EXPECT_EQ(test, ret, 0);
++	KUNIT_EXPECT_EQ(test, context->controller.trace_entry_ret, -ENOSPC);
++	KUNIT_EXPECT_EQ(test, atomic_read(&context->controller.consumed), 1);
++	KUNIT_EXPECT_EQ(test, context->controller.cpu_requests, (u32)1);
++	KUNIT_EXPECT_EQ(test, context->requested_cpu, 8U);
++
++	context = mt6797_a72_admission_test_context(test);
++	KUNIT_ASSERT_NOT_NULL(test, context);
++	context->fail_event = MT6797_ADMISSION_SOURCE_REGISTER;
++	context->trace_zero_fails = true;
++	ret = mt6797_a72_admission_run(&context->controller, &live_ops, context);
++	KUNIT_EXPECT_EQ(test, ret, -EIO);
++	KUNIT_EXPECT_EQ(test, context->controller.trace_entry_ret, 0);
++	KUNIT_EXPECT_EQ(test, context->controller.trace_ret, -ENOSPC);
++	KUNIT_EXPECT_EQ(test, context->controller.operation_ret, -EIO);
++	KUNIT_EXPECT_EQ(test, context->controller.cpu_requests, (u32)0);
++}
++
+ static void mt6797_a72_admission_repeat_closed_test(struct kunit *test)
+ {
+ 	struct mt6797_a72_admission_test_context *context =
+@@ -410,6 +439,7 @@ static struct kunit_case mt6797_a72_admission_controller_cases[] = {
+ 	KUNIT_CASE(mt6797_a72_admission_terminal_failures_test),
+ 	KUNIT_CASE(mt6797_a72_admission_request_failure_test),
+ 	KUNIT_CASE(mt6797_a72_admission_trace_failures_test),
++	KUNIT_CASE(mt6797_a72_admission_live_trace_softfail_test),
+ 	KUNIT_CASE(mt6797_a72_admission_repeat_closed_test),
+ 	{ }
+ };
