@@ -390,3 +390,4 @@ v7.1.3/0397-arm64-mediatek-add-CPU8-binder-ownership-states.patch
 v7.1.3/0398-dt-bindings-mediatek-add-MT6797-A72-binder.patch
 v7.1.3/0399-soc-mediatek-bind-the-MT6797-CPU8-transition.patch
 v7.1.3/0400-soc-mediatek-test-the-MT6797-CPU8-transition-binder.patch
+v7.1.3/0401-arm64-mediatek-move-MT6797-A72-owner-KUnit-state-off-stack.patch

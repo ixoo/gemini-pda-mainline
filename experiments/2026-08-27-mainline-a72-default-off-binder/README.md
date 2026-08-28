@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-27-mainline-a72-default-off-binder` |
-| Status | QEMU exposed owner-test stack overflow; test-only repair generation pending |
+| Status | Owner-test stack repair generated and admitted; exact rebuild pending |
 | Subsystem | CPU8 admission, transition owners, PSCI, and generic hotplug lifecycle |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-27 America/New_York |
@@ -136,6 +136,25 @@ This is a test-only blocker, not evidence about the physical CPU8 path. The
 next revision moves every large owner observation, transaction, and snapshot
 into one KUnit-managed per-case fixture. A new exact package will receive one
 new bounded run; a physical candidate remains a separate later change.
+
+## Owner KUnit stack repair
+
+Buildbox generated and replay-validated one test-only patch from the exact
+full-series source. It changes only
+`arch/arm64/kernel/mt6797_a72_membership_test.c`: all 30 owner cases remain,
+but their large observations, transaction, and snapshot now share one
+KUnit-managed per-case scratch allocation. The remaining zero transaction is
+static, and `memchr_inv()` checks it without creating another large stack
+object.
+
+The exact canonical
+[`0401` patch](../../patches/v7.1.3/0401-arm64-mediatek-move-MT6797-A72-owner-KUnit-state-off-stack.patch)
+has SHA-256
+`28d73ca2035d457022c4d8589db7344599044d83a5b1a6d4bf130093136edaf7`.
+Strict checkpatch reports zero errors, warnings, or checks. Generation and
+replay observed zero production-file changes and performed no physical or
+device action. The corrected exact profile rebuild and bounded QEMU run remain
+pending; this revision is not a boot candidate.
 
 ## Follow-up
 
