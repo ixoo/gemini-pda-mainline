@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-27-mainline-a72-default-off-binder` |
-| Status | QEMU completed; 10 owner-test isolation failures exposed |
+| Status | Owner/P30 test-isolation repair generated and admitted; exact rebuild pending |
 | Subsystem | CPU8 admission, transition owners, PSCI, and generic hotplug lifecycle |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-27 America/New_York |
@@ -169,10 +169,21 @@ subscenarios that reseed membership state without resetting the coupled P30
 test state. Exact identities are in the
 [second runtime rejection evidence](results/kunit-qemu-owner-isolation-1f26f2fc-20260828.txt).
 
-The harness now pins single-thread TCG for deterministic launch. The next
-revision is another test-only repair: isolate the coupled owner/P30 fixtures
-and make the hook expectations configuration-aware. No production path,
-device action, or boot candidate is admitted by these findings.
+The harness now pins single-thread TCG for deterministic launch. Buildbox
+generated and replay-validated the exact canonical
+[`0402` patch](../../patches/v7.1.3/0402-arm64-mediatek-isolate-MT6797-A72-owner-KUnit-state.patch),
+with SHA-256
+`e0f55cfbf702186518de20b6c1bef7637d64a1a682bae4f99fa00322e36528d5`.
+It retains all 30 owner cases, adds one coupled case reset, converts 11 basic
+and six CPU9 reseeds to reset the P30 state with membership, and makes the
+three PSCI-hook expectations binder-aware. Strict checkpatch reports zero
+errors, warnings, or checks.
+
+The patch changes only the membership-owner test source. Generation and replay
+observed zero production-file changes and performed no physical or device
+action. The exact profile rebuild and one bounded single-thread TCG QEMU proof
+remain pending; no production path or boot candidate is admitted by this
+test-isolation repair.
 
 ## Follow-up
 

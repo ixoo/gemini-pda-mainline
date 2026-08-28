@@ -1,0 +1,230 @@
+From 371f9e3f0285bd076bf88d1fdfec19294b7699c2 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 28 Aug 2026 00:51:00 +0000
+Subject: [PATCH 1/1] arm64: mediatek: isolate MT6797 A72 owner KUnit state
+
+Reset the coupled P30 fixture whenever membership state is reseeded.
+
+Keep PSCI-hook expectations valid with or without the default-off binder.
+---
+ .../arm64/kernel/mt6797_a72_membership_test.c | 66 +++++++++++++------
+ 1 file changed, 45 insertions(+), 21 deletions(-)
+
+diff --git a/arch/arm64/kernel/mt6797_a72_membership_test.c b/arch/arm64/kernel/mt6797_a72_membership_test.c
+index 6e35af3..c9ede08 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership_test.c
++++ b/arch/arm64/kernel/mt6797_a72_membership_test.c
+@@ -141,6 +141,24 @@ expect_unchanged(struct kunit *test,
+ 	KUNIT_EXPECT_EQ(test, difference, 0);
+ }
+ 
++static void mt6797_a72_owner_reset_state(void)
++{
++	arm64_late_cpu_startup_test_reset();
++	mt6797_a72_membership_test_reset();
++}
++
++static void mt6797_a72_owner_seed_available(void)
++{
++	arm64_late_cpu_startup_test_reset();
++	mt6797_a72_membership_test_seed_available();
++}
++
++static void mt6797_a72_owner_seed_available_cpu9(void)
++{
++	arm64_late_cpu_startup_test_reset();
++	mt6797_a72_membership_test_seed_available_cpu9();
++}
++
+ static int mt6797_a72_owner_test_init(struct kunit *test)
+ {
+ 	struct mt6797_a72_owner_test_state *state;
+@@ -149,7 +167,7 @@ static int mt6797_a72_owner_test_init(struct kunit *test)
+ 	if (!state)
+ 		return -ENOMEM;
+ 	test->priv = state;
+-	mt6797_a72_membership_test_reset();
++	mt6797_a72_owner_reset_state();
+ 	return 0;
+ }
+ 
+@@ -246,7 +264,9 @@ static void mt6797_a72_owner_public_hook_denied(struct kunit *test)
+ 	ret = mt6797_psci_ops.cpu_up_preflight(9, CPUHP_ONLINE);
+ 	KUNIT_EXPECT_EQ(test, ret, -EAGAIN);
+ 	ret = mt6797_psci_ops.cpu_up_preflight(8, CPUHP_AP_ONLINE);
+-	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
++	KUNIT_EXPECT_EQ(test, ret,
++			IS_ENABLED(CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER) ?
++				-EAGAIN : -EINVAL);
+ 	owner_observe(&state->after);
+ 	expect_unchanged(test, &state->before, &state->after);
+ }
+@@ -267,9 +287,13 @@ static void mt6797_a72_owner_internal_hook_denied(struct kunit *test)
+ 	ret = mt6797_psci_ops.cpu_up_validate(9, 0, CPUHP_ONLINE);
+ 	KUNIT_EXPECT_EQ(test, ret, -EAGAIN);
+ 	ret = mt6797_psci_ops.cpu_up_validate(8, 1, CPUHP_ONLINE);
+-	KUNIT_EXPECT_EQ(test, ret, -EPERM);
++	KUNIT_EXPECT_EQ(test, ret,
++			IS_ENABLED(CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER) ?
++				-EAGAIN : -EPERM);
+ 	ret = mt6797_psci_ops.cpu_up_validate(9, 0, CPUHP_AP_ONLINE);
+-	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
++	KUNIT_EXPECT_EQ(test, ret,
++			IS_ENABLED(CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER) ?
++				-EAGAIN : -EINVAL);
+ 	owner_observe(&state->after);
+ 	expect_unchanged(test, &state->before, &state->after);
+ }
+@@ -403,7 +427,7 @@ static void mt6797_a72_owner_p31_consumes_once(struct kunit *test)
+ 	int difference;
+ 	int ret;
+ 
+-	mt6797_a72_membership_test_seed_available();
++	mt6797_a72_owner_seed_available();
+ 	owner_observe(&state->before);
+ 	ret = mt6797_a72_membership_begin_up(8, CPUHP_ONLINE,
+ 					     MT6797_A72_ATTEMPT_CPU8_UP,
+@@ -458,7 +482,7 @@ static void mt6797_a72_owner_p31_consumes_once(struct kunit *test)
+ 	KUNIT_EXPECT_EQ(test, ret, -EBUSY);
+ 	KUNIT_EXPECT_TRUE(test, mt6797_a72_transaction_empty(&state->transaction));
+ 
+-	mt6797_a72_membership_test_seed_available();
++	mt6797_a72_owner_seed_available();
+ 	malformed = mt6797_a72_entry_for_up(9);
+ 	malformed.members = 0;
+ 	ret = mt6797_a72_membership_begin_up(9, CPUHP_ONLINE,
+@@ -484,7 +508,7 @@ static void mt6797_a72_owner_p31_consumes_once(struct kunit *test)
+ 	KUNIT_EXPECT_EQ(test, state->after.owner.attempts_consumed,
+ 			(u32)MT6797_A72_ATTEMPT_CPU9_UP);
+ 
+-	mt6797_a72_membership_test_seed_available();
++	mt6797_a72_owner_seed_available();
+ 	bad_ready = ready;
+ 	bad_ready.plan_identity[0] = 0;
+ 	entry = mt6797_a72_entry_for_up(8);
+@@ -512,7 +536,7 @@ static void mt6797_a72_owner_a36_rejects_without_rearm(struct kunit *test)
+ 	struct mt6797_a72_a36_prestate retry_prestate;
+ 	int ret;
+ 
+-	mt6797_a72_membership_test_seed_available();
++	mt6797_a72_owner_seed_available();
+ 	prestate.spm_218 ^= 1;
+ 	ret = mt6797_a72_membership_begin_up(8, CPUHP_ONLINE,
+ 					     MT6797_A72_ATTEMPT_CPU8_UP,
+@@ -546,7 +570,7 @@ static void mt6797_a72_owner_a36_prestate_mutations_rejected(struct kunit *test)
+ 	struct mt6797_a72_a36_prestate mutated;
+ 	int ret;
+ 
+-	mt6797_a72_membership_test_seed_available();
++	mt6797_a72_owner_seed_available();
+ 	ret = mt6797_a72_membership_begin_up(8, CPUHP_ONLINE,
+ 					     MT6797_A72_ATTEMPT_CPU8_UP,
+ 					     &entry, &ready, &prestate, &state->transaction);
+@@ -581,7 +605,7 @@ static void mt6797_a72_owner_cpu9_mints_distinct_token(struct kunit *test)
+ 	struct mt6797_a72_a36_prestate prestate = mt6797_a72_prestate_for_up(9);
+ 	int ret;
+ 
+-	mt6797_a72_membership_test_seed_available_cpu9();
++	mt6797_a72_owner_seed_available_cpu9();
+ 	ret = mt6797_a72_membership_begin_up(9, CPUHP_ONLINE,
+ 					     MT6797_A72_ATTEMPT_CPU9_UP,
+ 					     &entry, &ready, &prestate, &state->transaction);
+@@ -613,7 +637,7 @@ static void mt6797_a72_owner_p17_cpu8_publishes_once(struct kunit *test)
+ 	struct mt6797_a72_a36_prestate prestate = mt6797_a72_prestate_for_up(8);
+ 	int ret;
+ 
+-	mt6797_a72_membership_test_seed_available();
++	mt6797_a72_owner_seed_available();
+ 	ret = mt6797_a72_membership_begin_up(8, CPUHP_ONLINE,
+ 					     MT6797_A72_ATTEMPT_CPU8_UP,
+ 					     &entry, &ready, &prestate, &state->transaction);
+@@ -645,7 +669,7 @@ static void mt6797_a72_owner_p18_cpu9_preserves_provider(struct kunit *test)
+ 	struct mt6797_a72_a36_prestate prestate = mt6797_a72_prestate_for_up(9);
+ 	int ret;
+ 
+-	mt6797_a72_membership_test_seed_available_cpu9();
++	mt6797_a72_owner_seed_available_cpu9();
+ 	ret = mt6797_a72_membership_begin_up(9, CPUHP_ONLINE,
+ 					     MT6797_A72_ATTEMPT_CPU9_UP,
+ 					     &entry, &ready, &prestate, &state->transaction);
+@@ -674,7 +698,7 @@ static void mt6797_a72_owner_p18_without_provider_rejected(struct kunit *test)
+ 	struct mt6797_a72_a36_prestate prestate = mt6797_a72_prestate_for_up(9);
+ 	int ret;
+ 
+-	mt6797_a72_membership_test_seed_available();
++	mt6797_a72_owner_seed_available();
+ 	ret = mt6797_a72_membership_begin_up(9, CPUHP_ONLINE,
+ 					     MT6797_A72_ATTEMPT_CPU9_UP,
+ 					     &entry, &ready, &prestate, &state->transaction);
+@@ -704,7 +728,7 @@ mt6797_a72_test_seed_cpu8_p27(struct mt6797_a72_transaction *transaction)
+ 	struct mt6797_a72_p27_preparation preparation;
+ 	int ret;
+ 
+-	mt6797_a72_membership_test_seed_available();
++	mt6797_a72_owner_seed_available();
+ 	ret = mt6797_a72_membership_begin_up(8, CPUHP_ONLINE,
+ 					     MT6797_A72_ATTEMPT_CPU8_UP,
+ 					     &entry, &ready, &prestate, transaction);
+@@ -821,7 +845,7 @@ static void mt6797_a72_owner_p27_cpu8_preparation_once(struct kunit *test)
+ 	struct mt6797_a72_p27_preparation preparation;
+ 	int ret;
+ 
+-	mt6797_a72_membership_test_seed_available();
++	mt6797_a72_owner_seed_available();
+ 	ret = mt6797_a72_membership_begin_up(8, CPUHP_ONLINE,
+ 					     MT6797_A72_ATTEMPT_CPU8_UP,
+ 					     &entry, &ready, &prestate, &state->transaction);
+@@ -868,7 +892,7 @@ static void mt6797_a72_owner_p27_rejects_bad_or_cpu9_proof(struct kunit *test)
+ 	struct mt6797_a72_p27_preparation preparation;
+ 	int ret;
+ 
+-	mt6797_a72_membership_test_seed_available();
++	mt6797_a72_owner_seed_available();
+ 	ret = mt6797_a72_membership_begin_up(8, CPUHP_ONLINE,
+ 					     MT6797_A72_ATTEMPT_CPU8_UP,
+ 					     &entry, &ready, &prestate, &state->transaction);
+@@ -886,7 +910,7 @@ static void mt6797_a72_owner_p27_rejects_bad_or_cpu9_proof(struct kunit *test)
+ 	owner_observe(&state->after);
+ 	expect_unchanged(test, &state->before, &state->after);
+ 
+-	mt6797_a72_membership_test_seed_available_cpu9();
++	mt6797_a72_owner_seed_available_cpu9();
+ 	entry = mt6797_a72_entry_for_up(9);
+ 	prestate = mt6797_a72_prestate_for_up(9);
+ 	ret = mt6797_a72_membership_begin_up(9, CPUHP_ONLINE,
+@@ -966,7 +990,7 @@ static void mt6797_a72_owner_r02_rejects_bad_proof_or_cpu9(struct kunit *test)
+ 	owner_observe(&state->after);
+ 	expect_unchanged(test, &state->before, &state->after);
+ 
+-	mt6797_a72_membership_test_seed_available_cpu9();
++	mt6797_a72_owner_seed_available_cpu9();
+ 	ret = mt6797_a72_membership_begin_up(9, CPUHP_ONLINE,
+ 					     MT6797_A72_ATTEMPT_CPU9_UP,
+ 					     &entry, &ready, &prestate, &state->transaction);
+@@ -1035,7 +1059,7 @@ static void mt6797_a72_owner_p28_rejects_bad_proof_or_cpu9(struct kunit *test)
+ 	owner_observe(&state->after);
+ 	expect_unchanged(test, &state->before, &state->after);
+ 
+-	mt6797_a72_membership_test_seed_available_cpu9();
++	mt6797_a72_owner_seed_available_cpu9();
+ 	{
+ 		struct mt6797_a72_entry_snapshot entry = mt6797_a72_entry_for_up(9);
+ 		struct arm64_late_cpu_ready_token ready =
+@@ -1140,7 +1164,7 @@ static void mt6797_a72_owner_r03_p29_mutations_rejected(struct kunit *test)
+ 	owner_observe(&state->after);
+ 	expect_unchanged(test, &state->before, &state->after);
+ 
+-	mt6797_a72_membership_test_seed_available_cpu9();
++	mt6797_a72_owner_seed_available_cpu9();
+ 	entry = mt6797_a72_entry_for_up(9);
+ 	ready = mt6797_a72_ready_token_for_up();
+ 	prestate = mt6797_a72_prestate_for_up(9);
+@@ -1165,7 +1189,7 @@ mt6797_a72_test_seed_cpu8_claimed(struct mt6797_a72_transaction *transaction)
+ 	struct mt6797_a72_a36_prestate prestate = mt6797_a72_prestate_for_up(8);
+ 	int ret;
+ 
+-	mt6797_a72_membership_test_seed_available();
++	mt6797_a72_owner_seed_available();
+ 	ret = mt6797_a72_membership_begin_up(8, CPUHP_ONLINE,
+ 					     MT6797_A72_ATTEMPT_CPU8_UP,
+ 					     &entry, &ready, &prestate,
