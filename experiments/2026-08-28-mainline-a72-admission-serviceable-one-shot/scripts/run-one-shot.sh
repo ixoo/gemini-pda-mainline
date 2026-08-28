@@ -7,11 +7,11 @@ export LC_ALL=C
 umask 077
 
 readonly SOURCE_SHA256=69e3290661820a4555a3b43c2451d63e6bf05f81013bae864704cfa0a458580e
-readonly DERIVED_SHA256=f7b77371de128839b04adb874c6b81d14c3bc494f31dbf5a5faf5224a96a1ec8
+readonly DERIVED_SHA256=2f645942f7d8dd7e5e87eed72c9b5ce8e81567be87f7650a7f4eaf793f16e493
 readonly PRETRIGGER_SHA256=999d7a55f0fdb4992061588b17ebcd46ed945210dd1ba8006a286febfee94a9f
 readonly TRIGGER_SHA256=93e6ee4b0dd84d6415a84a8bac400308b7fa7483aabab0b414b33016d1ae690b
 readonly VALIDATOR_SHA256=3f4cb51ad1405df620f447b6210aac795a0664171711f8ca38ddaf05e9113531
-readonly CLASSIFIER_SHA256=a35a19cd1a4a5617bbab0bb3d4a7108f205dcddde92f95b41b47d9583b55ff6d
+readonly CLASSIFIER_SHA256=974315e58463c0430a2cdafdbdd978418e1fed866d492231d8b2cb2a658d298a
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }
 for command in chmod install mktemp python3 rm sha256sum; do
 	command -v "$command" >/dev/null 2>&1 || die "required command missing: $command"
@@ -54,7 +54,7 @@ replacements = (
     ("4e0f86885a16df2f8b0c1efb4dd2e67394938bad1ef720adabf70ff4635ec0ef", "f4cb1b2c8bc3759a23515c41d6c3c9248c1095277cb158e082a5b322e6927c02", 1),
     ("008a8e33cd67654dc4d3632277b6d1600ef9b565ef7e5b763bb481c424229b60", "999d7a55f0fdb4992061588b17ebcd46ed945210dd1ba8006a286febfee94a9f", 1),
     ("906a404932f64ec3795f666b9adda0167f49777f24c52178c20ca0aaea953715", "3f4cb51ad1405df620f447b6210aac795a0664171711f8ca38ddaf05e9113531", 1),
-    ("274b950c8c0dbd2ca3eb6fa7933fe692251de70bf7aadf735bc98d5c12d2886e", "a35a19cd1a4a5617bbab0bb3d4a7108f205dcddde92f95b41b47d9583b55ff6d", 1),
+    ("274b950c8c0dbd2ca3eb6fa7933fe692251de70bf7aadf735bc98d5c12d2886e", "974315e58463c0430a2cdafdbdd978418e1fed866d492231d8b2cb2a658d298a", 1),
     ("2026-08-28-mainline-a72-admission-live-trigger", "2026-08-28-mainline-a72-admission-serviceable-one-shot", 2),
     ("nc ping python3 route sed", "nc netstat ping python3 route sed", 1),
     (old_route, new_route, 1),

@@ -37,12 +37,12 @@
   },
   "tooling_sha256": {
     "source_collector": "69e3290661820a4555a3b43c2451d63e6bf05f81013bae864704cfa0a458580e",
-    "derived_collector": "f7b77371de128839b04adb874c6b81d14c3bc494f31dbf5a5faf5224a96a1ec8",
-    "runner": "15825a67ee7cdbec0c639c5af420663409ea20d1f7a4a64b2954227b1a485efb",
+    "derived_collector": "2f645942f7d8dd7e5e87eed72c9b5ce8e81567be87f7650a7f4eaf793f16e493",
+    "runner": "a5b8c3541de5a72ad286c4cec9ffa6f2a61383ca7681a282cc589ed159244ef3",
     "remote_pretrigger": "999d7a55f0fdb4992061588b17ebcd46ed945210dd1ba8006a286febfee94a9f",
     "validate_pretrigger": "3f4cb51ad1405df620f447b6210aac795a0664171711f8ca38ddaf05e9113531",
     "remote_trigger": "93e6ee4b0dd84d6415a84a8bac400308b7fa7483aabab0b414b33016d1ae690b",
-    "classify_attempt": "a35a19cd1a4a5617bbab0bb3d4a7108f205dcddde92f95b41b47d9583b55ff6d",
+    "classify_attempt": "974315e58463c0430a2cdafdbdd978418e1fed866d492231d8b2cb2a658d298a",
     "test_runtime": "9d60eef5a572e64964c06c4f569ee0c4b29545755a00e2d63424048759bb4276"
   },
   "offline_validation": {
@@ -58,6 +58,32 @@
     "device_action": false,
     "result": "pass"
   },
-  "runtime": null,
-  "current_status": "offline-pass-publication-pending"
+  "runtime": {
+    "action_time_derived_collector_sha256": "f7b77371de128839b04adb874c6b81d14c3bc494f31dbf5a5faf5224a96a1ec8",
+    "action_time_runner_sha256": "15825a67ee7cdbec0c639c5af420663409ea20d1f7a4a64b2954227b1a485efb",
+    "action_time_classifier_sha256": "a35a19cd1a4a5617bbab0bb3d4a7108f205dcddde92f95b41b47d9583b55ff6d",
+    "pretrigger_result": "serviceable-armed-zero-execution",
+    "trigger_sessions": 1,
+    "trigger_retried": false,
+    "trigger_consumed": 1,
+    "trigger_executions": 1,
+    "operation_ret": -517,
+    "operation_errno": "EPROBE_DEFER",
+    "core_consumed": 0,
+    "cpu_requests": 0,
+    "cpu_online": "0-7",
+    "cpu_offline": "8-9",
+    "initial_host_classification": "rejected-exact-trigger-commit-absent-or-duplicated",
+    "corrected_host_classification": "terminal-admission-error",
+    "corrected_host_reason": "ret=-517-consumed=0-requests=0",
+    "first_unavailable_admission_supplier": "a72-binder",
+    "observed_root_dependency": "dvfsp-handoff-waits-for-atag-devinfo-cpu-efuse-identity",
+    "running_nvmem_mtk_atag_devinfo": false,
+    "visible_console_framebuffer": false,
+    "control_channel": "exact-live-usb-netcat",
+    "device_partition_reads": 0,
+    "device_storage_writes": 0,
+    "reboot_requests": 0
+  },
+  "current_status": "complete-terminal-precore-defer-no-retry"
 }

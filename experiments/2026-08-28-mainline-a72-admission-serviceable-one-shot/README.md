@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-admission-serviceable-one-shot` |
-| Status | `offline gates pass; exact same-boot action pending` |
+| Status | `complete; terminal pre-core defer, no retry` |
 | Subsystem | MT6797 A72 admission controller and CPU hotplug |
 | Device variant | Planet Computers Gemini PDA, named project device |
 | Date(s) | 2026-08-28 |
@@ -96,23 +96,58 @@ closed. The validator additionally rejects any boot ID other than the already
 qualified live boot. The collector's routing check now falls back to the exact
 `10.15.19/24` netstat entry when the sandbox denies the macOS routing socket.
 
+The same-boot pre-trigger frame passed again, and the host fsynced it plus the
+trigger intent before opening exactly one trigger session. The action consumed
+the trigger and returned a complete terminal frame with `operation_ret=-517`
+(`-EPROBE_DEFER`), `core_consumed=0`, `cpu_requests=0`, CPU0--7 online, and
+CPU8--9 offline. No CPU9, CPU_OFF, retry, storage, or reboot request occurred.
+The device stayed live on the same boot ID and exact USB/netcat channel.
+
+The first host classification rejected the otherwise complete frame because
+the classifier modeled `trigger_commit=yes` and `token_sha256=...` on one line,
+while the byte-exact action emits them on two lines. The preserved transcript
+was not retried or modified. A source-pinned wire-format correction now accepts
+the same bytes as `terminal-admission-error` with reason
+`ret=-517-consumed=0-requests=0`; all three positive branches and all 13 unsafe
+mutations still pass. Both the initial rejection and corrected classification
+are retained.
+
+Read-only post-terminal probing localized the defer. The platform-state and
+BigiDVFS backends are bound, but the ATAG devinfo NVMEM provider, DVFSP
+handoff, I2C6, clock backend, and A72 binder are unbound. Kernel diagnostics
+name the first dependency: the handoff waits for
+`/firmware/atag-devinfo/cpu-efuse-identity@58`; I2C6 and the clock backend then
+wait for handoff. Both the fetched package configuration and `/proc/config.gz`
+omit `CONFIG_NVMEM_MTK_ATAG_DEVINFO`, and the live NVMEM bus is empty.
+
 ## Analysis
 
-This is the first attempt that can test the CPU8 transaction without conflating
-it with boot or observation-channel serviceability. Reusing the same proven
-boot also removes another boot-selection variable. The missing visible console
-does not weaken attribution because the action, commit marker, terminal state,
-and CPU lists all use the already qualified direct USB link.
+This is the first attempt that reached the CPU8 admission controller through a
+qualified serviceability channel. It did not reach the admission core or issue
+a CPU request: the controller's prepare stage stops at its first supplier, the
+unbound A72 binder. The binding evidence provides the upstream dependency
+chain and turns the result into a narrow configuration defect rather than a
+CPU8 power-sequence result.
+
+The missing visible console does not weaken this attribution because the
+action, commit marker, terminal state, bindings, kernel log, and CPU lists all
+come from the already qualified direct USB link. It remains an explicit display
+limitation and is not counted as framebuffer support.
 
 ## Conclusion
 
-The definition and offline gates pass. The one-shot device action remains
-pending publication of this exact contract.
+The one permitted action is complete and must not be repeated on this boot or
+artifact. It terminated before core consumption with exact `-EPROBE_DEFER` and
+zero CPU requests. The immediate unavailable admission supplier is the A72
+binder; its observed dependency chain is blocked by the omitted built-in ATAG
+devinfo NVMEM provider. This result neither proves nor disproves the CPU8 power
+sequence itself.
 
 ## Follow-up
 
-If CPU8 reaches `0-8`, validate a bounded coherency/accounting check before any
-CPU9 work. If the controller returns a terminal error, use its exact return and
-consumption/request counters to isolate the failed admission stage. If the
-commit is observed and transport is lost, perform changed-ID Gemian recovery
-without retry and treat the trigger boundary as the primary evidence.
+Define a config-only successor that adds `CONFIG_NVMEM=y` and
+`CONFIG_NVMEM_MTK_ATAG_DEVINFO=y` to the isolated live-trigger candidate. Its
+pre-trigger gate must prove the ATAG NVMEM device, handoff, I2C6/provider,
+clock backend, BigiDVFS backend, platform state, and binder are all bound before
+another separately attributable one-shot is armed. Do not retry this consumed
+artifact. CPU9 remains out of scope.

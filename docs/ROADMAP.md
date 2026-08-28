@@ -5898,9 +5898,22 @@ The next ordered work is:
    [serviceable one-shot follow-up](../experiments/2026-08-28-mainline-a72-admission-serviceable-one-shot/README.md)
    binds candidate, release, and exact live boot ID, preserves the byte-exact
    proven trigger action, revalidates the armed frame, and rejects 13 unsafe
-   runtime mutations. **Selected next:** publish that exact definition, fsync
-   its same-boot frame and intent, and send the one-shot CPU8 token once with no
-   retry.
+   runtime mutations. Its exact same-boot frame and durable intent then preceded
+   one token and one trigger session. The device returned a complete terminal
+   `-EPROBE_DEFER` frame with trigger consumed, admission core unconsumed, zero
+   CPU requests, CPU0--7 online, and CPU8--9 offline; it stayed live and no
+   retry, CPU9, CPU_OFF, storage, or reboot request occurred. The first host
+   classifier rejection was a wire-model defect: the action emits commit and
+   token on two lines. Reclassification of the preserved bytes accepts
+   `terminal-admission-error`, and all 13 unsafe mutations still fail closed.
+   Read-only post-terminal USB evidence provides the decision-changing cause:
+   the NVMEM bus is empty and ATAG devinfo is unbound; DVFSP handoff explicitly
+   waits for `cpu-efuse-identity@58`, so I2C6 and the clock backend defer and the
+   A72 binder remains unavailable. Both the fetched and running configs omit
+   `CONFIG_NVMEM_MTK_ATAG_DEVINFO`. **Selected next:** define and Buildbox-build
+   a config-only live-trigger successor with the built-in ATAG NVMEM provider,
+   then require the complete handoff/I2C6/provider/clock/BigiDVFS/platform/
+   binder graph to be bound before a new, separately attributable one-shot.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
