@@ -23,7 +23,7 @@ remaining physical failure, without touching CPU9 or retrying?
 - Prepared source: exact post-`0412` Buildbox state and integrity in the contract.
 - Build backend: Buildbox only; no native VM build.
 - Boot path: a separately validated Android boot-v0 image, logical `boot2` only.
-- Candidate identity: pending patch generation, integration, build, and LK validation.
+- Candidate identity: binding/DTS source integrated; kernel package and LK image pending.
 
 ## Safety assessment
 
@@ -57,19 +57,22 @@ does not create a redundant backup.
 ## Observations
 
 The hardware-free controller has already passed two no-network KUnit suites,
-10 tests total, with zero failures or skips. This experiment has made no device
-request, build, installation, or boot yet.
+10 tests total, with zero failures or skips. Buildbox generated the `0413/0414`
+binding/DTS pair against the exact post-`0412` prepared source; strict
+checkpatch, semantic validation, and fresh replay passed. The byte-reviewed
+patches and production-only `a72-admission-candidate` profile are integrated.
+This experiment has made no device request, installation, or boot yet.
 
 ## Analysis
 
-The missing boundary is now narrow: a schema-validated candidate DT and a
-production profile must connect already-proven suppliers to the controller.
-Compile success will validate that graph but will not establish CPU8 support.
+The next boundary is an exact Buildbox compile of the production profile,
+including the new DTB and final merged config. Compile success will validate
+that graph but will not establish CPU8 support.
 
 ## Conclusion
 
-Inconclusive for hardware. The definition is awaiting exact Buildbox patch
-generation; `boot_candidate=false` until all later gates pass.
+Inconclusive for hardware. Source is integrated and awaiting the exact
+Buildbox kernel; `boot_candidate=false` until all later gates pass.
 
 ## Follow-up
 

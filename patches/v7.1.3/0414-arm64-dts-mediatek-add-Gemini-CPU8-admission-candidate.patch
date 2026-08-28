@@ -1,0 +1,68 @@
+From b803478ef45e8daabb0b036c1030f8ffc07a88c9 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 28 Aug 2026 21:12:00 +0000
+Subject: [PATCH 2/2] arm64: dts: mediatek: add Gemini CPU8 admission candidate
+
+Enable the binder, controller, and their three owned sources in a
+separate Gemini derivative.
+---
+ arch/arm64/boot/dts/mediatek/Makefile         |  1 +
+ .../mt6797-gemini-pda-a72-admission.dts       | 37 +++++++++++++++++++
+ 2 files changed, 38 insertions(+)
+ create mode 100644 arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-a72-admission.dts
+
+diff --git a/arch/arm64/boot/dts/mediatek/Makefile b/arch/arm64/boot/dts/mediatek/Makefile
+index 4bc1906..2b77bae 100644
+--- a/arch/arm64/boot/dts/mediatek/Makefile
++++ b/arch/arm64/boot/dts/mediatek/Makefile
+@@ -9,6 +9,7 @@ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda-clock-backend-entry.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda-protected-readback.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda-a72-physical-source.dtb
++dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda-a72-admission.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-x20-dev.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt7622-rfb1.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt7622-bananapi-bpi-r64.dtb
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-a72-admission.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-a72-admission.dts
+new file mode 100644
+index 0000000..530807d
+--- /dev/null
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-a72-admission.dts
+@@ -0,0 +1,37 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (c) 2026 Julien Etienne
++ */
++
++#include "mt6797-gemini-pda.dts"
++
++/ {
++	a72_binder: a72-binder {
++		compatible = "mediatek,mt6797-a72-binder";
++		mediatek,watchdog = <&watchdog>;
++		mediatek,platform-state = <&a72_platform_state>;
++		mediatek,bigidvfs = <&dvfsp_bigidvfs_backend>;
++		status = "okay";
++	};
++
++	a72-admission-controller {
++		compatible = "mediatek,mt6797-a72-admission-controller";
++		mediatek,binder = <&a72_binder>;
++		mediatek,platform-state = <&a72_platform_state>;
++		mediatek,clock-backend = <&dvfsp_clock_backend>;
++		mediatek,bigidvfs-backend = <&dvfsp_bigidvfs_backend>;
++		status = "okay";
++	};
++};
++
++&a72_platform_state {
++	status = "okay";
++};
++
++&dvfsp_clock_backend {
++	status = "okay";
++};
++
++&dvfsp_bigidvfs_backend {
++	status = "okay";
++};
