@@ -5703,14 +5703,16 @@ The next ordered work is:
    stack fault, physical operation, CPU request, or device action. The exact
    post-`0410` source audit selects a locked read-only binder-ready accessor,
    wrappers around the proven physical-source lifetime, and one injected
-   same-task controller core. **Selected next:** generate and review that
-   two-patch controller slice from the pinned Buildbox source, then compile a
-   focused profile and prove the five derived plus five controller cases in one
-   bounded no-network run. The controller must consume before owner mutation,
-   publish P17/P18, make exactly one synchronous `add_cpu(8)` call, and leave
-   ledger -> watchdog -> first mutation exclusively inside the binder. Only
-   after that proof may a separate decision-bearing physical candidate be
-   assembled.
+   same-task controller core. Exact pinned generation at `d95c42fe` passes
+   strict checkpatch, exact-source replay, semantic validation, and manual
+   review. Canonical patches `0411`--`0412` now add that default-off core and
+   its five injected tests with no base-DT enablement. **Selected next:**
+   compile the focused controller profile on Buildbox and prove the five
+   derived plus five controller cases in one bounded no-network run. The proof
+   must retain consumed-before-mutation, exactly one synchronous `add_cpu(8)`
+   call site, and ledger -> watchdog -> first mutation exclusively inside the
+   binder. Only after that proof may a separate decision-bearing physical
+   candidate be assembled.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

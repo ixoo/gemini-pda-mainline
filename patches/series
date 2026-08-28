@@ -400,3 +400,5 @@ v7.1.3/0407-arm64-mediatek-derive-CPU8-admission-from-current-boot-state.patch
 v7.1.3/0408-arm64-mediatek-test-source-derived-CPU8-admission.patch
 v7.1.3/0409-arm64-mediatek-isolate-derived-admission-KUnit-fixtures.patch
 v7.1.3/0410-arm64-mediatek-select-owner-model-for-derived-admission-tests.patch
+v7.1.3/0411-soc-mediatek-add-one-shot-CPU8-admission-controller.patch
+v7.1.3/0412-soc-mediatek-test-one-shot-CPU8-admission-controller.patch

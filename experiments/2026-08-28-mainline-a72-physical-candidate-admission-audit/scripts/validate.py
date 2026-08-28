@@ -34,9 +34,9 @@ require(sha256(manifest) == CONTRACT["integrated_manifest_sha256"],
         "manifest hash")
 require(CONTRACT["audited_canonical_series_entries"] == 398,
         "audited series entries")
-require(CONTRACT["integrated_canonical_series_entries"] == 402,
+require(CONTRACT["integrated_canonical_series_entries"] == 404,
         "integrated series entries")
-require(CONTRACT["integrated_profile"] == "a72-derived-admission-kunit",
+require(CONTRACT["integrated_profile"] == "a72-admission-controller-kunit",
         "integrated profile")
 
 direct = CONTRACT["direct_design"]
@@ -47,11 +47,16 @@ require(direct == {
     "reason": "unsourced-a36-and-ledger-watchdog-order-cycle",
 }, "direct design rejection")
 require(set(CONTRACT["external_production_callers"]) == {
-    "publish_bootstrap", "membership_begin_up", "membership_publish_up",
-    "add_cpu8",
+    "publish_bootstrap", "membership_begin_up", "membership_derive_cpu8",
+    "membership_publish_up", "add_cpu8",
 }, "external caller inventory")
-require(not any(CONTRACT["external_production_callers"].values()),
-        "external callers remain absent")
+require(CONTRACT["external_production_callers"] == {
+    "publish_bootstrap": 0,
+    "membership_begin_up": 0,
+    "membership_derive_cpu8": 1,
+    "membership_publish_up": 1,
+    "add_cpu8": 1,
+}, "controller production caller inventory")
 require(CONTRACT["obsolete_a36_caller_assertions"] == [
     "da921x_page", "secure_sentinels_stable", "pstore_console_available",
     "watchdog_owned",
@@ -89,6 +94,8 @@ generated_patches = {
     "0408": ROOT / "patches/v7.1.3/0408-arm64-mediatek-test-source-derived-CPU8-admission.patch",
     "0409": ROOT / "patches/v7.1.3/0409-arm64-mediatek-isolate-derived-admission-KUnit-fixtures.patch",
     "0410": ROOT / "patches/v7.1.3/0410-arm64-mediatek-select-owner-model-for-derived-admission-tests.patch",
+    "0411": ROOT / "patches/v7.1.3/0411-soc-mediatek-add-one-shot-CPU8-admission-controller.patch",
+    "0412": ROOT / "patches/v7.1.3/0412-soc-mediatek-test-one-shot-CPU8-admission-controller.patch",
 }
 for number, path in generated_patches.items():
     require(sha256(path) == CONTRACT["generated_patch_sha256"][number],
@@ -231,6 +238,45 @@ require(CONTRACT["isolated_qemu"] == {
 require(CONTRACT["durable_qemu_runner"] is True,
         "durable QEMU runner")
 
+controller_generation = EXP / "results/controller-generation-20260828.txt"
+require(sha256(controller_generation) ==
+        CONTRACT["controller_generation_receipt_sha256"],
+        "controller generation receipt hash")
+controller_generation_text = controller_generation.read_text(encoding="utf-8")
+for token in (
+    "repository_commit=d95c42fe7c8f63aa220039a3bd56e1afd6832aef",
+    "strict_checkpatch=pass", "checkpatch_errors=0",
+    "checkpatch_warnings=0", "checkpatch_checks=0",
+    "fresh_exact_source_replay=pass", "production_source_validation=pass",
+    "test_source_validation=pass", "manual_patch_review=pass",
+    "controller_kunit_cases=5", "derived_kunit_cases=5",
+    "consumed_before_owner_mutation=true", "same_task_request=true",
+    "production_cpu8_request_call_sites=1",
+    "production_cpu9_request_call_sites=0", "cpu_off_call_sites=0",
+    "retry_call_sites=0", "base_dt_enablements=0",
+    "rejected_generation_attempts=4", "kernel_build=none",
+    "native_vm_build=none", "device_action=none", "boot_candidate=false",
+    "result=pass",
+):
+    require(token in controller_generation_text,
+            f"controller generation token: {token}")
+require(CONTRACT["controller_prepared_source_state"] ==
+        "eb0dc301848f9c37aee2cf104e89f5c84c8059ce1b859c30f1c4ef6f3bd1f3af",
+        "controller prepared source state")
+require(CONTRACT["controller_prepared_source_integrity"] ==
+        "63c919e841dcce5c6885f0a4976f4d13b40849af8cf1a8dcb66fd699eba88445",
+        "controller prepared source integrity")
+require(CONTRACT["controller_patch_count"] == 2,
+        "controller patch count")
+require(CONTRACT["controller_kunit_cases"] == 5,
+        "controller KUnit cases")
+require(CONTRACT["controller_source_integrated"] is True,
+        "controller source integrated")
+require(CONTRACT["controller_kernel_build"] is False,
+        "controller build pending")
+require(CONTRACT["controller_qemu"] == "pending",
+        "controller QEMU pending")
+
 receipt = EXP / "results/source-admission-audit-20260828.txt"
 require(CONTRACT["source_receipt_sha256"] != "pending", "receipt hash pending")
 require(sha256(receipt) == CONTRACT["source_receipt_sha256"], "receipt hash")
@@ -266,7 +312,8 @@ readme = (EXP / "README.md").read_text(encoding="utf-8")
 design = (EXP / "DESIGN.md").read_text(encoding="utf-8")
 combined = (readme + design + receipt_text + local_text + generation_text +
             runtime_text + isolation_text + failed_rebuild_text +
-            dependency_generation_text + isolated_runtime_text)
+            dependency_generation_text + isolated_runtime_text +
+            controller_generation_text)
 words = " ".join(combined.split())
 for token in (
     "No direct caller can satisfy the current graph",
@@ -280,12 +327,12 @@ require("/Users/" not in combined, "no personal absolute path")
 require(CONTRACT["kernel_build"] is True, "kernel build")
 require(CONTRACT["device_action"] is False, "no device action")
 require(CONTRACT["result"] ==
-        "isolated-derived-admission-pass-awaiting-physical-controller-design",
+        "controller-source-integrated-build-pending",
         "result")
 
 print("definition_validation=pass")
 print("direct_late_caller=rejected")
-print("selected_implementation=derived-membership-admission-compositor")
+print("selected_implementation=one-shot-admission-controller")
 print("model_cases=6")
 print("generated_patches=2")
 print("derived_kunit_cases=5")
@@ -295,6 +342,8 @@ print("runtime_isolation_repair=integrated")
 print("runtime_isolation_rebuild=pass")
 print("owner_model_dependency_repair=integrated")
 print("isolated_qemu=pass:5_fail:0")
-print("selected_next=one-task-physical-controller-design")
+print("controller_patches=integrated:2")
+print("controller_kunit_cases=5")
+print("selected_next=controller-build-and-qemu")
 print("native_vm_build=none")
 print("device_action=none")

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-physical-candidate-admission-audit` |
-| Status | isolated derived admission passes; controller source seam and pinned generator are defined, not yet integrated |
+| Status | derived admission passes; controller patches are integrated and await focused Buildbox/QEMU validation |
 | Subsystem | MT6797 CPU8 A34/A36 membership admission and physical binder entry |
 | Device variant | Planet Gemini PDA, named development unit |
 | Date(s) | 2026-08-28 America/New_York |
@@ -134,8 +134,14 @@ consumed-before-mutation controller core. The exact file identities and selected
 interfaces are in the
 [controller source audit](results/controller-source-audit-20260828.txt), and the
 source-pinned [controller generator](scripts/generate-controller-on-buildbox)
-is defined against that exact state. At this checkpoint it has not generated a
-kernel patch, enabled a DT node, built a candidate, or made a CPU request.
+ran at exact signed and pushed commit `d95c42fe` after four recorded no-package
+definition/style stops. Both final patches passed strict checkpatch, exact-source
+replay, semantic validation, and manual review. Canonical `0411` adds the
+default-off production core; `0412` adds its five injected cases. Their exact
+identities and rejection chronology are in the
+[controller generation receipt](results/controller-generation-20260828.txt).
+No controller kernel has been built yet, and no DT node, boot candidate, or
+physical CPU request exists.
 
 ## Safety assessment
 
@@ -145,14 +151,15 @@ boot candidate was assembled. There has been no device connection,
 retained-RAM write, watchdog takeover, regulator or secure call, CPU request,
 partition write, reboot, or shutdown.
 
-The direct-caller design is rejected before a build because it would have to
-assert recovery ownership that cannot yet exist. The existing binder remains
-default-off, no binder Device Tree node is enabled, and no production CPU8
-request exists.
+The direct-caller design is rejected because it would have to assert recovery
+ownership that cannot yet exist. The new controller contains one dormant CPU8
+request call site, but both it and the binder remain default-off and the base
+Device Tree instantiates neither node. No request can execute in the current
+profile or base image.
 
 ## Observations
 
-The exact full-series source has only the definitions, and no external
+The exact audited post-`0410` source had only the definitions, and no external
 production callers, for:
 
 - `mt6797_a72_membership_publish_bootstrap()`;
@@ -232,11 +239,18 @@ closes the owner transaction but deliberately issues no CPU request, so ledger
 controller slice. CPU9, CPU_OFF, retries, and userspace triggers remain absent.
 This is a source admission result, not hardware support.
 
+`confirmed` and integrated for the controller source slice at canonical
+`0411`--`0412`: one read-only binder gate, one exact source lifetime, one
+consumed-before-mutation same-task derive/publish/request path, and five
+operation-injected tests. This is generated and reviewed source only; compile
+and QEMU validation remain pending, and the base DT still cannot instantiate
+the path.
+
 ## Follow-up
 
 The authoritative next work is in
-[Roadmap Gate 7](../../docs/ROADMAP.md#7-bring-up-cpu8). Design the one-task,
-consumed-before-mutation physical controller that publishes P17/P18 and makes
-exactly one `add_cpu(8)` request, then validate it hardware-free before
-assembling one distinct physical candidate. Only a validated candidate may be
-installed to live-GPT inactive `boot2` under the standing safety gates.
+[Roadmap Gate 7](../../docs/ROADMAP.md#7-bring-up-cpu8). Build the focused
+controller profile on Buildbox and run the five derived plus five controller
+cases in one bounded no-network QEMU observation. Only that clean proof may
+admit a separate decision-bearing physical candidate for live-GPT inactive
+`boot2` under the standing safety gates.

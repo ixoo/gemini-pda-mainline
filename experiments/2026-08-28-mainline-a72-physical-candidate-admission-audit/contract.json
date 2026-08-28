@@ -4,10 +4,10 @@
   "audited_repository_commit": "28adce23c56944368689bf5062fba0828d3a02d2",
   "audited_canonical_series_entries": 398,
   "audited_canonical_series_sha256": "3658f5ef79dd75fe079cdce4defca982778c94d033c9854e0ac4645f5c3eb4aa",
-  "integrated_canonical_series_entries": 402,
-  "integrated_canonical_series_sha256": "d52345e502c75929fad46eaeca6af6dd2c06da732493fdbb3833007b1d053be1",
-  "integrated_manifest_sha256": "5a86690e466e618b8a313ebd98e8580b9815a01416922b30429faa1c76741945",
-  "integrated_profile": "a72-derived-admission-kunit",
+  "integrated_canonical_series_entries": 404,
+  "integrated_canonical_series_sha256": "1d60483f541696b917a3e85fdff71e568a174b0a1a89a644920334c5bcc99a79",
+  "integrated_manifest_sha256": "6041294ed13870c6ba0d214d02b0cf3a204a5b5b93085f708792ddcf1aee6ce7",
+  "integrated_profile": "a72-admission-controller-kunit",
   "prepared_source_state": "c0fd471b2fbc291a0793ba093fe95acbf972685031bde67cad7c89833292694c",
   "prepared_source_integrity": "2b1b2e9ba54fc0361cc3e6bdfba3478059c7750ac715e0b5d8d8a8b2e38246b1",
   "direct_design": {
@@ -19,8 +19,9 @@
   "external_production_callers": {
     "publish_bootstrap": 0,
     "membership_begin_up": 0,
-    "membership_publish_up": 0,
-    "add_cpu8": 0
+    "membership_derive_cpu8": 1,
+    "membership_publish_up": 1,
+    "add_cpu8": 1
   },
   "obsolete_a36_caller_assertions": [
     "da921x_page",
@@ -57,7 +58,9 @@
     "0407": "6a26712437391d7cb5fe51d2762482c080c0eb090500a095128438449244be8f",
     "0408": "c1a725f8f5756297a23c32ccc340875bc33bb802e6f19fc0789d0a94a9adaf37",
     "0409": "4f231db2f7fa5501232c16d725afb033a5add43dc13024d1e47b8542d4b88306",
-    "0410": "91551aaadb2557cc93bd6d876e825019fbdfca3f1a17d6b8cd20875e81d39a64"
+    "0410": "91551aaadb2557cc93bd6d876e825019fbdfca3f1a17d6b8cd20875e81d39a64",
+    "0411": "9974bbae81482c5faa5ee88ade998846c108aca7626a3b15e00d6f270825dde4",
+    "0412": "588c76a41d5a74b71dd721e9c92df3a4f4b5b94549b181da5783e539371eae33"
   },
   "buildbox_generation_sha256": "036b621f3b531cf82ef7bfc051920a5ce24a77f673316690a6eb4b88534a45b2",
   "runtime_isolation_generation_sha256": "1b523996ee8c26d135c8e253f1eb0e7a0594102dcc3584aaa7e470fe76b6fe4d",
@@ -104,9 +107,18 @@
     "device_action": false
   },
   "durable_qemu_runner": true,
+  "controller_prepared_source_state": "eb0dc301848f9c37aee2cf104e89f5c84c8059ce1b859c30f1c4ef6f3bd1f3af",
+  "controller_prepared_source_integrity": "63c919e841dcce5c6885f0a4976f4d13b40849af8cf1a8dcb66fd699eba88445",
+  "controller_generator_commit": "d95c42fe7c8f63aa220039a3bd56e1afd6832aef",
+  "controller_generation_receipt_sha256": "afdfc2a63e44338aa9b5d8c8b9e1bdd157c31bf54c6b2fb2d9cd2e0a1ebae304",
+  "controller_patch_count": 2,
+  "controller_kunit_cases": 5,
+  "controller_source_integrated": true,
+  "controller_kernel_build": false,
+  "controller_qemu": "pending",
   "local_validation_sha256": "8caa48936f7d895d40d8a6dee76415a8c63ef2f1a0bea02ead71c8fa6837271a",
   "source_receipt_sha256": "5e173c680a4463a1137926b5cc09337891d36b71c5c4d296fd7f7df2eb9bd1fc",
   "kernel_build": true,
   "device_action": false,
-  "result": "isolated-derived-admission-pass-awaiting-physical-controller-design"
+  "result": "controller-source-integrated-build-pending"
 }
