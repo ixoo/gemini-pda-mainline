@@ -1,0 +1,38 @@
+From 2601cf085d3ddd418b50959c17e006deccb7fb4e Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 28 Aug 2026 01:41:00 +0000
+Subject: [PATCH 1/1] arm64: mediatek: claim CPU8 in P29 KUnit fixtures
+
+Run the complete public preflight, validation, and claim sequence.
+
+Keep the valid rollback and mutation checks attributable.
+---
+ arch/arm64/kernel/mt6797_a72_membership_test.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/arch/arm64/kernel/mt6797_a72_membership_test.c b/arch/arm64/kernel/mt6797_a72_membership_test.c
+index 6b75eba..101ef0c 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership_test.c
++++ b/arch/arm64/kernel/mt6797_a72_membership_test.c
+@@ -1094,6 +1094,10 @@ static void mt6797_a72_owner_r03_p29_rejects_and_retires(struct kunit *test)
+ 	KUNIT_ASSERT_EQ(test, ret, 0);
+ 	ret = mt6797_a72_membership_preflight_up(8, CPUHP_ONLINE);
+ 	KUNIT_ASSERT_EQ(test, ret, 0);
++	ret = mt6797_a72_membership_validate_up(8, 0, CPUHP_ONLINE);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	ret = mt6797_a72_membership_claim_cpu8(&state->transaction);
++	KUNIT_ASSERT_EQ(test, ret, 0);
+ 	ret = mt6797_a72_membership_begin_provider_acquire(&state->transaction);
+ 	KUNIT_ASSERT_EQ(test, ret, 0);
+ 	rejection = mt6797_a72_provider_rejection_for(&state->transaction);
+@@ -1145,6 +1149,10 @@ static void mt6797_a72_owner_r03_p29_mutations_rejected(struct kunit *test)
+ 	KUNIT_ASSERT_EQ(test, ret, 0);
+ 	ret = mt6797_a72_membership_preflight_up(8, CPUHP_ONLINE);
+ 	KUNIT_ASSERT_EQ(test, ret, 0);
++	ret = mt6797_a72_membership_validate_up(8, 0, CPUHP_ONLINE);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	ret = mt6797_a72_membership_claim_cpu8(&state->transaction);
++	KUNIT_ASSERT_EQ(test, ret, 0);
+ 	ret = mt6797_a72_membership_begin_provider_acquire(&state->transaction);
+ 	KUNIT_ASSERT_EQ(test, ret, 0);
+ 	rejection = mt6797_a72_provider_rejection_for(&state->transaction);

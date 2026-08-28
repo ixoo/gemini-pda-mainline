@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-27-mainline-a72-default-off-binder` |
-| Status | 0405 admitted; exact QEMU improved to 46/47 and isolated a missing P29 public claim; 0406 generation pending |
+| Status | 0405 admitted; exact QEMU improved to 46/47; 0406 generated and pending canonical admission |
 | Subsystem | CPU8 admission, transition owners, PSCI, and generic hotplug lifecycle |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-27 America/New_York |
@@ -260,9 +260,15 @@ public preflight and never validated and claimed CPU8. The mutation companion
 therefore passed before reaching its intended mutated-proof check. Exact
 identities are in the
 [fourth runtime rejection evidence](results/kunit-qemu-owner-p29-claim-9366cd49-20260828.txt).
-The next bounded test-only patch completes preflight, validation, and claim in
-both P29 fixtures. No second run of the same artifact is permitted, no device
-action occurred, and this package is not a boot candidate.
+Buildbox generated and replay-validated that bounded test-only repair from
+exact repository commit `be6d82625d6cbf00c1f2efa7f51f282c1f28fcef`.
+It completes preflight, validation, and claim in both P29 fixtures, changes no
+production file, and has patch SHA-256
+`d85a84dc5458c5cd6c513f17596f58b08de727acad2f37b9727f1670c0f36b9c`.
+Strict checkpatch reports zero errors, warnings, or checks. Canonical admission,
+one fresh Buildbox compile, and one new bounded QEMU proof remain pending. No
+second run of the 0405 artifact is permitted, no device action occurred, and
+neither package is a boot candidate.
 
 ## Follow-up
 
