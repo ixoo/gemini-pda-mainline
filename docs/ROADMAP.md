@@ -5967,7 +5967,33 @@ The next ordered work is:
    with DT `1478f2c8...` and the unchanged serviceability ramdisk, require the
    six restored serviceability nodes plus the complete admission graph in an
    independent validator, and spend one boot only after deterministic LK and
-   full boot2 gates pass.
+   full boot2 gates pass. The corrected
+   [serviceable softtrace candidate](../experiments/2026-08-28-mainline-a72-admission-softtrace-serviceable/README.md)
+   passed those construction gates as exact padded image `df82bbfa...`, was
+   installed to inactive live-GPT `boot2` with matching full readback, and
+   ended in confirmed clean shutdown. One owner-selected boot restored exact
+   USB/netcat and exposed armed boot ID `fa6df396...`. Its sole committed
+   trigger returned a complete same-boot terminal frame:
+   `operation_ret=-11`, `core_consumed=0`, advisory
+   `entry_trace_ret=-5`, successful terminal trace return, and zero CPU8,
+   CPU9, CPU_OFF, or retry requests. A second read-only session repeated the
+   state and captured the arm64 profile blocked at proof mask `0xffffc` after
+   its static runtime identity was unavailable or invalid. Controller order
+   identifies `-11` exactly as a null `arm64_get_late_cpu_ready_token()` before
+   consumption. Source independently shows ABI 7 always adds
+   `ARM64_LATE_CPU_BLOCK_COMMIT_PATH` and deliberately has no
+   architecture-owned mutation implementation; the corrected serviceability
+   DT also omits the separate late-CPU provenance leaf, but restoring that leaf
+   alone cannot make READY reachable. An identity-gated USB reboot returned
+   changed-ID Gemian and verified boot2 unchanged; the retained trace and
+   transition records were empty and therefore do not override the complete
+   live frame. Candidate `df82bbfa...` is retired and must not be repeated.
+   **Selected next:** audit and define the smallest truthful architecture-owned
+   runtime-evidence and capability-commit closure required to publish READY;
+   do not fabricate or bypass the token. Future container construction must
+   compose both serviceability and late-CPU provenance transforms. Require
+   source-only failure-path validation and a Buildbox build before another
+   physical candidate.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

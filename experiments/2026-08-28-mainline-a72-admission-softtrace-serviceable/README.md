@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-admission-softtrace-serviceable` |
-| Status | `running` |
+| Status | `complete; one live trigger stopped at the unpublished arm64 READY token` |
 | Subsystem | MT6797 CPU8 admission controller and boot-container DT selection |
 | Device variant | Planet Gemini PDA, named project device |
 | Date(s) | 2026-08-28 |
@@ -85,13 +85,71 @@ graph, trace-softfail markers, and one-CPU8/zero-CPU9/zero-CPU_OFF/zero-retry
 limits. No kernel rebuild, native VM build, device access, or hardware write
 occurred.
 
+The guarded installer resolved inactive live-GPT `boot2` as
+`/dev/mmcblk0p30`, recorded predecessor `83dec186...`, wrote exact padded
+candidate `df82bbfa...`, and required the matching full-partition readback.
+It made no fresh backup, then shut Gemian down and confirmed three consecutive
+TCP closures. The sanitized receipt is
+[deployment-df82bbfa-20260828.txt](results/deployment-df82bbfa-20260828.txt).
+
+The owner-selected boot exposed exact USB/netcat and boot ID `fa6df396...`.
+The pre-trigger frame passed with the controller bound and armed, CPUs 0--7
+online, CPUs 8--9 offline, and zero prior executions or requests. One durable
+host intent preceded exactly one trigger session. The action completed with:
+
+```text
+operation_ret=-11 core_consumed=0 entry_trace_ret=-5
+terminal_trace_ret=0 cpu_requests=0 cpu9_requests=0
+cpu_off_requests=0 retries=0
+```
+
+The first host classifier rejected only because its model expected the commit
+and token on one line while the preserved wire format contains two lines. The
+corrected source-pinned classifier accepts the preserved bytes as
+`terminal-admission-error`; the trigger was not repeated.
+
+Controller order makes `-11` with `core_consumed=0` exact: binder readiness
+passed, `arm64_get_late_cpu_ready_token()` returned `NULL`, and the operation
+stopped before source registration, transaction derivation, publication, or
+`add_cpu(8)`. A separate read-only same-boot session repeated the terminal
+state and found two arm64 messages: the static runtime identity record was
+unavailable or invalid, and profile `mt6797-a53-a72-a41-v7` was blocked with
+proof mask `0xffffc`.
+
+The source audit independently explains why READY cannot be published by this
+image. ABI 7 always adds `ARM64_LATE_CPU_BLOCK_COMMIT_PATH`, describes its
+architecture-owned mutation implementation as unavailable, and returns a
+READY token only after PLAN_FROZEN, COMMITTED, system verification, and user
+finalization. The selected serviceability DT also lacks the separate
+`/chosen/gemini-late-cpu-provenance` leaf, but restoring that leaf alone cannot
+remove the unconditional commit-path blocker or supply target evidence.
+
+An identity-gated USB reboot returned to changed-ID Gemian. Read-only recovery
+verified `boot2` still matched `df82bbfa...`, but pstore, both admission trace
+slots, and the transition ledger were empty. Those retained records therefore
+did not preserve the complete live terminal state and do not override it. The
+sanitized attempt record is
+[runtime-attempt-1-ready-boundary-20260828.txt](results/runtime-attempt-1-ready-boundary-20260828.txt).
+
 ## Conclusion
 
-Exact candidate `df82bbfa...` is independently validated and eligible for the
-guarded live-GPT `boot2` deployment gate. It differs from the retired candidate
-only in the selected DT derivative and resulting deterministic container bytes.
+Exact candidate `df82bbfa...` restored serviceability and produced the first
+decision-changing result past retained-trace failure. The trace-softfail change
+worked: entry trace `-EIO` remained visible while the controller continued.
+The operation then stopped safely at the unpublished arm64 READY token before
+consumption and before any CPU request.
+
+This is progress in attribution, not CPU8 support. It retires the candidate,
+proves that repeating it cannot reach `add_cpu(8)`, and exposes a design
+mismatch: the production controller requires a token that the active late-CPU
+profile deliberately cannot publish.
 
 ## Follow-up
 
-Use the single attributable operation result to choose the next CPU8 boundary.
-Do not repeat an identical artifact.
+Do not repeat this artifact and do not fabricate or bypass a READY token. First
+define the smallest architecture-owned, source-reviewable closure for the
+missing runtime evidence and commit path, or revise the admission transaction
+so that it depends only on an equivalently strong token that can truthfully be
+published. Restore the serviceability and provenance DT transforms together in
+any future container. Build the next kernel only on Buildbox after source-only
+validation and focused failure-path tests.
