@@ -48,6 +48,13 @@ for path in (
     EXPERIMENT / "scripts/generate-on-buildbox",
 ):
     require(path.is_file() and not path.is_symlink(), f"exact file {path.name}")
+source_validator = (
+    EXPERIMENT / "scripts/validate_source.py"
+).read_text(encoding="utf-8")
+require(
+    '"mediatek,platform-state = <&a72_platform_state>;": 2' in source_validator,
+    "binder and controller share the platform-state supplier",
+)
 subprocess.run(
     ["python3", "-m", "py_compile",
      str(EXPERIMENT / "scripts/source_edits.py"),

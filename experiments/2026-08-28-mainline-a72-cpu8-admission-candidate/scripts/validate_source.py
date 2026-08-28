@@ -53,16 +53,18 @@ def main() -> None:
                 "candidate does not inherit observer derivative")
         require("a72-physical-source-observer" not in dts,
                 "no duplicate standalone observer node")
-        for token in (
-            'compatible = "mediatek,mt6797-a72-binder";',
-            'compatible = "mediatek,mt6797-a72-admission-controller";',
-            "mediatek,watchdog = <&watchdog>;",
-            "mediatek,binder = <&a72_binder>;",
-            "mediatek,platform-state = <&a72_platform_state>;",
-            "mediatek,clock-backend = <&dvfsp_clock_backend>;",
-            "mediatek,bigidvfs-backend = <&dvfsp_bigidvfs_backend>;",
-        ):
-            require(dts.count(token) == 1, f"one candidate token {token}")
+        expected_tokens = {
+            'compatible = "mediatek,mt6797-a72-binder";': 1,
+            'compatible = "mediatek,mt6797-a72-admission-controller";': 1,
+            "mediatek,watchdog = <&watchdog>;": 1,
+            "mediatek,binder = <&a72_binder>;": 1,
+            "mediatek,platform-state = <&a72_platform_state>;": 2,
+            "mediatek,clock-backend = <&dvfsp_clock_backend>;": 1,
+            "mediatek,bigidvfs-backend = <&dvfsp_bigidvfs_backend>;": 1,
+        }
+        for token, expected in expected_tokens.items():
+            require(dts.count(token) == expected,
+                    f"{expected} candidate token(s) {token}")
         require(dts.count("mediatek,bigidvfs = <&dvfsp_bigidvfs_backend>;") == 1,
                 "one binder BigiDVFS phandle")
         for label in ("a72_platform_state:", "watchdog:",
