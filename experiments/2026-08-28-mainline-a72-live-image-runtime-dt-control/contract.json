@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-28-mainline-a72-live-image-runtime-dt-control",
+  "predecessor_experiment": "2026-08-28-mainline-a72-admission-live-trigger",
+  "question": "does-the-current-Image-recover-serviceability-with-the-closest-runtime-proven-A72-DT",
+  "current_package": {
+    "repository_commit": "c147e2ddc1acc93827b59f8e3bb38b9b2f4d3fb2",
+    "profile": "a72-admission-live-trigger-candidate",
+    "kernel_release": "7.1.3-gemini-a72-admission-live",
+    "image_sha256": "96c86abe4084333bf462f028c217c41eb0342ad080dae3014b439eef0f0cab18",
+    "image_gzip_sha256": "4b884c0176d4d3e7d96c35f84ce36f0e591b2b7a411fe217f43427824f8377f4",
+    "config_sha256": "265f610b5200dff9184cd0dcca3c6993b572e167316e149a9856f05723c9eebd",
+    "package_manifest_sha256": "0b6c85b3d6d870c22513f64d3b61d0944a3e9729ad26c0297b4d29414d561f41",
+    "native_vm_build": false
+  },
+  "runtime_proven_control_dtb": {
+    "sha256": "90cfc29b30fb036076a799f0223e0c8aae6469441e5917cbfa743f5d7ae6547d",
+    "size": 27636,
+    "source_candidate_sha256": "6219357a1c505a8c08ad33f97940aed4a9c73bf37a691a31c66ebc63559fe4f7",
+    "source_raw_sha256": "ebaddc69660a824de4ff0f2f59eafb9073a7b100ae3f737caf0f9b50f59cf98a",
+    "source_offset": 4808457,
+    "runtime_classification": "serviceable-platform-provider-clock-complete",
+    "controller_nodes": 0,
+    "binder_nodes": 0
+  },
+  "candidate": {
+    "ramdisk_sha256": "e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f",
+    "raw_sha256": "35d0c6ef99f69a1dd00afac390f8d68b5514577e38819448b7465c44243c2f12",
+    "raw_size": 6934528,
+    "padded_sha256": "c2b85cad08f77d641a07e68eda09617959ad1db6b36b60b20eb8f53733c6baab",
+    "padded_size": 16777216,
+    "predecessor_sha256": "4e0f86885a16df2f8b0c1efb4dd2e67394938bad1ef720adabf70ff4635ec0ef",
+    "artifact_manifest_sha256": "a029c258c19c96a234cb5cafe4c1bb35a36bac2beadbe8e2ea547da8870719d1",
+    "lk_name": "gemini-a72dtctl",
+    "lk_cmdline": "bootopt=64S3,32N2,64N2",
+    "lk_gates": "32-of-32",
+    "negative_mutations_rejected": 6,
+    "boot_candidate": true,
+    "result": "pass"
+  },
+  "effect_ceiling": {
+    "cpu8_requests": 0,
+    "cpu9_requests": 0,
+    "cpu_off_requests": 0,
+    "retries": 0,
+    "device_storage_writes_at_runtime": 0,
+    "retained_ram_writes": 0,
+    "reboot_requests": 0
+  },
+  "deployment": null,
+  "runtime": null,
+  "current_status": "offline-complete-deployment-pending"
+}

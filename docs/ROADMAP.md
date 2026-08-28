@@ -5851,14 +5851,19 @@ The next ordered work is:
    zero pstore files, and empty admission/transition records; those retained
    bytes are corroborating only. Exact classification is
    `pretrigger-nonserviceable-zero-trigger`. The CPU8 trigger hypothesis was
-   not tested, and candidate `4e0f8688...` is retired. **Selected next:** pair
-   the exact current `Image.gz` and unchanged serviceability ramdisk with the
-   latest byte-exact runtime-proven Stage-27 cumulative reader DTB, which has
-   no admission-controller node. This single DT control must decide whether
-   the pre-trigger regression belongs to the current Image/configuration or to
-   the later full A72 DT/probe population. If serviceable, partition only the
-   post-Stage-27 node additions before returning to the dormant CPU8 trigger;
-   if not, stop DT work and isolate the current Image/configuration delta.
+   not tested, and candidate `4e0f8688...` is retired. **Selected next:** the
+   [current-Image/runtime-proven-DT control](../experiments/2026-08-28-mainline-a72-live-image-runtime-dt-control/README.md)
+   pairs exact current `Image.gz` `4b884c01...` and the unchanged
+   serviceability ramdisk with DTB `90cfc29b...` from exact runtime-proven
+   candidate `6219357a...`. This is a closer control than the old bare Stage-27
+   DT: it already proved the complete platform/provider/protected-clock prefix
+   on this device while keeping CPU8/9 offline, and it has no admission
+   controller or binder. Offline candidate `c2b85cad...` passes 32 LK gates,
+   independent assembly/padding, and six negative mutations. One physical boot
+   must decide whether the pre-trigger regression belongs to the current
+   Image/configuration or to DT population after `90cfc29b`. If serviceable,
+   partition only those later node additions before returning to the dormant
+   CPU8 trigger; if not, stop DT work and isolate the current Image/config delta.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
