@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-admission-live-trigger` |
-| Status | `definition ready; hardware-free proof pending` |
+| Status | `canonical patches integrated; Buildbox compile pending` |
 | Subsystem | MT6797 A72 admission controller, sysfs, CPU hotplug |
 | Device variant | Planet Computers Gemini PDA, named project device |
 | Date(s) | 2026-08-28 |
@@ -116,6 +116,13 @@ commit description; the generated code had zero warnings and zero checks. The
 description is now wrapped. Again, no patch package, build, or device action
 was admitted.
 
+The third exact-source generation at `48c367ff` passes both semantic stages,
+strict review, package checksums, and full replay. Canonical patches `0419` and
+`0420` are byte-identical to the validated package. The isolated
+`a72-admission-live-trigger-kunit` profile is selected, and all 155 manifest
+profiles remain canonical-order subsequences of the 412-entry series. No kernel
+build or device action has occurred yet.
+
 ## Analysis
 
 The new experiment separates two questions in one physical selection. If the
@@ -128,11 +135,10 @@ returning status identifies a precise terminal error or CPU8 outcome.
 ## Conclusion
 
 The retained-earlier-anchor direction is rejected. The serviceability-first
-one-shot trigger is selected for hardware-free implementation and proof; no
-kernel build, candidate, boot2 write, or physical CPU request has occurred in
-this definition phase.
+one-shot trigger is integrated for hardware-free compile and runtime proof; no
+kernel build, candidate, boot2 write, or physical CPU request has occurred yet.
 
 ## Follow-up
 
-Generate and prove the two canonical patches on Buildbox. The ordered next
-step remains owned by `docs/ROADMAP.md`.
+Compile the isolated profile on Buildbox and run the focused no-network KUnit
+suite. The ordered next step remains owned by `docs/ROADMAP.md`.

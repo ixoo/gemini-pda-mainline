@@ -1,0 +1,302 @@
+From b74335d01078a85606e18f37516bf68e0ffe8d1c Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 28 Aug 2026 23:41:00 +0000
+Subject: [PATCH 1/2] soc: mediatek: arm CPU8 admission after live service
+
+Keep probe inert and consume one exact root-only token before
+supplier resolution while exposing bounded status.
+---
+ drivers/soc/mediatek/Kconfig                  |  16 ++
+ ...mt6797-a72-admission-controller-internal.h |  19 ++
+ .../mt6797-a72-admission-controller.c         | 167 ++++++++++++++++--
+ 3 files changed, 190 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index 85237f0..2ab7d64 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -517,6 +517,22 @@ config MTK_MT6797_A72_ADMISSION_CONTROLLER
+ 	  The base Gemini Device Tree has no controller or binder node.
+ 	  If unsure, say N.
+ 
++config MTK_MT6797_A72_ADMISSION_LIVE_TRIGGER
++	bool "MediaTek MT6797 serviceability-first CPU8 admission trigger"
++	depends on MTK_MT6797_A72_ADMISSION_CONTROLLER
++	depends on SYSFS
++	default n
++	help
++	  Keep the candidate controller dormant at probe and expose one exact,
++	  root-only sysfs token. The first valid token is consumed before any
++	  supplier resolution and synchronously invokes the existing admission
++	  core at most once. Invalid and repeated tokens perform no action.
++
++	  This mode exists so USB/netcat can prove the exact kernel and CPU0-7
++	  baseline before any physical source, publication, or CPU8 request.
++	  CPU9, CPU_OFF, retry, reboot, and storage operations remain absent.
++	  If unsure, say N.
++
+ config MTK_MT6797_A72_PHYSICAL_SOURCE_KUNIT_TEST
+ 	bool "KUnit tests for MT6797 A72 direct physical-source observer"
+ 	depends on KUNIT=y
+diff --git a/drivers/soc/mediatek/mt6797-a72-admission-controller-internal.h b/drivers/soc/mediatek/mt6797-a72-admission-controller-internal.h
+index ee931b6..67fedc5 100644
+--- a/drivers/soc/mediatek/mt6797-a72-admission-controller-internal.h
++++ b/drivers/soc/mediatek/mt6797-a72-admission-controller-internal.h
+@@ -25,6 +25,20 @@ struct mt6797_a72_admission_controller_ops {
+ 	int (*add_cpu)(void *context, unsigned int cpu);
+ };
+ 
++#define MT6797_A72_ADMISSION_TRIGGER_TOKEN \
++	"run-a72-admission-20260828-a\n"
++
++struct mt6797_a72_admission_trigger_ops {
++	int (*execute)(void *context);
++};
++
++struct mt6797_a72_admission_trigger_state {
++	atomic_t consumed;
++	bool complete;
++	u32 executions;
++	int operation_ret;
++};
++
+ struct mt6797_a72_admission_controller_state {
+ 	atomic_t consumed;
+ 	u32 cpu_requests;
+@@ -33,6 +47,11 @@ struct mt6797_a72_admission_controller_state {
+ 	struct mt6797_a72_transaction transaction;
+ };
+ 
++void mt6797_a72_admission_trigger_state_init(struct mt6797_a72_admission_trigger_state *state);
++int mt6797_a72_admission_trigger_run(struct mt6797_a72_admission_trigger_state *state,
++				     const struct mt6797_a72_admission_trigger_ops *ops,
++				     void *context, const char *buf, size_t count);
++
+ void
+ mt6797_a72_admission_state_init(struct mt6797_a72_admission_controller_state *state);
+ int
+diff --git a/drivers/soc/mediatek/mt6797-a72-admission-controller.c b/drivers/soc/mediatek/mt6797-a72-admission-controller.c
+index efa03ce..e1220f4 100644
+--- a/drivers/soc/mediatek/mt6797-a72-admission-controller.c
++++ b/drivers/soc/mediatek/mt6797-a72-admission-controller.c
+@@ -5,6 +5,7 @@
+ #include <asm/mt6797_a72_membership.h>
+ 
+ #include <linux/atomic.h>
++#include <linux/compiler.h>
+ #include <linux/cpu.h>
+ #include <linux/device.h>
+ #include <linux/errno.h>
+@@ -16,17 +17,21 @@
+ #include <linux/slab.h>
+ #include <linux/soc/mediatek/mt6797-a72-binder.h>
+ #include <linux/string.h>
++#include <linux/sysfs.h>
+ 
+ #include "mt6797-a72-admission-controller-internal.h"
+ #include "mt6797-a72-physical-source-observer-internal.h"
+ 
+ #define MT6797_A72_ADMISSION_TAG "GEMINI_A72_ADMISSION_V1"
++#define MT6797_A72_ADMISSION_LIVE_TAG "GEMINI_A72_ADMISSION_LIVE_V1"
+ #define MT6797_A72_ADMISSION_CPU 8
+ 
+ struct mt6797_a72_admission_controller {
++	struct device *dev;
+ 	struct device *binder;
+ 	struct mt6797_a72_physical_source_context source;
+ 	struct mt6797_a72_admission_controller_state state;
++	struct mt6797_a72_admission_trigger_state trigger;
+ };
+ 
+ static bool
+@@ -45,6 +50,35 @@ mt6797_a72_admission_state_init(struct mt6797_a72_admission_controller_state *st
+ 	atomic_set(&state->consumed, 0);
+ }
+ 
++void mt6797_a72_admission_trigger_state_init(struct mt6797_a72_admission_trigger_state *state)
++{
++	memset(state, 0, sizeof(*state));
++	atomic_set(&state->consumed, 0);
++	state->operation_ret = -EINPROGRESS;
++}
++
++int mt6797_a72_admission_trigger_run(struct mt6797_a72_admission_trigger_state *state,
++				     const struct mt6797_a72_admission_trigger_ops *ops,
++				     void *context, const char *buf, size_t count)
++{
++	int ret;
++
++	if (!state || !ops || !ops->execute || !buf)
++		return -EINVAL;
++	if (count != sizeof(MT6797_A72_ADMISSION_TRIGGER_TOKEN) - 1 ||
++	    memcmp(buf, MT6797_A72_ADMISSION_TRIGGER_TOKEN, count))
++		return -EINVAL;
++	if (atomic_cmpxchg(&state->consumed, 0, 1))
++		return -EALREADY;
++
++	WRITE_ONCE(state->executions, 1);
++	ret = ops->execute(context);
++	WRITE_ONCE(state->operation_ret, ret);
++	/* Publish the terminal result before complete becomes visible. */
++	smp_store_release(&state->complete, true);
++	return 0;
++}
++
+ int
+ mt6797_a72_admission_run(struct mt6797_a72_admission_controller_state *state,
+ 			 const struct mt6797_a72_admission_controller_ops *ops,
+@@ -215,19 +249,14 @@ mt6797_a72_admission_resolve(struct device *dev, const char *property,
+ 	return 0;
+ }
+ 
+-static int mt6797_a72_admission_probe(struct platform_device *pdev)
++static int mt6797_a72_admission_prepare(struct mt6797_a72_admission_controller *controller)
+ {
+-	struct mt6797_a72_admission_controller *controller;
+ 	struct device *bigidvfs;
+ 	struct device *platform;
+ 	struct device *clock;
+-	struct device *dev = &pdev->dev;
++	struct device *dev = controller->dev;
+ 	int ret;
+ 
+-	controller = devm_kzalloc(dev, sizeof(*controller), GFP_KERNEL);
+-	if (!controller)
+-		return -ENOMEM;
+-	mt6797_a72_admission_state_init(&controller->state);
+ 	ret = mt6797_a72_admission_resolve(dev, "mediatek,binder",
+ 					   &controller->binder);
+ 	if (ret)
+@@ -246,13 +275,127 @@ static int mt6797_a72_admission_probe(struct platform_device *pdev)
+ 		return dev_err_probe(dev, ret, "BigiDVFS backend unavailable\n");
+ 	mt6797_a72_source_context_init(&controller->source, platform, clock,
+ 				       bigidvfs);
+-	ret = mt6797_a72_admission_run(&controller->state,
+-				       &mt6797_a72_admission_production_ops,
+-				       controller);
+-	if (!atomic_read(&controller->state.consumed))
+-		return dev_err_probe(dev, ret, "admission prerequisite unavailable\n");
++	return 0;
++}
++
++static int mt6797_a72_admission_execute(void *context)
++{
++	struct mt6797_a72_admission_controller *controller = context;
++	int ret;
+ 
++	ret = mt6797_a72_admission_prepare(controller);
++	if (ret)
++		return ret;
++	return mt6797_a72_admission_run(&controller->state,
++					&mt6797_a72_admission_production_ops,
++					controller);
++}
++
++static const struct mt6797_a72_admission_trigger_ops
++mt6797_a72_admission_trigger_production_ops = {
++	.execute = mt6797_a72_admission_execute,
++};
++
++static ssize_t status_show(struct device *dev, struct device_attribute *attr,
++			   char *buf)
++{
++	struct mt6797_a72_admission_controller *controller = dev_get_drvdata(dev);
++	bool complete;
++	bool consumed;
++	const char *trigger_state;
++	ssize_t len;
++
++	(void)attr;
++	/* Pair with terminal publication in the trigger runner. */
++	complete = smp_load_acquire(&controller->trigger.complete);
++	consumed = atomic_read(&controller->trigger.consumed);
++	if (!consumed)
++		trigger_state = "armed";
++	else if (!complete)
++		trigger_state = "running";
++	else
++		trigger_state = "terminal";
++	len = sysfs_emit(buf, "%s state=%s ",
++			 MT6797_A72_ADMISSION_LIVE_TAG, trigger_state);
++	len += sysfs_emit_at(buf, len,
++			     "trigger_consumed=%u trigger_executions=%u ",
++			     consumed, READ_ONCE(controller->trigger.executions));
++	len += sysfs_emit_at(buf, len,
++			     "operation_ret=%d core_consumed=%d ",
++			     READ_ONCE(controller->trigger.operation_ret),
++			     atomic_read(&controller->state.consumed));
++	len += sysfs_emit_at(buf, len,
++			     "cpu_requests=%u cpu9_requests=0 ",
++			     READ_ONCE(controller->state.cpu_requests));
++	return len + sysfs_emit_at(buf, len,
++				   "cpu_off_requests=0 retries=0\n");
++}
++
++static ssize_t trigger_store(struct device *dev,
++			     struct device_attribute *attr,
++			     const char *buf, size_t count)
++{
++	struct mt6797_a72_admission_controller *controller = dev_get_drvdata(dev);
++	int ret;
++
++	(void)attr;
++	ret = mt6797_a72_admission_trigger_run(&controller->trigger,
++					       &mt6797_a72_admission_trigger_production_ops,
++					       controller, buf, count);
++	if (ret)
++		return ret;
++	dev_info(dev, MT6797_A72_ADMISSION_LIVE_TAG
++		 " state=terminal ret=%d core_consumed=%d requests=%u/0/0 "
++		 "retries=0\n",
++		 READ_ONCE(controller->trigger.operation_ret),
++		 atomic_read(&controller->state.consumed),
++		 READ_ONCE(controller->state.cpu_requests));
++	return count;
++}
++
++static DEVICE_ATTR_RO(status);
++static DEVICE_ATTR_WO(trigger);
++
++static struct attribute *mt6797_a72_admission_live_attrs[] = {
++	&dev_attr_status.attr,
++	&dev_attr_trigger.attr,
++	NULL,
++};
++
++static const struct attribute_group mt6797_a72_admission_live_group = {
++	.name = "gemini_admission",
++	.attrs = mt6797_a72_admission_live_attrs,
++};
++
++static int mt6797_a72_admission_probe(struct platform_device *pdev)
++{
++	struct mt6797_a72_admission_controller *controller;
++	struct device *dev = &pdev->dev;
++	int ret;
++
++	controller = devm_kzalloc(dev, sizeof(*controller), GFP_KERNEL);
++	if (!controller)
++		return -ENOMEM;
++	controller->dev = dev;
++	mt6797_a72_admission_state_init(&controller->state);
++	mt6797_a72_admission_trigger_state_init(&controller->trigger);
+ 	platform_set_drvdata(pdev, controller);
++
++	if (IS_ENABLED(CONFIG_MTK_MT6797_A72_ADMISSION_LIVE_TRIGGER)) {
++		ret = devm_device_add_group(dev,
++					    &mt6797_a72_admission_live_group);
++		if (ret)
++			return dev_err_probe(dev, ret,
++					     "live trigger unavailable\n");
++		dev_info(dev, MT6797_A72_ADMISSION_LIVE_TAG
++			 " state=armed trigger_consumed=0 trigger_executions=0 "
++			 "core_consumed=0 requests=0/0/0 retries=0\n");
++		return 0;
++	}
++
++	ret = mt6797_a72_admission_execute(controller);
++	if (!atomic_read(&controller->state.consumed))
++		return dev_err_probe(dev, ret, "admission prerequisite unavailable\n");
+ 	dev_info(dev, MT6797_A72_ADMISSION_TAG
+ 		 " state=terminal ret=%d consumed=1 requests=%u/0/0 retries=0\n",
+ 		 ret, controller->state.cpu_requests);

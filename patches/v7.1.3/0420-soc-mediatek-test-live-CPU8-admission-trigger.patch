@@ -1,0 +1,109 @@
+From e8cf3e20dfe1af06d3e863794f81d2ec346b53f4 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 28 Aug 2026 23:42:00 +0000
+Subject: [PATCH 2/2] soc: mediatek: test live CPU8 admission trigger
+
+Prove invalid-token refusal, terminal result capture, and
+repeat closure with injected operations.
+---
+ .../mt6797-a72-admission-controller-test.c    | 72 +++++++++++++++++++
+ 1 file changed, 72 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-admission-controller-test.c b/drivers/soc/mediatek/mt6797-a72-admission-controller-test.c
+index 5b7a3c8..51bc9cd 100644
+--- a/drivers/soc/mediatek/mt6797-a72-admission-controller-test.c
++++ b/drivers/soc/mediatek/mt6797-a72-admission-controller-test.c
+@@ -37,6 +37,8 @@ struct mt6797_a72_admission_test_context {
+ 	unsigned int requested_cpu;
+ 	enum gemini_admission_trace_zero_result zero_result;
+ 	bool trace_zero_fails;
++	unsigned int trigger_execute_calls;
++	int trigger_execute_ret;
+ };
+ 
+ static void
+@@ -165,6 +167,18 @@ static const struct mt6797_a72_admission_controller_ops test_ops = {
+ 	.add_cpu = mt6797_a72_admission_test_add_cpu,
+ };
+ 
++static int mt6797_a72_admission_test_trigger_execute(void *data)
++{
++	struct mt6797_a72_admission_test_context *context = data;
++
++	context->trigger_execute_calls++;
++	return context->trigger_execute_ret;
++}
++
++static const struct mt6797_a72_admission_trigger_ops test_trigger_ops = {
++	.execute = mt6797_a72_admission_test_trigger_execute,
++};
++
+ static struct mt6797_a72_admission_test_context *
+ mt6797_a72_admission_test_context(struct kunit *test)
+ {
+@@ -332,7 +346,65 @@ static void mt6797_a72_admission_repeat_closed_test(struct kunit *test)
+ 	KUNIT_EXPECT_EQ(test, context->controller.cpu_requests, (u32)1);
+ }
+ 
++static void mt6797_a72_admission_trigger_invalid_test(struct kunit *test)
++{
++	struct mt6797_a72_admission_test_context context = { };
++	struct mt6797_a72_admission_trigger_state trigger;
++	int ret;
++
++	mt6797_a72_admission_trigger_state_init(&trigger);
++	ret = mt6797_a72_admission_trigger_run(&trigger, &test_trigger_ops,
++					       &context, MT6797_A72_ADMISSION_TRIGGER_TOKEN,
++					       sizeof(MT6797_A72_ADMISSION_TRIGGER_TOKEN) - 2);
++	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
++	KUNIT_EXPECT_EQ(test, atomic_read(&trigger.consumed), 0);
++	KUNIT_EXPECT_FALSE(test, trigger.complete);
++	KUNIT_EXPECT_EQ(test, trigger.executions, (u32)0);
++	KUNIT_EXPECT_EQ(test, context.trigger_execute_calls, 0U);
++}
++
++static void mt6797_a72_admission_trigger_terminal_test(struct kunit *test)
++{
++	struct mt6797_a72_admission_test_context context = { };
++	struct mt6797_a72_admission_trigger_state trigger;
++	int ret;
++
++	mt6797_a72_admission_trigger_state_init(&trigger);
++	context.trigger_execute_ret = -EIO;
++	ret = mt6797_a72_admission_trigger_run(&trigger, &test_trigger_ops,
++					       &context, MT6797_A72_ADMISSION_TRIGGER_TOKEN,
++					       sizeof(MT6797_A72_ADMISSION_TRIGGER_TOKEN) - 1);
++	KUNIT_EXPECT_EQ(test, ret, 0);
++	KUNIT_EXPECT_EQ(test, atomic_read(&trigger.consumed), 1);
++	KUNIT_EXPECT_TRUE(test, trigger.complete);
++	KUNIT_EXPECT_EQ(test, trigger.executions, (u32)1);
++	KUNIT_EXPECT_EQ(test, trigger.operation_ret, -EIO);
++	KUNIT_EXPECT_EQ(test, context.trigger_execute_calls, 1U);
++}
++
++static void mt6797_a72_admission_trigger_repeat_closed_test(struct kunit *test)
++{
++	struct mt6797_a72_admission_test_context context = { };
++	struct mt6797_a72_admission_trigger_state trigger;
++	int ret;
++
++	mt6797_a72_admission_trigger_state_init(&trigger);
++	ret = mt6797_a72_admission_trigger_run(&trigger, &test_trigger_ops,
++					       &context, MT6797_A72_ADMISSION_TRIGGER_TOKEN,
++					       sizeof(MT6797_A72_ADMISSION_TRIGGER_TOKEN) - 1);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	ret = mt6797_a72_admission_trigger_run(&trigger, &test_trigger_ops,
++					       &context, MT6797_A72_ADMISSION_TRIGGER_TOKEN,
++					       sizeof(MT6797_A72_ADMISSION_TRIGGER_TOKEN) - 1);
++	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
++	KUNIT_EXPECT_EQ(test, trigger.executions, (u32)1);
++	KUNIT_EXPECT_EQ(test, context.trigger_execute_calls, 1U);
++}
++
+ static struct kunit_case mt6797_a72_admission_controller_cases[] = {
++	KUNIT_CASE(mt6797_a72_admission_trigger_invalid_test),
++	KUNIT_CASE(mt6797_a72_admission_trigger_terminal_test),
++	KUNIT_CASE(mt6797_a72_admission_trigger_repeat_closed_test),
+ 	KUNIT_CASE(mt6797_a72_admission_success_test),
+ 	KUNIT_CASE(mt6797_a72_admission_preconsume_gates_test),
+ 	KUNIT_CASE(mt6797_a72_admission_terminal_failures_test),

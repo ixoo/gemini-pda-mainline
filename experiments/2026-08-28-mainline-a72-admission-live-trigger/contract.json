@@ -54,5 +54,31 @@
     "admitted_generated_patch_count": 0,
     "result": "fail-closed-description-corrected"
   },
-  "result": "definition-ready"
+  "buildbox_generation": {
+    "repository_commit": "48c367ffb997dea5473f185645f746a75668989f",
+    "record": "results/buildbox-generation-20260828.txt",
+    "record_sha256": "160d25591fb273bab0c2edf2b650ba835ba7e1cefb714955f5078986fb2cf33d",
+    "generated_patch_count": 2,
+    "source_stage_validations": "2-of-2-pass",
+    "strict_checkpatch": "pass",
+    "full_series_replay": "pass",
+    "generated_patch_sha256": {
+      "0419": "fc2ffa7c2f9a78336213656a5abcceb1558e5b3eb8b007d7a8eb2dd318e336ac",
+      "0420": "69803f006467ed089c47c57ecb7cfcfb23d7c6fe0a8875ab16414204c90f78ae"
+    },
+    "result": "pass"
+  },
+  "integration": {
+    "record": "results/canonical-integration-20260828.txt",
+    "record_sha256": "267d1a90db5061afbad0d5cb077bcb77ee1191aa78becd85d54e4906e08bd95d",
+    "series_entries": 412,
+    "series_sha256": "77f56d580d93d2bad0ddbe0357a067d8421467312255aee68b63fea32931dab3",
+    "manifest_sha256": "9c340efb63cc31ca9a438f3a40db629a5c99e3e95746bc563f2bac546063931d",
+    "config_fragment_sha256": "96b9b1aa462168ac8acef1c6249a8fe15d205c74df913884177264323273798d",
+    "profile": "a72-admission-live-trigger-kunit",
+    "profiles_checked": 155,
+    "manifest_series_mutations_rejected": 8,
+    "result": "pass"
+  },
+  "result": "patches-integrated-build-pending"
 }

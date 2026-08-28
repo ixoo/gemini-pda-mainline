@@ -81,7 +81,7 @@ require(
     contract["native_vm_build"] is False and
     contract["device_action"] is False and
     contract["boot_candidate"] is False and
-    contract["result"] == "definition-ready",
+    contract["result"] == "patches-integrated-build-pending",
     "hardware-free definition state",
 )
 definition = contract["definition_validation"]
@@ -130,6 +130,85 @@ require(
     attempt["result"] == "fail-closed-description-corrected",
     "second Buildbox generation attempt result",
 )
+generation = contract["buildbox_generation"]
+require(
+    generation["repository_commit"] ==
+    "48c367ffb997dea5473f185645f746a75668989f" and
+    generation["record"] == "results/buildbox-generation-20260828.txt" and
+    sha256(EXPERIMENT / generation["record"]) == generation["record_sha256"],
+    "successful Buildbox generation record",
+)
+require(
+    generation["generated_patch_count"] == 2 and
+    generation["source_stage_validations"] == "2-of-2-pass" and
+    generation["strict_checkpatch"] == "pass" and
+    generation["full_series_replay"] == "pass" and
+    generation["result"] == "pass",
+    "successful Buildbox generation result",
+)
+patch_names = {
+    "0419": "0419-soc-mediatek-arm-CPU8-admission-after-live-service.patch",
+    "0420": "0420-soc-mediatek-test-live-CPU8-admission-trigger.patch",
+}
+for number, name in patch_names.items():
+    require(
+        sha256(ROOT / "patches/v7.1.3" / name) ==
+        generation["generated_patch_sha256"][number],
+        f"integrated generated patch {number}",
+    )
+
+integration = contract["integration"]
+require(
+    integration["record"] == "results/canonical-integration-20260828.txt" and
+    sha256(EXPERIMENT / integration["record"]) == integration["record_sha256"],
+    "canonical integration record",
+)
+series_path = ROOT / "patches/series"
+manifest_path = ROOT / "kernel/manifest.json"
+config_path = ROOT / "configs/gemini-a72-admission-live-trigger-kunit.fragment"
+require(
+    sha256(series_path) == integration["series_sha256"] and
+    len(series_path.read_text(encoding="utf-8").splitlines()) ==
+    integration["series_entries"],
+    "canonical series integration",
+)
+require(
+    series_path.read_text(encoding="utf-8").splitlines()[-2:] ==
+    [f"v7.1.3/{name}" for name in patch_names.values()],
+    "canonical series tail",
+)
+require(
+    sha256(manifest_path) == integration["manifest_sha256"] and
+    sha256(config_path) == integration["config_fragment_sha256"],
+    "manifest and isolated config integration",
+)
+manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+profile = manifest["config"]["profiles"][integration["profile"]]
+require(
+    profile["base"] == "defconfig" and
+    profile["patch_series"] == "patches/series" and
+    profile["fragments"][-1] ==
+    "configs/gemini-a72-admission-live-trigger-kunit.fragment",
+    "isolated KUnit profile",
+)
+config = config_path.read_text(encoding="utf-8")
+for token in (
+    "CONFIG_KUNIT=y", "CONFIG_PSTORE_GEMINI_ADMISSION_TRACE=y",
+    "CONFIG_PSTORE_GEMINI_ADMISSION_TRACE_KUNIT_TEST=y",
+    "CONFIG_MTK_MT6797_A72_ADMISSION_CONTROLLER=y",
+    "CONFIG_MTK_MT6797_A72_ADMISSION_LIVE_TRIGGER=y",
+    "CONFIG_MTK_MT6797_A72_ADMISSION_CONTROLLER_KUNIT_TEST=y",
+    "# CONFIG_HOTPLUG_SPLIT_STARTUP is not set",
+    'CONFIG_LOCALVERSION="-gemini-a72-admission-live-kunit"',
+):
+    require(token in config, f"isolated config token {token}")
+require(
+    integration["series_entries"] == 412 and
+    integration["profiles_checked"] == 155 and
+    integration["manifest_series_mutations_rejected"] == 8 and
+    integration["result"] == "pass",
+    "integration invariant result",
+)
 
 for relative in (
     "README.md", "DESIGN.md", "contract.json", "scripts/source_edits.py",
@@ -138,6 +217,8 @@ for relative in (
     "results/local-definition-validation-20260828.txt",
     "results/buildbox-generation-attempt1-20260828.txt",
     "results/buildbox-generation-attempt2-20260828.txt",
+    "results/buildbox-generation-20260828.txt",
+    "results/canonical-integration-20260828.txt",
 ):
     path = EXPERIMENT / relative
     require(path.is_file() and not path.is_symlink(), f"exact file {relative}")

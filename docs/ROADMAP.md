@@ -5811,7 +5811,14 @@ The next ordered work is:
    disconnect or reset is attributable to the trigger boundary; a returning
    status distinguishes prerequisite, zero-request, request-failure, and CPU8
    online outcomes. Generate, replay, and prove its two patches plus focused
-   KUnit cases on Buildbox before defining another physical candidate.
+   KUnit cases on Buildbox before defining another physical candidate. Exact
+   generation at `48c367ff` now passes both semantic stages, strict review,
+   package checksums, and full replay. Canonical patches `0419`--`0420` and the
+   isolated `a72-admission-live-trigger-kunit` profile are integrated; all 155
+   profiles satisfy the 412-entry canonical-series invariant. **Selected
+   next:** compile that exact isolated profile on Buildbox and run its focused
+   no-network KUnit suites. A compile or injected test remains hardware-free
+   and cannot select a boot candidate.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
