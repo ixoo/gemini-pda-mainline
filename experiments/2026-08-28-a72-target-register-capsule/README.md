@@ -121,6 +121,13 @@ formatting, barrier-comment, and the expected synthetic-signoff findings. Patch
 are corrected. The experiment-only patch will remain explicitly
 non-submission-ready and without a synthetic `Signed-off-by`.
 
+Generation attempt 3 passed exact reconstruction, byte-identical reversal,
+field/source validation, and all thirteen mutations. Modern strict Checkpatch,
+with only `MISSING_SIGN_OFF` ignored, reported zero errors, zero warnings, and
+two declaration-alignment checks. Patch `79d592e6...` is therefore also
+rejected before build. The definition now uses canonical continuation alignment
+for those final two declarations.
+
 ## Analysis
 
 Copying `cpu_data` alone would rely on source attribution for target locality.

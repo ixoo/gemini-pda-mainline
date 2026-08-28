@@ -111,8 +111,9 @@ static u64 mt6797_a72_regcap_identity(const struct mt6797_a72_regcap_v1 *capsule
 	return identity;
 }
 
-static bool mt6797_a72_regcap_cpuinfo_match(const struct mt6797_a72_regcap_v1 *capsule,
-	const struct cpuinfo_arm64 *info)
+static bool
+mt6797_a72_regcap_cpuinfo_match(const struct mt6797_a72_regcap_v1 *capsule,
+				const struct cpuinfo_arm64 *info)
 {
 	return capsule->cntfrq == info->reg_cntfrq &&
 	       capsule->ctr == info->reg_ctr &&
@@ -138,8 +139,8 @@ static bool mt6797_a72_regcap_cpuinfo_match(const struct mt6797_a72_regcap_v1 *c
 	       capsule->id_pfr1 == info->reg_id_pfr1;
 }
 
-static int mt6797_a72_regcap_capture(struct mt6797_a72_regcap_v1 *capsule,
-				      int expected_cpu)
+static int
+mt6797_a72_regcap_capture(struct mt6797_a72_regcap_v1 *capsule, int expected_cpu)
 {
 	const struct cpuinfo_arm64 *info;
 	u64 expected_mpidr;

@@ -153,14 +153,14 @@ def validate_semantics(child: str, parent: str) -> None:
             "capsule publication read barrier changed")
     identity = CAPSULE_BLOCK.split(
         "static u64 mt6797_a72_regcap_identity", 1
-    )[1].split("static bool mt6797_a72_regcap_cpuinfo_match", 1)[0]
+    )[1].split("mt6797_a72_regcap_cpuinfo_match", 1)[0]
     for field in IDENTITY_FIELDS:
         require(len(re.findall(rf"capsule->{field}\b", identity)) == 1,
                 f"identity field count changed: {field}")
     require(len(IDENTITY_FIELDS) == 32, "canonical identity field count changed")
     match = CAPSULE_BLOCK.split(
-        "static bool mt6797_a72_regcap_cpuinfo_match", 1
-    )[1].split("static int mt6797_a72_regcap_capture", 1)[0]
+        "mt6797_a72_regcap_cpuinfo_match", 1
+    )[1].split("mt6797_a72_regcap_capture", 1)[0]
     for field in CPUINFO_FIELDS:
         require(len(re.findall(rf"capsule->{field}\b", match)) == 1,
                 f"cpuinfo capsule comparison changed: {field}")
