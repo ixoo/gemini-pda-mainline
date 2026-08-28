@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-admission-durable-candidate` |
-| Status | `running`; exact candidate selected, corrected live preflight and deployment pending |
+| Status | `running`; exact candidate and live preflight pass, deployment pending |
 | Subsystem | arm64 CPU hotplug, MT6797 admission, retained evidence |
 | Device variant | Planet Computers Gemini PDA, named project device |
 | Date(s) | 2026-08-28 |
@@ -76,8 +76,13 @@ Pending. The production Buildbox package and exact boot container passed
 independent offline validation. A first read-only Gemian preflight confirmed
 all three retained headers were exact logical-empty, then failed closed because
 the host regex asked POSIX ERE to repeat 8,192 times. The corrected exact-length
-check is published before retry. No boot2 write, retained physical write,
-candidate boot, or physical CPU request has occurred in this experiment.
+check passed on retry. A subsequent install invocation exposed a second local
+pinning error before candidate upload: the derived installer used the artifact
+manifest checksum as the padded image checksum. The corrected wrapper now
+validates both identities independently and a fresh read-only preflight passes
+with exact predecessor `fde53dca...` and all three records logical-empty. No
+boot2 write, retained physical write, candidate boot, or physical CPU request
+has occurred in this experiment.
 
 ## Follow-up
 

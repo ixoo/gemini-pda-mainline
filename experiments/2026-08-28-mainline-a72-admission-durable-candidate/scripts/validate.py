@@ -100,6 +100,18 @@ require(sha256(live_record) == live_correction["record_sha256"] and
         live_correction["device_storage_write"] is False and
         live_correction["retained_ram_write"] is False,
         "live preflight tooling correction")
+live = contract["live_preflight"]
+live_record = EXPERIMENT / live["record"]
+require(sha256(live_record) == live["record_sha256"] and
+        live["boot2_predecessor_sha256"] ==
+        contract["expected_boot2_predecessor_sha256"] and
+        live["transition_ledger_state"] == "logical-empty" and
+        live["entry_trace_state"] == "logical-empty" and
+        live["terminal_trace_state"] == "logical-empty" and
+        live["device_storage_write"] is False and
+        live["retained_ram_write"] is False and
+        live["result"] == "pass-ready-for-guarded-install",
+        "live preflight pass")
 
 config = config_path.read_text(encoding="utf-8")
 for token in (
@@ -144,11 +156,11 @@ require(contract["maximum_trace_record_writes"] == 2 and
         contract["retry_paths"] == 0, "bounded effects")
 require(contract["fresh_predecessor_backup"] is False and
         contract["native_vm_build"] is False and
-        contract["device_access"] == "read-only-retained-preflight" and
+        contract["device_access"] == "read-only-preflight-passed" and
         contract["device_action"] is False and
         contract["boot_candidate"] is True,
         "selected-candidate safety state")
-require(contract["result"] == "corrected-live-preflight-pending",
+require(contract["result"] == "live-preflight-passed-deployment-pending",
         "selected-candidate result")
 
 for relative in (

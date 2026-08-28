@@ -61,7 +61,7 @@
   },
   "offline_gates": {
     "record": "results/offline-gates-20260828.txt",
-    "record_sha256": "6bfde6dcd21bce65498811d3950d773781e7859f925f0346a3714f689c74b783",
+    "record_sha256": "2392f936891c89091883b2d252f12ab15159c43adce0d9dc62b011c6881d2142",
     "admission_trace_mutation_tests": 10,
     "recovery_decision_map_tests": 7,
     "installer_derivation": "pass",
@@ -74,6 +74,17 @@
     "device_storage_write": false,
     "retained_ram_write": false,
     "result": "tooling-corrected-preflight-must-repeat"
+  },
+  "live_preflight": {
+    "record": "results/live-preflight-pass-20260828.txt",
+    "record_sha256": "53fe0102d70dd28eb079c67e9c39f7f1c7937a9754728e01e8df0d5af961a475",
+    "boot2_predecessor_sha256": "fde53dca1dcbc36297897dbcd6086488d117bf45714833858e17987cb6579dd0",
+    "transition_ledger_state": "logical-empty",
+    "entry_trace_state": "logical-empty",
+    "terminal_trace_state": "logical-empty",
+    "device_storage_write": false,
+    "retained_ram_write": false,
+    "result": "pass-ready-for-guarded-install"
   },
   "target_cpu": 8,
   "excluded_cpu": 9,
@@ -91,8 +102,8 @@
   "expected_boot2_predecessor_sha256": "fde53dca1dcbc36297897dbcd6086488d117bf45714833858e17987cb6579dd0",
   "fresh_predecessor_backup": false,
   "native_vm_build": false,
-  "device_access": "read-only-retained-preflight",
+  "device_access": "read-only-preflight-passed",
   "device_action": false,
   "boot_candidate": true,
-  "result": "corrected-live-preflight-pending"
+  "result": "live-preflight-passed-deployment-pending"
 }

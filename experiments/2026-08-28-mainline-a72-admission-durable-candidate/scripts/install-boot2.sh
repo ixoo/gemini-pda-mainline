@@ -13,9 +13,13 @@ readonly TRACE_VALIDATOR_SHA256=873c14150b3a86f75f7e6e1f73e2dc522b0337d2712e54a1
 readonly SHUTDOWN_HELPER_SHA256=35317e3533cb0c9b757e198b519fac8be0f88fa1f9e423c4e717fcabb276b833
 readonly EXPECTED_TARGET=gemini@192.168.1.50
 readonly DEVICE_ADDRESS=192.168.1.50
+readonly ARTIFACT_NAME=candidate-a72-admission-trace-ed6fc529
+readonly CANDIDATE_SHA256=60902c7ba7e5cccd781082d6d17e1bcb273d184751ddc9dde6a64b2e2a58b8d1
+readonly ARTIFACT_MANIFEST_SHA256=7cbaf0980b37f6efb49e3fe0e373be68afb7f2e7011e4bc6e5bd7fee141c1f1d
+readonly EXPECTED_PREDECESSOR_SHA256=fde53dca1dcbc36297897dbcd6086488d117bf45714833858e17987cb6579dd0
 
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }
-for command in awk chmod grep mktemp python3 rm sha256sum ssh stat tr; do
+for command in awk basename chmod grep mktemp python3 rm sha256sum ssh stat tr; do
 	command -v "$command" >/dev/null 2>&1 || die "required host command missing: $command"
 done
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
@@ -41,6 +45,7 @@ identity_mode=$(stat -f '%Lp' "$identity" 2>/dev/null || stat -c '%a' "$identity
 [[ "$identity_mode" == 600 ]] || die 'Gemini SSH identity mode is not 0600'
 
 target=
+candidate_dir=
 evidence_dir=
 help_only=no
 record_preflight_only=no
@@ -61,6 +66,7 @@ while (($#)); do
 		;;
 	--candidate-dir)
 		(($# >= 2)) || die '--candidate-dir requires a value'
+		candidate_dir=$2
 		arguments+=("$1" "$2")
 		shift 2
 		;;
@@ -92,7 +98,7 @@ text = Path(sys.argv[1]).read_text(encoding="utf-8")
 replacements = (
     ("protected-readback observer", "CPU8 admission", 1),
     ("30ec9c56d6be78635f0ccf3ea626727763d71590c23778774c5c6366e4a5e75a",
-     "fde53dca1dcbc36297897dbcd6086488d117bf45714833858e17987cb6579dd0", 1),
+     "60902c7ba7e5cccd781082d6d17e1bcb273d184751ddc9dde6a64b2e2a58b8d1", 1),
     ("f1ceff04a7631af3ee2c3b3614d9fd025f956a2453a75b0cc6d3fd6cde24580a",
      "7cbaf0980b37f6efb49e3fe0e373be68afb7f2e7011e4bc6e5bd7fee141c1f1d", 1),
     ("candidate-protected-readback-ro-a3cb0e1c", "candidate-a72-admission-trace-ed6fc529", 3),
@@ -116,6 +122,9 @@ for old, new, count in replacements:
 Path(sys.argv[2]).write_text(text, encoding="utf-8")
 PY
 chmod 0700 "$derived"
+[[ "$(grep -Fc "$CANDIDATE_SHA256" "$derived")" == 1 &&
+	"$(grep -Fc "$ARTIFACT_MANIFEST_SHA256" "$derived")" == 1 ]] ||
+	die 'derived installer candidate pins changed'
 
 if [[ "$help_only" == yes ]]; then
 	/bin/bash "$derived" "${arguments[@]}"
@@ -125,6 +134,21 @@ fi
 if [[ "$record_preflight_only" == no && -z "$evidence_dir" ]]; then
 	die 'exact evidence directory is required'
 fi
+[[ -n "$candidate_dir" && -d "$candidate_dir" && ! -L "$candidate_dir" ]] ||
+	die 'candidate directory is missing or unsafe'
+candidate_dir=$(cd -- "$candidate_dir" && pwd -P)
+[[ "$(basename -- "$candidate_dir")" == "$ARTIFACT_NAME" ]] ||
+	die 'candidate artifact name changed'
+candidate="$candidate_dir/boot2-padded.img"
+manifest="$candidate_dir/SHA256SUMS"
+[[ -f "$candidate" && ! -L "$candidate" && -f "$manifest" && ! -L "$manifest" ]] ||
+	die 'candidate or manifest is missing or unsafe'
+[[ "$(sha256sum "$candidate" | awk '{print $1}')" == "$CANDIDATE_SHA256" ]] ||
+	die 'candidate checksum changed'
+[[ "$(sha256sum "$manifest" | awk '{print $1}')" == "$ARTIFACT_MANIFEST_SHA256" ]] ||
+	die 'candidate manifest checksum changed'
+(cd "$candidate_dir" && sha256sum --check --strict SHA256SUMS >/dev/null) ||
+	die 'candidate manifest validation failed'
 
 ssh_command=(
 	ssh -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=5
@@ -135,7 +159,7 @@ retained_capture="$("${ssh_command[@]}" "$target" 'sudo -n /bin/bash -s' <<'REMO
 set -euo pipefail
 export LC_ALL=C
 fail() { printf 'error: %s\n' "$*" >&2; exit 2; }
-for command in cat dd id od tr uname; do
+for command in cat dd findmnt id lsblk od readlink sha256sum tr uname; do
 	command -v "$command" >/dev/null 2>&1 || fail "remote command missing: $command"
 done
 [[ "$(id -u)" == 0 && "$(uname -m)" == aarch64 && "$(uname -r)" == 3.18.41+ ]] ||
@@ -143,6 +167,20 @@ done
 boot_id=$(cat /proc/sys/kernel/random/boot_id)
 [[ "$boot_id" =~ ^[0-9a-f-]{36}$ ]] || fail 'malformed boot ID'
 printf 'ledger_boot_id=%s\n' "$boot_id" >&2
+rows=$(lsblk -brnpo NAME,PARTLABEL,TYPE,SIZE,RO,MOUNTPOINT | awk '$2 == "boot2" {print}')
+[[ "$(printf '%s\n' "$rows" | awk 'NF {n++} END {print n+0}')" == 1 ]] ||
+	fail 'live GPT does not have exactly one boot2 row'
+read -r boot2 label type size ro mountpoint extra <<<"$rows"
+[[ "$boot2" =~ ^/dev/mmcblk[0-9]+p[0-9]+$ && "$label" == boot2 &&
+	"$type" == part && "$size" == 16777216 && "$ro" == 0 &&
+	-z "${mountpoint:-}" && -z "${extra:-}" && -b "$boot2" ]] ||
+	fail 'boot2 live GPT identity changed or is mounted'
+root=$(readlink -f "$(findmnt -n -o SOURCE /)")
+[[ "$root" == /dev/mmcblk0p29 && "$root" != "$boot2" ]] ||
+	fail 'active root changed or equals boot2'
+[[ "$(readlink -f /dev/disk/by-partlabel/boot2)" == "$boot2" ]] ||
+	fail 'boot2 by-partlabel disagrees with GPT'
+printf 'boot2_predecessor_sha256=%s\n' "$(sha256sum "$boot2" | awk '{print $1}')"
 hex_at() {
 	local address=$1 count=$2
 	dd if=/dev/mem bs=1 skip="$address" count="$count" status=none |
@@ -165,6 +203,10 @@ field() {
 ledger_hex=$(field ledger_hex) || die 'transition-ledger field missing or duplicated'
 entry_hex=$(field entry_hex) || die 'entry-trace field missing or duplicated'
 terminal_hex=$(field terminal_hex) || die 'terminal-trace field missing or duplicated'
+predecessor_sha256=$(field boot2_predecessor_sha256) ||
+	die 'boot2 predecessor missing or duplicated'
+[[ "$predecessor_sha256" == "$EXPECTED_PREDECESSOR_SHA256" ]] ||
+	die 'boot2 predecessor is not the exact retired candidate'
 [[ "$ledger_hex" =~ ^[0-9a-f]{168}$ ]] || die 'malformed transition-ledger bytes'
 [[ "${#entry_hex}" == 8192 && ! "$entry_hex" =~ [^0-9a-f] ]] ||
 	die 'malformed entry-trace bytes'
@@ -179,6 +221,7 @@ trace_output=$(python3 "$trace_validator" --require-empty \
 	die 'admission-trace preflight rejected current retained bytes'
 printf '%s\n' "$ledger_output"
 printf '%s\n' "$trace_output"
+printf 'boot2_predecessor_sha256=%s\n' "$predecessor_sha256"
 if [[ "$record_preflight_only" == yes ]]; then
 	cleanup
 	trap - EXIT HUP INT TERM
@@ -200,6 +243,7 @@ if [[ "$status" == 0 ]]; then
 	{
 		printf '%s\n' "$ledger_output"
 		printf '%s\n' "$trace_output"
+		printf 'boot2_predecessor_sha256=%s\n' "$predecessor_sha256"
 		printf '%s\nshutdown_confirmation=ssh-failure-plus-three-tcp-closures\n' "$shutdown_output"
 	} >>"$summary"
 	(
