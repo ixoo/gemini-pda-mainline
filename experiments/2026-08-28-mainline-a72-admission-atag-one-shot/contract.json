@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-28-mainline-a72-admission-atag-one-shot",
+  "predecessor": "2026-08-28-mainline-a72-admission-atag-prerequisite",
+  "predecessor_commit": "24064ab3",
+  "installed_full_sha256": "fd611a4ca87fd1645e2fa75b3927d56e9e7eac89f3d84712e5555a3aab8f4cf0",
+  "kernel_release": "7.1.3-gemini-a72-admission-live",
+  "mainline_boot_id": "515b4618-5bf7-4125-9c08-38db55d6cc27",
+  "deployment_boot_id": "09ed19d3-6ad9-4e65-b2d3-46ad56bc9bb7",
+  "precondition": {
+    "complete_prerequisite_graph": "bound",
+    "exact_usb_netcat": "live",
+    "controller_state": "armed",
+    "trigger_executions": 0,
+    "cpu_online": "0-7",
+    "cpu_offline": "8-9",
+    "block_mounts": 0,
+    "visible_console_framebuffer": "frozen-boot-image-no-console"
+  },
+  "action": {
+    "token_sha256": "dffc3cca86392738e4b247ac21bec30474ef4b909df9cb9d3f92a9118dfa5b8f",
+    "trigger_sessions_maximum": 1,
+    "trigger_executions_maximum": 1,
+    "admission_core_maximum": 1,
+    "cpu8_requests_maximum": 1,
+    "cpu9_requests": 0,
+    "cpu_off_requests": 0,
+    "retries": 0,
+    "storage_writes": 0,
+    "partition_reads": 0,
+    "reboot_requests": 0,
+    "pretrigger_fsync_required": true,
+    "intent_fsync_required": true,
+    "retry_after_commit": false
+  },
+  "tooling_sha256": {
+    "source_collector": "69e3290661820a4555a3b43c2451d63e6bf05f81013bae864704cfa0a458580e",
+    "derived_collector": "581f896a6093636b18ed1e8c6ada8482904abffbb623a46b5873008056f745c1",
+    "runner": "ba21515ec4f3e2a5f349e0844545b9a3b4baeb0b0c18f5bf8b256bf1932113f7",
+    "remote_pretrigger": "d7a32a17362a92712a164d87f36c240c4af8e0261a90c43b41d3763131f93cc2",
+    "validate_pretrigger": "6b582a040b5406f63fbd45bff7017eb19bd0c06ee50a040abe03ac654abb353e",
+    "remote_trigger": "93e6ee4b0dd84d6415a84a8bac400308b7fa7483aabab0b414b33016d1ae690b",
+    "classify_attempt": "2118803eac96ba77c89b7de5da7e86a88b52e402fbaaff2441a91c8a4520e7ef",
+    "test_runtime": "e0d20a2b0e9127b1f2f60671e0b9ce03bb5cd479cd195c442ccf6e9f79572b33"
+  },
+  "offline_validation": {
+    "pretrigger_accepted_branches": 1,
+    "attempt_accepted_branches": 3,
+    "pretrigger_mutations_rejected": 7,
+    "attempt_mutations_rejected": 6,
+    "collector_materializations": 2,
+    "collector_materializations_identical": true,
+    "published_pretrigger_revalidation": "pass",
+    "native_vm_build": false,
+    "device_action": false,
+    "result": "pass"
+  },
+  "current_status": "definition-validated-device-action-pending"
+}

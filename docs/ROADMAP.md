@@ -5934,8 +5934,12 @@ The next ordered work is:
    are online and 8--9 offline, and no partition, NVMEM-cell, sysfs, storage,
    or reboot action occurred. The display remains frozen on the boot image,
    while USB/netcat is live; framebuffer console is therefore not claimed.
-   **Selected next:** publish a one-shot contract pinned to this exact candidate
-   and boot ID before one new CPU8 request.
+   A separate [ATAG one-shot contract](../experiments/2026-08-28-mainline-a72-admission-atag-one-shot/README.md)
+   now pins this exact candidate and boot ID, retains the byte-identical trigger
+   action, accepts only the three prior result branches, rejects all 13 unsafe
+   runtime mutations, and produces byte-identical collector materializations.
+   **Selected next:** publish that contract, then execute its sole CPU8 trigger
+   session without retry.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
