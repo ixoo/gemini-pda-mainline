@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-27-mainline-a72-default-off-binder` |
-| Status | 0403 compile rejected; late-KUnit field-guard repair generation pending |
+| Status | Late-KUnit field-guard repair generated and admitted; exact rebuild pending |
 | Subsystem | CPU8 admission, transition owners, PSCI, and generic hotplug lifecycle |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-27 America/New_York |
@@ -211,11 +211,19 @@ failed while compiling the shared reset body because it still cleared the
 late-startup KUnit option. The exact failure is in the
 [0403 compile evidence](results/buildbox-compile-fail-a8942401-20260828.txt).
 
-The next bounded repair keeps just those two assignments under their owning
-test option. It leaves the common P30 reset visible to the owner suite and
-changes no production configuration or runtime path. A new exact Buildbox
-compile and one bounded single-thread TCG QEMU proof remain pending. No device
-action or boot candidate is admitted.
+Buildbox generated and replay-validated that bounded repair as the exact
+canonical
+[`0404` patch](../../patches/v7.1.3/0404-arm64-guard-late-CPU-online-KUnit-reset-state.patch),
+with SHA-256
+`e677de07b9d48c1030a144df4517be620b30083f741ef2e670579a83876299b5`.
+It changes only `late_cpu_startup.c` and adds exactly one `#ifdef/#endif` pair
+around the two late-startup-only assignments. Strict checkpatch reports zero
+errors, warnings, or checks across 10 lines.
+
+The common P30 reset remains visible to the owner suite, while production
+configuration and runtime behavior remain unchanged. A new exact Buildbox
+compile and one bounded single-thread TCG QEMU proof remain pending. Generation
+performed no physical or device action, and no boot candidate is admitted.
 
 ## Follow-up
 

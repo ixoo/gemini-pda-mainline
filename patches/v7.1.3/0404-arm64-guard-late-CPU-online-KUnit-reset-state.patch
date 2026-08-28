@@ -1,0 +1,27 @@
+From 240fd27a420c9244834928ba982afa8502d74a74 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 28 Aug 2026 01:41:00 +0000
+Subject: [PATCH 1/1] arm64: guard late CPU online KUnit reset state
+
+Keep the online-state assignments under their owning KUnit option.
+
+Leave the shared P30 reset available to the owner KUnit suite.
+---
+ arch/arm64/kernel/late_cpu_startup.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/arch/arm64/kernel/late_cpu_startup.c b/arch/arm64/kernel/late_cpu_startup.c
+index 314d80e..6718c8d 100644
+--- a/arch/arm64/kernel/late_cpu_startup.c
++++ b/arch/arm64/kernel/late_cpu_startup.c
+@@ -937,8 +937,10 @@ void arm64_late_cpu_startup_test_reset(void)
+ 	late_startup.online_validated = false;
+ 	late_startup.park_committed = false;
+ 	late_startup.stuck_interlock = false;
++#ifdef CONFIG_ARM64_LATE_CPU_STARTUP_KUNIT_TEST
+ 	late_startup.test_online_cpu = 0;
+ 	late_startup.test_online = false;
++#endif
+ 	reinit_completion(&late_startup.published);
+ 	atomic_set(&late_startup.quarantined, 0);
+ 	atomic_set_release(&late_startup.state, ARM64_LATE_CPU_STARTUP_FREE);
