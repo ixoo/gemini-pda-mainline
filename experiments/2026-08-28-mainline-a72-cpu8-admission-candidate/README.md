@@ -44,6 +44,10 @@ does not create a redundant backup.
 - `scripts/validate.py`: local definition validation.
 - `scripts/build-candidate.sh`: hash-pinned deterministic LK assembly.
 - `scripts/validate-candidate.py`: independent package, binary-DTB, and LK validator.
+- `scripts/install-boot2.sh`: live-GPT/TEE/ledger/power/readback/shutdown gates.
+- `scripts/collect-runtime.sh`: pre-armed USB/netcat attempt-1 collector.
+- `scripts/remote-live-probe.sh`: bounded read-only CPU and ledger probe.
+- `scripts/validate-runtime.py`: exact success/rejection/failure decision map.
 
 ## Procedure
 
@@ -72,7 +76,11 @@ DT ownership graph passed independent checks. Deterministic assembly with the
 runtime-proven serviceability ramdisk produced raw candidate `d52d3c4e...` and
 16 MiB padded image `fde53dca...`; a separately implemented validator passed
 all 32 LK gates and the binary-DTB graph. No device access, installation, or
-boot has occurred in this experiment yet.
+boot has occurred in this experiment yet. The guarded installer and bounded
+runtime path are also materialized: transition-ledger preflight and all three
+serviceable runtime outcomes passed self-tests, including rejection of CPU9
+online. The installer creates no fresh partition backup and confirms shutdown
+with both SSH loss and three consecutive TCP/22 closures.
 
 ## Analysis
 

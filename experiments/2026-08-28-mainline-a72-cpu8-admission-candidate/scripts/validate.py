@@ -35,7 +35,7 @@ require(contract["target_cpu"] == 8 and contract["excluded_cpu"] == 9,
 require(contract["device_action"] is False, "definition has no device action")
 require(contract["boot_candidate"] is True, "exact candidate is promoted")
 require(contract["result"] ==
-        "boot-candidate-validated-awaiting-guarded-deployment",
+        "boot-candidate-and-tooling-validated-awaiting-guarded-deployment",
         "candidate phase")
 series = ROOT / "patches/series"
 require(sha256(series) == contract["integrated_series_sha256"],
@@ -135,10 +135,25 @@ require(sha256(EXPERIMENT / "scripts/validate-candidate.py") ==
 for result in (
     "buildbox-kernel-20260828.txt",
     "candidate-validation-20260828.txt",
+    "deployment-tooling-validation-20260828.txt",
     "predeployment-hypothesis-20260828.txt",
 ):
     path = EXPERIMENT / "results" / result
     require(path.is_file() and not path.is_symlink(), f"result record {result}")
+tooling = contract["deployment_tooling"]
+for name, key in (
+    ("install-boot2.sh", "installer_sha256"),
+    ("validate-transition-ledger.py", "transition_ledger_validator_sha256"),
+    ("collect-runtime.sh", "runtime_collector_sha256"),
+    ("remote-live-probe.sh", "runtime_probe_sha256"),
+    ("validate-runtime.py", "runtime_validator_sha256"),
+    ("test-runtime.py", "runtime_test_sha256"),
+):
+    require(sha256(EXPERIMENT / "scripts" / name) == tooling[key],
+            f"deployment tooling identity {name}")
+require(tooling["runtime_decision_tests"] == "4-of-4-pass" and
+        tooling["device_access"] is False and tooling["result"] == "pass",
+        "deployment tooling result")
 source_validator = (
     EXPERIMENT / "scripts/validate_source.py"
 ).read_text(encoding="utf-8")
@@ -172,6 +187,8 @@ print("integrated_profile=a72-admission-candidate")
 print("native_vm_build=none")
 print("kernel_build=exact-buildbox-pass")
 print("lk_gates=32-of-32")
+print("deployment_tooling=validated")
+print("runtime_decision_tests=4-of-4-pass")
 print("device_action=none")
 print("boot_candidate=true")
 print("result=pass")

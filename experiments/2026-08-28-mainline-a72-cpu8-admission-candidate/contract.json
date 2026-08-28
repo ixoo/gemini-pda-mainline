@@ -54,6 +54,17 @@
         "lk_gates": "32-of-32",
         "result": "pass"
     },
+    "deployment_tooling": {
+        "installer_sha256": "4431779577626835706a81dbef1bd90e756fecbbdfb65c716cb3e39b9c4ebb5a",
+        "transition_ledger_validator_sha256": "cefe3d19ad05c4facbdff7725667c33105d5d714c9d6b32d5ba993d5fccd9e85",
+        "runtime_collector_sha256": "ddbe837a40b4f87740b69c35a73d6438e4fe9f47d96aad0cc1499693d11e3ecc",
+        "runtime_probe_sha256": "7b99beca6b9228efa632065de93d9fd8337867733584ae697e9bcccac8432cfc",
+        "runtime_validator_sha256": "0f8c174ef9b20cb56325eebf1e2cd8c6309cdab52aedcdce5add9de156bd0906",
+        "runtime_test_sha256": "1a9ac4c3fe079df06528555b8acf085ce3fcdce14da8bac9cede5f157a23d66b",
+        "runtime_decision_tests": "4-of-4-pass",
+        "device_access": false,
+        "result": "pass"
+    },
   "target_cpu": 8,
   "excluded_cpu": 9,
   "physical_boots_budget": 1,
@@ -71,5 +82,5 @@
   "native_vm_build": false,
     "device_action": false,
     "boot_candidate": true,
-    "result": "boot-candidate-validated-awaiting-guarded-deployment"
+    "result": "boot-candidate-and-tooling-validated-awaiting-guarded-deployment"
 }
