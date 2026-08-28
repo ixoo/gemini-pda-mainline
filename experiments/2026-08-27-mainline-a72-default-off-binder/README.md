@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-27-mainline-a72-default-off-binder` |
-| Status | corrected five-patch generation and replay pass; canonical repair admission pending |
+| Status | exact buildbox compile pass; bounded QEMU/KUnit harness pending publication |
 | Subsystem | CPU8 admission, transition owners, PSCI, and generic hotplug lifecycle |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-27 America/New_York |
@@ -54,6 +54,11 @@ arm caller or binder Device Tree node; and no boot candidate is selected.
 - [`contract.json`](contract.json) records the exact machine-readable audit and
   selected implementation order.
 - [`scripts/validate.py`](scripts/validate.py) validates the frozen record.
+- [`scripts/run-kunit-qemu`](scripts/run-kunit-qemu) admits only the validated
+  binder profile package and runs one 45-second QEMU `virt` guest with no NIC.
+- [`scripts/classify-kunit.py`](scripts/classify-kunit.py) requires all 47
+  membership, executor, and binder results plus the expected post-test rootfs
+  panic boundary.
 
 ## Audit result
 
@@ -96,6 +101,23 @@ static validator and sole bounded no-network QEMU run must demonstrate zero
 physical calls, zero production CPU requests, zero CPU_OFF, and zero retries.
 Only after that proof may a separate device-candidate change add one exact late
 caller and one enabled binder node.
+
+## Buildbox compile result
+
+The exact repaired revision `0f5a1d709ee2ff8d103aa762d44e1e2ae4e6a080`
+passed the `a72-default-off-binder-kunit` build and package validator on
+buildbox. The realized configuration selects exactly the membership-owner,
+executor, and binder KUnit options and keeps `HOTPLUG_SPLIT_STARTUP` disabled.
+The new binder production and test objects compiled without a binder-specific
+warning. The full log retains inherited diagnostics: 44 compiler-warning lines
+in older membership/DVFSP sources, 12 `ranges_format` DTC warnings, and one
+patch whitespace warning. Exact identities and the warning breakdown are in
+the [compile evidence](results/buildbox-compile-0f5a1d70.txt).
+
+The built package is intentionally not a boot candidate. It has no late CPU
+caller and no binder DT node, and it has not been written to any device. The
+next action is the single bounded, no-network QEMU/KUnit proof; a physical
+candidate remains a separate later change.
 
 ## Follow-up
 
