@@ -149,8 +149,8 @@ for token in (
     require(token in isolation_text, f"runtime isolation token: {token}")
 require(CONTRACT["runtime_isolation_patch_integrated"] is True,
         "runtime isolation patch integrated")
-require(CONTRACT["runtime_isolation_kernel_build"] is False,
-        "runtime isolation rebuild pending")
+require(CONTRACT["runtime_isolation_kernel_build"] is True,
+        "runtime isolation rebuild")
 
 failed_rebuild = EXP / "results/runtime-isolation-build-attempt-20260828.txt"
 require(sha256(failed_rebuild) ==
@@ -197,6 +197,40 @@ for token in (
 require(CONTRACT["dependency_patch_integrated"] is True,
         "dependency patch integrated")
 
+isolated_runtime = (
+    EXP / "results/buildbox-kernel-qemu-isolated-20260828.txt"
+)
+require(sha256(isolated_runtime) ==
+        CONTRACT["isolated_runtime_receipt_sha256"],
+        "isolated Buildbox/QEMU receipt hash")
+isolated_runtime_text = isolated_runtime.read_text(encoding="utf-8")
+for token in (
+    "build_result=pass", "kconfig_unmet_dependency_warnings=0",
+    "focused_kunit_symbol_count=1", "owner_model_selected=true",
+    "owner_test_seed_selected=true", "owner_kunit_suite_selected=false",
+    "known_good_control_under_timeout=invalid-no-guest-output",
+    "selected_observation_path=explicit-serial-file-supervised-terminal-marker",
+    "suites=1", "tests=5", "failed=0", "skipped=0",
+    "tap_summary=pass:5_fail:0_skip:0_total:5", "stack_fault=false",
+    "network=false", "mmio=false", "retained_ram=false",
+    "watchdog=false", "smc=false", "production_cpu_requests=0",
+    "native_vm_build=none", "device_action=none", "boot_candidate=false",
+    "result=pass",
+):
+    require(token in isolated_runtime_text,
+            f"isolated Buildbox/QEMU token: {token}")
+require(CONTRACT["isolated_qemu"] == {
+    "suites": 1,
+    "tests": 5,
+    "failed": 0,
+    "skipped": 0,
+    "owner_kunit_suite": False,
+    "stack_fault": False,
+    "device_action": False,
+}, "isolated QEMU result")
+require(CONTRACT["durable_qemu_runner"] is True,
+        "durable QEMU runner")
+
 receipt = EXP / "results/source-admission-audit-20260828.txt"
 require(CONTRACT["source_receipt_sha256"] != "pending", "receipt hash pending")
 require(sha256(receipt) == CONTRACT["source_receipt_sha256"], "receipt hash")
@@ -232,7 +266,7 @@ readme = (EXP / "README.md").read_text(encoding="utf-8")
 design = (EXP / "DESIGN.md").read_text(encoding="utf-8")
 combined = (readme + design + receipt_text + local_text + generation_text +
             runtime_text + isolation_text + failed_rebuild_text +
-            dependency_generation_text)
+            dependency_generation_text + isolated_runtime_text)
 words = " ".join(combined.split())
 for token in (
     "No direct caller can satisfy the current graph",
@@ -246,19 +280,21 @@ require("/Users/" not in combined, "no personal absolute path")
 require(CONTRACT["kernel_build"] is True, "kernel build")
 require(CONTRACT["device_action"] is False, "no device action")
 require(CONTRACT["result"] ==
-        "derived-suite-passes-test-dependency-repair-integrated-awaiting-rebuild",
+        "isolated-derived-admission-pass-awaiting-physical-controller-design",
         "result")
 
 print("definition_validation=pass")
 print("direct_late_caller=rejected")
-print("selected_next=derived-membership-admission-compositor")
+print("selected_implementation=derived-membership-admission-compositor")
 print("model_cases=6")
 print("generated_patches=2")
 print("derived_kunit_cases=5")
 print("kernel_build=pass")
 print("qemu_derived_cases=pass:5_fail:0")
 print("runtime_isolation_repair=integrated")
-print("runtime_isolation_rebuild=failed-safe-before-package")
+print("runtime_isolation_rebuild=pass")
 print("owner_model_dependency_repair=integrated")
+print("isolated_qemu=pass:5_fail:0")
+print("selected_next=one-task-physical-controller-design")
 print("native_vm_build=none")
 print("device_action=none")

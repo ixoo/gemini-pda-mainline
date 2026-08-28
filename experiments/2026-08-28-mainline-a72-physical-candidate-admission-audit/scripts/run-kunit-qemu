@@ -1,0 +1,160 @@
+#!/usr/bin/env python3
+"""Run the isolated CPU8 admission KUnit suite without host networking."""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+
+EXPECTED_REMOTE = "https://github.com/ixoo/gemini-pda-mainline.git"
+EXPECTED_PROFILE = "a72-derived-admission-kunit"
+TERMINAL_MARKER = (
+    "---[ end Kernel panic - not syncing: VFS: Unable to mount root fs"
+)
+
+
+def die(message: str) -> None:
+    raise SystemExit(f"error: {message}")
+
+
+def git(repository: Path, *args: str) -> str:
+    return subprocess.run(
+        ["git", "-C", str(repository), *args],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+def main() -> None:
+    if len(sys.argv) != 3:
+        die("expected PACKAGE_DIR RAW_LOG")
+    script_dir = Path(__file__).resolve().parent
+    experiment_dir = script_dir.parent
+    repository = experiment_dir.parents[1]
+    package = Path(sys.argv[1]).resolve()
+    raw_log = Path(sys.argv[2])
+    if not raw_log.is_absolute():
+        raw_log = repository / raw_log
+    raw_log = raw_log.resolve()
+
+    build_path = package / "provenance/build.json"
+    image = package / "Image"
+    for path in (build_path, image, package / "kernel.config", package / "SHA256SUMS"):
+        if not path.is_file() or path.is_symlink():
+            die(f"unsafe package file: {path.name}")
+    build = json.loads(build_path.read_text(encoding="utf-8"))
+    commit = build.get("repository_commit", "")
+    if re.fullmatch(r"[0-9a-f]{40}", commit) is None:
+        die("invalid package commit")
+    if build.get("repository_dirty") is not False:
+        die("package was built from a dirty repository")
+    if build.get("build_profile") != EXPECTED_PROFILE:
+        die("unexpected package profile")
+    if git(repository, "remote", "get-url", "origin") != EXPECTED_REMOTE:
+        die("unexpected origin URL")
+    if git(repository, "rev-parse", "HEAD") != commit:
+        die("repository HEAD differs from package commit")
+    if git(repository, "rev-parse", "origin/main") != commit:
+        die("package commit is not published at origin/main")
+    expected_root = repository / "artifacts/buildbox" / commit
+    if expected_root not in package.parents:
+        die("package is outside its exact ignored Buildbox commit root")
+    subprocess.run(
+        ["sha256sum", "--check", "--strict", "SHA256SUMS"],
+        cwd=package,
+        check=True,
+        stdout=subprocess.DEVNULL,
+    )
+
+    qemu_root = repository / "artifacts/qemu"
+    qemu_root.mkdir(parents=True, exist_ok=True)
+    if raw_log.parent != qemu_root or raw_log.is_symlink():
+        die("raw log must be directly below ignored artifacts/qemu")
+    if not re.fullmatch(r"[a-z0-9._-]+\.log", raw_log.name):
+        die("unsafe raw-log name")
+    if raw_log.exists():
+        die("refusing to overwrite a raw log")
+
+    command = [
+        "qemu-system-aarch64",
+        "-accel",
+        "tcg,thread=single",
+        "-machine",
+        "virt",
+        "-cpu",
+        "cortex-a53",
+        "-smp",
+        "4",
+        "-m",
+        "1024",
+        "-display",
+        "none",
+        "-monitor",
+        "none",
+        "-serial",
+        f"file:{raw_log}",
+        "-no-reboot",
+        "-nic",
+        "none",
+        "-kernel",
+        str(image),
+    ]
+    process = subprocess.Popen(
+        command,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+        env={**os.environ, "LC_ALL": "C"},
+    )
+    deadline = time.monotonic() + 45
+    terminal_seen = False
+    while time.monotonic() < deadline:
+        if raw_log.exists() and TERMINAL_MARKER in raw_log.read_text(
+            encoding="utf-8", errors="replace"
+        ):
+            terminal_seen = True
+            break
+        if process.poll() is not None:
+            break
+        time.sleep(0.1)
+    if process.poll() is None:
+        process.terminate()
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(timeout=5)
+    stderr = process.stderr.read() if process.stderr is not None else ""
+    if not terminal_seen:
+        die(f"terminal marker not observed; qemu stderr: {stderr.strip()}")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(script_dir / "classify-kunit.py"),
+            "--package",
+            str(package),
+            "--raw-log",
+            str(raw_log),
+            "--repository-commit",
+            commit,
+            "--termination",
+            "harness-after-terminal-marker",
+        ],
+        check=True,
+        text=True,
+        capture_output=True,
+    )
+    print(result.stdout, end="")
+
+
+if __name__ == "__main__":
+    main()

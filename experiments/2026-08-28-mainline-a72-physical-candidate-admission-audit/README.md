@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-physical-candidate-admission-audit` |
-| Status | derived admission passes 5/5; test-only Kconfig dependency repair integrated; clean rebuild pending |
+| Status | isolated derived admission builds and passes its only five QEMU cases; physical controller design is next |
 | Subsystem | MT6797 CPU8 A34/A36 membership admission and physical binder entry |
 | Device variant | Planet Gemini PDA, named development unit |
 | Date(s) | 2026-08-28 America/New_York |
@@ -87,7 +87,8 @@ commit `8b4a01a1`; strict checkpatch, exact-source replay, and semantic
 validation passed. The resulting three-line patch is canonical `0409`, and
 its exact identity is recorded in the
 [isolation generation receipt](results/runtime-isolation-generation-20260828.txt).
-Its Buildbox rebuild and focused QEMU rerun remain pending.
+Its first Buildbox rebuild and focused QEMU rerun were the next validation
+step.
 
 That rebuild stopped without a package. Patch `0409` correctly removed the
 unrelated owner KUnit suite, but the suite had also supplied the base P24
@@ -107,6 +108,24 @@ The generator ran at exact signed and pushed commit `0c860e62`; strict
 checkpatch, exact-source replay, and semantic validation passed. Its exact
 one-line output is now canonical patch `0410`, as recorded in the
 [dependency generation receipt](results/owner-model-dependency-generation-20260828.txt).
+
+Exact commit `f991d1ac` then built successfully on Buildbox as release
+`7.1.3-gemini-a72-derived-kunit`. Package, Image, configuration, and patchset
+checksums passed; Kconfig emitted no unmet dependency warning. The resolved
+configuration contains exactly one `*_KUNIT_TEST` symbol: the five-case
+derived-admission suite. The hidden owner seed and base model are present, but
+the unrelated owner KUnit suite and default-off physical binder are absent.
+
+The first local QEMU wrapper was rejected as an observation path after it
+produced empty logs for both the new image and the proven predecessor. An
+explicit serial-file supervisor restored guest execution and stops only after
+the terminal post-test marker. The durable
+[runner](scripts/run-kunit-qemu) and [classifier](scripts/classify-kunit.py)
+then reproduced one suite and five passing cases with networking disabled.
+There was no stack fault despite the known 7296-byte test-frame warning. The
+exact build and runtime identities, rejected wrapper chronology, and negative
+hardware assertions are in the
+[isolated runtime receipt](results/buildbox-kernel-qemu-isolated-20260828.txt).
 
 ## Safety assessment
 
@@ -206,7 +225,8 @@ This is a source admission result, not hardware support.
 ## Follow-up
 
 The authoritative next work is in
-[Roadmap Gate 7](../../docs/ROADMAP.md#7-bring-up-cpu8). Build the repaired
-hardware-free profile on Buildbox and run its bounded no-network tests before
+[Roadmap Gate 7](../../docs/ROADMAP.md#7-bring-up-cpu8). Design the one-task,
+consumed-before-mutation physical controller that publishes P17/P18 and makes
+exactly one `add_cpu(8)` request, then validate it hardware-free before
 assembling one distinct physical candidate. Only a validated candidate may be
 installed to live-GPT inactive `boot2` under the standing safety gates.
