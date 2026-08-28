@@ -1,0 +1,16 @@
+validation=a72-admission-durable-candidate-definition
+parent_series_entries=410
+profiles_checked=154
+hardware_free_suites=2
+hardware_free_tests=12
+entry_slot=2
+terminal_slot=3
+maximum_trace_record_writes=2
+maximum_cpu8_requests=1
+cpu9_request_paths=0
+cpu_off_paths=0
+retry_paths=0
+native_vm_build=none
+device_action=none
+boot_candidate=false
+result=pass

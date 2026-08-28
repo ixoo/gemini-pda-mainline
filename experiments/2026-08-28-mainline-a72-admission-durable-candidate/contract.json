@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-28-mainline-a72-admission-durable-candidate",
+  "parent_series_entries": 410,
+  "parent_series_sha256": "1270d27bcb23bb885905c1bfb73f6348b211bde6e77c702e82a3d226b3484260",
+  "parent_patch": "0418-soc-mediatek-test-durable-CPU8-admission-trace.patch",
+  "parent_patch_sha256": "48e9ba46c89d65eff02d817d7e143a4acbddc27a3603432bbd368dd6eea18555",
+  "hardware_free_build": {
+    "repository_commit": "43eb3b06730ee50e023c0ae04f7de538af6b458f",
+    "record": "../2026-08-28-mainline-a72-admission-durable-trace/results/buildbox-compile-43eb3b06-20260828.txt",
+    "record_sha256": "bb4e0c2923f85f62e114c20ded5060f6904b797785da0b7718a1af18db7d08c7",
+    "result": "pass"
+  },
+  "hardware_free_kunit": {
+    "harness_commit": "ba171ca0e0dbd4f9fe2c0f1957039530c206cfd9",
+    "record": "../2026-08-28-mainline-a72-admission-durable-trace/results/kunit-qemu-pass-ba171ca0-20260828.txt",
+    "record_sha256": "c768dc1b869bbf39f227dd9292d059cd7667694cfb20b9513a0668e17d7902fe",
+    "suites": 2,
+    "tests": 12,
+    "failed": 0,
+    "skipped": 0,
+    "physical_cpu_requests": 0,
+    "result": "pass"
+  },
+  "production_profile": {
+    "name": "a72-admission-durable-candidate",
+    "fragment": "configs/gemini-a72-admission-durable-candidate.fragment",
+    "fragment_sha256": "721b7cdb7d3026e3bef8a8ad0a29d9080c2b11423c6b6c2ed76dea98804006cc",
+    "manifest_sha256": "3b9061bd9d7060f58d7da58c526cc61f81f17ecaf489b59ba66314b3c489e0a4",
+    "profiles_checked": 154,
+    "result": "defined"
+  },
+  "definition_validation": {
+    "record": "results/local-definition-validation-20260828.txt",
+    "record_sha256": "9a0dcb08fa935bab96b8ebc3adf1276b310e2e472bef5e5034178862d98fe7a6",
+    "result": "pass"
+  },
+  "target_cpu": 8,
+  "excluded_cpu": 9,
+  "physical_boots_budget": 1,
+  "physical_boots_used": 0,
+  "entry_slot": 2,
+  "entry_address": "0x44411000",
+  "terminal_slot": 3,
+  "terminal_address": "0x44412000",
+  "maximum_trace_record_writes": 2,
+  "maximum_cpu8_requests": 1,
+  "cpu9_request_paths": 0,
+  "cpu_off_paths": 0,
+  "retry_paths": 0,
+  "expected_boot2_predecessor_sha256": "fde53dca1dcbc36297897dbcd6086488d117bf45714833858e17987cb6579dd0",
+  "fresh_predecessor_backup": false,
+  "native_vm_build": false,
+  "device_action": false,
+  "boot_candidate": false,
+  "result": "production-definition-build-pending"
+}

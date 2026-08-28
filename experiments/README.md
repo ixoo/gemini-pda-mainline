@@ -23,15 +23,22 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-28 durable CPU8 admission physical candidate](2026-08-28-mainline-a72-admission-durable-candidate/README.md)
+  — defines the production-only successor using the hardware-free-proven
+  record-2 entry and record-3 zero-request trace. The DT graph is unchanged,
+  CPU8 remains one-shot, and CPU9, CPU_OFF, retries, KUnit, native VM build,
+  candidate selection, and device action remain absent. Buildbox compilation
+  and complete offline admission are next.
 - [2026-08-28 durable CPU8 admission trace](2026-08-28-mainline-a72-admission-durable-trace/README.md)
   — freezes two disjoint immutable retained records: controller-core entry in
   record 2 and one of three consumed zero-request terminals in record 3. The
   existing transition ledger remains the only request-path owner. Local
   definition, ordering, source-anchor, and unsafe-mutation checks pass with no
   build, device action, CPU request, CPU9 path, CPU_OFF, or retry. Exact-source
-  patches `0415`--`0418` now pass four semantic stages, strict review,
-  checksums, and replay and are integrated with an isolated KUnit profile.
-  Buildbox compilation and the two focused suites are next.
+  patches `0415`--`0418` pass four semantic stages, strict review, checksums,
+  and replay. Exact Buildbox compilation and both focused no-network suites
+  pass all 12 cases with zero failures, skips, or physical CPU requests. The
+  separate production candidate definition is now next.
 - [2026-08-28 CPU8 admission physical candidate](2026-08-28-mainline-a72-cpu8-admission-candidate/README.md)
   — built the exact production-only owner chain on Buildbox and deployed one
   independently validated candidate with full boot2 readback. Its sole attempt
