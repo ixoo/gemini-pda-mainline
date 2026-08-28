@@ -25,9 +25,13 @@ the loop. Positive identity-gated observations are unaffected.
 
 - [2026-08-28 CPU8 admission ATAG one-shot](2026-08-28-mainline-a72-admission-atag-one-shot/README.md)
   — binds one unchanged trigger action to exact candidate `fd611a4c...`, live
-  boot ID `515b4618...`, and the now-complete supplier graph. The controller
-  remains armed with zero executions; 13 unsafe runtime mutations fail closed,
-  and no action occurs before the signed definition is published.
+  boot ID `515b4618...`, and the now-complete supplier graph. Its sole trigger
+  returned terminal `-EIO` with the admission core unconsumed and zero CPU
+  requests. Source ordering localizes the failure to the mandatory retained
+  trace entry before binder/READY/core; changed-ID Gemian recovery matched
+  boot2 and found the trace and transition records empty. The boot-image-only
+  display is recorded as a framebuffer limitation because USB/netcat remained
+  live. The artifact and boot must not be retried.
 - [2026-08-28 CPU8 admission ATAG prerequisite restoration](2026-08-28-mainline-a72-admission-atag-prerequisite/README.md)
   — follows the terminal pre-core defer with a two-option, config-only repair.
   Exact live evidence showed an empty NVMEM bus and unbound ATAG devinfo;

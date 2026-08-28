@@ -55,5 +55,26 @@
     "device_action": false,
     "result": "pass"
   },
-  "current_status": "definition-validated-device-action-pending"
+  "runtime_attempt_1": {
+    "trigger_sessions": 1,
+    "trigger_retried": false,
+    "operation_ret": -5,
+    "operation_errno": "EIO",
+    "core_consumed": 0,
+    "cpu8_requests": 0,
+    "cpu9_requests": 0,
+    "cpu_off_requests": 0,
+    "failure_call": "gemini_admission_trace_entry",
+    "failure_stage": "pre-binder-ready-pre-core-retained-trace-entry",
+    "display": "frozen-boot-image-no-console",
+    "usb_netcat": "live-authoritative-channel",
+    "gemian_recovery_boot_id": "a30458b2-1742-4bfb-941e-ea0d21de1099",
+    "post_return_boot2_sha256": "fd611a4ca87fd1645e2fa75b3927d56e9e7eac89f3d84712e5555a3aab8f4cf0",
+    "admission_trace_state": "empty",
+    "transition_ledger_state": "logical-empty",
+    "device_final_state": "known-good-gemian-running",
+    "native_vm_build": false,
+    "result": "terminal-precore-trace-entry-eio"
+  },
+  "current_status": "complete-terminal-precore-trace-entry-eio"
 }

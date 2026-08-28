@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-admission-atag-one-shot` |
-| Status | `definition validated; device action pending` |
+| Status | `complete; one shot stopped at pre-core trace entry with -EIO` |
 | Subsystem | MT6797 A72 admission controller and CPU hotplug |
 | Device variant | Planet Computers Gemini PDA, named project device |
 | Date(s) | 2026-08-28 |
@@ -67,8 +67,13 @@ closed. No framebuffer observation is used for classification.
   all three accepted branches.
 - `scripts/run-one-shot.sh`: source-pinned durable collector with one fixed
   private output path.
+- `scripts/collect-postterminal-recovery.sh`: source-pinned bounded read-only
+  Gemian recovery of the exact trace slots, transition ledger, and boot2
+  identity.
 - `results/offline-one-shot-gates-20260828.txt`: exact tooling and pre-action
   validation receipt.
+- `results/runtime-attempt-1-terminal-precore-trace-eio-20260828.txt`: sanitized
+  terminal, recovery, and source-order localization receipt.
 
 Private transcripts remain below ignored `artifacts/runtime-captures/`.
 
@@ -96,21 +101,50 @@ unsafe mutations. Two independent collector materializations are byte-identical
 at `581f896a...`. The trigger source remains byte-identical to the prior action.
 No device write or trigger occurred during definition validation.
 
+The sole trigger session then returned a complete terminal frame on the same
+USB connection: `operation_ret=-5`, `core_consumed=0`, zero CPU requests, CPUs
+0--7 online, and CPUs 8--9 offline. No retry, CPU9, CPU_OFF, storage, or reboot
+request occurred. The display remained frozen on the boot image without a
+console, while USB/netcat stayed live.
+
+After a read-only terminal check, the exact boot ID, zero block mounts, and
+known reboot dispatch passed before one USB reboot to Gemian. Gemian returned
+with changed boot ID `a30458b2...`; a bounded read-only recovery matched the
+installed full boot2 checksum and found zero pstore files, both immutable
+admission-trace slots empty, and the transition ledger logically empty. The
+device remains on known-good Gemian.
+
 ## Analysis
 
-The predecessor stopped before the core because the A72 binder was unbound.
-That exact prerequisite is now closed, so this one action can distinguish a
-later admission-stage result from the already repaired configuration defect.
-The frozen framebuffer does not weaken attribution because candidate, boot ID,
-commit marker, terminal state, and CPU lists all come from exact USB/netcat.
+The predecessor stopped before the core because the A72 binder was unbound;
+that exact prerequisite is now closed. The new `-EIO` is also pre-core, but for
+a different and exact reason. In the compiled controller,
+`gemini_admission_trace_entry()` runs before the binder-ready check, READY-token
+lookup, and atomic core consumption. Source registration, CPU8 derivation,
+publication, and `add_cpu(8)` are all after successful consumption. Therefore
+`operation_ret=-5` with `core_consumed=0` localizes the failure to the mandatory
+trace-entry call; it cannot be a physical-source, publication, or CPU failure.
+The empty recovered trace and ledger corroborate that no durable entry or later
+transition committed, although the live terminal frame—not post-return
+retention—is the decisive stage oracle.
+
+The frozen framebuffer does not weaken this attribution because candidate,
+boot ID, commit marker, terminal state, and CPU lists all came from exact
+USB/netcat. It remains a display limitation and no framebuffer-console support
+is claimed.
 
 ## Conclusion
 
-The separately attributable one-shot definition is ready to publish. CPU8 is
-still offline and no result is claimed before the one permitted action.
+The one permitted action is complete and must not be repeated. It did not test
+the physical-source or CPU8 path: a mandatory retained diagnostic failed first
+with `-EIO`. CPU8 remains offline, but the repaired prerequisite graph stayed
+serviceable and the failure is now localized to one pre-core instrumentation
+call.
 
 ## Follow-up
 
-After publication, execute exactly one trigger session on boot ID
-`515b4618...`, classify the result, and never retry this boot after a commit
-marker. CPU9 remains out of scope.
+Keep retained tracing fail-closed for automatic/non-serviceable admission, but
+make its failure non-gating only for the explicit root-triggered live one-shot.
+Expose the trace return separately in the terminal status, retain the single
+core-consumption and CPU8-request budgets, and build the one-change follow-up
+only on Buildbox. CPU9 remains out of scope.

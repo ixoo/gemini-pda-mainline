@@ -5938,8 +5938,19 @@ The next ordered work is:
    now pins this exact candidate and boot ID, retains the byte-identical trigger
    action, accepts only the three prior result branches, rejects all 13 unsafe
    runtime mutations, and produces byte-identical collector materializations.
-   **Selected next:** publish that contract, then execute its sole CPU8 trigger
-   session without retry.
+   Its sole trigger session then returned a same-boot terminal `-EIO` frame
+   with the admission core unconsumed, zero CPU requests, CPU0--7 online, and
+   CPU8--9 offline. Controller source order makes this exact: the retained
+   trace entry runs before binder readiness, READY lookup, and core
+   consumption, so source registration, derivation, publication, and CPU8 were
+   never reached. The boot-image-only display remained frozen while USB/netcat
+   stayed live. A gated USB reboot returned changed-ID Gemian; bounded
+   read-only recovery matched boot2 and found both trace slots and the
+   transition ledger empty. The one-shot is complete and cannot be retried.
+   **Selected next:** keep trace failure fail-closed for automatic admission,
+   but make it non-gating for the explicit live one-shot, report its return
+   separately, preserve all one-shot/CPU8/CPU9/CPU_OFF gates, and build that
+   one-change candidate only on Buildbox.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
