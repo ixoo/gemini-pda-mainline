@@ -105,8 +105,8 @@ def apply_source_header(path: Path) -> None:
     addition = (
         "void\n"
         "mt6797_a72_source_context_init(struct mt6797_a72_physical_source_context *context,\n"
-        "\tstruct device *platform, struct device *clock,\n"
-        "\tstruct device *bigidvfs);\n"
+        "\t\t\t       struct device *platform, struct device *clock,\n"
+        "\t\t\t       struct device *bigidvfs);\n"
         "int\n"
         "mt6797_a72_source_register(struct mt6797_a72_physical_source_context *context);\n"
         "void\n"
@@ -129,8 +129,8 @@ def apply_source_body(path: Path) -> None:
     init = (
         "void\n"
         "mt6797_a72_source_context_init(struct mt6797_a72_physical_source_context *context,\n"
-        "\tstruct device *platform, struct device *clock,\n"
-        "\tstruct device *bigidvfs)\n"
+        "\t\t\t       struct device *platform, struct device *clock,\n"
+        "\t\t\t       struct device *bigidvfs)\n"
         "{\n"
         "\tmemset(context, 0, sizeof(*context));\n"
         "\tcontext->platform = platform;\n"

@@ -46,7 +46,8 @@ mt6797_a72_admission_state_init(struct mt6797_a72_admission_controller_state *st
 
 int
 mt6797_a72_admission_run(struct mt6797_a72_admission_controller_state *state,
-	const struct mt6797_a72_admission_controller_ops *ops, void *context)
+			 const struct mt6797_a72_admission_controller_ops *ops,
+			 void *context)
 {
 	const struct arm64_late_cpu_ready_token *ready;
 	bool source_registered = false;
@@ -114,8 +115,8 @@ static void mt6797_a72_admission_source_unregister(void *context)
 
 static int
 mt6797_a72_admission_derive_cpu8(void *context,
-	const struct arm64_late_cpu_ready_token *ready,
-	struct mt6797_a72_transaction *transaction)
+				 const struct arm64_late_cpu_ready_token *ready,
+				 struct mt6797_a72_transaction *transaction)
 {
 	(void)context;
 	return mt6797_a72_membership_derive_cpu8(ready, transaction);
@@ -123,7 +124,7 @@ mt6797_a72_admission_derive_cpu8(void *context,
 
 static int
 mt6797_a72_admission_publish_up(void *context,
-	struct mt6797_a72_transaction *transaction)
+				struct mt6797_a72_transaction *transaction)
 {
 	(void)context;
 	return mt6797_a72_membership_publish_up(transaction);
