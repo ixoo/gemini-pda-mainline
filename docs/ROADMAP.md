@@ -5862,11 +5862,18 @@ The next ordered work is:
    independent assembly/padding, and six negative mutations. It is now
    installed on live-GPT-resolved inactive boot2 with exact predecessor and
    full-partition readback; no fresh backup or retained write occurred, and
-   three closed TCP/22 checks confirm clean shutdown. One physical boot must
-   decide whether the pre-trigger regression belongs to the current
-   Image/configuration or to DT population after `90cfc29b`. If serviceable,
-   partition only those later node additions before returning to the dormant
-   CPU8 trigger; if not, stop DT work and isolate the current Image/config delta.
+   three closed TCP/22 checks confirmed clean shutdown. Its one selected boot
+   is now serviceable as exact current release
+   `7.1.3-gemini-a72-admission-live`, changed mainline boot ID `367e02d3...`,
+   CPU0--7 online/CPU8--9 offline, exact USB, the recursively verified
+   platform-state/composed-observer nodes, and no controller or binder. No
+   hardware action or reboot was requested. This rejects the current
+   Image/configuration branch and localizes the regression to DT population
+   after `90cfc29b`, its LK fixup consequences, or induced automatic probes.
+   **Selected next:** normalize and partition only that semantic DT delta, then
+   add one bounded node group to the proven control DT per physical boot until
+   serviceability fails. Return to the dormant CPU8 trigger only after the
+   smallest responsible group is repaired or excluded.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

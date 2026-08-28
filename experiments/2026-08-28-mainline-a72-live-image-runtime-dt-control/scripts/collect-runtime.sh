@@ -19,7 +19,7 @@ while (($#)); do
 	esac
 done
 [[ "$deployment_boot_id" =~ ^[0-9a-f-]{36}$ && -n "$output" ]] || die 'arguments missing or malformed'
-for command in awk base64 basename chmod date dirname git grep ifconfig ioreg mkdir mktemp nc python3 rm route sha256sum sleep ssh tr; do command -v "$command" >/dev/null 2>&1 || die "required command missing: $command"; done
+for command in awk base64 basename chmod date dirname git grep ifconfig ioreg mkdir mktemp nc netstat python3 rm route sha256sum sleep ssh tr; do command -v "$command" >/dev/null 2>&1 || die "required command missing: $command"; done
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P); repo_root=$(cd -- "$script_dir/../../.." && pwd -P)
 probe="$script_dir/remote-probe.sh"; validator="$script_dir/validate-runtime.py"; identity="$repo_root/artifacts/credentials/gemini_ed25519"
 for input in "$probe" "$validator" "$identity"; do [[ -f "$input" && ! -L "$input" ]] || die "input missing or unsafe: $input"; done
@@ -38,7 +38,13 @@ for ((attempt=0; attempt<WAIT_SECONDS; attempt++)); do
 		candidate_mac=$(ifconfig "$candidate" 2>/dev/null | awk '/^[[:space:]]*ether / {print tolower($2); n++} END {exit n != 1}') || true
 		case "$candidate_mac" in 42:00:15:19:82:00|42:00:15:19:84:00) ;; *) continue ;; esac
 		ifconfig "$candidate" | awk -v address="$HOST_ADDRESS" '$1 == "inet" && $2 == address {n++} END {exit n != 1}' || continue
-		[[ "$(route -n get "$DEVICE_ADDRESS" 2>/dev/null | awk '$1 == "interface:" {print $2}')" == "$candidate" ]] || continue
+		route_interface=$(route -n get "$DEVICE_ADDRESS" 2>/dev/null |
+			awk '$1 == "interface:" {print $2; n++} END {exit n != 1}') || true
+		if [[ -z "$route_interface" ]]; then
+			route_interface=$(netstat -rn -f inet 2>/dev/null |
+				awk -v interface="$candidate" '$1 == "10.15.19/24" && $4 == interface {print $4; n++} END {exit n != 1}') || true
+		fi
+		[[ "$route_interface" == "$candidate" ]] || continue
 		interface=$candidate; mac=$candidate_mac; break 2
 	done
 	if ((attempt % 5 == 0)); then

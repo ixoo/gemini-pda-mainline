@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-live-image-runtime-dt-control` |
-| Status | `deployed and shut down; runtime attempt 1 pending` |
+| Status | `complete; current Image serviceable with runtime-proven A72 DT` |
 | Subsystem | MT6797 A72 DT population and pre-trigger serviceability |
 | Device variant | Planet Computers Gemini PDA, named project device |
 | Date(s) | 2026-08-28 |
@@ -94,20 +94,41 @@ partition readback matched `c2b85cad...`. No fresh backup or retained-RAM write
 occurred. A clean poweroff plus three consecutive closed TCP/22 checks confirms
 the device is shut down for one physical boot2 selection.
 
+Attempt 1 booted exact candidate `c2b85cad...` as release
+`7.1.3-gemini-a72-admission-live`, changed mainline boot ID
+`367e02d3-...`, and established the exact Gemini USB gadget. CPUs 0--7 were
+online, CPUs 8--9 offline, `maxcpus=8` occurred once, one UDC was present, and
+no block device was mounted. The frame made no partition, storage, retained,
+regulator, clock-action, secure-call, owner-mutation, CPU-admission, or reboot
+request.
+
+The initially published collector saw the exact interface but could not pass
+its route predicate because macOS denied the sandboxed routing-socket query.
+One same-boot, read-only recovery connection captured the complete identity
+frame. That frame also exposed a shallow DT glob defect: root-level nodes were
+reported as zero. A second focused read-only connection recursively enumerated
+exact platform-state and composed-observer compatible paths and no controller
+or binder path. The validator rejects the shallow frame alone and accepts it
+only alongside that exact recursive audit. The collector now falls back to the
+read-only route table, and the probe recursively counts compatible files.
+
 ## Analysis
 
-This is a decision-bearing cross, not an identical retry. It changes only the
+This was a decision-bearing cross, not an identical retry. It changed only the
 DTB relative to the retired live-trigger artifact while retaining the current
 Image/config, boot addresses, command line, and serviceability ramdisk.
 
-If USB serviceability returns, the regression is in the post-`90cfc29b` DT
-population or its automatic probes. If it does not, the current Image/config
-delta is sufficient and further DT partitioning is not justified.
+USB serviceability returned. Therefore the current Image/config is sufficient
+for the known serviceability baseline, and the regression lies in the
+post-`90cfc29b` input DT population, its LK fixup consequences, or automatic
+probes induced by those DT changes. This supports a semantic partition of only
+that DT delta; it does not yet identify one node.
 
 ## Conclusion
 
-Offline candidate construction and guarded deployment are confirmed for the
-exact inputs. Hardware serviceability remains pending one physical selection.
+Confirmed on the named Gemini: exact current Image/config is serviceable with
+exact runtime-proven DT `90cfc29b...`. The Image/config regression branch is
+rejected; post-control-DT partitioning is next.
 
 ## Follow-up
 
