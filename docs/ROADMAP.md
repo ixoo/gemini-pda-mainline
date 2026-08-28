@@ -5669,22 +5669,26 @@ The next ordered work is:
    successful secondary-completion and full generic CPUHP-completion points,
    while the current MT6797 boot veto remains in force and both callbacks stay
    unset. There are zero production callers, physical calls, device actions,
-   or boot candidates. **Selected next:** assemble and exhaustively prove the
-   complete default-off binder around the executor, watchdog takeover,
-   retained ledger, serialized platform-effect owner, DA921x provider, SRAM
-   owner, MT6797 admission, and lifecycle callbacks. Do not write a device
-   candidate until the binder's hardware-free proof passes. The exact
+   or boot candidates. The exact
    [binder interface audit](../experiments/2026-08-27-mainline-a72-default-off-binder/README.md)
    rejects direct glue: executor checkpoints cannot currently propagate ledger
    failures, no terminal ledger commit exists, AVAILABLE membership still
    refuses CPU-up, supplier device references have no binder lifetime owner,
    generic failure reaches P32 before binder terminalization, and the
-   membership owner has no post-proof CPU8 success publication. **Selected
-   next:** implement the frozen five-patch repair-and-binder contract and prove
-   it with the focused exact-source Buildbox profile and one bounded
-   no-network QEMU suite. This milestone adds no late CPU caller, enabled
-   binder DT node, device candidate, or device action.
-4. Only then build one decision-bearing CPU8 candidate with one request,
+   membership owner has no post-proof CPU8 success publication. Canonical
+   patches `0396`--`0400` implement the frozen five-patch repair-and-binder
+   contract, and test-only patches `0401`--`0406` repair defects exposed by its
+   bounded runtime proof without changing production behavior. Exact clean
+   commit `3efb123a` compiles the focused profile on Buildbox as
+   `7.1.3-gemini-a72-binder-kunit`. Its sole final no-network QEMU run passes
+   all 47 owner, executor, and binder cases with zero failures or skips and
+   records zero production callers, physical backends, physical CPU requests,
+   CPU_OFF requests, retries, MMIO, retained-RAM access, or SMCs. This closes
+   the hardware-free binder proof with no enabled binder DT node, device action,
+   or boot candidate. **Selected next:** design and validate one separate,
+   decision-bearing physical CPU8 candidate that enables the binder, adds one
+   late request, and preserves every proven attribution and fail-closed gate.
+4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
 The eventual CPU8 candidate must have a single CPU8 request, strict

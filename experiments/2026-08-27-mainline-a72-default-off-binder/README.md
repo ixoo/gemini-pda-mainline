@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-27-mainline-a72-default-off-binder` |
-| Status | 0405 admitted; exact QEMU improved to 46/47; 0406 generated and pending canonical admission |
+| Status | Hardware-free binder proof complete: exact Buildbox compile and QEMU 47/47; no physical candidate yet |
 | Subsystem | CPU8 admission, transition owners, PSCI, and generic hotplug lifecycle |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-27 America/New_York |
@@ -243,9 +243,9 @@ classes above, retains all 47 cases, and changes no production file. The patch
 SHA-256 is
 `df13fbfdc7a974e8da8f3fbee1f6f61cddb359c8f781ddb5af0e44d9cf99ca49`;
 strict checkpatch reports zero errors, warnings, or checks. Generation and
-source replay performed no physical or device action. Canonical admission, a
-fresh Buildbox compile, and one new bounded QEMU proof remain pending. This
-profile is not a boot candidate.
+source replay performed no physical or device action. It was admitted in
+signed commit `9366cd4923cef87a4c3f57c1f954fb5257139942`. This profile is
+not a boot candidate.
 
 The canonical 0405 admission is signed commit
 `9366cd4923cef87a4c3f57c1f954fb5257139942`. Its exact Buildbox profile build
@@ -265,14 +265,31 @@ exact repository commit `be6d82625d6cbf00c1f2efa7f51f282c1f28fcef`.
 It completes preflight, validation, and claim in both P29 fixtures, changes no
 production file, and has patch SHA-256
 `d85a84dc5458c5cd6c513f17596f58b08de727acad2f37b9727f1670c0f36b9c`.
-Strict checkpatch reports zero errors, warnings, or checks. Canonical admission,
-one fresh Buildbox compile, and one new bounded QEMU proof remain pending. No
-second run of the 0405 artifact is permitted, no device action occurred, and
-neither package is a boot candidate.
+Strict checkpatch reports zero errors, warnings, or checks. The exact canonical
+[`0406` patch](../../patches/v7.1.3/0406-arm64-mediatek-claim-CPU8-in-P29-KUnit-fixtures.patch)
+was admitted in signed commit
+`3efb123a64b9eb86e307cf957cdb81298b1986f5`.
+
+The clean exact commit compiled on Buildbox as package
+`linux-7.1.3-gemini-a72-default-off-binder-kunit-5bf78b43-010f5c59`.
+Its one fresh bounded, no-network, single-thread TCG run passed all 47 cases:
+owner 30/30, executor 12/12, and binder 5/5, with no failures or skips. Both
+the valid P29 rollback and its mutated-proof rejection reached their intended
+claimed-transaction paths and passed. The expected post-suite rootfs panic
+occurred only after KUnit completed.
+
+This closes the hardware-free binder proof. The classifier recorded zero
+production callers, physical backends, physical CPU requests, CPU_OFF requests,
+retries, MMIO, retained-RAM access, SMCs, device actions, or enabled binder DT
+nodes. Exact package and runtime identities are in the
+[passing runtime evidence](results/kunit-qemu-pass-3efb123a-20260828.txt).
+No second run of either earlier artifact occurred, and this KUnit package is
+not a boot candidate.
 
 ## Follow-up
 
 The authoritative ordered next step is
 [Roadmap Gate 7](../../docs/ROADMAP.md#7-bring-up-cpu8). This experiment
-constrains that work to the five hardware-free patches above; it does not admit
-a device candidate.
+proves the default-off binder and its dependencies without hardware access. It
+does not itself admit a device candidate; Gate 7 now owns the separate design
+and validation of one decision-bearing CPU8 physical candidate.
