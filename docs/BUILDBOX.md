@@ -537,10 +537,12 @@ register-capsule parent with:
 
 This lane reconstructs and validates both exact source states, then performs
 two out-of-tree `Image.gz-dtb` builds with identical resolved configuration and
-diagnostics. It requires the child-only bounded pmsg writer, exactly three
-direct writer-call deltas, one indirect ramoops backend call, all four fixed
-records, unchanged console-marker and 26-register-read inventories, bounded
-stack use, and no added power, PSCI, CPU, MMIO, delay, reset, or reboot call.
+diagnostics. It requires the child-only bounded pmsg writer, three exact source
+operations compiled as one entry, one pre-scheduler, and two mutually exclusive
+PASS/FAULT terminal callsites, one indirect ramoops backend call, all four
+fixed records, unchanged console-marker and 26-register-read inventories,
+bounded stack use, and no added power, PSCI, CPU, MMIO, delay, reset, or reboot
+call.
 The checksum-covered output remains compile-review-only, never a boot
 candidate, and performs no device action.
 

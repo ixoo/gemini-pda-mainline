@@ -6051,11 +6051,16 @@ The next ordered work is:
    commit `947317cb...` produced the admitted patch `cf102ea2...`; no kernel
    build or device action occurred. The exact-parent compile lane is now
    defined with pinned pmsg patchset `6663fe7b...`, identical configuration and
-   diagnostics gates, exactly three compiled writer-call deltas, one indirect
+   diagnostics gates, three exact source writer operations, one indirect
    backend call, unchanged console-marker and 26-register-read inventories,
-   bounded stack use, and forbidden-call rejection. **Selected next:** commit
-   and push this lane, then run and review its Buildbox-only comparison before
-   any candidate construction.
+   bounded stack use, and forbidden-call rejection. Attempt 1 compiled both
+   exact trees, then stopped before packaging on a gate assumption: GCC emits
+   two mutually exclusive static terminal calls for the one source-level
+   PASS/FAULT conditional. The admitted source is unchanged; the corrected
+   gate pins one entry, one pre-scheduler, and that two-callsite terminal
+   topology while rejecting any other direct-call delta. **Selected next:**
+   commit and push the corrected gate, then retry and review the Buildbox-only
+   comparison before any candidate construction.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

@@ -78,9 +78,10 @@ preservation, forbidden-action inventory, and negative mutations pass.
 2. Review and admit the generated child only if every source and mutation gate
    passes and the diff changes exactly four pinned files.
 3. Compile both exact parent and child on Buildbox; require identical resolved
-   configuration and diagnostics, the child-only bounded writer, exactly three
-   writer-call deltas, one indirect backend call, unchanged console-marker and
-   register-read inventories, bounded stack use, and no forbidden call.
+   configuration and diagnostics, the child-only bounded writer, three source
+   operations with the compiler's exact four-callsite conditional topology,
+   one indirect backend call, unchanged console-marker and register-read
+   inventories, bounded stack use, and no forbidden call.
 4. Define and validate a pmsg-aware changed-cycle collector before constructing
    or deploying one candidate.
 
@@ -103,9 +104,15 @@ four-path patch SHA-256 `cf102ea2...`, deterministic parent reversal, all eight
 negative mutations rejected, and strict style results of zero errors, zero
 warnings, and zero checks. The admitted patch is byte-identical to that output.
 The admitted compile lane pins pmsg patchset `6663fe7b...` and the exact
-register parent. Its local syntax and ShellCheck gates pass; it cannot submit
-until its own clean pushed commit exists. No kernel build, boot image, device
-access, retained-RAM write, or hardware action has occurred.
+register parent. Attempt 1 at project commit `bb3bc9c1...` compiled both child
+and parent successfully, then stopped before packaging because the validator
+expected one terminal call instruction. The pinned compiler emits two static
+calls for the source's one mutually exclusive PASS/FAULT conditional. This is
+a compile-gate assumption error, not a source or kernel-compile failure; the
+source validator still proves exactly one terminal operation. The gate now
+pins the observed topology: one entry callsite, one pre-scheduler callsite, and
+two mutually exclusive terminal callsites. No boot image was accepted, and no
+device access, retained-RAM write, or hardware action occurred.
 
 ## Analysis
 

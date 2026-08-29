@@ -1,0 +1,50 @@
+A72 same-version pmsg witness Buildbox compile-review attempt 1
+Date: 2026-08-29 UTC
+
+Repository commit:
+  bb3bc9c1627c31e56cdef3791bb1906ce1434130
+Buildbox job key:
+  bb3bc9c1627c31e56cdef3791bb1906ce1434130-gemian-a72-pmsg-witness
+Gemian source commit:
+  59e00a9144d782e148332009a835b99c43382467
+Pmsg-witness patchset SHA-256:
+  6663fe7b073ce2e939bf2ba6ce3de28e824cf3b30d1653c4d3c272bf3ba2bd46
+
+Source gate:
+  validation=a72-pmsg-witness-source
+  parent_reversal=byte-identical
+  changed_paths=4
+  retained_record_bytes_lt=1024
+  device_action=none
+
+Compile gate:
+  pmsg_source_build=passed
+  baseline_source_build=passed
+
+Stopped binary gate:
+  mt6797_a72_obs_init writer-call delta: 1 (accepted)
+  mt6797_a72_hold_workfn writer-call delta: 1 (accepted)
+  mt6797_a72_sc_terminal writer-call delta: 2 (gate expected 1)
+  error: compile-review line 1347 status 1
+
+Classification:
+  compile-gate-assumption-error
+
+The source contains one terminal helper invocation whose pointer and length are
+selected by the mutually exclusive PASS/FAULT conditional. GCC 6.3 materializes
+that expression as two static calls, one in each branch; only one can execute.
+The source validator already fixes the predicate-before-write and
+write-before-console/capsule order and rejects duplicate terminal operations.
+This is not a source, kernel-compile, pstore, or runtime failure.
+
+Decision:
+  Keep the admitted source patch unchanged. Correct only the binary gate to
+  require one entry callsite, one pre-scheduler callsite, and the observed pair
+  of mutually exclusive terminal callsites, while continuing to reject every
+  other direct-call delta. Retry from a new clean pushed commit.
+
+Package: none
+Boot candidate: none
+Device access: none
+Device write: none
+Runtime or CPU claim: none

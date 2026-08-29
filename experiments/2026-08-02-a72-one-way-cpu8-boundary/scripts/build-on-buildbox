@@ -1362,14 +1362,15 @@ def calls(text):
         re.findall(r"\bbl\s+[0-9a-f]+\s+<([^>]+)>", text)
     )
 
-for symbol in (
-    "mt6797_a72_obs_init",
-    "mt6797_a72_hold_workfn",
-    "mt6797_a72_sc_terminal",
-):
+writer_callsite_delta = {
+    "mt6797_a72_obs_init": 1,
+    "mt6797_a72_hold_workfn": 1,
+    "mt6797_a72_sc_terminal": 2,
+}
+for symbol, count in writer_callsite_delta.items():
     child = calls(read(child_root, symbol))
     parent = calls(read(parent_root, symbol))
-    expected = parent + collections.Counter({"pstore_write_pmsg_kernel": 1})
+    expected = parent + collections.Counter({"pstore_write_pmsg_kernel": count})
     if child != expected:
         raise SystemExit(
             "pmsg direct-call delta changed for {}: child={} parent={}".format(
@@ -1408,7 +1409,9 @@ if child_mrs != 26 or parent_mrs != 26:
             child_mrs, parent_mrs
         )
     )
-print("pmsg_callsite_delta=three-fixed-writer-calls")
+print("pmsg_source_operations=3")
+print("pmsg_compiled_callsites=entry:1,pre-scheduler:1,terminal-branches:2")
+print("pmsg_terminal_callsite_pair=mutually-exclusive-source-conditional")
 print("pmsg_helper_direct_calls=mutex_lock,mutex_unlock,strcmp")
 print("pmsg_helper_indirect_backend_calls=1")
 print("pmsg_register_task_mrs_count=26")

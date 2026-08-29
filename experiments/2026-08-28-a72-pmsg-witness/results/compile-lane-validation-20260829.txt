@@ -33,8 +33,9 @@ Compile decision gates
 - Parent and child resolved configurations and extracted diagnostics must be
   identical; both must retain PSTORE, PMSG, RAM, and console pstore options.
 - `pstore_write_pmsg_kernel` must be a linked child-only symbol.
-- Compiled observer-entry, pre-scheduler, and pre-capsule sites must add exactly
-  one writer call each and no other direct-call delta.
+- Compiled observer-entry and pre-scheduler sites must each add one writer
+  call. The single source-level PASS/FAULT terminal operation compiles to two
+  mutually exclusive static callsites; no other direct-call delta is allowed.
 - The helper must contain exactly mutex lock, strcmp, and mutex unlock direct
   calls plus one indirect backend call, with the forbidden CPU, PSCI, MMIO,
   regulator, clock, delay, reset, and reboot call inventory absent.
@@ -59,6 +60,11 @@ Local validation
 Decision
 --------
 
-The lane definition is accepted for one clean pushed Buildbox comparison.
-Candidate construction and all device action remain blocked until the fetched
-compile package independently passes its checksum and provenance review.
+Attempt 1 at project commit `bb3bc9c1627c31e56cdef3791bb1906ce1434130`
+compiled both exact trees, then stopped before packaging because the gate
+expected one terminal call instruction while GCC emitted two mutually
+exclusive PASS/FAULT callsites. The corrected lane preserves the three exact
+source operations and pins their four-callsite compiled topology. It is
+accepted for one retry from a new clean pushed commit. Candidate construction
+and all device action remain blocked until the fetched compile package
+independently passes its checksum and provenance review.
