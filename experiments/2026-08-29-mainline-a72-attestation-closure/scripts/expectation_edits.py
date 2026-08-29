@@ -53,8 +53,7 @@ def validate_parent(root: Path) -> None:
 
 
 EXPECTED_HWCAP_BLOCK = r'''static bool __init
-late_cpu_expected_field_valid(
-	const struct arm64_late_cpu_expected_pair *expected,
+late_cpu_expected_field_valid(const struct arm64_late_cpu_expected_pair *expected,
 	enum arm64_late_cpu_expected_pair_field field)
 {
 	return expected && expected->abi == ARM64_LATE_CPU_EXPECTED_PAIR_ABI &&
@@ -65,8 +64,7 @@ late_cpu_expected_field_valid(
 }
 
 static int __init
-late_cpu_expected_hwcap_register(
-	const struct arm64_late_cpu_expected_pair *expected,
+late_cpu_expected_hwcap_register(const struct arm64_late_cpu_expected_pair *expected,
 	u32 sys_reg, u64 *value)
 {
 	enum arm64_late_cpu_expected_pair_field field;
@@ -141,8 +139,7 @@ late_cpu_hwcap_compat_neon(u64 mvfr1)
 }
 
 static bool __init
-late_cpu_hwcap_match_one(
-	const struct arm64_cpu_capabilities *cap,
+late_cpu_hwcap_match_one(const struct arm64_cpu_capabilities *cap,
 	const struct arm64_late_cpu_expected_pair *expected)
 {
 	bool sve_match = false;
@@ -152,8 +149,8 @@ late_cpu_hwcap_match_one(
 #ifdef CONFIG_COMPAT
 	if (cap->matches == compat_has_neon) {
 		if (expected) {
-			if (late_cpu_expected_hwcap_register(
-				    expected, SYS_MVFR1_EL1, &value))
+			if (late_cpu_expected_hwcap_register(expected,
+							 SYS_MVFR1_EL1, &value))
 				return false;
 		} else {
 			value = read_sanitised_ftr_reg(SYS_MVFR1_EL1);
@@ -186,27 +183,29 @@ late_cpu_hwcap_match_one(
 		u64 pfr0;
 
 		if (expected) {
-			if (late_cpu_expected_hwcap_register(
-				    expected, SYS_ID_AA64PFR0_EL1, &pfr0))
+			if (late_cpu_expected_hwcap_register(expected,
+							 SYS_ID_AA64PFR0_EL1,
+							 &pfr0))
 				return false;
 		} else {
 			pfr0 = read_sanitised_ftr_reg(SYS_ID_AA64PFR0_EL1);
 		}
-		if (!cpuid_feature_extract_unsigned_field(
-			    pfr0, ID_AA64PFR0_EL1_SVE_SHIFT))
+		if (!cpuid_feature_extract_unsigned_field(pfr0,
+							 ID_AA64PFR0_EL1_SVE_SHIFT))
 			return false;
 	} else if (sme_match) {
 		u64 pfr1;
 
 		if (expected) {
-			if (late_cpu_expected_hwcap_register(
-				    expected, SYS_ID_AA64PFR1_EL1, &pfr1))
+			if (late_cpu_expected_hwcap_register(expected,
+							 SYS_ID_AA64PFR1_EL1,
+							 &pfr1))
 				return false;
 		} else {
 			pfr1 = read_sanitised_ftr_reg(SYS_ID_AA64PFR1_EL1);
 		}
-		if (!cpuid_feature_extract_unsigned_field(
-			    pfr1, ID_AA64PFR1_EL1_SME_SHIFT))
+		if (!cpuid_feature_extract_unsigned_field(pfr1,
+							 ID_AA64PFR1_EL1_SME_SHIFT))
 			return false;
 	}
 
@@ -214,8 +213,7 @@ late_cpu_hwcap_match_one(
 }
 
 static bool __init
-late_cpu_hwcap_matches(
-	const struct arm64_cpu_capabilities *cap,
+late_cpu_hwcap_matches(const struct arm64_cpu_capabilities *cap,
 	const struct arm64_late_cpu_expected_pair *expected)
 {
 	const struct arm64_cpu_capabilities *match;
@@ -271,8 +269,7 @@ late_cpu_all_support_32bit_el0(const struct arm64_late_cpu_plan *plan)
 EXPECTED_CACHE_STATE = r'''
 
 enum arm64_late_cpu_cap_state __init
-arm64_late_cpu_expected_cache_type_state(
-	const struct arm64_cpu_capabilities *cap,
+arm64_late_cpu_expected_cache_type_state(const struct arm64_cpu_capabilities *cap,
 	const struct arm64_cpu_capabilities *match,
 	const struct arm64_late_cpu_expected_pair *expected,
 	const struct arm64_late_cpu_system_cap_evidence *system)
@@ -333,8 +330,8 @@ def apply(root: Path) -> None:
     replace_once(
         header,
         "int arm64_validate_late_cpu_expected_target(unsigned int cpu);\n",
-        "bool arm64_late_cpu_expected_pair_complete(\n"
-        "\tconst struct arm64_late_cpu_plan *plan);\n"
+        "bool arm64_late_cpu_expected_pair_complete("
+        "const struct arm64_late_cpu_plan *plan);\n"
         "int arm64_validate_late_cpu_expected_target(unsigned int cpu);\n",
     )
     replace_once(
@@ -350,8 +347,8 @@ def apply(root: Path) -> None:
         "\tconst struct arm64_late_cpu_target_cap_evidence *target,\n"
         "\tconst struct arm64_late_cpu_system_cap_evidence *system);\n"
         "enum arm64_late_cpu_cap_state __init\n"
-        "arm64_late_cpu_expected_cache_type_state(\n"
-        "\tconst struct arm64_cpu_capabilities *cap,\n"
+        "arm64_late_cpu_expected_cache_type_state("
+        "const struct arm64_cpu_capabilities *cap,\n"
         "\tconst struct arm64_cpu_capabilities *match,\n"
         "\tconst struct arm64_late_cpu_expected_pair *expected,\n"
         "\tconst struct arm64_late_cpu_system_cap_evidence *system);\n",
@@ -412,8 +409,9 @@ def apply(root: Path) -> None:
         "\t\t\tcap, match,\n"
         "\t\t\t&evidence->target_cap[target], &evidence->system_cap);\n"
         "#else\n"
-        "\t\treturn arm64_late_cpu_expected_cache_type_state(\n"
-        "\t\t\tcap, match, &evidence->expected_pair,\n"
+        "\t\treturn arm64_late_cpu_expected_cache_type_state("
+        "cap, match,\n"
+        "\t\t\t&evidence->expected_pair,\n"
         "\t\t\t&evidence->system_cap);\n"
         "#endif\n",
     )
