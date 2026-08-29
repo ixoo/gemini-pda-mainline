@@ -94,56 +94,56 @@ def mutations() -> list[tuple[str, Callable[[Path], None]]]:
             "\tlate_canonical_update_u8(ctx, system->ich_hcr_tdir);\n",
             "")),
         ("accept-unmarked-expected-field", lambda r: replace_in_function(
-            r / proton, "late_cpu_expected_a72_field_valid(",
+            r / proton, "late_cpu_expected_field_valid(",
             "\t       expected->valid & BIT_ULL(field) &&\n",
             "\t       true &&\n")),
         ("accept-wrong-expected-midr", lambda r: replace_in_function(
-            r / proton, "late_cpu_expected_a72_field_valid(",
+            r / proton, "late_cpu_expected_field_valid(",
             "\t       expected->midr == MIDR_CORTEX_A72;\n",
             "\t       true;\n")),
         ("invert-v2-csv2", lambda r: replace_in_function(
-            r / proton, "late_cpu_expected_a72_spectre_v2_evidence_state(",
+            r / proton, "late_cpu_expected_v2_evidence_state(",
             "return csv2 ? ARM64_LATE_CPU_CAP_ABSENT :\n"
             "\t\t      ARM64_LATE_CPU_CAP_PRESENT;",
             "return csv2 ? ARM64_LATE_CPU_CAP_PRESENT :\n"
             "\t\t      ARM64_LATE_CPU_CAP_ABSENT;")),
         ("treat-v4-unknown-wa2-unaffected", lambda r: replace_in_function(
-            r / proton, "late_cpu_expected_a72_spectre_v4_evidence_state(",
+            r / proton, "late_cpu_expected_v4_evidence_state(",
             "\treturn ARM64_LATE_CPU_CAP_PRESENT;\n",
             "\treturn ssbs ? ARM64_LATE_CPU_CAP_PRESENT :\n"
             "\t\t      ARM64_LATE_CPU_CAP_ABSENT;\n")),
         ("invert-bhb-csv2", lambda r: replace_in_function(
-            r / proton, "late_cpu_expected_a72_spectre_bhb_evidence_state(",
+            r / proton, "late_cpu_expected_bhb_evidence_state(",
             "return csv2 == 3 ? ARM64_LATE_CPU_CAP_ABSENT :\n"
             "\t\t\t ARM64_LATE_CPU_CAP_PRESENT;",
             "return csv2 == 3 ? ARM64_LATE_CPU_CAP_PRESENT :\n"
             "\t\t\t ARM64_LATE_CPU_CAP_ABSENT;")),
         ("claim-v2-mitigated", lambda r: replace_in_function(
-            r / proton, "arm64_late_cpu_expected_a72_effects(",
+            r / proton, "arm64_late_cpu_expected_effects(",
             "\t\t\tARM64_LATE_CPU_MITIGATION_VULNERABLE;\n",
             "\t\t\tARM64_LATE_CPU_MITIGATION_MITIGATED;\n")),
         ("invent-v2-firmware-callback", lambda r: replace_in_function(
-            r / proton, "arm64_late_cpu_expected_a72_effects(",
+            r / proton, "arm64_late_cpu_expected_effects(",
             "effects->spectre_v2_callback = ARM64_LATE_CPU_V2_CALLBACK_NONE;",
             "effects->spectre_v2_callback = ARM64_LATE_CPU_V2_CALLBACK_SMC;")),
         ("claim-v4-mitigated-without-ssbs", lambda r: replace_in_function(
-            r / proton, "arm64_late_cpu_expected_a72_effects(",
+            r / proton, "arm64_late_cpu_expected_effects(",
             "\tif (ssbs && !policy->mitigations_off &&\n",
             "\tif (!policy->mitigations_off &&\n")),
         ("invent-v4-firmware", lambda r: replace_in_function(
-            r / proton, "arm64_late_cpu_expected_a72_effects(",
+            r / proton, "arm64_late_cpu_expected_effects(",
             "effects->spectre_v4_conduit = ARM64_LATE_CPU_SMCCC_NONE;",
             "effects->spectre_v4_conduit = ARM64_LATE_CPU_SMCCC_SMC;")),
         ("mitigate-bhb-without-modern-ids", lambda r: replace_in_function(
-            r / proton, "arm64_late_cpu_expected_a72_effects(",
+            r / proton, "arm64_late_cpu_expected_effects(",
             "\t} else if (!effects->bhb_v2_non_vulnerable) {\n",
             "\t} else if (false) {\n")),
         ("consume-missing-wa1", lambda r: replace_in_function(
-            r / proton, "arm64_late_cpu_expected_a72_effects(",
+            r / proton, "arm64_late_cpu_expected_effects(",
             "\tu64 ssbs;\n",
             "\tu64 ssbs;\n\t/* smccc_wa1 */\n")),
         ("consume-missing-modern-id", lambda r: replace_in_function(
-            r / proton, "arm64_late_cpu_expected_a72_effects(",
+            r / proton, "arm64_late_cpu_expected_effects(",
             "\tu64 ssbs;\n",
             "\tu64 ssbs;\n\t/* id_aa64isar2 */\n")),
         ("drop-complete-expected-pair", lambda r: replace_in_function(
@@ -153,7 +153,7 @@ def mutations() -> list[tuple[str, Callable[[Path], None]]]:
             "")),
         ("restore-production-target-evidence", lambda r: replace_in_function(
             r / profile, "mt6797_a72_classify_local_cap(",
-            "arm64_late_cpu_expected_a72_spectre_v2_state(",
+            "arm64_late_cpu_expected_v2_state(",
             "arm64_late_cpu_a72_spectre_v2_state(")),
         ("activate-production-expectation", lambda r: replace_in_function(
             r / profile, "mt6797_a72_profile_prepare(",

@@ -50,10 +50,10 @@ def validate(root: Path) -> list[str]:
         "u8 gicv5_legacy;",
         "u8 ich_hcr_tdir;",
         "arm64_late_cpu_early_system_cap_state(",
-        "arm64_late_cpu_expected_a72_spectre_v2_state(",
-        "arm64_late_cpu_expected_a72_spectre_v4_state(",
-        "arm64_late_cpu_expected_a72_spectre_bhb_state(",
-        "arm64_late_cpu_expected_a72_effects(",
+        "arm64_late_cpu_expected_v2_state(",
+        "arm64_late_cpu_expected_v4_state(",
+        "arm64_late_cpu_expected_bhb_state(",
+        "arm64_late_cpu_expected_effects(",
     ):
         require(token in header, f"public conservative-policy contract absent: {token}")
     require(header.count("ARM64_LATE_CPU_SYSTEM_CAP_EARLY_LOCAL_VALID") == 2,
@@ -106,7 +106,7 @@ def validate(root: Path) -> list[str]:
             canonical.find("system->ich_hcr_tdir"),
             "canonical early-system field order changed")
 
-    field_valid = function(proton, "late_cpu_expected_a72_field_valid(")
+    field_valid = function(proton, "late_cpu_expected_field_valid(")
     for token in (
         "expected->abi == ARM64_LATE_CPU_EXPECTED_PAIR_ABI",
         "expected->target_count == ARM64_LATE_CPU_MAX_TARGETS",
@@ -117,19 +117,19 @@ def validate(root: Path) -> list[str]:
         require(token in field_valid, f"expected-field proof changed: {token}")
 
     expected_v2 = function(
-        proton, "late_cpu_expected_a72_spectre_v2_evidence_state(")
+        proton, "late_cpu_expected_v2_evidence_state(")
     expected_v4 = function(
-        proton, "late_cpu_expected_a72_spectre_v4_evidence_state(")
+        proton, "late_cpu_expected_v4_evidence_state(")
     expected_bhb = function(
-        proton, "late_cpu_expected_a72_spectre_bhb_evidence_state(")
+        proton, "late_cpu_expected_bhb_evidence_state(")
     expected_functions = "\n".join((
         expected_v2,
         expected_v4,
         expected_bhb,
-        function(proton, "arm64_late_cpu_expected_a72_spectre_v2_state("),
-        function(proton, "arm64_late_cpu_expected_a72_spectre_v4_state("),
-        function(proton, "arm64_late_cpu_expected_a72_spectre_bhb_state("),
-        function(proton, "arm64_late_cpu_expected_a72_effects("),
+        function(proton, "arm64_late_cpu_expected_v2_state("),
+        function(proton, "arm64_late_cpu_expected_v4_state("),
+        function(proton, "arm64_late_cpu_expected_bhb_state("),
+        function(proton, "arm64_late_cpu_expected_effects("),
     ))
     for token in (
         "ARM64_LATE_CPU_EXPECT_AA64PFR0",
@@ -164,7 +164,7 @@ def validate(root: Path) -> list[str]:
         require(forbidden not in expected_functions,
                 f"expected-only proof consumed missing evidence: {forbidden}")
 
-    effects = function(proton, "arm64_late_cpu_expected_a72_effects(")
+    effects = function(proton, "arm64_late_cpu_expected_effects(")
     for token in (
         "effects->valid = ARM64_LATE_CPU_TARGET_EFFECT_VALID_MASK",
         "effects->spectre_v2_hyp_vector = ARM64_LATE_CPU_HYP_VECTOR_DIRECT",
@@ -189,16 +189,16 @@ def validate(root: Path) -> list[str]:
     classifier = function(profile, "mt6797_a72_classify_local_cap(")
     for token in (
         "arm64_late_cpu_early_system_cap_state(",
-        "arm64_late_cpu_expected_a72_spectre_v2_state(",
-        "arm64_late_cpu_expected_a72_spectre_v4_state(",
-        "arm64_late_cpu_expected_a72_spectre_bhb_state(",
+        "arm64_late_cpu_expected_v2_state(",
+        "arm64_late_cpu_expected_v4_state(",
+        "arm64_late_cpu_expected_bhb_state(",
         "#ifdef CONFIG_ARM64_MT6797_A72_FIXTURE_EVIDENCE",
     ):
         require(token in classifier, f"MT6797 policy routing changed: {token}")
     derive = function(profile, "mt6797_a72_derive_effects(")
     for token in (
         "arm64_late_cpu_expected_pair_complete(plan)",
-        "arm64_late_cpu_expected_a72_effects(",
+        "arm64_late_cpu_expected_effects(",
         "&plan->evidence.expected_pair",
         "#ifdef CONFIG_ARM64_MT6797_A72_FIXTURE_EVIDENCE",
     ):

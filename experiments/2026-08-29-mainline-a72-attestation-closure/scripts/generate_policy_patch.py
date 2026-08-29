@@ -108,7 +108,7 @@ def validate_patch(path: Path) -> None:
     for required in (
         "ARM64_LATE_CPU_SYSTEM_CAP_EARLY_LOCAL_VALID",
         "arm64_late_cpu_early_system_cap_state",
-        "arm64_late_cpu_expected_a72_effects",
+        "arm64_late_cpu_expected_effects",
         "ARM64_LATE_CPU_MITIGATION_VULNERABLE",
         "ARM64_LATE_CPU_BHB_STATE_VULNERABLE",
         "ARM64_LATE_CPU_V2_CALLBACK_NONE",
