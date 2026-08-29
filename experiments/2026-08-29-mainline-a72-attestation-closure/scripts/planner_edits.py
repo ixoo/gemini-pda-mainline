@@ -16,7 +16,7 @@ PARENT_HASHES = {
     "arch/arm64/kernel/cpufeature.c":
         "eaa9cd9e9484cc7496eb5bcf70d7ad6a022fa123df26705ef6d88e1fd2bb1a82",
     "arch/arm64/kernel/mt6797_psci.c":
-        "638fddfbfebb15f02f8b338c6d4b876d5def8066044953218393e2480fbb6f30",
+        "04cc165c559066375a667cc928760c0af6459d807fa4f8f13c2de44ffa5de296",
 }
 
 
