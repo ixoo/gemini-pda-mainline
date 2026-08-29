@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-29-mainline-a72-attestation-closure` |
-| Status | `completed-source-definition` |
+| Status | `completed-closure-definition; dormant source generation defined` |
 | Subsystem | arm64 late-CPU evidence, capability commitment, and MT6797 A72 entry |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-29 |
@@ -63,6 +63,17 @@ if its current register state differs from the frozen expectation.
 - [`scripts/test_mutations.py`](scripts/test_mutations.py): rejecting mutations
   for overclaim, incomplete inventory, wrong target identity, and unsafe READY
   ordering.
+- [`scripts/source_edits.py`](scripts/source_edits.py): deterministic two-stage
+  schema and entry-validator edits against the exact prepared source.
+- [`scripts/validate_source.py`](scripts/validate_source.py): exact schema,
+  comparison inventory, placement, and failure-path validator.
+- [`scripts/test_source_mutations.py`](scripts/test_source_mutations.py):
+  rejects missing comparisons, partial validity, reordered entry checks,
+  current-CPU bypass, online continuation, CPU_OFF, and retry-shaped changes.
+- [`scripts/generate_patches.py`](scripts/generate_patches.py) and
+  [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox): create two
+  synthetic-author, non-submission-ready format patches from exact Git inputs
+  and the managed prepared source; they do not build a kernel.
 - [`results/definition-validation-20260829.txt`](results/definition-validation-20260829.txt):
   exact source hashes, field-consumer audit, positive validation, and 21
   rejected unsafe mutations.
@@ -78,8 +89,12 @@ if its current register state differs from the frozen expectation.
    expected-entry contract, never current-boot observation.
 5. Validate the ledger against the committed eight-line capsule and reject
    representative unsafe mutations.
-6. Only after this definition passes may one source-only expectation/entry
-   validation patch be designed; no Buildbox build occurs at this stage.
+6. Define two logical source patches: the empty field-valid schema first, then
+   the fail-closed entry validator. Generate and replay them on Buildbox only
+   after the exact clean definition commit is pushed.
+7. Admit neither patch until strict source review and negative mutations pass.
+   A later clean commit may then build them through the explicit Buildbox
+   backend; no native VM build occurs.
 
 ## Observations
 
@@ -143,6 +158,17 @@ CPU_OFF, and retry. The exact nine-file prepared-source hash gate and
 secondary-entry ordering gate also pass. See the
 [sanitized result](results/definition-validation-20260829.txt).
 
+The dormant implementation generator now defines two logical patches. Patch 1
+adds a 28-field valid mask and one compact homogeneous-pair expectation object
+to profile evidence while making the private runtime store reject any injected
+expectation. It supplies no initializer or producer. Patch 2 adds a READY-bound
+comparison of the 26 measured target-local values after CPU-info capture and
+parks any mismatch before topology, GIC/timer notification, or online
+publication. It does not change READY construction, activate a contract, or
+add a CPU request. Local Python syntax, `bash -n`, ShellCheck, ledger validation,
+and evidence mutations pass; exact-source generation and source mutations are
+the next Buildbox action.
+
 ## Conclusion
 
 `confirmed-reference-only-mapping-and-multi-owner-ready-gap`: the exact CPU8
@@ -154,8 +180,8 @@ open. No CPU request or build is justified by the recovered capsule alone.
 
 ## Follow-up
 
-Finish the hardware-free ledger and mutation proof, then implement only the
-separate expected-target schema and fail-closed early-entry validator. Keep
-current-boot observation fields distinct. Define and prove architecture commit
-and finalization in later logical patches before constructing another physical
+Commit and push the clean generator definition, then generate, replay, and
+strict-review only the two dormant patches on Buildbox. Keep current-boot
+observation fields distinct. Define and prove architecture commit and
+finalization in later logical patches before constructing another physical
 candidate.
