@@ -136,6 +136,7 @@ def validate_validator(root: Path) -> list[str]:
     require(matcher.count("expected->") == 26,
             "target-local comparison count changed")
     for token in (
+        "/* Pairs with READY publication of late_plan and late_receipt. */",
         "ARM64_LATE_CPU_PROFILE_READY",
         "cpumask_test_cpu(cpu, &late_plan.target_cpus)",
         "cpu != smp_processor_id()",

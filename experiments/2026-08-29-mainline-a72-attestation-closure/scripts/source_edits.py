@@ -160,6 +160,7 @@ int arm64_validate_late_cpu_expected_target(unsigned int cpu)
 	const struct cpuinfo_arm64 *info;
 	unsigned int target;
 
+	/* Pairs with READY publication of late_plan and late_receipt. */
 	if (smp_load_acquire(&late_receipt.state) !=
 	    ARM64_LATE_CPU_PROFILE_READY)
 		return 0;

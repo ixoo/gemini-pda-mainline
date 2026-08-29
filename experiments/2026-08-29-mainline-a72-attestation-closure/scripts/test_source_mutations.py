@@ -49,6 +49,7 @@ def mutations() -> list[tuple[str, Callable[[Path], None]]]:
         ("drop-a32-field", lambda r: replace(r / core, "\t       expected->id_mmfr3 == aarch32->reg_id_mmfr3 &&\n", "")),
         ("accept-mismatch", lambda r: replace(r / core, "? 0 : -ERANGE;", "? 0 : 0;")),
         ("remove-current-cpu-check", lambda r: replace(r / core, "cpu != smp_processor_id() || ", "")),
+        ("remove-ready-acquire-comment", lambda r: replace(r / core, "\t/* Pairs with READY publication of late_plan and late_receipt. */\n", "")),
         ("validator-before-cpuinfo", lambda r: replace(r / smp, "\tcpuinfo_store_cpu();\n\texpectation_ret = arm64_validate_late_cpu_expected_target(cpu);\n", "\texpectation_ret = arm64_validate_late_cpu_expected_target(cpu);\n\tcpuinfo_store_cpu();\n")),
         ("validator-after-notify", lambda r: replace(r / smp, "\texpectation_ret = arm64_validate_late_cpu_expected_target(cpu);\n", "\tnotify_cpu_starting(cpu);\n\texpectation_ret = arm64_validate_late_cpu_expected_target(cpu);\n")),
         ("remove-failure-status", lambda r: replace(r / smp, "\t\tupdate_cpu_boot_status(CPU_STUCK_IN_KERNEL);\n", "")),

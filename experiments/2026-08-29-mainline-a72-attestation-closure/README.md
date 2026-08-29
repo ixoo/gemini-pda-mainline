@@ -184,6 +184,13 @@ inserts the expectation immediately before that structure's runtime binding.
 No patch, retained package, kernel build, candidate, or device action resulted
 from any stopped attempt; every source predicate remains unchanged.
 
+Attempt 4 at signed commit `fec6dbfb` passed both source edits, their positive
+validators, patch generation, and replay, then stopped before packaging because
+strict checkpatch required a comment for the READY-state acquire barrier. The
+generated validator now states that this load pairs with publication of
+`late_plan` and `late_receipt`, and the negative source suite rejects removal
+of that synchronization rationale. No warning is suppressed.
+
 ## Conclusion
 
 `confirmed-reference-only-mapping-and-multi-owner-ready-gap`: the exact CPU8
