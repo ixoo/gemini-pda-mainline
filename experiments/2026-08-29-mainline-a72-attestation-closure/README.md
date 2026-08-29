@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-29-mainline-a72-attestation-closure` |
-| Status | `completed-closure-definition; dormant slices 1-6 admitted and linked cleanly; preflight generator prepared for Buildbox` |
+| Status | `completed-closure-definition; dormant slices 1-6 linked cleanly; slice 7 admitted and source-validated; enabled compile pending` |
 | Subsystem | arm64 late-CPU evidence, capability commitment, and MT6797 A72 entry |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-29 |
@@ -112,6 +112,9 @@ if its current register state differs from the frozen expectation.
 - [`results/conservative-entry-audit-20260829.txt`](results/conservative-entry-audit-20260829.txt):
   exact post-link source audit of conservative GIC/hyp/SMCCC handling,
   address-space owners, and the pre-standard-check serviceability gap.
+- [`results/preflight-generation-20260829.txt`](results/preflight-generation-20260829.txt):
+  exact slice-7 Buildbox attempts, package and patch checksums, 24 rejecting
+  source mutations, byte-identical admission, and canonical-series audit.
 
 ## Procedure
 
@@ -453,6 +456,23 @@ ASID preflight before the standard checks, while retaining every existing
 check afterward. It remains dormant until READY and must not activate the exact
 expected pair or add a CPU request. See the
 [conservative entry audit](results/conservative-entry-audit-20260829.txt).
+
+Logical slice 7 is now canonical patch `0431`. It compares the current late
+target's ASID width without mutation and walks every linked boot-scope
+capability descriptor before the standard panic-shaped verifier. The preflight
+applies only to a complete READY target, parks that target on conflict, and
+retains the standard verifier and later full expected-target validator.
+Assembly granule and VA gates are unchanged. Two stopped Buildbox attempts
+exposed mutation fixtures that changed earlier same-text regions in large
+kernel files; no package was retained. The final suite scopes every
+function-level mutation to its named function. Exact generation at signed
+commit `7e7a401c` passes deterministic replay, strict checkpatch with zero
+findings, positive source validation, all 24 rejecting source mutations, and
+the bounded five-file package checksums. Canonical `0431` is byte-identical to
+that package, and all 158 manifest profiles retain the canonical-series
+invariant. Expected-pair activation, READY publication, CPU requests, candidate
+status, native VM builds, and device actions remain absent. See the
+[preflight generation result](results/preflight-generation-20260829.txt).
 
 The logical-slice-7 generator is now prepared against the exact post-`0430`
 source hashes. Its architecture facade is READY- and target-gated, its ASID

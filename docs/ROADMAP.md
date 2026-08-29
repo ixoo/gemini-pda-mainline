@@ -6251,7 +6251,21 @@ The next ordered work is:
    standard verifier and later full expectation check unchanged, park only the
    target on mismatch, and keep the path dormant until READY. Do not activate
    the expected pair or add READY publication, a CPU request, candidate, or
-   device action in this slice.
+   device action in this slice. Logical slice 7 is now canonical patch `0431`.
+   It walks every linked boot-scope descriptor, checks ASID width without
+   mutation, and parks only a complete READY target before the standard
+   verifier. Exact Buildbox generation at signed commit `7e7a401c` passes
+   deterministic replay, strict style, the positive validator, all 24
+   function-scoped rejecting mutations, byte-identical admission, and the
+   158-profile series invariant. The standard verifier, assembly granule/VA
+   gates, and later full expectation validator remain unchanged. Expected-pair
+   activation, READY publication, CPU requests, candidate status, native VM
+   builds, and device actions remain absent. See the
+   [preflight generation result](../experiments/2026-08-29-mainline-a72-attestation-closure/results/preflight-generation-20260829.txt).
+   **Selected next:** compile the exact canonical `0431` series with the
+   enabled `a72-p30e-wire` profile on Buildbox and inspect linked preflight
+   ordering, symbols, sections, stack frames, and the complete diagnostic set.
+   Do not select a device candidate from source-generation evidence.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

@@ -1,0 +1,156 @@
+From d2e76d07f9b6a369df18958bf03b12ae05d51178 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 29 Aug 2026 23:31:00 +0000
+Subject: [PATCH] arm64: preflight late CPU strict verification
+
+Check the selected late target's ASID width and every linked
+boot-scope capability before the standard panic-shaped verifier.
+Park only a mismatching target, then retain every standard and full
+expected-target check on the successful path.
+
+Activate no expected pair, publish no READY token, and request no CPU.
+---
+ arch/arm64/include/asm/late_cpu_profile.h |  2 ++
+ arch/arm64/include/asm/mmu_context.h      |  1 +
+ arch/arm64/kernel/cpufeature.c            | 26 +++++++++++++++++++++++
+ arch/arm64/kernel/late_cpu_profile.c      | 18 ++++++++++++++++
+ arch/arm64/kernel/smp.c                   |  8 +++++++
+ arch/arm64/mm/context.c                   |  8 +++++++
+ 6 files changed, 63 insertions(+)
+
+diff --git a/arch/arm64/include/asm/late_cpu_profile.h b/arch/arm64/include/asm/late_cpu_profile.h
+index 186091c..1826c56 100644
+--- a/arch/arm64/include/asm/late_cpu_profile.h
++++ b/arch/arm64/include/asm/late_cpu_profile.h
+@@ -570,6 +570,8 @@ int __init
+ arm64_late_cpu_collect_policy(struct arm64_late_cpu_target_policy_evidence *policy,
+ 			      struct arm64_late_cpu_system_cap_evidence *system);
+ bool arm64_late_cpu_expected_pair_complete(const struct arm64_late_cpu_plan *plan);
++int arm64_late_cpu_validate_boot_caps(void);
++int arm64_validate_late_cpu_preflight(unsigned int cpu);
+ int arm64_validate_late_cpu_expected_target(unsigned int cpu);
+ void __init arm64_seal_late_cpu_runtime_evidence(void);
+ void __init arm64_prepare_late_cpu_profile(void);
+diff --git a/arch/arm64/include/asm/mmu_context.h b/arch/arm64/include/asm/mmu_context.h
+index 803b687..15032df 100644
+--- a/arch/arm64/include/asm/mmu_context.h
++++ b/arch/arm64/include/asm/mmu_context.h
+@@ -284,6 +284,7 @@ task_cpu_possible_mask(struct task_struct *p)
+ 
+ const struct cpumask *task_cpu_fallback_mask(struct task_struct *p);
+ 
++bool arm64_late_cpu_asid_compatible(void);
+ void verify_cpu_asid_bits(void);
+ void post_ttbr_update_workaround(void);
+ 
+diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+index 172d84e..c5bf8f7 100644
+--- a/arch/arm64/kernel/cpufeature.c
++++ b/arch/arm64/kernel/cpufeature.c
+@@ -4966,6 +4966,32 @@ static void __init enable_cpu_capabilities(u16 scope_mask)
+ 			     NULL, cpu_online_mask);
+ }
+ 
++int arm64_late_cpu_validate_boot_caps(void)
++{
++	const struct arm64_cpu_capabilities *caps;
++	bool cpu_has_cap;
++	bool system_has_cap;
++	int i;
++
++	for (i = 0; i < ARM64_NCAPS; i++) {
++		caps = cpucap_ptrs[i];
++		if (!caps || !(caps->type & SCOPE_BOOT_CPU))
++			continue;
++
++		/* Match callbacks perform the same CPU-local discovery as verify. */
++		cpu_has_cap = caps->matches(caps, SCOPE_LOCAL_CPU);
++		system_has_cap = cpus_have_cap(caps->capability);
++		if (system_has_cap) {
++			if (!cpu_has_cap && !cpucap_late_cpu_optional(caps))
++				return -ERANGE;
++		} else if (cpu_has_cap && !cpucap_late_cpu_permitted(caps)) {
++			return -ERANGE;
++		}
++	}
++
++	return 0;
++}
++
+ /*
+  * Run through the list of capabilities to check for conflicts.
+  * If the system has already detected a capability, take necessary
+diff --git a/arch/arm64/kernel/late_cpu_profile.c b/arch/arm64/kernel/late_cpu_profile.c
+index 05dcd4d..4bbd319 100644
+--- a/arch/arm64/kernel/late_cpu_profile.c
++++ b/arch/arm64/kernel/late_cpu_profile.c
+@@ -25,6 +25,7 @@
+ #include <asm/cpufeature.h>
+ #include <asm/cputype.h>
+ #include <asm/late_cpu_profile.h>
++#include <asm/mmu_context.h>
+ #include <asm/sysreg.h>
+ 
+ static struct arm64_late_cpu_profile late_profile __initdata;
+@@ -1726,6 +1727,23 @@ arm64_late_cpu_expected_pair_complete(const struct arm64_late_cpu_plan *plan)
+ 	return true;
+ }
+ 
++int arm64_validate_late_cpu_preflight(unsigned int cpu)
++{
++	/* Pairs with READY publication of late_plan and late_receipt. */
++	if (smp_load_acquire(&late_receipt.state) !=
++	    ARM64_LATE_CPU_PROFILE_READY)
++		return 0;
++	if (!cpumask_test_cpu(cpu, &late_plan.target_cpus))
++		return 0;
++	if (cpu != smp_processor_id() ||
++	    !arm64_late_cpu_expected_pair_complete(&late_plan))
++		return -EINVAL;
++	if (!arm64_late_cpu_asid_compatible())
++		return -ERANGE;
++
++	return arm64_late_cpu_validate_boot_caps();
++}
++
+ static bool
+ late_expected_target_matches(const struct arm64_late_cpu_expected_pair *expected,
+ 			     unsigned int target,
+diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
+index 4348e05..a79e831 100644
+--- a/arch/arm64/kernel/smp.c
++++ b/arch/arm64/kernel/smp.c
+@@ -319,6 +319,14 @@ asmlinkage notrace void secondary_start_kernel(void)
+ 	rcutree_report_cpu_starting(cpu);
+ 	trace_hardirqs_off();
+ 
++	expectation_ret = arm64_validate_late_cpu_preflight(cpu);
++	if (expectation_ret) {
++		pr_crit("CPU%u: late target preflight mismatch: %d\n",
++			cpu, expectation_ret);
++		update_cpu_boot_status(CPU_STUCK_IN_KERNEL);
++		cpu_park_loop();
++	}
++
+ 	/*
+ 	 * If the system has established the capabilities, make sure
+ 	 * this CPU ticks all of those. If it doesn't, the CPU will
+diff --git a/arch/arm64/mm/context.c b/arch/arm64/mm/context.c
+index 0f4a28b..4659086 100644
+--- a/arch/arm64/mm/context.c
++++ b/arch/arm64/mm/context.c
+@@ -60,6 +60,14 @@ static u32 get_cpu_asid_bits(void)
+ 	return asid;
+ }
+ 
++bool arm64_late_cpu_asid_compatible(void)
++{
++	u32 system_asid_bits = READ_ONCE(asid_bits);
++
++	return system_asid_bits &&
++	       get_cpu_asid_bits() >= system_asid_bits;
++}
++
+ /* Check if the current cpu's ASIDBits is compatible with asid_bits */
+ void verify_cpu_asid_bits(void)
+ {
