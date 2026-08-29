@@ -34,6 +34,17 @@ def replace(path: Path, old: str, new: str) -> None:
     path.write_text(text.replace(old, new, 1))
 
 
+def replace_in_function(
+    path: Path, signature: str, old: str, new: str
+) -> None:
+    text = path.read_text()
+    body = VALIDATE.function(text, signature)
+    if old not in body:
+        raise AssertionError(f"function mutation anchor absent: {old}")
+    mutated = body.replace(old, new, 1)
+    path.write_text(text.replace(body, mutated, 1))
+
+
 def mutations() -> list[tuple[str, Callable[[Path], None]]]:
     late_header = Path("arch/arm64/include/asm/late_cpu_profile.h")
     cpufeature = Path("arch/arm64/kernel/cpufeature.c")
@@ -79,8 +90,9 @@ def mutations() -> list[tuple[str, Callable[[Path], None]]]:
             r / context,
             "\tu32 system_asid_bits = READ_ONCE(asid_bits);\n",
             "\tu32 system_asid_bits = ++asid_bits;\n")),
-        ("skip-last-boot-cap", lambda r: replace(
+        ("skip-last-boot-cap", lambda r: replace_in_function(
             r / cpufeature,
+            "arm64_late_cpu_validate_boot_caps(",
             "for (i = 0; i < ARM64_NCAPS; i++)",
             "for (i = 0; i < ARM64_NCAPS - 1; i++)")),
         ("scan-local-not-boot", lambda r: replace(
