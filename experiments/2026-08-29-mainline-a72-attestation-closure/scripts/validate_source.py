@@ -20,10 +20,16 @@ def require(condition: bool, message: str) -> None:
 
 
 def function(text: str, signature: str) -> str:
-    start = text.find(signature)
-    require(start >= 0, f"function absent: {signature}")
-    opening = text.find("{", start)
-    require(opening >= 0, f"function body absent: {signature}")
+    search = 0
+    while True:
+        start = text.find(signature, search)
+        require(start >= 0, f"function absent: {signature}")
+        opening = text.find("{", start)
+        require(opening >= 0, f"function body absent: {signature}")
+        terminator = text.find(";", start)
+        if terminator < 0 or opening < terminator:
+            break
+        search = start + len(signature)
     depth = 0
     for index in range(opening, len(text)):
         if text[index] == "{":
