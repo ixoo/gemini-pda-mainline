@@ -118,9 +118,12 @@ def mutations() -> list[tuple[str, Callable[[Path], None]]]:
             "ARM64_LATE_CPU_PROFILE_READY);")),
         ("add-cpu-request", lambda r: replace(
             r / cpufeature,
-            "\treturn 0;\n}\n\n#endif\n\nstatic void cap_set_elf_hwcap",
-            "\t/* cpu_up(8) */\n\treturn 0;\n}\n\n#endif\n\n"
-            "static void cap_set_elf_hwcap")),
+            "\tif (!bitmap_equal(system_cpucaps, expected_caps, ARM64_NCAPS))\n"
+            "\t\tpanic(\"late CPU capability commit changed outside its plan\");\n\n"
+            "\treturn 0;\n",
+            "\tif (!bitmap_equal(system_cpucaps, expected_caps, ARM64_NCAPS))\n"
+            "\t\tpanic(\"late CPU capability commit changed outside its plan\");\n\n"
+            "\t/* cpu_up(8) */\n\treturn 0;\n")),
         ("make-production-profile-succeed", lambda r: replace(
             r / profile,
             "\t/* No live system capability, alternative, vector, or HWCAP is changed. */\n"
