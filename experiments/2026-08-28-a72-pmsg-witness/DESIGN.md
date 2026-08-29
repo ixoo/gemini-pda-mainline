@@ -62,8 +62,11 @@ Console and USB may corroborate but cannot repair a malformed pmsg sequence.
 
 Generation must reconstruct the exact parent from public Git inputs, verify all
 four parent file hashes, apply only the deterministic child, reverse it exactly,
-and emit one patch. Buildbox must compare the child with that exact parent and
-prove the config and inherited diagnostics identical.
+and emit one patch. Strict style uses pinned Linux 7.1.3 checkpatch because the
+exact Gemian 3.18 script cannot run under current Perl; only
+`MISSING_SIGN_OFF` is ignored for the explicitly non-submission-ready synthetic
+archive. Buildbox must compare the child with that exact parent and prove the
+config and inherited diagnostics identical.
 
 Before any physical boot, a parser must validate raw binary pmsg while treating
 all surrounding Android records as untrusted bytes. The installer remains

@@ -79,8 +79,14 @@ preservation, forbidden-action inventory, and negative mutations pass.
 
 ## Observations
 
-Definition work only. No kernel build, boot image, device access, retained-RAM
-write, or hardware action has occurred.
+Definition work only. Generation attempt 1 reconstructed and validated the
+exact parent and child, then stopped before packaging because Gemian 3.18's
+historical checkpatch contains regular expressions rejected by current Perl.
+This is the same known tool incompatibility encountered by the exact parent.
+The lane now pins Linux 7.1.3 checkpatch SHA-256 `e34bf5ce...`, runs it with
+`--no-tree --strict`, and ignores only the intentionally absent synthetic
+signoff. No kernel build, boot image, device access, retained-RAM write, or
+hardware action has occurred.
 
 ## Analysis
 

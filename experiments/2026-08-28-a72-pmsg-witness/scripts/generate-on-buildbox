@@ -7,6 +7,8 @@ readonly SOURCE_COMMIT=59e00a9144d782e148332009a835b99c43382467
 readonly SOURCE_URL=https://github.com/gemian/gemini-linux-kernel-3.18.git
 readonly PARENT_REGISTER_PATCHSET_SHA256=71ef281aae8d0b99d0421b81bd3d61d82ab090125c4885977ba39d8280838469
 readonly GENERATED_PATCH=0001-diagnostic-add-same-version-pmsg-witness.patch
+readonly CHECKPATCH=/workspace/gemini-pda/src/linux-7.1.3/scripts/checkpatch.pl
+readonly CHECKPATCH_SHA256=e34bf5cec12c1a208b601cd863dd17536710a68e3f11c6e0d4fb4bf72243902e
 
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 [[ "$#" -eq 3 ]] || die 'expected PROJECT_COMMIT SOURCE_ROOT OUTPUT_ROOT'
@@ -26,6 +28,10 @@ for command in awk cmp cp diff find git grep mkdir mktemp mv perl python3 rm \
   sha256sum sort xargs; do
   command -v "$command" >/dev/null || die "missing command: $command"
 done
+[[ -f "$CHECKPATCH" && ! -L "$CHECKPATCH" ]] || \
+  die 'pinned Linux 7.1.3 checkpatch is unavailable'
+[[ "$(sha256sum "$CHECKPATCH" | awk '{print $1}')" == \
+  "$CHECKPATCH_SHA256" ]] || die 'pinned checkpatch identity changed'
 
 readonly mirror="$source_root/gemian-linux-kernel-3.18.git"
 readonly work_root=/workspace/gemini-pda/a72-pmsg-witness-work
@@ -155,7 +161,7 @@ git -C "$work/source" diff-tree --no-commit-id --name-only -r HEAD \
 python3 "$script_dir/test_witness_child.py" \
   --source "$work/source" --parent-root "$work/parent-root" \
   >"$partial/provenance/validation.txt"
-perl "$work/source/scripts/checkpatch.pl" --strict \
+perl "$CHECKPATCH" --no-tree --strict --ignore MISSING_SIGN_OFF \
   "$partial/patches/$GENERATED_PATCH" \
   >"$partial/provenance/checkpatch.txt"
 [[ -z "$(git -C "$work/source" status --porcelain)" ]] || \
@@ -173,6 +179,8 @@ parent_register_patchset_sha256=$register_patchset_sha
 generated_source_commit=$generated_source_commit
 generated_patch=$GENERATED_PATCH
 generated_patch_sha256=$generated_patch_sha
+checkpatch_sha256=$CHECKPATCH_SHA256
+checkpatch_args=--no-tree,--strict,--ignore=MISSING_SIGN_OFF
 generated_patch_count=1
 changed_path_count=4
 pmsg_backend=ramoops-only
