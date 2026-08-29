@@ -1,0 +1,165 @@
+Mainline A72 conservative pre-entry ownership audit
+UTC date: 2026-08-29
+Repository commit: be2a855a483fcde18a07190013754c8e49ba2988
+Mode: read-only exact-source audit
+Build: none
+Candidate: none
+Device action: none
+
+Scope
+-----
+
+This audit follows the linked logical-slice-6 result through the remaining
+GIC, hyp, SMCCC, address-space, and unavailable modern-ID decisions. It asks
+which decisions can be made conservatively before a target executes and which
+current-target checks must run before the existing panic-shaped verifiers.
+It did not modify kernel source, build a kernel, activate an expected pair,
+publish READY, request a CPU, construct a candidate, or contact the device.
+
+Exact source
+------------
+
+Buildbox prepared source:
+  /workspace/gemini-pda/src/linux-7.1.3-series-source
+Source state:
+  676d86f8bc4a154fa47c0e6ac1cc87272a6c22f3e476529db3ab02b8581728d6
+Enabled-profile config SHA-256:
+  28ebd7ae9927b387e68f710837a11ce802c3b0c27a70b6da4d818ab29ea79071
+Relevant enabled options:
+  CONFIG_ARM64_4K_PAGES=y
+  CONFIG_ARM64_VA_BITS_52=y
+  CONFIG_ARM64_LPA2=y
+  CONFIG_ARM64_MTE=y
+  CONFIG_ARM64_BTI=y
+  CONFIG_ARM64_PSEUDO_NMI is not set
+
+Exact source SHA-256:
+  2c803eb808c7232e329f7f9648915aab8cf2a3729b2a36ab515a81cf6915bf02  arch/arm64/include/asm/late_cpu_profile.h
+  157775edf50fc8cad6aa43e37834dfd0917f6abf58bd60e6ebbed28751663444  arch/arm64/kernel/late_cpu_profile.c
+  ff8e4ce803d0ad4a5fc35989a3d38169a3e7260bd737e861317b22f1ca8f5471  arch/arm64/kernel/mt6797_psci.c
+  12ee7c76dd34c7c016e33c19a11837c4163585e685e5d8d6fa4ec675c3ec0bbe  arch/arm64/kernel/cpufeature.c
+  09de56a67c4e5e42847c11ee2d4da0d675aa6309815ffae221a4987b66e4e427  arch/arm64/kernel/proton-pack.c
+  7ef1d82e3dcb3b255ed3bb48f584cc78b090ccc52f9ef1b425c03c29274963c7  arch/arm64/kernel/cpu_errata.c
+  b0c25f67b5f7957edd2fc04a566789b4cf4fb745704bd6464f1c157c926ded67  arch/arm64/kernel/smp.c
+  17dac1b2a499bb21f8a0e160aff9fd9fd24343c0f6d0dc12a4f4cbafb99d0749  arch/arm64/kernel/head.S
+  123d80b2ad9c37b6e9b58296c217744747c87f483cfbc424a1f4695a64cb9728  arch/arm64/mm/context.c
+
+Findings
+--------
+
+1. The current expected-target validator is correctly after
+   cpuinfo_store_cpu(), but check_local_cpu_capabilities() runs first. Its
+   check_early_cpu_features() calls verify_cpu_asid_bits() and then verifies
+   every boot-scope capability. A smaller ASID width calls cpu_panic_kernel().
+   A strict boot-capability conflict does the same. The boot CPU converts the
+   resulting CPU_PANIC_KERNEL status into a kernel panic. The later expectation
+   validator therefore cannot protect serviceability from either mismatch.
+
+2. The address-space gates are not all missing owners. Before enabling the
+   target MMU, __enable_mmu checks the configured translation granule and parks
+   the target with CPU_STUCK_REASON_NO_GRAN. When the finalized system uses
+   52-bit VA, __cpu_secondary_check52bitva checks the required LPA2/VA field and
+   parks with CPU_STUCK_REASON_52_BIT_VA. The exact profile uses 4 KiB pages,
+   VA_BITS_52, and LPA2, so these linked assembly gates own the granule and VA
+   failure paths. They do not panic or continue ordinary secondary startup.
+
+3. ASID width still needs an earlier target-scoped owner. The existing
+   get_cpu_asid_bits() and initialized system asid_bits contain the complete
+   compatibility predicate: target width must be at least the system width.
+   A non-mutating arm64 helper can evaluate that predicate before
+   check_local_cpu_capabilities(). A failure must set CPU_STUCK_IN_KERNEL and
+   park only the target; the standard verifier remains unchanged and repeats
+   the check after a successful preflight.
+
+4. Strict boot capabilities need the same ordering repair. The architecture
+   already has one canonical descriptor table and exact optional/permitted
+   conflict semantics. A target-scoped preflight can iterate every linked
+   boot-scope descriptor, evaluate its local match, compare it with the frozen
+   system bit, and return an error for exactly the conflicts that the standard
+   verifier would panic on. It must not call cpu_enable(), update any system
+   capability, or replace the standard verifier. This covers current and
+   future compiled strict descriptors without a fragile MT6797 list, including
+   GICv3 usability, VHE, MTE, and the unmeasured GICv5 PFR2 field.
+
+5. The two remaining early-local GIC/hyp capabilities do not require invented
+   target observations when their early-system bits are absent.
+   ARM64_HAS_GICV5_LEGACY and ARM64_HAS_ICH_HCR_EL2_TDIR are explicitly
+   PERMITTED_FOR_LATE_CPU: a target may have either while an early system that
+   lacks it leaves it unused. The current-system producer must canonically
+   record those two early-system bits. An absent bit permits a conservative
+   ABSENT target plan; a present bit remains unresolved because the expected
+   pair lacks the required target controller state.
+
+6. The exact expected PFR0 has CSV2 zero and expected PFR1 has SSBS zero.
+   Unknown target WA1 and WA2 outcomes can therefore be removed as planning
+   dependencies by choosing the worst state: classify Spectre-v2 and
+   Spectre-v4 present and commit VULNERABLE with no firmware conduit or
+   callback. update_mitigation_state() only objects when a late CPU would make
+   the system worse; a precommitted VULNERABLE state cannot be worsened by the
+   target's later current result. A stronger current result may install a
+   local mitigation but cannot invalidate the conservative receipt.
+
+7. With the conservative Spectre-v2 state already VULNERABLE, the existing BHB
+   policy deliberately applies no independent BHB mitigation. The BHB result
+   is therefore VULNERABLE with no method; it does not consume the unmeasured
+   CLRBHB field or WA3. If a later slice proves a mitigated v2 target, the exact
+   Cortex-A72 k=8 software loop is the conservative fallback before WA3, but
+   that stronger branch is not needed for the first closed contract.
+
+8. The 23 unavailable modern register-image fields remain unavailable. Slice
+   6 already omits every HWCAP whose target field is missing. The standard
+   current-target ELF-HWCAP verifier runs before cpuinfo_store_cpu() and parks
+   a target that lacks any final advertised HWCAP. No zero-filled expected
+   field, coarse ID_REGS_VALID claim, or new prior-cycle measurement is needed.
+
+Decision
+--------
+
+classification=confirmed-conservative-contract-with-preflight-ordering-gap
+
+The remaining boundary does not require another device measurement. It needs
+two source-only slices before expected-pair activation:
+
+1. Add an architecture-owned late-target preflight before
+   check_local_cpu_capabilities(). It must reuse the complete linked boot-scope
+   descriptor set and the existing ASID-width owner, return without action for
+   non-target or non-READY CPUs, park a mismatching target, and leave the
+   standard checks unchanged. The existing assembly granule and VA gates stay
+   unchanged.
+2. Move GIC/hyp planning to canonical current-system early-cap bits and move
+   Spectre-v2/v4/BHB planning and effects to the field-valid expected pair plus
+   the conservative worst-case policy above. Unavailable modern IDs remain
+   omissions. Keep a present early GIC/hyp state unresolved.
+
+Only after both slices pass exact generation, rejecting mutations, enabled
+Buildbox linkage, section, stack, call-order, and diagnostic inspection may a
+separate slice activate the named-device expected pair and reassess the exact
+remaining blocker mask. That later reassessment is still not a CPU request or
+device candidate.
+
+Required logical-slice-7 gates
+------------------------------
+
+- exact post-0430 source hashes and deterministic Buildbox generation;
+- a generic boot-scope descriptor walk, not an MT6797 capability allowlist;
+- a non-mutating ASID comparison against the initialized system width;
+- READY and target-membership gating before any preflight result applies;
+- preflight call order before check_local_cpu_capabilities(), with the existing
+  standard check, cpu_postboot, cpuinfo storage, and full expectation validator
+  retained in their current order;
+- target-only CPU_STUCK_IN_KERNEL parking on mismatch, with no kernel panic,
+  CPU_OFF, retry, online continuation, or state mutation;
+- rejecting mutations for skipped descriptors, changed conflict semantics,
+  cpu_enable calls, moved ordering, non-target application, fail-open return,
+  weakened READY gating, altered assembly granule/VA gates, expected-pair
+  activation, READY publication, or a CPU request;
+- strict checkpatch, deterministic replay, canonical-series validation for all
+  manifest profiles, and exact enabled-profile Buildbox compile before any
+  later blocker or activation decision.
+
+Next action
+-----------
+
+Implement the logical-slice-7 preflight generator and its positive and
+rejecting source validators. It is a dormant safety prerequisite, not a boot
+candidate, and must not activate the expected pair or add a CPU request.

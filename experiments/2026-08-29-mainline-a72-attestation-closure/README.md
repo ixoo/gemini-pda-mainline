@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-29-mainline-a72-attestation-closure` |
-| Status | `completed-closure-definition; dormant slices 1-6 admitted and linked cleanly; conservative entry-constraint audit pending` |
+| Status | `completed-closure-definition; dormant slices 1-6 admitted and linked cleanly; preflight-guard generation pending` |
 | Subsystem | arm64 late-CPU evidence, capability commitment, and MT6797 A72 entry |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-29 |
@@ -99,6 +99,9 @@ if its current register state differs from the frozen expectation.
 - [`results/expectation-compile-20260829.txt`](results/expectation-compile-20260829.txt):
   exact enabled-profile Buildbox package, linked expected-field cache/HWCAP
   call graph, sections, stack frames, and unchanged-diagnostic comparison.
+- [`results/conservative-entry-audit-20260829.txt`](results/conservative-entry-audit-20260829.txt):
+  exact post-link source audit of conservative GIC/hyp/SMCCC handling,
+  address-space owners, and the pre-standard-check serviceability gap.
 
 ## Procedure
 
@@ -422,15 +425,24 @@ unresolved. READY, CPU requests, candidate status, hardware writes, and device
 actions remain absent. See the
 [expectation compile result](results/expectation-compile-20260829.txt).
 
-The linked result also resolves the measurement-versus-policy choice. Another
-prior-cycle target measurement can refine an expectation, but it cannot become
-a current-mainline pre-request observation: the target does not execute until
-after READY. The next decision-bearing work is therefore a source-only audit
-of conservative GIC/hyp/SMCCC and modern-ID entry constraints. Each accepted
-constraint must be safe before target execution and paired with a fail-closed
-current-target check before ordinary secondary startup. Do not activate the
-exact expected pair, publish READY, or construct a physical candidate until
-that ownership audit closes.
+The post-link ownership audit resolves the measurement-versus-policy choice.
+Another prior-cycle target measurement can refine an expectation, but it
+cannot become a current-mainline pre-request observation. GICv5 legacy and ICH
+TDIR can be planned absent when the finalized early system does not use them;
+a late CPU is explicitly permitted to have those unused features. Unknown WA1
+and WA2 outcomes can be planned as the worst Spectre state—vulnerable, with no
+firmware callback—and BHB remains vulnerable when v2 is vulnerable. Missing
+modern-ID fields remain HWCAP omissions.
+
+The audit also finds one ordering prerequisite. The full expected-target check
+runs after `check_local_cpu_capabilities()`, so it cannot prevent the existing
+whole-kernel panic path for a smaller ASID width or a strict boot-capability
+conflict. Page-granule and 52-bit-VA mismatches already park safely in assembly.
+Logical slice 7 must therefore add a generic target-only boot-capability and
+ASID preflight before the standard checks, while retaining every existing
+check afterward. It remains dormant until READY and must not activate the exact
+expected pair or add a CPU request. See the
+[conservative entry audit](results/conservative-entry-audit-20260829.txt).
 
 ## Conclusion
 
@@ -443,8 +455,8 @@ dormant architecture commit/receipt are now reproducibly generated, admitted,
 and linked. Pre-request expected-target planning separation is now reproducibly
 generated, admitted, and linked. Conservative entry constraints,
 expected-contract activation, alternatives/HWCAP finalization, READY, and
-physical admission remain open. No
-CPU request is justified by the recovered capsule alone.
+physical admission remain open. No CPU request is justified by the recovered
+capsule alone.
 
 ## Follow-up
 

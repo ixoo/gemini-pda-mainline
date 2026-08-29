@@ -6239,13 +6239,19 @@ The next ordered work is:
    the prior enabled-profile baseline. Production still has no active expected
    pair and fails closed before READY. The linked result also confirms that
    another prior-cycle measurement cannot supply a current pre-request value:
-   CPU8 cannot execute until after READY. **Selected next:** audit one
-   architecture-owned conservative pre-entry contract for the remaining
-   GIC/hyp, CPU-local SMCCC workaround, and unavailable modern-ID inputs. Every
-   accepted pre-request assumption must have a safe conservative system effect
-   and a matching fail-closed target-entry check. Keep the expected pair
-   inactive and add no READY publication, CPU request, candidate, or device
-   action until that audit proves the contract is complete.
+   CPU8 cannot execute until after READY. The conservative-entry audit now
+   assigns safe owners to the remaining classes: unused late-permitted GIC/hyp
+   features can remain absent from the system plan, unknown firmware workaround
+   outcomes select vulnerable/no-callback effects, unavailable modern IDs omit
+   HWCAPs, and existing assembly parks granule or active-VA52 mismatches. It
+   also finds one prerequisite: the full expectation check is too late to stop
+   the existing panic path for ASID or strict boot-capability conflicts.
+   **Selected next:** implement logical slice 7 as a generic target-only ASID
+   and boot-scope capability preflight before the standard verifier. Retain the
+   standard verifier and later full expectation check unchanged, park only the
+   target on mismatch, and keep the path dormant until READY. Do not activate
+   the expected pair or add READY publication, a CPU request, candidate, or
+   device action in this slice.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
