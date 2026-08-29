@@ -40,8 +40,11 @@ the loop. Positive identity-gated observations are unaffected.
   prepare-stack frame. Follow-up `0426` moves only the 1,392-byte evidence and
   1,832-byte draft workspaces to reset `__initdata`; exact generation passes
   strict style, replay, 20 rejecting mutations, and the 158-profile series
-  invariant. Its clean linked rebuild remains pending. No device action,
-  active expectation, READY publication, or CPU request occurred.
+  invariant. The clean linked rebuild passes package checksums with the three
+  required options enabled, a direct validator call after CPU-info capture,
+  an 80-byte prepare stack allocation, and neither repaired diagnostic. No
+  device action, active expectation, READY publication, or CPU request
+  occurred; current-mainline system/policy evidence is the next owner slice.
 - [2026-08-28 CPU8/CPU9 target-register capsule](2026-08-28-a72-target-register-capsule/README.md)
   — admits a capture-only child of the exact repeatable Gemian scheduler
   parent. Each already-bound target task reads one fixed architectural register

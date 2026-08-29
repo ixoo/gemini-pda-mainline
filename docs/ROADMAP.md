@@ -6119,16 +6119,24 @@ The next ordered work is:
    1,832-byte draft were both automatic locals. Generated follow-up `0426`
    moves only those one-shot workspaces to reset `__initdata`, preserves
    publication, and passes exact checksums, strict style, replay, 20 rejecting
-   source mutations, and the 158-profile invariant. All four patches remain
-   dormant: no expected-pair producer, READY path, CPU request, candidate, or
-   device action was added. **Selected next:** rebuild the
-   configuration-enabled profile only through Buildbox; require the prior
-   section mismatch and new prepare-stack warning both absent, then record the
-   linked entry call, prepare-stack bound, and configuration evidence. A
-   successful compile is not READY: the
-   current-system/policy producer, architecture commit, alternatives
-   verification, and user-HWCAP finalization remain separate later gates
-   before any physical candidate.
+   source mutations, and the 158-profile invariant. The exact
+   configuration-enabled rebuild at signed commit `e71ed352` passes fetched
+   package checksums with all three required options enabled. Its linked
+   secondary path directly calls the validator after CPU-info capture, the
+   prepare function allocates only 80 bytes of stack, and neither repaired
+   diagnostic remains. The unchanged older membership-frame and CPU-hotplug
+   inventory warnings are not evidence from these patches. All four patches
+   remain dormant: no expected-pair producer, READY path, CPU request,
+   candidate, or device action was added. **Selected next:** implement logical
+   slice 3 only: current-mainline system and policy evidence producers with
+   exact identities and negative mutations. The arm64 producer must own
+   boot-CPU/system feature state, SMCCC conduit, mitigation command-line
+   policy, ASID/granule/VA, and the other ledger-mapped current-boot inputs;
+   the MT6797 profile may contribute immutable board expectations but may not
+   import Gemian runtime policy. Keep the planner extension, architecture
+   commit, alternatives/HWCAP finalization, READY publication, and every CPU
+   request in later separately reviewed slices. A successful compile is not
+   READY, and no physical candidate is permitted yet.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-29-mainline-a72-attestation-closure` |
-| Status | `completed-closure-definition; dormant source admitted; linked compile exposed and repaired section and prepare-stack defects; rebuild pending` |
+| Status | `completed-closure-definition; dormant source admitted; section and prepare-stack repairs linked cleanly; current-system/policy slice pending` |
 | Subsystem | arm64 late-CPU evidence, capability commitment, and MT6797 A72 entry |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-29 |
@@ -87,6 +87,9 @@ if its current register state differs from the frozen expectation.
 - [`results/stack-fix-generation-20260829.txt`](results/stack-fix-generation-20260829.txt):
   exact linked-build prepare-stack warning and the generated init-only-storage
   follow-up, including 20 rejected source mutations and canonical-series audit.
+- [`results/compile-validation-20260829.txt`](results/compile-validation-20260829.txt):
+  configuration-off control, both rejected linked attempts, and the final
+  configuration-enabled linked binary/configuration/stack proof.
 
 ## Procedure
 
@@ -239,9 +242,20 @@ the 158-profile series invariant. It adds no expectation producer, READY
 publication, architecture commit, CPU request, or device path. See the
 [prepare-stack result](results/stack-fix-generation-20260829.txt).
 
+The exact `a72-p30e-wire` rebuild at signed commit `e71ed352` passes artifact
+and fetched-package checksums with 415 patches and all three required late-CPU
+configuration options enabled. The linked `secondary_start_kernel()` directly
+calls `arm64_validate_late_cpu_expected_target()` after
+`cpuinfo_store_cpu()`. `arm64_prepare_late_cpu_profile()` now allocates only
+80 bytes of stack, and neither the section mismatch nor its former 3,232-byte
+frame warning appears in the complete Buildbox log. The two older unrelated
+warnings are unchanged. This validates dormant linkage, not READY or hardware
+support; the package is not a boot candidate. See the
+[compile validation](results/compile-validation-20260829.txt).
+
 ## Conclusion
 
-`confirmed-reference-only-mapping-and-dormant-validator-integration-fixes-admitted-rebuild-pending`: the exact
+`confirmed-reference-only-mapping-and-dormant-validator-linked-next-owner-gate`: the exact
 CPU8 and CPU9 vectors map cleanly as prior-cycle target expectations, but not
 as a complete ABI-7 runtime-evidence record. The dormant schema and fail-closed
 entry validator and their section/stack integration repairs are now
