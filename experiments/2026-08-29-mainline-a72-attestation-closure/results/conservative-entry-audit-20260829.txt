@@ -76,10 +76,12 @@ Findings
    conflict semantics. A target-scoped preflight can iterate every linked
    boot-scope descriptor, evaluate its local match, compare it with the frozen
    system bit, and return an error for exactly the conflicts that the standard
-   verifier would panic on. It must not call cpu_enable(), update any system
-   capability, or replace the standard verifier. This covers current and
-   future compiled strict descriptors without a fragile MT6797 list, including
-   GICv3 usability, VHE, MTE, and the unmeasured GICv5 PFR2 field.
+   verifier would panic on. Descriptor match callbacks may perform the same
+   CPU-local discovery as the standard verifier, including the GICv3 SRE
+   enable/check. The preflight itself must not call cpu_enable(), update any
+   system capability, or replace the standard verifier. This covers current
+   and future compiled strict descriptors without a fragile MT6797 list,
+   including GICv3 usability, VHE, MTE, and the unmeasured GICv5 PFR2 field.
 
 5. The two remaining early-local GIC/hyp capabilities do not require invented
    target observations when their early-system bits are absent.
@@ -148,7 +150,9 @@ Required logical-slice-7 gates
   standard check, cpu_postboot, cpuinfo storage, and full expectation validator
   retained in their current order;
 - target-only CPU_STUCK_IN_KERNEL parking on mismatch, with no kernel panic,
-  CPU_OFF, retry, online continuation, or state mutation;
+  CPU_OFF, retry, online continuation, system-capability mutation, or explicit
+  cpu_enable action; descriptor match callbacks retain their standard
+  CPU-local discovery semantics;
 - rejecting mutations for skipped descriptors, changed conflict semantics,
   cpu_enable calls, moved ordering, non-target application, fail-open return,
   weakened READY gating, altered assembly granule/VA gates, expected-pair

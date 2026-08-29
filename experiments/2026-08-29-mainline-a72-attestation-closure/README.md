@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-29-mainline-a72-attestation-closure` |
-| Status | `completed-closure-definition; dormant slices 1-6 admitted and linked cleanly; preflight-guard generation pending` |
+| Status | `completed-closure-definition; dormant slices 1-6 admitted and linked cleanly; preflight generator prepared for Buildbox` |
 | Subsystem | arm64 late-CPU evidence, capability commitment, and MT6797 A72 entry |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-29 |
@@ -75,6 +75,16 @@ if its current register state differs from the frozen expectation.
   staged synthetic-author, non-submission-ready format patches and isolated
   integration fixes from exact Git inputs and the managed prepared source;
   they do not build a kernel.
+- [`scripts/preflight_edits.py`](scripts/preflight_edits.py),
+  [`scripts/validate_preflight_source.py`](scripts/validate_preflight_source.py),
+  and [`scripts/test_preflight_mutations.py`](scripts/test_preflight_mutations.py):
+  deterministic logical-slice-7 edits, positive source validation, and
+  rejecting mutations for the target-only strict-verification preflight.
+- [`scripts/generate_preflight_patch.py`](scripts/generate_preflight_patch.py)
+  and
+  [`scripts/generate-preflight-on-buildbox`](scripts/generate-preflight-on-buildbox):
+  exact post-`0430` Buildbox generation, strict style, replay, and bounded
+  source-only package workflow for logical slice 7.
 - [`results/definition-validation-20260829.txt`](results/definition-validation-20260829.txt):
   exact source hashes, field-consumer audit, positive validation, and 21
   rejected unsafe mutations.
@@ -443,6 +453,19 @@ ASID preflight before the standard checks, while retaining every existing
 check afterward. It remains dormant until READY and must not activate the exact
 expected pair or add a CPU request. See the
 [conservative entry audit](results/conservative-entry-audit-20260829.txt).
+
+The logical-slice-7 generator is now prepared against the exact post-`0430`
+source hashes. Its architecture facade is READY- and target-gated, its ASID
+predicate is non-mutating, and its generic boot-scope walk uses the existing
+descriptor match and optional/permitted semantics without calling
+`cpu_enable()` or changing a system capability. The secondary call site parks
+on failure before the standard verifier, then retains the standard verifier,
+CPU postboot, CPU-info storage, and full expected-target check on the success
+path. Descriptor match callbacks intentionally retain the same CPU-local
+discovery semantics as the standard verifier. Local Python syntax, `bash -n`,
+ShellCheck, and `git diff --check` pass. Exact Buildbox generation, rejecting
+source mutations, replay, and strict style remain pending; there is no patch,
+kernel build, candidate, or device action yet.
 
 ## Conclusion
 
