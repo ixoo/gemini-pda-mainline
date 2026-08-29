@@ -322,7 +322,8 @@ def apply(root: Path) -> None:
         "const struct arm64_cpu_capabilities *cap,\n"
         "\tconst struct arm64_cpu_capabilities *match,\n"
         "\tconst struct arm64_late_cpu_expected_pair *expected);\n"
-        "int __init arm64_late_cpu_expected_effects("
+        "int __init\n"
+        "arm64_late_cpu_expected_effects("
         "const struct arm64_late_cpu_expected_pair *expected,\n"
         "\tconst struct arm64_late_cpu_target_policy_evidence *policy,\n"
         "\tstruct arm64_late_cpu_target_effect_plan *effects);\n",
