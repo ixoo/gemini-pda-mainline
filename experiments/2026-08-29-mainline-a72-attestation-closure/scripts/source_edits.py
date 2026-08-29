@@ -585,13 +585,15 @@ def apply_system_policy(root: Path) -> None:
         "{\n"
         "\treturn max_bhb_k;\n"
         "}\n\n"
-        "static void this_cpu_set_vectors(\n",
+        "static void this_cpu_set_vectors("
+        "enum arm64_bp_harden_el1_vectors slot)\n",
         "u8 get_spectre_bhb_loop_value(void)\n"
         "{\n"
         "\treturn max_bhb_k;\n"
         "}\n\n"
         + MITIGATION_PRODUCER
-        + "static void this_cpu_set_vectors(\n",
+        + "static void this_cpu_set_vectors("
+        "enum arm64_bp_harden_el1_vectors slot)\n",
     )
 
     core = root / "arch/arm64/kernel/late_cpu_profile.c"
