@@ -135,8 +135,8 @@ def mutations() -> list[tuple[str, Callable[[Path], None]]]:
             "\tconst u64 required = BIT_ULL(ARM64_LATE_CPU_EXPECT_CTR);\n")),
         ("restore-runtime-target-cache", lambda r: replace(
             r / profile,
-            "\t\treturn arm64_late_cpu_expected_cache_type_state(\n"
-            "\t\t\tcap, match, &evidence->expected_pair,\n"
+            "\t\treturn arm64_late_cpu_expected_cache_type_state(cap, match,\n"
+            "\t\t\t&evidence->expected_pair,\n"
             "\t\t\t&evidence->system_cap);\n",
             "\t\treturn arm64_late_cpu_cache_type_state(\n"
             "\t\t\tcap, match, &evidence->target_cap[target],\n"
