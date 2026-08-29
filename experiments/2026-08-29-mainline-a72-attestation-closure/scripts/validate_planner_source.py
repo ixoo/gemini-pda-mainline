@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 from pathlib import Path
 
 
@@ -46,6 +47,8 @@ def validate(root: Path) -> list[str]:
     register_map = function(cpufeature, "late_cpu_hwcap_register(")
     hwcap_match = function(cpufeature, "late_cpu_hwcap_match_one(")
     all_cpus = function(cpufeature, "late_cpu_hwcap_all_cpus(")
+    compat_cpus = function(
+        cpufeature, "late_cpu_plan_all_cpus_support_32bit_el0(")
     hwcap_plan = function(cpufeature, "arm64_plan_late_cpu_hwcaps(")
     mappings = (
         "SYS_ID_AA64DFR0_EL1", "SYS_ID_AA64DFR1_EL1",
@@ -81,9 +84,17 @@ def validate(root: Path) -> list[str]:
     require(all_cpus.count("ARM64_LATE_CPU_MAX_TARGETS") == 1 and
             "plan->evidence.target_cap[target].registers" in all_cpus,
             "all target HWCAP comparisons absent")
+    require("system_supports_32bit_el0()" in compat_cpus and
+            compat_cpus.count("ARM64_LATE_CPU_MAX_TARGETS") == 1 and
+            "id_aa64pfr0_32bit_el0(" in compat_cpus and
+            "target_cap[target].registers.id_aa64pfr0" in compat_cpus,
+            "system/target AArch32 EL0 policy intersection absent")
+    require(re.search(r"\bARM64_HAS_32BIT_EL0\b", cpufeature) is None,
+            "nonexistent AArch32 EL0 capability token used")
     for token in (
         "ARM64_LATE_CPU_TARGET_CAP_ID_REGS_VALID",
         "KERNEL_HWCAP_CPUID", "COMPAT_ELF_HWCAP_DEFAULT",
+        "late_cpu_plan_all_cpus_support_32bit_el0(plan)",
         "plan->effects.compat_aes_clear", "COMPAT_HWCAP2_AES",
         "ARM64_WORKAROUND_2658417", "KERNEL_HWCAP_BF16",
         "KERNEL_HWCAP_EBF16", "ARM64_WORKAROUND_SPECULATIVE_SSBS",

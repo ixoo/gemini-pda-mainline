@@ -6162,6 +6162,14 @@ The next ordered work is:
    device action remain absent. **Selected next:** compile the exact enabled
    `a72-p30e-wire` profile on Buildbox and inspect its linked ownership, call
    order, stack, sections, and diagnostics before selecting logical slice 5.
+   The first enabled compile at signed commit `6507f881` stopped before linking
+   because the generated compat-HWCAP gate referenced nonexistent token
+   `ARM64_HAS_32BIT_EL0`. The repair now follows the public
+   `system_supports_32bit_el0()` policy and intersects its sanitized system
+   result with ID_AA64PFR0_EL1.EL0 from both complete target images; a new
+   mutation restores and rejects the invalid token. **Selected next:**
+   regenerate patch `0428` from the same pinned post-`0427` source, review and
+   admit the exact repaired bytes, then repeat the enabled Buildbox compile.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

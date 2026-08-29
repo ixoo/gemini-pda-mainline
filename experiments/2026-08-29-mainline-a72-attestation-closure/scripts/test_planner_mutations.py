@@ -115,6 +115,10 @@ def mutations() -> list[tuple[str, Callable[[Path], None]]]:
             "\t\tif (plan->effects.compat_aes_clear)\n"
             "\t\t\tplan->expected_compat_hwcap2 &= ~COMPAT_HWCAP2_AES;\n",
             "")),
+        ("use-nonexistent-32bit-cap-token", lambda r: replace(
+            r / cpufeature,
+            "late_cpu_plan_all_cpus_support_32bit_el0(plan)",
+            "late_cpu_plan_all_cpus_have_cap(plan, ARM64_HAS_32BIT_EL0)")),
     ]
 
 

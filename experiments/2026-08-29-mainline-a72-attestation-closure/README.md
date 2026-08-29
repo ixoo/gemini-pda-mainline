@@ -309,6 +309,16 @@ actions remain absent. See the
 gate is an exact configuration-enabled `a72-p30e-wire` Buildbox compile and
 linked-output inspection; this source-only result is not a boot candidate.
 
+The first enabled compile at signed commit `6507f881` stopped in
+`cpufeature.c` before linking because the generated compat-HWCAP gate named a
+nonexistent `ARM64_HAS_32BIT_EL0` capability token. Linux 7.1.3 deliberately
+names that internal pseudo-capability `DO_NOT_USE`; its public policy owner is
+`system_supports_32bit_el0()`, backed by the sanitized ID_AA64PFR0_EL1 EL0
+field. The generator repair uses that system policy and intersects it with the
+same field in both complete target register images. A new rejecting mutation
+restores the invalid token so this compile failure cannot recur silently. No
+package, candidate, or device action resulted from the failed compile.
+
 ## Conclusion
 
 `confirmed-reference-only-mapping-dormant-validator-and-system-policy-linked`:

@@ -235,15 +235,16 @@ late_cpu_hwcap_all_cpus(const struct arm64_cpu_capabilities *cap,
 }
 
 static bool __init
-late_cpu_plan_all_cpus_have_cap(const struct arm64_late_cpu_plan *plan,
-				int cap)
+late_cpu_plan_all_cpus_support_32bit_el0(
+	const struct arm64_late_cpu_plan *plan)
 {
 	unsigned int target;
 
-	if (!test_bit(cap, plan->early_local_caps))
+	if (!system_supports_32bit_el0())
 		return false;
 	for (target = 0; target < ARM64_LATE_CPU_MAX_TARGETS; target++)
-		if (!test_bit(cap, plan->target[target].local_caps))
+		if (!id_aa64pfr0_32bit_el0(
+			    plan->evidence.target_cap[target].registers.id_aa64pfr0))
 			return false;
 
 	return true;
@@ -310,7 +311,7 @@ int __init arm64_plan_late_cpu_hwcaps(struct arm64_late_cpu_plan *plan)
 		return ret;
 
 #ifdef CONFIG_COMPAT
-	if (late_cpu_plan_all_cpus_have_cap(plan, ARM64_HAS_32BIT_EL0)) {
+	if (late_cpu_plan_all_cpus_support_32bit_el0(plan)) {
 		plan->expected_compat_hwcap = COMPAT_ELF_HWCAP_DEFAULT;
 		ret = late_cpu_plan_hwcap_array(compat_elf_hwcaps, plan);
 		if (ret)
