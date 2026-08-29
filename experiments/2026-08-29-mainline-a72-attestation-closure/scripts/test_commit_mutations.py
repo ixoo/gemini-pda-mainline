@@ -103,8 +103,11 @@ def mutations() -> list[tuple[str, Callable[[Path], None]]]:
             "\t\t\t  ARM64_LATE_CPU_PROFILE_COMMITTED);\n"
             "\tlate_receipt.commit_complete = 1;\n")),
         ("weaken-receipt-publication", lambda r: replace(
-            r / core, "smp_store_release(&late_receipt.state,",
-            "WRITE_ONCE(late_receipt.state,")),
+            r / core,
+            "\t/* Publish the complete receipt after all architecture state is committed. */\n"
+            "\tsmp_store_release(&late_receipt.state,",
+            "\t/* Publish the complete receipt after all architecture state is committed. */\n"
+            "\tWRITE_ONCE(late_receipt.state,")),
         ("restore-commit-blocker", lambda r: replace(
             r / core,
             "\tplan_ret = arm64_plan_late_cpu_capabilities(&draft, &late_profile);\n",
