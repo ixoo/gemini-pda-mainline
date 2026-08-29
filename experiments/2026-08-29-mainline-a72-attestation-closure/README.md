@@ -170,11 +170,16 @@ and evidence mutations pass; exact-source generation and source mutations are
 the next Buildbox action.
 
 Buildbox generation attempt 1 at signed commit `b4e5dbfa` stopped before the
-first source edit: the Python insertion blocks encoded tab escapes literally,
-so the next exact source anchor could not match. No patch, retained package,
-kernel build, candidate, or device action resulted. The correction changes
-only those two insertion-block literals so their existing C text is
-materialized with actual tabs; every source predicate remains unchanged.
+first source edit at the two-line evidence-member insertion anchor. The first
+diagnosis attributed that failure to literal tab escapes in the insertion
+blocks, and signed commit `431a0357` materialized those blocks with actual
+tabs. Attempt 2 at that exact commit reproduced the same anchor failure,
+proving the first diagnosis incomplete. A byte-level check of the prepared
+parent confirmed the independently unique runtime-binding member. The editor
+now anchors only that owned member and inserts the expectation immediately
+before it instead of coupling the edit to the adjacent identity member. No
+patch, retained package, kernel build, candidate, or device action resulted
+from either stopped attempt; every source predicate remains unchanged.
 
 ## Conclusion
 

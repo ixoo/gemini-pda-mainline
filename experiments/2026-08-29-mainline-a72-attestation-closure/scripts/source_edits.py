@@ -230,9 +230,7 @@ def apply_schema(root: Path) -> None:
     )
     replace_once(
         header,
-        "\tu64 config_input_identity[ARM64_LATE_CPU_ID_WORDS];\n"
         "\tstruct arm64_late_cpu_runtime_binding binding;\n",
-        "\tu64 config_input_identity[ARM64_LATE_CPU_ID_WORDS];\n"
         "\tstruct arm64_late_cpu_expected_pair expected_pair;\n"
         "\tstruct arm64_late_cpu_runtime_binding binding;\n",
     )
