@@ -238,7 +238,7 @@ def validate(root: Path) -> list[str]:
     require("expected_pair." not in prepare,
             "production profile activated the expected pair")
 
-    joined = header + cpufeature + core + profile + proton
+    joined = header + cpufeature + core + profile + proton + smp
     for forbidden in (
         "cpu_up(8", "cpu_up(9", "cpu_down(8", "cpu_down(9",
         "psci_cpu_on", "psci_cpu_off", "boot2", "expected_pair.abi =",
