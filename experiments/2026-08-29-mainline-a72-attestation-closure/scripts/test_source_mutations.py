@@ -38,6 +38,8 @@ def mutations() -> list[tuple[str, Callable[[Path], None]]]:
     header = Path("arch/arm64/include/asm/late_cpu_profile.h")
     core = Path("arch/arm64/kernel/late_cpu_profile.c")
     smp = Path("arch/arm64/kernel/smp.c")
+    cpufeature = Path("arch/arm64/kernel/cpufeature.c")
+    proton = Path("arch/arm64/kernel/proton-pack.c")
     return [
         ("remove-expected-pair", lambda r: replace(r / header, "\tstruct arm64_late_cpu_expected_pair expected_pair;\n", "")),
         ("partial-valid-mask", lambda r: replace(r / core, "expected->valid != ARM64_LATE_CPU_EXPECTED_PAIR_VALID_MASK", "!(expected->valid & ARM64_LATE_CPU_EXPECTED_PAIR_VALID_MASK)")),
@@ -59,17 +61,32 @@ def mutations() -> list[tuple[str, Callable[[Path], None]]]:
         ("remove-failure-status", lambda r: replace(r / smp, "\t\tupdate_cpu_boot_status(CPU_STUCK_IN_KERNEL);\n", "")),
         ("replace-park-with-die", lambda r: replace(r / smp, "\t\tcpu_park_loop();\n", "\t\tcpu_die_early();\n")),
         ("add-cpu-off", lambda r: replace(r / core, "\treturn late_expected_target_matches", "\t/* cpu_off */\n\treturn late_expected_target_matches")),
+        ("drop-system-policy-call", lambda r: replace(r / smp, "\tarm64_collect_late_cpu_runtime_system_policy();\n", "")),
+        ("collect-after-seal", lambda r: replace(r / smp, "\tarm64_collect_late_cpu_runtime_system_policy();\n\tarm64_seal_late_cpu_runtime_evidence();\n", "\tarm64_seal_late_cpu_runtime_evidence();\n\tarm64_collect_late_cpu_runtime_system_policy();\n")),
+        ("hardcode-system-ctr", lambda r: replace(r / cpufeature, "system->ctr_sys_val = arm64_ftr_reg_ctrel0.sys_val;", "system->ctr_sys_val = 0xb4448004;")),
+        ("hardcode-ctr-strict-mask", lambda r: replace(r / cpufeature, "system->ctr_strict_mask = arm64_ftr_reg_ctrel0.strict_mask;", "system->ctr_strict_mask = ~GENMASK_ULL(15, 14);")),
+        ("drop-ssbs-range-check", lambda r: replace(r / cpufeature, "\tif (ssbs > 2)\n\t\treturn -ERANGE;\n", "")),
+        ("drop-effects-valid", lambda r: replace(r / proton, "\tsystem->valid |= ARM64_LATE_CPU_SYSTEM_CAP_EFFECTS_VALID;\n", "")),
+        ("parse-policy-text", lambda r: replace(r / proton, "policy->mitigations_off = cpu_mitigations_off();", "policy->mitigations_off = strstr(saved_command_line, \"mitigations=off\") != NULL;")),
+        ("accept-unknown-bhb-method", lambda r: replace(r / proton, "bhb_methods & ~GENMASK(BHB_INSN, BHB_LOOP)", "false")),
+        ("collapse-vulnerable-state", lambda r: replace(r / proton, "*current = ARM64_LATE_CPU_MITIGATION_VULNERABLE;", "*current = ARM64_LATE_CPU_MITIGATION_MITIGATED;")),
+        ("copy-only-one-policy", lambda r: replace(r / core, "target < ARM64_LATE_CPU_MAX_TARGETS; target++)\n\t\tlate_runtime_evidence.target_policy[target] = policy;", "target < 1; target++)\n\t\tlate_runtime_evidence.target_policy[target] = policy;")),
+        ("drop-policy-equality", lambda r: replace(r / core, "\tfor (target = 1; target < ARM64_LATE_CPU_MAX_TARGETS; target++)\n\t\tif (memcmp(first, &late_runtime_evidence.target_policy[target],\n\t\t\t   sizeof(*first)))\n\t\t\treturn false;\n\n", "")),
+        ("seal-empty-record", lambda r: replace(r / core, "\tif (!late_runtime_evidence_storage_complete() ||\n", "\tif (!late_runtime_evidence_storage_empty() ||\n")),
+        ("merge-unbound-record", lambda r: replace(r / core, "\t\tif (runtime_state ==\n\t\t    LATE_RUNTIME_EVIDENCE_SEALED_IDENTITY_SYSTEM_POLICY) {\n", "\t\tif (runtime_state !=\n\t\t    LATE_RUNTIME_EVIDENCE_FAULT) {\n")),
+        ("accept-profile-runtime-fields", lambda r: replace(r / core, "\t\tif (!late_profile_runtime_fields_empty(&profile_evidence)) {\n\t\t\tlate_profile_block(ARM64_LATE_CPU_BLOCK_RUNTIME_BINDING,\n\t\t\t\t\t   \"profile supplied runtime observations\");\n\t\t\treturn;\n\t\t}\n", "")),
+        ("add-ready-publication", lambda r: replace(r / core, "\tlate_runtime_evidence.system_cap = system;\n", "\t/* ARM64_LATE_CPU_PROFILE_READY */\n\tlate_runtime_evidence.system_cap = system;\n")),
     ]
 
 
 def prepare(source_root: Path, destination: Path) -> None:
-    for relative in EDITS.STACK_PARENT_HASHES:
+    for relative in EDITS.SYSTEM_POLICY_PARENT_HASHES:
         target = destination / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source_root / relative, target)
-    VALIDATE.validate_runtime_fix(destination)
-    EDITS.apply_stack_fix(destination)
     VALIDATE.validate_stack_fix(destination)
+    EDITS.apply_system_policy(destination)
+    VALIDATE.validate_system_policy(destination)
 
 
 def main() -> int:
@@ -86,7 +103,7 @@ def main() -> int:
             shutil.copytree(base, candidate)
             mutate(candidate)
             try:
-                VALIDATE.validate_stack_fix(candidate)
+                VALIDATE.validate_system_policy(candidate)
             except VALIDATE.ValidationError:
                 rejected += 1
             else:

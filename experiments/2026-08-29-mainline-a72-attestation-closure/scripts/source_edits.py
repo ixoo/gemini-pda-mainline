@@ -35,6 +35,150 @@ STACK_PARENT_HASHES = {
         "cb5d400e31be67561216a6020bcfdb0808eadd6991cf6b675d5c55bb15433869",
 }
 
+SYSTEM_POLICY_PARENT_HASHES = {
+    "arch/arm64/include/asm/late_cpu_profile.h":
+        "b84c227709927bef35f3c8114484e6fab6e92550097dd605ab92fb28cedd878e",
+    "arch/arm64/kernel/late_cpu_profile.c":
+        "0831c263ae521d0f22c2632066892287a49470717c8e180651ad1a2e7a85921a",
+    "arch/arm64/kernel/cpufeature.c":
+        "4d4f8f3c5e2f20ea54ccc68649b4418b6931f0285b52028627950815981dd244",
+    "arch/arm64/kernel/proton-pack.c":
+        "d74b82a614ddcb2797c894301daabdf04b0130a96090889b562feff1688a7917",
+    "arch/arm64/kernel/smp.c":
+        "cb5d400e31be67561216a6020bcfdb0808eadd6991cf6b675d5c55bb15433869",
+}
+
+
+SYSTEM_CAP_PRODUCER = '''#ifdef CONFIG_ARM64_LATE_CPU_PROFILE
+int __init arm64_late_cpu_collect_system_cap_evidence(
+	struct arm64_late_cpu_system_cap_evidence *system)
+{
+	u64 pfr1;
+	u64 ssbs;
+
+	if (!system || system_capabilities_finalized() ||
+	    memchr_inv(system, 0, sizeof(*system)))
+		return -EINVAL;
+
+	pfr1 = read_sanitised_ftr_reg(SYS_ID_AA64PFR1_EL1);
+	ssbs = cpuid_feature_extract_unsigned_field(
+		pfr1, ID_AA64PFR1_EL1_SSBS_SHIFT);
+	if (ssbs > 2)
+		return -ERANGE;
+
+	/* Preserve the exact CTR owner state; SSBS consumers need availability. */
+	system->ctr_sys_val = arm64_ftr_reg_ctrel0.sys_val;
+	system->ctr_strict_mask = arm64_ftr_reg_ctrel0.strict_mask;
+	system->ssbs = !!ssbs;
+	system->valid = ARM64_LATE_CPU_SYSTEM_CAP_CTR_VALID |
+			ARM64_LATE_CPU_SYSTEM_CAP_SSBS_VALID;
+
+	return 0;
+}
+#endif
+
+'''
+
+
+MITIGATION_PRODUCER = '''#ifdef CONFIG_ARM64_LATE_CPU_PROFILE
+static int __init
+late_cpu_current_mitigation_state(enum mitigation_state state, u8 *current)
+{
+	switch (state) {
+	case SPECTRE_UNAFFECTED:
+		*current = ARM64_LATE_CPU_MITIGATION_UNAFFECTED;
+		return 0;
+	case SPECTRE_MITIGATED:
+		*current = ARM64_LATE_CPU_MITIGATION_MITIGATED;
+		return 0;
+	case SPECTRE_VULNERABLE:
+		*current = ARM64_LATE_CPU_MITIGATION_VULNERABLE;
+		return 0;
+	default:
+		return -ERANGE;
+	}
+}
+
+static int __init late_cpu_current_smccc_conduit(u8 *current)
+{
+	switch (arm_smccc_1_1_get_conduit()) {
+	case SMCCC_CONDUIT_NONE:
+		*current = ARM64_LATE_CPU_SMCCC_NONE;
+		return 0;
+	case SMCCC_CONDUIT_SMC:
+		*current = ARM64_LATE_CPU_SMCCC_SMC;
+		return 0;
+	case SMCCC_CONDUIT_HVC:
+		*current = ARM64_LATE_CPU_SMCCC_HVC;
+		return 0;
+	default:
+		return -ERANGE;
+	}
+}
+
+static int __init late_cpu_current_v4_policy(u8 *current)
+{
+	switch (READ_ONCE(__spectre_v4_policy)) {
+	case SPECTRE_V4_POLICY_MITIGATION_DYNAMIC:
+		*current = ARM64_LATE_CPU_V4_POLICY_DYNAMIC;
+		return 0;
+	case SPECTRE_V4_POLICY_MITIGATION_ENABLED:
+		*current = ARM64_LATE_CPU_V4_POLICY_FORCE_ON;
+		return 0;
+	case SPECTRE_V4_POLICY_MITIGATION_DISABLED:
+		*current = ARM64_LATE_CPU_V4_POLICY_FORCE_OFF;
+		return 0;
+	default:
+		return -ERANGE;
+	}
+}
+
+int __init arm64_late_cpu_collect_mitigation_evidence(
+	struct arm64_late_cpu_target_policy_evidence *policy,
+	struct arm64_late_cpu_system_cap_evidence *system)
+{
+	unsigned long bhb_methods = READ_ONCE(system_bhb_mitigations);
+	int ret;
+
+	if (!policy || !system || system_capabilities_finalized() ||
+	    memchr_inv(policy, 0, sizeof(*policy)) ||
+	    system->valid != (ARM64_LATE_CPU_SYSTEM_CAP_CTR_VALID |
+			      ARM64_LATE_CPU_SYSTEM_CAP_SSBS_VALID) ||
+	    bhb_methods & ~GENMASK(BHB_INSN, BHB_LOOP))
+		return -EINVAL;
+
+	ret = late_cpu_current_smccc_conduit(&policy->smccc_conduit);
+	if (ret)
+		return ret;
+	ret = late_cpu_current_v4_policy(&policy->spectre_v4_policy);
+	if (ret)
+		return ret;
+	ret = late_cpu_current_mitigation_state(
+		arm64_get_spectre_v2_state(), &system->spectre_v2_state);
+	if (ret)
+		return ret;
+	ret = late_cpu_current_mitigation_state(
+		arm64_get_spectre_v4_state(), &system->spectre_v4_state);
+	if (ret)
+		return ret;
+	ret = late_cpu_current_mitigation_state(
+		arm64_get_spectre_bhb_state(), &system->bhb_state);
+	if (ret)
+		return ret;
+
+	policy->mitigations_off = cpu_mitigations_off();
+	policy->nospectre_v2 = READ_ONCE(__nospectre_v2);
+	policy->valid = ARM64_LATE_CPU_TARGET_POLICY_VALID_MASK;
+	system->bhb_matcher_loop_count = get_spectre_bhb_loop_value();
+	system->bhb_system_method = bhb_methods;
+	system->valid |= ARM64_LATE_CPU_SYSTEM_CAP_EFFECTS_VALID;
+
+	return 0;
+}
+#endif
+
+'''
+
 
 SCHEMA_BLOCK = '''#define ARM64_LATE_CPU_EXPECTED_PAIR_ABI	1
 
@@ -220,6 +364,12 @@ def replace_once(path: Path, old: str, new: str) -> None:
 
 
 def validate_parent(root: Path, stage: str) -> None:
+    if stage == "system-policy":
+        for relative, expected in SYSTEM_POLICY_PARENT_HASHES.items():
+            if sha256(require_file(root, relative)) != expected:
+                raise SystemExit(f"system-policy source hash changed: {relative}")
+        return
+
     if stage == "stack-fix":
         for relative, expected in STACK_PARENT_HASHES.items():
             if sha256(require_file(root, relative)) != expected:
@@ -388,12 +538,252 @@ def apply_stack_fix(root: Path) -> None:
     )
 
 
+def apply_system_policy(root: Path) -> None:
+    header = root / "arch/arm64/include/asm/late_cpu_profile.h"
+    replace_once(
+        header,
+        "void __init arm64_collect_late_cpu_runtime_identity(void);\n"
+        "int arm64_validate_late_cpu_expected_target(unsigned int cpu);\n",
+        "void __init arm64_collect_late_cpu_runtime_identity(void);\n"
+        "void __init arm64_collect_late_cpu_runtime_system_policy(void);\n"
+        "int __init arm64_late_cpu_collect_system_cap_evidence(\n"
+        "\tstruct arm64_late_cpu_system_cap_evidence *system);\n"
+        "int __init arm64_late_cpu_collect_mitigation_evidence(\n"
+        "\tstruct arm64_late_cpu_target_policy_evidence *policy,\n"
+        "\tstruct arm64_late_cpu_system_cap_evidence *system);\n"
+        "int arm64_validate_late_cpu_expected_target(unsigned int cpu);\n",
+    )
+    replace_once(
+        header,
+        "static inline void __init arm64_collect_late_cpu_runtime_identity(void)\n"
+        "{\n}\n\n"
+        "static inline int\n",
+        "static inline void __init arm64_collect_late_cpu_runtime_identity(void)\n"
+        "{\n}\n\n"
+        "static inline void __init\n"
+        "arm64_collect_late_cpu_runtime_system_policy(void)\n"
+        "{\n}\n\n"
+        "static inline int\n",
+    )
+
+    cpufeature = root / "arch/arm64/kernel/cpufeature.c"
+    replace_once(
+        cpufeature,
+        "#include <linux/stop_machine.h>\n",
+        "#include <linux/stop_machine.h>\n#include <linux/string.h>\n",
+    )
+    replace_once(
+        cpufeature,
+        "static void user_feature_fixup(void)\n",
+        SYSTEM_CAP_PRODUCER + "static void user_feature_fixup(void)\n",
+    )
+
+    proton = root / "arch/arm64/kernel/proton-pack.c"
+    replace_once(
+        proton,
+        "u8 get_spectre_bhb_loop_value(void)\n"
+        "{\n"
+        "\treturn max_bhb_k;\n"
+        "}\n\n"
+        "static void this_cpu_set_vectors(\n",
+        "u8 get_spectre_bhb_loop_value(void)\n"
+        "{\n"
+        "\treturn max_bhb_k;\n"
+        "}\n\n"
+        + MITIGATION_PRODUCER
+        + "static void this_cpu_set_vectors(\n",
+    )
+
+    core = root / "arch/arm64/kernel/late_cpu_profile.c"
+    replace_once(
+        core,
+        "\tLATE_RUNTIME_EVIDENCE_SEALED_EMPTY,\n"
+        "\tLATE_RUNTIME_EVIDENCE_SEALED_IDENTITY,\n",
+        "\tLATE_RUNTIME_EVIDENCE_SEALED_SYSTEM_POLICY,\n"
+        "\tLATE_RUNTIME_EVIDENCE_SEALED_IDENTITY_SYSTEM_POLICY,\n",
+    )
+    replace_once(
+        core,
+        "static bool __init\n"
+        "late_profile_binding_empty(\n",
+        "static bool __init late_runtime_evidence_storage_empty(void);\n\n"
+        "void __init arm64_collect_late_cpu_runtime_system_policy(void)\n"
+        "{\n"
+        "\tstruct arm64_late_cpu_target_policy_evidence policy = {};\n"
+        "\tstruct arm64_late_cpu_system_cap_evidence system = {};\n"
+        "\tunsigned int target;\n"
+        "\tint ret;\n\n"
+        "\tif (READ_ONCE(late_runtime_evidence_state) !=\n"
+        "\t\t    LATE_RUNTIME_EVIDENCE_OPEN ||\n"
+        "\t    READ_ONCE(late_runtime_identity_state) ==\n"
+        "\t\t    LATE_RUNTIME_IDENTITY_UNCOLLECTED ||\n"
+        "\t    system_capabilities_finalized() ||\n"
+        "\t    cpus_have_cap(ARM64_ALWAYS_SYSTEM) ||\n"
+        "\t    !late_runtime_evidence_storage_empty()) {\n"
+        "\t\tWRITE_ONCE(late_runtime_evidence_state,\n"
+        "\t\t\t   LATE_RUNTIME_EVIDENCE_FAULT);\n"
+        "\t\treturn;\n"
+        "\t}\n\n"
+        "\tret = arm64_late_cpu_collect_system_cap_evidence(&system);\n"
+        "\tif (!ret)\n"
+        "\t\tret = arm64_late_cpu_collect_mitigation_evidence(\n"
+        "\t\t\t&policy, &system);\n"
+        "\tif (ret ||\n"
+        "\t    system.valid != ARM64_LATE_CPU_SYSTEM_CAP_VALID_MASK ||\n"
+        "\t    policy.valid != ARM64_LATE_CPU_TARGET_POLICY_VALID_MASK) {\n"
+        "\t\tWRITE_ONCE(late_runtime_evidence_state,\n"
+        "\t\t\t   LATE_RUNTIME_EVIDENCE_FAULT);\n"
+        "\t\treturn;\n"
+        "\t}\n\n"
+        "\tlate_runtime_evidence.system_cap = system;\n"
+        "\tfor (target = 0; target < ARM64_LATE_CPU_MAX_TARGETS; target++)\n"
+        "\t\tlate_runtime_evidence.target_policy[target] = policy;\n"
+        "}\n\n"
+        "static bool __init\n"
+        "late_profile_binding_empty(\n",
+    )
+    replace_once(
+        core,
+        "static bool __init\n"
+        "late_profile_identity_cross_bound(\n",
+        "static bool __init\n"
+        "late_runtime_system_policy_complete(void)\n"
+        "{\n"
+        "\tconst struct arm64_late_cpu_system_cap_evidence *system =\n"
+        "\t\t&late_runtime_evidence.system_cap;\n"
+        "\tconst struct arm64_late_cpu_target_policy_evidence *first =\n"
+        "\t\t&late_runtime_evidence.target_policy[0];\n"
+        "\tunsigned int target;\n\n"
+        "\tif (system->valid != ARM64_LATE_CPU_SYSTEM_CAP_VALID_MASK ||\n"
+        "\t    !system->ctr_strict_mask || system->ssbs > 1 ||\n"
+        "\t    system->spectre_v2_state <\n"
+        "\t\t    ARM64_LATE_CPU_MITIGATION_UNAFFECTED ||\n"
+        "\t    system->spectre_v2_state >\n"
+        "\t\t    ARM64_LATE_CPU_MITIGATION_VULNERABLE ||\n"
+        "\t    system->spectre_v4_state <\n"
+        "\t\t    ARM64_LATE_CPU_MITIGATION_UNAFFECTED ||\n"
+        "\t    system->spectre_v4_state >\n"
+        "\t\t    ARM64_LATE_CPU_MITIGATION_VULNERABLE ||\n"
+        "\t    system->bhb_state < ARM64_LATE_CPU_BHB_STATE_UNAFFECTED ||\n"
+        "\t    system->bhb_state > ARM64_LATE_CPU_BHB_STATE_VULNERABLE ||\n"
+        "\t    system->bhb_system_method & ~GENMASK(3, 0) ||\n"
+        "\t    first->valid != ARM64_LATE_CPU_TARGET_POLICY_VALID_MASK ||\n"
+        "\t    first->smccc_conduit < ARM64_LATE_CPU_SMCCC_NONE ||\n"
+        "\t    first->smccc_conduit > ARM64_LATE_CPU_SMCCC_HVC ||\n"
+        "\t    first->mitigations_off > 1 || first->nospectre_v2 > 1 ||\n"
+        "\t    first->spectre_v4_policy <\n"
+        "\t\t    ARM64_LATE_CPU_V4_POLICY_DYNAMIC ||\n"
+        "\t    first->spectre_v4_policy >\n"
+        "\t\t    ARM64_LATE_CPU_V4_POLICY_FORCE_OFF)\n"
+        "\t\treturn false;\n\n"
+        "\tfor (target = 1; target < ARM64_LATE_CPU_MAX_TARGETS; target++)\n"
+        "\t\tif (memcmp(first, &late_runtime_evidence.target_policy[target],\n"
+        "\t\t\t   sizeof(*first)))\n"
+        "\t\t\treturn false;\n\n"
+        "\treturn true;\n"
+        "}\n\n"
+        "static bool __init\n"
+        "late_runtime_evidence_storage_complete(void)\n"
+        "{\n"
+        "\tunsigned int target;\n\n"
+        "\tif (late_runtime_evidence.abi != ARM64_LATE_CPU_PLAN_ABI ||\n"
+        "\t    !late_profile_identity_empty(\n"
+        "\t\t    late_runtime_evidence.source_parent_identity) ||\n"
+        "\t    !late_profile_identity_empty(\n"
+        "\t\t    late_runtime_evidence.config_input_identity) ||\n"
+        "\t    memchr_inv(&late_runtime_evidence.expected_pair, 0,\n"
+        "\t\t       sizeof(late_runtime_evidence.expected_pair)) ||\n"
+        "\t    !late_profile_binding_empty(&late_runtime_evidence.binding) ||\n"
+        "\t    !late_profile_identity_empty(\n"
+        "\t\t    late_runtime_evidence.evidence_identity) ||\n"
+        "\t    late_runtime_evidence.blocker_mask ||\n"
+        "\t    !late_runtime_system_policy_complete())\n"
+        "\t\treturn false;\n\n"
+        "\tfor (target = 0; target < ARM64_LATE_CPU_MAX_TARGETS; target++)\n"
+        "\t\tif (late_runtime_evidence.target_cpu[target] ||\n"
+        "\t\t    late_runtime_evidence.expected_target_mpidr[target] ||\n"
+        "\t\t    late_runtime_evidence.observed_target_mpidr[target] ||\n"
+        "\t\t    late_runtime_evidence.expected_target_midr[target] ||\n"
+        "\t\t    late_runtime_evidence.observed_target_midr[target] ||\n"
+        "\t\t    late_runtime_evidence.observed_target_revidr[target] ||\n"
+        "\t\t    memchr_inv(&late_runtime_evidence.target_cap[target], 0,\n"
+        "\t\t\t       sizeof(late_runtime_evidence.target_cap[target])))\n"
+        "\t\t\treturn false;\n\n"
+        "\treturn true;\n"
+        "}\n\n"
+        "static bool __init\n"
+        "late_profile_identity_cross_bound(\n",
+    )
+    replace_once(
+        core,
+        "\tif (!late_runtime_evidence_storage_empty() ||\n"
+        "\t    identity_state == LATE_RUNTIME_IDENTITY_UNCOLLECTED) {\n",
+        "\tif (!late_runtime_evidence_storage_complete() ||\n"
+        "\t    identity_state == LATE_RUNTIME_IDENTITY_UNCOLLECTED) {\n",
+    )
+    replace_once(
+        core,
+        "\t\tstate = LATE_RUNTIME_EVIDENCE_SEALED_EMPTY;\n",
+        "\t\tstate = LATE_RUNTIME_EVIDENCE_SEALED_SYSTEM_POLICY;\n",
+    )
+    replace_once(
+        core,
+        "\t\tstate = LATE_RUNTIME_EVIDENCE_SEALED_IDENTITY;\n",
+        "\t\tstate =\n"
+        "\t\t\tLATE_RUNTIME_EVIDENCE_SEALED_IDENTITY_SYSTEM_POLICY;\n",
+    )
+    replace_once(
+        core,
+        "\tif (runtime_state != LATE_RUNTIME_EVIDENCE_SEALED_EMPTY &&\n"
+        "\t    runtime_state != LATE_RUNTIME_EVIDENCE_SEALED_IDENTITY) {\n",
+        "\tif (runtime_state !=\n"
+        "\t\t    LATE_RUNTIME_EVIDENCE_SEALED_SYSTEM_POLICY &&\n"
+        "\t    runtime_state !=\n"
+        "\t\t    LATE_RUNTIME_EVIDENCE_SEALED_IDENTITY_SYSTEM_POLICY) {\n",
+    )
+    replace_once(
+        core,
+        "\t\tif (runtime_state == LATE_RUNTIME_EVIDENCE_SEALED_IDENTITY) {\n",
+        "\t\tif (runtime_state ==\n"
+        "\t\t    LATE_RUNTIME_EVIDENCE_SEALED_IDENTITY_SYSTEM_POLICY) {\n",
+    )
+    replace_once(
+        core,
+        "\t\t\tdraft.evidence.binding = late_runtime_evidence.binding;\n"
+        "\t\t\tdraft.evidence.blocker_mask &=\n",
+        "\t\t\tdraft.evidence.binding = late_runtime_evidence.binding;\n"
+        "\t\t\tdraft.evidence.system_cap =\n"
+        "\t\t\t\tlate_runtime_evidence.system_cap;\n"
+        "\t\t\tfor (target = 0;\n"
+        "\t\t\t     target < ARM64_LATE_CPU_MAX_TARGETS; target++)\n"
+        "\t\t\t\tdraft.evidence.target_policy[target] =\n"
+        "\t\t\t\t\tlate_runtime_evidence.target_policy[target];\n"
+        "\t\t\tdraft.evidence.blocker_mask &=\n",
+    )
+    replace_once(
+        core,
+        "\tu32 runtime_state;\n\tint validate_ret;\n",
+        "\tu32 runtime_state;\n\tunsigned int target;\n\tint validate_ret;\n",
+    )
+
+    smp = root / "arch/arm64/kernel/smp.c"
+    replace_once(
+        smp,
+        "\tarm64_collect_late_cpu_runtime_identity();\n"
+        "\tarm64_seal_late_cpu_runtime_evidence();\n",
+        "\tarm64_collect_late_cpu_runtime_identity();\n"
+        "\tarm64_collect_late_cpu_runtime_system_policy();\n"
+        "\tarm64_seal_late_cpu_runtime_evidence();\n",
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-root", type=Path, required=True)
     parser.add_argument(
         "--stage",
-        choices=("schema", "validator", "runtime-fix", "stack-fix"),
+        choices=("schema", "validator", "runtime-fix", "stack-fix",
+                 "system-policy"),
         required=True,
     )
     args = parser.parse_args()
@@ -405,8 +795,10 @@ def main() -> None:
         apply_validator(root)
     elif args.stage == "runtime-fix":
         apply_runtime_fix(root)
-    else:
+    elif args.stage == "stack-fix":
         apply_stack_fix(root)
+    else:
+        apply_system_policy(root)
 
 
 if __name__ == "__main__":

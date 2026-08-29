@@ -3,10 +3,10 @@
 set -euo pipefail
 export LC_ALL=C
 
-readonly PARENT_SOURCE_STATE=45137a044ebadf42b2e7f70d4d2975cc568e9190194eba6c54b1f2066d12221a
-readonly PARENT_SOURCE_INTEGRITY=2269202bae6a1d2888bf1f14d6f57f955c6d78992a822bd794f190b3b20d6782
-readonly PARENT_PATCH=0425-arm64-keep-late-CPU-expectation-check-runtime-safe.patch
-readonly PARENT_PATCH_SHA256=98c7531caa5c4d7782311b822fbda4397e064809329ffd4616659d64d315844b
+readonly PARENT_SOURCE_STATE=1e488def2694812431326628407ef1c32a6b1e367791ad6e70a2a921c91ed727
+readonly PARENT_SOURCE_INTEGRITY=c8828b041101268532aee98774161c713481d24f50cfbd1831940412e5f17493
+readonly PARENT_PATCH=0426-arm64-move-late-CPU-prepare-workspaces-off-stack.patch
+readonly PARENT_PATCH_SHA256=304abfa7f493a1ed1d1e8f7057dbc5c4f5316fa3591fd8237d1216042aab1223
 
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 
@@ -76,6 +76,10 @@ for marker in generated_patch_count=1 expected_pair_valid_fields=28 \
 	active_expectations=0 entry_comparisons=26 \
 	entry_identity_check=runtime-safe \
 	prepare_workspaces=static-initdata-reset \
+	system_cap_owner=cpufeature-sanitized-state \
+	target_policy_owner=proton-pack-private-state \
+	system_policy_seal=complete-or-fault \
+	system_policy_merge=identity-cross-bound target_cap_producer=absent \
 	entry_location=after-cpuinfo-before-notify-online cpu_request_paths=0 \
 	cpu9_request_paths=0 cpu_off_paths=0 retry_paths=0 \
 	architecture_commit=absent ready_publication=unchanged native_vm_build=none \
