@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-a72-pmsg-witness` |
-| Status | `definition` |
+| Status | `source accepted; compile pending` |
 | Subsystem | Gemian pstore/ramoops and retained Cortex-A72 experiment attribution |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-28 |
@@ -62,9 +62,11 @@ preservation, forbidden-action inventory, and negative mutations pass.
   four-file transformation of the exact register-capsule parent.
 - [`scripts/test_witness_child.py`](scripts/test_witness_child.py): exact
   transformation, reversal, semantic, and negative-mutation validation.
-- `scripts/generate-on-buildbox`: pending Buildbox-only source reconstruction
-  and patch generation.
-- `patches/series`: pending admission after deterministic generation review.
+- `scripts/generate-on-buildbox`: Buildbox-only exact-parent reconstruction,
+  generation, strict style gate, and admitted-byte comparison.
+- `patches/series`: the single exact generated child patch.
+- [`results/source-generation-20260829.txt`](results/source-generation-20260829.txt):
+  exact generation identities, stopped attempts, and acceptance boundary.
 
 ## Procedure
 
@@ -79,7 +81,7 @@ preservation, forbidden-action inventory, and negative mutations pass.
 
 ## Observations
 
-Definition work only. Generation attempt 1 reconstructed and validated the
+Generation attempt 1 reconstructed and validated the
 exact parent and child, then stopped before packaging because Gemian 3.18's
 historical checkpatch contains regular expressions rejected by current Perl.
 This is the same known tool incompatibility encountered by the exact parent.
@@ -90,9 +92,13 @@ before packaging; the lane now emits the exact style diagnostics instead of
 discarding them with its cleaned partial package. Attempt 3 reported zero
 errors, zero warnings, and three checks: two call lines ending at `(` and one
 unnecessary header `extern`. The deterministic editor now repairs those three
-source-format findings without a suppression or semantic change. No kernel
-build, boot image, device access, retained-RAM write, or hardware action has
-occurred.
+source-format findings without a suppression or semantic change. The final
+Buildbox generation passed with generated source commit `947317cb...`, exact
+four-path patch SHA-256 `cf102ea2...`, deterministic parent reversal, all eight
+negative mutations rejected, and strict style results of zero errors, zero
+warnings, and zero checks. The admitted patch is byte-identical to that output.
+No kernel build, boot image, device access, retained-RAM write, or hardware
+action has occurred.
 
 ## Analysis
 
@@ -104,11 +110,11 @@ when retained, but cannot be the sole success criterion.
 
 ## Conclusion
 
-Pending source generation and validation. This experiment currently makes no
-runtime or CPU support claim.
+Source generation is accepted. This experiment currently makes no runtime or
+CPU support claim and is not yet a boot candidate.
 
 ## Follow-up
 
-Follow only the ordered step in [`docs/ROADMAP.md`](../../docs/ROADMAP.md):
-freeze and validate this observation path before Buildbox compilation or any
-physical candidate.
+Follow only the ordered step in [`docs/ROADMAP.md`](../../docs/ROADMAP.md): run
+the exact-parent Buildbox-only compile comparison before candidate construction
+or any physical action.

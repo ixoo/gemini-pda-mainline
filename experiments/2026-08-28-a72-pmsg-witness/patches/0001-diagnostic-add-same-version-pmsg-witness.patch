@@ -1,0 +1,152 @@
+From 947317cb127222d52130c6ea769546017cb73657 Mon Sep 17 00:00:00 2001
+From: Gemini A72 experiment <noreply@gemini-a72.invalid>
+Date: Sat, 29 Aug 2026 00:30:00 +0000
+Subject: [PATCH] diagnostic: add same-version pmsg witness
+
+Retain fixed entry, pre-scheduler, and pre-capsule records.
+
+Keep the parent power, CPU_OFF, watchdog, and capsule paths unchanged.
+---
+ arch/arm64/kernel/psci.c                      | 15 +++++++++++++
+ .../power/mt6797/mt_a72_transition_observer.c |  6 +++++
+ fs/pstore/pmsg.c                              | 22 +++++++++++++++++++
+ include/linux/pstore.h                        |  9 ++++++++
+ 4 files changed, 52 insertions(+)
+
+diff --git a/arch/arm64/kernel/psci.c b/arch/arm64/kernel/psci.c
+index f200590a5..6fda54de9 100644
+--- a/arch/arm64/kernel/psci.c
++++ b/arch/arm64/kernel/psci.c
+@@ -32,6 +32,7 @@
+ #include <linux/pm.h>
+ #include <linux/delay.h>
+ #include <linux/slab.h>
++#include <linux/pstore.h>
+ #include <linux/spinlock.h>
+ #include <uapi/linux/psci.h>
+ 
+@@ -997,6 +998,13 @@ static bool mt6797_a72_ml_passed(void)
+ #define MT6797_A72_SC_HASH8_EXPECTED 0xf678147669874ecdULL
+ #define MT6797_A72_SC_HASH9_EXPECTED 0xc2274327e9c8104cULL
+ 
++static const char mt6797_a72_pmsg_pre_scheduler[] =
++	"gemini-a72-pmsg-v1 stage=pre-scheduler parent=pair-v6-pass\n";
++static const char mt6797_a72_pmsg_terminal_pass[] =
++	"gemini-a72-pmsg-v1 stage=pre-capsule result=pass\n";
++static const char mt6797_a72_pmsg_terminal_fault[] =
++	"gemini-a72-pmsg-v1 stage=pre-capsule result=fault\n";
++
+ #define MT6797_A72_REGCAP_ABI 1
+ #define MT6797_A72_REGCAP_FIELDS 32
+ #define MT6797_A72_REGCAP_VALID_IDENTITY BIT(0)
+@@ -1635,6 +1643,11 @@ static noinline void mt6797_a72_sc_terminal(bool parent_pass)
+ 		 ready == 2 && finished == 2 &&
+ 		 result8->hash == MT6797_A72_SC_HASH8_EXPECTED &&
+ 		 result9->hash == MT6797_A72_SC_HASH9_EXPECTED;
++	(void)pstore_write_pmsg_kernel(passed ?
++		mt6797_a72_pmsg_terminal_pass :
++		mt6797_a72_pmsg_terminal_fault,
++		passed ? sizeof(mt6797_a72_pmsg_terminal_pass) - 1 :
++			 sizeof(mt6797_a72_pmsg_terminal_fault) - 1);
+ 	pr_emerg("gemini-a72-pair-v7 result=%s parent_pass=%d sc_reported=%d sc_iterations=262144 sc_rescheds=64 sc_expected8=%d sc_start8=%d sc_end8=%d sc_expected9=%d sc_start9=%d sc_end9=%d sc_task8=%d sc_task9=%d sc_create8=%d sc_create9=%d sc_unpark8=%d sc_unpark9=%d sc_readywait8=%d sc_readywait9=%d sc_startwait8=%d sc_startwait9=%d sc_wait8=%d sc_wait9=%d sc_error8=%d sc_error9=%d sc_stop8=%d sc_stop9=%d sc_done8=%d sc_done9=%d sc_ready=%d sc_finished=%d sc_hash8=%016llx sc_hash9=%016llx\n",
+ 		 passed ? "pass" : "fault", parent_pass, reported,
+ 		 result8->expected_cpu, result8->start_cpu, result8->end_cpu,
+@@ -1760,6 +1773,8 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
+ 	    pl_result8.write_hash == pl_result9.read_hash &&
+ 	    pl_result9.write_hash == pl_result8.read_hash &&
+ 	    !pl_result8.bad_round && !pl_result9.bad_round) {
++		(void)pstore_write_pmsg_kernel(mt6797_a72_pmsg_pre_scheduler,
++			sizeof(mt6797_a72_pmsg_pre_scheduler) - 1);
+ 		mt6797_a72_sc_run();
+ 		pr_emerg("gemini-a72-pair-v6 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3 hps_reported=%d hps_cpu=%d hps_error=%d hps_count=%d coh_reported=%d coh_rounds=%d coh_cpu8=%d coh_cpu9=%d coh_error8=%d coh_error9=%d coh_seq8=%d coh_seq9=%d ml_reported=%d ml_rounds=64 ml_lines=256 ml_words=8 ml_cpu8=%d ml_cpu9=%d ml_error8=%d ml_error9=%d ml_done8=%d ml_done9=%d ml_hash8w=%016llx ml_hash8r=%016llx ml_hash9w=%016llx ml_hash9r=%016llx ml_bad_round=%d ml_bad_line=%d ml_bad_word=%d ml_expected=%016llx ml_actual=%016llx pl_reported=%d pl_rounds=128 pl_lines=1024 pl_words=8 pl_cpu8=%d pl_cpu9=%d pl_error8=%d pl_error9=%d pl_done8=%d pl_done9=%d pl_ready=%d pl_written=%d pl_verified=%d pl_hash8w=%016llx pl_hash8r=%016llx pl_hash9w=%016llx pl_hash9r=%016llx pl_bad_round=%d pl_bad_line=%d pl_bad_word=%d pl_expected=%016llx pl_actual=%016llx\n",
+ 			 hps_reported, hps_cpu, hps_error, hps_count,
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_a72_transition_observer.c b/drivers/misc/mediatek/base/power/mt6797/mt_a72_transition_observer.c
+index cc7dd0d72..bd41cd6aa 100644
+--- a/drivers/misc/mediatek/base/power/mt6797/mt_a72_transition_observer.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt_a72_transition_observer.c
+@@ -12,6 +12,7 @@
+ #include <linux/kernel.h>
+ #include <linux/module.h>
+ #include <linux/proc_fs.h>
++#include <linux/pstore.h>
+ #include <linux/seq_file.h>
+ #include <linux/spinlock.h>
+ #include <linux/timekeeping.h>
+@@ -24,6 +25,9 @@
+ #define MT6797_A72_OBS_CPU_LAST		9
+ #define MT6797_A72_OBS_PROC_NAME	"mt6797_a72_transition"
+ 
++static const char mt6797_a72_pmsg_entry[] =
++	"gemini-a72-pmsg-v1 stage=entry parent=register-capsule\n";
++
+ struct mt6797_a72_obs_lifecycle {
+ 	s32 result;
+ 	u32 reserved;
+@@ -620,6 +624,8 @@ static const struct file_operations mt6797_a72_obs_proc_fops = {
+ 
+ static int __init mt6797_a72_obs_init(void)
+ {
++	(void)pstore_write_pmsg_kernel(mt6797_a72_pmsg_entry,
++				       sizeof(mt6797_a72_pmsg_entry) - 1);
+ 	if (!proc_create(MT6797_A72_OBS_PROC_NAME, 0400, NULL,
+ 			 &mt6797_a72_obs_proc_fops))
+ 		return -ENOMEM;
+diff --git a/fs/pstore/pmsg.c b/fs/pstore/pmsg.c
+index e086604da..acf3ba479 100644
+--- a/fs/pstore/pmsg.c
++++ b/fs/pstore/pmsg.c
+@@ -14,12 +14,34 @@
+ #include <linux/cdev.h>
+ #include <linux/device.h>
+ #include <linux/fs.h>
++#include <linux/module.h>
++#include <linux/string.h>
+ #include <linux/uaccess.h>
+ #include <linux/vmalloc.h>
+ #include "internal.h"
+ 
+ static DEFINE_MUTEX(pmsg_lock);
+ #define PMSG_MAX_BOUNCE_BUFFER_SIZE (1*PAGE_SIZE)
++#define PMSG_MAX_KERNEL_RECORD_SIZE 256
++
++int pstore_write_pmsg_kernel(const char *buf, size_t count)
++{
++	u64 id = 0;
++	int ret = -ENODEV;
++
++	if (!buf || !count || count > PMSG_MAX_KERNEL_RECORD_SIZE)
++		return -EINVAL;
++
++	mutex_lock(&pmsg_lock);
++	if (psinfo && psinfo->write_buf && psinfo->name &&
++	    !strcmp(psinfo->name, "ramoops"))
++		ret = psinfo->write_buf(PSTORE_TYPE_PMSG, 0, &id, 0, buf, 0,
++					count, psinfo);
++	mutex_unlock(&pmsg_lock);
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(pstore_write_pmsg_kernel);
+ 
+ static ssize_t write_pmsg(struct file *file, const char __user *buf,
+ 			  size_t count, loff_t *ppos)
+diff --git a/include/linux/pstore.h b/include/linux/pstore.h
+index 8884f6e50..9916b7ae0 100644
+--- a/include/linux/pstore.h
++++ b/include/linux/pstore.h
+@@ -74,6 +74,15 @@ struct pstore_info {
+ 
+ #define	PSTORE_FLAGS_FRAGILE	1
+ 
++#ifdef CONFIG_PSTORE_PMSG
++int pstore_write_pmsg_kernel(const char *buf, size_t count);
++#else
++static inline int pstore_write_pmsg_kernel(const char *buf, size_t count)
++{
++	return -ENODEV;
++}
++#endif
++
+ #ifdef CONFIG_PSTORE
+ extern int pstore_register(struct pstore_info *);
+ extern bool pstore_cannot_block_path(enum kmsg_dump_reason reason);

@@ -6045,9 +6045,13 @@ The next ordered work is:
    definition now pins the four exact parent files, a ramoops-only 1--256-byte
    process-context helper, three fixed call sites, unchanged console marker
    inventory, and eight rejecting mutations. No build or device action has
-   occurred. **Selected next:** generate the exact child on Buildbox, review
-   and admit only its four-path patch, then define the exact-parent compile
-   comparison before any candidate construction.
+   occurred. Buildbox source generation now passes deterministic parent
+   reversal, all eight rejecting mutations, the exact four-path inventory, and
+   strict style with zero errors, warnings, or checks. Exact generated source
+   commit `947317cb...` produced the admitted patch `cf102ea2...`; no kernel
+   build or device action occurred. **Selected next:** define and run the
+   exact-parent Buildbox-only compile comparison before any candidate
+   construction.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

@@ -7,6 +7,7 @@ readonly SOURCE_COMMIT=59e00a9144d782e148332009a835b99c43382467
 readonly SOURCE_URL=https://github.com/gemian/gemini-linux-kernel-3.18.git
 readonly PARENT_REGISTER_PATCHSET_SHA256=71ef281aae8d0b99d0421b81bd3d61d82ab090125c4885977ba39d8280838469
 readonly GENERATED_PATCH=0001-diagnostic-add-same-version-pmsg-witness.patch
+readonly GENERATED_PATCH_SHA256=cf102ea22af912a9a4755039c6acc109be36be859d1e3ac826d884d8a095fd59
 readonly CHECKPATCH=/workspace/gemini-pda/src/linux-7.1.3/scripts/checkpatch.pl
 readonly CHECKPATCH_SHA256=e34bf5cec12c1a208b601cd863dd17536710a68e3f11c6e0d4fb4bf72243902e
 
@@ -20,10 +21,18 @@ readonly project_commit=$1 source_root=$2 output_root=$3
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 repository_dir="$(cd -- "$script_dir/../../.." && pwd -P)"
 readonly script_dir repository_dir
+readonly admitted_dir="$repository_dir/experiments/2026-08-28-a72-pmsg-witness/patches"
 [[ "$(git -C "$repository_dir" rev-parse HEAD)" == "$project_commit" ]] || \
   die 'project checkout mismatch'
 [[ -z "$(git -C "$repository_dir" status --porcelain)" ]] || \
   die 'project checkout is dirty'
+[[ -f "$admitted_dir/$GENERATED_PATCH" &&
+   ! -L "$admitted_dir/$GENERATED_PATCH" ]] || \
+  die 'admitted pmsg-witness patch is unavailable'
+[[ "$(cat "$admitted_dir/series")" == "$GENERATED_PATCH" ]] || \
+  die 'admitted pmsg-witness series changed'
+[[ "$(sha256sum "$admitted_dir/$GENERATED_PATCH" | awk '{print $1}')" == \
+  "$GENERATED_PATCH_SHA256" ]] || die 'admitted pmsg-witness patch changed'
 for command in awk cmp cp diff find git grep mkdir mktemp mv perl python3 rm \
   sha256sum sort xargs; do
   command -v "$command" >/dev/null || die "missing command: $command"
@@ -171,6 +180,11 @@ fi
   die 'generated source is dirty'
 generated_patch_sha="$(sha256sum "$partial/patches/$GENERATED_PATCH" | awk '{print $1}')"
 readonly generated_patch_sha
+[[ "$generated_patch_sha" == "$GENERATED_PATCH_SHA256" ]] || \
+  die 'generated pmsg-witness patch identity changed'
+cmp "$partial/patches/$GENERATED_PATCH" \
+  "$admitted_dir/$GENERATED_PATCH" || \
+  die 'generated pmsg-witness patch differs from admitted patch'
 cat >"$partial/provenance/generation.txt" <<EOF
 purpose=experiment-only-a72-pmsg-witness-source-review
 boot_candidate=false
