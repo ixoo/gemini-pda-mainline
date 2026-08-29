@@ -1,0 +1,99 @@
+Mainline A72 attestation and READY closure definition validation
+UTC date: 2026-08-29
+Repository parent: f9bd0fc9
+
+Scope
+-----
+
+This is a read-only, hardware-free source definition. No kernel source was
+modified, no kernel was built, no candidate was assembled or installed, no
+device was contacted, and no CPU, CPU_OFF, retained-RAM, storage, power, or
+reboot action occurred.
+
+Prepared source
+---------------
+
+Buildbox source root:
+  /workspace/gemini-pda/src/linux-7.1.3-series-source
+Prepared state:
+  16b5e467943d87d5fedb162770a7e2229d5a40fed596eb54d9167abba15105ce
+
+Exact source SHA-256:
+  e6bde598f415d8da0ba4073c37d2c8c341a70afb1d0237fc130ad113e494cd36  arch/arm64/include/asm/late_cpu_profile.h
+  22ecfb06e8d00972ffdecad6019c11f2b4d695a38c90aa3bbd6977c4c22bc29b  arch/arm64/kernel/late_cpu_profile.c
+  d9cd9d378e0be9c7b8ee07cc0cfceb681d78f8f3deea7d0cb64bbce93a118ad9  arch/arm64/kernel/mt6797_a72_membership.c
+  04cc165c559066375a667cc928760c0af6459d807fa4f8f13c2de44ffa5de296  arch/arm64/kernel/mt6797_psci.c
+  4d4f8f3c5e2f20ea54ccc68649b4418b6931f0285b52028627950815981dd244  arch/arm64/kernel/cpufeature.c
+  2af27545feff3adf6e3514f6a42ffb50b4edac714c7e7d719bd7a4448f13ba7e  arch/arm64/kernel/smp.c
+  d74b82a614ddcb2797c894301daabdf04b0130a96090889b562feff1688a7917  arch/arm64/kernel/proton-pack.c
+  007a3523ba15d1d9783fdde0868b8688daab8d974cc244f8ed7fead5acb86fc5  arch/arm64/kernel/cpu_errata.c
+  a1d7f995a4c490295adbc2a6189f0be46b4aff529badfb89f07244e4c0b76e64  arch/arm64/kernel/cpuinfo.c
+
+Read-only Buildbox source gate:
+
+  prepared_source_hashes=9-pass
+  secondary_entry_c_order=pass
+  abi7_commit_boundary=panic-stub
+
+Exact consumer findings
+-----------------------
+
+- Cache-type classification consumes target raw CTR, derived effective CTR,
+  CLIDR, and current system CTR/strict mask.
+- GICv5 legacy classification consumes the unmeasured ID_AA64PFR2 GCIE field,
+  ICC_IDR0, ICC_SRE, and the GIC-SRE usability predicate.
+- ICH_HCR_EL2_TDIR classification additionally consumes current hyp mode and
+  ICH_VTR source/status/value.
+- Spectre-v2 classification consumes the captured ID_AA64PFR0 CSV2 field and
+  current SMCCC WA1 outcome.
+- Spectre-v4 classification consumes the captured ID_AA64PFR1 SSBS field and
+  current SMCCC WA2 outcome.
+- BHB planning consumes the captured ID_AA64PFR0 CSV2 and ID_AA64MMFR1 ECBHB
+  fields plus the unmeasured ID_AA64ISAR2 CLRBHB field.
+- Current target policy comes from the mainline SMCCC conduit and mitigation
+  command-line policy; Gemian policy is not admissible input.
+- User HWCAP evaluation includes multiple unmeasured modern AArch64 registers.
+  Missing prior-cycle fields must either conservatively remove the associated
+  HWCAP or be enforced by a current-entry predicate; they cannot be zero-filled
+  and called observed.
+- The existing Linux 7.1.3 CPU-info path reads the modern AArch64 ID-register
+  image and feature-conditionally reads AArch32, GMID, SMIDR, and MPAM state.
+- Exact secondary C order is standard local-capability/HWCAP verification,
+  CPU-info storage, GIC/timer notification, then online publication. The new
+  expected-contract comparison belongs after CPU-info storage and before
+  notification/online publication. Raw CTR and CLIDR need explicit entry reads
+  because CPU-info stores effective CTR.
+- ABI 7 still has no architecture commit, and the MT6797 production profile
+  still has no system-verification or user-finalization callback.
+
+Ledger validation
+-----------------
+
+  python_syntax=pass
+  validation=mainline-a72-attestation-closure-v1-pass
+  targets=2
+  reference_register_image_fields=24
+  unmeasured_register_image_fields=23
+  target_local_values_per_cpu=26
+  abi7_target_groups=11
+  current_boot_owner_groups=9
+  closure_stages=12
+  unsafe_physical_actions=0
+  classification=prior-cycle-reference-only-ready-closure-incomplete
+
+Mutation validation
+-------------------
+
+  validation=mainline-a72-attestation-mutations-pass
+  positive_cases=1
+  unsafe_mutations_rejected=21
+
+Decision
+--------
+
+The recovered CPU8/CPU9 vectors are accepted only as a prior-cycle expected
+target contract. They cannot populate current-mainline observed fields or the
+coarse complete ID_REGS validity bit. The next logical patch may add only a
+field-valid expected-target schema and a fail-closed entry validator. It may
+not add an active expectation, architecture commit, READY publication, CPU
+request, CPU9 path, retry, CPU_OFF, or physical candidate.

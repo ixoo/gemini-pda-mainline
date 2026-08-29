@@ -6092,7 +6092,20 @@ The next ordered work is:
    alternatives, and user-HWCAP evidence. Define and mutation-test the
    architecture-owned evidence/commit/finalization closure before a Buildbox
    build; do not issue another CPU request or treat the Gemian capsule as a
-   ready-made mainline policy decision.
+   ready-made mainline policy decision. The resulting
+   [attestation/READY closure definition](../experiments/2026-08-29-mainline-a72-attestation-closure/README.md)
+   now partitions all 47 ABI-7 register-image fields into 24 exact prior-cycle
+   observations and 23 explicit unknowns, maps every current-mainline owner,
+   and rejects 21 unsafe mutations. Exact source confirms that current target
+   CPU-info can be compared after standard feature verification and before
+   GIC/timer notification or online publication. The prior Gemian capsule is
+   an expected-entry contract only; it cannot populate current-runtime
+   observations or a coarse complete ID-register bit. **Selected next:** add
+   one dormant, field-valid expected-target schema and a fail-closed arm64
+   entry validator as separate source-only logical patches. They must have no
+   active expectation, architecture commit, READY publication, CPU request,
+   CPU9 path, retry, CPU_OFF, build, candidate, or device action until their
+   exact-source and negative-mutation gates pass.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

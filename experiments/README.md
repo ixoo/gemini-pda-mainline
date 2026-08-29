@@ -23,6 +23,18 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-29 mainline A72 attestation and READY closure](2026-08-29-mainline-a72-attestation-closure/README.md)
+  — maps the complete pmsg-observed CPU8/CPU9 capsule into the exact ABI-7
+  schema without promoting prior-cycle Gemian evidence to a current-mainline
+  observation. All 47 register-image fields are partitioned into 24 observed
+  and 23 explicitly unmeasured fields; MPIDR and CLIDR are mapped separately.
+  Exact source review pins every target, system, policy, plan, commit,
+  alternatives, and HWCAP owner and locates a fail-closed current-entry check
+  before GIC/timer notification and online publication. The hardware-free
+  definition passes its exact source/capture gates and rejects 21 unsafe
+  mutations. No build, device action, or CPU request occurred; the next logical
+  patch is the separate field-valid expected-target schema and dormant entry
+  validator.
 - [2026-08-28 CPU8/CPU9 target-register capsule](2026-08-28-a72-target-register-capsule/README.md)
   — admits a capture-only child of the exact repeatable Gemian scheduler
   parent. Each already-bound target task reads one fixed architectural register

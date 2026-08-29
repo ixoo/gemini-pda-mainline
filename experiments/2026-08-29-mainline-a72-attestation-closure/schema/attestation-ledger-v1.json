@@ -1,0 +1,401 @@
+{
+  "schema": "gemini-mainline-a72-attestation-closure-v1",
+  "plan_abi": 7,
+  "prepared_source": {
+    "state": "16b5e467943d87d5fedb162770a7e2229d5a40fed596eb54d9167abba15105ce",
+    "late_cpu_profile_header_sha256": "e6bde598f415d8da0ba4073c37d2c8c341a70afb1d0237fc130ad113e494cd36",
+    "late_cpu_profile_core_sha256": "22ecfb06e8d00972ffdecad6019c11f2b4d695a38c90aa3bbd6977c4c22bc29b",
+    "mt6797_membership_sha256": "d9cd9d378e0be9c7b8ee07cc0cfceb681d78f8f3deea7d0cb64bbce93a118ad9",
+    "mt6797_psci_sha256": "04cc165c559066375a667cc928760c0af6459d807fa4f8f13c2de44ffa5de296",
+    "cpufeature_sha256": "4d4f8f3c5e2f20ea54ccc68649b4418b6931f0285b52028627950815981dd244",
+    "smp_sha256": "2af27545feff3adf6e3514f6a42ffb50b4edac714c7e7d719bd7a4448f13ba7e",
+    "proton_pack_sha256": "d74b82a614ddcb2797c894301daabdf04b0130a96090889b562feff1688a7917",
+    "cpu_errata_sha256": "007a3523ba15d1d9783fdde0868b8688daab8d974cc244f8ed7fead5acb86fc5",
+    "cpuinfo_sha256": "a1d7f995a4c490295adbc2a6189f0be46b4aff529badfb89f07244e4c0b76e64"
+  },
+  "reference_capture": {
+    "role": "prior-cycle-target-expectation-only",
+    "may_populate_current_runtime_observation": false,
+    "result_path": "experiments/2026-08-28-a72-pmsg-witness/results/runtime-attempt-1-complete-pass-20260829.txt",
+    "console_sha256": "de9b2cf75d1b2eeed20739f08c4dd95abcd4dd7b9f2056587d4ff668e1786b2d",
+    "capsule_stream_sha256": "04bd7f060613719e7836415f9dfbbc19dc1d97ee847eb811f765c5e8a01667cc",
+    "register_image_observed_fields": [
+      "ctr",
+      "cntfrq",
+      "dczid",
+      "midr",
+      "revidr",
+      "id_aa64dfr0",
+      "id_aa64isar0",
+      "id_aa64isar1",
+      "id_aa64mmfr0",
+      "id_aa64mmfr1",
+      "id_aa64pfr0",
+      "id_aa64pfr1",
+      "aarch32.id_isar0",
+      "aarch32.id_isar1",
+      "aarch32.id_isar2",
+      "aarch32.id_isar3",
+      "aarch32.id_isar4",
+      "aarch32.id_isar5",
+      "aarch32.id_mmfr0",
+      "aarch32.id_mmfr1",
+      "aarch32.id_mmfr2",
+      "aarch32.id_mmfr3",
+      "aarch32.id_pfr0",
+      "aarch32.id_pfr1"
+    ],
+    "register_image_unmeasured_fields": [
+      "aidr",
+      "gmid",
+      "smidr",
+      "mpamidr",
+      "id_aa64dfr1",
+      "id_aa64isar2",
+      "id_aa64isar3",
+      "id_aa64mmfr2",
+      "id_aa64mmfr3",
+      "id_aa64mmfr4",
+      "id_aa64pfr2",
+      "id_aa64zfr0",
+      "id_aa64smfr0",
+      "id_aa64fpfr0",
+      "aarch32.id_dfr0",
+      "aarch32.id_dfr1",
+      "aarch32.id_isar6",
+      "aarch32.id_mmfr4",
+      "aarch32.id_mmfr5",
+      "aarch32.id_pfr2",
+      "aarch32.mvfr0",
+      "aarch32.mvfr1",
+      "aarch32.mvfr2"
+    ],
+    "targets": [
+      {
+        "cpu": 8,
+        "capsule_identity": "e35596c52bc8b40b",
+        "mpidr": "0000000000000200",
+        "clidr_el1": "000000000a200023",
+        "registers": {
+          "ctr": "8444c004",
+          "cntfrq": "00c65d40",
+          "dczid": "00000004",
+          "midr": "410fd081",
+          "revidr": "00000000",
+          "id_aa64dfr0": "0000000010305106",
+          "id_aa64isar0": "0000000000011120",
+          "id_aa64isar1": "0000000000000000",
+          "id_aa64mmfr0": "0000000000001124",
+          "id_aa64mmfr1": "0000000000000000",
+          "id_aa64pfr0": "0000000001002222",
+          "id_aa64pfr1": "0000000000000000",
+          "aarch32.id_isar0": "02101110",
+          "aarch32.id_isar1": "13112111",
+          "aarch32.id_isar2": "21232042",
+          "aarch32.id_isar3": "01112131",
+          "aarch32.id_isar4": "00011142",
+          "aarch32.id_isar5": "00011121",
+          "aarch32.id_mmfr0": "10201105",
+          "aarch32.id_mmfr1": "40000000",
+          "aarch32.id_mmfr2": "01260000",
+          "aarch32.id_mmfr3": "02102211",
+          "aarch32.id_pfr0": "00000131",
+          "aarch32.id_pfr1": "10011011"
+        }
+      },
+      {
+        "cpu": 9,
+        "capsule_identity": "600c5e2d6733661d",
+        "mpidr": "0000000000000201",
+        "clidr_el1": "000000000a200023",
+        "registers": {
+          "ctr": "8444c004",
+          "cntfrq": "00c65d40",
+          "dczid": "00000004",
+          "midr": "410fd081",
+          "revidr": "00000000",
+          "id_aa64dfr0": "0000000010305106",
+          "id_aa64isar0": "0000000000011120",
+          "id_aa64isar1": "0000000000000000",
+          "id_aa64mmfr0": "0000000000001124",
+          "id_aa64mmfr1": "0000000000000000",
+          "id_aa64pfr0": "0000000001002222",
+          "id_aa64pfr1": "0000000000000000",
+          "aarch32.id_isar0": "02101110",
+          "aarch32.id_isar1": "13112111",
+          "aarch32.id_isar2": "21232042",
+          "aarch32.id_isar3": "01112131",
+          "aarch32.id_isar4": "00011142",
+          "aarch32.id_isar5": "00011121",
+          "aarch32.id_mmfr0": "10201105",
+          "aarch32.id_mmfr1": "40000000",
+          "aarch32.id_mmfr2": "01260000",
+          "aarch32.id_mmfr3": "02102211",
+          "aarch32.id_pfr0": "00000131",
+          "aarch32.id_pfr1": "10011011"
+        }
+      }
+    ]
+  },
+  "abi7_mapping": {
+    "target_cap_groups": {
+      "MIDR": {
+        "reference": "complete",
+        "current_mainline": "missing",
+        "owner": "early-target-entry-validator"
+      },
+      "ID_REGS": {
+        "reference": "partial-24-of-47",
+        "current_mainline": "missing",
+        "owner": "field-valid-expected-contract-and-entry-validator"
+      },
+      "CTR": {
+        "reference": "partial-ctr-and-clidr-no-effective-value",
+        "current_mainline": "missing",
+        "owner": "arm64-cache-type-planner-and-entry-validator"
+      },
+      "GIC": {
+        "reference": "missing",
+        "current_mainline": "missing",
+        "owner": "arm64-gic-current-boot-owner"
+      },
+      "HYP": {
+        "reference": "missing",
+        "current_mainline": "missing",
+        "owner": "arm64-el2-current-boot-owner"
+      },
+      "WA1": {
+        "reference": "missing",
+        "current_mainline": "missing",
+        "owner": "arm64-smccc-current-boot-owner"
+      },
+      "WA2": {
+        "reference": "missing",
+        "current_mainline": "missing",
+        "owner": "arm64-smccc-current-boot-owner"
+      },
+      "WA3": {
+        "reference": "missing",
+        "current_mainline": "missing",
+        "owner": "arm64-smccc-current-boot-owner"
+      },
+      "ASID": {
+        "reference": "missing",
+        "current_mainline": "missing",
+        "owner": "arm64-address-space-current-boot-owner"
+      },
+      "GRANULE": {
+        "reference": "missing",
+        "current_mainline": "missing",
+        "owner": "arm64-address-space-current-boot-owner"
+      },
+      "VA": {
+        "reference": "missing",
+        "current_mainline": "missing",
+        "owner": "arm64-address-space-current-boot-owner"
+      }
+    },
+    "current_boot_only_fields": {
+      "runtime_binding": {
+        "fields": [
+          "expected_config_identity",
+          "running_config_identity",
+          "expected_build_id_identity",
+          "running_build_id_identity",
+          "expected_cmdline_identity",
+          "running_cmdline_identity"
+        ],
+        "state": "producer-exists-container-provenance-composition-required",
+        "owner": "arm64-runtime-identity"
+      },
+      "target_policy": {
+        "fields": [
+          "smccc_conduit",
+          "mitigations_off",
+          "nospectre_v2",
+          "spectre_v4_policy"
+        ],
+        "state": "missing",
+        "owner": "arm64-current-command-line-and-firmware-policy"
+      },
+      "system_capability": {
+        "fields": [
+          "ctr_sys_val",
+          "ctr_strict_mask",
+          "ssbs",
+          "spectre_v2_state",
+          "spectre_v4_state",
+          "bhb_state",
+          "bhb_matcher_loop_count",
+          "bhb_system_method"
+        ],
+        "state": "missing",
+        "owner": "arm64-current-system-capability-owner"
+      },
+      "evidence_identity": {
+        "fields": [
+          "named-field-canonical-identity"
+        ],
+        "state": "missing",
+        "owner": "arm64-core"
+      },
+      "plan_identity": {
+        "fields": [
+          "named-field-canonical-plan-identity"
+        ],
+        "state": "missing",
+        "owner": "arm64-core"
+      },
+      "architecture_commit": {
+        "fields": [
+          "typed-effects",
+          "monotonic-receipt"
+        ],
+        "state": "panic-stub",
+        "owner": "arm64-core"
+      },
+      "system_verification": {
+        "fields": [
+          "strict-caps",
+          "committed-effects"
+        ],
+        "state": "profile-callback-missing",
+        "owner": "arm64-core-and-mt6797-profile"
+      },
+      "alternatives_finalization": {
+        "fields": [
+          "ctr",
+          "spectre-v2",
+          "spectre-v4",
+          "bhb",
+          "compat-aes",
+          "speculative-at"
+        ],
+        "state": "missing",
+        "owner": "arm64-core"
+      },
+      "user_hwcap_finalization": {
+        "fields": [
+          "elf-hwcap",
+          "elf-hwcap2",
+          "compat-hwcap",
+          "compat-hwcap2"
+        ],
+        "state": "profile-callback-missing",
+        "owner": "arm64-core-and-mt6797-profile"
+      }
+    }
+  },
+  "architecture_contract": {
+    "expected_target_schema": "new-field-valid-schema-required",
+    "forbidden_copy_destinations": [
+      "observed_target_mpidr",
+      "observed_target_midr",
+      "observed_target_revidr",
+      "runtime_target_cap",
+      "runtime_target_policy",
+      "runtime_system_cap"
+    ],
+    "entry_validation_sources": {
+      "existing_order": [
+        "check-local-cpu-capabilities",
+        "cpuinfo-store-cpu",
+        "notify-cpu-starting",
+        "set-cpu-online"
+      ],
+      "new_order": [
+        "check-local-cpu-capabilities",
+        "cpuinfo-store-cpu",
+        "validate-expected-target-contract",
+        "notify-cpu-starting",
+        "set-cpu-online"
+      ],
+      "cpuinfo_register_image": "existing-safe-or-feature-conditional-reader",
+      "raw_ctr_and_clidr": "new-direct-entry-read-required",
+      "standard_feature_mismatch": "existing-cpu-die-early",
+      "expected_contract_mismatch": "new-park-before-notify-and-online"
+    },
+    "stages": [
+      {
+        "order": 1,
+        "id": "bind-current-image",
+        "owner": "arm64-core",
+        "state": "existing-producer-construction-input-required"
+      },
+      {
+        "order": 2,
+        "id": "capture-current-system-policy",
+        "owner": "arm64-core",
+        "state": "missing"
+      },
+      {
+        "order": 3,
+        "id": "freeze-expected-target-contract",
+        "owner": "arm64-core",
+        "state": "missing"
+      },
+      {
+        "order": 4,
+        "id": "plan-capabilities-effects-and-hwcaps",
+        "owner": "arm64-core",
+        "state": "partial"
+      },
+      {
+        "order": 5,
+        "id": "mint-canonical-evidence-and-plan-identities",
+        "owner": "arm64-core",
+        "state": "missing"
+      },
+      {
+        "order": 6,
+        "id": "commit-architecture-effects",
+        "owner": "arm64-core",
+        "state": "panic-stub"
+      },
+      {
+        "order": 7,
+        "id": "verify-system-and-alternatives",
+        "owner": "arm64-core-and-mt6797-profile",
+        "state": "missing"
+      },
+      {
+        "order": 8,
+        "id": "finalize-user-hwcaps",
+        "owner": "arm64-core-and-mt6797-profile",
+        "state": "missing"
+      },
+      {
+        "order": 9,
+        "id": "publish-ready",
+        "owner": "arm64-core",
+        "state": "existing-unreachable"
+      },
+      {
+        "order": 10,
+        "id": "request-cpu8-once",
+        "owner": "mt6797-admission-controller",
+        "state": "existing-gated"
+      },
+      {
+        "order": 11,
+        "id": "validate-current-cpu8-entry",
+        "owner": "arm64-early-target-entry",
+        "state": "missing"
+      },
+      {
+        "order": 12,
+        "id": "continue-ordinary-secondary-startup",
+        "owner": "arm64-core",
+        "state": "existing-after-new-gate"
+      }
+    ],
+    "physical_actions": {
+      "cpu_request_before_ready": false,
+      "cpu8_request_count_max": 1,
+      "cpu9_request": false,
+      "cpu_off": false,
+      "retry_count_max": 0,
+      "entry_mismatch": "refuse-before-ordinary-secondary-startup"
+    }
+  }
+}
