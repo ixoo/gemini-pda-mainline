@@ -167,9 +167,9 @@ def mutations() -> list[tuple[str, Callable[[Path], None]]]:
             "\treturn id_aa64pfr0_32bit_el0(pfr0);\n")),
         ("add-cpu-request", lambda r: replace(
             r / errata,
-            "\treturn effective != sys && raw != sys ?\n",
+            "\traw = expected->ctr;\n",
             "\t/* cpu_up(8) */\n"
-            "\treturn effective != sys && raw != sys ?\n")),
+            "\traw = expected->ctr;\n")),
         ("make-production-profile-succeed", lambda r: replace(
             r / profile,
             "\t/* No live system capability, alternative, vector, or HWCAP is changed. */\n"
