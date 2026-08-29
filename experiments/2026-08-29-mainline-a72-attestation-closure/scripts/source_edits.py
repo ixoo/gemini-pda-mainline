@@ -607,7 +607,7 @@ def apply_system_policy(root: Path) -> None:
     replace_once(
         core,
         "static bool __init\n"
-        "late_profile_binding_empty(\n",
+        "late_profile_binding_empty",
         "static bool __init late_runtime_evidence_storage_empty(void);\n\n"
         "void __init arm64_collect_late_cpu_runtime_system_policy(void)\n"
         "{\n"
@@ -642,12 +642,12 @@ def apply_system_policy(root: Path) -> None:
         "\t\tlate_runtime_evidence.target_policy[target] = policy;\n"
         "}\n\n"
         "static bool __init\n"
-        "late_profile_binding_empty(\n",
+        "late_profile_binding_empty",
     )
     replace_once(
         core,
         "static bool __init\n"
-        "late_profile_identity_cross_bound(\n",
+        "late_profile_identity_cross_bound",
         "static bool __init\n"
         "late_runtime_system_policy_complete(void)\n"
         "{\n"
@@ -714,7 +714,7 @@ def apply_system_policy(root: Path) -> None:
         "\treturn true;\n"
         "}\n\n"
         "static bool __init\n"
-        "late_profile_identity_cross_bound(\n",
+        "late_profile_identity_cross_bound",
     )
     replace_once(
         core,
