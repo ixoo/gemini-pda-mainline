@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-a72-pmsg-witness` |
-| Status | `source accepted; compile pending` |
+| Status | `source accepted; Buildbox compile pending` |
 | Subsystem | Gemian pstore/ramoops and retained Cortex-A72 experiment attribution |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-28 |
@@ -64,18 +64,23 @@ preservation, forbidden-action inventory, and negative mutations pass.
   transformation, reversal, semantic, and negative-mutation validation.
 - `scripts/generate-on-buildbox`: Buildbox-only exact-parent reconstruction,
   generation, strict style gate, and admitted-byte comparison.
+- `scripts/build-on-buildbox`: selects the pmsg mode of the shared exact-parent
+  Gemian compile-review lane.
 - `patches/series`: the single exact generated child patch.
 - [`results/source-generation-20260829.txt`](results/source-generation-20260829.txt):
   exact generation identities, stopped attempts, and acceptance boundary.
+- [`results/compile-lane-validation-20260829.txt`](results/compile-lane-validation-20260829.txt):
+  pinned parent/child comparison, binary gates, and no-device boundary.
 
 ## Procedure
 
 1. Run the self-test and exact source generator on Buildbox.
 2. Review and admit the generated child only if every source and mutation gate
    passes and the diff changes exactly four pinned files.
-3. Compile both exact parent and child on Buildbox; compare configuration,
-   diagnostics, symbols, stack use, disassembly, marker inventory, and forbidden
-   calls.
+3. Compile both exact parent and child on Buildbox; require identical resolved
+   configuration and diagnostics, the child-only bounded writer, exactly three
+   writer-call deltas, one indirect backend call, unchanged console-marker and
+   register-read inventories, bounded stack use, and no forbidden call.
 4. Define and validate a pmsg-aware changed-cycle collector before constructing
    or deploying one candidate.
 
@@ -97,8 +102,10 @@ Buildbox generation passed with generated source commit `947317cb...`, exact
 four-path patch SHA-256 `cf102ea2...`, deterministic parent reversal, all eight
 negative mutations rejected, and strict style results of zero errors, zero
 warnings, and zero checks. The admitted patch is byte-identical to that output.
-No kernel build, boot image, device access, retained-RAM write, or hardware
-action has occurred.
+The admitted compile lane pins pmsg patchset `6663fe7b...` and the exact
+register parent. Its local syntax and ShellCheck gates pass; it cannot submit
+until its own clean pushed commit exists. No kernel build, boot image, device
+access, retained-RAM write, or hardware action has occurred.
 
 ## Analysis
 

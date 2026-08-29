@@ -6049,9 +6049,13 @@ The next ordered work is:
    reversal, all eight rejecting mutations, the exact four-path inventory, and
    strict style with zero errors, warnings, or checks. Exact generated source
    commit `947317cb...` produced the admitted patch `cf102ea2...`; no kernel
-   build or device action occurred. **Selected next:** define and run the
-   exact-parent Buildbox-only compile comparison before any candidate
-   construction.
+   build or device action occurred. The exact-parent compile lane is now
+   defined with pinned pmsg patchset `6663fe7b...`, identical configuration and
+   diagnostics gates, exactly three compiled writer-call deltas, one indirect
+   backend call, unchanged console-marker and 26-register-read inventories,
+   bounded stack use, and forbidden-call rejection. **Selected next:** commit
+   and push this lane, then run and review its Buildbox-only comparison before
+   any candidate construction.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

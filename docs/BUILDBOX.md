@@ -527,6 +527,23 @@ and performs no device action. The retained pmsg contract is valid only for the
 same-layout Gemian-derived candidate and Gemian recovery pair, not for the
 differently aligned mainline pmsg region.
 
+After the generated patch is admitted, compile it against the exact
+register-capsule parent with:
+
+```sh
+./scripts/buildbox build-gemian-pmsg-witness-compile
+./scripts/buildbox fetch-gemian-pmsg-witness-compile
+```
+
+This lane reconstructs and validates both exact source states, then performs
+two out-of-tree `Image.gz-dtb` builds with identical resolved configuration and
+diagnostics. It requires the child-only bounded pmsg writer, exactly three
+direct writer-call deltas, one indirect ramoops backend call, all four fixed
+records, unchanged console-marker and 26-register-read inventories, bounded
+stack use, and no added power, PSCI, CPU, MMIO, delay, reset, or reboot call.
+The checksum-covered output remains compile-review-only, never a boot
+candidate, and performs no device action.
+
 ## A72 platform/provider readiness repair generation
 
 The deferred-bind repair is generated only from a clean pushed project commit

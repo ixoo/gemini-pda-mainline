@@ -1,0 +1,64 @@
+A72 same-version pmsg witness compile-lane validation
+====================================================
+
+Scope
+-----
+
+Local validation of the Buildbox-only exact-parent compile lane. No kernel
+compile, boot image, candidate, device access, retained-RAM write, or hardware
+action occurred.
+
+Pinned inputs and comparison
+----------------------------
+
+Gemian source commit:
+  59e00a9144d782e148332009a835b99c43382467
+Scheduler-unpark patchset SHA-256:
+  bd5799cecd14aa34a87562b09507a6d9f18f11cd138420bcba629f12793e7bfe
+Register-capsule patchset SHA-256:
+  71ef281aae8d0b99d0421b81bd3d61d82ab090125c4885977ba39d8280838469
+Pmsg-witness patchset SHA-256:
+  6663fe7b073ce2e939bf2ba6ce3de28e824cf3b30d1653c4d3c272bf3ba2bd46
+Baseline:
+  exact register-capsule parent
+Child:
+  exact parent plus the single admitted pmsg-witness patch
+Backend:
+  Buildbox only; native VM kernel build prohibited
+
+Compile decision gates
+----------------------
+
+- Deterministic exact-parent/child source validation must pass before compile.
+- Parent and child resolved configurations and extracted diagnostics must be
+  identical; both must retain PSTORE, PMSG, RAM, and console pstore options.
+- `pstore_write_pmsg_kernel` must be a linked child-only symbol.
+- Compiled observer-entry, pre-scheduler, and pre-capsule sites must add exactly
+  one writer call each and no other direct-call delta.
+- The helper must contain exactly mutex lock, strcmp, and mutex unlock direct
+  calls plus one indirect backend call, with the forbidden CPU, PSCI, MMIO,
+  regulator, clock, delay, reset, and reboot call inventory absent.
+- All four fixed pmsg records must be linked only in the child. The inherited
+  console-marker inventory and both 26-MRS register-capture task inventories
+  must remain identical.
+- Focused stack reports must cover the writer, observer init, scheduler task,
+  terminal, and parent worker within their fixed bounds.
+- The package remains `boot_candidate=false` and compile-review-only.
+
+Local validation
+----------------
+
+- `bash -n` passed for the shared compile script, pmsg wrapper, and Buildbox
+  dispatcher.
+- ShellCheck passed for the same three shell paths.
+- The existing pmsg source self-test passed all eight negative mutations.
+- `git diff --check` passed.
+- The Buildbox help/dispatch surface exposes only the named pmsg build and fetch
+  commands.
+
+Decision
+--------
+
+The lane definition is accepted for one clean pushed Buildbox comparison.
+Candidate construction and all device action remain blocked until the fetched
+compile package independently passes its checksum and provenance review.

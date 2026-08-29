@@ -40,7 +40,7 @@ readonly build_mode="${7:-one-way}"
    "${build_mode}" == window || "${build_mode}" == terminal || \
    "${build_mode}" == coherence || "${build_mode}" == multiline || \
    "${build_mode}" == parallel || "${build_mode}" == scheduler || \
-   "${build_mode}" == register ]] || \
+   "${build_mode}" == register || "${build_mode}" == pmsg ]] || \
   die "invalid compile-review mode"
 for root in "${source_root}" "${build_root}" "${artifact_root}" "${toolchain_root}"; do
   [[ "${root}" == /workspace/gemini-pda/* && "${root}" != /workspace/gemini-pda ]] || \
@@ -77,6 +77,8 @@ scheduler_experiment_dir="${repository_dir}/experiments/2026-08-03-a72-scheduler
 readonly scheduler_experiment_dir
 register_experiment_dir="${repository_dir}/experiments/2026-08-28-a72-target-register-capsule"
 readonly register_experiment_dir
+pmsg_experiment_dir="${repository_dir}/experiments/2026-08-28-a72-pmsg-witness"
+readonly pmsg_experiment_dir
 [[ "$(git -C "${repository_dir}" rev-parse HEAD)" == "${project_commit}" ]] || \
   die "project checkout does not match requested commit"
 [[ -z "$(git -C "${repository_dir}" status --porcelain)" ]] || \
@@ -100,6 +102,7 @@ readonly multiline_patch_series="${multiline_experiment_dir}/patches/series"
 readonly parallel_patch_series="${parallel_experiment_dir}/patches/series"
 readonly scheduler_patch_series="${scheduler_experiment_dir}/patches/series"
 readonly register_patch_series="${register_experiment_dir}/patches/series"
+readonly pmsg_patch_series="${pmsg_experiment_dir}/patches/series"
 readonly -a scheduler_phase_parent_patches=(
   0001-diagnostic-add-bounded-A72-scheduler-context-execution.patch
   0002-diagnostic-add-A72-scheduler-phase-attribution.patch
@@ -109,6 +112,7 @@ readonly EXPECTED_SCHEDULER_PHASE_PARENT_PATCHSET_SHA256=b2c971d4a1860ec09616a61
 # Exact admitted phase-parent plus unpark child series identity.
 readonly EXPECTED_SCHEDULER_UNPARK_PATCHSET_SHA256=bd5799cecd14aa34a87562b09507a6d9f18f11cd138420bcba629f12793e7bfe
 readonly EXPECTED_REGISTER_PATCHSET_SHA256=71ef281aae8d0b99d0421b81bd3d61d82ab090125c4885977ba39d8280838469
+readonly EXPECTED_PMSG_PATCHSET_SHA256=6663fe7b073ce2e939bf2ba6ce3de28e824cf3b30d1653c4d3c272bf3ba2bd46
 manifest_sha="$(sha256sum "${manifest}" | awk '{print $1}')"
 readonly manifest_sha
 parent_patchset_sha="$(cd "${observer_experiment_dir}/patches" && while IFS= read -r patch; do sha256sum "${patch}"; done < series | sha256sum | awk '{print $1}')"
@@ -148,7 +152,8 @@ readonly window_patchset_sha
 terminal_patchset_sha=not-selected
 if [[ "${build_mode}" == terminal || "${build_mode}" == coherence || \
       "${build_mode}" == multiline || "${build_mode}" == parallel || \
-      "${build_mode}" == scheduler || "${build_mode}" == register ]]; then
+      "${build_mode}" == scheduler || "${build_mode}" == register || \
+      "${build_mode}" == pmsg ]]; then
   [[ -f "${terminal_patch_series}" ]] || \
     die "terminal-attribution patch series is absent"
   terminal_patchset_sha="$({
@@ -162,7 +167,7 @@ readonly terminal_patchset_sha
 coherence_patchset_sha=not-selected
 if [[ "${build_mode}" == coherence || "${build_mode}" == multiline ||
       "${build_mode}" == parallel || "${build_mode}" == scheduler || \
-      "${build_mode}" == register ]]; then
+      "${build_mode}" == register || "${build_mode}" == pmsg ]]; then
   [[ -f "${coherence_patch_series}" ]] || \
     die "bounded-coherency patch series is absent"
   coherence_patchset_sha="$({
@@ -175,14 +180,15 @@ fi
 readonly coherence_patchset_sha
 if [[ "${build_mode}" == coherence || "${build_mode}" == multiline ||
       "${build_mode}" == parallel || "${build_mode}" == scheduler || \
-      "${build_mode}" == register ]]; then
+      "${build_mode}" == register || "${build_mode}" == pmsg ]]; then
   [[ "${coherence_patchset_sha}" == \
      d4c40577b9e91fedfde048b29cb203311de264c526c71e3abd907fc6fafcf67f ]] || \
     die "bounded-coherency patchset identity mismatch"
 fi
 multiline_patchset_sha=not-selected
 if [[ "${build_mode}" == multiline || "${build_mode}" == parallel || \
-      "${build_mode}" == scheduler || "${build_mode}" == register ]]; then
+      "${build_mode}" == scheduler || "${build_mode}" == register || \
+      "${build_mode}" == pmsg ]]; then
   [[ -f "${multiline_patch_series}" ]] || \
     die "multiline-integrity patch series is absent"
   multiline_patchset_sha="$({
@@ -194,14 +200,15 @@ if [[ "${build_mode}" == multiline || "${build_mode}" == parallel || \
 fi
 readonly multiline_patchset_sha
 if [[ "${build_mode}" == multiline || "${build_mode}" == parallel || \
-      "${build_mode}" == scheduler || "${build_mode}" == register ]]; then
+      "${build_mode}" == scheduler || "${build_mode}" == register || \
+      "${build_mode}" == pmsg ]]; then
   [[ "${multiline_patchset_sha}" == \
      c7a9b020563c4abb74059bbf72705839c528a81d577c7031ddfb36de647fd896 ]] || \
     die "multiline-integrity patchset identity mismatch"
 fi
 parallel_patchset_sha=not-selected
 if [[ "${build_mode}" == parallel || "${build_mode}" == scheduler || \
-      "${build_mode}" == register ]]; then
+      "${build_mode}" == register || "${build_mode}" == pmsg ]]; then
   [[ -f "${parallel_patch_series}" ]] || \
     die "parallel disjoint-load patch series is absent"
   parallel_patchset_sha="$({
@@ -213,14 +220,15 @@ if [[ "${build_mode}" == parallel || "${build_mode}" == scheduler || \
 fi
 readonly parallel_patchset_sha
 if [[ "${build_mode}" == parallel || "${build_mode}" == scheduler || \
-      "${build_mode}" == register ]]; then
+      "${build_mode}" == register || "${build_mode}" == pmsg ]]; then
   [[ "${parallel_patchset_sha}" == \
      94d3b07355e1ddb67f3f643165570255bb1f42131b3b67c074d270e8581989e2 ]] || \
     die "parallel disjoint-load patchset identity mismatch"
 fi
 scheduler_phase_parent_patchset_sha=not-selected
 scheduler_patchset_sha=not-selected
-if [[ "${build_mode}" == scheduler || "${build_mode}" == register ]]; then
+if [[ "${build_mode}" == scheduler || "${build_mode}" == register || \
+      "${build_mode}" == pmsg ]]; then
   [[ -f "${scheduler_patch_series}" ]] || \
     die "scheduler-context patch series is absent"
   expected_scheduler_series="$(
@@ -253,7 +261,8 @@ if [[ "${build_mode}" == scheduler || "${build_mode}" == register ]]; then
 fi
 readonly scheduler_phase_parent_patchset_sha
 readonly scheduler_patchset_sha
-if [[ "${build_mode}" == scheduler || "${build_mode}" == register ]]; then
+if [[ "${build_mode}" == scheduler || "${build_mode}" == register || \
+      "${build_mode}" == pmsg ]]; then
   [[ "${EXPECTED_SCHEDULER_UNPARK_PATCHSET_SHA256}" =~ ^[0-9a-f]{64}$ ]] || \
     die "scheduler unpark child patchset hash pin is pending"
   [[ "${scheduler_patchset_sha}" == \
@@ -261,7 +270,7 @@ if [[ "${build_mode}" == scheduler || "${build_mode}" == register ]]; then
     die "scheduler unpark child patchset identity mismatch"
 fi
 register_patchset_sha=not-selected
-if [[ "${build_mode}" == register ]]; then
+if [[ "${build_mode}" == register || "${build_mode}" == pmsg ]]; then
   [[ -f "${register_patch_series}" && ! -L "${register_patch_series}" ]] || \
     die "register-capsule patch series is absent or unsafe"
   [[ "$(<"${register_patch_series}")" == \
@@ -280,6 +289,25 @@ if [[ "${build_mode}" == register ]]; then
     die "register-capsule patchset identity mismatch"
 fi
 readonly register_patchset_sha
+pmsg_patchset_sha=not-selected
+if [[ "${build_mode}" == pmsg ]]; then
+  [[ -f "${pmsg_patch_series}" && ! -L "${pmsg_patch_series}" ]] || \
+    die "pmsg-witness patch series is absent or unsafe"
+  [[ "$(<"${pmsg_patch_series}")" == \
+     0001-diagnostic-add-same-version-pmsg-witness.patch ]] || \
+    die "pmsg-witness series is not the exact admitted child"
+  pmsg_patchset_sha="$({
+    cd "${pmsg_experiment_dir}/patches"
+    while IFS= read -r patch; do
+      [[ -f "${patch}" && ! -L "${patch}" ]] || \
+        die "pmsg-witness patch is absent or unsafe: ${patch}"
+      sha256sum "${patch}" | awk '{print $1}'
+    done < series
+  } | sha256sum | awk '{print $1}')"
+  [[ "${pmsg_patchset_sha}" == "${EXPECTED_PMSG_PATCHSET_SHA256}" ]] || \
+    die "pmsg-witness patchset identity mismatch"
+fi
+readonly pmsg_patchset_sha
 [[ "$(sha256sum "${baseline_config}" | awk '{print $1}')" == "${CONFIG_SHA256}" ]] || \
   die "active Gemian configuration hash mismatch"
 
@@ -429,6 +457,7 @@ prepare_variant() {
   local include_parallel="${12:-0}"
   local include_scheduler="${13:-0}"
   local include_register="${14:-0}"
+  local include_pmsg="${15:-0}"
   local patch
   local partial
   local state_identity
@@ -584,6 +613,16 @@ prepare_variant() {
         "${register_experiment_dir}/patches/${patch}"
     done < "${register_patch_series}"
   fi
+  if [[ "${include_pmsg}" == 1 ]]; then
+    while IFS= read -r patch; do
+      [[ "${patch}" =~ ^[A-Za-z0-9_.+-]+\.patch$ ]] || \
+        die "unsafe pmsg-witness patch name"
+      git -C "${partial}" apply --check \
+        "${pmsg_experiment_dir}/patches/${patch}"
+      git -C "${partial}" apply \
+        "${pmsg_experiment_dir}/patches/${patch}"
+    done < "${pmsg_patch_series}"
+  fi
   git -C "${partial}" diff --check
   current_diff_sha="$(git -C "${partial}" diff --binary | sha256sum | awk '{print $1}')"
   printf '%s %s %s\n' "${SOURCE_COMMIT}" "${expected_identity}" \
@@ -596,7 +635,16 @@ prepare_variant() {
 prepare_toolchain
 readonly source_mirror="${source_root}/gemian-linux-kernel-3.18.git"
 prepare_mirror
-if [[ "${build_mode}" == register ]]; then
+if [[ "${build_mode}" == pmsg ]]; then
+  readonly prepared_source="${source_root}/gemian-pmsg/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}-${held_patchset_sha:0:16}-${late_patchset_sha:0:16}-${cpu9_patchset_sha:0:16}-${window_patchset_sha:0:16}-${terminal_patchset_sha:0:16}-${coherence_patchset_sha:0:16}-${multiline_patchset_sha:0:16}-${parallel_patchset_sha:0:16}-${scheduler_patchset_sha:0:16}-${register_patchset_sha:0:16}-${pmsg_patchset_sha:0:16}"
+  readonly baseline_source="${source_root}/gemian-register/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}-${held_patchset_sha:0:16}-${late_patchset_sha:0:16}-${cpu9_patchset_sha:0:16}-${window_patchset_sha:0:16}-${terminal_patchset_sha:0:16}-${coherence_patchset_sha:0:16}-${multiline_patchset_sha:0:16}-${parallel_patchset_sha:0:16}-${scheduler_patchset_sha:0:16}-${register_patchset_sha:0:16}"
+  prepare_variant "${baseline_source}" .gemini-register-state \
+    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}:${held_patchset_sha}:${late_patchset_sha}:${cpu9_patchset_sha}:${window_patchset_sha}:${terminal_patchset_sha}:${coherence_patchset_sha}:${multiline_patchset_sha}:${parallel_patchset_sha}:${scheduler_patchset_sha}:${register_patchset_sha}" 1 1 1 1 1 1 1 1 1 1 1
+  prepare_variant "${prepared_source}" .gemini-pmsg-state \
+    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}:${held_patchset_sha}:${late_patchset_sha}:${cpu9_patchset_sha}:${window_patchset_sha}:${terminal_patchset_sha}:${coherence_patchset_sha}:${multiline_patchset_sha}:${parallel_patchset_sha}:${scheduler_patchset_sha}:${register_patchset_sha}:${pmsg_patchset_sha}" 1 1 1 1 1 1 1 1 1 1 1 1
+  python3 "${pmsg_experiment_dir}/scripts/test_witness_child.py" \
+    --source "${prepared_source}" --parent-root "${baseline_source}"
+elif [[ "${build_mode}" == register ]]; then
   readonly prepared_source="${source_root}/gemian-register/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}-${held_patchset_sha:0:16}-${late_patchset_sha:0:16}-${cpu9_patchset_sha:0:16}-${window_patchset_sha:0:16}-${terminal_patchset_sha:0:16}-${coherence_patchset_sha:0:16}-${multiline_patchset_sha:0:16}-${parallel_patchset_sha:0:16}-${scheduler_patchset_sha:0:16}-${register_patchset_sha:0:16}"
   readonly baseline_source="${source_root}/gemian-scheduler/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}-${held_patchset_sha:0:16}-${late_patchset_sha:0:16}-${cpu9_patchset_sha:0:16}-${window_patchset_sha:0:16}-${terminal_patchset_sha:0:16}-${coherence_patchset_sha:0:16}-${multiline_patchset_sha:0:16}-${parallel_patchset_sha:0:16}-${scheduler_patchset_sha:0:16}"
   prepare_variant "${baseline_source}" .gemini-scheduler-state \
@@ -919,7 +967,8 @@ cp "${baseline_config}" "${output}/.config"
 if [[ "${build_mode}" == cpu9 || "${build_mode}" == window || \
       "${build_mode}" == terminal || "${build_mode}" == coherence || \
       "${build_mode}" == multiline || "${build_mode}" == parallel || \
-      "${build_mode}" == scheduler || "${build_mode}" == register ]]; then
+      "${build_mode}" == scheduler || "${build_mode}" == register || \
+      "${build_mode}" == pmsg ]]; then
   "${prepared_source}/scripts/config" --file "${output}/.config" \
     --enable MTK_A72_CPU9_CLUSTER_REUSE
 fi
@@ -1000,14 +1049,15 @@ if [[ "${build_mode}" == held || "${build_mode}" == late || \
       "${build_mode}" == cpu9 || "${build_mode}" == window || \
       "${build_mode}" == terminal || "${build_mode}" == coherence || \
       "${build_mode}" == multiline || "${build_mode}" == parallel || \
-      "${build_mode}" == scheduler || "${build_mode}" == register ]]; then
+      "${build_mode}" == scheduler || "${build_mode}" == register || \
+      "${build_mode}" == pmsg ]]; then
   "${baseline_source}/scripts/config" --file "${baseline_output}/.config" \
     --enable MTK_A72_ONE_WAY_CPU8
 fi
 if [[ "${build_mode}" == window || "${build_mode}" == terminal || \
       "${build_mode}" == coherence || "${build_mode}" == multiline ||
       "${build_mode}" == parallel || "${build_mode}" == scheduler || \
-      "${build_mode}" == register ]]; then
+      "${build_mode}" == register || "${build_mode}" == pmsg ]]; then
   "${baseline_source}/scripts/config" --file "${baseline_output}/.config" \
     --enable MTK_A72_CPU9_CLUSTER_REUSE
 fi
@@ -1039,15 +1089,16 @@ for name in sorted(set(before) | set(after)):
 for name, old, new in changes:
     print("{}\t{}\t{}".format(name, old, new))
 expected = [("CONFIG_ANBOX", "missing", "n")]
-if sys.argv[3] in ("window", "terminal", "coherence", "multiline", "parallel", "scheduler", "register"):
+if sys.argv[3] in ("window", "terminal", "coherence", "multiline", "parallel", "scheduler", "register", "pmsg"):
     expected.append(("CONFIG_MTK_A72_CPU9_CLUSTER_REUSE", "missing", "y"))
-if sys.argv[3] in ("held", "late", "cpu9", "window", "terminal", "coherence", "multiline", "parallel", "scheduler", "register"):
+if sys.argv[3] in ("held", "late", "cpu9", "window", "terminal", "coherence", "multiline", "parallel", "scheduler", "register", "pmsg"):
     expected.append(("CONFIG_MTK_A72_ONE_WAY_CPU8", "missing", "y"))
 expected.append(("CONFIG_MTK_A72_TRANSITION_OBSERVER", "missing", "y"))
 if changes != expected:
     raise SystemExit("baseline config is not the exact selected parent")
 PY
-if [[ "${build_mode}" == scheduler || "${build_mode}" == register ]]; then
+if [[ "${build_mode}" == scheduler || "${build_mode}" == register || \
+      "${build_mode}" == pmsg ]]; then
   cmp "${output}/.config" "${baseline_output}/.config" >/dev/null || \
     die "${build_mode} child and selected parent resolved configurations differ"
   cmp "${output}/config.diff" "${baseline_output}/config.diff" >/dev/null || \
@@ -1092,7 +1143,8 @@ if [[ "${build_mode}" == held || "${build_mode}" == late || \
       "${build_mode}" == cpu9 || "${build_mode}" == window || \
       "${build_mode}" == terminal || "${build_mode}" == coherence || \
       "${build_mode}" == multiline || "${build_mode}" == parallel || \
-      "${build_mode}" == scheduler || "${build_mode}" == register ]]; then
+      "${build_mode}" == scheduler || "${build_mode}" == register || \
+      "${build_mode}" == pmsg ]]; then
   changed_disassembly_symbols+=(
     mt6797_a72_hold_ipi
     mt6797_a72_hold_workfn
@@ -1101,7 +1153,8 @@ fi
 if [[ "${build_mode}" == cpu9 || "${build_mode}" == window || \
       "${build_mode}" == terminal || "${build_mode}" == coherence || \
       "${build_mode}" == multiline || "${build_mode}" == parallel || \
-      "${build_mode}" == scheduler || "${build_mode}" == register ]]; then
+      "${build_mode}" == scheduler || "${build_mode}" == register || \
+      "${build_mode}" == pmsg ]]; then
   changed_disassembly_symbols+=(
     __cpu_up
     cpu_psci_cpu_boot
@@ -1115,7 +1168,7 @@ if [[ "${build_mode}" == late || "${build_mode}" == cpu9 || \
       "${build_mode}" == window || "${build_mode}" == terminal || \
       "${build_mode}" == coherence || "${build_mode}" == multiline ||
       "${build_mode}" == parallel || "${build_mode}" == scheduler || \
-      "${build_mode}" == register ]]; then
+      "${build_mode}" == register || "${build_mode}" == pmsg ]]; then
   baseline_disassembly_symbols+=(
     mt6797_a72_hold_ipi
     mt6797_a72_hold_workfn
@@ -1123,12 +1176,13 @@ if [[ "${build_mode}" == late || "${build_mode}" == cpu9 || \
 fi
 if [[ "${build_mode}" == terminal || "${build_mode}" == coherence || \
       "${build_mode}" == multiline || "${build_mode}" == parallel || \
-      "${build_mode}" == scheduler || "${build_mode}" == register ]]; then
+      "${build_mode}" == scheduler || "${build_mode}" == register || \
+      "${build_mode}" == pmsg ]]; then
   changed_disassembly_symbols+=(mt6797_a72_hps_down_snapshot)
 fi
 if [[ "${build_mode}" == coherence || "${build_mode}" == multiline ||
       "${build_mode}" == parallel || "${build_mode}" == scheduler || \
-      "${build_mode}" == register ]]; then
+      "${build_mode}" == register || "${build_mode}" == pmsg ]]; then
   baseline_disassembly_symbols+=(mt6797_a72_hps_down_snapshot)
   changed_disassembly_symbols+=(
     mt6797_a72_coh_ipi
@@ -1136,7 +1190,8 @@ if [[ "${build_mode}" == coherence || "${build_mode}" == multiline ||
   )
 fi
 if [[ "${build_mode}" == multiline || "${build_mode}" == parallel || \
-      "${build_mode}" == scheduler || "${build_mode}" == register ]]; then
+      "${build_mode}" == scheduler || "${build_mode}" == register || \
+      "${build_mode}" == pmsg ]]; then
   baseline_disassembly_symbols+=(
     mt6797_a72_coh_ipi
     mt6797_a72_coh_workfn
@@ -1146,7 +1201,8 @@ fi
 if [[ "${build_mode}" == parallel ]]; then
   baseline_disassembly_symbols+=(mt6797_a72_ml_ipi)
   changed_disassembly_symbols+=(mt6797_a72_pl_ipi)
-elif [[ "${build_mode}" == scheduler || "${build_mode}" == register ]]; then
+elif [[ "${build_mode}" == scheduler || "${build_mode}" == register || \
+        "${build_mode}" == pmsg ]]; then
   baseline_disassembly_symbols+=(
     __kthread_parkme
     __kthread_unpark
@@ -1177,6 +1233,18 @@ elif [[ "${build_mode}" == scheduler || "${build_mode}" == register ]]; then
       mt6797_a72_regcap_emit
       mt6797_a72_regcap_identity
     )
+  elif [[ "${build_mode}" == pmsg ]]; then
+    changed_disassembly_symbols+=(
+      mt6797_a72_obs_init
+      mt6797_a72_regcap_emit
+      mt6797_a72_regcap_identity
+      pstore_write_pmsg_kernel
+    )
+    baseline_disassembly_symbols+=(
+      mt6797_a72_obs_init
+      mt6797_a72_regcap_emit
+      mt6797_a72_regcap_identity
+    )
   fi
 fi
 readonly -a changed_disassembly_symbols
@@ -1202,7 +1270,8 @@ if [[ "${build_mode}" == held || "${build_mode}" == late || \
       "${build_mode}" == cpu9 || "${build_mode}" == window || \
       "${build_mode}" == terminal || "${build_mode}" == coherence || \
       "${build_mode}" == multiline || "${build_mode}" == parallel || \
-      "${build_mode}" == scheduler || "${build_mode}" == register ]]; then
+      "${build_mode}" == scheduler || "${build_mode}" == register || \
+      "${build_mode}" == pmsg ]]; then
   for symbol in mt6797_a72_hold_ipi mt6797_a72_hold_workfn; do
     grep -q "<${symbol}>:" \
       "${output}/focused-disassembly/${symbol}.txt" || \
@@ -1212,7 +1281,8 @@ fi
 if [[ "${build_mode}" == cpu9 || "${build_mode}" == window || \
       "${build_mode}" == terminal || "${build_mode}" == coherence || \
       "${build_mode}" == multiline || "${build_mode}" == parallel || \
-      "${build_mode}" == scheduler || "${build_mode}" == register ]]; then
+      "${build_mode}" == scheduler || "${build_mode}" == register || \
+      "${build_mode}" == pmsg ]]; then
   for symbol in __cpu_up cpu_psci_cpu_boot; do
     grep -q "<${symbol}>:" \
       "${output}/focused-disassembly/${symbol}.txt" || \
@@ -1245,7 +1315,166 @@ grep -q ' mt6797_a72_obs_init$' "${baseline_output}/System.map" || \
 grep -q ' mt6797_a72_obs_rollback_terminal$' \
   "${baseline_output}/System.map" || \
   die "parent rollback baseline is missing its terminal recorder"
-if [[ "${build_mode}" == register ]]; then
+if [[ "${build_mode}" == pmsg ]]; then
+  for map in "${output}/System.map" "${baseline_output}/System.map"; do
+    for symbol in mt6797_a72_hold_ipi mt6797_a72_hold_workfn \
+      mt6797_a72_hps_down_snapshot mt6797_a72_coh_ipi \
+      mt6797_a72_coh_workfn mt6797_a72_ml_ipi mt6797_a72_ml_data \
+      mt6797_a72_pl_ipi mt6797_a72_pl_data mt6797_a72_sc_thread \
+      mt6797_a72_sc_terminal mt6797_a72_sc_result8 \
+      mt6797_a72_sc_result9 mt6797_a72_sc_task8 mt6797_a72_sc_task9 \
+      mt6797_a72_regcap_emit mt6797_a72_regcap_identity; do
+      grep -q " ${symbol}$" "${map}" || \
+        die "pmsg comparison is missing inherited ${symbol}"
+    done
+  done
+  grep -q ' pstore_write_pmsg_kernel$' "${output}/System.map" || \
+    die "pmsg child is missing the bounded kernel writer"
+  ! grep -q ' pstore_write_pmsg_kernel$' "${baseline_output}/System.map" || \
+    die "exact register parent unexpectedly contains the pmsg writer"
+  for symbol in mt6797_a72_obs_init mt6797_a72_hold_workfn \
+    mt6797_a72_sc_terminal pstore_write_pmsg_kernel; do
+    grep -q "<${symbol}>:" \
+      "${output}/focused-disassembly/${symbol}.txt" || \
+      die "pmsg child disassembly is missing ${symbol}"
+  done
+  for symbol in mt6797_a72_obs_init mt6797_a72_hold_workfn \
+    mt6797_a72_sc_terminal; do
+    grep -q "<${symbol}>:" \
+      "${baseline_output}/focused-disassembly/${symbol}.txt" || \
+      die "register parent disassembly is missing ${symbol}"
+  done
+  python3 - "${output}/focused-disassembly" \
+    "${baseline_output}/focused-disassembly" <<'PY'
+import collections
+import pathlib
+import re
+import sys
+
+child_root = pathlib.Path(sys.argv[1])
+parent_root = pathlib.Path(sys.argv[2])
+
+def read(root, symbol):
+    return (root / (symbol + ".txt")).read_text()
+
+def calls(text):
+    return collections.Counter(
+        re.findall(r"\bbl\s+[0-9a-f]+\s+<([^>]+)>", text)
+    )
+
+for symbol in (
+    "mt6797_a72_obs_init",
+    "mt6797_a72_hold_workfn",
+    "mt6797_a72_sc_terminal",
+):
+    child = calls(read(child_root, symbol))
+    parent = calls(read(parent_root, symbol))
+    expected = parent + collections.Counter({"pstore_write_pmsg_kernel": 1})
+    if child != expected:
+        raise SystemExit(
+            "pmsg direct-call delta changed for {}: child={} parent={}".format(
+                symbol, sorted(child.items()), sorted(parent.items())
+            )
+        )
+
+helper = read(child_root, "pstore_write_pmsg_kernel")
+helper_calls = calls(helper)
+expected_helper_calls = collections.Counter({
+    "mutex_lock": 1,
+    "mutex_unlock": 1,
+    "strcmp": 1,
+})
+if helper_calls != expected_helper_calls:
+    raise SystemExit(
+        "pmsg helper direct calls changed: {}".format(sorted(helper_calls.items()))
+    )
+if len(re.findall(r"\bblr\s+x[0-9]+\b", helper)) != 1:
+    raise SystemExit("pmsg helper indirect backend call count changed")
+forbidden = re.compile(
+    r"<(?:[^>]*)(?:psci|invoke_psci|ioremap|readl|writel|regulator|clk_|"
+    r"schedule|sleep|delay|smc|hvc|cpu_up|cpu_down|reboot|restart)(?:[^>]*)>"
+)
+match = forbidden.search(helper)
+if match:
+    raise SystemExit("forbidden pmsg-helper call: " + match.group(0))
+
+child_task = read(child_root, "mt6797_a72_sc_thread")
+parent_task = read(parent_root, "mt6797_a72_sc_thread")
+child_mrs = len(re.findall(r"\bmrs\b", child_task))
+parent_mrs = len(re.findall(r"\bmrs\b", parent_task))
+if child_mrs != 26 or parent_mrs != 26:
+    raise SystemExit(
+        "pmsg/register task mrs inventory changed: child={} parent={}".format(
+            child_mrs, parent_mrs
+        )
+    )
+print("pmsg_callsite_delta=three-fixed-writer-calls")
+print("pmsg_helper_direct_calls=mutex_lock,mutex_unlock,strcmp")
+print("pmsg_helper_indirect_backend_calls=1")
+print("pmsg_register_task_mrs_count=26")
+print("pmsg_forbidden_calls=none")
+PY
+  for marker in \
+    'gemini-a72-pmsg-v1 stage=entry parent=register-capsule' \
+    'gemini-a72-pmsg-v1 stage=pre-scheduler parent=pair-v6-pass' \
+    'gemini-a72-pmsg-v1 stage=pre-capsule result=pass' \
+    'gemini-a72-pmsg-v1 stage=pre-capsule result=fault'; do
+    "${cross_prefix}strings" "${output}/vmlinux" | \
+      grep -Fx "${marker}" >/dev/null || \
+      die "pmsg child is missing fixed record: ${marker}"
+    if "${cross_prefix}strings" "${baseline_output}/vmlinux" | \
+      grep -F 'gemini-a72-pmsg-v1' >/dev/null; then
+      die "exact register parent unexpectedly contains a pmsg record"
+    fi
+  done
+  for marker in gemini-a72-sc-phase gemini-a72-pair-v6 \
+    gemini-a72-pair-v7 gemini-a72-regcap-v1; do
+    cmp <("${cross_prefix}strings" "${output}/vmlinux" | grep -F "${marker}") \
+      <("${cross_prefix}strings" "${baseline_output}/vmlinux" | \
+        grep -F "${marker}") >/dev/null || \
+      die "pmsg child changed inherited console marker inventory: ${marker}"
+  done
+  for config in CONFIG_PSTORE=y CONFIG_PSTORE_PMSG=y CONFIG_PSTORE_RAM=y \
+    CONFIG_PSTORE_CONSOLE=y; do
+    grep -Fx "${config}" "${output}/.config" >/dev/null || \
+      die "pmsg child configuration is missing ${config}"
+    grep -Fx "${config}" "${baseline_output}/.config" >/dev/null || \
+      die "register parent configuration is missing ${config}"
+  done
+  find "${output}" -type f -name '*.su' -exec \
+    grep -hE '(pstore_write_pmsg_kernel|mt6797_a72_(obs_init|hold_workfn|sc_thread|sc_terminal))' {} + > \
+    "${output}/pmsg-stack.raw" || :
+  python3 - "${output}/pmsg-stack.raw" > \
+    "${output}/pmsg-stack.txt" <<'PY'
+import pathlib
+import sys
+
+expected = {
+    "mt6797_a72_hold_workfn": 1024,
+    "mt6797_a72_obs_init": 512,
+    "mt6797_a72_sc_terminal": 1024,
+    "mt6797_a72_sc_thread": 1024,
+    "pstore_write_pmsg_kernel": 512,
+}
+seen = {}
+for line in pathlib.Path(sys.argv[1]).read_text().splitlines():
+    fields = line.split()
+    if len(fields) < 3:
+        continue
+    name = fields[0].rsplit(":", 1)[-1]
+    if name in expected:
+        size = int(fields[1])
+        if fields[2] != "static" or size > expected[name]:
+            raise SystemExit("unsafe pmsg stack usage: " + line)
+        seen[name] = size
+if set(seen) != set(expected):
+    missing = sorted(set(expected) - set(seen))
+    raise SystemExit("pmsg stack report is incomplete: " + ",".join(missing))
+for name in sorted(seen):
+    print("{}={}".format(name, seen[name]))
+PY
+  rm "${output}/pmsg-stack.raw"
+elif [[ "${build_mode}" == register ]]; then
   for map in "${output}/System.map" "${baseline_output}/System.map"; do
     for symbol in mt6797_a72_hold_ipi mt6797_a72_hold_workfn \
       mt6797_a72_hps_down_snapshot mt6797_a72_coh_ipi \
@@ -1924,6 +2153,9 @@ elif [[ "${build_mode}" == scheduler ]]; then
 elif [[ "${build_mode}" == register ]]; then
   cp "${output}/register-stack.txt" \
     "${package_partial}/outputs/register-stack.txt"
+elif [[ "${build_mode}" == pmsg ]]; then
+  cp "${output}/pmsg-stack.txt" \
+    "${package_partial}/outputs/pmsg-stack.txt"
 fi
 cp -R "${output}/focused-disassembly" \
   "${package_partial}/outputs/focused-disassembly"
@@ -2004,6 +2236,7 @@ jq -n \
     "${scheduler_phase_parent_patchset_sha}" \
   --arg scheduler_patchset_sha256 "${scheduler_patchset_sha}" \
   --arg register_patchset_sha256 "${register_patchset_sha}" \
+  --arg pmsg_patchset_sha256 "${pmsg_patchset_sha}" \
   --arg build_mode "${build_mode}" \
   --arg config_sha256 "${CONFIG_SHA256}" \
   --arg toolchain_manifest_sha256 "${manifest_sha}" \
@@ -2032,6 +2265,7 @@ jq -n \
       $scheduler_phase_parent_patchset_sha256,
     scheduler_patchset_sha256: $scheduler_patchset_sha256,
     register_patchset_sha256: $register_patchset_sha256,
+    pmsg_patchset_sha256: $pmsg_patchset_sha256,
     baseline_config_sha256: $config_sha256,
     toolchain_manifest_sha256: $toolchain_manifest_sha256,
     snapshot_url: $snapshot_url, cust_dtsi_sha256: $cust_dtsi_sha256,
@@ -2050,14 +2284,17 @@ jq -n \
     baseline_source_exact_multiline: ($build_mode == "parallel"),
     baseline_source_exact_scheduler_phase_parent: ($build_mode == "scheduler"),
     baseline_source_exact_scheduler_unpark: ($build_mode == "register"),
+    baseline_source_exact_register_capsule: ($build_mode == "pmsg"),
     cpu9_startup_source_identical: ($build_mode == "window" or
       $build_mode == "terminal" or $build_mode == "coherence" or
       $build_mode == "multiline" or $build_mode == "parallel" or
-      $build_mode == "scheduler" or $build_mode == "register"),
+      $build_mode == "scheduler" or $build_mode == "register" or
+      $build_mode == "pmsg"),
     stack_usage_captured: true,
     stack_usage_file_count: $stack_usage_file_count,
     baseline_stack_usage_file_count: $baseline_stack_usage_file_count,
-    purpose: (if $build_mode == "register" then
+    purpose: (if $build_mode == "pmsg" then
+      "a72-pmsg-witness-compile-review-only" elif $build_mode == "register" then
       "a72-target-register-capsule-compile-review-only" elif $build_mode == "scheduler" then
       "a72-scheduler-unpark-compile-review-only" elif $build_mode == "parallel" then
       "cpu9-parallel-disjoint-load-compile-review-only" elif $build_mode == "multiline" then
