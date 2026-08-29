@@ -54,40 +54,48 @@ def mutations() -> list[tuple[str, Callable[[Path], None]]]:
     smp = Path("arch/arm64/kernel/smp.c")
     context = Path("arch/arm64/mm/context.c")
     return [
-        ("drop-ready-gate", lambda r: replace(
+        ("drop-ready-gate", lambda r: replace_in_function(
             r / core,
+            "arm64_validate_late_cpu_preflight(",
             "\tif (smp_load_acquire(&late_receipt.state) !=\n"
             "\t    ARM64_LATE_CPU_PROFILE_READY)\n\t\treturn 0;\n",
             "\tif (false)\n\t\treturn 0;\n")),
-        ("drop-target-membership", lambda r: replace(
+        ("drop-target-membership", lambda r: replace_in_function(
             r / core,
+            "arm64_validate_late_cpu_preflight(",
             "\tif (!cpumask_test_cpu(cpu, &late_plan.target_cpus))\n"
             "\t\treturn 0;\n",
             "")),
-        ("drop-current-cpu-check", lambda r: replace(
+        ("drop-current-cpu-check", lambda r: replace_in_function(
             r / core,
+            "arm64_validate_late_cpu_preflight(",
             "\tif (cpu != smp_processor_id() ||\n",
             "\tif (false ||\n")),
-        ("drop-complete-pair-check", lambda r: replace(
+        ("drop-complete-pair-check", lambda r: replace_in_function(
             r / core,
+            "arm64_validate_late_cpu_preflight(",
             "\t    !arm64_late_cpu_expected_pair_complete(&late_plan))\n",
             "\t    false)\n")),
-        ("drop-asid-preflight", lambda r: replace(
+        ("drop-asid-preflight", lambda r: replace_in_function(
             r / core,
+            "arm64_validate_late_cpu_preflight(",
             "\tif (!arm64_late_cpu_asid_compatible())\n"
             "\t\treturn -ERANGE;\n",
             "")),
-        ("drop-system-asid-initialization", lambda r: replace(
+        ("drop-system-asid-initialization", lambda r: replace_in_function(
             r / context,
+            "arm64_late_cpu_asid_compatible(",
             "\treturn system_asid_bits &&\n"
             "\t       get_cpu_asid_bits() >= system_asid_bits;\n",
             "\treturn get_cpu_asid_bits() >= system_asid_bits;\n")),
-        ("require-equal-asid-width", lambda r: replace(
+        ("require-equal-asid-width", lambda r: replace_in_function(
             r / context,
+            "arm64_late_cpu_asid_compatible(",
             "get_cpu_asid_bits() >= system_asid_bits",
             "get_cpu_asid_bits() == system_asid_bits")),
-        ("mutate-system-asid-width", lambda r: replace(
+        ("mutate-system-asid-width", lambda r: replace_in_function(
             r / context,
+            "arm64_late_cpu_asid_compatible(",
             "\tu32 system_asid_bits = READ_ONCE(asid_bits);\n",
             "\tu32 system_asid_bits = ++asid_bits;\n")),
         ("skip-last-boot-cap", lambda r: replace_in_function(
@@ -95,70 +103,83 @@ def mutations() -> list[tuple[str, Callable[[Path], None]]]:
             "arm64_late_cpu_validate_boot_caps(",
             "for (i = 0; i < ARM64_NCAPS; i++)",
             "for (i = 0; i < ARM64_NCAPS - 1; i++)")),
-        ("scan-local-not-boot", lambda r: replace(
+        ("scan-local-not-boot", lambda r: replace_in_function(
             r / cpufeature,
+            "arm64_late_cpu_validate_boot_caps(",
             "!(caps->type & SCOPE_BOOT_CPU)",
             "!(caps->type & SCOPE_LOCAL_CPU)")),
-        ("allow-missing-system-cap", lambda r: replace(
+        ("allow-missing-system-cap", lambda r: replace_in_function(
             r / cpufeature,
+            "arm64_late_cpu_validate_boot_caps(",
             "!cpu_has_cap && !cpucap_late_cpu_optional(caps)",
             "false")),
-        ("allow-new-forbidden-cap", lambda r: replace(
+        ("allow-new-forbidden-cap", lambda r: replace_in_function(
             r / cpufeature,
+            "arm64_late_cpu_validate_boot_caps(",
             "cpu_has_cap && !cpucap_late_cpu_permitted(caps)",
             "false")),
-        ("add-capability-allowlist", lambda r: replace(
+        ("add-capability-allowlist", lambda r: replace_in_function(
             r / cpufeature,
+            "arm64_late_cpu_validate_boot_caps(",
             "\t\tcaps = cpucap_ptrs[i];\n",
             "\t\tcaps = cpucap_ptrs[i];\n"
             "\t\tif (caps && caps->capability != ARM64_HAS_GICV3_CPUIF)\n"
             "\t\t\tcontinue;\n")),
-        ("call-cpu-enable", lambda r: replace(
+        ("call-cpu-enable", lambda r: replace_in_function(
             r / cpufeature,
+            "arm64_late_cpu_validate_boot_caps(",
             "\t\tsystem_has_cap = cpus_have_cap(caps->capability);\n",
             "\t\tsystem_has_cap = cpus_have_cap(caps->capability);\n"
             "\t\tif (caps->cpu_enable)\n\t\t\tcaps->cpu_enable(caps);\n")),
-        ("panic-on-preflight-failure", lambda r: replace(
+        ("panic-on-preflight-failure", lambda r: replace_in_function(
             r / smp,
+            "secondary_start_kernel(",
             "\t\tupdate_cpu_boot_status(CPU_STUCK_IN_KERNEL);\n"
             "\t\tcpu_park_loop();\n",
             "\t\tupdate_cpu_boot_status(CPU_PANIC_KERNEL);\n"
             "\t\tcpu_panic_kernel();\n")),
-        ("fail-open-preflight", lambda r: replace(
+        ("fail-open-preflight", lambda r: replace_in_function(
             r / smp,
+            "secondary_start_kernel(",
             "\tif (expectation_ret) {\n"
             "\t\tpr_crit(\"CPU%u: late target preflight mismatch: %d\\n\",\n",
             "\tif (false) {\n"
             "\t\tpr_crit(\"CPU%u: late target preflight mismatch: %d\\n\",\n")),
-        ("move-preflight-after-standard-check", lambda r: replace(
+        ("move-preflight-after-standard-check", lambda r: replace_in_function(
             r / smp,
+            "secondary_start_kernel(",
             "\texpectation_ret = arm64_validate_late_cpu_preflight(cpu);\n",
             "\tcheck_local_cpu_capabilities();\n"
             "\texpectation_ret = arm64_validate_late_cpu_preflight(cpu);\n")),
-        ("remove-standard-verifier", lambda r: replace(
+        ("remove-standard-verifier", lambda r: replace_in_function(
             r / smp,
+            "secondary_start_kernel(",
             "\tcheck_local_cpu_capabilities();\n",
             "")),
-        ("remove-full-expectation", lambda r: replace(
+        ("remove-full-expectation", lambda r: replace_in_function(
             r / smp,
+            "secondary_start_kernel(",
             "\texpectation_ret = arm64_validate_late_cpu_expected_target(cpu);\n",
             "\texpectation_ret = 0;\n")),
         ("alter-granule-gate", lambda r: replace(
             r / head,
             "\tb.lt    __no_granule_support\n",
             "\tb.lt    1f\n")),
-        ("activate-production-expectation", lambda r: replace(
+        ("activate-production-expectation", lambda r: replace_in_function(
             r / profile,
+            "mt6797_a72_profile_prepare(",
             "\tevidence->target_cpu[0] = 8;\n",
             "\tevidence->expected_pair.abi = ARM64_LATE_CPU_EXPECTED_PAIR_ABI;\n"
             "\tevidence->target_cpu[0] = 8;\n")),
-        ("add-cpu-request", lambda r: replace(
+        ("add-cpu-request", lambda r: replace_in_function(
             r / smp,
+            "secondary_start_kernel(",
             "\texpectation_ret = arm64_validate_late_cpu_preflight(cpu);\n",
             "\t/* cpu_up(8) */\n"
             "\texpectation_ret = arm64_validate_late_cpu_preflight(cpu);\n")),
-        ("add-cpu-off", lambda r: replace(
+        ("add-cpu-off", lambda r: replace_in_function(
             r / smp,
+            "secondary_start_kernel(",
             "\t\tcpu_park_loop();\n",
             "\t\t/* cpu_off() */\n\t\tcpu_park_loop();\n")),
         ("drop-preflight-declaration", lambda r: replace(
