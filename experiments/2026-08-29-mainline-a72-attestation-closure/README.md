@@ -371,6 +371,19 @@ has no current target-cap producer, so the commit remains unreachable; READY,
 CPU requests, candidate status, hardware writes, and device actions remain
 absent. See the [commit compile result](results/commit-compile-20260829.txt).
 
+The post-build target-capability boundary audit rejects that missing-producer
+description as an implementation direction. Exact source deliberately forbids
+production profiles from declaring runtime target observations and deliberately
+keeps the architecture runtime record target-empty before the first request;
+the planner's remaining direct `target_cap[]` consumers therefore create a
+READY-before-execution provenance cycle. The separate 28-field prior-cycle
+expected pair is the legitimate pre-request contract, but it cannot set the
+coarse current `ID_REGS_VALID` bit or zero-fill its 23 unmeasured fields.
+Logical slice 6 must separate a field-valid expected-target planning view from
+current runtime evidence and migrate only pure, completely owned decisions to
+that view. See the
+[target-capability boundary audit](results/target-cap-boundary-audit-20260829.txt).
+
 ## Conclusion
 
 `confirmed-reference-only-mapping-dormant-planner-linked`:
@@ -379,7 +392,7 @@ but not as a complete ABI-7 runtime-evidence record. The dormant schema,
 fail-closed entry validator, their section/stack integration repairs, and the
 current-mainline system/policy owner, pure planner, canonical identities, and
 dormant architecture commit/receipt are now reproducibly generated, admitted,
-and linked. Current-mainline target-cap production,
+and linked. Pre-request expected-target planning separation,
 alternatives/HWCAP finalization, READY, and physical admission remain open. No
 CPU request is justified by the recovered capsule alone.
 

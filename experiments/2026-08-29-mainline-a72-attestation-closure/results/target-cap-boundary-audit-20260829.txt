@@ -1,0 +1,141 @@
+Mainline A72 pre-request target-capability boundary audit
+UTC date: 2026-08-29
+Repository parent: 3c224300177865f71b6129001de03729c5e05be8
+Mode: read-only exact-source audit
+Build: none
+Candidate: none
+Device action: none
+
+Scope
+-----
+
+This audit traces the exact post-0429 source boundary between the prior-cycle
+CPU8/CPU9 expectation, current-mainline runtime evidence, pure capability and
+HWCAP planning, READY publication, and the first physical CPU request. It did
+not modify kernel source, run a kernel build, assemble or install a candidate,
+contact the device, request a CPU, or change device power or storage state.
+
+Exact source
+------------
+
+Buildbox prepared source:
+  /workspace/gemini-pda/src/linux-7.1.3-series-source
+Source state:
+  1b1f8e5347e8899c4db8b01b98e3928eeb2f56aaf7047bc505fe34dca73fda7d
+Source integrity:
+  b351c047385a21f2424d1b956f086844044b7eb410e4c3766c0b562557c5d267
+
+Exact SHA-256:
+  6bf7283eab859a1758aa450bf1ff0933a15a02c5274a0cd3a397d61b7b9975b0  arch/arm64/include/asm/late_cpu_profile.h
+  0b1f59af63003f3357d7496a2456adea15285d9247a6c0ea542b4a217dc64129  arch/arm64/kernel/late_cpu_profile.c
+  6c2b140c5c4e62d65c56a644946c6468be91aba4a6fc86852648a8aab408be4a  arch/arm64/kernel/mt6797_psci.c
+  3f7eb6aa186d4f4d98944febd4342f16072764f9f57d51f632a44fa3594f1394  arch/arm64/kernel/cpufeature.c
+  09de56a67c4e5e42847c11ee2d4da0d675aa6309815ffae221a4987b66e4e427  arch/arm64/kernel/proton-pack.c
+  007a3523ba15d1d9783fdde0868b8688daab8d974cc244f8ed7fead5acb86fc5  arch/arm64/kernel/cpu_errata.c
+  b0c25f67b5f7957edd2fc04a566789b4cf4fb745704bd6464f1c157c926ded67  arch/arm64/kernel/smp.c
+
+Findings
+--------
+
+1. A production profile is forbidden from declaring current target evidence.
+   late_profile_runtime_fields_empty() rejects any profile-owned observed
+   MPIDR, MIDR, REVIDR, target_cap, target_policy, system_cap, runtime binding,
+   or evidence identity. arm64_prepare_late_cpu_profile() blocks a profile
+   that declares RUNTIME origin. These are deliberate provenance gates.
+
+2. The architecture runtime collector is deliberately target-empty before the
+   first request. late_runtime_evidence_storage_complete() requires target
+   CPU identities, expected/observed target values, and target_cap records to
+   remain zero. The current collector adds only the exact running image
+   binding, current system capability state, and current policy replicated for
+   both future targets.
+
+3. The planner nevertheless still reads evidence.target_cap[] directly.
+   The MT6797 classifier uses it for GICv5 legacy, ICH_HCR_EL2_TDIR, cache
+   mismatch, Spectre-v2, Spectre-v4, and Spectre-BHB. The effect planner uses
+   it for Spectre/BHB decisions. The HWCAP planner requires the coarse
+   ID_REGS_VALID bit and then reads the complete 47-field register image.
+   Production leaves these records empty, so all six named capabilities stay
+   unresolved and planning remains fail-closed.
+
+4. A truthful pre-request current-target producer cannot exist in this order.
+   READY is required before the admission controller may request CPU8, while
+   CPU8 register, GIC interface, and CPU-local SMCCC outcomes can be observed
+   only after CPU8 executes. Calling those values current-mainline target
+   evidence before the request would be circular. Copying the prior Gemian
+   capsule into target_cap would instead violate findings 1 and 2 and the
+   documented provenance rule.
+
+5. The separate expected_pair is the legitimate pre-request CPU contract.
+   Its 28 named validity fields cover two capsule identities, two MPIDRs, MIDR,
+   REVIDR, CNTFRQ, raw CTR, CLIDR, seven captured AArch64 ID registers, and
+   twelve captured AArch32 ID registers. It is explicitly prior-cycle data and
+   has no active production initializer. It cannot truthfully set the coarse
+   current ID_REGS_VALID bit because 23 register-image fields remain
+   unmeasured.
+
+6. Current consumers divide into three ownership classes:
+
+   - Expectation plus current-system inputs: cache mismatch can use exact
+     expected raw CTR/CLIDR and current system CTR/strict mask. Spectre-v2 and
+     Spectre-v4 have exact expected PFR0/PFR1 feature fields, but their CPU-local
+     WA1/WA2 outcomes are not available before target execution. BHB has exact
+     expected PFR0 and MMFR1, but ISAR2.CLRBHB is unmeasured.
+   - Missing target-entry/current-controller inputs: GICv5 legacy additionally
+     needs unmeasured PFR2.GCIE plus ICC_IDR0, ICC_SRE, and SRE usability;
+     ICH_HCR_EL2_TDIR additionally needs current hyp mode and an ICH_VTR
+     source/status/value.
+   - Current source has no planning consumer for target ASID, page granule, or
+     VA-width validity. Those bits are schema/canonicalization/fixture fields,
+     so their blockers must not be cleared until an actual consumer and owner
+     are defined.
+
+Decision
+--------
+
+classification=confirmed-pre-request-provenance-cycle
+
+Reject a new pre-request "current target-cap producer". It is impossible in
+the existing READY-before-CPU-request order and would either invent an
+observation or erase the expected/current provenance boundary.
+
+Logical slice 6 is instead one architecture-owned, source-only planning-input
+separation:
+
+1. Introduce a field-valid expected-target planning view derived only from
+   expected_pair. It must remain distinct from evidence.target_cap and retain
+   the prior-cycle provenance in canonical identities.
+2. Migrate pure register and HWCAP planning to named expected fields. An
+   unmeasured field is unavailable, never an observed zero. HWCAP intersection
+   must conservatively omit a capability when its target field is unavailable.
+3. Permit only decisions whose complete inputs are already owned, beginning
+   with raw/effective CTR and static MIDR/range classifications. Keep GIC/hyp,
+   WA1/WA2/WA3, and unmeasured modern-ID decisions explicitly unresolved until
+   a separate current owner or an audited conservative entry constraint exists.
+4. Preserve every production runtime-empty gate. Do not add an active expected
+   pair, clear blockers, publish READY, request CPU8 or CPU9, retry, call
+   CPU_OFF, build a candidate, or take a device action in this slice.
+
+Required generation gates
+-------------------------
+
+- deterministic exact Buildbox generation from the post-0429 source state;
+- strict checkpatch with zero findings;
+- positive source validation proving expected/current storage separation;
+- rejecting mutations for copying expected fields into observed_target_* or
+  target_cap, setting ID_REGS_VALID from the partial expectation, zero-filling
+  unknown fields, accepting unknown HWCAP fields, weakening runtime-empty
+  gates, clearing blockers, publishing READY, or adding a CPU request;
+- canonical-series validation for every manifest profile;
+- exact enabled-profile Buildbox compile and linked inspection before choosing
+  any measurement or physical candidate.
+
+Next action
+-----------
+
+Implement the logical-slice-6 generator and its positive and rejecting source
+validators. The generator must remain source-only and fail closed. After its
+exact linked Buildbox result, decide whether the remaining GIC/hyp/SMCCC and
+modern-ID gaps require another bounded target-entry measurement or can be
+closed by a separately reviewed conservative policy with a matching entry
+gate.

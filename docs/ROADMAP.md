@@ -6208,10 +6208,22 @@ The next ordered work is:
    follows the exact effects copy and completion byte. The diagnostic set is
    identical to the pre-`0429` baseline, with no new section mismatch, frame
    warning, or compiler warning. This remains non-candidate integration proof.
-   **Selected next:** audit the missing current target-cap producer boundary for
-   the six allowed late-required capabilities and its remaining GIC/hyp,
-   workaround, and address-space inputs. Define the smallest pure source-only
-   logical slice 6 before generation; keep READY and every CPU request absent.
+   The exact post-build target-capability audit now proves that a pre-request
+   current-target producer is the wrong boundary: production profiles are
+   required to leave runtime target observations empty, the architecture
+   collector is target-empty before the first request, and READY is required
+   before CPU8 can execute. Copying the prior-cycle pair into `target_cap[]`
+   would erase provenance, while leaving the planner unchanged preserves a
+   circular dependency. The 28-field expected pair is the legitimate
+   pre-request contract, but 23 fields remain explicitly unavailable. See the
+   [target-capability boundary audit](../experiments/2026-08-29-mainline-a72-attestation-closure/results/target-cap-boundary-audit-20260829.txt).
+   **Selected next:** implement logical slice 6 as an architecture-owned,
+   field-valid expected-target planning view, separate from current runtime
+   evidence. Migrate pure register and HWCAP planning to named expected fields,
+   conservatively omit HWCAPs whose target field is unavailable, and retain
+   explicit GIC/hyp, SMCCC-workaround, and unmeasured-modern-ID gaps. Generate
+   and reject provenance-erasing mutations before admission; keep every
+   runtime-empty gate, READY, CPU request, candidate, and device action absent.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
