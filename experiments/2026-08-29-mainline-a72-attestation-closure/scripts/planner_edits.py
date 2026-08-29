@@ -808,9 +808,11 @@ def apply(root: Path) -> None:
     core = root / "arch/arm64/kernel/late_cpu_profile.c"
     replace_once(
         core,
-        "#ifdef CONFIG_ARM64_LATE_CPU_RUNTIME_IDENTITY\n",
+        "#ifdef CONFIG_ARM64_LATE_CPU_RUNTIME_IDENTITY\n"
+        "#define LATE_RUNTIME_IKCONFIG_MAX\tSZ_4M\n",
         IDENTITY_FINALIZER +
-        "#ifdef CONFIG_ARM64_LATE_CPU_RUNTIME_IDENTITY\n",
+        "#ifdef CONFIG_ARM64_LATE_CPU_RUNTIME_IDENTITY\n"
+        "#define LATE_RUNTIME_IKCONFIG_MAX\tSZ_4M\n",
     )
     replace_once(
         core,
