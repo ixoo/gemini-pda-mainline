@@ -6167,14 +6167,28 @@ The next ordered work is:
    `ARM64_HAS_32BIT_EL0`. The repair now follows the public
    `system_supports_32bit_el0()` policy and intersects its sanitized system
    result with ID_AA64PFR0_EL1.EL0 from both complete target images; a new
-   mutation restores and rejects the invalid token. **Selected next:**
+   mutation restores and rejects the invalid token.
    Two repair generations then stopped before packaging on strict line-break
    style checks. Final generation at signed commit `8e9d7765` passes the exact
    five-file manifest, checksums, deterministic replay, strict checkpatch with
    zero findings, the positive validator, and all 17 rejecting mutations.
    Canonical patch `0428` is byte-identical to that repaired package.
-   **Selected next:** repeat the exact enabled `a72-p30e-wire` Buildbox compile
-   and inspect its linked result before selecting logical slice 5.
+   The exact enabled `a72-p30e-wire` retry at signed commit `6f3c6c07` now
+   passes Buildbox artifact and fetched-package validation with 417 patches.
+   Linked prepare calls capability, effect, and HWCAP planning before profile
+   validation and canonical evidence/plan identity generation; the corrected
+   compat branch directly calls `system_supports_32bit_el0()` and tests both
+   target PFR0 EL0 fields. The planner and hashes link in `.init.text`, prepare
+   retains its 80-byte stack allocation, the planner uses 32 bytes, no section
+   mismatch or new frame warning appears, and the same three older warnings
+   remain. The architecture commit is still the fail-stop panic stub; target
+   producers, READY, CPU requests, candidate, and device action remain absent.
+   **Selected next:** implement logical slice 5 as a callback-free,
+   architecture-owned monotonic commit and exact receipt, with generation,
+   rejecting source mutations, deterministic replay, and strict style before
+   its exact enabled-profile Buildbox compile. Keep it unreachable while the
+   current target-cap producers remain absent; do not publish READY or add any
+   CPU request in this slice.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

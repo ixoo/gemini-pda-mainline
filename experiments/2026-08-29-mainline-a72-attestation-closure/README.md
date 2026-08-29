@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-29-mainline-a72-attestation-closure` |
-| Status | `completed-closure-definition; dormant source admitted; section and prepare-stack repairs linked cleanly; current-system/policy slice pending` |
+| Status | `completed-closure-definition; dormant slices 1-4 admitted and linked cleanly; architecture-commit slice pending` |
 | Subsystem | arm64 late-CPU evidence, capability commitment, and MT6797 A72 entry |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-29 |
@@ -323,20 +323,30 @@ break style checks. The final repaired package at signed commit `8e9d7765`
 passes its exact five-file manifest, all checksums, deterministic replay,
 strict checkpatch with zero findings, the positive validator, and all 17
 rejecting mutations. Canonical patch `0428` is byte-identical to that package.
-The next gate is the exact enabled-profile rebuild; the repaired source remains
-dormant and is not a boot candidate.
+The exact enabled-profile rebuild at signed commit `6f3c6c07` now passes
+Buildbox artifact validation and independent fetched-package checksums with 417
+patches. The linked prepare path directly orders capability, effect, and HWCAP
+planning before profile validation and canonical evidence/plan identity
+generation. The compat path calls `system_supports_32bit_el0()` and checks both
+target ID_AA64PFR0_EL1 EL0 fields. The planner remains in `.init.text`, its
+stack allocation is 32 bytes, prepare remains 80 bytes, there are no section
+mismatches or new frame warnings, and the three older warnings are unchanged.
+The commit path is still the fail-stop panic stub; current target-cap producers,
+READY publication, and every CPU request remain absent. This is linked
+source-only proof, not a boot candidate. See the
+[planner compile result](results/planner-compile-20260829.txt).
 
 ## Conclusion
 
-`confirmed-reference-only-mapping-dormant-validator-and-system-policy-linked`:
+`confirmed-reference-only-mapping-dormant-planner-linked`:
 the exact CPU8 and CPU9 vectors map cleanly as prior-cycle target expectations,
 but not as a complete ABI-7 runtime-evidence record. The dormant schema,
 fail-closed entry validator, their section/stack integration repairs, and the
-current-mainline system/policy source owner are now reproducibly generated,
-admitted, and linked. Twenty-three register-image fields and the current-mainline
-target-cap, planning/identity, commit, verification, alternatives, and HWCAP
-closure remain open. No CPU request is justified by the recovered capsule
-alone.
+current-mainline system/policy owner, pure planner, and canonical identities are
+now reproducibly generated, admitted, and linked. Current-mainline target-cap
+production, architecture commit/receipt, verification/finalization, READY, and
+physical admission remain open. No CPU request is justified by the recovered
+capsule alone.
 
 ## Follow-up
 
