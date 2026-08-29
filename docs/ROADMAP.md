@@ -6199,7 +6199,19 @@ The next ordered work is:
    actions remain absent. **Selected next:** compile the exact canonical `0429`
    series with the enabled `a72-p30e-wire` profile on Buildbox, then inspect the
    linked commit call order, symbols, sections, stack frames, and diagnostics.
-   Do not select a device candidate from source-generation evidence.
+   Do not select a device candidate from source-generation evidence. That exact
+   build now passes at signed commit `3c224300` with 418 patches and independently
+   verified Buildbox and fetched-package checksums. The plan, mitigation,
+   profile-commit, and prepare functions link in `.init.text` with 96-, 48-,
+   48-, and 80-byte frames. Linked setup orders commit before system-capability
+   update, capability enable, and alternatives; the receipt release-store
+   follows the exact effects copy and completion byte. The diagnostic set is
+   identical to the pre-`0429` baseline, with no new section mismatch, frame
+   warning, or compiler warning. This remains non-candidate integration proof.
+   **Selected next:** audit the missing current target-cap producer boundary for
+   the six allowed late-required capabilities and its remaining GIC/hyp,
+   workaround, and address-space inputs. Define the smallest pure source-only
+   logical slice 6 before generation; keep READY and every CPU request absent.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

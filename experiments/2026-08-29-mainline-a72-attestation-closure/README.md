@@ -356,6 +356,21 @@ remains unreachable in the production profile because current target-cap
 producers are absent; the next gate is its exact enabled `a72-p30e-wire`
 Buildbox compile and linked-output inspection.
 
+That exact enabled-profile build now passes at signed commit `3c224300` with
+418 patches and independently verified Buildbox and fetched-package checksums.
+The plan, mitigation, profile-commit, and prepare functions all link in
+`.init.text`; their stack allocations are 96, 48, 48, and 80 bytes. Linked
+`setup_system_features()` calls the profile commit before system-capability
+update, capability enable, and alternatives. The profile commit calls the plan
+commit, copies the exact effects, sets the completion byte, and release-stores
+COMMITTED. The plan calls the mitigation commit before its one set-only live
+capability-bitmap update. The complete diagnostic set is identical to the
+pre-`0429` baseline: there is no new section mismatch, frame warning, or
+compiler warning. This proves integration only. The production profile still
+has no current target-cap producer, so the commit remains unreachable; READY,
+CPU requests, candidate status, hardware writes, and device actions remain
+absent. See the [commit compile result](results/commit-compile-20260829.txt).
+
 ## Conclusion
 
 `confirmed-reference-only-mapping-dormant-planner-linked`:
@@ -363,11 +378,10 @@ the exact CPU8 and CPU9 vectors map cleanly as prior-cycle target expectations,
 but not as a complete ABI-7 runtime-evidence record. The dormant schema,
 fail-closed entry validator, their section/stack integration repairs, and the
 current-mainline system/policy owner, pure planner, canonical identities, and
-dormant architecture commit/receipt are now reproducibly generated and
-admitted; all but the commit have linked proof. Current-mainline target-cap
-production, linked commit verification, alternatives/HWCAP finalization, READY,
-and physical admission remain open. No CPU request is justified by the
-recovered capsule alone.
+dormant architecture commit/receipt are now reproducibly generated, admitted,
+and linked. Current-mainline target-cap production,
+alternatives/HWCAP finalization, READY, and physical admission remain open. No
+CPU request is justified by the recovered capsule alone.
 
 ## Follow-up
 
