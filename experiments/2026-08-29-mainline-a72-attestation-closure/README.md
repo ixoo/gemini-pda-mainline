@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-29-mainline-a72-attestation-closure` |
-| Status | `completed-closure-definition; dormant slices 1-6 linked cleanly; slice 7 admitted and source-validated; enabled compile pending` |
+| Status | `completed-closure-definition; dormant slices 1-7 admitted and linked cleanly; conservative policy slice pending` |
 | Subsystem | arm64 late-CPU evidence, capability commitment, and MT6797 A72 entry |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-29 |
@@ -115,6 +115,9 @@ if its current register state differs from the frozen expectation.
 - [`results/preflight-generation-20260829.txt`](results/preflight-generation-20260829.txt):
   exact slice-7 Buildbox attempts, package and patch checksums, 24 rejecting
   source mutations, byte-identical admission, and canonical-series audit.
+- [`results/preflight-compile-20260829.txt`](results/preflight-compile-20260829.txt):
+  exact enabled-profile package, linked preflight ordering, runtime sections,
+  stack frames, and unchanged-warning comparison.
 
 ## Procedure
 
@@ -474,18 +477,21 @@ invariant. Expected-pair activation, READY publication, CPU requests, candidate
 status, native VM builds, and device actions remain absent. See the
 [preflight generation result](results/preflight-generation-20260829.txt).
 
-The logical-slice-7 generator is now prepared against the exact post-`0430`
-source hashes. Its architecture facade is READY- and target-gated, its ASID
-predicate is non-mutating, and its generic boot-scope walk uses the existing
-descriptor match and optional/permitted semantics without calling
-`cpu_enable()` or changing a system capability. The secondary call site parks
-on failure before the standard verifier, then retains the standard verifier,
-CPU postboot, CPU-info storage, and full expected-target check on the success
-path. Descriptor match callbacks intentionally retain the same CPU-local
-discovery semantics as the standard verifier. Local Python syntax, `bash -n`,
-ShellCheck, and `git diff --check` pass. Exact Buildbox generation, rejecting
-source mutations, replay, and strict style remain pending; there is no patch,
-kernel build, candidate, or device action yet.
+The exact enabled `a72-p30e-wire` Buildbox build now passes at signed commit
+`360fc99b` with 420 patches and independently verified remote and fetched
+package checksums. The linked preflight, generic boot-capability walker, and
+ASID comparison all remain in runtime `.text`. The complete-target preflight
+uses a 16-byte stack frame; the boot-capability and ASID helpers use 48 and 32
+bytes, and `secondary_start_kernel()` remains at 48 bytes. Direct calls order
+the preflight before the standard verifier, indirect CPU postboot callback,
+CPU-info capture, full expectation check, topology storage, and notification.
+Its failure path records `CPU_STUCK_IN_KERNEL` and parks the target. The
+complete warning inventory is identical to the exact `0430` baseline, with no
+section mismatch, new frame warning, or new compiler warning. This is linked
+source-only proof, not hardware support or a boot candidate. Expected-pair
+activation, READY publication, CPU requests, hardware writes, and device
+actions remain absent. See the
+[preflight compile result](results/preflight-compile-20260829.txt).
 
 ## Conclusion
 
@@ -495,11 +501,11 @@ but not as a complete ABI-7 runtime-evidence record. The dormant schema,
 fail-closed entry validator, their section/stack integration repairs, and the
 current-mainline system/policy owner, pure planner, canonical identities, and
 dormant architecture commit/receipt are now reproducibly generated, admitted,
-and linked. Pre-request expected-target planning separation is now reproducibly
-generated, admitted, and linked. Conservative entry constraints,
-expected-contract activation, alternatives/HWCAP finalization, READY, and
-physical admission remain open. No CPU request is justified by the recovered
-capsule alone.
+and linked. Pre-request expected-target planning separation and conservative
+entry preflight are also reproducibly generated, admitted, and linked.
+Conservative GIC/hyp and mitigation policy, expected-contract activation,
+alternatives/HWCAP finalization, READY, and physical admission remain open. No
+CPU request is justified by the recovered capsule alone.
 
 ## Follow-up
 

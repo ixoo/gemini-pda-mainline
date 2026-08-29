@@ -6265,7 +6265,24 @@ The next ordered work is:
    **Selected next:** compile the exact canonical `0431` series with the
    enabled `a72-p30e-wire` profile on Buildbox and inspect linked preflight
    ordering, symbols, sections, stack frames, and the complete diagnostic set.
-   Do not select a device candidate from source-generation evidence.
+   Do not select a device candidate from source-generation evidence. That exact
+   420-patch build now passes at signed commit `360fc99b` with independently
+   verified remote and fetched package checksums. The linked runtime path
+   orders the target-only preflight before the standard verifier, CPU postboot,
+   CPU-info capture, full expectation check, topology, and notification. The
+   mismatch branch records `CPU_STUCK_IN_KERNEL` and parks the target. All new
+   symbols remain in runtime `.text`, their frames are bounded, and the
+   complete warning set is identical to the `0430` baseline. Expected-pair
+   activation, READY publication, CPU requests, candidate status, and device
+   action remain absent. See the
+   [preflight compile result](../experiments/2026-08-29-mainline-a72-attestation-closure/results/preflight-compile-20260829.txt).
+   **Selected next:** implement the next source-only conservative-policy slice:
+   derive unused GIC/hyp planning from finalized early-system capability bits,
+   and derive Spectre-v2, Spectre-v4, and BHB effects from the field-valid
+   expected pair with the audited vulnerable/no-callback worst case. Keep a
+   present early GIC/hyp state unresolved, keep unavailable modern IDs omitted,
+   and do not activate the expected pair, publish READY, request a CPU, or
+   create a device candidate in this slice.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
