@@ -45,8 +45,8 @@ def validate_parent(root: Path) -> None:
 
 EARLY_SYSTEM_STATE = r'''enum arm64_late_cpu_cap_state __init
 arm64_late_cpu_early_system_cap_state(const struct arm64_cpu_capabilities *cap,
-	const struct arm64_cpu_capabilities *match,
-	const struct arm64_late_cpu_system_cap_evidence *system)
+				      const struct arm64_cpu_capabilities *match,
+				      const struct arm64_late_cpu_system_cap_evidence *system)
 {
 	bool present;
 
@@ -82,7 +82,7 @@ arm64_late_cpu_early_system_cap_state(const struct arm64_cpu_capabilities *cap,
 
 EXPECTED_SPECTRE = r'''static bool __init
 late_cpu_expected_field_valid(const struct arm64_late_cpu_expected_pair *expected,
-	enum arm64_late_cpu_expected_pair_field field)
+			      enum arm64_late_cpu_expected_pair_field field)
 {
 	return expected && expected->abi == ARM64_LATE_CPU_EXPECTED_PAIR_ABI &&
 	       expected->target_count == ARM64_LATE_CPU_MAX_TARGETS &&
@@ -113,8 +113,8 @@ late_cpu_expected_v2_evidence_state(const struct arm64_late_cpu_expected_pair *e
 
 enum arm64_late_cpu_cap_state __init
 arm64_late_cpu_expected_v2_state(const struct arm64_cpu_capabilities *cap,
-	const struct arm64_cpu_capabilities *match,
-	const struct arm64_late_cpu_expected_pair *expected)
+				 const struct arm64_cpu_capabilities *match,
+				 const struct arm64_late_cpu_expected_pair *expected)
 {
 	if (!late_cpu_spectre_descriptor_valid(cap, match, ARM64_SPECTRE_V2))
 		return ARM64_LATE_CPU_CAP_UNRESOLVED;
@@ -143,8 +143,8 @@ late_cpu_expected_v4_evidence_state(const struct arm64_late_cpu_expected_pair *e
 
 enum arm64_late_cpu_cap_state __init
 arm64_late_cpu_expected_v4_state(const struct arm64_cpu_capabilities *cap,
-	const struct arm64_cpu_capabilities *match,
-	const struct arm64_late_cpu_expected_pair *expected)
+				 const struct arm64_cpu_capabilities *match,
+				 const struct arm64_late_cpu_expected_pair *expected)
 {
 	if (!late_cpu_spectre_descriptor_valid(cap, match, ARM64_SPECTRE_V4))
 		return ARM64_LATE_CPU_CAP_UNRESOLVED;
@@ -173,8 +173,8 @@ late_cpu_expected_bhb_evidence_state(const struct arm64_late_cpu_expected_pair *
 
 enum arm64_late_cpu_cap_state __init
 arm64_late_cpu_expected_bhb_state(const struct arm64_cpu_capabilities *cap,
-	const struct arm64_cpu_capabilities *match,
-	const struct arm64_late_cpu_expected_pair *expected)
+				  const struct arm64_cpu_capabilities *match,
+				  const struct arm64_late_cpu_expected_pair *expected)
 {
 	if (!late_cpu_spectre_descriptor_valid(cap, match, ARM64_SPECTRE_BHB))
 		return ARM64_LATE_CPU_CAP_UNRESOLVED;
@@ -187,8 +187,8 @@ arm64_late_cpu_expected_bhb_state(const struct arm64_cpu_capabilities *cap,
 
 EXPECTED_EFFECTS = r'''int __init
 arm64_late_cpu_expected_effects(const struct arm64_late_cpu_expected_pair *expected,
-	const struct arm64_late_cpu_target_policy_evidence *policy,
-	struct arm64_late_cpu_target_effect_plan *effects)
+				const struct arm64_late_cpu_target_policy_evidence *policy,
+				struct arm64_late_cpu_target_effect_plan *effects)
 {
 	enum arm64_late_cpu_cap_state bhb_state;
 	enum arm64_late_cpu_cap_state v2_state;
@@ -290,8 +290,8 @@ def apply(root: Path) -> None:
         "enum arm64_late_cpu_cap_state __init\n"
         "arm64_late_cpu_early_system_cap_state("
         "const struct arm64_cpu_capabilities *cap,\n"
-        "\tconst struct arm64_cpu_capabilities *match,\n"
-        "\tconst struct arm64_late_cpu_system_cap_evidence *system);\n"
+        "\t\t\t\t      const struct arm64_cpu_capabilities *match,\n"
+        "\t\t\t\t      const struct arm64_late_cpu_system_cap_evidence *system);\n"
         "enum arm64_late_cpu_cap_state __init\n"
         "arm64_late_cpu_gicv5_legacy_state(\n",
     )
@@ -310,23 +310,23 @@ def apply(root: Path) -> None:
         "enum arm64_late_cpu_cap_state __init\n"
         "arm64_late_cpu_expected_v2_state("
         "const struct arm64_cpu_capabilities *cap,\n"
-        "\tconst struct arm64_cpu_capabilities *match,\n"
-        "\tconst struct arm64_late_cpu_expected_pair *expected);\n"
+        "\t\t\t\t const struct arm64_cpu_capabilities *match,\n"
+        "\t\t\t\t const struct arm64_late_cpu_expected_pair *expected);\n"
         "enum arm64_late_cpu_cap_state __init\n"
         "arm64_late_cpu_expected_v4_state("
         "const struct arm64_cpu_capabilities *cap,\n"
-        "\tconst struct arm64_cpu_capabilities *match,\n"
-        "\tconst struct arm64_late_cpu_expected_pair *expected);\n"
+        "\t\t\t\t const struct arm64_cpu_capabilities *match,\n"
+        "\t\t\t\t const struct arm64_late_cpu_expected_pair *expected);\n"
         "enum arm64_late_cpu_cap_state __init\n"
         "arm64_late_cpu_expected_bhb_state("
         "const struct arm64_cpu_capabilities *cap,\n"
-        "\tconst struct arm64_cpu_capabilities *match,\n"
-        "\tconst struct arm64_late_cpu_expected_pair *expected);\n"
+        "\t\t\t\t  const struct arm64_cpu_capabilities *match,\n"
+        "\t\t\t\t  const struct arm64_late_cpu_expected_pair *expected);\n"
         "int __init\n"
         "arm64_late_cpu_expected_effects("
         "const struct arm64_late_cpu_expected_pair *expected,\n"
-        "\tconst struct arm64_late_cpu_target_policy_evidence *policy,\n"
-        "\tstruct arm64_late_cpu_target_effect_plan *effects);\n",
+        "\t\t\t\tconst struct arm64_late_cpu_target_policy_evidence *policy,\n"
+        "\t\t\t\tstruct arm64_late_cpu_target_effect_plan *effects);\n",
     )
 
     replace_once(
