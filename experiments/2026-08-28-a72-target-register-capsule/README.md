@@ -98,6 +98,9 @@ one fixed decision map; the proven parent must not be rerun unchanged.
   fixed one-attempt observation sequence and complete outcome map.
 - [`results/runtime-tooling-validation-20260828.txt`](results/runtime-tooling-validation-20260828.txt):
   read-only predecessor observation and accepted runtime-tooling gates.
+- [`results/retention-path-audit-20260828.txt`](results/retention-path-audit-20260828.txt):
+  rejects returned-empty custom ledgers and selects the exact same-version
+  Gemian pmsg witness contract.
 - [`results/deployment-20260828.txt`](results/deployment-20260828.txt): exact
   live-GPT boot2 write, full readback, cleanup, and clean-shutdown evidence.
 - [`results/runtime-attempt-1-evidence-loss-20260828.txt`](results/runtime-attempt-1-evidence-loss-20260828.txt):
@@ -242,6 +245,16 @@ classifies `NO ATTRIBUTABLE MARKER OR EVIDENCE LOSS`. This is not a capsule or
 kernel failure and establishes no target-register result. The exact candidate
 is retired and must not be repeated unchanged.
 
+The follow-up retention audit rules out simple console-tail truncation: the
+marker-free 64-KiB window spans the time where the proven scheduler parent
+previously emitted its complete trace. It also rejects the prior GAEL/DBGC and
+admission ledgers as negative entry oracles because positive-control execution
+has returned those slots empty. Exact source and repeated recovery evidence do
+support one distinct same-version path: Gemian's separate 64-KiB pmsg ring.
+The next child will add a bounded kernel pmsg helper plus entry, pre-scheduler,
+and mutually exclusive pre-capsule terminal records. That path is deliberately
+not valid for the differently aligned mainline-to-Gemian pmsg layout.
+
 ## Analysis
 
 Copying `cpu_data` alone would rely on source attribution for target locality.
@@ -272,4 +285,6 @@ Continue only through the ordered action in
 the exact successful scheduler-unpark retention path and available reserved
 retained-RAM contracts, then freeze one distinct pre-scheduler candidate-entry
 and pre-capsule-terminal observation path that remains recoverable when both
-console-ramoops and USB are absent. Validate it before Buildbox or deployment.
+console-ramoops and USB are absent. That audit is now complete and selects the
+same-version Gemian pmsg ring. Define and mutation-test the bounded pmsg child
+before Buildbox or deployment.

@@ -6027,12 +6027,20 @@ The next ordered work is:
    power, but changed-cycle pstore retained no candidate/phase/pair/capsule
    marker and the already-armed USB interface never appeared. The fixed map
    classifies evidence loss, not a capsule or kernel fault; retire this exact
-   image without repeat. **Selected next:** audit the successful scheduler-
-   unpark retention path and reserved retained-RAM contracts, then freeze and
-   hardware-free validate one distinct pre-scheduler candidate-entry record
-   and mutually exclusive pre-capsule terminal that survive absence of both
-   console-ramoops and USB. Preserve the scheduler parent, workload, power
-   sequence, CPU_OFF prohibition, watchdog recovery, and capsule schema.
+   image without repeat. The follow-up retention audit shows that the
+   marker-free 64-KiB console window spans the proven scheduler timestamp, so
+   ordinary tail truncation is insufficient. It rejects the returned-empty
+   GAEL/DBGC, admission, and transition slots as negative entry oracles: a
+   positive-control kernel reached `/init` yet returned the custom slots
+   empty. Exact source plus repeated same-version recovery instead select the
+   separate Gemian 64-KiB pmsg ring, whose postcore initialization precedes
+   the observer late initcall and whose old record is exposed independently as
+   `pmsg-ramoops-0`. This is expressly not the incompatible mainline-to-Gemian
+   pmsg layout. **Selected next:** freeze and hardware-free validate one
+   bounded Gemian pmsg child with a candidate-entry record, a pre-scheduler
+   record, and exactly one mutually exclusive PASS/FAULT pre-capsule terminal.
+   Preserve the scheduler parent, workload, power sequence, CPU_OFF
+   prohibition, watchdog recovery, and capsule schema.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

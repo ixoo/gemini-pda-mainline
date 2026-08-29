@@ -1,0 +1,143 @@
+CPU8/CPU9 target-register observation-path audit
+=================================================
+
+Date: 2026-08-28 America/New_York / 2026-08-29 UTC
+Operation: read-only local-evidence and exact Buildbox source audit
+Decision: SELECT SAME-VERSION GEMIAN PMSG WITNESS; REJECT RETURNED-EMPTY LEDGERS
+
+Question
+--------
+
+Why did the target-register candidate return without any attributable console
+or USB marker, and which independent retained path can make the next boot
+decision-bearing without repeating the exact image?
+
+Console-window comparison
+-------------------------
+
+The exact successful scheduler-unpark retained console is 65,524 bytes with
+SHA-256:
+
+  b28ff65c20b9e865ad3d0f4789c43a8b902a94580f04330f293918eab27210bd
+
+It contains 39 scheduler phases and one adjacent pair-v6/pair-v7 terminal.
+The retained tail begins near 9.7415 seconds; the phase run occupies roughly
+10.885381 through 10.900946 seconds and ends in pair-v7 PASS.
+
+The target-register attempt retained console is also 65,524 bytes with
+SHA-256:
+
+  a3724342b7b406c13132aafaa9f615d11599ba19aa358592b98b35cb349b8557
+
+Its retained tail begins near 8.648867 seconds and ends near 13.980896
+seconds. It contains zero scheduler, pair-v6, pair-v7, or register-capsule
+markers. That window spans the scheduler parent's previously observed
+approximately 10.9-second execution time. Ordinary 64-KiB tail truncation is
+therefore not a sufficient explanation for the complete marker absence.
+
+This comparison does not prove that the candidate image entered. It preserves
+four live alternatives: boot selection/handoff failure, failure before the
+first experiment marker, console retention/exposure failure, or a different
+executed image. It does prove that debugging target registers from this cycle
+would be premature.
+
+Rejected retained-slot oracles
+------------------------------
+
+The four GAEL/DBGC slots at [0x444bb000,0x444bf000) are not a valid negative
+entry oracle. The later positive-control kernel reached `/init`, yet the
+subsequent Gemian recovery still returned those slots in their exact empty
+state. Returned-empty therefore cannot distinguish no Image entry from writer
+refusal, warm-return clearing, or recovery-side reinitialization.
+
+The admission and transition ledgers are rejected for the same next-candidate
+role. Their returned-empty results did not distinguish pre-controller failure
+from retention loss. Reusing any of these mechanisms would not add a durable,
+decision-changing observation path.
+
+Exact same-version Gemian pmsg source contract
+----------------------------------------------
+
+The exact Gemian source commit is:
+
+  59e00a9144d782e148332009a835b99c43382467
+
+The target-register managed tree has no diff from that commit in `fs/pstore/`
+or `include/linux/pstore.h`. Exact source SHA-256 identities are:
+
+  fs/pstore/pmsg.c       d068bcef6caea7674bde8a900f5c0a774f6c8a71ab981075d1a12d0b8d9dd7e0
+  fs/pstore/ram.c        7ba661c230fb71d7d2768bb3cddb95d1deb36810531cfc992bc5c7297113a391
+  fs/pstore/ram_core.c   eb25a629b9dff9bbffedd7c90fd2a1045420792570cd0a775d78d3bd2c2ca1b6
+  fs/pstore/platform.c   faff4a24ea2a298ba8fe267f04266665bc75e0241dc67718390708e587e73474
+  include/linux/pstore.h 7c3aa62a100652d4abc5abb34573a805f00a2bfb1f88fd0bec60a6a25195dd28
+
+The pinned active configuration enables PSTORE, PSTORE_CONSOLE,
+PSTORE_PMSG, and PSTORE_RAM with 0x10000-byte console and pmsg zones. The
+downstream layout places pmsg at [0x444e0000,0x444f0000).
+
+Source order is suitable for a same-version Gemian-only witness:
+
+- `ramoops_init` is a `postcore_initcall`, earlier than the observer's
+  `late_initcall` and much earlier than the approximately 10.9-second
+  scheduler run;
+- `ramoops_probe` allocates a distinct `mprz`, preserves the prior ring as its
+  old record, then clears only the new active record;
+- `ramoops_pstore_write_buf(PSTORE_TYPE_PMSG, ...)` appends bytes only to that
+  pmsg persistent ring;
+- recovery exposes the preserved old record as `pmsg-ramoops-0` without
+  sharing the console ring; and
+- the existing `/dev/pmsg0` frontend already serializes writers with
+  `pmsg_lock`, but the exact source has no bounded kernel-callable wrapper.
+
+Runtime consistency
+-------------------
+
+The target-register changed cycle recovered a separate 65,524-byte
+`pmsg-ramoops-0` with SHA-256:
+
+  0f56d20562c861acb7b20cd118b778cc8d9ab85de88caaca87786a331bf20ca7
+
+Multiple prior scheduler cycles also recovered separate 65,524-byte pmsg
+records with distinct checksums. This establishes active same-version region
+retention and sysfs exposure, not yet deliberate kernel-marker survival.
+
+This conclusion must not be generalized to a mainline-to-Gemian cycle. The
+documented mainline alignment allocation has a different pmsg layout and is
+not cross-version recoverable. The selected witness is restricted to the
+exact Gemian-derived candidate and known-good Gemian recovery pair.
+
+Selected child contract
+-----------------------
+
+Define one new observation-only child of the exact register-capsule source:
+
+1. Add a process-context-only pstore helper that accepts a non-empty constant
+   buffer no larger than 256 bytes, serializes with `pmsg_lock`, requires the
+   registered `ramoops` backend and `write_buf`, and otherwise fails closed.
+2. Write one exact versioned candidate-entry record from the existing late
+   initcall, before any A72 experiment work.
+3. Write one exact pre-scheduler record immediately before the inherited
+   scheduler run after the complete pair-v6 parent gate.
+4. Write exactly one mutually exclusive PASS or FAULT pre-capsule terminal
+   immediately before the inherited capsule emitter.
+5. Preserve every power, CPU_ON, CPU_OFF prohibition, watchdog, workload,
+   register read, terminal, and recovery operation from the exact parent.
+
+Because Android pmsg traffic can wrap a 64-KiB ring, the early entry record is
+not sufficient by itself. The pre-scheduler and pre-capsule records are placed
+near the watchdog return and are the primary retention classifiers. All three
+records remain bounded and total far below one KiB.
+
+No build, boot image, device access, retained-RAM write, or hardware action was
+performed by this audit.
+
+Decision map for the future child
+---------------------------------
+
+- terminal PASS plus exact capsules: classify the register result;
+- terminal FAULT: classify the existing scheduler/capsule fault branch;
+- entry or pre-scheduler only: localize execution before the missing terminal;
+- no pmsg witness with changed-cycle recovery: classify pre-late-init,
+  boot-selection/handoff, or pmsg-retention failure; do not infer a CPU result;
+- console or USB evidence alone cannot substitute for a malformed or
+  contradictory pmsg sequence.

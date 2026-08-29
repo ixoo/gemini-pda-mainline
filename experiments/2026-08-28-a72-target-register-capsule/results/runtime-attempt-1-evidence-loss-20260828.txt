@@ -140,6 +140,14 @@ This follows the fixed NO ATTRIBUTABLE MARKER OR EVIDENCE LOSS branch. Screen
 or reboot behavior remains serviceability evidence only. Candidate
 f8e247e5... is boot_candidate=false and retired from physical use.
 
+Post-decision uninstrumented observation
+----------------------------------------
+
+After retirement, the owner later reported another physical start followed by
+an automatic return to Gemian. No new independent observer or changed decision
+map was armed for that user-initiated repeat. It is therefore excluded from the
+classifier and adds no kernel, capsule, scheduler, or CPU evidence.
+
 Selected next action
 --------------------
 
