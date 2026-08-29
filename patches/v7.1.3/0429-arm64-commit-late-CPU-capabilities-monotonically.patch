@@ -1,0 +1,234 @@
+From dedb83d2f2c812cadfa1db50a9846d1c264c6848 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 29 Aug 2026 19:45:00 +0000
+Subject: [PATCH] arm64: commit late CPU capabilities monotonically
+
+Commit only the six audited late-required arm64 capabilities.
+Seed typed mitigation state monotonically before normal capability
+and alternatives finalization, then publish an exact receipt.
+
+Invoke no profile callback, publish no READY token, and request no CPU.
+---
+ arch/arm64/include/asm/late_cpu_profile.h |  2 +
+ arch/arm64/kernel/cpufeature.c            | 65 +++++++++++++++++++++++
+ arch/arm64/kernel/late_cpu_profile.c      | 27 ++++++----
+ arch/arm64/kernel/proton-pack.c           | 65 +++++++++++++++++++++++
+ 4 files changed, 150 insertions(+), 9 deletions(-)
+
+diff --git a/arch/arm64/include/asm/late_cpu_profile.h b/arch/arm64/include/asm/late_cpu_profile.h
+index 47ba76a..d449c86 100644
+--- a/arch/arm64/include/asm/late_cpu_profile.h
++++ b/arch/arm64/include/asm/late_cpu_profile.h
+@@ -573,6 +573,8 @@ int arm64_validate_late_cpu_expected_target(unsigned int cpu);
+ void __init arm64_seal_late_cpu_runtime_evidence(void);
+ void __init arm64_prepare_late_cpu_profile(void);
+ void __init arm64_commit_late_cpu_profile(void);
++int __init arm64_commit_late_cpu_plan(const struct arm64_late_cpu_plan *plan);
++int __init arm64_commit_late_cpu_mitigations(const struct arm64_late_cpu_effect_plan *effects);
+ int __init arm64_plan_late_cpu_capabilities(struct arm64_late_cpu_plan *draft,
+ 					    const struct arm64_late_cpu_profile *profile);
+ int __init arm64_plan_late_cpu_effects(struct arm64_late_cpu_plan *draft,
+diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+index 81f53a6..bf5e591 100644
+--- a/arch/arm64/kernel/cpufeature.c
++++ b/arch/arm64/kernel/cpufeature.c
+@@ -4747,6 +4747,70 @@ int __init arm64_plan_late_cpu_hwcaps(struct arm64_late_cpu_plan *plan)
+ 	plan->hwcaps_planned = 1;
+ 	return 0;
+ }
++
++static bool __init late_cpu_commit_cap_allowed(unsigned int cap)
++{
++	switch (cap) {
++	case ARM64_MISMATCHED_CACHE_TYPE:
++	case ARM64_SPECTRE_V2:
++	case ARM64_SPECTRE_V4:
++	case ARM64_SPECTRE_BHB:
++	case ARM64_WORKAROUND_1742098:
++	case ARM64_WORKAROUND_SPECULATIVE_AT:
++		return true;
++	default:
++		return false;
++	}
++}
++
++int __init arm64_commit_late_cpu_plan(const struct arm64_late_cpu_plan *plan)
++{
++	DECLARE_BITMAP(expected_caps, ARM64_NCAPS);
++	const struct arm64_cpu_capabilities *descriptor;
++	unsigned int cap;
++	int ret;
++
++	if (!plan || system_capabilities_finalized() ||
++	    cpus_have_cap(ARM64_ALWAYS_SYSTEM) ||
++	    plan->abi != ARM64_LATE_CPU_PLAN_ABI ||
++	    plan->evidence.blocker_mask || !plan->local_caps_planned ||
++	    !plan->effects_planned || !plan->hwcaps_planned ||
++	    !memchr_inv(plan->identity, 0, sizeof(plan->identity)) ||
++	    !bitmap_empty(plan->conflicting_local_caps, ARM64_NCAPS) ||
++	    !bitmap_subset(plan->required_local_caps,
++			   plan->target_local_caps, ARM64_NCAPS) ||
++	    !bitmap_subset(plan->required_local_caps,
++			   plan->canonical_caps, ARM64_NCAPS) ||
++	    bitmap_intersects(plan->required_local_caps,
++			      plan->early_local_caps, ARM64_NCAPS) ||
++	    bitmap_intersects(plan->required_local_caps,
++			      system_cpucaps, ARM64_NCAPS))
++		return -EINVAL;
++
++	for_each_set_bit(cap, plan->required_local_caps, ARM64_NCAPS) {
++		descriptor = cpucap_ptrs[cap];
++		if (!late_cpu_commit_cap_allowed(cap) || !descriptor ||
++		    descriptor->capability != cap ||
++		    !(descriptor->type & SCOPE_LOCAL_CPU) ||
++		    cpucap_late_cpu_permitted(descriptor))
++			return -EINVAL;
++	}
++
++	bitmap_copy(expected_caps, system_cpucaps, ARM64_NCAPS);
++	bitmap_or(expected_caps, expected_caps, plan->required_local_caps,
++		  ARM64_NCAPS);
++	ret = arm64_commit_late_cpu_mitigations(&plan->effects);
++	if (ret)
++		return ret;
++
++	/* No fallible operation may follow the first architecture-state write. */
++	bitmap_or(system_cpucaps, system_cpucaps, plan->required_local_caps,
++		  ARM64_NCAPS);
++	if (!bitmap_equal(system_cpucaps, expected_caps, ARM64_NCAPS))
++		panic("late CPU capability commit changed outside its plan");
++
++	return 0;
++}
+ #endif
+ 
+ static void cap_set_elf_hwcap(const struct arm64_cpu_capabilities *cap)
+diff --git a/arch/arm64/kernel/late_cpu_profile.c b/arch/arm64/kernel/late_cpu_profile.c
+index f4e30ca..c0a0455 100644
+--- a/arch/arm64/kernel/late_cpu_profile.c
++++ b/arch/arm64/kernel/late_cpu_profile.c
+@@ -1506,8 +1506,6 @@ void __init arm64_prepare_late_cpu_profile(void)
+ 	if (!late_profile_runtime_binding_complete(&draft.evidence.binding))
+ 		draft.evidence.blocker_mask |=
+ 			ARM64_LATE_CPU_BLOCK_RUNTIME_BINDING;
+-	/* ABI 7 has no architecture-owned mutation implementation. */
+-	draft.evidence.blocker_mask |= ARM64_LATE_CPU_BLOCK_COMMIT_PATH;
+ 	plan_ret = arm64_plan_late_cpu_capabilities(&draft, &late_profile);
+ 	effect_ret = plan_ret ? -EAGAIN :
+ 		arm64_plan_late_cpu_effects(&draft, &late_profile);
+@@ -1562,6 +1560,7 @@ void __init arm64_prepare_late_cpu_profile(void)
+ void __init arm64_commit_late_cpu_profile(void)
+ {
+ 	u32 state = READ_ONCE(late_receipt.state);
++	int ret;
+ 
+ 	if (state == ARM64_LATE_CPU_PROFILE_NONE ||
+ 	    state == ARM64_LATE_CPU_PROFILE_BLOCKED)
+@@ -1573,15 +1572,25 @@ void __init arm64_commit_late_cpu_profile(void)
+ 	    !late_plan.hwcaps_planned ||
+ 	    !late_profile_plan_has_identity(&late_plan) ||
+ 	    memcmp(late_receipt.plan_identity, late_plan.identity,
+-		   sizeof(late_receipt.plan_identity)))
++		   sizeof(late_receipt.plan_identity)) ||
++	    late_receipt.blocker_mask || late_receipt.commit_complete ||
++	    late_receipt.strict_caps_verified ||
++	    late_receipt.alternatives_finalized ||
++	    late_receipt.user_hwcaps_finalized ||
++	    memchr_inv(&late_receipt.committed, 0,
++		       sizeof(late_receipt.committed)))
+ 		panic("late CPU profile reached capability commit out of order");
+ 
+-	/*
+-	 * ABI 7 deliberately publishes no mutation path. The complete canonical
+-	 * evaluator must add one architecture-owned, callback-free commit before
+-	 * it can make PLAN_FROZEN reachable for a production profile.
+-	 */
+-	panic("late CPU profile commit implementation is unavailable");
++	ret = arm64_commit_late_cpu_plan(&late_plan);
++	if (ret)
++		panic("late CPU architecture commit failed: %d", ret);
++	late_receipt.committed = late_plan.effects;
++	late_receipt.commit_complete = 1;
++	/* Publish the complete receipt after all architecture state is committed. */
++	smp_store_release(&late_receipt.state,
++			  ARM64_LATE_CPU_PROFILE_COMMITTED);
++	pr_info("%s committed its immutable capability plan\n",
++		late_receipt.profile_id);
+ }
+ 
+ void __init arm64_verify_late_cpu_profile_system(void)
+diff --git a/arch/arm64/kernel/proton-pack.c b/arch/arm64/kernel/proton-pack.c
+index 6cbccc7..92426d1 100644
+--- a/arch/arm64/kernel/proton-pack.c
++++ b/arch/arm64/kernel/proton-pack.c
+@@ -1494,6 +1494,70 @@ arm64_late_cpu_collect_policy(struct arm64_late_cpu_target_policy_evidence *poli
+ 
+ 	return 0;
+ }
++
++static int __init
++late_cpu_mitigation_state(u8 planned, enum mitigation_state *state)
++{
++	switch (planned) {
++	case ARM64_LATE_CPU_MITIGATION_UNAFFECTED:
++		*state = SPECTRE_UNAFFECTED;
++		return 0;
++	case ARM64_LATE_CPU_MITIGATION_MITIGATED:
++		*state = SPECTRE_MITIGATED;
++		return 0;
++	case ARM64_LATE_CPU_MITIGATION_VULNERABLE:
++		*state = SPECTRE_VULNERABLE;
++		return 0;
++	default:
++		return -EINVAL;
++	}
++}
++
++int __init arm64_commit_late_cpu_mitigations(const struct arm64_late_cpu_effect_plan *effects)
++{
++	enum mitigation_state v2 = SPECTRE_UNAFFECTED;
++	enum mitigation_state v4 = SPECTRE_UNAFFECTED;
++	enum mitigation_state bhb = SPECTRE_UNAFFECTED;
++	unsigned long current_bhb_methods;
++	u8 current_bhb_loop;
++	int ret;
++
++	if (!effects || system_capabilities_finalized())
++		return -EINVAL;
++	if (effects->spectre_v2.required) {
++		ret = late_cpu_mitigation_state(effects->spectre_v2.mitigation_state, &v2);
++		if (ret || READ_ONCE(spectre_v2_state) > v2)
++			return -EINVAL;
++	}
++	if (effects->spectre_v4.required) {
++		ret = late_cpu_mitigation_state(effects->spectre_v4.mitigation_state, &v4);
++		if (ret || READ_ONCE(spectre_v4_state) > v4)
++			return -EINVAL;
++	}
++	if (effects->bhb.required) {
++		ret = late_cpu_mitigation_state(effects->bhb.mitigation_state, &bhb);
++		current_bhb_methods = READ_ONCE(system_bhb_mitigations);
++		current_bhb_loop = READ_ONCE(max_bhb_k);
++		if (ret || READ_ONCE(spectre_bhb_state) > bhb ||
++		    effects->bhb.system_method & ~GENMASK(BHB_INSN, BHB_LOOP) ||
++		    current_bhb_methods & ~effects->bhb.system_method ||
++		    current_bhb_loop > effects->bhb.matcher_loop_count)
++			return -EINVAL;
++	}
++
++	if (effects->spectre_v2.required)
++		update_mitigation_state(&spectre_v2_state, v2);
++	if (effects->spectre_v4.required)
++		update_mitigation_state(&spectre_v4_state, v4);
++	if (effects->bhb.required) {
++		WRITE_ONCE(max_bhb_k, effects->bhb.matcher_loop_count);
++		WRITE_ONCE(system_bhb_mitigations,
++			   (unsigned long)effects->bhb.system_method);
++		update_mitigation_state(&spectre_bhb_state, bhb);
++	}
++
++	return 0;
++}
+ #endif
+ 
+ static void this_cpu_set_vectors(enum arm64_bp_harden_el1_vectors slot)

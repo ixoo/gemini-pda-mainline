@@ -336,17 +336,38 @@ READY publication, and every CPU request remain absent. This is linked
 source-only proof, not a boot candidate. See the
 [planner compile result](results/planner-compile-20260829.txt).
 
+Logical slice 5 is now canonical patch `0429`. It removes only the obsolete
+commit-path blocker, validates the frozen plan and its six audited
+late-required capabilities, seeds the typed Spectre/BHB state monotonically,
+sets only the planned system-capability bits, and publishes an exact COMMITTED
+receipt with release ordering. It invokes no profile callback and adds no
+target-cap producer, READY publication, CPU request, CPU9 path, CPU_OFF path,
+candidate, or device action. Five stopped Buildbox attempts exposed three
+mutation-anchor defects, two structural-validator gaps, and six strict
+line-break findings; none produced a retained package. Final generation at
+signed commit `52dcaaa8` rejects all 18 unsafe source mutations, passes
+deterministic replay and strict checkpatch with zero findings, and produces an
+exact five-file package. Canonical patch `0429` is byte-identical to that
+package, and all 158 manifest profiles retain the canonical-series invariant.
+The synthetic experiment-only patch identity carries no synthetic sign-off and
+is not submission-ready. See the
+[commit generation result](results/commit-generation-20260829.txt). The patch
+remains unreachable in the production profile because current target-cap
+producers are absent; the next gate is its exact enabled `a72-p30e-wire`
+Buildbox compile and linked-output inspection.
+
 ## Conclusion
 
 `confirmed-reference-only-mapping-dormant-planner-linked`:
 the exact CPU8 and CPU9 vectors map cleanly as prior-cycle target expectations,
 but not as a complete ABI-7 runtime-evidence record. The dormant schema,
 fail-closed entry validator, their section/stack integration repairs, and the
-current-mainline system/policy owner, pure planner, and canonical identities are
-now reproducibly generated, admitted, and linked. Current-mainline target-cap
-production, architecture commit/receipt, verification/finalization, READY, and
-physical admission remain open. No CPU request is justified by the recovered
-capsule alone.
+current-mainline system/policy owner, pure planner, canonical identities, and
+dormant architecture commit/receipt are now reproducibly generated and
+admitted; all but the commit have linked proof. Current-mainline target-cap
+production, linked commit verification, alternatives/HWCAP finalization, READY,
+and physical admission remain open. No CPU request is justified by the
+recovered capsule alone.
 
 ## Follow-up
 

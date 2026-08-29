@@ -6188,7 +6188,18 @@ The next ordered work is:
    rejecting source mutations, deterministic replay, and strict style before
    its exact enabled-profile Buildbox compile. Keep it unreachable while the
    current target-cap producers remain absent; do not publish READY or add any
-   CPU request in this slice.
+   CPU request in this slice. Logical slice 5 is now canonical patch `0429`.
+   It admits only the six audited late-required capabilities, commits typed
+   mitigation state monotonically before the capability bitmap, and publishes
+   an exact COMMITTED receipt with release ordering. Exact generation at signed
+   commit `52dcaaa8` passes its five-file package boundary and checksums,
+   deterministic replay, strict checkpatch with zero findings, all 18 rejecting
+   source mutations, byte-identical admission, and the 158-profile series
+   invariant. Target-cap producers, READY, CPU requests, candidate, and device
+   actions remain absent. **Selected next:** compile the exact canonical `0429`
+   series with the enabled `a72-p30e-wire` profile on Buildbox, then inspect the
+   linked commit call order, symbols, sections, stack frames, and diagnostics.
+   Do not select a device candidate from source-generation evidence.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
