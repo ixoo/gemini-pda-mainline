@@ -41,7 +41,8 @@ def mutations() -> list[tuple[str, Callable[[Path], None]]]:
     return [
         ("remove-expected-pair", lambda r: replace(r / header, "\tstruct arm64_late_cpu_expected_pair expected_pair;\n", "")),
         ("partial-valid-mask", lambda r: replace(r / core, "expected->valid != ARM64_LATE_CPU_EXPECTED_PAIR_VALID_MASK", "!(expected->valid & ARM64_LATE_CPU_EXPECTED_PAIR_VALID_MASK)")),
-        ("allow-empty-source", lambda r: replace(r / core, " ||\n\t    late_profile_identity_empty(expected->source_identity)", "")),
+        ("allow-empty-source", lambda r: replace(r / core, "\t    !memchr_inv(expected->source_identity, 0,\n\t\t\t   sizeof(expected->source_identity)) ||\n", "")),
+        ("restore-init-only-helper", lambda r: replace(r / core, "\t    !memchr_inv(expected->source_identity, 0,\n\t\t\t   sizeof(expected->source_identity)) ||\n", "\t    late_profile_identity_empty(expected->source_identity) ||\n")),
         ("allow-empty-capsule", lambda r: replace(r / core, "!expected->capsule_identity[target] ||\n\t\t    ", "")),
         ("drop-raw-ctr", lambda r: replace(r / core, "\t       expected->ctr == read_cpuid_cachetype() &&\n", "")),
         ("drop-clidr", lambda r: replace(r / core, "\t       expected->clidr_el1 == read_sysreg(clidr_el1) &&\n", "")),
@@ -65,7 +66,8 @@ def prepare(source_root: Path, destination: Path) -> None:
         shutil.copyfile(source_root / relative, target)
     EDITS.apply_schema(destination)
     EDITS.apply_validator(destination)
-    VALIDATE.validate_validator(destination)
+    EDITS.apply_runtime_fix(destination)
+    VALIDATE.validate_runtime_fix(destination)
 
 
 def main() -> int:
@@ -82,7 +84,7 @@ def main() -> int:
             shutil.copytree(base, candidate)
             mutate(candidate)
             try:
-                VALIDATE.validate_validator(candidate)
+                VALIDATE.validate_runtime_fix(candidate)
             except VALIDATE.ValidationError:
                 rejected += 1
             else:

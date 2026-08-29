@@ -97,7 +97,6 @@ def validate_validator(root: Path) -> list[str]:
     for token in (
         "expected->abi != ARM64_LATE_CPU_EXPECTED_PAIR_ABI",
         "expected->valid != ARM64_LATE_CPU_EXPECTED_PAIR_VALID_MASK",
-        "late_profile_identity_empty(expected->source_identity)",
         "!expected->capsule_identity[target]",
         "expected->mpidr[target] !=",
         "expected->midr !=",
@@ -178,13 +177,37 @@ def validate_validator(root: Path) -> list[str]:
     return results
 
 
+def validate_runtime_fix(root: Path) -> list[str]:
+    results = validate_validator(root)
+    core = (root / "arch/arm64/kernel/late_cpu_profile.c").read_text()
+    complete = function(core, "late_expected_pair_complete(")
+    require(
+        "!memchr_inv(expected->source_identity, 0," in complete
+        and "sizeof(expected->source_identity)" in complete,
+        "runtime-safe source-identity empty check absent",
+    )
+    require(
+        "late_profile_identity_empty(expected->source_identity)" not in complete,
+        "runtime validator retains an init-only helper call",
+    )
+    results.append("entry_identity_check=runtime-safe")
+    return results
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-root", type=Path, required=True)
-    parser.add_argument("--stage", choices=("schema", "validator"), required=True)
+    parser.add_argument(
+        "--stage", choices=("schema", "validator", "runtime-fix"), required=True
+    )
     args = parser.parse_args()
     root = args.source_root.resolve()
-    results = validate_schema(root) if args.stage == "schema" else validate_validator(root)
+    if args.stage == "schema":
+        results = validate_schema(root)
+    elif args.stage == "validator":
+        results = validate_validator(root)
+    else:
+        results = validate_runtime_fix(root)
     print(f"validation=mainline-a72-{args.stage}-source-pass")
     for result in results:
         print(result)

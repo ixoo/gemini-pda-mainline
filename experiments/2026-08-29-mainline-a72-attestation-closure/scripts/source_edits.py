@@ -316,17 +316,31 @@ def apply_validator(root: Path) -> None:
     )
 
 
+def apply_runtime_fix(root: Path) -> None:
+    core = root / "arch/arm64/kernel/late_cpu_profile.c"
+    replace_once(
+        core,
+        "\t    late_profile_identity_empty(expected->source_identity) ||\n",
+        "\t    !memchr_inv(expected->source_identity, 0,\n"
+        "\t\t\t   sizeof(expected->source_identity)) ||\n",
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-root", type=Path, required=True)
-    parser.add_argument("--stage", choices=("schema", "validator"), required=True)
+    parser.add_argument(
+        "--stage", choices=("schema", "validator", "runtime-fix"), required=True
+    )
     args = parser.parse_args()
     root = args.source_root.resolve()
     validate_parent(root, args.stage)
     if args.stage == "schema":
         apply_schema(root)
-    else:
+    elif args.stage == "validator":
         apply_validator(root)
+    else:
+        apply_runtime_fix(root)
 
 
 if __name__ == "__main__":

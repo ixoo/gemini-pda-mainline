@@ -23,10 +23,12 @@ REPO_ROOT = EXPERIMENT.parents[1]
 PATCHES = (
     "0423-arm64-add-dormant-late-CPU-expected-pair-schema.patch",
     "0424-arm64-validate-late-CPU-expectation-before-online.patch",
+    "0425-arm64-keep-late-CPU-expectation-check-runtime-safe.patch",
 )
 SUBJECTS = (
     "arm64: add dormant late CPU expected-pair schema",
     "arm64: validate late CPU expectation before online",
+    "arm64: keep late CPU expectation check runtime-safe",
 )
 
 
@@ -136,6 +138,12 @@ def main() -> int:
                 "and park mismatches before topology, GIC, timer, or online publication.",
                 "2026-08-29T03:02:00Z",
             ),
+            (
+                "runtime-fix", SUBJECTS[2],
+                "Keep the secondary-entry validator independent of init-only helpers.\n"
+                "Preserve the exact non-empty source-identity requirement.",
+                "2026-08-29T03:03:00Z",
+            ),
         )
         for stage, subject, body, timestamp in stages:
             run(
@@ -187,7 +195,7 @@ def main() -> int:
             run("git", "apply", str(target), cwd=replay)
         validations.append(run(
             "python3", str(SCRIPT_DIR / "validate_source.py"),
-            "--source-root", str(replay), "--stage", "validator", cwd=REPO_ROOT,
+            "--source-root", str(replay), "--stage", "runtime-fix", cwd=REPO_ROOT,
         ))
 
         (package / "series").write_text("\n".join(PATCHES) + "\n")
@@ -198,8 +206,9 @@ def main() -> int:
             f"repository_commit={args.repository_commit}\n"
             f"prepared_source_state={state.read_text().strip()}\n"
             f"prepared_source_integrity={integrity.read_text().strip()}\n"
-            "generated_patch_count=2\nexpected_pair_valid_fields=28\n"
+            "generated_patch_count=3\nexpected_pair_valid_fields=28\n"
             "active_expectations=0\nentry_comparisons=26\n"
+            "entry_identity_check=runtime-safe\n"
             "entry_location=after-cpuinfo-before-notify-online\n"
             "cpu_request_paths=0\ncpu9_request_paths=0\ncpu_off_paths=0\n"
             "retry_paths=0\narchitecture_commit=absent\nready_publication=unchanged\n"
