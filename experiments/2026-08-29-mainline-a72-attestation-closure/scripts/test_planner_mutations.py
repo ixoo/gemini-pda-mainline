@@ -48,11 +48,11 @@ def mutations() -> list[tuple[str, Callable[[Path], None]]]:
         ("drop-one-target-intersection", lambda r: replace(
             r / cpufeature,
             "\tfor (target = 0; target < ARM64_LATE_CPU_MAX_TARGETS; target++)\n"
-            "\t\tif (!late_cpu_hwcap_matches(\n"
-            "\t\t\t    cap, &plan->evidence.target_cap[target].registers))\n"
+            "\t\tif (!late_cpu_hwcap_matches(cap,\n"
+            "\t\t\t    &plan->evidence.target_cap[target].registers))\n"
             "\t\t\treturn false;\n",
-            "\tif (!late_cpu_hwcap_matches(\n"
-            "\t\t    cap, &plan->evidence.target_cap[0].registers))\n"
+            "\tif (!late_cpu_hwcap_matches(cap,\n"
+            "\t\t    &plan->evidence.target_cap[0].registers))\n"
             "\t\treturn false;\n")),
         ("drop-id-register-validity", lambda r: replace(
             r / cpufeature,

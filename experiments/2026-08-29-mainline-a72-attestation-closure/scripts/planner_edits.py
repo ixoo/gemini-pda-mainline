@@ -23,7 +23,7 @@ PARENT_HASHES = {
 HWCAP_PLANNER = r'''#ifdef CONFIG_ARM64_LATE_CPU_PROFILE
 static int __init
 late_cpu_hwcap_register(const struct arm64_late_cpu_register_image *registers,
-			 u32 sys_reg, u64 *value)
+			u32 sys_reg, u64 *value)
 {
 	const struct arm64_late_cpu_aarch32_register_image *aarch32 =
 		&registers->aarch32;
@@ -107,20 +107,21 @@ late_cpu_hwcap_field_visible(const struct arm64_cpu_capabilities *cap)
 {
 	const struct arm64_ftr_reg *reg = get_arm64_ftr_reg(cap->sys_reg);
 
-	return reg && cpuid_feature_extract_unsigned_field_width(
-			      reg->user_mask, cap->field_pos,
-			      cap->field_width);
+	return reg &&
+	       cpuid_feature_extract_unsigned_field_width(reg->user_mask,
+						  cap->field_pos,
+						  cap->field_width);
 }
 
 static bool __init
 late_cpu_hwcap_compat_neon(u64 mvfr1)
 {
-	return cpuid_feature_extract_unsigned_field(
-		       mvfr1, MVFR1_EL1_SIMDSP_SHIFT) &&
-	       cpuid_feature_extract_unsigned_field(
-		       mvfr1, MVFR1_EL1_SIMDInt_SHIFT) &&
-	       cpuid_feature_extract_unsigned_field(
-		       mvfr1, MVFR1_EL1_SIMDLS_SHIFT);
+	return cpuid_feature_extract_unsigned_field(mvfr1,
+						    MVFR1_EL1_SIMDSP_SHIFT) &&
+	       cpuid_feature_extract_unsigned_field(mvfr1,
+						    MVFR1_EL1_SIMDInt_SHIFT) &&
+	       cpuid_feature_extract_unsigned_field(mvfr1,
+						    MVFR1_EL1_SIMDLS_SHIFT);
 }
 
 static bool __init
@@ -173,8 +174,8 @@ late_cpu_hwcap_match_one(const struct arm64_cpu_capabilities *cap,
 		} else {
 			pfr0 = read_sanitised_ftr_reg(SYS_ID_AA64PFR0_EL1);
 		}
-		if (!cpuid_feature_extract_unsigned_field(
-				pfr0, ID_AA64PFR0_EL1_SVE_SHIFT))
+		if (!cpuid_feature_extract_unsigned_field(pfr0,
+						      ID_AA64PFR0_EL1_SVE_SHIFT))
 			return false;
 	} else if (sme_match) {
 		u64 pfr1;
@@ -186,8 +187,8 @@ late_cpu_hwcap_match_one(const struct arm64_cpu_capabilities *cap,
 		} else {
 			pfr1 = read_sanitised_ftr_reg(SYS_ID_AA64PFR1_EL1);
 		}
-		if (!cpuid_feature_extract_unsigned_field(
-				pfr1, ID_AA64PFR1_EL1_SME_SHIFT))
+		if (!cpuid_feature_extract_unsigned_field(pfr1,
+						      ID_AA64PFR1_EL1_SME_SHIFT))
 			return false;
 	}
 
@@ -219,15 +220,15 @@ late_cpu_hwcap_matches(const struct arm64_cpu_capabilities *cap,
 
 static bool __init
 late_cpu_hwcap_all_cpus(const struct arm64_cpu_capabilities *cap,
-		       const struct arm64_late_cpu_plan *plan)
+			const struct arm64_late_cpu_plan *plan)
 {
 	unsigned int target;
 
 	if (!late_cpu_hwcap_matches(cap, NULL))
 		return false;
 	for (target = 0; target < ARM64_LATE_CPU_MAX_TARGETS; target++)
-		if (!late_cpu_hwcap_matches(
-			    cap, &plan->evidence.target_cap[target].registers))
+		if (!late_cpu_hwcap_matches(cap,
+			    &plan->evidence.target_cap[target].registers))
 			return false;
 
 	return true;
@@ -235,7 +236,7 @@ late_cpu_hwcap_all_cpus(const struct arm64_cpu_capabilities *cap,
 
 static bool __init
 late_cpu_plan_all_cpus_have_cap(const struct arm64_late_cpu_plan *plan,
-			       int cap)
+				int cap)
 {
 	unsigned int target;
 
@@ -257,7 +258,7 @@ late_cpu_plan_any_cpu_has_cap(const struct arm64_late_cpu_plan *plan, int cap)
 
 static int __init
 late_cpu_plan_hwcap_array(const struct arm64_cpu_capabilities *caps,
-			 struct arm64_late_cpu_plan *plan)
+			  struct arm64_late_cpu_plan *plan)
 {
 	for (; caps->matches; caps++) {
 		if (!late_cpu_hwcap_all_cpus(caps, plan))
@@ -324,8 +325,8 @@ int __init arm64_plan_late_cpu_hwcaps(struct arm64_late_cpu_plan *plan)
 		__clear_bit(KERNEL_HWCAP_EBF16,
 			    (unsigned long *)plan->expected_elf_hwcap);
 	}
-	if (late_cpu_plan_any_cpu_has_cap(
-		    plan, ARM64_WORKAROUND_SPECULATIVE_SSBS))
+	if (late_cpu_plan_any_cpu_has_cap(plan,
+				       ARM64_WORKAROUND_SPECULATIVE_SSBS))
 		__clear_bit(KERNEL_HWCAP_SSBS,
 			    (unsigned long *)plan->expected_elf_hwcap);
 
@@ -365,8 +366,7 @@ late_canonical_update_u64(struct sha256_ctx *ctx, u64 value)
 }
 
 static void __init
-late_canonical_update_identity(
-	struct sha256_ctx *ctx,
+late_canonical_update_identity(struct sha256_ctx *ctx,
 	const u64 identity[ARM64_LATE_CPU_ID_WORDS])
 {
 	unsigned int i;
@@ -376,8 +376,8 @@ late_canonical_update_identity(
 }
 
 static void __init
-late_canonical_digest_identity(
-	struct sha256_ctx *ctx, u64 identity[ARM64_LATE_CPU_ID_WORDS])
+late_canonical_digest_identity(struct sha256_ctx *ctx,
+			       u64 identity[ARM64_LATE_CPU_ID_WORDS])
 {
 	u8 digest[SHA256_DIGEST_SIZE];
 	unsigned int i;
@@ -388,8 +388,7 @@ late_canonical_digest_identity(
 }
 
 static void __init
-late_canonical_update_registers(
-	struct sha256_ctx *ctx,
+late_canonical_update_registers(struct sha256_ctx *ctx,
 	const struct arm64_late_cpu_register_image *registers)
 {
 	const struct arm64_late_cpu_aarch32_register_image *aarch32 =
@@ -445,8 +444,7 @@ late_canonical_update_registers(
 }
 
 static void __init
-late_canonical_update_expected_pair(
-	struct sha256_ctx *ctx,
+late_canonical_update_expected_pair(struct sha256_ctx *ctx,
 	const struct arm64_late_cpu_expected_pair *expected)
 {
 	unsigned int target;
@@ -488,8 +486,7 @@ late_canonical_update_expected_pair(
 }
 
 static void __init
-late_canonical_update_binding(
-	struct sha256_ctx *ctx,
+late_canonical_update_binding(struct sha256_ctx *ctx,
 	const struct arm64_late_cpu_runtime_binding *binding)
 {
 	late_canonical_update_u32(ctx, binding->valid);
@@ -509,8 +506,7 @@ late_canonical_update_binding(
 }
 
 static void __init
-late_canonical_update_target_cap(
-	struct sha256_ctx *ctx,
+late_canonical_update_target_cap(struct sha256_ctx *ctx,
 	const struct arm64_late_cpu_target_cap_evidence *target)
 {
 	late_canonical_update_u32(ctx, target->valid);
@@ -534,8 +530,7 @@ late_canonical_update_target_cap(
 }
 
 static void __init
-late_canonical_update_target_policy(
-	struct sha256_ctx *ctx,
+late_canonical_update_target_policy(struct sha256_ctx *ctx,
 	const struct arm64_late_cpu_target_policy_evidence *policy)
 {
 	late_canonical_update_u32(ctx, policy->valid);
@@ -546,8 +541,7 @@ late_canonical_update_target_policy(
 }
 
 static void __init
-late_canonical_update_system_cap(
-	struct sha256_ctx *ctx,
+late_canonical_update_system_cap(struct sha256_ctx *ctx,
 	const struct arm64_late_cpu_system_cap_evidence *system)
 {
 	late_canonical_update_u32(ctx, system->valid);
@@ -562,8 +556,7 @@ late_canonical_update_system_cap(
 }
 
 static void __init
-late_canonical_hash_evidence(
-	const struct arm64_late_cpu_evidence *evidence,
+late_canonical_hash_evidence(const struct arm64_late_cpu_evidence *evidence,
 	u64 identity[ARM64_LATE_CPU_ID_WORDS])
 {
 	struct sha256_ctx ctx;
@@ -581,20 +574,20 @@ late_canonical_hash_evidence(
 	late_canonical_update_binding(&ctx, &evidence->binding);
 	for (target = 0; target < ARM64_LATE_CPU_MAX_TARGETS; target++) {
 		late_canonical_update_u32(&ctx, evidence->target_cpu[target]);
-		late_canonical_update_u64(
-			&ctx, evidence->expected_target_mpidr[target]);
-		late_canonical_update_u64(
-			&ctx, evidence->observed_target_mpidr[target]);
-		late_canonical_update_u32(
-			&ctx, evidence->expected_target_midr[target]);
-		late_canonical_update_u32(
-			&ctx, evidence->observed_target_midr[target]);
-		late_canonical_update_u32(
-			&ctx, evidence->observed_target_revidr[target]);
-		late_canonical_update_target_cap(
-			&ctx, &evidence->target_cap[target]);
-		late_canonical_update_target_policy(
-			&ctx, &evidence->target_policy[target]);
+		late_canonical_update_u64(&ctx,
+			 evidence->expected_target_mpidr[target]);
+		late_canonical_update_u64(&ctx,
+			 evidence->observed_target_mpidr[target]);
+		late_canonical_update_u32(&ctx,
+			 evidence->expected_target_midr[target]);
+		late_canonical_update_u32(&ctx,
+			 evidence->observed_target_midr[target]);
+		late_canonical_update_u32(&ctx,
+			 evidence->observed_target_revidr[target]);
+		late_canonical_update_target_cap(&ctx,
+			 &evidence->target_cap[target]);
+		late_canonical_update_target_policy(&ctx,
+			    &evidence->target_policy[target]);
 	}
 	late_canonical_update_system_cap(&ctx, &evidence->system_cap);
 	/* blocker_mask is a derived admission result, not input evidence. */
@@ -613,8 +606,7 @@ late_canonical_update_bitmap(struct sha256_ctx *ctx,
 }
 
 static void __init
-late_canonical_update_target_effect(
-	struct sha256_ctx *ctx,
+late_canonical_update_target_effect(struct sha256_ctx *ctx,
 	const struct arm64_late_cpu_target_effect_plan *effect)
 {
 	late_canonical_update_u32(ctx, effect->valid);
@@ -639,8 +631,7 @@ late_canonical_update_target_effect(
 }
 
 static void __init
-late_canonical_update_effects(
-	struct sha256_ctx *ctx,
+late_canonical_update_effects(struct sha256_ctx *ctx,
 	const struct arm64_late_cpu_effect_plan *effects)
 {
 	unsigned int target;
@@ -662,8 +653,8 @@ late_canonical_update_effects(
 	late_canonical_update_u8(ctx, effects->spectre_v4.method);
 	late_canonical_update_u8(ctx, effects->spectre_v4.conduit);
 	late_canonical_update_u8(ctx, effects->spectre_v4.policy);
-	late_canonical_update_u8(
-		ctx, effects->spectre_v4.callback_required_mask);
+	late_canonical_update_u8(ctx,
+				 effects->spectre_v4.callback_required_mask);
 	late_canonical_update_u8(ctx,
 				 effects->spectre_v4.firmware_alternative);
 	late_canonical_update_u8(ctx, effects->bhb.required);
@@ -679,8 +670,8 @@ late_canonical_update_effects(
 	late_canonical_update_u8(ctx, effects->bhb.alternative);
 	late_canonical_update_u8(ctx, effects->bhb.v2_non_vulnerable);
 	for (target = 0; target < ARM64_LATE_CPU_MAX_TARGETS; target++)
-		late_canonical_update_target_effect(
-			ctx, &effects->target[target]);
+		late_canonical_update_target_effect(ctx,
+					    &effects->target[target]);
 	late_canonical_update_u8(ctx, effects->compat_aes_clear);
 	late_canonical_update_u8(ctx, effects->speculative_at_finalization);
 }
@@ -712,10 +703,10 @@ late_canonical_hash_plan(const struct arm64_late_cpu_plan *plan,
 	late_canonical_update_bitmap(&ctx, plan->early_local_caps);
 	late_canonical_update_bitmap(&ctx, plan->target_local_caps);
 	for (target = 0; target < ARM64_LATE_CPU_MAX_TARGETS; target++) {
-		late_canonical_update_bitmap(
-			&ctx, plan->target[target].classified_local_caps);
-		late_canonical_update_bitmap(
-			&ctx, plan->target[target].local_caps);
+		late_canonical_update_bitmap(&ctx,
+			plan->target[target].classified_local_caps);
+		late_canonical_update_bitmap(&ctx,
+			plan->target[target].local_caps);
 	}
 	late_canonical_update_bitmap(&ctx, plan->required_local_caps);
 	late_canonical_update_bitmap(&ctx, plan->conflicting_local_caps);
@@ -933,8 +924,7 @@ def apply(root: Path) -> None:
         "\t\tif (plan->expected_elf_hwcap[i])\n"
         "\t\t\treturn -EINVAL;\n",
         "#ifdef CONFIG_ARM64_MT6797_A72_FIXTURE_EVIDENCE\n"
-        "\tif (!memchr_inv(plan->expected_elf_hwcap, 0,\n"
-        "\t\t       sizeof(plan->expected_elf_hwcap)))\n"
+        "\tif (!memchr_inv(plan->expected_elf_hwcap, 0, sizeof(plan->expected_elf_hwcap)))\n"
         "\t\treturn -EINVAL;\n"
         "#endif\n",
     )

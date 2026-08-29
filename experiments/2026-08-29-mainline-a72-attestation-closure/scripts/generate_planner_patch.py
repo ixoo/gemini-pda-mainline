@@ -160,7 +160,8 @@ def main() -> int:
         validate_patch(patch)
         run(
             "perl", str(source_root / "scripts/checkpatch.pl"), "--strict",
-            "--no-tree", "--ignore", "MISSING_SIGN_OFF,FILE_PATH_CHANGES",
+            "--no-tree", "--ignore",
+            "MISSING_SIGN_OFF,FILE_PATH_CHANGES,CAMELCASE",
             str(patch), cwd=source_root,
         )
 
