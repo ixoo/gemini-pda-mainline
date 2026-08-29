@@ -509,6 +509,24 @@ terminal and phase strings only in the child; and bounded task/coherency/
 terminal stack use. The package is compile-review-only, never a boot candidate,
 and performs no device action.
 
+## Gemian same-version pmsg-witness generation lane
+
+The observation-only child of the exact register-capsule source is generated
+only from a clean pushed commit:
+
+```sh
+./scripts/buildbox generate-gemian-pmsg-witness-patch
+./scripts/buildbox fetch-gemian-pmsg-witness-patch
+```
+
+It reconstructs the complete register-capsule parent, verifies four pinned
+parent files, applies the bounded ramoops-only pmsg helper and three fixed call
+sites, runs exact-reversal and negative-mutation validation, and returns one
+checksum-validated patch review. It compiles no kernel, builds no boot image,
+and performs no device action. The retained pmsg contract is valid only for the
+same-layout Gemian-derived candidate and Gemian recovery pair, not for the
+differently aligned mainline pmsg region.
+
 ## A72 platform/provider readiness repair generation
 
 The deferred-bind repair is generated only from a clean pushed project commit

@@ -287,4 +287,6 @@ retained-RAM contracts, then freeze one distinct pre-scheduler candidate-entry
 and pre-capsule-terminal observation path that remains recoverable when both
 console-ramoops and USB are absent. That audit is now complete and selects the
 same-version Gemian pmsg ring. Define and mutation-test the bounded pmsg child
-before Buildbox or deployment.
+before Buildbox or deployment. That definition now lives in the
+[`same-version pmsg witness`](../2026-08-28-a72-pmsg-witness/README.md)
+experiment.

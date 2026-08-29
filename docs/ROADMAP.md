@@ -6040,7 +6040,14 @@ The next ordered work is:
    bounded Gemian pmsg child with a candidate-entry record, a pre-scheduler
    record, and exactly one mutually exclusive PASS/FAULT pre-capsule terminal.
    Preserve the scheduler parent, workload, power sequence, CPU_OFF
-   prohibition, watchdog recovery, and capsule schema.
+   prohibition, watchdog recovery, and capsule schema. The
+   [same-version pmsg witness](../experiments/2026-08-28-a72-pmsg-witness/README.md)
+   definition now pins the four exact parent files, a ramoops-only 1--256-byte
+   process-context helper, three fixed call sites, unchanged console marker
+   inventory, and eight rejecting mutations. No build or device action has
+   occurred. **Selected next:** generate the exact child on Buildbox, review
+   and admit only its four-path patch, then define the exact-parent compile
+   comparison before any candidate construction.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
