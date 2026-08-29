@@ -106,6 +106,15 @@ def validate(root: Path) -> list[str]:
             canonical.find("system->ich_hcr_tdir"),
             "canonical early-system field order changed")
 
+    policy_collector = function(proton, "arm64_late_cpu_collect_policy(")
+    for token in (
+        "system->valid != (ARM64_LATE_CPU_SYSTEM_CAP_CTR_VALID |",
+        "ARM64_LATE_CPU_SYSTEM_CAP_SSBS_VALID |",
+        "ARM64_LATE_CPU_SYSTEM_CAP_EARLY_LOCAL_VALID",
+    ):
+        require(token in policy_collector,
+                f"policy collector completeness gate changed: {token}")
+
     field_valid = function(proton, "late_cpu_expected_field_valid(")
     for token in (
         "expected->abi == ARM64_LATE_CPU_EXPECTED_PAIR_ABI",

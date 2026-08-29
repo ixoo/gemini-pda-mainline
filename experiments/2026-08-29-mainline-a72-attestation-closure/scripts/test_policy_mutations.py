@@ -60,6 +60,10 @@ def mutations() -> list[tuple[str, Callable[[Path], None]]]:
             r / cpufeature, "arm64_late_cpu_collect_system(",
             " |\n\t\t\tARM64_LATE_CPU_SYSTEM_CAP_EARLY_LOCAL_VALID",
             "")),
+        ("drop-early-valid-policy-input", lambda r: replace_in_function(
+            r / proton, "arm64_late_cpu_collect_policy(",
+            " |\n\t\t\t      ARM64_LATE_CPU_SYSTEM_CAP_EARLY_LOCAL_VALID",
+            "")),
         ("hardcode-gic-absent", lambda r: replace_in_function(
             r / cpufeature, "arm64_late_cpu_collect_system(",
             "system->gicv5_legacy = cpus_have_cap(ARM64_HAS_GICV5_LEGACY);",

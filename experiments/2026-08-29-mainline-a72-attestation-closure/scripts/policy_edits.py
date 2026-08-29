@@ -361,6 +361,14 @@ def apply(root: Path) -> None:
 
     replace_once(
         proton,
+        "\t    system->valid != (ARM64_LATE_CPU_SYSTEM_CAP_CTR_VALID |\n"
+        "\t\t\t      ARM64_LATE_CPU_SYSTEM_CAP_SSBS_VALID) ||\n",
+        "\t    system->valid != (ARM64_LATE_CPU_SYSTEM_CAP_CTR_VALID |\n"
+        "\t\t\t      ARM64_LATE_CPU_SYSTEM_CAP_SSBS_VALID |\n"
+        "\t\t\t      ARM64_LATE_CPU_SYSTEM_CAP_EARLY_LOCAL_VALID) ||\n",
+    )
+    replace_once(
+        proton,
         "static enum arm64_late_cpu_cap_state __init\n"
         "late_cpu_a72_spectre_v2_evidence_state(\n",
         EXPECTED_SPECTRE +
