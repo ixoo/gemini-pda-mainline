@@ -53,4 +53,6 @@ native_vm_build=none
 candidate=none
 device_action=none
 boot_candidate=false
-classification=current-system-policy-producer-generated-and-admitted-build-pending
+linked_compile_repository_commit=3d00db4875f05929981cabd0c384f00fd15eb692
+linked_compile_result=pass
+classification=current-system-policy-producer-generated-admitted-and-linked

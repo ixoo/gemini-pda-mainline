@@ -6143,11 +6143,18 @@ The next ordered work is:
    Target-cap observations including current GIC/hyp and address-space facts,
    the planner/identity extension, architecture commit, alternatives/HWCAP
    finalization, READY publication, and every CPU request remain absent.
-   **Selected next:** compile the exact admitted series with the
-   `a72-p30e-wire` profile on Buildbox and inspect its linked section, stack,
-   and call-path evidence. If and only if that passes, record the result and
-   begin logical slice 4's pure planner and canonical-identity closure. A
-   successful compile is not READY, and no physical candidate is permitted.
+   The exact `a72-p30e-wire` rebuild at signed commit `3d00db48` now passes
+   Buildbox artifact and fetched-package validation with 416 patches. The
+   linked init path directly orders runtime identity, system/policy capture,
+   seal, and prepare before system-feature setup. The largest new frame is 112
+   bytes, no section mismatch or new frame warning appears, and the same three
+   older warnings are unchanged. This is linked source-owner proof only.
+   **Selected next:** implement logical slice 4 as a source-only extension of
+   the pure planner and canonical plan/evidence identities, with exact owner
+   and negative-mutation gates. The still-absent current target-cap producers
+   for GIC/hyp, workaround, and address-space facts must remain explicit gaps;
+   slice 4 may consume no invented values and must add no architecture commit,
+   READY publication, CPU request, candidate, or device action.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

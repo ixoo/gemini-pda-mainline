@@ -88,8 +88,11 @@ if its current register state differs from the frozen expectation.
   exact linked-build prepare-stack warning and the generated init-only-storage
   follow-up, including 20 rejected source mutations and canonical-series audit.
 - [`results/system-policy-generation-20260829.txt`](results/system-policy-generation-20260829.txt):
-  exact generation, 35 rejecting mutations, and source-only admission of the
+  exact generation, 36 rejecting mutations, and source-only admission of the
   current-system and mitigation-policy producer.
+- [`results/system-policy-compile-20260829.txt`](results/system-policy-compile-20260829.txt):
+  exact enabled-profile Buildbox package, linked call ordering, section and
+  stack proof, and the unchanged-warning comparison after the compile repair.
 - [`results/compile-validation-20260829.txt`](results/compile-validation-20260829.txt):
   configuration-off control, both rejected linked attempts, and the final
   configuration-enabled linked binary/configuration/stack proof.
@@ -278,14 +281,26 @@ target-cap producer, active expectation, planner extension, architecture
 commit, READY path, CPU request, candidate, or device action. See the
 [system/policy generation result](results/system-policy-generation-20260829.txt).
 
+The exact configuration-enabled rebuild at signed commit `3d00db48` passes
+Buildbox artifact validation and fetched-package checksum validation with 416
+patches and all required late-CPU options enabled. Linked `smp_cpus_done()`
+directly calls runtime-identity capture, system/policy capture, evidence seal,
+and profile preparation in that order before system-feature setup. The new
+system owner, policy owner, and combined collector allocate 32, 80, and 112
+bytes of stack respectively; all are in `.init.text`, there are no section
+mismatches or new frame warnings, and the three older warnings are unchanged
+from the pre-`0427` build. This proves linked source ownership, not target-cap
+evidence, READY, hardware support, or a boot candidate. See the
+[system/policy compile result](results/system-policy-compile-20260829.txt).
+
 ## Conclusion
 
-`confirmed-reference-only-mapping-dormant-validator-linked-and-system-policy-source-admitted`:
+`confirmed-reference-only-mapping-dormant-validator-and-system-policy-linked`:
 the exact CPU8 and CPU9 vectors map cleanly as prior-cycle target expectations,
 but not as a complete ABI-7 runtime-evidence record. The dormant schema,
 fail-closed entry validator, their section/stack integration repairs, and the
-current-mainline system/policy source owner are now reproducibly generated and
-admitted. Twenty-three register-image fields and the current-mainline
+current-mainline system/policy source owner are now reproducibly generated,
+admitted, and linked. Twenty-three register-image fields and the current-mainline
 target-cap, planning/identity, commit, verification, alternatives, and HWCAP
 closure remain open. No CPU request is justified by the recovered capsule
 alone.
