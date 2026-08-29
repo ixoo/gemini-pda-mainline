@@ -26,6 +26,15 @@ RUNTIME_PARENT_HASHES = {
         "cb5d400e31be67561216a6020bcfdb0808eadd6991cf6b675d5c55bb15433869",
 }
 
+STACK_PARENT_HASHES = {
+    "arch/arm64/include/asm/late_cpu_profile.h":
+        "b84c227709927bef35f3c8114484e6fab6e92550097dd605ab92fb28cedd878e",
+    "arch/arm64/kernel/late_cpu_profile.c":
+        "681c1cbaa74e86ce9aa78e5621a3295a9fd52d28aa2d886229113c08d8624577",
+    "arch/arm64/kernel/smp.c":
+        "cb5d400e31be67561216a6020bcfdb0808eadd6991cf6b675d5c55bb15433869",
+}
+
 
 SCHEMA_BLOCK = '''#define ARM64_LATE_CPU_EXPECTED_PAIR_ABI	1
 
@@ -211,6 +220,12 @@ def replace_once(path: Path, old: str, new: str) -> None:
 
 
 def validate_parent(root: Path, stage: str) -> None:
+    if stage == "stack-fix":
+        for relative, expected in STACK_PARENT_HASHES.items():
+            if sha256(require_file(root, relative)) != expected:
+                raise SystemExit(f"stack-fix source hash changed: {relative}")
+        return
+
     if stage == "runtime-fix":
         for relative, expected in RUNTIME_PARENT_HASHES.items():
             if sha256(require_file(root, relative)) != expected:
@@ -341,11 +356,45 @@ def apply_runtime_fix(root: Path) -> None:
     )
 
 
+def apply_stack_fix(root: Path) -> None:
+    core = root / "arch/arm64/kernel/late_cpu_profile.c"
+    replace_once(
+        core,
+        "static struct arm64_late_cpu_plan late_plan __ro_after_init;\n",
+        "static struct arm64_late_cpu_evidence profile_evidence __initdata;\n"
+        "static struct arm64_late_cpu_plan draft __initdata;\n"
+        "static struct arm64_late_cpu_plan late_plan __ro_after_init;\n",
+    )
+    replace_once(
+        core,
+        "\tstruct arm64_late_cpu_evidence profile_evidence = {\n"
+        "\t\t.abi = ARM64_LATE_CPU_PLAN_ABI,\n"
+        "\t};\n"
+        "\tstruct arm64_late_cpu_plan draft = {\n"
+        "\t\t.abi = ARM64_LATE_CPU_PLAN_ABI,\n"
+        "\t};\n",
+        "",
+    )
+    replace_once(
+        core,
+        "\tint ret;\n\n"
+        "\tif (!late_profile_active && !late_profile_registration_fault)\n",
+        "\tint ret;\n\n"
+        "\tmemset(&profile_evidence, 0, sizeof(profile_evidence));\n"
+        "\tprofile_evidence.abi = ARM64_LATE_CPU_PLAN_ABI;\n"
+        "\tmemset(&draft, 0, sizeof(draft));\n"
+        "\tdraft.abi = ARM64_LATE_CPU_PLAN_ABI;\n\n"
+        "\tif (!late_profile_active && !late_profile_registration_fault)\n",
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-root", type=Path, required=True)
     parser.add_argument(
-        "--stage", choices=("schema", "validator", "runtime-fix"), required=True
+        "--stage",
+        choices=("schema", "validator", "runtime-fix", "stack-fix"),
+        required=True,
     )
     args = parser.parse_args()
     root = args.source_root.resolve()
@@ -354,8 +403,10 @@ def main() -> None:
         apply_schema(root)
     elif args.stage == "validator":
         apply_validator(root)
-    else:
+    elif args.stage == "runtime-fix":
         apply_runtime_fix(root)
+    else:
+        apply_stack_fix(root)
 
 
 if __name__ == "__main__":

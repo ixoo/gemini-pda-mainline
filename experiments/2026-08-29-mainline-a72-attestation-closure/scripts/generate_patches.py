@@ -14,17 +14,17 @@ import subprocess
 import sys
 import tempfile
 
-from source_edits import RUNTIME_PARENT_HASHES
+from source_edits import STACK_PARENT_HASHES
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 EXPERIMENT = SCRIPT_DIR.parent
 REPO_ROOT = EXPERIMENT.parents[1]
 PATCHES = (
-    "0425-arm64-keep-late-CPU-expectation-check-runtime-safe.patch",
+    "0426-arm64-move-late-CPU-prepare-workspaces-off-stack.patch",
 )
 SUBJECTS = (
-    "arm64: keep late CPU expectation check runtime-safe",
+    "arm64: move late CPU prepare workspaces off stack",
 )
 
 
@@ -45,7 +45,7 @@ def run(*args: str, cwd: Path, env: dict[str, str] | None = None) -> str:
 
 
 def prepare_parent(source_root: Path, destination: Path) -> None:
-    for relative, expected in RUNTIME_PARENT_HASHES.items():
+    for relative, expected in STACK_PARENT_HASHES.items():
         source = source_root / relative
         if not source.is_file() or source.is_symlink() or sha256(source) != expected:
             raise SystemExit(f"prepared source changed: {relative}")
@@ -115,18 +115,18 @@ def main() -> int:
         run("git", "config", "user.name", "Gemini Mainline Experiment", cwd=source)
         run("git", "config", "user.email", "gemini-mainline@example.invalid", cwd=source)
         commit(
-            source, "A72 attestation closure post-0424 parent",
-            "Exact relevant source copied from the canonical prepared tree through 0424.",
+            source, "A72 attestation closure post-0425 parent",
+            "Exact relevant source copied from the canonical prepared tree through 0425.",
             "2026-08-29T03:00:00Z", check_diff=False,
         )
         parent = run("git", "rev-parse", "HEAD", cwd=source)
         validations: list[str] = []
         stages = (
             (
-                "runtime-fix", SUBJECTS[0],
-                "Keep the secondary-entry validator independent of init-only helpers.\n"
-                "Preserve the exact non-empty source-identity requirement.",
-                "2026-08-29T03:03:00Z",
+                "stack-fix", SUBJECTS[0],
+                "Move the one-shot prepare evidence and plan draft to init-only storage.\n"
+                "Reset both workspaces before use and keep publication unchanged.",
+                "2026-08-29T03:04:00Z",
             ),
         )
         for stage, subject, body, timestamp in stages:
@@ -179,7 +179,7 @@ def main() -> int:
             run("git", "apply", str(target), cwd=replay)
         validations.append(run(
             "python3", str(SCRIPT_DIR / "validate_source.py"),
-            "--source-root", str(replay), "--stage", "runtime-fix", cwd=REPO_ROOT,
+            "--source-root", str(replay), "--stage", "stack-fix", cwd=REPO_ROOT,
         ))
 
         (package / "series").write_text("\n".join(PATCHES) + "\n")
@@ -193,6 +193,7 @@ def main() -> int:
             "generated_patch_count=1\nexpected_pair_valid_fields=28\n"
             "active_expectations=0\nentry_comparisons=26\n"
             "entry_identity_check=runtime-safe\n"
+            "prepare_workspaces=static-initdata-reset\n"
             "entry_location=after-cpuinfo-before-notify-online\n"
             "cpu_request_paths=0\ncpu9_request_paths=0\ncpu_off_paths=0\n"
             "retry_paths=0\narchitecture_commit=absent\nready_publication=unchanged\n"

@@ -194,11 +194,47 @@ def validate_runtime_fix(root: Path) -> list[str]:
     return results
 
 
+def validate_stack_fix(root: Path) -> list[str]:
+    results = validate_runtime_fix(root)
+    core = (root / "arch/arm64/kernel/late_cpu_profile.c").read_text()
+    prepare = function(core, "arm64_prepare_late_cpu_profile(")
+    require(
+        "static struct arm64_late_cpu_evidence profile_evidence __initdata;"
+        in core,
+        "prepare evidence workspace is not reclaimable static storage",
+    )
+    require(
+        "static struct arm64_late_cpu_plan draft __initdata;" in core,
+        "plan draft workspace is not reclaimable static storage",
+    )
+    require(
+        "struct arm64_late_cpu_evidence profile_evidence =" not in prepare
+        and "struct arm64_late_cpu_plan draft =" not in prepare,
+        "whole prepare workspace remains on the stack",
+    )
+    for token in (
+        "memset(&profile_evidence, 0, sizeof(profile_evidence));",
+        "profile_evidence.abi = ARM64_LATE_CPU_PLAN_ABI;",
+        "memset(&draft, 0, sizeof(draft));",
+        "draft.abi = ARM64_LATE_CPU_PLAN_ABI;",
+    ):
+        require(token in prepare, f"prepare workspace reset absent: {token}")
+    require(
+        prepare.index("memset(&profile_evidence")
+        < prepare.index("late_profile.prepare(&profile_evidence"),
+        "evidence workspace is not reset before profile preparation",
+    )
+    results.append("prepare_workspaces=static-initdata-reset")
+    return results
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-root", type=Path, required=True)
     parser.add_argument(
-        "--stage", choices=("schema", "validator", "runtime-fix"), required=True
+        "--stage",
+        choices=("schema", "validator", "runtime-fix", "stack-fix"),
+        required=True,
     )
     args = parser.parse_args()
     root = args.source_root.resolve()
@@ -206,8 +242,10 @@ def main() -> int:
         results = validate_schema(root)
     elif args.stage == "validator":
         results = validate_validator(root)
-    else:
+    elif args.stage == "runtime-fix":
         results = validate_runtime_fix(root)
+    else:
+        results = validate_stack_fix(root)
     print(f"validation=mainline-a72-{args.stage}-source-pass")
     for result in results:
         print(result)

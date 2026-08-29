@@ -43,6 +43,9 @@ def mutations() -> list[tuple[str, Callable[[Path], None]]]:
         ("partial-valid-mask", lambda r: replace(r / core, "expected->valid != ARM64_LATE_CPU_EXPECTED_PAIR_VALID_MASK", "!(expected->valid & ARM64_LATE_CPU_EXPECTED_PAIR_VALID_MASK)")),
         ("allow-empty-source", lambda r: replace(r / core, "\t    !memchr_inv(expected->source_identity, 0,\n\t\t\t   sizeof(expected->source_identity)) ||\n", "")),
         ("restore-init-only-helper", lambda r: replace(r / core, "\t    !memchr_inv(expected->source_identity, 0,\n\t\t\t   sizeof(expected->source_identity)) ||\n", "\t    late_profile_identity_empty(expected->source_identity) ||\n")),
+        ("drop-prepare-initdata", lambda r: replace(r / core, "static struct arm64_late_cpu_evidence profile_evidence __initdata;\n", "static struct arm64_late_cpu_evidence profile_evidence;\n")),
+        ("drop-prepare-evidence-reset", lambda r: replace(r / core, "\tmemset(&profile_evidence, 0, sizeof(profile_evidence));\n", "")),
+        ("drop-plan-draft-reset", lambda r: replace(r / core, "\tmemset(&draft, 0, sizeof(draft));\n", "")),
         ("allow-empty-capsule", lambda r: replace(r / core, "!expected->capsule_identity[target] ||\n\t\t    ", "")),
         ("drop-raw-ctr", lambda r: replace(r / core, "\t       expected->ctr == read_cpuid_cachetype() &&\n", "")),
         ("drop-clidr", lambda r: replace(r / core, "\t       expected->clidr_el1 == read_sysreg(clidr_el1) &&\n", "")),
@@ -60,13 +63,13 @@ def mutations() -> list[tuple[str, Callable[[Path], None]]]:
 
 
 def prepare(source_root: Path, destination: Path) -> None:
-    for relative in EDITS.RUNTIME_PARENT_HASHES:
+    for relative in EDITS.STACK_PARENT_HASHES:
         target = destination / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source_root / relative, target)
-    VALIDATE.validate_validator(destination)
-    EDITS.apply_runtime_fix(destination)
     VALIDATE.validate_runtime_fix(destination)
+    EDITS.apply_stack_fix(destination)
+    VALIDATE.validate_stack_fix(destination)
 
 
 def main() -> int:
@@ -83,7 +86,7 @@ def main() -> int:
             shutil.copytree(base, candidate)
             mutate(candidate)
             try:
-                VALIDATE.validate_runtime_fix(candidate)
+                VALIDATE.validate_stack_fix(candidate)
             except VALIDATE.ValidationError:
                 rejected += 1
             else:
