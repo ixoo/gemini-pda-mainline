@@ -85,8 +85,10 @@ historical checkpatch contains regular expressions rejected by current Perl.
 This is the same known tool incompatibility encountered by the exact parent.
 The lane now pins Linux 7.1.3 checkpatch SHA-256 `e34bf5ce...`, runs it with
 `--no-tree --strict`, and ignores only the intentionally absent synthetic
-signoff. No kernel build, boot image, device access, retained-RAM write, or
-hardware action has occurred.
+signoff. Generation attempt 2 reached that replacement style gate and stopped
+before packaging; the lane now emits the exact style diagnostics instead of
+discarding them with its cleaned partial package. No kernel build, boot image,
+device access, retained-RAM write, or hardware action has occurred.
 
 ## Analysis
 

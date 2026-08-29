@@ -161,9 +161,12 @@ git -C "$work/source" diff-tree --no-commit-id --name-only -r HEAD \
 python3 "$script_dir/test_witness_child.py" \
   --source "$work/source" --parent-root "$work/parent-root" \
   >"$partial/provenance/validation.txt"
-perl "$CHECKPATCH" --no-tree --strict --ignore MISSING_SIGN_OFF \
+if ! perl "$CHECKPATCH" --no-tree --strict --ignore MISSING_SIGN_OFF \
   "$partial/patches/$GENERATED_PATCH" \
-  >"$partial/provenance/checkpatch.txt"
+  >"$partial/provenance/checkpatch.txt"; then
+  cat "$partial/provenance/checkpatch.txt" >&2
+  die 'strict checkpatch rejected the pmsg-witness patch'
+fi
 [[ -z "$(git -C "$work/source" status --porcelain)" ]] || \
   die 'generated source is dirty'
 generated_patch_sha="$(sha256sum "$partial/patches/$GENERATED_PATCH" | awk '{print $1}')"
