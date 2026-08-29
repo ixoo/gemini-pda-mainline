@@ -6108,14 +6108,20 @@ The next ordered work is:
    exact-source and negative-mutation gates pass. Canonical patches `0423` and
    `0424` now pass exact Buildbox generation, deterministic replay, strict
    checkpatch with zero findings, all 16 rejecting source mutations, and the
-   158-profile canonical-series invariant. Their generated and canonical bytes
-   match, and they remain dormant: no expected-pair producer, READY path, CPU
-   request, kernel build, candidate, or device action was added. **Selected
-   next:** commit and push this exact canonical child, compile it only through
-   the explicit Buildbox backend, and record linked-binary/configuration
-   evidence. A successful compile is not READY: the current-system/policy
-   producer, architecture commit, alternatives verification, and user-HWCAP
-   finalization remain separate later gates before any physical candidate.
+   158-profile canonical-series invariant. Their first configuration-enabled
+   `a72-p30e-wire` Buildbox compile produced a valid package but exposed one
+   new modpost section mismatch: the runtime entry validator called an
+   init-only identity helper. Generated follow-up `0425` replaces only that
+   call with the equivalent runtime-safe zero check and passes strict style,
+   replay, 17 rejecting source mutations, and the same series invariant. All
+   three patches remain dormant: no expected-pair producer, READY path, CPU
+   request, candidate, or device action was added. **Selected next:** commit
+   and push `0425`, rebuild the configuration-enabled profile only through
+   Buildbox, require no new section mismatch, and record the linked call and
+   configuration evidence. A successful compile is not READY: the
+   current-system/policy producer, architecture commit, alternatives
+   verification, and user-HWCAP finalization remain separate later gates
+   before any physical candidate.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

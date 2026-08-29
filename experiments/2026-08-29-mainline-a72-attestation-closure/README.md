@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-29-mainline-a72-attestation-closure` |
-| Status | `completed-closure-definition; dormant source generated and admitted; compile pending` |
+| Status | `completed-closure-definition; dormant source admitted; linked compile exposed and repaired one section mismatch; rebuild pending` |
 | Subsystem | arm64 late-CPU evidence, capability commitment, and MT6797 A72 entry |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-29 |
@@ -80,6 +80,9 @@ if its current register state differs from the frozen expectation.
 - [`results/source-generation-20260829.txt`](results/source-generation-20260829.txt):
   exact Buildbox generation identities, patch checksums, strict style result,
   16 rejected source mutations, replay, and canonical-series audit.
+- [`results/runtime-fix-generation-20260829.txt`](results/runtime-fix-generation-20260829.txt):
+  exact linked-build section mismatch and the generated runtime-safe follow-up,
+  including 17 rejected source mutations and canonical-series audit.
 
 ## Procedure
 
@@ -203,9 +206,22 @@ dormant: there is no expected-pair initializer, READY publication, CPU request,
 architecture commit, candidate, or device action. See the
 [source-generation result](results/source-generation-20260829.txt).
 
+The first configuration-enabled Buildbox compile at signed commit `cb797b6f`
+reached and packaged the linked `a72-p30e-wire` image, but modpost exposed one
+new section mismatch: the runtime secondary-entry validator called
+`late_profile_identity_empty()`, which is init-only. The artifact is therefore
+an integration-failure result despite a zero build exit and valid package
+checksums. The follow-up generator is pinned to the exact post-`0424` prepared
+source and replaces only that call with an equivalent runtime-safe
+`memchr_inv()` zero check. Generated patch `0425` passes strict checkpatch,
+replay, exact checksums, all 17 rejecting source mutations (including
+restoration of the init-only call), and the 158-profile series invariant. It
+adds no expectation producer, READY publication, CPU request, or device path.
+See the [runtime-fix result](results/runtime-fix-generation-20260829.txt).
+
 ## Conclusion
 
-`confirmed-reference-only-mapping-and-dormant-validator-admitted`: the exact
+`confirmed-reference-only-mapping-and-dormant-validator-admitted-rebuild-pending`: the exact
 CPU8 and CPU9 vectors map cleanly as prior-cycle target expectations, but not
 as a complete ABI-7 runtime-evidence record. The dormant schema and fail-closed
 entry validator are now reproducibly generated and admitted. Twenty-three

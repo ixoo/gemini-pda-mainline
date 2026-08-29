@@ -32,11 +32,13 @@ the loop. Positive identity-gated observations are unaffected.
   alternatives, and HWCAP owner and locates a fail-closed current-entry check
   before GIC/timer notification and online publication. The hardware-free
   definition passes its exact source/capture gates and rejects 21 unsafe
-  mutations. Canonical patches `0423`--`0424` now pass exact Buildbox source
-  generation, strict style, replay, 16 rejecting source mutations, and the
-  158-profile series invariant. They add only the empty field-valid schema and
-  dormant entry validator; no kernel build, device action, active expectation,
-  READY publication, or CPU request occurred.
+  mutations. Canonical patches `0423`--`0424` pass exact Buildbox source
+  generation, strict style, replay, and 16 rejecting source mutations. Their
+  first configuration-enabled compile then exposed an init/runtime section
+  mismatch. Follow-up `0425` replaces only that init-only helper call, passes
+  strict generation, replay, 17 rejecting mutations, and the 158-profile
+  series invariant; its clean linked rebuild remains pending. No device action,
+  active expectation, READY publication, or CPU request occurred.
 - [2026-08-28 CPU8/CPU9 target-register capsule](2026-08-28-a72-target-register-capsule/README.md)
   — admits a capture-only child of the exact repeatable Gemian scheduler
   parent. Each already-bound target task reads one fixed architectural register

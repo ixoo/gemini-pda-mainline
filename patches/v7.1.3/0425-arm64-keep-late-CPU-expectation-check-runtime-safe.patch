@@ -1,0 +1,25 @@
+From f4b75f674d2311cd5717b3e1276d3aa07983bfda Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 29 Aug 2026 03:03:00 +0000
+Subject: [PATCH] arm64: keep late CPU expectation check runtime-safe
+
+Keep the secondary-entry validator independent of init-only helpers.
+Preserve the exact non-empty source-identity requirement.
+---
+ arch/arm64/kernel/late_cpu_profile.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/kernel/late_cpu_profile.c b/arch/arm64/kernel/late_cpu_profile.c
+index c90b87a..975396e 100644
+--- a/arch/arm64/kernel/late_cpu_profile.c
++++ b/arch/arm64/kernel/late_cpu_profile.c
+@@ -1159,7 +1159,8 @@ late_expected_pair_complete(const struct arm64_late_cpu_plan *plan)
+ 	if (expected->abi != ARM64_LATE_CPU_EXPECTED_PAIR_ABI ||
+ 	    expected->target_count != ARM64_LATE_CPU_MAX_TARGETS ||
+ 	    expected->valid != ARM64_LATE_CPU_EXPECTED_PAIR_VALID_MASK ||
+-	    late_profile_identity_empty(expected->source_identity) ||
++	    !memchr_inv(expected->source_identity, 0,
++			   sizeof(expected->source_identity)) ||
+ 	    cpumask_weight(&plan->target_cpus) != expected->target_count)
+ 		return false;
+ 
