@@ -399,19 +399,18 @@ def validate_system_policy(root: Path) -> list[str]:
     require("LATE_RUNTIME_EVIDENCE_SEALED_IDENTITY," not in core,
             "identity-only sealed state remains reachable")
 
-    runtime_reject = prepare.index(
-        "if (!late_profile_runtime_fields_empty(&profile_evidence))"
-    )
-    cross_bind = prepare.index("late_profile_identity_cross_bound(")
-    binding_merge = prepare.index(
-        "draft.evidence.binding = late_runtime_evidence.binding;"
-    )
-    system_merge = prepare.index(
+    ordering_tokens = (
+        "if (!late_profile_runtime_fields_empty(&profile_evidence))",
+        "late_profile_identity_cross_bound(",
+        "draft.evidence.binding = late_runtime_evidence.binding;",
         "draft.evidence.system_cap =\n"
-        "\t\t\t\tlate_runtime_evidence.system_cap;"
+        "\t\t\t\tlate_runtime_evidence.system_cap;",
+        "draft.evidence.target_policy[target] =",
     )
-    policy_merge = prepare.index(
-        "draft.evidence.target_policy[target] ="
+    for token in ordering_tokens:
+        require(token in prepare, f"runtime merge gate absent: {token}")
+    runtime_reject, cross_bind, binding_merge, system_merge, policy_merge = (
+        prepare.index(token) for token in ordering_tokens
     )
     require(runtime_reject < cross_bind < binding_merge < system_merge < policy_merge,
             "runtime system-policy merge is not cross-bound and ordered")
