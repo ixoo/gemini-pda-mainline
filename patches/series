@@ -412,3 +412,5 @@ v7.1.3/0419-soc-mediatek-arm-CPU8-admission-after-live-service.patch
 v7.1.3/0420-soc-mediatek-test-live-CPU8-admission-trigger.patch
 v7.1.3/0421-soc-mediatek-keep-live-admission-past-trace-failure.patch
 v7.1.3/0422-soc-mediatek-test-live-admission-trace-softfail.patch
+v7.1.3/0423-arm64-add-dormant-late-CPU-expected-pair-schema.patch
+v7.1.3/0424-arm64-validate-late-CPU-expectation-before-online.patch

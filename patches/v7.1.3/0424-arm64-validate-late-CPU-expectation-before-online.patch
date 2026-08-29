@@ -1,0 +1,174 @@
+From 4576c9bc778cfed97ea81a8b1523a88b5122f7ff Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 29 Aug 2026 03:02:00 +0000
+Subject: [PATCH 2/2] arm64: validate late CPU expectation before online
+
+Compare an immutable READY-bound expectation after CPU-info capture
+and park mismatches before topology, GIC, timer, or online publication.
+---
+ arch/arm64/include/asm/late_cpu_profile.h |  7 ++
+ arch/arm64/kernel/late_cpu_profile.c      | 90 +++++++++++++++++++++++
+ arch/arm64/kernel/smp.c                   |  8 ++
+ 3 files changed, 105 insertions(+)
+
+diff --git a/arch/arm64/include/asm/late_cpu_profile.h b/arch/arm64/include/asm/late_cpu_profile.h
+index 754bc66..2474164 100644
+--- a/arch/arm64/include/asm/late_cpu_profile.h
++++ b/arch/arm64/include/asm/late_cpu_profile.h
+@@ -563,6 +563,7 @@ void __init arm64_activate_late_cpu_profile(const struct arm64_late_cpu_profile
+ void __init arm64_register_late_cpu_target(const struct arm64_late_cpu_profile *profile,
+ 					   unsigned int cpu);
+ void __init arm64_collect_late_cpu_runtime_identity(void);
++int arm64_validate_late_cpu_expected_target(unsigned int cpu);
+ void __init arm64_seal_late_cpu_runtime_evidence(void);
+ void __init arm64_prepare_late_cpu_profile(void);
+ void __init arm64_commit_late_cpu_profile(void);
+@@ -643,6 +644,12 @@ static inline void __init arm64_collect_late_cpu_runtime_identity(void)
+ {
+ }
+ 
++static inline int
++arm64_validate_late_cpu_expected_target(unsigned int cpu)
++{
++	return 0;
++}
++
+ static inline void __init arm64_seal_late_cpu_runtime_evidence(void)
+ {
+ }
+diff --git a/arch/arm64/kernel/late_cpu_profile.c b/arch/arm64/kernel/late_cpu_profile.c
+index 6563d4e..c90b87a 100644
+--- a/arch/arm64/kernel/late_cpu_profile.c
++++ b/arch/arm64/kernel/late_cpu_profile.c
+@@ -21,8 +21,11 @@
+ #include <linux/string.h>
+ #include <linux/unaligned.h>
+ 
++#include <asm/cpu.h>
+ #include <asm/cpufeature.h>
++#include <asm/cputype.h>
+ #include <asm/late_cpu_profile.h>
++#include <asm/sysreg.h>
+ 
+ static struct arm64_late_cpu_profile late_profile __initdata;
+ static bool late_profile_active __initdata;
+@@ -1146,6 +1149,93 @@ void __init arm64_finalize_late_cpu_profile_user(void)
+ 	pr_info("%s ready\n", late_receipt.profile_id);
+ }
+ 
++static bool
++late_expected_pair_complete(const struct arm64_late_cpu_plan *plan)
++{
++	const struct arm64_late_cpu_expected_pair *expected =
++		&plan->evidence.expected_pair;
++	unsigned int target;
++
++	if (expected->abi != ARM64_LATE_CPU_EXPECTED_PAIR_ABI ||
++	    expected->target_count != ARM64_LATE_CPU_MAX_TARGETS ||
++	    expected->valid != ARM64_LATE_CPU_EXPECTED_PAIR_VALID_MASK ||
++	    late_profile_identity_empty(expected->source_identity) ||
++	    cpumask_weight(&plan->target_cpus) != expected->target_count)
++		return false;
++
++	for (target = 0; target < ARM64_LATE_CPU_MAX_TARGETS; target++)
++		if (!expected->capsule_identity[target] ||
++		    expected->mpidr[target] !=
++			    plan->evidence.expected_target_mpidr[target] ||
++		    expected->midr !=
++			    plan->evidence.expected_target_midr[target])
++			return false;
++
++	return true;
++}
++
++static bool
++late_expected_target_matches(const struct arm64_late_cpu_expected_pair *expected,
++			     unsigned int target,
++			     const struct cpuinfo_arm64 *info)
++{
++	const struct cpuinfo_32bit *aarch32 = &info->aarch32;
++	u64 mpidr = read_cpuid_mpidr() & MPIDR_HWID_BITMASK;
++
++	return expected->mpidr[target] == mpidr &&
++	       expected->midr == info->reg_midr &&
++	       expected->revidr == info->reg_revidr &&
++	       expected->cntfrq == info->reg_cntfrq &&
++	       expected->ctr == read_cpuid_cachetype() &&
++	       expected->dczid == info->reg_dczid &&
++	       expected->clidr_el1 == read_sysreg(clidr_el1) &&
++	       expected->id_aa64dfr0 == info->reg_id_aa64dfr0 &&
++	       expected->id_aa64isar0 == info->reg_id_aa64isar0 &&
++	       expected->id_aa64isar1 == info->reg_id_aa64isar1 &&
++	       expected->id_aa64mmfr0 == info->reg_id_aa64mmfr0 &&
++	       expected->id_aa64mmfr1 == info->reg_id_aa64mmfr1 &&
++	       expected->id_aa64pfr0 == info->reg_id_aa64pfr0 &&
++	       expected->id_aa64pfr1 == info->reg_id_aa64pfr1 &&
++	       expected->id_isar0 == aarch32->reg_id_isar0 &&
++	       expected->id_isar1 == aarch32->reg_id_isar1 &&
++	       expected->id_isar2 == aarch32->reg_id_isar2 &&
++	       expected->id_isar3 == aarch32->reg_id_isar3 &&
++	       expected->id_isar4 == aarch32->reg_id_isar4 &&
++	       expected->id_isar5 == aarch32->reg_id_isar5 &&
++	       expected->id_mmfr0 == aarch32->reg_id_mmfr0 &&
++	       expected->id_mmfr1 == aarch32->reg_id_mmfr1 &&
++	       expected->id_mmfr2 == aarch32->reg_id_mmfr2 &&
++	       expected->id_mmfr3 == aarch32->reg_id_mmfr3 &&
++	       expected->id_pfr0 == aarch32->reg_id_pfr0 &&
++	       expected->id_pfr1 == aarch32->reg_id_pfr1;
++}
++
++int arm64_validate_late_cpu_expected_target(unsigned int cpu)
++{
++	const struct arm64_late_cpu_expected_pair *expected;
++	const struct cpuinfo_arm64 *info;
++	unsigned int target;
++
++	/* Pairs with READY publication of late_plan and late_receipt. */
++	if (smp_load_acquire(&late_receipt.state) !=
++	    ARM64_LATE_CPU_PROFILE_READY)
++		return 0;
++	if (!cpumask_test_cpu(cpu, &late_plan.target_cpus))
++		return 0;
++	if (cpu != smp_processor_id() || !late_expected_pair_complete(&late_plan))
++		return -EINVAL;
++
++	for (target = 0; target < ARM64_LATE_CPU_MAX_TARGETS; target++)
++		if (late_plan.evidence.target_cpu[target] == cpu)
++			break;
++	if (target == ARM64_LATE_CPU_MAX_TARGETS)
++		return -EINVAL;
++
++	expected = &late_plan.evidence.expected_pair;
++	info = this_cpu_ptr(&cpu_data);
++	return late_expected_target_matches(expected, target, info) ? 0 : -ERANGE;
++}
++
+ const struct arm64_late_cpu_ready_token *
+ arm64_get_late_cpu_ready_token(void)
+ {
+diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
+index 4554476..7c48792 100644
+--- a/arch/arm64/kernel/smp.c
++++ b/arch/arm64/kernel/smp.c
+@@ -298,6 +298,7 @@ asmlinkage notrace void secondary_start_kernel(void)
+ 	struct mm_struct *mm = &init_mm;
+ 	const struct cpu_operations *ops;
+ 	unsigned int cpu = smp_processor_id();
++	int expectation_ret;
+ 
+ 	/*
+ 	 * All kernel threads share the same mm context; grab a
+@@ -333,6 +334,13 @@ asmlinkage notrace void secondary_start_kernel(void)
+ 	 * Log the CPU info before it is marked online and might get read.
+ 	 */
+ 	cpuinfo_store_cpu();
++	expectation_ret = arm64_validate_late_cpu_expected_target(cpu);
++	if (expectation_ret) {
++		pr_crit("CPU%u: late target expectation mismatch: %d\n",
++			cpu, expectation_ret);
++		update_cpu_boot_status(CPU_STUCK_IN_KERNEL);
++		cpu_park_loop();
++	}
+ 	store_cpu_topology(cpu);
+ 
+ 	/*

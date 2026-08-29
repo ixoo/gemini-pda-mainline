@@ -6105,7 +6105,17 @@ The next ordered work is:
    entry validator as separate source-only logical patches. They must have no
    active expectation, architecture commit, READY publication, CPU request,
    CPU9 path, retry, CPU_OFF, build, candidate, or device action until their
-   exact-source and negative-mutation gates pass.
+   exact-source and negative-mutation gates pass. Canonical patches `0423` and
+   `0424` now pass exact Buildbox generation, deterministic replay, strict
+   checkpatch with zero findings, all 16 rejecting source mutations, and the
+   158-profile canonical-series invariant. Their generated and canonical bytes
+   match, and they remain dormant: no expected-pair producer, READY path, CPU
+   request, kernel build, candidate, or device action was added. **Selected
+   next:** commit and push this exact canonical child, compile it only through
+   the explicit Buildbox backend, and record linked-binary/configuration
+   evidence. A successful compile is not READY: the current-system/policy
+   producer, architecture commit, alternatives verification, and user-HWCAP
+   finalization remain separate later gates before any physical candidate.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

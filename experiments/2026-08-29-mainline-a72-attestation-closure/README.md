@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-29-mainline-a72-attestation-closure` |
-| Status | `completed-closure-definition; dormant source generation defined` |
+| Status | `completed-closure-definition; dormant source generated and admitted; compile pending` |
 | Subsystem | arm64 late-CPU evidence, capability commitment, and MT6797 A72 entry |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-29 |
@@ -77,6 +77,9 @@ if its current register state differs from the frozen expectation.
 - [`results/definition-validation-20260829.txt`](results/definition-validation-20260829.txt):
   exact source hashes, field-consumer audit, positive validation, and 21
   rejected unsafe mutations.
+- [`results/source-generation-20260829.txt`](results/source-generation-20260829.txt):
+  exact Buildbox generation identities, patch checksums, strict style result,
+  16 rejected source mutations, replay, and canonical-series audit.
 
 ## Procedure
 
@@ -166,8 +169,8 @@ comparison of the 26 measured target-local values after CPU-info capture and
 parks any mismatch before topology, GIC/timer notification, or online
 publication. It does not change READY construction, activate a contract, or
 add a CPU request. Local Python syntax, `bash -n`, ShellCheck, ledger validation,
-and evidence mutations pass; exact-source generation and source mutations are
-the next Buildbox action.
+and evidence mutations pass. Exact-source generation, patch replay, strict
+style, and all 16 negative source mutations pass on Buildbox.
 
 Buildbox generation attempt 1 at signed commit `b4e5dbfa` stopped before the
 first source edit at the two-line evidence-member insertion anchor. The first
@@ -191,19 +194,28 @@ generated validator now states that this load pairs with publication of
 `late_plan` and `late_receipt`, and the negative source suite rejects removal
 of that synchronization rationale. No warning is suppressed.
 
+The final generation at signed commit `7c933ea1` passes both stage validators,
+all 16 rejecting source mutations, deterministic patch replay, and strict
+checkpatch with zero errors, warnings, or checks. Canonical patches `0423` and
+`0424` are byte-identical to the generated package, and all 158 manifest
+profiles retain the canonical-series subsequence invariant. The patches remain
+dormant: there is no expected-pair initializer, READY publication, CPU request,
+architecture commit, candidate, or device action. See the
+[source-generation result](results/source-generation-20260829.txt).
+
 ## Conclusion
 
-`confirmed-reference-only-mapping-and-multi-owner-ready-gap`: the exact CPU8
-and CPU9 vectors map cleanly as prior-cycle target expectations, but not as a
-complete ABI-7 runtime-evidence record. Twenty-three register-image fields and
-all current-mainline GIC/hyp, SMCCC, address-space, target-policy,
-system-capability, commit, verification, alternatives, and HWCAP owners remain
-open. No CPU request or build is justified by the recovered capsule alone.
+`confirmed-reference-only-mapping-and-dormant-validator-admitted`: the exact
+CPU8 and CPU9 vectors map cleanly as prior-cycle target expectations, but not
+as a complete ABI-7 runtime-evidence record. The dormant schema and fail-closed
+entry validator are now reproducibly generated and admitted. Twenty-three
+register-image fields and all current-mainline GIC/hyp, SMCCC, address-space,
+target-policy, system-capability, commit, verification, alternatives, and HWCAP
+owners remain open. No CPU request is justified by the recovered capsule alone.
 
 ## Follow-up
 
-Commit and push the clean generator definition, then generate, replay, and
-strict-review only the two dormant patches on Buildbox. Keep current-boot
-observation fields distinct. Define and prove architecture commit and
-finalization in later logical patches before constructing another physical
-candidate.
+Follow only the selected action in
+[`docs/ROADMAP.md`](../../docs/ROADMAP.md). Keep current-boot observation fields
+distinct; these dormant patches do not by themselves authorize a physical
+candidate or CPU request.
