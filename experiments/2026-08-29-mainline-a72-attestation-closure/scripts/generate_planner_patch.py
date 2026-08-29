@@ -162,7 +162,7 @@ def main() -> int:
             "perl", str(source_root / "scripts/checkpatch.pl"), "--strict",
             "--no-tree", "--ignore",
             "MISSING_SIGN_OFF,FILE_PATH_CHANGES,CAMELCASE",
-            str(patch), cwd=source_root,
+            str(patch), cwd=package,
         )
 
         replay = temp / "replay"
