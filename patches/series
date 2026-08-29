@@ -415,3 +415,4 @@ v7.1.3/0422-soc-mediatek-test-live-admission-trace-softfail.patch
 v7.1.3/0423-arm64-add-dormant-late-CPU-expected-pair-schema.patch
 v7.1.3/0424-arm64-validate-late-CPU-expectation-before-online.patch
 v7.1.3/0425-arm64-keep-late-CPU-expectation-check-runtime-safe.patch
+v7.1.3/0426-arm64-move-late-CPU-prepare-workspaces-off-stack.patch

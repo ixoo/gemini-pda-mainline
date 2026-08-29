@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-29-mainline-a72-attestation-closure` |
-| Status | `completed-closure-definition; dormant source admitted; linked compile exposed and repaired one section mismatch; rebuild pending` |
+| Status | `completed-closure-definition; dormant source admitted; linked compile exposed and repaired section and prepare-stack defects; rebuild pending` |
 | Subsystem | arm64 late-CPU evidence, capability commitment, and MT6797 A72 entry |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-29 |
@@ -71,9 +71,10 @@ if its current register state differs from the frozen expectation.
   rejects missing comparisons, partial validity, reordered entry checks,
   current-CPU bypass, online continuation, CPU_OFF, and retry-shaped changes.
 - [`scripts/generate_patches.py`](scripts/generate_patches.py) and
-  [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox): create two
-  synthetic-author, non-submission-ready format patches from exact Git inputs
-  and the managed prepared source; they do not build a kernel.
+  [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox): create the
+  staged synthetic-author, non-submission-ready format patches and isolated
+  integration fixes from exact Git inputs and the managed prepared source;
+  they do not build a kernel.
 - [`results/definition-validation-20260829.txt`](results/definition-validation-20260829.txt):
   exact source hashes, field-consumer audit, positive validation, and 21
   rejected unsafe mutations.
@@ -83,6 +84,9 @@ if its current register state differs from the frozen expectation.
 - [`results/runtime-fix-generation-20260829.txt`](results/runtime-fix-generation-20260829.txt):
   exact linked-build section mismatch and the generated runtime-safe follow-up,
   including 17 rejected source mutations and canonical-series audit.
+- [`results/stack-fix-generation-20260829.txt`](results/stack-fix-generation-20260829.txt):
+  exact linked-build prepare-stack warning and the generated init-only-storage
+  follow-up, including 20 rejected source mutations and canonical-series audit.
 
 ## Procedure
 
@@ -219,15 +223,32 @@ restoration of the init-only call), and the 158-profile series invariant. It
 adds no expectation producer, READY publication, CPU request, or device path.
 See the [runtime-fix result](results/runtime-fix-generation-20260829.txt).
 
+The configuration-enabled rebuild at signed commit `b28b2676` proves the
+runtime-section repair: the prior section mismatch is absent. It also exposes
+a second, independent integration defect. `arm64_prepare_late_cpu_profile()`
+placed the 1,392-byte evidence object and 1,832-byte plan draft together on the
+init thread's stack, producing a new 3,232-byte frame warning against the
+2,048-byte limit and a 3,296-byte allocation in the linked image. That package
+is therefore rejected despite its zero build exit and valid checksums.
+
+Generated follow-up `0426` moves only those one-shot workspaces to file-static
+`__initdata`, clears each before use, restores both ABI fields, and leaves
+publication unchanged. Exact Buildbox generation at signed commit `028fbb6c`
+passes checksums, replay, strict style, all 20 rejecting source mutations, and
+the 158-profile series invariant. It adds no expectation producer, READY
+publication, architecture commit, CPU request, or device path. See the
+[prepare-stack result](results/stack-fix-generation-20260829.txt).
+
 ## Conclusion
 
-`confirmed-reference-only-mapping-and-dormant-validator-admitted-rebuild-pending`: the exact
+`confirmed-reference-only-mapping-and-dormant-validator-integration-fixes-admitted-rebuild-pending`: the exact
 CPU8 and CPU9 vectors map cleanly as prior-cycle target expectations, but not
 as a complete ABI-7 runtime-evidence record. The dormant schema and fail-closed
-entry validator are now reproducibly generated and admitted. Twenty-three
-register-image fields and all current-mainline GIC/hyp, SMCCC, address-space,
-target-policy, system-capability, commit, verification, alternatives, and HWCAP
-owners remain open. No CPU request is justified by the recovered capsule alone.
+entry validator and their section/stack integration repairs are now
+reproducibly generated and admitted. Twenty-three register-image fields and all
+current-mainline GIC/hyp, SMCCC, address-space, target-policy,
+system-capability, commit, verification, alternatives, and HWCAP owners remain
+open. No CPU request is justified by the recovered capsule alone.
 
 ## Follow-up
 

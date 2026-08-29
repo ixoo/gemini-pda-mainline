@@ -6113,12 +6113,19 @@ The next ordered work is:
    new modpost section mismatch: the runtime entry validator called an
    init-only identity helper. Generated follow-up `0425` replaces only that
    call with the equivalent runtime-safe zero check and passes strict style,
-   replay, 17 rejecting source mutations, and the same series invariant. All
-   three patches remain dormant: no expected-pair producer, READY path, CPU
-   request, candidate, or device action was added. **Selected next:** commit
-   and push `0425`, rebuild the configuration-enabled profile only through
-   Buildbox, require no new section mismatch, and record the linked call and
-   configuration evidence. A successful compile is not READY: the
+   replay, 17 rejecting source mutations, and the same series invariant. Its
+   linked rebuild proves the mismatch absent but exposes a new 3,232-byte frame
+   in `arm64_prepare_late_cpu_profile()`: the 1,392-byte evidence object and
+   1,832-byte draft were both automatic locals. Generated follow-up `0426`
+   moves only those one-shot workspaces to reset `__initdata`, preserves
+   publication, and passes exact checksums, strict style, replay, 20 rejecting
+   source mutations, and the 158-profile invariant. All four patches remain
+   dormant: no expected-pair producer, READY path, CPU request, candidate, or
+   device action was added. **Selected next:** rebuild the
+   configuration-enabled profile only through Buildbox; require the prior
+   section mismatch and new prepare-stack warning both absent, then record the
+   linked entry call, prepare-stack bound, and configuration evidence. A
+   successful compile is not READY: the
    current-system/policy producer, architecture commit, alternatives
    verification, and user-HWCAP finalization remain separate later gates
    before any physical candidate.

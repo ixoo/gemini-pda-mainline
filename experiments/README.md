@@ -35,9 +35,12 @@ the loop. Positive identity-gated observations are unaffected.
   mutations. Canonical patches `0423`--`0424` pass exact Buildbox source
   generation, strict style, replay, and 16 rejecting source mutations. Their
   first configuration-enabled compile then exposed an init/runtime section
-  mismatch. Follow-up `0425` replaces only that init-only helper call, passes
-  strict generation, replay, 17 rejecting mutations, and the 158-profile
-  series invariant; its clean linked rebuild remains pending. No device action,
+  mismatch. Follow-up `0425` replaces only that init-only helper call and its
+  linked rebuild proves the mismatch absent, but exposes a distinct 3,232-byte
+  prepare-stack frame. Follow-up `0426` moves only the 1,392-byte evidence and
+  1,832-byte draft workspaces to reset `__initdata`; exact generation passes
+  strict style, replay, 20 rejecting mutations, and the 158-profile series
+  invariant. Its clean linked rebuild remains pending. No device action,
   active expectation, READY publication, or CPU request occurred.
 - [2026-08-28 CPU8/CPU9 target-register capsule](2026-08-28-a72-target-register-capsule/README.md)
   — admits a capture-only child of the exact repeatable Gemian scheduler

@@ -1,0 +1,48 @@
+From 2f9bf45d2bc1886c4c90fba12eaee11b01210467 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 29 Aug 2026 03:04:00 +0000
+Subject: [PATCH] arm64: move late CPU prepare workspaces off stack
+
+Move the one-shot prepare evidence and plan draft to init-only storage.
+Reset both workspaces before use and keep publication unchanged.
+---
+ arch/arm64/kernel/late_cpu_profile.c | 13 +++++++------
+ 1 file changed, 7 insertions(+), 6 deletions(-)
+
+diff --git a/arch/arm64/kernel/late_cpu_profile.c b/arch/arm64/kernel/late_cpu_profile.c
+index 975396e..4e03175 100644
+--- a/arch/arm64/kernel/late_cpu_profile.c
++++ b/arch/arm64/kernel/late_cpu_profile.c
+@@ -67,6 +67,8 @@ static u32 late_runtime_evidence_state __initdata;
+ static struct late_runtime_identity late_runtime_identity __initdata;
+ static u32 late_runtime_identity_state __initdata;
+ 
++static struct arm64_late_cpu_evidence profile_evidence __initdata;
++static struct arm64_late_cpu_plan draft __initdata;
+ static struct arm64_late_cpu_plan late_plan __ro_after_init;
+ static struct arm64_late_cpu_receipt late_receipt __ro_after_init = {
+ 	.abi = ARM64_LATE_CPU_PLAN_ABI,
+@@ -891,18 +893,17 @@ arm64_register_late_cpu_target(const struct arm64_late_cpu_profile *profile,
+ 
+ void __init arm64_prepare_late_cpu_profile(void)
+ {
+-	struct arm64_late_cpu_evidence profile_evidence = {
+-		.abi = ARM64_LATE_CPU_PLAN_ABI,
+-	};
+-	struct arm64_late_cpu_plan draft = {
+-		.abi = ARM64_LATE_CPU_PLAN_ABI,
+-	};
+ 	u32 runtime_state;
+ 	int validate_ret;
+ 	int effect_ret;
+ 	int plan_ret;
+ 	int ret;
+ 
++	memset(&profile_evidence, 0, sizeof(profile_evidence));
++	profile_evidence.abi = ARM64_LATE_CPU_PLAN_ABI;
++	memset(&draft, 0, sizeof(draft));
++	draft.abi = ARM64_LATE_CPU_PLAN_ABI;
++
+ 	if (!late_profile_active && !late_profile_registration_fault)
+ 		return;
+ 
