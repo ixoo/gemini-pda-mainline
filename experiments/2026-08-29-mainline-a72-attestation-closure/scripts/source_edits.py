@@ -62,7 +62,7 @@ arm64_late_cpu_collect_system(struct arm64_late_cpu_system_cap_evidence *system)
 
 	pfr1 = read_sanitised_ftr_reg(SYS_ID_AA64PFR1_EL1);
 	ssbs = cpuid_feature_extract_unsigned_field(pfr1,
-						   ID_AA64PFR1_EL1_SSBS_SHIFT);
+						    ID_AA64PFR1_EL1_SSBS_SHIFT);
 	if (ssbs > 2)
 		return -ERANGE;
 
@@ -135,7 +135,7 @@ static int __init late_cpu_current_v4_policy(u8 *current)
 
 int __init
 arm64_late_cpu_collect_policy(struct arm64_late_cpu_target_policy_evidence *policy,
-	struct arm64_late_cpu_system_cap_evidence *system)
+			      struct arm64_late_cpu_system_cap_evidence *system)
 {
 	unsigned long bhb_methods = READ_ONCE(system_bhb_mitigations);
 	int ret;
@@ -154,15 +154,15 @@ arm64_late_cpu_collect_policy(struct arm64_late_cpu_target_policy_evidence *poli
 	if (ret)
 		return ret;
 	ret = late_cpu_current_mitigation_state(arm64_get_spectre_v2_state(),
-						 &system->spectre_v2_state);
+						&system->spectre_v2_state);
 	if (ret)
 		return ret;
 	ret = late_cpu_current_mitigation_state(arm64_get_spectre_v4_state(),
-						 &system->spectre_v4_state);
+						&system->spectre_v4_state);
 	if (ret)
 		return ret;
 	ret = late_cpu_current_mitigation_state(arm64_get_spectre_bhb_state(),
-						 &system->bhb_state);
+						&system->bhb_state);
 	if (ret)
 		return ret;
 
