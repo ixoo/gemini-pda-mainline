@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+export LC_ALL=C
+
+readonly PARENT_SOURCE_STATE=1b1f8e5347e8899c4db8b01b98e3928eeb2f56aaf7047bc505fe34dca73fda7d
+readonly PARENT_SOURCE_INTEGRITY=b351c047385a21f2424d1b956f086844044b7eb410e4c3766c0b562557c5d267
+readonly PARENT_PATCH=0429-arm64-commit-late-CPU-capabilities-monotonically.patch
+readonly PARENT_PATCH_SHA256=8317cfe7a81e6d2090677f9bf8dd081a9bd66e3ee6815cc505a2d8259bb817c0
+readonly CURRENT_PATCH=0430-arm64-separate-late-CPU-expected-planning-input.patch
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+
+[[ "$#" -eq 3 ]] || die 'expected PROJECT_COMMIT SOURCE_ROOT OUTPUT_ROOT'
+readonly project_commit=$1
+readonly source_root=$2
+readonly output_root=$3
+[[ "$project_commit" =~ ^[0-9a-f]{40}$ ]] || die 'invalid project commit'
+[[ "$source_root" == /workspace/gemini-pda/src/linux-7.1.3-series-source ]] ||
+	die 'unexpected managed source root'
+[[ "$output_root" == /workspace/gemini-pda/* ]] || die 'unsafe output root'
+[[ -f "$source_root/.gemini-source-state" &&
+	! -L "$source_root/.gemini-source-state" ]] ||
+	die 'prepared source state marker absent or unsafe'
+[[ "$(<"$source_root/.gemini-source-state")" == "$PARENT_SOURCE_STATE" ]] ||
+	die 'prepared parent source state changed'
+[[ -f "$source_root/.gemini-source-integrity" &&
+	! -L "$source_root/.gemini-source-integrity" ]] ||
+	die 'prepared source integrity marker absent or unsafe'
+[[ "$(<"$source_root/.gemini-source-integrity")" == "$PARENT_SOURCE_INTEGRITY" ]] ||
+	die 'prepared source integrity changed'
+
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+experiment_dir=$(cd -- "$script_dir/.." && pwd -P)
+repository_dir=$(cd -- "$experiment_dir/../.." && pwd -P)
+readonly script_dir experiment_dir repository_dir
+[[ "$(git -C "$repository_dir" rev-parse HEAD)" == "$project_commit" ]] ||
+	die 'project checkout does not match requested commit'
+[[ -z "$(git -C "$repository_dir" status --porcelain)" ]] ||
+	die 'project checkout is dirty'
+for command in git perl python3 sha256sum; do
+	command -v "$command" >/dev/null 2>&1 || die "missing command: $command"
+done
+integrity=$(python3 "$repository_dir/scripts/source-tree-integrity" verify \
+	"$source_root")
+readonly integrity
+[[ "$integrity" == "source_tree_integrity=$PARENT_SOURCE_INTEGRITY" ]] ||
+	die 'prepared source integrity verification failed'
+
+readonly parent_patch_path="$repository_dir/patches/v7.1.3/$PARENT_PATCH"
+printf '%s  %s\n' "$PARENT_PATCH_SHA256" "$parent_patch_path" |
+	sha256sum --check --status || die 'canonical parent patch changed'
+[[ "$(tail -n 1 "$repository_dir/patches/series")" == "v7.1.3/$PARENT_PATCH" ]] ||
+	die 'canonical series parent changed'
+[[ ! -e "$repository_dir/patches/v7.1.3/$CURRENT_PATCH" ]] ||
+	die 'slice-6 patch is already canonical'
+
+readonly package="$output_root/a72-slice6-expectation-${project_commit:0:12}"
+readonly partial="${package}.partial.$$"
+mkdir -p "$output_root"
+[[ ! -e "$partial" ]] || die 'stale output partial exists'
+if [[ -d "$package" && ! -L "$package" ]]; then
+	grep -Fx "repository_commit=$project_commit" \
+		"$package/provenance.txt" >/dev/null ||
+		die 'existing package commit mismatch'
+	(cd "$package" && sha256sum --check --strict SHA256SUMS >/dev/null)
+	printf 'Generated slice-6 expected planning input at %s\n' "$package"
+	exit 0
+fi
+[[ ! -e "$package" ]] || die 'unsafe existing package path'
+cleanup() {
+	[[ ! -d "$partial" || "$partial" != "$output_root"/*.partial.* ]] ||
+		rm -rf -- "$partial"
+}
+trap cleanup EXIT
+PYTHONDONTWRITEBYTECODE=1 python3 \
+	"$script_dir/generate_expectation_patch.py" \
+	--source-root "$source_root" --repository-commit "$project_commit" \
+	--output "$partial"
+(cd "$partial" && sha256sum --check --strict SHA256SUMS >/dev/null)
+actual_files=$(find "$partial" -mindepth 1 -maxdepth 1 -type f \
+	-printf '%f\n' | sort)
+readonly actual_files
+readonly expected_files="$CURRENT_PATCH"$'\nSHA256SUMS\nprovenance.txt\nseries\nsource-validation.txt'
+[[ "$actual_files" == "$expected_files" ]] ||
+	die 'generated package file set changed'
+for marker in generated_patch_count=1 \
+	expected_planning_input=field-valid-prior-cycle \
+	runtime_target_cap_producer=absent pure_cache_planning=expected-pair \
+	hwcap_unknown_field=omit expected_hwcap_registers=8 \
+	gic_hyp_smccc_modern_id=unresolved ready_publication=unchanged \
+	cpu_request_paths=0 cpu9_request_paths=0 cpu_off_paths=0 \
+	native_vm_build=none device_action=none boot_candidate=false; do
+	grep -Fx "$marker" "$partial/provenance.txt" >/dev/null ||
+		die "missing generated marker: $marker"
+done
+mv -- "$partial" "$package"
+trap - EXIT
+printf 'Generated slice-6 expected planning input at %s\n' "$package"
