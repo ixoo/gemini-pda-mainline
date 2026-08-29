@@ -6291,11 +6291,24 @@ The next ordered work is:
    CPU requests, candidate status, native VM builds, and device actions remain
    absent. See the
    [policy generation result](../experiments/2026-08-29-mainline-a72-attestation-closure/results/policy-generation-20260829.txt).
-   **Selected next:** compile the exact canonical `0432` series with the
-   enabled `a72-p30e-wire` profile on Buildbox and inspect the linked policy
-   producer, conservative classifier/effect paths, call graph, sections, stack
-   frames, and complete diagnostics. Do not select a device candidate from
-   source-generation evidence.
+   The exact enabled `a72-p30e-wire` Buildbox build now passes at signed commit
+   `7bc6b5ee` with 421 patches and independently verified remote and fetched
+   package checksums. Every new conservative-policy symbol links in
+   `.init.text`, with an 80-byte largest new frame. Production directly routes
+   unused GIC/hyp state through the finalized-system classifier and all three
+   Spectre classes plus effects through the expected-pair evaluators. The
+   policy collector compares the corrected `0x0b` input mask. Runtime preflight
+   and secondary entry remain unchanged, and the complete warning set is
+   identical to the `0431` baseline with no section mismatch or new warning.
+   Expected-pair activation, READY, CPU requests, candidate status, and device
+   action remain absent. See the
+   [policy compile result](../experiments/2026-08-29-mainline-a72-attestation-closure/results/policy-compile-20260829.txt).
+   **Selected next:** implement one source-only logical slice that activates
+   the exact named-device prior-cycle expected pair, freezes it before
+   planning, and reassesses the exact remaining blocker mask. Preserve its
+   provenance in canonical identities, keep current-runtime target evidence
+   empty, and do not publish READY, request CPU8 or CPU9, create a boot
+   candidate, or contact the device in that slice.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

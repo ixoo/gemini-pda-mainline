@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-29-mainline-a72-attestation-closure` |
-| Status | `completed-closure-definition; dormant slices 1-7 linked cleanly; conservative policy slice admitted, linked compile pending` |
+| Status | `completed-closure-definition; dormant slices 1-8 admitted and linked cleanly; expected-pair activation pending` |
 | Subsystem | arm64 late-CPU evidence, capability commitment, and MT6797 A72 entry |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-29 |
@@ -130,6 +130,9 @@ if its current register state differs from the frozen expectation.
 - [`results/policy-generation-20260829.txt`](results/policy-generation-20260829.txt):
   exact conservative-policy generation chronology, package identities, 27
   rejecting source mutations, byte-identical admission, and series audit.
+- [`results/policy-compile-20260829.txt`](results/policy-compile-20260829.txt):
+  exact enabled-profile package, linked conservative-policy routing, sections,
+  stack frames, input mask, and unchanged-diagnostic comparison.
 
 ## Procedure
 
@@ -523,6 +526,23 @@ The expected pair remains inactive; READY, CPU requests, candidate status,
 hardware writes, and device actions remain absent. See the
 [policy generation result](results/policy-generation-20260829.txt).
 
+The exact enabled `a72-p30e-wire` Buildbox build now passes at signed commit
+`7bc6b5ee` with 421 patches and independently verified remote and fetched
+package checksums. All new conservative-policy symbols link in `.init.text`;
+their largest frame is 80 bytes. The current-mainline system/policy collector
+retains its 112-byte frame, directly calls the system producer before the
+policy producer, and the latter compares the corrected `0x0b` CTR/SSBS/early-
+local input mask. Production classification directly calls the early-system
+GIC/hyp classifier and all three expected-pair Spectre evaluators; effect
+planning requires a complete expected pair before calling the conservative
+effect evaluator. Runtime preflight and secondary-entry symbols retain their
+prior sizes, sections, and frames. The complete warning inventory is identical
+to the `0431` baseline, with no section mismatch, compiler error, new frame
+warning, or new compiler warning. This remains source-only linkage proof: the
+expected pair is inactive and READY, CPU requests, candidate status, hardware
+writes, and device actions remain absent. See the
+[policy compile result](results/policy-compile-20260829.txt).
+
 ## Conclusion
 
 `confirmed-reference-only-mapping-dormant-planner-linked`:
@@ -533,9 +553,9 @@ current-mainline system/policy owner, pure planner, canonical identities, and
 dormant architecture commit/receipt are now reproducibly generated, admitted,
 and linked. Pre-request expected-target planning separation and conservative
 entry preflight are also reproducibly generated, admitted, and linked.
-Conservative GIC/hyp and mitigation policy is generated and admitted but not
-yet linked; expected-contract activation, alternatives/HWCAP finalization,
-READY, and physical admission remain open. No CPU request is justified by the
+Conservative GIC/hyp and mitigation policy is now generated, admitted, and
+linked; expected-contract activation, alternatives/HWCAP finalization, READY,
+and physical admission remain open. No CPU request is justified by the
 recovered capsule alone.
 
 ## Follow-up
