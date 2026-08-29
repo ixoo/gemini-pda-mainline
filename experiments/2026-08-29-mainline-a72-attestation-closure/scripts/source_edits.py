@@ -50,8 +50,8 @@ SYSTEM_POLICY_PARENT_HASHES = {
 
 
 SYSTEM_CAP_PRODUCER = '''#ifdef CONFIG_ARM64_LATE_CPU_PROFILE
-int __init arm64_late_cpu_collect_system_cap_evidence(
-	struct arm64_late_cpu_system_cap_evidence *system)
+int __init
+arm64_late_cpu_collect_system(struct arm64_late_cpu_system_cap_evidence *system)
 {
 	u64 pfr1;
 	u64 ssbs;
@@ -61,8 +61,8 @@ int __init arm64_late_cpu_collect_system_cap_evidence(
 		return -EINVAL;
 
 	pfr1 = read_sanitised_ftr_reg(SYS_ID_AA64PFR1_EL1);
-	ssbs = cpuid_feature_extract_unsigned_field(
-		pfr1, ID_AA64PFR1_EL1_SSBS_SHIFT);
+	ssbs = cpuid_feature_extract_unsigned_field(pfr1,
+						   ID_AA64PFR1_EL1_SSBS_SHIFT);
 	if (ssbs > 2)
 		return -ERANGE;
 
@@ -133,8 +133,8 @@ static int __init late_cpu_current_v4_policy(u8 *current)
 	}
 }
 
-int __init arm64_late_cpu_collect_mitigation_evidence(
-	struct arm64_late_cpu_target_policy_evidence *policy,
+int __init
+arm64_late_cpu_collect_policy(struct arm64_late_cpu_target_policy_evidence *policy,
 	struct arm64_late_cpu_system_cap_evidence *system)
 {
 	unsigned long bhb_methods = READ_ONCE(system_bhb_mitigations);
@@ -153,16 +153,16 @@ int __init arm64_late_cpu_collect_mitigation_evidence(
 	ret = late_cpu_current_v4_policy(&policy->spectre_v4_policy);
 	if (ret)
 		return ret;
-	ret = late_cpu_current_mitigation_state(
-		arm64_get_spectre_v2_state(), &system->spectre_v2_state);
+	ret = late_cpu_current_mitigation_state(arm64_get_spectre_v2_state(),
+						 &system->spectre_v2_state);
 	if (ret)
 		return ret;
-	ret = late_cpu_current_mitigation_state(
-		arm64_get_spectre_v4_state(), &system->spectre_v4_state);
+	ret = late_cpu_current_mitigation_state(arm64_get_spectre_v4_state(),
+						 &system->spectre_v4_state);
 	if (ret)
 		return ret;
-	ret = late_cpu_current_mitigation_state(
-		arm64_get_spectre_bhb_state(), &system->bhb_state);
+	ret = late_cpu_current_mitigation_state(arm64_get_spectre_bhb_state(),
+						 &system->bhb_state);
 	if (ret)
 		return ret;
 
@@ -546,11 +546,12 @@ def apply_system_policy(root: Path) -> None:
         "int arm64_validate_late_cpu_expected_target(unsigned int cpu);\n",
         "void __init arm64_collect_late_cpu_runtime_identity(void);\n"
         "void __init arm64_collect_late_cpu_runtime_system_policy(void);\n"
-        "int __init arm64_late_cpu_collect_system_cap_evidence(\n"
-        "\tstruct arm64_late_cpu_system_cap_evidence *system);\n"
-        "int __init arm64_late_cpu_collect_mitigation_evidence(\n"
-        "\tstruct arm64_late_cpu_target_policy_evidence *policy,\n"
-        "\tstruct arm64_late_cpu_system_cap_evidence *system);\n"
+        "int __init arm64_late_cpu_collect_system("
+        "struct arm64_late_cpu_system_cap_evidence *system);\n"
+        "int __init\n"
+        "arm64_late_cpu_collect_policy("
+        "struct arm64_late_cpu_target_policy_evidence *policy,\n"
+        "\t\t\t      struct arm64_late_cpu_system_cap_evidence *system);\n"
         "int arm64_validate_late_cpu_expected_target(unsigned int cpu);\n",
     )
     replace_once(
@@ -626,10 +627,9 @@ def apply_system_policy(root: Path) -> None:
         "\t\t\t   LATE_RUNTIME_EVIDENCE_FAULT);\n"
         "\t\treturn;\n"
         "\t}\n\n"
-        "\tret = arm64_late_cpu_collect_system_cap_evidence(&system);\n"
+        "\tret = arm64_late_cpu_collect_system(&system);\n"
         "\tif (!ret)\n"
-        "\t\tret = arm64_late_cpu_collect_mitigation_evidence(\n"
-        "\t\t\t&policy, &system);\n"
+        "\t\tret = arm64_late_cpu_collect_policy(&policy, &system);\n"
         "\tif (ret ||\n"
         "\t    system.valid != ARM64_LATE_CPU_SYSTEM_CAP_VALID_MASK ||\n"
         "\t    policy.valid != ARM64_LATE_CPU_TARGET_POLICY_VALID_MASK) {\n"
@@ -689,15 +689,15 @@ def apply_system_policy(root: Path) -> None:
         "{\n"
         "\tunsigned int target;\n\n"
         "\tif (late_runtime_evidence.abi != ARM64_LATE_CPU_PLAN_ABI ||\n"
-        "\t    !late_profile_identity_empty(\n"
-        "\t\t    late_runtime_evidence.source_parent_identity) ||\n"
-        "\t    !late_profile_identity_empty(\n"
-        "\t\t    late_runtime_evidence.config_input_identity) ||\n"
+        "\t    !late_profile_identity_empty("
+        "late_runtime_evidence.source_parent_identity) ||\n"
+        "\t    !late_profile_identity_empty("
+        "late_runtime_evidence.config_input_identity) ||\n"
         "\t    memchr_inv(&late_runtime_evidence.expected_pair, 0,\n"
         "\t\t       sizeof(late_runtime_evidence.expected_pair)) ||\n"
         "\t    !late_profile_binding_empty(&late_runtime_evidence.binding) ||\n"
-        "\t    !late_profile_identity_empty(\n"
-        "\t\t    late_runtime_evidence.evidence_identity) ||\n"
+        "\t    !late_profile_identity_empty("
+        "late_runtime_evidence.evidence_identity) ||\n"
         "\t    late_runtime_evidence.blocker_mask ||\n"
         "\t    !late_runtime_system_policy_complete())\n"
         "\t\treturn false;\n\n"

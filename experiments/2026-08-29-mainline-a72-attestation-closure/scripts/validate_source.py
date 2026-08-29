@@ -257,8 +257,8 @@ def validate_system_policy(root: Path) -> list[str]:
 
     for token in (
         "arm64_collect_late_cpu_runtime_system_policy(void);",
-        "arm64_late_cpu_collect_system_cap_evidence(",
-        "arm64_late_cpu_collect_mitigation_evidence(",
+        "arm64_late_cpu_collect_system(",
+        "arm64_late_cpu_collect_policy(",
     ):
         require(header.count(token) == 1,
                 f"system-policy declaration count changed: {token}")
@@ -267,7 +267,7 @@ def validate_system_policy(root: Path) -> list[str]:
     ) == 2, "system-policy declaration/stub count changed")
 
     system_owner = function(
-        cpufeature, "arm64_late_cpu_collect_system_cap_evidence("
+        cpufeature, "arm64_late_cpu_collect_system("
     )
     for token in (
         "system_capabilities_finalized()",
@@ -290,7 +290,7 @@ def validate_system_policy(root: Path) -> list[str]:
     conduit_map = function(proton, "late_cpu_current_smccc_conduit(")
     v4_map = function(proton, "late_cpu_current_v4_policy(")
     mitigation_owner = function(
-        proton, "arm64_late_cpu_collect_mitigation_evidence("
+        proton, "arm64_late_cpu_collect_policy("
     )
     for source, tokens in (
         (state_map, (
@@ -357,8 +357,8 @@ def validate_system_policy(root: Path) -> list[str]:
         "system_capabilities_finalized()",
         "cpus_have_cap(ARM64_ALWAYS_SYSTEM)",
         "late_runtime_evidence_storage_empty()",
-        "arm64_late_cpu_collect_system_cap_evidence(&system)",
-        "arm64_late_cpu_collect_mitigation_evidence(",
+        "arm64_late_cpu_collect_system(&system)",
+        "arm64_late_cpu_collect_policy(&policy, &system)",
         "system.valid != ARM64_LATE_CPU_SYSTEM_CAP_VALID_MASK",
         "policy.valid != ARM64_LATE_CPU_TARGET_POLICY_VALID_MASK",
         "late_runtime_evidence.system_cap = system;",
