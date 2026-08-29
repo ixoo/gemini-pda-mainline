@@ -234,18 +234,19 @@ late_cpu_hwcap_all_cpus(const struct arm64_cpu_capabilities *cap,
 	return true;
 }
 
-static bool __init
-late_cpu_plan_all_cpus_support_32bit_el0(
+static bool __init late_cpu_plan_all_cpus_support_32bit_el0(
 	const struct arm64_late_cpu_plan *plan)
 {
 	unsigned int target;
 
 	if (!system_supports_32bit_el0())
 		return false;
-	for (target = 0; target < ARM64_LATE_CPU_MAX_TARGETS; target++)
-		if (!id_aa64pfr0_32bit_el0(
-			    plan->evidence.target_cap[target].registers.id_aa64pfr0))
+	for (target = 0; target < ARM64_LATE_CPU_MAX_TARGETS; target++) {
+		u64 pfr0 = plan->evidence.target_cap[target].registers.id_aa64pfr0;
+
+		if (!id_aa64pfr0_32bit_el0(pfr0))
 			return false;
+	}
 
 	return true;
 }
