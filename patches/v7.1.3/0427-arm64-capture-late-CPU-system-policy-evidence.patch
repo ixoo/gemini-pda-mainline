@@ -1,0 +1,423 @@
+From 3744cf8444caafafe059210dd1a1efdaf6e4d2d4 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 29 Aug 2026 04:04:00 +0000
+Subject: [PATCH] arm64: capture late CPU system policy evidence
+
+Capture sanitized CTR and SSBS state from the feature owner and
+current mitigation policy from proton-pack before finalization.
+Seal and merge the record only after runtime identity cross-binding.
+---
+ arch/arm64/include/asm/late_cpu_profile.h |  10 ++
+ arch/arm64/kernel/cpufeature.c            |  29 +++++
+ arch/arm64/kernel/late_cpu_profile.c      | 134 ++++++++++++++++++++--
+ arch/arm64/kernel/proton-pack.c           |  98 ++++++++++++++++
+ arch/arm64/kernel/smp.c                   |   1 +
+ 5 files changed, 264 insertions(+), 8 deletions(-)
+
+diff --git a/arch/arm64/include/asm/late_cpu_profile.h b/arch/arm64/include/asm/late_cpu_profile.h
+index 2474164..e6bce64 100644
+--- a/arch/arm64/include/asm/late_cpu_profile.h
++++ b/arch/arm64/include/asm/late_cpu_profile.h
+@@ -563,6 +563,11 @@ void __init arm64_activate_late_cpu_profile(const struct arm64_late_cpu_profile
+ void __init arm64_register_late_cpu_target(const struct arm64_late_cpu_profile *profile,
+ 					   unsigned int cpu);
+ void __init arm64_collect_late_cpu_runtime_identity(void);
++void __init arm64_collect_late_cpu_runtime_system_policy(void);
++int __init arm64_late_cpu_collect_system(struct arm64_late_cpu_system_cap_evidence *system);
++int __init
++arm64_late_cpu_collect_policy(struct arm64_late_cpu_target_policy_evidence *policy,
++			      struct arm64_late_cpu_system_cap_evidence *system);
+ int arm64_validate_late_cpu_expected_target(unsigned int cpu);
+ void __init arm64_seal_late_cpu_runtime_evidence(void);
+ void __init arm64_prepare_late_cpu_profile(void);
+@@ -644,6 +649,11 @@ static inline void __init arm64_collect_late_cpu_runtime_identity(void)
+ {
+ }
+ 
++static inline void __init
++arm64_collect_late_cpu_runtime_system_policy(void)
++{
++}
++
+ static inline int
+ arm64_validate_late_cpu_expected_target(unsigned int cpu)
+ {
+diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+index f6e8fc5..d999c55 100644
+--- a/arch/arm64/kernel/cpufeature.c
++++ b/arch/arm64/kernel/cpufeature.c
+@@ -68,6 +68,7 @@
+ #include <linux/kstrtox.h>
+ #include <linux/sort.h>
+ #include <linux/stop_machine.h>
++#include <linux/string.h>
+ #include <linux/sysfs.h>
+ #include <linux/types.h>
+ #include <linux/minmax.h>
+@@ -2399,6 +2400,34 @@ static void cpu_enable_mte(struct arm64_cpu_capabilities const *cap)
+ }
+ #endif /* CONFIG_ARM64_MTE */
+ 
++#ifdef CONFIG_ARM64_LATE_CPU_PROFILE
++int __init
++arm64_late_cpu_collect_system(struct arm64_late_cpu_system_cap_evidence *system)
++{
++	u64 pfr1;
++	u64 ssbs;
++
++	if (!system || system_capabilities_finalized() ||
++	    memchr_inv(system, 0, sizeof(*system)))
++		return -EINVAL;
++
++	pfr1 = read_sanitised_ftr_reg(SYS_ID_AA64PFR1_EL1);
++	ssbs = cpuid_feature_extract_unsigned_field(pfr1,
++						    ID_AA64PFR1_EL1_SSBS_SHIFT);
++	if (ssbs > 2)
++		return -ERANGE;
++
++	/* Preserve the exact CTR owner state; SSBS consumers need availability. */
++	system->ctr_sys_val = arm64_ftr_reg_ctrel0.sys_val;
++	system->ctr_strict_mask = arm64_ftr_reg_ctrel0.strict_mask;
++	system->ssbs = !!ssbs;
++	system->valid = ARM64_LATE_CPU_SYSTEM_CAP_CTR_VALID |
++			ARM64_LATE_CPU_SYSTEM_CAP_SSBS_VALID;
++
++	return 0;
++}
++#endif
++
+ static void user_feature_fixup(void)
+ {
+ 	if (cpus_have_cap(ARM64_WORKAROUND_2658417)) {
+diff --git a/arch/arm64/kernel/late_cpu_profile.c b/arch/arm64/kernel/late_cpu_profile.c
+index 4e03175..e25fa7a 100644
+--- a/arch/arm64/kernel/late_cpu_profile.c
++++ b/arch/arm64/kernel/late_cpu_profile.c
+@@ -39,8 +39,8 @@ static bool late_profile_registration_fault __initdata;
+  */
+ enum late_runtime_evidence_state {
+ 	LATE_RUNTIME_EVIDENCE_OPEN,
+-	LATE_RUNTIME_EVIDENCE_SEALED_EMPTY,
+-	LATE_RUNTIME_EVIDENCE_SEALED_IDENTITY,
++	LATE_RUNTIME_EVIDENCE_SEALED_SYSTEM_POLICY,
++	LATE_RUNTIME_EVIDENCE_SEALED_IDENTITY_SYSTEM_POLICY,
+ 	LATE_RUNTIME_EVIDENCE_FAULT,
+ };
+ 
+@@ -599,6 +599,43 @@ void __init arm64_collect_late_cpu_runtime_identity(void)
+ #endif
+ }
+ 
++static bool __init late_runtime_evidence_storage_empty(void);
++
++void __init arm64_collect_late_cpu_runtime_system_policy(void)
++{
++	struct arm64_late_cpu_target_policy_evidence policy = {};
++	struct arm64_late_cpu_system_cap_evidence system = {};
++	unsigned int target;
++	int ret;
++
++	if (READ_ONCE(late_runtime_evidence_state) !=
++		    LATE_RUNTIME_EVIDENCE_OPEN ||
++	    READ_ONCE(late_runtime_identity_state) ==
++		    LATE_RUNTIME_IDENTITY_UNCOLLECTED ||
++	    system_capabilities_finalized() ||
++	    cpus_have_cap(ARM64_ALWAYS_SYSTEM) ||
++	    !late_runtime_evidence_storage_empty()) {
++		WRITE_ONCE(late_runtime_evidence_state,
++			   LATE_RUNTIME_EVIDENCE_FAULT);
++		return;
++	}
++
++	ret = arm64_late_cpu_collect_system(&system);
++	if (!ret)
++		ret = arm64_late_cpu_collect_policy(&policy, &system);
++	if (ret ||
++	    system.valid != ARM64_LATE_CPU_SYSTEM_CAP_VALID_MASK ||
++	    policy.valid != ARM64_LATE_CPU_TARGET_POLICY_VALID_MASK) {
++		WRITE_ONCE(late_runtime_evidence_state,
++			   LATE_RUNTIME_EVIDENCE_FAULT);
++		return;
++	}
++
++	late_runtime_evidence.system_cap = system;
++	for (target = 0; target < ARM64_LATE_CPU_MAX_TARGETS; target++)
++		late_runtime_evidence.target_policy[target] = policy;
++}
++
+ static bool __init
+ late_profile_binding_empty(const struct arm64_late_cpu_runtime_binding *binding)
+ {
+@@ -670,6 +707,76 @@ late_runtime_evidence_storage_empty(void)
+ 	return true;
+ }
+ 
++static bool __init
++late_runtime_system_policy_complete(void)
++{
++	const struct arm64_late_cpu_system_cap_evidence *system =
++		&late_runtime_evidence.system_cap;
++	const struct arm64_late_cpu_target_policy_evidence *first =
++		&late_runtime_evidence.target_policy[0];
++	unsigned int target;
++
++	if (system->valid != ARM64_LATE_CPU_SYSTEM_CAP_VALID_MASK ||
++	    !system->ctr_strict_mask || system->ssbs > 1 ||
++	    system->spectre_v2_state <
++		    ARM64_LATE_CPU_MITIGATION_UNAFFECTED ||
++	    system->spectre_v2_state >
++		    ARM64_LATE_CPU_MITIGATION_VULNERABLE ||
++	    system->spectre_v4_state <
++		    ARM64_LATE_CPU_MITIGATION_UNAFFECTED ||
++	    system->spectre_v4_state >
++		    ARM64_LATE_CPU_MITIGATION_VULNERABLE ||
++	    system->bhb_state < ARM64_LATE_CPU_BHB_STATE_UNAFFECTED ||
++	    system->bhb_state > ARM64_LATE_CPU_BHB_STATE_VULNERABLE ||
++	    system->bhb_system_method & ~GENMASK(3, 0) ||
++	    first->valid != ARM64_LATE_CPU_TARGET_POLICY_VALID_MASK ||
++	    first->smccc_conduit < ARM64_LATE_CPU_SMCCC_NONE ||
++	    first->smccc_conduit > ARM64_LATE_CPU_SMCCC_HVC ||
++	    first->mitigations_off > 1 || first->nospectre_v2 > 1 ||
++	    first->spectre_v4_policy <
++		    ARM64_LATE_CPU_V4_POLICY_DYNAMIC ||
++	    first->spectre_v4_policy >
++		    ARM64_LATE_CPU_V4_POLICY_FORCE_OFF)
++		return false;
++
++	for (target = 1; target < ARM64_LATE_CPU_MAX_TARGETS; target++)
++		if (memcmp(first, &late_runtime_evidence.target_policy[target],
++			   sizeof(*first)))
++			return false;
++
++	return true;
++}
++
++static bool __init
++late_runtime_evidence_storage_complete(void)
++{
++	unsigned int target;
++
++	if (late_runtime_evidence.abi != ARM64_LATE_CPU_PLAN_ABI ||
++	    !late_profile_identity_empty(late_runtime_evidence.source_parent_identity) ||
++	    !late_profile_identity_empty(late_runtime_evidence.config_input_identity) ||
++	    memchr_inv(&late_runtime_evidence.expected_pair, 0,
++		       sizeof(late_runtime_evidence.expected_pair)) ||
++	    !late_profile_binding_empty(&late_runtime_evidence.binding) ||
++	    !late_profile_identity_empty(late_runtime_evidence.evidence_identity) ||
++	    late_runtime_evidence.blocker_mask ||
++	    !late_runtime_system_policy_complete())
++		return false;
++
++	for (target = 0; target < ARM64_LATE_CPU_MAX_TARGETS; target++)
++		if (late_runtime_evidence.target_cpu[target] ||
++		    late_runtime_evidence.expected_target_mpidr[target] ||
++		    late_runtime_evidence.observed_target_mpidr[target] ||
++		    late_runtime_evidence.expected_target_midr[target] ||
++		    late_runtime_evidence.observed_target_midr[target] ||
++		    late_runtime_evidence.observed_target_revidr[target] ||
++		    memchr_inv(&late_runtime_evidence.target_cap[target], 0,
++			       sizeof(late_runtime_evidence.target_cap[target])))
++			return false;
++
++	return true;
++}
++
+ static bool __init
+ late_profile_identity_cross_bound(const struct arm64_late_cpu_evidence *evidence,
+ 				  const char *profile_id,
+@@ -711,7 +818,7 @@ void __init arm64_seal_late_cpu_runtime_evidence(void)
+ 		return;
+ 	}
+ 
+-	if (!late_runtime_evidence_storage_empty() ||
++	if (!late_runtime_evidence_storage_complete() ||
+ 	    identity_state == LATE_RUNTIME_IDENTITY_UNCOLLECTED) {
+ 		/* Publish the fault before profile preparation examines state. */
+ 		smp_store_release(&late_runtime_evidence_state,
+@@ -724,11 +831,12 @@ void __init arm64_seal_late_cpu_runtime_evidence(void)
+ 		       sizeof(late_runtime_identity))) {
+ 		late_runtime_evidence.blocker_mask |=
+ 			ARM64_LATE_CPU_BLOCK_RUNTIME_BINDING;
+-		state = LATE_RUNTIME_EVIDENCE_SEALED_EMPTY;
++		state = LATE_RUNTIME_EVIDENCE_SEALED_SYSTEM_POLICY;
+ 	} else if (identity_state == LATE_RUNTIME_IDENTITY_VERIFIED &&
+ 		   late_runtime_identity_complete(&late_runtime_identity)) {
+ 		late_runtime_evidence.binding = late_runtime_identity.binding;
+-		state = LATE_RUNTIME_EVIDENCE_SEALED_IDENTITY;
++		state =
++			LATE_RUNTIME_EVIDENCE_SEALED_IDENTITY_SYSTEM_POLICY;
+ 	} else {
+ 		/* Publish the fault before profile preparation examines state. */
+ 		smp_store_release(&late_runtime_evidence_state,
+@@ -894,6 +1002,7 @@ arm64_register_late_cpu_target(const struct arm64_late_cpu_profile *profile,
+ void __init arm64_prepare_late_cpu_profile(void)
+ {
+ 	u32 runtime_state;
++	unsigned int target;
+ 	int validate_ret;
+ 	int effect_ret;
+ 	int plan_ret;
+@@ -914,8 +1023,10 @@ void __init arm64_prepare_late_cpu_profile(void)
+ 	}
+ 	/* Pairs with the release stores at the architecture seal point. */
+ 	runtime_state = smp_load_acquire(&late_runtime_evidence_state);
+-	if (runtime_state != LATE_RUNTIME_EVIDENCE_SEALED_EMPTY &&
+-	    runtime_state != LATE_RUNTIME_EVIDENCE_SEALED_IDENTITY) {
++	if (runtime_state !=
++		    LATE_RUNTIME_EVIDENCE_SEALED_SYSTEM_POLICY &&
++	    runtime_state !=
++		    LATE_RUNTIME_EVIDENCE_SEALED_IDENTITY_SYSTEM_POLICY) {
+ 		late_profile_block(ARM64_LATE_CPU_BLOCK_RUNTIME_BINDING,
+ 				   "runtime evidence was not sealed");
+ 		return;
+@@ -962,7 +1073,8 @@ void __init arm64_prepare_late_cpu_profile(void)
+ 					   "profile supplied runtime observations");
+ 			return;
+ 		}
+-		if (runtime_state == LATE_RUNTIME_EVIDENCE_SEALED_IDENTITY) {
++		if (runtime_state ==
++		    LATE_RUNTIME_EVIDENCE_SEALED_IDENTITY_SYSTEM_POLICY) {
+ 			if (!late_profile_identity_cross_bound(&profile_evidence,
+ 							       draft.profile_id,
+ 							       &late_profile_targets)) {
+@@ -971,6 +1083,12 @@ void __init arm64_prepare_late_cpu_profile(void)
+ 				return;
+ 			}
+ 			draft.evidence.binding = late_runtime_evidence.binding;
++			draft.evidence.system_cap =
++				late_runtime_evidence.system_cap;
++			for (target = 0;
++			     target < ARM64_LATE_CPU_MAX_TARGETS; target++)
++				draft.evidence.target_policy[target] =
++					late_runtime_evidence.target_policy[target];
+ 			draft.evidence.blocker_mask &=
+ 				~ARM64_LATE_CPU_BLOCK_RUNTIME_BINDING;
+ 		}
+diff --git a/arch/arm64/kernel/proton-pack.c b/arch/arm64/kernel/proton-pack.c
+index d86e78b..a3eb8ed 100644
+--- a/arch/arm64/kernel/proton-pack.c
++++ b/arch/arm64/kernel/proton-pack.c
+@@ -24,6 +24,7 @@
+ #include <linux/nospec.h>
+ #include <linux/prctl.h>
+ #include <linux/sched/task_stack.h>
++#include <linux/string.h>
+ 
+ #include <asm/debug-monitors.h>
+ #include <asm/insn.h>
+@@ -1398,6 +1399,103 @@ u8 get_spectre_bhb_loop_value(void)
+ 	return max_bhb_k;
+ }
+ 
++#ifdef CONFIG_ARM64_LATE_CPU_PROFILE
++static int __init
++late_cpu_current_mitigation_state(enum mitigation_state state, u8 *current)
++{
++	switch (state) {
++	case SPECTRE_UNAFFECTED:
++		*current = ARM64_LATE_CPU_MITIGATION_UNAFFECTED;
++		return 0;
++	case SPECTRE_MITIGATED:
++		*current = ARM64_LATE_CPU_MITIGATION_MITIGATED;
++		return 0;
++	case SPECTRE_VULNERABLE:
++		*current = ARM64_LATE_CPU_MITIGATION_VULNERABLE;
++		return 0;
++	default:
++		return -ERANGE;
++	}
++}
++
++static int __init late_cpu_current_smccc_conduit(u8 *current)
++{
++	switch (arm_smccc_1_1_get_conduit()) {
++	case SMCCC_CONDUIT_NONE:
++		*current = ARM64_LATE_CPU_SMCCC_NONE;
++		return 0;
++	case SMCCC_CONDUIT_SMC:
++		*current = ARM64_LATE_CPU_SMCCC_SMC;
++		return 0;
++	case SMCCC_CONDUIT_HVC:
++		*current = ARM64_LATE_CPU_SMCCC_HVC;
++		return 0;
++	default:
++		return -ERANGE;
++	}
++}
++
++static int __init late_cpu_current_v4_policy(u8 *current)
++{
++	switch (READ_ONCE(__spectre_v4_policy)) {
++	case SPECTRE_V4_POLICY_MITIGATION_DYNAMIC:
++		*current = ARM64_LATE_CPU_V4_POLICY_DYNAMIC;
++		return 0;
++	case SPECTRE_V4_POLICY_MITIGATION_ENABLED:
++		*current = ARM64_LATE_CPU_V4_POLICY_FORCE_ON;
++		return 0;
++	case SPECTRE_V4_POLICY_MITIGATION_DISABLED:
++		*current = ARM64_LATE_CPU_V4_POLICY_FORCE_OFF;
++		return 0;
++	default:
++		return -ERANGE;
++	}
++}
++
++int __init
++arm64_late_cpu_collect_policy(struct arm64_late_cpu_target_policy_evidence *policy,
++			      struct arm64_late_cpu_system_cap_evidence *system)
++{
++	unsigned long bhb_methods = READ_ONCE(system_bhb_mitigations);
++	int ret;
++
++	if (!policy || !system || system_capabilities_finalized() ||
++	    memchr_inv(policy, 0, sizeof(*policy)) ||
++	    system->valid != (ARM64_LATE_CPU_SYSTEM_CAP_CTR_VALID |
++			      ARM64_LATE_CPU_SYSTEM_CAP_SSBS_VALID) ||
++	    bhb_methods & ~GENMASK(BHB_INSN, BHB_LOOP))
++		return -EINVAL;
++
++	ret = late_cpu_current_smccc_conduit(&policy->smccc_conduit);
++	if (ret)
++		return ret;
++	ret = late_cpu_current_v4_policy(&policy->spectre_v4_policy);
++	if (ret)
++		return ret;
++	ret = late_cpu_current_mitigation_state(arm64_get_spectre_v2_state(),
++						&system->spectre_v2_state);
++	if (ret)
++		return ret;
++	ret = late_cpu_current_mitigation_state(arm64_get_spectre_v4_state(),
++						&system->spectre_v4_state);
++	if (ret)
++		return ret;
++	ret = late_cpu_current_mitigation_state(arm64_get_spectre_bhb_state(),
++						&system->bhb_state);
++	if (ret)
++		return ret;
++
++	policy->mitigations_off = cpu_mitigations_off();
++	policy->nospectre_v2 = READ_ONCE(__nospectre_v2);
++	policy->valid = ARM64_LATE_CPU_TARGET_POLICY_VALID_MASK;
++	system->bhb_matcher_loop_count = get_spectre_bhb_loop_value();
++	system->bhb_system_method = bhb_methods;
++	system->valid |= ARM64_LATE_CPU_SYSTEM_CAP_EFFECTS_VALID;
++
++	return 0;
++}
++#endif
++
+ static void this_cpu_set_vectors(enum arm64_bp_harden_el1_vectors slot)
+ {
+ 	const char *v = arm64_get_bp_hardening_vector(slot);
+diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
+index 7c48792..4348e05 100644
+--- a/arch/arm64/kernel/smp.c
++++ b/arch/arm64/kernel/smp.c
+@@ -599,6 +599,7 @@ void __init smp_cpus_done(unsigned int max_cpus)
+ 	pr_info("SMP: Total of %d processors activated.\n", num_online_cpus());
+ 	hyp_mode_check();
+ 	arm64_collect_late_cpu_runtime_identity();
++	arm64_collect_late_cpu_runtime_system_policy();
+ 	arm64_seal_late_cpu_runtime_evidence();
+ 	arm64_prepare_late_cpu_profile();
+ 	setup_system_features();

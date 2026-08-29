@@ -87,6 +87,9 @@ if its current register state differs from the frozen expectation.
 - [`results/stack-fix-generation-20260829.txt`](results/stack-fix-generation-20260829.txt):
   exact linked-build prepare-stack warning and the generated init-only-storage
   follow-up, including 20 rejected source mutations and canonical-series audit.
+- [`results/system-policy-generation-20260829.txt`](results/system-policy-generation-20260829.txt):
+  exact generation, 35 rejecting mutations, and source-only admission of the
+  current-system and mitigation-policy producer.
 - [`results/compile-validation-20260829.txt`](results/compile-validation-20260829.txt):
   configuration-off control, both rejected linked attempts, and the final
   configuration-enabled linked binary/configuration/stack proof.
@@ -253,16 +256,32 @@ warnings are unchanged. This validates dormant linkage, not READY or hardware
 support; the package is not a boot candidate. See the
 [compile validation](results/compile-validation-20260829.txt).
 
+Logical slice 3 is now generated as canonical patch `0427`. `cpufeature.c`
+captures the sanitized CTR value, its strict mask, and system SSBS availability;
+`proton-pack.c` maps its private current SMCCC conduit, mitigation policy,
+mitigation states, and BHB method/loop state. The core accepts only a complete,
+identical two-target policy record, seals it before finalization, and merges it
+only after runtime-image identity cross-binding. Seven stopped attempts failed
+closed on exact anchors, validator classification, or strict style. A first
+successful package at `0b9d80dd` was deliberately superseded after review added
+the direct string-header dependency. The final exact Buildbox generation at
+`d841add7` passes checksums, replay, strict checkpatch with zero findings, all
+35 rejecting source mutations, and the 158-profile series invariant. It adds
+no target-cap producer, active expectation, planner extension, architecture
+commit, READY path, CPU request, candidate, or device action. See the
+[system/policy generation result](results/system-policy-generation-20260829.txt).
+
 ## Conclusion
 
-`confirmed-reference-only-mapping-and-dormant-validator-linked-next-owner-gate`: the exact
-CPU8 and CPU9 vectors map cleanly as prior-cycle target expectations, but not
-as a complete ABI-7 runtime-evidence record. The dormant schema and fail-closed
-entry validator and their section/stack integration repairs are now
-reproducibly generated and admitted. Twenty-three register-image fields and all
-current-mainline GIC/hyp, SMCCC, address-space, target-policy,
-system-capability, commit, verification, alternatives, and HWCAP owners remain
-open. No CPU request is justified by the recovered capsule alone.
+`confirmed-reference-only-mapping-dormant-validator-linked-and-system-policy-source-admitted`:
+the exact CPU8 and CPU9 vectors map cleanly as prior-cycle target expectations,
+but not as a complete ABI-7 runtime-evidence record. The dormant schema,
+fail-closed entry validator, their section/stack integration repairs, and the
+current-mainline system/policy source owner are now reproducibly generated and
+admitted. Twenty-three register-image fields and the current-mainline
+target-cap, planning/identity, commit, verification, alternatives, and HWCAP
+closure remain open. No CPU request is justified by the recovered capsule
+alone.
 
 ## Follow-up
 

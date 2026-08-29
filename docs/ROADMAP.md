@@ -6127,16 +6127,21 @@ The next ordered work is:
    diagnostic remains. The unchanged older membership-frame and CPU-hotplug
    inventory warnings are not evidence from these patches. All four patches
    remain dormant: no expected-pair producer, READY path, CPU request,
-   candidate, or device action was added. **Selected next:** implement logical
-   slice 3 only: current-mainline system and policy evidence producers with
-   exact identities and negative mutations. The arm64 producer must own
-   boot-CPU/system feature state, SMCCC conduit, mitigation command-line
-   policy, ASID/granule/VA, and the other ledger-mapped current-boot inputs;
-   the MT6797 profile may contribute immutable board expectations but may not
-   import Gemian runtime policy. Keep the planner extension, architecture
-   commit, alternatives/HWCAP finalization, READY publication, and every CPU
-   request in later separately reviewed slices. A successful compile is not
-   READY, and no physical candidate is permitted yet.
+   candidate, or device action was added. Logical slice 3 is now canonical
+   patch `0427`: `cpufeature.c` captures sanitized current CTR/strict-mask and
+   SSBS state, `proton-pack.c` maps its private current SMCCC and mitigation
+   policy/state, and arm64 seals a complete two-target policy record and merges
+   it only after runtime-image identity cross-binding. Exact Buildbox
+   generation at `d841add7` passes checksums, replay, strict style with zero
+   findings, all 35 rejecting source mutations, and the 158-profile invariant.
+   Target-cap observations including current GIC/hyp and address-space facts,
+   the planner/identity extension, architecture commit, alternatives/HWCAP
+   finalization, READY publication, and every CPU request remain absent.
+   **Selected next:** compile the exact admitted series with the
+   `a72-p30e-wire` profile on Buildbox and inspect its linked section, stack,
+   and call-path evidence. If and only if that passes, record the result and
+   begin logical slice 4's pure planner and canonical-identity closure. A
+   successful compile is not READY, and no physical candidate is permitted.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
