@@ -48,7 +48,7 @@ def validate(root: Path) -> list[str]:
     hwcap_match = function(cpufeature, "late_cpu_hwcap_match_one(")
     all_cpus = function(cpufeature, "late_cpu_hwcap_all_cpus(")
     compat_cpus = function(
-        cpufeature, "late_cpu_plan_all_cpus_support_32bit_el0(")
+        cpufeature, "late_cpu_all_support_32bit_el0(")
     hwcap_plan = function(cpufeature, "arm64_plan_late_cpu_hwcaps(")
     mappings = (
         "SYS_ID_AA64DFR0_EL1", "SYS_ID_AA64DFR1_EL1",
@@ -94,7 +94,7 @@ def validate(root: Path) -> list[str]:
     for token in (
         "ARM64_LATE_CPU_TARGET_CAP_ID_REGS_VALID",
         "KERNEL_HWCAP_CPUID", "COMPAT_ELF_HWCAP_DEFAULT",
-        "late_cpu_plan_all_cpus_support_32bit_el0(plan)",
+        "late_cpu_all_support_32bit_el0(plan)",
         "plan->effects.compat_aes_clear", "COMPAT_HWCAP2_AES",
         "ARM64_WORKAROUND_2658417", "KERNEL_HWCAP_BF16",
         "KERNEL_HWCAP_EBF16", "ARM64_WORKAROUND_SPECULATIVE_SSBS",
