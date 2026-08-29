@@ -6132,8 +6132,14 @@ The next ordered work is:
    SSBS state, `proton-pack.c` maps its private current SMCCC and mitigation
    policy/state, and arm64 seals a complete two-target policy record and merges
    it only after runtime-image identity cross-binding. Exact Buildbox
-   generation at `d841add7` passes checksums, replay, strict style with zero
-   findings, all 35 rejecting source mutations, and the 158-profile invariant.
+   generation at `d841add7` passed checksums, replay, strict style with zero
+   findings, all 35 rejecting source mutations, and the 158-profile invariant,
+   but the first linked compile at `6c886b33` exposed a C macro collision:
+   helper parameters named `current` were rewritten by arm64's task-current
+   macro. The build stopped before packaging. Exact regeneration at `61f45db0`
+   renames only those parameters, adds a 36th rejecting mutation for this
+   failure class, and passes checksums, replay, and strict style from the same
+   integrity-pinned post-`0426` source.
    Target-cap observations including current GIC/hyp and address-space facts,
    the planner/identity extension, architecture commit, alternatives/HWCAP
    finalization, READY publication, and every CPU request remain absent.

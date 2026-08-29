@@ -1,4 +1,4 @@
-From 3744cf8444caafafe059210dd1a1efdaf6e4d2d4 Mon Sep 17 00:00:00 2001
+From 7af3d8bfb40d69e84c39d51001ed609446bb9a64 Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Sat, 29 Aug 2026 04:04:00 +0000
 Subject: [PATCH] arm64: capture late CPU system policy evidence
@@ -294,7 +294,7 @@ index 4e03175..e25fa7a 100644
  				~ARM64_LATE_CPU_BLOCK_RUNTIME_BINDING;
  		}
 diff --git a/arch/arm64/kernel/proton-pack.c b/arch/arm64/kernel/proton-pack.c
-index d86e78b..a3eb8ed 100644
+index d86e78b..6cbccc7 100644
 --- a/arch/arm64/kernel/proton-pack.c
 +++ b/arch/arm64/kernel/proton-pack.c
 @@ -24,6 +24,7 @@
@@ -311,51 +311,51 @@ index d86e78b..a3eb8ed 100644
  
 +#ifdef CONFIG_ARM64_LATE_CPU_PROFILE
 +static int __init
-+late_cpu_current_mitigation_state(enum mitigation_state state, u8 *current)
++late_cpu_current_mitigation_state(enum mitigation_state state, u8 *value)
 +{
 +	switch (state) {
 +	case SPECTRE_UNAFFECTED:
-+		*current = ARM64_LATE_CPU_MITIGATION_UNAFFECTED;
++		*value = ARM64_LATE_CPU_MITIGATION_UNAFFECTED;
 +		return 0;
 +	case SPECTRE_MITIGATED:
-+		*current = ARM64_LATE_CPU_MITIGATION_MITIGATED;
++		*value = ARM64_LATE_CPU_MITIGATION_MITIGATED;
 +		return 0;
 +	case SPECTRE_VULNERABLE:
-+		*current = ARM64_LATE_CPU_MITIGATION_VULNERABLE;
++		*value = ARM64_LATE_CPU_MITIGATION_VULNERABLE;
 +		return 0;
 +	default:
 +		return -ERANGE;
 +	}
 +}
 +
-+static int __init late_cpu_current_smccc_conduit(u8 *current)
++static int __init late_cpu_current_smccc_conduit(u8 *value)
 +{
 +	switch (arm_smccc_1_1_get_conduit()) {
 +	case SMCCC_CONDUIT_NONE:
-+		*current = ARM64_LATE_CPU_SMCCC_NONE;
++		*value = ARM64_LATE_CPU_SMCCC_NONE;
 +		return 0;
 +	case SMCCC_CONDUIT_SMC:
-+		*current = ARM64_LATE_CPU_SMCCC_SMC;
++		*value = ARM64_LATE_CPU_SMCCC_SMC;
 +		return 0;
 +	case SMCCC_CONDUIT_HVC:
-+		*current = ARM64_LATE_CPU_SMCCC_HVC;
++		*value = ARM64_LATE_CPU_SMCCC_HVC;
 +		return 0;
 +	default:
 +		return -ERANGE;
 +	}
 +}
 +
-+static int __init late_cpu_current_v4_policy(u8 *current)
++static int __init late_cpu_current_v4_policy(u8 *value)
 +{
 +	switch (READ_ONCE(__spectre_v4_policy)) {
 +	case SPECTRE_V4_POLICY_MITIGATION_DYNAMIC:
-+		*current = ARM64_LATE_CPU_V4_POLICY_DYNAMIC;
++		*value = ARM64_LATE_CPU_V4_POLICY_DYNAMIC;
 +		return 0;
 +	case SPECTRE_V4_POLICY_MITIGATION_ENABLED:
-+		*current = ARM64_LATE_CPU_V4_POLICY_FORCE_ON;
++		*value = ARM64_LATE_CPU_V4_POLICY_FORCE_ON;
 +		return 0;
 +	case SPECTRE_V4_POLICY_MITIGATION_DISABLED:
-+		*current = ARM64_LATE_CPU_V4_POLICY_FORCE_OFF;
++		*value = ARM64_LATE_CPU_V4_POLICY_FORCE_OFF;
 +		return 0;
 +	default:
 +		return -ERANGE;

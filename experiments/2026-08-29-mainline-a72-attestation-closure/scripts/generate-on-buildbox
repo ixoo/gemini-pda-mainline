@@ -8,7 +8,7 @@ readonly PARENT_SOURCE_INTEGRITY=c8828b041101268532aee98774161c713481d24f50cfbd1
 readonly PARENT_PATCH=0426-arm64-move-late-CPU-prepare-workspaces-off-stack.patch
 readonly PARENT_PATCH_SHA256=304abfa7f493a1ed1d1e8f7057dbc5c4f5316fa3591fd8237d1216042aab1223
 readonly CURRENT_PATCH=0427-arm64-capture-late-CPU-system-policy-evidence.patch
-readonly CURRENT_PATCH_SHA256=767b917aff1d9dca287cea1ef41cf78ac9839e0c740bca52955915ae877831a6
+readonly CURRENT_PATCH_SHA256=09eba2910e52fc31533e276365ebd98faa7db51567257237000ec9355dc1bc5e
 
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 

@@ -264,10 +264,17 @@ identical two-target policy record, seals it before finalization, and merges it
 only after runtime-image identity cross-binding. Seven stopped attempts failed
 closed on exact anchors, validator classification, or strict style. A first
 successful package at `0b9d80dd` was deliberately superseded after review added
-the direct string-header dependency. The final exact Buildbox generation at
-`d841add7` passes checksums, replay, strict checkpatch with zero findings, all
-35 rejecting source mutations, and the 158-profile series invariant. It adds
-no target-cap producer, active expectation, planner extension, architecture
+the direct string-header dependency. The first exact Buildbox generation at
+`d841add7` passed checksums, replay, strict checkpatch with zero findings, all
+35 rejecting source mutations, and the 158-profile series invariant. Its
+configuration-enabled compile at `6c886b33` then stopped before linking: three
+helper parameters named `current` collided with arm64's task-current macro,
+producing strict-prototype and pointer-type errors. No package was produced.
+The repaired generator at `61f45db0` renames only those parameters to `value`,
+rejects restoration of the macro collision as a 36th source mutation, and
+reproduces canonical patch `0427` from the same integrity-pinned post-`0426`
+source. Exact checksums, replay, and strict style pass. It still adds no
+target-cap producer, active expectation, planner extension, architecture
 commit, READY path, CPU request, candidate, or device action. See the
 [system/policy generation result](results/system-policy-generation-20260829.txt).
 
