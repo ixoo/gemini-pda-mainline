@@ -91,7 +91,7 @@ def validate(root: Path) -> list[str]:
     require("__clear_bit" not in commit and "bitmap_andnot" not in commit,
             "architecture commit can clear capability state")
 
-    state_map = function(proton, "late_cpu_commit_mitigation_state(")
+    state_map = function(proton, "late_cpu_mitigation_state(")
     for token in (
         "ARM64_LATE_CPU_MITIGATION_UNAFFECTED",
         "ARM64_LATE_CPU_MITIGATION_MITIGATED",

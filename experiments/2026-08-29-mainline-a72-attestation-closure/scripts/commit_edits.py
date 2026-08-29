@@ -46,9 +46,7 @@ def validate_parent(root: Path) -> None:
 HEADER_DECLARATIONS = """\
 void __init arm64_commit_late_cpu_profile(void);
 int __init arm64_commit_late_cpu_plan(const struct arm64_late_cpu_plan *plan);
-int __init
-arm64_commit_late_cpu_mitigations(
-\tconst struct arm64_late_cpu_effect_plan *effects);
+int __init arm64_commit_late_cpu_mitigations(const struct arm64_late_cpu_effect_plan *effects);
 """
 
 
@@ -69,8 +67,7 @@ static bool __init late_cpu_commit_cap_allowed(unsigned int cap)
 	}
 }
 
-int __init arm64_commit_late_cpu_plan(
-	const struct arm64_late_cpu_plan *plan)
+int __init arm64_commit_late_cpu_plan(const struct arm64_late_cpu_plan *plan)
 {
 	DECLARE_BITMAP(expected_caps, ARM64_NCAPS);
 	const struct arm64_cpu_capabilities *descriptor;
@@ -124,7 +121,7 @@ int __init arm64_commit_late_cpu_plan(
 MITIGATION_COMMIT = r'''
 
 static int __init
-late_cpu_commit_mitigation_state(u8 planned, enum mitigation_state *state)
+late_cpu_mitigation_state(u8 planned, enum mitigation_state *state)
 {
 	switch (planned) {
 	case ARM64_LATE_CPU_MITIGATION_UNAFFECTED:
@@ -141,9 +138,7 @@ late_cpu_commit_mitigation_state(u8 planned, enum mitigation_state *state)
 	}
 }
 
-int __init
-arm64_commit_late_cpu_mitigations(
-	const struct arm64_late_cpu_effect_plan *effects)
+int __init arm64_commit_late_cpu_mitigations(const struct arm64_late_cpu_effect_plan *effects)
 {
 	enum mitigation_state v2 = SPECTRE_UNAFFECTED;
 	enum mitigation_state v4 = SPECTRE_UNAFFECTED;
@@ -155,20 +150,17 @@ arm64_commit_late_cpu_mitigations(
 	if (!effects || system_capabilities_finalized())
 		return -EINVAL;
 	if (effects->spectre_v2.required) {
-		ret = late_cpu_commit_mitigation_state(
-			effects->spectre_v2.mitigation_state, &v2);
+		ret = late_cpu_mitigation_state(effects->spectre_v2.mitigation_state, &v2);
 		if (ret || READ_ONCE(spectre_v2_state) > v2)
 			return -EINVAL;
 	}
 	if (effects->spectre_v4.required) {
-		ret = late_cpu_commit_mitigation_state(
-			effects->spectre_v4.mitigation_state, &v4);
+		ret = late_cpu_mitigation_state(effects->spectre_v4.mitigation_state, &v4);
 		if (ret || READ_ONCE(spectre_v4_state) > v4)
 			return -EINVAL;
 	}
 	if (effects->bhb.required) {
-		ret = late_cpu_commit_mitigation_state(
-			effects->bhb.mitigation_state, &bhb);
+		ret = late_cpu_mitigation_state(effects->bhb.mitigation_state, &bhb);
 		current_bhb_methods = READ_ONCE(system_bhb_mitigations);
 		current_bhb_loop = READ_ONCE(max_bhb_k);
 		if (ret || READ_ONCE(spectre_bhb_state) > bhb ||
