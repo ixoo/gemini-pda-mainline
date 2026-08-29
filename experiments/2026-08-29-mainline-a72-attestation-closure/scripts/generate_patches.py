@@ -14,20 +14,16 @@ import subprocess
 import sys
 import tempfile
 
-from source_edits import PARENT_HASHES
+from source_edits import RUNTIME_PARENT_HASHES
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 EXPERIMENT = SCRIPT_DIR.parent
 REPO_ROOT = EXPERIMENT.parents[1]
 PATCHES = (
-    "0423-arm64-add-dormant-late-CPU-expected-pair-schema.patch",
-    "0424-arm64-validate-late-CPU-expectation-before-online.patch",
     "0425-arm64-keep-late-CPU-expectation-check-runtime-safe.patch",
 )
 SUBJECTS = (
-    "arm64: add dormant late CPU expected-pair schema",
-    "arm64: validate late CPU expectation before online",
     "arm64: keep late CPU expectation check runtime-safe",
 )
 
@@ -49,7 +45,7 @@ def run(*args: str, cwd: Path, env: dict[str, str] | None = None) -> str:
 
 
 def prepare_parent(source_root: Path, destination: Path) -> None:
-    for relative, expected in PARENT_HASHES.items():
+    for relative, expected in RUNTIME_PARENT_HASHES.items():
         source = source_root / relative
         if not source.is_file() or source.is_symlink() or sha256(source) != expected:
             raise SystemExit(f"prepared source changed: {relative}")
@@ -119,27 +115,15 @@ def main() -> int:
         run("git", "config", "user.name", "Gemini Mainline Experiment", cwd=source)
         run("git", "config", "user.email", "gemini-mainline@example.invalid", cwd=source)
         commit(
-            source, "A72 attestation closure post-0422 parent",
-            "Exact relevant source copied from the canonical prepared tree through 0422.",
+            source, "A72 attestation closure post-0424 parent",
+            "Exact relevant source copied from the canonical prepared tree through 0424.",
             "2026-08-29T03:00:00Z", check_diff=False,
         )
         parent = run("git", "rev-parse", "HEAD", cwd=source)
         validations: list[str] = []
         stages = (
             (
-                "schema", SUBJECTS[0],
-                "Describe the exact prior-cycle target subset with per-field validity.\n"
-                "Keep the schema empty and reject it from core runtime storage.",
-                "2026-08-29T03:01:00Z",
-            ),
-            (
-                "validator", SUBJECTS[1],
-                "Compare an immutable READY-bound expectation after CPU-info capture\n"
-                "and park mismatches before topology, GIC, timer, or online publication.",
-                "2026-08-29T03:02:00Z",
-            ),
-            (
-                "runtime-fix", SUBJECTS[2],
+                "runtime-fix", SUBJECTS[0],
                 "Keep the secondary-entry validator independent of init-only helpers.\n"
                 "Preserve the exact non-empty source-identity requirement.",
                 "2026-08-29T03:03:00Z",
@@ -206,7 +190,7 @@ def main() -> int:
             f"repository_commit={args.repository_commit}\n"
             f"prepared_source_state={state.read_text().strip()}\n"
             f"prepared_source_integrity={integrity.read_text().strip()}\n"
-            "generated_patch_count=3\nexpected_pair_valid_fields=28\n"
+            "generated_patch_count=1\nexpected_pair_valid_fields=28\n"
             "active_expectations=0\nentry_comparisons=26\n"
             "entry_identity_check=runtime-safe\n"
             "entry_location=after-cpuinfo-before-notify-online\n"

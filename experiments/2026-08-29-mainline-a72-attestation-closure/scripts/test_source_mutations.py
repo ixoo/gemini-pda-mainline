@@ -60,12 +60,11 @@ def mutations() -> list[tuple[str, Callable[[Path], None]]]:
 
 
 def prepare(source_root: Path, destination: Path) -> None:
-    for relative in EDITS.PARENT_HASHES:
+    for relative in EDITS.RUNTIME_PARENT_HASHES:
         target = destination / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source_root / relative, target)
-    EDITS.apply_schema(destination)
-    EDITS.apply_validator(destination)
+    VALIDATE.validate_validator(destination)
     EDITS.apply_runtime_fix(destination)
     VALIDATE.validate_runtime_fix(destination)
 

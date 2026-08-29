@@ -17,6 +17,15 @@ PARENT_HASHES = {
         "2af27545feff3adf6e3514f6a42ffb50b4edac714c7e7d719bd7a4448f13ba7e",
 }
 
+RUNTIME_PARENT_HASHES = {
+    "arch/arm64/include/asm/late_cpu_profile.h":
+        "b84c227709927bef35f3c8114484e6fab6e92550097dd605ab92fb28cedd878e",
+    "arch/arm64/kernel/late_cpu_profile.c":
+        "cb1b778d2ee92314b0d62539dfa27b0dd268a34808198e7ff9e39e521703368e",
+    "arch/arm64/kernel/smp.c":
+        "cb5d400e31be67561216a6020bcfdb0808eadd6991cf6b675d5c55bb15433869",
+}
+
 
 SCHEMA_BLOCK = '''#define ARM64_LATE_CPU_EXPECTED_PAIR_ABI	1
 
@@ -202,6 +211,12 @@ def replace_once(path: Path, old: str, new: str) -> None:
 
 
 def validate_parent(root: Path, stage: str) -> None:
+    if stage == "runtime-fix":
+        for relative, expected in RUNTIME_PARENT_HASHES.items():
+            if sha256(require_file(root, relative)) != expected:
+                raise SystemExit(f"runtime source hash changed: {relative}")
+        return
+
     relatives = tuple(PARENT_HASHES)
     if stage == "schema":
         for relative in relatives:
