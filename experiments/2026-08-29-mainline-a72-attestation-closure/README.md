@@ -174,12 +174,15 @@ first source edit at the two-line evidence-member insertion anchor. The first
 diagnosis attributed that failure to literal tab escapes in the insertion
 blocks, and signed commit `431a0357` materialized those blocks with actual
 tabs. Attempt 2 at that exact commit reproduced the same anchor failure,
-proving the first diagnosis incomplete. A byte-level check of the prepared
-parent confirmed the independently unique runtime-binding member. The editor
-now anchors only that owned member and inserts the expectation immediately
-before it instead of coupling the edit to the adjacent identity member. No
-patch, retained package, kernel build, candidate, or device action resulted
-from either stopped attempt; every source predicate remains unchanged.
+proving the first diagnosis incomplete. Signed commit `e6507297` narrowed the
+anchor to the runtime-binding member alone; attempt 3 stopped at the same
+fail-closed count check. Instrumentation against the hash-pinned parent then
+showed the actual count was two, not zero: the evidence and READY-token
+structures both carry that member and its adjacent identity member. The editor
+now binds the insertion to the complete `arm64_late_cpu_evidence` prefix and
+inserts the expectation immediately before that structure's runtime binding.
+No patch, retained package, kernel build, candidate, or device action resulted
+from any stopped attempt; every source predicate remains unchanged.
 
 ## Conclusion
 

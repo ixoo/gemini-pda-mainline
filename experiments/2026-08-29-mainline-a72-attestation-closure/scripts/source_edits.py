@@ -230,7 +230,17 @@ def apply_schema(root: Path) -> None:
     )
     replace_once(
         header,
+        "struct arm64_late_cpu_evidence {\n"
+        "\tu32 abi;\n"
+        "\t/* Non-circular inputs; neither field proves the running image/config. */\n"
+        "\tu64 source_parent_identity[ARM64_LATE_CPU_ID_WORDS];\n"
+        "\tu64 config_input_identity[ARM64_LATE_CPU_ID_WORDS];\n"
         "\tstruct arm64_late_cpu_runtime_binding binding;\n",
+        "struct arm64_late_cpu_evidence {\n"
+        "\tu32 abi;\n"
+        "\t/* Non-circular inputs; neither field proves the running image/config. */\n"
+        "\tu64 source_parent_identity[ARM64_LATE_CPU_ID_WORDS];\n"
+        "\tu64 config_input_identity[ARM64_LATE_CPU_ID_WORDS];\n"
         "\tstruct arm64_late_cpu_expected_pair expected_pair;\n"
         "\tstruct arm64_late_cpu_runtime_binding binding;\n",
     )
