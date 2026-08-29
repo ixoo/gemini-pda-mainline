@@ -169,6 +169,13 @@ add a CPU request. Local Python syntax, `bash -n`, ShellCheck, ledger validation
 and evidence mutations pass; exact-source generation and source mutations are
 the next Buildbox action.
 
+Buildbox generation attempt 1 at signed commit `b4e5dbfa` stopped before the
+first source edit: the Python insertion blocks encoded tab escapes literally,
+so the next exact source anchor could not match. No patch, retained package,
+kernel build, candidate, or device action resulted. The correction changes
+only those two insertion-block literals so their existing C text is
+materialized with actual tabs; every source predicate remains unchanged.
+
 ## Conclusion
 
 `confirmed-reference-only-mapping-and-multi-owner-ready-gap`: the exact CPU8

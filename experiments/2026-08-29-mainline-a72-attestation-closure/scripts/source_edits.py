@@ -18,7 +18,7 @@ PARENT_HASHES = {
 }
 
 
-SCHEMA_BLOCK = r'''#define ARM64_LATE_CPU_EXPECTED_PAIR_ABI	1
+SCHEMA_BLOCK = '''#define ARM64_LATE_CPU_EXPECTED_PAIR_ABI	1
 
 enum arm64_late_cpu_expected_pair_field {
 	ARM64_LATE_CPU_EXPECT_SOURCE_IDENTITY,
@@ -52,7 +52,7 @@ enum arm64_late_cpu_expected_pair_field {
 	ARM64_LATE_CPU_EXPECT_FIELD_COUNT,
 };
 
-#define ARM64_LATE_CPU_EXPECTED_PAIR_VALID_MASK				\
+#define ARM64_LATE_CPU_EXPECTED_PAIR_VALID_MASK				\\
 	GENMASK_ULL(ARM64_LATE_CPU_EXPECT_FIELD_COUNT - 1, 0)
 
 /* Prior-cycle expectation; no field is a current-boot observation. */
@@ -93,7 +93,7 @@ struct arm64_late_cpu_expected_pair {
 '''
 
 
-VALIDATOR_BLOCK = r'''static bool
+VALIDATOR_BLOCK = '''static bool
 late_expected_pair_complete(const struct arm64_late_cpu_plan *plan)
 {
 	const struct arm64_late_cpu_expected_pair *expected =
