@@ -20,14 +20,27 @@ def require(condition: bool, message: str) -> None:
 
 
 def function(text: str, signature: str) -> str:
+    require(signature.endswith("("), f"invalid function signature: {signature}")
     search = 0
     while True:
         start = text.find(signature, search)
         require(start >= 0, f"function absent: {signature}")
-        opening = text.find("{", start)
-        require(opening >= 0, f"function body absent: {signature}")
-        terminator = text.find(";", start)
-        if terminator < 0 or opening < terminator:
+        parameter = start + len(signature) - 1
+        parameter_depth = 0
+        closing = -1
+        for index in range(parameter, len(text)):
+            if text[index] == "(":
+                parameter_depth += 1
+            elif text[index] == ")":
+                parameter_depth -= 1
+                if parameter_depth == 0:
+                    closing = index
+                    break
+        require(closing >= 0, f"unterminated parameters: {signature}")
+        opening = closing + 1
+        while opening < len(text) and text[opening].isspace():
+            opening += 1
+        if opening < len(text) and text[opening] == "{":
             break
         search = start + len(signature)
     depth = 0
