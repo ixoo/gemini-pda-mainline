@@ -59,6 +59,12 @@ def validate(root: Path) -> list[str]:
     commit = function(cpufeature, "arm64_commit_late_cpu_plan(")
     require("if (!plan || system_capabilities_finalized() ||" in commit,
             "architecture commit finalization gate changed")
+    require("!bitmap_subset(plan->required_local_caps,\n"
+            "\t\t\t   plan->target_local_caps, ARM64_NCAPS)" in commit,
+            "late-required capabilities stopped being a target subset")
+    require("bitmap_intersects(plan->required_local_caps,\n"
+            "\t\t\t      system_cpucaps, ARM64_NCAPS)" in commit,
+            "late-required capabilities stopped being disjoint from live state")
     for token in (
         "ARM64_ALWAYS_SYSTEM",
         "plan->abi != ARM64_LATE_CPU_PLAN_ABI",
