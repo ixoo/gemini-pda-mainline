@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-29-mainline-a72-attestation-closure` |
-| Status | `completed-closure-definition; dormant slices 1-4 admitted and linked cleanly; architecture-commit slice pending` |
+| Status | `completed-closure-definition; dormant slices 1-6 admitted and linked cleanly; conservative entry-constraint audit pending` |
 | Subsystem | arm64 late-CPU evidence, capability commitment, and MT6797 A72 entry |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-29 |
@@ -96,6 +96,9 @@ if its current register state differs from the frozen expectation.
 - [`results/compile-validation-20260829.txt`](results/compile-validation-20260829.txt):
   configuration-off control, both rejected linked attempts, and the final
   configuration-enabled linked binary/configuration/stack proof.
+- [`results/expectation-compile-20260829.txt`](results/expectation-compile-20260829.txt):
+  exact enabled-profile Buildbox package, linked expected-field cache/HWCAP
+  call graph, sections, stack frames, and unchanged-diagnostic comparison.
 
 ## Procedure
 
@@ -403,8 +406,31 @@ deterministic replay, and strict checkpatch with zero findings. Canonical patch
 the canonical-series invariant. READY, CPU requests, candidate status, and
 device actions remain absent. See the
 [expectation generation result](results/expectation-generation-20260829.txt).
-The next gate is the exact enabled `a72-p30e-wire` Buildbox compile and linked
-inspection; source-generation evidence does not justify a device boot.
+The exact enabled `a72-p30e-wire` Buildbox build now passes at signed commit
+`4f57918c` with 419 patches and independently verified Buildbox and fetched
+package checksums. The runtime expected-pair completeness and entry-validator
+symbols remain in `.text`; the cache and HWCAP planning helpers link in
+`.init.text`. Their direct call edges are present, the largest new-path stack
+allocation is 112 bytes, and the complete warning set—including both MT6797
+USB device-tree warning forms and counts—is identical to the immediate `0429`
+baseline. There is no new section mismatch, frame warning, or compiler warning.
+
+This closes logical slice 6 as linked integration evidence, not hardware
+support. Production still has no active expected pair and returns `-EAGAIN`;
+GIC, hyp, CPU-local SMCCC workaround, and unmeasured modern-ID inputs remain
+unresolved. READY, CPU requests, candidate status, hardware writes, and device
+actions remain absent. See the
+[expectation compile result](results/expectation-compile-20260829.txt).
+
+The linked result also resolves the measurement-versus-policy choice. Another
+prior-cycle target measurement can refine an expectation, but it cannot become
+a current-mainline pre-request observation: the target does not execute until
+after READY. The next decision-bearing work is therefore a source-only audit
+of conservative GIC/hyp/SMCCC and modern-ID entry constraints. Each accepted
+constraint must be safe before target execution and paired with a fail-closed
+current-target check before ordinary secondary startup. Do not activate the
+exact expected pair, publish READY, or construct a physical candidate until
+that ownership audit closes.
 
 ## Conclusion
 
@@ -415,8 +441,9 @@ fail-closed entry validator, their section/stack integration repairs, and the
 current-mainline system/policy owner, pure planner, canonical identities, and
 dormant architecture commit/receipt are now reproducibly generated, admitted,
 and linked. Pre-request expected-target planning separation is now reproducibly
-generated and admitted, but not yet linked. Expected-contract activation,
-alternatives/HWCAP finalization, READY, and physical admission remain open. No
+generated, admitted, and linked. Conservative entry constraints,
+expected-contract activation, alternatives/HWCAP finalization, READY, and
+physical admission remain open. No
 CPU request is justified by the recovered capsule alone.
 
 ## Follow-up

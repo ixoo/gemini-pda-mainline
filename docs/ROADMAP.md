@@ -6233,7 +6233,19 @@ The next ordered work is:
    `a72-p30e-wire` profile on Buildbox, then inspect the linked expected-field
    lookup, production cache/HWCAP call graph, sections, stack frames, and full
    diagnostics. Do not select a device candidate from source-generation
-   evidence.
+   evidence. That exact linked build now passes. Runtime expectation validation
+   remains available after init, pure expectation planning stays init-only,
+   stack use remains bounded, and the full diagnostic set is unchanged from
+   the prior enabled-profile baseline. Production still has no active expected
+   pair and fails closed before READY. The linked result also confirms that
+   another prior-cycle measurement cannot supply a current pre-request value:
+   CPU8 cannot execute until after READY. **Selected next:** audit one
+   architecture-owned conservative pre-entry contract for the remaining
+   GIC/hyp, CPU-local SMCCC workaround, and unavailable modern-ID inputs. Every
+   accepted pre-request assumption must have a safe conservative system effect
+   and a matching fail-closed target-entry check. Keep the expected pair
+   inactive and add no READY publication, CPU request, candidate, or device
+   action until that audit proves the contract is complete.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
