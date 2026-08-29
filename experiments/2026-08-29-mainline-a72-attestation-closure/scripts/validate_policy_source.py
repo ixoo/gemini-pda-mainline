@@ -116,10 +116,16 @@ def validate(root: Path) -> list[str]:
     ):
         require(token in field_valid, f"expected-field proof changed: {token}")
 
+    expected_v2 = function(
+        proton, "late_cpu_expected_a72_spectre_v2_evidence_state(")
+    expected_v4 = function(
+        proton, "late_cpu_expected_a72_spectre_v4_evidence_state(")
+    expected_bhb = function(
+        proton, "late_cpu_expected_a72_spectre_bhb_evidence_state(")
     expected_functions = "\n".join((
-        function(proton, "late_cpu_expected_a72_spectre_v2_evidence_state("),
-        function(proton, "late_cpu_expected_a72_spectre_v4_evidence_state("),
-        function(proton, "late_cpu_expected_a72_spectre_bhb_evidence_state("),
+        expected_v2,
+        expected_v4,
+        expected_bhb,
         function(proton, "arm64_late_cpu_expected_a72_spectre_v2_state("),
         function(proton, "arm64_late_cpu_expected_a72_spectre_v4_state("),
         function(proton, "arm64_late_cpu_expected_a72_spectre_bhb_state("),
@@ -145,6 +151,8 @@ def validate(root: Path) -> list[str]:
     ):
         require(token in expected_functions,
                 f"expected-only conservative proof changed: {token}")
+    require("\treturn ARM64_LATE_CPU_CAP_PRESENT;\n" in expected_v4,
+            "unknown WA2 result stopped selecting affected Spectre-v4 state")
     for forbidden in (
         "target_cap", "smccc_wa1", "smccc_wa2", "smccc_wa3",
         "id_aa64isar2", "id_aa64mmfr1", "ARM64_LATE_CPU_SMCCC_SMC",
