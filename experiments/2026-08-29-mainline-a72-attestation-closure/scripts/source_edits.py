@@ -582,6 +582,11 @@ def apply_system_policy(root: Path) -> None:
     proton = root / "arch/arm64/kernel/proton-pack.c"
     replace_once(
         proton,
+        "#include <linux/sched/task_stack.h>\n",
+        "#include <linux/sched/task_stack.h>\n#include <linux/string.h>\n",
+    )
+    replace_once(
+        proton,
         "u8 get_spectre_bhb_loop_value(void)\n"
         "{\n"
         "\treturn max_bhb_k;\n"

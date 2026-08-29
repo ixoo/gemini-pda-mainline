@@ -292,6 +292,8 @@ def validate_system_policy(root: Path) -> list[str]:
     mitigation_owner = function(
         proton, "arm64_late_cpu_collect_policy("
     )
+    require("#include <linux/string.h>" in proton,
+            "mitigation owner lacks the direct memchr_inv declaration")
     for source, tokens in (
         (state_map, (
             "case SPECTRE_UNAFFECTED:",
