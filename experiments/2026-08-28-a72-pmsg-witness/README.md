@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-a72-pmsg-witness` |
-| Status | `compile accepted; runtime tooling pending` |
+| Status | `offline candidate and runtime tooling accepted; deployment pending` |
 | Subsystem | Gemian pstore/ramoops and retained Cortex-A72 experiment attribution |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-28 |
@@ -73,6 +73,18 @@ preservation, forbidden-action inventory, and negative mutations pass.
   pinned parent/child comparison, binary gates, and no-device boundary.
 - [`results/compile-review-20260829.txt`](results/compile-review-20260829.txt):
   accepted exact-parent Buildbox compile and linked-binary evidence.
+- `scripts/assemble.py`, `scripts/build-candidate.sh`, and
+  `scripts/test_candidate.py`: source-pinned Android-v0 construction and
+  independent candidate parser with rejecting mutations.
+- `scripts/validate_pmsg.py` and `scripts/test_pmsg_tools.py`: changed-cycle
+  raw-binary pmsg classifier and its positive and negative fixtures.
+- `scripts/collect-outcome.sh`: source-pinned wrapper around the repository's
+  disconnect/reconnect/changed-boot-ID pstore collector.
+- `scripts/install-boot2.sh`: exact-candidate derived boot2-only installer.
+- [`results/offline-candidate-review-20260829.txt`](results/offline-candidate-review-20260829.txt):
+  independent container construction and candidate validation.
+- [`results/runtime-tooling-validation-20260829.txt`](results/runtime-tooling-validation-20260829.txt):
+  changed-cycle parser, decision map, and guarded-installer validation.
 
 ## Procedure
 
@@ -84,8 +96,15 @@ preservation, forbidden-action inventory, and negative mutations pass.
    operations with the compiler's exact four-callsite conditional topology,
    one indirect backend call, unchanged console-marker and register-read
    inventories, bounded stack use, and no forbidden call.
-4. Define and validate a pmsg-aware changed-cycle collector before constructing
-   or deploying one candidate.
+4. Construct the candidate twice from the exact fetched Buildbox package and
+   active Android-v0 container; require identical raw and padded bytes and an
+   independently parsed header, ramdisk, kernel field, manifest, and
+   provenance.
+5. Validate the pmsg-aware changed-cycle collector on binary-surrounded valid
+   prefixes and rejecting corruption/mixed-cycle fixtures before deployment.
+6. Arm that collector while known-good Gemian is reachable, install only the
+   exact candidate to live-GPT-resolved inactive boot2, require matching full
+   readback and clean shutdown, then spend one physical boot2 cycle.
 
 ## Observations
 
@@ -116,8 +135,20 @@ retry at project commit `5899bda1...` passes both complete builds, identical
 configuration and diagnostics, the exact four-callsite topology, one indirect
 backend call, all four records, unchanged inherited console inventory, 26 MRS
 instructions in each target task, and bounded stack use. The fetched manifest
-passes independently. No boot image has been selected as a candidate, and no
-device access, retained-RAM write, or hardware action occurred.
+passes independently.
+
+The accepted package kernel field `b0560432...` was assembled twice with exact
+active Android-v0 boot `1fa78de9...`. Two separate artifact roots reproduce
+raw candidate `f2be7936...` and exact 16 MiB padded boot2 image `0814c06b...`
+byte-for-byte. The independent candidate parser verifies the header, image ID,
+kernel, unchanged ramdisk, zero padding, provenance, manifest, and private file
+modes; all six mutations are rejected. The changed-cycle pmsg parser accepts
+the five exact sequence states while treating surrounding Android data as
+arbitrary binary and rejects eleven malformed, duplicate, mixed, unsafe, or
+unchanged-cycle inputs. Its guarded installer derives from the accepted
+boot2-only path and pins predecessor `f8e247e5...`. No device access,
+retained-RAM write, partition write, or boot occurred during these offline
+gates.
 
 ## Analysis
 
@@ -129,12 +160,14 @@ when retained, but cannot be the sole success criterion.
 
 ## Conclusion
 
-Source generation and the exact-parent compile comparison are accepted. This
-experiment currently makes no runtime or CPU support claim and is not yet a
-boot candidate.
+Source generation, the exact-parent compile comparison, exact Android-v0
+candidate, and changed-cycle recovery tooling are accepted. This experiment
+still makes no runtime or CPU support claim; the one physical cycle is pending.
 
 ## Follow-up
 
-Follow only the ordered step in [`docs/ROADMAP.md`](../../docs/ROADMAP.md):
-freeze the pmsg-aware changed-cycle collector and candidate validation before
-candidate construction or any physical action.
+Follow only the ordered step in [`docs/ROADMAP.md`](../../docs/ROADMAP.md): arm
+the accepted changed-cycle collector, deploy exact padded candidate
+`0814c06b...` to live-resolved boot2 with full readback and shutdown, and spend
+one attributable physical cycle. Do not repeat the same image unless a new
+independent observation path changes the decision.

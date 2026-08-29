@@ -6062,10 +6062,21 @@ The next ordered work is:
    commit `5899bda1...` passes both builds, identical configuration and
    diagnostics, the child-only writer, one indirect backend call, all fixed
    records, unchanged console-marker inventory, 26 target-task register reads
-   in both trees, bounded stack use, package manifest, and provenance. No
-   candidate or device action occurred. **Selected next:** freeze and validate
-   a same-version pmsg-aware changed-cycle collector and exact candidate
-   construction before any boot2 deployment.
+   in both trees, bounded stack use, package manifest, and provenance. Exact
+   Android-v0 candidate construction now reproduces raw `f2be7936...` and
+   padded boot2 image `0814c06b...` in two independent roots; the independent
+   parser rejects all six container mutations. The changed-cycle classifier
+   accepts only the five exact sequence prefixes, treats surrounding Android
+   pmsg bytes as untrusted binary, requires a
+   disconnect/reconnect/changed-boot-ID recovery, and rejects eleven
+   corruption, mixed-cycle, unsafe-file, and unchanged-cycle inputs. The
+   derived installer pins prior target-register image `f8e247e5...` and
+   retains live-GPT boot2 resolution, full readback, no-new-backup policy, and
+   clean shutdown. No device action occurred during these gates. **Selected
+   next:** arm the accepted collector while known-good Gemian is reachable,
+   install exact padded candidate `0814c06b...` to live-resolved inactive
+   boot2, require full matching readback and shutdown, then spend one physical
+   cycle and classify only its changed-cycle pmsg result.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

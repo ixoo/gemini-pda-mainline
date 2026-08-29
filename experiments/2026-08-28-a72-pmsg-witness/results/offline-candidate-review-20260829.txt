@@ -1,0 +1,62 @@
+Gemian A72 same-version pmsg witness offline candidate review
+UTC date: 2026-08-29
+
+Scope
+-----
+
+Hardware-free construction and independent validation only. No device access,
+partition write, retained-RAM write, boot, reboot, or shutdown occurred.
+
+Inputs
+------
+
+repository_compile_commit=5899bda178aca1363073c7bcc80eddf4e71c07e8
+source_commit=59e00a9144d782e148332009a835b99c43382467
+compile_manifest_sha256=edb1fd6498e599761cbf0237f9e590388c156fdaf73735ec7af7236be168771d
+kernel_field_sha256=b056043221ba934dc970eb7f22a8444a05aba4a58a25ba66412f7d12735c54e7
+active_boot_sha256=1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513
+active_ramdisk_sha256=a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4
+pmsg_patchset_sha256=6663fe7b073ce2e939bf2ba6ce3de28e824cf3b30d1653c4d3c272bf3ba2bd46
+assembler_sha256=11fd71cdc0551e16422f61ea967b2111647dd39185ac492a98c19ba4df89173a
+builder_sha256=f0e8d8d0d370a067703d67db03163e921cfe4c193d9f74e96769090232d54dfe
+candidate_test_sha256=4b53a048ff34e01da8d39e13cebf4760c1cef89483226d9f5653762a2c8fd3f0
+
+Candidate
+---------
+
+artifact_name=gemian-a72-pmsg-witness-f2be7936996e
+raw_name=gemian-a72-pmsg-witness.boot.img
+raw_size=14815232
+raw_sha256=f2be7936996ea5a2d94f236c584e2b41b1b61a6eb8877e615a2b5d344547fdad
+padded_size=16777216
+padded_sha256=0814c06b9bb41aa7ec666ad1abbb4bbf86e113e11878ac3de159d6cec3112f78
+analysis_sha256=e7b12b97f72066c661f856172d122ec9e8332d1b69fc841347edac7794ab3b90
+provenance_sha256=37380115c56a85743d56fb43e2f0218c8db9775e9195411e718dc6c3aa76795b
+artifact_manifest_sha256=38112dbb0a783c8fac0234f3856ed85488560bb16a4196ad9ec7248cb2b0e8dc
+
+Independent construction
+------------------------
+
+- Two separately created ignored artifact roots produced byte-identical raw
+  Android-v0 images, padded boot2 images, metadata, and manifests.
+- Two raw assemblies were compared inside each builder invocation.
+- Two independent padding methods were compared inside each builder
+  invocation; the full tail is zero.
+- The exact active Android-v0 header, command line, addresses, ramdisk, image
+  ID, kernel field, file modes, inventory, and manifest were re-parsed.
+- All six candidate mutations were rejected for the expected reason: raw
+  corruption, nonzero padding, pmsg-provenance substitution, duplicate
+  provenance, an unmanifested file, and an unsafe manifest path.
+
+Validation
+----------
+
+bash_syntax=pass
+shellcheck=pass
+python_compile=pass
+assembler_chain=pinned-transitive
+candidate_mutations=6-rejected
+git_diff_check=pass
+device_access=none
+runtime_result=not-tested
+result=accepted-offline-candidate

@@ -1,0 +1,69 @@
+Gemian A72 same-version pmsg witness runtime-tooling validation
+UTC date: 2026-08-29
+
+Scope
+-----
+
+Hardware-free changed-cycle, pmsg parser, and guarded-installer validation.
+No device access or hardware action occurred.
+
+Pinned tools
+------------
+
+pstore_collector_sha256=9047084f3012aff47e23e56498d4bc0ae6f8fb7e4f15caec10abb6c15e9a9b3b
+pmsg_validator_sha256=4aceef4150953fea326e7479076023d9ad0fd518642584af8dbf108ee1ebd52f
+pmsg_test_sha256=45efd68099280dc110e2fab919fb59dedb8b216216fce7d8ee420f63f328532b
+cycle_wrapper_sha256=bacbedd3316f8da24abbdf19744306b9ede7c730781e970fc84a3ff6f8c05214
+installer_sha256=2fe7625f549bd4d39af5a31bad2316fe2dec1227634d1ecfa748337abd3fbd14
+parent_installer_sha256=d32d5aed962954a122f361ad589d0ebfa8e10372a450c92fb73afddee38c9b39
+candidate_raw_sha256=f2be7936996ea5a2d94f236c584e2b41b1b61a6eb8877e615a2b5d344547fdad
+candidate_padded_sha256=0814c06b9bb41aa7ec666ad1abbb4bbf86e113e11878ac3de159d6cec3112f78
+expected_predecessor_sha256=f8e247e5f067fff562e00d1d96447b236c8ea2ec946c9e493589938b0b9d9f7f
+
+Parser contract
+---------------
+
+- Requires the existing collector's confirmed stable disconnect, reconnect,
+  changed boot ID, aarch64 recovery, exact recovery-kernel release, and
+  pre/post-archive boot-ID binding.
+- Reads only exact `pmsg-ramoops-0`; surrounding Android pmsg bytes are
+  untrusted and may be arbitrary binary.
+- Recognizes only the three source-pinned newline-terminated record forms and
+  the mutually exclusive PASS/FAULT terminal.
+- Accepts only prefixes of the exact sequence: none; entry; entry plus
+  pre-scheduler; and entry plus pre-scheduler plus one terminal.
+- The PASS terminal remains `pre-capsule-pass-await-capsules`; it is not
+  promoted to a target-register result without independently valid capsules.
+- Missing pmsg after a confirmed cycle is evidence loss or a pre-entry path,
+  not a CPU result. Screen state is always non-classifying.
+
+Tests
+-----
+
+valid_classifications=5
+binary_prefix_and_suffix=accepted
+invalid_captures=11-rejected
+
+Rejected inputs cover duplicate entry, both terminals, terminal without
+pre-scheduler, pre-scheduler without entry, wrong order, malformed version,
+malformed stage, missing newline, unchanged boot ID, unexpected pmsg inventory,
+and a symlinked pmsg file.
+
+Installer contract
+------------------
+
+The source-pinned derived installer retains the existing live-GPT boot2-only
+resolution, inactive/unmounted/writable/size/power gates, no-new-backup policy,
+exact predecessor or already-installed identity gate, full padded write, sync
+and flush, full-partition matching readback, bounded private evidence, and
+clean shutdown after success. It substitutes no other partition.
+
+bash_syntax=pass
+shellcheck=pass
+python_compile=pass
+collector_help=pass
+installer_derivation_and_help=pass
+git_diff_check=pass
+device_access=none
+runtime_result=not-tested
+result=accepted-runtime-tooling
