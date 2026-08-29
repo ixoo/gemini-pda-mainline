@@ -72,6 +72,11 @@ PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/generate_planner_patch.py" \
 	--source-root "$source_root" --repository-commit "$project_commit" \
 	--output "$partial"
 (cd "$partial" && sha256sum --check --strict SHA256SUMS >/dev/null)
+actual_files=$(find "$partial" -mindepth 1 -maxdepth 1 -type f \
+	-printf '%f\n' | sort)
+readonly actual_files
+readonly expected_files=$'0428-arm64-finalize-late-CPU-pure-plan-identities.patch\nSHA256SUMS\nprovenance.txt\nseries\nsource-validation.txt'
+[[ "$actual_files" == "$expected_files" ]] || die 'generated package file set changed'
 for marker in generated_patch_count=1 \
 	planner_outputs=capabilities-effects-hwcaps-identities \
 	identity_encoding=sha256-big-endian-named-fields \

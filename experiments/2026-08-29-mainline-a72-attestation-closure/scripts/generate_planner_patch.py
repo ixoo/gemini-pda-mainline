@@ -175,13 +175,15 @@ def main() -> int:
         patch = package / PATCH
         shutil.move(generated[0], patch)
         validate_patch(patch)
-        fix_patch_style(patch, source_root, package)
+        checkpatch_work = temp / "checkpatch"
+        checkpatch_work.mkdir()
+        fix_patch_style(patch, source_root, checkpatch_work)
         validate_patch(patch)
         run(
             "perl", str(source_root / "scripts/checkpatch.pl"), "--strict",
             "--no-tree", f"--root={source_root}", "--ignore",
             "MISSING_SIGN_OFF,FILE_PATH_CHANGES,CAMELCASE",
-            str(patch), cwd=package,
+            str(patch), cwd=checkpatch_work,
         )
 
         replay = temp / "replay"
@@ -220,6 +222,13 @@ def main() -> int:
         (package / "SHA256SUMS").write_text("".join(
             f"{sha256(path)}  {path.name}\n" for path in checksummed
         ))
+        expected_files = {
+            PATCH, "series", "source-validation.txt", "provenance.txt",
+            "SHA256SUMS",
+        }
+        actual_files = {path.name for path in package.iterdir() if path.is_file()}
+        if actual_files != expected_files:
+            raise SystemExit("generated package file set changed")
         shutil.copytree(package, output)
 
     print(f"Generated slice-4 planner patch at {output}")
