@@ -1,0 +1,76 @@
+A72 target-register capsule boot2 deployment
+Date: 2026-08-28 America/New_York
+Result: PASS
+
+Exact identities
+----------------
+
+Runtime-tool repository commit:
+  fab8f7e80b4723dbe378bd95fc36fbb9828859be
+Candidate SHA-256:
+  f8e247e5f067fff562e00d1d96447b236c8ea2ec946c9e493589938b0b9d9f7f
+Candidate manifest SHA-256:
+  d3a2d9f30d36e9227abf327af27e52c418461236e00a41a705f4514bdfbfe562
+Expected predecessor SHA-256:
+  df82bbfa012a994642a145beee994125cc9069092aad22e6af0321dfb7202f60
+
+Live gates and write
+--------------------
+
+Baseline Gemian boot ID:
+  fcb93f2c-346d-4d81-a626-24227488ebf1
+Recovery kernel and architecture before write:
+  3.18.41+ / aarch64
+Live-GPT target:
+  /dev/mmcblk0p30, label boot2, partition, 16,777,216 bytes, writable
+Active root:
+  /dev/mmcblk0p29
+Power:
+  battery present, 100 percent, Good
+Predecessor full-partition SHA-256:
+  df82bbfa012a994642a145beee994125cc9069092aad22e6af0321dfb7202f60
+
+The reviewed installer resolved exactly one live-GPT boot2 and proved it was a
+block partition on mmcblk0, inactive, unmounted, holder-free, non-swap,
+writable, exact-size, and distinct from root. The expected predecessor matched.
+The local candidate, complete candidate manifest, remote mode-0600 staging
+file, and boot ID all passed again immediately before the bounded write.
+
+The installer wrote only boot2, synchronized it, flushed its block buffers,
+and matched its full-partition SHA-256. It then independently streamed all
+16 MiB, matched length and checksum, byte-compared that stream with the local
+candidate, and removed the temporary readback and remote staging file.
+
+Post-write full-partition SHA-256:
+  f8e247e5f067fff562e00d1d96447b236c8ea2ec946c9e493589938b0b9d9f7f
+Independent readback SHA-256:
+  f8e247e5f067fff562e00d1d96447b236c8ea2ec946c9e493589938b0b9d9f7f
+Fresh predecessor backup:
+  no; recovery uses the verified project-wide backup captured at project start
+Temporary readback removed:
+  yes
+Remote staging removed:
+  yes
+
+Shutdown
+--------
+
+Deployment evidence was synchronized before a clean systemctl poweroff. The
+SSH poweroff request returned 255 because the remote closed the connection;
+the installer then confirmed the device was unreachable. It did not reboot.
+
+  result=write-synced-flushed-full-readback-verified
+  shutdown=confirmed-unreachable
+  reboot=no
+  next_action=owner-physically-selects-boot2
+
+Sanitized private evidence identities
+-------------------------------------
+
+Deployment summary SHA-256:
+  552f3d5fbe65c6c8e06d3067bf4f40681afd1c9df866d34424eaaad06cdd019d
+Deployment SHA256SUMS SHA-256:
+  6b68921528d1921eda4f8780d5b7c90f814d3e5ea105e8f535d9190abbcf797c
+
+No raw partition content, candidate image, key, credential, serial, IMEI,
+calibration data, or personal identifier is included in this repository result.

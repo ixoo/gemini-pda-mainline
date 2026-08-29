@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-a72-target-register-capsule` |
-| Status | `runtime-tooling-validated` |
+| Status | `runtime-attempt-1-inconclusive-evidence-loss` |
 | Subsystem | MT6797 retained Cortex-A72 pair and arm64 ID-register evidence |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-28 |
@@ -98,6 +98,10 @@ one fixed decision map; the proven parent must not be rerun unchanged.
   fixed one-attempt observation sequence and complete outcome map.
 - [`results/runtime-tooling-validation-20260828.txt`](results/runtime-tooling-validation-20260828.txt):
   read-only predecessor observation and accepted runtime-tooling gates.
+- [`results/deployment-20260828.txt`](results/deployment-20260828.txt): exact
+  live-GPT boot2 write, full readback, cleanup, and clean-shutdown evidence.
+- [`results/runtime-attempt-1-evidence-loss-20260828.txt`](results/runtime-attempt-1-evidence-loss-20260828.txt):
+  safely recovered marker-free cycle and fixed-map classification.
 
 ## Procedure
 
@@ -218,7 +222,25 @@ source-ordered records. The parser accepts numbered live snapshots or raw
 pstore, validates 43 phase records and both inherited terminals, checks exact
 field schemas, and recomputes both 64-bit capsule identities. Four installer
 identity mutations and twelve capture mutations are rejected. No device write
-or runtime attempt has occurred.
+or runtime attempt had occurred at that tooling gate.
+
+Deployment from signed commit `fab8f7e8` matched observed predecessor
+`df82bbfa...`, resolved only inactive `/dev/mmcblk0p30` boot2 against root
+`/dev/mmcblk0p29`, wrote exact `f8e247e5...`, matched the synchronized full
+readback and independent 16 MiB stream, removed temporary state, and confirmed
+the device unreachable after clean shutdown. No fresh backup or reboot was
+requested.
+
+Runtime attempt 1 used changed-cycle pstore and the read-only USB/netcat helper
+already armed while the device was off. The owner selected boot2 once and
+reported its automatic return toward Gemian. Recovery had a changed boot ID and
+watchdog-class reason; CPU8/CPU9 were offline, boot2 remained inactive and
+unchanged, and battery state was healthy. However, console-ramoops contained no
+candidate, phase, pair, or capsule marker, and the exact USB interface never
+appeared during the collector's full 300-second window. The fixed map therefore
+classifies `NO ATTRIBUTABLE MARKER OR EVIDENCE LOSS`. This is not a capsule or
+kernel failure and establishes no target-register result. The exact candidate
+is retired and must not be repeated unchanged.
 
 ## Analysis
 
@@ -238,15 +260,16 @@ captured.
 
 ## Conclusion
 
-`runtime-tooling-validated`: the smallest target-local capture child is
-admitted, compiled, reproducibly packaged, and paired with a fixed one-attempt
-deployment and classification contract. This establishes no runtime, READY,
-mainline policy, or hardware-support claim.
+`runtime-attempt-1-inconclusive-evidence-loss`: deployment and safe recovery are
+established, but no candidate identity survived either observation path. The
+target-register hypothesis was not exercised, READY did not advance, and no
+hardware-support claim exists.
 
 ## Follow-up
 
 Continue only through the ordered action in
-[`docs/ROADMAP.md`](../../docs/ROADMAP.md): commit and push the accepted tools,
-arm changed-cycle pstore and read-only USB/netcat, install exact candidate
-`f8e247e5...` to inactive boot2 under the standing authorization, shut down,
-select boot2 once, recover, and classify only through the fixed map.
+[`docs/ROADMAP.md`](../../docs/ROADMAP.md): do not repeat `f8e247e5...`. Audit
+the exact successful scheduler-unpark retention path and available reserved
+retained-RAM contracts, then freeze one distinct pre-scheduler candidate-entry
+and pre-capsule-terminal observation path that remains recoverable when both
+console-ramoops and USB are absent. Validate it before Buildbox or deployment.

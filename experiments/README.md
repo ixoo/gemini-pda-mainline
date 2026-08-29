@@ -40,7 +40,12 @@ the loop. Positive identity-gated observations are unaffected.
   and clean-shutdown gates, and the read-only live/raw-pstore parser validates
   43 phase records, both inherited terminals, all eight capsule lines, and both
   recomputed identities. Four installer and twelve capture mutations are rejected.
-  One deployment is next; no new runtime result exists yet.
+  Deployment wrote and fully read back exact `f8e247e5...`, then shut down.
+  Attempt 1 safely recovered with a changed Gemian boot ID, watchdog-class
+  reason, CPU8/CPU9 offline, and unchanged boot2, but pstore retained no
+  experiment marker and the prearmed USB interface never appeared. This is
+  fixed-map evidence loss, not a capsule fault; the exact image is retired.
+  A distinct durable pre-scheduler observation path is next.
 - [2026-08-28 arm64 late-CPU READY evidence-gap audit](2026-08-28-mainline-a72-ready-evidence-gap-audit/README.md)
   — exact prepared-source review confirms that provenance alone cannot publish
   READY. The private core object has no target-register evidence producer, the

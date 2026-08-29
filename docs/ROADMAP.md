@@ -6020,12 +6020,19 @@ The next ordered work is:
    pins read-only observed inactive-boot2 predecessor `df82bbfa...`, and the
    read-only live/raw-pstore parser closes the pair-v7 capture race, validates
    43 phases plus eight exact capsule records, recomputes both identities, and
-   rejects four installer and twelve capture mutations. **Selected next:**
-   commit and push these accepted tools, arm changed-cycle pstore and USB/netcat,
-   deploy `f8e247e5...` once under the standing boot2 authorization, require the
-   verified clean shutdown, physically select boot2, then recover and apply the
-   fixed decision map. Do not change the scheduler parent, workload, power
-   sequence, CPU_OFF prohibition, watchdog recovery, or capsule schema.
+   rejects four installer and twelve capture mutations. Deployment wrote and
+   fully read back `f8e247e5...` before verified clean shutdown. Its one
+   physical cycle recovered safely with a changed Gemian boot ID,
+   watchdog-class reason, CPU8/CPU9 offline, inactive exact boot2, and healthy
+   power, but changed-cycle pstore retained no candidate/phase/pair/capsule
+   marker and the already-armed USB interface never appeared. The fixed map
+   classifies evidence loss, not a capsule or kernel fault; retire this exact
+   image without repeat. **Selected next:** audit the successful scheduler-
+   unpark retention path and reserved retained-RAM contracts, then freeze and
+   hardware-free validate one distinct pre-scheduler candidate-entry record
+   and mutually exclusive pre-capsule terminal that survive absence of both
+   console-ramoops and USB. Preserve the scheduler parent, workload, power
+   sequence, CPU_OFF prohibition, watchdog recovery, and capsule schema.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

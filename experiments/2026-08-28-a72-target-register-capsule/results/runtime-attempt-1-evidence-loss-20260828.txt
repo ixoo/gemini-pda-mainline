@@ -1,0 +1,154 @@
+CPU8/CPU9 target-register capsule runtime attempt 1
+====================================================
+
+Date: 2026-08-28 America/New_York / 2026-08-29 UTC
+Decision: INCONCLUSIVE — NO ATTRIBUTABLE MARKER OR EVIDENCE LOSS
+
+The exact candidate completed one owner-selected boot2/recovery cycle and
+recovered safely, but neither primary pstore nor secondary USB/netcat retained
+an experiment identity. This is not a capsule fault, scheduler fault, kernel
+failure, or CPU8/CPU9 support result. The exact image is retired and must not be
+repeated unchanged.
+
+Exact candidate and classifier
+------------------------------
+
+Full 16 MiB boot2 SHA-256:
+  f8e247e5f067fff562e00d1d96447b236c8ea2ec946c9e493589938b0b9d9f7f
+Embedded Image.gz-dtb SHA-256:
+  de81aa06953bf1f6a24a97c88f10f1406f6af0b100f0b3f7b34674240eeefdfa
+Register child patchset SHA-256:
+  71ef281aae8d0b99d0421b81bd3d61d82ab090125c4885977ba39d8280838469
+Runtime-tool repository commit:
+  fab8f7e80b4723dbe378bd95fc36fbb9828859be
+Fixed decision-map SHA-256:
+  27fae86bf7964634ebe55b514104756f9c70fa7cab391189634b3d384cedc71c
+Committed parser SHA-256:
+  6d74e73e412c4e7a6c05cfece2fa684fbb2db465dc1a789fa24cd633cd502efc
+
+Attributable physical cycle
+---------------------------
+
+The changed-cycle pstore observer was armed before deployment and bound
+baseline Gemian boot ID fcb93f2c-346d-4d81-a626-24227488ebf1. The verified
+installer shutdown supplied a stable disconnect. The read-only USB/netcat
+collector was then armed while the device remained off. The owner reported one
+physical boot2 selection and the automatic restart toward Gemian.
+
+Observer cycle start UTC:
+  2026-08-29T00:03:21Z
+Stable disconnect UTC:
+  2026-08-29T00:04:24Z
+Known-good reconnect UTC:
+  2026-08-29T00:06:28Z
+Recovery Gemian boot ID:
+  61b44cfe-c41d-4449-82fe-1f7d67be1603
+Boot ID changed:
+  yes
+Filtered recovery boot reason:
+  boot_reason=4
+  androidboot.bootreason=wdt_by_pass_pwk
+Reset disposition:
+  nondiscriminating watchdog-class; it corroborates reset but not candidate stage
+
+Primary pstore result
+---------------------
+
+The prearmed helper required the disconnect, accepted only known-good Gemian
+3.18.41+ / aarch64 with a changed boot ID, and captured pstore without writing
+or removing any entry. Every private manifest entry verifies.
+
+The 65,524-byte console-ramoops contains the current Gemian log and exactly
+zero occurrences of:
+
+  gemini-a72-sc-phase
+  gemini-a72-pair-v6
+  gemini-a72-pair-v7
+  gemini-a72-regcap-v1
+
+The committed raw-log validator rejected it with:
+
+  error: latest snapshot has no attributable marker
+
+This absence cannot distinguish boot selection/handoff failure, failure before
+the first experiment marker, ramoops registration/retention failure, or later
+overwriting by recovery. It cannot establish that any target register read,
+scheduler phase, pair terminal, or candidate kernel identity ran.
+
+Console-ramoops SHA-256:
+  a3724342b7b406c13132aafaa9f615d11599ba19aa358592b98b35cb349b8557
+Pmsg-ramoops-0 SHA-256:
+  0f56d20562c861acb7b20cd118b778cc8d9ab85de88caaca87786a331bf20ca7
+Pstore archive SHA-256:
+  f5f8d3c6b5107c3f6841312716976ae55f2acec7b583a66caef0bacdcae9ec1f
+Cycle record SHA-256:
+  ef8aa0b447c559316e81755afaf91b562d1c1c4c6928353bdfc6cfabfeaa0c3b
+Metadata record SHA-256:
+  58ed8675407eeb0ae6a075f52d74ea48a1e465e1361b4ea049fab03ac645d238
+Pstore SHA256SUMS SHA-256:
+  24f65d943d1e62c318845c3af6f943435b9ee06005d4e6d4c38aec55b08e76a6
+
+Secondary USB/netcat result
+---------------------------
+
+The reviewed collector began while the device was off and remained inside its
+fixed 300-second interface window throughout the reported selection and
+automatic restart. The exact Gemini USB interface never appeared. The helper
+closed with:
+
+  error: exact Gemini USB interface did not appear within 300 seconds
+
+It created no runtime file, opened no netcat session, performed no device
+action, and cannot corroborate or contradict the marker-free pstore result.
+Because this independent path was already armed just in time, its absence does
+not earn an identical repeat.
+
+Safe recovery
+-------------
+
+Recovery kernel / architecture:
+  3.18.41+ / aarch64
+Recovery root:
+  /dev/mmcblk0p29
+CPU present set:
+  0-9
+CPU online set:
+  4-5
+CPU8 online / CPU9 online:
+  0 / 0
+Live-GPT boot2:
+  /dev/mmcblk0p30, label boot2, 16,777,216 bytes, writable
+Boot2 mounted / holders:
+  no / 0
+Post-cycle boot2 SHA-256:
+  f8e247e5f067fff562e00d1d96447b236c8ea2ec946c9e493589938b0b9d9f7f
+Candidate unchanged after cycle:
+  yes
+Power:
+  battery present, 100 percent, Good; recovery status Not charging
+
+Decision and progress boundary
+------------------------------
+
+Deployment, shutdown, changed-cycle recovery, CPU8/CPU9-offline recovery, and
+unchanged boot2 are established. No capsule record exists, so neither the
+target-register/cpu_data match hypothesis nor its fault branch was exercised.
+There is no new READY evidence and no advancement toward production-online
+CPU8/CPU9 from this physical attempt.
+
+This follows the fixed NO ATTRIBUTABLE MARKER OR EVIDENCE LOSS branch. Screen
+or reboot behavior remains serviceability evidence only. Candidate
+f8e247e5... is boot_candidate=false and retired from physical use.
+
+Selected next action
+--------------------
+
+Do not repeat this exact artifact. First audit the exact successful scheduler-
+unpark retention path and the available reserved retained-RAM contracts. Then
+define one distinct child with an independently recoverable candidate-entry
+record before the scheduler parent and a mutually exclusive pre-capsule
+terminal record. The new path must survive a cycle in which console-ramoops and
+USB are both absent, remain bounded and checksum/version gated, and preserve
+the scheduler parent, target register schema, power sequence, CPU_OFF
+prohibition, watchdog recovery, and boot2-only safety policy. Freeze and test
+that observation contract before a Buildbox-only build or another deployment.
