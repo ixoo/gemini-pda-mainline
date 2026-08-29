@@ -91,6 +91,23 @@ def validate_patch(path: Path) -> None:
             raise SystemExit(f"forbidden generated patch token: {forbidden}")
 
 
+def fix_patch_style(path: Path, source_root: Path, cwd: Path) -> None:
+    result = subprocess.run(
+        (
+            "perl", str(source_root / "scripts/checkpatch.pl"),
+            "--fix-inplace", "--strict", "--no-tree",
+            f"--root={source_root}", "--ignore",
+            "MISSING_SIGN_OFF,FILE_PATH_CHANGES,CAMELCASE", str(path),
+        ),
+        cwd=cwd, check=False, text=True,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+    )
+    if not path.is_file() or path.is_symlink():
+        if result.stdout:
+            print(result.stdout.rstrip(), file=sys.stderr)
+        raise SystemExit("checkpatch style fix did not preserve the patch")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-root", type=Path, required=True)
@@ -158,9 +175,11 @@ def main() -> int:
         patch = package / PATCH
         shutil.move(generated[0], patch)
         validate_patch(patch)
+        fix_patch_style(patch, source_root, package)
+        validate_patch(patch)
         run(
             "perl", str(source_root / "scripts/checkpatch.pl"), "--strict",
-            "--no-tree", "--ignore",
+            "--no-tree", f"--root={source_root}", "--ignore",
             "MISSING_SIGN_OFF,FILE_PATH_CHANGES,CAMELCASE",
             str(patch), cwd=package,
         )
