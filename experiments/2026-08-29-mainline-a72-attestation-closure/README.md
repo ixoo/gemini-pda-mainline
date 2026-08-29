@@ -384,6 +384,28 @@ current runtime evidence and migrate only pure, completely owned decisions to
 that view. See the
 [target-capability boundary audit](results/target-cap-boundary-audit-20260829.txt).
 
+Logical slice 6 is now canonical patch `0430`. It exposes the existing complete
+expected-pair contract to the pure planner, uses named valid prior-cycle CTR and
+CLIDR fields for production cache planning, and intersects the sanitized system
+HWCAP view with only the eight expected register fields actually measured.
+Unavailable target fields omit the corresponding HWCAP; they are never
+zero-filled or promoted to the coarse current `ID_REGS_VALID` state. The
+fixture path retains its explicit current-target input, while production keeps
+all runtime target observations empty and still returns `-EAGAIN` because it
+does not yet activate an expected pair. GIC, hyp, SMCCC workaround, and
+unmeasured modern-ID decisions remain unresolved. Four stopped Buildbox
+attempts exposed one exact-source anchor mismatch, two mutation-fixture anchor
+defects, and 13 strict line-break findings; none retained a package. Final
+generation at signed commit `a2c7b737` passes its exact five-file package and
+checksums, positive source validation, all 22 rejecting source mutations,
+deterministic replay, and strict checkpatch with zero findings. Canonical patch
+`0430` is byte-identical to that package, and all 158 manifest profiles retain
+the canonical-series invariant. READY, CPU requests, candidate status, and
+device actions remain absent. See the
+[expectation generation result](results/expectation-generation-20260829.txt).
+The next gate is the exact enabled `a72-p30e-wire` Buildbox compile and linked
+inspection; source-generation evidence does not justify a device boot.
+
 ## Conclusion
 
 `confirmed-reference-only-mapping-dormant-planner-linked`:
@@ -392,7 +414,8 @@ but not as a complete ABI-7 runtime-evidence record. The dormant schema,
 fail-closed entry validator, their section/stack integration repairs, and the
 current-mainline system/policy owner, pure planner, canonical identities, and
 dormant architecture commit/receipt are now reproducibly generated, admitted,
-and linked. Pre-request expected-target planning separation,
+and linked. Pre-request expected-target planning separation is now reproducibly
+generated and admitted, but not yet linked. Expected-contract activation,
 alternatives/HWCAP finalization, READY, and physical admission remain open. No
 CPU request is justified by the recovered capsule alone.
 

@@ -6217,13 +6217,23 @@ The next ordered work is:
    circular dependency. The 28-field expected pair is the legitimate
    pre-request contract, but 23 fields remain explicitly unavailable. See the
    [target-capability boundary audit](../experiments/2026-08-29-mainline-a72-attestation-closure/results/target-cap-boundary-audit-20260829.txt).
-   **Selected next:** implement logical slice 6 as an architecture-owned,
-   field-valid expected-target planning view, separate from current runtime
-   evidence. Migrate pure register and HWCAP planning to named expected fields,
-   conservatively omit HWCAPs whose target field is unavailable, and retain
-   explicit GIC/hyp, SMCCC-workaround, and unmeasured-modern-ID gaps. Generate
-   and reject provenance-erasing mutations before admission; keep every
-   runtime-empty gate, READY, CPU request, candidate, and device action absent.
+   Logical slice 6 is now canonical patch `0430`. It keeps the production
+   runtime target record empty, moves pure cache planning to the field-valid
+   prior-cycle CTR/CLIDR contract, and intersects HWCAPs through only the eight
+   measured expected register fields. Unavailable fields omit their HWCAP and
+   never become a zero-filled current register image. The fixture-only current
+   target path remains isolated; GIC/hyp, SMCCC workaround, and unmeasured
+   modern-ID decisions remain unresolved. Buildbox generation, rejecting source
+   mutations, deterministic replay, strict style, byte-identical admission,
+   and the manifest-series invariant all pass. Production still provides no
+   expected pair and returns `-EAGAIN`; READY, CPU requests, candidate, and
+   device action remain absent. See the
+   [expectation generation result](../experiments/2026-08-29-mainline-a72-attestation-closure/results/expectation-generation-20260829.txt).
+   **Selected next:** compile the exact canonical `0430` series with the enabled
+   `a72-p30e-wire` profile on Buildbox, then inspect the linked expected-field
+   lookup, production cache/HWCAP call graph, sections, stack frames, and full
+   diagnostics. Do not select a device candidate from source-generation
+   evidence.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
