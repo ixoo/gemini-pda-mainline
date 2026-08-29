@@ -297,8 +297,8 @@ Logical slice 4 is now canonical patch `0428`. It computes prospective native
 and compat HWCAP intersections from the sanitized early system and both
 complete target register images, then derives domain-separated SHA-256
 evidence and plan identities by serializing named scalar and register fields in
-big-endian order rather than hashing structure padding. The final package at
-signed commit `25777a3c` has an exact five-file manifest, passes all declared
+big-endian order rather than hashing structure padding. The initial package at
+signed commit `25777a3c` had an exact five-file manifest and passed all declared
 checksums, deterministic replay, strict checkpatch with zero findings, the
 positive source validator, and all 16 rejecting source mutations. Independent
 review also confirmed no checkpatch cache remained in either the package or
@@ -318,6 +318,13 @@ field. The generator repair uses that system policy and intersects it with the
 same field in both complete target register images. A new rejecting mutation
 restores the invalid token so this compile failure cannot recur silently. No
 package, candidate, or device action resulted from the failed compile.
+Two subsequent generation attempts stopped before packaging on strict line
+break style checks. The final repaired package at signed commit `8e9d7765`
+passes its exact five-file manifest, all checksums, deterministic replay,
+strict checkpatch with zero findings, the positive validator, and all 17
+rejecting mutations. Canonical patch `0428` is byte-identical to that package.
+The next gate is the exact enabled-profile rebuild; the repaired source remains
+dormant and is not a boot candidate.
 
 ## Conclusion
 

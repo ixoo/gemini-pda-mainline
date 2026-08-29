@@ -6168,8 +6168,13 @@ The next ordered work is:
    `system_supports_32bit_el0()` policy and intersects its sanitized system
    result with ID_AA64PFR0_EL1.EL0 from both complete target images; a new
    mutation restores and rejects the invalid token. **Selected next:**
-   regenerate patch `0428` from the same pinned post-`0427` source, review and
-   admit the exact repaired bytes, then repeat the enabled Buildbox compile.
+   Two repair generations then stopped before packaging on strict line-break
+   style checks. Final generation at signed commit `8e9d7765` passes the exact
+   five-file manifest, checksums, deterministic replay, strict checkpatch with
+   zero findings, the positive validator, and all 17 rejecting mutations.
+   Canonical patch `0428` is byte-identical to that repaired package.
+   **Selected next:** repeat the exact enabled `a72-p30e-wire` Buildbox compile
+   and inspect its linked result before selecting logical slice 5.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

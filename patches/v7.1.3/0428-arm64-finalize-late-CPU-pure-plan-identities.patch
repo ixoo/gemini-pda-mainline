@@ -1,4 +1,4 @@
-From 933659d5659a7116b4df8adb8dd9d933d2679c0a Mon Sep 17 00:00:00 2001
+From 1f737372cf8fc26d754f62c5802b9d0f9523d121 Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Sat, 29 Aug 2026 19:00:00 +0000
 Subject: [PATCH] arm64: finalize late CPU pure plan identities
@@ -10,10 +10,10 @@ evidence and pure plan outputs using domain-separated named fields.
 Keep architecture commit, READY, and every CPU request absent.
 ---
  arch/arm64/include/asm/late_cpu_profile.h |   4 +-
- arch/arm64/kernel/cpufeature.c            | 315 ++++++++++++++++
+ arch/arm64/kernel/cpufeature.c            | 317 ++++++++++++++++
  arch/arm64/kernel/late_cpu_profile.c      | 425 +++++++++++++++++++++-
  arch/arm64/kernel/mt6797_psci.c           |  37 +-
- 4 files changed, 759 insertions(+), 22 deletions(-)
+ 4 files changed, 761 insertions(+), 22 deletions(-)
 
 diff --git a/arch/arm64/include/asm/late_cpu_profile.h b/arch/arm64/include/asm/late_cpu_profile.h
 index e6bce64..47ba76a 100644
@@ -38,10 +38,10 @@ index e6bce64..47ba76a 100644
  arm64_late_cpu_midr_all_versions(const struct arm64_cpu_capabilities *cap,
  				 u32 model);
 diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
-index d999c55..f5bce7e 100644
+index d999c55..8a68f6d 100644
 --- a/arch/arm64/kernel/cpufeature.c
 +++ b/arch/arm64/kernel/cpufeature.c
-@@ -4432,6 +4432,321 @@ static const struct arm64_cpu_capabilities compat_elf_hwcaps[] = {
+@@ -4432,6 +4432,323 @@ static const struct arm64_cpu_capabilities compat_elf_hwcaps[] = {
  	{},
  };
  
@@ -260,16 +260,18 @@ index d999c55..f5bce7e 100644
 +}
 +
 +static bool __init
-+late_cpu_plan_all_cpus_have_cap(const struct arm64_late_cpu_plan *plan,
-+				int cap)
++late_cpu_all_support_32bit_el0(const struct arm64_late_cpu_plan *plan)
 +{
 +	unsigned int target;
 +
-+	if (!test_bit(cap, plan->early_local_caps))
++	if (!system_supports_32bit_el0())
 +		return false;
-+	for (target = 0; target < ARM64_LATE_CPU_MAX_TARGETS; target++)
-+		if (!test_bit(cap, plan->target[target].local_caps))
++	for (target = 0; target < ARM64_LATE_CPU_MAX_TARGETS; target++) {
++		u64 pfr0 = plan->evidence.target_cap[target].registers.id_aa64pfr0;
++
++		if (!id_aa64pfr0_32bit_el0(pfr0))
 +			return false;
++	}
 +
 +	return true;
 +}
@@ -335,7 +337,7 @@ index d999c55..f5bce7e 100644
 +		return ret;
 +
 +#ifdef CONFIG_COMPAT
-+	if (late_cpu_plan_all_cpus_have_cap(plan, ARM64_HAS_32BIT_EL0)) {
++	if (late_cpu_all_support_32bit_el0(plan)) {
 +		plan->expected_compat_hwcap = COMPAT_ELF_HWCAP_DEFAULT;
 +		ret = late_cpu_plan_hwcap_array(compat_elf_hwcaps, plan);
 +		if (ret)
