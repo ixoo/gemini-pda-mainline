@@ -1,0 +1,485 @@
+From 8cd80eeb8b64d5fe86028db25468f7b38c2ded67 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 30 Aug 2026 00:31:00 +0000
+Subject: [PATCH] arm64: plan conservative late CPU system policy
+
+Record the two unused early GIC capabilities from the current
+system and keep a present state unresolved without target controller
+evidence. Derive the recovered Cortex-A72 Spectre state only from the
+field-valid expected MIDR/PFR pair, choosing vulnerable no-callback
+effects when firmware workaround results remain unknown.
+
+Activate no expected pair, publish no READY token, and request no CPU.
+---
+ arch/arm64/include/asm/late_cpu_profile.h |  26 +++-
+ arch/arm64/kernel/cpufeature.c            |  40 ++++-
+ arch/arm64/kernel/late_cpu_profile.c      |   2 +
+ arch/arm64/kernel/mt6797_psci.c           |  65 ++++++---
+ arch/arm64/kernel/proton-pack.c           | 169 +++++++++++++++++++++-
+ 5 files changed, 278 insertions(+), 24 deletions(-)
+
+diff --git a/arch/arm64/include/asm/late_cpu_profile.h b/arch/arm64/include/asm/late_cpu_profile.h
+index 1826c56..1b2b20b 100644
+--- a/arch/arm64/include/asm/late_cpu_profile.h
++++ b/arch/arm64/include/asm/late_cpu_profile.h
+@@ -380,10 +380,12 @@ struct arm64_late_cpu_target_cap_evidence {
+ #define ARM64_LATE_CPU_SYSTEM_CAP_CTR_VALID	BIT(0)
+ #define ARM64_LATE_CPU_SYSTEM_CAP_SSBS_VALID	BIT(1)
+ #define ARM64_LATE_CPU_SYSTEM_CAP_EFFECTS_VALID	BIT(2)
++#define ARM64_LATE_CPU_SYSTEM_CAP_EARLY_LOCAL_VALID	BIT(3)
+ #define ARM64_LATE_CPU_SYSTEM_CAP_VALID_MASK				\
+ 	(ARM64_LATE_CPU_SYSTEM_CAP_CTR_VALID |				\
+ 	 ARM64_LATE_CPU_SYSTEM_CAP_SSBS_VALID |				\
+-	 ARM64_LATE_CPU_SYSTEM_CAP_EFFECTS_VALID)
++	 ARM64_LATE_CPU_SYSTEM_CAP_EFFECTS_VALID |			\
++	 ARM64_LATE_CPU_SYSTEM_CAP_EARLY_LOCAL_VALID)
+ 
+ struct arm64_late_cpu_system_cap_evidence {
+ 	u32 valid;
+@@ -395,6 +397,8 @@ struct arm64_late_cpu_system_cap_evidence {
+ 	u8 bhb_state;
+ 	u8 bhb_matcher_loop_count;
+ 	u8 bhb_system_method;
++	u8 gicv5_legacy;
++	u8 ich_hcr_tdir;
+ };
+ 
+ enum arm64_late_cpu_binding_origin {
+@@ -597,6 +601,10 @@ bool __init
+ arm64_late_cpu_cap_uses_multi_entry_match(const struct arm64_cpu_capabilities *cap);
+ bool __init arm64_late_cpu_target_impl_override_active(void);
+ enum arm64_late_cpu_cap_state __init
++arm64_late_cpu_early_system_cap_state(const struct arm64_cpu_capabilities *cap,
++				      const struct arm64_cpu_capabilities *match,
++				      const struct arm64_late_cpu_system_cap_evidence *system);
++enum arm64_late_cpu_cap_state __init
+ arm64_late_cpu_gicv5_legacy_state(
+ 	const struct arm64_cpu_capabilities *cap,
+ 	const struct arm64_cpu_capabilities *match,
+@@ -641,6 +649,22 @@ int __init arm64_late_cpu_a72_bhb_effect(
+ 	const struct arm64_late_cpu_target_policy_evidence *policy,
+ 	u8 system_v2_state,
+ 	struct arm64_late_cpu_target_effect_plan *effects);
++enum arm64_late_cpu_cap_state __init
++arm64_late_cpu_expected_v2_state(const struct arm64_cpu_capabilities *cap,
++				 const struct arm64_cpu_capabilities *match,
++				 const struct arm64_late_cpu_expected_pair *expected);
++enum arm64_late_cpu_cap_state __init
++arm64_late_cpu_expected_v4_state(const struct arm64_cpu_capabilities *cap,
++				 const struct arm64_cpu_capabilities *match,
++				 const struct arm64_late_cpu_expected_pair *expected);
++enum arm64_late_cpu_cap_state __init
++arm64_late_cpu_expected_bhb_state(const struct arm64_cpu_capabilities *cap,
++				  const struct arm64_cpu_capabilities *match,
++				  const struct arm64_late_cpu_expected_pair *expected);
++int __init
++arm64_late_cpu_expected_effects(const struct arm64_late_cpu_expected_pair *expected,
++				const struct arm64_late_cpu_target_policy_evidence *policy,
++				struct arm64_late_cpu_target_effect_plan *effects);
+ void __init arm64_verify_late_cpu_profile_system(void);
+ void __init arm64_finalize_late_cpu_profile_user(void);
+ const struct arm64_late_cpu_ready_token *
+diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+index c5bf8f7..77f77bb 100644
+--- a/arch/arm64/kernel/cpufeature.c
++++ b/arch/arm64/kernel/cpufeature.c
+@@ -2421,8 +2421,12 @@ arm64_late_cpu_collect_system(struct arm64_late_cpu_system_cap_evidence *system)
+ 	system->ctr_sys_val = arm64_ftr_reg_ctrel0.sys_val;
+ 	system->ctr_strict_mask = arm64_ftr_reg_ctrel0.strict_mask;
+ 	system->ssbs = !!ssbs;
++	system->gicv5_legacy = cpus_have_cap(ARM64_HAS_GICV5_LEGACY);
++	system->ich_hcr_tdir =
++		cpus_have_cap(ARM64_HAS_ICH_HCR_EL2_TDIR);
+ 	system->valid = ARM64_LATE_CPU_SYSTEM_CAP_CTR_VALID |
+-			ARM64_LATE_CPU_SYSTEM_CAP_SSBS_VALID;
++			ARM64_LATE_CPU_SYSTEM_CAP_SSBS_VALID |
++			ARM64_LATE_CPU_SYSTEM_CAP_EARLY_LOCAL_VALID;
+ 
+ 	return 0;
+ }
+@@ -2580,6 +2584,40 @@ late_cpu_ich_descriptor_valid(const struct arm64_cpu_capabilities *cap,
+ 	       !cap->cpus;
+ }
+ 
++enum arm64_late_cpu_cap_state __init
++arm64_late_cpu_early_system_cap_state(const struct arm64_cpu_capabilities *cap,
++				      const struct arm64_cpu_capabilities *match,
++				      const struct arm64_late_cpu_system_cap_evidence *system)
++{
++	bool present;
++
++	if (!system ||
++	    !(system->valid & ARM64_LATE_CPU_SYSTEM_CAP_EARLY_LOCAL_VALID) ||
++	    system->valid & ~ARM64_LATE_CPU_SYSTEM_CAP_VALID_MASK ||
++	    system->gicv5_legacy > 1 || system->ich_hcr_tdir > 1 ||
++	    !cpucap_late_cpu_permitted(cap))
++		return ARM64_LATE_CPU_CAP_UNRESOLVED;
++
++	switch (cap->capability) {
++	case ARM64_HAS_GICV5_LEGACY:
++		if (!late_cpu_gic_descriptor_valid(cap, match))
++			return ARM64_LATE_CPU_CAP_UNRESOLVED;
++		present = system->gicv5_legacy;
++		break;
++	case ARM64_HAS_ICH_HCR_EL2_TDIR:
++		if (!late_cpu_ich_descriptor_valid(cap, match))
++			return ARM64_LATE_CPU_CAP_UNRESOLVED;
++		present = system->ich_hcr_tdir;
++		break;
++	default:
++		return ARM64_LATE_CPU_CAP_UNRESOLVED;
++	}
++
++	/* A present system capability still needs target controller evidence. */
++	return present ? ARM64_LATE_CPU_CAP_UNRESOLVED :
++			 ARM64_LATE_CPU_CAP_ABSENT;
++}
++
+ static enum arm64_late_cpu_cap_state __init
+ late_cpu_gicv5_legacy_evidence_state(
+ 	const struct arm64_late_cpu_target_cap_evidence *target)
+diff --git a/arch/arm64/kernel/late_cpu_profile.c b/arch/arm64/kernel/late_cpu_profile.c
+index 4bbd319..ebb1e1a 100644
+--- a/arch/arm64/kernel/late_cpu_profile.c
++++ b/arch/arm64/kernel/late_cpu_profile.c
+@@ -354,6 +354,8 @@ late_canonical_update_system_cap(struct sha256_ctx *ctx,
+ 	late_canonical_update_u8(ctx, system->bhb_state);
+ 	late_canonical_update_u8(ctx, system->bhb_matcher_loop_count);
+ 	late_canonical_update_u8(ctx, system->bhb_system_method);
++	late_canonical_update_u8(ctx, system->gicv5_legacy);
++	late_canonical_update_u8(ctx, system->ich_hcr_tdir);
+ }
+ 
+ static void __init
+diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
+index f19f022..337001b 100644
+--- a/arch/arm64/kernel/mt6797_psci.c
++++ b/arch/arm64/kernel/mt6797_psci.c
+@@ -132,15 +132,19 @@ mt6797_a72_classify_local_cap(const struct arm64_cpu_capabilities *cap,
+ 		return arm64_late_cpu_static_feature_state(cap, match,
+ 							   MIDR_CORTEX_A72);
+ 	case ARM64_HAS_GICV5_LEGACY:
+-		if (cap->type != ARM64_CPUCAP_EARLY_LOCAL_CPU_FEATURE)
+-			break;
+-		return arm64_late_cpu_gicv5_legacy_state(
+-			cap, match, &evidence->target_cap[target]);
+ 	case ARM64_HAS_ICH_HCR_EL2_TDIR:
+ 		if (cap->type != ARM64_CPUCAP_EARLY_LOCAL_CPU_FEATURE)
+ 			break;
+-		return arm64_late_cpu_ich_hcr_tdir_state(
+-			cap, match, &evidence->target_cap[target]);
++#ifdef CONFIG_ARM64_MT6797_A72_FIXTURE_EVIDENCE
++		if (cap->capability == ARM64_HAS_GICV5_LEGACY)
++			return arm64_late_cpu_gicv5_legacy_state(cap, match,
++				&evidence->target_cap[target]);
++		return arm64_late_cpu_ich_hcr_tdir_state(cap, match,
++			&evidence->target_cap[target]);
++#else
++		return arm64_late_cpu_early_system_cap_state(cap, match,
++			&evidence->system_cap);
++#endif
+ 	case ARM64_UNMAP_KERNEL_AT_EL0:
+ 		if (cap->type !=
+ 			    ARM64_CPUCAP_BOOT_RESTRICTED_CPU_LOCAL_FEATURE ||
+@@ -161,20 +165,29 @@ mt6797_a72_classify_local_cap(const struct arm64_cpu_capabilities *cap,
+ 			&evidence->system_cap);
+ #endif
+ 	case ARM64_SPECTRE_V2:
+-		if (cap->type != ARM64_CPUCAP_LOCAL_CPU_ERRATUM)
+-			break;
+-		return arm64_late_cpu_a72_spectre_v2_state(
+-			cap, match, &evidence->target_cap[target]);
+ 	case ARM64_SPECTRE_V4:
+-		if (cap->type != ARM64_CPUCAP_LOCAL_CPU_ERRATUM)
+-			break;
+-		return arm64_late_cpu_a72_spectre_v4_state(
+-			cap, match, &evidence->target_cap[target]);
+ 	case ARM64_SPECTRE_BHB:
+ 		if (cap->type != ARM64_CPUCAP_LOCAL_CPU_ERRATUM)
+ 			break;
+-		return arm64_late_cpu_a72_spectre_bhb_state(
+-			cap, match, &evidence->target_cap[target]);
++#ifdef CONFIG_ARM64_MT6797_A72_FIXTURE_EVIDENCE
++		if (cap->capability == ARM64_SPECTRE_V2)
++			return arm64_late_cpu_a72_spectre_v2_state(cap, match,
++				&evidence->target_cap[target]);
++		if (cap->capability == ARM64_SPECTRE_V4)
++			return arm64_late_cpu_a72_spectre_v4_state(cap, match,
++				&evidence->target_cap[target]);
++		return arm64_late_cpu_a72_spectre_bhb_state(cap, match,
++			&evidence->target_cap[target]);
++#else
++		if (cap->capability == ARM64_SPECTRE_V2)
++			return arm64_late_cpu_expected_v2_state(cap, match,
++				&evidence->expected_pair);
++		if (cap->capability == ARM64_SPECTRE_V4)
++			return arm64_late_cpu_expected_v4_state(cap, match,
++				&evidence->expected_pair);
++		return arm64_late_cpu_expected_bhb_state(cap, match,
++			&evidence->expected_pair);
++#endif
+ 	case ARM64_WORKAROUND_1742098:
+ 	case ARM64_WORKAROUND_SPECULATIVE_AT:
+ 		if (cap->type != ARM64_CPUCAP_LOCAL_CPU_ERRATUM)
+@@ -287,8 +300,6 @@ static const u16 mt6797_a72_early_caps[] __initconst = {
+ 
+ #ifndef CONFIG_ARM64_MT6797_A72_FIXTURE_EVIDENCE
+ static const u16 mt6797_a72_unresolved_caps[] __initconst = {
+-	ARM64_HAS_GICV5_LEGACY,
+-	ARM64_HAS_ICH_HCR_EL2_TDIR,
+ 	ARM64_MISMATCHED_CACHE_TYPE,
+ 	ARM64_SPECTRE_V2,
+ 	ARM64_SPECTRE_V4,
+@@ -297,10 +308,8 @@ static const u16 mt6797_a72_unresolved_caps[] __initconst = {
+ #endif
+ 
+ static const u16 mt6797_a72_absent_caps[] __initconst = {
+-#ifdef CONFIG_ARM64_MT6797_A72_FIXTURE_EVIDENCE
+ 	ARM64_HAS_GICV5_LEGACY,
+ 	ARM64_HAS_ICH_HCR_EL2_TDIR,
+-#endif
+ 	ARM64_HAS_BBML2_NOABORT,
+ 	ARM64_UNMAP_KERNEL_AT_EL0,
+ 	ARM64_WORKAROUND_843419,
+@@ -586,11 +595,21 @@ mt6797_a72_derive_effects(const struct arm64_late_cpu_plan *plan,
+ 
+ 	policy = &plan->evidence.target_policy[0];
+ 	system_v2_state = plan->evidence.system_cap.spectre_v2_state;
++#ifndef CONFIG_ARM64_MT6797_A72_FIXTURE_EVIDENCE
++	if (!arm64_late_cpu_expected_pair_complete(plan))
++		return -EAGAIN;
++#endif
+ 	for (target = 0; target < ARM64_LATE_CPU_MAX_TARGETS; target++) {
++#ifdef CONFIG_ARM64_MT6797_A72_FIXTURE_EVIDENCE
+ 		ret = arm64_late_cpu_a72_spectre_v2_v4_effects(
+ 			&plan->evidence.target_cap[target],
+ 			&plan->evidence.target_policy[target],
+ 			&effects->target[target]);
++#else
++		ret = arm64_late_cpu_expected_effects(&plan->evidence.expected_pair,
++						      &plan->evidence.target_policy[target],
++			&effects->target[target]);
++#endif
+ 		if (ret)
+ 			return ret;
+ 		if (!mt6797_a72_effect_state_matches_cap(
+@@ -606,12 +625,14 @@ mt6797_a72_derive_effects(const struct arm64_late_cpu_plan *plan,
+ 	}
+ 
+ 	for (target = 0; target < ARM64_LATE_CPU_MAX_TARGETS; target++) {
++#ifdef CONFIG_ARM64_MT6797_A72_FIXTURE_EVIDENCE
+ 		ret = arm64_late_cpu_a72_bhb_effect(
+ 			&plan->evidence.target_cap[target],
+ 			&plan->evidence.target_policy[target], system_v2_state,
+ 			&effects->target[target]);
+ 		if (ret)
+ 			return ret;
++#endif
+ 		if (!mt6797_a72_effect_state_matches_cap(
+ 			    plan, target, ARM64_SPECTRE_BHB,
+ 			    effects->target[target].bhb_mitigation_state))
+@@ -940,7 +961,9 @@ mt6797_a72_evidence_is_fixture(
+ 	    evidence->system_cap.bhb_state !=
+ 		    ARM64_LATE_CPU_BHB_STATE_UNAFFECTED ||
+ 	    evidence->system_cap.bhb_matcher_loop_count ||
+-	    evidence->system_cap.bhb_system_method)
++	    evidence->system_cap.bhb_system_method ||
++	    evidence->system_cap.gicv5_legacy ||
++	    evidence->system_cap.ich_hcr_tdir)
+ 		return false;
+ 
+ 	for (target = 0; target < ARM64_LATE_CPU_MAX_TARGETS; target++)
+diff --git a/arch/arm64/kernel/proton-pack.c b/arch/arm64/kernel/proton-pack.c
+index 6c4cd1e..9137b7b 100644
+--- a/arch/arm64/kernel/proton-pack.c
++++ b/arch/arm64/kernel/proton-pack.c
+@@ -114,6 +114,108 @@ late_cpu_spectre_descriptor_valid(
+ 	}
+ }
+ 
++static bool __init
++late_cpu_expected_field_valid(const struct arm64_late_cpu_expected_pair *expected,
++			      enum arm64_late_cpu_expected_pair_field field)
++{
++	return expected && expected->abi == ARM64_LATE_CPU_EXPECTED_PAIR_ABI &&
++	       expected->target_count == ARM64_LATE_CPU_MAX_TARGETS &&
++	       field < ARM64_LATE_CPU_EXPECT_FIELD_COUNT &&
++	       !(expected->valid & ~ARM64_LATE_CPU_EXPECTED_PAIR_VALID_MASK) &&
++	       expected->valid & BIT_ULL(field) &&
++	       expected->midr == MIDR_CORTEX_A72;
++}
++
++static enum arm64_late_cpu_cap_state __init
++late_cpu_expected_v2_evidence_state(const struct arm64_late_cpu_expected_pair *expected)
++{
++	u64 csv2;
++
++	if (!late_cpu_expected_field_valid(expected,
++					   ARM64_LATE_CPU_EXPECT_AA64PFR0) ||
++	    !late_cpu_expected_field_valid(expected,
++					   ARM64_LATE_CPU_EXPECT_MIDR))
++		return ARM64_LATE_CPU_CAP_UNRESOLVED;
++	csv2 = cpuid_feature_extract_unsigned_field(expected->id_aa64pfr0,
++						    ID_AA64PFR0_EL1_CSV2_SHIFT);
++	if (csv2 > 3)
++		return ARM64_LATE_CPU_CAP_UNRESOLVED;
++
++	return csv2 ? ARM64_LATE_CPU_CAP_ABSENT :
++		      ARM64_LATE_CPU_CAP_PRESENT;
++}
++
++enum arm64_late_cpu_cap_state __init
++arm64_late_cpu_expected_v2_state(const struct arm64_cpu_capabilities *cap,
++				 const struct arm64_cpu_capabilities *match,
++				 const struct arm64_late_cpu_expected_pair *expected)
++{
++	if (!late_cpu_spectre_descriptor_valid(cap, match, ARM64_SPECTRE_V2))
++		return ARM64_LATE_CPU_CAP_UNRESOLVED;
++
++	return late_cpu_expected_v2_evidence_state(expected);
++}
++
++static enum arm64_late_cpu_cap_state __init
++late_cpu_expected_v4_evidence_state(const struct arm64_late_cpu_expected_pair *expected)
++{
++	u64 ssbs;
++
++	if (!late_cpu_expected_field_valid(expected,
++					   ARM64_LATE_CPU_EXPECT_AA64PFR1) ||
++	    !late_cpu_expected_field_valid(expected,
++					   ARM64_LATE_CPU_EXPECT_MIDR))
++		return ARM64_LATE_CPU_CAP_UNRESOLVED;
++	ssbs = cpuid_feature_extract_unsigned_field(expected->id_aa64pfr1,
++						    ID_AA64PFR1_EL1_SSBS_SHIFT);
++	if (ssbs > 2)
++		return ARM64_LATE_CPU_CAP_UNRESOLVED;
++
++	/* Without a current WA2 result, even SSBS==0 remains affected. */
++	return ARM64_LATE_CPU_CAP_PRESENT;
++}
++
++enum arm64_late_cpu_cap_state __init
++arm64_late_cpu_expected_v4_state(const struct arm64_cpu_capabilities *cap,
++				 const struct arm64_cpu_capabilities *match,
++				 const struct arm64_late_cpu_expected_pair *expected)
++{
++	if (!late_cpu_spectre_descriptor_valid(cap, match, ARM64_SPECTRE_V4))
++		return ARM64_LATE_CPU_CAP_UNRESOLVED;
++
++	return late_cpu_expected_v4_evidence_state(expected);
++}
++
++static enum arm64_late_cpu_cap_state __init
++late_cpu_expected_bhb_evidence_state(const struct arm64_late_cpu_expected_pair *expected)
++{
++	u64 csv2;
++
++	if (!late_cpu_expected_field_valid(expected,
++					   ARM64_LATE_CPU_EXPECT_AA64PFR0) ||
++	    !late_cpu_expected_field_valid(expected,
++					   ARM64_LATE_CPU_EXPECT_MIDR))
++		return ARM64_LATE_CPU_CAP_UNRESOLVED;
++	csv2 = cpuid_feature_extract_unsigned_field(expected->id_aa64pfr0,
++						    ID_AA64PFR0_EL1_CSV2_SHIFT);
++	if (csv2 > 3)
++		return ARM64_LATE_CPU_CAP_UNRESOLVED;
++
++	return csv2 == 3 ? ARM64_LATE_CPU_CAP_ABSENT :
++			 ARM64_LATE_CPU_CAP_PRESENT;
++}
++
++enum arm64_late_cpu_cap_state __init
++arm64_late_cpu_expected_bhb_state(const struct arm64_cpu_capabilities *cap,
++				  const struct arm64_cpu_capabilities *match,
++				  const struct arm64_late_cpu_expected_pair *expected)
++{
++	if (!late_cpu_spectre_descriptor_valid(cap, match, ARM64_SPECTRE_BHB))
++		return ARM64_LATE_CPU_CAP_UNRESOLVED;
++
++	return late_cpu_expected_bhb_evidence_state(expected);
++}
++
+ static enum arm64_late_cpu_cap_state __init
+ late_cpu_a72_spectre_v2_evidence_state(
+ 	const struct arm64_late_cpu_target_cap_evidence *target)
+@@ -430,6 +532,70 @@ int __init arm64_late_cpu_a72_bhb_effect(
+ 	return 0;
+ }
+ 
++int __init
++arm64_late_cpu_expected_effects(const struct arm64_late_cpu_expected_pair *expected,
++				const struct arm64_late_cpu_target_policy_evidence *policy,
++				struct arm64_late_cpu_target_effect_plan *effects)
++{
++	enum arm64_late_cpu_cap_state bhb_state;
++	enum arm64_late_cpu_cap_state v2_state;
++	enum arm64_late_cpu_cap_state v4_state;
++	u64 ssbs;
++
++	if (!effects || effects->valid || !late_cpu_policy_valid(policy) ||
++	    arm64_late_cpu_target_impl_override_active())
++		return -EINVAL;
++	v2_state = late_cpu_expected_v2_evidence_state(expected);
++	v4_state = late_cpu_expected_v4_evidence_state(expected);
++	bhb_state = late_cpu_expected_bhb_evidence_state(expected);
++	if (v2_state == ARM64_LATE_CPU_CAP_UNRESOLVED ||
++	    v4_state == ARM64_LATE_CPU_CAP_UNRESOLVED ||
++	    bhb_state == ARM64_LATE_CPU_CAP_UNRESOLVED)
++		return -EAGAIN;
++
++	effects->valid = ARM64_LATE_CPU_TARGET_EFFECT_VALID_MASK;
++	effects->spectre_v2_hyp_vector = ARM64_LATE_CPU_HYP_VECTOR_DIRECT;
++	effects->spectre_v2_conduit = ARM64_LATE_CPU_SMCCC_NONE;
++	effects->spectre_v2_callback = ARM64_LATE_CPU_V2_CALLBACK_NONE;
++	effects->spectre_v2_state =
++		v2_state == ARM64_LATE_CPU_CAP_ABSENT ?
++			ARM64_LATE_CPU_MITIGATION_UNAFFECTED :
++			ARM64_LATE_CPU_MITIGATION_VULNERABLE;
++
++	effects->spectre_v4_policy = policy->spectre_v4_policy;
++	effects->spectre_v4_conduit = ARM64_LATE_CPU_SMCCC_NONE;
++	ssbs = cpuid_feature_extract_unsigned_field(expected->id_aa64pfr1,
++						    ID_AA64PFR1_EL1_SSBS_SHIFT);
++	if (ssbs && !policy->mitigations_off &&
++	    policy->spectre_v4_policy != ARM64_LATE_CPU_V4_POLICY_FORCE_OFF) {
++		effects->spectre_v4_state = ARM64_LATE_CPU_MITIGATION_MITIGATED;
++		effects->spectre_v4_method = ARM64_LATE_CPU_V4_SSBS;
++	} else {
++		effects->spectre_v4_state = ARM64_LATE_CPU_MITIGATION_VULNERABLE;
++		effects->spectre_v4_method = ARM64_LATE_CPU_V4_NONE;
++	}
++
++	effects->bhb_conduit = ARM64_LATE_CPU_SMCCC_NONE;
++	effects->bhb_vector_template = ARM64_LATE_CPU_BHB_VECTOR_NONE;
++	effects->bhb_hyp_vector = effects->spectre_v2_hyp_vector;
++	effects->bhb_v2_non_vulnerable =
++		effects->spectre_v2_state != ARM64_LATE_CPU_MITIGATION_VULNERABLE;
++	if (bhb_state == ARM64_LATE_CPU_CAP_ABSENT) {
++		effects->bhb_method = ARM64_LATE_CPU_BHB_NONE;
++		effects->bhb_mitigation_state =
++			ARM64_LATE_CPU_BHB_STATE_UNAFFECTED;
++	} else if (!effects->bhb_v2_non_vulnerable) {
++		effects->bhb_method = ARM64_LATE_CPU_BHB_NONE;
++		effects->bhb_mitigation_state =
++			ARM64_LATE_CPU_BHB_STATE_VULNERABLE;
++	} else {
++		/* A non-vulnerable v2 path would need the missing BHB IDs. */
++		return -EAGAIN;
++	}
++
++	return 0;
++}
++
+ int __init arm64_late_cpu_a72_spectre_v2_v4_effects(
+ 	const struct arm64_late_cpu_target_cap_evidence *target,
+ 	const struct arm64_late_cpu_target_policy_evidence *policy,
+@@ -1462,7 +1628,8 @@ arm64_late_cpu_collect_policy(struct arm64_late_cpu_target_policy_evidence *poli
+ 	if (!policy || !system || system_capabilities_finalized() ||
+ 	    memchr_inv(policy, 0, sizeof(*policy)) ||
+ 	    system->valid != (ARM64_LATE_CPU_SYSTEM_CAP_CTR_VALID |
+-			      ARM64_LATE_CPU_SYSTEM_CAP_SSBS_VALID) ||
++			      ARM64_LATE_CPU_SYSTEM_CAP_SSBS_VALID |
++			      ARM64_LATE_CPU_SYSTEM_CAP_EARLY_LOCAL_VALID) ||
+ 	    bhb_methods & ~GENMASK(BHB_INSN, BHB_LOOP))
+ 		return -EINVAL;
+ 

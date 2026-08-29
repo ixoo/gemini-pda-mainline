@@ -6276,13 +6276,26 @@ The next ordered work is:
    activation, READY publication, CPU requests, candidate status, and device
    action remain absent. See the
    [preflight compile result](../experiments/2026-08-29-mainline-a72-attestation-closure/results/preflight-compile-20260829.txt).
-   **Selected next:** implement the next source-only conservative-policy slice:
-   derive unused GIC/hyp planning from finalized early-system capability bits,
-   and derive Spectre-v2, Spectre-v4, and BHB effects from the field-valid
-   expected pair with the audited vulnerable/no-callback worst case. Keep a
-   present early GIC/hyp state unresolved, keep unavailable modern IDs omitted,
-   and do not activate the expected pair, publish READY, request a CPU, or
-   create a device candidate in this slice.
+   Logical slice 8 is now canonical patch `0432`. It derives unused GIC/hyp
+   planning from the finalized early-system capability bitmap and derives
+   Spectre-v2, Spectre-v4, and BHB effects from only field-valid expected MIDR,
+   PFR0, and PFR1 values. Present early GIC/hyp state remains unresolved;
+   unknown firmware workarounds choose vulnerable/no-callback or
+   vulnerable/no-method effects; unavailable modern IDs remain unconsumed.
+   Six stopped generations exposed rejecting-test gaps, strict style defects,
+   declaration alignment, and an obsolete mitigation-policy collector input
+   mask. The corrected generation at signed commit `a4c92c33` passes its exact
+   package checksums, deterministic replay, strict checkpatch with zero
+   findings, all 27 rejecting source mutations, byte-identical admission, and
+   the 158-profile canonical-series invariant. Expected-pair activation, READY,
+   CPU requests, candidate status, native VM builds, and device actions remain
+   absent. See the
+   [policy generation result](../experiments/2026-08-29-mainline-a72-attestation-closure/results/policy-generation-20260829.txt).
+   **Selected next:** compile the exact canonical `0432` series with the
+   enabled `a72-p30e-wire` profile on Buildbox and inspect the linked policy
+   producer, conservative classifier/effect paths, call graph, sections, stack
+   frames, and complete diagnostics. Do not select a device candidate from
+   source-generation evidence.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

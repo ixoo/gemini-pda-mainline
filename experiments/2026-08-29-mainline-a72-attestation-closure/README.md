@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-29-mainline-a72-attestation-closure` |
-| Status | `completed-closure-definition; dormant slices 1-7 admitted and linked cleanly; conservative policy slice pending` |
+| Status | `completed-closure-definition; dormant slices 1-7 linked cleanly; conservative policy slice admitted, linked compile pending` |
 | Subsystem | arm64 late-CPU evidence, capability commitment, and MT6797 A72 entry |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-29 |
@@ -127,6 +127,9 @@ if its current register state differs from the frozen expectation.
 - [`results/preflight-compile-20260829.txt`](results/preflight-compile-20260829.txt):
   exact enabled-profile package, linked preflight ordering, runtime sections,
   stack frames, and unchanged-warning comparison.
+- [`results/policy-generation-20260829.txt`](results/policy-generation-20260829.txt):
+  exact conservative-policy generation chronology, package identities, 27
+  rejecting source mutations, byte-identical admission, and series audit.
 
 ## Procedure
 
@@ -502,6 +505,24 @@ activation, READY publication, CPU requests, hardware writes, and device
 actions remain absent. See the
 [preflight compile result](results/preflight-compile-20260829.txt).
 
+Logical slice 8 is now canonical patch `0432`. It records the two unused
+early-local GIC/hyp capabilities from the finalized system bitmap, plans an
+absent value as absent, and leaves a present value unresolved. Production
+Spectre-v2, Spectre-v4, and BHB planning consumes only the field-valid expected
+MIDR, PFR0, and PFR1 values. Unknown firmware workaround results select the
+audited vulnerable/no-callback or vulnerable/no-method states; missing modern
+ID registers are not consumed. Six stopped generations exposed two negative-
+test gaps, strict style defects, weak declaration alignment, and finally an
+old validity mask in the policy collector. The corrected generator updates
+that input gate and rejects removal as its 27th unsafe mutation. Exact
+generation at signed commit `a4c92c33` passes the bounded package checksums,
+positive validation, all mutations, deterministic replay, and strict
+checkpatch with zero findings. Canonical `0432` is byte-identical to the
+generated patch, and all 158 profiles retain the canonical-series invariant.
+The expected pair remains inactive; READY, CPU requests, candidate status,
+hardware writes, and device actions remain absent. See the
+[policy generation result](results/policy-generation-20260829.txt).
+
 ## Conclusion
 
 `confirmed-reference-only-mapping-dormant-planner-linked`:
@@ -512,9 +533,10 @@ current-mainline system/policy owner, pure planner, canonical identities, and
 dormant architecture commit/receipt are now reproducibly generated, admitted,
 and linked. Pre-request expected-target planning separation and conservative
 entry preflight are also reproducibly generated, admitted, and linked.
-Conservative GIC/hyp and mitigation policy, expected-contract activation,
-alternatives/HWCAP finalization, READY, and physical admission remain open. No
-CPU request is justified by the recovered capsule alone.
+Conservative GIC/hyp and mitigation policy is generated and admitted but not
+yet linked; expected-contract activation, alternatives/HWCAP finalization,
+READY, and physical admission remain open. No CPU request is justified by the
+recovered capsule alone.
 
 ## Follow-up
 
