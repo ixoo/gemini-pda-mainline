@@ -6149,12 +6149,19 @@ The next ordered work is:
    seal, and prepare before system-feature setup. The largest new frame is 112
    bytes, no section mismatch or new frame warning appears, and the same three
    older warnings are unchanged. This is linked source-owner proof only.
-   **Selected next:** implement logical slice 4 as a source-only extension of
-   the pure planner and canonical plan/evidence identities, with exact owner
-   and negative-mutation gates. The still-absent current target-cap producers
-   for GIC/hyp, workaround, and address-space facts must remain explicit gaps;
-   slice 4 may consume no invented values and must add no architecture commit,
-   READY publication, CPU request, candidate, or device action.
+   Logical slice 4 is now canonical patch `0428`. It computes prospective
+   native and compat HWCAP intersections from the sanitized early system and
+   both complete target register images, then hashes evidence and plan outputs
+   with domain-separated SHA-256 over named, big-endian fields rather than
+   structure padding. Exact Buildbox generation at signed commit `25777a3c`
+   passes its five-file package manifest, checksums, deterministic replay,
+   strict checkpatch with zero findings, the positive source validator, and
+   all 16 rejecting mutations. The still-absent current target-cap producers
+   for GIC/hyp, workaround, and address-space facts remain explicit gaps;
+   architecture commit, READY publication, every CPU request, candidate, and
+   device action remain absent. **Selected next:** compile the exact enabled
+   `a72-p30e-wire` profile on Buildbox and inspect its linked ownership, call
+   order, stack, sections, and diagnostics before selecting logical slice 5.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

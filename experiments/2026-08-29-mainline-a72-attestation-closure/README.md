@@ -293,6 +293,22 @@ from the pre-`0427` build. This proves linked source ownership, not target-cap
 evidence, READY, hardware support, or a boot candidate. See the
 [system/policy compile result](results/system-policy-compile-20260829.txt).
 
+Logical slice 4 is now canonical patch `0428`. It computes prospective native
+and compat HWCAP intersections from the sanitized early system and both
+complete target register images, then derives domain-separated SHA-256
+evidence and plan identities by serializing named scalar and register fields in
+big-endian order rather than hashing structure padding. The final package at
+signed commit `25777a3c` has an exact five-file manifest, passes all declared
+checksums, deterministic replay, strict checkpatch with zero findings, the
+positive source validator, and all 16 rejecting source mutations. Independent
+review also confirmed no checkpatch cache remained in either the package or
+the integrity-pinned prepared source. Current target-cap production, the
+architecture commit, READY publication, every CPU request, and all device
+actions remain absent. See the
+[planner generation result](results/planner-generation-20260829.txt). The next
+gate is an exact configuration-enabled `a72-p30e-wire` Buildbox compile and
+linked-output inspection; this source-only result is not a boot candidate.
+
 ## Conclusion
 
 `confirmed-reference-only-mapping-dormant-validator-and-system-policy-linked`:
