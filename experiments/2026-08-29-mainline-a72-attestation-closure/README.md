@@ -94,6 +94,17 @@ if its current register state differs from the frozen expectation.
   [`scripts/generate-policy-on-buildbox`](scripts/generate-policy-on-buildbox):
   exact post-`0431` Buildbox generation, strict style, replay, and bounded
   source-only packaging for the conservative-policy slice.
+- [`scripts/activation_edits.py`](scripts/activation_edits.py),
+  [`scripts/validate_activation_source.py`](scripts/validate_activation_source.py),
+  and [`scripts/test_activation_mutations.py`](scripts/test_activation_mutations.py):
+  deterministic named-device expected-pair activation, positive source
+  validation, and rejecting mutations while retaining the final attestation
+  blocker.
+- [`scripts/generate_activation_patch.py`](scripts/generate_activation_patch.py)
+  and
+  [`scripts/generate-activation-on-buildbox`](scripts/generate-activation-on-buildbox):
+  exact post-`0432` Buildbox generation, strict style, replay, and bounded
+  source-only packaging for the activation slice.
 - [`results/definition-validation-20260829.txt`](results/definition-validation-20260829.txt):
   exact source hashes, field-consumer audit, positive validation, and 21
   rejected unsafe mutations.
