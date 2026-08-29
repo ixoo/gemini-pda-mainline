@@ -87,8 +87,12 @@ The lane now pins Linux 7.1.3 checkpatch SHA-256 `e34bf5ce...`, runs it with
 `--no-tree --strict`, and ignores only the intentionally absent synthetic
 signoff. Generation attempt 2 reached that replacement style gate and stopped
 before packaging; the lane now emits the exact style diagnostics instead of
-discarding them with its cleaned partial package. No kernel build, boot image,
-device access, retained-RAM write, or hardware action has occurred.
+discarding them with its cleaned partial package. Attempt 3 reported zero
+errors, zero warnings, and three checks: two call lines ending at `(` and one
+unnecessary header `extern`. The deterministic editor now repairs those three
+source-format findings without a suppression or semantic change. No kernel
+build, boot image, device access, retained-RAM write, or hardware action has
+occurred.
 
 ## Analysis
 

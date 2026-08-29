@@ -158,9 +158,12 @@ def self_test() -> None:
         ("pre-scheduler", "arch/arm64/kernel/psci.c",
          "mt6797_a72_pmsg_pre_scheduler", "mt6797_a72_pmsg_terminal_pass"),
         ("terminal-result", "arch/arm64/kernel/psci.c",
-         "passed ? mt6797_a72_pmsg_terminal_pass", "mt6797_a72_pmsg_terminal_pass"),
+         "passed ?\n\t\tmt6797_a72_pmsg_terminal_pass",
+         "mt6797_a72_pmsg_terminal_pass"),
         ("terminal-order", "arch/arm64/kernel/psci.c",
-         "\t(void)pstore_write_pmsg_kernel(", "\tmt6797_a72_regcap_emit(&r8);\n\t(void)pstore_write_pmsg_kernel("),
+         "\t(void)pstore_write_pmsg_kernel(passed ?",
+         "\tmt6797_a72_regcap_emit(&r8);\n"
+         "\t(void)pstore_write_pmsg_kernel(passed ?"),
         ("raw-write", "fs/pstore/pmsg.c", "return ret;",
          "persistent_ram_write(NULL, buf, count);\n\treturn ret;"),
     ]

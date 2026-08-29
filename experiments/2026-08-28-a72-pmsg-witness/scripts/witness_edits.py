@@ -73,7 +73,7 @@ PSTORE_DECL_ANCHOR = """#ifdef CONFIG_PSTORE
 extern int pstore_register(struct pstore_info *);
 """
 PSTORE_DECL_CHILD = """#ifdef CONFIG_PSTORE_PMSG
-extern int pstore_write_pmsg_kernel(const char *buf, size_t count);
+int pstore_write_pmsg_kernel(const char *buf, size_t count);
 #else
 static inline int pstore_write_pmsg_kernel(const char *buf, size_t count)
 {
@@ -135,16 +135,15 @@ static const char mt6797_a72_pmsg_terminal_fault[] =
 
 """
 PSCI_PRE_SCHEDULER_PARENT = "\t\tmt6797_a72_sc_run();\n"
-PSCI_PRE_SCHEDULER_CHILD = """		(void)pstore_write_pmsg_kernel(
-			mt6797_a72_pmsg_pre_scheduler,
+PSCI_PRE_SCHEDULER_CHILD = """		(void)pstore_write_pmsg_kernel(mt6797_a72_pmsg_pre_scheduler,
 			sizeof(mt6797_a72_pmsg_pre_scheduler) - 1);
 		mt6797_a72_sc_run();
 """
 PSCI_TERMINAL_PARENT = """	pr_emerg("gemini-a72-pair-v7 result=%s parent_pass=%d sc_reported=%d sc_iterations=262144 sc_rescheds=64 sc_expected8=%d sc_start8=%d sc_end8=%d sc_expected9=%d sc_start9=%d sc_end9=%d sc_task8=%d sc_task9=%d sc_create8=%d sc_create9=%d sc_unpark8=%d sc_unpark9=%d sc_readywait8=%d sc_readywait9=%d sc_startwait8=%d sc_startwait9=%d sc_wait8=%d sc_wait9=%d sc_error8=%d sc_error9=%d sc_stop8=%d sc_stop9=%d sc_done8=%d sc_done9=%d sc_ready=%d sc_finished=%d sc_hash8=%016llx sc_hash9=%016llx\\n",
 """
-PSCI_TERMINAL_CHILD = """	(void)pstore_write_pmsg_kernel(
-		passed ? mt6797_a72_pmsg_terminal_pass :
-			 mt6797_a72_pmsg_terminal_fault,
+PSCI_TERMINAL_CHILD = """	(void)pstore_write_pmsg_kernel(passed ?
+		mt6797_a72_pmsg_terminal_pass :
+		mt6797_a72_pmsg_terminal_fault,
 		passed ? sizeof(mt6797_a72_pmsg_terminal_pass) - 1 :
 			 sizeof(mt6797_a72_pmsg_terminal_fault) - 1);
 	pr_emerg("gemini-a72-pair-v7 result=%s parent_pass=%d sc_reported=%d sc_iterations=262144 sc_rescheds=64 sc_expected8=%d sc_start8=%d sc_end8=%d sc_expected9=%d sc_start9=%d sc_end9=%d sc_task8=%d sc_task9=%d sc_create8=%d sc_create9=%d sc_unpark8=%d sc_unpark9=%d sc_readywait8=%d sc_readywait9=%d sc_startwait8=%d sc_startwait9=%d sc_wait8=%d sc_wait9=%d sc_error8=%d sc_error9=%d sc_stop8=%d sc_stop9=%d sc_done8=%d sc_done9=%d sc_ready=%d sc_finished=%d sc_hash8=%016llx sc_hash9=%016llx\\n",
