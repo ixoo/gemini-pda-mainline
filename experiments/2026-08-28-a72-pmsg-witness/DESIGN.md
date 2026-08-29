@@ -45,14 +45,22 @@ format strings are untouched.
 
 ## Runtime classification
 
-- ordered entry, pre-scheduler, and pre-capsule PASS plus valid capsules:
-  classify the target-register result;
-- ordered entry/pre-scheduler and pre-capsule FAULT: classify the inherited
+The 64-KiB pmsg zone is a circular ring. The entry record precedes the two late
+records by enough ordinary Android pmsg traffic that it may be the first record
+wrapped out. Accept either the complete sequence or its contiguous suffix
+starting at pre-scheduler; absence of entry never upgrades the result.
+
+- ordered entry/pre-scheduler/pre-capsule PASS, or its ordered
+  pre-scheduler/pre-capsule PASS suffix, plus valid capsules: classify the
+  target-register result;
+- ordered entry/pre-scheduler/pre-capsule FAULT, or its ordered
+  pre-scheduler/pre-capsule FAULT suffix: classify the inherited
   scheduler/capsule fault;
-- entry or pre-scheduler without a terminal: localize execution before the
-  pre-capsule boundary;
-- terminal without pre-scheduler, duplicates, both terminal results, malformed
-  records, or order violations: evidence corruption or mixed cycle;
+- entry, entry/pre-scheduler, or pre-scheduler alone: localize execution before
+  the next boundary;
+- terminal without pre-scheduler, entry/terminal without pre-scheduler,
+  duplicates, both terminal results, malformed records, or order violations:
+  evidence corruption or mixed cycle;
 - no pmsg witness after a confirmed changed cycle: pre-late-init,
   boot-selection/handoff, or pmsg retention failure, not a CPU result.
 

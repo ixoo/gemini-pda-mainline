@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-a72-pmsg-witness` |
-| Status | `offline candidate and runtime tooling accepted; deployment pending` |
+| Status | `runtime complete pass; target-register evidence recovered` |
 | Subsystem | Gemian pstore/ramoops and retained Cortex-A72 experiment attribution |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-28 |
@@ -85,6 +85,9 @@ preservation, forbidden-action inventory, and negative mutations pass.
   independent container construction and candidate validation.
 - [`results/runtime-tooling-validation-20260829.txt`](results/runtime-tooling-validation-20260829.txt):
   changed-cycle parser, decision map, and guarded-installer validation.
+- [`results/runtime-attempt-1-complete-pass-20260829.txt`](results/runtime-attempt-1-complete-pass-20260829.txt):
+  changed-cycle pmsg suffix, complete raw-console terminal, all 43 phases, and
+  both independently recomputed capsule identities across eight records.
 
 ## Procedure
 
@@ -142,13 +145,42 @@ active Android-v0 boot `1fa78de9...`. Two separate artifact roots reproduce
 raw candidate `f2be7936...` and exact 16 MiB padded boot2 image `0814c06b...`
 byte-for-byte. The independent candidate parser verifies the header, image ID,
 kernel, unchanged ramdisk, zero padding, provenance, manifest, and private file
-modes; all six mutations are rejected. The changed-cycle pmsg parser accepts
-the five exact sequence states while treating surrounding Android data as
-arbitrary binary and rejects eleven malformed, duplicate, mixed, unsafe, or
-unchanged-cycle inputs. Its guarded installer derives from the accepted
-boot2-only path and pins predecessor `f8e247e5...`. No device access,
+modes; all six mutations are rejected. The initial changed-cycle pmsg parser
+accepted the five complete-prefix states while treating surrounding Android
+data as arbitrary binary and rejected eleven malformed, duplicate, mixed,
+unsafe, or unchanged-cycle inputs. Its guarded installer derives from the
+accepted boot2-only path and pins predecessor `f8e247e5...`. No device access,
 retained-RAM write, partition write, or boot occurred during these offline
 gates.
+
+Signed commit `904776ef` was published before deployment. The guarded
+installer matched predecessor `f8e247e5...`, wrote exact padded candidate
+`0814c06b...` only to live-GPT inactive boot2, matched the full readback, and
+confirmed clean shutdown without a fresh backup or automatic reboot. The
+pre-armed collector then observed one owner-selected boot2 cycle and a changed
+known-good Gemian boot ID.
+
+The retained 64-KiB pmsg record contains one ordered pre-scheduler witness and
+one PASS terminal, with no entry, FAULT, duplicate, or malformed record. The
+initial parser rejected this because it required the leading entry. The actual
+circular-ring result shows only that the leading entry was not retained;
+ordinary Android traffic wrapping it is expected, but an entry-write failure
+cannot be distinguished and does not upgrade the result. The corrected
+contract accepts either the complete sequence or its contiguous suffix
+beginning at pre-scheduler while continuing to reject terminal-without-
+pre-scheduler, duplicates, mixed terminals, malformed records, and order
+violations. Eight valid states and twelve unsafe captures now pass/reject as
+intended; no kernel, candidate, write, or raw capture changed.
+
+The independent pre-existing raw-console validator then accepted the required
+capsule evidence: all 43 ordered phase records, PASS pair terminals, eight
+source-ordered capsule records, two complete/pass target slots, independently
+recomputed identities, and a complete transport tail. CPU8 ran on CPU8 with
+MPIDR `0x200`, CPU9 ran on CPU9 with MPIDR `0x201`, both report MIDR
+`0x410fd081`, their complete register vectors agree with prior per-CPU
+`cpu_data`, and both bounded scheduler results have zero error. Recovery left
+exact boot2 unchanged, CPUs 8--9 offline under ordinary Gemian policy, and
+power healthy.
 
 ## Analysis
 
@@ -160,14 +192,18 @@ when retained, but cannot be the sole success criterion.
 
 ## Conclusion
 
-Source generation, the exact-parent compile comparison, exact Android-v0
-candidate, and changed-cycle recovery tooling are accepted. This experiment
-still makes no runtime or CPU support claim; the one physical cycle is pending.
+`complete-pass`: source generation, exact-parent compilation, deterministic
+candidate construction, deployment, changed-cycle recovery, ordered late pmsg
+suffix, inherited scheduler terminal, and both complete target-register
+capsules are accepted. This closes the target-register evidence hypothesis on
+the named unit for this exact experiment-only Gemian line. It does not itself
+publish a mainline READY token or establish production/default A72 support.
 
 ## Follow-up
 
-Follow only the ordered step in [`docs/ROADMAP.md`](../../docs/ROADMAP.md): arm
-the accepted changed-cycle collector, deploy exact padded candidate
-`0814c06b...` to live-resolved boot2 with full readback and shutdown, and spend
-one attributable physical cycle. Do not repeat the same image unless a new
-independent observation path changes the decision.
+Follow only the ordered step in [`docs/ROADMAP.md`](../../docs/ROADMAP.md): use
+the exact complete CPU8/CPU9 target values to define the mainline attestation
+schema, enumerate the still-missing system and policy observations, and define
+the architecture-owned capability commit/finalization path. Do not make
+another CPU request or treat the vendor-kernel capsule as a ready-made mainline
+policy decision.

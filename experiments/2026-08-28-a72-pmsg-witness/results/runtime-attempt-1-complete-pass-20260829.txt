@@ -1,0 +1,165 @@
+Gemian A72 same-version pmsg witness runtime attempt 1
+UTC date: 2026-08-29
+Result: COMPLETE PASS
+
+Scope and attribution
+---------------------
+
+Named device: Gemini PDA x27 project unit
+Repository definition commit: 904776ef
+Candidate raw SHA-256:
+  f2be7936996ea5a2d94f236c584e2b41b1b61a6eb8877e615a2b5d344547fdad
+Candidate exact 16 MiB boot2 SHA-256:
+  0814c06b9bb41aa7ec666ad1abbb4bbf86e113e11878ac3de159d6cec3112f78
+Installed predecessor SHA-256:
+  f8e247e5f067fff562e00d1d96447b236c8ea2ec946c9e493589938b0b9d9f7f
+
+The guarded installer resolved only inactive live-GPT `/dev/mmcblk0p30`
+against root `/dev/mmcblk0p29`, matched the predecessor, wrote the exact
+candidate, synchronized and flushed it, matched a full-partition readback, and
+confirmed clean shutdown. It created no fresh backup and did not reboot the
+device. The changed-cycle collector was armed before that disconnect. The
+owner selected boot2 once; the candidate returned automatically to known-good
+Gemian.
+
+Changed-cycle binding
+---------------------
+
+cycle_started_utc=2026-08-29T01:13:26Z
+disconnect_observed_utc=2026-08-29T01:14:10Z
+reconnect_observed_utc=2026-08-29T01:23:23Z
+initial_boot_id_sha256=0cf69a4e47c7b7f202d54aacfb246342ae3ae72c484961f68b6305cdf0cdab47
+final_boot_id_sha256=a4ddec6420a3f06f017bcb054096ea0a8a3a4bbadac9d7049a469d578e087ea3
+archive_pre_boot_id_sha256=a4ddec6420a3f06f017bcb054096ea0a8a3a4bbadac9d7049a469d578e087ea3
+archive_post_boot_id_sha256=a4ddec6420a3f06f017bcb054096ea0a8a3a4bbadac9d7049a469d578e087ea3
+recovery_kernel=3.18.41+
+recovery_architecture=aarch64
+cycle_metadata_sha256=6f83ec1666c2fd1c8e6c896d58dda4d1395ea313cf689b753a42b3b069d2b439
+capture_metadata_sha256=f61a753c07001e827525b245cee888946f064ce30b585c871278032669119ef3
+private_capture_manifest_sha256=fa37171c8f5a1f743f9d810dd8c4b5d6bef9537ce8340c8c890a06d08f1a5cad
+
+Pmsg witnesses
+--------------
+
+pmsg_size=65524
+pmsg_sha256=da2e465bd859935f4f2019508a623bfe02bb86a07be7a04677ad513f1b64f0f3
+entry_records=0
+pre_scheduler_records=1
+pre_scheduler_byte_offset=14292
+terminal_pass_records=1
+terminal_pass_byte_offset=14351
+terminal_fault_records=0
+malformed_family_records=0
+
+The original hardware-free classifier accepted only a complete record prefix
+and therefore rejected this ordered pre-scheduler/PASS pair. The 64-KiB pmsg
+zone is circular and the early entry is the only leading record not retained;
+ordinary Android traffic wrapping it is expected, but an entry-write failure
+cannot be distinguished. Neither possibility upgrades the result. The two late
+records are a contiguous source-ordered suffix. The corrected contract accepts
+the complete sequence or the suffix beginning at pre-scheduler. It still
+rejects a terminal without pre-scheduler,
+entry/terminal without pre-scheduler, duplicates, both terminals, malformed
+records, order violations, unsafe files, and unchanged cycles. No kernel,
+candidate, device write, or raw capture changed during this correction.
+
+Corrected pmsg validator SHA-256:
+  1e66fcab00a218339956a6ea10d3b4225391af467f534f17fe3d6b09088ad1dd
+Corrected runtime test SHA-256:
+  ee1b5eb65f6140794fe43142cc4e3c1932cb5e8f4f2c3d311cb7ec46104a9ba9
+Corrected collector wrapper SHA-256:
+  76e4b89657e3e101db6b518e9d6d5e75f75d03221720422bb8b5da0ea746d35d
+valid_classifications=8
+invalid_captures=12-rejected
+entry_retention=leading-record-not-retained
+pmsg_classification=pre-capsule-pass-await-capsules
+
+Console and capsule validation
+------------------------------
+
+console_size=65524
+console_sha256=de9b2cf75d1b2eeed20739f08c4dd95abcd4dd7b9f2056587d4ff668e1786b2d
+pair_v6_byte_offset=39021
+pair_v7_byte_offset=39990
+capsule_byte_offsets=40495,40757,41011,41200,41385,41647,41901,42090
+normalized_pair_v6_sha256=675b4a2b8a16851ce2d5a8b66a4d82608ceb926446941c9ea44500c06ab74c6d
+normalized_pair_v7_sha256=35b2f7ae64190494ca584665722fade4c000628369751266ab3215d7bae52778
+normalized_capsule_stream_sha256=04bd7f060613719e7836415f9dfbbc19dc1d97ee847eb811f765c5e8a01667cc
+capsule_validator_sha256=6d74e73e412c4e7a6c05cfece2fa684fbb2db465dc1a789fa24cd633cd502efc
+
+Independent validator output:
+
+validation=a72-target-register-capsule-structure-pass
+latest_sequence=1
+phase_records=43
+terminal_result=pass
+capsule_records=8
+capsule_complete_slots=2
+capsule_pass_slots=2
+transport_tail=complete
+capture_class=raw-terminal
+
+The pair-v7 terminal independently reports:
+
+result=pass
+parent_pass=1
+sc_reported=1
+sc_expected8=8
+sc_start8=8
+sc_end8=8
+sc_expected9=9
+sc_start9=9
+sc_end9=9
+sc_error8=0
+sc_error9=0
+sc_ready=2
+sc_finished=2
+sc_hash8=f678147669874ecd
+sc_hash9=c2274327e9c8104c
+
+Complete versioned target capsules
+----------------------------------
+
+gemini-a72-regcap-v1 part=core result=pass cpu=8 abi=1 fields=32 valid=0x1f error=0 complete=1 identity=e35596c52bc8b40b mpidr=0000000000000200 midr=410fd081 revidr=00000000 cntfrq=00c65d40 ctr=8444c004 dczid=00000004 clidr=000000000a200023
+gemini-a72-regcap-v1 part=aa64 result=pass cpu=8 identity=e35596c52bc8b40b dfr0=0000000010305106 isar0=0000000000011120 isar1=0000000000000000 mmfr0=0000000000001124 mmfr1=0000000000000000 pfr0=0000000001002222 pfr1=0000000000000000
+gemini-a72-regcap-v1 part=a32isar result=pass cpu=8 identity=e35596c52bc8b40b isar0=02101110 isar1=13112111 isar2=21232042 isar3=01112131 isar4=00011142 isar5=00011121
+gemini-a72-regcap-v1 part=a32mm result=pass cpu=8 identity=e35596c52bc8b40b mmfr0=10201105 mmfr1=40000000 mmfr2=01260000 mmfr3=02102211 pfr0=00000131 pfr1=10011011
+gemini-a72-regcap-v1 part=core result=pass cpu=9 abi=1 fields=32 valid=0x1f error=0 complete=1 identity=600c5e2d6733661d mpidr=0000000000000201 midr=410fd081 revidr=00000000 cntfrq=00c65d40 ctr=8444c004 dczid=00000004 clidr=000000000a200023
+gemini-a72-regcap-v1 part=aa64 result=pass cpu=9 identity=600c5e2d6733661d dfr0=0000000010305106 isar0=0000000000011120 isar1=0000000000000000 mmfr0=0000000000001124 mmfr1=0000000000000000 pfr0=0000000001002222 pfr1=0000000000000000
+gemini-a72-regcap-v1 part=a32isar result=pass cpu=9 identity=600c5e2d6733661d isar0=02101110 isar1=13112111 isar2=21232042 isar3=01112131 isar4=00011142 isar5=00011121
+gemini-a72-regcap-v1 part=a32mm result=pass cpu=9 identity=600c5e2d6733661d mmfr0=10201105 mmfr1=40000000 mmfr2=01260000 mmfr3=02102211 pfr0=00000131 pfr1=10011011
+
+The independent parser validates all field widths and ordering and recomputes
+both 64-bit identities from the 32 named fields. Both target-local tasks agree
+with their prior per-CPU `cpu_data`, report complete valid masks and zero
+errors, and execute the bounded inherited scheduler workload on CPU8 and CPU9.
+
+Post-recovery state
+-------------------
+
+root=/dev/mmcblk0p29
+inactive_boot2=/dev/mmcblk0p30
+inactive_boot2_sha256=0814c06b9bb41aa7ec666ad1abbb4bbf86e113e11878ac3de159d6cec3112f78
+recovery_online_cpus=4-5
+recovery_present_cpus=0-9
+recovery_possible_cpus=0-9
+power=present,92-percent,Good
+
+Decision
+--------
+
+classification=complete-pass
+
+This closes the target-register evidence hypothesis on the named unit for the
+exact experiment-only Gemian source and candidate. It directly establishes
+bounded target-local CPU8 and CPU9 execution, exact placement, complete
+architectural-register capture, agreement with each target's secondary-startup
+`cpu_data`, and the inherited finite scheduler/coherency result.
+
+It does not establish a mainline READY token, system-wide feature policy, GIC
+or hyp usability, SMCCC mitigation state, ASID/granule/VA policy, capability
+commit/finalization, production CPU admission, safe CPU_OFF, sustained load,
+cpufreq/OPP, thermal, suspend, or default support. The next action is to use
+these exact target values to define the mainline attestation schema and
+enumerate and implement the still-missing system/policy evidence and
+architecture-owned commit path before another CPU request.

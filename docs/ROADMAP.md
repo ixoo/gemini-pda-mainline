@@ -6063,20 +6063,36 @@ The next ordered work is:
    diagnostics, the child-only writer, one indirect backend call, all fixed
    records, unchanged console-marker inventory, 26 target-task register reads
    in both trees, bounded stack use, package manifest, and provenance. Exact
-   Android-v0 candidate construction now reproduces raw `f2be7936...` and
-   padded boot2 image `0814c06b...` in two independent roots; the independent
-   parser rejects all six container mutations. The changed-cycle classifier
-   accepts only the five exact sequence prefixes, treats surrounding Android
-   pmsg bytes as untrusted binary, requires a
-   disconnect/reconnect/changed-boot-ID recovery, and rejects eleven
-   corruption, mixed-cycle, unsafe-file, and unchanged-cycle inputs. The
-   derived installer pins prior target-register image `f8e247e5...` and
-   retains live-GPT boot2 resolution, full readback, no-new-backup policy, and
-   clean shutdown. No device action occurred during these gates. **Selected
-   next:** arm the accepted collector while known-good Gemian is reachable,
-   install exact padded candidate `0814c06b...` to live-resolved inactive
-   boot2, require full matching readback and shutdown, then spend one physical
-   cycle and classify only its changed-cycle pmsg result.
+   Android-v0 candidate construction reproduces raw `f2be7936...` and padded
+   boot2 image `0814c06b...` in two independent roots; the independent parser
+   rejects all six container mutations. The derived installer then matched
+   prior target-register image `f8e247e5...`, wrote exact `0814c06b...` only to
+   live-resolved inactive boot2, passed full readback, and cleanly shut down
+   without a new backup or automatic reboot. The pre-armed changed-cycle
+   recovery captured one owner-selected boot and a new Gemian boot ID. Its
+   circular 64-KiB pmsg ring retained one ordered pre-scheduler/PASS suffix;
+   only the earlier entry was not retained. Circular wrap is expected, while
+   entry-write failure is indistinguishable and does not upgrade the result.
+   The corrected classifier accepts the complete sequence or that contiguous
+   suffix, treats surrounding Android bytes as untrusted, and passes eight
+   valid states while rejecting twelve
+   duplicate, mixed, malformed, unsafe, order, and cycle mutations. The same
+   cycle's console ring independently validates all 43 ordered phases, adjacent
+   pair-v6/pair-v7 PASS terminals, eight source-ordered capsule records, two
+   recomputed complete/pass identities, and a complete transport tail. CPU8
+   and CPU9 executed on MPIDRs `0x200` and `0x201`, both report MIDR
+   `0x410fd081`, and both complete target-local vectors agree with their prior
+   `cpu_data`. Recovery left exact boot2 unchanged, CPUs 8--9 offline under
+   ordinary Gemian policy, and power healthy. This closes the target-register
+   evidence hypothesis, not mainline READY or production support. **Selected
+   next:** freeze the exact two-target mainline attestation schema from these
+   recovered vectors, map every field required by the private arm64 evidence
+   object, and enumerate the still-missing GIC/hyp, SMCCC mitigation,
+   ASID/granule/VA, target-policy, system-capability, architecture-commit,
+   alternatives, and user-HWCAP evidence. Define and mutation-test the
+   architecture-owned evidence/commit/finalization closure before a Buildbox
+   build; do not issue another CPU request or treat the Gemian capsule as a
+   ready-made mainline policy decision.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

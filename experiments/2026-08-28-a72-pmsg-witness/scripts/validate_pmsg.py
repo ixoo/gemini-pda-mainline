@@ -23,6 +23,9 @@ VALID_SEQUENCES = {
     (ENTRY, PRE_SCHEDULER): "before-pre-capsule",
     (ENTRY, PRE_SCHEDULER, TERMINAL_PASS): "pre-capsule-pass-await-capsules",
     (ENTRY, PRE_SCHEDULER, TERMINAL_FAULT): "scheduler-capsule-fault",
+    (PRE_SCHEDULER,): "before-pre-capsule",
+    (PRE_SCHEDULER, TERMINAL_PASS): "pre-capsule-pass-await-capsules",
+    (PRE_SCHEDULER, TERMINAL_FAULT): "scheduler-capsule-fault",
 }
 SHA256 = re.compile(r"[0-9a-f]{64}")
 KERNEL_RELEASE = re.compile(r"[A-Za-z0-9._+-]+")
@@ -151,10 +154,21 @@ def classify_capture(capture: Path) -> dict[str, str]:
         "pre_scheduler_records": str(counts[PRE_SCHEDULER]),
         "terminal_pass_records": str(counts[TERMINAL_PASS]),
         "terminal_fault_records": str(counts[TERMINAL_FAULT]),
+        "entry_retention": (
+            "present"
+            if ENTRY in sequence
+            else "leading-record-not-retained"
+            if PRE_SCHEDULER in sequence
+            else "not-observed"
+        ),
         "classification": VALID_SEQUENCES[sequence],
         "capsule_result": (
             "required"
-            if sequence == (ENTRY, PRE_SCHEDULER, TERMINAL_PASS)
+            if sequence
+            in (
+                (ENTRY, PRE_SCHEDULER, TERMINAL_PASS),
+                (PRE_SCHEDULER, TERMINAL_PASS),
+            )
             else "not-applicable"
         ),
         "screen_evidence": "non-classifying",

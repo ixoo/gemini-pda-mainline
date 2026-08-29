@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-a72-target-register-capsule` |
-| Status | `runtime-attempt-1-inconclusive-evidence-loss` |
+| Status | `attempt 1 evidence loss; pmsg-observed follow-up complete pass` |
 | Subsystem | MT6797 retained Cortex-A72 pair and arm64 ID-register evidence |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-28 |
@@ -105,6 +105,10 @@ one fixed decision map; the proven parent must not be rerun unchanged.
   live-GPT boot2 write, full readback, cleanup, and clean-shutdown evidence.
 - [`results/runtime-attempt-1-evidence-loss-20260828.txt`](results/runtime-attempt-1-evidence-loss-20260828.txt):
   safely recovered marker-free cycle and fixed-map classification.
+- The distinct
+  [`same-version pmsg witness`](../2026-08-28-a72-pmsg-witness/README.md)
+  child preserves this exact capsule source and records its complete runtime
+  result without repeating the retired image.
 
 ## Procedure
 
@@ -255,6 +259,13 @@ The next child will add a bounded kernel pmsg helper plus entry, pre-scheduler,
 and mutually exclusive pre-capsule terminal records. That path is deliberately
 not valid for the differently aligned mainline-to-Gemian pmsg layout.
 
+That distinct child is now complete. Its changed-cycle pmsg ring retained the
+ordered pre-scheduler/PASS suffix, and the same cycle's console ring retained
+all 43 phases, adjacent pair-v6/pair-v7 PASS terminals, and all eight capsule
+records. The unchanged independent validator recomputed both identities and
+accepted two complete/pass slots with a complete transport tail. See the
+[sanitized complete-pass result](../2026-08-28-a72-pmsg-witness/results/runtime-attempt-1-complete-pass-20260829.txt).
+
 ## Analysis
 
 Copying `cpu_data` alone would rely on source attribution for target locality.
@@ -273,20 +284,17 @@ captured.
 
 ## Conclusion
 
-`runtime-attempt-1-inconclusive-evidence-loss`: deployment and safe recovery are
-established, but no candidate identity survived either observation path. The
-target-register hypothesis was not exercised, READY did not advance, and no
-hardware-support claim exists.
+The original image remains `runtime-attempt-1-inconclusive-evidence-loss` and
+must not be repeated. The distinct pmsg-observed child now resolves the source
+hypothesis as `complete-pass`: both target-local tasks produced complete
+register capsules that agree with their prior per-CPU records after the exact
+parent passed. This is target evidence, not a mainline READY or policy result.
 
 ## Follow-up
 
 Continue only through the ordered action in
-[`docs/ROADMAP.md`](../../docs/ROADMAP.md): do not repeat `f8e247e5...`. Audit
-the exact successful scheduler-unpark retention path and available reserved
-retained-RAM contracts, then freeze one distinct pre-scheduler candidate-entry
-and pre-capsule-terminal observation path that remains recoverable when both
-console-ramoops and USB are absent. That audit is now complete and selects the
-same-version Gemian pmsg ring. Define and mutation-test the bounded pmsg child
-before Buildbox or deployment. That definition now lives in the
-[`same-version pmsg witness`](../2026-08-28-a72-pmsg-witness/README.md)
-experiment.
+[`docs/ROADMAP.md`](../../docs/ROADMAP.md): use the recovered exact target
+values to define the mainline attestation schema and enumerate the still-
+missing system/policy evidence and architecture-owned capability commit. Do
+not repeat either Gemian image or issue a new CPU request before that closure
+is source-defined and Buildbox-validated.

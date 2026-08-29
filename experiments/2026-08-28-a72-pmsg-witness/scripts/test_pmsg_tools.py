@@ -105,6 +105,21 @@ def validate_successes(temporary: Path) -> None:
             + VALIDATOR_MODULE.TERMINAL_FAULT,
             "scheduler-capsule-fault",
         ),
+        (
+            "wrapped-entry-pre-scheduler",
+            b"old-android-tail\x00" + VALIDATOR_MODULE.PRE_SCHEDULER,
+            "before-pre-capsule",
+        ),
+        (
+            "wrapped-entry-terminal-pass",
+            VALIDATOR_MODULE.PRE_SCHEDULER + VALIDATOR_MODULE.TERMINAL_PASS,
+            "pre-capsule-pass-await-capsules",
+        ),
+        (
+            "wrapped-entry-terminal-fault",
+            VALIDATOR_MODULE.PRE_SCHEDULER + VALIDATOR_MODULE.TERMINAL_FAULT,
+            "scheduler-capsule-fault",
+        ),
     )
     for name, raw, expected in valid:
         capture = fixture(temporary / name, raw)
@@ -122,8 +137,9 @@ def validate_rejections(temporary: Path) -> None:
         ("duplicate-entry", entry + entry, "duplicate, mixed, or out-of-order"),
         ("both-terminals", entry + pre + passed + fault, "duplicate, mixed, or out-of-order"),
         ("terminal-without-pre", entry + passed, "duplicate, mixed, or out-of-order"),
-        ("pre-without-entry", pre, "duplicate, mixed, or out-of-order"),
         ("wrong-order", pre + entry, "duplicate, mixed, or out-of-order"),
+        ("duplicate-pre", entry + pre + pre, "duplicate, mixed, or out-of-order"),
+        ("terminal-only", passed, "duplicate, mixed, or out-of-order"),
         (
             "malformed-version",
             b"gemini-a72-pmsg-v2 stage=entry parent=register-capsule\n",
@@ -187,8 +203,8 @@ def main() -> int:
         validate_successes(temporary)
         validate_rejections(temporary)
     print("validation=a72-pmsg-runtime-tools")
-    print("valid_classifications=5")
-    print("invalid_captures=11-rejected")
+    print("valid_classifications=8")
+    print("invalid_captures=12-rejected")
     print("binary_surroundings=accepted")
     print("result=pass")
     return 0
