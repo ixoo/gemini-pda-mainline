@@ -46,7 +46,9 @@ def mutations() -> list[tuple[str, Callable[[Path], None]]]:
             "\tcase ARM64_WORKAROUND_SPECULATIVE_AT:\n"
             "\tcase ARM64_HAS_LSE_ATOMICS:\n\t\treturn true;")),
         ("drop-finalization-gate", lambda r: replace(
-            r / cpufeature, "system_capabilities_finalized() ||\n", "")),
+            r / cpufeature,
+            "\tif (!plan || system_capabilities_finalized() ||\n",
+            "\tif (!plan ||\n")),
         ("drop-target-cap-subset", lambda r: replace(
             r / cpufeature,
             "\t    !bitmap_subset(plan->required_local_caps,\n"

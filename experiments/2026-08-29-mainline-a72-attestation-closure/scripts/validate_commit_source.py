@@ -57,8 +57,10 @@ def validate(root: Path) -> list[str]:
             "capability allowlist does not fail closed")
 
     commit = function(cpufeature, "arm64_commit_late_cpu_plan(")
+    require("if (!plan || system_capabilities_finalized() ||" in commit,
+            "architecture commit finalization gate changed")
     for token in (
-        "system_capabilities_finalized()", "ARM64_ALWAYS_SYSTEM",
+        "ARM64_ALWAYS_SYSTEM",
         "plan->abi != ARM64_LATE_CPU_PLAN_ABI",
         "plan->evidence.blocker_mask", "plan->local_caps_planned",
         "plan->effects_planned", "plan->hwcaps_planned",
