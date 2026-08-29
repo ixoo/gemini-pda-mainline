@@ -1,0 +1,207 @@
+CPU8/CPU9 target-register capsule deployment and runtime decision map
+====================================================================
+
+Date: 2026-08-28
+Status: fixed before deployment
+
+This map selects one attributable boot only after the guarded installer,
+read-only collector, parser, mutation tests, and this map are committed and
+pushed. It is not runtime evidence. Screen color, framebuffer availability,
+and an automatic restart alone are not classifying evidence.
+
+Exact candidate and predecessor
+-------------------------------
+
+Compile repository commit:
+  f3627d4e9dc23bd102b827eb8011bdac61b6f8a6
+Compile package SHA256SUMS SHA-256:
+  6a1eb12128f69fe34ac2942a2a421d6d916939b22fb5966d7201e909489eadd9
+Compile purpose:
+  a72-target-register-capsule-compile-review-only
+Compile package boot_candidate field:
+  false
+Exact scheduler parent patchset SHA-256:
+  bd5799cecd14aa34a87562b09507a6d9f18f11cd138420bcba629f12793e7bfe
+Exact register child patchset SHA-256:
+  71ef281aae8d0b99d0421b81bd3d61d82ab090125c4885977ba39d8280838469
+Kernel field SHA-256:
+  de81aa06953bf1f6a24a97c88f10f1406f6af0b100f0b3f7b34674240eeefdfa
+Raw Android-v0 SHA-256:
+  d4ae9ee1b2f799e06e0195d8b113ef52cbd2491aa54e331bb79309e34c61922d
+Full boot2 SHA-256:
+  f8e247e5f067fff562e00d1d96447b236c8ea2ec946c9e493589938b0b9d9f7f
+Candidate manifest SHA-256:
+  d3a2d9f30d36e9227abf327af27e52c418461236e00a41a705f4514bdfbfe562
+Read-only observed boot2 predecessor SHA-256:
+  df82bbfa012a994642a145beee994125cc9069092aad22e6af0321dfb7202f60
+Predecessor observation:
+  known-good Gemian 3.18.41+, root mmcblk0p29, inactive unmounted boot2
+  mmcblk0p30, CPUs 0-1, battery present 100 percent Good
+
+The compile package remains honestly labeled compile-review-only and false as
+a boot candidate. Deployment consumes the separately reproduced and accepted
+offline container. The installer accepts only the exact observed predecessor
+or an already-matching exact candidate; it never broadens the target.
+
+Hypothesis and unique observation
+---------------------------------
+
+The exact scheduler-unpark parent has already shown repeatable pair-v6 and
+pair-v7 pass with CPU8 and CPU9 executing bounded work in their target-bound
+tasks. The unresolved READY gap is the absence of a target-local producer for
+the architectural register vector consumed by arm64 CPU capability policy.
+
+The child changes only those two proven bound tasks: before their existing
+ready publication, each reads one fixed 32-register vector, compares every
+cpuinfo-backed field with that CPU's existing cpu_data, publishes a complete
+capsule, and later emits four exact lines. It does not change PSCI, power,
+CPU_ON/OFF, scheduler workload, synchronization, timeout, cleanup, watchdog,
+recovery, DT, configuration, or the CPU_OFF prohibition.
+
+The decision-changing evidence is whether both target-local vectors are
+complete, self-consistent, CPU-local Cortex-A72 records that match cpu_data,
+while the inherited scheduler parent still passes. This distinguishes a
+missing READY evidence producer from a target register/cpuinfo mismatch.
+
+Observation sequence
+--------------------
+
+1. In ordinary Gemian, start changed-cycle pstore recovery with exact helper
+   scripts/collect-device-pstore, SHA-256
+   9047084f3012aff47e23e56498d4bc0ae6f8fb7e4f15caec10abb6c15e9a9b3b,
+   target gemini@192.168.1.50, one new private attempt directory,
+   --wait-for-cycle, and --wait-seconds 900. Require its explicit readiness
+   after it binds the initial boot ID.
+2. Run the reviewed installer once. It must resolve exactly one live-GPT
+   boot2; prove it inactive, unmounted, writable, holder-free, non-swap, and
+   distinct from root; require the exact predecessor; record its checksum with
+   fresh_predecessor_backup=no; upload only a mode-0600 exact-size staging
+   file; write, sync, flush, full-partition hash, independently stream and
+   byte-compare all 16 MiB, remove temporary state, and shut down cleanly. It
+   must never reboot.
+3. While the device is off, arm the read-only USB/netcat collector in one new
+   artifacts/runtime-captures/a72-target-register-capsule-attempt-1 child.
+   Physically select boot2 once. A framebuffer console is not expected or
+   required. The inherited watchdog may restart into ordinary Gemian.
+4. After recovery, require a changed boot ID, known-good Gemian root, CPUs 8/9
+   offline, inactive/unmounted boot2, and unchanged full boot2 checksum
+   f8e247e5f067fff562e00d1d96447b236c8ea2ec946c9e493589938b0b9d9f7f.
+5. Classify changed-cycle pstore first with validate_capture.py
+   --raw-kernel-log. Use the numbered USB snapshots only as read-only
+   corroboration. Never extend a retained prefix, combine different cycles,
+   or replace changed-cycle identity with a prior screen observation.
+
+Phase and inherited-terminal contract
+-------------------------------------
+
+The scheduler parent retains its exact 23 parent records. Each CPU task adds
+task-capture-before and task-capture-after ahead of the inherited eight task
+records. A successful trace therefore contains 43 unique phase records. CPU8
+and CPU9 task streams may interleave, but each is an exact source-order stream.
+The existing unpark, ready, release, done, stop, and run-exit causal edges
+remain. Additionally, for each CPU:
+
+  unpark-before < task-capture-before < task-capture-after < task-ready-before
+
+The adjacent pair-v6 and pair-v7 terminals must immediately follow run-exit.
+PASS requires the established exact pair-v6 and pair-v7 success vectors,
+including parent_pass=1, sc_reported=1, target CPUs 8/9, zero errors, complete
+counts, and exact workload hashes. A pair terminal cannot be moved past or
+interleaved with a capsule line.
+
+Capsule schema and identity contract
+------------------------------------
+
+Pair-v7 is followed by exactly eight gemini-a72-regcap-v1 records in this
+source order:
+
+  CPU8 core, aa64, a32isar, a32mm
+  CPU9 core, aa64, a32isar, a32mm
+
+Every part requires one result, CPU, and 16-hex-digit identity. The core part
+requires exact ordered fields abi, fields, valid, error, complete, identity,
+mpidr, midr, revidr, cntfrq, ctr, dczid, and clidr. The aa64 part requires
+dfr0, isar0, isar1, mmfr0, mmfr1, pfr0, and pfr1. The a32isar part requires
+isar0 through isar5. The a32mm part requires mmfr0 through mmfr3 and pfr0
+through pfr1. Width, case, order, duplicate, missing, unknown, and mixed-slot
+checks are fail-closed.
+
+For each slot, the validator recomputes the kernel's unsigned 64-bit identity
+from ABI, field count, valid mask, u32 error, CPU, MIDR, REVIDR, CNTFRQ, CTR,
+DCZID, cpuinfo-match bit, MPIDR, CLIDR, all AA64 ID registers, and all A32 ID
+registers using:
+
+  identity = 1469598103934665603
+  for each field: identity = (identity XOR field) * 1099511628211 mod 2^64
+
+All four printed identities and results in a slot must agree with that
+recomputation. A passing slot additionally requires ABI 1, fields 32, valid
+0x1f, error 0, complete 1, target CPU, MPIDR 0x200 for CPU8 or 0x201 for CPU9,
+ARM implementer 0x41, and Cortex-A72 part 0xd08. Valid bit 4 proves the fixed
+register vector matched that CPU's cpu_data at capture time.
+
+Decision branches
+-----------------
+
+TWO-CAPSULE PASS
+  Require changed-cycle recovery plus the exact 43-record phase trace, exact
+  inherited pair-v6/pair-v7 pass, eight ordered capsule records, two complete
+  recomputed identities, and passing CPU8/CPU9 core contracts. This establishes
+  the missing target-local register evidence for the two proven tasks. Do not
+  repeat this artifact unchanged. Next, design the minimal arm64 READY producer
+  and publication gate from these observed vectors; retain fail-closed policy
+  and do not enable CPU_OFF or production scheduling yet.
+
+STRUCTURALLY VALID CAPSULE FAULT
+  Preserve all four records for each complete slot. Report every failing core
+  contract and register-vector identity; do not invent a single register or
+  CPU when fields co-fail. If pair-v7 also faults, apply its exact field vector
+  and phase order first. Reject the artifact unchanged. Investigate only the
+  smallest source-level mismatch established by the complete vector.
+
+CAPTURE PHASE BOUNDARY
+  A continuous task-capture-before without task-capture-after, followed by an
+  attributable fatal/reset tail, localizes the operation to the fixed
+  target-register read/comparison function. Without a continuous fatal tail,
+  record only the retained prefix and classify evidence loss; do not infer
+  which register was next.
+
+PARTIAL CAPSULE PUBLICATION
+  Pair-v7 followed by fewer than eight source-ordered capsule lines identifies
+  an emission/publication prefix only. A complete four-line slot may be
+  validated independently; an incomplete slot cannot. Do not merge pstore and
+  USB suffixes or repeat unchanged unless a new independent retention path can
+  distinguish transport truncation from source non-emission.
+
+INHERITED PAIR REGRESSION
+  Any pair-v6 value outside its exact pass contract is a parent regression.
+  Any pair-v7 fault is classified from its complete vector and phase history.
+  Do not promote capsule success over an inherited parent regression.
+
+MARKER OR CAPSULE CONTRACT VIOLATION
+  Unknown phase/part/field, invalid CPU domain, malformed width, duplicate,
+  reordered event, mixed identity/result/CPU within a slot, recomputation
+  mismatch, impossible result claim, terminal metadata mismatch, non-monotonic
+  snapshots, or terminal moved before run-exit invalidates the record as a
+  classifier input. Preserve it and do not repeat solely from malformed data.
+
+NO ATTRIBUTABLE MARKER OR HEAD-TRUNCATED EVIDENCE
+  A changed cycle with no experiment marker cannot localize the fault. A trace
+  not beginning at create8-before cannot establish missing earlier events.
+  Preserve only the observed suffix, recovery identity, boot reason, and
+  unchanged boot2; screen state remains non-classifying.
+
+LOST RECOVERY OR SAFETY FAILURE
+  Missing automatic recovery, wrong root/kernel identity, changed boot2,
+  online recovery CPU8/9, unexpected heat, storage errors, wrong live-GPT
+  target, or any installer gate failure is a safety stop. Recover through
+  known-good Gemian, preserve pstore, and do not repeat unchanged.
+
+Success boundary
+----------------
+
+One exact two-capsule pass proves only that the already-proven bounded target
+tasks can capture architectural vectors consistent with their cpu_data and
+that the inherited scheduler experiment still passes. It does not publish
+arm64 READY, bring CPU8/CPU9 production-online, authorize CPU_OFF, remove the
+HPS veto, or establish cpufreq, thermal, suspend, or long-running load support.

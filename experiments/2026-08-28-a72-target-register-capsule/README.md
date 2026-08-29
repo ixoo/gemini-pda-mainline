@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-a72-target-register-capsule` |
-| Status | `offline-candidate-validated` |
+| Status | `runtime-tooling-validated` |
 | Subsystem | MT6797 retained Cortex-A72 pair and arm64 ID-register evidence |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-28 |
@@ -75,6 +75,14 @@ one fixed decision map; the proven parent must not be rerun unchanged.
   assemblies and two independent exact-size padding constructions offline.
 - [`scripts/test_candidate.py`](scripts/test_candidate.py): independently pins
   and parses the complete container/tool chain and rejects candidate mutations.
+- [`scripts/install-boot2.sh`](scripts/install-boot2.sh): derives the guarded
+  installer with the exact observed predecessor and candidate identities.
+- [`scripts/capture-live-outcome.sh`](scripts/capture-live-outcome.sh): retains
+  read-only numbered USB snapshots through all eight capsule records.
+- [`scripts/validate_capture.py`](scripts/validate_capture.py): validates live
+  or raw-pstore phase, terminal, schema, and recomputed-identity evidence.
+- [`scripts/test_runtime_tools.py`](scripts/test_runtime_tools.py): freezes
+  deployment, collection, parser, decision-map, and negative-mutation gates.
 - [`patches/series`](patches/series): the exact admitted one-patch child series.
 - [`results/definition-validation-20260828.txt`](results/definition-validation-20260828.txt):
   local syntax, ShellCheck, serialization, exact-reversal, and mutation result.
@@ -86,6 +94,10 @@ one fixed decision map; the proven parent must not be rerun unchanged.
   accepted exact child-versus-parent Buildbox binary and stack review.
 - [`results/offline-container-review-20260828.txt`](results/offline-container-review-20260828.txt):
   two-root deterministic Android-v0 and full boot2 candidate validation.
+- [`results/runtime-decision-map-20260828.txt`](results/runtime-decision-map-20260828.txt):
+  fixed one-attempt observation sequence and complete outcome map.
+- [`results/runtime-tooling-validation-20260828.txt`](results/runtime-tooling-validation-20260828.txt):
+  read-only predecessor observation and accepted runtime-tooling gates.
 
 ## Procedure
 
@@ -98,6 +110,8 @@ one fixed decision map; the proven parent must not be rerun unchanged.
    the binary comparison and capture symbols/reads/output/stack are inspected.
 6. Define deterministic container, guarded boot2 deployment, and one-attempt
    runtime classification before any device write.
+7. Commit and push the runtime tools, arm changed-cycle pstore and read-only
+   USB capture, deploy exact boot2 once, recover, and apply the fixed map.
 
 ## Observations
 
@@ -190,6 +204,22 @@ image ID, and all-zero tail, and 12/12 mutation instances are rejected. The raw
 identity is `d4ae9ee1...`; exact 16 MiB boot2 identity is `f8e247e5...`. No
 device access, deployment, or runtime result occurred.
 
+Before deployment, a read-only known-good Gemian observation resolved live-GPT
+boot2 to inactive, unmounted `/dev/mmcblk0p30` with predecessor `df82bbfa...`;
+root remained `/dev/mmcblk0p29`, CPUs online were `0-1`, and battery state was
+present, 100 percent, Good. The derived installer pins that predecessor and
+exact candidate `f8e247e5...` while retaining full-partition readback,
+no-fresh-backup, cleanup, and confirmed-shutdown gates.
+
+The read-only collector fixes a decision-relevant race in the inherited tool:
+pair-v7 is no longer enough to stop capture because the new capsule records
+are emitted immediately afterward. Terminal capture now requires all eight
+source-ordered records. The parser accepts numbered live snapshots or raw
+pstore, validates 43 phase records and both inherited terminals, checks exact
+field schemas, and recomputes both 64-bit capsule identities. Four installer
+identity mutations and twelve capture mutations are rejected. No device write
+or runtime attempt has occurred.
+
 ## Analysis
 
 Copying `cpu_data` alone would rely on source attribution for target locality.
@@ -208,15 +238,15 @@ captured.
 
 ## Conclusion
 
-`offline-candidate-validated`: the smallest target-local capture child is
-admitted, compiled against its exact scheduler parent, inspected in its actual
-inlined binary shape, and reproducibly packaged as one exact offline candidate.
-This establishes no runtime, READY, mainline policy, or hardware-support claim.
+`runtime-tooling-validated`: the smallest target-local capture child is
+admitted, compiled, reproducibly packaged, and paired with a fixed one-attempt
+deployment and classification contract. This establishes no runtime, READY,
+mainline policy, or hardware-support claim.
 
 ## Follow-up
 
 Continue only through the ordered action in
-[`docs/ROADMAP.md`](../../docs/ROADMAP.md): freeze the guarded boot2 installer,
-read-only collector, and one-attempt decision map against exact candidate
-`f8e247e5...`; validate their failure paths and mutations, commit and push them,
-then deploy once under the standing boot2 authorization.
+[`docs/ROADMAP.md`](../../docs/ROADMAP.md): commit and push the accepted tools,
+arm changed-cycle pstore and read-only USB/netcat, install exact candidate
+`f8e247e5...` to inactive boot2 under the standing authorization, shut down,
+select boot2 once, recover, and classify only through the fixed map.

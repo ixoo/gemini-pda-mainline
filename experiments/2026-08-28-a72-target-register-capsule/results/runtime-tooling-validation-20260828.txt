@@ -1,0 +1,105 @@
+A72 target-register capsule runtime-tooling validation
+Date: 2026-08-28
+Result: PASS
+Device write: none
+Runtime attempt: none
+
+Exact deployment inputs
+-----------------------
+
+Candidate SHA-256:
+  f8e247e5f067fff562e00d1d96447b236c8ea2ec946c9e493589938b0b9d9f7f
+Candidate manifest SHA-256:
+  d3a2d9f30d36e9227abf327af27e52c418461236e00a41a705f4514bdfbfe562
+Candidate directory:
+  gemian-a72-target-register-capsule-d4ae9ee1b2f7
+Read-only observed predecessor SHA-256:
+  df82bbfa012a994642a145beee994125cc9069092aad22e6af0321dfb7202f60
+
+Predecessor observation
+-----------------------
+
+Known-good Gemian kernel:
+  3.18.41+
+Boot ID:
+  fcb93f2c-346d-4d81-a626-24227488ebf1
+Machine:
+  aarch64
+Root:
+  /dev/mmcblk0p29
+Live-GPT boot2:
+  /dev/mmcblk0p30, label boot2, partition, 16,777,216 bytes, writable,
+  inactive, unmounted
+Recovery CPUs online:
+  0-1
+Power:
+  battery present, 100 percent, Good
+
+The first read-only shell returned the kernel, machine, boot ID, and CPU state,
+then stopped on a host quoting error before reading boot2. A second read-only
+shell resolved boot2 through /dev/disk/by-partlabel and supplied the exact
+partition, checksum, root, and power fields above. Neither shell wrote device
+state.
+
+Tooling identities
+------------------
+
+install-boot2.sh SHA-256:
+  d32d5aed962954a122f361ad589d0ebfa8e10372a450c92fb73afddee38c9b39
+capture-live-outcome.sh SHA-256:
+  99e9f40b66857b4072f294240b296835c84496457a485b4e3c806ce94bb7267e
+validate_capture.py SHA-256:
+  6d74e73e412c4e7a6c05cfece2fa684fbb2db465dc1a789fa24cd633cd502efc
+test_runtime_tools.py SHA-256:
+  ebc1130b37e90e286b2f3088f67a098c976e42e14c7ec00da341299bf3d947bb
+runtime-decision-map-20260828.txt SHA-256:
+  27fae86bf7964634ebe55b514104756f9c70fa7cab391189634b3d384cedc71c
+
+Guard and parser validation
+---------------------------
+
+  validation=a72-target-register-runtime-tools
+  installer_mutations=4-rejected
+  capture_mutations=12-rejected
+  raw_pstore_terminal=pass
+  live_terminal=pass
+  result=pass
+
+- Both shell files pass bash -n and ShellCheck.
+- Both Python files pass bytecode compilation; generated __pycache__ state was
+  removed after validation.
+- The installer derives from exact scheduler installer
+  29236d880bf33377d77eee66183ad682016b1769ef0b541f519bdb3e90a503b3
+  and preserves the guarded base installer's live-GPT, inactive-root,
+  unmounted, holder, swap, power, exact-size, full-readback, no-fresh-backup,
+  temporary-cleanup, and confirmed-shutdown gates.
+- Mutating predecessor, candidate, candidate manifest, or artifact name fails
+  before the derived installer can execute.
+- The device-side live program is read-only: it contains no partition path,
+  storage write, CPU-online write, mount, reboot, poweroff, or other stimulus.
+- Unlike the inherited collector, it does not stop when pair-v7 first appears.
+  It requires all eight source-ordered capsule records before emitting terminal
+  metadata, closing the race that could otherwise lose the decisive lines.
+- The parser pins the inherited phase parser and exact capsule source patch,
+  validates all 43 phase records and both inherited terminals, requires exact
+  capsule widths/order/inventory, and recomputes both 64-bit identities from
+  the complete field vectors.
+- Twelve capture mutations cover duplicate terminator, metadata mismatch,
+  missing capture phase, moved terminal, reordered and duplicate capsule,
+  recomputed-identity mismatch, mixed identity, malformed width, false pass
+  vector, capsule without pair, and mixed result.
+- One complete numbered live fixture and its raw-pstore equivalent pass. A
+  five-record raw capsule prefix remains a prefix and is not promoted to a
+  complete terminal.
+- The fixed decision map treats changed-cycle pstore as primary, USB/netcat as
+  secondary, framebuffer state as non-classifying, and maps every complete,
+  partial, malformed, recovery, and safety outcome before deployment.
+- Native VM kernel build: no. No kernel input changed after the accepted exact
+  Buildbox compile; the validated candidate is unchanged.
+
+Decision
+--------
+
+The guarded installer, read-only collector, parser, and fixed decision map are
+accepted for one exact target-register capsule deployment after this tooling is
+committed and pushed. No boot2 write or new runtime claim has occurred yet.

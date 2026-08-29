@@ -6016,12 +6016,16 @@ The next ordered work is:
    architectural reads over the parent and no forbidden call; configuration,
    diagnostics, inherited scheduler behavior, and stack bounds pass. Two
    independent Android-v0 roots reproduce exact 16 MiB candidate
-   `f8e247e5...` and reject all candidate mutations. **Selected next:** freeze
-   and validate the guarded inactive-boot2 installer, read-only collector, and
-   one-attempt capsule decision map against that exact identity. Commit and
-   push those tools before one deployment; do not change the scheduler parent,
-   workload, power sequence, CPU_OFF prohibition, watchdog recovery, or fixed
-   capsule schema.
+   `f8e247e5...` and reject all candidate mutations. The guarded installer now
+   pins read-only observed inactive-boot2 predecessor `df82bbfa...`, and the
+   read-only live/raw-pstore parser closes the pair-v7 capture race, validates
+   43 phases plus eight exact capsule records, recomputes both identities, and
+   rejects four installer and twelve capture mutations. **Selected next:**
+   commit and push these accepted tools, arm changed-cycle pstore and USB/netcat,
+   deploy `f8e247e5...` once under the standing boot2 authorization, require the
+   verified clean shutdown, physically select boot2, then recover and apply the
+   fixed decision map. Do not change the scheduler parent, workload, power
+   sequence, CPU_OFF prohibition, watchdog recovery, or capsule schema.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

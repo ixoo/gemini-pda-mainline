@@ -36,7 +36,11 @@ the loop. Positive identity-gated observations are unaffected.
   call, identical configuration/diagnostics, and bounded stack. Two independent
   Android-v0 constructions and padding paths reproduce exact 16 MiB candidate
   `f8e247e5...`; both complete validators reject all mutations. Guarded
-  deployment/runtime tooling is next; no new device result exists yet.
+  deployment pins observed predecessor `df82bbfa...`, preserves full-readback
+  and clean-shutdown gates, and the read-only live/raw-pstore parser validates
+  43 phase records, both inherited terminals, all eight capsule lines, and both
+  recomputed identities. Four installer and twelve capture mutations are rejected.
+  One deployment is next; no new runtime result exists yet.
 - [2026-08-28 arm64 late-CPU READY evidence-gap audit](2026-08-28-mainline-a72-ready-evidence-gap-audit/README.md)
   — exact prepared-source review confirms that provenance alone cannot publish
   READY. The private core object has no target-register evidence producer, the
