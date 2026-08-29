@@ -85,6 +85,15 @@ if its current register state differs from the frozen expectation.
   [`scripts/generate-preflight-on-buildbox`](scripts/generate-preflight-on-buildbox):
   exact post-`0430` Buildbox generation, strict style, replay, and bounded
   source-only package workflow for logical slice 7.
+- [`scripts/policy_edits.py`](scripts/policy_edits.py),
+  [`scripts/validate_policy_source.py`](scripts/validate_policy_source.py), and
+  [`scripts/test_policy_mutations.py`](scripts/test_policy_mutations.py):
+  deterministic conservative GIC/mitigation planning edits, positive source
+  validation, and rejecting mutations for missing or overclaimed owners.
+- [`scripts/generate_policy_patch.py`](scripts/generate_policy_patch.py) and
+  [`scripts/generate-policy-on-buildbox`](scripts/generate-policy-on-buildbox):
+  exact post-`0431` Buildbox generation, strict style, replay, and bounded
+  source-only packaging for the conservative-policy slice.
 - [`results/definition-validation-20260829.txt`](results/definition-validation-20260829.txt):
   exact source hashes, field-consumer audit, positive validation, and 21
   rejected unsafe mutations.
