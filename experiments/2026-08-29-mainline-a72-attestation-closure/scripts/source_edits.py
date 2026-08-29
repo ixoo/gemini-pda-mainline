@@ -82,51 +82,51 @@ arm64_late_cpu_collect_system(struct arm64_late_cpu_system_cap_evidence *system)
 
 MITIGATION_PRODUCER = '''#ifdef CONFIG_ARM64_LATE_CPU_PROFILE
 static int __init
-late_cpu_current_mitigation_state(enum mitigation_state state, u8 *current)
+late_cpu_current_mitigation_state(enum mitigation_state state, u8 *value)
 {
 	switch (state) {
 	case SPECTRE_UNAFFECTED:
-		*current = ARM64_LATE_CPU_MITIGATION_UNAFFECTED;
+		*value = ARM64_LATE_CPU_MITIGATION_UNAFFECTED;
 		return 0;
 	case SPECTRE_MITIGATED:
-		*current = ARM64_LATE_CPU_MITIGATION_MITIGATED;
+		*value = ARM64_LATE_CPU_MITIGATION_MITIGATED;
 		return 0;
 	case SPECTRE_VULNERABLE:
-		*current = ARM64_LATE_CPU_MITIGATION_VULNERABLE;
+		*value = ARM64_LATE_CPU_MITIGATION_VULNERABLE;
 		return 0;
 	default:
 		return -ERANGE;
 	}
 }
 
-static int __init late_cpu_current_smccc_conduit(u8 *current)
+static int __init late_cpu_current_smccc_conduit(u8 *value)
 {
 	switch (arm_smccc_1_1_get_conduit()) {
 	case SMCCC_CONDUIT_NONE:
-		*current = ARM64_LATE_CPU_SMCCC_NONE;
+		*value = ARM64_LATE_CPU_SMCCC_NONE;
 		return 0;
 	case SMCCC_CONDUIT_SMC:
-		*current = ARM64_LATE_CPU_SMCCC_SMC;
+		*value = ARM64_LATE_CPU_SMCCC_SMC;
 		return 0;
 	case SMCCC_CONDUIT_HVC:
-		*current = ARM64_LATE_CPU_SMCCC_HVC;
+		*value = ARM64_LATE_CPU_SMCCC_HVC;
 		return 0;
 	default:
 		return -ERANGE;
 	}
 }
 
-static int __init late_cpu_current_v4_policy(u8 *current)
+static int __init late_cpu_current_v4_policy(u8 *value)
 {
 	switch (READ_ONCE(__spectre_v4_policy)) {
 	case SPECTRE_V4_POLICY_MITIGATION_DYNAMIC:
-		*current = ARM64_LATE_CPU_V4_POLICY_DYNAMIC;
+		*value = ARM64_LATE_CPU_V4_POLICY_DYNAMIC;
 		return 0;
 	case SPECTRE_V4_POLICY_MITIGATION_ENABLED:
-		*current = ARM64_LATE_CPU_V4_POLICY_FORCE_ON;
+		*value = ARM64_LATE_CPU_V4_POLICY_FORCE_ON;
 		return 0;
 	case SPECTRE_V4_POLICY_MITIGATION_DISABLED:
-		*current = ARM64_LATE_CPU_V4_POLICY_FORCE_OFF;
+		*value = ARM64_LATE_CPU_V4_POLICY_FORCE_OFF;
 		return 0;
 	default:
 		return -ERANGE;

@@ -327,6 +327,9 @@ def validate_system_policy(root: Path) -> list[str]:
     ):
         for token in tokens:
             require(token in source, f"owner mapping absent: {token}")
+    for source in (state_map, conduit_map, v4_map):
+        require("u8 *current" not in source,
+                "owner mapping parameter collides with the current macro")
     for token in (
         "READ_ONCE(system_bhb_mitigations)",
         "bhb_methods & ~GENMASK(BHB_INSN, BHB_LOOP)",
