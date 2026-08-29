@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-a72-pmsg-witness` |
-| Status | `source accepted; Buildbox compile pending` |
+| Status | `compile accepted; runtime tooling pending` |
 | Subsystem | Gemian pstore/ramoops and retained Cortex-A72 experiment attribution |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-28 |
@@ -71,6 +71,8 @@ preservation, forbidden-action inventory, and negative mutations pass.
   exact generation identities, stopped attempts, and acceptance boundary.
 - [`results/compile-lane-validation-20260829.txt`](results/compile-lane-validation-20260829.txt):
   pinned parent/child comparison, binary gates, and no-device boundary.
+- [`results/compile-review-20260829.txt`](results/compile-review-20260829.txt):
+  accepted exact-parent Buildbox compile and linked-binary evidence.
 
 ## Procedure
 
@@ -109,9 +111,12 @@ and parent successfully, then stopped before packaging because the validator
 expected one terminal call instruction. The pinned compiler emits two static
 calls for the source's one mutually exclusive PASS/FAULT conditional. This is
 a compile-gate assumption error, not a source or kernel-compile failure; the
-source validator still proves exactly one terminal operation. The gate now
-pins the observed topology: one entry callsite, one pre-scheduler callsite, and
-two mutually exclusive terminal callsites. No boot image was accepted, and no
+source validator still proves exactly one terminal operation. The corrected
+retry at project commit `5899bda1...` passes both complete builds, identical
+configuration and diagnostics, the exact four-callsite topology, one indirect
+backend call, all four records, unchanged inherited console inventory, 26 MRS
+instructions in each target task, and bounded stack use. The fetched manifest
+passes independently. No boot image has been selected as a candidate, and no
 device access, retained-RAM write, or hardware action occurred.
 
 ## Analysis
@@ -124,11 +129,12 @@ when retained, but cannot be the sole success criterion.
 
 ## Conclusion
 
-Source generation is accepted. This experiment currently makes no runtime or
-CPU support claim and is not yet a boot candidate.
+Source generation and the exact-parent compile comparison are accepted. This
+experiment currently makes no runtime or CPU support claim and is not yet a
+boot candidate.
 
 ## Follow-up
 
-Follow only the ordered step in [`docs/ROADMAP.md`](../../docs/ROADMAP.md): run
-the exact-parent Buildbox-only compile comparison before candidate construction
-or any physical action.
+Follow only the ordered step in [`docs/ROADMAP.md`](../../docs/ROADMAP.md):
+freeze the pmsg-aware changed-cycle collector and candidate validation before
+candidate construction or any physical action.

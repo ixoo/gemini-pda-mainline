@@ -1,0 +1,78 @@
+A72 same-version pmsg witness Buildbox compile review
+Date: 2026-08-29 UTC
+Result: PASS
+
+Exact inputs
+------------
+
+Repository commit:
+  5899bda178aca1363073c7bcc80eddf4e71c07e8
+Gemian source commit:
+  59e00a9144d782e148332009a835b99c43382467
+Scheduler-unpark patchset SHA-256:
+  bd5799cecd14aa34a87562b09507a6d9f18f11cd138420bcba629f12793e7bfe
+Register-capsule patchset SHA-256:
+  71ef281aae8d0b99d0421b81bd3d61d82ab090125c4885977ba39d8280838469
+Pmsg-witness patchset SHA-256:
+  6663fe7b073ce2e939bf2ba6ce3de28e824cf3b30d1653c4d3c272bf3ba2bd46
+Buildbox job:
+  5899bda178aca1363073c7bcc80eddf4e71c07e8-gemian-a72-pmsg-witness
+Validated package:
+  gemian-a72-pmsg-compile-5899bda178ac
+Package SHA256SUMS SHA-256:
+  edb1fd6498e599761cbf0237f9e590388c156fdaf73735ec7af7236be168771d
+
+Source and build gates
+----------------------
+
+  validation=a72-pmsg-witness-source
+  parent_reversal=byte-identical
+  changed_paths=4
+  retained_record_bytes_lt=1024
+  device_action=none
+  pmsg_source_build=passed
+  baseline_source_build=passed
+  diagnostic_comparison=identical
+
+Both exact trees use the same resolved configuration with PSTORE, PMSG,
+ramoops, and pstore console enabled. Their extracted inherited vendor
+diagnostics are byte-identical. Each tree retains 2,484 stack-usage files.
+
+Compiled binary gates
+---------------------
+
+`pstore_write_pmsg_kernel` is linked only in the child. The compiled callsite
+delta is exactly:
+
+  observer entry: 1
+  pre-scheduler worker: 1
+  mutually exclusive PASS/FAULT terminal branches: 2
+
+The helper has exactly one mutex lock, one strcmp, one mutex unlock, and one
+indirect backend call. No PSCI, CPU up/down, MMIO, regulator, clock, scheduler,
+delay, reset, reboot, or restart call entered the helper. The four fixed pmsg
+records are linked only in the child. Inherited console-marker inventories are
+identical. Both child and exact register parent retain exactly 26 `mrs`
+instructions in the target task.
+
+Focused child stack bytes:
+  mt6797_a72_hold_workfn=784
+  mt6797_a72_obs_init=32
+  mt6797_a72_sc_terminal=256
+  mt6797_a72_sc_thread=96
+  pstore_write_pmsg_kernel=80
+
+Accepted child outputs
+----------------------
+
+Image.gz-dtb SHA-256:
+  b056043221ba934dc970eb7f22a8444a05aba4a58a25ba66412f7d12735c54e7
+vmlinux SHA-256:
+  c3e048fde05c0aea9814e86907ed6084c910e75e545a0073087b3e5c683a769b
+System.map SHA-256:
+  a98b8a34917a80c72fbb66385601ba24595d3d2c42a6a0642954de9a2b46efdc
+
+The fetched package independently passes its strict manifest and provenance
+checks. Provenance remains `boot_candidate=false`. This is compile evidence,
+not a container, deployment, retained-runtime, READY, or hardware-support
+claim. No device access or physical action occurred.

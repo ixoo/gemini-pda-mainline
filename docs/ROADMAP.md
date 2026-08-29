@@ -6058,9 +6058,14 @@ The next ordered work is:
    two mutually exclusive static terminal calls for the one source-level
    PASS/FAULT conditional. The admitted source is unchanged; the corrected
    gate pins one entry, one pre-scheduler, and that two-callsite terminal
-   topology while rejecting any other direct-call delta. **Selected next:**
-   commit and push the corrected gate, then retry and review the Buildbox-only
-   comparison before any candidate construction.
+   topology while rejecting any other direct-call delta. The retry at exact
+   commit `5899bda1...` passes both builds, identical configuration and
+   diagnostics, the child-only writer, one indirect backend call, all fixed
+   records, unchanged console-marker inventory, 26 target-task register reads
+   in both trees, bounded stack use, package manifest, and provenance. No
+   candidate or device action occurred. **Selected next:** freeze and validate
+   a same-version pmsg-aware changed-cycle collector and exact candidate
+   construction before any boot2 deployment.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
