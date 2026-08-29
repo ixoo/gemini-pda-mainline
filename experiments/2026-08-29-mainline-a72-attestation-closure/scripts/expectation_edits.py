@@ -359,8 +359,8 @@ def apply(root: Path) -> None:
 
     replace_once(
         core,
-        "static bool\nlate_expected_pair_complete(\n",
-        "bool\narm64_late_cpu_expected_pair_complete(\n",
+        "static bool\nlate_expected_pair_complete",
+        "bool\narm64_late_cpu_expected_pair_complete",
     )
     replace_once(
         core,
