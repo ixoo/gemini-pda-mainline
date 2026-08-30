@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-live-a34-predicate-repair` |
-| Status | `exact physical candidate validated; guarded boot2 deployment pending` |
+| Status | `exact candidate deployed and device shut down; fresh boot pending` |
 | Subsystem | MT6797 CPU8 derived admission and A34 eligibility |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -162,6 +162,16 @@ no CPU9 request path, no CPU-off path, and no retry path. Exact identities and
 tooling results are in
 [`results/offline-candidate-20260830.txt`](results/offline-candidate-20260830.txt).
 
+Guarded deployment from known-good Gemian boot `9e77d0d3...` resolved live-GPT
+logical `boot2` as inactive, unmounted `/dev/mmcblk0p30`, with root on p29 and
+exact expected predecessor `2245c1c4...`. External power was present, battery
+was 100% and healthy, and the retained transition and admission records were
+logically empty. No fresh backup was made. The workflow wrote only `boot2`,
+synced and flushed it, and matched complete 16 MiB readback `7c962888...`.
+It then shut Gemini down without rebooting; SSH failure plus three consecutive
+closed TCP/22 checks confirm power-off. See
+[`results/deployment-20260830.txt`](results/deployment-20260830.txt).
+
 ## Conclusion
 
 The original pre-request `-EPERM` is explained by an invalid interpretation
@@ -174,8 +184,7 @@ hardware support.
 
 ## Follow-up
 
-Install exact padded candidate `7c962888...` to live-GPT inactive `boot2`,
-require full-partition readback, and shut down. On a fresh boot, issue one CPU8
-request and classify it from the retained controller stage, derived substage,
-request count, terminal status, and CPU masks. Keep CPU9 vetoed until CPU8 is
-reproducibly online.
+On one fresh owner-selected boot2 cycle, qualify the exact candidate and issue
+one CPU8 request. Classify it from the retained controller stage, derived
+substage, request count, terminal status, and CPU masks. Keep CPU9 vetoed until
+CPU8 is reproducibly online.
