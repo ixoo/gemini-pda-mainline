@@ -43,9 +43,7 @@ mt6797_a72_validate_cap_plan(const struct arm64_late_cpu_plan *plan)
 			(unsigned long long)
 			mt6797_a72_evidence_diag(plan ? &plan->evidence : NULL));
 		if (plan)
-			pr_info("A72_READY_PLAN_VALUES_V1 ncaps=%u early=%*pb "
-				"target=%*pb required=%*pb t0=%*pb t1=%*pb "
-				"conduit0=%u conduit1=%u\n",
+			pr_info("A72_READY_PLAN_VALUES_V1 %u %*pb %*pb %*pb %*pb %*pb %u %u\n",
 				ARM64_NCAPS,
 				ARM64_NCAPS, plan->early_local_caps,
 				ARM64_NCAPS, plan->target_local_caps,

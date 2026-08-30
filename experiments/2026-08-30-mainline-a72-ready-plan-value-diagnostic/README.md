@@ -24,8 +24,8 @@ The value-observer hypothesis is falsifiable: an otherwise identical candidate
 must preserve the validator return and original predicate line while emitting
 exactly one `A72_READY_PLAN_VALUES_V1` line on the same failure. That line must
 contain `ARM64_NCAPS`, the three global bitmaps, both per-target local bitmaps,
-and both target policy conduits. It must not change READY, CPU, power, storage,
-retry, CPU_OFF, or CPU9 behavior.
+and both target policy conduits in that documented positional order. It must
+not change READY, CPU, power, storage, retry, CPU_OFF, or CPU9 behavior.
 
 ## Provenance and environment
 
