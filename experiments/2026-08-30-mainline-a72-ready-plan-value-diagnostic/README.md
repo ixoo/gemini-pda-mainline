@@ -79,9 +79,16 @@ mutations, and confirms zero CPU requests. The exact padded boot2 candidate is
 the CPU8 trigger. See
 [`results/offline-candidate-20260830.txt`](results/offline-candidate-20260830.txt).
 
+The guarded installer then resolved inactive logical `boot2` from the live GPT
+as `/dev/mmcblk0p30`, required the exact `7ac6f429...` predecessor, wrote and
+flushed `1c08f1fc...`, obtained the same full-partition readback identity, and
+shut the device down. It created no fresh partition backup and did not reboot.
+See
+[`results/deployment-boot2-1c08f1fc-20260830.txt`](results/deployment-boot2-1c08f1fc-20260830.txt).
+
 ## Conclusion
 
-`exact-value-observer-candidate-validated-pending-deployment`.
+`exact-value-observer-deployed-pending-one-read-only-frame`.
 
 ## Follow-up
 
