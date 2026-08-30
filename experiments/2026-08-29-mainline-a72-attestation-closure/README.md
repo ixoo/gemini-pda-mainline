@@ -105,6 +105,17 @@ if its current register state differs from the frozen expectation.
   [`scripts/generate-activation-on-buildbox`](scripts/generate-activation-on-buildbox):
   exact post-`0432` Buildbox generation, strict style, replay, and bounded
   source-only packaging for the activation slice.
+- [`scripts/finalization_edits.py`](scripts/finalization_edits.py),
+  [`scripts/validate_finalization_source.py`](scripts/validate_finalization_source.py),
+  and
+  [`scripts/test_finalization_mutations.py`](scripts/test_finalization_mutations.py):
+  deterministic post-`0433` architecture-owned capability, alternatives,
+  mitigation, and one-way HWCAP finalization edits with rejecting mutations.
+- [`scripts/generate_finalization_patch.py`](scripts/generate_finalization_patch.py)
+  and
+  [`scripts/generate-finalization-on-buildbox`](scripts/generate-finalization-on-buildbox):
+  exact post-`0433` Buildbox generation, strict style, replay, and bounded
+  source-only packaging for the finalization slice.
 - [`results/definition-validation-20260829.txt`](results/definition-validation-20260829.txt):
   exact source hashes, field-consumer audit, positive validation, and 21
   rejected unsafe mutations.

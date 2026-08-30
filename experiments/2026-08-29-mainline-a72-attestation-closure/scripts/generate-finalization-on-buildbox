@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+export LC_ALL=C
+
+readonly PARENT_SOURCE_STATE=1a2b3a087aea3e5ee0c3225d40b99cf17932290ee5758f47a093f8649a8f9a09
+readonly PARENT_SOURCE_INTEGRITY=7764b4009b5386887bf4368dcf65ddeab838b9d16c80ae7df3dfd5442ee18a41
+readonly PARENT_PATCH=0433-arm64-bind-Gemini-late-CPU-expected-pair.patch
+readonly PARENT_PATCH_SHA256=3415384c7799fb6d2e45d24d7cdef991c790d031cb4ec0760a79dbe01a203705
+readonly CURRENT_PATCH=0434-arm64-finalize-Gemini-late-CPU-profile.patch
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+
+[[ "$#" -eq 3 ]] || die 'expected PROJECT_COMMIT SOURCE_ROOT OUTPUT_ROOT'
+readonly project_commit=$1
+readonly source_root=$2
+readonly output_root=$3
+[[ "$project_commit" =~ ^[0-9a-f]{40}$ ]] || die 'invalid project commit'
+[[ "$source_root" == /workspace/gemini-pda/src/linux-7.1.3-series-source ]] ||
+	die 'unexpected managed source root'
+[[ "$output_root" == /workspace/gemini-pda/* ]] || die 'unsafe output root'
+[[ -f "$source_root/.gemini-source-state" &&
+	! -L "$source_root/.gemini-source-state" ]] ||
+	die 'prepared source state marker absent or unsafe'
+[[ "$(<"$source_root/.gemini-source-state")" == "$PARENT_SOURCE_STATE" ]] ||
+	die 'prepared parent source state changed'
+[[ -f "$source_root/.gemini-source-integrity" &&
+	! -L "$source_root/.gemini-source-integrity" ]] ||
+	die 'prepared source integrity marker absent or unsafe'
+[[ "$(<"$source_root/.gemini-source-integrity")" == "$PARENT_SOURCE_INTEGRITY" ]] ||
+	die 'prepared source integrity changed'
+
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+experiment_dir=$(cd -- "$script_dir/.." && pwd -P)
+repository_dir=$(cd -- "$experiment_dir/../.." && pwd -P)
+readonly script_dir experiment_dir repository_dir
+[[ "$(git -C "$repository_dir" rev-parse HEAD)" == "$project_commit" ]] ||
+	die 'project checkout does not match requested commit'
+[[ -z "$(git -C "$repository_dir" status --porcelain)" ]] ||
+	die 'project checkout is dirty'
+for command in git perl python3 sha256sum; do
+	command -v "$command" >/dev/null 2>&1 || die "missing command: $command"
+done
+integrity=$(python3 "$repository_dir/scripts/source-tree-integrity" verify \
+	"$source_root")
+readonly integrity
+[[ "$integrity" == "source_tree_integrity=$PARENT_SOURCE_INTEGRITY" ]] ||
+	die 'prepared source integrity verification failed'
+
+readonly parent_patch_path="$repository_dir/patches/v7.1.3/$PARENT_PATCH"
+printf '%s  %s\n' "$PARENT_PATCH_SHA256" "$parent_patch_path" |
+	sha256sum --check --status || die 'canonical parent patch changed'
+[[ "$(tail -n 1 "$repository_dir/patches/series")" == "v7.1.3/$PARENT_PATCH" ]] ||
+	die 'canonical series parent changed'
+[[ ! -e "$repository_dir/patches/v7.1.3/$CURRENT_PATCH" ]] ||
+	die 'finalization patch is already canonical'
+
+readonly package="$output_root/a72-finalization-${project_commit:0:12}"
+readonly partial="${package}.partial.$$"
+mkdir -p "$output_root"
+[[ ! -e "$partial" ]] || die 'stale output partial exists'
+if [[ -d "$package" && ! -L "$package" ]]; then
+	grep -Fx "repository_commit=$project_commit" \
+		"$package/provenance.txt" >/dev/null ||
+		die 'existing package commit mismatch'
+	(cd "$package" && sha256sum --check --strict SHA256SUMS >/dev/null)
+	printf 'Generated finalization at %s\n' "$package"
+	exit 0
+fi
+[[ ! -e "$package" ]] || die 'unsafe existing package path'
+cleanup() {
+	[[ ! -d "$partial" || "$partial" != "$output_root"/*.partial.* ]] ||
+		rm -rf -- "$partial"
+}
+trap cleanup EXIT
+PYTHONDONTWRITEBYTECODE=1 python3 \
+	"$script_dir/generate_finalization_patch.py" \
+	--source-root "$source_root" --repository-commit "$project_commit" \
+	--output "$partial"
+(cd "$partial" && sha256sum --check --strict SHA256SUMS >/dev/null)
+actual_files=$(find "$partial" -mindepth 1 -maxdepth 1 -type f \
+	-printf '%f\n' | sort)
+readonly actual_files
+readonly expected_files="$CURRENT_PATCH"$'\nSHA256SUMS\nprovenance.txt\nseries\nsource-validation.txt'
+[[ "$actual_files" == "$expected_files" ]] ||
+	die 'generated package file set changed'
+for marker in generated_patch_count=1 source_validation=pass \
+	strict_local_caps=exact system_alternatives=exact mitigation_state=exact \
+	native_hwcap_finalization=one-way-subset \
+	compat_hwcap_finalization=one-way-subset \
+	clean_path_blocker_mask=0x0-after-runtime-binding \
+	fixture_ready_publication=blocked ready_callbacks=architecture-owned \
+	rejected_mutations=17 cpu_request_paths=0 cpu9_request_paths=0 \
+	cpu_off_paths=0 native_vm_build=none device_action=none \
+	boot_candidate=false; do
+	grep -Fx "$marker" "$partial/provenance.txt" >/dev/null ||
+		die "missing generated marker: $marker"
+done
+mv -- "$partial" "$package"
+trap - EXIT
+printf 'Generated finalization at %s\n' "$package"
