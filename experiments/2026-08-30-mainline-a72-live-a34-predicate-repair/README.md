@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-live-a34-predicate-repair` |
-| Status | `initial KUnit rejection localized; intersection and stale-test repairs admitted for validation` |
+| Status | `all four repaired offline gates pass; physical candidate pending` |
 | Subsystem | MT6797 CPU8 derived admission and A34 eligibility |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -124,13 +124,40 @@ owner's later `-EAGAIN`. Patch `0445` makes both affected read-only tests assert
 the configuration-selected result. Neither follow-up patch adds a request,
 retry, CPU9, CPU-off, hardware-write, or device path.
 
-Fresh canonical-series validation and all four KUnit profiles remain pending.
+Canonical patch `0444` now derives the A72 power state from the intersection
+of the two SPM status words, retaining separate negative cases for CPU8 and
+CPU9. Patch `0445` aligns the read-only test expectations with the binder
+configuration. Their admitted repository identity is
+`39224a4e8c4ad14536a9237e0276c11525c7c154`; the canonical patchset identity is
+`e6a8bb3b91ba9ab67253b4e2b36ff1749c3d6bbc9a9b963730bcdc10ab6659e3`.
+
+Buildbox compiled all four focused profiles from that clean pushed commit.
+The no-network QEMU runs passed the exact inventories below:
+
+| Profile | Suites | Tests | Result |
+| --- | ---: | ---: | --- |
+| `a72-a34-v2-kunit` | 3 | 33 | 33 pass, 0 fail, 0 skip |
+| `a72-derived-admission-kunit` | 1 | 5 | 5 pass, 0 fail, 0 skip |
+| `a72-atomic-publication-kunit` | 2 | 28 | 28 pass, 0 fail, 0 skip |
+| `a72-admission-live-trigger-kunit` | 2 | 16 | 16 pass, 0 fail, 0 skip |
+
+The four classifiers report 82 of 82 tests passing, zero physical CPU
+requests, zero CPU-off requests, zero retries, no networking, and no device
+action. Exact package, configuration, image, map, raw-log, and runner
+identities are in `results/`.
 
 ## Conclusion
 
-Pending.
+The original pre-request `-EPERM` is explained by an invalid interpretation
+of the redundant SPM power-status words. The repaired semantic A34 contract
+accepts the exact live-shaped CPU8-off fixture while continuing to reject
+either A72 CPU as on when its identity bit is set in both words. Every affected
+offline path passes its exact inventory. This admits one new physical CPU8
+candidate; it does not yet prove CPU8 hardware support.
 
 ## Follow-up
 
-Validate patches `0444`--`0445`, rebuild and run all four focused KUnit
-profiles, then build and validate one exact physical candidate on Buildbox.
+Build and validate one exact physical candidate on Buildbox. On a fresh boot,
+issue one CPU8 request and classify it from the retained controller stage,
+derived substage, request count, terminal status, and CPU masks. Keep CPU9
+vetoed until CPU8 is reproducibly online.
