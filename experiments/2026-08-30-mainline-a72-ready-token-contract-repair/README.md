@@ -43,7 +43,10 @@ hardware effect, request, CPU9, CPU_OFF, retry, storage, device, or reboot path.
 3. Add a focused mutation proving that either premature observed MPIDR is
    rejected before source capture or owner mutation.
 4. Replay and audit the patch on Buildbox, admit it canonically, then run the
-   smallest affected KUnit profiles through the explicit Buildbox backend.
+   four affected KUnit profiles through the explicit Buildbox backend. The
+   local QEMU harness reuses the immediately preceding source-pinned runner,
+   extends its exact inventory with the new derived-admission case and the
+   DA921x membership fixture, and keeps networking disabled.
 5. Only if every offline gate passes, construct one separate boot2 candidate
    with the existing one-shot CPU8-only route and CPU9 veto.
 
