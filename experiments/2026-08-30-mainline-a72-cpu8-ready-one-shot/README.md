@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-cpu8-ready-one-shot` |
-| Status | `fresh boot qualified; publishing boot-bound contract` |
+| Status | `terminal pre-add_cpu admission error; localized follow-up required` |
 | Subsystem | arm64 late CPU admission and MT6797 CPU8 hotplug |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -58,18 +58,43 @@ The frame independently repeats the complete silent READY result with CPUs
 0--7 online, CPUs 8--9 offline, and zero actions. Two collector
 materializations are byte-identical at `fa1dc4cb...`; the runtime suite accepts
 one pre-trigger and three terminal branches while rejecting thirteen
-pre-trigger and seven terminal mutations. No token has been sent. See
+pre-trigger and seven terminal mutations. See
 [the pre-arm and offline record](results/prearm-and-offline-gates-20260830.txt).
+
+The published runner then revalidated that same boot and fsynced both its
+accepted pre-trigger and irreversible intent before opening one trigger
+session. The token write and read-only remount both succeeded. The controller
+consumed the trigger and admission core exactly once, returned `-EPERM`, and
+issued zero CPU requests. CPUs 0--7 remained online and CPUs 8--9 remained
+offline. Entry and terminal trace writes returned `-EIO` and `-EALREADY`, but
+the live route explicitly treats those trace failures as advisory; neither
+replaced the `-EPERM` operation result. There were no CPU9, CPU-off, retry,
+storage, partition, or reboot requests. A later read-only diagnostic confirmed
+the unchanged CPU lists and terminal status on the same boot. See
+[the terminal attempt record](results/terminal-pre-add-cpu-eperm-20260830.txt).
 
 ## Analysis
 
-Pending.
+`operation_ret=-1`, `core_consumed=1`, and `cpu_requests=0` places the failure
+after the one-shot admission core consumed its attempt but before its sole
+`add_cpu(8)` call. The source-registration API cannot return `-EPERM`; its
+runtime errors are `-EINVAL` or `-EBUSY`. Therefore the remaining attributable
+universe is state derivation, including bootstrap/frozen-token validation, or
+the final membership publication. This result does not test PSCI, generic CPU
+hotplug, A72 power sequencing, or CPU8 hardware execution.
+
+Repeating this artifact cannot distinguish those branches. The next candidate
+must retain the exact pre-request failure stage in the controller status and,
+within derivation, the first rejected substage. That is a diagnostic-only
+observation addition: it must not change the request order, predicates,
+hardware effects, or one-shot bounds.
 
 ## Conclusion
 
-`ready-for-published-one-shot`.
+`terminal-pre-add-cpu-eperm`.
 
 ## Follow-up
 
-Publish the exact contract, revalidate this same boot, and execute its one
-permitted CPU8 trigger without retry. Keep CPU9 vetoed.
+Add durable, read-only stage attribution, validate it offline, then spend one
+fresh boot on the new attributable candidate. Keep CPU9 vetoed until CPU8 is
+actually online.
