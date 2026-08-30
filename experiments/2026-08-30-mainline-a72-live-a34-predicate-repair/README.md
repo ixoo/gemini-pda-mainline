@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-live-a34-predicate-repair` |
-| Status | `exact candidate deployed and device shut down; fresh boot pending` |
+| Status | `one-shot runtime complete; READY-token validator rejected before A34 or CPU8 request` |
 | Subsystem | MT6797 CPU8 derived admission and A34 eligibility |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -172,19 +172,36 @@ It then shut Gemini down without rebooting; SSH failure plus three consecutive
 closed TCP/22 checks confirm power-off. See
 [`results/deployment-20260830.txt`](results/deployment-20260830.txt).
 
+The fresh boot produced exact mainline boot ID `ae5a4cdf...`, release
+`7.1.3-gemini-a72-admission-live`, verified runtime identity, CPU0--7 online,
+CPU8--9 offline, and an armed controller with zero prior executions or
+requests. After that immutable frame and the irreversible intent were flushed,
+the one allowed trigger write and the read-only remount both succeeded. The
+controller consumed the trigger and core exactly once, stayed serviceable, and
+returned the terminal tuple `operation_ret=-1`, `failure_stage=2`,
+`derive_stage=2`, `cpu_requests=0`. The stage enums map this to
+`zero-derive` at `ready-token-validate`; A34 was not reached. A same-boot
+read-only follow-up confirmed the terminal status and unchanged CPU masks.
+There were no CPU9, CPU-off, retry, storage, partition, or reboot requests.
+See
+[`results/runtime-attempt-1-ready-token-rejection-20260830.txt`](results/runtime-attempt-1-ready-token-rejection-20260830.txt).
+
 ## Conclusion
 
-The original pre-request `-EPERM` is explained by an invalid interpretation
-of the redundant SPM power-status words. The repaired semantic A34 contract
-accepts the exact live-shaped CPU8-off fixture while continuing to reject
-either A72 CPU as on when its identity bit is set in both words. Every affected
-offline path and the exact container pass their inventories. This admits one
-guarded deployment and one fresh CPU8-only attempt; it does not yet prove CPU8
-hardware support.
+`terminal-pre-add-cpu-ready-token-eperm`.
+
+The semantic A34 repair remains a valid offline correction: the live-shaped
+fixture now uses the MT6797 intersection definition and still rejects either
+A72 CPU as on. The live run proves it was not the immediate blocker, however.
+The operation rejected earlier while validating the READY token, before A34,
+publication, `add_cpu(8)`, PSCI, generic hotplug, or A72 hardware execution.
+The earlier source-only attribution of the pre-request `-EPERM` to A34 is
+therefore superseded by this retained runtime stage evidence.
 
 ## Follow-up
 
-On one fresh owner-selected boot2 cycle, qualify the exact candidate and issue
-one CPU8 request. Classify it from the retained controller stage, derived
-substage, request count, terminal status, and CPU masks. Keep CPU9 vetoed until
+Do not repeat this candidate. Split `mt6797_a72_ready_token_validate()` with a
+failure-only, read-only predicate discriminator, preserving its exact return,
+request order, one-shot bound, and all CPU9/CPU_OFF/retry vetoes. Validate that
+observer offline before considering one new boot; CPU9 remains vetoed until
 CPU8 is reproducibly online.

@@ -6482,9 +6482,18 @@ The next ordered work is:
    produced the required silent READY result: verified runtime identity, no
    profile blocker or READY diagnostic, controller armed/unconsumed, CPUs
    0--7 online, CPUs 8--9 offline, and zero requests, executions, CPU_OFF, or
-   retries. **Selected next:** prepare and independently qualify one separate
-   CPU8-only trigger candidate from this exact validated state, then run its
-   one-shot contract once. Retain the CPU9 veto.
+   retries. The separate
+   [A34 predicate-repair attempt](../experiments/2026-08-30-mainline-a72-live-a34-predicate-repair/README.md)
+   then passed 82 focused Buildbox/QEMU cases and exact container gates. Its
+   guarded boot2 run reached the same serviceable READY state and consumed one
+   trigger, but retained `failure_stage=2`, `derive_stage=2`,
+   `operation_ret=-1`, and zero requests. Those enums identify READY-token
+   validation, before A34, publication, CPU hotplug, PSCI, or CPU8 hardware
+   execution; the prior source-only A34 attribution is superseded. The
+   candidate is retired. **Selected next:** add a failure-only discriminator
+   for the first false predicate inside `mt6797_a72_ready_token_validate()`,
+   prove it does not change the validator or request graph, and use at most one
+   separately qualified observer boot. Retain the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 
