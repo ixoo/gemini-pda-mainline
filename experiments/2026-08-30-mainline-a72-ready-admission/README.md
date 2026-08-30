@@ -57,6 +57,12 @@ CPU9 remains vetoed.
 - `scripts/source_edits.py` contains deterministic exact-anchor edits.
 - `scripts/validate_source.py` validates the config-off and identity contracts.
 - `scripts/test_mutations.py` proves representative unsafe changes are rejected.
+- `scripts/build-candidate.sh` source-pins the proven ATAG/serviceability
+  assembler and substitutes only the exact repaired Buildbox package.
+- `scripts/validate-candidate.py` independently validates package provenance,
+  linked symbols, Android-v0 layout, LK gates, padding, and negative mutations.
+- `scripts/install-boot2.sh` source-pins the guarded live-GPT installer and
+  retargets its exact predecessor, candidate, and experiment identities.
 
 ## Procedure
 
@@ -91,26 +97,46 @@ CPU9 remains vetoed.
 - Canonical patch `0435` is byte-identical to generated SHA-256 `f07cd67c...`;
   patch `0436` is byte-identical to generated SHA-256 `1a439a82...`.
 - The admitted series passes all 158 manifest profiles and rejects all eight
-  canonical-series invariant mutations. Compilation remains pending.
+  canonical-series invariant mutations.
+- Buildbox compiled both exact commit `5abde763` controls. The default `full`
+  profile now passes, closing the configuration-off defect. The enabled
+  profile also passes as release `7.1.3-gemini-a72-admission-live`; its fetched
+  package passes every checksum and retains configuration-input identity
+  `5968c24f...`.
+- The linked enabled image contains one READY accessor, preflight, live trigger,
+  admission core, and `add_cpu()` wrapper. The controller object has exactly one
+  external `add_cpu` dependency and the core materializes CPU `8`; it has no
+  `remove_cpu`, `cpu_down`, CPU9 immediate, retry, or CPU_OFF path.
+- Two independent Android-v0 constructions agree on raw candidate
+  `4c8cf8e0...` and exact 16 MiB boot2 image `8acf9227...`. The independent
+  validator passes all 32 LK gates, rejects six container corruptions, and
+  confirms the serviceability DT and ramdisk are unchanged.
 - Full generation and admission chronology is in
   [`results/generation-20260830.txt`](results/generation-20260830.txt).
+- Exact compile, linked-audit, and candidate evidence is in
+  [`results/build-and-candidate-20260830.txt`](results/build-and-candidate-20260830.txt).
 
 ## Analysis
 
-The enabled-profile compile proves that the existing controller and READY
-closure link together, but not that the runtime identity gate can open. The
-identity mismatch is deterministic and precedes physical CPU8 evidence. The
-configuration-off failure is independent and must be repaired so the feature
-does not regress unrelated arm64 configurations.
+Both deterministic pre-runtime blockers are now closed: the feature-disabled
+configuration compiles, and the production READY identity matches the exact
+candidate configuration inputs. Static and container validation show one
+CPU8-only request route behind the existing exact, root-only, one-shot token.
+Only a named-device pre-trigger qualification and deliberate token consumption
+can determine whether the runtime identity gate opens and CPU8 reaches its
+terminal checkpoint.
 
 ## Conclusion
 
-Inconclusive for hardware behavior. Both repairs are generated, mutation-tested,
-replayed, and canonically admitted. The configuration-off control and exact
-enabled candidate must still compile on Buildbox before candidate selection.
+The repaired source, both Buildbox controls, linked binary, and exact boot2
+container pass their offline gates. Candidate `8acf9227...` is accepted for one
+CPU8-only runtime attempt. This is still inconclusive for hardware behavior;
+no device was accessed and no CPU request occurred during this phase.
 
 ## Follow-up
 
-Generate, mutation-test, admit, and compile both controls. If the exact enabled
-package passes all gates, select one attributable CPU8-only boot2 attempt and
-record its retained and live terminal evidence before changing the CPU9 veto.
+Publish this candidate record, confirm the live inactive boot2 predecessor,
+perform one guarded install with full readback and clean shutdown, and arm the
+USB/netcat collector before physical selection. Qualify the exact boot and
+READY/controller state before consuming the token once. Record live and
+retained terminal evidence before changing the CPU9 veto.

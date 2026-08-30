@@ -6349,17 +6349,25 @@ The next ordered work is:
    configuration-off declaration gap and is not a `0434` enabled-path
    regression. See the
    [finalization compile result](../experiments/2026-08-29-mainline-a72-attestation-closure/results/finalization-compile-20260830.txt).
-   **Selected next:** design and generate the separate one-request CPU8
-   admission slice from exact post-`0434` source. It must consume the READY
-   token once, request only CPU8, preserve the existing target-entry preflight
-   and full expected-target comparison, expose decision-bearing retained
-   checkpoints, keep CPU9 vetoed, and add no retry or CPU_OFF path. Repair the
-   configuration-off declaration boundary in that source cycle or an earlier
-   standalone compile-fix patch, then compile both the default configuration-
-   off control and the exact enabled candidate on Buildbox before considering
-   a boot2 artifact.
-4. Build that one decision-bearing CPU8 candidate with one request,
-   strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
+   The separate
+   [READY admission experiment](../experiments/2026-08-30-mainline-a72-ready-admission/README.md)
+   now closes both deterministic pre-runtime blockers with canonical patches
+   `0435` and `0436`: the default configuration-off control compiles and the
+   production READY identity matches the exact live-trigger configuration.
+   Both the default and enabled profiles pass on Buildbox at commit `5abde763`.
+   The enabled package links one CPU8-only admission route with no CPU9,
+   CPU_OFF, or retry path. Its independently reproduced Android-v0 container
+   passes the LK and corruption gates; exact boot2 image `8acf9227...` preserves
+   the prior serviceability DT and ramdisk. See the
+   [candidate result](../experiments/2026-08-30-mainline-a72-ready-admission/results/build-and-candidate-20260830.txt).
+   **Selected next:** publish the exact candidate/tooling record, confirm the
+   live inactive-boot2 predecessor, perform the guarded write/readback/shutdown,
+   and arm USB/netcat before one physical selection. Require the exact kernel,
+   pre-trigger READY/controller state, and CPU0--7 serviceability before sending
+   the root-only token once. Classify its live and retained terminal evidence
+   before changing the CPU9 veto.
+4. Run that one decision-bearing CPU8 candidate once with its existing strict
+   checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 
 The eventual CPU8 candidate must have a single CPU8 request, strict
 checkpoints before and after each power step, a bounded timeout, and a
