@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-live-a34-predicate-repair` |
-| Status | `all four repaired offline gates pass; physical candidate pending` |
+| Status | `exact physical candidate validated; guarded boot2 deployment pending` |
 | Subsystem | MT6797 CPU8 derived admission and A34 eligibility |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -146,18 +146,36 @@ requests, zero CPU-off requests, zero retries, no networking, and no device
 action. Exact package, configuration, image, map, raw-log, and runner
 identities are in `results/`.
 
+Buildbox then produced the exact production package from clean pushed commit
+`f361a704af745e503388bdaf63c4e161c7bb50fe`. Two independent compositions
+added only its package-owned A41 provenance leaf to the runtime-proven
+serviceability/admission DT; both produced `7f3a23ac...`. Two independent
+Android-v0 assemblies produced raw container `8fb8194b...`, and two padding
+paths produced exact 16 MiB boot2 image `7c962888...`.
+
+The independent validator passed all 32 LK container gates, preserved the
+single controller and binder, retained exactly one dormant CPU8 request path,
+and rejected six corrupt-container mutations. The independent logical-tree
+validator proved the DT delta is one exact provenance leaf and rejected ten
+representative DT mutations. The candidate contains zero executed requests,
+no CPU9 request path, no CPU-off path, and no retry path. Exact identities and
+tooling results are in
+[`results/offline-candidate-20260830.txt`](results/offline-candidate-20260830.txt).
+
 ## Conclusion
 
 The original pre-request `-EPERM` is explained by an invalid interpretation
 of the redundant SPM power-status words. The repaired semantic A34 contract
 accepts the exact live-shaped CPU8-off fixture while continuing to reject
 either A72 CPU as on when its identity bit is set in both words. Every affected
-offline path passes its exact inventory. This admits one new physical CPU8
-candidate; it does not yet prove CPU8 hardware support.
+offline path and the exact container pass their inventories. This admits one
+guarded deployment and one fresh CPU8-only attempt; it does not yet prove CPU8
+hardware support.
 
 ## Follow-up
 
-Build and validate one exact physical candidate on Buildbox. On a fresh boot,
-issue one CPU8 request and classify it from the retained controller stage,
-derived substage, request count, terminal status, and CPU masks. Keep CPU9
-vetoed until CPU8 is reproducibly online.
+Install exact padded candidate `7c962888...` to live-GPT inactive `boot2`,
+require full-partition readback, and shut down. On a fresh boot, issue one CPU8
+request and classify it from the retained controller stage, derived substage,
+request count, terminal status, and CPU masks. Keep CPU9 vetoed until CPU8 is
+reproducibly online.
