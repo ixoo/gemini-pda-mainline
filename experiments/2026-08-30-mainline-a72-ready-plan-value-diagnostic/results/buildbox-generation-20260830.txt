@@ -1,0 +1,31 @@
+Buildbox generation result: exact READY plan value observer
+Date: 2026-08-30
+
+repository_commit=d88f7ba22b1cacb2d1c5157d7bd5f8fe6df4a20e
+prepared_source_state=a5a27faa45863cb4d9b75d83fe416b2962c9b94068726254ac87caed57c41980
+prepared_source_integrity=f1b7972ae8ac0acb325c5310d48f8316a36ffa9879cd539267ac4d62ce6d731d
+parent_mt6797_psci_sha256=a850c6b5d40dbee5a6ec083a88ec3d3b66cf4f33fbb006484d1ffdab26d2e7ac
+final_mt6797_psci_sha256=08f3be5c1de1a5d60a7179baa684ca1812e0dab7fba34a4ba0f0a253f4928939
+patch_sha256=570f4d9275abb42b9f59efe1fa4a8b99d09ff885329ae1c1a3df3426907855ef
+
+generated_patch_count=1
+source_validation=pass
+validator_return_owner=unchanged-contract
+value_bitmap_fields=5
+value_policy_fields=2
+diagnostic_success_logging=none
+new_cpu_request_paths=0
+cpu9_request_paths=0
+cpu_off_paths=0
+retry_paths=0
+hardware_writes=0
+unsafe_source_mutations_rejected=7
+profile_fragments_changed=0
+native_vm_build=none
+device_action=none
+boot_candidate=false
+
+Buildbox package checksums passed for the patch, provenance, series fragment,
+and source-validation result. Strict checkpatch, deterministic replay, exact
+post-0438 parent identity, and seven unsafe source mutations passed. No native
+VM build or device action occurred.

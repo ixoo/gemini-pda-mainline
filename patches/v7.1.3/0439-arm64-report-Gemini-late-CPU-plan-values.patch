@@ -1,0 +1,47 @@
+From ea0cc0f85c46c81f2160ed70e6bf7857ec1a2ff8 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 30 Aug 2026 20:01:00 +0000
+Subject: [PATCH] arm64: report Gemini late CPU plan values
+
+The exact failure-only predicate frame names capability-set and
+policy-conduit mismatches but does not expose their live values.
+Changing the profile contract from that frame would be a guess.
+
+On the same failed validator path, report the produced early,
+target, required, and per-target bitmaps plus both policy conduit
+values. Preserve the original return and perform no CPU, firmware,
+power, storage, retry, or CPU_OFF operation.
+---
+ arch/arm64/kernel/mt6797_psci.c | 13 ++++++++++++-
+ 1 file changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
+index 6e6b01b..5e00282 100644
+--- a/arch/arm64/kernel/mt6797_psci.c
++++ b/arch/arm64/kernel/mt6797_psci.c
+@@ -1442,13 +1442,24 @@ mt6797_a72_validate_cap_plan(const struct arm64_late_cpu_plan *plan)
+ 
+ 	ret = mt6797_a72_validate_cap_plan_contract(plan);
+ #ifndef CONFIG_ARM64_MT6797_A72_FIXTURE_EVIDENCE
+-	if (ret)
++	if (ret) {
+ 		pr_info("A72_READY_PLAN_DIAG_V1 ret=%d plan=%#llx evidence=%#llx\n",
+ 			ret,
+ 			(unsigned long long)
+ 			mt6797_a72_plan_validation_diagnostic(plan),
+ 			(unsigned long long)
+ 			mt6797_a72_evidence_diag(plan ? &plan->evidence : NULL));
++		if (plan)
++			pr_info("A72_READY_PLAN_VALUES_V1 %u %*pb %*pb %*pb %*pb %*pb %u %u\n",
++				ARM64_NCAPS,
++				ARM64_NCAPS, plan->early_local_caps,
++				ARM64_NCAPS, plan->target_local_caps,
++				ARM64_NCAPS, plan->required_local_caps,
++				ARM64_NCAPS, plan->target[0].local_caps,
++				ARM64_NCAPS, plan->target[1].local_caps,
++				plan->evidence.target_policy[0].smccc_conduit,
++				plan->evidence.target_policy[1].smccc_conduit);
++	}
+ #endif
+ 	return ret;
+ }

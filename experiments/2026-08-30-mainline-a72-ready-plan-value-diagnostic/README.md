@@ -58,9 +58,20 @@ must never receive the CPU8 trigger.
 5. Capture one complete read-only frame and exactly one value line; do not send
    a trigger.
 
+## Observations
+
+Buildbox generated exactly one format-patch from prepared source state
+`a5a27faa...` and integrity `f1b7972a...`. The parent and final
+`mt6797_psci.c` hashes are `a850c6b5...` and `08f3be5c...`; generated patch
+`0439` is `570f4d92...`. Strict checkpatch, deterministic replay, exact field
+coverage, return-owner validation, and all seven unsafe source mutations pass.
+The generation performed no native VM build or device action and explicitly
+marks its output `boot_candidate=false`. See
+[`results/buildbox-generation-20260830.txt`](results/buildbox-generation-20260830.txt).
+
 ## Conclusion
 
-`exact-value-observer-source-pending`.
+`exact-value-observer-generated-pending-canonical-build`.
 
 ## Follow-up
 
