@@ -35,7 +35,8 @@ retry, CPU_OFF, reboot, or any CPU request path.
 
 ## Procedure
 
-1. Generate and replay one format-patch from exact post-`0440` source.
+1. Generate and replay one format-patch from the managed exact post-`0440`
+   source state; verify the canonical `0440` parent identity independently.
 2. Reject mutations that remove the absent entry or restore it to present or
    required state.
 3. Admit the patch canonically and build default plus exact live profiles on

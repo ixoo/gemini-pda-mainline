@@ -22,7 +22,6 @@ EXPERIMENT = SCRIPT_DIR.parent
 REPO_ROOT = EXPERIMENT.parents[1]
 PATCH = "0441-arm64-complete-Gemini-late-CPU-classified-universe.patch"
 SUBJECT = "arm64: complete Gemini late CPU classified universe"
-POST_0439_SHA256 = "08f3be5c1de1a5d60a7179baa684ca1812e0dab7fba34a4ba0f0a253f4928939"
 PATCH_0440_SHA256 = "b629ff9589748131a72928942c23f25765054cea4be977c2623956b6d84726cc"
 
 
@@ -45,17 +44,14 @@ def run(*args: str, cwd: Path, env: dict[str, str] | None = None) -> str:
 def prepare_parent(source_root: Path, destination: Path) -> None:
     source = source_root / source_edits.TARGET
     if (not source.is_file() or source.is_symlink() or
-            sha256(source) != POST_0439_SHA256):
-        raise SystemExit("prepared post-0439 source changed")
+            sha256(source) != source_edits.PARENT_SHA256):
+        raise SystemExit("prepared post-0440 source changed")
     target = destination / source_edits.TARGET
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(source, target)
     patch = REPO_ROOT / "patches/v7.1.3/0440-arm64-repair-Gemini-late-CPU-plan-expectations.patch"
     if sha256(patch) != PATCH_0440_SHA256:
         raise SystemExit("canonical patch 0440 changed")
-    run("git", "apply", str(patch), cwd=destination)
-    if sha256(target) != source_edits.PARENT_SHA256:
-        raise SystemExit("post-0440 source identity changed")
 
 
 def commit(root: Path, subject: str, body: str, minute: int) -> None:
