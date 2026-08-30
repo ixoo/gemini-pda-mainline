@@ -46,24 +46,34 @@ def sha256(path: Path) -> str:
 
 def function(text: str, signature: str) -> str:
     """Return the unique C function containing ``signature``."""
-    require(text.count(signature) == 1, f"function count changed: {signature}")
-    start = text.index(signature)
-    parameter = text.index("(", start)
-    depth = 0
-    closing = -1
-    for index in range(parameter, len(text)):
-        if text[index] == "(":
-            depth += 1
-        elif text[index] == ")":
-            depth -= 1
-            if depth == 0:
-                closing = index
-                break
-    require(closing >= 0, f"unterminated parameters: {signature}")
-    opening = closing + 1
-    while opening < len(text) and text[opening].isspace():
-        opening += 1
-    require(text[opening] == "{", f"function body absent: {signature}")
+    search = 0
+    definition: tuple[int, int] | None = None
+    while True:
+        start = text.find(signature, search)
+        if start < 0:
+            break
+        parameter = start + len(signature) - 1
+        depth = 0
+        closing = -1
+        for index in range(parameter, len(text)):
+            if text[index] == "(":
+                depth += 1
+            elif text[index] == ")":
+                depth -= 1
+                if depth == 0:
+                    closing = index
+                    break
+        require(closing >= 0, f"unterminated parameters: {signature}")
+        opening = closing + 1
+        while opening < len(text) and text[opening].isspace():
+            opening += 1
+        if opening < len(text) and text[opening] == "{":
+            require(definition is None,
+                    f"multiple function definitions: {signature}")
+            definition = (start, opening)
+        search = start + len(signature)
+    require(definition is not None, f"function body absent: {signature}")
+    start, opening = definition
     depth = 0
     for index in range(opening, len(text)):
         if text[index] == "{":
