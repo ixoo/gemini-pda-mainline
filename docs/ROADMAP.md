@@ -6403,12 +6403,14 @@ The next ordered work is:
    `0x0e8d:0x20ff` session and no exact network interface, detach, changed
    session, preloader, netcat session, frame, or trigger. This does not prove
    exact boot2 selection or candidate loading, so it neither rejects the
-   candidate nor tests CPU8. **Selected next:** close the cycle from changed-ID
-   Gemian, verify retained evidence and installed boot2, then arm both the
-   contact-free transition observer and cycle-aware pre-trigger collector
-   before one repeat of the unchanged candidate. Define a separate boot-bound
-   one-shot only after the full live qualification passes; retain the CPU9
-   veto.
+   candidate nor tests CPU8. Changed-ID Gemian recovery matched exact installed
+   boot2 `f694ddb9...`, empty pstore, empty admission traces, and a logically
+   empty transition ledger. The exact classifier returned
+   `pre-controller-or-retention-failure`, adding no CPU8 result. **Selected
+   next:** arm both the contact-free transition observer and cycle-aware
+   pre-trigger collector before shutting Gemian down and repeating the
+   unchanged candidate once. Define a separate boot-bound one-shot only after
+   the full live qualification passes; retain the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 

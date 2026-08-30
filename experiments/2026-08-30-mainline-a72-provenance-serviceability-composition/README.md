@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-provenance-serviceability-composition` |
-| Status | `deployed; first reported start held one 0x0e8d:0x20ff session for five minutes with no trigger; changed-boot recovery pending` |
+| Status | `deployed; first reported start closed as persistent 0x0e8d:0x20ff with empty retained evidence and zero trigger; pre-armed retry pending` |
 | Subsystem | arm64 late-CPU runtime identity and Gemini serviceability DT |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -158,6 +158,16 @@ collector can target only exact known-good Gemian, the deployment receipt, and
 candidate `f694ddb9...`; it performs no storage or retained-RAM write. See
 [`results/offline-recovery-tooling-20260830.txt`](results/offline-recovery-tooling-20260830.txt).
 
+Changed-ID Gemian boot `de58b2d1...` closed that cycle. Read-only live-GPT
+recovery resolved unmounted `boot2` as `/dev/mmcblk0p30` and matched the full
+16 MiB candidate `f694ddb9...`. Pstore was empty, both admission trace slots
+were empty, and the transition ledger was logically empty with no latest copy.
+The classifier therefore returned `pre-controller-or-retention-failure`; in
+combination with zero netcat sessions and no mainline identity, this supplies
+no CPU8 result and preserves the candidate for the pre-armed start-boundary
+repeat. See
+[`results/recovery-attempt-1-empty-retention-20260830.txt`](results/recovery-attempt-1-empty-retention-20260830.txt).
+
 ## Analysis
 
 The smallest attributable change is to compose the two already-owned DT
@@ -179,20 +189,24 @@ loaded exact boot2. It therefore cannot reject the candidate or test its
 runtime-provenance hypothesis. An identical-candidate retry is justified only
 with the contact-free transition observer and cycle-aware collector armed
 before physical selection; that repeat measures the missing start boundary.
+The changed-boot readback proves that the expected candidate remained
+installed, but the empty retained records cannot by themselves distinguish no
+controller execution from retention failure. They therefore strengthen the
+zero-result classification without turning it into a kernel or CPU8 failure.
 
 ## Conclusion
 
-`persistent-20ff-start-boundary-unclosed`: exact padded candidate
-`f694ddb9...` was installed to boot2 with matching full readback. The first
-reported start produced no attributable mainline identity and no CPU request;
-the candidate runtime hypothesis remains untested.
+`persistent-20ff-pre-controller-zero-trigger`: exact padded candidate
+`f694ddb9...` remains installed with matching changed-boot readback. The first
+reported start produced no attributable mainline identity, no retained
+controller evidence, and no trigger; the candidate runtime hypothesis remains
+untested.
 
 ## Follow-up
 
-First close the current cycle from changed-boot Gemian and verify retained
-evidence and installed boot2. Then arm the experiment-specific USB transition
-observer and cycle-aware pre-trigger collector before one physical selection
-of the unchanged candidate. Require positive runtime identity, no profile
-blocker, serviceability, and zero execution before defining a new boot-bound
-one-shot. Do not trigger from an armed frame alone, and do not infer a result
-from the screen or endpoint absence.
+Arm the experiment-specific USB transition observer and cycle-aware pre-trigger
+collector before shutting down changed-ID Gemian and requesting one physical
+selection of the unchanged candidate. Require positive runtime identity, no
+profile blocker, serviceability, and zero execution before defining a new
+boot-bound one-shot. Do not trigger from an armed frame alone, and do not infer
+a result from the screen or endpoint absence.
