@@ -130,6 +130,14 @@ It then shut Gemini down without rebooting; SSH failure plus three consecutive
 closed TCP/22 checks confirm power-off. See
 [`results/deployment-20260830.txt`](results/deployment-20260830.txt).
 
+A candidate-specific pre-trigger collector is now prepared and remains
+strictly read-only: it waits for the exact Gemini USB interface, captures the
+complete identity, serviceability, CPU-mask, and armed-controller frame, and
+stops without opening a trigger session. Its offline fixture accepts the one
+intended frame while rejecting 16 state mutations and seven required identity
+omissions, including nonzero retained failure or derive stages. See
+[`results/pretrigger-tooling-20260830.txt`](results/pretrigger-tooling-20260830.txt).
+
 ## Analysis
 
 The observed fields represent target-local facts and cannot exist before the
