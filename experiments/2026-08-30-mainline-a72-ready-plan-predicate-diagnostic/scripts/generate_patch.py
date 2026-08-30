@@ -91,7 +91,7 @@ def validate_patch(path: Path) -> None:
         "cpu_off(", "reboot", "retry", "writel(", "writeq(",
         "write_sysreg(", "regmap_write(", "memcpy_toio(",
     ):
-        if token in added.lower():
+        if token.lower() in added.lower():
             raise SystemExit(f"forbidden generated token: {token}")
     for token in (
         "A72_READY_PLAN_DIAG_V1",

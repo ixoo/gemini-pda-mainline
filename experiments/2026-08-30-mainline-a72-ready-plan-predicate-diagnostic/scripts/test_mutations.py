@@ -39,7 +39,7 @@ def mutate_profile_bypass(path: Path) -> None:
 
 def mutations() -> list[tuple[str, Callable[[Path], None]]]:
     wrapper = "mt6797_a72_validate_cap_plan("
-    evidence = "mt6797_a72_bound_expectation_diagnostic("
+    evidence = "mt6797_a72_evidence_diag("
     plan = "mt6797_a72_plan_validation_diagnostic("
     return [
         ("accept-on-failure", lambda p: replace_in_function(

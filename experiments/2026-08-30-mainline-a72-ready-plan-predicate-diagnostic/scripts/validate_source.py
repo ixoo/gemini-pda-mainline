@@ -106,7 +106,7 @@ def validate(root: Path) -> list[str]:
     require(text.count("A72_READY_PLAN_DIAG_V1") == 1,
             "versioned diagnostic marker count changed")
 
-    evidence = function(text, "mt6797_a72_bound_expectation_diagnostic(")
+    evidence = function(text, "mt6797_a72_evidence_diag(")
     plan = function(text, "mt6797_a72_plan_validation_diagnostic(")
     contract = function(text, "mt6797_a72_validate_cap_plan_contract(")
     wrapper = function(text, "mt6797_a72_validate_cap_plan(")

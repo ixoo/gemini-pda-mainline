@@ -47,8 +47,7 @@ EVIDENCE_DIAGNOSTIC = r'''enum mt6797_a72_evidence_diag_bit {
 };
 
 static u64 __init
-mt6797_a72_bound_expectation_diagnostic(
-	const struct arm64_late_cpu_evidence *evidence)
+mt6797_a72_evidence_diag(const struct arm64_late_cpu_evidence *evidence)
 {
 	const u64 allowed_blockers = ARM64_LATE_CPU_BLOCK_CONFIGURATION |
 		ARM64_LATE_CPU_BLOCK_TOPOLOGY;
@@ -235,7 +234,7 @@ mt6797_a72_plan_validation_diagnostic(const struct arm64_late_cpu_plan *plan)
 	if (mt6797_a72_effects_empty(&plan->effects))
 		mask |= BIT_ULL(A72_PVD_EFFECTS_EMPTY);
 	if (!memchr_inv(plan->expected_elf_hwcap, 0,
-			 sizeof(plan->expected_elf_hwcap)))
+			    sizeof(plan->expected_elf_hwcap)))
 		mask |= BIT_ULL(A72_PVD_HWCAP_EMPTY);
 
 	for (target = 0; target < ARM64_LATE_CPU_MAX_TARGETS; target++) {
@@ -245,8 +244,8 @@ mt6797_a72_plan_validation_diagnostic(const struct arm64_late_cpu_plan *plan)
 		    ARRAY_SIZE(mt6797_a72_absent_caps))
 			mask |= BIT_ULL(A72_PVD_TARGET_CLASSIFIED_WEIGHT);
 		if (!mt6797_a72_bitmap_exact(plan->target[target].local_caps,
-				mt6797_a72_present_caps,
-				ARRAY_SIZE(mt6797_a72_present_caps)))
+			    mt6797_a72_present_caps,
+			    ARRAY_SIZE(mt6797_a72_present_caps)))
 			mask |= BIT_ULL(A72_PVD_TARGET_LOCAL_EXACT);
 		if (!bitmap_subset(plan->target[target].local_caps,
 				   plan->target[target].classified_local_caps,
@@ -313,8 +312,7 @@ mt6797_a72_validate_cap_plan(const struct arm64_late_cpu_plan *plan)
 			(unsigned long long)
 			mt6797_a72_plan_validation_diagnostic(plan),
 			(unsigned long long)
-			mt6797_a72_bound_expectation_diagnostic(
-				plan ? &plan->evidence : NULL));
+			mt6797_a72_evidence_diag(plan ? &plan->evidence : NULL));
 #endif
 	return ret;
 }
