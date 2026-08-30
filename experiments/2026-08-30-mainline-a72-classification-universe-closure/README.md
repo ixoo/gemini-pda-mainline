@@ -46,7 +46,13 @@ retry, CPU_OFF, reboot, or any CPU request path.
 
 ## Observations
 
-Pending.
+Buildbox generated and replayed canonical candidate patch `0441` from managed
+post-`0440` source state `10328b30...`; the patch adds exactly
+`ARM64_MISMATCHED_CACHE_TYPE` to `mt6797_a72_absent_caps`. Source validation
+passed and four decision-changing mutations were rejected. The generated patch
+contains no producer, effect, policy, CPU request, CPU9, CPU_OFF, retry, or
+hardware-write change. See
+[the generation record](results/buildbox-generation-20260830.txt).
 
 ## Analysis
 

@@ -1,0 +1,27 @@
+From 04ed1fb9ba97f779a0a4e7b7b9653e26ec6e6c09 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 30 Aug 2026 23:01:00 +0000
+Subject: [PATCH] arm64: complete Gemini late CPU classified universe
+
+The exact post-0440 live plan fails only the global and per-target
+classified-capability weight checks. MISMATCHED_CACHE_TYPE is
+classified by the producer but absent from each target bitmap.
+
+List it in the expected-absent universe. Preserve producers,
+effects, policy, validator return, and all CPU-action behavior.
+---
+ arch/arm64/kernel/mt6797_psci.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
+index 4883bd5..e362a86 100644
+--- a/arch/arm64/kernel/mt6797_psci.c
++++ b/arch/arm64/kernel/mt6797_psci.c
+@@ -338,6 +338,7 @@ static const u16 mt6797_a72_early_caps[] __initconst = {
+ };
+ 
+ static const u16 mt6797_a72_absent_caps[] __initconst = {
++	ARM64_MISMATCHED_CACHE_TYPE,
+ 	ARM64_HAS_GICV5_LEGACY,
+ 	ARM64_HAS_ICH_HCR_EL2_TDIR,
+ 	ARM64_HAS_BBML2_NOABORT,
