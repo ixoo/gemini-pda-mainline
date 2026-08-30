@@ -138,6 +138,19 @@ intended frame while rejecting 16 state mutations and seven required identity
 omissions, including nonzero retained failure or derive stages. See
 [`results/pretrigger-tooling-20260830.txt`](results/pretrigger-tooling-20260830.txt).
 
+The first reachable runtime invocation exposed a collector-composition defect
+before any frame or trigger: six bounded read-only connections returned only
+the USB-shell banner and prompts because the wrapper emitted another host-side
+source-pinning wrapper, not the final device probe, and that intermediate also
+omitted the READY-plan fields required by the validator. No pre-trigger marker
+or trigger commit appeared. The repaired wrapper now source-pins the complete
+previously reviewed device-side probe directly, retargets only the installed
+candidate hash, and proves all provenance and READY fields are present. The
+collector replaces the overlong single-line base64 transport with one bounded
+here-document connection. Static and executable tests prove one netcat call
+site, zero trigger paths, exact source pins, and the complete materialized
+probe before the next read-only attempt.
+
 The separate trigger executor accepts only that completed, checksum-valid
 private capture. It revalidates the frame, extracts its boot ID, derives a
 device-side trigger bound to that exact ID, durably commits the intent, and
