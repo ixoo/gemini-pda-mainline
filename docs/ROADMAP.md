@@ -6393,11 +6393,14 @@ The next ordered work is:
    readback. It made no fresh backup and then shut Gemini down; SSH failure and
    three TCP/22 closures confirm the boundary. See the
    [deployment receipt](../experiments/2026-08-30-mainline-a72-provenance-serviceability-composition/results/deployment-boot2-f694ddb9-20260830.txt).
-   **Selected next:** the owner physically selects boot2 once. Accept
-   pre-trigger qualification only with the positive runtime-identity message,
-   no profile blocker, and the existing serviceable armed/zero-execution
-   frame. Define a separate boot-bound one-shot only after that passes; retain
-   the CPU9 veto.
+   The exact read-only pre-trigger tooling is now independently mutation-tested
+   and cycle-aware. It requires the package provenance node and compatible,
+   exactly one positive runtime-identity message, no invalid, mismatch,
+   unconfigured, or profile-blocked message, and the existing exact candidate,
+   release, USB, boot-ID, serviceable armed/zero-execution frame. It has no
+   trigger path. **Selected next:** the owner has physically selected boot2;
+   wait for its attributable USB endpoint and run that qualification. Define a
+   separate boot-bound one-shot only after it passes; retain the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 

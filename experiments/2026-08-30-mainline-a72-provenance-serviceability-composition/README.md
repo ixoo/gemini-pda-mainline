@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-provenance-serviceability-composition` |
-| Status | `deployed to boot2 with full readback; device shut down awaiting selection` |
+| Status | `deployed to boot2 with full readback; owner-selected boot attempt awaiting an attributable USB endpoint` |
 | Subsystem | arm64 late-CPU runtime identity and Gemini serviceability DT |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -60,6 +60,17 @@ runtime identity and READY; an armed controller alone is insufficient.
   layout, provenance, serviceability, controller, and six corrupt containers.
 - `scripts/install-boot2.sh`: retargets the guarded live-GPT installer only to
   exact predecessor `8acf9227...` and candidate `f694ddb9...`.
+- `scripts/remote-pretrigger.sh`: extends the proven read-only remote frame with
+  the exact DT provenance node and positive/negative runtime-identity counts.
+- `scripts/validate-pretrigger.py`: requires the exact candidate, provenance
+  compatible, one verified identity, no identity/profile blocker, and the
+  complete armed/zero-execution serviceability frame.
+- `scripts/test-pretrigger.py`: accepts one exact positive frame, rejects 14
+  decision-changing mutations, and rejects omission of each of seven new
+  identity fields.
+- `scripts/collect-pretrigger.sh`: source-pins the prior disconnect/cycle-aware
+  collector and retargets it to the exact candidate and validators above. It
+  has no trigger-token path.
 
 Private DTBs and containers remain below ignored `artifacts/` paths.
 
@@ -74,6 +85,8 @@ Private DTBs and containers remain below ignored `artifacts/` paths.
 4. Reject provenance, serviceability, container, CPU-path, and identity
    mutations before accepting a boot candidate.
 5. Publish the exact definition and validation before any boot2 write.
+6. Before any one-shot definition, collect and validate the complete live
+   provenance, identity, serviceability, armed, and zero-execution frame.
 
 ## Observations
 
@@ -114,6 +127,15 @@ then shut Gemini down without rebooting. SSH failure and three consecutive
 closed TCP/22 probes confirm shutdown. Sanitized evidence is in
 [`results/deployment-boot2-f694ddb9-20260830.txt`](results/deployment-boot2-f694ddb9-20260830.txt).
 
+The read-only pre-trigger probe now adds the exact
+`/chosen/gemini-late-cpu-provenance` compatible and seven positive/negative
+runtime-identity fields to the inherited full-sysfs frame. Its independent
+validator accepts one exact positive frame, rejects 14 mutations, and rejects
+omission of every added identity field. The cycle-aware collector retains the
+exact candidate, release, USB, boot-ID, serviceability, armed, and
+zero-execution gates and has no trigger path. See
+[`results/offline-pretrigger-tooling-20260830.txt`](results/offline-pretrigger-tooling-20260830.txt).
+
 ## Analysis
 
 The smallest attributable change is to compose the two already-owned DT
@@ -137,6 +159,8 @@ is confirmed shut down. No CPU request occurred during deployment.
 
 ## Follow-up
 
-On the next owner-selected boot2 start, require positive runtime identity, no
-profile blocker, serviceability, and zero execution before defining a new
-boot-bound one-shot. Do not trigger from an armed frame alone.
+For the reported owner-selected boot2 start, wait for an attributable USB
+endpoint. Require positive runtime identity, no profile blocker,
+serviceability, and zero execution before defining a new boot-bound one-shot.
+Do not trigger from an armed frame alone, and do not infer a result from the
+screen or endpoint absence.
