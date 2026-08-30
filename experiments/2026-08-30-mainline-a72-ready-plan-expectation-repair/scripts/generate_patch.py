@@ -85,8 +85,15 @@ def validate_patch(path: Path) -> None:
     ):
         raise SystemExit("generated patch author changed")
     patch_text = path.read_text(encoding="utf-8")
-    if patch_text.count("arch/arm64/kernel/mt6797_psci.c") != 4:
-        raise SystemExit("generated patch path count changed")
+    target = source_edits.TARGET.as_posix()
+    if patch_text.count("\ndiff --git ") != 1:
+        raise SystemExit("generated patch file count changed")
+    if patch_text.count(f"diff --git a/{target} b/{target}") != 1:
+        raise SystemExit("generated patch diff path changed")
+    if patch_text.count(f"\n--- a/{target}\n") != 1:
+        raise SystemExit("generated patch old path changed")
+    if patch_text.count(f"\n+++ b/{target}\n") != 1:
+        raise SystemExit("generated patch new path changed")
     added = changed_text(path, "+")
     deleted = changed_text(path, "-")
     for token in (
