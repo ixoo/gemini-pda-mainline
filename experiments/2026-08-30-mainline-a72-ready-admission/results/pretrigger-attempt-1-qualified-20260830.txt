@@ -1,0 +1,52 @@
+READY admission pre-trigger attempt 1
+UTC date: 2026-08-30
+Result: qualified after trace-schema validator correction
+
+Named device: Gemini PDA x27 project unit
+Installed full boot2 SHA-256:
+8acf9227e6539e5011ab59a27e1320bf970c19cbbf5a5325fe3304f0e04dddb7
+Kernel release: 7.1.3-gemini-a72-admission-live
+Mainline boot ID: 2ec43fd0-3afb-4a56-bf9f-92bacff303ba
+Private immutable frame SHA-256:
+c2ab936d53c40bdb9f83af999aadf79825395a9a92c5add3d670d97c23176234
+Private observer-event SHA-256:
+49a90dcc9f68ad23bcb02ebf35673ebb70ad943d7b61875b18c7c8c1d79b103f
+
+CPU possible: 0-9
+CPU present: 0-9
+CPU online: 0-7
+CPU offline: 8-9
+Controller: present, bound, armed
+Trigger consumed: 0
+Trigger executions: 0
+Admission core consumed: 0
+Entry trace return: 0
+Terminal trace return: 0
+CPU8 requests: 0
+CPU9 requests: 0
+CPU_OFF requests: 0
+Retries: 0
+Block-device mounts: 0
+Device partition reads: none
+Device storage writes: none
+Reboot request: none
+
+The first armed observer reached its bounded timeout before the owner selected
+boot2 and was preserved as a private no-device record. After selection, the
+exact Gemini USB interface appeared. macOS had not restored the documented
+host address, so only `10.15.19.1/24` was added to that exact interface before
+the read-only netcat capture.
+
+The original validator classified the complete immutable frame as
+`live_status-mismatch` because it expected the older status schema without the
+two trace-return fields added by canonical patch 0421. It sent no token. The
+corrected validator source-pins the later proven trace-aware schema, retargets
+only the exact candidate and release, and accepts the same frame as
+`serviceable-armed-zero-execution`. One positive branch passes and nine unsafe
+mutations are rejected, including either nonzero trace return and omission of
+both trace fields.
+
+Decision: the exact boot qualifies for a separately published, boot-ID-pinned
+CPU8 one-shot contract. Do not send a token from unpublished or older-schema
+tooling, do not retry after commit, and keep CPU9 vetoed until the CPU8 terminal
+result is captured.

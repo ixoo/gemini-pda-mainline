@@ -1,0 +1,63 @@
+READY admission exact-boot one-shot offline gates
+UTC date: 2026-08-30
+Result: pass; no device action
+
+Experiment:
+2026-08-30-mainline-a72-ready-admission-one-shot
+
+Exact installed full boot2 SHA-256:
+8acf9227e6539e5011ab59a27e1320bf970c19cbbf5a5325fe3304f0e04dddb7
+Exact kernel release: 7.1.3-gemini-a72-admission-live
+Exact mainline boot ID: 2ec43fd0-3afb-4a56-bf9f-92bacff303ba
+Accepted immutable private frame SHA-256:
+c2ab936d53c40bdb9f83af999aadf79825395a9a92c5add3d670d97c23176234
+
+Contract SHA-256:
+6f12640027ac5538f5e4fed47e5e2609912d94e1eff8035bae9e66843a85e0ea
+Source collector SHA-256:
+a49713d80cf263663cb61e324fc685bb4e8ed1c4024f1d7a2c87200d05eca826
+Collector wrapper SHA-256:
+4920f2c44d6b8d12d30c2b706eb1e48549a74446710387642dcb4873a0cd1b0d
+Derived collector SHA-256:
+1e372c425b664fdd9af75659dd029bc6baac5276800f1fbf168cba7e2a219bb8
+One-shot runner SHA-256:
+895e7941637a6bffbc562e346fbf37b4289053e5179c098a2f14fc5b6725aa6f
+Remote pre-trigger SHA-256:
+b0537c7b5df1005d4c3946eb559e90e986c05e56dd1581fb1a60e9909aa33f0b
+Remote trigger SHA-256:
+79bc42ca393f5726648be93b7a4e1d2378fd0b9c306007209d1901cf49824468
+Boot-bound pre-trigger validator SHA-256:
+2146400b929218bdc7d91b609fa2ea166922be78ee81802918f68c0af7c89dd9
+Trace-aware attempt classifier SHA-256:
+6bc47b78562d9ff9ce8ad1527ac6a2f0f143944fd7fb497dff547fbb290b50bf
+Runtime test SHA-256:
+f7fd916f57545e309debf505c7f605872a382f4030899b3775accb950056eed7
+
+The remote pre-trigger script is byte-identical to the pinned trace-aware
+source after exactly one installed-candidate hash substitution. The remote
+trigger is byte-identical to the reviewed trace-aware one-shot source and
+retains the sole accepted token. Its pre-status gate requires both trace return
+fields to be zero before it can print the commit marker or remount sysfs.
+
+The boot-bound validator accepts the exact immutable frame as
+`serviceable-armed-zero-execution` and rejects a changed boot ID. The runtime
+suite reports:
+
+pretrigger_accepted_branches=1
+attempt_accepted_branches=3
+pretrigger_mutations_rejected=7
+attempt_mutations_rejected=7
+result=pass
+
+Two independent collector materializations are byte-identical at the derived
+hash above. Bash syntax, ShellCheck, Python compilation, JSON parsing, source
+transform comparisons, and repository whitespace validation pass.
+
+No kernel, configuration, DT, ramdisk, LK container, candidate, partition,
+retained RAM, sysfs, token, CPU request, reboot, or device state changed during
+these gates. No kernel build was needed because no kernel input changed, and no
+native VM build was run.
+
+Decision: publish this exact boot-ID-pinned definition before running
+`scripts/run-one-shot.sh` once. A complete terminal frame or a transport loss
+after its commit marker is final and must not be retried. CPU9 remains vetoed.

@@ -28,7 +28,7 @@ replacements = (
     ("f4cb1b2c8bc3759a23515c41d6c3c9248c1095277cb158e082a5b322e6927c02", "8acf9227e6539e5011ab59a27e1320bf970c19cbbf5a5325fe3304f0e04dddb7", 1),
     ("55361c7e8df662a1c124b2bd1fe9eef6e22aee85a442883ccc2004173bb21c1e", "08d3c9d2780c59dd871f710e735a96181027978cb1d502cf76c162297638d0c9", 1),
     ("bd0c14b6320713e1b73ef4ec3fee908c026babd35bbbe2131701e3aaf082cd90", "68cbb6af510c45ee69b320246ccee04e2a2c5f3ec88f7bde0d0daf7e374a97f9", 1),
-    ("5afa0f77e601f6407fc8a993ac0585148b8fc8567cb81947b576069f29b282e3", "3825357d4cda052555b0f8744700e95a864f973955b908347d1126d933b2048c", 1),
+    ("5afa0f77e601f6407fc8a993ac0585148b8fc8567cb81947b576069f29b282e3", "b012426e2e3bc912da63655dc9e325b4d3113d8db73e41959b1746e2815aae80", 1),
     ("a72-admission-serviceability-attempt-1", "a72-ready-admission-pretrigger-attempt-1", 2),
     (".gemini-a72-serviceability-probe.XXXXXXXX", ".gemini-a72-ready-probe.XXXXXXXX", 1),
     (".gemini-a72-serviceability-command.XXXXXXXX", ".gemini-a72-ready-command.XXXXXXXX", 1),

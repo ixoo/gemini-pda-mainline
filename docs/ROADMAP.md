@@ -6360,12 +6360,17 @@ The next ordered work is:
    passes the LK and corruption gates; exact boot2 image `8acf9227...` preserves
    the prior serviceability DT and ramdisk. See the
    [candidate result](../experiments/2026-08-30-mainline-a72-ready-admission/results/build-and-candidate-20260830.txt).
-   **Selected next:** publish the exact candidate/tooling record, confirm the
-   live inactive-boot2 predecessor, perform the guarded write/readback/shutdown,
-   and arm USB/netcat before one physical selection. Require the exact kernel,
-   pre-trigger READY/controller state, and CPU0--7 serviceability before sending
-   the root-only token once. Classify its live and retained terminal evidence
-   before changing the CPU9 veto.
+   Guarded deployment and the first read-only live qualification now pass for
+   exact boot2 image `8acf9227...` and mainline boot ID `2ec43fd0...`: CPUs
+   0--7 are online, CPUs 8--9 are offline, and the trace-aware controller is
+   armed with zero executions or requests. The older-schema validator refusal
+   was corrected without a second boot or trigger. See the
+   [qualified pre-trigger result](../experiments/2026-08-30-mainline-a72-ready-admission/results/pretrigger-attempt-1-qualified-20260830.txt).
+   **Selected next:** publish and run the separate exact-boot
+   [READY one-shot contract](../experiments/2026-08-30-mainline-a72-ready-admission-one-shot/README.md)
+   once. Revalidate and fsync the same armed state, consume the root-only CPU8
+   token in one session without retry, and classify live and retained terminal
+   evidence before changing the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 

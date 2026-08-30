@@ -69,6 +69,8 @@ CPU9 remains vetoed.
   exact installed candidate.
 - `scripts/validate-pretrigger.py` accepts only the exact serviceable,
   READY/controller-armed, zero-execution state while returning the new boot ID.
+- `scripts/test-pretrigger.py` accepts the trace-aware READY schema and rejects
+  nine unsafe state, trace, request, and schema mutations.
 
 ## Procedure
 
@@ -138,12 +140,27 @@ CPU9 remains vetoed.
   no fresh predecessor backup. Gemini then shut down cleanly without an
   automatic reboot; SSH failure plus three consecutive closed TCP/22 probes
   confirmed the power-off boundary.
+- The first collector arm expired before physical selection and observed no
+  device. After selection, exact Gemini USB appeared but macOS lacked its
+  documented host address; restoring only `10.15.19.1/24` made the existing
+  netcat service reachable. The immutable frame `c2ab936d...` then proved exact
+  candidate `8acf9227...`, release `7.1.3-gemini-a72-admission-live`, boot ID
+  `2ec43fd0...`, CPUs 0--7 online, CPUs 8--9 offline, and an armed controller
+  with zero executions, requests, retries, or CPU_OFF operations.
+- The initial validator rejected that safe frame only because it was pinned to
+  the pre-`0421` controller schema and omitted the already-published
+  `entry_trace_ret=0` and `terminal_trace_ret=0` fields. The corrected validator
+  source-pins the later proven trace-aware schema, retargets the exact candidate
+  and release, accepts the same immutable frame, and rejects nine unsafe
+  mutations. No trigger was sent during either classification.
 - Full generation and admission chronology is in
   [`results/generation-20260830.txt`](results/generation-20260830.txt).
 - Exact compile, linked-audit, and candidate evidence is in
   [`results/build-and-candidate-20260830.txt`](results/build-and-candidate-20260830.txt).
 - Exact pre-trigger tooling evidence is in
   [`results/pretrigger-tooling-20260830.txt`](results/pretrigger-tooling-20260830.txt).
+- Exact live qualification and validator-correction evidence is in
+  [`results/pretrigger-attempt-1-qualified-20260830.txt`](results/pretrigger-attempt-1-qualified-20260830.txt).
 
 ## Analysis
 
@@ -164,7 +181,7 @@ no device was accessed and no CPU request occurred during this phase.
 
 ## Follow-up
 
-Complete the armed USB/netcat pre-trigger capture for the owner-selected boot2
-cycle. Qualify the exact boot and READY/controller state before consuming the
-token once. Record live and retained terminal evidence before changing the
-CPU9 veto.
+Publish a one-shot contract pinned to exact mainline boot ID `2ec43fd0...`, the
+accepted immutable frame, trace-aware trigger tooling, and the sole root token.
+Then revalidate the still-armed boot, consume the token once, and record live
+and retained terminal evidence before changing the CPU9 veto.
