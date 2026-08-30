@@ -1,0 +1,62 @@
+Runtime result: exact READY predicate observer, attempt 1
+Date: 2026-08-30
+
+Candidate and boot identity
+- installed full boot2 SHA-256: 7ac6f42938365d8bb1de49803a46287186e9a25347039975c48c386d0c1d6272
+- kernel release: 7.1.3-gemini-a72-admission-live
+- architecture: aarch64
+- mainline boot ID: 13f81ecd-3374-42e8-ad52-c0b5b61c0f78
+- changed-ID Gemian recovery boot ID: fd328144-1bf3-4c3a-b2b4-9b2201129832
+- device-tree provenance node: exactly one planet,gemini-a72-runtime-binding-v1
+- runtime identity: verified exactly once; invalid, mismatch, and unconfigured counts zero
+
+CPU and controller state
+- possible/present: 0-9
+- online: 0-7
+- offline: 8-9
+- maxcpus=8 token count: 1
+- controller: bound, armed, and unconsumed
+- trigger executions: 0
+- CPU requests: 0
+- CPU9 requests: 0
+- CPU_OFF requests: 0
+- retries: 0
+
+Exact failure-only observer
+- profile blocked count: 1
+- diagnostic count: 1
+- diagnostic line:
+  [    0.085595] mt6797-psci: A72_READY_PLAN_DIAG_V1 ret=-22 plan=0x288380 evidence=0x2000000
+- public proof-mask 0x24000 count: 1
+- decoded plan failures: early-caps, target-caps, required-caps, evidence,
+  target-local-exact, target-present-cap
+- decoded evidence failure: policy-conduit
+- classification: attributable-predicate-diagnostic-zero-execution
+
+Safety observations
+- direct USB shell only; no trigger was sent
+- block mounts: 0
+- device partition reads: none
+- device storage writes: none
+- sysfs write, supplier resolution, CPU admission, CPU_OFF, retry, and reboot
+  requests: none
+- mainline was returned to changed-ID Gemian through the identity-gated USB
+  reboot path
+
+Private ignored capture identities
+- frame.txt SHA-256: abb885505acf63ea457b8fbd137869295e381c8cead2e70ec2b9785876cf1be2
+- classification.txt SHA-256: 9c13bc5dfc2e1c3bc3db5cbe6debd03ca9cd895917e364f160c66aa318fd9008
+- observer-events.txt SHA-256: 12c5de41c2b46733fcb50890310420c65cc5f91f06874deaa02b0d7caafbfeb9
+
+Interpretation
+- The observer retained the production validator return and did not execute any
+  admission action.
+- The exact plan producer completed, but the profile's hard-coded expected
+  early, target, and required capability bitmaps do not match its produced
+  bitmaps.
+- Runtime policy evidence is otherwise exact; only the hard-coded SMC conduit
+  expectation differs from the conduit collected by
+  arm_smccc_1_1_get_conduit().
+- This frame does not identify the individual missing capability IDs or the
+  observed conduit enum. One bounded value observer is required before the
+  semantic contract can be repaired without guessing.

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-ready-plan-predicate-diagnostic` |
-| Status | `running` |
+| Status | `complete` |
 | Subsystem | arm64 late-CPU plan validation diagnostics |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -57,6 +57,15 @@ candidate must never receive the CPU8 trigger.
 - `scripts/generate_patch.py`: creates, checks, replays, and packages one
   deterministic format-patch.
 - `scripts/generate-on-buildbox`: pins the exact post-`0437` managed source.
+- `scripts/remote-diagnostic.sh`: source-pins the proven read-only USB frame
+  probe and adds the exact failure-only diagnostic fields.
+- `scripts/validate-diagnostic.py`: inherits the proven pre-trigger contract,
+  requires the exact observer identity, and decodes only defined plan and
+  evidence bits.
+- `scripts/collect-diagnostic.sh`: source-pins the cycle-aware collector and
+  cannot send a trigger.
+- `scripts/test-diagnostic-mutations.py`: rejects twelve decision-changing
+  runtime-frame mutations.
 
 ## Procedure
 
@@ -106,22 +115,44 @@ readback. The device was shut down cleanly; SSH failure and three TCP/22
 closures confirm the boundary. See
 [`results/deployment-boot2-7ac6f429-20260830.txt`](results/deployment-boot2-7ac6f429-20260830.txt).
 
+The first exact observer boot reached serviceable mainline with runtime
+identity verified exactly once, CPU0--7 online, CPU8--9 offline, and the
+controller armed but unconsumed. It emitted exactly one retained-return
+diagnostic: `ret=-22 plan=0x288380 evidence=0x2000000`. The decoded false plan
+predicates are `early-caps`, `target-caps`, `required-caps`, `evidence`,
+`target-local-exact`, and `target-present-cap`; the sole false evidence
+predicate is `policy-conduit`. No trigger, CPU request, CPU_OFF, retry, storage
+access, supplier resolution, or sysfs write occurred. The USB shell returned
+the device to changed-ID Gemian. See
+[`results/runtime-attempt-1-predicate-frame-20260830.txt`](results/runtime-attempt-1-predicate-frame-20260830.txt).
+
+A later owner-selected repeat of the unchanged observer exposed no exact USB
+interface and had already returned to the same changed-ID Gemian boot when SSH
+was checked. Because it adds no new identity or measurement, it is not counted
+as another runtime attempt and does not change the classification.
+
 ## Analysis
 
 The public proof mask deliberately groups all profile callback validation under
-`PLAN_VALIDATION`; it cannot distinguish static plan shape, expected evidence,
-effect planning, HWCAP planning, target classification, or identity state. A
-single read-only internal bitmap is therefore decision-bearing and avoids a
-sequence of guessed semantic relaxations.
+`PLAN_VALIDATION`; the observer shows that effect planning, HWCAP planning,
+classification completeness, bitmap subset rules, identities, and nearly all
+runtime evidence pass. Exact source tracing locates the bitmap producers in
+`arm64_plan_late_cpu_capabilities()` and the policy producer in
+`arm64_late_cpu_collect_policy()`. The remaining contradiction is between
+their live outputs and profile-local hard-coded expected sets plus an assumed
+SMC conduit. This frame deliberately reports only predicate names, so changing
+those expectations now would still be a guess: the individual produced bitmap
+bits and conduit enum remain unobserved.
 
 ## Conclusion
 
-`exact-observer-candidate-deployed-pending-one-read-only-boot`.
+`exact-predicate-frame-capability-set-and-policy-conduit-mismatch-zero-trigger`.
 
 ## Follow-up
 
-Physically select boot2 once, then capture one complete read-only frame and
-exactly one versioned diagnostic line. Use its bitmap to select one source-local
-correction. Do not repeat the observer or permit CPU8 until a later
-non-diagnostic candidate publishes an exact no-blocker READY frame. Keep CPU9
-vetoed.
+Add one bounded failure-only value observer that prints the exact produced
+early, target, required, and per-target capability bitmap words plus both
+collected policy conduits. It must retain the validator return and every
+zero-action gate. Use that one frame to repair the profile contract, then
+require a silent diagnostic and exact no-blocker READY frame before permitting
+the existing one-shot CPU8 trigger. Keep CPU9 vetoed.

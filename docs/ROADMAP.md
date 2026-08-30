@@ -6441,9 +6441,18 @@ The next ordered work is:
    The guarded live-GPT installer matched exact predecessor `726b622a...`,
    wrote only inactive boot2, verified exact full-partition readback
    `7ac6f429...`, made no fresh backup or retained-RAM write, and shut the
-   device down. **Selected next:** physically select boot2 once, capture one
-   complete read-only frame and versioned predicate bitmap without a trigger,
-   then repair only the named false contract. Retain the CPU9 veto.
+   device down. The exact boot reached serviceable mainline with verified
+   runtime identity, CPU0--7 online, CPU8--9 offline, and zero admission
+   actions. Its sole retained-return line was `ret=-22 plan=0x288380
+   evidence=0x2000000`: the hard-coded early, target, required, and per-target
+   present-capability expectations differ from the live plan, while the sole
+   runtime-evidence mismatch is the hard-coded SMC conduit. Source tracing
+   locates the live producers in `arm64_plan_late_cpu_capabilities()` and
+   `arm64_late_cpu_collect_policy()`; this predicate-only frame does not expose
+   their individual bitmap bits or conduit enum. **Selected next:** add one
+   failure-only value observer for those exact outputs, consume one read-only
+   frame, then repair only the observed contract and require a silent
+   no-blocker READY frame before any CPU8 trigger. Retain the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 
