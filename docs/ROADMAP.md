@@ -6468,9 +6468,23 @@ The next ordered work is:
    `MISMATCHED_CACHE_TYPE` from its present/required expectations, and expect
    NONE—not SMC—in the production policy predicate. The expected-pair effects
    path already models a valid NONE conduit. Zero triggers, CPU requests,
-   CPU_OFF, retries, or storage actions occurred. **Selected next:** make only
-   those expectation corrections, then require one silent-diagnostic,
-   no-blocker READY frame before any CPU8 trigger. Retain the CPU9 veto.
+   CPU_OFF, retries, or storage actions occurred. Canonical patch `0440` made
+   only those expectation corrections. Its exact read-only boot removed the
+   earlier mismatches but retained global and per-target classified-weight
+   failures (`plan=0x40800`); its value frame showed that
+   `MISMATCHED_CACHE_TYPE` was classified by production while omitted from
+   both the present and absent profile universes. Canonical patch `0441` adds
+   that capability only to the expected-absent universe. Default and exact
+   live builds pass on Buildbox at commit `787ff75a`; two DT compositions and
+   two containers are byte-identical, all 32 LK gates pass, and ten DT, six
+   container, and thirteen runtime mutations are rejected. Exact padded boot2
+   candidate `2245c1c4...` was fully read back and its boot ID `4ec37034...`
+   produced the required silent READY result: verified runtime identity, no
+   profile blocker or READY diagnostic, controller armed/unconsumed, CPUs
+   0--7 online, CPUs 8--9 offline, and zero requests, executions, CPU_OFF, or
+   retries. **Selected next:** prepare and independently qualify one separate
+   CPU8-only trigger candidate from this exact validated state, then run its
+   one-shot contract once. Retain the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 

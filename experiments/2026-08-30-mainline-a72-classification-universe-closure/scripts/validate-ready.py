@@ -25,7 +25,7 @@ insert = anchor + '''        "ready_plan_diag_count": "0",
         "ready_plan_diag_line": "",
         "ready_plan_values_count": "0",
         "ready_plan_values_line": "",
-        "proof_mask_24000_count": "1",
+        "proof_mask_24000_count": "0",
 '''
 replacements = (
     ("f694ddb95649db38ad72d08dcb2f81688608dca44782f08cfe4412e06b26204a", "2245c1c4056cfd849ff89ba8afa220bf0cf038f1ea23a324c1e717c6ea23d89b", 1),

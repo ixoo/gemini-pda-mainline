@@ -18,7 +18,11 @@ source_probe="$repo_root/experiments/2026-08-30-mainline-a72-ready-plan-expectat
 [[ "$(sha256sum "$source_probe" | awk '{print $1}')" == "$SOURCE_SHA256" ]] || die 'source probe changed'
 
 derived=$(mktemp "$script_dir/.derived-remote-a72-classification-closure.XXXXXXXX")
-cleanup() { [[ ! -e "${derived:-}" ]] || rm -f -- "$derived"; }
+probe=$(mktemp "$script_dir/.materialized-remote-a72-classification-closure.XXXXXXXX")
+cleanup() {
+	[[ ! -e "${derived:-}" ]] || rm -f -- "$derived"
+	[[ ! -e "${probe:-}" ]] || rm -f -- "$probe"
+}
 trap cleanup EXIT HUP INT TERM
 python3 - "$source_probe" "$derived" <<'PY'
 from pathlib import Path
@@ -41,9 +45,35 @@ Path(sys.argv[2]).write_text(text, encoding="utf-8")
 PY
 chmod 0700 "$derived"
 set +e
-/bin/bash "$derived" "$@"
+/bin/bash "$derived" "$@" >"$probe"
 rc=$?
 set -e
+python3 - "$probe" <<'PY'
+from pathlib import Path
+import sys
+
+text = Path(sys.argv[1]).read_text(encoding="utf-8")
+replacements = (
+    (
+        "$BB printf 'ready_plan_diag_line='; $BB dmesg | $BB grep -Fm1 'A72_READY_PLAN_DIAG_V1 ' || true",
+        "$BB printf 'ready_plan_diag_line='; $BB dmesg | $BB grep -Fm1 'A72_READY_PLAN_DIAG_V1 ' || $BB printf '\\n'",
+        1,
+    ),
+    (
+        "$BB printf 'ready_plan_values_line='; $BB dmesg | $BB grep -Fm1 'A72_READY_PLAN_VALUES_V1 ' || true",
+        "$BB printf 'ready_plan_values_line='; $BB dmesg | $BB grep -Fm1 'A72_READY_PLAN_VALUES_V1 ' || $BB printf '\\n'",
+        1,
+    ),
+)
+for old, new, count in replacements:
+    actual = text.count(old)
+    if actual != count:
+        raise SystemExit(
+            f"unsafe classification-closure probe repair: expected {count}, found {actual}: {old}"
+        )
+    text = text.replace(old, new)
+sys.stdout.write(text)
+PY
 cleanup
 trap - EXIT HUP INT TERM
 exit "$rc"

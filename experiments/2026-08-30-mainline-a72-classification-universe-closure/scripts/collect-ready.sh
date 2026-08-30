@@ -27,9 +27,10 @@ import sys
 text = Path(sys.argv[1]).read_text(encoding="utf-8")
 replacements = (
     ("9abdd1c66b8665ed7ccd0b9ca8e0cc7b74ddd40ebce65b2fb5d7a37aef6571cc", "2245c1c4056cfd849ff89ba8afa220bf0cf038f1ea23a324c1e717c6ea23d89b", 1),
-    ("d59dc7827e8883370a38bc1aed7891e38e470785ece30185f82fa16a50e977a9", "5fd6b13e4d73adec3f8e8e838222987e96ba2123322112fcedb7188504975c5c", 1),
-    ("867490436bca15d897486a586deb1e9545383356c5781bd77efacdd249d75cd0", "474fe44035b14a5947cb3dc2462185d5586a2a64941f7a455db65e6e1406f6fc", 1),
-    ("a72-ready-plan-expectation-repair-attempt-1", "a72-classification-universe-closure-attempt-1", 1),
+    ("d59dc7827e8883370a38bc1aed7891e38e470785ece30185f82fa16a50e977a9", "e4661b8f727229b5efcb59774adf62efd7aaaee02bed4a41d60be8041b5f51fb", 1),
+    ("737f93b1413cfb36af88816f87b0666bd8860523a0069df58ef86fcfd014f13f", "d1dac5b8b0e75460dec80480886008763f63fed96b1124793e2d3539820212f3", 1),
+    ("867490436bca15d897486a586deb1e9545383356c5781bd77efacdd249d75cd0", "2ac884e8c9db3f152572ac61ae5182f9b52ae20d15d4fbc840033e93ac6d1174", 1),
+    ("a72-ready-plan-expectation-repair-attempt-1", "a72-classification-universe-closure-attempt-2", 1),
     (".derived-collect-a72-ready-plan-repair.XXXXXXXX", ".derived-collect-a72-classification-closure-inner.XXXXXXXX", 1),
     (".gemini-a72-ready-plan-repair-probe.XXXXXXXX", ".gemini-a72-classification-closure-probe.XXXXXXXX", 1),
     (".gemini-a72-ready-plan-repair-command.XXXXXXXX", ".gemini-a72-classification-closure-command.XXXXXXXX", 1),

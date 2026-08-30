@@ -64,20 +64,38 @@ padded candidate is `2245c1c4...`; it retains CPU8 as the sole later request
 path but contains no request in this read-only boot. See
 [the offline candidate record](results/offline-candidate-20260830.txt).
 
+The candidate was written to the live-GPT-resolved inactive `boot2` after the
+expected `9abdd1c6...` predecessor matched. Its full-partition readback matched
+`2245c1c4...`, and the device was then shut down without a reboot. See
+[the deployment record](results/deployment-20260830.txt).
+
+Boot ID `4ec37034...` then produced the exact silent READY frame: runtime
+identity verified once, no profile blocker, no READY diagnostic or values
+line, controller state `armed`, CPUs 0-7 online, CPUs 8-9 offline, and zero
+trigger executions, CPU requests, CPU_OFF requests, or retries. The first
+private capture exposed an observer defect in which empty diagnostic lines
+were concatenated and the inherited validator expected a failure-only proof
+mask. After correcting those two read-only expectations, a second capture of
+the same unchanged boot passed. No trigger was sent. The device was then
+returned to Gemian by its validated USB reboot path. See
+[the runtime record](results/runtime-ready-20260830.txt).
+
 ## Analysis
 
-Offline evidence supports spending one boot on the classification-only
-candidate. It changes one expected-absent classification entry while retaining
-the exact serviceability DT, ramdisk, configuration, and read-only collection
-contract. Consequently a silent unblocked frame is attributable to the
-classification-universe fix; a remaining frame is attributable evidence for
-another prerequisite. Neither branch can consume the CPU8 trigger, and CPU9
-remains vetoed.
+The runtime result confirms the hypothesis. Adding the one omitted capability
+to the expected-absent universe closed both the global and per-target
+classified-weight predicates. The absence of the failure-only proof-mask line
+is consistent with the blocker disappearing. Because the kernel, DT,
+serviceability contract, and observer remained otherwise fixed, this is
+attributable evidence that the complete pre-trigger plan now passes. The
+experiment did not attempt CPU admission.
 
 ## Conclusion
 
-`running`.
+`complete`: exact pre-trigger readiness is established with zero execution.
 
 ## Follow-up
 
-Only a clean attributable READY result may select a CPU8-only trigger.
+Prepare one separate CPU8-only trigger candidate from this exact validated
+state. Keep CPU9 vetoed and retain the one-shot, fail-closed observation and
+Gemian recovery contract.
