@@ -54,9 +54,25 @@ contains no producer, effect, policy, CPU request, CPU9, CPU_OFF, retry, or
 hardware-write change. See
 [the generation record](results/buildbox-generation-20260830.txt).
 
+Canonical patchset commit `787ff75a...` passed both the default Buildbox build
+and the exact `a72-admission-live-trigger-candidate` profile build. Two clean
+container serializations and two independent DT compositions were byte-for-
+byte identical. Independent validation accepted all 32 LK-container gates,
+rejected ten DT mutations and six container mutations, and the silent READY
+validator rejected thirteen decision-changing runtime mutations. The exact
+padded candidate is `2245c1c4...`; it retains CPU8 as the sole later request
+path but contains no request in this read-only boot. See
+[the offline candidate record](results/offline-candidate-20260830.txt).
+
 ## Analysis
 
-Pending.
+Offline evidence supports spending one boot on the classification-only
+candidate. It changes one expected-absent classification entry while retaining
+the exact serviceability DT, ramdisk, configuration, and read-only collection
+contract. Consequently a silent unblocked frame is attributable to the
+classification-universe fix; a remaining frame is attributable evidence for
+another prerequisite. Neither branch can consume the CPU8 trigger, and CPU9
+remains vetoed.
 
 ## Conclusion
 
