@@ -19,25 +19,36 @@ def replace_once(text: str, old: str, new: str) -> str:
     return text.replace(old, new, 1)
 
 
-def mutate(path: Path, old: str, new: str) -> None:
+def mutate_wrapper(path: Path, old: str, new: str) -> None:
+    text = path.read_text(encoding="utf-8")
+    if text.count(source_edits.NEW) != 1:
+        raise ValueError("exact observer wrapper count changed")
+    changed = replace_once(source_edits.NEW, old, new)
+    path.write_text(text.replace(source_edits.NEW, changed, 1), encoding="utf-8")
+
+
+def mutate_file(path: Path, old: str, new: str) -> None:
     text = path.read_text(encoding="utf-8")
     path.write_text(replace_once(text, old, new), encoding="utf-8")
 
 
 def mutations() -> list[tuple[str, Callable[[Path], None]]]:
     return [
-        ("accept-on-failure", lambda p: mutate(p, "\treturn ret;", "\treturn 0;")),
-        ("log-on-success", lambda p: mutate(p, "\tif (ret) {", "\tif (true) {")),
-        ("drop-null-guard", lambda p: mutate(p, "\t\tif (plan)\n", "\t\tif (true)\n")),
-        ("duplicate-target-bitmap", lambda p: mutate(
+        ("accept-on-failure", lambda p: mutate_wrapper(
+            p, "\treturn ret;", "\treturn 0;")),
+        ("log-on-success", lambda p: mutate_wrapper(
+            p, "\tif (ret) {", "\tif (true) {")),
+        ("drop-null-guard", lambda p: mutate_wrapper(
+            p, "\t\tif (plan)\n", "\t\tif (true)\n")),
+        ("duplicate-target-bitmap", lambda p: mutate_wrapper(
             p, "plan->target[1].local_caps", "plan->target[0].local_caps")),
-        ("duplicate-conduit", lambda p: mutate(
+        ("duplicate-conduit", lambda p: mutate_wrapper(
             p, "plan->evidence.target_policy[1].smccc_conduit",
             "plan->evidence.target_policy[0].smccc_conduit")),
-        ("bypass-wrapper", lambda p: mutate(
+        ("bypass-wrapper", lambda p: mutate_file(
             p, ".validate_plan = mt6797_a72_validate_cap_plan,",
             ".validate_plan = mt6797_a72_validate_cap_plan_contract,")),
-        ("add-cpu-up", lambda p: mutate(
+        ("add-cpu-up", lambda p: mutate_wrapper(
             p, "\tint ret;\n", "\tint ret;\n\n\tcpu_up(8);\n")),
     ]
 
