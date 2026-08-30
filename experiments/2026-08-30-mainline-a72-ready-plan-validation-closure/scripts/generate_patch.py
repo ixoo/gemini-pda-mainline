@@ -94,11 +94,12 @@ def validate_patch(path: Path) -> None:
             raise SystemExit(f"forbidden generated token: {token}")
     for token in (
         "ARM64_LATE_CPU_BLOCK_CONFIGURATION",
-        "ARM64_LATE_CPU_BLOCK_TOPOLOGY",
         "evidence->blocker_mask & ~allowed_blockers",
     ):
         if token not in added:
             raise SystemExit(f"required generated token absent: {token}")
+    if "ARM64_LATE_CPU_BLOCK_TOPOLOGY" not in path.read_text(encoding="utf-8"):
+        raise SystemExit("required generated context absent: topology blocker")
 
 
 def checkpatch(path: Path, source_root: Path, cwd: Path) -> None:
