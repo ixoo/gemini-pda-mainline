@@ -179,20 +179,17 @@ arm64_verify_late_cpu_mitigations(const struct arm64_late_cpu_effect_plan *effec
 	if (!effects || !system_capabilities_finalized())
 		return -EINVAL;
 	if (effects->spectre_v2.required) {
-		ret = late_cpu_mitigation_state(
-			effects->spectre_v2.mitigation_state, &v2);
+		ret = late_cpu_mitigation_state(effects->spectre_v2.mitigation_state, &v2);
 		if (ret || READ_ONCE(spectre_v2_state) != v2)
 			return -EINVAL;
 	}
 	if (effects->spectre_v4.required) {
-		ret = late_cpu_mitigation_state(
-			effects->spectre_v4.mitigation_state, &v4);
+		ret = late_cpu_mitigation_state(effects->spectre_v4.mitigation_state, &v4);
 		if (ret || READ_ONCE(spectre_v4_state) != v4)
 			return -EINVAL;
 	}
 	if (effects->bhb.required) {
-		ret = late_cpu_mitigation_state(
-			effects->bhb.mitigation_state, &bhb);
+		ret = late_cpu_mitigation_state(effects->bhb.mitigation_state, &bhb);
 		if (ret || READ_ONCE(spectre_bhb_state) != bhb ||
 		    READ_ONCE(system_bhb_mitigations) !=
 			    effects->bhb.system_method ||
