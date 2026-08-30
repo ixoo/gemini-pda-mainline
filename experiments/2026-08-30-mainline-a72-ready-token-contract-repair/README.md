@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-ready-token-contract-repair` |
-| Status | `production candidate admitted offline; guarded boot2 deployment pending` |
+| Status | `verified boot2 deployment complete; fresh runtime attempt pending` |
 | Subsystem | arm64 late-CPU READY token and MT6797 CPU8 admission |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -120,6 +120,16 @@ contains exactly one dormant CPU8 request route and no CPU9, CPU_OFF, or retry
 route. No request has executed and no device action has occurred. See
 [`results/offline-candidate-20260830.txt`](results/offline-candidate-20260830.txt).
 
+Guarded deployment from known-good Gemian boot `5a11f2c2...` resolved live-GPT
+logical `boot2` as inactive, unmounted `/dev/mmcblk0p30`, with root on p29 and
+exact expected predecessor `7c962888...`. External power was present, battery
+was 100% and healthy, and retained transition and admission records were
+logically empty. No fresh backup was made. The workflow wrote only `boot2`,
+synced and flushed it, and matched complete 16 MiB readback `a7ce2c2d...`.
+It then shut Gemini down without rebooting; SSH failure plus three consecutive
+closed TCP/22 checks confirm power-off. See
+[`results/deployment-20260830.txt`](results/deployment-20260830.txt).
+
 ## Analysis
 
 The observed fields represent target-local facts and cannot exist before the
@@ -134,9 +144,8 @@ expectation and observation and does not weaken target identity.
 
 ## Follow-up
 
-Commit and push the candidate construction record, then use the guarded live
-GPT workflow to replace exact predecessor `7c962888...` on inactive `boot2`
-with candidate `a7ce2c2d...`, require a matching full-partition readback, and
-shut down. On its fresh boot, capture the immutable serviceability frame and
-issue at most one CPU8 trigger. Do not repeat candidate `7c962888...`. CPU9
-remains vetoed until CPU8 is reproducibly online.
+On one fresh owner-selected boot2 start, capture the immutable serviceability
+frame and issue at most one CPU8 trigger. Classify CPU8 online, a
+request-bearing terminal result, or an exact pre-request retained stage. Do
+not repeat candidate `7c962888...` or trigger candidate `a7ce2c2d...` more than
+once. CPU9 remains vetoed until CPU8 is reproducibly online.
