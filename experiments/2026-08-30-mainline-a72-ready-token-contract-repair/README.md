@@ -138,6 +138,17 @@ intended frame while rejecting 16 state mutations and seven required identity
 omissions, including nonzero retained failure or derive stages. See
 [`results/pretrigger-tooling-20260830.txt`](results/pretrigger-tooling-20260830.txt).
 
+The separate trigger executor accepts only that completed, checksum-valid
+private capture. It revalidates the frame, extracts its boot ID, derives a
+device-side trigger bound to that exact ID, durably commits the intent, and
+opens exactly one netcat session. A changed boot exits before any sysfs access;
+the host has one trigger call site, no retry loop, and no address-configuration
+path. The classifier distinguishes CPU8 online, pre-request error,
+request-bearing error, and boot-bound post-commit transport loss while
+retaining both new failure-stage fields. Offline tests cover all four branches,
+nine rejected transcript mutations, and a zero-side-effect wrong-boot run. See
+[`results/trigger-tooling-20260830.txt`](results/trigger-tooling-20260830.txt).
+
 ## Analysis
 
 The observed fields represent target-local facts and cannot exist before the
@@ -152,8 +163,10 @@ expectation and observation and does not weaken target identity.
 
 ## Follow-up
 
-On one fresh owner-selected boot2 start, capture the immutable serviceability
-frame and issue at most one CPU8 trigger. Classify CPU8 online, a
-request-bearing terminal result, or an exact pre-request retained stage. Do
+Complete the armed read-only capture already waiting on the fresh
+owner-selected boot2 start. Only after its immutable serviceability frame is
+accepted and fsynced, issue the boot-bound CPU8 trigger through the exact-once
+executor. Classify CPU8 online, a request-bearing terminal result, an exact
+pre-request retained stage, or an attributable post-commit transport loss. Do
 not repeat candidate `7c962888...` or trigger candidate `a7ce2c2d...` more than
 once. CPU9 remains vetoed until CPU8 is reproducibly online.
