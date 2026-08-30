@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-p27-runtime-attribution` |
-| Status | `canonical patch generated; Buildbox build validation pending` |
+| Status | `focused Buildbox/QEMU validation passed; production build pending` |
 | Subsystem | MT6797 CPU8 P27 platform effect and rollback |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -76,3 +76,10 @@ The experiment author is synthetic, this archive is not submission-ready, and
 repository policy forbids inventing a DCO certification. Exact generation
 evidence is recorded in
 [`results/buildbox-patch-generation-20260830.txt`](results/buildbox-patch-generation-20260830.txt).
+
+The exact patch commit also compiled in both the live-trigger and dedicated
+binder KUnit profiles on Buildbox. The dedicated hardware-free QEMU run passed
+all 48 selected cases: 30 membership-owner, 12 transition-executor, and 6
+binder cases, including `mt6797_binder_p27_diagnostic_test`. Exact identities
+and the zero-action boundary are recorded in
+[`results/buildbox-kunit-20260830.txt`](results/buildbox-kunit-20260830.txt).
