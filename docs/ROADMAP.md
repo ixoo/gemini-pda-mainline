@@ -6406,11 +6406,21 @@ The next ordered work is:
    candidate nor tests CPU8. Changed-ID Gemian recovery matched exact installed
    boot2 `f694ddb9...`, empty pstore, empty admission traces, and a logically
    empty transition ledger. The exact classifier returned
-   `pre-controller-or-retention-failure`, adding no CPU8 result. **Selected
-   next:** arm both the contact-free transition observer and cycle-aware
-   pre-trigger collector before shutting Gemian down and repeating the
-   unchanged candidate once. Define a separate boot-bound one-shot only after
-   the full live qualification passes; retain the CPU9 veto.
+   `pre-controller-or-retention-failure`, adding no CPU8 result. The pre-armed
+   retry then captured preloader, a long but finite `0x0e8d:0x20ff` interval,
+   and exact mainline USB. Its immutable frame matched the candidate and
+   verified runtime identity, serviceability, and zero execution, but rejected
+   proof mask `0x24000` before a trigger. Source order identifies plan
+   validation as the initiating failure and plan identity as deliberately
+   withheld downstream. The
+   [READY plan-validation closure](../experiments/2026-08-30-mainline-a72-ready-plan-validation-closure/README.md)
+   finds the exact contradiction: patch `0434` removed the final
+   attestation-user blocker from production preparation, while the production
+   validator still requires it. CPU8 was not requested. **Selected next:**
+   admit the one-change stale-predicate repair, build it only on Buildbox,
+   recompose the proven provenance/serviceability candidate, and require exact
+   no-blocker READY qualification before one CPU8-only trigger. Retain the
+   CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 

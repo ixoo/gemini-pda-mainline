@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-provenance-serviceability-composition` |
-| Status | `deployed; first reported start closed as persistent 0x0e8d:0x20ff with empty retained evidence and zero trigger; pre-armed retry pending` |
+| Status | `completed; pre-armed retry reached exact mainline and verified runtime identity; stale plan validator blocked READY; zero trigger` |
 | Subsystem | arm64 late-CPU runtime identity and Gemini serviceability DT |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -176,6 +176,17 @@ zero-trigger pin while changing only the required private capture basename.
 Its full nested derivation and shell checks pass. See
 [`results/offline-pretrigger-attempt-2-wrapper-20260830.txt`](results/offline-pretrigger-attempt-2-wrapper-20260830.txt).
 
+Attempt 2 armed both observers before physical selection. It captured
+preloader, a long but finite `0x0e8d:0x20ff` interval, and exact mainline USB.
+After restoring only the established host address on the exact fixed-MAC
+interface, the immutable frame matched candidate, release, boot ID,
+provenance, serviceability, and the armed zero-execution controller. Runtime
+identity verified once, but the architecture profile reported proof mask
+`0x24000`, so the pre-trigger validator rejected the frame and sent no trigger.
+The device then returned to changed-ID Gemian through the validated USB shell.
+Exact chronology and the source-localized cause are owned by the
+[READY plan-validation closure](../2026-08-30-mainline-a72-ready-plan-validation-closure/README.md).
+
 ## Analysis
 
 The smallest attributable change is to compose the two already-owned DT
@@ -202,19 +213,25 @@ installed, but the empty retained records cannot by themselves distinguish no
 controller execution from retention failure. They therefore strengthen the
 zero-result classification without turning it into a kernel or CPU8 failure.
 
+The pre-armed retry resolves that uncertainty. The composed DT and runtime
+identity both work. `0x24000` identifies plan validation plus the deliberately
+withheld downstream plan identity. Exact source inspection shows the production
+validator still requires a historical attestation-user blocker that patch
+`0434` intentionally removed from production preparation. This is a
+deterministic source defect before READY, not a loader, DT, or CPU8 failure.
+
 ## Conclusion
 
-`persistent-20ff-pre-controller-zero-trigger`: exact padded candidate
-`f694ddb9...` remains installed with matching changed-boot readback. The first
-reported start produced no attributable mainline identity, no retained
-controller evidence, and no trigger; the candidate runtime hypothesis remains
-untested.
+`runtime-identity-confirmed-stale-plan-validator`: exact padded candidate
+`f694ddb9...` reached mainline and verified its package-owned provenance, but
+READY remained unpublished due to the stale production validation predicate.
+Zero trigger, CPU8, CPU9, CPU_OFF, or retry request occurred. The candidate is
+retired and must not be repeated.
 
 ## Follow-up
 
-Arm the experiment-specific USB transition observer and cycle-aware pre-trigger
-collector before shutting down changed-ID Gemian and requesting one physical
-selection of the unchanged candidate. Require positive runtime identity, no
-profile blocker, serviceability, and zero execution before defining a new
-boot-bound one-shot. Do not trigger from an armed frame alone, and do not infer
-a result from the screen or endpoint absence.
+Generate and admit the one-change
+[READY plan-validation repair](../2026-08-30-mainline-a72-ready-plan-validation-closure/README.md)
+from exact post-`0436` source. Build it only on Buildbox, reuse the proven
+composed DT and serviceability ramdisk, and require a no-blocker READY frame
+before one CPU8-only trigger. Keep CPU9 vetoed.
