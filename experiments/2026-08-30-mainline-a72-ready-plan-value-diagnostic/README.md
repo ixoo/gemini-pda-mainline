@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-ready-plan-value-diagnostic` |
-| Status | `running` |
+| Status | `complete` |
 | Subsystem | arm64 late-CPU plan value diagnostics |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -86,13 +86,33 @@ shut the device down. It created no fresh partition backup and did not reboot.
 See
 [`results/deployment-boot2-1c08f1fc-20260830.txt`](results/deployment-boot2-1c08f1fc-20260830.txt).
 
+One exact read-only boot produced exactly one predicate line and one value
+line at boot ID `ec5f3d02...`. CPU0--7 remained online, CPU8--9 remained
+offline, and the controller stayed armed with zero triggers, CPU requests,
+CPU_OFF requests, retries, or storage writes. The five bitmaps decode against
+the exact 125-entry post-`0439` arm64 capability table as follows: the early
+set is AMU, HW DBM, and `WORKAROUND_845719`; each A72 target is AMU, HW DBM,
+Spectre v2/v4/BHB, `WORKAROUND_1742098`, and
+`WORKAROUND_SPECULATIVE_AT`; the required set is those five target-only
+mitigation capabilities. Both target policy conduits are enum `1`, which the
+same source defines as `ARM64_LATE_CPU_SMCCC_NONE`. See
+[`results/runtime-attempt-1-value-frame-20260830.txt`](results/runtime-attempt-1-value-frame-20260830.txt).
+
+These outputs are internally consistent with the production producers and
+both targets agree byte-for-byte. The defect is therefore in the profile's
+hard-coded validator: its early set omits `WORKAROUND_845719`, its target and
+required sets falsely include `MISMATCHED_CACHE_TYPE`, and its production
+policy predicate expects SMC despite the live producer reporting NONE. The
+expected-pair effects path already models vulnerable/no-firmware v2/v4/BHB
+effects and accepts a valid NONE policy, so no producer or effect relaxation is
+needed.
+
 ## Conclusion
 
-`exact-value-observer-deployed-pending-one-read-only-frame`.
+`complete-stale-profile-expectations-localized`.
 
 ## Follow-up
 
-Use the one value frame to distinguish a stale profile expectation from a
-producer defect. Repair only the observed contract, then require a silent
+Repair only the three localized production expectations, then require a silent
 diagnostic and exact no-blocker READY frame before any CPU8 trigger. Keep CPU9
 vetoed.

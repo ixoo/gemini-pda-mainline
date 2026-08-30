@@ -6449,9 +6449,27 @@ The next ordered work is:
    runtime-evidence mismatch is the hard-coded SMC conduit. Source tracing
    locates the live producers in `arm64_plan_late_cpu_capabilities()` and
    `arm64_late_cpu_collect_policy()`; this predicate-only frame does not expose
-   their individual bitmap bits or conduit enum. **Selected next:** add one
-   failure-only value observer for those exact outputs, consume one read-only
-   frame, then repair only the observed contract and require a silent
+   their individual bitmap bits or conduit enum. Canonical patch `0439` adds
+   only that failure-only value observer. Default and exact live builds pass on
+   Buildbox at commit `e33dfbce`; two composed DTs and two containers are
+   byte-identical, all 32 LK gates pass, and ten DT plus six container
+   mutations are rejected. Exact padded boot2 candidate `1c08f1fc...` was
+   installed over predecessor `7ac6f429...`, fully read back, and the device
+   was shut down. Its sole read-only frame at boot ID `ec5f3d02...` preserves
+   the prior predicate mask and reports exact producer values. Against the
+   exact 125-entry capability table, the early set is AMU, HW DBM, and
+   `WORKAROUND_845719`; each identical A72 target contains AMU, HW DBM,
+   Spectre v2/v4/BHB, `WORKAROUND_1742098`, and
+   `WORKAROUND_SPECULATIVE_AT`; the required set is the five target-only
+   mitigation capabilities. Both policy conduits are enum `1`, defined by the
+   same source as `ARM64_LATE_CPU_SMCCC_NONE`. The production producers are
+   internally consistent. The hard-coded profile is stale: add
+   `WORKAROUND_845719` to its early expectation, remove
+   `MISMATCHED_CACHE_TYPE` from its present/required expectations, and expect
+   NONE—not SMC—in the production policy predicate. The expected-pair effects
+   path already models a valid NONE conduit. Zero triggers, CPU requests,
+   CPU_OFF, retries, or storage actions occurred. **Selected next:** make only
+   those expectation corrections, then require one silent-diagnostic,
    no-blocker READY frame before any CPU8 trigger. Retain the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
