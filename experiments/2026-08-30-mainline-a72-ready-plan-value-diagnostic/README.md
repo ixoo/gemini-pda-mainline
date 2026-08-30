@@ -69,9 +69,19 @@ The generation performed no native VM build or device action and explicitly
 marks its output `boot_candidate=false`. See
 [`results/buildbox-generation-20260830.txt`](results/buildbox-generation-20260830.txt).
 
+Canonical patch `0439` was admitted at repository commit `e33dfbce...` and
+both the default and exact live profiles passed on Buildbox. The exact profile
+package was fetched and recomposed twice with the unchanged serviceability DT
+and ramdisk. Both DTs and both boot containers are byte-identical. Independent
+validation passes all 32 LK gates, rejects ten DT mutations and six container
+mutations, and confirms zero CPU requests. The exact padded boot2 candidate is
+`1c08f1fc...`; it is an observation-only boot candidate and must not receive
+the CPU8 trigger. See
+[`results/offline-candidate-20260830.txt`](results/offline-candidate-20260830.txt).
+
 ## Conclusion
 
-`exact-value-observer-generated-pending-canonical-build`.
+`exact-value-observer-candidate-validated-pending-deployment`.
 
 ## Follow-up
 
