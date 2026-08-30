@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-29-mainline-a72-attestation-closure` |
-| Status | `completed-closure-definition; dormant slices 1-8 admitted and linked cleanly; expected-pair activation pending` |
+| Status | `completed-closure-definition; slices 1-9 admitted and linked cleanly; exact expected pair active; final verification and READY pending` |
 | Subsystem | arm64 late-CPU evidence, capability commitment, and MT6797 A72 entry |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-29 |
@@ -144,6 +144,12 @@ if its current register state differs from the frozen expectation.
 - [`results/policy-compile-20260829.txt`](results/policy-compile-20260829.txt):
   exact enabled-profile package, linked conservative-policy routing, sections,
   stack frames, input mask, and unchanged-diagnostic comparison.
+- [`results/activation-generation-20260829.txt`](results/activation-generation-20260829.txt):
+  exact expected-pair activation chronology, package identities, 23 rejecting
+  source mutations, byte-identical admission, and canonical-series audit.
+- [`results/activation-compile-20260829.txt`](results/activation-compile-20260829.txt):
+  exact enabled-profile package, linked expected-pair storage, planning and
+  blocker transition, sections, stack frames, and unchanged diagnostics.
 
 ## Procedure
 
@@ -554,9 +560,38 @@ expected pair is inactive and READY, CPU requests, candidate status, hardware
 writes, and device actions remain absent. See the
 [policy compile result](results/policy-compile-20260829.txt).
 
+Logical slice 9 is now canonical patch `0433`. It freezes the exact CPU8/CPU9
+prior-cycle expectation for this named device in init-only data, requires the
+current image to have an exact runtime binding, keeps every current target
+observation empty, and exercises the complete capability, effect, and HWCAP
+planning path. Eight stopped Buildbox generations exposed the wrong field
+inventory, incomplete validity and runtime-binding assertions, three
+same-text mutation-targeting defects, a structural mutation-count defect, and
+strict continuation-style findings. None produced a candidate or device
+action. Final generation at signed commit `2535dc86` passes its exact
+five-file package and checksums, deterministic replay, positive validation,
+all 23 rejecting source mutations, and strict checkpatch with zero findings.
+Canonical `0433` is byte-identical to the generated patch, and all 158
+profiles retain the canonical-series invariant. See the
+[activation generation result](results/activation-generation-20260829.txt).
+
+The exact enabled-profile Buildbox build at signed admission commit `8a318546`
+passes remote artifact validation and independent fetched-package checksums
+with 422 patches. The 232-byte expected pair links in `.init.data`; profile
+validation and preparation link in `.init.text` with 96- and 112-byte frames,
+while the architecture prepare path retains its 80-byte frame. Linked profile
+preparation starts with `0x42000`; the existing exact runtime-binding owner
+clears `0x40000`, leaving only `0x2000` (`attestation-users`) on the clean
+path. Capability, effect, and HWCAP planning all run before validation. The
+complete diagnostic inventory is identical to the exact `0432` baseline, with
+no section mismatch, compiler error, new frame warning, or new compiler
+warning. Current target evidence remains empty. READY, every CPU request,
+candidate status, hardware writes, and device actions remain absent. See the
+[activation compile result](results/activation-compile-20260829.txt).
+
 ## Conclusion
 
-`confirmed-reference-only-mapping-dormant-planner-linked`:
+`confirmed-bound-expected-pair-planner-linked-finalization-blocked`:
 the exact CPU8 and CPU9 vectors map cleanly as prior-cycle target expectations,
 but not as a complete ABI-7 runtime-evidence record. The dormant schema,
 fail-closed entry validator, their section/stack integration repairs, and the
@@ -564,10 +599,11 @@ current-mainline system/policy owner, pure planner, canonical identities, and
 dormant architecture commit/receipt are now reproducibly generated, admitted,
 and linked. Pre-request expected-target planning separation and conservative
 entry preflight are also reproducibly generated, admitted, and linked.
-Conservative GIC/hyp and mitigation policy is now generated, admitted, and
-linked; expected-contract activation, alternatives/HWCAP finalization, READY,
-and physical admission remain open. No CPU request is justified by the
-recovered capsule alone.
+Conservative GIC/hyp and mitigation policy and the exact named-device expected
+contract are now generated, admitted, and linked. Current target observations
+remain empty, and alternatives/HWCAP verification, READY, and physical
+admission remain open. No CPU request is justified until the final
+architecture-owned verification and READY slice is independently complete.
 
 ## Follow-up
 

@@ -6303,12 +6303,37 @@ The next ordered work is:
    Expected-pair activation, READY, CPU requests, candidate status, and device
    action remain absent. See the
    [policy compile result](../experiments/2026-08-29-mainline-a72-attestation-closure/results/policy-compile-20260829.txt).
-   **Selected next:** implement one source-only logical slice that activates
-   the exact named-device prior-cycle expected pair, freezes it before
-   planning, and reassesses the exact remaining blocker mask. Preserve its
-   provenance in canonical identities, keep current-runtime target evidence
-   empty, and do not publish READY, request CPU8 or CPU9, create a boot
-   candidate, or contact the device in that slice.
+   Logical slice 9 is now canonical patch `0433`. It freezes the exact
+   named-device CPU8/CPU9 prior-cycle expectation before planning, requires the
+   current image to be runtime-bound, preserves the capsule-stream identity in
+   the canonical evidence, and keeps current target observations empty. Eight
+   stopped generations exposed field-inventory, validity-mask,
+   runtime-binding, negative-mutation targeting, mutation-accounting, and
+   strict-style defects; none produced a candidate or device action. Final
+   generation at signed commit `2535dc86` passes the exact five-file package,
+   deterministic replay, strict checkpatch with zero findings, all 23
+   rejecting source mutations, byte-identical admission, and the 158-profile
+   canonical-series invariant. See the
+   [activation generation result](../experiments/2026-08-29-mainline-a72-attestation-closure/results/activation-generation-20260829.txt).
+   The exact enabled `a72-p30e-wire` Buildbox build now passes at signed
+   admission commit `8a318546` with 422 patches and independently verified
+   remote and fetched-package checksums. The expected pair links in init-only
+   data, complete capability/effect/HWCAP planning is linked before validation,
+   and the existing runtime-binding owner reduces the initial `0x42000`
+   blocker mask to exactly `0x2000` (`attestation-users`) on the clean path.
+   The complete diagnostic set is identical to the `0432` baseline. Current
+   target evidence, READY, CPU requests, candidate status, hardware writes,
+   and device actions remain absent. See the
+   [activation compile result](../experiments/2026-08-29-mainline-a72-attestation-closure/results/activation-compile-20260829.txt).
+   **Selected next:** implement one architecture-owned, source-only
+   verification/finalization slice that proves the committed receipt, strict
+   system capability state, applied alternatives, and native/compat user HWCAP
+   state equal the frozen plan before publishing READY. Generate and
+   mutation-test it from the exact post-`0433` source, then compile and inspect
+   the enabled profile on Buildbox. Do not add a CPU8 or CPU9 request, retry,
+   CPU_OFF path, boot candidate, hardware write, or device action in this
+   slice. Only its linked success may permit constructing the separate
+   one-request CPU8 candidate described below.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
