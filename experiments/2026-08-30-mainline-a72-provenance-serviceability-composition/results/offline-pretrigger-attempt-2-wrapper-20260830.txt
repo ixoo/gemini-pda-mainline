@@ -1,0 +1,17 @@
+record=offline-pretrigger-attempt-2-wrapper
+date=2026-08-30
+candidate_padded_sha256=f694ddb95649db38ad72d08dcb2f81688608dca44782f08cfe4412e06b26204a
+source_collector_sha256=c1e0ecb7e0f10b3c9fd1824b0111b9c641097b61c695ff53121246f87b901c2e
+attempt_2_wrapper_sha256=c300c961a7007a0cf39746e80a682f5e20507c8faae3ae283fb580cfb4303028
+source_private_output=a72-provenance-serviceability-pretrigger-attempt-1
+derived_private_output=a72-provenance-serviceability-pretrigger-attempt-2
+candidate_identity_changed=no
+remote_probe_changed=no
+validator_changed=no
+boot_cycle_gate_changed=no
+trigger_path=absent
+bash_syntax=pass
+shellcheck=pass
+full_nested_derivation=pass
+hardware_action=none
+result=pass

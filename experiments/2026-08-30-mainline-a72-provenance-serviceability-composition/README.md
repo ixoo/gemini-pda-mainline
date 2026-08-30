@@ -71,6 +71,9 @@ runtime identity and READY; an armed controller alone is insufficient.
 - `scripts/collect-pretrigger.sh`: source-pins the prior disconnect/cycle-aware
   collector and retargets it to the exact candidate and validators above. It
   has no trigger-token path.
+- `scripts/collect-pretrigger-attempt-2.sh`: source-pins that exact collector
+  and advances only the private output identity, preserving attempt 1 rather
+  than overwriting it.
 - `scripts/observe-start-boundary.sh`: source-pins the proven contact-free
   quarter-second USB transition observer under this experiment identity for an
   observer-armed-before-selection retry.
@@ -167,6 +170,11 @@ combination with zero netcat sessions and no mainline identity, this supplies
 no CPU8 result and preserves the candidate for the pre-armed start-boundary
 repeat. See
 [`results/recovery-attempt-1-empty-retention-20260830.txt`](results/recovery-attempt-1-empty-retention-20260830.txt).
+
+The attempt-2 wrapper preserves every candidate, validator, boot-cycle, and
+zero-trigger pin while changing only the required private capture basename.
+Its full nested derivation and shell checks pass. See
+[`results/offline-pretrigger-attempt-2-wrapper-20260830.txt`](results/offline-pretrigger-attempt-2-wrapper-20260830.txt).
 
 ## Analysis
 
