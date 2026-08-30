@@ -41,6 +41,11 @@ configuration, safe tooling, hardware knowledge, and reproducible evidence.
   worktree clean. Buildbox fetches and builds that exact commit in its own
   managed kernel checkout. Never copy or synchronize a source tree to or from
   buildbox with `scp`, `rsync`, shared mounts, archives, or similar mechanisms.
+- Repository commit signing is not a Buildbox gate. If signing is unavailable,
+  create the required commit with `--no-gpg-sign`, push it, and continue; do not
+  pause for a signing prompt or signing-agent recovery. This does not add or
+  waive an upstream DCO `Signed-off-by`, which remains governed separately by
+  the authorship rule below.
 - After a successful buildbox build, fetch only its validated package with
   `./scripts/buildbox fetch-package`. Local exports belong below the ignored
   `artifacts/buildbox/<commit>/` tree. See `docs/BUILDBOX.md` for setup,

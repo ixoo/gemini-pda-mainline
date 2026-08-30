@@ -6325,15 +6325,39 @@ The next ordered work is:
    target evidence, READY, CPU requests, candidate status, hardware writes,
    and device actions remain absent. See the
    [activation compile result](../experiments/2026-08-29-mainline-a72-attestation-closure/results/activation-compile-20260829.txt).
-   **Selected next:** implement one architecture-owned, source-only
-   verification/finalization slice that proves the committed receipt, strict
-   system capability state, applied alternatives, and native/compat user HWCAP
-   state equal the frozen plan before publishing READY. Generate and
-   mutation-test it from the exact post-`0433` source, then compile and inspect
-   the enabled profile on Buildbox. Do not add a CPU8 or CPU9 request, retry,
-   CPU_OFF path, boot candidate, hardware write, or device action in this
-   slice. Only its linked success may permit constructing the separate
-   one-request CPU8 candidate described below.
+   Logical slice 10 is now canonical patch `0434`. It removes the production
+   attestation blocker only after the existing runtime-binding owner has
+   cleared its separate blocker, retains fixture rejection, and wires
+   architecture-owned exact system-capability, alternative, mitigation, and
+   one-way native/compat HWCAP verification before READY. Three stopped
+   generations exposed a validator token collision, an ambiguous mutation
+   anchor, and strict continuation-style findings. Final generation at
+   unsigned commit `f79a352d` passes the exact bounded package, positive
+   validation, all 17 rejecting mutations, deterministic replay, strict
+   checkpatch with zero findings, byte-identical admission, and the 158-profile
+   series invariant. See the
+   [finalization generation result](../experiments/2026-08-29-mainline-a72-attestation-closure/results/finalization-generation-20260830.txt).
+   The exact enabled `a72-p30e-wire` Buildbox build passes at unsigned admission
+   commit `373a14b1` with 423 patches and independently verified package
+   checksums. Its linked order is commit, system alternatives, exact system
+   verification, userspace feature setup, one-way HWCAP finalization, then
+   release publication of READY. Every new symbol is init-only, the largest
+   new frame is 96 bytes, and the complete diagnostic set is identical to the
+   `0433` baseline. Current target observations remain empty, and no CPU
+   request, CPU9 path, CPU_OFF path, candidate, hardware write, or device action
+   occurred. The separate default-`full` control exposes an older
+   configuration-off declaration gap and is not a `0434` enabled-path
+   regression. See the
+   [finalization compile result](../experiments/2026-08-29-mainline-a72-attestation-closure/results/finalization-compile-20260830.txt).
+   **Selected next:** design and generate the separate one-request CPU8
+   admission slice from exact post-`0434` source. It must consume the READY
+   token once, request only CPU8, preserve the existing target-entry preflight
+   and full expected-target comparison, expose decision-bearing retained
+   checkpoints, keep CPU9 vetoed, and add no retry or CPU_OFF path. Repair the
+   configuration-off declaration boundary in that source cycle or an earlier
+   standalone compile-fix patch, then compile both the default configuration-
+   off control and the exact enabled candidate on Buildbox before considering
+   a boot2 artifact.
 4. Build that one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 

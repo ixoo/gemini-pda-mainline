@@ -30,6 +30,12 @@ project repository. The VM can build intentional uncommitted local inputs
 through its read-only checkout mount. See [Buildbox kernel builds](BUILDBOX.md)
 for the commit, storage, artifact-fetch, and provenance contract.
 
+Repository commit signing is not a Buildbox prerequisite. When the signing
+agent or owner is unavailable, create the repository commit with
+`git commit --no-gpg-sign`, push it, and continue the workflow instead of
+waiting for signing. This unsigned repository commit does not create or waive
+the separate DCO sign-off required for an upstream submission.
+
 Both backends perform the same pinned workflow:
 
 1. read `kernel/manifest.json`;

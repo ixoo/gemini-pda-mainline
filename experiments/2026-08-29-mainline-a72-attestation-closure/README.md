@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-29-mainline-a72-attestation-closure` |
-| Status | `completed-closure-definition; slices 1-9 admitted and linked cleanly; exact expected pair active; final verification and READY pending` |
+| Status | `completed-closure-definition; slices 1-10 admitted and linked cleanly; exact expected pair and READY closure complete; CPU admission pending` |
 | Subsystem | arm64 late-CPU evidence, capability commitment, and MT6797 A72 entry |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-29 |
@@ -161,6 +161,13 @@ if its current register state differs from the frozen expectation.
 - [`results/activation-compile-20260829.txt`](results/activation-compile-20260829.txt):
   exact enabled-profile package, linked expected-pair storage, planning and
   blocker transition, sections, stack frames, and unchanged diagnostics.
+- [`results/finalization-generation-20260830.txt`](results/finalization-generation-20260830.txt):
+  exact READY-finalization generation chronology, package identities, 17
+  rejecting source mutations, byte-identical admission, and series audit.
+- [`results/finalization-compile-20260830.txt`](results/finalization-compile-20260830.txt):
+  exact enabled-profile package, linked system/alternatives/mitigation/HWCAP
+  verification, READY publication order, sections, stack frames, and unchanged
+  diagnostics.
 
 ## Procedure
 
@@ -600,9 +607,42 @@ warning. Current target evidence remains empty. READY, every CPU request,
 candidate status, hardware writes, and device actions remain absent. See the
 [activation compile result](results/activation-compile-20260829.txt).
 
+Logical slice 10 is now canonical patch `0434`. It removes only the final
+production attestation blocker, retains the runtime-binding blocker until its
+existing owner clears it, and wires architecture-owned verification callbacks.
+The system callback requires exact live-versus-planned late-required
+capabilities, exact per-capability alternative application, and exact
+Spectre-v2, Spectre-v4, and BHB state. The user callback permits only one-way
+native and compat HWCAP reduction to the frozen plan and verifies the exact
+post-write state. Fixture evidence remains unable to publish READY. Three
+stopped Buildbox generations exposed a reader-token false positive, an
+ambiguous mutation anchor, and strict call-continuation style findings; none
+retained a package or touched the device. Final generation at unsigned commit
+`f79a352d` passes the exact five-file package and checksums, positive source
+validation, all 17 rejecting mutations, deterministic replay, and strict
+checkpatch with zero findings. Canonical `0434` is byte-identical to the
+generated patch, and all 158 profiles retain the canonical-series invariant.
+See the [finalization generation result](results/finalization-generation-20260830.txt).
+
+The exact enabled `a72-p30e-wire` Buildbox build now passes at unsigned
+admission commit `373a14b1` with 423 patches and independently verified remote
+and fetched-package checksums. The linked init path commits and applies system
+alternatives before system verification, then sets up userspace features before
+HWCAP finalization and READY publication. Every new function links in
+`.init.text`; the largest new frame is 96 bytes. The READY state is published
+with a release store only after the user callback and final receipt/effects
+recheck. The complete diagnostic set is identical to the `0433` baseline, with
+no section mismatch, compiler error, new frame warning, or new compiler
+warning. A separate default-`full` control stopped on the configuration-off
+declaration gap introduced before `0434`; it is recorded independently and is
+not an enabled-path regression. Current target evidence remains empty, and no
+CPU request, CPU9 path, CPU_OFF path, boot candidate, hardware write, or device
+action occurred. See the
+[finalization compile result](results/finalization-compile-20260830.txt).
+
 ## Conclusion
 
-`confirmed-bound-expected-pair-planner-linked-finalization-blocked`:
+`confirmed-bound-expected-pair-planner-linked-ready-closure`:
 the exact CPU8 and CPU9 vectors map cleanly as prior-cycle target expectations,
 but not as a complete ABI-7 runtime-evidence record. The dormant schema,
 fail-closed entry validator, their section/stack integration repairs, and the
@@ -611,14 +651,16 @@ dormant architecture commit/receipt are now reproducibly generated, admitted,
 and linked. Pre-request expected-target planning separation and conservative
 entry preflight are also reproducibly generated, admitted, and linked.
 Conservative GIC/hyp and mitigation policy and the exact named-device expected
-contract are now generated, admitted, and linked. Current target observations
-remain empty, and alternatives/HWCAP verification, READY, and physical
-admission remain open. No CPU request is justified until the final
-architecture-owned verification and READY slice is independently complete.
+contract are now generated, admitted, and linked. Architecture-owned strict
+capability, alternatives, mitigation, and HWCAP verification now publishes the
+READY token in the exact enabled path. Current target observations remain empty
+by design until a requested target executes, and physical admission remains
+open. This result permits design and construction of the separate one-request
+CPU8 candidate; it is not itself a boot candidate or hardware-support result.
 
 ## Follow-up
 
 Follow only the selected action in
 [`docs/ROADMAP.md`](../../docs/ROADMAP.md). Keep current-boot observation fields
-distinct; these dormant patches do not by themselves authorize a physical
-candidate or CPU request.
+distinct. Construct the one-request CPU8 admission candidate as a separate,
+attributable slice with CPU9 vetoed and no retry or CPU_OFF path.
