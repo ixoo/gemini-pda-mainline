@@ -108,23 +108,37 @@ shut the device down. It created no fresh partition backup and did not reboot.
 See
 [`results/deployment-boot2-9abdd1c6-20260830.txt`](results/deployment-boot2-9abdd1c6-20260830.txt).
 
+One exact read-only boot produced boot ID `0fc062b6...`, verified the installed
+`9abdd1c6...` partition and runtime identity, and preserved CPU0--7 online with
+CPU8--9 offline. The controller remained armed with zero triggers, CPU
+requests, CPU_OFF requests, retries, or storage writes. The original three
+mismatch classes disappeared, but the validator remained blocked with exact
+plan mask `0x40800` and evidence mask `0x0`. This is only the global and
+per-target classified-capability weight predicates. See
+[`results/runtime-attempt-1-classification-frame-20260830.txt`](results/runtime-attempt-1-classification-frame-20260830.txt).
+
 ## Analysis
 
 The review contains only the three corrections selected by the exact live
 value frame. It does not change the production producers or expected-effects
 model, and the fixture continues to require and publish SMC. Canonical-series,
 compile, DT, container, reproduction, negative-mutation, deployment, and full
-readback validation all pass. One silent READY capture remains pending.
+readback validation all pass. Runtime disproves the sufficient-repair
+hypothesis while showing that every repaired value predicate is now correct.
+The only remaining predicates count classified capabilities. The exact value
+frame showed `ARM64_MISMATCHED_CACHE_TYPE` absent from each target's local
+bitmap, but the production classifier still classifies that compiled
+capability. Removing it from the present list without adding it to the absent
+list therefore made each expected classified universe one entry too small.
 
 ## Conclusion
 
-`deployed-runtime-pending`.
+`complete-three-repairs-correct-classified-universe-incomplete`.
 
 ## Follow-up
 
-Install exact inactive logical `boot2`, shut down, and collect one attributable
-read-only boot. Accept only exact kernel and partition identity, one verified
-runtime identity, zero profile blockers, zero diagnostic/value lines, CPUs
-0--7 online with 8--9 offline, an armed controller, and zero CPU actions. Only
-that clean READY result may select a separate CPU8-only trigger candidate.
+Add `ARM64_MISMATCHED_CACHE_TYPE` to the profile's absent-capability list,
+without changing the producer, present bitmap, required bitmap, effects, or
+any CPU action. Then repeat the same silent, read-only READY acceptance boot.
+Only that clean READY result may select a separate CPU8-only trigger candidate.
 CPU9 remains out of scope until CPU8 admission is repeatable.
