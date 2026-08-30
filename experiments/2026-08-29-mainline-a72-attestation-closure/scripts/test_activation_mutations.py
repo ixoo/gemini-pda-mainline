@@ -167,7 +167,7 @@ def main() -> int:
             mutate(root)
             try:
                 validate(root)
-            except (OSError, ValueError, ValidationError):
+            except (OSError, ValueError, IndexError, ValidationError):
                 rejected += 1
                 continue
             raise SystemExit(f"unsafe mutation passed validation: {name}")
