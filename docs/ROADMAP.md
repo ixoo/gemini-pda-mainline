@@ -6366,11 +6366,23 @@ The next ordered work is:
    armed with zero executions or requests. The older-schema validator refusal
    was corrected without a second boot or trigger. See the
    [qualified pre-trigger result](../experiments/2026-08-30-mainline-a72-ready-admission/results/pretrigger-attempt-1-qualified-20260830.txt).
-   **Selected next:** publish and run the separate exact-boot
+   The separate exact-boot
    [READY one-shot contract](../experiments/2026-08-30-mainline-a72-ready-admission-one-shot/README.md)
-   once. Revalidate and fsync the same armed state, consume the root-only CPU8
-   token in one session without retry, and classify live and retained terminal
-   evidence before changing the CPU9 veto.
+   was consumed once. It returned `operation_ret=-11`, `core_consumed=0`,
+   advisory entry-trace `-EIO`, and zero CPU8, CPU9, CPU_OFF, or retry requests.
+   Same-boot dmesg identifies an unavailable static runtime identity and exact
+   proof mask `0x75008`: capability inventory, HWCAP, source identity, effect
+   plan, plan validation, and runtime binding. The candidate assembler kept
+   serviceability DT `1478f2c8...` unchanged and thereby omitted the
+   package-owned `/chosen/gemini-late-cpu-provenance` leaf. This is a
+   container-construction failure before CPU power-on, not a CPU8 failure.
+   Candidate `8acf9227...` and its boot are retired and must not be retried.
+   **Selected next:** reuse exact validated Buildbox package `5abde763...`,
+   compose its generated A41 provenance record with the proven serviceability
+   DT transform, and independently validate the exact DT/container delta.
+   Pre-trigger qualification must directly require verified runtime binding
+   and READY, not infer it from an armed consumer. Only then deploy and consume
+   one new CPU8-only token; retain the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 

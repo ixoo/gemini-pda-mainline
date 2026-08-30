@@ -161,27 +161,34 @@ CPU9 remains vetoed.
   [`results/pretrigger-tooling-20260830.txt`](results/pretrigger-tooling-20260830.txt).
 - Exact live qualification and validator-correction evidence is in
   [`results/pretrigger-attempt-1-qualified-20260830.txt`](results/pretrigger-attempt-1-qualified-20260830.txt).
+- The boot-bound follow-up consumed its exact token once and stopped with
+  `operation_ret=-11`, `core_consumed=0`, advisory entry-trace `-EIO`, and
+  zero CPU requests. Same-boot dmesg reports an unavailable static runtime
+  identity and proof mask `0x75008`. The candidate retained serviceability DT
+  `1478f2c8...` without the package-owned provenance leaf, so READY was never
+  published. See the
+  [sanitized one-shot result](../2026-08-30-mainline-a72-ready-admission-one-shot/results/runtime-attempt-1-ready-unpublished-20260830.txt).
 
 ## Analysis
 
-Both deterministic pre-runtime blockers are now closed: the feature-disabled
-configuration compiles, and the production READY identity matches the exact
-candidate configuration inputs. Static and container validation show one
-CPU8-only request route behind the existing exact, root-only, one-shot token.
-Only a named-device pre-trigger qualification and deliberate token consumption
-can determine whether the runtime identity gate opens and CPU8 reaches its
-terminal checkpoint.
+The kernel-side deterministic blockers are closed: the feature-disabled
+configuration compiles and the production profile identity matches the exact
+candidate inputs. Candidate construction was incomplete, however. It replaced
+the package DT containing the generated static identity record with the
+serviceability DT and did not recompose the record. The pre-trigger check also
+mistook an armed consumer for proof that the architecture READY producer had
+succeeded.
 
 ## Conclusion
 
-The repaired source, both Buildbox controls, linked binary, and exact boot2
-container pass their offline gates. Candidate `8acf9227...` is accepted for one
-CPU8-only runtime attempt. This is still inconclusive for hardware behavior;
-no device was accessed and no CPU request occurred during this phase.
+The repaired source and both Buildbox controls remain valid, but candidate
+`8acf9227...` is retired after one decisive pre-core attempt. Its container
+omitted the package-owned runtime provenance record, and no CPU request
+occurred. This is not CPU8 hardware evidence.
 
 ## Follow-up
 
-Publish a one-shot contract pinned to exact mainline boot ID `2ec43fd0...`, the
-accepted immutable frame, trace-aware trigger tooling, and the sole root token.
-Then revalidate the still-armed boot, consume the token once, and record live
-and retained terminal evidence before changing the CPU9 veto.
+Reuse the exact Buildbox package but compose its generated provenance record
+with the proven serviceability transform. Independently validate the DT delta,
+container, and an explicit runtime-binding/READY precondition before one new
+CPU8-only attempt. Keep CPU9 vetoed.

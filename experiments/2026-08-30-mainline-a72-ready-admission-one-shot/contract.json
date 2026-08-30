@@ -62,5 +62,29 @@
     "device_action": false,
     "result": "pass"
   },
-  "current_status": "armed-unconsumed-awaiting-published-action"
+  "runtime_attempt_1": {
+    "started_utc": "2026-08-30T13:23:38Z",
+    "completed_utc": "2026-08-30T13:24:14Z",
+    "pretrigger_result": "serviceable-armed-zero-execution",
+    "trigger_sessions": 1,
+    "trigger_retried": false,
+    "trigger_commit": true,
+    "trigger_write_status": 0,
+    "remount_ro_status": 0,
+    "classification": "terminal-admission-error",
+    "operation_ret": -11,
+    "core_consumed": 0,
+    "entry_trace_ret": -5,
+    "terminal_trace_ret": 0,
+    "cpu8_requests": 0,
+    "cpu9_requests": 0,
+    "cpu_off_requests": 0,
+    "retries": 0,
+    "cpu_online": "0-7",
+    "cpu_offline": "8-9",
+    "proof_mask": "0x75008",
+    "runtime_identity": "unavailable-or-invalid",
+    "result": "ready-unpublished-before-core-consumption"
+  },
+  "current_status": "complete-retired-no-retry"
 }
