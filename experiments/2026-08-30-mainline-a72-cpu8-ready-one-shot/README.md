@@ -45,7 +45,16 @@ absent. There is no trigger retry after the commit marker.
 
 ## Observations
 
-Pending fresh boot qualification.
+The no-action pre-arm collector is published. The action script is byte-for-
+byte identical to the previously reviewed one-shot trigger
+(`79bc42ca...`): it rechecks the exact armed status, opens sysfs for the single
+token write, restores it read-only, and reports the terminal status and CPU
+lists. The terminal classifier is source-pinned to the reviewed three-branch
+classifier. No action was taken; the device remains off pending a fresh boot.
+
+The boot-ID-bound validator, complete collector, immutable contract, and runner
+are intentionally deferred until the fresh pre-arm frame supplies their exact
+boot ID and frame hash.
 
 ## Analysis
 
