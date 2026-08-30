@@ -437,3 +437,4 @@ v7.1.3/0444-arm64-mediatek-use-intersected-A72-power-status.patch
 v7.1.3/0445-arm64-mediatek-update-closed-admission-test-contract.patch
 v7.1.3/0446-arm64-mediatek-require-empty-READY-observations.patch
 v7.1.3/0447-regulator-da9213-claim-CPU8-before-P27-tests.patch
+v7.1.3/0448-arm64-mediatek-seed-CPU8-claim-in-isolated-KUnit.patch

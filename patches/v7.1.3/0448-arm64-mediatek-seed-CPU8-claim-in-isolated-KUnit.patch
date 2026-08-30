@@ -1,0 +1,100 @@
+From f69c96fa178c518f9e5cf55e58dc38fdc5551b21 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 31 Aug 2026 02:24:00 +0000
+Subject: [PATCH] arm64: mediatek: seed CPU8 claim in isolated KUnit
+
+The DA9213 membership fixture needs a claimed CPU8 transaction before it
+can test P27, provider abort, and P29 retirement.  Calling the production
+public admission API makes that hardware-free fixture depend on the full
+default-off Binder and all of its unrelated physical-effect dependencies.
+
+Expose a test-seed-only helper that accepts the exact published CPU8 owner
+state and advances only its public-admission field to CLAIMED.  Keep the
+same identity, controller, membership, provider, and online-CPU predicates
+as the production claim, but do not compile or call the Binder.  The hidden
+test-seed symbol depends on KUnit and has no production selector.
+
+Use that helper in the DA9213 fixture.  No production path changes and the
+helper performs no hardware access or CPU request.
+---
+ arch/arm64/include/asm/mt6797_a72_membership.h    |  1 +
+ arch/arm64/kernel/mt6797_a72_membership.c         | 35 +++++++++++++++++++++++
+ drivers/regulator/da9213-legacy-membership-test.c |  8 +-----
+ 3 files changed, 37 insertions(+), 7 deletions(-)
+
+diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
+--- a/arch/arm64/include/asm/mt6797_a72_membership.h
++++ b/arch/arm64/include/asm/mt6797_a72_membership.h
+@@ -1003,6 +1003,7 @@ void mt6797_a72_membership_snapshot(struct mt6797_a72_owner_snapshot *snapshot)
+ #ifdef CONFIG_ARM64_MT6797_A72_P24_OWNER_TEST_SEED
+ void mt6797_a72_membership_test_reset(void);
+ void mt6797_a72_membership_test_seed_available(void);
++int mt6797_a72_membership_test_claim_cpu8(struct mt6797_a72_transaction *transaction);
+ void mt6797_a72_membership_test_seed_available_cpu9(void);
+ int mt6797_a72_membership_test_publish_cpu8_success(struct mt6797_a72_transaction *transaction,
+ 						    bool cpu8_online, bool cpu9_online);
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -3087,6 +3087,41 @@ void mt6797_a72_membership_test_seed_available(void)
+ 	mutex_unlock(&a72_transition_lock);
+ }
+ 
++int
++mt6797_a72_membership_test_claim_cpu8(struct mt6797_a72_transaction *transaction)
++{
++	unsigned long flags;
++	int ret = -EPERM;
++
++	if (!transaction)
++		return -EINVAL;
++	memset(transaction, 0, sizeof(*transaction));
++
++	raw_spin_lock_irqsave(&a72_state_lock, flags);
++	if (a72_owner.health == MT6797_A72_OWNER_AVAILABLE &&
++	    a72_owner.phase == MT6797_A72_PHASE_ON_ISSUED &&
++	    a72_owner.active.valid && a72_owner.active.p17_p18_published &&
++	    a72_owner.active.p30_token_valid &&
++	    a72_owner.active.public_preflight ==
++		    MT6797_A72_PUBLIC_ADMISSION_NONE &&
++	    a72_owner.active.identity.operation ==
++		    ARM64_LATE_CPU_STARTUP_OP_CPU8_UP &&
++	    a72_owner.active.identity.target_cpu == 8 &&
++	    a72_owner.active.identity.cpuhp_target == CPUHP_ONLINE &&
++	    a72_owner.controller == current &&
++	    a72_owner.controller_cookie == a72_owner.active.identity.cookie &&
++	    !a72_owner.members &&
++	    a72_owner.provider_state == MT6797_A72_PROVIDER_NONE &&
++	    !cpu_online(8) && !cpu_online(9)) {
++		a72_owner.active.public_preflight =
++			MT6797_A72_PUBLIC_ADMISSION_CLAIMED;
++		*transaction = a72_owner.active;
++		ret = 0;
++	}
++	raw_spin_unlock_irqrestore(&a72_state_lock, flags);
++	return ret;
++}
++
+ int mt6797_a72_membership_test_publish_cpu8_success(struct mt6797_a72_transaction *transaction,
+ 						    bool cpu8_online, bool cpu9_online)
+ {
+diff --git a/drivers/regulator/da9213-legacy-membership-test.c b/drivers/regulator/da9213-legacy-membership-test.c
+--- a/drivers/regulator/da9213-legacy-membership-test.c
++++ b/drivers/regulator/da9213-legacy-membership-test.c
+@@ -240,13 +240,7 @@ da9213_membership_seed_p27(struct mt6797_a72_transaction *transaction)
+ 	ret = mt6797_a72_membership_publish_up(transaction);
+ 	if (ret)
+ 		return ret;
+-	ret = mt6797_a72_membership_preflight_up(8, CPUHP_ONLINE);
+-	if (ret)
+-		return ret;
+-	ret = mt6797_a72_membership_validate_up(8, 0, CPUHP_ONLINE);
+-	if (ret)
+-		return ret;
+-	ret = mt6797_a72_membership_claim_cpu8(transaction);
++	ret = mt6797_a72_membership_test_claim_cpu8(transaction);
+ 	if (ret)
+ 		return ret;
+ 	ret = mt6797_a72_membership_begin_p27_preparation(transaction);
+-- 
+2.51.0
