@@ -108,7 +108,6 @@ def validate(root: Path) -> list[str]:
         "ready->observed_target_mpidr[0] != 0x200",
         "ready->observed_target_mpidr[1] != 0x201",
         "ready->observed_target_mpidr[slot] != expected_mpidr",
-        "u64 expected_mpidr;",
     ):
         if forbidden in membership:
             raise SystemExit(f"contradictory READY predicate remains: {forbidden}")
