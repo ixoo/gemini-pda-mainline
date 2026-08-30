@@ -123,6 +123,13 @@ CPU9 remains vetoed.
   positive-frame, and CPU-online mutation gates pass. It has no trigger path.
 - A read-only deployment preflight could not begin because the device was
   powered off or otherwise unreachable. No device or partition action occurred.
+- A later read-only preflight in known-good Gemian boot `0a0d0adb...` resolved
+  inactive, unmounted live-GPT `boot2` as `/dev/mmcblk0p30`, with USB power
+  online and the battery at 100%. The initial installer stopped before writing
+  because its older lineage pin expected `fd611a4c...`; the independently read
+  full-partition checksum was instead exact documented and readback-verified
+  pmsg-witness candidate `0814c06b...`. The installer now admits only that
+  exact current predecessor for this transition.
 - Full generation and admission chronology is in
   [`results/generation-20260830.txt`](results/generation-20260830.txt).
 - Exact compile, linked-audit, and candidate evidence is in
@@ -149,8 +156,8 @@ no device was accessed and no CPU request occurred during this phase.
 
 ## Follow-up
 
-Publish this candidate record, confirm the live inactive boot2 predecessor,
-perform one guarded install with full readback and clean shutdown, and arm the
-USB/netcat collector before physical selection. Qualify the exact boot and
-READY/controller state before consuming the token once. Record live and
-retained terminal evidence before changing the CPU9 veto.
+Publish the corrected exact-predecessor guard, perform one guarded install with
+full readback and clean shutdown, and arm the USB/netcat collector before
+physical selection. Qualify the exact boot and READY/controller state before
+consuming the token once. Record live and retained terminal evidence before
+changing the CPU9 veto.

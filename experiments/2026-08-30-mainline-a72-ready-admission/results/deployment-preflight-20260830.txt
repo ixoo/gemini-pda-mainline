@@ -1,0 +1,33 @@
+READY admission deployment preflight
+UTC date: 2026-08-30
+Result: safe refusal; exact predecessor correction selected
+
+Named device: Gemini PDA x27 project unit
+Known-good recovery kernel: 3.18.41+
+Recovery boot ID: 0a0d0adb-9a28-4783-8b1e-c91613e9554f
+Recovery root: /dev/mmcblk0p29
+Live-GPT boot2: /dev/mmcblk0p30
+boot2 mounted: no
+USB power online: yes
+Battery capacity: 100 percent
+
+Candidate exact 16 MiB boot2 SHA-256:
+8acf9227e6539e5011ab59a27e1320bf970c19cbbf5a5325fe3304f0e04dddb7
+
+Initial installer predecessor pin:
+fd611a4ca87fd1645e2fa75b3927d56e9e7eac89f3d84712e5555a3aab8f4cf0
+
+Observed full boot2 SHA-256:
+0814c06b9bb41aa7ec666ad1abbb4bbf86e113e11878ac3de159d6cec3112f78
+
+The guarded installer stopped before staging or writing because the observed
+predecessor did not match its initial exact pin. An independent read-only
+checksum then matched the documented, readback-verified A72 pmsg-witness
+candidate in two independent local artifact roots and its published successful
+deployment/runtime record. No partition write, fresh backup, retained-RAM
+write, reboot, or shutdown occurred during this refused attempt.
+
+Decision: retarget only the READY experiment's exact predecessor guard from
+the older ATAG candidate to the exact currently installed pmsg-witness
+candidate. Preserve all candidate, live-GPT, inactive-target, power, write,
+flush, full-readback, cleanup, no-fresh-backup, and clean-shutdown gates.

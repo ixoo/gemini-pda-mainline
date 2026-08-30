@@ -23,7 +23,7 @@ text = Path(sys.argv[1]).read_text(encoding="utf-8")
 replacements = (
     ("fd611a4ca87fd1645e2fa75b3927d56e9e7eac89f3d84712e5555a3aab8f4cf0", "8acf9227e6539e5011ab59a27e1320bf970c19cbbf5a5325fe3304f0e04dddb7", 1),
     (r'("fde53dca1dcbc36297897dbcd6086488d117bf45714833858e17987cb6579dd0",\n     "f4cb1b2c8bc3759a23515c41d6c3c9248c1095277cb158e082a5b322e6927c02", 1)',
-     r'("fde53dca1dcbc36297897dbcd6086488d117bf45714833858e17987cb6579dd0",\n     "fd611a4ca87fd1645e2fa75b3927d56e9e7eac89f3d84712e5555a3aab8f4cf0", 1)', 1),
+     r'("fde53dca1dcbc36297897dbcd6086488d117bf45714833858e17987cb6579dd0",\n     "0814c06b9bb41aa7ec666ad1abbb4bbf86e113e11878ac3de159d6cec3112f78", 1)', 1),
     ("80f9be2b58437b6edfcb630bb78fe218e7a70b70dd32d3e8b819f7c3767327b3", "37ff44d6496d1ce8d4fc0cecb23d62c95a2a980e8c6c83a414399d260950045f", 1),
     ("candidate-a72-admission-atag-6971ee82", "candidate-a72-ready-admission-4c8cf8e0", 1),
     ('("a72-admission-trace", "a72-admission-atag-prerequisite", 5)', '("a72-admission-trace", "a72-ready-admission", 5)', 1),
