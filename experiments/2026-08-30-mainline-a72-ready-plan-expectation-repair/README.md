@@ -101,17 +101,24 @@ zero executed CPU requests. The exact padded boot2 candidate is
 `9abdd1c6...`. See
 [`results/offline-candidate-20260830.txt`](results/offline-candidate-20260830.txt).
 
+The guarded installer then resolved inactive logical `boot2` from the live GPT
+as `/dev/mmcblk0p30`, required the exact `1c08f1fc...` predecessor, wrote and
+flushed `9abdd1c6...`, obtained the same full-partition readback identity, and
+shut the device down. It created no fresh partition backup and did not reboot.
+See
+[`results/deployment-boot2-9abdd1c6-20260830.txt`](results/deployment-boot2-9abdd1c6-20260830.txt).
+
 ## Analysis
 
 The review contains only the three corrections selected by the exact live
 value frame. It does not change the production producers or expected-effects
 model, and the fixture continues to require and publish SMC. Canonical-series,
-compile, DT, container, reproduction, and negative-mutation validation all
-pass. Device deployment and one silent READY capture remain pending.
+compile, DT, container, reproduction, negative-mutation, deployment, and full
+readback validation all pass. One silent READY capture remains pending.
 
 ## Conclusion
 
-`offline-complete-runtime-pending`.
+`deployed-runtime-pending`.
 
 ## Follow-up
 
