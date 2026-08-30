@@ -72,6 +72,12 @@ No valid production token can satisfy both contracts. This is a deterministic
 source contradiction at the exact runtime-retained substage, not an inference
 from screen or reboot behavior.
 
+The affected DA921x compatibility profile then exposed a separate stale test
+fixture: its provider acquire and abort completed, but both P29 paths were
+rejected because the fixture skipped the public CPU8 preflight and claim now
+required by the production binder ordering. Patch `0447` adds that exact
+hardware-free ordering to the test only; it does not alter production code.
+
 Buildbox generated one normal patch from clean pushed definition commit
 `b1d89d08...` and exact managed post-`0445` source state `36a08401...` with
 integrity identity `c56cdf64...`. Patch `0446` is byte-identical to the fetched

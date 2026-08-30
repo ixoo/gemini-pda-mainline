@@ -1,0 +1,38 @@
+From a72f17e6f90c5ab927e797a3934df2131000f447 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 31 Aug 2026 01:37:00 +0000
+Subject: [PATCH] regulator: da9213: claim CPU8 before P27 tests
+
+The DA9213 membership integration fixture advances directly from the
+published transaction to P27.  CPU8 rollback now requires the public
+preflight and claim that the production binder performs first, leaving
+the test's otherwise valid P29 proofs unable to retire the transaction.
+
+Follow the production ordering in the hardware-free fixture before
+entering P27.  This changes no production path and performs no hardware
+or CPU request.
+---
+ drivers/regulator/da9213-legacy-membership-test.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/drivers/regulator/da9213-legacy-membership-test.c b/drivers/regulator/da9213-legacy-membership-test.c
+--- a/drivers/regulator/da9213-legacy-membership-test.c
++++ b/drivers/regulator/da9213-legacy-membership-test.c
+@@ -237,6 +237,15 @@ da9213_membership_seed_p27(struct mt6797_a72_transaction *transaction)
+ 	ret = mt6797_a72_membership_publish_up(transaction);
+ 	if (ret)
+ 		return ret;
++	ret = mt6797_a72_membership_preflight_up(8, CPUHP_ONLINE);
++	if (ret)
++		return ret;
++	ret = mt6797_a72_membership_validate_up(8, 0, CPUHP_ONLINE);
++	if (ret)
++		return ret;
++	ret = mt6797_a72_membership_claim_cpu8(transaction);
++	if (ret)
++		return ret;
+ 	ret = mt6797_a72_membership_begin_p27_preparation(transaction);
+ 	if (ret)
+ 		return ret;
+-- 
+2.51.0

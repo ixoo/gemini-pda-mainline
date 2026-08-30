@@ -19,6 +19,10 @@ DERIVED_CASES = (
     "mt6797_a72_derived_repeat_rejected_test",
 )
 PRE_P28_CASES = (
+    "da9213_provider_snapshot_success",
+    "da9213_provider_snapshot_transport_faults",
+    "da9213_provider_snapshot_unstable",
+    "da9213_provider_snapshot_registry_guards",
     "da9213_membership_positive_abort_success",
     "da9213_membership_acquire_transport_faults",
     "da9213_membership_acquire_malformed_success",
