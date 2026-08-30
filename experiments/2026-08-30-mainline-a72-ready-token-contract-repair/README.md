@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-ready-token-contract-repair` |
-| Status | `canonical patch generated and admitted; focused Buildbox builds pending` |
+| Status | `canonical repair validated offline; production candidate pending` |
 | Subsystem | arm64 late-CPU READY token and MT6797 CPU8 admission |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -95,6 +95,15 @@ fixtures, adds one two-target premature-observation rejection case, and adds no
 request, CPU9, CPU_OFF, retry, hardware-write, boot-candidate, or device path.
 See [`results/patch-generation-20260830.txt`](results/patch-generation-20260830.txt).
 
+The final canonical patchset `b24ad192...` was then rebuilt from clean pushed
+commit `46ccf1ad...` in all four affected profiles. Their QEMU runs passed all
+60 tests with no failures or skips: DA921x pre-P28 provider-abort 10/10, live
+trigger 16/16, derived admission 6/6, and atomic publication 28/28. The focused
+premature-observation mutation passes, as do both production-adjacent trigger
+and publication suites. Every harness reported zero physical CPU requests,
+CPU_OFF requests, and retries; networking and device actions remained absent.
+See [`results/final-offline-validation-20260830.txt`](results/final-offline-validation-20260830.txt).
+
 ## Analysis
 
 The observed fields represent target-local facts and cannot exist before the
@@ -109,7 +118,8 @@ expectation and observation and does not weaken target identity.
 
 ## Follow-up
 
-Compile and run the affected derived-admission and live-controller KUnit
-profiles on Buildbox, then rebuild the exact production candidate profile. Do
-not repeat candidate `7c962888...`. CPU9 remains vetoed until CPU8 is
-reproducibly online.
+Build and validate the production `a72-admission-live-trigger-candidate`
+profile from the recorded clean commit, construct one attributable boot2
+candidate, and admit it through the existing container, DT, serviceability,
+and single-CPU8 safety gates. Do not repeat candidate `7c962888...`. CPU9
+remains vetoed until CPU8 is reproducibly online.
