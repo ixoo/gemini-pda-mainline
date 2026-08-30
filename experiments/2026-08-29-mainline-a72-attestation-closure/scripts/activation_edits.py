@@ -89,8 +89,7 @@ NEW_BLOCKERS = r'''#ifdef CONFIG_ARM64_MT6797_A72_FIXTURE_EVIDENCE
 
 EXPECTED_PAIR = r'''#ifndef CONFIG_ARM64_MT6797_A72_FIXTURE_EVIDENCE
 /* Prior-cycle Gemian capsule stream; never a current-boot observation. */
-static const struct arm64_late_cpu_expected_pair
-mt6797_a72_expected_pair __initconst = {
+static const struct arm64_late_cpu_expected_pair mt6797_a72_expected_pair __initconst = {
 	.abi = ARM64_LATE_CPU_EXPECTED_PAIR_ABI,
 	.target_count = ARM64_LATE_CPU_MAX_TARGETS,
 	.valid = ARM64_LATE_CPU_EXPECTED_PAIR_VALID_MASK,
@@ -328,8 +327,7 @@ mt6797_a72_binding_is_runtime(const struct arm64_late_cpu_runtime_binding *bindi
 }
 
 static bool __init
-mt6797_a72_system_evidence_exact(
-	const struct arm64_late_cpu_system_cap_evidence *system)
+mt6797_a72_system_evidence_exact(const struct arm64_late_cpu_system_cap_evidence *system)
 {
 	return system->valid == ARM64_LATE_CPU_SYSTEM_CAP_VALID_MASK &&
 	       system->ctr_strict_mask == ~GENMASK_ULL(15, 14) &&
@@ -345,8 +343,7 @@ mt6797_a72_system_evidence_exact(
 }
 
 static bool __init
-mt6797_a72_policy_evidence_exact(
-	const struct arm64_late_cpu_target_policy_evidence *policy)
+mt6797_a72_policy_evidence_exact(const struct arm64_late_cpu_target_policy_evidence *policy)
 {
 	return policy->valid == ARM64_LATE_CPU_TARGET_POLICY_VALID_MASK &&
 	       policy->smccc_conduit == ARM64_LATE_CPU_SMCCC_SMC &&
@@ -355,8 +352,7 @@ mt6797_a72_policy_evidence_exact(
 }
 
 static bool __init
-mt6797_a72_evidence_is_bound_expectation(
-	const struct arm64_late_cpu_evidence *evidence)
+mt6797_a72_evidence_is_bound_expectation(const struct arm64_late_cpu_evidence *evidence)
 {
 	const u64 allowed_blockers = ARM64_LATE_CPU_BLOCK_ATTESTATION_USERS |
 		ARM64_LATE_CPU_BLOCK_CONFIGURATION |
@@ -391,8 +387,7 @@ mt6797_a72_evidence_is_bound_expectation(
 		    evidence->observed_target_revidr[target] ||
 		    memchr_inv(&evidence->target_cap[target], 0,
 			       sizeof(evidence->target_cap[target])) ||
-		    !mt6797_a72_policy_evidence_exact(
-			    &evidence->target_policy[target]))
+		    !mt6797_a72_policy_evidence_exact(&evidence->target_policy[target]))
 			return false;
 
 	return !memcmp(&evidence->target_policy[0],

@@ -41,7 +41,7 @@ def validate(root: Path) -> list[str]:
 
     expectation = block(
         profile,
-        "static const struct arm64_late_cpu_expected_pair\n"
+        "static const struct arm64_late_cpu_expected_pair "
         "mt6797_a72_expected_pair __initconst = {",
         "\n};\n#endif",
     )

@@ -85,14 +85,14 @@ def mutations() -> list[tuple[str, object]]:
             "")),
         ("allow-mitigations-off", lambda r: replace(
             r / PROFILE,
-            "mt6797_a72_policy_evidence_exact(\n"
-            "\tconst struct arm64_late_cpu_target_policy_evidence *policy)\n"
+            "mt6797_a72_policy_evidence_exact(const struct "
+            "arm64_late_cpu_target_policy_evidence *policy)\n"
             "{\n"
             "\treturn policy->valid == ARM64_LATE_CPU_TARGET_POLICY_VALID_MASK &&\n"
             "\t       policy->smccc_conduit == ARM64_LATE_CPU_SMCCC_SMC &&\n"
             "\t       !policy->mitigations_off && !policy->nospectre_v2 &&\n",
-            "mt6797_a72_policy_evidence_exact(\n"
-            "\tconst struct arm64_late_cpu_target_policy_evidence *policy)\n"
+            "mt6797_a72_policy_evidence_exact(const struct "
+            "arm64_late_cpu_target_policy_evidence *policy)\n"
             "{\n"
             "\treturn policy->valid == ARM64_LATE_CPU_TARGET_POLICY_VALID_MASK &&\n"
             "\t       policy->smccc_conduit == ARM64_LATE_CPU_SMCCC_SMC &&\n"
