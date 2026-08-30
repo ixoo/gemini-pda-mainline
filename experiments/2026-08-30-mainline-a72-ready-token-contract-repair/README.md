@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-ready-token-contract-repair` |
-| Status | `fresh boot2 pre-trigger accepted; single CPU8 trigger pending` |
+| Status | `single CPU8 trigger reached add_cpu(8); request returned EPERM` |
 | Subsystem | arm64 late-CPU READY token and MT6797 CPU8 admission |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -172,6 +172,28 @@ retaining both new failure-stage fields. Offline tests cover all four branches,
 nine rejected transcript mutations, and a zero-side-effect wrong-boot run. See
 [`results/trigger-tooling-20260830.txt`](results/trigger-tooling-20260830.txt).
 
+The boot-bound executor then consumed that accepted frame exactly once on the
+same boot ID. The controller crossed complete derivation and publication,
+incremented its request count, and entered `add_cpu(8)` once. The synchronous
+request returned `-EPERM`; CPUs 0--7 remained online and CPUs 8--9 remained
+offline. The terminal frame retained `failure_stage=0`,
+`derive_stage=15` (`MT6797_A72_DERIVE_COMPLETE`), one CPU request, and zero
+CPU9, CPU_OFF, retry, reboot, partition-read, or storage-write requests. This
+is later than every previous live admission result.
+
+Changed-ID Gemian recovery then exposed one 72-byte pstore record. Its two
+records pass the transition-ledger integrity validator. The predecessor is the
+before-P27 checkpoint at generation 3; the latest is generation 4, terminal at
+`MT6797_A72_TRANSITION_STAGE_P27` with
+`MT6797_A72_TRANSITION_ROLLBACK_FAULT_PREISO`. This proves arm64 preflight,
+generic hotplug admission, arm64 validation, binder claim, ledger begin, and
+the watchdog before/after checkpoints completed. Provider/DA921x, isolation,
+SRAM, PSCI `CPU_ON`, secondary execution, IPI, DCM, and membership success were
+not reached. The current ledger does not retain the initiating P27 errno
+separately from its rollback errno, so it selects the P27/rollback boundary but
+not yet the exact rejecting predicate. See the
+[request-bearing runtime result](results/runtime-trigger-request-bearing-eperm-20260830.txt).
+
 ## Analysis
 
 The observed fields represent target-local facts and cannot exist before the
@@ -182,14 +204,12 @@ expectation and observation and does not weaken target identity.
 
 ## Conclusion
 
-`production-ready-token-contract-contradiction`.
+`ready-token-repair-crossed; P27-rollback-fault-before-provider-or-CPU_ON`.
 
 ## Follow-up
 
-Complete the armed read-only capture already waiting on the fresh
-owner-selected boot2 start. Only after its immutable serviceability frame is
-accepted and fsynced, issue the boot-bound CPU8 trigger through the exact-once
-executor. Classify CPU8 online, a request-bearing terminal result, an exact
-pre-request retained stage, or an attributable post-commit transport loss. Do
-not repeat candidate `7c962888...` or trigger candidate `a7ce2c2d...` more than
-once. CPU9 remains vetoed until CPU8 is reproducibly online.
+Do not repeat candidate `7c962888...` or spent trigger candidate
+`a7ce2c2d...`. Add durable P27 initiating errno, rollback errno, ownership, and
+platform-effect-result attribution. Use that evidence to repair only the
+observed P27 predicate or rollback defect before another physical attempt.
+CPU9 remains vetoed until CPU8 is reproducibly online.

@@ -6494,11 +6494,22 @@ The next ordered work is:
    deterministic contradiction at that retained substage: the production plan
    contract requires dormant target observations to remain empty, READY copies
    those zeros unchanged, but the membership validator requires observed
-   MPIDRs `0x200/0x201` before either target executes. **Selected next:** repair
-   that predicate to require empty observations while preserving the exact
-   expected MPIDRs, identities, target mask, request order, and one-shot bounds;
-   generate and validate the patch on Buildbox before any new candidate. Retain
-   the CPU9 veto.
+   MPIDRs `0x200/0x201` before either target executes. Canonical patch `0446`
+   repaired only that predicate and passed the affected Buildbox/QEMU suites.
+   Its exact serviceable boot2 candidate `a7ce2c2d...` produced an accepted
+   armed frame, then consumed one boot-bound trigger. The controller completed
+   derivation and publication, entered `add_cpu(8)` once, and returned
+   `-EPERM`; CPUs 0--7 stayed online and CPUs 8--9 stayed offline, with zero
+   CPU9, CPU_OFF, retry, reboot, partition-read, or storage-write requests.
+   Changed-ID Gemian recovery found a checksum-valid retained transition
+   ledger: generation 3 is before P27 and generation 4 is terminal at P27 with
+   `ROLLBACK_FAULT_PREISO`. Thus arm64 preflight, generic hotplug admission,
+   arm64 validation, binder claim, ledger begin, and watchdog checkpoints all
+   passed; provider/DA921x, isolation, SRAM, PSCI `CPU_ON`, and secondary CPU8
+   execution were not reached. **Selected next:** retain the initiating P27
+   errno separately from the rollback errno, plus P27 ownership and exact
+   platform-effect result, then repair only the observed P27 predicate or
+   rollback defect before another physical attempt. Retain the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 
