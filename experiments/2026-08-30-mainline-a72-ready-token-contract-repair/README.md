@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-ready-token-contract-repair` |
-| Status | `canonical repair validated offline; production candidate pending` |
+| Status | `production candidate admitted offline; guarded boot2 deployment pending` |
 | Subsystem | arm64 late-CPU READY token and MT6797 CPU8 admission |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -104,6 +104,22 @@ and publication suites. Every harness reported zero physical CPU requests,
 CPU_OFF requests, and retries; networking and device actions remained absent.
 See [`results/final-offline-validation-20260830.txt`](results/final-offline-validation-20260830.txt).
 
+Buildbox produced the production profile from clean pushed evidence commit
+`8dc8e806...` with the same serviceable configuration identity as the prior
+runtime image and repaired patchset `b24ad192...`. Two independent DT
+compositions added only its exact A41 provenance leaf to the runtime-proven
+serviceability/admission tree; both produced `11eb5959...`. Two independent
+Android-v0 assemblies produced raw image `efe47cb1...`, and two independent
+padding paths produced exact 16 MiB boot2 image `a7ce2c2d...`.
+
+The independent container validator passed all 32 LK gates and rejected six
+corrupt-container mutations. The independent logical-tree validator preserved
+the single controller and binder, proved the DT delta is one package-owned
+provenance leaf, and rejected ten representative DT mutations. The candidate
+contains exactly one dormant CPU8 request route and no CPU9, CPU_OFF, or retry
+route. No request has executed and no device action has occurred. See
+[`results/offline-candidate-20260830.txt`](results/offline-candidate-20260830.txt).
+
 ## Analysis
 
 The observed fields represent target-local facts and cannot exist before the
@@ -118,8 +134,9 @@ expectation and observation and does not weaken target identity.
 
 ## Follow-up
 
-Build and validate the production `a72-admission-live-trigger-candidate`
-profile from the recorded clean commit, construct one attributable boot2
-candidate, and admit it through the existing container, DT, serviceability,
-and single-CPU8 safety gates. Do not repeat candidate `7c962888...`. CPU9
+Commit and push the candidate construction record, then use the guarded live
+GPT workflow to replace exact predecessor `7c962888...` on inactive `boot2`
+with candidate `a7ce2c2d...`, require a matching full-partition readback, and
+shut down. On its fresh boot, capture the immutable serviceability frame and
+issue at most one CPU8 trigger. Do not repeat candidate `7c962888...`. CPU9
 remains vetoed until CPU8 is reproducibly online.
