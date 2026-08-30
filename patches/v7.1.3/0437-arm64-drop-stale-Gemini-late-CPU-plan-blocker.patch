@@ -1,0 +1,41 @@
+From b565600024dbf5ff65e9e474bafde96544f9a665 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 30 Aug 2026 15:01:00 +0000
+Subject: [PATCH] arm64: drop stale Gemini late CPU plan blocker
+
+Patch 0434 removed the final attestation-user blocker when the
+architecture finalization callbacks became its owner, but the
+production expectation validator still required that historical
+bit. Exact hardware runtime identity therefore reached a stale
+plan-validation failure and could never publish READY.
+
+Accept the zero-blocker production evidence while retaining the
+configuration and topology conditional paths. The core still
+rejects every nonzero blocker before plan publication.
+---
+ arch/arm64/kernel/mt6797_psci.c | 5 +----
+ 1 file changed, 1 insertion(+), 4 deletions(-)
+
+diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
+index 1cd32ee..00da295 100644
+--- a/arch/arm64/kernel/mt6797_psci.c
++++ b/arch/arm64/kernel/mt6797_psci.c
+@@ -832,8 +832,7 @@ mt6797_a72_policy_evidence_exact(const struct arm64_late_cpu_target_policy_evide
+ static bool __init
+ mt6797_a72_evidence_is_bound_expectation(const struct arm64_late_cpu_evidence *evidence)
+ {
+-	const u64 allowed_blockers = ARM64_LATE_CPU_BLOCK_ATTESTATION_USERS |
+-		ARM64_LATE_CPU_BLOCK_CONFIGURATION |
++	const u64 allowed_blockers = ARM64_LATE_CPU_BLOCK_CONFIGURATION |
+ 		ARM64_LATE_CPU_BLOCK_TOPOLOGY;
+ 	unsigned int target;
+ 
+@@ -847,8 +846,6 @@ mt6797_a72_evidence_is_bound_expectation(const struct arm64_late_cpu_evidence *e
+ 	    memcmp(&evidence->expected_pair, &mt6797_a72_expected_pair,
+ 		   sizeof(evidence->expected_pair)) ||
+ 	    !mt6797_a72_binding_is_runtime(&evidence->binding) ||
+-	    !(evidence->blocker_mask &
+-	      ARM64_LATE_CPU_BLOCK_ATTESTATION_USERS) ||
+ 	    evidence->blocker_mask & ~allowed_blockers ||
+ 	    evidence->expected_target_mpidr[0] != 0x200 ||
+ 	    evidence->expected_target_mpidr[1] != 0x201 ||

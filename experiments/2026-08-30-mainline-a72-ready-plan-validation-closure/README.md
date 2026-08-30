@@ -93,6 +93,14 @@ the production blocker set when the finalization callbacks became the owner.
 See
 [`results/runtime-attempt-2-stale-plan-validator-20260830.txt`](results/runtime-attempt-2-stale-plan-validator-20260830.txt).
 
+Buildbox generated canonical patch `0437` from repository commit
+`3039a42e1d0558eba9a2c0b098764c512a065f10` and the exact post-`0436`
+prepared source. Source validation and strict checkpatch passed, replay was
+identical, zero-blocker production evidence was accepted, and all six unsafe
+mutations were rejected. The patch adds no CPU request, CPU9, CPU_OFF, or retry
+path. See
+[`results/buildbox-generation-20260830.txt`](results/buildbox-generation-20260830.txt).
+
 ## Analysis
 
 The boot and runtime-provenance hypotheses passed. The seven-minute `0x20ff`
@@ -116,6 +124,9 @@ candidate must not be repeated.
 ## Follow-up
 
 Generate and admit one post-`0436` source patch removing only the stale
-production predicate and its unused allowed-mask member. Build on Buildbox,
-reuse the proven composed DT and serviceability ramdisk, then require exact
-READY qualification before one CPU8-only trigger. Keep CPU9 vetoed.
+production predicate and its unused allowed-mask member. Patch `0437` now
+contains that exact repair as an experiment-only archive with a synthetic,
+non-certifying author and no DCO sign-off; it is not submission-ready. Audit all
+manifest profiles and build on Buildbox, reuse the proven composed DT and
+serviceability ramdisk, then require exact READY qualification before one
+CPU8-only trigger. Keep CPU9 vetoed.
