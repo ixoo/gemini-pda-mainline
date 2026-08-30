@@ -6506,10 +6506,14 @@ The next ordered work is:
    `ROLLBACK_FAULT_PREISO`. Thus arm64 preflight, generic hotplug admission,
    arm64 validation, binder claim, ledger begin, and watchdog checkpoints all
    passed; provider/DA921x, isolation, SRAM, PSCI `CPU_ON`, and secondary CPU8
-   execution were not reached. **Selected next:** retain the initiating P27
-   errno separately from the rollback errno, plus P27 ownership and exact
-   platform-effect result, then repair only the observed P27 predicate or
-   rollback defect before another physical attempt. Retain the CPU9 veto.
+   execution were not reached. Canonical patch `0449` now retains the
+   initiating P27 errno separately from the rollback errno, P27 ownership,
+   and the exact acquire/release platform-effect results in the existing
+   read-only live status; it adds no request, physical effect, retry,
+   retained-RAM write, or storage path. **Selected next:** pass the focused
+   Buildbox/KUnit and production-build gates, then run that diagnostic once
+   and repair only the observed P27 predicate or rollback defect. Retain the
+   CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 

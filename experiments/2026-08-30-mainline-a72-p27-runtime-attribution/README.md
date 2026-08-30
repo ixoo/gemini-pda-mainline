@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-p27-runtime-attribution` |
-| Status | `source-defined; Buildbox patch generation pending` |
+| Status | `canonical patch generated; Buildbox build validation pending` |
 | Subsystem | MT6797 CPU8 P27 platform effect and rollback |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -63,3 +63,16 @@ retains both independent errors and both effect result shapes.
 - Any result after P27 changes the selected stage and supersedes this boundary.
 
 CPU9 remains vetoed until CPU8 is reproducibly online.
+
+## Buildbox generation result
+
+The exact clean pushed project commit
+`38ec2b399af31d11900b1af24622f5b0409de8f9` generated canonical patch
+`0449` against the managed post-`0448` Linux source. Its bundle passed source
+identity and integrity checks, contract validation, deterministic replay, and
+checksum verification. Strict checkpatch reported zero warnings and zero
+checks; its sole error is the deliberately absent synthetic `Signed-off-by`.
+The experiment author is synthetic, this archive is not submission-ready, and
+repository policy forbids inventing a DCO certification. Exact generation
+evidence is recorded in
+[`results/buildbox-patch-generation-20260830.txt`](results/buildbox-patch-generation-20260830.txt).

@@ -1,0 +1,355 @@
+From 2b26e2b5f94bcddc873f2c3cc788c808e302bd25 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 31 Aug 2026 03:01:00 +0000
+Subject: [PATCH] soc: mediatek: expose CPU8 P27 terminal diagnostic
+
+The first request-bearing CPU8 attempt reached the binder P27
+stage and retained a pre-isolation rollback fault, but the
+ledger does not separate the initiating error from rollback.
+
+Retain the existing P27 release result in binder-owned memory
+and expose a serialized read-only snapshot of the transition
+and P27 acquire/release results through the candidate status.
+This adds no request, hardware operation, retry, retained-RAM
+write, storage access, or sequencing change.
+---
+ .../mt6797-a72-admission-controller.c         | 44 +++++++++-
+ .../soc/mediatek/mt6797-a72-binder-internal.h |  4 +
+ drivers/soc/mediatek/mt6797-a72-binder-test.c | 42 ++++++++++
+ drivers/soc/mediatek/mt6797-a72-binder.c      | 82 +++++++++++++++++--
+ .../linux/soc/mediatek/mt6797-a72-binder.h    | 45 ++++++++++
+ 5 files changed, 210 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-admission-controller.c b/drivers/soc/mediatek/mt6797-a72-admission-controller.c
+index 6b4d757..66786e2 100644
+--- a/drivers/soc/mediatek/mt6797-a72-admission-controller.c
++++ b/drivers/soc/mediatek/mt6797-a72-admission-controller.c
+@@ -305,9 +305,11 @@ static ssize_t status_show(struct device *dev, struct device_attribute *attr,
+ 			   char *buf)
+ {
+ 	struct mt6797_a72_admission_controller *controller = dev_get_drvdata(dev);
++	struct mt6797_a72_binder_diagnostic diagnostic;
+ 	bool complete;
+ 	bool consumed;
+ 	const char *trigger_state;
++	int diagnostic_ret;
+ 	ssize_t len;
+ 
+ 	(void)attr;
+@@ -320,6 +322,7 @@ static ssize_t status_show(struct device *dev, struct device_attribute *attr,
+ 		trigger_state = "running";
+ 	else
+ 		trigger_state = "terminal";
++	diagnostic_ret = mt6797_a72_binder_diagnostic_snapshot(&diagnostic);
+ 	len = sysfs_emit(buf, "%s state=%s ",
+ 			 MT6797_A72_ADMISSION_LIVE_TAG, trigger_state);
+ 	len += sysfs_emit_at(buf, len,
+@@ -340,8 +343,47 @@ static ssize_t status_show(struct device *dev, struct device_attribute *attr,
+ 	len += sysfs_emit_at(buf, len,
+ 			     "cpu_requests=%u cpu9_requests=0 ",
+ 			     READ_ONCE(controller->state.cpu_requests));
++	len += sysfs_emit_at(buf, len, "cpu_off_requests=0 retries=0 ");
++	len += sysfs_emit_at(buf, len, "binder_snapshot_ret=%d binder_abi=%u ",
++			     diagnostic_ret, diagnostic.abi);
++	len += sysfs_emit_at(buf, len, "lifecycle=%u terminal=%u last_stage=%u ",
++			     diagnostic.lifecycle, diagnostic.terminal,
++			     diagnostic.last_stage);
++	len += sysfs_emit_at(buf, len, "stage_errno=%d rollback_errno=%d ",
++			     diagnostic.stage_errno, diagnostic.rollback_errno);
++	len += sysfs_emit_at(buf, len, "checkpoint_errno=%d attempted=%u ",
++			     diagnostic.checkpoint_errno, diagnostic.attempted);
++	len += sysfs_emit_at(buf, len, "watchdog_armed=%u p27_owned=%u ",
++			     diagnostic.watchdog_armed, diagnostic.p27_owned);
++	len += sysfs_emit_at(buf, len, "rollback_mask=0x%x retained_mask=0x%x ",
++			     diagnostic.rollback_mask, diagnostic.retained_mask);
++	len += sysfs_emit_at(buf, len, "p27a_op=%u p27a_error=%d ",
++			     diagnostic.p27_acquire_operation,
++			     diagnostic.p27_acquire_error);
++	len += sysfs_emit_at(buf, len, "p27a_attempted=0x%x p27a_completed=0x%x ",
++			     diagnostic.p27_acquire_attempted,
++			     diagnostic.p27_acquire_completed);
++	len += sysfs_emit_at(buf, len, "p27a_spm_before=0x%x p27a_spm_after=0x%x ",
++			     diagnostic.p27_acquire_spm_before,
++			     diagnostic.p27_acquire_spm_after);
++	len += sysfs_emit_at(buf, len, "p27a_bpll=0x%x p27a_owned=%u p27a_sealed=%u ",
++			     diagnostic.p27_acquire_bpll,
++			     diagnostic.p27_acquire_owned,
++			     diagnostic.p27_acquire_sealed);
++	len += sysfs_emit_at(buf, len, "p27r_op=%u p27r_error=%d ",
++			     diagnostic.p27_release_operation,
++			     diagnostic.p27_release_error);
++	len += sysfs_emit_at(buf, len, "p27r_attempted=0x%x p27r_completed=0x%x ",
++			     diagnostic.p27_release_attempted,
++			     diagnostic.p27_release_completed);
++	len += sysfs_emit_at(buf, len, "p27r_spm_before=0x%x p27r_spm_after=0x%x ",
++			     diagnostic.p27_release_spm_before,
++			     diagnostic.p27_release_spm_after);
+ 	return len + sysfs_emit_at(buf, len,
+-				   "cpu_off_requests=0 retries=0\n");
++				   "p27r_bpll=0x%x p27r_owned=%u p27r_sealed=%u\n",
++				   diagnostic.p27_release_bpll,
++				   diagnostic.p27_release_owned,
++				   diagnostic.p27_release_sealed);
+ }
+ 
+ static ssize_t trigger_store(struct device *dev,
+diff --git a/drivers/soc/mediatek/mt6797-a72-binder-internal.h b/drivers/soc/mediatek/mt6797-a72-binder-internal.h
+index c237f6a..d88975e 100644
+--- a/drivers/soc/mediatek/mt6797-a72-binder-internal.h
++++ b/drivers/soc/mediatek/mt6797-a72-binder-internal.h
+@@ -80,6 +80,7 @@ struct mt6797_a72_binder {
+ 	struct mt6797_a72_transition_result result;
+ 	struct mt6797_a72_platform_effect_handle effect_handle;
+ 	struct mt6797_a72_platform_effect_result p27;
++	struct mt6797_a72_platform_effect_result p27_release;
+ 	struct mt6797_a72_platform_effect_result isolation;
+ 	struct mt6797_a72_platform_effect_result dcm;
+ 	struct mt6797_bigidvfs_sram_result sram;
+@@ -93,6 +94,9 @@ struct mt6797_a72_binder {
+ #if IS_ENABLED(CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER_KUNIT_TEST)
+ void mt6797_a72_binder_test_init(struct mt6797_a72_binder *binder,
+ 				 const struct mt6797_a72_binder_backend_ops *backend);
++void
++mt6797_a72_binder_test_diagnostic(const struct mt6797_a72_binder *binder,
++				  struct mt6797_a72_binder_diagnostic *snapshot);
+ int mt6797_a72_binder_test_boot(struct mt6797_a72_binder *binder,
+ 				unsigned int cpu,
+ 				mt6797_a72_cpu_boot_fn cpu_boot);
+diff --git a/drivers/soc/mediatek/mt6797-a72-binder-test.c b/drivers/soc/mediatek/mt6797-a72-binder-test.c
+index 7841c3c..b3512b9 100644
+--- a/drivers/soc/mediatek/mt6797-a72-binder-test.c
++++ b/drivers/soc/mediatek/mt6797-a72-binder-test.c
+@@ -598,6 +598,47 @@ static void mt6797_binder_malformed_owners_test(struct kunit *test)
+ 	}
+ }
+ 
++static void mt6797_binder_p27_diagnostic_test(struct kunit *test)
++{
++	struct mt6797_binder_test_state *state = test->priv;
++	struct mt6797_a72_binder_diagnostic diagnostic;
++	u32 acquire_mask = MT6797_A72_EFFECT_P27_RESET_RELEASED |
++		MT6797_A72_EFFECT_BPLL_ORDER_READ |
++		MT6797_A72_EFFECT_PWRAP_ASSERTED;
++	u32 release_mask = acquire_mask | MT6797_A72_EFFECT_PWRAP_DEASSERTED |
++		MT6797_A72_EFFECT_P27_RESET_RESTORED;
++	int ret;
++
++	state->malformed = TEST_MALFORMED_P27;
++	ret = mt6797_a72_binder_test_boot(&state->binder, 8,
++					  mt6797_binder_test_cpu_boot);
++	KUNIT_ASSERT_EQ(test, ret, -EPROTO);
++	mt6797_a72_binder_test_diagnostic(&state->binder, &diagnostic);
++	KUNIT_EXPECT_EQ(test, diagnostic.abi,
++			MT6797_A72_BINDER_DIAGNOSTIC_ABI);
++	KUNIT_EXPECT_EQ(test, diagnostic.lifecycle,
++			(u32)MT6797_A72_TRANSITION_LIFECYCLE_TERMINAL);
++	KUNIT_EXPECT_EQ(test, diagnostic.terminal,
++			(u32)MT6797_A72_TRANSITION_ROLLBACK_FAULT_PREISO);
++	KUNIT_EXPECT_EQ(test, diagnostic.last_stage,
++			(u32)MT6797_A72_TRANSITION_STAGE_P27);
++	KUNIT_EXPECT_EQ(test, diagnostic.stage_errno, -EPROTO);
++	KUNIT_EXPECT_EQ(test, diagnostic.rollback_errno, -EPROTO);
++	KUNIT_EXPECT_EQ(test, diagnostic.p27_acquire_operation,
++			(u32)MT6797_A72_PLATFORM_EFFECT_P27_ACQUIRE);
++	KUNIT_EXPECT_EQ(test, diagnostic.p27_acquire_attempted, acquire_mask);
++	KUNIT_EXPECT_EQ(test, diagnostic.p27_acquire_completed, acquire_mask);
++	KUNIT_EXPECT_EQ(test, diagnostic.p27_acquire_owned, 1U);
++	KUNIT_EXPECT_EQ(test, diagnostic.p27_acquire_sealed, 0U);
++	KUNIT_EXPECT_EQ(test, diagnostic.p27_release_operation,
++			(u32)MT6797_A72_PLATFORM_EFFECT_P27_RELEASE);
++	KUNIT_EXPECT_EQ(test, diagnostic.p27_release_error, 0);
++	KUNIT_EXPECT_EQ(test, diagnostic.p27_release_attempted, release_mask);
++	KUNIT_EXPECT_EQ(test, diagnostic.p27_release_completed, release_mask);
++	KUNIT_EXPECT_EQ(test, diagnostic.p27_release_owned, 0U);
++	KUNIT_EXPECT_EQ(test, diagnostic.p27_release_sealed, 1U);
++}
++
+ static void mt6797_binder_one_shot_test(struct kunit *test)
+ {
+ 	struct mt6797_binder_test_state *state = test->priv;
+@@ -615,6 +656,7 @@ static struct kunit_case mt6797_binder_test_cases[] = {
+ 	KUNIT_CASE(mt6797_binder_terminal_failure_test),
+ 	KUNIT_CASE(mt6797_binder_preiso_checkpoint_test),
+ 	KUNIT_CASE(mt6797_binder_malformed_owners_test),
++	KUNIT_CASE(mt6797_binder_p27_diagnostic_test),
+ 	KUNIT_CASE(mt6797_binder_one_shot_test),
+ 	{}
+ };
+diff --git a/drivers/soc/mediatek/mt6797-a72-binder.c b/drivers/soc/mediatek/mt6797-a72-binder.c
+index 4347262..14c84b0 100644
+--- a/drivers/soc/mediatek/mt6797-a72-binder.c
++++ b/drivers/soc/mediatek/mt6797-a72-binder.c
+@@ -59,6 +59,66 @@ bool mt6797_a72_binder_available(void)
+ 	return available;
+ }
+ 
++static void
++mt6797_a72_binder_fill_diagnostic(const struct mt6797_a72_binder *binder,
++				  struct mt6797_a72_binder_diagnostic *snapshot)
++{
++	const struct mt6797_a72_platform_effect_result *acquire = &binder->p27;
++	const struct mt6797_a72_platform_effect_result *release =
++		&binder->p27_release;
++
++	memset(snapshot, 0, sizeof(*snapshot));
++	snapshot->abi = MT6797_A72_BINDER_DIAGNOSTIC_ABI;
++	snapshot->lifecycle = atomic_read_acquire(&binder->transition.lifecycle);
++	snapshot->terminal = binder->result.terminal;
++	snapshot->last_stage = binder->result.last_stage;
++	snapshot->stage_errno = binder->result.stage_errno;
++	snapshot->rollback_errno = binder->result.rollback_errno;
++	snapshot->checkpoint_errno = binder->result.checkpoint_errno;
++	snapshot->attempted = binder->result.attempted;
++	snapshot->watchdog_armed = binder->result.watchdog_armed;
++	snapshot->p27_owned = binder->result.p27_owned;
++	snapshot->rollback_mask = binder->result.rollback_mask;
++	snapshot->retained_mask = binder->result.retained_mask;
++	snapshot->p27_acquire_operation = acquire->operation;
++	snapshot->p27_acquire_error = acquire->error;
++	snapshot->p27_acquire_attempted = acquire->attempted_effects;
++	snapshot->p27_acquire_completed = acquire->completed_effects;
++	snapshot->p27_acquire_spm_before = acquire->spm_p27_before;
++	snapshot->p27_acquire_spm_after = acquire->spm_p27_after;
++	snapshot->p27_acquire_bpll = acquire->bpll_ordering_value;
++	snapshot->p27_acquire_owned = acquire->p27_owned;
++	snapshot->p27_acquire_sealed = acquire->sealed;
++	snapshot->p27_release_operation = release->operation;
++	snapshot->p27_release_error = release->error;
++	snapshot->p27_release_attempted = release->attempted_effects;
++	snapshot->p27_release_completed = release->completed_effects;
++	snapshot->p27_release_spm_before = release->spm_p27_before;
++	snapshot->p27_release_spm_after = release->spm_p27_after;
++	snapshot->p27_release_bpll = release->bpll_ordering_value;
++	snapshot->p27_release_owned = release->p27_owned;
++	snapshot->p27_release_sealed = release->sealed;
++}
++
++int
++mt6797_a72_binder_diagnostic_snapshot(struct mt6797_a72_binder_diagnostic *snapshot)
++{
++	struct mt6797_a72_binder *binder;
++	int ret = 0;
++
++	if (!snapshot)
++		return -EINVAL;
++	memset(snapshot, 0, sizeof(*snapshot));
++	mutex_lock(&mt6797_a72_binder_publish_lock);
++	binder = mt6797_a72_binder_ready();
++	if (binder)
++		mt6797_a72_binder_fill_diagnostic(binder, snapshot);
++	else
++		ret = -EAGAIN;
++	mutex_unlock(&mt6797_a72_binder_publish_lock);
++	return ret;
++}
++
+ static bool mt6797_a72_binder_cpu_online(unsigned int cpu)
+ {
+ 	return cpu_online(cpu);
+@@ -262,18 +322,21 @@ static int mt6797_a72_binder_p27_release(void *context)
+ {
+ 	struct mt6797_a72_binder *binder = context;
+ 	struct mt6797_a72_p29_rollback_proof rollback = { };
+-	struct mt6797_a72_platform_effect_result result = { };
+ 	int ret;
+ 
++	memset(&binder->p27_release, 0, sizeof(binder->p27_release));
+ 	ret = binder->backend->p27_release(binder->platform_state,
+-					   &binder->effect_handle, &result);
++					   &binder->effect_handle,
++					   &binder->p27_release);
+ 	if (ret)
+ 		return ret;
+-	if (!mt6797_a72_effect_result_shape(&result,
++	if (!mt6797_a72_effect_result_shape(&binder->p27_release,
+ 					    MT6797_A72_PLATFORM_EFFECT_P27_RELEASE) ||
+-	    result.error || result.p27_owned ||
+-	    result.attempted_effects != MT6797_A72_BINDER_P27_RELEASE_COMPLETE ||
+-	    result.completed_effects != MT6797_A72_BINDER_P27_RELEASE_COMPLETE)
++	    binder->p27_release.error || binder->p27_release.p27_owned ||
++	    binder->p27_release.attempted_effects !=
++		    MT6797_A72_BINDER_P27_RELEASE_COMPLETE ||
++	    binder->p27_release.completed_effects !=
++		    MT6797_A72_BINDER_P27_RELEASE_COMPLETE)
+ 		return -EPROTO;
+ 
+ 	rollback.abi = MT6797_A72_P29_ROLLBACK_ABI;
+@@ -743,6 +806,13 @@ void mt6797_a72_binder_test_init(struct mt6797_a72_binder *binder,
+ 	atomic_set(&binder->boot_claimed, 0);
+ }
+ 
++void
++mt6797_a72_binder_test_diagnostic(const struct mt6797_a72_binder *binder,
++				  struct mt6797_a72_binder_diagnostic *snapshot)
++{
++	mt6797_a72_binder_fill_diagnostic(binder, snapshot);
++}
++
+ int mt6797_a72_binder_test_boot(struct mt6797_a72_binder *binder,
+ 				unsigned int cpu,
+ 				mt6797_a72_cpu_boot_fn cpu_boot)
+diff --git a/include/linux/soc/mediatek/mt6797-a72-binder.h b/include/linux/soc/mediatek/mt6797-a72-binder.h
+index aa34314..9e88353 100644
+--- a/include/linux/soc/mediatek/mt6797-a72-binder.h
++++ b/include/linux/soc/mediatek/mt6797-a72-binder.h
+@@ -9,8 +9,45 @@
+ 
+ typedef int (*mt6797_a72_cpu_boot_fn)(unsigned int cpu);
+ 
++#define MT6797_A72_BINDER_DIAGNOSTIC_ABI 1U
++
++struct mt6797_a72_binder_diagnostic {
++	u32 abi;
++	u32 lifecycle;
++	u32 terminal;
++	u32 last_stage;
++	s32 stage_errno;
++	s32 rollback_errno;
++	s32 checkpoint_errno;
++	u32 attempted;
++	u32 watchdog_armed;
++	u32 p27_owned;
++	u32 rollback_mask;
++	u32 retained_mask;
++	u32 p27_acquire_operation;
++	s32 p27_acquire_error;
++	u32 p27_acquire_attempted;
++	u32 p27_acquire_completed;
++	u32 p27_acquire_spm_before;
++	u32 p27_acquire_spm_after;
++	u32 p27_acquire_bpll;
++	u32 p27_acquire_owned;
++	u32 p27_acquire_sealed;
++	u32 p27_release_operation;
++	s32 p27_release_error;
++	u32 p27_release_attempted;
++	u32 p27_release_completed;
++	u32 p27_release_spm_before;
++	u32 p27_release_spm_after;
++	u32 p27_release_bpll;
++	u32 p27_release_owned;
++	u32 p27_release_sealed;
++};
++
+ #if IS_ENABLED(CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER)
+ bool mt6797_a72_binder_available(void);
++int
++mt6797_a72_binder_diagnostic_snapshot(struct mt6797_a72_binder_diagnostic *snapshot);
+ int mt6797_a72_binder_preflight(unsigned int cpu, enum cpuhp_state target);
+ int mt6797_a72_binder_validate(unsigned int cpu, int tasks_frozen,
+ 			       enum cpuhp_state target);
+@@ -26,6 +63,14 @@ static inline bool mt6797_a72_binder_available(void)
+ 	return false;
+ }
+ 
++static inline int
++mt6797_a72_binder_diagnostic_snapshot(struct mt6797_a72_binder_diagnostic *snapshot)
++{
++	if (snapshot)
++		*snapshot = (struct mt6797_a72_binder_diagnostic){};
++	return -EOPNOTSUPP;
++}
++
+ static inline int
+ mt6797_a72_binder_preflight(unsigned int cpu, enum cpuhp_state target)
+ {
