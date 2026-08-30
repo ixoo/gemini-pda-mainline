@@ -33,7 +33,7 @@ replacements = (
     ("37ff44d6496d1ce8d4fc0cecb23d62c95a2a980e8c6c83a414399d260950045f",
      "388c099eaab6c4660db869fedf61e7e4b49c97de88b754c0dd407d4a88606f44", 1),
     ("candidate-a72-ready-admission-4c8cf8e0",
-     "a72-provenance-serviceability-final/candidate-a72-provenance-serviceability-1921c30e", 1),
+     "candidate-a72-provenance-serviceability-1921c30e", 1),
     ('("a72-admission-trace", "a72-ready-admission", 5)',
      '("a72-admission-trace", "a72-provenance-serviceability", 5)', 1),
     ("2026-08-30-mainline-a72-ready-admission",
