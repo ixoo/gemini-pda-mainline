@@ -74,7 +74,9 @@ def validate(root: Path) -> list[str]:
             verify.index("for_each_set_bit"),
             "alternative proof precedes exact capability equality")
     for forbidden in (
-        "set_bit(", "clear_bit(", "bitmap_or(system_cpucaps",
+        "\n\tset_bit(", "\n\t__set_bit(",
+        "\n\tclear_bit(", "\n\t__clear_bit(",
+        "bitmap_or(system_cpucaps",
         "bitmap_copy(system_cpucaps", "cpu_up(", "cpu_down(",
         "cpu_off(", "psci_cpu_on", "psci_cpu_off",
     ):
