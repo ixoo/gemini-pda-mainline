@@ -6386,12 +6386,18 @@ The next ordered work is:
    pass all 32 LK gates and six corrupt-container mutations while reusing the
    unchanged validated Buildbox package, Image, configuration, ramdisk,
    command line, one-CPU8 route, and CPU9 veto.
-   **Selected next:** publish and guarded-install exact candidate
-   `f694ddb9...` over exact boot2 predecessor `8acf9227...`, require its full
-   readback, and shut down. On the next boot, accept pre-trigger qualification
-   only with the positive runtime-identity message, no profile blocker, and
-   the existing serviceable armed/zero-execution frame. Define a separate
-   boot-bound one-shot only after that passes; retain the CPU9 veto.
+   Definition commits `c8056e5b` and `61b536c8` are published. The guarded
+   installer resolved inactive live-GPT boot2 as `/dev/mmcblk0p30`, matched
+   exact predecessor `8acf9227...`, stable power and empty retained records,
+   wrote only exact candidate `f694ddb9...`, and required matching full 16 MiB
+   readback. It made no fresh backup and then shut Gemini down; SSH failure and
+   three TCP/22 closures confirm the boundary. See the
+   [deployment receipt](../experiments/2026-08-30-mainline-a72-provenance-serviceability-composition/results/deployment-boot2-f694ddb9-20260830.txt).
+   **Selected next:** the owner physically selects boot2 once. Accept
+   pre-trigger qualification only with the positive runtime-identity message,
+   no profile blocker, and the existing serviceable armed/zero-execution
+   frame. Define a separate boot-bound one-shot only after that passes; retain
+   the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-provenance-serviceability-composition` |
-| Status | `offline PASS; exact DT-only boot candidate accepted for deployment` |
+| Status | `deployed to boot2 with full readback; device shut down awaiting selection` |
 | Subsystem | arm64 late-CPU runtime identity and Gemini serviceability DT |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -99,6 +99,21 @@ ramdisk, command line, controller, one-CPU8 limit, CPU9 veto, zero CPU_OFF,
 and zero retry paths are unchanged. Exact offline evidence is in
 [`results/offline-candidate-validation-20260830.txt`](results/offline-candidate-validation-20260830.txt).
 
+After the definition was published, the first installer invocation stopped
+before device access because its outer artifact guard incorrectly pinned a
+nested path rather than the required basename. The corrected guard was
+published separately at commit `61b536c8`; its read-only preflight then passed
+on exact Gemian boot `1df230e8...`, live-GPT inactive and unmounted
+`/dev/mmcblk0p30`, exact predecessor `8acf9227...`, stable external power and
+100% battery, and logically empty transition/admission retained records.
+
+The guarded write targeted only logical `boot2`, synchronized and flushed it,
+and required complete 16 MiB readback `f694ddb9...`. It made no fresh backup,
+removed its temporary readback, wrote no other partition or retained RAM, and
+then shut Gemini down without rebooting. SSH failure and three consecutive
+closed TCP/22 probes confirm shutdown. Sanitized evidence is in
+[`results/deployment-boot2-f694ddb9-20260830.txt`](results/deployment-boot2-f694ddb9-20260830.txt).
+
 ## Analysis
 
 The smallest attributable change is to compose the two already-owned DT
@@ -116,14 +131,12 @@ armed controller alone is not sufficient.
 
 ## Conclusion
 
-`offline-pass-exact-provenance-serviceability-candidate`: exact padded candidate
-`f694ddb9...` is accepted for guarded boot2 deployment after this definition is
-published. No device was accessed and no CPU request occurred in this phase.
+`deployed-exact-provenance-serviceability-candidate`: exact padded candidate
+`f694ddb9...` is installed to boot2 with matching full readback and the device
+is confirmed shut down. No CPU request occurred during deployment.
 
 ## Follow-up
 
-Publish this exact definition, install only candidate `f694ddb9...` over exact
-predecessor `8acf9227...` to inactive live-GPT boot2 with full readback, and
-shut down. On the next owner-selected boot, require positive runtime identity,
-no profile blocker, serviceability, and zero execution before defining a new
-one-shot.
+On the next owner-selected boot2 start, require positive runtime identity, no
+profile blocker, serviceability, and zero execution before defining a new
+boot-bound one-shot. Do not trigger from an armed frame alone.
