@@ -98,6 +98,14 @@ Gemini USB device or exact USB network interface during the bounded host check.
 It therefore supplies no boot ID, kernel identity, diagnostic line, or CPU
 result and is not classified as a kernel failure.
 
+The guarded installer resolved inactive, unmounted live-GPT boot2 as
+`/dev/mmcblk0p30`, matched exact predecessor `726b622a...`, stable power, and
+empty retained records. It wrote only diagnostic candidate `7ac6f429...`, made
+no fresh backup or retained-RAM write, and required an identical full 16 MiB
+readback. The device was shut down cleanly; SSH failure and three TCP/22
+closures confirm the boundary. See
+[`results/deployment-boot2-7ac6f429-20260830.txt`](results/deployment-boot2-7ac6f429-20260830.txt).
+
 ## Analysis
 
 The public proof mask deliberately groups all profile callback validation under
@@ -108,12 +116,12 @@ sequence of guessed semantic relaxations.
 
 ## Conclusion
 
-`exact-observer-candidate-validated-pending-deployment`.
+`exact-observer-candidate-deployed-pending-one-read-only-boot`.
 
 ## Follow-up
 
-Deploy exact candidate `7ac6f429...` only over predecessor `726b622a...`, then
-capture one complete read-only frame and exactly one versioned diagnostic line.
-Use its bitmap to select one source-local correction. Do not repeat the observer
-or permit CPU8 until a later non-diagnostic candidate publishes an exact
-no-blocker READY frame. Keep CPU9 vetoed.
+Physically select boot2 once, then capture one complete read-only frame and
+exactly one versioned diagnostic line. Use its bitmap to select one source-local
+correction. Do not repeat the observer or permit CPU8 until a later
+non-diagnostic candidate publishes an exact no-blocker READY frame. Keep CPU9
+vetoed.

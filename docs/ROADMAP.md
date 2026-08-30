@@ -6438,10 +6438,12 @@ The next ordered work is:
    package plus unchanged serviceability DT/ramdisk produces observer boot2
    image `7ac6f429...`; two DT and two container builds are byte-identical, all
    32 LK gates pass, and ten DT plus six container mutations are rejected.
-   **Selected next:** deploy `7ac6f429...` only over exact predecessor
-   `726b622a...`, capture one complete read-only frame and versioned predicate
-   bitmap without a trigger, then repair only the named false contract. Retain
-   the CPU9 veto.
+   The guarded live-GPT installer matched exact predecessor `726b622a...`,
+   wrote only inactive boot2, verified exact full-partition readback
+   `7ac6f429...`, made no fresh backup or retained-RAM write, and shut the
+   device down. **Selected next:** physically select boot2 once, capture one
+   complete read-only frame and versioned predicate bitmap without a trigger,
+   then repair only the named false contract. Retain the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 
