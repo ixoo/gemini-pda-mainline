@@ -1,0 +1,230 @@
+From d2285e28a20885cc1581b8a88cb39997c5b1cfaa Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 30 Aug 2026 02:01:00 +0000
+Subject: [PATCH] arm64: finalize Gemini late CPU profile
+
+Verify the frozen late-CPU local-capability set and the exact
+applied-alternatives and mitigation state after architecture
+finalization. Reduce native and compat userspace HWCAPs one way to
+the frozen common plan before READY publication.
+
+Wire the named MT6797 profile to those architecture-owned callbacks
+and clear its final production attestation blocker. Keep the fixture
+blocked and add no CPU request, retry, or CPU_OFF path.
+---
+ arch/arm64/include/asm/late_cpu_profile.h |  8 +++
+ arch/arm64/kernel/cpufeature.c            | 83 +++++++++++++++++++++++
+ arch/arm64/kernel/mt6797_psci.c           | 27 ++++++--
+ arch/arm64/kernel/proton-pack.c           | 32 +++++++++
+ 4 files changed, 146 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm64/include/asm/late_cpu_profile.h b/arch/arm64/include/asm/late_cpu_profile.h
+index 1b2b20b..09dbf9a 100644
+--- a/arch/arm64/include/asm/late_cpu_profile.h
++++ b/arch/arm64/include/asm/late_cpu_profile.h
+@@ -582,6 +582,14 @@ void __init arm64_prepare_late_cpu_profile(void);
+ void __init arm64_commit_late_cpu_profile(void);
+ int __init arm64_commit_late_cpu_plan(const struct arm64_late_cpu_plan *plan);
+ int __init arm64_commit_late_cpu_mitigations(const struct arm64_late_cpu_effect_plan *effects);
++int __init
++arm64_verify_late_cpu_mitigations(const struct arm64_late_cpu_effect_plan *effects);
++int __init
++arm64_verify_late_cpu_system(const struct arm64_late_cpu_plan *plan,
++			     const struct arm64_late_cpu_receipt *receipt);
++int __init
++arm64_finalize_late_cpu_hwcaps(const struct arm64_late_cpu_plan *plan,
++			       const struct arm64_late_cpu_receipt *receipt);
+ int __init arm64_plan_late_cpu_capabilities(struct arm64_late_cpu_plan *draft,
+ 					    const struct arm64_late_cpu_profile *profile);
+ int __init arm64_plan_late_cpu_effects(struct arm64_late_cpu_plan *draft,
+diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+index 77f77bb..ee9e668 100644
+--- a/arch/arm64/kernel/cpufeature.c
++++ b/arch/arm64/kernel/cpufeature.c
+@@ -4827,6 +4827,89 @@ int __init arm64_commit_late_cpu_plan(const struct arm64_late_cpu_plan *plan)
+ 
+ 	return 0;
+ }
++
++int __init
++arm64_verify_late_cpu_system(const struct arm64_late_cpu_plan *plan,
++			     const struct arm64_late_cpu_receipt *receipt)
++{
++	DECLARE_BITMAP(expected_caps, ARM64_NCAPS);
++	DECLARE_BITMAP(live_caps, ARM64_NCAPS);
++	unsigned int cap;
++
++	if (!plan || !receipt || !system_capabilities_finalized() ||
++	    receipt->state != ARM64_LATE_CPU_PROFILE_COMMITTED ||
++	    receipt->blocker_mask || !receipt->commit_complete ||
++	    receipt->strict_caps_verified || receipt->alternatives_finalized ||
++	    receipt->user_hwcaps_finalized ||
++	    !plan->local_caps_planned || !plan->effects_planned ||
++	    !plan->hwcaps_planned ||
++	    !bitmap_empty(plan->conflicting_local_caps, ARM64_NCAPS))
++		return -EINVAL;
++
++	bitmap_or(expected_caps, plan->early_local_caps,
++		  plan->required_local_caps, ARM64_NCAPS);
++	if (!bitmap_subset(expected_caps, plan->compiled_local_caps,
++			   ARM64_NCAPS))
++		return -EINVAL;
++	bitmap_and(live_caps, system_cpucaps, plan->compiled_local_caps,
++		   ARM64_NCAPS);
++	if (!bitmap_equal(live_caps, expected_caps, ARM64_NCAPS))
++		return -EINVAL;
++
++	for_each_set_bit(cap, plan->compiled_local_caps, ARM64_NCAPS)
++		if (alternative_is_applied(cap) !=
++		    test_bit(cap, expected_caps))
++			return -EINVAL;
++
++	return arm64_verify_late_cpu_mitigations(&plan->effects);
++}
++
++int __init
++arm64_finalize_late_cpu_hwcaps(const struct arm64_late_cpu_plan *plan,
++			       const struct arm64_late_cpu_receipt *receipt)
++{
++	const unsigned long *expected;
++
++	if (!plan || !receipt || !system_capabilities_finalized() ||
++	    receipt->state != ARM64_LATE_CPU_PROFILE_SYSTEM_VERIFIED ||
++	    receipt->blocker_mask || !receipt->commit_complete ||
++	    !receipt->strict_caps_verified ||
++	    !receipt->alternatives_finalized ||
++	    receipt->user_hwcaps_finalized || !plan->hwcaps_planned)
++		return -EINVAL;
++
++	BUILD_BUG_ON(sizeof(plan->expected_elf_hwcap) != sizeof(elf_hwcap));
++	BUILD_BUG_ON(sizeof(unsigned long) != sizeof(u64));
++	expected = (const unsigned long *)plan->expected_elf_hwcap;
++	if (!bitmap_subset(expected, elf_hwcap, MAX_CPU_FEATURES))
++		return -EINVAL;
++#ifdef CONFIG_COMPAT
++	if (plan->expected_compat_hwcap & ~compat_elf_hwcap ||
++	    plan->expected_compat_hwcap2 & ~compat_elf_hwcap2 ||
++	    compat_elf_hwcap3)
++		return -EINVAL;
++#else
++	if (plan->expected_compat_hwcap || plan->expected_compat_hwcap2)
++		return -EINVAL;
++#endif
++
++	/* All fallible checks precede this one-way userspace-visible reduction. */
++	bitmap_copy(elf_hwcap, expected, MAX_CPU_FEATURES);
++#ifdef CONFIG_COMPAT
++	compat_elf_hwcap = plan->expected_compat_hwcap;
++	compat_elf_hwcap2 = plan->expected_compat_hwcap2;
++#endif
++	if (!bitmap_equal(elf_hwcap, expected, MAX_CPU_FEATURES))
++		panic("late CPU HWCAP finalization changed outside its plan");
++#ifdef CONFIG_COMPAT
++	if (compat_elf_hwcap != plan->expected_compat_hwcap ||
++	    compat_elf_hwcap2 != plan->expected_compat_hwcap2 ||
++	    compat_elf_hwcap3)
++		panic("late CPU compat HWCAP finalization changed outside its plan");
++#endif
++
++	return 0;
++}
+ #endif
+ 
+ static void cap_set_elf_hwcap(const struct arm64_cpu_capabilities *cap)
+diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
+index d8e02b9..1d2a72d 100644
+--- a/arch/arm64/kernel/mt6797_psci.c
++++ b/arch/arm64/kernel/mt6797_psci.c
+@@ -46,10 +46,9 @@ extern const struct cpu_operations cpu_psci_ops;
+ 	 ARM64_LATE_CPU_BLOCK_RUNTIME_BINDING |			\
+ 	 ARM64_LATE_CPU_BLOCK_COMMIT_PATH)
+ #else
+-/* Slices 1-8 own every gate except final verification and READY. */
++/* Runtime identity is the last core-owned prepare-time gate. */
+ #define MT6797_A72_PROFILE_BLOCKERS					\
+-	(ARM64_LATE_CPU_BLOCK_ATTESTATION_USERS |			\
+-	 ARM64_LATE_CPU_BLOCK_RUNTIME_BINDING)
++	(ARM64_LATE_CPU_BLOCK_RUNTIME_BINDING)
+ #endif
+ 
+ static const u64 mt6797_a72_source_parent_identity[ARM64_LATE_CPU_ID_WORDS] __initconst = {
+@@ -1390,8 +1389,26 @@ mt6797_a72_profile_prepare(struct arm64_late_cpu_evidence *evidence,
+ 	if (!mt6797_a72_profile_topology_exact(registered_targets))
+ 		evidence->blocker_mask |= ARM64_LATE_CPU_BLOCK_TOPOLOGY;
+ 
+-	/* No live system capability, alternative, vector, or HWCAP is changed. */
++	/* Fixture evidence remains historical and cannot publish READY. */
++#ifdef CONFIG_ARM64_MT6797_A72_FIXTURE_EVIDENCE
+ 	return -EAGAIN;
++#else
++	return 0;
++#endif
++}
++
++static int __init
++mt6797_a72_verify_system(const struct arm64_late_cpu_plan *plan,
++			 const struct arm64_late_cpu_receipt *receipt)
++{
++	return arm64_verify_late_cpu_system(plan, receipt);
++}
++
++static int __init
++mt6797_a72_finalize_user(const struct arm64_late_cpu_plan *plan,
++			 const struct arm64_late_cpu_receipt *receipt)
++{
++	return arm64_finalize_late_cpu_hwcaps(plan, receipt);
+ }
+ 
+ static const struct arm64_late_cpu_profile mt6797_a72_profile __initconst = {
+@@ -1401,6 +1418,8 @@ static const struct arm64_late_cpu_profile mt6797_a72_profile __initconst = {
+ 	.validate_plan = mt6797_a72_validate_cap_plan,
+ 	.derive_effects = mt6797_a72_derive_effects,
+ 	.prepare = mt6797_a72_profile_prepare,
++	.verify_system = mt6797_a72_verify_system,
++	.finalize_user = mt6797_a72_finalize_user,
+ };
+ 
+ void __init mt6797_activate_a72_capability_profile(void)
+diff --git a/arch/arm64/kernel/proton-pack.c b/arch/arm64/kernel/proton-pack.c
+index ecbb164..100d33b 100644
+--- a/arch/arm64/kernel/proton-pack.c
++++ b/arch/arm64/kernel/proton-pack.c
+@@ -1725,6 +1725,38 @@ int __init arm64_commit_late_cpu_mitigations(const struct arm64_late_cpu_effect_
+ 
+ 	return 0;
+ }
++
++int __init
++arm64_verify_late_cpu_mitigations(const struct arm64_late_cpu_effect_plan *effects)
++{
++	enum mitigation_state v2;
++	enum mitigation_state v4;
++	enum mitigation_state bhb;
++	int ret;
++
++	if (!effects || !system_capabilities_finalized())
++		return -EINVAL;
++	if (effects->spectre_v2.required) {
++		ret = late_cpu_mitigation_state(effects->spectre_v2.mitigation_state, &v2);
++		if (ret || READ_ONCE(spectre_v2_state) != v2)
++			return -EINVAL;
++	}
++	if (effects->spectre_v4.required) {
++		ret = late_cpu_mitigation_state(effects->spectre_v4.mitigation_state, &v4);
++		if (ret || READ_ONCE(spectre_v4_state) != v4)
++			return -EINVAL;
++	}
++	if (effects->bhb.required) {
++		ret = late_cpu_mitigation_state(effects->bhb.mitigation_state, &bhb);
++		if (ret || READ_ONCE(spectre_bhb_state) != bhb ||
++		    READ_ONCE(system_bhb_mitigations) !=
++			    effects->bhb.system_method ||
++		    READ_ONCE(max_bhb_k) != effects->bhb.matcher_loop_count)
++			return -EINVAL;
++	}
++
++	return 0;
++}
+ #endif
+ 
+ static void this_cpu_set_vectors(enum arm64_bp_harden_el1_vectors slot)
