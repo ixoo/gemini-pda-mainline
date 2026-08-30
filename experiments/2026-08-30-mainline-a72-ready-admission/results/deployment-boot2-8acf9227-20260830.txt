@@ -1,0 +1,40 @@
+READY admission candidate deployment
+UTC date: 2026-08-30
+Result: complete pass
+
+Named device: Gemini PDA x27 project unit
+Repository deployment commit: 3fce29f3
+Known-good recovery kernel: 3.18.41+
+Recovery boot ID: 0a0d0adb-9a28-4783-8b1e-c91613e9554f
+Recovery root: /dev/mmcblk0p29
+Live-GPT boot2: /dev/mmcblk0p30
+
+Predecessor full-partition SHA-256:
+0814c06b9bb41aa7ec666ad1abbb4bbf86e113e11878ac3de159d6cec3112f78
+
+Candidate and readback full-partition SHA-256:
+8acf9227e6539e5011ab59a27e1320bf970c19cbbf5a5325fe3304f0e04dddb7
+
+Both TEE partition SHA-256 identities:
+2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3
+
+Power state: USB online, battery 100 percent, health Good, stable
+Target inactive and unmounted: yes
+Transition ledger preflight: passed, logical empty
+Admission trace preflight: passed, empty, controller not established
+Retained-RAM writes: none
+Fresh predecessor backup: no
+Write synchronized and flushed: yes
+Full-partition readback matched: yes
+Temporary readback removed: yes
+Automatic reboot: no
+Clean shutdown: confirmed
+Shutdown confirmation: SSH unreachable plus three consecutive closed TCP/22
+  probes
+
+The source-pinned installer resolved `boot2` from the live GPT, proved Gemian
+was rooted on a different partition, required the exact documented pmsg-witness
+predecessor, and preserved every power, TEE, target, write, readback, cleanup,
+and shutdown gate. The exact validated READY-admission candidate is installed
+and ready for one owner-selected boot2 cycle with the read-only pre-trigger
+collector armed before selection.

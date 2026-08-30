@@ -130,6 +130,14 @@ CPU9 remains vetoed.
   full-partition checksum was instead exact documented and readback-verified
   pmsg-witness candidate `0814c06b...`. The installer now admits only that
   exact current predecessor for this transition.
+- Unsigned commit `3fce29f3` published that corrected guard before deployment.
+  The retry matched exact predecessor `0814c06b...`, retained empty transition
+  and admission records without writing retained RAM, wrote exact candidate
+  `8acf9227...` only to inactive live-GPT boot2, synchronized and flushed it,
+  matched the full-partition readback, removed its temporary readback, and made
+  no fresh predecessor backup. Gemini then shut down cleanly without an
+  automatic reboot; SSH failure plus three consecutive closed TCP/22 probes
+  confirmed the power-off boundary.
 - Full generation and admission chronology is in
   [`results/generation-20260830.txt`](results/generation-20260830.txt).
 - Exact compile, linked-audit, and candidate evidence is in
@@ -156,8 +164,7 @@ no device was accessed and no CPU request occurred during this phase.
 
 ## Follow-up
 
-Publish the corrected exact-predecessor guard, perform one guarded install with
-full readback and clean shutdown, and arm the USB/netcat collector before
-physical selection. Qualify the exact boot and READY/controller state before
-consuming the token once. Record live and retained terminal evidence before
-changing the CPU9 veto.
+Complete the armed USB/netcat pre-trigger capture for the owner-selected boot2
+cycle. Qualify the exact boot and READY/controller state before consuming the
+token once. Record live and retained terminal evidence before changing the
+CPU9 veto.
