@@ -145,7 +145,14 @@ def validate_a34(root: Path) -> list[str]:
     for token in required:
         if token not in combined:
             raise SystemExit(f"semantic A34 predicate absent: {token}")
-    for fixture in (a34_test, derived_test, owner_test):
+    if (
+        "spm_mp2_cpu0_pwr_con =" not in a34_test
+        or "spm_mp2_cpu1_pwr_con =" not in a34_test
+        or a34_test.count("0x00010332;") < 2
+        or "cci_mp2_port_control = 0xc0000000" not in a34_test
+    ):
+        raise SystemExit("assignment-style A34 live fixture fields are absent")
+    for fixture in (derived_test, owner_test):
         for token in (
             ".spm_mp2_cpu0_pwr_con = 0x00010332",
             ".spm_mp2_cpu1_pwr_con = 0x00010332",
