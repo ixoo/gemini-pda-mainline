@@ -611,7 +611,29 @@ mt6797_a72_a34_evaluate(const struct mt6797_a72_a34_observation *observation)
 
     a34_path = root / A34_TEST
     a34 = read_parent(root, A34_TEST)
-    a34 = add_live_platform_fields(a34, "A34 live platform fixture")
+    a34 = replace_once(
+        a34,
+        """	observation->direct.source.platform.spm_cpu_pwr_status = 0x00350c08;
+	observation->direct.source.platform.spm_cpu_pwr_status_2nd = 0x00350cff;
+	observation->direct.source.platform.spm_mp2_cpusys_pwr_con =
+		0x00010132;
+	observation->direct.source.platform.spm_cpu_ext_buck_iso = 0x00000002;
+	observation->direct.source.platform.valid = true;
+""",
+        """	observation->direct.source.platform.spm_cpu_pwr_status = 0x003dce08;
+	observation->direct.source.platform.spm_cpu_pwr_status_2nd = 0x003dceff;
+	observation->direct.source.platform.spm_mp2_cpusys_pwr_con =
+		0x00010132;
+	observation->direct.source.platform.spm_mp2_cpu0_pwr_con =
+		0x00010332;
+	observation->direct.source.platform.spm_mp2_cpu1_pwr_con =
+		0x00010332;
+	observation->direct.source.platform.spm_cpu_ext_buck_iso = 0x00000002;
+	observation->direct.source.platform.cci_mp2_port_control = 0xc0000000;
+	observation->direct.source.platform.valid = true;
+""",
+        "A34 live platform fixture",
+    )
     start = a34.index("static void mt6797_a34_every_byte_mutation_test(")
     end = a34.index("\nstatic void mt6797_a34_missing_replay_test", start)
     tests = r'''static void mt6797_a34_irrelevant_payload_test(struct kunit *test)
