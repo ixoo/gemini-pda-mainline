@@ -1,0 +1,30 @@
+From 532be96d4fc378a4abbd8966b8c36fe8ad2f1eb1 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 30 Aug 2026 03:02:00 +0000
+Subject: [PATCH 2/2] arm64: bind Gemini CPU8 admission configuration
+
+Bind the production MT6797 late-CPU profile to the exact
+configuration inputs of the serviceability-first CPU8 live-trigger
+candidate. Preserve the separate historical fixture identity.
+
+The change opens no gate by itself and adds no CPU9, retry, or
+CPU_OFF path.
+---
+ arch/arm64/kernel/mt6797_psci.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
+index 1d2a72d..1cd32ee 100644
+--- a/arch/arm64/kernel/mt6797_psci.c
++++ b/arch/arm64/kernel/mt6797_psci.c
+@@ -63,8 +63,8 @@ static const u64 mt6797_a72_config_input_identity[ARM64_LATE_CPU_ID_WORDS] __ini
+ };
+ #else
+ static const u64 mt6797_a72_config_input_identity[ARM64_LATE_CPU_ID_WORDS] __initconst = {
+-	0x699f14786e1d64eb, 0x3811f0b6c481c31d,
+-	0x9e0e77fc96b64eb4, 0xd12ebbbfde3b23b0,
++	0x5968c24f1904c055, 0x9dea25480c41fbc7,
++	0xdb49e822dc3600d1, 0xbdd7632330853f40,
+ };
+ #endif
+ 

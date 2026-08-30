@@ -83,6 +83,17 @@ CPU9 remains vetoed.
   `arm64_validate_late_cpu_preflight()` is undeclared when the profile is off,
   while always-built `arm64_late_cpu_validate_boot_caps()` lacks a visible
   prototype.
+- Exact-source generation at repository commit `9b17b571` produced two logical
+  patches with strict style, deterministic replay, positive source validation,
+  and all nine rejecting mutations passing. The first generation attempt found
+  and corrected a validator that counted only the production identity binding
+  while the historical fixture intentionally owns a second comparison.
+- Canonical patch `0435` is byte-identical to generated SHA-256 `f07cd67c...`;
+  patch `0436` is byte-identical to generated SHA-256 `1a439a82...`.
+- The admitted series passes all 158 manifest profiles and rejects all eight
+  canonical-series invariant mutations. Compilation remains pending.
+- Full generation and admission chronology is in
+  [`results/generation-20260830.txt`](results/generation-20260830.txt).
 
 ## Analysis
 
@@ -94,9 +105,9 @@ does not regress unrelated arm64 configurations.
 
 ## Conclusion
 
-Inconclusive for hardware behavior. The two repair targets are identified from
-exact compile and package evidence; neither repair is yet canonically admitted
-or compiled.
+Inconclusive for hardware behavior. Both repairs are generated, mutation-tested,
+replayed, and canonically admitted. The configuration-off control and exact
+enabled candidate must still compile on Buildbox before candidate selection.
 
 ## Follow-up
 

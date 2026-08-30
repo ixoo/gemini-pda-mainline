@@ -1,0 +1,49 @@
+From a7e03a5158bdf93530426f7acfaa91d472e08a45 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 30 Aug 2026 03:01:00 +0000
+Subject: [PATCH 1/2] arm64: keep late CPU preflight build-safe when disabled
+
+Keep the always-built boot-capability preflight prototype visible
+when the optional late-CPU profile is disabled. Provide the same
+zero-effect pass-through used by the other disabled-profile hooks.
+
+This repairs generic arm64 builds without activating a profile or
+adding any CPU request path.
+---
+ arch/arm64/include/asm/late_cpu_profile.h | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/include/asm/late_cpu_profile.h b/arch/arm64/include/asm/late_cpu_profile.h
+index 09dbf9a..7190cb7 100644
+--- a/arch/arm64/include/asm/late_cpu_profile.h
++++ b/arch/arm64/include/asm/late_cpu_profile.h
+@@ -563,6 +563,8 @@ struct arm64_late_cpu_profile {
+ 			     const struct arm64_late_cpu_receipt *receipt);
+ };
+ 
++int arm64_late_cpu_validate_boot_caps(void);
++
+ #ifdef CONFIG_ARM64_LATE_CPU_PROFILE
+ void __init arm64_activate_late_cpu_profile(const struct arm64_late_cpu_profile *profile);
+ void __init arm64_register_late_cpu_target(const struct arm64_late_cpu_profile *profile,
+@@ -574,7 +576,6 @@ int __init
+ arm64_late_cpu_collect_policy(struct arm64_late_cpu_target_policy_evidence *policy,
+ 			      struct arm64_late_cpu_system_cap_evidence *system);
+ bool arm64_late_cpu_expected_pair_complete(const struct arm64_late_cpu_plan *plan);
+-int arm64_late_cpu_validate_boot_caps(void);
+ int arm64_validate_late_cpu_preflight(unsigned int cpu);
+ int arm64_validate_late_cpu_expected_target(unsigned int cpu);
+ void __init arm64_seal_late_cpu_runtime_evidence(void);
+@@ -698,6 +699,12 @@ arm64_collect_late_cpu_runtime_system_policy(void)
+ {
+ }
+ 
++static inline int
++arm64_validate_late_cpu_preflight(unsigned int cpu)
++{
++	return 0;
++}
++
+ static inline int
+ arm64_validate_late_cpu_expected_target(unsigned int cpu)
+ {
