@@ -470,11 +470,11 @@ mt6797_a72_membership_derive_cpu8(const struct arm64_late_cpu_ready_token *ready
     controller = replace_once(
         controller,
         """		 "entry_trace_ret=%d terminal_trace_ret=%d "
-		 "requests=%u/0/0 retries=0\n",
+		 "requests=%u/0/0 retries=0\\n",
 """,
         """		 "entry_trace_ret=%d terminal_trace_ret=%d "
 		 "failure_stage=%u derive_stage=%u "
-		 "requests=%u/0/0 retries=0\n",
+		 "requests=%u/0/0 retries=0\\n",
 """,
         "terminal format",
     )
