@@ -105,7 +105,7 @@ def apply_internal(root: Path) -> None:
 				 const struct mt6797_a72_binder_backend_ops *backend);
 void
 mt6797_a72_binder_test_diagnostic(const struct mt6797_a72_binder *binder,
-				   struct mt6797_a72_binder_diagnostic *snapshot);
+				  struct mt6797_a72_binder_diagnostic *snapshot);
 '''
     original = r'''void mt6797_a72_binder_test_init(struct mt6797_a72_binder *binder,
 				 const struct mt6797_a72_binder_backend_ops *backend);
@@ -130,7 +130,7 @@ def apply_binder(root: Path) -> None:
     diagnostic = available + r'''
 static void
 mt6797_a72_binder_fill_diagnostic(const struct mt6797_a72_binder *binder,
-				   struct mt6797_a72_binder_diagnostic *snapshot)
+				  struct mt6797_a72_binder_diagnostic *snapshot)
 {
 	const struct mt6797_a72_platform_effect_result *acquire = &binder->p27;
 	const struct mt6797_a72_platform_effect_result *release =
@@ -245,7 +245,7 @@ mt6797_a72_binder_diagnostic_snapshot(struct mt6797_a72_binder_diagnostic *snaps
     test_diagnostic = test_init + r'''
 void
 mt6797_a72_binder_test_diagnostic(const struct mt6797_a72_binder *binder,
-				   struct mt6797_a72_binder_diagnostic *snapshot)
+				  struct mt6797_a72_binder_diagnostic *snapshot)
 {
 	mt6797_a72_binder_fill_diagnostic(binder, snapshot);
 }
@@ -355,7 +355,7 @@ def apply_test(root: Path) -> None:
 
 	state->malformed = TEST_MALFORMED_P27;
 	ret = mt6797_a72_binder_test_boot(&state->binder, 8,
-					 mt6797_binder_test_cpu_boot);
+					  mt6797_binder_test_cpu_boot);
 	KUNIT_ASSERT_EQ(test, ret, -EPROTO);
 	mt6797_a72_binder_test_diagnostic(&state->binder, &diagnostic);
 	KUNIT_EXPECT_EQ(test, diagnostic.abi,
