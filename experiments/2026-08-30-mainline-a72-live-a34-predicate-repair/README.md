@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-live-a34-predicate-repair` |
-| Status | `implementation and Buildbox validation in progress` |
+| Status | `patches generated and admitted; focused Buildbox validation in progress` |
 | Subsystem | MT6797 CPU8 derived admission and A34 eligibility |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -79,7 +79,26 @@ differ from that fixture.
 
 ## Analysis
 
-Pending Buildbox generation and focused validation.
+Buildbox generated the two patches from repository commit `8f286012` against
+the exact managed post-`0441` source state
+`24a6905922ecd7d6a618bedd8da3819de5d7d8b97c92f081f95fd9c28e3cf041`
+with source-integrity identity
+`e62aa413d9a4126e428608e07c4f7e8245ca123a9457b874ef42057b7a620db1`.
+The checksum-covered outputs are:
+
+- `0442-soc-mediatek-retain-live-CPU8-admission-failure-stage.patch`:
+  `75be779895558c344f0c025a79079569cd00b1325554ae5a51f6d15d757ee24c`;
+- `0443-arm64-mediatek-validate-live-A34-admission-predicates.patch`:
+  `f4b8d1a32c8cab7296010a9a820d9c3781c1af622abe7b2d500cc2840287b7f2`.
+
+Generation validation found three retained controller failure stages, all 15
+derived substages, unchanged request order, and no new CPU request, CPU9,
+CPU-off, retry, or hardware-write path. The A34 audit confirms that only A72
+CPU-status bits 7:6 remain authorizing; unrelated A53 bits and raw clock and
+BigiDVFS payloads are non-authorizing, while topology, owner, replay, provider,
+and platform predicates remain fail-closed.
+
+Focused compile and KUnit validation remain pending.
 
 ## Conclusion
 
@@ -87,4 +106,5 @@ Pending.
 
 ## Follow-up
 
-Generate, review, and build the two-patch source repair on Buildbox.
+Build and run the focused KUnit profile, then build and validate one exact
+physical candidate on Buildbox.

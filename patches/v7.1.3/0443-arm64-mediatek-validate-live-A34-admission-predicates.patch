@@ -1,0 +1,305 @@
+From efd14b981b52954cc11b57ab156e87fcb82609cd Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 31 Aug 2026 00:02:00 +0000
+Subject: [PATCH 2/2] arm64: mediatek: validate live A34 admission predicates
+
+A34 compared the complete raw physical snapshot against an
+injected fixture whose unspecified live registers were zero.
+Exact device evidence shows valid nonzero per-core MP2 and CCI
+state plus unrelated A53 CPU-status movement.
+
+Validate the documented CPU8-off topology, owner, replay,
+provider, MP2, isolation, DCM, CCI and source-validity predicates
+instead. Keep A72 status bits fail-closed while excluding
+unrelated A53 and raw clock payloads from authorization.
+---
+ .../kernel/mt6797_a72_a34_evaluator_test.c    |  65 +++++++---
+ .../mt6797_a72_derived_admission_test.c       |  11 +-
+ arch/arm64/kernel/mt6797_a72_membership.c     | 117 +++++++++---------
+ .../arm64/kernel/mt6797_a72_membership_test.c |   7 +-
+ 4 files changed, 118 insertions(+), 82 deletions(-)
+
+diff --git a/arch/arm64/kernel/mt6797_a72_a34_evaluator_test.c b/arch/arm64/kernel/mt6797_a72_a34_evaluator_test.c
+index 6fb2024..1300697 100644
+--- a/arch/arm64/kernel/mt6797_a72_a34_evaluator_test.c
++++ b/arch/arm64/kernel/mt6797_a72_a34_evaluator_test.c
+@@ -39,11 +39,16 @@ mt6797_a34_fill_valid(struct mt6797_a72_a34_observation *observation)
+ 	observation->direct.source.provider.vbuckb_b = 0x46;
+ 	observation->direct.source.platform.spm_pwr_status = 0x2a00005c;
+ 	observation->direct.source.platform.spm_pwr_status_2nd = 0x2a00004c;
+-	observation->direct.source.platform.spm_cpu_pwr_status = 0x00350c08;
+-	observation->direct.source.platform.spm_cpu_pwr_status_2nd = 0x00350cff;
++	observation->direct.source.platform.spm_cpu_pwr_status = 0x003dce08;
++	observation->direct.source.platform.spm_cpu_pwr_status_2nd = 0x003dceff;
+ 	observation->direct.source.platform.spm_mp2_cpusys_pwr_con =
+ 		0x00010132;
++	observation->direct.source.platform.spm_mp2_cpu0_pwr_con =
++		0x00010332;
++	observation->direct.source.platform.spm_mp2_cpu1_pwr_con =
++		0x00010332;
+ 	observation->direct.source.platform.spm_cpu_ext_buck_iso = 0x00000002;
++	observation->direct.source.platform.cci_mp2_port_control = 0xc0000000;
+ 	observation->direct.source.platform.valid = true;
+ 	observation->direct.source.clock.abi =
+ 		MT6797_DVFSP_CLOCK_BACKEND_ABI;
+@@ -125,24 +130,47 @@ static void mt6797_a34_null_test(struct kunit *test)
+ 			   sizeof(*state->before));
+ }
+ 
+-static void mt6797_a34_every_byte_mutation_test(struct kunit *test)
++static void mt6797_a34_irrelevant_payload_test(struct kunit *test)
+ {
+ 	struct mt6797_a34_test_state *state = test->priv;
+-	u8 *bytes = (u8 *)state->observation;
+-	size_t offset;
+-	int ret;
++	struct mt6797_a72_direct_source_snapshot *source =
++		&state->observation->direct.source;
++
++	source->platform.spm_cpu_pwr_status ^= BIT(11);
++	source->platform.spm_cpu_pwr_status_2nd ^= BIT(13);
++	source->clock.sample_generation = 9;
++	source->clock.armplldiv_muxsel = 0x12345678;
++	source->clock.cspm_hwsta[3] = 0x89abcdef;
++	source->bigidvfs.sample_generation = 7;
++	source->bigidvfs.pll_pcw = 0x10203040;
++	source->bigidvfs.control = 0x50607080;
++	mt6797_a34_expect_result_unchanged(test, state, 0);
++}
+ 
+-	mt6797_a72_membership_snapshot(state->before);
+-	for (offset = 0; offset < sizeof(*state->observation); offset++) {
+-		mt6797_a34_fill_valid(state->observation);
+-		bytes[offset] ^= 1;
+-		ret = mt6797_a72_a34_evaluate(state->observation);
+-		KUNIT_EXPECT_EQ_MSG(test, ret, -EPERM,
+-				    "mutation offset %zu", offset);
+-	}
+-	mt6797_a72_membership_snapshot(state->after);
+-	KUNIT_EXPECT_MEMEQ(test, state->before, state->after,
+-			   sizeof(*state->before));
++static void mt6797_a34_relevant_mutation_test(struct kunit *test)
++{
++	struct mt6797_a34_test_state *state = test->priv;
++
++	state->observation->direct.cpu8_online = 1;
++	mt6797_a34_expect_result_unchanged(test, state, -EPERM);
++	mt6797_a34_fill_valid(state->observation);
++	state->observation->direct.source.provider.buckb_cont = 1;
++	mt6797_a34_expect_result_unchanged(test, state, -EPERM);
++	mt6797_a34_fill_valid(state->observation);
++	state->observation->direct.source.platform.spm_cpu_pwr_status |= BIT(6);
++	mt6797_a34_expect_result_unchanged(test, state, -EPERM);
++	mt6797_a34_fill_valid(state->observation);
++	state->observation->direct.source.platform.spm_mp2_cpu0_pwr_con ^= 1;
++	mt6797_a34_expect_result_unchanged(test, state, -EPERM);
++	mt6797_a34_fill_valid(state->observation);
++	state->observation->direct.source.platform.cci_mp2_port_control ^= 1;
++	mt6797_a34_expect_result_unchanged(test, state, -EPERM);
++	mt6797_a34_fill_valid(state->observation);
++	state->observation->direct.source.clock.sample_generation = 0;
++	mt6797_a34_expect_result_unchanged(test, state, -EPERM);
++	mt6797_a34_fill_valid(state->observation);
++	state->observation->direct.owner.diagnostic_blockers ^= 1;
++	mt6797_a34_expect_result_unchanged(test, state, -EPERM);
+ }
+ 
+ static void mt6797_a34_missing_replay_test(struct kunit *test)
+@@ -174,7 +202,8 @@ static void mt6797_a34_admission_remains_closed_test(struct kunit *test)
+ static struct kunit_case mt6797_a34_test_cases[] = {
+ 	KUNIT_CASE(mt6797_a34_exact_direct_replay_test),
+ 	KUNIT_CASE(mt6797_a34_null_test),
+-	KUNIT_CASE(mt6797_a34_every_byte_mutation_test),
++	KUNIT_CASE(mt6797_a34_irrelevant_payload_test),
++	KUNIT_CASE(mt6797_a34_relevant_mutation_test),
+ 	KUNIT_CASE(mt6797_a34_missing_replay_test),
+ 	KUNIT_CASE(mt6797_a34_admission_remains_closed_test),
+ 	{}
+diff --git a/arch/arm64/kernel/mt6797_a72_derived_admission_test.c b/arch/arm64/kernel/mt6797_a72_derived_admission_test.c
+index 6ee148f..86d7e85 100644
+--- a/arch/arm64/kernel/mt6797_a72_derived_admission_test.c
++++ b/arch/arm64/kernel/mt6797_a72_derived_admission_test.c
+@@ -51,10 +51,13 @@ static struct mt6797_a72_direct_source_snapshot mt6797_a72_exact_source(void)
+ 		.platform = {
+ 			.spm_pwr_status = 0x2a00005c,
+ 			.spm_pwr_status_2nd = 0x2a00004c,
+-			.spm_cpu_pwr_status = 0x00350c08,
+-			.spm_cpu_pwr_status_2nd = 0x00350cff,
++			.spm_cpu_pwr_status = 0x003dce08,
++			.spm_cpu_pwr_status_2nd = 0x003dceff,
+ 			.spm_mp2_cpusys_pwr_con = 0x00010132,
++			.spm_mp2_cpu0_pwr_con = 0x00010332,
++			.spm_mp2_cpu1_pwr_con = 0x00010332,
+ 			.spm_cpu_ext_buck_iso = 0x00000002,
++			.cci_mp2_port_control = 0xc0000000,
+ 			.valid = true,
+ 		},
+ 		.clock = {
+@@ -274,8 +277,8 @@ static void mt6797_a72_derived_source_rejections_test(struct kunit *test)
+ 	state->topology.cpu8_possible = 0;
+ 	mt6797_a72_expect_source_rejection(test, state, -EPERM, 0);
+ 	state->topology = mt6797_a72_exact_topology();
+-	state->source.clock.sample_generation++;
+-	mt6797_a72_expect_source_rejection(test, state, -EPERM, 1);
++	state->source.clock.sample_generation = 0;
++	mt6797_a72_expect_source_rejection(test, state, -EPROTO, 1);
+ }
+ 
+ static void mt6797_a72_derived_ready_rejection_test(struct kunit *test)
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+index 9f3952d..6ff3e1b 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -439,73 +439,74 @@ mt6797_a72_direct_state_test_snapshot(const struct mt6797_a72_direct_topology *t
+ #endif
+ 
+ #ifdef CONFIG_ARM64_MT6797_A72_A34_ELIGIBILITY_EVALUATOR
+-static const struct mt6797_a72_a34_observation a34_expected = {
+-	.abi = MT6797_A72_A34_ELIGIBILITY_ABI,
+-	.direct = {
+-		.abi = MT6797_A72_DIRECT_STATE_ABI,
+-		.valid = 1,
+-		.cpu8_possible = 1,
+-		.cpu9_possible = 1,
+-		.cpu8_present = 1,
+-		.cpu9_present = 1,
+-		.cpu8_method_valid = 1,
+-		.cpu9_method_valid = 1,
+-		.cpu8_mpidr = 0x200,
+-		.cpu9_mpidr = 0x201,
+-		.source = {
+-			.abi = MT6797_A72_DIRECT_SOURCE_ABI,
+-			.valid = 1,
+-			.provider = {
+-				.abi = MT6797_A72_PROVIDER_STATE_ABI,
+-				.valid = 1,
+-				.control_a = 0x7b,
+-				.status_b = 0xc1,
+-				.vbuckb_a = 0x46,
+-				.vbuckb_b = 0x46,
+-			},
+-			.platform = {
+-				.spm_pwr_status = 0x2a00005c,
+-				.spm_pwr_status_2nd = 0x2a00004c,
+-				.spm_cpu_pwr_status = 0x00350c08,
+-				.spm_cpu_pwr_status_2nd = 0x00350cff,
+-				.spm_mp2_cpusys_pwr_con = 0x00010132,
+-				.spm_cpu_ext_buck_iso = 0x00000002,
+-				.valid = true,
+-			},
+-			.clock = {
+-				.abi = MT6797_DVFSP_CLOCK_BACKEND_ABI,
+-				.sample_generation = 1,
+-			},
+-			.bigidvfs = {
+-				.abi = MT6797_BIGIDVFS_BACKEND_ABI,
+-				.sample_generation = 1,
+-			},
+-		},
+-		.owner = {
+-			.diagnostic_blockers = MT6797_A72_BLOCK_MASK,
+-			.abi = MT6797_A72_TRANSACTION_ABI,
+-			.health = MT6797_A72_OWNER_CLOSED,
+-			.phase = MT6797_A72_PHASE_UNINITIALIZED,
+-			.provider_state = MT6797_A72_PROVIDER_NONE,
+-		},
+-	},
+-	.replay = {
+-		.abi = MT6797_A72_A34_REPLAY_ABI,
+-		.valid = 1,
+-		.proof =
+-			MT6797_A72_A34_REPLAY_APPLICABLE_PRIMARY_BL31_CLEAR,
+-	},
+-};
++#define MT6797_A72_A34_CPU_STATUS_MASK GENMASK(7, 6)
++
++static bool
++mt6797_a72_a34_direct_valid(const struct mt6797_a72_direct_state_snapshot *direct)
++{
++	const struct mt6797_a72_direct_source_snapshot *source = &direct->source;
++	const struct mt6797_a72_provider_snapshot *provider = &source->provider;
++	const struct mt6797_a72_platform_state *platform = &source->platform;
++
++	return direct->abi == MT6797_A72_DIRECT_STATE_ABI && direct->valid == 1 &&
++		direct->cpu8_possible == 1 && direct->cpu9_possible == 1 &&
++		direct->cpu8_present == 1 && direct->cpu9_present == 1 &&
++		!direct->cpu8_online && !direct->cpu9_online &&
++		direct->cpu8_method_valid == 1 &&
++		direct->cpu9_method_valid == 1 &&
++		direct->cpu8_mpidr == 0x200 && direct->cpu9_mpidr == 0x201 &&
++		source->abi == MT6797_A72_DIRECT_SOURCE_ABI &&
++		source->valid == 1 && !source->reserved[0] &&
++		!source->reserved[1] &&
++		provider->abi == MT6797_A72_PROVIDER_STATE_ABI &&
++		provider->valid == 1 && provider->control_a == 0x7b &&
++		provider->status_b == 0xc1 && !provider->buckb_cont &&
++		provider->vbuckb_a == 0x46 && provider->vbuckb_b == 0x46 &&
++		!provider->reserved && platform->valid &&
++		platform->spm_pwr_status == 0x2a00005c &&
++		platform->spm_pwr_status_2nd == 0x2a00004c &&
++		!(platform->spm_cpu_pwr_status &
++		  MT6797_A72_A34_CPU_STATUS_MASK) &&
++		!(platform->spm_cpu_pwr_status_2nd &
++		  MT6797_A72_A34_CPU_STATUS_MASK) &&
++		platform->spm_mp2_cpusys_pwr_con == 0x00010132 &&
++		platform->spm_mp2_cpu0_pwr_con == 0x00010332 &&
++		platform->spm_mp2_cpu1_pwr_con == 0x00010332 &&
++		platform->spm_cpu_ext_buck_iso == 0x00000002 &&
++		!platform->mp2_sync_dcm &&
++		platform->cci_mp2_port_control == 0xc0000000 &&
++		!platform->cci_status_before && !platform->cci_status_after &&
++		!platform->pwrap_reset_asserted &&
++		source->clock.abi == MT6797_DVFSP_CLOCK_BACKEND_ABI &&
++		!source->clock.reserved && source->clock.sample_generation &&
++		source->bigidvfs.abi == MT6797_BIGIDVFS_BACKEND_ABI &&
++		!source->bigidvfs.reserved &&
++		source->bigidvfs.sample_generation &&
++		!memcmp(&direct->owner, &a72_direct_expected_owner,
++			 sizeof(direct->owner));
++}
+ 
+ int
+ mt6797_a72_a34_evaluate(const struct mt6797_a72_a34_observation *observation)
+ {
++	const struct mt6797_a72_a34_replay *replay;
++
+ 	if (!observation)
+ 		return -EINVAL;
+-	if (memcmp(observation, &a34_expected, sizeof(*observation)))
++	replay = &observation->replay;
++	if (observation->abi != MT6797_A72_A34_ELIGIBILITY_ABI ||
++	    observation->reserved[0] || observation->reserved[1] ||
++	    observation->reserved[2] ||
++	    !mt6797_a72_a34_direct_valid(&observation->direct) ||
++	    replay->abi != MT6797_A72_A34_REPLAY_ABI || replay->valid != 1 ||
++	    replay->proof !=
++		MT6797_A72_A34_REPLAY_APPLICABLE_PRIMARY_BL31_CLEAR ||
++	    replay->private_replay_value || replay->reserved[0] ||
++	    replay->reserved[1] || replay->reserved[2] || replay->reserved[3])
+ 		return -EPERM;
+ 	return 0;
+ }
++
+ #endif
+ 
+ #ifdef CONFIG_ARM64_MT6797_A72_BOOTSTRAP_PUBLISHER
+diff --git a/arch/arm64/kernel/mt6797_a72_membership_test.c b/arch/arm64/kernel/mt6797_a72_membership_test.c
+index ac31659..ee87786 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership_test.c
++++ b/arch/arm64/kernel/mt6797_a72_membership_test.c
+@@ -1479,10 +1479,13 @@ static struct mt6797_a72_direct_source_snapshot atomic_source(void)
+ 		.platform = {
+ 			.spm_pwr_status = 0x2a00005c,
+ 			.spm_pwr_status_2nd = 0x2a00004c,
+-			.spm_cpu_pwr_status = 0x00350c08,
+-			.spm_cpu_pwr_status_2nd = 0x00350cff,
++			.spm_cpu_pwr_status = 0x003dce08,
++			.spm_cpu_pwr_status_2nd = 0x003dceff,
+ 			.spm_mp2_cpusys_pwr_con = 0x00010132,
++			.spm_mp2_cpu0_pwr_con = 0x00010332,
++			.spm_mp2_cpu1_pwr_con = 0x00010332,
+ 			.spm_cpu_ext_buck_iso = 0x00000002,
++			.cci_mp2_port_control = 0xc0000000,
+ 			.valid = true,
+ 		},
+ 		.clock = {

@@ -1,0 +1,355 @@
+From ebc68affe698eab0b265d584a4b55750e172a55b Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 31 Aug 2026 00:01:00 +0000
+Subject: [PATCH 1/2] soc: mediatek: retain live CPU8 admission failure stage
+
+The first live CPU8 trigger returned EPERM after the one-shot
+core was consumed but before a CPU request. Existing trace
+storage could not retain the exact rejecting stage.
+
+Retain the controller stage and the first derived-admission
+substage in the read-only terminal status. Do not change any
+predicate, effect, request order, or retry behavior.
+---
+ .../arm64/include/asm/mt6797_a72_membership.h | 34 ++++++++++++-
+ arch/arm64/kernel/mt6797_a72_membership.c     | 50 +++++++++++++++----
+ ...mt6797-a72-admission-controller-internal.h |  2 +
+ .../mt6797-a72-admission-controller-test.c    |  2 +
+ .../mt6797-a72-admission-controller.c         | 17 +++++--
+ 5 files changed, 89 insertions(+), 16 deletions(-)
+
+diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
+index 6811f1a..36f6096 100644
+--- a/arch/arm64/include/asm/mt6797_a72_membership.h
++++ b/arch/arm64/include/asm/mt6797_a72_membership.h
+@@ -61,6 +61,25 @@ enum mt6797_a72_membership_operation {
+ 	MT6797_A72_OPERATION_CPU8_LAST_OFF,
+ };
+ 
++enum mt6797_a72_cpu8_derive_stage {
++	MT6797_A72_DERIVE_NONE,
++	MT6797_A72_DERIVE_TOPOLOGY,
++	MT6797_A72_DERIVE_READY_TOKEN,
++	MT6797_A72_DERIVE_BOOTSTRAP_OWNER,
++	MT6797_A72_DERIVE_BOOTSTRAP_REPLAY,
++	MT6797_A72_DERIVE_DIRECT_STATE,
++	MT6797_A72_DERIVE_A34,
++	MT6797_A72_DERIVE_P30_CLAIM,
++	MT6797_A72_DERIVE_BOOTSTRAP_FINALIZE,
++	MT6797_A72_DERIVE_P30_RELEASE,
++	MT6797_A72_DERIVE_P31_CONSUME,
++	MT6797_A72_DERIVE_ENTRY_VALIDATE,
++	MT6797_A72_DERIVE_TOKEN_MINT,
++	MT6797_A72_DERIVE_PRESTATE_VALIDATE,
++	MT6797_A72_DERIVE_PRESTATE_BIND,
++	MT6797_A72_DERIVE_COMPLETE,
++};
++
+ enum mt6797_a72_provider_state {
+ 	MT6797_A72_PROVIDER_NONE,
+ 	MT6797_A72_PROVIDER_ACQUIRE_INFLIGHT,
+@@ -622,16 +641,27 @@ mt6797_a72_membership_begin_up(unsigned int cpu, enum cpuhp_state target,
+ int
+ mt6797_a72_membership_derive_cpu8(const struct arm64_late_cpu_ready_token *ready,
+ 				  struct mt6797_a72_transaction *transaction);
++int
++mt6797_a72_membership_derive_cpu8_diagnostic(const struct arm64_late_cpu_ready_token *ready, struct mt6797_a72_transaction *transaction, u32 *derive_stage);
+ #else
+ static inline int
+-mt6797_a72_membership_derive_cpu8(const struct arm64_late_cpu_ready_token *ready,
+-				  struct mt6797_a72_transaction *transaction)
++mt6797_a72_membership_derive_cpu8_diagnostic(const struct arm64_late_cpu_ready_token *ready, struct mt6797_a72_transaction *transaction, u32 *derive_stage)
+ {
+ 	(void)ready;
+ 	if (transaction)
+ 		memset(transaction, 0, sizeof(*transaction));
++	if (derive_stage)
++		*derive_stage = MT6797_A72_DERIVE_NONE;
+ 	return -EOPNOTSUPP;
+ }
++
++static inline int
++mt6797_a72_membership_derive_cpu8(const struct arm64_late_cpu_ready_token *ready,
++				  struct mt6797_a72_transaction *transaction)
++{
++	return mt6797_a72_membership_derive_cpu8_diagnostic(ready, transaction,
++							    NULL);
++}
+ #endif
+ #ifdef CONFIG_ARM64_MT6797_A72_DERIVED_ADMISSION_KUNIT_TEST
+ int
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+index 144b044..9f3952d 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -616,11 +616,18 @@ out:
+ 	return ret;
+ }
+ 
++static void mt6797_a72_derive_stage_set(u32 *stage, u32 value)
++{
++	if (stage)
++		*stage = value;
++}
++
+ static int
+ mt6797_a72_membership_publish_bootstrap_locked(const struct mt6797_a72_direct_topology *topology,
+ 					       const struct mt6797_a72_a34_replay *replay,
+ 					       bool dirty_owner_before_finalize,
+-					       struct mt6797_a72_direct_state_snapshot *published)
++					       struct mt6797_a72_direct_state_snapshot *published,
++					       u32 *derive_stage)
+ {
+ 	struct mt6797_a72_bootstrap_workspace *workspace =
+ 		&a72_bootstrap_workspace;
+@@ -631,22 +638,27 @@ mt6797_a72_membership_publish_bootstrap_locked(const struct mt6797_a72_direct_to
+ #endif
+ 
+ 	memset(workspace, 0, sizeof(*workspace));
++	mt6797_a72_derive_stage_set(derive_stage, MT6797_A72_DERIVE_BOOTSTRAP_OWNER);
+ 	ret = mt6797_a72_bootstrap_owner_precheck();
+ 	if (ret)
+ 		goto out_clear;
++	mt6797_a72_derive_stage_set(derive_stage, MT6797_A72_DERIVE_BOOTSTRAP_REPLAY);
+ 	ret = mt6797_a72_bootstrap_replay_valid(replay);
+ 	if (ret)
+ 		goto out_clear;
++	mt6797_a72_derive_stage_set(derive_stage, MT6797_A72_DERIVE_DIRECT_STATE);
+ 	ret = mt6797_a72_direct_state_snapshot_locked(topology,
+ 						      &workspace->observation.direct);
+ 	if (ret)
+ 		goto out_clear;
+ 	workspace->observation.abi = MT6797_A72_A34_ELIGIBILITY_ABI;
+ 	workspace->observation.replay = *replay;
++	mt6797_a72_derive_stage_set(derive_stage, MT6797_A72_DERIVE_A34);
+ 	ret = mt6797_a72_a34_evaluate(&workspace->observation);
+ 	if (ret)
+ 		goto out_clear;
+ 	mt6797_a72_bootstrap_prepare_plan(&workspace->plan);
++	mt6797_a72_derive_stage_set(derive_stage, MT6797_A72_DERIVE_P30_CLAIM);
+ 	ret = arm64_late_cpu_startup_claim_pristine(&workspace->claim);
+ 	if (ret)
+ 		goto out_clear;
+@@ -659,10 +671,12 @@ mt6797_a72_membership_publish_bootstrap_locked(const struct mt6797_a72_direct_to
+ #else
+ 	(void)dirty_owner_before_finalize;
+ #endif
++	mt6797_a72_derive_stage_set(derive_stage, MT6797_A72_DERIVE_BOOTSTRAP_FINALIZE);
+ 	ret = arm64_late_cpu_startup_finalize_pristine(&workspace->claim,
+ 						       mt6797_a72_bootstrap_commit,
+ 						       workspace);
+ 	if (workspace->claim.cookie) {
++		mt6797_a72_derive_stage_set(derive_stage, MT6797_A72_DERIVE_P30_RELEASE);
+ 		release_ret = arm64_late_cpu_startup_release_pristine(&workspace->claim);
+ 		if (release_ret)
+ 			ret = release_ret;
+@@ -697,7 +711,7 @@ mt6797_a72_membership_publish_bootstrap(const struct mt6797_a72_a34_replay *repl
+ 	topology.cpu8_mpidr = cpu_logical_map(8);
+ 	topology.cpu9_mpidr = cpu_logical_map(9);
+ 	ret = mt6797_a72_membership_publish_bootstrap_locked(&topology, replay,
+-							     false, NULL);
++							     false, NULL, NULL);
+ out_unlock:
+ 	mutex_unlock(&a72_transition_lock);
+ 	cpus_read_unlock();
+@@ -717,7 +731,7 @@ mt6797_a72_membership_test_publish_bootstrap(const struct mt6797_a72_direct_topo
+ 	cpus_read_lock();
+ 	mutex_lock(&a72_transition_lock);
+ 	ret = mt6797_a72_membership_publish_bootstrap_locked(topology, replay,
+-							     dirty_owner_before_finalize, NULL);
++							     dirty_owner_before_finalize, NULL, NULL);
+ 	mutex_unlock(&a72_transition_lock);
+ 	cpus_read_unlock();
+ 	return ret;
+@@ -2778,12 +2792,14 @@ mt6797_a72_derive_cpu8_prestate(const struct mt6797_a72_direct_state_snapshot *d
+ static int
+ mt6797_a72_membership_derive_cpu8_locked(const struct mt6797_a72_direct_topology *topology,
+ 					 const struct arm64_late_cpu_ready_token *ready,
+-					 struct mt6797_a72_transaction *transaction)
++					 struct mt6797_a72_transaction *transaction,
++					 u32 *derive_stage)
+ {
+ 	struct mt6797_a72_derived_workspace *workspace = &a72_derived_workspace;
+ 	int ret;
+ 
+ 	memset(workspace, 0, sizeof(*workspace));
++	mt6797_a72_derive_stage_set(derive_stage, MT6797_A72_DERIVE_READY_TOKEN);
+ 	ret = mt6797_a72_ready_token_validate(8, ready);
+ 	if (ret)
+ 		goto out_clear;
+@@ -2793,21 +2809,25 @@ mt6797_a72_membership_derive_cpu8_locked(const struct mt6797_a72_direct_topology
+ 		MT6797_A72_A34_REPLAY_APPLICABLE_PRIMARY_BL31_CLEAR;
+ 	ret = mt6797_a72_membership_publish_bootstrap_locked(topology,
+ 							     &workspace->replay, false,
+-							     &workspace->direct);
++							     &workspace->direct,
++							     derive_stage);
+ 	if (ret)
+ 		goto out_clear;
+ 
+ 	mt6797_a72_derive_cpu8_entry(&workspace->direct, &workspace->entry);
++	mt6797_a72_derive_stage_set(derive_stage, MT6797_A72_DERIVE_P31_CONSUME);
+ 	ret = mt6797_a72_membership_p31_consume_attempt(8, CPUHP_ONLINE,
+ 							MT6797_A72_ATTEMPT_CPU8_UP,
+ 							&workspace->entry);
+ 	if (ret)
+ 		goto out_clear;
++	mt6797_a72_derive_stage_set(derive_stage, MT6797_A72_DERIVE_ENTRY_VALIDATE);
+ 	ret = mt6797_a72_membership_validate_entry(8, CPUHP_ONLINE,
+ 						   MT6797_A72_ATTEMPT_CPU8_UP,
+ 						   &workspace->entry);
+ 	if (ret)
+ 		goto out_clear;
++	mt6797_a72_derive_stage_set(derive_stage, MT6797_A72_DERIVE_TOKEN_MINT);
+ 	ret = mt6797_a72_membership_mint_up_token(8, CPUHP_ONLINE,
+ 						  MT6797_A72_ATTEMPT_CPU8_UP,
+ 						  &workspace->entry, ready, transaction);
+@@ -2816,14 +2836,17 @@ mt6797_a72_membership_derive_cpu8_locked(const struct mt6797_a72_direct_topology
+ 
+ 	mt6797_a72_derive_cpu8_prestate(&workspace->direct, transaction,
+ 					&workspace->prestate);
++	mt6797_a72_derive_stage_set(derive_stage, MT6797_A72_DERIVE_PRESTATE_VALIDATE);
+ 	ret = mt6797_a72_membership_validate_up_prestate(transaction,
+ 							 &workspace->prestate);
+ 	if (ret)
+ 		goto reject_frozen;
++	mt6797_a72_derive_stage_set(derive_stage, MT6797_A72_DERIVE_PRESTATE_BIND);
+ 	ret = mt6797_a72_membership_bind_a36_prestate(&transaction->identity,
+ 						      &workspace->prestate, transaction);
+ 	if (ret)
+ 		goto reject_frozen;
++	mt6797_a72_derive_stage_set(derive_stage, MT6797_A72_DERIVE_COMPLETE);
+ 	goto out_clear;
+ 
+ reject_frozen:
+@@ -2850,30 +2873,39 @@ mt6797_a72_membership_fill_cpu8_topology(struct mt6797_a72_direct_topology *topo
+ }
+ 
+ int
+-mt6797_a72_membership_derive_cpu8(const struct arm64_late_cpu_ready_token *ready,
+-				  struct mt6797_a72_transaction *transaction)
++mt6797_a72_membership_derive_cpu8_diagnostic(const struct arm64_late_cpu_ready_token *ready, struct mt6797_a72_transaction *transaction, u32 *derive_stage)
+ {
+ 	struct mt6797_a72_direct_topology topology = {};
+ 	int ret;
+ 
++	mt6797_a72_derive_stage_set(derive_stage, MT6797_A72_DERIVE_NONE);
+ 	if (!transaction)
+ 		return -EINVAL;
+ 	memset(transaction, 0, sizeof(*transaction));
+ 	cpus_read_lock();
+ 	mutex_lock(&a72_transition_lock);
++	mt6797_a72_derive_stage_set(derive_stage, MT6797_A72_DERIVE_TOPOLOGY);
+ 	if (nr_cpu_ids <= 9) {
+ 		ret = -ENODEV;
+ 		goto out_unlock;
+ 	}
+ 	mt6797_a72_membership_fill_cpu8_topology(&topology);
+ 	ret = mt6797_a72_membership_derive_cpu8_locked(&topology, ready,
+-						       transaction);
++						       transaction, derive_stage);
+ out_unlock:
+ 	mutex_unlock(&a72_transition_lock);
+ 	cpus_read_unlock();
+ 	return ret;
+ }
+ 
++int
++mt6797_a72_membership_derive_cpu8(const struct arm64_late_cpu_ready_token *ready,
++				  struct mt6797_a72_transaction *transaction)
++{
++	return mt6797_a72_membership_derive_cpu8_diagnostic(ready, transaction,
++							    NULL);
++}
++
+ #ifdef CONFIG_ARM64_MT6797_A72_DERIVED_ADMISSION_KUNIT_TEST
+ int
+ mt6797_a72_membership_test_derive_cpu8(const struct mt6797_a72_direct_topology *topology,
+@@ -2888,7 +2920,7 @@ mt6797_a72_membership_test_derive_cpu8(const struct mt6797_a72_direct_topology *
+ 	cpus_read_lock();
+ 	mutex_lock(&a72_transition_lock);
+ 	ret = mt6797_a72_membership_derive_cpu8_locked(topology, ready,
+-						       transaction);
++						       transaction, NULL);
+ 	mutex_unlock(&a72_transition_lock);
+ 	cpus_read_unlock();
+ 	return ret;
+diff --git a/drivers/soc/mediatek/mt6797-a72-admission-controller-internal.h b/drivers/soc/mediatek/mt6797-a72-admission-controller-internal.h
+index 10f418f..d5ddc2b 100644
+--- a/drivers/soc/mediatek/mt6797-a72-admission-controller-internal.h
++++ b/drivers/soc/mediatek/mt6797-a72-admission-controller-internal.h
+@@ -43,6 +43,8 @@ struct mt6797_a72_admission_trigger_state {
+ struct mt6797_a72_admission_controller_state {
+ 	atomic_t consumed;
+ 	u32 cpu_requests;
++	u32 failure_stage;
++	u32 derive_stage;
+ 	int trace_entry_ret;
+ 	int trace_ret;
+ 	int operation_ret;
+diff --git a/drivers/soc/mediatek/mt6797-a72-admission-controller-test.c b/drivers/soc/mediatek/mt6797-a72-admission-controller-test.c
+index 314a4d6..b7eff7d 100644
+--- a/drivers/soc/mediatek/mt6797-a72-admission-controller-test.c
++++ b/drivers/soc/mediatek/mt6797-a72-admission-controller-test.c
+@@ -279,6 +279,8 @@ static void mt6797_a72_admission_terminal_failures_test(struct kunit *test)
+ 				MT6797_ADMISSION_TRACE_ZERO_REQUEST);
+ 		KUNIT_EXPECT_EQ(test, context->zero_result,
+ 				results[failure]);
++		KUNIT_EXPECT_EQ(test, context->controller.failure_stage,
++				(u32)results[failure]);
+ 		KUNIT_EXPECT_TRUE(test, context->consumed_before_operation);
+ 		events = context->event_count;
+ 		ret = mt6797_a72_admission_run(&context->controller, &test_ops, context);
+diff --git a/drivers/soc/mediatek/mt6797-a72-admission-controller.c b/drivers/soc/mediatek/mt6797-a72-admission-controller.c
+index 1421260..6b4d757 100644
+--- a/drivers/soc/mediatek/mt6797-a72-admission-controller.c
++++ b/drivers/soc/mediatek/mt6797-a72-admission-controller.c
+@@ -127,6 +127,7 @@ out_unregister:
+ 	if (source_registered)
+ 		ops->source_unregister(context);
+ out_terminal:
++	state->failure_stage = zero_result;
+ 	if (!state->cpu_requests && zero_result) {
+ 		state->trace_ret = ops->trace_zero_request(context, zero_result);
+ 		if (state->trace_ret && !ops->allow_trace_failure)
+@@ -182,8 +183,10 @@ mt6797_a72_admission_derive_cpu8(void *context,
+ 				 const struct arm64_late_cpu_ready_token *ready,
+ 				 struct mt6797_a72_transaction *transaction)
+ {
+-	(void)context;
+-	return mt6797_a72_membership_derive_cpu8(ready, transaction);
++	struct mt6797_a72_admission_controller *controller = context;
++
++	return mt6797_a72_membership_derive_cpu8_diagnostic(ready, transaction,
++							    &controller->state.derive_stage);
+ }
+ 
+ static int
+@@ -330,6 +333,10 @@ static ssize_t status_show(struct device *dev, struct device_attribute *attr,
+ 			     "entry_trace_ret=%d terminal_trace_ret=%d ",
+ 			     READ_ONCE(controller->state.trace_entry_ret),
+ 			     READ_ONCE(controller->state.trace_ret));
++	len += sysfs_emit_at(buf, len,
++			     "failure_stage=%u derive_stage=%u ",
++			     READ_ONCE(controller->state.failure_stage),
++			     READ_ONCE(controller->state.derive_stage));
+ 	len += sysfs_emit_at(buf, len,
+ 			     "cpu_requests=%u cpu9_requests=0 ",
+ 			     READ_ONCE(controller->state.cpu_requests));
+@@ -351,13 +358,13 @@ static ssize_t trigger_store(struct device *dev,
+ 	if (ret)
+ 		return ret;
+ 	dev_info(dev, MT6797_A72_ADMISSION_LIVE_TAG
+-		 " state=terminal operation_ret=%d core_consumed=%d "
+-		 "entry_trace_ret=%d terminal_trace_ret=%d "
+-		 "requests=%u/0/0 retries=0\n",
++		 " state=terminal operation_ret=%d core_consumed=%d entry_trace_ret=%d terminal_trace_ret=%d failure_stage=%u derive_stage=%u requests=%u/0/0 retries=0\n",
+ 		 READ_ONCE(controller->trigger.operation_ret),
+ 		 atomic_read(&controller->state.consumed),
+ 		 READ_ONCE(controller->state.trace_entry_ret),
+ 		 READ_ONCE(controller->state.trace_ret),
++		 READ_ONCE(controller->state.failure_stage),
++		 READ_ONCE(controller->state.derive_stage),
+ 		 READ_ONCE(controller->state.cpu_requests));
+ 	return count;
+ }
