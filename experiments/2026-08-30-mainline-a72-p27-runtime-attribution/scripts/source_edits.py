@@ -63,8 +63,8 @@ struct mt6797_a72_binder_diagnostic {
 '''
     text = replace_once(text, anchor, definition, "public diagnostic definition")
     prototype = r'''bool mt6797_a72_binder_available(void);
-int mt6797_a72_binder_diagnostic_snapshot(
-	struct mt6797_a72_binder_diagnostic *snapshot);
+int
+mt6797_a72_binder_diagnostic_snapshot(struct mt6797_a72_binder_diagnostic *snapshot);
 '''
     text = replace_once(
         text,
@@ -78,8 +78,8 @@ int mt6797_a72_binder_diagnostic_snapshot(
 }
 
 '''
-    stub = stub_anchor + r'''static inline int mt6797_a72_binder_diagnostic_snapshot(
-	struct mt6797_a72_binder_diagnostic *snapshot)
+    stub = stub_anchor + r'''static inline int
+mt6797_a72_binder_diagnostic_snapshot(struct mt6797_a72_binder_diagnostic *snapshot)
 {
 	if (snapshot)
 		*snapshot = (struct mt6797_a72_binder_diagnostic){};
@@ -103,9 +103,9 @@ def apply_internal(root: Path) -> None:
     )
     prototype = r'''void mt6797_a72_binder_test_init(struct mt6797_a72_binder *binder,
 				 const struct mt6797_a72_binder_backend_ops *backend);
-void mt6797_a72_binder_test_diagnostic(
-	const struct mt6797_a72_binder *binder,
-	struct mt6797_a72_binder_diagnostic *snapshot);
+void
+mt6797_a72_binder_test_diagnostic(const struct mt6797_a72_binder *binder,
+				   struct mt6797_a72_binder_diagnostic *snapshot);
 '''
     original = r'''void mt6797_a72_binder_test_init(struct mt6797_a72_binder *binder,
 				 const struct mt6797_a72_binder_backend_ops *backend);
@@ -128,9 +128,9 @@ def apply_binder(root: Path) -> None:
 }
 '''
     diagnostic = available + r'''
-static void mt6797_a72_binder_fill_diagnostic(
-	const struct mt6797_a72_binder *binder,
-	struct mt6797_a72_binder_diagnostic *snapshot)
+static void
+mt6797_a72_binder_fill_diagnostic(const struct mt6797_a72_binder *binder,
+				   struct mt6797_a72_binder_diagnostic *snapshot)
 {
 	const struct mt6797_a72_platform_effect_result *acquire = &binder->p27;
 	const struct mt6797_a72_platform_effect_result *release =
@@ -169,8 +169,8 @@ static void mt6797_a72_binder_fill_diagnostic(
 	snapshot->p27_release_sealed = release->sealed;
 }
 
-int mt6797_a72_binder_diagnostic_snapshot(
-	struct mt6797_a72_binder_diagnostic *snapshot)
+int
+mt6797_a72_binder_diagnostic_snapshot(struct mt6797_a72_binder_diagnostic *snapshot)
 {
 	struct mt6797_a72_binder *binder;
 	int ret = 0;
@@ -243,9 +243,9 @@ int mt6797_a72_binder_diagnostic_snapshot(
 }
 '''
     test_diagnostic = test_init + r'''
-void mt6797_a72_binder_test_diagnostic(
-	const struct mt6797_a72_binder *binder,
-	struct mt6797_a72_binder_diagnostic *snapshot)
+void
+mt6797_a72_binder_test_diagnostic(const struct mt6797_a72_binder *binder,
+				   struct mt6797_a72_binder_diagnostic *snapshot)
 {
 	mt6797_a72_binder_fill_diagnostic(binder, snapshot);
 }
@@ -292,43 +292,43 @@ def apply_controller(root: Path) -> None:
 			     "cpu_requests=%u cpu9_requests=0 ",
 			     READ_ONCE(controller->state.cpu_requests));
 	len += sysfs_emit_at(buf, len, "cpu_off_requests=0 retries=0 ");
-	len += sysfs_emit_at(buf, len,
-			     "binder_snapshot_ret=%d binder_abi=%u lifecycle=%u "
-			     "terminal=%u last_stage=%u stage_errno=%d "
-			     "rollback_errno=%d checkpoint_errno=%d attempted=%u "
-			     "watchdog_armed=%u p27_owned=%u rollback_mask=0x%x "
-			     "retained_mask=0x%x ",
-			     diagnostic_ret, diagnostic.abi, diagnostic.lifecycle,
-			     diagnostic.terminal, diagnostic.last_stage,
-			     diagnostic.stage_errno, diagnostic.rollback_errno,
-			     diagnostic.checkpoint_errno, diagnostic.attempted,
-			     diagnostic.watchdog_armed, diagnostic.p27_owned,
+	len += sysfs_emit_at(buf, len, "binder_snapshot_ret=%d binder_abi=%u ",
+			     diagnostic_ret, diagnostic.abi);
+	len += sysfs_emit_at(buf, len, "lifecycle=%u terminal=%u last_stage=%u ",
+			     diagnostic.lifecycle, diagnostic.terminal,
+			     diagnostic.last_stage);
+	len += sysfs_emit_at(buf, len, "stage_errno=%d rollback_errno=%d ",
+			     diagnostic.stage_errno, diagnostic.rollback_errno);
+	len += sysfs_emit_at(buf, len, "checkpoint_errno=%d attempted=%u ",
+			     diagnostic.checkpoint_errno, diagnostic.attempted);
+	len += sysfs_emit_at(buf, len, "watchdog_armed=%u p27_owned=%u ",
+			     diagnostic.watchdog_armed, diagnostic.p27_owned);
+	len += sysfs_emit_at(buf, len, "rollback_mask=0x%x retained_mask=0x%x ",
 			     diagnostic.rollback_mask, diagnostic.retained_mask);
-	len += sysfs_emit_at(buf, len,
-			     "p27a_op=%u p27a_error=%d p27a_attempted=0x%x "
-			     "p27a_completed=0x%x p27a_spm_before=0x%x "
-			     "p27a_spm_after=0x%x p27a_bpll=0x%x "
-			     "p27a_owned=%u p27a_sealed=%u ",
+	len += sysfs_emit_at(buf, len, "p27a_op=%u p27a_error=%d ",
 			     diagnostic.p27_acquire_operation,
-			     diagnostic.p27_acquire_error,
+			     diagnostic.p27_acquire_error);
+	len += sysfs_emit_at(buf, len, "p27a_attempted=0x%x p27a_completed=0x%x ",
 			     diagnostic.p27_acquire_attempted,
-			     diagnostic.p27_acquire_completed,
+			     diagnostic.p27_acquire_completed);
+	len += sysfs_emit_at(buf, len, "p27a_spm_before=0x%x p27a_spm_after=0x%x ",
 			     diagnostic.p27_acquire_spm_before,
-			     diagnostic.p27_acquire_spm_after,
+			     diagnostic.p27_acquire_spm_after);
+	len += sysfs_emit_at(buf, len, "p27a_bpll=0x%x p27a_owned=%u p27a_sealed=%u ",
 			     diagnostic.p27_acquire_bpll,
 			     diagnostic.p27_acquire_owned,
 			     diagnostic.p27_acquire_sealed);
+	len += sysfs_emit_at(buf, len, "p27r_op=%u p27r_error=%d ",
+			     diagnostic.p27_release_operation,
+			     diagnostic.p27_release_error);
+	len += sysfs_emit_at(buf, len, "p27r_attempted=0x%x p27r_completed=0x%x ",
+			     diagnostic.p27_release_attempted,
+			     diagnostic.p27_release_completed);
+	len += sysfs_emit_at(buf, len, "p27r_spm_before=0x%x p27r_spm_after=0x%x ",
+			     diagnostic.p27_release_spm_before,
+			     diagnostic.p27_release_spm_after);
 	return len + sysfs_emit_at(buf, len,
-				   "p27r_op=%u p27r_error=%d "
-				   "p27r_attempted=0x%x p27r_completed=0x%x "
-				   "p27r_spm_before=0x%x p27r_spm_after=0x%x "
 				   "p27r_bpll=0x%x p27r_owned=%u p27r_sealed=%u\n",
-				   diagnostic.p27_release_operation,
-				   diagnostic.p27_release_error,
-				   diagnostic.p27_release_attempted,
-				   diagnostic.p27_release_completed,
-				   diagnostic.p27_release_spm_before,
-				   diagnostic.p27_release_spm_after,
 				   diagnostic.p27_release_bpll,
 				   diagnostic.p27_release_owned,
 				   diagnostic.p27_release_sealed);
@@ -351,12 +351,12 @@ def apply_test(root: Path) -> None:
 		MT6797_A72_EFFECT_PWRAP_ASSERTED;
 	u32 release_mask = acquire_mask | MT6797_A72_EFFECT_PWRAP_DEASSERTED |
 		MT6797_A72_EFFECT_P27_RESET_RESTORED;
+	int ret;
 
 	state->malformed = TEST_MALFORMED_P27;
-	KUNIT_ASSERT_EQ(test,
-		mt6797_a72_binder_test_boot(&state->binder, 8,
-					   mt6797_binder_test_cpu_boot),
-		-EPROTO);
+	ret = mt6797_a72_binder_test_boot(&state->binder, 8,
+					 mt6797_binder_test_cpu_boot);
+	KUNIT_ASSERT_EQ(test, ret, -EPROTO);
 	mt6797_a72_binder_test_diagnostic(&state->binder, &diagnostic);
 	KUNIT_EXPECT_EQ(test, diagnostic.abi,
 			MT6797_A72_BINDER_DIAGNOSTIC_ABI);
