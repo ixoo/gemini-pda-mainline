@@ -80,8 +80,9 @@ def mutations() -> list[tuple[str, Callable[[Path], None]]]:
             root, profile,
             "\t    memcmp(evidence->config_input_identity,\n"
             "\t\t   mt6797_a72_config_input_identity,\n"
-            "\t\t   sizeof(evidence->config_input_identity)) ||\n",
-            "")),
+            "\t\t   sizeof(evidence->config_input_identity)) ||\n"
+            "\t    memcmp(&evidence->expected_pair, &mt6797_a72_expected_pair,\n",
+            "\t    memcmp(&evidence->expected_pair, &mt6797_a72_expected_pair,\n")),
     ]
 
 

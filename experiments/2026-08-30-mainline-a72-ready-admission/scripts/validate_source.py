@@ -86,8 +86,8 @@ def validate(root: Path) -> list[str]:
             "obsolete production configuration identity remains")
     require(profile.count(
         "memcmp(evidence->config_input_identity,\n"
-        "\t\t   mt6797_a72_config_input_identity,") == 1,
-        "runtime evidence is no longer bound to the candidate identity")
+        "\t\t   mt6797_a72_config_input_identity,") == 2,
+        "production and fixture evidence identity bindings changed")
     for forbidden in (
         "cpu_up(8", "cpu_up(9", "cpu_down(8", "cpu_down(9",
         "psci_cpu_off", "boot2",
