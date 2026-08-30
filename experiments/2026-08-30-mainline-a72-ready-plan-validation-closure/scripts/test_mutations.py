@@ -44,8 +44,8 @@ MUTATIONS = (
     ),
     (
         "add-cpu-action",
-        "\tunsigned int target;\n",
-        "\tunsigned int target;\n\tadd_cpu(8);\n",
+        "\t    evidence->blocker_mask & ~allowed_blockers ||\n",
+        "\t    (add_cpu(8), evidence->blocker_mask & ~allowed_blockers) ||\n",
     ),
 )
 
