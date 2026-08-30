@@ -104,7 +104,17 @@ def mutations() -> list[tuple[str, object]]:
             "\t\t       sizeof(evidence->target_policy[0]));\n",
             "\treturn true;\n")),
         ("restore-unresolved-spectre", lambda r: replace(
-            r / PROFILE, "\tARM64_SPECTRE_V2,\n\tARM64_SPECTRE_V4,",
+            r / PROFILE,
+            "static const u16 mt6797_a72_present_caps[] __initconst = {\n"
+            "\tARM64_HAS_AMU_EXTN,\n"
+            "\tARM64_HW_DBM,\n"
+            "\tARM64_MISMATCHED_CACHE_TYPE,\n"
+            "\tARM64_SPECTRE_V2,\n"
+            "\tARM64_SPECTRE_V4,",
+            "static const u16 mt6797_a72_present_caps[] __initconst = {\n"
+            "\tARM64_HAS_AMU_EXTN,\n"
+            "\tARM64_HW_DBM,\n"
+            "\tARM64_MISMATCHED_CACHE_TYPE,\n"
             "\tARM64_SPECTRE_V4,")),
         ("keep-planner-dormant", lambda r: replace(
             r / PROFILE, "\tif (!plan->local_caps_planned || !plan->effects_planned ||\n",
