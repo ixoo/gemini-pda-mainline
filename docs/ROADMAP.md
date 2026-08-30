@@ -6433,10 +6433,15 @@ The next ordered work is:
    `mt6797_a72_validate_cap_plan()`: the unchanged contract remains the sole
    return owner, while 27 plan bits and 29 evidence bits report the false
    predicate. Its exact Buildbox-generated patch passes strict style,
-   deterministic replay, and seven unsafe-mutation rejections. **Selected
-   next:** build default and exact live profiles only on Buildbox, compose one
-   attributable observer candidate, and spend one boot identifying the exact
-   false contract before another repair. Retain the CPU9 veto.
+   deterministic replay, and seven unsafe-mutation rejections. Default and
+   exact live-trigger builds pass on Buildbox at commit `1df0f12f`. The exact
+   package plus unchanged serviceability DT/ramdisk produces observer boot2
+   image `7ac6f429...`; two DT and two container builds are byte-identical, all
+   32 LK gates pass, and ten DT plus six container mutations are rejected.
+   **Selected next:** deploy `7ac6f429...` only over exact predecessor
+   `726b622a...`, capture one complete read-only frame and versioned predicate
+   bitmap without a trigger, then repair only the named false contract. Retain
+   the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 

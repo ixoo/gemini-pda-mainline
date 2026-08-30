@@ -83,6 +83,21 @@ action and explicitly marks its output `boot_candidate=false`.
 See
 [`results/buildbox-generation-20260830.txt`](results/buildbox-generation-20260830.txt).
 
+Canonical commit `1df0f12f` passes both the default and exact live-trigger
+profiles on Buildbox. The exact package was composed with the unchanged
+serviceability DT and ramdisk by replacing only the package-owned A41
+provenance leaf. Two DT compositions and two Android-v0/LK assemblies are
+byte-identical. Independent validation accepts all 32 LK gates and rejects ten
+DT plus six container mutations. The selected diagnostic boot2 image is exact
+16 MiB SHA-256 `7ac6f429...`; it contains no trigger execution and expects exact
+predecessor `726b622a...`. See
+[`results/offline-candidate-20260830.txt`](results/offline-candidate-20260830.txt).
+
+An owner-reported start before this diagnostic image was installed exposed no
+Gemini USB device or exact USB network interface during the bounded host check.
+It therefore supplies no boot ID, kernel identity, diagnostic line, or CPU
+result and is not classified as a kernel failure.
+
 ## Analysis
 
 The public proof mask deliberately groups all profile callback validation under
@@ -93,10 +108,12 @@ sequence of guessed semantic relaxations.
 
 ## Conclusion
 
-`generated-and-canonically-admitted-pending-build`.
+`exact-observer-candidate-validated-pending-deployment`.
 
 ## Follow-up
 
-Use the first exact diagnostic bitmap to select one source-local correction.
-Do not repeat the observer or permit CPU8 until a later non-diagnostic candidate
-publishes an exact no-blocker READY frame. Keep CPU9 vetoed.
+Deploy exact candidate `7ac6f429...` only over predecessor `726b622a...`, then
+capture one complete read-only frame and exactly one versioned diagnostic line.
+Use its bitmap to select one source-local correction. Do not repeat the observer
+or permit CPU8 until a later non-diagnostic candidate publishes an exact
+no-blocker READY frame. Keep CPU9 vetoed.
