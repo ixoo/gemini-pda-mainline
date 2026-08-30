@@ -1,0 +1,123 @@
+From 1a72a2fe9dbc122dc1bd8b105137e4851f24e672 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 31 Aug 2026 01:01:00 +0000
+Subject: [PATCH] arm64: mediatek: require empty dormant READY observations
+
+Production READY carries expectation-only evidence for dormant
+CPU8 and CPU9, so their target-local observed MPIDRs remain
+empty until those CPUs execute. The membership validator
+instead required those observations before its first request.
+
+Require the observations to remain empty while preserving the
+exact expected MPIDRs, target mask, ordering, identities, and
+one-shot request boundary. Update the exact fixtures and reject
+either premature target observation.
+---
+ .../kernel/mt6797_a72_derived_admission_test.c   | 16 +++++++++++++++-
+ arch/arm64/kernel/mt6797_a72_membership.c        | 14 +++++++-------
+ arch/arm64/kernel/mt6797_a72_membership_test.c   |  2 +-
+ .../regulator/da9213-legacy-membership-test.c    |  2 +-
+ 4 files changed, 24 insertions(+), 10 deletions(-)
+
+diff --git a/arch/arm64/kernel/mt6797_a72_derived_admission_test.c b/arch/arm64/kernel/mt6797_a72_derived_admission_test.c
+index 86d7e85..25d069e 100644
+--- a/arch/arm64/kernel/mt6797_a72_derived_admission_test.c
++++ b/arch/arm64/kernel/mt6797_a72_derived_admission_test.c
+@@ -104,7 +104,7 @@ static struct arm64_late_cpu_ready_token mt6797_a72_exact_ready(void)
+ 		.evidence_identity = { 13, 14, 15, 16 },
+ 		.target_cpu = { 8, 9 },
+ 		.expected_target_mpidr = { 0x200, 0x201 },
+-		.observed_target_mpidr = { 0x200, 0x201 },
++		.observed_target_mpidr = { 0, 0 },
+ 	};
+ 
+ 	strscpy(ready.profile_id, "mt6797-a53-a72-a41-v7",
+@@ -305,6 +305,19 @@ static void mt6797_a72_derived_ready_rejection_test(struct kunit *test)
+ 	KUNIT_EXPECT_EQ(test, state->owner.attempts_consumed, (u32)0);
+ }
+ 
++static void mt6797_a72_derived_observed_target_rejected_test(struct kunit *test)
++{
++	struct mt6797_a72_derived_test_state *state = test->priv;
++	unsigned int target;
++
++	for (target = 0; target < 2; target++) {
++		state->ready = mt6797_a72_exact_ready();
++		state->ready.observed_target_mpidr[target] =
++			state->ready.expected_target_mpidr[target];
++		mt6797_a72_expect_source_rejection(test, state, -EPERM, 0);
++	}
++}
++
+ static void mt6797_a72_legacy_assertions_rejected_test(struct kunit *test)
+ {
+ 	struct mt6797_a72_derived_test_state *state = test->priv;
+@@ -356,6 +369,7 @@ static struct kunit_case mt6797_a72_derived_admission_cases[] = {
+ 	KUNIT_CASE(mt6797_a72_derived_success_test),
+ 	KUNIT_CASE(mt6797_a72_derived_source_rejections_test),
+ 	KUNIT_CASE(mt6797_a72_derived_ready_rejection_test),
++	KUNIT_CASE(mt6797_a72_derived_observed_target_rejected_test),
+ 	KUNIT_CASE(mt6797_a72_legacy_assertions_rejected_test),
+ 	KUNIT_CASE(mt6797_a72_derived_repeat_rejected_test),
+ 	{}
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+index a57a18b..f6e72c0 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -1068,7 +1068,6 @@ mt6797_a72_ready_token_validate(unsigned int cpu,
+ 				const struct arm64_late_cpu_ready_token *ready)
+ {
+ 	unsigned int slot;
+-	u64 expected_mpidr;
+ 
+ 	if (!ready)
+ 		return -EAGAIN;
+@@ -1084,15 +1083,16 @@ mt6797_a72_ready_token_validate(unsigned int cpu,
+ 	    !cpumask_test_cpu(9, &ready->target_cpus) ||
+ 	    ready->target_cpu[0] != 8 || ready->target_cpu[1] != 9 ||
+ 	    ready->expected_target_mpidr[0] != 0x200 ||
+-	    ready->expected_target_mpidr[1] != 0x201 ||
+-	    ready->observed_target_mpidr[0] != 0x200 ||
+-	    ready->observed_target_mpidr[1] != 0x201)
++	    ready->expected_target_mpidr[1] != 0x201)
++		return -EPERM;
++
++	/* Dormant targets have expectations, but no target-local observations. */
++	if (ready->observed_target_mpidr[0] ||
++	    ready->observed_target_mpidr[1])
+ 		return -EPERM;
+ 
+ 	slot = cpu == 8 ? 0 : 1;
+-	expected_mpidr = slot == 0 ? 0x200 : 0x201;
+-	if (ready->target_cpu[slot] != cpu ||
+-	    ready->observed_target_mpidr[slot] != expected_mpidr)
++	if (ready->target_cpu[slot] != cpu)
+ 		return -EPERM;
+ 
+ 	return 0;
+diff --git a/arch/arm64/kernel/mt6797_a72_membership_test.c b/arch/arm64/kernel/mt6797_a72_membership_test.c
+index ee87786..9cde41a 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership_test.c
++++ b/arch/arm64/kernel/mt6797_a72_membership_test.c
+@@ -105,7 +105,7 @@ mt6797_a72_ready_token_for_up(void)
+ 		.evidence_identity = { 13, 14, 15, 16 },
+ 		.target_cpu = { 8, 9 },
+ 		.expected_target_mpidr = { 0x200, 0x201 },
+-		.observed_target_mpidr = { 0x200, 0x201 },
++		.observed_target_mpidr = { 0, 0 },
+ 	};
+ 
+ 	strscpy(ready.profile_id, "mt6797-a53-a72-a41-v7",
+diff --git a/drivers/regulator/da9213-legacy-membership-test.c b/drivers/regulator/da9213-legacy-membership-test.c
+index 09e1b72..73ffc23 100644
+--- a/drivers/regulator/da9213-legacy-membership-test.c
++++ b/drivers/regulator/da9213-legacy-membership-test.c
+@@ -211,7 +211,7 @@ static struct arm64_late_cpu_ready_token da9213_membership_ready(void)
+ 		.evidence_identity = { 13, 14, 15, 16 },
+ 		.target_cpu = { 8, 9 },
+ 		.expected_target_mpidr = { 0x200, 0x201 },
+-		.observed_target_mpidr = { 0x200, 0x201 },
++		.observed_target_mpidr = { 0, 0 },
+ 	};
+ 
+ 	strscpy(ready.profile_id, "mt6797-a53-a72-a41-v7",

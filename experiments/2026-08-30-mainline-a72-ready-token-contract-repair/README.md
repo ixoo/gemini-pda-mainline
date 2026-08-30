@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-ready-token-contract-repair` |
-| Status | `source contradiction proven; Buildbox patch generation pending` |
+| Status | `canonical patch generated and admitted; focused Buildbox builds pending` |
 | Subsystem | arm64 late-CPU READY token and MT6797 CPU8 admission |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -69,6 +69,16 @@ No valid production token can satisfy both contracts. This is a deterministic
 source contradiction at the exact runtime-retained substage, not an inference
 from screen or reboot behavior.
 
+Buildbox generated one normal patch from clean pushed definition commit
+`b1d89d08...` and exact managed post-`0445` source state `36a08401...` with
+integrity identity `c56cdf64...`. Patch `0446` is byte-identical to the fetched
+review at `5e335ac3...`; deterministic replay and the source-contract audit
+pass. Strict checkpatch with the non-submission synthetic-signoff check disabled
+reports zero errors, warnings, or checks. The patch updates three exact READY
+fixtures, adds one two-target premature-observation rejection case, and adds no
+request, CPU9, CPU_OFF, retry, hardware-write, boot-candidate, or device path.
+See [`results/patch-generation-20260830.txt`](results/patch-generation-20260830.txt).
+
 ## Analysis
 
 The observed fields represent target-local facts and cannot exist before the
@@ -83,6 +93,7 @@ expectation and observation and does not weaken target identity.
 
 ## Follow-up
 
-Generate and independently validate the one-patch repair on Buildbox. Do not
-repeat candidate `7c962888...`. CPU9 remains vetoed until CPU8 is reproducibly
-online.
+Compile and run the affected derived-admission and live-controller KUnit
+profiles on Buildbox, then rebuild the exact production candidate profile. Do
+not repeat candidate `7c962888...`. CPU9 remains vetoed until CPU8 is
+reproducibly online.
