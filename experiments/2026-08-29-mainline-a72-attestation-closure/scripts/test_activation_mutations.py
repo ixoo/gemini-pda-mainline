@@ -117,7 +117,10 @@ def mutations() -> list[tuple[str, object]]:
             "\tARM64_MISMATCHED_CACHE_TYPE,\n"
             "\tARM64_SPECTRE_V4,")),
         ("keep-planner-dormant", lambda r: replace(
-            r / PROFILE, "\tif (!plan->local_caps_planned || !plan->effects_planned ||\n",
+            r / PROFILE,
+            "#else\n"
+            "\tif (!plan->local_caps_planned || !plan->effects_planned ||\n",
+            "#else\n"
             "\tif (plan->local_caps_planned || !plan->effects_planned ||\n")),
         ("accept-empty-effects", lambda r: replace(
             r / PROFILE, "\t    mt6797_a72_effects_empty(&plan->effects) ||\n",
