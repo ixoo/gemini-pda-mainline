@@ -45,8 +45,10 @@ def main() -> int:
         ("drop-user-callback", "arch/arm64/kernel/mt6797_psci.c",
          "\t.finalize_user = mt6797_a72_finalize_user,\n", ""),
         ("skip-finalized-system-gate", "arch/arm64/kernel/cpufeature.c",
-         "!plan || !receipt || !system_capabilities_finalized() ||",
-         "!plan || !receipt ||"),
+         "!plan || !receipt || !system_capabilities_finalized() ||\n"
+         "\t    receipt->state != ARM64_LATE_CPU_PROFILE_COMMITTED ||",
+         "!plan || !receipt ||\n"
+         "\t    receipt->state != ARM64_LATE_CPU_PROFILE_COMMITTED ||"),
         ("omit-required-capabilities", "arch/arm64/kernel/cpufeature.c",
          "bitmap_or(expected_caps, plan->early_local_caps,\n"
          "\t\t  plan->required_local_caps, ARM64_NCAPS);",
