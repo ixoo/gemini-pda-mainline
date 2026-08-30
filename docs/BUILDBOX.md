@@ -142,10 +142,10 @@ review:
 ./scripts/buildbox fetch-a72-ready-token-contract
 ```
 
-The lane reconstructs the current parent from the pinned managed source and
-canonical patches, requires dormant target observations to remain empty while
-preserving their exact expected MPIDRs, and adds no CPU request, CPU9, CPU_OFF,
-retry, hardware-write, boot-candidate, or device path.
+The lane pins the current managed source through canonical patch `0445`,
+requires dormant target observations to remain empty while preserving their
+exact expected MPIDRs, and adds no CPU request, CPU9, CPU_OFF, retry,
+hardware-write, boot-candidate, or device path.
 
 The hardware-free A34 eligibility evaluator is generated only from the exact
 clean, pushed project commit:

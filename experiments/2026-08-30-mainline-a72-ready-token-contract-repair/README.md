@@ -36,8 +36,8 @@ hardware effect, request, CPU9, CPU_OFF, retry, storage, device, or reboot path.
 
 ## Procedure
 
-1. Reconstruct the exact canonical source through patch `0445` from the pinned
-   managed Buildbox source and canonical patches `0442`--`0445`.
+1. Pin the exact managed Buildbox source through canonical patch `0445` and
+   copy only the files required for isolated format-patch generation.
 2. Generate one normal format-patch that requires empty pre-execution observed
    MPIDRs and updates all exact READY fixtures.
 3. Add a focused mutation proving that either premature observed MPIDR is

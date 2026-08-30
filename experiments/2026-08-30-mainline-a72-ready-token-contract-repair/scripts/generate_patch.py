@@ -22,16 +22,6 @@ EXPERIMENT = SCRIPT_DIR.parent
 REPO_ROOT = EXPERIMENT.parents[1]
 PATCH_NAME = "0446-arm64-mediatek-require-empty-READY-observations.patch"
 SUBJECT = "arm64: mediatek: require empty dormant READY observations"
-PARENT_PATCHES = (
-    ("0442-soc-mediatek-retain-live-CPU8-admission-failure-stage.patch",
-     "75be779895558c344f0c025a79079569cd00b1325554ae5a51f6d15d757ee24c"),
-    ("0443-arm64-mediatek-validate-live-A34-admission-predicates.patch",
-     "f4b8d1a32c8cab7296010a9a820d9c3781c1af622abe7b2d500cc2840287b7f2"),
-    ("0444-arm64-mediatek-use-intersected-A72-power-status.patch",
-     "b847697ebf80fffac2133725999d3a9623874885b12f5c354ca71fd068cb138d"),
-    ("0445-arm64-mediatek-update-closed-admission-test-contract.patch",
-     "df07ff96630c3843f28dde9c5e210a79d7c804a3ab1db90f4b8f462f6c1adab1"),
-)
 SOURCE_FILES = (
     "arch/arm64/include/asm/mt6797_a72_membership.h",
     "arch/arm64/kernel/mt6797_a72_a34_evaluator_test.c",
@@ -89,13 +79,8 @@ def prepare_parent(source_root: Path, root: Path) -> None:
     run("git", "init", "--quiet", cwd=root)
     run("git", "config", "user.name", "Gemini Mainline Experiment", cwd=root)
     run("git", "config", "user.email", "gemini-mainline@example.invalid", cwd=root)
-    commit(root, "Gemini post-0441 generation parent",
+    commit(root, "Gemini post-0445 generation parent",
            "Synthetic generation parent only.", 0)
-    for name, expected in PARENT_PATCHES:
-        path = REPO_ROOT / "patches/v7.1.3" / name
-        if sha256(path) != expected:
-            raise SystemExit(f"canonical parent patch changed: {name}")
-        run("git", "am", "--quiet", str(path), cwd=root)
 
 
 def validate(root: Path) -> list[str]:
