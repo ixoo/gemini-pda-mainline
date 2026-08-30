@@ -120,6 +120,14 @@ def validate(root: Path) -> list[str]:
     require("mt6797_a72_unresolved_caps" not in profile,
             "old dormant unresolved-capability list remains")
 
+    binding = function(profile, "mt6797_a72_binding_is_runtime(")
+    require("binding->origin == ARM64_LATE_CPU_BINDING_RUNTIME" in binding,
+            "binding helper no longer requires current runtime origin")
+    require("ARM64_LATE_CPU_BINDING_FIXTURE" not in binding,
+            "binding helper accepts fixture origin")
+    require(binding.count("!memcmp(") == 3,
+            "runtime binding identity equality inventory changed")
+
     system = function(profile, "mt6797_a72_system_evidence_exact(")
     for token in (
         "ARM64_LATE_CPU_SYSTEM_CAP_VALID_MASK",
