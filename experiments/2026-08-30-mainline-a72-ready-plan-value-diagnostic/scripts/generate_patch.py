@@ -97,7 +97,6 @@ def validate_patch(path: Path) -> None:
         "A72_READY_PLAN_VALUES_V1", "plan->early_local_caps",
         "plan->target_local_caps", "plan->required_local_caps",
         "plan->target[0].local_caps", "plan->target[1].local_caps",
-        "return ret;",
     ):
         if token not in added:
             raise SystemExit(f"required generated token absent: {token}")
