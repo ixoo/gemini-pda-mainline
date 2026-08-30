@@ -49,7 +49,8 @@ candidate profile pass on Buildbox.
 2. Replay and strictly check both patches; run focused source assertions.
 3. Admit the patches canonically, commit and push the exact inputs, and build
    focused KUnit plus the physical candidate on Buildbox.
-4. Run the no-network focused KUnit suite before assembling any candidate.
+4. Run the no-network live-controller, A34 evaluator, derived-admission, and
+   atomic-publication KUnit profiles before assembling any candidate.
 5. If all offline gates pass, construct and validate one exact boot image,
    install it to live-GPT inactive `boot2`, verify full readback, and shut down.
 6. On one fresh boot, capture the armed frame and issue at most one CPU8
@@ -98,7 +99,15 @@ CPU-status bits 7:6 remain authorizing; unrelated A53 bits and raw clock and
 BigiDVFS payloads are non-authorizing, while topology, owner, replay, provider,
 and platform predicates remain fail-closed.
 
-Focused compile and KUnit validation remain pending.
+The first live-controller run compiled and executed all 16 current cases with
+zero failures. Its inherited 2026-08-28 classifier rejected only because that
+older harness expected the pre-`0422` nine-case controller plan instead of the
+current ten-case plan. The raw transcript remains ignored evidence. This
+experiment now owns a four-profile exact-inventory runner and classifier so
+the diagnostic, repaired predicate, derived path, and updated atomic fixture
+are each compiled and exercised without networking.
+
+Focused classification and the three remaining KUnit builds remain pending.
 
 ## Conclusion
 
