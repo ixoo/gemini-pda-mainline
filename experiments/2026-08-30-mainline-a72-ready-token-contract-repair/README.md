@@ -77,6 +77,8 @@ fixture: its provider acquire and abort completed, but both P29 paths were
 rejected because the fixture skipped the public CPU8 preflight and claim now
 required by the production binder ordering. Patch `0447` adds that exact
 hardware-free ordering to the test only; it does not alter production code.
+The isolated profile also now selects the production default-off binder needed
+to own that claim while keeping the binder's own KUnit suite disabled.
 
 Buildbox generated one normal patch from clean pushed definition commit
 `b1d89d08...` and exact managed post-`0445` source state `36a08401...` with
