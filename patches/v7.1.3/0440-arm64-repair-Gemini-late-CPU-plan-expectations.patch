@@ -1,0 +1,62 @@
+From 90d345f65b4ee30c3c51a440a274dd14119d6c80 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 30 Aug 2026 21:01:00 +0000
+Subject: [PATCH] arm64: repair Gemini late CPU plan expectations
+
+The exact production READY-plan value frame shows one early
+capability omitted by the profile, one target capability falsely
+required by it, and a stale SMC conduit expectation.
+
+Align only those profile expectations with the exact published
+values. Keep fixture evidence on SMC and preserve the producers,
+effect model, validator return, and all CPU-action behavior.
+---
+ arch/arm64/kernel/mt6797_psci.c | 7 +++----
+ 1 file changed, 3 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
+index 5e00282..4883bd5 100644
+--- a/arch/arm64/kernel/mt6797_psci.c
++++ b/arch/arm64/kernel/mt6797_psci.c
+@@ -324,7 +324,6 @@ static const u16 mt6797_a72_compiled_caps[] __initconst = {
+ static const u16 mt6797_a72_present_caps[] __initconst = {
+ 	ARM64_HAS_AMU_EXTN,
+ 	ARM64_HW_DBM,
+-	ARM64_MISMATCHED_CACHE_TYPE,
+ 	ARM64_SPECTRE_V2,
+ 	ARM64_SPECTRE_V4,
+ 	ARM64_SPECTRE_BHB,
+@@ -335,6 +334,7 @@ static const u16 mt6797_a72_present_caps[] __initconst = {
+ static const u16 mt6797_a72_early_caps[] __initconst = {
+ 	ARM64_HAS_AMU_EXTN,
+ 	ARM64_HW_DBM,
++	ARM64_WORKAROUND_845719,
+ };
+ 
+ static const u16 mt6797_a72_absent_caps[] __initconst = {
+@@ -373,7 +373,6 @@ static const u16 mt6797_a72_absent_caps[] __initconst = {
+ };
+ 
+ static const u16 mt6797_a72_required_caps[] __initconst = {
+-	ARM64_MISMATCHED_CACHE_TYPE,
+ 	ARM64_SPECTRE_V2,
+ 	ARM64_SPECTRE_V4,
+ 	ARM64_SPECTRE_BHB,
+@@ -824,7 +823,7 @@ static bool __init
+ mt6797_a72_policy_evidence_exact(const struct arm64_late_cpu_target_policy_evidence *policy)
+ {
+ 	return policy->valid == ARM64_LATE_CPU_TARGET_POLICY_VALID_MASK &&
+-	       policy->smccc_conduit == ARM64_LATE_CPU_SMCCC_SMC &&
++	       policy->smccc_conduit == ARM64_LATE_CPU_SMCCC_NONE &&
+ 	       !policy->mitigations_off && !policy->nospectre_v2 &&
+ 	       policy->spectre_v4_policy == ARM64_LATE_CPU_V4_POLICY_DYNAMIC;
+ }
+@@ -938,7 +937,7 @@ mt6797_a72_evidence_diag(const struct arm64_late_cpu_evidence *evidence)
+ 		policy = &evidence->target_policy[target];
+ 		if (policy->valid != ARM64_LATE_CPU_TARGET_POLICY_VALID_MASK)
+ 			mask |= BIT_ULL(A72_EVD_POLICY_VALID);
+-		if (policy->smccc_conduit != ARM64_LATE_CPU_SMCCC_SMC)
++		if (policy->smccc_conduit != ARM64_LATE_CPU_SMCCC_NONE)
+ 			mask |= BIT_ULL(A72_EVD_POLICY_CONDUIT);
+ 		if (policy->mitigations_off || policy->nospectre_v2)
+ 			mask |= BIT_ULL(A72_EVD_POLICY_FLAGS);

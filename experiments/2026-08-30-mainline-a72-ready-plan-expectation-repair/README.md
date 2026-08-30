@@ -71,11 +71,24 @@ CPU8 and CPU9 remain offline and unrequested throughout this experiment.
 
 ## Observations
 
-Pending.
+Buildbox generated exactly one format-patch from prepared source state
+`404d5b64...` and integrity `1f8f978d...`. The parent and final
+`mt6797_psci.c` hashes are `08f3be5c...` and `3179b9f3...`; patch `0440` is
+`b629ff95...`. Strict checkpatch, deterministic replay, exact contract checks,
+and all eight adverse source mutations pass. The generation changed no profile
+fragment, performed no native VM build or device action, and marks its output
+`boot_candidate=false`. See
+[`results/buildbox-generation-20260830.txt`](results/buildbox-generation-20260830.txt).
+The canonical patch is byte-identical to that output; the canonical-order
+audit passes all 158 manifest profiles and its self-test rejects eight invalid
+series mutations.
 
 ## Analysis
 
-Pending.
+The review contains only the three corrections selected by the exact live
+value frame. It does not change the production producers or expected-effects
+model, and the fixture continues to require and publish SMC. Canonical-series
+validation passes; compile validation remains pending.
 
 ## Conclusion
 
