@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-cpu8-ready-one-shot` |
-| Status | `preparing fresh boot-bound contract` |
+| Status | `fresh boot qualified; publishing boot-bound contract` |
 | Subsystem | arm64 late CPU admission and MT6797 CPU8 hotplug |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -53,8 +53,13 @@ lists. The terminal classifier is source-pinned to the reviewed three-branch
 classifier. No action was taken; the device remains off pending a fresh boot.
 
 The boot-ID-bound validator, complete collector, immutable contract, and runner
-are intentionally deferred until the fresh pre-arm frame supplies their exact
-boot ID and frame hash.
+were then bound to fresh boot `1f2dcf6a...` and immutable frame `53644427...`.
+The frame independently repeats the complete silent READY result with CPUs
+0--7 online, CPUs 8--9 offline, and zero actions. Two collector
+materializations are byte-identical at `fa1dc4cb...`; the runtime suite accepts
+one pre-trigger and three terminal branches while rejecting thirteen
+pre-trigger and seven terminal mutations. No token has been sent. See
+[the pre-arm and offline record](results/prearm-and-offline-gates-20260830.txt).
 
 ## Analysis
 
@@ -62,9 +67,9 @@ Pending.
 
 ## Conclusion
 
-`preparing`.
+`ready-for-published-one-shot`.
 
 ## Follow-up
 
-Boot exact installed candidate `2245c1c4...` only after the pre-arm tooling is
-published.
+Publish the exact contract, revalidate this same boot, and execute its one
+permitted CPU8 trigger without retry. Keep CPU9 vetoed.
