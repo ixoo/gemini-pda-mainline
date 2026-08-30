@@ -101,13 +101,31 @@ mutations were rejected. The patch adds no CPU request, CPU9, CPU_OFF, or retry
 path. See
 [`results/buildbox-generation-20260830.txt`](results/buildbox-generation-20260830.txt).
 
+Canonical commit `a4b9fc5b` adds patch `0437`. Both the default and exact
+`a72-admission-live-trigger-candidate` profiles pass on Buildbox. The exact
+package was composed with the unchanged serviceability DT and ramdisk by adding
+only its package-owned A41 provenance leaf. Two DT compositions and two
+Android-v0/LK container builds are byte-identical. Independent validation
+accepts all 32 LK gates and rejects ten DT and six container mutations. The
+result is exact padded boot2 candidate `726b622a...`; no device access or
+hardware write occurred. See
+[`results/offline-candidate-20260830.txt`](results/offline-candidate-20260830.txt).
+
+A later owner-reported start of the retired `f694ddb9...` candidate exposed a
+temporary USB ACM gadget but no exact USB network interface or pre-trigger
+frame. Gemian was reachable after the bounded window with its unchanged boot
+ID. No netcat session or trigger occurred, so this adds no CPU result. See
+[`results/runtime-attempt-3-unqualified-old-candidate-20260830.txt`](results/runtime-attempt-3-unqualified-old-candidate-20260830.txt).
+
 ## Analysis
 
 The boot and runtime-provenance hypotheses passed. The seven-minute `0x20ff`
-dwell was latency, not a loader failure. No DT or container control is needed.
-The remaining failure is deterministic and source-local: a historical
-fail-closed predicate was not updated with the same lifecycle transition as
-the production blocker macro.
+dwell was latency, not a loader failure. The remaining runtime failure was
+deterministic and source-local: a historical fail-closed predicate was not
+updated with the same lifecycle transition as the production blocker macro.
+Patch `0437` repairs only that predicate, and the post-repair DT/container
+reproduction proves that no serviceability, LK, request-count, CPU9, CPU_OFF,
+or retry contract changed.
 
 Accepting zero blockers in this helper does not bypass a safety gate. The core
 still rejects any nonzero blocker before freezing or committing a plan, while
@@ -116,17 +134,17 @@ the pure validator so their existing core-owned rejection path is preserved.
 
 ## Conclusion
 
-`confirmed-stale-plan-validation-predicate`: exact candidate `f694ddb9...`
+`offline-repair-qualified-runtime-pending`: exact candidate `f694ddb9...`
 reached mainline and verified runtime identity, but READY was unreachable due
-to the stale `ATTESTATION_USERS` requirement. CPU8 was not requested and the
-candidate must not be repeated.
+to the stale `ATTESTATION_USERS` requirement. Patch `0437` removes only that
+contradiction, and exact repaired candidate `726b622a...` passes every offline
+gate. CPU8 has not yet been requested.
 
 ## Follow-up
 
-Generate and admit one post-`0436` source patch removing only the stale
-production predicate and its unused allowed-mask member. Patch `0437` now
-contains that exact repair as an experiment-only archive with a synthetic,
-non-certifying author and no DCO sign-off; it is not submission-ready. Audit all
-manifest profiles and build on Buildbox, reuse the proven composed DT and
-serviceability ramdisk, then require exact READY qualification before one
-CPU8-only trigger. Keep CPU9 vetoed.
+Deploy exact repaired candidate `726b622a...` to inactive logical boot2 with
+the guarded installer, full-partition readback, and clean shutdown. On the next
+owner-selected boot2 start, accept only a fresh exact frame with verified
+runtime identity, `profile_blocked_count=0`, CPU0--7 online, CPU8--9 offline,
+and the controller armed and unconsumed. Only that positive branch may consume
+one CPU8-only trigger. Keep CPU9 vetoed.

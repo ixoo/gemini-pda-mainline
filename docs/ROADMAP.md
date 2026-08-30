@@ -6416,11 +6416,15 @@ The next ordered work is:
    [READY plan-validation closure](../experiments/2026-08-30-mainline-a72-ready-plan-validation-closure/README.md)
    finds the exact contradiction: patch `0434` removed the final
    attestation-user blocker from production preparation, while the production
-   validator still requires it. CPU8 was not requested. **Selected next:**
-   admit the one-change stale-predicate repair, build it only on Buildbox,
-   recompose the proven provenance/serviceability candidate, and require exact
-   no-blocker READY qualification before one CPU8-only trigger. Retain the
-   CPU9 veto.
+   validator still requires it. CPU8 was not requested. Canonical patch `0437`
+   removes only that stale predicate. Default and exact live-trigger builds pass
+   on Buildbox at commit `a4b9fc5b`; the unchanged serviceability DT/ramdisk plus
+   the new package-owned provenance leaf produce exact padded boot2 candidate
+   `726b622a...`. Two DT and two container builds are byte-identical, all 32 LK
+   gates pass, and ten DT plus six container mutations are rejected.
+   **Selected next:** deploy this exact candidate, require a fresh no-blocker
+   READY frame, then consume at most one CPU8-only trigger. Retain the CPU9
+   veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 
