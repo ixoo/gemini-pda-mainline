@@ -6428,11 +6428,15 @@ The next ordered work is:
    mainline with verified runtime identity, an armed/unconsumed controller, and
    zero requests, but still reported proof mask `0x24000`; the classifier
    rejected and USB returned safely to changed-ID Gemian. This rejects the
-   hypothesis that patch `0437` was the sole live fix. **Selected next:** add
-   one no-action stage/per-predicate diagnostic for
-   `mt6797_a72_validate_cap_plan()`, build it only on Buildbox, and spend one
-   boot identifying the exact remaining false contract before another repair.
-   Retain the CPU9 veto.
+   hypothesis that patch `0437` was the sole live fix. Canonical patch `0438`
+   now adds one failure-only, no-action per-predicate diagnostic for
+   `mt6797_a72_validate_cap_plan()`: the unchanged contract remains the sole
+   return owner, while 27 plan bits and 29 evidence bits report the false
+   predicate. Its exact Buildbox-generated patch passes strict style,
+   deterministic replay, and seven unsafe-mutation rejections. **Selected
+   next:** build default and exact live profiles only on Buildbox, compose one
+   attributable observer candidate, and spend one boot identifying the exact
+   false contract before another repair. Retain the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 

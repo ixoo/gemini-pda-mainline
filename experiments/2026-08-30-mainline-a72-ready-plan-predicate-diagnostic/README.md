@@ -26,8 +26,7 @@ storage, retry, CPU_OFF, or CPU9 behavior.
 
 ## Provenance and environment
 
-- Parent repository commit: `24c33409...` until the diagnostic scripts are
-  committed.
+- Generation repository commit: `24e60ca6749f72d54c686ae5512a59a767862362`.
 - Parent kernel series: canonical Linux 7.1.3 through patch `0437`.
 - Parent prepared source state: `1beeac9d...`.
 - Parent `mt6797_psci.c` SHA-256: `bfa1f825...`.
@@ -73,7 +72,16 @@ candidate must never receive the CPU8 trigger.
 
 ## Observations
 
-Pending.
+Buildbox generated exactly one format-patch from prepared source state
+`1beeac9d...` and integrity `58713f00...`. The parent and final
+`mt6797_psci.c` hashes are `bfa1f825...` and `a850c6b5...`; canonical patch
+`0438` is `45c7db03...`. Strict checkpatch, deterministic replay, the 27-bit
+plan schema, the 29-bit evidence schema, return-owner validation, and all seven
+unsafe mutations pass. The generation performed no native VM build or device
+action and explicitly marks its output `boot_candidate=false`.
+
+See
+[`results/buildbox-generation-20260830.txt`](results/buildbox-generation-20260830.txt).
 
 ## Analysis
 
@@ -85,7 +93,7 @@ sequence of guessed semantic relaxations.
 
 ## Conclusion
 
-`pending-buildbox-generation`.
+`generated-and-canonically-admitted-pending-build`.
 
 ## Follow-up
 

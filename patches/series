@@ -427,3 +427,4 @@ v7.1.3/0434-arm64-finalize-Gemini-late-CPU-profile.patch
 v7.1.3/0435-arm64-keep-late-CPU-preflight-build-safe-when-disabled.patch
 v7.1.3/0436-arm64-bind-Gemini-CPU8-admission-configuration.patch
 v7.1.3/0437-arm64-drop-stale-Gemini-late-CPU-plan-blocker.patch
+v7.1.3/0438-arm64-report-Gemini-late-CPU-plan-predicates.patch
