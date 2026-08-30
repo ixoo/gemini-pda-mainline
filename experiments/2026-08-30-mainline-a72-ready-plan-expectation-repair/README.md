@@ -53,6 +53,14 @@ CPU8 and CPU9 remain offline and unrequested throughout this experiment.
 - `scripts/test_mutations.py`: decision-changing mutation rejection.
 - `scripts/generate_patch.py`: deterministic format-patch generation/replay.
 - `scripts/generate-on-buildbox`: pinned Buildbox entry point.
+- `scripts/build-composed-dtb.py` and `scripts/validate-composed-dtb.py`:
+  reproduce and independently validate the exact provenance-only DT delta.
+- `scripts/build-candidate.sh` and `scripts/validate-candidate.py`: reproduce
+  and independently validate the Android-v0/LK boot container.
+- `scripts/install-boot2.sh`: guarded inactive-`boot2` installation, full
+  readback, and mandatory clean shutdown without a fresh partition backup.
+- `scripts/remote-ready.sh`, `scripts/collect-ready.sh`, and
+  `scripts/validate-ready.py`: one read-only, no-trigger READY capture.
 
 ## Procedure
 
@@ -83,18 +91,33 @@ The canonical patch is byte-identical to that output; the canonical-order
 audit passes all 158 manifest profiles and its self-test rejects eight invalid
 series mutations.
 
+Repository commit `a07d9c45...` passed both the default and exact
+`a72-admission-live-trigger-candidate` profiles on Buildbox. The exact package
+was fetched and recomposed twice with the unchanged serviceability DT and
+ramdisk. Both composed DTs and both boot containers are byte-identical.
+Independent validation passes all 32 LK gates, rejects ten DT mutations,
+six container mutations, and thirteen runtime-frame mutations, and confirms
+zero executed CPU requests. The exact padded boot2 candidate is
+`9abdd1c6...`. See
+[`results/offline-candidate-20260830.txt`](results/offline-candidate-20260830.txt).
+
 ## Analysis
 
 The review contains only the three corrections selected by the exact live
 value frame. It does not change the production producers or expected-effects
-model, and the fixture continues to require and publish SMC. Canonical-series
-validation passes; compile validation remains pending.
+model, and the fixture continues to require and publish SMC. Canonical-series,
+compile, DT, container, reproduction, and negative-mutation validation all
+pass. Device deployment and one silent READY capture remain pending.
 
 ## Conclusion
 
-`running`.
+`offline-complete-runtime-pending`.
 
 ## Follow-up
 
-Only a clean attributable READY result may select a separate CPU8-only trigger
-candidate. CPU9 remains out of scope until CPU8 admission is repeatable.
+Install exact inactive logical `boot2`, shut down, and collect one attributable
+read-only boot. Accept only exact kernel and partition identity, one verified
+runtime identity, zero profile blockers, zero diagnostic/value lines, CPUs
+0--7 online with 8--9 offline, an armed controller, and zero CPU actions. Only
+that clean READY result may select a separate CPU8-only trigger candidate.
+CPU9 remains out of scope until CPU8 admission is repeatable.
