@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-ready-token-contract-repair` |
-| Status | `verified boot2 deployment complete; fresh runtime attempt pending` |
+| Status | `fresh boot2 pre-trigger accepted; single CPU8 trigger pending` |
 | Subsystem | arm64 late-CPU READY token and MT6797 CPU8 admission |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -150,6 +150,16 @@ collector replaces the overlong single-line base64 transport with one bounded
 here-document connection. Static and executable tests prove one netcat call
 site, zero trigger paths, exact source pins, and the complete materialized
 probe before the next read-only attempt.
+
+The corrected read-only capture then completed in one netcat session on exact
+boot ID `e6ff1315...`. It independently matches full boot2 image
+`a7ce2c2d...`, release `7.1.3-gemini-a72-admission-live`, aarch64, positive
+runtime identity, no profile blocker or READY diagnostic, CPUs 0--7 online and
+8--9 offline, and the read-only armed controller. The immutable status retains
+zero executions, requests, failure stage, and derive stage. Its three private
+capture files pass their recorded checksums; no trigger, storage access, CPU9,
+CPU_OFF, retry, or reboot request occurred. See
+[`results/runtime-pretrigger-20260830.txt`](results/runtime-pretrigger-20260830.txt).
 
 The separate trigger executor accepts only that completed, checksum-valid
 private capture. It revalidates the frame, extracts its boot ID, derives a
