@@ -6398,9 +6398,17 @@ The next ordered work is:
    exactly one positive runtime-identity message, no invalid, mismatch,
    unconfigured, or profile-blocked message, and the existing exact candidate,
    release, USB, boot-ID, serviceable armed/zero-execution frame. It has no
-   trigger path. **Selected next:** the owner has physically selected boot2;
-   wait for its attributable USB endpoint and run that qualification. Define a
-   separate boot-bound one-shot only after it passes; retain the CPU9 veto.
+   trigger path. The first reported start was observed only after the report:
+   all 837 quarter-second polls over five minutes retained one unchanged
+   `0x0e8d:0x20ff` session and no exact network interface, detach, changed
+   session, preloader, netcat session, frame, or trigger. This does not prove
+   exact boot2 selection or candidate loading, so it neither rejects the
+   candidate nor tests CPU8. **Selected next:** close the cycle from changed-ID
+   Gemian, verify retained evidence and installed boot2, then arm both the
+   contact-free transition observer and cycle-aware pre-trigger collector
+   before one repeat of the unchanged candidate. Define a separate boot-bound
+   one-shot only after the full live qualification passes; retain the CPU9
+   veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 

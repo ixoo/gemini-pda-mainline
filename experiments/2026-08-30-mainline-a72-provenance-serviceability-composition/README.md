@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-provenance-serviceability-composition` |
-| Status | `deployed to boot2 with full readback; owner-selected boot attempt awaiting an attributable USB endpoint` |
+| Status | `deployed; first reported start held one 0x0e8d:0x20ff session for five minutes with no trigger; changed-boot recovery pending` |
 | Subsystem | arm64 late-CPU runtime identity and Gemini serviceability DT |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -71,6 +71,9 @@ runtime identity and READY; an armed controller alone is insufficient.
 - `scripts/collect-pretrigger.sh`: source-pins the prior disconnect/cycle-aware
   collector and retargets it to the exact candidate and validators above. It
   has no trigger-token path.
+- `scripts/observe-start-boundary.sh`: source-pins the proven contact-free
+  quarter-second USB transition observer under this experiment identity for an
+  observer-armed-before-selection retry.
 
 Private DTBs and containers remain below ignored `artifacts/` paths.
 
@@ -136,6 +139,16 @@ exact candidate, release, USB, boot-ID, serviceability, armed, and
 zero-execution gates and has no trigger path. See
 [`results/offline-pretrigger-tooling-20260830.txt`](results/offline-pretrigger-tooling-20260830.txt).
 
+The owner then reported starting boot2 before the host observer was armed. The
+subsequent bounded five-minute window contained 837 polls but only one USB
+state: MediaTek `0x0e8d:0x20ff`, one unchanged session, and no exact Gemini
+network interface. There was no detach, changed USB session, observed
+preloader, mainline gadget, netcat session, pre-trigger frame, or trigger. The
+interface presented as HID and had a host USB user client, but that observation
+does not establish whether the host claim, physical selection, LK, or the
+candidate caused the persistent stage. See
+[`results/start-boundary-attempt-1-persistent-20ff-20260830.txt`](results/start-boundary-attempt-1-persistent-20ff-20260830.txt).
+
 ## Analysis
 
 The smallest attributable change is to compose the two already-owned DT
@@ -151,16 +164,26 @@ Before consuming a new token, the live collector will require the positive
 profile-blocked message, and retain the exact armed/zero-execution checks. An
 armed controller alone is not sufficient.
 
+Because observation began after the owner's start report and never saw the
+required detach or changed session, this does not prove that LK selected and
+loaded exact boot2. It therefore cannot reject the candidate or test its
+runtime-provenance hypothesis. An identical-candidate retry is justified only
+with the contact-free transition observer and cycle-aware collector armed
+before physical selection; that repeat measures the missing start boundary.
+
 ## Conclusion
 
-`deployed-exact-provenance-serviceability-candidate`: exact padded candidate
-`f694ddb9...` is installed to boot2 with matching full readback and the device
-is confirmed shut down. No CPU request occurred during deployment.
+`persistent-20ff-start-boundary-unclosed`: exact padded candidate
+`f694ddb9...` was installed to boot2 with matching full readback. The first
+reported start produced no attributable mainline identity and no CPU request;
+the candidate runtime hypothesis remains untested.
 
 ## Follow-up
 
-For the reported owner-selected boot2 start, wait for an attributable USB
-endpoint. Require positive runtime identity, no profile blocker,
-serviceability, and zero execution before defining a new boot-bound one-shot.
-Do not trigger from an armed frame alone, and do not infer a result from the
-screen or endpoint absence.
+First close the current cycle from changed-boot Gemian and verify retained
+evidence and installed boot2. Then arm the experiment-specific USB transition
+observer and cycle-aware pre-trigger collector before one physical selection
+of the unchanged candidate. Require positive runtime identity, no profile
+blocker, serviceability, and zero execution before defining a new boot-bound
+one-shot. Do not trigger from an armed frame alone, and do not infer a result
+from the screen or endpoint absence.
