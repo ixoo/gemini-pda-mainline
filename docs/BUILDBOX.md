@@ -133,6 +133,20 @@ access the Gemini, or authorize a physical I2C transaction.
 
 ## Mainline Gate-7 A34 evaluator patch-generation lane
 
+The expectation-only READY-token contract repair is generated from the exact
+canonical source through patch `0445` and fetched as one checksum-covered patch
+review:
+
+```sh
+./scripts/buildbox generate-a72-ready-token-contract
+./scripts/buildbox fetch-a72-ready-token-contract
+```
+
+The lane reconstructs the current parent from the pinned managed source and
+canonical patches, requires dormant target observations to remain empty while
+preserving their exact expected MPIDRs, and adds no CPU request, CPU9, CPU_OFF,
+retry, hardware-write, boot-candidate, or device path.
+
 The hardware-free A34 eligibility evaluator is generated only from the exact
 clean, pushed project commit:
 

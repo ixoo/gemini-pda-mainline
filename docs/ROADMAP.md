@@ -6490,10 +6490,15 @@ The next ordered work is:
    `operation_ret=-1`, and zero requests. Those enums identify READY-token
    validation, before A34, publication, CPU hotplug, PSCI, or CPU8 hardware
    execution; the prior source-only A34 attribution is superseded. The
-   candidate is retired. **Selected next:** add a failure-only discriminator
-   for the first false predicate inside `mt6797_a72_ready_token_validate()`,
-   prove it does not change the validator or request graph, and use at most one
-   separately qualified observer boot. Retain the CPU9 veto.
+   candidate is retired. The subsequent exact-source audit found a
+   deterministic contradiction at that retained substage: the production plan
+   contract requires dormant target observations to remain empty, READY copies
+   those zeros unchanged, but the membership validator requires observed
+   MPIDRs `0x200/0x201` before either target executes. **Selected next:** repair
+   that predicate to require empty observations while preserving the exact
+   expected MPIDRs, identities, target mask, request order, and one-shot bounds;
+   generate and validate the patch on Buildbox before any new candidate. Retain
+   the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 
