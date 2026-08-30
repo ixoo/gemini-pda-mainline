@@ -90,6 +90,13 @@ branches while rejecting seven unsafe pre-trigger and seven unsafe attempt
 mutations. Two derived collector materializations are byte-identical at
 `1e372c42...`. No device action occurred during these offline gates.
 
+The first published runner invocation failed before opening USB because it
+materialized the location-sensitive derived wrapper one directory below its
+source-pinned support files. It created no runtime output and sent no token.
+The corrected runner materializes a uniquely named file beside those support
+files, retains the same exact contract and derived-collector hashes, and still
+removes the temporary file on every exit.
+
 ## Analysis
 
 READY publication, serviceability, controller binding, and the trace-aware

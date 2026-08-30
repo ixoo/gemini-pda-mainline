@@ -21,7 +21,7 @@ Collector wrapper SHA-256:
 Derived collector SHA-256:
 1e372c425b664fdd9af75659dd029bc6baac5276800f1fbf168cba7e2a219bb8
 One-shot runner SHA-256:
-895e7941637a6bffbc562e346fbf37b4289053e5179c098a2f14fc5b6725aa6f
+130a27dbfed461a697c67eebea26f8ac5bc626524e42eae1540523675ff34083
 Remote pre-trigger SHA-256:
 b0537c7b5df1005d4c3946eb559e90e986c05e56dd1581fb1a60e9909aa33f0b
 Remote trigger SHA-256:
@@ -61,3 +61,13 @@ native VM build was run.
 Decision: publish this exact boot-ID-pinned definition before running
 `scripts/run-one-shot.sh` once. A complete terminal frame or a transport loss
 after its commit marker is final and must not be retried. CPU9 remains vetoed.
+
+Pre-action runner correction
+----------------------------
+
+The first published runner invocation exited before opening USB because the
+derived location-sensitive wrapper was materialized in a child directory and
+could not resolve its source collector. No private runtime output was created,
+no netcat session opened, and no token or device action occurred. The corrected
+runner materializes a unique sibling file in its scripts directory, verifies
+the unchanged derived collector hash, and preserves cleanup on every exit.

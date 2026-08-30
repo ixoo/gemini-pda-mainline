@@ -9,7 +9,7 @@ readonly CONTRACT_SHA256=6f12640027ac5538f5e4fed47e5e2609912d94e1eff8035bae9e668
 readonly COLLECTOR_SHA256=4920f2c44d6b8d12d30c2b706eb1e48549a74446710387642dcb4873a0cd1b0d
 readonly DERIVED_SHA256=1e372c425b664fdd9af75659dd029bc6baac5276800f1fbf168cba7e2a219bb8
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }
-for command in mktemp rm rmdir sha256sum; do
+for command in mktemp rm sha256sum; do
 	command -v "$command" >/dev/null 2>&1 || die "required command missing: $command"
 done
 [[ $# == 0 ]] || die 'run-one-shot.sh accepts no arguments'
@@ -22,12 +22,9 @@ collector="$script_dir/collect-live-trigger.sh"
 [[ "$(sha256sum "$contract" | awk '{print $1}')" == "$CONTRACT_SHA256" ]] || die 'contract changed'
 [[ "$(sha256sum "$collector" | awk '{print $1}')" == "$COLLECTOR_SHA256" ]] || die 'collector changed'
 
-temporary_root=$(mktemp -d "$script_dir/.ready-one-shot-run.XXXXXXXX")
-derived="$temporary_root/collector"
-cleanup() {
-	[[ ! -e "${derived:-}" ]] || rm -f -- "$derived"
-	[[ ! -d "${temporary_root:-}" ]] || rmdir -- "$temporary_root"
-}
+derived=$(mktemp "$script_dir/.ready-one-shot-run.XXXXXXXX")
+rm -f -- "$derived"
+cleanup() { [[ ! -e "${derived:-}" ]] || rm -f -- "$derived"; }
 trap cleanup EXIT HUP INT TERM
 "$collector" --materialize "$derived"
 [[ "$(sha256sum "$derived" | awk '{print $1}')" == "$DERIVED_SHA256" ]] || die 'derived collector changed'
