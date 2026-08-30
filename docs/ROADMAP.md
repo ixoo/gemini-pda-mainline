@@ -6377,12 +6377,21 @@ The next ordered work is:
    package-owned `/chosen/gemini-late-cpu-provenance` leaf. This is a
    container-construction failure before CPU power-on, not a CPU8 failure.
    Candidate `8acf9227...` and its boot are retired and must not be retried.
-   **Selected next:** reuse exact validated Buildbox package `5abde763...`,
-   compose its generated A41 provenance record with the proven serviceability
-   DT transform, and independently validate the exact DT/container delta.
-   Pre-trigger qualification must directly require verified runtime binding
-   and READY, not infer it from an armed consumer. Only then deploy and consume
-   one new CPU8-only token; retain the CPU9 veto.
+   The follow-on
+   [provenance/serviceability composition](../experiments/2026-08-30-mainline-a72-provenance-serviceability-composition/README.md)
+   now passes offline. Exact composed DT `8f87be2b...` is the complete proven
+   admission/serviceability tree plus one byte-exact package A41 leaf; an
+   independent binary-tree comparison and ten mutations protect that claim.
+   Exact raw container `1921c30e...` and padded boot2 candidate `f694ddb9...`
+   pass all 32 LK gates and six corrupt-container mutations while reusing the
+   unchanged validated Buildbox package, Image, configuration, ramdisk,
+   command line, one-CPU8 route, and CPU9 veto.
+   **Selected next:** publish and guarded-install exact candidate
+   `f694ddb9...` over exact boot2 predecessor `8acf9227...`, require its full
+   readback, and shut down. On the next boot, accept pre-trigger qualification
+   only with the positive runtime-identity message, no profile blocker, and
+   the existing serviceable armed/zero-execution frame. Define a separate
+   boot-bound one-shot only after that passes; retain the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 
