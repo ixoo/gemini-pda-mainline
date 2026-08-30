@@ -63,6 +63,12 @@ CPU9 remains vetoed.
   linked symbols, Android-v0 layout, LK gates, padding, and negative mutations.
 - `scripts/install-boot2.sh` source-pins the guarded live-GPT installer and
   retargets its exact predecessor, candidate, and experiment identities.
+- `scripts/collect-pretrigger.sh` pre-arms the exact USB/netcat observation
+  path, distinguishes an early return to changed-ID Gemian, and never triggers.
+- `scripts/remote-pretrigger.sh` emits the bounded read-only live frame for the
+  exact installed candidate.
+- `scripts/validate-pretrigger.py` accepts only the exact serviceable,
+  READY/controller-armed, zero-execution state while returning the new boot ID.
 
 ## Procedure
 
@@ -111,10 +117,18 @@ CPU9 remains vetoed.
   `4c8cf8e0...` and exact 16 MiB boot2 image `8acf9227...`. The independent
   validator passes all 32 LK gates, rejects six container corruptions, and
   confirms the serviceability DT and ramdisk are unchanged.
+- The pre-trigger collector is source-pinned to the last proven USB/netcat
+  observer and retargets only the exact full-partition candidate identity. Its
+  materialized probe is deterministic at `68cbb6af...`; Bash, ShellCheck,
+  positive-frame, and CPU-online mutation gates pass. It has no trigger path.
+- A read-only deployment preflight could not begin because the device was
+  powered off or otherwise unreachable. No device or partition action occurred.
 - Full generation and admission chronology is in
   [`results/generation-20260830.txt`](results/generation-20260830.txt).
 - Exact compile, linked-audit, and candidate evidence is in
   [`results/build-and-candidate-20260830.txt`](results/build-and-candidate-20260830.txt).
+- Exact pre-trigger tooling evidence is in
+  [`results/pretrigger-tooling-20260830.txt`](results/pretrigger-tooling-20260830.txt).
 
 ## Analysis
 
