@@ -108,13 +108,11 @@ mt6797_a72_membership_derive_cpu8(const struct arm64_late_cpu_ready_token *ready
 mt6797_a72_membership_derive_cpu8(const struct arm64_late_cpu_ready_token *ready,
 				  struct mt6797_a72_transaction *transaction);
 int
-mt6797_a72_membership_derive_cpu8_diagnostic(
-	const struct arm64_late_cpu_ready_token *ready,
+mt6797_a72_membership_derive_cpu8_diagnostic(const struct arm64_late_cpu_ready_token *ready,
 	struct mt6797_a72_transaction *transaction, u32 *derive_stage);
 #else
 static inline int
-mt6797_a72_membership_derive_cpu8_diagnostic(
-	const struct arm64_late_cpu_ready_token *ready,
+mt6797_a72_membership_derive_cpu8_diagnostic(const struct arm64_late_cpu_ready_token *ready,
 	struct mt6797_a72_transaction *transaction, u32 *derive_stage)
 {
 	(void)ready;
@@ -220,18 +218,15 @@ mt6797_a72_membership_publish_bootstrap_locked(const struct mt6797_a72_direct_to
 #endif
 
 	memset(workspace, 0, sizeof(*workspace));
-	mt6797_a72_derive_stage_set(derive_stage,
-					   MT6797_A72_DERIVE_BOOTSTRAP_OWNER);
+	mt6797_a72_derive_stage_set(derive_stage, MT6797_A72_DERIVE_BOOTSTRAP_OWNER);
 	ret = mt6797_a72_bootstrap_owner_precheck();
 	if (ret)
 		goto out_clear;
-	mt6797_a72_derive_stage_set(derive_stage,
-					   MT6797_A72_DERIVE_BOOTSTRAP_REPLAY);
+	mt6797_a72_derive_stage_set(derive_stage, MT6797_A72_DERIVE_BOOTSTRAP_REPLAY);
 	ret = mt6797_a72_bootstrap_replay_valid(replay);
 	if (ret)
 		goto out_clear;
-	mt6797_a72_derive_stage_set(derive_stage,
-					   MT6797_A72_DERIVE_DIRECT_STATE);
+	mt6797_a72_derive_stage_set(derive_stage, MT6797_A72_DERIVE_DIRECT_STATE);
 	ret = mt6797_a72_direct_state_snapshot_locked(topology,
 						      &workspace->observation.direct);
 	if (ret)
@@ -243,8 +238,7 @@ mt6797_a72_membership_publish_bootstrap_locked(const struct mt6797_a72_direct_to
 	if (ret)
 		goto out_clear;
 	mt6797_a72_bootstrap_prepare_plan(&workspace->plan);
-	mt6797_a72_derive_stage_set(derive_stage,
-					   MT6797_A72_DERIVE_P30_CLAIM);
+	mt6797_a72_derive_stage_set(derive_stage, MT6797_A72_DERIVE_P30_CLAIM);
 	ret = arm64_late_cpu_startup_claim_pristine(&workspace->claim);
 	if (ret)
 		goto out_clear;
@@ -258,13 +252,13 @@ mt6797_a72_membership_publish_bootstrap_locked(const struct mt6797_a72_direct_to
 	(void)dirty_owner_before_finalize;
 #endif
 	mt6797_a72_derive_stage_set(derive_stage,
-					   MT6797_A72_DERIVE_BOOTSTRAP_FINALIZE);
+				   MT6797_A72_DERIVE_BOOTSTRAP_FINALIZE);
 	ret = arm64_late_cpu_startup_finalize_pristine(&workspace->claim,
 						       mt6797_a72_bootstrap_commit,
 						       workspace);
 	if (workspace->claim.cookie) {
 		mt6797_a72_derive_stage_set(derive_stage,
-						   MT6797_A72_DERIVE_P30_RELEASE);
+					   MT6797_A72_DERIVE_P30_RELEASE);
 		release_ret = arm64_late_cpu_startup_release_pristine(&workspace->claim);
 		if (release_ret)
 			ret = release_ret;
@@ -309,15 +303,13 @@ mt6797_a72_membership_derive_cpu8_locked(const struct mt6797_a72_direct_topology
 		goto out_clear;
 
 	mt6797_a72_derive_cpu8_entry(&workspace->direct, &workspace->entry);
-	mt6797_a72_derive_stage_set(derive_stage,
-					   MT6797_A72_DERIVE_P31_CONSUME);
+	mt6797_a72_derive_stage_set(derive_stage, MT6797_A72_DERIVE_P31_CONSUME);
 	ret = mt6797_a72_membership_p31_consume_attempt(8, CPUHP_ONLINE,
 							MT6797_A72_ATTEMPT_CPU8_UP,
 							&workspace->entry);
 	if (ret)
 		goto out_clear;
-	mt6797_a72_derive_stage_set(derive_stage,
-					   MT6797_A72_DERIVE_ENTRY_VALIDATE);
+	mt6797_a72_derive_stage_set(derive_stage, MT6797_A72_DERIVE_ENTRY_VALIDATE);
 	ret = mt6797_a72_membership_validate_entry(8, CPUHP_ONLINE,
 						   MT6797_A72_ATTEMPT_CPU8_UP,
 						   &workspace->entry);
@@ -333,13 +325,12 @@ mt6797_a72_membership_derive_cpu8_locked(const struct mt6797_a72_direct_topology
 	mt6797_a72_derive_cpu8_prestate(&workspace->direct, transaction,
 					&workspace->prestate);
 	mt6797_a72_derive_stage_set(derive_stage,
-					   MT6797_A72_DERIVE_PRESTATE_VALIDATE);
+				   MT6797_A72_DERIVE_PRESTATE_VALIDATE);
 	ret = mt6797_a72_membership_validate_up_prestate(transaction,
 							 &workspace->prestate);
 	if (ret)
 		goto reject_frozen;
-	mt6797_a72_derive_stage_set(derive_stage,
-					   MT6797_A72_DERIVE_PRESTATE_BIND);
+	mt6797_a72_derive_stage_set(derive_stage, MT6797_A72_DERIVE_PRESTATE_BIND);
 	ret = mt6797_a72_membership_bind_a36_prestate(&transaction->identity,
 						      &workspace->prestate, transaction);
 	if (ret)
@@ -360,8 +351,7 @@ out_clear:
     start = source.index("int\nmt6797_a72_membership_derive_cpu8(")
     end = source.index("\n#ifdef CONFIG_ARM64_MT6797_A72_DERIVED_ADMISSION_KUNIT_TEST", start)
     public = r'''int
-mt6797_a72_membership_derive_cpu8_diagnostic(
-	const struct arm64_late_cpu_ready_token *ready,
+mt6797_a72_membership_derive_cpu8_diagnostic(const struct arm64_late_cpu_ready_token *ready,
 	struct mt6797_a72_transaction *transaction, u32 *derive_stage)
 {
 	struct mt6797_a72_direct_topology topology = {};
@@ -443,8 +433,8 @@ mt6797_a72_membership_derive_cpu8(const struct arm64_late_cpu_ready_token *ready
         """{
 	struct mt6797_a72_admission_controller *controller = context;
 
-	return mt6797_a72_membership_derive_cpu8_diagnostic(
-		ready, transaction, &controller->state.derive_stage);
+	return mt6797_a72_membership_derive_cpu8_diagnostic(ready, transaction,
+							    &controller->state.derive_stage);
 }
 """,
         "production derive diagnostic",
@@ -472,9 +462,7 @@ mt6797_a72_membership_derive_cpu8(const struct arm64_late_cpu_ready_token *ready
         """		 "entry_trace_ret=%d terminal_trace_ret=%d "
 		 "requests=%u/0/0 retries=0\\n",
 """,
-        """		 "entry_trace_ret=%d terminal_trace_ret=%d "
-		 "failure_stage=%u derive_stage=%u "
-		 "requests=%u/0/0 retries=0\\n",
+        """		 "entry_trace_ret=%d terminal_trace_ret=%d failure_stage=%u derive_stage=%u requests=%u/0/0 retries=0\\n",
 """,
         "terminal format",
     )
