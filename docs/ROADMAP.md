@@ -6422,9 +6422,11 @@ The next ordered work is:
    the new package-owned provenance leaf produce exact padded boot2 candidate
    `726b622a...`. Two DT and two container builds are byte-identical, all 32 LK
    gates pass, and ten DT plus six container mutations are rejected.
-   **Selected next:** deploy this exact candidate, require a fresh no-blocker
-   READY frame, then consume at most one CPU8-only trigger. Retain the CPU9
-   veto.
+   The guarded live-GPT installer matched predecessor `f694ddb9...`, wrote only
+   inactive boot2, verified exact full-partition readback `726b622a...`, made no
+   fresh backup, and shut the device down. **Selected next:** owner-select this
+   exact boot2 candidate, require a fresh no-blocker READY frame, then consume
+   at most one CPU8-only trigger. Retain the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 

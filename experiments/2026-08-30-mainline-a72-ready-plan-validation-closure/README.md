@@ -117,6 +117,14 @@ frame. Gemian was reachable after the bounded window with its unchanged boot
 ID. No netcat session or trigger occurred, so this adds no CPU result. See
 [`results/runtime-attempt-3-unqualified-old-candidate-20260830.txt`](results/runtime-attempt-3-unqualified-old-candidate-20260830.txt).
 
+The guarded installer then resolved inactive, unmounted live-GPT boot2 as
+`/dev/mmcblk0p30`, matched exact predecessor `f694ddb9...`, stable power, and
+logically empty retained records. It wrote only repaired candidate
+`726b622a...`, made no fresh backup, and required an identical full 16 MiB
+readback. The device was shut down cleanly; SSH failure and three TCP/22
+closures confirm the boundary. See
+[`results/deployment-boot2-726b622a-20260830.txt`](results/deployment-boot2-726b622a-20260830.txt).
+
 ## Analysis
 
 The boot and runtime-provenance hypotheses passed. The seven-minute `0x20ff`
@@ -134,17 +142,16 @@ the pure validator so their existing core-owned rejection path is preserved.
 
 ## Conclusion
 
-`offline-repair-qualified-runtime-pending`: exact candidate `f694ddb9...`
+`repaired-candidate-deployed-runtime-pending`: exact candidate `f694ddb9...`
 reached mainline and verified runtime identity, but READY was unreachable due
 to the stale `ATTESTATION_USERS` requirement. Patch `0437` removes only that
 contradiction, and exact repaired candidate `726b622a...` passes every offline
-gate. CPU8 has not yet been requested.
+gate and exact boot2 readback. CPU8 has not yet been requested.
 
 ## Follow-up
 
-Deploy exact repaired candidate `726b622a...` to inactive logical boot2 with
-the guarded installer, full-partition readback, and clean shutdown. On the next
-owner-selected boot2 start, accept only a fresh exact frame with verified
-runtime identity, `profile_blocked_count=0`, CPU0--7 online, CPU8--9 offline,
-and the controller armed and unconsumed. Only that positive branch may consume
-one CPU8-only trigger. Keep CPU9 vetoed.
+On the next owner-selected boot2 start, accept only a fresh exact frame with
+verified runtime identity, `profile_blocked_count=0`, CPU0--7 online, CPU8--9
+offline, and the controller armed and unconsumed. Only that positive branch may
+consume one CPU8-only trigger. A missing or rejected frame must not trigger and
+instead selects the named failing gate for repair. Keep CPU9 vetoed.
