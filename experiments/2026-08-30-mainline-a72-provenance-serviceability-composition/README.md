@@ -74,6 +74,9 @@ runtime identity and READY; an armed controller alone is insufficient.
 - `scripts/observe-start-boundary.sh`: source-pins the proven contact-free
   quarter-second USB transition observer under this experiment identity for an
   observer-armed-before-selection retry.
+- `scripts/collect-recovery.sh`: source-pins the proven read-only live-GPT,
+  pstore, transition-ledger, and two-slot admission-trace recovery collector
+  to exact installed candidate `f694ddb9...`.
 
 Private DTBs and containers remain below ignored `artifacts/` paths.
 
@@ -148,6 +151,12 @@ interface presented as HID and had a host USB user client, but that observation
 does not establish whether the host claim, physical selection, LK, or the
 candidate caused the persistent stage. See
 [`results/start-boundary-attempt-1-persistent-20ff-20260830.txt`](results/start-boundary-attempt-1-persistent-20ff-20260830.txt).
+
+The changed-boot recovery collector is prepared and source-pinned before use.
+Its inherited seven-branch retained-record decision map passes offline and the
+collector can target only exact known-good Gemian, the deployment receipt, and
+candidate `f694ddb9...`; it performs no storage or retained-RAM write. See
+[`results/offline-recovery-tooling-20260830.txt`](results/offline-recovery-tooling-20260830.txt).
 
 ## Analysis
 
