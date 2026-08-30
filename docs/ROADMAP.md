@@ -6424,9 +6424,15 @@ The next ordered work is:
    gates pass, and ten DT plus six container mutations are rejected.
    The guarded live-GPT installer matched predecessor `f694ddb9...`, wrote only
    inactive boot2, verified exact full-partition readback `726b622a...`, made no
-   fresh backup, and shut the device down. **Selected next:** owner-select this
-   exact boot2 candidate, require a fresh no-blocker READY frame, then consume
-   at most one CPU8-only trigger. Retain the CPU9 veto.
+   fresh backup, and shut the device down. Its exact boot reached serviceable
+   mainline with verified runtime identity, an armed/unconsumed controller, and
+   zero requests, but still reported proof mask `0x24000`; the classifier
+   rejected and USB returned safely to changed-ID Gemian. This rejects the
+   hypothesis that patch `0437` was the sole live fix. **Selected next:** add
+   one no-action stage/per-predicate diagnostic for
+   `mt6797_a72_validate_cap_plan()`, build it only on Buildbox, and spend one
+   boot identifying the exact remaining false contract before another repair.
+   Retain the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 

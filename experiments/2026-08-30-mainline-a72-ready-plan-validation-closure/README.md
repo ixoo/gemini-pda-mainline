@@ -125,6 +125,15 @@ readback. The device was shut down cleanly; SSH failure and three TCP/22
 closures confirm the boundary. See
 [`results/deployment-boot2-726b622a-20260830.txt`](results/deployment-boot2-726b622a-20260830.txt).
 
+The first exact post-`0437` boot produced a complete immutable frame. Candidate
+identity, kernel release, A41 provenance, runtime identity, USB, controller,
+CPU0--7 online, CPU8--9 offline, and armed zero-execution state all passed.
+The frame still contained one profile-blocked message, and same-boot dmesg
+reported the unchanged `0x24000` proof mask. The safe classifier rejected it;
+no trigger or CPU action occurred. A validated USB-shell reboot returned to
+changed-ID Gemian. See
+[`results/runtime-attempt-4-post0437-still-blocked-20260830.txt`](results/runtime-attempt-4-post0437-still-blocked-20260830.txt).
+
 ## Analysis
 
 The boot and runtime-provenance hypotheses passed. The seven-minute `0x20ff`
@@ -133,7 +142,10 @@ deterministic and source-local: a historical fail-closed predicate was not
 updated with the same lifecycle transition as the production blocker macro.
 Patch `0437` repairs only that predicate, and the post-repair DT/container
 reproduction proves that no serviceability, LK, request-count, CPU9, CPU_OFF,
-or retry contract changed.
+or retry contract changed. The exact negative boot now proves that the stale
+bit was not the sole live failure inside `mt6797_a72_validate_cap_plan()`; the
+same public proof bit covers several internal predicates and cannot identify
+which remaining field is false.
 
 Accepting zero blockers in this helper does not bypass a safety gate. The core
 still rejects any nonzero blocker before freezing or committing a plan, while
@@ -142,16 +154,18 @@ the pure validator so their existing core-owned rejection path is preserved.
 
 ## Conclusion
 
-`repaired-candidate-deployed-runtime-pending`: exact candidate `f694ddb9...`
-reached mainline and verified runtime identity, but READY was unreachable due
-to the stale `ATTESTATION_USERS` requirement. Patch `0437` removes only that
-contradiction, and exact repaired candidate `726b622a...` passes every offline
-gate and exact boot2 readback. CPU8 has not yet been requested.
+`post-0437-still-plan-blocked-zero-trigger`: exact repaired candidate
+`726b622a...` passes every offline, deployment, identity, and serviceability
+gate but still reaches plan-validation proof mask `0x24000`. CPU8 has not been
+requested. The former conclusion that the stale attestation predicate was the
+sole live cause is rejected.
 
 ## Follow-up
 
-On the next owner-selected boot2 start, accept only a fresh exact frame with
-verified runtime identity, `profile_blocked_count=0`, CPU0--7 online, CPU8--9
-offline, and the controller armed and unconsumed. Only that positive branch may
-consume one CPU8-only trigger. A missing or rejected frame must not trigger and
-instead selects the named failing gate for repair. Keep CPU9 vetoed.
+Add one no-action diagnostic that preserves the exact validator return value
+while reporting its failing stage and per-predicate bitmap. Build only on
+Buildbox and spend at most one boot on that independently observable image.
+Use the bitmap to repair the exact false contract, then again require verified
+runtime identity, `profile_blocked_count=0`, CPU0--7 online, CPU8--9 offline,
+and the controller armed and unconsumed before one CPU8-only trigger. Keep CPU9
+vetoed.
