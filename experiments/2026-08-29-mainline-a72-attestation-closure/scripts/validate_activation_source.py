@@ -48,7 +48,7 @@ def validate(root: Path) -> list[str]:
     for token in (
         ".abi = ARM64_LATE_CPU_EXPECTED_PAIR_ABI",
         ".target_count = ARM64_LATE_CPU_MAX_TARGETS",
-        ".valid = ARM64_LATE_CPU_EXPECTED_PAIR_VALID_MASK",
+        ".valid = ARM64_LATE_CPU_EXPECTED_PAIR_VALID_MASK,",
         "0x04bd7f060613719e", "0x7836415f9dfbbc19",
         "0xdc1d97ee847eb811", "0xf765c5e8a01667cc",
         "0xe35596c52bc8b40b", "0x600c5e2d6733661d",
