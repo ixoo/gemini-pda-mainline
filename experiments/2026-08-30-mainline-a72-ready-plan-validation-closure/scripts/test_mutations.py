@@ -39,10 +39,8 @@ MUTATIONS = (
     ),
     (
         "alter-fixture-closure",
-        "#ifdef CONFIG_ARM64_MT6797_A72_FIXTURE_EVIDENCE\n"
-        "#define MT6797_A72_PROFILE_BLOCKERS",
-        "#ifdef CONFIG_ARM64_MT6797_A72_FIXTURE_EVIDENCE\n"
-        "/* mutated fixture */\n#define MT6797_A72_PROFILE_BLOCKERS",
+        "\t ARM64_LATE_CPU_BLOCK_ATTESTATION_USERS |\t\t\t\\\n",
+        "",
     ),
     (
         "add-cpu-action",
