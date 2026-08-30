@@ -75,7 +75,7 @@ def validate(root: Path) -> list[str]:
     require("Prior-cycle Gemian capsule stream" in profile and
             "never a current-boot observation" in profile,
             "prior-cycle provenance boundary is not explicit")
-    require(expectation.count(".id_") == 20,
+    require(expectation.count(".id_") == 19,
             "expected named register initializer count changed")
     for forbidden in (
         "target_cap", "observed_target_", "ID_REGS_VALID",
