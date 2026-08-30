@@ -1,0 +1,49 @@
+From 1000000000000000000000000000000000000444 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 30 Aug 2026 23:00:00 +0000
+Subject: [PATCH] arm64: mediatek: use intersected A72 power status
+
+MT6797 defines a CPU as powered only when its bit is set in both SPM CPU
+power-status words.  The live reset state legitimately has the A72 bits set
+in the second word and clear in the first word.
+
+Apply the documented intersection rule in A34 instead of requiring each raw
+word to be clear.  Keep either A72 bit fail-closed once it is asserted in both
+words, and cover both CPU8 and CPU9 in the focused mutation test.
+---
+ arch/arm64/kernel/mt6797_a72_a34_evaluator_test.c | 3 +++
+ arch/arm64/kernel/mt6797_a72_membership.c          | 7 +++----
+ 2 files changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm64/kernel/mt6797_a72_a34_evaluator_test.c b/arch/arm64/kernel/mt6797_a72_a34_evaluator_test.c
+--- a/arch/arm64/kernel/mt6797_a72_a34_evaluator_test.c
++++ b/arch/arm64/kernel/mt6797_a72_a34_evaluator_test.c
+@@ -159,6 +159,9 @@ static void mt6797_a34_relevant_mutation_test(struct kunit *test)
+ 	mt6797_a34_fill_valid(state->observation);
+ 	state->observation->direct.source.platform.spm_cpu_pwr_status |= BIT(6);
+ 	mt6797_a34_expect_result_unchanged(test, state, -EPERM);
++	mt6797_a34_fill_valid(state->observation);
++	state->observation->direct.source.platform.spm_cpu_pwr_status |= BIT(7);
++	mt6797_a34_expect_result_unchanged(test, state, -EPERM);
+ 	mt6797_a34_fill_valid(state->observation);
+ 	state->observation->direct.source.platform.spm_mp2_cpu0_pwr_con ^= 1;
+ 	mt6797_a34_expect_result_unchanged(test, state, -EPERM);
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -465,10 +465,9 @@ mt6797_a72_a34_direct_valid(const struct mt6797_a72_direct_state_snapshot *direc
+ 		!provider->reserved && platform->valid &&
+ 		platform->spm_pwr_status == 0x2a00005c &&
+ 		platform->spm_pwr_status_2nd == 0x2a00004c &&
+-		!(platform->spm_cpu_pwr_status &
+-		  MT6797_A72_A34_CPU_STATUS_MASK) &&
+-		!(platform->spm_cpu_pwr_status_2nd &
+-		  MT6797_A72_A34_CPU_STATUS_MASK) &&
++		!((platform->spm_cpu_pwr_status &
++		   platform->spm_cpu_pwr_status_2nd) &
++		  MT6797_A72_A34_CPU_STATUS_MASK) &&
+ 		platform->spm_mp2_cpusys_pwr_con == 0x00010132 &&
+ 		platform->spm_mp2_cpu0_pwr_con == 0x00010332 &&
+ 		platform->spm_mp2_cpu1_pwr_con == 0x00010332 &&
+-- 
+2.51.0

@@ -1,0 +1,63 @@
+From 1000000000000000000000000000000000000445 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 30 Aug 2026 23:01:00 +0000
+Subject: [PATCH] arm64: mediatek: update closed admission test contract
+
+The default-off binder now guards the public CPU8 preflight.  A KUnit profile
+that deliberately omits the binder receives EOPNOTSUPP before it can observe
+the closed-owner EAGAIN result.
+
+Make the two read-only compositor tests assert the exact result selected by
+their build configuration.  This changes no production path and lets both
+isolated and binder-enabled profiles retain meaningful closure coverage.
+---
+ arch/arm64/kernel/mt6797_a72_a34_evaluator_test.c | 5 ++++-
+ arch/arm64/kernel/mt6797_a72_direct_state_test.c   | 5 ++++-
+ 2 files changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/kernel/mt6797_a72_a34_evaluator_test.c b/arch/arm64/kernel/mt6797_a72_a34_evaluator_test.c
+--- a/arch/arm64/kernel/mt6797_a72_a34_evaluator_test.c
++++ b/arch/arm64/kernel/mt6797_a72_a34_evaluator_test.c
+@@ -187,5 +187,8 @@ static void mt6797_a34_admission_remains_closed_test(struct kunit *test)
+ {
+ 	struct mt6797_a34_test_state *state = test->priv;
++	const int expected =
++		IS_ENABLED(CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER) ?
++		-EAGAIN : -EOPNOTSUPP;
+ 	int ret;
+ 
+ 	mt6797_a34_expect_result_unchanged(test, state, 0);
+@@ -196,7 +199,7 @@ static void mt6797_a34_admission_remains_closed_test(struct kunit *test)
+ 	KUNIT_EXPECT_EQ(test, state->after->phase,
+ 			MT6797_A72_PHASE_UNINITIALIZED);
+ 	KUNIT_EXPECT_EQ(test, state->after->attempts_available, 0U);
+ 	ret = mt6797_a72_membership_preflight_up(8, CPUHP_ONLINE);
+-	KUNIT_EXPECT_EQ(test, ret, -EAGAIN);
++	KUNIT_EXPECT_EQ(test, ret, expected);
+ }
+ 
+ static struct kunit_case mt6797_a34_test_cases[] = {
+diff --git a/arch/arm64/kernel/mt6797_a72_direct_state_test.c b/arch/arm64/kernel/mt6797_a72_direct_state_test.c
+--- a/arch/arm64/kernel/mt6797_a72_direct_state_test.c
++++ b/arch/arm64/kernel/mt6797_a72_direct_state_test.c
+@@ -184,6 +184,9 @@ static void direct_snapshot_success(struct kunit *test)
+ 	struct direct_test_state *state = test->priv;
+ 	struct mt6797_a72_direct_state_snapshot *observed = &state->observed;
+ 	struct mt6797_a72_direct_topology topology = direct_topology();
++	const int expected_preflight =
++		IS_ENABLED(CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER) ?
++		-EAGAIN : -EOPNOTSUPP;
+ 	int preflight_before;
+ 	int preflight_after;
+ 	int ret;
+@@ -217,7 +220,7 @@ static void direct_snapshot_success(struct kunit *test)
+ 			memcmp(&state->p30_before,
+ 			       &state->p30_after,
+ 			       sizeof(state->p30_before)), 0);
+-	KUNIT_EXPECT_EQ(test, preflight_before, -EAGAIN);
++	KUNIT_EXPECT_EQ(test, preflight_before, expected_preflight);
+ 	KUNIT_EXPECT_EQ(test, preflight_after, preflight_before);
+ }
+ 
+-- 
+2.51.0

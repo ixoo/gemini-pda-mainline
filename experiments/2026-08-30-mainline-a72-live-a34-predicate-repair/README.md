@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-live-a34-predicate-repair` |
-| Status | `patches generated and admitted; focused Buildbox validation in progress` |
+| Status | `initial KUnit rejection localized; intersection and stale-test repairs admitted for validation` |
 | Subsystem | MT6797 CPU8 derived admission and A34 eligibility |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -107,7 +107,24 @@ experiment now owns a four-profile exact-inventory runner and classifier so
 the diagnostic, repaired predicate, derived path, and updated atomic fixture
 are each compiled and exercised without networking.
 
-Focused classification and the three remaining KUnit builds remain pending.
+The first current `a72-a34-v2-kunit` run rejected the candidate before any
+device action. All 20 late-CPU cases passed, but the positive A34 fixture
+returned `-EPERM` in each of its three acceptance checks. The failure exposed
+a real predicate contradiction: the live fixture has SPM CPU status
+`003dce08/003dceff`, while patch `0443` incorrectly required bits 7:6 to be
+clear independently in both words. MT6797 defines CPU-on state from their
+intersection, so these exact words prove both A72 bits clear. Follow-up patch
+`0444` applies that intersection and tests that CPU8 or CPU9 is still rejected
+when its bit becomes set in both words.
+
+The same run also found the pre-existing `direct_snapshot_success` expectation
+stale after the default-off binder gate was introduced: an isolated KUnit
+profile without the binder correctly returns `-EOPNOTSUPP`, not the closed
+owner's later `-EAGAIN`. Patch `0445` makes both affected read-only tests assert
+the configuration-selected result. Neither follow-up patch adds a request,
+retry, CPU9, CPU-off, hardware-write, or device path.
+
+Fresh canonical-series validation and all four KUnit profiles remain pending.
 
 ## Conclusion
 
@@ -115,5 +132,5 @@ Pending.
 
 ## Follow-up
 
-Build and run the focused KUnit profile, then build and validate one exact
-physical candidate on Buildbox.
+Validate patches `0444`--`0445`, rebuild and run all four focused KUnit
+profiles, then build and validate one exact physical candidate on Buildbox.
