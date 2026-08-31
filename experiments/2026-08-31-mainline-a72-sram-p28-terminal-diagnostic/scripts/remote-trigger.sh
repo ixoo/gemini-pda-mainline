@@ -36,7 +36,7 @@ old = (
 )
 suffix = (
     " p28_begin_attempted=0 p28_begin_ret=0 p28_begun=0 "
-    "sram_returned=0 sram_ret=0 sram_match=0x0 sram_required=0xfff "
+    "sram_returned=0 sram_ret=0 sram_match=0x1c0 sram_required=0xfff "
     "p28_complete_attempted=0 p28_complete_ret=0 sram_abi=0 "
     "sram_attempted=0x0 sram_completed=0x0 sram_mv=0 "
     "sram_selector_first=0x0 sram_calibration_first=0x0 "

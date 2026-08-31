@@ -162,16 +162,22 @@ for old, new in mutations:
     else:
         raise AssertionError(f"unsafe attempt mutation accepted: {old}")
 
-armed_mutation = pretrigger().replace("sram_required=0xfff", "sram_required=0x0", 1)
-try:
-    PRE.classify(armed_mutation)
-except PRE.Classification:
-    pass
-else:
-    raise AssertionError("non-pristine SRAM/P28 armed status accepted")
+assert "sram_match=0x1c0" in PRE.ARMED
+armed_mutations = (
+    ("sram_match=0x1c0", "sram_match=0x0"),
+    ("sram_required=0xfff", "sram_required=0x0"),
+)
+for old, new in armed_mutations:
+    armed_mutation = pretrigger().replace(old, new, 1)
+    try:
+        PRE.classify(armed_mutation)
+    except PRE.Classification:
+        pass
+    else:
+        raise AssertionError(f"non-pristine SRAM/P28 armed status accepted: {old}")
 
 print("attempt_accepted_branches=3")
 print(f"attempt_mutations_rejected={len(mutations)}")
-print("armed_diagnostic_mutations_rejected=1")
+print(f"armed_diagnostic_mutations_rejected={len(armed_mutations)}")
 print("boot_bound_transport_loss=yes")
 print("result=pass")

@@ -26,9 +26,9 @@ import sys
 text = Path(sys.argv[1]).read_text(encoding="utf-8")
 replacements = (
     ("510cb652f1240dad18ed3de7e7a7dcf63624861ad1d47ca9d9e73e68b8e4d726", "7cddf03025df29b718659322789d1ecbe17a2af87a373d88ca9ba9058e7928a3", 1),
-    ("b609a64e41d664167912dd0156c45c3428a13b0c9495deab8317ca9288611508", "fe0b58d25fca1b7cbfd81b8388cc6614770c2a1f357904893deace67dd110bbe", 1),
+    ("b609a64e41d664167912dd0156c45c3428a13b0c9495deab8317ca9288611508", "a383de2a047d51e8d2a9f9bbb5d48ab5a7f26dcbb732dba872a96607c351192f", 1),
     ("69034fd59cfee5a8d5ae34bd23a55ef199bcbe61007b763fef014762eb45bfe3", "6f2063d9254ff4d956f30faefe36481392b60011083b4980c5583a2b68ae39f5", 1),
-    ("c75c6c43f30f9b029b94aeb3ce17229f51fa26f20d08087b0208fed3a0926b2e", "7ef27071938eef32a5a2ffa63b582d09006eebb999f17e0e0b991102bd63d615", 1),
+    ("c75c6c43f30f9b029b94aeb3ce17229f51fa26f20d08087b0208fed3a0926b2e", "644e0253a08586eed1579e52f865a488912f5b875663fbabfb2417442dd6d54f", 1),
     ("2026-08-30-mainline-a72-isolation-held-result-contract-repair", "2026-08-31-mainline-a72-sram-p28-terminal-diagnostic", 1),
     ("a72-isolation-held-result-contract-repair", "a72-sram-p28-terminal-diagnostic", 1),
     (".derived-execute-a72-isolation-held-result-repair-inner.XXXXXXXX", ".derived-execute-a72-sram-p28-terminal-diagnostic-inner.XXXXXXXX", 1),

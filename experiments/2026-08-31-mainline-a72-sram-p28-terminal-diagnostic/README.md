@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-sram-p28-terminal-diagnostic` |
-| Status | `exact boot2 deployment verified; device shut down for physical boot` |
+| Status | `pristine ABI-2 boot captured; corrected guard validated; trigger pending` |
 | Subsystem | MT6797 CPU8 binder, BigiDVFS SRAM owner, and P28 membership boundary |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -117,7 +117,7 @@ review package on Buildbox. It performs no device access.
 - The source-pinned runtime classifier accepts only ABI 2 with the complete
   ordered SRAM/P28 inventory, required match mask `0xfff`, zero CPU9/CPU_OFF/
   retry requests, and same-boot attribution. Its three accepted branches and
-  nine adversarial mutations pass the offline runtime test.
+  ten adversarial mutations pass the offline runtime test.
 - The guarded installer resolved logical boot2 as inactive `/dev/mmcblk0p30`,
   confirmed the exact `510cb652...` predecessor and generation-10 stage-5
   retained record, then wrote the `7cddf030...` candidate. Sync, flush, and a
@@ -125,6 +125,15 @@ review package on Buildbox. It performs no device access.
 - After evidence was flushed, the device shut down without a reboot. SSH was
   absent and TCP port 22 remained closed for three consecutive checks. See the
   [deployment record](results/deployment-20260831.txt).
+- The first complete read-only frame on boot ID `30e55b93...` proved the exact
+  candidate, ABI 2, CPUs 0-7 online, zero trigger executions, and every new
+  SRAM/P28 field present. It also falsified one host-tool assumption: the
+  pristine zero result has `sram_match=0x1c0`, not zero, because its zero
+  attempt identity, zero cookie, and zero error match bits 6, 7, and 8.
+- The raw frame remained valid and the corrected validator accepts it. No
+  trigger, CPU request, CPU_OFF request, retry, or reboot was sent during this
+  guard correction. See the
+  [guard correction record](results/pretrigger-guard-correction-20260831.txt).
 
 ## Analysis
 
