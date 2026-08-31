@@ -190,7 +190,9 @@ def validate(root: Path, parent_counts: dict[str, int]) -> list[str]:
             "u32 p30e_target_reason;",
         ),
         binder: (
-            "snapshot->p30e_target_reason = le64_to_cpu(",
+            "const __le64 *p30e = binder->p30e_snapshot.word;",
+            "snapshot->p30e_target_reason =",
+            "le64_to_cpu(p30e[ARM64_MT6797_A72_P30E_TARGET_REASON_WORD]);",
             "ARM64_MT6797_A72_P30E_TARGET_REASON_WORD",
         ),
         test: (

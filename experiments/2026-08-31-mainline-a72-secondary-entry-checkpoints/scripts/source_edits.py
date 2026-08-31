@@ -250,10 +250,13 @@ int arm64_mt6797_a72_p30e_target_publish(u64 state, u64 reason,
 \tconst struct cpu_operations *ops;
 \tunsigned int cpu;
 \tint expectation_ret;
+#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
+\tu64 p30e_checkpoint;
+#endif
 
 #ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
-\t(void)arm64_mt6797_a72_p30e_target_checkpoint(
-\t\tARM64_MT6797_A72_P30E_CHECKPOINT_C_ENTRY);
+\tp30e_checkpoint = ARM64_MT6797_A72_P30E_CHECKPOINT_C_ENTRY;
+\t(void)arm64_mt6797_a72_p30e_target_checkpoint(p30e_checkpoint);
 #endif
 \tmpidr = read_cpuid_mpidr() & MPIDR_HWID_BITMASK;
 \tcpu = smp_processor_id();
@@ -268,8 +271,8 @@ int arm64_mt6797_a72_p30e_target_publish(u64 state, u64 reason,
 \tif (system_uses_irq_prio_masking())""",
         """\tcpu_uninstall_idmap();
 #ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
-\t(void)arm64_mt6797_a72_p30e_target_checkpoint(
-\t\tARM64_MT6797_A72_P30E_CHECKPOINT_IDMAP_OFF);
+\tp30e_checkpoint = ARM64_MT6797_A72_P30E_CHECKPOINT_IDMAP_OFF;
+\t(void)arm64_mt6797_a72_p30e_target_checkpoint(p30e_checkpoint);
 #endif
 
 \tif (system_uses_irq_prio_masking())""",
@@ -282,8 +285,8 @@ int arm64_mt6797_a72_p30e_target_publish(u64 state, u64 reason,
 \tops = get_cpu_ops(cpu);""",
         """\tcheck_local_cpu_capabilities();
 #ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
-\t(void)arm64_mt6797_a72_p30e_target_checkpoint(
-\t\tARM64_MT6797_A72_P30E_CHECKPOINT_CAPABILITIES);
+\tp30e_checkpoint = ARM64_MT6797_A72_P30E_CHECKPOINT_CAPABILITIES;
+\t(void)arm64_mt6797_a72_p30e_target_checkpoint(p30e_checkpoint);
 #endif
 
 \tops = get_cpu_ops(cpu);""",
@@ -297,8 +300,8 @@ int arm64_mt6797_a72_p30e_target_publish(u64 state, u64 reason,
 \t * Enable GIC and timers.""",
         """\tstore_cpu_topology(cpu);
 #ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
-\t(void)arm64_mt6797_a72_p30e_target_checkpoint(
-\t\tARM64_MT6797_A72_P30E_CHECKPOINT_TARGET_VALID);
+\tp30e_checkpoint = ARM64_MT6797_A72_P30E_CHECKPOINT_TARGET_VALID;
+\t(void)arm64_mt6797_a72_p30e_target_checkpoint(p30e_checkpoint);
 #endif
 
 \t/*
@@ -313,8 +316,8 @@ int arm64_mt6797_a72_p30e_target_publish(u64 state, u64 reason,
 \t * OK, now it's safe to let the boot CPU continue.""",
         """\tnuma_add_cpu(cpu);
 #ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
-\t(void)arm64_mt6797_a72_p30e_target_checkpoint(
-\t\tARM64_MT6797_A72_P30E_CHECKPOINT_IRQ_READY);
+\tp30e_checkpoint = ARM64_MT6797_A72_P30E_CHECKPOINT_IRQ_READY;
+\t(void)arm64_mt6797_a72_p30e_target_checkpoint(p30e_checkpoint);
 #endif
 
 \t/*
@@ -348,13 +351,28 @@ int arm64_mt6797_a72_p30e_target_publish(u64 state, u64 reason,
     binder = binder_path.read_text(encoding="utf-8")
     binder = replace_once(
         binder,
+        """\tconst struct mt6797_a72_platform_effect_result *release =
+\t\t&binder->p27_release;
+
+\tmemset(snapshot, 0, sizeof(*snapshot));""",
+        """\tconst struct mt6797_a72_platform_effect_result *release =
+\t\t&binder->p27_release;
+#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
+\tconst __le64 *p30e = binder->p30e_snapshot.word;
+#endif
+
+\tmemset(snapshot, 0, sizeof(*snapshot));""",
+        "binder checkpoint word view",
+    )
+    binder = replace_once(
+        binder,
         """\tsnapshot->p30e_target_state = le64_to_cpu(binder->p30e_snapshot.word[
 \t\tARM64_MT6797_A72_P30E_TARGET_STATE_WORD]);
 \tsnapshot->p30e_target_sequence = le64_to_cpu(binder->p30e_snapshot.word[""",
         """\tsnapshot->p30e_target_state = le64_to_cpu(binder->p30e_snapshot.word[
 \t\tARM64_MT6797_A72_P30E_TARGET_STATE_WORD]);
-\tsnapshot->p30e_target_reason = le64_to_cpu(binder->p30e_snapshot.word[
-\t\tARM64_MT6797_A72_P30E_TARGET_REASON_WORD]);
+\tsnapshot->p30e_target_reason =
+\t\tle64_to_cpu(p30e[ARM64_MT6797_A72_P30E_TARGET_REASON_WORD]);
 \tsnapshot->p30e_target_sequence = le64_to_cpu(binder->p30e_snapshot.word[""",
         "binder checkpoint diagnostic copy",
     )
