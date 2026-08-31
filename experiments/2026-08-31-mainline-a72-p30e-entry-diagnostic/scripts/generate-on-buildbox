@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+export LC_ALL=C
+
+readonly PARENT_SOURCE_STATE=cf235b38e3b867af35e6b8ee62daa01e85dbabc4c1b7beef114073abf894eaab
+readonly PARENT_SOURCE_INTEGRITY=0826f01169395f51d7a6c8ef2ff1da28e54b3f4aa3eda6f266881b064fe56bf2
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+[[ "$#" -eq 3 ]] || die 'expected PROJECT_COMMIT SOURCE_ROOT OUTPUT_ROOT'
+readonly project_commit=$1 source_root=$2 output_root=$3
+[[ "$project_commit" =~ ^[0-9a-f]{40}$ ]] || die 'invalid project commit'
+[[ "$source_root" == /workspace/gemini-pda/src/linux-7.1.3-series-source ]] || \
+	die 'unexpected managed source root'
+[[ "$output_root" == /workspace/gemini-pda/* ]] || die 'unsafe output root'
+[[ "$(<"$source_root/.gemini-source-state")" == "$PARENT_SOURCE_STATE" ]] || \
+	die 'prepared source state changed'
+[[ "$(<"$source_root/.gemini-source-integrity")" == "$PARENT_SOURCE_INTEGRITY" ]] || \
+	die 'prepared source integrity changed'
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+repository_dir=$(cd -- "$script_dir/../../.." && pwd -P)
+[[ "$(git -C "$repository_dir" rev-parse HEAD)" == "$project_commit" ]] || \
+	die 'project checkout mismatch'
+[[ -z "$(git -C "$repository_dir" status --porcelain)" ]] || \
+	die 'project checkout is dirty'
+integrity=$(python3 "$repository_dir/scripts/source-tree-integrity" verify "$source_root")
+[[ "$integrity" == "source_tree_integrity=$PARENT_SOURCE_INTEGRITY" ]] || \
+	die 'prepared source integrity failed'
+[[ "$(tail -n 1 "$repository_dir/patches/series")" == \
+	'v7.1.3/0453-soc-mediatek-mask-CPU8-SRAM-selector-result.patch' ]] || \
+	die 'canonical series parent changed'
+
+package="$output_root/a72-p30e-entry-diagnostic-${project_commit:0:12}"
+partial="${package}.partial.$$"
+mkdir -p "$output_root"
+cleanup() { [[ ! -d "${partial:-}" ]] || rm -rf -- "$partial"; }
+trap cleanup EXIT
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/generate_patch.py" \
+	--source-root "$source_root" --repository-commit "$project_commit" \
+	--output "$partial"
+(cd "$partial" && sha256sum --check --strict SHA256SUMS >/dev/null)
+for marker in generated_patch_count=1 \
+	p30e_cpu8_entry_diagnostic_validation=pass \
+	p30e_prepare_calls_added=1 p30e_arm_calls_added=1 \
+	p30e_readback_calls_added=1 \
+	p30e_states_covered=armed,claimed,published binder_kunit_cases=9 \
+	new_cpu_request_paths=0 new_cpu9_request_paths=0 new_cpu_off_paths=0 \
+	new_retry_paths=0 new_power_sequence_calls=0 retained_ram_arm_writes=1 \
+	controller_readback_maximum=1 storage_writes=0 native_vm_build=none \
+	device_action=none boot_candidate=false; do
+	grep -Fx "$marker" "$partial/provenance.txt" >/dev/null || \
+		die "missing marker: $marker"
+done
+mv -- "$partial" "$package"
+trap - EXIT
+printf 'Generated CPU8 P30E entry diagnostic at %s\n' "$package"
