@@ -85,3 +85,14 @@ The next gate is a verified inactive-`boot2` write followed by clean shutdown.
 On the fresh boot, CPU8 remains withheld unless generic effect planning reports
 exact completion and the existing READY contract is exact. CPU9 remains
 vetoed.
+
+The verified inactive-`boot2` write and full readback passed, followed by clean
+shutdown. Fresh boot ID `9d1e9089...` then reached exact serviceable READY with
+CPU0--7 online, CPU8--9 offline, zero actions, no profile rejection, and one
+generic `stage=complete ret=0` effect-plan line. The first host executor
+invocation stopped before opening netcat because a historical wrapper tried to
+replace a candidate hash in the candidate-neutral ABI-5 remote program. No CPU
+request occurred. The host-only wrapper now source-pins that reviewed ABI-5
+program directly. See the [pretrigger result](results/runtime-attempt-1-pretrigger-20260831.txt).
+The next gate is same-boot READY/zero-execution revalidation followed by the
+single CPU8 request. CPU9 remains vetoed.

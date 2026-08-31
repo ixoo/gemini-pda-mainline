@@ -6676,10 +6676,13 @@ The next ordered work is:
    exact r0p1 target-register comparison. All-profile invariants, three
    Buildbox configurations, and the 51-test no-network suite pass. The distinct
    production candidate passes two independent constructions, all 32 LK gates,
-   and six negative container mutations. **Selected next:** deploy that exact
-   candidate to inactive `boot2`, require the generic effect planner's exact
-   completion line and the existing READY contract on a fresh boot, then issue
-   CPU8 once only if both gates pass. Keep CPU9 vetoed.
+   and six negative container mutations. Its verified `boot2` write and fresh
+   boot reached serviceable exact READY with the generic effect planner's
+   completion line, CPU8--9 offline, and zero actions. A host-only historical
+   trigger-wrapper derivation then rejected before opening netcat, so no CPU
+   request occurred; the candidate-neutral ABI-5 program is now source-pinned
+   directly. **Selected next:** revalidate the same boot's exact READY and
+   zero-execution state, then issue CPU8 once. Keep CPU9 vetoed.
 
 The eventual CPU8 candidate must have a single CPU8 request, strict
 checkpoints before and after each power step, a bounded timeout, and a
