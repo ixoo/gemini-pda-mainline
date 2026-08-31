@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-expected-midr-model-guard-repair` |
-| Status | `offline pass; exact boot2 deployment pending` |
+| Status | `deployed and shut down; fresh boot2 runtime attempt pending` |
 | Subsystem | arm64 late-CPU expected mitigation planning |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -73,3 +73,9 @@ See the [build evidence](results/buildbox-builds-20260831.txt),
 [KUnit evidence](results/focused-kunit-qemu-20260831.txt),
 [candidate evidence](results/production-candidate-20260831.txt), and
 [predeployment hypothesis](results/predeployment-hypothesis-20260831.txt).
+
+The full-partition candidate was then written to live-resolved inactive
+`boot2`, read back exactly, and the device was shut down. See the
+[deployment evidence](results/deployment-boot2-20260831.txt). The next action
+is a fresh physical `boot2` selection followed by a read-only READY frame;
+CPU8 is triggered once only if that frame passes.
