@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+"""Run the exact SRAM selector-mask KUnit package without networking."""
+
+from __future__ import annotations
+
+from importlib.machinery import SourceFileLoader
+from importlib.util import module_from_spec, spec_from_loader
+from pathlib import Path
+
+
+PROFILES = {"a72-default-off-binder-kunit"}
+
+
+def main() -> None:
+    script_dir = Path(__file__).resolve().parent
+    repository = script_dir.parents[2]
+    base_path = (
+        repository
+        / "experiments/2026-08-30-mainline-a72-live-a34-predicate-repair"
+        / "scripts/run-kunit-qemu"
+    )
+    loader = SourceFileLoader("selector_mask_qemu_base", str(base_path))
+    spec = spec_from_loader(loader.name, loader)
+    if spec is None:
+        raise SystemExit("error: unable to load pinned QEMU harness")
+    module = module_from_spec(spec)
+    loader.exec_module(module)
+    module.__file__ = __file__
+    module.PROFILES = PROFILES
+    module.main()
+
+
+if __name__ == "__main__":
+    main()

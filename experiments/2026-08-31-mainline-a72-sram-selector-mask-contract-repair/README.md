@@ -50,6 +50,8 @@ remains vetoed until CPU8 is reproducibly online.
   proves physical/request call counts unchanged, and rejects new write paths.
 - `scripts/generate-on-buildbox` pins the managed source and clean project
   commit and produces a checksum-covered patch review package.
+- `scripts/run-kunit-qemu` and `scripts/classify-kunit.py` accept only the
+  exact fetched Buildbox package and the 30/12/8 focused suite inventory.
 
 The generator writes only a temporary Git tree and a review package on
 Buildbox. It performs no device access.
