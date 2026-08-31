@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-r0p1-expected-pair-repair` |
-| Status | `production candidate validated; focused QEMU gate pending` |
+| Status | `all offline gates pass; deployment pending` |
 | Subsystem | arm64 late-CPU expected pair |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -67,11 +67,21 @@ Both focused KUnit profiles and the production profile compile and package on
 Buildbox from clean project commit `e0090fe57490...`; all package checksums
 validate. See the [Buildbox evidence](results/buildbox-builds-20260831.txt).
 
+The exact default-off binder package passes all 51 tests in its no-network,
+four-vCPU QEMU boot. No physical CPU, CPU_OFF, retry, network, or device action
+occurred. See the [focused KUnit evidence](results/focused-kunit-qemu-20260831.txt).
+
 The exact production package, package-owned provenance leaf, preserved
 serviceability DT, two independent raw assemblies, two independent padding
 constructions, all 32 LK gates, independent layout validation, and six
 negative container mutations pass. The selected padded `boot2` candidate is
 `b5328f6a4226...`. See the
 [candidate evidence](results/production-candidate-20260831.txt).
+
+The physical hypothesis and checkpoint decision map are frozen before the
+write. Reason 8 means the exact validator still disagrees; reasons 9--11 and
+publication each select one later generic CPU-online interval; CPU8 online
+requires a fresh-boot repeat before CPU9. See the
+[predeployment record](results/predeployment-hypothesis-20260831.txt).
 
 CPU9 remains vetoed until CPU8 is reproducibly online.
