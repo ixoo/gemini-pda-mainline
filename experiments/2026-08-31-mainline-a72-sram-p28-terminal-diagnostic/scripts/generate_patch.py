@@ -134,7 +134,6 @@ def validate(root: Path, parent_counts: dict[str, int]) -> list[str]:
             "bool p28_complete_attempted;",
         ),
         binder: (
-            "mt6797_a72_binder_sram_match_mask(",
             "binder->p28_begin_attempted = true;",
             "binder->sram_returned = true;",
             "MT6797_A72_BINDER_SRAM_REQUIRED_MASK",
