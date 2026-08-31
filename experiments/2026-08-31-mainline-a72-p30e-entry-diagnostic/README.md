@@ -131,6 +131,14 @@ KUnit/QEMU, and the exact production build pass on Buildbox.
   no CPU9 route, CPU_OFF route, or retry. The exact padded `boot2` identity is
   `a4ad4915...`; the sanitized receipt is
   [recorded here](results/production-candidate-20260831.txt).
+- The first installation preflight correctly rejected the older inherited
+  generation-10/stage-5 ledger pin before any write. The guarded installer was
+  then retargeted to the already-published exact selector predecessor record:
+  generation 14, phase 3, stage 7, terminal 4. A separate read-only preflight
+  accepted that checksum-valid record, the exact `cd36efdf...` boot2
+  predecessor, and empty admission traces without a retained-RAM or storage
+  write. The sanitized receipt is
+  [recorded here](results/installation-preflight-20260831.txt).
 
 ## Analysis
 

@@ -43,6 +43,16 @@ replacements = (
     (".derived-install-a72-selector-mask-repair-inner.XXXXXXXX", ".derived-install-a72-p30e-entry-diagnostic-inner.XXXXXXXX", 1),
     ("SRAM selector-mask repair candidate", "P30E entry-publication diagnostic candidate", 1),
     ("selector-mask repair installer derivation", "P30E entry installer derivation", 2),
+    (
+        '    ("SRAM/P28 diagnostic installer derivation", "P30E entry installer derivation", 2),',
+        '    ("SRAM/P28 diagnostic installer derivation", "P30E entry installer derivation", 2),\n'
+        '    ("4442474348000000480000004737544c09000100010000000000000009000000", "4442474348000000480000004737544c0900010001000000000000000d000000", 1),\n'
+        '    ("01000000050000000000000085b20e674737544c090001000100000000000000", "0100000007000000000000007ff91af14737544c090001000100000000000000", 1),\n'
+        '    ("0a000000030000000500000004000000bf0f9f2d", "0e00000003000000070000000400000045448bbb", 1),\n'
+        '    ("transition_ledger_latest_generation=10", "transition_ledger_latest_generation=14", 1),\n'
+        '    ("transition_ledger_latest_stage=5", "transition_ledger_latest_stage=7", 1),',
+        1,
+    ),
 )
 for old, new, count in replacements:
     actual = text.count(old)
