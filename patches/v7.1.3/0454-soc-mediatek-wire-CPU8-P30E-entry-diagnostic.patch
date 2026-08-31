@@ -1,0 +1,605 @@
+From 7abe377aeb341bf69bc3dd612ef18280f51c71b3 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 31 Aug 2026 15:01:00 +0000
+Subject: [PATCH] soc: mediatek: wire CPU8 P30E entry diagnostic
+
+The exact CPU8 power transaction now reaches a zero-returning
+CPU_ON callback but times out waiting for generic arm64 secondary
+completion. The existing P30E wire can distinguish whether the
+target reached secondary_entry, but no controller arms it.
+
+Prepare and arm the existing CPU8-only P30E object immediately
+before CPU_ON, then take one controller readback on an error or
+rollback. Expose EMPTY, CLAIMED, and PUBLISHED states through the
+existing read-only admission status. Keep CPU9, CPU_OFF, retries,
+and all power-sequence calls unchanged.
+---
+ arch/arm64/kernel/mt6797_a72_membership.c     |  13 +-
+ .../mt6797-a72-admission-controller.c         |  26 ++-
+ .../soc/mediatek/mt6797-a72-binder-internal.h |  23 +++
+ drivers/soc/mediatek/mt6797-a72-binder-test.c | 150 +++++++++++++++++
+ drivers/soc/mediatek/mt6797-a72-binder.c      | 157 ++++++++++++++++--
+ .../linux/soc/mediatek/mt6797-a72-binder.h    |  13 +-
+ 6 files changed, 361 insertions(+), 21 deletions(-)
+
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+index ecd3380..45442a2 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -1459,6 +1459,7 @@ int mt6797_a72_membership_prepare_p30e_handoff(
+ 	unsigned int cpu;
+ 	unsigned long flags;
+ 	u64 operation;
++	bool cpu8_on_ready;
+ 	int ret;
+ 
+ 	if (!transaction || !ready || !handoff)
+@@ -1509,10 +1510,20 @@ int mt6797_a72_membership_prepare_p30e_handoff(
+ 
+ 	mutex_lock(&a72_transition_lock);
+ 	raw_spin_lock_irqsave(&a72_state_lock, flags);
++	cpu8_on_ready = identity->operation ==
++		ARM64_LATE_CPU_STARTUP_OP_CPU8_UP &&
++		a72_owner.phase == MT6797_A72_PHASE_ON_ISSUED &&
++		a72_owner.active.p17_p18_published &&
++		a72_owner.active.p27_valid && a72_owner.active.p28_valid &&
++		a72_owner.active.p28_preparation.stage ==
++			MT6797_A72_P28_STAGE_COMPLETE &&
++		a72_owner.provider_state == MT6797_A72_PROVIDER_HELD &&
++		a72_owner.active.provider_acquire_valid &&
++		a72_owner.active.budgets.cpu_on == MT6797_A72_BUDGET_AVAILABLE;
+ 	if (a72_owner.health != MT6797_A72_OWNER_AVAILABLE ||
+-	    a72_owner.phase != MT6797_A72_PHASE_FROZEN ||
+ 	    !a72_owner.active.valid || !a72_owner.active.a36_valid ||
+ 	    !a72_owner.active.p30_token_valid ||
++	    (a72_owner.phase != MT6797_A72_PHASE_FROZEN && !cpu8_on_ready) ||
+ 	    memcmp(&a72_owner.active.identity, identity,
+ 		   sizeof(a72_owner.active.identity)))
+ 		ret = -EBUSY;
+diff --git a/drivers/soc/mediatek/mt6797-a72-admission-controller.c b/drivers/soc/mediatek/mt6797-a72-admission-controller.c
+index 83a6d77..76662b7 100644
+--- a/drivers/soc/mediatek/mt6797-a72-admission-controller.c
++++ b/drivers/soc/mediatek/mt6797-a72-admission-controller.c
+@@ -416,11 +416,29 @@ static ssize_t status_show(struct device *dev, struct device_attribute *attr,
+ 			     (unsigned long long)diagnostic.sram_attempt_id,
+ 			     (unsigned long long)diagnostic.sram_cookie,
+ 			     diagnostic.sram_error);
++	len += sysfs_emit_at(buf, len,
++			     "sram_effect_attempted=%u sram_verified=%u sram_sealed=%u ",
++			     diagnostic.sram_effect_attempted,
++			     diagnostic.sram_verified,
++			     diagnostic.sram_sealed);
++	len += sysfs_emit_at(buf, len,
++			     "p30e_prepare_attempted=%u p30e_prepare_ret=%d ",
++			     diagnostic.p30e_prepare_attempted,
++			     diagnostic.p30e_prepare_ret);
++	len += sysfs_emit_at(buf, len,
++			     "p30e_arm_attempted=%u p30e_arm_ret=%d p30e_armed=%u ",
++			     diagnostic.p30e_arm_attempted,
++			     diagnostic.p30e_arm_ret, diagnostic.p30e_armed);
++	len += sysfs_emit_at(buf, len,
++			     "p30e_readback_attempted=%u p30e_readback_ret=%d ",
++			     diagnostic.p30e_readback_attempted,
++			     diagnostic.p30e_readback_ret);
+ 	return len + sysfs_emit_at(buf, len,
+-				   "sram_effect_attempted=%u sram_verified=%u sram_sealed=%u\n",
+-				   diagnostic.sram_effect_attempted,
+-				   diagnostic.sram_verified,
+-				   diagnostic.sram_sealed);
++				   "p30e_controller_state=%u p30e_target_state=%u p30e_target_sequence=%u p30e_controller_sequence=%u\n",
++				   diagnostic.p30e_controller_state,
++				   diagnostic.p30e_target_state,
++				   diagnostic.p30e_target_sequence,
++				   diagnostic.p30e_controller_sequence);
+ }
+ 
+ static ssize_t trigger_store(struct device *dev,
+diff --git a/drivers/soc/mediatek/mt6797-a72-binder-internal.h b/drivers/soc/mediatek/mt6797-a72-binder-internal.h
+index 4df6876..37c70ac 100644
+--- a/drivers/soc/mediatek/mt6797-a72-binder-internal.h
++++ b/drivers/soc/mediatek/mt6797-a72-binder-internal.h
+@@ -14,6 +14,9 @@
+ #include <linux/types.h>
+ 
+ #include <asm/mt6797_a72_membership.h>
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++#include <asm/mt6797_a72_p30e.h>
++#endif
+ 
+ #include "mt6797-a72-transition-internal.h"
+ 
+@@ -43,6 +46,15 @@ struct mt6797_a72_binder_backend_ops {
+ 	int (*membership_complete_p29)(struct mt6797_a72_transaction *transaction,
+ 				       const struct mt6797_a72_p29_rollback_proof *rollback);
+ 	int (*membership_begin_cpu_on)(struct mt6797_a72_transaction *transaction);
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	int (*p30e_prepare)(const struct mt6797_a72_transaction *transaction,
++			     struct mt6797_a72_p30e_handoff *handoff);
++	int (*p30e_arm)(unsigned int cpu,
++			 const struct mt6797_a72_p30e_handoff *handoff);
++	int (*p30e_readback)(unsigned int cpu,
++			      const struct mt6797_a72_p30e_handoff *handoff,
++			      struct arm64_mt6797_a72_p30e_wire *copy);
++#endif
+ 	int (*membership_publish_success)(struct mt6797_a72_transaction *transaction);
+ 	int (*membership_finalize_success)(struct mt6797_a72_transaction *transaction);
+ 	int (*watchdog_takeover)(struct device *dev, unsigned int timeout_ms,
+@@ -90,6 +102,17 @@ struct mt6797_a72_binder {
+ 	s32 p28_begin_ret;
+ 	s32 sram_ret;
+ 	s32 p28_complete_ret;
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	struct mt6797_a72_p30e_handoff p30e_handoff;
++	struct arm64_mt6797_a72_p30e_wire p30e_snapshot;
++	s32 p30e_prepare_ret;
++	s32 p30e_arm_ret;
++	s32 p30e_readback_ret;
++	bool p30e_prepare_attempted;
++	bool p30e_arm_attempted;
++	bool p30e_armed;
++	bool p30e_readback_attempted;
++#endif
+ 	bool ledger_begun;
+ 	bool p28_begin_attempted;
+ 	bool p28_begun;
+diff --git a/drivers/soc/mediatek/mt6797-a72-binder-test.c b/drivers/soc/mediatek/mt6797-a72-binder-test.c
+index 0bb363d..6892bdd 100644
+--- a/drivers/soc/mediatek/mt6797-a72-binder-test.c
++++ b/drivers/soc/mediatek/mt6797-a72-binder-test.c
+@@ -33,6 +33,11 @@ enum mt6797_binder_test_event {
+ 	TEST_EVENT_PROVIDER,
+ 	TEST_EVENT_ISOLATION,
+ 	TEST_EVENT_SRAM,
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	TEST_EVENT_P30E_PREPARE,
++	TEST_EVENT_P30E_ARM,
++	TEST_EVENT_P30E_READBACK,
++#endif
+ 	TEST_EVENT_CPU_ON,
+ 	TEST_EVENT_SECONDARY,
+ 	TEST_EVENT_IPI,
+@@ -59,6 +64,12 @@ struct mt6797_binder_test_state {
+ 	unsigned int checkpoint_fail_stage;
+ 	u32 selector_status;
+ 	u32 selector_xor;
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	u32 p30e_target_state;
++	u32 p30e_prepares;
++	u32 p30e_arms;
++	u32 p30e_readbacks;
++#endif
+ 	bool terminal_fails;
+ 	bool cpu8_online;
+ };
+@@ -252,6 +263,71 @@ static int mt6797_binder_test_begin_cpu_on(struct mt6797_a72_transaction *transa
+ 	return transaction && transaction->p28_valid ? 0 : -EPROTO;
+ }
+ 
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++static int
++mt6797_binder_test_p30e_prepare(
++	const struct mt6797_a72_transaction *transaction,
++	struct mt6797_a72_p30e_handoff *handoff)
++{
++	struct mt6797_binder_test_state *state = mt6797_binder_test_active;
++
++	if (!transaction || !transaction->p28_valid || !handoff)
++		return -EPROTO;
++	memset(handoff, 0, sizeof(*handoff));
++	handoff->target_cpu = 8;
++	handoff->slot_pa = SZ_2K;
++	handoff->entry_pa = SZ_4K;
++	handoff->operation = ARM64_MT6797_A72_P30E_OPERATION_CPU8_UP;
++	handoff->generation = TEST_GENERATION;
++	handoff->cookie = TEST_COOKIE;
++	handoff->wire_boot_identity[0] = 1;
++	handoff->target_boot_identity[0] = 1;
++	state->p30e_prepares++;
++	mt6797_binder_test_event(TEST_EVENT_P30E_PREPARE);
++	return 0;
++}
++
++static int
++mt6797_binder_test_p30e_arm(
++	unsigned int cpu, const struct mt6797_a72_p30e_handoff *handoff)
++{
++	struct mt6797_binder_test_state *state = mt6797_binder_test_active;
++
++	if (!handoff || cpu != 8 || handoff->target_cpu != 8 ||
++	    handoff->operation != ARM64_MT6797_A72_P30E_OPERATION_CPU8_UP ||
++	    handoff->generation != TEST_GENERATION ||
++	    handoff->cookie != TEST_COOKIE)
++		return -EPROTO;
++	state->p30e_arms++;
++	mt6797_binder_test_event(TEST_EVENT_P30E_ARM);
++	return 0;
++}
++
++static int
++mt6797_binder_test_p30e_readback(
++	unsigned int cpu, const struct mt6797_a72_p30e_handoff *handoff,
++	struct arm64_mt6797_a72_p30e_wire *copy)
++{
++	struct mt6797_binder_test_state *state = mt6797_binder_test_active;
++	u32 target = state->p30e_target_state;
++
++	if (!handoff || !copy || cpu != 8 || handoff->target_cpu != 8)
++		return -EPROTO;
++	memset(copy, 0, sizeof(*copy));
++	copy->word[ARM64_MT6797_A72_P30E_CONTROLLER_STATE_WORD] =
++		cpu_to_le64(ARM64_MT6797_A72_P30E_ARMED);
++	copy->word[ARM64_MT6797_A72_P30E_TARGET_STATE_WORD] =
++		cpu_to_le64(target);
++	copy->word[ARM64_MT6797_A72_P30E_CONTROLLER_SEQUENCE_WORD] =
++		cpu_to_le64(1);
++	copy->word[ARM64_MT6797_A72_P30E_TARGET_SEQUENCE_WORD] =
++		cpu_to_le64(target >= ARM64_MT6797_A72_P30E_TARGET_PUBLISHED);
++	state->p30e_readbacks++;
++	mt6797_binder_test_event(TEST_EVENT_P30E_READBACK);
++	return target >= ARM64_MT6797_A72_P30E_TARGET_PUBLISHED ? 0 : -EAGAIN;
++}
++#endif
++
+ static int mt6797_binder_test_publish_success(struct mt6797_a72_transaction *transaction)
+ {
+ 	struct mt6797_binder_test_state *state = mt6797_binder_test_active;
+@@ -455,6 +531,11 @@ static const struct mt6797_a72_binder_backend_ops mt6797_binder_test_ops = {
+ 	.membership_complete_p28 = mt6797_binder_test_complete_p28,
+ 	.membership_complete_p29 = mt6797_binder_test_complete_p29,
+ 	.membership_begin_cpu_on = mt6797_binder_test_begin_cpu_on,
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	.p30e_prepare = mt6797_binder_test_p30e_prepare,
++	.p30e_arm = mt6797_binder_test_p30e_arm,
++	.p30e_readback = mt6797_binder_test_p30e_readback,
++#endif
+ 	.membership_publish_success = mt6797_binder_test_publish_success,
+ 	.membership_finalize_success = mt6797_binder_test_finalize_success,
+ 	.watchdog_takeover = mt6797_binder_test_watchdog,
+@@ -529,6 +610,17 @@ static void mt6797_binder_success_test(struct kunit *test)
+ 	KUNIT_EXPECT_EQ(test, state->terminal_checkpoints, 1U);
+ 	KUNIT_EXPECT_EQ(test, state->membership_publishes, 1U);
+ 	KUNIT_EXPECT_EQ(test, state->membership_finalizes, 1U);
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	KUNIT_EXPECT_EQ(test, state->p30e_prepares, 1U);
++	KUNIT_EXPECT_EQ(test, state->p30e_arms, 1U);
++	KUNIT_EXPECT_EQ(test, state->p30e_readbacks, 0U);
++	KUNIT_EXPECT_LT(test, mt6797_binder_test_find(state,
++					      TEST_EVENT_P30E_PREPARE),
++			mt6797_binder_test_find(state, TEST_EVENT_P30E_ARM));
++	KUNIT_EXPECT_LT(test, mt6797_binder_test_find(state,
++					      TEST_EVENT_P30E_ARM),
++			mt6797_binder_test_find(state, TEST_EVENT_CPU_ON));
++#endif
+ 	KUNIT_EXPECT_EQ(test, state->binder.result.cpu_off_requests, 0U);
+ 	KUNIT_EXPECT_EQ(test, state->binder.result.retries, 0U);
+ 	KUNIT_EXPECT_LT(test, mt6797_binder_test_find(state,
+@@ -717,6 +809,61 @@ static void mt6797_binder_sram_selector_mask_test(struct kunit *test)
+ 	KUNIT_EXPECT_EQ(test, state->cpu_boots, 0U);
+ }
+ 
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++static void mt6797_binder_p30e_readback_test(struct kunit *test)
++{
++	static const u32 target_states[] = {
++		ARM64_MT6797_A72_P30E_EMPTY,
++		ARM64_MT6797_A72_P30E_TARGET_CLAIMED,
++		ARM64_MT6797_A72_P30E_TARGET_PUBLISHED,
++	};
++	unsigned int i;
++
++	for (i = 0; i < ARRAY_SIZE(target_states); i++) {
++		struct mt6797_binder_test_state *state;
++		struct mt6797_a72_binder_diagnostic diagnostic;
++		bool publish_p32 = false;
++		int ret;
++
++		state = kunit_kzalloc(test, sizeof(*state), GFP_KERNEL);
++		KUNIT_ASSERT_NOT_NULL(test, state);
++		mt6797_binder_test_active = state;
++		mt6797_a72_binder_test_init(&state->binder,
++					    &mt6797_binder_test_ops);
++		KUNIT_ASSERT_EQ(test, mt6797_a72_binder_test_boot(
++			&state->binder, 8, mt6797_binder_test_cpu_boot), 0);
++		state->p30e_target_state = target_states[i];
++		ret = mt6797_a72_binder_test_failure(&state->binder, 8, -EIO,
++					     &publish_p32);
++		KUNIT_ASSERT_EQ(test, ret, 0);
++		KUNIT_EXPECT_TRUE(test, publish_p32);
++		mt6797_a72_binder_test_diagnostic(&state->binder, &diagnostic);
++		KUNIT_EXPECT_EQ(test, diagnostic.p30e_prepare_attempted, 1U);
++		KUNIT_EXPECT_EQ(test, diagnostic.p30e_prepare_ret, 0);
++		KUNIT_EXPECT_EQ(test, diagnostic.p30e_arm_attempted, 1U);
++		KUNIT_EXPECT_EQ(test, diagnostic.p30e_arm_ret, 0);
++		KUNIT_EXPECT_EQ(test, diagnostic.p30e_armed, 1U);
++		KUNIT_EXPECT_EQ(test, diagnostic.p30e_readback_attempted, 1U);
++		KUNIT_EXPECT_EQ(test, diagnostic.p30e_readback_ret,
++			target_states[i] >= ARM64_MT6797_A72_P30E_TARGET_PUBLISHED ?
++			0 : -EAGAIN);
++		KUNIT_EXPECT_EQ(test, diagnostic.p30e_controller_state,
++				ARM64_MT6797_A72_P30E_ARMED);
++		KUNIT_EXPECT_EQ(test, diagnostic.p30e_target_state,
++				target_states[i]);
++		KUNIT_EXPECT_EQ(test, diagnostic.p30e_target_sequence,
++				target_states[i] >=
++				ARM64_MT6797_A72_P30E_TARGET_PUBLISHED);
++		KUNIT_EXPECT_EQ(test, diagnostic.p30e_controller_sequence, 1U);
++		KUNIT_EXPECT_EQ(test, state->p30e_readbacks, 1U);
++		ret = mt6797_a72_binder_test_failure(&state->binder, 8, -EIO,
++					     &publish_p32);
++		KUNIT_EXPECT_EQ(test, ret, 0);
++		KUNIT_EXPECT_EQ(test, state->p30e_readbacks, 1U);
++	}
++}
++#endif
++
+ static void mt6797_binder_one_shot_test(struct kunit *test)
+ {
+ 	struct mt6797_binder_test_state *state = test->priv;
+@@ -748,6 +895,9 @@ static struct kunit_case mt6797_binder_test_cases[] = {
+ 	KUNIT_CASE(mt6797_binder_p27_diagnostic_test),
+ 	KUNIT_CASE(mt6797_binder_sram_diagnostic_test),
+ 	KUNIT_CASE(mt6797_binder_sram_selector_mask_test),
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	KUNIT_CASE(mt6797_binder_p30e_readback_test),
++#endif
+ 	KUNIT_CASE(mt6797_binder_one_shot_test),
+ 	{}
+ };
+diff --git a/drivers/soc/mediatek/mt6797-a72-binder.c b/drivers/soc/mediatek/mt6797-a72-binder.c
+index 4e7c941..c233b8d 100644
+--- a/drivers/soc/mediatek/mt6797-a72-binder.c
++++ b/drivers/soc/mediatek/mt6797-a72-binder.c
+@@ -3,6 +3,7 @@
+ 
+ #include <linux/atomic.h>
+ #include <linux/build_bug.h>
++#include <linux/byteorder/little_endian.h>
+ #include <linux/cpu.h>
+ #include <linux/device.h>
+ #include <linux/errno.h>
+@@ -22,6 +23,8 @@
+ #include <linux/soc/mediatek/mt6797-bigidvfs-backend.h>
+ #include <linux/string.h>
+ 
++#include <asm/late_cpu_profile.h>
++
+ #include "mt6797-a72-binder-internal.h"
+ 
+ #define MT6797_A72_BINDER_P27_COMPLETE \
+@@ -164,6 +167,23 @@ mt6797_a72_binder_fill_diagnostic(const struct mt6797_a72_binder *binder,
+ 	snapshot->sram_effect_attempted = binder->sram.effect_attempted;
+ 	snapshot->sram_verified = binder->sram.verified;
+ 	snapshot->sram_sealed = binder->sram.sealed;
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	snapshot->p30e_prepare_attempted = binder->p30e_prepare_attempted;
++	snapshot->p30e_prepare_ret = binder->p30e_prepare_ret;
++	snapshot->p30e_arm_attempted = binder->p30e_arm_attempted;
++	snapshot->p30e_arm_ret = binder->p30e_arm_ret;
++	snapshot->p30e_armed = binder->p30e_armed;
++	snapshot->p30e_readback_attempted = binder->p30e_readback_attempted;
++	snapshot->p30e_readback_ret = binder->p30e_readback_ret;
++	snapshot->p30e_controller_state = le64_to_cpu(binder->p30e_snapshot.word[
++		ARM64_MT6797_A72_P30E_CONTROLLER_STATE_WORD]);
++	snapshot->p30e_target_state = le64_to_cpu(binder->p30e_snapshot.word[
++		ARM64_MT6797_A72_P30E_TARGET_STATE_WORD]);
++	snapshot->p30e_target_sequence = le64_to_cpu(binder->p30e_snapshot.word[
++		ARM64_MT6797_A72_P30E_TARGET_SEQUENCE_WORD]);
++	snapshot->p30e_controller_sequence = le64_to_cpu(binder->p30e_snapshot.word[
++		ARM64_MT6797_A72_P30E_CONTROLLER_SEQUENCE_WORD]);
++#endif
+ }
+ 
+ int
+@@ -196,6 +216,66 @@ static int mt6797_a72_binder_ipi_call(unsigned int cpu,
+ 	return smp_call_function_single(cpu, func, info, wait);
+ }
+ 
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++static void
++mt6797_a72_binder_p30e_request(
++	const struct mt6797_a72_p30e_handoff *handoff,
++	struct arm64_mt6797_a72_p30e_request *request)
++{
++	memset(request, 0, sizeof(*request));
++	memcpy(request->boot_identity, handoff->wire_boot_identity,
++	       sizeof(request->boot_identity));
++	memcpy(request->target_boot_identity, handoff->target_boot_identity,
++	       sizeof(request->target_boot_identity));
++	request->slot_pa = handoff->slot_pa;
++	request->entry_pa = handoff->entry_pa;
++	request->operation = handoff->operation;
++	request->generation = handoff->generation;
++	request->cookie = handoff->cookie;
++}
++
++static int
++mt6797_a72_binder_p30e_prepare(
++	const struct mt6797_a72_transaction *transaction,
++	struct mt6797_a72_p30e_handoff *handoff)
++{
++	const struct arm64_late_cpu_ready_token *ready;
++
++	ready = arm64_get_late_cpu_ready_token();
++	return ready ? mt6797_a72_membership_prepare_p30e_handoff(
++		transaction, ready, handoff) : -EAGAIN;
++}
++
++static int
++mt6797_a72_binder_p30e_arm(
++	unsigned int cpu, const struct mt6797_a72_p30e_handoff *handoff)
++{
++	struct arm64_mt6797_a72_p30e_request request;
++
++	if (!handoff || cpu != MT6797_A72_TRANSITION_CPU8 ||
++	    handoff->target_cpu != cpu ||
++	    handoff->operation != ARM64_MT6797_A72_P30E_OPERATION_CPU8_UP)
++		return -EPERM;
++	mt6797_a72_binder_p30e_request(handoff, &request);
++	return arm64_mt6797_a72_p30e_arm(cpu, &request);
++}
++
++static int
++mt6797_a72_binder_p30e_readback(
++	unsigned int cpu, const struct mt6797_a72_p30e_handoff *handoff,
++	struct arm64_mt6797_a72_p30e_wire *copy)
++{
++	struct arm64_mt6797_a72_p30e_request request;
++
++	if (!handoff || !copy || cpu != MT6797_A72_TRANSITION_CPU8 ||
++	    handoff->target_cpu != cpu ||
++	    handoff->operation != ARM64_MT6797_A72_P30E_OPERATION_CPU8_UP)
++		return -EPERM;
++	mt6797_a72_binder_p30e_request(handoff, &request);
++	return arm64_mt6797_a72_p30e_readback(cpu, &request, copy);
++}
++#endif
++
+ static const struct mt6797_a72_binder_backend_ops
+ mt6797_a72_binder_production_backend = {
+ 	.ledger_begin = gemini_transition_ledger_begin,
+@@ -217,6 +297,11 @@ mt6797_a72_binder_production_backend = {
+ 		mt6797_a72_membership_complete_p28_preparation,
+ 	.membership_complete_p29 = mt6797_a72_membership_complete_p29_rollback,
+ 	.membership_begin_cpu_on = mt6797_a72_membership_begin_cpu8_on,
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	.p30e_prepare = mt6797_a72_binder_p30e_prepare,
++	.p30e_arm = mt6797_a72_binder_p30e_arm,
++	.p30e_readback = mt6797_a72_binder_p30e_readback,
++#endif
+ 	.membership_publish_success =
+ 		mt6797_a72_membership_publish_cpu8_success,
+ 	.membership_finalize_success =
+@@ -234,20 +319,25 @@ mt6797_a72_binder_production_backend = {
+ static bool
+ mt6797_a72_binder_backend_valid(const struct mt6797_a72_binder_backend_ops *ops)
+ {
+-	return ops && ops->ledger_begin && ops->ledger_checkpoint &&
+-		ops->provider_available && ops->membership_preflight &&
+-		ops->membership_validate && ops->membership_claim &&
+-		ops->membership_owns_token && ops->membership_reject &&
+-		ops->membership_begin_p27 && ops->membership_complete_p27 &&
+-		ops->membership_provider_acquire &&
+-		ops->membership_provider_abort && ops->membership_begin_p28 &&
+-		ops->membership_complete_p28 && ops->membership_complete_p29 &&
+-		ops->membership_begin_cpu_on &&
+-		ops->membership_publish_success &&
+-		ops->membership_finalize_success && ops->watchdog_takeover &&
+-		ops->p27_acquire && ops->p27_release && ops->isolation_clear &&
+-		ops->sram_enable && ops->dcm_update && ops->cpu_online &&
+-		ops->ipi_call;
++	if (!ops || !ops->ledger_begin || !ops->ledger_checkpoint ||
++	    !ops->provider_available || !ops->membership_preflight ||
++	    !ops->membership_validate || !ops->membership_claim ||
++	    !ops->membership_owns_token || !ops->membership_reject ||
++	    !ops->membership_begin_p27 || !ops->membership_complete_p27 ||
++	    !ops->membership_provider_acquire ||
++	    !ops->membership_provider_abort || !ops->membership_begin_p28 ||
++	    !ops->membership_complete_p28 || !ops->membership_complete_p29 ||
++	    !ops->membership_begin_cpu_on || !ops->membership_publish_success ||
++	    !ops->membership_finalize_success || !ops->watchdog_takeover ||
++	    !ops->p27_acquire || !ops->p27_release || !ops->isolation_clear ||
++	    !ops->sram_enable || !ops->dcm_update || !ops->cpu_online ||
++	    !ops->ipi_call)
++		return false;
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	if (!ops->p30e_prepare || !ops->p30e_arm || !ops->p30e_readback)
++		return false;
++#endif
++	return true;
+ }
+ 
+ static bool
+@@ -543,6 +633,20 @@ static int mt6797_a72_binder_sram(void *context)
+ 	return ret;
+ }
+ 
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++static void
++mt6797_a72_binder_p30e_readback_once(struct mt6797_a72_binder *binder,
++				     unsigned int cpu)
++{
++	if (!binder->p30e_armed || binder->p30e_readback_attempted)
++		return;
++	binder->p30e_readback_attempted = true;
++	memset(&binder->p30e_snapshot, 0, sizeof(binder->p30e_snapshot));
++	binder->p30e_readback_ret = binder->backend->p30e_readback(
++		cpu, &binder->p30e_handoff, &binder->p30e_snapshot);
++}
++#endif
++
+ static int mt6797_a72_binder_cpu_on(void *context, unsigned int cpu)
+ {
+ 	struct mt6797_a72_binder *binder = context;
+@@ -550,10 +654,30 @@ static int mt6797_a72_binder_cpu_on(void *context, unsigned int cpu)
+ 
+ 	if (cpu != MT6797_A72_TRANSITION_CPU8 || !binder->cpu_boot)
+ 		return -EINVAL;
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	binder->p30e_prepare_attempted = true;
++	binder->p30e_prepare_ret = binder->backend->p30e_prepare(
++		&binder->transaction, &binder->p30e_handoff);
++	if (binder->p30e_prepare_ret)
++		return binder->p30e_prepare_ret;
++#endif
+ 	ret = binder->backend->membership_begin_cpu_on(&binder->transaction);
+ 	if (ret)
+ 		return ret;
+-	return binder->cpu_boot(cpu);
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	binder->p30e_arm_attempted = true;
++	binder->p30e_arm_ret = binder->backend->p30e_arm(
++		cpu, &binder->p30e_handoff);
++	if (binder->p30e_arm_ret)
++		return binder->p30e_arm_ret;
++	binder->p30e_armed = true;
++#endif
++	ret = binder->cpu_boot(cpu);
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	if (ret)
++		mt6797_a72_binder_p30e_readback_once(binder, cpu);
++#endif
++	return ret;
+ }
+ 
+ static int
+@@ -830,6 +954,9 @@ static int mt6797_a72_binder_fail(struct mt6797_a72_binder *binder,
+ 	*publish_p32 = false;
+ 	if (cpu != MT6797_A72_TRANSITION_CPU8)
+ 		return -EINVAL;
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	mt6797_a72_binder_p30e_readback_once(binder, cpu);
++#endif
+ 	lifecycle = atomic_read_acquire(&binder->transition.lifecycle);
+ 	if (lifecycle != MT6797_A72_TRANSITION_LIFECYCLE_TERMINAL) {
+ 		mt6797_a72_transition_fail(&binder->transition,
+diff --git a/include/linux/soc/mediatek/mt6797-a72-binder.h b/include/linux/soc/mediatek/mt6797-a72-binder.h
+index 119c4de..51ef480 100644
+--- a/include/linux/soc/mediatek/mt6797-a72-binder.h
++++ b/include/linux/soc/mediatek/mt6797-a72-binder.h
+@@ -10,7 +10,7 @@
+ 
+ typedef int (*mt6797_a72_cpu_boot_fn)(unsigned int cpu);
+ 
+-#define MT6797_A72_BINDER_DIAGNOSTIC_ABI 2U
++#define MT6797_A72_BINDER_DIAGNOSTIC_ABI 3U
+ 
+ #define MT6797_A72_BINDER_SRAM_MATCH_ABI		BIT(0)
+ #define MT6797_A72_BINDER_SRAM_MATCH_ATTEMPTED	BIT(1)
+@@ -80,6 +80,17 @@ struct mt6797_a72_binder_diagnostic {
+ 	u32 sram_effect_attempted;
+ 	u32 sram_verified;
+ 	u32 sram_sealed;
++	u32 p30e_prepare_attempted;
++	s32 p30e_prepare_ret;
++	u32 p30e_arm_attempted;
++	s32 p30e_arm_ret;
++	u32 p30e_armed;
++	u32 p30e_readback_attempted;
++	s32 p30e_readback_ret;
++	u32 p30e_controller_state;
++	u32 p30e_target_state;
++	u32 p30e_target_sequence;
++	u32 p30e_controller_sequence;
+ };
+ 
+ #if IS_ENABLED(CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER)

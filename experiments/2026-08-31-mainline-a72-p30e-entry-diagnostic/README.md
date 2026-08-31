@@ -81,6 +81,11 @@ KUnit/QEMU, and the exact production build pass on Buildbox.
 - Its production configuration had
   `CONFIG_ARM64_MT6797_A72_P30E_WIRE` disabled, and no production caller armed
   the existing wire, leaving the entry boundary unobservable.
+- Buildbox generated and deterministically replayed exactly one patch from the
+  checksum-pinned post-`0453` source. Its SHA-256 is `09f8c433...`.
+- The source audit proves one CPU8 prepare, one CPU8 arm, at most one readback,
+  nine binder KUnit cases, and no new CPU request, CPU9, CPU_OFF, retry,
+  power-sequence, storage, or device-action path.
 
 ## Analysis
 
