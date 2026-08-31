@@ -6611,16 +6611,27 @@ The next ordered work is:
    sequences are `0`/`1`, not `1`/`2`; corrected local classification accepts
    the preserved transcript without another device action. Candidate
    `459bcf66...` is retired.
-4. **Selected next:** add one default-off, bounded P30E secondary-entry
-   checkpoint successor. Preserve the exact power transaction and one-shot
-   CPU8 route, expose no CPU9/CPU_OFF/retry path, and record the highest reached
-   checkpoint between the successful claim and existing publication. At
-   minimum distinguish completion of `__cpu_setup`, the MMU/virtual switch plus
-   secondary-task setup, and entry into early `secondary_start_kernel()` C
-   initialization. Prove the checkpoint ABI and failure paths offline, run the
-   focused multi-CPU tests and exact build on Buildbox, then spend one physical
-   attempt only if the resulting readback changes the next action. Retain the
-   CPU9 veto.
+4. **Secondary-entry boundary result:** canonical patch `0457` added monotonic
+   target-owned P30E checkpoints without changing the power or request path.
+   The focused no-network four-CPU Buildbox/QEMU run passed all 51 tests. Exact
+   production candidate `6d0bf75b...` was independently validated, written to
+   live-resolved inactive `boot2`, fully read back, and booted with pristine
+   ABI-4 reason zero. One CPU8 trigger completed P27, P28, SRAM, and P30E
+   preparation/arming. Its terminal readback retained target
+   `CLAIMED/sequence 0/reason 5`: CPU8 reached virtual C execution, removed the
+   identity map, passed preflight, and returned from
+   `check_local_cpu_capabilities()`, but did not durably record checkpoint 6
+   after late-target validation and topology setup. The attempt used one CPU8
+   request and zero CPU9, CPU_OFF, retry, storage-write, or reboot requests;
+   CPU8 remained offline. Candidate `6d0bf75b...` is retired.
+5. **Selected next:** add one default-off, bounded post-capabilities
+   subcheckpoint successor. Preserve the exact one-shot CPU8 power transaction
+   and P30E reason channel, expose no CPU9/CPU_OFF/retry route, and distinguish
+   CPU-operations postboot, CPU-info capture, exact late-target expectation
+   validation, and topology storage inside the checkpoint-5-to-6 interval.
+   Prove the extended ABI and failure paths offline, run the focused multi-CPU
+   tests and exact build on Buildbox, then spend one physical attempt only if
+   its readback selects a repair. Retain the CPU9 veto.
 
 The eventual CPU8 candidate must have a single CPU8 request, strict
 checkpoints before and after each power step, a bounded timeout, and a

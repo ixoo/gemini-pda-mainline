@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-secondary-entry-checkpoints` |
-| Status | `running` |
+| Status | `complete` |
 | Subsystem | arm64 secondary entry and MT6797 P30E wire |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -103,38 +103,41 @@ Buildbox.
   full-partition readback matched, no fresh backup was made, and the device was
   cleanly shut down without reboot. See
   [the deployment record](results/deployment-boot2-20260831.txt).
+- The first serviceable boot had changed boot ID
+  `3a4af9ae-ce7f-43f6-ad09-500c3714cf2d`, exact candidate provenance, ABI 4,
+  reason zero, zero prior executions, and CPUs 8--9 offline. One and only one
+  CPU8 trigger was then committed. P27, P28, SRAM, P30E prepare, and P30E arm
+  completed; the terminal readback retained target state/sequence
+  `CLAIMED/0`, controller state/sequence `ARMED/1`, and target reason `5`.
+  CPU8 therefore returned from `check_local_cpu_capabilities()` and committed
+  that checkpoint, but did not durably commit checkpoint 6 after late target
+  validation and topology setup. The request returned `-EIO`, CPU8 remained
+  offline, and CPU9, CPU_OFF, retry, storage-write, and reboot counts remained
+  zero. See [the runtime record](results/runtime-attempt-1-checkpoint-5-20260831.txt).
 
 ## Analysis
 
-The predecessor eliminates no-entry and pre-CPU_ON explanations. The focused
-KUnit proof validates that the new reason value is carried through the existing
-diagnostic without adding a CPU or device action. The smallest remaining useful
-observation is therefore the highest monotonic target checkpoint inside the
-already-proved CLAIMED interval. Repeating `459bcf66...` would add no new
-measurement and is forbidden.
+The result eliminates the entire assembly/MMU transition, early C entry,
+identity-map removal, preflight, and local capability acceptance interval as
+the first missing boundary. The remaining gap is now inside the short path
+between checkpoint 5 and checkpoint 6: CPU-operations postboot, CPU-info
+capture, exact late-target expectation validation, and topology storage. A
+retained reason of 5 proves the earlier checkpoint completed; it does not by
+itself identify which later operation stopped progress or exclude refusal of a
+later checkpoint write. The exact candidate has therefore answered its question
+and must not be repeated.
 
 ## Conclusion
 
-Running; no new hardware conclusion until the exact successor is built and one
-attributable trigger is classified.
+Complete. CPU8 reaches normal virtual C execution and accepts the system's
+local CPU capability contract. Its first missing durable boundary is after
+checkpoint 5 and before checkpoint 6; CPU8 is not yet online.
 
 ## Follow-up
 
-Install exact padded candidate `6d0bf75b...` only to live-resolved inactive
-`boot2`, verify its full-partition readback, and shut down. On its first
-serviceable boot, require pristine ABI-4 reason zero, then issue one CPU8
-trigger. Interpret the highest retained reason as follows:
-
-- `0`: no checkpoint beyond the already-proved target claim;
-- `1`: `__cpu_setup` returned;
-- `2`: the secondary task and virtual entry were ready;
-- `3`: `secondary_start_kernel()` began;
-- `4`: the identity map was removed;
-- `5`: local CPU capabilities were accepted;
-- `6`: target validation and topology completed;
-- `7`: interrupt, IPI, and NUMA setup completed.
-
-Terminal publication or CPU8 online moves the boundary later. Any malformed
-state/reason/sequence combination is rejected rather than interpreted. Use the
-result to select one repair or narrower discriminator. Do not begin CPU9 work
-until CPU8 is reproducibly online.
+Retire `6d0bf75b...` and preserve the CPU9 veto. The roadmap owns the ordered
+next step: one bounded successor must split the checkpoint-5-to-6 interval at
+CPU-operations postboot, CPU-info capture, exact late-target expectation
+validation, and topology storage. It must keep the same one-shot CPU8 power
+transaction and durable P30E reason channel. Do not begin CPU9 work until CPU8
+is reproducibly online.
