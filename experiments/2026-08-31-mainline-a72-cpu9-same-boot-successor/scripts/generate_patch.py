@@ -133,8 +133,12 @@ def validate_mutations(root: Path) -> int:
         ),
         (
             "fs/pstore/Kconfig",
-            "depends on PSTORE_GEMINI_TRANSITION_LEDGER=y",
-            "depends on PSTORE_RAM=y", 1,
+            "config PSTORE_GEMINI_CPU9_TRANSITION_LEDGER\n"
+            "\tbool \"Gemini independent CPU9 transition ledger\"\n"
+            "\tdepends on PSTORE_GEMINI_TRANSITION_LEDGER=y",
+            "config PSTORE_GEMINI_CPU9_TRANSITION_LEDGER\n"
+            "\tbool \"Gemini independent CPU9 transition ledger\"\n"
+            "\tdepends on PSTORE_RAM=y", 1,
         ),
     )
     rejected = 0
