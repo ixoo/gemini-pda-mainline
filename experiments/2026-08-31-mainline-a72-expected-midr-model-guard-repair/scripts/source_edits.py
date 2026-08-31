@@ -51,7 +51,7 @@ def validate_parent(text: str) -> None:
         raise SystemExit("expected-policy parent guard changed")
     if text.count(EXISTING_TARGET_GUARD) != 1:
         raise SystemExit("existing target-evidence model guard changed")
-    if text.count("late_cpu_expected_field_valid(") != 4:
+    if text.count("late_cpu_expected_field_valid(") != 7:
         raise SystemExit("expected-field call graph changed")
     validate_model_semantics()
 
@@ -63,7 +63,7 @@ def validate_result(text: str) -> None:
         raise SystemExit("target-evidence model guard changed")
     if text.count("MIDR_CPU_MODEL_MASK") != 2:
         raise SystemExit("model-mask use count changed")
-    if text.count("late_cpu_expected_field_valid(") != 4:
+    if text.count("late_cpu_expected_field_valid(") != 7:
         raise SystemExit("expected-field call graph changed")
     validate_model_semantics()
 
