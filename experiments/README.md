@@ -40,8 +40,11 @@ the loop. Positive identity-gated observations are unaffected.
   same-boot `CPU8_ONLINE_PROOF`, with no watchdog refresh, P27, provider,
   isolation, SRAM, DCM, CPU_OFF, or retry action. CPU8's sealed ledger remains
   unchanged in ramoops record 0; a guarded independent CPU9 ledger uses the
-  already-reserved record 1 only after validating record 0. This is a
-  source/design result; implementation, build, and device action are next.
+  already-reserved record 1 only after validating record 0. Canonical patch
+  `0463` now implements that first logical layer and passes exact Buildbox
+  compile/package validation plus a six-case no-network QEMU KUnit runtime.
+  It has no production caller; owner-local CPU9 derivation is next, and no
+  CPU9 candidate or device action is admitted yet.
 - [2026-08-31 A72 expected-pair model-contract repair](2026-08-31-mainline-a72-expected-pair-model-contract-repair/README.md)
   — repairs the generic expected-pair completeness comparison while preserving
   the exact r0p1 late-target check. Three exact Buildbox profiles and the

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-cpu9-same-boot-successor` |
-| Status | `CPU9 retained-ledger patch generated; focused build pending` |
+| Status | `CPU9 retained-ledger patch built and six-case runtime gate passed; owner-local derivation next` |
 | Subsystem | MT6797 A72 CPU9 retained-cluster admission |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -63,9 +63,13 @@ first write. No new physical range is introduced.
 - [`results/patch-generation-20260831.txt`](results/patch-generation-20260831.txt):
   exact Buildbox generation, strict review, replay, and mutation result for
   canonical patch `0463`.
+- [`results/ledger-build-kunit-20260831.txt`](results/ledger-build-kunit-20260831.txt):
+  exact published-commit Buildbox package validation and the six-case,
+  no-network QEMU runtime result.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
-  validation, and hardware-free KUnit source for the independent record-1
-  ledger. These inputs do not yet make the ledger canonical or enable CPU9.
+  validation, and hardware-free KUnit tooling for the independent record-1
+  ledger. Canonical patch `0463` adds the ledger but deliberately has no
+  production caller and does not enable CPU9.
 
 Implementation patches, generators, validators, and build results will be
 added here only after each logical source boundary passes deterministic
@@ -96,6 +100,15 @@ public preflight, claim, begin, publish, and finalize wrappers reject CPU9;
 the binder has one consumed CPU8 transition; the PSCI boot dispatch rejects
 CPU9; and the retained ledger seals record 0 at CPU8 terminal proof.
 
+Canonical patch `0463` now adds the independent CPU9 record-1 ledger. The
+exact 463-patch series compiled on Buildbox from published commit `837860bc...`
+and passed package checksums and provenance validation. Its isolated QEMU
+profile executed exactly one six-case suite with zero failures or skips. The
+runtime cases cover the full five-stage sequence, raw-header commit, missing/
+partial/wrong-attempt CPU8 proof, corrupt CPU8 proof, committed/malformed CPU9
+lane refusal, ordering, one-shot admission, and terminal sealing. The profile
+has no production caller or physical CPU request.
+
 The existing CPU8 transition always performs watchdog, P27, provider,
 isolation, SRAM, CPU_ON, IPI, DCM, and membership stages. Generalizing that
 executor for CPU9 would make forbidden cluster-effect replay reachable.
@@ -119,12 +132,16 @@ CPU8 terminal is already CRC-valid.
 `confirmed`: on the exact parent source, CPU9 must be a separate same-boot,
 retained-cluster PSCI executor. Reusing the CPU8 transition or merely widening
 its CPU checks is rejected because it exposes repeated cluster acquisition.
-The detailed implementation and evidence contract is frozen in
-[`DESIGN.md`](DESIGN.md); no CPU9 support or device result is claimed yet.
+The first logical layer, the guarded independent retained ledger, is now
+canonical, compiled, and runtime-tested. The detailed remaining implementation
+and evidence contract is frozen in [`DESIGN.md`](DESIGN.md); no CPU9 support or
+device result is claimed yet.
 
 ## Follow-up
 
-Implement the logical patches on the exact parent through the Git-pinned
-Buildbox workflow, run focused no-network tests and complete candidate
-validation, then predeclare one CPU9 device attempt. CPU_OFF, retry, sustained
-load, hotplug, thermal, and suspend remain outside that first CPU9 attempt.
+Implement owner-local CPU9 derivation and CPU9-specific membership lifecycle
+entry points next, with focused no-network tests. Then add the retained-cluster
+executor, bind P30E/PSCI/completion dispatch, and chain the candidate-only
+controller before candidate validation and one predeclared device attempt.
+CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside
+that first CPU9 attempt.

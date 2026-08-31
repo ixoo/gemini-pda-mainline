@@ -6724,9 +6724,15 @@ separately attributable CPU9 request. It uses a distinct PSCI-only CPU9
 executor so the already-owned cluster rail, isolation, SRAM, and DCM state are
 not replayed. CPU8's sealed retained ledger stays byte-compatible in ramoops
 record 0, while an independent guarded CPU9 ledger uses the already-reserved
-record 1 only after validating CPU8's terminal. **Selected next:** implement
-the five logical patches and focused hardware-free tests on Buildbox. No CPU9
-candidate or device action is admitted until those gates pass.
+record 1 only after validating CPU8's terminal. The first logical patch is now
+canonical as `0463`: exact published commit `837860bc...` passed Buildbox
+compile/package validation and an isolated six-case, no-network KUnit runtime
+with zero failures or skips. It has no production caller or physical CPU
+request. **Selected next:** add owner-local CPU9 derivation and CPU9-specific
+membership lifecycle entry points while preserving the unchanged CPU8 path.
+The retained-cluster executor, P30E/PSCI dispatch, controller chaining, and
+candidate gates remain subsequent layers. No CPU9 candidate or device action
+is admitted until all those gates pass.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
