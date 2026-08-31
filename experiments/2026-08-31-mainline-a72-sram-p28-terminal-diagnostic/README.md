@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-sram-p28-terminal-diagnostic` |
-| Status | `canonical patch admitted; exact 49-test KUnit pass; production Buildbox gate pending` |
+| Status | `offline boot candidate passed; exact boot2 deployment pending` |
 | Subsystem | MT6797 CPU8 binder, BigiDVFS SRAM owner, and P28 membership boundary |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -51,6 +51,13 @@ Buildbox. CPU9 remains vetoed until CPU8 is reproducibly online.
   project commit.
 - `scripts/run-kunit-qemu` and `scripts/classify-kunit.py` accept only the
   exact fetched Buildbox package and the 30/12/7 focused suite inventory.
+- `scripts/build-composed-dtb.py`, `scripts/build-candidate.sh`, and
+  `scripts/validate-candidate.py` reproduce and independently validate the
+  exact LK-compatible image from the fetched production package.
+- `scripts/install-boot2.sh` admits only the exact predecessor, generation-10
+  retained ledger, live-GPT boot2 target, full readback, and clean shutdown.
+- `scripts/collect-pretrigger.sh` and `scripts/execute-trigger.sh` bind one
+  pristine ABI-2 baseline and at most one trigger to the same boot ID.
 
 The generator writes only a temporary Git tree and a checksum-covered patch
 review package on Buildbox. It performs no device access.
@@ -98,6 +105,19 @@ review package on Buildbox. It performs no device access.
   12 transition executor, and 7 binder cases, including the new SRAM terminal
   diagnostic. It issued zero physical CPU, CPU_OFF, or retry requests. See the
   [KUnit result](results/kunit-qemu-404807a5-20260831.txt).
+- Buildbox built the exact production profile at project commit `3508f303...`;
+  the validated package retains release `7.1.3-gemini-a72-admission-live` and
+  patchset identity `7ff06d12...`.
+- Two independent compositions produced byte-identical DTBs, and two complete
+  candidate builds produced byte-identical raw and padded images.
+- The exact padded boot2 candidate is `7cddf030...`; both independent
+  validation runs passed all 32 LK gates and rejected all six container
+  mutations. The image contains one candidate CPU8 request path but issued no
+  physical request during preparation.
+- The source-pinned runtime classifier accepts only ABI 2 with the complete
+  ordered SRAM/P28 inventory, required match mask `0xfff`, zero CPU9/CPU_OFF/
+  retry requests, and same-boot attribution. Its three accepted branches and
+  nine adversarial mutations pass the offline runtime test.
 
 ## Analysis
 
@@ -111,12 +131,14 @@ boundary without another inference.
 
 ## Conclusion
 
-The next valid experiment is diagnostic-only. It must make one future stage-5
-terminal result self-decoding before any contract repair is selected. The
-prior candidate is retired and must not be repeated.
+The diagnostic candidate is an exact boot candidate. Its one future trigger
+will distinguish CPU8 online from the precise SRAM predicate bit or P28 return
+boundary that blocks stage 5. The prior candidate is retired and must not be
+repeated.
 
 ## Follow-up
 
-Build the exact production profile on Buildbox. Prepare at most one new boot2
-candidate after its offline diagnostic contract is complete. Retain the CPU9
-veto.
+Install the exact padded candidate to live-GPT logical boot2, verify its full
+readback, and shut the device down. On its physical boot, capture one pristine
+pre-trigger baseline and execute at most one boot-bound CPU8 trigger. Retain
+the CPU9 veto.
