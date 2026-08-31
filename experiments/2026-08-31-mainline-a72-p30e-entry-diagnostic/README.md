@@ -109,6 +109,14 @@ KUnit/QEMU, and the exact production build pass on Buildbox.
   CPU9 request, CPU_OFF, retry, or storage path. Strict checkpatch reports no
   warning or check; the sole error is the intentionally absent synthetic DCO
   sign-off on this experiment-only patch.
+- Buildbox then compiled and checksum-validated the repaired focused package
+  from exact project commit `fffb99b4`. Its patchset identity is `31c58247...`,
+  compressed Image identity is `3507babd...`, and configuration identity is
+  `f5658fe7...`. The required four-CPU QEMU run reached the expected terminal
+  marker with all 30 owner, 12 transition, and 9 binder/P30E cases passing:
+  51/51, with no failures, skips, unexpected fault, physical CPU request,
+  CPU_OFF request, retry, network, or device action. The sanitized receipt is
+  [recorded here](results/focused-kunit-qemu-post-fix-20260831.txt).
 
 ## Analysis
 
@@ -123,16 +131,15 @@ be ordinary executable kernel text.
 
 ## Conclusion
 
-Running; the first focused package is rejected before production build or
-device use. No hardware conclusion until the post-MMU publication repair passes
-the four-CPU focused run, an exact candidate is built, and one attributable
+Running; the post-MMU publication repair passes the required four-CPU focused
+run, so the pre-production hardware-free gate is now complete. No hardware
+conclusion until the exact production candidate is built and one attributable
 trigger result is captured.
 
 ## Follow-up
 
-Generate and replay the post-`0454` publication repair, then repeat the exact
-four-CPU focused run. Only after that proof passes should a production candidate
-be built. Use its first exact P30E state to choose the next action: ARMED/EMPTY
-sends the investigation below `secondary_entry`; CLAIMED sends it into early
-arm64 setup; PUBLISHED sends it into the late completion/notification path. Do
-not begin a CPU9 transaction until CPU8 is reproducibly online.
+Build the exact production candidate from the clean published evidence commit.
+Use its first exact P30E state to choose the next action: ARMED/EMPTY sends the
+investigation below `secondary_entry`; CLAIMED sends it into early arm64 setup;
+PUBLISHED sends it into the late completion/notification path. Do not begin a
+CPU9 transaction until CPU8 is reproducibly online.
