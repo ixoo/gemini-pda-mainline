@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-sram-selector-mask-contract-repair` |
-| Status | `exact candidate installed and read back on boot2; device shut down for one boot` |
+| Status | `first physical boot returned to Gemian before arming; one exact repeat pending` |
 | Subsystem | MT6797 CPU8 binder and BigiDVFS SRAM result contract |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -114,6 +114,14 @@ Buildbox. It performs no device access.
   obtained the same full-partition readback. It then shut the device down;
   SSH and three consecutive TCP probes confirm it is off. See the
   [deployment result](results/deployment-boot2-cd36efdf-20260831.txt).
+- The pre-armed first physical boot saw neither the mainline USB interface nor
+  a netcat session before a changed-ID Gemian return. No CPU8 trigger was sent.
+  Changed-ID recovery confirmed the exact `cd36efdf...` image remains on
+  `boot2`, found no pstore file, and found both the transition ledger and
+  admission trace empty with the controller not established. There were zero
+  CPU8, CPU9, CPU_OFF, retry, or native reboot requests and no retained-RAM
+  write. See the
+  [runtime result](results/runtime-boot-attempt-1-prearm-reboot-20260831.txt).
 
 ## Analysis
 
@@ -128,12 +136,18 @@ hardware transaction.
 ## Conclusion
 
 The exact source repair, production package, deterministic candidate,
-hardware-free proofs, and guarded `boot2` deployment pass. The repair has not
-yet run on the device.
+hardware-free proofs, and guarded `boot2` deployment pass. Physical boot
+attempt 1 returned to Gemian before the admission controller or serviceability
+path became observable, so it did not exercise the selector repair and is
+inconclusive for its hypothesis.
 
 ## Follow-up
 
-Physically select `boot2`. On its one accepted boot, require a pristine ABI-2
-armed frame and issue one boot-bound CPU8 trigger. Its unique evidence is
-whether the SRAM match becomes `0xfff`, P28 completion is attempted, and the
-transition advances beyond stage 5. Retain the CPU9 veto.
+Repeat the exact candidate once with the same pre-armed observer. This repeat
+tests whether attempt 1 was a transient physical-selection or reboot outcome,
+which is material because the production semantic change remains strictly
+post-trigger. If the repeat exposes a pristine ABI-2 armed frame, issue one
+boot-bound CPU8 trigger and test whether the SRAM match becomes `0xfff`, P28
+completion is attempted, and the transition advances beyond stage 5. If it
+again returns before arming, stop identical boots and instrument the
+pre-controller boot or serviceability path. Retain the CPU9 veto.

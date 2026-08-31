@@ -6570,10 +6570,18 @@ The next ordered work is:
    resolved inactive, unmounted 16 MiB `boot2`; the diagnostic predecessor and
    generation-10 stage-5 ledger matched, the successor was written and fully
    read back as `cd36efdf...`, and the device shut down cleanly without a fresh
-   backup or automatic reboot. **Selected next:** physically select `boot2`,
-   then use one pristine boot-bound trigger to distinguish SRAM match `0xfff`
-   and progress beyond stage 5 from an exact terminal counterexample. Retain
-   the CPU9 veto.
+   backup or automatic reboot. Its first physical boot returned to changed-ID
+   Gemian before the mainline USB/netcat path armed. Recovery confirmed the
+   exact image remains installed, but found empty transition and admission
+   traces with the admission controller not established; no CPU8 trigger or
+   retained-RAM write occurred. This is a pre-controller or pre-serviceability
+   failure and is inconclusive for the post-trigger selector repair.
+   **Selected next:** repeat the exact candidate once under the same pre-armed
+   observer. If it arms, use one pristine boot-bound trigger to distinguish
+   SRAM match `0xfff` and progress beyond stage 5 from an exact terminal
+   counterexample. If it again returns before arming, stop identical boots and
+   instrument the pre-controller boot or serviceability path. Retain the CPU9
+   veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 
