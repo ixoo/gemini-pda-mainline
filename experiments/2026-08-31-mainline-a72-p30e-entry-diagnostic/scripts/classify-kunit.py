@@ -44,12 +44,23 @@ def main() -> None:
         "mt6797_binder_p30e_readback_test",
         binder.SUITES[2][1][-1],
     )
+    generic_validate_config = generic.validate_config
+
+    def validate_p30e_config(config: Path, expected: tuple[str, ...]) -> None:
+        generic_validate_config(config, expected)
+        require = generic.require
+        require(
+            "CONFIG_ARM64_MT6797_A72_P30E_WIRE=y"
+            in config.read_text(encoding="utf-8").splitlines(),
+            "configuration missing: CONFIG_ARM64_MT6797_A72_P30E_WIRE=y",
+        )
+
+    generic.validate_config = validate_p30e_config
     generic.PROFILES[PROFILE] = {
         "options": (
             "CONFIG_ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST=y",
             "CONFIG_MTK_MT6797_A72_TRANSITION_EXECUTOR_KUNIT_TEST=y",
             "CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER_KUNIT_TEST=y",
-            "CONFIG_ARM64_MT6797_A72_P30E_WIRE=y",
         ),
         "suites": (
             binder.SUITES[0],
