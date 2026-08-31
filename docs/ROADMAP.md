@@ -6516,10 +6516,12 @@ The next ordered work is:
    candidate `e22db747...`; all 32 LK gates, ten DT mutations, and six
    container mutations pass. Its pre-trigger gate requires an idle pristine
    binder snapshot and its one-shot terminal classifier retains every P27
-   acquire/release field. **Selected next:** deploy `e22db747...` only to the
-   live-GPT inactive boot2 with full readback and clean shutdown, then run its
-   one boot-bound CPU8 diagnostic and repair only the observed P27 predicate
-   or rollback defect. Retain the CPU9 veto.
+   acquire/release field. Its installer accepts the unchanged, already
+   published predecessor P27 terminal ledger without modifying retained RAM,
+   but rejects any different record. **Selected next:** deploy `e22db747...`
+   only to the live-GPT inactive boot2 with full readback and clean shutdown,
+   then run its one boot-bound CPU8 diagnostic and repair only the observed
+   P27 predicate or rollback defect. Retain the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 

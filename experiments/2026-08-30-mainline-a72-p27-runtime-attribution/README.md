@@ -111,6 +111,13 @@ existing changed-boot and one-trigger boundaries. Offline fixtures accept the
 four attributable outcomes and reject mutations of the binder return, stage
 errno, effect masks, CPU masks, and reboot boundary.
 
+The deployment guard also accepts only the exact retained transition-ledger
+bytes already published for the predecessor attempt: attempt 1, generation 4,
+terminal P27 `ROLLBACK_FAULT_PREISO`, with generation 3 as its valid preceding
+checkpoint. Both admission traces must remain empty. This avoids modifying
+retained RAM while ensuring that an unknown or changed record still stops the
+install before any boot2 write.
+
 Before the device boot, the hypothesis is that the new terminal frame will
 separate physical P27 acquire failure, logical membership completion,
 physical P27 release failure, and logical P29 rollback completion. A complete
