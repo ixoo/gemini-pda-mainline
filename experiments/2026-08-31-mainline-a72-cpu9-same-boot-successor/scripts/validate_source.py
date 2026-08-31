@@ -36,8 +36,11 @@ def validate(root: Path) -> list[str]:
     require(kconfig.count(
         "config PSTORE_GEMINI_CPU9_TRANSITION_LEDGER_KUNIT_TEST\n") == 1,
         "test Kconfig")
-    require("depends on PSTORE_GEMINI_TRANSITION_LEDGER=y" in kconfig,
-            "generic owner dependency")
+    require(
+        "config PSTORE_GEMINI_CPU9_TRANSITION_LEDGER\n"
+        "\tbool \"Gemini independent CPU9 transition ledger\"\n"
+        "\tdepends on PSTORE_GEMINI_TRANSITION_LEDGER=y" in kconfig,
+        "generic owner dependency")
     require(makefile.count("gemini_cpu9_transition_ledger.o") == 1,
             "production object")
     require(makefile.count("gemini_cpu9_transition_ledger_test.o") == 1,
@@ -50,7 +53,8 @@ def validate(root: Path) -> list[str]:
         "latest.phase != GEMINI_TRANSITION_LEDGER_TERMINAL",
         "latest.stage != GEMINI_CPU9_LEDGER_CPU8_STAGE",
         "latest.terminal != GEMINI_CPU9_LEDGER_CPU8_TERMINAL",
-        "return -EALREADY;",
+        "start == GEMINI_TRANSITION_LEDGER_PAYLOAD_BYTES && start == size)\n"
+        "\t\treturn -EALREADY;\n\treturn -EBADMSG;",
         "owner->attempted = true;",
         "stage > GEMINI_CPU9_LEDGER_MEMBERSHIP",
         "terminal > GEMINI_CPU9_LEDGER_CPU9_ONLINE_PROOF",
