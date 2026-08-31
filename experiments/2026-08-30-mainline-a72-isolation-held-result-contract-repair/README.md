@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-isolation-held-result-contract-repair` |
-| Status | `patch generated and admitted; focused Buildbox validation pending` |
+| Status | `offline gates pass; exact candidate ready for one guarded boot2 deployment` |
 | Subsystem | MT6797 CPU8 binder and platform-effect owner contract |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -84,6 +84,17 @@ Git tree and a checksum-covered patch-review package on Buildbox.
   this internal archive is not submission-ready.
 - The exact generated patch SHA-256 is
   `248dd2271daedc8a106ea4bea628108d99da143be8bdbbfb9aacb815af3154da`.
+- The focused Buildbox/QEMU run passes all 48 P24-owner, transition-executor,
+  and binder cases with zero physical CPU requests, CPU_OFF requests, retries,
+  or network access.
+- The production Buildbox package is pinned to commit `62557cd2...`, patchset
+  `39dfc426...`, and kernel release `7.1.3-gemini-a72-admission-live`.
+- Two independent serviceability/provenance DT compositions are byte-identical
+  at `57fb4aae...`; two independent Android-v0 containers and two independent
+  16 MiB padding constructions are byte-identical.
+- Independent validation accepts exact padded candidate `510cb652...`, all 32
+  LK gates pass, and six container mutations are rejected. The image contains
+  one CPU8 request route and no CPU9, CPU_OFF, or retry route.
 
 ## Analysis
 
@@ -96,13 +107,15 @@ must not be inferred from this result.
 
 ## Conclusion
 
-Patch generation and deterministic replay pass. Focused KUnit and the
-production-profile Buildbox build remain required before any candidate exists.
-This is not CPU8 hardware-support evidence.
+All offline gates pass and one exact changed candidate exists. This remains a
+deployment candidate, not CPU8 hardware-support evidence: only its single
+boot-bound runtime trigger can distinguish a new transition stage or CPU8
+online state.
 
 ## Follow-up
 
-If all offline gates pass, construct one changed successor whose exact runtime
-status distinguishes SRAM, PSCI CPU_ON, secondary execution, and membership
-publication. Do not repeat the retired P27-repair image and do not prepare CPU9
-until CPU8 is reproducibly online.
+Install exact padded image `510cb652...` to live-GPT-resolved inactive `boot2`,
+require a matching full-partition readback, and shut down. On its selected boot,
+accept only the exact pristine baseline and issue one boot-bound trigger. Do
+not repeat either predecessor image or prepare CPU9 until CPU8 is reproducibly
+online.
