@@ -6523,10 +6523,22 @@ The next ordered work is:
    P27 acquire (`0x7`) and release (`0x1f`) both complete successfully. The
    binder rejects the intentionally unsealed held-acquire result with
    `-EPROTO`; P29's later `-EPERM` is secondary because P27 membership was not
-   published. **Selected next:** make only the P27 acquire seal expectation and
-   its KUnit fake match the production held-owner contract, then repeat the
-   focused offline suites before considering one successor boot. Retain the
-   CPU9 veto.
+   published. Canonical patch `0450` made only the P27 acquire seal expectation
+   and its KUnit fake match the production held-owner contract. Its exact
+   padded successor `fbe0bf76...` was fully read back to boot2 and shut down.
+   Boot ID `0850abe2...` passed the pristine serviceability gate and consumed
+   one trigger. P27 acquire completed with mask `0x7`, error 0, ownership held,
+   and the expected open result; provider ownership was acquired and retained.
+   The transition then stopped with `-EPROTO`, last stage `ISOLATION`, terminal
+   `FAULT_RETAIN_POSTISO`, retained mask `0x3`, and no CPU9, CPU_OFF, retry, or
+   reboot request. Changed-ID Gemian recovery preserved generation 8 terminal
+   at isolation in the checksum-valid pstore ledger. Production isolation
+   completes its three effects and enters `ISOLATED` without sealing the result
+   because P27/provider ownership continues, while the binder and KUnit fake
+   require sealed success. **Selected next:** repair only that isolation held-
+   result expectation and fake, preserving sealed release and DCM completion,
+   then repeat the focused offline suites before one changed successor boot.
+   Retain the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 
