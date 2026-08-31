@@ -1,0 +1,396 @@
+From cc852a100dbc5a9bf2b7fa7f35c63ecb6df3ea95 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 31 Aug 2026 06:01:00 +0000
+Subject: [PATCH] soc: mediatek: expose CPU8 SRAM terminal diagnostic
+
+The isolation-result repair advances the single CPU8 attempt to
+SRAM, where the binder returns EPROTO. The physical SRAM owner
+uses distinct errors, while the current terminal status omits its
+result and the surrounding P28 return boundaries.
+
+Expose the complete SRAM result, an exact predicate-match mask,
+and P28 begin/complete return markers in the existing read-only
+diagnostic. Reuse that mask for the unchanged binder predicate.
+Add KUnit coverage without adding an operation or request path.
+---
+ .../mt6797-a72-admission-controller.c         |  45 +++++++-
+ .../soc/mediatek/mt6797-a72-binder-internal.h |   6 ++
+ drivers/soc/mediatek/mt6797-a72-binder-test.c |  50 +++++++++
+ drivers/soc/mediatek/mt6797-a72-binder.c      | 101 ++++++++++++++----
+ .../linux/soc/mediatek/mt6797-a72-binder.h    |  40 ++++++-
+ 5 files changed, 216 insertions(+), 26 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-admission-controller.c b/drivers/soc/mediatek/mt6797-a72-admission-controller.c
+index 66786e2..83a6d77 100644
+--- a/drivers/soc/mediatek/mt6797-a72-admission-controller.c
++++ b/drivers/soc/mediatek/mt6797-a72-admission-controller.c
+@@ -379,11 +379,48 @@ static ssize_t status_show(struct device *dev, struct device_attribute *attr,
+ 	len += sysfs_emit_at(buf, len, "p27r_spm_before=0x%x p27r_spm_after=0x%x ",
+ 			     diagnostic.p27_release_spm_before,
+ 			     diagnostic.p27_release_spm_after);
++	len += sysfs_emit_at(buf, len,
++			     "p27r_bpll=0x%x p27r_owned=%u p27r_sealed=%u ",
++			     diagnostic.p27_release_bpll,
++			     diagnostic.p27_release_owned,
++			     diagnostic.p27_release_sealed);
++	len += sysfs_emit_at(buf, len,
++			     "p28_begin_attempted=%u p28_begin_ret=%d p28_begun=%u ",
++			     diagnostic.p28_begin_attempted,
++			     diagnostic.p28_begin_ret, diagnostic.p28_begun);
++	len += sysfs_emit_at(buf, len,
++			     "sram_returned=%u sram_ret=%d sram_match=0x%x ",
++			     diagnostic.sram_returned, diagnostic.sram_ret,
++			     diagnostic.sram_match_mask);
++	len += sysfs_emit_at(buf, len,
++			     "sram_required=0x%x p28_complete_attempted=%u ",
++			     diagnostic.sram_required_mask,
++			     diagnostic.p28_complete_attempted);
++	len += sysfs_emit_at(buf, len,
++			     "p28_complete_ret=%d sram_abi=%u ",
++			     diagnostic.p28_complete_ret, diagnostic.sram_abi);
++	len += sysfs_emit_at(buf, len,
++			     "sram_attempted=0x%x sram_completed=0x%x sram_mv=%u ",
++			     diagnostic.sram_attempted, diagnostic.sram_completed,
++			     diagnostic.sram_requested_mv_x100);
++	len += sysfs_emit_at(buf, len,
++			     "sram_selector_first=0x%x sram_calibration_first=0x%x ",
++			     diagnostic.sram_selector_first,
++			     diagnostic.sram_calibration_first);
++	len += sysfs_emit_at(buf, len,
++			     "sram_selector_second=0x%x sram_calibration_second=0x%x ",
++			     diagnostic.sram_selector_second,
++			     diagnostic.sram_calibration_second);
++	len += sysfs_emit_at(buf, len,
++			     "sram_attempt_id=%llu sram_cookie=%llu sram_error=%d ",
++			     (unsigned long long)diagnostic.sram_attempt_id,
++			     (unsigned long long)diagnostic.sram_cookie,
++			     diagnostic.sram_error);
+ 	return len + sysfs_emit_at(buf, len,
+-				   "p27r_bpll=0x%x p27r_owned=%u p27r_sealed=%u\n",
+-				   diagnostic.p27_release_bpll,
+-				   diagnostic.p27_release_owned,
+-				   diagnostic.p27_release_sealed);
++				   "sram_effect_attempted=%u sram_verified=%u sram_sealed=%u\n",
++				   diagnostic.sram_effect_attempted,
++				   diagnostic.sram_verified,
++				   diagnostic.sram_sealed);
+ }
+ 
+ static ssize_t trigger_store(struct device *dev,
+diff --git a/drivers/soc/mediatek/mt6797-a72-binder-internal.h b/drivers/soc/mediatek/mt6797-a72-binder-internal.h
+index d88975e..4df6876 100644
+--- a/drivers/soc/mediatek/mt6797-a72-binder-internal.h
++++ b/drivers/soc/mediatek/mt6797-a72-binder-internal.h
+@@ -87,8 +87,14 @@ struct mt6797_a72_binder {
+ 	struct mt6797_a72_provider_response provider;
+ 	mt6797_a72_cpu_boot_fn cpu_boot;
+ 	atomic_t boot_claimed;
++	s32 p28_begin_ret;
++	s32 sram_ret;
++	s32 p28_complete_ret;
+ 	bool ledger_begun;
++	bool p28_begin_attempted;
+ 	bool p28_begun;
++	bool sram_returned;
++	bool p28_complete_attempted;
+ };
+ 
+ #if IS_ENABLED(CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER_KUNIT_TEST)
+diff --git a/drivers/soc/mediatek/mt6797-a72-binder-test.c b/drivers/soc/mediatek/mt6797-a72-binder-test.c
+index 4a00d8c..74f9e95 100644
+--- a/drivers/soc/mediatek/mt6797-a72-binder-test.c
++++ b/drivers/soc/mediatek/mt6797-a72-binder-test.c
+@@ -639,12 +639,61 @@ static void mt6797_binder_p27_diagnostic_test(struct kunit *test)
+ 	KUNIT_EXPECT_EQ(test, diagnostic.p27_release_sealed, 1U);
+ }
+ 
++static void mt6797_binder_sram_diagnostic_test(struct kunit *test)
++{
++	struct mt6797_binder_test_state *state = test->priv;
++	struct mt6797_a72_binder_diagnostic diagnostic;
++	u32 expected = MT6797_A72_BINDER_SRAM_REQUIRED_MASK &
++		~MT6797_A72_BINDER_SRAM_MATCH_SEALED;
++	int ret;
++
++	state->malformed = TEST_MALFORMED_SRAM;
++	ret = mt6797_a72_binder_test_boot(&state->binder, 8,
++					  mt6797_binder_test_cpu_boot);
++	KUNIT_ASSERT_EQ(test, ret, -EPROTO);
++	mt6797_a72_binder_test_diagnostic(&state->binder, &diagnostic);
++	KUNIT_EXPECT_EQ(test, diagnostic.abi,
++			MT6797_A72_BINDER_DIAGNOSTIC_ABI);
++	KUNIT_EXPECT_EQ(test, diagnostic.terminal,
++			(u32)MT6797_A72_TRANSITION_FAULT_RETAIN_POSTISO);
++	KUNIT_EXPECT_EQ(test, diagnostic.last_stage,
++			(u32)MT6797_A72_TRANSITION_STAGE_SRAM);
++	KUNIT_EXPECT_EQ(test, diagnostic.stage_errno, -EPROTO);
++	KUNIT_EXPECT_EQ(test, diagnostic.p28_begin_attempted, 1U);
++	KUNIT_EXPECT_EQ(test, diagnostic.p28_begin_ret, 0);
++	KUNIT_EXPECT_EQ(test, diagnostic.p28_begun, 1U);
++	KUNIT_EXPECT_EQ(test, diagnostic.sram_returned, 1U);
++	KUNIT_EXPECT_EQ(test, diagnostic.sram_ret, 0);
++	KUNIT_EXPECT_EQ(test, diagnostic.sram_match_mask, expected);
++	KUNIT_EXPECT_EQ(test, diagnostic.sram_required_mask,
++			MT6797_A72_BINDER_SRAM_REQUIRED_MASK);
++	KUNIT_EXPECT_EQ(test, diagnostic.p28_complete_attempted, 0U);
++	KUNIT_EXPECT_EQ(test, diagnostic.p28_complete_ret, 0);
++	KUNIT_EXPECT_EQ(test, diagnostic.sram_attempt_id, TEST_GENERATION);
++	KUNIT_EXPECT_EQ(test, diagnostic.sram_cookie, TEST_COOKIE);
++	KUNIT_EXPECT_EQ(test, diagnostic.sram_error, 0);
++	KUNIT_EXPECT_EQ(test, diagnostic.sram_effect_attempted, 1U);
++	KUNIT_EXPECT_EQ(test, diagnostic.sram_verified, 1U);
++	KUNIT_EXPECT_EQ(test, diagnostic.sram_sealed, 0U);
++}
++
+ static void mt6797_binder_one_shot_test(struct kunit *test)
+ {
+ 	struct mt6797_binder_test_state *state = test->priv;
++	struct mt6797_a72_binder_diagnostic diagnostic;
+ 	int ret;
+ 
+ 	KUNIT_ASSERT_EQ(test, mt6797_binder_test_run_to_completion(state), 0);
++	mt6797_a72_binder_test_diagnostic(&state->binder, &diagnostic);
++	KUNIT_EXPECT_EQ(test, diagnostic.p28_begin_attempted, 1U);
++	KUNIT_EXPECT_EQ(test, diagnostic.p28_begin_ret, 0);
++	KUNIT_EXPECT_EQ(test, diagnostic.p28_begun, 1U);
++	KUNIT_EXPECT_EQ(test, diagnostic.sram_returned, 1U);
++	KUNIT_EXPECT_EQ(test, diagnostic.sram_ret, 0);
++	KUNIT_EXPECT_EQ(test, diagnostic.sram_match_mask,
++			MT6797_A72_BINDER_SRAM_REQUIRED_MASK);
++	KUNIT_EXPECT_EQ(test, diagnostic.p28_complete_attempted, 1U);
++	KUNIT_EXPECT_EQ(test, diagnostic.p28_complete_ret, 0);
+ 	ret = mt6797_a72_binder_test_boot(&state->binder, 8,
+ 					  mt6797_binder_test_cpu_boot);
+ 	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
+@@ -657,6 +706,7 @@ static struct kunit_case mt6797_binder_test_cases[] = {
+ 	KUNIT_CASE(mt6797_binder_preiso_checkpoint_test),
+ 	KUNIT_CASE(mt6797_binder_malformed_owners_test),
+ 	KUNIT_CASE(mt6797_binder_p27_diagnostic_test),
++	KUNIT_CASE(mt6797_binder_sram_diagnostic_test),
+ 	KUNIT_CASE(mt6797_binder_one_shot_test),
+ 	{}
+ };
+diff --git a/drivers/soc/mediatek/mt6797-a72-binder.c b/drivers/soc/mediatek/mt6797-a72-binder.c
+index b47b97c..fb80ca1 100644
+--- a/drivers/soc/mediatek/mt6797-a72-binder.c
++++ b/drivers/soc/mediatek/mt6797-a72-binder.c
+@@ -40,6 +40,14 @@
+ #define MT6797_A72_BINDER_DCM_COMPLETE \
+ 	(MT6797_A72_BINDER_ISOLATION_COMPLETE | \
+ 	 MT6797_A72_EFFECT_DCM_TOGGLE | MT6797_A72_EFFECT_DCM_FINAL)
++#define MT6797_A72_BINDER_SRAM_COMPLETE \
++	(MT6797_BIGIDVFS_SRAM_SERVICE | MT6797_BIGIDVFS_SRAM_SETTLE | \
++	 MT6797_BIGIDVFS_SRAM_SELECTOR_FIRST | \
++	 MT6797_BIGIDVFS_SRAM_CALIBRATION_FIRST | \
++	 MT6797_BIGIDVFS_SRAM_SELECTOR_SECOND | \
++	 MT6797_BIGIDVFS_SRAM_CALIBRATION_SECOND | \
++	 MT6797_BIGIDVFS_SRAM_SELECTOR_VALID | \
++	 MT6797_BIGIDVFS_SRAM_CALIBRATION_VALID)
+ 
+ static DEFINE_MUTEX(mt6797_a72_binder_publish_lock);
+ static struct mt6797_a72_binder *mt6797_a72_ready_binder;
+@@ -59,6 +67,39 @@ bool mt6797_a72_binder_available(void)
+ 	return available;
+ }
+ 
++static u32
++mt6797_a72_binder_sram_match_mask(const struct mt6797_a72_binder *binder)
++{
++	const struct mt6797_bigidvfs_sram_result *sram = &binder->sram;
++	u32 mask = 0;
++
++	if (sram->abi == MT6797_BIGIDVFS_SRAM_OWNER_ABI)
++		mask |= MT6797_A72_BINDER_SRAM_MATCH_ABI;
++	if (sram->attempted_steps == MT6797_A72_BINDER_SRAM_COMPLETE)
++		mask |= MT6797_A72_BINDER_SRAM_MATCH_ATTEMPTED;
++	if (sram->completed_steps == MT6797_A72_BINDER_SRAM_COMPLETE)
++		mask |= MT6797_A72_BINDER_SRAM_MATCH_COMPLETED;
++	if (sram->requested_mv_x100 == MT6797_BIGIDVFS_SRAM_TARGET_MV_X100)
++		mask |= MT6797_A72_BINDER_SRAM_MATCH_VOLTAGE;
++	if (sram->selector_first == MT6797_BIGIDVFS_SRAM_SELECTOR_EXPECTED)
++		mask |= MT6797_A72_BINDER_SRAM_MATCH_SELECTOR_FIRST;
++	if (sram->selector_second == MT6797_BIGIDVFS_SRAM_SELECTOR_EXPECTED)
++		mask |= MT6797_A72_BINDER_SRAM_MATCH_SELECTOR_SECOND;
++	if (sram->attempt_id == binder->transaction.identity.generation)
++		mask |= MT6797_A72_BINDER_SRAM_MATCH_ATTEMPT_ID;
++	if (sram->cookie == binder->transaction.identity.cookie)
++		mask |= MT6797_A72_BINDER_SRAM_MATCH_COOKIE;
++	if (!sram->error)
++		mask |= MT6797_A72_BINDER_SRAM_MATCH_ERROR;
++	if (sram->effect_attempted)
++		mask |= MT6797_A72_BINDER_SRAM_MATCH_EFFECT;
++	if (sram->verified)
++		mask |= MT6797_A72_BINDER_SRAM_MATCH_VERIFIED;
++	if (sram->sealed)
++		mask |= MT6797_A72_BINDER_SRAM_MATCH_SEALED;
++	return mask;
++}
++
+ static void
+ mt6797_a72_binder_fill_diagnostic(const struct mt6797_a72_binder *binder,
+ 				  struct mt6797_a72_binder_diagnostic *snapshot)
+@@ -98,6 +139,29 @@ mt6797_a72_binder_fill_diagnostic(const struct mt6797_a72_binder *binder,
+ 	snapshot->p27_release_bpll = release->bpll_ordering_value;
+ 	snapshot->p27_release_owned = release->p27_owned;
+ 	snapshot->p27_release_sealed = release->sealed;
++	snapshot->p28_begin_attempted = binder->p28_begin_attempted;
++	snapshot->p28_begin_ret = binder->p28_begin_ret;
++	snapshot->p28_begun = binder->p28_begun;
++	snapshot->sram_returned = binder->sram_returned;
++	snapshot->sram_ret = binder->sram_ret;
++	snapshot->sram_match_mask = mt6797_a72_binder_sram_match_mask(binder);
++	snapshot->sram_required_mask = MT6797_A72_BINDER_SRAM_REQUIRED_MASK;
++	snapshot->p28_complete_attempted = binder->p28_complete_attempted;
++	snapshot->p28_complete_ret = binder->p28_complete_ret;
++	snapshot->sram_abi = binder->sram.abi;
++	snapshot->sram_attempted = binder->sram.attempted_steps;
++	snapshot->sram_completed = binder->sram.completed_steps;
++	snapshot->sram_requested_mv_x100 = binder->sram.requested_mv_x100;
++	snapshot->sram_selector_first = binder->sram.selector_first;
++	snapshot->sram_calibration_first = binder->sram.calibration_first;
++	snapshot->sram_selector_second = binder->sram.selector_second;
++	snapshot->sram_calibration_second = binder->sram.calibration_second;
++	snapshot->sram_attempt_id = binder->sram.attempt_id;
++	snapshot->sram_cookie = binder->sram.cookie;
++	snapshot->sram_error = binder->sram.error;
++	snapshot->sram_effect_attempted = binder->sram.effect_attempted;
++	snapshot->sram_verified = binder->sram.verified;
++	snapshot->sram_sealed = binder->sram.sealed;
+ }
+ 
+ int
+@@ -394,7 +458,9 @@ static int mt6797_a72_binder_isolation(void *context)
+ 	struct mt6797_a72_provider_handle provider;
+ 	int ret;
+ 
++	binder->p28_begin_attempted = true;
+ 	ret = binder->backend->membership_begin_p28(&binder->transaction);
++	binder->p28_begin_ret = ret;
+ 	if (ret)
+ 		return ret;
+ 	binder->p28_begun = true;
+@@ -425,14 +491,6 @@ static int mt6797_a72_binder_sram(void *context)
+ 	struct mt6797_a72_binder *binder = context;
+ 	struct mt6797_a72_p28_preparation preparation = { };
+ 	struct mt6797_bigidvfs_sram_request request = { };
+-	u32 all_steps = MT6797_BIGIDVFS_SRAM_SERVICE |
+-		MT6797_BIGIDVFS_SRAM_SETTLE |
+-		MT6797_BIGIDVFS_SRAM_SELECTOR_FIRST |
+-		MT6797_BIGIDVFS_SRAM_CALIBRATION_FIRST |
+-		MT6797_BIGIDVFS_SRAM_SELECTOR_SECOND |
+-		MT6797_BIGIDVFS_SRAM_CALIBRATION_SECOND |
+-		MT6797_BIGIDVFS_SRAM_SELECTOR_VALID |
+-		MT6797_BIGIDVFS_SRAM_CALIBRATION_VALID;
+ 	int ret;
+ 
+ 	if (!binder->p28_begun)
+@@ -443,21 +501,19 @@ static int mt6797_a72_binder_sram(void *context)
+ 	request.cookie = binder->transaction.identity.cookie;
+ 	request.provider_held = true;
+ 	request.isolation_crossed = true;
++	memset(&binder->sram, 0, sizeof(binder->sram));
++	binder->sram_returned = false;
++	binder->sram_ret = 0;
++	binder->p28_complete_attempted = false;
++	binder->p28_complete_ret = 0;
+ 	ret = binder->backend->sram_enable(binder->bigidvfs, &request,
+ 					   &binder->sram);
++	binder->sram_ret = ret;
++	binder->sram_returned = true;
+ 	if (ret)
+ 		return ret;
+-	if (binder->sram.abi != MT6797_BIGIDVFS_SRAM_OWNER_ABI ||
+-	    binder->sram.attempted_steps != all_steps ||
+-	    binder->sram.completed_steps != all_steps ||
+-	    binder->sram.requested_mv_x100 !=
+-		    MT6797_BIGIDVFS_SRAM_TARGET_MV_X100 ||
+-	    binder->sram.selector_first != MT6797_BIGIDVFS_SRAM_SELECTOR_EXPECTED ||
+-	    binder->sram.selector_second != MT6797_BIGIDVFS_SRAM_SELECTOR_EXPECTED ||
+-	    binder->sram.attempt_id != binder->transaction.identity.generation ||
+-	    binder->sram.cookie != binder->transaction.identity.cookie ||
+-	    binder->sram.error || !binder->sram.effect_attempted ||
+-	    !binder->sram.verified || !binder->sram.sealed)
++	if (mt6797_a72_binder_sram_match_mask(binder) !=
++	    MT6797_A72_BINDER_SRAM_REQUIRED_MASK)
+ 		return -EPROTO;
+ 
+ 	preparation.abi = MT6797_A72_P28_PREPARATION_ABI;
+@@ -478,8 +534,11 @@ static int mt6797_a72_binder_sram(void *context)
+ 	preparation.transaction_generation =
+ 		binder->transaction.identity.generation;
+ 	preparation.transaction_cookie = binder->transaction.identity.cookie;
+-	return binder->backend->membership_complete_p28(&binder->transaction,
+-							&preparation);
++	binder->p28_complete_attempted = true;
++	ret = binder->backend->membership_complete_p28(&binder->transaction,
++						       &preparation);
++	binder->p28_complete_ret = ret;
++	return ret;
+ }
+ 
+ static int mt6797_a72_binder_cpu_on(void *context, unsigned int cpu)
+diff --git a/include/linux/soc/mediatek/mt6797-a72-binder.h b/include/linux/soc/mediatek/mt6797-a72-binder.h
+index 9e88353..119c4de 100644
+--- a/include/linux/soc/mediatek/mt6797-a72-binder.h
++++ b/include/linux/soc/mediatek/mt6797-a72-binder.h
+@@ -2,6 +2,7 @@
+ #ifndef __LINUX_SOC_MEDIATEK_MT6797_A72_BINDER_H
+ #define __LINUX_SOC_MEDIATEK_MT6797_A72_BINDER_H
+ 
++#include <linux/bits.h>
+ #include <linux/cpuhotplug.h>
+ #include <linux/errno.h>
+ #include <linux/kconfig.h>
+@@ -9,7 +10,21 @@
+ 
+ typedef int (*mt6797_a72_cpu_boot_fn)(unsigned int cpu);
+ 
+-#define MT6797_A72_BINDER_DIAGNOSTIC_ABI 1U
++#define MT6797_A72_BINDER_DIAGNOSTIC_ABI 2U
++
++#define MT6797_A72_BINDER_SRAM_MATCH_ABI		BIT(0)
++#define MT6797_A72_BINDER_SRAM_MATCH_ATTEMPTED	BIT(1)
++#define MT6797_A72_BINDER_SRAM_MATCH_COMPLETED	BIT(2)
++#define MT6797_A72_BINDER_SRAM_MATCH_VOLTAGE	BIT(3)
++#define MT6797_A72_BINDER_SRAM_MATCH_SELECTOR_FIRST	BIT(4)
++#define MT6797_A72_BINDER_SRAM_MATCH_SELECTOR_SECOND	BIT(5)
++#define MT6797_A72_BINDER_SRAM_MATCH_ATTEMPT_ID	BIT(6)
++#define MT6797_A72_BINDER_SRAM_MATCH_COOKIE	BIT(7)
++#define MT6797_A72_BINDER_SRAM_MATCH_ERROR		BIT(8)
++#define MT6797_A72_BINDER_SRAM_MATCH_EFFECT		BIT(9)
++#define MT6797_A72_BINDER_SRAM_MATCH_VERIFIED	BIT(10)
++#define MT6797_A72_BINDER_SRAM_MATCH_SEALED		BIT(11)
++#define MT6797_A72_BINDER_SRAM_REQUIRED_MASK		GENMASK(11, 0)
+ 
+ struct mt6797_a72_binder_diagnostic {
+ 	u32 abi;
+@@ -42,6 +57,29 @@ struct mt6797_a72_binder_diagnostic {
+ 	u32 p27_release_bpll;
+ 	u32 p27_release_owned;
+ 	u32 p27_release_sealed;
++	u32 p28_begin_attempted;
++	s32 p28_begin_ret;
++	u32 p28_begun;
++	u32 sram_returned;
++	s32 sram_ret;
++	u32 sram_match_mask;
++	u32 sram_required_mask;
++	u32 p28_complete_attempted;
++	s32 p28_complete_ret;
++	u32 sram_abi;
++	u32 sram_attempted;
++	u32 sram_completed;
++	u32 sram_requested_mv_x100;
++	u32 sram_selector_first;
++	u32 sram_calibration_first;
++	u32 sram_selector_second;
++	u32 sram_calibration_second;
++	u64 sram_attempt_id;
++	u64 sram_cookie;
++	s32 sram_error;
++	u32 sram_effect_attempted;
++	u32 sram_verified;
++	u32 sram_sealed;
+ };
+ 
+ #if IS_ENABLED(CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER)

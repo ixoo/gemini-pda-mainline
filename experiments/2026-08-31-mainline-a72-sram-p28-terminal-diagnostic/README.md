@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-sram-p28-terminal-diagnostic` |
-| Status | `diagnostic patch tooling prepared; Buildbox generation pending` |
+| Status | `canonical patch generated and replayed; invariant and Buildbox build gates pending` |
 | Subsystem | MT6797 CPU8 binder, BigiDVFS SRAM owner, and P28 membership boundary |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -79,6 +79,16 @@ review package on Buildbox. It performs no device access.
   production P28 owner also uses `-EPERM` for a rejected state. The exact
   `-EPROTO` therefore narrows to the binder's P28-begun guard or SRAM result
   shape, but the current ABI exposes neither.
+- Buildbox generated and deterministically replayed exactly one patch from the
+  checksum-pinned post-`0451` source. The patch SHA-256 is `5aa5fe3b...`.
+- Its audit finds the complete SRAM result, all 12 predicate bits, and all
+  three return boundaries exposed while every physical and request call count
+  remains unchanged.
+- Strict Checkpatch reports zero warnings and zero checks. Its sole error is
+  the deliberately absent DCO sign-off for the synthetic experiment author;
+  this internal archive is not submission-ready.
+- All 158 manifest profiles remain canonical-order subsequences, and eight
+  invariant mutations are rejected.
 
 ## Analysis
 
@@ -98,7 +108,7 @@ prior candidate is retired and must not be repeated.
 
 ## Follow-up
 
-Generate and review patch `0452` on Buildbox, admit it canonically only after
-all invariant gates pass, then run focused KUnit and the exact production
-build. Prepare at most one new boot2 candidate after its offline diagnostic
-contract is complete. Retain the CPU9 veto.
+Audit all manifest profiles after canonical admission, then run focused KUnit
+and the exact production build on Buildbox. Prepare at most one new boot2
+candidate after its offline diagnostic contract is complete. Retain the CPU9
+veto.
