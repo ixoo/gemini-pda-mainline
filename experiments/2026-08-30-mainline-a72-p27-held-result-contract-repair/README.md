@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-p27-held-result-contract-repair` |
-| Status | `planned` |
+| Status | `patch generated and admitted; focused Buildbox validation pending` |
 | Subsystem | MT6797 CPU8 binder and platform-effect owner contract |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -64,7 +64,15 @@ Git tree and a checksum-covered patch-review package on Buildbox.
 
 ## Observations
 
-Pending.
+- Buildbox generated exactly one patch from the checksum-pinned post-`0449`
+  source, and deterministic replay reproduced it.
+- The patch changes no physical-effect or CPU-request call count and adds no
+  CPU9, CPU_OFF, retry, retained-RAM, storage, or device path.
+- Strict Checkpatch reported zero warnings and zero checks. Its sole error is
+  the intentionally absent DCO sign-off on the synthetic experiment author;
+  this internal archive is not submission-ready.
+- The exact generated patch SHA-256 is
+  `bb050d483a31f79214e0fb7abd49408770a69998fdb771f9074c9da487e38fbc`.
 
 ## Analysis
 
@@ -76,7 +84,8 @@ not model the production contract.
 
 ## Conclusion
 
-Pending Buildbox generation and focused test evidence.
+Patch generation and deterministic replay pass. Focused KUnit and the
+production-profile Buildbox build remain required before any candidate exists.
 
 ## Follow-up
 

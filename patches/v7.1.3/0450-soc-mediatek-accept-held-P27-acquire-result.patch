@@ -1,0 +1,98 @@
+From a237910de15d7ec88210a07a8cb165331458ae05 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 31 Aug 2026 04:01:00 +0000
+Subject: [PATCH] soc: mediatek: accept held P27 acquire result
+
+The first fully attributed CPU8 P27 attempt completed the
+physical acquire with ownership held and an unsealed result.
+The binder rejected it because its generic result-shape check
+required every successful operation to be sealed.
+
+Pass the expected seal state explicitly, accepting an open P27
+acquire while continuing to require sealed release and later
+effects. Make the KUnit fake reproduce the production held-owner
+contract so the existing success and malformed paths cover it.
+---
+ drivers/soc/mediatek/mt6797-a72-binder-test.c |  4 ++--
+ drivers/soc/mediatek/mt6797-a72-binder.c      | 15 +++++++++------
+ 2 files changed, 11 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-binder-test.c b/drivers/soc/mediatek/mt6797-a72-binder-test.c
+index b3512b9..1f63236 100644
+--- a/drivers/soc/mediatek/mt6797-a72-binder-test.c
++++ b/drivers/soc/mediatek/mt6797-a72-binder-test.c
+@@ -301,7 +301,7 @@ static int mt6797_binder_test_p27(struct device *dev,
+ 	result->attempted_effects = mask;
+ 	result->completed_effects = mask;
+ 	result->p27_owned = true;
+-	result->sealed = state->malformed != TEST_MALFORMED_P27;
++	result->sealed = state->malformed == TEST_MALFORMED_P27;
+ 	mt6797_binder_test_event(TEST_EVENT_P27);
+ 	return handle->attempt_id == TEST_GENERATION &&
+ 		handle->cookie == TEST_COOKIE ? 0 : -EPROTO;
+@@ -629,7 +629,7 @@ static void mt6797_binder_p27_diagnostic_test(struct kunit *test)
+ 	KUNIT_EXPECT_EQ(test, diagnostic.p27_acquire_attempted, acquire_mask);
+ 	KUNIT_EXPECT_EQ(test, diagnostic.p27_acquire_completed, acquire_mask);
+ 	KUNIT_EXPECT_EQ(test, diagnostic.p27_acquire_owned, 1U);
+-	KUNIT_EXPECT_EQ(test, diagnostic.p27_acquire_sealed, 0U);
++	KUNIT_EXPECT_EQ(test, diagnostic.p27_acquire_sealed, 1U);
+ 	KUNIT_EXPECT_EQ(test, diagnostic.p27_release_operation,
+ 			(u32)MT6797_A72_PLATFORM_EFFECT_P27_RELEASE);
+ 	KUNIT_EXPECT_EQ(test, diagnostic.p27_release_error, 0);
+diff --git a/drivers/soc/mediatek/mt6797-a72-binder.c b/drivers/soc/mediatek/mt6797-a72-binder.c
+index 14c84b0..26c18e5 100644
+--- a/drivers/soc/mediatek/mt6797-a72-binder.c
++++ b/drivers/soc/mediatek/mt6797-a72-binder.c
+@@ -186,10 +186,11 @@ mt6797_a72_binder_backend_valid(const struct mt6797_a72_binder_backend_ops *ops)
+ 
+ static bool
+ mt6797_a72_effect_result_shape(const struct mt6797_a72_platform_effect_result *result,
+-			       enum mt6797_a72_platform_effect_operation operation)
++			       enum mt6797_a72_platform_effect_operation operation,
++			       bool sealed)
+ {
+ 	return result && result->abi == MT6797_A72_PLATFORM_EFFECT_ABI &&
+-		result->operation == operation && result->sealed;
++		result->operation == operation && result->sealed == sealed;
+ }
+ 
+ static bool
+@@ -288,8 +289,10 @@ static int mt6797_a72_binder_p27_acquire(void *context, bool *owned)
+ 		return ret;
+ 	ret = binder->backend->p27_acquire(binder->platform_state,
+ 					   &binder->effect_handle, &binder->p27);
++	/* A successful acquire remains open while P27 ownership is held. */
+ 	if (!mt6797_a72_effect_result_shape(&binder->p27,
+-					    MT6797_A72_PLATFORM_EFFECT_P27_ACQUIRE)) {
++					    MT6797_A72_PLATFORM_EFFECT_P27_ACQUIRE,
++					    false)) {
+ 		*owned = true;
+ 		return -EPROTO;
+ 	}
+@@ -331,7 +334,7 @@ static int mt6797_a72_binder_p27_release(void *context)
+ 	if (ret)
+ 		return ret;
+ 	if (!mt6797_a72_effect_result_shape(&binder->p27_release,
+-					    MT6797_A72_PLATFORM_EFFECT_P27_RELEASE) ||
++					    MT6797_A72_PLATFORM_EFFECT_P27_RELEASE, true) ||
+ 	    binder->p27_release.error || binder->p27_release.p27_owned ||
+ 	    binder->p27_release.attempted_effects !=
+ 		    MT6797_A72_BINDER_P27_RELEASE_COMPLETE ||
+@@ -403,7 +406,7 @@ static int mt6797_a72_binder_isolation(void *context)
+ 	if (ret)
+ 		return ret;
+ 	if (!mt6797_a72_effect_result_shape(&binder->isolation,
+-					    MT6797_A72_PLATFORM_EFFECT_ISOLATION_CLEAR) ||
++					    MT6797_A72_PLATFORM_EFFECT_ISOLATION_CLEAR, true) ||
+ 	    binder->isolation.error || !binder->isolation.p27_owned ||
+ 	    !binder->isolation.isolation_attempted ||
+ 	    !binder->isolation.isolation_crossed ||
+@@ -529,7 +532,7 @@ static int mt6797_a72_binder_dcm(void *context)
+ 	if (ret)
+ 		return ret;
+ 	if (!mt6797_a72_effect_result_shape(&binder->dcm,
+-					    MT6797_A72_PLATFORM_EFFECT_DCM_UPDATE) ||
++					    MT6797_A72_PLATFORM_EFFECT_DCM_UPDATE, true) ||
+ 	    binder->dcm.error || !binder->dcm.p27_owned ||
+ 	    !binder->dcm.isolation_attempted || !binder->dcm.isolation_crossed ||
+ 	    binder->dcm.attempted_effects != MT6797_A72_BINDER_DCM_COMPLETE ||
