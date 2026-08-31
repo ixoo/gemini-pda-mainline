@@ -6541,10 +6541,13 @@ The next ordered work is:
    production package at commit `62557cd2` and two independent DT/container
    constructions produce padded candidate `510cb652...`. All 32 LK gates pass,
    six container mutations are rejected, and the image retains one CPU8 route
-   with no CPU9, CPU_OFF, or retry route. **Selected next:** install that exact
-   successor to live-GPT-resolved inactive `boot2`, require full-partition
-   readback and clean shutdown, then run its boot-bound trigger once. Retain
-   the CPU9 veto.
+   with no CPU9, CPU_OFF, or retry route. Live GPT then resolved inactive,
+   unmounted 16 MiB `boot2`; the exact generation-8 isolation predecessor
+   record and predecessor checksum passed, the successor was written and fully
+   read back as `510cb652...`, and the device shut down cleanly without a fresh
+   backup or automatic reboot. **Selected next:** physically select `boot2`,
+   accept only its exact pristine serviceability baseline, and run its
+   boot-bound trigger once. Retain the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 

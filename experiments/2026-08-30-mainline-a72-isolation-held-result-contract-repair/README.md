@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-isolation-held-result-contract-repair` |
-| Status | `offline gates pass; exact candidate ready for one guarded boot2 deployment` |
+| Status | `exact candidate installed and fully read back; device shut down for selected boot2 run` |
 | Subsystem | MT6797 CPU8 binder and platform-effect owner contract |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -95,6 +95,13 @@ Git tree and a checksum-covered patch-review package on Buildbox.
 - Independent validation accepts exact padded candidate `510cb652...`, all 32
   LK gates pass, and six container mutations are rejected. The image contains
   one CPU8 request route and no CPU9, CPU_OFF, or retry route.
+- Live GPT resolved inactive, unmounted 16 MiB `boot2` with exact predecessor
+  `fbe0bf76...`; power was stable and the retained generation-8 isolation
+  predecessor record passed exact validation.
+- Exact padded image `510cb652...` was written, synced and flushed, and its
+  full-partition readback matched. The device then shut down cleanly and TCP/22
+  remained closed for three consecutive checks. No fresh backup or automatic
+  reboot was performed.
 
 ## Analysis
 
@@ -107,16 +114,14 @@ must not be inferred from this result.
 
 ## Conclusion
 
-All offline gates pass and one exact changed candidate exists. This remains a
-deployment candidate, not CPU8 hardware-support evidence: only its single
-boot-bound runtime trigger can distinguish a new transition stage or CPU8
-online state.
+All offline and deployment gates pass and exact changed candidate `510cb652...`
+is installed on `boot2`. This remains a runtime candidate, not CPU8
+hardware-support evidence: only its single boot-bound trigger can distinguish a
+new transition stage or CPU8 online state.
 
 ## Follow-up
 
-Install exact padded image `510cb652...` to live-GPT-resolved inactive `boot2`,
-accept only the published checksum-valid generation-8 isolation predecessor
-ledger, require a matching full-partition readback, and shut down. On its
-selected boot, accept only the exact pristine baseline and issue one boot-bound
-trigger. Do not repeat either predecessor image or prepare CPU9 until CPU8 is
-reproducibly online.
+Physically select `boot2`. Accept only the exact pristine baseline, then issue
+one boot-bound trigger and classify its exact transition stage, terminal state,
+retained ownership, and live CPU list. Do not repeat either predecessor image
+or prepare CPU9 until CPU8 is reproducibly online.
