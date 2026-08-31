@@ -6545,9 +6545,19 @@ The next ordered work is:
    unmounted 16 MiB `boot2`; the exact generation-8 isolation predecessor
    record and predecessor checksum passed, the successor was written and fully
    read back as `510cb652...`, and the device shut down cleanly without a fresh
-   backup or automatic reboot. **Selected next:** physically select `boot2`,
-   accept only its exact pristine serviceability baseline, and run its
-   boot-bound trigger once. Retain the CPU9 veto.
+   backup or automatic reboot. Boot ID `e1df5f31...` then passed the pristine
+   gate and consumed exactly one trigger. The isolation repair worked: the
+   transition advanced to stage 5 (`SRAM`) and returned `-EPROTO`, terminal
+   `FAULT_RETAIN_POSTISO`, retaining P27 and provider ownership. CPUs 0--7
+   remained online and CPUs 8--9 offline; CPU9, CPU_OFF, retry, and native
+   reboot requests remained zero. Changed-ID Gemian recovery preserved a
+   checksum-valid generation-10 terminal record at stage 5. The physical SRAM
+   owner uses distinct non-`EPROTO` errors, so the new boundary is the binder's
+   SRAM result/P28 contract, but the current status does not expose the
+   disagreeing subfield. Candidate `510cb652...` is retired. **Selected next:**
+   add a read-only terminal diagnostic for the complete SRAM result and P28
+   begin/completion boundary, prove it changes no sequencing or request path,
+   and use at most one new attributable candidate. Retain the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 

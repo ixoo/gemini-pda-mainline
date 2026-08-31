@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-isolation-held-result-contract-repair` |
-| Status | `exact candidate installed and fully read back; device shut down for selected boot2 run` |
+| Status | `runtime complete; crossed isolation and stopped at attributable SRAM contract boundary` |
 | Subsystem | MT6797 CPU8 binder and platform-effect owner contract |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -102,26 +102,39 @@ Git tree and a checksum-covered patch-review package on Buildbox.
   full-partition readback matched. The device then shut down cleanly and TCP/22
   remained closed for three consecutive checks. No fresh backup or automatic
   reboot was performed.
+- Boot ID `e1df5f31...` passed the exact pristine serviceability gate with
+  CPUs 0--7 online, CPUs 8--9 offline, and zero prior executions or requests.
+- One trigger produced one CPU8 request and returned `-EPROTO` at stage 5
+  (`SRAM`), terminal `FAULT_RETAIN_POSTISO`, with P27 and provider ownership
+  retained. CPU9, CPU_OFF, retry, and native reboot requests remained zero.
+- The watchdog recovered to Gemian boot ID `0d7220f9...`. The retained payload
+  independently validates generation 9 entry and generation 10 terminal at
+  stage 5, with terminal value 4; no retained-RAM write was made during
+  recovery.
 
 ## Analysis
 
-The terminal stage and errno localize the rejection to the binder's isolation
-callback. The production owner and KUnit fake have opposite successful seal
-states, while every other binder-validated isolation field is produced by the
-same successful production path. The seal predicate is therefore the narrow
-source-level explanation to test. SRAM and later stages remain unobserved and
-must not be inferred from this result.
+The repair removed the prior stage-4 isolation rejection: the transition now
+reaches the SRAM callback. The exact `-EPROTO` cannot be a physical SRAM-owner
+failure because that owner returns distinct errors for secure service,
+readback, stability, and range failures. It therefore identifies either the
+binder's SRAM result-shape predicate or its P28 contract boundary. The current
+read-only status exposes P27 but not the SRAM result or P28 completion, so the
+disagreeing field cannot be selected honestly from this image. CPU_ON and
+secondary execution remain unobserved.
 
 ## Conclusion
 
-All offline and deployment gates pass and exact changed candidate `510cb652...`
-is installed on `boot2`. This remains a runtime candidate, not CPU8
-hardware-support evidence: only its single boot-bound trigger can distinguish a
-new transition stage or CPU8 online state.
+Exact candidate `510cb652...` crossed the repaired isolation contract and
+stopped reproducibly at the next stage, SRAM. This is decision-changing
+progress but not CPU8 hardware-support evidence: CPU8 remained offline and
+PSCI `CPU_ON` was not reached. The candidate is retired and must not be
+repeated.
 
 ## Follow-up
 
-Physically select `boot2`. Accept only the exact pristine baseline, then issue
-one boot-bound trigger and classify its exact transition stage, terminal state,
-retained ownership, and live CPU list. Do not repeat either predecessor image
-or prepare CPU9 until CPU8 is reproducibly online.
+Add a read-only terminal diagnostic for the complete SRAM-owner result and the
+P28 begin/completion return boundary, with focused KUnit coverage and no
+sequencing or hardware change. Use one new boot candidate only if that
+diagnostic can distinguish the disagreeing field. Do not repeat this image or
+prepare CPU9 until CPU8 is reproducibly online.
