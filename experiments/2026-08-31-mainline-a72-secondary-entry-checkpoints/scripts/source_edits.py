@@ -145,10 +145,10 @@ SYM_FUNC_END(arm64_mt6797_a72_p30e_target_checkpoint_mmuoff)
 \tadrp\tx1, swapper_pg_dir""",
         """\tbl\t__cpu_setup\t\t\t// initialise processor
 #ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
-\tmov\tx21, x0\t\t\t// preserve the SCTLR value
+\tmov\tx15, x0\t\t\t// preserve the SCTLR value
 \tmov\tx0, #ARM64_MT6797_A72_P30E_CHECKPOINT_CPU_SETUP
 \tbl\tarm64_mt6797_a72_p30e_target_checkpoint_mmuoff
-\tmov\tx0, x21
+\tmov\tx0, x15
 #endif
 \tadrp\tx1, swapper_pg_dir""",
         "post-CPU-setup checkpoint call",

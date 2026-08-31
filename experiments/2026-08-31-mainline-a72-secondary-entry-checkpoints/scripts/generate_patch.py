@@ -174,8 +174,8 @@ def validate(root: Path, parent_counts: dict[str, int]) -> list[str]:
             "bl\tp30e_clean_slot",
         ),
         head: (
-            "mov\tx21, x0\t\t\t// preserve the SCTLR value",
-            "mov\tx0, x21",
+            "mov\tx15, x0\t\t\t// preserve the SCTLR value",
+            "mov\tx0, x15",
             "bl\tarm64_mt6797_a72_p30e_target_checkpoint",
         ),
         p30e: (
@@ -268,6 +268,8 @@ def validate_patch(path: Path) -> None:
         "writeq(",
         "memcpy_toio(",
         "ARM64_MT6797_A72_P30E_OPERATION_CPU9_UP",
+        "mov\tx21, x0",
+        "mov\tx0, x21",
     ):
         if token.lower() in added.lower():
             raise SystemExit(f"forbidden generated token: {token}")
