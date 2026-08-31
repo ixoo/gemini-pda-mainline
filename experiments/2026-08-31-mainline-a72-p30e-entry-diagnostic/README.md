@@ -86,6 +86,12 @@ KUnit/QEMU, and the exact production build pass on Buildbox.
 - The source audit proves one CPU8 prepare, one CPU8 arm, at most one readback,
   nine binder KUnit cases, and no new CPU request, CPU9, CPU_OFF, retry,
   power-sequence, storage, or device-action path.
+- Buildbox compiled and checksum-validated the focused
+  `a72-default-off-binder-kunit` package from project commit `338357c3`.
+  Its kernel release is `7.1.3-gemini-a72-binder-kunit`, patchset identity is
+  `d1cefcd6...`, configuration identity is `f5658fe7...`, and compressed Image
+  identity is `64834105...`. The exact packaged configuration enables the P30E
+  wire together with the three focused KUnit suites.
 
 ## Analysis
 
