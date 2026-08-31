@@ -1,0 +1,36 @@
+experiment=2026-08-31-boot-graphics-recovery
+observation=read-only-gemian-initramfs-logo-path
+date=2026-08-31
+safety=offline-only; ext4-mounted-ro-noload; boot-ramdisk-extracted-to-managed-temp; no-device-access; no-write
+
+root_partition=logical-linux-private-capture
+rootfs_source=/usr/share/initramfs-tools/res/images/debian.png
+rootfs_source_format=PNG,205x256,8-bit-RGB,non-interlaced
+rootfs_source_sha256=729259cc68674786c81c34a0289df11736f094b5a1cb137c923c20dd0bfc5723
+initramfs_hook=/usr/share/initramfs-tools/hooks/halium
+initramfs_hook_copy=source-to-/res/images/debian.png
+initramfs_boot_selector=/usr/share/initramfs-tools/conf.d/halium:BOOT=geminipda
+initramfs_script=/usr/share/initramfs-tools/scripts/geminipda
+renderer_source=/usr/bin/yamui
+renderer_initramfs=/bin/yamui
+renderer_asset_name=debian
+
+boot_partition=logical-boot-private-capture
+boot_format=Android-v0
+boot_page_size=2048
+boot_kernel_size=8429825
+boot_ramdisk_size=6354621
+boot_ramdisk_offset=8433664
+boot_ramdisk_compression=gzip
+embedded_renderer_present=/bin/yamui
+embedded_script_present=/scripts/geminipda
+embedded_logo_present=/res/images/debian.png
+embedded_logo_sha256=729259cc68674786c81c34a0289df11736f094b5a1cb137c923c20dd0bfc5723
+embedded_matches_rootfs_source=yes
+
+plymouth_package_installed=no
+plymouth_active_configuration_present=no
+desktop_base_plymouth_assets_present=yes
+active_boot_graphics_path=yamui-initramfs-not-plymouth
+
+conclusion=PASS; later Debian swirl is a separate Yamui asset embedded in the Gemian initramfs

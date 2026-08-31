@@ -21,6 +21,14 @@ the loop. Positive identity-gated observations are unaffected.
   — records the current canonical-subsequence findings and enforcement
   boundary.
 
+### Boot graphics and retained-firmware records
+
+- [2026-08-31 Gemini boot-graphics recovery](2026-08-31-boot-graphics-recovery/README.md)
+  — recovers the complete 57-slot MediaTek `logo` map with corrected BGRA8888
+  geometry, separates zlib integrity from conditional LK authentication, and
+  locates the later Debian swirl in the Gemian Yamui initramfs path. The work
+  was read-only; no replacement image or partition write was performed.
+
 ### Current DA921x, I2C6, and A72 line
 
 - [2026-08-29 mainline A72 attestation and READY closure](2026-08-29-mainline-a72-attestation-closure/README.md)
