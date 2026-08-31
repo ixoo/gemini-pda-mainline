@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-p27-runtime-attribution` |
-| Status | `focused Buildbox/QEMU validation passed; production build pending` |
+| Status | `exact boot2 candidate validated; guarded deployment pending` |
 | Subsystem | MT6797 CPU8 P27 platform effect and rollback |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -83,3 +83,37 @@ all 48 selected cases: 30 membership-owner, 12 transition-executor, and 6
 binder cases, including `mt6797_binder_p27_diagnostic_test`. Exact identities
 and the zero-action boundary are recorded in
 [`results/buildbox-kunit-20260830.txt`](results/buildbox-kunit-20260830.txt).
+
+## Production candidate result
+
+Buildbox produced the production live-trigger profile from exact clean pushed
+commit `b2ca2e5050d38e060aec61b841fde3d395ff589c`. The package has patchset
+`a2612437c7beb2235d6054266d2f3557ba15321ea7f0db7ca757c632fadc5c21`,
+configuration `9b9118fd...`, and compressed Image `a89ef31c...`; its complete
+package checksum manifest passes.
+
+Two independent DT compositions added only the package-owned A41 provenance
+leaf to the unchanged serviceability/admission tree and produced exact DT
+`7c2f1f76...`. Two independent Android-v0 assemblies produced raw candidate
+`fbc299b0...`; two independent padding constructions produced exact 16 MiB
+boot2 image `e22db747...`. The independent validator passes all 32 LK gates,
+rejects six corrupt-container mutations, and preserves the single dormant
+CPU8 request route with no CPU9, CPU_OFF, or retry route. The independent DT
+validator rejects ten representative tree mutations. Exact identities and
+safety gates are recorded in
+[`results/offline-candidate-20260830.txt`](results/offline-candidate-20260830.txt).
+
+The read-only pre-trigger frame now requires the binder diagnostic to be
+available, ABI 1, idle, and entirely pristine before the sole request. The
+boot-bound terminal classifier captures every transition and P27
+acquire/release field, rejects malformed diagnostic values, and retains the
+existing changed-boot and one-trigger boundaries. Offline fixtures accept the
+four attributable outcomes and reject mutations of the binder return, stage
+errno, effect masks, CPU masks, and reboot boundary.
+
+Before the device boot, the hypothesis is that the new terminal frame will
+separate physical P27 acquire failure, logical membership completion,
+physical P27 release failure, and logical P29 rollback completion. A complete
+acquire or release result changes the next action to the corresponding logical
+membership repair; an incomplete or error-bearing result changes it to only
+the named platform effect. A later stage supersedes P27. CPU9 remains vetoed.

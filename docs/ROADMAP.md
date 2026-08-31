@@ -6510,10 +6510,16 @@ The next ordered work is:
    initiating P27 errno separately from the rollback errno, P27 ownership,
    and the exact acquire/release platform-effect results in the existing
    read-only live status; it adds no request, physical effect, retry,
-   retained-RAM write, or storage path. **Selected next:** pass the focused
-   Buildbox/KUnit and production-build gates, then run that diagnostic once
-   and repair only the observed P27 predicate or rollback defect. Retain the
-   CPU9 veto.
+   retained-RAM write, or storage path. The focused Buildbox/KUnit gates now
+   pass 48/48 cases. The exact production package at commit `b2ca2e50` and two
+   independent DT/container constructions produce validated padded boot2
+   candidate `e22db747...`; all 32 LK gates, ten DT mutations, and six
+   container mutations pass. Its pre-trigger gate requires an idle pristine
+   binder snapshot and its one-shot terminal classifier retains every P27
+   acquire/release field. **Selected next:** deploy `e22db747...` only to the
+   live-GPT inactive boot2 with full readback and clean shutdown, then run its
+   one boot-bound CPU8 diagnostic and repair only the observed P27 predicate
+   or rollback defect. Retain the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 
