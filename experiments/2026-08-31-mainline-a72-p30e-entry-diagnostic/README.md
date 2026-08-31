@@ -92,6 +92,16 @@ KUnit/QEMU, and the exact production build pass on Buildbox.
   `d1cefcd6...`, configuration identity is `f5658fe7...`, and compressed Image
   identity is `64834105...`. The exact packaged configuration enables the P30E
   wire together with the three focused KUnit suites.
+- The first four-CPU QEMU run stopped during secondary bring-up before KTAP.
+  A debugger snapshot showed CPU1 taking an instruction abort at
+  `arm64_mt6797_a72_p30e_target_publish`; the fault address and that symbol's
+  linked address were both `0xffff800080a9e328`. The function was linked in
+  `.idmap.text` but called after the MMU was enabled.
+- A bounded one-CPU discriminator on the same exact package reached the normal
+  terminal marker with all 30 owner, 12 transition, and 9 binder/P30E cases
+  passing. This separates the new binder logic from the secondary-entry fault;
+  it is diagnostic evidence, not an acceptable replacement for the required
+  multi-CPU proof.
 
 ## Analysis
 
@@ -99,16 +109,23 @@ The predecessor proves the selector repair and the complete power-owner prefix
 through CPU_ON, but does not identify whether the target core executed any
 kernel entry instruction. P30E is the smallest existing independent observation
 path that can resolve that ambiguity without changing the physical power
-sequence.
+sequence. The focused multi-CPU run also found a pre-existing P30E section
+boundary defect before it could reach `boot2`: the MMU-off claim belongs in
+`.idmap.text`, while the publication call from `secondary_start_kernel()` must
+be ordinary executable kernel text.
 
 ## Conclusion
 
-Running; no hardware conclusion until an exact candidate is built and one
-attributable trigger result is captured.
+Running; the first focused package is rejected before production build or
+device use. No hardware conclusion until the post-MMU publication repair passes
+the four-CPU focused run, an exact candidate is built, and one attributable
+trigger result is captured.
 
 ## Follow-up
 
-Use the first exact P30E state to choose the next action. ARMED/EMPTY sends the
-investigation below `secondary_entry`; CLAIMED sends it into early arm64 setup;
-PUBLISHED sends it into the late completion/notification path. Do not begin a
-CPU9 transaction until CPU8 is reproducibly online.
+Generate and replay the post-`0454` publication repair, then repeat the exact
+four-CPU focused run. Only after that proof passes should a production candidate
+be built. Use its first exact P30E state to choose the next action: ARMED/EMPTY
+sends the investigation below `secondary_entry`; CLAIMED sends it into early
+arm64 setup; PUBLISHED sends it into the late completion/notification path. Do
+not begin a CPU9 transaction until CPU8 is reproducibly online.
