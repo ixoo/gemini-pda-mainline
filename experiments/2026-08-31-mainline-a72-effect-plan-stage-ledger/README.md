@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-effect-plan-stage-ledger` |
-| Status | `canonical diagnostic patch generated; build gates pending` |
+| Status | `validated diagnostic candidate; boot2 deployment pending` |
 | Subsystem | arm64 late-CPU effect planning |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -60,3 +60,17 @@ post-`0460` prepared source. The patch preserves every return edge and action
 inventory while adding 14 MT6797 derivation stages and four generic planner
 stages. Strict style completed with zero errors, warnings, or checks. See the
 [generation evidence](results/patch-generation-20260831.txt).
+
+Both focused profiles and the production profile compiled and packaged on
+Buildbox from published commit `6382feb5`. The no-network four-vCPU suite
+passed all 51 tests with no physical CPU operation. See the
+[build evidence](results/buildbox-builds-20260831.txt) and
+[KUnit evidence](results/focused-kunit-qemu-20260831.txt).
+
+The production Image was combined with the unchanged serviceability DT and
+its exact package-owned A41 provenance leaf. Two raw assemblies and two
+padding constructions were byte-identical; all 32 LK gates and six negative
+container mutations passed. The diagnostic candidate is exact full-partition
+SHA-256 `b78ac044977749af97864676cc64b34224ce348ff8d9c14b41a67f21a453e8c1`.
+See the [candidate evidence](results/production-candidate-20260831.txt) and
+[predeployment hypothesis](results/predeployment-hypothesis-20260831.txt).
