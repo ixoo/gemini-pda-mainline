@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-expected-pair-model-contract-repair` |
-| Status | `canonical patch and all-profile invariant pass; Buildbox compile pending` |
+| Status | `offline pass; exact candidate ready for boot2 deployment` |
 | Subsystem | generic arm64 late-CPU expected-pair completeness |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -65,10 +65,23 @@ against the normalized Cortex-A72 model, rejects A53 r0p1 and a
 revision-bearing target model, and preserves the exact late-target MIDR
 comparison. Strict style and all seven rejecting source mutations pass, and no
 action-call inventory changed. See the
-[generation evidence](results/patch-generation-20260831.txt).
+[generation evidence](results/patch-generation-20260831.txt). All 158 manifest
+profiles pass the canonical-order subsequence invariant and its eight negative
+mutations; see the [series audit](results/manifest-series-audit-20260831.txt).
 
-No kernel build, candidate, or device action has occurred. The next gate is the
-focused and production builds on Buildbox. All 158 manifest profiles already
-pass the canonical-order subsequence invariant, and its eight negative
-mutations pass. See the
-[series audit](results/manifest-series-audit-20260831.txt).
+The two focused configurations and the production configuration compile and
+package cleanly on Buildbox from exact commit `aa2efd3f...` and patchset
+`dd072599...`; no native VM build was used. The no-network QEMU run passes all
+51 tests with zero CPU action. See the [build matrix](results/buildbox-builds-20260831.txt)
+and [QEMU result](results/focused-kunit-qemu-20260831.txt).
+
+Exact padded candidate `42c984ee...` uses the unchanged production CPU8-only
+configuration and serviceability transform with its package-owned A41 leaf.
+Two independent assemblies and padding constructions match; independent
+validation passes all 32 LK gates and rejects all six container mutations.
+See the [candidate result](results/production-candidate-20260831.txt) and
+[predeployment decision contract](results/predeployment-hypothesis-20260831.txt).
+The next gate is a verified inactive-`boot2` write followed by clean shutdown.
+On the fresh boot, CPU8 remains withheld unless generic effect planning reports
+exact completion and the existing READY contract is exact. CPU9 remains
+vetoed.

@@ -6671,11 +6671,15 @@ The next ordered work is:
    requires exact equality. The collector's initial logical-CPU filter missed
    this index-valued line, but a bounded same-boot read-only query recovered it
    and the filter is corrected. USB recovery returned to changed-ID Gemian.
-   **Selected next:** align the production expected-target MIDR representation
-   with the exact r0p1 pair, preserve revision-neutral model checks and exact
-   late-target validation, rebuild on Buildbox, and spend one CPU8-only attempt
-   only after the effect and generic planners both report completion and READY
-   is exact. Keep CPU9 vetoed.
+   Canonical patch `0462` now compares the immutable exact pair at model
+   granularity only in the generic completeness predicate while preserving the
+   exact r0p1 target-register comparison. All-profile invariants, three
+   Buildbox configurations, and the 51-test no-network suite pass. The distinct
+   production candidate passes two independent constructions, all 32 LK gates,
+   and six negative container mutations. **Selected next:** deploy that exact
+   candidate to inactive `boot2`, require the generic effect planner's exact
+   completion line and the existing READY contract on a fresh boot, then issue
+   CPU8 once only if both gates pass. Keep CPU9 vetoed.
 
 The eventual CPU8 candidate must have a single CPU8 request, strict
 checkpoints before and after each power step, a bounded timeout, and a
