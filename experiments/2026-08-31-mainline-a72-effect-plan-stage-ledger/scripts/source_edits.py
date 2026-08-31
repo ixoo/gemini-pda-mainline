@@ -96,8 +96,8 @@ MT_REPLACEMENTS = (
         '''\t\t    !mt6797_a72_effect_state_matches_cap(
 \t\t\t    plan, target, ARM64_SPECTRE_V4,
 \t\t\t    effects->target[target].spectre_v4_state))
-\t\t\treturn mt6797_a72_effect_diagnostic(
-\t\t\t\t"target-v2-v4-match", target, -EINVAL);''',
+\t\t\treturn mt6797_a72_effect_diagnostic("target-v2-v4-match",
+\t\t\t\t\t\t\t   target, -EINVAL);''',
     ),
     (
         '''\t\tif (ret)
@@ -105,8 +105,8 @@ MT_REPLACEMENTS = (
 #endif
 \t\tif (!mt6797_a72_effect_state_matches_cap(''',
         '''\t\tif (ret)
-\t\t\treturn mt6797_a72_effect_diagnostic(
-\t\t\t\t"target-bhb-effects", target, ret);
+\t\t\treturn mt6797_a72_effect_diagnostic("target-bhb-effects",
+\t\t\t\t\t\t\t   target, ret);
 #endif
 \t\tif (!mt6797_a72_effect_state_matches_cap(''',
     ),
@@ -118,8 +118,8 @@ MT_REPLACEMENTS = (
         '''\t\tif (!mt6797_a72_effect_state_matches_cap(
 \t\t\t    plan, target, ARM64_SPECTRE_BHB,
 \t\t\t    effects->target[target].bhb_mitigation_state))
-\t\t\treturn mt6797_a72_effect_diagnostic(
-\t\t\t\t"target-bhb-match", target, -EINVAL);''',
+\t\t\treturn mt6797_a72_effect_diagnostic("target-bhb-match",
+\t\t\t\t\t\t\t   target, -EINVAL);''',
     ),
     (
         '''\t\tif (!mt6797_a72_v2_effect_equal(
@@ -159,8 +159,8 @@ MT_REPLACEMENTS = (
 \t\t\treturn ret;
 \t\teffects->bhb.system_method |= late_bhb_system_method;''',
         '''\t\tif (ret)
-\t\t\treturn mt6797_a72_effect_diagnostic(
-\t\t\t\t"bhb-system-method", first_target, ret);
+\t\t\treturn mt6797_a72_effect_diagnostic("bhb-system-method",
+\t\t\t\t\t\t\t   first_target, ret);
 \t\teffects->bhb.system_method |= late_bhb_system_method;''',
     ),
     (
