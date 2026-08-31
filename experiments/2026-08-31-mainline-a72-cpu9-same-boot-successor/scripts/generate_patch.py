@@ -126,10 +126,10 @@ def validate_mutations(root: Path) -> int:
         ),
         (
             "fs/pstore/gemini_cpu9_transition_ledger.c",
-            "gemini_cpu9_transition_ledger_validate_cpu8(\n"
-            "\t\t&gemini_cpu9_transition_ledger_mmio_ops, cpu8_slot,",
-            "gemini_cpu9_transition_ledger_open_lane(\n"
-            "\t\towner, &gemini_cpu9_transition_ledger_mmio_ops, cpu8_slot,", 1,
+            "cpu9_ledger_validate_cpu8(&gemini_cpu9_transition_ledger_mmio_ops,\n"
+            "\t\t\t\t\tcpu8_slot, cpu8_attempt_id);",
+            "cpu9_ledger_open(owner, &gemini_cpu9_transition_ledger_mmio_ops,\n"
+            "\t\t\t cpu8_slot, cpu8_attempt_id);", 1,
         ),
         (
             "fs/pstore/Kconfig",

@@ -60,14 +60,14 @@ def validate(root: Path) -> list[str]:
         "terminal > GEMINI_CPU9_LEDGER_CPU9_ONLINE_PROOF",
         "cpu8_slot = ioremap(GEMINI_CPU9_LEDGER_CPU8_BASE",
         "cpu9_slot = ioremap_wc(GEMINI_CPU9_LEDGER_BASE",
-        "EXPORT_SYMBOL_GPL(gemini_cpu9_transition_ledger_begin)",
-        "EXPORT_SYMBOL_GPL(gemini_cpu9_transition_ledger_checkpoint)",
+        "EXPORT_SYMBOL_GPL(gemini_cpu9_ledger_begin)",
+        "EXPORT_SYMBOL_GPL(gemini_cpu9_ledger_checkpoint)",
     ):
         require(token in source, f"production token: {token}")
     cpu8_map = source.index(
         "cpu8_slot = ioremap(GEMINI_CPU9_LEDGER_CPU8_BASE")
     cpu8_gate = source.index(
-        "gemini_cpu9_transition_ledger_validate_cpu8(", cpu8_map)
+        "cpu9_ledger_validate_cpu8(", cpu8_map)
     cpu9_map = source.index(
         "cpu9_slot = ioremap_wc(GEMINI_CPU9_LEDGER_BASE")
     require(cpu8_map < cpu8_gate < cpu9_map,
@@ -75,9 +75,9 @@ def validate(root: Path) -> list[str]:
     require(source.count("GEMINI_CPU9_LEDGER_BASE") == 2,
             "record 1 base use is bounded")
     require(source.count("writel(") == 1, "single generic lane writer")
-    require(source.count("gemini_cpu9_transition_ledger_begin(") == 1,
+    require(source.count("gemini_cpu9_ledger_begin(") == 1,
             "begin definition only")
-    require(source.count("gemini_cpu9_transition_ledger_checkpoint(") == 1,
+    require(source.count("gemini_cpu9_ledger_checkpoint(") == 1,
             "checkpoint definition only")
     require("struct gemini_transition_ledger_owner ledger;" in internal,
             "independent owner wraps proven wire owner")

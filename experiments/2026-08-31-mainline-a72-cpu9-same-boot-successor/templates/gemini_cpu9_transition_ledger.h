@@ -23,20 +23,19 @@ enum gemini_cpu9_transition_ledger_terminal {
 };
 
 #ifdef CONFIG_PSTORE_GEMINI_CPU9_TRANSITION_LEDGER
-int gemini_cpu9_transition_ledger_begin(u64 cpu8_attempt_id,
-					 u64 cpu9_attempt_id);
-int gemini_cpu9_transition_ledger_checkpoint(u64 cpu9_attempt_id, u32 phase,
-					      u32 stage, u32 terminal);
+int gemini_cpu9_ledger_begin(u64 cpu8_attempt_id, u64 cpu9_attempt_id);
+int gemini_cpu9_ledger_checkpoint(u64 cpu9_attempt_id, u32 phase, u32 stage,
+				  u32 terminal);
 #else
-static inline int gemini_cpu9_transition_ledger_begin(u64 cpu8_attempt_id,
-						       u64 cpu9_attempt_id)
+static inline int gemini_cpu9_ledger_begin(u64 cpu8_attempt_id,
+					   u64 cpu9_attempt_id)
 {
 	return -EOPNOTSUPP;
 }
 
-static inline int gemini_cpu9_transition_ledger_checkpoint(u64 cpu9_attempt_id,
-						    u32 phase, u32 stage,
-						    u32 terminal)
+static inline int gemini_cpu9_ledger_checkpoint(u64 cpu9_attempt_id,
+						u32 phase, u32 stage,
+						u32 terminal)
 {
 	return -EOPNOTSUPP;
 }

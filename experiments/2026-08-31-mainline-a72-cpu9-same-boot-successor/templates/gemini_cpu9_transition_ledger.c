@@ -19,8 +19,9 @@
 #define GEMINI_CPU9_LEDGER_CPU8_STAGE 10U
 #define GEMINI_CPU9_LEDGER_CPU8_TERMINAL 5U
 
-static bool gemini_cpu9_transition_ledger_header_committed(
-	const struct gemini_transition_ledger_ops *ops, void *context)
+static bool
+cpu9_ledger_header_committed(const struct gemini_transition_ledger_ops *ops,
+			     void *context)
 {
 	return ops->read(context, 0) ==
 			GEMINI_TRANSITION_LEDGER_PSTORE_SIGNATURE &&
@@ -30,16 +31,15 @@ static bool gemini_cpu9_transition_ledger_header_committed(
 			GEMINI_TRANSITION_LEDGER_PAYLOAD_BYTES;
 }
 
-int gemini_cpu9_transition_ledger_validate_cpu8(
-	const struct gemini_transition_ledger_ops *ops, void *context,
-	u64 cpu8_attempt_id)
+int cpu9_ledger_validate_cpu8(const struct gemini_transition_ledger_ops *ops,
+			       void *context, u64 cpu8_attempt_id)
 {
 	struct gemini_transition_ledger_record latest;
 	u32 copy;
 
 	if (!ops || !ops->read || !cpu8_attempt_id)
 		return -EINVAL;
-	if (!gemini_cpu9_transition_ledger_header_committed(ops, context))
+	if (!cpu9_ledger_header_committed(ops, context))
 		return -ENODATA;
 	if (!gemini_transition_ledger_read_latest(ops, context, &latest, &copy))
 		return -EBADMSG;
@@ -52,8 +52,9 @@ int gemini_cpu9_transition_ledger_validate_cpu8(
 	return 0;
 }
 
-static int gemini_cpu9_transition_ledger_lane_empty(
-	const struct gemini_transition_ledger_ops *ops, void *context)
+static int
+cpu9_ledger_lane_empty(const struct gemini_transition_ledger_ops *ops,
+		       void *context)
 {
 	u32 signature;
 	u32 size;
@@ -77,27 +78,27 @@ static int gemini_cpu9_transition_ledger_lane_empty(
 	return -EBADMSG;
 }
 
-int gemini_cpu9_transition_ledger_open_lane(
-	struct gemini_cpu9_transition_ledger_owner *owner,
-	const struct gemini_transition_ledger_ops *ops, void *context,
-	u64 cpu9_attempt_id)
+int cpu9_ledger_open(struct gemini_cpu9_transition_ledger_owner *owner,
+		     const struct gemini_transition_ledger_ops *ops,
+		     void *context, u64 cpu9_attempt_id)
 {
 	int ret;
 
 	if (!owner)
 		return -EINVAL;
-	ret = gemini_cpu9_transition_ledger_lane_empty(ops, context);
+	ret = cpu9_ledger_lane_empty(ops, context);
 	if (ret)
 		return ret;
 	return gemini_transition_ledger_owner_begin(&owner->ledger, ops, context,
 						    cpu9_attempt_id);
 }
 
-int gemini_cpu9_transition_ledger_owner_begin(
-	struct gemini_cpu9_transition_ledger_owner *owner,
-	const struct gemini_transition_ledger_ops *cpu8_ops, void *cpu8_context,
-	const struct gemini_transition_ledger_ops *cpu9_ops, void *cpu9_context,
-	u64 cpu8_attempt_id, u64 cpu9_attempt_id)
+int cpu9_ledger_owner_begin(struct gemini_cpu9_transition_ledger_owner *owner,
+			    const struct gemini_transition_ledger_ops *cpu8_ops,
+			    void *cpu8_context,
+			    const struct gemini_transition_ledger_ops *cpu9_ops,
+			    void *cpu9_context, u64 cpu8_attempt_id,
+			    u64 cpu9_attempt_id)
 {
 	int ret;
 
@@ -106,17 +107,15 @@ int gemini_cpu9_transition_ledger_owner_begin(
 	if (owner->attempted)
 		return -EALREADY;
 	owner->attempted = true;
-	ret = gemini_cpu9_transition_ledger_validate_cpu8(cpu8_ops, cpu8_context,
-							 cpu8_attempt_id);
+	ret = cpu9_ledger_validate_cpu8(cpu8_ops, cpu8_context,
+					cpu8_attempt_id);
 	if (ret)
 		return ret;
-	return gemini_cpu9_transition_ledger_open_lane(owner, cpu9_ops,
-						       cpu9_context,
-						       cpu9_attempt_id);
+	return cpu9_ledger_open(owner, cpu9_ops, cpu9_context, cpu9_attempt_id);
 }
 
-int gemini_cpu9_transition_ledger_owner_checkpoint(
-	struct gemini_cpu9_transition_ledger_owner *owner,
+int
+cpu9_ledger_owner_checkpoint(struct gemini_cpu9_transition_ledger_owner *owner,
 	const struct gemini_transition_ledger_ops *ops, void *context,
 	u64 cpu9_attempt_id, u32 phase, u32 stage, u32 terminal)
 {
@@ -183,7 +182,7 @@ static void gemini_cpu9_transition_ledger_mmio_write(void *context,
 static void gemini_cpu9_transition_ledger_mmio_sync(void *context)
 {
 	(void)context;
-	wmb();
+	wmb(); /* Commit each record phase before the next one. */
 }
 
 static const struct gemini_transition_ledger_ops
@@ -198,8 +197,7 @@ static struct gemini_cpu9_transition_ledger_owner
 gemini_cpu9_transition_ledger_owner;
 static void __iomem *gemini_cpu9_transition_ledger_slot;
 
-int gemini_cpu9_transition_ledger_begin(u64 cpu8_attempt_id,
-					 u64 cpu9_attempt_id)
+int gemini_cpu9_ledger_begin(u64 cpu8_attempt_id, u64 cpu9_attempt_id)
 {
 	struct gemini_cpu9_transition_ledger_owner *owner;
 	void __iomem *cpu8_slot;
@@ -222,27 +220,25 @@ int gemini_cpu9_transition_ledger_begin(u64 cpu8_attempt_id,
 		goto out_unlock;
 	}
 	cpu8_slot = ioremap(GEMINI_CPU9_LEDGER_CPU8_BASE,
-			     GEMINI_TRANSITION_LEDGER_SLOT_SIZE);
+			   GEMINI_TRANSITION_LEDGER_SLOT_SIZE);
 	if (!cpu8_slot) {
 		ret = -ENOMEM;
 		goto out_unlock;
 	}
-	ret = gemini_cpu9_transition_ledger_validate_cpu8(
-		&gemini_cpu9_transition_ledger_mmio_ops, cpu8_slot,
-		cpu8_attempt_id);
+	ret = cpu9_ledger_validate_cpu8(&gemini_cpu9_transition_ledger_mmio_ops,
+					cpu8_slot, cpu8_attempt_id);
 	iounmap(cpu8_slot);
 	if (ret)
 		goto out_unlock;
 
 	cpu9_slot = ioremap_wc(GEMINI_CPU9_LEDGER_BASE,
-			       GEMINI_TRANSITION_LEDGER_SLOT_SIZE);
+			      GEMINI_TRANSITION_LEDGER_SLOT_SIZE);
 	if (!cpu9_slot) {
 		ret = -ENOMEM;
 		goto out_unlock;
 	}
-	ret = gemini_cpu9_transition_ledger_open_lane(
-		owner, &gemini_cpu9_transition_ledger_mmio_ops, cpu9_slot,
-		cpu9_attempt_id);
+	ret = cpu9_ledger_open(owner, &gemini_cpu9_transition_ledger_mmio_ops,
+			       cpu9_slot, cpu9_attempt_id);
 	if (ret)
 		iounmap(cpu9_slot);
 	else
@@ -251,10 +247,10 @@ out_unlock:
 	mutex_unlock(&gemini_cpu9_transition_ledger_lock);
 	return ret;
 }
-EXPORT_SYMBOL_GPL(gemini_cpu9_transition_ledger_begin);
+EXPORT_SYMBOL_GPL(gemini_cpu9_ledger_begin);
 
-int gemini_cpu9_transition_ledger_checkpoint(u64 cpu9_attempt_id, u32 phase,
-					      u32 stage, u32 terminal)
+int gemini_cpu9_ledger_checkpoint(u64 cpu9_attempt_id, u32 phase, u32 stage,
+				  u32 terminal)
 {
 	struct gemini_cpu9_transition_ledger_owner *owner;
 	int ret;
@@ -265,10 +261,10 @@ int gemini_cpu9_transition_ledger_checkpoint(u64 cpu9_attempt_id, u32 phase,
 		ret = owner->attempted ? -EALREADY : -ENODEV;
 		goto out_unlock;
 	}
-	ret = gemini_cpu9_transition_ledger_owner_checkpoint(
-		owner, &gemini_cpu9_transition_ledger_mmio_ops,
-		gemini_cpu9_transition_ledger_slot, cpu9_attempt_id, phase,
-		stage, terminal);
+	ret = cpu9_ledger_owner_checkpoint(owner,
+		&gemini_cpu9_transition_ledger_mmio_ops,
+		gemini_cpu9_transition_ledger_slot, cpu9_attempt_id, phase, stage,
+		terminal);
 	if (ret || phase == GEMINI_TRANSITION_LEDGER_TERMINAL) {
 		iounmap(gemini_cpu9_transition_ledger_slot);
 		gemini_cpu9_transition_ledger_slot = NULL;
@@ -277,4 +273,4 @@ out_unlock:
 	mutex_unlock(&gemini_cpu9_transition_ledger_lock);
 	return ret;
 }
-EXPORT_SYMBOL_GPL(gemini_cpu9_transition_ledger_checkpoint);
+EXPORT_SYMBOL_GPL(gemini_cpu9_ledger_checkpoint);
