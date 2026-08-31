@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-sram-p28-terminal-diagnostic` |
-| Status | `offline boot candidate passed; exact boot2 deployment pending` |
+| Status | `exact boot2 deployment verified; device shut down for physical boot` |
 | Subsystem | MT6797 CPU8 binder, BigiDVFS SRAM owner, and P28 membership boundary |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -118,6 +118,13 @@ review package on Buildbox. It performs no device access.
   ordered SRAM/P28 inventory, required match mask `0xfff`, zero CPU9/CPU_OFF/
   retry requests, and same-boot attribution. Its three accepted branches and
   nine adversarial mutations pass the offline runtime test.
+- The guarded installer resolved logical boot2 as inactive `/dev/mmcblk0p30`,
+  confirmed the exact `510cb652...` predecessor and generation-10 stage-5
+  retained record, then wrote the `7cddf030...` candidate. Sync, flush, and a
+  full 16 MiB readback matched exactly; no fresh backup was created.
+- After evidence was flushed, the device shut down without a reboot. SSH was
+  absent and TCP port 22 remained closed for three consecutive checks. See the
+  [deployment record](results/deployment-20260831.txt).
 
 ## Analysis
 
