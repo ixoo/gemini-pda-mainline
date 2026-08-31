@@ -566,9 +566,9 @@ int arm64_validate_late_cpu_expected_target(unsigned int cpu, u64 *mismatches,
 \t(void)arm64_mt6797_a72_p30e_target_checkpoint(p30e_checkpoint);
 #endif
 \texpectation_ret = arm64_validate_late_cpu_expected_target(cpu,
-\t\t\t\t\t\t&expectation_mismatches,
-\t\t\t\t\t\t&expectation_expected,
-\t\t\t\t\t\t&expectation_observed);
+\t\t\t\t\t\t\t\t  &expectation_mismatches,
+\t\t\t\t\t\t\t\t  &expectation_expected,
+\t\t\t\t\t\t\t\t  &expectation_observed);
 \tif (expectation_ret) {
 #ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
 \t\tp30e_checkpoint =
