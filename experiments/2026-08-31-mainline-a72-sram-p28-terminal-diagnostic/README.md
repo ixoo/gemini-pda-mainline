@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-sram-p28-terminal-diagnostic` |
-| Status | `canonical patch generated and replayed; invariant and Buildbox build gates pending` |
+| Status | `canonical patch admitted; exact 49-test KUnit pass; production Buildbox gate pending` |
 | Subsystem | MT6797 CPU8 binder, BigiDVFS SRAM owner, and P28 membership boundary |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -49,6 +49,8 @@ Buildbox. CPU9 remains vetoed until CPU8 is reproducibly online.
   verifies unchanged operation/request call counts, and rejects write paths.
 - `scripts/generate-on-buildbox` pins the managed source state and clean
   project commit.
+- `scripts/run-kunit-qemu` and `scripts/classify-kunit.py` accept only the
+  exact fetched Buildbox package and the 30/12/7 focused suite inventory.
 
 The generator writes only a temporary Git tree and a checksum-covered patch
 review package on Buildbox. It performs no device access.
@@ -89,6 +91,13 @@ review package on Buildbox. It performs no device access.
   this internal archive is not submission-ready.
 - All 158 manifest profiles remain canonical-order subsequences, and eight
   invariant mutations are rejected.
+- Buildbox built the exact `a72-default-off-binder-kunit` profile from patch
+  commit `404807a5...`; the fetched package passed all checksum and provenance
+  checks.
+- The isolated no-network QEMU run passed all 49 expected tests: 30 P24 owner,
+  12 transition executor, and 7 binder cases, including the new SRAM terminal
+  diagnostic. It issued zero physical CPU, CPU_OFF, or retry requests. See the
+  [KUnit result](results/kunit-qemu-404807a5-20260831.txt).
 
 ## Analysis
 
@@ -108,7 +117,6 @@ prior candidate is retired and must not be repeated.
 
 ## Follow-up
 
-Audit all manifest profiles after canonical admission, then run focused KUnit
-and the exact production build on Buildbox. Prepare at most one new boot2
+Build the exact production profile on Buildbox. Prepare at most one new boot2
 candidate after its offline diagnostic contract is complete. Retain the CPU9
 veto.
