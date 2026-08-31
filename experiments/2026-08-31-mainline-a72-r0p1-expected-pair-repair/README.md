@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-r0p1-expected-pair-repair` |
-| Status | `all offline gates pass; deployment pending` |
+| Status | `complete; pre-trigger rejection localized with zero CPU requests` |
 | Subsystem | arm64 late-CPU expected pair |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -83,5 +83,28 @@ write. Reason 8 means the exact validator still disagrees; reasons 9--11 and
 publication each select one later generic CPU-online interval; CPU8 online
 requires a fresh-boot repeat before CPU9. See the
 [predeployment record](results/predeployment-hypothesis-20260831.txt).
+
+The live GPT resolved inactive `boot2` as `/dev/mmcblk0p30` while Gemian ran
+from `/dev/mmcblk0p29`. Stable power and the exact predecessor passed the
+deployment gates. The installer wrote, synchronized, flushed, and fully read
+back exact padded candidate `b5328f6a4226...`; the full-partition checksum
+matched, no fresh backup was created, and the device then shut down and stayed
+unreachable. See the [deployment evidence](results/deployment-boot2-20260831.txt).
+
+The first fresh boot reached the exact kernel and serviceability frame with
+CPU0--7 online and CPU8--9 offline, but the pre-trigger gate rejected READY
+before any CPU request. The failure-only plan mask was `0x12f7b00`; the target
+and required capability sets had lost the three v2/v4/BHB bits while the bound
+evidence mask remained zero. Source tracing localizes the cause to the
+mitigation planner's `late_cpu_expected_field_valid()` guard: it still requires
+the expected MIDR to equal the revision-zero `MIDR_CORTEX_A72` literal, so the
+new exact r0p1 expected value makes those otherwise valid expected fields
+unresolved. The device was returned through the validated USB reboot path to a
+changed-ID Gemian boot. See the
+[runtime evidence](results/runtime-attempt-1-pretrigger-plan-rejection-20260831.txt).
+
+This is not a CPU8 execution result: the trigger was never sent. The selected
+successor is a one-line model-mask repair to that stale guard, leaving the
+exact r0p1 late-target comparison unchanged.
 
 CPU9 remains vetoed until CPU8 is reproducibly online.

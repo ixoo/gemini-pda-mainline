@@ -6636,14 +6636,26 @@ The next ordered work is:
    `0x410fd080`, and observed `0x410fd081`. Bit 1 is the sole MIDR mismatch;
    every other late-target comparison passed. CPU8 remained offline, while
    CPU9, CPU_OFF, retry, storage-write, and native-reboot counts remained zero.
-6. **Selected next:** repair only the immutable prior-cycle expected-pair MIDR
-   from the generic Cortex-A72 model value `0x410fd080` to the named unit's
-   independently observed r0p1 value `0x410fd081`. Keep the capability-table
-   model match all-revisions, every exact register expectation, the one-shot
-   CPU8 power path, and the CPU9 veto unchanged. Prove deterministic replay,
-   expected-pair consistency, failure mutations, focused multi-CPU tests, and
-   the exact production package on Buildbox. Spend one fresh CPU8-only attempt
-   only after the candidate passes the existing container and pretrigger gates.
+6. **Exact-r0p1 pretrigger result:** canonical patch `0459` changed only the
+   immutable expected-pair MIDR from model base `0x410fd080` to the independently
+   observed r0p1 value `0x410fd081`. Deterministic replay, all manifest profiles,
+   focused Buildbox builds, the 51-test no-network QEMU gate, all 32 LK gates,
+   independent assembly/validation, and six negative container mutations
+   passed. Exact padded candidate `b5328f6a...` was written to live-resolved
+   inactive `boot2`, fully read back, and shut down. Its first fresh boot was
+   serviceable, but the pretrigger gate correctly withheld the CPU8 request:
+   READY validation returned `-EINVAL` with plan mask `0x12f7b00` and evidence
+   mask zero. The target and required sets lost exactly the v2/v4/BHB bits.
+   Source tracing localizes this to `proton-pack.c`'s
+   `late_cpu_expected_field_valid()`, which still accepts only the
+   revision-zero `MIDR_CORTEX_A72` literal. CPU8 and CPU9 were never requested,
+   so this is a planning regression rather than a target-entry result.
+7. **Selected next:** make that single expected-field guard compare Cortex-A72
+   model bits while preserving the exact r0p1 value for late-target validation.
+   Prove the model guard accepts r0p1 but rejects another CPU model, keep all
+   other planning inputs and action paths unchanged, and run the canonical
+   Buildbox, focused multi-CPU, container, and pretrigger gates. Spend one fresh
+   CPU8-only attempt only after READY is restored. Keep CPU9 vetoed.
 
 The eventual CPU8 candidate must have a single CPU8 request, strict
 checkpoints before and after each power step, a bounded timeout, and a
