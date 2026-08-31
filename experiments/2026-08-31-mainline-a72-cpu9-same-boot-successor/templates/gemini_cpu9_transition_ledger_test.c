@@ -71,28 +71,28 @@ static int
 cpu9_ledger_test_seed_cpu8(struct gemini_cpu9_ledger_test_state *state,
 			   u64 attempt, bool terminal)
 {
+	const struct gemini_transition_ledger_ops *ops = &cpu9_ledger_test_ops;
 	struct gemini_transition_ledger_owner owner = {};
 	u32 stage;
 	int ret;
 
-	ret = gemini_transition_ledger_owner_begin(&owner,
-					   &cpu9_ledger_test_ops, state, attempt);
+	ret = gemini_transition_ledger_owner_begin(&owner, ops, state, attempt);
 	if (ret)
 		return ret;
 	for (stage = 1; stage <= GEMINI_TRANSITION_LEDGER_MAX_STAGE; stage++) {
 		ret = gemini_transition_ledger_owner_checkpoint(&owner,
-			&cpu9_ledger_test_ops, state, attempt,
+								ops, state, attempt,
 			GEMINI_TRANSITION_LEDGER_BEFORE, stage, 0);
 		if (ret || (!terminal && stage == 1))
 			return ret;
 		ret = gemini_transition_ledger_owner_checkpoint(&owner,
-			&cpu9_ledger_test_ops, state, attempt,
+								ops, state, attempt,
 			GEMINI_TRANSITION_LEDGER_AFTER, stage, 0);
 		if (ret)
 			return ret;
 	}
 	return gemini_transition_ledger_owner_checkpoint(&owner,
-		&cpu9_ledger_test_ops, state, attempt,
+		ops, state, attempt,
 		GEMINI_TRANSITION_LEDGER_TERMINAL,
 		GEMINI_TRANSITION_LEDGER_MAX_STAGE,
 		GEMINI_CPU9_LEDGER_CPU9_ONLINE_PROOF);
@@ -100,7 +100,7 @@ cpu9_ledger_test_seed_cpu8(struct gemini_cpu9_ledger_test_state *state,
 
 static int
 cpu9_ledger_test_begin(struct gemini_cpu9_transition_ledger_owner *owner,
-	struct gemini_cpu9_ledger_test_state *cpu8,
+		       struct gemini_cpu9_ledger_test_state *cpu8,
 	struct gemini_cpu9_ledger_test_state *cpu9,
 	u64 cpu8_attempt, u64 cpu9_attempt)
 {
@@ -111,7 +111,7 @@ cpu9_ledger_test_begin(struct gemini_cpu9_transition_ledger_owner *owner,
 
 static int
 cpu9_ledger_test_checkpoint(struct gemini_cpu9_transition_ledger_owner *owner,
-	struct gemini_cpu9_ledger_test_state *cpu9, u64 attempt,
+			    struct gemini_cpu9_ledger_test_state *cpu9, u64 attempt,
 	u32 phase, u32 stage, u32 terminal)
 {
 	return cpu9_ledger_owner_checkpoint(owner, &cpu9_ledger_test_ops, cpu9,
@@ -142,14 +142,14 @@ static void gemini_cpu9_transition_ledger_sequence_test(struct kunit *test)
 	for (stage = GEMINI_CPU9_LEDGER_PRESTATE;
 	     stage <= GEMINI_CPU9_LEDGER_MEMBERSHIP; stage++) {
 		ret = cpu9_ledger_test_checkpoint(&owner, &cpu9, cpu9_attempt,
-			GEMINI_TRANSITION_LEDGER_BEFORE, stage, 0);
+						  GEMINI_TRANSITION_LEDGER_BEFORE, stage, 0);
 		KUNIT_ASSERT_EQ(test, ret, 0);
 		ret = cpu9_ledger_test_checkpoint(&owner, &cpu9, cpu9_attempt,
-			GEMINI_TRANSITION_LEDGER_AFTER, stage, 0);
+						  GEMINI_TRANSITION_LEDGER_AFTER, stage, 0);
 		KUNIT_ASSERT_EQ(test, ret, 0);
 	}
 	ret = cpu9_ledger_test_checkpoint(&owner, &cpu9, cpu9_attempt,
-		GEMINI_TRANSITION_LEDGER_TERMINAL,
+					  GEMINI_TRANSITION_LEDGER_TERMINAL,
 		GEMINI_CPU9_LEDGER_MEMBERSHIP,
 		GEMINI_CPU9_LEDGER_CPU9_ONLINE_PROOF);
 	KUNIT_ASSERT_EQ(test, ret, 0);
@@ -183,7 +183,7 @@ static void gemini_cpu9_transition_ledger_raw_lane_test(struct kunit *test)
 	ret = cpu9_ledger_test_begin(&owner, &cpu8, &cpu9, cpu8_attempt, 42);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	ret = cpu9_ledger_test_checkpoint(&owner, &cpu9, 42,
-		GEMINI_TRANSITION_LEDGER_BEFORE,
+					  GEMINI_TRANSITION_LEDGER_BEFORE,
 		GEMINI_CPU9_LEDGER_PRESTATE, 0);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	KUNIT_EXPECT_EQ(test, cpu9.words[0],
@@ -240,7 +240,7 @@ static void gemini_cpu9_transition_ledger_corrupt_cpu8_test(struct kunit *test)
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	for (copy = 0; copy < GEMINI_TRANSITION_LEDGER_COPIES; copy++) {
 		word = cpu9_ledger_test_copy_word(copy,
-			GEMINI_TRANSITION_LEDGER_INTEGRITY_WORD);
+						  GEMINI_TRANSITION_LEDGER_INTEGRITY_WORD);
 		cpu8.words[word] ^= BIT(0);
 	}
 	ret = cpu9_ledger_test_begin(&owner, &cpu8, &cpu9, cpu8_attempt, 62);
@@ -267,7 +267,7 @@ static void gemini_cpu9_transition_ledger_lane_refusal_test(struct kunit *test)
 						   &committed, 72);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	ret = gemini_transition_ledger_owner_checkpoint(&seed,
-		&cpu9_ledger_test_ops, &committed, 72,
+							&cpu9_ledger_test_ops, &committed, 72,
 		GEMINI_TRANSITION_LEDGER_BEFORE, 1, 0);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	ret = cpu9_ledger_test_begin(&owner, &cpu8, &committed,
@@ -297,26 +297,26 @@ static void gemini_cpu9_transition_ledger_ordering_test(struct kunit *test)
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	writes = cpu9.writes;
 	ret = cpu9_ledger_test_checkpoint(&owner, &cpu9, 82,
-		GEMINI_TRANSITION_LEDGER_AFTER,
+					  GEMINI_TRANSITION_LEDGER_AFTER,
 		GEMINI_CPU9_LEDGER_PRESTATE, 0);
 	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
 	ret = cpu9_ledger_test_checkpoint(&owner, &cpu9, 82,
-		GEMINI_TRANSITION_LEDGER_BEFORE,
+					  GEMINI_TRANSITION_LEDGER_BEFORE,
 		GEMINI_CPU9_LEDGER_MEMBERSHIP + 1, 0);
 	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
 	KUNIT_EXPECT_EQ(test, cpu9.writes, writes);
 	ret = cpu9_ledger_test_checkpoint(&owner, &cpu9, 82,
-		GEMINI_TRANSITION_LEDGER_BEFORE,
+					  GEMINI_TRANSITION_LEDGER_BEFORE,
 		GEMINI_CPU9_LEDGER_PRESTATE, 0);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	ret = cpu9_ledger_test_checkpoint(&owner, &cpu9, 82,
-		GEMINI_TRANSITION_LEDGER_TERMINAL,
+					  GEMINI_TRANSITION_LEDGER_TERMINAL,
 		GEMINI_CPU9_LEDGER_PRESTATE,
 		GEMINI_CPU9_LEDGER_PRESTATE_FAILURE);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	writes = cpu9.writes;
 	ret = cpu9_ledger_test_checkpoint(&owner, &cpu9, 82,
-		GEMINI_TRANSITION_LEDGER_AFTER,
+					  GEMINI_TRANSITION_LEDGER_AFTER,
 		GEMINI_CPU9_LEDGER_PRESTATE, 0);
 	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
 	ret = cpu9_ledger_test_begin(&owner, &cpu8, &cpu9, cpu8_attempt, 83);

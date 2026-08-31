@@ -10,7 +10,7 @@ struct gemini_cpu9_transition_ledger_owner {
 };
 
 int cpu9_ledger_validate_cpu8(const struct gemini_transition_ledger_ops *ops,
-			       void *context, u64 cpu8_attempt_id);
+			      void *context, u64 cpu8_attempt_id);
 int cpu9_ledger_open(struct gemini_cpu9_transition_ledger_owner *owner,
 		     const struct gemini_transition_ledger_ops *ops,
 		     void *context, u64 cpu9_attempt_id);
@@ -22,7 +22,7 @@ int cpu9_ledger_owner_begin(struct gemini_cpu9_transition_ledger_owner *owner,
 			    u64 cpu9_attempt_id);
 int
 cpu9_ledger_owner_checkpoint(struct gemini_cpu9_transition_ledger_owner *owner,
-	const struct gemini_transition_ledger_ops *ops, void *context,
+			     const struct gemini_transition_ledger_ops *ops, void *context,
 	u64 cpu9_attempt_id, u32 phase, u32 stage, u32 terminal);
 
 #endif /* __GEMINI_CPU9_TRANSITION_LEDGER_INTERNAL_H */

@@ -32,7 +32,7 @@ cpu9_ledger_header_committed(const struct gemini_transition_ledger_ops *ops,
 }
 
 int cpu9_ledger_validate_cpu8(const struct gemini_transition_ledger_ops *ops,
-			       void *context, u64 cpu8_attempt_id)
+			      void *context, u64 cpu8_attempt_id)
 {
 	struct gemini_transition_ledger_record latest;
 	u32 copy;
@@ -116,7 +116,7 @@ int cpu9_ledger_owner_begin(struct gemini_cpu9_transition_ledger_owner *owner,
 
 int
 cpu9_ledger_owner_checkpoint(struct gemini_cpu9_transition_ledger_owner *owner,
-	const struct gemini_transition_ledger_ops *ops, void *context,
+			     const struct gemini_transition_ledger_ops *ops, void *context,
 	u64 cpu9_attempt_id, u32 phase, u32 stage, u32 terminal)
 {
 	if (!owner || !stage || stage > GEMINI_CPU9_LEDGER_MEMBERSHIP ||
@@ -220,7 +220,7 @@ int gemini_cpu9_ledger_begin(u64 cpu8_attempt_id, u64 cpu9_attempt_id)
 		goto out_unlock;
 	}
 	cpu8_slot = ioremap(GEMINI_CPU9_LEDGER_CPU8_BASE,
-			   GEMINI_TRANSITION_LEDGER_SLOT_SIZE);
+			    GEMINI_TRANSITION_LEDGER_SLOT_SIZE);
 	if (!cpu8_slot) {
 		ret = -ENOMEM;
 		goto out_unlock;
@@ -232,7 +232,7 @@ int gemini_cpu9_ledger_begin(u64 cpu8_attempt_id, u64 cpu9_attempt_id)
 		goto out_unlock;
 
 	cpu9_slot = ioremap_wc(GEMINI_CPU9_LEDGER_BASE,
-			      GEMINI_TRANSITION_LEDGER_SLOT_SIZE);
+			       GEMINI_TRANSITION_LEDGER_SLOT_SIZE);
 	if (!cpu9_slot) {
 		ret = -ENOMEM;
 		goto out_unlock;
@@ -262,7 +262,7 @@ int gemini_cpu9_ledger_checkpoint(u64 cpu9_attempt_id, u32 phase, u32 stage,
 		goto out_unlock;
 	}
 	ret = cpu9_ledger_owner_checkpoint(owner,
-		&gemini_cpu9_transition_ledger_mmio_ops,
+					   &gemini_cpu9_transition_ledger_mmio_ops,
 		gemini_cpu9_transition_ledger_slot, cpu9_attempt_id, phase, stage,
 		terminal);
 	if (ret || phase == GEMINI_TRANSITION_LEDGER_TERMINAL) {
