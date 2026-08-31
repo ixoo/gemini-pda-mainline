@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-post-capabilities-checkpoints` |
-| Status | `patch integrated; compile and runtime pending` |
+| Status | `offline validation passed; production candidate pending` |
 | Subsystem | arm64 secondary startup and MT6797 P30E wire |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -56,6 +56,10 @@ watchdog remains the recovery owner and CPU9 remains vetoed.
   `0458`.
 - `scripts/generate-on-buildbox` binds generation to the exact pushed project
   commit and managed post-`0457` source.
+- `scripts/run-kunit-qemu` boots only the exact default-off binder KUnit
+  package without networking.
+- `scripts/classify-kunit.py` enforces the expected three-suite, 51-test TAP
+  result and emits a durable machine-readable record.
 
 ## Procedure
 
@@ -87,6 +91,13 @@ watchdog remains the recovery owner and CPU9 remains vetoed.
 - Both repository series-invariant checks pass: all 158 manifest profiles were
   audited, and the focused self-test rejected all eight mutations. See the
   [patch-generation evidence](results/patch-generation-20260831.txt).
+- Both focused Buildbox configurations compile and package from clean project
+  commit `0bce8c9a8c8f...`; all package checksums validate. See the
+  [Buildbox evidence](results/buildbox-kunit-builds-20260831.txt).
+- The exact default-off binder package passed all 51 tests in its no-network,
+  four-vCPU QEMU boot, including all nine binder tests. No physical CPU,
+  CPU_OFF, retry, network, or device action occurred. See the
+  [KUnit/QEMU evidence](results/focused-kunit-qemu-20260831.txt).
 
 ## Analysis
 
@@ -99,9 +110,10 @@ failure decision-changing on the first attempt.
 ## Conclusion
 
 Patch generation, strict style review, deterministic replay, canonical-series
-integration, and manifest-wide invariant review pass. No new hardware
-conclusion exists until the exact successor is built and one attributable
-trigger is classified.
+integration, manifest-wide invariant review, focused compilation, package
+validation, and the no-network 51-test boot all pass. No new hardware
+conclusion exists until the exact production successor is built and one
+attributable trigger is classified.
 
 ## Follow-up
 
