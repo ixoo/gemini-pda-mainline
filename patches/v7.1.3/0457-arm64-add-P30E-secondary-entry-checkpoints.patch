@@ -1,0 +1,351 @@
+From 2fc482ee99ddf4623495d67b4a89fc4eb1c1494a Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 31 Aug 2026 20:01:00 +0000
+Subject: [PATCH] arm64: add P30E secondary entry checkpoints
+
+CPU8 reached the P30E CLAIMED boundary but did not publish its
+later secondary-start result. That state spans processor setup,
+MMU enablement, task setup, and architecture C initialization.
+
+Record monotonic target-owned checkpoints in the existing P30E
+reason word while the target remains CLAIMED. Expose the reason
+through diagnostic ABI 4. Keep the CPU request, CPU9 veto,
+CPU_OFF, retry, and power-sequence inventories unchanged.
+---
+ arch/arm64/include/asm/mt6797_a72_p30e.h      | 13 +++++-
+ arch/arm64/kernel/head.S                      | 10 +++++
+ arch/arm64/kernel/mt6797_a72_p30e.c           | 41 +++++++++++++++++++
+ arch/arm64/kernel/mt6797_a72_p30e_asm.S       | 33 +++++++++++++++
+ arch/arm64/kernel/smp.c                       | 30 +++++++++++++-
+ .../mt6797-a72-admission-controller.c         |  3 +-
+ drivers/soc/mediatek/mt6797-a72-binder-test.c |  8 ++++
+ drivers/soc/mediatek/mt6797-a72-binder.c      |  5 +++
+ .../linux/soc/mediatek/mt6797-a72-binder.h    |  3 +-
+ 9 files changed, 141 insertions(+), 5 deletions(-)
+
+diff --git a/arch/arm64/include/asm/mt6797_a72_p30e.h b/arch/arm64/include/asm/mt6797_a72_p30e.h
+index 4ee7696..9847826 100644
+--- a/arch/arm64/include/asm/mt6797_a72_p30e.h
++++ b/arch/arm64/include/asm/mt6797_a72_p30e.h
+@@ -25,6 +25,15 @@
+ #define ARM64_MT6797_A72_P30E_PARKED		5
+ #define ARM64_MT6797_A72_P30E_PANICKED	6
+ 
++#define ARM64_MT6797_A72_P30E_CHECKPOINT_NONE		0
++#define ARM64_MT6797_A72_P30E_CHECKPOINT_CPU_SETUP	1
++#define ARM64_MT6797_A72_P30E_CHECKPOINT_TASK_READY	2
++#define ARM64_MT6797_A72_P30E_CHECKPOINT_C_ENTRY		3
++#define ARM64_MT6797_A72_P30E_CHECKPOINT_IDMAP_OFF	4
++#define ARM64_MT6797_A72_P30E_CHECKPOINT_CAPABILITIES	5
++#define ARM64_MT6797_A72_P30E_CHECKPOINT_TARGET_VALID	6
++#define ARM64_MT6797_A72_P30E_CHECKPOINT_IRQ_READY	7
++
+ #define ARM64_MT6797_A72_P30E_MAGIC_WORD	0
+ #define ARM64_MT6797_A72_P30E_ABI_WORD	1
+ #define ARM64_MT6797_A72_P30E_BOOT_ID0_WORD	2
+@@ -105,8 +114,10 @@ int arm64_mt6797_a72_p30e_readback(unsigned int cpu,
+ 					 const struct arm64_mt6797_a72_p30e_request *request,
+ 					 struct arm64_mt6797_a72_p30e_wire *copy);
+ 
+-/* MMU-off primitives; no current caller or CPU_ON path is installed. */
++/* Target-side entry primitives; checkpoints never issue a CPU request. */
+ int arm64_mt6797_a72_p30e_target_claim(void);
++int arm64_mt6797_a72_p30e_target_checkpoint_mmuoff(u64 checkpoint);
++int arm64_mt6797_a72_p30e_target_checkpoint(u64 checkpoint);
+ int arm64_mt6797_a72_p30e_target_publish(u64 state, u64 reason,
+ 						 u64 effects, u64 entry_pc,
+ 						 u64 entry_sp);
+diff --git a/arch/arm64/kernel/head.S b/arch/arm64/kernel/head.S
+index bd5a79c..bd226b3 100644
+--- a/arch/arm64/kernel/head.S
++++ b/arch/arm64/kernel/head.S
+@@ -404,6 +404,12 @@ alternative_else_nop_endif
+ #endif
+ 
+ 	bl	__cpu_setup			// initialise processor
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	mov	x15, x0			// preserve the SCTLR value
++	mov	x0, #ARM64_MT6797_A72_P30E_CHECKPOINT_CPU_SETUP
++	bl	arm64_mt6797_a72_p30e_target_checkpoint_mmuoff
++	mov	x0, x15
++#endif
+ 	adrp	x1, swapper_pg_dir
+ 	adrp	x2, idmap_pg_dir
+ 	bl	__enable_mmu
+@@ -434,6 +440,10 @@ SYM_FUNC_START_LOCAL(__secondary_switched)
+ 	ptrauth_keys_init_cpu x2, x3, x4, x5
+ #endif
+ 
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	mov	x0, #ARM64_MT6797_A72_P30E_CHECKPOINT_TASK_READY
++	bl	arm64_mt6797_a72_p30e_target_checkpoint
++#endif
+ 	bl	secondary_start_kernel
+ 	ASM_BUG()
+ SYM_FUNC_END(__secondary_switched)
+diff --git a/arch/arm64/kernel/mt6797_a72_p30e.c b/arch/arm64/kernel/mt6797_a72_p30e.c
+index 023e522..737b9a1 100644
+--- a/arch/arm64/kernel/mt6797_a72_p30e.c
++++ b/arch/arm64/kernel/mt6797_a72_p30e.c
+@@ -274,6 +274,47 @@ int arm64_mt6797_a72_p30e_readback(
+ 	return ret;
+ }
+ 
++int arm64_mt6797_a72_p30e_target_checkpoint(u64 checkpoint)
++{
++	struct arm64_mt6797_a72_p30e_slot *slot;
++	struct arm64_mt6797_a72_p30e_wire *wire;
++	unsigned long flags;
++	u64 previous;
++	int cpu, ret = 0;
++
++	if (checkpoint < ARM64_MT6797_A72_P30E_CHECKPOINT_TASK_READY ||
++	    checkpoint > ARM64_MT6797_A72_P30E_CHECKPOINT_IRQ_READY)
++		return -EINVAL;
++	cpu = p30e_current_cpu();
++	if (cpu < 0)
++		return cpu;
++	slot = p30e_slot(cpu);
++	wire = &slot->wire;
++
++	raw_spin_lock_irqsave(&p30e_lock, flags);
++	dsb(sy);
++	p30e_invalidate_slot(slot);
++	if (p30e_word(wire, ARM64_MT6797_A72_P30E_CONTROLLER_STATE_WORD) !=
++	    ARM64_MT6797_A72_P30E_ARMED ||
++	    p30e_word(wire, ARM64_MT6797_A72_P30E_TARGET_STATE_WORD) !=
++	    ARM64_MT6797_A72_P30E_TARGET_CLAIMED ||
++	    p30e_word(wire, ARM64_MT6797_A72_P30E_TARGET_SEQUENCE_WORD) != 0) {
++		ret = -EAGAIN;
++		goto out_unlock;
++	}
++	previous = p30e_word(wire, ARM64_MT6797_A72_P30E_TARGET_REASON_WORD);
++	if (checkpoint <= previous) {
++		ret = -EALREADY;
++		goto out_unlock;
++	}
++	p30e_put(wire, ARM64_MT6797_A72_P30E_TARGET_REASON_WORD, checkpoint);
++	p30e_clean_slot(slot);
++
++out_unlock:
++	raw_spin_unlock_irqrestore(&p30e_lock, flags);
++	return ret;
++}
++
+ int arm64_mt6797_a72_p30e_target_publish(u64 state, u64 reason,
+ 					 u64 effects, u64 entry_pc,
+ 					 u64 entry_sp)
+diff --git a/arch/arm64/kernel/mt6797_a72_p30e_asm.S b/arch/arm64/kernel/mt6797_a72_p30e_asm.S
+index 63f92b2..2de238d 100644
+--- a/arch/arm64/kernel/mt6797_a72_p30e_asm.S
++++ b/arch/arm64/kernel/mt6797_a72_p30e_asm.S
+@@ -205,4 +205,37 @@ SYM_FUNC_START(arm64_mt6797_a72_p30e_target_claim)
+ 	ret
+ SYM_FUNC_END(arm64_mt6797_a72_p30e_target_claim)
+ 
++SYM_FUNC_START(arm64_mt6797_a72_p30e_target_checkpoint_mmuoff)
++	mov	x17, x30
++	mov	x16, x0
++	cmp	x16, #ARM64_MT6797_A72_P30E_CHECKPOINT_CPU_SETUP
++	b.ne	.Lp30e_checkpoint_bad_stage
++	bl	p30e_select_slot
++	cmp	x0, #0
++	b.lt	.Lp30e_checkpoint_return
++	ldr	x4, [x1, #ARM64_MT6797_A72_P30E_CONTROLLER_STATE_OFF]
++	cmp	x4, #ARM64_MT6797_A72_P30E_ARMED
++	b.ne	.Lp30e_checkpoint_unavailable
++	add	x3, x1, #ARM64_MT6797_A72_P30E_TARGET_STATE_OFF
++	ldar	x4, [x3]
++	cmp	x4, #ARM64_MT6797_A72_P30E_TARGET_CLAIMED
++	b.ne	.Lp30e_checkpoint_unavailable
++	ldr	x4, [x1, #ARM64_MT6797_A72_P30E_TARGET_SEQUENCE_OFF]
++	cbnz	x4, .Lp30e_checkpoint_unavailable
++	ldr	x4, [x1, #ARM64_MT6797_A72_P30E_TARGET_REASON_OFF]
++	cbnz	x4, .Lp30e_checkpoint_unavailable
++	str	x16, [x1, #ARM64_MT6797_A72_P30E_TARGET_REASON_OFF]
++	bl	p30e_clean_slot
++	mov	x0, #0
++	b	.Lp30e_checkpoint_return
++.Lp30e_checkpoint_bad_stage:
++	mov	x0, #-EINVAL
++	b	.Lp30e_checkpoint_return
++.Lp30e_checkpoint_unavailable:
++	mov	x0, #-EAGAIN
++.Lp30e_checkpoint_return:
++	mov	x30, x17
++	ret
++SYM_FUNC_END(arm64_mt6797_a72_p30e_target_checkpoint_mmuoff)
++
+ 	.text
+diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
+index a79e831..4c23647 100644
+--- a/arch/arm64/kernel/smp.c
++++ b/arch/arm64/kernel/smp.c
+@@ -294,11 +294,21 @@ static void init_gic_priority_masking(void)
+  */
+ asmlinkage notrace void secondary_start_kernel(void)
+ {
+-	u64 mpidr = read_cpuid_mpidr() & MPIDR_HWID_BITMASK;
++	u64 mpidr;
+ 	struct mm_struct *mm = &init_mm;
+ 	const struct cpu_operations *ops;
+-	unsigned int cpu = smp_processor_id();
++	unsigned int cpu;
+ 	int expectation_ret;
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	u64 p30e_checkpoint;
++#endif
++
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	p30e_checkpoint = ARM64_MT6797_A72_P30E_CHECKPOINT_C_ENTRY;
++	(void)arm64_mt6797_a72_p30e_target_checkpoint(p30e_checkpoint);
++#endif
++	mpidr = read_cpuid_mpidr() & MPIDR_HWID_BITMASK;
++	cpu = smp_processor_id();
+ 
+ 	/*
+ 	 * All kernel threads share the same mm context; grab a
+@@ -312,6 +322,10 @@ asmlinkage notrace void secondary_start_kernel(void)
+ 	 * point to zero page to avoid speculatively fetching new entries.
+ 	 */
+ 	cpu_uninstall_idmap();
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	p30e_checkpoint = ARM64_MT6797_A72_P30E_CHECKPOINT_IDMAP_OFF;
++	(void)arm64_mt6797_a72_p30e_target_checkpoint(p30e_checkpoint);
++#endif
+ 
+ 	if (system_uses_irq_prio_masking())
+ 		init_gic_priority_masking();
+@@ -333,6 +347,10 @@ asmlinkage notrace void secondary_start_kernel(void)
+ 	 * fail to come online.
+ 	 */
+ 	check_local_cpu_capabilities();
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	p30e_checkpoint = ARM64_MT6797_A72_P30E_CHECKPOINT_CAPABILITIES;
++	(void)arm64_mt6797_a72_p30e_target_checkpoint(p30e_checkpoint);
++#endif
+ 
+ 	ops = get_cpu_ops(cpu);
+ 	if (ops->cpu_postboot)
+@@ -350,6 +368,10 @@ asmlinkage notrace void secondary_start_kernel(void)
+ 		cpu_park_loop();
+ 	}
+ 	store_cpu_topology(cpu);
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	p30e_checkpoint = ARM64_MT6797_A72_P30E_CHECKPOINT_TARGET_VALID;
++	(void)arm64_mt6797_a72_p30e_target_checkpoint(p30e_checkpoint);
++#endif
+ 
+ 	/*
+ 	 * Enable GIC and timers.
+@@ -359,6 +381,10 @@ asmlinkage notrace void secondary_start_kernel(void)
+ 	ipi_setup(cpu);
+ 
+ 	numa_add_cpu(cpu);
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	p30e_checkpoint = ARM64_MT6797_A72_P30E_CHECKPOINT_IRQ_READY;
++	(void)arm64_mt6797_a72_p30e_target_checkpoint(p30e_checkpoint);
++#endif
+ 
+ 	/*
+ 	 * OK, now it's safe to let the boot CPU continue.  Wait for
+diff --git a/drivers/soc/mediatek/mt6797-a72-admission-controller.c b/drivers/soc/mediatek/mt6797-a72-admission-controller.c
+index 76662b7..90f5c2d 100644
+--- a/drivers/soc/mediatek/mt6797-a72-admission-controller.c
++++ b/drivers/soc/mediatek/mt6797-a72-admission-controller.c
+@@ -434,9 +434,10 @@ static ssize_t status_show(struct device *dev, struct device_attribute *attr,
+ 			     diagnostic.p30e_readback_attempted,
+ 			     diagnostic.p30e_readback_ret);
+ 	return len + sysfs_emit_at(buf, len,
+-				   "p30e_controller_state=%u p30e_target_state=%u p30e_target_sequence=%u p30e_controller_sequence=%u\n",
++				   "p30e_controller_state=%u p30e_target_state=%u p30e_target_reason=%u p30e_target_sequence=%u p30e_controller_sequence=%u\n",
+ 				   diagnostic.p30e_controller_state,
+ 				   diagnostic.p30e_target_state,
++				   diagnostic.p30e_target_reason,
+ 				   diagnostic.p30e_target_sequence,
+ 				   diagnostic.p30e_controller_sequence);
+ }
+diff --git a/drivers/soc/mediatek/mt6797-a72-binder-test.c b/drivers/soc/mediatek/mt6797-a72-binder-test.c
+index 6892bdd..cae5f6d 100644
+--- a/drivers/soc/mediatek/mt6797-a72-binder-test.c
++++ b/drivers/soc/mediatek/mt6797-a72-binder-test.c
+@@ -66,6 +66,7 @@ struct mt6797_binder_test_state {
+ 	u32 selector_xor;
+ #ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
+ 	u32 p30e_target_state;
++	u32 p30e_target_reason;
+ 	u32 p30e_prepares;
+ 	u32 p30e_arms;
+ 	u32 p30e_readbacks;
+@@ -318,6 +319,8 @@ mt6797_binder_test_p30e_readback(
+ 		cpu_to_le64(ARM64_MT6797_A72_P30E_ARMED);
+ 	copy->word[ARM64_MT6797_A72_P30E_TARGET_STATE_WORD] =
+ 		cpu_to_le64(target);
++	copy->word[ARM64_MT6797_A72_P30E_TARGET_REASON_WORD] =
++		cpu_to_le64(state->p30e_target_reason);
+ 	copy->word[ARM64_MT6797_A72_P30E_CONTROLLER_SEQUENCE_WORD] =
+ 		cpu_to_le64(1);
+ 	copy->word[ARM64_MT6797_A72_P30E_TARGET_SEQUENCE_WORD] =
+@@ -833,6 +836,9 @@ static void mt6797_binder_p30e_readback_test(struct kunit *test)
+ 		KUNIT_ASSERT_EQ(test, mt6797_a72_binder_test_boot(
+ 			&state->binder, 8, mt6797_binder_test_cpu_boot), 0);
+ 		state->p30e_target_state = target_states[i];
++		state->p30e_target_reason = target_states[i] ==
++			ARM64_MT6797_A72_P30E_TARGET_CLAIMED ?
++			ARM64_MT6797_A72_P30E_CHECKPOINT_C_ENTRY : 0;
+ 		ret = mt6797_a72_binder_test_failure(&state->binder, 8, -EIO,
+ 					     &publish_p32);
+ 		KUNIT_ASSERT_EQ(test, ret, 0);
+@@ -851,6 +857,8 @@ static void mt6797_binder_p30e_readback_test(struct kunit *test)
+ 				ARM64_MT6797_A72_P30E_ARMED);
+ 		KUNIT_EXPECT_EQ(test, diagnostic.p30e_target_state,
+ 				target_states[i]);
++		KUNIT_EXPECT_EQ(test, diagnostic.p30e_target_reason,
++				state->p30e_target_reason);
+ 		KUNIT_EXPECT_EQ(test, diagnostic.p30e_target_sequence,
+ 				target_states[i] >=
+ 				ARM64_MT6797_A72_P30E_TARGET_PUBLISHED);
+diff --git a/drivers/soc/mediatek/mt6797-a72-binder.c b/drivers/soc/mediatek/mt6797-a72-binder.c
+index c233b8d..6c6f16e 100644
+--- a/drivers/soc/mediatek/mt6797-a72-binder.c
++++ b/drivers/soc/mediatek/mt6797-a72-binder.c
+@@ -112,6 +112,9 @@ mt6797_a72_binder_fill_diagnostic(const struct mt6797_a72_binder *binder,
+ 	const struct mt6797_a72_platform_effect_result *acquire = &binder->p27;
+ 	const struct mt6797_a72_platform_effect_result *release =
+ 		&binder->p27_release;
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	const __le64 *p30e = binder->p30e_snapshot.word;
++#endif
+ 
+ 	memset(snapshot, 0, sizeof(*snapshot));
+ 	snapshot->abi = MT6797_A72_BINDER_DIAGNOSTIC_ABI;
+@@ -179,6 +182,8 @@ mt6797_a72_binder_fill_diagnostic(const struct mt6797_a72_binder *binder,
+ 		ARM64_MT6797_A72_P30E_CONTROLLER_STATE_WORD]);
+ 	snapshot->p30e_target_state = le64_to_cpu(binder->p30e_snapshot.word[
+ 		ARM64_MT6797_A72_P30E_TARGET_STATE_WORD]);
++	snapshot->p30e_target_reason =
++		le64_to_cpu(p30e[ARM64_MT6797_A72_P30E_TARGET_REASON_WORD]);
+ 	snapshot->p30e_target_sequence = le64_to_cpu(binder->p30e_snapshot.word[
+ 		ARM64_MT6797_A72_P30E_TARGET_SEQUENCE_WORD]);
+ 	snapshot->p30e_controller_sequence = le64_to_cpu(binder->p30e_snapshot.word[
+diff --git a/include/linux/soc/mediatek/mt6797-a72-binder.h b/include/linux/soc/mediatek/mt6797-a72-binder.h
+index 51ef480..c8ad22a 100644
+--- a/include/linux/soc/mediatek/mt6797-a72-binder.h
++++ b/include/linux/soc/mediatek/mt6797-a72-binder.h
+@@ -10,7 +10,7 @@
+ 
+ typedef int (*mt6797_a72_cpu_boot_fn)(unsigned int cpu);
+ 
+-#define MT6797_A72_BINDER_DIAGNOSTIC_ABI 3U
++#define MT6797_A72_BINDER_DIAGNOSTIC_ABI 4U
+ 
+ #define MT6797_A72_BINDER_SRAM_MATCH_ABI		BIT(0)
+ #define MT6797_A72_BINDER_SRAM_MATCH_ATTEMPTED	BIT(1)
+@@ -89,6 +89,7 @@ struct mt6797_a72_binder_diagnostic {
+ 	s32 p30e_readback_ret;
+ 	u32 p30e_controller_state;
+ 	u32 p30e_target_state;
++	u32 p30e_target_reason;
+ 	u32 p30e_target_sequence;
+ 	u32 p30e_controller_sequence;
+ };
