@@ -147,6 +147,13 @@ KUnit/QEMU, and the exact production build pass on Buildbox.
   cleanly; SSH failure plus three consecutive TCP/22 closures confirmed it was
   off. The sanitized receipt is
   [recorded here](results/deployment-boot2-a4ad4915-20260831.txt).
+- The first physical boot of `a4ad4915...` reached its direct USB shell. One
+  bounded read-only pretrigger frame verified the exact installed identity,
+  production kernel release, runtime provenance, controller binding, CPUs
+  `0-7` online, and CPU8/9 offline. Binder ABI 3 was armed and unconsumed with
+  every P30E prepare, arm, readback, state, and sequence field still zero. The
+  one CPU8 trigger remained untouched. The sanitized receipt is
+  [recorded here](results/runtime-pretrigger-attempt-1-20260831.txt).
 
 ## Analysis
 
