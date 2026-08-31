@@ -139,6 +139,14 @@ KUnit/QEMU, and the exact production build pass on Buildbox.
   predecessor, and empty admission traces without a retained-RAM or storage
   write. The sanitized receipt is
   [recorded here](results/installation-preflight-20260831.txt).
+- The guarded deployment resolved live `boot2` as `/dev/mmcblk0p30`, separate
+  from Gemian root `/dev/mmcblk0p29`, and replaced exact predecessor
+  `cd36efdf...` with padded P30E candidate `a4ad4915...`. Sync, block flush,
+  full-partition checksum, and a separate 16 MiB readback all matched. No fresh
+  backup was made under the standing project policy. The device then shut down
+  cleanly; SSH failure plus three consecutive TCP/22 closures confirmed it was
+  off. The sanitized receipt is
+  [recorded here](results/deployment-boot2-a4ad4915-20260831.txt).
 
 ## Analysis
 
@@ -154,15 +162,13 @@ be ordinary executable kernel text.
 ## Conclusion
 
 Running; the repaired P30E candidate has passed the complete hardware-free
-gate and is an exact boot candidate. No hardware conclusion until it is
-installed with full-partition readback and one attributable trigger result is
-captured.
+gate and is installed and readback-verified on inactive `boot2`. No CPU-entry
+conclusion until one attributable boot and trigger result is captured.
 
 ## Follow-up
 
-Install exact padded candidate `a4ad4915...` to inactive `boot2`, verify the
-full-partition readback, and shut down. Use its first exact P30E state to choose
-the next action: ARMED/EMPTY sends the investigation below `secondary_entry`;
-CLAIMED sends it into early arm64 setup; PUBLISHED sends it into the late
-completion/notification path. Do not begin a CPU9 transaction until CPU8 is
-reproducibly online.
+Physically select `boot2` once. After pretrigger qualification, issue exactly
+one CPU8 trigger and use the first exact P30E state to choose the next action:
+ARMED/EMPTY sends the investigation below `secondary_entry`; CLAIMED sends it
+into early arm64 setup; PUBLISHED sends it into the late completion/notification
+path. Do not begin a CPU9 transaction until CPU8 is reproducibly online.
