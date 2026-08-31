@@ -136,7 +136,6 @@ def validate(root: Path, parent_counts: dict[str, int]) -> list[str]:
         binder: (
             "binder->p28_begin_attempted = true;",
             "binder->sram_returned = true;",
-            "MT6797_A72_BINDER_SRAM_REQUIRED_MASK",
             "binder->p28_complete_attempted = true;",
             "snapshot->sram_calibration_second =",
         ),
@@ -159,6 +158,8 @@ def validate(root: Path, parent_counts: dict[str, int]) -> list[str]:
                 raise SystemExit(f"diagnostic token changed: {token}")
     if binder.count("mt6797_a72_binder_sram_match_mask(") != 3:
         raise SystemExit("SRAM match helper definition/call count changed")
+    if binder.count("MT6797_A72_BINDER_SRAM_REQUIRED_MASK") != 2:
+        raise SystemExit("SRAM required-mask publication/enforcement count changed")
     if test.count("KUNIT_CASE(") != 7:
         raise SystemExit("binder KUnit case count is not seven")
     if "MT6797_A72_BINDER_DIAGNOSTIC_ABI 1U" in public:
