@@ -1,0 +1,99 @@
+# Experiment: accept the held isolation result
+
+## Record
+
+| Field | Value |
+| --- | --- |
+| ID | `2026-08-30-mainline-a72-isolation-held-result-contract-repair` |
+| Status | `patch generation pending on Buildbox` |
+| Subsystem | MT6797 CPU8 binder and platform-effect owner contract |
+| Device variant | Planet Computers Gemini PDA, named development unit |
+| Date(s) | 2026-08-30 |
+| Tracking issue | `docs/ROADMAP.md` late Cortex-A72 admission gate |
+
+## Question or hypothesis
+
+The exact repaired-P27 runtime crossed P27 and provider acquisition, then
+returned `-EPROTO` at isolation while retaining both owners. Does matching the
+binder's isolation-result seal expectation to the production owner's
+intentional open `ISOLATED` state allow the transition to reach SRAM without
+weakening release or final DCM validation?
+
+## Provenance and environment
+
+- Parent: canonical Linux 7.1.3 series through patch `0450`.
+- Parent source state: `34ade30031aa46d49fb7411594d95b8ec2e4931fccff112f0d4904977f68e2ba`.
+- Parent integrity: `db70aea751c7cce86930d81dab01503c8b79f5a29d75d4bba060be7b2451837d`.
+- Build and patch generation backend: Buildbox only.
+- Runtime source: the single-trigger result in the preceding
+  [P27 held-result repair](../2026-08-30-mainline-a72-p27-held-result-contract-repair/README.md).
+
+## Safety assessment
+
+The proposed repair changes one binder validation argument and one KUnit fake.
+A successful isolation operation remains unsealed because P27 and provider
+ownership continue through SRAM, CPU_ON, and DCM; release and final DCM
+completion remain sealed. The change adds no hardware operation, CPU request,
+CPU9 path, CPU_OFF path, retry, retained-RAM write, storage access, timing
+change, or device action.
+
+No device candidate may be constructed until deterministic replay, strict
+style review, focused KUnit, and the production profile build all pass. CPU9
+remains vetoed until CPU8 is reproducibly online.
+
+## Associated code
+
+- `scripts/source_edits.py` performs the two exact source edits.
+- `scripts/generate_patch.py` creates and replays canonical patch `0451` from
+  the pinned managed source.
+- `scripts/generate-on-buildbox` enforces the clean Git-pinned Buildbox lane.
+
+These scripts require no device access. The generator writes only a temporary
+Git tree and a checksum-covered patch-review package on Buildbox.
+
+## Procedure
+
+1. Generate one normal format-patch from the exact post-`0450` source.
+2. Require the binder result-shape helper to expect an unsealed successful
+   isolation result while preserving unsealed P27 acquire and sealed P27
+   release and DCM completion.
+3. Make the KUnit isolation fake reproduce the production held-owner contract
+   and preserve rejection of a malformed sealed result.
+4. Replay the patch deterministically and reject any hardware/request call-count
+   change or forbidden path.
+5. Admit the patch canonically, run focused binder/transition KUnit on Buildbox,
+   then build the production live-trigger profile on Buildbox.
+
+## Observations
+
+- The prior runtime returned exactly `-EPROTO` at transition stage 4 with P27
+  and provider ownership retained, one CPU8 request, and no CPU9, CPU_OFF,
+  retry, or reboot request.
+- Production isolation completes its isolation clear, PWRAP deassertion, and
+  guard delay, enters `ISOLATED`, and returns success without setting
+  `sealed=true`.
+- The binder currently requires sealed isolation success, and the KUnit fake
+  currently returns sealed success. The test model therefore disagrees with
+  the production result at the exact runtime failure boundary.
+
+## Analysis
+
+The terminal stage and errno localize the rejection to the binder's isolation
+callback. The production owner and KUnit fake have opposite successful seal
+states, while every other binder-validated isolation field is produced by the
+same successful production path. The seal predicate is therefore the narrow
+source-level explanation to test. SRAM and later stages remain unobserved and
+must not be inferred from this result.
+
+## Conclusion
+
+The hypothesis is source-attributed but not yet offline-validated. Patch
+generation, replay, KUnit, and production Buildbox results are pending. This is
+not CPU8 hardware-support evidence.
+
+## Follow-up
+
+If all offline gates pass, construct one changed successor whose exact runtime
+status distinguishes SRAM, PSCI CPU_ON, secondary execution, and membership
+publication. Do not repeat the retired P27-repair image and do not prepare CPU9
+until CPU8 is reproducibly online.
