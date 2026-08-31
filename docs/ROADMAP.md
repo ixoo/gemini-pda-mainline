@@ -6599,7 +6599,9 @@ The next ordered work is:
    successor `459bcf66...`; two byte-identical assemblies and two independent
    validations passed all 32 LK gates and all six negative mutations. Install
    that qualified successor and require the corrected pretrigger gate to reject
-   every profile-blocked log form before one CPU8 trigger. ARMED, CLAIMED, and
+   every profile-blocked log form before one CPU8 trigger. Exact successor
+   `459bcf66...` is now installed on live-resolved inactive `boot2`, its full
+   partition readback matched, and the device was shut down. ARMED, CLAIMED, and
    PUBLISHED must respectively distinguish before-entry, post-entry/pre-startup,
    and post-`secondary_start_kernel()` boundaries. Retain the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict

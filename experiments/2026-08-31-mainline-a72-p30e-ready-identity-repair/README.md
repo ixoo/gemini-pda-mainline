@@ -22,4 +22,10 @@ pass all 32 LK-container gates plus all six negative mutations. Exact padded
 candidate `459bcf66...` is therefore selected for one deployment; no device
 write or CPU request occurred during this offline qualification.
 
-Status: exact boot candidate qualified; deployment pending.
+The guarded deployment resolved logical `boot2` as inactive
+`/dev/mmcblk0p30`, confirmed exact predecessor `a4ad4915...`, wrote and fully
+read back padded candidate `459bcf66...`, and then shut the device down. The
+successor pretrigger now counts every `arm64-late-cpu-profile: ... blocked:`
+wording, fixing the stale collector that missed proof mask `0x40000`.
+
+Status: exact candidate installed and device shut down; first boot pending.
