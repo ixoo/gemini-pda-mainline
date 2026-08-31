@@ -98,6 +98,11 @@ Buildbox.
   boot2 representation is `6d0bf75b...`. All 32 LK gates passed and all six
   negative container mutations were rejected. See
   [the candidate record](results/production-candidate-20260831.txt).
+- Exact candidate `6d0bf75b...` replaced predecessor `459bcf66...` on
+  live-resolved inactive `/dev/mmcblk0p30` (`boot2`). The synced and flushed
+  full-partition readback matched, no fresh backup was made, and the device was
+  cleanly shut down without reboot. See
+  [the deployment record](results/deployment-boot2-20260831.txt).
 
 ## Analysis
 
