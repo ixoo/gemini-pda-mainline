@@ -6518,10 +6518,11 @@ The next ordered work is:
    binder snapshot and its one-shot terminal classifier retains every P27
    acquire/release field. Its installer accepts the unchanged, already
    published predecessor P27 terminal ledger without modifying retained RAM,
-   but rejects any different record. **Selected next:** deploy `e22db747...`
-   only to the live-GPT inactive boot2 with full readback and clean shutdown,
-   then run its one boot-bound CPU8 diagnostic and repair only the observed
-   P27 predicate or rollback defect. Retain the CPU9 veto.
+   but rejects any different record. Deployment now has a matching full boot2
+   readback and confirmed clean shutdown. **Selected next:** physically select
+   boot2, capture the pristine read-only P27 diagnostic frame, then run its one
+   boot-bound CPU8 diagnostic and repair only the observed P27 predicate or
+   rollback defect. Retain the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 

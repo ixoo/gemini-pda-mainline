@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-p27-runtime-attribution` |
-| Status | `exact boot2 candidate validated; guarded deployment pending` |
+| Status | `exact boot2 candidate deployed and device shut down; boot pending` |
 | Subsystem | MT6797 CPU8 P27 platform effect and rollback |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -124,3 +124,13 @@ physical P27 release failure, and logical P29 rollback completion. A complete
 acquire or release result changes the next action to the corresponding logical
 membership repair; an incomplete or error-bearing result changes it to only
 the named platform effect. A later stage supersedes P27. CPU9 remains vetoed.
+
+## Deployment result
+
+The guarded installer resolved logical boot2 as `/dev/mmcblk0p30` while Gemian
+root remained `/dev/mmcblk0p29`, accepted only the exact published predecessor
+ledger and empty traces, and wrote candidate `e22db747...`. The synced and
+flushed full-partition readback matched exactly. No fresh backup or retained-RAM
+write was made. The device was shut down cleanly and three consecutive TCP/22
+closures confirmed it remained unreachable. See
+[`results/deployment-20260830.txt`](results/deployment-20260830.txt).
