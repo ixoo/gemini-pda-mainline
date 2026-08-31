@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-effect-plan-stage-ledger` |
-| Status | `diagnostic candidate installed and device shut down; fresh boot2 observation pending` |
+| Status | `complete; exact expected-pair rejection localized with zero CPU requests` |
 | Subsystem | arm64 late-CPU effect planning |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -79,9 +79,7 @@ The guarded installer resolved inactive `boot2` as `/dev/mmcblk0p30`, matched
 the exact model-guard predecessor, wrote the stage-ledger candidate, and
 verified its full-partition readback. The device was then shut down and
 confirmed unreachable. See the
-[deployment evidence](results/deployment-boot2-20260831.txt). The next action
-is one fresh diagnostic boot with read-only capture; it must not issue the
-CPU8 trigger.
+[deployment evidence](results/deployment-boot2-20260831.txt).
 
 Two bounded observer windows after deployment saw no exact USB interface and
 therefore captured no boot. They are absence-of-selection observations, not
@@ -93,3 +91,26 @@ effect predicate predicts completion, which makes the runtime stage ledger the
 required discriminator before any repair. See the
 [observer-window evidence](results/observer-windows-20260831.txt) and
 [offline predicate audit](results/offline-effect-plan-predicate-audit-20260831.txt).
+
+The fresh diagnostic boot resolved the contradiction without issuing a CPU
+request. Exact stage `expected-pair` returned `-EAGAIN`, and the generic
+planner reported the same return at `derive`; validation and completion were
+not reached. The immutable pair carries the independently observed r0p1 MIDR
+`0x410fd081`, while both production `expected_target_midr[]` entries still
+carry revision-zero model base `0x410fd080`. The generic completeness helper
+requires those representations to be exactly equal, so it rejected the draft
+before effect planning. CPU0--7 remained online, CPU8--9 remained offline,
+and CPU8, CPU9, CPU_OFF, retry, and storage-write counts were all zero.
+
+The collector initially searched the diagnostic target field as logical CPUs
+8 and 9, although the ledger defines it as profile indices 0 and 1. A bounded
+same-boot read-only query recovered the exact `target=-1` rejection, and the
+collector is corrected for future target-local exits. The identity-gated USB
+recovery returned the device to changed-ID Gemian. See the
+[runtime result](results/runtime-attempt-1-expected-pair-rejection-20260831.txt).
+
+The selected successor must align the production expected-target MIDR
+representation with the exact r0p1 pair while keeping model-only capability
+classification revision-neutral and later target-register validation exact.
+It must pass Buildbox and offline gates before one new CPU8-only attempt.
+CPU9 remains vetoed until CPU8 is reproducibly online.

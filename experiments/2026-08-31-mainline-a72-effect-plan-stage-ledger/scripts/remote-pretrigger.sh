@@ -26,10 +26,10 @@ anchor = (
     "$BB printf 'proof_mask_24000_count='; $BB dmesg | "
     "$BB grep -Fc 'proof mask 0x24000' || true\n"
 )
-insert = anchor + """$BB printf 'effect_derive_target8_count='; $BB dmesg | $BB grep -F 'A72_EFFECT_DERIVE_V1 ' | $BB grep -Fc ' target=8 ' || true
-$BB printf 'effect_derive_target8_line='; $BB dmesg | $BB grep -F 'A72_EFFECT_DERIVE_V1 ' | $BB grep -Fm1 ' target=8 ' || $BB printf '\n'
-$BB printf 'effect_derive_target9_count='; $BB dmesg | $BB grep -F 'A72_EFFECT_DERIVE_V1 ' | $BB grep -Fc ' target=9 ' || true
-$BB printf 'effect_derive_target9_line='; $BB dmesg | $BB grep -F 'A72_EFFECT_DERIVE_V1 ' | $BB grep -Fm1 ' target=9 ' || $BB printf '\n'
+insert = anchor + """$BB printf 'effect_derive_target0_count='; $BB dmesg | $BB grep -F 'A72_EFFECT_DERIVE_V1 ' | $BB grep -Fc ' target=0 ' || true
+$BB printf 'effect_derive_target0_line='; $BB dmesg | $BB grep -F 'A72_EFFECT_DERIVE_V1 ' | $BB grep -Fm1 ' target=0 ' || $BB printf '\n'
+$BB printf 'effect_derive_target1_count='; $BB dmesg | $BB grep -F 'A72_EFFECT_DERIVE_V1 ' | $BB grep -Fc ' target=1 ' || true
+$BB printf 'effect_derive_target1_line='; $BB dmesg | $BB grep -F 'A72_EFFECT_DERIVE_V1 ' | $BB grep -Fm1 ' target=1 ' || $BB printf '\n'
 $BB printf 'effect_plan_preconditions_count='; $BB dmesg | $BB grep -Fc 'ARM64_LATE_CPU_EFFECT_PLAN_V1 stage=preconditions ' || true
 $BB printf 'effect_plan_preconditions_line='; $BB dmesg | $BB grep -Fm1 'ARM64_LATE_CPU_EFFECT_PLAN_V1 stage=preconditions ' || $BB printf '\n'
 $BB printf 'effect_plan_derive_count='; $BB dmesg | $BB grep -Fc 'ARM64_LATE_CPU_EFFECT_PLAN_V1 stage=derive ' || true

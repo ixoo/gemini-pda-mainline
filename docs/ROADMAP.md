@@ -6661,13 +6661,21 @@ The next ordered work is:
    suite passed 51/51 tests; exact padded candidate `b78ac044...` passed all 32
    LK gates and six negative mutations, was written to live-resolved inactive
    `boot2`, fully read back, and shut down. Two subsequent observer windows saw
-   no exact USB interface and therefore no attributable boot. A read-only audit
-   of the exact source proves the effect planner was invoked in the parent boot
-   and predicts completion for the captured clean inputs, so no speculative
-   repair is selected. **Selected next:** pre-arm the collector and obtain one
-   fresh `b78ac044...` boot2 stage ledger without triggering CPU8. Repair only
-   the named failing branch, rebuild on Buildbox, and spend one CPU8-only
-   attempt only after READY is exact. Keep CPU9 vetoed.
+   no exact USB interface and therefore no attributable boot. The next fresh
+   read-only boot reached the exact candidate with CPU0--7 online and zero
+   actions. Its profile ledger returned `-EAGAIN` at `expected-pair`, and the
+   generic ledger returned the same value at `derive`; validation and
+   completion were not reached. The immutable pair contains exact r0p1 MIDR
+   `0x410fd081`, while both production `expected_target_midr[]` entries remain
+   the revision-zero model base `0x410fd080`; the generic completeness helper
+   requires exact equality. The collector's initial logical-CPU filter missed
+   this index-valued line, but a bounded same-boot read-only query recovered it
+   and the filter is corrected. USB recovery returned to changed-ID Gemian.
+   **Selected next:** align the production expected-target MIDR representation
+   with the exact r0p1 pair, preserve revision-neutral model checks and exact
+   late-target validation, rebuild on Buildbox, and spend one CPU8-only attempt
+   only after the effect and generic planners both report completion and READY
+   is exact. Keep CPU9 vetoed.
 
 The eventual CPU8 candidate must have a single CPU8 request, strict
 checkpoints before and after each power step, a bounded timeout, and a
