@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-effect-plan-stage-ledger` |
-| Status | `validated diagnostic candidate; boot2 deployment pending` |
+| Status | `diagnostic candidate installed and device shut down; fresh boot2 observation pending` |
 | Subsystem | arm64 late-CPU effect planning |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -74,3 +74,11 @@ container mutations passed. The diagnostic candidate is exact full-partition
 SHA-256 `b78ac044977749af97864676cc64b34224ce348ff8d9c14b41a67f21a453e8c1`.
 See the [candidate evidence](results/production-candidate-20260831.txt) and
 [predeployment hypothesis](results/predeployment-hypothesis-20260831.txt).
+
+The guarded installer resolved inactive `boot2` as `/dev/mmcblk0p30`, matched
+the exact model-guard predecessor, wrote the stage-ledger candidate, and
+verified its full-partition readback. The device was then shut down and
+confirmed unreachable. See the
+[deployment evidence](results/deployment-boot2-20260831.txt). The next action
+is one fresh diagnostic boot with read-only capture; it must not issue the
+CPU8 trigger.
