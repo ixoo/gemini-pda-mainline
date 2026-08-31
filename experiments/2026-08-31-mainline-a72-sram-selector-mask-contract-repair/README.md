@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-sram-selector-mask-contract-repair` |
-| Status | `canonical patch generated and replayed; Buildbox KUnit pending` |
+| Status | `canonical patch and focused KUnit pass; production Buildbox build pending` |
 | Subsystem | MT6797 CPU8 binder and BigiDVFS SRAM result contract |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -88,6 +88,14 @@ Buildbox. It performs no device access.
   this internal archive is not submission-ready.
 - All 158 manifest profiles remain canonical-order subsequences, and eight
   invariant mutations are rejected.
+- Buildbox built the exact `a72-default-off-binder-kunit` profile from patch
+  commit `3bf4cc6e...`; the fetched package passed all checksum and provenance
+  gates.
+- The isolated no-network QEMU run passed all 50 expected tests: 30 P24 owner,
+  12 transition executor, and 8 binder cases. The new case accepts the observed
+  upper selector status bit and rejects a low selector-bit mutation. It issued
+  zero physical CPU, CPU_OFF, or retry requests. See the
+  [KUnit result](results/kunit-qemu-3bf4cc6e-20260831.txt).
 
 ## Analysis
 
@@ -101,8 +109,8 @@ hardware transaction.
 
 ## Conclusion
 
-The exact source repair is admitted for Buildbox KUnit and production builds;
-device behavior remains untested.
+The exact source repair and hardware-free proof pass. Production packaging and
+device behavior remain untested.
 
 ## Follow-up
 
