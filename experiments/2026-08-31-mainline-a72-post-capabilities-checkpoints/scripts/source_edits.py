@@ -92,6 +92,15 @@ int arm64_mt6797_a72_p30e_target_publish(u64 state, u64 reason,""",
 
     p30e_c_path = root / P30E_C
     p30e_c = p30e_c_path.read_text(encoding="utf-8")
+    p30e_c = replace_once(
+        p30e_c,
+        """#include <asm/cputype.h>
+#include <asm/memory.h>""",
+        """#include <asm/cputype.h>
+#include <asm/late_cpu_profile.h>
+#include <asm/memory.h>""",
+        "late-target mismatch mask dependency",
+    )
     old_checkpoint = """int arm64_mt6797_a72_p30e_target_checkpoint(u64 checkpoint)
 {
 \tstruct arm64_mt6797_a72_p30e_slot *slot;
@@ -147,6 +156,7 @@ p30e_target_checkpoint(u64 checkpoint, u64 details,
 \t    checkpoint > ARM64_MT6797_A72_P30E_CHECKPOINT_IRQ_READY ||
 \t    (!!details != (checkpoint ==
 \t\t\t    ARM64_MT6797_A72_P30E_CHECKPOINT_EXPECTATION_FAILED)) ||
+\t    (details & ~ARM64_LATE_CPU_EXPECT_MISMATCH_ALLOWED_MASK) ||
 \t    (!details && (expected || observed)))
 \t\treturn -EINVAL;
 \tcpu = p30e_current_cpu();

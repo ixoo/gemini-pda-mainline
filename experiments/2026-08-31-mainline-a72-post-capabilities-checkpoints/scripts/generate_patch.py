@@ -210,6 +210,7 @@ def validate(root: Path, parent_counts: dict[str, int]) -> list[str]:
         ),
         p30e_c: (
             "p30e_target_checkpoint",
+            "details & ~ARM64_LATE_CPU_EXPECT_MISMATCH_ALLOWED_MASK",
             "ARM64_MT6797_A72_P30E_TARGET_EFFECTS_WORD) != 0",
             "ARM64_MT6797_A72_P30E_TARGET_ENTRY_PC_WORD) != 0",
             "ARM64_MT6797_A72_P30E_TARGET_ENTRY_SP_WORD) != 0",
