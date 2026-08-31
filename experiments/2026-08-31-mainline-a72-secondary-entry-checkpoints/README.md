@@ -84,12 +84,23 @@ Buildbox.
 - Changed-ID Gemian recovery contained no attributable ramoops trace.
 - The prepared post-`0456` Buildbox source and all nine intended parent-file
   checksums are pinned in `scripts/source_edits.py`.
+- Deterministic generation produced canonical patch `0457` with SHA-256
+  `485b75d1755475dc855a8a847e72b15253e5029521fe6b0b73f360d0348ca8f4`.
+- Buildbox compiled patchset
+  `f3f64e40d05ffa5a91ba28486fe93b70cff293597e415404a45e690c02c0f654`
+  in both the live-trigger and default-off binder KUnit profiles.
+- The no-network, four-vCPU binder KUnit boot passed all 51 tests, including
+  the P30E checkpoint-reason readback, with no physical CPU request, CPU_OFF,
+  or retry. See
+  [the exact classifier record](results/focused-kunit-qemu-20260831.txt).
 
 ## Analysis
 
-The predecessor eliminates no-entry and pre-CPU_ON explanations. The smallest
-remaining useful observation is the highest monotonic target checkpoint inside
-the already-proved CLAIMED interval. Repeating `459bcf66...` would add no new
+The predecessor eliminates no-entry and pre-CPU_ON explanations. The focused
+KUnit proof validates that the new reason value is carried through the existing
+diagnostic without adding a CPU or device action. The smallest remaining useful
+observation is therefore the highest monotonic target checkpoint inside the
+already-proved CLAIMED interval. Repeating `459bcf66...` would add no new
 measurement and is forbidden.
 
 ## Conclusion
