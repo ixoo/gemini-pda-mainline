@@ -55,13 +55,16 @@ CPU8 transaction and watchdog recovery ownership remain unchanged.
 
 Runtime attempt 1 passed the selected repair boundary but stopped safely before
 CPU8. The three previously missing mitigation capabilities are restored, the
-target, required, and expected capability vectors now match, and the
-expected-pair diagnostic mask is zero. This confirms the stale MIDR equality
-was the cause of the earlier local-capability rejection.
+aggregate target and both per-target vectors exactly match the profile's
+present-capability set, the required vector matches its intended subset, and
+the expected-pair diagnostic mask is zero. This confirms the stale MIDR
+equality was the cause of the earlier local-capability rejection.
 
 The remaining READY mask is `0x36000`: local capability planning completed,
-but production effect planning returned `-EINVAL`, leaving both the effects
-and dependent expected-HWCAP plans empty. The one-shot trigger was not issued;
+but production effect planning did not complete, leaving both the effects and
+dependent expected-HWCAP plans empty. The emitted `-EINVAL` is the final plan
+validator rejecting that incomplete draft; this revision does not expose the
+earlier effect planner's exact return. The one-shot trigger was not issued;
 CPU8, CPU9, CPU_OFF, retry, and storage-write counts all remained zero. The
 guarded USB recovery reboot returned the device to changed-ID Gemian
 `3.18.41+`. See the
