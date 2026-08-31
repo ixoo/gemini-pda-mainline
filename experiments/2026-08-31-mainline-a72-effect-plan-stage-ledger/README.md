@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-effect-plan-stage-ledger` |
-| Status | `diagnostic patch generation pending` |
+| Status | `canonical diagnostic patch generated; build gates pending` |
 | Subsystem | arm64 late-CPU effect planning |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -54,3 +54,9 @@ access, retained-RAM access, power operation, or reboot path.
    CPU8, even if READY unexpectedly appears.
 
 CPU9 remains vetoed until CPU8 is reproducibly online.
+
+Buildbox generated and replayed canonical patch `0461` from the exact
+post-`0460` prepared source. The patch preserves every return edge and action
+inventory while adding 14 MT6797 derivation stages and four generic planner
+stages. Strict style completed with zero errors, warnings, or checks. See the
+[generation evidence](results/patch-generation-20260831.txt).

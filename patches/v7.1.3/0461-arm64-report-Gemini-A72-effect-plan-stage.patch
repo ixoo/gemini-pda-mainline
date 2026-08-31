@@ -1,0 +1,200 @@
+From 2da5e888cb66a2cd03cf725d152feb4ba32963fb Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 31 Aug 2026 23:32:00 +0000
+Subject: [PATCH] arm64: report Gemini A72 effect plan stage
+
+The exact A72 capability draft now reaches effect planning, but
+the existing final validator only reports the resulting empty
+effect and HWCAP plans. Record the unchanged return edge inside
+the Gemini derivation and the generic derive/validate boundary.
+
+This is a boot-time diagnostic only. It changes no return value,
+CPU request, hardware operation, retry, storage, or reboot path.
+---
+ arch/arm64/kernel/cpufeature.c  | 16 +++++++++--
+ arch/arm64/kernel/mt6797_psci.c | 49 +++++++++++++++++++++++----------
+ 2 files changed, 48 insertions(+), 17 deletions(-)
+
+diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+index ee9e668..a15c9ca 100644
+--- a/arch/arm64/kernel/cpufeature.c
++++ b/arch/arm64/kernel/cpufeature.c
+@@ -4198,18 +4198,28 @@ int __init arm64_plan_late_cpu_effects(struct arm64_late_cpu_plan *draft,
+ 
+ 	if (!draft || !profile || !profile->derive_effects ||
+ 	    !draft->local_caps_planned || draft->effects_planned ||
+-	    !late_cpu_effect_plan_empty(&draft->effects))
++	    !late_cpu_effect_plan_empty(&draft->effects)) {
++		pr_info("ARM64_LATE_CPU_EFFECT_PLAN_V1 stage=preconditions ret=%d\n",
++			-EINVAL);
+ 		return -EINVAL;
++	}
+ 
+ 	ret = profile->derive_effects(draft, &effects);
+-	if (ret)
++	if (ret) {
++		pr_info("ARM64_LATE_CPU_EFFECT_PLAN_V1 stage=derive ret=%d\n",
++			ret);
+ 		return ret;
++	}
+ 	ret = validate_late_cpu_effect_plan(draft, profile, &effects);
+-	if (ret)
++	if (ret) {
++		pr_info("ARM64_LATE_CPU_EFFECT_PLAN_V1 stage=validate ret=%d\n",
++			ret);
+ 		return ret;
++	}
+ 
+ 	draft->effects = effects;
+ 	draft->effects_planned = 1;
++	pr_info("ARM64_LATE_CPU_EFFECT_PLAN_V1 stage=complete ret=0\n");
+ 	return 0;
+ }
+ #endif
+diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
+index ae2f6d9..d2899ea 100644
+--- a/arch/arm64/kernel/mt6797_psci.c
++++ b/arch/arm64/kernel/mt6797_psci.c
+@@ -566,6 +566,14 @@ static int __init mt6797_a72_bhb_system_method(u8 method, u8 *system_method)
+ 	}
+ }
+ 
++static int __init
++mt6797_a72_effect_diagnostic(const char *stage, int target, int ret)
++{
++	pr_info("A72_EFFECT_DERIVE_V1 stage=%s target=%d ret=%d\n",
++		stage, target, ret);
++	return ret;
++}
++
+ static int __init
+ mt6797_a72_derive_effects(const struct arm64_late_cpu_plan *plan,
+ 			  struct arm64_late_cpu_effect_plan *effects)
+@@ -586,7 +594,8 @@ mt6797_a72_derive_effects(const struct arm64_late_cpu_plan *plan,
+ 	    !plan->local_caps_planned || plan->effects_planned ||
+ 	    !mt6797_a72_effects_empty(effects) ||
+ 	    arm64_late_cpu_target_impl_override_active())
+-		return -EINVAL;
++		return mt6797_a72_effect_diagnostic("preconditions", -1,
++						   -EINVAL);
+ 	if ((plan->evidence.system_cap.valid &
+ 	     (ARM64_LATE_CPU_SYSTEM_CAP_SSBS_VALID |
+ 	      ARM64_LATE_CPU_SYSTEM_CAP_EFFECTS_VALID)) !=
+@@ -595,7 +604,8 @@ mt6797_a72_derive_effects(const struct arm64_late_cpu_plan *plan,
+ 	    plan->evidence.system_cap.valid &
+ 		    ~ARM64_LATE_CPU_SYSTEM_CAP_VALID_MASK ||
+ 	    plan->evidence.system_cap.ssbs > 1)
+-		return -EAGAIN;
++		return mt6797_a72_effect_diagnostic("system-evidence", -1,
++						   -EAGAIN);
+ 	if (plan->evidence.system_cap.spectre_v2_state !=
+ 		    ARM64_LATE_CPU_MITIGATION_UNAFFECTED ||
+ 	    plan->evidence.system_cap.spectre_v4_state !=
+@@ -604,16 +614,19 @@ mt6797_a72_derive_effects(const struct arm64_late_cpu_plan *plan,
+ 		    ARM64_LATE_CPU_BHB_STATE_UNAFFECTED ||
+ 	    plan->evidence.system_cap.bhb_matcher_loop_count ||
+ 	    plan->evidence.system_cap.bhb_system_method)
+-		return -EOPNOTSUPP;
++		return mt6797_a72_effect_diagnostic("system-policy", -1,
++						   -EOPNOTSUPP);
+ 	if (!mt6797_a72_policy_equal(&plan->evidence.target_policy[0],
+ 				     &plan->evidence.target_policy[1]))
+-		return -EOPNOTSUPP;
++		return mt6797_a72_effect_diagnostic("policy-pair", -1,
++						   -EOPNOTSUPP);
+ 
+ 	policy = &plan->evidence.target_policy[0];
+ 	system_v2_state = plan->evidence.system_cap.spectre_v2_state;
+ #ifndef CONFIG_ARM64_MT6797_A72_FIXTURE_EVIDENCE
+ 	if (!arm64_late_cpu_expected_pair_complete(plan))
+-		return -EAGAIN;
++		return mt6797_a72_effect_diagnostic("expected-pair", -1,
++						   -EAGAIN);
+ #endif
+ 	for (target = 0; target < ARM64_LATE_CPU_MAX_TARGETS; target++) {
+ #ifdef CONFIG_ARM64_MT6797_A72_FIXTURE_EVIDENCE
+@@ -627,14 +640,16 @@ mt6797_a72_derive_effects(const struct arm64_late_cpu_plan *plan,
+ 			&effects->target[target]);
+ #endif
+ 		if (ret)
+-			return ret;
++			return mt6797_a72_effect_diagnostic("target-effects",
++							   target, ret);
+ 		if (!mt6797_a72_effect_state_matches_cap(
+ 			    plan, target, ARM64_SPECTRE_V2,
+ 			    effects->target[target].spectre_v2_state) ||
+ 		    !mt6797_a72_effect_state_matches_cap(
+ 			    plan, target, ARM64_SPECTRE_V4,
+ 			    effects->target[target].spectre_v4_state))
+-			return -EINVAL;
++			return mt6797_a72_effect_diagnostic("target-v2-v4-match",
++							   target, -EINVAL);
+ 		if (effects->target[target].spectre_v2_state > system_v2_state)
+ 			system_v2_state =
+ 				effects->target[target].spectre_v2_state;
+@@ -647,12 +662,14 @@ mt6797_a72_derive_effects(const struct arm64_late_cpu_plan *plan,
+ 			&plan->evidence.target_policy[target], system_v2_state,
+ 			&effects->target[target]);
+ 		if (ret)
+-			return ret;
++			return mt6797_a72_effect_diagnostic("target-bhb-effects",
++							   target, ret);
+ #endif
+ 		if (!mt6797_a72_effect_state_matches_cap(
+ 			    plan, target, ARM64_SPECTRE_BHB,
+ 			    effects->target[target].bhb_mitigation_state))
+-			return -EINVAL;
++			return mt6797_a72_effect_diagnostic("target-bhb-match",
++							   target, -EINVAL);
+ 	}
+ 
+ 	ctr_mask = mt6797_a72_target_mask(plan, ARM64_MISMATCHED_CACHE_TYPE);
+@@ -679,7 +696,8 @@ mt6797_a72_derive_effects(const struct arm64_late_cpu_plan *plan,
+ 		if (!mt6797_a72_v2_effect_equal(
+ 			    &effects->target[first_target],
+ 			    &effects->target[target]))
+-			return -EOPNOTSUPP;
++			return mt6797_a72_effect_diagnostic("v2-pair", target,
++							   -EOPNOTSUPP);
+ 	}
+ 	if (first_target >= 0) {
+ 		first = &effects->target[first_target];
+@@ -705,7 +723,8 @@ mt6797_a72_derive_effects(const struct arm64_late_cpu_plan *plan,
+ 		if (!mt6797_a72_v4_effect_equal(
+ 			    &effects->target[first_target],
+ 			    &effects->target[target]))
+-			return -EOPNOTSUPP;
++			return mt6797_a72_effect_diagnostic("v4-pair", target,
++							   -EOPNOTSUPP);
+ 	}
+ 	if (first_target >= 0) {
+ 		first = &effects->target[first_target];
+@@ -741,7 +760,8 @@ mt6797_a72_derive_effects(const struct arm64_late_cpu_plan *plan,
+ 		if (!mt6797_a72_bhb_effect_equal(
+ 			    &effects->target[first_target],
+ 			    &effects->target[target]))
+-			return -EOPNOTSUPP;
++			return mt6797_a72_effect_diagnostic("bhb-pair", target,
++							   -EOPNOTSUPP);
+ 	}
+ 	if (first_target >= 0) {
+ 		first = &effects->target[first_target];
+@@ -756,7 +776,8 @@ mt6797_a72_derive_effects(const struct arm64_late_cpu_plan *plan,
+ 		ret = mt6797_a72_bhb_system_method(
+ 			first->bhb_method, &late_bhb_system_method);
+ 		if (ret)
+-			return ret;
++			return mt6797_a72_effect_diagnostic("bhb-system-method",
++							   first_target, ret);
+ 		effects->bhb.system_method |= late_bhb_system_method;
+ 	}
+ 
+@@ -766,7 +787,7 @@ mt6797_a72_derive_effects(const struct arm64_late_cpu_plan *plan,
+ 		test_bit(ARM64_WORKAROUND_SPECULATIVE_AT,
+ 			 plan->target_local_caps);
+ 
+-	return 0;
++	return mt6797_a72_effect_diagnostic("complete", -1, 0);
+ }
+ 
+ static bool __init
