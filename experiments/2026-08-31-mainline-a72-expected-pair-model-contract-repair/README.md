@@ -57,6 +57,23 @@ exact MIDR directly with the captured CPU register.
 
 CPU9 remains vetoed until CPU8 is reproducibly online.
 
+## Controlled repeat contract
+
+The exact installed candidate, kernel, DT, configuration, and trigger token
+remain unchanged. The repeat tests two new propositions: CPU8 reaches the same
+terminal membership proof on an independent boot, and its per-CPU accounting
+advances while it is online. The host collector uses a fresh attempt-2 evidence
+directory. The boot-bound trigger adds only two read-only `cpu8` lines from
+`/proc/stat`, separated by one BusyBox one-second delay, inside the original
+single netcat session and before the 15-second recovery deadline. It adds no
+task affinity change, workload, CPU request, CPU_OFF, retry, storage access, or
+reboot request.
+
+An exact second `CPU8_ONLINE_PROOF` plus increasing accounting closes the
+repeatability/accounting gate. A terminal failure, missing frame, malformed or
+non-advancing sample, or premature recovery stops the attempt and selects
+post-cycle classification without retry. CPU9 remains vetoed in every branch.
+
 ## Current conclusion
 
 Buildbox generated and replayed canonical patch `0462` from exact post-`0461`
