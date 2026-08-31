@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-expected-pair-model-contract-repair` |
-| Status | `offline pass; exact candidate ready for boot2 deployment` |
+| Status | `CPU8 online once; controlled repeat and bounded affinity evidence pending` |
 | Subsystem | generic arm64 late-CPU expected-pair completeness |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -94,5 +94,26 @@ invocation stopped before opening netcat because a historical wrapper tried to
 replace a candidate hash in the candidate-neutral ABI-5 remote program. No CPU
 request occurred. The host-only wrapper now source-pins that reviewed ABI-5
 program directly. See the [pretrigger result](results/runtime-attempt-1-pretrigger-20260831.txt).
-The next gate is same-boot READY/zero-execution revalidation followed by the
-single CPU8 request. CPU9 remains vetoed.
+
+Same-boot revalidation passed, and the one permitted trigger then returned
+zero with exactly one CPU8 request. Linux reported CPUs 0--8 online and only
+CPU9 offline. The terminal status records `CPU8_ONLINE_PROOF` at membership
+stage 10 with zero stage, rollback, or checkpoint error; P27, P28, SRAM, and
+P30E preparation all completed. Two CRC-valid retained transition-ledger
+copies independently preserve `AFTER MEMBERSHIP` at generation 20 and
+`CPU8_ONLINE_PROOF` at generation 21. The device subsequently returned to a
+changed-ID Gemian boot, consistent with the deliberately armed recovery
+watchdog. See the [runtime result](results/runtime-attempt-1-cpu8-online-20260831.txt).
+
+The initial post-capture classifier exception was a host-only compatibility
+error: the inherited classifier expected a historical `ARMED` constant that
+the current validator no longer exports. The repaired classifier binds to the
+current validator-accepted exact live status, accepts the preserved result as
+`cpu8-online`, and rejects four result-changing mutations without another
+device action.
+
+This is the first attributable mainline CPU8-online result, but the gate is not
+closed yet: recovery occurred before a separate bounded CPU8-affinity or
+coherency sample. One controlled repeat of the exact candidate is selected
+because repeatability and that independent sample are the hypothesis. CPU9,
+CPU_OFF, and retry remain vetoed.

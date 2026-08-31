@@ -30,7 +30,7 @@ Cortex-A72 pair.
 | I2C6 transfer | Native packed/FIFO pointer-read and one exact one-message two-byte FIFO write are runtime proven. The write completed once with payload `[0xda, 0x46]`, exact no-retry accounting, and stable readback. | This closes only the reviewed same-value shape; arbitrary writes, failure recovery, stress, and resume remain open. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
 | Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected. A separate hardware-free implementation now models exact positive Buck-B acquire/release and passes all six focused fake-adapter cases. | Gate 6 is closed for the reviewed no-op, and the first Gate-7 provider source boundary is complete offline. Physical transition, production integration, consumers, and CPU requests remain disconnected. |
-| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. An experiment-only retained-cluster path now provides repeatable bounded execution and scheduler-context cleanup on both CPUs, but safe offlining, rail ownership, rollback, resume, and production integration remain unproved. | Keep both CPUs disconnected from the default profile until the provider and safe-off gates below pass. |
+| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The production-admission experiment has now brought CPU8 online once with an attributable terminal membership proof; the recovery watchdog returned the device before a separate affinity/coherency sample. | Reproduce the exact CPU8 result and capture one bounded CPU8-affinity/accounting sample before changing the candidate or testing CPU9. Keep CPU9 disconnected. |
 
 The durable technical boundary is in
 [DA921x, I2C6, and Cortex-A72](hardware/da921x-i2c6-a72.md). The exact
@@ -6681,8 +6681,19 @@ The next ordered work is:
    completion line, CPU8--9 offline, and zero actions. A host-only historical
    trigger-wrapper derivation then rejected before opening netcat, so no CPU
    request occurred; the candidate-neutral ABI-5 program is now source-pinned
-   directly. **Selected next:** revalidate the same boot's exact READY and
-   zero-execution state, then issue CPU8 once. Keep CPU9 vetoed.
+   directly. Same-boot revalidation passed and the one permitted trigger
+   completed with exactly one CPU8 request, zero operation/stage/rollback/
+   checkpoint errors, and CPUs 0--8 online with CPU9 offline. The terminal
+   status and CRC-valid generation-20/21 retained records independently place
+   the transition after membership and at `CPU8_ONLINE_PROOF`. Changed-ID
+   Gemian recovery followed, consistent with the armed fixed watchdog, before
+   a separate CPU8-affinity sample could be captured. A post-capture host
+   classifier compatibility error was repaired offline and the preserved
+   transcript classifies `cpu8-online`; the device action was not repeated.
+   **Selected next:** boot the same exact candidate once for the explicit
+   repeatability hypothesis, require pristine READY again, issue CPU8 once,
+   and capture one bounded CPU8-affinity/accounting sample before recovery.
+   Keep CPU9, CPU_OFF, and retry vetoed.
 
 The eventual CPU8 candidate must have a single CPU8 request, strict
 checkpoints before and after each power step, a bounded timeout, and a

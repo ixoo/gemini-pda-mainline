@@ -31,6 +31,17 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-31 A72 expected-pair model-contract repair](2026-08-31-mainline-a72-expected-pair-model-contract-repair/README.md)
+  — repairs the generic expected-pair completeness comparison while preserving
+  the exact r0p1 late-target check. Three exact Buildbox profiles and the
+  51-test no-network suite pass; the independently validated candidate was
+  written and fully read back on inactive `boot2`. Its fresh exact READY boot
+  issued one CPU8 request and reached CPUs 0--8 online with CPU9 offline.
+  Terminal status plus CRC-valid generation-20/21 retained records place the
+  transition after membership and at `CPU8_ONLINE_PROOF`. Changed-ID Gemian
+  recovery occurred before a separate affinity sample. One exact repeat is
+  selected for repeatability plus bounded CPU8-affinity evidence; CPU9,
+  CPU_OFF, and retry remain vetoed.
 - [2026-08-29 mainline A72 attestation and READY closure](2026-08-29-mainline-a72-attestation-closure/README.md)
   — maps the complete pmsg-observed CPU8/CPU9 capsule into the exact ABI-7
   schema without promoting prior-cycle Gemian evidence to a current-mainline
