@@ -6551,12 +6551,18 @@ The next ordered work is:
    `FAULT_RETAIN_POSTISO`, retaining P27 and provider ownership. CPUs 0--7
    remained online and CPUs 8--9 offline; CPU9, CPU_OFF, retry, and native
    reboot requests remained zero. Changed-ID Gemian recovery preserved a
-   checksum-valid generation-10 terminal record at stage 5. The physical SRAM
-   owner uses distinct non-`EPROTO` errors, so the new boundary is the binder's
-   SRAM result/P28 contract, but the current status does not expose the
-   disagreeing subfield. Candidate `510cb652...` is retired. **Selected next:**
-   add a read-only terminal diagnostic for the complete SRAM result and P28
-   begin/completion boundary, prove it changes no sequencing or request path,
+   checksum-valid generation-10 terminal record at stage 5. The exact ABI-2
+   diagnostic successor `7cddf030...` then passed a pristine same-boot gate and
+   consumed one trigger. Its SRAM owner returned success with all steps
+   complete and sealed, while the binder match mask was `0xfcf` of required
+   `0xfff`: only the first and second selector bits were absent. Both stable
+   raw reads were `0x4008fb`; the owner correctly validates only their low 12
+   bits (`0x8fb`), while the binder incorrectly compares each full value to
+   `0x8fb`. P28 begin succeeded and completion was not attempted; CPU8 remained
+   offline with zero CPU9, CPU_OFF, retry, or reboot request. Candidate
+   `7cddf030...` is retired. **Selected next:** make only the binder's two
+   selector predicates use the owner's published mask, cover upper status bits
+   in focused KUnit, prove physical/request sequencing unchanged on Buildbox,
    and use at most one new attributable candidate. Retain the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.

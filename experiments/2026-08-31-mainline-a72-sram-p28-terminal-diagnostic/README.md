@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-sram-p28-terminal-diagnostic` |
-| Status | `pristine ABI-2 boot captured; corrected guard validated; trigger pending` |
+| Status | `one trigger localized the exact selector-mask mismatch; candidate retired` |
 | Subsystem | MT6797 CPU8 binder, BigiDVFS SRAM owner, and P28 membership boundary |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -134,27 +134,36 @@ review package on Buildbox. It performs no device access.
   trigger, CPU request, CPU_OFF request, retry, or reboot was sent during this
   guard correction. See the
   [guard correction record](results/pretrigger-guard-correction-20260831.txt).
+- A fresh exact pre-trigger capture on the same boot passed the corrected guard,
+  then one netcat session consumed the sole CPU8 token. The terminal result was
+  `-EPROTO` at stage 5 with CPUs 0-7 still online and CPU8-9 offline; CPU9,
+  CPU_OFF, retry, and reboot requests remained zero.
+- The SRAM owner itself returned success with every step complete, the expected
+  110000 mV-x100 request, a valid calibration, matching first/second selector
+  reads, matching attempt identity/cookie, zero error, and attempted, verified,
+  and sealed state. P28 begin succeeded; P28 completion was not attempted.
+- The required match mask was `0xfff` and the observed mask was `0xfcf`.
+  Exactly bits 4 and 5 were absent: both selector predicates compared the full
+  raw value `0x4008fb` against `0x8fb`. The owner contract intentionally compares
+  only `selector & GENMASK(11, 0)`, which is exactly `0x8fb`; its successful,
+  verified, sealed result proves that masked contract already passed. See the
+  [runtime result](results/runtime-attempt-1-selector-mask-20260831.txt).
 
 ## Analysis
 
-A repair would be premature. Although successful owner code appears to
-construct every binder-required field, runtime has disproved that assumption
-at the aggregate predicate. A complete raw result plus a predicate-match mask
-will show whether the mismatch is ABI, step masks, voltage, selector, attempt
-identity, error, attempted effect, verified state, or seal state. Explicit
-attempt/return markers distinguish that shape rejection from either P28
-boundary without another inference.
+The diagnostic resolved the ambiguity. The owner accepts a selector when its
+low 12 bits equal `0x8fb` and independently requires the two full reads to be
+stable. The binder instead compares each complete register value to `0x8fb`,
+so valid upper status bits make its result contract stricter than the owner
+that produced and sealed the result. Both failing match bits, both identical
+raw values, the owner's success, and the exact source predicates agree.
 
 ## Conclusion
 
-The diagnostic candidate is an exact boot candidate. Its one future trigger
-will distinguish CPU8 online from the precise SRAM predicate bit or P28 return
-boundary that blocks stage 5. The prior candidate is retired and must not be
-repeated.
+Candidate `7cddf030...` is retired and must not be repeated. It successfully
+identified a binder-only selector-mask mismatch; it did not bring CPU8 online.
 
 ## Follow-up
 
-Install the exact padded candidate to live-GPT logical boot2, verify its full
-readback, and shut the device down. On its physical boot, capture one pristine
-pre-trigger baseline and execute at most one boot-bound CPU8 trigger. Retain
+Follow the selector-mask contract repair selected in `docs/ROADMAP.md`. Retain
 the CPU9 veto.
