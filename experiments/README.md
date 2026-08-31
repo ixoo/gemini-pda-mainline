@@ -38,10 +38,12 @@ the loop. Positive identity-gated observations are unaffected.
   written and fully read back on inactive `boot2`. Its fresh exact READY boot
   issued one CPU8 request and reached CPUs 0--8 online with CPU9 offline.
   Terminal status plus CRC-valid generation-20/21 retained records place the
-  transition after membership and at `CPU8_ONLINE_PROOF`. Changed-ID Gemian
-  recovery occurred before a separate affinity sample. One exact repeat is
-  selected for repeatability plus bounded CPU8-affinity evidence; CPU9,
-  CPU_OFF, and retry remain vetoed.
+  transition after membership and at `CPU8_ONLINE_PROOF`. A fresh exact repeat
+  reproduced that result, and two one-second-separated `/proc/stat` samples
+  advanced CPU8's idle accounting from 3 to 104 before changed-ID recovery.
+  The repeatability/accounting gate is closed; the exact candidate is retired
+  from further boots. A minimal same-boot CPU9 successor contract is next,
+  while CPU9, CPU_OFF, and retry remain vetoed in the current candidate.
 - [2026-08-29 mainline A72 attestation and READY closure](2026-08-29-mainline-a72-attestation-closure/README.md)
   — maps the complete pmsg-observed CPU8/CPU9 capsule into the exact ABI-7
   schema without promoting prior-cycle Gemian evidence to a current-mainline

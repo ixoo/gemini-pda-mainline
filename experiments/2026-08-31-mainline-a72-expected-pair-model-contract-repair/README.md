@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-expected-pair-model-contract-repair` |
-| Status | `CPU8 online once; controlled repeat and bounded affinity evidence pending` |
+| Status | `CPU8 online twice; repeatability and bounded accounting gate closed` |
 | Subsystem | generic arm64 late-CPU expected-pair completeness |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -129,8 +129,19 @@ current validator-accepted exact live status, accepts the preserved result as
 `cpu8-online`, and rejects four result-changing mutations without another
 device action.
 
-This is the first attributable mainline CPU8-online result, but the gate is not
-closed yet: recovery occurred before a separate bounded CPU8-affinity or
-coherency sample. One controlled repeat of the exact candidate is selected
-because repeatability and that independent sample are the hypothesis. CPU9,
-CPU_OFF, and retry remain vetoed.
+The controlled repeat used the same exact candidate on fresh boot ID
+`15b0033a...`. Pristine READY revalidation passed, the sole trigger again
+returned `CPU8_ONLINE_PROOF`, and Linux again reported CPUs 0--8 online with
+only CPU9 offline. Two `/proc/stat` samples one second apart showed CPU8's idle
+counter advance from 3 to 104 without changing task affinity or adding a
+workload. The changed-ID recovery boot exposed the same two CRC-valid retained
+records ending at terminal membership proof. See the
+[repeat result](results/runtime-attempt-2-cpu8-repeat-accounting-20260831.txt).
+
+The CPU8 repeatability and bounded-accounting gate is now closed. This proves
+the exact experimental one-shot late-admission path twice; it is not yet a
+default-profile, hotplug, load, thermal, or suspend support claim. The current
+candidate must not be repeated again. The next gate is a source-level audit and
+frozen minimal same-boot CPU9 successor contract. CPU9, CPU_OFF, and retry stay
+vetoed until that distinct candidate passes its own Buildbox and offline
+validation gates.

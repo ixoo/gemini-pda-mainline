@@ -30,7 +30,7 @@ Cortex-A72 pair.
 | I2C6 transfer | Native packed/FIFO pointer-read and one exact one-message two-byte FIFO write are runtime proven. The write completed once with payload `[0xda, 0x46]`, exact no-retry accounting, and stable readback. | This closes only the reviewed same-value shape; arbitrary writes, failure recovery, stress, and resume remain open. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
 | Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected. A separate hardware-free implementation now models exact positive Buck-B acquire/release and passes all six focused fake-adapter cases. | Gate 6 is closed for the reviewed no-op, and the first Gate-7 provider source boundary is complete offline. Physical transition, production integration, consumers, and CPU requests remain disconnected. |
-| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The production-admission experiment has now brought CPU8 online once with an attributable terminal membership proof; the recovery watchdog returned the device before a separate affinity/coherency sample. | Reproduce the exact CPU8 result and capture one bounded CPU8-affinity/accounting sample before changing the candidate or testing CPU9. Keep CPU9 disconnected. |
+| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The production-admission experiment brought CPU8 online on two fresh exact-candidate boots with attributable terminal membership proof; the repeat also advanced CPU8 accounting across a bounded one-second interval before watchdog recovery. | Retire the CPU8-only candidate. Audit and freeze the minimal same-boot CPU9 successor before building or issuing any CPU9 request; keep CPU_OFF and retry disconnected. |
 
 The durable technical boundary is in
 [DA921x, I2C6, and Cortex-A72](hardware/da921x-i2c6-a72.md). The exact
@@ -6690,22 +6690,41 @@ The next ordered work is:
    a separate CPU8-affinity sample could be captured. A post-capture host
    classifier compatibility error was repaired offline and the preserved
    transcript classifies `cpu8-online`; the device action was not repeated.
-   **Selected next:** boot the same exact candidate once for the explicit
-   repeatability hypothesis, require pristine READY again, issue CPU8 once,
-   and capture one bounded CPU8-affinity/accounting sample before recovery.
-   Keep CPU9, CPU_OFF, and retry vetoed.
+   The one selected exact repeat then reached pristine READY on fresh boot ID
+   `15b0033a...`, issued one CPU8 request, and reproduced zero-error terminal
+   `CPU8_ONLINE_PROOF` with CPUs 0--8 online and CPU9 offline. Two `/proc/stat`
+   samples one second apart advanced CPU8's idle accounting from 3 to 104 with
+   no affinity change or workload. Changed-ID Gemian recovery again exposed
+   the CRC-valid generation-20/21 `AFTER MEMBERSHIP` and terminal membership
+   records. This closes the CPU8 repeatability/accounting gate; do not boot the
+   identical candidate again. **Selected next:** audit exact prepared source
+   and freeze the minimal same-boot CPU9 successor contract while keeping
+   CPU9, CPU_OFF, and retry unreachable until that new candidate passes its
+   independent gates.
 
 The eventual CPU8 candidate must have a single CPU8 request, strict
 checkpoints before and after each power step, a bounded timeout, and a
 fail-closed rollback. CPU9
 remains offline and is tested later as a separate hypothesis.
 
-Exit: CPU8 reaches an attributable online checkpoint, executes a bounded
-coherency/accounting test, and can be offlined or safely recovered.
+Exit met for experimental late admission: CPU8 twice reached an attributable
+online checkpoint, its accounting advanced across a bounded interval, and the
+fixed recovery path returned to changed-ID Gemian twice. This does not yet
+claim CPU8 offlining, sustained load, or default-profile support.
 
 ### 8. Validate CPU9 and the complete cluster
 
 After CPU8 is repeatable, test CPU9 separately, then validate:
+
+The immediate CPU9 step is a source-level callback and precondition audit of
+the exact prepared kernel. Every fresh diagnostic boot starts with both A72
+CPUs offline, and the current fixed watchdog recovers after the CPU8
+transition. The successor therefore must establish and durably prove CPU8 in
+the same boot before one separately attributable CPU9 request. The audit must
+decide how CPU9 reuses the already-owned cluster rail, isolation, SRAM, and
+membership state without replaying CPU8-only acquisition or weakening any
+failure gate. No CPU9 candidate or device action is admitted until that
+contract and its hardware-free tests are frozen.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
