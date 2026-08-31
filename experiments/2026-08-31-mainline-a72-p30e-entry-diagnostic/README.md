@@ -102,6 +102,13 @@ KUnit/QEMU, and the exact production build pass on Buildbox.
   passing. This separates the new binder logic from the secondary-entry fault;
   it is diagnostic evidence, not an acceptable replacement for the required
   multi-CPU proof.
+- Buildbox generated and deterministically replayed follow-up patch `0455` from
+  the exact post-`0454` source. Its SHA-256 is `07380e7a...`; the generator
+  proves one normal-text publisher, no idmap publisher, nested MMU-off link
+  preservation, terminal-state cache-clean ordering, and no new CPU request,
+  CPU9 request, CPU_OFF, retry, or storage path. Strict checkpatch reports no
+  warning or check; the sole error is the intentionally absent synthetic DCO
+  sign-off on this experiment-only patch.
 
 ## Analysis
 

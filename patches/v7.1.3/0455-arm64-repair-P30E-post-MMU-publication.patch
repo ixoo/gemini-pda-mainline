@@ -1,0 +1,168 @@
+From 41d685fc1b449695465476f249015a5aa76be9c5 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 31 Aug 2026 15:11:00 +0000
+Subject: [PATCH] arm64: repair P30E post-MMU publication
+
+The P30E target publisher was linked into .idmap.text but called
+from secondary_start_kernel after the MMU was enabled. A four-CPU
+QEMU run consequently took an instruction abort on the first
+secondary, while the same focused suites passed with one CPU.
+
+Move the post-MMU publication path into ordinary C text, select
+only the exact A72 MPIDRs, and clean the complete terminal tuple.
+Also preserve the nested MMU-off cache helper link register.
+---
+ arch/arm64/kernel/mt6797_a72_p30e.c     | 58 +++++++++++++++++++++++++
+ arch/arm64/kernel/mt6797_a72_p30e_asm.S | 49 +--------------------
+ 2 files changed, 60 insertions(+), 47 deletions(-)
+
+diff --git a/arch/arm64/kernel/mt6797_a72_p30e.c b/arch/arm64/kernel/mt6797_a72_p30e.c
+index bac54e2..023e522 100644
+--- a/arch/arm64/kernel/mt6797_a72_p30e.c
++++ b/arch/arm64/kernel/mt6797_a72_p30e.c
+@@ -17,6 +17,7 @@
+ 
+ #include <asm/barrier.h>
+ #include <asm/cacheflush.h>
++#include <asm/cputype.h>
+ #include <asm/memory.h>
+ #include <asm/mt6797_a72_p30e.h>
+ #include <asm/smp.h>
+@@ -57,6 +58,20 @@ static u64 p30e_mpidr(unsigned int cpu)
+ 		ARM64_MT6797_A72_P30E_MPIDR_CPU9;
+ }
+ 
++static int p30e_current_cpu(void)
++{
++	u64 mpidr = read_cpuid_mpidr() & MPIDR_HWID_BITMASK;
++
++	switch (mpidr) {
++	case ARM64_MT6797_A72_P30E_MPIDR_CPU8:
++		return ARM64_MT6797_A72_P30E_CPU8;
++	case ARM64_MT6797_A72_P30E_MPIDR_CPU9:
++		return ARM64_MT6797_A72_P30E_CPU9;
++	default:
++		return -ENODEV;
++	}
++}
++
+ static bool p30e_slot_range_valid(phys_addr_t slot_pa)
+ {
+ 	phys_addr_t start = __pa_symbol(__mmuoff_data_bidirectional_start);
+@@ -258,3 +273,46 @@ int arm64_mt6797_a72_p30e_readback(
+ 
+ 	return ret;
+ }
++
++int arm64_mt6797_a72_p30e_target_publish(u64 state, u64 reason,
++					 u64 effects, u64 entry_pc,
++					 u64 entry_sp)
++{
++	struct arm64_mt6797_a72_p30e_slot *slot;
++	struct arm64_mt6797_a72_p30e_wire *wire;
++	unsigned long flags;
++	u64 sequence;
++	int cpu, ret = 0;
++
++	if (state < ARM64_MT6797_A72_P30E_TARGET_PUBLISHED ||
++	    state > ARM64_MT6797_A72_P30E_PANICKED)
++		return -EINVAL;
++
++	cpu = p30e_current_cpu();
++	if (cpu < 0)
++		return cpu;
++	slot = p30e_slot(cpu);
++	wire = &slot->wire;
++
++	raw_spin_lock_irqsave(&p30e_lock, flags);
++	dsb(sy);
++	p30e_invalidate_slot(slot);
++	if (p30e_word(wire, ARM64_MT6797_A72_P30E_TARGET_STATE_WORD) !=
++	    ARM64_MT6797_A72_P30E_TARGET_CLAIMED) {
++		ret = -EALREADY;
++		goto out_unlock;
++	}
++
++	sequence = p30e_word(wire, ARM64_MT6797_A72_P30E_TARGET_SEQUENCE_WORD);
++	p30e_put(wire, ARM64_MT6797_A72_P30E_TARGET_SEQUENCE_WORD, sequence + 1);
++	p30e_put(wire, ARM64_MT6797_A72_P30E_TARGET_REASON_WORD, reason);
++	p30e_put(wire, ARM64_MT6797_A72_P30E_TARGET_EFFECTS_WORD, effects);
++	p30e_put(wire, ARM64_MT6797_A72_P30E_TARGET_ENTRY_PC_WORD, entry_pc);
++	p30e_put(wire, ARM64_MT6797_A72_P30E_TARGET_ENTRY_SP_WORD, entry_sp);
++	p30e_put(wire, ARM64_MT6797_A72_P30E_TARGET_STATE_WORD, state);
++	p30e_clean_slot(slot);
++
++out_unlock:
++	raw_spin_unlock_irqrestore(&p30e_lock, flags);
++	return ret;
++}
+diff --git a/arch/arm64/kernel/mt6797_a72_p30e_asm.S b/arch/arm64/kernel/mt6797_a72_p30e_asm.S
+index 8096a22..63f92b2 100644
+--- a/arch/arm64/kernel/mt6797_a72_p30e_asm.S
++++ b/arch/arm64/kernel/mt6797_a72_p30e_asm.S
+@@ -38,11 +38,13 @@ SYM_FUNC_END(p30e_select_slot)
+ 
+ /* x1 = selected slot; the cache routine corrupts x0-x3 only. */
+ SYM_FUNC_START_LOCAL(p30e_clean_slot)
++	mov	x14, x30
+ 	mov	x0, x1
+ 	add	x1, x1, #ARM64_MT6797_A72_P30E_SLOT_BYTES
+ 	adr_l	x2, dcache_clean_inval_poc
+ 	blr	x2
+ 	dsb	sy
++	mov	x30, x14
+ 	ret
+ SYM_FUNC_END(p30e_clean_slot)
+ 
+@@ -203,51 +205,4 @@ SYM_FUNC_START(arm64_mt6797_a72_p30e_target_claim)
+ 	ret
+ SYM_FUNC_END(arm64_mt6797_a72_p30e_target_claim)
+ 
+-SYM_FUNC_START(arm64_mt6797_a72_p30e_target_publish)
+-	/* Preserve the terminal tuple across slot selection/cache maintenance. */
+-	mov	x15, x30
+-	mov	x5, x0
+-	mov	x6, x1
+-	mov	x7, x2
+-	mov	x8, x3
+-	mov	x9, x4
+-	cmp	x5, #ARM64_MT6797_A72_P30E_TARGET_PUBLISHED
+-	b.lo	.Lp30e_publish_bad_state
+-	cmp	x5, #ARM64_MT6797_A72_P30E_PANICKED
+-	b.hi	.Lp30e_publish_bad_state
+-	bl	p30e_select_slot
+-	cmp	x0, #0
+-	b.lt	.Lp30e_publish_no_target
+-	add	x3, x1, #ARM64_MT6797_A72_P30E_TARGET_STATE_OFF
+-	ldar	x4, [x3]
+-	cmp	x4, #ARM64_MT6797_A72_P30E_TARGET_CLAIMED
+-	b.ne	.Lp30e_publish_not_claimed
+-	ldr	x10, [x1, #ARM64_MT6797_A72_P30E_TARGET_SEQUENCE_OFF]
+-	add	x10, x10, #1
+-	str	x10, [x1, #ARM64_MT6797_A72_P30E_TARGET_SEQUENCE_OFF]
+-	str	x6, [x1, #ARM64_MT6797_A72_P30E_TARGET_REASON_OFF]
+-	str	x7, [x1, #ARM64_MT6797_A72_P30E_TARGET_EFFECTS_OFF]
+-	str	x8, [x1, #ARM64_MT6797_A72_P30E_TARGET_ENTRY_PC_OFF]
+-	str	x9, [x1, #ARM64_MT6797_A72_P30E_TARGET_ENTRY_SP_OFF]
+-	bl	p30e_clean_slot
+-	bl	p30e_select_slot
+-	add	x3, x1, #ARM64_MT6797_A72_P30E_TARGET_STATE_OFF
+-	stlr	x5, [x3]
+-	mov	x0, #0
+-	mov	x30, x15
+-	ret
+-.Lp30e_publish_bad_state:
+-	mov	x0, #-EINVAL
+-	mov	x30, x15
+-	ret
+-.Lp30e_publish_no_target:
+-	mov	x0, #-ENODEV
+-	mov	x30, x15
+-	ret
+-.Lp30e_publish_not_claimed:
+-	mov	x0, #-EALREADY
+-	mov	x30, x15
+-	ret
+-SYM_FUNC_END(arm64_mt6797_a72_p30e_target_publish)
+-
+ 	.text
