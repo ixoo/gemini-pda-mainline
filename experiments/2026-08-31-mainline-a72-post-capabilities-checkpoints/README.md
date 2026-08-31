@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-post-capabilities-checkpoints` |
-| Status | `preparing` |
+| Status | `patch integrated; compile and runtime pending` |
 | Subsystem | arm64 secondary startup and MT6797 P30E wire |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -78,6 +78,15 @@ watchdog remains the recovery owner and CPU9 remains vetoed.
   reboot `0`.
 - The post-`0457` Buildbox parent and all nine intended parent-file checksums
   are pinned in `scripts/source_edits.py`.
+- Buildbox generated and deterministically replayed canonical patch `0458`
+  from project commit `166ca242a19e...`; strict Checkpatch reported zero
+  errors, warnings, or checks. The exact patch SHA-256 is `2a6c72ae0a10...`.
+- The patch adds five post-capabilities call sites, preserves 26 architectural
+  comparisons plus three structural mismatch bits, and rejects unknown detail
+  bits before any P30E slot mutation.
+- Both repository series-invariant checks pass: all 158 manifest profiles were
+  audited, and the focused self-test rejected all eight mutations. See the
+  [patch-generation evidence](results/patch-generation-20260831.txt).
 
 ## Analysis
 
@@ -89,8 +98,10 @@ failure decision-changing on the first attempt.
 
 ## Conclusion
 
-Running; no new hardware conclusion until the exact successor is built and one
-attributable trigger is classified.
+Patch generation, strict style review, deterministic replay, canonical-series
+integration, and manifest-wide invariant review pass. No new hardware
+conclusion exists until the exact successor is built and one attributable
+trigger is classified.
 
 ## Follow-up
 

@@ -1,0 +1,598 @@
+From f9f5bed7c04e6da0948eb0142232c33fb8bc9574 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 31 Aug 2026 20:10:00 +0000
+Subject: [PATCH] arm64: refine P30E post-capabilities checkpoints
+
+CPU8 retained the P30E capability checkpoint but did not reach
+the existing target-valid checkpoint. The remaining interval
+contains CPU postboot, CPU-info, expectation, and topology work.
+
+Split those operations with target-owned monotonic checkpoints.
+On expectation failure, retain the exact mismatch bitmap and
+first expected/observed pair before the reason commit. Keep the
+CPU request, CPU9 veto, CPU_OFF, retry, and power sequence
+unchanged, and expose the detail through diagnostic ABI 5.
+---
+ arch/arm64/include/asm/late_cpu_profile.h     |  50 +++++-
+ arch/arm64/include/asm/mt6797_a72_p30e.h      |  10 +-
+ arch/arm64/kernel/late_cpu_profile.c          | 162 ++++++++++++++----
+ arch/arm64/kernel/mt6797_a72_p30e.c           |  36 +++-
+ arch/arm64/kernel/smp.c                       |  35 +++-
+ .../mt6797-a72-admission-controller.c         |  15 +-
+ drivers/soc/mediatek/mt6797-a72-binder-test.c |  24 ++-
+ drivers/soc/mediatek/mt6797-a72-binder.c      |   6 +
+ .../linux/soc/mediatek/mt6797-a72-binder.h    |   5 +-
+ 9 files changed, 292 insertions(+), 51 deletions(-)
+
+diff --git a/arch/arm64/include/asm/late_cpu_profile.h b/arch/arm64/include/asm/late_cpu_profile.h
+index 7190cb7..b1eebaa 100644
+--- a/arch/arm64/include/asm/late_cpu_profile.h
++++ b/arch/arm64/include/asm/late_cpu_profile.h
+@@ -565,6 +565,42 @@ struct arm64_late_cpu_profile {
+ 
+ int arm64_late_cpu_validate_boot_caps(void);
+ 
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_MPIDR		BIT_ULL(0)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_MIDR		BIT_ULL(1)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_REVIDR		BIT_ULL(2)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_CNTFRQ		BIT_ULL(3)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_CTR		BIT_ULL(4)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_DCZID		BIT_ULL(5)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_CLIDR_EL1	BIT_ULL(6)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_AA64DFR0		BIT_ULL(7)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_AA64ISAR0	BIT_ULL(8)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_AA64ISAR1	BIT_ULL(9)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_AA64MMFR0	BIT_ULL(10)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_AA64MMFR1	BIT_ULL(11)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_AA64PFR0		BIT_ULL(12)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_AA64PFR1		BIT_ULL(13)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR0		BIT_ULL(14)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR1		BIT_ULL(15)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR2		BIT_ULL(16)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR3		BIT_ULL(17)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR4		BIT_ULL(18)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR5		BIT_ULL(19)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_MMFR0		BIT_ULL(20)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_MMFR1		BIT_ULL(21)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_MMFR2		BIT_ULL(22)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_MMFR3		BIT_ULL(23)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_PFR0		BIT_ULL(24)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_PFR1		BIT_ULL(25)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_CURRENT_CPU	BIT_ULL(61)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_PAIR_CONTRACT	BIT_ULL(62)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_TARGET_SLOT	BIT_ULL(63)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_REGISTER_MASK	(BIT_ULL(26) - 1)
++#define ARM64_LATE_CPU_EXPECT_MISMATCH_ALLOWED_MASK	\
++	(ARM64_LATE_CPU_EXPECT_MISMATCH_REGISTER_MASK |	\
++	 ARM64_LATE_CPU_EXPECT_MISMATCH_CURRENT_CPU |	\
++	 ARM64_LATE_CPU_EXPECT_MISMATCH_PAIR_CONTRACT |	\
++	 ARM64_LATE_CPU_EXPECT_MISMATCH_TARGET_SLOT)
++
+ #ifdef CONFIG_ARM64_LATE_CPU_PROFILE
+ void __init arm64_activate_late_cpu_profile(const struct arm64_late_cpu_profile *profile);
+ void __init arm64_register_late_cpu_target(const struct arm64_late_cpu_profile *profile,
+@@ -577,7 +613,10 @@ arm64_late_cpu_collect_policy(struct arm64_late_cpu_target_policy_evidence *poli
+ 			      struct arm64_late_cpu_system_cap_evidence *system);
+ bool arm64_late_cpu_expected_pair_complete(const struct arm64_late_cpu_plan *plan);
+ int arm64_validate_late_cpu_preflight(unsigned int cpu);
+-int arm64_validate_late_cpu_expected_target(unsigned int cpu);
++int arm64_validate_late_cpu_expected_target(unsigned int cpu,
++					    u64 *mismatches,
++					    u64 *expected,
++					    u64 *observed);
+ void __init arm64_seal_late_cpu_runtime_evidence(void);
+ void __init arm64_prepare_late_cpu_profile(void);
+ void __init arm64_commit_late_cpu_profile(void);
+@@ -706,8 +745,15 @@ arm64_validate_late_cpu_preflight(unsigned int cpu)
+ }
+ 
+ static inline int
+-arm64_validate_late_cpu_expected_target(unsigned int cpu)
++arm64_validate_late_cpu_expected_target(unsigned int cpu, u64 *mismatches,
++					u64 *expected, u64 *observed)
+ {
++	if (mismatches)
++		*mismatches = 0;
++	if (expected)
++		*expected = 0;
++	if (observed)
++		*observed = 0;
+ 	return 0;
+ }
+ 
+diff --git a/arch/arm64/include/asm/mt6797_a72_p30e.h b/arch/arm64/include/asm/mt6797_a72_p30e.h
+index 9847826..0de6d52 100644
+--- a/arch/arm64/include/asm/mt6797_a72_p30e.h
++++ b/arch/arm64/include/asm/mt6797_a72_p30e.h
+@@ -31,8 +31,12 @@
+ #define ARM64_MT6797_A72_P30E_CHECKPOINT_C_ENTRY		3
+ #define ARM64_MT6797_A72_P30E_CHECKPOINT_IDMAP_OFF	4
+ #define ARM64_MT6797_A72_P30E_CHECKPOINT_CAPABILITIES	5
+-#define ARM64_MT6797_A72_P30E_CHECKPOINT_TARGET_VALID	6
+-#define ARM64_MT6797_A72_P30E_CHECKPOINT_IRQ_READY	7
++#define ARM64_MT6797_A72_P30E_CHECKPOINT_CPU_OPS_READY	6
++#define ARM64_MT6797_A72_P30E_CHECKPOINT_CPUINFO_READY	7
++#define ARM64_MT6797_A72_P30E_CHECKPOINT_EXPECTATION_FAILED	8
++#define ARM64_MT6797_A72_P30E_CHECKPOINT_EXPECTATION_VALID	9
++#define ARM64_MT6797_A72_P30E_CHECKPOINT_TOPOLOGY_READY	10
++#define ARM64_MT6797_A72_P30E_CHECKPOINT_IRQ_READY	11
+ 
+ #define ARM64_MT6797_A72_P30E_MAGIC_WORD	0
+ #define ARM64_MT6797_A72_P30E_ABI_WORD	1
+@@ -118,6 +122,8 @@ int arm64_mt6797_a72_p30e_readback(unsigned int cpu,
+ int arm64_mt6797_a72_p30e_target_claim(void);
+ int arm64_mt6797_a72_p30e_target_checkpoint_mmuoff(u64 checkpoint);
+ int arm64_mt6797_a72_p30e_target_checkpoint(u64 checkpoint);
++int arm64_mt6797_a72_p30e_target_detail(u64 checkpoint, u64 details,
++					u64 expected, u64 observed);
+ int arm64_mt6797_a72_p30e_target_publish(u64 state, u64 reason,
+ 						 u64 effects, u64 entry_pc,
+ 						 u64 entry_sp);
+diff --git a/arch/arm64/kernel/late_cpu_profile.c b/arch/arm64/kernel/late_cpu_profile.c
+index ebb1e1a..f3b6de4 100644
+--- a/arch/arm64/kernel/late_cpu_profile.c
++++ b/arch/arm64/kernel/late_cpu_profile.c
+@@ -1746,66 +1746,160 @@ int arm64_validate_late_cpu_preflight(unsigned int cpu)
+ 	return arm64_late_cpu_validate_boot_caps();
+ }
+ 
+-static bool
+-late_expected_target_matches(const struct arm64_late_cpu_expected_pair *expected,
+-			     unsigned int target,
+-			     const struct cpuinfo_arm64 *info)
++static void
++late_expected_target_compare(u64 expected, u64 observed, u64 bit,
++			     u64 *mismatches, u64 *first_expected,
++			     u64 *first_observed)
++{
++	if (expected == observed)
++		return;
++	if (!*mismatches) {
++		*first_expected = expected;
++		*first_observed = observed;
++	}
++	*mismatches |= bit;
++}
++
++static u64
++late_expected_target_mismatches(const struct arm64_late_cpu_expected_pair *pair,
++				unsigned int target,
++				const struct cpuinfo_arm64 *info,
++				u64 *first_expected,
++				u64 *first_observed)
+ {
+ 	const struct cpuinfo_32bit *aarch32 = &info->aarch32;
++	u64 mismatches = 0;
+ 	u64 mpidr = read_cpuid_mpidr() & MPIDR_HWID_BITMASK;
+ 
+-	return expected->mpidr[target] == mpidr &&
+-	       expected->midr == info->reg_midr &&
+-	       expected->revidr == info->reg_revidr &&
+-	       expected->cntfrq == info->reg_cntfrq &&
+-	       expected->ctr == read_cpuid_cachetype() &&
+-	       expected->dczid == info->reg_dczid &&
+-	       expected->clidr_el1 == read_sysreg(clidr_el1) &&
+-	       expected->id_aa64dfr0 == info->reg_id_aa64dfr0 &&
+-	       expected->id_aa64isar0 == info->reg_id_aa64isar0 &&
+-	       expected->id_aa64isar1 == info->reg_id_aa64isar1 &&
+-	       expected->id_aa64mmfr0 == info->reg_id_aa64mmfr0 &&
+-	       expected->id_aa64mmfr1 == info->reg_id_aa64mmfr1 &&
+-	       expected->id_aa64pfr0 == info->reg_id_aa64pfr0 &&
+-	       expected->id_aa64pfr1 == info->reg_id_aa64pfr1 &&
+-	       expected->id_isar0 == aarch32->reg_id_isar0 &&
+-	       expected->id_isar1 == aarch32->reg_id_isar1 &&
+-	       expected->id_isar2 == aarch32->reg_id_isar2 &&
+-	       expected->id_isar3 == aarch32->reg_id_isar3 &&
+-	       expected->id_isar4 == aarch32->reg_id_isar4 &&
+-	       expected->id_isar5 == aarch32->reg_id_isar5 &&
+-	       expected->id_mmfr0 == aarch32->reg_id_mmfr0 &&
+-	       expected->id_mmfr1 == aarch32->reg_id_mmfr1 &&
+-	       expected->id_mmfr2 == aarch32->reg_id_mmfr2 &&
+-	       expected->id_mmfr3 == aarch32->reg_id_mmfr3 &&
+-	       expected->id_pfr0 == aarch32->reg_id_pfr0 &&
+-	       expected->id_pfr1 == aarch32->reg_id_pfr1;
++	late_expected_target_compare(pair->mpidr[target], mpidr,
++				     ARM64_LATE_CPU_EXPECT_MISMATCH_MPIDR, &mismatches,
++				     first_expected, first_observed);
++	late_expected_target_compare(pair->midr, info->reg_midr,
++				     ARM64_LATE_CPU_EXPECT_MISMATCH_MIDR, &mismatches,
++				     first_expected, first_observed);
++	late_expected_target_compare(pair->revidr, info->reg_revidr,
++				     ARM64_LATE_CPU_EXPECT_MISMATCH_REVIDR, &mismatches,
++				     first_expected, first_observed);
++	late_expected_target_compare(pair->cntfrq, info->reg_cntfrq,
++				     ARM64_LATE_CPU_EXPECT_MISMATCH_CNTFRQ, &mismatches,
++				     first_expected, first_observed);
++	late_expected_target_compare(pair->ctr, read_cpuid_cachetype(),
++				     ARM64_LATE_CPU_EXPECT_MISMATCH_CTR, &mismatches,
++				     first_expected, first_observed);
++	late_expected_target_compare(pair->dczid, info->reg_dczid,
++				     ARM64_LATE_CPU_EXPECT_MISMATCH_DCZID, &mismatches,
++				     first_expected, first_observed);
++	late_expected_target_compare(pair->clidr_el1, read_sysreg(clidr_el1),
++				     ARM64_LATE_CPU_EXPECT_MISMATCH_CLIDR_EL1, &mismatches,
++				     first_expected, first_observed);
++	late_expected_target_compare(pair->id_aa64dfr0, info->reg_id_aa64dfr0,
++				     ARM64_LATE_CPU_EXPECT_MISMATCH_AA64DFR0, &mismatches,
++				     first_expected, first_observed);
++	late_expected_target_compare(pair->id_aa64isar0, info->reg_id_aa64isar0,
++				     ARM64_LATE_CPU_EXPECT_MISMATCH_AA64ISAR0, &mismatches,
++				     first_expected, first_observed);
++	late_expected_target_compare(pair->id_aa64isar1, info->reg_id_aa64isar1,
++				     ARM64_LATE_CPU_EXPECT_MISMATCH_AA64ISAR1, &mismatches,
++				     first_expected, first_observed);
++	late_expected_target_compare(pair->id_aa64mmfr0, info->reg_id_aa64mmfr0,
++				     ARM64_LATE_CPU_EXPECT_MISMATCH_AA64MMFR0, &mismatches,
++				     first_expected, first_observed);
++	late_expected_target_compare(pair->id_aa64mmfr1, info->reg_id_aa64mmfr1,
++				     ARM64_LATE_CPU_EXPECT_MISMATCH_AA64MMFR1, &mismatches,
++				     first_expected, first_observed);
++	late_expected_target_compare(pair->id_aa64pfr0, info->reg_id_aa64pfr0,
++				     ARM64_LATE_CPU_EXPECT_MISMATCH_AA64PFR0, &mismatches,
++				     first_expected, first_observed);
++	late_expected_target_compare(pair->id_aa64pfr1, info->reg_id_aa64pfr1,
++				     ARM64_LATE_CPU_EXPECT_MISMATCH_AA64PFR1, &mismatches,
++				     first_expected, first_observed);
++	late_expected_target_compare(pair->id_isar0, aarch32->reg_id_isar0,
++				     ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR0, &mismatches,
++				     first_expected, first_observed);
++	late_expected_target_compare(pair->id_isar1, aarch32->reg_id_isar1,
++				     ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR1, &mismatches,
++				     first_expected, first_observed);
++	late_expected_target_compare(pair->id_isar2, aarch32->reg_id_isar2,
++				     ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR2, &mismatches,
++				     first_expected, first_observed);
++	late_expected_target_compare(pair->id_isar3, aarch32->reg_id_isar3,
++				     ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR3, &mismatches,
++				     first_expected, first_observed);
++	late_expected_target_compare(pair->id_isar4, aarch32->reg_id_isar4,
++				     ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR4, &mismatches,
++				     first_expected, first_observed);
++	late_expected_target_compare(pair->id_isar5, aarch32->reg_id_isar5,
++				     ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR5, &mismatches,
++				     first_expected, first_observed);
++	late_expected_target_compare(pair->id_mmfr0, aarch32->reg_id_mmfr0,
++				     ARM64_LATE_CPU_EXPECT_MISMATCH_MMFR0, &mismatches,
++				     first_expected, first_observed);
++	late_expected_target_compare(pair->id_mmfr1, aarch32->reg_id_mmfr1,
++				     ARM64_LATE_CPU_EXPECT_MISMATCH_MMFR1, &mismatches,
++				     first_expected, first_observed);
++	late_expected_target_compare(pair->id_mmfr2, aarch32->reg_id_mmfr2,
++				     ARM64_LATE_CPU_EXPECT_MISMATCH_MMFR2, &mismatches,
++				     first_expected, first_observed);
++	late_expected_target_compare(pair->id_mmfr3, aarch32->reg_id_mmfr3,
++				     ARM64_LATE_CPU_EXPECT_MISMATCH_MMFR3, &mismatches,
++				     first_expected, first_observed);
++	late_expected_target_compare(pair->id_pfr0, aarch32->reg_id_pfr0,
++				     ARM64_LATE_CPU_EXPECT_MISMATCH_PFR0, &mismatches,
++				     first_expected, first_observed);
++	late_expected_target_compare(pair->id_pfr1, aarch32->reg_id_pfr1,
++				     ARM64_LATE_CPU_EXPECT_MISMATCH_PFR1, &mismatches,
++				     first_expected, first_observed);
++	return mismatches;
+ }
+ 
+-int arm64_validate_late_cpu_expected_target(unsigned int cpu)
++int arm64_validate_late_cpu_expected_target(unsigned int cpu, u64 *mismatches,
++					    u64 *expected_value,
++					    u64 *observed_value)
+ {
+ 	const struct arm64_late_cpu_expected_pair *expected;
+ 	const struct cpuinfo_arm64 *info;
+ 	unsigned int target;
+ 
++	if (!mismatches || !expected_value || !observed_value)
++		return -EINVAL;
++	*mismatches = 0;
++	*expected_value = 0;
++	*observed_value = 0;
++
+ 	/* Pairs with READY publication of late_plan and late_receipt. */
+ 	if (smp_load_acquire(&late_receipt.state) !=
+ 	    ARM64_LATE_CPU_PROFILE_READY)
+ 		return 0;
+ 	if (!cpumask_test_cpu(cpu, &late_plan.target_cpus))
+ 		return 0;
+-	if (cpu != smp_processor_id() || !arm64_late_cpu_expected_pair_complete(&late_plan))
++	if (cpu != smp_processor_id()) {
++		*mismatches = ARM64_LATE_CPU_EXPECT_MISMATCH_CURRENT_CPU;
++		*expected_value = cpu;
++		*observed_value = smp_processor_id();
++		return -EINVAL;
++	}
++	if (!arm64_late_cpu_expected_pair_complete(&late_plan)) {
++		*mismatches = ARM64_LATE_CPU_EXPECT_MISMATCH_PAIR_CONTRACT;
++		*expected_value = 1;
+ 		return -EINVAL;
++	}
+ 
+ 	for (target = 0; target < ARM64_LATE_CPU_MAX_TARGETS; target++)
+ 		if (late_plan.evidence.target_cpu[target] == cpu)
+ 			break;
+-	if (target == ARM64_LATE_CPU_MAX_TARGETS)
++	if (target == ARM64_LATE_CPU_MAX_TARGETS) {
++		*mismatches = ARM64_LATE_CPU_EXPECT_MISMATCH_TARGET_SLOT;
++		*expected_value = cpu;
++		*observed_value = U64_MAX;
+ 		return -EINVAL;
++	}
+ 
+ 	expected = &late_plan.evidence.expected_pair;
+ 	info = this_cpu_ptr(&cpu_data);
+-	return late_expected_target_matches(expected, target, info) ? 0 : -ERANGE;
++	*mismatches = late_expected_target_mismatches(expected, target, info,
++						      expected_value,
++						      observed_value);
++	return *mismatches ? -ERANGE : 0;
+ }
+ 
+ const struct arm64_late_cpu_ready_token *
+diff --git a/arch/arm64/kernel/mt6797_a72_p30e.c b/arch/arm64/kernel/mt6797_a72_p30e.c
+index 737b9a1..bab7d89 100644
+--- a/arch/arm64/kernel/mt6797_a72_p30e.c
++++ b/arch/arm64/kernel/mt6797_a72_p30e.c
+@@ -18,6 +18,7 @@
+ #include <asm/barrier.h>
+ #include <asm/cacheflush.h>
+ #include <asm/cputype.h>
++#include <asm/late_cpu_profile.h>
+ #include <asm/memory.h>
+ #include <asm/mt6797_a72_p30e.h>
+ #include <asm/smp.h>
+@@ -274,7 +275,9 @@ int arm64_mt6797_a72_p30e_readback(
+ 	return ret;
+ }
+ 
+-int arm64_mt6797_a72_p30e_target_checkpoint(u64 checkpoint)
++static int
++p30e_target_checkpoint(u64 checkpoint, u64 details,
++		       u64 expected, u64 observed)
+ {
+ 	struct arm64_mt6797_a72_p30e_slot *slot;
+ 	struct arm64_mt6797_a72_p30e_wire *wire;
+@@ -283,7 +286,11 @@ int arm64_mt6797_a72_p30e_target_checkpoint(u64 checkpoint)
+ 	int cpu, ret = 0;
+ 
+ 	if (checkpoint < ARM64_MT6797_A72_P30E_CHECKPOINT_TASK_READY ||
+-	    checkpoint > ARM64_MT6797_A72_P30E_CHECKPOINT_IRQ_READY)
++	    checkpoint > ARM64_MT6797_A72_P30E_CHECKPOINT_IRQ_READY ||
++	    (!!details != (checkpoint ==
++			    ARM64_MT6797_A72_P30E_CHECKPOINT_EXPECTATION_FAILED)) ||
++	    (details & ~ARM64_LATE_CPU_EXPECT_MISMATCH_ALLOWED_MASK) ||
++	    (!details && (expected || observed)))
+ 		return -EINVAL;
+ 	cpu = p30e_current_cpu();
+ 	if (cpu < 0)
+@@ -298,7 +305,10 @@ int arm64_mt6797_a72_p30e_target_checkpoint(u64 checkpoint)
+ 	    ARM64_MT6797_A72_P30E_ARMED ||
+ 	    p30e_word(wire, ARM64_MT6797_A72_P30E_TARGET_STATE_WORD) !=
+ 	    ARM64_MT6797_A72_P30E_TARGET_CLAIMED ||
+-	    p30e_word(wire, ARM64_MT6797_A72_P30E_TARGET_SEQUENCE_WORD) != 0) {
++	    p30e_word(wire, ARM64_MT6797_A72_P30E_TARGET_SEQUENCE_WORD) != 0 ||
++	    p30e_word(wire, ARM64_MT6797_A72_P30E_TARGET_EFFECTS_WORD) != 0 ||
++	    p30e_word(wire, ARM64_MT6797_A72_P30E_TARGET_ENTRY_PC_WORD) != 0 ||
++	    p30e_word(wire, ARM64_MT6797_A72_P30E_TARGET_ENTRY_SP_WORD) != 0) {
+ 		ret = -EAGAIN;
+ 		goto out_unlock;
+ 	}
+@@ -307,6 +317,14 @@ int arm64_mt6797_a72_p30e_target_checkpoint(u64 checkpoint)
+ 		ret = -EALREADY;
+ 		goto out_unlock;
+ 	}
++	if (details) {
++		p30e_put(wire, ARM64_MT6797_A72_P30E_TARGET_EFFECTS_WORD,
++			 details);
++		p30e_put(wire, ARM64_MT6797_A72_P30E_TARGET_ENTRY_PC_WORD,
++			 expected);
++		p30e_put(wire, ARM64_MT6797_A72_P30E_TARGET_ENTRY_SP_WORD,
++			 observed);
++	}
+ 	p30e_put(wire, ARM64_MT6797_A72_P30E_TARGET_REASON_WORD, checkpoint);
+ 	p30e_clean_slot(slot);
+ 
+@@ -315,6 +333,18 @@ out_unlock:
+ 	return ret;
+ }
+ 
++int arm64_mt6797_a72_p30e_target_checkpoint(u64 checkpoint)
++{
++	return p30e_target_checkpoint(checkpoint, 0, 0, 0);
++}
++
++int
++arm64_mt6797_a72_p30e_target_detail(u64 checkpoint, u64 details,
++				    u64 expected, u64 observed)
++{
++	return p30e_target_checkpoint(checkpoint, details, expected, observed);
++}
++
+ int arm64_mt6797_a72_p30e_target_publish(u64 state, u64 reason,
+ 					 u64 effects, u64 entry_pc,
+ 					 u64 entry_sp)
+diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
+index 4c23647..39fd3aa 100644
+--- a/arch/arm64/kernel/smp.c
++++ b/arch/arm64/kernel/smp.c
+@@ -299,6 +299,9 @@ asmlinkage notrace void secondary_start_kernel(void)
+ 	const struct cpu_operations *ops;
+ 	unsigned int cpu;
+ 	int expectation_ret;
++	u64 expectation_mismatches = 0;
++	u64 expectation_expected = 0;
++	u64 expectation_observed = 0;
+ #ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
+ 	u64 p30e_checkpoint;
+ #endif
+@@ -355,21 +358,45 @@ asmlinkage notrace void secondary_start_kernel(void)
+ 	ops = get_cpu_ops(cpu);
+ 	if (ops->cpu_postboot)
+ 		ops->cpu_postboot();
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	p30e_checkpoint = ARM64_MT6797_A72_P30E_CHECKPOINT_CPU_OPS_READY;
++	(void)arm64_mt6797_a72_p30e_target_checkpoint(p30e_checkpoint);
++#endif
+ 
+ 	/*
+ 	 * Log the CPU info before it is marked online and might get read.
+ 	 */
+ 	cpuinfo_store_cpu();
+-	expectation_ret = arm64_validate_late_cpu_expected_target(cpu);
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	p30e_checkpoint = ARM64_MT6797_A72_P30E_CHECKPOINT_CPUINFO_READY;
++	(void)arm64_mt6797_a72_p30e_target_checkpoint(p30e_checkpoint);
++#endif
++	expectation_ret = arm64_validate_late_cpu_expected_target(cpu,
++								  &expectation_mismatches,
++								  &expectation_expected,
++								  &expectation_observed);
+ 	if (expectation_ret) {
+-		pr_crit("CPU%u: late target expectation mismatch: %d\n",
+-			cpu, expectation_ret);
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++		p30e_checkpoint =
++			ARM64_MT6797_A72_P30E_CHECKPOINT_EXPECTATION_FAILED;
++		(void)arm64_mt6797_a72_p30e_target_detail(p30e_checkpoint,
++							  expectation_mismatches,
++							  expectation_expected,
++							  expectation_observed);
++#endif
++		pr_crit("CPU%u: late target expectation mismatch: %d mask=%#llx\n",
++			cpu, expectation_ret,
++			(unsigned long long)expectation_mismatches);
+ 		update_cpu_boot_status(CPU_STUCK_IN_KERNEL);
+ 		cpu_park_loop();
+ 	}
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	p30e_checkpoint = ARM64_MT6797_A72_P30E_CHECKPOINT_EXPECTATION_VALID;
++	(void)arm64_mt6797_a72_p30e_target_checkpoint(p30e_checkpoint);
++#endif
+ 	store_cpu_topology(cpu);
+ #ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
+-	p30e_checkpoint = ARM64_MT6797_A72_P30E_CHECKPOINT_TARGET_VALID;
++	p30e_checkpoint = ARM64_MT6797_A72_P30E_CHECKPOINT_TOPOLOGY_READY;
+ 	(void)arm64_mt6797_a72_p30e_target_checkpoint(p30e_checkpoint);
+ #endif
+ 
+diff --git a/drivers/soc/mediatek/mt6797-a72-admission-controller.c b/drivers/soc/mediatek/mt6797-a72-admission-controller.c
+index 90f5c2d..11a66ec 100644
+--- a/drivers/soc/mediatek/mt6797-a72-admission-controller.c
++++ b/drivers/soc/mediatek/mt6797-a72-admission-controller.c
+@@ -433,11 +433,18 @@ static ssize_t status_show(struct device *dev, struct device_attribute *attr,
+ 			     "p30e_readback_attempted=%u p30e_readback_ret=%d ",
+ 			     diagnostic.p30e_readback_attempted,
+ 			     diagnostic.p30e_readback_ret);
++	len += sysfs_emit_at(buf, len,
++			     "p30e_controller_state=%u p30e_target_state=%u p30e_target_reason=%u ",
++			     diagnostic.p30e_controller_state,
++			     diagnostic.p30e_target_state,
++			     diagnostic.p30e_target_reason);
++	len += sysfs_emit_at(buf, len,
++			     "p30e_target_effects=0x%llx p30e_target_entry_pc=0x%llx ",
++			     (unsigned long long)diagnostic.p30e_target_effects,
++			     (unsigned long long)diagnostic.p30e_target_entry_pc);
+ 	return len + sysfs_emit_at(buf, len,
+-				   "p30e_controller_state=%u p30e_target_state=%u p30e_target_reason=%u p30e_target_sequence=%u p30e_controller_sequence=%u\n",
+-				   diagnostic.p30e_controller_state,
+-				   diagnostic.p30e_target_state,
+-				   diagnostic.p30e_target_reason,
++				   "p30e_target_entry_sp=0x%llx p30e_target_sequence=%u p30e_controller_sequence=%u\n",
++				   (unsigned long long)diagnostic.p30e_target_entry_sp,
+ 				   diagnostic.p30e_target_sequence,
+ 				   diagnostic.p30e_controller_sequence);
+ }
+diff --git a/drivers/soc/mediatek/mt6797-a72-binder-test.c b/drivers/soc/mediatek/mt6797-a72-binder-test.c
+index cae5f6d..591d29a 100644
+--- a/drivers/soc/mediatek/mt6797-a72-binder-test.c
++++ b/drivers/soc/mediatek/mt6797-a72-binder-test.c
+@@ -67,6 +67,9 @@ struct mt6797_binder_test_state {
+ #ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
+ 	u32 p30e_target_state;
+ 	u32 p30e_target_reason;
++	u64 p30e_target_effects;
++	u64 p30e_target_entry_pc;
++	u64 p30e_target_entry_sp;
+ 	u32 p30e_prepares;
+ 	u32 p30e_arms;
+ 	u32 p30e_readbacks;
+@@ -321,6 +324,12 @@ mt6797_binder_test_p30e_readback(
+ 		cpu_to_le64(target);
+ 	copy->word[ARM64_MT6797_A72_P30E_TARGET_REASON_WORD] =
+ 		cpu_to_le64(state->p30e_target_reason);
++	copy->word[ARM64_MT6797_A72_P30E_TARGET_EFFECTS_WORD] =
++		cpu_to_le64(state->p30e_target_effects);
++	copy->word[ARM64_MT6797_A72_P30E_TARGET_ENTRY_PC_WORD] =
++		cpu_to_le64(state->p30e_target_entry_pc);
++	copy->word[ARM64_MT6797_A72_P30E_TARGET_ENTRY_SP_WORD] =
++		cpu_to_le64(state->p30e_target_entry_sp);
+ 	copy->word[ARM64_MT6797_A72_P30E_CONTROLLER_SEQUENCE_WORD] =
+ 		cpu_to_le64(1);
+ 	copy->word[ARM64_MT6797_A72_P30E_TARGET_SEQUENCE_WORD] =
+@@ -838,7 +847,14 @@ static void mt6797_binder_p30e_readback_test(struct kunit *test)
+ 		state->p30e_target_state = target_states[i];
+ 		state->p30e_target_reason = target_states[i] ==
+ 			ARM64_MT6797_A72_P30E_TARGET_CLAIMED ?
+-			ARM64_MT6797_A72_P30E_CHECKPOINT_C_ENTRY : 0;
++			ARM64_MT6797_A72_P30E_CHECKPOINT_EXPECTATION_FAILED : 0;
++		state->p30e_target_effects = target_states[i] ==
++			ARM64_MT6797_A72_P30E_TARGET_CLAIMED ?
++			ARM64_LATE_CPU_EXPECT_MISMATCH_CTR : 0;
++		state->p30e_target_entry_pc = target_states[i] ==
++			ARM64_MT6797_A72_P30E_TARGET_CLAIMED ? 0x8444c004 : 0;
++		state->p30e_target_entry_sp = target_states[i] ==
++			ARM64_MT6797_A72_P30E_TARGET_CLAIMED ? 0x84448004 : 0;
+ 		ret = mt6797_a72_binder_test_failure(&state->binder, 8, -EIO,
+ 					     &publish_p32);
+ 		KUNIT_ASSERT_EQ(test, ret, 0);
+@@ -859,6 +875,12 @@ static void mt6797_binder_p30e_readback_test(struct kunit *test)
+ 				target_states[i]);
+ 		KUNIT_EXPECT_EQ(test, diagnostic.p30e_target_reason,
+ 				state->p30e_target_reason);
++		KUNIT_EXPECT_EQ(test, diagnostic.p30e_target_effects,
++				state->p30e_target_effects);
++		KUNIT_EXPECT_EQ(test, diagnostic.p30e_target_entry_pc,
++				state->p30e_target_entry_pc);
++		KUNIT_EXPECT_EQ(test, diagnostic.p30e_target_entry_sp,
++				state->p30e_target_entry_sp);
+ 		KUNIT_EXPECT_EQ(test, diagnostic.p30e_target_sequence,
+ 				target_states[i] >=
+ 				ARM64_MT6797_A72_P30E_TARGET_PUBLISHED);
+diff --git a/drivers/soc/mediatek/mt6797-a72-binder.c b/drivers/soc/mediatek/mt6797-a72-binder.c
+index 6c6f16e..613e559 100644
+--- a/drivers/soc/mediatek/mt6797-a72-binder.c
++++ b/drivers/soc/mediatek/mt6797-a72-binder.c
+@@ -184,6 +184,12 @@ mt6797_a72_binder_fill_diagnostic(const struct mt6797_a72_binder *binder,
+ 		ARM64_MT6797_A72_P30E_TARGET_STATE_WORD]);
+ 	snapshot->p30e_target_reason =
+ 		le64_to_cpu(p30e[ARM64_MT6797_A72_P30E_TARGET_REASON_WORD]);
++	snapshot->p30e_target_effects =
++		le64_to_cpu(p30e[ARM64_MT6797_A72_P30E_TARGET_EFFECTS_WORD]);
++	snapshot->p30e_target_entry_pc =
++		le64_to_cpu(p30e[ARM64_MT6797_A72_P30E_TARGET_ENTRY_PC_WORD]);
++	snapshot->p30e_target_entry_sp =
++		le64_to_cpu(p30e[ARM64_MT6797_A72_P30E_TARGET_ENTRY_SP_WORD]);
+ 	snapshot->p30e_target_sequence = le64_to_cpu(binder->p30e_snapshot.word[
+ 		ARM64_MT6797_A72_P30E_TARGET_SEQUENCE_WORD]);
+ 	snapshot->p30e_controller_sequence = le64_to_cpu(binder->p30e_snapshot.word[
+diff --git a/include/linux/soc/mediatek/mt6797-a72-binder.h b/include/linux/soc/mediatek/mt6797-a72-binder.h
+index c8ad22a..d82d66f 100644
+--- a/include/linux/soc/mediatek/mt6797-a72-binder.h
++++ b/include/linux/soc/mediatek/mt6797-a72-binder.h
+@@ -10,7 +10,7 @@
+ 
+ typedef int (*mt6797_a72_cpu_boot_fn)(unsigned int cpu);
+ 
+-#define MT6797_A72_BINDER_DIAGNOSTIC_ABI 4U
++#define MT6797_A72_BINDER_DIAGNOSTIC_ABI 5U
+ 
+ #define MT6797_A72_BINDER_SRAM_MATCH_ABI		BIT(0)
+ #define MT6797_A72_BINDER_SRAM_MATCH_ATTEMPTED	BIT(1)
+@@ -90,6 +90,9 @@ struct mt6797_a72_binder_diagnostic {
+ 	u32 p30e_controller_state;
+ 	u32 p30e_target_state;
+ 	u32 p30e_target_reason;
++	u64 p30e_target_effects;
++	u64 p30e_target_entry_pc;
++	u64 p30e_target_entry_sp;
+ 	u32 p30e_target_sequence;
+ 	u32 p30e_controller_sequence;
+ };
