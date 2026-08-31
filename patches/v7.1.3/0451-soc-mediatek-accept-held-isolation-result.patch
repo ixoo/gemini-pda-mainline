@@ -1,0 +1,47 @@
+From e05a64a353006a13434b564629eb22caa0174be4 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 31 Aug 2026 05:01:00 +0000
+Subject: [PATCH] soc: mediatek: accept held isolation result
+
+The repaired CPU8 path crossed P27 and provider acquisition,
+then rejected a successful isolation result because it remained
+open while ownership was held. Production enters ISOLATED without
+sealing until the final DCM operation.
+
+Expect an open isolation result and make the KUnit fake reproduce
+that contract. Preserve the open P27 acquire plus sealed release
+and DCM completion requirements.
+---
+ drivers/soc/mediatek/mt6797-a72-binder-test.c | 2 +-
+ drivers/soc/mediatek/mt6797-a72-binder.c      | 4 +++-
+ 2 files changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-binder-test.c b/drivers/soc/mediatek/mt6797-a72-binder-test.c
+index 1f63236..4a00d8c 100644
+--- a/drivers/soc/mediatek/mt6797-a72-binder-test.c
++++ b/drivers/soc/mediatek/mt6797-a72-binder-test.c
+@@ -350,7 +350,7 @@ static int mt6797_binder_test_isolation(struct device *dev,
+ 	result->p27_owned = true;
+ 	result->isolation_attempted = true;
+ 	result->isolation_crossed = true;
+-	result->sealed = state->malformed != TEST_MALFORMED_ISOLATION;
++	result->sealed = state->malformed == TEST_MALFORMED_ISOLATION;
+ 	mt6797_binder_test_event(TEST_EVENT_ISOLATION);
+ 	return handle->attempt_id == TEST_GENERATION &&
+ 		provider->generation == TEST_PROVIDER_GENERATION &&
+diff --git a/drivers/soc/mediatek/mt6797-a72-binder.c b/drivers/soc/mediatek/mt6797-a72-binder.c
+index 26c18e5..b47b97c 100644
+--- a/drivers/soc/mediatek/mt6797-a72-binder.c
++++ b/drivers/soc/mediatek/mt6797-a72-binder.c
+@@ -405,8 +405,10 @@ static int mt6797_a72_binder_isolation(void *context)
+ 					       &binder->isolation);
+ 	if (ret)
+ 		return ret;
++	/* Isolation remains open while P27 and provider ownership are held. */
+ 	if (!mt6797_a72_effect_result_shape(&binder->isolation,
+-					    MT6797_A72_PLATFORM_EFFECT_ISOLATION_CLEAR, true) ||
++					    MT6797_A72_PLATFORM_EFFECT_ISOLATION_CLEAR,
++					    false) ||
+ 	    binder->isolation.error || !binder->isolation.p27_owned ||
+ 	    !binder->isolation.isolation_attempted ||
+ 	    !binder->isolation.isolation_crossed ||

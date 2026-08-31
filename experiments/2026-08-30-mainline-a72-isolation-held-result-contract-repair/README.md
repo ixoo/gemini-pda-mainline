@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-isolation-held-result-contract-repair` |
-| Status | `patch generation pending on Buildbox` |
+| Status | `patch generated and admitted; focused Buildbox validation pending` |
 | Subsystem | MT6797 CPU8 binder and platform-effect owner contract |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -75,6 +75,15 @@ Git tree and a checksum-covered patch-review package on Buildbox.
 - The binder currently requires sealed isolation success, and the KUnit fake
   currently returns sealed success. The test model therefore disagrees with
   the production result at the exact runtime failure boundary.
+- Buildbox generated exactly one patch from the checksum-pinned post-`0450`
+  source, and deterministic replay reproduced it.
+- The patch changes no physical-effect or CPU-request call count and adds no
+  CPU9, CPU_OFF, retry, retained-RAM, storage, or device path.
+- Strict Checkpatch reported zero warnings and zero checks. Its sole error is
+  the intentionally absent DCO sign-off on the synthetic experiment author;
+  this internal archive is not submission-ready.
+- The exact generated patch SHA-256 is
+  `248dd2271daedc8a106ea4bea628108d99da143be8bdbbfb9aacb815af3154da`.
 
 ## Analysis
 
@@ -87,9 +96,9 @@ must not be inferred from this result.
 
 ## Conclusion
 
-The hypothesis is source-attributed but not yet offline-validated. Patch
-generation, replay, KUnit, and production Buildbox results are pending. This is
-not CPU8 hardware-support evidence.
+Patch generation and deterministic replay pass. Focused KUnit and the
+production-profile Buildbox build remain required before any candidate exists.
+This is not CPU8 hardware-support evidence.
 
 ## Follow-up
 

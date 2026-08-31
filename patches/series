@@ -440,3 +440,4 @@ v7.1.3/0447-regulator-da9213-claim-CPU8-before-P27-tests.patch
 v7.1.3/0448-arm64-mediatek-seed-CPU8-claim-in-isolated-KUnit.patch
 v7.1.3/0449-soc-mediatek-expose-CPU8-P27-terminal-diagnostic.patch
 v7.1.3/0450-soc-mediatek-accept-held-P27-acquire-result.patch
+v7.1.3/0451-soc-mediatek-accept-held-isolation-result.patch
