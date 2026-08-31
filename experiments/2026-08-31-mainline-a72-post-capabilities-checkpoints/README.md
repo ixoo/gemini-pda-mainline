@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-post-capabilities-checkpoints` |
-| Status | `production candidate validated; deployment pending` |
+| Status | `boot2 deployed and shut down; runtime attempt pending` |
 | Subsystem | arm64 secondary startup and MT6797 P30E wire |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -118,6 +118,11 @@ watchdog remains the recovery owner and CPU9 remains vetoed.
   while reason 8 also preserves the exact mismatch bitmap and first
   expected/observed pair. See the
   [predeployment record](results/predeployment-hypothesis-20260831.txt).
+- The live GPT resolved inactive, unmounted `boot2` as `/dev/mmcblk0p30`
+  while root remained `/dev/mmcblk0p29`. Its exact checkpoint-5 predecessor
+  matched, the full 16 MiB write/readback matched `9f7ff84912ff...`, and the
+  device shut down cleanly. No fresh backup was made. See the
+  [deployment evidence](results/deployment-boot2-20260831.txt).
 
 ## Analysis
 
@@ -132,9 +137,9 @@ failure decision-changing on the first attempt.
 Patch generation, strict style review, deterministic replay, canonical-series
 integration, manifest-wide invariant review, focused compilation, package
 validation, the no-network 51-test boot, production build, device-tree
-composition, and independent boot-container validation all pass. No new
-hardware conclusion exists until the exact successor is installed and one
-attributable trigger is classified.
+composition, independent boot-container validation, and exact `boot2`
+deployment all pass. No new hardware conclusion exists until one attributable
+boot and trigger are classified.
 
 ## Follow-up
 
