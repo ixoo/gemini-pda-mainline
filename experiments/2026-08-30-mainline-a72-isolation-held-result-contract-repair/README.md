@@ -115,7 +115,8 @@ online state.
 ## Follow-up
 
 Install exact padded image `510cb652...` to live-GPT-resolved inactive `boot2`,
-require a matching full-partition readback, and shut down. On its selected boot,
-accept only the exact pristine baseline and issue one boot-bound trigger. Do
-not repeat either predecessor image or prepare CPU9 until CPU8 is reproducibly
-online.
+accept only the published checksum-valid generation-8 isolation predecessor
+ledger, require a matching full-partition readback, and shut down. On its
+selected boot, accept only the exact pristine baseline and issue one boot-bound
+trigger. Do not repeat either predecessor image or prepare CPU9 until CPU8 is
+reproducibly online.

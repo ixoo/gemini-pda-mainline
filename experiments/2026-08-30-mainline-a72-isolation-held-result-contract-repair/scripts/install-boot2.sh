@@ -52,6 +52,21 @@ for old, new, count in replacements:
             f"{count}, found {actual}: {old}"
         )
     text = text.replace(old, new)
+anchor = "replacements = (\n"
+injection = '''replacements = (
+    ("4442474348000000480000004737544c09000100010000000000000003000000",
+     "4442474348000000480000004737544c09000100010000000000000007000000", 1),
+    ("010000000200000000000000b00178994737544c090001000100000000000000",
+     "010000000400000000000000b044268b4737544c090001000100000000000000", 1),
+    ("04000000030000000200000003000000b4c80f9a",
+     "08000000030000000400000004000000422a9566", 1),
+    ("transition_ledger_latest_generation=4", "transition_ledger_latest_generation=8", 1),
+    ("transition_ledger_latest_stage=2", "transition_ledger_latest_stage=4", 1),
+    ("transition_ledger_latest_terminal=3", "transition_ledger_latest_terminal=4", 1),
+'''
+if text.count(anchor) != 1:
+    raise SystemExit("unsafe isolation held-result ledger prerequisite derivation")
+text = text.replace(anchor, injection, 1)
 Path(sys.argv[2]).write_text(text, encoding="utf-8")
 PY
 chmod 0700 "$derived"
