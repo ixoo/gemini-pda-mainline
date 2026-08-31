@@ -6650,12 +6650,24 @@ The next ordered work is:
    `late_cpu_expected_field_valid()`, which still accepts only the
    revision-zero `MIDR_CORTEX_A72` literal. CPU8 and CPU9 were never requested,
    so this is a planning regression rather than a target-entry result.
-7. **Selected next:** make that single expected-field guard compare Cortex-A72
-   model bits while preserving the exact r0p1 value for late-target validation.
-   Prove the model guard accepts r0p1 but rejects another CPU model, keep all
-   other planning inputs and action paths unchanged, and run the canonical
-   Buildbox, focused multi-CPU, container, and pretrigger gates. Spend one fresh
-   CPU8-only attempt only after READY is restored. Keep CPU9 vetoed.
+7. **Effect-plan localization:** canonical patch `0460` changed only that
+   expected-field guard to compare Cortex-A72 model bits while preserving the
+   exact r0p1 late-target contract. Its fresh read-only boot restored all three
+   mitigation capabilities and exact aggregate/per-target capability sets, but
+   READY still stopped with plan mask `0x36000`: effect planning and dependent
+   HWCAP planning remained empty. CPU8 was not requested. Canonical diagnostic
+   patch `0461` now names all 14 profile derivation exits and the four generic
+   planner boundaries without changing control flow. Its focused Buildbox/QEMU
+   suite passed 51/51 tests; exact padded candidate `b78ac044...` passed all 32
+   LK gates and six negative mutations, was written to live-resolved inactive
+   `boot2`, fully read back, and shut down. Two subsequent observer windows saw
+   no exact USB interface and therefore no attributable boot. A read-only audit
+   of the exact source proves the effect planner was invoked in the parent boot
+   and predicts completion for the captured clean inputs, so no speculative
+   repair is selected. **Selected next:** pre-arm the collector and obtain one
+   fresh `b78ac044...` boot2 stage ledger without triggering CPU8. Repair only
+   the named failing branch, rebuild on Buildbox, and spend one CPU8-only
+   attempt only after READY is exact. Keep CPU9 vetoed.
 
 The eventual CPU8 candidate must have a single CPU8 request, strict
 checkpoints before and after each power step, a bounded timeout, and a

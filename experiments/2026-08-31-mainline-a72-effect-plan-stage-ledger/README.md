@@ -82,3 +82,14 @@ confirmed unreachable. See the
 [deployment evidence](results/deployment-boot2-20260831.txt). The next action
 is one fresh diagnostic boot with read-only capture; it must not issue the
 CPU8 trigger.
+
+Two bounded observer windows after deployment saw no exact USB interface and
+therefore captured no boot. They are absence-of-selection observations, not
+candidate or CPU8 results. During that wait, a read-only audit of the exact
+prepared source established that `local_caps_planned=1` implies the capability
+planner returned success and the effect planner was called. Evaluating the
+clean captured evidence and immutable r0p1 expectation against every current
+effect predicate predicts completion, which makes the runtime stage ledger the
+required discriminator before any repair. See the
+[observer-window evidence](results/observer-windows-20260831.txt) and
+[offline predicate audit](results/offline-effect-plan-predicate-audit-20260831.txt).
