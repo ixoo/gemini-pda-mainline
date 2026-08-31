@@ -205,11 +205,11 @@ def validate(root: Path, parent_counts: dict[str, int]) -> list[str]:
 
     required = {
         p30e_h: (
-            "arm64_mt6797_a72_p30e_target_checkpoint_detail",
+            "arm64_mt6797_a72_p30e_target_detail",
             "ARM64_MT6797_A72_P30E_CHECKPOINT_EXPECTATION_FAILED",
         ),
         p30e_c: (
-            "__arm64_mt6797_a72_p30e_target_checkpoint",
+            "p30e_target_checkpoint",
             "ARM64_MT6797_A72_P30E_TARGET_EFFECTS_WORD) != 0",
             "ARM64_MT6797_A72_P30E_TARGET_ENTRY_PC_WORD) != 0",
             "ARM64_MT6797_A72_P30E_TARGET_ENTRY_SP_WORD) != 0",
@@ -224,7 +224,7 @@ def validate(root: Path, parent_counts: dict[str, int]) -> list[str]:
         ),
         smp: (
             "&expectation_mismatches",
-            "arm64_mt6797_a72_p30e_target_checkpoint_detail(",
+            "arm64_mt6797_a72_p30e_target_detail(",
             "mask=%#llx",
         ),
         public: (

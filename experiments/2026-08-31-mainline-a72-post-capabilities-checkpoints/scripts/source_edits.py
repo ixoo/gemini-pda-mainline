@@ -83,10 +83,8 @@ def apply(root: Path) -> None:
         """int arm64_mt6797_a72_p30e_target_checkpoint(u64 checkpoint);
 int arm64_mt6797_a72_p30e_target_publish(u64 state, u64 reason,""",
         """int arm64_mt6797_a72_p30e_target_checkpoint(u64 checkpoint);
-int arm64_mt6797_a72_p30e_target_checkpoint_detail(u64 checkpoint,
-\t\t\t\t\t\t\tu64 details,
-\t\t\t\t\t\t\tu64 expected,
-\t\t\t\t\t\t\tu64 observed);
+int arm64_mt6797_a72_p30e_target_detail(u64 checkpoint, u64 details,
+\t\t\t\t\tu64 expected, u64 observed);
 int arm64_mt6797_a72_p30e_target_publish(u64 state, u64 reason,""",
         "detailed checkpoint prototype",
     )
@@ -136,8 +134,8 @@ out_unlock:
 }
 """
     new_checkpoint = """static int
-__arm64_mt6797_a72_p30e_target_checkpoint(u64 checkpoint, u64 details,
-\t\t\t\t\t\t u64 expected, u64 observed)
+p30e_target_checkpoint(u64 checkpoint, u64 details,
+\t\t       u64 expected, u64 observed)
 {
 \tstruct arm64_mt6797_a72_p30e_slot *slot;
 \tstruct arm64_mt6797_a72_p30e_wire *wire;
@@ -178,11 +176,11 @@ __arm64_mt6797_a72_p30e_target_checkpoint(u64 checkpoint, u64 details,
 \t}
 \tif (details) {
 \t\tp30e_put(wire, ARM64_MT6797_A72_P30E_TARGET_EFFECTS_WORD,
-\t\t\t  details);
+\t\t\t details);
 \t\tp30e_put(wire, ARM64_MT6797_A72_P30E_TARGET_ENTRY_PC_WORD,
-\t\t\t  expected);
+\t\t\t expected);
 \t\tp30e_put(wire, ARM64_MT6797_A72_P30E_TARGET_ENTRY_SP_WORD,
-\t\t\t  observed);
+\t\t\t observed);
 \t}
 \tp30e_put(wire, ARM64_MT6797_A72_P30E_TARGET_REASON_WORD, checkpoint);
 \tp30e_clean_slot(slot);
@@ -194,16 +192,14 @@ out_unlock:
 
 int arm64_mt6797_a72_p30e_target_checkpoint(u64 checkpoint)
 {
-\treturn __arm64_mt6797_a72_p30e_target_checkpoint(checkpoint, 0, 0, 0);
+\treturn p30e_target_checkpoint(checkpoint, 0, 0, 0);
 }
 
-int arm64_mt6797_a72_p30e_target_checkpoint_detail(u64 checkpoint,
-\t\t\t\t\t\t\tu64 details,
-\t\t\t\t\t\t\tu64 expected,
-\t\t\t\t\t\t\tu64 observed)
+int
+arm64_mt6797_a72_p30e_target_detail(u64 checkpoint, u64 details,
+\t\t\t\t    u64 expected, u64 observed)
 {
-\treturn __arm64_mt6797_a72_p30e_target_checkpoint(checkpoint, details,
-\t\t\t\t\t\t\texpected, observed);
+\treturn p30e_target_checkpoint(checkpoint, details, expected, observed);
 }
 """
     p30e_c = replace_once(
@@ -220,40 +216,40 @@ int arm64_mt6797_a72_p30e_target_checkpoint_detail(u64 checkpoint,
 #ifdef CONFIG_ARM64_LATE_CPU_PROFILE""",
         """int arm64_late_cpu_validate_boot_caps(void);
 
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_MPIDR\t\t(1ULL << 0)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_MIDR\t\t(1ULL << 1)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_REVIDR\t\t(1ULL << 2)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_CNTFRQ\t\t(1ULL << 3)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_CTR\t\t(1ULL << 4)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_DCZID\t\t(1ULL << 5)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_CLIDR_EL1\t(1ULL << 6)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_AA64DFR0\t\t(1ULL << 7)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_AA64ISAR0\t(1ULL << 8)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_AA64ISAR1\t(1ULL << 9)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_AA64MMFR0\t(1ULL << 10)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_AA64MMFR1\t(1ULL << 11)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_AA64PFR0\t\t(1ULL << 12)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_AA64PFR1\t\t(1ULL << 13)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR0\t\t(1ULL << 14)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR1\t\t(1ULL << 15)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR2\t\t(1ULL << 16)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR3\t\t(1ULL << 17)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR4\t\t(1ULL << 18)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR5\t\t(1ULL << 19)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_MMFR0\t\t(1ULL << 20)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_MMFR1\t\t(1ULL << 21)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_MMFR2\t\t(1ULL << 22)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_MMFR3\t\t(1ULL << 23)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_PFR0\t\t(1ULL << 24)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_PFR1\t\t(1ULL << 25)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_CURRENT_CPU\t(1ULL << 61)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_PAIR_CONTRACT\t(1ULL << 62)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_TARGET_SLOT\t(1ULL << 63)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_REGISTER_MASK\t((1ULL << 26) - 1)
-#define ARM64_LATE_CPU_EXPECT_MISMATCH_ALLOWED_MASK\t\
-\t(ARM64_LATE_CPU_EXPECT_MISMATCH_REGISTER_MASK |\t\
-\t ARM64_LATE_CPU_EXPECT_MISMATCH_CURRENT_CPU |\t\
-\t ARM64_LATE_CPU_EXPECT_MISMATCH_PAIR_CONTRACT |\t\
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_MPIDR\t\tBIT_ULL(0)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_MIDR\t\tBIT_ULL(1)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_REVIDR\t\tBIT_ULL(2)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_CNTFRQ\t\tBIT_ULL(3)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_CTR\t\tBIT_ULL(4)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_DCZID\t\tBIT_ULL(5)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_CLIDR_EL1\tBIT_ULL(6)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_AA64DFR0\t\tBIT_ULL(7)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_AA64ISAR0\tBIT_ULL(8)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_AA64ISAR1\tBIT_ULL(9)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_AA64MMFR0\tBIT_ULL(10)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_AA64MMFR1\tBIT_ULL(11)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_AA64PFR0\t\tBIT_ULL(12)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_AA64PFR1\t\tBIT_ULL(13)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR0\t\tBIT_ULL(14)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR1\t\tBIT_ULL(15)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR2\t\tBIT_ULL(16)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR3\t\tBIT_ULL(17)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR4\t\tBIT_ULL(18)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR5\t\tBIT_ULL(19)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_MMFR0\t\tBIT_ULL(20)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_MMFR1\t\tBIT_ULL(21)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_MMFR2\t\tBIT_ULL(22)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_MMFR3\t\tBIT_ULL(23)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_PFR0\t\tBIT_ULL(24)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_PFR1\t\tBIT_ULL(25)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_CURRENT_CPU\tBIT_ULL(61)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_PAIR_CONTRACT\tBIT_ULL(62)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_TARGET_SLOT\tBIT_ULL(63)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_REGISTER_MASK\t(BIT_ULL(26) - 1)
+#define ARM64_LATE_CPU_EXPECT_MISMATCH_ALLOWED_MASK\t\\
+\t(ARM64_LATE_CPU_EXPECT_MISMATCH_REGISTER_MASK |\t\\
+\t ARM64_LATE_CPU_EXPECT_MISMATCH_CURRENT_CPU |\t\\
+\t ARM64_LATE_CPU_EXPECT_MISMATCH_PAIR_CONTRACT |\t\\
 \t ARM64_LATE_CPU_EXPECT_MISMATCH_TARGET_SLOT)
 
 #ifdef CONFIG_ARM64_LATE_CPU_PROFILE""",
@@ -263,9 +259,9 @@ int arm64_mt6797_a72_p30e_target_checkpoint_detail(u64 checkpoint,
         late_h,
         "int arm64_validate_late_cpu_expected_target(unsigned int cpu);",
         """int arm64_validate_late_cpu_expected_target(unsigned int cpu,
-\t\t\t\t\t\tu64 *mismatches,
-\t\t\t\t\t\tu64 *expected,
-\t\t\t\t\t\tu64 *observed);""",
+\t\t\t\t\t    u64 *mismatches,
+\t\t\t\t\t    u64 *expected,
+\t\t\t\t\t    u64 *observed);""",
         "late-target validator prototype",
     )
     late_h = replace_once(
@@ -381,89 +377,89 @@ late_expected_target_mismatches(const struct arm64_late_cpu_expected_pair *pair,
 \tu64 mpidr = read_cpuid_mpidr() & MPIDR_HWID_BITMASK;
 
 \tlate_expected_target_compare(pair->mpidr[target], mpidr,
-\t\tARM64_LATE_CPU_EXPECT_MISMATCH_MPIDR, &mismatches,
-\t\tfirst_expected, first_observed);
+\t\t\t\t     ARM64_LATE_CPU_EXPECT_MISMATCH_MPIDR, &mismatches,
+\t\t\t\t     first_expected, first_observed);
 \tlate_expected_target_compare(pair->midr, info->reg_midr,
-\t\tARM64_LATE_CPU_EXPECT_MISMATCH_MIDR, &mismatches,
-\t\tfirst_expected, first_observed);
+\t\t\t\t     ARM64_LATE_CPU_EXPECT_MISMATCH_MIDR, &mismatches,
+\t\t\t\t     first_expected, first_observed);
 \tlate_expected_target_compare(pair->revidr, info->reg_revidr,
-\t\tARM64_LATE_CPU_EXPECT_MISMATCH_REVIDR, &mismatches,
-\t\tfirst_expected, first_observed);
+\t\t\t\t     ARM64_LATE_CPU_EXPECT_MISMATCH_REVIDR, &mismatches,
+\t\t\t\t     first_expected, first_observed);
 \tlate_expected_target_compare(pair->cntfrq, info->reg_cntfrq,
-\t\tARM64_LATE_CPU_EXPECT_MISMATCH_CNTFRQ, &mismatches,
-\t\tfirst_expected, first_observed);
+\t\t\t\t     ARM64_LATE_CPU_EXPECT_MISMATCH_CNTFRQ, &mismatches,
+\t\t\t\t     first_expected, first_observed);
 \tlate_expected_target_compare(pair->ctr, read_cpuid_cachetype(),
-\t\tARM64_LATE_CPU_EXPECT_MISMATCH_CTR, &mismatches,
-\t\tfirst_expected, first_observed);
+\t\t\t\t     ARM64_LATE_CPU_EXPECT_MISMATCH_CTR, &mismatches,
+\t\t\t\t     first_expected, first_observed);
 \tlate_expected_target_compare(pair->dczid, info->reg_dczid,
-\t\tARM64_LATE_CPU_EXPECT_MISMATCH_DCZID, &mismatches,
-\t\tfirst_expected, first_observed);
+\t\t\t\t     ARM64_LATE_CPU_EXPECT_MISMATCH_DCZID, &mismatches,
+\t\t\t\t     first_expected, first_observed);
 \tlate_expected_target_compare(pair->clidr_el1, read_sysreg(clidr_el1),
-\t\tARM64_LATE_CPU_EXPECT_MISMATCH_CLIDR_EL1, &mismatches,
-\t\tfirst_expected, first_observed);
+\t\t\t\t     ARM64_LATE_CPU_EXPECT_MISMATCH_CLIDR_EL1, &mismatches,
+\t\t\t\t     first_expected, first_observed);
 \tlate_expected_target_compare(pair->id_aa64dfr0, info->reg_id_aa64dfr0,
-\t\tARM64_LATE_CPU_EXPECT_MISMATCH_AA64DFR0, &mismatches,
-\t\tfirst_expected, first_observed);
+\t\t\t\t     ARM64_LATE_CPU_EXPECT_MISMATCH_AA64DFR0, &mismatches,
+\t\t\t\t     first_expected, first_observed);
 \tlate_expected_target_compare(pair->id_aa64isar0, info->reg_id_aa64isar0,
-\t\tARM64_LATE_CPU_EXPECT_MISMATCH_AA64ISAR0, &mismatches,
-\t\tfirst_expected, first_observed);
+\t\t\t\t     ARM64_LATE_CPU_EXPECT_MISMATCH_AA64ISAR0, &mismatches,
+\t\t\t\t     first_expected, first_observed);
 \tlate_expected_target_compare(pair->id_aa64isar1, info->reg_id_aa64isar1,
-\t\tARM64_LATE_CPU_EXPECT_MISMATCH_AA64ISAR1, &mismatches,
-\t\tfirst_expected, first_observed);
+\t\t\t\t     ARM64_LATE_CPU_EXPECT_MISMATCH_AA64ISAR1, &mismatches,
+\t\t\t\t     first_expected, first_observed);
 \tlate_expected_target_compare(pair->id_aa64mmfr0, info->reg_id_aa64mmfr0,
-\t\tARM64_LATE_CPU_EXPECT_MISMATCH_AA64MMFR0, &mismatches,
-\t\tfirst_expected, first_observed);
+\t\t\t\t     ARM64_LATE_CPU_EXPECT_MISMATCH_AA64MMFR0, &mismatches,
+\t\t\t\t     first_expected, first_observed);
 \tlate_expected_target_compare(pair->id_aa64mmfr1, info->reg_id_aa64mmfr1,
-\t\tARM64_LATE_CPU_EXPECT_MISMATCH_AA64MMFR1, &mismatches,
-\t\tfirst_expected, first_observed);
+\t\t\t\t     ARM64_LATE_CPU_EXPECT_MISMATCH_AA64MMFR1, &mismatches,
+\t\t\t\t     first_expected, first_observed);
 \tlate_expected_target_compare(pair->id_aa64pfr0, info->reg_id_aa64pfr0,
-\t\tARM64_LATE_CPU_EXPECT_MISMATCH_AA64PFR0, &mismatches,
-\t\tfirst_expected, first_observed);
+\t\t\t\t     ARM64_LATE_CPU_EXPECT_MISMATCH_AA64PFR0, &mismatches,
+\t\t\t\t     first_expected, first_observed);
 \tlate_expected_target_compare(pair->id_aa64pfr1, info->reg_id_aa64pfr1,
-\t\tARM64_LATE_CPU_EXPECT_MISMATCH_AA64PFR1, &mismatches,
-\t\tfirst_expected, first_observed);
+\t\t\t\t     ARM64_LATE_CPU_EXPECT_MISMATCH_AA64PFR1, &mismatches,
+\t\t\t\t     first_expected, first_observed);
 \tlate_expected_target_compare(pair->id_isar0, aarch32->reg_id_isar0,
-\t\tARM64_LATE_CPU_EXPECT_MISMATCH_ISAR0, &mismatches,
-\t\tfirst_expected, first_observed);
+\t\t\t\t     ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR0, &mismatches,
+\t\t\t\t     first_expected, first_observed);
 \tlate_expected_target_compare(pair->id_isar1, aarch32->reg_id_isar1,
-\t\tARM64_LATE_CPU_EXPECT_MISMATCH_ISAR1, &mismatches,
-\t\tfirst_expected, first_observed);
+\t\t\t\t     ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR1, &mismatches,
+\t\t\t\t     first_expected, first_observed);
 \tlate_expected_target_compare(pair->id_isar2, aarch32->reg_id_isar2,
-\t\tARM64_LATE_CPU_EXPECT_MISMATCH_ISAR2, &mismatches,
-\t\tfirst_expected, first_observed);
+\t\t\t\t     ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR2, &mismatches,
+\t\t\t\t     first_expected, first_observed);
 \tlate_expected_target_compare(pair->id_isar3, aarch32->reg_id_isar3,
-\t\tARM64_LATE_CPU_EXPECT_MISMATCH_ISAR3, &mismatches,
-\t\tfirst_expected, first_observed);
+\t\t\t\t     ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR3, &mismatches,
+\t\t\t\t     first_expected, first_observed);
 \tlate_expected_target_compare(pair->id_isar4, aarch32->reg_id_isar4,
-\t\tARM64_LATE_CPU_EXPECT_MISMATCH_ISAR4, &mismatches,
-\t\tfirst_expected, first_observed);
+\t\t\t\t     ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR4, &mismatches,
+\t\t\t\t     first_expected, first_observed);
 \tlate_expected_target_compare(pair->id_isar5, aarch32->reg_id_isar5,
-\t\tARM64_LATE_CPU_EXPECT_MISMATCH_ISAR5, &mismatches,
-\t\tfirst_expected, first_observed);
+\t\t\t\t     ARM64_LATE_CPU_EXPECT_MISMATCH_ISAR5, &mismatches,
+\t\t\t\t     first_expected, first_observed);
 \tlate_expected_target_compare(pair->id_mmfr0, aarch32->reg_id_mmfr0,
-\t\tARM64_LATE_CPU_EXPECT_MISMATCH_MMFR0, &mismatches,
-\t\tfirst_expected, first_observed);
+\t\t\t\t     ARM64_LATE_CPU_EXPECT_MISMATCH_MMFR0, &mismatches,
+\t\t\t\t     first_expected, first_observed);
 \tlate_expected_target_compare(pair->id_mmfr1, aarch32->reg_id_mmfr1,
-\t\tARM64_LATE_CPU_EXPECT_MISMATCH_MMFR1, &mismatches,
-\t\tfirst_expected, first_observed);
+\t\t\t\t     ARM64_LATE_CPU_EXPECT_MISMATCH_MMFR1, &mismatches,
+\t\t\t\t     first_expected, first_observed);
 \tlate_expected_target_compare(pair->id_mmfr2, aarch32->reg_id_mmfr2,
-\t\tARM64_LATE_CPU_EXPECT_MISMATCH_MMFR2, &mismatches,
-\t\tfirst_expected, first_observed);
+\t\t\t\t     ARM64_LATE_CPU_EXPECT_MISMATCH_MMFR2, &mismatches,
+\t\t\t\t     first_expected, first_observed);
 \tlate_expected_target_compare(pair->id_mmfr3, aarch32->reg_id_mmfr3,
-\t\tARM64_LATE_CPU_EXPECT_MISMATCH_MMFR3, &mismatches,
-\t\tfirst_expected, first_observed);
+\t\t\t\t     ARM64_LATE_CPU_EXPECT_MISMATCH_MMFR3, &mismatches,
+\t\t\t\t     first_expected, first_observed);
 \tlate_expected_target_compare(pair->id_pfr0, aarch32->reg_id_pfr0,
-\t\tARM64_LATE_CPU_EXPECT_MISMATCH_PFR0, &mismatches,
-\t\tfirst_expected, first_observed);
+\t\t\t\t     ARM64_LATE_CPU_EXPECT_MISMATCH_PFR0, &mismatches,
+\t\t\t\t     first_expected, first_observed);
 \tlate_expected_target_compare(pair->id_pfr1, aarch32->reg_id_pfr1,
-\t\tARM64_LATE_CPU_EXPECT_MISMATCH_PFR1, &mismatches,
-\t\tfirst_expected, first_observed);
+\t\t\t\t     ARM64_LATE_CPU_EXPECT_MISMATCH_PFR1, &mismatches,
+\t\t\t\t     first_expected, first_observed);
 \treturn mismatches;
 }
 
 int arm64_validate_late_cpu_expected_target(unsigned int cpu, u64 *mismatches,
-\t\t\t\t\t\tu64 *expected_value,
-\t\t\t\t\t\tu64 *observed_value)
+\t\t\t\t\t    u64 *expected_value,
+\t\t\t\t\t    u64 *observed_value)
 {
 \tconst struct arm64_late_cpu_expected_pair *expected;
 \tconst struct cpuinfo_arm64 *info;
@@ -570,16 +566,17 @@ int arm64_validate_late_cpu_expected_target(unsigned int cpu, u64 *mismatches,
 \t(void)arm64_mt6797_a72_p30e_target_checkpoint(p30e_checkpoint);
 #endif
 \texpectation_ret = arm64_validate_late_cpu_expected_target(cpu,
-\t\t\t\t\t\t    &expectation_mismatches,
-\t\t\t\t\t\t    &expectation_expected,
-\t\t\t\t\t\t    &expectation_observed);
+\t\t\t\t\t\t&expectation_mismatches,
+\t\t\t\t\t\t&expectation_expected,
+\t\t\t\t\t\t&expectation_observed);
 \tif (expectation_ret) {
 #ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
 \t\tp30e_checkpoint =
 \t\t\tARM64_MT6797_A72_P30E_CHECKPOINT_EXPECTATION_FAILED;
-\t\t(void)arm64_mt6797_a72_p30e_target_checkpoint_detail(
-\t\t\tp30e_checkpoint, expectation_mismatches,
-\t\t\texpectation_expected, expectation_observed);
+\t\t(void)arm64_mt6797_a72_p30e_target_detail(p30e_checkpoint,
+\t\t\t\t\t\t\t  expectation_mismatches,
+\t\t\t\t\t\t\t  expectation_expected,
+\t\t\t\t\t\t\t  expectation_observed);
 #endif
 \t\tpr_crit("CPU%u: late target expectation mismatch: %d mask=%#llx\\n",
 \t\t\tcpu, expectation_ret,
