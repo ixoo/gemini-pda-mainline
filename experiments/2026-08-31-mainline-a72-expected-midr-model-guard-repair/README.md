@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-expected-midr-model-guard-repair` |
-| Status | `canonical patch generated; build gates pending` |
+| Status | `offline pass; exact boot2 deployment pending` |
 | Subsystem | arm64 late-CPU expected mitigation planning |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -54,8 +54,7 @@ CPU8 transaction and watchdog recovery ownership remain unchanged.
 ## Current conclusion
 
 The previous physical boot supplies an attributable, zero-execution source
-selector. No new hardware conclusion exists until the repair passes offline
-gates and a fresh pretrigger frame.
+selector. No new hardware conclusion exists until a fresh pretrigger frame.
 
 Buildbox generated and replayed canonical patch `0460` from the exact
 post-`0459` source. The one-line change accepts A72 r0p1 and another A72
@@ -64,3 +63,13 @@ does not change any action-call inventory. See the
 [generation evidence](results/patch-generation-20260831.txt).
 
 CPU9 remains vetoed until CPU8 is reproducibly online.
+
+All offline gates now pass. Three exact Buildbox packages were fetched from
+commit `8810735d`, the no-network transition suite passed 51 of 51 tests, and
+the production image passed two independent assemblies, all 32 LK gates, and
+six negative container mutations. The exact full-partition candidate is
+`5e686d2c7e9f59c7345ec3c50048a01371ab1938ceb8753b599d0afdd3084d69`.
+See the [build evidence](results/buildbox-builds-20260831.txt),
+[KUnit evidence](results/focused-kunit-qemu-20260831.txt),
+[candidate evidence](results/production-candidate-20260831.txt), and
+[predeployment hypothesis](results/predeployment-hypothesis-20260831.txt).
