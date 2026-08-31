@@ -88,12 +88,12 @@ static int p30e_current_cpu(void)
     if not c_text.endswith("\n\treturn ret;\n}\n"):
         raise ValueError("P30E controller source tail changed")
     c_text += """
-
 int arm64_mt6797_a72_p30e_target_publish(u64 state, u64 reason,
 					 u64 effects, u64 entry_pc,
 					 u64 entry_sp)
 {
 	struct arm64_mt6797_a72_p30e_slot *slot;
+	struct arm64_mt6797_a72_p30e_wire *wire;
 	unsigned long flags;
 	u64 sequence;
 	int cpu, ret = 0;
@@ -106,26 +106,24 @@ int arm64_mt6797_a72_p30e_target_publish(u64 state, u64 reason,
 	if (cpu < 0)
 		return cpu;
 	slot = p30e_slot(cpu);
+	wire = &slot->wire;
 
 	raw_spin_lock_irqsave(&p30e_lock, flags);
 	dsb(sy);
 	p30e_invalidate_slot(slot);
-	if (p30e_word(&slot->wire,
-		       ARM64_MT6797_A72_P30E_TARGET_STATE_WORD) !=
+	if (p30e_word(wire, ARM64_MT6797_A72_P30E_TARGET_STATE_WORD) !=
 	    ARM64_MT6797_A72_P30E_TARGET_CLAIMED) {
 		ret = -EALREADY;
 		goto out_unlock;
 	}
 
-	sequence = p30e_word(&slot->wire,
-			      ARM64_MT6797_A72_P30E_TARGET_SEQUENCE_WORD);
-	p30e_put(&slot->wire, ARM64_MT6797_A72_P30E_TARGET_SEQUENCE_WORD,
-		 sequence + 1);
-	p30e_put(&slot->wire, ARM64_MT6797_A72_P30E_TARGET_REASON_WORD, reason);
-	p30e_put(&slot->wire, ARM64_MT6797_A72_P30E_TARGET_EFFECTS_WORD, effects);
-	p30e_put(&slot->wire, ARM64_MT6797_A72_P30E_TARGET_ENTRY_PC_WORD, entry_pc);
-	p30e_put(&slot->wire, ARM64_MT6797_A72_P30E_TARGET_ENTRY_SP_WORD, entry_sp);
-	p30e_put(&slot->wire, ARM64_MT6797_A72_P30E_TARGET_STATE_WORD, state);
+	sequence = p30e_word(wire, ARM64_MT6797_A72_P30E_TARGET_SEQUENCE_WORD);
+	p30e_put(wire, ARM64_MT6797_A72_P30E_TARGET_SEQUENCE_WORD, sequence + 1);
+	p30e_put(wire, ARM64_MT6797_A72_P30E_TARGET_REASON_WORD, reason);
+	p30e_put(wire, ARM64_MT6797_A72_P30E_TARGET_EFFECTS_WORD, effects);
+	p30e_put(wire, ARM64_MT6797_A72_P30E_TARGET_ENTRY_PC_WORD, entry_pc);
+	p30e_put(wire, ARM64_MT6797_A72_P30E_TARGET_ENTRY_SP_WORD, entry_sp);
+	p30e_put(wire, ARM64_MT6797_A72_P30E_TARGET_STATE_WORD, state);
 	p30e_clean_slot(slot);
 
 out_unlock:

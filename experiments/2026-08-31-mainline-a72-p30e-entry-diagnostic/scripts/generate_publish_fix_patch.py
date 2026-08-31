@@ -43,7 +43,7 @@ def validate(root: Path) -> list[str]:
         "int arm64_mt6797_a72_p30e_target_publish(",
         "p30e_invalidate_slot(slot);",
         "ARM64_MT6797_A72_P30E_TARGET_CLAIMED",
-        "p30e_put(&slot->wire, ARM64_MT6797_A72_P30E_TARGET_STATE_WORD, state);",
+        "p30e_put(wire, ARM64_MT6797_A72_P30E_TARGET_STATE_WORD, state);",
         "p30e_clean_slot(slot);",
     )
     for token in required_c:
@@ -56,7 +56,7 @@ def validate(root: Path) -> list[str]:
     if asm_text.count("mov\tx14, x30") != 1 or asm_text.count("mov\tx30, x14") != 1:
         raise SystemExit("MMU-off cache helper does not preserve its link exactly once")
     if c_text.index(
-        "p30e_put(&slot->wire, ARM64_MT6797_A72_P30E_TARGET_STATE_WORD, state);"
+        "p30e_put(wire, ARM64_MT6797_A72_P30E_TARGET_STATE_WORD, state);"
     ) > c_text.index("p30e_clean_slot(slot);", c_text.index(
         "int arm64_mt6797_a72_p30e_target_publish(")):
         raise SystemExit("terminal state is not covered by the publication clean")
