@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-cpu9-same-boot-successor` |
-| Status | `source-audit-confirmed; implementation next` |
+| Status | `source-audit-confirmed; retained-ledger implementation in progress` |
 | Subsystem | MT6797 A72 CPU9 retained-cluster admission |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -60,6 +60,9 @@ first write. No new physical range is introduced.
 - [`results/source-audit-20260831.txt`](results/source-audit-20260831.txt):
   exact source state, current callback matrix, production gaps, and selected
   boundary.
+- `scripts/` and `templates/`: exact-source Buildbox generation, mutation
+  validation, and hardware-free KUnit source for the independent record-1
+  ledger. These inputs do not yet make the ledger canonical or enable CPU9.
 
 Implementation patches, generators, validators, and build results will be
 added here only after each logical source boundary passes deterministic

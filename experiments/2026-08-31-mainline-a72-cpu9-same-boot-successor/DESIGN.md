@@ -74,8 +74,10 @@ records its own terminal. No inverse cluster action is introduced.
 ## Durable evidence
 
 Record 0 at `0x44410000` remains the byte-compatible CPU8 transition ledger.
-Record 1 at `0x44411000` becomes a separate CPU9 transition ledger with its own
-magic/version, two alternating CRC-committed copies, owner, and terminal seal.
+Record 1 at `0x44411000` becomes a separate CPU9 transition ledger. It reuses
+the proven magic/version and two-copy CRC wire format so the existing parser
+can validate both records, but has independent physical ownership, attempt
+binding, stage vocabulary, and terminal seal.
 
 Before mapping record 1 for write, the CPU9 ledger must:
 
