@@ -30,7 +30,7 @@ Cortex-A72 pair.
 | I2C6 transfer | Native packed/FIFO pointer-read and one exact one-message two-byte FIFO write are runtime proven. The write completed once with payload `[0xda, 0x46]`, exact no-retry accounting, and stable readback. | This closes only the reviewed same-value shape; arbitrary writes, failure recovery, stress, and resume remain open. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
 | Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected. A separate hardware-free implementation now models exact positive Buck-B acquire/release and passes all six focused fake-adapter cases. | Gate 6 is closed for the reviewed no-op, and the first Gate-7 provider source boundary is complete offline. Physical transition, production integration, consumers, and CPU requests remain disconnected. |
-| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The production-admission experiment brought CPU8 online on two fresh exact-candidate boots with attributable terminal membership proof; the repeat also advanced CPU8 accounting across a bounded one-second interval before watchdog recovery. | Retire the CPU8-only candidate. Audit and freeze the minimal same-boot CPU9 successor before building or issuing any CPU9 request; keep CPU_OFF and retry disconnected. |
+| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The production-admission experiment brought CPU8 online on two fresh exact-candidate boots with attributable terminal membership proof; the repeat also advanced CPU8 accounting across a bounded one-second interval before watchdog recovery. The exact-source CPU9 audit is complete and its separate PSCI-only successor contract is frozen. | Implement and prove the five logical CPU9 successor patches on Buildbox before constructing a candidate or issuing any CPU9 request; keep CPU_OFF and retry disconnected. |
 
 The durable technical boundary is in
 [DA921x, I2C6, and Cortex-A72](hardware/da921x-i2c6-a72.md). The exact
@@ -6716,15 +6716,17 @@ claim CPU8 offlining, sustained load, or default-profile support.
 
 After CPU8 is repeatable, test CPU9 separately, then validate:
 
-The immediate CPU9 step is a source-level callback and precondition audit of
-the exact prepared kernel. Every fresh diagnostic boot starts with both A72
-CPUs offline, and the current fixed watchdog recovers after the CPU8
-transition. The successor therefore must establish and durably prove CPU8 in
-the same boot before one separately attributable CPU9 request. The audit must
-decide how CPU9 reuses the already-owned cluster rail, isolation, SRAM, and
-membership state without replaying CPU8-only acquisition or weakening any
-failure gate. No CPU9 candidate or device action is admitted until that
-contract and its hardware-free tests are frozen.
+The [exact-source audit and frozen successor](../experiments/2026-08-31-mainline-a72-cpu9-same-boot-successor/README.md)
+confirm that every fresh diagnostic boot starts with both A72 CPUs offline and
+that the current fixed watchdog recovers after the CPU8 transition. The
+successor establishes and durably proves CPU8 in the same boot before one
+separately attributable CPU9 request. It uses a distinct PSCI-only CPU9
+executor so the already-owned cluster rail, isolation, SRAM, and DCM state are
+not replayed. CPU8's sealed retained ledger stays byte-compatible in ramoops
+record 0, while an independent guarded CPU9 ledger uses the already-reserved
+record 1 only after validating CPU8's terminal. **Selected next:** implement
+the five logical patches and focused hardware-free tests on Buildbox. No CPU9
+candidate or device action is admitted until those gates pass.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

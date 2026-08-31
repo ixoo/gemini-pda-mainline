@@ -31,6 +31,17 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-31 same-boot CPU9 successor](2026-08-31-mainline-a72-cpu9-same-boot-successor/README.md)
+  — audits exact prepared source after the repeatable CPU8 result. Generic
+  membership and P30E layers already model CPU9 with CPU8 online and the
+  provider retained, but every production binder/transition dispatch remains
+  CPU8-only and structurally reaches cluster acquisition. The frozen successor
+  therefore uses a separate five-stage PSCI-only CPU9 executor after exact
+  same-boot `CPU8_ONLINE_PROOF`, with no watchdog refresh, P27, provider,
+  isolation, SRAM, DCM, CPU_OFF, or retry action. CPU8's sealed ledger remains
+  unchanged in ramoops record 0; a guarded independent CPU9 ledger uses the
+  already-reserved record 1 only after validating record 0. This is a
+  source/design result; implementation, build, and device action are next.
 - [2026-08-31 A72 expected-pair model-contract repair](2026-08-31-mainline-a72-expected-pair-model-contract-repair/README.md)
   — repairs the generic expected-pair completeness comparison while preserving
   the exact r0p1 late-target check. Three exact Buildbox profiles and the
@@ -42,8 +53,9 @@ the loop. Positive identity-gated observations are unaffected.
   reproduced that result, and two one-second-separated `/proc/stat` samples
   advanced CPU8's idle accounting from 3 to 104 before changed-ID recovery.
   The repeatability/accounting gate is closed; the exact candidate is retired
-  from further boots. A minimal same-boot CPU9 successor contract is next,
-  while CPU9, CPU_OFF, and retry remain vetoed in the current candidate.
+  from further boots. The minimal same-boot CPU9 successor contract is now
+  frozen separately, while CPU9, CPU_OFF, and retry remain vetoed in the
+  current candidate.
 - [2026-08-29 mainline A72 attestation and READY closure](2026-08-29-mainline-a72-attestation-closure/README.md)
   — maps the complete pmsg-observed CPU8/CPU9 capsule into the exact ABI-7
   schema without promoting prior-cycle Gemian evidence to a current-mainline

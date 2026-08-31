@@ -1,0 +1,124 @@
+# Experiment: same-boot CPU9 successor after repeatable CPU8
+
+## Record
+
+| Field | Value |
+| --- | --- |
+| ID | `2026-08-31-mainline-a72-cpu9-same-boot-successor` |
+| Status | `source-audit-confirmed; implementation next` |
+| Subsystem | MT6797 A72 CPU9 retained-cluster admission |
+| Device variant | Planet Computers Gemini PDA, named development unit |
+| Date(s) | 2026-08-31 |
+| Investigator(s) | repository owner and Codex |
+| Tracking issue | `docs/ROADMAP.md` Gate 8 |
+
+## Question or hypothesis
+
+After the exact production path has reproducibly brought CPU8 online and
+retained the cluster rail, isolation, SRAM, and DCM state, can a separate
+same-boot executor admit CPU9 with one standard PSCI per-core request while
+provably skipping every CPU8-only cluster acquisition and preserving fixed
+watchdog recovery?
+
+## Provenance and environment
+
+- Exact prepared source state:
+  `cd7156ab8500b033998eb6bf1e35c3afea91d02b4f3df50a41917ef49029bc5c`.
+- Exact parent repository build commit:
+  `aa2efd3f00f9b632a5a2c570e4319e6c987e3d90`.
+- Exact parent patchset SHA-256:
+  `dd0725996f2792c965c85792d62d9ae7c0b6b94d419d6a22341daf96d8e26b46`.
+- Exact parent kernel: `7.1.3-gemini-a72-admission-live`.
+- Exact installed parent partition SHA-256:
+  `42c984ee72fe93e7f6157598dd479a9348a03d733df7948e4e4c14aa356c78ee`.
+- CPU8 parent evidence: two fresh exact-candidate boots reached terminal
+  membership proof; the repeat also advanced CPU8 accounting across one
+  second. See the parent [attempt 2 result](../2026-08-31-mainline-a72-expected-pair-model-contract-repair/results/runtime-attempt-2-cpu8-repeat-accounting-20260831.txt).
+- Build backend for future implementation: Buildbox only.
+
+## Safety assessment
+
+This audit is read-only. It issued no build, CPU request, device write, reboot,
+retained-RAM write, or hardware operation.
+
+The frozen successor permits one CPU9 request only after the existing CPU8
+executor has durably finalized `CPU8_ONLINE_PROOF` in the same boot. CPU9 must
+not reacquire or release the external provider, replay P27, clear isolation,
+program SRAM-LDO, update DCM, arm or refresh the watchdog, request CPU_OFF, or
+retry. A CPU9 failure retains CPU8 and the already-owned cluster state and
+waits for the existing fixed recovery watchdog.
+
+CPU9 receives a separate two-copy ledger in the already reserved second
+4 KiB ramoops dmesg record at `0x44411000`. Its writer must verify the exact
+DT reservation and the CRC-valid CPU8 terminal record in record 0 before its
+first write. No new physical range is introduced.
+
+## Associated code
+
+- [`DESIGN.md`](DESIGN.md): frozen owner, sequencing, retained-evidence,
+  failure, and validation contract.
+- [`results/source-audit-20260831.txt`](results/source-audit-20260831.txt):
+  exact source state, current callback matrix, production gaps, and selected
+  boundary.
+
+Implementation patches, generators, validators, and build results will be
+added here only after each logical source boundary passes deterministic
+generation and hardware-free rejection tests.
+
+## Procedure
+
+1. Identify the exact prepared source from the parent package provenance and
+   source-state hash.
+2. Trace production admission, binder, transition, PSCI, membership, P30E, and
+   retained-ledger callers for CPU8 and CPU9.
+3. Compare those production paths with the existing generic CPU9 membership
+   and P30E contracts and with the historical PSCI-only CPU9 runtime evidence.
+4. Freeze a successor that leaves the CPU8 executor intact and adds a separate
+   retained-cluster CPU9 state machine plus independent durable evidence.
+5. Keep build, candidate, deployment, and device action closed until the
+   logical patches and focused hardware-free suites pass on Buildbox.
+
+## Observations
+
+The membership owner already recognizes CPU9-up, requires CPU8 online and
+CPU9 offline, carries forward the held provider identity, and gives CPU9 only
+a CPU_ON budget. The generic P30E wire also already supports CPU9 and MPIDR
+`0x201`.
+
+Production remains intentionally CPU8-only: admission derives CPU8 only; the
+public preflight, claim, begin, publish, and finalize wrappers reject CPU9;
+the binder has one consumed CPU8 transition; the PSCI boot dispatch rejects
+CPU9; and the retained ledger seals record 0 at CPU8 terminal proof.
+
+The existing CPU8 transition always performs watchdog, P27, provider,
+isolation, SRAM, CPU_ON, IPI, DCM, and membership stages. Generalizing that
+executor for CPU9 would make forbidden cluster-effect replay reachable.
+Historical named-device evidence independently shows that CPU9 can execute
+through standard PSCI while CPU8 and the cluster state are retained.
+
+## Analysis
+
+The current generic owner and P30E layers contain useful CPU9 primitives, but
+they are not a production CPU9 path. The narrow safe integration is a distinct
+second-stage executor that consumes the post-CPU8 owner state and implements
+only prestate, CPU_ON/P30E, online completion, IPI, and membership proof.
+
+Because record 0 is deliberately sealed after CPU8 success, reopening it would
+weaken the proven CPU8 evidence contract. The next existing ramoops record is
+an independent, recoverable evidence lane and lets CPU9 fail closed unless the
+CPU8 terminal is already CRC-valid.
+
+## Conclusion
+
+`confirmed`: on the exact parent source, CPU9 must be a separate same-boot,
+retained-cluster PSCI executor. Reusing the CPU8 transition or merely widening
+its CPU checks is rejected because it exposes repeated cluster acquisition.
+The detailed implementation and evidence contract is frozen in
+[`DESIGN.md`](DESIGN.md); no CPU9 support or device result is claimed yet.
+
+## Follow-up
+
+Implement the logical patches on the exact parent through the Git-pinned
+Buildbox workflow, run focused no-network tests and complete candidate
+validation, then predeclare one CPU9 device attempt. CPU_OFF, retry, sustained
+load, hotplug, thermal, and suspend remain outside that first CPU9 attempt.
