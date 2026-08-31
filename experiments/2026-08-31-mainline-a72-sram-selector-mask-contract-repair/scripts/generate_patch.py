@@ -109,17 +109,20 @@ def validate(root: Path, parent_counts: dict[str, int]) -> list[str]:
     ):
         if token in binder:
             raise SystemExit(f"unmasked selector predicate remains: {token}")
-    required = (
-        "#define TEST_SELECTOR_STATUS BIT(22)",
-        "#define TEST_SELECTOR_LOW_MISMATCH BIT(0)",
-        "static void mt6797_binder_sram_selector_mask_test(",
-        "state->selector_status = TEST_SELECTOR_STATUS;",
-        "state->selector_xor = TEST_SELECTOR_LOW_MISMATCH;",
-        "KUNIT_CASE(mt6797_binder_sram_selector_mask_test)",
-    )
-    for token in required:
-        if test.count(token) != 1:
-            raise SystemExit(f"selector-mask test token changed: {token}")
+    required = {
+        "#define TEST_SELECTOR_STATUS BIT(22)": 1,
+        "#define TEST_SELECTOR_LOW_MISMATCH BIT(0)": 1,
+        "static void mt6797_binder_sram_selector_mask_test(": 1,
+        "state->selector_status = TEST_SELECTOR_STATUS;": 2,
+        "state->selector_xor = TEST_SELECTOR_LOW_MISMATCH;": 1,
+        "KUNIT_CASE(mt6797_binder_sram_selector_mask_test)": 1,
+    }
+    for token, expected_count in required.items():
+        if test.count(token) != expected_count:
+            raise SystemExit(
+                f"selector-mask test token changed: {token} "
+                f"(expected {expected_count}, found {test.count(token)})"
+            )
     if test.count("KUNIT_CASE(") != 8:
         raise SystemExit("binder KUnit case count is not eight")
     return [
