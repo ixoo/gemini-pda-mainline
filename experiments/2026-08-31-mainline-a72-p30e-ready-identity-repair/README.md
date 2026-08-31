@@ -16,4 +16,10 @@ of scope.
 The predecessor's exact terminal result is owned by the
 [P30E entry diagnostic](../2026-08-31-mainline-a72-p30e-entry-diagnostic/results/runtime-attempt-1-stale-ready-identity-20260831.txt).
 
-Status: implementation and Buildbox validation pending.
+Buildbox produced the exact successor from repository commit `8fa0757b...`.
+Two independent assemblies are byte-identical and two independent validations
+pass all 32 LK-container gates plus all six negative mutations. Exact padded
+candidate `459bcf66...` is therefore selected for one deployment; no device
+write or CPU request occurred during this offline qualification.
+
+Status: exact boot candidate qualified; deployment pending.

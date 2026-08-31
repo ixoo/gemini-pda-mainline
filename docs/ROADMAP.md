@@ -6595,11 +6595,13 @@ The next ordered work is:
    provenance leaf correctly carries `1e7f3047...`, so READY was withheld. This
    consumed attempt is attributable but does not classify the target-entry
    boundary. **Selected next:** canonical patch `0456` updates only that
-   production identity. Build and independently validate the exact successor
-   on Buildbox, and require the pretrigger gate to prove READY before one CPU8
-   trigger. ARMED, CLAIMED, and PUBLISHED must respectively distinguish
-   before-entry, post-entry/pre-startup, and post-`secondary_start_kernel()`
-   boundaries. Retain the CPU9 veto.
+   production identity. Buildbox commit `8fa0757b...` produced exact padded
+   successor `459bcf66...`; two byte-identical assemblies and two independent
+   validations passed all 32 LK gates and all six negative mutations. Install
+   that qualified successor and require the corrected pretrigger gate to reject
+   every profile-blocked log form before one CPU8 trigger. ARMED, CLAIMED, and
+   PUBLISHED must respectively distinguish before-entry, post-entry/pre-startup,
+   and post-`secondary_start_kernel()` boundaries. Retain the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 
