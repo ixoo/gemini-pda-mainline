@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-post-capabilities-checkpoints` |
-| Status | `offline validation passed; production candidate pending` |
+| Status | `production candidate validated; deployment pending` |
 | Subsystem | arm64 secondary startup and MT6797 P30E wire |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -60,6 +60,15 @@ watchdog remains the recovery owner and CPU9 remains vetoed.
   package without networking.
 - `scripts/classify-kunit.py` enforces the expected three-suite, 51-test TAP
   result and emits a durable machine-readable record.
+- `scripts/build-composed-dtb.py`, `scripts/build-candidate.sh`, and
+  `scripts/validate-candidate.py` compose and independently validate the exact
+  production container.
+- `scripts/install-boot2.sh` requires the exact checkpoint-5 predecessor,
+  resolves `boot2` from the live GPT, verifies a full readback, and shuts down.
+- `scripts/collect-pretrigger.sh`, `scripts/validate-pretrigger.py`,
+  `scripts/remote-trigger.sh`, `scripts/execute-trigger.sh`, and
+  `scripts/classify-attempt.py` enforce the single-boot, single-CPU8 ABI-5
+  observation contract.
 
 ## Procedure
 
@@ -98,6 +107,17 @@ watchdog remains the recovery owner and CPU9 remains vetoed.
   four-vCPU QEMU boot, including all nine binder tests. No physical CPU,
   CPU_OFF, retry, network, or device action occurred. See the
   [KUnit/QEMU evidence](results/focused-kunit-qemu-20260831.txt).
+- Buildbox produced the clean production package from commit `590dbedc974c...`.
+  The package, package-exact provenance/serviceability DT composition, two
+  independent raw assemblies, two independent padding constructions, all 32
+  LK gates, the independent layout validator, and six negative container
+  mutations pass. The exact padded `boot2` identity is `9f7ff84912ff...`.
+  See the [production-candidate evidence](results/production-candidate-20260831.txt).
+- The predeployment hypothesis and decision map are frozen before the write;
+  each retained reason from 5 through 11 selects a distinct next code interval,
+  while reason 8 also preserves the exact mismatch bitmap and first
+  expected/observed pair. See the
+  [predeployment record](results/predeployment-hypothesis-20260831.txt).
 
 ## Analysis
 
@@ -111,8 +131,9 @@ failure decision-changing on the first attempt.
 
 Patch generation, strict style review, deterministic replay, canonical-series
 integration, manifest-wide invariant review, focused compilation, package
-validation, and the no-network 51-test boot all pass. No new hardware
-conclusion exists until the exact production successor is built and one
+validation, the no-network 51-test boot, production build, device-tree
+composition, and independent boot-container validation all pass. No new
+hardware conclusion exists until the exact successor is installed and one
 attributable trigger is classified.
 
 ## Follow-up
