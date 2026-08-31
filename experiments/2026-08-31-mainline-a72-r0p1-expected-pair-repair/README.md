@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-r0p1-expected-pair-repair` |
-| Status | `canonical patch generated; offline build validation pending` |
+| Status | `production candidate validated; focused QEMU gate pending` |
 | Subsystem | arm64 late-CPU expected pair |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -62,5 +62,16 @@ path. See the [generation evidence](results/patch-generation-20260831.txt).
 The repair is selected by exact mainline runtime evidence and agrees with the
 independent CPU8/CPU9 target-local capsules. No new hardware conclusion exists
 until the successor passes offline gates and one attributable CPU8-only boot.
+
+Both focused KUnit profiles and the production profile compile and package on
+Buildbox from clean project commit `e0090fe57490...`; all package checksums
+validate. See the [Buildbox evidence](results/buildbox-builds-20260831.txt).
+
+The exact production package, package-owned provenance leaf, preserved
+serviceability DT, two independent raw assemblies, two independent padding
+constructions, all 32 LK gates, independent layout validation, and six
+negative container mutations pass. The selected padded `boot2` candidate is
+`b5328f6a4226...`. See the
+[candidate evidence](results/production-candidate-20260831.txt).
 
 CPU9 remains vetoed until CPU8 is reproducibly online.
