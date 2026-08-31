@@ -6624,14 +6624,26 @@ The next ordered work is:
    after late-target validation and topology setup. The attempt used one CPU8
    request and zero CPU9, CPU_OFF, retry, storage-write, or reboot requests;
    CPU8 remained offline. Candidate `6d0bf75b...` is retired.
-5. **Selected next:** add one default-off, bounded post-capabilities
-   subcheckpoint successor. Preserve the exact one-shot CPU8 power transaction
-   and P30E reason channel, expose no CPU9/CPU_OFF/retry route, and distinguish
-   CPU-operations postboot, CPU-info capture, exact late-target expectation
-   validation, and topology storage inside the checkpoint-5-to-6 interval.
-   Prove the extended ABI and failure paths offline, run the focused multi-CPU
-   tests and exact build on Buildbox, then spend one physical attempt only if
-   its readback selects a repair. Retain the CPU9 veto.
+5. **Post-capabilities boundary result:** canonical patch `0458` added bounded
+   post-capabilities checkpoints and an exact mismatch ledger without changing
+   the power or request path. Its focused no-network four-CPU Buildbox/QEMU run
+   passed all 51 tests. Exact padded candidate `9f7ff849...` passed all 32 LK
+   gates and six negative container mutations, was written to live-resolved
+   inactive `boot2`, fully read back, and shut down. A fresh ABI-5 boot exposed
+   zero prior actions; one CPU8 trigger completed P27, P28, masked SRAM
+   validation, P30E arming, CPU-operations postboot, and CPU-info capture. The
+   target retained `CLAIMED/sequence 0/reason 8` with bitmap `0x2`, expected
+   `0x410fd080`, and observed `0x410fd081`. Bit 1 is the sole MIDR mismatch;
+   every other late-target comparison passed. CPU8 remained offline, while
+   CPU9, CPU_OFF, retry, storage-write, and native-reboot counts remained zero.
+6. **Selected next:** repair only the immutable prior-cycle expected-pair MIDR
+   from the generic Cortex-A72 model value `0x410fd080` to the named unit's
+   independently observed r0p1 value `0x410fd081`. Keep the capability-table
+   model match all-revisions, every exact register expectation, the one-shot
+   CPU8 power path, and the CPU9 veto unchanged. Prove deterministic replay,
+   expected-pair consistency, failure mutations, focused multi-CPU tests, and
+   the exact production package on Buildbox. Spend one fresh CPU8-only attempt
+   only after the candidate passes the existing container and pretrigger gates.
 
 The eventual CPU8 candidate must have a single CPU8 request, strict
 checkpoints before and after each power step, a bounded timeout, and a

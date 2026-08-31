@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-post-capabilities-checkpoints` |
-| Status | `boot2 deployed and shut down; runtime attempt pending` |
+| Status | `runtime complete; exact MIDR expected-pair repair selected` |
 | Subsystem | arm64 secondary startup and MT6797 P30E wire |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -123,25 +123,35 @@ watchdog remains the recovery owner and CPU9 remains vetoed.
   matched, the full 16 MiB write/readback matched `9f7ff84912ff...`, and the
   device shut down cleanly. No fresh backup was made. See the
   [deployment evidence](results/deployment-boot2-20260831.txt).
+- A fresh serviceable boot exposed ABI 5 with CPUs 0--7 online, CPUs 8--9
+  offline, and every action counter zero. Exactly one CPU8 trigger completed
+  P27, P28, SRAM, P30E arming, CPU-operations postboot, and CPU-info capture.
+  It stopped at reason `8` with mismatch bitmap `0x2`: expected MIDR
+  `0x410fd080`, observed MIDR `0x410fd081`. All other late-target comparisons
+  passed; CPU9, CPU_OFF, retry, storage-write, and reboot counts remained zero.
+  See the [runtime evidence](results/runtime-attempt-1-midr-mismatch-20260831.txt).
 
 ## Analysis
 
-The remaining checkpoint-5-to-6 interval contains four independently useful
-boundaries. The late-target validator compares 26 exact architectural values,
-so a single generic failure errno would still require another boot. Preserving
-its complete mismatch bitmap and first expected/observed pair makes a validator
-failure decision-changing on the first attempt.
+The reason-8 ledger proves CPU8 reached `secondary_start_kernel()` through
+CPU-operations postboot and CPU-info capture. Its sole mismatch bit identifies
+MIDR, and the expected/observed pair exposes the exact error: the immutable
+prior-cycle expectation stored the generic Cortex-A72 model value
+`0x410fd080`, while both earlier target-local capsules and this mainline CPU8
+read report the named unit's r0p1 value `0x410fd081`. No broader architectural
+expectation changed.
 
 ## Conclusion
 
-Patch generation, strict style review, deterministic replay, canonical-series
-integration, manifest-wide invariant review, focused compilation, package
-validation, the no-network 51-test boot, production build, device-tree
-composition, independent boot-container validation, and exact `boot2`
-deployment all pass. No new hardware conclusion exists until one attributable
-boot and trigger are classified.
+The one physical attempt is attributable and decision-changing. It closes the
+post-capabilities localization question: CPU8 reaches CPU-info capture and is
+parked by the exact late-target validator solely because the expected-pair MIDR
+uses the A72 model base rather than the observed r0p1 value. CPU8 is not online,
+and CPU9 remains untouched.
 
 ## Follow-up
 
-The ordered next action remains in `docs/ROADMAP.md`. CPU9 stays vetoed until
-CPU8 is reproducibly online.
+Repair only the immutable expected-pair MIDR to `0x410fd081`, retain generic
+all-revisions capability matching and the exact one-shot CPU8 path, then run
+the same offline and physical gates. The ordered action remains in
+`docs/ROADMAP.md`; CPU9 stays vetoed until CPU8 is reproducibly online.

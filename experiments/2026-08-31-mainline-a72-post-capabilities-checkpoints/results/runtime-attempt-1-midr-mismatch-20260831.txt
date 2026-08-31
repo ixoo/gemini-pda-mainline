@@ -1,0 +1,57 @@
+experiment=2026-08-31-mainline-a72-post-capabilities-checkpoints
+result=p30e-target-claimed-checkpoint-8
+device=Planet Computers Gemini PDA named development unit
+date_utc=2026-08-31
+
+candidate_full_sha256=9f7ff84912ff7b8f4f95661751972d32f6dfbfd1c3315e00145960bbcab2d630
+kernel_release=7.1.3-gemini-a72-admission-live
+boot_id=781133df-572d-4c80-9c81-8cf6faa91b81
+pretrigger_classification=serviceable-armed-zero-execution
+
+trigger_sessions=1
+trigger_executions=1
+cpu8_requests=1
+cpu9_requests=0
+cpu_off_requests=0
+retries=0
+reboot_requests=0
+device_partition_reads=none
+device_storage_writes=none
+
+operation_ret=-5
+entry_trace_ret=-5
+terminal_trace_ret=0
+lifecycle=6
+terminal=4
+last_stage=7
+stage_errno=-5
+p27_owned=1
+retained_mask=0x3
+p28_begin_ret=0
+p28_complete_ret=0
+sram_ret=0
+sram_match=0xfff
+sram_required=0xfff
+p30e_prepare_ret=0
+p30e_arm_ret=0
+p30e_readback_ret=-11
+p30e_controller_state=1
+p30e_controller_sequence=1
+p30e_target_state=2
+p30e_target_sequence=0
+p30e_target_reason=8
+p30e_target_effects=0x2
+p30e_first_expected=0x410fd080
+p30e_first_observed=0x410fd081
+cpu_online=0-7
+cpu_offline=8-9
+
+pretrigger_sha256=0622322b3e98dc1c3d8b2736e8dc43fd1a87e5a741553a008ca587647970e7a8
+trigger_sha256=25301cdf5fc2e42f626243aaaed08e36fdc41bc864ce0c68571a242e85c9c4ed
+attempt_classification_sha256=1f54a3c45127113ee81415e6a56f628638ba3b9cf9ccb8794c003a4b956a8bfa
+
+observation=The fresh boot exposed the exact installed candidate, ABI 5, CPUs 0-7 online, CPUs 8-9 offline, and an armed P30E frame with every action counter zero. One trigger completed P27, both P28 boundaries, all masked SRAM predicates, P30E prepare/arm, CPU-operations postboot, and CPU-info capture. The target then retained reason 8 with only mismatch bit 1 set. That bit denotes MIDR; the first expected value was 0x410fd080 and the observed CPU8 value was 0x410fd081. CPU8 remained offline and CPU9 was not requested.
+
+inference=CPU8 now reaches secondary_start_kernel() through cpuinfo_store_cpu(). The immediate blocker is not the power, SRAM, entry, capability, postboot, or CPU-info path: it is the immutable late-target expected pair using the generic Cortex-A72 model value instead of the named unit's already independently observed r0p1 MIDR. Because the remaining 25 architectural comparisons did not set a mismatch bit, this attempt selects an exact expected-pair MIDR repair. It does not prove CPU8 online publication, CPU_OFF, repeatability, CPU9 admission, sustained load, DVFS, thermal, or suspend.
+
+next=Replace only the immutable expected-pair MIDR with exact r0p1 value 0x410fd081, retain the all-revisions capability-table model matching and every one-shot safety gate, validate on Buildbox and no-network multi-CPU QEMU, then spend one fresh CPU8-only boot. CPU9 remains vetoed until CPU8 is reproducibly online.
