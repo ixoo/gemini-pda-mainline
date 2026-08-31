@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-sram-selector-mask-contract-repair` |
-| Status | `first physical boot returned to Gemian before arming; one exact repeat pending` |
+| Status | `selector repair passed live; CPU8 now stops at generic secondary completion` |
 | Subsystem | MT6797 CPU8 binder and BigiDVFS SRAM result contract |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -52,6 +52,9 @@ remains vetoed until CPU8 is reproducibly online.
   commit and produces a checksum-covered patch review package.
 - `scripts/run-kunit-qemu` and `scripts/classify-kunit.py` accept only the
   exact fetched Buildbox package and the 30/12/8 focused suite inventory.
+- `scripts/collect-recovery.sh` and `scripts/classify-recovery.py` preserve and
+  validate the exact changed-ID transition ledger even when the advisory
+  admission-entry trace is absent.
 
 The generator writes only a temporary Git tree and a review package on
 Buildbox. It performs no device access.
@@ -122,6 +125,25 @@ Buildbox. It performs no device access.
   CPU8, CPU9, CPU_OFF, retry, or native reboot requests and no retained-RAM
   write. See the
   [runtime result](results/runtime-boot-attempt-1-prearm-reboot-20260831.txt).
+- The one allowed exact repeat reached boot ID `b8e5d9c1...`, passed the
+  pristine ABI-2 serviceability gate, and consumed exactly one CPU8 trigger.
+  The repair worked: both `0x4008fb` selector reads now match the complete
+  `0xfff` binder contract, P28 completion returned zero, and the transition
+  advanced from SRAM stage 5 to online-wait stage 7.
+- The CPU8 callback returned zero and one request was issued, but generic arm64
+  never reported secondary completion. The transition terminated with
+  `-EIO`; CPUs 0--7 remained online and CPUs 8--9 remained offline, with zero
+  CPU9, CPU_OFF, retry, or native reboot requests. The recovery watchdog then
+  returned the unit to changed-ID Gemian.
+- Changed-ID recovery preserved a checksum-valid generation-14 terminal ledger
+  at stage 7. The advisory admission trace is empty, consistent with the live
+  `entry_trace_ret=-EIO`; pstore contains no attributable candidate identity.
+  The installed image remains exact. See the
+  [runtime result](results/runtime-attempt-2-online-wait-timeout-20260831.txt).
+- The exact production configuration has the existing P30E MMU-off wire
+  disabled and the canonical series has no production arm caller, so this boot
+  cannot distinguish a CPU8 that never reached `secondary_entry` from one that
+  entered but stopped before `secondary_start_kernel()` completed.
 
 ## Analysis
 
@@ -135,19 +157,19 @@ hardware transaction.
 
 ## Conclusion
 
-The exact source repair, production package, deterministic candidate,
-hardware-free proofs, and guarded `boot2` deployment pass. Physical boot
-attempt 1 returned to Gemian before the admission controller or serviceability
-path became observable, so it did not exercise the selector repair and is
-inconclusive for its hypothesis.
+The selector-mask hypothesis is confirmed on the named device and exact
+revision. The repaired consumer accepted the owner's stable masked result and
+P28 completed. CPU8 still is not online: the next failure is the generic arm64
+secondary-completion timeout after a zero-returning CPU_ON callback. Candidate
+`cd36efdf...` is retired and must not be repeated.
 
 ## Follow-up
 
-Repeat the exact candidate once with the same pre-armed observer. This repeat
-tests whether attempt 1 was a transient physical-selection or reboot outcome,
-which is material because the production semantic change remains strictly
-post-trigger. If the repeat exposes a pristine ABI-2 armed frame, issue one
-boot-bound CPU8 trigger and test whether the SRAM match becomes `0xfff`, P28
-completion is attempted, and the transition advances beyond stage 5. If it
-again returns before arming, stop identical boots and instrument the
-pre-controller boot or serviceability path. Retain the CPU9 veto.
+Add one default-off CPU8 P30E entry diagnostic around the existing wire object:
+arm the exact transaction before CPU_ON, preserve its one-shot and fail-closed
+semantics, and expose one read-only controller-side snapshot on generic
+rollback. An unchanged ARMED state localizes the fault before
+`secondary_entry`; CLAIMED localizes it between entry claim and
+`secondary_start_kernel()` publication; PUBLISHED moves the investigation to
+the later architecture bring-up path. Prove the wiring in focused Buildbox
+KUnit/QEMU before preparing one successor candidate. Retain the CPU9 veto.

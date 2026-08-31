@@ -6576,12 +6576,21 @@ The next ordered work is:
    traces with the admission controller not established; no CPU8 trigger or
    retained-RAM write occurred. This is a pre-controller or pre-serviceability
    failure and is inconclusive for the post-trigger selector repair.
-   **Selected next:** repeat the exact candidate once under the same pre-armed
-   observer. If it arms, use one pristine boot-bound trigger to distinguish
-   SRAM match `0xfff` and progress beyond stage 5 from an exact terminal
-   counterexample. If it again returns before arming, stop identical boots and
-   instrument the pre-controller boot or serviceability path. Retain the CPU9
-   veto.
+   The one exact repeat then reached serviceable mainline and consumed one
+   trigger. Both stable `0x4008fb` reads matched all `0xfff` binder predicates,
+   P28 completion returned zero, and the transition advanced from SRAM stage 5
+   to online-wait stage 7. One CPU8 request returned through the CPU_ON callback,
+   but generic secondary completion never arrived; the terminal result is
+   `-EIO`, CPUs 8--9 remained offline, and changed-ID recovery preserved valid
+   generation 14 at stage 7. The selector repair is therefore confirmed and
+   `cd36efdf...` is retired. The exact production configuration disables the
+   existing P30E MMU-off wire, and no production arming caller exists, so this
+   result cannot yet distinguish no target entry from a stop inside early arm64
+   startup. **Selected next:** enable and arm that existing wire for the exact
+   CPU8 transaction and expose one read-only rollback snapshot. ARMED,
+   CLAIMED, and PUBLISHED states must respectively distinguish before-entry,
+   post-entry/pre-startup, and post-`secondary_start_kernel()` boundaries.
+   Prove the wiring on Buildbox before one successor boot. Retain the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 
