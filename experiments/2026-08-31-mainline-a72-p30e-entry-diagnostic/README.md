@@ -154,6 +154,15 @@ KUnit/QEMU, and the exact production build pass on Buildbox.
   every P30E prepare, arm, readback, state, and sequence field still zero. The
   one CPU8 trigger remained untouched. The sanitized receipt is
   [recorded here](results/runtime-pretrigger-attempt-1-20260831.txt).
+- The one exact trigger was then consumed once and returned `-EAGAIN` before
+  admission-core consumption, CPU_ON, or P30E preparation. CPU0--7 remained
+  online, CPU8/9 remained offline, and the device stayed serviceable. Same-boot
+  `dmesg` showed that the arm64 profile withheld READY at proof mask `0x40000`:
+  patch `0436` still embedded pre-P30E config-input identity `5968c24f...`,
+  while the package-exact provenance leaf carried `1e7f3047...`. This is an
+  attributable pre-core identity failure and does not classify the CPU8 entry
+  boundary. The sanitized result is
+  [recorded here](results/runtime-attempt-1-stale-ready-identity-20260831.txt).
 
 ## Analysis
 
@@ -168,14 +177,17 @@ be ordinary executable kernel text.
 
 ## Conclusion
 
-Running; the repaired P30E candidate has passed the complete hardware-free
-gate and is installed and readback-verified on inactive `boot2`. No CPU-entry
-conclusion until one attributable boot and trigger result is captured.
+Attempt 1 is complete and attributable but did not exercise P30E. The candidate
+booted and remained serviceable; its single trigger stopped before the
+admission core because the production profile carried a stale config-input
+identity and therefore published no READY token. CPU8 remains offline and the
+entry boundary remains unresolved.
 
 ## Follow-up
 
-Physically select `boot2` once. After pretrigger qualification, issue exactly
-one CPU8 trigger and use the first exact P30E state to choose the next action:
-ARMED/EMPTY sends the investigation below `secondary_entry`; CLAIMED sends it
-into early arm64 setup; PUBLISHED sends it into the late completion/notification
-path. Do not begin a CPU9 transaction until CPU8 is reproducibly online.
+Build the narrow identity repair in the
+[P30E READY identity successor](../2026-08-31-mainline-a72-p30e-ready-identity-repair/README.md),
+then require a corrected pretrigger gate to prove READY before spending its one
+CPU8 trigger. Use ARMED/EMPTY, CLAIMED, or PUBLISHED to choose the next action.
+Do not repeat this consumed candidate or begin a CPU9 transaction until CPU8 is
+reproducibly online.

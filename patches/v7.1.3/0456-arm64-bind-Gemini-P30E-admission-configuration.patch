@@ -1,0 +1,35 @@
+From 1000000000000000000000000000000000000456 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 31 Aug 2026 16:01:00 +0000
+Subject: [PATCH] arm64: bind Gemini P30E admission configuration
+
+The production P30E diagnostic adds its wire option to the exact ordered
+configuration inputs, changing their package-derived identity from
+5968c24f... to 1e7f3047....  The runtime provenance leaf already carries
+the latter identity, but the MT6797 production profile still expects the
+former and therefore withholds READY at proof mask 0x40000.
+
+Bind the production profile to the exact P30E configuration inputs.  Keep
+the separate fixture identity unchanged and add no CPU request, power,
+retry, CPU_OFF, storage, or device action.
+---
+ arch/arm64/kernel/mt6797_psci.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
+index 1cd32ee..24a572d 100644
+--- a/arch/arm64/kernel/mt6797_psci.c
++++ b/arch/arm64/kernel/mt6797_psci.c
+@@ -63,8 +63,8 @@ static const u64 mt6797_a72_config_input_identity[ARM64_LATE_CPU_ID_WORDS] __ini
+ };
+ #else
+ static const u64 mt6797_a72_config_input_identity[ARM64_LATE_CPU_ID_WORDS] __initconst = {
+-	0x5968c24f1904c055, 0x9dea25480c41fbc7,
+-	0xdb49e822dc3600d1, 0xbdd7632330853f40,
++	0x1e7f3047cd225aba, 0xca31d37bee725df5,
++	0x0cd0f310ff79edc5, 0x1b5838f03231b75b,
+ };
+ #endif
+ 
+-- 
+2.51.0

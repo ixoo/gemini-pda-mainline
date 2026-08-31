@@ -6583,14 +6583,23 @@ The next ordered work is:
    but generic secondary completion never arrived; the terminal result is
    `-EIO`, CPUs 8--9 remained offline, and changed-ID recovery preserved valid
    generation 14 at stage 7. The selector repair is therefore confirmed and
-   `cd36efdf...` is retired. The exact production configuration disables the
-   existing P30E MMU-off wire, and no production arming caller exists, so this
-   result cannot yet distinguish no target entry from a stop inside early arm64
-   startup. **Selected next:** enable and arm that existing wire for the exact
-   CPU8 transaction and expose one read-only rollback snapshot. ARMED,
-   CLAIMED, and PUBLISHED states must respectively distinguish before-entry,
-   post-entry/pre-startup, and post-`secondary_start_kernel()` boundaries.
-   Prove the wiring on Buildbox before one successor boot. Retain the CPU9 veto.
+   `cd36efdf...` is retired. Canonical patches `0454` and `0455` enable and arm
+   the existing P30E wire for the exact CPU8 transaction, expose one rollback
+   snapshot, and keep the MMU-off claim separate from the normal-text post-MMU
+   publisher. The repaired focused four-CPU QEMU run passes 51/51 cases. Exact
+   production candidate `a4ad4915...` then booted serviceably and consumed one
+   trigger, but stopped before admission-core consumption, CPU_ON, or P30E with
+   `-EAGAIN`; CPU0--7 stayed online and CPU8--9 stayed offline. Same-boot
+   `dmesg` identifies proof mask `0x40000`: the production profile still embeds
+   pre-P30E config-input identity `5968c24f...`, while the package-exact
+   provenance leaf correctly carries `1e7f3047...`, so READY was withheld. This
+   consumed attempt is attributable but does not classify the target-entry
+   boundary. **Selected next:** canonical patch `0456` updates only that
+   production identity. Build and independently validate the exact successor
+   on Buildbox, and require the pretrigger gate to prove READY before one CPU8
+   trigger. ARMED, CLAIMED, and PUBLISHED must respectively distinguish
+   before-entry, post-entry/pre-startup, and post-`secondary_start_kernel()`
+   boundaries. Retain the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 

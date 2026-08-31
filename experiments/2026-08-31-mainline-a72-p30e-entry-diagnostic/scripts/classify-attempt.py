@@ -86,6 +86,34 @@ replacements = (
         '        return branch, f"ret={ret}-{reason}"',
         1,
     ),
+    (
+        '    raise Classification("terminal-status-and-cpu-list-inconsistent")',
+        '    if (\n'
+        '        online == "0-7" and offline == "8-9" and ret == -11\n'
+        '        and consumed == "0" and requests == "0"\n'
+        '        and status["trigger_consumed"] == "1"\n'
+        '        and status["trigger_executions"] == "1"\n'
+        '        and status["entry_trace_ret"] == "-5"\n'
+        '        and status["terminal_trace_ret"] == "0"\n'
+        '        and status["failure_stage"] == "0"\n'
+        '        and status["derive_stage"] == "0"\n'
+        '    ):\n'
+        '        p30e_zero = {\n'
+        '            "p30e_prepare_attempted": "0", "p30e_prepare_ret": "0",\n'
+        '            "p30e_arm_attempted": "0", "p30e_arm_ret": "0",\n'
+        '            "p30e_armed": "0", "p30e_readback_attempted": "0",\n'
+        '            "p30e_readback_ret": "0", "p30e_controller_state": "0",\n'
+        '            "p30e_target_state": "0", "p30e_target_sequence": "0",\n'
+        '            "p30e_controller_sequence": "0",\n'
+        '        }\n'
+        '        if any(status[key] != value for key, value in p30e_zero.items()):\n'
+        '            raise Classification("pre-core-EAGAIN-P30E-zero-prefix-mismatch")\n'
+        '        return "terminal-ready-token-unavailable", (\n'
+        '            f"ret={ret}-pre-core-zero-request-zero-P30E-{reason}"\n'
+        '        )\n'
+        '    raise Classification("terminal-status-and-cpu-list-inconsistent")',
+        1,
+    ),
 )
 for old, new, count in replacements:
     actual = text.count(old)
