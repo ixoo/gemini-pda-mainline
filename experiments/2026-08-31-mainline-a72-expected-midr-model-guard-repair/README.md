@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-expected-midr-model-guard-repair` |
-| Status | `deployed and shut down; fresh boot2 runtime attempt pending` |
+| Status | `runtime attempt 1 stopped before CPU8; MIDR guard fixed, effect planning remains blocked` |
 | Subsystem | arm64 late-CPU expected mitigation planning |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -53,8 +53,19 @@ CPU8 transaction and watchdog recovery ownership remain unchanged.
 
 ## Current conclusion
 
-The previous physical boot supplies an attributable, zero-execution source
-selector. No new hardware conclusion exists until a fresh pretrigger frame.
+Runtime attempt 1 passed the selected repair boundary but stopped safely before
+CPU8. The three previously missing mitigation capabilities are restored, the
+target, required, and expected capability vectors now match, and the
+expected-pair diagnostic mask is zero. This confirms the stale MIDR equality
+was the cause of the earlier local-capability rejection.
+
+The remaining READY mask is `0x36000`: local capability planning completed,
+but production effect planning returned `-EINVAL`, leaving both the effects
+and dependent expected-HWCAP plans empty. The one-shot trigger was not issued;
+CPU8, CPU9, CPU_OFF, retry, and storage-write counts all remained zero. The
+guarded USB recovery reboot returned the device to changed-ID Gemian
+`3.18.41+`. See the
+[runtime evidence](results/runtime-attempt-1-local-caps-restored-20260831.txt).
 
 Buildbox generated and replayed canonical patch `0460` from the exact
 post-`0459` source. The one-line change accepts A72 r0p1 and another A72
@@ -77,5 +88,5 @@ See the [build evidence](results/buildbox-builds-20260831.txt),
 The full-partition candidate was then written to live-resolved inactive
 `boot2`, read back exactly, and the device was shut down. See the
 [deployment evidence](results/deployment-boot2-20260831.txt). The next action
-is a fresh physical `boot2` selection followed by a read-only READY frame;
-CPU8 is triggered once only if that frame passes.
+is to localize and cover the production-only effect-plan rejection offline,
+then build a distinct candidate. No identical device retry is justified.
