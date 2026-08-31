@@ -117,6 +117,20 @@ KUnit/QEMU, and the exact production build pass on Buildbox.
   51/51, with no failures, skips, unexpected fault, physical CPU request,
   CPU_OFF request, retry, network, or device action. The sanitized receipt is
   [recorded here](results/focused-kunit-qemu-post-fix-20260831.txt).
+- Buildbox compiled the exact production profile from clean published commit
+  `23b21b6f`. Its patchset identity is `31c58247...`, compressed Image identity
+  is `f629b74a...`, and configuration identity is `96784159...`; the production
+  configuration enables P30E and disables KUnit.
+- The checksum-pinned composer transferred the package-exact A41 provenance
+  leaf into the serviceability/admission DT. The resulting DT identity is
+  `461e2d1c...`, with one controller, one binder, one exact runtime-binding
+  leaf, no standalone observer, and all required serviceability nodes enabled.
+- Two independent candidate assemblies produced byte-identical raw and padded
+  images. Two independent validations passed all 32 LK gates, rejected all six
+  mutations, and confirmed one CPU8 request path with no CPU request executed,
+  no CPU9 route, CPU_OFF route, or retry. The exact padded `boot2` identity is
+  `a4ad4915...`; the sanitized receipt is
+  [recorded here](results/production-candidate-20260831.txt).
 
 ## Analysis
 
@@ -131,15 +145,16 @@ be ordinary executable kernel text.
 
 ## Conclusion
 
-Running; the post-MMU publication repair passes the required four-CPU focused
-run, so the pre-production hardware-free gate is now complete. No hardware
-conclusion until the exact production candidate is built and one attributable
-trigger result is captured.
+Running; the repaired P30E candidate has passed the complete hardware-free
+gate and is an exact boot candidate. No hardware conclusion until it is
+installed with full-partition readback and one attributable trigger result is
+captured.
 
 ## Follow-up
 
-Build the exact production candidate from the clean published evidence commit.
-Use its first exact P30E state to choose the next action: ARMED/EMPTY sends the
-investigation below `secondary_entry`; CLAIMED sends it into early arm64 setup;
-PUBLISHED sends it into the late completion/notification path. Do not begin a
-CPU9 transaction until CPU8 is reproducibly online.
+Install exact padded candidate `a4ad4915...` to inactive `boot2`, verify the
+full-partition readback, and shut down. Use its first exact P30E state to choose
+the next action: ARMED/EMPTY sends the investigation below `secondary_entry`;
+CLAIMED sends it into early arm64 setup; PUBLISHED sends it into the late
+completion/notification path. Do not begin a CPU9 transaction until CPU8 is
+reproducibly online.
