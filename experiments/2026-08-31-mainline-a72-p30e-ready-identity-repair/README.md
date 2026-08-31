@@ -27,5 +27,9 @@ The guarded deployment resolved logical `boot2` as inactive
 read back padded candidate `459bcf66...`, and then shut the device down. The
 successor pretrigger now counts every `arm64-late-cpu-profile: ... blocked:`
 wording, fixing the stale collector that missed proof mask `0x40000`.
+The boot-bound executor is also pinned to this candidate and corrected
+validator. It durably revalidates the accepted pretrigger frame, sends exactly
+one CPU8 token, forbids CPU9/CPU_OFF/retry/reboot, and classifies the existing
+ARMED, CLAIMED, PUBLISHED, online, transport-loss, and fail-closed outcomes.
 
 Status: exact candidate installed and device shut down; first boot pending.
