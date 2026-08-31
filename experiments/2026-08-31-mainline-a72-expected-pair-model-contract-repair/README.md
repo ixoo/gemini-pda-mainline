@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-expected-pair-model-contract-repair` |
-| Status | `definition in progress; no build or device action` |
+| Status | `canonical patch and all-profile invariant pass; Buildbox compile pending` |
 | Subsystem | generic arm64 late-CPU expected-pair completeness |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -56,3 +56,19 @@ exact MIDR directly with the captured CPU register.
    exact before issuing CPU8 once.
 
 CPU9 remains vetoed until CPU8 is reproducibly online.
+
+## Current conclusion
+
+Buildbox generated and replayed canonical patch `0462` from exact post-`0461`
+source. The one-line change accepts exact A72 r0p1 and another A72 revision
+against the normalized Cortex-A72 model, rejects A53 r0p1 and a
+revision-bearing target model, and preserves the exact late-target MIDR
+comparison. Strict style and all seven rejecting source mutations pass, and no
+action-call inventory changed. See the
+[generation evidence](results/patch-generation-20260831.txt).
+
+No kernel build, candidate, or device action has occurred. The next gate is the
+focused and production builds on Buildbox. All 158 manifest profiles already
+pass the canonical-order subsequence invariant, and its eight negative
+mutations pass. See the
+[series audit](results/manifest-series-audit-20260831.txt).

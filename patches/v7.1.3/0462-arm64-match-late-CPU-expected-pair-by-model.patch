@@ -1,0 +1,30 @@
+From 4d39bcb0ba23e7a8ae337adc6ee981912ed845af Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 31 Aug 2026 23:42:00 +0000
+Subject: [PATCH] arm64: match late CPU expected pair by model
+
+The exact expected pair carries the prior-cycle MIDR revision,
+while expected_target_midr records the CPU model used by
+capability classification. Generic completeness incorrectly
+required the two representations to be byte-identical.
+
+Compare them at their shared model granularity. Keep the exact
+pair and later target-register comparison unchanged, along with
+every CPU, power, retry, storage, and CPU9 path.
+---
+ arch/arm64/kernel/late_cpu_profile.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm64/kernel/late_cpu_profile.c b/arch/arm64/kernel/late_cpu_profile.c
+index f3b6de4..17f83b8 100644
+--- a/arch/arm64/kernel/late_cpu_profile.c
++++ b/arch/arm64/kernel/late_cpu_profile.c
+@@ -1722,7 +1722,7 @@ arm64_late_cpu_expected_pair_complete(const struct arm64_late_cpu_plan *plan)
+ 		if (!expected->capsule_identity[target] ||
+ 		    expected->mpidr[target] !=
+ 			    plan->evidence.expected_target_mpidr[target] ||
+-		    expected->midr !=
++		    (expected->midr & MIDR_CPU_MODEL_MASK) !=
+ 			    plan->evidence.expected_target_midr[target])
+ 			return false;
+ 
