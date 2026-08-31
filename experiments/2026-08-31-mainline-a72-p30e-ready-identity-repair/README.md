@@ -32,4 +32,25 @@ validator. It durably revalidates the accepted pretrigger frame, sends exactly
 one CPU8 token, forbids CPU9/CPU_OFF/retry/reboot, and classifies the existing
 ARMED, CLAIMED, PUBLISHED, online, transport-loss, and fail-closed outcomes.
 
-Status: exact candidate installed and device shut down; first boot pending.
+The first physical boot proved READY and consumed the one allowed CPU8 trigger.
+P27, provider acquisition, isolation, stable masked SRAM validation, and P28
+all completed; one CPU8 request then returned `-EIO`. P30E preparation and
+arming succeeded, and controller readback found target state `CLAIMED`, target
+sequence `0`, and controller sequence `1`. CPU8 therefore executed the early
+`secondary_entry` claim but did not reach the later publication in
+`secondary_start_kernel()`. CPU0--7 remained online, CPU8--9 remained offline,
+and CPU9, CPU_OFF, retry, and native-reboot counts remained zero. The recovery
+watchdog returned the device to changed-ID Gemian; its sole 72-byte ramoops
+record had no attributable candidate trace.
+
+The first local classification rejected this otherwise complete transcript
+because the decision map incorrectly expected CLAIMED/PUBLISHED target
+sequences `1`/`2`. The wire implementation and focused fake both establish
+`0`/`1`; correcting that contract reclassifies the preserved transcript as
+`p30e-target-claimed` without another device action. See the
+[runtime result](results/runtime-attempt-1-p30e-claimed-20260831.txt).
+
+Status: experiment complete; candidate retired. The next experiment must add
+bounded P30E checkpoints between the successful claim and
+`secondary_start_kernel()` publication. An identical retry is forbidden and
+CPU9 remains vetoed.

@@ -6594,18 +6594,33 @@ The next ordered work is:
    pre-P30E config-input identity `5968c24f...`, while the package-exact
    provenance leaf correctly carries `1e7f3047...`, so READY was withheld. This
    consumed attempt is attributable but does not classify the target-entry
-   boundary. **Selected next:** canonical patch `0456` updates only that
-   production identity. Buildbox commit `8fa0757b...` produced exact padded
-   successor `459bcf66...`; two byte-identical assemblies and two independent
-   validations passed all 32 LK gates and all six negative mutations. Install
-   that qualified successor and require the corrected pretrigger gate to reject
-   every profile-blocked log form before one CPU8 trigger. Exact successor
-   `459bcf66...` is now installed on live-resolved inactive `boot2`, its full
-   partition readback matched, and the device was shut down. ARMED, CLAIMED, and
-   PUBLISHED must respectively distinguish before-entry, post-entry/pre-startup,
-   and post-`secondary_start_kernel()` boundaries. Retain the CPU9 veto.
-4. Run that one decision-bearing CPU8 candidate once with its existing strict
-   checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
+   boundary. Canonical patch `0456` updates only that production identity.
+   Buildbox commit `8fa0757b...` produced exact padded successor `459bcf66...`;
+   two byte-identical assemblies and two independent validations passed all 32
+   LK gates and all six negative mutations. The live-GPT deployment wrote and
+   fully read back that exact inactive `boot2` image, then shut the device down.
+   Its first boot proved READY and consumed one CPU8 trigger. P30E preparation
+   and arming succeeded; readback found controller state/sequence `1/1` and
+   target state/sequence `CLAIMED/0`. CPU8 therefore executed the early
+   `secondary_entry` claim but did not reach the normal-text publication in
+   `secondary_start_kernel()`. The operation returned `-EIO`, CPUs 0--7 stayed
+   online, CPU8--9 stayed offline, and CPU9, CPU_OFF, retry, and native-reboot
+   counts remained zero. Changed-ID Gemian recovery contained no attributable
+   ramoops trace. The initial classifier rejection was a tooling error: the
+   wire increments target sequence only on publication, so CLAIMED/PUBLISHED
+   sequences are `0`/`1`, not `1`/`2`; corrected local classification accepts
+   the preserved transcript without another device action. Candidate
+   `459bcf66...` is retired.
+4. **Selected next:** add one default-off, bounded P30E secondary-entry
+   checkpoint successor. Preserve the exact power transaction and one-shot
+   CPU8 route, expose no CPU9/CPU_OFF/retry path, and record the highest reached
+   checkpoint between the successful claim and existing publication. At
+   minimum distinguish completion of `__cpu_setup`, the MMU/virtual switch plus
+   secondary-task setup, and entry into early `secondary_start_kernel()` C
+   initialization. Prove the checkpoint ABI and failure paths offline, run the
+   focused multi-CPU tests and exact build on Buildbox, then spend one physical
+   attempt only if the resulting readback changes the next action. Retain the
+   CPU9 veto.
 
 The eventual CPU8 candidate must have a single CPU8 request, strict
 checkpoints before and after each power step, a bounded timeout, and a

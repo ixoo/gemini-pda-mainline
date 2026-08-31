@@ -7,7 +7,7 @@ import hashlib
 from pathlib import Path
 
 
-SOURCE_SHA256 = "eff798a659bf023043bf3ecff7112c5b2863754f5aed9575e8a079c163079696"
+SOURCE_SHA256 = "a361c6cc3a7379c26fa044b23d46608ce6d5936f3dd4be1f72a7d0f3d497ceb2"
 SCRIPT = Path(__file__).resolve()
 ROOT = SCRIPT.parents[3]
 SOURCE = (

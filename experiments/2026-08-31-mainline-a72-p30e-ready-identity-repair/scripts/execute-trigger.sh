@@ -27,7 +27,7 @@ text = Path(sys.argv[1]).read_text(encoding="utf-8")
 replacements = (
     ("cd36efdfbf1e3d7da00cf5a36ded07abfaf2a640d1f731aaad00feef01549743", "459bcf66fe807d9babfeefec7ea9b6e922edfaaa078fcbd288c7639048b31d16", 1),
     ("5a01a7128202b7e1d6c776d38cd594e8c90bf21b94cbf493c3a17dcd05cfe029", "93cee6501a6224b2c3c2e944c3701f7523c029f17ea55de822689cc49423e68d", 1),
-    ("1634b5624d43c740cd5d5b14a90286c7ff1bc368b3412da1723d94f50bb84f7a", "a5e11b927cb792103107f62e0c9ad6abeb7e898d0cd33206a8ed266c65e5adc2", 1),
+    ("1634b5624d43c740cd5d5b14a90286c7ff1bc368b3412da1723d94f50bb84f7a", "6b896c649c7c296a81833d769e763e1964bc359f6e6d002253d063a8d1683e25", 1),
     ("a22f33457be8bae80b32f60ff01026dbe49410368d73c76c1da74a57c21ae04d", "05accc9657be8268b0602216324919efa193243c61ad2ae78bdc2a6e3734304d", 1),
     ("2026-08-31-mainline-a72-sram-selector-mask-contract-repair", "2026-08-31-mainline-a72-p30e-ready-identity-repair", 1),
     ('("a72-isolation-held-result-contract-repair", "a72-sram-selector-mask-contract-repair", 1),', '("a72-isolation-held-result-contract-repair", "a72-p30e-ready-identity-repair", 1),', 1),
