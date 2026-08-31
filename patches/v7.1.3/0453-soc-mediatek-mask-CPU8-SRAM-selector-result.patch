@@ -1,0 +1,121 @@
+From 7f5e93a93433e40e5132af8338389c5f6ded85c3 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 31 Aug 2026 13:01:00 +0000
+Subject: [PATCH] soc: mediatek: mask CPU8 SRAM selector result
+
+The CPU8 SRAM owner accepted, verified, and sealed selector
+reads of 0x4008fb because their low 12 bits equal the expected
+0x8fb. The binder then rejected both reads by comparing the
+complete register value to the low-bit expectation.
+
+Apply the owner's existing selector mask to both binder
+predicates while retaining the independent full-read stability
+proof. Cover valid upper status bits and an invalid low bit.
+No operation or request path changes.
+---
+ drivers/soc/mediatek/mt6797-a72-binder-test.c | 45 ++++++++++++++++++-
+ drivers/soc/mediatek/mt6797-a72-binder.c      |  6 ++-
+ 2 files changed, 47 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-binder-test.c b/drivers/soc/mediatek/mt6797-a72-binder-test.c
+index 74f9e95..0bb363d 100644
+--- a/drivers/soc/mediatek/mt6797-a72-binder-test.c
++++ b/drivers/soc/mediatek/mt6797-a72-binder-test.c
+@@ -13,6 +13,8 @@
+ #define TEST_PROVIDER_GENERATION 17ULL
+ #define TEST_PROVIDER_COOKIE 19ULL
+ #define TEST_MAX_EVENTS 96U
++#define TEST_SELECTOR_STATUS BIT(22)
++#define TEST_SELECTOR_LOW_MISMATCH BIT(0)
+ 
+ enum mt6797_binder_test_malformed {
+ 	TEST_MALFORMED_NONE,
+@@ -55,6 +57,8 @@ struct mt6797_binder_test_state {
+ 	unsigned int membership_finalizes;
+ 	unsigned int membership_rejects;
+ 	unsigned int checkpoint_fail_stage;
++	u32 selector_status;
++	u32 selector_xor;
+ 	bool terminal_fails;
+ 	bool cpu8_online;
+ };
+@@ -377,8 +381,10 @@ static int mt6797_binder_test_sram(struct device *dev,
+ 	result->attempted_steps = steps;
+ 	result->completed_steps = steps;
+ 	result->requested_mv_x100 = MT6797_BIGIDVFS_SRAM_TARGET_MV_X100;
+-	result->selector_first = MT6797_BIGIDVFS_SRAM_SELECTOR_EXPECTED;
+-	result->selector_second = MT6797_BIGIDVFS_SRAM_SELECTOR_EXPECTED;
++	result->selector_first = MT6797_BIGIDVFS_SRAM_SELECTOR_EXPECTED |
++		state->selector_status;
++	result->selector_second = (MT6797_BIGIDVFS_SRAM_SELECTOR_EXPECTED |
++		state->selector_status) ^ state->selector_xor;
+ 	result->attempt_id = request->attempt_id;
+ 	result->cookie = request->cookie;
+ 	result->effect_attempted = true;
+@@ -677,6 +683,40 @@ static void mt6797_binder_sram_diagnostic_test(struct kunit *test)
+ 	KUNIT_EXPECT_EQ(test, diagnostic.sram_sealed, 0U);
+ }
+ 
++static void mt6797_binder_sram_selector_mask_test(struct kunit *test)
++{
++	struct mt6797_binder_test_state *state = test->priv;
++	struct mt6797_a72_binder_diagnostic diagnostic;
++	u32 selector = MT6797_BIGIDVFS_SRAM_SELECTOR_EXPECTED |
++		TEST_SELECTOR_STATUS;
++	int ret;
++
++	state->selector_status = TEST_SELECTOR_STATUS;
++	KUNIT_ASSERT_EQ(test, mt6797_binder_test_run_to_completion(state), 0);
++	mt6797_a72_binder_test_diagnostic(&state->binder, &diagnostic);
++	KUNIT_EXPECT_EQ(test, diagnostic.sram_selector_first, selector);
++	KUNIT_EXPECT_EQ(test, diagnostic.sram_selector_second, selector);
++	KUNIT_EXPECT_EQ(test, diagnostic.sram_match_mask,
++			MT6797_A72_BINDER_SRAM_REQUIRED_MASK);
++	KUNIT_EXPECT_EQ(test, diagnostic.p28_complete_attempted, 1U);
++
++	state = kunit_kzalloc(test, sizeof(*state), GFP_KERNEL);
++	KUNIT_ASSERT_NOT_NULL(test, state);
++	mt6797_binder_test_active = state;
++	state->selector_status = TEST_SELECTOR_STATUS;
++	state->selector_xor = TEST_SELECTOR_LOW_MISMATCH;
++	mt6797_a72_binder_test_init(&state->binder, &mt6797_binder_test_ops);
++	ret = mt6797_a72_binder_test_boot(&state->binder, 8,
++					  mt6797_binder_test_cpu_boot);
++	KUNIT_ASSERT_EQ(test, ret, -EPROTO);
++	mt6797_a72_binder_test_diagnostic(&state->binder, &diagnostic);
++	KUNIT_EXPECT_EQ(test, diagnostic.sram_match_mask,
++			MT6797_A72_BINDER_SRAM_REQUIRED_MASK &
++			~MT6797_A72_BINDER_SRAM_MATCH_SELECTOR_SECOND);
++	KUNIT_EXPECT_EQ(test, diagnostic.p28_complete_attempted, 0U);
++	KUNIT_EXPECT_EQ(test, state->cpu_boots, 0U);
++}
++
+ static void mt6797_binder_one_shot_test(struct kunit *test)
+ {
+ 	struct mt6797_binder_test_state *state = test->priv;
+@@ -707,6 +747,7 @@ static struct kunit_case mt6797_binder_test_cases[] = {
+ 	KUNIT_CASE(mt6797_binder_malformed_owners_test),
+ 	KUNIT_CASE(mt6797_binder_p27_diagnostic_test),
+ 	KUNIT_CASE(mt6797_binder_sram_diagnostic_test),
++	KUNIT_CASE(mt6797_binder_sram_selector_mask_test),
+ 	KUNIT_CASE(mt6797_binder_one_shot_test),
+ 	{}
+ };
+diff --git a/drivers/soc/mediatek/mt6797-a72-binder.c b/drivers/soc/mediatek/mt6797-a72-binder.c
+index fb80ca1..4e7c941 100644
+--- a/drivers/soc/mediatek/mt6797-a72-binder.c
++++ b/drivers/soc/mediatek/mt6797-a72-binder.c
+@@ -81,9 +81,11 @@ mt6797_a72_binder_sram_match_mask(const struct mt6797_a72_binder *binder)
+ 		mask |= MT6797_A72_BINDER_SRAM_MATCH_COMPLETED;
+ 	if (sram->requested_mv_x100 == MT6797_BIGIDVFS_SRAM_TARGET_MV_X100)
+ 		mask |= MT6797_A72_BINDER_SRAM_MATCH_VOLTAGE;
+-	if (sram->selector_first == MT6797_BIGIDVFS_SRAM_SELECTOR_EXPECTED)
++	if ((sram->selector_first & MT6797_BIGIDVFS_SRAM_SELECTOR_MASK) ==
++	    MT6797_BIGIDVFS_SRAM_SELECTOR_EXPECTED)
+ 		mask |= MT6797_A72_BINDER_SRAM_MATCH_SELECTOR_FIRST;
+-	if (sram->selector_second == MT6797_BIGIDVFS_SRAM_SELECTOR_EXPECTED)
++	if ((sram->selector_second & MT6797_BIGIDVFS_SRAM_SELECTOR_MASK) ==
++	    MT6797_BIGIDVFS_SRAM_SELECTOR_EXPECTED)
+ 		mask |= MT6797_A72_BINDER_SRAM_MATCH_SELECTOR_SECOND;
+ 	if (sram->attempt_id == binder->transaction.identity.generation)
+ 		mask |= MT6797_A72_BINDER_SRAM_MATCH_ATTEMPT_ID;

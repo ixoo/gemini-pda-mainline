@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-sram-selector-mask-contract-repair` |
-| Status | `exact repair tooling prepared; Buildbox generation pending` |
+| Status | `canonical patch generated and replayed; Buildbox KUnit pending` |
 | Subsystem | MT6797 CPU8 binder and BigiDVFS SRAM result contract |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -76,6 +76,16 @@ Buildbox. It performs no device access.
   selector comparison bits were absent. P28 completion was not attempted.
 - CPUs 0-7 remained online and CPUs 8-9 remained offline. There were zero
   CPU9, CPU_OFF, retry, or reboot requests.
+- Buildbox generated and deterministically replayed exactly one patch from the
+  checksum-pinned post-`0452` source. Its SHA-256 is `fe404106...`.
+- The source audit proves two masked predicates, positive upper-status-bit
+  coverage, low-bit rejection coverage, and unchanged hardware/request call
+  counts.
+- Strict Checkpatch reports zero warnings and zero checks. Its sole error is
+  the deliberately absent DCO sign-off for the synthetic experiment author;
+  this internal archive is not submission-ready.
+- All 158 manifest profiles remain canonical-order subsequences, and eight
+  invariant mutations are rejected.
 
 ## Analysis
 
@@ -89,7 +99,8 @@ hardware transaction.
 
 ## Conclusion
 
-Pending Buildbox generation, KUnit, and device evidence.
+The exact source repair is admitted for Buildbox KUnit and production builds;
+device behavior remains untested.
 
 ## Follow-up
 
