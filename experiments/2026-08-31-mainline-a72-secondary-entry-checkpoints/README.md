@@ -93,6 +93,11 @@ Buildbox.
   the P30E checkpoint-reason readback, with no physical CPU request, CPU_OFF,
   or retry. See
   [the exact classifier record](results/focused-kunit-qemu-20260831.txt).
+- Buildbox produced the exact production package from commit `e91394af`; the
+  independently validated raw candidate is `fdf302e8...` and its exact 16 MiB
+  boot2 representation is `6d0bf75b...`. All 32 LK gates passed and all six
+  negative container mutations were rejected. See
+  [the candidate record](results/production-candidate-20260831.txt).
 
 ## Analysis
 
@@ -110,5 +115,21 @@ attributable trigger is classified.
 
 ## Follow-up
 
-Use the highest checkpoint to select a single repair or narrower discriminator.
-Do not begin CPU9 work until CPU8 is reproducibly online.
+Install exact padded candidate `6d0bf75b...` only to live-resolved inactive
+`boot2`, verify its full-partition readback, and shut down. On its first
+serviceable boot, require pristine ABI-4 reason zero, then issue one CPU8
+trigger. Interpret the highest retained reason as follows:
+
+- `0`: no checkpoint beyond the already-proved target claim;
+- `1`: `__cpu_setup` returned;
+- `2`: the secondary task and virtual entry were ready;
+- `3`: `secondary_start_kernel()` began;
+- `4`: the identity map was removed;
+- `5`: local CPU capabilities were accepted;
+- `6`: target validation and topology completed;
+- `7`: interrupt, IPI, and NUMA setup completed.
+
+Terminal publication or CPU8 online moves the boundary later. Any malformed
+state/reason/sequence combination is rejected rather than interpreted. Use the
+result to select one repair or narrower discriminator. Do not begin CPU9 work
+until CPU8 is reproducibly online.
