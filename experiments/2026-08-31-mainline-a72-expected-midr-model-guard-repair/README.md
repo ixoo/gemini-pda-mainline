@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-expected-midr-model-guard-repair` |
-| Status | `patch generation pending` |
+| Status | `canonical patch generated; build gates pending` |
 | Subsystem | arm64 late-CPU expected mitigation planning |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -56,5 +56,11 @@ CPU8 transaction and watchdog recovery ownership remain unchanged.
 The previous physical boot supplies an attributable, zero-execution source
 selector. No new hardware conclusion exists until the repair passes offline
 gates and a fresh pretrigger frame.
+
+Buildbox generated and replayed canonical patch `0460` from the exact
+post-`0459` source. The one-line change accepts A72 r0p1 and another A72
+revision, rejects A53 r0p1, preserves the exact late-target MIDR contract, and
+does not change any action-call inventory. See the
+[generation evidence](results/patch-generation-20260831.txt).
 
 CPU9 remains vetoed until CPU8 is reproducibly online.

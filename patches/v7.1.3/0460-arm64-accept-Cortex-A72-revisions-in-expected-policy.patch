@@ -1,0 +1,30 @@
+From dc0a03724d9951aaf47de7bee893235e89dbd1b8 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 31 Aug 2026 22:20:00 +0000
+Subject: [PATCH] arm64: accept Cortex-A72 revisions in expected policy
+
+The exact Gemini r0p1 expected MIDR exposed a stale literal
+Cortex-A72 equality in the expected mitigation policy path.
+That guard made v2, v4, and BHB planning unresolved before
+READY despite otherwise valid prior-cycle evidence.
+
+Compare model bits like the existing target-evidence guard.
+Keep the exact late-target MIDR check and every CPU, power,
+retry, and CPU9 path unchanged.
+---
+ arch/arm64/kernel/proton-pack.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm64/kernel/proton-pack.c b/arch/arm64/kernel/proton-pack.c
+index 100d33b..ed181b9 100644
+--- a/arch/arm64/kernel/proton-pack.c
++++ b/arch/arm64/kernel/proton-pack.c
+@@ -123,7 +123,7 @@ late_cpu_expected_field_valid(const struct arm64_late_cpu_expected_pair *expecte
+ 	       field < ARM64_LATE_CPU_EXPECT_FIELD_COUNT &&
+ 	       !(expected->valid & ~ARM64_LATE_CPU_EXPECTED_PAIR_VALID_MASK) &&
+ 	       expected->valid & BIT_ULL(field) &&
+-	       expected->midr == MIDR_CORTEX_A72;
++	       (expected->midr & MIDR_CPU_MODEL_MASK) == MIDR_CORTEX_A72;
+ }
+ 
+ static enum arm64_late_cpu_cap_state __init

@@ -449,3 +449,4 @@ v7.1.3/0456-arm64-bind-Gemini-P30E-admission-configuration.patch
 v7.1.3/0457-arm64-add-P30E-secondary-entry-checkpoints.patch
 v7.1.3/0458-arm64-refine-P30E-post-capabilities-checkpoints.patch
 v7.1.3/0459-arm64-bind-Gemini-A72-r0p1-expected-MIDR.patch
+v7.1.3/0460-arm64-accept-Cortex-A72-revisions-in-expected-policy.patch
