@@ -452,3 +452,4 @@ v7.1.3/0459-arm64-bind-Gemini-A72-r0p1-expected-MIDR.patch
 v7.1.3/0460-arm64-accept-Cortex-A72-revisions-in-expected-policy.patch
 v7.1.3/0461-arm64-report-Gemini-A72-effect-plan-stage.patch
 v7.1.3/0462-arm64-match-late-CPU-expected-pair-by-model.patch
+v7.1.3/0463-pstore-add-Gemini-CPU9-transition-ledger.patch

@@ -1,0 +1,11 @@
+# Hardware-free coverage for the independent Gemini CPU9 transition ledger.
+# The suite uses injected record-0 and record-1 arrays only. The production
+# mapping API has no caller in this profile.
+CONFIG_KUNIT=y
+CONFIG_PSTORE=y
+CONFIG_PSTORE_RAM=y
+CONFIG_PSTORE_GEMINI_TRANSITION_LEDGER=y
+# CONFIG_PSTORE_GEMINI_TRANSITION_LEDGER_KUNIT_TEST is not set
+CONFIG_PSTORE_GEMINI_CPU9_TRANSITION_LEDGER=y
+CONFIG_PSTORE_GEMINI_CPU9_TRANSITION_LEDGER_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-cpu9-ledger-kunit"
