@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-30-mainline-a72-p27-runtime-attribution` |
-| Status | `exact boot2 candidate deployed and device shut down; boot pending` |
+| Status | `single runtime trigger complete; binder acquire-result contract defect attributed` |
 | Subsystem | MT6797 CPU8 P27 platform effect and rollback |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-30 |
@@ -134,3 +134,28 @@ flushed full-partition readback matched exactly. No fresh backup or retained-RAM
 write was made. The device was shut down cleanly and three consecutive TCP/22
 closures confirmed it remained unreachable. See
 [`results/deployment-20260830.txt`](results/deployment-20260830.txt).
+
+## Runtime result
+
+The exact read-only pre-trigger frame was pristine, after which the executor
+opened one netcat trigger session and entered `add_cpu(8)` once. P27 acquire
+completed every expected physical effect (`0x7`), moved the SPM value from
+`0x10132` to `0x10133`, retained ownership, and returned `error=0`. Its result
+was correctly unsealed because the platform-effect owner remained in the
+held state. The binder nevertheless rejected that successful result with
+`-EPROTO` because its shared shape predicate and KUnit fake incorrectly require
+every successful platform-effect result to be sealed.
+
+Rollback then completed every physical P27 release effect (`0x1f`), restored
+ownership to zero, and returned a sealed `error=0` result. Logical P29
+completion returned `-EPERM` only because the binder had never published the
+successful P27 membership completion. Provider, isolation, SRAM, PSCI CPU_ON,
+and secondary execution were not reached. Changed-ID Gemian recovery occurred;
+its pstore payload was byte-identical to the published predecessor ledger and
+is therefore not promoted as new evidence. Exact runtime identities are in
+[`results/runtime-trigger-membership-shape-mismatch-20260830.txt`](results/runtime-trigger-membership-shape-mismatch-20260830.txt).
+
+The selected repair is consequently narrow: accept the production owner's
+unsealed successful P27-acquire result, continue requiring a sealed release,
+and make the KUnit fake reproduce that production contract. CPU9 remains
+vetoed until CPU8 is reproducibly online.

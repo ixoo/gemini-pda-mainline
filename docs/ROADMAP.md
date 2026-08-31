@@ -6519,10 +6519,14 @@ The next ordered work is:
    acquire/release field. Its installer accepts the unchanged, already
    published predecessor P27 terminal ledger without modifying retained RAM,
    but rejects any different record. Deployment now has a matching full boot2
-   readback and confirmed clean shutdown. **Selected next:** physically select
-   boot2, capture the pristine read-only P27 diagnostic frame, then run its one
-   boot-bound CPU8 diagnostic and repair only the observed P27 predicate or
-   rollback defect. Retain the CPU9 veto.
+   readback and confirmed clean shutdown. Its one trigger then proved physical
+   P27 acquire (`0x7`) and release (`0x1f`) both complete successfully. The
+   binder rejects the intentionally unsealed held-acquire result with
+   `-EPROTO`; P29's later `-EPERM` is secondary because P27 membership was not
+   published. **Selected next:** make only the P27 acquire seal expectation and
+   its KUnit fake match the production held-owner contract, then repeat the
+   focused offline suites before considering one successor boot. Retain the
+   CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 
