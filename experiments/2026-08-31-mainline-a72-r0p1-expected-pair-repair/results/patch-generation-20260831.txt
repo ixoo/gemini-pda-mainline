@@ -1,0 +1,35 @@
+experiment=2026-08-31-mainline-a72-r0p1-expected-pair-repair
+result=pass
+date_utc=2026-08-31
+backend=buildbox
+repository_commit=0a170eb823dc6ebd3ad31511881c4e8970f4f304
+prepared_source_state=9c4c8924132e37a40fb6b334e8bcfa4e1d241bd34542a6736d6fba9f5e488b8e
+prepared_source_integrity=19387cb31b807805a120732f76b2183534aa63ab9cb811f1acb20dd185616e10
+parent_source_file_sha256=db06b8ad0f8552c908c4f29f7cda4a86745efceea27e0d8a15cd68dfe93c7265
+parent_patch=0458-arm64-refine-P30E-post-capabilities-checkpoints.patch
+parent_patch_sha256=2a6c72ae0a10c346bd826bd0dddf80ecf26ccae6aa41e239a267153f3c9013bf
+patch=0459-arm64-bind-Gemini-A72-r0p1-expected-MIDR.patch
+patch_sha256=35de4baa584485221af8bf087dc973c77fd0588d90418318bc4c5969da76748f
+generated_patch_count=1
+changed_files=1
+changed_source_lines=1
+expected_midr=0x410fd081
+capability_model_matching=all-revisions-unchanged
+strict_checkpatch_errors=0
+strict_checkpatch_warnings=0
+strict_checkpatch_checks=0
+deterministic_replay=pass
+new_cpu_request_paths=0
+new_cpu9_request_paths=0
+new_cpu_off_paths=0
+new_retry_paths=0
+new_power_sequence_calls=0
+new_storage_writes=0
+new_reboot_paths=0
+native_vm_build=none
+device_action=none
+boot_candidate=false
+
+observation=Buildbox generated one normal format-patch from the exact post-0458 managed source. The patch removes only the revision-neutral MIDR expected-pair initializer and replaces it with the exact Cortex-A72 r0p1 expression. Replay and all pinned source assertions pass. The expected-target evidence arrays and target capability model checks remain revision-neutral.
+
+inference=Canonical patch 0459 is the exact repair selected by predecessor mismatch bitmap 0x2 and does not broaden the physical action surface. Compilation, focused KUnit/QEMU, and production candidate validation remain separate gates.

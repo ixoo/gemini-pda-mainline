@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-r0p1-expected-pair-repair` |
-| Status | `patch-generation tooling prepared; build pending` |
+| Status | `canonical patch generated; offline build validation pending` |
 | Subsystem | arm64 late-CPU expected pair |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -53,6 +53,11 @@ watchdog recovery ownership remain unchanged.
 7. On one fresh boot, prove zero prior execution and issue CPU8 exactly once.
 
 ## Current conclusion
+
+Buildbox generated and replayed canonical patch `0459` from the exact post-0458
+source. The patch changes one source line, passes strict Checkpatch with zero
+findings, keeps all revision-neutral model checks unchanged, and adds no action
+path. See the [generation evidence](results/patch-generation-20260831.txt).
 
 The repair is selected by exact mainline runtime evidence and agrees with the
 independent CPU8/CPU9 target-local capsules. No new hardware conclusion exists

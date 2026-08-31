@@ -1,0 +1,30 @@
+From 978ab8580288a0d17223f7af0fed917cd7226419 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 31 Aug 2026 21:15:00 +0000
+Subject: [PATCH] arm64: bind Gemini A72 r0p1 expected MIDR
+
+The immutable Gemini expected pair came from r0p1 target-local
+capsules, but stored the revision-neutral Cortex-A72 model base.
+Mainline CPU8 consequently reached CPU-info capture and was
+parked by the exact late-target validator with MIDR as its sole
+mismatch.
+
+Bind that expected pair to r0p1. Keep revision-neutral capability
+matching and every CPU, power, retry, and CPU9 path unchanged.
+---
+ arch/arm64/kernel/mt6797_psci.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
+index 6cc4974..ae2f6d9 100644
+--- a/arch/arm64/kernel/mt6797_psci.c
++++ b/arch/arm64/kernel/mt6797_psci.c
+@@ -82,7 +82,7 @@ static const struct arm64_late_cpu_expected_pair mt6797_a72_expected_pair __init
+ 		0xe35596c52bc8b40b, 0x600c5e2d6733661d,
+ 	},
+ 	.mpidr = { 0x200, 0x201 },
+-	.midr = MIDR_CORTEX_A72,
++	.midr = MIDR_CORTEX_A72 | MIDR_CPU_VAR_REV(0, 1),
+ 	.revidr = 0,
+ 	.cntfrq = 0x00c65d40,
+ 	.ctr = 0x8444c004,
