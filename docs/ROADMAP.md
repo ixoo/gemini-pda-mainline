@@ -6560,10 +6560,17 @@ The next ordered work is:
    bits (`0x8fb`), while the binder incorrectly compares each full value to
    `0x8fb`. P28 begin succeeded and completion was not attempted; CPU8 remained
    offline with zero CPU9, CPU_OFF, retry, or reboot request. Candidate
-   `7cddf030...` is retired. **Selected next:** make only the binder's two
-   selector predicates use the owner's published mask, cover upper status bits
-   in focused KUnit, prove physical/request sequencing unchanged on Buildbox,
-   and use at most one new attributable candidate. Retain the CPU9 veto.
+   `7cddf030...` is retired. Canonical patch `0453` now makes only the binder's
+   two selector predicates use the owner's published mask. The focused
+   Buildbox/QEMU suite passes 50/50 cases, including the observed upper status
+   bit and a rejected low-bit mutation, while physical/request sequencing is
+   unchanged. The exact production package at commit `2d682d8a` and two
+   independent DT/container constructions produce padded candidate
+   `cd36efdf...`; all 32 LK gates and six container mutations pass. **Selected
+   next:** install this single attributable candidate to live-GPT-resolved
+   inactive `boot2`, require full readback and clean shutdown, then use one
+   pristine boot-bound trigger to distinguish SRAM match `0xfff` and progress
+   beyond stage 5 from an exact terminal counterexample. Retain the CPU9 veto.
 4. Run that one decision-bearing CPU8 candidate once with its existing strict
    checkpoints, bounded timeout, one-shot request, and fail-closed rollback.
 

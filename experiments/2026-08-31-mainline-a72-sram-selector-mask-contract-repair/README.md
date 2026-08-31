@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-sram-selector-mask-contract-repair` |
-| Status | `canonical patch and focused KUnit pass; production Buildbox build pending` |
+| Status | `exact boot2 candidate passes all offline gates; deployment pending` |
 | Subsystem | MT6797 CPU8 binder and BigiDVFS SRAM result contract |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -96,6 +96,17 @@ Buildbox. It performs no device access.
   upper selector status bit and rejects a low selector-bit mutation. It issued
   zero physical CPU, CPU_OFF, or retry requests. See the
   [KUnit result](results/kunit-qemu-3bf4cc6e-20260831.txt).
+- Buildbox built the exact production profile from clean pushed commit
+  `2d682d8a...`. The fetched package is checksum-valid, identifies patchset
+  `2942ab05...`, and contains no KUnit configuration.
+- Two independent package-exact provenance compositions produced the same DT,
+  and two independent Android-v0 assemblies and padding methods produced raw
+  candidate `add111ac...` and full-partition image `cd36efdf...` byte for byte.
+- Two independent validations passed all 32 LK gates and rejected all six
+  container mutations. The image retains one CPU8 request route and no CPU9,
+  CPU_OFF, or retry route. The boot-bound runtime contract passes three result
+  branches and rejects ten unsafe status mutations. See the
+  [offline candidate result](results/offline-candidate-20260831.txt).
 
 ## Analysis
 
@@ -109,12 +120,14 @@ hardware transaction.
 
 ## Conclusion
 
-The exact source repair and hardware-free proof pass. Production packaging and
-device behavior remain untested.
+The exact source repair, production package, deterministic candidate, and
+hardware-free proofs pass. The repair has not yet run on the device.
 
 ## Follow-up
 
-If the repair passes offline gates, build and validate one exact boot2
-candidate. Its unique runtime evidence is whether the SRAM match becomes
-`0xfff`, P28 completion is attempted, and the transition advances beyond stage
-5. Retain the CPU9 veto.
+Install exact padded candidate `cd36efdf...` to live-GPT-resolved inactive
+`boot2`, require matching full-partition readback, and shut down. On its one
+accepted boot, require a pristine ABI-2 armed frame and issue one boot-bound
+CPU8 trigger. Its unique evidence is whether the SRAM match becomes `0xfff`,
+P28 completion is attempted, and the transition advances beyond stage 5.
+Retain the CPU9 veto.
