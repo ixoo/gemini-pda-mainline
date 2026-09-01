@@ -8,7 +8,7 @@ readonly PARENT_SOURCE_INTEGRITY=4ffb52c7e6edb2edbddd5faee1dea22d4db3a82aad8a840
 readonly PARENT_PATCH=0467-soc-mediatek-fix-CPU9-executor-test-fixture-type.patch
 readonly PARENT_PATCH_SHA256=b3a3631d33c2872589ac249d216bd70b6064cf63df148a22b739223d209079e9
 readonly CURRENT_PATCH=0468-soc-mediatek-bind-retained-cluster-CPU9-dispatch.patch
-readonly CURRENT_PATCH_SHA256=27684a77f0ddb56de29dab9a9f219d0fbf8f31b7f169d53a1f167bdc434f1c66
+readonly CURRENT_PATCH_SHA256=d31a4fde863f9a6d0e4c5eb39e612f99a97193023530ad1da0556544d1b1dd0b
 
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 [[ "$#" -eq 3 ]] || die 'expected PROJECT_COMMIT SOURCE_ROOT OUTPUT_ROOT'
