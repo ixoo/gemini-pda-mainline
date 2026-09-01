@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+# Materialize the proven CPU8-to-CPU9 trigger while binding it to the exact
+# pristine contract of the progress errno diagnostic candidate.
+set -euo pipefail
+
+readonly SOURCE_SHA256=238c13324008dcfb1e9d79f09fa97beded98536168267b4d4074fb3c0882916a
+readonly VALIDATOR_SHA256=eeeb5ec90aea300c143564866158f314022e8576dcde93292900713b31ec5a31
+script_dir=$(cd -- "$(dirname -- "$0")" && pwd -P)
+source_trigger="$script_dir/remote-mapping-fix-trigger.sh"
+validator="$script_dir/validate-progress-errno-diagnostic-pretrigger.py"
+[[ "$(sha256sum "$source_trigger" | awk '{print $1}')" == "$SOURCE_SHA256" ]] || {
+	printf 'error: source CPU9 mapping-fix trigger changed\n' >&2
+	exit 2
+}
+[[ "$(sha256sum "$validator" | awk '{print $1}')" == "$VALIDATOR_SHA256" ]] || {
+	printf 'error: CPU9 progress errno pre-trigger validator changed\n' >&2
+	exit 2
+}
+materialized=$(mktemp "${TMPDIR:-/tmp}/.gemini-a72-cpu9-progress-errno-trigger.XXXXXXXX")
+cleanup() { rm -f -- "${materialized:-}"; }
+trap cleanup EXIT HUP INT TERM
+"$source_trigger" "$@" >"$materialized"
+python3 - "$materialized" "$validator" <<'PY'
+from importlib.util import module_from_spec, spec_from_file_location
+from pathlib import Path
+import sys
+
+text = Path(sys.argv[1]).read_text(encoding="utf-8")
+spec = spec_from_file_location("cpu9_progress_errno_pretrigger", sys.argv[2])
+assert spec is not None and spec.loader is not None
+module = module_from_spec(spec)
+spec.loader.exec_module(module)
+armed = "ARMED='" + module.ARMED + "'"
+if text.count(armed) != 1:
+    raise SystemExit("CPU9 progress errno trigger status contract changed")
+sys.stdout.write(text)
+PY
+cleanup
+trap - EXIT HUP INT TERM

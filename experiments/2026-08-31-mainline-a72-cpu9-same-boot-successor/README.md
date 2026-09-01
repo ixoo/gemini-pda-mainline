@@ -478,6 +478,18 @@ SMC, or device action. This validates the diagnostic source, not a boot
 candidate; the production package and Android container remain to be built and
 validated before any further device attempt.
 
+Exact published production build commit `adfa6b85...` then passed Buildbox
+compile, package, checksum, and provenance validation with the unchanged exact
+configuration identity. Two independent package-exact DT compositions were
+byte-identical at `f54e9449...` and rejected all ten unsafe mutations. Two
+independent Android-v0 constructions were byte-identical at raw `32d304dc...`
+and padded `4bf74874...`; both independent validators passed all 32 LK gates
+and rejected all six corrupt-container mutations. Source-pinned runtime tooling
+also classifies representative exact stage-1 `-EBADMSG` and `-EUCLEAN` shapes
+as CPU8-copy CRC failure and malformed progress-lane header respectively. This
+is the selected one-shot errno diagnostic candidate. It has not yet been
+installed or booted.
+
 ## Analysis
 
 The current generic owner and P30E layers contain useful CPU9 primitives, but
@@ -519,8 +531,10 @@ collision: corrupt CPU8 copies and a malformed progress lane both return
 `-EBADMSG`. Canonical patch `0476` changes only the latter to `-EUCLEAN` and
 adds focused proof that corrupt CPU8 copies retain `-EBADMSG`. The full 97-case
 offline regression now passes at exact published commit `4dc85b25...`;
-production candidate construction is the next gate. The retained wire and all
-CPU, CPU_OFF, retry, watchdog, storage, and recovery paths remain unchanged.
+exact production candidate `4bf74874...` is independently reproducible and
+passes every container gate. A guarded inactive-`boot2` deployment and clean
+shutdown are the next gate. The retained wire and all CPU, CPU_OFF, retry,
+watchdog, storage, and recovery paths remain unchanged.
 The ordered device action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside

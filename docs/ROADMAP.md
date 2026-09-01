@@ -6873,10 +6873,14 @@ CPU request, CPU_OFF, retry, watchdog, storage, and recovery behavior. Build
 and test only on Buildbox. Exact published commit `4dc85b25...` compiled and
 passed all 97 no-network cases across eight suites with zero failures or skips;
 the focused test preserves `-EBADMSG` for corrupt CPU8 copies and assigns
-`-EUCLEAN` only to a malformed progress-lane header. **Selected next:** build
-the production profile at a clean published commit, construct and independently
-validate one package-exact Android-v0 candidate, then spend one boot with the
-exact result map. Stage 1/`-EBADMSG` identifies invalid CPU8 copy CRCs;
+`-EUCLEAN` only to a malformed progress-lane header. Exact published production
+build commit `adfa6b85...` then passed package validation. Its two independent
+DT compositions and two independent Android-v0 constructions were byte-
+identical; all ten DT mutations, all 32 LK gates twice, and all six corrupt-
+container mutations passed. The selected diagnostic is raw `32d304dc...`,
+padded `4bf74874...`. **Selected next:** guardedly install it to inactive
+logical `boot2`, fully verify the readback, and shut down. Spend one boot with
+the exact result map. Stage 1/`-EBADMSG` identifies invalid CPU8 copy CRCs;
 stage 1/`-EUCLEAN` identifies the progress-lane header; every other existing
 distinct errno retains its documented CPU8-proof meaning. Advance to the first
 causal repair only from that single attributable result.
