@@ -1,0 +1,7 @@
+# Hardware-free coverage for CPU9 owner-local derivation and membership.
+# The complete CPU8 binder profile supplies the exact retired CPU8 success
+# fixture. CPU9 receives only one injected CPU_ON budget; this profile adds no
+# CPU request, CPU_OFF, retry, watchdog, provider, cluster effect, or caller.
+CONFIG_ARM64_MT6797_A72_DERIVED_ADMISSION=y
+CONFIG_ARM64_MT6797_A72_CPU9_MEMBERSHIP=y
+CONFIG_LOCALVERSION="-gemini-cpu9-membership-kunit"

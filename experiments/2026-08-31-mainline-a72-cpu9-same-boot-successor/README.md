@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-cpu9-same-boot-successor` |
-| Status | `CPU9 retained-ledger patch built and six-case runtime gate passed; owner-local derivation next` |
+| Status | `CPU9 retained ledger passed; owner-local membership patch generated, build pending` |
 | Subsystem | MT6797 A72 CPU9 retained-cluster admission |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -66,6 +66,9 @@ first write. No new physical range is introduced.
 - [`results/ledger-build-kunit-20260831.txt`](results/ledger-build-kunit-20260831.txt):
   exact published-commit Buildbox package validation and the six-case,
   no-network QEMU runtime result.
+- [`results/membership-patch-generation-20260831.txt`](results/membership-patch-generation-20260831.txt):
+  exact post-`0463` Buildbox generation, strict review, replay, and eight
+  mutation rejections for owner-local CPU9 membership patch `0464`.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger. Canonical patch `0463` adds the ledger but deliberately has no
@@ -114,6 +117,15 @@ isolation, SRAM, CPU_ON, IPI, DCM, and membership stages. Generalizing that
 executor for CPU9 would make forbidden cluster-effect replay reachable.
 Historical named-device evidence independently shows that CPU9 can execute
 through standard PSCI while CPU8 and the cluster state are retained.
+
+Generated patch `0464` now implements the owner-local boundary without a
+caller. It accepts only the exact retired CPU8 success with member bit 0, the
+held provider identity, CPU8 live and CPU9 offline, and a fresh one-shot CPU9
+attempt. The derived CPU9 transaction has no cluster/provider budgets and one
+CPU_ON budget. Four focused owner cases cover the parent gate, parent
+mutations, success finalization to members 0+1, and rejection that retains
+CPU8/provider state. Buildbox compilation and no-network KUnit execution are
+still pending, so this patch is not a boot candidate.
 
 ## Analysis
 
