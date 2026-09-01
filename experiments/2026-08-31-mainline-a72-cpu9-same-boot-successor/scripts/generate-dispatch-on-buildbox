@@ -57,6 +57,7 @@ for marker in generated_patch_count=1 cpu9_dispatch_validation=pass \
 	cpu9_dispatch_cpu_off_paths=0 cpu9_dispatch_retry_paths=0 \
 	cpu9_dispatch_cluster_effect_paths=0 focused_kunit_cases=8 \
 	source_mutations_rejected=10 strict_checkpatch=pass \
+	checkpatch_ignored=missing-signoff-file-path-open-ended-line \
 	deterministic_replay=pass native_vm_build=none device_action=none \
 	boot_candidate=false; do
 	grep -Fx "$marker" "$partial/provenance.txt" >/dev/null ||

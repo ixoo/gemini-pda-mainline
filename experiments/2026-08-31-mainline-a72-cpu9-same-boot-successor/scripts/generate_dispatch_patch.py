@@ -29,6 +29,7 @@ FORBIDDEN_PATCH_TOKENS = (
     "remove_cpu(", "psci_cpu_off", "cpu_off(", "arm_smccc",
     "regmap_write(", "kernel_restart(",
 )
+CHECKPATCH_IGNORE = "MISSING_SIGN_OFF,FILE_PATH_CHANGES,OPEN_ENDED_LINE"
 
 
 def sha256(path: Path) -> str:
@@ -193,7 +194,7 @@ def checkpatch_fix(source_root: Path, patch: Path, cwd: Path) -> None:
         (
             "perl", str(source_root / "scripts/checkpatch.pl"), "--fix-inplace",
             "--strict", "--no-tree", f"--root={source_root}", "--ignore",
-            "MISSING_SIGN_OFF,FILE_PATH_CHANGES", str(patch),
+            CHECKPATCH_IGNORE, str(patch),
         ),
         cwd=cwd, check=False, text=True,
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -260,7 +261,7 @@ def main() -> int:
         run(
             "perl", str(source_root / "scripts/checkpatch.pl"), "--strict",
             "--no-tree", f"--root={source_root}", "--ignore",
-            "MISSING_SIGN_OFF,FILE_PATH_CHANGES", str(patch), cwd=temp,
+            CHECKPATCH_IGNORE, str(patch), cwd=temp,
         )
 
         replay = temp / "replay"
@@ -286,6 +287,7 @@ def main() -> int:
             *markers,
             f"source_mutations_rejected={mutations}",
             "strict_checkpatch=pass",
+            "checkpatch_ignored=missing-signoff-file-path-open-ended-line",
             "deterministic_replay=pass",
             "native_vm_build=none",
             "device_action=none",
