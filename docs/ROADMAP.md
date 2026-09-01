@@ -6775,11 +6775,14 @@ the semantic gate rejected all ten unsafe mutations. Two independent
 Android-v0 constructions were byte-identical at raw `dd4b9358...` and padded
 `fb473d2f...`; both independent validators passed all 32 LK gates and rejected
 all six corrupt-container mutations. No device access or hardware write
-occurred during selection. **Selected next:** install this exact candidate to
-the live-GPT-resolved inactive `boot2`, verify its full-partition readback,
-shut down, and spend one fresh boot determining whether CPU9 is never
-requested, fails at a named retained-ledger stage, or reaches accounted online
-state after exact CPU8 terminal proof.
+occurred during selection. Known-good Gemian then resolved inactive logical
+`boot2` to `/dev/mmcblk0p30` with root on `/dev/mmcblk0p29`; the full partition
+matched exact predecessor `42c984ee...`. The guarded write, sync, flush, and
+full readback verified selected candidate `fb473d2f...`, and the device shut
+down cleanly without a new backup or reboot. **Selected next:** spend one fresh
+physical `boot2` selection determining whether CPU9 is never requested, fails
+at a named retained-ledger stage, or reaches accounted online state after
+exact CPU8 terminal proof.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

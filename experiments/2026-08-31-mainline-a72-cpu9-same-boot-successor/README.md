@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-cpu9-same-boot-successor` |
-| Status | `exact production candidate independently validated; device attempt pending` |
+| Status | `exact candidate verified on boot2 and device shut down; fresh attempt pending` |
 | Subsystem | MT6797 A72 CPU9 retained-cluster admission |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -111,6 +111,9 @@ first write. No new physical range is introduced.
   exact production Buildbox package, provenance-preserving DT composition,
   two byte-identical candidate constructions, 32 LK gates, and all 10 DT plus
   six container mutation rejections.
+- [`results/deployment-20260831.txt`](results/deployment-20260831.txt): exact
+  live-GPT target, proven predecessor, full-partition candidate readback, power
+  state, and confirmed clean shutdown before the first attributable boot.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger, owner-local membership lifecycle, retained-cluster dispatch, and
@@ -279,6 +282,15 @@ with zero requests during validation and no CPU_OFF or retry path. It is the
 selected production boot candidate; no device access or hardware write was
 used to establish that selection.
 
+Known-good Gemian boot ID `591a4ade...` then resolved inactive logical `boot2`
+to `/dev/mmcblk0p30` while root remained `/dev/mmcblk0p29`. Power was online,
+full, and good; the full partition matched the exact proven CPU8 predecessor
+`42c984ee...`. The guarded installer wrote, synchronized, flushed, and fully
+read back the selected padded CPU9 candidate `fb473d2f...`; the readback
+matched exactly. It made no fresh backup, touched no substitute partition,
+requested no reboot, and confirmed the device unreachable after clean
+shutdown. No CPU9 boot or runtime result has occurred yet.
+
 ## Analysis
 
 The current generic owner and P30E layers contain useful CPU9 primitives, but
@@ -310,10 +322,9 @@ reproducible, but no CPU9 device result is claimed yet.
 
 ## Follow-up
 
-Install exact padded candidate `fb473d2f...` to the live-GPT-resolved inactive
-`boot2`, require matching full-partition readback, and shut down. Admit one
-fresh named-device boot only. The attempt must attribute the exact release and
-candidate, recover both retained ledger records, and determine whether CPU9
-was never requested, rejected at a named stage, or became an accounted online
-CPU after CPU8 terminal proof. CPU_OFF, retry, sustained load, hotplug,
-thermal, and suspend remain outside that first CPU9 attempt.
+Physically select `boot2` for one fresh named-device boot. The attempt must
+attribute the exact release and candidate, recover both retained ledger
+records, and determine whether CPU9 was never requested, rejected at a named
+stage, or became an accounted online CPU after CPU8 terminal proof. CPU_OFF,
+retry, sustained load, hotplug, thermal, and suspend remain outside that first
+CPU9 attempt.
