@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-cpu9-same-boot-successor` |
-| Status | `CPU9 dispatch generated; Buildbox compile/KUnit pending; controller absent` |
+| Status | `CPU9 dispatch compiled and passed 73/73 KUnit cases; controller absent` |
 | Subsystem | MT6797 A72 CPU9 retained-cluster admission |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -95,6 +95,10 @@ first write. No new physical range is introduced.
   exact post-`0467` Buildbox generation, deterministic replay, ten mutation
   rejections, and the explicit narrow style exception for canonical dispatch
   patch `0468`.
+- [`results/dispatch-kunit-attempt-2-20260831.txt`](results/dispatch-kunit-attempt-2-20260831.txt):
+  exact corrected Buildbox package and five-suite no-network QEMU result: all
+  73 owner, transition, executor, CPU9 dispatch, and CPU8 regression cases
+  passed with zero failures or skips.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger and owner-local membership lifecycle. The canonical layers
@@ -216,9 +220,18 @@ inverse cluster action after CPU-on. The exact-source generator rejected ten
 unsafe mutations and replayed the generated patch deterministically. Strict
 checkpatch passed with `OPEN_ENDED_LINE` explicitly excluded because the
 kernel formatter necessarily breaks the new long identifiers after an open
-parenthesis; no semantic warning or error was excluded. Buildbox compilation
-and the 73-case no-network KUnit gate remain pending, so this is not a boot
-candidate.
+parenthesis; no semantic warning or error was excluded. The first exact build
+then caught missing direct ledger includes in the CPU9 binder test. After that
+repair, the next build passed and the first no-network QEMU run passed 72 of
+73 cases; its sole failure showed that one existing owner assertion still
+expected the CPU8 binder's `-EAGAIN` even though the selected CPU9 binder
+correctly rejected that invalid target with `-EINVAL`. Exact regeneration made
+that assertion selector-aware. Published commit `9a191eff...` then compiled
+on Buildbox, passed package and provenance validation, and passed all 73 cases
+across the five owner, transition, executor, CPU9 binder, and CPU8 binder
+suites with zero failures or skips. The harness observed no physical backend,
+CPU request, MMIO, retained-RAM write, watchdog action, SMC, or device action.
+No controller or `add_cpu` caller exists, so this remains not a boot candidate.
 
 ## Analysis
 
@@ -241,16 +254,15 @@ The guarded independent retained ledger and owner-local CPU9 derivation/
 membership lifecycle are canonical, compiled, and runtime-tested. The third
 logical layer—the hardware-free retained-cluster executor plus its test-only
 fixture repair—is now canonical, compiled, and runtime-tested. The fourth
-logical layer—the isolated CPU9 dispatch binder—is canonical and has
-passed exact-source generation, replay, and mutation gates; compile/runtime
-validation is pending. The detailed remaining implementation and evidence
-contract is frozen in
+logical layer—the isolated CPU9 dispatch binder—is now canonical, compiled,
+and runtime-tested across the full 73-case offline regression profile. The
+detailed remaining implementation and evidence contract is frozen in
 [`DESIGN.md`](DESIGN.md); no CPU9 support or device result is claimed yet.
 
 ## Follow-up
 
-Compile and execute the isolated P30E/PSCI/secondary-completion/IPI/membership
-dispatch gate on Buildbox, then chain the candidate-only controller before
-candidate validation and one predeclared device attempt.
+Generate, compile, and execute the candidate-only one-shot controller that may
+request CPU9 only after exact same-boot CPU8 success. Then validate the exact
+candidate and admit one predeclared device attempt.
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside
 that first CPU9 attempt.

@@ -6747,12 +6747,20 @@ with zero failures or skips. No production caller or physical backend was
 present. Canonical patch `0468` now binds CPU9-only
 P30E/PSCI/secondary-completion/IPI/membership and failure dispatch while
 leaving the CPU8 binder file unchanged. Its exact-source generation, ten
-unsafe mutation rejections, and deterministic replay pass; it has no
-controller or `add_cpu` caller and is not a boot candidate. **Selected next:**
-compile and run the 73-case dispatch profile on Buildbox, then chain and prove
-the candidate-only controller. Candidate gates remain subsequent; no CPU9
-candidate or device action is admitted until those layers pass their
-independent offline gates.
+unsafe mutation rejections, and deterministic replay pass. The first exact
+compile caught missing direct ledger includes in the CPU9 binder test. The
+repaired build passed, and its first QEMU run passed 72 of 73 cases while
+exposing one CPU8-only error-code expectation in a selector-dependent owner
+test. Exact selector-aware regeneration at published commit `9a191eff...`
+then compiled on Buildbox, passed package and provenance validation, and
+passed all 73 no-network KUnit cases across five suites with zero failures or
+skips. The harness observed zero physical CPU requests, MMIO, retained-RAM
+writes, watchdog actions, SMCs, or device actions. It has no controller or
+`add_cpu` caller and remains not a boot candidate. **Selected next:** generate,
+compile, and runtime-test the candidate-only one-shot controller that may
+request CPU9 only after exact same-boot CPU8 success. Candidate validation and
+one separately attributable device attempt remain closed until that offline
+controller gate passes.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
