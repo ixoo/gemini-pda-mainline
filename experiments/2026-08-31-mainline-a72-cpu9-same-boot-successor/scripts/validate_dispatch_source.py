@@ -153,6 +153,8 @@ def validate(root: Path) -> list[str]:
         require(token not in tests, f"forbidden test path: {token}")
 
     exact(tests, "KUNIT_CASE(mt6797_cpu9_binder_", 8)
+    exact(tests, "#include <linux/gemini_cpu9_transition_ledger.h>")
+    exact(tests, "#include <linux/gemini_transition_ledger.h>")
     for case in (
         "success_test", "dispatch_guards_test", "prepare_guards_test",
         "claim_failure_test", "cpu_on_failures_test",

@@ -3,6 +3,8 @@
 
 #include <kunit/test.h>
 #include <linux/errno.h>
+#include <linux/gemini_cpu9_transition_ledger.h>
+#include <linux/gemini_transition_ledger.h>
 #include <linux/module.h>
 
 #include "mt6797-a72-cpu9-binder-internal.h"
