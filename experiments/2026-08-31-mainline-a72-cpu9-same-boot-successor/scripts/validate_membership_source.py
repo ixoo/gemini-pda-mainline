@@ -90,7 +90,8 @@ def validate(root: Path) -> list[str]:
     for token in (
         "parent->members != BIT(0)",
         "parent->provider_state != MT6797_A72_PROVIDER_HELD",
-        "parent->attempts_consumed & MT6797_A72_ATTEMPT_CPU9_UP",
+        "    (parent->attempts_consumed & MT6797_A72_ATTEMPT_CPU9_UP) ||\n"
+        "\t    !(parent->attempts_available & MT6797_A72_ATTEMPT_CPU9_UP)",
         "!cpu8->cpu8_success_published || cpu8->cpu9_success_published",
         "topology->cpu8_online != 1 || topology->cpu9_online",
         "mt6797_a72_ready_token_validate(9, ready)",
