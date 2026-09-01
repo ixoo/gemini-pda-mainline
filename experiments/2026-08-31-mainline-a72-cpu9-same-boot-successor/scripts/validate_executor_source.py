@@ -105,6 +105,9 @@ def validate(root: Path) -> list[str]:
     ):
         exact(tests, f"KUNIT_CASE(mt6797_cpu9_executor_{case})")
     require('"mt6797-a72-cpu9-executor"' in tests, "focused suite name")
+    exact(tests, "struct mt6797_a72_cpu9_executor_test_state {", 1)
+    require("struct mt6797_cpu9_executor_test_state" not in tests,
+            "test fixture type is consistent")
     require("stage <= MT6797_A72_CPU9_STAGE_MEMBERSHIP" in tests,
             "all five stages exercised")
     require("phase <= MT6797_A72_CPU9_PHASE_AFTER" in tests,
