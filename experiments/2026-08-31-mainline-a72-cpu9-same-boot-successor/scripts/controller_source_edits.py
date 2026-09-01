@@ -273,29 +273,42 @@ CPU9_STATUS_HELPERS = dedent("""\
     {
     #if IS_ENABLED(CONFIG_MTK_MT6797_A72_CPU9_ADMISSION_CONTROLLER)
     \tstruct mt6797_a72_cpu9_binder_diagnostic diagnostic;
+    \tssize_t start = len;
     \tint ret;
 
     \tret = mt6797_a72_cpu9_binder_diagnostic_snapshot(&diagnostic);
-    \treturn sysfs_emit_at(
+    \tlen += sysfs_emit_at(
     \t\tbuf, len,
-    \t\t" cpu9_controller_consumed=%d cpu9_operation_ret=%d "
-    \t\t"cpu9_failure_stage=%u cpu9_derive_stage=%u "
-    \t\t"cpu9_binder_snapshot_ret=%d cpu9_abi=%u "
-    \t\t"cpu9_lifecycle=%u cpu9_terminal=%u cpu9_last_stage=%u "
-    \t\t"cpu9_stage_errno=%d cpu9_checkpoint_errno=%d "
-    \t\t"cpu9_attempted=%u cpu9_membership_published=%u "
-    \t\t"cpu9_cpu_requests=%u cpu9_cpu_off_requests=%u "
-    \t\t"cpu9_retries=%u cpu9_retained_mask=0x%x\\n",
+    \t\t" cpu9_controller_consumed=%d cpu9_operation_ret=%d ",
     \t\tatomic_read(&controller->cpu9.consumed),
-    \t\tREAD_ONCE(controller->cpu9.operation_ret),
+    \t\tREAD_ONCE(controller->cpu9.operation_ret));
+    \tlen += sysfs_emit_at(buf, len,
+    \t\t\t     "cpu9_failure_stage=%u cpu9_derive_stage=%u ",
     \t\tREAD_ONCE(controller->cpu9.failure_stage),
-    \t\tREAD_ONCE(controller->cpu9.derive_stage), ret,
-    \t\tdiagnostic.abi, diagnostic.lifecycle, diagnostic.terminal,
-    \t\tdiagnostic.last_stage, diagnostic.stage_errno,
-    \t\tdiagnostic.checkpoint_errno, diagnostic.attempted,
-    \t\tdiagnostic.membership_published, diagnostic.cpu_requests,
-    \t\tdiagnostic.cpu_off_requests, diagnostic.retries,
-    \t\tdiagnostic.retained_mask);
+    \t\tREAD_ONCE(controller->cpu9.derive_stage));
+    \tlen += sysfs_emit_at(
+    \t\tbuf, len,
+    \t\t"cpu9_binder_snapshot_ret=%d cpu9_abi=%u cpu9_lifecycle=%u ",
+    \t\tret, diagnostic.abi, diagnostic.lifecycle);
+    \tlen += sysfs_emit_at(buf, len,
+    \t\t\t     "cpu9_terminal=%u cpu9_last_stage=%u ",
+    \t\t\t     diagnostic.terminal, diagnostic.last_stage);
+    \tlen += sysfs_emit_at(buf, len,
+    \t\t\t     "cpu9_stage_errno=%d cpu9_checkpoint_errno=%d ",
+    \t\t\t     diagnostic.stage_errno,
+    \t\t\t     diagnostic.checkpoint_errno);
+    \tlen += sysfs_emit_at(buf, len,
+    \t\t\t     "cpu9_attempted=%u cpu9_membership_published=%u ",
+    \t\t\t     diagnostic.attempted,
+    \t\t\t     diagnostic.membership_published);
+    \tlen += sysfs_emit_at(buf, len,
+    \t\t\t     "cpu9_cpu_requests=%u cpu9_cpu_off_requests=%u ",
+    \t\t\t     diagnostic.cpu_requests,
+    \t\t\t     diagnostic.cpu_off_requests);
+    \tlen += sysfs_emit_at(buf, len,
+    \t\t\t     "cpu9_retries=%u cpu9_retained_mask=0x%x\\n",
+    \t\t\t     diagnostic.retries, diagnostic.retained_mask);
+    \treturn len - start;
     #else
     \t(void)controller;
     \treturn sysfs_emit_at(buf, len, " cpu9_controller=disabled\\n");
