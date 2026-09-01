@@ -62,6 +62,7 @@ def validate(root: Path) -> list[str]:
         "request->provider_retained && request->cpu8_online",
         "request->cpu8_attempt_id != request->cpu9_attempt_id",
         "atomic_cmpxchg(&controller->consumed, 0, 1)",
+        "ops->membership_commit && ops->terminal;",
         "ops->cpu_on(context, MT6797_A72_CPU9_EXECUTOR_CPU9)",
         "result->cpu_requests++;",
         "result->retained_mask = MT6797_A72_CPU9_RETAINED_REQUIRED;",
