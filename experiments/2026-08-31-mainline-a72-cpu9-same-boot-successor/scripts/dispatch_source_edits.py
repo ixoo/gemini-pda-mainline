@@ -240,10 +240,12 @@ def apply(root: Path) -> None:
     membership_test = root / "arch/arm64/kernel/mt6797_a72_membership_test.c"
     replace_once(
         membership_test,
+        "\tret = mt6797_psci_ops.cpu_up_validate(9, 0, CPUHP_AP_ONLINE);\n"
         "\tKUNIT_EXPECT_EQ(test, ret,\n"
         "\t\t\tIS_ENABLED(CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER) ?\n"
         "\t\t\t\t-EAGAIN : -EINVAL);\n"
         "\towner_observe(&state->after);\n",
+        "\tret = mt6797_psci_ops.cpu_up_validate(9, 0, CPUHP_AP_ONLINE);\n"
         "\tKUNIT_EXPECT_EQ(test, ret,\n"
         "\t\t\tIS_ENABLED(CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER) &&\n"
         "\t\t\t!IS_ENABLED(CONFIG_MTK_MT6797_A72_CPU9_BINDER) ?\n"
