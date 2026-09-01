@@ -1,0 +1,95 @@
+From 1000000000000000000000000000000000000477 Tue Sep  1 00:00:00 2026
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 1 Sep 2026 23:15:00 +0000
+Subject: [PATCH] pstore: accept raw Gemini CPU9 progress lane
+
+The one-shot progress errno diagnostic completed CPU8 but refused the
+progress lane with -EUCLEAN before issuing a CPU9 request.  The progress
+profile deliberately leaves normal ramoops registration disabled, so an
+untouched record has the raw all-ones header already accepted by the CPU9
+transition ledger and the shared transition-ledger owner.
+
+Accept either that exact raw header or the existing normalized empty header
+for the progress lane.  Keep every mixed or malformed header rejected and
+preserve the shared owner's existing payload-and-metadata-before-signature
+commit ordering.  Add focused coverage for raw-lane admission and retain the
+malformed-header refusal assertion.
+---
+ fs/pstore/gemini_cpu9_progress_ledger.c      | 14 +++++++++++---
+ fs/pstore/gemini_cpu9_progress_ledger_test.c | 25 ++++++++++++++++++++++++-
+ 2 files changed, 36 insertions(+), 3 deletions(-)
+
+diff --git a/fs/pstore/gemini_cpu9_progress_ledger.c b/fs/pstore/gemini_cpu9_progress_ledger.c
+--- a/fs/pstore/gemini_cpu9_progress_ledger.c
++++ b/fs/pstore/gemini_cpu9_progress_ledger.c
+@@ -21,8 +21,16 @@ static bool cpu9_progress_lane_empty(
+ 	const struct gemini_transition_ledger_ops *ops, void *context)
+ {
+-	return ops->read(context, 0) ==
+-			GEMINI_TRANSITION_LEDGER_PSTORE_SIGNATURE &&
+-		ops->read(context, 1) == 0 && ops->read(context, 2) == 0;
++	u32 signature;
++	u32 size;
++	u32 start;
++
++	signature = ops->read(context, 0);
++	start = ops->read(context, 1);
++	size = ops->read(context, 2);
++
++	return (signature == ~0U && start == ~0U && size == ~0U) ||
++		(signature == GEMINI_TRANSITION_LEDGER_PSTORE_SIGNATURE &&
++		 !start && !size);
+ }
+ 
+ static int cpu9_progress_commit_stage(
+diff --git a/fs/pstore/gemini_cpu9_progress_ledger_test.c b/fs/pstore/gemini_cpu9_progress_ledger_test.c
+--- a/fs/pstore/gemini_cpu9_progress_ledger_test.c
++++ b/fs/pstore/gemini_cpu9_progress_ledger_test.c
+@@ -140,6 +140,29 @@ static void cpu9_progress_cpu8_gate_test(struct kunit *test)
+ 		&cpu9_progress_test_ops, &progress, 1), -ENODATA);
+ }
+ 
++static void cpu9_progress_raw_lane_test(struct kunit *test)
++{
++	struct cpu9_progress_test_state cpu8;
++	struct cpu9_progress_test_state progress;
++	struct gemini_cpu9_progress_owner owner = {};
++	struct gemini_transition_ledger_record latest;
++
++	KUNIT_ASSERT_EQ(test, cpu9_progress_test_seed_cpu8(&cpu8, 1), 0);
++	memset(&progress, 0xff, sizeof(progress));
++	KUNIT_ASSERT_EQ(test, cpu9_progress_owner_begin(
++		&owner, &cpu9_progress_test_ops, &cpu8,
++		&cpu9_progress_test_ops, &progress, 1), 0);
++	KUNIT_EXPECT_EQ(test, progress.words[0],
++			GEMINI_TRANSITION_LEDGER_PSTORE_SIGNATURE);
++	KUNIT_EXPECT_EQ(test, progress.words[1],
++			GEMINI_TRANSITION_LEDGER_PAYLOAD_BYTES);
++	KUNIT_EXPECT_EQ(test, progress.words[2],
++			GEMINI_TRANSITION_LEDGER_PAYLOAD_BYTES);
++	KUNIT_ASSERT_TRUE(test, cpu9_progress_test_latest(&progress, &latest));
++	KUNIT_EXPECT_EQ(test, latest.stage,
++			(u32)GEMINI_CPU9_PROGRESS_CPU8_PROOF);
++}
++
+ static void cpu9_progress_lane_refusal_test(struct kunit *test)
+ {
+ 	struct cpu9_progress_test_state cpu8;
+@@ -148,6 +170,7 @@ static void cpu9_progress_lane_refusal_test(struct kunit *test)
+ 
+ 	KUNIT_ASSERT_EQ(test, cpu9_progress_test_seed_cpu8(&cpu8, 1), 0);
+ 	memset(&progress, 0xff, sizeof(progress));
++	progress.words[0] = 0;
+ 	KUNIT_EXPECT_EQ(test, cpu9_progress_owner_begin(
+ 		&owner, &cpu9_progress_test_ops, &cpu8,
+ 		&cpu9_progress_test_ops, &progress, 1), -EUCLEAN);
+@@ -185,6 +208,7 @@ static void cpu9_progress_ordering_test(struct kunit *test)
+ static struct kunit_case cpu9_progress_cases[] = {
+ 	KUNIT_CASE(cpu9_progress_sequence_test),
+ 	KUNIT_CASE(cpu9_progress_cpu8_gate_test),
++	KUNIT_CASE(cpu9_progress_raw_lane_test),
+ 	KUNIT_CASE(cpu9_progress_lane_refusal_test),
+ 	KUNIT_CASE(cpu9_progress_ordering_test),
+ 	{ }
+-- 
+2.51.0

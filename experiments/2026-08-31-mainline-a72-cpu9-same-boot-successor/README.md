@@ -496,7 +496,27 @@ healthy battery. The guarded installer wrote, synchronized, flushed, and fully
 read back selected diagnostic `4bf74874...`; the full readback matched and both
 trusted-environment hashes remained unchanged. It made no fresh backup or
 reboot request, removed its temporary readback, and confirmed the device
-unreachable after clean shutdown. The diagnostic has not yet been booted.
+unreachable after clean shutdown.
+
+The diagnostic then booted exact candidate `4bf74874...` on fresh boot ID
+`21736908...` and passed its pristine read-only gate. Exactly one trigger again
+completed CPU8 terminal stage 10/terminal 5 and left CPU8 online. Progress
+begin returned stage 1/`-EUCLEAN`, which uniquely selected the malformed
+progress-lane-header branch, before any CPU9 request, binder entry, CPU9 ledger
+write, CPU_OFF, or retry. The fixed watchdog returned to changed-ID Gemian.
+Recovery contained the same CRC-valid CPU8 terminal record and no later pstore
+record; bounded reads showed records 1--3 normalized empty after Gemian's
+ramoops initialization.
+
+The exact production configuration selects the mutable transition ledger,
+whose Gemini guard deliberately skips normal ramoops registration. Its raw
+unowned records therefore retain the all-ones header. Both the independent
+CPU9 transition lane and the shared transition owner already accept that exact
+raw header and commit the valid signature last, but the progress lane accepted
+only a ramoops-normalized empty header. Canonical patch `0477` closes that
+contract mismatch only for exact all-ones raw progress lanes, preserves all
+mixed, malformed, and committed-lane refusals, and adds focused raw-lane KUnit
+coverage. This is the selected causal successor; it is not yet Buildbox-tested.
 
 ## Analysis
 
@@ -531,19 +551,18 @@ CPU9 was not durably admitted and no CPU9-online result is claimed.
 
 ## Follow-up
 
-The exact progress candidate and its mapping-consistency successor are both
-retired after one decision-bearing attempt each. The successor reproduced the
-same stage-1 `-EBADMSG`, rejecting the mapping-attribute hypothesis. Exact
-source audit shows all CPU8 proof failures are already distinct except for one
-collision: corrupt CPU8 copies and a malformed progress lane both return
-`-EBADMSG`. Canonical patch `0476` changes only the latter to `-EUCLEAN` and
-adds focused proof that corrupt CPU8 copies retain `-EBADMSG`. The full 97-case
-offline regression now passes at exact published commit `4dc85b25...`;
-exact production candidate `4bf74874...` is independently reproducible and
-passes every container gate. Its guarded inactive-`boot2` write and full
-readback passed, followed by clean shutdown; one physical selection is the next
-gate. The retained wire and all CPU, CPU_OFF, retry, watchdog, storage, and
-recovery paths remain unchanged.
+The progress candidate, mapping-consistency successor, and errno diagnostic are
+retired after one decision-bearing attempt each. The diagnostic's unique
+stage-1 `-EUCLEAN` result selects the progress-lane header rather than the CPU8
+proof. Source and configuration audit identifies the exact mismatch: this
+profile intentionally bypasses normal ramoops while the progress lane omitted
+the raw all-ones admission already implemented by the CPU9 lane and shared
+owner. Canonical patch `0477` is the selected causal repair. Next, prove its
+raw admission, malformed refusal, and complete CPU9 regression on Buildbox,
+then produce one independently validated candidate. The next boot must advance
+to progress stage 2 or later; another stage-1 refusal rejects the repair. The
+retained wire and all CPU, CPU_OFF, retry, watchdog, storage, and recovery paths
+otherwise remain unchanged.
 The ordered device action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside

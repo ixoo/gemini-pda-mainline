@@ -6888,6 +6888,22 @@ stage 1/`-EUCLEAN` identifies the progress-lane header; every other existing
 distinct errno retains its documented CPU8-proof meaning. Advance to the first
 causal repair only from that single attributable result.
 
+That exact diagnostic boot passed the pristine gate and consumed one trigger.
+CPU8 again reached terminal stage 10/terminal 5 and remained online, while the
+unique stage-1 `-EUCLEAN` result selected the progress-lane-header branch before
+any CPU9 request, binder entry, CPU9 ledger write, CPU_OFF, or retry. Source and
+configuration audit then found the causal contract mismatch: the mutable
+transition-ledger profile intentionally bypasses normal ramoops, leaving an
+unowned record's three-word header all ones. The CPU9 transition lane and the
+shared owner already accept that exact raw state and publish the signature
+last; the progress lane accepted only a ramoops-normalized empty header.
+**Selected next:** canonical patch `0477` accepts only exact all-ones raw or the
+existing normalized-empty progress header, retains malformed and committed
+refusals, and adds focused KUnit coverage. Run the full CPU9 KUnit regression
+and production build on Buildbox, independently validate the candidate, then
+spend one fresh boot. Advance only to progress stage 2 or later or an exact
+downstream terminal; another stage-1 header refusal rejects the repair.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;
