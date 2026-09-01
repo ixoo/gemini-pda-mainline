@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-cpu9-same-boot-successor` |
-| Status | `attempt 1 stopped before trigger at exact config-identity block; repaired candidate qualified for boot2` |
+| Status | `repaired candidate installed with exact readback and shutdown; fresh boot2 selection pending` |
 | Subsystem | MT6797 A72 CPU9 retained-cluster admission |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31--2026-09-01 |
@@ -129,6 +129,9 @@ first write. No new physical range is introduced.
 - [`results/runtime-tooling-config-identity-repair-20260901.txt`](results/runtime-tooling-config-identity-repair-20260901.txt):
   exact candidate retarget of the unchanged pristine gate, one-session request
   bounds, dual-accounting success contract, and named failure classifier.
+- [`results/deployment-config-identity-repair-20260901.txt`](results/deployment-config-identity-repair-20260901.txt):
+  live-GPT target resolution, exact predecessor, stable power, full-partition
+  write/readback identity, unchanged trusted partitions, and confirmed shutdown.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger, owner-local membership lifecycle, retained-cluster dispatch, and

@@ -6808,10 +6808,15 @@ Two independent package-provenance DT compositions were byte-identical at
 Android-v0 constructions were byte-identical at raw `e7ea9113...` and padded
 `11809635...`; both independent validators passed all 32 LK gates and rejected
 all six corrupt-container mutations. No native VM build or hardware write was
-used. **Selected next:** install exact padded candidate `11809635...` to the
-live-GPT-resolved inactive `boot2`, require full readback and shutdown, then
-spend one fresh selection on the read-only pristine gate before at most one
-CPU8-to-CPU9 controller trigger.
+used. Known-good Gemian then resolved inactive logical `boot2` to
+`/dev/mmcblk0p30` with root on `/dev/mmcblk0p29`, proved exact predecessor
+`fb473d2f...`, and reported stable external power with a full battery. The
+guarded write, sync, device flush, and full-partition readback matched exact
+candidate `11809635...`; both trusted-environment partition hashes remained
+unchanged, no fresh backup was made, and the device shut down without a reboot.
+**Selected next:** spend one fresh physical `boot2` selection, close the
+read-only pristine gate against `11809635...`, and only then issue at most one
+CPU8-to-CPU9 controller trigger in that same boot.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
