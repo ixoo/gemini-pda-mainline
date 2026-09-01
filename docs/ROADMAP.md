@@ -6901,8 +6901,12 @@ last; the progress lane accepted only a ramoops-normalized empty header.
 existing normalized-empty progress header, retains malformed and committed
 refusals, and adds focused KUnit coverage. Run the full CPU9 KUnit regression
 and production build on Buildbox, independently validate the candidate, then
-spend one fresh boot. Advance only to progress stage 2 or later or an exact
-downstream terminal; another stage-1 header refusal rejects the repair.
+spend one fresh boot. Its full 98-case Buildbox/QEMU regression now passes with
+zero failures or skips, including exact raw admission, malformed refusal, and
+publication ordering. Build the exact production profile next, independently
+validate its DT and Android container, install it to inactive `boot2`, and shut
+down. Advance only to progress stage 2 or later or an exact downstream
+terminal; another stage-1 header refusal rejects the repair.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

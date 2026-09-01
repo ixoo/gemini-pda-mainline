@@ -516,7 +516,14 @@ raw header and commit the valid signature last, but the progress lane accepted
 only a ramoops-normalized empty header. Canonical patch `0477` closes that
 contract mismatch only for exact all-ones raw progress lanes, preserves all
 mixed, malformed, and committed-lane refusals, and adds focused raw-lane KUnit
-coverage. This is the selected causal successor; it is not yet Buildbox-tested.
+coverage. Exact published commit `e1187c09...` passed Buildbox compile and
+package validation, and the complete no-network QEMU run passed all 98 cases
+across eight suites with zero failures or skips. That includes the new exact
+raw-lane admission, the existing malformed-lane refusal, and signature-last
+ordering. The harness invoked no physical CPU request, retained RAM, MMIO,
+watchdog, SMC, or device action. This proves the causal repair offline; the
+production package and independently validated Android container remain to be
+built before the next device attempt.
 
 ## Analysis
 
@@ -557,12 +564,14 @@ stage-1 `-EUCLEAN` result selects the progress-lane header rather than the CPU8
 proof. Source and configuration audit identifies the exact mismatch: this
 profile intentionally bypasses normal ramoops while the progress lane omitted
 the raw all-ones admission already implemented by the CPU9 lane and shared
-owner. Canonical patch `0477` is the selected causal repair. Next, prove its
-raw admission, malformed refusal, and complete CPU9 regression on Buildbox,
-then produce one independently validated candidate. The next boot must advance
-to progress stage 2 or later; another stage-1 refusal rejects the repair. The
-retained wire and all CPU, CPU_OFF, retry, watchdog, storage, and recovery paths
-otherwise remain unchanged.
+owner. Canonical patch `0477` is the selected causal repair. Its raw admission,
+malformed refusal, and complete CPU9 regression now pass all 98 cases on the
+exact Buildbox package. Next, build the production profile from the exact clean
+commit, independently compose and validate its DT and Android container, and
+install it to inactive `boot2`. The next boot must advance to progress stage 2
+or later; another stage-1 refusal rejects the repair. The retained wire and all
+CPU, CPU_OFF, retry, watchdog, storage, and recovery paths otherwise remain
+unchanged.
 The ordered device action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside
