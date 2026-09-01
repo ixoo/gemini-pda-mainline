@@ -30,7 +30,7 @@ Cortex-A72 pair.
 | I2C6 transfer | Native packed/FIFO pointer-read and one exact one-message two-byte FIFO write are runtime proven. The write completed once with payload `[0xda, 0x46]`, exact no-retry accounting, and stable readback. | This closes only the reviewed same-value shape; arbitrary writes, failure recovery, stress, and resume remain open. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
 | Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected. A separate hardware-free implementation now models exact positive Buck-B acquire/release and passes all six focused fake-adapter cases. | Gate 6 is closed for the reviewed no-op, and the first Gate-7 provider source boundary is complete offline. Physical transition, production integration, consumers, and CPU requests remain disconnected. |
-| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The production-admission experiment brought CPU8 online on two fresh exact-candidate boots with attributable terminal membership proof; the repeat also advanced CPU8 accounting across a bounded one-second interval before watchdog recovery. The independent CPU9 ledger, membership, executor, and dispatch source layers are canonical; the executor is runtime-tested and the dispatch compile/runtime gate is pending. | Prove dispatch on Buildbox, then implement and prove the candidate-only controller before constructing a candidate or issuing any CPU9 request; keep CPU_OFF and retry disconnected. |
+| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The production-admission experiment brought CPU8 online repeatedly with attributable terminal membership proof and advancing accounting. The sole corrected same-boot CPU9 attempt again proved CPU8 terminal membership, but its independent CPU9 ledger remained exact-empty before watchdog recovery. | Add one independent retained progress path across the CPU8-proof-to-CPU9-ledger gap before another device attempt; keep CPU_OFF and retry disconnected. |
 
 The durable technical boundary is in
 [DA921x, I2C6, and Cortex-A72](hardware/da921x-i2c6-a72.md). The exact
@@ -6814,9 +6814,23 @@ used. Known-good Gemian then resolved inactive logical `boot2` to
 guarded write, sync, device flush, and full-partition readback matched exact
 candidate `11809635...`; both trusted-environment partition hashes remained
 unchanged, no fresh backup was made, and the device shut down without a reboot.
-**Selected next:** spend one fresh physical `boot2` selection, close the
-read-only pristine gate against `11809635...`, and only then issue at most one
-CPU8-to-CPU9 controller trigger in that same boot.
+The fresh corrected selection passed the read-only gate against
+`11809635...` with a pristine controller and zero requests, then consumed its
+sole trigger. The live sysfs write did not return before transport loss and
+changed-ID Gemian recovery 91 seconds later. Recovery record 0 contained two
+CRC-valid CPU8 copies: generation 20 `AFTER MEMBERSHIP` and generation 21
+terminal stage 10/terminal 5 `CPU8_ONLINE_PROOF`. Record 1 at `0x44411000`
+and the spare record at `0x44412000` were both exact logical-empty headers on
+a bounded read-only post-recovery check. This proves CPU8 success but places
+the stop before CPU9's first `BEFORE PRESTATE` ledger checkpoint and therefore
+before any ordered CPU9 physical CPU_ON. It does not distinguish CPU8 proof,
+ready-token, derive, publish, prepare, `add_cpu(9)` entry, or record-1 begin.
+The identical candidate is retired. **Selected next:** add and offline-prove
+a bounded independent retained progress ledger in the existing empty
+`0x44412000` record, covering each unresolved pre-ledger boundary plus CPU9
+binder entry and ledger-begin return. Disable the overlapping legacy CPU8
+admission trace in that diagnostic profile, preserve record 0 and record 1
+ownership, then build on Buildbox before constructing any next candidate.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

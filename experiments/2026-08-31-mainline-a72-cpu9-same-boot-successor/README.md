@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-cpu9-same-boot-successor` |
-| Status | `repaired candidate installed with exact readback and shutdown; fresh boot2 selection pending` |
+| Status | `sole corrected attempt proved CPU8 terminal success and stopped before the first CPU9 ledger checkpoint` |
 | Subsystem | MT6797 A72 CPU9 retained-cluster admission |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31--2026-09-01 |
@@ -132,6 +132,9 @@ first write. No new physical range is introduced.
 - [`results/deployment-config-identity-repair-20260901.txt`](results/deployment-config-identity-repair-20260901.txt):
   live-GPT target resolution, exact predecessor, stable power, full-partition
   write/readback identity, unchanged trusted partitions, and confirmed shutdown.
+- [`results/runtime-attempt-1-cpu8-terminal-cpu9-ledger-empty-20260901.txt`](results/runtime-attempt-1-cpu8-terminal-cpu9-ledger-empty-20260901.txt):
+  sole corrected trigger, exact CPU8 terminal membership proof, exact-empty
+  CPU9 lane, changed-ID recovery, and the bounded pre-ledger localization.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger, owner-local membership lifecycle, retained-cluster dispatch, and
@@ -336,8 +339,34 @@ Canonical patch `0470` changes only those four production identity words in
 storage, and device path are unchanged. Its parent and replacement Git blobs,
 full-file hashes, and the package-derived identity are exact, and the
 164-profile canonical-series audit plus all eight invariant mutations pass.
-Buildbox compile and package validation remain pending, so this repair is not
-yet a boot candidate.
+Exact published commit `45582eea...` then compiled on Buildbox with the
+intended configuration-input identity. Two independent DT compositions were
+byte-identical at `ca7e9516...`; two independent Android-v0 constructions
+were byte-identical at raw `e7ea9113...` and padded `11809635...`. Both
+candidate validators passed all 32 LK gates, ten DT mutations, and six
+container mutations. Known-good Gemian resolved inactive `boot2`, proved the
+exact predecessor, wrote and fully read back `11809635...`, preserved both
+trusted-environment partitions, and shut down cleanly without a fresh backup
+or reboot.
+
+The corrected candidate then passed the fresh source-pinned pre-trigger gate
+on boot ID `1958698a...`: exact installed identity and release, one completed
+effect plan, bound pristine controller, CPUs 0--7 online, CPUs 8--9 offline,
+and zero requests, CPU_OFF operations, or retries. The sole trigger commit was
+observed, but its sysfs write never returned before USB disappeared and
+changed-ID Gemian returned 91 seconds later. The live transcript therefore
+classified only transport-boundary loss and was not repeated.
+
+Recovery supplied the decision-changing evidence. Ramoops record 0 contained
+two CRC-valid copies for attempt 1: generation 20 was `AFTER MEMBERSHIP`, and
+generation 21 was terminal stage 10, terminal 5
+`CPU8_ONLINE_PROOF`. A separate bounded read-only Gemian `/dev/mem` check
+confirmed record 1 at `0x44411000` and the spare record at `0x44412000` both
+retained exact logical-empty `DBGC/0/0` headers. CPU8 therefore completed, but
+the CPU9 executor did not reach its first `BEFORE PRESTATE` ledger checkpoint
+and could not have issued its ordered physical CPU_ON request. The current
+evidence cannot distinguish the CPU8-proof, ready-token, derive, publish,
+prepare, `add_cpu(9)` entry, and record-1 begin boundaries.
 
 ## Analysis
 
@@ -365,16 +394,15 @@ and runtime-tested across the full 73-case offline regression profile. The
 fifth logical layer—the exact same-task CPU8-to-CPU9 controller—is now
 canonical, compiled, and runtime-tested across the full 91-case offline
 regression profile. The detailed device evidence contract is frozen in
-[`DESIGN.md`](DESIGN.md). The exact production candidate is independently
-reproducible, but no CPU9 device result is claimed yet.
+[`DESIGN.md`](DESIGN.md). The corrected production candidate is independently
+reproducible and its sole device attempt proved CPU8 terminal membership, but
+CPU9 was not durably admitted and no CPU9-online result is claimed.
 
 ## Follow-up
 
-Publish patch `0470`, compile the exact production profile on Buildbox, and
-recompose and independently validate the package-exact DT and Android-v0
-candidate. Only after that corrected image is fully read back to inactive
-`boot2` may a fresh source-pinned pre-trigger gate admit the single controller
-session. Recover both retained ledger records and determine whether CPU9 was
-never requested, rejected at a named stage, or became an accounted online CPU
-after CPU8 terminal proof. CPU_OFF, retry, sustained load, hotplug, thermal,
-and suspend remain outside that first CPU9 attempt.
+The identical candidate is retired. The ordered next action and its exit
+criteria are owned by [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster):
+add a bounded independent retained progress path that distinguishes the
+pre-ledger controller and hotplug-entry boundaries before any further device
+attempt. CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain
+outside that diagnostic.
