@@ -381,6 +381,19 @@ action occurred. A separate production profile now selects this diagnostic
 while disabling the overlapping legacy admission trace; it is not a selected
 boot candidate until its exact package and container validations pass.
 
+Exact published build commit `63035018...` completed that production gate.
+Two independent provenance/serviceability DT compositions were byte-identical
+at `08ccef4f...`; their independent validator preserved the serviceability,
+controller, binder, and exact package provenance contracts and rejected all
+ten negative DT mutations. Two independent Android-v0 constructions were
+byte-identical at raw `85d3b591...` and padded `ce154daf...`. Both independent
+candidate validations passed all 32 LK gates and all six negative container
+mutations. The source-pinned recovery classifier additionally accepted the
+valid record-2/record-1 relationships and rejected twelve malformed or
+cross-lane-inconsistent cases. This exact progress-ledger image is therefore
+the selected boot candidate; no device access or hardware write was used to
+establish that selection.
+
 ## Analysis
 
 The current generic owner and P30E layers contain useful CPU9 primitives, but
@@ -413,9 +426,9 @@ CPU9 was not durably admitted and no CPU9-online result is claimed.
 
 ## Follow-up
 
-The identical candidate is retired. The ordered next action and its exit
-criteria are owned by [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster):
-add a bounded independent retained progress path that distinguishes the
-pre-ledger controller and hotplug-entry boundaries before any further device
-attempt. CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain
-outside that diagnostic.
+The identical configuration-repair candidate is retired. The bounded retained
+progress diagnostic is now independently validated and selected; the ordered
+device action and its exit criteria remain owned by
+[Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
+CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside
+this diagnostic.
