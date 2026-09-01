@@ -1,0 +1,15 @@
+experiment=2026-08-31-mainline-a72-cpu9-same-boot-successor
+repository_commit=79002380e313750be0c923b727fb8521f719ce22
+profile=gemini-cpu9-membership-kunit
+backend=buildbox
+result=configuration-gate-rejected
+rejected_symbol=CONFIG_ARM64_MT6797_A72_DERIVED_ADMISSION
+requested_value=y
+retained_value=n
+cause=The focused fragment requested derived admission without explicitly enabling its direct-state compositor, A34 evaluator, and bootstrap publisher dependencies.
+compile_started=false
+package_created=false
+native_vm_build=none
+device_action=none
+boot_candidate=false
+next_action=Enable the three default-off source dependencies explicitly in the hardware-free fragment, republish a clean commit, and retry the same Buildbox profile.
