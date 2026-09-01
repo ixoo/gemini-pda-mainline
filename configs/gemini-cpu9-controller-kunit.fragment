@@ -1,11 +1,14 @@
-# Hardware-free coverage for the complete same-task CPU8-to-CPU9 controller.
-# The production trigger and binders are linked, but the QEMU DT has no Gemini
-# device nodes and all controller CPU requests are injected by KUnit. No MMIO,
+# Hardware-free coverage for the complete same-task CPU8-to-CPU9 controller
+# and its ten-stage pre-ledger progress path. The production trigger and
+# binders are linked, but the QEMU DT has no Gemini device nodes and all
+# controller CPU requests and retained records are injected by KUnit. No MMIO,
 # retained-RAM write, regulator/SMC call, physical CPU request, CPU_OFF, retry,
 # reboot, storage write, or device action is reachable from this profile.
 CONFIG_KUNIT=y
-CONFIG_PSTORE_GEMINI_ADMISSION_TRACE=y
+# CONFIG_PSTORE_GEMINI_ADMISSION_TRACE is not set
 # CONFIG_PSTORE_GEMINI_ADMISSION_TRACE_KUNIT_TEST is not set
+CONFIG_PSTORE_GEMINI_CPU9_PROGRESS_LEDGER=y
+CONFIG_PSTORE_GEMINI_CPU9_PROGRESS_LEDGER_KUNIT_TEST=y
 CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND=y
 CONFIG_MTK_MT6797_A72_PHYSICAL_SOURCE_OBSERVER=y
 # CONFIG_MTK_MT6797_A72_PHYSICAL_SOURCE_KUNIT_TEST is not set
@@ -15,4 +18,4 @@ CONFIG_MTK_MT6797_A72_ADMISSION_CONTROLLER_KUNIT_TEST=y
 CONFIG_MTK_MT6797_A72_CPU9_ADMISSION_CONTROLLER=y
 CONFIG_MTK_MT6797_A72_CPU9_ADMISSION_CONTROLLER_KUNIT_TEST=y
 # CONFIG_ARM64_MT6797_A72_DERIVED_ADMISSION_KUNIT_TEST is not set
-CONFIG_LOCALVERSION="-gemini-cpu9-controller-kunit"
+CONFIG_LOCALVERSION="-gemini-cpu9-progress-kunit"
