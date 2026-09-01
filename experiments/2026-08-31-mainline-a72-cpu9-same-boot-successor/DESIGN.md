@@ -95,6 +95,50 @@ clears, repairs, retries, or overwrites a committed CPU9 lane. Gemian recovery
 must expose both `dmesg-ramoops-0` and `dmesg-ramoops-1`; the runtime classifier
 requires the CPU8 terminal in record 0 and the CPU9 terminal in record 1.
 
+## Pre-ledger progress diagnostic
+
+The sole corrected device attempt proved the exact CPU8 terminal in record 0
+while record 1 remained logical-empty. A successor diagnostic therefore owns
+only the already-empty record at `0x44412000..0x44412fff`. It does not change
+record 0 at `0x44410000` or the CPU9 transition lane at `0x44411000`.
+
+Before its first write, the progress owner must validate the exact Gemini
+model, the existing `0x44410000`/`0xe0000` no-map ramoops reservation and 4 KiB
+record size, the CRC-valid CPU8 terminal stage 10/terminal 5 bound to the
+caller-supplied CPU8 attempt, and the exact logical-empty `DBGC/0/0` progress
+header. Raw, malformed, torn, or committed progress predecessors are refused.
+The legacy CPU8 admission trace must be disabled in the diagnostic profile
+because its historical two-record ownership overlaps the CPU9 and progress
+lanes.
+
+The progress payload is the existing 72-byte two-copy ledger format. Each
+36-byte little-endian copy contains magic `0x4c543747`, version `0x00010009`,
+the low and high CPU8-attempt words, generation, phase, stage, terminal, and
+CRC32 over the first eight words. The owner commits `BEFORE` and `AFTER` for
+each completed boundary:
+
+1. exact CPU8 proof and progress ownership;
+2. ready token;
+3. CPU9 derivation;
+4. CPU9 publication;
+5. CPU9 binder preparation;
+6. `add_cpu(9)` dispatch intent;
+7. CPU9 binder entry;
+8. CPU9 ledger-begin entry;
+9. successful CPU9 ledger-begin return; and
+10. `add_cpu(9)` return.
+
+The maximum is 20 record commits and 202 32-bit writes within that one record.
+Each record is CRC-last with a full barrier and full ordered readback; the
+header length and size are committed only after the first valid copy. The
+writer alternates its two owned copies during the one attempt, never clears or
+repairs the lane, never retries a failed commit, and seals after stage 10 or
+any production error. It performs no pre-DT access and no CPU, CPU_OFF,
+watchdog, regulator, clock, I2C, firmware, reset, reboot, storage, or power
+operation. Gemian recovery reads the pstore file and exact physical header;
+the source-pinned recovery classifier accepts only CRC-valid monotonic copies
+and names the last complete boundary.
+
 ## Success predicate
 
 The first device attempt passes only when all of these agree:
