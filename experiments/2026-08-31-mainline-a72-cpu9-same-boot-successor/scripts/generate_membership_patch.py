@@ -110,8 +110,14 @@ def validate_mutations(root: Path) -> int:
         ),
         (
             "arch/arm64/kernel/mt6797_a72_membership.c",
-            "a72_owner.active.budgets.cpu_on = MT6797_A72_BUDGET_CONSUMED;",
-            "a72_owner.active.budgets.cpu_on = MT6797_A72_BUDGET_AVAILABLE;", 1,
+            "!a72_owner.active.cpu9_success_published &&\n"
+            "\t    cpu8_online && !cpu9_online) {\n"
+            "\t\ta72_owner.active.budgets.cpu_on = "
+            "MT6797_A72_BUDGET_CONSUMED;",
+            "!a72_owner.active.cpu9_success_published &&\n"
+            "\t    cpu8_online && !cpu9_online) {\n"
+            "\t\ta72_owner.active.budgets.cpu_on = "
+            "MT6797_A72_BUDGET_AVAILABLE;", 1,
         ),
         (
             "arch/arm64/kernel/mt6797_a72_membership.c",

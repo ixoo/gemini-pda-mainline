@@ -100,7 +100,10 @@ def validate(root: Path) -> list[str]:
         "budgets->provider_acquire == MT6797_A72_BUDGET_NONE",
         "budgets->postprovider_preparation == MT6797_A72_BUDGET_NONE",
         "budgets->provider_abort == MT6797_A72_BUDGET_NONE",
-        "a72_owner.active.budgets.cpu_on = MT6797_A72_BUDGET_CONSUMED;",
+        "!a72_owner.active.cpu9_success_published &&\n"
+        "\t    cpu8_online && !cpu9_online) {\n"
+        "\t\ta72_owner.active.budgets.cpu_on = "
+        "MT6797_A72_BUDGET_CONSUMED;",
         "a72_owner.active.cpu9_success_published = 1;",
         "a72_owner.members = BIT(0) | BIT(1);",
         "a72_owner.phase = MT6797_A72_PHASE_REJECTED;",
