@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-cpu9-same-boot-successor` |
-| Status | `CPU9 retained ledger passed; owner-local membership patch generated, build pending` |
+| Status | `CPU9 membership compiled; first 55-case gate found post-success finalization defect` |
 | Subsystem | MT6797 A72 CPU9 retained-cluster admission |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -69,6 +69,9 @@ first write. No new physical range is introduced.
 - [`results/membership-patch-generation-20260831.txt`](results/membership-patch-generation-20260831.txt):
   exact post-`0463` Buildbox generation, strict review, replay, and eight
   mutation rejections for owner-local CPU9 membership patch `0464`.
+- [`results/membership-kunit-attempt-1-20260831.txt`](results/membership-kunit-attempt-1-20260831.txt):
+  exact Buildbox package and no-network QEMU result: 54 of 55 cases passed;
+  CPU9 success finalization rejected the already-published member bit 1.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger. Canonical patch `0463` adds the ledger but deliberately has no
@@ -124,8 +127,17 @@ held provider identity, CPU8 live and CPU9 offline, and a fresh one-shot CPU9
 attempt. The derived CPU9 transaction has no cluster/provider budgets and one
 CPU_ON budget. Four focused owner cases cover the parent gate, parent
 mutations, success finalization to members 0+1, and rejection that retains
-CPU8/provider state. Buildbox compilation and no-network KUnit execution are
-still pending, so this patch is not a boot candidate.
+CPU8/provider state. At generation time, Buildbox compilation and no-network
+KUnit execution were still pending, so the patch was not a boot candidate.
+
+The first exact Buildbox package subsequently compiled and passed package
+validation. Its no-network QEMU run executed all 55 named cases: 54 passed and
+the CPU9 success lifecycle failed only at finalization. Success publication
+correctly changed membership from bit 0 to bits 0+1, but finalization reused a
+parent helper that still required bit 0 exactly and returned `-EPERM`. The
+other 33 owner cases, all 12 transition cases, and all 9 binder cases passed.
+The next patch is therefore a narrow phase-aware membership repair; no caller,
+device candidate, or physical action is justified by this failed gate.
 
 ## Analysis
 

@@ -81,6 +81,10 @@ SUITES = (
             "mt6797_binder_terminal_failure_test",
             "mt6797_binder_preiso_checkpoint_test",
             "mt6797_binder_malformed_owners_test",
+            "mt6797_binder_p27_diagnostic_test",
+            "mt6797_binder_sram_diagnostic_test",
+            "mt6797_binder_sram_selector_mask_test",
+            "mt6797_binder_p30e_readback_test",
             "mt6797_binder_one_shot_test",
         ),
     ),
@@ -133,7 +137,7 @@ def classify_runtime(raw: str, expected_release: str, qemu_exit: int) -> None:
     require(ktap.count("KTAP version 1") == len(SUITES) + 1,
             "expected one top-level and three suite KTAP headers")
     plans = [line for line in ktap if re.fullmatch(r"1\.\.\d+", line)]
-    require(plans == ["1..3", "1..34", "1..12", "1..5"],
+    require(plans == ["1..3", "1..34", "1..12", "1..9"],
             f"KUnit plans changed: {plans}")
     subtests = [line for line in ktap if line.startswith("# Subtest: ")]
     require(subtests == [f"# Subtest: {suite}" for suite, _ in SUITES],
@@ -251,7 +255,7 @@ def main() -> None:
     print(f"suites={len(SUITES)}")
     print(f"tests={total_tests}")
     print("cpu9_membership_tests=4")
-    print("regression_tests=47")
+    print("regression_tests=51")
     print("failed=0")
     print("skipped=0")
     for suite, cases in SUITES:
