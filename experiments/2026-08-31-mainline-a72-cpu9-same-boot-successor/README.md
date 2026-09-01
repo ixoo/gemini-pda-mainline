@@ -99,10 +99,18 @@ first write. No new physical range is introduced.
   exact corrected Buildbox package and five-suite no-network QEMU result: all
   73 owner, transition, executor, CPU9 dispatch, and CPU8 regression cases
   passed with zero failures or skips.
+- [`results/controller-patch-generation-20260831.txt`](results/controller-patch-generation-20260831.txt):
+  exact post-`0468` Buildbox generation, strict unchanged-source style gate,
+  deterministic replay, ten mutation rejections, and the rejected auto-fixed
+  predecessor for canonical controller patch `0469`.
+- [`results/controller-kunit-attempt-2-20260831.txt`](results/controller-kunit-attempt-2-20260831.txt):
+  exact corrected Buildbox package and seven-suite no-network QEMU result: all
+  91 controller, dispatch, executor, owner, transition, and CPU8 regression
+  cases passed with zero failures or skips.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
-  ledger and owner-local membership lifecycle. The canonical layers
-  deliberately have no production caller and do not enable CPU9.
+  ledger, owner-local membership lifecycle, retained-cluster dispatch, and
+  same-task controller. No production candidate is selected here.
 
 Implementation patches, generators, validators, and build results will be
 added here only after each logical source boundary passes deterministic
@@ -233,6 +241,24 @@ suites with zero failures or skips. The harness observed no physical backend,
 CPU request, MMIO, retained-RAM write, watchdog action, SMC, or device action.
 No controller or `add_cpu` caller exists, so this remains not a boot candidate.
 
+Canonical patch `0469` now adds the candidate-only outer one-shot controller.
+One live trigger first executes the unchanged CPU8 core, then requires exact
+terminal CPU8 membership, retained P27/provider state, CPU8 online, and CPU9
+offline before deriving, publishing, preparing, and requesting CPU9 once in
+the same task. Every CPU9 failure is terminal and retains CPU8, the provider,
+and the cluster; there is no CPU_OFF, retry, cluster reacquisition, or watchdog
+refresh. The initial generated artifact was rejected before integration because
+`checkpatch --fix-inplace` duplicated two source lines, including one that
+would not compile. The generator now permits no source rewrite. Exact
+generation from published commit `efdfc677...` passed strict style unchanged,
+deterministic replay, and all ten mutation traps. Published build commit
+`699ac9dd...` then compiled on Buildbox and passed package, checksum, and
+provenance validation. A fresh no-network QEMU run executed all 91 named cases
+across seven suites with zero failures or skips. The production controller was
+linked but had no QEMU device node; no physical CPU request, MMIO,
+retained-RAM write, watchdog action, SMC, or device action occurred. This
+closes the offline controller gate but does not itself select a boot candidate.
+
 ## Analysis
 
 The current generic owner and P30E layers contain useful CPU9 primitives, but
@@ -256,13 +282,17 @@ logical layer—the hardware-free retained-cluster executor plus its test-only
 fixture repair—is now canonical, compiled, and runtime-tested. The fourth
 logical layer—the isolated CPU9 dispatch binder—is now canonical, compiled,
 and runtime-tested across the full 73-case offline regression profile. The
-detailed remaining implementation and evidence contract is frozen in
-[`DESIGN.md`](DESIGN.md); no CPU9 support or device result is claimed yet.
+fifth logical layer—the exact same-task CPU8-to-CPU9 controller—is now
+canonical, compiled, and runtime-tested across the full 91-case offline
+regression profile. The detailed remaining implementation and evidence
+contract is frozen in [`DESIGN.md`](DESIGN.md); no CPU9 support or device
+result is claimed yet.
 
 ## Follow-up
 
-Generate, compile, and execute the candidate-only one-shot controller that may
-request CPU9 only after exact same-boot CPU8 success. Then validate the exact
-candidate and admit one predeclared device attempt.
+Construct and independently validate the exact production candidate containing
+the proven controller with KUnit disabled. Require two reproducible
+constructions plus package, Android-v0, LK-container, checksum, and candidate
+identity gates before admitting one predeclared named-device attempt.
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside
 that first CPU9 attempt.

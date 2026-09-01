@@ -6756,11 +6756,21 @@ then compiled on Buildbox, passed package and provenance validation, and
 passed all 73 no-network KUnit cases across five suites with zero failures or
 skips. The harness observed zero physical CPU requests, MMIO, retained-RAM
 writes, watchdog actions, SMCs, or device actions. It has no controller or
-`add_cpu` caller and remains not a boot candidate. **Selected next:** generate,
-compile, and runtime-test the candidate-only one-shot controller that may
-request CPU9 only after exact same-boot CPU8 success. Candidate validation and
-one separately attributable device attempt remain closed until that offline
-controller gate passes.
+`add_cpu` caller and remains not a boot candidate. Canonical patch `0469` now
+supplies the atomic outer controller: it runs the unchanged CPU8 core, requires
+exact terminal CPU8 membership plus retained P27/provider state, and only then
+derives, publishes, prepares, and requests CPU9 once in the same task. Every
+CPU9 failure retains CPU8/provider/cluster state and exposes no CPU_OFF, retry,
+or cluster reacquisition. Its generator passes strict style without auto-fix,
+deterministic replay, and ten unsafe-mutation rejections. Exact published build
+commit `699ac9dd...` compiled and passed package, checksum, and provenance
+validation; published harness `cd70f03a...` then passed all 91 named no-network
+KUnit cases across seven suites with zero failures or skips. No physical CPU
+request, MMIO, retained-RAM write, watchdog action, SMC, or device action
+occurred. **Selected next:** construct the exact production profile with KUnit
+disabled, reproduce it twice, and pass the full package, Android-v0,
+LK-container, checksum, and candidate-identity gates before one separately
+attributable named-device attempt.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
