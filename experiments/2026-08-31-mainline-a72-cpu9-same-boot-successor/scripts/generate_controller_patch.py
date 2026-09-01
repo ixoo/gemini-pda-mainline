@@ -158,10 +158,12 @@ def validate_mutations(root: Path) -> int:
             validate_controller_source.validate(root)
         except ValueError:
             rejected += 1
+        else:
+            raise SystemExit(
+                f"CPU9 controller mutation escaped: {relative}: {old}"
+            )
         finally:
             path.write_text(original, encoding="utf-8")
-    if rejected != len(mutations):
-        raise SystemExit("CPU9 controller mutation was not rejected")
     return rejected
 
 
