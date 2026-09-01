@@ -437,6 +437,15 @@ passed all 32 LK gates and rejected all six corrupt-container mutations. This
 is the selected one-shot reader-mapping successor; selection required no
 device access or hardware write.
 
+Known-good Gemian then resolved inactive logical `boot2` to
+`/dev/mmcblk0p30` while root remained `/dev/mmcblk0p29`, confirmed the exact
+retired progress predecessor `ce154daf...`, and reported stable external power
+with a full, healthy battery. The guarded installer wrote, synchronized,
+flushed, and fully read back selected successor `c531a9e0...`; the full
+readback matched exactly and both trusted-environment partition hashes stayed
+unchanged. No fresh backup or reboot was requested. Temporary readback data was
+removed and the device was confirmed unreachable after clean shutdown.
+
 ## Analysis
 
 The current generic owner and P30E layers contain useful CPU9 primitives, but
@@ -472,9 +481,10 @@ CPU9 was not durably admitted and no CPU9-online result is claimed.
 
 The exact progress candidate is retired after its one decision-bearing
 attempt. Its mapping-consistency successor passed every offline gate and is
-selected. The next action is a guarded write to inactive logical `boot2`, clean
-shutdown, and one fresh selection. Success requires exact CPU8 terminal proof
-followed by progress stage 2 or later or an attributable CPU9 ledger entry;
+selected, written to inactive logical `boot2`, fully read back, and followed by
+a confirmed clean shutdown. The next action is one fresh physical selection.
+Success requires exact CPU8 terminal proof followed by progress stage 2 or
+later or an attributable CPU9 ledger entry;
 another stage-1 `-EBADMSG` rejects the mapping hypothesis. The ordered device
 action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).

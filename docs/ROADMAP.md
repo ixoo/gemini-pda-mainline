@@ -6849,10 +6849,12 @@ additional identity patch was needed. Two independent DT compositions and two
 independent Android-v0 constructions were byte-identical; all ten DT mutations,
 all 32 LK gates, and all six corrupt-container mutations passed. The selected
 one-shot successor is raw `a7290cdb...`, padded `c531a9e0...`. **Selected next:**
-write that exact successor to inactive logical `boot2`, shut down, and spend
-one fresh selection. Advance only if exact CPU8 terminal proof is followed by
-progress stage 2 or later or an attributable CPU9 ledger entry; another stage-1
-`-EBADMSG` rejects the mapping hypothesis.
+known-good Gemian resolved inactive logical `boot2`, verified predecessor
+`ce154daf...`, wrote and fully read back exact successor `c531a9e0...`, and
+shut down cleanly with trusted-environment hashes unchanged. Spend one fresh
+physical `boot2` selection. Advance only if exact CPU8 terminal proof is
+followed by progress stage 2 or later or an attributable CPU9 ledger entry;
+another stage-1 `-EBADMSG` rejects the mapping hypothesis.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
