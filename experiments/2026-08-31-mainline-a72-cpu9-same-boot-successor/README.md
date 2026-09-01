@@ -135,6 +135,10 @@ first write. No new physical range is introduced.
 - [`results/runtime-attempt-1-cpu8-terminal-cpu9-ledger-empty-20260901.txt`](results/runtime-attempt-1-cpu8-terminal-cpu9-ledger-empty-20260901.txt):
   sole corrected trigger, exact CPU8 terminal membership proof, exact-empty
   CPU9 lane, changed-ID recovery, and the bounded pre-ledger localization.
+- [`results/progress-mapping-fix-runtime-attempt-1-20260901.txt`](results/progress-mapping-fix-runtime-attempt-1-20260901.txt):
+  exact successor boot and sole trigger, unchanged stage-1 `-EBADMSG`, CPU8
+  terminal proof, logical-empty CPU9/progress lanes, and rejection of the
+  mapping-attribute hypothesis.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger, owner-local membership lifecycle, retained-cluster dispatch, and
@@ -446,6 +450,21 @@ readback matched exactly and both trusted-environment partition hashes stayed
 unchanged. No fresh backup or reboot was requested. Temporary readback data was
 removed and the device was confirmed unreachable after clean shutdown.
 
+The fresh successor selection booted exact padded candidate `c531a9e0...` on
+boot ID `cf9f9913...`. Its source-pinned read-only gate proved the candidate,
+release, controller, CPU topology, completed effect plan, and zero prior
+requests. The sole trigger again brought CPU8 online with terminal stage
+10/terminal 5, but progress begin returned stage 1/`-EBADMSG` before any CPU9
+request, binder entry, CPU9 ledger write, CPU_OFF, or retry. The fixed watchdog
+then returned the device to changed-ID Gemian. Recovery again decoded record 0
+and found records 1--3 exact logical empty through bounded 84-byte reads. The
+reader mapping change therefore did not alter the failure and is rejected as
+its explanation. The remaining ambiguity is inside progress begin itself:
+CPU8 header/copy/attempt/terminal validation versus the progress-lane header.
+The next candidate must expose that branch and the already-read words in
+ordinary live status without changing the retained wire, physical CPU request,
+retry, CPU_OFF, watchdog, or recovery behavior.
+
 ## Analysis
 
 The current generic owner and P30E layers contain useful CPU9 primitives, but
@@ -479,14 +498,14 @@ CPU9 was not durably admitted and no CPU9-online result is claimed.
 
 ## Follow-up
 
-The exact progress candidate is retired after its one decision-bearing
-attempt. Its mapping-consistency successor passed every offline gate and is
-selected, written to inactive logical `boot2`, fully read back, and followed by
-a confirmed clean shutdown. The next action is one fresh physical selection.
-Success requires exact CPU8 terminal proof followed by progress stage 2 or
-later or an attributable CPU9 ledger entry;
-another stage-1 `-EBADMSG` rejects the mapping hypothesis. The ordered device
-action and its exit criteria remain owned by
+The exact progress candidate and its mapping-consistency successor are both
+retired after one decision-bearing attempt each. The successor reproduced the
+same stage-1 `-EBADMSG`, rejecting the mapping-attribute hypothesis. The next
+action is an offline-proven, branch-local progress-begin diagnostic that
+reports which already-required header, CRC-copy, attempt/terminal, or empty-lane
+check failed. It must not change the retained wire or any CPU, CPU_OFF, retry,
+watchdog, storage, or recovery path. The ordered device action and its exit
+criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside
 this diagnostic.

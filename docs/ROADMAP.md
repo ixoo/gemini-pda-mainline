@@ -6856,6 +6856,21 @@ physical `boot2` selection. Advance only if exact CPU8 terminal proof is
 followed by progress stage 2 or later or an attributable CPU9 ledger entry;
 another stage-1 `-EBADMSG` rejects the mapping hypothesis.
 
+That fresh mapping-consistency successor booted exact candidate `c531a9e0...`
+with a pristine controller and zero prior requests. Its sole trigger again
+completed CPU8 terminal stage 10/terminal 5 and left CPU8 online, but progress
+begin returned the identical stage-1 `-EBADMSG` before any CPU9 request, binder
+entry, CPU9 ledger write, CPU_OFF, or retry. Fixed-watchdog recovery returned
+to changed-ID Gemian; record 0 decoded while records 1--3 remained exact
+logical empty. The mapping-attribute hypothesis is therefore rejected and the
+candidate is retired. **Selected next:** add ordinary live-status diagnostics
+at the existing progress-begin reads to identify the exact rejected sub-check:
+CPU8 header words, CRC-valid-copy mask, latest attempt/terminal fields, progress
+header words, and a fixed failure-reason enum. Preserve the retained wire and
+all CPU request, CPU_OFF, retry, watchdog, storage, and recovery behavior.
+Build and test only on Buildbox. Spend another boot only when the diagnostic
+has one exact result map that selects a causal fix.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;
