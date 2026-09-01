@@ -16,7 +16,7 @@ commit ordering.  Add focused coverage for raw-lane admission and retain the
 malformed-header refusal assertion.
 ---
  fs/pstore/gemini_cpu9_progress_ledger.c      | 14 +++++++++++---
- fs/pstore/gemini_cpu9_progress_ledger_test.c | 25 ++++++++++++++++++++++++-
+ fs/pstore/gemini_cpu9_progress_ledger_test.c | 25 +++++++++++++++++++++++++
  2 files changed, 36 insertions(+), 3 deletions(-)
 
 diff --git a/fs/pstore/gemini_cpu9_progress_ledger.c b/fs/pstore/gemini_cpu9_progress_ledger.c
