@@ -404,6 +404,25 @@ remained unchanged. It made no fresh backup, used no substitute partition,
 requested no reboot, and confirmed the device unreachable after clean
 shutdown. The selected progress candidate has not been booted yet.
 
+The first fresh selection booted that exact progress candidate on boot ID
+`23135ff2...` and passed the complete read-only gate with CPUs 8--9 offline
+and every trigger, CPU request, CPU_OFF, and retry count at zero. Its sole
+trigger returned a complete terminal frame: CPU8 reached exact terminal stage
+10/terminal 5 and remained online, while progress begin returned `-EBADMSG` at
+stage 1 before any CPU9 request, binder entry, CPU9 ledger write, or membership
+publication. No retry, CPU_OFF, or native reboot was requested. The device
+later returned automatically to changed-ID Gemian.
+
+Recovery decoded record 0 as the same CRC-valid CPU8 attempt 1 terminal and
+found records 1--3 logically empty. This proves that CPU8's durable record was
+valid after reboot and that neither the progress owner nor CPU9 owner committed
+a record. The first unresolved operation is the immediate CPU8-record read in
+progress begin. Both progress begin and CPU9 ledger begin reopen the CPU8 slot
+with `ioremap()`, while the CPU8 owner writes it through `ioremap_wc()` and the
+adjacent retained lanes also use `ioremap_wc()`. Canonical follow-up `0475`
+therefore changes only those two CPU8 readers to the writer's mapping type;
+wire formats, gates, request bounds, and failure behavior remain unchanged.
+
 ## Analysis
 
 The current generic owner and P30E layers contain useful CPU9 primitives, but
@@ -430,15 +449,18 @@ and runtime-tested across the full 73-case offline regression profile. The
 fifth logical layer—the exact same-task CPU8-to-CPU9 controller—is now
 canonical, compiled, and runtime-tested across the full 91-case offline
 regression profile. The detailed device evidence contract is frozen in
-[`DESIGN.md`](DESIGN.md). The corrected production candidate is independently
-reproducible and its sole device attempt proved CPU8 terminal membership, but
+[`DESIGN.md`](DESIGN.md). The progress production candidate is independently
+reproducible. Its sole device attempt again proved CPU8 terminal membership and
+now places the CPU9 stop at progress begin stage 1, before any CPU9 request.
 CPU9 was not durably admitted and no CPU9-online result is claimed.
 
 ## Follow-up
 
-The identical configuration-repair candidate is retired. The bounded retained
-progress diagnostic is now independently validated and selected; the ordered
-device action and its exit criteria remain owned by
+The exact progress candidate is retired after its one decision-bearing
+attempt. The selected next action is Buildbox compilation and offline KUnit
+validation of the mapping-consistency follow-up, followed by production
+identity binding and candidate construction only if those gates pass. The
+ordered device action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside
 this diagnostic.

@@ -6832,6 +6832,19 @@ binder entry and ledger-begin return. Disable the overlapping legacy CPU8
 admission trace in that diagnostic profile, preserve record 0 and record 1
 ownership, then build on Buildbox before constructing any next candidate.
 
+That progress candidate booted with an exact pristine baseline and consumed
+one trigger. CPU8 completed terminal stage 10/terminal 5 and stayed online;
+the progress owner then returned `-EBADMSG` at stage 1 before any CPU9 request,
+binder entry, CPU9 ledger write, CPU_OFF, or retry. Changed-cycle recovery
+decoded the CPU8 record and found records 1--3 logically empty, so CPU9 was not
+durably admitted. The first unresolved operation is the immediate validation
+of CPU8's retained record. The CPU8 owner writes through `ioremap_wc()`, while
+both CPU9 readers reopen that same slot with `ioremap()`; adjacent retained
+lanes already use `ioremap_wc()`. The candidate is retired. **Selected next:**
+make only those two CPU8 reader mappings match the writer, compile and run the
+full CPU9 KUnit profile on Buildbox, then bind the resulting production input
+identity and construct a successor only if every offline gate remains green.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

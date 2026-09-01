@@ -1,0 +1,49 @@
+From 1000000000000000000000000000000000000475 Tue Sep  1 00:00:00 2026
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 1 Sep 2026 21:15:00 +0000
+Subject: [PATCH] pstore: match Gemini CPU9 ledger reader mappings
+
+CPU8 publishes its retained transition record through a write-combined
+mapping. The progress owner and CPU9 ledger immediately reopen that same
+physical slot with ioremap() before validating its two CRC copies. The first
+progress-enabled device attempt completed CPU8 but returned -EBADMSG from the
+stage-1 progress begin before issuing any CPU9 request; changed-cycle recovery
+then decoded the CPU8 record successfully.
+
+Use ioremap_wc() for both CPU8 readers so their mapping attribute matches the
+existing writer and the adjacent CPU9/progress ledger mappings. Keep all wire
+formats, validation, request bounds, and failure behavior unchanged.
+---
+ fs/pstore/gemini_cpu9_progress_ledger.c   | 2 +-
+ fs/pstore/gemini_cpu9_transition_ledger.c | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/fs/pstore/gemini_cpu9_progress_ledger.c b/fs/pstore/gemini_cpu9_progress_ledger.c
+index 27be196..6d0c2be 100644
+--- a/fs/pstore/gemini_cpu9_progress_ledger.c
++++ b/fs/pstore/gemini_cpu9_progress_ledger.c
+@@ -185,7 +185,7 @@ int gemini_cpu9_progress_begin(u64 cpu8_attempt_id)
+ 		ret = -ENODEV;
+ 		goto out_unlock;
+ 	}
+-	cpu8_slot = ioremap(GEMINI_CPU9_PROGRESS_CPU8_BASE,
++	cpu8_slot = ioremap_wc(GEMINI_CPU9_PROGRESS_CPU8_BASE,
+ 			    GEMINI_TRANSITION_LEDGER_SLOT_SIZE);
+ 	if (!cpu8_slot) {
+ 		ret = -ENOMEM;
+diff --git a/fs/pstore/gemini_cpu9_transition_ledger.c b/fs/pstore/gemini_cpu9_transition_ledger.c
+index ae43982..12af74a 100644
+--- a/fs/pstore/gemini_cpu9_transition_ledger.c
++++ b/fs/pstore/gemini_cpu9_transition_ledger.c
+@@ -219,7 +219,7 @@ int gemini_cpu9_ledger_begin(u64 cpu8_attempt_id, u64 cpu9_attempt_id)
+ 		ret = -ENODEV;
+ 		goto out_unlock;
+ 	}
+-	cpu8_slot = ioremap(GEMINI_CPU9_LEDGER_CPU8_BASE,
++	cpu8_slot = ioremap_wc(GEMINI_CPU9_LEDGER_CPU8_BASE,
+ 			    GEMINI_TRANSITION_LEDGER_SLOT_SIZE);
+ 	if (!cpu8_slot) {
+ 		ret = -ENOMEM;
+-- 
+2.51.0
+

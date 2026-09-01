@@ -85,6 +85,52 @@ def progress_fields(trigger: str) -> tuple[str, str]:
     )
 
 
+def classify_progress_begin_failure(trigger: str) -> tuple[str, str]:
+    normalized = trigger.replace("\r", "")
+    after_begin = normalized[normalized.index(source.BEGIN) + len(source.BEGIN):]
+    observed = source.fields(after_begin[: after_begin.index(source.END)])
+    status, cpu9 = combined_status(observed.get("post_status", ""))
+    raw = dict(
+        token.split("=", 1)
+        for token in observed.get("post_status", "").split()[1:]
+        if token.count("=") == 1
+    )
+    expected_cpu9 = {
+        "cpu9_controller_consumed": "1",
+        "cpu9_operation_ret": "-74",
+        "cpu9_failure_stage": "7",
+        "cpu9_derive_stage": "0",
+        "cpu9_binder_snapshot_ret": "-11",
+        "cpu9_abi": "0",
+        "cpu9_lifecycle": "0",
+        "cpu9_terminal": "0",
+        "cpu9_last_stage": "0",
+        "cpu9_stage_errno": "0",
+        "cpu9_checkpoint_errno": "0",
+        "cpu9_attempted": "0",
+        "cpu9_membership_published": "0",
+        "cpu9_cpu_requests": "0",
+        "cpu9_cpu_off_requests": "0",
+        "cpu9_retries": "0",
+        "cpu9_retained_mask": "0x0",
+    }
+    if (
+        not source.cpu8_terminal_exact(status, observed.get("cpu_online"))
+        or observed.get("cpu_online") != "0-8"
+        or observed.get("cpu_offline") != "9"
+        or status["operation_ret"] != "-74"
+        or status["cpu9_requests"] != "0"
+        or any(cpu9[key] != value for key, value in expected_cpu9.items())
+        or raw.get("cpu9_progress_stage") != "1"
+        or raw.get("cpu9_progress_ret") != "-74"
+    ):
+        raise source.Classification("CPU9-progress-begin-failure-shape-changed")
+    return (
+        "cpu9-progress-begin-failure",
+        "CPU8-online-progress-stage=1-ret=-74-CPU9-request-not-issued",
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--pretrigger", type=Path, required=True)
@@ -93,7 +139,12 @@ def main() -> int:
     pretrigger = args.pretrigger.read_text(encoding="utf-8", errors="replace")
     trigger = args.trigger.read_text(encoding="utf-8", errors="replace")
     try:
-        result, reason = source.classify(pretrigger, trigger)
+        try:
+            result, reason = source.classify(pretrigger, trigger)
+        except source.Classification as error:
+            if str(error) != "CPU9-pre-request-result-inconsistent":
+                raise
+            result, reason = classify_progress_begin_failure(trigger)
         stage, progress_ret = progress_fields(trigger)
         if result == "cpu8-cpu9-online-accounting-advanced" and (
             stage != "10" or progress_ret != "0"
