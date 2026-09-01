@@ -12,9 +12,8 @@
 #define MT6797_A72_CPU9_RETAINED_P27 BIT(0)
 #define MT6797_A72_CPU9_RETAINED_PROVIDER BIT(1)
 #define MT6797_A72_CPU9_RETAINED_CPU8 BIT(2)
-#define MT6797_A72_CPU9_RETAINED_REQUIRED \
-	(MT6797_A72_CPU9_RETAINED_P27 | \
-	 MT6797_A72_CPU9_RETAINED_PROVIDER | \
+#define MT6797_A72_CPU9_RETAINED_REQUIRED                                                          \
+	(MT6797_A72_CPU9_RETAINED_P27 | MT6797_A72_CPU9_RETAINED_PROVIDER |                        \
 	 MT6797_A72_CPU9_RETAINED_CPU8)
 
 enum mt6797_a72_cpu9_executor_stage {
@@ -55,9 +54,8 @@ struct mt6797_a72_cpu9_executor_controller {
 	atomic_t lifecycle;
 };
 
-#define MT6797_A72_CPU9_EXECUTOR_CONTROLLER_INIT \
-	{ .consumed = ATOMIC_INIT(0), \
-	  .lifecycle = ATOMIC_INIT(MT6797_A72_CPU9_LIFECYCLE_IDLE) }
+#define MT6797_A72_CPU9_EXECUTOR_CONTROLLER_INIT                                                   \
+	{.consumed = ATOMIC_INIT(0), .lifecycle = ATOMIC_INIT(MT6797_A72_CPU9_LIFECYCLE_IDLE)}
 
 struct mt6797_a72_cpu9_executor_request {
 	unsigned int cpu;
@@ -91,44 +89,37 @@ struct mt6797_a72_cpu9_executor_result {
 };
 
 struct mt6797_a72_cpu9_executor_ops {
-	int (*checkpoint)(void *context,
-			  enum mt6797_a72_cpu9_executor_phase phase,
+	int (*checkpoint)(void *context, enum mt6797_a72_cpu9_executor_phase phase,
 			  enum mt6797_a72_cpu9_executor_stage stage,
 			  const struct mt6797_a72_cpu9_executor_result *result);
-	int (*prestate)(void *context,
-			const struct mt6797_a72_cpu9_executor_request *request);
+	int (*prestate)(void *context, const struct mt6797_a72_cpu9_executor_request *request);
 	int (*cpu_on)(void *context, unsigned int cpu);
 	int (*secondary_complete)(void *context, unsigned int cpu);
 	int (*ipi_proof)(void *context, unsigned int cpu);
 	int (*membership_commit)(void *context, unsigned int cpu);
-	int (*terminal)(void *context,
-			const struct mt6797_a72_cpu9_executor_result *result);
+	int (*terminal)(void *context, const struct mt6797_a72_cpu9_executor_result *result);
 };
 
-int mt6797_a72_cpu9_executor_begin(
-	struct mt6797_a72_cpu9_executor_controller *controller,
-	const struct mt6797_a72_cpu9_executor_ops *ops, void *context,
-	const struct mt6797_a72_cpu9_executor_request *request,
-	struct mt6797_a72_cpu9_executor_result *result);
-int mt6797_a72_cpu9_executor_secondary_complete(
-	struct mt6797_a72_cpu9_executor_controller *controller,
-	const struct mt6797_a72_cpu9_executor_ops *ops, void *context,
-	unsigned int cpu, bool cpu8_online, bool cpu9_online,
-	struct mt6797_a72_cpu9_executor_result *result);
-int mt6797_a72_cpu9_executor_complete(
-	struct mt6797_a72_cpu9_executor_controller *controller,
-	const struct mt6797_a72_cpu9_executor_ops *ops, void *context,
-	unsigned int cpu, bool cpu8_online, bool cpu9_online,
-	struct mt6797_a72_cpu9_executor_result *result);
-int mt6797_a72_cpu9_executor_fail(
-	struct mt6797_a72_cpu9_executor_controller *controller,
-	const struct mt6797_a72_cpu9_executor_ops *ops, void *context,
-	unsigned int cpu, bool cpu8_online, bool cpu9_online, int error,
-	struct mt6797_a72_cpu9_executor_result *result);
-int mt6797_a72_cpu9_executor_run(
-	struct mt6797_a72_cpu9_executor_controller *controller,
-	const struct mt6797_a72_cpu9_executor_ops *ops, void *context,
-	const struct mt6797_a72_cpu9_executor_request *request,
-	struct mt6797_a72_cpu9_executor_result *result);
+int mt6797_a72_cpu9_executor_begin(struct mt6797_a72_cpu9_executor_controller *controller,
+				   const struct mt6797_a72_cpu9_executor_ops *ops, void *context,
+				   const struct mt6797_a72_cpu9_executor_request *request,
+				   struct mt6797_a72_cpu9_executor_result *result);
+int mt6797_a72_cpu9_executor_secondary(struct mt6797_a72_cpu9_executor_controller *controller,
+				       const struct mt6797_a72_cpu9_executor_ops *ops,
+				       void *context, unsigned int cpu, bool cpu8_online,
+				       bool cpu9_online,
+				       struct mt6797_a72_cpu9_executor_result *result);
+int mt6797_a72_cpu9_executor_complete(struct mt6797_a72_cpu9_executor_controller *controller,
+				      const struct mt6797_a72_cpu9_executor_ops *ops, void *context,
+				      unsigned int cpu, bool cpu8_online, bool cpu9_online,
+				      struct mt6797_a72_cpu9_executor_result *result);
+int mt6797_a72_cpu9_executor_fail(struct mt6797_a72_cpu9_executor_controller *controller,
+				  const struct mt6797_a72_cpu9_executor_ops *ops, void *context,
+				  unsigned int cpu, bool cpu8_online, bool cpu9_online, int error,
+				  struct mt6797_a72_cpu9_executor_result *result);
+int mt6797_a72_cpu9_executor_run(struct mt6797_a72_cpu9_executor_controller *controller,
+				 const struct mt6797_a72_cpu9_executor_ops *ops, void *context,
+				 const struct mt6797_a72_cpu9_executor_request *request,
+				 struct mt6797_a72_cpu9_executor_result *result);
 
 #endif /* __MT6797_A72_CPU9_EXECUTOR_INTERNAL_H */

@@ -80,7 +80,7 @@ def validate(root: Path) -> list[str]:
     exact(source, "result->membership_published = true;")
     exact(source, "mt6797_a72_cpu9_executor_run(")
     exact(source, "mt6797_a72_cpu9_executor_begin(", 2)
-    exact(source, "mt6797_a72_cpu9_executor_secondary_complete(", 2)
+    exact(source, "mt6797_a72_cpu9_executor_secondary(", 2)
     exact(source, "mt6797_a72_cpu9_executor_complete(", 2)
     exact(source, "mt6797_a72_cpu9_executor_fail(")
 
