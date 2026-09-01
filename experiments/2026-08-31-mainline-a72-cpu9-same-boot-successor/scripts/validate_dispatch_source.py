@@ -75,6 +75,10 @@ def validate(root: Path) -> list[str]:
     require(
         "if (IS_ENABLED(CONFIG_MTK_MT6797_A72_CPU9_BINDER) && cpu == 9)"
         in psci, "CPU9-only PSCI selection")
+    require(
+        "\tif (IS_ENABLED(CONFIG_MTK_MT6797_A72_CPU9_BINDER) && cpu == 9)\n"
+        "\t\treturn mt6797_a72_cpu9_binder_cpu_boot(" in psci,
+        "CPU9-only PSCI boot selection")
     exact(psci, "#include <linux/soc/mediatek/mt6797-a72-cpu9-binder.h>")
 
     require("bool cpu8_on_ready;\n\tbool cpu9_on_ready;" in membership,
