@@ -6911,9 +6911,13 @@ ten mutations, and two Android-v0 constructions are byte-identical at full
 partition `1cf367e0...`, pass all 32 LK gates, and reject all six container
 mutations. **Selected next:** install exact `1cf367e0...` over retired diagnostic
 `4bf74874...` on inactive logical `boot2`, require a matching full-partition
-readback, and shut down. Then spend one fresh selection boot and one trigger.
-Advance only to progress stage 2 or later or an exact downstream terminal;
-another stage-1 header refusal rejects the repair.
+readback, and shut down. That guarded deployment now passes: live GPT resolved
+`boot2` to inactive `/dev/mmcblk0p30`, the predecessor and full readback matched,
+both trusted-environment hashes remained unchanged, and the device shut down
+without a backup or reboot request. **Selected next:** physically select `boot2`,
+close the pristine read-only gate, and spend one trigger. Advance only to
+progress stage 2 or later or an exact downstream terminal; another stage-1
+header refusal rejects the repair.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

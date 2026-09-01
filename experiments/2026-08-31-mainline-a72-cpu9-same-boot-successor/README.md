@@ -531,7 +531,14 @@ independent validator passed and rejected all ten unsafe mutations. Two
 independent Android-v0 constructions were byte-identical at raw `243ddc6e...`
 and full-partition `1cf367e0...`; each passed all 32 LK gates and rejected all
 six container mutations. This is the selected one-shot raw-lane repair
-candidate; it has not yet been installed or booted.
+candidate. Known-good Gemian resolved inactive logical `boot2` to
+`/dev/mmcblk0p30` while root remained `/dev/mmcblk0p29`, required exact retired
+diagnostic `4bf74874...`, and observed stable external power with a full,
+healthy battery. The guarded installer wrote, synchronized, flushed, and
+fully read back `1cf367e0...`; the full readback matched, both trusted-
+environment hashes stayed unchanged, no fresh backup or reboot was requested,
+and the device became unreachable after clean shutdown. The selected candidate
+has not yet been booted.
 
 ## Analysis
 
@@ -578,10 +585,12 @@ exact Buildbox package. Next, build the production profile from the exact clean
 commit, independently compose and validate its DT and Android container, and
 install it to inactive `boot2`. Those build and validation gates now pass for
 exact full-partition candidate `1cf367e0...`. Install it over retired diagnostic
-`4bf74874...`, verify the full readback, and shut down. The next boot must
-advance to progress stage 2 or later; another stage-1 refusal rejects the
-repair. The retained wire and all CPU, CPU_OFF, retry, watchdog, storage, and
-recovery paths otherwise remain unchanged.
+`4bf74874...`, verify the full readback, and shut down. That exact write and
+shutdown now pass. Physically select `boot2`, close the pristine read-only gate,
+and spend exactly one trigger. The boot must advance to progress stage 2 or
+later; another stage-1 refusal rejects the repair. The retained wire and all
+CPU, CPU_OFF, retry, watchdog, storage, and recovery paths otherwise remain
+unchanged.
 The ordered device action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside
