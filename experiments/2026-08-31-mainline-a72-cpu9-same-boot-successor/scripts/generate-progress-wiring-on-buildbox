@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+export LC_ALL=C
+
+readonly PARENT_SOURCE_STATE=b3117ee3665b531b96525ed976cad183a94995cb16db45a45c7637a96b7815ff
+readonly PARENT_SOURCE_INTEGRITY=23aca0a2ac1e349603ddf8e4b1a22bfba16691b74ae7bf4cb4b89bd49acab314
+readonly PARENT_PATCH=0471-pstore-add-Gemini-CPU9-pre-ledger-progress.patch
+readonly PARENT_PATCH_SHA256=6a985c9f077b171832affe1079f0ca4f18ffef6e68d9bb3f682119c56c5d9046
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+[[ "$#" -eq 3 ]] || die 'expected PROJECT_COMMIT SOURCE_ROOT OUTPUT_ROOT'
+readonly project_commit=$1 source_root=$2 output_root=$3
+[[ "$project_commit" =~ ^[0-9a-f]{40}$ ]] || die 'invalid project commit'
+[[ "$source_root" == /workspace/gemini-pda/src/linux-7.1.3-series-source ]] ||
+	die 'unexpected managed source root'
+[[ "$output_root" == /workspace/gemini-pda/* ]] || die 'unsafe output root'
+[[ "$(<"$source_root/.gemini-source-state")" == "$PARENT_SOURCE_STATE" ]] ||
+	die 'prepared source state changed'
+[[ "$(<"$source_root/.gemini-source-integrity")" == "$PARENT_SOURCE_INTEGRITY" ]] ||
+	die 'prepared source integrity changed'
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+repository_dir=$(cd -- "$script_dir/../../.." && pwd -P)
+[[ "$(git -C "$repository_dir" rev-parse HEAD)" == "$project_commit" ]] ||
+	die 'project checkout mismatch'
+[[ -z "$(git -C "$repository_dir" status --porcelain)" ]] ||
+	die 'project checkout is dirty'
+integrity=$(python3 "$repository_dir/scripts/source-tree-integrity" verify "$source_root")
+[[ "$integrity" == "source_tree_integrity=$PARENT_SOURCE_INTEGRITY" ]] ||
+	die 'prepared source integrity failed'
+parent_patch_path="$repository_dir/patches/v7.1.3/$PARENT_PATCH"
+printf '%s  %s\n' "$PARENT_PATCH_SHA256" "$parent_patch_path" |
+	sha256sum --check --status || die 'canonical parent patch changed'
+[[ "$(tail -n 1 "$repository_dir/patches/series")" == "v7.1.3/$PARENT_PATCH" ]] ||
+	die 'canonical series tail changed'
+
+package="$output_root/cpu9-progress-wiring-${project_commit:0:12}"
+partial="${package}.partial.$$"
+mkdir -p "$output_root"
+cleanup() { [[ ! -d "${partial:-}" ]] || rm -rf -- "$partial"; }
+trap cleanup EXIT
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/generate_progress_wiring_patch.py" \
+	--source-root "$source_root" --repository-commit "$project_commit" \
+	--output "$partial"
+(cd "$partial" && sha256sum --check --strict SHA256SUMS >/dev/null)
+for marker in generated_patch_count=1 cpu9_progress_wiring_validation=pass \
+	controller_progress_stages=1-6,10 binder_progress_stages=7-9 \
+	progress_attempt_identity=cpu8-attempt pre_dispatch_progress_fail_closed=6 \
+	focused_controller_kunit_cases=9 focused_binder_kunit_cases=9 \
+	new_cpu_request_paths=0 new_cpu_off_paths=0 new_retry_paths=0 \
+	new_cluster_effect_paths=0 source_mutations_rejected=10 \
+	strict_checkpatch=pass deterministic_replay=pass native_vm_build=none \
+	device_action=none boot_candidate=false; do
+	grep -Fx "$marker" "$partial/provenance.txt" >/dev/null ||
+		die "missing marker: $marker"
+done
+mv -- "$partial" "$package"
+trap - EXIT
+printf 'Generated CPU9 progress wiring patch at %s\n' "$package"
