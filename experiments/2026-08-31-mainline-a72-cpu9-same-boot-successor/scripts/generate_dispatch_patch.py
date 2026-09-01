@@ -133,7 +133,15 @@ def validate_mutations(root: Path) -> int:
         ),
         (
             "drivers/soc/mediatek/Kconfig",
+            "config MTK_MT6797_A72_CPU9_BINDER\n"
+            "\tbool \"MediaTek MT6797 retained-cluster CPU9 dispatch binder\"\n"
+            "\tdepends on ARM64 && ARCH_MEDIATEK\n"
+            "\tdepends on MTK_MT6797_A72_DEFAULT_OFF_BINDER\n"
             "\tdepends on MTK_MT6797_A72_CPU9_EXECUTOR",
+            "config MTK_MT6797_A72_CPU9_BINDER\n"
+            "\tbool \"MediaTek MT6797 retained-cluster CPU9 dispatch binder\"\n"
+            "\tdepends on ARM64 && ARCH_MEDIATEK\n"
+            "\tdepends on MTK_MT6797_A72_DEFAULT_OFF_BINDER\n"
             "\tdepends on MTK_MT6797_A72_TRANSITION_EXECUTOR",
         ),
         (
