@@ -76,6 +76,10 @@ def validate(root: Path) -> list[str]:
     require("GEMINI_TRANSITION_LEDGER_PAYLOAD_BYTES ?\n"
             "\t\t\t-EALREADY : -EBADMSG;" in source,
             "committed and malformed lane refusal")
+    require(
+        "if (!owner || stage <= GEMINI_CPU9_PROGRESS_CPU8_PROOF ||\n"
+        "\t    stage > GEMINI_CPU9_PROGRESS_ADD_CPU_RETURN)" in source,
+        "exact ten-stage checkpoint bound")
 
     exact(public, "enum gemini_cpu9_progress_stage {")
     for stage in (
