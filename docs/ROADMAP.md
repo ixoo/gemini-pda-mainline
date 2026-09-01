@@ -6841,9 +6841,18 @@ durably admitted. The first unresolved operation is the immediate validation
 of CPU8's retained record. The CPU8 owner writes through `ioremap_wc()`, while
 both CPU9 readers reopen that same slot with `ioremap()`; adjacent retained
 lanes already use `ioremap_wc()`. The candidate is retired. **Selected next:**
-make only those two CPU8 reader mappings match the writer, compile and run the
-full CPU9 KUnit profile on Buildbox, then bind the resulting production input
-identity and construct a successor only if every offline gate remains green.
+canonical patch `0475` makes only those two CPU8 reader mappings match the
+writer. Exact published commit `6f72e3dd...` passed production and full CPU9
+KUnit Buildbox builds; the no-network run passed all 97 cases. The production
+input identity remained exactly `c10a2188...`, already bound by `0474`, so no
+additional identity patch was needed. Two independent DT compositions and two
+independent Android-v0 constructions were byte-identical; all ten DT mutations,
+all 32 LK gates, and all six corrupt-container mutations passed. The selected
+one-shot successor is raw `a7290cdb...`, padded `c531a9e0...`. **Selected next:**
+write that exact successor to inactive logical `boot2`, shut down, and spend
+one fresh selection. Advance only if exact CPU8 terminal proof is followed by
+progress stage 2 or later or an attributable CPU9 ledger entry; another stage-1
+`-EBADMSG` rejects the mapping hypothesis.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

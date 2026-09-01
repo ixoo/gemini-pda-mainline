@@ -423,6 +423,20 @@ adjacent retained lanes also use `ioremap_wc()`. Canonical follow-up `0475`
 therefore changes only those two CPU8 readers to the writer's mapping type;
 wire formats, gates, request bounds, and failure behavior remain unchanged.
 
+Exact published commit `6f72e3dd...` then passed Buildbox compile and package
+validation for both the full CPU9 KUnit profile and the production progress
+profile. The no-network KUnit run passed all 97 cases across eight suites with
+zero failures or skips and no physical CPU request, retained-RAM access, MMIO,
+watchdog, SMC, or device action. The production configuration-input identity
+remained exactly `c10a2188...`, matching the identity already bound by `0474`,
+so no additional identity patch was required. Two independent package-exact
+DT compositions were byte-identical at `f999758e...` and rejected all ten
+unsafe mutations. Two independent Android-v0 constructions were byte-identical
+at raw `a7290cdb...` and padded `c531a9e0...`; both independent validations
+passed all 32 LK gates and rejected all six corrupt-container mutations. This
+is the selected one-shot reader-mapping successor; selection required no
+device access or hardware write.
+
 ## Analysis
 
 The current generic owner and P30E layers contain useful CPU9 primitives, but
@@ -457,10 +471,12 @@ CPU9 was not durably admitted and no CPU9-online result is claimed.
 ## Follow-up
 
 The exact progress candidate is retired after its one decision-bearing
-attempt. The selected next action is Buildbox compilation and offline KUnit
-validation of the mapping-consistency follow-up, followed by production
-identity binding and candidate construction only if those gates pass. The
-ordered device action and its exit criteria remain owned by
+attempt. Its mapping-consistency successor passed every offline gate and is
+selected. The next action is a guarded write to inactive logical `boot2`, clean
+shutdown, and one fresh selection. Success requires exact CPU8 terminal proof
+followed by progress stage 2 or later or an attributable CPU9 ledger entry;
+another stage-1 `-EBADMSG` rejects the mapping hypothesis. The ordered device
+action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside
 this diagnostic.
