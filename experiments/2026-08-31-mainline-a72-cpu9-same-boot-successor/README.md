@@ -394,6 +394,16 @@ cross-lane-inconsistent cases. This exact progress-ledger image is therefore
 the selected boot candidate; no device access or hardware write was used to
 establish that selection.
 
+Known-good Gemian then resolved inactive logical `boot2` to
+`/dev/mmcblk0p30` while root remained `/dev/mmcblk0p29`. Power was online,
+full, and good, and the full predecessor matched the exact configuration-
+repair candidate `11809635...`. The guarded installer wrote, synchronized,
+flushed, and fully read back the selected progress candidate `ce154daf...`;
+the readback matched exactly and both trusted-environment partition hashes
+remained unchanged. It made no fresh backup, used no substitute partition,
+requested no reboot, and confirmed the device unreachable after clean
+shutdown. The selected progress candidate has not been booted yet.
+
 ## Analysis
 
 The current generic owner and P30E layers contain useful CPU9 primitives, but
