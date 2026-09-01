@@ -1,0 +1,12 @@
+# Bounded production diagnostic for the unresolved CPU8-proof-to-CPU9-ledger
+# boundary. Reuse the exact CPU9 controller candidate, but replace the legacy
+# CPU8 admission trace with the independent record-2 progress lane. The ten
+# ordered stages add attribution only; CPU_OFF, retry, cluster reacquisition,
+# watchdog refresh, and automatic probe action remain absent.
+# CONFIG_PSTORE_GEMINI_ADMISSION_TRACE is not set
+# CONFIG_PSTORE_GEMINI_ADMISSION_TRACE_KUNIT_TEST is not set
+CONFIG_PSTORE_GEMINI_CPU9_PROGRESS_LEDGER=y
+
+# Keep the progress owner's injected test suite out of the production boot.
+# CONFIG_PSTORE_GEMINI_CPU9_PROGRESS_LEDGER_KUNIT_TEST is not set
+CONFIG_LOCALVERSION="-gemini-cpu9-progress"

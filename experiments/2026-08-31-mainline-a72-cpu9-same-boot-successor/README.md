@@ -368,6 +368,19 @@ and could not have issued its ordered physical CPU_ON request. The current
 evidence cannot distinguish the CPU8-proof, ready-token, derive, publish,
 prepare, `add_cpu(9)` entry, and record-1 begin boundaries.
 
+Canonical patches `0471` and `0472` now add and wire the independent record-2
+progress owner across those exact boundaries. The first exact Buildbox build
+found only omitted public phase and module-metadata includes; compile-only
+follow-up `0473` supplies them without changing the retained wire or runtime
+order. Published commit `90972eac...` then compiled and passed package,
+checksum, and provenance validation. Its single no-network QEMU run passed all
+97 cases across eight suites with zero failures or skips, including all four
+progress-owner cases and both CPU8/CPU9 controller failure matrices. No
+physical CPU request, MMIO, retained-RAM write, watchdog action, SMC, or device
+action occurred. A separate production profile now selects this diagnostic
+while disabling the overlapping legacy admission trace; it is not a selected
+boot candidate until its exact package and container validations pass.
+
 ## Analysis
 
 The current generic owner and P30E layers contain useful CPU9 primitives, but
