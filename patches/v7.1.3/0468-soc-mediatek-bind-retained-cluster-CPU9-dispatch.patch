@@ -1,4 +1,4 @@
-From 96bf87c1fba526d0538c47ccd1d9ccd3d4b945a9 Mon Sep 17 00:00:00 2001
+From b2c15f10d1f40b1be3dab6522f853929b64155ae Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Tue, 1 Sep 2026 01:09:00 +0000
 Subject: [PATCH] soc: mediatek: bind retained-cluster CPU9 dispatch
@@ -12,6 +12,7 @@ Keep the proven CPU8 binder unchanged and add no controller,
 add_cpu caller, watchdog/cluster effect, CPU_OFF, or retry path.
 ---
  arch/arm64/kernel/mt6797_a72_membership.c     |  20 +-
+ .../arm64/kernel/mt6797_a72_membership_test.c |   3 +-
  arch/arm64/kernel/mt6797_psci.c               |  25 +-
  drivers/soc/mediatek/Kconfig                  |  30 +
  drivers/soc/mediatek/Makefile                 |   2 +
@@ -19,7 +20,7 @@ add_cpu caller, watchdog/cluster effect, CPU_OFF, or retry path.
  .../mediatek/mt6797-a72-cpu9-binder-test.c    | 605 ++++++++++++++++++
  drivers/soc/mediatek/mt6797-a72-cpu9-binder.c | 590 +++++++++++++++++
  .../soc/mediatek/mt6797-a72-cpu9-binder.h     |  86 +++
- 8 files changed, 1442 insertions(+), 3 deletions(-)
+ 9 files changed, 1444 insertions(+), 4 deletions(-)
  create mode 100644 drivers/soc/mediatek/mt6797-a72-cpu9-binder-internal.h
  create mode 100644 drivers/soc/mediatek/mt6797-a72-cpu9-binder-test.c
  create mode 100644 drivers/soc/mediatek/mt6797-a72-cpu9-binder.c
@@ -66,6 +67,20 @@ index aef8204..de9bf87 100644
  	    memcmp(&a72_owner.active.identity, identity,
  		   sizeof(a72_owner.active.identity)))
  		ret = -EBUSY;
+diff --git a/arch/arm64/kernel/mt6797_a72_membership_test.c b/arch/arm64/kernel/mt6797_a72_membership_test.c
+index b105e77..210b883 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership_test.c
++++ b/arch/arm64/kernel/mt6797_a72_membership_test.c
+@@ -288,7 +288,8 @@ static void mt6797_a72_owner_internal_hook_denied(struct kunit *test)
+ 				-EAGAIN : -EPERM);
+ 	ret = mt6797_psci_ops.cpu_up_validate(9, 0, CPUHP_AP_ONLINE);
+ 	KUNIT_EXPECT_EQ(test, ret,
+-			IS_ENABLED(CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER) ?
++			IS_ENABLED(CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER) &&
++			!IS_ENABLED(CONFIG_MTK_MT6797_A72_CPU9_BINDER) ?
+ 				-EAGAIN : -EINVAL);
+ 	owner_observe(&state->after);
+ 	expect_unchanged(test, &state->before, &state->after);
 diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
 index d2899ea..c8011a7 100644
 --- a/arch/arm64/kernel/mt6797_psci.c
