@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-cpu9-same-boot-successor` |
-| Status | `CPU9 membership compiled; first 55-case gate found post-success finalization defect` |
+| Status | `CPU9 finalization defect isolated; narrow repair generated, rebuild pending` |
 | Subsystem | MT6797 A72 CPU9 retained-cluster admission |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -72,6 +72,9 @@ first write. No new physical range is introduced.
 - [`results/membership-kunit-attempt-1-20260831.txt`](results/membership-kunit-attempt-1-20260831.txt):
   exact Buildbox package and no-network QEMU result: 54 of 55 cases passed;
   CPU9 success finalization rejected the already-published member bit 1.
+- [`results/membership-finalize-patch-generation-20260831.txt`](results/membership-finalize-patch-generation-20260831.txt):
+  exact post-`0464` generation and five mutation rejections for the narrow
+  pre-success/post-success member-mask repair in patch `0465`.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger. Canonical patch `0463` adds the ledger but deliberately has no
@@ -138,6 +141,13 @@ parent helper that still required bit 0 exactly and returned `-EPERM`. The
 other 33 owner cases, all 12 transition cases, and all 9 binder cases passed.
 The next patch is therefore a narrow phase-aware membership repair; no caller,
 device candidate, or physical action is justified by this failed gate.
+
+Generated patch `0465` makes only that phase distinction: before success the
+active CPU9 transaction requires member bit 0; after success publication it
+requires bits 0+1. The exact CPU8 retired parent, provider identity, budgets,
+caller set, and effect set remain unchanged. Five source mutations and strict
+replay validation pass; Buildbox compilation and the exact 55-case rerun are
+pending.
 
 ## Analysis
 

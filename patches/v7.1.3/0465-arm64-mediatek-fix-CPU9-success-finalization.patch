@@ -1,0 +1,63 @@
+From d757eace40f6e5260b76c545bdf0c6727ba45206 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 1 Sep 2026 00:29:00 +0000
+Subject: [PATCH] arm64: mediatek: fix CPU9 success finalization
+
+Preserve the exact CPU8 retired parent while distinguishing the
+CPU9 active transaction's pre-success member bit 0 from its
+post-publication member bits 0 and 1. This lets the owner retire
+a successful CPU9 transaction without adding a caller or effect.
+---
+ arch/arm64/kernel/mt6797_a72_membership.c | 13 +++++++++----
+ 1 file changed, 9 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+index 6fbe712..aef8204 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -2708,13 +2708,14 @@ mt6797_a72_cpu9_cluster_budgets_empty(const struct mt6797_a72_transaction *trans
+ 		budgets->provider_abort == MT6797_A72_BUDGET_NONE;
+ }
+ 
+-static bool mt6797_a72_cpu9_retired_parent_valid_locked(void)
++static bool
++mt6797_a72_cpu9_retired_parent_valid_locked(u32 expected_members)
+ {
+ 	const struct mt6797_a72_transaction *cpu8 = &a72_owner.retired[0];
+ 
+ 	return a72_owner.health == MT6797_A72_OWNER_AVAILABLE &&
+ 		a72_owner.bootstrap_valid && a72_owner.members_valid &&
+-		a72_owner.members == BIT(0) &&
++		a72_owner.members == expected_members &&
+ 		a72_owner.provider_state == MT6797_A72_PROVIDER_HELD &&
+ 		mt6797_a72_provider_identity_valid(&a72_owner.provider_identity) &&
+ 		(a72_owner.retired_mask & BIT(0)) &&
+@@ -2738,6 +2739,10 @@ static bool
+ mt6797_a72_cpu9_active_valid_locked(const struct mt6797_a72_transaction *transaction)
+ {
+ 	const struct mt6797_a72_transaction *active = &a72_owner.active;
++	u32 expected_members = BIT(0);
++
++	if (active->cpu9_success_published)
++		expected_members |= BIT(1);
+ 
+ 	return transaction && active->valid && active->a36_valid &&
+ 		active->p30_token_valid && active->p17_p18_published &&
+@@ -2749,7 +2754,7 @@ mt6797_a72_cpu9_active_valid_locked(const struct mt6797_a72_transaction *transac
+ 		active->controller_cookie == active->identity.cookie &&
+ 		a72_owner.controller == current &&
+ 		a72_owner.controller_cookie == active->identity.cookie &&
+-		mt6797_a72_cpu9_retired_parent_valid_locked() &&
++		mt6797_a72_cpu9_retired_parent_valid_locked(expected_members) &&
+ 		mt6797_a72_cpu9_cluster_budgets_empty(active) &&
+ 		!active->p27_valid && !active->provider_acquire_valid &&
+ 		!active->provider_rejection_valid &&
+@@ -2784,7 +2789,7 @@ int mt6797_a72_membership_publish_cpu9(struct mt6797_a72_transaction *transactio
+ 		    a72_owner.active.identity.cookie &&
+ 	    a72_owner.controller == current &&
+ 	    a72_owner.controller_cookie == a72_owner.active.identity.cookie &&
+-	    mt6797_a72_cpu9_retired_parent_valid_locked() &&
++	    mt6797_a72_cpu9_retired_parent_valid_locked(BIT(0)) &&
+ 	    mt6797_a72_cpu9_cluster_budgets_empty(&a72_owner.active) &&
+ 	    a72_owner.active.budgets.cpu_on ==
+ 		    MT6797_A72_BUDGET_AVAILABLE &&
