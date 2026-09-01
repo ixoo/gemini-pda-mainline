@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Classify the exact hardware-free Gemini CPU9 executor KUnit proof."""
+"""Classify the exact hardware-free Gemini CPU9 dispatch KUnit proof."""
 
 from __future__ import annotations
 
@@ -13,8 +13,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
-PROFILE = "gemini-cpu9-executor-kunit"
-EXPECTED_RELEASE = "7.1.3-gemini-cpu9-executor-kunit"
+PROFILE = "gemini-cpu9-dispatch-kunit"
+EXPECTED_RELEASE = "7.1.3-gemini-cpu9-dispatch-kunit"
 PANIC_PREFIX = "Kernel panic - not syncing: VFS: Unable to mount root fs"
 PANIC_END_PREFIX = f"---[ end {PANIC_PREFIX}"
 SUITES = (
@@ -90,6 +90,19 @@ SUITES = (
         ),
     ),
     (
+        "mt6797-a72-cpu9-binder",
+        (
+            "mt6797_cpu9_binder_success_test",
+            "mt6797_cpu9_binder_dispatch_guards_test",
+            "mt6797_cpu9_binder_prepare_guards_test",
+            "mt6797_cpu9_binder_claim_failure_test",
+            "mt6797_cpu9_binder_cpu_on_failures_test",
+            "mt6797_cpu9_binder_secondary_failure_test",
+            "mt6797_cpu9_binder_completion_failures_test",
+            "mt6797_cpu9_binder_failure_dispatch_test",
+        ),
+    ),
+    (
         "mt6797-a72-default-off-binder",
         (
             "mt6797_binder_success_test",
@@ -150,9 +163,9 @@ def classify_runtime(raw: str, expected_release: str, qemu_exit: int) -> None:
     start = lines.index("KTAP version 1")
     ktap = lines[start:]
     require(ktap.count("KTAP version 1") == len(SUITES) + 1,
-            "expected one top-level and four suite KTAP headers")
+            "expected one top-level and five suite KTAP headers")
     plans = [line for line in ktap if re.fullmatch(r"1\.\.\d+", line)]
-    require(plans == ["1..4", "1..34", "1..12", "1..10", "1..9"],
+    require(plans == ["1..5", "1..34", "1..12", "1..10", "1..8", "1..9"],
             f"KUnit plans changed: {plans}")
     subtests = [line for line in ktap if line.startswith("# Subtest: ")]
     require(subtests == [f"# Subtest: {suite}" for suite, _ in SUITES],
@@ -271,6 +284,7 @@ def main() -> None:
     print(f"tests={total_tests}")
     print("cpu9_membership_tests=4")
     print("cpu9_executor_tests=10")
+    print("cpu9_dispatch_tests=8")
     print("regression_tests=55")
     print("failed=0")
     print("skipped=0")
@@ -288,12 +302,12 @@ def main() -> None:
     print("cpu9_cpu_on_budget=one")
     print("cpu9_success_members=bits0-1")
     print("cpu9_rejection=retains-cpu8-provider")
-    print("physical_backends=0")
+    print("physical_backends=linked-not-invoked")
     print("mmio=false")
     print("retained_ram=false")
     print("watchdog=false")
     print("smc=false")
-    print("production_callers=0")
+    print("production_controller_callers=0")
     print("physical_cpu_requests=0")
     print("device_action=none")
     print("boot_candidate=false")

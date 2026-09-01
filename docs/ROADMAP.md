@@ -30,7 +30,7 @@ Cortex-A72 pair.
 | I2C6 transfer | Native packed/FIFO pointer-read and one exact one-message two-byte FIFO write are runtime proven. The write completed once with payload `[0xda, 0x46]`, exact no-retry accounting, and stable readback. | This closes only the reviewed same-value shape; arbitrary writes, failure recovery, stress, and resume remain open. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
 | Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected. A separate hardware-free implementation now models exact positive Buck-B acquire/release and passes all six focused fake-adapter cases. | Gate 6 is closed for the reviewed no-op, and the first Gate-7 provider source boundary is complete offline. Physical transition, production integration, consumers, and CPU requests remain disconnected. |
-| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The production-admission experiment brought CPU8 online on two fresh exact-candidate boots with attributable terminal membership proof; the repeat also advanced CPU8 accounting across a bounded one-second interval before watchdog recovery. The independent CPU9 retained ledger and owner-local membership lifecycle are complete offline. | Implement and prove the retained-cluster executor, dispatch, and controller layers on Buildbox before constructing a candidate or issuing any CPU9 request; keep CPU_OFF and retry disconnected. |
+| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The production-admission experiment brought CPU8 online on two fresh exact-candidate boots with attributable terminal membership proof; the repeat also advanced CPU8 accounting across a bounded one-second interval before watchdog recovery. The independent CPU9 ledger, membership, executor, and dispatch source layers are canonical; the executor is runtime-tested and the dispatch compile/runtime gate is pending. | Prove dispatch on Buildbox, then implement and prove the candidate-only controller before constructing a candidate or issuing any CPU9 request; keep CPU_OFF and retry disconnected. |
 
 The durable technical boundary is in
 [DA921x, I2C6, and Cortex-A72](hardware/da921x-i2c6-a72.md). The exact
@@ -6744,10 +6744,15 @@ published commit `b0750bb3...` then compiled on Buildbox, passed package and
 provenance validation, and passed all 65 no-network KUnit cases: 10 focused
 CPU9 executor cases and all 55 prior owner, transition, and binder regressions,
 with zero failures or skips. No production caller or physical backend was
-present. **Selected next:** bind P30E/PSCI/secondary-completion/IPI/membership
-dispatch to the proven executor, then chain the candidate-only controller.
-Candidate gates remain subsequent; no CPU9 candidate or device action is
-admitted until those layers pass their independent offline gates.
+present. Canonical patch `0468` now binds CPU9-only
+P30E/PSCI/secondary-completion/IPI/membership and failure dispatch while
+leaving the CPU8 binder file unchanged. Its exact-source generation, ten
+unsafe mutation rejections, and deterministic replay pass; it has no
+controller or `add_cpu` caller and is not a boot candidate. **Selected next:**
+compile and run the 73-case dispatch profile on Buildbox, then chain and prove
+the candidate-only controller. Candidate gates remain subsequent; no CPU9
+candidate or device action is admitted until those layers pass their
+independent offline gates.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

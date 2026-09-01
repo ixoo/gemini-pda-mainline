@@ -457,3 +457,4 @@ v7.1.3/0464-arm64-mediatek-add-owner-local-CPU9-membership.patch
 v7.1.3/0465-arm64-mediatek-fix-CPU9-success-finalization.patch
 v7.1.3/0466-soc-mediatek-add-hardware-free-CPU9-executor.patch
 v7.1.3/0467-soc-mediatek-fix-CPU9-executor-test-fixture-type.patch
+v7.1.3/0468-soc-mediatek-bind-retained-cluster-CPU9-dispatch.patch
