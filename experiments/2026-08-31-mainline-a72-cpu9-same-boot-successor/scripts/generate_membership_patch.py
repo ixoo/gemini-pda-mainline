@@ -44,6 +44,23 @@ def run(*args: str, cwd: Path, env: dict[str, str] | None = None) -> str:
     return result.stdout.strip()
 
 
+def fix_checkpatch_alignment(checkpatch: Path, patch: Path, cwd: Path) -> None:
+    """Apply checkpatch's deterministic parenthesis-alignment fixes."""
+    result = subprocess.run(
+        (
+            "perl", str(checkpatch), "--strict", "--no-tree", "--fix-inplace",
+            "--types", "PARENTHESIS_ALIGNMENT", "--ignore",
+            "MISSING_SIGN_OFF,FILE_PATH_CHANGES", str(patch),
+        ),
+        cwd=cwd, check=False, text=True,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+    )
+    if result.returncode not in (0, 1):
+        if result.stdout:
+            print(result.stdout.rstrip(), file=sys.stderr)
+        raise SystemExit(f"checkpatch fix failed ({result.returncode})")
+
+
 def commit(root: Path, subject: str, body: str, minute: int) -> None:
     environment = os.environ.copy()
     environment.update({
@@ -221,9 +238,11 @@ def main() -> int:
         if len(generated) != 1:
             raise SystemExit("expected exactly one generated patch")
         patch = generated_dir / generated[0]
+        checkpatch = source_root / "scripts/checkpatch.pl"
+        fix_checkpatch_alignment(checkpatch, patch, temp)
         validate_patch(patch)
         run(
-            "perl", str(source_root / "scripts/checkpatch.pl"), "--strict",
+            "perl", str(checkpatch), "--strict",
             "--no-tree", f"--root={source_root}", "--ignore",
             "MISSING_SIGN_OFF,FILE_PATH_CHANGES", str(patch), cwd=temp,
         )

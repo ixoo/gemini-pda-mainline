@@ -100,45 +100,45 @@ static void mt6797_a72_owner_cpu9_parent_mutations(struct kunit *test)
 	ret = mt6797_a72_test_seed_cpu8_terminal(&state->transaction);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	mt6797_a72_membership_snapshot(&state->snapshot);
-	KUNIT_ASSERT_EQ(test,
-			mt6797_a72_membership_test_validate_cpu9_parent(
-				&state->snapshot, &topology), 0);
+	ret = mt6797_a72_membership_test_validate_cpu9_parent(&state->snapshot,
+							     &topology);
+	KUNIT_ASSERT_EQ(test, ret, 0);
 
 	state->before.owner = state->snapshot;
 	state->before.owner.members = 0;
-	KUNIT_EXPECT_EQ(test,
-			mt6797_a72_membership_test_validate_cpu9_parent(
-				&state->before.owner, &topology), -EPERM);
+	ret = mt6797_a72_membership_test_validate_cpu9_parent(&state->before.owner,
+							     &topology);
+	KUNIT_EXPECT_EQ(test, ret, -EPERM);
 	state->before.owner = state->snapshot;
 	state->before.owner.provider_state = MT6797_A72_PROVIDER_NONE;
-	KUNIT_EXPECT_EQ(test,
-			mt6797_a72_membership_test_validate_cpu9_parent(
-				&state->before.owner, &topology), -EPERM);
+	ret = mt6797_a72_membership_test_validate_cpu9_parent(&state->before.owner,
+							     &topology);
+	KUNIT_EXPECT_EQ(test, ret, -EPERM);
 	state->before.owner = state->snapshot;
 	state->before.owner.retired_mask &= ~BIT(0);
-	KUNIT_EXPECT_EQ(test,
-			mt6797_a72_membership_test_validate_cpu9_parent(
-				&state->before.owner, &topology), -EPERM);
+	ret = mt6797_a72_membership_test_validate_cpu9_parent(&state->before.owner,
+							     &topology);
+	KUNIT_EXPECT_EQ(test, ret, -EPERM);
 	state->before.owner = state->snapshot;
 	state->before.owner.attempts_consumed |= MT6797_A72_ATTEMPT_CPU9_UP;
-	KUNIT_EXPECT_EQ(test,
-			mt6797_a72_membership_test_validate_cpu9_parent(
-				&state->before.owner, &topology), -EPERM);
+	ret = mt6797_a72_membership_test_validate_cpu9_parent(&state->before.owner,
+							     &topology);
+	KUNIT_EXPECT_EQ(test, ret, -EPERM);
 	state->before.owner = state->snapshot;
 	state->before.owner.retired[0].cpu8_success_published = 0;
-	KUNIT_EXPECT_EQ(test,
-			mt6797_a72_membership_test_validate_cpu9_parent(
-				&state->before.owner, &topology), -EPERM);
+	ret = mt6797_a72_membership_test_validate_cpu9_parent(&state->before.owner,
+							     &topology);
+	KUNIT_EXPECT_EQ(test, ret, -EPERM);
 	state->before.owner = state->snapshot;
 	state->before.owner.retired[0].provider_identity.cookie++;
-	KUNIT_EXPECT_EQ(test,
-			mt6797_a72_membership_test_validate_cpu9_parent(
-				&state->before.owner, &topology), -EPERM);
+	ret = mt6797_a72_membership_test_validate_cpu9_parent(&state->before.owner,
+							     &topology);
+	KUNIT_EXPECT_EQ(test, ret, -EPERM);
 	state->before.owner = state->snapshot;
 	state->before.owner.retired[0].p28_valid = 0;
-	KUNIT_EXPECT_EQ(test,
-			mt6797_a72_membership_test_validate_cpu9_parent(
-				&state->before.owner, &topology), -EPERM);
+	ret = mt6797_a72_membership_test_validate_cpu9_parent(&state->before.owner,
+							     &topology);
+	KUNIT_EXPECT_EQ(test, ret, -EPERM);
 }
 
 static void mt6797_a72_owner_cpu9_success_lifecycle(struct kunit *test)
@@ -147,6 +147,7 @@ static void mt6797_a72_owner_cpu9_success_lifecycle(struct kunit *test)
 	struct mt6797_a72_direct_topology topology =
 		mt6797_a72_cpu9_topology();
 	struct arm64_late_cpu_ready_token ready = mt6797_a72_ready_token_for_up();
+	bool cluster_budgets_empty;
 	int difference;
 	int ret;
 
@@ -161,9 +162,9 @@ static void mt6797_a72_owner_cpu9_success_lifecycle(struct kunit *test)
 			(u64)0x201);
 	KUNIT_EXPECT_EQ(test, state->transaction.budgets.cpu_on,
 			(u8)MT6797_A72_BUDGET_AVAILABLE);
-	KUNIT_EXPECT_TRUE(test,
-			mt6797_a72_test_cpu9_cluster_budgets_empty(
-				&state->transaction));
+	cluster_budgets_empty =
+		mt6797_a72_test_cpu9_cluster_budgets_empty(&state->transaction);
+	KUNIT_EXPECT_TRUE(test, cluster_budgets_empty);
 	KUNIT_EXPECT_TRUE(test, state->transaction.a36_valid);
 	KUNIT_EXPECT_EQ(test, state->transaction.a36_prestate.cpu8_online,
 			(u32)1);
@@ -183,11 +184,11 @@ static void mt6797_a72_owner_cpu9_success_lifecycle(struct kunit *test)
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	KUNIT_EXPECT_EQ(test, state->transaction.budgets.cpu_on,
 			(u8)MT6797_A72_BUDGET_CONSUMED);
-	KUNIT_EXPECT_TRUE(test,
-			mt6797_a72_test_cpu9_cluster_budgets_empty(
-				&state->transaction));
-	ret = mt6797_a72_membership_test_publish_cpu9_success(
-		&state->transaction, true, true);
+	cluster_budgets_empty =
+		mt6797_a72_test_cpu9_cluster_budgets_empty(&state->transaction);
+	KUNIT_EXPECT_TRUE(test, cluster_budgets_empty);
+	ret = mt6797_a72_membership_test_publish_cpu9_success(&state->transaction,
+							     true, true);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	mt6797_a72_membership_snapshot(&state->snapshot);
 	KUNIT_EXPECT_EQ(test, state->snapshot.phase,
@@ -196,8 +197,8 @@ static void mt6797_a72_owner_cpu9_success_lifecycle(struct kunit *test)
 			(u32)(BIT(0) | BIT(1)));
 	KUNIT_EXPECT_TRUE(test, state->snapshot.active.cpu9_success_published);
 
-	ret = mt6797_a72_membership_test_finalize_cpu9_success(
-		&state->transaction, true, true);
+	ret = mt6797_a72_membership_test_finalize_cpu9_success(&state->transaction,
+							      true, true);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	owner_observe(&state->after);
 	KUNIT_EXPECT_EQ(test, state->after.owner.phase,
