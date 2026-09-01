@@ -153,6 +153,7 @@ static void gemini_cpu9_progress_mmio_write(void *context,
 static void gemini_cpu9_progress_mmio_sync(void *context)
 {
 	(void)context;
+	/* Order record payload writes before commit publication. */
 	wmb();
 }
 

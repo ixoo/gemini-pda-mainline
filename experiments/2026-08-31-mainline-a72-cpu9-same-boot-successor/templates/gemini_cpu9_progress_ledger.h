@@ -28,7 +28,7 @@ static inline int gemini_cpu9_progress_begin(u64 cpu8_attempt_id)
 }
 
 static inline int gemini_cpu9_progress_checkpoint(u64 cpu8_attempt_id,
-						   u32 stage)
+						  u32 stage)
 {
 	return -EOPNOTSUPP;
 }
