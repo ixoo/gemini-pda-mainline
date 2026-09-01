@@ -188,6 +188,22 @@ def validate_patch(path: Path) -> None:
             raise SystemExit(f"forbidden generated token: {token}")
 
 
+def checkpatch_fix(source_root: Path, patch: Path, cwd: Path) -> None:
+    result = subprocess.run(
+        (
+            "perl", str(source_root / "scripts/checkpatch.pl"), "--fix-inplace",
+            "--strict", "--no-tree", f"--root={source_root}", "--ignore",
+            "MISSING_SIGN_OFF,FILE_PATH_CHANGES", str(patch),
+        ),
+        cwd=cwd, check=False, text=True,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+    )
+    if not patch.is_file() or not patch.stat().st_size:
+        if result.stdout:
+            print(result.stdout.rstrip(), file=sys.stderr)
+        raise SystemExit("checkpatch fix did not preserve the generated patch")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-root", type=Path, required=True)
@@ -238,6 +254,8 @@ def main() -> int:
         if len(generated) != 1:
             raise SystemExit("expected exactly one generated patch")
         patch = generated_dir / generated[0]
+        validate_patch(patch)
+        checkpatch_fix(source_root, patch, temp)
         validate_patch(patch)
         run(
             "perl", str(source_root / "scripts/checkpatch.pl"), "--strict",
