@@ -89,8 +89,15 @@ def validate_mutations(root: Path) -> int:
         ),
         (
             "drivers/soc/mediatek/Kconfig",
+            "config MTK_MT6797_A72_CPU9_ADMISSION_CONTROLLER\n"
+            "\tbool \"MediaTek MT6797 same-boot CPU9 admission controller\"\n"
+            "\tdepends on MTK_MT6797_A72_ADMISSION_LIVE_TRIGGER\n"
+            "\tdepends on MTK_MT6797_A72_CPU9_BINDER\n"
             "\tdepends on PSTORE_GEMINI_CPU9_PROGRESS_LEDGER=y\n\tdefault n",
-            "\tdefault n",
+            "config MTK_MT6797_A72_CPU9_ADMISSION_CONTROLLER\n"
+            "\tbool \"MediaTek MT6797 same-boot CPU9 admission controller\"\n"
+            "\tdepends on MTK_MT6797_A72_ADMISSION_LIVE_TRIGGER\n"
+            "\tdepends on MTK_MT6797_A72_CPU9_BINDER\n\tdefault n",
         ),
         (
             "drivers/soc/mediatek/mt6797-a72-cpu9-admission-controller.c",

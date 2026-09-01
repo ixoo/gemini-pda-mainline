@@ -601,7 +601,13 @@ def apply_kconfig(root: Path) -> None:
     )
     replace_once(
         path,
+        "config MTK_MT6797_A72_CPU9_ADMISSION_CONTROLLER\n"
+        "\tbool \"MediaTek MT6797 same-boot CPU9 admission controller\"\n"
+        "\tdepends on MTK_MT6797_A72_ADMISSION_LIVE_TRIGGER\n"
         "\tdepends on MTK_MT6797_A72_CPU9_BINDER\n\tdefault n",
+        "config MTK_MT6797_A72_CPU9_ADMISSION_CONTROLLER\n"
+        "\tbool \"MediaTek MT6797 same-boot CPU9 admission controller\"\n"
+        "\tdepends on MTK_MT6797_A72_ADMISSION_LIVE_TRIGGER\n"
         "\tdepends on MTK_MT6797_A72_CPU9_BINDER\n"
         "\tdepends on PSTORE_GEMINI_CPU9_PROGRESS_LEDGER=y\n\tdefault n",
     )
