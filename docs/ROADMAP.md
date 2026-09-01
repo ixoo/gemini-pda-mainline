@@ -6791,6 +6791,20 @@ CPU8-to-CPU9 controller session to determine whether CPU9 is never requested,
 fails at a named retained-ledger stage, or reaches accounted online state
 after exact CPU8 terminal proof.
 
+That fresh selection booted the exact candidate with a fresh boot ID, the
+controller bound and pristine, CPUs 8--9 offline, and every request count zero.
+The pre-trigger gate stopped before its sysfs write because the arm64 profile
+reported proof mask `0x40000`: the CPU9 production configuration changed the
+package input identity to `cda6d936...`, but the compiled production profile
+still embeds its `1e7f3047...` predecessor. No effect plan, CPU request, or
+retained-RAM write occurred. A subsequent USB-shell reboot returned the device
+to changed-ID Gemian with exact `boot2` unchanged. Canonical patch `0470` changes
+only the four production identity words, retains the fixture and all runtime
+paths unchanged, and passes the 164-profile canonical-series invariant plus
+all eight invariant mutations. **Selected next:** publish `0470`, build the
+exact CPU9 production profile on Buildbox, and requalify a package-exact
+candidate before another physical selection.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

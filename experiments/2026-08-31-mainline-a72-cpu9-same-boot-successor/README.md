@@ -5,10 +5,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-cpu9-same-boot-successor` |
-| Status | `exact candidate and boot-bound runtime tooling ready; device shut down; fresh attempt pending` |
+| Status | `attempt 1 stopped before trigger at exact config-identity block; patch 0470 awaiting Buildbox` |
 | Subsystem | MT6797 A72 CPU9 retained-cluster admission |
 | Device variant | Planet Computers Gemini PDA, named development unit |
-| Date(s) | 2026-08-31 |
+| Date(s) | 2026-08-31--2026-09-01 |
 | Investigator(s) | repository owner and Codex |
 | Tracking issue | `docs/ROADMAP.md` Gate 8 |
 
@@ -118,6 +118,10 @@ first write. No new physical range is introduced.
   exact source pins, pristine CPU8/CPU9 pre-trigger contract, one-session
   request bounds, success and named-failure classification, and seven offline
   mutation rejections for the first attributable device attempt.
+- [`results/runtime-attempt-1-profile-config-identity-blocked-20260901.txt`](results/runtime-attempt-1-profile-config-identity-blocked-20260901.txt):
+  fresh exact-candidate boot, pre-trigger proof-mask `0x40000` attribution,
+  zero CPU requests, unchanged recovery partition, and the exact one-file
+  production-identity repair selected as patch `0470`.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger, owner-local membership lifecycle, retained-cluster dispatch, and
@@ -305,6 +309,26 @@ accepted the exact success shape and rejected all three pre-trigger plus all
 four attempt mutations. This preparation used no device access or hardware
 action.
 
+The first fresh physical selection booted the exact candidate and exposed its
+USB shell with fresh boot ID `ef3e1eb4...`. The candidate identity and release
+matched, the controller was bound and pristine, CPUs 8--9 were offline, and
+all CPU8, CPU9, CPU_OFF, and retry counts were zero. The pre-trigger gate
+correctly stopped before its sysfs write because the arm64 profile recorded
+one block at proof mask `0x40000`; no effect plan completed and no hardware
+attempt occurred. Read-only source attribution found the production profile
+still embeds config-input identity `1e7f3047...`, while the exact CPU9 package
+and verified runtime leaf carry `cda6d936...`. The device was returned through
+the USB shell to changed-ID Gemian, where inactive `boot2` still hashes to the
+exact candidate.
+
+Canonical patch `0470` changes only those four production identity words in
+`mt6797_psci.c`; the fixture identity and every CPU, power, retry, CPU_OFF,
+storage, and device path are unchanged. Its parent and replacement Git blobs,
+full-file hashes, and the package-derived identity are exact, and the
+164-profile canonical-series audit plus all eight invariant mutations pass.
+Buildbox compile and package validation remain pending, so this repair is not
+yet a boot candidate.
+
 ## Analysis
 
 The current generic owner and P30E layers contain useful CPU9 primitives, but
@@ -336,10 +360,11 @@ reproducible, but no CPU9 device result is claimed yet.
 
 ## Follow-up
 
-Physically select `boot2` for one fresh named-device boot. The source-pinned
-collector must first close the exact release, candidate, boot-ID, and pristine
-CPU8/CPU9 gate; the source-pinned executor may then spend exactly one
-controller session. Recover both retained ledger records and determine whether
-CPU9 was never requested, rejected at a named stage, or became an accounted
-online CPU after CPU8 terminal proof. CPU_OFF, retry, sustained load, hotplug,
-thermal, and suspend remain outside that first CPU9 attempt.
+Publish patch `0470`, compile the exact production profile on Buildbox, and
+recompose and independently validate the package-exact DT and Android-v0
+candidate. Only after that corrected image is fully read back to inactive
+`boot2` may a fresh source-pinned pre-trigger gate admit the single controller
+session. Recover both retained ledger records and determine whether CPU9 was
+never requested, rejected at a named stage, or became an accounted online CPU
+after CPU8 terminal proof. CPU_OFF, retry, sustained load, hotplug, thermal,
+and suspend remain outside that first CPU9 attempt.

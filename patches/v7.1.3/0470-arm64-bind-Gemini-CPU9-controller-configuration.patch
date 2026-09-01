@@ -1,0 +1,36 @@
+From 1000000000000000000000000000000000000470 Tue Sep  1 00:00:00 2026
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 1 Sep 2026 10:05:00 +0000
+Subject: [PATCH] arm64: bind Gemini CPU9 controller configuration
+
+The production CPU9 controller profile adds its five production options to
+the exact ordered configuration inputs, changing their package-derived
+identity from 1e7f3047... to cda6d936....  The package provenance record and
+runtime DT correctly carry the latter identity, but the MT6797 production
+profile still expects the former and therefore withholds READY at proof mask
+0x40000.
+
+Bind the production profile to the exact CPU9 configuration inputs.  Keep the
+fixture identity unchanged and add no CPU request, power, retry, CPU_OFF,
+storage, or device action.
+---
+ arch/arm64/kernel/mt6797_psci.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
+index c8011a7..5cac538 100644
+--- a/arch/arm64/kernel/mt6797_psci.c
++++ b/arch/arm64/kernel/mt6797_psci.c
+@@ -64,8 +64,8 @@ static const u64 mt6797_a72_config_input_identity[ARM64_LATE_CPU_ID_WORDS] __ini
+ };
+ #else
+ static const u64 mt6797_a72_config_input_identity[ARM64_LATE_CPU_ID_WORDS] __initconst = {
+-	0x1e7f3047cd225aba, 0xca31d37bee725df5,
+-	0x0cd0f310ff79edc5, 0x1b5838f03231b75b,
++	0xcda6d936e61122d8, 0x25a7fe7649f1b69b,
++	0x86455d6034f36a6c, 0xd562ff457bccd3d1,
+ };
+ #endif
+ 
+-- 
+2.51.0
