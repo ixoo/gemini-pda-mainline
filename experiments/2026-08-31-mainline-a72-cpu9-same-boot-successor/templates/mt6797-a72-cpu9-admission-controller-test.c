@@ -147,7 +147,7 @@ static int mt6797_a72_cpu9_admission_test_prepare(
 }
 
 static int mt6797_a72_cpu9_admission_test_add_cpu(void *data,
-						   unsigned int cpu)
+						  unsigned int cpu)
 {
 	struct mt6797_a72_cpu9_admission_test_context *context = data;
 
