@@ -122,8 +122,8 @@ for symbol in \
 	mt6797_a72_cpu9_binder_complete \
 	mt6797_a72_cpu9_binder_failure \
 	mt6797_cpu9_binder_test_suite \
-	mt6797_a72_admission_controller_probe \
-	mt6797_a72_admission_live_arm \
+	mt6797_a72_admission_probe \
+	mt6797_a72_admission_trigger_run \
 	mt6797_a72_admission_controller_suite \
 	mt6797_a72_cpu9_admission_state_init \
 	mt6797_a72_cpu9_admission_run \
