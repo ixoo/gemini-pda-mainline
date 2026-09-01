@@ -20,6 +20,8 @@ PARENT_HASHES = {
         "e2ad760ebbebcd9e0444547afa551bb0a301b169ab609e5685bfa2e0314eb434",
     "arch/arm64/kernel/mt6797_a72_membership.c":
         "d21815b0870ae50ca6020f935a5028d4fb700f3e974593f630750615b0f0f15f",
+    "arch/arm64/kernel/mt6797_a72_membership_test.c":
+        "53449333ff5684e420c78acac2918f968a5c543aa0dbd492b64557c255957a4f",
 }
 NEW_PATHS = (
     "include/linux/soc/mediatek/mt6797-a72-cpu9-binder.h",
@@ -234,6 +236,19 @@ def apply(root: Path) -> None:
         "\t    (a72_owner.phase != MT6797_A72_PHASE_FROZEN && !cpu8_on_ready) ||\n",
         "\t    (a72_owner.phase != MT6797_A72_PHASE_FROZEN &&\n"
         "\t     !cpu8_on_ready && !cpu9_on_ready) ||\n",
+    )
+    membership_test = root / "arch/arm64/kernel/mt6797_a72_membership_test.c"
+    replace_once(
+        membership_test,
+        "\tKUNIT_EXPECT_EQ(test, ret,\n"
+        "\t\t\tIS_ENABLED(CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER) ?\n"
+        "\t\t\t\t-EAGAIN : -EINVAL);\n"
+        "\towner_observe(&state->after);\n",
+        "\tKUNIT_EXPECT_EQ(test, ret,\n"
+        "\t\t\tIS_ENABLED(CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER) &&\n"
+        "\t\t\t!IS_ENABLED(CONFIG_MTK_MT6797_A72_CPU9_BINDER) ?\n"
+        "\t\t\t\t-EAGAIN : -EINVAL);\n"
+        "\towner_observe(&state->after);\n",
     )
     for relative in NEW_PATHS:
         copy_new(root, relative)

@@ -26,6 +26,9 @@ def validate(root: Path) -> list[str]:
         encoding="utf-8")
     membership = (root / "arch/arm64/kernel/mt6797_a72_membership.c").read_text(
         encoding="utf-8")
+    membership_tests = (root / "arch/arm64/kernel/"
+                        "mt6797_a72_membership_test.c").read_text(
+                            encoding="utf-8")
     public = (root / "include/linux/soc/mediatek/"
               "mt6797-a72-cpu9-binder.h").read_text(encoding="utf-8")
     internal = (root / "drivers/soc/mediatek/"
@@ -102,6 +105,11 @@ def validate(root: Path) -> list[str]:
     exact(membership,
           "cpu8_on_ready = identity->operation ==\n"
           "\t\tARM64_LATE_CPU_STARTUP_OP_CPU8_UP")
+    exact(
+        membership_tests,
+        "IS_ENABLED(CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER) &&\n"
+        "\t\t\t!IS_ENABLED(CONFIG_MTK_MT6797_A72_CPU9_BINDER) ?\n"
+        "\t\t\t\t-EAGAIN : -EINVAL)")
 
     for token in (
         "request->cpu == MT6797_A72_CPU9_EXECUTOR_CPU9",
