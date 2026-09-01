@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Classify the exact hardware-free Gemini CPU9 dispatch KUnit proof."""
+"""Classify the exact hardware-free Gemini CPU9 controller KUnit proof."""
 
 from __future__ import annotations
 
@@ -13,8 +13,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
-PROFILE = "gemini-cpu9-dispatch-kunit"
-EXPECTED_RELEASE = "7.1.3-gemini-cpu9-dispatch-kunit"
+PROFILE = "gemini-cpu9-controller-kunit"
+EXPECTED_RELEASE = "7.1.3-gemini-cpu9-controller-kunit"
 PANIC_PREFIX = "Kernel panic - not syncing: VFS: Unable to mount root fs"
 PANIC_END_PREFIX = f"---[ end {PANIC_PREFIX}"
 SUITES = (
@@ -116,6 +116,34 @@ SUITES = (
             "mt6797_binder_one_shot_test",
         ),
     ),
+    (
+        "mt6797-a72-cpu9-admission-controller",
+        (
+            "mt6797_a72_cpu9_admission_success_test",
+            "mt6797_a72_cpu9_admission_invalid_repeat_test",
+            "mt6797_a72_cpu9_admission_cpu8_failure_test",
+            "mt6797_a72_cpu9_admission_proof_failures_test",
+            "mt6797_a72_cpu9_admission_ready_derive_test",
+            "mt6797_a72_cpu9_admission_publish_failure_test",
+            "mt6797_a72_cpu9_admission_prepare_failure_test",
+            "mt6797_a72_cpu9_admission_request_failure_test",
+        ),
+    ),
+    (
+        "mt6797-a72-admission-controller",
+        (
+            "mt6797_a72_admission_trigger_invalid_test",
+            "mt6797_a72_admission_trigger_terminal_test",
+            "mt6797_a72_admission_trigger_repeat_closed_test",
+            "mt6797_a72_admission_success_test",
+            "mt6797_a72_admission_preconsume_gates_test",
+            "mt6797_a72_admission_terminal_failures_test",
+            "mt6797_a72_admission_request_failure_test",
+            "mt6797_a72_admission_trace_failures_test",
+            "mt6797_a72_admission_live_trace_softfail_test",
+            "mt6797_a72_admission_repeat_closed_test",
+        ),
+    ),
 )
 
 
@@ -163,9 +191,10 @@ def classify_runtime(raw: str, expected_release: str, qemu_exit: int) -> None:
     start = lines.index("KTAP version 1")
     ktap = lines[start:]
     require(ktap.count("KTAP version 1") == len(SUITES) + 1,
-            "expected one top-level and five suite KTAP headers")
+            "expected one top-level and seven suite KTAP headers")
     plans = [line for line in ktap if re.fullmatch(r"1\.\.\d+", line)]
-    require(plans == ["1..5", "1..34", "1..12", "1..10", "1..8", "1..9"],
+    require(plans == ["1..7", "1..34", "1..12", "1..10", "1..8",
+                      "1..9", "1..8", "1..10"],
             f"KUnit plans changed: {plans}")
     subtests = [line for line in ktap if line.startswith("# Subtest: ")]
     require(subtests == [f"# Subtest: {suite}" for suite, _ in SUITES],

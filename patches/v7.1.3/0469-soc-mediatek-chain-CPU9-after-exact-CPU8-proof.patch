@@ -1,0 +1,1202 @@
+From c18c1f09acf191e922e2a07915dcd1849169c562 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 1 Sep 2026 02:09:00 +0000
+Subject: [PATCH] soc: mediatek: chain CPU9 after exact CPU8 proof
+
+Extend the one-shot live admission path with a separate CPU9
+controller. It runs the unchanged CPU8 controller first, requires
+its exact terminal proof, derives and publishes one CPU9
+transaction, stages the CPU9 binder, and issues add_cpu(9) once.
+
+Expose combined controller and binder diagnostics while retaining
+CPU8/provider/cluster state on every CPU9 failure. Add no CPU_OFF,
+retry, watchdog refresh, or repeated cluster effect.
+---
+ drivers/soc/mediatek/Kconfig                  |  32 +-
+ drivers/soc/mediatek/Makefile                 |   2 +
+ .../mt6797-a72-admission-controller.c         | 184 +++++++-
+ ...7-a72-cpu9-admission-controller-internal.h |  75 ++++
+ ...t6797-a72-cpu9-admission-controller-test.c | 408 ++++++++++++++++++
+ .../mt6797-a72-cpu9-admission-controller.c    | 160 +++++++
+ .../mt6797-a72-cpu9-binder-internal.h         |   3 +
+ .../mediatek/mt6797-a72-cpu9-binder-test.c    |  15 +
+ drivers/soc/mediatek/mt6797-a72-cpu9-binder.c |  62 +++
+ .../soc/mediatek/mt6797-a72-cpu9-binder.h     |  43 ++
+ 10 files changed, 972 insertions(+), 12 deletions(-)
+ create mode 100644 drivers/soc/mediatek/mt6797-a72-cpu9-admission-controller-internal.h
+ create mode 100644 drivers/soc/mediatek/mt6797-a72-cpu9-admission-controller-test.c
+ create mode 100644 drivers/soc/mediatek/mt6797-a72-cpu9-admission-controller.c
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index 245395a..fba9bd7 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -589,9 +589,39 @@ config MTK_MT6797_A72_ADMISSION_LIVE_TRIGGER
+ 
+ 	  This mode exists so USB/netcat can prove the exact kernel and CPU0-7
+ 	  baseline before any physical source, publication, or CPU8 request.
+-	  CPU9, CPU_OFF, retry, reboot, and storage operations remain absent.
++	  CPU_OFF, retry, reboot, and storage operations remain absent. CPU9
++	  remains absent unless the separate same-boot successor is selected.
+ 	  If unsure, say N.
+ 
++config MTK_MT6797_A72_CPU9_ADMISSION_CONTROLLER
++	bool "MediaTek MT6797 same-boot CPU9 admission controller"
++	depends on MTK_MT6797_A72_ADMISSION_LIVE_TRIGGER
++	depends on MTK_MT6797_A72_CPU9_BINDER
++	default n
++	help
++	  Extend the exact one-shot userspace admission trigger so it runs the
++	  unchanged CPU8 controller, requires its terminal membership proof,
++	  derives and publishes one retained-cluster CPU9 transaction, stages
++	  the CPU9 binder, and makes one synchronous add_cpu(9) request.
++
++	  CPU8 failure or any missing proof prevents CPU9 derivation and request.
++	  CPU9 failure retains CPU8, P27, the provider, and the cluster until
++	  fixed watchdog recovery. No CPU_OFF, retry, cluster reacquisition,
++	  automatic probe action, or second trigger exists. If unsure, say N.
++
++config MTK_MT6797_A72_CPU9_ADMISSION_CONTROLLER_KUNIT_TEST
++	bool "KUnit tests for the MT6797 same-boot CPU9 controller"
++	depends on KUNIT=y
++	depends on MTK_MT6797_A72_CPU9_ADMISSION_CONTROLLER
++	default n
++	help
++	  Exercise exact same-task CPU8 proof, CPU9 derive/publish/prepare/request
++	  order, every stop boundary, one-shot closure, and zero CPU_OFF/retry
++	  behavior through injected operations only.
++
++	  No physical CPU, retained-RAM, watchdog, regulator, clock, MMIO, SMC,
++	  storage, reboot, or device action is performed.
++
+ config MTK_MT6797_A72_PHYSICAL_SOURCE_KUNIT_TEST
+ 	bool "KUnit tests for MT6797 A72 direct physical-source observer"
+ 	depends on KUNIT=y
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+index dc65eb4..d42003d 100644
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -59,6 +59,8 @@ obj-$(CONFIG_MTK_MT6797_A72_PLATFORM_SNAPSHOT_OBSERVER) += mt6797-a72-platform-s
+ obj-$(CONFIG_MTK_MT6797_A72_PLATFORM_SNAPSHOT_KUNIT_TEST) += mt6797-a72-platform-snapshot-observer-test.o
+ obj-$(CONFIG_MTK_MT6797_A72_PHYSICAL_SOURCE_OBSERVER) += mt6797-a72-physical-source-observer.o
+ obj-$(CONFIG_MTK_MT6797_A72_ADMISSION_CONTROLLER) += mt6797-a72-admission-controller.o
++obj-$(CONFIG_MTK_MT6797_A72_CPU9_ADMISSION_CONTROLLER) += mt6797-a72-cpu9-admission-controller.o
++obj-$(CONFIG_MTK_MT6797_A72_CPU9_ADMISSION_CONTROLLER_KUNIT_TEST) += mt6797-a72-cpu9-admission-controller-test.o
+ obj-$(CONFIG_MTK_MT6797_A72_PHYSICAL_SOURCE_KUNIT_TEST) += mt6797-a72-physical-source-observer-test.o
+ obj-$(CONFIG_MTK_MT6797_A72_ADMISSION_CONTROLLER_KUNIT_TEST) += mt6797-a72-admission-controller-test.o
+ obj-$(CONFIG_MTK_MT6797_PROTECTED_READBACK_OBSERVER) += mt6797-protected-readback-observer.o
+diff --git a/drivers/soc/mediatek/mt6797-a72-admission-controller.c b/drivers/soc/mediatek/mt6797-a72-admission-controller.c
+index 11a66ec..4478d1c 100644
+--- a/drivers/soc/mediatek/mt6797-a72-admission-controller.c
++++ b/drivers/soc/mediatek/mt6797-a72-admission-controller.c
+@@ -16,11 +16,14 @@
+ #include <linux/platform_device.h>
+ #include <linux/slab.h>
+ #include <linux/soc/mediatek/mt6797-a72-binder.h>
++#include <linux/soc/mediatek/mt6797-a72-cpu9-binder.h>
+ #include <linux/string.h>
+ #include <linux/sysfs.h>
+ 
+ #include "mt6797-a72-admission-controller-internal.h"
++#include "mt6797-a72-cpu9-admission-controller-internal.h"
+ #include "mt6797-a72-physical-source-observer-internal.h"
++#include "mt6797-a72-transition-internal.h"
+ 
+ #define MT6797_A72_ADMISSION_TAG "GEMINI_A72_ADMISSION_V1"
+ #define MT6797_A72_ADMISSION_LIVE_TAG "GEMINI_A72_ADMISSION_LIVE_V1"
+@@ -31,6 +34,7 @@ struct mt6797_a72_admission_controller {
+ 	struct device *binder;
+ 	struct mt6797_a72_physical_source_context source;
+ 	struct mt6797_a72_admission_controller_state state;
++	struct mt6797_a72_cpu9_admission_state cpu9;
+ 	struct mt6797_a72_admission_trigger_state trigger;
+ };
+ 
+@@ -283,7 +287,7 @@ static int mt6797_a72_admission_prepare(struct mt6797_a72_admission_controller *
+ 	return 0;
+ }
+ 
+-static int mt6797_a72_admission_execute(void *context)
++static int mt6797_a72_admission_run_cpu8(void *context)
+ {
+ 	struct mt6797_a72_admission_controller *controller = context;
+ 	int ret;
+@@ -296,11 +300,163 @@ static int mt6797_a72_admission_execute(void *context)
+ 					controller);
+ }
+ 
++#if IS_ENABLED(CONFIG_MTK_MT6797_A72_CPU9_ADMISSION_CONTROLLER)
++static int mt6797_a72_admission_cpu8_proof(
++	void *context, struct mt6797_a72_cpu9_admission_cpu8_proof *proof)
++{
++	struct mt6797_a72_admission_controller *controller = context;
++	struct mt6797_a72_binder_diagnostic diagnostic;
++	const struct mt6797_a72_transaction *transaction =
++		&controller->state.transaction;
++	int ret;
++
++	if (!proof)
++		return -EINVAL;
++	memset(proof, 0, sizeof(*proof));
++	ret = mt6797_a72_binder_diagnostic_snapshot(&diagnostic);
++	if (ret)
++		return ret;
++	if (atomic_read(&controller->state.consumed) != 1 ||
++	    controller->state.cpu_requests != 1 ||
++	    controller->state.operation_ret || !transaction->valid ||
++	    transaction->identity.operation !=
++		    ARM64_LATE_CPU_STARTUP_OP_CPU8_UP ||
++	    transaction->identity.target_cpu != 8 ||
++	    !transaction->identity.generation ||
++	    diagnostic.abi != MT6797_A72_BINDER_DIAGNOSTIC_ABI ||
++	    diagnostic.lifecycle != MT6797_A72_TRANSITION_LIFECYCLE_TERMINAL ||
++	    diagnostic.terminal != MT6797_A72_TRANSITION_CPU8_ONLINE_PROOF ||
++	    diagnostic.last_stage != MT6797_A72_TRANSITION_STAGE_MEMBERSHIP ||
++	    diagnostic.stage_errno || diagnostic.rollback_errno ||
++	    diagnostic.checkpoint_errno || !diagnostic.attempted ||
++	    !diagnostic.watchdog_armed || !diagnostic.p27_owned ||
++	    diagnostic.rollback_mask ||
++	    diagnostic.retained_mask != MT6797_A72_CPU9_RETAINED_REQUIRED ||
++	    !cpu_online(8) || cpu_online(9))
++		return -EPROTO;
++	proof->attempt_id = transaction->identity.generation;
++	proof->cpu_requests = controller->state.cpu_requests;
++	proof->lifecycle_terminal = true;
++	proof->terminal_exact = true;
++	proof->membership_published = true;
++	proof->p27_retained = true;
++	proof->provider_retained = true;
++	proof->cpu8_online = true;
++	return 0;
++}
++
++static int mt6797_a72_admission_derive_cpu9(
++	void *context, const struct arm64_late_cpu_ready_token *ready,
++	struct mt6797_a72_transaction *transaction, u32 *derive_stage)
++{
++	(void)context;
++	return mt6797_a72_membership_derive_cpu9_diagnostic(
++		ready, transaction, derive_stage);
++}
++
++static int mt6797_a72_admission_publish_cpu9(
++	void *context, struct mt6797_a72_transaction *transaction)
++{
++	(void)context;
++	return mt6797_a72_membership_publish_cpu9(transaction);
++}
++
++static int mt6797_a72_admission_prepare_cpu9(
++	void *context, const struct mt6797_a72_cpu9_executor_request *request)
++{
++	(void)context;
++	return mt6797_a72_cpu9_binder_prepare(request);
++}
++
++static const struct mt6797_a72_cpu9_admission_ops
++mt6797_a72_cpu9_admission_production_ops = {
++	.run_cpu8 = mt6797_a72_admission_run_cpu8,
++	.cpu8_proof = mt6797_a72_admission_cpu8_proof,
++	.ready_token = mt6797_a72_admission_ready_token,
++	.derive_cpu9 = mt6797_a72_admission_derive_cpu9,
++	.publish_cpu9 = mt6797_a72_admission_publish_cpu9,
++	.prepare_cpu9 = mt6797_a72_admission_prepare_cpu9,
++	.add_cpu = mt6797_a72_admission_add_cpu,
++};
++#endif
++
++static int mt6797_a72_admission_execute(void *context)
++{
++#if IS_ENABLED(CONFIG_MTK_MT6797_A72_CPU9_ADMISSION_CONTROLLER)
++	struct mt6797_a72_admission_controller *controller = context;
++
++	return mt6797_a72_cpu9_admission_run(
++		&controller->cpu9, &mt6797_a72_cpu9_admission_production_ops,
++		controller);
++#else
++	return mt6797_a72_admission_run_cpu8(context);
++#endif
++}
++
+ static const struct mt6797_a72_admission_trigger_ops
+ mt6797_a72_admission_trigger_production_ops = {
+ 	.execute = mt6797_a72_admission_execute,
+ };
+ 
++static u32 mt6797_a72_admission_cpu9_requests(
++	const struct mt6797_a72_admission_controller *controller)
++{
++#if IS_ENABLED(CONFIG_MTK_MT6797_A72_CPU9_ADMISSION_CONTROLLER)
++	return READ_ONCE(controller->cpu9.cpu9_requests);
++#else
++	(void)controller;
++	return 0;
++#endif
++}
++
++static ssize_t mt6797_a72_admission_cpu9_status(
++	struct mt6797_a72_admission_controller *controller, char *buf,
++	ssize_t len)
++{
++#if IS_ENABLED(CONFIG_MTK_MT6797_A72_CPU9_ADMISSION_CONTROLLER)
++	struct mt6797_a72_cpu9_binder_diagnostic diagnostic;
++	ssize_t start = len;
++	int ret;
++
++	ret = mt6797_a72_cpu9_binder_diagnostic_snapshot(&diagnostic);
++	len += sysfs_emit_at(
++		buf, len,
++		" cpu9_controller_consumed=%d cpu9_operation_ret=%d ",
++		atomic_read(&controller->cpu9.consumed),
++		READ_ONCE(controller->cpu9.operation_ret));
++	len += sysfs_emit_at(buf, len,
++			     "cpu9_failure_stage=%u cpu9_derive_stage=%u ",
++		READ_ONCE(controller->cpu9.failure_stage),
++		READ_ONCE(controller->cpu9.derive_stage));
++	len += sysfs_emit_at(
++		buf, len,
++		"cpu9_binder_snapshot_ret=%d cpu9_abi=%u cpu9_lifecycle=%u ",
++		ret, diagnostic.abi, diagnostic.lifecycle);
++	len += sysfs_emit_at(buf, len,
++			     "cpu9_terminal=%u cpu9_last_stage=%u ",
++			     diagnostic.terminal, diagnostic.last_stage);
++	len += sysfs_emit_at(buf, len,
++			     "cpu9_stage_errno=%d cpu9_checkpoint_errno=%d ",
++			     diagnostic.stage_errno,
++			     diagnostic.checkpoint_errno);
++	len += sysfs_emit_at(buf, len,
++			     "cpu9_attempted=%u cpu9_membership_published=%u ",
++			     diagnostic.attempted,
++			     diagnostic.membership_published);
++	len += sysfs_emit_at(buf, len,
++			     "cpu9_cpu_requests=%u cpu9_cpu_off_requests=%u ",
++			     diagnostic.cpu_requests,
++			     diagnostic.cpu_off_requests);
++	len += sysfs_emit_at(buf, len,
++			     "cpu9_retries=%u cpu9_retained_mask=0x%x\n",
++			     diagnostic.retries, diagnostic.retained_mask);
++	return len - start;
++#else
++	(void)controller;
++	return sysfs_emit_at(buf, len, " cpu9_controller=disabled\n");
++#endif
++}
++
+ static ssize_t status_show(struct device *dev, struct device_attribute *attr,
+ 			   char *buf)
+ {
+@@ -341,8 +497,9 @@ static ssize_t status_show(struct device *dev, struct device_attribute *attr,
+ 			     READ_ONCE(controller->state.failure_stage),
+ 			     READ_ONCE(controller->state.derive_stage));
+ 	len += sysfs_emit_at(buf, len,
+-			     "cpu_requests=%u cpu9_requests=0 ",
+-			     READ_ONCE(controller->state.cpu_requests));
++			     "cpu_requests=%u cpu9_requests=%u ",
++			     READ_ONCE(controller->state.cpu_requests),
++			     mt6797_a72_admission_cpu9_requests(controller));
+ 	len += sysfs_emit_at(buf, len, "cpu_off_requests=0 retries=0 ");
+ 	len += sysfs_emit_at(buf, len, "binder_snapshot_ret=%d binder_abi=%u ",
+ 			     diagnostic_ret, diagnostic.abi);
+@@ -442,11 +599,12 @@ static ssize_t status_show(struct device *dev, struct device_attribute *attr,
+ 			     "p30e_target_effects=0x%llx p30e_target_entry_pc=0x%llx ",
+ 			     (unsigned long long)diagnostic.p30e_target_effects,
+ 			     (unsigned long long)diagnostic.p30e_target_entry_pc);
+-	return len + sysfs_emit_at(buf, len,
+-				   "p30e_target_entry_sp=0x%llx p30e_target_sequence=%u p30e_controller_sequence=%u\n",
+-				   (unsigned long long)diagnostic.p30e_target_entry_sp,
+-				   diagnostic.p30e_target_sequence,
+-				   diagnostic.p30e_controller_sequence);
++	len += sysfs_emit_at(buf, len,
++			     "p30e_target_entry_sp=0x%llx p30e_target_sequence=%u p30e_controller_sequence=%u",
++			     (unsigned long long)diagnostic.p30e_target_entry_sp,
++			     diagnostic.p30e_target_sequence,
++			     diagnostic.p30e_controller_sequence);
++	return len + mt6797_a72_admission_cpu9_status(controller, buf, len);
+ }
+ 
+ static ssize_t trigger_store(struct device *dev,
+@@ -463,14 +621,15 @@ static ssize_t trigger_store(struct device *dev,
+ 	if (ret)
+ 		return ret;
+ 	dev_info(dev, MT6797_A72_ADMISSION_LIVE_TAG
+-		 " state=terminal operation_ret=%d core_consumed=%d entry_trace_ret=%d terminal_trace_ret=%d failure_stage=%u derive_stage=%u requests=%u/0/0 retries=0\n",
++		 " state=terminal operation_ret=%d core_consumed=%d entry_trace_ret=%d terminal_trace_ret=%d failure_stage=%u derive_stage=%u requests=%u/%u/0 retries=0\n",
+ 		 READ_ONCE(controller->trigger.operation_ret),
+ 		 atomic_read(&controller->state.consumed),
+ 		 READ_ONCE(controller->state.trace_entry_ret),
+ 		 READ_ONCE(controller->state.trace_ret),
+ 		 READ_ONCE(controller->state.failure_stage),
+ 		 READ_ONCE(controller->state.derive_stage),
+-		 READ_ONCE(controller->state.cpu_requests));
++		 READ_ONCE(controller->state.cpu_requests),
++		 mt6797_a72_admission_cpu9_requests(controller));
+ 	return count;
+ }
+ 
+@@ -499,6 +658,9 @@ static int mt6797_a72_admission_probe(struct platform_device *pdev)
+ 		return -ENOMEM;
+ 	controller->dev = dev;
+ 	mt6797_a72_admission_state_init(&controller->state);
++#if IS_ENABLED(CONFIG_MTK_MT6797_A72_CPU9_ADMISSION_CONTROLLER)
++	mt6797_a72_cpu9_admission_state_init(&controller->cpu9);
++#endif
+ 	mt6797_a72_admission_trigger_state_init(&controller->trigger);
+ 	platform_set_drvdata(pdev, controller);
+ 
+@@ -544,5 +706,5 @@ static int __init mt6797_a72_admission_init(void)
+ }
+ late_initcall(mt6797_a72_admission_init);
+ 
+-MODULE_DESCRIPTION("MT6797 candidate-only one-shot CPU8 admission controller");
++MODULE_DESCRIPTION("MT6797 candidate-only one-shot A72 admission controller");
+ MODULE_LICENSE("GPL");
+diff --git a/drivers/soc/mediatek/mt6797-a72-cpu9-admission-controller-internal.h b/drivers/soc/mediatek/mt6797-a72-cpu9-admission-controller-internal.h
+new file mode 100644
+index 0000000..0af6401
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-a72-cpu9-admission-controller-internal.h
+@@ -0,0 +1,75 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __MT6797_A72_CPU9_ADMISSION_CONTROLLER_INTERNAL_H
++#define __MT6797_A72_CPU9_ADMISSION_CONTROLLER_INTERNAL_H
++
++#include <asm/mt6797_a72_membership.h>
++
++#include <linux/atomic.h>
++#include <linux/types.h>
++
++#include "mt6797-a72-cpu9-executor-internal.h"
++
++struct arm64_late_cpu_ready_token;
++
++enum mt6797_a72_cpu9_admission_failure_stage {
++	MT6797_A72_CPU9_ADMISSION_FAILURE_NONE,
++	MT6797_A72_CPU9_ADMISSION_FAILURE_CPU8,
++	MT6797_A72_CPU9_ADMISSION_FAILURE_CPU8_PROOF,
++	MT6797_A72_CPU9_ADMISSION_FAILURE_READY_TOKEN,
++	MT6797_A72_CPU9_ADMISSION_FAILURE_DERIVE,
++	MT6797_A72_CPU9_ADMISSION_FAILURE_PUBLISH,
++	MT6797_A72_CPU9_ADMISSION_FAILURE_PREPARE,
++	MT6797_A72_CPU9_ADMISSION_FAILURE_CPU9_REQUEST,
++};
++
++struct mt6797_a72_cpu9_admission_cpu8_proof {
++	u64 attempt_id;
++	u32 cpu_requests;
++	bool lifecycle_terminal;
++	bool terminal_exact;
++	bool membership_published;
++	bool p27_retained;
++	bool provider_retained;
++	bool cpu8_online;
++	bool cpu9_online;
++};
++
++struct mt6797_a72_cpu9_admission_ops {
++	int (*run_cpu8)(void *context);
++	int (*cpu8_proof)(void *context,
++			  struct mt6797_a72_cpu9_admission_cpu8_proof *proof);
++	const struct arm64_late_cpu_ready_token *(*ready_token)(void *context);
++	int (*derive_cpu9)(void *context,
++			   const struct arm64_late_cpu_ready_token *ready,
++			   struct mt6797_a72_transaction *transaction,
++			   u32 *derive_stage);
++	int (*publish_cpu9)(void *context,
++			    struct mt6797_a72_transaction *transaction);
++	int (*prepare_cpu9)(
++		void *context,
++		const struct mt6797_a72_cpu9_executor_request *request);
++	int (*add_cpu)(void *context, unsigned int cpu);
++};
++
++struct mt6797_a72_cpu9_admission_state {
++	atomic_t consumed;
++	u32 cpu8_requests;
++	u32 cpu9_requests;
++	u32 cpu_off_requests;
++	u32 retries;
++	u32 failure_stage;
++	u32 derive_stage;
++	int cpu8_ret;
++	int cpu8_proof_ret;
++	int operation_ret;
++	struct mt6797_a72_transaction cpu9_transaction;
++	struct mt6797_a72_cpu9_executor_request cpu9_request;
++};
++
++void mt6797_a72_cpu9_admission_state_init(
++	struct mt6797_a72_cpu9_admission_state *state);
++int mt6797_a72_cpu9_admission_run(
++	struct mt6797_a72_cpu9_admission_state *state,
++	const struct mt6797_a72_cpu9_admission_ops *ops, void *context);
++
++#endif /* __MT6797_A72_CPU9_ADMISSION_CONTROLLER_INTERNAL_H */
+diff --git a/drivers/soc/mediatek/mt6797-a72-cpu9-admission-controller-test.c b/drivers/soc/mediatek/mt6797-a72-cpu9-admission-controller-test.c
+new file mode 100644
+index 0000000..249f3a8
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-a72-cpu9-admission-controller-test.c
+@@ -0,0 +1,408 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* Hardware-free tests for the same-boot CPU8-to-CPU9 admission chain. */
++
++#include <asm/late_cpu_profile.h>
++
++#include <kunit/test.h>
++#include <linux/errno.h>
++#include <linux/module.h>
++#include <linux/sched.h>
++#include <linux/slab.h>
++#include <linux/string.h>
++
++#include "mt6797-a72-cpu9-admission-controller-internal.h"
++
++enum mt6797_a72_cpu9_admission_test_event {
++	MT6797_CPU9_ADMISSION_RUN_CPU8,
++	MT6797_CPU9_ADMISSION_CPU8_PROOF,
++	MT6797_CPU9_ADMISSION_READY_TOKEN,
++	MT6797_CPU9_ADMISSION_DERIVE,
++	MT6797_CPU9_ADMISSION_PUBLISH,
++	MT6797_CPU9_ADMISSION_PREPARE,
++	MT6797_CPU9_ADMISSION_ADD_CPU,
++};
++
++enum mt6797_a72_cpu9_admission_test_failure {
++	MT6797_CPU9_ADMISSION_FAIL_NONE,
++	MT6797_CPU9_ADMISSION_FAIL_CPU8,
++	MT6797_CPU9_ADMISSION_FAIL_PROOF,
++	MT6797_CPU9_ADMISSION_FAIL_READY,
++	MT6797_CPU9_ADMISSION_FAIL_DERIVE,
++	MT6797_CPU9_ADMISSION_FAIL_PUBLISH,
++	MT6797_CPU9_ADMISSION_FAIL_PREPARE,
++	MT6797_CPU9_ADMISSION_FAIL_ADD_CPU,
++};
++
++struct mt6797_a72_cpu9_admission_test_context {
++	struct mt6797_a72_cpu9_admission_state controller;
++	struct arm64_late_cpu_ready_token ready;
++	struct mt6797_a72_cpu9_admission_cpu8_proof proof;
++	enum mt6797_a72_cpu9_admission_test_failure failure;
++	enum mt6797_a72_cpu9_admission_test_event events[8];
++	unsigned int event_count;
++	unsigned int requested_cpu;
++	bool same_task;
++	struct task_struct *task;
++	struct mt6797_a72_cpu9_executor_request prepared;
++};
++
++static void mt6797_a72_cpu9_admission_test_event(
++	struct mt6797_a72_cpu9_admission_test_context *context,
++	enum mt6797_a72_cpu9_admission_test_event event)
++{
++	if (context->event_count < ARRAY_SIZE(context->events))
++		context->events[context->event_count++] = event;
++	if (!context->task)
++		context->task = current;
++	else if (context->task != current)
++		context->same_task = false;
++}
++
++static int mt6797_a72_cpu9_admission_test_run_cpu8(void *data)
++{
++	struct mt6797_a72_cpu9_admission_test_context *context = data;
++
++	mt6797_a72_cpu9_admission_test_event(
++		context, MT6797_CPU9_ADMISSION_RUN_CPU8);
++	return context->failure == MT6797_CPU9_ADMISSION_FAIL_CPU8 ? -EIO : 0;
++}
++
++static int mt6797_a72_cpu9_admission_test_cpu8_proof(
++	void *data, struct mt6797_a72_cpu9_admission_cpu8_proof *proof)
++{
++	struct mt6797_a72_cpu9_admission_test_context *context = data;
++
++	mt6797_a72_cpu9_admission_test_event(
++		context, MT6797_CPU9_ADMISSION_CPU8_PROOF);
++	if (context->failure == MT6797_CPU9_ADMISSION_FAIL_PROOF)
++		return -EPROTO;
++	*proof = context->proof;
++	return 0;
++}
++
++static const struct arm64_late_cpu_ready_token *
++mt6797_a72_cpu9_admission_test_ready(void *data)
++{
++	struct mt6797_a72_cpu9_admission_test_context *context = data;
++
++	mt6797_a72_cpu9_admission_test_event(
++		context, MT6797_CPU9_ADMISSION_READY_TOKEN);
++	return context->failure == MT6797_CPU9_ADMISSION_FAIL_READY ? NULL :
++							      &context->ready;
++}
++
++static int mt6797_a72_cpu9_admission_test_derive(
++	void *data, const struct arm64_late_cpu_ready_token *ready,
++	struct mt6797_a72_transaction *transaction, u32 *derive_stage)
++{
++	struct mt6797_a72_cpu9_admission_test_context *context = data;
++
++	mt6797_a72_cpu9_admission_test_event(
++		context, MT6797_CPU9_ADMISSION_DERIVE);
++	if (ready != &context->ready)
++		return -EINVAL;
++	if (context->failure == MT6797_CPU9_ADMISSION_FAIL_DERIVE)
++		return -EIO;
++	transaction->valid = 1;
++	transaction->a36_valid = 1;
++	transaction->p30_token_valid = 1;
++	transaction->identity.abi = MT6797_A72_TRANSACTION_ABI;
++	transaction->identity.owner = ARM64_LATE_CPU_STARTUP_OWNER_MEMBERSHIP;
++	transaction->identity.operation = ARM64_LATE_CPU_STARTUP_OP_CPU9_UP;
++	transaction->identity.target_cpu = MT6797_A72_CPU9_EXECUTOR_CPU9;
++	transaction->identity.cpuhp_target = CPUHP_ONLINE;
++	transaction->identity.target_mpidr = 0x201;
++	transaction->identity.generation = 0x435055394f4e4531ULL;
++	transaction->identity.cookie = 0xa72000f1;
++	transaction->provider_identity.generation = 0xa72000e0;
++	transaction->provider_identity.cookie = 0xa72000e1;
++	transaction->budgets.cpu_on = MT6797_A72_BUDGET_AVAILABLE;
++	*derive_stage = MT6797_A72_CPU9_DERIVE_COMPLETE;
++	return 0;
++}
++
++static int mt6797_a72_cpu9_admission_test_publish(
++	void *data, struct mt6797_a72_transaction *transaction)
++{
++	struct mt6797_a72_cpu9_admission_test_context *context = data;
++
++	mt6797_a72_cpu9_admission_test_event(
++		context, MT6797_CPU9_ADMISSION_PUBLISH);
++	if (context->failure == MT6797_CPU9_ADMISSION_FAIL_PUBLISH)
++		return -EIO;
++	transaction->p17_p18_published = 1;
++	return 0;
++}
++
++static int mt6797_a72_cpu9_admission_test_prepare(
++	void *data, const struct mt6797_a72_cpu9_executor_request *request)
++{
++	struct mt6797_a72_cpu9_admission_test_context *context = data;
++
++	mt6797_a72_cpu9_admission_test_event(
++		context, MT6797_CPU9_ADMISSION_PREPARE);
++	context->prepared = *request;
++	return context->failure == MT6797_CPU9_ADMISSION_FAIL_PREPARE ? -EIO :
++								       0;
++}
++
++static int mt6797_a72_cpu9_admission_test_add_cpu(void *data,
++						  unsigned int cpu)
++{
++	struct mt6797_a72_cpu9_admission_test_context *context = data;
++
++	mt6797_a72_cpu9_admission_test_event(
++		context, MT6797_CPU9_ADMISSION_ADD_CPU);
++	context->requested_cpu = cpu;
++	return context->failure == MT6797_CPU9_ADMISSION_FAIL_ADD_CPU ? -EIO :
++								       0;
++}
++
++static const struct mt6797_a72_cpu9_admission_ops
++	mt6797_a72_cpu9_admission_test_ops = {
++		.run_cpu8 = mt6797_a72_cpu9_admission_test_run_cpu8,
++		.cpu8_proof = mt6797_a72_cpu9_admission_test_cpu8_proof,
++		.ready_token = mt6797_a72_cpu9_admission_test_ready,
++		.derive_cpu9 = mt6797_a72_cpu9_admission_test_derive,
++		.publish_cpu9 = mt6797_a72_cpu9_admission_test_publish,
++		.prepare_cpu9 = mt6797_a72_cpu9_admission_test_prepare,
++		.add_cpu = mt6797_a72_cpu9_admission_test_add_cpu,
++	};
++
++static struct mt6797_a72_cpu9_admission_test_context *
++mt6797_a72_cpu9_admission_test_context(struct kunit *test)
++{
++	struct mt6797_a72_cpu9_admission_test_context *context;
++
++	context = kunit_kzalloc(test, sizeof(*context), GFP_KERNEL);
++	if (!context)
++		return NULL;
++	mt6797_a72_cpu9_admission_state_init(&context->controller);
++	context->same_task = true;
++	context->proof = (struct mt6797_a72_cpu9_admission_cpu8_proof){
++		.attempt_id = 0x4350553850524f4fULL,
++		.cpu_requests = 1,
++		.lifecycle_terminal = true,
++		.terminal_exact = true,
++		.membership_published = true,
++		.p27_retained = true,
++		.provider_retained = true,
++		.cpu8_online = true,
++		.cpu9_online = false,
++	};
++	return context;
++}
++
++static void mt6797_a72_cpu9_admission_success_test(struct kunit *test)
++{
++	static const enum mt6797_a72_cpu9_admission_test_event expected[] = {
++		MT6797_CPU9_ADMISSION_RUN_CPU8,
++		MT6797_CPU9_ADMISSION_CPU8_PROOF,
++		MT6797_CPU9_ADMISSION_READY_TOKEN,
++		MT6797_CPU9_ADMISSION_DERIVE,
++		MT6797_CPU9_ADMISSION_PUBLISH,
++		MT6797_CPU9_ADMISSION_PREPARE,
++		MT6797_CPU9_ADMISSION_ADD_CPU,
++	};
++	struct mt6797_a72_cpu9_admission_test_context *context =
++		mt6797_a72_cpu9_admission_test_context(test);
++	int ret;
++
++	KUNIT_ASSERT_NOT_NULL(test, context);
++	ret = mt6797_a72_cpu9_admission_run(
++		&context->controller, &mt6797_a72_cpu9_admission_test_ops,
++		context);
++	KUNIT_EXPECT_EQ(test, ret, 0);
++	KUNIT_EXPECT_EQ(test, context->event_count, ARRAY_SIZE(expected));
++	KUNIT_EXPECT_EQ(test, memcmp(context->events, expected,
++				     sizeof(expected)), 0);
++	KUNIT_EXPECT_TRUE(test, context->same_task);
++	KUNIT_EXPECT_EQ(test, context->controller.cpu8_requests, 1U);
++	KUNIT_EXPECT_EQ(test, context->controller.cpu9_requests, 1U);
++	KUNIT_EXPECT_EQ(test, context->controller.cpu_off_requests, 0U);
++	KUNIT_EXPECT_EQ(test, context->controller.retries, 0U);
++	KUNIT_EXPECT_EQ(test, context->requested_cpu, 9U);
++	KUNIT_EXPECT_EQ(test, context->prepared.cpu8_attempt_id,
++			context->proof.attempt_id);
++	KUNIT_EXPECT_EQ(test, context->prepared.cpu9_attempt_id,
++			context->controller.cpu9_transaction.identity.generation);
++	KUNIT_EXPECT_EQ(test, context->prepared.members, (u32)BIT(0));
++	KUNIT_EXPECT_EQ(test, context->prepared.retained_mask,
++			(u32)MT6797_A72_CPU9_RETAINED_REQUIRED);
++	KUNIT_EXPECT_TRUE(test, context->prepared.cpu8_terminal_exact);
++	KUNIT_EXPECT_TRUE(test, context->prepared.cpu8_membership_published);
++	KUNIT_EXPECT_TRUE(test, context->prepared.provider_retained);
++	KUNIT_EXPECT_TRUE(test, context->prepared.cpu8_online);
++	KUNIT_EXPECT_FALSE(test, context->prepared.cpu9_online);
++}
++
++static void mt6797_a72_cpu9_admission_invalid_repeat_test(struct kunit *test)
++{
++	struct mt6797_a72_cpu9_admission_test_context *context =
++		mt6797_a72_cpu9_admission_test_context(test);
++	unsigned int events;
++	int ret;
++
++	KUNIT_ASSERT_NOT_NULL(test, context);
++	ret = mt6797_a72_cpu9_admission_run(&context->controller, NULL, context);
++	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
++	KUNIT_EXPECT_EQ(test, atomic_read(&context->controller.consumed), 0);
++	ret = mt6797_a72_cpu9_admission_run(
++		&context->controller, &mt6797_a72_cpu9_admission_test_ops,
++		context);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	events = context->event_count;
++	ret = mt6797_a72_cpu9_admission_run(
++		&context->controller, &mt6797_a72_cpu9_admission_test_ops,
++		context);
++	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
++	KUNIT_EXPECT_EQ(test, context->event_count, events);
++	KUNIT_EXPECT_EQ(test, context->controller.cpu9_requests, 1U);
++}
++
++static void mt6797_a72_cpu9_admission_cpu8_failure_test(struct kunit *test)
++{
++	struct mt6797_a72_cpu9_admission_test_context *context =
++		mt6797_a72_cpu9_admission_test_context(test);
++	int ret;
++
++	KUNIT_ASSERT_NOT_NULL(test, context);
++	context->failure = MT6797_CPU9_ADMISSION_FAIL_CPU8;
++	ret = mt6797_a72_cpu9_admission_run(
++		&context->controller, &mt6797_a72_cpu9_admission_test_ops,
++		context);
++	KUNIT_EXPECT_EQ(test, ret, -EIO);
++	KUNIT_EXPECT_EQ(test, context->event_count, 1U);
++	KUNIT_EXPECT_EQ(test, context->controller.cpu9_requests, 0U);
++	KUNIT_EXPECT_EQ(test, context->controller.failure_stage,
++			(u32)MT6797_A72_CPU9_ADMISSION_FAILURE_CPU8);
++}
++
++static void mt6797_a72_cpu9_admission_proof_failures_test(struct kunit *test)
++{
++	struct mt6797_a72_cpu9_admission_test_context *context;
++	int ret;
++
++	context = mt6797_a72_cpu9_admission_test_context(test);
++	KUNIT_ASSERT_NOT_NULL(test, context);
++	context->failure = MT6797_CPU9_ADMISSION_FAIL_PROOF;
++	ret = mt6797_a72_cpu9_admission_run(
++		&context->controller, &mt6797_a72_cpu9_admission_test_ops,
++		context);
++	KUNIT_EXPECT_EQ(test, ret, -EPROTO);
++	KUNIT_EXPECT_EQ(test, context->event_count, 2U);
++
++	context = mt6797_a72_cpu9_admission_test_context(test);
++	KUNIT_ASSERT_NOT_NULL(test, context);
++	context->proof.cpu9_online = true;
++	ret = mt6797_a72_cpu9_admission_run(
++		&context->controller, &mt6797_a72_cpu9_admission_test_ops,
++		context);
++	KUNIT_EXPECT_EQ(test, ret, -EPROTO);
++	KUNIT_EXPECT_EQ(test, context->event_count, 2U);
++	KUNIT_EXPECT_EQ(test, context->controller.cpu9_requests, 0U);
++}
++
++static void mt6797_a72_cpu9_admission_ready_derive_test(struct kunit *test)
++{
++	struct mt6797_a72_cpu9_admission_test_context *context;
++	int ret;
++
++	context = mt6797_a72_cpu9_admission_test_context(test);
++	KUNIT_ASSERT_NOT_NULL(test, context);
++	context->failure = MT6797_CPU9_ADMISSION_FAIL_READY;
++	ret = mt6797_a72_cpu9_admission_run(
++		&context->controller, &mt6797_a72_cpu9_admission_test_ops,
++		context);
++	KUNIT_EXPECT_EQ(test, ret, -EAGAIN);
++	KUNIT_EXPECT_EQ(test, context->event_count, 3U);
++
++	context = mt6797_a72_cpu9_admission_test_context(test);
++	KUNIT_ASSERT_NOT_NULL(test, context);
++	context->failure = MT6797_CPU9_ADMISSION_FAIL_DERIVE;
++	ret = mt6797_a72_cpu9_admission_run(
++		&context->controller, &mt6797_a72_cpu9_admission_test_ops,
++		context);
++	KUNIT_EXPECT_EQ(test, ret, -EIO);
++	KUNIT_EXPECT_EQ(test, context->event_count, 4U);
++	KUNIT_EXPECT_EQ(test, context->controller.cpu9_requests, 0U);
++}
++
++static void mt6797_a72_cpu9_admission_publish_failure_test(struct kunit *test)
++{
++	struct mt6797_a72_cpu9_admission_test_context *context =
++		mt6797_a72_cpu9_admission_test_context(test);
++	int ret;
++
++	KUNIT_ASSERT_NOT_NULL(test, context);
++	context->failure = MT6797_CPU9_ADMISSION_FAIL_PUBLISH;
++	ret = mt6797_a72_cpu9_admission_run(
++		&context->controller, &mt6797_a72_cpu9_admission_test_ops,
++		context);
++	KUNIT_EXPECT_EQ(test, ret, -EIO);
++	KUNIT_EXPECT_EQ(test, context->event_count, 5U);
++	KUNIT_EXPECT_EQ(test, context->controller.cpu9_requests, 0U);
++	KUNIT_EXPECT_EQ(test, context->controller.failure_stage,
++			(u32)MT6797_A72_CPU9_ADMISSION_FAILURE_PUBLISH);
++}
++
++static void mt6797_a72_cpu9_admission_prepare_failure_test(struct kunit *test)
++{
++	struct mt6797_a72_cpu9_admission_test_context *context =
++		mt6797_a72_cpu9_admission_test_context(test);
++	int ret;
++
++	KUNIT_ASSERT_NOT_NULL(test, context);
++	context->failure = MT6797_CPU9_ADMISSION_FAIL_PREPARE;
++	ret = mt6797_a72_cpu9_admission_run(
++		&context->controller, &mt6797_a72_cpu9_admission_test_ops,
++		context);
++	KUNIT_EXPECT_EQ(test, ret, -EIO);
++	KUNIT_EXPECT_EQ(test, context->event_count, 6U);
++	KUNIT_EXPECT_EQ(test, context->controller.cpu9_requests, 0U);
++	KUNIT_EXPECT_EQ(test, context->controller.failure_stage,
++			(u32)MT6797_A72_CPU9_ADMISSION_FAILURE_PREPARE);
++}
++
++static void mt6797_a72_cpu9_admission_request_failure_test(struct kunit *test)
++{
++	struct mt6797_a72_cpu9_admission_test_context *context =
++		mt6797_a72_cpu9_admission_test_context(test);
++	int ret;
++
++	KUNIT_ASSERT_NOT_NULL(test, context);
++	context->failure = MT6797_CPU9_ADMISSION_FAIL_ADD_CPU;
++	ret = mt6797_a72_cpu9_admission_run(
++		&context->controller, &mt6797_a72_cpu9_admission_test_ops,
++		context);
++	KUNIT_EXPECT_EQ(test, ret, -EIO);
++	KUNIT_EXPECT_EQ(test, context->event_count, 7U);
++	KUNIT_EXPECT_EQ(test, context->controller.cpu8_requests, 1U);
++	KUNIT_EXPECT_EQ(test, context->controller.cpu9_requests, 1U);
++	KUNIT_EXPECT_EQ(test, context->controller.cpu_off_requests, 0U);
++	KUNIT_EXPECT_EQ(test, context->controller.retries, 0U);
++	KUNIT_EXPECT_EQ(test, context->requested_cpu, 9U);
++	KUNIT_EXPECT_EQ(test, context->controller.failure_stage,
++			(u32)MT6797_A72_CPU9_ADMISSION_FAILURE_CPU9_REQUEST);
++}
++
++static struct kunit_case mt6797_a72_cpu9_admission_controller_cases[] = {
++	KUNIT_CASE(mt6797_a72_cpu9_admission_success_test),
++	KUNIT_CASE(mt6797_a72_cpu9_admission_invalid_repeat_test),
++	KUNIT_CASE(mt6797_a72_cpu9_admission_cpu8_failure_test),
++	KUNIT_CASE(mt6797_a72_cpu9_admission_proof_failures_test),
++	KUNIT_CASE(mt6797_a72_cpu9_admission_ready_derive_test),
++	KUNIT_CASE(mt6797_a72_cpu9_admission_publish_failure_test),
++	KUNIT_CASE(mt6797_a72_cpu9_admission_prepare_failure_test),
++	KUNIT_CASE(mt6797_a72_cpu9_admission_request_failure_test),
++	{ }
++};
++
++static struct kunit_suite mt6797_a72_cpu9_admission_controller_suite = {
++	.name = "mt6797-a72-cpu9-admission-controller",
++	.test_cases = mt6797_a72_cpu9_admission_controller_cases,
++};
++
++kunit_test_suite(mt6797_a72_cpu9_admission_controller_suite);
++
++MODULE_LICENSE("GPL");
+diff --git a/drivers/soc/mediatek/mt6797-a72-cpu9-admission-controller.c b/drivers/soc/mediatek/mt6797-a72-cpu9-admission-controller.c
+new file mode 100644
+index 0000000..d65a764
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-a72-cpu9-admission-controller.c
+@@ -0,0 +1,160 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* One-shot CPU9 admission chained after exact same-boot CPU8 success. */
++
++#include <linux/bitops.h>
++#include <linux/errno.h>
++#include <linux/string.h>
++
++#include "mt6797-a72-cpu9-admission-controller-internal.h"
++
++static bool mt6797_a72_cpu9_admission_ops_valid(
++	const struct mt6797_a72_cpu9_admission_ops *ops)
++{
++	return ops && ops->run_cpu8 && ops->cpu8_proof && ops->ready_token &&
++	       ops->derive_cpu9 && ops->publish_cpu9 && ops->prepare_cpu9 &&
++	       ops->add_cpu;
++}
++
++static bool mt6797_a72_cpu9_admission_proof_valid(
++	const struct mt6797_a72_cpu9_admission_cpu8_proof *proof)
++{
++	return proof && proof->attempt_id && proof->cpu_requests == 1 &&
++	       proof->lifecycle_terminal && proof->terminal_exact &&
++	       proof->membership_published && proof->p27_retained &&
++	       proof->provider_retained && proof->cpu8_online &&
++	       !proof->cpu9_online;
++}
++
++static bool mt6797_a72_cpu9_admission_transaction_valid(
++	const struct mt6797_a72_transaction *transaction, bool published)
++{
++	const struct mt6797_a72_call_budgets *budgets;
++
++	if (!transaction)
++		return false;
++	budgets = &transaction->budgets;
++	return transaction->valid && transaction->a36_valid &&
++	       transaction->p30_token_valid &&
++	       transaction->p17_p18_published == published &&
++	       transaction->identity.abi == MT6797_A72_TRANSACTION_ABI &&
++	       transaction->identity.owner ==
++		       ARM64_LATE_CPU_STARTUP_OWNER_MEMBERSHIP &&
++	       transaction->identity.operation ==
++		       ARM64_LATE_CPU_STARTUP_OP_CPU9_UP &&
++	       transaction->identity.target_cpu ==
++		       MT6797_A72_CPU9_EXECUTOR_CPU9 &&
++	       transaction->identity.cpuhp_target == CPUHP_ONLINE &&
++	       transaction->identity.target_mpidr == 0x201 &&
++	       transaction->identity.generation && transaction->identity.cookie &&
++	       transaction->provider_identity.generation &&
++	       transaction->provider_identity.cookie &&
++	       budgets->preparation == MT6797_A72_BUDGET_NONE &&
++	       budgets->provider_acquire == MT6797_A72_BUDGET_NONE &&
++	       budgets->postprovider_preparation == MT6797_A72_BUDGET_NONE &&
++	       budgets->cpu_on == MT6797_A72_BUDGET_AVAILABLE &&
++	       budgets->affinity == MT6797_A72_BUDGET_NONE &&
++	       budgets->provider_release == MT6797_A72_BUDGET_NONE &&
++	       budgets->provider_abort == MT6797_A72_BUDGET_NONE &&
++	       !transaction->p27_valid && !transaction->provider_acquire_valid &&
++	       !transaction->provider_rejection_valid &&
++	       !transaction->provider_abort_valid && !transaction->p28_valid &&
++	       !transaction->p29_valid && !transaction->p32_valid;
++}
++
++static int mt6797_a72_cpu9_admission_terminal(
++	struct mt6797_a72_cpu9_admission_state *state, u32 stage, int ret)
++{
++	state->failure_stage = stage;
++	state->operation_ret = ret;
++	return ret;
++}
++
++void mt6797_a72_cpu9_admission_state_init(
++	struct mt6797_a72_cpu9_admission_state *state)
++{
++	memset(state, 0, sizeof(*state));
++	atomic_set(&state->consumed, 0);
++	state->cpu8_ret = -EINPROGRESS;
++	state->cpu8_proof_ret = -EINPROGRESS;
++	state->operation_ret = -EINPROGRESS;
++}
++
++int mt6797_a72_cpu9_admission_run(
++	struct mt6797_a72_cpu9_admission_state *state,
++	const struct mt6797_a72_cpu9_admission_ops *ops, void *context)
++{
++	struct mt6797_a72_cpu9_admission_cpu8_proof proof = {};
++	const struct arm64_late_cpu_ready_token *ready;
++	int ret;
++
++	if (!state || !mt6797_a72_cpu9_admission_ops_valid(ops))
++		return -EINVAL;
++	if (atomic_cmpxchg(&state->consumed, 0, 1))
++		return -EALREADY;
++
++	state->cpu8_ret = ops->run_cpu8(context);
++	if (state->cpu8_ret)
++		return mt6797_a72_cpu9_admission_terminal(
++			state, MT6797_A72_CPU9_ADMISSION_FAILURE_CPU8,
++			state->cpu8_ret);
++
++	state->cpu8_proof_ret = ops->cpu8_proof(context, &proof);
++	if (state->cpu8_proof_ret ||
++	    !mt6797_a72_cpu9_admission_proof_valid(&proof))
++		return mt6797_a72_cpu9_admission_terminal(
++			state, MT6797_A72_CPU9_ADMISSION_FAILURE_CPU8_PROOF,
++			state->cpu8_proof_ret ?: -EPROTO);
++	state->cpu8_requests = proof.cpu_requests;
++
++	ready = ops->ready_token(context);
++	if (!ready)
++		return mt6797_a72_cpu9_admission_terminal(
++			state, MT6797_A72_CPU9_ADMISSION_FAILURE_READY_TOKEN,
++			-EAGAIN);
++
++	ret = ops->derive_cpu9(context, ready, &state->cpu9_transaction,
++			       &state->derive_stage);
++	if (ret || !mt6797_a72_cpu9_admission_transaction_valid(
++			   &state->cpu9_transaction, false))
++		return mt6797_a72_cpu9_admission_terminal(
++			state, MT6797_A72_CPU9_ADMISSION_FAILURE_DERIVE,
++			ret ?: -EPROTO);
++	if (state->cpu9_transaction.identity.generation == proof.attempt_id)
++		return mt6797_a72_cpu9_admission_terminal(
++			state, MT6797_A72_CPU9_ADMISSION_FAILURE_DERIVE,
++			-EPROTO);
++
++	ret = ops->publish_cpu9(context, &state->cpu9_transaction);
++	if (ret || !mt6797_a72_cpu9_admission_transaction_valid(
++			   &state->cpu9_transaction, true))
++		return mt6797_a72_cpu9_admission_terminal(
++			state, MT6797_A72_CPU9_ADMISSION_FAILURE_PUBLISH,
++			ret ?: -EPROTO);
++
++	state->cpu9_request = (struct mt6797_a72_cpu9_executor_request){
++		.cpu = MT6797_A72_CPU9_EXECUTOR_CPU9,
++		.cpu8_attempt_id = proof.attempt_id,
++		.cpu9_attempt_id =
++			state->cpu9_transaction.identity.generation,
++		.members = BIT(0),
++		.retained_mask = MT6797_A72_CPU9_RETAINED_REQUIRED,
++		.cpu8_terminal_exact = true,
++		.cpu8_membership_published = true,
++		.provider_retained = true,
++		.cpu8_online = true,
++		.cpu9_online = false,
++	};
++	ret = ops->prepare_cpu9(context, &state->cpu9_request);
++	if (ret)
++		return mt6797_a72_cpu9_admission_terminal(
++			state, MT6797_A72_CPU9_ADMISSION_FAILURE_PREPARE, ret);
++
++	state->cpu9_requests = 1;
++	ret = ops->add_cpu(context, MT6797_A72_CPU9_EXECUTOR_CPU9);
++	if (ret)
++		return mt6797_a72_cpu9_admission_terminal(
++			state, MT6797_A72_CPU9_ADMISSION_FAILURE_CPU9_REQUEST,
++			ret);
++	return mt6797_a72_cpu9_admission_terminal(
++		state, MT6797_A72_CPU9_ADMISSION_FAILURE_NONE, 0);
++}
+diff --git a/drivers/soc/mediatek/mt6797-a72-cpu9-binder-internal.h b/drivers/soc/mediatek/mt6797-a72-cpu9-binder-internal.h
+index 6f2eb82..88b7896 100644
+--- a/drivers/soc/mediatek/mt6797-a72-cpu9-binder-internal.h
++++ b/drivers/soc/mediatek/mt6797-a72-cpu9-binder-internal.h
+@@ -59,6 +59,9 @@ struct mt6797_a72_cpu9_binder {
+ };
+ 
+ #if IS_ENABLED(CONFIG_MTK_MT6797_A72_CPU9_BINDER_KUNIT_TEST)
++void mt6797_a72_cpu9_binder_test_diagnostic(
++	const struct mt6797_a72_cpu9_binder *binder,
++	struct mt6797_a72_cpu9_binder_diagnostic *snapshot);
+ void mt6797_a72_cpu9_binder_test_init(
+ 	struct mt6797_a72_cpu9_binder *binder,
+ 	const struct mt6797_a72_cpu9_binder_backend_ops *backend);
+diff --git a/drivers/soc/mediatek/mt6797-a72-cpu9-binder-test.c b/drivers/soc/mediatek/mt6797-a72-cpu9-binder-test.c
+index 77dcf80..db1a111 100644
+--- a/drivers/soc/mediatek/mt6797-a72-cpu9-binder-test.c
++++ b/drivers/soc/mediatek/mt6797-a72-cpu9-binder-test.c
+@@ -301,6 +301,7 @@ static void mt6797_cpu9_binder_success_test(struct kunit *test)
+ 	struct mt6797_a72_cpu9_executor_request request =
+ 		mt6797_cpu9_binder_test_request();
+ 	struct mt6797_cpu9_binder_test_state state;
++	struct mt6797_a72_cpu9_binder_diagnostic diagnostic;
+ 	struct mt6797_a72_cpu9_binder binder;
+ 	int ret;
+ 
+@@ -319,6 +320,20 @@ static void mt6797_cpu9_binder_success_test(struct kunit *test)
+ 	KUNIT_ASSERT_EQ(test, ret, 0);
+ 	ret = mt6797_a72_cpu9_binder_test_complete(&binder, 9, CPUHP_ONLINE);
+ 	KUNIT_ASSERT_EQ(test, ret, 0);
++	mt6797_a72_cpu9_binder_test_diagnostic(&binder, &diagnostic);
++	KUNIT_EXPECT_EQ(test, diagnostic.abi,
++			(u32)MT6797_A72_CPU9_BINDER_DIAGNOSTIC_ABI);
++	KUNIT_EXPECT_EQ(test, diagnostic.lifecycle,
++			(u32)MT6797_A72_CPU9_LIFECYCLE_TERMINAL);
++	KUNIT_EXPECT_EQ(test, diagnostic.terminal,
++			(u32)MT6797_A72_CPU9_ONLINE_PROOF);
++	KUNIT_EXPECT_EQ(test, diagnostic.cpu_requests, 1U);
++	KUNIT_EXPECT_EQ(test, diagnostic.cpu_off_requests, 0U);
++	KUNIT_EXPECT_EQ(test, diagnostic.retries, 0U);
++	KUNIT_EXPECT_EQ(test, diagnostic.cpu8_attempt_id,
++			request.cpu8_attempt_id);
++	KUNIT_EXPECT_EQ(test, diagnostic.cpu9_attempt_id,
++			request.cpu9_attempt_id);
+ 	KUNIT_EXPECT_EQ(test, state.ledger_begin_calls, 1U);
+ 	KUNIT_EXPECT_EQ(test, state.ledger_checkpoint_calls, 11U);
+ 	KUNIT_EXPECT_EQ(test, state.cpu8_attempt_id, request.cpu8_attempt_id);
+diff --git a/drivers/soc/mediatek/mt6797-a72-cpu9-binder.c b/drivers/soc/mediatek/mt6797-a72-cpu9-binder.c
+index edcfeec..1a52f14 100644
+--- a/drivers/soc/mediatek/mt6797-a72-cpu9-binder.c
++++ b/drivers/soc/mediatek/mt6797-a72-cpu9-binder.c
+@@ -443,6 +443,61 @@ static int mt6797_a72_cpu9_binder_fail(struct mt6797_a72_cpu9_binder *binder,
+ 	return 0;
+ }
+ 
++static void mt6797_a72_cpu9_binder_fill_diagnostic(
++	const struct mt6797_a72_cpu9_binder *binder,
++	struct mt6797_a72_cpu9_binder_diagnostic *snapshot)
++{
++	const struct mt6797_a72_cpu9_executor_result *result = &binder->result;
++
++	memset(snapshot, 0, sizeof(*snapshot));
++	snapshot->abi = MT6797_A72_CPU9_BINDER_DIAGNOSTIC_ABI;
++	snapshot->lifecycle = atomic_read_acquire(&binder->executor.lifecycle);
++	snapshot->terminal = result->terminal;
++	snapshot->last_stage = result->last_stage;
++	snapshot->stage_errno = result->stage_errno;
++	snapshot->checkpoint_errno = result->checkpoint_errno;
++	snapshot->attempted = result->attempted;
++	snapshot->cpu_on_accepted = result->cpu_on_accepted;
++	snapshot->membership_published = result->membership_published;
++	snapshot->cpu8_online = result->cpu8_online;
++	snapshot->cpu9_online = result->cpu9_online;
++	snapshot->cpu_requests = result->cpu_requests;
++	snapshot->cpu_off_requests = result->cpu_off_requests;
++	snapshot->retries = result->retries;
++	snapshot->checkpoints = result->checkpoints;
++	snapshot->terminal_commits = result->terminal_commits;
++	snapshot->retained_mask = result->retained_mask;
++	snapshot->prepared = atomic_read_acquire(&binder->prepared);
++	snapshot->boot_claimed = atomic_read_acquire(&binder->boot_claimed);
++	snapshot->cpu8_attempt_id = binder->request.cpu8_attempt_id;
++	snapshot->cpu9_attempt_id = binder->request.cpu9_attempt_id;
++	snapshot->p30e_prepare_attempted = binder->p30e_prepare_attempted;
++	snapshot->p30e_prepare_ret = binder->p30e_prepare_ret;
++	snapshot->p30e_arm_attempted = binder->p30e_arm_attempted;
++	snapshot->p30e_arm_ret = binder->p30e_arm_ret;
++	snapshot->p30e_armed = binder->p30e_armed;
++	snapshot->p30e_readback_attempted = binder->p30e_readback_attempted;
++	snapshot->p30e_readback_ret = binder->p30e_readback_ret;
++}
++
++int mt6797_a72_cpu9_binder_diagnostic_snapshot(
++	struct mt6797_a72_cpu9_binder_diagnostic *snapshot)
++{
++	int ret = 0;
++
++	if (!snapshot)
++		return -EINVAL;
++	memset(snapshot, 0, sizeof(*snapshot));
++	mutex_lock(&mt6797_a72_cpu9_binder_lock);
++	if (atomic_read_acquire(&mt6797_a72_cpu9_binder.prepared))
++		mt6797_a72_cpu9_binder_fill_diagnostic(
++			&mt6797_a72_cpu9_binder, snapshot);
++	else
++		ret = -EAGAIN;
++	mutex_unlock(&mt6797_a72_cpu9_binder_lock);
++	return ret;
++}
++
+ int mt6797_a72_cpu9_binder_prepare(
+ 	const struct mt6797_a72_cpu9_executor_request *request)
+ {
+@@ -526,6 +581,13 @@ int mt6797_a72_cpu9_binder_failure(unsigned int cpu, int error,
+ }
+ 
+ #if IS_ENABLED(CONFIG_MTK_MT6797_A72_CPU9_BINDER_KUNIT_TEST)
++void mt6797_a72_cpu9_binder_test_diagnostic(
++	const struct mt6797_a72_cpu9_binder *binder,
++	struct mt6797_a72_cpu9_binder_diagnostic *snapshot)
++{
++	mt6797_a72_cpu9_binder_fill_diagnostic(binder, snapshot);
++}
++
+ void mt6797_a72_cpu9_binder_test_init(
+ 	struct mt6797_a72_cpu9_binder *binder,
+ 	const struct mt6797_a72_cpu9_binder_backend_ops *backend)
+diff --git a/include/linux/soc/mediatek/mt6797-a72-cpu9-binder.h b/include/linux/soc/mediatek/mt6797-a72-cpu9-binder.h
+index a25fd5a..7381632 100644
+--- a/include/linux/soc/mediatek/mt6797-a72-cpu9-binder.h
++++ b/include/linux/soc/mediatek/mt6797-a72-cpu9-binder.h
+@@ -11,7 +11,42 @@
+ 
+ struct mt6797_a72_cpu9_executor_request;
+ 
++#define MT6797_A72_CPU9_BINDER_DIAGNOSTIC_ABI 1U
++
++struct mt6797_a72_cpu9_binder_diagnostic {
++	u32 abi;
++	u32 lifecycle;
++	u32 terminal;
++	u32 last_stage;
++	s32 stage_errno;
++	s32 checkpoint_errno;
++	u32 attempted;
++	u32 cpu_on_accepted;
++	u32 membership_published;
++	u32 cpu8_online;
++	u32 cpu9_online;
++	u32 cpu_requests;
++	u32 cpu_off_requests;
++	u32 retries;
++	u32 checkpoints;
++	u32 terminal_commits;
++	u32 retained_mask;
++	u32 prepared;
++	u32 boot_claimed;
++	u64 cpu8_attempt_id;
++	u64 cpu9_attempt_id;
++	u32 p30e_prepare_attempted;
++	s32 p30e_prepare_ret;
++	u32 p30e_arm_attempted;
++	s32 p30e_arm_ret;
++	u32 p30e_armed;
++	u32 p30e_readback_attempted;
++	s32 p30e_readback_ret;
++};
++
+ #if IS_ENABLED(CONFIG_MTK_MT6797_A72_CPU9_BINDER)
++int mt6797_a72_cpu9_binder_diagnostic_snapshot(
++	struct mt6797_a72_cpu9_binder_diagnostic *snapshot);
+ int mt6797_a72_cpu9_binder_prepare(
+ 	const struct mt6797_a72_cpu9_executor_request *request);
+ int mt6797_a72_cpu9_binder_preflight(unsigned int cpu, enum cpuhp_state target);
+@@ -24,6 +59,14 @@ int mt6797_a72_cpu9_binder_complete(unsigned int cpu, enum cpuhp_state target);
+ int mt6797_a72_cpu9_binder_failure(unsigned int cpu, int error,
+ 				   bool *publish_p32);
+ #else
++static inline int mt6797_a72_cpu9_binder_diagnostic_snapshot(
++	struct mt6797_a72_cpu9_binder_diagnostic *snapshot)
++{
++	if (snapshot)
++		*snapshot = (struct mt6797_a72_cpu9_binder_diagnostic){};
++	return -EOPNOTSUPP;
++}
++
+ static inline int mt6797_a72_cpu9_binder_prepare(
+ 	const struct mt6797_a72_cpu9_executor_request *request)
+ {

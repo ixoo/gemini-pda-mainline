@@ -4,7 +4,7 @@ set -euo pipefail
 export LC_ALL=C
 
 readonly EXPECTED_REMOTE=https://github.com/ixoo/gemini-pda-mainline.git
-readonly EXPECTED_PROFILE=gemini-cpu9-dispatch-kunit
+readonly EXPECTED_PROFILE=gemini-cpu9-controller-kunit
 
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 
@@ -75,6 +75,13 @@ for token in \
 	'CONFIG_MTK_MT6797_A72_CPU9_EXECUTOR_KUNIT_TEST=y' \
 	'CONFIG_MTK_MT6797_A72_CPU9_BINDER=y' \
 	'CONFIG_MTK_MT6797_A72_CPU9_BINDER_KUNIT_TEST=y' \
+	'CONFIG_PSTORE_GEMINI_ADMISSION_TRACE=y' \
+	'CONFIG_MTK_MT6797_A72_PHYSICAL_SOURCE_OBSERVER=y' \
+	'CONFIG_MTK_MT6797_A72_ADMISSION_CONTROLLER=y' \
+	'CONFIG_MTK_MT6797_A72_ADMISSION_LIVE_TRIGGER=y' \
+	'CONFIG_MTK_MT6797_A72_ADMISSION_CONTROLLER_KUNIT_TEST=y' \
+	'CONFIG_MTK_MT6797_A72_CPU9_ADMISSION_CONTROLLER=y' \
+	'CONFIG_MTK_MT6797_A72_CPU9_ADMISSION_CONTROLLER_KUNIT_TEST=y' \
 	'CONFIG_MTK_MT6797_A72_TRANSITION_EXECUTOR=y' \
 	'CONFIG_MTK_MT6797_A72_TRANSITION_EXECUTOR_KUNIT_TEST=y' \
 	'CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER=y' \
@@ -87,8 +94,8 @@ done
 focused_test_count=$(grep -Ec '^CONFIG_.*_KUNIT_TEST=y$' "$config")
 focused_tests=$(grep -E '^CONFIG_.*_KUNIT_TEST=y$' "$config" | sort)
 readonly focused_test_count focused_tests
-[[ "$focused_test_count" -eq 5 ]] || die 'KUnit option inventory changed'
-[[ "$focused_tests" == $'CONFIG_ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST=y\nCONFIG_MTK_MT6797_A72_CPU9_BINDER_KUNIT_TEST=y\nCONFIG_MTK_MT6797_A72_CPU9_EXECUTOR_KUNIT_TEST=y\nCONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER_KUNIT_TEST=y\nCONFIG_MTK_MT6797_A72_TRANSITION_EXECUTOR_KUNIT_TEST=y' ]] ||
+[[ "$focused_test_count" -eq 7 ]] || die 'KUnit option inventory changed'
+[[ "$focused_tests" == $'CONFIG_ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST=y\nCONFIG_MTK_MT6797_A72_ADMISSION_CONTROLLER_KUNIT_TEST=y\nCONFIG_MTK_MT6797_A72_CPU9_ADMISSION_CONTROLLER_KUNIT_TEST=y\nCONFIG_MTK_MT6797_A72_CPU9_BINDER_KUNIT_TEST=y\nCONFIG_MTK_MT6797_A72_CPU9_EXECUTOR_KUNIT_TEST=y\nCONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER_KUNIT_TEST=y\nCONFIG_MTK_MT6797_A72_TRANSITION_EXECUTOR_KUNIT_TEST=y' ]] ||
 	die 'unexpected KUnit test selected'
 
 for symbol in \
@@ -115,6 +122,13 @@ for symbol in \
 	mt6797_a72_cpu9_binder_complete \
 	mt6797_a72_cpu9_binder_failure \
 	mt6797_cpu9_binder_test_suite \
+	mt6797_a72_admission_controller_probe \
+	mt6797_a72_admission_live_arm \
+	mt6797_a72_admission_controller_suite \
+	mt6797_a72_cpu9_admission_state_init \
+	mt6797_a72_cpu9_admission_run \
+	mt6797_a72_cpu9_admission_controller_suite \
+	mt6797_a72_cpu9_binder_diagnostic_snapshot \
 	gemini_cpu9_ledger_begin \
 	gemini_cpu9_ledger_checkpoint \
 	mt6797_a72_owner_cpu9_parent_gate \
@@ -130,11 +144,6 @@ for symbol in \
 	mt6797_a72_binder_failure \
 	mt6797_binder_test_suite; do
 	grep -q " ${symbol}$" "$system_map" || die "required symbol absent: $symbol"
-done
-for symbol in \
-	mt6797_a72_admission_controller_probe \
-	mt6797_a72_admission_live_arm; do
-	! grep -q " ${symbol}$" "$system_map" || die "excluded symbol linked: $symbol"
 done
 
 mkdir -p "$repository_dir/artifacts/qemu"
