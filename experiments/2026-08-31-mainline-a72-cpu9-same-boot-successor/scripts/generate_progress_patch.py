@@ -89,9 +89,9 @@ def validate_mutations(root: Path) -> int:
     mutations = (
         (
             "fs/pstore/gemini_cpu9_progress_ledger.c",
-            "#define GEMINI_CPU9_PROGRESS_BASE \\\n+\t(GEMINI_CPU9_PROGRESS_CPU8_BASE + 2 * "
+            "#define GEMINI_CPU9_PROGRESS_BASE \\\n\t(GEMINI_CPU9_PROGRESS_CPU8_BASE + 2 * "
             "GEMINI_TRANSITION_LEDGER_SLOT_SIZE)",
-            "#define GEMINI_CPU9_PROGRESS_BASE \\\n+\t(GEMINI_CPU9_PROGRESS_CPU8_BASE + "
+            "#define GEMINI_CPU9_PROGRESS_BASE \\\n\t(GEMINI_CPU9_PROGRESS_CPU8_BASE + "
             "GEMINI_TRANSITION_LEDGER_SLOT_SIZE)",
         ),
         (
