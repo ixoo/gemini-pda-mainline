@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Classify the exact hardware-free Gemini CPU9 membership KUnit proof."""
+"""Classify the exact hardware-free Gemini CPU9 executor KUnit proof."""
 
 from __future__ import annotations
 
@@ -13,8 +13,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
-PROFILE = "gemini-cpu9-membership-kunit"
-EXPECTED_RELEASE = "7.1.3-gemini-cpu9-membership-kunit"
+PROFILE = "gemini-cpu9-executor-kunit"
+EXPECTED_RELEASE = "7.1.3-gemini-cpu9-executor-kunit"
 PANIC_PREFIX = "Kernel panic - not syncing: VFS: Unable to mount root fs"
 PANIC_END_PREFIX = f"---[ end {PANIC_PREFIX}"
 SUITES = (
@@ -88,6 +88,21 @@ SUITES = (
             "mt6797_binder_one_shot_test",
         ),
     ),
+    (
+        "mt6797-a72-cpu9-executor",
+        (
+            "mt6797_cpu9_executor_success_test",
+            "mt6797_cpu9_executor_split_success_test",
+            "mt6797_cpu9_executor_entry_rejections_test",
+            "mt6797_cpu9_executor_missing_op_test",
+            "mt6797_cpu9_executor_one_shot_test",
+            "mt6797_cpu9_executor_stage_failures_test",
+            "mt6797_cpu9_executor_checkpoint_failures_test",
+            "mt6797_cpu9_executor_lifecycle_guards_test",
+            "mt6797_cpu9_executor_failure_dispatch_test",
+            "mt6797_cpu9_executor_terminal_failures_test",
+        ),
+    ),
 )
 
 
@@ -135,9 +150,9 @@ def classify_runtime(raw: str, expected_release: str, qemu_exit: int) -> None:
     start = lines.index("KTAP version 1")
     ktap = lines[start:]
     require(ktap.count("KTAP version 1") == len(SUITES) + 1,
-            "expected one top-level and three suite KTAP headers")
+            "expected one top-level and four suite KTAP headers")
     plans = [line for line in ktap if re.fullmatch(r"1\.\.\d+", line)]
-    require(plans == ["1..3", "1..34", "1..12", "1..9"],
+    require(plans == ["1..4", "1..34", "1..12", "1..9", "1..10"],
             f"KUnit plans changed: {plans}")
     subtests = [line for line in ktap if line.startswith("# Subtest: ")]
     require(subtests == [f"# Subtest: {suite}" for suite, _ in SUITES],
@@ -255,7 +270,8 @@ def main() -> None:
     print(f"suites={len(SUITES)}")
     print(f"tests={total_tests}")
     print("cpu9_membership_tests=4")
-    print("regression_tests=51")
+    print("cpu9_executor_tests=10")
+    print("regression_tests=55")
     print("failed=0")
     print("skipped=0")
     for suite, cases in SUITES:

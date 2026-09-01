@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-cpu9-same-boot-successor` |
-| Status | `owner-local CPU9 membership validated; retained-cluster executor next` |
+| Status | `hardware-free retained-cluster executor generated; Buildbox/KUnit pending` |
 | Subsystem | MT6797 A72 CPU9 retained-cluster admission |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -78,6 +78,9 @@ first write. No new physical range is introduced.
 - [`results/membership-kunit-attempt-2-20260831.txt`](results/membership-kunit-attempt-2-20260831.txt):
   exact repaired Buildbox package and no-network QEMU result: all 55 owner,
   transition, and binder cases passed with zero failures or skips.
+- [`results/executor-patch-generation-20260831.txt`](results/executor-patch-generation-20260831.txt):
+  exact post-`0465` Buildbox generation, strict replay, and ten mutation
+  rejections for the hardware-free retained-cluster executor in patch `0466`.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger and owner-local membership lifecycle. The canonical layers
@@ -156,6 +159,19 @@ success lifecycle now finalizes members 0+1; all 33 other owner cases, all 12
 transition cases, and all 9 binder cases remain green. No physical backend,
 production caller, CPU request, or device action was present.
 
+Canonical patch `0466` now adds the distinct hardware-free executor. Its
+atomic one-shot lifecycle accepts only the exact CPU8 terminal parent and a
+fresh CPU9 transaction, then exposes only injected prestate, CPU_ON, online
+completion, IPI, membership, checkpoint, and terminal callbacks. All failure
+paths retain CPU8, its provider, and the cluster; the result surface keeps
+CPU_OFF and retry counts at zero. Buildbox rejected the first generation when
+one membership-callback mutation escaped the source gate and rejected the
+second for strict style checks. The repaired exact-source generation rejects
+all ten mutations and passes strict style and deterministic replay. It still
+has no production caller, physical backend, CPU request, CPU_OFF, retry, or
+cluster effect. Canonical compilation and the exact 65-case no-network KUnit
+gate remain pending, so it is not a boot candidate.
+
 ## Analysis
 
 The current generic owner and P30E layers contain useful CPU9 primitives, but
@@ -173,17 +189,18 @@ CPU8 terminal is already CRC-valid.
 `confirmed`: on the exact parent source, CPU9 must be a separate same-boot,
 retained-cluster PSCI executor. Reusing the CPU8 transition or merely widening
 its CPU checks is rejected because it exposes repeated cluster acquisition.
-The first two logical layers—the guarded independent retained ledger and the
-owner-local CPU9 derivation/membership lifecycle—are now canonical, compiled,
-and runtime-tested. The detailed remaining implementation and evidence
-contract is frozen in [`DESIGN.md`](DESIGN.md); no CPU9 support or device
-result is claimed yet.
+The guarded independent retained ledger and owner-local CPU9 derivation/
+membership lifecycle are canonical, compiled, and runtime-tested. The third
+logical layer—the hardware-free retained-cluster executor—is canonical at the
+source-generation gate but not yet compiled or runtime-tested. The detailed
+remaining implementation and evidence contract is frozen in
+[`DESIGN.md`](DESIGN.md); no CPU9 support or device result is claimed yet.
 
 ## Follow-up
 
-Implement the distinct retained-cluster CPU9 executor next, limited to
-prestate, CPU_ON/P30E, online completion, IPI, and membership. Then bind
-P30E/PSCI/completion dispatch and chain the candidate-only controller before
-candidate validation and one predeclared device attempt.
+Compile patch `0466` on Buildbox and pass the exact 65-case hardware-free
+KUnit gate. Then bind P30E/PSCI/completion dispatch and chain the
+candidate-only controller before candidate validation and one predeclared
+device attempt.
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside
 that first CPU9 attempt.

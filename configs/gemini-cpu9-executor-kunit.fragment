@@ -1,0 +1,16 @@
+# Hardware-free coverage for the retained-cluster CPU9 executor.
+# The complete CPU8 binder profile supplies the exact retired CPU8 success
+# fixture, and CPU9 membership supplies the one-shot derived transaction. All
+# physical operations are injected by KUnit. This profile adds no production
+# caller, CPU_OFF, retry, watchdog, provider, cluster effect, MMIO, retained
+# RAM mapping, SMC call, physical CPU request, or device action.
+CONFIG_ARM64_MT6797_A72_DIRECT_STATE_COMPOSITOR=y
+CONFIG_ARM64_MT6797_A72_A34_ELIGIBILITY_EVALUATOR=y
+CONFIG_ARM64_MT6797_A72_BOOTSTRAP_PUBLISHER=y
+CONFIG_ARM64_MT6797_A72_DERIVED_ADMISSION=y
+CONFIG_ARM64_MT6797_A72_CPU9_MEMBERSHIP=y
+CONFIG_PSTORE_GEMINI_CPU9_TRANSITION_LEDGER=y
+# CONFIG_PSTORE_GEMINI_CPU9_TRANSITION_LEDGER_KUNIT_TEST is not set
+CONFIG_MTK_MT6797_A72_CPU9_EXECUTOR=y
+CONFIG_MTK_MT6797_A72_CPU9_EXECUTOR_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-cpu9-executor-kunit"

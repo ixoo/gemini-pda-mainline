@@ -6733,11 +6733,15 @@ CPU9 derivation and membership lifecycle while preserving the unchanged CPU8
 path. Their exact published-commit Buildbox package passed provenance and
 checksum validation; the no-network QEMU gate passed all 55 owner, transition,
 and binder cases with zero failures or skips. These patches still have no
-production caller or physical CPU request. **Selected next:** implement the
-distinct retained-cluster CPU9 executor with only prestate, CPU_ON/P30E,
-online completion, IPI, and membership stages. P30E/PSCI dispatch, controller
-chaining, and candidate gates remain subsequent layers. No CPU9 candidate or
-device action is admitted until all those gates pass.
+production caller or physical CPU request. Canonical patch `0466` now adds the
+distinct hardware-free retained-cluster executor with only prestate, CPU_ON,
+online completion, IPI, and membership operations. Its exact-source
+generation rejects ten unsafe mutations and passes strict style and
+deterministic replay; it has no production caller or physical CPU request.
+**Selected next:** compile `0466` on Buildbox and pass the exact 65-case
+no-network KUnit gate. P30E/PSCI dispatch, controller chaining, and candidate
+gates remain subsequent layers. No CPU9 candidate or device action is admitted
+until all those gates pass.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
