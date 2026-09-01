@@ -487,8 +487,16 @@ and padded `4bf74874...`; both independent validators passed all 32 LK gates
 and rejected all six corrupt-container mutations. Source-pinned runtime tooling
 also classifies representative exact stage-1 `-EBADMSG` and `-EUCLEAN` shapes
 as CPU8-copy CRC failure and malformed progress-lane header respectively. This
-is the selected one-shot errno diagnostic candidate. It has not yet been
-installed or booted.
+is the selected one-shot errno diagnostic candidate.
+
+Known-good Gemian then resolved inactive logical `boot2` to
+`/dev/mmcblk0p30` while root remained `/dev/mmcblk0p29`, verified exact retired
+predecessor `c531a9e0...`, and reported stable external power with a full,
+healthy battery. The guarded installer wrote, synchronized, flushed, and fully
+read back selected diagnostic `4bf74874...`; the full readback matched and both
+trusted-environment hashes remained unchanged. It made no fresh backup or
+reboot request, removed its temporary readback, and confirmed the device
+unreachable after clean shutdown. The diagnostic has not yet been booted.
 
 ## Analysis
 
@@ -532,9 +540,10 @@ collision: corrupt CPU8 copies and a malformed progress lane both return
 adds focused proof that corrupt CPU8 copies retain `-EBADMSG`. The full 97-case
 offline regression now passes at exact published commit `4dc85b25...`;
 exact production candidate `4bf74874...` is independently reproducible and
-passes every container gate. A guarded inactive-`boot2` deployment and clean
-shutdown are the next gate. The retained wire and all CPU, CPU_OFF, retry,
-watchdog, storage, and recovery paths remain unchanged.
+passes every container gate. Its guarded inactive-`boot2` write and full
+readback passed, followed by clean shutdown; one physical selection is the next
+gate. The retained wire and all CPU, CPU_OFF, retry, watchdog, storage, and
+recovery paths remain unchanged.
 The ordered device action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside

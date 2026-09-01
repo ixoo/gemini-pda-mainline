@@ -6878,9 +6878,12 @@ build commit `adfa6b85...` then passed package validation. Its two independent
 DT compositions and two independent Android-v0 constructions were byte-
 identical; all ten DT mutations, all 32 LK gates twice, and all six corrupt-
 container mutations passed. The selected diagnostic is raw `32d304dc...`,
-padded `4bf74874...`. **Selected next:** guardedly install it to inactive
-logical `boot2`, fully verify the readback, and shut down. Spend one boot with
-the exact result map. Stage 1/`-EBADMSG` identifies invalid CPU8 copy CRCs;
+padded `4bf74874...`. Known-good Gemian resolved inactive logical `boot2`,
+verified predecessor `c531a9e0...`, wrote and fully read back exact diagnostic
+`4bf74874...`, preserved both trusted-environment hashes, and shut down cleanly
+without a fresh backup or reboot. **Selected next:** physically select `boot2`
+once, close the exact read-only pre-trigger gate, and spend one trigger with the
+exact result map. Stage 1/`-EBADMSG` identifies invalid CPU8 copy CRCs;
 stage 1/`-EUCLEAN` identifies the progress-lane header; every other existing
 distinct errno retains its documented CPU8-proof meaning. Advance to the first
 causal repair only from that single attributable result.
