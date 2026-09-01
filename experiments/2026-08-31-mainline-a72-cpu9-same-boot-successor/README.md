@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-cpu9-same-boot-successor` |
-| Status | `exact candidate verified on boot2 and device shut down; fresh attempt pending` |
+| Status | `exact candidate and boot-bound runtime tooling ready; device shut down; fresh attempt pending` |
 | Subsystem | MT6797 A72 CPU9 retained-cluster admission |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -114,6 +114,10 @@ first write. No new physical range is introduced.
 - [`results/deployment-20260831.txt`](results/deployment-20260831.txt): exact
   live-GPT target, proven predecessor, full-partition candidate readback, power
   state, and confirmed clean shutdown before the first attributable boot.
+- [`results/runtime-tooling-20260831.txt`](results/runtime-tooling-20260831.txt):
+  exact source pins, pristine CPU8/CPU9 pre-trigger contract, one-session
+  request bounds, success and named-failure classification, and seven offline
+  mutation rejections for the first attributable device attempt.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger, owner-local membership lifecycle, retained-cluster dispatch, and
@@ -291,6 +295,16 @@ matched exactly. It made no fresh backup, touched no substitute partition,
 requested no reboot, and confirmed the device unreachable after clean
 shutdown. No CPU9 boot or runtime result has occurred yet.
 
+The boot-bound runtime tooling now rejects any different candidate, release,
+boot ID, non-pristine CPU8 or CPU9 state, repeated trigger, CPU_OFF, retry, or
+request count above one per A72 CPU. Its single netcat session invokes the
+outer controller once, records both CPU8 and CPU9 accounting across one
+bounded second, and classifies success only with exact terminal proofs, CPUs
+0--9 online, and advancing counters for both A72 CPUs. Synthetic validation
+accepted the exact success shape and rejected all three pre-trigger plus all
+four attempt mutations. This preparation used no device access or hardware
+action.
+
 ## Analysis
 
 The current generic owner and P30E layers contain useful CPU9 primitives, but
@@ -322,9 +336,10 @@ reproducible, but no CPU9 device result is claimed yet.
 
 ## Follow-up
 
-Physically select `boot2` for one fresh named-device boot. The attempt must
-attribute the exact release and candidate, recover both retained ledger
-records, and determine whether CPU9 was never requested, rejected at a named
-stage, or became an accounted online CPU after CPU8 terminal proof. CPU_OFF,
-retry, sustained load, hotplug, thermal, and suspend remain outside that first
-CPU9 attempt.
+Physically select `boot2` for one fresh named-device boot. The source-pinned
+collector must first close the exact release, candidate, boot-ID, and pristine
+CPU8/CPU9 gate; the source-pinned executor may then spend exactly one
+controller session. Recover both retained ledger records and determine whether
+CPU9 was never requested, rejected at a named stage, or became an accounted
+online CPU after CPU8 terminal proof. CPU_OFF, retry, sustained load, hotplug,
+thermal, and suspend remain outside that first CPU9 attempt.

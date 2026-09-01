@@ -6779,10 +6779,17 @@ occurred during selection. Known-good Gemian then resolved inactive logical
 `boot2` to `/dev/mmcblk0p30` with root on `/dev/mmcblk0p29`; the full partition
 matched exact predecessor `42c984ee...`. The guarded write, sync, flush, and
 full readback verified selected candidate `fb473d2f...`, and the device shut
-down cleanly without a new backup or reboot. **Selected next:** spend one fresh
-physical `boot2` selection determining whether CPU9 is never requested, fails
-at a named retained-ledger stage, or reaches accounted online state after
-exact CPU8 terminal proof.
+down cleanly without a new backup or reboot. Exact source-pinned runtime
+tooling now requires the installed candidate, release, fresh boot ID, and
+pristine zero-execution CPU8/CPU9 controller state before one boot-bound
+netcat session. It permits at most one request per A72 CPU, forbids CPU_OFF,
+retry, and native reboot, and accepts CPU9 success only with exact terminal
+proof plus advancing one-second accounting for both CPUs; all seven offline
+contract mutations were rejected. **Selected next:** spend one fresh physical
+`boot2` selection, close that read-only pre-trigger gate, and issue the single
+CPU8-to-CPU9 controller session to determine whether CPU9 is never requested,
+fails at a named retained-ledger stage, or reaches accounted online state
+after exact CPU8 terminal proof.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
