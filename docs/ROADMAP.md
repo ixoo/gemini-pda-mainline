@@ -6767,10 +6767,19 @@ commit `699ac9dd...` compiled and passed package, checksum, and provenance
 validation; published harness `cd70f03a...` then passed all 91 named no-network
 KUnit cases across seven suites with zero failures or skips. No physical CPU
 request, MMIO, retained-RAM write, watchdog action, SMC, or device action
-occurred. **Selected next:** construct the exact production profile with KUnit
-disabled, reproduce it twice, and pass the full package, Android-v0,
-LK-container, checksum, and candidate-identity gates before one separately
-attributable named-device attempt.
+occurred. Exact production-profile commit `479f938f...` then compiled on
+Buildbox as `7.1.3-gemini-cpu9-controller` with all five CPU9 production
+options, the unchanged live trigger, and no KUnit. Two independent
+provenance-preserving DT compositions were byte-identical at `603335e6...`;
+the semantic gate rejected all ten unsafe mutations. Two independent
+Android-v0 constructions were byte-identical at raw `dd4b9358...` and padded
+`fb473d2f...`; both independent validators passed all 32 LK gates and rejected
+all six corrupt-container mutations. No device access or hardware write
+occurred during selection. **Selected next:** install this exact candidate to
+the live-GPT-resolved inactive `boot2`, verify its full-partition readback,
+shut down, and spend one fresh boot determining whether CPU9 is never
+requested, fails at a named retained-ledger stage, or reaches accounted online
+state after exact CPU8 terminal proof.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

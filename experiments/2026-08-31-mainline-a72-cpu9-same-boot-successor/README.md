@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-cpu9-same-boot-successor` |
-| Status | `CPU9 dispatch compiled and passed 73/73 KUnit cases; controller absent` |
+| Status | `exact production candidate independently validated; device attempt pending` |
 | Subsystem | MT6797 A72 CPU9 retained-cluster admission |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -107,10 +107,15 @@ first write. No new physical range is introduced.
   exact corrected Buildbox package and seven-suite no-network QEMU result: all
   91 controller, dispatch, executor, owner, transition, and CPU8 regression
   cases passed with zero failures or skips.
+- [`results/production-candidate-20260831.txt`](results/production-candidate-20260831.txt):
+  exact production Buildbox package, provenance-preserving DT composition,
+  two byte-identical candidate constructions, 32 LK gates, and all 10 DT plus
+  six container mutation rejections.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger, owner-local membership lifecycle, retained-cluster dispatch, and
-  same-task controller. No production candidate is selected here.
+  same-task controller, plus the source-pinned production DT and candidate
+  construction and independent-validation chain.
 
 Implementation patches, generators, validators, and build results will be
 added here only after each logical source boundary passes deterministic
@@ -259,6 +264,21 @@ linked but had no QEMU device node; no physical CPU request, MMIO,
 retained-RAM write, watchdog action, SMC, or device action occurred. This
 closes the offline controller gate but does not itself select a boot candidate.
 
+Exact published production-profile commit `479f938f...` then compiled on
+Buildbox as `7.1.3-gemini-cpu9-controller`. The package contains all five CPU9
+production options plus the existing live trigger and excludes KUnit and all
+CPU9 KUnit suites. Its current package provenance leaf was composed into the
+unchanged exact serviceability/admission DT; two independent compositions were
+byte-identical at SHA-256 `603335e6...`, and the semantic validator rejected
+all ten unsafe DT mutations. Two independent Android-v0 constructions using
+the unchanged serviceability ramdisk were byte-identical at raw SHA-256
+`dd4b9358...` and exact-16-MiB padded SHA-256 `fb473d2f...`. Both independent
+validations passed all 32 LK gates and rejected all six corrupt-container
+mutations. The candidate exposes exactly one CPU8 and one CPU9 request path,
+with zero requests during validation and no CPU_OFF or retry path. It is the
+selected production boot candidate; no device access or hardware write was
+used to establish that selection.
+
 ## Analysis
 
 The current generic owner and P30E layers contain useful CPU9 primitives, but
@@ -284,15 +304,16 @@ logical layer—the isolated CPU9 dispatch binder—is now canonical, compiled,
 and runtime-tested across the full 73-case offline regression profile. The
 fifth logical layer—the exact same-task CPU8-to-CPU9 controller—is now
 canonical, compiled, and runtime-tested across the full 91-case offline
-regression profile. The detailed remaining implementation and evidence
-contract is frozen in [`DESIGN.md`](DESIGN.md); no CPU9 support or device
-result is claimed yet.
+regression profile. The detailed device evidence contract is frozen in
+[`DESIGN.md`](DESIGN.md). The exact production candidate is independently
+reproducible, but no CPU9 device result is claimed yet.
 
 ## Follow-up
 
-Construct and independently validate the exact production candidate containing
-the proven controller with KUnit disabled. Require two reproducible
-constructions plus package, Android-v0, LK-container, checksum, and candidate
-identity gates before admitting one predeclared named-device attempt.
-CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside
-that first CPU9 attempt.
+Install exact padded candidate `fb473d2f...` to the live-GPT-resolved inactive
+`boot2`, require matching full-partition readback, and shut down. Admit one
+fresh named-device boot only. The attempt must attribute the exact release and
+candidate, recover both retained ledger records, and determine whether CPU9
+was never requested, rejected at a named stage, or became an accounted online
+CPU after CPU8 terminal proof. CPU_OFF, retry, sustained load, hotplug,
+thermal, and suspend remain outside that first CPU9 attempt.
