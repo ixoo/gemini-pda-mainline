@@ -94,6 +94,7 @@ def validate(root: Path) -> list[str]:
         ".cpu8_membership_published = true",
         ".provider_retained = true",
         ".cpu8_online = true", ".cpu9_online = false",
+        "if (state->cpu8_ret)",
         "state->cpu9_requests = 1",
         "ops->add_cpu(context, MT6797_A72_CPU9_EXECUTOR_CPU9)",
     ):
