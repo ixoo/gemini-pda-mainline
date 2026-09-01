@@ -62,6 +62,7 @@ SUITES = (
         (
             "cpu9_progress_sequence_test",
             "cpu9_progress_cpu8_gate_test",
+            "cpu9_progress_raw_lane_test",
             "cpu9_progress_lane_refusal_test",
             "cpu9_progress_ordering_test",
         ),
@@ -204,7 +205,7 @@ def classify_runtime(raw: str, expected_release: str, qemu_exit: int) -> None:
     require(ktap.count("KTAP version 1") == len(SUITES) + 1,
             "expected one top-level and eight suite KTAP headers")
     plans = [line for line in ktap if re.fullmatch(r"1\.\.\d+", line)]
-    require(plans == ["1..8", "1..34", "1..4", "1..12", "1..10",
+    require(plans == ["1..8", "1..34", "1..5", "1..12", "1..10",
                       "1..9", "1..9", "1..9", "1..10"],
             f"KUnit plans changed: {plans}")
     subtests = [line for line in ktap if line.startswith("# Subtest: ")]
@@ -329,7 +330,7 @@ def main() -> None:
     print(f"tests={total_tests}")
     print("cpu9_membership_tests=4")
     print("cpu9_executor_tests=10")
-    print("cpu9_progress_tests=4")
+    print("cpu9_progress_tests=5")
     print("cpu9_dispatch_tests=9")
     print("cpu9_controller_tests=9")
     print("cpu8_admission_tests=10")
