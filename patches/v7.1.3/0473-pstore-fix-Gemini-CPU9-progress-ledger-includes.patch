@@ -1,0 +1,42 @@
+From 0b7c61b31e6c4d67dd84b2a4d6c876eb4a8326a5 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 1 Sep 2026 22:18:00 +0000
+Subject: [PATCH] pstore: fix Gemini CPU9 progress ledger includes
+
+Include the public transition-ledger phase declarations used by the
+progress owner and its focused tests. Include module.h in the owner for
+its module metadata macros.
+
+This is a compile-only repair and changes no retained-wire contract,
+stage ordering, hardware operation, CPU request, or boot policy.
+---
+ fs/pstore/gemini_cpu9_progress_ledger.c      | 2 ++
+ fs/pstore/gemini_cpu9_progress_ledger_test.c | 1 +
+ 2 files changed, 3 insertions(+)
+
+diff --git a/fs/pstore/gemini_cpu9_progress_ledger.c b/fs/pstore/gemini_cpu9_progress_ledger.c
+index 772cc77..27be196 100644
+--- a/fs/pstore/gemini_cpu9_progress_ledger.c
++++ b/fs/pstore/gemini_cpu9_progress_ledger.c
+@@ -4,7 +4,9 @@
+ #include <linux/errno.h>
+ #include <linux/export.h>
+ #include <linux/gemini_cpu9_progress_ledger.h>
++#include <linux/gemini_transition_ledger.h>
+ #include <linux/io.h>
++#include <linux/module.h>
+ #include <linux/mutex.h>
+ #include <linux/of.h>
+ #include <linux/of_address.h>
+diff --git a/fs/pstore/gemini_cpu9_progress_ledger_test.c b/fs/pstore/gemini_cpu9_progress_ledger_test.c
+index bc3236d..8854c7a 100644
+--- a/fs/pstore/gemini_cpu9_progress_ledger_test.c
++++ b/fs/pstore/gemini_cpu9_progress_ledger_test.c
+@@ -4,6 +4,7 @@
+ #include <kunit/test.h>
+ #include <linux/errno.h>
+ #include <linux/gemini_cpu9_progress_ledger.h>
++#include <linux/gemini_transition_ledger.h>
+ #include <linux/module.h>
+ #include <linux/string.h>
+ 

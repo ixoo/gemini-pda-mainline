@@ -1,0 +1,15 @@
+experiment=2026-08-31-mainline-a72-cpu9-same-boot-successor
+captured_utc=2026-09-01
+repository_commit=17d9ca9e0a837f650635e8abac0d33d11210567b
+build_backend=buildbox
+build_profile=gemini-cpu9-controller-kunit
+build_result=compile-failed
+first_failing_source=fs/pstore/gemini_cpu9_progress_ledger.c
+missing_phase_declarations=GEMINI_TRANSITION_LEDGER_BEFORE,GEMINI_TRANSITION_LEDGER_AFTER
+missing_module_metadata_declarations=MODULE_DESCRIPTION,MODULE_LICENSE
+focused_test_missing_phase_declarations=GEMINI_TRANSITION_LEDGER_BEFORE,GEMINI_TRANSITION_LEDGER_AFTER,GEMINI_TRANSITION_LEDGER_TERMINAL
+root_cause=progress-owner-and-test-omitted-public-transition-ledger-header;progress-owner-omitted-module-header
+followup_patch=0473-pstore-fix-Gemini-CPU9-progress-ledger-includes.patch
+runtime_evidence=none
+device_action=none
+boot_candidate=false
