@@ -468,6 +468,16 @@ The next candidate must expose that branch and the already-read words in
 ordinary live status without changing the retained wire, physical CPU request,
 retry, CPU_OFF, watchdog, or recovery behavior.
 
+Canonical patch `0476` implements the smallest branch distinction: corrupt
+CPU8 copies retain `-EBADMSG`, while only a malformed progress-lane header now
+returns `-EUCLEAN`. Exact published commit `4dc85b25...` compiled on Buildbox
+and its no-network QEMU run passed all 97 cases across eight suites with zero
+failures or skips, including focused assertions for both error branches. The
+harness observed no physical CPU request, retained-RAM access, MMIO, watchdog,
+SMC, or device action. This validates the diagnostic source, not a boot
+candidate; the production package and Android container remain to be built and
+validated before any further device attempt.
+
 ## Analysis
 
 The current generic owner and P30E layers contain useful CPU9 primitives, but
@@ -507,9 +517,10 @@ same stage-1 `-EBADMSG`, rejecting the mapping-attribute hypothesis. Exact
 source audit shows all CPU8 proof failures are already distinct except for one
 collision: corrupt CPU8 copies and a malformed progress lane both return
 `-EBADMSG`. Canonical patch `0476` changes only the latter to `-EUCLEAN` and
-adds focused proof that corrupt CPU8 copies retain `-EBADMSG`. It must pass the
-full offline regression before candidate construction. The retained wire and
-all CPU, CPU_OFF, retry, watchdog, storage, and recovery paths remain unchanged.
+adds focused proof that corrupt CPU8 copies retain `-EBADMSG`. The full 97-case
+offline regression now passes at exact published commit `4dc85b25...`;
+production candidate construction is the next gate. The retained wire and all
+CPU, CPU_OFF, retry, watchdog, storage, and recovery paths remain unchanged.
 The ordered device action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside
