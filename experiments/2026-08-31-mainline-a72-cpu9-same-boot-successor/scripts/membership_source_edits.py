@@ -169,8 +169,23 @@ def apply(root: Path) -> None:
     )
     replace_once(
         header,
+        "#ifdef CONFIG_ARM64_MT6797_A72_DERIVED_ADMISSION_KUNIT_TEST\n"
+        "int\n"
+        "mt6797_a72_membership_test_derive_cpu8("
+        "const struct mt6797_a72_direct_topology *topology,\n"
+        "\t\t\t\t       const struct arm64_late_cpu_ready_token *ready,\n"
+        "\t\t\t\t       struct mt6797_a72_transaction *transaction);\n"
+        "#endif\n"
         "int\nmt6797_a72_membership_validate_up_prestate(",
-        CPU9_DERIVE_API + "int\nmt6797_a72_membership_validate_up_prestate(",
+        "#ifdef CONFIG_ARM64_MT6797_A72_DERIVED_ADMISSION_KUNIT_TEST\n"
+        "int\n"
+        "mt6797_a72_membership_test_derive_cpu8("
+        "const struct mt6797_a72_direct_topology *topology,\n"
+        "\t\t\t\t       const struct arm64_late_cpu_ready_token *ready,\n"
+        "\t\t\t\t       struct mt6797_a72_transaction *transaction);\n"
+        "#endif\n"
+        + CPU9_DERIVE_API
+        + "int\nmt6797_a72_membership_validate_up_prestate(",
     )
     replace_once(
         header,
