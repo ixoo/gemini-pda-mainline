@@ -1,0 +1,31 @@
+From 1000000000000000000000000000000000000474 Tue Sep  1 00:00:00 2026
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 1 Sep 2026 20:24:00 +0000
+Subject: [PATCH] arm64: bind Gemini CPU9 progress configuration
+
+The bounded progress diagnostic changes the exact ordered production
+configuration inputs from cda6d936... to c10a2188.... Bind the MT6797
+production profile to that package-derived identity so its existing preflight
+can distinguish this diagnostic from the retired CPU9 controller candidate.
+
+Keep the fixture identity unchanged and add no CPU request, retained write,
+power, retry, CPU_OFF, storage, or device action.
+---
+ arch/arm64/kernel/mt6797_psci.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
+index 5cac538..8f90ee7 100644
+--- a/arch/arm64/kernel/mt6797_psci.c
++++ b/arch/arm64/kernel/mt6797_psci.c
+@@ -64,8 +64,8 @@ static const u64 mt6797_a72_config_input_identity[ARM64_LATE_CPU_ID_WORDS] __ini
+ };
+ #else
+ static const u64 mt6797_a72_config_input_identity[ARM64_LATE_CPU_ID_WORDS] __initconst = {
+-	0xcda6d936e61122d8, 0x25a7fe7649f1b69b,
+-	0x86455d6034f36a6c, 0xd562ff457bccd3d1,
++	0xc10a21881871dd9a, 0xad61f259d660a62f,
++	0xc24f989cb165bb61, 0xdc53af45438fe898,
+ };
+ #endif
+ 
