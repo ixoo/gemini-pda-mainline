@@ -27,13 +27,13 @@ import sys
 text = Path(sys.argv[1]).read_text(encoding="utf-8")
 replacements = (
     ("a7ce2c2d58bccce6c1f41814d0ae584b808555791397fb50088117058111a179",
-     "fb473d2f3240137ec05f901163bb0374ef3015b66c42558eca6f1085cbd83468", 1),
+     "118096351905936e8f7c1fe9b186dadb191808bc94092cbd7a67a0b936a00562", 1),
     ("620c6273e59286f65e67084bb071ae60cd53b27e9634188492cc47611d6f37d2",
-     "32e1b61a3b005d0cbb2d14a6253b74ed2bd8daa66a6562c64dc92156ad8cf5cf", 1),
+     "afbf7980de788db22874af59ce58ff83aa1cda46ce8f7d098db1bd84183dd7a6", 1),
     ("3d5bfa25d84239232d765b4fba000ffa89246bf20ed636bca19e3afe92d1f9dd",
-     "aaa118785b74e6f88f3412f6b8a2e958cdf6c989ed5672762ffd972923af3130", 1),
+     "897c32656a5a66587fc0e74b30e90c2f7a384e15007e497bd970a8b24e860d38", 1),
     ("8feeb6e8c562278c0e76c284a757c8849dcc0d1e5eff705fee3434229c82eb52",
-     "70c3ef9ae11b849c0826022463ccde4bd311554743aa318f2cfe8749d5c40878", 1),
+     "5bdf84f1ef47796a1e87f3208922f5ec5c088e48765138acef5e34764a6844c9", 1),
     ("2026-08-30-mainline-a72-ready-token-contract-repair",
      "2026-08-31-mainline-a72-cpu9-same-boot-successor", 2),
     ("a72-ready-token-contract-repair-pretrigger-attempt-1",

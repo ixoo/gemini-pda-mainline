@@ -6801,9 +6801,17 @@ retained-RAM write occurred. A subsequent USB-shell reboot returned the device
 to changed-ID Gemian with exact `boot2` unchanged. Canonical patch `0470` changes
 only the four production identity words, retains the fixture and all runtime
 paths unchanged, and passes the 164-profile canonical-series invariant plus
-all eight invariant mutations. **Selected next:** publish `0470`, build the
-exact CPU9 production profile on Buildbox, and requalify a package-exact
-candidate before another physical selection.
+all eight invariant mutations. Exact published commit `45582eea...` then
+compiled on Buildbox with the intended `cda6d936...` configuration identity.
+Two independent package-provenance DT compositions were byte-identical at
+`ca7e9516...` and rejected all ten unsafe DT mutations. Two independent
+Android-v0 constructions were byte-identical at raw `e7ea9113...` and padded
+`11809635...`; both independent validators passed all 32 LK gates and rejected
+all six corrupt-container mutations. No native VM build or hardware write was
+used. **Selected next:** install exact padded candidate `11809635...` to the
+live-GPT-resolved inactive `boot2`, require full readback and shutdown, then
+spend one fresh selection on the read-only pristine gate before at most one
+CPU8-to-CPU9 controller trigger.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

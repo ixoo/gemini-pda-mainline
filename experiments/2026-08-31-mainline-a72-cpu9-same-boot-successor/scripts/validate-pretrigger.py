@@ -26,7 +26,7 @@ source = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(source)
 
 OLD_CANDIDATE = "42c984ee72fe93e7f6157598dd479a9348a03d733df7948e4e4c14aa356c78ee"
-NEW_CANDIDATE = "fb473d2f3240137ec05f901163bb0374ef3015b66c42558eca6f1085cbd83468"
+NEW_CANDIDATE = "118096351905936e8f7c1fe9b186dadb191808bc94092cbd7a67a0b936a00562"
 OLD_RELEASE = "7.1.3-gemini-a72-admission-live"
 NEW_RELEASE = "7.1.3-gemini-cpu9-controller"
 CPU9_SUFFIX = (

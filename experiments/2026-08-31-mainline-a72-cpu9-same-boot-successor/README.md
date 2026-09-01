@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-cpu9-same-boot-successor` |
-| Status | `attempt 1 stopped before trigger at exact config-identity block; patch 0470 awaiting Buildbox` |
+| Status | `attempt 1 stopped before trigger at exact config-identity block; repaired candidate qualified for boot2` |
 | Subsystem | MT6797 A72 CPU9 retained-cluster admission |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31--2026-09-01 |
@@ -122,6 +122,13 @@ first write. No new physical range is introduced.
   fresh exact-candidate boot, pre-trigger proof-mask `0x40000` attribution,
   zero CPU requests, unchanged recovery partition, and the exact one-file
   production-identity repair selected as patch `0470`.
+- [`results/production-config-identity-repair-candidate-20260901.txt`](results/production-config-identity-repair-candidate-20260901.txt):
+  exact repaired Buildbox package, two byte-identical provenance-preserving DT
+  compositions, two byte-identical Android-v0 candidates, 32 LK gates, and all
+  10 DT plus six container mutation rejections.
+- [`results/runtime-tooling-config-identity-repair-20260901.txt`](results/runtime-tooling-config-identity-repair-20260901.txt):
+  exact candidate retarget of the unchanged pristine gate, one-session request
+  bounds, dual-accounting success contract, and named failure classifier.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger, owner-local membership lifecycle, retained-cluster dispatch, and

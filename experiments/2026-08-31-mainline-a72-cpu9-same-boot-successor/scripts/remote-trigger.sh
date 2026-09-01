@@ -5,7 +5,7 @@
 set -euo pipefail
 
 readonly SOURCE_SHA256=623cbbf621da6ae924ff238e2acd0ace0d15d4c735ba11fbe8492afa91dfe25b
-readonly VALIDATOR_SHA256=70c3ef9ae11b849c0826022463ccde4bd311554743aa318f2cfe8749d5c40878
+readonly VALIDATOR_SHA256=5bdf84f1ef47796a1e87f3208922f5ec5c088e48765138acef5e34764a6844c9
 script_dir=$(cd -- "$(dirname -- "$0")" && pwd -P)
 repo_root=$(cd -- "$script_dir/../../.." && pwd -P)
 source_trigger="$repo_root/experiments/2026-08-31-mainline-a72-expected-pair-model-contract-repair/scripts/remote-trigger.sh"

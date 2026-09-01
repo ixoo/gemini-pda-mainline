@@ -27,13 +27,13 @@ import sys
 text = Path(sys.argv[1]).read_text(encoding="utf-8")
 replacements = (
     ("42c984ee72fe93e7f6157598dd479a9348a03d733df7948e4e4c14aa356c78ee",
-     "fb473d2f3240137ec05f901163bb0374ef3015b66c42558eca6f1085cbd83468", 1),
+     "118096351905936e8f7c1fe9b186dadb191808bc94092cbd7a67a0b936a00562", 1),
     ("a303ab237d22d2ae55d1df656cd963698152937dc7d122f87f5896eb7c7ae561",
-     "5bbb04846c3e984af3f8ed54c2c39f874adddfe892e9bb311d602c2744c378fe", 1),
+     "b3e672ac786626c8b2fcaa36e447941d2f7b16b97b5c4b80097cc0915eae2fbb", 1),
     ("56e3800749e7c6ba7c791db349a5a11d81f4e293ba8d983c15b858a6f51e6616",
-     "b0a30a2bd4540593f6513bf2ba4f9d5141f1845e68c006cb1684e583f7c80057", 1),
+     "bc10f410018461370f736368c20a53104e7a73cdab0ed82db554557bb737a57e", 1),
     ("6ed44a37f0b7c495c01ef24fdb91cd469da2fbe5323c81e18db1a6355ce962c4",
-     "70c3ef9ae11b849c0826022463ccde4bd311554743aa318f2cfe8749d5c40878", 1),
+     "5bdf84f1ef47796a1e87f3208922f5ec5c088e48765138acef5e34764a6844c9", 1),
     ('("a72-isolation-held-result-contract-repair", "a72-expected-pair-model-contract-repair", 1),',
      '("a72-isolation-held-result-contract-repair", "a72-cpu9-same-boot-successor", 1),', 1),
     (".derived-collect-a72-expected-pair-model-contract-inner.XXXXXXXX",

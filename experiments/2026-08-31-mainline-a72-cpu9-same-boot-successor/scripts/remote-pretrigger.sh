@@ -21,7 +21,7 @@ import sys
 
 text = Path(sys.argv[1]).read_text(encoding="utf-8")
 old = "42c984ee72fe93e7f6157598dd479a9348a03d733df7948e4e4c14aa356c78ee"
-new = "fb473d2f3240137ec05f901163bb0374ef3015b66c42558eca6f1085cbd83468"
+new = "118096351905936e8f7c1fe9b186dadb191808bc94092cbd7a67a0b936a00562"
 if text.count(old) != 1:
     raise SystemExit("unsafe CPU9 pre-trigger probe derivation")
 sys.stdout.write(text.replace(old, new))
