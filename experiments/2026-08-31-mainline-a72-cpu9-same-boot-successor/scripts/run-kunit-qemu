@@ -4,7 +4,7 @@ set -euo pipefail
 export LC_ALL=C
 
 readonly EXPECTED_REMOTE=https://github.com/ixoo/gemini-pda-mainline.git
-readonly EXPECTED_PROFILE=gemini-cpu9-transition-ledger-kunit
+readonly EXPECTED_PROFILE=gemini-cpu9-membership-kunit
 
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 
@@ -31,15 +31,19 @@ for file in "$build_json" "$image" "$config" "$system_map" "$sums"; do
 	[[ -f "$file" && ! -L "$file" ]] || die "unsafe package file: $file"
 done
 
-repository_commit=$(git -C "$repository_dir" rev-parse HEAD)
-readonly repository_commit
-[[ "$repository_commit" =~ ^[0-9a-f]{40}$ ]] || die 'invalid repository HEAD'
-[[ "$(git -C "$repository_dir" rev-parse origin/main)" == "$repository_commit" ]] ||
-	die 'repository HEAD is not published at origin/main'
+package_commit=$(jq -er '.repository_commit' "$build_json")
+harness_commit=$(git -C "$repository_dir" rev-parse HEAD)
+readonly package_commit harness_commit
+[[ "$package_commit" =~ ^[0-9a-f]{40}$ ]] || die 'invalid package commit'
+[[ "$harness_commit" =~ ^[0-9a-f]{40}$ ]] || die 'invalid harness commit'
 [[ "$(git -C "$repository_dir" remote get-url origin)" == "$EXPECTED_REMOTE" ]] ||
 	die 'unexpected origin URL'
-[[ "$(jq -er '.repository_commit' "$build_json")" == "$repository_commit" ]] ||
-	die 'package commit differs from repository HEAD'
+[[ -z "$(git -C "$repository_dir" status --porcelain)" ]] ||
+	die 'repository worktree is not clean'
+[[ "$(git -C "$repository_dir" rev-parse origin/main)" == "$harness_commit" ]] ||
+	die 'harness HEAD is not published at origin/main'
+git -C "$repository_dir" merge-base --is-ancestor \
+	"$package_commit" "$harness_commit" || die 'package commit is not a harness ancestor'
 [[ "$(jq -er '.repository_dirty' "$build_json")" == false ]] ||
 	die 'package was built from a dirty repository'
 [[ "$(jq -er '.build_profile' "$build_json")" == "$EXPECTED_PROFILE" ]] ||
@@ -47,7 +51,7 @@ readonly repository_commit
 [[ "$(jq -er '.target_architecture' "$build_json")" == arm64 ]] ||
 	die 'unexpected package architecture'
 case "$package_dir" in
-	"$repository_dir/artifacts/buildbox/$repository_commit/"*) ;;
+	"$repository_dir/artifacts/buildbox/$package_commit/"*) ;;
 	*) die 'package is outside the exact ignored Buildbox commit root' ;;
 esac
 (
@@ -60,55 +64,57 @@ for token in \
 	'CONFIG_KUNIT_DEFAULT_ENABLED=y' \
 	'CONFIG_KUNIT_AUTORUN_ENABLED=y' \
 	'CONFIG_CMDLINE_FORCE=y' \
-	'CONFIG_PSTORE=y' \
-	'CONFIG_PSTORE_RAM=y' \
-	'CONFIG_PSTORE_GEMINI_TRANSITION_LEDGER=y' \
-	'CONFIG_PSTORE_GEMINI_CPU9_TRANSITION_LEDGER=y' \
-	'CONFIG_PSTORE_GEMINI_CPU9_TRANSITION_LEDGER_KUNIT_TEST=y'; do
+	'CONFIG_ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST=y' \
+	'CONFIG_ARM64_MT6797_A72_DIRECT_STATE_COMPOSITOR=y' \
+	'CONFIG_ARM64_MT6797_A72_A34_ELIGIBILITY_EVALUATOR=y' \
+	'CONFIG_ARM64_MT6797_A72_BOOTSTRAP_PUBLISHER=y' \
+	'CONFIG_ARM64_MT6797_A72_DERIVED_ADMISSION=y' \
+	'CONFIG_ARM64_MT6797_A72_CPU9_MEMBERSHIP=y' \
+	'CONFIG_MTK_MT6797_A72_TRANSITION_EXECUTOR=y' \
+	'CONFIG_MTK_MT6797_A72_TRANSITION_EXECUTOR_KUNIT_TEST=y' \
+	'CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER=y' \
+	'CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER_KUNIT_TEST=y'; do
 	grep -Fx "$token" "$config" >/dev/null ||
 		die "configuration missing: $token"
 done
-for token in \
-	'CONFIG_MODULES=y' \
-	'CONFIG_PSTORE_GEMINI_TRANSITION_LEDGER_KUNIT_TEST=y' \
-	'CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_LEDGER=y' \
-	'CONFIG_PSTORE_GEMINI_ARM64_ENTRY_LEDGER=y' \
-	'CONFIG_PSTORE_GEMINI_PRE_RAMOOPS_LEDGER=y' \
-	'CONFIG_MEDIATEK_WATCHDOG_RECOVERY_TAKEOVER_KUNIT_TEST=y' \
-	'CONFIG_MTK_MT6797_A72_TRANSITION_EXECUTOR=y' \
-	'CONFIG_MTK_MT6797_A72_PLATFORM_STATE_KUNIT_TEST=y' \
-	'CONFIG_REGULATOR_DA9213_LEGACY_PROVIDER_SNAPSHOT_KUNIT_TEST=y'; do
-	! grep -Fx "$token" "$config" >/dev/null ||
-		die "physical or unrelated path leaked into profile: $token"
-done
+! grep -Eq '^CONFIG_HOTPLUG_SPLIT_STARTUP=(y|m)$' "$config" ||
+	die 'hardware-free profile unexpectedly enables the late startup caller'
 focused_test_count=$(grep -Ec '^CONFIG_.*_KUNIT_TEST=y$' "$config")
-focused_test=$(grep -E '^CONFIG_.*_KUNIT_TEST=y$' "$config")
-readonly focused_test_count focused_test
-[[ "$focused_test_count" -eq 1 &&
-	"$focused_test" == 'CONFIG_PSTORE_GEMINI_CPU9_TRANSITION_LEDGER_KUNIT_TEST=y' ]] ||
-	die 'focused KUnit test inventory changed'
+focused_tests=$(grep -E '^CONFIG_.*_KUNIT_TEST=y$' "$config" | sort)
+readonly focused_test_count focused_tests
+[[ "$focused_test_count" -eq 3 ]] || die 'KUnit option inventory changed'
+[[ "$focused_tests" == $'CONFIG_ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST=y\nCONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER_KUNIT_TEST=y\nCONFIG_MTK_MT6797_A72_TRANSITION_EXECUTOR_KUNIT_TEST=y' ]] ||
+	die 'unexpected KUnit test selected'
 
 for symbol in \
-	gemini_cpu9_ledger_begin \
-	gemini_cpu9_ledger_checkpoint \
-	cpu9_ledger_validate_cpu8 \
-	cpu9_ledger_open \
-	cpu9_ledger_owner_begin \
-	cpu9_ledger_owner_checkpoint \
-	gemini_cpu9_transition_ledger_sequence_test \
-	gemini_cpu9_transition_ledger_raw_lane_test \
-	gemini_cpu9_transition_ledger_cpu8_gate_test \
-	gemini_cpu9_transition_ledger_corrupt_cpu8_test \
-	gemini_cpu9_transition_ledger_lane_refusal_test \
-	gemini_cpu9_transition_ledger_ordering_test \
-	gemini_cpu9_transition_ledger_suite; do
+	mt6797_a72_membership_derive_cpu9_diagnostic \
+	mt6797_a72_membership_derive_cpu9 \
+	mt6797_a72_membership_publish_cpu9 \
+	mt6797_a72_membership_preflight_cpu9 \
+	mt6797_a72_membership_claim_cpu9 \
+	mt6797_a72_membership_reject_cpu9 \
+	mt6797_a72_membership_begin_cpu9_on \
+	mt6797_a72_membership_publish_cpu9_success \
+	mt6797_a72_membership_finalize_cpu9_success \
+	mt6797_a72_owner_cpu9_parent_gate \
+	mt6797_a72_owner_cpu9_parent_mutations \
+	mt6797_a72_owner_cpu9_success_lifecycle \
+	mt6797_a72_owner_cpu9_rejection_one_shot \
+	mt6797_a72_owner_suite \
+	mt6797_a72_transition_run \
+	mt6797_transition_suite \
+	mt6797_a72_binder_preflight \
+	mt6797_a72_binder_cpu_boot \
+	mt6797_a72_binder_complete \
+	mt6797_a72_binder_failure \
+	mt6797_binder_test_suite; do
 	grep -q " ${symbol}$" "$system_map" || die "required symbol absent: $symbol"
 done
 for symbol in \
-	mt6797_a72_transition_run \
-	mtk_wdt_recovery_takeover \
-	da9213_legacy_provider_transaction_acquire \
-	mt6797_a72_platform_provider_suite; do
+	gemini_cpu9_ledger_begin \
+	gemini_cpu9_ledger_checkpoint \
+	mt6797_a72_admission_controller_probe \
+	mt6797_a72_admission_live_arm; do
 	! grep -q " ${symbol}$" "$system_map" || die "excluded symbol linked: $symbol"
 done
 
@@ -124,6 +130,7 @@ readonly raw_parent
 
 set +e
 timeout --signal=TERM 45 qemu-system-aarch64 \
+	-accel tcg,thread=single \
 	-machine virt -cpu cortex-a53 -smp 4 -m 1024 \
 	-nographic -no-reboot -nic none -kernel "$image" \
 	>"$raw_log" 2>&1
@@ -135,4 +142,5 @@ PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/classify-kunit.py" \
 	--package "$package_dir" \
 	--raw-log "$raw_log" \
 	--qemu-exit "$qemu_exit" \
-	--repository-commit "$repository_commit"
+	--repository-commit "$package_commit" \
+	--harness-commit "$harness_commit"
