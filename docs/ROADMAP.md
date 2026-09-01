@@ -6919,6 +6919,22 @@ close the pristine read-only gate, and spend one trigger. Advance only to
 progress stage 2 or later or an exact downstream terminal; another stage-1
 header refusal rejects the repair.
 
+That fresh exact boot passed the corrected pristine gate and consumed one
+trigger. The raw-header repair is runtime-confirmed: changed-ID recovery found
+CPU8's exact terminal record plus two consecutive CRC-valid progress copies
+through stage 7, while the CPU9 ledger remained logical empty. Exact source
+places the next operation at `mt6797_a72_membership_claim_cpu9()`: it calls
+`cpus_read_lock()` from the CPU9 boot callback while generic `_cpu_up()` already
+holds `cpus_write_lock()`, so the current task cannot reach the stage-8 or
+CPU9-ledger checkpoints before watchdog recovery. The candidate is retired.
+**Selected next:** add one lock-held CPU9 membership claim entry point that
+asserts but does not reacquire the generic CPU-hotplug lock; use it only from
+the binder's `_cpu_up()` callback, preserve the ordinary lock-taking helper,
+and run the complete membership/binder/controller/progress regression on
+Buildbox. Only after that offline gate may a new candidate test whether CPU9
+reaches its retained ledger and ordered CPU_ON path, still with CPU_OFF and
+retry disconnected.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

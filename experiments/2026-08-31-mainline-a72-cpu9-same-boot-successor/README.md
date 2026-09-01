@@ -538,7 +538,27 @@ healthy battery. The guarded installer wrote, synchronized, flushed, and
 fully read back `1cf367e0...`; the full readback matched, both trusted-
 environment hashes stayed unchanged, no fresh backup or reboot was requested,
 and the device became unreachable after clean shutdown. The selected candidate
-has not yet been booted.
+then booted with a fresh ID. The first read-only gate safely rejected before a
+trigger because its derived collector still selected the predecessor's probe;
+that probe prints a host-pinned candidate identity rather than measuring the
+mainline partition. Source-pinned raw-lane probe and trigger wrappers corrected
+the tooling without changing the running device. The corrected pristine gate
+passed and exactly one trigger was committed.
+
+The live terminal frame was lost at the trigger boundary and fixed-watchdog
+recovery returned to changed-ID Gemian. Direct bounded recovery decoded CPU8's
+CRC-valid terminal record and, for the first time, a committed progress lane:
+its consecutive generation 13/14 copies are before/after stage 7, binder
+entry. The CPU9 transition lane remained logical empty. This runtime-confirms
+the raw-header repair and localizes the new stop after the stage-7 checkpoint
+but before stage 8 and CPU9 ledger begin. Exact source closes the remaining
+ambiguity: generic `_cpu_up()` holds `cpus_write_lock()` while it invokes the
+CPU9 PSCI boot callback; the next binder call is
+`mt6797_a72_membership_claim_cpu9()`, which recursively calls
+`cpus_read_lock()`. The current task therefore cannot advance to ledger begin,
+and the fixed watchdog recovers it. Exact `boot2` remained unchanged and
+unmounted after recovery. See
+[`results/progress-raw-lane-runtime-attempt-1-20260901.txt`](results/progress-raw-lane-runtime-attempt-1-20260901.txt).
 
 ## Analysis
 
@@ -569,7 +589,10 @@ regression profile. The detailed device evidence contract is frozen in
 [`DESIGN.md`](DESIGN.md). The progress production candidate is independently
 reproducible. Its sole device attempt again proved CPU8 terminal membership and
 now places the CPU9 stop at progress begin stage 1, before any CPU9 request.
-CPU9 was not durably admitted and no CPU9-online result is claimed.
+CPU9 was not durably admitted and no CPU9-online result is claimed. The newest
+attempt nevertheless advances the durable boundary from progress stage 1 to a
+completed stage 7 and identifies the nested CPU-hotplug lock acquisition as
+the next causal defect.
 
 ## Follow-up
 
@@ -586,11 +609,14 @@ commit, independently compose and validate its DT and Android container, and
 install it to inactive `boot2`. Those build and validation gates now pass for
 exact full-partition candidate `1cf367e0...`. Install it over retired diagnostic
 `4bf74874...`, verify the full readback, and shut down. That exact write and
-shutdown now pass. Physically select `boot2`, close the pristine read-only gate,
-and spend exactly one trigger. The boot must advance to progress stage 2 or
-later; another stage-1 refusal rejects the repair. The retained wire and all
-CPU, CPU_OFF, retry, watchdog, storage, and recovery paths otherwise remain
-unchanged.
+shutdown now pass. That exact attempt passes the pristine gate and advances
+through progress stage 7, proving the raw-lane repair. The candidate is retired
+and must not be repeated. Add a narrow membership entry point for callers that
+already hold the CPU-hotplug lock, assert that contract, and select it only
+from the CPU9 binder boot callback. Preserve the existing lock-taking helper
+for ordinary callers. Run the complete membership, binder, controller,
+progress-ledger, and CPU8 regression suites on Buildbox before defining another
+production candidate.
 The ordered device action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside
