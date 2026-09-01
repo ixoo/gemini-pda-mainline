@@ -89,6 +89,7 @@ def validate(root: Path) -> list[str]:
 
     exact(controller, "ops->progress_begin(context, cpu8_attempt_id)", 1)
     exact(controller, "ops->progress_checkpoint(context, cpu8_attempt_id, stage)", 1)
+    exact(controller, "GEMINI_CPU9_PROGRESS_CPU8_PROOF, true", 1)
     exact(controller, "ops->add_cpu(context, MT6797_A72_CPU9_EXECUTOR_CPU9)", 1)
     exact(controller, "state->cpu9_requests = 1;", 1)
     controller_stages = (
