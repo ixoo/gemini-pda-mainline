@@ -75,20 +75,6 @@ SUITES = (
         ),
     ),
     (
-        "mt6797-a72-default-off-binder",
-        (
-            "mt6797_binder_success_test",
-            "mt6797_binder_terminal_failure_test",
-            "mt6797_binder_preiso_checkpoint_test",
-            "mt6797_binder_malformed_owners_test",
-            "mt6797_binder_p27_diagnostic_test",
-            "mt6797_binder_sram_diagnostic_test",
-            "mt6797_binder_sram_selector_mask_test",
-            "mt6797_binder_p30e_readback_test",
-            "mt6797_binder_one_shot_test",
-        ),
-    ),
-    (
         "mt6797-a72-cpu9-executor",
         (
             "mt6797_cpu9_executor_success_test",
@@ -101,6 +87,20 @@ SUITES = (
             "mt6797_cpu9_executor_lifecycle_guards_test",
             "mt6797_cpu9_executor_failure_dispatch_test",
             "mt6797_cpu9_executor_terminal_failures_test",
+        ),
+    ),
+    (
+        "mt6797-a72-default-off-binder",
+        (
+            "mt6797_binder_success_test",
+            "mt6797_binder_terminal_failure_test",
+            "mt6797_binder_preiso_checkpoint_test",
+            "mt6797_binder_malformed_owners_test",
+            "mt6797_binder_p27_diagnostic_test",
+            "mt6797_binder_sram_diagnostic_test",
+            "mt6797_binder_sram_selector_mask_test",
+            "mt6797_binder_p30e_readback_test",
+            "mt6797_binder_one_shot_test",
         ),
     ),
 )
@@ -152,7 +152,7 @@ def classify_runtime(raw: str, expected_release: str, qemu_exit: int) -> None:
     require(ktap.count("KTAP version 1") == len(SUITES) + 1,
             "expected one top-level and four suite KTAP headers")
     plans = [line for line in ktap if re.fullmatch(r"1\.\.\d+", line)]
-    require(plans == ["1..4", "1..34", "1..12", "1..9", "1..10"],
+    require(plans == ["1..4", "1..34", "1..12", "1..10", "1..9"],
             f"KUnit plans changed: {plans}")
     subtests = [line for line in ktap if line.startswith("# Subtest: ")]
     require(subtests == [f"# Subtest: {suite}" for suite, _ in SUITES],
