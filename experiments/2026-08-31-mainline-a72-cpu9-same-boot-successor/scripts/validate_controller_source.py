@@ -146,7 +146,7 @@ def validate(root: Path) -> list[str]:
 
     exact(public, "#define MT6797_A72_CPU9_BINDER_DIAGNOSTIC_ABI 1U")
     exact(public, "struct mt6797_a72_cpu9_binder_diagnostic {")
-    exact(public, "int mt6797_a72_cpu9_binder_diagnostic_snapshot(")
+    exact(public, "int mt6797_a72_cpu9_binder_diagnostic_snapshot(", 2)
     for token in (
         "snapshot->lifecycle = atomic_read_acquire(&binder->executor.lifecycle)",
         "snapshot->terminal = result->terminal",
