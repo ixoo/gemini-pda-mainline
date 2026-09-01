@@ -1,0 +1,105 @@
+From a09febf91f30faef4f28c02230610637d3a24a72 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 1 Sep 2026 00:55:00 +0000
+Subject: [PATCH] soc: mediatek: fix CPU9 executor test fixture type
+
+Use the declared A72-qualified fixture type consistently in the
+hardware-free CPU9 executor tests. This repairs compilation only
+and changes no executor behavior or production source.
+---
+ .../mediatek/mt6797-a72-cpu9-executor-test.c  | 20 +++++++++----------
+ 1 file changed, 10 insertions(+), 10 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-cpu9-executor-test.c b/drivers/soc/mediatek/mt6797-a72-cpu9-executor-test.c
+index e6617fc..b411b71 100644
+--- a/drivers/soc/mediatek/mt6797-a72-cpu9-executor-test.c
++++ b/drivers/soc/mediatek/mt6797-a72-cpu9-executor-test.c
+@@ -13,7 +13,7 @@
+ #define MT6797_CPU9_TEST_AFTER 2U
+ #define MT6797_CPU9_TEST_TERMINAL 100U
+ 
+-struct mt6797_cpu9_executor_test_state {
++struct mt6797_a72_cpu9_executor_test_state {
+ 	enum mt6797_a72_cpu9_executor_stage fail_stage;
+ 	enum mt6797_a72_cpu9_executor_stage checkpoint_fail_stage;
+ 	enum mt6797_a72_cpu9_executor_phase checkpoint_fail_phase;
+@@ -26,14 +26,14 @@ struct mt6797_cpu9_executor_test_state {
+ 	unsigned int membership_target;
+ };
+ 
+-static void mt6797_cpu9_test_record(struct mt6797_cpu9_executor_test_state *state,
++static void mt6797_cpu9_test_record(struct mt6797_a72_cpu9_executor_test_state *state,
+ 				    unsigned int event)
+ {
+ 	if (state->event_count < ARRAY_SIZE(state->events))
+ 		state->events[state->event_count++] = event;
+ }
+ 
+-static int mt6797_cpu9_test_effect(struct mt6797_cpu9_executor_test_state *state,
++static int mt6797_cpu9_test_effect(struct mt6797_a72_cpu9_executor_test_state *state,
+ 				   enum mt6797_a72_cpu9_executor_stage stage)
+ {
+ 	mt6797_cpu9_test_record(state, MT6797_CPU9_TEST_EVENT(stage, MT6797_CPU9_TEST_EFFECT));
+@@ -44,7 +44,7 @@ static int mt6797_cpu9_test_checkpoint(void *context, enum mt6797_a72_cpu9_execu
+ 				       enum mt6797_a72_cpu9_executor_stage stage,
+ 				       const struct mt6797_a72_cpu9_executor_result *result)
+ {
+-	struct mt6797_cpu9_executor_test_state *state = context;
++	struct mt6797_a72_cpu9_executor_test_state *state = context;
+ 	unsigned int slot = phase == MT6797_A72_CPU9_PHASE_BEFORE ? MT6797_CPU9_TEST_BEFORE
+ 								  : MT6797_CPU9_TEST_AFTER;
+ 
+@@ -64,7 +64,7 @@ static int mt6797_cpu9_test_prestate(void *context,
+ 
+ static int mt6797_cpu9_test_cpu_on(void *context, unsigned int cpu)
+ {
+-	struct mt6797_cpu9_executor_test_state *state = context;
++	struct mt6797_a72_cpu9_executor_test_state *state = context;
+ 
+ 	state->cpu_on_target = cpu;
+ 	return mt6797_cpu9_test_effect(state, MT6797_A72_CPU9_STAGE_CPU_ON);
+@@ -72,7 +72,7 @@ static int mt6797_cpu9_test_cpu_on(void *context, unsigned int cpu)
+ 
+ static int mt6797_cpu9_test_secondary(void *context, unsigned int cpu)
+ {
+-	struct mt6797_cpu9_executor_test_state *state = context;
++	struct mt6797_a72_cpu9_executor_test_state *state = context;
+ 
+ 	state->secondary_target = cpu;
+ 	return mt6797_cpu9_test_effect(state, MT6797_A72_CPU9_STAGE_ONLINE_WAIT);
+@@ -80,7 +80,7 @@ static int mt6797_cpu9_test_secondary(void *context, unsigned int cpu)
+ 
+ static int mt6797_cpu9_test_ipi(void *context, unsigned int cpu)
+ {
+-	struct mt6797_cpu9_executor_test_state *state = context;
++	struct mt6797_a72_cpu9_executor_test_state *state = context;
+ 
+ 	state->ipi_target = cpu;
+ 	return mt6797_cpu9_test_effect(state, MT6797_A72_CPU9_STAGE_IPI);
+@@ -88,7 +88,7 @@ static int mt6797_cpu9_test_ipi(void *context, unsigned int cpu)
+ 
+ static int mt6797_cpu9_test_membership(void *context, unsigned int cpu)
+ {
+-	struct mt6797_cpu9_executor_test_state *state = context;
++	struct mt6797_a72_cpu9_executor_test_state *state = context;
+ 
+ 	state->membership_target = cpu;
+ 	return mt6797_cpu9_test_effect(state, MT6797_A72_CPU9_STAGE_MEMBERSHIP);
+@@ -97,7 +97,7 @@ static int mt6797_cpu9_test_membership(void *context, unsigned int cpu)
+ static int mt6797_cpu9_test_terminal(void *context,
+ 				     const struct mt6797_a72_cpu9_executor_result *result)
+ {
+-	struct mt6797_cpu9_executor_test_state *state = context;
++	struct mt6797_a72_cpu9_executor_test_state *state = context;
+ 
+ 	(void)result;
+ 	mt6797_cpu9_test_record(state, MT6797_CPU9_TEST_TERMINAL);
+@@ -490,7 +490,7 @@ static void mt6797_cpu9_executor_terminal_failures_test(struct kunit *test)
+ 
+ 	controller = (struct mt6797_a72_cpu9_executor_controller)
+ 		MT6797_A72_CPU9_EXECUTOR_CONTROLLER_INIT;
+-	state = (struct mt6797_cpu9_executor_test_state){
++	state = (struct mt6797_a72_cpu9_executor_test_state){
+ 		.fail_stage = MT6797_A72_CPU9_STAGE_PRESTATE,
+ 		.terminal_fails = true,
+ 	};

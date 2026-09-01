@@ -81,6 +81,12 @@ first write. No new physical range is introduced.
 - [`results/executor-patch-generation-20260831.txt`](results/executor-patch-generation-20260831.txt):
   exact post-`0465` Buildbox generation, strict replay, and ten mutation
   rejections for the hardware-free retained-cluster executor in patch `0466`.
+- [`results/executor-kunit-attempt-1-20260831.txt`](results/executor-kunit-attempt-1-20260831.txt):
+  first exact Buildbox compile; the production executor reached compilation,
+  but the KUnit file used two names for its private fixture type.
+- [`results/executor-fixture-fix-generation-20260831.txt`](results/executor-fixture-fix-generation-20260831.txt):
+  exact failed-source Buildbox generation, strict replay, and two mutation
+  rejections for the test-only fixture repair in patch `0467`.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger and owner-local membership lifecycle. The canonical layers
@@ -172,6 +178,14 @@ has no production caller, physical backend, CPU request, CPU_OFF, retry, or
 cluster effect. Canonical compilation and the exact 65-case no-network KUnit
 gate remain pending, so it is not a boot candidate.
 
+The first exact Buildbox compile then rejected only the KUnit source: its
+private fixture was declared as `mt6797_cpu9_executor_test_state` while test
+instances used the A72-qualified name. No package or QEMU run was admitted.
+Canonical patch `0467` now uses the A72-qualified private type consistently in
+that test file only. Exact failed-source generation, two type-divergence
+mutations, strict style, and deterministic replay pass. Production executor
+source and behavior are unchanged; the Buildbox/KUnit rerun remains pending.
+
 ## Analysis
 
 The current generic owner and P30E layers contain useful CPU9 primitives, but
@@ -191,14 +205,15 @@ retained-cluster PSCI executor. Reusing the CPU8 transition or merely widening
 its CPU checks is rejected because it exposes repeated cluster acquisition.
 The guarded independent retained ledger and owner-local CPU9 derivation/
 membership lifecycle are canonical, compiled, and runtime-tested. The third
-logical layer—the hardware-free retained-cluster executor—is canonical at the
-source-generation gate but not yet compiled or runtime-tested. The detailed
+logical layer—the hardware-free retained-cluster executor plus its test-only
+fixture repair—is canonical at the source-generation gate but not yet
+compiled or runtime-tested. The detailed
 remaining implementation and evidence contract is frozen in
 [`DESIGN.md`](DESIGN.md); no CPU9 support or device result is claimed yet.
 
 ## Follow-up
 
-Compile patch `0466` on Buildbox and pass the exact 65-case hardware-free
+Compile patches `0466`–`0467` on Buildbox and pass the exact 65-case hardware-free
 KUnit gate. Then bind P30E/PSCI/completion dispatch and chain the
 candidate-only controller before candidate validation and one predeclared
 device attempt.

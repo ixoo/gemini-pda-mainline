@@ -6738,10 +6738,13 @@ distinct hardware-free retained-cluster executor with only prestate, CPU_ON,
 online completion, IPI, and membership operations. Its exact-source
 generation rejects ten unsafe mutations and passes strict style and
 deterministic replay; it has no production caller or physical CPU request.
-**Selected next:** compile `0466` on Buildbox and pass the exact 65-case
-no-network KUnit gate. P30E/PSCI dispatch, controller chaining, and candidate
-gates remain subsequent layers. No CPU9 candidate or device action is admitted
-until all those gates pass.
+The first exact compile rejected a private KUnit fixture type-name mismatch;
+test-only patch `0467` repairs it without changing production source and
+passes exact-source generation, two mutation rejections, strict style, and
+deterministic replay. **Selected next:** compile `0466`–`0467` on Buildbox and
+pass the exact 65-case no-network KUnit gate. P30E/PSCI dispatch, controller
+chaining, and candidate gates remain subsequent layers. No CPU9 candidate or
+device action is admitted until all those gates pass.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
