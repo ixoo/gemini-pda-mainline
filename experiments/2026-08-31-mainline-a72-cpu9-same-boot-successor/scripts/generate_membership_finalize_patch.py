@@ -89,7 +89,7 @@ def apply_fix(root: Path) -> None:
     path = root / SOURCE
     text = path.read_text(encoding="utf-8")
     marker = "#if IS_ENABLED(CONFIG_ARM64_MT6797_A72_CPU9_MEMBERSHIP)"
-    if text.count(marker) != 1:
+    if text.count(marker) != 2:
         raise SystemExit("CPU9 membership block marker changed")
     prefix = text.split(marker, 1)[0]
 
