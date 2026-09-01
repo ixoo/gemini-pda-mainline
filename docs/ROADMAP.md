@@ -6863,13 +6863,15 @@ begin returned the identical stage-1 `-EBADMSG` before any CPU9 request, binder
 entry, CPU9 ledger write, CPU_OFF, or retry. Fixed-watchdog recovery returned
 to changed-ID Gemian; record 0 decoded while records 1--3 remained exact
 logical empty. The mapping-attribute hypothesis is therefore rejected and the
-candidate is retired. **Selected next:** add ordinary live-status diagnostics
-at the existing progress-begin reads to identify the exact rejected sub-check:
-CPU8 header words, CRC-valid-copy mask, latest attempt/terminal fields, progress
-header words, and a fixed failure-reason enum. Preserve the retained wire and
-all CPU request, CPU_OFF, retry, watchdog, storage, and recovery behavior.
-Build and test only on Buildbox. Spend another boot only when the diagnostic
-has one exact result map that selects a causal fix.
+candidate is retired. Source audit then narrowed the ambiguity without adding
+reads: the CPU8 proof already returns distinct errors for header, attempt, and
+terminal failures, but corrupt CPU8 copies and a malformed progress-lane header
+both return `-EBADMSG`. **Selected next:** canonical patch `0476` changes only
+the malformed progress-lane result to `-EUCLEAN` and adds focused KUnit proof
+that corrupt CPU8 copies retain `-EBADMSG`. Preserve the retained wire and all
+CPU request, CPU_OFF, retry, watchdog, storage, and recovery behavior. Build
+and test only on Buildbox. Spend another boot only after the full regression
+passes and the surfaced errno has one exact causal result map.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

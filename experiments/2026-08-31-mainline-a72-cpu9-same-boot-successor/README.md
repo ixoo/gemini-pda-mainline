@@ -139,6 +139,9 @@ first write. No new physical range is introduced.
   exact successor boot and sole trigger, unchanged stage-1 `-EBADMSG`, CPU8
   terminal proof, logical-empty CPU9/progress lanes, and rejection of the
   mapping-attribute hypothesis.
+- [`results/progress-lane-errno-diagnostic-definition-20260901.txt`](results/progress-lane-errno-diagnostic-definition-20260901.txt):
+  exact post-`0475` source audit and canonical `0476` definition that preserves
+  CPU8 `-EBADMSG` while assigning malformed progress-lane refusal `-EUCLEAN`.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger, owner-local membership lifecycle, retained-cluster dispatch, and
@@ -500,12 +503,14 @@ CPU9 was not durably admitted and no CPU9-online result is claimed.
 
 The exact progress candidate and its mapping-consistency successor are both
 retired after one decision-bearing attempt each. The successor reproduced the
-same stage-1 `-EBADMSG`, rejecting the mapping-attribute hypothesis. The next
-action is an offline-proven, branch-local progress-begin diagnostic that
-reports which already-required header, CRC-copy, attempt/terminal, or empty-lane
-check failed. It must not change the retained wire or any CPU, CPU_OFF, retry,
-watchdog, storage, or recovery path. The ordered device action and its exit
-criteria remain owned by
+same stage-1 `-EBADMSG`, rejecting the mapping-attribute hypothesis. Exact
+source audit shows all CPU8 proof failures are already distinct except for one
+collision: corrupt CPU8 copies and a malformed progress lane both return
+`-EBADMSG`. Canonical patch `0476` changes only the latter to `-EUCLEAN` and
+adds focused proof that corrupt CPU8 copies retain `-EBADMSG`. It must pass the
+full offline regression before candidate construction. The retained wire and
+all CPU, CPU_OFF, retry, watchdog, storage, and recovery paths remain unchanged.
+The ordered device action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside
 this diagnostic.

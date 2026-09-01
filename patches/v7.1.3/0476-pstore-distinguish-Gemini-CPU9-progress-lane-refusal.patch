@@ -1,0 +1,62 @@
+From 1000000000000000000000000000000000000476 Tue Sep  1 00:00:00 2026
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 1 Sep 2026 22:05:00 +0000
+Subject: [PATCH] pstore: distinguish Gemini CPU9 progress lane refusal
+
+The one-shot reader-mapping successor reproduced progress stage 1 with
+-EBADMSG before any CPU9 request. The cpu9_progress_owner_begin() helper
+uses that result for two failures. One means no CRC-valid CPU8 proof copy.
+The other means the progress lane has a malformed header. Recovery
+cannot distinguish them
+because Gemian observes the lanes only after the fixed watchdog reboot.
+
+Return -EUCLEAN for only the malformed progress-lane header. Preserve
+-EALREADY for a committed lane. Keep every CPU8-proof result unchanged.
+Extend the focused test to prove corrupt CPU8 copies still return -EBADMSG.
+This adds
+no read, retained write, CPU request, CPU_OFF, retry, or recovery action.
+---
+ fs/pstore/gemini_cpu9_progress_ledger.c      |  2 +-
+ fs/pstore/gemini_cpu9_progress_ledger_test.c | 10 +++++++++-
+ 2 files changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/fs/pstore/gemini_cpu9_progress_ledger.c b/fs/pstore/gemini_cpu9_progress_ledger.c
+--- a/fs/pstore/gemini_cpu9_progress_ledger.c
++++ b/fs/pstore/gemini_cpu9_progress_ledger.c
+@@ -69,6 +69,6 @@ int cpu9_progress_owner_begin(
+ 		       progress_ops->read(progress_context, 2) ==
+ 				GEMINI_TRANSITION_LEDGER_PAYLOAD_BYTES ?
+-			-EALREADY : -EBADMSG;
++			-EALREADY : -EUCLEAN;
+ 	ret = gemini_transition_ledger_owner_begin(
+ 		&owner->ledger, progress_ops, progress_context, cpu8_attempt_id);
+ 	if (ret)
+diff --git a/fs/pstore/gemini_cpu9_progress_ledger_test.c b/fs/pstore/gemini_cpu9_progress_ledger_test.c
+--- a/fs/pstore/gemini_cpu9_progress_ledger_test.c
++++ b/fs/pstore/gemini_cpu9_progress_ledger_test.c
+@@ -132,6 +132,14 @@ static void cpu9_progress_cpu8_gate_test(struct kunit *test)
+ 	KUNIT_EXPECT_EQ(test, cpu9_progress_owner_begin(
+ 		&owner, &cpu9_progress_test_ops, &cpu8,
+ 		&cpu9_progress_test_ops, &progress, 2), -EACCES);
++	memset(&owner, 0, sizeof(owner));
++	cpu8.words[GEMINI_TRANSITION_LEDGER_HEADER_WORDS] ^= 1;
++	cpu8.words[GEMINI_TRANSITION_LEDGER_HEADER_WORDS +
++		   GEMINI_TRANSITION_LEDGER_COPY_WORDS] ^= 1;
++	KUNIT_EXPECT_EQ(test, cpu9_progress_owner_begin(
++		&owner, &cpu9_progress_test_ops, &cpu8,
++		&cpu9_progress_test_ops, &progress, 1), -EBADMSG);
++
+ 	memset(&owner, 0, sizeof(owner));
+ 	cpu8.words[0] = 0;
+ 	KUNIT_EXPECT_EQ(test, cpu9_progress_owner_begin(
+@@ -150,7 +158,7 @@ static void cpu9_progress_lane_refusal_test(struct kunit *test)
+ 	memset(&progress, 0xff, sizeof(progress));
+ 	KUNIT_EXPECT_EQ(test, cpu9_progress_owner_begin(
+ 		&owner, &cpu9_progress_test_ops, &cpu8,
+-		&cpu9_progress_test_ops, &progress, 1), -EBADMSG);
++		&cpu9_progress_test_ops, &progress, 1), -EUCLEAN);
+ 	memset(&owner, 0, sizeof(owner));
+ 	cpu9_progress_test_empty(&progress);
+ 	progress.words[1] = GEMINI_TRANSITION_LEDGER_PAYLOAD_BYTES;
+-- 
+2.51.0
