@@ -203,6 +203,7 @@ def classify_runtime(raw: str, expected_release: str, qemu_exit: int) -> None:
             "KTAP contains a failing result")
 
     expected_ok = []
+    expected_totals = Counter()
     for suite_index, (suite, cases) in enumerate(SUITES, start=1):
         expected_ok.extend(
             f"ok {case_index} {case}"
@@ -213,8 +214,12 @@ def classify_runtime(raw: str, expected_release: str, qemu_exit: int) -> None:
         totals = f"# Totals: pass:{len(cases)} fail:0 skip:0 total:{len(cases)}"
         require(ktap.count(summary) == 1,
                 f"suite summary is not an exact pass: {suite}")
-        require(ktap.count(totals) == 1,
-                f"suite totals are not an exact pass: {suite}")
+        expected_totals[totals] += 1
+    observed_totals = Counter(
+        line for line in ktap if line.startswith("# Totals: ")
+    )
+    require(observed_totals == expected_totals,
+            f"suite totals changed: {observed_totals}")
     observed_ok = [line for line in ktap if re.fullmatch(r"ok \d+ \S+", line)]
     require(observed_ok == expected_ok,
             f"case or suite inventory changed: {observed_ok}")
@@ -314,6 +319,8 @@ def main() -> None:
     print("cpu9_membership_tests=4")
     print("cpu9_executor_tests=10")
     print("cpu9_dispatch_tests=8")
+    print("cpu9_controller_tests=8")
+    print("cpu8_admission_tests=10")
     print("regression_tests=55")
     print("failed=0")
     print("skipped=0")
@@ -336,7 +343,8 @@ def main() -> None:
     print("retained_ram=false")
     print("watchdog=false")
     print("smc=false")
-    print("production_controller_callers=0")
+    print("production_controller_linked=true")
+    print("production_controller_device_node=false")
     print("physical_cpu_requests=0")
     print("device_action=none")
     print("boot_candidate=false")
