@@ -14,7 +14,7 @@ from pathlib import Path
 
 
 PROFILE = "gemini-cpu9-controller-kunit"
-EXPECTED_RELEASE = "7.1.3-gemini-cpu9-controller-kunit"
+EXPECTED_RELEASE = "7.1.3-gemini-cpu9-progress-kunit"
 PANIC_PREFIX = "Kernel panic - not syncing: VFS: Unable to mount root fs"
 PANIC_END_PREFIX = f"---[ end {PANIC_PREFIX}"
 SUITES = (
@@ -55,6 +55,15 @@ SUITES = (
             "mt6797_a72_owner_cpu9_rejection_one_shot",
             "mt6797_a72_owner_forged_token_rejected",
             "mt6797_a72_owner_no_live_token",
+        ),
+    ),
+    (
+        "gemini-cpu9-progress-ledger",
+        (
+            "cpu9_progress_sequence_test",
+            "cpu9_progress_cpu8_gate_test",
+            "cpu9_progress_lane_refusal_test",
+            "cpu9_progress_ordering_test",
         ),
     ),
     (
@@ -100,6 +109,7 @@ SUITES = (
             "mt6797_cpu9_binder_secondary_failure_test",
             "mt6797_cpu9_binder_completion_failures_test",
             "mt6797_cpu9_binder_failure_dispatch_test",
+            "mt6797_cpu9_binder_progress_failures_test",
         ),
     ),
     (
@@ -127,6 +137,7 @@ SUITES = (
             "mt6797_a72_cpu9_admission_publish_failure_test",
             "mt6797_a72_cpu9_admission_prepare_failure_test",
             "mt6797_a72_cpu9_admission_request_failure_test",
+            "mt6797_a72_cpu9_admission_progress_failures_test",
         ),
     ),
     (
@@ -191,10 +202,10 @@ def classify_runtime(raw: str, expected_release: str, qemu_exit: int) -> None:
     start = lines.index("KTAP version 1")
     ktap = lines[start:]
     require(ktap.count("KTAP version 1") == len(SUITES) + 1,
-            "expected one top-level and seven suite KTAP headers")
+            "expected one top-level and eight suite KTAP headers")
     plans = [line for line in ktap if re.fullmatch(r"1\.\.\d+", line)]
-    require(plans == ["1..7", "1..34", "1..12", "1..10", "1..8",
-                      "1..9", "1..8", "1..10"],
+    require(plans == ["1..8", "1..34", "1..4", "1..12", "1..10",
+                      "1..9", "1..9", "1..9", "1..10"],
             f"KUnit plans changed: {plans}")
     subtests = [line for line in ktap if line.startswith("# Subtest: ")]
     require(subtests == [f"# Subtest: {suite}" for suite, _ in SUITES],
@@ -318,8 +329,9 @@ def main() -> None:
     print(f"tests={total_tests}")
     print("cpu9_membership_tests=4")
     print("cpu9_executor_tests=10")
-    print("cpu9_dispatch_tests=8")
-    print("cpu9_controller_tests=8")
+    print("cpu9_progress_tests=4")
+    print("cpu9_dispatch_tests=9")
+    print("cpu9_controller_tests=9")
     print("cpu8_admission_tests=10")
     print("regression_tests=55")
     print("failed=0")
