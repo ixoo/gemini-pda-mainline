@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-cpu9-same-boot-successor` |
-| Status | `CPU9 finalization defect isolated; narrow repair generated, rebuild pending` |
+| Status | `owner-local CPU9 membership validated; retained-cluster executor next` |
 | Subsystem | MT6797 A72 CPU9 retained-cluster admission |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -75,10 +75,13 @@ first write. No new physical range is introduced.
 - [`results/membership-finalize-patch-generation-20260831.txt`](results/membership-finalize-patch-generation-20260831.txt):
   exact post-`0464` generation and five mutation rejections for the narrow
   pre-success/post-success member-mask repair in patch `0465`.
+- [`results/membership-kunit-attempt-2-20260831.txt`](results/membership-kunit-attempt-2-20260831.txt):
+  exact repaired Buildbox package and no-network QEMU result: all 55 owner,
+  transition, and binder cases passed with zero failures or skips.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
-  ledger. Canonical patch `0463` adds the ledger but deliberately has no
-  production caller and does not enable CPU9.
+  ledger and owner-local membership lifecycle. The canonical layers
+  deliberately have no production caller and do not enable CPU9.
 
 Implementation patches, generators, validators, and build results will be
 added here only after each logical source boundary passes deterministic
@@ -142,12 +145,16 @@ other 33 owner cases, all 12 transition cases, and all 9 binder cases passed.
 The next patch is therefore a narrow phase-aware membership repair; no caller,
 device candidate, or physical action is justified by this failed gate.
 
-Generated patch `0465` makes only that phase distinction: before success the
+Canonical patch `0465` makes only that phase distinction: before success the
 active CPU9 transaction requires member bit 0; after success publication it
 requires bits 0+1. The exact CPU8 retired parent, provider identity, budgets,
 caller set, and effect set remain unchanged. Five source mutations and strict
-replay validation pass; Buildbox compilation and the exact 55-case rerun are
-pending.
+replay validation passed. Exact published commit `322681f1...` then compiled
+on Buildbox, passed package and provenance validation, and passed the exact
+55-case no-network QEMU rerun with zero failures or skips. The repaired CPU9
+success lifecycle now finalizes members 0+1; all 33 other owner cases, all 12
+transition cases, and all 9 binder cases remain green. No physical backend,
+production caller, CPU request, or device action was present.
 
 ## Analysis
 
@@ -166,16 +173,17 @@ CPU8 terminal is already CRC-valid.
 `confirmed`: on the exact parent source, CPU9 must be a separate same-boot,
 retained-cluster PSCI executor. Reusing the CPU8 transition or merely widening
 its CPU checks is rejected because it exposes repeated cluster acquisition.
-The first logical layer, the guarded independent retained ledger, is now
-canonical, compiled, and runtime-tested. The detailed remaining implementation
-and evidence contract is frozen in [`DESIGN.md`](DESIGN.md); no CPU9 support or
-device result is claimed yet.
+The first two logical layers—the guarded independent retained ledger and the
+owner-local CPU9 derivation/membership lifecycle—are now canonical, compiled,
+and runtime-tested. The detailed remaining implementation and evidence
+contract is frozen in [`DESIGN.md`](DESIGN.md); no CPU9 support or device
+result is claimed yet.
 
 ## Follow-up
 
-Implement owner-local CPU9 derivation and CPU9-specific membership lifecycle
-entry points next, with focused no-network tests. Then add the retained-cluster
-executor, bind P30E/PSCI/completion dispatch, and chain the candidate-only
-controller before candidate validation and one predeclared device attempt.
+Implement the distinct retained-cluster CPU9 executor next, limited to
+prestate, CPU_ON/P30E, online completion, IPI, and membership. Then bind
+P30E/PSCI/completion dispatch and chain the candidate-only controller before
+candidate validation and one predeclared device attempt.
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside
 that first CPU9 attempt.

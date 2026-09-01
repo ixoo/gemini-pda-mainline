@@ -43,8 +43,11 @@ the loop. Positive identity-gated observations are unaffected.
   already-reserved record 1 only after validating record 0. Canonical patch
   `0463` now implements that first logical layer and passes exact Buildbox
   compile/package validation plus a six-case no-network QEMU KUnit runtime.
-  It has no production caller; owner-local CPU9 derivation is next, and no
-  CPU9 candidate or device action is admitted yet.
+  Patches `0464` and `0465` add and repair the owner-local CPU9 derivation and
+  membership lifecycle; their exact Buildbox package passes all 55 owner,
+  transition, and binder cases with zero failures or skips. These layers have
+  no production caller. The distinct retained-cluster executor is next, and
+  no CPU9 candidate or device action is admitted yet.
 - [2026-08-31 A72 expected-pair model-contract repair](2026-08-31-mainline-a72-expected-pair-model-contract-repair/README.md)
   — repairs the generic expected-pair completeness comparison while preserving
   the exact r0p1 late-target check. Three exact Buildbox profiles and the

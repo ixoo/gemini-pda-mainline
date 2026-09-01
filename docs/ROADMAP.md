@@ -30,7 +30,7 @@ Cortex-A72 pair.
 | I2C6 transfer | Native packed/FIFO pointer-read and one exact one-message two-byte FIFO write are runtime proven. The write completed once with payload `[0xda, 0x46]`, exact no-retry accounting, and stable readback. | This closes only the reviewed same-value shape; arbitrary writes, failure recovery, stress, and resume remain open. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
 | Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected. A separate hardware-free implementation now models exact positive Buck-B acquire/release and passes all six focused fake-adapter cases. | Gate 6 is closed for the reviewed no-op, and the first Gate-7 provider source boundary is complete offline. Physical transition, production integration, consumers, and CPU requests remain disconnected. |
-| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The production-admission experiment brought CPU8 online on two fresh exact-candidate boots with attributable terminal membership proof; the repeat also advanced CPU8 accounting across a bounded one-second interval before watchdog recovery. The exact-source CPU9 audit is complete and its separate PSCI-only successor contract is frozen. | Implement and prove the five logical CPU9 successor patches on Buildbox before constructing a candidate or issuing any CPU9 request; keep CPU_OFF and retry disconnected. |
+| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The production-admission experiment brought CPU8 online on two fresh exact-candidate boots with attributable terminal membership proof; the repeat also advanced CPU8 accounting across a bounded one-second interval before watchdog recovery. The independent CPU9 retained ledger and owner-local membership lifecycle are complete offline. | Implement and prove the retained-cluster executor, dispatch, and controller layers on Buildbox before constructing a candidate or issuing any CPU9 request; keep CPU_OFF and retry disconnected. |
 
 The durable technical boundary is in
 [DA921x, I2C6, and Cortex-A72](hardware/da921x-i2c6-a72.md). The exact
@@ -6728,11 +6728,16 @@ record 1 only after validating CPU8's terminal. The first logical patch is now
 canonical as `0463`: exact published commit `837860bc...` passed Buildbox
 compile/package validation and an isolated six-case, no-network KUnit runtime
 with zero failures or skips. It has no production caller or physical CPU
-request. **Selected next:** add owner-local CPU9 derivation and CPU9-specific
-membership lifecycle entry points while preserving the unchanged CPU8 path.
-The retained-cluster executor, P30E/PSCI dispatch, controller chaining, and
-candidate gates remain subsequent layers. No CPU9 candidate or device action
-is admitted until all those gates pass.
+request. Canonical patches `0464` and `0465` now add and repair the owner-local
+CPU9 derivation and membership lifecycle while preserving the unchanged CPU8
+path. Their exact published-commit Buildbox package passed provenance and
+checksum validation; the no-network QEMU gate passed all 55 owner, transition,
+and binder cases with zero failures or skips. These patches still have no
+production caller or physical CPU request. **Selected next:** implement the
+distinct retained-cluster CPU9 executor with only prestate, CPU_ON/P30E,
+online completion, IPI, and membership stages. P30E/PSCI dispatch, controller
+chaining, and candidate gates remain subsequent layers. No CPU9 candidate or
+device action is admitted until all those gates pass.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
