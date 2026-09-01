@@ -6905,8 +6905,15 @@ spend one fresh boot. Its full 98-case Buildbox/QEMU regression now passes with
 zero failures or skips, including exact raw admission, malformed refusal, and
 publication ordering. Build the exact production profile next, independently
 validate its DT and Android container, install it to inactive `boot2`, and shut
-down. Advance only to progress stage 2 or later or an exact downstream
-terminal; another stage-1 header refusal rejects the repair.
+down. Those gates now pass at exact published commit `5bf04835...`: two
+package-exact DT compositions are byte-identical at `fc0b4518...`, reject all
+ten mutations, and two Android-v0 constructions are byte-identical at full
+partition `1cf367e0...`, pass all 32 LK gates, and reject all six container
+mutations. **Selected next:** install exact `1cf367e0...` over retired diagnostic
+`4bf74874...` on inactive logical `boot2`, require a matching full-partition
+readback, and shut down. Then spend one fresh selection boot and one trigger.
+Advance only to progress stage 2 or later or an exact downstream terminal;
+another stage-1 header refusal rejects the repair.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
