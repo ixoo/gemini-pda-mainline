@@ -19,14 +19,15 @@ struct mt6797_a72_cpu9_binder_backend_ops {
 	int (*membership_preflight)(void);
 	int (*membership_claim)(struct mt6797_a72_transaction *transaction);
 	int (*membership_reject)(struct mt6797_a72_transaction *transaction);
-	int (*membership_begin_cpu_on)(struct mt6797_a72_transaction *transaction);
+	int (*membership_begin_cpu_on)(
+		struct mt6797_a72_transaction *transaction);
 	int (*p30e_prepare)(const struct mt6797_a72_transaction *transaction,
-			     struct mt6797_a72_p30e_handoff *handoff);
+			    struct mt6797_a72_p30e_handoff *handoff);
 	int (*p30e_arm)(unsigned int cpu,
-			 const struct mt6797_a72_p30e_handoff *handoff);
+			const struct mt6797_a72_p30e_handoff *handoff);
 	int (*p30e_readback)(unsigned int cpu,
-			      const struct mt6797_a72_p30e_handoff *handoff,
-			      struct arm64_mt6797_a72_p30e_wire *copy);
+			     const struct mt6797_a72_p30e_handoff *handoff,
+			     struct arm64_mt6797_a72_p30e_wire *copy);
 	int (*membership_publish_success)(
 		struct mt6797_a72_transaction *transaction);
 	int (*membership_finalize_success)(
@@ -64,23 +65,23 @@ void mt6797_a72_cpu9_binder_test_init(
 int mt6797_a72_cpu9_binder_test_prepare(
 	struct mt6797_a72_cpu9_binder *binder,
 	const struct mt6797_a72_cpu9_executor_request *request);
-int mt6797_a72_cpu9_binder_test_preflight(
-	struct mt6797_a72_cpu9_binder *binder, unsigned int cpu,
-	enum cpuhp_state target);
-int mt6797_a72_cpu9_binder_test_validate(
-	struct mt6797_a72_cpu9_binder *binder, unsigned int cpu,
-	int tasks_frozen, enum cpuhp_state target);
-int mt6797_a72_cpu9_binder_test_boot(
-	struct mt6797_a72_cpu9_binder *binder, unsigned int cpu,
-	mt6797_a72_cpu_boot_fn cpu_boot);
+int mt6797_a72_cpu9_binder_test_preflight(struct mt6797_a72_cpu9_binder *binder,
+					  unsigned int cpu,
+					  enum cpuhp_state target);
+int mt6797_a72_cpu9_binder_test_validate(struct mt6797_a72_cpu9_binder *binder,
+					 unsigned int cpu, int tasks_frozen,
+					 enum cpuhp_state target);
+int mt6797_a72_cpu9_binder_test_boot(struct mt6797_a72_cpu9_binder *binder,
+				     unsigned int cpu,
+				     mt6797_a72_cpu_boot_fn cpu_boot);
 int mt6797_a72_cpu9_binder_test_secondary_complete(
 	struct mt6797_a72_cpu9_binder *binder, unsigned int cpu);
-int mt6797_a72_cpu9_binder_test_complete(
-	struct mt6797_a72_cpu9_binder *binder, unsigned int cpu,
-	enum cpuhp_state target);
-int mt6797_a72_cpu9_binder_test_failure(
-	struct mt6797_a72_cpu9_binder *binder, unsigned int cpu, int error,
-	bool *publish_p32);
+int mt6797_a72_cpu9_binder_test_complete(struct mt6797_a72_cpu9_binder *binder,
+					 unsigned int cpu,
+					 enum cpuhp_state target);
+int mt6797_a72_cpu9_binder_test_failure(struct mt6797_a72_cpu9_binder *binder,
+					unsigned int cpu, int error,
+					bool *publish_p32);
 #endif
 
 #endif /* __MT6797_A72_CPU9_BINDER_INTERNAL_H */

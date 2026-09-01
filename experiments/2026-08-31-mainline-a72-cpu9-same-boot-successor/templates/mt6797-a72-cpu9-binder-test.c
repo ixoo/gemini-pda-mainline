@@ -50,7 +50,7 @@ struct mt6797_cpu9_binder_test_state {
 static struct mt6797_cpu9_binder_test_state *mt6797_cpu9_binder_test_active;
 
 static int mt6797_cpu9_binder_test_ledger_begin(u64 cpu8_attempt_id,
-						 u64 cpu9_attempt_id)
+						u64 cpu9_attempt_id)
 {
 	struct mt6797_cpu9_binder_test_state *state =
 		mt6797_cpu9_binder_test_active;
@@ -58,12 +58,13 @@ static int mt6797_cpu9_binder_test_ledger_begin(u64 cpu8_attempt_id,
 	state->ledger_begin_calls++;
 	state->cpu8_attempt_id = cpu8_attempt_id;
 	state->cpu9_attempt_id = cpu9_attempt_id;
-	return state->failure == MT6797_CPU9_BINDER_FAIL_LEDGER_BEGIN ?
-		-EIO : 0;
+	return state->failure == MT6797_CPU9_BINDER_FAIL_LEDGER_BEGIN ? -EIO :
+									0;
 }
 
-static int mt6797_cpu9_binder_test_ledger_checkpoint(
-	u64 cpu9_attempt_id, u32 phase, u32 stage, u32 terminal)
+static int mt6797_cpu9_binder_test_ledger_checkpoint(u64 cpu9_attempt_id,
+						     u32 phase, u32 stage,
+						     u32 terminal)
 {
 	struct mt6797_cpu9_binder_test_state *state =
 		mt6797_cpu9_binder_test_active;
@@ -83,8 +84,7 @@ static int mt6797_cpu9_binder_test_membership_preflight(void)
 		mt6797_cpu9_binder_test_active;
 
 	state->preflight_calls++;
-	return state->failure == MT6797_CPU9_BINDER_FAIL_PREFLIGHT ?
-		-EIO : 0;
+	return state->failure == MT6797_CPU9_BINDER_FAIL_PREFLIGHT ? -EIO : 0;
 }
 
 static int mt6797_cpu9_binder_test_membership_claim(
@@ -119,8 +119,8 @@ static int mt6797_cpu9_binder_test_membership_begin_cpu_on(
 
 	(void)transaction;
 	state->cpu_on_begin_calls++;
-	return state->failure == MT6797_CPU9_BINDER_FAIL_CPU_ON_BEGIN ?
-		-EIO : 0;
+	return state->failure == MT6797_CPU9_BINDER_FAIL_CPU_ON_BEGIN ? -EIO :
+									0;
 }
 
 static int mt6797_cpu9_binder_test_p30e_prepare(
@@ -139,8 +139,9 @@ static int mt6797_cpu9_binder_test_p30e_prepare(
 	return 0;
 }
 
-static int mt6797_cpu9_binder_test_p30e_arm(
-	unsigned int cpu, const struct mt6797_a72_p30e_handoff *handoff)
+static int
+mt6797_cpu9_binder_test_p30e_arm(unsigned int cpu,
+				 const struct mt6797_a72_p30e_handoff *handoff)
 {
 	struct mt6797_cpu9_binder_test_state *state =
 		mt6797_cpu9_binder_test_active;
@@ -150,8 +151,7 @@ static int mt6797_cpu9_binder_test_p30e_arm(
 	    handoff->target_cpu != cpu ||
 	    handoff->operation != ARM64_MT6797_A72_P30E_OPERATION_CPU9_UP)
 		return -EPROTO;
-	return state->failure == MT6797_CPU9_BINDER_FAIL_P30E_ARM ?
-		-EIO : 0;
+	return state->failure == MT6797_CPU9_BINDER_FAIL_P30E_ARM ? -EIO : 0;
 }
 
 static int mt6797_cpu9_binder_test_p30e_readback(
@@ -163,11 +163,10 @@ static int mt6797_cpu9_binder_test_p30e_readback(
 
 	(void)copy;
 	state->p30e_readback_calls++;
-	if (cpu != MT6797_A72_CPU9_EXECUTOR_CPU9 ||
-	    handoff->target_cpu != cpu)
+	if (cpu != MT6797_A72_CPU9_EXECUTOR_CPU9 || handoff->target_cpu != cpu)
 		return -EPROTO;
-	return state->failure == MT6797_CPU9_BINDER_FAIL_P30E_READBACK ?
-		-EIO : 0;
+	return state->failure == MT6797_CPU9_BINDER_FAIL_P30E_READBACK ? -EIO :
+									 0;
 }
 
 static int mt6797_cpu9_binder_test_membership_publish(
@@ -178,8 +177,7 @@ static int mt6797_cpu9_binder_test_membership_publish(
 
 	(void)transaction;
 	state->publish_calls++;
-	return state->failure == MT6797_CPU9_BINDER_FAIL_PUBLISH ?
-		-EIO : 0;
+	return state->failure == MT6797_CPU9_BINDER_FAIL_PUBLISH ? -EIO : 0;
 }
 
 static int mt6797_cpu9_binder_test_membership_finalize(
@@ -190,8 +188,7 @@ static int mt6797_cpu9_binder_test_membership_finalize(
 
 	(void)transaction;
 	state->finalize_calls++;
-	return state->failure == MT6797_CPU9_BINDER_FAIL_FINALIZE ?
-		-EIO : 0;
+	return state->failure == MT6797_CPU9_BINDER_FAIL_FINALIZE ? -EIO : 0;
 }
 
 static bool mt6797_cpu9_binder_test_cpu_online(unsigned int cpu)
@@ -199,13 +196,15 @@ static bool mt6797_cpu9_binder_test_cpu_online(unsigned int cpu)
 	struct mt6797_cpu9_binder_test_state *state =
 		mt6797_cpu9_binder_test_active;
 
-	return cpu == MT6797_A72_CPU9_EXECUTOR_CPU8 ? state->cpu8_online :
-		cpu == MT6797_A72_CPU9_EXECUTOR_CPU9 && state->cpu9_online;
+	return cpu == MT6797_A72_CPU9_EXECUTOR_CPU8 ?
+		       state->cpu8_online :
+		       cpu == MT6797_A72_CPU9_EXECUTOR_CPU9 &&
+			       state->cpu9_online;
 }
 
 static int mt6797_cpu9_binder_test_ipi_call(unsigned int cpu,
-					     smp_call_func_t func, void *info,
-					     int wait)
+					    smp_call_func_t func, void *info,
+					    int wait)
 {
 	struct mt6797_cpu9_binder_test_state *state =
 		mt6797_cpu9_binder_test_active;
@@ -229,24 +228,25 @@ static int mt6797_cpu9_binder_test_cpu_boot(unsigned int cpu)
 }
 
 static const struct mt6797_a72_cpu9_binder_backend_ops
-mt6797_cpu9_binder_test_backend = {
-	.ledger_begin = mt6797_cpu9_binder_test_ledger_begin,
-	.ledger_checkpoint = mt6797_cpu9_binder_test_ledger_checkpoint,
-	.membership_preflight = mt6797_cpu9_binder_test_membership_preflight,
-	.membership_claim = mt6797_cpu9_binder_test_membership_claim,
-	.membership_reject = mt6797_cpu9_binder_test_membership_reject,
-	.membership_begin_cpu_on =
-		mt6797_cpu9_binder_test_membership_begin_cpu_on,
-	.p30e_prepare = mt6797_cpu9_binder_test_p30e_prepare,
-	.p30e_arm = mt6797_cpu9_binder_test_p30e_arm,
-	.p30e_readback = mt6797_cpu9_binder_test_p30e_readback,
-	.membership_publish_success =
-		mt6797_cpu9_binder_test_membership_publish,
-	.membership_finalize_success =
-		mt6797_cpu9_binder_test_membership_finalize,
-	.cpu_online = mt6797_cpu9_binder_test_cpu_online,
-	.ipi_call = mt6797_cpu9_binder_test_ipi_call,
-};
+	mt6797_cpu9_binder_test_backend = {
+		.ledger_begin = mt6797_cpu9_binder_test_ledger_begin,
+		.ledger_checkpoint = mt6797_cpu9_binder_test_ledger_checkpoint,
+		.membership_preflight =
+			mt6797_cpu9_binder_test_membership_preflight,
+		.membership_claim = mt6797_cpu9_binder_test_membership_claim,
+		.membership_reject = mt6797_cpu9_binder_test_membership_reject,
+		.membership_begin_cpu_on =
+			mt6797_cpu9_binder_test_membership_begin_cpu_on,
+		.p30e_prepare = mt6797_cpu9_binder_test_p30e_prepare,
+		.p30e_arm = mt6797_cpu9_binder_test_p30e_arm,
+		.p30e_readback = mt6797_cpu9_binder_test_p30e_readback,
+		.membership_publish_success =
+			mt6797_cpu9_binder_test_membership_publish,
+		.membership_finalize_success =
+			mt6797_cpu9_binder_test_membership_finalize,
+		.cpu_online = mt6797_cpu9_binder_test_cpu_online,
+		.ipi_call = mt6797_cpu9_binder_test_ipi_call,
+	};
 
 static struct mt6797_a72_cpu9_executor_request
 mt6797_cpu9_binder_test_request(void)
@@ -265,9 +265,9 @@ mt6797_cpu9_binder_test_request(void)
 	};
 }
 
-static void mt6797_cpu9_binder_test_reset(
-	struct mt6797_a72_cpu9_binder *binder,
-	struct mt6797_cpu9_binder_test_state *state)
+static void
+mt6797_cpu9_binder_test_reset(struct mt6797_a72_cpu9_binder *binder,
+			      struct mt6797_cpu9_binder_test_state *state)
 {
 	struct mt6797_a72_cpu9_executor_request request =
 		mt6797_cpu9_binder_test_request();
@@ -279,7 +279,8 @@ static void mt6797_cpu9_binder_test_reset(
 	state->transaction.p30_token_valid = 1;
 	state->transaction.p17_p18_published = 1;
 	state->transaction.identity.abi = MT6797_A72_TRANSACTION_ABI;
-	state->transaction.identity.operation = ARM64_LATE_CPU_STARTUP_OP_CPU9_UP;
+	state->transaction.identity.operation =
+		ARM64_LATE_CPU_STARTUP_OP_CPU9_UP;
 	state->transaction.identity.target_cpu = MT6797_A72_CPU9_EXECUTOR_CPU9;
 	state->transaction.identity.cpuhp_target = CPUHP_ONLINE;
 	state->transaction.identity.target_mpidr =
@@ -289,8 +290,8 @@ static void mt6797_cpu9_binder_test_reset(
 	state->transaction.provider_identity.generation = 1;
 	state->transaction.provider_identity.cookie = 0xa72000f0;
 	mt6797_cpu9_binder_test_active = state;
-	mt6797_a72_cpu9_binder_test_init(
-		binder, &mt6797_cpu9_binder_test_backend);
+	mt6797_a72_cpu9_binder_test_init(binder,
+					 &mt6797_cpu9_binder_test_backend);
 }
 
 static void mt6797_cpu9_binder_success_test(struct kunit *test)
@@ -304,11 +305,9 @@ static void mt6797_cpu9_binder_success_test(struct kunit *test)
 	mt6797_cpu9_binder_test_reset(&binder, &state);
 	ret = mt6797_a72_cpu9_binder_test_prepare(&binder, &request);
 	KUNIT_ASSERT_EQ(test, ret, 0);
-	ret = mt6797_a72_cpu9_binder_test_preflight(
-		&binder, 9, CPUHP_ONLINE);
+	ret = mt6797_a72_cpu9_binder_test_preflight(&binder, 9, CPUHP_ONLINE);
 	KUNIT_ASSERT_EQ(test, ret, 0);
-	ret = mt6797_a72_cpu9_binder_test_validate(
-		&binder, 9, 0, CPUHP_ONLINE);
+	ret = mt6797_a72_cpu9_binder_test_validate(&binder, 9, 0, CPUHP_ONLINE);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	ret = mt6797_a72_cpu9_binder_test_boot(
 		&binder, 9, mt6797_cpu9_binder_test_cpu_boot);
@@ -316,8 +315,7 @@ static void mt6797_cpu9_binder_success_test(struct kunit *test)
 	state.cpu9_online = true;
 	ret = mt6797_a72_cpu9_binder_test_secondary_complete(&binder, 9);
 	KUNIT_ASSERT_EQ(test, ret, 0);
-	ret = mt6797_a72_cpu9_binder_test_complete(
-		&binder, 9, CPUHP_ONLINE);
+	ret = mt6797_a72_cpu9_binder_test_complete(&binder, 9, CPUHP_ONLINE);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	KUNIT_EXPECT_EQ(test, state.ledger_begin_calls, 1U);
 	KUNIT_EXPECT_EQ(test, state.ledger_checkpoint_calls, 11U);
@@ -354,23 +352,28 @@ static void mt6797_cpu9_binder_dispatch_guards_test(struct kunit *test)
 	int ret;
 
 	mt6797_cpu9_binder_test_reset(&binder, &state);
-	ret = mt6797_a72_cpu9_binder_test_preflight(
-		&binder, 9, CPUHP_ONLINE);
+	ret = mt6797_a72_cpu9_binder_test_preflight(&binder, 9, CPUHP_ONLINE);
 	KUNIT_EXPECT_EQ(test, ret, -EAGAIN);
-	ret = mt6797_a72_cpu9_binder_test_validate(
-		&binder, 9, 0, CPUHP_ONLINE);
+	ret = mt6797_a72_cpu9_binder_test_validate(&binder, 9, 0, CPUHP_ONLINE);
 	KUNIT_EXPECT_EQ(test, ret, -EAGAIN);
 	ret = mt6797_a72_cpu9_binder_test_boot(
 		&binder, 9, mt6797_cpu9_binder_test_cpu_boot);
 	KUNIT_EXPECT_EQ(test, ret, -EAGAIN);
 	KUNIT_ASSERT_EQ(test,
-		mt6797_a72_cpu9_binder_test_prepare(&binder, &request), 0);
-	KUNIT_EXPECT_EQ(test, mt6797_a72_cpu9_binder_test_preflight(
-		&binder, 8, CPUHP_ONLINE), -EINVAL);
-	KUNIT_EXPECT_EQ(test, mt6797_a72_cpu9_binder_test_preflight(
-		&binder, 9, CPUHP_AP_ONLINE), -EINVAL);
-	KUNIT_EXPECT_EQ(test, mt6797_a72_cpu9_binder_test_validate(
-		&binder, 9, 1, CPUHP_ONLINE), -EPERM);
+			mt6797_a72_cpu9_binder_test_prepare(&binder, &request),
+			0);
+	KUNIT_EXPECT_EQ(test,
+			mt6797_a72_cpu9_binder_test_preflight(&binder, 8,
+							      CPUHP_ONLINE),
+			-EINVAL);
+	KUNIT_EXPECT_EQ(test,
+			mt6797_a72_cpu9_binder_test_preflight(&binder, 9,
+							      CPUHP_AP_ONLINE),
+			-EINVAL);
+	KUNIT_EXPECT_EQ(test,
+			mt6797_a72_cpu9_binder_test_validate(&binder, 9, 1,
+							     CPUHP_ONLINE),
+			-EPERM);
 	KUNIT_EXPECT_EQ(test, state.ledger_begin_calls, 0U);
 	KUNIT_EXPECT_EQ(test, state.cpu_boot_calls, 0U);
 }
@@ -393,7 +396,8 @@ static void mt6797_cpu9_binder_prepare_guards_test(struct kunit *test)
 	KUNIT_EXPECT_EQ(test, ret, -EPERM);
 	request = mt6797_cpu9_binder_test_request();
 	KUNIT_ASSERT_EQ(test,
-		mt6797_a72_cpu9_binder_test_prepare(&binder, &request), 0);
+			mt6797_a72_cpu9_binder_test_prepare(&binder, &request),
+			0);
 	ret = mt6797_a72_cpu9_binder_test_prepare(&binder, &request);
 	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
 	KUNIT_EXPECT_EQ(test, state.ledger_begin_calls, 0U);
@@ -411,7 +415,8 @@ static void mt6797_cpu9_binder_claim_failure_test(struct kunit *test)
 	mt6797_cpu9_binder_test_reset(&binder, &state);
 	state.failure = MT6797_CPU9_BINDER_FAIL_CLAIM;
 	KUNIT_ASSERT_EQ(test,
-		mt6797_a72_cpu9_binder_test_prepare(&binder, &request), 0);
+			mt6797_a72_cpu9_binder_test_prepare(&binder, &request),
+			0);
 	ret = mt6797_a72_cpu9_binder_test_boot(
 		&binder, 9, mt6797_cpu9_binder_test_cpu_boot);
 	KUNIT_EXPECT_EQ(test, ret, -EIO);
@@ -443,20 +448,22 @@ static void mt6797_cpu9_binder_cpu_on_failures_test(struct kunit *test)
 		mt6797_cpu9_binder_test_reset(&binder, &state);
 		state.failure = failures[i];
 		KUNIT_ASSERT_EQ(test,
-			mt6797_a72_cpu9_binder_test_prepare(&binder, &request), 0);
+				mt6797_a72_cpu9_binder_test_prepare(&binder,
+								    &request),
+				0);
 		ret = mt6797_a72_cpu9_binder_test_boot(
 			&binder, 9, mt6797_cpu9_binder_test_cpu_boot);
 		KUNIT_EXPECT_EQ(test, ret, -EIO);
 		KUNIT_EXPECT_EQ(test, binder.result.terminal,
-			(enum mt6797_a72_cpu9_executor_terminal)
-			MT6797_A72_CPU9_FAULT_RETAIN_CPU8);
+				(enum mt6797_a72_cpu9_executor_terminal)
+					MT6797_A72_CPU9_FAULT_RETAIN_CPU8);
 		KUNIT_EXPECT_EQ(test, binder.result.cpu_requests, 1U);
 		KUNIT_EXPECT_EQ(test, binder.result.cpu_off_requests, 0U);
 		KUNIT_EXPECT_EQ(test, binder.result.retries, 0U);
 		KUNIT_EXPECT_EQ(test, state.terminal_stage,
-			(u32)GEMINI_CPU9_LEDGER_CPU_ON);
+				(u32)GEMINI_CPU9_LEDGER_CPU_ON);
 		KUNIT_EXPECT_EQ(test, state.terminal_value,
-			(u32)GEMINI_CPU9_LEDGER_CPU_ON_FAILURE);
+				(u32)GEMINI_CPU9_LEDGER_CPU_ON_FAILURE);
 	}
 }
 
@@ -471,9 +478,12 @@ static void mt6797_cpu9_binder_secondary_failure_test(struct kunit *test)
 
 	mt6797_cpu9_binder_test_reset(&binder, &state);
 	KUNIT_ASSERT_EQ(test,
-		mt6797_a72_cpu9_binder_test_prepare(&binder, &request), 0);
-	KUNIT_ASSERT_EQ(test, mt6797_a72_cpu9_binder_test_boot(
-		&binder, 9, mt6797_cpu9_binder_test_cpu_boot), 0);
+			mt6797_a72_cpu9_binder_test_prepare(&binder, &request),
+			0);
+	KUNIT_ASSERT_EQ(test,
+			mt6797_a72_cpu9_binder_test_boot(
+				&binder, 9, mt6797_cpu9_binder_test_cpu_boot),
+			0);
 	state.cpu9_online = true;
 	state.failure = MT6797_CPU9_BINDER_FAIL_P30E_READBACK;
 	ret = mt6797_a72_cpu9_binder_test_secondary_complete(&binder, 9);
@@ -483,8 +493,8 @@ static void mt6797_cpu9_binder_secondary_failure_test(struct kunit *test)
 			(u32)GEMINI_CPU9_LEDGER_ONLINE_WAIT);
 	KUNIT_EXPECT_EQ(test, state.terminal_value,
 			(u32)GEMINI_CPU9_LEDGER_ONLINE_WAIT_FAILURE);
-	ret = mt6797_a72_cpu9_binder_test_failure(
-		&binder, 9, -EIO, &publish_p32);
+	ret = mt6797_a72_cpu9_binder_test_failure(&binder, 9, -EIO,
+						  &publish_p32);
 	KUNIT_EXPECT_EQ(test, ret, 0);
 	KUNIT_EXPECT_TRUE(test, publish_p32);
 	KUNIT_EXPECT_EQ(test, state.p30e_readback_calls, 1U);
@@ -509,23 +519,30 @@ static void mt6797_cpu9_binder_completion_failures_test(struct kunit *test)
 
 		mt6797_cpu9_binder_test_reset(&binder, &state);
 		KUNIT_ASSERT_EQ(test,
-			mt6797_a72_cpu9_binder_test_prepare(&binder, &request), 0);
-		KUNIT_ASSERT_EQ(test, mt6797_a72_cpu9_binder_test_boot(
-			&binder, 9, mt6797_cpu9_binder_test_cpu_boot), 0);
+				mt6797_a72_cpu9_binder_test_prepare(&binder,
+								    &request),
+				0);
+		KUNIT_ASSERT_EQ(test,
+				mt6797_a72_cpu9_binder_test_boot(
+					&binder, 9,
+					mt6797_cpu9_binder_test_cpu_boot),
+				0);
 		state.cpu9_online = true;
 		KUNIT_ASSERT_EQ(test,
-			mt6797_a72_cpu9_binder_test_secondary_complete(&binder, 9), 0);
+				mt6797_a72_cpu9_binder_test_secondary_complete(
+					&binder, 9),
+				0);
 		state.failure = failures[i];
-		ret = mt6797_a72_cpu9_binder_test_complete(
-			&binder, 9, CPUHP_ONLINE);
+		ret = mt6797_a72_cpu9_binder_test_complete(&binder, 9,
+							   CPUHP_ONLINE);
 		KUNIT_EXPECT_EQ(test, ret, -EIO);
 		KUNIT_EXPECT_EQ(test, binder.result.terminal,
-			(enum mt6797_a72_cpu9_executor_terminal)
-			MT6797_A72_CPU9_FAULT_RETAIN_CPU8);
+				(enum mt6797_a72_cpu9_executor_terminal)
+					MT6797_A72_CPU9_FAULT_RETAIN_CPU8);
 		KUNIT_EXPECT_EQ(test, binder.result.cpu_off_requests, 0U);
 		KUNIT_EXPECT_EQ(test, binder.result.retries, 0U);
 		KUNIT_EXPECT_EQ(test, state.terminal_value,
-			(u32)GEMINI_CPU9_LEDGER_IPI_FAILURE);
+				(u32)GEMINI_CPU9_LEDGER_IPI_FAILURE);
 	}
 }
 
@@ -540,19 +557,22 @@ static void mt6797_cpu9_binder_failure_dispatch_test(struct kunit *test)
 
 	mt6797_cpu9_binder_test_reset(&binder, &state);
 	KUNIT_ASSERT_EQ(test,
-		mt6797_a72_cpu9_binder_test_prepare(&binder, &request), 0);
-	KUNIT_ASSERT_EQ(test, mt6797_a72_cpu9_binder_test_boot(
-		&binder, 9, mt6797_cpu9_binder_test_cpu_boot), 0);
-	ret = mt6797_a72_cpu9_binder_test_failure(
-		&binder, 9, -ETIMEDOUT, &publish_p32);
+			mt6797_a72_cpu9_binder_test_prepare(&binder, &request),
+			0);
+	KUNIT_ASSERT_EQ(test,
+			mt6797_a72_cpu9_binder_test_boot(
+				&binder, 9, mt6797_cpu9_binder_test_cpu_boot),
+			0);
+	ret = mt6797_a72_cpu9_binder_test_failure(&binder, 9, -ETIMEDOUT,
+						  &publish_p32);
 	KUNIT_EXPECT_EQ(test, ret, 0);
 	KUNIT_EXPECT_TRUE(test, publish_p32);
 	KUNIT_EXPECT_EQ(test, binder.result.last_stage,
 			(enum mt6797_a72_cpu9_executor_stage)
-			MT6797_A72_CPU9_STAGE_ONLINE_WAIT);
+				MT6797_A72_CPU9_STAGE_ONLINE_WAIT);
 	KUNIT_EXPECT_EQ(test, binder.result.terminal,
 			(enum mt6797_a72_cpu9_executor_terminal)
-			MT6797_A72_CPU9_FAULT_RETAIN_CPU8);
+				MT6797_A72_CPU9_FAULT_RETAIN_CPU8);
 	KUNIT_EXPECT_EQ(test, state.p30e_readback_calls, 1U);
 	KUNIT_EXPECT_EQ(test, state.terminal_value,
 			(u32)GEMINI_CPU9_LEDGER_ONLINE_WAIT_FAILURE);

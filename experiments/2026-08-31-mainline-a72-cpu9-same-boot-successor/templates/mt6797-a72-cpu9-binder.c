@@ -17,25 +17,26 @@ static bool mt6797_a72_cpu9_binder_backend_valid(
 	const struct mt6797_a72_cpu9_binder_backend_ops *ops)
 {
 	return ops && ops->ledger_begin && ops->ledger_checkpoint &&
-		ops->membership_preflight && ops->membership_claim &&
-		ops->membership_reject && ops->membership_begin_cpu_on &&
-		ops->p30e_prepare && ops->p30e_arm && ops->p30e_readback &&
-		ops->membership_publish_success &&
-		ops->membership_finalize_success && ops->cpu_online &&
-		ops->ipi_call;
+	       ops->membership_preflight && ops->membership_claim &&
+	       ops->membership_reject && ops->membership_begin_cpu_on &&
+	       ops->p30e_prepare && ops->p30e_arm && ops->p30e_readback &&
+	       ops->membership_publish_success &&
+	       ops->membership_finalize_success && ops->cpu_online &&
+	       ops->ipi_call;
 }
 
 static bool mt6797_a72_cpu9_binder_request_valid(
 	const struct mt6797_a72_cpu9_executor_request *request)
 {
 	return request && request->cpu == MT6797_A72_CPU9_EXECUTOR_CPU9 &&
-		request->cpu8_attempt_id && request->cpu9_attempt_id &&
-		request->cpu8_attempt_id != request->cpu9_attempt_id &&
-		request->members == BIT(0) &&
-		request->retained_mask == MT6797_A72_CPU9_RETAINED_REQUIRED &&
-		request->cpu8_terminal_exact &&
-		request->cpu8_membership_published && request->provider_retained &&
-		request->cpu8_online && !request->cpu9_online;
+	       request->cpu8_attempt_id && request->cpu9_attempt_id &&
+	       request->cpu8_attempt_id != request->cpu9_attempt_id &&
+	       request->members == BIT(0) &&
+	       request->retained_mask == MT6797_A72_CPU9_RETAINED_REQUIRED &&
+	       request->cpu8_terminal_exact &&
+	       request->cpu8_membership_published &&
+	       request->provider_retained && request->cpu8_online &&
+	       !request->cpu9_online;
 }
 
 static int mt6797_a72_cpu9_binder_stage(
@@ -54,9 +55,10 @@ static int mt6797_a72_cpu9_binder_stage(
 	return 0;
 }
 
-static int mt6797_a72_cpu9_binder_check_public(
-	struct mt6797_a72_cpu9_binder *binder, unsigned int cpu,
-	int tasks_frozen, enum cpuhp_state target, bool preflight)
+static int
+mt6797_a72_cpu9_binder_check_public(struct mt6797_a72_cpu9_binder *binder,
+				    unsigned int cpu, int tasks_frozen,
+				    enum cpuhp_state target, bool preflight)
 {
 	if (!binder || !mt6797_a72_cpu9_binder_backend_valid(binder->backend))
 		return -EINVAL;
@@ -93,11 +95,13 @@ static int mt6797_a72_cpu9_binder_p30e_prepare(
 
 	ready = arm64_get_late_cpu_ready_token();
 	return ready ? mt6797_a72_membership_prepare_p30e_handoff(
-		transaction, ready, handoff) : -EAGAIN;
+			       transaction, ready, handoff) :
+		       -EAGAIN;
 }
 
-static int mt6797_a72_cpu9_binder_p30e_arm(
-	unsigned int cpu, const struct mt6797_a72_p30e_handoff *handoff)
+static int
+mt6797_a72_cpu9_binder_p30e_arm(unsigned int cpu,
+				const struct mt6797_a72_p30e_handoff *handoff)
 {
 	struct arm64_mt6797_a72_p30e_request request;
 
@@ -129,30 +133,30 @@ static bool mt6797_a72_cpu9_binder_cpu_online(unsigned int cpu)
 }
 
 static int mt6797_a72_cpu9_binder_ipi_call(unsigned int cpu,
-					    smp_call_func_t func, void *info,
-					    int wait)
+					   smp_call_func_t func, void *info,
+					   int wait)
 {
 	return smp_call_function_single(cpu, func, info, wait);
 }
 
 static const struct mt6797_a72_cpu9_binder_backend_ops
-mt6797_a72_cpu9_binder_production_backend = {
-	.ledger_begin = gemini_cpu9_ledger_begin,
-	.ledger_checkpoint = gemini_cpu9_ledger_checkpoint,
-	.membership_preflight = mt6797_a72_membership_preflight_cpu9,
-	.membership_claim = mt6797_a72_membership_claim_cpu9,
-	.membership_reject = mt6797_a72_membership_reject_cpu9,
-	.membership_begin_cpu_on = mt6797_a72_membership_begin_cpu9_on,
-	.p30e_prepare = mt6797_a72_cpu9_binder_p30e_prepare,
-	.p30e_arm = mt6797_a72_cpu9_binder_p30e_arm,
-	.p30e_readback = mt6797_a72_cpu9_binder_p30e_readback,
-	.membership_publish_success =
-		mt6797_a72_membership_publish_cpu9_success,
-	.membership_finalize_success =
-		mt6797_a72_membership_finalize_cpu9_success,
-	.cpu_online = mt6797_a72_cpu9_binder_cpu_online,
-	.ipi_call = mt6797_a72_cpu9_binder_ipi_call,
-};
+	mt6797_a72_cpu9_binder_production_backend = {
+		.ledger_begin = gemini_cpu9_ledger_begin,
+		.ledger_checkpoint = gemini_cpu9_ledger_checkpoint,
+		.membership_preflight = mt6797_a72_membership_preflight_cpu9,
+		.membership_claim = mt6797_a72_membership_claim_cpu9,
+		.membership_reject = mt6797_a72_membership_reject_cpu9,
+		.membership_begin_cpu_on = mt6797_a72_membership_begin_cpu9_on,
+		.p30e_prepare = mt6797_a72_cpu9_binder_p30e_prepare,
+		.p30e_arm = mt6797_a72_cpu9_binder_p30e_arm,
+		.p30e_readback = mt6797_a72_cpu9_binder_p30e_readback,
+		.membership_publish_success =
+			mt6797_a72_membership_publish_cpu9_success,
+		.membership_finalize_success =
+			mt6797_a72_membership_finalize_cpu9_success,
+		.cpu_online = mt6797_a72_cpu9_binder_cpu_online,
+		.ipi_call = mt6797_a72_cpu9_binder_ipi_call,
+	};
 
 static struct mt6797_a72_cpu9_binder mt6797_a72_cpu9_binder = {
 	.backend = &mt6797_a72_cpu9_binder_production_backend,
@@ -203,11 +207,12 @@ static int mt6797_a72_cpu9_binder_prestate(
 	    !transaction->valid || !transaction->a36_valid ||
 	    !transaction->p30_token_valid || !transaction->p17_p18_published ||
 	    transaction->identity.abi != MT6797_A72_TRANSACTION_ABI ||
-	    transaction->identity.operation != ARM64_LATE_CPU_STARTUP_OP_CPU9_UP ||
+	    transaction->identity.operation !=
+		    ARM64_LATE_CPU_STARTUP_OP_CPU9_UP ||
 	    transaction->identity.target_cpu != MT6797_A72_CPU9_EXECUTOR_CPU9 ||
 	    transaction->identity.cpuhp_target != CPUHP_ONLINE ||
 	    transaction->identity.target_mpidr !=
-		ARM64_MT6797_A72_P30E_MPIDR_CPU9 ||
+		    ARM64_MT6797_A72_P30E_MPIDR_CPU9 ||
 	    transaction->identity.generation != request->cpu9_attempt_id ||
 	    !transaction->provider_identity.generation ||
 	    !transaction->provider_identity.cookie)
@@ -215,8 +220,9 @@ static int mt6797_a72_cpu9_binder_prestate(
 	return 0;
 }
 
-static int mt6797_a72_cpu9_binder_readback_once(
-	struct mt6797_a72_cpu9_binder *binder, unsigned int cpu)
+static int
+mt6797_a72_cpu9_binder_readback_once(struct mt6797_a72_cpu9_binder *binder,
+				     unsigned int cpu)
 {
 	if (!binder->p30e_armed)
 		return -EPROTO;
@@ -245,8 +251,8 @@ static int mt6797_a72_cpu9_binder_cpu_on(void *context, unsigned int cpu)
 	if (ret)
 		return ret;
 	binder->p30e_arm_attempted = true;
-	binder->p30e_arm_ret = binder->backend->p30e_arm(
-		cpu, &binder->p30e_handoff);
+	binder->p30e_arm_ret =
+		binder->backend->p30e_arm(cpu, &binder->p30e_handoff);
 	if (binder->p30e_arm_ret)
 		return binder->p30e_arm_ret;
 	binder->p30e_armed = true;
@@ -256,8 +262,7 @@ static int mt6797_a72_cpu9_binder_cpu_on(void *context, unsigned int cpu)
 	return ret;
 }
 
-static int mt6797_a72_cpu9_binder_secondary(void *context,
-					     unsigned int cpu)
+static int mt6797_a72_cpu9_binder_secondary(void *context, unsigned int cpu)
 {
 	struct mt6797_a72_cpu9_binder *binder = context;
 
@@ -281,12 +286,11 @@ static int mt6797_a72_cpu9_binder_ipi(void *context, unsigned int cpu)
 	    !binder->backend->cpu_online(MT6797_A72_CPU9_EXECUTOR_CPU8) ||
 	    !binder->backend->cpu_online(MT6797_A72_CPU9_EXECUTOR_CPU9))
 		return -EPROTO;
-	return binder->backend->ipi_call(cpu,
-		mt6797_a72_cpu9_binder_ipi_callback, NULL, 1);
+	return binder->backend->ipi_call(
+		cpu, mt6797_a72_cpu9_binder_ipi_callback, NULL, 1);
 }
 
-static int mt6797_a72_cpu9_binder_membership(void *context,
-					      unsigned int cpu)
+static int mt6797_a72_cpu9_binder_membership(void *context, unsigned int cpu)
 {
 	struct mt6797_a72_cpu9_binder *binder = context;
 
@@ -350,19 +354,19 @@ static int mt6797_a72_cpu9_binder_terminal(
 }
 
 static const struct mt6797_a72_cpu9_executor_ops
-mt6797_a72_cpu9_binder_executor_ops = {
-	.checkpoint = mt6797_a72_cpu9_binder_checkpoint,
-	.prestate = mt6797_a72_cpu9_binder_prestate,
-	.cpu_on = mt6797_a72_cpu9_binder_cpu_on,
-	.secondary_complete = mt6797_a72_cpu9_binder_secondary,
-	.ipi_proof = mt6797_a72_cpu9_binder_ipi,
-	.membership_commit = mt6797_a72_cpu9_binder_membership,
-	.terminal = mt6797_a72_cpu9_binder_terminal,
-};
+	mt6797_a72_cpu9_binder_executor_ops = {
+		.checkpoint = mt6797_a72_cpu9_binder_checkpoint,
+		.prestate = mt6797_a72_cpu9_binder_prestate,
+		.cpu_on = mt6797_a72_cpu9_binder_cpu_on,
+		.secondary_complete = mt6797_a72_cpu9_binder_secondary,
+		.ipi_proof = mt6797_a72_cpu9_binder_ipi,
+		.membership_commit = mt6797_a72_cpu9_binder_membership,
+		.terminal = mt6797_a72_cpu9_binder_terminal,
+	};
 
-static int mt6797_a72_cpu9_binder_boot(
-	struct mt6797_a72_cpu9_binder *binder, unsigned int cpu,
-	mt6797_a72_cpu_boot_fn cpu_boot)
+static int mt6797_a72_cpu9_binder_boot(struct mt6797_a72_cpu9_binder *binder,
+				       unsigned int cpu,
+				       mt6797_a72_cpu_boot_fn cpu_boot)
 {
 	int ret;
 
@@ -385,8 +389,9 @@ static int mt6797_a72_cpu9_binder_boot(
 	return ret;
 }
 
-static int mt6797_a72_cpu9_binder_drive_secondary(
-	struct mt6797_a72_cpu9_binder *binder, unsigned int cpu)
+static int
+mt6797_a72_cpu9_binder_drive_secondary(struct mt6797_a72_cpu9_binder *binder,
+				       unsigned int cpu)
 {
 	if (!binder || !mt6797_a72_cpu9_binder_backend_valid(binder->backend))
 		return -EINVAL;
@@ -397,9 +402,9 @@ static int mt6797_a72_cpu9_binder_drive_secondary(
 		&binder->result);
 }
 
-static int mt6797_a72_cpu9_binder_finish(
-	struct mt6797_a72_cpu9_binder *binder, unsigned int cpu,
-	enum cpuhp_state target)
+static int mt6797_a72_cpu9_binder_finish(struct mt6797_a72_cpu9_binder *binder,
+					 unsigned int cpu,
+					 enum cpuhp_state target)
 {
 	if (!binder || !mt6797_a72_cpu9_binder_backend_valid(binder->backend) ||
 	    target != CPUHP_ONLINE)
@@ -411,9 +416,9 @@ static int mt6797_a72_cpu9_binder_finish(
 		&binder->result);
 }
 
-static int mt6797_a72_cpu9_binder_fail(
-	struct mt6797_a72_cpu9_binder *binder, unsigned int cpu, int error,
-	bool *publish_p32)
+static int mt6797_a72_cpu9_binder_fail(struct mt6797_a72_cpu9_binder *binder,
+				       unsigned int cpu, int error,
+				       bool *publish_p32)
 {
 	int lifecycle;
 
@@ -428,11 +433,13 @@ static int mt6797_a72_cpu9_binder_fail(
 		mt6797_a72_cpu9_executor_fail(
 			&binder->executor, &mt6797_a72_cpu9_binder_executor_ops,
 			binder, cpu,
-			binder->backend->cpu_online(MT6797_A72_CPU9_EXECUTOR_CPU8),
-			binder->backend->cpu_online(MT6797_A72_CPU9_EXECUTOR_CPU9),
+			binder->backend->cpu_online(
+				MT6797_A72_CPU9_EXECUTOR_CPU8),
+			binder->backend->cpu_online(
+				MT6797_A72_CPU9_EXECUTOR_CPU9),
 			error, &binder->result);
 	*publish_p32 = binder->result.terminal ==
-		MT6797_A72_CPU9_FAULT_RETAIN_CPU8;
+		       MT6797_A72_CPU9_FAULT_RETAIN_CPU8;
 	return 0;
 }
 
@@ -443,43 +450,43 @@ int mt6797_a72_cpu9_binder_prepare(
 
 	mutex_lock(&mt6797_a72_cpu9_binder_lock);
 	ret = mt6797_a72_binder_available() ?
-		mt6797_a72_cpu9_binder_stage(&mt6797_a72_cpu9_binder, request) :
-		-EAGAIN;
+		      mt6797_a72_cpu9_binder_stage(&mt6797_a72_cpu9_binder,
+						   request) :
+		      -EAGAIN;
 	mutex_unlock(&mt6797_a72_cpu9_binder_lock);
 	return ret;
 }
 
-int mt6797_a72_cpu9_binder_preflight(unsigned int cpu,
-				      enum cpuhp_state target)
+int mt6797_a72_cpu9_binder_preflight(unsigned int cpu, enum cpuhp_state target)
 {
 	int ret;
 
 	mutex_lock(&mt6797_a72_cpu9_binder_lock);
-	ret = mt6797_a72_cpu9_binder_check_public(
-		&mt6797_a72_cpu9_binder, cpu, 0, target, true);
+	ret = mt6797_a72_cpu9_binder_check_public(&mt6797_a72_cpu9_binder, cpu,
+						  0, target, true);
 	mutex_unlock(&mt6797_a72_cpu9_binder_lock);
 	return ret;
 }
 
 int mt6797_a72_cpu9_binder_validate(unsigned int cpu, int tasks_frozen,
-				     enum cpuhp_state target)
+				    enum cpuhp_state target)
 {
 	int ret;
 
 	/* Leaf validation runs under the generic CPU-map lock and cannot sleep. */
-	ret = mt6797_a72_cpu9_binder_check_public(
-		&mt6797_a72_cpu9_binder, cpu, tasks_frozen, target, false);
+	ret = mt6797_a72_cpu9_binder_check_public(&mt6797_a72_cpu9_binder, cpu,
+						  tasks_frozen, target, false);
 	return ret;
 }
 
 int mt6797_a72_cpu9_binder_cpu_boot(unsigned int cpu,
-				     mt6797_a72_cpu_boot_fn cpu_boot)
+				    mt6797_a72_cpu_boot_fn cpu_boot)
 {
 	int ret;
 
 	mutex_lock(&mt6797_a72_cpu9_binder_lock);
-	ret = mt6797_a72_cpu9_binder_boot(
-		&mt6797_a72_cpu9_binder, cpu, cpu_boot);
+	ret = mt6797_a72_cpu9_binder_boot(&mt6797_a72_cpu9_binder, cpu,
+					  cpu_boot);
 	mutex_unlock(&mt6797_a72_cpu9_binder_lock);
 	return ret;
 }
@@ -489,32 +496,31 @@ int mt6797_a72_cpu9_binder_secondary_complete(unsigned int cpu)
 	int ret;
 
 	mutex_lock(&mt6797_a72_cpu9_binder_lock);
-	ret = mt6797_a72_cpu9_binder_drive_secondary(
-		&mt6797_a72_cpu9_binder, cpu);
+	ret = mt6797_a72_cpu9_binder_drive_secondary(&mt6797_a72_cpu9_binder,
+						     cpu);
 	mutex_unlock(&mt6797_a72_cpu9_binder_lock);
 	return ret;
 }
 
-int mt6797_a72_cpu9_binder_complete(unsigned int cpu,
-				     enum cpuhp_state target)
+int mt6797_a72_cpu9_binder_complete(unsigned int cpu, enum cpuhp_state target)
 {
 	int ret;
 
 	mutex_lock(&mt6797_a72_cpu9_binder_lock);
-	ret = mt6797_a72_cpu9_binder_finish(
-		&mt6797_a72_cpu9_binder, cpu, target);
+	ret = mt6797_a72_cpu9_binder_finish(&mt6797_a72_cpu9_binder, cpu,
+					    target);
 	mutex_unlock(&mt6797_a72_cpu9_binder_lock);
 	return ret;
 }
 
 int mt6797_a72_cpu9_binder_failure(unsigned int cpu, int error,
-				    bool *publish_p32)
+				   bool *publish_p32)
 {
 	int ret;
 
 	mutex_lock(&mt6797_a72_cpu9_binder_lock);
-	ret = mt6797_a72_cpu9_binder_fail(
-		&mt6797_a72_cpu9_binder, cpu, error, publish_p32);
+	ret = mt6797_a72_cpu9_binder_fail(&mt6797_a72_cpu9_binder, cpu, error,
+					  publish_p32);
 	mutex_unlock(&mt6797_a72_cpu9_binder_lock);
 	return ret;
 }
@@ -527,8 +533,7 @@ void mt6797_a72_cpu9_binder_test_init(
 	memset(binder, 0, sizeof(*binder));
 	binder->backend = backend;
 	atomic_set(&binder->executor.consumed, 0);
-	atomic_set(&binder->executor.lifecycle,
-		   MT6797_A72_CPU9_LIFECYCLE_IDLE);
+	atomic_set(&binder->executor.lifecycle, MT6797_A72_CPU9_LIFECYCLE_IDLE);
 	atomic_set(&binder->prepared, 0);
 	atomic_set(&binder->boot_claimed, 0);
 }
@@ -540,25 +545,25 @@ int mt6797_a72_cpu9_binder_test_prepare(
 	return mt6797_a72_cpu9_binder_stage(binder, request);
 }
 
-int mt6797_a72_cpu9_binder_test_preflight(
-	struct mt6797_a72_cpu9_binder *binder, unsigned int cpu,
-	enum cpuhp_state target)
+int mt6797_a72_cpu9_binder_test_preflight(struct mt6797_a72_cpu9_binder *binder,
+					  unsigned int cpu,
+					  enum cpuhp_state target)
 {
-	return mt6797_a72_cpu9_binder_check_public(
-		binder, cpu, 0, target, true);
+	return mt6797_a72_cpu9_binder_check_public(binder, cpu, 0, target,
+						   true);
 }
 
-int mt6797_a72_cpu9_binder_test_validate(
-	struct mt6797_a72_cpu9_binder *binder, unsigned int cpu,
-	int tasks_frozen, enum cpuhp_state target)
+int mt6797_a72_cpu9_binder_test_validate(struct mt6797_a72_cpu9_binder *binder,
+					 unsigned int cpu, int tasks_frozen,
+					 enum cpuhp_state target)
 {
-	return mt6797_a72_cpu9_binder_check_public(
-		binder, cpu, tasks_frozen, target, false);
+	return mt6797_a72_cpu9_binder_check_public(binder, cpu, tasks_frozen,
+						   target, false);
 }
 
-int mt6797_a72_cpu9_binder_test_boot(
-	struct mt6797_a72_cpu9_binder *binder, unsigned int cpu,
-	mt6797_a72_cpu_boot_fn cpu_boot)
+int mt6797_a72_cpu9_binder_test_boot(struct mt6797_a72_cpu9_binder *binder,
+				     unsigned int cpu,
+				     mt6797_a72_cpu_boot_fn cpu_boot)
 {
 	return mt6797_a72_cpu9_binder_boot(binder, cpu, cpu_boot);
 }
@@ -569,18 +574,17 @@ int mt6797_a72_cpu9_binder_test_secondary_complete(
 	return mt6797_a72_cpu9_binder_drive_secondary(binder, cpu);
 }
 
-int mt6797_a72_cpu9_binder_test_complete(
-	struct mt6797_a72_cpu9_binder *binder, unsigned int cpu,
-	enum cpuhp_state target)
+int mt6797_a72_cpu9_binder_test_complete(struct mt6797_a72_cpu9_binder *binder,
+					 unsigned int cpu,
+					 enum cpuhp_state target)
 {
 	return mt6797_a72_cpu9_binder_finish(binder, cpu, target);
 }
 
-int mt6797_a72_cpu9_binder_test_failure(
-	struct mt6797_a72_cpu9_binder *binder, unsigned int cpu, int error,
-	bool *publish_p32)
+int mt6797_a72_cpu9_binder_test_failure(struct mt6797_a72_cpu9_binder *binder,
+					unsigned int cpu, int error,
+					bool *publish_p32)
 {
-	return mt6797_a72_cpu9_binder_fail(
-		binder, cpu, error, publish_p32);
+	return mt6797_a72_cpu9_binder_fail(binder, cpu, error, publish_p32);
 }
 #endif
