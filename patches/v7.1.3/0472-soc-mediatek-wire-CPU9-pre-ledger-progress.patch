@@ -1,0 +1,603 @@
+From 6b58ed4c31c1a211a46a57ab247d3f0acd42b456 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 1 Sep 2026 21:21:00 +0000
+Subject: [PATCH] soc: mediatek: wire CPU9 pre-ledger progress
+
+Record each CPU8-proof-to-CPU9-ledger boundary in the bounded
+third-record progress lane. Require durable stages 1 through 6
+before dispatch, stages 7 through 9 in the binder, and stage 10
+only after add_cpu() returns.
+
+Keep the single existing CPU9 request and add no CPU_OFF, retry,
+watchdog, cluster, reset, storage, or automatic boot action.
+---
+ drivers/soc/mediatek/Kconfig                  |  6 +-
+ .../mt6797-a72-admission-controller.c         | 22 ++++++
+ ...7-a72-cpu9-admission-controller-internal.h |  7 ++
+ ...t6797-a72-cpu9-admission-controller-test.c | 73 +++++++++++++++++++
+ .../mt6797-a72-cpu9-admission-controller.c    | 56 +++++++++++++-
+ .../mt6797-a72-cpu9-binder-internal.h         |  1 +
+ .../mediatek/mt6797-a72-cpu9-binder-test.c    | 65 +++++++++++++++++
+ drivers/soc/mediatek/mt6797-a72-cpu9-binder.c | 21 +++++-
+ 8 files changed, 245 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index fba9bd7..2ff59fe 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -563,7 +563,7 @@ config MTK_MT6797_A72_ADMISSION_CONTROLLER
+ 	depends on ARM64_MT6797_A72_DERIVED_ADMISSION
+ 	depends on MTK_MT6797_A72_DEFAULT_OFF_BINDER
+ 	depends on MTK_MT6797_A72_PHYSICAL_SOURCE_OBSERVER
+-	depends on PSTORE_GEMINI_ADMISSION_TRACE=y
++	depends on PSTORE_GEMINI_ADMISSION_TRACE=y || PSTORE_GEMINI_CPU9_PROGRESS_LEDGER=y
+ 	default n
+ 	help
+ 	  Build the candidate-only controller that consumes one boot-local
+@@ -597,12 +597,14 @@ config MTK_MT6797_A72_CPU9_ADMISSION_CONTROLLER
+ 	bool "MediaTek MT6797 same-boot CPU9 admission controller"
+ 	depends on MTK_MT6797_A72_ADMISSION_LIVE_TRIGGER
+ 	depends on MTK_MT6797_A72_CPU9_BINDER
++	depends on PSTORE_GEMINI_CPU9_PROGRESS_LEDGER=y
+ 	default n
+ 	help
+ 	  Extend the exact one-shot userspace admission trigger so it runs the
+ 	  unchanged CPU8 controller, requires its terminal membership proof,
+ 	  derives and publishes one retained-cluster CPU9 transaction, stages
+-	  the CPU9 binder, and makes one synchronous add_cpu(9) request.
++	  the CPU9 binder, and makes one synchronous add_cpu(9) request. Ten
++	  ordered retained progress boundaries cover the pre-ledger path.
+ 
+ 	  CPU8 failure or any missing proof prevents CPU9 derivation and request.
+ 	  CPU9 failure retains CPU8, P27, the provider, and the cluster until
+diff --git a/drivers/soc/mediatek/mt6797-a72-admission-controller.c b/drivers/soc/mediatek/mt6797-a72-admission-controller.c
+index 4478d1c..866545d 100644
+--- a/drivers/soc/mediatek/mt6797-a72-admission-controller.c
++++ b/drivers/soc/mediatek/mt6797-a72-admission-controller.c
+@@ -9,6 +9,7 @@
+ #include <linux/cpu.h>
+ #include <linux/device.h>
+ #include <linux/errno.h>
++#include <linux/gemini_cpu9_progress_ledger.h>
+ #include <linux/init.h>
+ #include <linux/module.h>
+ #include <linux/of.h>
+@@ -368,6 +369,20 @@ static int mt6797_a72_admission_prepare_cpu9(
+ 	return mt6797_a72_cpu9_binder_prepare(request);
+ }
+ 
++static int mt6797_a72_admission_progress_begin(
++	void *context, u64 cpu8_attempt_id)
++{
++	(void)context;
++	return gemini_cpu9_progress_begin(cpu8_attempt_id);
++}
++
++static int mt6797_a72_admission_progress_checkpoint(
++	void *context, u64 cpu8_attempt_id, u32 stage)
++{
++	(void)context;
++	return gemini_cpu9_progress_checkpoint(cpu8_attempt_id, stage);
++}
++
+ static const struct mt6797_a72_cpu9_admission_ops
+ mt6797_a72_cpu9_admission_production_ops = {
+ 	.run_cpu8 = mt6797_a72_admission_run_cpu8,
+@@ -376,6 +391,8 @@ mt6797_a72_cpu9_admission_production_ops = {
+ 	.derive_cpu9 = mt6797_a72_admission_derive_cpu9,
+ 	.publish_cpu9 = mt6797_a72_admission_publish_cpu9,
+ 	.prepare_cpu9 = mt6797_a72_admission_prepare_cpu9,
++	.progress_begin = mt6797_a72_admission_progress_begin,
++	.progress_checkpoint = mt6797_a72_admission_progress_checkpoint,
+ 	.add_cpu = mt6797_a72_admission_add_cpu,
+ };
+ #endif
+@@ -428,6 +445,11 @@ static ssize_t mt6797_a72_admission_cpu9_status(
+ 			     "cpu9_failure_stage=%u cpu9_derive_stage=%u ",
+ 		READ_ONCE(controller->cpu9.failure_stage),
+ 		READ_ONCE(controller->cpu9.derive_stage));
++	len += sysfs_emit_at(
++		buf, len,
++		"cpu9_progress_stage=%u cpu9_progress_ret=%d ",
++		READ_ONCE(controller->cpu9.progress_stage),
++		READ_ONCE(controller->cpu9.progress_ret));
+ 	len += sysfs_emit_at(
+ 		buf, len,
+ 		"cpu9_binder_snapshot_ret=%d cpu9_abi=%u cpu9_lifecycle=%u ",
+diff --git a/drivers/soc/mediatek/mt6797-a72-cpu9-admission-controller-internal.h b/drivers/soc/mediatek/mt6797-a72-cpu9-admission-controller-internal.h
+index 0af6401..8792079 100644
+--- a/drivers/soc/mediatek/mt6797-a72-cpu9-admission-controller-internal.h
++++ b/drivers/soc/mediatek/mt6797-a72-cpu9-admission-controller-internal.h
+@@ -19,6 +19,7 @@ enum mt6797_a72_cpu9_admission_failure_stage {
+ 	MT6797_A72_CPU9_ADMISSION_FAILURE_DERIVE,
+ 	MT6797_A72_CPU9_ADMISSION_FAILURE_PUBLISH,
+ 	MT6797_A72_CPU9_ADMISSION_FAILURE_PREPARE,
++	MT6797_A72_CPU9_ADMISSION_FAILURE_PROGRESS,
+ 	MT6797_A72_CPU9_ADMISSION_FAILURE_CPU9_REQUEST,
+ };
+ 
+@@ -48,6 +49,9 @@ struct mt6797_a72_cpu9_admission_ops {
+ 	int (*prepare_cpu9)(
+ 		void *context,
+ 		const struct mt6797_a72_cpu9_executor_request *request);
++	int (*progress_begin)(void *context, u64 cpu8_attempt_id);
++	int (*progress_checkpoint)(void *context, u64 cpu8_attempt_id,
++				   u32 stage);
+ 	int (*add_cpu)(void *context, unsigned int cpu);
+ };
+ 
+@@ -59,8 +63,11 @@ struct mt6797_a72_cpu9_admission_state {
+ 	u32 retries;
+ 	u32 failure_stage;
+ 	u32 derive_stage;
++	u32 progress_stage;
+ 	int cpu8_ret;
+ 	int cpu8_proof_ret;
++	int progress_ret;
++	int cpu9_request_ret;
+ 	int operation_ret;
+ 	struct mt6797_a72_transaction cpu9_transaction;
+ 	struct mt6797_a72_cpu9_executor_request cpu9_request;
+diff --git a/drivers/soc/mediatek/mt6797-a72-cpu9-admission-controller-test.c b/drivers/soc/mediatek/mt6797-a72-cpu9-admission-controller-test.c
+index 249f3a8..0d07039 100644
+--- a/drivers/soc/mediatek/mt6797-a72-cpu9-admission-controller-test.c
++++ b/drivers/soc/mediatek/mt6797-a72-cpu9-admission-controller-test.c
+@@ -5,6 +5,7 @@
+ 
+ #include <kunit/test.h>
+ #include <linux/errno.h>
++#include <linux/gemini_cpu9_progress_ledger.h>
+ #include <linux/module.h>
+ #include <linux/sched.h>
+ #include <linux/slab.h>
+@@ -30,6 +31,7 @@ enum mt6797_a72_cpu9_admission_test_failure {
+ 	MT6797_CPU9_ADMISSION_FAIL_DERIVE,
+ 	MT6797_CPU9_ADMISSION_FAIL_PUBLISH,
+ 	MT6797_CPU9_ADMISSION_FAIL_PREPARE,
++	MT6797_CPU9_ADMISSION_FAIL_PROGRESS,
+ 	MT6797_CPU9_ADMISSION_FAIL_ADD_CPU,
+ };
+ 
+@@ -40,6 +42,9 @@ struct mt6797_a72_cpu9_admission_test_context {
+ 	enum mt6797_a72_cpu9_admission_test_failure failure;
+ 	enum mt6797_a72_cpu9_admission_test_event events[8];
+ 	unsigned int event_count;
++	u32 progress_stages[GEMINI_CPU9_PROGRESS_ADD_CPU_RETURN];
++	u32 progress_count;
++	u32 fail_progress_stage;
+ 	unsigned int requested_cpu;
+ 	bool same_task;
+ 	struct task_struct *task;
+@@ -146,6 +151,36 @@ static int mt6797_a72_cpu9_admission_test_prepare(
+ 								       0;
+ }
+ 
++static int mt6797_a72_cpu9_admission_test_progress_record(
++	struct mt6797_a72_cpu9_admission_test_context *context, u32 stage)
++{
++	if (context->progress_count < ARRAY_SIZE(context->progress_stages))
++		context->progress_stages[context->progress_count++] = stage;
++	return context->failure == MT6797_CPU9_ADMISSION_FAIL_PROGRESS &&
++	       context->fail_progress_stage == stage ? -EIO : 0;
++}
++
++static int mt6797_a72_cpu9_admission_test_progress_begin(
++	void *data, u64 cpu8_attempt_id)
++{
++	struct mt6797_a72_cpu9_admission_test_context *context = data;
++
++	if (cpu8_attempt_id != context->proof.attempt_id)
++		return -EPROTO;
++	return mt6797_a72_cpu9_admission_test_progress_record(
++		context, GEMINI_CPU9_PROGRESS_CPU8_PROOF);
++}
++
++static int mt6797_a72_cpu9_admission_test_progress_checkpoint(
++	void *data, u64 cpu8_attempt_id, u32 stage)
++{
++	struct mt6797_a72_cpu9_admission_test_context *context = data;
++
++	if (cpu8_attempt_id != context->proof.attempt_id)
++		return -EPROTO;
++	return mt6797_a72_cpu9_admission_test_progress_record(context, stage);
++}
++
+ static int mt6797_a72_cpu9_admission_test_add_cpu(void *data,
+ 						  unsigned int cpu)
+ {
+@@ -154,6 +189,12 @@ static int mt6797_a72_cpu9_admission_test_add_cpu(void *data,
+ 	mt6797_a72_cpu9_admission_test_event(
+ 		context, MT6797_CPU9_ADMISSION_ADD_CPU);
+ 	context->requested_cpu = cpu;
++	mt6797_a72_cpu9_admission_test_progress_record(
++		context, GEMINI_CPU9_PROGRESS_BINDER_ENTRY);
++	mt6797_a72_cpu9_admission_test_progress_record(
++		context, GEMINI_CPU9_PROGRESS_LEDGER_BEGIN_ENTER);
++	mt6797_a72_cpu9_admission_test_progress_record(
++		context, GEMINI_CPU9_PROGRESS_LEDGER_BEGIN_RETURN);
+ 	return context->failure == MT6797_CPU9_ADMISSION_FAIL_ADD_CPU ? -EIO :
+ 								       0;
+ }
+@@ -166,6 +207,10 @@ static const struct mt6797_a72_cpu9_admission_ops
+ 		.derive_cpu9 = mt6797_a72_cpu9_admission_test_derive,
+ 		.publish_cpu9 = mt6797_a72_cpu9_admission_test_publish,
+ 		.prepare_cpu9 = mt6797_a72_cpu9_admission_test_prepare,
++		.progress_begin =
++			mt6797_a72_cpu9_admission_test_progress_begin,
++		.progress_checkpoint =
++			mt6797_a72_cpu9_admission_test_progress_checkpoint,
+ 		.add_cpu = mt6797_a72_cpu9_admission_test_add_cpu,
+ 	};
+ 
+@@ -234,6 +279,11 @@ static void mt6797_a72_cpu9_admission_success_test(struct kunit *test)
+ 	KUNIT_EXPECT_TRUE(test, context->prepared.provider_retained);
+ 	KUNIT_EXPECT_TRUE(test, context->prepared.cpu8_online);
+ 	KUNIT_EXPECT_FALSE(test, context->prepared.cpu9_online);
++	KUNIT_EXPECT_EQ(test, context->progress_count,
++			GEMINI_CPU9_PROGRESS_ADD_CPU_RETURN);
++	for (ret = 0; ret < context->progress_count; ret++)
++		KUNIT_EXPECT_EQ(test, context->progress_stages[ret],
++				(u32)ret + 1);
+ }
+ 
+ static void mt6797_a72_cpu9_admission_invalid_repeat_test(struct kunit *test)
+@@ -386,6 +436,28 @@ static void mt6797_a72_cpu9_admission_request_failure_test(struct kunit *test)
+ 			(u32)MT6797_A72_CPU9_ADMISSION_FAILURE_CPU9_REQUEST);
+ }
+ 
++static void mt6797_a72_cpu9_admission_progress_failures_test(
++	struct kunit *test)
++{
++	u32 stage;
++
++	for (stage = GEMINI_CPU9_PROGRESS_CPU8_PROOF;
++	     stage <= GEMINI_CPU9_PROGRESS_ADD_CPU_DISPATCH; stage++) {
++		struct mt6797_a72_cpu9_admission_test_context *context =
++			mt6797_a72_cpu9_admission_test_context(test);
++
++		KUNIT_ASSERT_NOT_NULL(test, context);
++		context->failure = MT6797_CPU9_ADMISSION_FAIL_PROGRESS;
++		context->fail_progress_stage = stage;
++		KUNIT_EXPECT_EQ(test, mt6797_a72_cpu9_admission_run(
++			&context->controller,
++			&mt6797_a72_cpu9_admission_test_ops, context), -EIO);
++		KUNIT_EXPECT_EQ(test, context->controller.progress_stage, stage);
++		KUNIT_EXPECT_EQ(test, context->controller.cpu9_requests, 0U);
++		KUNIT_EXPECT_EQ(test, context->requested_cpu, 0U);
++	}
++}
++
+ static struct kunit_case mt6797_a72_cpu9_admission_controller_cases[] = {
+ 	KUNIT_CASE(mt6797_a72_cpu9_admission_success_test),
+ 	KUNIT_CASE(mt6797_a72_cpu9_admission_invalid_repeat_test),
+@@ -395,6 +467,7 @@ static struct kunit_case mt6797_a72_cpu9_admission_controller_cases[] = {
+ 	KUNIT_CASE(mt6797_a72_cpu9_admission_publish_failure_test),
+ 	KUNIT_CASE(mt6797_a72_cpu9_admission_prepare_failure_test),
+ 	KUNIT_CASE(mt6797_a72_cpu9_admission_request_failure_test),
++	KUNIT_CASE(mt6797_a72_cpu9_admission_progress_failures_test),
+ 	{ }
+ };
+ 
+diff --git a/drivers/soc/mediatek/mt6797-a72-cpu9-admission-controller.c b/drivers/soc/mediatek/mt6797-a72-cpu9-admission-controller.c
+index d65a764..fa627ca 100644
+--- a/drivers/soc/mediatek/mt6797-a72-cpu9-admission-controller.c
++++ b/drivers/soc/mediatek/mt6797-a72-cpu9-admission-controller.c
+@@ -3,6 +3,7 @@
+ 
+ #include <linux/bitops.h>
+ #include <linux/errno.h>
++#include <linux/gemini_cpu9_progress_ledger.h>
+ #include <linux/string.h>
+ 
+ #include "mt6797-a72-cpu9-admission-controller-internal.h"
+@@ -12,6 +13,7 @@ static bool mt6797_a72_cpu9_admission_ops_valid(
+ {
+ 	return ops && ops->run_cpu8 && ops->cpu8_proof && ops->ready_token &&
+ 	       ops->derive_cpu9 && ops->publish_cpu9 && ops->prepare_cpu9 &&
++	       ops->progress_begin && ops->progress_checkpoint &&
+ 	       ops->add_cpu;
+ }
+ 
+@@ -69,6 +71,20 @@ static int mt6797_a72_cpu9_admission_terminal(
+ 	return ret;
+ }
+ 
++static int mt6797_a72_cpu9_admission_progress(
++	struct mt6797_a72_cpu9_admission_state *state,
++	const struct mt6797_a72_cpu9_admission_ops *ops, void *context,
++	u64 cpu8_attempt_id, u32 stage, bool begin)
++{
++	state->progress_stage = stage;
++	state->progress_ret = begin ?
++		ops->progress_begin(context, cpu8_attempt_id) :
++		ops->progress_checkpoint(context, cpu8_attempt_id, stage);
++	return state->progress_ret ? mt6797_a72_cpu9_admission_terminal(
++		state, MT6797_A72_CPU9_ADMISSION_FAILURE_PROGRESS,
++		state->progress_ret) : 0;
++}
++
+ void mt6797_a72_cpu9_admission_state_init(
+ 	struct mt6797_a72_cpu9_admission_state *state)
+ {
+@@ -105,12 +121,22 @@ int mt6797_a72_cpu9_admission_run(
+ 			state, MT6797_A72_CPU9_ADMISSION_FAILURE_CPU8_PROOF,
+ 			state->cpu8_proof_ret ?: -EPROTO);
+ 	state->cpu8_requests = proof.cpu_requests;
++	ret = mt6797_a72_cpu9_admission_progress(
++		state, ops, context, proof.attempt_id,
++		GEMINI_CPU9_PROGRESS_CPU8_PROOF, true);
++	if (ret)
++		return ret;
+ 
+ 	ready = ops->ready_token(context);
+ 	if (!ready)
+ 		return mt6797_a72_cpu9_admission_terminal(
+ 			state, MT6797_A72_CPU9_ADMISSION_FAILURE_READY_TOKEN,
+ 			-EAGAIN);
++	ret = mt6797_a72_cpu9_admission_progress(
++		state, ops, context, proof.attempt_id,
++		GEMINI_CPU9_PROGRESS_READY_TOKEN, false);
++	if (ret)
++		return ret;
+ 
+ 	ret = ops->derive_cpu9(context, ready, &state->cpu9_transaction,
+ 			       &state->derive_stage);
+@@ -123,6 +149,11 @@ int mt6797_a72_cpu9_admission_run(
+ 		return mt6797_a72_cpu9_admission_terminal(
+ 			state, MT6797_A72_CPU9_ADMISSION_FAILURE_DERIVE,
+ 			-EPROTO);
++	ret = mt6797_a72_cpu9_admission_progress(
++		state, ops, context, proof.attempt_id,
++		GEMINI_CPU9_PROGRESS_DERIVE, false);
++	if (ret)
++		return ret;
+ 
+ 	ret = ops->publish_cpu9(context, &state->cpu9_transaction);
+ 	if (ret || !mt6797_a72_cpu9_admission_transaction_valid(
+@@ -130,6 +161,11 @@ int mt6797_a72_cpu9_admission_run(
+ 		return mt6797_a72_cpu9_admission_terminal(
+ 			state, MT6797_A72_CPU9_ADMISSION_FAILURE_PUBLISH,
+ 			ret ?: -EPROTO);
++	ret = mt6797_a72_cpu9_admission_progress(
++		state, ops, context, proof.attempt_id,
++		GEMINI_CPU9_PROGRESS_PUBLISH, false);
++	if (ret)
++		return ret;
+ 
+ 	state->cpu9_request = (struct mt6797_a72_cpu9_executor_request){
+ 		.cpu = MT6797_A72_CPU9_EXECUTOR_CPU9,
+@@ -148,13 +184,29 @@ int mt6797_a72_cpu9_admission_run(
+ 	if (ret)
+ 		return mt6797_a72_cpu9_admission_terminal(
+ 			state, MT6797_A72_CPU9_ADMISSION_FAILURE_PREPARE, ret);
++	ret = mt6797_a72_cpu9_admission_progress(
++		state, ops, context, proof.attempt_id,
++		GEMINI_CPU9_PROGRESS_PREPARE, false);
++	if (ret)
++		return ret;
++	ret = mt6797_a72_cpu9_admission_progress(
++		state, ops, context, proof.attempt_id,
++		GEMINI_CPU9_PROGRESS_ADD_CPU_DISPATCH, false);
++	if (ret)
++		return ret;
+ 
+ 	state->cpu9_requests = 1;
+-	ret = ops->add_cpu(context, MT6797_A72_CPU9_EXECUTOR_CPU9);
++	state->cpu9_request_ret =
++		ops->add_cpu(context, MT6797_A72_CPU9_EXECUTOR_CPU9);
++	ret = mt6797_a72_cpu9_admission_progress(
++		state, ops, context, proof.attempt_id,
++		GEMINI_CPU9_PROGRESS_ADD_CPU_RETURN, false);
+ 	if (ret)
++		return ret;
++	if (state->cpu9_request_ret)
+ 		return mt6797_a72_cpu9_admission_terminal(
+ 			state, MT6797_A72_CPU9_ADMISSION_FAILURE_CPU9_REQUEST,
+-			ret);
++			state->cpu9_request_ret);
+ 	return mt6797_a72_cpu9_admission_terminal(
+ 		state, MT6797_A72_CPU9_ADMISSION_FAILURE_NONE, 0);
+ }
+diff --git a/drivers/soc/mediatek/mt6797-a72-cpu9-binder-internal.h b/drivers/soc/mediatek/mt6797-a72-cpu9-binder-internal.h
+index 88b7896..c7db1ea 100644
+--- a/drivers/soc/mediatek/mt6797-a72-cpu9-binder-internal.h
++++ b/drivers/soc/mediatek/mt6797-a72-cpu9-binder-internal.h
+@@ -13,6 +13,7 @@
+ #include "mt6797-a72-cpu9-executor-internal.h"
+ 
+ struct mt6797_a72_cpu9_binder_backend_ops {
++	int (*progress_checkpoint)(u64 cpu8_attempt_id, u32 stage);
+ 	int (*ledger_begin)(u64 cpu8_attempt_id, u64 cpu9_attempt_id);
+ 	int (*ledger_checkpoint)(u64 cpu9_attempt_id, u32 phase, u32 stage,
+ 				 u32 terminal);
+diff --git a/drivers/soc/mediatek/mt6797-a72-cpu9-binder-test.c b/drivers/soc/mediatek/mt6797-a72-cpu9-binder-test.c
+index db1a111..74276d8 100644
+--- a/drivers/soc/mediatek/mt6797-a72-cpu9-binder-test.c
++++ b/drivers/soc/mediatek/mt6797-a72-cpu9-binder-test.c
+@@ -3,6 +3,7 @@
+ 
+ #include <kunit/test.h>
+ #include <linux/errno.h>
++#include <linux/gemini_cpu9_progress_ledger.h>
+ #include <linux/gemini_cpu9_transition_ledger.h>
+ #include <linux/gemini_transition_ledger.h>
+ #include <linux/module.h>
+@@ -11,6 +12,7 @@
+ 
+ enum mt6797_cpu9_binder_test_failure {
+ 	MT6797_CPU9_BINDER_FAIL_NONE,
++	MT6797_CPU9_BINDER_FAIL_PROGRESS,
+ 	MT6797_CPU9_BINDER_FAIL_LEDGER_BEGIN,
+ 	MT6797_CPU9_BINDER_FAIL_PREFLIGHT,
+ 	MT6797_CPU9_BINDER_FAIL_CLAIM,
+@@ -29,6 +31,9 @@ struct mt6797_cpu9_binder_test_state {
+ 	struct mt6797_a72_transaction transaction;
+ 	bool cpu8_online;
+ 	bool cpu9_online;
++	unsigned int progress_checkpoint_calls;
++	u32 progress_stages[3];
++	u32 fail_progress_stage;
+ 	unsigned int ledger_begin_calls;
+ 	unsigned int ledger_checkpoint_calls;
+ 	unsigned int preflight_calls;
+@@ -50,6 +55,25 @@ struct mt6797_cpu9_binder_test_state {
+ };
+ 
+ static struct mt6797_cpu9_binder_test_state *mt6797_cpu9_binder_test_active;
++static struct mt6797_a72_cpu9_executor_request
++mt6797_cpu9_binder_test_request(void);
++
++static int mt6797_cpu9_binder_test_progress_checkpoint(
++	u64 cpu8_attempt_id, u32 stage)
++{
++	struct mt6797_cpu9_binder_test_state *state =
++		mt6797_cpu9_binder_test_active;
++
++	if (state->progress_checkpoint_calls <
++	    ARRAY_SIZE(state->progress_stages))
++		state->progress_stages[state->progress_checkpoint_calls++] =
++			stage;
++	if (cpu8_attempt_id !=
++	    mt6797_cpu9_binder_test_request().cpu8_attempt_id)
++		return -EPROTO;
++	return state->failure == MT6797_CPU9_BINDER_FAIL_PROGRESS &&
++	       state->fail_progress_stage == stage ? -EIO : 0;
++}
+ 
+ static int mt6797_cpu9_binder_test_ledger_begin(u64 cpu8_attempt_id,
+ 						u64 cpu9_attempt_id)
+@@ -231,6 +255,8 @@ static int mt6797_cpu9_binder_test_cpu_boot(unsigned int cpu)
+ 
+ static const struct mt6797_a72_cpu9_binder_backend_ops
+ 	mt6797_cpu9_binder_test_backend = {
++		.progress_checkpoint =
++			mt6797_cpu9_binder_test_progress_checkpoint,
+ 		.ledger_begin = mt6797_cpu9_binder_test_ledger_begin,
+ 		.ledger_checkpoint = mt6797_cpu9_binder_test_ledger_checkpoint,
+ 		.membership_preflight =
+@@ -334,6 +360,13 @@ static void mt6797_cpu9_binder_success_test(struct kunit *test)
+ 			request.cpu8_attempt_id);
+ 	KUNIT_EXPECT_EQ(test, diagnostic.cpu9_attempt_id,
+ 			request.cpu9_attempt_id);
++	KUNIT_EXPECT_EQ(test, state.progress_checkpoint_calls, 3U);
++	KUNIT_EXPECT_EQ(test, state.progress_stages[0],
++			(u32)GEMINI_CPU9_PROGRESS_BINDER_ENTRY);
++	KUNIT_EXPECT_EQ(test, state.progress_stages[1],
++			(u32)GEMINI_CPU9_PROGRESS_LEDGER_BEGIN_ENTER);
++	KUNIT_EXPECT_EQ(test, state.progress_stages[2],
++			(u32)GEMINI_CPU9_PROGRESS_LEDGER_BEGIN_RETURN);
+ 	KUNIT_EXPECT_EQ(test, state.ledger_begin_calls, 1U);
+ 	KUNIT_EXPECT_EQ(test, state.ledger_checkpoint_calls, 11U);
+ 	KUNIT_EXPECT_EQ(test, state.cpu8_attempt_id, request.cpu8_attempt_id);
+@@ -597,6 +630,37 @@ static void mt6797_cpu9_binder_failure_dispatch_test(struct kunit *test)
+ 	KUNIT_EXPECT_EQ(test, binder.result.retries, 0U);
+ }
+ 
++static void mt6797_cpu9_binder_progress_failures_test(struct kunit *test)
++{
++	static const u32 stages[] = {
++		GEMINI_CPU9_PROGRESS_BINDER_ENTRY,
++		GEMINI_CPU9_PROGRESS_LEDGER_BEGIN_ENTER,
++		GEMINI_CPU9_PROGRESS_LEDGER_BEGIN_RETURN,
++	};
++	unsigned int i;
++
++	for (i = 0; i < ARRAY_SIZE(stages); i++) {
++		struct mt6797_a72_cpu9_executor_request request =
++			mt6797_cpu9_binder_test_request();
++		struct mt6797_cpu9_binder_test_state state;
++		struct mt6797_a72_cpu9_binder binder;
++		int ret;
++
++		mt6797_cpu9_binder_test_reset(&binder, &state);
++		state.failure = MT6797_CPU9_BINDER_FAIL_PROGRESS;
++		state.fail_progress_stage = stages[i];
++		ret = mt6797_a72_cpu9_binder_test_prepare(&binder, &request);
++		KUNIT_ASSERT_EQ(test, ret, 0);
++		ret = mt6797_a72_cpu9_binder_test_boot(
++			&binder, 9, mt6797_cpu9_binder_test_cpu_boot);
++		KUNIT_EXPECT_EQ(test, ret, -EIO);
++		KUNIT_EXPECT_EQ(test, state.cpu_boot_calls, 0U);
++		KUNIT_EXPECT_EQ(test, state.ledger_begin_calls,
++				stages[i] ==
++				GEMINI_CPU9_PROGRESS_LEDGER_BEGIN_RETURN ? 1U : 0U);
++	}
++}
++
+ static struct kunit_case mt6797_cpu9_binder_test_cases[] = {
+ 	KUNIT_CASE(mt6797_cpu9_binder_success_test),
+ 	KUNIT_CASE(mt6797_cpu9_binder_dispatch_guards_test),
+@@ -606,6 +670,7 @@ static struct kunit_case mt6797_cpu9_binder_test_cases[] = {
+ 	KUNIT_CASE(mt6797_cpu9_binder_secondary_failure_test),
+ 	KUNIT_CASE(mt6797_cpu9_binder_completion_failures_test),
+ 	KUNIT_CASE(mt6797_cpu9_binder_failure_dispatch_test),
++	KUNIT_CASE(mt6797_cpu9_binder_progress_failures_test),
+ 	{},
+ };
+ 
+diff --git a/drivers/soc/mediatek/mt6797-a72-cpu9-binder.c b/drivers/soc/mediatek/mt6797-a72-cpu9-binder.c
+index 1a52f14..ff88fa4 100644
+--- a/drivers/soc/mediatek/mt6797-a72-cpu9-binder.c
++++ b/drivers/soc/mediatek/mt6797-a72-cpu9-binder.c
+@@ -2,6 +2,7 @@
+ /* Production dispatch adapter for one retained-cluster MT6797 CPU9 transition. */
+ 
+ #include <linux/errno.h>
++#include <linux/gemini_cpu9_progress_ledger.h>
+ #include <linux/gemini_cpu9_transition_ledger.h>
+ #include <linux/gemini_transition_ledger.h>
+ #include <linux/mutex.h>
+@@ -16,8 +17,8 @@ static DEFINE_MUTEX(mt6797_a72_cpu9_binder_lock);
+ static bool mt6797_a72_cpu9_binder_backend_valid(
+ 	const struct mt6797_a72_cpu9_binder_backend_ops *ops)
+ {
+-	return ops && ops->ledger_begin && ops->ledger_checkpoint &&
+-	       ops->membership_preflight && ops->membership_claim &&
++	return ops && ops->progress_checkpoint && ops->ledger_begin &&
++	       ops->ledger_checkpoint && ops->membership_preflight && ops->membership_claim &&
+ 	       ops->membership_reject && ops->membership_begin_cpu_on &&
+ 	       ops->p30e_prepare && ops->p30e_arm && ops->p30e_readback &&
+ 	       ops->membership_publish_success &&
+@@ -141,6 +142,7 @@ static int mt6797_a72_cpu9_binder_ipi_call(unsigned int cpu,
+ 
+ static const struct mt6797_a72_cpu9_binder_backend_ops
+ 	mt6797_a72_cpu9_binder_production_backend = {
++		.progress_checkpoint = gemini_cpu9_progress_checkpoint,
+ 		.ledger_begin = gemini_cpu9_ledger_begin,
+ 		.ledger_checkpoint = gemini_cpu9_ledger_checkpoint,
+ 		.membership_preflight = mt6797_a72_membership_preflight_cpu9,
+@@ -186,12 +188,22 @@ static int mt6797_a72_cpu9_binder_checkpoint(
+ 		if (phase != MT6797_A72_CPU9_PHASE_BEFORE ||
+ 		    stage != MT6797_A72_CPU9_STAGE_PRESTATE)
+ 			return -EPROTO;
++		ret = binder->backend->progress_checkpoint(
++			binder->request.cpu8_attempt_id,
++			GEMINI_CPU9_PROGRESS_LEDGER_BEGIN_ENTER);
++		if (ret)
++			return ret;
+ 		ret = binder->backend->ledger_begin(
+ 			binder->request.cpu8_attempt_id,
+ 			binder->request.cpu9_attempt_id);
+ 		if (ret)
+ 			return ret;
+ 		binder->ledger_begun = true;
++		ret = binder->backend->progress_checkpoint(
++			binder->request.cpu8_attempt_id,
++			GEMINI_CPU9_PROGRESS_LEDGER_BEGIN_RETURN);
++		if (ret)
++			return ret;
+ 	}
+ 	return binder->backend->ledger_checkpoint(
+ 		binder->request.cpu9_attempt_id, phase, stage, 0);
+@@ -377,6 +389,11 @@ static int mt6797_a72_cpu9_binder_boot(struct mt6797_a72_cpu9_binder *binder,
+ 		return -EAGAIN;
+ 	if (atomic_cmpxchg(&binder->boot_claimed, 0, 1))
+ 		return -EALREADY;
++	ret = binder->backend->progress_checkpoint(
++		binder->request.cpu8_attempt_id,
++		GEMINI_CPU9_PROGRESS_BINDER_ENTRY);
++	if (ret)
++		return ret;
+ 	ret = binder->backend->membership_claim(&binder->transaction);
+ 	if (ret)
+ 		return ret;
