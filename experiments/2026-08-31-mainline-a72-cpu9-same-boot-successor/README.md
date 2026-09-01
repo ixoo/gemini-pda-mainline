@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-cpu9-same-boot-successor` |
-| Status | `hardware-free retained-cluster executor generated; Buildbox/KUnit pending` |
+| Status | `hardware-free retained-cluster executor validated; dispatch/controller next` |
 | Subsystem | MT6797 A72 CPU9 retained-cluster admission |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |
@@ -87,6 +87,10 @@ first write. No new physical range is introduced.
 - [`results/executor-fixture-fix-generation-20260831.txt`](results/executor-fixture-fix-generation-20260831.txt):
   exact failed-source Buildbox generation, strict replay, and two mutation
   rejections for the test-only fixture repair in patch `0467`.
+- [`results/executor-kunit-attempt-2-20260831.txt`](results/executor-kunit-attempt-2-20260831.txt):
+  exact repaired Buildbox package and preserved no-network QEMU result: all 65
+  executor, owner, transition, and binder cases passed with zero failures or
+  skips.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger and owner-local membership lifecycle. The canonical layers
@@ -186,6 +190,18 @@ that test file only. Exact failed-source generation, two type-divergence
 mutations, strict style, and deterministic replay pass. Production executor
 source and behavior are unchanged; the Buildbox/KUnit rerun remains pending.
 
+Exact published commit `b0750bb3...` then compiled on Buildbox and passed
+package, checksum, and provenance validation. The single no-network QEMU run
+executed all 65 named cases: all 10 CPU9 executor cases and all 55 prior owner,
+transition, and binder regressions passed with zero failures or skips. The
+first classifier invocation rejected only because it expected the binder
+suite before the new executor suite; Makefile link order emitted executor then
+binder. Published harness commit `d771bb17...` encoded that deterministic
+order and accepted the same preserved raw log, so no runtime rerun occurred.
+The profile contained no physical backend, production caller, CPU request,
+MMIO, retained-RAM action, watchdog action, SMC, device action, or boot
+candidate.
+
 ## Analysis
 
 The current generic owner and P30E layers contain useful CPU9 primitives, but
@@ -206,16 +222,14 @@ its CPU checks is rejected because it exposes repeated cluster acquisition.
 The guarded independent retained ledger and owner-local CPU9 derivation/
 membership lifecycle are canonical, compiled, and runtime-tested. The third
 logical layer—the hardware-free retained-cluster executor plus its test-only
-fixture repair—is canonical at the source-generation gate but not yet
-compiled or runtime-tested. The detailed
+fixture repair—is now canonical, compiled, and runtime-tested. The detailed
 remaining implementation and evidence contract is frozen in
 [`DESIGN.md`](DESIGN.md); no CPU9 support or device result is claimed yet.
 
 ## Follow-up
 
-Compile patches `0466`–`0467` on Buildbox and pass the exact 65-case hardware-free
-KUnit gate. Then bind P30E/PSCI/completion dispatch and chain the
-candidate-only controller before candidate validation and one predeclared
-device attempt.
+Bind P30E/PSCI/secondary-completion/IPI/membership dispatch to the proven
+executor, then chain the candidate-only controller before candidate validation
+and one predeclared device attempt.
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside
 that first CPU9 attempt.

@@ -6739,12 +6739,15 @@ online completion, IPI, and membership operations. Its exact-source
 generation rejects ten unsafe mutations and passes strict style and
 deterministic replay; it has no production caller or physical CPU request.
 The first exact compile rejected a private KUnit fixture type-name mismatch;
-test-only patch `0467` repairs it without changing production source and
-passes exact-source generation, two mutation rejections, strict style, and
-deterministic replay. **Selected next:** compile `0466`–`0467` on Buildbox and
-pass the exact 65-case no-network KUnit gate. P30E/PSCI dispatch, controller
-chaining, and candidate gates remain subsequent layers. No CPU9 candidate or
-device action is admitted until all those gates pass.
+test-only patch `0467` repairs it without changing production source. Exact
+published commit `b0750bb3...` then compiled on Buildbox, passed package and
+provenance validation, and passed all 65 no-network KUnit cases: 10 focused
+CPU9 executor cases and all 55 prior owner, transition, and binder regressions,
+with zero failures or skips. No production caller or physical backend was
+present. **Selected next:** bind P30E/PSCI/secondary-completion/IPI/membership
+dispatch to the proven executor, then chain the candidate-only controller.
+Candidate gates remain subsequent; no CPU9 candidate or device action is
+admitted until those layers pass their independent offline gates.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
