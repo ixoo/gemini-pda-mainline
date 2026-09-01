@@ -82,6 +82,20 @@ def validate(root: Path) -> list[str]:
         "exact ten-stage checkpoint bound")
 
     exact(public, "enum gemini_cpu9_progress_stage {")
+    require(
+        "enum gemini_cpu9_progress_stage {\n"
+        "\tGEMINI_CPU9_PROGRESS_CPU8_PROOF = 1,\n"
+        "\tGEMINI_CPU9_PROGRESS_READY_TOKEN,\n"
+        "\tGEMINI_CPU9_PROGRESS_DERIVE,\n"
+        "\tGEMINI_CPU9_PROGRESS_PUBLISH,\n"
+        "\tGEMINI_CPU9_PROGRESS_PREPARE,\n"
+        "\tGEMINI_CPU9_PROGRESS_ADD_CPU_DISPATCH,\n"
+        "\tGEMINI_CPU9_PROGRESS_BINDER_ENTRY,\n"
+        "\tGEMINI_CPU9_PROGRESS_LEDGER_BEGIN_ENTER,\n"
+        "\tGEMINI_CPU9_PROGRESS_LEDGER_BEGIN_RETURN,\n"
+        "\tGEMINI_CPU9_PROGRESS_ADD_CPU_RETURN,\n"
+        "};" in public,
+        "exact ten-stage public inventory")
     for stage in (
         "CPU8_PROOF", "READY_TOKEN", "DERIVE", "PUBLISH", "PREPARE",
         "ADD_CPU_DISPATCH", "BINDER_ENTRY", "LEDGER_BEGIN_ENTER",
