@@ -429,10 +429,18 @@ def apply(root: Path) -> None:
     tests = root / "drivers/soc/mediatek/mt6797-a72-cpu9-binder-test.c"
     replace_once(
         tests,
+        "static void mt6797_cpu9_binder_success_test(struct kunit *test)\n"
+        "{\n"
+        "\tstruct mt6797_a72_cpu9_executor_request request =\n"
+        "\t\tmt6797_cpu9_binder_test_request();\n"
         "\tstruct mt6797_cpu9_binder_test_state state;\n"
         "\tstruct mt6797_a72_cpu9_binder binder;\n"
         "\tint ret;\n\n"
         "\tmt6797_cpu9_binder_test_reset(&binder, &state);\n",
+        "static void mt6797_cpu9_binder_success_test(struct kunit *test)\n"
+        "{\n"
+        "\tstruct mt6797_a72_cpu9_executor_request request =\n"
+        "\t\tmt6797_cpu9_binder_test_request();\n"
         "\tstruct mt6797_cpu9_binder_test_state state;\n"
         "\tstruct mt6797_a72_cpu9_binder_diagnostic diagnostic;\n"
         "\tstruct mt6797_a72_cpu9_binder binder;\n"
