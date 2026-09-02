@@ -655,6 +655,19 @@ bounded substage ledger around P30E prepare, membership begin, P30E arm, and
 the generic CPU boot call. Validate it offline on Buildbox, then spend at most
 one new candidate boot. Do not repeat `0904c5a2...`; CPU_OFF, retry, sustained
 load, hotplug, thermal, and suspend remain outside this diagnostic.
+
+Canonical patch `0479` now implements that record-3 observation. It accepts the
+lane only when record 1 contains the exact same-attempt `BEFORE CPU_ON`
+checkpoint, then commits eight ordered before/after boundaries around P30E
+prepare, membership begin, P30E arm, and the existing CPU boot callback. The
+CPU boot call remains singular; no CPU request, CPU_OFF, retry, cluster effect,
+reset, storage, or boot-policy path was added. Exact post-`0478` Buildbox
+generation passed source validation, rejected all eight mutations, passed
+strict Checkpatch with documented diagnostic-formatting check-class waivers,
+and replayed deterministically. It is not a boot candidate. See
+[`results/cpu-on-progress-patch-generation-20260902.txt`](results/cpu-on-progress-patch-generation-20260902.txt).
+**Selected next:** run the complete CPU9 KUnit build and no-network QEMU suite
+on Buildbox before any production build or device action.
 The ordered device action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside

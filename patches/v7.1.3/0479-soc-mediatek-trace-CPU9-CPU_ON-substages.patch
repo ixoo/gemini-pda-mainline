@@ -1,0 +1,657 @@
+From 98af038686721fd407a6201e60fc559a09384733 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 2 Sep 2026 02:11:00 +0000
+Subject: [PATCH] soc: mediatek: trace CPU9 CPU_ON substages
+
+The first CPU9 attempt after repairing the CPU-hotplug lock
+recursion opens the CPU9 ledger, completes PRESTATE, and stops
+inside its CPU_ON binder operation. The current retained records
+cannot distinguish P30E prepare, membership begin, P30E arm, or
+the existing CPU boot callback.
+
+Use the still-empty fourth ramoops record for eight ordered
+before/after checkpoints around those exact calls. Require the
+CPU9 transition ledger at BEFORE CPU_ON before claiming the lane,
+and fail closed on any diagnostic error.
+
+This does not add a CPU request, CPU_OFF, retry, cluster effect,
+reset, storage, or boot-policy path.
+---
+ .../mt6797-a72-cpu9-binder-internal.h         |   2 +
+ .../mediatek/mt6797-a72-cpu9-binder-test.c    |  77 +++++++++
+ drivers/soc/mediatek/mt6797-a72-cpu9-binder.c |  48 +++++-
+ fs/pstore/Kconfig                             |   5 +
+ fs/pstore/gemini_cpu9_progress_ledger.c       | 156 +++++++++++++++++-
+ .../gemini_cpu9_progress_ledger_internal.h    |  15 ++
+ fs/pstore/gemini_cpu9_progress_ledger_test.c  | 107 ++++++++++++
+ include/linux/gemini_cpu9_progress_ledger.h   |  16 ++
+ 8 files changed, 422 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-cpu9-binder-internal.h b/drivers/soc/mediatek/mt6797-a72-cpu9-binder-internal.h
+index c7db1ea..b44a6df 100644
+--- a/drivers/soc/mediatek/mt6797-a72-cpu9-binder-internal.h
++++ b/drivers/soc/mediatek/mt6797-a72-cpu9-binder-internal.h
+@@ -14,6 +14,8 @@
+ 
+ struct mt6797_a72_cpu9_binder_backend_ops {
+ 	int (*progress_checkpoint)(u64 cpu8_attempt_id, u32 stage);
++	int (*cpu_on_progress_checkpoint)(u64 cpu9_attempt_id, u32 phase,
++					  u32 stage);
+ 	int (*ledger_begin)(u64 cpu8_attempt_id, u64 cpu9_attempt_id);
+ 	int (*ledger_checkpoint)(u64 cpu9_attempt_id, u32 phase, u32 stage,
+ 				 u32 terminal);
+diff --git a/drivers/soc/mediatek/mt6797-a72-cpu9-binder-test.c b/drivers/soc/mediatek/mt6797-a72-cpu9-binder-test.c
+index 74276d8..2afe89c 100644
+--- a/drivers/soc/mediatek/mt6797-a72-cpu9-binder-test.c
++++ b/drivers/soc/mediatek/mt6797-a72-cpu9-binder-test.c
+@@ -13,6 +13,7 @@
+ enum mt6797_cpu9_binder_test_failure {
+ 	MT6797_CPU9_BINDER_FAIL_NONE,
+ 	MT6797_CPU9_BINDER_FAIL_PROGRESS,
++	MT6797_CPU9_BINDER_FAIL_CPU_ON_PROGRESS,
+ 	MT6797_CPU9_BINDER_FAIL_LEDGER_BEGIN,
+ 	MT6797_CPU9_BINDER_FAIL_PREFLIGHT,
+ 	MT6797_CPU9_BINDER_FAIL_CLAIM,
+@@ -34,6 +35,10 @@ struct mt6797_cpu9_binder_test_state {
+ 	unsigned int progress_checkpoint_calls;
+ 	u32 progress_stages[3];
+ 	u32 fail_progress_stage;
++	unsigned int cpu_on_progress_checkpoint_calls;
++	u32 cpu_on_progress_phases[8];
++	u32 cpu_on_progress_stages[8];
++	u32 fail_cpu_on_progress_call;
+ 	unsigned int ledger_begin_calls;
+ 	unsigned int ledger_checkpoint_calls;
+ 	unsigned int preflight_calls;
+@@ -75,6 +80,26 @@ static int mt6797_cpu9_binder_test_progress_checkpoint(
+ 	       state->fail_progress_stage == stage ? -EIO : 0;
+ }
+ 
++
++static int mt6797_cpu9_binder_test_cpu_on_progress_checkpoint(
++	u64 cpu9_attempt_id, u32 phase, u32 stage)
++{
++	struct mt6797_cpu9_binder_test_state *state =
++		mt6797_cpu9_binder_test_active;
++	unsigned int call = state->cpu_on_progress_checkpoint_calls;
++
++	if (call < ARRAY_SIZE(state->cpu_on_progress_stages)) {
++		state->cpu_on_progress_phases[call] = phase;
++		state->cpu_on_progress_stages[call] = stage;
++	}
++	state->cpu_on_progress_checkpoint_calls++;
++	if (cpu9_attempt_id !=
++	    mt6797_cpu9_binder_test_request().cpu9_attempt_id)
++		return -EPROTO;
++	return state->failure == MT6797_CPU9_BINDER_FAIL_CPU_ON_PROGRESS &&
++	       state->fail_cpu_on_progress_call == call + 1 ? -EIO : 0;
++}
++
+ static int mt6797_cpu9_binder_test_ledger_begin(u64 cpu8_attempt_id,
+ 						u64 cpu9_attempt_id)
+ {
+@@ -257,6 +282,8 @@ static const struct mt6797_a72_cpu9_binder_backend_ops
+ 	mt6797_cpu9_binder_test_backend = {
+ 		.progress_checkpoint =
+ 			mt6797_cpu9_binder_test_progress_checkpoint,
++		.cpu_on_progress_checkpoint =
++			mt6797_cpu9_binder_test_cpu_on_progress_checkpoint,
+ 		.ledger_begin = mt6797_cpu9_binder_test_ledger_begin,
+ 		.ledger_checkpoint = mt6797_cpu9_binder_test_ledger_checkpoint,
+ 		.membership_preflight =
+@@ -367,6 +394,16 @@ static void mt6797_cpu9_binder_success_test(struct kunit *test)
+ 			(u32)GEMINI_CPU9_PROGRESS_LEDGER_BEGIN_ENTER);
+ 	KUNIT_EXPECT_EQ(test, state.progress_stages[2],
+ 			(u32)GEMINI_CPU9_PROGRESS_LEDGER_BEGIN_RETURN);
++
++	KUNIT_EXPECT_EQ(test, state.cpu_on_progress_checkpoint_calls, 8U);
++	KUNIT_EXPECT_EQ(test, state.cpu_on_progress_phases[0],
++			(u32)GEMINI_TRANSITION_LEDGER_BEFORE);
++	KUNIT_EXPECT_EQ(test, state.cpu_on_progress_stages[0],
++			(u32)GEMINI_CPU9_CPU_ON_PROGRESS_P30E_PREPARE);
++	KUNIT_EXPECT_EQ(test, state.cpu_on_progress_phases[7],
++			(u32)GEMINI_TRANSITION_LEDGER_AFTER);
++	KUNIT_EXPECT_EQ(test, state.cpu_on_progress_stages[7],
++			(u32)GEMINI_CPU9_CPU_ON_PROGRESS_CPU_BOOT);
+ 	KUNIT_EXPECT_EQ(test, state.ledger_begin_calls, 1U);
+ 	KUNIT_EXPECT_EQ(test, state.ledger_checkpoint_calls, 11U);
+ 	KUNIT_EXPECT_EQ(test, state.cpu8_attempt_id, request.cpu8_attempt_id);
+@@ -517,6 +554,45 @@ static void mt6797_cpu9_binder_cpu_on_failures_test(struct kunit *test)
+ 	}
+ }
+ 
++
++static void mt6797_cpu9_binder_cpu_on_progress_failures_test(
++	struct kunit *test)
++{
++	unsigned int failure_call;
++
++	for (failure_call = 1; failure_call <= 8; failure_call++) {
++		struct mt6797_a72_cpu9_executor_request request =
++			mt6797_cpu9_binder_test_request();
++		struct mt6797_cpu9_binder_test_state state;
++		struct mt6797_a72_cpu9_binder binder;
++		int ret;
++
++		mt6797_cpu9_binder_test_reset(&binder, &state);
++		state.failure = MT6797_CPU9_BINDER_FAIL_CPU_ON_PROGRESS;
++		state.fail_cpu_on_progress_call = failure_call;
++		KUNIT_ASSERT_EQ(test,
++				mt6797_a72_cpu9_binder_test_prepare(&binder,
++								    &request),
++				0);
++		ret = mt6797_a72_cpu9_binder_test_boot(
++			&binder, 9, mt6797_cpu9_binder_test_cpu_boot);
++		KUNIT_EXPECT_EQ(test, ret, -EIO);
++		KUNIT_EXPECT_EQ(test, state.cpu_on_progress_checkpoint_calls,
++				failure_call);
++		KUNIT_EXPECT_EQ(test, state.p30e_prepare_calls,
++				failure_call >= 2 ? 1U : 0U);
++		KUNIT_EXPECT_EQ(test, state.cpu_on_begin_calls,
++				failure_call >= 4 ? 1U : 0U);
++		KUNIT_EXPECT_EQ(test, state.p30e_arm_calls,
++				failure_call >= 6 ? 1U : 0U);
++		KUNIT_EXPECT_EQ(test, state.cpu_boot_calls,
++				failure_call >= 8 ? 1U : 0U);
++		KUNIT_EXPECT_EQ(test, binder.result.cpu_requests, 1U);
++		KUNIT_EXPECT_EQ(test, binder.result.cpu_off_requests, 0U);
++		KUNIT_EXPECT_EQ(test, binder.result.retries, 0U);
++	}
++}
++
+ static void mt6797_cpu9_binder_secondary_failure_test(struct kunit *test)
+ {
+ 	struct mt6797_a72_cpu9_executor_request request =
+@@ -667,6 +743,7 @@ static struct kunit_case mt6797_cpu9_binder_test_cases[] = {
+ 	KUNIT_CASE(mt6797_cpu9_binder_prepare_guards_test),
+ 	KUNIT_CASE(mt6797_cpu9_binder_claim_failure_test),
+ 	KUNIT_CASE(mt6797_cpu9_binder_cpu_on_failures_test),
++	KUNIT_CASE(mt6797_cpu9_binder_cpu_on_progress_failures_test),
+ 	KUNIT_CASE(mt6797_cpu9_binder_secondary_failure_test),
+ 	KUNIT_CASE(mt6797_cpu9_binder_completion_failures_test),
+ 	KUNIT_CASE(mt6797_cpu9_binder_failure_dispatch_test),
+diff --git a/drivers/soc/mediatek/mt6797-a72-cpu9-binder.c b/drivers/soc/mediatek/mt6797-a72-cpu9-binder.c
+index a62883f..71bdaa6 100644
+--- a/drivers/soc/mediatek/mt6797-a72-cpu9-binder.c
++++ b/drivers/soc/mediatek/mt6797-a72-cpu9-binder.c
+@@ -17,7 +17,8 @@ static DEFINE_MUTEX(mt6797_a72_cpu9_binder_lock);
+ static bool mt6797_a72_cpu9_binder_backend_valid(
+ 	const struct mt6797_a72_cpu9_binder_backend_ops *ops)
+ {
+-	return ops && ops->progress_checkpoint && ops->ledger_begin &&
++	return ops && ops->progress_checkpoint &&
++	       ops->cpu_on_progress_checkpoint && ops->ledger_begin &&
+ 	       ops->ledger_checkpoint && ops->membership_preflight && ops->membership_claim &&
+ 	       ops->membership_reject && ops->membership_begin_cpu_on &&
+ 	       ops->p30e_prepare && ops->p30e_arm && ops->p30e_readback &&
+@@ -143,6 +144,8 @@ static int mt6797_a72_cpu9_binder_ipi_call(unsigned int cpu,
+ static const struct mt6797_a72_cpu9_binder_backend_ops
+ 	mt6797_a72_cpu9_binder_production_backend = {
+ 		.progress_checkpoint = gemini_cpu9_progress_checkpoint,
++		.cpu_on_progress_checkpoint =
++			gemini_cpu9_cpu_on_progress_checkpoint,
+ 		.ledger_begin = gemini_cpu9_ledger_begin,
+ 		.ledger_checkpoint = gemini_cpu9_ledger_checkpoint,
+ 		.membership_preflight = mt6797_a72_membership_preflight_cpu9,
+@@ -254,12 +257,37 @@ static int mt6797_a72_cpu9_binder_cpu_on(void *context, unsigned int cpu)
+ 
+ 	if (cpu != MT6797_A72_CPU9_EXECUTOR_CPU9 || !binder->cpu_boot)
+ 		return -EINVAL;
++	ret = binder->backend->cpu_on_progress_checkpoint(
++		binder->request.cpu9_attempt_id, GEMINI_TRANSITION_LEDGER_BEFORE,
++		GEMINI_CPU9_CPU_ON_PROGRESS_P30E_PREPARE);
++	if (ret)
++		return ret;
+ 	binder->p30e_prepare_attempted = true;
+ 	binder->p30e_prepare_ret = binder->backend->p30e_prepare(
+ 		&binder->transaction, &binder->p30e_handoff);
+ 	if (binder->p30e_prepare_ret)
+ 		return binder->p30e_prepare_ret;
++	ret = binder->backend->cpu_on_progress_checkpoint(
++		binder->request.cpu9_attempt_id, GEMINI_TRANSITION_LEDGER_AFTER,
++		GEMINI_CPU9_CPU_ON_PROGRESS_P30E_PREPARE);
++	if (ret)
++		return ret;
++	ret = binder->backend->cpu_on_progress_checkpoint(
++		binder->request.cpu9_attempt_id, GEMINI_TRANSITION_LEDGER_BEFORE,
++		GEMINI_CPU9_CPU_ON_PROGRESS_MEMBERSHIP_BEGIN);
++	if (ret)
++		return ret;
+ 	ret = binder->backend->membership_begin_cpu_on(&binder->transaction);
++	if (ret)
++		return ret;
++	ret = binder->backend->cpu_on_progress_checkpoint(
++		binder->request.cpu9_attempt_id, GEMINI_TRANSITION_LEDGER_AFTER,
++		GEMINI_CPU9_CPU_ON_PROGRESS_MEMBERSHIP_BEGIN);
++	if (ret)
++		return ret;
++	ret = binder->backend->cpu_on_progress_checkpoint(
++		binder->request.cpu9_attempt_id, GEMINI_TRANSITION_LEDGER_BEFORE,
++		GEMINI_CPU9_CPU_ON_PROGRESS_P30E_ARM);
+ 	if (ret)
+ 		return ret;
+ 	binder->p30e_arm_attempted = true;
+@@ -268,10 +296,24 @@ static int mt6797_a72_cpu9_binder_cpu_on(void *context, unsigned int cpu)
+ 	if (binder->p30e_arm_ret)
+ 		return binder->p30e_arm_ret;
+ 	binder->p30e_armed = true;
+-	ret = binder->cpu_boot(cpu);
++	ret = binder->backend->cpu_on_progress_checkpoint(
++		binder->request.cpu9_attempt_id, GEMINI_TRANSITION_LEDGER_AFTER,
++		GEMINI_CPU9_CPU_ON_PROGRESS_P30E_ARM);
+ 	if (ret)
++		return ret;
++	ret = binder->backend->cpu_on_progress_checkpoint(
++		binder->request.cpu9_attempt_id, GEMINI_TRANSITION_LEDGER_BEFORE,
++		GEMINI_CPU9_CPU_ON_PROGRESS_CPU_BOOT);
++	if (ret)
++		return ret;
++	ret = binder->cpu_boot(cpu);
++	if (ret) {
+ 		mt6797_a72_cpu9_binder_readback_once(binder, cpu);
+-	return ret;
++		return ret;
++	}
++	return binder->backend->cpu_on_progress_checkpoint(
++		binder->request.cpu9_attempt_id, GEMINI_TRANSITION_LEDGER_AFTER,
++		GEMINI_CPU9_CPU_ON_PROGRESS_CPU_BOOT);
+ }
+ 
+ static int mt6797_a72_cpu9_binder_secondary(void *context, unsigned int cpu)
+diff --git a/fs/pstore/Kconfig b/fs/pstore/Kconfig
+index 8c90d88..9a52357 100644
+--- a/fs/pstore/Kconfig
++++ b/fs/pstore/Kconfig
+@@ -497,6 +497,11 @@ config PSTORE_GEMINI_CPU9_PROGRESS_LEDGER
+ 	  a nonempty predecessor. This option adds no production caller, CPU
+ 	  request, watchdog, SMC, cluster effect, reset, storage, or boot policy.
+ 
++	  Also expose eight ordered before/after boundaries in the fourth
++	  record around CPU9 P30E prepare, membership begin, P30E arm, and
++	  the existing CPU boot callback. This independent lane requires
++	  record 1 at exact BEFORE CPU_ON and adds no effect or request.
++
+ config PSTORE_GEMINI_CPU9_PROGRESS_LEDGER_KUNIT_TEST
+ 	bool "KUnit tests for the Gemini CPU9 progress ledger"
+ 	depends on KUNIT=y
+diff --git a/fs/pstore/gemini_cpu9_progress_ledger.c b/fs/pstore/gemini_cpu9_progress_ledger.c
+index 464c2f6..9c49b05 100644
+--- a/fs/pstore/gemini_cpu9_progress_ledger.c
++++ b/fs/pstore/gemini_cpu9_progress_ledger.c
+@@ -16,8 +16,12 @@
+ #include "gemini_cpu9_transition_ledger_internal.h"
+ 
+ #define GEMINI_CPU9_PROGRESS_CPU8_BASE 0x44410000ULL
++#define GEMINI_CPU9_TRANSITION_BASE \
++	(GEMINI_CPU9_PROGRESS_CPU8_BASE + GEMINI_TRANSITION_LEDGER_SLOT_SIZE)
+ #define GEMINI_CPU9_PROGRESS_BASE \
+ 	(GEMINI_CPU9_PROGRESS_CPU8_BASE + 2 * GEMINI_TRANSITION_LEDGER_SLOT_SIZE)
++#define GEMINI_CPU9_CPU_ON_PROGRESS_BASE \
++	(GEMINI_CPU9_PROGRESS_CPU8_BASE + 3 * GEMINI_TRANSITION_LEDGER_SLOT_SIZE)
+ #define GEMINI_CPU9_PROGRESS_RESERVE_SIZE 0x000e0000ULL
+ 
+ static bool cpu9_progress_lane_empty(
+@@ -108,6 +112,90 @@ int cpu9_progress_owner_checkpoint(
+ 	return ret;
+ }
+ 
++
++static int cpu9_cpu_on_progress_validate_cpu9(
++	const struct gemini_transition_ledger_ops *ops, void *context,
++	u64 cpu9_attempt_id)
++{
++	struct gemini_transition_ledger_record latest;
++	u32 copy = 0;
++
++	if (ops->read(context, 0) !=
++		    GEMINI_TRANSITION_LEDGER_PSTORE_SIGNATURE ||
++	    ops->read(context, 1) != GEMINI_TRANSITION_LEDGER_PAYLOAD_BYTES ||
++	    ops->read(context, 2) != GEMINI_TRANSITION_LEDGER_PAYLOAD_BYTES)
++		return -ENODATA;
++	if (!gemini_transition_ledger_read_latest(ops, context, &latest, &copy))
++		return -EBADMSG;
++	if (latest.attempt_id != cpu9_attempt_id)
++		return -EACCES;
++	if (latest.phase != GEMINI_TRANSITION_LEDGER_BEFORE ||
++	    latest.stage != GEMINI_CPU9_LEDGER_CPU_ON || latest.terminal)
++		return -EPERM;
++	return 0;
++}
++
++int cpu9_cpu_on_progress_owner_begin(
++	struct gemini_cpu9_cpu_on_progress_owner *owner,
++	const struct gemini_transition_ledger_ops *cpu9_ops,
++	void *cpu9_context,
++	const struct gemini_transition_ledger_ops *progress_ops,
++	void *progress_context, u64 cpu9_attempt_id)
++{
++	int ret;
++
++	if (!owner || !cpu9_ops || !cpu9_ops->read || !progress_ops ||
++	    !progress_ops->read || !cpu9_attempt_id)
++		return -EINVAL;
++	if (owner->attempted)
++		return -EALREADY;
++	owner->attempted = true;
++	ret = cpu9_cpu_on_progress_validate_cpu9(
++		cpu9_ops, cpu9_context, cpu9_attempt_id);
++	if (ret)
++		return ret;
++	if (!cpu9_progress_lane_empty(progress_ops, progress_context))
++		return progress_ops->read(progress_context, 0) ==
++				GEMINI_TRANSITION_LEDGER_PSTORE_SIGNATURE &&
++		       progress_ops->read(progress_context, 1) ==
++				GEMINI_TRANSITION_LEDGER_PAYLOAD_BYTES &&
++		       progress_ops->read(progress_context, 2) ==
++				GEMINI_TRANSITION_LEDGER_PAYLOAD_BYTES ?
++			-EALREADY : -EUCLEAN;
++	ret = gemini_transition_ledger_owner_begin(
++		&owner->ledger, progress_ops, progress_context, cpu9_attempt_id);
++	if (ret)
++		return ret;
++	return gemini_transition_ledger_owner_checkpoint(
++		&owner->ledger, progress_ops, progress_context, cpu9_attempt_id,
++		GEMINI_TRANSITION_LEDGER_BEFORE,
++		GEMINI_CPU9_CPU_ON_PROGRESS_P30E_PREPARE, 0);
++}
++
++int cpu9_cpu_on_progress_owner_checkpoint(
++	struct gemini_cpu9_cpu_on_progress_owner *owner,
++	const struct gemini_transition_ledger_ops *ops, void *context,
++	u64 cpu9_attempt_id, u32 phase, u32 stage)
++{
++	int ret;
++
++	if (!owner || phase < GEMINI_TRANSITION_LEDGER_BEFORE ||
++	    phase > GEMINI_TRANSITION_LEDGER_AFTER ||
++	    stage < GEMINI_CPU9_CPU_ON_PROGRESS_P30E_PREPARE ||
++	    stage > GEMINI_CPU9_CPU_ON_PROGRESS_CPU_BOOT ||
++	    (phase == GEMINI_TRANSITION_LEDGER_BEFORE &&
++	     stage == GEMINI_CPU9_CPU_ON_PROGRESS_P30E_PREPARE))
++		return -EINVAL;
++	ret = gemini_transition_ledger_owner_checkpoint(
++		&owner->ledger, ops, context, cpu9_attempt_id, phase, stage, 0);
++	if (!ret && phase == GEMINI_TRANSITION_LEDGER_AFTER &&
++	    stage == GEMINI_CPU9_CPU_ON_PROGRESS_CPU_BOOT) {
++		owner->ledger.active = false;
++		owner->ledger.sealed = true;
++	}
++	return ret;
++}
++
+ static bool gemini_cpu9_progress_exact_dt(void)
+ {
+ 	struct device_node *node;
+@@ -177,6 +265,9 @@ gemini_cpu9_progress_mmio_ops = {
+ static DEFINE_MUTEX(gemini_cpu9_progress_lock);
+ static struct gemini_cpu9_progress_owner gemini_cpu9_progress_owner;
+ static void __iomem *gemini_cpu9_progress_slot;
++static struct gemini_cpu9_cpu_on_progress_owner
++	gemini_cpu9_cpu_on_progress_owner;
++static void __iomem *gemini_cpu9_cpu_on_progress_slot;
+ 
+ int gemini_cpu9_progress_begin(u64 cpu8_attempt_id)
+ {
+@@ -243,5 +334,68 @@ out_unlock:
+ }
+ EXPORT_SYMBOL_GPL(gemini_cpu9_progress_checkpoint);
+ 
+-MODULE_DESCRIPTION("Gemini CPU9 pre-ledger retained progress ledger");
++
++int gemini_cpu9_cpu_on_progress_checkpoint(u64 cpu9_attempt_id, u32 phase,
++					   u32 stage)
++{
++	void __iomem *cpu9_slot;
++	void __iomem *progress_slot;
++	int ret;
++
++	mutex_lock(&gemini_cpu9_progress_lock);
++	if (!gemini_cpu9_cpu_on_progress_owner.attempted) {
++		if (phase != GEMINI_TRANSITION_LEDGER_BEFORE ||
++		    stage != GEMINI_CPU9_CPU_ON_PROGRESS_P30E_PREPARE) {
++			ret = -EINVAL;
++			goto out_unlock;
++		}
++		if (!gemini_cpu9_progress_exact_dt()) {
++			ret = -ENODEV;
++			goto out_unlock;
++		}
++		cpu9_slot = ioremap_wc(GEMINI_CPU9_TRANSITION_BASE,
++				       GEMINI_TRANSITION_LEDGER_SLOT_SIZE);
++		if (!cpu9_slot) {
++			ret = -ENOMEM;
++			goto out_unlock;
++		}
++		progress_slot = ioremap_wc(GEMINI_CPU9_CPU_ON_PROGRESS_BASE,
++					   GEMINI_TRANSITION_LEDGER_SLOT_SIZE);
++		if (!progress_slot) {
++			ret = -ENOMEM;
++			goto out_unmap_cpu9;
++		}
++		ret = cpu9_cpu_on_progress_owner_begin(
++			&gemini_cpu9_cpu_on_progress_owner,
++			&gemini_cpu9_progress_mmio_ops, cpu9_slot,
++			&gemini_cpu9_progress_mmio_ops, progress_slot,
++			cpu9_attempt_id);
++		if (ret)
++			iounmap(progress_slot);
++		else
++			gemini_cpu9_cpu_on_progress_slot = progress_slot;
++out_unmap_cpu9:
++		iounmap(cpu9_slot);
++		goto out_unlock;
++	}
++	if (!gemini_cpu9_cpu_on_progress_slot) {
++		ret = -EALREADY;
++		goto out_unlock;
++	}
++	ret = cpu9_cpu_on_progress_owner_checkpoint(
++		&gemini_cpu9_cpu_on_progress_owner,
++		&gemini_cpu9_progress_mmio_ops,
++		gemini_cpu9_cpu_on_progress_slot, cpu9_attempt_id, phase, stage);
++	if (ret || (phase == GEMINI_TRANSITION_LEDGER_AFTER &&
++		    stage == GEMINI_CPU9_CPU_ON_PROGRESS_CPU_BOOT)) {
++		iounmap(gemini_cpu9_cpu_on_progress_slot);
++		gemini_cpu9_cpu_on_progress_slot = NULL;
++	}
++out_unlock:
++	mutex_unlock(&gemini_cpu9_progress_lock);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(gemini_cpu9_cpu_on_progress_checkpoint);
++
++MODULE_DESCRIPTION("Gemini CPU9 retained progress ledgers");
+ MODULE_LICENSE("GPL");
+diff --git a/fs/pstore/gemini_cpu9_progress_ledger_internal.h b/fs/pstore/gemini_cpu9_progress_ledger_internal.h
+index 9969f72..25de24a 100644
+--- a/fs/pstore/gemini_cpu9_progress_ledger_internal.h
++++ b/fs/pstore/gemini_cpu9_progress_ledger_internal.h
+@@ -9,6 +9,11 @@ struct gemini_cpu9_progress_owner {
+ 	bool attempted;
+ };
+ 
++struct gemini_cpu9_cpu_on_progress_owner {
++	struct gemini_transition_ledger_owner ledger;
++	bool attempted;
++};
++
+ int cpu9_progress_owner_begin(
+ 	struct gemini_cpu9_progress_owner *owner,
+ 	const struct gemini_transition_ledger_ops *cpu8_ops,
+@@ -19,5 +24,15 @@ int cpu9_progress_owner_checkpoint(
+ 	struct gemini_cpu9_progress_owner *owner,
+ 	const struct gemini_transition_ledger_ops *ops, void *context,
+ 	u64 cpu8_attempt_id, u32 stage);
++int cpu9_cpu_on_progress_owner_begin(
++	struct gemini_cpu9_cpu_on_progress_owner *owner,
++	const struct gemini_transition_ledger_ops *cpu9_ops,
++	void *cpu9_context,
++	const struct gemini_transition_ledger_ops *progress_ops,
++	void *progress_context, u64 cpu9_attempt_id);
++int cpu9_cpu_on_progress_owner_checkpoint(
++	struct gemini_cpu9_cpu_on_progress_owner *owner,
++	const struct gemini_transition_ledger_ops *ops, void *context,
++	u64 cpu9_attempt_id, u32 phase, u32 stage);
+ 
+ #endif /* __GEMINI_CPU9_PROGRESS_LEDGER_INTERNAL_H */
+diff --git a/fs/pstore/gemini_cpu9_progress_ledger_test.c b/fs/pstore/gemini_cpu9_progress_ledger_test.c
+index 8d7359f..3e37b8c 100644
+--- a/fs/pstore/gemini_cpu9_progress_ledger_test.c
++++ b/fs/pstore/gemini_cpu9_progress_ledger_test.c
+@@ -215,12 +215,119 @@ static void cpu9_progress_ordering_test(struct kunit *test)
+ 		&cpu9_progress_test_ops, &progress, 1), -EALREADY);
+ }
+ 
++
++static int cpu9_progress_test_seed_cpu9(
++	struct cpu9_progress_test_state *state, u64 attempt_id)
++{
++	struct gemini_transition_ledger_owner owner = {};
++	int ret;
++
++	cpu9_progress_test_empty(state);
++	ret = gemini_transition_ledger_owner_begin(
++		&owner, &cpu9_progress_test_ops, state, attempt_id);
++	if (ret)
++		return ret;
++	ret = gemini_transition_ledger_owner_checkpoint(
++		&owner, &cpu9_progress_test_ops, state, attempt_id,
++		GEMINI_TRANSITION_LEDGER_BEFORE, GEMINI_CPU9_LEDGER_PRESTATE, 0);
++	if (ret)
++		return ret;
++	ret = gemini_transition_ledger_owner_checkpoint(
++		&owner, &cpu9_progress_test_ops, state, attempt_id,
++		GEMINI_TRANSITION_LEDGER_AFTER, GEMINI_CPU9_LEDGER_PRESTATE, 0);
++	if (ret)
++		return ret;
++	return gemini_transition_ledger_owner_checkpoint(
++		&owner, &cpu9_progress_test_ops, state, attempt_id,
++		GEMINI_TRANSITION_LEDGER_BEFORE, GEMINI_CPU9_LEDGER_CPU_ON, 0);
++}
++
++static void cpu9_cpu_on_progress_sequence_test(struct kunit *test)
++{
++	struct cpu9_progress_test_state cpu9;
++	struct cpu9_progress_test_state progress;
++	struct gemini_cpu9_cpu_on_progress_owner owner = {};
++	struct gemini_transition_ledger_record latest;
++	u32 stage;
++
++	KUNIT_ASSERT_EQ(test, cpu9_progress_test_seed_cpu9(&cpu9, 2), 0);
++	cpu9_progress_test_empty(&progress);
++	KUNIT_ASSERT_EQ(test, cpu9_cpu_on_progress_owner_begin(
++		&owner, &cpu9_progress_test_ops, &cpu9,
++		&cpu9_progress_test_ops, &progress, 2), 0);
++	for (stage = GEMINI_CPU9_CPU_ON_PROGRESS_P30E_PREPARE;
++	     stage <= GEMINI_CPU9_CPU_ON_PROGRESS_CPU_BOOT; stage++) {
++		KUNIT_ASSERT_EQ(test, cpu9_cpu_on_progress_owner_checkpoint(
++			&owner, &cpu9_progress_test_ops, &progress, 2,
++			GEMINI_TRANSITION_LEDGER_AFTER, stage), 0);
++		if (stage != GEMINI_CPU9_CPU_ON_PROGRESS_CPU_BOOT)
++			KUNIT_ASSERT_EQ(test,
++				cpu9_cpu_on_progress_owner_checkpoint(
++					&owner, &cpu9_progress_test_ops, &progress, 2,
++					GEMINI_TRANSITION_LEDGER_BEFORE, stage + 1), 0);
++	}
++	KUNIT_ASSERT_TRUE(test, cpu9_progress_test_latest(&progress, &latest));
++	KUNIT_EXPECT_EQ(test, latest.generation, 8U);
++	KUNIT_EXPECT_EQ(test, latest.phase,
++			(u32)GEMINI_TRANSITION_LEDGER_AFTER);
++	KUNIT_EXPECT_EQ(test, latest.stage,
++			(u32)GEMINI_CPU9_CPU_ON_PROGRESS_CPU_BOOT);
++	KUNIT_EXPECT_EQ(test, progress.writes, 82U);
++	KUNIT_EXPECT_TRUE(test, owner.ledger.sealed);
++}
++
++static void cpu9_cpu_on_progress_gates_test(struct kunit *test)
++{
++	struct cpu9_progress_test_state cpu9;
++	struct cpu9_progress_test_state progress;
++	struct gemini_cpu9_cpu_on_progress_owner owner = {};
++
++	KUNIT_ASSERT_EQ(test, cpu9_progress_test_seed_cpu9(&cpu9, 2), 0);
++	memset(&progress, 0xff, sizeof(progress));
++	KUNIT_EXPECT_EQ(test, cpu9_cpu_on_progress_owner_begin(
++		&owner, &cpu9_progress_test_ops, &cpu9,
++		&cpu9_progress_test_ops, &progress, 3), -EACCES);
++	memset(&owner, 0, sizeof(owner));
++	KUNIT_ASSERT_EQ(test, cpu9_cpu_on_progress_owner_begin(
++		&owner, &cpu9_progress_test_ops, &cpu9,
++		&cpu9_progress_test_ops, &progress, 2), 0);
++	KUNIT_EXPECT_EQ(test, progress.words[0],
++			GEMINI_TRANSITION_LEDGER_PSTORE_SIGNATURE);
++	KUNIT_EXPECT_EQ(test, cpu9_cpu_on_progress_owner_begin(
++		&owner, &cpu9_progress_test_ops, &cpu9,
++		&cpu9_progress_test_ops, &progress, 2), -EALREADY);
++}
++
++static void cpu9_cpu_on_progress_ordering_test(struct kunit *test)
++{
++	struct cpu9_progress_test_state cpu9;
++	struct cpu9_progress_test_state progress;
++	struct gemini_cpu9_cpu_on_progress_owner owner = {};
++
++	KUNIT_ASSERT_EQ(test, cpu9_progress_test_seed_cpu9(&cpu9, 2), 0);
++	cpu9_progress_test_empty(&progress);
++	KUNIT_ASSERT_EQ(test, cpu9_cpu_on_progress_owner_begin(
++		&owner, &cpu9_progress_test_ops, &cpu9,
++		&cpu9_progress_test_ops, &progress, 2), 0);
++	KUNIT_EXPECT_EQ(test, cpu9_cpu_on_progress_owner_checkpoint(
++		&owner, &cpu9_progress_test_ops, &progress, 2,
++		GEMINI_TRANSITION_LEDGER_BEFORE,
++		GEMINI_CPU9_CPU_ON_PROGRESS_MEMBERSHIP_BEGIN), -EINVAL);
++	KUNIT_EXPECT_EQ(test, cpu9_cpu_on_progress_owner_checkpoint(
++		&owner, &cpu9_progress_test_ops, &progress, 3,
++		GEMINI_TRANSITION_LEDGER_AFTER,
++		GEMINI_CPU9_CPU_ON_PROGRESS_P30E_PREPARE), -EACCES);
++}
++
+ static struct kunit_case cpu9_progress_cases[] = {
+ 	KUNIT_CASE(cpu9_progress_sequence_test),
+ 	KUNIT_CASE(cpu9_progress_cpu8_gate_test),
+ 	KUNIT_CASE(cpu9_progress_raw_lane_test),
+ 	KUNIT_CASE(cpu9_progress_lane_refusal_test),
+ 	KUNIT_CASE(cpu9_progress_ordering_test),
++	KUNIT_CASE(cpu9_cpu_on_progress_sequence_test),
++	KUNIT_CASE(cpu9_cpu_on_progress_gates_test),
++	KUNIT_CASE(cpu9_cpu_on_progress_ordering_test),
+ 	{ }
+ };
+ 
+diff --git a/include/linux/gemini_cpu9_progress_ledger.h b/include/linux/gemini_cpu9_progress_ledger.h
+index d20058d..c304555 100644
+--- a/include/linux/gemini_cpu9_progress_ledger.h
++++ b/include/linux/gemini_cpu9_progress_ledger.h
+@@ -18,9 +18,18 @@ enum gemini_cpu9_progress_stage {
+ 	GEMINI_CPU9_PROGRESS_ADD_CPU_RETURN,
+ };
+ 
++enum gemini_cpu9_cpu_on_progress_stage {
++	GEMINI_CPU9_CPU_ON_PROGRESS_P30E_PREPARE = 1,
++	GEMINI_CPU9_CPU_ON_PROGRESS_MEMBERSHIP_BEGIN,
++	GEMINI_CPU9_CPU_ON_PROGRESS_P30E_ARM,
++	GEMINI_CPU9_CPU_ON_PROGRESS_CPU_BOOT,
++};
++
+ #ifdef CONFIG_PSTORE_GEMINI_CPU9_PROGRESS_LEDGER
+ int gemini_cpu9_progress_begin(u64 cpu8_attempt_id);
+ int gemini_cpu9_progress_checkpoint(u64 cpu8_attempt_id, u32 stage);
++int gemini_cpu9_cpu_on_progress_checkpoint(u64 cpu9_attempt_id,
++					     u32 phase, u32 stage);
+ #else
+ static inline int gemini_cpu9_progress_begin(u64 cpu8_attempt_id)
+ {
+@@ -32,6 +41,13 @@ static inline int gemini_cpu9_progress_checkpoint(u64 cpu8_attempt_id,
+ {
+ 	return -EOPNOTSUPP;
+ }
++
++static inline int
++gemini_cpu9_cpu_on_progress_checkpoint(u64 cpu9_attempt_id, u32 phase,
++					u32 stage)
++{
++	return -EOPNOTSUPP;
++}
+ #endif
+ 
+ #endif /* _LINUX_GEMINI_CPU9_PROGRESS_LEDGER_H */

@@ -6973,6 +6973,16 @@ package, DT, container, and pristine runtime gates pass. No identical-candidate
 repeat, CPU_OFF, retry, sustained-load, hotplug, thermal, or suspend action is
 authorized by this diagnostic.
 
+Canonical patch `0479` now supplies that record-3 substage ledger. Its exact
+post-`0478` Buildbox generation requires record 1 at same-attempt `BEFORE
+CPU_ON`, preserves one existing CPU boot call, adds eight bounded record
+commits, and adds no CPU request, CPU_OFF, retry, or cluster-effect path. Source
+validation passed, all eight unsafe mutations were rejected, strict Checkpatch
+passed with documented diagnostic-formatting check-class waivers, and replay
+was deterministic. This remains offline source evidence, not a boot candidate.
+**Selected next:** build the full CPU9 KUnit profile on Buildbox and run its
+no-network QEMU regression before any production candidate or device action.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;
