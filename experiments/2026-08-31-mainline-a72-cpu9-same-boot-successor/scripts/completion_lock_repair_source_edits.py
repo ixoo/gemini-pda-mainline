@@ -45,8 +45,8 @@ def apply(root: Path) -> None:
         "{\n"
         "\tint ret;\n\n"
         "\tcpus_read_lock();",
-        "int mt6797_a72_publish_cpu9_success_locked(\n"
-        "\tstruct mt6797_a72_transaction *transaction)\n"
+        "int\n"
+        "mt6797_a72_publish_cpu9_success_locked(struct mt6797_a72_transaction *transaction)\n"
         "{\n"
         "\tlockdep_assert_cpus_held();\n"
         "\treturn mt6797_a72_publish_cpu9_success_state(transaction,\n"
@@ -65,8 +65,8 @@ def apply(root: Path) -> None:
         "{\n"
         "\tint ret;\n\n"
         "\tcpus_read_lock();",
-        "int mt6797_a72_finalize_cpu9_success_locked(\n"
-        "\tstruct mt6797_a72_transaction *transaction)\n"
+        "int\n"
+        "mt6797_a72_finalize_cpu9_success_locked(struct mt6797_a72_transaction *transaction)\n"
         "{\n"
         "\tlockdep_assert_cpus_held();\n"
         "\treturn mt6797_a72_finalize_cpu9_success_state(transaction,\n"

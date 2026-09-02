@@ -101,13 +101,13 @@ def validate_mutations(root: Path) -> int:
         ),
         (
             "arch/arm64/kernel/mt6797_a72_membership.c",
-            "int mt6797_a72_publish_cpu9_success_locked(\n\tstruct mt6797_a72_transaction *transaction)\n{\n\tlockdep_assert_cpus_held();",
-            "int mt6797_a72_publish_cpu9_success_locked(\n\tstruct mt6797_a72_transaction *transaction)\n{\n\t/* lock contract omitted */",
+            "int\nmt6797_a72_publish_cpu9_success_locked(struct mt6797_a72_transaction *transaction)\n{\n\tlockdep_assert_cpus_held();",
+            "int\nmt6797_a72_publish_cpu9_success_locked(struct mt6797_a72_transaction *transaction)\n{\n\t/* lock contract omitted */",
         ),
         (
             "arch/arm64/kernel/mt6797_a72_membership.c",
-            "int mt6797_a72_finalize_cpu9_success_locked(\n\tstruct mt6797_a72_transaction *transaction)\n{\n\tlockdep_assert_cpus_held();",
-            "int mt6797_a72_finalize_cpu9_success_locked(\n\tstruct mt6797_a72_transaction *transaction)\n{\n\t/* lock contract omitted */",
+            "int\nmt6797_a72_finalize_cpu9_success_locked(struct mt6797_a72_transaction *transaction)\n{\n\tlockdep_assert_cpus_held();",
+            "int\nmt6797_a72_finalize_cpu9_success_locked(struct mt6797_a72_transaction *transaction)\n{\n\t/* lock contract omitted */",
         ),
         (
             "arch/arm64/kernel/mt6797_a72_membership.c",

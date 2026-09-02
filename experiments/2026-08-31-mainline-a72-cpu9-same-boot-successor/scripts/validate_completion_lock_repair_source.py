@@ -42,17 +42,17 @@ def validate(root: Path) -> list[str]:
         "mt6797_a72_finalize_cpu9_success_locked",
     ):
         exact(header, f"int {name}(", 1, f"{name} declaration")
-        exact(membership, f"int {name}(", 1, f"{name} definition")
+        exact(membership, f"{name}(", 1, f"{name} definition")
     exact(membership, "\tlockdep_assert_cpus_held();", 4)
 
     publish_locked = function_body(
         membership,
-        "int mt6797_a72_publish_cpu9_success_locked(",
+        "int\nmt6797_a72_publish_cpu9_success_locked(",
         "int\nmt6797_a72_membership_publish_cpu9_success(",
     )
     finalize_locked = function_body(
         membership,
-        "int mt6797_a72_finalize_cpu9_success_locked(",
+        "int\nmt6797_a72_finalize_cpu9_success_locked(",
         "int\nmt6797_a72_membership_finalize_cpu9_success(",
     )
     for body, state, label in (
