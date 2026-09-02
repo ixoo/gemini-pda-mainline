@@ -172,6 +172,10 @@ first write. No new physical range is introduced.
   exact live-GPT inactive `boot2` resolution, retired predecessor, stable
   power, full-partition candidate readback, unchanged trusted partitions, and
   confirmed clean shutdown.
+- [`results/completion-lock-repair-runtime-executable-fix-20260902.txt`](results/completion-lock-repair-runtime-executable-fix-20260902.txt):
+  pre-device observer-arm refusal, missing executable-mode attribution, and
+  content-preserving mode repair with syntax, ShellCheck, Python, and manifest
+  validation.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger, owner-local membership lifecycle, retained-cluster dispatch, and
@@ -750,6 +754,16 @@ readback was removed, and clean shutdown was confirmed. See
 No boot selection or trigger occurred during deployment. The ordered next
 action and result map remain in
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
+
+The first attempt to arm the pristine observer failed locally before device
+contact because the new remote probe had been committed as mode `100644` while
+the source collector executes that helper directly. The device remained off;
+no frame, trigger intent, CPU request, or write occurred. The eight new shell
+and executable-Python wrappers now match their source counterparts at mode
+`100755` without changing file contents or pinned checksums. Bash syntax,
+ShellCheck, Python compilation, the 165-profile series audit, and all eight
+manifest mutations pass. See
+[`results/completion-lock-repair-runtime-executable-fix-20260902.txt`](results/completion-lock-repair-runtime-executable-fix-20260902.txt).
 
 That production gate now passes at exact published commit `bf0fbcc4...`.
 Buildbox produced `7.1.3-gemini-cpu9-progress` with patchset `f4cb4cfe...` and
