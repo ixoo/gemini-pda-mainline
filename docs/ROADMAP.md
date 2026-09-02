@@ -7235,16 +7235,19 @@ matching, advanced another 258 and 256 scheduler ticks, cleaned up, and issued
 no storage, CPU_OFF, retry, or reboot operation. Changed-ID recovery reproduced
 both terminal retained proofs and unchanged `boot2`. The strict whole-test
 classifier rejected only its predeclared topology predicate: core siblings were
-`0-9`, not `8-9`. The exact candidate DT has no `/cpus/cpu-map`, and exact Linux
-7.1.3 source inspection shows the observed package-zero/logical-core fallback
-is deterministic. This is not a CPU or RAM-integrity failure.
+`0-9`, not `8-9`. Later ABI/source review corrected that oracle:
+`core_siblings_list` means package membership and should remain `0-9`, while
+`cluster_cpus_list` is the field that should be `8-9`. Independently, the exact
+candidate DT has no `/cpus/cpu-map`, so the three physical clusters are not
+described. This is not a CPU or RAM-integrity failure.
 
 **Selected next:** add the standard three-cluster MT6797 `cpu-map` to the SoC
 DT, with CPU0--3, CPU4--7, and CPU8--9 as distinct leaf clusters. Validate the
 binding/schema, exact patch replay, and production profile on Buildbox before
 constructing one attributable candidate. Its one runtime attempt must preserve
 the already-proven admission, affinity, RAM-integrity, accounting, recovery,
-and no-storage gates while observing correct cluster sibling sets. Do not run
+and no-storage gates while observing package siblings `0-9` and cluster lists
+`0-3`, `4-7`, and `8-9`. Do not run
 concurrent or scheduler-sensitive load until this topology gate passes.
 
 - CPU topology and cache/CCI coherency under load;

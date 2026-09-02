@@ -31,6 +31,12 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-09-02 MT6797 CPU topology map](2026-09-02-mainline-mt6797-cpu-map/README.md)
+  — corrects the post-online topology oracle: `core_siblings_list` describes
+  the one SoC package and properly remains `0-9`, while
+  `cluster_cpus_list` must describe the physical 4+4+2 clusters. Canonical
+  patch `0482` adds only the missing standard `cpu-map`; Buildbox DT/package
+  validation and one attributable runtime cycle are pending.
 - [2026-09-02 current-mainline dual-A72 RAM coherency](2026-09-02-mainline-dual-a72-ram-coherency/README.md)
   — completed the first decision-changing child after two exact patch-`0481`
   online/accounting passes. A third fresh one-shot again brought CPUs `0-9`

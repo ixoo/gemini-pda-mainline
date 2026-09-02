@@ -1,0 +1,79 @@
+From 8b6b2e50813f1a7895866f76f0b78a02dd0f9080 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 2 Sep 2026 20:35:00 +0000
+Subject: [PATCH] arm64: dts: mediatek: mt6797: describe CPU topology
+
+MT6797 has two four-core Cortex-A53 clusters and one two-core
+Cortex-A72 cluster. The CPU nodes already encode those affinity
+levels in MPIDR-shaped reg values, but the DT has no cpu-map.
+
+Describe the three clusters so the arm64 topology parser can
+publish their relationships to the scheduler and userspace.
+
+This changes no CPU enable method, power sequence, clock,
+regulator, hotplug, or firmware interface.
+---
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi | 48 ++++++++++++++++++++++++
+ 1 file changed, 48 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+index 21e95a2a6..15a92c42e 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -34,6 +34,54 @@ cpus {
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+ 
++		cpu-map {
++			cluster0 {
++				core0 {
++					cpu = <&cpu0>;
++				};
++
++				core1 {
++					cpu = <&cpu1>;
++				};
++
++				core2 {
++					cpu = <&cpu2>;
++				};
++
++				core3 {
++					cpu = <&cpu3>;
++				};
++			};
++
++			cluster1 {
++				core0 {
++					cpu = <&cpu4>;
++				};
++
++				core1 {
++					cpu = <&cpu5>;
++				};
++
++				core2 {
++					cpu = <&cpu6>;
++				};
++
++				core3 {
++					cpu = <&cpu7>;
++				};
++			};
++
++			cluster2 {
++				core0 {
++					cpu = <&cpu8>;
++				};
++
++				core1 {
++					cpu = <&cpu9>;
++				};
++			};
++		};
++
+ 		cpu0: cpu@0 {
+ 			device_type = "cpu";
+ 			compatible = "arm,cortex-a53";
+-- 
+2.51.0

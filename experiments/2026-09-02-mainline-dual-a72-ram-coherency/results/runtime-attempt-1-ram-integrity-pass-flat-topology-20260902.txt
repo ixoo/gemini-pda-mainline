@@ -58,7 +58,11 @@ cpu9_core_siblings=0-9
 cpu9_thread_siblings=9
 exact_candidate_cpu_map_nodes=0
 linux_fallback=package-id-from-numa-node-core-id-from-logical-cpu
-interpretation=ram-affinity-accounting-pass-topology-hypothesis-rejected
+core_siblings_semantics=package-not-cluster
+correct_core_siblings_with-map=0-9
+correct_cluster_cpus_with-map=cpu0-3_cpu4-7_cpu8-9
+live_cluster_cpus=not-captured
+interpretation=ram-affinity-accounting-pass-predeclared-core-siblings-oracle-invalid-cpu-map-independently-absent
 
 [recovery]
 boot2_partition=/dev/mmcblk0p30

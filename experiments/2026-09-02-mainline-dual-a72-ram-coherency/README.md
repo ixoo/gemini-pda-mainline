@@ -121,10 +121,12 @@ completed its only netcat session and reported `probe_result=pass`:
 The strict host classifier correctly rejected the whole predeclared predicate:
 both CPUs reported package `0`, distinct core IDs `8` and `9`, and individual
 thread siblings, but each reported core siblings `0-9` rather than `8-9`.
-Exact candidate-DTB inspection found no `/cpus/cpu-map`. Linux 7.1.3 source
-inspection shows that this omission selects the generic fallback of NUMA-node
-package ID plus logical-CPU core ID, after which every online CPU in package
-zero becomes a core sibling. This exactly predicts the live result.
+Exact candidate-DTB inspection found no `/cpus/cpu-map`. A subsequent Linux
+7.1.3 ABI/source review also corrected the predeclared oracle:
+`core_siblings_list` describes package membership and should remain `0-9` even
+with a correct map; `cluster_cpus_list` is the field that should report `8-9`.
+The missing map independently selects the generic NUMA-node/logical-core
+fallback, but the live probe did not capture cluster membership.
 
 Automatic return reached fresh Gemian boot ID `de44c0b2...`. Recovery verified
 unchanged full `boot2` SHA-256 `370ae4d0...`, CRC-valid terminal CPU8 and CPU9
@@ -136,9 +138,10 @@ records, and `cpu9-terminal-online-proof`. The sanitized result is
 The observation splits cleanly. CPU8 and CPU9 demonstrably execute pinned work,
 advance independent scheduler accounting, and exchange RAM-backed data without
 a byte change in both directions. The rejected topology predicate is a DT
-description defect, not evidence of CPU or RAM-coherency failure: the exact
-candidate lacks the standard CPU map and Linux produces the observed flat
-fallback deterministically.
+description gap plus an invalid predeclared field expectation, not evidence of
+CPU or RAM-coherency failure. The exact candidate lacks the standard CPU map,
+but `core_siblings_list=0-9` is correct for the single physical package; a
+follow-up must test `cluster_cpus_list`.
 
 Sequential userspace copies and checksums remain a bounded integrity result,
 not a general concurrent cache-coherency stress test. Scheduler-sensitive or
@@ -150,13 +153,15 @@ described and observed correctly.
 `split pass`: the one permitted runtime attempt passes the parent admission,
 CPU8/CPU9 affinity, independent execution/accounting, bidirectional volatile-RAM
 integrity, cleanup, and recovery gates. It rejects the predeclared topology
-hypothesis because the current DT has no `cpu-map` and Linux reports a flat
-package.
+hypothesis because `core_siblings_list=8-9` was not observed. Later source
+review shows that predicate confused package and cluster ABIs. Independently,
+the current DT has no `cpu-map`, so the physical clusters remain undescribed.
 
 ## Follow-up
 
 Do not repeat this artifact unchanged. Add the standard MT6797 three-cluster
 `cpu-map`, validate its DT/schema and Buildbox result, then use one exact runtime
-observation to require A53 clusters `0-3` and `4-7`, A72 cluster `8-9`, and the
+observation to require `core_siblings_list=0-9` plus A53
+`cluster_cpus_list=0-3` and `4-7`, A72 `cluster_cpus_list=8-9`, and the
 already-proven RAM/affinity/accounting behavior. Only that result may admit a
 separately designed bounded concurrent workload.
