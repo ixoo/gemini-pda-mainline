@@ -78,8 +78,12 @@ def main() -> int:
          "proof->cpu8_responsive == 1",
          "proof->cpu8_responsive <= 1"),
         ("down-membership-not-committed", FILES[1],
-         "a72_owner.members = BIT(0);",
-         "a72_owner.members = BIT(0) | BIT(1);"),
+         "a72_owner.hotplug_active.completed = 1;\n"
+         "\t\ta72_owner.members = BIT(0);\n"
+         "\t\t*transaction = a72_owner.hotplug_active;",
+         "a72_owner.hotplug_active.completed = 1;\n"
+         "\t\ta72_owner.members = BIT(0) | BIT(1);\n"
+         "\t\t*transaction = a72_owner.hotplug_active;"),
         ("precommit-made-fatal", FILES[1],
          "mt6797_a72_hotplug_retire_locked(\n"
          "\t\t\t\t\t0, MT6797_A72_HOTPLUG_REJECTED);",
@@ -109,10 +113,22 @@ def main() -> int:
          "\t\t*transaction = a72_owner.hotplug_active;"),
         ("restore-failure-reversible", FILES[1],
          "mt6797_a72_hotplug_fault_locked(error);\n"
-         "\t\t*transaction = a72_owner.hotplug_active;",
+         "\t\t*transaction = a72_owner.hotplug_active;\n"
+         "\t\tret = 0;\n"
+         "\t}\n"
+         "\traw_spin_unlock_irqrestore(&a72_state_lock, flags);\n"
+         "\treturn ret;\n"
+         "}\n\n"
+         "void mt6797_a72_hotplug_snapshot",
          "mt6797_a72_hotplug_retire_locked(\n"
          "\t\t\t1, MT6797_A72_HOTPLUG_REJECTED);\n"
-         "\t\t*transaction = a72_owner.hotplug_active;"),
+         "\t\t*transaction = a72_owner.hotplug_active;\n"
+         "\t\tret = 0;\n"
+         "\t}\n"
+         "\traw_spin_unlock_irqrestore(&a72_state_lock, flags);\n"
+         "\treturn ret;\n"
+         "}\n\n"
+         "void mt6797_a72_hotplug_snapshot"),
         ("production-callback-bound", FILES[3],
          "\t.cpu_can_disable = mt6797_psci_cpu_can_disable,",
          "\t.cpu_down_preflight = mt6797_psci_cpu_up_preflight,\n"
