@@ -7135,9 +7135,18 @@ helpers and the earlier lock-held claim/begin paths remain unchanged. Exact
 post-`0480` generation, strict style review, deterministic replay, and all 12
 negative mutations pass. No CPU request, CPU_OFF, retry, cluster effect, reset,
 storage, retained-RAM write, or device action was added. This is not a boot
-candidate. **Selected next:** build the complete CPU9 KUnit profile on Buildbox
-and run its no-network QEMU regression before any production build, candidate
-construction, or device action.
+candidate.
+
+That offline gate now passes at exact published commit `9c0e63da...`.
+Buildbox compiled all 470 canonical patches and the no-network `virt` run
+passed all 102 tests across eight suites with zero failures or skips. The
+production binder compiled with the four lock-held claim, begin, publish, and
+finalize paths, while the ordinary lock-taking completion helpers remained
+unchanged. The physical backends were linked but not invoked; the run performed
+no MMIO, retained-RAM, watchdog, SMC, physical CPU request, or device action.
+**Selected next:** build the production profile on Buildbox, then validate the
+exact package, composed DT, Android container, and pristine runtime tooling
+before any `boot2` write.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

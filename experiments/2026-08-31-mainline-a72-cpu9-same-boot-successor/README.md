@@ -158,6 +158,9 @@ first write. No new physical range is introduced.
 - [`results/completion-lock-repair-patch-generation-20260902.txt`](results/completion-lock-repair-patch-generation-20260902.txt):
   exact post-`0480` Buildbox generation, strict replay, and 12 mutation
   rejections for the publication/finalization lock repair in patch `0481`.
+- [`results/completion-lock-repair-kunit-qemu-20260902.txt`](results/completion-lock-repair-kunit-qemu-20260902.txt):
+  exact patch-`0481` Buildbox package and no-network QEMU result: all 102 tests
+  in eight suites passed with zero failures or skips.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger, owner-local membership lifecycle, retained-cluster dispatch, and
@@ -874,8 +877,22 @@ path remain unchanged. Strict Checkpatch and deterministic replay pass, and all
 effect, reset, storage, retained-RAM write, or device action was added. See
 [`results/completion-lock-repair-patch-generation-20260902.txt`](results/completion-lock-repair-patch-generation-20260902.txt).
 This is offline source evidence, not a boot candidate. **Selected next:** build
-the complete CPU9 KUnit profile from the exact published patch on Buildbox and
-run its no-network QEMU regression before any production build or device action.
+the production profile from the exact published patch on Buildbox, then
+validate its package, composed DT, Android-v0 container, and pristine runtime
+tooling before any device action.
+
+The complete offline gate now passes at exact published commit `9c0e63da...`.
+Buildbox compiled all 470 canonical patches and the no-network `virt` run
+passed all 102 tests across eight suites with zero failures or skips. The
+production binder compiled with the four lock-held claim, begin, publish, and
+finalize paths, while the ordinary lock-taking completion helpers remained
+unchanged. The physical backends were linked but not invoked; the run performed
+no MMIO, retained-RAM, watchdog, SMC, physical CPU request, or device action.
+See
+[`results/completion-lock-repair-kunit-qemu-20260902.txt`](results/completion-lock-repair-kunit-qemu-20260902.txt).
+**Selected next:** build the production profile on Buildbox, then validate the
+exact package, composed DT, Android container, and pristine runtime tooling
+before any `boot2` write.
 The ordered device action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside
