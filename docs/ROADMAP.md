@@ -7043,6 +7043,17 @@ progress KUnit profile plus no-network QEMU, and construct at most one new
 candidate only after production package, DT, container, and pristine-runtime
 gates pass. No identical-candidate repeat, CPU_OFF, or retry is selected.
 
+Canonical patch `0480` now closes that exact source boundary. The generated
+post-`0479` patch adds one lock-held membership-begin helper, asserts the
+CPU-hotplug lock contract, calls the existing owner transition directly, and
+selects it only in the binder callback. The ordinary lock-taking helper and
+patch `0478`'s lock-held claim path remain unchanged. Exact-source generation,
+strict style review, deterministic replay, and all eight negative mutations
+pass; no CPU request, CPU_OFF, retry, cluster effect, or device action was
+added. This is not yet a boot candidate. **Selected next:** run the complete
+CPU9 KUnit profile on Buildbox and its no-network QEMU regression before any
+production build, candidate construction, or device action.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

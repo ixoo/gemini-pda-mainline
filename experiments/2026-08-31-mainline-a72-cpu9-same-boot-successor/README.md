@@ -146,6 +146,9 @@ first write. No new physical range is introduced.
   exact one-shot patch-`0479` runtime result: CPU8 terminal proof, P30E prepare
   return, membership-begin entry without return, changed-ID recovery, and the
   source-attributed second CPU-hotplug lock recursion.
+- [`results/cpu-on-membership-lock-repair-patch-generation-20260902.txt`](results/cpu-on-membership-lock-repair-patch-generation-20260902.txt):
+  exact post-`0479` Buildbox generation, strict replay, and eight mutation
+  rejections for the lock-held membership-begin repair in patch `0480`.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger, owner-local membership lifecycle, retained-cluster dispatch, and
@@ -740,6 +743,18 @@ gate 8: add a lock-held membership-begin entry point, preserve the ordinary
 lock-taking helper, select the lock-held helper only in the binder callback,
 then run the complete Buildbox KUnit/QEMU regression before constructing one
 new candidate. CPU_OFF and retry remain disconnected.
+
+Canonical patch `0480` now implements that exact change. Its source-pinned
+Buildbox generation adds one lock-held entry point with
+`lockdep_assert_cpus_held()`, directly invokes the existing owner state
+transition, and selects it only for the production binder's membership-begin
+callback. The ordinary helper retains its read-lock acquisition; patch `0478`'s
+lock-held claim selection is unchanged. Strict Checkpatch and deterministic
+replay pass, and all eight source mutations are rejected. The patch adds no CPU
+request, CPU_OFF, retry, cluster effect, reset, storage, or device path. See
+[`results/cpu-on-membership-lock-repair-patch-generation-20260902.txt`](results/cpu-on-membership-lock-repair-patch-generation-20260902.txt).
+This is offline source evidence, not a boot candidate. The next ordered gate is
+the complete CPU9 KUnit build and no-network QEMU regression on Buildbox.
 The ordered device action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside
