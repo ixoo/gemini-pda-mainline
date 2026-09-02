@@ -82,12 +82,12 @@ def apply(root: Path) -> None:
     binder = root / "drivers/soc/mediatek/mt6797-a72-cpu9-binder.c"
     replace_once(
         binder,
-        "\t.membership_publish_success =\n"
+        "\t\t.membership_publish_success =\n"
         "\t\t\tmt6797_a72_membership_publish_cpu9_success,\n"
-        "\t.membership_finalize_success =\n"
+        "\t\t.membership_finalize_success =\n"
         "\t\t\tmt6797_a72_membership_finalize_cpu9_success,",
-        "\t.membership_publish_success =\n"
+        "\t\t.membership_publish_success =\n"
         "\t\t\tmt6797_a72_publish_cpu9_success_locked,\n"
-        "\t.membership_finalize_success =\n"
+        "\t\t.membership_finalize_success =\n"
         "\t\t\tmt6797_a72_finalize_cpu9_success_locked,",
     )
