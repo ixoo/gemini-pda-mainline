@@ -7302,6 +7302,22 @@ and close the fresh attempt-2 pristine gate. Spend the one integrated session
 only after exact identity and zero execution pass; its decision-bearing result
 is the still-unmeasured live topology and bidirectional volatile-RAM predicate.
 
+That integrated runtime gate now passes on fresh mainline boot ID
+`4ea50a64...`. One netcat session admitted both A72s and immediately observed
+the standard one-package, three-cluster topology: package siblings `0-9`,
+cluster lists `0-3`, `4-7`, and `8-9`, cluster-local core IDs, and self-only
+thread siblings. CPU8 and CPU9 executed with exact affinity, exchanged the
+1.9 MiB rootfs payload bidirectionally with all four hashes matching, advanced
+257 and 258 accounting ticks, and cleaned up. No partition, CPU_OFF, retry, or
+reboot operation occurred. Automatic return reached fresh-ID Gemian; recovery
+verified the candidate unchanged on `boot2` and both terminal retained proofs.
+Patch `0482` is therefore live-accepted and the topology experiment is closed.
+**Selected next:** define and validate one finite concurrent multi-cacheline
+workload as a separate experiment. It must retain independent CPU8/CPU9
+progress, exact volatile-RAM checks, serviceability, no-storage, no-CPU_OFF,
+no-retry, and changed-ID recovery gates; do not yet combine hotplug, cpufreq,
+thermal, or suspend risk.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

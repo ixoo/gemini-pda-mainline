@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-mt6797-cpu-map` |
-| Status | `running: dual-A72 admission preserved; topology/RAM acceptance pending` |
+| Status | `complete: live 4+4+2 topology and dual-A72 RAM integrity pass` |
 | Subsystem | MT6797 arm64 CPU topology and scheduler description |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-09-02 |
@@ -181,6 +181,21 @@ ShellCheck, source-pin, execution-order, forbidden-action, and fresh-namespace
 checks pass. See
 [`results/integrated-runtime-tooling-20260902.txt`](results/integrated-runtime-tooling-20260902.txt).
 
+Fresh attempt-2 boot ID `4ea50a64...` passed the exact candidate,
+serviceability, and zero-execution gate. Its one integrated netcat session
+admitted CPUs 8 and 9, then observed package siblings `0-9`; cluster lists
+`0-3`, `4-7`, and `8-9`; cluster-local core IDs 0--3/0--3/0--1; and self-only
+thread siblings. CPU8 and CPU9 ran with exact affinity, exchanged the 1.9 MiB
+payload in both directions with all four hashes matching, advanced 257 and 258
+accounting ticks, and removed both temporary rootfs files. The probe performed
+no partition read/write, CPU_OFF, retry, or reboot action.
+
+Automatic return reached fresh-ID Gemian. Read-only recovery verified exact
+candidate `68ec1b78...` unchanged on live-resolved `boot2` and recovered both
+terminal A72 proofs. The strict combined classification is
+`mt6797-4+4+2-topology-and-dual-a72-ram-integrity-pass`. See
+[`results/runtime-attempt-2-topology-ram-pass-20260902.txt`](results/runtime-attempt-2-topology-ram-pass-20260902.txt).
+
 ## Analysis
 
 The topology repair is narrower than a CPU-power or scheduling-policy change.
@@ -191,20 +206,16 @@ that the live scheduler consumed the map.
 
 ## Conclusion
 
-`split runtime pass`: the source-level defect, corrected ABI oracle, canonical
-patch, Buildbox package, topology/serviceability composition, exact boot2
-container, guarded write, and dual-A72 admission/accounting gates pass. The
-live topology and RAM-integrity portion did not run before automatic return and
-remains pending.
+`pass`: the source-level defect, corrected ABI oracle, canonical patch,
+Buildbox package, topology/serviceability composition, exact boot2 container,
+guarded write, live 4+4+2 topology, dual-A72 admission, exact affinity,
+bidirectional volatile-RAM integrity, accounting, cleanup, changed-ID recovery,
+terminal retained proofs, and unchanged-boot2 gates pass on the named device.
 
 ## Follow-up
 
-The single-session tool is prepared and validated. On one fresh exact boot,
-close the new pristine gate and spend one session; it performs the inherited
-single trigger and immediately continues into the already-validated all-CPU
-topology plus volatile-RAM probe. This is not an identical admission repeat:
-its unique evidence is the still-unmeasured package, cluster, core, thread,
-affinity, and bidirectional RAM result, with no host-side classifier gap before
-collection. Only a full runtime pass permits one separately designed bounded
-concurrent multi-cacheline workload. A live cluster-list mismatch stops the
-line without another unchanged retry.
+Do not repeat this unchanged topology/RAM observation. Its pass permits one
+separately designed bounded concurrent multi-cacheline workload with finite
+duration, independent per-CPU progress, exact volatile-RAM validation, and
+unchanged serviceability/safety gates. CPU_OFF/hotplug, cpufreq/OPP, thermal,
+suspend, and default-profile integration remain later independent gates.
