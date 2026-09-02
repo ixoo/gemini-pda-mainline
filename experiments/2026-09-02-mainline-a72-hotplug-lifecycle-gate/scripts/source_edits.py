@@ -64,15 +64,15 @@ def main() -> None:
         "\tbool\t\t(*cpu_can_disable)(unsigned int cpu);\n",
         "#ifdef CONFIG_HOTPLUG_CPU\n"
         "\tint\t\t(*cpu_down_preflight)(unsigned int cpu,\n"
-        "\t\t\t\t\t     enum cpuhp_state target);\n"
+        "\t\t\t\t\t      enum cpuhp_state target);\n"
         "\tint\t\t(*cpu_down_validate)(unsigned int cpu,\n"
-        "\t\t\t\t\t    int tasks_frozen,\n"
-        "\t\t\t\t\t    enum cpuhp_state target);\n"
+        "\t\t\t\t\t     int tasks_frozen,\n"
+        "\t\t\t\t\t     enum cpuhp_state target);\n"
         "\tint\t\t(*cpu_down_complete)(unsigned int cpu,\n"
-        "\t\t\t\t\t    enum cpuhp_state target);\n"
+        "\t\t\t\t\t     enum cpuhp_state target);\n"
         "\tint\t\t(*cpu_down_failed)(unsigned int cpu,\n"
-        "\t\t\t\t\t  enum cpuhp_state target,\n"
-        "\t\t\t\t\t  int error);\n"
+        "\t\t\t\t\t   enum cpuhp_state target,\n"
+        "\t\t\t\t\t   int error);\n"
         "\tbool\t\t(*cpu_can_disable)(unsigned int cpu);\n",
     )
     replace_once(
@@ -178,7 +178,7 @@ def main() -> None:
         "\treturn 0;\n"
         "}\n\n"
         "int __weak arch_cpu_down_failed(unsigned int cpu,\n"
-        "\t\t\t\t enum cpuhp_state target, int error)\n"
+        "\t\t\t\tenum cpuhp_state target, int error)\n"
         "{\n"
         "\treturn 0;\n"
         "}\n\n"
