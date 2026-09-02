@@ -7318,6 +7318,23 @@ progress, exact volatile-RAM checks, serviceability, no-storage, no-CPU_OFF,
 no-retry, and changed-ID recovery gates; do not yet combine hotplug, cpufreq,
 thermal, or suspend risk.
 
+That concurrent-load design and tooling gate now passes. The source-pinned
+single transaction retains admission and the accepted topology/RAM predicate,
+then runs four simultaneous disjoint-write rounds and four simultaneous
+peer-read rounds on CPU8/CPU9 with exact hashes, affinity, accounting, cleanup,
+and bounded start barriers. One positive fixture passes, 17 corrupt or unsafe
+mutations fail, and the child contains no device-storage, CPU_OFF, retry,
+poweroff, or reboot path. No kernel build is required because the kernel, DT,
+configuration, ramdisk, and accepted boot2 container are unchanged. Attempt 1
+armed after the reported boot2 window had already returned to the same Gemian
+boot ID; no live USB, trigger, or workload was observed, so it is an
+inconclusive timing miss rather than a kernel result. **Selected next:** commit
+and push the exact tools, cleanly shut down Gemian, physically select `boot2`,
+and use fresh attempt-2 admission. Spend its one integrated session only after
+the exact candidate, serviceability, zero-execution, and fresh-ID gates pass;
+then require changed-ID recovery, both terminal A72 proofs, and unchanged
+`boot2` before deciding the concurrent predicate.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;
