@@ -30,7 +30,7 @@ Cortex-A72 pair.
 | I2C6 transfer | Native packed/FIFO pointer-read and one exact one-message two-byte FIFO write are runtime proven. The write completed once with payload `[0xda, 0x46]`, exact no-retry accounting, and stable readback. | This closes only the reviewed same-value shape; arbitrary writes, failure recovery, stress, and resume remain open. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
 | Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected. A separate hardware-free implementation now models exact positive Buck-B acquire/release and passes all six focused fake-adapter cases. | Gate 6 is closed for the reviewed no-op, and the first Gate-7 provider source boundary is complete offline. Physical transition, production integration, consumers, and CPU requests remain disconnected. |
-| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The production-admission experiment brings CPU8 online with attributable terminal proof. Patch `0480` advances CPU9 through generic CPU boot, secondary online wait, and IPI before membership publication. The patch-`0481` completion-lock candidate is now installed on inactive `boot2`, fully read back, and the device is shut down. | Physically select `boot2`, require a fresh exact-candidate pristine gate, and spend at most one trigger. Terminal CPU9 proof plus online range `0-9` advances to repeatability; any retained later boundary selects the next source repair. Keep CPU_OFF and retry unchanged. |
+| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. Exact patch `0481` now has one pristine current-mainline runtime pass: CPUs `0-9` were online, CPU8 and CPU9 scheduler ticks advanced independently, and changed-ID recovery retained terminal proof for both A72 CPUs with `boot2` unchanged. | Run the earned fresh repeatability cycle, then begin bounded cluster validation. Keep CPU_OFF, hotplug, sustained load, thermal, suspend, and default-profile promotion separate until their own gates pass. |
 
 The durable technical boundary is in
 [DA921x, I2C6, and Cortex-A72](hardware/da921x-i2c6-a72.md). The exact
@@ -7188,6 +7188,27 @@ online CPU range `0-9` advances to repeatability and cluster validation. A
 nonterminal retained boundary selects one exact source follow-up; do not
 repeat the candidate merely because the screen color or automatic return is
 ambiguous.
+
+That exact one-shot attempt now passes. Fresh mainline boot ID `5d2fe57a...`
+passed candidate identity, serviceability, armed-controller, and pristine
+zero-execution gates. One trigger returned success with CPUs `0-9` online;
+CPU8 and CPU9 each advanced independently by 101 scheduler ticks. The live
+status recorded one request per A72, zero CPU_OFF, and zero retries. After the
+owner-observed automatic return, changed-ID Gemian verified `boot2` unchanged
+and recovered two CRC-valid copies in every retained lane. CPU8's latest copy
+is terminal `(phase=3, stage=10, terminal=5)` and CPU9's is terminal
+`(phase=3, stage=5, terminal=5)`; the recovery classifier reports
+`cpu9-terminal-online-proof`. Patch `0481` therefore closes the selected
+completion-lock boundary for one exact boot.
+
+**Selected next:** spend the single repeatability cycle earned by this result
+using the byte-identical candidate, a fresh mainline boot ID, the same pristine
+gate, and exactly one new trigger. Require live CPUs `0-9`, independent CPU8
+and CPU9 accounting advance, both terminal retained proofs after changed-ID
+recovery, unchanged `boot2`, zero CPU_OFF, and zero retry. If it reproduces,
+retire the diagnostic trigger and begin separately bounded topology/coherency,
+load, hotplug/offline, thermal, and suspend gates; do not combine those risks
+into the repeatability boot.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

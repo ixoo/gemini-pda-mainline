@@ -176,6 +176,10 @@ first write. No new physical range is introduced.
   pre-device observer-arm refusal, missing executable-mode attribution, and
   content-preserving mode repair with syntax, ShellCheck, Python, and manifest
   validation.
+- [`results/completion-lock-repair-runtime-attempt-1-20260902.txt`](results/completion-lock-repair-runtime-attempt-1-20260902.txt):
+  first exact patch-`0481` runtime pass: pristine one-shot trigger, live
+  CPU0--9 accounting, independent CPU8/CPU9 scheduler-tick advances, retained
+  terminal proofs, unchanged `boot2`, and changed-ID Gemian recovery.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger, owner-local membership lifecycle, retained-cluster dispatch, and
@@ -958,3 +962,22 @@ The ordered device action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside
 this diagnostic.
+
+The exact patch-`0481` runtime gate now passes once. Fresh mainline boot ID
+`5d2fe57a...` presented the exact candidate, serviceable USB/netcat, the armed
+controller, CPUs 0--7 online with 8--9 offline, and zero prior trigger or CPU
+requests. One trigger returned `operation_ret=0`, reported CPUs `0-9` online,
+and advanced CPU8 and CPU9 idle accounting independently by 101 ticks. The
+live controller recorded one request per A72, terminal CPU8 state, terminal
+CPU9 membership publication, zero CPU_OFF, and zero retries.
+
+After the owner-observed automatic return, changed-ID Gemian found the exact
+candidate unchanged on `boot2`. Recovery produced two CRC-valid copies for
+each retained lane: CPU8 ended at `(phase=3, stage=10, terminal=5)` and CPU9
+at `(phase=3, stage=5, terminal=5)`. P30E prepare, membership begin, P30E arm,
+and generic CPU boot all returned. The independent recovery classifier reports
+`cpu9-terminal-online-proof`. See
+[`results/completion-lock-repair-runtime-attempt-1-20260902.txt`](results/completion-lock-repair-runtime-attempt-1-20260902.txt).
+This confirms the completion-lock repair and both A72 online paths for one
+exact boot. Repeatability and the remaining cluster acceptance work stay
+owned by [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).

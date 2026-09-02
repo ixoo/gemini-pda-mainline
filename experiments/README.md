@@ -32,22 +32,16 @@ the loop. Positive identity-gated observations are unaffected.
 ### Current DA921x, I2C6, and A72 line
 
 - [2026-08-31 same-boot CPU9 successor](2026-08-31-mainline-a72-cpu9-same-boot-successor/README.md)
-  — audits exact prepared source after the repeatable CPU8 result. Generic
-  membership and P30E layers already model CPU9 with CPU8 online and the
-  provider retained, but every production binder/transition dispatch remains
-  CPU8-only and structurally reaches cluster acquisition. The frozen successor
-  therefore uses a separate five-stage PSCI-only CPU9 executor after exact
-  same-boot `CPU8_ONLINE_PROOF`, with no watchdog refresh, P27, provider,
-  isolation, SRAM, DCM, CPU_OFF, or retry action. CPU8's sealed ledger remains
-  unchanged in ramoops record 0; a guarded independent CPU9 ledger uses the
-  already-reserved record 1 only after validating record 0. Canonical patch
-  `0463` now implements that first logical layer and passes exact Buildbox
-  compile/package validation plus a six-case no-network QEMU KUnit runtime.
-  Patches `0464` and `0465` add and repair the owner-local CPU9 derivation and
-  membership lifecycle; their exact Buildbox package passes all 55 owner,
-  transition, and binder cases with zero failures or skips. These layers have
-  no production caller. The distinct retained-cluster executor is next, and
-  no CPU9 candidate or device action is admitted yet.
+  — carries the mainline-derived CPU8 result through a separate same-boot CPU9
+  path. Successive retained boundaries localized and repaired four recursive
+  CPU-hotplug lock acquisitions while preserving the ordinary helpers and
+  keeping CPU_OFF and retry disconnected. Exact patch `0481` passed the full
+  102-test Buildbox/QEMU gate and one guarded runtime attempt: a pristine
+  single trigger reported CPUs `0-9` online, independently advanced CPU8 and
+  CPU9 scheduler ticks, and returned to changed-ID Gemian with CRC-valid
+  terminal retained proofs for both A72 CPUs and unchanged `boot2`. This is
+  the first exact current-mainline dual-A72 online proof on the named device;
+  one fresh repeatability cycle and bounded cluster validation are next.
 - [2026-08-31 A72 expected-pair model-contract repair](2026-08-31-mainline-a72-expected-pair-model-contract-repair/README.md)
   — repairs the generic expected-pair completeness comparison while preserving
   the exact r0p1 late-target check. Three exact Buildbox profiles and the
