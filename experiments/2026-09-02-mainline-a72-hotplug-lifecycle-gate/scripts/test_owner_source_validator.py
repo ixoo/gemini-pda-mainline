@@ -53,8 +53,8 @@ def main() -> int:
          "if (cpu != 9 || target != CPUHP_OFFLINE)",
          "if (cpu != 8 || target != CPUHP_OFFLINE)"),
         ("down-parent-unchecked", FILES[1],
-         "!mt6797_a72_cpu9_retired_parent_valid_locked(\n"
-         "\t\t\t   BIT(0) | BIT(1)) ||",
+         "!mt6797_a72_cpu9_retired_parent_valid_locked(BIT(0) |\n"
+         "\t\t\t\t\t\t\t    BIT(1)) ||",
          "false ||"),
         ("down-attempt-not-consumed", FILES[1],
          "a72_owner.attempts_consumed |=\n"
@@ -85,8 +85,8 @@ def main() -> int:
          "\t\ta72_owner.members = BIT(0) | BIT(1);\n"
          "\t\t*transaction = a72_owner.hotplug_active;"),
         ("precommit-made-fatal", FILES[1],
-         "mt6797_a72_hotplug_retire_locked(\n"
-         "\t\t\t\t\t0, MT6797_A72_HOTPLUG_REJECTED);",
+         "mt6797_a72_hotplug_retire_locked(0,\n"
+         "\t\t\t\t\t\t  MT6797_A72_HOTPLUG_REJECTED);",
          "mt6797_a72_hotplug_fault_locked(error);"),
         ("postcommit-made-reversible", FILES[1],
          "case MT6797_A72_HOTPLUG_OFF_PROVEN:\n"

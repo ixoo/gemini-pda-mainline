@@ -105,7 +105,7 @@ def main() -> None:
         "cpu != 9 || target != CPUHP_OFFLINE",
         "a72_owner.members != (BIT(0) | BIT(1))",
         "a72_owner.provider_state != MT6797_A72_PROVIDER_HELD",
-        "mt6797_a72_cpu9_retired_parent_valid_locked( BIT(0) | BIT(1))",
+        "mt6797_a72_cpu9_retired_parent_valid_locked(BIT(0) | BIT(1))",
         "!cpu8_online || !cpu9_online",
         "MT6797_A72_ATTEMPT_CPU9_OFF",
         "MT6797_A72_HOTPLUG_OPERATION_CPU9_DOWN",
@@ -169,7 +169,7 @@ def main() -> None:
         "off_proven == 1",
         "cpu8_online && !cpu9_online",
         "a72_owner.members = BIT(0);",
-        "mt6797_a72_hotplug_retire_locked( 0, MT6797_A72_HOTPLUG_OFFLINE);",
+        "mt6797_a72_hotplug_retire_locked(0, MT6797_A72_HOTPLUG_OFFLINE);",
     ), "down completion")
 
     fail_down = collapse(bodies[5])
@@ -216,7 +216,7 @@ def main() -> None:
         "cpu8_online && cpu9_online",
         "restored = 1;",
         "a72_owner.members = BIT(0) | BIT(1);",
-        "mt6797_a72_hotplug_retire_locked( 1, MT6797_A72_HOTPLUG_RESTORED);",
+        "mt6797_a72_hotplug_retire_locked(1, MT6797_A72_HOTPLUG_RESTORED);",
     ), "restore completion")
     fail_restore = collapse(bodies[9])
     require("mt6797_a72_hotplug_fault_locked(error);" in fail_restore,

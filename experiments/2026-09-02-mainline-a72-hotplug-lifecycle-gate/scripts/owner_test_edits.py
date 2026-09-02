@@ -70,8 +70,7 @@ mt6797_a72_test_seed_cpu9_terminal(struct mt6797_a72_transaction *transaction)
 }
 
 static struct mt6797_a72_cpu9_off_proof
-mt6797_a72_test_off_proof(
-	const struct mt6797_a72_hotplug_transaction *transaction)
+mt6797_a72_test_off_proof(const struct mt6797_a72_hotplug_transaction *transaction)
 {
 	return (struct mt6797_a72_cpu9_off_proof) {
 		.abi = MT6797_A72_CPU9_OFF_PROOF_ABI,
@@ -91,8 +90,7 @@ mt6797_a72_test_off_proof(
 }
 
 static int
-mt6797_a72_test_complete_cpu9_down(
-	struct mt6797_a72_transaction *up,
+mt6797_a72_test_complete_cpu9_down(struct mt6797_a72_transaction *up,
 	struct mt6797_a72_hotplug_transaction *hotplug)
 {
 	struct mt6797_a72_cpu9_off_proof proof;

@@ -135,33 +135,27 @@ int mt6797_a72_hotplug_prepare_down(unsigned int cpu,
 				    enum cpuhp_state target,
 				    bool cpu8_online, bool cpu9_online,
 				    struct mt6797_a72_hotplug_transaction *transaction);
-int mt6797_a72_hotplug_validate_down(
-	struct mt6797_a72_hotplug_transaction *transaction,
+int mt6797_a72_hotplug_validate_down(struct mt6797_a72_hotplug_transaction *transaction,
 	int tasks_frozen, enum cpuhp_state target,
 	bool cpu8_online, bool cpu9_online);
 int mt6797_a72_hotplug_commit_off(unsigned int cpu);
-int mt6797_a72_hotplug_prove_off(
-	struct mt6797_a72_hotplug_transaction *transaction,
+int mt6797_a72_hotplug_prove_off(struct mt6797_a72_hotplug_transaction *transaction,
 	const struct mt6797_a72_cpu9_off_proof *proof);
-int mt6797_a72_hotplug_complete_down(
-	struct mt6797_a72_hotplug_transaction *transaction,
+int mt6797_a72_hotplug_complete_down(struct mt6797_a72_hotplug_transaction *transaction,
 	bool cpu8_online, bool cpu9_online);
-int mt6797_a72_hotplug_fail_down(
-	struct mt6797_a72_hotplug_transaction *transaction, int error);
-int mt6797_a72_hotplug_prepare_restore(
-	unsigned int cpu, enum cpuhp_state target,
+int mt6797_a72_hotplug_fail_down(struct mt6797_a72_hotplug_transaction *transaction,
+				 int error);
+int mt6797_a72_hotplug_prepare_restore(unsigned int cpu,
+				       enum cpuhp_state target,
 	bool cpu8_online, bool cpu9_online,
 	struct mt6797_a72_hotplug_transaction *transaction);
-int mt6797_a72_hotplug_begin_restore(
-	struct mt6797_a72_hotplug_transaction *transaction,
+int mt6797_a72_hotplug_begin_restore(struct mt6797_a72_hotplug_transaction *transaction,
 	bool cpu8_online, bool cpu9_online);
-int mt6797_a72_hotplug_complete_restore(
-	struct mt6797_a72_hotplug_transaction *transaction,
+int mt6797_a72_hotplug_complete_restore(struct mt6797_a72_hotplug_transaction *transaction,
 	bool cpu8_online, bool cpu9_online);
-int mt6797_a72_hotplug_fail_restore(
-	struct mt6797_a72_hotplug_transaction *transaction, int error);
-void mt6797_a72_hotplug_snapshot(
-	struct mt6797_a72_hotplug_snapshot *snapshot);
+int mt6797_a72_hotplug_fail_restore(struct mt6797_a72_hotplug_transaction *transaction,
+				    int error);
+void mt6797_a72_hotplug_snapshot(struct mt6797_a72_hotplug_snapshot *snapshot);
 #endif
 ''',
     )
@@ -213,16 +207,14 @@ void mt6797_a72_hotplug_snapshot(
         "#ifdef CONFIG_ARM64_MT6797_A72_P24_OWNER_TEST_SEED\n"
         "int mt6797_a72_membership_test_preflight_cpu9",
         r'''static bool
-mt6797_a72_hotplug_identity_equal(
-	const struct mt6797_a72_hotplug_identity *left,
+mt6797_a72_hotplug_identity_equal(const struct mt6797_a72_hotplug_identity *left,
 	const struct mt6797_a72_hotplug_identity *right)
 {
 	return !memcmp(left, right, sizeof(*left));
 }
 
 static bool
-mt6797_a72_hotplug_active_locked(
-	const struct mt6797_a72_hotplug_transaction *transaction,
+mt6797_a72_hotplug_active_locked(const struct mt6797_a72_hotplug_transaction *transaction,
 	enum mt6797_a72_hotplug_operation operation)
 {
 	const struct mt6797_a72_hotplug_transaction *active =
@@ -265,8 +257,8 @@ static void mt6797_a72_hotplug_fault_locked(int error)
 	a72_owner.hotplug_phase = MT6797_A72_HOTPLUG_FAULT;
 }
 
-int mt6797_a72_hotplug_prepare_down(
-	unsigned int cpu, enum cpuhp_state target,
+int mt6797_a72_hotplug_prepare_down(unsigned int cpu,
+				    enum cpuhp_state target,
 	bool cpu8_online, bool cpu9_online,
 	struct mt6797_a72_hotplug_transaction *transaction)
 {
@@ -293,10 +285,9 @@ int mt6797_a72_hotplug_prepare_down(
 		   a72_owner.hotplug_retired_mask ||
 		   a72_owner.members != (BIT(0) | BIT(1)) ||
 		   a72_owner.provider_state != MT6797_A72_PROVIDER_HELD ||
-		   !mt6797_a72_provider_identity_valid(
-			   &a72_owner.provider_identity) ||
-		   !mt6797_a72_cpu9_retired_parent_valid_locked(
-			   BIT(0) | BIT(1)) ||
+		   !mt6797_a72_provider_identity_valid(&a72_owner.provider_identity) ||
+		   !mt6797_a72_cpu9_retired_parent_valid_locked(BIT(0) |
+							    BIT(1)) ||
 		   !cpu8_online || !cpu9_online ||
 		   a72_owner.controller ||
 		   !(a72_owner.attempts_available &
@@ -343,8 +334,7 @@ int mt6797_a72_hotplug_prepare_down(
 	return ret;
 }
 
-int mt6797_a72_hotplug_validate_down(
-	struct mt6797_a72_hotplug_transaction *transaction,
+int mt6797_a72_hotplug_validate_down(struct mt6797_a72_hotplug_transaction *transaction,
 	int tasks_frozen, enum cpuhp_state target,
 	bool cpu8_online, bool cpu9_online)
 {
@@ -358,8 +348,8 @@ int mt6797_a72_hotplug_validate_down(
 	    a72_owner.health == MT6797_A72_OWNER_AVAILABLE &&
 	    a72_owner.phase == MT6797_A72_PHASE_IDLE &&
 	    a72_owner.hotplug_phase == MT6797_A72_HOTPLUG_DOWN_FROZEN &&
-	    mt6797_a72_hotplug_active_locked(
-		    transaction, MT6797_A72_HOTPLUG_OPERATION_CPU9_DOWN) &&
+	    mt6797_a72_hotplug_active_locked(transaction,
+		    MT6797_A72_HOTPLUG_OPERATION_CPU9_DOWN) &&
 	    a72_owner.controller == current &&
 	    a72_owner.controller_cookie ==
 		    a72_owner.hotplug_active.identity.cookie &&
@@ -383,8 +373,8 @@ int mt6797_a72_hotplug_commit_off(unsigned int cpu)
 	if (cpu == 9 &&
 	    a72_owner.health == MT6797_A72_OWNER_AVAILABLE &&
 	    a72_owner.hotplug_phase == MT6797_A72_HOTPLUG_DOWN_VALIDATED &&
-	    mt6797_a72_hotplug_active_locked(
-		    NULL, MT6797_A72_HOTPLUG_OPERATION_CPU9_DOWN) &&
+	    mt6797_a72_hotplug_active_locked(NULL,
+		    MT6797_A72_HOTPLUG_OPERATION_CPU9_DOWN) &&
 	    a72_owner.hotplug_active.budgets.cpu_off ==
 		    MT6797_A72_BUDGET_AVAILABLE &&
 	    !a72_owner.hotplug_active.off_committed) {
@@ -399,8 +389,7 @@ int mt6797_a72_hotplug_commit_off(unsigned int cpu)
 }
 
 static bool
-mt6797_a72_hotplug_off_proof_valid_locked(
-	const struct mt6797_a72_cpu9_off_proof *proof)
+mt6797_a72_hotplug_off_proof_valid_locked(const struct mt6797_a72_cpu9_off_proof *proof)
 {
 	const struct mt6797_a72_hotplug_transaction *active =
 		&a72_owner.hotplug_active;
@@ -419,8 +408,7 @@ mt6797_a72_hotplug_off_proof_valid_locked(
 		proof->transaction_cookie == active->identity.cookie;
 }
 
-int mt6797_a72_hotplug_prove_off(
-	struct mt6797_a72_hotplug_transaction *transaction,
+int mt6797_a72_hotplug_prove_off(struct mt6797_a72_hotplug_transaction *transaction,
 	const struct mt6797_a72_cpu9_off_proof *proof)
 {
 	unsigned long flags;
@@ -431,8 +419,8 @@ int mt6797_a72_hotplug_prove_off(
 	raw_spin_lock_irqsave(&a72_state_lock, flags);
 	if (a72_owner.health == MT6797_A72_OWNER_AVAILABLE &&
 	    a72_owner.hotplug_phase == MT6797_A72_HOTPLUG_OFF_COMMITTED &&
-	    mt6797_a72_hotplug_active_locked(
-		    transaction, MT6797_A72_HOTPLUG_OPERATION_CPU9_DOWN) &&
+	    mt6797_a72_hotplug_active_locked(transaction,
+		    MT6797_A72_HOTPLUG_OPERATION_CPU9_DOWN) &&
 	    a72_owner.hotplug_active.off_committed == 1 &&
 	    a72_owner.hotplug_active.budgets.cpu_off ==
 		    MT6797_A72_BUDGET_CONSUMED &&
@@ -456,8 +444,7 @@ int mt6797_a72_hotplug_prove_off(
 	return ret;
 }
 
-int mt6797_a72_hotplug_complete_down(
-	struct mt6797_a72_hotplug_transaction *transaction,
+int mt6797_a72_hotplug_complete_down(struct mt6797_a72_hotplug_transaction *transaction,
 	bool cpu8_online, bool cpu9_online)
 {
 	unsigned long flags;
@@ -469,8 +456,8 @@ int mt6797_a72_hotplug_complete_down(
 	if (a72_owner.health == MT6797_A72_OWNER_AVAILABLE &&
 	    a72_owner.phase == MT6797_A72_PHASE_IDLE &&
 	    a72_owner.hotplug_phase == MT6797_A72_HOTPLUG_OFF_PROVEN &&
-	    mt6797_a72_hotplug_active_locked(
-		    transaction, MT6797_A72_HOTPLUG_OPERATION_CPU9_DOWN) &&
+	    mt6797_a72_hotplug_active_locked(transaction,
+		    MT6797_A72_HOTPLUG_OPERATION_CPU9_DOWN) &&
 	    a72_owner.hotplug_active.off_committed == 1 &&
 	    a72_owner.hotplug_active.off_proven == 1 &&
 	    !a72_owner.hotplug_active.completed &&
@@ -479,16 +466,16 @@ int mt6797_a72_hotplug_complete_down(
 		a72_owner.hotplug_active.completed = 1;
 		a72_owner.members = BIT(0);
 		*transaction = a72_owner.hotplug_active;
-		mt6797_a72_hotplug_retire_locked(
-			0, MT6797_A72_HOTPLUG_OFFLINE);
+		mt6797_a72_hotplug_retire_locked(0,
+					  MT6797_A72_HOTPLUG_OFFLINE);
 		ret = 0;
 	}
 	raw_spin_unlock_irqrestore(&a72_state_lock, flags);
 	return ret;
 }
 
-int mt6797_a72_hotplug_fail_down(
-	struct mt6797_a72_hotplug_transaction *transaction, int error)
+int mt6797_a72_hotplug_fail_down(struct mt6797_a72_hotplug_transaction *transaction,
+				 int error)
 {
 	unsigned long flags;
 	int ret = -EPERM;
@@ -496,16 +483,16 @@ int mt6797_a72_hotplug_fail_down(
 	if (!transaction || !error)
 		return -EINVAL;
 	raw_spin_lock_irqsave(&a72_state_lock, flags);
-	if (mt6797_a72_hotplug_active_locked(
-		    transaction, MT6797_A72_HOTPLUG_OPERATION_CPU9_DOWN)) {
+	if (mt6797_a72_hotplug_active_locked(transaction,
+		    MT6797_A72_HOTPLUG_OPERATION_CPU9_DOWN)) {
 		switch (a72_owner.hotplug_phase) {
 		case MT6797_A72_HOTPLUG_DOWN_FROZEN:
 		case MT6797_A72_HOTPLUG_DOWN_VALIDATED:
 			if (!a72_owner.hotplug_active.off_committed) {
 				a72_owner.hotplug_active.failure_error = error;
 				*transaction = a72_owner.hotplug_active;
-				mt6797_a72_hotplug_retire_locked(
-					0, MT6797_A72_HOTPLUG_REJECTED);
+				mt6797_a72_hotplug_retire_locked(0,
+						  MT6797_A72_HOTPLUG_REJECTED);
 				ret = 0;
 			}
 			break;
@@ -523,8 +510,8 @@ int mt6797_a72_hotplug_fail_down(
 	return ret;
 }
 
-int mt6797_a72_hotplug_prepare_restore(
-	unsigned int cpu, enum cpuhp_state target,
+int mt6797_a72_hotplug_prepare_restore(unsigned int cpu,
+				       enum cpuhp_state target,
 	bool cpu8_online, bool cpu9_online,
 	struct mt6797_a72_hotplug_transaction *transaction)
 {
@@ -603,8 +590,7 @@ int mt6797_a72_hotplug_prepare_restore(
 	return ret;
 }
 
-int mt6797_a72_hotplug_begin_restore(
-	struct mt6797_a72_hotplug_transaction *transaction,
+int mt6797_a72_hotplug_begin_restore(struct mt6797_a72_hotplug_transaction *transaction,
 	bool cpu8_online, bool cpu9_online)
 {
 	unsigned long flags;
@@ -615,8 +601,8 @@ int mt6797_a72_hotplug_begin_restore(
 	raw_spin_lock_irqsave(&a72_state_lock, flags);
 	if (a72_owner.health == MT6797_A72_OWNER_AVAILABLE &&
 	    a72_owner.hotplug_phase == MT6797_A72_HOTPLUG_RESTORE_FROZEN &&
-	    mt6797_a72_hotplug_active_locked(
-		    transaction, MT6797_A72_HOTPLUG_OPERATION_CPU9_RESTORE) &&
+	    mt6797_a72_hotplug_active_locked(transaction,
+		    MT6797_A72_HOTPLUG_OPERATION_CPU9_RESTORE) &&
 	    a72_owner.controller == current &&
 	    a72_owner.controller_cookie ==
 		    a72_owner.hotplug_active.identity.cookie &&
@@ -634,8 +620,7 @@ int mt6797_a72_hotplug_begin_restore(
 	return ret;
 }
 
-int mt6797_a72_hotplug_complete_restore(
-	struct mt6797_a72_hotplug_transaction *transaction,
+int mt6797_a72_hotplug_complete_restore(struct mt6797_a72_hotplug_transaction *transaction,
 	bool cpu8_online, bool cpu9_online)
 {
 	unsigned long flags;
@@ -648,8 +633,8 @@ int mt6797_a72_hotplug_complete_restore(
 	    a72_owner.phase == MT6797_A72_PHASE_IDLE &&
 	    a72_owner.hotplug_phase ==
 		    MT6797_A72_HOTPLUG_RESTORE_ON_ISSUED &&
-	    mt6797_a72_hotplug_active_locked(
-		    transaction, MT6797_A72_HOTPLUG_OPERATION_CPU9_RESTORE) &&
+	    mt6797_a72_hotplug_active_locked(transaction,
+		    MT6797_A72_HOTPLUG_OPERATION_CPU9_RESTORE) &&
 	    a72_owner.hotplug_active.budgets.cpu_on ==
 		    MT6797_A72_BUDGET_CONSUMED &&
 	    a72_owner.members == BIT(0) && cpu8_online && cpu9_online) {
@@ -657,16 +642,16 @@ int mt6797_a72_hotplug_complete_restore(
 		a72_owner.hotplug_active.restored = 1;
 		a72_owner.members = BIT(0) | BIT(1);
 		*transaction = a72_owner.hotplug_active;
-		mt6797_a72_hotplug_retire_locked(
-			1, MT6797_A72_HOTPLUG_RESTORED);
+		mt6797_a72_hotplug_retire_locked(1,
+					  MT6797_A72_HOTPLUG_RESTORED);
 		ret = 0;
 	}
 	raw_spin_unlock_irqrestore(&a72_state_lock, flags);
 	return ret;
 }
 
-int mt6797_a72_hotplug_fail_restore(
-	struct mt6797_a72_hotplug_transaction *transaction, int error)
+int mt6797_a72_hotplug_fail_restore(struct mt6797_a72_hotplug_transaction *transaction,
+				    int error)
 {
 	unsigned long flags;
 	int ret = -EPERM;
@@ -678,8 +663,8 @@ int mt6797_a72_hotplug_fail_restore(
 	     MT6797_A72_HOTPLUG_RESTORE_FROZEN ||
 	     a72_owner.hotplug_phase ==
 	     MT6797_A72_HOTPLUG_RESTORE_ON_ISSUED) &&
-	    mt6797_a72_hotplug_active_locked(
-		    transaction, MT6797_A72_HOTPLUG_OPERATION_CPU9_RESTORE)) {
+	    mt6797_a72_hotplug_active_locked(transaction,
+		    MT6797_A72_HOTPLUG_OPERATION_CPU9_RESTORE)) {
 		mt6797_a72_hotplug_fault_locked(error);
 		*transaction = a72_owner.hotplug_active;
 		ret = 0;
@@ -688,8 +673,7 @@ int mt6797_a72_hotplug_fail_restore(
 	return ret;
 }
 
-void mt6797_a72_hotplug_snapshot(
-	struct mt6797_a72_hotplug_snapshot *snapshot)
+void mt6797_a72_hotplug_snapshot(struct mt6797_a72_hotplug_snapshot *snapshot)
 {
 	unsigned long flags;
 
