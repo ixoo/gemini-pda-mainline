@@ -129,6 +129,16 @@ def validate_mutations(root: Path) -> int:
             "\tKUNIT_CASE(mt6797_cpu9_binder_cpu_on_progress_failures_test),",
             "\t/* progress failure test omitted */",
         ),
+        (
+            "fs/pstore/gemini_cpu9_progress_ledger.c",
+            "#include <linux/gemini_cpu9_transition_ledger.h>",
+            "/* CPU9 transition stage declarations omitted */",
+        ),
+        (
+            "fs/pstore/gemini_cpu9_progress_ledger_test.c",
+            "#include <linux/gemini_cpu9_transition_ledger.h>",
+            "/* CPU9 transition stage declarations omitted */",
+        ),
     )
     rejected = 0
     for relative, old, new in mutations:

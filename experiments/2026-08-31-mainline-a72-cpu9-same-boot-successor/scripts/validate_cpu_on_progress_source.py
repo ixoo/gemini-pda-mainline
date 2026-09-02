@@ -68,6 +68,18 @@ def validate(root: Path) -> list[str]:
         "\t(GEMINI_CPU9_PROGRESS_CPU8_BASE + 3 * GEMINI_TRANSITION_LEDGER_SLOT_SIZE)",
         1,
     )
+    exact(
+        ledger,
+        "#include <linux/gemini_cpu9_transition_ledger.h>",
+        1,
+        "CPU9 stage declarations included by progress owner",
+    )
+    exact(
+        ledger_test,
+        "#include <linux/gemini_cpu9_transition_ledger.h>",
+        1,
+        "CPU9 stage declarations included by progress tests",
+    )
     exact(ledger, "static int cpu9_cpu_on_progress_validate_cpu9(", 1)
     exact(ledger, "int cpu9_cpu_on_progress_owner_begin(", 1)
     exact(ledger, "int cpu9_cpu_on_progress_owner_checkpoint(", 1)

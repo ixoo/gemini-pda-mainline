@@ -34,6 +34,25 @@ def replace_once(path: Path, old: str, new: str) -> None:
 
 
 def apply(root: Path) -> None:
+    ledger = root / "fs/pstore/gemini_cpu9_progress_ledger.c"
+    replace_once(
+        ledger,
+        "#include <linux/gemini_cpu9_progress_ledger.h>\n"
+        "#include <linux/gemini_transition_ledger.h>",
+        "#include <linux/gemini_cpu9_progress_ledger.h>\n"
+        "#include <linux/gemini_cpu9_transition_ledger.h>\n"
+        "#include <linux/gemini_transition_ledger.h>",
+    )
+    ledger_test = root / "fs/pstore/gemini_cpu9_progress_ledger_test.c"
+    replace_once(
+        ledger_test,
+        "#include <linux/gemini_cpu9_progress_ledger.h>\n"
+        "#include <linux/gemini_transition_ledger.h>",
+        "#include <linux/gemini_cpu9_progress_ledger.h>\n"
+        "#include <linux/gemini_cpu9_transition_ledger.h>\n"
+        "#include <linux/gemini_transition_ledger.h>",
+    )
+
     header = root / "include/linux/gemini_cpu9_progress_ledger.h"
     replace_once(
         header,
@@ -133,7 +152,6 @@ def apply(root: Path) -> None:
         "\tu64 cpu9_attempt_id, u32 phase, u32 stage);",
     )
 
-    ledger = root / "fs/pstore/gemini_cpu9_progress_ledger.c"
     replace_once(
         ledger,
         "#define GEMINI_CPU9_PROGRESS_BASE \\\n"
