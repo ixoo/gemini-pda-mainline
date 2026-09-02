@@ -31,6 +31,12 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-09-02 current-mainline dual-A72 RAM coherency](2026-09-02-mainline-dual-a72-ram-coherency/README.md)
+  — defines the first decision-changing child after two exact patch-`0481`
+  online/accounting passes: one boot-bound, finite bidirectional checksum test
+  over RAM-backed rootfs with exact CPU8/CPU9 affinity, topology, scheduler
+  accounting, cleanup, and zero-storage gates. It changes no kernel artifact;
+  runtime evidence is pending.
 - [2026-08-31 same-boot CPU9 successor](2026-08-31-mainline-a72-cpu9-same-boot-successor/README.md)
   — carries the mainline-derived CPU8 result through a separate same-boot CPU9
   path. Successive retained boundaries localized and repaired four recursive
