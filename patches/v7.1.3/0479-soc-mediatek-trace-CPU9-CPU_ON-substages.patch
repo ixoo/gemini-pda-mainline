@@ -1,4 +1,4 @@
-From 98af038686721fd407a6201e60fc559a09384733 Mon Sep 17 00:00:00 2001
+From 3e18cdd685568294084a1fceb6427ffbb5af757e Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Wed, 2 Sep 2026 02:11:00 +0000
 Subject: [PATCH] soc: mediatek: trace CPU9 CPU_ON substages
@@ -21,11 +21,11 @@ reset, storage, or boot-policy path.
  .../mediatek/mt6797-a72-cpu9-binder-test.c    |  77 +++++++++
  drivers/soc/mediatek/mt6797-a72-cpu9-binder.c |  48 +++++-
  fs/pstore/Kconfig                             |   5 +
- fs/pstore/gemini_cpu9_progress_ledger.c       | 156 +++++++++++++++++-
+ fs/pstore/gemini_cpu9_progress_ledger.c       | 157 +++++++++++++++++-
  .../gemini_cpu9_progress_ledger_internal.h    |  15 ++
- fs/pstore/gemini_cpu9_progress_ledger_test.c  | 107 ++++++++++++
+ fs/pstore/gemini_cpu9_progress_ledger_test.c  | 108 ++++++++++++
  include/linux/gemini_cpu9_progress_ledger.h   |  16 ++
- 8 files changed, 422 insertions(+), 4 deletions(-)
+ 8 files changed, 424 insertions(+), 4 deletions(-)
 
 diff --git a/drivers/soc/mediatek/mt6797-a72-cpu9-binder-internal.h b/drivers/soc/mediatek/mt6797-a72-cpu9-binder-internal.h
 index c7db1ea..b44a6df 100644
@@ -275,10 +275,18 @@ index 8c90d88..9a52357 100644
  	bool "KUnit tests for the Gemini CPU9 progress ledger"
  	depends on KUNIT=y
 diff --git a/fs/pstore/gemini_cpu9_progress_ledger.c b/fs/pstore/gemini_cpu9_progress_ledger.c
-index 464c2f6..9c49b05 100644
+index 464c2f6..b765fed 100644
 --- a/fs/pstore/gemini_cpu9_progress_ledger.c
 +++ b/fs/pstore/gemini_cpu9_progress_ledger.c
-@@ -16,8 +16,12 @@
+@@ -4,6 +4,7 @@
+ #include <linux/errno.h>
+ #include <linux/export.h>
+ #include <linux/gemini_cpu9_progress_ledger.h>
++#include <linux/gemini_cpu9_transition_ledger.h>
+ #include <linux/gemini_transition_ledger.h>
+ #include <linux/io.h>
+ #include <linux/module.h>
+@@ -16,8 +17,12 @@
  #include "gemini_cpu9_transition_ledger_internal.h"
  
  #define GEMINI_CPU9_PROGRESS_CPU8_BASE 0x44410000ULL
@@ -291,7 +299,7 @@ index 464c2f6..9c49b05 100644
  #define GEMINI_CPU9_PROGRESS_RESERVE_SIZE 0x000e0000ULL
  
  static bool cpu9_progress_lane_empty(
-@@ -108,6 +112,90 @@ int cpu9_progress_owner_checkpoint(
+@@ -108,6 +113,90 @@ int cpu9_progress_owner_checkpoint(
  	return ret;
  }
  
@@ -382,7 +390,7 @@ index 464c2f6..9c49b05 100644
  static bool gemini_cpu9_progress_exact_dt(void)
  {
  	struct device_node *node;
-@@ -177,6 +265,9 @@ gemini_cpu9_progress_mmio_ops = {
+@@ -177,6 +266,9 @@ gemini_cpu9_progress_mmio_ops = {
  static DEFINE_MUTEX(gemini_cpu9_progress_lock);
  static struct gemini_cpu9_progress_owner gemini_cpu9_progress_owner;
  static void __iomem *gemini_cpu9_progress_slot;
@@ -392,7 +400,7 @@ index 464c2f6..9c49b05 100644
  
  int gemini_cpu9_progress_begin(u64 cpu8_attempt_id)
  {
-@@ -243,5 +334,68 @@ out_unlock:
+@@ -243,5 +335,68 @@ out_unlock:
  }
  EXPORT_SYMBOL_GPL(gemini_cpu9_progress_checkpoint);
  
@@ -495,10 +503,18 @@ index 9969f72..25de24a 100644
  
  #endif /* __GEMINI_CPU9_PROGRESS_LEDGER_INTERNAL_H */
 diff --git a/fs/pstore/gemini_cpu9_progress_ledger_test.c b/fs/pstore/gemini_cpu9_progress_ledger_test.c
-index 8d7359f..3e37b8c 100644
+index 8d7359f..33c9f5c 100644
 --- a/fs/pstore/gemini_cpu9_progress_ledger_test.c
 +++ b/fs/pstore/gemini_cpu9_progress_ledger_test.c
-@@ -215,12 +215,119 @@ static void cpu9_progress_ordering_test(struct kunit *test)
+@@ -4,6 +4,7 @@
+ #include <kunit/test.h>
+ #include <linux/errno.h>
+ #include <linux/gemini_cpu9_progress_ledger.h>
++#include <linux/gemini_cpu9_transition_ledger.h>
+ #include <linux/gemini_transition_ledger.h>
+ #include <linux/module.h>
+ #include <linux/string.h>
+@@ -215,12 +216,119 @@ static void cpu9_progress_ordering_test(struct kunit *test)
  		&cpu9_progress_test_ops, &progress, 1), -EALREADY);
  }
  

@@ -662,9 +662,13 @@ checkpoint, then commits eight ordered before/after boundaries around P30E
 prepare, membership begin, P30E arm, and the existing CPU boot callback. The
 CPU boot call remains singular; no CPU request, CPU_OFF, retry, cluster effect,
 reset, storage, or boot-policy path was added. Exact post-`0478` Buildbox
-generation passed source validation, rejected all eight mutations, passed
+generation passed source validation, rejected all ten mutations, passed
 strict Checkpatch with documented diagnostic-formatting check-class waivers,
-and replayed deterministically. It is not a boot candidate. See
+and replayed deterministically. The first full compile stopped before artifact
+creation because the two progress-ledger translation units lacked the public
+CPU9 stage declarations. The regenerated patch now includes that exact header
+in both files, and the generator has two new negative checks that reject either
+omission. It is not a boot candidate. See
 [`results/cpu-on-progress-patch-generation-20260902.txt`](results/cpu-on-progress-patch-generation-20260902.txt).
 **Selected next:** run the complete CPU9 KUnit build and no-network QEMU suite
 on Buildbox before any production build or device action.
