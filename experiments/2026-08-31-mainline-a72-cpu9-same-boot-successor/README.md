@@ -584,6 +584,23 @@ fresh backup or reboot request, removed the temporary readback, and confirmed
 the device unreachable after clean shutdown. See
 [`results/cpuhp-lock-repair-deployment-20260902.txt`](results/cpuhp-lock-repair-deployment-20260902.txt).
 
+The exact candidate then booted with fresh ID `4822a8eb...` and passed the
+source-pinned pristine gate with CPUs 8--9 offline and every trigger, CPU
+request, CPU_OFF, retry, and retained ledger at zero. Its sole trigger lost the
+live transport at the operation boundary and the fixed watchdog returned to
+changed-ID Gemian. Recovery supplied the decisive result: CPU8 retained its
+CRC-valid terminal proof, controller progress advanced through stage 9 after
+CPU9 ledger-begin returned, and the independent CPU9 transition ledger became
+committed. Its latest CRC-valid copy is stage 2 before `CPU_ON`, after a
+completed PRESTATE. Record 3 remained logical empty. Patch `0478` is therefore
+runtime-confirmed: it moved the former stage-7 lock-recursion boundary into the
+CPU9 executor. The first unreturned function is now
+`mt6797_a72_cpu9_binder_cpu_on()`, whose ordered unresolved calls are P30E
+prepare, membership begin, P30E arm, and the generic CPU boot callback. The
+current evidence cannot yet say whether the physical PSCI `CPU_ON` was reached.
+See
+[`results/cpuhp-lock-repair-runtime-attempt-1-20260902.txt`](results/cpuhp-lock-repair-runtime-attempt-1-20260902.txt).
+
 ## Analysis
 
 The current generic owner and P30E layers contain useful CPU9 primitives, but
@@ -613,10 +630,11 @@ regression profile. The detailed device evidence contract is frozen in
 [`DESIGN.md`](DESIGN.md). The progress production candidate is independently
 reproducible. Its sole device attempt again proved CPU8 terminal membership and
 now places the CPU9 stop at progress begin stage 1, before any CPU9 request.
-CPU9 was not durably admitted and no CPU9-online result is claimed. The newest
-attempt nevertheless advances the durable boundary from progress stage 1 to a
-completed stage 7 and identifies the nested CPU-hotplug lock acquisition as
-the next causal defect.
+CPU9 was not online in the newest attempt, but it was durably admitted for the
+first time: the lock repair advanced controller progress from stage 7 through
+stage 9, opened the CPU9 transition ledger, completed PRESTATE, and entered
+stage 2 `CPU_ON`. The remaining interval is now the four-call CPU_ON binder
+operation, not the prior CPU-hotplug lock recursion.
 
 ## Follow-up
 
@@ -627,17 +645,16 @@ proof. Source and configuration audit identifies the exact mismatch: this
 profile intentionally bypasses normal ramoops while the progress lane omitted
 the raw all-ones admission already implemented by the CPU9 lane and shared
 owner. Canonical patch `0477` is runtime-confirmed and its candidate is
-retired. Patch `0478` implements the selected narrow lock-held membership
-entry, and the complete 98-test Buildbox/QEMU regression plus production
-package, DT, and container gates now pass. **Selected next:** install exact
-full-partition candidate `0904c5a2...` over retired raw-lane candidate
-`1cf367e0...` on inactive logical `boot2`, require a matching full-partition
-readback, and shut down. Those gates now pass. **Selected next:** physically
-select `boot2`, close the source-pinned pristine read-only gate, and spend one
-trigger. Require progress beyond stage 7 and a nonempty CPU9 transition ledger
-or an exact downstream terminal. A stop before stage 8 rejects the lock repair;
-a later bounded failure selects the next recorded checkpoint without repeating
-this candidate.
+retired. Patch `0478` implements the narrow lock-held membership entry, and the
+complete 98-test Buildbox/QEMU regression, production package, DT, container,
+deployment, and single runtime gates now pass. The candidate is retired after
+one attempt. That attempt runtime-confirms the repair and advances through CPU9
+ledger begin and PRESTATE to the `BEFORE CPU_ON` transition checkpoint.
+**Selected next:** use the still-empty independent ramoops record 3 for a
+bounded substage ledger around P30E prepare, membership begin, P30E arm, and
+the generic CPU boot call. Validate it offline on Buildbox, then spend at most
+one new candidate boot. Do not repeat `0904c5a2...`; CPU_OFF, retry, sustained
+load, hotplug, thermal, and suspend remain outside this diagnostic.
 The ordered device action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside

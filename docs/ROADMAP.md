@@ -6957,6 +6957,22 @@ physically select `boot2`, close the pristine read-only gate, and spend exactly
 one trigger. Advance only on progress beyond stage 7 plus a nonempty CPU9
 transition ledger or an exact downstream terminal; do not repeat this candidate.
 
+That one-shot runtime gate now passes and retires the candidate. Fresh boot ID
+`4822a8eb...` passed the zero-execution gate; one trigger returned by the fixed
+watchdog to changed-ID Gemian. Recovery retained CPU8's exact online terminal,
+advanced controller progress through stage 9 after CPU9 ledger begin, and
+committed the CPU9 transition ledger through completed PRESTATE and the
+`BEFORE CPU_ON` stage-2 checkpoint. This runtime-confirms patch `0478` and
+proves the former stage-7 CPU-hotplug lock recursion is no longer the stop.
+CPU9 was not observed online. The remaining ambiguity is only inside
+`mt6797_a72_cpu9_binder_cpu_on()`: P30E prepare, membership begin, P30E arm,
+or the generic CPU boot callback. Record 3 remained logical empty. **Selected
+next:** add an independent record-3 substage ledger around those four calls,
+run the full CPU9 regression on Buildbox, and permit one new boot only after
+package, DT, container, and pristine runtime gates pass. No identical-candidate
+repeat, CPU_OFF, retry, sustained-load, hotplug, thermal, or suspend action is
+authorized by this diagnostic.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;
