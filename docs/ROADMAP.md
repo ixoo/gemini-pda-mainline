@@ -7148,6 +7148,19 @@ no MMIO, retained-RAM, watchdog, SMC, physical CPU request, or device action.
 exact package, composed DT, Android container, and pristine runtime tooling
 before any `boot2` write.
 
+That production gate now passes at exact published commit `f554c691...`.
+Buildbox produced `7.1.3-gemini-cpu9-progress` with all 470 canonical patches
+and the unchanged production configuration identity. Two package-exact DT
+compositions are byte-identical at `2ef5aeb1...`, preserve the proven
+serviceability tree, and reject all ten structural mutations. Two Android-v0
+constructions are byte-identical at raw `eba0aa21...` and full-partition
+`370ae4d0...`; each passes all 32 LK gates and rejects all six corrupt-container
+mutations. No validation requested a physical CPU or touched the device.
+**Selected next:** source-pin the pristine runtime and guarded deployment
+tooling to exact `370ae4d0...`, then install it over retired `65355ce4...` only
+on live-resolved inactive logical `boot2`, require a matching full-partition
+readback, and shut down cleanly.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

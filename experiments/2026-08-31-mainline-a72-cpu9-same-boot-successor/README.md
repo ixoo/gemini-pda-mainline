@@ -161,6 +161,10 @@ first write. No new physical range is introduced.
 - [`results/completion-lock-repair-kunit-qemu-20260902.txt`](results/completion-lock-repair-kunit-qemu-20260902.txt):
   exact patch-`0481` Buildbox package and no-network QEMU result: all 102 tests
   in eight suites passed with zero failures or skips.
+- [`results/completion-lock-repair-production-candidate-20260902.txt`](results/completion-lock-repair-production-candidate-20260902.txt):
+  exact production Buildbox package, two byte-identical provenance-preserving
+  DT and Android-v0 constructions, 32 LK gates, and all 10 DT plus six
+  container mutation rejections.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger, owner-local membership lifecycle, retained-cluster dispatch, and
@@ -703,6 +707,20 @@ watchdog, SMC, physical CPU request, or device action. See
 **Selected next:** build the production profile on Buildbox, then validate the
 exact package, composed DT, Android container, and pristine runtime tooling
 before any `boot2` write.
+
+That production gate now passes at exact published commit `f554c691...`.
+Buildbox produced `7.1.3-gemini-cpu9-progress` with all 470 canonical patches
+and the unchanged production configuration identity. Two package-exact DT
+compositions are byte-identical at `2ef5aeb1...`, preserve the proven
+serviceability tree, and reject all ten structural mutations. Two Android-v0
+constructions are byte-identical at raw `eba0aa21...` and full-partition
+`370ae4d0...`; each passes all 32 LK gates and rejects all six corrupt-container
+mutations. No validation requested a physical CPU or touched the device. See
+[`results/completion-lock-repair-production-candidate-20260902.txt`](results/completion-lock-repair-production-candidate-20260902.txt).
+**Selected next:** source-pin the pristine runtime and guarded deployment
+tooling to exact `370ae4d0...`, then install it over retired `65355ce4...` only
+on live-resolved inactive logical `boot2`, require a matching full-partition
+readback, and shut down cleanly.
 
 That production gate now passes at exact published commit `bf0fbcc4...`.
 Buildbox produced `7.1.3-gemini-cpu9-progress` with patchset `f4cb4cfe...` and
