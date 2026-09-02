@@ -60,6 +60,11 @@ handling, and exact restore token are implemented and machine-checked.
   handoff slice.
 - `scripts/generate_patch.py` and `generate-on-buildbox` create a normal
   format-patch from the exact managed source without changing it.
+- `scripts/owner_source_edits.py`, `owner_test_edits.py`,
+  `validate_owner_source.py`, and `test_owner_source_validator.py` define the
+  second hardware-free owner slice and its rejecting source oracle.
+- `scripts/generate_owner_patches.py` and `generate-owner-on-buildbox` create
+  the owner and focused-test patch pair from the exact post-`0483` source.
 - [`results/contract-validation-20260902.txt`](results/contract-validation-20260902.txt)
   records the local contract/mutation pass and exact Buildbox prepared-source
   validation.
