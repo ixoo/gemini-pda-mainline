@@ -67,6 +67,15 @@ the maximum; no unchanged retry is allowed.
   retargets the inherited post-trigger classifier to the exact CPU-map
   candidate identity; this closes the stale-parent-identity defect exposed by
   runtime attempt 1 without reinterpreting the trigger transcript.
+- [`scripts/execute-integrated-attempt.sh`](scripts/execute-integrated-attempt.sh),
+  [`scripts/remote-integrated-topology-ram.sh`](scripts/remote-integrated-topology-ram.sh),
+  and [`scripts/classify-integrated-attempt.py`](scripts/classify-integrated-attempt.py):
+  remove the host-side second-session gap by performing admission and the
+  bounded topology/RAM probe in one source-pinned netcat transaction.
+- [`scripts/collect-integrated-pretrigger.sh`](scripts/collect-integrated-pretrigger.sh)
+  and [`scripts/collect-integrated-recovery.sh`](scripts/collect-integrated-recovery.sh):
+  allocate fresh attempt-2 evidence namespaces and reject the attempt-1 boot
+  IDs.
 - [`scripts/test_runtime_tools.py`](scripts/test_runtime_tools.py): accepts one
   exact 4+4+2 fixture and rejects sixteen identity, topology, affinity, RAM,
   accounting, cleanup, and safety mutations.
@@ -162,6 +171,16 @@ this attempt preserves admission but neither passes nor fails the live 4+4+2
 topology/RAM predicate. See
 [`results/runtime-attempt-1-dual-online-probe-missed-20260902.txt`](results/runtime-attempt-1-dual-online-probe-missed-20260902.txt).
 
+The follow-up tooling now materializes one device shell that retains every
+guarded trigger exit, requires successful trigger and read-only sysfs remount,
+then immediately runs the unchanged all-CPU topology/RAM probe before the nc
+session closes. Its combined classifier requires both the corrected parent
+admission pass and the strict topology/RAM pass. Exact retained parent evidence
+plus the positive 4+4+2 fixture passes; a cluster-map mutation fails. Syntax,
+ShellCheck, source-pin, execution-order, forbidden-action, and fresh-namespace
+checks pass. See
+[`results/integrated-runtime-tooling-20260902.txt`](results/integrated-runtime-tooling-20260902.txt).
+
 ## Analysis
 
 The topology repair is narrower than a CPU-power or scheduling-policy change.
@@ -180,11 +199,12 @@ remains pending.
 
 ## Follow-up
 
-Prepare one source-pinned, identity-gated command that performs the inherited
+The single-session tool is prepared and validated. On one fresh exact boot,
+close the new pristine gate and spend one session; it performs the inherited
 single trigger and immediately continues into the already-validated all-CPU
-topology plus volatile-RAM probe in the same netcat session. This is not an
-identical admission repeat: its unique evidence is the still-unmeasured
-package, cluster, core, thread, affinity, and bidirectional RAM result, with no
-host-side classifier gap before collection. Only a full runtime pass permits
-one separately designed bounded concurrent multi-cacheline workload. A live
-cluster-list mismatch stops the line without another unchanged retry.
+topology plus volatile-RAM probe. This is not an identical admission repeat:
+its unique evidence is the still-unmeasured package, cluster, core, thread,
+affinity, and bidirectional RAM result, with no host-side classifier gap before
+collection. Only a full runtime pass permits one separately designed bounded
+concurrent multi-cacheline workload. A live cluster-list mismatch stops the
+line without another unchanged retry.

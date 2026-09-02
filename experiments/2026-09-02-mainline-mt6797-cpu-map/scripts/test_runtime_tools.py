@@ -16,6 +16,11 @@ CLASSIFIER = HERE / "classify-attempt.py"
 EXECUTOR = HERE / "execute-attempt.sh"
 PARENT_EXECUTOR = HERE / "execute-parent-trigger.sh"
 PARENT_CLASSIFIER = HERE / "classify-parent-trigger.py"
+INTEGRATED_REMOTE = HERE / "remote-integrated-topology-ram.sh"
+INTEGRATED_CLASSIFIER = HERE / "classify-integrated-attempt.py"
+INTEGRATED_EXECUTOR = HERE / "execute-integrated-attempt.sh"
+INTEGRATED_COLLECTOR = HERE / "collect-integrated-pretrigger.sh"
+INTEGRATED_RECOVERY = HERE / "collect-integrated-recovery.sh"
 COLLECTOR = HERE / "collect-pretrigger.sh"
 RECOVERY = HERE / "collect-recovery.sh"
 VALIDATOR = HERE / "validate-pretrigger.py"
@@ -269,9 +274,52 @@ def main() -> int:
     for index, mutation in enumerate(mutations, 1):
         rejected = classify(mutation)
         require(rejected.returncode != 0, f"mutation {index} was accepted")
+
+    integrated_remote = INTEGRATED_REMOTE.read_text(encoding="utf-8")
+    integrated_classifier = INTEGRATED_CLASSIFIER.read_text(encoding="utf-8")
+    integrated_executor = INTEGRATED_EXECUTOR.read_text(encoding="utf-8")
+    require(
+        digest(UPSTREAM_PARENT / "remote-completion-lock-repair-trigger.sh")
+        in integrated_remote,
+        "integrated trigger source pin changed",
+    )
+    require(digest(REMOTE) in integrated_remote, "integrated probe source pin changed")
+    require(
+        digest(PARENT_CLASSIFIER) in integrated_classifier,
+        "integrated parent-classifier pin changed",
+    )
+    require(digest(CLASSIFIER) in integrated_classifier, "integrated probe-classifier pin changed")
+    require(digest(PARENT_EXECUTOR) in integrated_executor, "integrated executor source pin changed")
+    require(digest(INTEGRATED_REMOTE) in integrated_executor, "integrated remote pin changed")
+    require(digest(INTEGRATED_CLASSIFIER) in integrated_executor, "integrated classifier pin changed")
+    require(digest(COLLECTOR) in INTEGRATED_COLLECTOR.read_text(encoding="utf-8"), "integrated collector pin changed")
+    require(digest(RECOVERY) in INTEGRATED_RECOVERY.read_text(encoding="utf-8"), "integrated recovery pin changed")
+
+    integrated = subprocess.run(
+        [str(INTEGRATED_REMOTE), "--boot-id", BOOT_ID],
+        check=True,
+        text=True,
+        stdout=subprocess.PIPE,
+    ).stdout
+    require(integrated.count("__GEMINI_A72_LIVE_TRIGGER_BEGIN__") == 1, "integrated trigger begin changed")
+    require(integrated.count("__GEMINI_A72_LIVE_TRIGGER_END__") == 4, "integrated trigger end changed")
+    require(integrated.count(BEGIN) == 1 and integrated.count(END) == 2, "integrated probe boundaries changed")
+    require(
+        integrated.rindex("__GEMINI_A72_LIVE_TRIGGER_END__") < integrated.index(BEGIN),
+        "integrated probe no longer follows the trigger",
+    )
+    for forbidden in (
+        "/dev/mmcblk",
+        "reboot -f",
+        "poweroff",
+        "/sys/devices/system/cpu/cpu8/online",
+        "/sys/devices/system/cpu/cpu9/online",
+    ):
+        require(forbidden not in integrated, f"forbidden integrated action appeared: {forbidden}")
     print("validation=mt6797-cpu-map-runtime-tools")
     print("positive_fixtures=1")
     print(f"mutations_rejected={len(mutations)}")
+    print("integrated_same_session_materializations=1")
     print("device_storage_writes=none")
     print("cpu_off_requests=0")
     print("retries=0")

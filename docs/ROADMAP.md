@@ -7290,6 +7290,18 @@ continues into the all-CPU topology and volatile-RAM probe. A second boot of
 the unchanged candidate is allowed only for that new decision-bearing
 measurement; another admission-only repeat is forbidden.
 
+That single-session tooling gate now passes. The new executor source-pins the
+proven trigger, corrected candidate-aware classifier, and unchanged all-CPU
+topology/RAM probe; it emits one device shell in strict trigger-then-probe
+order and uses one netcat session. Exact retained parent evidence plus the
+positive 4+4+2 fixture classifies successfully, a cluster mutation fails, and
+syntax, ShellCheck, source-pin, fresh-namespace, and forbidden-action checks
+pass. It contains no partition read/write, CPU_OFF, retry, poweroff, or reboot
+path. **Selected next:** cleanly shut down Gemian, physically select `boot2`,
+and close the fresh attempt-2 pristine gate. Spend the one integrated session
+only after exact identity and zero execution pass; its decision-bearing result
+is the still-unmeasured live topology and bidirectional volatile-RAM predicate.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;
