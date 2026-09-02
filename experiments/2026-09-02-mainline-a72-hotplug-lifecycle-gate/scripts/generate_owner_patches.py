@@ -87,6 +87,20 @@ def validate_patch(path: Path, subject: str) -> None:
             raise SystemExit(f"{path.name}: {message}")
 
 
+def normalize_patch_style(source_root: Path, path: Path) -> None:
+    command = (
+        "perl", str(source_root / "scripts/checkpatch.pl"), "--fix-inplace",
+        "--strict", "--no-tree", "--ignore",
+        "MISSING_SIGN_OFF,FILE_PATH_CHANGES", str(path),
+    )
+    subprocess.run(
+        command, cwd=source_root, check=False, text=True,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+    )
+    if not path.is_file() or path.is_symlink():
+        raise SystemExit(f"checkpatch style normalization lost {path.name}")
+
+
 def copy_parent(source_root: Path, destination: Path) -> None:
     for relative in PARENT_HASHES:
         target = destination / relative
@@ -182,6 +196,7 @@ def main() -> None:
         ):
             patch = package / patch_name
             shutil.move(generated_name, patch)
+            normalize_patch_style(source_root, patch)
             validate_patch(patch, subject)
             run(
                 "perl", str(source_root / "scripts/checkpatch.pl"), "--strict",
