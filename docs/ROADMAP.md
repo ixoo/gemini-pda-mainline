@@ -30,7 +30,7 @@ Cortex-A72 pair.
 | I2C6 transfer | Native packed/FIFO pointer-read and one exact one-message two-byte FIFO write are runtime proven. The write completed once with payload `[0xda, 0x46]`, exact no-retry accounting, and stable readback. | This closes only the reviewed same-value shape; arbitrary writes, failure recovery, stress, and resume remain open. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
 | Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected. A separate hardware-free implementation now models exact positive Buck-B acquire/release and passes all six focused fake-adapter cases. | Gate 6 is closed for the reviewed no-op, and the first Gate-7 provider source boundary is complete offline. Physical transition, production integration, consumers, and CPU requests remain disconnected. |
-| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The production-admission experiment brings CPU8 online with attributable terminal proof. Patch `0480` repairs the source-attributed second CPU-hotplug lock recursion and its exact candidate is installed, but the first reported start remained in one persistent `0x0e8d:0x20ff` loader session; mainline and the CPU9 trigger were not reached. | Return to Gemian, arm the exact observer before physical `boot2` selection, then spend one trigger only after the complete pristine gate; use current-enum retained recovery to select the next CPU9 boundary and keep CPU_OFF/retry disconnected. |
+| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The production-admission experiment brings CPU8 online with attributable terminal proof. The patch-`0480` candidate runtime-confirms membership-begin repair and advances CPU9 through generic CPU boot, secondary online wait, and IPI before stopping at membership publication. | Add lock-held CPU9 publication and finalization entry points for the writer-held completion path, validate on Buildbox, then permit one new exact candidate; keep the ordinary helpers, CPU_OFF, and retry unchanged. |
 
 The durable technical boundary is in
 [DA921x, I2C6, and Cortex-A72](hardware/da921x-i2c6-a72.md). The exact
@@ -7106,6 +7106,26 @@ unchanged installed candidate, arm the start-boundary observer before physical
 `boot2` selection, then spend the single trigger only after exact candidate,
 serviceability, controller, and zero-execution gates pass. Do not reinstall,
 repeat a triggered artifact, or infer a kernel/CPU result from `0x20ff`.
+
+That exact trigger has now been spent once. Fresh mainline boot ID
+`62bc2498...` passed the serviceable, armed, zero-execution gate, and changed-ID
+Gemian recovery produced two CRC-valid copies in records 0--3. CPU8 retained
+terminal online proof. CPU9 returned from P30E prepare, membership begin, P30E
+arm, generic CPU boot, its secondary online wait, and an IPI round-trip, then
+stopped immediately before membership publication. Patch `0480` is therefore
+runtime-confirmed and candidate `65355ce4...` is retired.
+
+The selected production publication helper reacquires the CPU-hotplug read lock
+from `arch_cpu_up_complete()` while `_cpu_up()` still holds the write lock. Its
+downstream success-finalization helper has the same recursive lock acquisition
+in the same call chain; runtime proves the publication stop, while exact-source
+review predicts the finalization stop. **Selected next:** implement both
+lock-held completion entry points as one narrow patch, each asserting the held
+lock and calling its existing state transition directly. Preserve the ordinary
+lock-taking helpers and select the new helpers only for the CPU9 binder. Run
+the complete CPU9 KUnit profile and no-network QEMU regression on Buildbox
+before constructing at most one new production candidate. CPU_OFF and retry
+remain disconnected; no identical-candidate repeat is permitted.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

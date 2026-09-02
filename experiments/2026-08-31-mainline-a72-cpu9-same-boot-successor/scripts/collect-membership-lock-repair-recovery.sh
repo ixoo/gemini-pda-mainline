@@ -181,7 +181,7 @@ classification=
 chmod 0600 "$output_dir/recovery-summary.txt"
 (
 	cd "$output_dir"
-	find . -type f ! -path ./SHA256SUMS -print0 | sort -z | \
+	find . -type f ! -path ./SHA256SUMS ! -path ./SHA256SUMS.partial -print0 | sort -z | \
 		xargs -0 sha256sum >SHA256SUMS.partial
 	mv SHA256SUMS.partial SHA256SUMS
 	sha256sum --check --strict SHA256SUMS >/dev/null

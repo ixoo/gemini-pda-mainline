@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-cpu9-same-boot-successor` |
-| Status | `CPU9 reached membership-begin; the retained substage ledger identifies a second CPU-hotplug lock recursion` |
+| Status | `CPU9 completed generic boot and IPI; retained evidence selects the membership-publication lock recursion` |
 | Subsystem | MT6797 A72 CPU9 retained-cluster admission |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31--2026-09-02 |
@@ -152,6 +152,9 @@ first write. No new physical range is introduced.
 - [`results/cpu-on-membership-lock-repair-kunit-qemu-20260902.txt`](results/cpu-on-membership-lock-repair-kunit-qemu-20260902.txt):
   exact patch-`0480` Buildbox package and no-network QEMU result: all 102 tests
   in eight suites passed with zero failures or skips.
+- [`results/cpu-on-membership-lock-repair-runtime-attempt-1-20260902.txt`](results/cpu-on-membership-lock-repair-runtime-attempt-1-20260902.txt):
+  exact one-shot patch-`0480` runtime result: generic CPU boot, secondary online
+  wait, and IPI returned; CPU9 then stopped before membership publication.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger, owner-local membership lifecycle, retained-cluster dispatch, and
@@ -830,6 +833,33 @@ ID and unchanged installed candidate, arm the start-boundary observer before
 physical `boot2` selection, and then require the complete pristine gate before
 spending the one trigger. Do not reinstall or retire the candidate on the
 loader-only observation.
+
+That one-shot runtime gate now passes and retires candidate `65355ce4...`.
+Fresh mainline boot ID `62bc2498...` passed the exact serviceable, armed,
+zero-execution gate; one trigger was committed with no retry, CPU_OFF, or
+native reboot request. Changed-ID Gemian recovery preserved two CRC-valid
+copies in all four retained records. CPU8 retained terminal online proof.
+CPU9 returned from P30E prepare, membership begin, P30E arm, the generic CPU
+boot, its secondary online wait, and an IPI round-trip, then stopped at the
+checkpoint immediately before membership publication. This is the largest
+runtime advance for CPU9 and proves patch `0480` fixed the selected boundary.
+
+Exact source attribution shows that the production publish callback calls
+`cpus_read_lock()` from `arch_cpu_up_complete()` while generic `_cpu_up()`
+still owns the CPU-hotplug write lock. The later success-finalization callback
+has the same lock-taking shape in the same writer-held call chain; that second
+statement is source inference, not a runtime observation. Treat both as one
+completion-path repair so a successor does not merely move to a source-proven
+identical recursion. Preserve the ordinary lock-taking entry points and select
+lock-held helpers only for the CPU9 binder callbacks. The recovery wrapper
+also exposed and now fixes a local checksum-inventory self-reference after the
+device capture had completed; strict verification of the preserved evidence
+passes and the candidate was not retriggered. See
+[`results/cpu-on-membership-lock-repair-runtime-attempt-1-20260902.txt`](results/cpu-on-membership-lock-repair-runtime-attempt-1-20260902.txt).
+**Selected next:** generate this narrow completion-path patch from exact source,
+run the complete Buildbox KUnit/no-network-QEMU regression, and construct one
+new candidate only after the production package, DT, container, and pristine
+runtime gates pass. CPU_OFF and retry remain disconnected.
 The ordered device action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside
