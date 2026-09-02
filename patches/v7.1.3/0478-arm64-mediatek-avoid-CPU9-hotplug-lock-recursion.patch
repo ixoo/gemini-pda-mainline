@@ -1,0 +1,73 @@
+From 9122fe6213b12a19dbc2ad04b3d6556d69579134 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 1 Sep 2026 23:41:00 +0000
+Subject: [PATCH] arm64: mediatek: avoid CPU9 hotplug lock recursion
+
+The CPU9 binder runs from the _cpu_up() callback while the
+generic CPU-hotplug write lock is already held. Calling the
+ordinary membership helper there recursively acquires the read
+side and stalls before the CPU9 transition ledger can begin.
+
+Add an explicitly CPUHP-lock-held entry point that asserts the
+lock contract and calls the existing state transition directly.
+Keep the ordinary lock-taking helper unchanged for other callers.
+
+This changes no CPU request, CPU_OFF, retry, cluster, reset, or
+storage path.
+---
+ arch/arm64/include/asm/mt6797_a72_membership.h | 1 +
+ arch/arm64/kernel/mt6797_a72_membership.c      | 8 ++++++++
+ drivers/soc/mediatek/mt6797-a72-cpu9-binder.c  | 2 +-
+ 3 files changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
+index 0729863..cbc9768 100644
+--- a/arch/arm64/include/asm/mt6797_a72_membership.h
++++ b/arch/arm64/include/asm/mt6797_a72_membership.h
+@@ -774,6 +774,7 @@ int mt6797_a72_membership_finalize_cpu8_success(struct mt6797_a72_transaction *t
+ int mt6797_a72_membership_publish_cpu9(struct mt6797_a72_transaction *transaction);
+ int mt6797_a72_membership_preflight_cpu9(void);
+ int mt6797_a72_membership_claim_cpu9(struct mt6797_a72_transaction *transaction);
++int mt6797_a72_claim_cpu9_locked(struct mt6797_a72_transaction *transaction);
+ int mt6797_a72_membership_reject_cpu9(struct mt6797_a72_transaction *transaction);
+ int mt6797_a72_membership_begin_cpu9_on(struct mt6797_a72_transaction *transaction);
+ int mt6797_a72_membership_publish_cpu9_success(struct mt6797_a72_transaction *transaction);
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+index de9bf87..d9b43ba 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -16,6 +16,7 @@
+ #include <linux/compiler.h>
+ #include <linux/cpumask.h>
+ #include <linux/cpu.h>
++#include <linux/cpuhplock.h>
+ #include <linux/errno.h>
+ #include <linux/mt6797-a72-provider.h>
+ #include <linux/mutex.h>
+@@ -2890,6 +2891,13 @@ mt6797_a72_claim_cpu9_state(struct mt6797_a72_transaction *transaction,
+ 	return ret;
+ }
+ 
++int mt6797_a72_claim_cpu9_locked(struct mt6797_a72_transaction *transaction)
++{
++	lockdep_assert_cpus_held();
++	return mt6797_a72_claim_cpu9_state(transaction,
++					  cpu_online(8), cpu_online(9));
++}
++
+ int mt6797_a72_membership_claim_cpu9(struct mt6797_a72_transaction *transaction)
+ {
+ 	int ret;
+diff --git a/drivers/soc/mediatek/mt6797-a72-cpu9-binder.c b/drivers/soc/mediatek/mt6797-a72-cpu9-binder.c
+index ff88fa4..a62883f 100644
+--- a/drivers/soc/mediatek/mt6797-a72-cpu9-binder.c
++++ b/drivers/soc/mediatek/mt6797-a72-cpu9-binder.c
+@@ -146,7 +146,7 @@ static const struct mt6797_a72_cpu9_binder_backend_ops
+ 		.ledger_begin = gemini_cpu9_ledger_begin,
+ 		.ledger_checkpoint = gemini_cpu9_ledger_checkpoint,
+ 		.membership_preflight = mt6797_a72_membership_preflight_cpu9,
+-		.membership_claim = mt6797_a72_membership_claim_cpu9,
++		.membership_claim = mt6797_a72_claim_cpu9_locked,
+ 		.membership_reject = mt6797_a72_membership_reject_cpu9,
+ 		.membership_begin_cpu_on = mt6797_a72_membership_begin_cpu9_on,
+ 		.p30e_prepare = mt6797_a72_cpu9_binder_p30e_prepare,
