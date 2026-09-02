@@ -7361,9 +7361,11 @@ sysfs online control is forbidden. **Selected next:** add the four
 no-op-by-default generic down handoffs and focused hardware-free proof, leaving
 the MT6797 operation table unset and the disable veto intact. Exact patch
 `0483` now passes generation, strict review, replay, ten source mutations, and
-the 165-profile invariant. Buildbox compilation is the remaining proof for
-this slice. Then add a
-separate one-attempt CPU9-down owner and distinct CPU9-restore owner, with one
+the 165-profile invariant. Exact pushed commit `1f17299f...` also passes the
+isolated Buildbox compile and complete package validation, with all four
+handoff dispatchers linked. The generic slice is complete without exposing
+hotplug or changing the device. **Selected next:** add a separate one-attempt
+CPU9-down owner and distinct CPU9-restore owner, with one
 active affinity attempt, a non-refreshed 15-second recovery watchdog after the
 CPU_OFF commit, independent per-core/shared-state observations, and reset-only
 post-commit failure. The phase exit remains one physical CPU9 off plus

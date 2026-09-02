@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-a72-hotplug-lifecycle-gate` |
-| Status | generic down-handoff patch generated and admitted; compile pending |
+| Status | generic down-handoff slice complete; CPU9 owner implementation pending |
 | Subsystem | arm64 CPU hotplug, PSCI, MT6797 A72 membership |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-09-02 America/New_York |
@@ -66,6 +66,9 @@ handling, and exact restore token are implemented and machine-checked.
 - [`results/generic-down-handoff-generation-aa014ea0-20260902.txt`](results/generic-down-handoff-generation-aa014ea0-20260902.txt)
   pins the generated patch, strict review, replay, mutation, and all-profile
   invariant results.
+- [`results/generic-down-handoff-build-1f17299f-20260902.txt`](results/generic-down-handoff-build-1f17299f-20260902.txt)
+  pins the exact pushed Buildbox compile, validated package identities, and
+  linked handoff symbols.
 - [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
   is the exact admitted no-op-by-default implementation.
 
@@ -106,6 +109,15 @@ unsafe source mutations failed closed, and strict Checkpatch reported zero
 errors, warnings, or checks. The 165-profile canonical-series invariant passes
 with `0483` appended as entry 475.
 
+Exact pushed repository commit `1f17299f...` then compiled successfully on
+Buildbox with the isolated `a72-cpu9-progress-candidate` profile. Package
+validation passed for `Image`, `Image.gz`, `System.map`, all 123 DTBs,
+configuration, and provenance. `System.map` contains all four new arm64
+handoff dispatchers. The fetched `Image.gz` identity is
+`6356e5bbe433aa76846a444c27336e2b458d004a6cb84774005c0138677843fa`.
+One pre-existing frame-size warning remains in an MT6797 A72 membership test
+helper; no warning arose from patch `0483`.
+
 The user-reported boot immediately before this audit did not produce a boot
 cycle: Gemian remained reachable under the unchanged boot ID for the complete
 observation window, and the mainline netcat endpoint did not appear. It is not
@@ -128,12 +140,12 @@ the membership commit and subsequent restore.
 
 The physical hypothesis remains untested. The exact parent code is confirmed
 incapable of safely running the experiment as-is. Patch `0483` now supplies
-the generic ownership handoffs but binds none of them, preserves the MT6797
-disable veto, and performs no physical action. The final requirement remains
+and Buildbox-proves the generic ownership handoffs but binds none of them,
+preserves the MT6797 disable veto, and performs no physical action. This
+completes the first hardware-free slice. The final requirement remains
 physical CPU9-off and same-boot CPU9 restore.
 
 ## Follow-up
 
-Buildbox-compile exact admitted patch `0483`. Then implement a distinct
-CPU9-down/restore owner before any configuration, candidate, deployment, or
-boot action.
+Implement and hardware-free-test a distinct CPU9-down/restore owner before any
+configuration, candidate, deployment, or boot action.
