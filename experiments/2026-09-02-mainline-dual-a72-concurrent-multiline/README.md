@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-dual-a72-concurrent-multiline` |
-| Status | `runtime tooling passed; fresh attempt 2 pending` |
+| Status | `complete: concurrent dual-A72 multiline runtime pass` |
 | Subsystem | MT6797 CPU8/CPU9 concurrent execution and volatile-RAM coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-09-02 |
@@ -104,7 +104,29 @@ remount around the admitted trigger. See
 - No attributable mainline session: preserve as an inconclusive timing miss
   and use a fresh namespace; do not classify the screen or fallback alone.
 
+## Runtime result
+
+`pass`: fresh mainline boot ID `7c8a6812...` passed the exact candidate,
+serviceability, and zero-execution gates. Its one netcat session preserved the
+accepted admission, one-package 4+4+2 topology, and bidirectional RAM-integrity
+classification before entering the concurrent child.
+
+CPU8 and CPU9 then each completed four simultaneous writes of the 1,914,704-byte
+payload to disjoint rootfs files. Both completed four simultaneous hashes of
+the peer file. All eight writer hashes and all eight peer-reader hashes matched;
+affinity and observed processor IDs were exactly 8 and 9; accounting advanced
+67 and 68 ticks; every child returned zero; and cleanup passed. No partition,
+CPU_OFF, retry, or native reboot action occurred.
+
+The device returned automatically to fresh Gemian boot ID `798fe52d...`.
+Read-only recovery verified the exact candidate unchanged on live-resolved
+`boot2` and recovered CRC-valid terminal online proofs for both A72 CPUs. See
+[`results/runtime-attempt-2-concurrent-multiline-pass-20260902.txt`](results/runtime-attempt-2-concurrent-multiline-pass-20260902.txt).
+
 ## Conclusion
 
-Runtime pending. The exact attempt-2 tools are ready for one fresh boot of the
-unchanged accepted candidate.
+The finite concurrent multi-cacheline gate passes on the named device. This
+establishes simultaneous bounded CPU8/CPU9 progress and peer-visible completed
+rootfs data on the accepted current-mainline topology. It does not establish
+safe CPU_OFF/hotplug, cpufreq/OPP, thermal, suspend, default integration, or
+general stress stability.

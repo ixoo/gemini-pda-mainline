@@ -7335,6 +7335,24 @@ the exact candidate, serviceability, zero-execution, and fresh-ID gates pass;
 then require changed-ID recovery, both terminal A72 proofs, and unchanged
 `boot2` before deciding the concurrent predicate.
 
+That concurrent runtime gate now passes on fresh mainline boot ID
+`7c8a6812...`. The one integrated session preserved admission, exact 4+4+2
+topology, and bidirectional RAM integrity, then CPU8 and CPU9 each completed
+four simultaneous disjoint-file writes and four simultaneous peer-file reads.
+All 16 hashes matched the pinned 1.9 MiB payload, affinity and observed
+processor IDs were exact, accounting advanced independently by 67/68 ticks,
+all children returned zero, and cleanup passed. No partition, CPU_OFF, retry,
+or native reboot action occurred. Automatic return reached fresh Gemian boot
+ID `798fe52d...`; read-only recovery verified both CRC-valid terminal A72
+proofs and exact candidate `68ec1b78...` unchanged on `boot2`. **Selected
+next:** define and offline-prove a separate bounded CPU_OFF/hotplug experiment.
+It must first establish that the current platform path can offline and restore
+one A72 without losing the other A72, any A53, USB/netcat serviceability,
+retained failure attribution, or the accepted topology. Do not combine that
+first lifecycle gate with cpufreq, OPP, thermal, idle, or suspend changes, and
+do not spend a boot until the exact offline/online sequence, time bounds,
+rollback/recovery behavior, and forbidden-action oracle are machine-checked.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

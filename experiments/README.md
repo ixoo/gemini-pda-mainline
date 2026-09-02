@@ -32,14 +32,13 @@ the loop. Positive identity-gated observations are unaffected.
 ### Current DA921x, I2C6, and A72 line
 
 - [2026-09-02 current-mainline concurrent dual-A72 multiline load](2026-09-02-mainline-dual-a72-concurrent-multiline/README.md)
-  — defines the first concurrent-load child of the accepted 4+4+2 result. One
-  integrated session preserves admission and topology/RAM checks, then runs
-  four simultaneous disjoint-write rounds and four simultaneous peer-read
-  rounds on CPU8/CPU9 using a pinned 1.9 MiB rootfs payload. Syntax,
-  ShellCheck, source pins, execution order, one positive fixture, and 17
-  rejected mutations pass. Attempt 1 missed the live USB window and sent no
-  trigger or workload, so it is preserved as inconclusive; fresh attempt 2 is
-  pending.
+  — closes the first concurrent-load child of the accepted 4+4+2 result. One
+  fresh integrated session preserved admission and topology/RAM checks, then
+  completed four simultaneous disjoint-write rounds and four simultaneous
+  peer-read rounds on CPU8/CPU9 using a pinned 1.9 MiB rootfs payload. All 16
+  hashes, exact affinities, independent 67/68-tick accounting, cleanup,
+  changed-ID recovery, terminal retained proofs, and unchanged boot2 passed
+  with no storage, CPU_OFF, retry, or native reboot action.
 - [2026-09-02 MT6797 CPU topology map](2026-09-02-mainline-mt6797-cpu-map/README.md)
   — corrects the post-online topology oracle: `core_siblings_list` describes
   the one SoC package and properly remains `0-9`, while
