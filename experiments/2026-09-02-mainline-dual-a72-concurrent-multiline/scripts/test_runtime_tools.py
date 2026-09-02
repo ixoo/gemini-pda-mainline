@@ -24,6 +24,16 @@ BOOT_ID = "11111111-2222-3333-4444-555555555555"
 PAYLOAD = "52151e7f322f926b64049cdaa1410dc3ea6485525e0624b05813791c219ae933"
 BEGIN = "__GEMINI_A72_CONCURRENT_MULTILINE_BEGIN__"
 END = "__GEMINI_A72_CONCURRENT_MULTILINE_END__"
+RETAINED_PARENT = (
+    ROOT / "artifacts/runtime-captures/"
+    "a72-mt6797-cpu-map-integrated-attempt-2"
+)
+RETAINED_PRETRIGGER_SHA256 = (
+    "01aea93c5a9ae3771272ed1d63ae6703178e58a9847b223564fe698534e0f46d"
+)
+RETAINED_TRIGGER_SHA256 = (
+    "8dac7595599c30e7c951daae13e89ac06385b2a59bbf821643b63b7c9aff70ae"
+)
 
 
 def digest(path: Path) -> str:
@@ -198,9 +208,73 @@ def main() -> int:
         candidate[key] = value
         require(rejected(module, candidate), f"mutation {index} was accepted: {key}")
 
+    retained_replay = "not-available"
+    retained_pretrigger = RETAINED_PARENT / "pretrigger.txt"
+    retained_trigger = RETAINED_PARENT / "trigger.txt"
+    if retained_pretrigger.exists() and retained_trigger.exists():
+        require(digest(retained_pretrigger) == RETAINED_PRETRIGGER_SHA256,
+                "retained parent pre-trigger identity changed")
+        require(digest(retained_trigger) == RETAINED_TRIGGER_SHA256,
+                "retained parent trigger identity changed")
+        retained_boot_id = "4ea50a64-aa9b-4610-97b1-5391841ce676"
+        retained_fields = passing_fields()
+        retained_fields["boot_id"] = retained_boot_id
+        retained_body = "\n".join(
+            f"{key}={value}" for key, value in retained_fields.items()
+        )
+        with tempfile.TemporaryDirectory(prefix="gemini-a72-concurrent-replay-") as name:
+            combined = Path(name) / "combined-trigger.txt"
+            combined.write_text(
+                retained_trigger.read_text(encoding="utf-8")
+                + f"\n{BEGIN}\n{retained_body}\n{END}\n",
+                encoding="utf-8",
+            )
+            accepted = subprocess.run(
+                [
+                    str(CLASSIFIER),
+                    "--pretrigger", str(retained_pretrigger),
+                    "--trigger", str(combined),
+                ],
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            require(accepted.returncode == 0,
+                    f"retained parent replay rejected: {accepted.stdout}")
+            require(
+                "runtime_classification="
+                "mt6797-dual-a72-concurrent-disjoint-multiline-pass"
+                in accepted.stdout,
+                "retained parent replay classification changed",
+            )
+            combined.write_text(
+                combined.read_text(encoding="utf-8").replace(
+                    f"reader9_peer_sha256={PAYLOAD}",
+                    f"reader9_peer_sha256={'0' * 64}",
+                    1,
+                ),
+                encoding="utf-8",
+            )
+            rejected_replay = subprocess.run(
+                [
+                    str(CLASSIFIER),
+                    "--pretrigger", str(retained_pretrigger),
+                    "--trigger", str(combined),
+                ],
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            require(rejected_replay.returncode != 0,
+                    "mutated retained parent replay was accepted")
+        retained_replay = "pass"
+
     print("validation=dual-a72-concurrent-multiline-runtime-tools")
     print("positive_fixtures=1")
     print(f"rejected_mutations={len(mutations)}")
+    print(f"retained_parent_combined_replay={retained_replay}")
     print("execution_order=trigger-topology-ram-concurrent")
     print("device_storage_writes=none")
     print("cpu_off_requests=0")

@@ -83,10 +83,13 @@ volume is 15,317,632 bytes and the peer-read volume is 15,317,632 bytes.
 
 `pass`: shell syntax and ShellCheck pass. The materialized script preserves
 strict trigger, topology/RAM, then concurrent ordering. One positive fixture
-passes and 17 representative mutations fail. Forbidden-action checks confirm
-that the child has no remount, partition, CPU-online-sysfs, CPU_OFF, poweroff,
-or reboot path. The full transaction retains only the inherited single
-read-write/read-only sysfs remount around the admitted trigger. See
+passes and 17 representative mutations fail. The exact retained accepted
+topology/RAM transcript also passes when combined with the positive concurrent
+boundary, while a corrupted peer hash fails through the real combined
+classifier. Forbidden-action checks confirm that the child has no remount,
+partition, CPU-online-sysfs, CPU_OFF, poweroff, or reboot path. The full
+transaction retains only the inherited single read-write/read-only sysfs
+remount around the admitted trigger. See
 [`results/runtime-tooling-20260902.txt`](results/runtime-tooling-20260902.txt).
 
 ## Runtime decision map
