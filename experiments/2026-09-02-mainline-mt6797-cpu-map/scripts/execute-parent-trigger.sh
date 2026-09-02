@@ -8,6 +8,7 @@ umask 077
 
 readonly SOURCE_SHA256=4c472374115c49977c484e0b25be38d1c4e0b914c62da8cd196878cb617b2de7
 readonly VALIDATOR_SHA256=9e1617b8121f33f45b67749fa0b5cf195557bbedd57b279ff47b800f0e9d5ab5
+readonly CLASSIFIER_SHA256=c41d58cf60e0f5c769f195b28933b1349963f3523e86248fa197b59b718f58b1
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }
 for command in chmod mktemp python3 rm sha256sum; do
 	command -v "$command" >/dev/null 2>&1 || die "required command missing: $command"
@@ -21,6 +22,9 @@ source_dir=$(cd -- "$(dirname -- "$source_executor")" && pwd -P)
 validator="$script_dir/validate-pretrigger.py"
 [[ -f "$validator" && ! -L "$validator" ]] || die 'CPU-map pre-trigger validator is absent or unsafe'
 [[ "$(sha256sum "$validator" | awk '{print $1}')" == "$VALIDATOR_SHA256" ]] || die 'CPU-map pre-trigger validator changed'
+classifier="$script_dir/classify-parent-trigger.py"
+[[ -f "$classifier" && ! -L "$classifier" ]] || die 'CPU-map trigger classifier is absent or unsafe'
+[[ "$(sha256sum "$classifier" | awk '{print $1}')" == "$CLASSIFIER_SHA256" ]] || die 'CPU-map trigger classifier changed'
 
 derived=$(mktemp "$source_dir/.derived-execute-mt6797-cpu-map-parent.XXXXXXXX")
 cleanup() { rm -f -- "${derived:-}"; }
@@ -35,10 +39,14 @@ replacements = (
      "68ec1b7815cab7abae99cbdecabb2f0ba0dd1ddbf26943d652fcedf4d2b4e393", 1),
     ("d86e78db5996f96b0e11efebd044454719ca8f0a6636671e72a405e1047499aa",
      "9e1617b8121f33f45b67749fa0b5cf195557bbedd57b279ff47b800f0e9d5ab5", 1),
+    ("37c28c542989e02654561c45ecb5c5e95df327c21952af310be3dbe12b8bf3be",
+     "c41d58cf60e0f5c769f195b28933b1349963f3523e86248fa197b59b718f58b1", 1),
     ("a72-cpu9-completion-lock-pretrigger-attempt-1",
      "a72-mt6797-cpu-map-attempt-1", 1),
     ('validator="$script_dir/validate-completion-lock-repair-pretrigger.py"',
      'validator="$repo_root/experiments/2026-09-02-mainline-mt6797-cpu-map/scripts/validate-pretrigger.py"', 1),
+    ('classifier="$script_dir/classify-completion-lock-repair-attempt.py"',
+     'classifier="$repo_root/experiments/2026-09-02-mainline-mt6797-cpu-map/scripts/classify-parent-trigger.py"', 1),
 )
 for old, new, count in replacements:
     actual = text.count(old)

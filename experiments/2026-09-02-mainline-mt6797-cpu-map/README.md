@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-mt6797-cpu-map` |
-| Status | `running: deployed and shut down; runtime pending` |
+| Status | `running: dual-A72 admission preserved; topology/RAM acceptance pending` |
 | Subsystem | MT6797 arm64 CPU topology and scheduler description |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-09-02 |
@@ -63,6 +63,10 @@ the maximum; no unchanged retry is allowed.
   exact boot, spend the inherited trigger once, collect all ten CPU topology
   records plus the bounded volatile-RAM exchange, and recover terminal retained
   proofs after a changed-ID return to Gemian.
+- [`scripts/classify-parent-trigger.py`](scripts/classify-parent-trigger.py):
+  retargets the inherited post-trigger classifier to the exact CPU-map
+  candidate identity; this closes the stale-parent-identity defect exposed by
+  runtime attempt 1 without reinterpreting the trigger transcript.
 - [`scripts/test_runtime_tools.py`](scripts/test_runtime_tools.py): accepts one
   exact 4+4+2 fixture and rejects sixteen identity, topology, affinity, RAM,
   accounting, cleanup, and safety mutations.
@@ -140,6 +144,24 @@ the materialized device script contains no block-device, CPU_OFF, retry,
 poweroff, or reboot action. See
 [`results/runtime-tooling-20260902.txt`](results/runtime-tooling-20260902.txt).
 
+Fresh mainline boot ID `136270ea...` passed the exact candidate,
+serviceability, and pristine zero-execution gate. The single trigger then
+returned success with CPUs `0-9` online, one request per A72, zero CPU_OFF or
+retry, and independent CPU8/CPU9 accounting deltas of 102. The inherited host
+classifier initially rejected the transcript because its post-trigger path
+still required the retired parent candidate hash; retargeting only that
+identity makes the exact retained transcript classify as
+`cpu8-cpu9-online-accounting-advanced`.
+
+No second device command was sent. Before the host could launch the separate
+topology/RAM session, the USB interface disappeared and the device returned
+automatically to fresh-ID Gemian. Read-only recovery verified the CPU-map
+candidate unchanged on `boot2` and recovered both terminal A72 proofs. It did
+not establish a watchdog or fault attribution for the automatic return. Thus
+this attempt preserves admission but neither passes nor fails the live 4+4+2
+topology/RAM predicate. See
+[`results/runtime-attempt-1-dual-online-probe-missed-20260902.txt`](results/runtime-attempt-1-dual-online-probe-missed-20260902.txt).
+
 ## Analysis
 
 The topology repair is narrower than a CPU-power or scheduling-policy change.
@@ -150,15 +172,19 @@ that the live scheduler consumed the map.
 
 ## Conclusion
 
-`deployed`: the source-level defect, corrected ABI oracle, canonical patch,
-Buildbox package, topology/serviceability composition, exact boot2 container,
-guarded write, full readback, and shutdown gates pass. Device runtime
-validation is pending.
+`split runtime pass`: the source-level defect, corrected ABI oracle, canonical
+patch, Buildbox package, topology/serviceability composition, exact boot2
+container, guarded write, and dual-A72 admission/accounting gates pass. The
+live topology and RAM-integrity portion did not run before automatic return and
+remains pending.
 
 ## Follow-up
 
-Physically select `boot2`. On the one admitted boot, verify exact identity and
-serviceability before the inherited one-shot trigger. A runtime
-pass permits one separately designed bounded concurrent multi-cacheline
-workload. A live cluster-list mismatch stops the line without an unchanged
-retry.
+Prepare one source-pinned, identity-gated command that performs the inherited
+single trigger and immediately continues into the already-validated all-CPU
+topology plus volatile-RAM probe in the same netcat session. This is not an
+identical admission repeat: its unique evidence is the still-unmeasured
+package, cluster, core, thread, affinity, and bidirectional RAM result, with no
+host-side classifier gap before collection. Only a full runtime pass permits
+one separately designed bounded concurrent multi-cacheline workload. A live
+cluster-list mismatch stops the line without another unchanged retry.

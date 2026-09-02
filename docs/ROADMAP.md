@@ -7273,6 +7273,23 @@ were unchanged, no fresh backup was made, and clean shutdown was confirmed.
 **Selected next:** physically select `boot2` and admit only a fresh exact
 candidate identity before the single topology acceptance trigger.
 
+That first topology-candidate boot has a split result. Fresh mainline boot ID
+`136270ea...` passed the exact identity, serviceability, and pristine
+zero-execution gates. One trigger brought CPUs `0-9` online with independent
+CPU8/CPU9 accounting deltas of 102, one request per A72, zero CPU_OFF, and zero
+retry. The initial host rejection was a tooling defect: the post-trigger
+classifier retained the retired parent's candidate hash, while the exact
+retained transcript passes after the identity-only retarget. Before the host
+could open the separate topology/RAM session, USB disappeared and the device
+returned automatically to fresh-ID Gemian. Recovery verified the CPU-map
+candidate unchanged on `boot2` and both terminal A72 proofs, but did not
+attribute the reboot. No topology/RAM command was sent, so the 4+4+2 predicate
+is neither passed nor failed. **Selected next:** source-pin and validate one
+single netcat command that performs the same bounded trigger and immediately
+continues into the all-CPU topology and volatile-RAM probe. A second boot of
+the unchanged candidate is allowed only for that new decision-bearing
+measurement; another admission-only repeat is forbidden.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

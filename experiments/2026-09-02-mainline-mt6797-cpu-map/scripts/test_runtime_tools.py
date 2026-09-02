@@ -15,6 +15,7 @@ REMOTE = HERE / "remote-bounded-topology-ram.sh"
 CLASSIFIER = HERE / "classify-attempt.py"
 EXECUTOR = HERE / "execute-attempt.sh"
 PARENT_EXECUTOR = HERE / "execute-parent-trigger.sh"
+PARENT_CLASSIFIER = HERE / "classify-parent-trigger.py"
 COLLECTOR = HERE / "collect-pretrigger.sh"
 RECOVERY = HERE / "collect-recovery.sh"
 VALIDATOR = HERE / "validate-pretrigger.py"
@@ -137,6 +138,63 @@ def main() -> int:
         "parent-executor source pin changed",
     )
     require(digest(VALIDATOR) in parent_executor, "parent validator pin changed")
+    require(digest(PARENT_CLASSIFIER) in parent_executor, "parent classifier pin changed")
+    require(
+        f'SOURCE_SHA256 = "{digest(UPSTREAM_PARENT / "classify-completion-lock-repair-attempt.py")}"'
+        in PARENT_CLASSIFIER.read_text(encoding="utf-8"),
+        "parent classifier source pin changed",
+    )
+
+    with tempfile.TemporaryDirectory(prefix="gemini-mt6797-parent-classifier-") as name:
+        temporary = Path(name)
+        pretrigger = temporary / "pretrigger.txt"
+        trigger = temporary / "trigger.txt"
+        pretrigger.write_text(
+            "installed_full_sha256="
+            "68ec1b7815cab7abae99cbdecabb2f0ba0dd1ddbf26943d652fcedf4d2b4e393\n",
+            encoding="utf-8",
+        )
+        trigger.write_text("", encoding="utf-8")
+        retargeted = subprocess.run(
+            [
+                str(PARENT_CLASSIFIER),
+                "--pretrigger",
+                str(pretrigger),
+                "--trigger",
+                str(trigger),
+            ],
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        require(
+            "installed-full-candidate-mismatch" not in retargeted.stdout,
+            "parent classifier did not retarget the exact CPU-map identity",
+        )
+        pretrigger.write_text(
+            "installed_full_sha256="
+            "370ae4d0ab2b7d3ed4d6f935198abbbb76a674698509053d8f0a1e0464774f3e\n",
+            encoding="utf-8",
+        )
+        stale = subprocess.run(
+            [
+                str(PARENT_CLASSIFIER),
+                "--pretrigger",
+                str(pretrigger),
+                "--trigger",
+                str(trigger),
+            ],
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        require(stale.returncode != 0, "parent classifier accepted the retired identity")
+        require(
+            "runtime_reason=installed-full-candidate-mismatch" in stale.stdout,
+            "parent classifier stale-identity rejection changed",
+        )
     require(
         f"readonly SOURCE_SHA256={digest(HERE.parent.parent / '2026-08-30-mainline-a72-ready-token-contract-repair/scripts/collect-pretrigger.sh')}" in collector,
         "pre-trigger collector source pin changed",
