@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-mt6797-cpu-map` |
-| Status | `running: patch authored; Buildbox validation pending` |
+| Status | `running: offline candidate passed; deployment pending` |
 | Subsystem | MT6797 arm64 CPU topology and scheduler description |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-09-02 |
@@ -46,6 +46,17 @@ the maximum; no unchanged retry is allowed.
 - [`scripts/validate-cpu-map.py`](scripts/validate-cpu-map.py): validates the
   compiled DTB using `fdtget`, including all ten unique CPU references, MPIDR
   `reg` values, CPU types, and exact cluster/core membership.
+- [`scripts/build-topology-serviceability-dtb.py`](scripts/build-topology-serviceability-dtb.py):
+  imports the package-proven map into the exact serviceability base using ten
+  collision-checked phandles and a deterministic transform.
+- [`scripts/build-composed-dtb.py`](scripts/build-composed-dtb.py) and
+  [`scripts/validate-composed-dtb.py`](scripts/validate-composed-dtb.py):
+  compose and independently prove the topology serviceability tree plus the
+  exact package-owned provenance leaf.
+- [`scripts/build-candidate.sh`](scripts/build-candidate.sh) and
+  [`scripts/validate-candidate.py`](scripts/validate-candidate.py): construct
+  the deterministic Android-v0 image twice and independently validate its LK
+  layout, package, topology, serviceability, and mutation rejection gates.
 - [`fixtures/mt6797-cpu-map-minimal.dts`](fixtures/mt6797-cpu-map-minimal.dts):
   redistributable positive validator fixture with the exact 4+4+2 topology.
 - [`patches/series`](../../patches/series): canonical ordering through `0482`.
@@ -87,7 +98,20 @@ synthetic experiment identity without a DCO sign-off; it is not
 submission-ready and must be reauthored and truthfully certified before any
 upstream submission. See
 [`results/source-tooling-20260902.txt`](results/source-tooling-20260902.txt).
-Buildbox compile and compiled-DTB validation are pending.
+
+Buildbox built exact commit `2e661e90` using the
+`a72-cpu9-progress-candidate` profile. The Image, compressed Image,
+configuration, and System.map are byte-identical to the runtime-proven parent;
+only the compiled Gemini DTB changes. The package DTB passes the exact 4+4+2
+validator. DT schema tooling was unavailable on Buildbox, so no schema pass is
+claimed; normal DTC and package validation passed.
+
+The exact serviceability composition preserves every prior node, imports the
+map with collision-checked CPU phandles `0x37`--`0x40`, and adds the exact
+Buildbox provenance leaf. The independently reconstructed 16 MiB candidate is
+SHA-256 `68ec1b7815cab7abae99cbdecabb2f0ba0dd1ddbf26943d652fcedf4d2b4e393`.
+All 32 LK gates and six negative container mutations pass. See
+[`results/offline-production-candidate-20260902.txt`](results/offline-production-candidate-20260902.txt).
 
 ## Analysis
 
@@ -99,12 +123,16 @@ that the live scheduler consumed the map.
 
 ## Conclusion
 
-`inconclusive`: the source-level defect and the corrected ABI oracle are
-identified; Buildbox and device validation remain pending.
+`offline pass`: the source-level defect, corrected ABI oracle, canonical patch,
+Buildbox package, topology/serviceability composition, and exact boot2
+container all pass their available offline gates. Device runtime validation is
+pending.
 
 ## Follow-up
 
-Complete the offline gates before constructing a candidate. A runtime pass
-permits one separately designed bounded concurrent multi-cacheline workload.
-A DT/schema or live cluster-list mismatch stops the line without an unchanged
+Install the exact candidate to live-resolved inactive `boot2`, require its full
+readback checksum, and shut down. On the one admitted boot, verify exact
+identity and serviceability before the inherited one-shot trigger. A runtime
+pass permits one separately designed bounded concurrent multi-cacheline
+workload. A live cluster-list mismatch stops the line without an unchanged
 retry.

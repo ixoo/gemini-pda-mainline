@@ -30,7 +30,7 @@ Cortex-A72 pair.
 | I2C6 transfer | Native packed/FIFO pointer-read and one exact one-message two-byte FIFO write are runtime proven. The write completed once with payload `[0xda, 0x46]`, exact no-retry accounting, and stable readback. | This closes only the reviewed same-value shape; arbitrary writes, failure recovery, stress, and resume remain open. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
 | Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected. A separate hardware-free implementation now models exact positive Buck-B acquire/release and passes all six focused fake-adapter cases. | Gate 6 is closed for the reviewed no-op, and the first Gate-7 provider source boundary is complete offline. Physical transition, production integration, consumers, and CPU requests remain disconnected. |
-| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. Exact patch `0481` now has two fresh-boot current-mainline passes: CPUs `0-9` were online, both A72 scheduler counters advanced independently, and each changed-ID recovery retained terminal proof with `boot2` unchanged. | Run the defined [bounded topology and RAM-integrity observation](../experiments/2026-09-02-mainline-dual-a72-ram-coherency/README.md) once. Keep CPU_OFF, hotplug, sustained load, thermal, suspend, and default-profile promotion separate until their own gates pass. |
+| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. Three exact patch-`0481` fresh boots brought CPUs `0-9` online with independent A72 accounting; the third also passed exact-affinity bidirectional volatile-RAM integrity. Canonical patch `0482` and its boot2 candidate now pass offline 4+4+2 topology validation. | Deploy and run the single [CPU-map acceptance cycle](../experiments/2026-09-02-mainline-mt6797-cpu-map/README.md). Keep concurrent load, CPU_OFF/hotplug, cpufreq, thermal, suspend, and default-profile promotion separate until their own gates pass. |
 
 The durable technical boundary is in
 [DA921x, I2C6, and Cortex-A72](hardware/da921x-i2c6-a72.md). The exact
@@ -7249,6 +7249,21 @@ the already-proven admission, affinity, RAM-integrity, accounting, recovery,
 and no-storage gates while observing package siblings `0-9` and cluster lists
 `0-3`, `4-7`, and `8-9`. Do not run
 concurrent or scheduler-sensitive load until this topology gate passes.
+
+That offline topology gate now passes. Canonical patch `0482` applies cleanly,
+the 165-profile series invariant passes, and Buildbox produced an otherwise
+byte-identical runtime-proven Image/configuration with the corrected Gemini
+DTB. The exact serviceability composition preserves the admission, USB,
+keyboard, console, and provenance contracts while adding only the 4+4+2 map;
+its Android-v0 boot2 container passes all 32 LK gates, independent structural
+validation, and six negative mutations. DT schema tooling was unavailable on
+Buildbox, so no schema result is claimed. **Selected next:** deploy that exact
+validated image to live-resolved inactive `boot2`, require full readback and
+clean shutdown, then spend one fresh identity-gated acceptance boot. The pass
+predicate is package siblings `0-9`, cluster lists `0-3`, `4-7`, and `8-9`,
+preserved single admission, exact A72 affinity/RAM integrity/accounting,
+terminal retained proofs, unchanged `boot2`, and zero storage, CPU_OFF, or
+retry activity.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
