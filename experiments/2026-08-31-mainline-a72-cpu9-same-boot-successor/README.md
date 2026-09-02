@@ -180,6 +180,9 @@ first write. No new physical range is introduced.
   first exact patch-`0481` runtime pass: pristine one-shot trigger, live
   CPU0--9 accounting, independent CPU8/CPU9 scheduler-tick advances, retained
   terminal proofs, unchanged `boot2`, and changed-ID Gemian recovery.
+- [`results/completion-lock-repair-repeatability-tooling-20260902.txt`](results/completion-lock-repair-repeatability-tooling-20260902.txt):
+  source-pinned attempt-2 evidence namespace, fresh-mainline-boot requirement,
+  one-trigger bounds, and three rejecting reuse/namespace checks.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger, owner-local membership lifecycle, retained-cluster dispatch, and
@@ -981,3 +984,12 @@ and generic CPU boot all returned. The independent recovery classifier reports
 This confirms the completion-lock repair and both A72 online paths for one
 exact boot. Repeatability and the remaining cluster acceptance work stay
 owned by [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
+
+The repeatability runtime path is now separately source-pinned. It derives
+the proven collector and executor without changing their candidate, pristine,
+one-session, CPU-request, CPU_OFF, retry, or reboot contracts; only the
+attempt-2 evidence namespace is admitted. Both wrappers additionally reject
+the first mainline boot ID. Bash syntax and ShellCheck pass, and all three
+wrong-namespace or reused-boot cases fail closed. No kernel input or device
+state changed. See
+[`results/completion-lock-repair-repeatability-tooling-20260902.txt`](results/completion-lock-repair-repeatability-tooling-20260902.txt).
