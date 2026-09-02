@@ -1,0 +1,136 @@
+{
+  "schema": 1,
+  "experiment": "2026-09-02-mainline-a72-hotplug-lifecycle-gate",
+  "repository_parent": "0dc07a6bc46da6bb1b074ffee4ce5efd26908411",
+  "canonical_series_entries": 474,
+  "canonical_series_sha256": "3f55b6be379d540d947c68deb74966b2a7f0ae05819305841f1a077c33da4610",
+  "manifest_sha256": "af9331a6d97a73475243dc1f79df6ca70206d3daf69405c20e9145e7c9930b43",
+  "prepared_source": {
+    "role": "buildbox-managed-linux-7.1.3-series-source",
+    "files": {
+      "arch/arm64/include/asm/cpu_ops.h": "8148d875ffa9110d8c7d9f4fe4121ac6441c541392d5c09381693fa02825ac64",
+      "arch/arm64/include/asm/mt6797_a72_membership.h": "8c19c6a8ffb8d4292f65791a6edc08c73cad11c79a26b6b88e296c9d1e241d16",
+      "arch/arm64/kernel/mt6797_a72_membership.c": "17758faa2a96b6d4eb1535ee0068b3ebae3e64bcdafae4108605f8ba1867dace",
+      "arch/arm64/kernel/mt6797_psci.c": "13c0497e4a462e5367d39236dbf6fecaf7478df012705d8f5e6ed39625e16d8e",
+      "arch/arm64/kernel/smp.c": "90ca49f088b2ea697d7c35b1340a985e5119a5fe71dd9c0713e1c703632beb2f",
+      "kernel/cpu.c": "bb87f455ebdd3e2b74befbd097a3a35723ac6350cafbd322aa3caffa4f6b7302"
+    }
+  },
+  "current_boundary": {
+    "cpu_can_disable": false,
+    "normal_down_owner": false,
+    "cpu9_restore_owner": false,
+    "p32_scope": "failed-cpu-up-rollback-only",
+    "initial_cpu8_up_attempt_consumed": true,
+    "initial_cpu9_up_attempt_consumed": true,
+    "standard_hotplug_exposed": false
+  },
+  "selected_transition": {
+    "target_cpu": 9,
+    "retained_peer_cpu": 8,
+    "entry_members": "0x3",
+    "offline_members": "0x1",
+    "restored_members": "0x3",
+    "physical_cpu_off_required": true,
+    "park_only_is_success": false,
+    "last_a72_off_allowed": false
+  },
+  "implementation_order": [
+    "hardware-free-generic-down-handoffs",
+    "hardware-free-cpu9-down-and-restore-owner",
+    "buildbox-compile-and-focused-kunit",
+    "offline-candidate-and-recovery-validation",
+    "one-physical-cpu9-off-and-same-boot-restore"
+  ],
+  "required_generic_handoffs": [
+    {
+      "name": "cpu_down_preflight",
+      "placement": "before-cpu_maps_update_begin",
+      "owner": "requesting-controller"
+    },
+    {
+      "name": "cpu_down_validate",
+      "placement": "after-cpu_add_remove_lock-before-cpus_write_lock",
+      "owner": "generic-cpuhp"
+    },
+    {
+      "name": "cpu_down_complete",
+      "placement": "after-full-requested-cpuhp-down-before-cpus_write_unlock",
+      "owner": "generic-cpuhp"
+    }
+  ],
+  "target_and_controller_handoffs": [
+    "target-cpu-disable-prepare-before-topology-removal",
+    "target-cpu-off-commit-before-psci-cpu-off",
+    "controller-one-affinity-attempt-after-target-dead-publication",
+    "controller-cpu9-per-core-power-readback",
+    "controller-cpu8-bounded-responsiveness",
+    "controller-shared-state-invariance",
+    "controller-offline-membership-commit",
+    "controller-distinct-cpu9-restore-preflight",
+    "controller-one-cpu-on-attempt",
+    "controller-secondary-and-full-cpuhp-restore-completion"
+  ],
+  "budgets": {
+    "cpu9_cpu_off": 1,
+    "cpu9_affinity_info_level0": 1,
+    "cpu9_restore_cpu_on": 1,
+    "cpu8_last_off": 0,
+    "cpu0_through_cpu7_off": 0,
+    "cpu_off_retry": 0,
+    "affinity_retry": 0,
+    "cpu_on_retry": 0
+  },
+  "timing": {
+    "secure_affinity_call_is_intrinsically_bounded": false,
+    "external_recovery_watchdog_ms": 15000,
+    "watchdog_refresh_after_cpu_off_commit": false,
+    "watchdog_cancel_point": "after-restored-topology-serviceability-and-progress"
+  },
+  "failure_policy": {
+    "before_cpu_off_commit": "release-owned-software-state-and-reject-without-hardware-effect",
+    "at_or_after_cpu_off_commit": "retain-conservative-state-no-retry-no-guessed-inverse-reset-only",
+    "restore_failure": "retain-fault-no-second-cpu-on-reset-only"
+  },
+  "physical_pass_predicate": [
+    "fresh-exact-candidate-and-pristine-trigger",
+    "cpu0-through-cpu9-online-at-entry",
+    "exact-4+4+2-topology-at-entry",
+    "one-target-cpu9-cpu-off-commit",
+    "one-controller-affinity-info-level0-attempt",
+    "cpu0-through-cpu8-online-with-cpu9-offline",
+    "cpu8-bounded-callback-passes",
+    "cpu9-per-core-off-readback-passes",
+    "shared-cluster-provider-clock-cci-state-unchanged",
+    "one-distinct-cpu9-restore-cpu-on-attempt",
+    "cpu0-through-cpu9-online-after-restore",
+    "exact-4+4+2-topology-after-restore",
+    "cpu8-and-cpu9-independent-accounting-advances",
+    "usb-netcat-serviceability-preserved",
+    "retained-terminal-attribution-valid",
+    "changed-boot-id-recovery-and-unchanged-boot2"
+  ],
+  "forbidden_actions": [
+    "cpu8-last-off",
+    "cpu0-through-cpu7-off",
+    "park-only-success-claim",
+    "second-affinity-query",
+    "cpu-off-retry",
+    "cpu-on-retry",
+    "cpufreq-change",
+    "opp-change",
+    "thermal-change",
+    "idle-change",
+    "suspend-change",
+    "device-storage-write",
+    "primary-boot-write",
+    "native-vm-kernel-build"
+  ],
+  "runtime_parent_evidence": {
+    "topology_ram": "experiments/2026-09-02-mainline-mt6797-cpu-map/results/runtime-attempt-2-topology-ram-pass-20260902.txt",
+    "concurrent_load": "experiments/2026-09-02-mainline-dual-a72-concurrent-multiline/results/runtime-attempt-2-concurrent-multiline-pass-20260902.txt"
+  },
+  "boot_candidate": false,
+  "device_action": false,
+  "native_vm_build": false
+}

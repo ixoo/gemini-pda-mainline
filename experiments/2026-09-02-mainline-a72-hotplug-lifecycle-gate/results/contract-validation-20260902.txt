@@ -1,0 +1,17 @@
+experiment=2026-09-02-mainline-a72-hotplug-lifecycle-gate
+repository_parent=0dc07a6bc46da6bb1b074ffee4ce5efd26908411
+canonical_series_entries=474
+canonical_series_sha256=3f55b6be379d540d947c68deb74966b2a7f0ae05819305841f1a077c33da4610
+manifest_sha256=af9331a6d97a73475243dc1f79df6ca70206d3daf69405c20e9145e7c9930b43
+contract_validation=pass
+prepared_source_validation=pass
+current_path=disable-vetoed-down-owner-absent-restore-owner-absent
+selected_transition=cpu9-physical-off-retain-cpu8-then-distinct-restore
+secure_affinity=active-one-attempt-internally-unbounded
+recovery=external-watchdog-15000ms-reset-only-after-commit
+park_only_success=false
+mutation_rejections=20
+boot_candidate=false
+device_action=false
+native_vm_build=false
+hotplug_lifecycle_contract=pass

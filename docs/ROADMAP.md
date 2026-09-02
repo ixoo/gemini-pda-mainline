@@ -4,7 +4,7 @@ This roadmap describes the current decision path and milestone exits. Detailed
 candidate history, build identities, runtime logs, and rejected branches belong
 in the [experiment index](../experiments/README.md), not here.
 
-## Immediate objective: a safe legacy DA921x provider boundary
+## Immediate objective: a safe Cortex-A72 hotplug lifecycle
 
 ### Visual reboot evidence caution
 
@@ -18,7 +18,8 @@ evidence, treat such cycles as inconclusive. Positive identity-gated runtime
 results remain valid; causal boundaries previously inferred only by contrast
 with an ambiguous visual/reboot cycle are correspondingly weaker.
 
-The current critical path is the external regulator dependency for the MT6797
+The external regulator and CPU-up dependency chain is now runtime proven. The
+current critical path is lifecycle correctness for the online MT6797
 Cortex-A72 pair.
 
 | Boundary | Current state | Consequence |
@@ -30,7 +31,7 @@ Cortex-A72 pair.
 | I2C6 transfer | Native packed/FIFO pointer-read and one exact one-message two-byte FIFO write are runtime proven. The write completed once with payload `[0xda, 0x46]`, exact no-retry accounting, and stable readback. | This closes only the reviewed same-value shape; arbitrary writes, failure recovery, stress, and resume remain open. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
 | Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected. A separate hardware-free implementation now models exact positive Buck-B acquire/release and passes all six focused fake-adapter cases. | Gate 6 is closed for the reviewed no-op, and the first Gate-7 provider source boundary is complete offline. Physical transition, production integration, consumers, and CPU requests remain disconnected. |
-| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. Three exact patch-`0481` fresh boots brought CPUs `0-9` online with independent A72 accounting; the third also passed exact-affinity bidirectional volatile-RAM integrity. Canonical patch `0482` and its boot2 candidate now pass offline 4+4+2 topology validation. | Deploy and run the single [CPU-map acceptance cycle](../experiments/2026-09-02-mainline-mt6797-cpu-map/README.md). Keep concurrent load, CPU_OFF/hotplug, cpufreq, thermal, suspend, and default-profile promotion separate until their own gates pass. |
+| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. Six fresh exact experimental-profile boots reached CPUs `0-9`; accepted runtime children prove standard 4+4+2 topology, exact affinity, bidirectional RAM integrity, independent accounting, and simultaneous dual-A72 peer-visible work. Safe down/restore is not implemented. | Implement the [CPU9 physical-off and same-boot restore gate](../experiments/2026-09-02-mainline-a72-hotplug-lifecycle-gate/README.md), beginning with hardware-free lifecycle ownership. Keep CPU8-last-off, cpufreq/OPP, thermal, idle, suspend, and default-profile promotion separate. |
 
 The durable technical boundary is in
 [DA921x, I2C6, and Cortex-A72](hardware/da921x-i2c6-a72.md). The exact
@@ -41,25 +42,20 @@ not be repeated unchanged.
 ## High-level path to the project goal
 
 The project goal is a maintainable, upstream-derived Linux system for the
-Gemini PDA, not merely a kernel that reaches userspace once. The critical path
-is:
+Gemini PDA, not merely a kernel that reaches userspace once. The current
+critical path is:
 
-1. close the real-compatible DA921x event/serviceability regression without
-   weakening the established console, keyboard, USB, CPU0--7, or recovery
-   baseline;
-2. prove the identification-only legacy DA921x driver can bind, perform its
-   fixed read-only contract, and unbind cleanly;
-3. finish the regulator, DVFSP, SPM, SRAM-LDO, clock, reset, suspend/resume,
-   and rollback ownership audit;
-4. register a passive regulator provider while all writable operations and
-   consumers remain disconnected;
-5. prove one reviewed, bounded write/readback/rollback operation with CPU8 and
-   CPU9 still offline;
-6. bring up CPU8 with checkpoints and fail-closed rollback, then validate CPU9
-   and the complete cluster separately; and
-7. complete the persistent-storage, native display/touch, keyboard/USB,
-   battery/charging/thermal, suspend, peripheral, and distribution-integration
-   milestones around that safe power foundation.
+1. preserve the completed DA921x, provider, CPU-up, serviceability, topology,
+   RAM-integrity, and concurrent dual-A72 runtime gates;
+2. add no-op-by-default generic CPU-down handoffs and a hardware-free CPU9
+   down/restore owner without exposing hotplug;
+3. prove one physical CPU9-off transition while CPU8 and CPUs 0--7 remain
+   available, then restore CPU9 once in the same boot under a distinct token;
+4. validate cpufreq/OPP, thermal, idle, and suspend as separate bounded gates;
+5. promote the proven A72 path from its isolated profile and take the reusable
+   changes through upstream review; and
+6. complete persistent storage, native display/touch, keyboard/USB,
+   battery/charging, peripheral, and distribution-integration milestones.
 
 Reusable bindings and drivers move upstream continuously throughout this
 sequence. Each local patch has a deletion condition tied to an accepted
@@ -70,7 +66,7 @@ Work on eMMC, logging, keyboard coverage, USB roles, display/touch, and other
 independent subsystems may proceed in parallel only when it preserves the
 fixed DA921x/A72 experiment baseline. The immediate critical chain is:
 
-`positive-provider proof -> Gate-7 integration review -> production CPU8 -> production CPU9`
+`dual-A72 online/load proof -> CPU9 physical off -> distinct CPU9 restore -> power-management gates -> default/upstream integration`
 
 ## Ordered gates
 
@@ -7352,6 +7348,24 @@ retained failure attribution, or the accepted topology. Do not combine that
 first lifecycle gate with cpufreq, OPP, thermal, idle, or suspend changes, and
 do not spend a boot until the exact offline/online sequence, time bounds,
 rollback/recovery behavior, and forbidden-action oracle are machine-checked.
+
+The exact current-source audit and the
+[physical-hotplug lifecycle gate](../experiments/2026-09-02-mainline-a72-hotplug-lifecycle-gate/README.md)
+now refine that sequence. `mt6797_psci_cpu_can_disable()` still deliberately
+vetoes all A72 down requests; generic arm64 has no controller-side down
+admission/completion handoffs; the membership owner has no normal down or
+restore transitions; and P32 only guards failed CPU-up rollback. The secure
+CPU9-off branch is per-core-only while CPU8 remains online, but its active
+affinity call has internally unbounded waits. Therefore, merely exposing the
+sysfs online control is forbidden. **Selected next:** add the three
+no-op-by-default generic down handoffs and focused hardware-free proof, leaving
+the MT6797 operation table unset and the disable veto intact. Then add a
+separate one-attempt CPU9-down owner and distinct CPU9-restore owner, with one
+active affinity attempt, a non-refreshed 15-second recovery watchdog after the
+CPU_OFF commit, independent per-core/shared-state observations, and reset-only
+post-commit failure. The phase exit remains one physical CPU9 off plus
+same-boot restore; park-only behavior is explicitly not success. No build,
+candidate, or device action is selected by this definition.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

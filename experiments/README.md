@@ -31,6 +31,15 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-09-02 mainline A72 physical-hotplug lifecycle gate](2026-09-02-mainline-a72-hotplug-lifecycle-gate/README.md)
+  — source-audits the exact accepted 4+4+2 parent and defines the next complete
+  lifecycle predicate: one physical CPU9 off while CPU8 remains responsive,
+  one active affinity attempt, per-core and shared-state readbacks, then a
+  distinct same-boot CPU9 restore with topology, serviceability, and progress
+  revalidation. The generic path is currently vetoed and has neither a normal
+  down owner nor a restore owner. The contract and exact prepared-source audit
+  pass, and 20 unsafe mutations fail closed. No build, candidate, or device
+  action occurred.
 - [2026-09-02 current-mainline concurrent dual-A72 multiline load](2026-09-02-mainline-dual-a72-concurrent-multiline/README.md)
   — closes the first concurrent-load child of the accepted 4+4+2 result. One
   fresh integrated session preserved admission and topology/RAM checks, then
