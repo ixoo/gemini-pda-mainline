@@ -35,16 +35,12 @@ def validate(root: Path) -> list[str]:
     exact(membership, "#include <linux/cpuhplock.h>", 1)
     exact(
         header,
-        "int\n"
-        "mt6797_a72_membership_claim_cpu9_cpuhp_locked(\n"
-        "\tstruct mt6797_a72_transaction *transaction);",
+        "int mt6797_a72_claim_cpu9_locked(struct mt6797_a72_transaction *transaction);",
         1,
     )
     exact(
         membership,
-        "int\n"
-        "mt6797_a72_membership_claim_cpu9_cpuhp_locked(\n"
-        "\tstruct mt6797_a72_transaction *transaction)",
+        "int mt6797_a72_claim_cpu9_locked(struct mt6797_a72_transaction *transaction)",
         1,
     )
     exact(membership, "\tlockdep_assert_cpus_held();", 1)
@@ -56,7 +52,7 @@ def validate(root: Path) -> list[str]:
         "locked claim direct state call",
     )
     locked = membership.split(
-        "mt6797_a72_membership_claim_cpu9_cpuhp_locked(", 1
+        "mt6797_a72_claim_cpu9_locked(", 1
     )[1].split(
         "int mt6797_a72_membership_claim_cpu9(", 1
     )[0]
@@ -72,8 +68,7 @@ def validate(root: Path) -> list[str]:
 
     exact(
         binder,
-        "\t.membership_claim =\n"
-        "\t\tmt6797_a72_membership_claim_cpu9_cpuhp_locked,",
+        "\t.membership_claim = mt6797_a72_claim_cpu9_locked,",
         1,
     )
     exact(
@@ -87,7 +82,7 @@ def validate(root: Path) -> list[str]:
         (
             ".membership_preflight = mt6797_a72_membership_preflight_cpu9",
             ".membership_claim =",
-            "mt6797_a72_membership_claim_cpu9_cpuhp_locked",
+            "mt6797_a72_claim_cpu9_locked",
             ".membership_reject = mt6797_a72_membership_reject_cpu9",
         ),
         "production backend membership callbacks",

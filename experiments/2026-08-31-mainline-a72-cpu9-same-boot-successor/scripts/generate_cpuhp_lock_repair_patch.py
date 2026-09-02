@@ -92,12 +92,8 @@ def validate_mutations(root: Path) -> int:
         ),
         (
             "arch/arm64/include/asm/mt6797_a72_membership.h",
-            "int\n"
-            "mt6797_a72_membership_claim_cpu9_cpuhp_locked(\n"
-            "\tstruct mt6797_a72_transaction *transaction);",
-            "int\n"
-            "mt6797_a72_membership_claim_cpu9_locked_missing(\n"
-            "\tstruct mt6797_a72_transaction *transaction);",
+            "int mt6797_a72_claim_cpu9_locked(struct mt6797_a72_transaction *transaction);",
+            "int mt6797_a72_claim_cpu9_locked_missing(struct mt6797_a72_transaction *transaction);",
         ),
         (
             "arch/arm64/kernel/mt6797_a72_membership.c",
@@ -124,8 +120,7 @@ def validate_mutations(root: Path) -> int:
         ),
         (
             "drivers/soc/mediatek/mt6797-a72-cpu9-binder.c",
-            "\t.membership_claim =\n"
-            "\t\tmt6797_a72_membership_claim_cpu9_cpuhp_locked,",
+            "\t.membership_claim = mt6797_a72_claim_cpu9_locked,",
             "\t.membership_claim = mt6797_a72_membership_claim_cpu9,",
         ),
         (
