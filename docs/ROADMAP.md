@@ -30,7 +30,7 @@ Cortex-A72 pair.
 | I2C6 transfer | Native packed/FIFO pointer-read and one exact one-message two-byte FIFO write are runtime proven. The write completed once with payload `[0xda, 0x46]`, exact no-retry accounting, and stable readback. | This closes only the reviewed same-value shape; arbitrary writes, failure recovery, stress, and resume remain open. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
 | Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected. A separate hardware-free implementation now models exact positive Buck-B acquire/release and passes all six focused fake-adapter cases. | Gate 6 is closed for the reviewed no-op, and the first Gate-7 provider source boundary is complete offline. Physical transition, production integration, consumers, and CPU requests remain disconnected. |
-| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The production-admission experiment brings CPU8 online with attributable terminal proof. The newest one-shot CPU9 diagnostic reached `BEFORE CPU_ON`, returned from P30E prepare, and entered membership begin; it did not reach P30E arm or the generic CPU boot callback. | Repair the source-attributed second CPU-hotplug lock recursion with a lock-held membership-begin helper, validate the full CPU9 path on Buildbox/QEMU, then admit at most one changed candidate; keep CPU_OFF and retry disconnected. |
+| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The production-admission experiment brings CPU8 online with attributable terminal proof. Patch `0480` repairs the source-attributed second CPU-hotplug lock recursion and its exact candidate is installed, but the first reported start remained in one persistent `0x0e8d:0x20ff` loader session; mainline and the CPU9 trigger were not reached. | Return to Gemian, arm the exact observer before physical `boot2` selection, then spend one trigger only after the complete pristine gate; use current-enum retained recovery to select the next CPU9 boundary and keep CPU_OFF/retry disconnected. |
 
 The durable technical boundary is in
 [DA921x, I2C6, and Cortex-A72](hardware/da921x-i2c6-a72.md). The exact
@@ -7089,6 +7089,23 @@ zero-execution validator, one-session trigger, classifier, and executor pass
 offline source-identity and syntax checks. **Selected next:** physically
 select `boot2`; require the exact candidate, changed boot ID, serviceability,
 armed controller, and pristine zero-execution state before one trigger.
+
+The first owner-reported start did not close that gate. Observation began
+after the report and then covered two bounded windows from `03:03:21Z` through
+`03:17:42Z`; one MediaTek `0x0e8d:0x20ff` USB session remained unchanged. No
+exact mainline interface, netcat session, pretrigger frame, trigger intent,
+CPU request, or changed-ID Gemian return was observed. This is a persistent
+loader boundary only: it neither tests patch `0480` nor retires exact candidate
+`65355ce4...`. The one-shot trigger remains unspent. The source-pinned
+changed-cycle recovery classifier and collector are now prepared: they use the
+current CPU9 online terminal value, cover every record-3 and downstream CPU9
+state, reproduce the prior real boundary, bind changed-ID Gemian and exact
+installed `boot2`, and perform no device or retained-RAM write. **Selected
+next:** manually return to ordinary Gemian, verify the changed boot ID and
+unchanged installed candidate, arm the start-boundary observer before physical
+`boot2` selection, then spend the single trigger only after exact candidate,
+serviceability, controller, and zero-execution gates pass. Do not reinstall,
+repeat a triggered artifact, or infer a kernel/CPU result from `0x20ff`.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

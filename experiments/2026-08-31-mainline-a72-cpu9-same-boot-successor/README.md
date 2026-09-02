@@ -804,6 +804,32 @@ and
 **Selected next:** physically select `boot2`; the host will require the exact
 candidate, changed boot ID, serviceability, armed controller, and pristine
 zero-execution state before spending one trigger.
+
+The first owner-reported start occurred before the observer was armed and did
+not close that gate. Two subsequent bounded windows, armed at `03:03:21Z` and
+`03:11:09Z`, observed one unchanged MediaTek `0x0e8d:0x20ff` session through
+`03:17:42Z`. Neither the exact mainline network interface nor changed-ID
+Gemian appeared. No netcat session, pretrigger frame, trigger intent, CPU
+request, device write, retained-RAM write, or reboot request occurred. This is
+an unclosed loader boundary, not evidence for or against patch `0480`; exact
+candidate `65355ce4...` remains selected and unspent. See
+[`results/cpu-on-membership-lock-repair-start-boundary-attempt-1-20260902.txt`](results/cpu-on-membership-lock-repair-start-boundary-attempt-1-20260902.txt).
+
+The changed-cycle recovery path is now source-pinned before any trigger. Its
+new classifier uses the current CPU9 ledger's exact terminal-online value `5`,
+rather than the historical generic helper's stale value `3`, and covers every
+record-3 substage plus later CPU9 checkpoint, failure, and online-proof state.
+It passes 25 focused cases and reproduces the prior real retained capture as
+P30E prepare returned, membership begin entered-not-returned. The exact
+collector additionally binds changed-ID Gemian, the deployment receipt, live
+GPT `boot2`, full-partition candidate checksum, and checksummed pstore capture;
+it performs no device or retained-RAM write. See
+[`results/cpu-on-membership-lock-repair-recovery-tooling-20260902.txt`](results/cpu-on-membership-lock-repair-recovery-tooling-20260902.txt).
+**Selected next:** return manually to ordinary Gemian, confirm a changed boot
+ID and unchanged installed candidate, arm the start-boundary observer before
+physical `boot2` selection, and then require the complete pristine gate before
+spending the one trigger. Do not reinstall or retire the candidate on the
+loader-only observation.
 The ordered device action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside
