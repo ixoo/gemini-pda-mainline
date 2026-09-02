@@ -7079,6 +7079,17 @@ state are confirmed. Decision-bearing progress is record 3 returning from
 membership begin or downstream CPU9 transition/online evidence; do not repeat
 either candidate or add CPU_OFF/retry.
 
+That guarded deployment now passes. Live GPT resolved inactive, unmounted
+logical `boot2` as `/dev/mmcblk0p30` with Gemian rooted on
+`/dev/mmcblk0p29`; retired predecessor `d4eca4ac...`, stable external power,
+and the exact 16 MiB target all matched. The write was synchronized, flushed,
+and fully read back as `65355ce4...`; no fresh backup or reboot was requested,
+and clean shutdown was confirmed. The exact-candidate read-only collector,
+zero-execution validator, one-session trigger, classifier, and executor pass
+offline source-identity and syntax checks. **Selected next:** physically
+select `boot2`; require the exact candidate, changed boot ID, serviceability,
+armed controller, and pristine zero-execution state before one trigger.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

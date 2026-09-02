@@ -787,6 +787,23 @@ live-resolved inactive logical `boot2`, require matching full-partition
 readback, and shut down. One fresh boot may then spend one pristine trigger;
 record 3 must advance through membership begin or downstream evidence must
 show the CPU9 transition continuing toward online.
+
+That guarded deployment now passes. Known-good Gemian resolved inactive
+logical `boot2` to `/dev/mmcblk0p30` while root remained `/dev/mmcblk0p29`,
+verified retired predecessor `d4eca4ac...`, stable external power and 100%
+battery, and the exact 16 MiB target. It wrote, synchronized, flushed, and
+fully read back `65355ce4...`; both trusted-environment hashes remained
+unchanged. No fresh backup or reboot was requested, the temporary readback was
+removed, and clean shutdown was confirmed. The source-pinned read-only
+collector, validator, one-session trigger, classifier, and executor are now
+retargeted to the exact candidate and pass offline syntax/derivation checks.
+See
+[`results/cpu-on-membership-lock-repair-deployment-20260902.txt`](results/cpu-on-membership-lock-repair-deployment-20260902.txt)
+and
+[`results/cpu-on-membership-lock-repair-runtime-tooling-20260902.txt`](results/cpu-on-membership-lock-repair-runtime-tooling-20260902.txt).
+**Selected next:** physically select `boot2`; the host will require the exact
+candidate, changed boot ID, serviceability, armed controller, and pristine
+zero-execution state before spending one trigger.
 The ordered device action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside
