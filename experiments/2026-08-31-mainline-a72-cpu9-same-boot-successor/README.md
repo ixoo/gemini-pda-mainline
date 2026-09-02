@@ -560,6 +560,20 @@ and the fixed watchdog recovers it. Exact `boot2` remained unchanged and
 unmounted after recovery. See
 [`results/progress-raw-lane-runtime-attempt-1-20260901.txt`](results/progress-raw-lane-runtime-attempt-1-20260901.txt).
 
+Canonical patch `0478` now adds the lock-held membership entry point, asserts
+the CPU-hotplug lock contract, and selects it only from the CPU9 binder boot
+callback; the ordinary lock-taking helper remains unchanged. Exact published
+commit `45cb7c79...` passed Buildbox package validation and a no-network QEMU
+run of all eight CPU9/CPU8 suites: 98 tests passed with no failure or skip and
+no physical CPU request, retained-RAM access, MMIO, watchdog request, SMC, or
+device action. The exact production profile then built with unchanged
+configuration identity. Two package-exact DT compositions were byte-identical
+at `aef34db5...`, and two Android-v0 constructions were byte-identical at raw
+`56986d08...` and full-partition `0904c5a2...`. Independent validation passed
+all 32 LK gates and rejected all six container mutations for each construction.
+This is the selected one-shot CPUHP lock-repair candidate; see
+[`results/cpuhp-lock-repair-production-candidate-20260902.txt`](results/cpuhp-lock-repair-production-candidate-20260902.txt).
+
 ## Analysis
 
 The current generic owner and P30E layers contain useful CPU9 primitives, but
@@ -602,21 +616,16 @@ stage-1 `-EUCLEAN` result selects the progress-lane header rather than the CPU8
 proof. Source and configuration audit identifies the exact mismatch: this
 profile intentionally bypasses normal ramoops while the progress lane omitted
 the raw all-ones admission already implemented by the CPU9 lane and shared
-owner. Canonical patch `0477` is the selected causal repair. Its raw admission,
-malformed refusal, and complete CPU9 regression now pass all 98 cases on the
-exact Buildbox package. Next, build the production profile from the exact clean
-commit, independently compose and validate its DT and Android container, and
-install it to inactive `boot2`. Those build and validation gates now pass for
-exact full-partition candidate `1cf367e0...`. Install it over retired diagnostic
-`4bf74874...`, verify the full readback, and shut down. That exact write and
-shutdown now pass. That exact attempt passes the pristine gate and advances
-through progress stage 7, proving the raw-lane repair. The candidate is retired
-and must not be repeated. Add a narrow membership entry point for callers that
-already hold the CPU-hotplug lock, assert that contract, and select it only
-from the CPU9 binder boot callback. Preserve the existing lock-taking helper
-for ordinary callers. Run the complete membership, binder, controller,
-progress-ledger, and CPU8 regression suites on Buildbox before defining another
-production candidate.
+owner. Canonical patch `0477` is runtime-confirmed and its candidate is
+retired. Patch `0478` implements the selected narrow lock-held membership
+entry, and the complete 98-test Buildbox/QEMU regression plus production
+package, DT, and container gates now pass. **Selected next:** install exact
+full-partition candidate `0904c5a2...` over retired raw-lane candidate
+`1cf367e0...` on inactive logical `boot2`, require a matching full-partition
+readback, and shut down. On one fresh boot, require progress beyond stage 7
+and a nonempty CPU9 transition ledger or an exact downstream terminal. A stop
+before stage 8 rejects the lock repair; a later bounded failure selects the
+next recorded checkpoint without repeating this candidate.
 The ordered device action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside

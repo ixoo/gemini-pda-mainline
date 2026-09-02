@@ -6935,6 +6935,19 @@ Buildbox. Only after that offline gate may a new candidate test whether CPU9
 reaches its retained ledger and ordered CPU_ON path, still with CPU_OFF and
 retry disconnected.
 
+Canonical patch `0478` and exact published commit `45cb7c79...` now close that
+offline gate. The complete no-network regression passed all 98 cases across
+eight suites with no failure or skip, and the production Buildbox profile
+retained the prior configuration identity. Two independent package-exact DT
+compositions and two independent Android-v0 constructions agree exactly; both
+container validations pass all 32 LK gates and reject all six mutations. The
+selected full-partition candidate is `0904c5a2...`. **Selected next:** install
+it over retired `1cf367e0...` on live-resolved inactive logical `boot2`, require
+an exact full-partition readback, and shut down. Spend one fresh boot only: the
+decision-bearing evidence is progress beyond stage 7 plus a nonempty CPU9
+transition ledger or an exact downstream terminal. CPU_OFF, retry, and broader
+cluster policy remain disconnected.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;
