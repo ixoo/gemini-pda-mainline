@@ -39,7 +39,7 @@ replacements = (
      "68ec1b7815cab7abae99cbdecabb2f0ba0dd1ddbf26943d652fcedf4d2b4e393", 1),
     ("d86e78db5996f96b0e11efebd044454719ca8f0a6636671e72a405e1047499aa",
      "9e1617b8121f33f45b67749fa0b5cf195557bbedd57b279ff47b800f0e9d5ab5", 1),
-    ("37c28c542989e02654561c45ecb5c5e95df327c21952af310be3dbe12b8bf3be",
+    ("b10dcf6a1f7d495b012e856d45ae04047a2ad70be5d8280724336adf9c82f536",
      "c41d58cf60e0f5c769f195b28933b1349963f3523e86248fa197b59b718f58b1", 1),
     ("a72-cpu9-completion-lock-pretrigger-attempt-1",
      "a72-mt6797-cpu-map-attempt-1", 1),

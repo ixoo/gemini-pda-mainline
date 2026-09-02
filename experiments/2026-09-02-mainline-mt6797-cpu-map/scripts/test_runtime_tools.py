@@ -140,6 +140,14 @@ def main() -> int:
     require(digest(VALIDATOR) in parent_executor, "parent validator pin changed")
     require(digest(PARENT_CLASSIFIER) in parent_executor, "parent classifier pin changed")
     require(
+        (
+            f'("{digest(UPSTREAM_PARENT / "classify-completion-lock-repair-attempt.py")}",\n'
+            f'     "{digest(PARENT_CLASSIFIER)}", 1)'
+        )
+        in parent_executor,
+        "parent classifier replacement pair changed",
+    )
+    require(
         f'SOURCE_SHA256 = "{digest(UPSTREAM_PARENT / "classify-completion-lock-repair-attempt.py")}"'
         in PARENT_CLASSIFIER.read_text(encoding="utf-8"),
         "parent classifier source pin changed",
