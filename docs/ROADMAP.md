@@ -7065,6 +7065,20 @@ or device action. **Selected next:** build the production profile on Buildbox,
 then admit at most one changed candidate only after exact package, composed-DT,
 Android-container, and pristine-runtime validation passes.
 
+That production gate now passes at exact published commit `635e5bcf...`.
+Buildbox produced the unchanged production profile with canonical patch
+`0480`; two package-exact DT compositions match at `a36dfc2c...` and reject
+all ten mutations. Two Android-v0 constructions match at raw `44aacf58...`
+and full-partition `65355ce4...`; both independent validations pass all 32 LK
+gates and reject all six container mutations without device access or a
+physical CPU request. **Selected next:** guarded installation of exact
+`65355ce4...` over retired `d4eca4ac...` on live-resolved inactive logical
+`boot2`, matching full-partition readback, and clean shutdown. Permit one
+fresh trigger only after the exact new candidate and pristine zero-execution
+state are confirmed. Decision-bearing progress is record 3 returning from
+membership begin or downstream CPU9 transition/online evidence; do not repeat
+either candidate or add CPU_OFF/retry.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

@@ -772,6 +772,21 @@ action. See
 **Selected next:** build the production profile from the exact published
 receipt, then independently validate the package, composed DT, Android-v0
 container, and pristine runtime tooling before any `boot2` write.
+
+That production gate now passes at exact published commit `635e5bcf...`.
+Buildbox produced the unchanged `7.1.3-gemini-cpu9-progress` production profile
+with canonical patch `0480`. Two package-exact DT compositions are
+byte-identical at `a36dfc2c...`, preserve the proven serviceability tree, and
+reject all ten structural mutations. Two Android-v0 constructions are
+byte-identical at raw `44aacf58...` and full-partition `65355ce4...`; each
+passes all 32 LK gates and rejects all six container mutations. No validation
+requested a physical CPU or touched the device. See
+[`results/cpu-on-membership-lock-repair-production-candidate-20260902.txt`](results/cpu-on-membership-lock-repair-production-candidate-20260902.txt).
+**Selected next:** install exact `65355ce4...` over retired `d4eca4ac...` on
+live-resolved inactive logical `boot2`, require matching full-partition
+readback, and shut down. One fresh boot may then spend one pristine trigger;
+record 3 must advance through membership begin or downstream evidence must
+show the CPU9 transition continuing toward online.
 The ordered device action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside
