@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-a72-hotplug-lifecycle-gate` |
-| Status | generic down-handoff slice complete; CPU9 owner implementation pending |
+| Status | hardware-free CPU9 down/restore owner admitted; Buildbox compile pending |
 | Subsystem | arm64 CPU hotplug, PSCI, MT6797 A72 membership |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-09-02 America/New_York |
@@ -74,12 +74,20 @@ handling, and exact restore token are implemented and machine-checked.
 - [`results/generic-down-handoff-build-1f17299f-20260902.txt`](results/generic-down-handoff-build-1f17299f-20260902.txt)
   pins the exact pushed Buildbox compile, validated package identities, and
   linked handoff symbols.
+- [`results/hardware-free-owner-generation-d266765e-20260902.txt`](results/hardware-free-owner-generation-d266765e-20260902.txt)
+  pins the exact generated owner/test patches, independent review correction,
+  strict review, replay, mutation, and all-profile invariant results.
 - [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
   is the exact admitted no-op-by-default implementation.
+- [`../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch)
+  is the exact admitted one-attempt CPU9-down and distinct-restore owner.
+- [`../../patches/v7.1.3/0485-arm64-mediatek-test-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0485-arm64-mediatek-test-hardware-free-CPU9-hotplug-owner.patch)
+  is its focused hardware-free KUnit coverage.
 
-Patch `0483` is an experiment-only archive with a synthetic, non-certifying
-author identity, no DCO sign-off, and is not submission-ready. Upstream
-submission requires the actual author metadata and truthful certification.
+Patches `0483`--`0485` are experiment-only archives with a synthetic,
+non-certifying author identity, no DCO sign-off, and are not submission-ready.
+Upstream submission requires the actual author metadata and truthful
+certification.
 
 ## Procedure
 
@@ -123,6 +131,21 @@ handoff dispatchers. The fetched `Image.gz` identity is
 One pre-existing frame-size warning remains in an MT6797 A72 membership test
 helper; no warning arose from patch `0483`.
 
+The first complete owner package at repository commit `95bb4265...` passed
+strict Checkpatch, source replay, 20 rejecting source mutations, and all five
+focused lifecycle cases. Independent pre-admission review rejected it because
+the restore mint did not reject reserved or overflowing generation/cookie
+values. No canonical patch was admitted from that package. Commit
+`d266765e...` added the symmetric restore guard and a dedicated rejecting
+mutation. Buildbox regenerated exact patches `0484` and `0485`; strict review
+and replay passed, all 21 unsafe source mutations failed closed, and the five
+focused lifecycle cases remained present. The admitted patch SHA-256 values
+are `7f78083783287d2a270197fc537c1a1eba41446a5eb2182be102d44e6995af27`
+and `443e2983110c743ecb3f93439f71ea2631a19cc0b66cb58cb208b162487e08e7`.
+They append as canonical entries 476--477; the resulting series SHA-256 is
+`6e0b25585badd53b66723f9c68213e87d29ca60175afdb4efb1c033cf2baacbb`,
+and all 165 manifest profiles retain canonical-order subsequences.
+
 The user-reported boot immediately before this audit did not produce a boot
 cycle: Gemian remained reachable under the unchanged boot ID for the complete
 observation window, and the mainline netcat endpoint did not appear. It is not
@@ -144,13 +167,16 @@ the membership commit and subsequent restore.
 ## Conclusion
 
 The physical hypothesis remains untested. The exact parent code is confirmed
-incapable of safely running the experiment as-is. Patch `0483` now supplies
-and Buildbox-proves the generic ownership handoffs but binds none of them,
-preserves the MT6797 disable veto, and performs no physical action. This
-completes the first hardware-free slice. The final requirement remains
-physical CPU9-off and same-boot CPU9 restore.
+incapable of safely running the experiment as-is. Patch `0483` supplies and
+Buildbox-proves the generic ownership handoffs. Patches `0484`--`0485` now add
+the hardware-free one-attempt CPU9-down owner, single affinity-proof budget,
+distinct parent-linked restore, and reset-only post-commit failure model. They
+bind no callback, preserve the MT6797 disable veto, and perform no physical
+action. The final requirement remains physical CPU9-off and same-boot CPU9
+restore.
 
 ## Follow-up
 
-Implement and hardware-free-test a distinct CPU9-down/restore owner before any
-configuration, candidate, deployment, or boot action.
+Compile and run the focused hardware-free owner tests on Buildbox. If they
+pass, implement the independently bounded physical executor, watchdog,
+readback, and callback-binding slice before selecting any boot candidate.

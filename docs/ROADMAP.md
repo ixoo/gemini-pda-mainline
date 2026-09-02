@@ -7372,6 +7372,19 @@ post-commit failure. The phase exit remains one physical CPU9 off plus
 same-boot restore; park-only behavior is explicitly not success. No build,
 candidate, or device action is selected by this definition.
 
+Exact generated patches `0484`--`0485` now provide that hardware-free owner
+and five focused lifecycle cases. Independent review rejected the first
+otherwise-valid package because restore identity rollover was not guarded;
+the admitted revision rejects reserved generation/cookie values and its 21st
+mutation proves the guard cannot disappear. Strict review, replay, all 21
+source mutations, and the 165-profile invariant pass. No callback is bound,
+the MT6797 disable veto remains closed, and there are zero physical-effect
+calls. **Selected next:** compile the admitted 477-entry series on Buildbox
+with the isolated membership KUnit profile and run its no-network regression.
+Only after that proof may the separate bounded executor/watchdog/readback and
+callback-binding slice be implemented; no candidate, deployment, or boot is
+selected yet.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;
