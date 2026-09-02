@@ -165,6 +165,9 @@ first write. No new physical range is introduced.
   exact production Buildbox package, two byte-identical provenance-preserving
   DT and Android-v0 constructions, 32 LK gates, and all 10 DT plus six
   container mutation rejections.
+- [`results/completion-lock-repair-runtime-tooling-20260902.txt`](results/completion-lock-repair-runtime-tooling-20260902.txt):
+  exact candidate retarget of the guarded installer, pristine collector,
+  one-session trigger, terminal classifier, and changed-ID recovery chain.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger, owner-local membership lifecycle, retained-cluster dispatch, and
@@ -721,6 +724,19 @@ mutations. No validation requested a physical CPU or touched the device. See
 tooling to exact `370ae4d0...`, then install it over retired `65355ce4...` only
 on live-resolved inactive logical `boot2`, require a matching full-partition
 readback, and shut down cleanly.
+
+That tooling gate now passes. The new wrappers source-pin the retired
+membership-lock chain, substitute only exact candidate identity and private
+evidence namespaces, preserve the one-session CPU8/CPU9 request bounds, and
+retain zero CPU_OFF, retry, or native reboot paths. A representative pristine
+frame passes, the prior transport-loss shape remains classified, all 25
+retained-evidence cases pass, and the guarded installer still requires live
+GPT resolution, the exact retired predecessor, stable power, full-partition
+readback, and clean shutdown without a fresh backup. See
+[`results/completion-lock-repair-runtime-tooling-20260902.txt`](results/completion-lock-repair-runtime-tooling-20260902.txt).
+**Selected next:** install exact `370ae4d0...` over retired `65355ce4...` on
+live-resolved inactive logical `boot2`, require matching full-partition
+readback, and shut down cleanly. No reboot or trigger is part of deployment.
 
 That production gate now passes at exact published commit `bf0fbcc4...`.
 Buildbox produced `7.1.3-gemini-cpu9-progress` with patchset `f4cb4cfe...` and
