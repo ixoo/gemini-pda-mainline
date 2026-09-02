@@ -472,3 +472,4 @@ v7.1.3/0479-soc-mediatek-trace-CPU9-CPU_ON-substages.patch
 v7.1.3/0480-arm64-mediatek-avoid-CPU9-membership-begin-hotplug-lock-recursion.patch
 v7.1.3/0481-arm64-mediatek-avoid-CPU9-completion-hotplug-lock-recursion.patch
 v7.1.3/0482-arm64-dts-mediatek-mt6797-describe-CPU-topology.patch
+v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch

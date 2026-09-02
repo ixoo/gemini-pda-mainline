@@ -1,0 +1,208 @@
+From 45c3820be08ac715a3734d56b7e5a2fd92900ff1 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 2 Sep 2026 23:11:00 +0000
+Subject: [PATCH] arm64: add CPU-down lifecycle handoffs
+
+Add no-op-by-default controller callbacks before CPU-map locking,
+after locked validation, and after full CPUHP down completion.
+
+No architecture operation table binds the callbacks in this patch.
+---
+ arch/arm64/include/asm/cpu_ops.h | 17 ++++++++++
+ arch/arm64/kernel/smp.c          | 58 ++++++++++++++++++++++++++++++++
+ include/linux/cpu.h              |  6 ++++
+ kernel/cpu.c                     | 36 ++++++++++++++++++++
+ 4 files changed, 117 insertions(+)
+
+diff --git a/arch/arm64/include/asm/cpu_ops.h b/arch/arm64/include/asm/cpu_ops.h
+index 6292f87..705f1a9 100644
+--- a/arch/arm64/include/asm/cpu_ops.h
++++ b/arch/arm64/include/asm/cpu_ops.h
+@@ -34,6 +34,13 @@ struct cpu_up_rollback_trace;
+  *		a successful architecture secondary completion.
+  * @cpu_up_complete: Optional controller callback after the full requested
+  *		generic CPUHP target completes.
++ * @cpu_down_preflight: Optional controller callback before the CPU map lock.
++ * @cpu_down_validate: Optional controller callback after the CPU map lock
++ *		and before the CPU hotplug write lock.
++ * @cpu_down_complete: Optional controller callback after the full requested
++ *		generic CPUHP down target completes.
++ * @cpu_down_failed: Optional controller callback after CPU-map unlock for a
++ *		failed down request.
+  * @cpu_boot:	Boots a cpu into the kernel.
+  * @cpu_postboot: Optionally, perform any post-boot cleanup or necessary
+  *		synchronisation. Called from the cpu being booted.
+@@ -62,6 +69,16 @@ struct cpu_operations {
+ 	int		(*cpu_boot)(unsigned int);
+ 	void		(*cpu_postboot)(void);
+ #ifdef CONFIG_HOTPLUG_CPU
++	int		(*cpu_down_preflight)(unsigned int cpu,
++					      enum cpuhp_state target);
++	int		(*cpu_down_validate)(unsigned int cpu,
++					     int tasks_frozen,
++					     enum cpuhp_state target);
++	int		(*cpu_down_complete)(unsigned int cpu,
++					     enum cpuhp_state target);
++	int		(*cpu_down_failed)(unsigned int cpu,
++					   enum cpuhp_state target,
++					   int error);
+ 	bool		(*cpu_can_disable)(unsigned int cpu);
+ 	int		(*cpu_disable)(unsigned int cpu);
+ 	void		(*cpu_die)(unsigned int cpu);
+diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
+index 39fd3aa..9051ea5 100644
+--- a/arch/arm64/kernel/smp.c
++++ b/arch/arm64/kernel/smp.c
+@@ -457,6 +457,64 @@ asmlinkage notrace void secondary_start_kernel(void)
+ }
+ 
+ #ifdef CONFIG_HOTPLUG_CPU
++int arch_cpu_down_preflight(unsigned int cpu, enum cpuhp_state target)
++{
++	const struct cpu_operations *ops;
++
++	if (cpu >= nr_cpu_ids)
++		return 0;
++
++	ops = get_cpu_ops(cpu);
++	if (ops && ops->cpu_down_preflight)
++		return ops->cpu_down_preflight(cpu, target);
++
++	return 0;
++}
++
++int arch_cpu_down_validate(unsigned int cpu, int tasks_frozen,
++			   enum cpuhp_state target)
++{
++	const struct cpu_operations *ops;
++
++	if (cpu >= nr_cpu_ids)
++		return 0;
++
++	ops = get_cpu_ops(cpu);
++	if (ops && ops->cpu_down_validate)
++		return ops->cpu_down_validate(cpu, tasks_frozen, target);
++
++	return 0;
++}
++
++int arch_cpu_down_complete(unsigned int cpu, enum cpuhp_state target)
++{
++	const struct cpu_operations *ops;
++
++	if (cpu >= nr_cpu_ids)
++		return 0;
++
++	ops = get_cpu_ops(cpu);
++	if (ops && ops->cpu_down_complete)
++		return ops->cpu_down_complete(cpu, target);
++
++	return 0;
++}
++
++int arch_cpu_down_failed(unsigned int cpu, enum cpuhp_state target,
++			 int error)
++{
++	const struct cpu_operations *ops;
++
++	if (cpu >= nr_cpu_ids)
++		return 0;
++
++	ops = get_cpu_ops(cpu);
++	if (ops && ops->cpu_down_failed)
++		return ops->cpu_down_failed(cpu, target, error);
++
++	return 0;
++}
++
+ static int op_cpu_disable(unsigned int cpu)
+ {
+ 	const struct cpu_operations *ops = get_cpu_ops(cpu);
+diff --git a/include/linux/cpu.h b/include/linux/cpu.h
+index 5a98d3b..98f6833 100644
+--- a/include/linux/cpu.h
++++ b/include/linux/cpu.h
+@@ -123,6 +123,12 @@ int arch_cpu_up_validate(unsigned int cpu, int tasks_frozen,
+ 			 enum cpuhp_state target);
+ int arch_cpu_up_secondary_complete(unsigned int cpu);
+ int arch_cpu_up_complete(unsigned int cpu, enum cpuhp_state target);
++int arch_cpu_down_preflight(unsigned int cpu, enum cpuhp_state target);
++int arch_cpu_down_validate(unsigned int cpu, int tasks_frozen,
++			   enum cpuhp_state target);
++int arch_cpu_down_complete(unsigned int cpu, enum cpuhp_state target);
++int arch_cpu_down_failed(unsigned int cpu, enum cpuhp_state target,
++			 int error);
+ #define CPU_UP_ROLLBACK_MAX_EVENTS 256U
+ #define CPU_UP_ROLLBACK_EVENT_WARNING BIT(0)
+ 
+diff --git a/kernel/cpu.c b/kernel/cpu.c
+index 66db7dd..e2bded0 100644
+--- a/kernel/cpu.c
++++ b/kernel/cpu.c
+@@ -1636,6 +1636,10 @@ static int __ref _cpu_down(unsigned int cpu, int tasks_frozen,
+ 	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, cpu);
+ 	int prev_state, ret = 0;
+ 
++	ret = arch_cpu_down_validate(cpu, tasks_frozen, target);
++	if (ret)
++		return ret;
++
+ 	if (num_online_cpus() == 1)
+ 		return -EBUSY;
+ 
+@@ -1693,6 +1697,8 @@ static int __ref _cpu_down(unsigned int cpu, int tasks_frozen,
+ 			WARN(1, "DEAD callback error for CPU%d", cpu);
+ 		}
+ 	}
++	if (!ret)
++		ret = arch_cpu_down_complete(cpu, target);
+ 
+ out:
+ 	cpus_write_unlock();
+@@ -1700,6 +1706,30 @@ out:
+ 	return ret;
+ }
+ 
++int __weak arch_cpu_down_preflight(unsigned int cpu,
++				   enum cpuhp_state target)
++{
++	return 0;
++}
++
++int __weak arch_cpu_down_validate(unsigned int cpu, int tasks_frozen,
++				  enum cpuhp_state target)
++{
++	return 0;
++}
++
++int __weak arch_cpu_down_complete(unsigned int cpu,
++				  enum cpuhp_state target)
++{
++	return 0;
++}
++
++int __weak arch_cpu_down_failed(unsigned int cpu,
++				enum cpuhp_state target, int error)
++{
++	return 0;
++}
++
+ static int cpu_down_maps_locked(unsigned int cpu, enum cpuhp_state target)
+ {
+ 	/*
+@@ -1717,9 +1747,15 @@ static int cpu_down(unsigned int cpu, enum cpuhp_state target)
+ {
+ 	int err;
+ 
++	err = arch_cpu_down_preflight(cpu, target);
++	if (err)
++		return err;
++
+ 	cpu_maps_update_begin();
+ 	err = cpu_down_maps_locked(cpu, target);
+ 	cpu_maps_update_done();
++	if (err && arch_cpu_down_failed(cpu, target, err))
++		pr_err("CPU%u down failure publication failed\n", cpu);
+ 	return err;
+ }
+ 

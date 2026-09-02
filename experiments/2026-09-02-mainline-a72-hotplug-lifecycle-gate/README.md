@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-a72-hotplug-lifecycle-gate` |
-| Status | offline gate defined; generic down-handoff generator prepared |
+| Status | generic down-handoff patch generated and admitted; compile pending |
 | Subsystem | arm64 CPU hotplug, PSCI, MT6797 A72 membership |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-09-02 America/New_York |
@@ -63,6 +63,15 @@ handling, and exact restore token are implemented and machine-checked.
 - [`results/contract-validation-20260902.txt`](results/contract-validation-20260902.txt)
   records the local contract/mutation pass and exact Buildbox prepared-source
   validation.
+- [`results/generic-down-handoff-generation-aa014ea0-20260902.txt`](results/generic-down-handoff-generation-aa014ea0-20260902.txt)
+  pins the generated patch, strict review, replay, mutation, and all-profile
+  invariant results.
+- [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
+  is the exact admitted no-op-by-default implementation.
+
+Patch `0483` is an experiment-only archive with a synthetic, non-certifying
+author identity, no DCO sign-off, and is not submission-ready. Upstream
+submission requires the actual author metadata and truthful certification.
 
 ## Procedure
 
@@ -89,6 +98,14 @@ The exact contract passed locally, the 21 unsafe mutations all failed closed,
 and the same validator passed against the six hash-pinned files in the
 Buildbox-managed prepared source.
 
+The first generation from repository commit `36f746d6...` reached strict
+Checkpatch and stopped on five declaration-alignment checks. It produced no
+admitted patch. The alignment-only generator correction in `aa014ea0...`
+then produced exact patch `0483`: source validation and replay passed, all ten
+unsafe source mutations failed closed, and strict Checkpatch reported zero
+errors, warnings, or checks. The 165-profile canonical-series invariant passes
+with `0483` appended as entry 475.
+
 The user-reported boot immediately before this audit did not produce a boot
 cycle: Gemian remained reachable under the unchanged boot ID for the complete
 observation window, and the mainline netcat endpoint did not appear. It is not
@@ -109,13 +126,14 @@ the membership commit and subsequent restore.
 
 ## Conclusion
 
-The physical hypothesis remains untested. The exact current code is confirmed
-incapable of safely running the experiment as-is. The new gate defines the
-necessary path without weakening the final requirement: physical CPU9-off and
-same-boot CPU9 restore remain the success condition.
+The physical hypothesis remains untested. The exact parent code is confirmed
+incapable of safely running the experiment as-is. Patch `0483` now supplies
+the generic ownership handoffs but binds none of them, preserves the MT6797
+disable veto, and performs no physical action. The final requirement remains
+physical CPU9-off and same-boot CPU9 restore.
 
 ## Follow-up
 
-Generate, admit, and Buildbox-compile the four no-op-by-default generic down
-handoffs. Then implement a distinct CPU9-down/restore owner before any
-configuration, candidate, deployment, or boot action.
+Buildbox-compile exact admitted patch `0483`. Then implement a distinct
+CPU9-down/restore owner before any configuration, candidate, deployment, or
+boot action.

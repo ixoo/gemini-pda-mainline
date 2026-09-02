@@ -7359,7 +7359,10 @@ CPU9-off branch is per-core-only while CPU8 remains online, but its active
 affinity call has internally unbounded waits. Therefore, merely exposing the
 sysfs online control is forbidden. **Selected next:** add the four
 no-op-by-default generic down handoffs and focused hardware-free proof, leaving
-the MT6797 operation table unset and the disable veto intact. Then add a
+the MT6797 operation table unset and the disable veto intact. Exact patch
+`0483` now passes generation, strict review, replay, ten source mutations, and
+the 165-profile invariant. Buildbox compilation is the remaining proof for
+this slice. Then add a
 separate one-attempt CPU9-down owner and distinct CPU9-restore owner, with one
 active affinity attempt, a non-refreshed 15-second recovery watchdog after the
 CPU_OFF commit, independent per-core/shared-state observations, and reset-only
