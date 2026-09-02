@@ -6948,6 +6948,15 @@ decision-bearing evidence is progress beyond stage 7 plus a nonempty CPU9
 transition ledger or an exact downstream terminal. CPU_OFF, retry, and broader
 cluster policy remain disconnected.
 
+That exact deployment gate now passes. Live GPT resolved inactive logical
+`boot2` to `/dev/mmcblk0p30`, predecessor `1cf367e0...` matched, external power
+was stable, and the full write/readback matched selected candidate
+`0904c5a2...`. The trusted-environment hashes were unchanged, no fresh backup
+or reboot was requested, and clean shutdown was confirmed. **Selected next:**
+physically select `boot2`, close the pristine read-only gate, and spend exactly
+one trigger. Advance only on progress beyond stage 7 plus a nonempty CPU9
+transition ledger or an exact downstream terminal; do not repeat this candidate.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

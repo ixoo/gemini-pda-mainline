@@ -574,6 +574,16 @@ all 32 LK gates and rejected all six container mutations for each construction.
 This is the selected one-shot CPUHP lock-repair candidate; see
 [`results/cpuhp-lock-repair-production-candidate-20260902.txt`](results/cpuhp-lock-repair-production-candidate-20260902.txt).
 
+Known-good Gemian then resolved inactive logical `boot2` to
+`/dev/mmcblk0p30` while root remained `/dev/mmcblk0p29`, verified exact retired
+raw-lane predecessor `1cf367e0...`, and reported stable external power with a
+full, healthy battery. The guarded installer wrote, synchronized, flushed, and
+fully read back selected lock-repair candidate `0904c5a2...`; the full readback
+matched and both trusted-environment hashes remained unchanged. It made no
+fresh backup or reboot request, removed the temporary readback, and confirmed
+the device unreachable after clean shutdown. See
+[`results/cpuhp-lock-repair-deployment-20260902.txt`](results/cpuhp-lock-repair-deployment-20260902.txt).
+
 ## Analysis
 
 The current generic owner and P30E layers contain useful CPU9 primitives, but
@@ -622,10 +632,12 @@ entry, and the complete 98-test Buildbox/QEMU regression plus production
 package, DT, and container gates now pass. **Selected next:** install exact
 full-partition candidate `0904c5a2...` over retired raw-lane candidate
 `1cf367e0...` on inactive logical `boot2`, require a matching full-partition
-readback, and shut down. On one fresh boot, require progress beyond stage 7
-and a nonempty CPU9 transition ledger or an exact downstream terminal. A stop
-before stage 8 rejects the lock repair; a later bounded failure selects the
-next recorded checkpoint without repeating this candidate.
+readback, and shut down. Those gates now pass. **Selected next:** physically
+select `boot2`, close the source-pinned pristine read-only gate, and spend one
+trigger. Require progress beyond stage 7 and a nonempty CPU9 transition ledger
+or an exact downstream terminal. A stop before stage 8 rejects the lock repair;
+a later bounded failure selects the next recorded checkpoint without repeating
+this candidate.
 The ordered device action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside
