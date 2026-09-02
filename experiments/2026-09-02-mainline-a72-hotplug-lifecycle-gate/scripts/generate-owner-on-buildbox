@@ -43,7 +43,7 @@ python3 "${script_dir}/generate_owner_patches.py" \
   grep -Fx 'postcommit_failure=reset-only-fault' provenance.txt >/dev/null
   grep -Fx 'restore_identity=distinct-and-parent-linked' provenance.txt >/dev/null
   grep -Fx 'focused_kunit_cases=5' provenance.txt >/dev/null
-  grep -Fx 'owner_source_mutation_rejections=20' provenance.txt >/dev/null
+  grep -Fx 'owner_source_mutation_rejections=21' provenance.txt >/dev/null
   grep -Fx 'mt6797_callbacks=unset' provenance.txt >/dev/null
   grep -Fx 'mt6797_cpu_can_disable=false' provenance.txt >/dev/null
   grep -Fx 'physical_effect_calls=0' provenance.txt >/dev/null

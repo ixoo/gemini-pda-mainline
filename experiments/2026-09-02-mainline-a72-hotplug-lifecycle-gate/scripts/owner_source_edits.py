@@ -543,6 +543,10 @@ int mt6797_a72_hotplug_prepare_restore(unsigned int cpu,
 		   (a72_owner.attempts_consumed &
 		    MT6797_A72_ATTEMPT_CPU9_RESTORE)) {
 		ret = -EPERM;
+	} else if (!a72_owner.next_generation || !a72_owner.next_cookie ||
+		   a72_owner.next_generation == ~0ULL ||
+		   a72_owner.next_cookie == ~0ULL) {
+		ret = -EPROTO;
 	} else {
 		parent = &a72_owner.hotplug_retired[0];
 		if (!parent->valid || !parent->completed ||

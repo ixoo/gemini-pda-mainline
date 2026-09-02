@@ -241,7 +241,7 @@ def main() -> None:
             "postcommit_failure=reset-only-fault\n"
             "restore_identity=distinct-and-parent-linked\n"
             "focused_kunit_cases=5\n"
-            "owner_source_mutation_rejections=20\n"
+            "owner_source_mutation_rejections=21\n"
             "mt6797_callbacks=unset\n"
             "mt6797_cpu_can_disable=false\n"
             "physical_effect_calls=0\n"
@@ -265,7 +265,7 @@ def main() -> None:
     print("postcommit_failure=reset-only-fault")
     print("restore_identity=distinct-and-parent-linked")
     print("focused_kunit_cases=5")
-    print("owner_source_mutation_rejections=20")
+    print("owner_source_mutation_rejections=21")
     print("mt6797_callbacks=unset")
     print("mt6797_cpu_can_disable=false")
     print("physical_effect_calls=0")

@@ -101,6 +101,15 @@ def main() -> int:
         ("restore-reuses-up-attempt", FILES[1],
          "~MT6797_A72_ATTEMPT_CPU9_RESTORE;",
          "~MT6797_A72_ATTEMPT_CPU9_UP;"),
+        ("restore-reserved-identity-accepted", FILES[1],
+         "\t} else if (!a72_owner.next_generation || !a72_owner.next_cookie ||\n"
+         "\t\t   a72_owner.next_generation == ~0ULL ||\n"
+         "\t\t   a72_owner.next_cookie == ~0ULL) {\n"
+         "\t\tret = -EPROTO;\n"
+         "\t} else {\n"
+         "\t\tparent = &a72_owner.hotplug_retired[0];",
+         "\t} else {\n"
+         "\t\tparent = &a72_owner.hotplug_retired[0];"),
         ("restore-cpu-on-rearmed", FILES[1],
          "a72_owner.hotplug_active.budgets.cpu_on =\n"
          "\t\t\tMT6797_A72_BUDGET_CONSUMED;",
