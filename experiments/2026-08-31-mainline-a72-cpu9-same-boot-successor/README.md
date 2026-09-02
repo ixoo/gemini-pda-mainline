@@ -168,6 +168,10 @@ first write. No new physical range is introduced.
 - [`results/completion-lock-repair-runtime-tooling-20260902.txt`](results/completion-lock-repair-runtime-tooling-20260902.txt):
   exact candidate retarget of the guarded installer, pristine collector,
   one-session trigger, terminal classifier, and changed-ID recovery chain.
+- [`results/completion-lock-repair-deployment-20260902.txt`](results/completion-lock-repair-deployment-20260902.txt):
+  exact live-GPT inactive `boot2` resolution, retired predecessor, stable
+  power, full-partition candidate readback, unchanged trusted partitions, and
+  confirmed clean shutdown.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger, owner-local membership lifecycle, retained-cluster dispatch, and
@@ -734,9 +738,18 @@ retained-evidence cases pass, and the guarded installer still requires live
 GPT resolution, the exact retired predecessor, stable power, full-partition
 readback, and clean shutdown without a fresh backup. See
 [`results/completion-lock-repair-runtime-tooling-20260902.txt`](results/completion-lock-repair-runtime-tooling-20260902.txt).
-**Selected next:** install exact `370ae4d0...` over retired `65355ce4...` on
-live-resolved inactive logical `boot2`, require matching full-partition
-readback, and shut down cleanly. No reboot or trigger is part of deployment.
+
+That guarded deployment now passes. Known-good Gemian resolved inactive,
+unmounted logical `boot2` to `/dev/mmcblk0p30` while root remained
+`/dev/mmcblk0p29`, verified retired predecessor `65355ce4...`, stable external
+power and 100% battery, and the exact 16 MiB target. It wrote, synchronized,
+flushed, and fully read back `370ae4d0...`; both trusted-environment hashes
+remained unchanged. No fresh backup or reboot was requested, the temporary
+readback was removed, and clean shutdown was confirmed. See
+[`results/completion-lock-repair-deployment-20260902.txt`](results/completion-lock-repair-deployment-20260902.txt).
+No boot selection or trigger occurred during deployment. The ordered next
+action and result map remain in
+[Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 
 That production gate now passes at exact published commit `bf0fbcc4...`.
 Buildbox produced `7.1.3-gemini-cpu9-progress` with patchset `f4cb4cfe...` and

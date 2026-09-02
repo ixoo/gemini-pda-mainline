@@ -30,7 +30,7 @@ Cortex-A72 pair.
 | I2C6 transfer | Native packed/FIFO pointer-read and one exact one-message two-byte FIFO write are runtime proven. The write completed once with payload `[0xda, 0x46]`, exact no-retry accounting, and stable readback. | This closes only the reviewed same-value shape; arbitrary writes, failure recovery, stress, and resume remain open. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
 | Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected. A separate hardware-free implementation now models exact positive Buck-B acquire/release and passes all six focused fake-adapter cases. | Gate 6 is closed for the reviewed no-op, and the first Gate-7 provider source boundary is complete offline. Physical transition, production integration, consumers, and CPU requests remain disconnected. |
-| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The production-admission experiment brings CPU8 online with attributable terminal proof. The patch-`0480` candidate runtime-confirms membership-begin repair and advances CPU9 through generic CPU boot, secondary online wait, and IPI before stopping at membership publication. | Add lock-held CPU9 publication and finalization entry points for the writer-held completion path, validate on Buildbox, then permit one new exact candidate; keep the ordinary helpers, CPU_OFF, and retry unchanged. |
+| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The production-admission experiment brings CPU8 online with attributable terminal proof. Patch `0480` advances CPU9 through generic CPU boot, secondary online wait, and IPI before membership publication. The patch-`0481` completion-lock candidate is now installed on inactive `boot2`, fully read back, and the device is shut down. | Physically select `boot2`, require a fresh exact-candidate pristine gate, and spend at most one trigger. Terminal CPU9 proof plus online range `0-9` advances to repeatability; any retained later boundary selects the next source repair. Keep CPU_OFF and retry unchanged. |
 
 The durable technical boundary is in
 [DA921x, I2C6, and Cortex-A72](hardware/da921x-i2c6-a72.md). The exact
@@ -7172,6 +7172,22 @@ readback, and clean shutdown without a fresh backup. **Selected next:** install
 exact `370ae4d0...` over retired `65355ce4...` on live-resolved inactive
 logical `boot2`, require matching full-partition readback, and shut down
 cleanly. No reboot or trigger is part of deployment.
+
+That guarded deployment now passes. Known-good Gemian resolved inactive,
+unmounted logical `boot2` as `/dev/mmcblk0p30` while root remained
+`/dev/mmcblk0p29`; retired predecessor `65355ce4...`, stable external power,
+100% battery, and the exact 16 MiB target all matched. The write was
+synchronized, flushed, and fully read back as `370ae4d0...`; both trusted
+environment hashes remained unchanged. No fresh backup or reboot was
+requested, the temporary readback was removed, and clean shutdown was
+confirmed. **Selected next:** physically select `boot2`; require the exact
+candidate, a boot ID distinct from deployment `4f70121d...`, serviceability,
+the armed controller, and pristine zero-execution state before spending the
+single trigger. Terminal CPU9 record 1 `(phase=3, stage=5, terminal=5)` plus
+online CPU range `0-9` advances to repeatability and cluster validation. A
+nonterminal retained boundary selects one exact source follow-up; do not
+repeat the candidate merely because the screen color or automatic return is
+ambiguous.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
