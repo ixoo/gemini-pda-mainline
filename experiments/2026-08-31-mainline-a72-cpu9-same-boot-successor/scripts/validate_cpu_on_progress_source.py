@@ -94,8 +94,14 @@ def validate(root: Path) -> list[str]:
     exact(
         ledger,
         "stage == GEMINI_CPU9_CPU_ON_PROGRESS_CPU_BOOT) {",
-        2,
-        "final substage sealing and unmap",
+        1,
+        "final substage sealing",
+    )
+    exact(
+        ledger,
+        "stage == GEMINI_CPU9_CPU_ON_PROGRESS_CPU_BOOT)) {",
+        1,
+        "final substage unmap",
     )
     for token in (
         "cpu_down(", "remove_cpu(", "psci_cpu_off", "cpu_off(",
