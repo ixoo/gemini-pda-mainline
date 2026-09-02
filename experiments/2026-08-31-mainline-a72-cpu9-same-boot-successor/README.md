@@ -684,6 +684,21 @@ watchdog, SMC, physical CPU request, or device action. See
 **Selected next:** build the production profile on Buildbox, then validate the
 exact package, composed DT, Android container, and pristine runtime tooling
 before any `boot2` write.
+
+That production gate now passes at exact published commit `bf0fbcc4...`.
+Buildbox produced `7.1.3-gemini-cpu9-progress` with patchset `f4cb4cfe...` and
+the unchanged production configuration identity. Two package-exact DT
+compositions are byte-identical at `0ff1de29...`, preserve the serviceability
+tree, and reject all ten mutations. Two Android-v0 constructions are
+byte-identical at raw `88cf13cb...` and full-partition `d4eca4ac...`; each
+passes all 32 LK gates and rejects all six container mutations. No validation
+requested a physical CPU or touched the device. See
+[`results/cpu-on-progress-production-candidate-20260902.txt`](results/cpu-on-progress-production-candidate-20260902.txt).
+**Selected next:** install exact `d4eca4ac...` over retired `0904c5a2...` on
+live-resolved inactive logical `boot2`, require matching full-partition
+readback, and shut down. One fresh boot may then spend one pristine trigger;
+the latest valid record-3 boundary will identify the first unreturned CPU_ON
+subcall, or downstream evidence may show CPU9 online.
 The ordered device action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside

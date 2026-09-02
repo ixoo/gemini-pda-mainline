@@ -6997,6 +6997,19 @@ build the production profile on Buildbox and admit a device candidate only
 after exact package, composed-DT, Android-container, and pristine runtime-tool
 validation passes.
 
+That production gate now passes from exact published commit `bf0fbcc4...`.
+Buildbox produced the unchanged production configuration with patchset
+`f4cb4cfe...`; two independent DT compositions agree at `0ff1de29...`, reject
+all ten mutations, and two independent Android-v0 constructions agree at raw
+`88cf13cb...` and full-partition `d4eca4ac...`. Both independent container
+validations pass all 32 LK gates and reject all six mutations. **Selected
+next:** guarded installation of exact `d4eca4ac...` over retired
+`0904c5a2...` on live-resolved inactive logical `boot2`, full-partition
+readback, and clean shutdown. Spend one fresh boot only after the pristine
+gate: record 3 must identify the last returned boundary among P30E prepare,
+membership begin, P30E arm, and generic CPU boot, or downstream evidence must
+show CPU9 online. Do not repeat either candidate or add CPU_OFF/retry.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;
