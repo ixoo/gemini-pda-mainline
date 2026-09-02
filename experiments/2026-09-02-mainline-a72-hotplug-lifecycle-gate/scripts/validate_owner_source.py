@@ -95,7 +95,7 @@ def main() -> None:
                        "mt6797_a72_finalize_cpu9_success_state(",
                        "initial CPU9 finalizer")
     ordered(collapse(finalizer), (
-        "a72_owner.members = BIT(0) | BIT(1);",
+        "a72_owner.members == (BIT(0) | BIT(1))",
         "a72_owner.phase = MT6797_A72_PHASE_IDLE;",
         "a72_owner.hotplug_phase = MT6797_A72_HOTPLUG_IDLE;",
     ), "hotplug opening after initial CPU9 finalization")
