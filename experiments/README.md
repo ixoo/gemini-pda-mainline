@@ -36,12 +36,12 @@ the loop. Positive identity-gated observations are unaffected.
   path. Successive retained boundaries localized and repaired four recursive
   CPU-hotplug lock acquisitions while preserving the ordinary helpers and
   keeping CPU_OFF and retry disconnected. Exact patch `0481` passed the full
-  102-test Buildbox/QEMU gate and one guarded runtime attempt: a pristine
-  single trigger reported CPUs `0-9` online, independently advanced CPU8 and
-  CPU9 scheduler ticks, and returned to changed-ID Gemian with CRC-valid
-  terminal retained proofs for both A72 CPUs and unchanged `boot2`. This is
-  the first exact current-mainline dual-A72 online proof on the named device;
-  one fresh repeatability cycle and bounded cluster validation are next.
+  102-test Buildbox/QEMU gate and two guarded fresh-boot runtime attempts. Each
+  pristine single trigger reported CPUs `0-9` online, independently advanced
+  CPU8 and CPU9 scheduler ticks, and returned to changed-ID Gemian with
+  CRC-valid terminal retained proofs for both A72 CPUs and unchanged `boot2`.
+  The current-mainline dual-A72 online/accounting result is now repeatable on
+  the named device; bounded topology and coherency validation are next.
 - [2026-08-31 A72 expected-pair model-contract repair](2026-08-31-mainline-a72-expected-pair-model-contract-repair/README.md)
   — repairs the generic expected-pair completeness comparison while preserving
   the exact r0p1 late-target check. Three exact Buildbox profiles and the

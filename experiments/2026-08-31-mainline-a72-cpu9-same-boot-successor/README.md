@@ -186,6 +186,10 @@ first write. No new physical range is introduced.
 - [`results/completion-lock-repair-repeatability-recovery-tooling-20260902.txt`](results/completion-lock-repair-repeatability-recovery-tooling-20260902.txt):
   source-pinned attempt-2 pstore namespace, unchanged candidate/receipt gates,
   and a fresh-Gemian-boot requirement.
+- [`results/completion-lock-repair-runtime-attempt-2-repeatability-20260902.txt`](results/completion-lock-repair-runtime-attempt-2-repeatability-20260902.txt):
+  byte-identical fresh-boot repeat with live CPUs 0--9, independent A72
+  accounting, terminal retained proofs, changed-ID recovery, and unchanged
+  `boot2`.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger, owner-local membership lifecycle, retained-cluster dispatch, and
@@ -1005,3 +1009,15 @@ candidate, partition, pstore, and classifier gates, and additionally rejects
 the first attempt's Gemian boot ID. Syntax, ShellCheck, and the wrong-namespace
 negative pass without changing kernel or device state. See
 [`results/completion-lock-repair-repeatability-recovery-tooling-20260902.txt`](results/completion-lock-repair-repeatability-recovery-tooling-20260902.txt).
+
+The complete repeatability cycle now passes. Fresh mainline boot ID
+`aa713784...` passed the same exact candidate, serviceability, armed-controller,
+and zero-execution gates. Its one trigger again reported CPUs `0-9` online;
+CPU8 advanced 102 scheduler ticks and CPU9 advanced 101. One request per A72,
+zero CPU_OFF, zero retries, and terminal live state matched attempt 1.
+Automatic return reached fresh Gemian boot ID `187f5e44...`; read-only recovery
+verified unchanged `boot2` and reproduced the same terminal CPU8 and CPU9
+retained records. See
+[`results/completion-lock-repair-runtime-attempt-2-repeatability-20260902.txt`](results/completion-lock-repair-runtime-attempt-2-repeatability-20260902.txt).
+The byte-identical boot-only diagnostic is now retired. Any further boot must
+add a new independent cluster observation selected by Roadmap gate 8.

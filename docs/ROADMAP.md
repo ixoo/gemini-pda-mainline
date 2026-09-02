@@ -30,7 +30,7 @@ Cortex-A72 pair.
 | I2C6 transfer | Native packed/FIFO pointer-read and one exact one-message two-byte FIFO write are runtime proven. The write completed once with payload `[0xda, 0x46]`, exact no-retry accounting, and stable readback. | This closes only the reviewed same-value shape; arbitrary writes, failure recovery, stress, and resume remain open. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
 | Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected. A separate hardware-free implementation now models exact positive Buck-B acquire/release and passes all six focused fake-adapter cases. | Gate 6 is closed for the reviewed no-op, and the first Gate-7 provider source boundary is complete offline. Physical transition, production integration, consumers, and CPU requests remain disconnected. |
-| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. Exact patch `0481` now has one pristine current-mainline runtime pass: CPUs `0-9` were online, CPU8 and CPU9 scheduler ticks advanced independently, and changed-ID recovery retained terminal proof for both A72 CPUs with `boot2` unchanged. | Run the earned fresh repeatability cycle, then begin bounded cluster validation. Keep CPU_OFF, hotplug, sustained load, thermal, suspend, and default-profile promotion separate until their own gates pass. |
+| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. Exact patch `0481` now has two fresh-boot current-mainline passes: CPUs `0-9` were online, both A72 scheduler counters advanced independently, and each changed-ID recovery retained terminal proof with `boot2` unchanged. | Retire identical boot-only repetition and begin one bounded topology/coherency observation. Keep CPU_OFF, hotplug, sustained load, thermal, suspend, and default-profile promotion separate until their own gates pass. |
 
 The durable technical boundary is in
 [DA921x, I2C6, and Cortex-A72](hardware/da921x-i2c6-a72.md). The exact
@@ -7209,6 +7209,23 @@ recovery, unchanged `boot2`, zero CPU_OFF, and zero retry. If it reproduces,
 retire the diagnostic trigger and begin separately bounded topology/coherency,
 load, hotplug/offline, thermal, and suspend gates; do not combine those risks
 into the repeatability boot.
+
+That repeatability cycle now passes. Fresh mainline boot ID `aa713784...`
+passed the same pristine gates and its single trigger again reported CPUs
+`0-9` online. CPU8 advanced 102 scheduler ticks and CPU9 advanced 101; one
+request per A72, zero CPU_OFF, and zero retries matched attempt 1. Automatic
+return reached fresh changed-ID Gemian, where read-only recovery verified the
+exact candidate unchanged on `boot2` and reproduced both terminal retained
+proofs. The current-mainline dual-A72 online/accounting result is therefore
+repeatable across two exact fresh boots. Do not spend a third boot on this
+unchanged observation alone.
+
+**Selected next:** define and validate one bounded post-online topology and
+coherency observation that runs after the same pristine one-shot admission,
+uses only volatile RAM, has finite per-CPU work and exact checksums, records
+CPU8/CPU9 affinity and progress independently, and leaves CPU_OFF, retry,
+cpufreq/OPP, thermal policy, suspend, and storage untouched. Only after that
+passes should the roadmap admit a separately bounded load-duration increase.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
