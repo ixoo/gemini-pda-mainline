@@ -7227,6 +7227,26 @@ CPU8/CPU9 affinity and progress independently, and leaves CPU_OFF, retry,
 cpufreq/OPP, thermal policy, suspend, and storage untouched. Only after that
 passes should the roadmap admit a separately bounded load-duration increase.
 
+That bounded observation now has a split pass on fresh mainline boot ID
+`ce55410c...`. The inherited single trigger again brought CPUs `0-9` online.
+CPU8 and CPU9 executed with exact affinity, exchanged the pinned 1.9 MiB
+payload through volatile rootfs in both directions with every checksum
+matching, advanced another 258 and 256 scheduler ticks, cleaned up, and issued
+no storage, CPU_OFF, retry, or reboot operation. Changed-ID recovery reproduced
+both terminal retained proofs and unchanged `boot2`. The strict whole-test
+classifier rejected only its predeclared topology predicate: core siblings were
+`0-9`, not `8-9`. The exact candidate DT has no `/cpus/cpu-map`, and exact Linux
+7.1.3 source inspection shows the observed package-zero/logical-core fallback
+is deterministic. This is not a CPU or RAM-integrity failure.
+
+**Selected next:** add the standard three-cluster MT6797 `cpu-map` to the SoC
+DT, with CPU0--3, CPU4--7, and CPU8--9 as distinct leaf clusters. Validate the
+binding/schema, exact patch replay, and production profile on Buildbox before
+constructing one attributable candidate. Its one runtime attempt must preserve
+the already-proven admission, affinity, RAM-integrity, accounting, recovery,
+and no-storage gates while observing correct cluster sibling sets. Do not run
+concurrent or scheduler-sensitive load until this topology gate passes.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

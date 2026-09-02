@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-dual-a72-ram-coherency` |
-| Status | `running` |
+| Status | `complete: RAM integrity pass; topology hypothesis rejected` |
 | Subsystem | MT6797 Cortex-A72 topology, affinity, and RAM-backed integrity |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-09-02 |
@@ -104,21 +104,59 @@ mask syntax on CPU0, reported allowed list `0`, and was removed. Two setup
 errors were rejected before that pass: an empty Darwin-cpio stdout stream and
 a temporary executable whose basename was not `busybox`.
 
-No bounded-coherency runtime observation has been made yet.
+A fresh exact mainline boot ID `ce55410c...` passed the inherited pristine
+gate. Its one trigger again brought CPUs `0-9` online and advanced CPU8 and
+CPU9 independently by 101 and 102 scheduler ticks. The device-side child then
+completed its only netcat session and reported `probe_result=pass`:
+
+- exact affinity and executing-processor observations were `8` and `9`;
+- CPU8 wrote the pinned 1,914,704-byte payload for CPU9 to read and CPU9 wrote
+  the same payload for CPU8 to read;
+- both source hashes and all four writer/reader hashes matched
+  `52151e7f...`;
+- CPU8 and CPU9 advanced another 258 and 256 scheduler ticks;
+- both volatile files were absent after cleanup; and
+- no partition read, storage write, CPU_OFF, retry, or reboot request occurred.
+
+The strict host classifier correctly rejected the whole predeclared predicate:
+both CPUs reported package `0`, distinct core IDs `8` and `9`, and individual
+thread siblings, but each reported core siblings `0-9` rather than `8-9`.
+Exact candidate-DTB inspection found no `/cpus/cpu-map`. Linux 7.1.3 source
+inspection shows that this omission selects the generic fallback of NUMA-node
+package ID plus logical-CPU core ID, after which every online CPU in package
+zero becomes a core sibling. This exactly predicts the live result.
+
+Automatic return reached fresh Gemian boot ID `de44c0b2...`. Recovery verified
+unchanged full `boot2` SHA-256 `370ae4d0...`, CRC-valid terminal CPU8 and CPU9
+records, and `cpu9-terminal-online-proof`. The sanitized result is
+[`results/runtime-attempt-1-ram-integrity-pass-flat-topology-20260902.txt`](results/runtime-attempt-1-ram-integrity-pass-flat-topology-20260902.txt).
 
 ## Analysis
 
-Tooling is ready; runtime evidence is pending. A pass will establish only short bidirectional
-RAM-backed data integrity plus topology, affinity, and accounting on the exact
-current-mainline candidate. Sequential userspace copies and checksums are not a
-general concurrent cache-coherency stress test.
+The observation splits cleanly. CPU8 and CPU9 demonstrably execute pinned work,
+advance independent scheduler accounting, and exchange RAM-backed data without
+a byte change in both directions. The rejected topology predicate is a DT
+description defect, not evidence of CPU or RAM-coherency failure: the exact
+candidate lacks the standard CPU map and Linux produces the observed flat
+fallback deterministically.
+
+Sequential userspace copies and checksums remain a bounded integrity result,
+not a general concurrent cache-coherency stress test. Scheduler-sensitive or
+concurrent load should wait until the three physical MT6797 clusters are
+described and observed correctly.
 
 ## Conclusion
 
-`inconclusive`: tooling validation passed; no selected runtime attempt exists.
+`split pass`: the one permitted runtime attempt passes the parent admission,
+CPU8/CPU9 affinity, independent execution/accounting, bidirectional volatile-RAM
+integrity, cleanup, and recovery gates. It rejects the predeclared topology
+hypothesis because the current DT has no `cpu-map` and Linux reports a flat
+package.
 
 ## Follow-up
 
-Run exactly one admitted cycle. A full pass permits a separately designed,
-bounded concurrent workload. A mismatch or incomplete frame stops unchanged
-repetition and selects a narrower diagnostic from the failed field.
+Do not repeat this artifact unchanged. Add the standard MT6797 three-cluster
+`cpu-map`, validate its DT/schema and Buildbox result, then use one exact runtime
+observation to require A53 clusters `0-3` and `4-7`, A72 cluster `8-9`, and the
+already-proven RAM/affinity/accounting behavior. Only that result may admit a
+separately designed bounded concurrent workload.

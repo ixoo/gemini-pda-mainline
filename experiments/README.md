@@ -32,11 +32,16 @@ the loop. Positive identity-gated observations are unaffected.
 ### Current DA921x, I2C6, and A72 line
 
 - [2026-09-02 current-mainline dual-A72 RAM coherency](2026-09-02-mainline-dual-a72-ram-coherency/README.md)
-  — defines the first decision-changing child after two exact patch-`0481`
-  online/accounting passes: one boot-bound, finite bidirectional checksum test
-  over RAM-backed rootfs with exact CPU8/CPU9 affinity, topology, scheduler
-  accounting, cleanup, and zero-storage gates. It changes no kernel artifact;
-  runtime evidence is pending.
+  — completed the first decision-changing child after two exact patch-`0481`
+  online/accounting passes. A third fresh one-shot again brought CPUs `0-9`
+  online; CPU8 and CPU9 ran with exact affinity, exchanged the pinned 1.9 MiB
+  payload through RAM-backed rootfs in both directions with every hash matching,
+  advanced independently, cleaned up, and returned to changed-ID Gemian with
+  terminal retained proofs and unchanged `boot2`. The strict topology predicate
+  rejected because both CPUs reported core siblings `0-9`; exact DT and Linux
+  source inspection identify the missing standard `cpu-map` and deterministic
+  flat fallback. Do not repeat unchanged; describe and validate the three MT6797
+  clusters before concurrent or scheduler-sensitive load.
 - [2026-08-31 same-boot CPU9 successor](2026-08-31-mainline-a72-cpu9-same-boot-successor/README.md)
   — carries the mainline-derived CPU8 result through a separate same-boot CPU9
   path. Successive retained boundaries localized and repaired four recursive
