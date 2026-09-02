@@ -135,6 +135,7 @@ for symbol in \
 	gemini_cpu9_ledger_checkpoint \
 	gemini_cpu9_progress_begin \
 	gemini_cpu9_progress_checkpoint \
+	gemini_cpu9_cpu_on_progress_checkpoint \
 	cpu9_progress_suite \
 	mt6797_a72_owner_cpu9_parent_gate \
 	mt6797_a72_owner_cpu9_parent_mutations \
