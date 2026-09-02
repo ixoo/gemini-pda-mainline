@@ -155,6 +155,9 @@ first write. No new physical range is introduced.
 - [`results/cpu-on-membership-lock-repair-runtime-attempt-1-20260902.txt`](results/cpu-on-membership-lock-repair-runtime-attempt-1-20260902.txt):
   exact one-shot patch-`0480` runtime result: generic CPU boot, secondary online
   wait, and IPI returned; CPU9 then stopped before membership publication.
+- [`results/completion-lock-repair-patch-generation-20260902.txt`](results/completion-lock-repair-patch-generation-20260902.txt):
+  exact post-`0480` Buildbox generation, strict replay, and 12 mutation
+  rejections for the publication/finalization lock repair in patch `0481`.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger, owner-local membership lifecycle, retained-cluster dispatch, and
@@ -860,6 +863,19 @@ passes and the candidate was not retriggered. See
 run the complete Buildbox KUnit/no-network-QEMU regression, and construct one
 new candidate only after the production package, DT, container, and pristine
 runtime gates pass. CPU_OFF and retry remain disconnected.
+
+Canonical patch `0481` now implements that exact completion-path repair. Its
+source-pinned Buildbox generation adds lock-held publication and finalization
+entry points, asserts the CPU-hotplug lock in each, calls the existing state
+transitions directly, and selects both only for the production CPU9 binder.
+The ordinary lock-taking helpers and patch `0480`'s lock-held membership-begin
+path remain unchanged. Strict Checkpatch and deterministic replay pass, and all
+12 source mutations are rejected. No CPU request, CPU_OFF, retry, cluster
+effect, reset, storage, retained-RAM write, or device action was added. See
+[`results/completion-lock-repair-patch-generation-20260902.txt`](results/completion-lock-repair-patch-generation-20260902.txt).
+This is offline source evidence, not a boot candidate. **Selected next:** build
+the complete CPU9 KUnit profile from the exact published patch on Buildbox and
+run its no-network QEMU regression before any production build or device action.
 The ordered device action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside

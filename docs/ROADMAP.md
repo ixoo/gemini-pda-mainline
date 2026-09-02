@@ -7127,6 +7127,18 @@ the complete CPU9 KUnit profile and no-network QEMU regression on Buildbox
 before constructing at most one new production candidate. CPU_OFF and retry
 remain disconnected; no identical-candidate repeat is permitted.
 
+Canonical patch `0481` now implements this exact completion-path repair. It
+adds lock-held publication and finalization entry points, asserts the existing
+CPU-hotplug lock contract, calls each existing state transition directly, and
+selects both only in the production CPU9 binder. The ordinary lock-taking
+helpers and the earlier lock-held claim/begin paths remain unchanged. Exact
+post-`0480` generation, strict style review, deterministic replay, and all 12
+negative mutations pass. No CPU request, CPU_OFF, retry, cluster effect, reset,
+storage, retained-RAM write, or device action was added. This is not a boot
+candidate. **Selected next:** build the complete CPU9 KUnit profile on Buildbox
+and run its no-network QEMU regression before any production build, candidate
+construction, or device action.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

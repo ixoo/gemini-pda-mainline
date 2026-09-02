@@ -1,0 +1,87 @@
+From 5abea9c1826cdb5345372a39a31e083dd5f0a307 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 2 Sep 2026 10:31:00 +0000
+Subject: [PATCH] arm64: mediatek: avoid CPU9 completion lock recursion
+
+The retained CPU9 ledger proves generic CPU boot, secondary
+online wait, and an IPI round-trip return before execution stops
+at membership publication. This completion path runs under the
+CPU-hotplug write lock, while both publication and the immediately
+downstream finalization helpers acquire its read side.
+
+Add lock-held publication and finalization entry points that
+assert the existing contract and call the state transitions
+directly. Keep both ordinary lock-taking helpers unchanged.
+
+This changes no CPU request, CPU_OFF, retry, cluster, reset, or
+storage path.
+---
+ arch/arm64/include/asm/mt6797_a72_membership.h |  2 ++
+ arch/arm64/kernel/mt6797_a72_membership.c      | 16 ++++++++++++++++
+ drivers/soc/mediatek/mt6797-a72-cpu9-binder.c  |  4 ++--
+ 3 files changed, 20 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
+index d3a360a..b28f56d 100644
+--- a/arch/arm64/include/asm/mt6797_a72_membership.h
++++ b/arch/arm64/include/asm/mt6797_a72_membership.h
+@@ -779,7 +779,9 @@ int mt6797_a72_membership_reject_cpu9(struct mt6797_a72_transaction *transaction
+ int mt6797_a72_membership_begin_cpu9_on(struct mt6797_a72_transaction *transaction);
+ int mt6797_a72_begin_cpu9_on_locked(struct mt6797_a72_transaction *transaction);
+ int mt6797_a72_membership_publish_cpu9_success(struct mt6797_a72_transaction *transaction);
++int mt6797_a72_publish_cpu9_success_locked(struct mt6797_a72_transaction *transaction);
+ int mt6797_a72_membership_finalize_cpu9_success(struct mt6797_a72_transaction *transaction);
++int mt6797_a72_finalize_cpu9_success_locked(struct mt6797_a72_transaction *transaction);
+ #endif
+ bool
+ mt6797_a72_membership_owns_up_token(const struct arm64_late_cpu_up_token *token);
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+index 177bde1..afed397 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -3028,6 +3028,14 @@ mt6797_a72_publish_cpu9_success_state(struct mt6797_a72_transaction *transaction
+ 	return ret;
+ }
+ 
++int
++mt6797_a72_publish_cpu9_success_locked(struct mt6797_a72_transaction *transaction)
++{
++	lockdep_assert_cpus_held();
++	return mt6797_a72_publish_cpu9_success_state(transaction,
++					       cpu_online(8), cpu_online(9));
++}
++
+ int
+ mt6797_a72_membership_publish_cpu9_success(struct mt6797_a72_transaction *transaction)
+ {
+@@ -3073,6 +3081,14 @@ mt6797_a72_finalize_cpu9_success_state(struct mt6797_a72_transaction *transactio
+ 	return ret;
+ }
+ 
++int
++mt6797_a72_finalize_cpu9_success_locked(struct mt6797_a72_transaction *transaction)
++{
++	lockdep_assert_cpus_held();
++	return mt6797_a72_finalize_cpu9_success_state(transaction,
++						cpu_online(8), cpu_online(9));
++}
++
+ int
+ mt6797_a72_membership_finalize_cpu9_success(struct mt6797_a72_transaction *transaction)
+ {
+diff --git a/drivers/soc/mediatek/mt6797-a72-cpu9-binder.c b/drivers/soc/mediatek/mt6797-a72-cpu9-binder.c
+index 6949426..af8275a 100644
+--- a/drivers/soc/mediatek/mt6797-a72-cpu9-binder.c
++++ b/drivers/soc/mediatek/mt6797-a72-cpu9-binder.c
+@@ -156,9 +156,9 @@ static const struct mt6797_a72_cpu9_binder_backend_ops
+ 		.p30e_arm = mt6797_a72_cpu9_binder_p30e_arm,
+ 		.p30e_readback = mt6797_a72_cpu9_binder_p30e_readback,
+ 		.membership_publish_success =
+-			mt6797_a72_membership_publish_cpu9_success,
++			mt6797_a72_publish_cpu9_success_locked,
+ 		.membership_finalize_success =
+-			mt6797_a72_membership_finalize_cpu9_success,
++			mt6797_a72_finalize_cpu9_success_locked,
+ 		.cpu_online = mt6797_a72_cpu9_binder_cpu_online,
+ 		.ipi_call = mt6797_a72_cpu9_binder_ipi_call,
+ 	};
