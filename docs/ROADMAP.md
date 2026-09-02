@@ -6987,6 +6987,16 @@ candidate.
 **Selected next:** build the full CPU9 KUnit profile on Buildbox and run its
 no-network QEMU regression before any production candidate or device action.
 
+That offline regression now passes from the exact repaired commit: Buildbox
+compiled and packaged the KUnit profile, and the no-network QEMU run passed all
+102 tests in eight suites with zero failures or skips. The four new tests prove
+record-3 ordering and predecessor gates plus fail-closed behavior at every
+before/after boundary. Physical backends were linked but not invoked, and the
+run performed no physical CPU request or device action. **Selected next:**
+build the production profile on Buildbox and admit a device candidate only
+after exact package, composed-DT, Android-container, and pristine runtime-tool
+validation passes.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

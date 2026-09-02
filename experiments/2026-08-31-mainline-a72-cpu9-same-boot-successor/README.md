@@ -672,6 +672,18 @@ omission. It is not a boot candidate. See
 [`results/cpu-on-progress-patch-generation-20260902.txt`](results/cpu-on-progress-patch-generation-20260902.txt).
 **Selected next:** run the complete CPU9 KUnit build and no-network QEMU suite
 on Buildbox before any production build or device action.
+
+That offline gate now passes. The repaired exact commit compiled and packaged
+on Buildbox, and the no-network `virt` run passed all 102 tests across eight
+suites with zero failures or skips. The four new tests cover the record-3
+sequence, predecessor and empty-lane gates, ordering and attempt binding, plus
+failure injection at each of the eight binder boundaries. The physical
+backends were linked but not invoked; the run performed no MMIO, retained-RAM,
+watchdog, SMC, physical CPU request, or device action. See
+[`results/cpu-on-progress-kunit-qemu-20260902.txt`](results/cpu-on-progress-kunit-qemu-20260902.txt).
+**Selected next:** build the production profile on Buildbox, then validate the
+exact package, composed DT, Android container, and pristine runtime tooling
+before any `boot2` write.
 The ordered device action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside
