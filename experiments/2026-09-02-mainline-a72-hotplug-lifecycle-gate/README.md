@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-a72-hotplug-lifecycle-gate` |
-| Status | offline gate defined and current source audited; implementation pending |
+| Status | offline gate defined; generic down-handoff generator prepared |
 | Subsystem | arm64 CPU hotplug, PSCI, MT6797 A72 membership |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-09-02 America/New_York |
@@ -55,6 +55,11 @@ handling, and exact restore token are implemented and machine-checked.
   contract and optionally the exact prepared source.
 - [`scripts/test_contract.py`](scripts/test_contract.py) requires critical
   unsafe mutations to fail closed.
+- `scripts/source_edits.py`, `validate_source.py`, and
+  `test_source_validator.py` define and reject mutations of the first generic
+  handoff slice.
+- `scripts/generate_patch.py` and `generate-on-buildbox` create a normal
+  format-patch from the exact managed source without changing it.
 - [`results/contract-validation-20260902.txt`](results/contract-validation-20260902.txt)
   records the local contract/mutation pass and exact Buildbox prepared-source
   validation.
@@ -80,7 +85,7 @@ secure-source audit establishes a per-core-only CPU9-off effect set when CPU8
 remains present, but also establishes that the active affinity call contains
 unbounded waits.
 
-The exact contract passed locally, the 20 unsafe mutations all failed closed,
+The exact contract passed locally, the 21 unsafe mutations all failed closed,
 and the same validator passed against the six hash-pinned files in the
 Buildbox-managed prepared source.
 
@@ -111,6 +116,6 @@ same-boot CPU9 restore remain the success condition.
 
 ## Follow-up
 
-Implement the three no-op-by-default generic down handoffs and their focused
-hardware-free tests. Then implement a distinct CPU9-down/restore owner before
-any configuration, candidate, deployment, or boot action.
+Generate, admit, and Buildbox-compile the four no-op-by-default generic down
+handoffs. Then implement a distinct CPU9-down/restore owner before any
+configuration, candidate, deployment, or boot action.

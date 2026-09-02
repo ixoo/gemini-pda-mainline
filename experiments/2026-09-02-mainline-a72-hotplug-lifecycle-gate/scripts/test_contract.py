@@ -53,6 +53,8 @@ def main() -> int:
         ("last-a72-off", ("selected_transition", "last_a72_off_allowed"), True),
         ("missing-preflight", ("required_generic_handoffs",),
          base["required_generic_handoffs"][1:]),
+        ("missing-failure-publication", ("required_generic_handoffs",),
+         base["required_generic_handoffs"][:-1]),
         ("cpu-off-budget", ("budgets", "cpu9_cpu_off"), 2),
         ("affinity-budget", ("budgets", "cpu9_affinity_info_level0"), 2),
         ("restore-budget", ("budgets", "cpu9_restore_cpu_on"), 0),

@@ -57,6 +57,11 @@
       "name": "cpu_down_complete",
       "placement": "after-full-requested-cpuhp-down-before-cpus_write_unlock",
       "owner": "generic-cpuhp"
+    },
+    {
+      "name": "cpu_down_failed",
+      "placement": "after-cpu-map-lock-release-on-any-nonzero-result",
+      "owner": "requesting-controller"
     }
   ],
   "target_and_controller_handoffs": [

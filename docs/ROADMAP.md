@@ -7357,7 +7357,7 @@ admission/completion handoffs; the membership owner has no normal down or
 restore transitions; and P32 only guards failed CPU-up rollback. The secure
 CPU9-off branch is per-core-only while CPU8 remains online, but its active
 affinity call has internally unbounded waits. Therefore, merely exposing the
-sysfs online control is forbidden. **Selected next:** add the three
+sysfs online control is forbidden. **Selected next:** add the four
 no-op-by-default generic down handoffs and focused hardware-free proof, leaving
 the MT6797 operation table unset and the disable veto intact. Then add a
 separate one-attempt CPU9-down owner and distinct CPU9-restore owner, with one

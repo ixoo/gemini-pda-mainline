@@ -38,7 +38,7 @@ the loop. Positive identity-gated observations are unaffected.
   distinct same-boot CPU9 restore with topology, serviceability, and progress
   revalidation. The generic path is currently vetoed and has neither a normal
   down owner nor a restore owner. The contract and exact prepared-source audit
-  pass, and 20 unsafe mutations fail closed. No build, candidate, or device
+  pass, and 21 unsafe mutations fail closed. No build, candidate, or device
   action occurred.
 - [2026-09-02 current-mainline concurrent dual-A72 multiline load](2026-09-02-mainline-dual-a72-concurrent-multiline/README.md)
   — closes the first concurrent-load child of the accepted 4+4+2 result. One

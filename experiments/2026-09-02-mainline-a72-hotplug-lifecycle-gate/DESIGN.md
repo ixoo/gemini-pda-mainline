@@ -35,7 +35,7 @@ affinity queries.
 
 ## Generic lifecycle handoffs
 
-The first kernel change adds three optional, no-op-by-default architecture
+The first kernel change adds four optional, no-op-by-default architecture
 handoffs. They do not make any CPU hotpluggable.
 
 1. `cpu_down_preflight` runs before `cpu_maps_update_begin()`. A later exact
@@ -47,6 +47,10 @@ handoffs. They do not make any CPU hotpluggable.
 3. `cpu_down_complete` runs after the requested down callbacks succeed and
    before `cpus_write_unlock()`. It may finalize only an already-proven
    physical-off transaction.
+4. `cpu_down_failed` runs after the CPU map lock is released for every
+   nonzero result following a successful preflight. Before the CPU_OFF commit,
+   it releases only attempt-owned software state; after the commit, it records
+   a terminal retained fault and cannot retry or invent a rollback.
 
 All unset methods return zero. The MT6797 operation table remains unset in the
 first patch, and its `cpu_can_disable=false` veto remains byte-for-byte intact.
@@ -103,7 +107,8 @@ Only then may the owner retire the restore and cancel the watchdog.
 
 The ordered implementation is:
 
-1. add and hardware-free-test generic down handoffs;
+1. add and hardware-free-test generic down handoffs, including failure
+   publication after CPU-map unlock;
 2. add and hardware-free-test the CPU9 down/restore owner and all failure
    states;
 3. compile the isolated profile and focused KUnit on Buildbox;

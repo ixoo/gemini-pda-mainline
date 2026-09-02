@@ -120,6 +120,11 @@ def validate_contract(contract: dict) -> None:
             "placement": "after-full-requested-cpuhp-down-before-cpus_write_unlock",
             "owner": "generic-cpuhp",
         },
+        {
+            "name": "cpu_down_failed",
+            "placement": "after-cpu-map-lock-release-on-any-nonzero-result",
+            "owner": "requesting-controller",
+        },
     ], "generic handoff map changed")
 
     required_target_handoffs = {
