@@ -7010,6 +7010,14 @@ gate: record 3 must identify the last returned boundary among P30E prepare,
 membership begin, P30E arm, and generic CPU boot, or downstream evidence must
 show CPU9 online. Do not repeat either candidate or add CPU_OFF/retry.
 
+That guarded installation now passes. Live GPT resolved inactive logical
+`boot2` to `/dev/mmcblk0p30` with root on `/dev/mmcblk0p29`, verified exact
+retired predecessor `0904c5a2...`, wrote and fully read back selected candidate
+`d4eca4ac...`, and preserved both trusted-environment hashes. No fresh backup
+or reboot was requested; clean shutdown was confirmed. **Selected next:** the
+owner physically selects `boot2`, after which the exact pristine read-only gate
+must pass before the host spends one trigger and recovers record-3 evidence.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

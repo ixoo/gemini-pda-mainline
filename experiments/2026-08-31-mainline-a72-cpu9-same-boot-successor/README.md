@@ -699,6 +699,18 @@ live-resolved inactive logical `boot2`, require matching full-partition
 readback, and shut down. One fresh boot may then spend one pristine trigger;
 the latest valid record-3 boundary will identify the first unreturned CPU_ON
 subcall, or downstream evidence may show CPU9 online.
+
+That guarded deployment now passes. Known-good Gemian resolved inactive
+logical `boot2` to `/dev/mmcblk0p30` while root remained `/dev/mmcblk0p29`,
+verified retired predecessor `0904c5a2...`, stable external power, and an exact
+16 MiB target. It wrote, synchronized, flushed, and fully read back
+`d4eca4ac...`; both trusted-environment hashes remained unchanged. No fresh
+backup or reboot was requested, the temporary readback was removed, and clean
+shutdown was confirmed. See
+[`results/cpu-on-progress-deployment-20260902.txt`](results/cpu-on-progress-deployment-20260902.txt).
+**Selected next:** physically select `boot2`; the host will close the pristine
+read-only gate and spend one trigger only after the exact new candidate is
+confirmed.
 The ordered device action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside
