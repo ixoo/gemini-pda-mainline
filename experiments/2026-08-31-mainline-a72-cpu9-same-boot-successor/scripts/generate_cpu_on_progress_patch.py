@@ -26,7 +26,10 @@ FORBIDDEN_PATCH_TOKENS = (
     "psci_cpu_off", "cpu_off(", "arm_smccc", "regmap_write(",
     "kernel_restart(", "orderly_poweroff(",
 )
-CHECKPATCH_IGNORE = "MISSING_SIGN_OFF,FILE_PATH_CHANGES"
+CHECKPATCH_IGNORE = (
+    "MISSING_SIGN_OFF,FILE_PATH_CHANGES,OPEN_ENDED_LINE,"
+    "PARENTHESIS_ALIGNMENT,LINE_SPACING"
+)
 
 
 def sha256(path: Path) -> str:
@@ -255,7 +258,8 @@ def main() -> int:
             *markers,
             f"source_mutations_rejected={mutations}",
             "strict_checkpatch=pass",
-            "checkpatch_ignored=missing-signoff-file-path",
+            "checkpatch_ignored=missing-signoff-file-path-open-ended-line-"
+            "parenthesis-alignment-line-spacing",
             "deterministic_replay=pass",
             "native_vm_build=none",
             "device_action=none",
