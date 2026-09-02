@@ -5,10 +5,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-cpu9-same-boot-successor` |
-| Status | `sole corrected attempt proved CPU8 terminal success and stopped before the first CPU9 ledger checkpoint` |
+| Status | `CPU9 reached membership-begin; the retained substage ledger identifies a second CPU-hotplug lock recursion` |
 | Subsystem | MT6797 A72 CPU9 retained-cluster admission |
 | Device variant | Planet Computers Gemini PDA, named development unit |
-| Date(s) | 2026-08-31--2026-09-01 |
+| Date(s) | 2026-08-31--2026-09-02 |
 | Investigator(s) | repository owner and Codex |
 | Tracking issue | `docs/ROADMAP.md` Gate 8 |
 
@@ -142,6 +142,10 @@ first write. No new physical range is introduced.
 - [`results/progress-lane-errno-diagnostic-definition-20260901.txt`](results/progress-lane-errno-diagnostic-definition-20260901.txt):
   exact post-`0475` source audit and canonical `0476` definition that preserves
   CPU8 `-EBADMSG` while assigning malformed progress-lane refusal `-EUCLEAN`.
+- [`results/cpu-on-progress-runtime-attempt-1-20260902.txt`](results/cpu-on-progress-runtime-attempt-1-20260902.txt):
+  exact one-shot patch-`0479` runtime result: CPU8 terminal proof, P30E prepare
+  return, membership-begin entry without return, changed-ID recovery, and the
+  source-attributed second CPU-hotplug lock recursion.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger, owner-local membership lifecycle, retained-cluster dispatch, and
@@ -711,6 +715,31 @@ shutdown was confirmed. See
 **Selected next:** physically select `boot2`; the host will close the pristine
 read-only gate and spend one trigger only after the exact new candidate is
 confirmed.
+
+That one-shot runtime gate now passes and retires candidate `d4eca4ac...`.
+Fresh boot ID `23443fd4...` passed the exact zero-execution gate, and one
+trigger was committed. The connection disappeared at the trigger boundary;
+the post-capture wrapper then hit a local namespace-lookup bug, but the raw
+pretrigger, trigger, intent, and event files were already durable. The repaired
+offline classifier confirms one trigger and no retry, CPU_OFF, or reboot
+request. Changed-ID Gemian recovery exposed two CRC-valid copies in each of
+records 0--3: CPU8 retained its terminal online proof, the controller returned
+from CPU9 ledger begin, and the CPU9 transition remained at `BEFORE CPU_ON`.
+Record 3 proves P30E prepare returned and membership begin was entered but did
+not return; P30E arm and the generic CPU boot callback were not reached.
+
+Exact source attribution identifies a second CPU-hotplug lock recursion:
+`mt6797_a72_membership_begin_cpu9_on()` calls `cpus_read_lock()` from the CPU9
+binder callback while generic `_cpu_up()` already holds the CPU-hotplug write
+lock. Patch `0478` fixed the earlier membership-claim instance, but correctly
+left this distinct later helper unchanged until runtime evidence selected it.
+See
+[`results/cpu-on-progress-runtime-attempt-1-20260902.txt`](results/cpu-on-progress-runtime-attempt-1-20260902.txt).
+The artifact must not be repeated. The ordered next action is owned by Roadmap
+gate 8: add a lock-held membership-begin entry point, preserve the ordinary
+lock-taking helper, select the lock-held helper only in the binder callback,
+then run the complete Buildbox KUnit/QEMU regression before constructing one
+new candidate. CPU_OFF and retry remain disconnected.
 The ordered device action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside

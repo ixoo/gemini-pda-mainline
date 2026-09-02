@@ -30,7 +30,7 @@ Cortex-A72 pair.
 | I2C6 transfer | Native packed/FIFO pointer-read and one exact one-message two-byte FIFO write are runtime proven. The write completed once with payload `[0xda, 0x46]`, exact no-retry accounting, and stable readback. | This closes only the reviewed same-value shape; arbitrary writes, failure recovery, stress, and resume remain open. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
 | Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected. A separate hardware-free implementation now models exact positive Buck-B acquire/release and passes all six focused fake-adapter cases. | Gate 6 is closed for the reviewed no-op, and the first Gate-7 provider source boundary is complete offline. Physical transition, production integration, consumers, and CPU requests remain disconnected. |
-| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The production-admission experiment brought CPU8 online repeatedly with attributable terminal membership proof and advancing accounting. The sole corrected same-boot CPU9 attempt again proved CPU8 terminal membership, but its independent CPU9 ledger remained exact-empty before watchdog recovery. | Add one independent retained progress path across the CPU8-proof-to-CPU9-ledger gap before another device attempt; keep CPU_OFF and retry disconnected. |
+| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The production-admission experiment brings CPU8 online with attributable terminal proof. The newest one-shot CPU9 diagnostic reached `BEFORE CPU_ON`, returned from P30E prepare, and entered membership begin; it did not reach P30E arm or the generic CPU boot callback. | Repair the source-attributed second CPU-hotplug lock recursion with a lock-held membership-begin helper, validate the full CPU9 path on Buildbox/QEMU, then admit at most one changed candidate; keep CPU_OFF and retry disconnected. |
 
 The durable technical boundary is in
 [DA921x, I2C6, and Cortex-A72](hardware/da921x-i2c6-a72.md). The exact
@@ -7017,6 +7017,31 @@ retired predecessor `0904c5a2...`, wrote and fully read back selected candidate
 or reboot was requested; clean shutdown was confirmed. **Selected next:** the
 owner physically selects `boot2`, after which the exact pristine read-only gate
 must pass before the host spends one trigger and recovers record-3 evidence.
+
+That one-shot runtime gate now passes and retires `d4eca4ac...`. Fresh
+mainline boot ID `23443fd4...` passed the pristine zero-execution gate, one
+trigger was committed, and changed-ID Gemian recovery exposed CRC-valid records
+0--3. CPU8 retained terminal online proof; CPU9 retained completed PRESTATE and
+`BEFORE CPU_ON`; the controller returned from ledger begin. The independent
+record-3 lane proves P30E prepare returned and membership begin was entered but
+did not return. P30E arm and generic CPU boot were not reached, so physical
+PSCI `CPU_ON` was not reached. A local post-capture classifier wrapper failed
+after the evidence was durable; its corrected offline derivation classifies
+the transport as one boot-bound trigger commit with no terminal frame, no
+retry, no CPU_OFF, and no reboot request.
+
+Exact source attribution selects a second CPU-hotplug lock recursion:
+`mt6797_a72_membership_begin_cpu9_on()` calls `cpus_read_lock()` while its
+`_cpu_up()` callback context already holds the generic CPU-hotplug write lock.
+Patch `0478` remains runtime-confirmed for the earlier membership-claim helper;
+this is the distinct later membership-begin instance. **Selected next:** add a
+narrow lock-held membership-begin entry point that asserts the CPU-hotplug lock
+is held, preserve the ordinary lock-taking helper for other contexts, and use
+the new entry point only in the binder callback. Generate and replay that patch
+from exact source on Buildbox, run the complete membership/binder/controller/
+progress KUnit profile plus no-network QEMU, and construct at most one new
+candidate only after production package, DT, container, and pristine-runtime
+gates pass. No identical-candidate repeat, CPU_OFF, or retry is selected.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

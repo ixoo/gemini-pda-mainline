@@ -42,4 +42,4 @@ namespace = {
 exec(compile(text, str(SOURCE), "exec"), namespace)
 
 if __name__ == "__main__":
-    raise SystemExit(namespace["progress"].main())
+    raise SystemExit(namespace["namespace"]["progress"].main())
