@@ -37,8 +37,8 @@ the loop. Positive identity-gated observations are unaffected.
   `cluster_cpus_list` must describe the physical 4+4+2 clusters. Canonical
   patch `0482` adds only the missing standard `cpu-map`. The Buildbox package,
   exact serviceability composition, and independently reconstructed boot2
-  container pass offline validation; deployment and one attributable runtime
-  cycle are pending.
+  container pass offline validation. The guarded inactive-`boot2` write, full
+  readback, and clean shutdown pass; one attributable runtime cycle is pending.
 - [2026-09-02 current-mainline dual-A72 RAM coherency](2026-09-02-mainline-dual-a72-ram-coherency/README.md)
   — completed the first decision-changing child after two exact patch-`0481`
   online/accounting passes. A third fresh one-shot again brought CPUs `0-9`

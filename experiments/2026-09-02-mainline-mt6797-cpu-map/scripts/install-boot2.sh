@@ -17,6 +17,16 @@ source_installer="$repo_root/experiments/2026-08-31-mainline-a72-cpu9-same-boot-
 [[ -f "$source_installer" && ! -L "$source_installer" ]] || die 'source completion-lock installer is missing or unsafe'
 [[ "$(sha256sum "$source_installer" | awk '{print $1}')" == "$SOURCE_SHA256" ]] || die 'source completion-lock installer changed'
 
+evidence_dir=
+args=("$@")
+for ((i = 0; i < ${#args[@]}; i++)); do
+	if [[ "${args[$i]}" == --evidence-dir ]]; then
+		((i + 1 < ${#args[@]})) || die '--evidence-dir requires a value'
+		evidence_dir=${args[$((i + 1))]}
+	fi
+done
+[[ -n "$evidence_dir" ]] || die '--evidence-dir is required'
+
 derived=$(mktemp "$script_dir/.derived-install-mt6797-cpu-map.XXXXXXXX")
 cleanup() { [[ ! -e "${derived:-}" ]] || rm -f -- "$derived"; }
 trap cleanup EXIT HUP INT TERM
@@ -54,4 +64,23 @@ rc=$?
 set -e
 cleanup
 trap - EXIT HUP INT TERM
+if ((rc == 0)); then
+	python3 - "$evidence_dir/deployment-summary.txt" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text(encoding="ascii")
+old = "experiment=2026-08-31-mainline-a72-mt6797-cpu-map\n"
+new = "experiment=2026-09-02-mainline-mt6797-cpu-map\n"
+if text.count(old) != 1:
+    raise SystemExit("unsafe deployment-summary experiment normalization")
+path.write_text(text.replace(old, new), encoding="ascii")
+PY
+	(
+		cd -- "$evidence_dir"
+		sha256sum deployment-summary.txt >SHA256SUMS
+		sha256sum --check --strict SHA256SUMS >/dev/null
+	)
+fi
 exit "$rc"

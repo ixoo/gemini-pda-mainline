@@ -7265,6 +7265,14 @@ preserved single admission, exact A72 affinity/RAM integrity/accounting,
 terminal retained proofs, unchanged `boot2`, and zero storage, CPU_OFF, or
 retry activity.
 
+That deployment now passes. Known-good Gemian resolved the inactive, unmounted
+logical `boot2`, verified the exact runtime-proven predecessor and stable
+power, then wrote, synchronized, flushed, and fully read back the new exact
+candidate. The full 16 MiB readback matched; the trusted-environment hashes
+were unchanged, no fresh backup was made, and clean shutdown was confirmed.
+**Selected next:** physically select `boot2` and admit only a fresh exact
+candidate identity before the single topology acceptance trigger.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

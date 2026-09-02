@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-mt6797-cpu-map` |
-| Status | `running: offline candidate passed; deployment pending` |
+| Status | `running: deployed and shut down; runtime pending` |
 | Subsystem | MT6797 arm64 CPU topology and scheduler description |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-09-02 |
@@ -57,6 +57,15 @@ the maximum; no unchanged retry is allowed.
   [`scripts/validate-candidate.py`](scripts/validate-candidate.py): construct
   the deterministic Android-v0 image twice and independently validate its LK
   layout, package, topology, serviceability, and mutation rejection gates.
+- [`scripts/collect-pretrigger.sh`](scripts/collect-pretrigger.sh),
+  [`scripts/execute-attempt.sh`](scripts/execute-attempt.sh), and
+  [`scripts/collect-recovery.sh`](scripts/collect-recovery.sh): admit one fresh
+  exact boot, spend the inherited trigger once, collect all ten CPU topology
+  records plus the bounded volatile-RAM exchange, and recover terminal retained
+  proofs after a changed-ID return to Gemian.
+- [`scripts/test_runtime_tools.py`](scripts/test_runtime_tools.py): accepts one
+  exact 4+4+2 fixture and rejects sixteen identity, topology, affinity, RAM,
+  accounting, cleanup, and safety mutations.
 - [`fixtures/mt6797-cpu-map-minimal.dts`](fixtures/mt6797-cpu-map-minimal.dts):
   redistributable positive validator fixture with the exact 4+4+2 topology.
 - [`patches/series`](../../patches/series): canonical ordering through `0482`.
@@ -113,6 +122,24 @@ SHA-256 `68ec1b7815cab7abae99cbdecabb2f0ba0dd1ddbf26943d652fcedf4d2b4e393`.
 All 32 LK gates and six negative container mutations pass. See
 [`results/offline-production-candidate-20260902.txt`](results/offline-production-candidate-20260902.txt).
 
+Known-good Gemian then resolved inactive, unmounted logical `boot2`, verified
+the exact runtime-proven predecessor and stable power, wrote the 16 MiB
+candidate, synchronized and flushed it, and fully read it back with matching
+SHA-256 `68ec1b7815cab7abae99cbdecabb2f0ba0dd1ddbf26943d652fcedf4d2b4e393`.
+No fresh partition backup was created. The trusted-environment partition hashes
+remained unchanged, the temporary readback was removed, and the device became
+unreachable after the requested clean shutdown. See
+[`results/deployment-20260902.txt`](results/deployment-20260902.txt).
+
+The runtime tooling is source-pinned to the proven pristine collector,
+one-trigger executor, retained-lane recovery, and bounded RAM workload. Its
+corrected oracle requires package siblings `0-9`, cluster lists `0-3`, `4-7`,
+and `8-9`, package ID zero, cluster-local core IDs, and one hardware thread per
+CPU. One positive fixture passes and sixteen representative mutations fail;
+the materialized device script contains no block-device, CPU_OFF, retry,
+poweroff, or reboot action. See
+[`results/runtime-tooling-20260902.txt`](results/runtime-tooling-20260902.txt).
+
 ## Analysis
 
 The topology repair is narrower than a CPU-power or scheduling-policy change.
@@ -123,16 +150,15 @@ that the live scheduler consumed the map.
 
 ## Conclusion
 
-`offline pass`: the source-level defect, corrected ABI oracle, canonical patch,
-Buildbox package, topology/serviceability composition, and exact boot2
-container all pass their available offline gates. Device runtime validation is
-pending.
+`deployed`: the source-level defect, corrected ABI oracle, canonical patch,
+Buildbox package, topology/serviceability composition, exact boot2 container,
+guarded write, full readback, and shutdown gates pass. Device runtime
+validation is pending.
 
 ## Follow-up
 
-Install the exact candidate to live-resolved inactive `boot2`, require its full
-readback checksum, and shut down. On the one admitted boot, verify exact
-identity and serviceability before the inherited one-shot trigger. A runtime
+Physically select `boot2`. On the one admitted boot, verify exact identity and
+serviceability before the inherited one-shot trigger. A runtime
 pass permits one separately designed bounded concurrent multi-cacheline
 workload. A live cluster-list mismatch stops the line without an unchanged
 retry.
