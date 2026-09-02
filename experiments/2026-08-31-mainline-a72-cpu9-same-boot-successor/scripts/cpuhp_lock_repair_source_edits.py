@@ -29,7 +29,8 @@ def apply(root: Path) -> None:
         header,
         "int mt6797_a72_membership_claim_cpu9(struct mt6797_a72_transaction *transaction);",
         "int mt6797_a72_membership_claim_cpu9(struct mt6797_a72_transaction *transaction);\n"
-        "int mt6797_a72_membership_claim_cpu9_cpuhp_locked(\n"
+        "int\n"
+        "mt6797_a72_membership_claim_cpu9_cpuhp_locked(\n"
         "\tstruct mt6797_a72_transaction *transaction);",
     )
 
@@ -45,7 +46,8 @@ def apply(root: Path) -> None:
         "{\n"
         "\tint ret;\n\n"
         "\tcpus_read_lock();",
-        "int mt6797_a72_membership_claim_cpu9_cpuhp_locked(\n"
+        "int\n"
+        "mt6797_a72_membership_claim_cpu9_cpuhp_locked(\n"
         "\tstruct mt6797_a72_transaction *transaction)\n"
         "{\n"
         "\tlockdep_assert_cpus_held();\n"

@@ -92,9 +92,11 @@ def validate_mutations(root: Path) -> int:
         ),
         (
             "arch/arm64/include/asm/mt6797_a72_membership.h",
-            "int mt6797_a72_membership_claim_cpu9_cpuhp_locked(\n"
+            "int\n"
+            "mt6797_a72_membership_claim_cpu9_cpuhp_locked(\n"
             "\tstruct mt6797_a72_transaction *transaction);",
-            "int mt6797_a72_membership_claim_cpu9_locked_missing(\n"
+            "int\n"
+            "mt6797_a72_membership_claim_cpu9_locked_missing(\n"
             "\tstruct mt6797_a72_transaction *transaction);",
         ),
         (

@@ -35,13 +35,15 @@ def validate(root: Path) -> list[str]:
     exact(membership, "#include <linux/cpuhplock.h>", 1)
     exact(
         header,
-        "int mt6797_a72_membership_claim_cpu9_cpuhp_locked(\n"
+        "int\n"
+        "mt6797_a72_membership_claim_cpu9_cpuhp_locked(\n"
         "\tstruct mt6797_a72_transaction *transaction);",
         1,
     )
     exact(
         membership,
-        "int mt6797_a72_membership_claim_cpu9_cpuhp_locked(\n"
+        "int\n"
+        "mt6797_a72_membership_claim_cpu9_cpuhp_locked(\n"
         "\tstruct mt6797_a72_transaction *transaction)",
         1,
     )
@@ -54,7 +56,7 @@ def validate(root: Path) -> list[str]:
         "locked claim direct state call",
     )
     locked = membership.split(
-        "int mt6797_a72_membership_claim_cpu9_cpuhp_locked(", 1
+        "mt6797_a72_membership_claim_cpu9_cpuhp_locked(", 1
     )[1].split(
         "int mt6797_a72_membership_claim_cpu9(", 1
     )[0]
