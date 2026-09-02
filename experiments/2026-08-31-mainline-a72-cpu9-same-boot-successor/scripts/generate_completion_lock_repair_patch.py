@@ -121,13 +121,19 @@ def validate_mutations(root: Path) -> int:
         ),
         (
             "arch/arm64/kernel/mt6797_a72_membership.c",
+            "\tlockdep_assert_cpus_held();\n"
             "\treturn mt6797_a72_publish_cpu9_success_state(transaction,",
-            "\tcpus_read_lock();\n\treturn mt6797_a72_publish_cpu9_success_state(transaction,",
+            "\tlockdep_assert_cpus_held();\n"
+            "\tcpus_read_lock();\n"
+            "\treturn mt6797_a72_publish_cpu9_success_state(transaction,",
         ),
         (
             "arch/arm64/kernel/mt6797_a72_membership.c",
+            "\tlockdep_assert_cpus_held();\n"
             "\treturn mt6797_a72_finalize_cpu9_success_state(transaction,",
-            "\tcpus_read_lock();\n\treturn mt6797_a72_finalize_cpu9_success_state(transaction,",
+            "\tlockdep_assert_cpus_held();\n"
+            "\tcpus_read_lock();\n"
+            "\treturn mt6797_a72_finalize_cpu9_success_state(transaction,",
         ),
         (
             "arch/arm64/kernel/mt6797_a72_membership.c",
