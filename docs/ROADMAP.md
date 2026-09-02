@@ -7054,6 +7054,17 @@ added. This is not yet a boot candidate. **Selected next:** run the complete
 CPU9 KUnit profile on Buildbox and its no-network QEMU regression before any
 production build, candidate construction, or device action.
 
+That offline regression now passes from exact published commit `af8931c5...`.
+Buildbox compiled and packaged the complete 469-patch series, and the
+no-network QEMU run passed all 102 tests across eight suites with zero failures
+or skips. The production binder compiled with both lock-held membership entry
+points; all owner, retained-ledger, executor, binder, controller, and CPU8
+regressions remained green. Physical backends were linked but not invoked, and
+the run performed no MMIO, retained-RAM, watchdog, SMC, physical CPU request,
+or device action. **Selected next:** build the production profile on Buildbox,
+then admit at most one changed candidate only after exact package, composed-DT,
+Android-container, and pristine-runtime validation passes.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

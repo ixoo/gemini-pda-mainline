@@ -149,6 +149,9 @@ first write. No new physical range is introduced.
 - [`results/cpu-on-membership-lock-repair-patch-generation-20260902.txt`](results/cpu-on-membership-lock-repair-patch-generation-20260902.txt):
   exact post-`0479` Buildbox generation, strict replay, and eight mutation
   rejections for the lock-held membership-begin repair in patch `0480`.
+- [`results/cpu-on-membership-lock-repair-kunit-qemu-20260902.txt`](results/cpu-on-membership-lock-repair-kunit-qemu-20260902.txt):
+  exact patch-`0480` Buildbox package and no-network QEMU result: all 102 tests
+  in eight suites passed with zero failures or skips.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger, owner-local membership lifecycle, retained-cluster dispatch, and
@@ -755,6 +758,20 @@ request, CPU_OFF, retry, cluster effect, reset, storage, or device path. See
 [`results/cpu-on-membership-lock-repair-patch-generation-20260902.txt`](results/cpu-on-membership-lock-repair-patch-generation-20260902.txt).
 This is offline source evidence, not a boot candidate. The next ordered gate is
 the complete CPU9 KUnit build and no-network QEMU regression on Buildbox.
+
+That offline gate now passes. Exact published commit `af8931c5...` compiled and
+packaged all 469 patches on Buildbox, preserving the KUnit configuration
+identity. The no-network `virt` run passed all 102 tests across eight suites
+with zero failures or skips. The production binder compiled with both
+lock-held entry points, while the complete owner, progress-ledger, transition,
+CPU9 executor/binder/controller, CPU8 binder, and CPU8 controller regressions
+remained green. Physical backends were linked but not invoked; the run
+performed no MMIO, retained-RAM, watchdog, SMC, physical CPU request, or device
+action. See
+[`results/cpu-on-membership-lock-repair-kunit-qemu-20260902.txt`](results/cpu-on-membership-lock-repair-kunit-qemu-20260902.txt).
+**Selected next:** build the production profile from the exact published
+receipt, then independently validate the package, composed DT, Android-v0
+container, and pristine runtime tooling before any `boot2` write.
 The ordered device action and its exit criteria remain owned by
 [Roadmap gate 8](../../docs/ROADMAP.md#8-validate-cpu9-and-the-complete-cluster).
 CPU_OFF, retry, sustained load, hotplug, thermal, and suspend remain outside
