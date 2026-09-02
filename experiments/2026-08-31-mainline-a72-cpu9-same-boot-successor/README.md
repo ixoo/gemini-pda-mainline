@@ -183,6 +183,9 @@ first write. No new physical range is introduced.
 - [`results/completion-lock-repair-repeatability-tooling-20260902.txt`](results/completion-lock-repair-repeatability-tooling-20260902.txt):
   source-pinned attempt-2 evidence namespace, fresh-mainline-boot requirement,
   one-trigger bounds, and three rejecting reuse/namespace checks.
+- [`results/completion-lock-repair-repeatability-recovery-tooling-20260902.txt`](results/completion-lock-repair-repeatability-recovery-tooling-20260902.txt):
+  source-pinned attempt-2 pstore namespace, unchanged candidate/receipt gates,
+  and a fresh-Gemian-boot requirement.
 - `scripts/` and `templates/`: exact-source Buildbox generation, mutation
   validation, and hardware-free KUnit tooling for the independent record-1
   ledger, owner-local membership lifecycle, retained-cluster dispatch, and
@@ -993,3 +996,12 @@ the first mainline boot ID. Bash syntax and ShellCheck pass, and all three
 wrong-namespace or reused-boot cases fail closed. No kernel input or device
 state changed. See
 [`results/completion-lock-repair-repeatability-tooling-20260902.txt`](results/completion-lock-repair-repeatability-tooling-20260902.txt).
+
+Attempt 2 then reproduced the live success and returned automatically to a
+fresh Gemian boot. The original recovery collector correctly refused an
+attempt-2 output path before device contact. A new source-pinned wrapper now
+admits only that one recovery namespace, retains the exact deployment,
+candidate, partition, pstore, and classifier gates, and additionally rejects
+the first attempt's Gemian boot ID. Syntax, ShellCheck, and the wrong-namespace
+negative pass without changing kernel or device state. See
+[`results/completion-lock-repair-repeatability-recovery-tooling-20260902.txt`](results/completion-lock-repair-repeatability-recovery-tooling-20260902.txt).
