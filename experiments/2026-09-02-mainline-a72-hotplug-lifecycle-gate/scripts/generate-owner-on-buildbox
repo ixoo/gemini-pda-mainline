@@ -4,7 +4,7 @@ set -euo pipefail
 readonly repository_commit="${1:?repository commit required}"
 readonly source_root="${2:?prepared source root required}"
 readonly artifact_root="${3:?artifact root required}"
-readonly expected_parent_source_state=5208381d47410281b7b4492beaa1ecb5b19de11fa15889c0f1ce6ffa4a851d69
+readonly expected_parent_source_state=e9bd3a9f1cb442054df8d05515db6e056b444fda5c4e53b755d88cc41b95e0a7
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 readonly script_dir
 readonly package_name="${repository_commit}-a72-hotplug-owner-patches"
@@ -35,7 +35,7 @@ python3 "${script_dir}/generate_owner_patches.py" \
   cd "${temporary}"
   sha256sum --check --strict SHA256SUMS >/dev/null
   grep -Fx "repository_commit=${repository_commit}" provenance.txt >/dev/null
-  grep -Fx 'generated_patch_count=2' provenance.txt >/dev/null
+  grep -Fx 'generated_patch_count=3' provenance.txt >/dev/null
   grep -Fx 'cpu9_down_attempts=1' provenance.txt >/dev/null
   grep -Fx 'affinity_attempts=1' provenance.txt >/dev/null
   grep -Fx 'cpu9_restore_attempts=1' provenance.txt >/dev/null
@@ -44,6 +44,8 @@ python3 "${script_dir}/generate_owner_patches.py" \
   grep -Fx 'restore_identity=distinct-and-parent-linked' provenance.txt >/dev/null
   grep -Fx 'focused_kunit_cases=5' provenance.txt >/dev/null
   grep -Fx 'owner_source_mutation_rejections=21' provenance.txt >/dev/null
+  grep -Fx 'owner_terminal_parent_mutation_rejections=6' provenance.txt >/dev/null
+  grep -Fx 'terminal_parent_validation=pass' provenance.txt >/dev/null
   grep -Fx 'mt6797_callbacks=unset' provenance.txt >/dev/null
   grep -Fx 'mt6797_cpu_can_disable=false' provenance.txt >/dev/null
   grep -Fx 'physical_effect_calls=0' provenance.txt >/dev/null

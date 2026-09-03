@@ -45,6 +45,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-root", type=Path, required=True)
     parser.add_argument("--require-tests", action="store_true")
+    parser.add_argument("--require-terminal-parent-fix", action="store_true")
     args = parser.parse_args()
     root = args.source_root.resolve()
     header = (root / "arch/arm64/include/asm/mt6797_a72_membership.h").read_text(
@@ -101,11 +102,16 @@ def main() -> None:
     ), "hotplug opening after initial CPU9 finalization")
 
     preflight = collapse(bodies[0])
+    parent_validator = (
+        "mt6797_a72_cpu9_terminal_parent_valid_locked()"
+        if args.require_terminal_parent_fix else
+        "mt6797_a72_cpu9_retired_parent_valid_locked(BIT(0) | BIT(1))"
+    )
     for token in (
         "cpu != 9 || target != CPUHP_OFFLINE",
         "a72_owner.members != (BIT(0) | BIT(1))",
         "a72_owner.provider_state != MT6797_A72_PROVIDER_HELD",
-        "mt6797_a72_cpu9_retired_parent_valid_locked(BIT(0) | BIT(1))",
+        parent_validator,
         "!cpu8_online || !cpu9_online",
         "MT6797_A72_ATTEMPT_CPU9_OFF",
         "MT6797_A72_HOTPLUG_OPERATION_CPU9_DOWN",
@@ -119,6 +125,66 @@ def main() -> None:
         "a72_owner.hotplug_active = minted;",
         "a72_owner.hotplug_phase = MT6797_A72_HOTPLUG_DOWN_FROZEN;",
     ), "one-shot down mint")
+
+    if args.require_terminal_parent_fix:
+        cpu8_retired = collapse(braced(
+            source, "mt6797_a72_cpu8_retired_valid_locked(",
+            "CPU8 retired validator"))
+        cpu9_parent = collapse(braced(
+            source, "mt6797_a72_cpu9_retired_parent_valid_locked(",
+            "active CPU9 parent validator"))
+        terminal_parent = collapse(braced(
+            source, "mt6797_a72_cpu9_terminal_parent_valid_locked(",
+            "terminal CPU9 parent validator"))
+        for token in (
+            "a72_owner.health == MT6797_A72_OWNER_AVAILABLE",
+            "a72_owner.members == expected_members",
+            "a72_owner.retired_mask & BIT(0)",
+            "ARM64_LATE_CPU_STARTUP_OP_CPU8_UP",
+            "cpu8->cpu8_success_published",
+        ):
+            require(token in cpu8_retired,
+                    f"CPU8 retired validator missing {token}")
+        for token in (
+            "!(a72_owner.retired_mask & BIT(1))",
+            "mt6797_a72_cpu8_retired_valid_locked(expected_members)",
+        ):
+            require(token in cpu9_parent,
+                    f"active CPU9 parent validator missing {token}")
+        for token in (
+            "a72_owner.retired_mask == (BIT(0) | BIT(1))",
+            "mt6797_a72_cpu8_retired_valid_locked(BIT(0) | BIT(1))",
+            "cpu9->valid",
+            "cpu9->a36_valid",
+            "cpu9->p30_token_valid",
+            "cpu9->p17_p18_published",
+            "ARM64_LATE_CPU_STARTUP_OP_CPU9_UP",
+            "cpu9->identity.target_cpu == 9",
+            "cpu9->identity.cpuhp_target == CPUHP_ONLINE",
+            "cpu9->identity.target_mpidr == 0x201",
+            "cpu9->identity.generation != ~0ULL",
+            "cpu9->identity.cookie != ~0ULL",
+            "cpu9->identity.generation != cpu8->identity.generation",
+            "cpu9->identity.cookie != cpu8->identity.cookie",
+            "cpu9->controller_cookie == cpu9->identity.cookie",
+            "cpu9->public_preflight == MT6797_A72_PUBLIC_ADMISSION_CLAIMED",
+            "cpu9->budgets.cpu_on == MT6797_A72_BUDGET_CONSUMED",
+            "mt6797_a72_cpu9_cluster_budgets_empty(cpu9)",
+            "!cpu9->p27_valid",
+            "!cpu9->provider_acquire_valid",
+            "!cpu9->provider_rejection_valid",
+            "!cpu9->provider_abort_valid",
+            "!cpu9->p28_valid",
+            "!cpu9->p29_valid",
+            "!cpu9->p32_valid",
+            "!cpu9->p32r_valid",
+            "!cpu9->cpu8_success_published",
+            "cpu9->cpu9_success_published",
+        ):
+            require(token in terminal_parent,
+                    f"terminal CPU9 parent validator missing {token}")
+        require("parent = &a72_owner.retired[1];" in preflight,
+                "down transaction is not linked to finalized CPU9")
 
     validate = collapse(bodies[1])
     for token in (
@@ -271,6 +337,8 @@ def main() -> None:
     print("mt6797_callbacks=unset")
     print("mt6797_cpu_can_disable=false")
     print("physical_effect_calls=0")
+    print("terminal_parent_validation=" +
+          ("pass" if args.require_terminal_parent_fix else "not-requested"))
     print(f"focused_kunit_cases={5 if args.require_tests else 0}")
     print("boot_candidate=false")
     print("device_action=false")

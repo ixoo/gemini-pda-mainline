@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the hardware-free CPU9 down/restore owner patch pair."""
+"""Regenerate the CPU9 owner pair and its terminal-parent fix."""
 
 from __future__ import annotations
 
@@ -18,7 +18,18 @@ REPO_ROOT = SCRIPT_DIR.parents[2]
 PATCH_NAMES = (
     "0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch",
     "0485-arm64-mediatek-test-hardware-free-CPU9-hotplug-owner.patch",
+    "0486-arm64-mediatek-validate-finalized-CPU9-before-hotplug.patch",
 )
+CURRENT_SOURCE_HASHES = {
+    "arch/arm64/include/asm/mt6797_a72_membership.h":
+        "37ceccdad257a3365933f0c3ad1576f876eef793af4291b50b84b6dfb68c9f40",
+    "arch/arm64/kernel/mt6797_a72_membership.c":
+        "4b036f0f28936421d50e89a3fdd0e314332438a233171ea79f4ad4aa622467a0",
+    "arch/arm64/kernel/mt6797_a72_membership_test.c":
+        "747a6fb1ba8ecdba45b3b605d35ee32f6b136a7605a30b100e7ca4b68f6a1e90",
+    "arch/arm64/kernel/mt6797_psci.c":
+        "13c0497e4a462e5367d39236dbf6fecaf7478df012705d8f5e6ed39625e16d8e",
+}
 PARENT_HASHES = {
     "arch/arm64/include/asm/mt6797_a72_membership.h":
         "8c19c6a8ffb8d4292f65791a6edc08c73cad11c79a26b6b88e296c9d1e241d16",
@@ -28,6 +39,12 @@ PARENT_HASHES = {
         "e7e8007c31346808d5a359e622354ca1f623a8cfd03d3168a589e2878ccdde0c",
     "arch/arm64/kernel/mt6797_psci.c":
         "13c0497e4a462e5367d39236dbf6fecaf7478df012705d8f5e6ed39625e16d8e",
+}
+CANONICAL_PATCH_HASHES = {
+    PATCH_NAMES[0]:
+        "7f78083783287d2a270197fc537c1a1eba41446a5eb2182be102d44e6995af27",
+    PATCH_NAMES[1]:
+        "443e2983110c743ecb3f93439f71ea2631a19cc0b66cb58cb208b162487e08e7",
 }
 
 
@@ -122,7 +139,7 @@ def main() -> None:
         char not in "0123456789abcdef" for char in args.repository_commit
     ):
         raise SystemExit("invalid repository commit")
-    for relative, expected in PARENT_HASHES.items():
+    for relative, expected in CURRENT_SOURCE_HASHES.items():
         path = source_root / relative
         if not path.is_file() or path.is_symlink() or sha256(path) != expected:
             raise SystemExit(f"prepared source changed: {relative}")
@@ -133,6 +150,12 @@ def main() -> None:
         temp = Path(name)
         source = temp / "source"
         copy_parent(source_root, source)
+        for patch_name in reversed(PATCH_NAMES[:2]):
+            run("git", "apply", "--reverse",
+                str(REPO_ROOT / "patches/v7.1.3" / patch_name), cwd=source)
+        for relative, expected in PARENT_HASHES.items():
+            if sha256(source / relative) != expected:
+                raise SystemExit(f"reconstructed source changed: {relative}")
         run("git", "init", "--quiet", cwd=source)
         run("git", "config", "user.name", "Gemini Mainline Experiment",
             cwd=source)
@@ -178,6 +201,28 @@ def main() -> None:
             "2026-09-03T00:12:00Z",
         )
 
+        run("python3", str(SCRIPT_DIR / "owner_terminal_parent_fix_edits.py"),
+            "--source-root", str(source), cwd=REPO_ROOT)
+        fixed_validation = run(
+            "python3", str(SCRIPT_DIR / "validate_owner_source.py"),
+            "--source-root", str(source), "--require-tests",
+            "--require-terminal-parent-fix", cwd=REPO_ROOT,
+        )
+        fixed_mutation_validation = run(
+            "python3",
+            str(SCRIPT_DIR / "test_owner_terminal_parent_validator.py"),
+            "--source-root", str(source), cwd=REPO_ROOT,
+        )
+        commit(
+            source,
+            "arm64: mediatek: validate finalized CPU9 before hotplug",
+            "Preserve the active CPU9 parent predicate and add a separate\n"
+            "terminal validator for the finalized CPU8/CPU9 pair. This lets\n"
+            "CPU9-down mint only from the intended post-bring-up state while\n"
+            "continuing to reject missing, aliased, or malformed records.",
+            "2026-09-03T00:13:00Z",
+        )
+
         patch_dir = temp / "patches"
         generated = sorted(run(
             "git", "format-patch", "--no-signature", "--output-directory",
@@ -190,6 +235,7 @@ def main() -> None:
         subjects = (
             "arm64: mediatek: add hardware-free CPU9 hotplug owner",
             "arm64: mediatek: test hardware-free CPU9 hotplug owner",
+            "arm64: mediatek: validate finalized CPU9 before hotplug",
         )
         for generated_name, patch_name, subject in zip(
             generated, PATCH_NAMES, subjects
@@ -203,6 +249,9 @@ def main() -> None:
                 "--no-tree", "--ignore", "MISSING_SIGN_OFF,FILE_PATH_CHANGES",
                 str(patch), cwd=source_root,
             )
+            canonical_hash = CANONICAL_PATCH_HASHES.get(patch_name)
+            if canonical_hash and sha256(patch) != canonical_hash:
+                raise SystemExit(f"canonical patch changed: {patch_name}")
         (package / "series").write_text(
             "\n".join(PATCH_NAMES) + "\n", encoding="utf-8")
 
@@ -215,11 +264,13 @@ def main() -> None:
             run("git", "apply", str(patch), cwd=replay)
         replay_validation = run(
             "python3", str(SCRIPT_DIR / "validate_owner_source.py"),
-            "--source-root", str(replay), "--require-tests", cwd=REPO_ROOT,
+            "--source-root", str(replay), "--require-tests",
+            "--require-terminal-parent-fix", cwd=REPO_ROOT,
         )
         (package / "source-validation.txt").write_text(
             core_validation + "\n" + final_validation + "\n" +
-            mutation_validation + "\n" + replay_validation + "\n",
+            mutation_validation + "\n" + fixed_validation + "\n" +
+            fixed_mutation_validation + "\n" + replay_validation + "\n",
             encoding="utf-8",
         )
         source_state = (source_root / ".gemini-source-state").read_text(
@@ -233,7 +284,9 @@ def main() -> None:
             f"{PARENT_HASHES['arch/arm64/kernel/mt6797_a72_membership.c']}\n"
             f"parent_membership_test_sha256="
             f"{PARENT_HASHES['arch/arm64/kernel/mt6797_a72_membership_test.c']}\n"
-            "generated_patch_count=2\n"
+            "generated_patch_count=3\n"
+            f"canonical_patch_0484_sha256={CANONICAL_PATCH_HASHES[PATCH_NAMES[0]]}\n"
+            f"canonical_patch_0485_sha256={CANONICAL_PATCH_HASHES[PATCH_NAMES[1]]}\n"
             "cpu9_down_attempts=1\n"
             "affinity_attempts=1\n"
             "cpu9_restore_attempts=1\n"
@@ -242,6 +295,8 @@ def main() -> None:
             "restore_identity=distinct-and-parent-linked\n"
             "focused_kunit_cases=5\n"
             "owner_source_mutation_rejections=21\n"
+            "owner_terminal_parent_mutation_rejections=6\n"
+            "terminal_parent_validation=pass\n"
             "mt6797_callbacks=unset\n"
             "mt6797_cpu_can_disable=false\n"
             "physical_effect_calls=0\n"
@@ -257,7 +312,7 @@ def main() -> None:
         shutil.copytree(package, output)
 
     print(f"generated_package={output}")
-    print("generated_patch_count=2")
+    print("generated_patch_count=3")
     print("cpu9_down_attempts=1")
     print("affinity_attempts=1")
     print("cpu9_restore_attempts=1")
@@ -266,6 +321,8 @@ def main() -> None:
     print("restore_identity=distinct-and-parent-linked")
     print("focused_kunit_cases=5")
     print("owner_source_mutation_rejections=21")
+    print("owner_terminal_parent_mutation_rejections=6")
+    print("terminal_parent_validation=pass")
     print("mt6797_callbacks=unset")
     print("mt6797_cpu_can_disable=false")
     print("physical_effect_calls=0")

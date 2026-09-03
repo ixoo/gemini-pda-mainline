@@ -155,9 +155,9 @@ Commands:
   fetch-a72-down-lifecycle-patch
                         Fetch only that validated one-patch review
   generate-a72-hotplug-owner-patches
-                        Generate the hardware-free CPU9 down/restore owner review
+                        Generate the CPU9 owner review plus terminal-parent fix
   fetch-a72-hotplug-owner-patches
-                        Fetch only that validated two-patch review
+                        Fetch only that validated three-patch review
   generate-a72-default-off-binder-patches
                         Generate the complete default-off CPU8 binder review
   fetch-a72-default-off-binder-patches
@@ -12995,12 +12995,14 @@ package="$(printf '%s\n' "${output}" | sed -n \
 case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
 [[ -d "${package}" && ! -L "${package}" ]]
 (cd "${package}" && sha256sum --check --strict SHA256SUMS >/dev/null)
-for marker in generated_patch_count=2 cpu9_down_attempts=1 \
+for marker in generated_patch_count=3 cpu9_down_attempts=1 \
   affinity_attempts=1 cpu9_restore_attempts=1 \
   precommit_failure=rejected-without-membership-change \
   postcommit_failure=reset-only-fault \
   restore_identity=distinct-and-parent-linked focused_kunit_cases=5 \
   owner_source_mutation_rejections=21 mt6797_callbacks=unset \
+  owner_terminal_parent_mutation_rejections=6 \
+  terminal_parent_validation=pass \
   mt6797_cpu_can_disable=false physical_effect_calls=0 \
   native_vm_build=none boot_candidate=false device_action=none; do
   grep -Fx "${marker}" "${package}/provenance.txt" >/dev/null
@@ -13066,7 +13068,7 @@ case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
 [[ -d "${package}" && ! -L "${package}" ]]
 (cd "${package}" && sha256sum --check --strict SHA256SUMS >/dev/null)
 grep -Fx "repository_commit=${commit}" "${package}/provenance.txt" >/dev/null
-grep -Fx 'generated_patch_count=2' "${package}/provenance.txt" >/dev/null
+grep -Fx 'generated_patch_count=3' "${package}/provenance.txt" >/dev/null
 tar -C "$(dirname "${package}")" -cf - -- "$(basename "${package}")"
 REMOTE
   [[ -d "${temporary}/${package_name}" ]]
@@ -13074,8 +13076,10 @@ REMOTE
     cd "${temporary}/${package_name}"
     sha256sum --check --strict SHA256SUMS >/dev/null
     grep -Fx "repository_commit=${sha}" provenance.txt >/dev/null
-    grep -Fx 'generated_patch_count=2' provenance.txt >/dev/null
+    grep -Fx 'generated_patch_count=3' provenance.txt >/dev/null
     grep -Fx 'owner_source_mutation_rejections=21' provenance.txt >/dev/null
+    grep -Fx 'owner_terminal_parent_mutation_rejections=6' provenance.txt >/dev/null
+    grep -Fx 'terminal_parent_validation=pass' provenance.txt >/dev/null
     grep -Fx 'postcommit_failure=reset-only-fault' provenance.txt >/dev/null
     grep -Fx 'restore_identity=distinct-and-parent-linked' provenance.txt >/dev/null
     grep -Fx 'mt6797_callbacks=unset' provenance.txt >/dev/null

@@ -63,8 +63,13 @@ handling, and exact restore token are implemented and machine-checked.
 - `scripts/owner_source_edits.py`, `owner_test_edits.py`,
   `validate_owner_source.py`, and `test_owner_source_validator.py` define the
   second hardware-free owner slice and its rejecting source oracle.
+- `scripts/owner_terminal_parent_fix_edits.py` and
+  `test_owner_terminal_parent_validator.py` define the follow-up correction
+  and six rejecting mutations for the finalized CPU8/CPU9 parent pair.
 - `scripts/generate_owner_patches.py` and `generate-owner-on-buildbox` create
-  the owner and focused-test patch pair from the exact post-`0483` source.
+  the exact owner/test pair plus its follow-up correction from the canonical
+  prepared source through `0485`, while proving the first two patch identities
+  remain unchanged.
 - [`results/contract-validation-20260902.txt`](results/contract-validation-20260902.txt)
   records the local contract/mutation pass and exact Buildbox prepared-source
   validation.
@@ -77,6 +82,9 @@ handling, and exact restore token are implemented and machine-checked.
 - [`results/hardware-free-owner-generation-d266765e-20260902.txt`](results/hardware-free-owner-generation-d266765e-20260902.txt)
   pins the exact generated owner/test patches, independent review correction,
   strict review, replay, mutation, and all-profile invariant results.
+- [`results/hardware-free-owner-kunit-attempt-1-20260902.txt`](results/hardware-free-owner-kunit-attempt-1-20260902.txt)
+  records the first no-network QEMU run, its 56 passes and four attributable
+  failures, and the common terminal-parent predicate defect.
 - [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
   is the exact admitted no-op-by-default implementation.
 - [`../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch)
@@ -151,6 +159,17 @@ cycle: Gemian remained reachable under the unchanged boot ID for the complete
 observation window, and the mainline netcat endpoint did not appear. It is not
 classified as a kernel attempt.
 
+The exact admitted `0484`--`0485` series then compiled successfully on
+Buildbox as repository commit `7fbd9ac1...`. Its no-network four-vCPU QEMU
+gate ran all 60 expected cases. All 55 pre-existing owner, transition, and
+binder cases passed, as did the new entry-rejection case. The other four new
+cases failed at the same first down-preparation assertion with `-EPERM`.
+Source audit traced this to reuse of the active-CPU9 parent predicate: that
+predicate correctly requires retired slot 1 to be empty while CPU9 bring-up is
+active, but successful CPU9 finalization correctly fills slot 1 before the
+down lifecycle begins. The runtime result is an actionable implementation
+defect, not hardware evidence; no physical effect or device action occurred.
+
 ## Analysis
 
 The accepted online/topology/load evidence closes the entry-state uncertainty
@@ -168,15 +187,18 @@ the membership commit and subsequent restore.
 
 The physical hypothesis remains untested. The exact parent code is confirmed
 incapable of safely running the experiment as-is. Patch `0483` supplies and
-Buildbox-proves the generic ownership handoffs. Patches `0484`--`0485` now add
-the hardware-free one-attempt CPU9-down owner, single affinity-proof budget,
-distinct parent-linked restore, and reset-only post-commit failure model. They
+Buildbox-proves the generic ownership handoffs. Patches `0484`--`0485` add the
+hardware-free one-attempt CPU9-down owner, single affinity-proof budget,
+distinct parent-linked restore, and reset-only post-commit failure model, but
+their first runtime gate exposed the finalized parent-state defect above. They
 bind no callback, preserve the MT6797 disable veto, and perform no physical
 action. The final requirement remains physical CPU9-off and same-boot CPU9
 restore.
 
 ## Follow-up
 
-Compile and run the focused hardware-free owner tests on Buildbox. If they
-pass, implement the independently bounded physical executor, watchdog,
-readback, and callback-binding slice before selecting any boot candidate.
+Generate and admit one follow-up patch that preserves the active-CPU9 parent
+predicate and adds an exact finalized CPU8/CPU9 validator for down preparation.
+Rebuild on Buildbox and rerun the identical 60-case no-network gate. Only a
+complete pass permits the independently bounded physical executor, watchdog,
+readback, and callback-binding slice; no boot candidate is selected here.

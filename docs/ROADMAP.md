@@ -7379,11 +7379,16 @@ the admitted revision rejects reserved generation/cookie values and its 21st
 mutation proves the guard cannot disappear. Strict review, replay, all 21
 source mutations, and the 165-profile invariant pass. No callback is bound,
 the MT6797 disable veto remains closed, and there are zero physical-effect
-calls. **Selected next:** compile the admitted 477-entry series on Buildbox
-with the isolated membership KUnit profile and run its no-network regression.
-Only after that proof may the separate bounded executor/watchdog/readback and
-callback-binding slice be implemented; no candidate, deployment, or boot is
-selected yet.
+calls. The admitted 477-entry series compiled on Buildbox, but its exact
+no-network QEMU gate passed 56 of 60 cases. All 55 pre-existing regression
+cases and the new entry-rejection case passed; the other four new lifecycle
+cases failed because down preparation reused an active-CPU9 predicate that
+requires retired slot 1 empty after successful finalization has filled it.
+**Selected next:** preserve that active predicate, add an exact finalized
+CPU8/CPU9 parent validator as patch `0486`, then rebuild and rerun the identical
+60-case gate. Only a complete pass permits the separate bounded
+executor/watchdog/readback and callback-binding slice; no candidate,
+deployment, or boot is selected yet.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
