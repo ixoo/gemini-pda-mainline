@@ -533,11 +533,11 @@ SOURCE = kernel_text(r"""
             writel(value, (u8 __iomem *)slot + word * sizeof(u32));
     }
 
-static void hotplug_mmio_sync(void *context)
-{
-        (void)context;
-        wmb(); /* Commit each record phase before the next one. */
-}
+    static void hotplug_mmio_sync(void *context)
+    {
+            (void)context;
+            wmb(); /* Commit each record phase before the next one. */
+    }
 
     static const struct gemini_a72_hotplug_ledger_ops hotplug_mmio_ops = {
             .read = hotplug_mmio_read,
