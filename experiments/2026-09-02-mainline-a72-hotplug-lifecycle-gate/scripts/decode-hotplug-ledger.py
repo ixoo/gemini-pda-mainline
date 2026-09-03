@@ -19,6 +19,34 @@ COPIES = 2
 PAYLOAD_BYTES = COPY_WORDS * COPIES * 4
 SLOT_BYTES = 0x1000
 MAX_GENERATION = 16
+READBACK_BITMAP_V1 = 1 << 31
+READBACK_MISMATCH_NAMES = {
+    0: "baseline-null",
+    1: "post-null",
+    2: "baseline-invalid",
+    3: "baseline-status-cpu8-missing",
+    4: "baseline-status2-cpu8-missing",
+    5: "baseline-status-cpu9-missing",
+    6: "baseline-status2-cpu9-missing",
+    7: "baseline-cci-before-pending",
+    8: "baseline-cci-after-pending",
+    9: "post-invalid",
+    10: "post-status-cpu8-missing",
+    11: "post-status2-cpu8-missing",
+    12: "post-status-cpu9-present",
+    13: "post-status2-cpu9-present",
+    14: "post-cci-before-pending",
+    15: "post-cci-after-pending",
+    16: "mp2-cpusys-pwr-con-changed",
+    17: "cpu8-pwr-con-changed",
+    18: "ext-iso-changed",
+    19: "dcm-changed",
+    20: "cci-request-changed",
+    21: "provider-changed",
+    22: "clock-changed",
+    23: "bigidvfs-changed",
+}
+READBACK_MISMATCH_MASK = sum(1 << bit for bit in READBACK_MISMATCH_NAMES)
 
 STAGES = {
     1: "binding-entry-parent-exact",
@@ -90,6 +118,7 @@ def semantic_valid(words: tuple[int, ...]) -> bool:
     call_counts = words[20:24]
     online_mask = words[24] & 0xFFFF
     members = words[24] >> 16
+    readback_mismatch = words[25]
     if not 1 <= generation <= MAX_GENERATION or stage not in STAGES:
         return False
     if terminal not in TERMINALS or not session or not parent_generation or not parent_cookie:
@@ -103,6 +132,10 @@ def semantic_valid(words: tuple[int, ...]) -> bool:
     if any(count > 1 for count in call_counts):
         return False
     if online_mask & ~0x3FF or members & ~0x3:
+        return False
+    if (readback_mismatch & READBACK_BITMAP_V1 and
+            readback_mismatch & ~(READBACK_BITMAP_V1 |
+                                  READBACK_MISMATCH_MASK)):
         return False
     if terminal == 0:
         return error == 0 and stage not in (8, 17)
@@ -174,6 +207,14 @@ def decode(data: bytes, pre_boot_id: str, recovery_boot_id: str) -> dict[str, in
     return max(records, key=lambda record: record["generation"])
 
 
+def readback_mismatch_details(value: int) -> tuple[str, list[str]]:
+    if not value & READBACK_BITMAP_V1:
+        return "legacy-boolean", ["mismatch"] if value else []
+    names = [name for bit, name in READBACK_MISMATCH_NAMES.items()
+             if value & 1 << bit]
+    return "bitmap-v1", names
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--pre-boot-id", required=True)
@@ -211,6 +252,11 @@ def main() -> int:
             print(f"{name}=0x{value:x}")
         else:
             print(f"{name}={value}")
+    mismatch_format, mismatch_names = readback_mismatch_details(
+        record["readback_mismatch"])
+    print(f"readback_mismatch_format={mismatch_format}")
+    print("readback_mismatch_names=" +
+          (",".join(mismatch_names) if mismatch_names else "none"))
     return 0
 
 

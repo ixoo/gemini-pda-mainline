@@ -951,3 +951,13 @@ the status, per-core power, shared isolation/DCM/CCI, provider, clock, and
 BIGIDVFS comparisons. Prove its wire compatibility, source mutations, full
 hotplug KUnit regression, and Buildbox package before constructing one new
 candidate. Do not repeat `4b027c97...` or `58313c3a8...`.
+
+The diagnostic wire plan keeps record 4 at its existing size and version.
+Word 25 reserves bit 31 as the self-identifying bitmap-v1 marker; bits 0--23
+separately identify null or invalid baseline/post captures, both CPU8 and CPU9
+SPM status mirrors, both CCI-pending samples, MP2 cluster and CPU8 power-control
+changes, external isolation, DCM, CCI request, provider, clock, and BIGIDVFS
+changes. Legacy values `0` and `1` therefore remain unambiguous. The executor's
+existing Boolean acceptance helper delegates to the bitmap being zero, while
+record publication adds only the format marker. This changes observation, not
+the CPU9-down decision, ordering, retry budget, or physical effects.

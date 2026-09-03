@@ -22,7 +22,7 @@ AFTER = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
 
 
 def wire(generation: int, stage: int, terminal: int = 0,
-         error: int = 0) -> bytes:
+         error: int = 0, readback_mismatch: int = 0) -> bytes:
     words = [0] * 27
     words[0] = DECODER.MAGIC
     words[1] = DECODER.VERSION
@@ -48,6 +48,7 @@ def wire(generation: int, stage: int, terminal: int = 0,
     online = 0x1FF if 9 <= stage < 16 else 0x3FF
     members = 1 if 13 <= stage < 17 else 3
     words[24] = online | members << 16
+    words[25] = readback_mismatch
     prefix = struct.pack("<26I", *words[:26])
     words[26] = binascii.crc32(prefix) & 0xFFFFFFFF
     return struct.pack("<27I", *words)
@@ -106,6 +107,26 @@ class DecoderTests(unittest.TestCase):
                          binascii.crc32(bad[:26 * 4]) & 0xFFFFFFFF)
         with self.assertRaisesRegex(DECODER.DecodeError, "no-crc-valid"):
             DECODER.decode(payload(bytes(bad)), BEFORE, AFTER)
+
+    def test_legacy_readback_boolean(self) -> None:
+        self.assertEqual(DECODER.readback_mismatch_details(1),
+                         ("legacy-boolean", ["mismatch"]))
+
+    def test_readback_bitmap_names(self) -> None:
+        value = (DECODER.READBACK_BITMAP_V1 | 1 << 12 | 1 << 22)
+        result = DECODER.decode(
+            payload(wire(1, 12, 3, -5, value)), BEFORE, AFTER)
+        self.assertEqual(result["readback_mismatch"], value)
+        self.assertEqual(DECODER.readback_mismatch_details(value), (
+            "bitmap-v1",
+            ["post-status-cpu9-present", "clock-changed"],
+        ))
+
+    def test_unknown_readback_bitmap_bit_refused(self) -> None:
+        value = DECODER.READBACK_BITMAP_V1 | 1 << 29
+        with self.assertRaisesRegex(DECODER.DecodeError, "no-crc-valid"):
+            DECODER.decode(
+                payload(wire(1, 12, 3, -5, value)), BEFORE, AFTER)
 
     def test_file_is_never_modified(self) -> None:
         data = payload(wire(1, 1))
