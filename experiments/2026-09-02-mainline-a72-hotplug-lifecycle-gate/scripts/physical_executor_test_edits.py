@@ -293,22 +293,25 @@ TEST_SOURCE = dedent("""\
     \tint ret;
 
     \tret = mt6797_a72_hotplug_executor_preflight(&state->controller,
-    \t\t&mt6797_hotplug_test_ops, state, &state->request,
-    \t\t&state->result);
+    \t\t&mt6797_hotplug_test_ops, state,
+    \t\t&state->request, &state->result);
     \tif (ret)
     \t\treturn ret;
     \tret = mt6797_a72_hotplug_executor_validate(&state->controller,
-    \t\t&mt6797_hotplug_test_ops, state, false, true, true,
+    \t\t&mt6797_hotplug_test_ops, state, false,
+    \t\ttrue, true,
     \t\t&state->result);
     \tif (ret)
     \t\treturn ret;
     \tret = mt6797_a72_hotplug_executor_disable(&state->controller,
-    \t\t&mt6797_hotplug_test_ops, state, MT6797_A72_HOTPLUG_CPU9,
+    \t\t&mt6797_hotplug_test_ops, state,
+    \t\tMT6797_A72_HOTPLUG_CPU9,
     \t\t&state->result);
     \tif (ret)
     \t\treturn ret;
     \treturn mt6797_a72_hotplug_executor_commit(&state->controller,
-    \t\t&mt6797_hotplug_test_ops, state, MT6797_A72_HOTPLUG_CPU9,
+    \t\t&mt6797_hotplug_test_ops, state,
+    \t\tMT6797_A72_HOTPLUG_CPU9,
     \t\t&state->result);
     }
 
@@ -320,11 +323,13 @@ TEST_SOURCE = dedent("""\
     \tret = mt6797_hotplug_test_to_commit(state);
     \tKUNIT_ASSERT_EQ(test, ret, 0);
     \tret = mt6797_a72_hotplug_executor_kill(&state->controller,
-    \t\t&mt6797_hotplug_test_ops, state, MT6797_A72_HOTPLUG_CPU9,
+    \t\t&mt6797_hotplug_test_ops, state,
+    \t\tMT6797_A72_HOTPLUG_CPU9,
     \t\ttrue, true, false, &state->result);
     \tKUNIT_ASSERT_EQ(test, ret, 0);
     \tret = mt6797_a72_hotplug_executor_complete(&state->controller,
-    \t\t&mt6797_hotplug_test_ops, state, true, false, &state->result);
+    \t\t&mt6797_hotplug_test_ops, state, true, false,
+    \t\t&state->result);
     \tKUNIT_EXPECT_EQ(test, ret, 0);
     \tKUNIT_EXPECT_EQ(test, state->result.terminal,
     \t\t\tMT6797_A72_HOTPLUG_DOWN_COMPLETE);
@@ -373,15 +378,17 @@ TEST_SOURCE = dedent("""\
 
     \tstate->failure = MT6797_HOTPLUG_TEST_DISABLE;
     \tret = mt6797_a72_hotplug_executor_preflight(&state->controller,
-    \t\t&mt6797_hotplug_test_ops, state, &state->request,
-    \t\t&state->result);
+    \t\t&mt6797_hotplug_test_ops, state,
+    \t\t&state->request, &state->result);
     \tKUNIT_ASSERT_EQ(test, ret, 0);
     \tret = mt6797_a72_hotplug_executor_validate(&state->controller,
-    \t\t&mt6797_hotplug_test_ops, state, false, true, true,
+    \t\t&mt6797_hotplug_test_ops, state, false,
+    \t\ttrue, true,
     \t\t&state->result);
     \tKUNIT_ASSERT_EQ(test, ret, 0);
     \tret = mt6797_a72_hotplug_executor_disable(&state->controller,
-    \t\t&mt6797_hotplug_test_ops, state, MT6797_A72_HOTPLUG_CPU9,
+    \t\t&mt6797_hotplug_test_ops, state,
+    \t\tMT6797_A72_HOTPLUG_CPU9,
     \t\t&state->result);
     \tKUNIT_EXPECT_EQ(test, ret, -EIO);
     \tKUNIT_EXPECT_EQ(test, state->result.terminal,
@@ -418,12 +425,14 @@ TEST_SOURCE = dedent("""\
     \tKUNIT_ASSERT_EQ(test, ret, 0);
     \tstate->affinity_result = 0;
     \tret = mt6797_a72_hotplug_executor_kill(&state->controller,
-    \t\t&mt6797_hotplug_test_ops, state, MT6797_A72_HOTPLUG_CPU9,
+    \t\t&mt6797_hotplug_test_ops, state,
+    \t\tMT6797_A72_HOTPLUG_CPU9,
     \t\ttrue, true, false, &state->result);
     \tKUNIT_EXPECT_EQ(test, ret, -EIO);
     \tKUNIT_EXPECT_EQ(test, state->affinity_calls, (u32)1);
     \tret = mt6797_a72_hotplug_executor_kill(&state->controller,
-    \t\t&mt6797_hotplug_test_ops, state, MT6797_A72_HOTPLUG_CPU9,
+    \t\t&mt6797_hotplug_test_ops, state,
+    \t\tMT6797_A72_HOTPLUG_CPU9,
     \t\ttrue, true, false, &state->result);
     \tKUNIT_EXPECT_EQ(test, ret, -EALREADY);
     \tKUNIT_EXPECT_EQ(test, state->affinity_calls, (u32)1);
@@ -491,7 +500,8 @@ TEST_SOURCE = dedent("""\
     \tKUNIT_ASSERT_EQ(test, ret, 0);
     \tstate->failure = MT6797_HOTPLUG_TEST_CPU8;
     \tret = mt6797_a72_hotplug_executor_kill(&state->controller,
-    \t\t&mt6797_hotplug_test_ops, state, MT6797_A72_HOTPLUG_CPU9,
+    \t\t&mt6797_hotplug_test_ops, state,
+    \t\tMT6797_A72_HOTPLUG_CPU9,
     \t\ttrue, true, false, &state->result);
     \tKUNIT_EXPECT_EQ(test, ret, -EIO);
     \tKUNIT_EXPECT_EQ(test, state->result.terminal,
@@ -508,16 +518,17 @@ TEST_SOURCE = dedent("""\
     \tint ret;
 
     \tret = mt6797_a72_hotplug_executor_commit(&state->controller,
-    \t\t&mt6797_hotplug_test_ops, state, MT6797_A72_HOTPLUG_CPU9,
+    \t\t&mt6797_hotplug_test_ops, state,
+    \t\tMT6797_A72_HOTPLUG_CPU9,
     \t\t&state->result);
     \tKUNIT_EXPECT_EQ(test, ret, -EALREADY);
     \tret = mt6797_a72_hotplug_executor_preflight(&state->controller,
-    \t\t&mt6797_hotplug_test_ops, state, &state->request,
-    \t\t&state->result);
+    \t\t&mt6797_hotplug_test_ops, state,
+    \t\t&state->request, &state->result);
     \tKUNIT_ASSERT_EQ(test, ret, 0);
     \tret = mt6797_a72_hotplug_executor_preflight(&state->controller,
-    \t\t&mt6797_hotplug_test_ops, state, &state->request,
-    \t\t&state->result);
+    \t\t&mt6797_hotplug_test_ops, state,
+    \t\t&state->request, &state->result);
     \tKUNIT_EXPECT_EQ(test, ret, -EALREADY);
     \tKUNIT_EXPECT_EQ(test, state->prepare_calls, (u32)1);
     \tKUNIT_EXPECT_EQ(test, state->watchdog_calls, (u32)1);
