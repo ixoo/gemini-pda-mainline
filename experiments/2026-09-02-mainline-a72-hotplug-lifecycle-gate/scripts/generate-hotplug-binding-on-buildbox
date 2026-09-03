@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly repository_commit="${1:?repository commit required}"
+readonly source_root="${2:?prepared source root required}"
+readonly artifact_root="${3:?artifact root required}"
+readonly expected_parent_source_state=6104a904d318ee2061c918793cdae640ce206aa57f7a31720617fdd74902b001
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly script_dir
+readonly package_name="${repository_commit}-a72-hotplug-binding-patches"
+readonly destination="${artifact_root}/${package_name}"
+readonly temporary="${destination}.partial.$$"
+
+[[ "${repository_commit}" =~ ^[0-9a-f]{40}$ ]]
+[[ -d "${source_root}" && ! -L "${source_root}" ]]
+[[ -f "${source_root}/.gemini-source-state" ]]
+prepared_source_state="$(<"${source_root}/.gemini-source-state")"
+readonly prepared_source_state
+[[ "${prepared_source_state}" == "${expected_parent_source_state}" ]]
+[[ -d "${artifact_root}" && ! -L "${artifact_root}" ]]
+[[ ! -e "${destination}" ]]
+
+cleanup() {
+	if [[ -n "${temporary:-}" && -d "${temporary}" && ! -L "${temporary}" ]]; then
+		rm -rf -- "${temporary}"
+	fi
+}
+trap cleanup EXIT
+
+python3 "${script_dir}/generate_hotplug_binding_patches.py" \
+	--source-root "${source_root}" \
+	--repository-commit "${repository_commit}" \
+	--output "${temporary}"
+(
+	cd "${temporary}"
+	sha256sum --check --strict SHA256SUMS >/dev/null
+	grep -Fx "repository_commit=${repository_commit}" provenance.txt >/dev/null
+	for marker in generated_patch_count=2 prepared_interfaces=28 \
+		public_cpu_can_disable=false \
+		private_transition=device-hotplug-lock-scoped-cpu9-only \
+		private_offline_calls=1 restore_add_cpu_calls=1 \
+		cpu_off_calls=one-direct-target-callback \
+		affinity_info_calls=one-direct-level0 \
+		cpu_on_calls=one-restore-boot \
+		successful_ledger_stages=1-7,9-17 \
+		cpu_off_return_stage=8-terminal-only focused_kunit_cases=9 \
+		unsafe_mutations_rejected=28 native_vm_build=none \
+		boot_candidate=false device_action=none; do
+		grep -Fx "${marker}" provenance.txt >/dev/null
+	done
+)
+mv "${temporary}" "${destination}"
+trap - EXIT
+printf 'Generated A72 hotplug binding patches at %s\n' "${destination}"
