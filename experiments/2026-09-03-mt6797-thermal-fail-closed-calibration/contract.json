@@ -1,0 +1,13 @@
+{
+  "id": "MT6797-THERMAL-CALIBRATION-FAIL-CLOSED-20260903",
+  "parent_source_state": "cfb17989ea0cbf135c70ddd6c4fb32d0060f1a7d251fdd6fc6b61c719991d7be",
+  "parent_source_integrity": "2c2e9a81eccd1a97253b7864c9b9ada4b959e11399bf016ef990f9e92c384687",
+  "patches": [
+    "0512-thermal-mediatek-require-valid-MT6797-calibration.patch",
+    "0513-thermal-mediatek-test-calibration-requirement-policy.patch"
+  ],
+  "kunit_profile": "mt6797-thermal-calibration-kunit",
+  "hardware_action": "none",
+  "device_action": "none",
+  "boot_candidate": false
+}

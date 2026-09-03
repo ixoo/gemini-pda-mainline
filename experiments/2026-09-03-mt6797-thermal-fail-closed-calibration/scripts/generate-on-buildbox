@@ -1,0 +1,197 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+export LC_ALL=C
+
+readonly PARENT_SOURCE_STATE=cfb17989ea0cbf135c70ddd6c4fb32d0060f1a7d251fdd6fc6b61c719991d7be
+readonly DRIVER_SHA256=154b221b9dd55a703bbbb6ac9196b7479d235fdea7592500e69eac8a7524a257
+readonly KCONFIG_SHA256=ddd87cafe6e89488a75a66088ac213fb9f66e7ee849e906b81f84e759c161fed
+readonly MAKEFILE_SHA256=fd04e3e5c4d18e11bccb95d37bf721087397e5e99480d6a46fa247d22e38fbf8
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+
+[[ "$#" -eq 3 ]] || die 'expected PROJECT_COMMIT SOURCE_ROOT OUTPUT_ROOT'
+readonly project_commit=$1
+readonly source_root=$2
+readonly output_root=$3
+[[ "$project_commit" =~ ^[0-9a-f]{40}$ ]] || die 'invalid project commit'
+[[ "$source_root" == /workspace/gemini-pda/src/linux-7.1.3 ]] ||
+	die 'unexpected managed source root'
+[[ "$output_root" == /workspace/gemini-pda/* ]] || die 'unsafe output root'
+[[ -f "$source_root/.gemini-source-state" && ! -L "$source_root/.gemini-source-state" ]] ||
+	die 'prepared source state marker absent or unsafe'
+[[ "$(<"$source_root/.gemini-source-state")" == "$PARENT_SOURCE_STATE" ]] ||
+	die 'prepared parent source state changed'
+
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+experiment_dir=$(cd -- "$script_dir/.." && pwd -P)
+repository_dir=$(cd -- "$experiment_dir/../.." && pwd -P)
+readonly script_dir experiment_dir repository_dir
+[[ "$(git -C "$repository_dir" rev-parse HEAD)" == "$project_commit" ]] ||
+	die 'project checkout does not match requested commit'
+[[ -z "$(git -C "$repository_dir" status --porcelain)" ]] ||
+	die 'project checkout is dirty'
+for command in git perl python3 sha256sum; do
+	command -v "$command" >/dev/null 2>&1 || die "missing command: $command"
+done
+
+readonly thermal_dir="$source_root/drivers/thermal/mediatek"
+printf '%s  %s\n' "$DRIVER_SHA256" "$thermal_dir/auxadc_thermal.c" |
+	sha256sum --check --status || die 'parent auxadc_thermal.c changed'
+printf '%s  %s\n' "$KCONFIG_SHA256" "$thermal_dir/Kconfig" |
+	sha256sum --check --status || die 'parent thermal Kconfig changed'
+printf '%s  %s\n' "$MAKEFILE_SHA256" "$thermal_dir/Makefile" |
+	sha256sum --check --status || die 'parent thermal Makefile changed'
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_tool.py"
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/test-patch-validator.py"
+
+readonly work_root=/workspace/gemini-pda/mt6797-thermal-calibration-work
+readonly package="$output_root/mt6797-thermal-calibration-patches-${project_commit:0:12}"
+readonly partial="${package}.partial.$$"
+mkdir -p "$work_root" "$output_root"
+[[ ! -e "$partial" ]] || die 'stale output partial exists'
+
+if [[ -d "$package" && ! -L "$package" ]]; then
+	grep -Fx "repository_commit=$project_commit" \
+		"$package/provenance/generation.txt" >/dev/null ||
+		die 'existing package commit mismatch'
+	(cd "$package" && sha256sum --check --strict SHA256SUMS >/dev/null)
+	printf 'Generated MT6797 thermal calibration patch review at %s\n' "$package"
+	exit 0
+fi
+[[ ! -e "$package" ]] || die 'unsafe existing package path'
+
+work=$(mktemp -d "$work_root/generation.XXXXXX")
+readonly work
+cleanup() {
+	[[ ! -d "$work" || "$work" != "$work_root"/generation.* ]] || rm -rf -- "$work"
+	[[ ! -d "$partial" || "$partial" != "$output_root"/*.partial.* ]] || rm -rf -- "$partial"
+}
+trap cleanup EXIT
+
+mkdir -p "$work/source/drivers/thermal/mediatek"
+cp -- "$thermal_dir/auxadc_thermal.c" "$work/source/drivers/thermal/mediatek/"
+cp -- "$thermal_dir/Kconfig" "$work/source/drivers/thermal/mediatek/"
+cp -- "$thermal_dir/Makefile" "$work/source/drivers/thermal/mediatek/"
+git -C "$work/source" init --quiet
+git -C "$work/source" config user.name 'Gemini Mainline Experiment'
+git -C "$work/source" config user.email gemini-mainline@example.invalid
+git -C "$work/source" add -- drivers/thermal/mediatek
+GIT_AUTHOR_DATE=2026-09-03T16:00:00Z \
+GIT_COMMITTER_DATE=2026-09-03T16:00:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'bounded MT6797 thermal calibration source parent'
+baseline_commit=$(git -C "$work/source" rev-parse HEAD)
+readonly baseline_commit
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/source_edits.py" \
+	--source-root "$work/source" --phase production
+git -C "$work/source" diff --check
+git -C "$work/source" add -- \
+	drivers/thermal/mediatek/auxadc_thermal.c \
+	drivers/thermal/mediatek/auxadc_thermal_internal.h
+git -C "$work/source" diff --cached --check
+GIT_AUTHOR_NAME='Gemini Mainline Experiment' \
+GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid \
+GIT_COMMITTER_NAME='Gemini Mainline Experiment' \
+GIT_COMMITTER_EMAIL=gemini-mainline@example.invalid \
+GIT_AUTHOR_DATE=2026-09-03T16:01:00Z \
+GIT_COMMITTER_DATE=2026-09-03T16:01:00Z \
+	git -C "$work/source" commit --no-gpg-sign \
+		-m 'thermal: mediatek: require valid MT6797 calibration' \
+		-m 'Make calibration mandatory only for the MT6797 match data.' \
+		-m 'Propagate missing and invalid calibration instead of defaults.' \
+		-m 'Require the exact three-word MT6797 NVMEM payload length.'
+production_commit=$(git -C "$work/source" rev-parse HEAD)
+readonly production_commit
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/source_edits.py" \
+	--source-root "$work/source" --phase kunit
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_source.py" \
+	--source-root "$work/source"
+git -C "$work/source" diff --check
+git -C "$work/source" add -- \
+	drivers/thermal/mediatek/Kconfig \
+	drivers/thermal/mediatek/Makefile \
+	drivers/thermal/mediatek/auxadc_thermal_test.c
+git -C "$work/source" diff --cached --check
+GIT_AUTHOR_NAME='Gemini Mainline Experiment' \
+GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid \
+GIT_COMMITTER_NAME='Gemini Mainline Experiment' \
+GIT_COMMITTER_EMAIL=gemini-mainline@example.invalid \
+GIT_AUTHOR_DATE=2026-09-03T16:02:00Z \
+GIT_COMMITTER_DATE=2026-09-03T16:02:00Z \
+	git -C "$work/source" commit --no-gpg-sign \
+		-m 'thermal: mediatek: test calibration requirement policy' \
+		-m 'Cover optional compatibility, mandatory failures, deferral, and length.' \
+		-m 'The focused suite invokes pure helpers and performs no hardware action.'
+kunit_commit=$(git -C "$work/source" rev-parse HEAD)
+readonly kunit_commit
+
+mkdir -p "$partial/patches" "$partial/provenance"
+readonly patch1=0512-thermal-mediatek-require-valid-MT6797-calibration.patch
+readonly patch2=0513-thermal-mediatek-test-calibration-requirement-policy.patch
+git -C "$work/source" format-patch -2 --no-signature --numbered \
+	--start-number 1 --output-directory "$partial/patches" >/dev/null
+generated1=$(find "$partial/patches" -maxdepth 1 -type f -name '0001-*.patch' -print)
+generated2=$(find "$partial/patches" -maxdepth 1 -type f -name '0002-*.patch' -print)
+[[ -n "$generated1" && -n "$generated2" ]] || die 'normal patch output absent'
+mv -- "$generated1" "$partial/patches/$patch1"
+mv -- "$generated2" "$partial/patches/$patch2"
+printf '%s\n' "$patch1" "$patch2" >"$partial/patches/series"
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_patches.py" \
+	--patch-dir "$partial/patches"
+
+git clone --quiet "$work/source" "$work/verify"
+git -C "$work/verify" checkout --quiet --detach "$baseline_commit"
+git -C "$work/verify" config user.name 'Gemini Mainline Experiment'
+git -C "$work/verify" config user.email gemini-mainline@example.invalid
+git -C "$work/verify" am --quiet --committer-date-is-author-date \
+	"$partial/patches/$patch1" "$partial/patches/$patch2"
+[[ "$(git -C "$work/verify" rev-parse HEAD)" == "$kunit_commit" ]] ||
+	die 'normal patch application did not reproduce generated commits'
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_source.py" \
+	--source-root "$work/verify"
+[[ -z "$(git -C "$work/verify" status --porcelain)" ]] ||
+	die 'verification source is dirty'
+
+if ! perl "$source_root/scripts/checkpatch.pl" --no-tree --strict \
+	--ignore MISSING_SIGN_OFF,FILE_PATH_CHANGES,COMMIT_LOG_LONG_LINE \
+	"$partial/patches/$patch1" "$partial/patches/$patch2" \
+	>"$partial/provenance/checkpatch.txt"; then
+	cat "$partial/provenance/checkpatch.txt" >&2
+	die 'strict checkpatch rejected generated patches'
+fi
+
+git -C "$work/source" diff-tree --no-commit-id --name-only -r \
+	"$production_commit" >"$partial/provenance/production-paths.txt"
+git -C "$work/source" diff-tree --no-commit-id --name-only -r \
+	"$kunit_commit" >"$partial/provenance/kunit-paths.txt"
+cat >"$partial/provenance/generation.txt" <<EOF
+purpose=experiment-only-hardware-free-mt6797-thermal-calibration-policy
+repository_commit=$project_commit
+parent_source_state=$PARENT_SOURCE_STATE
+baseline_commit=$baseline_commit
+production_commit=$production_commit
+kunit_commit=$kunit_commit
+generated_patch_count=2
+changed_path_count=5
+kunit_case_count=9
+generator=experiments/2026-09-03-mt6797-thermal-fail-closed-calibration/scripts/generate-on-buildbox
+synthetic_signoff=absent
+native_vm_kernel_build=no
+hardware_action=none
+device_action=none
+boot_candidate=false
+cpu8_cpu9_load=none
+EOF
+(
+	cd "$partial"
+	find patches provenance -type f -print0 | sort -z | xargs -0 sha256sum >SHA256SUMS
+	sha256sum --check --strict SHA256SUMS >/dev/null
+)
+mv "$partial" "$package"
+trap - EXIT
+rm -rf -- "$work"
+printf 'Generated MT6797 thermal calibration patch review at %s\n' "$package"
