@@ -706,9 +706,9 @@ static int mt6797_a72_hotplug_down_terminal(
 	if (result->terminal == MT6797_A72_HOTPLUG_DOWN_COMPLETE)
 		return mt6797_a72_hotplug_publish(
 			binding, GEMINI_A72_HOTPLUG_DOWN_COMPLETE, 0, 0, true);
-	if (result->terminal == MT6797_A72_HOTPLUG_REJECTED_PRECOMMIT)
+	if (result->terminal == MT6797_A72_HOTPLUG_REJECTED_PRECOMMIT) {
 		terminal = GEMINI_A72_HOTPLUG_REJECTED_PRECOMMIT;
-	else if (binding->cpu_off_returned) {
+	} else if (binding->cpu_off_returned) {
 		stage = GEMINI_A72_HOTPLUG_CPU_OFF_RETURNED;
 		terminal = GEMINI_A72_HOTPLUG_CPU_OFF_RETURN_FAULT;
 	} else {
