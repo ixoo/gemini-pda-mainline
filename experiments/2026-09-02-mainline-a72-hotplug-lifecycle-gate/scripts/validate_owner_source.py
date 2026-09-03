@@ -178,7 +178,7 @@ def main() -> None:
             "!cpu9->p29_valid",
             "!cpu9->p32_valid",
             "!cpu9->p32r_valid",
-            "!cpu9->cpu8_success_published",
+            "!cpu9->cpu8_success_published && "
             "cpu9->cpu9_success_published",
         ):
             require(token in terminal_parent,
