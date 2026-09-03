@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-a72-hotplug-lifecycle-gate` |
-| Status | CPU9 reached affinity-off and Linux-offline with CPU8 retained; only the secondary SPM CPU-status mirror still reported CPU9 present |
+| Status | One exact transaction booted CPU8/CPU9, offlined and restored CPU9 with CPU8 retained, returned success at stage 18, and left CPUs 0--9 online; repeatability and broader stability remain open |
 | Subsystem | arm64 CPU hotplug, PSCI, MT6797 A72 membership |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-09-02--2026-09-03 America/New_York |
@@ -1428,3 +1428,30 @@ unreachability. Sanitized deployment proof is retained in
 The device is off for one owner-selected `boot2` attempt. No trigger may be
 issued until its fresh read-only frame passes the exact candidate and A41
 record-identity gate.
+
+That exact attempt succeeded. A prompt-suppressed read-only frame passed on
+fresh mainline boot ID `7dc6b121...`; one trigger then booted CPU8, booted
+CPU9 initially and once more after the bounded CPU9-only down transaction,
+and left CPUs `0-9` online. The terminal binder diagnostic returned zero with
+`completed=1`, public and private stage 18, valid restore revalidation, and no
+stage or publication error. Changed-ID Gemian recovery independently yielded
+a valid v3 record 4 sealed `restored-success` at stage 18 with error zero,
+membership `0x3`, online mask `0x3ff`, and exactly one CPU_OFF, affinity
+query, retained-CPU8 IPI, and restore CPU_ON. The symbolic stage-binding fix
+therefore closes the CPU8/CPU9 bring-up transaction and its software
+completion-accounting boundary. Exact runtime and recovery identities are in
+[`results/stage-binding-fix-runtime-attempt-1-success-20260903.txt`](results/stage-binding-fix-runtime-attempt-1-success-20260903.txt).
+
+This is one successful transaction, not yet a repeatability, stress, thermal,
+suspend, or general hotplug-stability claim. Post-run DT comparison also found
+that the provenance-only composition used the older flat serviceability base
+`1478f2c8...` and therefore omitted the canonical `/cpus/cpu-map` already
+present in both the package DT and proven topology-serviceability DT
+`4b05758f...`. The only substantive topology-serviceability delta is that
+4+4+2 map and its ten CPU phandles, so the successful candidate must not be
+repeated unchanged. **Selected next:** compose the same proven kernel and A41
+identity over `4b05758f...`, independently prove that exact DT delta, and use
+one fresh boot for stage-18 repeatability plus exact cluster0 CPU0-3,
+cluster1 CPU4-7, cluster2 CPU8-9 topology, without stress. Only after that
+passes may the same topology-preserving artifact receive one separate bounded
+load/coherency attempt.

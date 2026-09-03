@@ -7826,6 +7826,26 @@ shutdown was confirmed. **Selected next:** the owner selects `boot2` once;
 capture and validate its exact fresh read-only frame before the sole trigger,
 then apply the already recorded success or unexpected-terminal decision.
 
+That physical attempt passed the complete success predicate. CPU8 entered,
+CPU9 entered before and after one bounded CPU9-only down transaction, CPUs
+`0-9` were online, the binder returned zero with `completed=1` at public and
+private stage 18, and changed-boot retained record 4 independently reported
+`restored-success` with error zero. This closes the bring-up transaction and
+its completion-accounting repair; do not add another bring-up mechanism or
+repeat `c84aea47...` merely to reconfirm it. The exact evidence is in the
+linked [runtime record](../experiments/2026-09-02-mainline-a72-hotplug-lifecycle-gate/results/stage-binding-fix-runtime-attempt-1-success-20260903.txt).
+
+The candidate composition nevertheless used the older flat serviceability DT
+base and omitted the already-proven canonical 4+4+2 `cpu-map` present in the
+package DT. **Selected next:** retain the exact successful kernel and A41
+identity, replace only the composition base with proven
+topology-serviceability DT `4b05758f...`, and independently verify that the DT
+delta consists only of `cpu-map` plus the ten CPU phandles. Spend one fresh
+boot on stage-18 repeatability and exact cluster topology without load. If it
+passes, spend one separate boot of the same artifact on bounded topology/RAM
+load and coherency observation. Only then broaden the matrix to repeated cold
+boot, hotplug, thermal, suspend, and scheduler validation.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;
