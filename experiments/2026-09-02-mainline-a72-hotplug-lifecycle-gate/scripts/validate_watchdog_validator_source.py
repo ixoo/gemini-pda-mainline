@@ -42,7 +42,9 @@ def validate(root: pathlib.Path, require_tests: bool) -> None:
         require(token in header, f"public contract missing: {token}")
     require(header.count("mtk_wdt_recovery_validate(") == 2,
             "enabled declaration or disabled stub changed")
-    stub = header.split("static inline int mtk_wdt_recovery_validate(", 1)[1]
+    stub_anchor = "static inline int\nmtk_wdt_recovery_validate("
+    require(stub_anchor in header, "disabled validator stub missing")
+    stub = header.split(stub_anchor, 1)[1]
     require("*validation = (struct mtk_wdt_recovery_validation){};" in stub and
             "return -EOPNOTSUPP;" in stub,
             "disabled validator stub changed")
