@@ -31,7 +31,7 @@ Cortex-A72 pair.
 | I2C6 transfer | Native packed/FIFO pointer-read and one exact one-message two-byte FIFO write are runtime proven. The write completed once with payload `[0xda, 0x46]`, exact no-retry accounting, and stable readback. | This closes only the reviewed same-value shape; arbitrary writes, failure recovery, stress, and resume remain open. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
 | Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected. A separate hardware-free implementation now models exact positive Buck-B acquire/release and passes all six focused fake-adapter cases. | Gate 6 is closed for the reviewed no-op, and the first Gate-7 provider source boundary is complete offline. Physical transition, production integration, consumers, and CPU requests remain disconnected. |
-| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The exact intersected-status attempt booted both A72s and proved one complete CPU9 down with CPU8 retained: one CPU_OFF, affinity level 0 off, intersected SPM off proof, retained-CPU8 callback, Linux offline completion, and membership `0x1`. One restore CPU_ON then returned success, but CPU9 never re-entered arm64 secondary code or became online before `__cpu_up()` timed out. Record 4's terminal stage 16 is the next expected checkpoint, not a completed one: `result_flags=0x7f7f` has the stage-16 bit clear. Automatic recovery and changed-boot pstore capture passed. The public A72 disable veto remains closed. | Retire the exact candidate. Add a bounded read-only restore-readiness observation after completed down and before the existing sole CPU_ON. Retain exact CPU9 status-mirror and per-core power-control samples; issue CPU_ON only if the named readiness predicate passes, and otherwise seal a no-CPU_ON timeout. Build and test only on Buildbox before one distinct physical candidate. Keep CPU8-last-off, cpufreq/OPP, thermal, idle, suspend, and default-profile promotion separate. |
+| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The intersected-status attempt proved one complete CPU9 down with CPU8 retained, then one successfully returning restore CPU_ON that never reached arm64 secondary entry. Its readiness-gated successor completed 51 samples and 50 sleeps with CPU9 absent from the primary status word, persistently present in the secondary mirror, and its per-core power-control word fixed at the established off fixture value `0x10332`. The gate timed out with exactly zero CPU_ON calls, CPU8 online, and automatic changed-ID recovery. The public A72 disable veto remains closed. | Retire both exact candidates. Do not wait longer or merely restore the earlier intersection rule. Trace the generic arm64, PSCI, and secure restart boundary, then add a hardware-free-proven retained checkpoint immediately after the sole CPU_ON returns with pre/post CPU9 status and power-control evidence. One distinct candidate may follow only when it can distinguish firmware refusal, no power transition, power-on without secondary entry, and successful entry. Keep CPU8-last-off, cpufreq/OPP, thermal, idle, suspend, and default-profile promotion separate. |
 
 The durable technical boundary is in
 [DA921x, I2C6, and Cortex-A72](hardware/da921x-i2c6-a72.md). The exact
@@ -7678,6 +7678,26 @@ the exact read-only pre-trigger frame before issuing this candidate's single
 trigger. Screen state or reboot behavior alone remains inconclusive.
 Do not repeat
 `4b027c97...`, `58313c3a8...`, or `9b60b576...`.
+
+The later readiness-gated successor completed its single physical attempt.
+The exact pre-trigger frame was pristine on a fresh mainline boot; CPU8 and
+CPU9 reached their initial admission proofs, and one CPU9 down completed with
+CPU8 retained. Across all 51 post-down samples, CPU9's primary status bit was
+clear, its secondary status bit remained set, and its per-core power-control
+word remained `0x10332`. The strict union-clear gate therefore sealed
+`-ETIMEDOUT` with zero CPU_ON calls. Changed-ID Gemian recovery and read-only
+record-4 decoding passed. This rejects a short secondary-mirror settling delay
+and retires exact candidate `44e1b42c...`.
+
+**Selected next:** audit the exact `__cpu_up()` -> wrapped PSCI `cpu_boot` ->
+secure CPU_ON path and freeze one observation-only successor. It must retain a
+checkpoint immediately after the sole CPU_ON returns and compare CPU9's raw
+status mirrors and per-core power-control state before and after that call. It
+must add no CPU_OFF, CPU_ON, affinity, retry, provider, cluster, or watchdog
+operation. Generate and test it only on Buildbox. Select no physical candidate
+until source replay, rejecting mutations, focused KUnit, all-profile ordering,
+package provenance, recovery decoding, and the no-retry oracle pass. Do not
+repeat the retired image or spend a boot merely on a longer delay.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

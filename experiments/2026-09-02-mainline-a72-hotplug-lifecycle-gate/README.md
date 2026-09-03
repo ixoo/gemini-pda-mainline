@@ -1203,3 +1203,28 @@ Sanitized deployment proof is retained in
 The device is off and ready for the owner to physically select `boot2`; the
 host must capture and validate the read-only pre-trigger frame before spending
 the candidate's single trigger.
+
+The selected boot then passed the exact pristine pre-trigger gate on fresh
+mainline boot ID `0fac39d7...`. One trigger again brought CPU8 and CPU9 through
+their independent initial admission proofs, completed one CPU9 CPU_OFF and
+affinity-off observation while retaining CPU8, and entered the new readiness
+observer. All 51 samples and 50 bounded sleeps completed. In the first and
+last samples CPU9 was absent from primary `CPU_PWR_STATUS`, remained present
+in `CPU_PWR_STATUS_2ND`, and its per-core power-control word remained
+`0x10332`; CPU8 remained present in both mirrors. The observer therefore timed
+out with `-ETIMEDOUT` and record 4 retained exactly zero CPU_ON calls, online
+mask `0x1ff`, membership `0x1`, and the persistent-secondary mismatch. This
+rejects the short-settling explanation without reissuing the failed restore.
+
+The watchdog returned the device to fresh Gemian boot ID `7ab26b12...`.
+Read-only recovery copied and decoded record 4 without removing remote pstore
+data. The exact runtime proof is retained in
+[`results/restore-readiness-runtime-attempt-1-persistent-secondary-20260903.txt`](results/restore-readiness-runtime-attempt-1-persistent-secondary-20260903.txt).
+This retires `44e1b42c...`; do not repeat it. The next experiment must not
+merely wait longer or restore the earlier intersection behavior without new
+evidence. First trace the exact generic arm64, PSCI, and secure restart call
+boundary. Then hardware-free-prove a durable checkpoint immediately after the
+sole CPU_ON returns, retaining the pre/post CPU9 status mirrors and per-core
+power-control state. A later distinct physical candidate is justified only if
+that observation can distinguish firmware refusal, no power transition,
+power-on without arm64 secondary entry, and successful secondary entry.
