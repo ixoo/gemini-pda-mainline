@@ -1303,3 +1303,17 @@ tool identities are retained in
 No device access or write occurred during construction. This distinct
 candidate is selected for one guarded deployment after these exact tools and
 evidence are published; predecessor `44e1b42c...` remains retired.
+
+The exact tooling and candidate record were published at commit
+`5274d0f3...`. From ordinary Gemian boot ID `7ab26b12...`, the guarded live
+GPT probe resolved inactive logical `boot2` as `/dev/mmcblk0p30` while the
+active root remained `/dev/mmcblk0p29`; stable external power was present.
+One write replaced retired predecessor `44e1b42c...` with exact P30E-rearm
+candidate `7ffd60d0...`. The write-path full readback, independent streamed
+full readback, and byte comparison all pass. Temporary device and host
+readbacks were removed, no fresh partition backup was made, and clean
+shutdown was followed by confirmed unreachability. Sanitized deployment proof
+is retained in
+[`results/p30e-rearm-deployment-20260903.txt`](results/p30e-rearm-deployment-20260903.txt).
+The device is off and ready for the owner to select `boot2`; no trigger may be
+issued until the fresh read-only pre-trigger frame passes the exact validator.

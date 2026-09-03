@@ -7733,14 +7733,18 @@ and exact 16 MiB candidate `7ffd60d0...`; both validators pass 32/32 LK gates
 and reject six mutations, while the exact pre-trigger gate rejects all eight
 unsafe mutations. Construction performed no device action. See the linked
 [candidate record](../experiments/2026-09-02-mainline-a72-hotplug-lifecycle-gate/results/p30e-rearm-candidate-d2161a1e-20260903.txt).
-**Selected next:** publish this exact tooling and evidence, then use the
-guarded live-GPT installer once against inactive logical `boot2`, require both
-full-partition readbacks, remove temporary files, and shut Gemian down
-cleanly. After the owner physically selects `boot2`, capture and validate the
-read-only pristine frame before the sole trigger. The decisive success is v3
-record-4 stages 16, 17, and terminal 18 together with a second CPU9 entry and
-online mask `0-9`; any earlier stop follows the frozen decision map and does
-not justify an identical repeat.
+Tooling and evidence were published at `5274d0f3...`. Live-GPT deployment from
+Gemian boot ID `7ab26b12...` resolved inactive logical `boot2` as
+`/dev/mmcblk0p30` with active root `/dev/mmcblk0p29`; stable external power was
+present. One write replaced retired `44e1b42c...` with exact candidate
+`7ffd60d0...`. Both full-partition readbacks and the independent byte
+comparison pass, temporary files were removed, no fresh backup was made, and
+the device is confirmed shut down. **Selected next:** the owner physically
+selects `boot2`; the host captures and validates the fresh read-only pristine
+frame before issuing the sole trigger. The decisive success is v3 record-4
+stages 16, 17, and terminal 18 together with a second CPU9 entry and online
+mask `0-9`; any earlier stop follows the frozen decision map and does not
+justify an identical repeat.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
