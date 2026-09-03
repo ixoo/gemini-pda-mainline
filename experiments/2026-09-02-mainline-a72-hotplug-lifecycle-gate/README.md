@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-a72-hotplug-lifecycle-gate` |
-| Status | repaired successor candidate validated offline; guarded `boot2` deployment next |
+| Status | repaired successor installed with full readback; device shut down for physical `boot2` selection |
 | Subsystem | arm64 CPU hotplug, PSCI, MT6797 A72 membership |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-09-02--2026-09-03 America/New_York |
@@ -38,6 +38,8 @@ last-A72 power-down branch?
 - Repaired successor `boot2` identity: `58313c3a8...`.
 - Boot path and target: one guarded write to inactive logical `boot2`; no
   device action had occurred when the candidate record below was published.
+- Repaired deployment: exact `58313c3a8...` on `/dev/mmcblk0p30`, followed by
+  full independent readback and confirmed clean shutdown.
 
 ## Safety assessment
 
@@ -311,6 +313,9 @@ handling, and exact restore token are implemented and machine-checked.
   pins the corrected Buildbox package, exact embedded identity counts,
   byte-reproducible DT/container constructions, strengthened pre-trigger gate,
   and repaired successor candidate `58313c3a8...` before device deployment.
+- [`results/config-identity-repair-deployment-20260903.txt`](results/config-identity-repair-deployment-20260903.txt)
+  records live-GPT target resolution, stable power, predecessor identity, the
+  sole write, two matching full readbacks, cleanup, and confirmed shutdown.
 - [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
   is the exact admitted no-op-by-default implementation.
 - [`../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch)
@@ -837,6 +842,14 @@ validations pass all 32 LK gates and reject all six container mutations. The
 raw successor is `4a3551c6...`; exact inactive-`boot2` content is
 `58313c3a8...`. No device access or write occurred during its construction.
 
+Guarded deployment from pushed commit `1a9b8a9d...` then resolved inactive
+logical `boot2` to `/dev/mmcblk0p30` while Gemian root remained
+`/dev/mmcblk0p29`. Stable power was present at 100% capacity. One write
+replaced retired candidate `4b027c97...`; the post-flush partition checksum and
+an independent streamed byte comparison both matched exact successor
+`58313c3a8...`. No fresh backup was made, all temporary files were removed,
+and both the installer and a separate SSH probe confirmed clean shutdown.
+
 ## Analysis
 
 The accepted online/topology/load evidence closes the entry-state uncertainty
@@ -911,9 +924,8 @@ complete and must remain fixed.
 Continue under the authoritative selected-next order and exit criteria in
 [the roadmap](../../docs/ROADMAP.md); this experiment record does not redefine
 that sequence.
-The selected next action is one guarded deployment of exact repaired successor
-`58313c3a8...` to live-GPT-resolved inactive logical `boot2`, followed by a
-full-partition readback and clean shutdown. On its physical boot, collect the
-read-only pre-trigger frame first. Trigger exactly once only if the changed
-boot ID, release, record identity, pristine controller state, read-only sysfs,
-and arm64 READY/no-proof-mask gate all pass. Do not repeat `4b027c97...`.
+The selected next action is physical selection of installed repaired successor
+`58313c3a8...` from `boot2`. Collect the read-only pre-trigger frame first.
+Trigger exactly once only if the changed boot ID, release, record identity,
+pristine controller state, read-only sysfs, and arm64 READY/no-proof-mask gate
+all pass. Do not repeat `4b027c97...`.

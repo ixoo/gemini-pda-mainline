@@ -31,7 +31,7 @@ Cortex-A72 pair.
 | I2C6 transfer | Native packed/FIFO pointer-read and one exact one-message two-byte FIFO write are runtime proven. The write completed once with payload `[0xda, 0x46]`, exact no-retry accounting, and stable readback. | This closes only the reviewed same-value shape; arbitrary writes, failure recovery, stress, and resume remain open. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
 | Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected. A separate hardware-free implementation now models exact positive Buck-B acquire/release and passes all six focused fake-adapter cases. | Gate 6 is closed for the reviewed no-op, and the first Gate-7 provider source boundary is complete offline. Physical transition, production integration, consumers, and CPU requests remain disconnected. |
-| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. Six fresh exact experimental-profile boots reached CPUs `0-9`; accepted runtime children prove standard 4+4+2 topology, exact affinity, bidirectional RAM integrity, independent accounting, and simultaneous dual-A72 peer-visible work. The hardware-free lifecycle components pass their exact Buildbox and no-network gates. The first physical candidate was safely refused before any CPU action because its Image retained a stale configuration identity. Repaired successor `58313c3a8...` now passes the Buildbox package, embedded-identity, DT, container, mutation, serviceability, attribution, recovery, and forbidden-action gates. The public A72 disable veto remains closed, and no physical down/restore attempt has been made. | Deploy exact [repaired CPU9 physical-off and same-boot restore candidate](../experiments/2026-09-02-mainline-a72-hotplug-lifecycle-gate/README.md) to inactive `boot2`, then require a changed boot ID and the arm64 READY/no-proof-mask pre-trigger gate before exactly one trigger. Keep CPU8-last-off, cpufreq/OPP, thermal, idle, suspend, and default-profile promotion separate. |
+| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. Six fresh exact experimental-profile boots reached CPUs `0-9`; accepted runtime children prove standard 4+4+2 topology, exact affinity, bidirectional RAM integrity, independent accounting, and simultaneous dual-A72 peer-visible work. The hardware-free lifecycle components pass their exact Buildbox and no-network gates. The first physical candidate was safely refused before any CPU action because its Image retained a stale configuration identity. Repaired successor `58313c3a8...` passes every offline gate, is installed on inactive `boot2` with two matching full readbacks, and the device is shut down. The public A72 disable veto remains closed, and no physical down/restore attempt has been made. | Physically select the exact [repaired CPU9 physical-off and same-boot restore candidate](../experiments/2026-09-02-mainline-a72-hotplug-lifecycle-gate/README.md), then require a changed boot ID and the arm64 READY/no-proof-mask pre-trigger gate before exactly one trigger. Keep CPU8-last-off, cpufreq/OPP, thermal, idle, suspend, and default-profile promotion separate. |
 
 The durable technical boundary is in
 [DA921x, I2C6, and Cortex-A72](hardware/da921x-i2c6-a72.md). The exact
@@ -7594,10 +7594,10 @@ and exact Buildbox commit `69b7494c...` embeds `2e50cc09...` once with both
 stale identities absent. Two independent DT/container constructions reproduce
 exact successor `58313c3a8...`; the package, 32 LK gates, negative mutations,
 and strengthened READY/no-proof-mask pre-trigger oracle all pass. **Selected
-next:** commit and push the successor tooling/evidence, then use the guarded
-live-GPT installer for one full-readback write to inactive logical `boot2` and
-clean shutdown. On the physical boot, collect and validate the read-only
-pre-trigger frame before exactly one trigger. Do not repeat `4b027c97...`.
+next:** exact successor `58313c3a8...` is now installed on inactive logical
+`boot2`; both full-partition readbacks match and clean shutdown is confirmed.
+Physically select `boot2`, then collect and validate the read-only pre-trigger
+frame before exactly one trigger. Do not repeat `4b027c97...`.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
