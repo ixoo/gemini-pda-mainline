@@ -1,0 +1,109 @@
+From ca5e80fde1b744efc33fa07cbe5b481af228d291 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 3 Sep 2026 18:01:00 +0000
+Subject: [PATCH] pstore: make A72 hotplug checkpoints non-sleeping
+
+Keep record-4 setup in process context, then serialize its one-shot
+checkpoint writes with a raw spin lock so the CPU9 target can
+durably publish CPU_OFF commit immediately before the PSCI call.
+Retain the fixed 4 KiB mapping until the experiment resets.
+---
+ fs/pstore/gemini_a72_hotplug_ledger.c | 44 +++++++++++++++------------
+ 1 file changed, 24 insertions(+), 20 deletions(-)
+
+diff --git a/fs/pstore/gemini_a72_hotplug_ledger.c b/fs/pstore/gemini_a72_hotplug_ledger.c
+index 6ba944c..2ea1d4c 100644
+--- a/fs/pstore/gemini_a72_hotplug_ledger.c
++++ b/fs/pstore/gemini_a72_hotplug_ledger.c
+@@ -9,6 +9,7 @@
+ #include <linux/mutex.h>
+ #include <linux/of.h>
+ #include <linux/of_address.h>
++#include <linux/spinlock.h>
+ #include <linux/string.h>
+ 
+ #include "gemini_a72_hotplug_ledger_internal.h"
+@@ -378,16 +379,18 @@ static const struct gemini_a72_hotplug_ledger_ops hotplug_mmio_ops = {
+ 	.sync = hotplug_mmio_sync,
+ };
+ 
+-static DEFINE_MUTEX(gemini_a72_hotplug_ledger_lock);
++static DEFINE_MUTEX(gemini_a72_hotplug_ledger_begin_lock);
++static DEFINE_RAW_SPINLOCK(gemini_a72_hotplug_ledger_checkpoint_lock);
+ static struct gemini_a72_hotplug_ledger_owner hotplug_owner;
+ static void __iomem *hotplug_slot;
+ static bool hotplug_attempted;
+ 
+ int gemini_a72_hotplug_ledger_begin(u64 session_id)
+ {
++	void __iomem *slot;
+ 	int ret;
+ 
+-	mutex_lock(&gemini_a72_hotplug_ledger_lock);
++	mutex_lock(&gemini_a72_hotplug_ledger_begin_lock);
+ 	if (hotplug_attempted) {
+ 		ret = -EALREADY;
+ 		goto out_unlock;
+@@ -397,20 +400,20 @@ int gemini_a72_hotplug_ledger_begin(u64 session_id)
+ 		ret = -ENODEV;
+ 		goto out_unlock;
+ 	}
+-	hotplug_slot = ioremap_wc(GEMINI_A72_HOTPLUG_LEDGER_BASE,
+-				  GEMINI_A72_HOTPLUG_LEDGER_SLOT_SIZE);
+-	if (!hotplug_slot) {
++	slot = ioremap_wc(GEMINI_A72_HOTPLUG_LEDGER_BASE,
++			  GEMINI_A72_HOTPLUG_LEDGER_SLOT_SIZE);
++	if (!slot) {
+ 		ret = -ENOMEM;
+ 		goto out_unlock;
+ 	}
+ 	ret = gemini_a72_hotplug_ledger_owner_begin(
+-		&hotplug_owner, &hotplug_mmio_ops, hotplug_slot, session_id);
+-	if (ret) {
+-		iounmap(hotplug_slot);
+-		hotplug_slot = NULL;
+-	}
++		&hotplug_owner, &hotplug_mmio_ops, slot, session_id);
++	if (ret)
++		iounmap(slot);
++	else
++		WRITE_ONCE(hotplug_slot, slot);
+ out_unlock:
+-	mutex_unlock(&gemini_a72_hotplug_ledger_lock);
++	mutex_unlock(&gemini_a72_hotplug_ledger_begin_lock);
+ 	return ret;
+ }
+ EXPORT_SYMBOL_GPL(gemini_a72_hotplug_ledger_begin);
+@@ -419,22 +422,23 @@ int gemini_a72_hotplug_ledger_checkpoint(
+ 	u64 session_id,
+ 	const struct gemini_a72_hotplug_ledger_record *record)
+ {
++	unsigned long flags;
++	void __iomem *slot;
+ 	int ret;
+ 
+-	mutex_lock(&gemini_a72_hotplug_ledger_lock);
+-	if (!hotplug_slot) {
++	raw_spin_lock_irqsave(&gemini_a72_hotplug_ledger_checkpoint_lock,
++			      flags);
++	slot = READ_ONCE(hotplug_slot);
++	if (!slot) {
+ 		ret = -EPERM;
+ 		goto out_unlock;
+ 	}
+ 	ret = gemini_a72_hotplug_ledger_owner_checkpoint(
+-		&hotplug_owner, &hotplug_mmio_ops, hotplug_slot,
+-		session_id, record);
+-	if (ret || (record && record->terminal)) {
+-		iounmap(hotplug_slot);
+-		hotplug_slot = NULL;
+-	}
++		&hotplug_owner, &hotplug_mmio_ops, slot, session_id, record);
+ out_unlock:
+-	mutex_unlock(&gemini_a72_hotplug_ledger_lock);
++	raw_spin_unlock_irqrestore(&gemini_a72_hotplug_ledger_checkpoint_lock,
++				   flags);
++	/* The one-shot mapping remains pinned until the expected reset. */
+ 	return ret;
+ }
+ EXPORT_SYMBOL_GPL(gemini_a72_hotplug_ledger_checkpoint);
