@@ -85,14 +85,19 @@ handling, and exact restore token are implemented and machine-checked.
 - [`results/hardware-free-owner-kunit-attempt-1-20260902.txt`](results/hardware-free-owner-kunit-attempt-1-20260902.txt)
   records the first no-network QEMU run, its 56 passes and four attributable
   failures, and the common terminal-parent predicate defect.
+- [`results/hardware-free-owner-terminal-parent-generation-9a9f0455-20260903.txt`](results/hardware-free-owner-terminal-parent-generation-9a9f0455-20260903.txt)
+  pins the exact follow-up generation, preserved predecessor identities,
+  strict review, replay, 27 total rejecting mutations, and profile invariant.
 - [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
   is the exact admitted no-op-by-default implementation.
 - [`../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch)
   is the exact admitted one-attempt CPU9-down and distinct-restore owner.
 - [`../../patches/v7.1.3/0485-arm64-mediatek-test-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0485-arm64-mediatek-test-hardware-free-CPU9-hotplug-owner.patch)
   is its focused hardware-free KUnit coverage.
+- [`../../patches/v7.1.3/0486-arm64-mediatek-validate-finalized-CPU9-before-hotplug.patch`](../../patches/v7.1.3/0486-arm64-mediatek-validate-finalized-CPU9-before-hotplug.patch)
+  preserves the active parent rule and adds the exact finalized-pair rule.
 
-Patches `0483`--`0485` are experiment-only archives with a synthetic,
+Patches `0483`--`0486` are experiment-only archives with a synthetic,
 non-certifying author identity, no DCO sign-off, and are not submission-ready.
 Upstream submission requires the actual author metadata and truthful
 certification.
@@ -170,6 +175,15 @@ active, but successful CPU9 finalization correctly fills slot 1 before the
 down lifecycle begins. The runtime result is an actionable implementation
 defect, not hardware evidence; no physical effect or device action occurred.
 
+Buildbox generation at exact pushed commit `9a9f0455...` then preserved the
+admitted `0484` and `0485` byte identities and produced standalone follow-up
+`0486` with SHA-256
+`a583e8184b39dc51aa0556a5531ebe6d403e54ad8106ca8dbebbf1259c2ea019`.
+Strict Checkpatch, exact replay, all 21 predecessor mutations, and all six new
+terminal-parent mutations pass. The resulting 475-patch canonical series has
+SHA-256 `640f8757299432cf125d34f3049e2aa7b1f1c19b0688e46cbafd1bdb7749bd19`,
+and all 165 manifest profiles retain canonical-order subsequences.
+
 ## Analysis
 
 The accepted online/topology/load evidence closes the entry-state uncertainty
@@ -190,15 +204,15 @@ incapable of safely running the experiment as-is. Patch `0483` supplies and
 Buildbox-proves the generic ownership handoffs. Patches `0484`--`0485` add the
 hardware-free one-attempt CPU9-down owner, single affinity-proof budget,
 distinct parent-linked restore, and reset-only post-commit failure model, but
-their first runtime gate exposed the finalized parent-state defect above. They
-bind no callback, preserve the MT6797 disable veto, and perform no physical
-action. The final requirement remains physical CPU9-off and same-boot CPU9
-restore.
+their first runtime gate exposed the finalized parent-state defect above.
+Patch `0486` corrects that source defect without weakening the active-CPU9
+rule. The combined series binds no callback, preserves the MT6797 disable veto,
+and performs no physical action. The final requirement remains physical
+CPU9-off and same-boot CPU9 restore.
 
 ## Follow-up
 
-Generate and admit one follow-up patch that preserves the active-CPU9 parent
-predicate and adds an exact finalized CPU8/CPU9 validator for down preparation.
-Rebuild on Buildbox and rerun the identical 60-case no-network gate. Only a
-complete pass permits the independently bounded physical executor, watchdog,
-readback, and callback-binding slice; no boot candidate is selected here.
+Rebuild the admitted `0486` series on Buildbox and rerun the identical 60-case
+no-network gate. Only a complete pass permits the independently bounded
+physical executor, watchdog, readback, and callback-binding slice; no boot
+candidate is selected here.
