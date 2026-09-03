@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-a72-hotplug-lifecycle-gate` |
-| Status | physical binder contract frozen; first disconnected prerequisite admitted |
+| Status | watchdog prerequisite proven; remaining disconnected prerequisites pending |
 | Subsystem | arm64 CPU hotplug, PSCI, MT6797 A72 membership |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-09-02 America/New_York |
@@ -138,6 +138,9 @@ handling, and exact restore token are implemented and machine-checked.
 - [`results/watchdog-validator-generation-9adfbb05-20260903.txt`](results/watchdog-validator-generation-9adfbb05-20260903.txt)
   pins the exact generated patch, two-read/zero-write contract, replay, strict
   review, 12 rejecting source mutations, and all-profile invariant.
+- [`results/watchdog-validator-kunit-6607089e-20260903.txt`](results/watchdog-validator-kunit-6607089e-20260903.txt)
+  records the exact Buildbox package and complete seven-case no-network runtime
+  pass with the validator still disconnected from production.
 - [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
   is the exact admitted no-op-by-default implementation.
 - [`../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch)
@@ -325,6 +328,15 @@ action. Appending `0489` makes 478 canonical patches with series SHA-256
 `1a8751eb0285be3362b7434649e4cf8656056030529179f5ae3046b0bc3aa124`;
 all 166 manifest profiles retain canonical-order subsequences.
 
+Exact admission commit `6607089e...` compiled successfully on Buildbox with
+the isolated watchdog profile. Package validation covered `Image`, `Image.gz`,
+`System.map`, configuration, provenance, and all 123 DTBs. The no-network
+four-vCPU QEMU gate at published harness commit `c99abc3e...` then passed the
+sole watchdog suite 7/7 with zero failures or skips, including both new
+validator cases. The exact runtime proof retains the two-read/zero-write
+contract and confirms zero production callers, physical watchdog calls, MMIO,
+retained RAM, SMC, physical CPU requests, device actions, or boot candidates.
+
 ## Analysis
 
 The accepted online/topology/load evidence closes the entry-state uncertainty
@@ -353,16 +365,16 @@ gate now pass. This closes the hardware-free executor phase. The binding
 contract also closes the ambiguity about how production ownership,
 attribution, observation, and restore must meet. Patch `0489` now supplies the
 first disconnected production prerequisite: an exact read-only validator for
-the inherited watchdog owner. The combined series still binds no callback,
+the inherited watchdog owner. Its exact Buildbox compile and 7/7 isolated
+runtime gate now pass. The combined series still binds no callback,
 preserves the MT6797 disable veto, and performs no physical action. The final
 requirement remains physical CPU9-off and same-boot CPU9 restore.
 
 ## Follow-up
 
-Build and run the admitted watchdog validator in the isolated watchdog KUnit
-profile. Then complete the remaining first-gate disconnected parent-proof,
-record-4 ledger/decoder, and snapshot primitives before adding a disconnected
-restore executor and failure routing.
+Complete the remaining first-gate disconnected parent-proof, record-4
+ledger/decoder, and snapshot primitives before adding a disconnected restore
+executor and failure routing.
 Only after both pass source mutations and runtime tests may the one-task
 down/restore binder connect to production callbacks. CPU8 and CPUs 0--7 stay
 non-disableable throughout. No candidate or device boot is selected until the
