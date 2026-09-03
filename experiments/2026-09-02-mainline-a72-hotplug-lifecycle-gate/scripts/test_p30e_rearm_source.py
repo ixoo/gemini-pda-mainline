@@ -64,9 +64,11 @@ FINAL_MUTATIONS = PRIMITIVE_MUTATIONS + (
      "MT6797_A72_RESTORE_STAGE_P30E_REARMED = 15"),
     (BINDING_HEADER, "MT6797_A72_RESTORE_READY_CPU9_PWR_CON 0x00010332U",
      "MT6797_A72_RESTORE_READY_CPU9_PWR_CON 0x0001033fU"),
-    (BINDING, "!(result->last.spm_cpu_pwr_status &",
-     "!((result->last.spm_cpu_pwr_status |\n"
-     "\t\t   result->last.spm_cpu_pwr_status_2nd) &"),
+    (BINDING, "if (!(result->last.spm_cpu_pwr_status &\n"
+     "\t\t      MT6797_A72_RESTORE_READY_CPU9_STATUS) &&",
+     "if (!((result->last.spm_cpu_pwr_status |\n"
+     "\t\t       result->last.spm_cpu_pwr_status_2nd) &\n"
+     "\t\t      MT6797_A72_RESTORE_READY_CPU9_STATUS) &&"),
     (BINDING, "arm64_mt6797_a72_p30e_rearm_cpu9()", "0"),
     (LEDGER_HEADER, "\tGEMINI_A72_HOTPLUG_P30E_REARMED,\n", ""),
     (LEDGER_INTERNAL, "GEMINI_A72_HOTPLUG_LEDGER_MAX_RECORDS 17U",
