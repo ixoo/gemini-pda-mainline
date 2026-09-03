@@ -2260,6 +2260,7 @@
                     "configs/gemini-da921x-positive-provider.fragment",
                     "configs/gemini-a72-pre-p28-provider-abort.fragment",
                     "configs/gemini-mt6797-a72-platform-state.fragment",
+                    "configs/gemini-dvfsp-clock-backend.fragment",
                     "configs/gemini-dvfsp-bigidvfs-readonly.fragment",
                     "configs/gemini-a72-default-off-binder-kunit.fragment",
                     "configs/gemini-cpu9-membership-kunit.fragment",
