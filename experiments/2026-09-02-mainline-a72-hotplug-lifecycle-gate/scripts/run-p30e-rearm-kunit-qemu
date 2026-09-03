@@ -4,7 +4,7 @@ set -euo pipefail
 export LC_ALL=C
 
 readonly EXPECTED_REMOTE=https://github.com/ixoo/gemini-pda-mainline.git
-readonly EXPECTED_PROFILE=gemini-a72-hotplug-binding-kunit
+readonly EXPECTED_PROFILE=gemini-a72-p30e-rearm-kunit
 
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 
@@ -64,62 +64,32 @@ for token in \
 	'CONFIG_KUNIT_DEFAULT_ENABLED=y' \
 	'CONFIG_KUNIT_AUTORUN_ENABLED=y' \
 	'CONFIG_CMDLINE_FORCE=y' \
-	'CONFIG_ARM64_MT6797_A72_CPU9_MEMBERSHIP=y' \
-	'CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER=y' \
-	'CONFIG_PSTORE_GEMINI_A72_HOTPLUG_LEDGER=y' \
-	'CONFIG_MTK_MT6797_A72_HOTPLUG_EXECUTOR=y' \
-	'CONFIG_MTK_MT6797_A72_HOTPLUG_SNAPSHOT=y' \
-	'CONFIG_MTK_MT6797_A72_CPU8_OBSERVER=y' \
-	'CONFIG_MTK_MT6797_A72_RESTORE_EXECUTOR=y' \
-	'CONFIG_MTK_MT6797_A72_HOTPLUG_BINDER_CORE=y' \
-	'# CONFIG_MTK_MT6797_A72_HOTPLUG_BINDER_CORE_KUNIT_TEST is not set' \
-	'CONFIG_MTK_MT6797_A72_ADMISSION_CONTROLLER=y' \
-	'CONFIG_MTK_MT6797_A72_CPU9_ADMISSION_CONTROLLER=y' \
-	'CONFIG_MTK_MT6797_A72_HOTPLUG_BINDING=y' \
-	'CONFIG_MTK_MT6797_A72_HOTPLUG_BINDING_KUNIT_TEST=y'; do
-	grep -Fx "$token" "$config" >/dev/null ||
-		die "configuration missing: $token"
+	'CONFIG_ARM64_MT6797_A72_P30_PROTOCOL_MODEL=y' \
+	'CONFIG_ARM64_MT6797_A72_P30E_WIRE=y' \
+	'CONFIG_ARM64_MT6797_A72_P30E_REARM_KUNIT_TEST=y'; do
+	grep -Fx "$token" "$config" >/dev/null || die "configuration missing: $token"
 done
 focused_test_count=$(grep -Ec '^CONFIG_.*_KUNIT_TEST=y$' "$config")
 focused_tests=$(grep -E '^CONFIG_.*_KUNIT_TEST=y$' "$config" | sort)
 readonly focused_test_count focused_tests
 [[ "$focused_test_count" -eq 1 ]] || die 'KUnit option inventory changed'
-[[ "$focused_tests" == \
-	'CONFIG_MTK_MT6797_A72_HOTPLUG_BINDING_KUNIT_TEST=y' ]] ||
+[[ "$focused_tests" == 'CONFIG_ARM64_MT6797_A72_P30E_REARM_KUNIT_TEST=y' ]] ||
 	die 'unexpected KUnit test selected'
-! grep -q '^CONFIG_MTK_MT6797_A72_HOTPLUG_SPLIT_STARTUP=y$' "$config" ||
-	die 'physical split-startup path unexpectedly enabled'
 
 for symbol in \
-	mt6797_a72_hotplug_binding_run \
-	mt6797_a72_hotplug_private_down_with_ops \
-	mt6797_a72_hotplug_restore_readiness_with_ops \
-	mt6797_a72_hotplug_binding_route_matches \
+	arm64_mt6797_a72_p30e_prepare_cpu9_rearm \
 	arm64_mt6797_a72_p30e_rearm_cpu9 \
-	hotplug_binding_suite \
-	hotplug_binding_readiness_immediate_test \
-	hotplug_binding_readiness_persistent_secondary_test \
-	hotplug_binding_readiness_timeout_test \
-	hotplug_binding_readiness_power_guard_test \
-	hotplug_binding_readiness_cpu8_guard_test \
-	hotplug_binding_success_test \
-	hotplug_binding_wrong_task_test \
-	hotplug_binding_wrong_cpu_test \
-	hotplug_binding_missing_device_test \
-	hotplug_binding_public_gate_test \
-	hotplug_binding_already_offline_test \
-	hotplug_binding_target_offline_test \
-	hotplug_binding_failure_restores_gate_test \
-	hotplug_binding_route_test; do
+	p30e_rearm_suite \
+	p30e_rearm_success_test \
+	p30e_rearm_mutations_test; do
 	grep -q " ${symbol}$" "$system_map" || die "required symbol absent: $symbol"
 done
 for symbol in \
-	binder_core_suite \
-	physical_executor_suite \
-	hotplug_executor_suite \
-	cpu8_observer_suite \
+	mt6797_a72_admission_controller_probe \
+	mt6797_a72_hotplug_binding_run \
+	mt6797_a72_hotplug_physical_execute \
 	restore_executor_suite \
-	gemini_a72_hotplug_ledger_suite; do
+	hotplug_binding_suite; do
 	! grep -q " ${symbol}$" "$system_map" || die "excluded symbol linked: $symbol"
 done
 
@@ -144,7 +114,7 @@ set -e
 readonly qemu_exit
 
 PYTHONDONTWRITEBYTECODE=1 python3 \
-	"$script_dir/classify-hotplug-binding-kunit.py" \
+	"$script_dir/classify-p30e-rearm-kunit.py" \
 	--package "$package_dir" \
 	--raw-log "$raw_log" \
 	--qemu-exit "$qemu_exit" \

@@ -15,6 +15,7 @@ PSTORE_SIGNATURE = 0x43474244
 MAGIC = 0x4C483947
 VERSION_V1 = 0x00010001
 VERSION_V2 = 0x00010002
+VERSION_V3 = 0x00010003
 VERSION = VERSION_V1
 COPY_WORDS_V1 = 27
 COPY_WORDS_V2 = 37
@@ -24,7 +25,8 @@ PAYLOAD_BYTES_V1 = COPY_WORDS_V1 * COPIES * 4
 PAYLOAD_BYTES_V2 = COPY_WORDS_V2 * COPIES * 4
 PAYLOAD_BYTES = PAYLOAD_BYTES_V1
 SLOT_BYTES = 0x1000
-MAX_GENERATION = 16
+MAX_GENERATION_V1_V2 = 16
+MAX_GENERATION_V3 = 17
 READBACK_BITMAP_V1 = 1 << 31
 READBACK_MISMATCH_NAMES = {
     0: "baseline-null",
@@ -54,7 +56,7 @@ READBACK_MISMATCH_NAMES = {
 }
 READBACK_MISMATCH_MASK = sum(1 << bit for bit in READBACK_MISMATCH_NAMES)
 
-STAGES = {
+STAGES_V1_V2 = {
     1: "binding-entry-parent-exact",
     2: "down-owner-prepared",
     3: "watchdog-validated",
@@ -72,6 +74,12 @@ STAGES = {
     15: "cpu-on-committed-before-call",
     16: "secondary-complete",
     17: "generic-restore-complete-members-0x3",
+}
+STAGES_V3 = {
+    **{stage: name for stage, name in STAGES_V1_V2.items() if stage < 16},
+    16: "p30e-rearmed",
+    17: "secondary-complete",
+    18: "generic-restore-complete-members-0x3",
 }
 TERMINALS = {
     0: "none",
@@ -125,7 +133,11 @@ def semantic_valid(words: tuple[int, ...], version: int) -> bool:
     online_mask = words[24] & 0xFFFF
     members = words[24] >> 16
     readback_mismatch = words[25]
-    if not 1 <= generation <= MAX_GENERATION or stage not in STAGES:
+    stages = STAGES_V3 if version == VERSION_V3 else STAGES_V1_V2
+    max_generation = (MAX_GENERATION_V3 if version == VERSION_V3
+                      else MAX_GENERATION_V1_V2)
+    completion_stage = 18 if version == VERSION_V3 else 17
+    if not 1 <= generation <= max_generation or stage not in stages:
         return False
     if terminal not in TERMINALS or not session or not parent_generation or not parent_cookie:
         return False
@@ -143,7 +155,7 @@ def semantic_valid(words: tuple[int, ...], version: int) -> bool:
             readback_mismatch & ~(READBACK_BITMAP_V1 |
                                   READBACK_MISMATCH_MASK)):
         return False
-    if version == VERSION_V2:
+    if version in (VERSION_V2, VERSION_V3):
         readiness_samples = words[26]
         readiness_sleeps = words[27]
         readiness_error = struct.unpack("<i", struct.pack("<I", words[28]))[0]
@@ -169,9 +181,9 @@ def semantic_valid(words: tuple[int, ...], version: int) -> bool:
                                   call_counts[3] == 0):
                 return False
     if terminal == 0:
-        return error == 0 and stage not in (8, 17)
+        return error == 0 and stage not in (8, completion_stage)
     if terminal == 5:
-        return stage == 17 and error == 0
+        return stage == completion_stage and error == 0
     if error == 0:
         return False
     if terminal == 1:
@@ -185,16 +197,19 @@ def semantic_valid(words: tuple[int, ...], version: int) -> bool:
 
 def decode_copy(payload: bytes, copy: int, payload_bytes: int) -> dict[str, int] | None:
     if payload_bytes == PAYLOAD_BYTES_V1:
-        copy_words, version = COPY_WORDS_V1, VERSION_V1
+        copy_words = COPY_WORDS_V1
+        allowed_versions = (VERSION_V1,)
     elif payload_bytes == PAYLOAD_BYTES_V2:
-        copy_words, version = COPY_WORDS_V2, VERSION_V2
+        copy_words = COPY_WORDS_V2
+        allowed_versions = (VERSION_V2, VERSION_V3)
     else:
         return None
     offset = copy * copy_words * 4
     words = struct.unpack_from(f"<{copy_words}I", payload, offset)
+    version = words[1]
     expected_crc = binascii.crc32(
         payload[offset:offset + (copy_words - 1) * 4]) & 0xFFFFFFFF
-    if (words[0] != MAGIC or words[1] != version or
+    if (words[0] != MAGIC or version not in allowed_versions or
             words[copy_words - 1] != expected_crc):
         return None
     if not semantic_valid(words, version):
@@ -202,6 +217,7 @@ def decode_copy(payload: bytes, copy: int, payload_bytes: int) -> dict[str, int]
     error = struct.unpack("<i", struct.pack("<I", words[5]))[0]
     record = {
         "copy": copy,
+        "version": version,
         "generation": words[2],
         "stage": words[3],
         "terminal": words[4],
@@ -223,7 +239,7 @@ def decode_copy(payload: bytes, copy: int, payload_bytes: int) -> dict[str, int]
         "members": words[24] >> 16,
         "readback_mismatch": words[25],
     }
-    if version == VERSION_V2:
+    if version in (VERSION_V2, VERSION_V3):
         record.update({
             "restore_readiness_samples": words[26],
             "restore_readiness_sleeps": words[27],
@@ -285,9 +301,11 @@ def main() -> int:
     print("recovery_boot_id_changed=yes")
     print("remote_record_removal=no")
     print(f"copy={record['copy']}")
+    print(f"version=0x{record['version']:08x}")
     print(f"generation={record['generation']}")
     print(f"stage={record['stage']}")
-    print(f"stage_name={STAGES[record['stage']]}")
+    stages = STAGES_V3 if record["version"] == VERSION_V3 else STAGES_V1_V2
+    print(f"stage_name={stages[record['stage']]}")
     print(f"terminal={record['terminal']}")
     print(f"terminal_name={TERMINALS[record['terminal']]}")
     print(f"error={record['error']}")

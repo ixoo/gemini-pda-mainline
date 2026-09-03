@@ -97,6 +97,7 @@ for symbol in \
 	restore_executor_prepare_failure_test \
 	restore_executor_identity_refusal_test \
 	restore_executor_validation_failure_test \
+	restore_executor_rearm_failure_test \
 	restore_executor_boot_failure_test \
 	restore_executor_rollback_test \
 	restore_executor_secondary_order_test \

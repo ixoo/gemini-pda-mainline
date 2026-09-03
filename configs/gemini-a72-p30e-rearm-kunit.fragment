@@ -1,0 +1,7 @@
+# Hardware-free coverage for exact reconstruction of a consumed CPU9 P30E
+# entry slot. The suite operates on a local wire object only and cannot issue
+# a CPU request, firmware call, MMIO write, retained-RAM write, or device action.
+CONFIG_KUNIT=y
+CONFIG_ARM64_MT6797_A72_P30E_WIRE=y
+CONFIG_ARM64_MT6797_A72_P30E_REARM_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-a72-p30e-rearm-kunit"

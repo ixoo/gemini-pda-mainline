@@ -61,11 +61,12 @@ def payload(*copies: bytes) -> bytes:
 
 
 def wire_v2(generation: int, stage: int, terminal: int = 0,
-            error: int = 0, ready: bool = True) -> bytes:
+            error: int = 0, ready: bool = True,
+            version: int = DECODER.VERSION_V2) -> bytes:
     words = [0] * DECODER.COPY_WORDS_V2
     words[:26] = list(struct.unpack("<26I", wire(
         generation, stage, terminal, error)[:26 * 4]))
-    words[1] = DECODER.VERSION_V2
+    words[1] = version
     if stage >= 15:
         words[26] = 3
         words[27] = 2
@@ -75,6 +76,19 @@ def wire_v2(generation: int, stage: int, terminal: int = 0,
                         0x350cbf if ready else 0x350cff, 0x10]
     prefix = struct.pack("<36I", *words[:36])
     words[36] = binascii.crc32(prefix) & 0xFFFFFFFF
+    return struct.pack("<37I", *words)
+
+
+def wire_v3(generation: int, stage: int, terminal: int = 0,
+            error: int = 0, ready: bool = True) -> bytes:
+    words = list(struct.unpack(
+        "<37I", wire_v2(generation, stage, terminal, error, ready,
+                         DECODER.VERSION_V3)))
+    words[23] = 1 if stage >= 17 else 0
+    online = 0x1FF if 9 <= stage < 17 else 0x3FF
+    members = 1 if 13 <= stage < 18 else 3
+    words[24] = online | members << 16
+    words[36] = binascii.crc32(struct.pack("<36I", *words[:36])) & 0xFFFFFFFF
     return struct.pack("<37I", *words)
 
 
@@ -109,6 +123,20 @@ class DecoderTests(unittest.TestCase):
             wire_v2(1, 15, 4, -110, ready=False)), BEFORE, AFTER)
         self.assertEqual(result["restore_readiness_error"], -110)
         self.assertEqual(result["cpu_on_calls"], 0)
+
+    def test_v3_rearm_and_full_success(self) -> None:
+        rearmed = DECODER.decode(
+            payload_v2(wire_v3(1, 16)), BEFORE, AFTER)
+        self.assertEqual(rearmed["version"], DECODER.VERSION_V3)
+        self.assertEqual(rearmed["stage"], 16)
+        self.assertEqual(rearmed["cpu_on_calls"], 0)
+        self.assertEqual(DECODER.STAGES_V3[rearmed["stage"]], "p30e-rearmed")
+
+        complete = DECODER.decode(
+            payload_v2(wire_v3(17, 18, 5)), BEFORE, AFTER)
+        self.assertEqual(complete["generation"], 17)
+        self.assertEqual(complete["cpu_on_calls"], 1)
+        self.assertEqual(complete["members"], 3)
 
     def test_v2_bad_sample_shape_refused(self) -> None:
         damaged = bytearray(wire_v2(1, 15))

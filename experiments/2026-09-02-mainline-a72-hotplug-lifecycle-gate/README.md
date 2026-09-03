@@ -1256,3 +1256,18 @@ Post-CPU_ON platform sampling is deferred unless this exact lifecycle repair
 still fails. No new candidate is allowed before Buildbox generation, rejecting
 mutations, replay, focused P30E/executor/binding KUnit, series-ordering, and
 production validation pass.
+
+Buildbox generation from exact pushed commit `00f60e75...` now passes against
+prepared source state `abcf6814...`. The two fetched patches are byte-identical
+to canonical `0507` and `0508` at SHA-256 `f6085065...` and `6ca416f0...`;
+their primitive and final validators reject 14 and 25 mutations. The repair
+adds no target-claim or `head.S` change, keeps one restore CPU_ON and zero
+retries, and records its new checkpoint under ledger semantic version 3 rather
+than reinterpreting historical version-2 evidence. The version-aware decoder's
+17 hardware-free tests pass, and all 174 manifest profiles retain canonical
+ordering across 497 patches. Exact generation and admission facts are retained
+in
+[`results/p30e-rearm-generation-00f60e75-20260903.txt`](results/p30e-rearm-generation-00f60e75-20260903.txt).
+This is not a boot candidate and no device action occurred. The next gate is
+Buildbox compilation plus focused no-network P30E, executor, binding, and
+record-4 ledger KUnit; no physical boot is justified until all four pass.

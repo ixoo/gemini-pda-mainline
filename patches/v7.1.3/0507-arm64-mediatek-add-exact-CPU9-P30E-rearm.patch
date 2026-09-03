@@ -1,0 +1,474 @@
+From c880f94534d2feee157ab944879c7de74dcdfb7b Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 4 Sep 2026 03:01:00 +0000
+Subject: [PATCH 1/2] arm64: mediatek: add exact CPU9 P30E rearm
+
+Validate the exact consumed CPU9 P30E publication and rebuild its
+immutable request as a one-shot sequence-2 EMPTY target. Preserve
+the target-side fail-closed claim and issue no CPU operation.
+---
+ arch/arm64/Kconfig                       |  22 +-
+ arch/arm64/include/asm/mt6797_a72_p30e.h |   4 +
+ arch/arm64/kernel/Makefile               |   1 +
+ arch/arm64/kernel/mt6797_a72_p30e.c      | 112 +++++++++-
+ arch/arm64/kernel/mt6797_a72_p30e_test.c | 261 +++++++++++++++++++++++
+ 5 files changed, 392 insertions(+), 8 deletions(-)
+ create mode 100644 arch/arm64/kernel/mt6797_a72_p30e_test.c
+
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index cb1272a..f715ff0 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -2671,12 +2671,22 @@ config ARM64_MT6797_A72_P30E_WIRE
+ 	depends on ARM64_MT6797_A72_P30_PROTOCOL_MODEL
+ 	depends on !CPU_BIG_ENDIAN
+ 	help
+-	  Build the default-off P30E wire object and MMU-off target primitives
+-	  selected by the source-only implementation profile. The object uses
+-	  two retained 2 KiB slots, validates the fixed token and CRC, and
+-	  performs full-range cache maintenance. It has no production caller,
+-	  does not modify secondary_entry, and cannot issue CPU_ON/OFF or make
+-	  a Linux membership result reachable.
++	  Build the default-off P30E wire object and MMU-off target primitives.
++	  The object uses two 2 KiB slots, validates the fixed token and CRC,
++	  and performs full-range cache maintenance. Its exact CPU9 rearm can
++	  reconstruct one consumed request but cannot issue CPU_ON/OFF or make
++	  a Linux membership result reachable by itself.
++
++config ARM64_MT6797_A72_P30E_REARM_KUNIT_TEST
++	bool "KUnit tests for the MT6797 A72 P30E CPU9 rearm"
++	depends on KUNIT=y
++	depends on ARM64_MT6797_A72_P30E_WIRE
++	default n
++	help
++	  Exercise the pure validation and reconstruction step used by the
++	  exact CPU9-only P30E rearm. The suite covers the intact published
++	  request, one-shot rejection, and every identity, state, result,
++	  entry, reserved-byte, and CRC mismatch without issuing a CPU request.
+ 
+ source "arch/arm64/kvm/Kconfig"
+ 
+diff --git a/arch/arm64/include/asm/mt6797_a72_p30e.h b/arch/arm64/include/asm/mt6797_a72_p30e.h
+index 0de6d52..fde1fef 100644
+--- a/arch/arm64/include/asm/mt6797_a72_p30e.h
++++ b/arch/arm64/include/asm/mt6797_a72_p30e.h
+@@ -117,6 +117,10 @@ int arm64_mt6797_a72_p30e_arm(unsigned int cpu,
+ int arm64_mt6797_a72_p30e_readback(unsigned int cpu,
+ 					 const struct arm64_mt6797_a72_p30e_request *request,
+ 					 struct arm64_mt6797_a72_p30e_wire *copy);
++int arm64_mt6797_a72_p30e_rearm_cpu9(void);
++int arm64_mt6797_a72_p30e_prepare_cpu9_rearm(
++	const struct arm64_mt6797_a72_p30e_slot *slot, u64 entry_pa,
++	struct arm64_mt6797_a72_p30e_wire *next);
+ 
+ /* Target-side entry primitives; checkpoints never issue a CPU request. */
+ int arm64_mt6797_a72_p30e_target_claim(void);
+diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
+index e5b3fc2..9eba513 100644
+--- a/arch/arm64/kernel/Makefile
++++ b/arch/arm64/kernel/Makefile
+@@ -57,6 +57,7 @@ obj-$(CONFIG_ARM64_MT6797_A72_DIRECT_STATE_KUNIT_TEST) += mt6797_a72_direct_stat
+ obj-$(CONFIG_HAVE_STATIC_CALL)		+= static_call.o
+ obj-$(CONFIG_ARM64_MT6797_A72_P30E_WIRE)	+= mt6797_a72_p30e.o
+ obj-$(CONFIG_ARM64_MT6797_A72_P30E_WIRE)	+= mt6797_a72_p30e_asm.o
++obj-$(CONFIG_ARM64_MT6797_A72_P30E_REARM_KUNIT_TEST) += mt6797_a72_p30e_test.o
+ obj-$(CONFIG_CPU_PM)			+= sleep.o suspend.o
+ obj-$(CONFIG_KGDB)			+= kgdb.o
+ obj-$(CONFIG_EFI)			+= efi.o efi-rt-wrapper.o
+diff --git a/arch/arm64/kernel/mt6797_a72_p30e.c b/arch/arm64/kernel/mt6797_a72_p30e.c
+index bab7d89..e966efb 100644
+--- a/arch/arm64/kernel/mt6797_a72_p30e.c
++++ b/arch/arm64/kernel/mt6797_a72_p30e.c
+@@ -2,8 +2,8 @@
+ /*
+  * Dormant MT6797 A72 P30E MMU-off-visible wire object.
+  *
+- * This file deliberately has no production caller. It supplies the reviewed
+- * controller-side storage and cache protocol for a later P17/P18/P24 owner.
++ * This file supplies the reviewed controller-side storage, exact CPU9 rearm,
++ * and cache protocol used by the private P17/P18/P24 lifecycle owner.
+  */
+ 
+ #include <linux/bitops.h>
+@@ -245,6 +245,114 @@ int arm64_mt6797_a72_p30e_arm(unsigned int cpu,
+ 	return 0;
+ }
+ 
++static void p30e_initial_wire(
++	const struct arm64_mt6797_a72_p30e_wire *published,
++	struct arm64_mt6797_a72_p30e_wire *initial)
++{
++	*initial = *published;
++	p30e_put(initial, ARM64_MT6797_A72_P30E_TARGET_STATE_WORD,
++		 ARM64_MT6797_A72_P30E_EMPTY);
++	p30e_put(initial, ARM64_MT6797_A72_P30E_TARGET_SEQUENCE_WORD, 0);
++	p30e_put(initial, ARM64_MT6797_A72_P30E_TARGET_REASON_WORD, 0);
++	p30e_put(initial, ARM64_MT6797_A72_P30E_TARGET_EFFECTS_WORD, 0);
++	p30e_put(initial, ARM64_MT6797_A72_P30E_TARGET_ENTRY_PC_WORD, 0);
++	p30e_put(initial, ARM64_MT6797_A72_P30E_TARGET_ENTRY_SP_WORD, 0);
++}
++
++int arm64_mt6797_a72_p30e_prepare_cpu9_rearm(
++	const struct arm64_mt6797_a72_p30e_slot *slot, u64 entry_pa,
++	struct arm64_mt6797_a72_p30e_wire *next)
++{
++	const struct arm64_mt6797_a72_p30e_wire *wire;
++	struct arm64_mt6797_a72_p30e_wire initial;
++	u64 generation, cookie;
++	unsigned int i;
++
++	if (!slot || !entry_pa || !next)
++		return -EINVAL;
++	wire = &slot->wire;
++	generation = p30e_word(wire, ARM64_MT6797_A72_P30E_GENERATION_WORD);
++	cookie = p30e_word(wire, ARM64_MT6797_A72_P30E_COOKIE_WORD);
++	if (p30e_word(wire, ARM64_MT6797_A72_P30E_MAGIC_WORD) !=
++		    ARM64_MT6797_A72_P30E_MAGIC ||
++	    p30e_word(wire, ARM64_MT6797_A72_P30E_ABI_WORD) !=
++		    ARM64_MT6797_A72_P30E_ABI_AND_SIZE ||
++	    p30e_word(wire, ARM64_MT6797_A72_P30E_OPERATION_WORD) !=
++		    ARM64_MT6797_A72_P30E_OPERATION_CPU9_UP ||
++	    p30e_word(wire, ARM64_MT6797_A72_P30E_TARGET_CPU_WORD) !=
++		    ARM64_MT6797_A72_P30E_CPU9 ||
++	    p30e_word(wire, ARM64_MT6797_A72_P30E_TARGET_MPIDR_WORD) !=
++		    ARM64_MT6797_A72_P30E_MPIDR_CPU9 ||
++	    !generation || generation == ~0ULL || !cookie || cookie == ~0ULL ||
++	    p30e_word(wire, ARM64_MT6797_A72_P30E_CONTROLLER_STATE_WORD) !=
++		    ARM64_MT6797_A72_P30E_ARMED ||
++	    p30e_word(wire, ARM64_MT6797_A72_P30E_CONTROLLER_SEQUENCE_WORD) != 1 ||
++	    p30e_word(wire, ARM64_MT6797_A72_P30E_TARGET_STATE_WORD) !=
++		    ARM64_MT6797_A72_P30E_TARGET_PUBLISHED ||
++	    p30e_word(wire, ARM64_MT6797_A72_P30E_TARGET_SEQUENCE_WORD) != 1 ||
++	    p30e_word(wire, ARM64_MT6797_A72_P30E_TARGET_REASON_WORD) ||
++	    p30e_word(wire, ARM64_MT6797_A72_P30E_TARGET_EFFECTS_WORD) ||
++	    p30e_word(wire, ARM64_MT6797_A72_P30E_TARGET_ENTRY_PC_WORD) !=
++		    entry_pa ||
++	    p30e_word(wire, ARM64_MT6797_A72_P30E_TARGET_ENTRY_SP_WORD))
++		return -EPROTO;
++
++	for (i = 0; i < ARM64_MT6797_A72_P30E_TARGET_BOOT_ID_WORDS; i++) {
++		u64 identity = p30e_word(wire,
++			ARM64_MT6797_A72_P30E_BOOT_ID0_WORD + i);
++
++		if (!identity || identity == ~0ULL ||
++		    identity != le64_to_cpu(READ_ONCE(
++			    slot->target_boot_identity[i])))
++			return -EPROTO;
++	}
++	if (memchr_inv(slot->reserved, 0, sizeof(slot->reserved)))
++		return -EPROTO;
++
++	p30e_initial_wire(wire, &initial);
++	if (p30e_crc64(&initial) !=
++	    p30e_word(wire, ARM64_MT6797_A72_P30E_CRC64_WORD))
++		return -EBADMSG;
++
++	*next = initial;
++	p30e_put(next, ARM64_MT6797_A72_P30E_CONTROLLER_SEQUENCE_WORD, 2);
++	p30e_put(next, ARM64_MT6797_A72_P30E_CRC64_WORD, p30e_crc64(next));
++	return 0;
++}
++
++int arm64_mt6797_a72_p30e_rearm_cpu9(void)
++{
++	struct arm64_mt6797_a72_p30e_slot *slot =
++		&arm64_mt6797_a72_p30e_cpu9_slot;
++	struct arm64_mt6797_a72_p30e_wire next;
++	unsigned long flags;
++	unsigned int i;
++	int ret;
++
++	raw_spin_lock_irqsave(&p30e_lock, flags);
++	dsb(sy);
++	p30e_invalidate_slot(slot);
++	ret = arm64_mt6797_a72_p30e_prepare_cpu9_rearm(
++		slot, __pa_symbol(secondary_entry), &next);
++	if (ret)
++		goto out_unlock;
++	for (i = 0; i < ARM64_MT6797_A72_P30E_WIRE_WORDS; i++) {
++		if (i == ARM64_MT6797_A72_P30E_TARGET_STATE_WORD)
++			continue;
++		p30e_put(&slot->wire, i, p30e_word(&next, i));
++	}
++	p30e_clean_slot(slot);
++	/* Publish EMPTY only after complete sequence-2 reconstruction. */
++	smp_store_release((u64 *)&slot->wire.word[
++		ARM64_MT6797_A72_P30E_TARGET_STATE_WORD],
++		cpu_to_le64(ARM64_MT6797_A72_P30E_EMPTY));
++	p30e_clean_slot(slot);
++
++out_unlock:
++	raw_spin_unlock_irqrestore(&p30e_lock, flags);
++	return ret;
++}
++
+ int arm64_mt6797_a72_p30e_readback(
+ 	unsigned int cpu,
+ 	const struct arm64_mt6797_a72_p30e_request *request,
+diff --git a/arch/arm64/kernel/mt6797_a72_p30e_test.c b/arch/arm64/kernel/mt6797_a72_p30e_test.c
+new file mode 100644
+index 0000000..dd29857
+--- /dev/null
++++ b/arch/arm64/kernel/mt6797_a72_p30e_test.c
+@@ -0,0 +1,261 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* KUnit tests for the exact CPU9 P30E rearm reconstruction. */
++
++#include <kunit/test.h>
++
++#include <linux/bitops.h>
++#include <linux/byteorder/little_endian.h>
++#include <linux/errno.h>
++#include <linux/string.h>
++
++#include <asm/mt6797_a72_p30e.h>
++
++#define P30E_TEST_ENTRY_PA 0x80000ULL
++
++static u64 p30e_test_crc64(const struct arm64_mt6797_a72_p30e_wire *wire)
++{
++	const u8 *bytes = (const u8 *)wire;
++	u64 crc = 0;
++	unsigned int bit, i;
++
++	for (i = 0; i < ARM64_MT6797_A72_P30E_CRC64_OFF; i++) {
++		crc ^= (u64)bytes[i] << 56;
++		for (bit = 0; bit < 8; bit++)
++			crc = (crc << 1) ^
++				((crc & BIT_ULL(63)) ?
++				 ARM64_MT6797_A72_P30E_CRC64_POLY : 0);
++	}
++	return crc;
++}
++
++static void p30e_test_put(struct arm64_mt6797_a72_p30e_wire *wire,
++			  unsigned int word, u64 value)
++{
++	wire->word[word] = cpu_to_le64(value);
++}
++
++static u64 p30e_test_word(const struct arm64_mt6797_a72_p30e_wire *wire,
++			  unsigned int word)
++{
++	return le64_to_cpu(wire->word[word]);
++}
++
++static void p30e_test_refresh_crc(
++	struct arm64_mt6797_a72_p30e_slot *slot)
++{
++	struct arm64_mt6797_a72_p30e_wire initial = slot->wire;
++
++	p30e_test_put(&initial, ARM64_MT6797_A72_P30E_TARGET_STATE_WORD, 0);
++	p30e_test_put(&initial, ARM64_MT6797_A72_P30E_TARGET_SEQUENCE_WORD, 0);
++	p30e_test_put(&initial, ARM64_MT6797_A72_P30E_TARGET_REASON_WORD, 0);
++	p30e_test_put(&initial, ARM64_MT6797_A72_P30E_TARGET_EFFECTS_WORD, 0);
++	p30e_test_put(&initial, ARM64_MT6797_A72_P30E_TARGET_ENTRY_PC_WORD, 0);
++	p30e_test_put(&initial, ARM64_MT6797_A72_P30E_TARGET_ENTRY_SP_WORD, 0);
++	p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_CRC64_WORD,
++		      p30e_test_crc64(&initial));
++}
++
++static void p30e_test_published(
++	struct arm64_mt6797_a72_p30e_slot *slot)
++{
++	unsigned int i;
++
++	memset(slot, 0, sizeof(*slot));
++	p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_MAGIC_WORD,
++		      ARM64_MT6797_A72_P30E_MAGIC);
++	p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_ABI_WORD,
++		      ARM64_MT6797_A72_P30E_ABI_AND_SIZE);
++	for (i = 0; i < ARM64_MT6797_A72_P30E_TARGET_BOOT_ID_WORDS; i++) {
++		p30e_test_put(&slot->wire,
++			      ARM64_MT6797_A72_P30E_BOOT_ID0_WORD + i,
++			       0x1000ULL + i);
++		slot->target_boot_identity[i] = cpu_to_le64(0x1000ULL + i);
++	}
++	p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_OPERATION_WORD,
++		      ARM64_MT6797_A72_P30E_OPERATION_CPU9_UP);
++	p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_TARGET_CPU_WORD,
++		      ARM64_MT6797_A72_P30E_CPU9);
++	p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_TARGET_MPIDR_WORD,
++		      ARM64_MT6797_A72_P30E_MPIDR_CPU9);
++	p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_GENERATION_WORD, 2);
++	p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_COOKIE_WORD, 0xa7200002);
++	p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_CONTROLLER_STATE_WORD,
++		      ARM64_MT6797_A72_P30E_ARMED);
++	p30e_test_put(&slot->wire,
++		      ARM64_MT6797_A72_P30E_CONTROLLER_SEQUENCE_WORD, 1);
++	p30e_test_refresh_crc(slot);
++	p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_TARGET_STATE_WORD,
++		      ARM64_MT6797_A72_P30E_TARGET_PUBLISHED);
++	p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_TARGET_SEQUENCE_WORD, 1);
++	p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_TARGET_ENTRY_PC_WORD,
++		      P30E_TEST_ENTRY_PA);
++}
++
++static void p30e_rearm_success_test(struct kunit *test)
++{
++	struct arm64_mt6797_a72_p30e_slot slot;
++	struct arm64_mt6797_a72_p30e_wire next;
++
++	p30e_test_published(&slot);
++	KUNIT_ASSERT_EQ(test, arm64_mt6797_a72_p30e_prepare_cpu9_rearm(
++		&slot, P30E_TEST_ENTRY_PA, &next), 0);
++	KUNIT_EXPECT_EQ(test, p30e_test_word(&next,
++					     ARM64_MT6797_A72_P30E_CONTROLLER_SEQUENCE_WORD), 2ULL);
++	KUNIT_EXPECT_EQ(test, p30e_test_word(&next,
++					     ARM64_MT6797_A72_P30E_TARGET_STATE_WORD), 0ULL);
++	KUNIT_EXPECT_EQ(test, p30e_test_word(&next,
++					     ARM64_MT6797_A72_P30E_TARGET_SEQUENCE_WORD), 0ULL);
++	KUNIT_EXPECT_EQ(test, p30e_test_word(&next,
++					     ARM64_MT6797_A72_P30E_TARGET_ENTRY_PC_WORD), 0ULL);
++	KUNIT_EXPECT_EQ(test, p30e_test_word(&next,
++					     ARM64_MT6797_A72_P30E_CRC64_WORD), p30e_test_crc64(&next));
++
++	slot.wire = next;
++	KUNIT_EXPECT_LT(test, arm64_mt6797_a72_p30e_prepare_cpu9_rearm(
++		&slot, P30E_TEST_ENTRY_PA, &next), 0);
++}
++
++enum p30e_test_mutation {
++	P30E_MUT_MAGIC,
++	P30E_MUT_ABI,
++	P30E_MUT_BOOT_ID,
++	P30E_MUT_TARGET_BOOT_ID,
++	P30E_MUT_OPERATION,
++	P30E_MUT_CPU,
++	P30E_MUT_MPIDR,
++	P30E_MUT_GENERATION_ZERO,
++	P30E_MUT_GENERATION_ONES,
++	P30E_MUT_COOKIE_ZERO,
++	P30E_MUT_COOKIE_ONES,
++	P30E_MUT_CONTROLLER_STATE,
++	P30E_MUT_CONTROLLER_SEQUENCE,
++	P30E_MUT_TARGET_STATE,
++	P30E_MUT_TARGET_SEQUENCE,
++	P30E_MUT_REASON,
++	P30E_MUT_EFFECTS,
++	P30E_MUT_ENTRY_PC,
++	P30E_MUT_ENTRY_SP,
++	P30E_MUT_RESERVED,
++	P30E_MUT_CRC,
++	P30E_MUT_COUNT,
++};
++
++static void p30e_test_mutate(struct arm64_mt6797_a72_p30e_slot *slot,
++			     enum p30e_test_mutation mutation)
++{
++	u64 crc;
++
++	switch (mutation) {
++	case P30E_MUT_MAGIC:
++		p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_MAGIC_WORD, 1);
++		break;
++	case P30E_MUT_ABI:
++		p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_ABI_WORD, 1);
++		break;
++	case P30E_MUT_BOOT_ID:
++		p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_BOOT_ID0_WORD,
++			      0x2000);
++		break;
++	case P30E_MUT_TARGET_BOOT_ID:
++		slot->target_boot_identity[0] = cpu_to_le64(0x2000);
++		break;
++	case P30E_MUT_OPERATION:
++		p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_OPERATION_WORD,
++			      ARM64_MT6797_A72_P30E_OPERATION_CPU8_UP);
++		break;
++	case P30E_MUT_CPU:
++		p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_TARGET_CPU_WORD, 8);
++		break;
++	case P30E_MUT_MPIDR:
++		p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_TARGET_MPIDR_WORD,
++			      ARM64_MT6797_A72_P30E_MPIDR_CPU8);
++		break;
++	case P30E_MUT_GENERATION_ZERO:
++		p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_GENERATION_WORD, 0);
++		break;
++	case P30E_MUT_GENERATION_ONES:
++		p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_GENERATION_WORD,
++			      ~0ULL);
++		break;
++	case P30E_MUT_COOKIE_ZERO:
++		p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_COOKIE_WORD, 0);
++		break;
++	case P30E_MUT_COOKIE_ONES:
++		p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_COOKIE_WORD, ~0ULL);
++		break;
++	case P30E_MUT_CONTROLLER_STATE:
++		p30e_test_put(&slot->wire,
++			      ARM64_MT6797_A72_P30E_CONTROLLER_STATE_WORD, 0);
++		break;
++	case P30E_MUT_CONTROLLER_SEQUENCE:
++		p30e_test_put(&slot->wire,
++			      ARM64_MT6797_A72_P30E_CONTROLLER_SEQUENCE_WORD, 2);
++		break;
++	case P30E_MUT_TARGET_STATE:
++		p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_TARGET_STATE_WORD,
++			      ARM64_MT6797_A72_P30E_FAILED);
++		break;
++	case P30E_MUT_TARGET_SEQUENCE:
++		p30e_test_put(&slot->wire,
++			      ARM64_MT6797_A72_P30E_TARGET_SEQUENCE_WORD, 2);
++		break;
++	case P30E_MUT_REASON:
++		p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_TARGET_REASON_WORD, 1);
++		break;
++	case P30E_MUT_EFFECTS:
++		p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_TARGET_EFFECTS_WORD, 1);
++		break;
++	case P30E_MUT_ENTRY_PC:
++		p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_TARGET_ENTRY_PC_WORD,
++			      P30E_TEST_ENTRY_PA + 4);
++		break;
++	case P30E_MUT_ENTRY_SP:
++		p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_TARGET_ENTRY_SP_WORD, 1);
++		break;
++	case P30E_MUT_RESERVED:
++		slot->reserved[0] = 1;
++		break;
++	case P30E_MUT_CRC:
++		break;
++	case P30E_MUT_COUNT:
++		return;
++	}
++	if (mutation != P30E_MUT_CRC) {
++		p30e_test_refresh_crc(slot);
++	} else {
++		crc = p30e_test_word(&slot->wire,
++				     ARM64_MT6797_A72_P30E_CRC64_WORD);
++		p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_CRC64_WORD,
++			      crc ^ 1);
++	}
++}
++
++static void p30e_rearm_mutations_test(struct kunit *test)
++{
++	struct arm64_mt6797_a72_p30e_slot slot;
++	struct arm64_mt6797_a72_p30e_wire next;
++	enum p30e_test_mutation mutation;
++
++	for (mutation = 0; mutation < P30E_MUT_COUNT; mutation++) {
++		p30e_test_published(&slot);
++		p30e_test_mutate(&slot, mutation);
++		memset(&next, 0xa5, sizeof(next));
++		KUNIT_EXPECT_LT_MSG(test,
++				    arm64_mt6797_a72_p30e_prepare_cpu9_rearm(
++				&slot, P30E_TEST_ENTRY_PA, &next), 0,
++			"mutation %u accepted", mutation);
++	}
++}
++
++static struct kunit_case p30e_rearm_cases[] = {
++	KUNIT_CASE(p30e_rearm_success_test),
++	KUNIT_CASE(p30e_rearm_mutations_test),
++	{ }
++};
++
++static struct kunit_suite p30e_rearm_suite = {
++	.name = "mt6797-a72-p30e-rearm",
++	.test_cases = p30e_rearm_cases,
++};
++
++kunit_test_suite(p30e_rearm_suite);

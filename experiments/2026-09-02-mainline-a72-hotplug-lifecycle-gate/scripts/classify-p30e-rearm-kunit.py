@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Classify the production CPU9 hotplug binding private-gate KUnit run."""
+"""Classify the disconnected exact CPU9 P30E rearm KUnit run."""
 
 from __future__ import annotations
 
@@ -13,26 +13,14 @@ import re
 import subprocess
 
 
-PROFILE = "gemini-a72-hotplug-binding-kunit"
-EXPECTED_RELEASE = "7.1.3-gemini-a72-hotplug-binding-kunit"
+PROFILE = "gemini-a72-p30e-rearm-kunit"
+EXPECTED_RELEASE = "7.1.3-gemini-a72-p30e-rearm-kunit"
 PANIC_PREFIX = "Kernel panic - not syncing: VFS: Unable to mount root fs"
 PANIC_END_PREFIX = f"---[ end {PANIC_PREFIX}"
-SUITE = "mt6797-a72-hotplug-binding"
+SUITE = "mt6797-a72-p30e-rearm"
 CASES = (
-    "hotplug_binding_readiness_immediate_test",
-    "hotplug_binding_readiness_persistent_secondary_test",
-    "hotplug_binding_readiness_timeout_test",
-    "hotplug_binding_readiness_power_guard_test",
-    "hotplug_binding_readiness_cpu8_guard_test",
-    "hotplug_binding_success_test",
-    "hotplug_binding_wrong_task_test",
-    "hotplug_binding_wrong_cpu_test",
-    "hotplug_binding_missing_device_test",
-    "hotplug_binding_public_gate_test",
-    "hotplug_binding_already_offline_test",
-    "hotplug_binding_target_offline_test",
-    "hotplug_binding_failure_restores_gate_test",
-    "hotplug_binding_route_test",
+    "p30e_rearm_success_test",
+    "p30e_rearm_mutations_test",
 )
 
 
@@ -77,10 +65,7 @@ def classify_runtime(raw: str, qemu_exit: int) -> None:
     lines = clean_lines(raw)
     releases = re.findall(r"Linux version ([^ ]+)", raw)
     require(releases == [EXPECTED_RELEASE], f"kernel release mismatch: {releases}")
-    require(
-        qemu_exit == 124,
-        f"unexpected QEMU exit (expected bounded timeout): {qemu_exit}",
-    )
+    require(qemu_exit == 124, f"unexpected QEMU exit: {qemu_exit}")
     require("KTAP version 1" in lines, "top-level KTAP header absent")
     ktap = lines[lines.index("KTAP version 1") :]
     require(
@@ -88,36 +73,29 @@ def classify_runtime(raw: str, qemu_exit: int) -> None:
         "expected one top-level and one suite KTAP header",
     )
     plans = [line for line in ktap if re.fullmatch(r"1\.\.\d+", line)]
-    require(plans == ["1..1", "1..14"], f"KUnit plans changed: {plans}")
+    require(plans == ["1..1", "1..2"], f"KUnit plans changed: {plans}")
     subtests = [line for line in ktap if line.startswith("# Subtest: ")]
-    require(
-        subtests == [f"# Subtest: {SUITE}"],
-        f"suite inventory changed: {subtests}",
-    )
+    require(subtests == [f"# Subtest: {SUITE}"], f"suite inventory changed: {subtests}")
     require(
         not any(line.startswith("not ok ") for line in ktap),
         "KTAP contains a failing result",
     )
-
     expected_ok = [
         f"ok {case_index} {case}"
         for case_index, case in enumerate(CASES, start=1)
     ]
     expected_ok.append(f"ok 1 {SUITE}")
     observed_ok = [line for line in ktap if re.fullmatch(r"ok \d+ \S+", line)]
+    require(observed_ok == expected_ok, f"case or suite inventory changed: {observed_ok}")
+    require(Counter(observed_ok) == Counter(expected_ok), "KUnit results are duplicated")
     require(
-        observed_ok == expected_ok,
-        f"case or suite inventory changed: {observed_ok}",
+        ktap.count(f"# {SUITE}: pass:2 fail:0 skip:0 total:2") == 1,
+        "suite summary is not an exact pass",
     )
     require(
-        Counter(observed_ok) == Counter(expected_ok),
-        "KUnit results are duplicated",
+        ktap.count("# Totals: pass:2 fail:0 skip:0 total:2") == 1,
+        "suite totals are not an exact pass",
     )
-    summary = f"# {SUITE}: pass:14 fail:0 skip:0 total:14"
-    totals = "# Totals: pass:14 fail:0 skip:0 total:14"
-    require(ktap.count(summary) == 1, "suite summary is not an exact pass")
-    require(ktap.count(totals) == 1, "suite totals are not an exact pass")
-
     result_index = ktap.index(f"ok 1 {SUITE}")
     panic_indices = [
         index for index, line in enumerate(ktap) if line.startswith(PANIC_PREFIX)
@@ -148,66 +126,43 @@ def main() -> None:
         ("repository", args.repository_commit),
         ("harness", args.harness_commit),
     ):
-        require(
-            re.fullmatch(r"[0-9a-f]{40}", commit) is not None,
-            f"invalid {label} commit",
-        )
+        require(re.fullmatch(r"[0-9a-f]{40}", commit) is not None,
+                f"invalid {label} commit")
 
     package = args.package.resolve()
     raw_log = args.raw_log.resolve()
     build_path = package / "provenance/build.json"
-    image = package / "Image"
-    image_gzip = package / "Image.gz"
-    config = package / "kernel.config"
-    system_map = package / "System.map"
+    paths = {
+        "image": package / "Image",
+        "image_gzip": package / "Image.gz",
+        "config": package / "kernel.config",
+        "system_map": package / "System.map",
+    }
     sums = package / "SHA256SUMS"
-    for path in (
-        build_path,
-        image,
-        image_gzip,
-        config,
-        system_map,
-        sums,
-        raw_log,
-    ):
-        require(
-            path.is_file() and not path.is_symlink(),
-            f"required regular file absent or unsafe: {path.name}",
-        )
+    for path in (build_path, *paths.values(), sums, raw_log):
+        require(path.is_file() and not path.is_symlink(),
+                f"required regular file absent or unsafe: {path.name}")
 
     build = json.loads(build_path.read_text(encoding="utf-8"))
-    require(
-        build["repository_commit"] == args.repository_commit,
-        "package repository commit mismatch",
-    )
+    require(build["repository_commit"] == args.repository_commit,
+            "package repository commit mismatch")
     require(build["repository_dirty"] is False, "package source was dirty")
     require(build["build_profile"] == PROFILE, "package profile mismatch")
     require(build["kernel_release"] == EXPECTED_RELEASE, "kernel release changed")
-    require(
-        build["target_architecture"] == "arm64",
-        "package target architecture mismatch",
-    )
+    require(build["target_architecture"] == "arm64", "package architecture mismatch")
     require(build["modules_built"] is False, "unexpected module build")
-    identities = {
-        "image_sha256": sha256(image),
-        "image_gzip_sha256": sha256(image_gzip),
-        "config_sha256": sha256(config),
-        "system_map_sha256": sha256(system_map),
-    }
+
+    identities = {f"{name}_sha256": sha256(path) for name, path in paths.items()}
     for key, entry in (
         ("image_sha256", "./Image"),
         ("image_gzip_sha256", "./Image.gz"),
         ("config_sha256", "./kernel.config"),
         ("system_map_sha256", "./System.map"),
     ):
-        require(
-            identities[key] == manifest_checksum(sums, entry),
-            f"package checksum mismatch: {entry}",
-        )
-    require(
-        identities["config_sha256"] == build["config_sha256"],
-        "configuration checksum mismatch",
-    )
+        require(identities[key] == manifest_checksum(sums, entry),
+                f"package checksum mismatch: {entry}")
+    require(identities["config_sha256"] == build["config_sha256"],
+            "configuration checksum mismatch")
 
     raw = raw_log.read_text(encoding="utf-8", errors="replace")
     classify_runtime(raw, args.qemu_exit)
@@ -218,15 +173,13 @@ def main() -> None:
         text=True,
     ).stdout.splitlines()[0]
     observed_utc = (
-        datetime.now(timezone.utc)
-        .replace(microsecond=0)
-        .isoformat()
+        datetime.now(timezone.utc).replace(microsecond=0).isoformat()
         .replace("+00:00", "Z")
     )
     scripts = Path(__file__).resolve().parent
 
     print("experiment=2026-09-02-mainline-a72-hotplug-lifecycle-gate")
-    print("phase=hotplug-binding-kunit-qemu")
+    print("phase=p30e-rearm-kunit-qemu")
     print(f"observed_utc={observed_utc}")
     print(f"repository_commit={args.repository_commit}")
     print(f"harness_commit={args.harness_commit}")
@@ -237,42 +190,30 @@ def main() -> None:
     for key, value in identities.items():
         print(f"{key}={value}")
     print(f"raw_log_sha256={sha256(raw_log)}")
-    print(f"runner_sha256={sha256(scripts / 'run-hotplug-binding-kunit-qemu')}")
+    print(f"runner_sha256={sha256(scripts / 'run-p30e-rearm-kunit-qemu')}")
     print(f"classifier_sha256={sha256(Path(__file__).resolve())}")
     print(f"runner_version={qemu_version.removeprefix('QEMU emulator version ')}")
     print("machine=virt-cortex-a53-four-vcpu-no-network")
     print("suites=1")
-    print("tests=14")
+    print("tests=2")
     print("failed=0")
     print("skipped=0")
-    print(f"suite_{SUITE}=pass:14_fail:0_skip:0_total:14")
+    print(f"suite_{SUITE}=pass:2_fail:0_skip:0_total:2")
     for case in CASES:
         print(f"{case}=pass")
-    print("tap_summary=pass:14_fail:0_skip:0_total:14")
+    print("tap_summary=pass:2_fail:0_skip:0_total:2")
     print("post_test_state=expected_vm_rootfs_panic")
     print("qemu_exit=124")
     print("target_cpu=9")
-    print("public_cpu_can_disable=false")
-    print("private_transition=device-hotplug-lock-scoped-cpu9-only")
-    print("expected_task_required=true")
-    print("private_device_offline_calls_success=1")
-    print("private_gate_restored_success=true")
-    print("private_gate_restored_failure=true")
-    print("route_checks=down,restore")
-    print("readiness_immediate=pass")
-    print("readiness_persistent_secondary=pass")
-    print("readiness_timeout=pass")
-    print("readiness_exact_power_guard=pass")
-    print("readiness_cpu8_guard=pass")
-    print("production_binding_linked=true")
-    print("production_binding_invocations=0")
-    print("physical_backends_invoked=0")
+    print("accepted_input=exact-consumed-sequence-1-published")
+    print("output=sequence-2-empty")
+    print("mutation_refusals=21")
+    print("one_shot_reuse_refused=true")
+    print("production_callers=0")
     print("cpu_requests=0")
     print("mmio=false")
-    print("i2c=false")
     print("retained_ram=false")
     print("smc=false")
-    print("watchdog_takeovers=0")
     print("network=false")
     print("device_action=none")
     print("boot_candidate=false")

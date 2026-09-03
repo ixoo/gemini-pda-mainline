@@ -24,6 +24,7 @@ CASES = (
     "restore_executor_prepare_failure_test",
     "restore_executor_identity_refusal_test",
     "restore_executor_validation_failure_test",
+    "restore_executor_rearm_failure_test",
     "restore_executor_boot_failure_test",
     "restore_executor_rollback_test",
     "restore_executor_secondary_order_test",
@@ -84,7 +85,7 @@ def classify_runtime(raw: str, qemu_exit: int) -> None:
         "expected one top-level and one suite KTAP header",
     )
     plans = [line for line in ktap if re.fullmatch(r"1\.\.\d+", line)]
-    require(plans == ["1..1", "1..10"], f"KUnit plans changed: {plans}")
+    require(plans == ["1..1", "1..11"], f"KUnit plans changed: {plans}")
     subtests = [line for line in ktap if line.startswith("# Subtest: ")]
     require(subtests == [f"# Subtest: {SUITE}"], f"suite inventory changed: {subtests}")
     require(
@@ -100,8 +101,8 @@ def classify_runtime(raw: str, qemu_exit: int) -> None:
     observed_ok = [line for line in ktap if re.fullmatch(r"ok \d+ \S+", line)]
     require(observed_ok == expected_ok, f"case or suite inventory changed: {observed_ok}")
     require(Counter(observed_ok) == Counter(expected_ok), "KUnit results are duplicated")
-    summary = f"# {SUITE}: pass:10 fail:0 skip:0 total:10"
-    totals = "# Totals: pass:10 fail:0 skip:0 total:10"
+    summary = f"# {SUITE}: pass:11 fail:0 skip:0 total:11"
+    totals = "# Totals: pass:11 fail:0 skip:0 total:11"
     require(ktap.count(summary) == 1, "suite summary is not an exact pass")
     require(ktap.count(totals) == 1, "suite totals are not an exact pass")
 
@@ -229,19 +230,21 @@ def main() -> None:
     print(f"runner_version={qemu_version.removeprefix('QEMU emulator version ')}")
     print("machine=virt-cortex-a53-four-vcpu-no-network")
     print("suites=1")
-    print("tests=10")
+    print("tests=11")
     print("failed=0")
     print("skipped=0")
-    print(f"suite_{SUITE}=pass:10_fail:0_skip:0_total:10")
+    print(f"suite_{SUITE}=pass:11_fail:0_skip:0_total:11")
     for case in CASES:
         print(f"{case}=pass")
-    print("tap_summary=pass:10_fail:0_skip:0_total:10")
+    print("tap_summary=pass:11_fail:0_skip:0_total:11")
     print("post_test_state=expected_vm_rootfs_panic")
     print("qemu_exit=124")
     print("target_cpu=9")
     print("entry_parent=exact_retired_cpu9_down")
     print("restore_identity=distinct_parent_linked")
-    print("checkpoint_stages=14,15,16,17")
+    print("checkpoint_stages=14,15,16,17,18")
+    print("p30e_rearm_calls_success=1")
+    print("p30e_rearm_failure_cpu_boot_calls=0")
     print("cpu_boot_call_sites=1")
     print("cpu_boot_calls_success=1")
     print("terminal_members=0x3")
