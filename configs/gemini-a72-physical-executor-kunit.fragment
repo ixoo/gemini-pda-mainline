@@ -1,0 +1,9 @@
+# Hardware-free coverage for the disconnected CPU9 physical executor.
+# Every operation is injected by KUnit. This profile binds no production
+# callback, leaves CPU hotplug vetoed, and performs no PSCI, MMIO, watchdog,
+# retained-memory, CPU request, or device action.
+CONFIG_KUNIT=y
+CONFIG_MTK_MT6797_A72_HOTPLUG_EXECUTOR=y
+CONFIG_MTK_MT6797_A72_HOTPLUG_EXECUTOR_KUNIT_TEST=y
+# CONFIG_HOTPLUG_SPLIT_STARTUP is not set
+CONFIG_LOCALVERSION="-gemini-a72-physical-executor-kunit"

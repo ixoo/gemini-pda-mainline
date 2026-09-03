@@ -1,0 +1,566 @@
+From 58f07d8fc6cb4b4a0f61d09b40eb8511a7e5a19a Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 3 Sep 2026 02:12:00 +0000
+Subject: [PATCH 2/2] soc: mediatek: test hardware-free CPU9 hotplug executor
+
+Cover exact success, entry rejection, pre- and post-commit
+failure, readback mismatch, call budgets, and one-shot ordering
+using injected memory-only operations.
+---
+ .../mt6797-a72-hotplug-executor-test.c        | 547 ++++++++++++++++++
+ 1 file changed, 547 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-a72-hotplug-executor-test.c
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-hotplug-executor-test.c b/drivers/soc/mediatek/mt6797-a72-hotplug-executor-test.c
+new file mode 100644
+index 0000000..f2a6ed2
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-a72-hotplug-executor-test.c
+@@ -0,0 +1,547 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* KUnit coverage for the disconnected MT6797 CPU9 hotplug executor. */
++
++#include <kunit/test.h>
++#include <linux/errno.h>
++#include <linux/string.h>
++
++#include "mt6797-a72-hotplug-executor-internal.h"
++
++enum mt6797_hotplug_test_failure {
++	MT6797_HOTPLUG_TEST_NONE,
++	MT6797_HOTPLUG_TEST_PREPARE,
++	MT6797_HOTPLUG_TEST_WATCHDOG,
++	MT6797_HOTPLUG_TEST_SNAPSHOT,
++	MT6797_HOTPLUG_TEST_VALIDATE,
++	MT6797_HOTPLUG_TEST_DISABLE,
++	MT6797_HOTPLUG_TEST_COMMIT,
++	MT6797_HOTPLUG_TEST_CPU8,
++	MT6797_HOTPLUG_TEST_PROOF,
++	MT6797_HOTPLUG_TEST_COMPLETE,
++	MT6797_HOTPLUG_TEST_FAIL,
++	MT6797_HOTPLUG_TEST_TERMINAL,
++};
++
++struct mt6797_hotplug_test_state {
++	struct mt6797_a72_hotplug_executor_controller controller;
++	struct mt6797_a72_hotplug_executor_request request;
++	struct mt6797_a72_hotplug_executor_result result;
++	struct mt6797_a72_hotplug_readback samples[2];
++	enum mt6797_hotplug_test_failure failure;
++	int affinity_result;
++	u32 prepare_calls;
++	u32 watchdog_calls;
++	u32 snapshot_calls;
++	u32 validate_calls;
++	u32 disable_calls;
++	u32 commit_calls;
++	u32 affinity_calls;
++	u32 cpu8_calls;
++	u32 proof_calls;
++	u32 complete_calls;
++	u32 fail_calls;
++	u32 terminal_calls;
++};
++
++static bool mt6797_hotplug_test_fails(
++	struct mt6797_hotplug_test_state *state,
++	enum mt6797_hotplug_test_failure failure)
++{
++	return state->failure == failure;
++}
++
++static int mt6797_hotplug_test_checkpoint(
++	void *context, enum mt6797_a72_hotplug_executor_phase phase,
++	enum mt6797_a72_hotplug_executor_stage stage,
++	const struct mt6797_a72_hotplug_executor_result *result)
++{
++	(void)context;
++	(void)phase;
++	(void)stage;
++	(void)result;
++	return 0;
++}
++
++static int mt6797_hotplug_test_prepare(
++	void *context,
++	const struct mt6797_a72_hotplug_executor_request *request)
++{
++	struct mt6797_hotplug_test_state *state = context;
++
++	state->prepare_calls++;
++	if (request != &state->request)
++		return -EPROTO;
++	return mt6797_hotplug_test_fails(state, MT6797_HOTPLUG_TEST_PREPARE) ?
++		-EIO : 0;
++}
++
++static int mt6797_hotplug_test_watchdog(void *context, u64 identity)
++{
++	struct mt6797_hotplug_test_state *state = context;
++
++	state->watchdog_calls++;
++	if (identity != state->request.watchdog_identity)
++		return -EPROTO;
++	return mt6797_hotplug_test_fails(state, MT6797_HOTPLUG_TEST_WATCHDOG) ?
++		-EIO : 0;
++}
++
++static int mt6797_hotplug_test_snapshot(
++	void *context, struct mt6797_a72_hotplug_readback *readback)
++{
++	struct mt6797_hotplug_test_state *state = context;
++	u32 index = state->snapshot_calls++;
++
++	if (mt6797_hotplug_test_fails(state, MT6797_HOTPLUG_TEST_SNAPSHOT))
++		return -EIO;
++	if (index >= ARRAY_SIZE(state->samples))
++		return -EOVERFLOW;
++	*readback = state->samples[index];
++	return 0;
++}
++
++static int mt6797_hotplug_test_validate(void *context, bool tasks_frozen,
++					bool cpu8_online, bool cpu9_online)
++{
++	struct mt6797_hotplug_test_state *state = context;
++
++	state->validate_calls++;
++	if (tasks_frozen || !cpu8_online || !cpu9_online)
++		return -EPROTO;
++	return mt6797_hotplug_test_fails(state, MT6797_HOTPLUG_TEST_VALIDATE) ?
++		-EIO : 0;
++}
++
++static int mt6797_hotplug_test_disable(void *context, unsigned int cpu)
++{
++	struct mt6797_hotplug_test_state *state = context;
++
++	state->disable_calls++;
++	if (cpu != MT6797_A72_HOTPLUG_CPU9)
++		return -EPROTO;
++	return mt6797_hotplug_test_fails(state, MT6797_HOTPLUG_TEST_DISABLE) ?
++		-EIO : 0;
++}
++
++static int mt6797_hotplug_test_commit(void *context, unsigned int cpu)
++{
++	struct mt6797_hotplug_test_state *state = context;
++
++	state->commit_calls++;
++	if (cpu != MT6797_A72_HOTPLUG_CPU9)
++		return -EPROTO;
++	return mt6797_hotplug_test_fails(state, MT6797_HOTPLUG_TEST_COMMIT) ?
++		-EIO : 0;
++}
++
++static int mt6797_hotplug_test_affinity(void *context, unsigned int cpu,
++					unsigned int level)
++{
++	struct mt6797_hotplug_test_state *state = context;
++
++	state->affinity_calls++;
++	if (cpu != MT6797_A72_HOTPLUG_CPU9 ||
++	    level != MT6797_A72_HOTPLUG_AFFINITY_LEVEL0)
++		return -EPROTO;
++	return state->affinity_result;
++}
++
++static int mt6797_hotplug_test_cpu8(void *context, unsigned int cpu)
++{
++	struct mt6797_hotplug_test_state *state = context;
++
++	state->cpu8_calls++;
++	if (cpu != MT6797_A72_HOTPLUG_CPU8)
++		return -EPROTO;
++	return mt6797_hotplug_test_fails(state, MT6797_HOTPLUG_TEST_CPU8) ?
++		-EIO : 0;
++}
++
++static int mt6797_hotplug_test_proof(
++	void *context, const struct mt6797_a72_hotplug_executor_result *result)
++{
++	struct mt6797_hotplug_test_state *state = context;
++
++	state->proof_calls++;
++	if (!result->off_committed || result->affinity_calls != 1 ||
++	    result->snapshots != 2 || result->cpu8_callbacks != 1)
++		return -EPROTO;
++	return mt6797_hotplug_test_fails(state, MT6797_HOTPLUG_TEST_PROOF) ?
++		-EIO : 0;
++}
++
++static int mt6797_hotplug_test_complete(void *context, bool cpu8_online,
++					bool cpu9_online)
++{
++	struct mt6797_hotplug_test_state *state = context;
++
++	state->complete_calls++;
++	if (!cpu8_online || cpu9_online)
++		return -EPROTO;
++	return mt6797_hotplug_test_fails(state, MT6797_HOTPLUG_TEST_COMPLETE) ?
++		-EIO : 0;
++}
++
++static int mt6797_hotplug_test_fail(void *context, int error)
++{
++	struct mt6797_hotplug_test_state *state = context;
++
++	state->fail_calls++;
++	if (!error)
++		return -EPROTO;
++	return mt6797_hotplug_test_fails(state, MT6797_HOTPLUG_TEST_FAIL) ?
++		-EIO : 0;
++}
++
++static int mt6797_hotplug_test_terminal(
++	void *context, const struct mt6797_a72_hotplug_executor_result *result)
++{
++	struct mt6797_hotplug_test_state *state = context;
++
++	state->terminal_calls++;
++	if (result->terminal == MT6797_A72_HOTPLUG_TERMINAL_NONE)
++		return -EPROTO;
++	return mt6797_hotplug_test_fails(state, MT6797_HOTPLUG_TEST_TERMINAL) ?
++		-EIO : 0;
++}
++
++static const struct mt6797_a72_hotplug_executor_ops mt6797_hotplug_test_ops = {
++	.checkpoint = mt6797_hotplug_test_checkpoint,
++	.prepare_down = mt6797_hotplug_test_prepare,
++	.watchdog_validate = mt6797_hotplug_test_watchdog,
++	.snapshot = mt6797_hotplug_test_snapshot,
++	.validate_down = mt6797_hotplug_test_validate,
++	.target_disable = mt6797_hotplug_test_disable,
++	.commit_off = mt6797_hotplug_test_commit,
++	.affinity_info = mt6797_hotplug_test_affinity,
++	.cpu8_callback = mt6797_hotplug_test_cpu8,
++	.prove_off = mt6797_hotplug_test_proof,
++	.complete_down = mt6797_hotplug_test_complete,
++	.fail_down = mt6797_hotplug_test_fail,
++	.terminal = mt6797_hotplug_test_terminal,
++};
++
++static void mt6797_hotplug_test_readback(
++	struct mt6797_a72_hotplug_readback *readback, bool cpu9_online)
++{
++	u32 i;
++
++	memset(readback, 0, sizeof(*readback));
++	readback->valid = true;
++	readback->spm_pwr_status = 0x2a00005c;
++	readback->spm_pwr_status_2nd = 0x2a00004c;
++	readback->spm_cpu_pwr_status = MT6797_A72_HOTPLUG_CPU8_STATUS;
++	readback->spm_cpu_pwr_status_2nd = MT6797_A72_HOTPLUG_CPU8_STATUS;
++	if (cpu9_online) {
++		readback->spm_cpu_pwr_status |= MT6797_A72_HOTPLUG_CPU9_STATUS;
++		readback->spm_cpu_pwr_status_2nd |= MT6797_A72_HOTPLUG_CPU9_STATUS;
++	}
++	readback->spm_mp2_cpusys_pwr_con = 0x1013f;
++	readback->spm_mp2_cpu0_pwr_con = 0x1033f;
++	readback->spm_mp2_cpu1_pwr_con = cpu9_online ? 0x1033f : 0x10332;
++	readback->spm_cpu_ext_buck_iso = 0;
++	readback->mp2_sync_dcm = 0x15;
++	readback->cci_mp2_port_control = 0xc0000003;
++	for (i = 0; i < ARRAY_SIZE(readback->provider); i++)
++		readback->provider[i] = 0x20 + i;
++	for (i = 0; i < ARRAY_SIZE(readback->clock); i++)
++		readback->clock[i] = 0x100 + i;
++	for (i = 0; i < ARRAY_SIZE(readback->bigidvfs); i++)
++		readback->bigidvfs[i] = 0x200 + i;
++}
++
++static int mt6797_hotplug_test_init(struct kunit *test)
++{
++	struct mt6797_hotplug_test_state *state;
++
++	state = kunit_kzalloc(test, sizeof(*state), GFP_KERNEL);
++	KUNIT_ASSERT_NOT_NULL(test, state);
++	atomic_set(&state->controller.consumed, 0);
++	atomic_set(&state->controller.lifecycle,
++		   MT6797_A72_HOTPLUG_LIFECYCLE_IDLE);
++	state->request = (struct mt6797_a72_hotplug_executor_request) {
++		.cpu = MT6797_A72_HOTPLUG_CPU9,
++		.members = MT6797_A72_HOTPLUG_ENTRY_MEMBERS,
++		.online_mask = MT6797_A72_HOTPLUG_ENTRY_MEMBERS,
++		.watchdog_identity = 0x6797,
++		.owner_parent_exact = true,
++		.watchdog_owned = true,
++	};
++	mt6797_hotplug_test_readback(&state->samples[0], true);
++	mt6797_hotplug_test_readback(&state->samples[1], false);
++	state->samples[1].spm_pwr_status ^= BIT(20);
++	state->samples[1].spm_pwr_status_2nd ^= BIT(21);
++	state->affinity_result = MT6797_A72_HOTPLUG_AFFINITY_OFF;
++	test->priv = state;
++	return 0;
++}
++
++static int mt6797_hotplug_test_to_commit(
++	struct mt6797_hotplug_test_state *state)
++{
++	int ret;
++
++	ret = mt6797_a72_hotplug_executor_preflight(&state->controller,
++						    &mt6797_hotplug_test_ops, state,
++		&state->request, &state->result);
++	if (ret)
++		return ret;
++	ret = mt6797_a72_hotplug_executor_validate(&state->controller,
++						   &mt6797_hotplug_test_ops, state, false,
++		true, true,
++		&state->result);
++	if (ret)
++		return ret;
++	ret = mt6797_a72_hotplug_executor_disable(&state->controller,
++						  &mt6797_hotplug_test_ops, state,
++		MT6797_A72_HOTPLUG_CPU9,
++		&state->result);
++	if (ret)
++		return ret;
++	return mt6797_a72_hotplug_executor_commit(&state->controller,
++		&mt6797_hotplug_test_ops, state,
++		MT6797_A72_HOTPLUG_CPU9,
++		&state->result);
++}
++
++static void mt6797_hotplug_success(struct kunit *test)
++{
++	struct mt6797_hotplug_test_state *state = test->priv;
++	int ret;
++
++	ret = mt6797_hotplug_test_to_commit(state);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	ret = mt6797_a72_hotplug_executor_kill(&state->controller,
++					       &mt6797_hotplug_test_ops, state,
++		MT6797_A72_HOTPLUG_CPU9,
++		true, true, false, &state->result);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	ret = mt6797_a72_hotplug_executor_complete(&state->controller,
++						   &mt6797_hotplug_test_ops, state, true, false,
++		&state->result);
++	KUNIT_EXPECT_EQ(test, ret, 0);
++	KUNIT_EXPECT_EQ(test, state->result.terminal,
++			MT6797_A72_HOTPLUG_DOWN_COMPLETE);
++	KUNIT_EXPECT_TRUE(test, state->result.watchdog_validated);
++	KUNIT_EXPECT_TRUE(test, state->result.off_committed);
++	KUNIT_EXPECT_TRUE(test, state->result.off_proven);
++	KUNIT_EXPECT_TRUE(test, state->result.completed);
++	KUNIT_EXPECT_EQ(test, state->result.cpu_off_authorizations, (u32)1);
++	KUNIT_EXPECT_EQ(test, state->result.affinity_calls, (u32)1);
++	KUNIT_EXPECT_EQ(test, state->result.snapshots, (u32)2);
++	KUNIT_EXPECT_EQ(test, state->result.cpu8_callbacks, (u32)1);
++	KUNIT_EXPECT_EQ(test, state->result.proof_calls, (u32)1);
++	KUNIT_EXPECT_EQ(test, state->result.fail_calls, (u32)0);
++	KUNIT_EXPECT_EQ(test, state->result.terminal_commits, (u32)1);
++	KUNIT_EXPECT_EQ(test, state->affinity_calls, (u32)1);
++	KUNIT_EXPECT_EQ(test, state->terminal_calls, (u32)1);
++}
++
++static void mt6797_hotplug_entry_rejections(struct kunit *test)
++{
++	struct mt6797_hotplug_test_state *state = test->priv;
++	struct mt6797_a72_hotplug_executor_ops ops = mt6797_hotplug_test_ops;
++	int ret;
++
++	state->request.cpu = MT6797_A72_HOTPLUG_CPU8;
++	ret = mt6797_a72_hotplug_executor_preflight(&state->controller, &ops,
++						    state, &state->request, &state->result);
++	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
++	state->request.cpu = MT6797_A72_HOTPLUG_CPU9;
++	state->request.watchdog_owned = false;
++	ret = mt6797_a72_hotplug_executor_preflight(&state->controller, &ops,
++						    state, &state->request, &state->result);
++	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
++	state->request.watchdog_owned = true;
++	ops.affinity_info = NULL;
++	ret = mt6797_a72_hotplug_executor_preflight(&state->controller, &ops,
++						    state, &state->request, &state->result);
++	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
++	KUNIT_EXPECT_EQ(test, state->prepare_calls, (u32)0);
++}
++
++static void mt6797_hotplug_precommit_rejection(struct kunit *test)
++{
++	struct mt6797_hotplug_test_state *state = test->priv;
++	int ret;
++
++	state->failure = MT6797_HOTPLUG_TEST_DISABLE;
++	ret = mt6797_a72_hotplug_executor_preflight(&state->controller,
++						    &mt6797_hotplug_test_ops, state,
++		&state->request, &state->result);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	ret = mt6797_a72_hotplug_executor_validate(&state->controller,
++						   &mt6797_hotplug_test_ops, state, false,
++		true, true,
++		&state->result);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	ret = mt6797_a72_hotplug_executor_disable(&state->controller,
++						  &mt6797_hotplug_test_ops, state,
++		MT6797_A72_HOTPLUG_CPU9,
++		&state->result);
++	KUNIT_EXPECT_EQ(test, ret, -EIO);
++	KUNIT_EXPECT_EQ(test, state->result.terminal,
++			MT6797_A72_HOTPLUG_REJECTED_PRECOMMIT);
++	KUNIT_EXPECT_FALSE(test, state->result.off_committed);
++	KUNIT_EXPECT_EQ(test, state->result.fail_calls, (u32)1);
++	KUNIT_EXPECT_EQ(test, state->affinity_calls, (u32)0);
++}
++
++static void mt6797_hotplug_target_return_is_fault(struct kunit *test)
++{
++	struct mt6797_hotplug_test_state *state = test->priv;
++	int ret;
++
++	ret = mt6797_hotplug_test_to_commit(state);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	ret = mt6797_a72_hotplug_executor_target_returned(
++		&state->controller, &mt6797_hotplug_test_ops, state,
++		-EIO, &state->result);
++	KUNIT_EXPECT_EQ(test, ret, -EIO);
++	KUNIT_EXPECT_EQ(test, state->result.terminal,
++			MT6797_A72_HOTPLUG_FAULT_POSTCOMMIT);
++	KUNIT_EXPECT_TRUE(test, state->result.off_committed);
++	KUNIT_EXPECT_EQ(test, state->result.fail_calls, (u32)1);
++	KUNIT_EXPECT_EQ(test, state->affinity_calls, (u32)0);
++}
++
++static void mt6797_hotplug_affinity_is_one_shot(struct kunit *test)
++{
++	struct mt6797_hotplug_test_state *state = test->priv;
++	int ret;
++
++	ret = mt6797_hotplug_test_to_commit(state);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	state->affinity_result = 0;
++	ret = mt6797_a72_hotplug_executor_kill(&state->controller,
++					       &mt6797_hotplug_test_ops, state,
++		MT6797_A72_HOTPLUG_CPU9,
++		true, true, false, &state->result);
++	KUNIT_EXPECT_EQ(test, ret, -EIO);
++	KUNIT_EXPECT_EQ(test, state->affinity_calls, (u32)1);
++	ret = mt6797_a72_hotplug_executor_kill(&state->controller,
++					       &mt6797_hotplug_test_ops, state,
++		MT6797_A72_HOTPLUG_CPU9,
++		true, true, false, &state->result);
++	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
++	KUNIT_EXPECT_EQ(test, state->affinity_calls, (u32)1);
++}
++
++static void mt6797_hotplug_readback_rejections(struct kunit *test)
++{
++	struct mt6797_hotplug_test_state *state = test->priv;
++	struct mt6797_a72_hotplug_readback baseline = state->samples[0];
++	struct mt6797_a72_hotplug_readback post = state->samples[1];
++
++	KUNIT_EXPECT_TRUE(test,
++			  mt6797_a72_hotplug_readback_proves_cpu9_off(&baseline, &post));
++	post.spm_cpu_pwr_status |= MT6797_A72_HOTPLUG_CPU9_STATUS;
++	KUNIT_EXPECT_FALSE(test,
++			   mt6797_a72_hotplug_readback_proves_cpu9_off(&baseline, &post));
++	post = state->samples[1];
++	post.spm_cpu_pwr_status_2nd &= ~MT6797_A72_HOTPLUG_CPU8_STATUS;
++	KUNIT_EXPECT_FALSE(test,
++			   mt6797_a72_hotplug_readback_proves_cpu9_off(&baseline, &post));
++	post = state->samples[1];
++	post.spm_mp2_cpusys_pwr_con ^= 1;
++	KUNIT_EXPECT_FALSE(test,
++			   mt6797_a72_hotplug_readback_proves_cpu9_off(&baseline, &post));
++	post = state->samples[1];
++	post.spm_mp2_cpu0_pwr_con ^= 1;
++	KUNIT_EXPECT_FALSE(test,
++			   mt6797_a72_hotplug_readback_proves_cpu9_off(&baseline, &post));
++	post = state->samples[1];
++	post.spm_cpu_ext_buck_iso ^= MT6797_A72_HOTPLUG_EXT_ISO_MASK;
++	KUNIT_EXPECT_FALSE(test,
++			   mt6797_a72_hotplug_readback_proves_cpu9_off(&baseline, &post));
++	post = state->samples[1];
++	post.mp2_sync_dcm ^= BIT(0);
++	KUNIT_EXPECT_FALSE(test,
++			   mt6797_a72_hotplug_readback_proves_cpu9_off(&baseline, &post));
++	post = state->samples[1];
++	post.cci_mp2_port_control ^= BIT(0);
++	KUNIT_EXPECT_FALSE(test,
++			   mt6797_a72_hotplug_readback_proves_cpu9_off(&baseline, &post));
++	post = state->samples[1];
++	post.cci_status_after = MT6797_A72_HOTPLUG_CCI_PENDING;
++	KUNIT_EXPECT_FALSE(test,
++			   mt6797_a72_hotplug_readback_proves_cpu9_off(&baseline, &post));
++	post = state->samples[1];
++	post.provider[0] ^= 1;
++	KUNIT_EXPECT_FALSE(test,
++			   mt6797_a72_hotplug_readback_proves_cpu9_off(&baseline, &post));
++	post = state->samples[1];
++	post.clock[0] ^= 1;
++	KUNIT_EXPECT_FALSE(test,
++			   mt6797_a72_hotplug_readback_proves_cpu9_off(&baseline, &post));
++	post = state->samples[1];
++	post.bigidvfs[0] ^= 1;
++	KUNIT_EXPECT_FALSE(test,
++			   mt6797_a72_hotplug_readback_proves_cpu9_off(&baseline, &post));
++}
++
++static void mt6797_hotplug_postcommit_callback_fault(struct kunit *test)
++{
++	struct mt6797_hotplug_test_state *state = test->priv;
++	int ret;
++
++	ret = mt6797_hotplug_test_to_commit(state);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	state->failure = MT6797_HOTPLUG_TEST_CPU8;
++	ret = mt6797_a72_hotplug_executor_kill(&state->controller,
++					       &mt6797_hotplug_test_ops, state,
++		MT6797_A72_HOTPLUG_CPU9,
++		true, true, false, &state->result);
++	KUNIT_EXPECT_EQ(test, ret, -EIO);
++	KUNIT_EXPECT_EQ(test, state->result.terminal,
++			MT6797_A72_HOTPLUG_FAULT_POSTCOMMIT);
++	KUNIT_EXPECT_EQ(test, state->affinity_calls, (u32)1);
++	KUNIT_EXPECT_EQ(test, state->snapshot_calls, (u32)2);
++	KUNIT_EXPECT_EQ(test, state->cpu8_calls, (u32)1);
++	KUNIT_EXPECT_EQ(test, state->proof_calls, (u32)0);
++}
++
++static void mt6797_hotplug_order_and_one_shot(struct kunit *test)
++{
++	struct mt6797_hotplug_test_state *state = test->priv;
++	int ret;
++
++	ret = mt6797_a72_hotplug_executor_commit(&state->controller,
++						 &mt6797_hotplug_test_ops, state,
++		MT6797_A72_HOTPLUG_CPU9,
++		&state->result);
++	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
++	ret = mt6797_a72_hotplug_executor_preflight(&state->controller,
++						    &mt6797_hotplug_test_ops, state,
++		&state->request, &state->result);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	ret = mt6797_a72_hotplug_executor_preflight(&state->controller,
++						    &mt6797_hotplug_test_ops, state,
++		&state->request, &state->result);
++	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
++	KUNIT_EXPECT_EQ(test, state->prepare_calls, (u32)1);
++	KUNIT_EXPECT_EQ(test, state->watchdog_calls, (u32)1);
++	KUNIT_EXPECT_EQ(test, state->snapshot_calls, (u32)1);
++}
++
++static struct kunit_case mt6797_hotplug_cases[] = {
++	KUNIT_CASE(mt6797_hotplug_success),
++	KUNIT_CASE(mt6797_hotplug_entry_rejections),
++	KUNIT_CASE(mt6797_hotplug_precommit_rejection),
++	KUNIT_CASE(mt6797_hotplug_target_return_is_fault),
++	KUNIT_CASE(mt6797_hotplug_affinity_is_one_shot),
++	KUNIT_CASE(mt6797_hotplug_readback_rejections),
++	KUNIT_CASE(mt6797_hotplug_postcommit_callback_fault),
++	KUNIT_CASE(mt6797_hotplug_order_and_one_shot),
++	{}
++};
++
++static struct kunit_suite mt6797_hotplug_suite = {
++	.name = "mt6797-a72-hotplug-executor",
++	.init = mt6797_hotplug_test_init,
++	.test_cases = mt6797_hotplug_cases,
++};
++
++kunit_test_suite(mt6797_hotplug_suite);
++
++MODULE_LICENSE("GPL");

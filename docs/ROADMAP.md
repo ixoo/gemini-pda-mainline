@@ -7403,6 +7403,15 @@ hardware-free-test that split executor, still disconnected from production.
 A later separately reviewed binding slice is required before a boot candidate,
 deployment, or device action can be selected.
 
+Exact generated patches `0487`--`0488` now implement that disconnected
+executor and eight-case memory-only coverage. Strict review, clean replay, all
+18 rejecting source mutations, and the 166-profile series invariant pass. The
+code contains exactly one CPU_OFF authorization and one affinity call site,
+but no physical backend; it binds no production callback and keeps the MT6797
+disable veto closed. **Selected next:** compile the isolated
+`a72-physical-executor-kunit` profile on Buildbox and run its no-network QEMU
+gate. Only a subsequent reviewed binding slice can become a device candidate.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

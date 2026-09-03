@@ -1,0 +1,736 @@
+From e11f2f80f3fa36c18ac417ce88c0bcaaeaaeaee7 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 3 Sep 2026 02:11:00 +0000
+Subject: [PATCH 1/2] soc: mediatek: add hardware-free CPU9 hotplug executor
+
+Add a disconnected, operation-injected state machine for the
+split controller, target CPU9, and retained CPU8 lifecycle. It
+authorizes one CPU_OFF and validates one affinity result without
+binding callbacks or issuing PSCI, MMIO, watchdog, or CPU calls.
+---
+ drivers/soc/mediatek/Kconfig                  |  27 ++
+ drivers/soc/mediatek/Makefile                 |   2 +
+ .../mt6797-a72-hotplug-executor-internal.h    | 197 ++++++++
+ .../mediatek/mt6797-a72-hotplug-executor.c    | 458 ++++++++++++++++++
+ 4 files changed, 684 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-a72-hotplug-executor-internal.h
+ create mode 100644 drivers/soc/mediatek/mt6797-a72-hotplug-executor.c
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index 2ff59fe..5ebd1c3 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -726,6 +726,33 @@ config MTK_REGULATOR_COUPLER
+ 	default ARCH_MEDIATEK
+ 	depends on REGULATOR
+ 
++config MTK_MT6797_A72_HOTPLUG_EXECUTOR
++	bool "MediaTek MT6797 CPU9 physical-hotplug executor"
++	depends on ARM64 && ARCH_MEDIATEK
++	default n
++	help
++	  Build a disconnected, operation-injected state machine for one CPU9
++	  physical-off transaction while CPU8 remains online. It validates an
++	  inherited recovery watchdog, one CPU_OFF authorization, one active
++	  affinity call, independent power readback, and shared-state invariance.
++
++	  This option binds no production callback, leaves CPU hotplug vetoed,
++	  and contains no PSCI, MMIO, watchdog, retained-memory, CPU request, or
++	  device operation. If unsure, say N.
++
++config MTK_MT6797_A72_HOTPLUG_EXECUTOR_KUNIT_TEST
++	bool "KUnit tests for the MT6797 CPU9 hotplug executor"
++	depends on KUNIT=y
++	depends on MTK_MT6797_A72_HOTPLUG_EXECUTOR
++	default n
++	help
++	  Exercise the split controller/target lifecycle, exact call budgets,
++	  readback classifier, reversible pre-commit rejection, terminal
++	  post-commit failure, and atomic one-shot behavior in memory only.
++
++	  These tests perform no CPU, PSCI, MMIO, watchdog, retained-memory, or
++	  device action. If unsure, say N.
++
+ config MTK_MMSYS
+ 	tristate "MediaTek MMSYS Support"
+ 	default ARCH_MEDIATEK
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+index d42003d..2fa8cdb 100644
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -37,6 +37,8 @@ obj-$(CONFIG_MTK_MT6797_A72_PLATFORM_STATE) += mt6797-a72-platform-state.o
+ obj-$(CONFIG_MTK_MT6797_A72_TRANSITION_EXECUTOR) += mt6797-a72-transition.o
+ obj-$(CONFIG_MTK_MT6797_A72_TRANSITION_EXECUTOR_KUNIT_TEST) += mt6797-a72-transition-test.o
+ obj-$(CONFIG_MTK_MT6797_A72_CPU9_EXECUTOR) += mt6797-a72-cpu9-executor.o
++obj-$(CONFIG_MTK_MT6797_A72_HOTPLUG_EXECUTOR) += mt6797-a72-hotplug-executor.o
++obj-$(CONFIG_MTK_MT6797_A72_HOTPLUG_EXECUTOR_KUNIT_TEST) += mt6797-a72-hotplug-executor-test.o
+ obj-$(CONFIG_MTK_MT6797_A72_CPU9_EXECUTOR_KUNIT_TEST) += mt6797-a72-cpu9-executor-test.o
+ obj-$(CONFIG_MTK_MT6797_A72_CPU9_BINDER) += mt6797-a72-cpu9-binder.o
+ obj-$(CONFIG_MTK_MT6797_A72_CPU9_BINDER_KUNIT_TEST) += mt6797-a72-cpu9-binder-test.o
+diff --git a/drivers/soc/mediatek/mt6797-a72-hotplug-executor-internal.h b/drivers/soc/mediatek/mt6797-a72-hotplug-executor-internal.h
+new file mode 100644
+index 0000000..9e409ee
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-a72-hotplug-executor-internal.h
+@@ -0,0 +1,197 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __MT6797_A72_HOTPLUG_EXECUTOR_INTERNAL_H
++#define __MT6797_A72_HOTPLUG_EXECUTOR_INTERNAL_H
++
++#include <linux/atomic.h>
++#include <linux/bitops.h>
++#include <linux/types.h>
++
++#define MT6797_A72_HOTPLUG_CPU8 8U
++#define MT6797_A72_HOTPLUG_CPU9 9U
++#define MT6797_A72_HOTPLUG_ENTRY_MEMBERS (BIT(0) | BIT(1))
++#define MT6797_A72_HOTPLUG_OFFLINE_MEMBERS BIT(0)
++#define MT6797_A72_HOTPLUG_CPU8_STATUS BIT(7)
++#define MT6797_A72_HOTPLUG_CPU9_STATUS BIT(6)
++#define MT6797_A72_HOTPLUG_EXT_ISO_MASK BIT(1)
++#define MT6797_A72_HOTPLUG_DCM_MASK GENMASK(6, 0)
++#define MT6797_A72_HOTPLUG_CCI_REQUEST_MASK GENMASK(1, 0)
++#define MT6797_A72_HOTPLUG_CCI_PENDING BIT(0)
++#define MT6797_A72_HOTPLUG_AFFINITY_LEVEL0 0U
++#define MT6797_A72_HOTPLUG_AFFINITY_OFF 1
++#define MT6797_A72_HOTPLUG_CLOCK_VALUES 18U
++#define MT6797_A72_HOTPLUG_BIGIDVFS_VALUES 4U
++
++enum mt6797_a72_hotplug_executor_stage {
++	MT6797_A72_HOTPLUG_STAGE_NONE,
++	MT6797_A72_HOTPLUG_STAGE_OWNER_PREPARE,
++	MT6797_A72_HOTPLUG_STAGE_WATCHDOG_VALIDATE,
++	MT6797_A72_HOTPLUG_STAGE_BASELINE,
++	MT6797_A72_HOTPLUG_STAGE_OWNER_VALIDATE,
++	MT6797_A72_HOTPLUG_STAGE_TARGET_DISABLE,
++	MT6797_A72_HOTPLUG_STAGE_OFF_COMMIT,
++	MT6797_A72_HOTPLUG_STAGE_AFFINITY,
++	MT6797_A72_HOTPLUG_STAGE_POST_STATE,
++	MT6797_A72_HOTPLUG_STAGE_CPU8_CALLBACK,
++	MT6797_A72_HOTPLUG_STAGE_OWNER_PROOF,
++	MT6797_A72_HOTPLUG_STAGE_OWNER_COMPLETE,
++	MT6797_A72_HOTPLUG_STAGE_COUNT,
++};
++
++enum mt6797_a72_hotplug_executor_phase {
++	MT6797_A72_HOTPLUG_BEFORE,
++	MT6797_A72_HOTPLUG_AFTER,
++};
++
++enum mt6797_a72_hotplug_executor_terminal {
++	MT6797_A72_HOTPLUG_TERMINAL_NONE,
++	MT6797_A72_HOTPLUG_REJECTED_PRECOMMIT,
++	MT6797_A72_HOTPLUG_FAULT_POSTCOMMIT,
++	MT6797_A72_HOTPLUG_DOWN_COMPLETE,
++};
++
++enum mt6797_a72_hotplug_executor_lifecycle {
++	MT6797_A72_HOTPLUG_LIFECYCLE_IDLE,
++	MT6797_A72_HOTPLUG_LIFECYCLE_PREFLIGHT,
++	MT6797_A72_HOTPLUG_LIFECYCLE_PREPARED,
++	MT6797_A72_HOTPLUG_LIFECYCLE_VALIDATING,
++	MT6797_A72_HOTPLUG_LIFECYCLE_VALIDATED,
++	MT6797_A72_HOTPLUG_LIFECYCLE_DISABLING,
++	MT6797_A72_HOTPLUG_LIFECYCLE_DISABLED,
++	MT6797_A72_HOTPLUG_LIFECYCLE_COMMITTING,
++	MT6797_A72_HOTPLUG_LIFECYCLE_OFF_COMMITTED,
++	MT6797_A72_HOTPLUG_LIFECYCLE_KILLING,
++	MT6797_A72_HOTPLUG_LIFECYCLE_OFF_PROVEN,
++	MT6797_A72_HOTPLUG_LIFECYCLE_COMPLETING,
++	MT6797_A72_HOTPLUG_LIFECYCLE_TERMINAL,
++};
++
++struct mt6797_a72_hotplug_readback {
++	u32 spm_pwr_status;
++	u32 spm_pwr_status_2nd;
++	u32 spm_cpu_pwr_status;
++	u32 spm_cpu_pwr_status_2nd;
++	u32 spm_mp2_cpusys_pwr_con;
++	u32 spm_mp2_cpu0_pwr_con;
++	u32 spm_mp2_cpu1_pwr_con;
++	u32 spm_cpu_ext_buck_iso;
++	u32 mp2_sync_dcm;
++	u32 cci_mp2_port_control;
++	u32 cci_status_before;
++	u32 cci_status_after;
++	u8 provider[5];
++	u32 clock[MT6797_A72_HOTPLUG_CLOCK_VALUES];
++	u32 bigidvfs[MT6797_A72_HOTPLUG_BIGIDVFS_VALUES];
++	bool valid;
++};
++
++struct mt6797_a72_hotplug_executor_controller {
++	atomic_t consumed;
++	atomic_t lifecycle;
++};
++
++#define MT6797_A72_HOTPLUG_EXECUTOR_CONTROLLER_INIT \
++	{ .consumed = ATOMIC_INIT(0), \
++	  .lifecycle = ATOMIC_INIT(MT6797_A72_HOTPLUG_LIFECYCLE_IDLE) }
++
++struct mt6797_a72_hotplug_executor_request {
++	unsigned int cpu;
++	u32 members;
++	u32 online_mask;
++	u64 watchdog_identity;
++	bool owner_parent_exact;
++	bool watchdog_owned;
++};
++
++struct mt6797_a72_hotplug_executor_result {
++	struct mt6797_a72_hotplug_readback baseline;
++	struct mt6797_a72_hotplug_readback post_state;
++	enum mt6797_a72_hotplug_executor_terminal terminal;
++	enum mt6797_a72_hotplug_executor_stage last_stage;
++	s32 stage_errno;
++	s32 publication_errno;
++	u64 watchdog_identity;
++	u32 cpu_off_authorizations;
++	u32 affinity_calls;
++	u32 snapshots;
++	u32 cpu8_callbacks;
++	u32 proof_calls;
++	u32 fail_calls;
++	u32 checkpoints;
++	u32 terminal_commits;
++	bool attempted;
++	bool owner_prepared;
++	bool watchdog_validated;
++	bool off_committed;
++	bool off_proven;
++	bool completed;
++};
++
++struct mt6797_a72_hotplug_executor_ops {
++	int (*checkpoint)(void *context,
++			  enum mt6797_a72_hotplug_executor_phase phase,
++			  enum mt6797_a72_hotplug_executor_stage stage,
++			  const struct mt6797_a72_hotplug_executor_result *result);
++	int (*prepare_down)(void *context,
++			    const struct mt6797_a72_hotplug_executor_request *request);
++	int (*watchdog_validate)(void *context, u64 identity);
++	int (*snapshot)(void *context,
++			struct mt6797_a72_hotplug_readback *readback);
++	int (*validate_down)(void *context, bool tasks_frozen,
++			     bool cpu8_online, bool cpu9_online);
++	int (*target_disable)(void *context, unsigned int cpu);
++	int (*commit_off)(void *context, unsigned int cpu);
++	int (*affinity_info)(void *context, unsigned int cpu,
++			     unsigned int level);
++	int (*cpu8_callback)(void *context, unsigned int cpu);
++	int (*prove_off)(void *context,
++			 const struct mt6797_a72_hotplug_executor_result *result);
++	int (*complete_down)(void *context, bool cpu8_online,
++			     bool cpu9_online);
++	int (*fail_down)(void *context, int error);
++	int (*terminal)(void *context,
++			const struct mt6797_a72_hotplug_executor_result *result);
++};
++
++bool mt6797_a72_hotplug_readback_proves_cpu9_off(
++	const struct mt6797_a72_hotplug_readback *baseline,
++	const struct mt6797_a72_hotplug_readback *post_state);
++int mt6797_a72_hotplug_executor_preflight(
++	struct mt6797_a72_hotplug_executor_controller *controller,
++	const struct mt6797_a72_hotplug_executor_ops *ops, void *context,
++	const struct mt6797_a72_hotplug_executor_request *request,
++	struct mt6797_a72_hotplug_executor_result *result);
++int mt6797_a72_hotplug_executor_validate(
++	struct mt6797_a72_hotplug_executor_controller *controller,
++	const struct mt6797_a72_hotplug_executor_ops *ops, void *context,
++	bool tasks_frozen, bool cpu8_online, bool cpu9_online,
++	struct mt6797_a72_hotplug_executor_result *result);
++int mt6797_a72_hotplug_executor_disable(
++	struct mt6797_a72_hotplug_executor_controller *controller,
++	const struct mt6797_a72_hotplug_executor_ops *ops, void *context,
++	unsigned int cpu,
++	struct mt6797_a72_hotplug_executor_result *result);
++int mt6797_a72_hotplug_executor_commit(
++	struct mt6797_a72_hotplug_executor_controller *controller,
++	const struct mt6797_a72_hotplug_executor_ops *ops, void *context,
++	unsigned int cpu,
++	struct mt6797_a72_hotplug_executor_result *result);
++int mt6797_a72_hotplug_executor_target_returned(
++	struct mt6797_a72_hotplug_executor_controller *controller,
++	const struct mt6797_a72_hotplug_executor_ops *ops, void *context,
++	int error, struct mt6797_a72_hotplug_executor_result *result);
++int mt6797_a72_hotplug_executor_kill(
++	struct mt6797_a72_hotplug_executor_controller *controller,
++	const struct mt6797_a72_hotplug_executor_ops *ops, void *context,
++	unsigned int cpu, bool target_dead, bool cpu8_online,
++	bool cpu9_online, struct mt6797_a72_hotplug_executor_result *result);
++int mt6797_a72_hotplug_executor_complete(
++	struct mt6797_a72_hotplug_executor_controller *controller,
++	const struct mt6797_a72_hotplug_executor_ops *ops, void *context,
++	bool cpu8_online, bool cpu9_online,
++	struct mt6797_a72_hotplug_executor_result *result);
++int mt6797_a72_hotplug_executor_fail(
++	struct mt6797_a72_hotplug_executor_controller *controller,
++	const struct mt6797_a72_hotplug_executor_ops *ops, void *context,
++	int error, struct mt6797_a72_hotplug_executor_result *result);
++
++#endif /* __MT6797_A72_HOTPLUG_EXECUTOR_INTERNAL_H */
+diff --git a/drivers/soc/mediatek/mt6797-a72-hotplug-executor.c b/drivers/soc/mediatek/mt6797-a72-hotplug-executor.c
+new file mode 100644
+index 0000000..99d9218
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-a72-hotplug-executor.c
+@@ -0,0 +1,458 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* Hardware-free split executor for one MT6797 CPU9-off transaction. */
++
++#include <linux/errno.h>
++#include <linux/string.h>
++
++#include "mt6797-a72-hotplug-executor-internal.h"
++
++static bool mt6797_a72_hotplug_ops_valid(
++	const struct mt6797_a72_hotplug_executor_ops *ops)
++{
++	return ops && ops->checkpoint && ops->prepare_down &&
++		ops->watchdog_validate && ops->snapshot && ops->validate_down &&
++		ops->target_disable && ops->commit_off && ops->affinity_info &&
++		ops->cpu8_callback && ops->prove_off && ops->complete_down &&
++		ops->fail_down && ops->terminal;
++}
++
++static bool mt6797_a72_hotplug_request_valid(
++	const struct mt6797_a72_hotplug_executor_request *request)
++{
++	return request && request->cpu == MT6797_A72_HOTPLUG_CPU9 &&
++		request->members == MT6797_A72_HOTPLUG_ENTRY_MEMBERS &&
++		request->online_mask == MT6797_A72_HOTPLUG_ENTRY_MEMBERS &&
++		request->watchdog_identity && request->owner_parent_exact &&
++		request->watchdog_owned;
++}
++
++static bool mt6797_a72_hotplug_status_exact(
++	const struct mt6797_a72_hotplug_readback *readback, bool cpu9_online)
++{
++	u32 required = MT6797_A72_HOTPLUG_CPU8_STATUS;
++	u32 forbidden = 0;
++
++	if (cpu9_online)
++		required |= MT6797_A72_HOTPLUG_CPU9_STATUS;
++	else
++		forbidden = MT6797_A72_HOTPLUG_CPU9_STATUS;
++	return readback->valid &&
++		(readback->spm_cpu_pwr_status & required) == required &&
++		(readback->spm_cpu_pwr_status_2nd & required) == required &&
++		!(readback->spm_cpu_pwr_status & forbidden) &&
++		!(readback->spm_cpu_pwr_status_2nd & forbidden) &&
++		!((readback->cci_status_before | readback->cci_status_after) &
++		  MT6797_A72_HOTPLUG_CCI_PENDING);
++}
++
++bool mt6797_a72_hotplug_readback_proves_cpu9_off(
++	const struct mt6797_a72_hotplug_readback *baseline,
++	const struct mt6797_a72_hotplug_readback *post_state)
++{
++	if (!baseline || !post_state ||
++	    !mt6797_a72_hotplug_status_exact(baseline, true) ||
++	    !mt6797_a72_hotplug_status_exact(post_state, false))
++		return false;
++	return baseline->spm_mp2_cpusys_pwr_con ==
++			post_state->spm_mp2_cpusys_pwr_con &&
++		baseline->spm_mp2_cpu0_pwr_con ==
++			post_state->spm_mp2_cpu0_pwr_con &&
++		!((baseline->spm_cpu_ext_buck_iso ^
++		   post_state->spm_cpu_ext_buck_iso) &
++		  MT6797_A72_HOTPLUG_EXT_ISO_MASK) &&
++		!((baseline->mp2_sync_dcm ^ post_state->mp2_sync_dcm) &
++		  MT6797_A72_HOTPLUG_DCM_MASK) &&
++		!((baseline->cci_mp2_port_control ^
++		   post_state->cci_mp2_port_control) &
++		  MT6797_A72_HOTPLUG_CCI_REQUEST_MASK) &&
++		!memcmp(baseline->provider, post_state->provider,
++			sizeof(baseline->provider)) &&
++		!memcmp(baseline->clock, post_state->clock,
++			sizeof(baseline->clock)) &&
++		!memcmp(baseline->bigidvfs, post_state->bigidvfs,
++			sizeof(baseline->bigidvfs));
++}
++
++static int mt6797_a72_hotplug_checkpoint(
++	const struct mt6797_a72_hotplug_executor_ops *ops, void *context,
++	struct mt6797_a72_hotplug_executor_result *result,
++	enum mt6797_a72_hotplug_executor_phase phase,
++	enum mt6797_a72_hotplug_executor_stage stage)
++{
++	int ret;
++
++	result->last_stage = stage;
++	result->checkpoints++;
++	ret = ops->checkpoint(context, phase, stage, result);
++	if (ret)
++		result->publication_errno = ret;
++	return ret;
++}
++
++static int mt6797_a72_hotplug_terminal(
++	struct mt6797_a72_hotplug_executor_controller *controller,
++	const struct mt6797_a72_hotplug_executor_ops *ops, void *context,
++	struct mt6797_a72_hotplug_executor_result *result,
++	enum mt6797_a72_hotplug_executor_terminal terminal, int error)
++{
++	int ret;
++
++	result->terminal = terminal;
++	result->terminal_commits++;
++	ret = ops->terminal(context, result);
++	if (ret) {
++		result->publication_errno = ret;
++		if (terminal == MT6797_A72_HOTPLUG_DOWN_COMPLETE) {
++			result->terminal = MT6797_A72_HOTPLUG_FAULT_POSTCOMMIT;
++			result->stage_errno = ret;
++			error = ret;
++		}
++	}
++	atomic_set_release(&controller->lifecycle,
++			   MT6797_A72_HOTPLUG_LIFECYCLE_TERMINAL);
++	return error;
++}
++
++static int mt6797_a72_hotplug_reject(
++	struct mt6797_a72_hotplug_executor_controller *controller,
++	const struct mt6797_a72_hotplug_executor_ops *ops, void *context,
++	struct mt6797_a72_hotplug_executor_result *result, int error)
++{
++	int fail_ret = 0;
++
++	result->stage_errno = error;
++	if (result->owner_prepared) {
++		result->fail_calls++;
++		fail_ret = ops->fail_down(context, error);
++		if (fail_ret)
++			result->publication_errno = fail_ret;
++	}
++	return mt6797_a72_hotplug_terminal(controller, ops, context, result,
++		MT6797_A72_HOTPLUG_REJECTED_PRECOMMIT,
++		fail_ret ? fail_ret : error);
++}
++
++static int mt6797_a72_hotplug_fault(
++	struct mt6797_a72_hotplug_executor_controller *controller,
++	const struct mt6797_a72_hotplug_executor_ops *ops, void *context,
++	struct mt6797_a72_hotplug_executor_result *result, int error)
++{
++	int fail_ret;
++
++	result->stage_errno = error;
++	result->fail_calls++;
++	fail_ret = ops->fail_down(context, error);
++	if (fail_ret)
++		result->publication_errno = fail_ret;
++	return mt6797_a72_hotplug_terminal(controller, ops, context, result,
++		MT6797_A72_HOTPLUG_FAULT_POSTCOMMIT,
++		fail_ret ? fail_ret : error);
++}
++
++static int mt6797_a72_hotplug_precommit_checkpoint(
++	struct mt6797_a72_hotplug_executor_controller *controller,
++	const struct mt6797_a72_hotplug_executor_ops *ops, void *context,
++	struct mt6797_a72_hotplug_executor_result *result,
++	enum mt6797_a72_hotplug_executor_phase phase,
++	enum mt6797_a72_hotplug_executor_stage stage)
++{
++	int ret = mt6797_a72_hotplug_checkpoint(ops, context, result,
++					       phase, stage);
++
++	return ret ? mt6797_a72_hotplug_reject(controller, ops, context,
++						 result, ret) : 0;
++}
++
++int mt6797_a72_hotplug_executor_preflight(
++	struct mt6797_a72_hotplug_executor_controller *controller,
++	const struct mt6797_a72_hotplug_executor_ops *ops, void *context,
++	const struct mt6797_a72_hotplug_executor_request *request,
++	struct mt6797_a72_hotplug_executor_result *result)
++{
++	int ret;
++
++	if (!result)
++		return -EINVAL;
++	memset(result, 0, sizeof(*result));
++	result->terminal = MT6797_A72_HOTPLUG_REJECTED_PRECOMMIT;
++	if (!controller || !mt6797_a72_hotplug_ops_valid(ops) ||
++	    !mt6797_a72_hotplug_request_valid(request))
++		return -EINVAL;
++	if (atomic_cmpxchg(&controller->consumed, 0, 1))
++		return -EALREADY;
++	if (atomic_cmpxchg(&controller->lifecycle,
++			   MT6797_A72_HOTPLUG_LIFECYCLE_IDLE,
++			   MT6797_A72_HOTPLUG_LIFECYCLE_PREFLIGHT) !=
++	    MT6797_A72_HOTPLUG_LIFECYCLE_IDLE)
++		return -EALREADY;
++	result->attempted = true;
++	result->terminal = MT6797_A72_HOTPLUG_TERMINAL_NONE;
++	result->watchdog_identity = request->watchdog_identity;
++
++	ret = mt6797_a72_hotplug_precommit_checkpoint(controller, ops,
++						      context, result, MT6797_A72_HOTPLUG_BEFORE,
++		MT6797_A72_HOTPLUG_STAGE_OWNER_PREPARE);
++	if (ret)
++		return ret;
++	ret = ops->prepare_down(context, request);
++	if (ret)
++		return mt6797_a72_hotplug_reject(controller, ops, context,
++					  result, ret);
++	result->owner_prepared = true;
++	ret = mt6797_a72_hotplug_precommit_checkpoint(controller, ops,
++						      context, result, MT6797_A72_HOTPLUG_AFTER,
++		MT6797_A72_HOTPLUG_STAGE_OWNER_PREPARE);
++	if (ret)
++		return ret;
++
++	ret = mt6797_a72_hotplug_precommit_checkpoint(controller, ops,
++						      context, result, MT6797_A72_HOTPLUG_BEFORE,
++		MT6797_A72_HOTPLUG_STAGE_WATCHDOG_VALIDATE);
++	if (ret)
++		return ret;
++	ret = ops->watchdog_validate(context, request->watchdog_identity);
++	if (ret)
++		return mt6797_a72_hotplug_reject(controller, ops, context,
++					  result, ret);
++	result->watchdog_validated = true;
++	ret = mt6797_a72_hotplug_precommit_checkpoint(controller, ops,
++						      context, result, MT6797_A72_HOTPLUG_AFTER,
++		MT6797_A72_HOTPLUG_STAGE_WATCHDOG_VALIDATE);
++	if (ret)
++		return ret;
++
++	ret = mt6797_a72_hotplug_precommit_checkpoint(controller, ops,
++						      context, result, MT6797_A72_HOTPLUG_BEFORE,
++		MT6797_A72_HOTPLUG_STAGE_BASELINE);
++	if (ret)
++		return ret;
++	result->snapshots++;
++	ret = ops->snapshot(context, &result->baseline);
++	if (ret || !mt6797_a72_hotplug_status_exact(&result->baseline, true))
++		return mt6797_a72_hotplug_reject(controller, ops, context,
++					  result, ret ? ret : -EPROTO);
++	ret = mt6797_a72_hotplug_precommit_checkpoint(controller, ops,
++						      context, result, MT6797_A72_HOTPLUG_AFTER,
++		MT6797_A72_HOTPLUG_STAGE_BASELINE);
++	if (ret)
++		return ret;
++	atomic_set_release(&controller->lifecycle,
++			   MT6797_A72_HOTPLUG_LIFECYCLE_PREPARED);
++	return 0;
++}
++
++int mt6797_a72_hotplug_executor_validate(
++	struct mt6797_a72_hotplug_executor_controller *controller,
++	const struct mt6797_a72_hotplug_executor_ops *ops, void *context,
++	bool tasks_frozen, bool cpu8_online, bool cpu9_online,
++	struct mt6797_a72_hotplug_executor_result *result)
++{
++	int ret;
++
++	if (!controller || !result || !mt6797_a72_hotplug_ops_valid(ops))
++		return -EINVAL;
++	if (atomic_cmpxchg(&controller->lifecycle,
++			   MT6797_A72_HOTPLUG_LIFECYCLE_PREPARED,
++			   MT6797_A72_HOTPLUG_LIFECYCLE_VALIDATING) !=
++	    MT6797_A72_HOTPLUG_LIFECYCLE_PREPARED)
++		return -EALREADY;
++	result->last_stage = MT6797_A72_HOTPLUG_STAGE_OWNER_VALIDATE;
++	if (tasks_frozen || !cpu8_online || !cpu9_online)
++		return mt6797_a72_hotplug_reject(controller, ops, context,
++					  result, -EPERM);
++	ret = ops->validate_down(context, tasks_frozen, cpu8_online,
++				 cpu9_online);
++	if (ret)
++		return mt6797_a72_hotplug_reject(controller, ops, context,
++					  result, ret);
++	atomic_set_release(&controller->lifecycle,
++			   MT6797_A72_HOTPLUG_LIFECYCLE_VALIDATED);
++	return 0;
++}
++
++int mt6797_a72_hotplug_executor_disable(
++	struct mt6797_a72_hotplug_executor_controller *controller,
++	const struct mt6797_a72_hotplug_executor_ops *ops, void *context,
++	unsigned int cpu,
++	struct mt6797_a72_hotplug_executor_result *result)
++{
++	int ret;
++
++	if (!controller || !result || !mt6797_a72_hotplug_ops_valid(ops))
++		return -EINVAL;
++	if (atomic_cmpxchg(&controller->lifecycle,
++			   MT6797_A72_HOTPLUG_LIFECYCLE_VALIDATED,
++			   MT6797_A72_HOTPLUG_LIFECYCLE_DISABLING) !=
++	    MT6797_A72_HOTPLUG_LIFECYCLE_VALIDATED)
++		return -EALREADY;
++	result->last_stage = MT6797_A72_HOTPLUG_STAGE_TARGET_DISABLE;
++	if (cpu != MT6797_A72_HOTPLUG_CPU9)
++		return mt6797_a72_hotplug_reject(controller, ops, context,
++					  result, -EINVAL);
++	ret = ops->target_disable(context, cpu);
++	if (ret)
++		return mt6797_a72_hotplug_reject(controller, ops, context,
++					  result, ret);
++	atomic_set_release(&controller->lifecycle,
++			   MT6797_A72_HOTPLUG_LIFECYCLE_DISABLED);
++	return 0;
++}
++
++int mt6797_a72_hotplug_executor_commit(
++	struct mt6797_a72_hotplug_executor_controller *controller,
++	const struct mt6797_a72_hotplug_executor_ops *ops, void *context,
++	unsigned int cpu,
++	struct mt6797_a72_hotplug_executor_result *result)
++{
++	int ret;
++
++	if (!controller || !result || !mt6797_a72_hotplug_ops_valid(ops))
++		return -EINVAL;
++	if (atomic_cmpxchg(&controller->lifecycle,
++			   MT6797_A72_HOTPLUG_LIFECYCLE_DISABLED,
++			   MT6797_A72_HOTPLUG_LIFECYCLE_COMMITTING) !=
++	    MT6797_A72_HOTPLUG_LIFECYCLE_DISABLED)
++		return -EALREADY;
++	if (cpu != MT6797_A72_HOTPLUG_CPU9)
++		return mt6797_a72_hotplug_reject(controller, ops, context,
++					  result, -EINVAL);
++	ret = mt6797_a72_hotplug_precommit_checkpoint(controller, ops,
++						      context, result, MT6797_A72_HOTPLUG_BEFORE,
++		MT6797_A72_HOTPLUG_STAGE_OFF_COMMIT);
++	if (ret)
++		return ret;
++	ret = ops->commit_off(context, cpu);
++	if (ret)
++		return mt6797_a72_hotplug_reject(controller, ops, context,
++					  result, ret);
++	result->off_committed = true;
++	result->cpu_off_authorizations = 1;
++	atomic_set_release(&controller->lifecycle,
++			   MT6797_A72_HOTPLUG_LIFECYCLE_OFF_COMMITTED);
++	ret = mt6797_a72_hotplug_checkpoint(ops, context, result,
++					    MT6797_A72_HOTPLUG_AFTER,
++					MT6797_A72_HOTPLUG_STAGE_OFF_COMMIT);
++	return ret ? mt6797_a72_hotplug_fault(controller, ops, context,
++					 result, ret) : 0;
++}
++
++int mt6797_a72_hotplug_executor_target_returned(
++	struct mt6797_a72_hotplug_executor_controller *controller,
++	const struct mt6797_a72_hotplug_executor_ops *ops, void *context,
++	int error, struct mt6797_a72_hotplug_executor_result *result)
++{
++	if (!controller || !result || !mt6797_a72_hotplug_ops_valid(ops))
++		return -EINVAL;
++	if (atomic_read_acquire(&controller->lifecycle) !=
++	    MT6797_A72_HOTPLUG_LIFECYCLE_OFF_COMMITTED)
++		return -EALREADY;
++	return mt6797_a72_hotplug_fault(controller, ops, context, result,
++					error ? error : -EIO);
++}
++
++int mt6797_a72_hotplug_executor_kill(
++	struct mt6797_a72_hotplug_executor_controller *controller,
++	const struct mt6797_a72_hotplug_executor_ops *ops, void *context,
++	unsigned int cpu, bool target_dead, bool cpu8_online,
++	bool cpu9_online, struct mt6797_a72_hotplug_executor_result *result)
++{
++	int ret;
++
++	if (!controller || !result || !mt6797_a72_hotplug_ops_valid(ops))
++		return -EINVAL;
++	if (atomic_cmpxchg(&controller->lifecycle,
++			   MT6797_A72_HOTPLUG_LIFECYCLE_OFF_COMMITTED,
++			   MT6797_A72_HOTPLUG_LIFECYCLE_KILLING) !=
++	    MT6797_A72_HOTPLUG_LIFECYCLE_OFF_COMMITTED)
++		return -EALREADY;
++	if (cpu != MT6797_A72_HOTPLUG_CPU9 || !target_dead ||
++	    !cpu8_online || cpu9_online)
++		return mt6797_a72_hotplug_fault(controller, ops, context,
++					 result, -EPROTO);
++
++	result->last_stage = MT6797_A72_HOTPLUG_STAGE_AFFINITY;
++	result->affinity_calls++;
++	ret = ops->affinity_info(context, cpu,
++				 MT6797_A72_HOTPLUG_AFFINITY_LEVEL0);
++	if (ret != MT6797_A72_HOTPLUG_AFFINITY_OFF)
++		return mt6797_a72_hotplug_fault(controller, ops, context,
++					 result, ret < 0 ? ret : -EIO);
++
++	result->last_stage = MT6797_A72_HOTPLUG_STAGE_POST_STATE;
++	result->snapshots++;
++	ret = ops->snapshot(context, &result->post_state);
++	if (ret)
++		return mt6797_a72_hotplug_fault(controller, ops, context,
++					 result, ret);
++
++	result->last_stage = MT6797_A72_HOTPLUG_STAGE_CPU8_CALLBACK;
++	result->cpu8_callbacks++;
++	ret = ops->cpu8_callback(context, MT6797_A72_HOTPLUG_CPU8);
++	if (ret)
++		return mt6797_a72_hotplug_fault(controller, ops, context,
++					 result, ret);
++	if (!mt6797_a72_hotplug_readback_proves_cpu9_off(
++		    &result->baseline, &result->post_state))
++		return mt6797_a72_hotplug_fault(controller, ops, context,
++					 result, -EIO);
++
++	result->last_stage = MT6797_A72_HOTPLUG_STAGE_OWNER_PROOF;
++	result->proof_calls++;
++	ret = ops->prove_off(context, result);
++	if (ret)
++		return mt6797_a72_hotplug_fault(controller, ops, context,
++					 result, ret);
++	result->off_proven = true;
++	atomic_set_release(&controller->lifecycle,
++			   MT6797_A72_HOTPLUG_LIFECYCLE_OFF_PROVEN);
++	return 0;
++}
++
++int mt6797_a72_hotplug_executor_complete(
++	struct mt6797_a72_hotplug_executor_controller *controller,
++	const struct mt6797_a72_hotplug_executor_ops *ops, void *context,
++	bool cpu8_online, bool cpu9_online,
++	struct mt6797_a72_hotplug_executor_result *result)
++{
++	int ret;
++
++	if (!controller || !result || !mt6797_a72_hotplug_ops_valid(ops))
++		return -EINVAL;
++	if (atomic_cmpxchg(&controller->lifecycle,
++			   MT6797_A72_HOTPLUG_LIFECYCLE_OFF_PROVEN,
++			   MT6797_A72_HOTPLUG_LIFECYCLE_COMPLETING) !=
++	    MT6797_A72_HOTPLUG_LIFECYCLE_OFF_PROVEN)
++		return -EALREADY;
++	result->last_stage = MT6797_A72_HOTPLUG_STAGE_OWNER_COMPLETE;
++	if (!cpu8_online || cpu9_online)
++		return mt6797_a72_hotplug_fault(controller, ops, context,
++					 result, -EPROTO);
++	ret = ops->complete_down(context, cpu8_online, cpu9_online);
++	if (ret)
++		return mt6797_a72_hotplug_fault(controller, ops, context,
++					 result, ret);
++	result->completed = true;
++	return mt6797_a72_hotplug_terminal(controller, ops, context, result,
++					 MT6797_A72_HOTPLUG_DOWN_COMPLETE, 0);
++}
++
++int mt6797_a72_hotplug_executor_fail(
++	struct mt6797_a72_hotplug_executor_controller *controller,
++	const struct mt6797_a72_hotplug_executor_ops *ops, void *context,
++	int error, struct mt6797_a72_hotplug_executor_result *result)
++{
++	int lifecycle;
++
++	if (!controller || !result || !error ||
++	    !mt6797_a72_hotplug_ops_valid(ops))
++		return -EINVAL;
++	lifecycle = atomic_read_acquire(&controller->lifecycle);
++	if (lifecycle == MT6797_A72_HOTPLUG_LIFECYCLE_TERMINAL ||
++	    lifecycle == MT6797_A72_HOTPLUG_LIFECYCLE_IDLE)
++		return -EALREADY;
++	if (result->off_committed)
++		return mt6797_a72_hotplug_fault(controller, ops, context,
++					 result, error);
++	return mt6797_a72_hotplug_reject(controller, ops, context, result,
++					error);
++}
