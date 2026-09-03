@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-a72-hotplug-lifecycle-gate` |
-| Status | watchdog, exact parent, record-4, snapshot, and bounded CPU8-observation prerequisites proven; restore prerequisite pending |
+| Status | all disconnected prerequisites including CPU9 restore proven; one-task down/restore binder pending |
 | Subsystem | arm64 CPU hotplug, PSCI, MT6797 A72 membership |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-09-02 America/New_York |
@@ -146,6 +146,16 @@ handling, and exact restore token are implemented and machine-checked.
 - `scripts/run-cpu8-observer-kunit-qemu` and
   `classify-cpu8-observer-kunit.py` admit only the exact ancestor Buildbox
   package and require all seven observer cases to pass.
+- `scripts/restore_executor_source_edits.py`,
+  `restore_executor_test_edits.py`, `validate_restore_executor_source.py`, and
+  `test_restore_executor_source.py` define the disconnected CPU9 restore
+  executor and reject 32 unsafe source mutations.
+- `scripts/generate_restore_executor_patches.py` and
+  `generate-restore-executor-on-buildbox` generate the exact restore/test pair
+  from the hash-pinned source through `0494`.
+- `scripts/run-restore-executor-kunit-qemu` and
+  `classify-restore-executor-kunit.py` admit only the exact ancestor Buildbox
+  package and require all ten restore cases to pass with no network device.
 - [`results/contract-validation-20260902.txt`](results/contract-validation-20260902.txt)
   records the local contract/mutation pass and exact Buildbox prepared-source
   validation.
@@ -195,6 +205,9 @@ handling, and exact restore token are implemented and machine-checked.
   pins the first compile refusal, dependency correction, exact regenerated
   patch, 21 rejecting mutations, Buildbox package, and 7-of-7 no-network
   runtime pass.
+- [`results/restore-executor-kunit-4c98a46a-20260903.txt`](results/restore-executor-kunit-4c98a46a-20260903.txt)
+  pins exact generation, 32 rejecting mutations, admission, Buildbox package,
+  and the 10-of-10 no-network restore runtime pass.
 - [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
   is the exact admitted no-op-by-default implementation.
 - [`../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch)
@@ -224,8 +237,13 @@ handling, and exact restore token are implemented and machine-checked.
 - [`../../patches/v7.1.3/0494-soc-mediatek-add-bounded-retained-CPU8-observer.patch`](../../patches/v7.1.3/0494-soc-mediatek-add-bounded-retained-CPU8-observer.patch)
   adds the disconnected one-shot asynchronous CPU8 observer and seven focused
   KUnit cases.
+- [`../../patches/v7.1.3/0495-soc-mediatek-add-disconnected-CPU9-restore-executor.patch`](../../patches/v7.1.3/0495-soc-mediatek-add-disconnected-CPU9-restore-executor.patch)
+  adds the disconnected, parent-linked CPU9 restore state machine with one
+  injected CPU-on call site and four retained-ledger stages.
+- [`../../patches/v7.1.3/0496-soc-mediatek-test-disconnected-CPU9-restore-executor.patch`](../../patches/v7.1.3/0496-soc-mediatek-test-disconnected-CPU9-restore-executor.patch)
+  adds its ten focused hardware-free KUnit cases.
 
-Patches `0483`--`0494` are experiment-only archives with a synthetic,
+Patches `0483`--`0496` are experiment-only archives with a synthetic,
 non-certifying author identity, no DCO sign-off, and are not submission-ready.
 Upstream submission requires the actual author metadata and truthful
 certification.
@@ -507,6 +525,30 @@ boot candidate was enabled. A later regeneration request also failed closed
 after the managed prepared-source identity advanced to `751075a0...`; it
 produced no replacement artifact and does not alter the admitted patch proof.
 
+The restore generator was stabilized in three bounded validator corrections:
+Kconfig matching was confined to the target stanza, the Kconfig mutation was
+made target-specific, and checkpoint mutations were made deterministic. Exact
+Buildbox generation at pushed commit `3e1f4d6a...` then produced patches
+`0495` and `0496` with SHA-256 identities `95b9b60f...` and `78c61102...`.
+Exact replay and strict review pass, all 32 unsafe source mutations fail
+closed, all 170 manifest profiles retain canonical-order subsequences, and
+the eight-mutation invariant self-test passes. The executor accepts only the
+exact retired CPU9-down parent and a distinct parent-linked restore identity,
+uses one injected CPU-on call site after the CPU_ON-committed checkpoint,
+records stages 14--17, and suppresses unrelated initial-P32 rollback. It has
+no production caller, DT node, or physical-effect implementation.
+
+Exact admission commit `4c98a46a...` compiled successfully on Buildbox with
+patchset `2fcbb02f8e760f0b7586c598f83c3ff1b73283e0531852b938a800dcd77bef44`.
+The validated package contains the kernel, configuration, provenance, and all
+123 DTBs; the restore files introduced no compiler warning. At published
+harness commit `ced11d9e...`, the no-network four-vCPU QEMU gate passed the
+sole restore suite 10/10 with zero failures or skips. It covered exact entry,
+identity and validation refusals; prepare, CPU-on, checkpoint and completion
+failures; secondary ordering; rollback; and successful terminal membership.
+No physical backend, CPU request, MMIO, I2C, retained-RAM access, SMC,
+watchdog takeover, network, device action, or boot candidate was enabled.
+
 ## Analysis
 
 The accepted online/topology/load evidence closes the entry-state uncertainty
@@ -546,18 +588,22 @@ mutations, Buildbox compile, and 6/6 isolated runtime cases pass. The combined
 series still binds no callback, preserves the MT6797 disable veto, and performs
 no physical action. Patch `0494` supplies the bounded CPU8 observer; exact
 generation, 21 source mutations, Buildbox compile, and 7/7 isolated runtime
-cases pass. The final requirement remains physical CPU9-off and same-boot CPU9
-restore.
+cases pass. Patches `0495`--`0496` now supply the distinct CPU9 restore
+executor; exact generation, 32 source mutations, Buildbox compile, and 10/10
+isolated runtime cases pass. All disconnected prerequisites are therefore
+complete. The remaining software gate is the one-task production binder that
+owns the complete down/restore transaction. Only after that binder passes may
+a separate candidate commit select one physical CPU9-off and same-boot CPU9
+restore attempt.
 
 ## Follow-up
 
-The parent-proof, watchdog-validator, record-4, snapshot, and bounded CPU8
-observer prerequisites are complete and must remain fixed. Continue under the
-authoritative selected-next order and exit criteria in
+The parent-proof, watchdog-validator, record-4, snapshot, bounded CPU8
+observer, and CPU9 restore prerequisites are complete and must remain fixed.
+Continue under the authoritative selected-next order and exit criteria in
 [the roadmap](../../docs/ROADMAP.md); this experiment record does not redefine
 that sequence.
-Only after every remaining disconnected slice passes its source mutations and
-runtime tests may the one-task down/restore binder connect to production
-callbacks. CPU8 and CPUs 0--7 stay non-disableable throughout. No candidate or
-device boot is selected until the complete binding passes exact replay,
+The selected next slice is the disconnected one-task down/restore binder. CPU8
+and CPUs 0--7 stay non-disableable throughout. No candidate or device boot is
+selected until the complete binding passes exact replay, rejecting mutations,
 Buildbox compile, and no-network runtime review.

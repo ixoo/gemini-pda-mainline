@@ -7472,6 +7472,28 @@ passes, implement the one-task `add8 -> add9 -> remove9 -> add9` binder. Select
 no boot candidate until both remaining slices pass exact source replay,
 rejecting mutations, Buildbox compile, and no-network runtime gates.
 
+Exact patches `0495`--`0496` now complete that disconnected restore slice.
+Buildbox generation from exact pushed tooling commit `3e1f4d6a...` passed
+strict review and replay, rejected all 32 unsafe source mutations, and retained
+canonical-order subsequences across all 170 manifest profiles. The executor
+admits only CPU9 from the exact retired down parent, requires a distinct
+parent-linked restore identity and inherited watchdog ownership, places its
+sole injected CPU-on call after the CPU_ON-committed checkpoint, and records
+ledger stages 14--17. It has no production caller, DT node, or physical-effect
+implementation. Exact admission commit `4c98a46a...` compiled and packaged on
+Buildbox. At published harness commit `ced11d9e...`, its isolated no-network
+QEMU gate passed all ten restore cases with zero failures or skips and no CPU,
+MMIO, I2C, retained-RAM, SMC, watchdog, network, device, or boot-candidate
+action. This proves the disconnected restore transaction, not physical CPU9
+restart. **Selected next:** implement and hardware-free-test one disconnected
+binder that owns the complete `add8 -> add9 -> remove9 -> add9` transaction,
+connects the already-proven parent, watchdog, record-4, snapshot, CPU8 observer,
+down-executor, and restore-executor interfaces, and fails closed at every
+boundary. Keep the A72 disable veto and production trigger closed. Select no
+boot candidate until this binder passes exact source replay, rejecting
+mutations, Buildbox compile, and no-network runtime gates; candidate enablement
+then remains a separate reviewed commit.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;
