@@ -19,6 +19,10 @@ PANIC_PREFIX = "Kernel panic - not syncing: VFS: Unable to mount root fs"
 PANIC_END_PREFIX = f"---[ end {PANIC_PREFIX}"
 SUITE = "mt6797-a72-hotplug-binding"
 CASES = (
+    "hotplug_binding_readiness_immediate_test",
+    "hotplug_binding_readiness_settles_test",
+    "hotplug_binding_readiness_timeout_test",
+    "hotplug_binding_readiness_cpu8_guard_test",
     "hotplug_binding_success_test",
     "hotplug_binding_wrong_task_test",
     "hotplug_binding_wrong_cpu_test",
@@ -83,7 +87,7 @@ def classify_runtime(raw: str, qemu_exit: int) -> None:
         "expected one top-level and one suite KTAP header",
     )
     plans = [line for line in ktap if re.fullmatch(r"1\.\.\d+", line)]
-    require(plans == ["1..1", "1..9"], f"KUnit plans changed: {plans}")
+    require(plans == ["1..1", "1..13"], f"KUnit plans changed: {plans}")
     subtests = [line for line in ktap if line.startswith("# Subtest: ")]
     require(
         subtests == [f"# Subtest: {SUITE}"],
@@ -108,8 +112,8 @@ def classify_runtime(raw: str, qemu_exit: int) -> None:
         Counter(observed_ok) == Counter(expected_ok),
         "KUnit results are duplicated",
     )
-    summary = f"# {SUITE}: pass:9 fail:0 skip:0 total:9"
-    totals = "# Totals: pass:9 fail:0 skip:0 total:9"
+    summary = f"# {SUITE}: pass:13 fail:0 skip:0 total:13"
+    totals = "# Totals: pass:13 fail:0 skip:0 total:13"
     require(ktap.count(summary) == 1, "suite summary is not an exact pass")
     require(ktap.count(totals) == 1, "suite totals are not an exact pass")
 
@@ -237,13 +241,13 @@ def main() -> None:
     print(f"runner_version={qemu_version.removeprefix('QEMU emulator version ')}")
     print("machine=virt-cortex-a53-four-vcpu-no-network")
     print("suites=1")
-    print("tests=9")
+    print("tests=13")
     print("failed=0")
     print("skipped=0")
-    print(f"suite_{SUITE}=pass:9_fail:0_skip:0_total:9")
+    print(f"suite_{SUITE}=pass:13_fail:0_skip:0_total:13")
     for case in CASES:
         print(f"{case}=pass")
-    print("tap_summary=pass:9_fail:0_skip:0_total:9")
+    print("tap_summary=pass:13_fail:0_skip:0_total:13")
     print("post_test_state=expected_vm_rootfs_panic")
     print("qemu_exit=124")
     print("target_cpu=9")
@@ -254,6 +258,10 @@ def main() -> None:
     print("private_gate_restored_success=true")
     print("private_gate_restored_failure=true")
     print("route_checks=down,restore")
+    print("readiness_immediate=pass")
+    print("readiness_delayed_settle=pass")
+    print("readiness_timeout=pass")
+    print("readiness_cpu8_guard=pass")
     print("production_binding_linked=true")
     print("production_binding_invocations=0")
     print("physical_backends_invoked=0")

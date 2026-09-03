@@ -20,6 +20,7 @@ PANIC_END_PREFIX = f"---[ end {PANIC_PREFIX}"
 SUITE = "gemini-a72-hotplug-ledger"
 CASES = (
     "hotplug_layout_test",
+    "hotplug_restore_readiness_timeout_test",
     "hotplug_success_sequence_test",
     "hotplug_pstore_empty_test",
     "hotplug_nonempty_refusal_test",
@@ -87,7 +88,7 @@ def classify_runtime(raw: str, qemu_exit: int) -> None:
         "expected one top-level and one suite KTAP header",
     )
     plans = [line for line in ktap if re.fullmatch(r"1\.\.\d+", line)]
-    require(plans == ["1..1", "1..13"], f"KUnit plans changed: {plans}")
+    require(plans == ["1..1", "1..14"], f"KUnit plans changed: {plans}")
     subtests = [line for line in ktap if line.startswith("# Subtest: ")]
     require(subtests == [f"# Subtest: {SUITE}"], f"suite inventory changed: {subtests}")
     require(
@@ -103,8 +104,8 @@ def classify_runtime(raw: str, qemu_exit: int) -> None:
     observed_ok = [line for line in ktap if re.fullmatch(r"ok \d+ \S+", line)]
     require(observed_ok == expected_ok, f"case or suite inventory changed: {observed_ok}")
     require(Counter(observed_ok) == Counter(expected_ok), "KUnit results are duplicated")
-    summary = f"# {SUITE}: pass:13 fail:0 skip:0 total:13"
-    totals = "# Totals: pass:13 fail:0 skip:0 total:13"
+    summary = f"# {SUITE}: pass:14 fail:0 skip:0 total:14"
+    totals = "# Totals: pass:14 fail:0 skip:0 total:14"
     require(ktap.count(summary) == 1, "suite summary is not an exact pass")
     require(ktap.count(totals) == 1, "suite totals are not an exact pass")
 
@@ -232,23 +233,24 @@ def main() -> None:
     print(f"runner_version={qemu_version.removeprefix('QEMU emulator version ')}")
     print("machine=virt-cortex-a53-four-vcpu-no-network")
     print("suites=1")
-    print("tests=13")
+    print("tests=14")
     print("failed=0")
     print("skipped=0")
-    print(f"suite_{SUITE}=pass:13_fail:0_skip:0_total:13")
+    print(f"suite_{SUITE}=pass:14_fail:0_skip:0_total:14")
     for case in CASES:
         print(f"{case}=pass")
-    print("tap_summary=pass:13_fail:0_skip:0_total:13")
+    print("tap_summary=pass:14_fail:0_skip:0_total:14")
     print("post_test_state=expected_vm_rootfs_panic")
     print("qemu_exit=124")
     print("result=pass")
     print("record_index=4")
     print("record_size=4096")
     print("copies=2")
-    print("copy_words=27")
-    print("writes_per_record=28")
+    print("copy_words=37")
+    print("writes_per_record=38")
     print("max_success_records=16")
-    print("max_success_writes=451")
+    print("max_success_writes=611")
+    print("restore_readiness_timeout_zero_cpu_on=pass")
     print("production_callers=0")
     print("physical_backends_invoked=0")
     print("mmio=false")

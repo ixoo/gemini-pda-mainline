@@ -93,8 +93,13 @@ readonly focused_test_count focused_tests
 for symbol in \
 	mt6797_a72_hotplug_binding_run \
 	mt6797_a72_hotplug_private_down_with_ops \
+	mt6797_a72_hotplug_restore_readiness_with_ops \
 	mt6797_a72_hotplug_binding_route_matches \
 	hotplug_binding_suite \
+	hotplug_binding_readiness_immediate_test \
+	hotplug_binding_readiness_settles_test \
+	hotplug_binding_readiness_timeout_test \
+	hotplug_binding_readiness_cpu8_guard_test \
 	hotplug_binding_success_test \
 	hotplug_binding_wrong_task_test \
 	hotplug_binding_wrong_cpu_test \

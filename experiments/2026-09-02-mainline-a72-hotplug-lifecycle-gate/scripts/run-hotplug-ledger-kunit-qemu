@@ -86,6 +86,7 @@ for symbol in \
 	gemini_a72_hotplug_ledger_owner_begin \
 	gemini_a72_hotplug_ledger_owner_checkpoint \
 	hotplug_ledger_suite \
+	hotplug_restore_readiness_timeout_test \
 	hotplug_success_sequence_test \
 	hotplug_down_prepare_terminal_test \
 	hotplug_off_commit_terminal_test \
