@@ -267,6 +267,13 @@ def main() -> None:
         for index, generated_path in enumerate(generated):
             patch = package / PATCH_NAMES[index]
             shutil.move(generated_path, patch)
+            subprocess.run(
+                ("perl", str(source_root / "scripts/checkpatch.pl"),
+                 "--fix-inplace", "--strict", "--no-tree", "--ignore",
+                 CHECKPATCH_IGNORE, str(patch)),
+                cwd=source_root, check=False, text=True,
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            )
             validate_patch(patch, index)
             run("perl", str(source_root / "scripts/checkpatch.pl"), "--strict",
                 "--no-tree", "--ignore", CHECKPATCH_IGNORE, str(patch),

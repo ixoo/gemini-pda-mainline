@@ -153,6 +153,7 @@ int arm64_mt6797_a72_p30e_rearm_cpu9(void)
 		p30e_put(&slot->wire, i, p30e_word(&next, i));
 	}
 	p30e_clean_slot(slot);
+	/* Publish EMPTY only after complete sequence-2 reconstruction. */
 	smp_store_release((u64 *)&slot->wire.word[
 		ARM64_MT6797_A72_P30E_TARGET_STATE_WORD],
 		cpu_to_le64(ARM64_MT6797_A72_P30E_EMPTY));
