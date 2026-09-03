@@ -1174,3 +1174,17 @@ action. Exact package and runtime identities are retained in
 [`results/restore-readiness-hardware-free-5e219ac7-20260903.txt`](results/restore-readiness-hardware-free-5e219ac7-20260903.txt).
 The hardware-free gate is closed; one newly built and independently validated
 production candidate is now permitted.
+
+Exact production commit `819d8f0d...` now passes Buildbox package validation
+with the 495-patch `c49b822e...` source identity. Two independent
+provenance-only DT compositions produce `902762c2...`; both structural
+validators pass and all ten DT mutations reject. Two independent Android-v0/LK
+assemblies and padding paths are byte-identical, both validators pass all 32
+LK gates and reject six container mutations, and the exact pre-trigger gate
+rejects all eight unsafe mutations. The raw successor is `f411b55d...`; exact
+16 MiB inactive-`boot2` content is `44e1b42c...`. Its package, container,
+readiness hypothesis, and tooling identities are retained in
+[`results/restore-readiness-candidate-819d8f0d-20260903.txt`](results/restore-readiness-candidate-819d8f0d-20260903.txt).
+No device access or write occurred during construction. This distinct
+candidate is selected for one guarded physical attempt after the exact tooling
+and evidence are published; retired `a0114584...` must not be repeated.
