@@ -25,6 +25,9 @@ CASES = (
     "hotplug_nonempty_refusal_test",
     "hotplug_sequence_refusal_test",
     "hotplug_precommit_terminal_test",
+    "hotplug_down_prepare_terminal_test",
+    "hotplug_off_commit_terminal_test",
+    "hotplug_restore_prepare_terminal_test",
     "hotplug_cpu_off_return_terminal_test",
     "hotplug_readback_fault_test",
     "hotplug_crc_and_ambiguity_test",
@@ -84,7 +87,7 @@ def classify_runtime(raw: str, qemu_exit: int) -> None:
         "expected one top-level and one suite KTAP header",
     )
     plans = [line for line in ktap if re.fullmatch(r"1\.\.\d+", line)]
-    require(plans == ["1..1", "1..10"], f"KUnit plans changed: {plans}")
+    require(plans == ["1..1", "1..13"], f"KUnit plans changed: {plans}")
     subtests = [line for line in ktap if line.startswith("# Subtest: ")]
     require(subtests == [f"# Subtest: {SUITE}"], f"suite inventory changed: {subtests}")
     require(
@@ -100,8 +103,8 @@ def classify_runtime(raw: str, qemu_exit: int) -> None:
     observed_ok = [line for line in ktap if re.fullmatch(r"ok \d+ \S+", line)]
     require(observed_ok == expected_ok, f"case or suite inventory changed: {observed_ok}")
     require(Counter(observed_ok) == Counter(expected_ok), "KUnit results are duplicated")
-    summary = f"# {SUITE}: pass:10 fail:0 skip:0 total:10"
-    totals = "# Totals: pass:10 fail:0 skip:0 total:10"
+    summary = f"# {SUITE}: pass:13 fail:0 skip:0 total:13"
+    totals = "# Totals: pass:13 fail:0 skip:0 total:13"
     require(ktap.count(summary) == 1, "suite summary is not an exact pass")
     require(ktap.count(totals) == 1, "suite totals are not an exact pass")
 
@@ -229,13 +232,13 @@ def main() -> None:
     print(f"runner_version={qemu_version.removeprefix('QEMU emulator version ')}")
     print("machine=virt-cortex-a53-four-vcpu-no-network")
     print("suites=1")
-    print("tests=10")
+    print("tests=13")
     print("failed=0")
     print("skipped=0")
-    print(f"suite_{SUITE}=pass:10_fail:0_skip:0_total:10")
+    print(f"suite_{SUITE}=pass:13_fail:0_skip:0_total:13")
     for case in CASES:
         print(f"{case}=pass")
-    print("tap_summary=pass:10_fail:0_skip:0_total:10")
+    print("tap_summary=pass:13_fail:0_skip:0_total:13")
     print("post_test_state=expected_vm_rootfs_panic")
     print("qemu_exit=124")
     print("result=pass")

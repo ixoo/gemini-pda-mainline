@@ -87,6 +87,9 @@ for symbol in \
 	gemini_a72_hotplug_ledger_owner_checkpoint \
 	hotplug_ledger_suite \
 	hotplug_success_sequence_test \
+	hotplug_down_prepare_terminal_test \
+	hotplug_off_commit_terminal_test \
+	hotplug_restore_prepare_terminal_test \
 	hotplug_cpu_off_return_terminal_test \
 	hotplug_crc_and_ambiguity_test; do
 	grep -q " ${symbol}$" "$system_map" || die "required symbol absent: $symbol"
