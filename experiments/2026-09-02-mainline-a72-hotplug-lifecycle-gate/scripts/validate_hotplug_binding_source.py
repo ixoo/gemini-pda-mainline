@@ -126,12 +126,14 @@ def validate(root: Path, require_tests: bool) -> None:
           "restore add-CPU call count changed")
 
     for token in (
+        "cpu == MT6797_A72_HOTPLUG_BINDING_CPU9 && route == expected",
         "gemini_a72_hotplug_ledger_begin(session_id)",
         "gemini_a72_hotplug_ledger_checkpoint(binding->session_id,",
         "binding->next_stage = GEMINI_A72_HOTPLUG_BINDING_PARENT;",
         "stage == GEMINI_A72_HOTPLUG_CPU_OFF_COMMITTED",
         "binding->next_stage = GEMINI_A72_HOTPLUG_AFFINITY_OFF;",
         "GEMINI_A72_HOTPLUG_CPU_OFF_RETURNED",
+        "stage = GEMINI_A72_HOTPLUG_CPU_OFF_RETURNED;",
         "GEMINI_A72_HOTPLUG_CPU_OFF_RETURN_FAULT",
         "GEMINI_A72_HOTPLUG_RESTORED_SUCCESS",
         "phase != MT6797_A72_HOTPLUG_AFTER",
@@ -147,6 +149,7 @@ def validate(root: Path, require_tests: bool) -> None:
         "mt6797_a72_hotplug_prepare_restore(",
         "mt6797_a72_hotplug_begin_restore(restore",
         "mt6797_a72_hotplug_complete_restore(restore",
+        "return mt6797_a72_hotplug_complete_restore(restore, cpu8_online,",
         "mt6797_a72_restore_executor_rollback(",
     ):
         require(token in source, f"production composition missing: {token}")
