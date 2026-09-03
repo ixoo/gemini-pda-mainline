@@ -67,9 +67,11 @@ def main() -> int:
         ("drop-export", "drivers/watchdog/mtk_wdt.c",
          "EXPORT_SYMBOL_GPL(mtk_wdt_recovery_validate);", ""),
         ("add-takeover", "drivers/watchdog/mtk_wdt.c",
-         "ret = mtk_wdt_recovery_validate_owner(",
-         "mtk_wdt_recovery_takeover(dev, 15000, NULL);\n\t"
-         "ret = mtk_wdt_recovery_validate_owner("),
+         "spin_lock_irqsave(&mtk_wdt->recovery_lock, flags);\n"
+         "\tret = mtk_wdt_recovery_validate_owner(",
+         "spin_lock_irqsave(&mtk_wdt->recovery_lock, flags);\n"
+         "\tmtk_wdt_recovery_takeover(dev, 15000, NULL);\n"
+         "\tret = mtk_wdt_recovery_validate_owner("),
         ("mutable-stub", "include/linux/mtk_wdt.h",
          "return -EOPNOTSUPP;\n}\n#endif",
          "return 0;\n}\n#endif"),
