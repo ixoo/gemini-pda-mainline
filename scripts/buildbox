@@ -14857,7 +14857,7 @@ generate_a72_hotplug_binding() {
 set -euo pipefail
 readonly commit="$1"
 readonly branch="$2"
-readonly remote_url=https://github.com/ixio/gemini-pda-mainline.git
+readonly remote_url=https://github.com/ixoo/gemini-pda-mainline.git
 readonly persistent_root="${HOME}/gemini-pda-buildbox"
 readonly mirror="${persistent_root}/repo.git"
 readonly workspace_root=/workspace/gemini-pda
