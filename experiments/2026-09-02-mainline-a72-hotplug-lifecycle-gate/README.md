@@ -1551,3 +1551,26 @@ record is
 [`results/topology-load-readiness-20260903.txt`](results/topology-load-readiness-20260903.txt).
 The device is off awaiting one owner-selected `boot2`; the first host action
 after USB appears remains the fresh read-only gate, not the trigger.
+
+That fresh integrated attempt passed on its first trigger. Mainline boot ID
+`415bab0d...` passed the exact pristine gate, completed the same stage-18 CPU9
+down/restore lifecycle, and passed the device-side entry-count, CPUs `0-9`, and
+all-ten-topology checks before load began. CPU8 and CPU9 then ran with exact
+affinity, exchanged both 1.9 MiB volatile-rootfs files with all four writer and
+peer-reader hashes matching, advanced independently by 255 and 257 accounting
+ticks, and removed both files. No block device was mounted or accessed, and no
+retry or native reboot was requested. Changed-ID Gemian recovery independently
+decoded record 4 as terminal `restored-success` at stage 18 with error zero and
+the exact one-call CPU_OFF/affinity/CPU8-IPI/CPU_ON budget; `boot2` still
+matched `6ba8c953...`. Exact identities are retained in
+[`results/topology-load-runtime-attempt-1-success-20260903.txt`](results/topology-load-runtime-attempt-1-success-20260903.txt).
+
+This closes the first bounded lifecycle-plus-load/coherency gate on the exact
+topology-preserving artifact. It does not justify increasing duration or
+intensity without thermal and frequency observability. **Selected next:**
+audit the exact package/config/DT plus available runtime interfaces, then
+source-pin a read-only pre/during/post observation of thermal zones, CPU
+frequency state, online topology, and A53/A72 accounting around the same
+already-proven bounded workload. Absence of an attributable temperature or
+frequency interface is itself a decision result and must select implementation
+work rather than longer stress.

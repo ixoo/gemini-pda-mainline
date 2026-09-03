@@ -38,8 +38,11 @@ the loop. Positive identity-gated observations are unaffected.
   now passes on two fresh boots: CPU9 enters before and after one down, CPUs
   `0-9` remain online, and changed-ID recovery independently reports
   `restored-success`. The topology-preserving repeat also publishes the exact
-  one-package 4+4+2 CPU map. One separately bounded lifecycle-plus-load and
-  coherency attempt is next; general stability is not yet claimed.
+  one-package 4+4+2 CPU map. Its first integrated bounded-load child preserves
+  that stage-18 lifecycle while both A72s pass exact affinity, four cross-CPU
+  1.9 MiB volatile-RAM hashes, independent accounting, cleanup, and
+  changed-ID retained proof. Thermal/frequency observability and broader
+  stability gates remain open.
 - [2026-09-02 current-mainline concurrent dual-A72 multiline load](2026-09-02-mainline-dual-a72-concurrent-multiline/README.md)
   — closes the first concurrent-load child of the accepted 4+4+2 result. One
   fresh integrated session preserved admission and topology/RAM checks, then

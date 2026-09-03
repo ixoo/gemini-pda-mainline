@@ -31,7 +31,7 @@ Cortex-A72 pair.
 | I2C6 transfer | Native packed/FIFO pointer-read and one exact one-message two-byte FIFO write are runtime proven. The write completed once with payload `[0xda, 0x46]`, exact no-retry accounting, and stable readback. | This closes only the reviewed same-value shape; arbitrary writes, failure recovery, stress, and resume remain open. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
 | Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected. A separate hardware-free implementation now models exact positive Buck-B acquire/release and passes all six focused fake-adapter cases. | Gate 6 is closed for the reviewed no-op, and the first Gate-7 provider source boundary is complete offline. Physical transition, production integration, consumers, and CPU requests remain disconnected. |
-| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The intersected-status attempt proved one complete CPU9 down with CPU8 retained, then one successfully returning restore CPU_ON that never reached normal arm64 secondary startup. Its readiness-gated successor completed 51 samples and 50 sleeps with CPU9 absent from the primary status word, persistently present in the secondary mirror, and its per-core power-control word fixed at the established off fixture value `0x10332`; the gate timed out with exactly zero CPU_ON calls. Exact static tracing now identifies the missing lifecycle edge: initial CPU9 admission consumes and publishes its fail-closed P30E secondary-entry slot, ordinary CPU9-down does not reset it, and the private restore calls PSCI directly without rearming it. A restored CPU9 therefore receives `-EPROTO` from the mandatory P30E claim and parks before `secondary_startup`. The public A72 disable veto remains closed. | Retire both exact candidates. Preserve the target-side fail-closed check. Add a hardware-free-proven, exact CPU9-only controller rearm after proven down/readiness and before the existing single restore CPU_ON. The rearm must validate the complete published initial request, be one-shot, reject every mismatch before writing, and add no CPU/firmware operation. Post-CPU_ON platform sampling is fallback evidence only if this repair still fails. Keep CPU8-last-off, cpufreq/OPP, thermal, idle, suspend, and default-profile promotion separate. |
+| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile, but the isolated exact path now completes CPU8/CPU9 admission plus one CPU9-only down/restore transaction on repeated fresh boots. The topology-preserving artifact publishes the standard one-package 4+4+2 map, and its first integrated bounded-load attempt preserved stage-18 success while CPU8/CPU9 passed exact affinity, four cross-CPU 1.9 MiB volatile-RAM hashes, independent 255/257-tick accounting, cleanup, and changed-boot retained proof. | Stop adding bring-up repairs: the transaction boundary is closed. Before increasing load duration, establish attributable thermal/frequency observability. Then run separate repeated cold-load, broader hotplug, idle/suspend, default-profile, and upstream gates while preserving A53 and serviceability baselines. |
 
 The durable technical boundary is in
 [DA921x, I2C6, and Cortex-A72](hardware/da921x-i2c6-a72.md). The exact
@@ -46,15 +46,15 @@ Gemini PDA, not merely a kernel that reaches userspace once. The current
 critical path is:
 
 1. preserve the completed DA921x, provider, CPU-up, serviceability, topology,
-   RAM-integrity, and concurrent dual-A72 runtime gates;
-2. add no-op-by-default generic CPU-down handoffs and a hardware-free CPU9
-   down/restore owner without exposing hotplug;
-3. prove one physical CPU9-off transition while CPU8 and CPUs 0--7 remain
-   available, then restore CPU9 once in the same boot under a distinct token;
-4. validate cpufreq/OPP, thermal, idle, and suspend as separate bounded gates;
-5. promote the proven A72 path from its isolated profile and take the reusable
+   RAM-integrity, repeated CPU9 down/restore, and bounded lifecycle-plus-load
+   runtime gates;
+2. establish read-only thermal and frequency observability before increasing
+   load duration or intensity;
+3. validate repeated cold-load cycles, broader hotplug, cpufreq/OPP, thermal
+   protection, idle, and suspend as separate bounded gates;
+4. promote the proven A72 path from its isolated profile and take the reusable
    changes through upstream review; and
-6. complete persistent storage, native display/touch, keyboard/USB,
+5. complete persistent storage, native display/touch, keyboard/USB,
    battery/charging, peripheral, and distribution-integration milestones.
 
 Reusable bindings and drivers move upstream continuously throughout this
@@ -67,6 +67,11 @@ independent subsystems may proceed in parallel only when it preserves the
 fixed DA921x/A72 experiment baseline. The immediate critical chain is:
 
 `dual-A72 online/load proof -> CPU9 physical off -> distinct CPU9 restore -> power-management gates -> default/upstream integration`
+
+The first three transitions and one bounded lifecycle-plus-load child now
+pass. The active critical chain is therefore:
+
+`thermal/frequency observability -> repeated bounded stress/cold boot -> broader hotplug -> idle/suspend -> default/upstream integration`
 
 ## Ordered gates
 
@@ -7909,6 +7914,20 @@ and both SSH plus a later bounded USB/netcat poll confirmed the device off.
 the fresh read-only zero-execution frame before spending the one integrated
 lifecycle-plus-load trigger; any rejected gate or runtime failure ends the
 attempt without retry.
+
+That attempt passed on fresh mainline boot ID `415bab0d...`. The device-side
+gate required and observed stage-18 binder completion, exact CPU8/CPU9 entry
+counts, CPUs `0-9`, and the full 4+4+2 topology before load began. CPU8 and
+CPU9 then ran with exact affinity, passed all four writer/peer-reader hashes
+over two 1.9 MiB volatile-rootfs files, advanced independently by 255 and 257
+ticks, and cleaned up. Changed-ID record 4 independently remained
+`restored-success` with the one-call hotplug budget, and `boot2` remained
+exact. This closes the first bounded lifecycle-plus-load/coherency gate, not
+longer stress or power-management safety. **Selected next:** audit the exact
+package/config/DT and runtime interfaces, then offline-prove one read-only
+thermal/frequency/topology/accounting observation around the same finite load.
+Do not increase duration or intensity unless attributable temperature and
+frequency state are available; interface absence selects implementation work.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
