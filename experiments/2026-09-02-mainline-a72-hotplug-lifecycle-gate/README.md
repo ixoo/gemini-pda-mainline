@@ -1317,3 +1317,25 @@ is retained in
 [`results/p30e-rearm-deployment-20260903.txt`](results/p30e-rearm-deployment-20260903.txt).
 The device is off and ready for the owner to select `boot2`; no trigger may be
 issued until the fresh read-only pre-trigger frame passes the exact validator.
+
+The sole P30E-rearm physical attempt then closed the hardware restore boundary.
+The fresh pre-trigger frame passed, the one trigger admitted CPU8 and CPU9,
+offlined CPU9 once while retaining CPU8, rebuilt the exact P30E request at
+sequence 2, and started CPU9 a second time. The live post-trigger frame showed
+CPUs `0-9` online. Changed-ID Gemian recovery yielded a valid v3 record 4 at
+stage 18, terminal `restored-success`, error zero, membership `0x3`, online
+mask `0x3ff`, and exactly one CPU_OFF, affinity query, CPU8 IPI, and restore
+CPU_ON. A read-only recovery check also confirmed that `boot2` still matches
+`7ffd60d0...`.
+
+The outer one-shot controller nevertheless reported `-EPROTO` after that
+successful retained terminal publication. Static narrowing shows that the
+remaining ambiguity is confined to the hotplug-binder return path after the
+restore executor has completed; the current status ABI does not expose enough
+of that private binder result to distinguish the `add_cpu()` return,
+transaction revalidation, binder checkpoint, and terminal-return branches.
+The candidate is retired and must not be repeated unchanged. The next
+permitted candidate adds one bounded terminal binder diagnostic, changes no
+CPU/firmware request budget, and exists solely to identify that post-success
+branch. Exact runtime identities and the frozen next decision are retained in
+[`results/p30e-rearm-runtime-attempt-1-restored-postsuccess-protocol-20260903.txt`](results/p30e-rearm-runtime-attempt-1-restored-postsuccess-protocol-20260903.txt).

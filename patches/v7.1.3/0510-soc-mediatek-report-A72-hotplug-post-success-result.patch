@@ -1,0 +1,126 @@
+From 0000000000000000000000000000000000000510 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 3 Sep 2026 21:15:00 +0000
+Subject: [PATCH] soc: mediatek: report A72 hotplug post-success result
+
+The first physical P30E-rearm run restored CPU9 and sealed the retained
+success record, but the outer one-shot controller returned -EPROTO.  Preserve
+the existing effect and retry budgets while recording whether the nested
+add_cpu() call returned an error and whether its completed restore transaction
+passed the binder's independent validation.  Emit the complete bounded binder
+and restore-executor terminal state once after the transaction returns.
+
+This is an experiment-only diagnostic and is not submission-ready.
+---
+ .../mt6797-a72-hotplug-binder-core-internal.h |  3 ++
+ .../mt6797-a72-hotplug-binder-core-test.c     |  5 +++
+ .../mediatek/mt6797-a72-hotplug-binder-core.c | 11 +++++--
+ .../mediatek/mt6797-a72-hotplug-binding.c     | 30 +++++++++++++++++++
+ 4 files changed, 47 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-hotplug-binder-core-internal.h b/drivers/soc/mediatek/mt6797-a72-hotplug-binder-core-internal.h
+--- a/drivers/soc/mediatek/mt6797-a72-hotplug-binder-core-internal.h
++++ b/drivers/soc/mediatek/mt6797-a72-hotplug-binder-core-internal.h
+@@ -51,6 +51,7 @@ struct mt6797_a72_hotplug_binder_result {
+ 	u32 checkpoint_calls;
+ 	u32 remove_cpu_calls;
+ 	u32 restore_add_cpu_calls;
++	s32 restore_add_cpu_ret;
+ 	u32 terminal_calls;
+ 	u32 retries;
+ 	bool attempted;
+@@ -58,6 +59,8 @@ struct mt6797_a72_hotplug_binder_result {
+ 	bool ledger_active;
+ 	bool down_completed;
+ 	bool restore_completed;
++	bool restore_validation_attempted;
++	bool restore_transaction_valid;
+ 	bool completed;
+ };
+ 
+diff --git a/drivers/soc/mediatek/mt6797-a72-hotplug-binder-core-test.c b/drivers/soc/mediatek/mt6797-a72-hotplug-binder-core-test.c
+--- a/drivers/soc/mediatek/mt6797-a72-hotplug-binder-core-test.c
++++ b/drivers/soc/mediatek/mt6797-a72-hotplug-binder-core-test.c
+@@ -282,6 +282,9 @@ static void binder_core_success_test(struct kunit *test)
+ 	KUNIT_EXPECT_TRUE(test, state->result.completed);
+ 	KUNIT_EXPECT_EQ(test, state->result.remove_cpu_calls, (u32)1);
+ 	KUNIT_EXPECT_EQ(test, state->result.restore_add_cpu_calls, (u32)1);
++	KUNIT_EXPECT_EQ(test, state->result.restore_add_cpu_ret, 0);
++	KUNIT_EXPECT_TRUE(test, state->result.restore_validation_attempted);
++	KUNIT_EXPECT_TRUE(test, state->result.restore_transaction_valid);
+ 	KUNIT_EXPECT_EQ(test, state->result.checkpoint_calls, (u32)3);
+ 	KUNIT_EXPECT_EQ(test, state->result.retries, (u32)0);
+ 	KUNIT_EXPECT_MEMEQ(test, state->order, expected, sizeof(expected));
+@@ -359,6 +362,8 @@ static void binder_core_restore_failure_test(struct kunit *test)
+ 			MT6797_A72_HOTPLUG_BINDER_RESTORE_FAULT);
+ 	KUNIT_EXPECT_TRUE(test, state->result.down_completed);
+ 	KUNIT_EXPECT_FALSE(test, state->result.restore_completed);
++	KUNIT_EXPECT_EQ(test, state->result.restore_add_cpu_ret, -EIO);
++	KUNIT_EXPECT_FALSE(test, state->result.restore_validation_attempted);
+ }
+ 
+ static void binder_core_checkpoint_failure_test(struct kunit *test)
+diff --git a/drivers/soc/mediatek/mt6797-a72-hotplug-binder-core.c b/drivers/soc/mediatek/mt6797-a72-hotplug-binder-core.c
+--- a/drivers/soc/mediatek/mt6797-a72-hotplug-binder-core.c
++++ b/drivers/soc/mediatek/mt6797-a72-hotplug-binder-core.c
+@@ -208,9 +208,16 @@ int mt6797_a72_hotplug_binder_run(
+ 	ret = ops->add_cpu_restore(context,
+ 				   MT6797_A72_HOTPLUG_BINDER_CPU9,
+ 				   &result->down_parent, &result->restore);
+-	if (ret || !mt6797_a72_restore_transaction_valid(
+-			   &result->down_parent, &result->restore, true, true))
++	result->restore_add_cpu_ret = ret;
++	if (!ret) {
++		result->restore_validation_attempted = true;
++		result->restore_transaction_valid =
++			mt6797_a72_restore_transaction_valid(
++				&result->down_parent, &result->restore,
++				true, true);
++	}
++	if (ret || !result->restore_transaction_valid)
+ 		return mt6797_a72_hotplug_binder_fail(
+ 			controller, ops, context, result,
+ 			MT6797_A72_HOTPLUG_BINDER_RESTORE_FAULT,
+ 			ret ? ret : -EPROTO);
+diff --git a/drivers/soc/mediatek/mt6797-a72-hotplug-binding.c b/drivers/soc/mediatek/mt6797-a72-hotplug-binding.c
+--- a/drivers/soc/mediatek/mt6797-a72-hotplug-binding.c
++++ b/drivers/soc/mediatek/mt6797-a72-hotplug-binding.c
+@@ -843,6 +843,36 @@ int mt6797_a72_hotplug_binding_run(struct device *platform,
+ 	ret = mt6797_a72_hotplug_binder_run(
+ 		&binding->binder, &mt6797_a72_hotplug_binder_ops, binding,
+ 		&request, &binding->binder_result);
++	dev_info(platform,
++		 "GEMINI_A72_HOTPLUG_BINDING_V1 ret=%d terminal=%u "
++		 "last_stage=%u stage_errno=%d publication_errno=%d "
++		 "add_cpu_ret=%d restore_validation_attempted=%u "
++		 "restore_transaction_valid=%u down_completed=%u "
++		 "restore_completed=%u completed=%u "
++		 "result_ledger_active=%u ledger_active=%u "
++		 "ledger_terminal=%u restore_lifecycle=%d "
++		 "restore_terminal=%u restore_last_stage=%u "
++		 "restore_stage_errno=%d restore_publication_errno=%d "
++		 "p30e_rearmed=%u cpu8_online=%u cpu9_online=%u\n",
++		 ret, binding->binder_result.terminal,
++		 binding->binder_result.last_stage,
++		 binding->binder_result.stage_errno,
++		 binding->binder_result.publication_errno,
++		 binding->binder_result.restore_add_cpu_ret,
++		 binding->binder_result.restore_validation_attempted,
++		 binding->binder_result.restore_transaction_valid,
++		 binding->binder_result.down_completed,
++		 binding->binder_result.restore_completed,
++		 binding->binder_result.completed,
++		 binding->binder_result.ledger_active,
++		 binding->ledger_active, binding->ledger_terminal,
++		 atomic_read(&binding->restore.lifecycle),
++		 binding->restore_result.terminal,
++		 binding->restore_result.last_stage,
++		 binding->restore_result.stage_errno,
++		 binding->restore_result.publication_errno,
++		 binding->restore_result.p30e_rearmed,
++		 cpu_online(8), cpu_online(9));
+ 	atomic_set_release(&binding->route,
+ 			   MT6797_A72_HOTPLUG_BINDING_TERMINAL);
+ out_unlock:
+-- 
+2.43.0

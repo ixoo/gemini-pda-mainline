@@ -7746,6 +7746,23 @@ stages 16, 17, and terminal 18 together with a second CPU9 entry and online
 mask `0-9`; any earlier stop follows the frozen decision map and does not
 justify an identical repeat.
 
+That sole attempt has now reached the decisive hardware success boundary.
+CPU9 completed its initial entry, one physical down, exact sequence-2 P30E
+rearm, and a second secondary entry; the live frame showed CPUs `0-9` online.
+Changed-ID recovery decoded v3 record 4 at terminal stage 18 with
+`restored-success`, error zero, membership `0x3`, online mask `0x3ff`, and the
+one-CPU_OFF/one-CPU_ON/no-retry budget intact. Recovery also confirmed the
+installed `boot2` checksum remained `7ffd60d0...`. The outer trigger alone
+returned `-EPROTO` after the successful restore record, so the remaining work
+is software completion accounting rather than CPU8/CPU9 power or entry.
+**Selected next:** retire `7ffd60d0...` and add one bounded terminal diagnostic
+that distinguishes the post-success `add_cpu()` return, transaction
+revalidation, binder checkpoint, and terminal-return branches. Build and test
+that diagnostic only on Buildbox, then spend at most one physical attempt; do
+not change the CPU/firmware request budgets and do not repeat the current
+artifact. See the linked
+[runtime record](../experiments/2026-09-02-mainline-a72-hotplug-lifecycle-gate/results/p30e-rearm-runtime-attempt-1-restored-postsuccess-protocol-20260903.txt).
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;
