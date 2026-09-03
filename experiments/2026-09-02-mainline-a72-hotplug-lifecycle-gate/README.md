@@ -5,10 +5,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-a72-hotplug-lifecycle-gate` |
-| Status | binder core and target-safe terminal ledger proven; production callback binding pending |
+| Status | production callback binding proven offline; physical candidate pending |
 | Subsystem | arm64 CPU hotplug, PSCI, MT6797 A72 membership |
 | Device variant | Planet Gemini PDA, MT6797 |
-| Date(s) | 2026-09-02 America/New_York |
+| Date(s) | 2026-09-02--2026-09-03 America/New_York |
 | Investigator(s) | Project maintainers |
 | Tracking issue | Roadmap Gate 8, A72 lifecycle correctness |
 
@@ -186,6 +186,18 @@ handling, and exact restore token are implemented and machine-checked.
 - `scripts/run-binder-core-kunit-qemu` and
   `classify-binder-core-kunit.py` admit only the exact ancestor Buildbox
   package and require all nine binder cases to pass with no network device.
+- `scripts/hotplug_binding_source_edits.py`,
+  `hotplug_binding_test_edits.py`, `validate_hotplug_binding_source.py`, and
+  `test_hotplug_binding_source.py` define the production composition and
+  reject 28 unsafe entry, gate, callback, call-budget, and enablement
+  mutations.
+- `scripts/generate_hotplug_binding_patches.py` and
+  `generate-hotplug-binding-on-buildbox` reconstruct and hash-check the exact
+  28-interface post-`0500` parent before generating the binding/test pair.
+- `scripts/run-hotplug-binding-kunit-qemu` and
+  `classify-hotplug-binding-kunit.py` admit only the exact isolated Buildbox
+  package and require all nine private-transition and route cases to pass with
+  no network device.
 - [`results/contract-validation-20260902.txt`](results/contract-validation-20260902.txt)
   records the local contract/mutation pass and exact Buildbox prepared-source
   validation.
@@ -250,6 +262,10 @@ handling, and exact restore token are implemented and machine-checked.
 - [`results/hotplug-ledger-context-kunit-af9b65d3-20260903.txt`](results/hotplug-ledger-context-kunit-af9b65d3-20260903.txt)
   pins the callback-context audit, non-sleeping record-4 repair, ten rejecting
   mutations, Buildbox package, and the 13-of-13 no-network runtime pass.
+- [`results/hotplug-binding-kunit-30125de8-20260903.txt`](results/hotplug-binding-kunit-30125de8-20260903.txt)
+  pins exact binding generation, the rejected bit-field compile, corrected
+  source and parent reconstruction, 28 rejecting mutations, the validated
+  Buildbox package, and the 9-of-9 no-network production-composition pass.
 - [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
   is the exact admitted no-op-by-default implementation.
 - [`../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch)
@@ -294,8 +310,15 @@ handling, and exact restore token are implemented and machine-checked.
 - [`../../patches/v7.1.3/0500-pstore-make-A72-hotplug-checkpoints-nonsleeping.patch`](../../patches/v7.1.3/0500-pstore-make-A72-hotplug-checkpoints-nonsleeping.patch)
   keeps setup in process context and makes checkpoint publication safe in the
   target CPU's non-sleeping shutdown callback.
+- [`../../patches/v7.1.3/0501-soc-mediatek-bind-one-shot-CPU9-hotplug-transaction.patch`](../../patches/v7.1.3/0501-soc-mediatek-bind-one-shot-CPU9-hotplug-transaction.patch)
+  binds the exact admission task, private CPU9 device transition, target and
+  controller callbacks, record-4 ledger, retained-CPU8 observation, and
+  parent-linked restore while preserving the public disable veto.
+- [`../../patches/v7.1.3/0502-soc-mediatek-test-private-CPU9-hotplug-transition.patch`](../../patches/v7.1.3/0502-soc-mediatek-test-private-CPU9-hotplug-transition.patch)
+  adds nine focused memory-only cases for task/CPU/device attribution, public
+  gate preservation, cleanup on failure, and down/restore route selection.
 
-Patches `0483`--`0500` are experiment-only archives with a synthetic,
+Patches `0483`--`0502` are experiment-only archives with a synthetic,
 non-certifying author identity, no DCO sign-off, and are not submission-ready.
 Upstream submission requires the actual author metadata and truthful
 certification.
@@ -675,6 +698,35 @@ no-network QEMU gate passes all 13 ledger cases. The wire format and
 physical backend, CPU request, retained-RAM access, watchdog, network, device
 action, or boot candidate is enabled.
 
+The production-binding generator initially admitted patches `0501`--`0502`,
+but the first exact Buildbox compile at `b8656aa8...` rejected `READ_ONCE()` and
+`WRITE_ONCE()` applied to `struct device` bit-fields. No candidate or device
+action followed that failure. The correction uses direct bit-field access only
+while holding `lock_device_hotplug()`. When the managed prepared tree later
+advanced past the required parent, the wrapper was also corrected to
+reconstruct only the 28 hash-pinned post-`0500` interfaces by reverse-applying
+the already-admitted binding changes in a temporary minimal tree. Exact
+generation at pushed commit `c332eb34...` then passed source replay, strict
+review, and all 28 rejecting mutations. The admitted patch SHA-256 identities
+are `4009c0bf8724be7c05e8e75e8709ef4520425dbe8956109de51cce60b73c1ffa`
+and `c09fae1b8fd25050276cb089458e490cd737db96da3a56ecc140812d5028a5bd`.
+All 172 manifest profiles retain canonical-order subsequences across the
+491-entry series.
+
+Exact correction commit `30125de8...` compiled the isolated
+`gemini-a72-hotplug-binding-kunit` profile on Buildbox. Package validation
+covered `Image`, `Image.gz`, `System.map`, configuration, provenance, and all
+123 DTBs; the exact kernel release is
+`7.1.3-gemini-a72-hotplug-binding-kunit`. Its no-network four-vCPU QEMU gate
+then passed the sole binding suite 9/9 with zero failures or skips. It covered
+success, wrong task, wrong CPU, missing device, unexpectedly public gate,
+already-offline device, offline target, failure cleanup, and down/restore
+route selection. The success case made exactly one injected private offline
+request, and both success and failure restored the cached public gate. The
+production binding was linked but not invoked because the virtual DT has no
+Gemini admission node. No physical backend, CPU request, PSCI, MMIO, I2C,
+retained-RAM, watchdog, network, device action, or boot candidate was selected.
+
 ## Analysis
 
 The accepted online/topology/load evidence closes the entry-state uncertainty
@@ -725,24 +777,29 @@ mutations, Buildbox compile, and 13/13 isolated ledger cases pass without a
 wire-format or success-budget change. Patch `0500` then makes those checkpoints
 safe in the target CPU's non-sleeping shutdown context; exact generation, ten
 source mutations, Buildbox compile, and the same 13/13 ledger cases pass. The
-remaining software gate is production callback glue that binds this proven
-core to the existing admission task, an internal lock-scoped CPU9 device
-transition, and exact down/restore callbacks while keeping the public
-`cpu_can_disable()` veto closed. Only after that glue passes its own exact
-hardware-free gate may a separate candidate commit select one physical
-CPU9-off and same-boot CPU9 restore attempt.
+production callback glue in patches `0501`--`0502` now binds that proven core
+to the existing admission task, an internal lock-scoped CPU9 device transition,
+and the exact down/restore callbacks while keeping the public
+`cpu_can_disable()` veto closed. After correcting the rejected bit-field build,
+the exact 28-interface generation and mutation gate pass, the Buildbox package
+validates, and all 9/9 focused no-network runtime cases pass. This closes the
+last hardware-free composition gate. The physical hypothesis remains open:
+only a separate reviewed candidate may select one CPU9-off and same-boot CPU9
+restore attempt on the Gemini.
 
 ## Follow-up
 
 The parent-proof, watchdog-validator, record-4, snapshot, bounded CPU8
-observer, and CPU9 restore prerequisites are complete and must remain fixed.
+observer, CPU9 restore, binder-core, and production-composition proofs are
+complete and must remain fixed.
 Continue under the authoritative selected-next order and exit criteria in
 [the roadmap](../../docs/ROADMAP.md); this experiment record does not redefine
 that sequence.
-The selected next slice is the production callback binding around the proven
-disconnected binder core. It must keep CPU8 and CPUs 0--7 non-disableable, keep
-CPU9's public registration-time veto closed, and use only the binder-owned
-device-hotplug-lock-scoped CPU9 transition with an independent exact executor
-guard in `.cpu_disable`. No candidate or device boot is selected until the
-production glue passes exact replay, rejecting mutations, Buildbox compile,
-and no-network runtime review.
+The selected next slice is a separate physical-candidate commit and exact
+candidate build. It must keep CPU8 and CPUs 0--7 non-disableable, keep CPU9's
+public registration-time veto closed, select only the binder-owned one-shot
+path, and preserve the accepted serviceability, watchdog, record-4, changed-ID,
+and no-retry gates. Before deployment, the exact kernel/DT/config hypothesis,
+unique evidence, recovery classification, and decision branches must be
+machine-checked and recorded. Only that exact validated candidate may be
+written to `boot2` for one CPU9-off and same-boot restore attempt.

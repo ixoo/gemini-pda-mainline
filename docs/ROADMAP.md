@@ -31,7 +31,7 @@ Cortex-A72 pair.
 | I2C6 transfer | Native packed/FIFO pointer-read and one exact one-message two-byte FIFO write are runtime proven. The write completed once with payload `[0xda, 0x46]`, exact no-retry accounting, and stable readback. | This closes only the reviewed same-value shape; arbitrary writes, failure recovery, stress, and resume remain open. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
 | Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected. A separate hardware-free implementation now models exact positive Buck-B acquire/release and passes all six focused fake-adapter cases. | Gate 6 is closed for the reviewed no-op, and the first Gate-7 provider source boundary is complete offline. Physical transition, production integration, consumers, and CPU requests remain disconnected. |
-| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. Six fresh exact experimental-profile boots reached CPUs `0-9`; accepted runtime children prove standard 4+4+2 topology, exact affinity, bidirectional RAM integrity, independent accounting, and simultaneous dual-A72 peer-visible work. The hardware-free down/restore owner and physical executor pass isolated runtime gates; the production binder contract is frozen; and its disconnected watchdog validator, exact CPU8/CPU9 parent proof, and record-4 ledger/decoder pass exact Buildbox compile plus their no-network runtime gates. Safe physical down/restore is not yet connected. | Continue the [CPU9 physical-off and same-boot restore gate](../experiments/2026-09-02-mainline-a72-hotplug-lifecycle-gate/README.md) with the snapshot and restore prerequisites before any production callback or candidate. Keep CPU8-last-off, cpufreq/OPP, thermal, idle, suspend, and default-profile promotion separate. |
+| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. Six fresh exact experimental-profile boots reached CPUs `0-9`; accepted runtime children prove standard 4+4+2 topology, exact affinity, bidirectional RAM integrity, independent accounting, and simultaneous dual-A72 peer-visible work. The hardware-free owner, physical executor, watchdog validator, exact parent proof, record-4 ledger, snapshot, retained-CPU8 observer, restore executor, binder core, and production composition now pass their exact Buildbox and no-network runtime gates. The public A72 disable veto remains closed, and no physical down/restore attempt has been made. | Build and validate one separately reviewed [CPU9 physical-off and same-boot restore candidate](../experiments/2026-09-02-mainline-a72-hotplug-lifecycle-gate/README.md), then spend one attributable device attempt. Keep CPU8-last-off, cpufreq/OPP, thermal, idle, suspend, and default-profile promotion separate. |
 
 The durable technical boundary is in
 [DA921x, I2C6, and Cortex-A72](hardware/da921x-i2c6-a72.md). The exact
@@ -7511,10 +7511,11 @@ identities remain in the linked
 This closes the internal coordinator, not physical CPU9 hotplug. **Selected
 next:** bind that proven core to the existing one-shot admission task and exact
 down and restore callbacks, hardware-free-test the production composition, and
-only then open the CPU9 disable veto in a separate candidate commit. Keep CPU8
-and CPUs 0--7 non-disableable, and select no boot candidate or device action
-until the binding passes exact source replay, rejecting mutations, Buildbox
-compile, and no-network runtime review.
+only then select the private one-shot path in a separate candidate commit.
+Keep the public CPU9 disable veto closed, keep CPU8 and CPUs 0--7
+non-disableable, and select no boot candidate or device action until the
+binding passes exact source replay, rejecting mutations, Buildbox compile, and
+no-network runtime review.
 
 The pre-binding callback audit found and closed the retained evidence
 boundaries needed before production glue. Patch `0499` lets record 4 represent
@@ -7541,6 +7542,25 @@ watchdog interfaces in the same hardware-free slice. Select no candidate or
 device action until exact replay, rejecting mutations, Buildbox compile, and
 no-network runtime review pass; candidate enablement remains a separate
 commit.
+
+Exact patches `0501`--`0502` now complete that production composition. Their
+generator reconstructs and verifies the 28-interface post-`0500` parent;
+strict review, replay, and all 28 rejecting mutations pass. The first exact
+Buildbox compile rejected atomic access helpers applied to `struct device`
+bit-fields. The corrected source uses direct access only while holding the
+device-hotplug lock, and exact commit `30125de8...` then compiled and packaged
+the 491-patch isolated profile successfully. Its no-network four-vCPU QEMU
+gate passed all nine focused cases, including exact task/CPU/device refusals,
+public-veto preservation, gate restoration after success and failure, and
+down/restore routing. The production binding was linked but not invoked; no
+physical backend, CPU request, PSCI, MMIO, I2C, retained-RAM, watchdog,
+network, device, or boot-candidate action occurred. **Selected next:** create
+one separate physical-candidate profile that selects this proven composition
+without its KUnit suite, keep the public disable veto closed, and verify its
+exact kernel/DT/config identity, serviceability contract, changed-boot-ID
+recovery, record-4 decoder, no-retry rule, and forbidden-action oracle before
+deployment. Only then write that exact candidate to `boot2` for one CPU9-off
+and same-boot restore attempt.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
