@@ -7386,11 +7386,14 @@ cases failed because down preparation reused an active-CPU9 predicate that
 requires retired slot 1 empty after successful finalization has filled it.
 Exact patch `0486` now preserves that active predicate and adds a separate
 finalized CPU8/CPU9 validator; generation, strict review, replay, 27 total
-rejecting mutations, and the 165-profile invariant pass. **Selected next:**
-compile the admitted 475-patch series on Buildbox and rerun the identical
-60-case gate. Only a complete pass permits the separate bounded executor,
-watchdog/readback, and callback-binding slice; no candidate, deployment, or
-boot is selected yet.
+rejecting mutations, and the 165-profile invariant pass. Exact admission commit
+`e8e564f5...` then compiled on Buildbox, and the identical no-network gate
+passed all 60 cases with zero skips and every physical/production path still
+disconnected. This closes the hardware-free lifecycle-owner phase.
+**Selected next:** freeze and implement the separate bounded physical
+executor, one-shot watchdog, independent per-core/shared-state readback, and
+callback-binding slice. It requires its own hardware-free proof before a boot
+candidate, deployment, or device action can be selected.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

@@ -88,6 +88,9 @@ handling, and exact restore token are implemented and machine-checked.
 - [`results/hardware-free-owner-terminal-parent-generation-9a9f0455-20260903.txt`](results/hardware-free-owner-terminal-parent-generation-9a9f0455-20260903.txt)
   pins the exact follow-up generation, preserved predecessor identities,
   strict review, replay, 27 total rejecting mutations, and profile invariant.
+- [`results/hardware-free-owner-kunit-attempt-2-20260903.txt`](results/hardware-free-owner-kunit-attempt-2-20260903.txt)
+  records the corrected Buildbox package and complete 60-of-60 no-network QEMU
+  pass with every physical and production path still disconnected.
 - [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
   is the exact admitted no-op-by-default implementation.
 - [`../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch)
@@ -184,6 +187,15 @@ terminal-parent mutations pass. The resulting 475-patch canonical series has
 SHA-256 `640f8757299432cf125d34f3049e2aa7b1f1c19b0688e46cbafd1bdb7749bd19`,
 and all 165 manifest profiles retain canonical-order subsequences.
 
+Exact admission commit `e8e564f5...` compiled successfully on Buildbox with
+the isolated membership/KUnit profile. Package validation covered the kernel,
+configuration, provenance, and all 123 DTBs. The only compiler frame warning
+is the pre-existing owner-token stack warning; patch `0486` introduced none.
+The identical no-network four-vCPU gate then passed all 60 cases with zero
+failures or skips: owner 39/39, transition executor 12/12, and binder 9/9.
+It also verified zero production callers, physical backends, MMIO,
+retained-RAM, watchdog, SMC, physical CPU requests, or device action.
+
 ## Analysis
 
 The accepted online/topology/load evidence closes the entry-state uncertainty
@@ -207,12 +219,14 @@ distinct parent-linked restore, and reset-only post-commit failure model, but
 their first runtime gate exposed the finalized parent-state defect above.
 Patch `0486` corrects that source defect without weakening the active-CPU9
 rule. The combined series binds no callback, preserves the MT6797 disable veto,
-and performs no physical action. The final requirement remains physical
-CPU9-off and same-boot CPU9 restore.
+performs no physical action, and now passes its complete hardware-free runtime
+gate. The hardware-free lifecycle-owner phase is complete. The final
+requirement remains physical CPU9-off and same-boot CPU9 restore.
 
 ## Follow-up
 
-Rebuild the admitted `0486` series on Buildbox and rerun the identical 60-case
-no-network gate. Only a complete pass permits the independently bounded
-physical executor, watchdog, readback, and callback-binding slice; no boot
-candidate is selected here.
+Freeze and implement the independently bounded physical executor, one-shot
+recovery watchdog, per-core/shared-state readback, and callback-binding slice.
+That slice must retain the validated lifecycle identities and failure
+boundaries and pass its own hardware-free tests before any boot candidate is
+selected.
