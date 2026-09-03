@@ -249,7 +249,7 @@ def main() -> None:
     print("target_cpu=9")
     print("same_task_required=true")
     print("ordered_requests=remove9,add9-restore")
-    print("checkpoint_stages=1,13,17")
+    print("checkpoint_stages=1,13,18")
     print("parent_proof_calls_success=1")
     print("ledger_begin_calls_success=1")
     print("remove_cpu_calls_success=1")
