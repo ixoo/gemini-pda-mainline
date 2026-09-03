@@ -1,0 +1,24 @@
+# One-shot physical CPU9-off and same-boot restore candidate. This extends the
+# exact accepted CPU8/CPU9 admission path with the production binding whose
+# disconnected components and complete composition passed their focused gates.
+# The admission task is the only trigger. Public CPU hotplug remains closed;
+# CPU8 and CPUs 0--7 are never disableable.
+CONFIG_PSTORE_GEMINI_A72_HOTPLUG_LEDGER=y
+CONFIG_MTK_MT6797_A72_HOTPLUG_EXECUTOR=y
+CONFIG_MTK_MT6797_A72_HOTPLUG_SNAPSHOT=y
+CONFIG_MTK_MT6797_A72_CPU8_OBSERVER=y
+CONFIG_MTK_MT6797_A72_RESTORE_EXECUTOR=y
+CONFIG_MTK_MT6797_A72_HOTPLUG_BINDER_CORE=y
+CONFIG_MTK_MT6797_A72_HOTPLUG_BINDING=y
+
+# Keep every injected suite and unrelated split-startup path out of the
+# physical image. The existing admission fragment also keeps CONFIG_KUNIT off.
+# CONFIG_PSTORE_GEMINI_A72_HOTPLUG_LEDGER_KUNIT_TEST is not set
+# CONFIG_MTK_MT6797_A72_HOTPLUG_EXECUTOR_KUNIT_TEST is not set
+# CONFIG_MTK_MT6797_A72_HOTPLUG_SNAPSHOT_KUNIT_TEST is not set
+# CONFIG_MTK_MT6797_A72_CPU8_OBSERVER_KUNIT_TEST is not set
+# CONFIG_MTK_MT6797_A72_RESTORE_EXECUTOR_KUNIT_TEST is not set
+# CONFIG_MTK_MT6797_A72_HOTPLUG_BINDER_CORE_KUNIT_TEST is not set
+# CONFIG_MTK_MT6797_A72_HOTPLUG_BINDING_KUNIT_TEST is not set
+# CONFIG_HOTPLUG_SPLIT_STARTUP is not set
+CONFIG_LOCALVERSION="-gemini-a72-hotplug-physical"
