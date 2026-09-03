@@ -392,9 +392,9 @@ static void p30e_test_mutate(struct arm64_mt6797_a72_p30e_slot *slot,
 	case P30E_MUT_COUNT:
 		return;
 	}
-	if (mutation != P30E_MUT_CRC)
+	if (mutation != P30E_MUT_CRC) {
 		p30e_test_refresh_crc(slot);
-	else {
+	} else {
 		crc = p30e_test_word(&slot->wire,
 				      ARM64_MT6797_A72_P30E_CRC64_WORD);
 		p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_CRC64_WORD,
