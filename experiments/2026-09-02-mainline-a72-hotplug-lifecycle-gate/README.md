@@ -1286,3 +1286,20 @@ runtime, and failure/correction identities are retained in
 [`results/p30e-rearm-hardware-free-0b9fbb44-20260903.txt`](results/p30e-rearm-hardware-free-0b9fbb44-20260903.txt).
 One newly built and independently validated production candidate is now the
 next permitted step.
+
+Exact production commit `d2161a1e...` now passes Buildbox package validation
+with the final 498-patch `f6af5dea...` source identity. Two independent
+provenance-only DT compositions are byte-identical at `1396b2e8...`; both
+independent validators pass and all ten structural mutations reject. Two
+independent Android-v0/LK assemblies and padding constructions are
+byte-identical, both validators pass all 32 LK gates and reject all six
+container mutations, and the exact pre-trigger gate rejects all eight unsafe
+mutations. The raw successor is `c1cf7d7a...`; exact 16 MiB inactive-`boot2`
+content is `7ffd60d0...`. Production `System.map` contains exactly one
+`arm64_mt6797_a72_p30e_rearm_cpu9`, while KUnit and split-startup policy are
+absent. Exact package, composition, container, hypothesis, decision map, and
+tool identities are retained in
+[`results/p30e-rearm-candidate-d2161a1e-20260903.txt`](results/p30e-rearm-candidate-d2161a1e-20260903.txt).
+No device access or write occurred during construction. This distinct
+candidate is selected for one guarded deployment after these exact tools and
+evidence are published; predecessor `44e1b42c...` remains retired.

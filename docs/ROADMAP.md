@@ -7725,12 +7725,22 @@ binding accepts the observed primary-off/per-core-off state while preserving
 all guards; and ledger v3 exercises 17 records through terminal stage 18. No
 physical effect or candidate action occurred. See the linked
 [hardware-free record](../experiments/2026-09-02-mainline-a72-hotplug-lifecycle-gate/results/p30e-rearm-hardware-free-0b9fbb44-20260903.txt).
-**Selected next:** build the production physical profile from this exact
-patchset on Buildbox, independently reproduce its provenance-only DT and
-Android-v0/LK container, and pass the configuration, serviceability,
-attribution, recovery, no-retry, retained-ledger, DT/container mutation, and
-pre-trigger gates. Only that distinct exact candidate may be selected for one
-guarded inactive-`boot2` deployment and physical attempt.
+Production commit `d2161a1e...` now passes Buildbox package validation on the
+same final 498-patch identity. Two independent provenance-only compositions
+produce exact DT `1396b2e8...`; both validations pass and all ten mutations
+reject. Two independent Android-v0/LK assemblies produce raw `c1cf7d7a...`
+and exact 16 MiB candidate `7ffd60d0...`; both validators pass 32/32 LK gates
+and reject six mutations, while the exact pre-trigger gate rejects all eight
+unsafe mutations. Construction performed no device action. See the linked
+[candidate record](../experiments/2026-09-02-mainline-a72-hotplug-lifecycle-gate/results/p30e-rearm-candidate-d2161a1e-20260903.txt).
+**Selected next:** publish this exact tooling and evidence, then use the
+guarded live-GPT installer once against inactive logical `boot2`, require both
+full-partition readbacks, remove temporary files, and shut Gemian down
+cleanly. After the owner physically selects `boot2`, capture and validate the
+read-only pristine frame before the sole trigger. The decisive success is v3
+record-4 stages 16, 17, and terminal 18 together with a second CPU9 entry and
+online mask `0-9`; any earlier stop follows the frozen decision map and does
+not justify an identical repeat.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
