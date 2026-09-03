@@ -1,0 +1,543 @@
+From 46eb5a76533262733c155228aa544c9323badeb1 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 3 Sep 2026 12:02:00 +0000
+Subject: [PATCH 2/2] soc: mediatek: test disconnected A72 hotplug binder core
+
+Cover exact parent linkage, same-task and one-shot ownership,
+ordered checkpoints, precommit rejection, postcommit and restore
+faults, terminal publication, and injected operation counts.
+---
+ drivers/soc/mediatek/Kconfig                  |  13 +
+ drivers/soc/mediatek/Makefile                 |   1 +
+ .../mt6797-a72-hotplug-binder-core-test.c     | 486 ++++++++++++++++++
+ 3 files changed, 500 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-a72-hotplug-binder-core-test.c
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index 9ee605e..0ddd473 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -831,6 +831,19 @@ config MTK_MT6797_A72_HOTPLUG_BINDER_CORE
+ 	  CPU, PSCI, MMIO, watchdog, retained-memory, network, storage, or device
+ 	  operation. If unsure, say N.
+ 
++config MTK_MT6797_A72_HOTPLUG_BINDER_CORE_KUNIT_TEST
++	bool "KUnit tests for the MT6797 A72 hotplug binder core"
++	depends on KUNIT=y
++	depends on MTK_MT6797_A72_HOTPLUG_BINDER_CORE
++	default n
++	help
++	  Exercise same-task ownership, exact parent/down/restore validation,
++	  checkpoint ordering, precommit rejection, postcommit fault handling,
++	  terminal publication, and one-shot behavior with injected operations.
++
++	  These tests issue no CPU request, PSCI, MMIO, retained-memory,
++	  watchdog, network, storage, or device action. If unsure, say N.
++
+ config MTK_MT6797_A72_CPU8_OBSERVER
+ 	bool "MediaTek MT6797 retained-CPU8 hotplug observer"
+ 	depends on SMP
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+index 62752ff..dadcb40 100644
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -43,6 +43,7 @@ obj-$(CONFIG_MTK_MT6797_A72_HOTPLUG_SNAPSHOT) += mt6797-a72-hotplug-snapshot.o
+ obj-$(CONFIG_MTK_MT6797_A72_HOTPLUG_SNAPSHOT_KUNIT_TEST) += mt6797-a72-hotplug-snapshot-test.o
+ obj-$(CONFIG_MTK_MT6797_A72_RESTORE_EXECUTOR) += mt6797-a72-restore-executor.o
+ obj-$(CONFIG_MTK_MT6797_A72_HOTPLUG_BINDER_CORE) += mt6797-a72-hotplug-binder-core.o
++obj-$(CONFIG_MTK_MT6797_A72_HOTPLUG_BINDER_CORE_KUNIT_TEST) += mt6797-a72-hotplug-binder-core-test.o
+ obj-$(CONFIG_MTK_MT6797_A72_RESTORE_EXECUTOR_KUNIT_TEST) += mt6797-a72-restore-executor-test.o
+ obj-$(CONFIG_MTK_MT6797_A72_CPU8_OBSERVER) += mt6797-a72-cpu8-observer.o
+ obj-$(CONFIG_MTK_MT6797_A72_CPU8_OBSERVER_KUNIT_TEST) += mt6797-a72-cpu8-observer-test.o
+diff --git a/drivers/soc/mediatek/mt6797-a72-hotplug-binder-core-test.c b/drivers/soc/mediatek/mt6797-a72-hotplug-binder-core-test.c
+new file mode 100644
+index 0000000..63f84cc
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-a72-hotplug-binder-core-test.c
+@@ -0,0 +1,486 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* KUnit tests for the disconnected one-task A72 hotplug-binder core. */
++
++#include <kunit/test.h>
++
++#include <linux/errno.h>
++#include <linux/kernel.h>
++#include <linux/string.h>
++
++#include "mt6797-a72-hotplug-binder-core-internal.h"
++
++enum binder_core_step {
++	BINDER_CORE_TASK = 1,
++	BINDER_CORE_PARENT,
++	BINDER_CORE_LEDGER,
++	BINDER_CORE_ENTRY_CHECKPOINT,
++	BINDER_CORE_REMOVE,
++	BINDER_CORE_DOWN_CHECKPOINT,
++	BINDER_CORE_ADD_RESTORE,
++	BINDER_CORE_RESTORE_CHECKPOINT,
++	BINDER_CORE_TERMINAL,
++};
++
++enum binder_core_failure {
++	BINDER_CORE_FAIL_NONE,
++	BINDER_CORE_FAIL_PARENT,
++	BINDER_CORE_FAIL_LEDGER,
++	BINDER_CORE_FAIL_ENTRY_CHECKPOINT,
++	BINDER_CORE_FAIL_REMOVE_PRECOMMIT,
++	BINDER_CORE_FAIL_REMOVE_POSTCOMMIT,
++	BINDER_CORE_FAIL_DOWN_CHECKPOINT,
++	BINDER_CORE_FAIL_ADD_RESTORE,
++	BINDER_CORE_FAIL_RESTORE_CHECKPOINT,
++	BINDER_CORE_FAIL_TERMINAL,
++};
++
++struct binder_core_test_state {
++	struct mt6797_a72_hotplug_binder_controller controller;
++	struct mt6797_a72_hotplug_binder_request request;
++	struct mt6797_a72_hotplug_binder_result result;
++	struct mt6797_a72_binder_parent_proof parent;
++	struct mt6797_a72_hotplug_transaction down;
++	struct mt6797_a72_hotplug_transaction restore;
++	enum binder_core_failure failure;
++	u64 current_task;
++	u32 order[10];
++	u32 order_count;
++	u32 terminal_seen;
++};
++
++static void binder_core_step(struct binder_core_test_state *state, u32 step)
++{
++	if (state->order_count < ARRAY_SIZE(state->order))
++		state->order[state->order_count++] = step;
++}
++
++static u64 binder_core_current_task(void *context)
++{
++	struct binder_core_test_state *state = context;
++
++	binder_core_step(state, BINDER_CORE_TASK);
++	return state->current_task;
++}
++
++static int binder_core_parent_proof(
++	void *context, struct mt6797_a72_binder_parent_proof *proof)
++{
++	struct binder_core_test_state *state = context;
++
++	binder_core_step(state, BINDER_CORE_PARENT);
++	if (state->failure == BINDER_CORE_FAIL_PARENT)
++		return -EIO;
++	*proof = state->parent;
++	return 0;
++}
++
++static int binder_core_ledger_begin(void *context, u64 session_id)
++{
++	struct binder_core_test_state *state = context;
++
++	binder_core_step(state, BINDER_CORE_LEDGER);
++	if (session_id != state->request.session_id)
++		return -EPROTO;
++	return state->failure == BINDER_CORE_FAIL_LEDGER ? -EIO : 0;
++}
++
++static int binder_core_checkpoint(
++	void *context, u32 stage,
++	const struct mt6797_a72_hotplug_binder_result *result)
++{
++	struct binder_core_test_state *state = context;
++
++	if (stage == MT6797_A72_HOTPLUG_BINDER_ENTRY_STAGE) {
++		binder_core_step(state, BINDER_CORE_ENTRY_CHECKPOINT);
++		if (state->failure == BINDER_CORE_FAIL_ENTRY_CHECKPOINT)
++			return -EIO;
++	} else if (stage == MT6797_A72_HOTPLUG_BINDER_DOWN_STAGE) {
++		binder_core_step(state, BINDER_CORE_DOWN_CHECKPOINT);
++		if (state->failure == BINDER_CORE_FAIL_DOWN_CHECKPOINT)
++			return -EIO;
++	} else if (stage == MT6797_A72_HOTPLUG_BINDER_RESTORE_STAGE) {
++		binder_core_step(state, BINDER_CORE_RESTORE_CHECKPOINT);
++		if (state->failure == BINDER_CORE_FAIL_RESTORE_CHECKPOINT)
++			return -EIO;
++	} else {
++		return -EPROTO;
++	}
++	return result->session_id == state->request.session_id ? 0 : -EPROTO;
++}
++
++static int binder_core_remove_cpu(
++	void *context, unsigned int cpu,
++	struct mt6797_a72_hotplug_transaction *down_parent)
++{
++	struct binder_core_test_state *state = context;
++
++	binder_core_step(state, BINDER_CORE_REMOVE);
++	if (cpu != MT6797_A72_HOTPLUG_BINDER_CPU9)
++		return -EPROTO;
++	if (state->failure == BINDER_CORE_FAIL_REMOVE_PRECOMMIT)
++		return -EIO;
++	*down_parent = state->down;
++	return state->failure == BINDER_CORE_FAIL_REMOVE_POSTCOMMIT ? -EIO : 0;
++}
++
++static int binder_core_add_cpu_restore(
++	void *context, unsigned int cpu,
++	const struct mt6797_a72_hotplug_transaction *down_parent,
++	struct mt6797_a72_hotplug_transaction *restore)
++{
++	struct binder_core_test_state *state = context;
++
++	binder_core_step(state, BINDER_CORE_ADD_RESTORE);
++	if (cpu != MT6797_A72_HOTPLUG_BINDER_CPU9 ||
++	    down_parent->identity.generation != state->down.identity.generation)
++		return -EPROTO;
++	if (state->failure == BINDER_CORE_FAIL_ADD_RESTORE)
++		return -EIO;
++	*restore = state->restore;
++	return 0;
++}
++
++static int binder_core_terminal(
++	void *context, const struct mt6797_a72_hotplug_binder_result *result)
++{
++	struct binder_core_test_state *state = context;
++
++	binder_core_step(state, BINDER_CORE_TERMINAL);
++	state->terminal_seen = result->terminal;
++	return state->failure == BINDER_CORE_FAIL_TERMINAL ? -EIO : 0;
++}
++
++static const struct mt6797_a72_hotplug_binder_ops binder_core_ops = {
++	.current_task_identity = binder_core_current_task,
++	.parent_proof = binder_core_parent_proof,
++	.ledger_begin = binder_core_ledger_begin,
++	.checkpoint = binder_core_checkpoint,
++	.remove_cpu = binder_core_remove_cpu,
++	.add_cpu_restore = binder_core_add_cpu_restore,
++	.terminal = binder_core_terminal,
++};
++
++static void binder_core_identity(
++	struct mt6797_a72_binder_parent_identity *identity,
++	u32 operation, unsigned int cpu, u64 mpidr, u64 generation)
++{
++	*identity = (struct mt6797_a72_binder_parent_identity) {
++		.abi = MT6797_A72_TRANSACTION_ABI,
++		.owner = ARM64_LATE_CPU_STARTUP_OWNER_MEMBERSHIP,
++		.operation = operation,
++		.target_cpu = cpu,
++		.cpuhp_target = CPUHP_ONLINE,
++		.target_mpidr = mpidr,
++		.cpu_on_entry_pa = 0x40000000 + cpu,
++		.generation = generation,
++		.cookie = generation + 1,
++	};
++}
++
++static void binder_core_parent(struct mt6797_a72_binder_parent_proof *proof)
++{
++	memset(proof, 0, sizeof(*proof));
++	proof->abi = MT6797_A72_BINDER_PARENT_PROOF_ABI;
++	proof->exact = 1;
++	proof->health = MT6797_A72_OWNER_AVAILABLE;
++	proof->owner_phase = MT6797_A72_PHASE_IDLE;
++	proof->hotplug_phase = MT6797_A72_HOTPLUG_IDLE;
++	proof->members = BIT(0) | BIT(1);
++	proof->retired_mask = BIT(0) | BIT(1);
++	proof->provider_state = MT6797_A72_PROVIDER_HELD;
++	proof->online_mask = MT6797_A72_BINDER_PARENT_ONLINE_MASK;
++	proof->online_count = 10;
++	binder_core_identity(&proof->cpu8, ARM64_LATE_CPU_STARTUP_OP_CPU8_UP,
++			     8, 0x200, 0x11);
++	binder_core_identity(&proof->cpu9, ARM64_LATE_CPU_STARTUP_OP_CPU9_UP,
++			     9, 0x201, 0x21);
++	proof->provider_generation = 0x31;
++	proof->provider_cookie = 0x32;
++	proof->watchdog_identity = 0x6797;
++	proof->watchdog_takeover_ns = 1000000000;
++	proof->observed_ns = 1001000000;
++	proof->watchdog_age_ns = 1000000;
++}
++
++static void binder_core_down(
++	struct mt6797_a72_hotplug_transaction *down)
++{
++	memset(down, 0, sizeof(*down));
++	down->identity.abi = MT6797_A72_HOTPLUG_ABI;
++	down->identity.operation = MT6797_A72_HOTPLUG_OPERATION_CPU9_DOWN;
++	down->identity.target_cpu = MT6797_A72_RESTORE_CPU9;
++	down->identity.cpuhp_target = CPUHP_OFFLINE;
++	down->identity.target_mpidr = 0x201;
++	down->identity.generation = 0x41;
++	down->identity.cookie = 0x42;
++	down->identity.parent_generation = 0x21;
++	down->identity.parent_cookie = 0x22;
++	down->budgets.cpu_off = MT6797_A72_BUDGET_CONSUMED;
++	down->budgets.affinity = MT6797_A72_BUDGET_CONSUMED;
++	down->provider_identity.generation = 0x31;
++	down->provider_identity.cookie = 0x32;
++	down->entry_members = MT6797_A72_RESTORE_ONLINE_MEMBERS;
++	down->entry_online_mask = MT6797_A72_RESTORE_ONLINE_MEMBERS;
++	down->off_committed = 1;
++	down->off_proven = 1;
++	down->completed = 1;
++	down->valid = 1;
++	down->off_proof.abi = MT6797_A72_CPU9_OFF_PROOF_ABI;
++	down->off_proof.valid = 1;
++	down->off_proof.affinity_attempted = 1;
++	down->off_proof.affinity_level = MT6797_A72_AFFINITY_LEVEL0;
++	down->off_proof.affinity_state = MT6797_A72_AFFINITY_STATE_OFF;
++	down->off_proof.cpu9_per_core_off = 1;
++	down->off_proof.cpu8_responsive = 1;
++	down->off_proof.shared_state_unchanged = 1;
++	down->off_proof.members_before = MT6797_A72_RESTORE_ONLINE_MEMBERS;
++	down->off_proof.online_mask_after = MT6797_A72_RESTORE_OFFLINE_MEMBERS;
++	down->off_proof.provider_identity = down->provider_identity;
++	down->off_proof.transaction_generation = down->identity.generation;
++	down->off_proof.transaction_cookie = down->identity.cookie;
++}
++
++static void binder_core_restore(
++	struct mt6797_a72_hotplug_transaction *restore,
++	const struct mt6797_a72_hotplug_transaction *down)
++{
++	memset(restore, 0, sizeof(*restore));
++	restore->identity.abi = MT6797_A72_HOTPLUG_ABI;
++	restore->identity.operation = MT6797_A72_HOTPLUG_OPERATION_CPU9_RESTORE;
++	restore->identity.target_cpu = MT6797_A72_RESTORE_CPU9;
++	restore->identity.cpuhp_target = CPUHP_ONLINE;
++	restore->identity.target_mpidr = 0x201;
++	restore->identity.generation = 0x51;
++	restore->identity.cookie = 0x52;
++	restore->identity.parent_generation = down->identity.generation;
++	restore->identity.parent_cookie = down->identity.cookie;
++	restore->budgets.cpu_on = MT6797_A72_BUDGET_CONSUMED;
++	restore->provider_identity = down->provider_identity;
++	restore->entry_members = MT6797_A72_RESTORE_OFFLINE_MEMBERS;
++	restore->entry_online_mask = MT6797_A72_RESTORE_OFFLINE_MEMBERS;
++	restore->valid = 1;
++	restore->completed = 1;
++	restore->restored = 1;
++}
++
++static struct binder_core_test_state *binder_core_new(struct kunit *test)
++{
++	struct binder_core_test_state *state;
++
++	state = kunit_kzalloc(test, sizeof(*state), GFP_KERNEL);
++	if (!state)
++		return NULL;
++	mt6797_a72_hotplug_binder_init(&state->controller);
++	state->request.task_identity = 0x71;
++	state->request.session_id = 0x72;
++	state->current_task = state->request.task_identity;
++	binder_core_parent(&state->parent);
++	binder_core_down(&state->down);
++	binder_core_restore(&state->restore, &state->down);
++	return state;
++}
++
++static int binder_core_test_init(struct kunit *test)
++{
++	test->priv = binder_core_new(test);
++	return test->priv ? 0 : -ENOMEM;
++}
++
++static void binder_core_success_test(struct kunit *test)
++{
++	struct binder_core_test_state *state = test->priv;
++	u32 expected[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
++	int ret;
++
++	ret = mt6797_a72_hotplug_binder_run(
++		&state->controller, &binder_core_ops, state, &state->request,
++		&state->result);
++	KUNIT_EXPECT_EQ(test, ret, 0);
++	KUNIT_EXPECT_EQ(test, state->result.terminal,
++			MT6797_A72_HOTPLUG_BINDER_RESTORED_SUCCESS);
++	KUNIT_EXPECT_TRUE(test, state->result.down_completed);
++	KUNIT_EXPECT_TRUE(test, state->result.restore_completed);
++	KUNIT_EXPECT_TRUE(test, state->result.completed);
++	KUNIT_EXPECT_EQ(test, state->result.remove_cpu_calls, (u32)1);
++	KUNIT_EXPECT_EQ(test, state->result.restore_add_cpu_calls, (u32)1);
++	KUNIT_EXPECT_EQ(test, state->result.checkpoint_calls, (u32)3);
++	KUNIT_EXPECT_EQ(test, state->result.retries, (u32)0);
++	KUNIT_EXPECT_MEMEQ(test, state->order, expected, sizeof(expected));
++}
++
++static void binder_core_task_refusal_test(struct kunit *test)
++{
++	struct binder_core_test_state *state = test->priv;
++	int ret;
++
++	state->current_task++;
++	ret = mt6797_a72_hotplug_binder_run(
++		&state->controller, &binder_core_ops, state, &state->request,
++		&state->result);
++	KUNIT_EXPECT_EQ(test, ret, -EPERM);
++	KUNIT_EXPECT_EQ(test, atomic_read(&state->controller.consumed), 0);
++	KUNIT_EXPECT_EQ(test, state->order_count, (u32)1);
++}
++
++static void binder_core_parent_refusal_test(struct kunit *test)
++{
++	struct binder_core_test_state *state = test->priv;
++	int ret;
++
++	state->parent.online_mask = GENMASK(8, 0);
++	ret = mt6797_a72_hotplug_binder_run(
++		&state->controller, &binder_core_ops, state, &state->request,
++		&state->result);
++	KUNIT_EXPECT_EQ(test, ret, -EPROTO);
++	KUNIT_EXPECT_EQ(test, state->result.terminal,
++			MT6797_A72_HOTPLUG_BINDER_REJECTED_PRECOMMIT);
++	KUNIT_EXPECT_EQ(test, state->result.remove_cpu_calls, (u32)0);
++}
++
++static void binder_core_ledger_refusal_test(struct kunit *test)
++{
++	struct binder_core_test_state *state = test->priv;
++	int ret;
++
++	state->failure = BINDER_CORE_FAIL_LEDGER;
++	ret = mt6797_a72_hotplug_binder_run(
++		&state->controller, &binder_core_ops, state, &state->request,
++		&state->result);
++	KUNIT_EXPECT_EQ(test, ret, -EIO);
++	KUNIT_EXPECT_FALSE(test, state->result.ledger_active);
++	KUNIT_EXPECT_EQ(test, state->result.remove_cpu_calls, (u32)0);
++}
++
++static void binder_core_down_failure_test(struct kunit *test)
++{
++	struct binder_core_test_state *pre = test->priv;
++	struct binder_core_test_state *post = binder_core_new(test);
++	struct binder_core_test_state *unbound = binder_core_new(test);
++	int ret;
++
++	pre->failure = BINDER_CORE_FAIL_REMOVE_PRECOMMIT;
++	ret = mt6797_a72_hotplug_binder_run(
++		&pre->controller, &binder_core_ops, pre, &pre->request,
++		&pre->result);
++	KUNIT_EXPECT_EQ(test, ret, -EIO);
++	KUNIT_EXPECT_EQ(test, pre->result.terminal,
++			MT6797_A72_HOTPLUG_BINDER_REJECTED_PRECOMMIT);
++	KUNIT_ASSERT_NOT_NULL(test, post);
++	post->failure = BINDER_CORE_FAIL_REMOVE_POSTCOMMIT;
++	ret = mt6797_a72_hotplug_binder_run(
++		&post->controller, &binder_core_ops, post, &post->request,
++		&post->result);
++	KUNIT_EXPECT_EQ(test, ret, -EIO);
++	KUNIT_EXPECT_EQ(test, post->result.terminal,
++			MT6797_A72_HOTPLUG_BINDER_FAULT_POSTCOMMIT);
++	KUNIT_ASSERT_NOT_NULL(test, unbound);
++	unbound->down.identity.parent_cookie++;
++	ret = mt6797_a72_hotplug_binder_run(
++		&unbound->controller, &binder_core_ops, unbound,
++		&unbound->request, &unbound->result);
++	KUNIT_EXPECT_EQ(test, ret, -EPROTO);
++	KUNIT_EXPECT_EQ(test, unbound->result.terminal,
++			MT6797_A72_HOTPLUG_BINDER_FAULT_POSTCOMMIT);
++}
++
++static void binder_core_restore_failure_test(struct kunit *test)
++{
++	struct binder_core_test_state *state = test->priv;
++	int ret;
++
++	state->failure = BINDER_CORE_FAIL_ADD_RESTORE;
++	ret = mt6797_a72_hotplug_binder_run(
++		&state->controller, &binder_core_ops, state, &state->request,
++		&state->result);
++	KUNIT_EXPECT_EQ(test, ret, -EIO);
++	KUNIT_EXPECT_EQ(test, state->result.terminal,
++			MT6797_A72_HOTPLUG_BINDER_RESTORE_FAULT);
++	KUNIT_EXPECT_TRUE(test, state->result.down_completed);
++	KUNIT_EXPECT_FALSE(test, state->result.restore_completed);
++}
++
++static void binder_core_checkpoint_failure_test(struct kunit *test)
++{
++	struct binder_core_test_state *entry = test->priv;
++	struct binder_core_test_state *down = binder_core_new(test);
++	struct binder_core_test_state *restore = binder_core_new(test);
++	int ret;
++
++	entry->failure = BINDER_CORE_FAIL_ENTRY_CHECKPOINT;
++	ret = mt6797_a72_hotplug_binder_run(
++		&entry->controller, &binder_core_ops, entry, &entry->request,
++		&entry->result);
++	KUNIT_EXPECT_EQ(test, ret, -EIO);
++	KUNIT_EXPECT_EQ(test, entry->result.terminal,
++			MT6797_A72_HOTPLUG_BINDER_REJECTED_PRECOMMIT);
++	KUNIT_ASSERT_NOT_NULL(test, down);
++	down->failure = BINDER_CORE_FAIL_DOWN_CHECKPOINT;
++	ret = mt6797_a72_hotplug_binder_run(
++		&down->controller, &binder_core_ops, down, &down->request,
++		&down->result);
++	KUNIT_EXPECT_EQ(test, ret, -EIO);
++	KUNIT_EXPECT_EQ(test, down->result.terminal,
++			MT6797_A72_HOTPLUG_BINDER_FAULT_POSTCOMMIT);
++	KUNIT_ASSERT_NOT_NULL(test, restore);
++	restore->failure = BINDER_CORE_FAIL_RESTORE_CHECKPOINT;
++	ret = mt6797_a72_hotplug_binder_run(
++		&restore->controller, &binder_core_ops, restore,
++		&restore->request, &restore->result);
++	KUNIT_EXPECT_EQ(test, ret, -EIO);
++	KUNIT_EXPECT_EQ(test, restore->result.terminal,
++			MT6797_A72_HOTPLUG_BINDER_RESTORE_FAULT);
++}
++
++static void binder_core_terminal_failure_test(struct kunit *test)
++{
++	struct binder_core_test_state *state = test->priv;
++	int ret;
++
++	state->failure = BINDER_CORE_FAIL_TERMINAL;
++	ret = mt6797_a72_hotplug_binder_run(
++		&state->controller, &binder_core_ops, state, &state->request,
++		&state->result);
++	KUNIT_EXPECT_EQ(test, ret, -EIO);
++	KUNIT_EXPECT_EQ(test, state->terminal_seen,
++			(u32)MT6797_A72_HOTPLUG_BINDER_RESTORED_SUCCESS);
++	KUNIT_EXPECT_EQ(test, state->result.terminal,
++			MT6797_A72_HOTPLUG_BINDER_RESTORE_FAULT);
++	KUNIT_EXPECT_EQ(test, state->result.terminal_calls, (u32)1);
++}
++
++static void binder_core_one_shot_test(struct kunit *test)
++{
++	struct binder_core_test_state *state = test->priv;
++	int ret;
++
++	ret = mt6797_a72_hotplug_binder_run(
++		&state->controller, &binder_core_ops, state, &state->request,
++		&state->result);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	ret = mt6797_a72_hotplug_binder_run(
++		&state->controller, &binder_core_ops, state, &state->request,
++		&state->result);
++	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
++	KUNIT_EXPECT_EQ(test, state->order_count, (u32)10);
++}
++
++static struct kunit_case binder_core_cases[] = {
++	KUNIT_CASE(binder_core_success_test),
++	KUNIT_CASE(binder_core_task_refusal_test),
++	KUNIT_CASE(binder_core_parent_refusal_test),
++	KUNIT_CASE(binder_core_ledger_refusal_test),
++	KUNIT_CASE(binder_core_down_failure_test),
++	KUNIT_CASE(binder_core_restore_failure_test),
++	KUNIT_CASE(binder_core_checkpoint_failure_test),
++	KUNIT_CASE(binder_core_terminal_failure_test),
++	KUNIT_CASE(binder_core_one_shot_test),
++	{ }
++};
++
++static struct kunit_suite binder_core_suite = {
++	.name = "mt6797-a72-hotplug-binder-core",
++	.init = binder_core_test_init,
++	.test_cases = binder_core_cases,
++};
++
++kunit_test_suite(binder_core_suite);
