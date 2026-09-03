@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-a72-hotplug-lifecycle-gate` |
-| Status | repaired successor installed with full readback; device shut down for physical `boot2` selection |
+| Status | both A72s reached online proof; CPU9-only down reached post-state but failed exact readback proof |
 | Subsystem | arm64 CPU hotplug, PSCI, MT6797 A72 membership |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-09-02--2026-09-03 America/New_York |
@@ -316,6 +316,10 @@ handling, and exact restore token are implemented and machine-checked.
 - [`results/config-identity-repair-deployment-20260903.txt`](results/config-identity-repair-deployment-20260903.txt)
   records live-GPT target resolution, stable power, predecessor identity, the
   sole write, two matching full readbacks, cleanup, and confirmed shutdown.
+- [`results/physical-runtime-attempt-2-cpu9-down-readback-mismatch-20260903.txt`](results/physical-runtime-attempt-2-cpu9-down-readback-mismatch-20260903.txt)
+  records the repaired READY gate, one trigger, both A72 online terminals, the
+  sole CPU9-down transaction, retained CPU8, stage-12 readback mismatch, and
+  changed-ID watchdog recovery with unchanged `boot2`.
 - [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
   is the exact admitted no-op-by-default implementation.
 - [`../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch)
@@ -850,6 +854,22 @@ an independent streamed byte comparison both matched exact successor
 `58313c3a8...`. No fresh backup was made, all temporary files were removed,
 and both the installer and a separate SSH probe confirmed clean shutdown.
 
+The repaired runtime boot then passed its exact pre-trigger identity and arm64
+READY gate. Its first read-only capture exposed only two stale host-side sysfs
+paths; live driver and deferred-probe evidence showed the binder and platform
+supplier bound, so commit `905a204e...` corrected the probe without changing
+the candidate. A second read-only capture passed every gate. One trigger then
+booted CPU8 at MPIDR `0x200` and CPU9 at MPIDR `0x201`, both with MIDR
+`0x410fd081`. CPU8 and CPU9 reached their CRC-valid online terminals. The sole
+private CPU9-down request advanced through affinity-off, post-state capture,
+and a bounded CPU8 observation; CPU8 remained online and CPUs 0--8 formed
+online mask `0x1ff`. The exact readback predicate then returned `-EIO` before
+owner proof or restore. Record 4 retained generation 11, stage 12,
+postcommit-down-fault, result flags `0x77f`, one CPU-off authorization, one
+affinity query, one CPU8 callback, and mismatch value `0x1`. Automatic
+watchdog recovery reached changed-ID Gemian without a manual reboot; the
+installed `boot2` checksum remained `58313c3a8...`.
+
 ## Analysis
 
 The accepted online/topology/load evidence closes the entry-state uncertainty
@@ -911,10 +931,11 @@ last hardware-free composition gate. Exact retired production candidate
 `4b027c97...` passed its separate package, DT, container, mutation,
 serviceability, attribution, recovery, and forbidden-action gates. Its decoded
 device attempt instead selected the stale embedded configuration-input
-identity before any CPU operation. The repaired successor `58313c3a8...` now
-passes the same offline gates plus an exact package-to-embedded-identity check
-and a fail-closed pre-trigger oracle that requires arm64 READY and rejects any
-proof-mask veto.
+identity before any CPU operation. Repaired successor `58313c3a8...` passed
+those gates and advanced the hardware transaction through both A72 online
+terminals and the CPU9-only down post-state. It failed only the composite
+readback predicate before owner proof, so the lifecycle gate and restore remain
+open.
 
 ## Follow-up
 
@@ -924,8 +945,9 @@ complete and must remain fixed.
 Continue under the authoritative selected-next order and exit criteria in
 [the roadmap](../../docs/ROADMAP.md); this experiment record does not redefine
 that sequence.
-The selected next action is physical selection of installed repaired successor
-`58313c3a8...` from `boot2`. Collect the read-only pre-trigger frame first.
-Trigger exactly once only if the changed boot ID, release, record identity,
-pristine controller state, read-only sysfs, and arm64 READY/no-proof-mask gate
-all pass. Do not repeat `4b027c97...`.
+The selected next action is a behavior-neutral diagnostic extension of record
+4 that replaces the current Boolean readback mismatch with an exact bitmap for
+the status, per-core power, shared isolation/DCM/CCI, provider, clock, and
+BIGIDVFS comparisons. Prove its wire compatibility, source mutations, full
+hotplug KUnit regression, and Buildbox package before constructing one new
+candidate. Do not repeat `4b027c97...` or `58313c3a8...`.
