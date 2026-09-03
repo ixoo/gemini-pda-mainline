@@ -315,6 +315,8 @@ enum p30e_test_mutation {
 static void p30e_test_mutate(struct arm64_mt6797_a72_p30e_slot *slot,
 			      enum p30e_test_mutation mutation)
 {
+	u64 crc;
+
 	switch (mutation) {
 	case P30E_MUT_MAGIC:
 		p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_MAGIC_WORD, 1);
@@ -392,10 +394,12 @@ static void p30e_test_mutate(struct arm64_mt6797_a72_p30e_slot *slot,
 	}
 	if (mutation != P30E_MUT_CRC)
 		p30e_test_refresh_crc(slot);
-	else
+	else {
+		crc = p30e_test_word(&slot->wire,
+				      ARM64_MT6797_A72_P30E_CRC64_WORD);
 		p30e_test_put(&slot->wire, ARM64_MT6797_A72_P30E_CRC64_WORD,
-			       p30e_test_word(&slot->wire,
-				       ARM64_MT6797_A72_P30E_CRC64_WORD) ^ 1);
+			       crc ^ 1);
+	}
 }
 
 static void p30e_rearm_mutations_test(struct kunit *test)
