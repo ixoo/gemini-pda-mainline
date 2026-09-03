@@ -109,6 +109,12 @@ def validate(root: Path) -> list[str]:
         require(errors, marker in ledger_internal,
                 f"ledger layout marker changed: {marker}")
     for marker in (
+        "GEMINI_A72_HOTPLUG_RESTORE_READINESS_SAMPLES_MAX 51U",
+        "GEMINI_A72_HOTPLUG_RESTORE_READINESS_SLEEPS_MAX 50U",
+    ):
+        require(errors, marker in ledger_public,
+                f"ledger readiness bound changed: {marker}")
+    for marker in (
         "restore_readiness_samples >",
         "restore_readiness_sleeps + 1 !=",
         "GEMINI_A72_HOTPLUG_RESTORE_READINESS_ATTEMPTED",
