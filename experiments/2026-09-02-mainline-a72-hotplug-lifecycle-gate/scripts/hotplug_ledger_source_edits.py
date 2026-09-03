@@ -29,6 +29,7 @@ PUBLIC_HEADER = kernel_text(r"""
     #ifndef _LINUX_GEMINI_A72_HOTPLUG_LEDGER_H
     #define _LINUX_GEMINI_A72_HOTPLUG_LEDGER_H
 
+    #include <linux/bits.h>
     #include <linux/errno.h>
     #include <linux/types.h>
 
@@ -638,7 +639,8 @@ TEST_SOURCE = kernel_text(r"""
 
             if (word >= ARRAY_SIZE(state->words))
                     return 0;
-            if (state->corrupt_word == word)
+            if (state->corrupt_word >= 0 &&
+                word == (unsigned int)state->corrupt_word)
                     return state->words[word] ^ 1U;
             return state->words[word];
     }
