@@ -1541,3 +1541,13 @@ Exact tool identities are in
 owner-selected `boot2` may then pass the strict read-only pre-trigger gate and
 execute the integrated transaction once. The first failure ends the attempt;
 no retry or load-duration increase is permitted.
+
+The tooling was published at `1af1f5c8...`. Read-only Gemian recovery had
+already resolved live-GPT `boot2` as inactive p30 and verified its complete
+checksum as exact `6ba8c953...`, so no redundant partition write or backup was
+performed. Gemian accepted the clean power-off request and both SSH and a later
+bounded USB/netcat poll confirmed the device unreachable. The exact readiness
+record is
+[`results/topology-load-readiness-20260903.txt`](results/topology-load-readiness-20260903.txt).
+The device is off awaiting one owner-selected `boot2`; the first host action
+after USB appears remains the fresh read-only gate, not the trigger.

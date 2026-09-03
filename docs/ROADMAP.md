@@ -7901,6 +7901,15 @@ taken. **Selected next:** publish the tooling, leave exact `6ba8c953...` on
 `boot2` without a redundant write, shut Gemian down cleanly, and use one fresh
 owner-selected boot for the sole bounded lifecycle-plus-load transaction.
 
+Tooling commit `1af1f5c8...` is now on `origin/main`. Recovery Gemian resolved
+inactive live-GPT `boot2` as p30 and verified full-partition hash
+`6ba8c953...`; no rewrite or backup was needed. Clean power-off returned zero,
+and both SSH plus a later bounded USB/netcat poll confirmed the device off.
+**Selected next:** the owner selects `boot2` once. After USB appears, validate
+the fresh read-only zero-execution frame before spending the one integrated
+lifecycle-plus-load trigger; any rejected gate or runtime failure ends the
+attempt without retry.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;
