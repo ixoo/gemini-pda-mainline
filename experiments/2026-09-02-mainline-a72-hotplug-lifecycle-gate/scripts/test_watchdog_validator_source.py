@@ -62,16 +62,17 @@ def main() -> int:
          "validation->mode = ops->read(context, WDT_MODE);"),
         ("drop-lock", "drivers/watchdog/mtk_wdt.c",
          "spin_lock_irqsave(&mtk_wdt->recovery_lock, flags);\n"
-         "\tret = mtk_wdt_recovery_validate_owner(",
-         "flags = 0;\n\tret = mtk_wdt_recovery_validate_owner("),
+         "\tret = mtk_wdt_recovery_validate_owner(&mtk_wdt->recovery,",
+         "flags = 0;\n"
+         "\tret = mtk_wdt_recovery_validate_owner(&mtk_wdt->recovery,"),
         ("drop-export", "drivers/watchdog/mtk_wdt.c",
          "EXPORT_SYMBOL_GPL(mtk_wdt_recovery_validate);", ""),
         ("add-takeover", "drivers/watchdog/mtk_wdt.c",
          "spin_lock_irqsave(&mtk_wdt->recovery_lock, flags);\n"
-         "\tret = mtk_wdt_recovery_validate_owner(",
+         "\tret = mtk_wdt_recovery_validate_owner(&mtk_wdt->recovery,",
          "spin_lock_irqsave(&mtk_wdt->recovery_lock, flags);\n"
          "\tmtk_wdt_recovery_takeover(dev, 15000, NULL);\n"
-         "\tret = mtk_wdt_recovery_validate_owner("),
+         "\tret = mtk_wdt_recovery_validate_owner(&mtk_wdt->recovery,"),
         ("mutable-stub", "include/linux/mtk_wdt.h",
          "*validation = (struct mtk_wdt_recovery_validation){};\n"
          "\treturn -EOPNOTSUPP;\n}\n#endif",

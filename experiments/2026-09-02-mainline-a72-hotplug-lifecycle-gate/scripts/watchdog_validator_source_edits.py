@@ -45,9 +45,8 @@ HEADER_NEW = dedent("""\
     #ifdef CONFIG_MEDIATEK_WATCHDOG_RECOVERY_TAKEOVER
     int mtk_wdt_recovery_takeover(struct device *dev, unsigned int timeout_ms,
     \t\t\t      struct mtk_wdt_recovery_result *result);
-    int mtk_wdt_recovery_validate(
-    \tstruct device *dev, u64 identity,
-    \tstruct mtk_wdt_recovery_validation *validation);
+    int mtk_wdt_recovery_validate(struct device *dev, u64 identity,
+    \t\t\t      struct mtk_wdt_recovery_validation *validation);
     #else
     static inline int
     mtk_wdt_recovery_takeover(struct device *dev, unsigned int timeout_ms,
@@ -60,9 +59,9 @@ HEADER_NEW = dedent("""\
     \treturn -EOPNOTSUPP;
     }
 
-    static inline int mtk_wdt_recovery_validate(
-    \tstruct device *dev, u64 identity,
-    \tstruct mtk_wdt_recovery_validation *validation)
+    static inline int
+    mtk_wdt_recovery_validate(struct device *dev, u64 identity,
+    \t\t\t  struct mtk_wdt_recovery_validation *validation)
     {
     \t(void)dev;
     \t(void)identity;
@@ -75,8 +74,8 @@ HEADER_NEW = dedent("""\
 
 
 VALIDATOR = dedent("""\
-    static int mtk_wdt_recovery_validate_owner(
-    \tconst struct mtk_wdt_recovery_owner *owner,
+    static int
+    mtk_wdt_recovery_validate_owner(const struct mtk_wdt_recovery_owner *owner,
     \tconst struct mtk_wdt_recovery_register_ops *ops, void *context,
     \tu64 identity, struct mtk_wdt_recovery_validation *validation)
     {
@@ -96,8 +95,8 @@ VALIDATOR = dedent("""\
 
     \tvalidation->mode = ops->read(context, WDT_MODE);
     \tvalidation->length = ops->read(context, WDT_LENGTH);
-    \texpected_length = WDT_LENGTH_TIMEOUT(
-    \t\tMTK_WDT_RECOVERY_TIMEOUT_SECONDS << 6);
+    \texpected_length =
+    \t\tWDT_LENGTH_TIMEOUT(MTK_WDT_RECOVERY_TIMEOUT_SECONDS << 6);
     \tif ((validation->length & WDT_LENGTH_TIMEOUT_MASK) !=
     \t    expected_length ||
     \t    (validation->mode & WDT_MODE_RECOVERY_MASK) !=
@@ -112,9 +111,9 @@ VALIDATOR = dedent("""\
 
 PUBLIC_VALIDATOR = dedent("""\
 
-    int mtk_wdt_recovery_validate(
-    \tstruct device *dev, u64 identity,
-    \tstruct mtk_wdt_recovery_validation *validation)
+    int
+    mtk_wdt_recovery_validate(struct device *dev, u64 identity,
+    \t\t\t  struct mtk_wdt_recovery_validation *validation)
     {
     \tstruct mtk_wdt_dev *mtk_wdt;
     \tunsigned long flags;
@@ -132,8 +131,8 @@ PUBLIC_VALIDATOR = dedent("""\
     \t\treturn -EOPNOTSUPP;
 
     \tspin_lock_irqsave(&mtk_wdt->recovery_lock, flags);
-    \tret = mtk_wdt_recovery_validate_owner(
-    \t\t&mtk_wdt->recovery, &mtk_wdt_recovery_ops, mtk_wdt,
+    \tret = mtk_wdt_recovery_validate_owner(&mtk_wdt->recovery,
+    \t\t&mtk_wdt_recovery_ops, mtk_wdt,
     \t\tidentity, validation);
     \tspin_unlock_irqrestore(&mtk_wdt->recovery_lock, flags);
 
@@ -150,8 +149,8 @@ TESTS = dedent("""\
     \tstruct mtk_wdt_recovery_test_context state = {
     \t\t.mode = WDT_MODE_EXRST_EN | WDT_MODE_EN |
     \t\t\tWDT_MODE_AUTO_START,
-    \t\t.length = WDT_LENGTH_TIMEOUT(
-    \t\t\tMTK_WDT_RECOVERY_TIMEOUT_SECONDS << 6),
+    \t\t.length =
+    \t\t\tWDT_LENGTH_TIMEOUT(MTK_WDT_RECOVERY_TIMEOUT_SECONDS << 6),
     \t};
     \tstruct mtk_wdt_recovery_validation validation;
     \tstruct mtk_wdt_recovery_owner owner = {
@@ -160,8 +159,8 @@ TESTS = dedent("""\
     \t};
     \tint ret;
 
-    \tret = mtk_wdt_recovery_validate_owner(
-    \t\t&owner, &mtk_wdt_recovery_test_ops, &state, 31,
+    \tret = mtk_wdt_recovery_validate_owner(&owner,
+    \t\t&mtk_wdt_recovery_test_ops, &state, 31,
     \t\t&validation);
     \tKUNIT_ASSERT_EQ(test, 0, ret);
     \tKUNIT_EXPECT_EQ(test, 31ULL, validation.identity);
@@ -174,8 +173,8 @@ TESTS = dedent("""\
     {
     \tstruct mtk_wdt_recovery_test_context state = {
     \t\t.mode = WDT_MODE_EN | WDT_MODE_AUTO_START,
-    \t\t.length = WDT_LENGTH_TIMEOUT(
-    \t\t\tMTK_WDT_RECOVERY_TIMEOUT_SECONDS << 6),
+    \t\t.length =
+    \t\t\tWDT_LENGTH_TIMEOUT(MTK_WDT_RECOVERY_TIMEOUT_SECONDS << 6),
     \t};
     \tstruct mtk_wdt_recovery_validation validation;
     \tstruct mtk_wdt_recovery_owner owner = {
@@ -184,33 +183,33 @@ TESTS = dedent("""\
     \t};
     \tint ret;
 
-    \tret = mtk_wdt_recovery_validate_owner(
-    \t\t&owner, &mtk_wdt_recovery_test_ops, &state, 0,
+    \tret = mtk_wdt_recovery_validate_owner(&owner,
+    \t\t&mtk_wdt_recovery_test_ops, &state, 0,
     \t\t&validation);
     \tKUNIT_EXPECT_EQ(test, -EINVAL, ret);
-    \tret = mtk_wdt_recovery_validate_owner(
-    \t\t&owner, &mtk_wdt_recovery_test_ops, &state, 38,
+    \tret = mtk_wdt_recovery_validate_owner(&owner,
+    \t\t&mtk_wdt_recovery_test_ops, &state, 38,
     \t\t&validation);
     \tKUNIT_EXPECT_EQ(test, -EACCES, ret);
     \tKUNIT_EXPECT_EQ(test, 0U, state.reads);
     \towner.owned = false;
-    \tret = mtk_wdt_recovery_validate_owner(
-    \t\t&owner, &mtk_wdt_recovery_test_ops, &state, 37,
+    \tret = mtk_wdt_recovery_validate_owner(&owner,
+    \t\t&mtk_wdt_recovery_test_ops, &state, 37,
     \t\t&validation);
     \tKUNIT_EXPECT_EQ(test, -ENODATA, ret);
     \tKUNIT_EXPECT_EQ(test, 0U, state.reads);
     \towner.owned = true;
     \tstate.mode |= WDT_MODE_IRQ_EN;
-    \tret = mtk_wdt_recovery_validate_owner(
-    \t\t&owner, &mtk_wdt_recovery_test_ops, &state, 37,
+    \tret = mtk_wdt_recovery_validate_owner(&owner,
+    \t\t&mtk_wdt_recovery_test_ops, &state, 37,
     \t\t&validation);
     \tKUNIT_EXPECT_EQ(test, -EIO, ret);
     \tKUNIT_EXPECT_EQ(test, 2U, state.reads);
     \tstate.reads = 0;
     \tstate.mode &= ~WDT_MODE_IRQ_EN;
     \tstate.length ^= BIT(5);
-    \tret = mtk_wdt_recovery_validate_owner(
-    \t\t&owner, &mtk_wdt_recovery_test_ops, &state, 37,
+    \tret = mtk_wdt_recovery_validate_owner(&owner,
+    \t\t&mtk_wdt_recovery_test_ops, &state, 37,
     \t\t&validation);
     \tKUNIT_EXPECT_EQ(test, -EIO, ret);
     \tKUNIT_EXPECT_EQ(test, 2U, state.reads);
