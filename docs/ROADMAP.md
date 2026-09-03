@@ -7441,13 +7441,25 @@ successful 16-boundary sequence is bounded to 451 32-bit writes. The strict
 changed-boot-ID host decoder passes ten tests and never changes the retained
 source. Exact Buildbox package validation and a no-network, injected-memory
 QEMU run pass all ten ledger cases with no physical caller, backend, MMIO,
-retained-RAM, CPU, watchdog, network, or device action. **Selected next:**
-implement and hardware-free-test the snapshot prerequisites, including the
-explicitly counted bounded DVFSP transport effects and the asynchronous
-bounded CPU8 observation. Then implement the disconnected restore executor,
-followed by the one-task `add8 -> add9 -> remove9 -> add9` binder. Select no
-boot candidate until these remaining slices pass exact source replay,
-rejecting mutations, Buildbox compile, and no-network runtime gates.
+retained-RAM, CPU, watchdog, network, or device action. Patch `0493` now closes
+the snapshot-adapter half of the next prerequisite. Independent review
+withheld the first generated artifact until the warning include and null-safe
+initializer were explicit; corrected exact generation then passed replay,
+strict review, and all 20 unsafe mutations. Exact published commit
+`ed64b4f5...` compiled on Buildbox and validated the kernel, configuration,
+provenance, and all 123 DTBs. The no-network run at published harness commit
+`a2aca8c0...` passed all six injected-source cases. It proves one ordered call
+each to platform, provider, clock, and BigiDVFS, excludes sample generations,
+holds three long-lived device references, counts the clock transport's
+401-write maximum and BigiDVFS's eight reads, and invokes no physical backend.
+There is still no production caller, DT node, boot candidate, or device
+action. **Selected next:** implement and hardware-free-test the single
+asynchronous `smp_call_function_single()` CPU8 observation with `wait=0`,
+exact CPU8 identity, binder-owned completion state, no retry, and a 250 ms
+controller bound. Then implement the disconnected restore executor, followed
+by the one-task `add8 -> add9 -> remove9 -> add9` binder. Select no boot
+candidate until these remaining slices pass exact source replay, rejecting
+mutations, Buildbox compile, and no-network runtime gates.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
