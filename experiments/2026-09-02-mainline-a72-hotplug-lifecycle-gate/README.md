@@ -1414,3 +1414,17 @@ inactive-`boot2` deployment, two full readbacks, clean shutdown, and one
 physical attempt. The expected result is the already proven CPU8/CPU9
 down/restore path with binder `ret=0`, `completed=1`, and stage 18; an
 unexpected result must be recovered and classified before any new attempt.
+
+The candidate tooling and evidence were published at `b25775a9...`. From
+ordinary Gemian boot ID `d7363598...`, the guarded live-GPT probe resolved
+inactive logical `boot2` as `/dev/mmcblk0p30` while the active root remained
+`/dev/mmcblk0p29`; stable external power was present at full capacity. One
+write replaced retired diagnostic `fe333d46...` with exact stage-binding fix
+`c84aea47...`. The write-path full readback, independent streamed full
+readback, and byte comparison all pass. Temporary device and host data were
+removed, no fresh backup was made, and clean shutdown was confirmed by SSH
+unreachability. Sanitized deployment proof is retained in
+[`results/stage-binding-fix-deployment-20260903.txt`](results/stage-binding-fix-deployment-20260903.txt).
+The device is off for one owner-selected `boot2` attempt. No trigger may be
+issued until its fresh read-only frame passes the exact candidate and A41
+record-identity gate.

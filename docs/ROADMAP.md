@@ -7817,6 +7817,15 @@ success, stop adding bring-up mechanisms and move to repeatability and stress;
 on any other terminal, recover its decision-bearing record before changing or
 repeating anything.
 
+The tooling and candidate record were published at `b25775a9...`. The guarded
+installer then resolved inactive live-GPT `boot2` as `/dev/mmcblk0p30` while
+Gemian used p29, replaced retired `fe333d46...` with exact `c84aea47...`, and
+passed both full readbacks plus the independent byte comparison. Stable power
+was present, no fresh backup was made, temporary files were removed, and clean
+shutdown was confirmed. **Selected next:** the owner selects `boot2` once;
+capture and validate its exact fresh read-only frame before the sole trigger,
+then apply the already recorded success or unexpected-terminal decision.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;
