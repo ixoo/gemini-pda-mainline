@@ -29,7 +29,7 @@ MUTATIONS = (
     ("fs/pstore/gemini_a72_hotplug_ledger.c", "GEMINI_A72_HOTPLUG_LEDGER_RESERVE_SIZE 0x000e0000ULL", "GEMINI_A72_HOTPLUG_LEDGER_RESERVE_SIZE 0x000d0000ULL"),
     ("fs/pstore/gemini_a72_hotplug_ledger.c", "hotplug_attempted = true", "hotplug_attempted = false"),
     ("fs/pstore/gemini_a72_hotplug_ledger.c", "ioremap_wc(GEMINI_A72_HOTPLUG_LEDGER_BASE", "ioremap(GEMINI_A72_HOTPLUG_LEDGER_BASE"),
-    ("fs/pstore/Kconfig", "depends on PSTORE_GEMINI_CPU9_PROGRESS_LEDGER=y", "depends on PSTORE_RAM=y"),
+    ("fs/pstore/gemini_a72_hotplug_ledger.c", "record->members & ~GEMINI_A72_HOTPLUG_LEDGER_MEMBERS_MASK", "false"),
     ("fs/pstore/gemini_a72_hotplug_ledger_test.c", "state.writes, 451U", "state.writes, 452U"),
 )
 

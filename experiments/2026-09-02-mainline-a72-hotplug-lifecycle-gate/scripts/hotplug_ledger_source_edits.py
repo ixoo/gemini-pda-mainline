@@ -15,7 +15,16 @@ def replace_once(path: Path, old: str, new: str) -> None:
     path.write_text(text.replace(old, new, 1), encoding="utf-8")
 
 
-PUBLIC_HEADER = dedent(r"""\
+def kernel_text(value: str) -> str:
+    lines = []
+    for line in dedent(value).lstrip("\n").splitlines(keepends=True):
+        stripped = line.lstrip(" ")
+        spaces = len(line) - len(stripped)
+        lines.append("\t" * (spaces // 8) + " " * (spaces % 8) + stripped)
+    return "".join(lines)
+
+
+PUBLIC_HEADER = kernel_text(r"""
     /* SPDX-License-Identifier: GPL-2.0-only */
     #ifndef _LINUX_GEMINI_A72_HOTPLUG_LEDGER_H
     #define _LINUX_GEMINI_A72_HOTPLUG_LEDGER_H
@@ -100,7 +109,7 @@ PUBLIC_HEADER = dedent(r"""\
     """)
 
 
-INTERNAL_HEADER = dedent(r"""\
+INTERNAL_HEADER = kernel_text(r"""
     /* SPDX-License-Identifier: GPL-2.0-only */
     #ifndef __GEMINI_A72_HOTPLUG_LEDGER_INTERNAL_H
     #define __GEMINI_A72_HOTPLUG_LEDGER_INTERNAL_H
@@ -159,7 +168,7 @@ INTERNAL_HEADER = dedent(r"""\
     """)
 
 
-SOURCE = dedent(r"""\
+SOURCE = kernel_text(r"""
     // SPDX-License-Identifier: GPL-2.0-only
     /* One-shot retained record-4 ledger for Gemini A72 physical hotplug. */
 
@@ -599,7 +608,7 @@ SOURCE = dedent(r"""\
     """)
 
 
-TEST_SOURCE = dedent(r"""\
+TEST_SOURCE = kernel_text(r"""
     // SPDX-License-Identifier: GPL-2.0-only
     /* In-memory KUnit tests for the Gemini A72 record-4 hotplug ledger. */
 
@@ -954,7 +963,7 @@ TEST_SOURCE = dedent(r"""\
     """)
 
 
-KCONFIG = dedent(r"""\
+KCONFIG = kernel_text(r"""
     config PSTORE_GEMINI_A72_HOTPLUG_LEDGER
             bool "Gemini A72 physical-hotplug record-4 ledger"
             depends on PSTORE_GEMINI_CPU9_PROGRESS_LEDGER=y
