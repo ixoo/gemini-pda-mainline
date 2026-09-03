@@ -7494,6 +7494,16 @@ boot candidate until this binder passes exact source replay, rejecting
 mutations, Buildbox compile, and no-network runtime gates; candidate enablement
 then remains a separate reviewed commit.
 
+The frozen binder contract predates its now-complete prerequisites, so it was
+not rewritten to masquerade as a current source manifest. Successor exact
+implementation contract `physical-binder-implementation-contract.json` pins
+all 26 post-`0496` interfaces and the nine prerequisite patch identities.
+Local and exact Buildbox prepared-source validation pass at published commit
+`482cf256...`; all 43 unsafe mutations fail closed. This closes the final
+source-parent audit only. Binder code, compile/runtime proof, callback
+enablement, candidate selection, and device action remain pending in the
+selected order above.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

@@ -61,6 +61,9 @@ handling, and exact restore token are implemented and machine-checked.
   hardware-free contract for the next implementation slice.
 - [`physical-binder-contract.json`](physical-binder-contract.json) is the
   hardware-free contract for the final binding and restore slices.
+- [`physical-binder-implementation-contract.json`](physical-binder-implementation-contract.json)
+  preserves that frozen contract while pinning the exact post-`0496` source
+  and composition boundary for the one-task binder.
 - [`scripts/validate_contract.py`](scripts/validate_contract.py) validates the
   contract and optionally the exact prepared source.
 - [`scripts/test_contract.py`](scripts/test_contract.py) requires critical
@@ -95,6 +98,9 @@ handling, and exact restore token are implemented and machine-checked.
   `scripts/test_physical_binder_contract.py` pin the audited source boundary
   and reject unsafe entry, attribution, observation, PSCI, callback, restore,
   and candidate changes.
+- `scripts/validate_physical_binder_implementation_contract.py` and
+  `scripts/test_physical_binder_implementation_contract.py` pin 26 current
+  source files and reject 43 unsafe orchestration and enablement mutations.
 - `scripts/watchdog_validator_source_edits.py`,
   `validate_watchdog_validator_source.py`, and
   `test_watchdog_validator_source.py` define the read-only recovery-owner
@@ -186,6 +192,9 @@ handling, and exact restore token are implemented and machine-checked.
 - [`results/physical-binder-contract-aa03bb01-20260903.txt`](results/physical-binder-contract-aa03bb01-20260903.txt)
   pins the contract identities, local and exact Buildbox prepared-source
   validation, all 54 rejecting mutations, and the still-closed candidate gates.
+- [`results/physical-binder-implementation-contract-482cf256-20260903.txt`](results/physical-binder-implementation-contract-482cf256-20260903.txt)
+  pins the exact post-`0496` parent, 26 source identities, and all 43 rejecting
+  mutations for the final one-task binder implementation.
 - [`results/watchdog-validator-generation-9adfbb05-20260903.txt`](results/watchdog-validator-generation-9adfbb05-20260903.txt)
   pins the exact generated patch, two-read/zero-write contract, replay, strict
   review, 12 rejecting source mutations, and all-profile invariant.
@@ -548,6 +557,16 @@ identity and validation refusals; prepare, CPU-on, checkpoint and completion
 failures; secondary ordering; rollback; and successful terminal membership.
 No physical backend, CPU request, MMIO, I2C, retained-RAM access, SMC,
 watchdog takeover, network, device action, or boot candidate was enabled.
+
+Because the original binder contract intentionally pins the earlier
+pre-prerequisite source, it remains immutable historical evidence rather than
+being rewritten for generation. The successor implementation contract at
+exact pushed commit `482cf256...` pins all 26 post-`0496` source interfaces and
+all nine prerequisite patch identities. Local validation and all 43 unsafe
+mutations pass. The same validator passes against Buildbox prepared-source
+state `febbcbb4...`, including the still-closed A72 disable veto, absent down
+callbacks, unextended admission chain, and disconnected down/restore
+executors. No compile, QEMU run, candidate, or device action occurred.
 
 ## Analysis
 
