@@ -478,3 +478,4 @@ v7.1.3/0485-arm64-mediatek-test-hardware-free-CPU9-hotplug-owner.patch
 v7.1.3/0486-arm64-mediatek-validate-finalized-CPU9-before-hotplug.patch
 v7.1.3/0487-soc-mediatek-add-hardware-free-CPU9-hotplug-executor.patch
 v7.1.3/0488-soc-mediatek-test-hardware-free-CPU9-hotplug-executor.patch
+v7.1.3/0489-watchdog-mediatek-validate-recovery-owner-read-only.patch

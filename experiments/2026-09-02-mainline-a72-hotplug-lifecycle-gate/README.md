@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-a72-hotplug-lifecycle-gate` |
-| Status | physical binder contract frozen; prerequisite implementation pending |
+| Status | physical binder contract frozen; first disconnected prerequisite admitted |
 | Subsystem | arm64 CPU hotplug, PSCI, MT6797 A72 membership |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-09-02 America/New_York |
@@ -95,6 +95,13 @@ handling, and exact restore token are implemented and machine-checked.
   `scripts/test_physical_binder_contract.py` pin the audited source boundary
   and reject unsafe entry, attribution, observation, PSCI, callback, restore,
   and candidate changes.
+- `scripts/watchdog_validator_source_edits.py`,
+  `validate_watchdog_validator_source.py`, and
+  `test_watchdog_validator_source.py` define the read-only recovery-owner
+  validator and reject 12 source mutations.
+- `scripts/generate_watchdog_validator_patch.py` and
+  `generate-watchdog-validator-on-buildbox` generate the exact disconnected
+  watchdog prerequisite from the canonical prepared source.
 - [`results/contract-validation-20260902.txt`](results/contract-validation-20260902.txt)
   records the local contract/mutation pass and exact Buildbox prepared-source
   validation.
@@ -125,6 +132,9 @@ handling, and exact restore token are implemented and machine-checked.
 - [`results/physical-binder-contract-aa03bb01-20260903.txt`](results/physical-binder-contract-aa03bb01-20260903.txt)
   pins the contract identities, local and exact Buildbox prepared-source
   validation, all 54 rejecting mutations, and the still-closed candidate gates.
+- [`results/watchdog-validator-generation-9adfbb05-20260903.txt`](results/watchdog-validator-generation-9adfbb05-20260903.txt)
+  pins the exact generated patch, two-read/zero-write contract, replay, strict
+  review, 12 rejecting source mutations, and all-profile invariant.
 - [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
   is the exact admitted no-op-by-default implementation.
 - [`../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch)
@@ -137,8 +147,11 @@ handling, and exact restore token are implemented and machine-checked.
   is the disconnected split target/controller/retained-CPU8 state machine.
 - [`../../patches/v7.1.3/0488-soc-mediatek-test-hardware-free-CPU9-hotplug-executor.patch`](../../patches/v7.1.3/0488-soc-mediatek-test-hardware-free-CPU9-hotplug-executor.patch)
   is its eight-case memory-only KUnit coverage.
+- [`../../patches/v7.1.3/0489-watchdog-mediatek-validate-recovery-owner-read-only.patch`](../../patches/v7.1.3/0489-watchdog-mediatek-validate-recovery-owner-read-only.patch)
+  is the disconnected, locked, read-only exact recovery-owner validator and
+  its two focused KUnit cases.
 
-Patches `0483`--`0488` are experiment-only archives with a synthetic,
+Patches `0483`--`0489` are experiment-only archives with a synthetic,
 non-certifying author identity, no DCO sign-off, and are not submission-ready.
 Upstream submission requires the actual author metadata and truthful
 certification.
@@ -296,6 +309,19 @@ passes the same contract and mutation suite against Buildbox prepared source
 state `2bde772b...`; its temporary Git checkout was removed, and it performed
 no compile, QEMU run, device contact, or physical action.
 
+Buildbox generation at exact pushed commit `9adfbb05...` produced standalone
+patch `0489` with SHA-256
+`940c2158c04376d856b7a0cc6b7aa69702883b5e88b2959b3d82589cfce18b91`.
+Strict Checkpatch, exact replay, and all 12 rejecting source mutations pass.
+The validator holds the existing recovery lock, accepts only the exact
+inherited identity, and performs exactly two register reads with zero writes,
+reloads, refreshes, releases, or ownership changes. Its two focused cases
+extend the watchdog suite to seven. The code has no production caller,
+preserves the MT6797 disable veto, and creates no boot candidate or device
+action. Appending `0489` makes 478 canonical patches with series SHA-256
+`1a8751eb0285be3362b7434649e4cf8656056030529179f5ae3046b0bc3aa124`;
+all 166 manifest profiles retain canonical-order subsequences.
+
 ## Analysis
 
 The accepted online/topology/load evidence closes the entry-state uncertainty
@@ -322,16 +348,18 @@ rule. Patches `0487`--`0488` add the disconnected physical-executor state
 machine, and their exact isolated Buildbox compile and 8/8 no-network runtime
 gate now pass. This closes the hardware-free executor phase. The binding
 contract also closes the ambiguity about how production ownership,
-attribution, observation, and restore must meet. The combined series still
-binds no callback, preserves the MT6797 disable veto, and performs no physical
-action. The final requirement remains physical CPU9-off and same-boot CPU9
-restore.
+attribution, observation, and restore must meet. Patch `0489` now supplies the
+first disconnected production prerequisite: an exact read-only validator for
+the inherited watchdog owner. The combined series still binds no callback,
+preserves the MT6797 disable veto, and performs no physical action. The final
+requirement remains physical CPU9-off and same-boot CPU9 restore.
 
 ## Follow-up
 
-Implement the contract in its four ordered gates. First add disconnected
-parent-proof, watchdog-validator, record-4 ledger/decoder, and snapshot
-primitives. Then add a disconnected restore executor and failure routing.
+Build and run the admitted watchdog validator in the isolated watchdog KUnit
+profile. Then complete the remaining first-gate disconnected parent-proof,
+record-4 ledger/decoder, and snapshot primitives before adding a disconnected
+restore executor and failure routing.
 Only after both pass source mutations and runtime tests may the one-task
 down/restore binder connect to production callbacks. CPU8 and CPUs 0--7 stay
 non-disableable throughout. No candidate or device boot is selected until the
