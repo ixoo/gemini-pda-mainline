@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-a72-hotplug-lifecycle-gate` |
-| Status | all disconnected prerequisites including CPU9 restore proven; one-task down/restore binder pending |
+| Status | disconnected one-task binder core proven; production callback binding pending |
 | Subsystem | arm64 CPU hotplug, PSCI, MT6797 A72 membership |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-09-02 America/New_York |
@@ -162,6 +162,15 @@ handling, and exact restore token are implemented and machine-checked.
 - `scripts/run-restore-executor-kunit-qemu` and
   `classify-restore-executor-kunit.py` admit only the exact ancestor Buildbox
   package and require all ten restore cases to pass with no network device.
+- `scripts/binder_core_source_edits.py`, `binder_core_test_edits.py`,
+  `validate_binder_core_source.py`, and `test_binder_core_source.py` define the
+  disconnected same-task binder core and reject 22 unsafe source mutations.
+- `scripts/generate_binder_core_patches.py` and
+  `generate-binder-core-on-buildbox` generate its exact source/test pair from
+  the hash-pinned source through `0496`.
+- `scripts/run-binder-core-kunit-qemu` and
+  `classify-binder-core-kunit.py` admit only the exact ancestor Buildbox
+  package and require all nine binder cases to pass with no network device.
 - [`results/contract-validation-20260902.txt`](results/contract-validation-20260902.txt)
   records the local contract/mutation pass and exact Buildbox prepared-source
   validation.
@@ -217,6 +226,9 @@ handling, and exact restore token are implemented and machine-checked.
 - [`results/restore-executor-kunit-4c98a46a-20260903.txt`](results/restore-executor-kunit-4c98a46a-20260903.txt)
   pins exact generation, 32 rejecting mutations, admission, Buildbox package,
   and the 10-of-10 no-network restore runtime pass.
+- [`results/hotplug-binder-core-kunit-6f5eb100-20260903.txt`](results/hotplug-binder-core-kunit-6f5eb100-20260903.txt)
+  pins exact generation, 22 rejecting mutations, admission, corrected isolated
+  profile, Buildbox package, and the 9-of-9 no-network binder runtime pass.
 - [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
   is the exact admitted no-op-by-default implementation.
 - [`../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch)
@@ -568,6 +580,32 @@ state `febbcbb4...`, including the still-closed A72 disable veto, absent down
 callbacks, unextended admission chain, and disconnected down/restore
 executors. No compile, QEMU run, candidate, or device action occurred.
 
+The binder-core generator was stabilized through two bounded validator fixes:
+Kconfig mutations were confined to the target stanza, then the exact
+post-commit branch was added to the rejecting set. Exact Buildbox generation
+at pushed commit `72f6e8f3...` produced patches `0497` and `0498` with SHA-256
+identities `db918ca1...` and `70946723...`. Exact replay and strict review
+pass, all 22 unsafe source mutations fail closed, all 171 manifest profiles
+retain canonical-order subsequences, and the eight-mutation series-invariant
+self-test passes. The core is one-shot and same-task, accepts only the exact
+parent and provider identities, and orders one `remove9` request before one
+distinct `add9-restore` request. It contains no production caller, DT node, or
+physical-effect implementation.
+
+The first isolated compile failed closed because the binder profile omitted
+the existing DVFSP clock-transport fragment required by the snapshot
+prerequisite. No source patch changed. Exact profile correction commit
+`6f5eb100...` then compiled successfully on Buildbox with patchset
+`c134677202d3c8656b4141df5c88b3697340a4865fcbdc682c93a603dc9ac498`.
+The validated package contains the kernel, configuration, provenance, and all
+123 DTBs, and the binder files introduced no compiler warning. At published
+harness commit `478db6ec...`, the no-network four-vCPU QEMU gate passed the
+sole binder suite 9/9 with zero failures or skips. It exercised success,
+wrong-task, parent, ledger, down, restore, checkpoint, terminal-publication,
+and one-shot paths. No production callback, physical backend, CPU request,
+MMIO, I2C, retained-RAM access, SMC, watchdog takeover, network, device
+action, or boot candidate was enabled.
+
 ## Analysis
 
 The accepted online/topology/load evidence closes the entry-state uncertainty
@@ -609,11 +647,15 @@ no physical action. Patch `0494` supplies the bounded CPU8 observer; exact
 generation, 21 source mutations, Buildbox compile, and 7/7 isolated runtime
 cases pass. Patches `0495`--`0496` now supply the distinct CPU9 restore
 executor; exact generation, 32 source mutations, Buildbox compile, and 10/10
-isolated runtime cases pass. All disconnected prerequisites are therefore
-complete. The remaining software gate is the one-task production binder that
-owns the complete down/restore transaction. Only after that binder passes may
-a separate candidate commit select one physical CPU9-off and same-boot CPU9
-restore attempt.
+isolated runtime cases pass. Patches `0497`--`0498` supply the disconnected
+same-task binder core; exact generation, 22 source mutations, Buildbox compile,
+and 9/9 isolated runtime cases pass. All disconnected orchestration is
+therefore complete. The remaining software gate is production callback glue
+that binds this proven core to the existing admission task and exact
+down/restore callbacks while preserving the closed CPU9 disable veto. Only
+after that glue passes its own exact hardware-free gate may a separate
+candidate commit select one physical CPU9-off and same-boot CPU9 restore
+attempt.
 
 ## Follow-up
 
@@ -622,7 +664,8 @@ observer, and CPU9 restore prerequisites are complete and must remain fixed.
 Continue under the authoritative selected-next order and exit criteria in
 [the roadmap](../../docs/ROADMAP.md); this experiment record does not redefine
 that sequence.
-The selected next slice is the disconnected one-task down/restore binder. CPU8
-and CPUs 0--7 stay non-disableable throughout. No candidate or device boot is
-selected until the complete binding passes exact replay, rejecting mutations,
-Buildbox compile, and no-network runtime review.
+The selected next slice is the production callback binding around the proven
+disconnected binder core. CPU8 and CPUs 0--7 stay non-disableable throughout,
+and the CPU9 veto stays closed until that binding is complete. No candidate or
+device boot is selected until the production glue passes exact replay,
+rejecting mutations, Buildbox compile, and no-network runtime review.

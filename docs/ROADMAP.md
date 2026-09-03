@@ -7504,6 +7504,18 @@ source-parent audit only. Binder code, compile/runtime proof, callback
 enablement, candidate selection, and device action remain pending in the
 selected order above.
 
+The disconnected same-task binder core now passes its isolated hardware-free
+source, Buildbox, and no-network runtime gates; the exact chronology and
+identities remain in the linked
+[experiment record](../experiments/2026-09-02-mainline-a72-hotplug-lifecycle-gate/README.md).
+This closes the internal coordinator, not physical CPU9 hotplug. **Selected
+next:** bind that proven core to the existing one-shot admission task and exact
+down and restore callbacks, hardware-free-test the production composition, and
+only then open the CPU9 disable veto in a separate candidate commit. Keep CPU8
+and CPUs 0--7 non-disableable, and select no boot candidate or device action
+until the binding passes exact source replay, rejecting mutations, Buildbox
+compile, and no-network runtime review.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;
