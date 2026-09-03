@@ -1188,3 +1188,18 @@ readiness hypothesis, and tooling identities are retained in
 No device access or write occurred during construction. This distinct
 candidate is selected for one guarded physical attempt after the exact tooling
 and evidence are published; retired `a0114584...` must not be repeated.
+
+The exact candidate tooling and evidence were published at commit
+`cfec141d...`. From ordinary Gemian boot ID `0ababa54...`, the live GPT
+resolved inactive logical `boot2` as `/dev/mmcblk0p30` while the active root
+remained `/dev/mmcblk0p29`. Stable external power was present. One write
+replaced retired predecessor `a0114584...` with exact 16 MiB readiness-gated
+candidate `44e1b42c...`; the write-path full readback, independent streamed
+full readback, and byte comparison all pass. Temporary device and host
+readback files were removed, no fresh partition backup was made, and the clean
+shutdown was followed by three independent connection-refused observations.
+Sanitized deployment proof is retained in
+[`results/restore-readiness-deployment-20260903.txt`](results/restore-readiness-deployment-20260903.txt).
+The device is off and ready for the owner to physically select `boot2`; the
+host must capture and validate the read-only pre-trigger frame before spending
+the candidate's single trigger.
