@@ -122,6 +122,9 @@ handling, and exact restore token are implemented and machine-checked.
 - [`results/hardware-free-physical-executor-kunit-e24e6c45-20260903.txt`](results/hardware-free-physical-executor-kunit-e24e6c45-20260903.txt)
   records the exact Buildbox compile/package identities and complete 8-of-8
   no-network QEMU pass with every production and physical path disconnected.
+- [`results/physical-binder-contract-aa03bb01-20260903.txt`](results/physical-binder-contract-aa03bb01-20260903.txt)
+  pins the contract identities, local and exact Buildbox prepared-source
+  validation, all 54 rejecting mutations, and the still-closed candidate gates.
 - [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
   is the exact admitted no-op-by-default implementation.
 - [`../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch)
@@ -288,7 +291,10 @@ records a correction to the phrase “read-only snapshot”: the existing DVFSP
 clock readback transport performs a fixed power-on write and bounded semaphore
 request writes. Those exact transport effects are counted; PLL, divider, OPP,
 voltage, rail, and BigiDVFS-set writes remain forbidden. Local validation and
-all 54 unsafe contract mutations pass.
+all 54 unsafe contract mutations pass. Exact pushed commit `aa03bb01...` also
+passes the same contract and mutation suite against Buildbox prepared source
+state `2bde772b...`; its temporary Git checkout was removed, and it performed
+no compile, QEMU run, device contact, or physical action.
 
 ## Analysis
 
