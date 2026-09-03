@@ -1396,3 +1396,21 @@ are retained in
 [`results/postsuccess-diagnostic-runtime-attempt-1-stage-drift-20260903.txt`](results/postsuccess-diagnostic-runtime-attempt-1-stage-drift-20260903.txt).
 No further physical attempt is permitted until the patch and evidence are
 published and the exact Buildbox binder-core and binding KUnit gates pass.
+
+Canonical patch `0511` is now present in the exact production source and
+passes the two required hardware-free gates: binder-core 9/9 with checkpoint
+stages `1,13,18`, and binding 14/14. Exact production commit `8ae7643c...`
+passes Buildbox package validation with 500-patch identity `41345620...`.
+Two independent provenance-only DT compositions agree at `ecf27851...`; two
+independent Android-v0/LK builds agree on raw `09c4f0b7...` and exact 16 MiB
+candidate `c84aea47...`. Both independent validators pass all 32 LK gates and
+reject six container mutations; the DT and pre-trigger suites reject ten and
+eight mutations respectively. Construction invoked no physical backend or
+device action. Exact package, KUnit, candidate, tool, hypothesis, and decision
+identities are retained in
+[`results/stage-binding-fix-candidate-8ae7643c-20260903.txt`](results/stage-binding-fix-candidate-8ae7643c-20260903.txt).
+After publication, this distinct candidate is selected for one guarded
+inactive-`boot2` deployment, two full readbacks, clean shutdown, and one
+physical attempt. The expected result is the already proven CPU8/CPU9
+down/restore path with binder `ret=0`, `completed=1`, and stage 18; an
+unexpected result must be recovered and classified before any new attempt.

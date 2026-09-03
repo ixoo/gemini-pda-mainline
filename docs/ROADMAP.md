@@ -7803,6 +7803,20 @@ and CPUs `0-9` online in its sole physical attempt, close the bring-up
 transaction and advance to repeatability, load/coherency, hotplug, thermal,
 and suspend validation rather than adding another bring-up mechanism.
 
+Patch `0511` now passes the exact Buildbox binder-core 9/9 and binding 14/14
+gates, including the direct public/private stage mapping at `1,13,18`.
+Production commit `8ae7643c...` and its deterministic DT/container pipeline
+select one distinct exact 16 MiB candidate, `c84aea47...`; all 32 LK gates and
+the independent validators pass, while ten DT, six container, and eight
+pre-trigger mutations reject. **Selected next:** publish this exact candidate
+record and tooling, deploy it once to inactive logical `boot2` with both full
+readbacks and clean shutdown, then spend one fresh validated physical attempt.
+Success requires CPUs `0-9` online, binder `ret=0`, `completed=1`, public and
+private restore stage 18, and retained restored-success with error zero. On
+success, stop adding bring-up mechanisms and move to repeatability and stress;
+on any other terminal, recover its decision-bearing record before changing or
+repeating anything.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;
