@@ -1228,3 +1228,31 @@ sole CPU_ON returns, retaining the pre/post CPU9 status mirrors and per-core
 power-control state. A later distinct physical candidate is justified only if
 that observation can distinguish firmware refusal, no power transition,
 power-on without arm64 secondary entry, and successful secondary entry.
+
+That exact static trace found a stronger, pre-CPU_ON repair boundary. Initial
+CPU9 admission prepares and arms its dedicated P30E MMU-off slot; the mandatory
+`secondary_entry` claim consumes it and successful controller readback proves
+target state `PUBLISHED` with sequence 1. The ordinary CPU9-down path has no
+P30E transition. The private restore path calls the saved generic PSCI boot
+callback directly, bypassing the CPU9 admission binder and its P30E arm. On the
+second entry, the target claim therefore sees an already-published slot,
+publishes failure reason 5, returns `-EPROTO`, and `head.S` parks CPU9 before
+`secondary_startup`. This matches the earlier successful CPU_ON return, absent
+second CPU9 boot message, and five-second `__cpu_up()` timeout. The hash-pinned
+control-flow evidence is retained in
+[`results/p30e-restore-root-cause-audit-20260903.txt`](results/p30e-restore-root-cause-audit-20260903.txt).
+
+The selected repair keeps that target-side fail-closed behavior unchanged. A
+new controller helper will rearm only CPU9's exact intact initial request after
+the proven down/readiness state and before the existing sole restore CPU_ON. It
+must validate the complete identity, state, sequence, result, entry, and CRC
+contract; reconstruct the same request as an empty target at controller
+sequence 2; reject every mismatch before writing; and reject a second rearm.
+The private executor will retain a distinct `P30E_REARMED` checkpoint, fail
+with zero CPU_ON calls if rearm fails, and preserve the one-CPU_ON/no-retry
+ceiling. The frozen definition and required negative tests are in
+[`results/p30e-rearm-definition-20260903.txt`](results/p30e-rearm-definition-20260903.txt).
+Post-CPU_ON platform sampling is deferred unless this exact lifecycle repair
+still fails. No new candidate is allowed before Buildbox generation, rejecting
+mutations, replay, focused P30E/executor/binding KUnit, series-ordering, and
+production validation pass.

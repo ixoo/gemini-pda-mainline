@@ -31,7 +31,7 @@ Cortex-A72 pair.
 | I2C6 transfer | Native packed/FIFO pointer-read and one exact one-message two-byte FIFO write are runtime proven. The write completed once with payload `[0xda, 0x46]`, exact no-retry accounting, and stable readback. | This closes only the reviewed same-value shape; arbitrary writes, failure recovery, stress, and resume remain open. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
 | Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected. A separate hardware-free implementation now models exact positive Buck-B acquire/release and passes all six focused fake-adapter cases. | Gate 6 is closed for the reviewed no-op, and the first Gate-7 provider source boundary is complete offline. Physical transition, production integration, consumers, and CPU requests remain disconnected. |
-| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The intersected-status attempt proved one complete CPU9 down with CPU8 retained, then one successfully returning restore CPU_ON that never reached arm64 secondary entry. Its readiness-gated successor completed 51 samples and 50 sleeps with CPU9 absent from the primary status word, persistently present in the secondary mirror, and its per-core power-control word fixed at the established off fixture value `0x10332`. The gate timed out with exactly zero CPU_ON calls, CPU8 online, and automatic changed-ID recovery. The public A72 disable veto remains closed. | Retire both exact candidates. Do not wait longer or merely restore the earlier intersection rule. Trace the generic arm64, PSCI, and secure restart boundary, then add a hardware-free-proven retained checkpoint immediately after the sole CPU_ON returns with pre/post CPU9 status and power-control evidence. One distinct candidate may follow only when it can distinguish firmware refusal, no power transition, power-on without secondary entry, and successful entry. Keep CPU8-last-off, cpufreq/OPP, thermal, idle, suspend, and default-profile promotion separate. |
+| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The intersected-status attempt proved one complete CPU9 down with CPU8 retained, then one successfully returning restore CPU_ON that never reached normal arm64 secondary startup. Its readiness-gated successor completed 51 samples and 50 sleeps with CPU9 absent from the primary status word, persistently present in the secondary mirror, and its per-core power-control word fixed at the established off fixture value `0x10332`; the gate timed out with exactly zero CPU_ON calls. Exact static tracing now identifies the missing lifecycle edge: initial CPU9 admission consumes and publishes its fail-closed P30E secondary-entry slot, ordinary CPU9-down does not reset it, and the private restore calls PSCI directly without rearming it. A restored CPU9 therefore receives `-EPROTO` from the mandatory P30E claim and parks before `secondary_startup`. The public A72 disable veto remains closed. | Retire both exact candidates. Preserve the target-side fail-closed check. Add a hardware-free-proven, exact CPU9-only controller rearm after proven down/readiness and before the existing single restore CPU_ON. The rearm must validate the complete published initial request, be one-shot, reject every mismatch before writing, and add no CPU/firmware operation. Post-CPU_ON platform sampling is fallback evidence only if this repair still fails. Keep CPU8-last-off, cpufreq/OPP, thermal, idle, suspend, and default-profile promotion separate. |
 
 The durable technical boundary is in
 [DA921x, I2C6, and Cortex-A72](hardware/da921x-i2c6-a72.md). The exact
@@ -7689,15 +7689,31 @@ word remained `0x10332`. The strict union-clear gate therefore sealed
 record-4 decoding passed. This rejects a short secondary-mirror settling delay
 and retires exact candidate `44e1b42c...`.
 
-**Selected next:** audit the exact `__cpu_up()` -> wrapped PSCI `cpu_boot` ->
-secure CPU_ON path and freeze one observation-only successor. It must retain a
-checkpoint immediately after the sole CPU_ON returns and compare CPU9's raw
-status mirrors and per-core power-control state before and after that call. It
-must add no CPU_OFF, CPU_ON, affinity, retry, provider, cluster, or watchdog
-operation. Generate and test it only on Buildbox. Select no physical candidate
-until source replay, rejecting mutations, focused KUnit, all-profile ordering,
-package provenance, recovery decoding, and the no-retry oracle pass. Do not
-repeat the retired image or spend a boot merely on a longer delay.
+The exact source audit now closes that ambiguity before another boot. Initial
+CPU9 admission arms its dedicated P30E slot, the mandatory secondary-entry
+claim consumes it, and successful readback proves it reached `PUBLISHED` with
+sequence 1. CPU9-down has no P30E lifecycle action. The private restore then
+calls the saved PSCI boot callback directly, bypassing the initial binder and
+its prepare/arm sequence. A second CPU9 entry therefore sees the still-
+published target, publishes P30E failure reason 5, returns `-EPROTO`, and is
+parked by `head.S` before `secondary_startup`. This exactly explains the prior
+successful CPU_ON return followed by the five-second `__cpu_up()` timeout and
+no second CPU9 boot message. The complete hash-pinned control-flow audit is in
+the linked experiment result.
+
+**Selected next:** preserve the fail-closed target claim and implement one
+controller-side exact CPU9 P30E rearm after the proven down/readiness state and
+before the existing sole restore CPU_ON. It must accept only the intact
+published initial CPU9 request, validate its complete identity, state,
+sequence, result, entry, and CRC contract, rebuild the same request as an empty
+target at controller sequence 2, and reject a second rearm or any mismatch
+before writing. The private executor must retain a distinct `P30E_REARMED`
+checkpoint, issue zero CPU_ON calls on rearm failure, and keep the one-CPU_ON,
+zero-retry ceiling. Generate and test both logical patches only on Buildbox;
+select no physical candidate until source replay, rejecting mutations, focused
+P30E/executor/binding KUnit, all-profile ordering, production provenance,
+recovery decoding, and no-retry gates pass. Post-CPU_ON platform sampling is a
+fallback only if the exact rearm still fails.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
