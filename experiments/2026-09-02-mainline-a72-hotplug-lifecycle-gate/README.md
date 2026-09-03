@@ -1271,3 +1271,18 @@ in
 This is not a boot candidate and no device action occurred. The next gate is
 Buildbox compilation plus focused no-network P30E, executor, binding, and
 record-4 ledger KUnit; no physical boot is justified until all four pass.
+
+That hardware-free gate is now closed on final exact commit `0b9fbb44...` and
+498-patch identity `f6af5dea...`. Buildbox compiled all four profiles, and
+focused no-network QEMU runs passed P30E 2/2 with 21 rejecting mutations,
+executor 11/11, production binding 14/14, and record-4 ledger 14/14. The first
+ledger run on implementation commit `9acd1e65...` correctly exposed a stale
+success fixture that still marked stage 17 terminal after v3 inserted the
+P30E-rearmed stage; test-only patch `0509` makes the fixture exercise all 17
+records and seal at stage 18. The final run is green, and the defect was not in
+the production path. No physical backend, CPU request, MMIO, I2C, retained-RAM,
+SMC, watchdog, network, device, or boot-candidate action occurred. Exact build,
+runtime, and failure/correction identities are retained in
+[`results/p30e-rearm-hardware-free-0b9fbb44-20260903.txt`](results/p30e-rearm-hardware-free-0b9fbb44-20260903.txt).
+One newly built and independently validated production candidate is now the
+next permitted step.

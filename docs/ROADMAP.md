@@ -7715,6 +7715,23 @@ P30E/executor/binding KUnit, all-profile ordering, production provenance,
 recovery decoding, and no-retry gates pass. Post-CPU_ON platform sampling is a
 fallback only if the exact rearm still fails.
 
+Exact patches `0507`--`0508` are admitted at `9acd1e65...`; test-only `0509`
+corrects the v3 success fixture exposed by its first hardware-free run. Final
+commit `0b9fbb44...` and 498-patch identity `f6af5dea...` compile on Buildbox,
+and the no-network P30E, executor, production-binding, and record-4 ledger
+suites pass 2/2, 11/11, 14/14, and 14/14 respectively. P30E rejects all 21
+mutations and one-shot reuse; executor failure issues zero CPU_ON calls;
+binding accepts the observed primary-off/per-core-off state while preserving
+all guards; and ledger v3 exercises 17 records through terminal stage 18. No
+physical effect or candidate action occurred. See the linked
+[hardware-free record](../experiments/2026-09-02-mainline-a72-hotplug-lifecycle-gate/results/p30e-rearm-hardware-free-0b9fbb44-20260903.txt).
+**Selected next:** build the production physical profile from this exact
+patchset on Buildbox, independently reproduce its provenance-only DT and
+Android-v0/LK container, and pass the configuration, serviceability,
+attribution, recovery, no-retry, retained-ledger, DT/container mutation, and
+pre-trigger gates. Only that distinct exact candidate may be selected for one
+guarded inactive-`boot2` deployment and physical attempt.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;
