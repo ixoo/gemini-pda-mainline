@@ -200,6 +200,7 @@ def main() -> None:
             "restore failure without invoking any physical transition.",
             "2026-09-03T00:12:00Z",
         )
+        owner_head = run("git", "rev-parse", "HEAD", cwd=source)
 
         run("python3", str(SCRIPT_DIR / "owner_terminal_parent_fix_edits.py"),
             "--source-root", str(source), cwd=REPO_ROOT)
@@ -223,11 +224,17 @@ def main() -> None:
             "2026-09-03T00:13:00Z",
         )
 
-        patch_dir = temp / "patches"
-        generated = sorted(run(
+        owner_patch_dir = temp / "owner-patches"
+        owner_generated = sorted(run(
             "git", "format-patch", "--no-signature", "--output-directory",
-            str(patch_dir), f"{parent}..HEAD", cwd=source,
+            str(owner_patch_dir), f"{parent}..{owner_head}", cwd=source,
         ).splitlines())
+        fix_patch_dir = temp / "fix-patch"
+        fix_generated = sorted(run(
+            "git", "format-patch", "--no-signature", "--output-directory",
+            str(fix_patch_dir), f"{owner_head}..HEAD", cwd=source,
+        ).splitlines())
+        generated = owner_generated + fix_generated
         if len(generated) != len(PATCH_NAMES):
             raise SystemExit("generated patch count changed")
         package = temp / "package"
