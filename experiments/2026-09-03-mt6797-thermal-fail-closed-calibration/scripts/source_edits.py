@@ -106,22 +106,26 @@ def kunit_source() -> str:
 
     static void mtk_thermal_optional_length_preserves_minimum(struct kunit *test)
     {
-    \tKUNIT_EXPECT_FALSE(test,
-    \t\tmtk_thermal_calibration_length_valid(false, 2 * sizeof(u32)));
-    \tKUNIT_EXPECT_TRUE(test,
-    \t\tmtk_thermal_calibration_length_valid(false, 3 * sizeof(u32)));
-    \tKUNIT_EXPECT_TRUE(test,
-    \t\tmtk_thermal_calibration_length_valid(false, 4 * sizeof(u32)));
+    \tbool valid;
+
+    \tvalid = mtk_thermal_calibration_length_valid(false, 2 * sizeof(u32));
+    \tKUNIT_EXPECT_FALSE(test, valid);
+    \tvalid = mtk_thermal_calibration_length_valid(false, 3 * sizeof(u32));
+    \tKUNIT_EXPECT_TRUE(test, valid);
+    \tvalid = mtk_thermal_calibration_length_valid(false, 4 * sizeof(u32));
+    \tKUNIT_EXPECT_TRUE(test, valid);
     }
 
     static void mtk_thermal_required_length_is_exact(struct kunit *test)
     {
-    \tKUNIT_EXPECT_FALSE(test,
-    \t\tmtk_thermal_calibration_length_valid(true, 2 * sizeof(u32)));
-    \tKUNIT_EXPECT_TRUE(test,
-    \t\tmtk_thermal_calibration_length_valid(true, 3 * sizeof(u32)));
-    \tKUNIT_EXPECT_FALSE(test,
-    \t\tmtk_thermal_calibration_length_valid(true, 4 * sizeof(u32)));
+    \tbool valid;
+
+    \tvalid = mtk_thermal_calibration_length_valid(true, 2 * sizeof(u32));
+    \tKUNIT_EXPECT_FALSE(test, valid);
+    \tvalid = mtk_thermal_calibration_length_valid(true, 3 * sizeof(u32));
+    \tKUNIT_EXPECT_TRUE(test, valid);
+    \tvalid = mtk_thermal_calibration_length_valid(true, 4 * sizeof(u32));
+    \tKUNIT_EXPECT_FALSE(test, valid);
     }
 
     static struct kunit_case mtk_thermal_calibration_cases[] = {
@@ -182,15 +186,19 @@ def edit_production(root: Path) -> None:
         "\t\treturn 0;\n"
         "\t}\n",
         "\tcell = nvmem_cell_get(dev, \"calibration-data\");\n"
-        "\tif (IS_ERR(cell))\n"
-        "\t\treturn mtk_thermal_calibration_status(\n"
-        "\t\t\tmt->conf->requires_calibration, PTR_ERR(cell));\n",
+        "\tif (IS_ERR(cell)) {\n"
+        "\t\tret = PTR_ERR(cell);\n"
+        "\t\treturn mtk_thermal_calibration_status("
+        "mt->conf->requires_calibration,\n"
+        "\t\t\t\t\t\t     ret);\n"
+        "\t}\n",
     )
     replace_once(
         driver,
         "\tif (len < 3 * sizeof(u32)) {\n",
-        "\tif (!mtk_thermal_calibration_length_valid(\n"
-        "\t\t    mt->conf->requires_calibration, len)) {\n",
+        "\tif (!mtk_thermal_calibration_length_valid("
+        "mt->conf->requires_calibration,\n"
+        "\t\t\t\t\t\t     len)) {\n",
     )
     replace_once(
         driver,
@@ -199,8 +207,9 @@ def edit_production(root: Path) -> None:
         "\t\tret = 0;\n"
         "\t}\n",
         "\tif (ret) {\n"
-        "\t\tret = mtk_thermal_calibration_status(\n"
-        "\t\t\tmt->conf->requires_calibration, ret);\n"
+        "\t\tret = mtk_thermal_calibration_status("
+        "mt->conf->requires_calibration,\n"
+        "\t\t\t\t\t\t     ret);\n"
         "\t\tif (!ret)\n"
         "\t\t\tdev_info(dev, \"Device not calibrated, using default calibration values\\n\");\n"
         "\t}\n",
@@ -224,7 +233,8 @@ def edit_kunit(root: Path) -> None:
         \thelp
         \t  Test the hardware-free calibration requirement policy used by
         \t  the MediaTek AUXADC thermal driver. The test performs no MMIO,
-        \t  clock, reset, NVMEM, or platform-device operation.
+        \t  clock, reset, NVMEM, or platform-device operation. It does not
+        \t  register a platform device or create a bootable configuration.
 
         config MTK_LVTS_THERMAL
         """),

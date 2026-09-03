@@ -39,9 +39,9 @@ def validate(root: Path) -> None:
         '#include "auxadc_thermal_internal.h"',
         "bool requires_calibration;",
         ".requires_calibration = true,",
-        "mt->conf->requires_calibration, PTR_ERR(cell)",
+        "ret = PTR_ERR(cell);",
         "mtk_thermal_calibration_length_valid(",
-        "mt->conf->requires_calibration, len",
+        "mt->conf->requires_calibration,",
         "mtk_thermal_calibration_status(",
         "mt->conf->requires_calibration, ret",
     ), "production driver")
