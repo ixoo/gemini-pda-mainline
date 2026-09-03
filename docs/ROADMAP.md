@@ -7408,9 +7408,19 @@ executor and eight-case memory-only coverage. Strict review, clean replay, all
 18 rejecting source mutations, and the 166-profile series invariant pass. The
 code contains exactly one CPU_OFF authorization and one affinity call site,
 but no physical backend; it binds no production callback and keeps the MT6797
-disable veto closed. **Selected next:** compile the isolated
-`a72-physical-executor-kunit` profile on Buildbox and run its no-network QEMU
-gate. Only a subsequent reviewed binding slice can become a device candidate.
+disable veto closed. Exact published commit `e24e6c45...` then compiled the
+isolated `a72-physical-executor-kunit` profile on Buildbox, validated its
+kernel, configuration, provenance, and 123 DTBs, and passed all eight focused
+cases in a no-network four-vCPU QEMU run with zero failures or skips. No
+production binder, physical backend invocation, CPU request, PSCI call, MMIO,
+retained-RAM, watchdog, network, or device action occurred. This closes the
+hardware-free executor phase. **Selected next:** define and hardware-free-test
+a separate binding slice connecting the frozen executor to the owner,
+inherited watchdog, platform-state observer, retained CPU8 callback, and
+target/controller PSCI sites. That slice must preserve the exact one-shot
+budgets and may open the MT6797 disable veto for CPU9 only. No device candidate
+or boot is selected before its exact-source, mutation, Buildbox compile, and
+no-network runtime gates pass.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

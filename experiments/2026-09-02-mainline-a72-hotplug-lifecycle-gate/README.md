@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-a72-hotplug-lifecycle-gate` |
-| Status | physical executor generated; isolated compile/runtime pending |
+| Status | physical executor hardware-free gate passed; binding pending |
 | Subsystem | arm64 CPU hotplug, PSCI, MT6797 A72 membership |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-09-02 America/New_York |
@@ -82,6 +82,10 @@ handling, and exact restore token are implemented and machine-checked.
 - `scripts/generate_physical_executor_patches.py` and
   `generate-physical-executor-on-buildbox` generate its exact two-patch review
   from the canonical prepared source through `0486`.
+- `scripts/run-physical-executor-kunit-qemu` and
+  `scripts/classify-physical-executor-kunit.py` admit only the exact isolated
+  Buildbox package and require all eight executor cases to pass without a
+  production binder or network device.
 - [`results/contract-validation-20260902.txt`](results/contract-validation-20260902.txt)
   records the local contract/mutation pass and exact Buildbox prepared-source
   validation.
@@ -106,6 +110,9 @@ handling, and exact restore token are implemented and machine-checked.
 - [`results/hardware-free-physical-executor-generation-be8f55a1-20260903.txt`](results/hardware-free-physical-executor-generation-be8f55a1-20260903.txt)
   records the exact Buildbox generation, replay, eight focused cases, 18
   rejecting source mutations, admitted patch identities, and profile audit.
+- [`results/hardware-free-physical-executor-kunit-e24e6c45-20260903.txt`](results/hardware-free-physical-executor-kunit-e24e6c45-20260903.txt)
+  records the exact Buildbox compile/package identities and complete 8-of-8
+  no-network QEMU pass with every production and physical path disconnected.
 - [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
   is the exact admitted no-op-by-default implementation.
 - [`../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch)
@@ -242,6 +249,18 @@ all 166 manifest profiles retain canonical-order subsequences. The new code
 contains one authorization token but no CPU_OFF implementation, binds no
 callback, leaves `cpu_can_disable()` false, and remains ineligible for boot.
 
+Exact admission commit `e24e6c45...` then compiled successfully on Buildbox
+with the isolated `a72-physical-executor-kunit` profile. Package validation
+covered `Image`, `Image.gz`, `System.map`, configuration, provenance, and all
+123 DTBs. The no-network four-vCPU QEMU gate at published harness commit
+`4d8822a4...` passed the sole executor suite 8/8 with zero failures or skips.
+It exercised successful ordering, entry rejection, reversible pre-commit
+failure, target-return faulting, one-shot affinity, readback rejection,
+post-commit callback faulting, and terminal one-shot behavior. The profile
+links no production binder or admission controller, keeps the disable veto
+closed, and performs no physical CPU request, PSCI call, MMIO, retained-RAM,
+watchdog, network, or device action.
+
 ## Analysis
 
 The accepted online/topology/load evidence closes the entry-state uncertainty
@@ -264,16 +283,19 @@ hardware-free one-attempt CPU9-down owner, single affinity-proof budget,
 distinct parent-linked restore, and reset-only post-commit failure model, but
 their first runtime gate exposed the finalized parent-state defect above.
 Patch `0486` corrects that source defect without weakening the active-CPU9
-rule. Patches `0487`--`0488` now add the disconnected physical-executor state
-machine and its static/mutation proof, but have not yet passed their isolated
-compile and runtime gate. The combined series binds no callback, preserves the
-MT6797 disable veto, and performs no physical action. The final requirement
-remains physical CPU9-off and same-boot CPU9 restore.
+rule. Patches `0487`--`0488` add the disconnected physical-executor state
+machine, and their exact isolated Buildbox compile and 8/8 no-network runtime
+gate now pass. This closes the hardware-free executor phase. The combined
+series still binds no callback, preserves the MT6797 disable veto, and performs
+no physical action. The final requirement remains physical CPU9-off and
+same-boot CPU9 restore.
 
 ## Follow-up
 
-Compile and run the isolated hardware-free KUnit gate for exact patches
-`0487`--`0488`. Only after that gate passes may a separately reviewed binding
-slice connect the frozen executor to the owner, inherited watchdog,
-platform-state observer, retained CPU8 callback, and target/controller PSCI
-sites. That later slice alone may narrowly open CPU9's disable veto.
+Define and hardware-free-prove a separate binding slice connecting the frozen
+executor to the owner, inherited watchdog, platform-state observer, retained
+CPU8 callback, and target/controller PSCI sites. It must preserve the exact
+one-shot budgets, keep CPU8 and CPUs 0--7 non-disableable, and open the disable
+veto for CPU9 only. No device candidate or boot is selected until that binding
+slice passes exact-source generation, mutation, Buildbox compile, and
+no-network runtime review.
