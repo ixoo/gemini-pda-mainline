@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-a72-hotplug-lifecycle-gate` |
-| Status | physical executor hardware-free gate passed; binding pending |
+| Status | physical binder contract frozen; prerequisite implementation pending |
 | Subsystem | arm64 CPU hotplug, PSCI, MT6797 A72 membership |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-09-02 America/New_York |
@@ -53,9 +53,14 @@ handling, and exact restore token are implemented and machine-checked.
 - [`PHYSICAL_EXECUTOR.md`](PHYSICAL_EXECUTOR.md) freezes the split physical
   executor, corrects the inherited one-shot watchdog disposition, and defines
   the independent CPU9-off/shared-state predicate.
+- [`PHYSICAL_BINDER.md`](PHYSICAL_BINDER.md) freezes the production binding,
+  retained record 4, watchdog validation, bounded CPU8 callback, automatic
+  down/restore orchestration, and distinct restore routing.
 - [`contract.json`](contract.json) is the machine-readable gate.
 - [`physical-executor-contract.json`](physical-executor-contract.json) is the
   hardware-free contract for the next implementation slice.
+- [`physical-binder-contract.json`](physical-binder-contract.json) is the
+  hardware-free contract for the final binding and restore slices.
 - [`scripts/validate_contract.py`](scripts/validate_contract.py) validates the
   contract and optionally the exact prepared source.
 - [`scripts/test_contract.py`](scripts/test_contract.py) requires critical
@@ -86,6 +91,10 @@ handling, and exact restore token are implemented and machine-checked.
   `scripts/classify-physical-executor-kunit.py` admit only the exact isolated
   Buildbox package and require all eight executor cases to pass without a
   production binder or network device.
+- `scripts/validate_physical_binder_contract.py` and
+  `scripts/test_physical_binder_contract.py` pin the audited source boundary
+  and reject unsafe entry, attribution, observation, PSCI, callback, restore,
+  and candidate changes.
 - [`results/contract-validation-20260902.txt`](results/contract-validation-20260902.txt)
   records the local contract/mutation pass and exact Buildbox prepared-source
   validation.
@@ -261,6 +270,26 @@ links no production binder or admission controller, keeps the disable veto
 closed, and performs no physical CPU request, PSCI call, MMIO, retained-RAM,
 watchdog, network, or device action.
 
+The binding-interface audit found six prerequisites that a direct callback
+hookup would miss. The CPU8 binder does not expose the inherited watchdog
+identity or takeover time; the watchdog driver has no read-only exact-owner
+validator; the existing physical-source helper writes an unrelated retained
+ledger; the generic PSCI kill helper polls affinity repeatedly; the existing
+synchronous CPU8 IPI has no controller-side time bound; and the initial CPU9
+binder cannot own the distinct restore. It also confirmed that retained record
+4 at `0x44414000` has no current owner while records 0--3 do.
+
+The physical-binder contract resolves those gaps without enabling any path.
+It allocates one dedicated two-copy CRC ledger in record 4, distinguishes 17
+decision-bearing boundaries, bounds the successful path to 451 32-bit retained
+writes, requires exact changed-boot-ID recovery, and routes restore through the
+normal CPU-up lifecycle under a new parent-linked identity. The contract also
+records a correction to the phrase “read-only snapshot”: the existing DVFSP
+clock readback transport performs a fixed power-on write and bounded semaphore
+request writes. Those exact transport effects are counted; PLL, divider, OPP,
+voltage, rail, and BigiDVFS-set writes remain forbidden. Local validation and
+all 54 unsafe contract mutations pass.
+
 ## Analysis
 
 The accepted online/topology/load evidence closes the entry-state uncertainty
@@ -285,17 +314,20 @@ their first runtime gate exposed the finalized parent-state defect above.
 Patch `0486` corrects that source defect without weakening the active-CPU9
 rule. Patches `0487`--`0488` add the disconnected physical-executor state
 machine, and their exact isolated Buildbox compile and 8/8 no-network runtime
-gate now pass. This closes the hardware-free executor phase. The combined
-series still binds no callback, preserves the MT6797 disable veto, and performs
-no physical action. The final requirement remains physical CPU9-off and
-same-boot CPU9 restore.
+gate now pass. This closes the hardware-free executor phase. The binding
+contract also closes the ambiguity about how production ownership,
+attribution, observation, and restore must meet. The combined series still
+binds no callback, preserves the MT6797 disable veto, and performs no physical
+action. The final requirement remains physical CPU9-off and same-boot CPU9
+restore.
 
 ## Follow-up
 
-Define and hardware-free-prove a separate binding slice connecting the frozen
-executor to the owner, inherited watchdog, platform-state observer, retained
-CPU8 callback, and target/controller PSCI sites. It must preserve the exact
-one-shot budgets, keep CPU8 and CPUs 0--7 non-disableable, and open the disable
-veto for CPU9 only. No device candidate or boot is selected until that binding
-slice passes exact-source generation, mutation, Buildbox compile, and
-no-network runtime review.
+Implement the contract in its four ordered gates. First add disconnected
+parent-proof, watchdog-validator, record-4 ledger/decoder, and snapshot
+primitives. Then add a disconnected restore executor and failure routing.
+Only after both pass source mutations and runtime tests may the one-task
+down/restore binder connect to production callbacks. CPU8 and CPUs 0--7 stay
+non-disableable throughout. No candidate or device boot is selected until the
+complete binding passes exact replay, Buildbox compile, and no-network runtime
+review.

@@ -7414,13 +7414,23 @@ kernel, configuration, provenance, and 123 DTBs, and passed all eight focused
 cases in a no-network four-vCPU QEMU run with zero failures or skips. No
 production binder, physical backend invocation, CPU request, PSCI call, MMIO,
 retained-RAM, watchdog, network, or device action occurred. This closes the
-hardware-free executor phase. **Selected next:** define and hardware-free-test
-a separate binding slice connecting the frozen executor to the owner,
-inherited watchdog, platform-state observer, retained CPU8 callback, and
-target/controller PSCI sites. That slice must preserve the exact one-shot
-budgets and may open the MT6797 disable veto for CPU9 only. No device candidate
-or boot is selected before its exact-source, mutation, Buildbox compile, and
-no-network runtime gates pass.
+hardware-free executor phase. The exact binding-interface audit now replaces
+“connect the callbacks” with a four-part contract. A safe path additionally
+needs an exact read-only CPU8/CPU9 parent proof including watchdog identity and
+takeover time, a read-only watchdog owner/register validator, a dedicated
+record-4 retained ledger and changed-boot-ID decoder, a snapshot adapter that
+avoids the old protected-readback ledger, one asynchronous bounded CPU8 IPI,
+and a distinct CPU-up restore path. The audit also records that the DVFSP clock
+readback transport has bounded power-on/semaphore writes; these are counted
+explicitly instead of being mislabeled as a wholly read-only snapshot. The
+frozen contract passes 54 unsafe mutations with all production callbacks, the
+CPU9 disable gate, candidate DT selection, and device action still off.
+**Selected next:** implement and hardware-free-test the disconnected parent,
+watchdog, record-4, decoder, and snapshot prerequisites. Then implement the
+disconnected restore executor, followed by the one-task
+`add8 -> add9 -> remove9 -> add9` binder. Select no boot candidate until all
+three implementation slices pass exact source replay, rejecting mutations,
+Buildbox compile, and no-network runtime gates.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
