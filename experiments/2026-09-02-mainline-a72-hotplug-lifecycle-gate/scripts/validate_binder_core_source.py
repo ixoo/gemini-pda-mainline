@@ -101,6 +101,9 @@ def validate(root: Path, require_tests: bool) -> None:
         "MT6797_A72_HOTPLUG_BINDER_FAULT_POSTCOMMIT",
         "MT6797_A72_HOTPLUG_BINDER_RESTORE_FAULT",
         "MT6797_A72_HOTPLUG_BINDER_RESTORED_SUCCESS",
+        "failure = result->down_parent.off_committed ?\n"
+        "\t\t\tMT6797_A72_HOTPLUG_BINDER_FAULT_POSTCOMMIT :\n"
+        "\t\t\tMT6797_A72_HOTPLUG_BINDER_REJECTED_PRECOMMIT;",
     ):
         require(token in core, f"core contract missing: {token}")
     count(core, "ops->current_task_identity(context)", 1,
@@ -165,7 +168,7 @@ def validate(root: Path, require_tests: bool) -> None:
         "BINDER_CORE_TERMINAL",
         "KUNIT_EXPECT_MEMEQ(test, state->order, expected, sizeof(expected))",
         "BINDER_CORE_FAIL_REMOVE_PRECOMMIT",
-        "BINDER_CORE_FAIL_REMOVE_POSTCOMMIT",
+        "\tBINDER_CORE_FAIL_REMOVE_POSTCOMMIT,",
         "BINDER_CORE_FAIL_RESTORE_CHECKPOINT",
         "unbound->down.identity.parent_cookie++;",
     ):
