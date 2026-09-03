@@ -609,6 +609,7 @@ KCONFIG = kernel_text(r"""
             depends on SMP
             depends on MTK_MT6797_A72_HOTPLUG_EXECUTOR
             depends on ARM64_MT6797_A72_P24_TRANSACTION_OWNER_MODEL
+            depends on ARM64_MT6797_A72_CPU9_MEMBERSHIP
             default n
             help
               Build a disconnected one-shot observer for the retained CPU8 during

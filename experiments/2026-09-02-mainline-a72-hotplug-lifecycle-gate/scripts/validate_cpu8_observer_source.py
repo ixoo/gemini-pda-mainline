@@ -238,6 +238,7 @@ def main() -> int:
             "depends on SMP",
             "depends on MTK_MT6797_A72_HOTPLUG_EXECUTOR",
             "depends on ARM64_MT6797_A72_P24_TRANSACTION_OWNER_MODEL",
+            "depends on ARM64_MT6797_A72_CPU9_MEMBERSHIP",
         ):
             require(dependency in config, f"Kconfig dependency missing: {dependency}")
         require(
