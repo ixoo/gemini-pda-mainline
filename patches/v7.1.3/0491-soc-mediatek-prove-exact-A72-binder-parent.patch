@@ -1,4 +1,4 @@
-From 222c1798cf920aafdd2b013009d4491c460f6e9d Mon Sep 17 00:00:00 2001
+From f3e3985bd55a1de8a02c2161aeaefdb3b94e6b37 Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Thu, 3 Sep 2026 16:02:00 +0000
 Subject: [PATCH 2/2] soc: mediatek: prove exact A72 binder parent
@@ -9,10 +9,10 @@ and a read-only validation of the recent watchdog owner. Keep
 the proof disconnected from production execution.
 ---
  .../soc/mediatek/mt6797-a72-binder-internal.h |  11 ++
- drivers/soc/mediatek/mt6797-a72-binder-test.c | 154 +++++++++++++++-
+ drivers/soc/mediatek/mt6797-a72-binder-test.c | 156 +++++++++++++++-
  drivers/soc/mediatek/mt6797-a72-binder.c      | 174 +++++++++++++++++-
  .../linux/soc/mediatek/mt6797-a72-binder.h    |  51 +++++
- 4 files changed, 386 insertions(+), 4 deletions(-)
+ 4 files changed, 388 insertions(+), 4 deletions(-)
 
 diff --git a/drivers/soc/mediatek/mt6797-a72-binder-internal.h b/drivers/soc/mediatek/mt6797-a72-binder-internal.h
 index 37c70ac..f63e115 100644
@@ -60,7 +60,7 @@ index 37c70ac..f63e115 100644
  mt6797_a72_binder_test_diagnostic(const struct mt6797_a72_binder *binder,
  				  struct mt6797_a72_binder_diagnostic *snapshot);
 diff --git a/drivers/soc/mediatek/mt6797-a72-binder-test.c b/drivers/soc/mediatek/mt6797-a72-binder-test.c
-index 591d29a..78c9be7 100644
+index 591d29a..758e9c4 100644
 --- a/drivers/soc/mediatek/mt6797-a72-binder-test.c
 +++ b/drivers/soc/mediatek/mt6797-a72-binder-test.c
 @@ -12,6 +12,10 @@
@@ -222,7 +222,7 @@ index 591d29a..78c9be7 100644
  	mt6797_a72_binder_test_init(&state->binder, &mt6797_binder_test_ops);
  	test->priv = state;
  	return 0;
-@@ -894,6 +978,71 @@ static void mt6797_binder_p30e_readback_test(struct kunit *test)
+@@ -894,6 +978,73 @@ static void mt6797_binder_p30e_readback_test(struct kunit *test)
  }
  #endif
  
@@ -230,14 +230,16 @@ index 591d29a..78c9be7 100644
 +{
 +	struct mt6797_binder_test_state *state = test->priv;
 +	struct mt6797_a72_binder_parent_proof proof;
-+	struct mt6797_a72_binder before;
++	struct mt6797_a72_binder *before;
 +	int ret;
 +
++	before = kunit_kzalloc(test, sizeof(*before), GFP_KERNEL);
++	KUNIT_ASSERT_NOT_NULL(test, before);
 +	KUNIT_ASSERT_EQ(test, mt6797_binder_test_run_to_completion(state), 0);
 +	state->cpu9_online = true;
 +	state->parent_available = true;
 +	state->monotonic_ns = TEST_TAKEOVER_NS + 2000000000ULL;
-+	before = state->binder;
++	*before = state->binder;
 +	ret = mt6797_a72_binder_test_parent_proof(&state->binder, &proof);
 +	KUNIT_ASSERT_EQ(test, ret, 0);
 +	KUNIT_EXPECT_EQ(test, proof.abi,
@@ -259,8 +261,8 @@ index 591d29a..78c9be7 100644
 +	KUNIT_EXPECT_EQ(test, proof.watchdog_takeover_ns, TEST_TAKEOVER_NS);
 +	KUNIT_EXPECT_EQ(test, proof.watchdog_age_ns, 2000000000ULL);
 +	KUNIT_EXPECT_EQ(test, state->watchdog_validations, 1U);
-+	KUNIT_EXPECT_EQ(test, memcmp(&before, &state->binder,
-+				     sizeof(before)), 0);
++	KUNIT_EXPECT_EQ(test, memcmp(before, &state->binder,
++				     sizeof(*before)), 0);
 +
 +	state->cpu9_online = false;
 +	memset(&proof, 0xa5, sizeof(proof));
@@ -294,7 +296,7 @@ index 591d29a..78c9be7 100644
  static void mt6797_binder_one_shot_test(struct kunit *test)
  {
  	struct mt6797_binder_test_state *state = test->priv;
-@@ -928,6 +1077,7 @@ static struct kunit_case mt6797_binder_test_cases[] = {
+@@ -928,6 +1079,7 @@ static struct kunit_case mt6797_binder_test_cases[] = {
  #ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
  	KUNIT_CASE(mt6797_binder_p30e_readback_test),
  #endif
