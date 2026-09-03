@@ -70,7 +70,16 @@ MUTATIONS = (
     ("test", "KUNIT_CASE(restore_executor_rollback_test),", ""),
     ("test", "KUNIT_CASE(restore_executor_secondary_order_test),", ""),
     ("test", "KUNIT_CASE(restore_executor_checkpoint_failure_test),", ""),
-    ("kconfig", "\tdepends on ARM64_MT6797_A72_CPU9_MEMBERSHIP\n", ""),
+    ("kconfig",
+     "config MTK_MT6797_A72_RESTORE_EXECUTOR\n"
+     "\tbool \"MediaTek MT6797 disconnected CPU9 restore executor\"\n"
+     "\tdepends on ARM64 && ARCH_MEDIATEK\n"
+     "\tdepends on ARM64_MT6797_A72_CPU9_MEMBERSHIP\n"
+     "\tdepends on MTK_MT6797_A72_HOTPLUG_EXECUTOR\n",
+     "config MTK_MT6797_A72_RESTORE_EXECUTOR\n"
+     "\tbool \"MediaTek MT6797 disconnected CPU9 restore executor\"\n"
+     "\tdepends on ARM64 && ARCH_MEDIATEK\n"
+     "\tdepends on MTK_MT6797_A72_HOTPLUG_EXECUTOR\n"),
     ("kconfig",
      "config MTK_MT6797_A72_RESTORE_EXECUTOR\n"
      "\tbool \"MediaTek MT6797 disconnected CPU9 restore executor\"\n"
