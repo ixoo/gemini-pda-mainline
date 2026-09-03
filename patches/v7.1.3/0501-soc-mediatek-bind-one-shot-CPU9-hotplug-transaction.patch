@@ -1,4 +1,4 @@
-From eca844b2575a06b85b802861f5f07f50dd6d45ea Mon Sep 17 00:00:00 2001
+From 8127c50f259b20131a21f02ba9a2f1017a1b75dd Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Thu, 3 Sep 2026 20:01:00 +0000
 Subject: [PATCH 1/2] soc: mediatek: bind one-shot CPU9 hotplug transaction
@@ -327,7 +327,7 @@ index 0000000..1dc7759
 +#endif /* __MT6797_A72_HOTPLUG_BINDING_INTERNAL_H */
 diff --git a/drivers/soc/mediatek/mt6797-a72-hotplug-binding.c b/drivers/soc/mediatek/mt6797-a72-hotplug-binding.c
 new file mode 100644
-index 0000000..a47b488
+index 0000000..0832edb
 --- /dev/null
 +++ b/drivers/soc/mediatek/mt6797-a72-hotplug-binding.c
 @@ -0,0 +1,959 @@
@@ -421,14 +421,14 @@ index 0000000..a47b488
 +	}
 +	if (ops->task_identity(context) != expected_task ||
 +	    !ops->cpu_online(context, cpu) ||
-+	    !READ_ONCE(dev->offline_disabled) || READ_ONCE(dev->offline)) {
++	    !dev->offline_disabled || dev->offline) {
 +		ret = -EPERM;
 +		goto out_unlock;
 +	}
 +
-+	WRITE_ONCE(dev->offline_disabled, false);
++	dev->offline_disabled = false;
 +	ret = ops->offline(context, dev);
-+	WRITE_ONCE(dev->offline_disabled, true);
++	dev->offline_disabled = true;
 +out_unlock:
 +	ops->unlock(context);
 +	return ret;

@@ -1,4 +1,4 @@
-From 7d78a025e9bb0383970fad6b09eca94b65e7c332 Mon Sep 17 00:00:00 2001
+From c7e5834f8fa9c1a92481a5c34cbf6732541e8243 Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Thu, 3 Sep 2026 20:02:00 +0000
 Subject: [PATCH 2/2] soc: mediatek: test private CPU9 hotplug transition
