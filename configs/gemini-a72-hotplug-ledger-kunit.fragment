@@ -1,0 +1,16 @@
+# Hardware-free coverage for the disconnected record-4 physical-hotplug ledger.
+# The suite uses injected word arrays only. The production mapping API has no
+# caller, and this profile performs no retained-RAM, CPU, PSCI, watchdog,
+# snapshot, reset, network, storage, or device action.
+CONFIG_KUNIT=y
+CONFIG_PSTORE=y
+CONFIG_PSTORE_RAM=y
+CONFIG_PSTORE_GEMINI_TRANSITION_LEDGER=y
+# CONFIG_PSTORE_GEMINI_TRANSITION_LEDGER_KUNIT_TEST is not set
+CONFIG_PSTORE_GEMINI_CPU9_TRANSITION_LEDGER=y
+# CONFIG_PSTORE_GEMINI_CPU9_TRANSITION_LEDGER_KUNIT_TEST is not set
+CONFIG_PSTORE_GEMINI_CPU9_PROGRESS_LEDGER=y
+# CONFIG_PSTORE_GEMINI_CPU9_PROGRESS_LEDGER_KUNIT_TEST is not set
+CONFIG_PSTORE_GEMINI_A72_HOTPLUG_LEDGER=y
+CONFIG_PSTORE_GEMINI_A72_HOTPLUG_LEDGER_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-a72-hotplug-ledger-kunit"

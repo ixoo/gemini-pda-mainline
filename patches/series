@@ -481,3 +481,4 @@ v7.1.3/0488-soc-mediatek-test-hardware-free-CPU9-hotplug-executor.patch
 v7.1.3/0489-watchdog-mediatek-validate-recovery-owner-read-only.patch
 v7.1.3/0490-arm64-mediatek-prove-exact-A72-terminal-parent.patch
 v7.1.3/0491-soc-mediatek-prove-exact-A72-binder-parent.patch
+v7.1.3/0492-pstore-add-Gemini-A72-hotplug-record-4-ledger.patch
