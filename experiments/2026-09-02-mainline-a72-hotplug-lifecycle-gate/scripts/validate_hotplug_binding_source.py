@@ -116,6 +116,8 @@ def validate(root: Path, require_tests: bool) -> None:
             "private transition contract incomplete")
     require(positions == sorted(positions),
             "private transition lock/gate/restore order changed")
+    require("!READ_ONCE(dev->offline_disabled) || READ_ONCE(dev->offline)"
+            in source, "private public-veto/already-offline predicate changed")
     exact(source, "ret = ops->offline(context, dev);", 1,
           "private offline call count changed")
     exact(source, "WRITE_ONCE(dev->offline_disabled, false);", 1,
