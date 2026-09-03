@@ -7947,6 +7947,20 @@ failure selects provider/DT population repair; a pass selects fail-closed
 thermal-calibration implementation and AUXADC contract recovery before any
 thermal enablement or longer load.
 
+The fresh read-only observation passed on mainline boot ID `8aef442e...` with
+the admission path pristine and CPUs 8--9 offline. The exact 412-byte LK
+devinfo property retained its earlier whole-property hash, the read-only
+platform provider bound exactly once, and one root-only
+`mt6797-atag-calibration0` NVMEM device registered without reading or emitting
+its payload. Thermal/AUXADC stayed disabled and both thermal-zone and cpufreq
+policy counts were zero. A boot-ID- and binary-hash-gated native recovery then
+returned changed-ID Gemian, whose live GPT resolved unmounted `boot2` with its
+full checksum unchanged. **Selected next:** make MT6797 thermal calibration
+consumption fail closed for missing or invalid NVMEM data and hardware-free
+test that policy, then resolve the MT6797 AUXADC register, idle, clock/reset,
+valid-bit, and IRQ contract before any runtime enablement. OPP/cpufreq, trips,
+cooling, longer load, idle, and suspend remain outside that step.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

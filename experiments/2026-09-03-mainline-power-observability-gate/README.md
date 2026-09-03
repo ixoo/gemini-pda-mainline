@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-03-mainline-power-observability-gate` |
-| Status | `running` |
+| Status | `completed` |
 | Subsystem | Cortex-A72 thermal, frequency, and calibration observability |
 | Device variant | Named Gemini PDA development unit |
 | Date(s) | 2026-09-03 |
@@ -62,6 +62,9 @@ Gemian.
   audit and decision.
 - `results/tooling-validation-20260903.txt` — syntax, ShellCheck, source pins,
   ten rejected mutations, and the no-write/no-trigger boundary.
+- `results/runtime-attempt-1-provider-bound-20260903.txt` — fresh exact-path
+  provider binding, redaction, absent interfaces, recovery, and unchanged
+  `boot2` proof.
 
 ## Procedure
 
@@ -90,23 +93,39 @@ exact USB interface nor a changed Gemian boot ID. Gemian remained on boot ID
 `d45c1790-64d0-41bb-b50f-7a3298034f6a`; this is a no-cycle observation, not a
 kernel failure. Gemian was then shut down cleanly for an attributable retry.
 
+The attributable retry passed on fresh mainline boot ID `8aef442e...`. The
+admission controller remained pristine with CPUs 8--9 offline and zero CPU,
+CPU_OFF, retry, or load actions. The opaque LK property had the exact
+412-byte shape and whole-property hash `fe2cbb48...`, matching the earlier
+Gemian handoff observation without exposing a payload word. The platform
+driver bound once as `firmware:atag-devinfo` and registered one
+`mt6797-atag-calibration0` provider. Thermal and AUXADC remained disabled;
+thermal-zone and cpufreq-policy counts were both zero.
+
+Because the no-trigger path did not arm the recovery watchdog, the approved
+USB recovery path was used after the observation. Its first hash gate denied
+an empty host-side extraction before action; the corrected request required
+the same mainline boot ID and exact `/bin/reboot` hash, then returned the unit
+to changed-ID Gemian `d6bf5b1b...`. Live GPT again resolved inactive,
+unmounted `boot2` as p30, whose complete checksum remained `6ba8c953...`.
+
 ## Analysis
 
 The exact candidate cannot provide the requested temperature/frequency frame;
 repeating or extending load would add risk without answering the safety
 question. A fresh boot is still justified because it can independently prove
 whether the already-built calibration provider actually binds on the current
-supported boot path. A bound provider implies its parser accepted the LK
+supported boot path. That boot passed. A bound provider implies its parser accepted the LK
 property's exact header, length, tag, and trailer while retaining only the
-three ordered thermal words. Failure to bind selects provider/DT population
-repair before thermal-controller work.
+three ordered thermal words. Provider/DT population is therefore not the
+blocker; fail-closed consumer behavior and the AUXADC hardware contract are.
 
 ## Conclusion
 
-`confirmed` for the offline scope: thermal and frequency observability are
-absent from the exact candidate, so load duration or intensity must not be
-increased. Live calibration-provider binding remains pending one fresh,
-read-only boot.
+`confirmed` on the named device and exact revisions: the LK handoff shape is
+preserved and the read-only calibration provider binds on the current path,
+while thermal and frequency observability are absent. Load duration or
+intensity must not be increased until an attributable implementation exists.
 
 ## Follow-up
 
