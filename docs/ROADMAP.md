@@ -31,7 +31,7 @@ Cortex-A72 pair.
 | I2C6 transfer | Native packed/FIFO pointer-read and one exact one-message two-byte FIFO write are runtime proven. The write completed once with payload `[0xda, 0x46]`, exact no-retry accounting, and stable readback. | This closes only the reviewed same-value shape; arbitrary writes, failure recovery, stress, and resume remain open. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
 | Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected. A separate hardware-free implementation now models exact positive Buck-B acquire/release and passes all six focused fake-adapter cases. | Gate 6 is closed for the reviewed no-op, and the first Gate-7 provider source boundary is complete offline. Physical transition, production integration, consumers, and CPU requests remain disconnected. |
-| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. Six fresh exact experimental-profile boots reached CPUs `0-9`; accepted runtime children prove standard 4+4+2 topology, exact affinity, bidirectional RAM integrity, independent accounting, and simultaneous dual-A72 peer-visible work. The hardware-free owner, physical executor, watchdog validator, exact parent proof, record-4 ledger, snapshot, retained-CPU8 observer, restore executor, binder core, and production composition now pass their exact Buildbox and no-network runtime gates. The public A72 disable veto remains closed, and no physical down/restore attempt has been made. | Build and validate one separately reviewed [CPU9 physical-off and same-boot restore candidate](../experiments/2026-09-02-mainline-a72-hotplug-lifecycle-gate/README.md), then spend one attributable device attempt. Keep CPU8-last-off, cpufreq/OPP, thermal, idle, suspend, and default-profile promotion separate. |
+| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. Six fresh exact experimental-profile boots reached CPUs `0-9`; accepted runtime children prove standard 4+4+2 topology, exact affinity, bidirectional RAM integrity, independent accounting, and simultaneous dual-A72 peer-visible work. The hardware-free owner, physical executor, watchdog validator, exact parent proof, record-4 ledger, snapshot, retained-CPU8 observer, restore executor, binder core, and production composition pass their exact Buildbox and no-network runtime gates. Exact physical candidate `4b027c97...` now also passes its package, DT, container, mutation, serviceability, attribution, recovery, and forbidden-action gates. The public A72 disable veto remains closed, and no physical down/restore attempt has been made. | Install the exact [CPU9 physical-off and same-boot restore candidate](../experiments/2026-09-02-mainline-a72-hotplug-lifecycle-gate/README.md) to inactive `boot2`, spend its one attributable device attempt, then decode record 4 only after the expected changed boot ID. Keep CPU8-last-off, cpufreq/OPP, thermal, idle, suspend, and default-profile promotion separate. |
 
 The durable technical boundary is in
 [DA921x, I2C6, and Cortex-A72](hardware/da921x-i2c6-a72.md). The exact
@@ -7561,6 +7561,23 @@ exact kernel/DT/config identity, serviceability contract, changed-boot-ID
 recovery, record-4 decoder, no-retry rule, and forbidden-action oracle before
 deployment. Only then write that exact candidate to `boot2` for one CPU9-off
 and same-boot restore attempt.
+
+Exact physical-candidate commit `43349a53...` now closes that offline gate.
+Buildbox produced release `7.1.3-gemini-a72-hotplug-physical`; the package,
+configuration, provenance, and all 123 DTBs validate. The accepted
+serviceability/admission DT gains only the exact current package provenance
+leaf, two compositions are byte-identical, the independent validator passes,
+and all ten DT mutations fail closed. Two Android-v0/LK assemblies and two
+16 MiB padding constructions are byte-identical; independent parsing passes
+32/32 LK gates and rejects six container mutations. The exact padded candidate
+is `4b027c97...`. The pre-boot hypothesis and decision branches are fixed in
+the linked [candidate record](../experiments/2026-09-02-mainline-a72-hotplug-lifecycle-gate/results/physical-candidate-43349a53-20260903.txt).
+**Selected next:** guarded installation to inactive logical `boot2`, full
+readback, clean shutdown, and one owner-started attempt. The recovery takeover
+cannot be cancelled, so an automatic watchdog reset to Gemian is expected even
+after success. Classify only the changed-boot-ID record-4 and live
+CPU/membership/serviceability evidence; do not repeat from screen or reboot
+behavior alone.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-a72-hotplug-lifecycle-gate` |
-| Status | production callback binding proven offline; physical candidate pending |
+| Status | exact physical candidate validated offline; deployment pending |
 | Subsystem | arm64 CPU hotplug, PSCI, MT6797 A72 membership |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-09-02--2026-09-03 America/New_York |
@@ -31,7 +31,10 @@ last-A72 power-down branch?
 - Runtime parent: accepted exact 4+4+2 topology/RAM and concurrent dual-A72
   execution on the named device.
 - Build backend for future kernel work: Buildbox only.
-- Boot path and target: none in this definition phase.
+- Physical-candidate commit: `43349a53fda1ab1c7389ac0e6da2e89d131177bc`.
+- Physical-candidate release: `7.1.3-gemini-a72-hotplug-physical`.
+- Boot path and target: one guarded write to inactive logical `boot2`; no
+  device action had occurred when the candidate record below was published.
 
 ## Safety assessment
 
@@ -198,6 +201,16 @@ handling, and exact restore token are implemented and machine-checked.
   `classify-hotplug-binding-kunit.py` admit only the exact isolated Buildbox
   package and require all nine private-transition and route cases to pass with
   no network device.
+- `scripts/build-physical-composed-dtb.py`,
+  `validate-physical-composed-dtb.py`, and
+  `test-physical-dtb-mutations.py` source-pin the accepted serviceability DT,
+  add only the exact current package provenance leaf, and reject ten mutations.
+- `scripts/build-physical-candidate.sh` and
+  `validate-physical-candidate.py` independently check the exact production
+  package, Android-v0/LK container, configuration, and six container mutations.
+- `scripts/install-physical-boot2.sh` source-pins the live-GPT installer,
+  records but does not back up the predecessor, performs a full readback, and
+  shuts the device down after success.
 - [`results/contract-validation-20260902.txt`](results/contract-validation-20260902.txt)
   records the local contract/mutation pass and exact Buildbox prepared-source
   validation.
@@ -266,6 +279,10 @@ handling, and exact restore token are implemented and machine-checked.
   pins exact binding generation, the rejected bit-field compile, corrected
   source and parent reconstruction, 28 rejecting mutations, the validated
   Buildbox package, and the 9-of-9 no-network production-composition pass.
+- [`results/physical-candidate-43349a53-20260903.txt`](results/physical-candidate-43349a53-20260903.txt)
+  pins the exact production build, package provenance, byte-reproducible DT
+  composition, Android-v0/LK container, negative gates, pre-boot hypothesis,
+  recovery classification, and one-attempt decision branches.
 - [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
   is the exact admitted no-op-by-default implementation.
 - [`../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch)
@@ -727,6 +744,32 @@ production binding was linked but not invoked because the virtual DT has no
 Gemini admission node. No physical backend, CPU request, PSCI, MMIO, I2C,
 retained-RAM, watchdog, network, device action, or boot candidate was selected.
 
+Exact candidate commit `43349a53...` adds a separate production profile with
+the hotplug binding built in, KUnit and split startup disabled, and the public
+A72 disable veto unchanged. Buildbox validated all package members and 123
+DTBs for release `7.1.3-gemini-a72-hotplug-physical`. Two independent DT
+compositions are byte-identical at `f373dd19...`; an independent structural
+validator proves the sole delta from the accepted serviceability/admission DT
+is the current package's exact A41 provenance leaf, and all ten mutations are
+rejected. Two Android-v0/LK assemblies and two padding constructions are
+byte-identical. Independent parsing passes all 32 LK gates and rejects six
+container mutations. The raw identity is `482516ce...`; the exact 16 MiB
+`boot2` identity is `4b027c97...`. No native VM build, device access, physical
+CPU request, retained-RAM access, partition write, or boot occurred during
+validation.
+
+The pre-boot hypothesis is now fixed: the existing live admission task first
+completes CPU8 and CPU9 to the accepted exact parent, after which the production
+binder privately offlines only CPU9, proves CPU8 remains live, and restores
+CPU9 once in the same boot. Success requires the exact release/provenance,
+record-4 stages 1--7 and 9--17, terminal membership `0x3`, CPUs `0-9` online,
+and USB/netcat serviceability. A screen or reboot observation alone is
+inconclusive. The inherited recovery takeover cannot be cancelled, so an
+automatic watchdog reset back to Gemian is expected even after a successful
+terminal record. Any truthful failure or hang is decoded only after a changed
+boot ID; there is no retry, no CPU8-last-off path, and no cpufreq, thermal,
+idle, or suspend change in this attempt.
+
 ## Analysis
 
 The accepted online/topology/load evidence closes the entry-state uncertainty
@@ -783,9 +826,10 @@ and the exact down/restore callbacks while keeping the public
 `cpu_can_disable()` veto closed. After correcting the rejected bit-field build,
 the exact 28-interface generation and mutation gate pass, the Buildbox package
 validates, and all 9/9 focused no-network runtime cases pass. This closes the
-last hardware-free composition gate. The physical hypothesis remains open:
-only a separate reviewed candidate may select one CPU9-off and same-boot CPU9
-restore attempt on the Gemini.
+last hardware-free composition gate. Exact production candidate
+`4b027c97...` now passes its separate package, DT, container, mutation,
+serviceability, attribution, recovery, and forbidden-action gates. The
+physical hypothesis remains open until its single device attempt is decoded.
 
 ## Follow-up
 
@@ -795,11 +839,9 @@ complete and must remain fixed.
 Continue under the authoritative selected-next order and exit criteria in
 [the roadmap](../../docs/ROADMAP.md); this experiment record does not redefine
 that sequence.
-The selected next slice is a separate physical-candidate commit and exact
-candidate build. It must keep CPU8 and CPUs 0--7 non-disableable, keep CPU9's
-public registration-time veto closed, select only the binder-owned one-shot
-path, and preserve the accepted serviceability, watchdog, record-4, changed-ID,
-and no-retry gates. Before deployment, the exact kernel/DT/config hypothesis,
-unique evidence, recovery classification, and decision branches must be
-machine-checked and recorded. Only that exact validated candidate may be
-written to `boot2` for one CPU9-off and same-boot restore attempt.
+The selected next action is the guarded installation of exact padded candidate
+`4b027c97...` to inactive logical `boot2`, with a live-GPT resolution, recorded
+predecessor checksum, full readback, and clean shutdown. The owner then starts
+`boot2` once. An automatic return to Gemian is expected; after the boot ID
+changes, collect and decode record 4 plus live CPU/membership and USB/netcat
+evidence. Do not repeat the attempt from screen or reboot behavior alone.
