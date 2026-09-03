@@ -1,0 +1,39 @@
+From 1000000000000000000000000000000000000503 Thu Sep  3 00:00:00 2026
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 3 Sep 2026 14:30:00 +0000
+Subject: [PATCH] arm64: bind Gemini physical hotplug configuration
+
+The production physical-hotplug profile adds its seven production options to
+the exact ordered CPU9 configuration inputs, changing their package-derived
+identity from cda6d936... to 2e50cc09....  The package provenance record and
+runtime DT carry the latter identity, but the MT6797 production profile still
+expects the former and therefore withholds READY at proof mask 0x40000.
+
+Bind only the production physical-hotplug profile to its exact configuration
+inputs.  Preserve the predecessor production and fixture identities and add no
+CPU request, power, retry, CPU_OFF, storage, or device action.
+---
+ arch/arm64/kernel/mt6797_psci.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
+--- a/arch/arm64/kernel/mt6797_psci.c
++++ b/arch/arm64/kernel/mt6797_psci.c
+@@ -64,7 +64,14 @@ static const u64 mt6797_a72_config_input_identity[ARM64_LATE_CPU_ID_WORDS] __ini
+ };
+ #else
++#if IS_ENABLED(CONFIG_MTK_MT6797_A72_HOTPLUG_BINDING)
++static const u64 mt6797_a72_config_input_identity[ARM64_LATE_CPU_ID_WORDS] __initconst = {
++	0x2e50cc09d2241006, 0xd819eeb0ed4151fb,
++	0xc6ed927e9e51b41e, 0x27c2dd7ce3cedd39,
++};
++#else
+ static const u64 mt6797_a72_config_input_identity[ARM64_LATE_CPU_ID_WORDS] __initconst = {
+ 	0xcda6d936e61122d8, 0x25a7fe7649f1b69b,
+ 	0x86455d6034f36a6c, 0xd562ff457bccd3d1,
+ };
++#endif
+ #endif
+ 
+-- 
+2.51.0

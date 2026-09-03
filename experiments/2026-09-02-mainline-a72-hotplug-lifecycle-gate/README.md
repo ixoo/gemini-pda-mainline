@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-a72-hotplug-lifecycle-gate` |
-| Status | exact physical candidate installed and device shut down; one boot2 attempt pending |
+| Status | first physical candidate safely refused before CPU8; profile-scoped configuration-identity repair in progress |
 | Subsystem | arm64 CPU hotplug, PSCI, MT6797 A72 membership |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-09-02--2026-09-03 America/New_York |
@@ -211,6 +211,10 @@ handling, and exact restore token are implemented and machine-checked.
 - `scripts/install-physical-boot2.sh` source-pins the live-GPT installer,
   records but does not back up the predecessor, performs a full readback, and
   shuts the device down after success.
+- `scripts/validate-config-identity-repair.py` and
+  `test-config-identity-repair.py` bind the physical profile only to its exact
+  package configuration-input identity and reject five scope/identity
+  mutations while preserving the predecessor production identity.
 - [`results/contract-validation-20260902.txt`](results/contract-validation-20260902.txt)
   records the local contract/mutation pass and exact Buildbox prepared-source
   validation.
@@ -287,6 +291,14 @@ handling, and exact restore token are implemented and machine-checked.
   records live-GPT resolution, inactive-root and stable-power gates, predecessor
   identity, the sole write, full readback, temporary cleanup, and confirmed
   shutdown without a fresh partition backup.
+- [`results/physical-runtime-attempt-1-config-identity-blocked-20260903.txt`](results/physical-runtime-attempt-1-config-identity-blocked-20260903.txt)
+  records the exact serviceable pre-trigger frame, sole consumed trigger,
+  pre-CPU8 `0x40000` READY veto, zero CPU or watchdog operations, logical-empty
+  records 0 and 4, changed-ID recovery, and unchanged boot2 readback.
+- [`results/config-identity-repair-definition-20260903.txt`](results/config-identity-repair-definition-20260903.txt)
+  pins patch `0503`, the package-derived `2e50cc09...` identity, its
+  physical-profile-only scope, five rejecting mutations, and the 173-profile
+  canonical-series audit before Buildbox submission.
 - [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
   is the exact admitted no-op-by-default implementation.
 - [`../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch)
@@ -338,8 +350,11 @@ handling, and exact restore token are implemented and machine-checked.
 - [`../../patches/v7.1.3/0502-soc-mediatek-test-private-CPU9-hotplug-transition.patch`](../../patches/v7.1.3/0502-soc-mediatek-test-private-CPU9-hotplug-transition.patch)
   adds nine focused memory-only cases for task/CPU/device attribution, public
   gate preservation, cleanup on failure, and down/restore route selection.
+- [`../../patches/v7.1.3/0503-arm64-bind-Gemini-physical-hotplug-configuration.patch`](../../patches/v7.1.3/0503-arm64-bind-Gemini-physical-hotplug-configuration.patch)
+  selects the exact physical-profile configuration-input identity without
+  changing the predecessor production or fixture identity.
 
-Patches `0483`--`0502` are experiment-only archives with a synthetic,
+Patches `0483`--`0503` are experiment-only archives with a synthetic,
 non-certifying author identity, no DCO sign-off, and are not submission-ready.
 Upstream submission requires the actual author metadata and truthful
 certification.
@@ -769,8 +784,7 @@ stable 100% healthy battery with external power, and recorded predecessor
 synced and flushed. Both the on-device full-partition checksum and a separate
 streamed full readback matched the candidate byte-for-byte. Temporary staging
 and readback files were removed, no new predecessor backup was made, and the
-device became unreachable after the requested clean shutdown. The candidate
-has not yet been booted.
+device became unreachable after the requested clean shutdown.
 
 The pre-boot hypothesis is now fixed: the existing live admission task first
 completes CPU8 and CPU9 to the accepted exact parent, after which the production
@@ -783,6 +797,20 @@ automatic watchdog reset back to Gemian is expected even after a successful
 terminal record. Any truthful failure or hang is decoded only after a changed
 boot ID; there is no retry, no CPU8-last-off path, and no cpufreq, thermal,
 idle, or suspend change in this attempt.
+
+The sole runtime attempt booted the exact release with fresh ID `5bf5be02...`,
+exposed USB/netcat serviceability, bound the admission controller, binder, and
+platform-state supplier, and presented CPUs 0--9 with only 0--7 online. The
+durable pre-trigger frame also exposed arm64 proof mask `0x40000`: the package
+provenance carried physical-profile configuration-input identity `2e50cc09...`
+while the kernel still embedded predecessor CPU9 identity `cda6d936...`. The
+single trigger was consumed and returned `-EAGAIN` at CPU9 controller failure
+stage 1. CPU8 core consumption, CPU8/CPU9 requests, CPU_OFF, hotplug-ledger
+entry, and watchdog takeover all remained zero. A validated USB-shell reboot
+returned to changed-ID Gemian; read-only recovery found records 0 and 4 exact
+logical-empty `DBGC/0/0`, verified boot2 still matched `4b027c97...`, and did
+not clear retained state. This retires the exact candidate without testing the
+physical CPU9-down hypothesis.
 
 ## Analysis
 
@@ -799,8 +827,9 @@ the membership commit and subsequent restore.
 
 ## Conclusion
 
-The physical hypothesis remains untested. The exact parent code is confirmed
-incapable of safely running the experiment as-is. Patch `0483` supplies and
+The physical hypothesis was not reached by the first candidate. The exact
+parent code is confirmed incapable of safely running the experiment as-is.
+Patch `0483` supplies and
 Buildbox-proves the generic ownership handoffs. Patches `0484`--`0485` add the
 hardware-free one-attempt CPU9-down owner, single affinity-proof budget,
 distinct parent-linked restore, and reset-only post-commit failure model, but
@@ -842,8 +871,9 @@ the exact 28-interface generation and mutation gate pass, the Buildbox package
 validates, and all 9/9 focused no-network runtime cases pass. This closes the
 last hardware-free composition gate. Exact production candidate
 `4b027c97...` now passes its separate package, DT, container, mutation,
-serviceability, attribution, recovery, and forbidden-action gates. The
-physical hypothesis remains open until its single device attempt is decoded.
+serviceability, attribution, recovery, and forbidden-action gates. Its decoded
+device attempt instead selected the stale embedded configuration-input
+identity before any CPU operation.
 
 ## Follow-up
 
@@ -853,8 +883,10 @@ complete and must remain fixed.
 Continue under the authoritative selected-next order and exit criteria in
 [the roadmap](../../docs/ROADMAP.md); this experiment record does not redefine
 that sequence.
-The selected next action is one owner-started `boot2` attempt of the already
-installed exact candidate `4b027c97...`. An automatic return to Gemian is
-expected; after the boot ID changes, collect and decode record 4 plus live
-CPU/membership and USB/netcat evidence. Do not repeat the attempt from screen
-or reboot behavior alone.
+The selected next action is the profile-scoped configuration-input repair in
+patch `0503`. It selects `2e50cc09...` only when the physical-hotplug binding
+is enabled and preserves the predecessor production and fixture identities.
+After its exact source/mutation checks, all-profile series audit, Buildbox
+compile, package A41 identity check, and strengthened proof-mask pre-trigger
+gate pass, construct and deploy one new candidate. Do not repeat
+`4b027c97...`.

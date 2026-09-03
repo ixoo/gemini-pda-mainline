@@ -7577,11 +7577,23 @@ while Gemian root remained `/dev/mmcblk0p29`, recorded predecessor
 `68ec1b78...`, performed one write, and verified exact `4b027c97...` by both
 on-device checksum and a separate full-partition byte comparison. Temporary
 files were removed, no fresh backup was made, and clean shutdown was confirmed.
-**Selected next:** one owner-started `boot2` attempt. The recovery takeover
-cannot be cancelled, so an automatic watchdog reset to Gemian is expected even
-after success. Classify only the changed-boot-ID record-4 and live
-CPU/membership/serviceability evidence; do not repeat from screen or reboot
-behavior alone.
+That attempt is complete and retires `4b027c97...`. Exact mainline USB/netcat
+serviceability provided a durable pre-trigger frame, but arm64 had already
+withheld READY at proof mask `0x40000`: the physical package/DT carried
+configuration-input identity `2e50cc09...` while the kernel still embedded
+predecessor CPU9 identity `cda6d936...`. The sole trigger returned `-EAGAIN`
+at CPU9-controller stage 1 with CPU8 core consumption, CPU8/CPU9 requests,
+CPU_OFF, watchdog takeover, and record-4 attempts all zero. Validated USB-shell
+recovery reached changed-ID Gemian; records 0 and 4 were logical-empty and the
+boot2 checksum was unchanged. See the
+[runtime record](../experiments/2026-09-02-mainline-a72-hotplug-lifecycle-gate/results/physical-runtime-attempt-1-config-identity-blocked-20260903.txt).
+Screen and reboot behavior were not used as evidence. **Selected next:** add
+one physical-profile-only identity branch for `2e50cc09...`, preserve the
+existing production and fixture identities, and make absence of all arm64
+proof-mask vetoes a mandatory pre-trigger gate. Require exact source and
+mutation checks, the all-profile series audit, Buildbox compile/package
+validation, and a package-to-embedded-identity check before constructing one
+new candidate. Do not repeat `4b027c97...`.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

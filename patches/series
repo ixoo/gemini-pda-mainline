@@ -492,3 +492,4 @@ v7.1.3/0499-pstore-allow-preidentity-A72-hotplug-terminals.patch
 v7.1.3/0500-pstore-make-A72-hotplug-checkpoints-nonsleeping.patch
 v7.1.3/0501-soc-mediatek-bind-one-shot-CPU9-hotplug-transaction.patch
 v7.1.3/0502-soc-mediatek-test-private-CPU9-hotplug-transition.patch
+v7.1.3/0503-arm64-bind-Gemini-physical-hotplug-configuration.patch
