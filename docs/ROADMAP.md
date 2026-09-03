@@ -7860,6 +7860,16 @@ full stage-18 repeat with exact 4+4+2 sysfs topology advances the same artifact
 to one separate bounded load/coherency boot; any other result retires it for
 classification before further testing.
 
+Candidate tooling and evidence were published at `b0555b9d...`. The guarded
+installer then resolved inactive live-GPT `boot2` as p30 while Gemian used
+p29, replaced `c84aea47...` with exact topology-preserving `6ba8c953...`, and
+passed the post-flush and independent streamed full readbacks plus byte
+comparison. No fresh backup was made, temporary files were removed, and clean
+shutdown was confirmed. **Selected next:** the owner selects `boot2` once;
+after USB/netcat appears, capture and validate the exact fresh read-only frame
+before the sole no-load lifecycle/topology trigger. Do not retry or substitute
+an artifact if that gate rejects.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

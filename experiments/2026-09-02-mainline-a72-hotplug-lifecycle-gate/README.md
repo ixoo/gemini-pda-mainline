@@ -1479,3 +1479,20 @@ publish the tooling and candidate record, then deploy exact `6ba8c953...` to
 live-GPT-resolved inactive `boot2`, require both full readbacks, and shut the
 device down. One fresh owner-selected boot may then execute the sole lifecycle
 trigger and read only the ten topology views; load remains explicitly absent.
+
+The exact tooling and candidate record were published at `b0555b9d...`.
+Guarded deployment from ordinary Gemian boot ID `89680616...` resolved the
+sole inactive logical `boot2` as `/dev/mmcblk0p30` while active root remained
+p29 and stable external power was present at full capacity. One write replaced
+successful retired predecessor `c84aea47...` with topology-preserving
+`6ba8c953...`. The post-flush target checksum and an independently streamed
+full-partition readback both match, the independent byte comparison passes,
+temporary files were removed, and no fresh backup was made. Clean shutdown was
+confirmed by unreachability. Sanitized deployment proof is retained in
+[`results/topology-repeat-deployment-20260903.txt`](results/topology-repeat-deployment-20260903.txt).
+
+The device is off for one owner-selected `boot2` attempt. The first host action
+after USB/netcat appears must be the exact read-only pre-trigger capture and
+validation. Only a pristine, fresh frame permits the single no-load lifecycle
+trigger and ten-CPU topology readback; no retry or substitute artifact is
+allowed.
