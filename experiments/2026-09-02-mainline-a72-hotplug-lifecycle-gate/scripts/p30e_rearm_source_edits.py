@@ -532,8 +532,10 @@ def integration(root: Path) -> None:
         "\t.p30e_rearm = restore_executor_test_rearm,\n"
         "\t.cpu_boot = restore_executor_test_boot,\n")
     replace_once(executor_test,
+        "\tKUNIT_EXPECT_EQ(test, state->result.validate_calls, (u32)1);\n"
         "\tKUNIT_EXPECT_EQ(test, state->result.begin_calls, (u32)1);\n"
         "\tKUNIT_EXPECT_EQ(test, state->result.cpu_boot_calls, (u32)1);\n",
+        "\tKUNIT_EXPECT_EQ(test, state->result.validate_calls, (u32)1);\n"
         "\tKUNIT_EXPECT_EQ(test, state->result.begin_calls, (u32)1);\n"
         "\tKUNIT_EXPECT_EQ(test, state->result.p30e_rearm_calls, (u32)1);\n"
         "\tKUNIT_EXPECT_TRUE(test, state->result.p30e_rearmed);\n"
