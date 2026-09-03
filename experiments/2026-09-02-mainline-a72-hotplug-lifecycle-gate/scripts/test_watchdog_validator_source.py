@@ -73,8 +73,10 @@ def main() -> int:
          "\tmtk_wdt_recovery_takeover(dev, 15000, NULL);\n"
          "\tret = mtk_wdt_recovery_validate_owner("),
         ("mutable-stub", "include/linux/mtk_wdt.h",
-         "return -EOPNOTSUPP;\n}\n#endif",
-         "return 0;\n}\n#endif"),
+         "*validation = (struct mtk_wdt_recovery_validation){};\n"
+         "\treturn -EOPNOTSUPP;\n}\n#endif",
+         "*validation = (struct mtk_wdt_recovery_validation){};\n"
+         "\treturn 0;\n}\n#endif"),
         ("drop-success-test", "drivers/watchdog/mtk_wdt.c",
          "\tKUNIT_CASE(mtk_wdt_recovery_validate_success_test),\n", ""),
         ("bind-production", "arch/arm64/kernel/mt6797_psci.c",
