@@ -495,3 +495,4 @@ v7.1.3/0502-soc-mediatek-test-private-CPU9-hotplug-transition.patch
 v7.1.3/0503-arm64-bind-Gemini-physical-hotplug-configuration.patch
 v7.1.3/0504-soc-mediatek-record-CPU9-readback-mismatch-bitmap.patch
 v7.1.3/0505-soc-mediatek-use-intersected-CPU9-off-status.patch
+v7.1.3/0506-soc-mediatek-gate-CPU9-restore-on-readiness.patch

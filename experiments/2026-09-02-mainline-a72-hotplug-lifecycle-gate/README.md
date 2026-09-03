@@ -1147,3 +1147,16 @@ affinity, provider, cluster, watchdog, MMIO-write, retry, storage, or device
 operation is introduced. Buildbox generation, mutation rejection, replay,
 ledger/binding KUnit, and the all-profile invariant must pass before candidate
 construction.
+
+Buildbox generation from exact pushed commit `fc967bd2...` now passes source
+validation, all 13 rejecting mutations, replay, and strict patch review. The
+fetched patch is byte-identical to canonical patch `0506` at SHA-256
+`e73e5d6c...`; it changes only the binding observer/tests and retained record-4
+layout/tests. The 173-profile series invariant passes with 495 canonical
+patches. Three preliminary runs stopped before patch creation because their
+validators did not yet pin exact field, zero-CPU_ON, or public-bound clauses;
+their chronology is retained with the successful package in
+[`results/restore-readiness-generation-fc967bd2-20260903.txt`](results/restore-readiness-generation-fc967bd2-20260903.txt).
+No device action occurred and this is not yet a boot candidate. Commit and
+push the exact admission, then compile and run the binding and ledger KUnit
+profiles on Buildbox before constructing any physical candidate.

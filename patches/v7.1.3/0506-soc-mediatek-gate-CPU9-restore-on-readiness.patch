@@ -1,0 +1,679 @@
+From 5c06f1daa7b16de034543b9aaeb425b1a6e43bb8 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 4 Sep 2026 02:01:00 +0000
+Subject: [PATCH] soc: mediatek: gate CPU9 restore on readiness
+
+Observe CPU9's two raw SPM status words and per-core power-control
+word for at most 51 samples after completed down. Retain the first
+and last samples, and issue the existing sole CPU_ON only when both
+CPU9 status mirrors are clear. A timeout records zero CPU_ON calls.
+---
+ .../mt6797-a72-hotplug-binding-internal.h     |  30 +++++
+ .../mt6797-a72-hotplug-binding-test.c         | 123 +++++++++++++++++
+ .../soc/mediatek/mt6797-a72-hotplug-binding.c | 126 +++++++++++++++++-
+ fs/pstore/gemini_a72_hotplug_ledger.c         |  61 ++++++++-
+ .../gemini_a72_hotplug_ledger_internal.h      |   8 +-
+ fs/pstore/gemini_a72_hotplug_ledger_test.c    |  74 +++++++++-
+ include/linux/gemini_a72_hotplug_ledger.h     |  15 +++
+ 7 files changed, 418 insertions(+), 19 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-hotplug-binding-internal.h b/drivers/soc/mediatek/mt6797-a72-hotplug-binding-internal.h
+index 1dc7759..8464bbd 100644
+--- a/drivers/soc/mediatek/mt6797-a72-hotplug-binding-internal.h
++++ b/drivers/soc/mediatek/mt6797-a72-hotplug-binding-internal.h
+@@ -2,10 +2,14 @@
+ #ifndef __MT6797_A72_HOTPLUG_BINDING_INTERNAL_H
+ #define __MT6797_A72_HOTPLUG_BINDING_INTERNAL_H
+ 
++#include <linux/bitops.h>
+ #include <linux/device.h>
+ #include <linux/types.h>
+ 
+ #define MT6797_A72_HOTPLUG_BINDING_CPU9 9U
++#define MT6797_A72_RESTORE_READY_CPU8_STATUS BIT(7)
++#define MT6797_A72_RESTORE_READY_CPU9_STATUS BIT(6)
++#define MT6797_A72_RESTORE_READY_SAMPLES_MAX 51U
+ 
+ enum mt6797_a72_hotplug_binding_route {
+ 	MT6797_A72_HOTPLUG_BINDING_IDLE,
+@@ -14,6 +18,29 @@ enum mt6797_a72_hotplug_binding_route {
+ 	MT6797_A72_HOTPLUG_BINDING_TERMINAL,
+ };
+ 
++struct mt6797_a72_restore_readiness_sample {
++	u32 spm_cpu_pwr_status;
++	u32 spm_cpu_pwr_status_2nd;
++	u32 spm_mp2_cpu1_pwr_con;
++	bool valid;
++};
++
++struct mt6797_a72_restore_readiness_result {
++	struct mt6797_a72_restore_readiness_sample first;
++	struct mt6797_a72_restore_readiness_sample last;
++	u32 sample_calls;
++	u32 sleep_calls;
++	s32 error;
++	bool attempted;
++	bool ready;
++};
++
++struct mt6797_a72_restore_readiness_ops {
++	int (*sample)(void *context,
++		      struct mt6797_a72_restore_readiness_sample *sample);
++	void (*sleep)(void *context);
++};
++
+ struct mt6797_a72_hotplug_private_ops {
+ 	struct device *(*cpu_device)(void *context, unsigned int cpu);
+ 	void (*lock)(void *context);
+@@ -23,6 +50,9 @@ struct mt6797_a72_hotplug_private_ops {
+ 	int (*offline)(void *context, struct device *dev);
+ };
+ 
++int mt6797_a72_hotplug_restore_readiness_with_ops(
++	const struct mt6797_a72_restore_readiness_ops *ops, void *context,
++	struct mt6797_a72_restore_readiness_result *result);
+ bool mt6797_a72_hotplug_binding_route_matches(
+ 	enum mt6797_a72_hotplug_binding_route route, unsigned int cpu,
+ 	enum mt6797_a72_hotplug_binding_route expected);
+diff --git a/drivers/soc/mediatek/mt6797-a72-hotplug-binding-test.c b/drivers/soc/mediatek/mt6797-a72-hotplug-binding-test.c
+index 4ca99e9..0ad9eb2 100644
+--- a/drivers/soc/mediatek/mt6797-a72-hotplug-binding-test.c
++++ b/drivers/soc/mediatek/mt6797-a72-hotplug-binding-test.c
+@@ -22,6 +22,12 @@ struct hotplug_binding_test_state {
+ 	bool have_device;
+ 	bool online;
+ 	bool saw_private_gate;
++	struct mt6797_a72_restore_readiness_sample
++		readiness[MT6797_A72_RESTORE_READY_SAMPLES_MAX];
++	u32 readiness_count;
++	u32 readiness_index;
++	u32 readiness_sleep_calls;
++	int readiness_ret;
+ };
+ 
+ static struct device *hotplug_binding_test_device(void *context,
+@@ -75,6 +81,37 @@ static int hotplug_binding_test_offline(void *context, struct device *dev)
+ 	return state->offline_ret;
+ }
+ 
++static int hotplug_binding_test_readiness_sample(
++	void *context, struct mt6797_a72_restore_readiness_sample *sample)
++{
++	struct hotplug_binding_test_state *state = context;
++	u32 index;
++
++	if (state->readiness_ret)
++		return state->readiness_ret;
++	if (!state->readiness_count)
++		return -ENODATA;
++	index = state->readiness_index;
++	if (index >= state->readiness_count)
++		index = state->readiness_count - 1;
++	*sample = state->readiness[index];
++	state->readiness_index++;
++	return 0;
++}
++
++static void hotplug_binding_test_readiness_sleep(void *context)
++{
++	struct hotplug_binding_test_state *state = context;
++
++	state->readiness_sleep_calls++;
++}
++
++static const struct mt6797_a72_restore_readiness_ops
++hotplug_binding_test_readiness_ops = {
++	.sample = hotplug_binding_test_readiness_sample,
++	.sleep = hotplug_binding_test_readiness_sleep,
++};
++
+ static const struct mt6797_a72_hotplug_private_ops hotplug_binding_test_ops = {
+ 	.cpu_device = hotplug_binding_test_device,
+ 	.lock = hotplug_binding_test_lock,
+@@ -92,6 +129,88 @@ static void hotplug_binding_test_init(
+ 	state->have_device = true;
+ 	state->online = true;
+ 	state->device.offline_disabled = true;
++	state->readiness_count = 1;
++	state->readiness[0] =
++		(struct mt6797_a72_restore_readiness_sample) {
++			.spm_cpu_pwr_status = BIT(7),
++			.spm_cpu_pwr_status_2nd = BIT(7),
++			.spm_mp2_cpu1_pwr_con = 0x10,
++			.valid = true,
++		};
++}
++
++static void hotplug_binding_readiness_immediate_test(struct kunit *test)
++{
++	struct mt6797_a72_restore_readiness_result result;
++	struct hotplug_binding_test_state *state;
++
++	state = kunit_kzalloc(test, sizeof(*state), GFP_KERNEL);
++	KUNIT_ASSERT_NOT_NULL(test, state);
++	hotplug_binding_test_init(state);
++	KUNIT_EXPECT_EQ(test, mt6797_a72_hotplug_restore_readiness_with_ops(
++		&hotplug_binding_test_readiness_ops, state, &result), 0);
++	KUNIT_EXPECT_TRUE(test, result.attempted);
++	KUNIT_EXPECT_TRUE(test, result.ready);
++	KUNIT_EXPECT_EQ(test, result.sample_calls, 1U);
++	KUNIT_EXPECT_EQ(test, result.sleep_calls, 0U);
++	KUNIT_EXPECT_EQ(test, result.last.spm_mp2_cpu1_pwr_con, 0x10U);
++}
++
++static void hotplug_binding_readiness_settles_test(struct kunit *test)
++{
++	struct mt6797_a72_restore_readiness_result result;
++	struct hotplug_binding_test_state *state;
++
++	state = kunit_kzalloc(test, sizeof(*state), GFP_KERNEL);
++	KUNIT_ASSERT_NOT_NULL(test, state);
++	hotplug_binding_test_init(state);
++	state->readiness_count = 3;
++	state->readiness[1] = state->readiness[0];
++	state->readiness[2] = state->readiness[0];
++	state->readiness[0].spm_cpu_pwr_status_2nd |= BIT(6);
++	state->readiness[1].spm_cpu_pwr_status_2nd |= BIT(6);
++	KUNIT_EXPECT_EQ(test, mt6797_a72_hotplug_restore_readiness_with_ops(
++		&hotplug_binding_test_readiness_ops, state, &result), 0);
++	KUNIT_EXPECT_TRUE(test, result.ready);
++	KUNIT_EXPECT_EQ(test, result.sample_calls, 3U);
++	KUNIT_EXPECT_EQ(test, result.sleep_calls, 2U);
++	KUNIT_EXPECT_EQ(test, state->readiness_sleep_calls, 2U);
++	KUNIT_EXPECT_TRUE(test, result.first.spm_cpu_pwr_status_2nd & BIT(6));
++	KUNIT_EXPECT_FALSE(test, result.last.spm_cpu_pwr_status_2nd & BIT(6));
++}
++
++static void hotplug_binding_readiness_timeout_test(struct kunit *test)
++{
++	struct mt6797_a72_restore_readiness_result result;
++	struct hotplug_binding_test_state *state;
++
++	state = kunit_kzalloc(test, sizeof(*state), GFP_KERNEL);
++	KUNIT_ASSERT_NOT_NULL(test, state);
++	hotplug_binding_test_init(state);
++	state->readiness[0].spm_cpu_pwr_status_2nd |= BIT(6);
++	KUNIT_EXPECT_EQ(test, mt6797_a72_hotplug_restore_readiness_with_ops(
++		&hotplug_binding_test_readiness_ops, state, &result), -ETIMEDOUT);
++	KUNIT_EXPECT_FALSE(test, result.ready);
++	KUNIT_EXPECT_EQ(test, result.error, -ETIMEDOUT);
++	KUNIT_EXPECT_EQ(test, result.sample_calls,
++			MT6797_A72_RESTORE_READY_SAMPLES_MAX);
++	KUNIT_EXPECT_EQ(test, result.sleep_calls,
++			MT6797_A72_RESTORE_READY_SAMPLES_MAX - 1);
++}
++
++static void hotplug_binding_readiness_cpu8_guard_test(struct kunit *test)
++{
++	struct mt6797_a72_restore_readiness_result result;
++	struct hotplug_binding_test_state *state;
++
++	state = kunit_kzalloc(test, sizeof(*state), GFP_KERNEL);
++	KUNIT_ASSERT_NOT_NULL(test, state);
++	hotplug_binding_test_init(state);
++	state->readiness[0].spm_cpu_pwr_status_2nd &= ~BIT(7);
++	KUNIT_EXPECT_EQ(test, mt6797_a72_hotplug_restore_readiness_with_ops(
++		&hotplug_binding_test_readiness_ops, state, &result), -EPROTO);
++	KUNIT_EXPECT_EQ(test, result.sample_calls, 1U);
++	KUNIT_EXPECT_EQ(test, result.sleep_calls, 0U);
+ }
+ 
+ static void hotplug_binding_success_test(struct kunit *test)
+@@ -234,6 +353,10 @@ static void hotplug_binding_route_test(struct kunit *test)
+ }
+ 
+ static struct kunit_case hotplug_binding_cases[] = {
++	KUNIT_CASE(hotplug_binding_readiness_immediate_test),
++	KUNIT_CASE(hotplug_binding_readiness_settles_test),
++	KUNIT_CASE(hotplug_binding_readiness_timeout_test),
++	KUNIT_CASE(hotplug_binding_readiness_cpu8_guard_test),
+ 	KUNIT_CASE(hotplug_binding_success_test),
+ 	KUNIT_CASE(hotplug_binding_wrong_task_test),
+ 	KUNIT_CASE(hotplug_binding_wrong_cpu_test),
+diff --git a/drivers/soc/mediatek/mt6797-a72-hotplug-binding.c b/drivers/soc/mediatek/mt6797-a72-hotplug-binding.c
+index 6c2569a..41ec7a2 100644
+--- a/drivers/soc/mediatek/mt6797-a72-hotplug-binding.c
++++ b/drivers/soc/mediatek/mt6797-a72-hotplug-binding.c
+@@ -6,6 +6,7 @@
+ #include <linux/atomic.h>
+ #include <linux/bitops.h>
+ #include <linux/cpu.h>
++#include <linux/delay.h>
+ #include <linux/device.h>
+ #include <linux/errno.h>
+ #include <linux/gemini_a72_hotplug_ledger.h>
+@@ -35,6 +36,7 @@ struct mt6797_a72_hotplug_binding {
+ 	struct mt6797_a72_restore_executor_result restore_result;
+ 	struct mt6797_a72_hotplug_snapshot_source source;
+ 	struct mt6797_a72_cpu8_observer observer;
++	struct mt6797_a72_restore_readiness_result readiness;
+ 	struct mt6797_a72_binder_parent_proof parent;
+ 	struct mt6797_a72_hotplug_transaction down_transaction;
+ 	struct mt6797_a72_hotplug_transaction down_parent;
+@@ -56,6 +58,92 @@ static struct mt6797_a72_hotplug_binding mt6797_a72_binding = {
+ 	.route = ATOMIC_INIT(MT6797_A72_HOTPLUG_BINDING_IDLE),
+ };
+ 
++static bool mt6797_a72_restore_readiness_ops_valid(
++	const struct mt6797_a72_restore_readiness_ops *ops)
++{
++	return ops && ops->sample && ops->sleep;
++}
++
++int mt6797_a72_hotplug_restore_readiness_with_ops(
++	const struct mt6797_a72_restore_readiness_ops *ops, void *context,
++	struct mt6797_a72_restore_readiness_result *result)
++{
++	u32 sample;
++	int ret;
++
++	if (!mt6797_a72_restore_readiness_ops_valid(ops) || !result)
++		return -EINVAL;
++	memset(result, 0, sizeof(*result));
++	result->attempted = true;
++	for (sample = 0; sample < MT6797_A72_RESTORE_READY_SAMPLES_MAX;
++	     sample++) {
++		result->sample_calls++;
++		ret = ops->sample(context, &result->last);
++		if (ret)
++			goto fail;
++		if (!result->last.valid) {
++			ret = -ENODATA;
++			goto fail;
++		}
++		if (!sample)
++			result->first = result->last;
++		if (!(result->last.spm_cpu_pwr_status &
++		      MT6797_A72_RESTORE_READY_CPU8_STATUS) ||
++		    !(result->last.spm_cpu_pwr_status_2nd &
++		      MT6797_A72_RESTORE_READY_CPU8_STATUS)) {
++			ret = -EPROTO;
++			goto fail;
++		}
++		if (!((result->last.spm_cpu_pwr_status |
++		       result->last.spm_cpu_pwr_status_2nd) &
++		      MT6797_A72_RESTORE_READY_CPU9_STATUS)) {
++			result->ready = true;
++			return 0;
++		}
++		if (sample + 1 == MT6797_A72_RESTORE_READY_SAMPLES_MAX) {
++			ret = -ETIMEDOUT;
++			goto fail;
++		}
++		result->sleep_calls++;
++		ops->sleep(context);
++	}
++	return -EIO;
++
++fail:
++	result->error = ret;
++	return ret;
++}
++
++static int mt6797_a72_hotplug_restore_readiness_sample(
++	void *context, struct mt6797_a72_restore_readiness_sample *sample)
++{
++	struct mt6797_a72_platform_state state = { };
++	int ret;
++
++	ret = mt6797_a72_platform_state_snapshot(context, &state);
++	if (ret)
++		return ret;
++	*sample = (struct mt6797_a72_restore_readiness_sample) {
++		.spm_cpu_pwr_status = state.spm_cpu_pwr_status,
++		.spm_cpu_pwr_status_2nd = state.spm_cpu_pwr_status_2nd,
++		.spm_mp2_cpu1_pwr_con = state.spm_mp2_cpu1_pwr_con,
++		.valid = state.valid,
++	};
++	return 0;
++}
++
++static void mt6797_a72_hotplug_restore_readiness_sleep(void *context)
++{
++	(void)context;
++	usleep_range(5000, 6000);
++}
++
++static const struct mt6797_a72_restore_readiness_ops
++mt6797_a72_hotplug_restore_readiness_ops = {
++	.sample = mt6797_a72_hotplug_restore_readiness_sample,
++	.sleep = mt6797_a72_hotplug_restore_readiness_sleep,
++};
++
+ bool mt6797_a72_hotplug_binding_route_matches(
+ 	enum mt6797_a72_hotplug_binding_route route, unsigned int cpu,
+ 	enum mt6797_a72_hotplug_binding_route expected)
+@@ -191,6 +279,26 @@ static void mt6797_a72_hotplug_fill_record(
+ 			mt6797_a72_hotplug_readback_mismatch(
+ 				&binding->down_result.baseline,
+ 				&binding->down_result.post_state) : 0,
++		.restore_readiness_samples = binding->readiness.sample_calls,
++		.restore_readiness_sleeps = binding->readiness.sleep_calls,
++		.restore_readiness_error = binding->readiness.error,
++		.restore_readiness_flags =
++			(binding->readiness.attempted ?
++			 GEMINI_A72_HOTPLUG_RESTORE_READINESS_ATTEMPTED : 0) |
++			(binding->readiness.ready ?
++			 GEMINI_A72_HOTPLUG_RESTORE_READINESS_READY : 0),
++		.restore_first_status =
++			binding->readiness.first.spm_cpu_pwr_status,
++		.restore_first_status2 =
++			binding->readiness.first.spm_cpu_pwr_status_2nd,
++		.restore_first_cpu9_pwr_con =
++			binding->readiness.first.spm_mp2_cpu1_pwr_con,
++		.restore_last_status =
++			binding->readiness.last.spm_cpu_pwr_status,
++		.restore_last_status2 =
++			binding->readiness.last.spm_cpu_pwr_status_2nd,
++		.restore_last_cpu9_pwr_con =
++			binding->readiness.last.spm_mp2_cpu1_pwr_con,
+ 		.stage = stage,
+ 		.terminal = terminal,
+ 		.error = error,
+@@ -505,16 +613,20 @@ static int mt6797_a72_hotplug_validate_restore_op(
+ 	const struct mt6797_a72_restore_executor_request *request,
+ 	const struct mt6797_a72_hotplug_transaction *restore)
+ {
++	struct mt6797_a72_hotplug_binding *binding = context;
+ 	struct mt6797_a72_hotplug_snapshot snapshot = { };
+ 
+-	(void)context;
+ 	mt6797_a72_hotplug_snapshot(&snapshot);
+-	return request->cpu == MT6797_A72_HOTPLUG_BINDING_CPU9 &&
+-		snapshot.phase == MT6797_A72_HOTPLUG_RESTORE_FROZEN &&
+-		snapshot.members == BIT(0) && snapshot.controller_present == 1 &&
+-		snapshot.active.valid == 1 &&
+-		!memcmp(&snapshot.active.identity, &restore->identity,
+-			sizeof(restore->identity)) ? 0 : -EPROTO;
++	if (request->cpu != MT6797_A72_HOTPLUG_BINDING_CPU9 ||
++	    snapshot.phase != MT6797_A72_HOTPLUG_RESTORE_FROZEN ||
++	    snapshot.members != BIT(0) || snapshot.controller_present != 1 ||
++	    snapshot.active.valid != 1 ||
++	    memcmp(&snapshot.active.identity, &restore->identity,
++		   sizeof(restore->identity)))
++		return -EPROTO;
++	return mt6797_a72_hotplug_restore_readiness_with_ops(
++		&mt6797_a72_hotplug_restore_readiness_ops,
++		binding->source.platform, &binding->readiness);
+ }
+ 
+ static int mt6797_a72_hotplug_begin_restore_op(
+diff --git a/fs/pstore/gemini_a72_hotplug_ledger.c b/fs/pstore/gemini_a72_hotplug_ledger.c
+index fb1042d..cb652d6 100644
+--- a/fs/pstore/gemini_a72_hotplug_ledger.c
++++ b/fs/pstore/gemini_a72_hotplug_ledger.c
+@@ -53,8 +53,44 @@ static bool hotplug_record_shape_valid(
+ 	    record->cpu_off_calls > 1 || record->affinity_calls > 1 ||
+ 	    record->cpu8_ipi_calls > 1 || record->cpu_on_calls > 1 ||
+ 	    record->online_mask & ~GEMINI_A72_HOTPLUG_LEDGER_ONLINE_MASK ||
+-	    record->members & ~GEMINI_A72_HOTPLUG_LEDGER_MEMBERS_MASK)
++	    record->members & ~GEMINI_A72_HOTPLUG_LEDGER_MEMBERS_MASK ||
++	    record->restore_readiness_samples >
++		    GEMINI_A72_HOTPLUG_RESTORE_READINESS_SAMPLES_MAX ||
++	    record->restore_readiness_sleeps >
++		    GEMINI_A72_HOTPLUG_RESTORE_READINESS_SLEEPS_MAX ||
++	    record->restore_readiness_flags &
++		    ~GEMINI_A72_HOTPLUG_RESTORE_READINESS_FLAGS_MASK)
+ 		return false;
++	if (record->stage < GEMINI_A72_HOTPLUG_CPU_ON_COMMITTED) {
++		if (record->restore_readiness_samples ||
++		    record->restore_readiness_sleeps ||
++		    record->restore_readiness_error ||
++		    record->restore_readiness_flags ||
++		    record->restore_first_status ||
++		    record->restore_first_status2 ||
++		    record->restore_first_cpu9_pwr_con ||
++		    record->restore_last_status ||
++		    record->restore_last_status2 ||
++		    record->restore_last_cpu9_pwr_con)
++			return false;
++	} else {
++		bool ready = record->restore_readiness_flags &
++			GEMINI_A72_HOTPLUG_RESTORE_READINESS_READY;
++
++		if (!record->restore_readiness_samples ||
++		    record->restore_readiness_sleeps + 1 !=
++			    record->restore_readiness_samples ||
++		    !(record->restore_readiness_flags &
++		      GEMINI_A72_HOTPLUG_RESTORE_READINESS_ATTEMPTED) ||
++		    ready == !!record->restore_readiness_error)
++			return false;
++		if (!ready && (record->terminal !=
++			      GEMINI_A72_HOTPLUG_RESTORE_FAULT ||
++			  record->stage !=
++			      GEMINI_A72_HOTPLUG_CPU_ON_COMMITTED ||
++			  record->cpu_on_calls))
++			return false;
++	}
+ 	if (record->stage >= GEMINI_A72_HOTPLUG_DOWN_PREPARED &&
+ 	    (!record->down_generation || !record->down_cookie) &&
+ 	    !(record->stage == GEMINI_A72_HOTPLUG_DOWN_PREPARED &&
+@@ -114,6 +150,17 @@ static bool hotplug_wire_valid(
+ 	record->online_mask = online_members & 0xffffU;
+ 	record->members = online_members >> 16;
+ 	record->readback_mismatch = le32_to_cpu(wire[25]);
++	record->restore_readiness_samples = le32_to_cpu(wire[26]);
++	record->restore_readiness_sleeps = le32_to_cpu(wire[27]);
++	record->restore_readiness_error =
++		(s32)le32_to_cpu(wire[28]);
++	record->restore_readiness_flags = le32_to_cpu(wire[29]);
++	record->restore_first_status = le32_to_cpu(wire[30]);
++	record->restore_first_status2 = le32_to_cpu(wire[31]);
++	record->restore_first_cpu9_pwr_con = le32_to_cpu(wire[32]);
++	record->restore_last_status = le32_to_cpu(wire[33]);
++	record->restore_last_status2 = le32_to_cpu(wire[34]);
++	record->restore_last_cpu9_pwr_con = le32_to_cpu(wire[35]);
+ 	return hotplug_record_shape_valid(record);
+ }
+ 
+@@ -262,7 +309,17 @@ int gemini_a72_hotplug_ledger_owner_checkpoint(
+ 	wire[24] = cpu_to_le32(committed.online_mask |
+ 				      committed.members << 16);
+ 	wire[25] = cpu_to_le32(committed.readback_mismatch);
+-	wire[26] = cpu_to_le32(hotplug_integrity(wire));
++	wire[26] = cpu_to_le32(committed.restore_readiness_samples);
++	wire[27] = cpu_to_le32(committed.restore_readiness_sleeps);
++	wire[28] = cpu_to_le32((u32)committed.restore_readiness_error);
++	wire[29] = cpu_to_le32(committed.restore_readiness_flags);
++	wire[30] = cpu_to_le32(committed.restore_first_status);
++	wire[31] = cpu_to_le32(committed.restore_first_status2);
++	wire[32] = cpu_to_le32(committed.restore_first_cpu9_pwr_con);
++	wire[33] = cpu_to_le32(committed.restore_last_status);
++	wire[34] = cpu_to_le32(committed.restore_last_status2);
++	wire[35] = cpu_to_le32(committed.restore_last_cpu9_pwr_con);
++	wire[36] = cpu_to_le32(hotplug_integrity(wire));
+ 	target = owner->have_valid ? owner->newest_copy ^ 1U : 0;
+ 
+ 	ops->write(context, hotplug_copy_word(target,
+diff --git a/fs/pstore/gemini_a72_hotplug_ledger_internal.h b/fs/pstore/gemini_a72_hotplug_ledger_internal.h
+index f773b43..16df17c 100644
+--- a/fs/pstore/gemini_a72_hotplug_ledger_internal.h
++++ b/fs/pstore/gemini_a72_hotplug_ledger_internal.h
+@@ -7,17 +7,17 @@
+ 
+ #define GEMINI_A72_HOTPLUG_LEDGER_PSTORE_SIGNATURE 0x43474244U
+ #define GEMINI_A72_HOTPLUG_LEDGER_MAGIC 0x4c483947U
+-#define GEMINI_A72_HOTPLUG_LEDGER_VERSION_WORD 0x00010001U
++#define GEMINI_A72_HOTPLUG_LEDGER_VERSION_WORD 0x00010002U
+ #define GEMINI_A72_HOTPLUG_LEDGER_HEADER_WORDS 3U
+-#define GEMINI_A72_HOTPLUG_LEDGER_COPY_WORDS 27U
++#define GEMINI_A72_HOTPLUG_LEDGER_COPY_WORDS 37U
+ #define GEMINI_A72_HOTPLUG_LEDGER_COPIES 2U
+-#define GEMINI_A72_HOTPLUG_LEDGER_INTEGRITY_WORD 26U
++#define GEMINI_A72_HOTPLUG_LEDGER_INTEGRITY_WORD 36U
+ #define GEMINI_A72_HOTPLUG_LEDGER_PAYLOAD_BYTES \
+ 	(GEMINI_A72_HOTPLUG_LEDGER_COPY_WORDS * \
+ 	 GEMINI_A72_HOTPLUG_LEDGER_COPIES * sizeof(u32))
+ #define GEMINI_A72_HOTPLUG_LEDGER_SLOT_SIZE 0x1000U
+ #define GEMINI_A72_HOTPLUG_LEDGER_MAX_RECORDS 16U
+-#define GEMINI_A72_HOTPLUG_LEDGER_WRITES_PER_RECORD 28U
++#define GEMINI_A72_HOTPLUG_LEDGER_WRITES_PER_RECORD 38U
+ 
+ struct gemini_a72_hotplug_ledger_ops {
+ 	u32 (*read)(void *context, unsigned int word);
+diff --git a/fs/pstore/gemini_a72_hotplug_ledger_test.c b/fs/pstore/gemini_a72_hotplug_ledger_test.c
+index 04cfd00..c6f479b 100644
+--- a/fs/pstore/gemini_a72_hotplug_ledger_test.c
++++ b/fs/pstore/gemini_a72_hotplug_ledger_test.c
+@@ -98,6 +98,19 @@ static void hotplug_test_fill(struct gemini_a72_hotplug_ledger_record *record,
+ 		record->restore_generation = 9;
+ 		record->restore_cookie = 0x4444555566667777ULL;
+ 	}
++	if (stage >= GEMINI_A72_HOTPLUG_CPU_ON_COMMITTED) {
++		record->restore_readiness_samples = 3;
++		record->restore_readiness_sleeps = 2;
++		record->restore_readiness_flags =
++			GEMINI_A72_HOTPLUG_RESTORE_READINESS_ATTEMPTED |
++			GEMINI_A72_HOTPLUG_RESTORE_READINESS_READY;
++		record->restore_first_status = 0x00350cc8;
++		record->restore_first_status2 = 0x00350cff;
++		record->restore_first_cpu9_pwr_con = 0x12;
++		record->restore_last_status = 0x00350c88;
++		record->restore_last_status2 = 0x00350cbf;
++		record->restore_last_cpu9_pwr_con = 0x10;
++	}
+ 	if (stage >= GEMINI_A72_HOTPLUG_SECONDARY_COMPLETE)
+ 		record->cpu_on_calls = 1;
+ 	if (stage >= GEMINI_A72_HOTPLUG_AFFINITY_OFF &&
+@@ -110,13 +123,13 @@ static void hotplug_test_fill(struct gemini_a72_hotplug_ledger_record *record,
+ 
+ static void hotplug_layout_test(struct kunit *test)
+ {
+-	KUNIT_EXPECT_EQ(test, GEMINI_A72_HOTPLUG_LEDGER_COPY_WORDS, 27U);
+-	KUNIT_EXPECT_EQ(test, GEMINI_A72_HOTPLUG_LEDGER_INTEGRITY_WORD, 26U);
+-	KUNIT_EXPECT_EQ(test, GEMINI_A72_HOTPLUG_LEDGER_WRITES_PER_RECORD, 28U);
++	KUNIT_EXPECT_EQ(test, GEMINI_A72_HOTPLUG_LEDGER_COPY_WORDS, 37U);
++	KUNIT_EXPECT_EQ(test, GEMINI_A72_HOTPLUG_LEDGER_INTEGRITY_WORD, 36U);
++	KUNIT_EXPECT_EQ(test, GEMINI_A72_HOTPLUG_LEDGER_WRITES_PER_RECORD, 38U);
+ 	KUNIT_EXPECT_EQ(test, GEMINI_A72_HOTPLUG_LEDGER_MAX_RECORDS, 16U);
+ 	KUNIT_EXPECT_EQ(test, GEMINI_A72_HOTPLUG_LEDGER_MAGIC, 0x4c483947U);
+ 	KUNIT_EXPECT_EQ(test, GEMINI_A72_HOTPLUG_LEDGER_VERSION_WORD,
+-			0x00010001U);
++			0x00010002U);
+ }
+ 
+ static void hotplug_success_sequence_test(struct kunit *test)
+@@ -144,7 +157,7 @@ static void hotplug_success_sequence_test(struct kunit *test)
+ 				&owner, &hotplug_test_ops, &state,
+ 				0x1234567887654321ULL, &record), 0);
+ 	}
+-	KUNIT_EXPECT_EQ(test, state.writes, 451U);
++	KUNIT_EXPECT_EQ(test, state.writes, 611U);
+ 	KUNIT_EXPECT_TRUE(test, owner.sealed);
+ 	KUNIT_ASSERT_TRUE(test, gemini_a72_hotplug_ledger_read_latest(
+ 		&hotplug_test_ops, &state, &latest, &copy));
+@@ -154,6 +167,9 @@ static void hotplug_success_sequence_test(struct kunit *test)
+ 			(u32)GEMINI_A72_HOTPLUG_RESTORED_SUCCESS);
+ 	KUNIT_EXPECT_EQ(test, latest.online_mask, GENMASK(9, 0));
+ 	KUNIT_EXPECT_EQ(test, latest.members, GENMASK(1, 0));
++	KUNIT_EXPECT_EQ(test, latest.restore_readiness_samples, 3U);
++	KUNIT_EXPECT_EQ(test, latest.restore_readiness_sleeps, 2U);
++	KUNIT_EXPECT_EQ(test, latest.restore_last_status2, 0x00350cbfU);
+ }
+ 
+ static void hotplug_pstore_empty_test(struct kunit *test)
+@@ -170,7 +186,7 @@ static void hotplug_pstore_empty_test(struct kunit *test)
+ 	KUNIT_ASSERT_EQ(test, gemini_a72_hotplug_ledger_owner_checkpoint(
+ 		&owner, &hotplug_test_ops, &state,
+ 		0x1234567887654321ULL, &record), 0);
+-	KUNIT_EXPECT_EQ(test, state.writes, 30U);
++	KUNIT_EXPECT_EQ(test, state.writes, 40U);
+ }
+ 
+ static void hotplug_nonempty_refusal_test(struct kunit *test)
+@@ -320,6 +336,11 @@ static void hotplug_shape_refusal_test(struct kunit *test)
+ 		&owner, &hotplug_test_ops, &state,
+ 		0x1234567887654321ULL, &record), -EINVAL);
+ 	record.cpu_off_calls = 0;
++	record.restore_readiness_samples = 52;
++	KUNIT_EXPECT_EQ(test, gemini_a72_hotplug_ledger_owner_checkpoint(
++		&owner, &hotplug_test_ops, &state,
++		0x1234567887654321ULL, &record), -EINVAL);
++	record.restore_readiness_samples = 0;
+ 	record.online_mask = BIT(10);
+ 	KUNIT_EXPECT_EQ(test, gemini_a72_hotplug_ledger_owner_checkpoint(
+ 		&owner, &hotplug_test_ops, &state,
+@@ -437,8 +458,49 @@ static void hotplug_restore_prepare_terminal_test(struct kunit *test)
+ 	KUNIT_EXPECT_EQ(test, latest.restore_cookie, 0ULL);
+ }
+ 
++static void hotplug_restore_readiness_timeout_test(struct kunit *test)
++{
++	static const u32 stages[] = { 1, 2, 3, 4, 5, 6, 7,
++				      9, 10, 11, 12, 13, 14 };
++	struct gemini_a72_hotplug_ledger_record latest;
++	struct gemini_a72_hotplug_ledger_record record;
++	struct gemini_a72_hotplug_ledger_owner owner = {};
++	struct hotplug_test_state state;
++	u32 copy = 0;
++	unsigned int index;
++
++	hotplug_test_raw(&state);
++	KUNIT_ASSERT_EQ(test, gemini_a72_hotplug_ledger_owner_begin(
++		&owner, &hotplug_test_ops, &state,
++		0x1234567887654321ULL), 0);
++	for (index = 0; index < ARRAY_SIZE(stages); index++) {
++		hotplug_test_fill(&record, stages[index], 0, 0);
++		KUNIT_ASSERT_EQ(test,
++				gemini_a72_hotplug_ledger_owner_checkpoint(
++					&owner, &hotplug_test_ops, &state,
++					0x1234567887654321ULL, &record), 0);
++	}
++	hotplug_test_fill(&record, GEMINI_A72_HOTPLUG_CPU_ON_COMMITTED,
++			  GEMINI_A72_HOTPLUG_RESTORE_FAULT, -ETIMEDOUT);
++	record.restore_readiness_samples = 51;
++	record.restore_readiness_sleeps = 50;
++	record.restore_readiness_error = -ETIMEDOUT;
++	record.restore_readiness_flags =
++		GEMINI_A72_HOTPLUG_RESTORE_READINESS_ATTEMPTED;
++	KUNIT_ASSERT_EQ(test, gemini_a72_hotplug_ledger_owner_checkpoint(
++		&owner, &hotplug_test_ops, &state,
++		0x1234567887654321ULL, &record), 0);
++	KUNIT_ASSERT_TRUE(test, gemini_a72_hotplug_ledger_read_latest(
++		&hotplug_test_ops, &state, &latest, &copy));
++	KUNIT_EXPECT_EQ(test, latest.restore_readiness_samples, 51U);
++	KUNIT_EXPECT_EQ(test, latest.restore_readiness_sleeps, 50U);
++	KUNIT_EXPECT_EQ(test, latest.restore_readiness_error, -ETIMEDOUT);
++	KUNIT_EXPECT_EQ(test, latest.cpu_on_calls, 0U);
++}
++
+ static struct kunit_case hotplug_ledger_cases[] = {
+ 	KUNIT_CASE(hotplug_layout_test),
++	KUNIT_CASE(hotplug_restore_readiness_timeout_test),
+ 	KUNIT_CASE(hotplug_success_sequence_test),
+ 	KUNIT_CASE(hotplug_pstore_empty_test),
+ 	KUNIT_CASE(hotplug_nonempty_refusal_test),
+diff --git a/include/linux/gemini_a72_hotplug_ledger.h b/include/linux/gemini_a72_hotplug_ledger.h
+index 11ed64f..e7b7436 100644
+--- a/include/linux/gemini_a72_hotplug_ledger.h
++++ b/include/linux/gemini_a72_hotplug_ledger.h
+@@ -8,6 +8,11 @@
+ 
+ #define GEMINI_A72_HOTPLUG_LEDGER_ONLINE_MASK GENMASK(9, 0)
+ #define GEMINI_A72_HOTPLUG_LEDGER_MEMBERS_MASK GENMASK(1, 0)
++#define GEMINI_A72_HOTPLUG_RESTORE_READINESS_ATTEMPTED BIT(0)
++#define GEMINI_A72_HOTPLUG_RESTORE_READINESS_READY BIT(1)
++#define GEMINI_A72_HOTPLUG_RESTORE_READINESS_FLAGS_MASK GENMASK(1, 0)
++#define GEMINI_A72_HOTPLUG_RESTORE_READINESS_SAMPLES_MAX 51U
++#define GEMINI_A72_HOTPLUG_RESTORE_READINESS_SLEEPS_MAX 50U
+ 
+ enum gemini_a72_hotplug_ledger_stage {
+ 	GEMINI_A72_HOTPLUG_BINDING_PARENT = 1,
+@@ -54,6 +59,16 @@ struct gemini_a72_hotplug_ledger_record {
+ 	u32 online_mask;
+ 	u32 members;
+ 	u32 readback_mismatch;
++	u32 restore_readiness_samples;
++	u32 restore_readiness_sleeps;
++	s32 restore_readiness_error;
++	u32 restore_readiness_flags;
++	u32 restore_first_status;
++	u32 restore_first_status2;
++	u32 restore_first_cpu9_pwr_con;
++	u32 restore_last_status;
++	u32 restore_last_status2;
++	u32 restore_last_cpu9_pwr_con;
+ 	u32 generation;
+ 	u32 stage;
+ 	u32 terminal;
