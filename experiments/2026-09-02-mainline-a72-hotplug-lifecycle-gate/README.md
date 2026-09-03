@@ -1160,3 +1160,17 @@ their chronology is retained with the successful package in
 No device action occurred and this is not yet a boot candidate. Commit and
 push the exact admission, then compile and run the binding and ledger KUnit
 profiles on Buildbox before constructing any physical candidate.
+
+The exact admission and updated fail-closed QEMU classifiers are published at
+commits `0f51cfeb...` and `5e219ac7...`. Buildbox compiled the binding and
+record-4 ledger profiles from the same 495-patch source identity
+`c49b822e...`. Their focused four-vCPU, no-network suites pass 13/13 and 14/14
+with no skips. The former proves immediate readiness, delayed settling,
+timeout, and CPU8-mirror rejection; the latter proves that a readiness timeout
+is valid only with zero CPU_ON calls and enforces the v2 retained-layout
+limits. Neither suite invoked a physical backend or performed a CPU request,
+MMIO, I2C, SMC, watchdog, retained-RAM, network, device, or boot-candidate
+action. Exact package and runtime identities are retained in
+[`results/restore-readiness-hardware-free-5e219ac7-20260903.txt`](results/restore-readiness-hardware-free-5e219ac7-20260903.txt).
+The hardware-free gate is closed; one newly built and independently validated
+production candidate is now permitted.
