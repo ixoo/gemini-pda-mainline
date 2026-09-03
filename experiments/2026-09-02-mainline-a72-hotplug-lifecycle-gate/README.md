@@ -320,6 +320,13 @@ handling, and exact restore token are implemented and machine-checked.
   records the repaired READY gate, one trigger, both A72 online terminals, the
   sole CPU9-down transaction, retained CPU8, stage-12 readback mismatch, and
   changed-ID watchdog recovery with unchanged `boot2`.
+- [`results/readback-bitmap-hardware-free-7ca200d6-20260903.txt`](results/readback-bitmap-hardware-free-7ca200d6-20260903.txt)
+  records exact patch `0504`, both 9-of-9 no-network regressions, and its
+  behavior-neutral 24-term mismatch observation contract.
+- [`results/readback-bitmap-candidate-46539642-20260903.txt`](results/readback-bitmap-candidate-46539642-20260903.txt)
+  pins the exact production Buildbox package, two byte-identical DT and
+  container constructions, configuration and pre-trigger gates, 32-of-32 LK
+  checks, and the distinct `9b60b576...` one-attempt candidate.
 - [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
   is the exact admitted no-op-by-default implementation.
 - [`../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch)
@@ -374,8 +381,11 @@ handling, and exact restore token are implemented and machine-checked.
 - [`../../patches/v7.1.3/0503-arm64-bind-Gemini-physical-hotplug-configuration.patch`](../../patches/v7.1.3/0503-arm64-bind-Gemini-physical-hotplug-configuration.patch)
   selects the exact physical-profile configuration-input identity without
   changing the predecessor production or fixture identity.
+- [`../../patches/v7.1.3/0504-soc-mediatek-record-CPU9-readback-mismatch-bitmap.patch`](../../patches/v7.1.3/0504-soc-mediatek-record-CPU9-readback-mismatch-bitmap.patch)
+  replaces the composite readback observation with a self-identifying 24-term
+  retained bitmap while preserving the existing accept/reject decision.
 
-Patches `0483`--`0503` are experiment-only archives with a synthetic,
+Patches `0483`--`0504` are experiment-only archives with a synthetic,
 non-certifying author identity, no DCO sign-off, and are not submission-ready.
 Upstream submission requires the actual author metadata and truthful
 certification.
@@ -945,12 +955,11 @@ complete and must remain fixed.
 Continue under the authoritative selected-next order and exit criteria in
 [the roadmap](../../docs/ROADMAP.md); this experiment record does not redefine
 that sequence.
-The selected next action is a behavior-neutral diagnostic extension of record
-4 that replaces the current Boolean readback mismatch with an exact bitmap for
-the status, per-core power, shared isolation/DCM/CCI, provider, clock, and
-BIGIDVFS comparisons. Prove its wire compatibility, source mutations, full
-hotplug KUnit regression, and Buildbox package before constructing one new
-candidate. Do not repeat `4b027c97...` or `58313c3a8...`.
+The behavior-neutral record-4 mismatch bitmap, both focused KUnit regressions,
+the production Buildbox package, two independent DT compositions, two
+independent Android-v0/LK constructions, negative mutations, and exact
+pre-trigger oracle now pass. Distinct candidate `9b60b576...` is the only
+selected physical attempt. Do not repeat `4b027c97...` or `58313c3a8...`.
 
 The diagnostic wire plan keeps record 4 at its existing size and version.
 Word 25 reserves bit 31 as the self-identifying bitmap-v1 marker; bits 0--23
@@ -981,6 +990,9 @@ QEMU, invoked no production binding or physical backend, and performed no CPU
 request, MMIO, I2C, retained-RAM, SMC, watchdog, device, or boot-candidate
 action. The exact evidence is in
 [`results/readback-bitmap-hardware-free-7ca200d6-20260903.txt`](results/readback-bitmap-hardware-free-7ca200d6-20260903.txt).
-The selected next action is the separate production-profile Buildbox build,
-followed by exact DT/container/candidate validation and one new `boot2`
-attempt; the two retired candidates remain forbidden.
+Exact production package commit `46539642...` and candidate `9b60b576...` now
+pass all offline gates; the exact evidence is in
+[`results/readback-bitmap-candidate-46539642-20260903.txt`](results/readback-bitmap-candidate-46539642-20260903.txt).
+The selected next action is its guarded live-GPT `boot2` deployment, full
+readback, clean shutdown, and one physical boot. After the changed-boot-ID
+recovery, decode word 25 and change only the named mismatch boundary.

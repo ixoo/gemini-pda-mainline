@@ -63,9 +63,10 @@ def validate_repository(record_path: Path) -> None:
 
     series = [line for line in SERIES.read_text(encoding="utf-8").splitlines()
               if line and not line.startswith("#")]
-    require(series[-1] ==
-            "v7.1.3/0503-arm64-bind-Gemini-physical-hotplug-configuration.patch",
-            "identity repair is not the canonical series tip")
+    require(series[-2:] == [
+        "v7.1.3/0503-arm64-bind-Gemini-physical-hotplug-configuration.patch",
+        "v7.1.3/0504-soc-mediatek-record-CPU9-readback-mismatch-bitmap.patch",
+    ], "identity repair and readback diagnostic are not the canonical series tip")
 
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     profile = manifest["config"]["profiles"][PROFILE]

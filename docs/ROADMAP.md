@@ -7602,11 +7602,16 @@ readback predicate at record-4 stage 12 with `-EIO`; restore was not attempted.
 Patch `0504` now supplies a self-identifying 24-term retained mismatch bitmap
 without changing the existing readback decision. Its executor and production-
 binding Buildbox/QEMU regressions each pass 9/9 with no physical invocation.
-**Selected next:** build the production profile on Buildbox, independently
-validate its package, DT, container, serviceability, attribution, and recovery
-gates, then permit one new bitmap-enabled `boot2` attempt. Use the named bitmap
-result to select the next code change. Do not repeat `4b027c97...` or
-`58313c3a8...`.
+Exact production-profile commit `46539642...` now passes Buildbox package
+validation. Two independent provenance-only DT compositions and two
+independent Android-v0/LK constructions are byte-identical; configuration,
+serviceability, attribution, recovery, 32-of-32 LK, ten DT mutation, six
+container mutation, and eight pre-trigger mutation gates all pass. The
+distinct padded candidate is `9b60b576...`. **Selected next:** publish the
+candidate record, perform one guarded live-GPT `boot2` deployment with full
+readback and clean shutdown, then spend one physical boot. Recover on the
+changed boot ID, decode record-4 word 25, and change only the named mismatch
+boundary. Do not repeat `4b027c97...` or `58313c3a8...`.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

@@ -26,11 +26,11 @@ import sys
 text = Path(sys.argv[1]).read_text(encoding="utf-8")
 replacements = (
     ("ea603c1b1a64d4f1aa9cac3e53957a3e858a7ce04127f1aef36d4b0e8173cb02",
-     "58313c3a8eb8607413e27906d6ad65ef59eb7d06f4d466004492f3b4c8cf3d69", 1),
+     "9b60b576efe1e1c7496953c098748205a8ec2ca4eaa322d9d6466fa8285a2136", 1),
     ("ad92d496dfb4fd183c35e6e0f32ce626b2045528657fb2567d8561dd02540f1a",
-     "4e1e15e81038824521a572b852b51b38d03df15b190486d463dbeb18bc61cd59", 1),
+     "b2f7acb8da7d96661ae560ccd41596c2839d79026a392128851bc3de3264f88a", 1),
     ("gemian-runtime-provenance-observer-rndis-1d303dda10b4",
-     "candidate-a72-hotplug-physical-4a3551c6", 1),
+     "candidate-a72-hotplug-physical-6e133cee", 1),
     ("2026-08-14-mt6797-runtime-provenance-observer",
      "2026-09-02-mainline-a72-hotplug-lifecycle-gate", 1),
     ("provenance-observer", "a72-physical-hotplug", 7),
