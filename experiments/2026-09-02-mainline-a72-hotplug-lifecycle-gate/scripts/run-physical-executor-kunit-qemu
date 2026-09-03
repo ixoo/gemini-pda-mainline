@@ -80,6 +80,7 @@ readonly focused_test_count focused_tests
 
 for symbol in \
 	mt6797_a72_hotplug_readback_proves_cpu9_off \
+	mt6797_a72_hotplug_readback_mismatch \
 	mt6797_a72_hotplug_executor_preflight \
 	mt6797_a72_hotplug_executor_validate \
 	mt6797_a72_hotplug_executor_disable \
@@ -93,6 +94,7 @@ for symbol in \
 	mt6797_hotplug_precommit_rejection \
 	mt6797_hotplug_target_return_is_fault \
 	mt6797_hotplug_affinity_is_one_shot \
+	mt6797_hotplug_readback_bitmap \
 	mt6797_hotplug_readback_rejections \
 	mt6797_hotplug_postcommit_callback_fault \
 	mt6797_hotplug_order_and_one_shot \

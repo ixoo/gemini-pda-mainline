@@ -961,3 +961,12 @@ changes. Legacy values `0` and `1` therefore remain unambiguous. The executor's
 existing Boolean acceptance helper delegates to the bitmap being zero, while
 record publication adds only the format marker. This changes observation, not
 the CPU9-down decision, ordering, retry budget, or physical effects.
+
+Exact Buildbox generation from pushed tooling commit `0aff272c...` produced
+patch `0504` with SHA-256 `0931c1c3...`. Generation and replay both pass the
+24-bit source contract, all ten unsafe mutations fail closed, strict patch
+review passes, and the generated change contains no CPU request, MMIO write,
+secure call, production trigger, or device action. The host decoder now names
+bitmap-v1 terms while preserving legacy Boolean records and rejects unknown
+bitmap bits. Kernel compile, focused runtime KUnit, production-package review,
+candidate construction, and device action remain gated after patch admission.

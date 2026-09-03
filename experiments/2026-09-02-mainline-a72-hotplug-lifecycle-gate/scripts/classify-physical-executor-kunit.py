@@ -21,6 +21,7 @@ CASES = (
     "mt6797_hotplug_precommit_rejection",
     "mt6797_hotplug_target_return_is_fault",
     "mt6797_hotplug_affinity_is_one_shot",
+    "mt6797_hotplug_readback_bitmap",
     "mt6797_hotplug_readback_rejections",
     "mt6797_hotplug_postcommit_callback_fault",
     "mt6797_hotplug_order_and_one_shot",
