@@ -1060,3 +1060,18 @@ Buildbox artifact at SHA-256 `1fb082ca...` and changes only the executor and
 its focused test. Commit and push that exact admission, then compile and run
 the executor and production-binding KUnit profiles before constructing a new
 candidate. Do not repeat `9b60b576...` unchanged.
+
+Patch `0505` is now admitted at exact pushed commit `32e50f48...`. Buildbox
+compiled both the isolated executor and production-binding profiles from the
+same 494-patch source identity `a1c6d67e...`. Their focused four-vCPU,
+no-network QEMU suites each pass 9/9 with no skips. The executor gate preserves
+the single CPU_OFF, affinity, post-state snapshot, and CPU8-observer budgets;
+the production binding keeps the public disable veto closed and its private
+CPU9-only transition linked but uninvoked. Neither run invoked a physical
+backend or performed a CPU request, MMIO, I2C, retained-RAM, SMC, watchdog,
+network, device, or boot-candidate action. The exact package and runtime
+identities are retained in
+[`results/intersected-status-hardware-free-32e50f48-20260903.txt`](results/intersected-status-hardware-free-32e50f48-20260903.txt).
+The hardware-free repair gate is closed; one newly constructed and
+independently validated production candidate is now permitted. Retired
+candidate `9b60b576...` remains forbidden to repeat.

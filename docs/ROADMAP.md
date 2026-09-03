@@ -7640,6 +7640,19 @@ the 173-profile series audit pass. **Selected next:** commit and push exact
 patch `0505`, compile the executor and production-binding KUnit profiles on
 Buildbox, and run their focused no-network suites before selecting a new
 physical candidate.
+Patch `0505` is now admitted at pushed commit `32e50f48...`; the isolated
+executor and production-binding profiles share exact 494-patch identity
+`a1c6d67e...`, and both focused no-network QEMU suites pass 9/9 without a
+physical backend, CPU request, MMIO, I2C, retained-RAM, SMC, watchdog, network,
+device, or candidate action. This closes the hardware-free status-intersection
+gate while preserving the one-shot effect and snapshot budgets. **Selected
+next:** build the exact production physical profile on Buildbox, independently
+reconstruct and validate its provenance-only DT and Android-v0/LK container,
+reject the existing DT/container/pre-trigger mutations, and only then select
+one distinct `0505` successor for guarded inactive-`boot2` deployment. The
+boot hypothesis is that the previously observed primary-off/secondary-present
+CPU9 pair now passes the established intersection rule, allowing owner proof
+and exactly one CPU9 restore; all other 23 readback terms remain rejecting.
 Do not repeat
 `4b027c97...`, `58313c3a8...`, or `9b60b576...`.
 
