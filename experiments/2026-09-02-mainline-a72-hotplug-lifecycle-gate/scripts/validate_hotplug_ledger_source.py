@@ -103,6 +103,17 @@ def main() -> int:
         for token in ("memset(", "clear", "repair", "retry"):
             require(token not in begin.lower(), f"owner begin gained forbidden action: {token}")
 
+        shape = function_body(source, "hotplug_record_shape_valid")
+        for token in (
+            "record->cpu_off_calls > 1",
+            "record->affinity_calls > 1",
+            "record->cpu8_ipi_calls > 1",
+            "record->cpu_on_calls > 1",
+            "record->online_mask & ~GEMINI_A72_HOTPLUG_LEDGER_ONLINE_MASK",
+            "record->members & ~GEMINI_A72_HOTPLUG_LEDGER_MEMBERS_MASK",
+        ):
+            require(token in shape, f"record shape budget missing: {token}")
+
         checkpoint = function_body(
             source, "gemini_a72_hotplug_ledger_owner_checkpoint"
         )
@@ -123,6 +134,8 @@ def main() -> int:
         require(checkpoint.index("ops->write(context, 1") <
                 checkpoint.index("ops->write(context, 0"),
                 "raw signature is not committed last")
+        require("record->session_id != session_id" in checkpoint,
+                "record is not bound to the exact session")
 
         latest = function_body(source, "gemini_a72_hotplug_ledger_read_latest")
         for token in (
@@ -168,6 +181,11 @@ def main() -> int:
             require(token not in added, f"disconnected slice gained effect: {token}")
         require("mt6797_psci_cpu_can_disable" not in added,
                 "CPU-disable veto touched by ledger slice")
+        production_begin = function_body(
+            source, "gemini_a72_hotplug_ledger_begin"
+        )
+        require("hotplug_attempted = true" in production_begin,
+                "production owner is no longer one-shot")
     except (OSError, ValueError) as exc:
         print(f"hotplug_ledger_source=fail reason={exc}", file=sys.stderr)
         return 1
