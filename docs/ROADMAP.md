@@ -7453,13 +7453,24 @@ each to platform, provider, clock, and BigiDVFS, excludes sample generations,
 holds three long-lived device references, counts the clock transport's
 401-write maximum and BigiDVFS's eight reads, and invokes no physical backend.
 There is still no production caller, DT node, boot candidate, or device
-action. **Selected next:** implement and hardware-free-test the single
-asynchronous `smp_call_function_single()` CPU8 observation with `wait=0`,
-exact CPU8 identity, binder-owned completion state, no retry, and a 250 ms
-controller bound. Then implement the disconnected restore executor, followed
-by the one-task `add8 -> add9 -> remove9 -> add9` binder. Select no boot
-candidate until these remaining slices pass exact source replay, rejecting
-mutations, Buildbox compile, and no-network runtime gates.
+action. Exact patch `0494` now closes the asynchronous CPU8-observation
+prerequisite. The first generated revision passed its source oracle but failed
+the isolated Buildbox compile because its Kconfig dependency did not select
+the CPU9-membership owner that publishes the hotplug snapshot API; it was not
+accepted and was superseded. The corrected exact patch passes replay, strict
+review, 21 rejecting mutations, and the 169-profile invariant. Exact published
+commit `bcde9445...`
+then compiles and validates on Buildbox, and its no-network runtime gate at
+published harness commit `6097b85d...` passes all seven focused cases with zero
+failures or skips. The observer has one `wait=0` CPU8 dispatch, no retry or
+synchronous dispatch, a terminal 250 ms timeout, exact CPU9-down identity,
+binder-owned storage, no production caller, and no DT node. It performs no
+physical backend call, CPU request, retained-RAM access, watchdog takeover,
+network, device action, or boot-candidate selection. **Selected next:**
+implement and hardware-free-test the disconnected restore executor. After it
+passes, implement the one-task `add8 -> add9 -> remove9 -> add9` binder. Select
+no boot candidate until both remaining slices pass exact source replay,
+rejecting mutations, Buildbox compile, and no-network runtime gates.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-a72-hotplug-lifecycle-gate` |
-| Status | watchdog, exact parent, record-4, and snapshot prerequisites proven; CPU8 observation and restore prerequisites pending |
+| Status | watchdog, exact parent, record-4, snapshot, and bounded CPU8-observation prerequisites proven; restore prerequisite pending |
 | Subsystem | arm64 CPU hotplug, PSCI, MT6797 A72 membership |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-09-02 America/New_York |
@@ -136,6 +136,16 @@ handling, and exact restore token are implemented and machine-checked.
 - `scripts/run-hotplug-snapshot-kunit-qemu` and
   `classify-hotplug-snapshot-kunit.py` admit only the exact ancestor Buildbox
   package and require all six injected-source cases to pass.
+- `scripts/cpu8_observer_source_edits.py`,
+  `validate_cpu8_observer_source.py`, and
+  `test_cpu8_observer_source.py` define the one-shot asynchronous CPU8
+  observer and reject 21 unsafe source mutations while keeping it disconnected.
+- `scripts/generate_cpu8_observer_patch.py` and
+  `generate-cpu8-observer-on-buildbox` reconstruct its exact pre-`0494`
+  parent from the pinned prepared source and generate the canonical patch.
+- `scripts/run-cpu8-observer-kunit-qemu` and
+  `classify-cpu8-observer-kunit.py` admit only the exact ancestor Buildbox
+  package and require all seven observer cases to pass.
 - [`results/contract-validation-20260902.txt`](results/contract-validation-20260902.txt)
   records the local contract/mutation pass and exact Buildbox prepared-source
   validation.
@@ -181,6 +191,10 @@ handling, and exact restore token are implemented and machine-checked.
 - [`results/hotplug-snapshot-kunit-ed64b4f5-20260903.txt`](results/hotplug-snapshot-kunit-ed64b4f5-20260903.txt)
   pins the withheld first artifact, corrected exact generation, 20 rejecting
   mutations, admission, Buildbox package, and 6-of-6 no-network runtime pass.
+- [`results/cpu8-observer-kunit-bcde9445-20260903.txt`](results/cpu8-observer-kunit-bcde9445-20260903.txt)
+  pins the first compile refusal, dependency correction, exact regenerated
+  patch, 21 rejecting mutations, Buildbox package, and 7-of-7 no-network
+  runtime pass.
 - [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
   is the exact admitted no-op-by-default implementation.
 - [`../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch)
@@ -207,8 +221,11 @@ handling, and exact restore token are implemented and machine-checked.
 - [`../../patches/v7.1.3/0493-soc-mediatek-add-disconnected-A72-hotplug-snapshot.patch`](../../patches/v7.1.3/0493-soc-mediatek-add-disconnected-A72-hotplug-snapshot.patch)
   adds the disconnected four-source snapshot adapter and six injected-source
   KUnit cases.
+- [`../../patches/v7.1.3/0494-soc-mediatek-add-bounded-retained-CPU8-observer.patch`](../../patches/v7.1.3/0494-soc-mediatek-add-bounded-retained-CPU8-observer.patch)
+  adds the disconnected one-shot asynchronous CPU8 observer and seven focused
+  KUnit cases.
 
-Patches `0483`--`0493` are experiment-only archives with a synthetic,
+Patches `0483`--`0494` are experiment-only archives with a synthetic,
 non-certifying author identity, no DCO sign-off, and are not submission-ready.
 Upstream submission requires the actual author metadata and truthful
 certification.
@@ -463,6 +480,33 @@ clock transport maximum of 401 writes, two BigiDVFS stable samples/eight
 register reads/zero SRAM-set calls, and zero physical backend invocations,
 MMIO, I2C, SMC, retained-RAM, watchdog, network, or device action.
 
+The first CPU8-observer package, exact patch SHA-256 `cb78f0d0...`, passed its
+source oracle but failed the isolated Buildbox compile at the only attributable
+error: `mt6797_a72_hotplug_snapshot()` was not declared because the observer
+profile had not selected the CPU9-membership owner that publishes the snapshot
+API. It was rejected as a usable prerequisite and superseded. The corrected
+generator makes that dependency explicit and reconstructs the exact pre-`0494`
+parent from prepared source state `fa3ac202...`. Exact patch `0494` SHA-256
+`bc9764dd...` then passes replay,
+strict review, all 21 rejecting mutations, all 169 manifest profiles, and the
+eight-mutation series-invariant self-test. It contains one `wait=0` dispatch to
+CPU8, no retry or synchronous dispatch, a 250 ms controller bound, exact
+CPU9-down/`OFF_COMMITTED` identity, and binder-owned one-shot storage. It has
+no production caller or DT node.
+
+Exact admission commit `bcde9445...` compiled successfully on Buildbox with
+patchset `59b748ac89b6410f6b309dac8379f44c2c51442f98fd5ec42ce191da7a13c02a`.
+Package validation covered `Image`, `Image.gz`, `System.map`, configuration,
+provenance, and all 123 DTBs. At published harness commit `6097b85d...`, the
+no-network four-vCPU QEMU gate passed the sole observer suite 7/7 with zero
+failures or skips. It exercised success, CPU refusal, identity refusal,
+dispatch refusal, terminal timeout with a late callback, one-shot refusal, and
+snapshot identity. No production callback, physical backend, CPU request,
+MMIO, I2C, retained-RAM, SMC, watchdog takeover, network, device action, or
+boot candidate was enabled. A later regeneration request also failed closed
+after the managed prepared-source identity advanced to `751075a0...`; it
+produced no replacement artifact and does not alter the admitted patch proof.
+
 ## Analysis
 
 The accepted online/topology/load evidence closes the entry-state uncertainty
@@ -500,15 +544,18 @@ decoder tests, Buildbox compile, and 10/10 isolated runtime cases pass. Patch
 `0493` supplies the disconnected snapshot adapter; exact generation, 20 source
 mutations, Buildbox compile, and 6/6 isolated runtime cases pass. The combined
 series still binds no callback, preserves the MT6797 disable veto, and performs
-no physical action. The final requirement remains physical CPU9-off and
-same-boot CPU9 restore.
+no physical action. Patch `0494` supplies the bounded CPU8 observer; exact
+generation, 21 source mutations, Buildbox compile, and 7/7 isolated runtime
+cases pass. The final requirement remains physical CPU9-off and same-boot CPU9
+restore.
 
 ## Follow-up
 
-The parent-proof, watchdog-validator, record-4, and snapshot prerequisites are
-complete and must remain fixed. Continue under the authoritative selected-next
-order and exit criteria in [the roadmap](../../docs/ROADMAP.md); this
-experiment record does not redefine that sequence.
+The parent-proof, watchdog-validator, record-4, snapshot, and bounded CPU8
+observer prerequisites are complete and must remain fixed. Continue under the
+authoritative selected-next order and exit criteria in
+[the roadmap](../../docs/ROADMAP.md); this experiment record does not redefine
+that sequence.
 Only after every remaining disconnected slice passes its source mutations and
 runtime tests may the one-task down/restore binder connect to production
 callbacks. CPU8 and CPUs 0--7 stay non-disableable throughout. No candidate or
