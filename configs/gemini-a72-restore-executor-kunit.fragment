@@ -1,0 +1,19 @@
+# Hardware-free proof for the disconnected CPU9 restore executor. The focused
+# suite injects owner preparation, CPU_ON, completion, ledger publication, and
+# rollback handling. No production caller invokes the executor, so this profile
+# performs no CPU request, PSCI, MMIO, retained-RAM, watchdog, network, storage,
+# or device action.
+CONFIG_KUNIT=y
+CONFIG_ARM64_MT6797_A72_P24_TRANSACTION_OWNER_MODEL=y
+CONFIG_ARM64_MT6797_A72_CPU9_MEMBERSHIP=y
+# CONFIG_ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST is not set
+# CONFIG_MTK_MT6797_A72_TRANSITION_EXECUTOR_KUNIT_TEST is not set
+# CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER_KUNIT_TEST is not set
+CONFIG_MTK_MT6797_A72_HOTPLUG_EXECUTOR=y
+# CONFIG_MTK_MT6797_A72_HOTPLUG_EXECUTOR_KUNIT_TEST is not set
+CONFIG_MTK_MT6797_A72_RESTORE_EXECUTOR=y
+CONFIG_MTK_MT6797_A72_RESTORE_EXECUTOR_KUNIT_TEST=y
+# CONFIG_MTK_MT6797_A72_HOTPLUG_SNAPSHOT_KUNIT_TEST is not set
+# CONFIG_MTK_MT6797_A72_CPU8_OBSERVER_KUNIT_TEST is not set
+# CONFIG_HOTPLUG_SPLIT_STARTUP is not set
+CONFIG_LOCALVERSION="-gemini-a72-restore-executor-kunit"
