@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-a72-hotplug-lifecycle-gate` |
-| Status | exact physical candidate validated offline; deployment pending |
+| Status | exact physical candidate installed and device shut down; one boot2 attempt pending |
 | Subsystem | arm64 CPU hotplug, PSCI, MT6797 A72 membership |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-09-02--2026-09-03 America/New_York |
@@ -283,6 +283,10 @@ handling, and exact restore token are implemented and machine-checked.
   pins the exact production build, package provenance, byte-reproducible DT
   composition, Android-v0/LK container, negative gates, pre-boot hypothesis,
   recovery classification, and one-attempt decision branches.
+- [`results/physical-deployment-20260903.txt`](results/physical-deployment-20260903.txt)
+  records live-GPT resolution, inactive-root and stable-power gates, predecessor
+  identity, the sole write, full readback, temporary cleanup, and confirmed
+  shutdown without a fresh partition backup.
 - [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
   is the exact admitted no-op-by-default implementation.
 - [`../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch)
@@ -758,6 +762,16 @@ container mutations. The raw identity is `482516ce...`; the exact 16 MiB
 CPU request, retained-RAM access, partition write, or boot occurred during
 validation.
 
+The guarded installer then resolved inactive logical `boot2` to
+`/dev/mmcblk0p30` while Gemian root remained `/dev/mmcblk0p29`, observed a
+stable 100% healthy battery with external power, and recorded predecessor
+`68ec1b78...`. One bounded write of exact padded candidate `4b027c97...` was
+synced and flushed. Both the on-device full-partition checksum and a separate
+streamed full readback matched the candidate byte-for-byte. Temporary staging
+and readback files were removed, no new predecessor backup was made, and the
+device became unreachable after the requested clean shutdown. The candidate
+has not yet been booted.
+
 The pre-boot hypothesis is now fixed: the existing live admission task first
 completes CPU8 and CPU9 to the accepted exact parent, after which the production
 binder privately offlines only CPU9, proves CPU8 remains live, and restores
@@ -839,9 +853,8 @@ complete and must remain fixed.
 Continue under the authoritative selected-next order and exit criteria in
 [the roadmap](../../docs/ROADMAP.md); this experiment record does not redefine
 that sequence.
-The selected next action is the guarded installation of exact padded candidate
-`4b027c97...` to inactive logical `boot2`, with a live-GPT resolution, recorded
-predecessor checksum, full readback, and clean shutdown. The owner then starts
-`boot2` once. An automatic return to Gemian is expected; after the boot ID
-changes, collect and decode record 4 plus live CPU/membership and USB/netcat
-evidence. Do not repeat the attempt from screen or reboot behavior alone.
+The selected next action is one owner-started `boot2` attempt of the already
+installed exact candidate `4b027c97...`. An automatic return to Gemian is
+expected; after the boot ID changes, collect and decode record 4 plus live
+CPU/membership and USB/netcat evidence. Do not repeat the attempt from screen
+or reboot behavior alone.
