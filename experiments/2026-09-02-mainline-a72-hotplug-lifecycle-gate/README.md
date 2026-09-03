@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-a72-hotplug-lifecycle-gate` |
-| Status | binder core and terminal ledger proven; production callback binding pending |
+| Status | binder core and target-safe terminal ledger proven; production callback binding pending |
 | Subsystem | arm64 CPU hotplug, PSCI, MT6797 A72 membership |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-09-02 America/New_York |
@@ -140,6 +140,13 @@ handling, and exact restore token are implemented and machine-checked.
 - `scripts/generate_ledger_terminal_patch.py` and
   `generate-ledger-terminal-on-buildbox` generate the exact one-patch repair
   from the hash-pinned prepared source through `0498`.
+- `scripts/ledger_checkpoint_context_source_edits.py`,
+  `validate_ledger_checkpoint_context_source.py`, and
+  `test_ledger_checkpoint_context_source.py` make record-4 publication safe in
+  the non-sleeping target callback and reject ten unsafe source mutations.
+- `scripts/generate_ledger_checkpoint_context_patch.py` and
+  `generate-ledger-checkpoint-context-on-buildbox` generate that exact
+  one-patch repair from the hash-pinned source through `0499`.
 - `scripts/hotplug_snapshot_source_edits.py`,
   `validate_hotplug_snapshot_source.py`, and
   `test_hotplug_snapshot_source.py` define the disconnected four-source
@@ -240,6 +247,9 @@ handling, and exact restore token are implemented and machine-checked.
 - [`results/hotplug-ledger-terminal-kunit-b1a1998e-20260903.txt`](results/hotplug-ledger-terminal-kunit-b1a1998e-20260903.txt)
   pins the pre-binding ledger audit, exact terminal repair, 18 rejecting
   mutations, Buildbox package, and the 13-of-13 no-network runtime pass.
+- [`results/hotplug-ledger-context-kunit-af9b65d3-20260903.txt`](results/hotplug-ledger-context-kunit-af9b65d3-20260903.txt)
+  pins the callback-context audit, non-sleeping record-4 repair, ten rejecting
+  mutations, Buildbox package, and the 13-of-13 no-network runtime pass.
 - [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
   is the exact admitted no-op-by-default implementation.
 - [`../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch)
@@ -281,8 +291,11 @@ handling, and exact restore token are implemented and machine-checked.
 - [`../../patches/v7.1.3/0499-pstore-allow-preidentity-A72-hotplug-terminals.patch`](../../patches/v7.1.3/0499-pstore-allow-preidentity-A72-hotplug-terminals.patch)
   admits only the three truthful preidentity terminal shapes required by the
   production binder and adds their focused record-4 coverage.
+- [`../../patches/v7.1.3/0500-pstore-make-A72-hotplug-checkpoints-nonsleeping.patch`](../../patches/v7.1.3/0500-pstore-make-A72-hotplug-checkpoints-nonsleeping.patch)
+  keeps setup in process context and makes checkpoint publication safe in the
+  target CPU's non-sleeping shutdown callback.
 
-Patches `0483`--`0499` are experiment-only archives with a synthetic,
+Patches `0483`--`0500` are experiment-only archives with a synthetic,
 non-certifying author identity, no DCO sign-off, and are not submission-ready.
 Upstream submission requires the actual author metadata and truthful
 certification.
@@ -639,6 +652,29 @@ without changing the wire format, successful 16-record/451-write budget, or
 invoking a production caller, CPU request, retained RAM, watchdog, SMC,
 network, device, or boot candidate.
 
+The next callback audit found two source-level constraints that the frozen
+prose had not modeled precisely. Arm64 samples `cpu_can_disable()` only while
+registering each CPU device and stores the answer in `offline_disabled`;
+`device_offline()` checks that flag before it reaches the CPU bus callback.
+Opening the answer for CPU9 would therefore expose the normal sysfs hotplug
+control, while leaving it false prevents the binder's ordinary `remove_cpu(9)`
+call from entering its down preflight. The target `.cpu_die` callback also runs
+after interrupt masking, but the record-4 checkpoint used a mutex and unmapped
+the slot on a terminal record. The selected binding now preserves the public
+veto and uses an internal, device-hotplug-lock-scoped transition that clears
+`offline_disabled` only around the binder-owned request and restores it before
+unlock; the target `.cpu_disable` callback must independently require the exact
+executor identity. Patch `0500` closes the ledger half by moving checkpoint
+serialization to a raw spin lock and retaining the fixed mapping until reset.
+Exact generation at `10aa0a01...`, replay, strict review, and all ten rejecting
+mutations pass. Exact admission commit `af9b65d3...` keeps canonical order for
+all 171 profiles and compiles the 489-patch ledger profile on Buildbox. Package
+validation covers the kernel, provenance, configuration, and all 123 DTBs; the
+no-network QEMU gate passes all 13 ledger cases. The wire format and
+16-record/451-write success budget are unchanged, and no production caller,
+physical backend, CPU request, retained-RAM access, watchdog, network, device
+action, or boot candidate is enabled.
+
 ## Analysis
 
 The accepted online/topology/load evidence closes the entry-state uncertainty
@@ -686,13 +722,15 @@ and 9/9 isolated runtime cases pass. All disconnected orchestration is
 therefore complete. Patch `0499` repairs the three exact preidentity terminal
 shapes exposed by the production-callback audit; exact generation, 18 source
 mutations, Buildbox compile, and 13/13 isolated ledger cases pass without a
-wire-format or success-budget change. The remaining software gate is
-production callback glue
-that binds this proven core to the existing admission task and exact
-down/restore callbacks while preserving the closed CPU9 disable veto. Only
-after that glue passes its own exact hardware-free gate may a separate
-candidate commit select one physical CPU9-off and same-boot CPU9 restore
-attempt.
+wire-format or success-budget change. Patch `0500` then makes those checkpoints
+safe in the target CPU's non-sleeping shutdown context; exact generation, ten
+source mutations, Buildbox compile, and the same 13/13 ledger cases pass. The
+remaining software gate is production callback glue that binds this proven
+core to the existing admission task, an internal lock-scoped CPU9 device
+transition, and exact down/restore callbacks while keeping the public
+`cpu_can_disable()` veto closed. Only after that glue passes its own exact
+hardware-free gate may a separate candidate commit select one physical
+CPU9-off and same-boot CPU9 restore attempt.
 
 ## Follow-up
 
@@ -702,7 +740,9 @@ Continue under the authoritative selected-next order and exit criteria in
 [the roadmap](../../docs/ROADMAP.md); this experiment record does not redefine
 that sequence.
 The selected next slice is the production callback binding around the proven
-disconnected binder core. CPU8 and CPUs 0--7 stay non-disableable throughout,
-and the CPU9 veto stays closed until that binding is complete. No candidate or
-device boot is selected until the production glue passes exact replay,
-rejecting mutations, Buildbox compile, and no-network runtime review.
+disconnected binder core. It must keep CPU8 and CPUs 0--7 non-disableable, keep
+CPU9's public registration-time veto closed, and use only the binder-owned
+device-hotplug-lock-scoped CPU9 transition with an independent exact executor
+guard in `.cpu_disable`. No candidate or device boot is selected until the
+production glue passes exact replay, rejecting mutations, Buildbox compile,
+and no-network runtime review.

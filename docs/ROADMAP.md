@@ -7516,13 +7516,31 @@ and CPUs 0--7 non-disableable, and select no boot candidate or device action
 until the binding passes exact source replay, rejecting mutations, Buildbox
 compile, and no-network runtime review.
 
-The pre-binding callback audit found and closed one required ledger boundary:
-the retained record can now represent the exact failures that occur before a
-down or restore identity exists and at the CPU_OFF membership-commit boundary.
-Its wire format and successful-path budget remain unchanged, and the focused
-hardware-free gate passes. **Selected next remains:** production callback
-binding with the CPU9 veto closed, followed by a separate candidate-only veto
-opening after the binding's replay, mutation, Buildbox, and no-network gates.
+The pre-binding callback audit found and closed the retained evidence
+boundaries needed before production glue. Patch `0499` lets record 4 represent
+the exact failures that occur before a down or restore identity exists and at
+the CPU_OFF membership-commit boundary. Patch `0500` then makes checkpoint
+publication non-sleeping for the target `.cpu_die` context by using raw-spin
+serialization and retaining the fixed mapping until reset. Exact generation,
+replay, rejecting mutations, Buildbox compile, and the 13/13 no-network ledger
+gate pass without changing the wire format or 16-record/451-write success
+budget.
+
+The same audit corrected the disable-gate model: arm64 samples
+`cpu_can_disable()` only during CPU-device registration, stores that answer in
+`offline_disabled`, and `device_offline()` rejects the request before the CPU
+bus callback. Returning true for CPU9 would expose ordinary sysfs hotplug;
+returning false blocks a normal `remove_cpu(9)` before the proven preflight.
+**Selected next:** bind the proven coordinator through a private,
+device-hotplug-lock-scoped CPU9 transition that temporarily clears only that
+device's `offline_disabled` flag around the binder-owned request and restores
+it before unlock. Keep public `cpu_can_disable()` false for every A72 and add
+an independent exact-executor guard in CPU9's target `.cpu_disable` callback.
+Bind the remaining down, die, kill, restore, ledger, observer, parent, and
+watchdog interfaces in the same hardware-free slice. Select no candidate or
+device action until exact replay, rejecting mutations, Buildbox compile, and
+no-network runtime review pass; candidate enablement remains a separate
+commit.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
