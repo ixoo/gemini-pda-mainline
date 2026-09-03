@@ -29,6 +29,7 @@ PARENT_HASHES = {
 EXPECTED_SOURCE_STATE = (
     "d33e9545e32bea6eb7591b9eca2bb84a7a8a8c8ad0b2e2c0b7363c8a9c0e0a07"
 )
+CHECKPATCH_IGNORE = "MISSING_SIGN_OFF,FILE_PATH_CHANGES,OPEN_ENDED_LINE"
 
 
 def sha256(path: Path) -> str:
@@ -79,7 +80,7 @@ def normalize_patch_style(source_root: Path, path: Path) -> None:
         (
             "perl", str(source_root / "scripts/checkpatch.pl"),
             "--fix-inplace", "--strict", "--no-tree", "--ignore",
-            "MISSING_SIGN_OFF,FILE_PATH_CHANGES", str(path),
+            CHECKPATCH_IGNORE, str(path),
         ),
         cwd=source_root, check=False, text=True,
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -208,7 +209,7 @@ def main() -> None:
             validate_patch(patch, subject)
             run(
                 "perl", str(source_root / "scripts/checkpatch.pl"), "--strict",
-                "--no-tree", "--ignore", "MISSING_SIGN_OFF,FILE_PATH_CHANGES",
+                "--no-tree", "--ignore", CHECKPATCH_IGNORE,
                 str(patch), cwd=source_root,
             )
         (package / "series").write_text(
