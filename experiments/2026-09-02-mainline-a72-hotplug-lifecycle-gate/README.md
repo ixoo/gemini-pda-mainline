@@ -1089,3 +1089,18 @@ hypothesis, and tooling identities are retained in
 No device access or write occurred during construction. This distinct
 candidate is selected for one guarded physical attempt after the exact tooling
 and evidence are published.
+
+The exact tooling and evidence were published at commit `32ed64bd...`. From
+ordinary Gemian boot ID `2a369fda...`, the live GPT resolved inactive logical
+`boot2` as `/dev/mmcblk0p30` while the active root remained
+`/dev/mmcblk0p29`. Stable external power was present. One write replaced
+retired predecessor `9b60b576...` with exact 16 MiB candidate `a0114584...`;
+the write-path full readback, independent streamed full readback, and byte
+comparison all pass. Temporary device and host readback files were removed,
+no fresh partition backup was made, and the clean shutdown was followed by
+three independent connection-refused observations. Sanitized deployment proof
+is retained in
+[`results/intersected-status-deployment-20260903.txt`](results/intersected-status-deployment-20260903.txt).
+The device is off and ready for the owner to physically select `boot2`; the
+host must capture and validate the read-only pre-trigger frame before spending
+the candidate's single trigger.

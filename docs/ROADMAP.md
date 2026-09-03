@@ -7666,6 +7666,16 @@ installer once against inactive logical `boot2`, require both full readbacks,
 remove temporary device files, and shut Gemian down cleanly. Only after that
 verified shutdown may the owner physically select `boot2` for this candidate's
 sole attempt.
+Tooling and evidence were published at `32ed64bd...`. Live-GPT deployment from
+Gemian boot ID `2a369fda...` resolved inactive logical `boot2` as
+`/dev/mmcblk0p30` with active root `/dev/mmcblk0p29`; stable external power was
+present. One write replaced retired `9b60b576...` with exact candidate
+`a0114584...`. The write-path and independent streamed full readbacks match,
+the independent byte comparison passes, temporary files were removed, no fresh
+backup was made, and three post-poweroff SSH checks were refused. **Selected
+next:** the owner physically selects `boot2`; the host captures and validates
+the exact read-only pre-trigger frame before issuing this candidate's single
+trigger. Screen state or reboot behavior alone remains inconclusive.
 Do not repeat
 `4b027c97...`, `58313c3a8...`, or `9b60b576...`.
 
