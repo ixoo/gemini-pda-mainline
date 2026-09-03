@@ -88,7 +88,7 @@ def validate(root: Path) -> list[str]:
     )
     if binding.count(binding_fragment) != 1:
         errors.append("record-4 bitmap publication changed")
-    if "!mt6797_a72_hotplug_readback_proves_cpu9_off(" in binding:
+    if ".readback_mismatch = binding->down_result.snapshots == 2 &&" in binding:
         errors.append("legacy Boolean publication remains")
     if test.count("static void mt6797_hotplug_readback_bitmap(") != 1:
         errors.append("focused bitmap KUnit case missing")
