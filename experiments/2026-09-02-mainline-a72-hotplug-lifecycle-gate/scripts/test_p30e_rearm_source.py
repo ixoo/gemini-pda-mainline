@@ -21,26 +21,35 @@ LEDGER_HEADER = "include/linux/gemini_a72_hotplug_ledger.h"
 LEDGER_INTERNAL = "fs/pstore/gemini_a72_hotplug_ledger_internal.h"
 
 PRIMITIVE_MUTATIONS = (
-    (P30E, "ARM64_MT6797_A72_P30E_MAGIC ||",
-     "(ARM64_MT6797_A72_P30E_MAGIC ^ 1) ||"),
+    (P30E, "P30E_MAGIC_WORD) !=\n\t\t    ARM64_MT6797_A72_P30E_MAGIC ||",
+     "P30E_MAGIC_WORD) ==\n\t\t    ARM64_MT6797_A72_P30E_MAGIC ||"),
     (P30E, "ARM64_MT6797_A72_P30E_OPERATION_CPU9_UP ||",
      "ARM64_MT6797_A72_P30E_OPERATION_CPU8_UP ||"),
     (P30E, "generation == ~0ULL", "generation == 0ULL"),
     (P30E, "cookie == ~0ULL", "cookie == 0ULL"),
-    (P30E, "ARM64_MT6797_A72_P30E_TARGET_PUBLISHED ||",
-     "ARM64_MT6797_A72_P30E_TARGET_CLAIMED ||"),
+    (P30E, "P30E_TARGET_STATE_WORD) !=\n"
+     "\t\t    ARM64_MT6797_A72_P30E_TARGET_PUBLISHED ||",
+     "P30E_TARGET_STATE_WORD) !=\n"
+     "\t\t    ARM64_MT6797_A72_P30E_TARGET_CLAIMED ||"),
     (P30E, "CONTROLLER_SEQUENCE_WORD) != 1",
      "CONTROLLER_SEQUENCE_WORD) != 2"),
     (P30E, "TARGET_SEQUENCE_WORD) != 1", "TARGET_SEQUENCE_WORD) != 2"),
-    (P30E, "slot->target_boot_identity[i]", "slot->target_boot_identity[0]"),
+    (P30E, "identity != le64_to_cpu(READ_ONCE(\n"
+     "\t\t\t    slot->target_boot_identity[i]))",
+     "identity == le64_to_cpu(READ_ONCE(\n"
+     "\t\t\t    slot->target_boot_identity[i]))"),
     (P30E, "memchr_inv(slot->reserved", "memchr_inv(NULL"),
     (P30E, "p30e_crc64(&initial) !=", "p30e_crc64(&initial) =="),
     (P30E, "CONTROLLER_SEQUENCE_WORD, 2",
      "CONTROLLER_SEQUENCE_WORD, 1"),
-    (P30E, "&arm64_mt6797_a72_p30e_cpu9_slot",
-     "&arm64_mt6797_a72_p30e_cpu8_slot"),
-    (P30E, "smp_store_release((u64 *)&slot->wire.word[",
-     "WRITE_ONCE(*(u64 *)&slot->wire.word["),
+    (P30E, "struct arm64_mt6797_a72_p30e_slot *slot =\n"
+     "\t\t&arm64_mt6797_a72_p30e_cpu9_slot;",
+     "struct arm64_mt6797_a72_p30e_slot *slot =\n"
+     "\t\t&arm64_mt6797_a72_p30e_cpu8_slot;"),
+    (P30E, "smp_store_release((u64 *)&slot->wire.word[\n"
+     "\t\tARM64_MT6797_A72_P30E_TARGET_STATE_WORD]",
+     "WRITE_ONCE(*(u64 *)&slot->wire.word[\n"
+     "\t\tARM64_MT6797_A72_P30E_TARGET_STATE_WORD]"),
     (P30E_HEADER, "int arm64_mt6797_a72_p30e_rearm_cpu9(void);\n", ""),
 )
 

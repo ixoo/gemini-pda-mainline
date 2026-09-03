@@ -51,8 +51,8 @@ def validate_primitive(root: Path) -> list[str]:
     require(errors, "prepare_cpu9_rearm" in header,
             "testable rearm reconstruction prototype missing")
     for marker in (
-        "ARM64_MT6797_A72_P30E_MAGIC",
-        "ARM64_MT6797_A72_P30E_ABI_AND_SIZE",
+        "P30E_MAGIC_WORD) !=\n\t\t    ARM64_MT6797_A72_P30E_MAGIC",
+        "P30E_ABI_WORD) !=\n\t\t    ARM64_MT6797_A72_P30E_ABI_AND_SIZE",
         "ARM64_MT6797_A72_P30E_OPERATION_CPU9_UP",
         "ARM64_MT6797_A72_P30E_CPU9",
         "ARM64_MT6797_A72_P30E_MPIDR_CPU9",
@@ -65,7 +65,9 @@ def validate_primitive(root: Path) -> list[str]:
         "ARM64_MT6797_A72_P30E_TARGET_EFFECTS_WORD)",
         "ARM64_MT6797_A72_P30E_TARGET_ENTRY_PC_WORD) !=",
         "ARM64_MT6797_A72_P30E_TARGET_ENTRY_SP_WORD)",
-        "slot->target_boot_identity[i]", "memchr_inv(slot->reserved",
+        "identity != le64_to_cpu(READ_ONCE(\n"
+        "\t\t\t    slot->target_boot_identity[i]))",
+        "memchr_inv(slot->reserved",
         "p30e_crc64(&initial) !=", "CONTROLLER_SEQUENCE_WORD, 2",
     ):
         require(errors, marker in prepare,
