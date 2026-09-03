@@ -1,0 +1,205 @@
+From 1ec191d373090eb9750f7b4a2683e793ff85756d Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 3 Sep 2026 16:01:00 +0000
+Subject: [PATCH 1/2] arm64: mediatek: prove exact A72 terminal parent
+
+Publish a locked read-only proof only for exact retired CPU8 and
+CPU9 success identities, a held matching provider, complete
+membership, and idle owner and hotplug controllers.
+---
+ .../arm64/include/asm/mt6797_a72_membership.h | 34 ++++++++++
+ arch/arm64/kernel/mt6797_a72_membership.c     | 48 ++++++++++++++
+ .../arm64/kernel/mt6797_a72_membership_test.c | 62 +++++++++++++++++++
+ 3 files changed, 144 insertions(+)
+
+diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
+index 12ad5cb..7ab778d 100644
+--- a/arch/arm64/include/asm/mt6797_a72_membership.h
++++ b/arch/arm64/include/asm/mt6797_a72_membership.h
+@@ -290,6 +290,26 @@ struct mt6797_a72_transaction_identity {
+ 	u64 cookie;
+ };
+ 
++#define MT6797_A72_INITIAL_PARENT_PROOF_ABI 1U
++
++struct mt6797_a72_initial_parent_proof {
++	u32 abi;
++	u32 exact;
++	u32 health;
++	u32 owner_phase;
++	u32 hotplug_phase;
++	u32 members;
++	u32 retired_mask;
++	u32 hotplug_retired_mask;
++	u32 provider_state;
++	u32 controller_present;
++	u32 active_present;
++	u32 hotplug_active_present;
++	struct mt6797_a72_transaction_identity cpu8;
++	struct mt6797_a72_transaction_identity cpu9;
++	struct mt6797_a72_provider_identity provider_identity;
++};
++
+ struct mt6797_a72_call_budgets {
+ 	u8 preparation;
+ 	u8 provider_acquire;
+@@ -1152,6 +1172,20 @@ mt6797_a72_membership_snapshot(struct mt6797_a72_owner_snapshot *snapshot)
+ }
+ #endif
+ 
++#if IS_ENABLED(CONFIG_ARM64_MT6797_A72_P24_TRANSACTION_OWNER_MODEL) && \
++	IS_ENABLED(CONFIG_ARM64_MT6797_A72_CPU9_MEMBERSHIP)
++int mt6797_a72_membership_initial_parent_proof(
++	struct mt6797_a72_initial_parent_proof *proof);
++#else
++static inline int mt6797_a72_membership_initial_parent_proof(
++	struct mt6797_a72_initial_parent_proof *proof)
++{
++	if (proof)
++		*proof = (struct mt6797_a72_initial_parent_proof){};
++	return -EOPNOTSUPP;
++}
++#endif
++
+ #ifdef CONFIG_ARM64_MT6797_A72_P24_OWNER_TEST_SEED
+ void mt6797_a72_membership_test_reset(void);
+ void mt6797_a72_membership_test_seed_available(void);
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+index 457cd95..de49dcc 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -2797,6 +2797,54 @@ static bool mt6797_a72_cpu9_terminal_parent_valid_locked(void)
+ 			sizeof(cpu9->provider_identity));
+ }
+ 
++int mt6797_a72_membership_initial_parent_proof(
++	struct mt6797_a72_initial_parent_proof *proof)
++{
++	unsigned long flags;
++	int ret = -EPERM;
++
++	if (!proof)
++		return -EINVAL;
++	memset(proof, 0, sizeof(*proof));
++	mutex_lock(&a72_transition_lock);
++	raw_spin_lock_irqsave(&a72_state_lock, flags);
++	if (a72_owner.health == MT6797_A72_OWNER_AVAILABLE &&
++	    a72_owner.bootstrap_valid && a72_owner.members_valid &&
++	    a72_owner.phase == MT6797_A72_PHASE_IDLE &&
++	    a72_owner.hotplug_phase == MT6797_A72_HOTPLUG_IDLE &&
++	    a72_owner.members == (BIT(0) | BIT(1)) &&
++	    a72_owner.retired_mask == (BIT(0) | BIT(1)) &&
++	    !a72_owner.hotplug_retired_mask &&
++	    a72_owner.provider_state == MT6797_A72_PROVIDER_HELD &&
++	    mt6797_a72_provider_identity_valid(
++		    &a72_owner.provider_identity) &&
++	    !a72_owner.active.valid && !a72_owner.hotplug_active.valid &&
++	    !a72_owner.controller && !a72_owner.controller_cookie &&
++	    mt6797_a72_cpu9_terminal_parent_valid_locked()) {
++		proof->abi = MT6797_A72_INITIAL_PARENT_PROOF_ABI;
++		proof->exact = 1;
++		proof->health = a72_owner.health;
++		proof->owner_phase = a72_owner.phase;
++		proof->hotplug_phase = a72_owner.hotplug_phase;
++		proof->members = a72_owner.members;
++		proof->retired_mask = a72_owner.retired_mask;
++		proof->hotplug_retired_mask =
++			a72_owner.hotplug_retired_mask;
++		proof->provider_state = a72_owner.provider_state;
++		proof->controller_present = !!a72_owner.controller;
++		proof->active_present = a72_owner.active.valid;
++		proof->hotplug_active_present =
++			a72_owner.hotplug_active.valid;
++		proof->cpu8 = a72_owner.retired[0].identity;
++		proof->cpu9 = a72_owner.retired[1].identity;
++		proof->provider_identity = a72_owner.provider_identity;
++		ret = 0;
++	}
++	raw_spin_unlock_irqrestore(&a72_state_lock, flags);
++	mutex_unlock(&a72_transition_lock);
++	return ret;
++}
++
+ static bool
+ mt6797_a72_cpu9_active_valid_locked(const struct mt6797_a72_transaction *transaction)
+ {
+diff --git a/arch/arm64/kernel/mt6797_a72_membership_test.c b/arch/arm64/kernel/mt6797_a72_membership_test.c
+index 0322e14..a8e6cdc 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership_test.c
++++ b/arch/arm64/kernel/mt6797_a72_membership_test.c
+@@ -1702,6 +1702,67 @@ static void mt6797_a72_owner_cpu9_rejection_one_shot(struct kunit *test)
+ 	KUNIT_EXPECT_EQ(test, ret, -EPERM);
+ }
+ 
++static void mt6797_a72_initial_parent_proof_test(struct kunit *test)
++{
++	struct mt6797_a72_owner_test_state *state = test->priv;
++	struct mt6797_a72_initial_parent_proof proof;
++	int ret;
++
++	ret = mt6797_a72_membership_initial_parent_proof(NULL);
++	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
++	memset(&proof, 0xa5, sizeof(proof));
++	ret = mt6797_a72_membership_initial_parent_proof(&proof);
++	KUNIT_EXPECT_EQ(test, ret, -EPERM);
++	KUNIT_EXPECT_EQ(test, proof.abi, 0U);
++	KUNIT_EXPECT_EQ(test, proof.exact, 0U);
++
++	ret = mt6797_a72_test_seed_cpu9_terminal(&state->transaction);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	owner_observe(&state->before);
++	ret = mt6797_a72_membership_initial_parent_proof(&proof);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	KUNIT_EXPECT_EQ(test, proof.abi,
++			MT6797_A72_INITIAL_PARENT_PROOF_ABI);
++	KUNIT_EXPECT_EQ(test, proof.exact, 1U);
++	KUNIT_EXPECT_EQ(test, proof.health,
++			(u32)MT6797_A72_OWNER_AVAILABLE);
++	KUNIT_EXPECT_EQ(test, proof.owner_phase,
++			(u32)MT6797_A72_PHASE_IDLE);
++	KUNIT_EXPECT_EQ(test, proof.hotplug_phase,
++			(u32)MT6797_A72_HOTPLUG_IDLE);
++	KUNIT_EXPECT_EQ(test, proof.members, (u32)(BIT(0) | BIT(1)));
++	KUNIT_EXPECT_EQ(test, proof.retired_mask,
++			(u32)(BIT(0) | BIT(1)));
++	KUNIT_EXPECT_EQ(test, proof.hotplug_retired_mask, 0U);
++	KUNIT_EXPECT_EQ(test, proof.provider_state,
++			(u32)MT6797_A72_PROVIDER_HELD);
++	KUNIT_EXPECT_EQ(test, proof.controller_present, 0U);
++	KUNIT_EXPECT_EQ(test, proof.active_present, 0U);
++	KUNIT_EXPECT_EQ(test, proof.hotplug_active_present, 0U);
++	KUNIT_EXPECT_EQ(test, proof.cpu8.target_cpu, 8U);
++	KUNIT_EXPECT_EQ(test, proof.cpu8.target_mpidr, 0x200ULL);
++	KUNIT_EXPECT_EQ(test, proof.cpu9.target_cpu, 9U);
++	KUNIT_EXPECT_EQ(test, proof.cpu9.target_mpidr, 0x201ULL);
++	KUNIT_EXPECT_EQ(test, proof.provider_identity.generation,
++			state->before.owner.provider_identity.generation);
++	KUNIT_EXPECT_EQ(test, proof.provider_identity.cookie,
++			state->before.owner.provider_identity.cookie);
++	owner_observe(&state->after);
++	expect_unchanged(test, &state->before, &state->after);
++
++	ret = mt6797_a72_hotplug_prepare_down(9, CPUHP_OFFLINE,
++					      true, true, &state->hotplug);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	owner_observe(&state->before);
++	memset(&proof, 0xa5, sizeof(proof));
++	ret = mt6797_a72_membership_initial_parent_proof(&proof);
++	KUNIT_EXPECT_EQ(test, ret, -EPERM);
++	KUNIT_EXPECT_EQ(test, proof.abi, 0U);
++	KUNIT_EXPECT_EQ(test, proof.exact, 0U);
++	owner_observe(&state->after);
++	expect_unchanged(test, &state->before, &state->after);
++}
++
+ static void mt6797_a72_hotplug_success_lifecycle(struct kunit *test)
+ {
+ 	struct mt6797_a72_owner_test_state *state = test->priv;
+@@ -1964,6 +2025,7 @@ static struct kunit_case mt6797_a72_owner_cases[] = {
+ 	KUNIT_CASE(mt6797_a72_owner_cpu9_parent_mutations),
+ 	KUNIT_CASE(mt6797_a72_owner_cpu9_success_lifecycle),
+ 	KUNIT_CASE(mt6797_a72_owner_cpu9_rejection_one_shot),
++	KUNIT_CASE(mt6797_a72_initial_parent_proof_test),
+ 	KUNIT_CASE(mt6797_a72_hotplug_success_lifecycle),
+ 	KUNIT_CASE(mt6797_a72_hotplug_entry_rejections),
+ 	KUNIT_CASE(mt6797_a72_hotplug_precommit_rejection),

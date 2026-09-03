@@ -1,0 +1,633 @@
+From 222c1798cf920aafdd2b013009d4491c460f6e9d Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 3 Sep 2026 16:02:00 +0000
+Subject: [PATCH 2/2] soc: mediatek: prove exact A72 binder parent
+
+Combine the terminal membership proof with the exact CPU8 binder
+terminal, all ten online CPUs, the matching provider identity,
+and a read-only validation of the recent watchdog owner. Keep
+the proof disconnected from production execution.
+---
+ .../soc/mediatek/mt6797-a72-binder-internal.h |  11 ++
+ drivers/soc/mediatek/mt6797-a72-binder-test.c | 154 +++++++++++++++-
+ drivers/soc/mediatek/mt6797-a72-binder.c      | 174 +++++++++++++++++-
+ .../linux/soc/mediatek/mt6797-a72-binder.h    |  51 +++++
+ 4 files changed, 386 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-binder-internal.h b/drivers/soc/mediatek/mt6797-a72-binder-internal.h
+index 37c70ac..f63e115 100644
+--- a/drivers/soc/mediatek/mt6797-a72-binder-internal.h
++++ b/drivers/soc/mediatek/mt6797-a72-binder-internal.h
+@@ -57,8 +57,14 @@ struct mt6797_a72_binder_backend_ops {
+ #endif
+ 	int (*membership_publish_success)(struct mt6797_a72_transaction *transaction);
+ 	int (*membership_finalize_success)(struct mt6797_a72_transaction *transaction);
++	int (*membership_parent_proof)(
++		struct mt6797_a72_initial_parent_proof *proof);
+ 	int (*watchdog_takeover)(struct device *dev, unsigned int timeout_ms,
+ 				 struct mtk_wdt_recovery_result *result);
++	int (*watchdog_validate)(
++		struct device *dev, u64 identity,
++		struct mtk_wdt_recovery_validation *validation);
++	u64 (*monotonic_ns)(void);
+ 	int (*p27_acquire)(struct device *dev,
+ 			   const struct mt6797_a72_platform_effect_handle *handle,
+ 			   struct mt6797_a72_platform_effect_result *result);
+@@ -77,6 +83,7 @@ struct mt6797_a72_binder_backend_ops {
+ 			  bool cpu8_online, bool cpu9_online,
+ 			  struct mt6797_a72_platform_effect_result *result);
+ 	bool (*cpu_online)(unsigned int cpu);
++	unsigned int (*cpu_online_count)(void);
+ 	int (*ipi_call)(unsigned int cpu, smp_call_func_t func, void *info,
+ 			int wait);
+ };
+@@ -99,6 +106,7 @@ struct mt6797_a72_binder {
+ 	struct mt6797_a72_provider_response provider;
+ 	mt6797_a72_cpu_boot_fn cpu_boot;
+ 	atomic_t boot_claimed;
++	u64 watchdog_takeover_ns;
+ 	s32 p28_begin_ret;
+ 	s32 sram_ret;
+ 	s32 p28_complete_ret;
+@@ -123,6 +131,9 @@ struct mt6797_a72_binder {
+ #if IS_ENABLED(CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER_KUNIT_TEST)
+ void mt6797_a72_binder_test_init(struct mt6797_a72_binder *binder,
+ 				 const struct mt6797_a72_binder_backend_ops *backend);
++int mt6797_a72_binder_test_parent_proof(
++	const struct mt6797_a72_binder *binder,
++	struct mt6797_a72_binder_parent_proof *proof);
+ void
+ mt6797_a72_binder_test_diagnostic(const struct mt6797_a72_binder *binder,
+ 				  struct mt6797_a72_binder_diagnostic *snapshot);
+diff --git a/drivers/soc/mediatek/mt6797-a72-binder-test.c b/drivers/soc/mediatek/mt6797-a72-binder-test.c
+index 591d29a..78c9be7 100644
+--- a/drivers/soc/mediatek/mt6797-a72-binder-test.c
++++ b/drivers/soc/mediatek/mt6797-a72-binder-test.c
+@@ -12,6 +12,10 @@
+ #define TEST_COOKIE 9ULL
+ #define TEST_PROVIDER_GENERATION 17ULL
+ #define TEST_PROVIDER_COOKIE 19ULL
++#define TEST_CPU9_GENERATION 23ULL
++#define TEST_CPU9_COOKIE 29ULL
++#define TEST_WATCHDOG_IDENTITY 11ULL
++#define TEST_TAKEOVER_NS 10000000000ULL
+ #define TEST_MAX_EVENTS 96U
+ #define TEST_SELECTOR_STATUS BIT(22)
+ #define TEST_SELECTOR_LOW_MISMATCH BIT(0)
+@@ -61,6 +65,8 @@ struct mt6797_binder_test_state {
+ 	unsigned int membership_publishes;
+ 	unsigned int membership_finalizes;
+ 	unsigned int membership_rejects;
++	unsigned int watchdog_validations;
++	u64 monotonic_ns;
+ 	unsigned int checkpoint_fail_stage;
+ 	u32 selector_status;
+ 	u32 selector_xor;
+@@ -76,6 +82,8 @@ struct mt6797_binder_test_state {
+ #endif
+ 	bool terminal_fails;
+ 	bool cpu8_online;
++	bool cpu9_online;
++	bool parent_available;
+ };
+ 
+ static struct mt6797_binder_test_state *mt6797_binder_test_active;
+@@ -138,7 +146,10 @@ mt6797_binder_test_claim(struct mt6797_a72_transaction *transaction)
+ 	transaction->identity.abi = MT6797_A72_TRANSACTION_ABI;
+ 	transaction->identity.operation = ARM64_LATE_CPU_STARTUP_OP_CPU8_UP;
+ 	transaction->identity.target_cpu = 8;
++	transaction->identity.owner =
++		ARM64_LATE_CPU_STARTUP_OWNER_MEMBERSHIP;
+ 	transaction->identity.cpuhp_target = CPUHP_ONLINE;
++	transaction->identity.target_mpidr = 0x200;
+ 	transaction->identity.generation = TEST_GENERATION;
+ 	transaction->identity.cookie = TEST_COOKIE;
+ 	transaction->p30_token.generation = TEST_GENERATION;
+@@ -151,6 +162,66 @@ mt6797_binder_test_claim(struct mt6797_a72_transaction *transaction)
+ 	return 0;
+ }
+ 
++static int mt6797_binder_test_parent_proof(
++	struct mt6797_a72_initial_parent_proof *proof)
++{
++	struct mt6797_binder_test_state *state = mt6797_binder_test_active;
++	const struct mt6797_a72_transaction_identity *cpu8 =
++		&state->binder.transaction.identity;
++
++	memset(proof, 0, sizeof(*proof));
++	if (!state->parent_available)
++		return -EPERM;
++	proof->abi = MT6797_A72_INITIAL_PARENT_PROOF_ABI;
++	proof->exact = 1;
++	proof->health = MT6797_A72_OWNER_AVAILABLE;
++	proof->owner_phase = MT6797_A72_PHASE_IDLE;
++	proof->hotplug_phase = MT6797_A72_HOTPLUG_IDLE;
++	proof->members = BIT(0) | BIT(1);
++	proof->retired_mask = BIT(0) | BIT(1);
++	proof->provider_state = MT6797_A72_PROVIDER_HELD;
++	proof->cpu8 = *cpu8;
++	proof->cpu9.abi = MT6797_A72_TRANSACTION_ABI;
++	proof->cpu9.owner = ARM64_LATE_CPU_STARTUP_OWNER_MEMBERSHIP;
++	proof->cpu9.operation = ARM64_LATE_CPU_STARTUP_OP_CPU9_UP;
++	proof->cpu9.target_cpu = 9;
++	proof->cpu9.cpuhp_target = CPUHP_ONLINE;
++	proof->cpu9.target_mpidr = 0x201;
++	proof->cpu9.generation = TEST_CPU9_GENERATION;
++	proof->cpu9.cookie = TEST_CPU9_COOKIE;
++	proof->provider_identity = state->binder.transaction.provider_identity;
++	return 0;
++}
++
++static int mt6797_binder_test_watchdog_validate(
++	struct device *dev, u64 identity,
++	struct mtk_wdt_recovery_validation *validation)
++{
++	struct mt6797_binder_test_state *state = mt6797_binder_test_active;
++
++	(void)dev;
++	memset(validation, 0, sizeof(*validation));
++	state->watchdog_validations++;
++	if (identity != TEST_WATCHDOG_IDENTITY)
++		return -EACCES;
++	validation->identity = identity;
++	validation->owned = 1;
++	return 0;
++}
++
++static u64 mt6797_binder_test_monotonic_ns(void)
++{
++	return mt6797_binder_test_active->monotonic_ns ?:
++		TEST_TAKEOVER_NS;
++}
++
++static unsigned int mt6797_binder_test_online_count(void)
++{
++	struct mt6797_binder_test_state *state = mt6797_binder_test_active;
++
++	return 8 + state->cpu8_online + state->cpu9_online;
++}
++
+ static bool mt6797_binder_test_owns_token(const struct arm64_late_cpu_up_token *token)
+ {
+ 	return token && token->generation == TEST_GENERATION &&
+@@ -371,7 +442,8 @@ static int mt6797_binder_test_watchdog(struct device *dev,
+ 
+ 	(void)dev;
+ 	memset(result, 0, sizeof(*result));
+-	result->identity = state->malformed == TEST_MALFORMED_WATCHDOG ? 0 : 11;
++	result->identity = state->malformed == TEST_MALFORMED_WATCHDOG ?
++		0 : TEST_WATCHDOG_IDENTITY;
+ 	result->owned = 1;
+ 	mt6797_binder_test_event(TEST_EVENT_WATCHDOG);
+ 	return timeout_ms == MTK_WDT_RECOVERY_TIMEOUT_MS ? 0 : -EINVAL;
+@@ -513,7 +585,14 @@ static int mt6797_binder_test_dcm(struct device *dev,
+ 
+ static bool mt6797_binder_test_cpu_online(unsigned int cpu)
+ {
+-	return cpu == 8 && mt6797_binder_test_active->cpu8_online;
++	struct mt6797_binder_test_state *state =
++		mt6797_binder_test_active;
++
++	if (cpu < 8)
++		return true;
++	if (cpu == 8)
++		return state->cpu8_online;
++	return cpu == 9 && state->cpu9_online;
+ }
+ 
+ static int mt6797_binder_test_ipi(unsigned int cpu, smp_call_func_t func,
+@@ -550,13 +629,17 @@ static const struct mt6797_a72_binder_backend_ops mt6797_binder_test_ops = {
+ #endif
+ 	.membership_publish_success = mt6797_binder_test_publish_success,
+ 	.membership_finalize_success = mt6797_binder_test_finalize_success,
++	.membership_parent_proof = mt6797_binder_test_parent_proof,
+ 	.watchdog_takeover = mt6797_binder_test_watchdog,
++	.watchdog_validate = mt6797_binder_test_watchdog_validate,
++	.monotonic_ns = mt6797_binder_test_monotonic_ns,
+ 	.p27_acquire = mt6797_binder_test_p27,
+ 	.p27_release = mt6797_binder_test_p27_release,
+ 	.isolation_clear = mt6797_binder_test_isolation,
+ 	.sram_enable = mt6797_binder_test_sram,
+ 	.dcm_update = mt6797_binder_test_dcm,
+ 	.cpu_online = mt6797_binder_test_cpu_online,
++	.cpu_online_count = mt6797_binder_test_online_count,
+ 	.ipi_call = mt6797_binder_test_ipi,
+ };
+ 
+@@ -579,6 +662,7 @@ static int mt6797_binder_test_init(struct kunit *test)
+ 	if (!state)
+ 		return -ENOMEM;
+ 	mt6797_binder_test_active = state;
++	state->monotonic_ns = TEST_TAKEOVER_NS;
+ 	mt6797_a72_binder_test_init(&state->binder, &mt6797_binder_test_ops);
+ 	test->priv = state;
+ 	return 0;
+@@ -894,6 +978,71 @@ static void mt6797_binder_p30e_readback_test(struct kunit *test)
+ }
+ #endif
+ 
++static void mt6797_binder_parent_proof_test(struct kunit *test)
++{
++	struct mt6797_binder_test_state *state = test->priv;
++	struct mt6797_a72_binder_parent_proof proof;
++	struct mt6797_a72_binder before;
++	int ret;
++
++	KUNIT_ASSERT_EQ(test, mt6797_binder_test_run_to_completion(state), 0);
++	state->cpu9_online = true;
++	state->parent_available = true;
++	state->monotonic_ns = TEST_TAKEOVER_NS + 2000000000ULL;
++	before = state->binder;
++	ret = mt6797_a72_binder_test_parent_proof(&state->binder, &proof);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	KUNIT_EXPECT_EQ(test, proof.abi,
++			MT6797_A72_BINDER_PARENT_PROOF_ABI);
++	KUNIT_EXPECT_EQ(test, proof.exact, 1U);
++	KUNIT_EXPECT_EQ(test, proof.members, (u32)(BIT(0) | BIT(1)));
++	KUNIT_EXPECT_EQ(test, proof.online_mask,
++			MT6797_A72_BINDER_PARENT_ONLINE_MASK);
++	KUNIT_EXPECT_EQ(test, proof.online_count, 10U);
++	KUNIT_EXPECT_EQ(test, proof.cpu8.target_cpu, 8U);
++	KUNIT_EXPECT_EQ(test, proof.cpu8.target_mpidr, 0x200ULL);
++	KUNIT_EXPECT_EQ(test, proof.cpu9.target_cpu, 9U);
++	KUNIT_EXPECT_EQ(test, proof.cpu9.target_mpidr, 0x201ULL);
++	KUNIT_EXPECT_EQ(test, proof.provider_generation,
++			TEST_PROVIDER_GENERATION);
++	KUNIT_EXPECT_EQ(test, proof.provider_cookie, TEST_PROVIDER_COOKIE);
++	KUNIT_EXPECT_EQ(test, proof.watchdog_identity,
++			TEST_WATCHDOG_IDENTITY);
++	KUNIT_EXPECT_EQ(test, proof.watchdog_takeover_ns, TEST_TAKEOVER_NS);
++	KUNIT_EXPECT_EQ(test, proof.watchdog_age_ns, 2000000000ULL);
++	KUNIT_EXPECT_EQ(test, state->watchdog_validations, 1U);
++	KUNIT_EXPECT_EQ(test, memcmp(&before, &state->binder,
++				     sizeof(before)), 0);
++
++	state->cpu9_online = false;
++	memset(&proof, 0xa5, sizeof(proof));
++	ret = mt6797_a72_binder_test_parent_proof(&state->binder, &proof);
++	KUNIT_EXPECT_EQ(test, ret, -EPROTO);
++	KUNIT_EXPECT_EQ(test, proof.exact, 0U);
++	state->cpu9_online = true;
++
++	state->monotonic_ns = TEST_TAKEOVER_NS + 5000000001ULL;
++	memset(&proof, 0xa5, sizeof(proof));
++	ret = mt6797_a72_binder_test_parent_proof(&state->binder, &proof);
++	KUNIT_EXPECT_EQ(test, ret, -ETIME);
++	KUNIT_EXPECT_EQ(test, proof.exact, 0U);
++	state->monotonic_ns = TEST_TAKEOVER_NS + 2000000000ULL;
++
++	state->parent_available = false;
++	memset(&proof, 0xa5, sizeof(proof));
++	ret = mt6797_a72_binder_test_parent_proof(&state->binder, &proof);
++	KUNIT_EXPECT_EQ(test, ret, -EPERM);
++	KUNIT_EXPECT_EQ(test, proof.exact, 0U);
++	state->parent_available = true;
++
++	state->binder.result.terminal =
++		MT6797_A72_TRANSITION_FAULT_RETAIN_POSTISO;
++	memset(&proof, 0xa5, sizeof(proof));
++	ret = mt6797_a72_binder_test_parent_proof(&state->binder, &proof);
++	KUNIT_EXPECT_EQ(test, ret, -EPROTO);
++	KUNIT_EXPECT_EQ(test, proof.exact, 0U);
++}
++
+ static void mt6797_binder_one_shot_test(struct kunit *test)
+ {
+ 	struct mt6797_binder_test_state *state = test->priv;
+@@ -928,6 +1077,7 @@ static struct kunit_case mt6797_binder_test_cases[] = {
+ #ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
+ 	KUNIT_CASE(mt6797_binder_p30e_readback_test),
+ #endif
++	KUNIT_CASE(mt6797_binder_parent_proof_test),
+ 	KUNIT_CASE(mt6797_binder_one_shot_test),
+ 	{}
+ };
+diff --git a/drivers/soc/mediatek/mt6797-a72-binder.c b/drivers/soc/mediatek/mt6797-a72-binder.c
+index 613e559..20df4f9 100644
+--- a/drivers/soc/mediatek/mt6797-a72-binder.c
++++ b/drivers/soc/mediatek/mt6797-a72-binder.c
+@@ -10,6 +10,7 @@
+ #include <linux/gemini_transition_ledger.h>
+ #include <linux/init.h>
+ #include <linux/kernel.h>
++#include <linux/ktime.h>
+ #include <linux/mt6797-a72-provider.h>
+ #include <linux/mtk_wdt.h>
+ #include <linux/mutex.h>
+@@ -197,6 +198,142 @@ mt6797_a72_binder_fill_diagnostic(const struct mt6797_a72_binder *binder,
+ #endif
+ }
+ 
++static bool mt6797_a72_binder_backend_valid(
++	const struct mt6797_a72_binder_backend_ops *ops);
++
++static void mt6797_a72_binder_copy_parent_identity(
++	struct mt6797_a72_binder_parent_identity *destination,
++	const struct mt6797_a72_transaction_identity *source)
++{
++	destination->abi = source->abi;
++	destination->owner = source->owner;
++	destination->operation = source->operation;
++	destination->target_cpu = source->target_cpu;
++	destination->cpuhp_target = source->cpuhp_target;
++	destination->target_mpidr = source->target_mpidr;
++	destination->cpu_on_entry_pa = source->cpu_on_entry_pa;
++	destination->generation = source->generation;
++	destination->cookie = source->cookie;
++}
++
++static int mt6797_a72_binder_parent_proof_locked(
++	const struct mt6797_a72_binder *binder,
++	struct mt6797_a72_binder_parent_proof *proof)
++{
++	struct mt6797_a72_initial_parent_proof membership = { };
++	struct mtk_wdt_recovery_validation watchdog = { };
++	const struct mt6797_a72_transition_result *result = &binder->result;
++	const u32 retained = MT6797_A72_TRANSITION_OWNED_P27 |
++		MT6797_A72_TRANSITION_OWNED_PROVIDER |
++		MT6797_A72_TRANSITION_OWNED_CPU8;
++	u64 observed_ns;
++	u32 online_count;
++	u32 online_mask = 0;
++	unsigned int cpu;
++	int ret;
++
++	memset(proof, 0, sizeof(*proof));
++	if (!mt6797_a72_binder_backend_valid(binder->backend))
++		return -EPROTO;
++	ret = binder->backend->membership_parent_proof(&membership);
++	if (ret)
++		return ret;
++	for (cpu = 0; cpu <= MT6797_A72_TRANSITION_CPU9; cpu++)
++		if (binder->backend->cpu_online(cpu))
++			online_mask |= BIT(cpu);
++	online_count = binder->backend->cpu_online_count();
++	ret = binder->backend->watchdog_validate(
++		binder->watchdog, result->watchdog_identity, &watchdog);
++	if (ret)
++		return ret;
++	observed_ns = binder->backend->monotonic_ns();
++
++	if (membership.abi != MT6797_A72_INITIAL_PARENT_PROOF_ABI ||
++	    membership.exact != 1 ||
++	    membership.health != MT6797_A72_OWNER_AVAILABLE ||
++	    membership.owner_phase != MT6797_A72_PHASE_IDLE ||
++	    membership.hotplug_phase != MT6797_A72_HOTPLUG_IDLE ||
++	    membership.members != (BIT(0) | BIT(1)) ||
++	    membership.retired_mask != (BIT(0) | BIT(1)) ||
++	    membership.hotplug_retired_mask ||
++	    membership.provider_state != MT6797_A72_PROVIDER_HELD ||
++	    membership.controller_present || membership.active_present ||
++	    membership.hotplug_active_present ||
++	    atomic_read(&binder->boot_claimed) != 1 ||
++	    atomic_read(&binder->transition.consumed) != 1 ||
++	    atomic_read_acquire(&binder->transition.lifecycle) !=
++		    MT6797_A72_TRANSITION_LIFECYCLE_TERMINAL ||
++	    result->terminal != MT6797_A72_TRANSITION_CPU8_ONLINE_PROOF ||
++	    result->last_stage != MT6797_A72_TRANSITION_STAGE_MEMBERSHIP ||
++	    result->stage_errno || result->rollback_errno ||
++	    result->checkpoint_errno || !result->attempted ||
++	    !result->watchdog_armed || !result->p27_owned ||
++	    !result->provider_owned || !result->membership_published ||
++	    !result->cpu8_online || result->cpu9_online ||
++	    result->rollback_mask || result->retained_mask != retained ||
++	    result->cpu_requests != 1 || result->cpu_off_requests ||
++	    result->retries || result->terminal_commits != 1 ||
++	    !binder->transaction.valid ||
++	    !binder->transaction.cpu8_success_published ||
++	    memcmp(&binder->transaction.identity, &membership.cpu8,
++		   sizeof(membership.cpu8)) ||
++	    memcmp(&binder->transaction.provider_identity,
++		   &membership.provider_identity,
++		   sizeof(membership.provider_identity)) ||
++	    online_mask != MT6797_A72_BINDER_PARENT_ONLINE_MASK ||
++	    online_count != 10 || !result->watchdog_identity ||
++	    !binder->watchdog_takeover_ns ||
++	    watchdog.identity != result->watchdog_identity ||
++	    watchdog.owned != 1 || observed_ns < binder->watchdog_takeover_ns)
++		return -EPROTO;
++	if (observed_ns - binder->watchdog_takeover_ns >
++	    MT6797_A72_BINDER_PARENT_MAX_AGE_MS * 1000000ULL)
++		return -ETIME;
++
++	proof->abi = MT6797_A72_BINDER_PARENT_PROOF_ABI;
++	proof->exact = 1;
++	proof->health = membership.health;
++	proof->owner_phase = membership.owner_phase;
++	proof->hotplug_phase = membership.hotplug_phase;
++	proof->members = membership.members;
++	proof->retired_mask = membership.retired_mask;
++	proof->hotplug_retired_mask = membership.hotplug_retired_mask;
++	proof->provider_state = membership.provider_state;
++	proof->controller_present = membership.controller_present;
++	proof->active_present = membership.active_present;
++	proof->hotplug_active_present = membership.hotplug_active_present;
++	proof->online_mask = online_mask;
++	proof->online_count = online_count;
++	mt6797_a72_binder_copy_parent_identity(&proof->cpu8,
++					       &membership.cpu8);
++	mt6797_a72_binder_copy_parent_identity(&proof->cpu9,
++					       &membership.cpu9);
++	proof->provider_generation = membership.provider_identity.generation;
++	proof->provider_cookie = membership.provider_identity.cookie;
++	proof->watchdog_identity = result->watchdog_identity;
++	proof->watchdog_takeover_ns = binder->watchdog_takeover_ns;
++	proof->observed_ns = observed_ns;
++	proof->watchdog_age_ns = observed_ns - binder->watchdog_takeover_ns;
++	return 0;
++}
++
++int mt6797_a72_binder_parent_proof(
++	struct mt6797_a72_binder_parent_proof *proof)
++{
++	struct mt6797_a72_binder *binder;
++	int ret;
++
++	if (!proof)
++		return -EINVAL;
++	memset(proof, 0, sizeof(*proof));
++	mutex_lock(&mt6797_a72_binder_publish_lock);
++	binder = mt6797_a72_binder_ready();
++	ret = binder ? mt6797_a72_binder_parent_proof_locked(binder, proof) :
++		-EAGAIN;
++	mutex_unlock(&mt6797_a72_binder_publish_lock);
++	return ret;
++}
++
+ int
+ mt6797_a72_binder_diagnostic_snapshot(struct mt6797_a72_binder_diagnostic *snapshot)
+ {
+@@ -216,6 +353,16 @@ mt6797_a72_binder_diagnostic_snapshot(struct mt6797_a72_binder_diagnostic *snaps
+ 	return ret;
+ }
+ 
++static u64 mt6797_a72_binder_monotonic_ns(void)
++{
++	return ktime_get_ns();
++}
++
++static unsigned int mt6797_a72_binder_cpu_online_count(void)
++{
++	return num_online_cpus();
++}
++
+ static bool mt6797_a72_binder_cpu_online(unsigned int cpu)
+ {
+ 	return cpu_online(cpu);
+@@ -317,13 +464,18 @@ mt6797_a72_binder_production_backend = {
+ 		mt6797_a72_membership_publish_cpu8_success,
+ 	.membership_finalize_success =
+ 		mt6797_a72_membership_finalize_cpu8_success,
++	.membership_parent_proof =
++		mt6797_a72_membership_initial_parent_proof,
+ 	.watchdog_takeover = mtk_wdt_recovery_takeover,
++	.watchdog_validate = mtk_wdt_recovery_validate,
++	.monotonic_ns = mt6797_a72_binder_monotonic_ns,
+ 	.p27_acquire = mt6797_a72_platform_effect_p27_acquire,
+ 	.p27_release = mt6797_a72_platform_effect_p27_release,
+ 	.isolation_clear = mt6797_a72_platform_effect_isolation_clear,
+ 	.sram_enable = mt6797_bigidvfs_sram_enable,
+ 	.dcm_update = mt6797_a72_platform_effect_dcm_update,
+ 	.cpu_online = mt6797_a72_binder_cpu_online,
++	.cpu_online_count = mt6797_a72_binder_cpu_online_count,
+ 	.ipi_call = mt6797_a72_binder_ipi_call,
+ };
+ 
+@@ -339,10 +491,12 @@ mt6797_a72_binder_backend_valid(const struct mt6797_a72_binder_backend_ops *ops)
+ 	    !ops->membership_provider_abort || !ops->membership_begin_p28 ||
+ 	    !ops->membership_complete_p28 || !ops->membership_complete_p29 ||
+ 	    !ops->membership_begin_cpu_on || !ops->membership_publish_success ||
+-	    !ops->membership_finalize_success || !ops->watchdog_takeover ||
++	    !ops->membership_finalize_success ||
++	    !ops->membership_parent_proof || !ops->watchdog_takeover ||
++	    !ops->watchdog_validate || !ops->monotonic_ns ||
+ 	    !ops->p27_acquire || !ops->p27_release || !ops->isolation_clear ||
+ 	    !ops->sram_enable || !ops->dcm_update || !ops->cpu_online ||
+-	    !ops->ipi_call)
++	    !ops->cpu_online_count || !ops->ipi_call)
+ 		return false;
+ #ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
+ 	if (!ops->p30e_prepare || !ops->p30e_arm || !ops->p30e_readback)
+@@ -428,16 +582,21 @@ static int mt6797_a72_binder_watchdog(void *context, unsigned int timeout_ms,
+ {
+ 	struct mt6797_a72_binder *binder = context;
+ 	struct mtk_wdt_recovery_result result = { };
++	u64 takeover_ns;
+ 	int ret;
+ 
+ 	if (!identity || timeout_ms != MTK_WDT_RECOVERY_TIMEOUT_MS)
+ 		return -EINVAL;
++	takeover_ns = binder->backend->monotonic_ns();
++	if (!takeover_ns)
++		return -EPROTO;
+ 	ret = binder->backend->watchdog_takeover(binder->watchdog, timeout_ms,
+ 						 &result);
+ 	if (ret)
+ 		return ret;
+ 	if (!result.identity || result.owned != 1)
+ 		return -EPROTO;
++	binder->watchdog_takeover_ns = takeover_ns;
+ 	*identity = result.identity;
+ 	return 0;
+ }
+@@ -1010,6 +1169,15 @@ void mt6797_a72_binder_test_init(struct mt6797_a72_binder *binder,
+ 	atomic_set(&binder->boot_claimed, 0);
+ }
+ 
++int mt6797_a72_binder_test_parent_proof(
++	const struct mt6797_a72_binder *binder,
++	struct mt6797_a72_binder_parent_proof *proof)
++{
++	if (!binder || !proof)
++		return -EINVAL;
++	return mt6797_a72_binder_parent_proof_locked(binder, proof);
++}
++
+ void
+ mt6797_a72_binder_test_diagnostic(const struct mt6797_a72_binder *binder,
+ 				  struct mt6797_a72_binder_diagnostic *snapshot)
+@@ -1087,6 +1255,8 @@ static int mt6797_a72_binder_probe(struct platform_device *pdev)
+ 
+ 	static_assert(MT6797_A72_TRANSITION_RECOVERY_MS ==
+ 		      MTK_WDT_RECOVERY_TIMEOUT_MS);
++	static_assert(MT6797_A72_BINDER_PARENT_MAX_AGE_MS <
++		      MTK_WDT_RECOVERY_TIMEOUT_MS);
+ 	binder = devm_kzalloc(&pdev->dev, sizeof(*binder), GFP_KERNEL);
+ 	if (!binder)
+ 		return -ENOMEM;
+diff --git a/include/linux/soc/mediatek/mt6797-a72-binder.h b/include/linux/soc/mediatek/mt6797-a72-binder.h
+index d82d66f..9aff4b3 100644
+--- a/include/linux/soc/mediatek/mt6797-a72-binder.h
++++ b/include/linux/soc/mediatek/mt6797-a72-binder.h
+@@ -26,6 +26,47 @@ typedef int (*mt6797_a72_cpu_boot_fn)(unsigned int cpu);
+ #define MT6797_A72_BINDER_SRAM_MATCH_SEALED		BIT(11)
+ #define MT6797_A72_BINDER_SRAM_REQUIRED_MASK		GENMASK(11, 0)
+ 
++#define MT6797_A72_BINDER_PARENT_PROOF_ABI 1U
++#define MT6797_A72_BINDER_PARENT_MAX_AGE_MS 5000U
++#define MT6797_A72_BINDER_PARENT_ONLINE_MASK GENMASK(9, 0)
++
++struct mt6797_a72_binder_parent_identity {
++	u32 abi;
++	u32 owner;
++	u32 operation;
++	u32 target_cpu;
++	u32 cpuhp_target;
++	u64 target_mpidr;
++	u64 cpu_on_entry_pa;
++	u64 generation;
++	u64 cookie;
++};
++
++struct mt6797_a72_binder_parent_proof {
++	u32 abi;
++	u32 exact;
++	u32 health;
++	u32 owner_phase;
++	u32 hotplug_phase;
++	u32 members;
++	u32 retired_mask;
++	u32 hotplug_retired_mask;
++	u32 provider_state;
++	u32 controller_present;
++	u32 active_present;
++	u32 hotplug_active_present;
++	u32 online_mask;
++	u32 online_count;
++	struct mt6797_a72_binder_parent_identity cpu8;
++	struct mt6797_a72_binder_parent_identity cpu9;
++	u64 provider_generation;
++	u64 provider_cookie;
++	u64 watchdog_identity;
++	u64 watchdog_takeover_ns;
++	u64 observed_ns;
++	u64 watchdog_age_ns;
++};
++
+ struct mt6797_a72_binder_diagnostic {
+ 	u32 abi;
+ 	u32 lifecycle;
+@@ -99,6 +140,8 @@ struct mt6797_a72_binder_diagnostic {
+ 
+ #if IS_ENABLED(CONFIG_MTK_MT6797_A72_DEFAULT_OFF_BINDER)
+ bool mt6797_a72_binder_available(void);
++int mt6797_a72_binder_parent_proof(
++	struct mt6797_a72_binder_parent_proof *proof);
+ int
+ mt6797_a72_binder_diagnostic_snapshot(struct mt6797_a72_binder_diagnostic *snapshot);
+ int mt6797_a72_binder_preflight(unsigned int cpu, enum cpuhp_state target);
+@@ -111,6 +154,14 @@ int mt6797_a72_binder_complete(unsigned int cpu, enum cpuhp_state target);
+ int mt6797_a72_binder_failure(unsigned int cpu, int error,
+ 			      bool *publish_p32);
+ #else
++static inline int mt6797_a72_binder_parent_proof(
++	struct mt6797_a72_binder_parent_proof *proof)
++{
++	if (proof)
++		*proof = (struct mt6797_a72_binder_parent_proof){};
++	return -EOPNOTSUPP;
++}
++
+ static inline bool mt6797_a72_binder_available(void)
+ {
+ 	return false;
