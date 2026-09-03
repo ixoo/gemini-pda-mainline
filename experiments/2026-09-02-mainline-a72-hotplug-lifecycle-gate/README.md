@@ -1455,3 +1455,27 @@ one fresh boot for stage-18 repeatability plus exact cluster0 CPU0-3,
 cluster1 CPU4-7, cluster2 CPU8-9 topology, without stress. Only after that
 passes may the same topology-preserving artifact receive one separate bounded
 load/coherency attempt.
+
+That topology-preserving successor is now constructed without rebuilding or
+changing the proven kernel package. Two independent compositions retain exact
+package commit `8ae7643c...`, A41 identity `d4940602...`, and the previously
+accepted topology-serviceability base `4b05758f...`; they are byte-identical
+at `1f34ddb9...`. Independent structural validation proves the final delta is
+that topology/serviceability tree plus one exact package A41 leaf, confirms
+clusters CPU0-3, CPU4-7, and CPU8-9, and rejects all 13 mutations, including
+three topology mutations. Two independent Android-v0/LK builds are
+byte-identical at raw `e02bfd85...` and exact 16 MiB `6ba8c953...`; both pass
+all 32 LK gates and reject all six container mutations. The pristine
+pre-trigger suite rejects eight mutations, and the no-load stage-18/topology
+classifier accepts its success fixture and rejects seven mutations. Exact
+identities and decisions are retained in
+[`results/topology-repeat-candidate-8ae7643c-20260903.txt`](results/topology-repeat-candidate-8ae7643c-20260903.txt).
+
+No device or physical backend was used during construction, and no native VM
+build occurred. This is not a new kernel-build claim: it deliberately reuses
+the exact already-validated Buildbox package and changes only the DT/container
+composition needed to restore the canonical CPU map. **Selected next:**
+publish the tooling and candidate record, then deploy exact `6ba8c953...` to
+live-GPT-resolved inactive `boot2`, require both full readbacks, and shut the
+device down. One fresh owner-selected boot may then execute the sole lifecycle
+trigger and read only the ten topology views; load remains explicitly absent.

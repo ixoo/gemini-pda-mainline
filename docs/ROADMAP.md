@@ -7846,6 +7846,20 @@ passes, spend one separate boot of the same artifact on bounded topology/RAM
 load and coherency observation. Only then broaden the matrix to repeated cold
 boot, hotplug, thermal, suspend, and scheduler validation.
 
+The topology-preserving candidate is now deterministic. It reuses exact
+Buildbox package `8ae7643c...` and A41 identity `d4940602...`, replaces only
+the flat composition base with proven `4b05758f...`, and independently proves
+the final DT contains exact clusters CPU0-3, CPU4-7, and CPU8-9 plus the
+package provenance leaf. Independent builds agree on raw `e02bfd85...` and
+exact 16 MiB `6ba8c953...`; all 32 LK gates, two container validators, 13 DT
+mutations, eight pre-trigger mutations, and seven runtime-classifier mutations
+pass their expected outcomes. **Selected next:** publish this exact record and
+tooling, deploy it once to inactive live-GPT `boot2` with both full readbacks
+and clean shutdown, then run one fresh no-load lifecycle/topology attempt. A
+full stage-18 repeat with exact 4+4+2 sysfs topology advances the same artifact
+to one separate bounded load/coherency boot; any other result retires it for
+classification before further testing.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;
