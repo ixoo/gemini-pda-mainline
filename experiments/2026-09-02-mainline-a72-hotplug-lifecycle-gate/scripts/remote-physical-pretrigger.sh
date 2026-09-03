@@ -21,9 +21,9 @@ $BB printf 'cpu_offline='; $BB cat /sys/devices/system/cpu/offline
 $BB printf 'controller_bound='
 if [ -r "$STATUS" ]; then $BB printf '1\n'; else $BB printf '0\n'; fi
 $BB printf 'binder_bound='
-if [ -d /sys/bus/platform/devices/a72-admission-binder ]; then $BB printf '1\n'; else $BB printf '0\n'; fi
+if [ -d /sys/bus/platform/devices/a72-binder ]; then $BB printf '1\n'; else $BB printf '0\n'; fi
 $BB printf 'platform_state_bound='
-if [ -d /sys/bus/platform/devices/10006000.a72-platform-state ]; then $BB printf '1\n'; else $BB printf '0\n'; fi
+if [ -d /sys/bus/platform/devices/10222000.a72-platform-state ]; then $BB printf '1\n'; else $BB printf '0\n'; fi
 $BB printf 'status_mode='; $BB stat -c '%a' "$STATUS" 2>/dev/null || $BB printf 'missing\n'
 $BB printf 'trigger_mode='; $BB stat -c '%a' "$TRIGGER" 2>/dev/null || $BB printf 'missing\n'
 $BB printf 'sysfs_options='; $BB awk "\$2 == \"/sys\" { print \$4 }" /proc/mounts
