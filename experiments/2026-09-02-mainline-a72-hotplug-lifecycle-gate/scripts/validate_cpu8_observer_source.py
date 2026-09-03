@@ -177,6 +177,16 @@ def main() -> int:
             "return -EALREADY",
         ):
             require(token in run, f"controller gate missing: {token}")
+        require(
+            re.search(
+                r"atomic_cmpxchg\(&observer->state,\s*"
+                r"MT6797_A72_CPU8_OBSERVER_IDLE,\s*"
+                r"MT6797_A72_CPU8_OBSERVER_ARMED\)\s*!=\s*"
+                r"MT6797_A72_CPU8_OBSERVER_IDLE",
+                run,
+            ) is not None,
+            "one-shot IDLE-to-ARMED transition changed",
+        )
         require(run.count("ops->dispatch(") == 1, "dispatch retry added")
         require(run.count("ops->wait_timeout(") == 1, "controller wait retry added")
 
