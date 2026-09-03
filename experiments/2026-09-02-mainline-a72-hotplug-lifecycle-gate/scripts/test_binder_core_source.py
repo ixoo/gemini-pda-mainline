@@ -22,14 +22,44 @@ PATHS = (
 
 MUTATIONS = (
     ("drivers/soc/mediatek/Kconfig",
-     "\tdepends on MTK_MT6797_A72_RESTORE_EXECUTOR\n\tdefault n\n",
-     "\tdepends on MTK_MT6797_A72_RESTORE_EXECUTOR\n\tdefault y\n"),
+     "config MTK_MT6797_A72_HOTPLUG_BINDER_CORE\n"
+     "\tbool \"MediaTek MT6797 disconnected A72 hotplug binder core\"\n"
+     "\tdepends on ARM64 && ARCH_MEDIATEK\n"
+     "\tdepends on MTK_MT6797_A72_DEFAULT_OFF_BINDER\n"
+     "\tdepends on PSTORE_GEMINI_A72_HOTPLUG_LEDGER\n"
+     "\tdepends on MTK_MT6797_A72_HOTPLUG_SNAPSHOT\n"
+     "\tdepends on MTK_MT6797_A72_CPU8_OBSERVER\n"
+     "\tdepends on MTK_MT6797_A72_HOTPLUG_EXECUTOR\n"
+     "\tdepends on MTK_MT6797_A72_RESTORE_EXECUTOR\n"
+     "\tdefault n\n",
+     "config MTK_MT6797_A72_HOTPLUG_BINDER_CORE\n"
+     "\tbool \"MediaTek MT6797 disconnected A72 hotplug binder core\"\n"
+     "\tdepends on ARM64 && ARCH_MEDIATEK\n"
+     "\tdepends on MTK_MT6797_A72_DEFAULT_OFF_BINDER\n"
+     "\tdepends on PSTORE_GEMINI_A72_HOTPLUG_LEDGER\n"
+     "\tdepends on MTK_MT6797_A72_HOTPLUG_SNAPSHOT\n"
+     "\tdepends on MTK_MT6797_A72_CPU8_OBSERVER\n"
+     "\tdepends on MTK_MT6797_A72_HOTPLUG_EXECUTOR\n"
+     "\tdepends on MTK_MT6797_A72_RESTORE_EXECUTOR\n"
+     "\tdefault y\n"),
     ("drivers/soc/mediatek/Kconfig",
-     "\tdepends on PSTORE_GEMINI_A72_HOTPLUG_LEDGER\n", ""),
+     "\tdepends on MTK_MT6797_A72_DEFAULT_OFF_BINDER\n"
+     "\tdepends on PSTORE_GEMINI_A72_HOTPLUG_LEDGER\n"
+     "\tdepends on MTK_MT6797_A72_HOTPLUG_SNAPSHOT\n",
+     "\tdepends on MTK_MT6797_A72_DEFAULT_OFF_BINDER\n"
+     "\tdepends on MTK_MT6797_A72_HOTPLUG_SNAPSHOT\n"),
     ("drivers/soc/mediatek/Kconfig",
-     "\tdepends on MTK_MT6797_A72_CPU8_OBSERVER\n", ""),
+     "\tdepends on MTK_MT6797_A72_HOTPLUG_SNAPSHOT\n"
+     "\tdepends on MTK_MT6797_A72_CPU8_OBSERVER\n"
+     "\tdepends on MTK_MT6797_A72_HOTPLUG_EXECUTOR\n",
+     "\tdepends on MTK_MT6797_A72_HOTPLUG_SNAPSHOT\n"
+     "\tdepends on MTK_MT6797_A72_HOTPLUG_EXECUTOR\n"),
     ("drivers/soc/mediatek/Kconfig",
-     "\tdepends on MTK_MT6797_A72_RESTORE_EXECUTOR\n", ""),
+     "\tdepends on MTK_MT6797_A72_HOTPLUG_EXECUTOR\n"
+     "\tdepends on MTK_MT6797_A72_RESTORE_EXECUTOR\n"
+     "\tdefault n\n",
+     "\tdepends on MTK_MT6797_A72_HOTPLUG_EXECUTOR\n"
+     "\tdefault n\n"),
     ("drivers/soc/mediatek/mt6797-a72-hotplug-binder-core-internal.h",
      "MT6797_A72_HOTPLUG_BINDER_CPU9 9U",
      "MT6797_A72_HOTPLUG_BINDER_CPU9 8U"),
