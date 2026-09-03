@@ -1,0 +1,45 @@
+From 9b652f0f09a7a0f5c8a3b620f7d144e59318ed77 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 3 Sep 2026 19:45:00 +0000
+Subject: [PATCH] pstore: fix A72 hotplug v3 success fixture
+
+The v3 ledger adds the P30E_REARMED stage before secondary completion,
+but the success fixture still marks stage 17 as the terminal restore.
+Exercise the new stage and seal the ledger at stage 18 instead.
+---
+ fs/pstore/gemini_a72_hotplug_ledger_test.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/fs/pstore/gemini_a72_hotplug_ledger_test.c b/fs/pstore/gemini_a72_hotplug_ledger_test.c
+index 01838e3..4db9037 100644
+--- a/fs/pstore/gemini_a72_hotplug_ledger_test.c
++++ b/fs/pstore/gemini_a72_hotplug_ledger_test.c
+@@ -139,6 +139,6 @@ static void hotplug_success_sequence_test(struct kunit *test)
+ {
+ 	static const u32 stages[] = { 1, 2, 3, 4, 5, 6, 7, 9, 10, 11,
+-				      12, 13, 14, 15, 16, 17 };
++				      12, 13, 14, 15, 16, 17, 18 };
+ 	struct gemini_a72_hotplug_ledger_record latest;
+ 	struct gemini_a72_hotplug_ledger_record record;
+ 	struct gemini_a72_hotplug_ledger_owner owner = {};
+@@ -152,6 +152,6 @@ static void hotplug_success_sequence_test(struct kunit *test)
+ 		0x1234567887654321ULL), 0);
+ 	for (index = 0; index < ARRAY_SIZE(stages); index++) {
+-		u32 terminal = stages[index] == 17 ?
++		u32 terminal = stages[index] == 18 ?
+ 			GEMINI_A72_HOTPLUG_RESTORED_SUCCESS : 0;
+ 
+ 		hotplug_test_fill(&record, stages[index], terminal, 0);
+@@ -165,8 +165,8 @@ static void hotplug_success_sequence_test(struct kunit *test)
+ 	KUNIT_EXPECT_TRUE(test, owner.sealed);
+ 	KUNIT_ASSERT_TRUE(test, gemini_a72_hotplug_ledger_read_latest(
+ 		&hotplug_test_ops, &state, &latest, &copy));
+-	KUNIT_EXPECT_EQ(test, latest.generation, 16U);
+-	KUNIT_EXPECT_EQ(test, latest.stage, 17U);
++	KUNIT_EXPECT_EQ(test, latest.generation, 17U);
++	KUNIT_EXPECT_EQ(test, latest.stage, 18U);
+ 	KUNIT_EXPECT_EQ(test, latest.terminal,
+ 			(u32)GEMINI_A72_HOTPLUG_RESTORED_SUCCESS);
+ 	KUNIT_EXPECT_EQ(test, latest.online_mask, GENMASK(9, 0));
+-- 
+2.51.0
