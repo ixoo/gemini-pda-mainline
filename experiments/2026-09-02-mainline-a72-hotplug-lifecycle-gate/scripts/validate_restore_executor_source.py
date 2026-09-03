@@ -41,7 +41,7 @@ def validate(root: Path, require_tests: bool) -> None:
             "restore executor Kconfig missing or duplicated")
     block = kconfig.split(
         "config MTK_MT6797_A72_RESTORE_EXECUTOR\n", 1)[1]
-    block = block.split("config MTK_MT6797_A72_RESTORE_EXECUTOR_KUNIT_TEST", 1)[0]
+    block = block.split("\nconfig ", 1)[0]
     for token in (
         "\tdepends on ARM64 && ARCH_MEDIATEK\n",
         "\tdepends on ARM64_MT6797_A72_CPU9_MEMBERSHIP\n",
