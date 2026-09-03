@@ -95,6 +95,14 @@ handling, and exact restore token are implemented and machine-checked.
   `physical_executor_test_edits.py`, `validate_physical_executor_source.py`,
   and `test_physical_executor_source_validator.py` define the disconnected
   physical executor, its eight memory-only tests, and 18 rejecting mutations.
+- `scripts/intersected_status_source_edits.py`,
+  `validate_intersected_status_source.py`, and
+  `test_intersected_status_source.py` define the evidence-selected CPU9-off
+  intersection repair while preserving the raw bitmap and rejecting ten
+  unsafe source mutations.
+- `scripts/generate_intersected_status_patch.py` and
+  `generate-intersected-status-on-buildbox` generate the exact one-patch
+  repair from the hash-pinned prepared source through `0504`.
 - `scripts/generate_physical_executor_patches.py` and
   `generate-physical-executor-on-buildbox` generate its exact two-patch review
   from the canonical prepared source through `0486`.
@@ -334,6 +342,10 @@ handling, and exact restore token are implemented and machine-checked.
   records the exact bitmap-enabled boot, sole trigger, CPU9 affinity-off and
   Linux-offline state, retained CPU8, the single secondary-status-mirror
   mismatch, and automatic changed-ID recovery without a retry.
+- [`results/intersected-status-repair-definition-20260903.txt`](results/intersected-status-repair-definition-20260903.txt)
+  ties that result to the established MT6797 two-word on-state semantics and
+  fixes the narrow source, raw-evidence, call-budget, and test boundaries for
+  patch `0505` before Buildbox generation.
 - [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
   is the exact admitted no-op-by-default implementation.
 - [`../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch)
@@ -1020,6 +1032,19 @@ decision-bearing attempt.
 The observation proves a single-sample disagreement between the two SPM CPU
 power-status mirrors after architectural CPU9-off; it does not yet prove
 whether the second mirror merely settles later or has different completion
-semantics. Continue under the roadmap by inspecting the already admitted
-dual-mirror rules and then hardware-free proving the smallest diagnostic or
-acceptance repair. Do not repeat `9b60b576...` unchanged.
+semantics. The earlier live A72-off state already provides the decision: raw
+CPU-status pairs `0x00350c08/0x00350cff` and
+`0x003d8008/0x003d80ff` legitimately carry A72 bits in only the second word,
+the hardware owner records “on” as the intersection of the two words, and
+patch `0444` already applies that rule to A34. The executor's independent
+absence rule was therefore stricter than the established platform contract.
+
+The selected repair continues to require CPU8 in both words and rejects CPU9
+when its bit is in both words. A CPU9 bit in only one raw word remains visible
+in the unchanged bitmap but no longer fails the Boolean off proof when every
+other term passes. No settling delay or third snapshot is added: the composed
+snapshot includes bounded protected-clock transport writes, and its exact
+two-call budget is already proven. The patch adds no CPU, PSCI, MMIO, I2C,
+watchdog, retained-RAM, or device effect. Generate it from exact post-`0504`
+Buildbox source, reject its mutations, then admit and compile it before any
+new candidate. Do not repeat `9b60b576...` unchanged.

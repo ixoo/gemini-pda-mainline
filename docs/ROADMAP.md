@@ -31,7 +31,7 @@ Cortex-A72 pair.
 | I2C6 transfer | Native packed/FIFO pointer-read and one exact one-message two-byte FIFO write are runtime proven. The write completed once with payload `[0xda, 0x46]`, exact no-retry accounting, and stable readback. | This closes only the reviewed same-value shape; arbitrary writes, failure recovery, stress, and resume remain open. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
 | Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected. A separate hardware-free implementation now models exact positive Buck-B acquire/release and passes all six focused fake-adapter cases. | Gate 6 is closed for the reviewed no-op, and the first Gate-7 provider source boundary is complete offline. Physical transition, production integration, consumers, and CPU requests remain disconnected. |
-| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The exact bitmap-enabled physical attempt booted both A72s, then CPU9 reached one CPU_OFF authorization, architectural affinity-off, and Linux-offline while CPU8 remained online and responsive. Record 4 named exactly one failed term: the primary SPM CPU-status mirror showed CPU9 off, but the secondary mirror still showed CPU9 present at the single post-state sample; every other per-core/shared-state comparison passed. No restore was attempted, and automatic changed-ID recovery succeeded. The public A72 disable veto remains closed. | Inspect the existing dual-mirror semantics, then hardware-free prove the smallest boundary that distinguishes bounded secondary-mirror settling from a justified intersection-based CPU9-off rule. Build and test that exact change on Buildbox before selecting another [physical candidate](../experiments/2026-09-02-mainline-a72-hotplug-lifecycle-gate/README.md); keep CPU8-last-off, cpufreq/OPP, thermal, idle, suspend, and default-profile promotion separate. |
+| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The exact bitmap-enabled physical attempt booted both A72s, then CPU9 reached one CPU_OFF authorization, architectural affinity-off, and Linux-offline while CPU8 remained online and responsive. Record 4 named exactly one failed term: the primary SPM CPU-status mirror showed CPU9 off, but the secondary mirror still showed CPU9 present at the single post-state sample; every other per-core/shared-state comparison passed. Prior source and live A72-off evidence define powered state as the intersection of the two words, so the executor's independent-absence rule was too strict. No restore was attempted, and automatic changed-ID recovery succeeded. The public A72 disable veto remains closed. | Generate exact patch `0505` from pinned post-`0504` source on Buildbox. It must keep CPU8 required in both mirrors, reject CPU9 present in both, preserve single-mirror raw bitmap evidence, add no delay/snapshot/effect, and pass mutation, compile, and focused no-network runtime gates before another [physical candidate](../experiments/2026-09-02-mainline-a72-hotplug-lifecycle-gate/README.md); keep CPU8-last-off, cpufreq/OPP, thermal, idle, suspend, and default-profile promotion separate. |
 
 The durable technical boundary is in
 [DA921x, I2C6, and Cortex-A72](hardware/da921x-i2c6-a72.md). The exact
@@ -7625,8 +7625,17 @@ record 4 without removing it. Candidate `9b60b576...` is retired after this
 decision-bearing attempt. **Selected next:** inspect the admitted status-mirror
 semantics and implementation, then hardware-free prove the smallest change
 that distinguishes a bounded secondary-mirror settling delay from a truthful
-intersection-based CPU9-off rule. Build and test the exact successor on
-Buildbox before selecting a new physical candidate. Do not repeat
+intersection-based CPU9-off rule. That audit is now complete: vendor software,
+the platform-owner contract, two prior live A72-off raw pairs, and existing
+patch `0444` all define powered state by the intersection of both CPU-status
+words. The selected `0505` definition keeps CPU8 required in both words,
+rejects CPU9 only when present in both, preserves each raw bitmap term, and
+adds no settling delay or third composed snapshot. **Selected next:** commit
+and push the exact hash-pinned generator and ten-mutation source oracle, then
+generate `0505` on Buildbox. Admit it only after strict review and replay, then
+compile both executor and production-binding KUnit profiles on Buildbox and
+run their focused no-network suites before selecting a new physical candidate.
+Do not repeat
 `4b027c97...`, `58313c3a8...`, or `9b60b576...`.
 
 - CPU topology and cache/CCI coherency under load;
