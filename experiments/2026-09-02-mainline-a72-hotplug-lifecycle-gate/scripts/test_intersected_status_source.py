@@ -43,8 +43,12 @@ MUTATIONS = (
      "post.spm_cpu_pwr_status_2nd |= MT6797_A72_HOTPLUG_CPU9_STATUS;",
      "post.spm_cpu_pwr_status_2nd &= ~MT6797_A72_HOTPLUG_CPU9_STATUS;"),
     (TEST,
-     "MT6797_A72_HOTPLUG_MISMATCH_POST_STATUS_CPU9);",
-     "MT6797_A72_HOTPLUG_MISMATCH_POST_STATUS2_CPU9);"),
+     "(u32)MT6797_A72_HOTPLUG_MISMATCH_POST_STATUS_CPU9);\n"
+     "\tpost = state->samples[1];\n"
+     "\tpost.spm_cpu_pwr_status_2nd |=",
+     "(u32)MT6797_A72_HOTPLUG_MISMATCH_POST_STATUS2_CPU9);\n"
+     "\tpost = state->samples[1];\n"
+     "\tpost.spm_cpu_pwr_status_2nd |="),
     (TEST,
      "KUNIT_EXPECT_TRUE(test,\n"
      "\t\t\t  mt6797_a72_hotplug_readback_proves_cpu9_off(&baseline, &post));",
