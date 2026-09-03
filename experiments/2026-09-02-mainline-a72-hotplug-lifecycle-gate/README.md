@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-a72-hotplug-lifecycle-gate` |
-| Status | disconnected one-task binder core proven; production callback binding pending |
+| Status | binder core and terminal ledger proven; production callback binding pending |
 | Subsystem | arm64 CPU hotplug, PSCI, MT6797 A72 membership |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-09-02 America/New_York |
@@ -131,7 +131,15 @@ handling, and exact restore token are implemented and machine-checked.
   payload classes without modifying the retained source.
 - `scripts/run-hotplug-ledger-kunit-qemu` and
   `classify-hotplug-ledger-kunit.py` admit only the exact ancestor Buildbox
-  package and require all ten in-memory record-4 cases to pass.
+  package and require all 13 in-memory record-4 cases to pass.
+- `scripts/ledger_terminal_source_edits.py`,
+  `validate_ledger_terminal_source.py`, and
+  `test_ledger_terminal_source.py` repair and prove the three exact terminal
+  boundaries needed by the production binder while rejecting 18 unsafe
+  mutations.
+- `scripts/generate_ledger_terminal_patch.py` and
+  `generate-ledger-terminal-on-buildbox` generate the exact one-patch repair
+  from the hash-pinned prepared source through `0498`.
 - `scripts/hotplug_snapshot_source_edits.py`,
   `validate_hotplug_snapshot_source.py`, and
   `test_hotplug_snapshot_source.py` define the disconnected four-source
@@ -229,6 +237,9 @@ handling, and exact restore token are implemented and machine-checked.
 - [`results/hotplug-binder-core-kunit-6f5eb100-20260903.txt`](results/hotplug-binder-core-kunit-6f5eb100-20260903.txt)
   pins exact generation, 22 rejecting mutations, admission, corrected isolated
   profile, Buildbox package, and the 9-of-9 no-network binder runtime pass.
+- [`results/hotplug-ledger-terminal-kunit-b1a1998e-20260903.txt`](results/hotplug-ledger-terminal-kunit-b1a1998e-20260903.txt)
+  pins the pre-binding ledger audit, exact terminal repair, 18 rejecting
+  mutations, Buildbox package, and the 13-of-13 no-network runtime pass.
 - [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
   is the exact admitted no-op-by-default implementation.
 - [`../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch)
@@ -263,8 +274,15 @@ handling, and exact restore token are implemented and machine-checked.
   injected CPU-on call site and four retained-ledger stages.
 - [`../../patches/v7.1.3/0496-soc-mediatek-test-disconnected-CPU9-restore-executor.patch`](../../patches/v7.1.3/0496-soc-mediatek-test-disconnected-CPU9-restore-executor.patch)
   adds its ten focused hardware-free KUnit cases.
+- [`../../patches/v7.1.3/0497-soc-mediatek-add-disconnected-A72-hotplug-binder-core.patch`](../../patches/v7.1.3/0497-soc-mediatek-add-disconnected-A72-hotplug-binder-core.patch)
+  adds the disconnected same-task transaction coordinator.
+- [`../../patches/v7.1.3/0498-soc-mediatek-test-disconnected-A72-hotplug-binder-core.patch`](../../patches/v7.1.3/0498-soc-mediatek-test-disconnected-A72-hotplug-binder-core.patch)
+  adds its nine focused hardware-free KUnit cases.
+- [`../../patches/v7.1.3/0499-pstore-allow-preidentity-A72-hotplug-terminals.patch`](../../patches/v7.1.3/0499-pstore-allow-preidentity-A72-hotplug-terminals.patch)
+  admits only the three truthful preidentity terminal shapes required by the
+  production binder and adds their focused record-4 coverage.
 
-Patches `0483`--`0496` are experiment-only archives with a synthetic,
+Patches `0483`--`0499` are experiment-only archives with a synthetic,
 non-certifying author identity, no DCO sign-off, and are not submission-ready.
 Upstream submission requires the actual author metadata and truthful
 certification.
@@ -606,6 +624,21 @@ and one-shot paths. No production callback, physical backend, CPU request,
 MMIO, I2C, retained-RAM access, SMC, watchdog takeover, network, device
 action, or boot candidate was enabled.
 
+The production-callback audit then found that record 4 could not encode three
+truthful failure paths: down preparation before a down identity exists,
+CPU_OFF membership-commit failure at stage 7, and restore preparation before a
+restore identity exists. Binding the callbacks in that state would have lost
+the exact terminal evidence needed to classify those failures. Exact Buildbox
+generation at pushed commit `acbda185...` produced patch `0499` with SHA-256
+`48449b22...`; replay, strict review, and all 18 unsafe mutations pass. Exact
+admission commit `b1a1998e...` retains canonical order across all 171 manifest
+profiles and compiles the 488-patch isolated ledger profile on Buildbox. The
+validated kernel and all 123 DTBs pass package checks. Its no-network QEMU gate
+passes all 13 record-4 cases, including the three new terminal boundaries,
+without changing the wire format, successful 16-record/451-write budget, or
+invoking a production caller, CPU request, retained RAM, watchdog, SMC,
+network, device, or boot candidate.
+
 ## Analysis
 
 The accepted online/topology/load evidence closes the entry-state uncertainty
@@ -650,7 +683,11 @@ executor; exact generation, 32 source mutations, Buildbox compile, and 10/10
 isolated runtime cases pass. Patches `0497`--`0498` supply the disconnected
 same-task binder core; exact generation, 22 source mutations, Buildbox compile,
 and 9/9 isolated runtime cases pass. All disconnected orchestration is
-therefore complete. The remaining software gate is production callback glue
+therefore complete. Patch `0499` repairs the three exact preidentity terminal
+shapes exposed by the production-callback audit; exact generation, 18 source
+mutations, Buildbox compile, and 13/13 isolated ledger cases pass without a
+wire-format or success-budget change. The remaining software gate is
+production callback glue
 that binds this proven core to the existing admission task and exact
 down/restore callbacks while preserving the closed CPU9 disable veto. Only
 after that glue passes its own exact hardware-free gate may a separate

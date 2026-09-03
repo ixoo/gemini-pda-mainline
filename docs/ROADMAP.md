@@ -7516,6 +7516,14 @@ and CPUs 0--7 non-disableable, and select no boot candidate or device action
 until the binding passes exact source replay, rejecting mutations, Buildbox
 compile, and no-network runtime review.
 
+The pre-binding callback audit found and closed one required ledger boundary:
+the retained record can now represent the exact failures that occur before a
+down or restore identity exists and at the CPU_OFF membership-commit boundary.
+Its wire format and successful-path budget remain unchanged, and the focused
+hardware-free gate passes. **Selected next remains:** production callback
+binding with the CPU9 veto closed, followed by a separate candidate-only veto
+opening after the binding's replay, mutation, Buildbox, and no-network gates.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;
