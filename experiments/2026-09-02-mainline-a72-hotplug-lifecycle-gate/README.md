@@ -1496,3 +1496,27 @@ after USB/netcat appears must be the exact read-only pre-trigger capture and
 validation. Only a pristine, fresh frame permits the single no-load lifecycle
 trigger and ten-CPU topology readback; no retry or substitute artifact is
 allowed.
+
+That exact no-load repeat passed on its first and only trigger. Fresh mainline
+boot ID `c1bd9a56...` passed the read-only identity and zero-execution gate;
+CPU8 entered once, CPU9 entered before and after exactly one CPU9-only down,
+the binder completed at public and private stage 18 with return zero, and CPUs
+`0-9` remained online. All ten live topology views reported package siblings
+`0-9`, cluster lists `0-3`, `4-7`, and `8-9`, cluster-local core IDs, and
+self-only thread siblings. No load, storage access, retry, or manual reboot was
+requested. Changed-ID Gemian recovery independently decoded record 4 as
+terminal `restored-success`, stage 18, error zero, members `0x3`, online mask
+`0x3ff`, and exactly one CPU_OFF, affinity, CPU8 IPI, and CPU_ON call; the live
+GPT `boot2` checksum remained exact `6ba8c953...`. The full identities are in
+[`results/topology-repeat-runtime-attempt-1-success-20260903.txt`](results/topology-repeat-runtime-attempt-1-success-20260903.txt).
+
+This proves the complete stage-18 transaction on two fresh boots and proves
+that the topology-preserving composition retains it. It does not yet test this
+exact artifact under load. **Selected next:** source-pin and offline-mutate one
+boot-ID-bound integrated trigger that first requires the same stage-18 and
+4+4+2 result, then immediately performs the already-proven finite dual-A72
+volatile-RAM exchange with exact affinity, independent accounting, four
+matching hashes, and cleanup. Permit one boot of unchanged `6ba8c953...` only
+after that combined classifier and forbidden-action audit pass; no duration
+increase, CPU_OFF beyond the one lifecycle transaction, retry, storage write,
+or manual reboot is admitted.

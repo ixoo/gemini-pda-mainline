@@ -7870,6 +7870,23 @@ after USB/netcat appears, capture and validate the exact fresh read-only frame
 before the sole no-load lifecycle/topology trigger. Do not retry or substitute
 an artifact if that gate rejects.
 
+That exact no-load cycle passed on fresh mainline boot ID `c1bd9a56...` with
+one trigger and no retry. CPU8 entered once, CPU9 entered before and after one
+CPU9-only down, the binder returned zero and completed at public/private stage
+18, and CPUs `0-9` stayed online. The ten sysfs views published the exact one-
+package 4+4+2 map: clusters `0-3`, `4-7`, and `8-9`, cluster-local core IDs,
+and self-only thread siblings. Changed-ID recovery independently sealed record
+4 as `restored-success`, error zero, members `0x3`, online mask `0x3ff`, and
+one call each to CPU_OFF, affinity, CPU8 IPI, and restore CPU_ON; `boot2` still
+matched exact `6ba8c953...`. This closes stage-18 repeatability with the
+topology-preserving DT, not load or stability. **Selected next:** offline-prove
+one source-pinned, boot-ID-bound integrated transaction that requires the same
+lifecycle/topology result and immediately runs the already-proven finite
+dual-A72 volatile-RAM exchange with exact affinity, independent accounting,
+four matching hashes, and cleanup. If its combined positive fixture and
+negative mutation/forbidden-action gates pass, use unchanged `6ba8c953...` for
+one separate bounded load/coherency boot; otherwise do not boot it.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

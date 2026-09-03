@@ -32,16 +32,14 @@ the loop. Positive identity-gated observations are unaffected.
 ### Current DA921x, I2C6, and A72 line
 
 - [2026-09-02 mainline A72 physical-hotplug lifecycle gate](2026-09-02-mainline-a72-hotplug-lifecycle-gate/README.md)
-  — source-audits the exact accepted 4+4+2 parent and defines the next complete
-  lifecycle predicate: one physical CPU9 off while CPU8 remains responsive,
-  one active affinity attempt, per-core and shared-state readbacks, then a
-  distinct same-boot CPU9 restore with topology, serviceability, and progress
-  revalidation. The generic path is currently vetoed and has neither a normal
-  down owner nor a restore owner. The contract and exact prepared-source audit
-  pass, and 21 unsafe contract mutations fail closed. Canonical patch `0483`
-  adds four no-op-by-default generic handoffs; strict review, replay, ten source
-  mutations, and the 165-profile invariant pass while all MT6797 callbacks
-  remain unset. Build, candidate, and device action have not occurred.
+  — incrementally closes the complete CPU9-only down/restore boundary while
+  retaining CPU8, including exact ownership, bounded firmware calls, retained
+  record 4, P30E rearm, and symbolic stage binding. The final stage-18 path
+  now passes on two fresh boots: CPU9 enters before and after one down, CPUs
+  `0-9` remain online, and changed-ID recovery independently reports
+  `restored-success`. The topology-preserving repeat also publishes the exact
+  one-package 4+4+2 CPU map. One separately bounded lifecycle-plus-load and
+  coherency attempt is next; general stability is not yet claimed.
 - [2026-09-02 current-mainline concurrent dual-A72 multiline load](2026-09-02-mainline-dual-a72-concurrent-multiline/README.md)
   — closes the first concurrent-load child of the accepted 4+4+2 result. One
   fresh integrated session preserved admission and topology/RAM checks, then
