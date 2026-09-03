@@ -16,6 +16,7 @@ from test_hotplug_binding_source import MUTATIONS
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+REPOSITORY_ROOT = SCRIPT_DIR.parents[2]
 PATCH_NAMES = (
     "0501-soc-mediatek-bind-one-shot-CPU9-hotplug-transaction.patch",
     "0502-soc-mediatek-test-private-CPU9-hotplug-transition.patch",
@@ -141,6 +142,33 @@ def copy_parent(source_root: Path, destination: Path) -> None:
         shutil.copyfile(source_root / relative, target)
 
 
+def validate_parent(source_root: Path) -> None:
+    for relative, expected in PARENT_HASHES.items():
+        path = source_root / relative
+        if not path.is_file() or path.is_symlink() or sha256(path) != expected:
+            raise SystemExit(f"prepared source changed: {relative}")
+
+
+def reconstruct_admitted_parent(source_root: Path, destination: Path) -> None:
+    copy_parent(source_root, destination)
+    run("git", "init", "--quiet", cwd=destination)
+    include_args = tuple(
+        f"--include={relative}" for relative in PARENT_HASHES
+    )
+    for patch_name in reversed(PATCH_NAMES):
+        patch = REPOSITORY_ROOT / "patches" / "v7.1.3" / patch_name
+        if not patch.is_file() or patch.is_symlink():
+            raise SystemExit(f"admitted patch absent or unsafe: {patch_name}")
+        run("git", "apply", "--reverse", "--check", *include_args,
+            str(patch), cwd=destination)
+        run("git", "apply", "--reverse", *include_args, str(patch),
+            cwd=destination)
+    validate_parent(destination)
+    (destination / ".gemini-source-state").write_text(
+        EXPECTED_SOURCE_STATE + "\n", encoding="utf-8"
+    )
+
+
 def normalize_patch(source_root: Path, patch: Path) -> None:
     subprocess.run(
         ("perl", str(source_root / "scripts/checkpatch.pl"),
@@ -191,21 +219,22 @@ def main() -> None:
         char not in "0123456789abcdef" for char in args.repository_commit
     ):
         raise SystemExit("invalid repository commit")
-    source_state = (source_root / ".gemini-source-state").read_text(
+    prepared_source_state = (source_root / ".gemini-source-state").read_text(
         encoding="utf-8").strip()
-    if source_state != EXPECTED_SOURCE_STATE:
-        raise SystemExit("prepared source state changed")
-    for relative, expected in PARENT_HASHES.items():
-        path = source_root / relative
-        if not path.is_file() or path.is_symlink() or sha256(path) != expected:
-            raise SystemExit(f"prepared source changed: {relative}")
 
     with tempfile.TemporaryDirectory(
         prefix="mt6797-a72-hotplug-binding-generation-"
     ) as name:
         temp = Path(name)
+        if prepared_source_state == EXPECTED_SOURCE_STATE:
+            parent_root = source_root
+            validate_parent(parent_root)
+        else:
+            parent_root = temp / "admitted-parent"
+            reconstruct_admitted_parent(source_root, parent_root)
+        source_state = EXPECTED_SOURCE_STATE
         source = temp / "source"
-        copy_parent(source_root, source)
+        copy_parent(parent_root, source)
         run("git", "init", "--quiet", cwd=source)
         run("git", "config", "user.name", "Gemini Mainline Experiment",
             cwd=source)
@@ -285,7 +314,7 @@ def main() -> None:
         )
 
         replay = temp / "replay"
-        copy_parent(source_root, replay)
+        copy_parent(parent_root, replay)
         run("git", "init", "--quiet", cwd=replay)
         for patch_name in PATCH_NAMES:
             patch = package / patch_name
