@@ -1358,3 +1358,16 @@ inactive-`boot2` deployment, full readback, clean shutdown, and one physical
 attempt. The expected hardware sequence remains the already proven P30E
 restore; the sole new observation is the terminal binder line that selects
 the exact remaining software branch.
+
+The candidate tooling and evidence were published at `2fdd1a5d...`. Guarded
+deployment from Gemian boot ID `915ff15c...` resolved inactive logical
+`boot2` as `/dev/mmcblk0p30` while the active root remained p29 and stable
+external power was present at full capacity. One write replaced retired
+`7ffd60d0...` with exact diagnostic `fe333d46...`; the write-path and
+independently streamed full readbacks match, the byte comparison passes,
+temporary files were removed, no fresh backup was made, and clean shutdown
+was confirmed by SSH unreachability. Sanitized evidence is retained in
+[`results/postsuccess-diagnostic-deployment-20260903.txt`](results/postsuccess-diagnostic-deployment-20260903.txt).
+The device is off for one owner-selected `boot2` attempt. The trigger remains
+forbidden until the fresh read-only frame passes the exact candidate and
+record-identity gate.

@@ -7779,6 +7779,16 @@ choose among nested `add_cpu()`, transaction revalidation, post-restore
 checkpoint, or terminal-return accounting; do not repeat either retired
 `7ffd60d0...` or the diagnostic candidate after it yields that line.
 
+Tooling and evidence were published at `2fdd1a5d...`. The guarded installer
+then resolved inactive live-GPT `boot2` as `/dev/mmcblk0p30` while Gemian used
+p29, matched retired predecessor `7ffd60d0...`, wrote exact diagnostic
+`fe333d46...`, and passed both full readbacks and the independent byte
+comparison. Stable external power was present, no fresh backup was made,
+temporary files were removed, and shutdown was confirmed. **Selected next:**
+the owner physically selects `boot2` once; capture and validate the exact
+read-only pristine frame before the one trigger, then use the bounded terminal
+binder line as the sole new decision evidence.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;
