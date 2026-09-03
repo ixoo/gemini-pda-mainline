@@ -167,7 +167,9 @@ def edit_production(root: Path) -> None:
     )
     replace_once(
         driver,
+        "\t.controller_offset = mt6797_tc_offset,\n"
         "\t.need_switch_bank = true,\n\t.bank_data = {\n",
+        "\t.controller_offset = mt6797_tc_offset,\n"
         "\t.need_switch_bank = true,\n\t.requires_calibration = true,\n"
         "\t.bank_data = {\n",
     )
