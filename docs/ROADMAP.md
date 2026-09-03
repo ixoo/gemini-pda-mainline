@@ -7607,11 +7607,14 @@ validation. Two independent provenance-only DT compositions and two
 independent Android-v0/LK constructions are byte-identical; configuration,
 serviceability, attribution, recovery, 32-of-32 LK, ten DT mutation, six
 container mutation, and eight pre-trigger mutation gates all pass. The
-distinct padded candidate is `9b60b576...`. **Selected next:** publish the
-candidate record, perform one guarded live-GPT `boot2` deployment with full
-readback and clean shutdown, then spend one physical boot. Recover on the
-changed boot ID, decode record-4 word 25, and change only the named mismatch
-boundary. Do not repeat `4b027c97...` or `58313c3a8...`.
+distinct padded candidate is `9b60b576...`. Its guarded live-GPT deployment
+resolved inactive logical `boot2`, replaced exact predecessor `58313c3a8...`,
+passed on-device and independently streamed full readbacks, removed staging,
+and confirmed clean shutdown. **Selected next:** physically select `boot2`
+once, admit only an exact read-only pre-trigger frame over USB/netcat, then
+issue the sole trigger. Recover on the changed Gemian boot ID, decode record-4
+word 25, and change only the named mismatch boundary. Do not repeat
+`4b027c97...` or `58313c3a8...`.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

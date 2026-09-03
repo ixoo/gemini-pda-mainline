@@ -327,6 +327,9 @@ handling, and exact restore token are implemented and machine-checked.
   pins the exact production Buildbox package, two byte-identical DT and
   container constructions, configuration and pre-trigger gates, 32-of-32 LK
   checks, and the distinct `9b60b576...` one-attempt candidate.
+- [`results/readback-bitmap-deployment-20260903.txt`](results/readback-bitmap-deployment-20260903.txt)
+  records live-GPT target resolution, stable power, predecessor identity, the
+  sole write, two matching full readbacks, cleanup, and confirmed shutdown.
 - [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
   is the exact admitted no-op-by-default implementation.
 - [`../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch)
@@ -990,9 +993,11 @@ QEMU, invoked no production binding or physical backend, and performed no CPU
 request, MMIO, I2C, retained-RAM, SMC, watchdog, device, or boot-candidate
 action. The exact evidence is in
 [`results/readback-bitmap-hardware-free-7ca200d6-20260903.txt`](results/readback-bitmap-hardware-free-7ca200d6-20260903.txt).
-Exact production package commit `46539642...` and candidate `9b60b576...` now
+Exact production package commit `46539642...` and candidate `9b60b576...`
 pass all offline gates; the exact evidence is in
 [`results/readback-bitmap-candidate-46539642-20260903.txt`](results/readback-bitmap-candidate-46539642-20260903.txt).
-The selected next action is its guarded live-GPT `boot2` deployment, full
-readback, clean shutdown, and one physical boot. After the changed-boot-ID
-recovery, decode word 25 and change only the named mismatch boundary.
+Its guarded live-GPT deployment then wrote exact logical `boot2`, passed two
+full readbacks, removed temporary files, and confirmed clean shutdown. The
+selected next action is one physical `boot2` selection, read-only pre-trigger
+validation over USB/netcat, and the sole trigger. After changed-boot-ID Gemian
+recovery, decode record-4 word 25 and change only the named mismatch boundary.
