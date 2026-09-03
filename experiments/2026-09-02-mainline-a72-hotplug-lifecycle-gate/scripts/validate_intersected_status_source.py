@@ -77,14 +77,14 @@ def validate(root: Path) -> list[str]:
     if "return mismatch;" not in mismatch:
         errors.append("raw mismatch return changed")
 
-    expected_assertions = (
-        "post.spm_cpu_pwr_status |= MT6797_A72_HOTPLUG_CPU9_STATUS;",
-        "post.spm_cpu_pwr_status_2nd |= MT6797_A72_HOTPLUG_CPU9_STATUS;",
-        "MT6797_A72_HOTPLUG_MISMATCH_POST_STATUS_CPU9);",
-        "MT6797_A72_HOTPLUG_MISMATCH_POST_STATUS2_CPU9);",
-    )
-    for marker in expected_assertions:
-        if rejection.count(marker) != 1:
+    expected_assertions = {
+        "post.spm_cpu_pwr_status |= MT6797_A72_HOTPLUG_CPU9_STATUS;": 2,
+        "post.spm_cpu_pwr_status_2nd |= MT6797_A72_HOTPLUG_CPU9_STATUS;": 1,
+        "MT6797_A72_HOTPLUG_MISMATCH_POST_STATUS_CPU9);": 1,
+        "MT6797_A72_HOTPLUG_MISMATCH_POST_STATUS2_CPU9);": 1,
+    }
+    for marker, count in expected_assertions.items():
+        if rejection.count(marker) != count:
             errors.append(f"focused intersection assertion changed: {marker}")
     if rejection.count("mt6797_a72_hotplug_readback_proves_cpu9_off") != 14:
         errors.append("focused acceptance/rejection assertion count changed")
