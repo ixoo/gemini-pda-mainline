@@ -64,8 +64,8 @@ MUTATIONS = (
     ),
     (
         "source",
-        "MT6797_A72_CPU8_OBSERVER_TIMED_OUT) ==",
-        "MT6797_A72_CPU8_OBSERVER_SUCCEEDED) ==",
+        "atomic_xchg(&observer->state,\n",
+        "atomic_set(&observer->state,\n",
     ),
     ("test", "KUNIT_CASE(cpu8_observer_cpu_refusal_test),", ""),
     ("test", "KUNIT_CASE(cpu8_observer_timeout_late_callback_test),", ""),

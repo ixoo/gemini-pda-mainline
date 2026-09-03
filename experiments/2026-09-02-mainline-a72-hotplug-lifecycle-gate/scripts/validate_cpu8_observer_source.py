@@ -97,6 +97,7 @@ def main() -> int:
             "identity->abi == MT6797_A72_HOTPLUG_ABI",
             "MT6797_A72_HOTPLUG_OPERATION_CPU9_DOWN",
             "identity->target_cpu == 9",
+            "identity->cpuhp_target == CPUHP_OFFLINE",
             "identity->target_mpidr == 0x201",
             "identity->generation",
             "identity->cookie",
@@ -189,10 +190,10 @@ def main() -> int:
         )
         require(
             re.search(
-                r"if \(!completed\s*&&\s*atomic_cmpxchg\(&observer->state,\s*"
-                r"MT6797_A72_CPU8_OBSERVER_ARMED,\s*"
-                r"MT6797_A72_CPU8_OBSERVER_TIMED_OUT\)\s*==\s*"
-                r"MT6797_A72_CPU8_OBSERVER_ARMED\)\s*return -ETIMEDOUT;",
+                r"if \(!completed\)\s*\{\s*"
+                r"atomic_xchg\(&observer->state,\s*"
+                r"MT6797_A72_CPU8_OBSERVER_TIMED_OUT\);\s*"
+                r"return -ETIMEDOUT;\s*\}",
                 run,
             ) is not None,
             "exact timeout terminal transition changed",
@@ -218,6 +219,7 @@ def main() -> int:
             "MT6797_A72_CPU8_OBSERVER_TIMED_OUT",
             "observer->late_callbacks",
             "state->dispatches, 1U",
+            "KUNIT_EXPECT_TRUE(test, completion_done(&observer->completion))",
         ):
             require(token in test, f"KUnit proof missing: {token}")
         require(

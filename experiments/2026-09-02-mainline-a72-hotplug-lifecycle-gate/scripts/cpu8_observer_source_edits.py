@@ -113,6 +113,7 @@ SOURCE = kernel_text(r"""
                     identity->operation ==
                             MT6797_A72_HOTPLUG_OPERATION_CPU9_DOWN &&
                     identity->target_cpu == 9 &&
+                    identity->cpuhp_target == CPUHP_OFFLINE &&
                     identity->target_mpidr == 0x201 &&
                     identity->generation && identity->cookie &&
                     identity->parent_generation && identity->parent_cookie &&
@@ -265,12 +266,11 @@ SOURCE = kernel_text(r"""
             completed = ops->wait_timeout(
                     ops_context, &observer->completion,
                     msecs_to_jiffies(MT6797_A72_CPU8_OBSERVER_TIMEOUT_MS));
-            if (!completed &&
-                atomic_cmpxchg(&observer->state,
-                               MT6797_A72_CPU8_OBSERVER_ARMED,
-                               MT6797_A72_CPU8_OBSERVER_TIMED_OUT) ==
-                MT6797_A72_CPU8_OBSERVER_ARMED)
+            if (!completed) {
+                    atomic_xchg(&observer->state,
+                                MT6797_A72_CPU8_OBSERVER_TIMED_OUT);
                     return -ETIMEDOUT;
+            }
 
             state = atomic_read_acquire(&observer->state);
             if (state == MT6797_A72_CPU8_OBSERVER_SUCCEEDED)
@@ -520,6 +520,18 @@ TEST_SOURCE = kernel_text(r"""
             KUNIT_EXPECT_EQ(test, state->current_cpu_calls, 0U);
             KUNIT_EXPECT_EQ(test, state->identity_calls, 0U);
             KUNIT_EXPECT_FALSE(test, completion_done(&observer->completion));
+
+            observer = cpu8_observer_test_observer(test);
+            state = cpu8_observer_test_state(test);
+            KUNIT_ASSERT_NOT_NULL(test, observer);
+            KUNIT_ASSERT_NOT_NULL(test, state);
+            state->force_timeout = true;
+            KUNIT_EXPECT_EQ(test, mt6797_a72_cpu8_observer_run_with_ops(
+                    observer, &cpu8_observer_test_ops, state, &identity),
+                            -ETIMEDOUT);
+            KUNIT_EXPECT_TRUE(test, completion_done(&observer->completion));
+            KUNIT_EXPECT_EQ(test, atomic_read(&observer->state),
+                            MT6797_A72_CPU8_OBSERVER_TIMED_OUT);
     }
 
     static void cpu8_observer_one_shot_test(struct kunit *test)
