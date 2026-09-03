@@ -52,23 +52,47 @@ def main() -> int:
 
     mutations = (
         ("relax-owner-phase", "arch/arm64/kernel/mt6797_a72_membership.c",
-         "a72_owner.phase == MT6797_A72_PHASE_IDLE",
-         "a72_owner.phase != MT6797_A72_PHASE_FAULT"),
+         "a72_owner.bootstrap_valid && a72_owner.members_valid &&\n"
+         "\t    a72_owner.phase == MT6797_A72_PHASE_IDLE &&\n"
+         "\t    a72_owner.hotplug_phase == MT6797_A72_HOTPLUG_IDLE",
+         "a72_owner.bootstrap_valid && a72_owner.members_valid &&\n"
+         "\t    a72_owner.phase != MT6797_A72_PHASE_FAULT &&\n"
+         "\t    a72_owner.hotplug_phase == MT6797_A72_HOTPLUG_IDLE"),
         ("relax-hotplug-phase", "arch/arm64/kernel/mt6797_a72_membership.c",
-         "a72_owner.hotplug_phase == MT6797_A72_HOTPLUG_IDLE",
-         "a72_owner.hotplug_phase != MT6797_A72_HOTPLUG_FAULT"),
+         "a72_owner.phase == MT6797_A72_PHASE_IDLE &&\n"
+         "\t    a72_owner.hotplug_phase == MT6797_A72_HOTPLUG_IDLE &&\n"
+         "\t    a72_owner.members == (BIT(0) | BIT(1))",
+         "a72_owner.phase == MT6797_A72_PHASE_IDLE &&\n"
+         "\t    a72_owner.hotplug_phase != MT6797_A72_HOTPLUG_FAULT &&\n"
+         "\t    a72_owner.members == (BIT(0) | BIT(1))"),
         ("drop-member", "arch/arm64/kernel/mt6797_a72_membership.c",
-         "a72_owner.members == (BIT(0) | BIT(1))",
-         "a72_owner.members == BIT(0)"),
+         "a72_owner.hotplug_phase == MT6797_A72_HOTPLUG_IDLE &&\n"
+         "\t    a72_owner.members == (BIT(0) | BIT(1)) &&\n"
+         "\t    a72_owner.retired_mask == (BIT(0) | BIT(1))",
+         "a72_owner.hotplug_phase == MT6797_A72_HOTPLUG_IDLE &&\n"
+         "\t    a72_owner.members == BIT(0) &&\n"
+         "\t    a72_owner.retired_mask == (BIT(0) | BIT(1))"),
         ("allow-hotplug-retired", "arch/arm64/kernel/mt6797_a72_membership.c",
-         "!a72_owner.hotplug_retired_mask",
-         "a72_owner.hotplug_retired_mask != ~0U"),
+         "a72_owner.retired_mask == (BIT(0) | BIT(1)) &&\n"
+         "\t    !a72_owner.hotplug_retired_mask &&\n"
+         "\t    a72_owner.provider_state == MT6797_A72_PROVIDER_HELD",
+         "a72_owner.retired_mask == (BIT(0) | BIT(1)) &&\n"
+         "\t    a72_owner.hotplug_retired_mask != ~0U &&\n"
+         "\t    a72_owner.provider_state == MT6797_A72_PROVIDER_HELD"),
         ("allow-owner-active", "arch/arm64/kernel/mt6797_a72_membership.c",
-         "!a72_owner.active.valid && !a72_owner.hotplug_active.valid",
-         "!a72_owner.hotplug_active.valid"),
+         "&a72_owner.provider_identity) &&\n"
+         "\t    !a72_owner.active.valid && !a72_owner.hotplug_active.valid &&\n"
+         "\t    !a72_owner.controller && !a72_owner.controller_cookie",
+         "&a72_owner.provider_identity) &&\n"
+         "\t    !a72_owner.hotplug_active.valid &&\n"
+         "\t    !a72_owner.controller && !a72_owner.controller_cookie"),
         ("allow-controller", "arch/arm64/kernel/mt6797_a72_membership.c",
-         "!a72_owner.controller && !a72_owner.controller_cookie",
-         "!a72_owner.controller_cookie"),
+         "!a72_owner.active.valid && !a72_owner.hotplug_active.valid &&\n"
+         "\t    !a72_owner.controller && !a72_owner.controller_cookie &&\n"
+         "\t    mt6797_a72_cpu9_terminal_parent_valid_locked()",
+         "!a72_owner.active.valid && !a72_owner.hotplug_active.valid &&\n"
+         "\t    !a72_owner.controller_cookie &&\n"
+         "\t    mt6797_a72_cpu9_terminal_parent_valid_locked()"),
         ("drop-transition-lock", "arch/arm64/kernel/mt6797_a72_membership.c",
          "\tmemset(proof, 0, sizeof(*proof));\n"
          "\tmutex_lock(&a72_transition_lock);\n"
