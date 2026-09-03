@@ -15602,9 +15602,9 @@ case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
 for marker in generated_patch_count=2 target_cpu=9 \
   p30e_controller_sequence_after=2 target_claim_changed=false \
   head_S_changed=false primitive_mutations_rejected=14 \
-  final_mutations_rejected=24 restore_cpu_on_calls_max=1 \
+  final_mutations_rejected=25 restore_cpu_on_calls_max=1 \
   rearm_failure_cpu_on_calls=0 retry_calls_added=0 \
-  ledger_version=0x00010002 ledger_stages=14,15,16,17,18 \
+  ledger_version=0x00010003 ledger_stages=14,15,16,17,18 \
   successful_ledger_writes_max=649 native_vm_build=none \
   boot_candidate=false device_action=none; do
   grep -Fx "${marker}" "${package}/provenance.txt" >/dev/null
@@ -15676,7 +15676,7 @@ REMOTE
     sha256sum --check --strict SHA256SUMS >/dev/null
     grep -Fx "repository_commit=${sha}" provenance.txt >/dev/null
     grep -Fx 'generated_patch_count=2' provenance.txt >/dev/null
-    grep -Fx 'final_mutations_rejected=24' provenance.txt >/dev/null
+    grep -Fx 'final_mutations_rejected=25' provenance.txt >/dev/null
     grep -Fx 'boot_candidate=false' provenance.txt >/dev/null
     grep -Fx 'device_action=none' provenance.txt >/dev/null
   )

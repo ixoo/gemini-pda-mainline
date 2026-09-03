@@ -200,6 +200,9 @@ def validate_final(root: Path) -> list[str]:
     require(errors,
             "#define GEMINI_A72_HOTPLUG_LEDGER_MAX_RECORDS 17U" in
             ledger_internal, "retained record maximum changed")
+    require(errors,
+            "#define GEMINI_A72_HOTPLUG_LEDGER_VERSION_WORD 0x00010003U" in
+            ledger_internal, "retained semantic version changed")
     require(errors, "state.writes, 649U" in ledger_test,
             "retained successful-path write bound changed")
     require(errors, "GEMINI_A72_HOTPLUG_LEDGER_COPY_WORDS 37U" in
@@ -231,6 +234,7 @@ def main() -> int:
         print("restore_cpu_on_calls_max=1")
         print("rearm_failure_cpu_on_calls=0")
         print("ledger_stages=14,15,16,17,18")
+        print("ledger_version=0x00010003")
         print("successful_ledger_writes_max=649")
     return 0
 

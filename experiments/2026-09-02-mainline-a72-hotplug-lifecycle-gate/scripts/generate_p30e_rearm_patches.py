@@ -310,7 +310,7 @@ def main() -> None:
             "restore_cpu_on_calls_max=1\n"
             "rearm_failure_cpu_on_calls=0\n"
             "retry_calls_added=0\n"
-            "ledger_version=0x00010002\n"
+            "ledger_version=0x00010003\n"
             "ledger_stages=14,15,16,17,18\n"
             "successful_ledger_writes_max=649\n"
             "native_vm_build=none\n"
@@ -334,7 +334,7 @@ def main() -> None:
     print("restore_cpu_on_calls_max=1")
     print("rearm_failure_cpu_on_calls=0")
     print("retry_calls_added=0")
-    print("ledger_version=0x00010002")
+    print("ledger_version=0x00010003")
     print("ledger_stages=14,15,16,17,18")
     print("successful_ledger_writes_max=649")
     print("native_vm_build=none")

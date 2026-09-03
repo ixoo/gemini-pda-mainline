@@ -17,6 +17,18 @@ def replace_once(path: Path, old: str, new: str) -> None:
 def primitive(root: Path) -> None:
     kconfig = root / "arch/arm64/Kconfig"
     replace_once(kconfig,
+        "\t  Build the default-off P30E wire object and MMU-off target primitives\n"
+        "\t  selected by the source-only implementation profile. The object uses\n"
+        "\t  two retained 2 KiB slots, validates the fixed token and CRC, and\n"
+        "\t  performs full-range cache maintenance. It has no production caller,\n"
+        "\t  does not modify secondary_entry, and cannot issue CPU_ON/OFF or make\n"
+        "\t  a Linux membership result reachable.\n",
+        "\t  Build the default-off P30E wire object and MMU-off target primitives.\n"
+        "\t  The object uses two 2 KiB slots, validates the fixed token and CRC,\n"
+        "\t  and performs full-range cache maintenance. Its exact CPU9 rearm can\n"
+        "\t  reconstruct one consumed request but cannot issue CPU_ON/OFF or make\n"
+        "\t  a Linux membership result reachable by itself.\n")
+    replace_once(kconfig,
         '\nsource "arch/arm64/kvm/Kconfig"\n',
         '''
 config ARM64_MT6797_A72_P30E_REARM_KUNIT_TEST
@@ -48,13 +60,16 @@ source "arch/arm64/kvm/Kconfig"
         "\t\t\t\t\t const struct arm64_mt6797_a72_p30e_request *request,\n"
         "\t\t\t\t\t struct arm64_mt6797_a72_p30e_wire *copy);\n"
         "int arm64_mt6797_a72_p30e_rearm_cpu9(void);\n"
-        "#ifdef CONFIG_ARM64_MT6797_A72_P30E_REARM_KUNIT_TEST\n"
         "int arm64_mt6797_a72_p30e_prepare_cpu9_rearm(\n"
         "\tconst struct arm64_mt6797_a72_p30e_slot *slot, u64 entry_pa,\n"
-        "\tstruct arm64_mt6797_a72_p30e_wire *next);\n"
-        "#endif\n")
+        "\tstruct arm64_mt6797_a72_p30e_wire *next);\n")
 
     source = root / "arch/arm64/kernel/mt6797_a72_p30e.c"
+    replace_once(source,
+        " * This file deliberately has no production caller. It supplies the reviewed\n"
+        " * controller-side storage and cache protocol for a later P17/P18/P24 owner.\n",
+        " * This file supplies the reviewed controller-side storage, exact CPU9 rearm,\n"
+        " * and cache protocol used by the private P17/P18/P24 lifecycle owner.\n")
     anchor = "int arm64_mt6797_a72_p30e_readback(\n"
     addition = r'''static void p30e_initial_wire(
 	const struct arm64_mt6797_a72_p30e_wire *published,
@@ -764,10 +779,16 @@ def integration(root: Path) -> None:
         "\tGEMINI_A72_HOTPLUG_RESTORE_COMPLETE,\n")
     ledger_internal = root / "fs/pstore/gemini_a72_hotplug_ledger_internal.h"
     replace_once(ledger_internal,
+        "#define GEMINI_A72_HOTPLUG_LEDGER_VERSION_WORD 0x00010002U\n",
+        "#define GEMINI_A72_HOTPLUG_LEDGER_VERSION_WORD 0x00010003U\n")
+    replace_once(ledger_internal,
         "#define GEMINI_A72_HOTPLUG_LEDGER_MAX_RECORDS 16U\n",
         "#define GEMINI_A72_HOTPLUG_LEDGER_MAX_RECORDS 17U\n")
 
     ledger_test = root / "fs/pstore/gemini_a72_hotplug_ledger_test.c"
+    replace_once(ledger_test,
+        "\t\t\t0x00010002U);\n",
+        "\t\t\t0x00010003U);\n")
     replace_once(ledger_test,
         "\tKUNIT_EXPECT_EQ(test, GEMINI_A72_HOTPLUG_LEDGER_MAX_RECORDS, 16U);\n",
         "\tKUNIT_EXPECT_EQ(test, GEMINI_A72_HOTPLUG_LEDGER_MAX_RECORDS, 17U);\n")
