@@ -13,10 +13,16 @@ import uuid
 
 PSTORE_SIGNATURE = 0x43474244
 MAGIC = 0x4C483947
-VERSION = 0x00010001
-COPY_WORDS = 27
+VERSION_V1 = 0x00010001
+VERSION_V2 = 0x00010002
+VERSION = VERSION_V1
+COPY_WORDS_V1 = 27
+COPY_WORDS_V2 = 37
+COPY_WORDS = COPY_WORDS_V1
 COPIES = 2
-PAYLOAD_BYTES = COPY_WORDS * COPIES * 4
+PAYLOAD_BYTES_V1 = COPY_WORDS_V1 * COPIES * 4
+PAYLOAD_BYTES_V2 = COPY_WORDS_V2 * COPIES * 4
+PAYLOAD_BYTES = PAYLOAD_BYTES_V1
 SLOT_BYTES = 0x1000
 MAX_GENERATION = 16
 READBACK_BITMAP_V1 = 1 << 31
@@ -91,20 +97,20 @@ def canonical_uuid(value: str) -> str:
     return str(parsed)
 
 
-def payload_from_capture(data: bytes) -> bytes:
-    if len(data) == PAYLOAD_BYTES:
-        return data
+def payload_from_capture(data: bytes) -> tuple[bytes, int]:
+    if len(data) in (PAYLOAD_BYTES_V1, PAYLOAD_BYTES_V2):
+        return data, len(data)
     if len(data) != SLOT_BYTES:
-        raise DecodeError("capture-size-not-216-or-4096")
+        raise DecodeError("capture-size-not-216-296-or-4096")
     signature, start, size = struct.unpack_from("<III", data)
     if signature != PSTORE_SIGNATURE:
         raise DecodeError("raw-slot-signature-invalid")
-    if start != PAYLOAD_BYTES or size != PAYLOAD_BYTES:
+    if start != size or size not in (PAYLOAD_BYTES_V1, PAYLOAD_BYTES_V2):
         raise DecodeError("raw-slot-length-invalid")
-    return data[12:12 + PAYLOAD_BYTES]
+    return data[12:12 + size], size
 
 
-def semantic_valid(words: tuple[int, ...]) -> bool:
+def semantic_valid(words: tuple[int, ...], version: int) -> bool:
     generation, stage, terminal, error_u32 = words[2:6]
     error = struct.unpack("<i", struct.pack("<I", error_u32))[0]
     session = words[6] | words[7] << 32
@@ -137,6 +143,31 @@ def semantic_valid(words: tuple[int, ...]) -> bool:
             readback_mismatch & ~(READBACK_BITMAP_V1 |
                                   READBACK_MISMATCH_MASK)):
         return False
+    if version == VERSION_V2:
+        readiness_samples = words[26]
+        readiness_sleeps = words[27]
+        readiness_error = struct.unpack("<i", struct.pack("<I", words[28]))[0]
+        readiness_flags = words[29]
+        readiness_values = words[30:36]
+        if readiness_samples > 51 or readiness_sleeps > 50:
+            return False
+        if readiness_flags & ~0x3:
+            return False
+        if stage < 15:
+            if (readiness_samples or readiness_sleeps or readiness_error or
+                    readiness_flags or any(readiness_values)):
+                return False
+        else:
+            if not readiness_samples or readiness_sleeps + 1 != readiness_samples:
+                return False
+            if not readiness_flags & 0x1:
+                return False
+            ready = bool(readiness_flags & 0x2)
+            if ready == bool(readiness_error):
+                return False
+            if not ready and not (terminal == 4 and stage == 15 and
+                                  call_counts[3] == 0):
+                return False
     if terminal == 0:
         return error == 0 and stage not in (8, 17)
     if terminal == 5:
@@ -152,16 +183,24 @@ def semantic_valid(words: tuple[int, ...]) -> bool:
     return terminal == 4 and stage >= 14
 
 
-def decode_copy(payload: bytes, copy: int) -> dict[str, int] | None:
-    offset = copy * COPY_WORDS * 4
-    words = struct.unpack_from("<27I", payload, offset)
-    expected_crc = binascii.crc32(payload[offset:offset + 26 * 4]) & 0xFFFFFFFF
-    if words[0] != MAGIC or words[1] != VERSION or words[26] != expected_crc:
+def decode_copy(payload: bytes, copy: int, payload_bytes: int) -> dict[str, int] | None:
+    if payload_bytes == PAYLOAD_BYTES_V1:
+        copy_words, version = COPY_WORDS_V1, VERSION_V1
+    elif payload_bytes == PAYLOAD_BYTES_V2:
+        copy_words, version = COPY_WORDS_V2, VERSION_V2
+    else:
         return None
-    if not semantic_valid(words):
+    offset = copy * copy_words * 4
+    words = struct.unpack_from(f"<{copy_words}I", payload, offset)
+    expected_crc = binascii.crc32(
+        payload[offset:offset + (copy_words - 1) * 4]) & 0xFFFFFFFF
+    if (words[0] != MAGIC or words[1] != version or
+            words[copy_words - 1] != expected_crc):
+        return None
+    if not semantic_valid(words, version):
         return None
     error = struct.unpack("<i", struct.pack("<I", words[5]))[0]
-    return {
+    record = {
         "copy": copy,
         "generation": words[2],
         "stage": words[3],
@@ -184,6 +223,21 @@ def decode_copy(payload: bytes, copy: int) -> dict[str, int] | None:
         "members": words[24] >> 16,
         "readback_mismatch": words[25],
     }
+    if version == VERSION_V2:
+        record.update({
+            "restore_readiness_samples": words[26],
+            "restore_readiness_sleeps": words[27],
+            "restore_readiness_error": struct.unpack(
+                "<i", struct.pack("<I", words[28]))[0],
+            "restore_readiness_flags": words[29],
+            "restore_first_status": words[30],
+            "restore_first_status2": words[31],
+            "restore_first_cpu9_pwr_con": words[32],
+            "restore_last_status": words[33],
+            "restore_last_status2": words[34],
+            "restore_last_cpu9_pwr_con": words[35],
+        })
+    return record
 
 
 def decode(data: bytes, pre_boot_id: str, recovery_boot_id: str) -> dict[str, int]:
@@ -191,9 +245,9 @@ def decode(data: bytes, pre_boot_id: str, recovery_boot_id: str) -> dict[str, in
     after = canonical_uuid(recovery_boot_id)
     if before == after:
         raise DecodeError("recovery-boot-id-unchanged")
-    payload = payload_from_capture(data)
+    payload, payload_bytes = payload_from_capture(data)
     records = [record for copy in range(COPIES)
-               if (record := decode_copy(payload, copy)) is not None]
+               if (record := decode_copy(payload, copy, payload_bytes)) is not None]
     if not records:
         raise DecodeError("no-crc-valid-semantic-copy")
     if len(records) == 2:
@@ -252,6 +306,19 @@ def main() -> int:
             print(f"{name}=0x{value:x}")
         else:
             print(f"{name}={value}")
+    if "restore_readiness_samples" in record:
+        for name in (
+            "restore_readiness_samples", "restore_readiness_sleeps",
+            "restore_readiness_error", "restore_readiness_flags",
+            "restore_first_status", "restore_first_status2",
+            "restore_first_cpu9_pwr_con", "restore_last_status",
+            "restore_last_status2", "restore_last_cpu9_pwr_con",
+        ):
+            value = record[name]
+            if name.endswith("flags") or "status" in name or "pwr_con" in name:
+                print(f"{name}=0x{value:x}")
+            else:
+                print(f"{name}={value}")
     mismatch_format, mismatch_names = readback_mismatch_details(
         record["readback_mismatch"])
     print(f"readback_mismatch_format={mismatch_format}")

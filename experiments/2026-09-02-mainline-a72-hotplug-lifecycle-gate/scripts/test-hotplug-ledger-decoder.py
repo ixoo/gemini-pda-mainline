@@ -60,6 +60,30 @@ def payload(*copies: bytes) -> bytes:
     return b"".join(values[:2])
 
 
+def wire_v2(generation: int, stage: int, terminal: int = 0,
+            error: int = 0, ready: bool = True) -> bytes:
+    words = [0] * DECODER.COPY_WORDS_V2
+    words[:26] = list(struct.unpack("<26I", wire(
+        generation, stage, terminal, error)[:26 * 4]))
+    words[1] = DECODER.VERSION_V2
+    if stage >= 15:
+        words[26] = 3
+        words[27] = 2
+        words[28] = 0 if ready else (-110 & 0xFFFFFFFF)
+        words[29] = 0x3 if ready else 0x1
+        words[30:36] = [0x350cc8, 0x350cff, 0x12, 0x350c88,
+                        0x350cbf if ready else 0x350cff, 0x10]
+    prefix = struct.pack("<36I", *words[:36])
+    words[36] = binascii.crc32(prefix) & 0xFFFFFFFF
+    return struct.pack("<37I", *words)
+
+
+def payload_v2(*copies: bytes) -> bytes:
+    empty = bytes([0xFF]) * (DECODER.COPY_WORDS_V2 * 4)
+    values = list(copies) + [empty] * (2 - len(copies))
+    return b"".join(values[:2])
+
+
 class DecoderTests(unittest.TestCase):
     def test_payload_newest(self) -> None:
         result = DECODER.decode(payload(wire(1, 1), wire(2, 2)), BEFORE, AFTER)
@@ -72,6 +96,27 @@ class DecoderTests(unittest.TestCase):
                           len(body), len(body)) + body
         raw += bytes(DECODER.SLOT_BYTES - len(raw))
         self.assertEqual(DECODER.decode(raw, BEFORE, AFTER)["generation"], 1)
+
+    def test_v2_restore_readiness(self) -> None:
+        result = DECODER.decode(payload_v2(wire_v2(1, 15)), BEFORE, AFTER)
+        self.assertEqual(result["restore_readiness_samples"], 3)
+        self.assertEqual(result["restore_readiness_sleeps"], 2)
+        self.assertEqual(result["restore_readiness_flags"], 3)
+        self.assertEqual(result["restore_last_status2"], 0x350CBF)
+
+    def test_v2_timeout_without_cpu_on(self) -> None:
+        result = DECODER.decode(payload_v2(
+            wire_v2(1, 15, 4, -110, ready=False)), BEFORE, AFTER)
+        self.assertEqual(result["restore_readiness_error"], -110)
+        self.assertEqual(result["cpu_on_calls"], 0)
+
+    def test_v2_bad_sample_shape_refused(self) -> None:
+        damaged = bytearray(wire_v2(1, 15))
+        struct.pack_into("<I", damaged, 26 * 4, 52)
+        struct.pack_into("<I", damaged, 36 * 4,
+                         binascii.crc32(damaged[:36 * 4]) & 0xFFFFFFFF)
+        with self.assertRaisesRegex(DECODER.DecodeError, "no-crc-valid"):
+            DECODER.decode(payload_v2(bytes(damaged)), BEFORE, AFTER)
 
     def test_terminal(self) -> None:
         result = DECODER.decode(payload(wire(1, 1, 1, -1)), BEFORE, AFTER)

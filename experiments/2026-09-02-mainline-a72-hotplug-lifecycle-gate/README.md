@@ -1134,3 +1134,16 @@ single CPU_ON only after its named readiness predicate passes. A timeout must
 seal decision-bearing evidence without issuing CPU_ON. This distinguishes a
 short post-off settling interval from a persistently different status/control
 state before any behavioral repair is inferred.
+
+The successor is frozen in
+[`results/restore-readiness-definition-20260903.txt`](results/restore-readiness-definition-20260903.txt).
+Its observer takes at most 51 existing platform-state snapshots separated by
+at most 50 sleeps of 5--6 ms. It requires CPU8 in both mirrors throughout and
+defines CPU9 restart readiness as absence from both mirrors. Record 4 format
+v2 retains the first and last raw CPU status pair, CPU9 power-control word,
+counts, flags, and error while preserving the 16-record ceiling. The maximum
+successful-path retained write count becomes 611 words. No new CPU, firmware,
+affinity, provider, cluster, watchdog, MMIO-write, retry, storage, or device
+operation is introduced. Buildbox generation, mutation rejection, replay,
+ledger/binding KUnit, and the all-profile invariant must pass before candidate
+construction.
