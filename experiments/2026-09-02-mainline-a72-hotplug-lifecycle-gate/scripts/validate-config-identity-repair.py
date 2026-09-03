@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import struct
 
 
 SCRIPT = Path(__file__).resolve()
@@ -82,15 +83,36 @@ def validate_repository(record_path: Path) -> None:
             "physical release identity changed")
 
 
+def encoded_identity(identity: str) -> bytes:
+    return b"".join(struct.pack("<Q", int(identity[index:index + 16], 16))
+                    for index in range(0, 64, 16))
+
+
+def validate_image(image_path: Path) -> None:
+    image = image_path.read_bytes()
+    require(image.count(encoded_identity(TARGET)) == 1,
+            "built Image does not contain exactly one physical identity")
+    require(image.count(encoded_identity(PREDECESSOR)) == 0,
+            "built Image still contains the predecessor progress identity")
+    controller = "cda6d936e61122d825a7fe7649f1b69b86455d6034f36a6cd562ff457bccd3d1"
+    require(image.count(encoded_identity(controller)) == 0,
+            "built Image contains the earlier controller identity")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--a41-record", type=Path, required=True)
+    parser.add_argument("--image", type=Path, required=True)
     args = parser.parse_args()
     validate_repository(args.a41_record)
+    validate_image(args.image)
     print("validation=physical-hotplug-config-identity-repair")
     print(f"config_inputs_sha256={TARGET}")
     print("scope=CONFIG_MTK_MT6797_A72_HOTPLUG_BINDING-only")
     print("predecessor_production_identity=preserved")
+    print("image_physical_identity_count=1")
+    print("image_predecessor_identity_count=0")
+    print("image_controller_identity_count=0")
     print(f"patch_sha256={hashlib.sha256(PATCH.read_bytes()).hexdigest()}")
     print("result=pass")
     return 0

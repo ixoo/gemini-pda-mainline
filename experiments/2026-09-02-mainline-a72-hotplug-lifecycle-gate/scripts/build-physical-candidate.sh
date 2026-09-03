@@ -34,7 +34,7 @@ new_semantics = '''[[ "$(grep -Fc 'mediatek,mt6797-a72-platform-state' "$workdir
 [[ "$(grep -Fc 'planet,gemini-a72-runtime-binding-v1' "$workdir/control.dts")" == 1 ]] || die 'runtime provenance node changed'
 [[ "$(grep -Fc 'mediatek,mt6797-a72-platform-provider-clock-observer' "$workdir/control.dts")" == 0 ]] || die 'standalone observer leaked into admission DT'
 [[ "$(fdtget -ts "$control_dtb" /chosen/gemini-late-cpu-provenance compatible)" == planet,gemini-a72-runtime-binding-v1 ]] || die 'runtime provenance compatible changed'
-[[ "$(fdtget -tbx "$control_dtb" /chosen/gemini-late-cpu-provenance record-identity)" == 'f1 26 89 de ee 6a 26 8c 78 55 1d 9e a3 ca 6e d9 b7 ce e9 5e a9 24 b7 8d 72 8c 2 8d b2 d2 af cc' ]] || die 'runtime provenance identity changed'
+[[ "$(fdtget -tbx "$control_dtb" /chosen/gemini-late-cpu-provenance record-identity)" == 'a5 69 56 aa 82 9f 6c d4 4 d6 81 85 67 88 93 6a b3 34 15 92 f2 ed 94 86 70 9b 10 6c 58 f8 10 e7' ]] || die 'runtime provenance identity changed'
 for node_path in /usb@11271000 /t-phy@11290000 /t-phy@11290000/usb-phy@11290800 /i2c@1101c000 /i2c@1101c000/gpio-expander@5b /keyboard-matrix /dvfsp-clock-backend@1001a000 /dvfsp-bigidvfs-backend; do
     [[ "$(fdtget -ts "$control_dtb" "$node_path" status)" == okay ]] || die "serviceability/admission node is not enabled: $node_path"
 done'''
@@ -47,25 +47,25 @@ done
 grep -q '^CONFIG_KUNIT=y$' "$config" && die 'KUnit leaked into production Image'
 grep -q '^CONFIG_HOTPLUG_SPLIT_STARTUP=y$' "$config" && die 'split-startup policy changed' '''.rstrip()
 replacements = (
-    ("c147e2ddc1acc93827b59f8e3bb38b9b2f4d3fb2", "43349a53fda1ab1c7389ac0e6da2e89d131177bc", 1),
+    ("c147e2ddc1acc93827b59f8e3bb38b9b2f4d3fb2", "69b7494c211bef04d61cb5869f2ff9fb497799c2", 1),
     ("readonly PROFILE=a72-admission-live-trigger-candidate", "readonly PROFILE=gemini-a72-hotplug-physical-candidate", 1),
     ("readonly RELEASE=7.1.3-gemini-a72-admission-live", "readonly RELEASE=7.1.3-gemini-a72-hotplug-physical", 1),
-    ("96c86abe4084333bf462f028c217c41eb0342ad080dae3014b439eef0f0cab18", "163a530aa6feb1c333fa1658be8b733d7cf0128decace9391c33bcd8f482e05e", 1),
-    ("4b884c0176d4d3e7d96c35f84ce36f0e591b2b7a411fe217f43427824f8377f4", "095ad19217599b56620dc1d6e3b50b312fbd523e226b837c261400fd1acdf9a6", 1),
+    ("96c86abe4084333bf462f028c217c41eb0342ad080dae3014b439eef0f0cab18", "fc3fd138258b6bdca834920f2b28280576dbbe11ed2e2f5663bf7afce1086487", 1),
+    ("4b884c0176d4d3e7d96c35f84ce36f0e591b2b7a411fe217f43427824f8377f4", "cf6edd23063ff1c048b9f0f27174d129ee3d5a74b1496f386592ecdebe42735b", 1),
     ("265f610b5200dff9184cd0dcca3c6993b572e167316e149a9856f05723c9eebd", "a76237ab140491d0c11dd9560cf3eb11176476c910f0a5c889c70d1cf324e70a", 1),
     ("4d6e3ad347b755907a99b0c7dc0f1cb91fff00f533f21baeab663e77373731bd", "815838d4c27b7c2159ef73747e1aa5858794a58ccdcd2d394dee33d23c20f85f", 1),
-    ("c1009fab6642739161d913bdb676fb027d7849dd60c61e1291ec04a8c2541241", "96984898f4baf3ab908586e25675c37eb77391611cb15c83af852446a305d321", 1),
-    ("0b6c85b3d6d870c22513f64d3b61d0944a3e9729ad26c0297b4d29414d561f41", "c6daa21061f1a75bd7f54b0b3579177815910ade5458c10b0da97c9b707582bb", 1),
-    ("90cfc29b30fb036076a799f0223e0c8aae6469441e5917cbfa743f5d7ae6547d", "f373dd190371b17b2b7bf123a945247b828c295dfee83c3d2844b1c5b16a609e", 1),
-    ("35d0c6ef99f69a1dd00afac390f8d68b5514577e38819448b7465c44243c2f12", "482516ce51beb8d5a3df8baa59cdcba416e6b7ae18b08026cd7325fcf024b8e0", 1),
-    ("c2b85cad08f77d641a07e68eda09617959ad1db6b36b60b20eb8f53733c6baab", "4b027c97c7f3cfc65ae7210a30724781bf58a321f8d51132c1413d501b75403b", 1),
+    ("c1009fab6642739161d913bdb676fb027d7849dd60c61e1291ec04a8c2541241", "63441e30a6c11e2750e8122626f50b125ff8f36f52a84d6eb89e9d315a300958", 1),
+    ("0b6c85b3d6d870c22513f64d3b61d0944a3e9729ad26c0297b4d29414d561f41", "38da625a5bbcfed50098ece5f0cc907ccef876309f9591f20129b60688d35f88", 1),
+    ("90cfc29b30fb036076a799f0223e0c8aae6469441e5917cbfa743f5d7ae6547d", "deb0cb1783c017cec78837f746d5dffbd74156393f7e2cb69497e10934473628", 1),
+    ("35d0c6ef99f69a1dd00afac390f8d68b5514577e38819448b7465c44243c2f12", "4a3551c6d74372915d69473b37e38854eaeee64970d33ea09d5a523e04734174", 1),
+    ("c2b85cad08f77d641a07e68eda09617959ad1db6b36b60b20eb8f53733c6baab", "58313c3a8eb8607413e27906d6ad65ef59eb7d06f4d466004492f3b4c8cf3d69", 1),
     ("readonly RAW_SIZE=6934528", "readonly RAW_SIZE=6981632", 1),
     ("gemini-a72dtctl", "gemini-a72prov", 1),
     ("gemini-mt6797-a72-live-image-runtime-dt-control.boot.img", "gemini-mt6797-a72-hotplug-physical.boot.img", 1),
     ("dd dtc find", "dd dtc fdtget find", 1),
     (old_semantics, new_semantics, 1),
     (old_config, new_config, 1),
-    ("die 'raw candidate changed'", "die \"raw candidate changed: size=$(stat -f '%z' \\\"$stage/$BOOT_FILE\\\" 2>/dev/null || stat -c '%s' \\\"$stage/$BOOT_FILE\\\") sha=$raw_sha\"", 1),
+    ("die 'raw candidate changed'", "die \"raw candidate changed: expected-size=$RAW_SIZE sha=$raw_sha\"", 1),
     ("die 'padded candidate changed'", "die \"padded candidate changed: sha=$padded_sha\"", 1),
     ("experiment=2026-08-28-mainline-a72-live-image-runtime-dt-control", "experiment=2026-09-02-mainline-a72-hotplug-lifecycle-gate", 1),
     ("control_dtb_runtime_candidate=6219357a1c505a8c08ad33f97940aed4a9c73bf37a691a31c66ebc63559fe4f7", "control_dtb_serviceability_base=1478f2c8817b1289958e8918545e54493a60c67bcc399fe0daeb82b2cf5d046c", 1),

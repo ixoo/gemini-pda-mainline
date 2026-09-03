@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-a72-hotplug-lifecycle-gate` |
-| Status | first physical candidate safely refused before CPU8; profile-scoped configuration-identity repair in progress |
+| Status | repaired successor candidate validated offline; guarded `boot2` deployment next |
 | Subsystem | arm64 CPU hotplug, PSCI, MT6797 A72 membership |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-09-02--2026-09-03 America/New_York |
@@ -33,6 +33,9 @@ last-A72 power-down branch?
 - Build backend for future kernel work: Buildbox only.
 - Physical-candidate commit: `43349a53fda1ab1c7389ac0e6da2e89d131177bc`.
 - Physical-candidate release: `7.1.3-gemini-a72-hotplug-physical`.
+- Configuration-repair build commit:
+  `69b7494c211bef04d61cb5869f2ff9fb497799c2`.
+- Repaired successor `boot2` identity: `58313c3a8...`.
 - Boot path and target: one guarded write to inactive logical `boot2`; no
   device action had occurred when the candidate record below was published.
 
@@ -215,6 +218,11 @@ handling, and exact restore token are implemented and machine-checked.
   `test-config-identity-repair.py` bind the physical profile only to its exact
   package configuration-input identity and reject five scope/identity
   mutations while preserving the predecessor production identity.
+- `scripts/remote-physical-pretrigger.sh`,
+  `validate-physical-pretrigger.py`, and `test-physical-pretrigger.py` require
+  the repaired release and A41 identity, a changed boot ID, read-only sysfs,
+  pristine zero-execution state, and the sole arm64 READY line while rejecting
+  every proof-mask veto before a trigger can be issued.
 - [`results/contract-validation-20260902.txt`](results/contract-validation-20260902.txt)
   records the local contract/mutation pass and exact Buildbox prepared-source
   validation.
@@ -299,6 +307,10 @@ handling, and exact restore token are implemented and machine-checked.
   pins patch `0503`, the package-derived `2e50cc09...` identity, its
   physical-profile-only scope, five rejecting mutations, and the 173-profile
   canonical-series audit before Buildbox submission.
+- [`results/config-identity-repair-candidate-69b7494c-20260903.txt`](results/config-identity-repair-candidate-69b7494c-20260903.txt)
+  pins the corrected Buildbox package, exact embedded identity counts,
+  byte-reproducible DT/container constructions, strengthened pre-trigger gate,
+  and repaired successor candidate `58313c3a8...` before device deployment.
 - [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
   is the exact admitted no-op-by-default implementation.
 - [`../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch)
@@ -814,6 +826,17 @@ logical-empty `DBGC/0/0`, verified boot2 still matched `4b027c97...`, and did
 not clear retained state. This retires the exact candidate without testing the
 physical CPU9-down hypothesis.
 
+Patch `0503` was corrected after its first Buildbox submission failed safely
+at patch application. Exact pushed commit `69b7494c...` then compiled the
+492-patch physical profile on Buildbox. Its package records configuration-input
+identity `2e50cc09...`; the built Image contains that exact little-endian
+four-word identity once and contains neither stale predecessor identity. Two
+serviceability-DT compositions, two Android-v0/LK assemblies, and two 16 MiB
+padding constructions are byte-identical. Both independent candidate
+validations pass all 32 LK gates and reject all six container mutations. The
+raw successor is `4a3551c6...`; exact inactive-`boot2` content is
+`58313c3a8...`. No device access or write occurred during its construction.
+
 ## Analysis
 
 The accepted online/topology/load evidence closes the entry-state uncertainty
@@ -871,11 +894,14 @@ and the exact down/restore callbacks while keeping the public
 `cpu_can_disable()` veto closed. After correcting the rejected bit-field build,
 the exact 28-interface generation and mutation gate pass, the Buildbox package
 validates, and all 9/9 focused no-network runtime cases pass. This closes the
-last hardware-free composition gate. Exact production candidate
-`4b027c97...` now passes its separate package, DT, container, mutation,
+last hardware-free composition gate. Exact retired production candidate
+`4b027c97...` passed its separate package, DT, container, mutation,
 serviceability, attribution, recovery, and forbidden-action gates. Its decoded
 device attempt instead selected the stale embedded configuration-input
-identity before any CPU operation.
+identity before any CPU operation. The repaired successor `58313c3a8...` now
+passes the same offline gates plus an exact package-to-embedded-identity check
+and a fail-closed pre-trigger oracle that requires arm64 READY and rejects any
+proof-mask veto.
 
 ## Follow-up
 
@@ -885,10 +911,9 @@ complete and must remain fixed.
 Continue under the authoritative selected-next order and exit criteria in
 [the roadmap](../../docs/ROADMAP.md); this experiment record does not redefine
 that sequence.
-The selected next action is the profile-scoped configuration-input repair in
-patch `0503`. It selects `2e50cc09...` only when the physical-hotplug binding
-is enabled and preserves the predecessor production and fixture identities.
-After its exact source/mutation checks, all-profile series audit, Buildbox
-compile, package A41 identity check, and strengthened proof-mask pre-trigger
-gate pass, construct and deploy one new candidate. Do not repeat
-`4b027c97...`.
+The selected next action is one guarded deployment of exact repaired successor
+`58313c3a8...` to live-GPT-resolved inactive logical `boot2`, followed by a
+full-partition readback and clean shutdown. On its physical boot, collect the
+read-only pre-trigger frame first. Trigger exactly once only if the changed
+boot ID, release, record identity, pristine controller state, read-only sysfs,
+and arm64 READY/no-proof-mask gate all pass. Do not repeat `4b027c97...`.
