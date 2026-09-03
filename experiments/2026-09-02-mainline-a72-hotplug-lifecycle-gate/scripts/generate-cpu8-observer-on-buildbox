@@ -4,7 +4,7 @@ set -euo pipefail
 readonly repository_commit="${1:?repository commit required}"
 readonly source_root="${2:?prepared source root required}"
 readonly artifact_root="${3:?artifact root required}"
-readonly expected_parent_source_state=cb7d204abbf314d61b8f740cfa8bc6b3878fa8febec00fd7889684db414f2e55
+readonly expected_parent_source_state=fa3ac2028c2b325c380cb0ca41ec537e9039cc16fdea8cfacc490e7edd5ebd27
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 readonly script_dir
 readonly package_name="${repository_commit}-cpu8-observer-patch"
@@ -35,6 +35,8 @@ python3 "${script_dir}/generate_cpu8_observer_patch.py" \
 	cd "${temporary}"
 	sha256sum --check --strict SHA256SUMS >/dev/null
 	grep -Fx "repository_commit=${repository_commit}" provenance.txt >/dev/null
+	grep -Fx "reconstructed_parent_state=cb7d204abbf314d61b8f740cfa8bc6b3878fa8febec00fd7889684db414f2e55" \
+		provenance.txt >/dev/null
 	for marker in generated_patch_count=1 target_cpu=8 \
 		dispatch=smp_call_function_single-wait-0 dispatch_calls=1 \
 		controller_wait_timeout_ms=250 \

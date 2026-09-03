@@ -16,6 +16,9 @@ import tempfile
 SCRIPT_DIR = Path(__file__).resolve().parent
 PATCH_NAME = "0494-soc-mediatek-add-bounded-retained-CPU8-observer.patch"
 EXPECTED_SOURCE_STATE = (
+    "fa3ac2028c2b325c380cb0ca41ec537e9039cc16fdea8cfacc490e7edd5ebd27"
+)
+RECONSTRUCTED_PARENT_STATE = (
     "cb7d204abbf314d61b8f740cfa8bc6b3878fa8febec00fd7889684db414f2e55"
 )
 PARENT_SERIES_SHA256 = (
@@ -24,7 +27,15 @@ PARENT_SERIES_SHA256 = (
 PARENT_PATCH_SHA256 = (
     "54d4d38d7fd9f7337a41a771ab82d06a5ce90d36808a411feae044d5fe97b8d7"
 )
-PARENT_HASHES = {
+PREPARED_HASHES = {
+    "drivers/soc/mediatek/Kconfig":
+        "be44f0d71be519b34faa5ed7f4f4e2e60b053b475fed9fe862cbef72afa6be4c",
+    "drivers/soc/mediatek/Makefile":
+        "3757141478a0765a93456b93c65f4621d42d89b6dfc9c563f0b901b8908b4d3e",
+    "arch/arm64/include/asm/mt6797_a72_membership.h":
+        "521d061e20584d518f027e40f0c8a1165a4ac11221c705227d260cbe04440dbb",
+}
+RECONSTRUCTED_PARENT_HASHES = {
     "drivers/soc/mediatek/Kconfig":
         "fe4e40699e056da8551ce59ba814bc5cde02cf483d6e3e08e39c263ae667abc3",
     "drivers/soc/mediatek/Makefile":
@@ -88,10 +99,33 @@ def commit(root: Path, subject: str, body: str, timestamp: str,
 
 
 def copy_parent(source_root: Path, destination: Path) -> None:
-    for relative in PARENT_HASHES:
+    for relative in PREPARED_HASHES:
         target = destination / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source_root / relative, target)
+    kconfig = destination / "drivers/soc/mediatek/Kconfig"
+    text = kconfig.read_text(encoding="utf-8")
+    start_marker = "\nconfig MTK_MT6797_A72_CPU8_OBSERVER\n"
+    end_marker = "\nconfig MTK_MMSYS\n"
+    if text.count(start_marker) != 1 or text.count(end_marker) != 1:
+        raise SystemExit("cannot reconstruct exact pre-0494 Kconfig parent")
+    start = text.index(start_marker)
+    end = text.index(end_marker, start)
+    kconfig.write_text(text[:start] + text[end:], encoding="utf-8")
+    makefile = destination / "drivers/soc/mediatek/Makefile"
+    text = makefile.read_text(encoding="utf-8")
+    observer_lines = (
+        "obj-$(CONFIG_MTK_MT6797_A72_CPU8_OBSERVER) += "
+        "mt6797-a72-cpu8-observer.o\n"
+        "obj-$(CONFIG_MTK_MT6797_A72_CPU8_OBSERVER_KUNIT_TEST) += "
+        "mt6797-a72-cpu8-observer-test.o\n"
+    )
+    if text.count(observer_lines) != 1:
+        raise SystemExit("cannot reconstruct exact pre-0494 Makefile parent")
+    makefile.write_text(text.replace(observer_lines, "", 1), encoding="utf-8")
+    for relative, expected in RECONSTRUCTED_PARENT_HASHES.items():
+        if sha256(destination / relative) != expected:
+            raise SystemExit(f"reconstructed parent changed: {relative}")
 
 
 def normalize_patch_style(source_root: Path, path: Path) -> None:
@@ -183,7 +217,7 @@ def main() -> None:
     ).strip()
     if source_state != EXPECTED_SOURCE_STATE:
         raise SystemExit("prepared source state changed")
-    for relative, expected in PARENT_HASHES.items():
+    for relative, expected in PREPARED_HASHES.items():
         path = source_root / relative
         if not path.is_file() or path.is_symlink() or sha256(path) != expected:
             raise SystemExit(f"prepared source changed: {relative}")
@@ -265,6 +299,7 @@ def main() -> None:
         provenance = (
             f"repository_commit={args.repository_commit}\n"
             f"prepared_source_state={source_state}\n"
+            f"reconstructed_parent_state={RECONSTRUCTED_PARENT_STATE}\n"
             f"parent_series_sha256={PARENT_SERIES_SHA256}\n"
             f"parent_patch_sha256={PARENT_PATCH_SHA256}\n"
             "generated_patch_count=1\n"
