@@ -989,6 +989,8 @@ def main() -> None:
     parser.add_argument("--source-root", type=Path, required=True)
     args = parser.parse_args()
     root = args.source_root.resolve()
+    (root / "include/linux").mkdir(parents=True, exist_ok=True)
+    (root / "fs/pstore").mkdir(parents=True, exist_ok=True)
     (root / "include/linux/gemini_a72_hotplug_ledger.h").write_text(
         PUBLIC_HEADER, encoding="utf-8"
     )
