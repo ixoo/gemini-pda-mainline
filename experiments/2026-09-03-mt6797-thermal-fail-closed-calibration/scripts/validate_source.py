@@ -43,7 +43,7 @@ def validate(root: Path) -> None:
         "mtk_thermal_calibration_length_valid(",
         "mt->conf->requires_calibration,",
         "mtk_thermal_calibration_status(",
-        "mt->conf->requires_calibration, ret",
+        "ret = mtk_thermal_calibration_status(",
     ), "production driver")
     require(driver.count(".requires_calibration = true,") == 1,
             "required calibration must be MT6797-only match data")
