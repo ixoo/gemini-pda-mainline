@@ -99,6 +99,7 @@ SOURCE = kernel_text(r"""
     // SPDX-License-Identifier: GPL-2.0-only
     /* Disconnected physical snapshot adapter for MT6797 CPU9 hotplug. */
 
+    #include <linux/bug.h>
     #include <linux/device.h>
     #include <linux/err.h>
     #include <linux/errno.h>
@@ -152,6 +153,8 @@ SOURCE = kernel_text(r"""
             struct device *platform, struct device *clock,
             struct device *bigidvfs)
     {
+            if (!source)
+                    return;
             memset(source, 0, sizeof(*source));
             source->platform = platform;
             source->clock = clock;
@@ -661,6 +664,7 @@ TEST_SOURCE = kernel_text(r"""
             state = kunit_kzalloc(test, sizeof(*state), GFP_KERNEL);
             KUNIT_ASSERT_NOT_NULL(test, state);
             hotplug_snapshot_fill(state);
+            mt6797_a72_hotplug_snapshot_source_init(NULL, NULL, NULL, NULL);
             KUNIT_EXPECT_EQ(test, mt6797_a72_hotplug_snapshot_capture(
                     NULL, &readback, &trace), -EINVAL);
             KUNIT_EXPECT_EQ(test, mt6797_a72_hotplug_snapshot_capture(

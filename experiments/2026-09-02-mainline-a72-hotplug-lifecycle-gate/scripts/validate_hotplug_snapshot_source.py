@@ -93,6 +93,18 @@ def main() -> int:
                 f"production backend wrapper changed: {name}",
             )
 
+        require(
+            "#include <linux/bug.h>" in source,
+            "WARN_ON_ONCE include missing",
+        )
+        source_init = function_body(
+            source, "mt6797_a72_hotplug_snapshot_source_init"
+        )
+        require(
+            re.search(r"if \(!source\)\s+return;", source_init) is not None,
+            "snapshot source initializer null guard missing",
+        )
+
         capture = function_body(source, "mt6797_a72_hotplug_snapshot_capture")
         ordered = (
             "ops->platform(source->platform, &platform)",
@@ -172,6 +184,7 @@ def main() -> int:
             "hotplug_snapshot_generation_excluded_test",
             "hotplug_snapshot_component_failures_test",
             "hotplug_snapshot_provider_width_test",
+            "mt6797_a72_hotplug_snapshot_source_init(NULL, NULL, NULL, NULL)",
         ):
             require(token in test, f"KUnit proof missing: {token}")
 
