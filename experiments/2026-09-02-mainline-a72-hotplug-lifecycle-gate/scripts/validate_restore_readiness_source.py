@@ -113,7 +113,7 @@ def validate(root: Path) -> list[str]:
         "restore_readiness_sleeps + 1 !=",
         "GEMINI_A72_HOTPLUG_RESTORE_READINESS_ATTEMPTED",
         "GEMINI_A72_HOTPLUG_RESTORE_READINESS_READY",
-        "record->cpu_on_calls",
+        "record->cpu_on_calls))",
     ):
         require(errors, marker in shape, f"ledger semantic guard changed: {marker}")
     for marker in (
