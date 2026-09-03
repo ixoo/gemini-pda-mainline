@@ -1104,3 +1104,33 @@ is retained in
 The device is off and ready for the owner to physically select `boot2`; the
 host must capture and validate the read-only pre-trigger frame before spending
 the candidate's single trigger.
+
+The selected boot passed the exact pre-trigger gate on fresh boot ID
+`58ddbcfe...`. One trigger booted CPU8 and CPU9, completed exactly one CPU9
+CPU_OFF, one affinity-off observation, the intersected off proof, one retained
+CPU8 callback, and generic Linux down-completion with online mask `0x1ff` and
+A72 membership `0x1`. It then issued exactly one restore CPU_ON. The call
+returned success, but CPU9 did not emit a second arm64 secondary-entry message
+or become online before the five-second `__cpu_up()` timeout. Record 4 retained
+generation 15, restore-fault `-EIO`, and `result_flags=0x7f7f`. Its terminal
+`stage=16` names the next expected `secondary-complete` boundary; bit 15 is
+clear, so it is not evidence that the checkpoint completed. The earlier CPU9
+`Booted secondary processor` line belongs to initial admission before the
+down/restore transaction.
+
+The watchdog returned the device to fresh Gemian boot ID `0ababa54...`.
+Read-only recovery copied and decoded record 4 without removing remote pstore
+data. The exact runtime proof is retained in
+[`results/intersected-status-runtime-attempt-1-restore-entry-timeout-20260903.txt`](results/intersected-status-runtime-attempt-1-restore-entry-timeout-20260903.txt).
+This retires `a0114584...`: the off-status intersection repair worked, and the
+next boundary is now restart readiness below secondary kernel entry. Do not
+repeat this image.
+
+The selected successor is a bounded, read-only restore-readiness observation
+between completed CPU9 down and the sole CPU_ON. It must retain exact CPU9 SPM
+status-mirror and per-core power-control samples, add no CPU_OFF, CPU_ON,
+affinity, retry, provider, cluster, or watchdog call, and issue the existing
+single CPU_ON only after its named readiness predicate passes. A timeout must
+seal decision-bearing evidence without issuing CPU_ON. This distinguishes a
+short post-off settling interval from a persistently different status/control
+state before any behavioral repair is inferred.
