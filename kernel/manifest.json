@@ -2170,6 +2170,30 @@
                     "configs/gemini-a72-hotplug-snapshot-kunit.fragment"
                 ]
             },
+            "gemini-a72-cpu8-observer-kunit": {
+                "base": "defconfig",
+                "patch_series": "patches/series",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-usbdiag.fragment",
+                    "configs/gemini-clk-ignore-unused.fragment",
+                    "configs/gemini-observability.fragment",
+                    "configs/gemini-fbcon-rotation.fragment",
+                    "configs/gemini-keyboard.fragment",
+                    "configs/gemini-keyboard-wrrd.fragment",
+                    "configs/gemini-keyboard-manual-reboot.fragment",
+                    "configs/gemini-smp8.fragment",
+                    "configs/gemini-a72-a41-kernel-identity.fragment",
+                    "configs/gemini-a72-p30-protocol.fragment",
+                    "configs/gemini-a72-p24-closed-owner.fragment",
+                    "configs/gemini-a72-p24-closed-hooks.fragment",
+                    "configs/gemini-dvfsp-handoff-owner.fragment",
+                    "configs/gemini-da921x-legacy-bind.fragment",
+                    "configs/gemini-da921x-resource-only-provider.fragment",
+                    "configs/gemini-da921x-provider-owner-refusal.fragment",
+                    "configs/gemini-a72-cpu8-observer-kunit.fragment"
+                ]
+            },
             "gemini-cpu9-membership-kunit": {
                 "base": "defconfig",
                 "patch_series": "patches/series",

@@ -1,0 +1,15 @@
+# Hardware-free proof for the disconnected retained-CPU8 observer. The focused
+# suite injects dispatch, CPU identity, owner identity, and bounded-wait results.
+# No production caller invokes the one available wait=0 IPI wrapper, so this
+# profile performs no CPU, PSCI, MMIO, retained-RAM, watchdog, network, storage,
+# or device action.
+CONFIG_KUNIT=y
+CONFIG_ARM64_MT6797_A72_P24_TRANSACTION_OWNER_MODEL=y
+# CONFIG_ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST is not set
+CONFIG_MTK_MT6797_A72_HOTPLUG_EXECUTOR=y
+# CONFIG_MTK_MT6797_A72_HOTPLUG_EXECUTOR_KUNIT_TEST is not set
+CONFIG_MTK_MT6797_A72_CPU8_OBSERVER=y
+CONFIG_MTK_MT6797_A72_CPU8_OBSERVER_KUNIT_TEST=y
+# CONFIG_MTK_MT6797_A72_HOTPLUG_SNAPSHOT_KUNIT_TEST is not set
+# CONFIG_HOTPLUG_SPLIT_STARTUP is not set
+CONFIG_LOCALVERSION="-gemini-a72-cpu8-observer-kunit"
