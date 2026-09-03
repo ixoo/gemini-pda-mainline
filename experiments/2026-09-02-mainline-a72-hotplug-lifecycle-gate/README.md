@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-a72-hotplug-lifecycle-gate` |
-| Status | watchdog and exact parent prerequisites proven; remaining disconnected prerequisites pending |
+| Status | watchdog, exact parent, and record-4 prerequisites proven; snapshot and restore prerequisites pending |
 | Subsystem | arm64 CPU hotplug, PSCI, MT6797 A72 membership |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-09-02 America/New_York |
@@ -113,6 +113,19 @@ handling, and exact restore token are implemented and machine-checked.
 - `scripts/run-parent-proof-kunit-qemu` and
   `classify-parent-proof-kunit.py` admit only the exact ancestor Buildbox
   package and require all 62 owner, transition, and binder cases to pass.
+- `scripts/hotplug_ledger_source_edits.py`,
+  `validate_hotplug_ledger_source.py`, and
+  `test_hotplug_ledger_source.py` define the dedicated record-4 ledger and
+  reject 20 source mutations while keeping every production caller absent.
+- `scripts/generate_hotplug_ledger_patch.py` and
+  `generate-hotplug-ledger-on-buildbox` generate the exact ledger patch from
+  the canonical prepared source.
+- `scripts/decode-hotplug-ledger.py` is the strict changed-boot-ID host
+  decoder; `test-hotplug-ledger-decoder.py` covers ten accepted and rejected
+  payload classes without modifying the retained source.
+- `scripts/run-hotplug-ledger-kunit-qemu` and
+  `classify-hotplug-ledger-kunit.py` admit only the exact ancestor Buildbox
+  package and require all ten in-memory record-4 cases to pass.
 - [`results/contract-validation-20260902.txt`](results/contract-validation-20260902.txt)
   records the local contract/mutation pass and exact Buildbox prepared-source
   validation.
@@ -152,6 +165,9 @@ handling, and exact restore token are implemented and machine-checked.
 - [`results/parent-proof-kunit-335d41b0-20260903.txt`](results/parent-proof-kunit-335d41b0-20260903.txt)
   pins exact generation, admission, Buildbox compile/package identities, the
   corrected off-stack test snapshot, and the 62-of-62 no-network runtime pass.
+- [`results/record-4-ledger-kunit-38104ac6-20260903.txt`](results/record-4-ledger-kunit-38104ac6-20260903.txt)
+  pins exact generation, decoder tests, admission, Buildbox package identities,
+  and the 10-of-10 no-network in-memory runtime pass.
 - [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
   is the exact admitted no-op-by-default implementation.
 - [`../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch)
@@ -173,8 +189,10 @@ handling, and exact restore token are implemented and machine-checked.
 - [`../../patches/v7.1.3/0491-soc-mediatek-prove-exact-A72-binder-parent.patch`](../../patches/v7.1.3/0491-soc-mediatek-prove-exact-A72-binder-parent.patch)
   combines that membership proof with the exact CPU8 binder terminal, all ten
   online CPUs, and a recent read-only watchdog-owner validation.
+- [`../../patches/v7.1.3/0492-pstore-add-Gemini-A72-hotplug-record-4-ledger.patch`](../../patches/v7.1.3/0492-pstore-add-Gemini-A72-hotplug-record-4-ledger.patch)
+  adds the disconnected, two-copy CRC ledger and ten memory-only KUnit cases.
 
-Patches `0483`--`0491` are experiment-only archives with a synthetic,
+Patches `0483`--`0492` are experiment-only archives with a synthetic,
 non-certifying author identity, no DCO sign-off, and are not submission-ready.
 Upstream submission requires the actual author metadata and truthful
 certification.
@@ -382,6 +400,31 @@ zero failures or skips: owner 40/40, transition executor 12/12, and binder
 production callback, physical backend, CPU request, MMIO, retained-RAM, SMC,
 device action, or boot candidate is enabled.
 
+Buildbox generation at exact pushed tooling commit `ee5e368f...` then produced
+standalone patch `0492` with SHA-256
+`293c013301152bcb4ccf1035e6669d262c0d1f8bbb86259a8a739fbe3db47fe8`.
+Exact replay, strict review, all 20 unsafe source mutations, all 167 manifest
+profiles, and the eight-mutation series-invariant self-test pass. The ledger
+owns only retained record 4 at `0x44414000`, preserves records 0--3, accepts
+only raw-empty or pstore-empty initial state, and uses two alternating 27-word
+copies with CRC written last and full readback. Its normal successful sequence
+has 16 records and at most 451 32-bit writes. The separate host decoder passes
+ten tests and rejects unchanged boot IDs, malformed headers, bad CRCs,
+ambiguous generations, and invalid semantic shapes without changing the
+source record.
+
+Exact admission commit `38104ac6...` compiled successfully on Buildbox with
+patchset `608dc574bcf2f24ae70f68795dfbb39137509b9be3693e752e5f21cd4d77e70c`.
+Package validation covered `Image`, `Image.gz`, `System.map`, configuration,
+provenance, and all 123 DTBs. At published harness commit `61d250e4...`, the
+no-network four-vCPU QEMU gate passed the sole ledger suite 10/10 with zero
+failures or skips. It exercised layout and write budgets, complete success,
+pstore-empty admission, nonempty and sequence refusal, both terminal fault
+classes, readback corruption, CRC fallback, and semantic-shape refusal. The
+production mapping API still has no caller; the run used injected word arrays
+and performed no physical backend, MMIO, retained-RAM, SMC, watchdog, network,
+device, or boot-candidate action.
+
 ## Analysis
 
 The accepted online/topology/load evidence closes the entry-state uncertainty
@@ -413,16 +456,19 @@ first disconnected production prerequisite: an exact read-only validator for
 the inherited watchdog owner. Its exact Buildbox compile and 7/7 isolated
 runtime gate now passes. Patches `0490`--`0491` supply the exact combined
 CPU8/CPU9 parent proof, and their corrected exact Buildbox compile and 62/62
-isolated runtime gate now pass. The combined series still binds no callback,
-preserves the MT6797 disable veto, and performs no physical action. The final
-requirement remains physical CPU9-off and same-boot CPU9 restore.
+isolated runtime gate now pass. Patch `0492` supplies the dedicated record-4
+ledger and changed-boot-ID decoder; exact generation, 20 source mutations, ten
+decoder tests, Buildbox compile, and 10/10 isolated runtime cases pass. The
+combined series still binds no callback, preserves the MT6797 disable veto,
+and performs no physical action. The final requirement remains physical
+CPU9-off and same-boot CPU9 restore.
 
 ## Follow-up
 
-The parent-proof and watchdog-validator prerequisites are complete and must
-remain fixed. Continue under the authoritative selected-next order and exit
-criteria in [the roadmap](../../docs/ROADMAP.md); this experiment record does
-not redefine that sequence.
+The parent-proof, watchdog-validator, and record-4 prerequisites are complete
+and must remain fixed. Continue under the authoritative selected-next order
+and exit criteria in [the roadmap](../../docs/ROADMAP.md); this experiment
+record does not redefine that sequence.
 Only after every remaining disconnected slice passes its source mutations and
 runtime tests may the one-task down/restore binder connect to production
 callbacks. CPU8 and CPUs 0--7 stay non-disableable throughout. No candidate or

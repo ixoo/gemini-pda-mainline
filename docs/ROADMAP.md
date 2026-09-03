@@ -31,7 +31,7 @@ Cortex-A72 pair.
 | I2C6 transfer | Native packed/FIFO pointer-read and one exact one-message two-byte FIFO write are runtime proven. The write completed once with payload `[0xda, 0x46]`, exact no-retry accounting, and stable readback. | This closes only the reviewed same-value shape; arbitrary writes, failure recovery, stress, and resume remain open. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
 | Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected. A separate hardware-free implementation now models exact positive Buck-B acquire/release and passes all six focused fake-adapter cases. | Gate 6 is closed for the reviewed no-op, and the first Gate-7 provider source boundary is complete offline. Physical transition, production integration, consumers, and CPU requests remain disconnected. |
-| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. Six fresh exact experimental-profile boots reached CPUs `0-9`; accepted runtime children prove standard 4+4+2 topology, exact affinity, bidirectional RAM integrity, independent accounting, and simultaneous dual-A72 peer-visible work. The hardware-free down/restore owner and physical executor pass isolated runtime gates; the production binder contract is frozen; and its disconnected watchdog validator and exact CPU8/CPU9 parent proof pass exact Buildbox compile plus 7/7 and 62/62 no-network runtime gates. Safe physical down/restore is not yet connected. | Continue the [CPU9 physical-off and same-boot restore gate](../experiments/2026-09-02-mainline-a72-hotplug-lifecycle-gate/README.md) with the record-4 ledger/decoder, snapshot, and restore prerequisites before any production callback or candidate. Keep CPU8-last-off, cpufreq/OPP, thermal, idle, suspend, and default-profile promotion separate. |
+| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. Six fresh exact experimental-profile boots reached CPUs `0-9`; accepted runtime children prove standard 4+4+2 topology, exact affinity, bidirectional RAM integrity, independent accounting, and simultaneous dual-A72 peer-visible work. The hardware-free down/restore owner and physical executor pass isolated runtime gates; the production binder contract is frozen; and its disconnected watchdog validator, exact CPU8/CPU9 parent proof, and record-4 ledger/decoder pass exact Buildbox compile plus their no-network runtime gates. Safe physical down/restore is not yet connected. | Continue the [CPU9 physical-off and same-boot restore gate](../experiments/2026-09-02-mainline-a72-hotplug-lifecycle-gate/README.md) with the snapshot and restore prerequisites before any production callback or candidate. Keep CPU8-last-off, cpufreq/OPP, thermal, idle, suspend, and default-profile promotion separate. |
 
 The durable technical boundary is in
 [DA921x, I2C6, and Cortex-A72](hardware/da921x-i2c6-a72.md). The exact
@@ -7433,13 +7433,21 @@ state, and a watchdog validation no more than five seconds after takeover.
 Their Buildbox packages validate completely; isolated no-network QEMU runs
 pass 7/7 watchdog cases and 62/62 owner, transition, and binder cases. No
 production caller, physical backend, CPU request, MMIO, retained-RAM write,
-SMC, device action, or boot candidate is enabled. **Selected next:** implement
-and hardware-free-test the dedicated record-4 ledger, changed-boot-ID decoder,
-and snapshot prerequisites. Then implement the disconnected restore executor,
-followed by the one-task
-`add8 -> add9 -> remove9 -> add9` binder. Select no boot candidate until all
-three implementation slices pass exact source replay, rejecting mutations,
-Buildbox compile, and no-network runtime gates.
+SMC, device action, or boot candidate is enabled. Patch `0492` now closes the
+record-4 portion of the next slice. It owns only the previously unused 4 KiB
+record at `0x44414000`, preserves records 0--3, uses two alternating
+CRC-protected copies, and admits only raw-empty or pstore-empty state. Its
+successful 16-boundary sequence is bounded to 451 32-bit writes. The strict
+changed-boot-ID host decoder passes ten tests and never changes the retained
+source. Exact Buildbox package validation and a no-network, injected-memory
+QEMU run pass all ten ledger cases with no physical caller, backend, MMIO,
+retained-RAM, CPU, watchdog, network, or device action. **Selected next:**
+implement and hardware-free-test the snapshot prerequisites, including the
+explicitly counted bounded DVFSP transport effects and the asynchronous
+bounded CPU8 observation. Then implement the disconnected restore executor,
+followed by the one-task `add8 -> add9 -> remove9 -> add9` binder. Select no
+boot candidate until these remaining slices pass exact source replay,
+rejecting mutations, Buildbox compile, and no-network runtime gates.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
