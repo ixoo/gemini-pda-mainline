@@ -1,0 +1,14 @@
+# Hardware-free proof for the production CPU9 hotplug binding's private gate.
+# The focused suite injects the CPU device, device-hotplug lock, task identity,
+# online state, and device_offline operation. The production binding is linked,
+# but QEMU's virt DT has no Gemini admission-controller nodes, so no physical
+# CPU, PSCI, MMIO, retained-RAM, watchdog, network, storage, or device action
+# is reachable.
+CONFIG_KUNIT=y
+CONFIG_MTK_MT6797_A72_ADMISSION_CONTROLLER=y
+CONFIG_MTK_MT6797_A72_CPU9_ADMISSION_CONTROLLER=y
+CONFIG_MTK_MT6797_A72_HOTPLUG_BINDING=y
+# CONFIG_MTK_MT6797_A72_HOTPLUG_BINDER_CORE_KUNIT_TEST is not set
+CONFIG_MTK_MT6797_A72_HOTPLUG_BINDING_KUNIT_TEST=y
+# CONFIG_HOTPLUG_SPLIT_STARTUP is not set
+CONFIG_LOCALVERSION="-gemini-a72-hotplug-binding-kunit"
