@@ -1,0 +1,97 @@
+{
+  "schema": 1,
+  "experiment": "2026-09-02-mainline-a72-hotplug-lifecycle-gate",
+  "phase": "cpu9-physical-executor-hardware-free-contract",
+  "repository_parent": "f6230e62490d75ee06c9b6e02c2bb2fd346822f6",
+  "canonical_series_entries": 475,
+  "canonical_series_sha256": "640f8757299432cf125d34f3049e2aa7b1f1c19b0688e46cbafd1bdb7749bd19",
+  "manifest_sha256": "af9331a6d97a73475243dc1f79df6ca70206d3daf69405c20e9145e7c9930b43",
+  "owner_runtime_evidence_sha256": "3b6177dfb6e6b02cfac1114802c2d924c4ede0d015270517dbaa7b315c10bffa",
+  "prepared_source_state": "d33e9545e32bea6eb7591b9eca2bb84a7a8a8c8ad0b2e2c0b7363c8a9c0e0a07",
+  "prepared_source": {
+    "arch/arm64/include/asm/mt6797_a72_membership.h": "37ceccdad257a3365933f0c3ad1576f876eef793af4291b50b84b6dfb68c9f40",
+    "arch/arm64/kernel/mt6797_a72_membership.c": "757a907020c7693339d1488af779e4b026074e4c5ccc463dd0e222fe2737c417",
+    "arch/arm64/kernel/mt6797_psci.c": "13c0497e4a462e5367d39236dbf6fecaf7478df012705d8f5e6ed39625e16d8e",
+    "arch/arm64/kernel/smp.c": "50c9255d48ce5cb62df5a4ed064cb092de09512c08a3d90153c384c07eb781ab",
+    "kernel/cpu.c": "84fc7f9af337eb193cddcf6e942f31868ab88d4c2fa0dde4d616e9b65de706ce",
+    "drivers/watchdog/mtk_wdt.c": "7daf615c14e7eebb065ea7a9e963e715fb163a27ddbc6a52d048ad0f0f744441",
+    "include/linux/mtk_wdt.h": "609b3dfcf4dd5974bc7fcd40a447896dc2e05a725460c10126f746b00e0ad565",
+    "drivers/soc/mediatek/mt6797-a72-platform-state.c": "98ce737992b9e34fc2ca881ab1717e5f1c2ccd0c0c5c9cfb4c826d57a2204f54",
+    "include/linux/soc/mediatek/mt6797-a72-platform-state.h": "6bf7276dac6fb9d83ef08a0ea52d26bdb95448102af9f22673c0f1ed39fd5605"
+  },
+  "watchdog": {
+    "owner": "established-cpu8-transition",
+    "deadline_ms": 15000,
+    "entry_identity_required": true,
+    "takeover_calls": 0,
+    "refresh_calls": 0,
+    "cancel_calls": 0,
+    "cancellation_api_available": false,
+    "terminal_disposition": "durable-result-then-expected-reset"
+  },
+  "split_owners": {
+    "preflight_validate_complete": "requesting-controller",
+    "disable_and_cpu_off": "target-cpu9",
+    "affinity_readback_and_proof": "requesting-controller",
+    "retained_callback": "cpu8"
+  },
+  "ordered_stages": [
+    "controller-owner-prepare",
+    "controller-watchdog-identity-validate",
+    "controller-stable-baseline",
+    "generic-owner-validate",
+    "target-psci-disable-guard",
+    "target-owner-cpu-off-commit",
+    "target-durable-commit-checkpoint",
+    "target-one-psci-cpu-off",
+    "controller-one-active-affinity-level0",
+    "controller-stable-post-state",
+    "retained-cpu8-bounded-callback",
+    "controller-readback-classification",
+    "controller-owner-proof",
+    "generic-owner-down-complete",
+    "controller-distinct-restore",
+    "controller-restored-terminal",
+    "expected-watchdog-reset"
+  ],
+  "budgets": {
+    "cpu9_cpu_off": 1,
+    "cpu9_affinity_info_level0": 1,
+    "cpu8_responsiveness_callback": 1,
+    "post_affinity_snapshot": 1,
+    "cpu9_restore_cpu_on": 1,
+    "cpu_off_retry": 0,
+    "affinity_retry": 0,
+    "cpu_on_retry": 0,
+    "cpu8_last_off": 0
+  },
+  "readback": {
+    "cpu8_status_bit": 7,
+    "cpu9_status_bit": 6,
+    "cpu8_required_in_both_status_words": true,
+    "cpu9_clear_in_both_status_words": true,
+    "unchanged_exact": [
+      "spm_mp2_cpusys_pwr_con",
+      "spm_mp2_cpu0_pwr_con",
+      "provider-five-byte-tuple",
+      "protected-clock-values",
+      "bigidvfs-values"
+    ],
+    "unchanged_masked": {
+      "spm_cpu_ext_buck_iso": "0x00000002",
+      "mp2_sync_dcm": "0x0000007f",
+      "cci_mp2_port_control": "0x00000003"
+    },
+    "cci_change_pending_clear": true,
+    "cpu9_core_control": "capture-raw-not-acceptance-predicate",
+    "general_spm_status": "correlation-only"
+  },
+  "post_commit_failure": "terminal-fault-no-retry-no-inverse-reset-only",
+  "secure_affinity_intrinsically_bounded": false,
+  "park_only_success": false,
+  "production_callbacks_bound": false,
+  "cpu_can_disable": false,
+  "boot_candidate": false,
+  "device_action": false,
+  "native_vm_build": false
+}

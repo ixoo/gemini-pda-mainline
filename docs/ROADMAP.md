@@ -7390,10 +7390,18 @@ rejecting mutations, and the 165-profile invariant pass. Exact admission commit
 `e8e564f5...` then compiled on Buildbox, and the identical no-network gate
 passed all 60 cases with zero skips and every physical/production path still
 disconnected. This closes the hardware-free lifecycle-owner phase.
-**Selected next:** freeze and implement the separate bounded physical
-executor, one-shot watchdog, independent per-core/shared-state readback, and
-callback-binding slice. It requires its own hardware-free proof before a boot
-candidate, deployment, or device action can be selected.
+The follow-on callback audit found that the existing TOPRGU recovery takeover
+is intentionally irreversible: it has no cancellation or refresh API. The
+physical hotplug path must therefore inherit the watchdog identity established
+by CPU8 bring-up, publish a durable result before the original 15-second
+deadline, and then allow the expected reset to terminate the experiment. The
+new physical-executor contract freezes that correction, split target/controller
+ownership, exact call budgets, and the independent CPU9-off/shared-state
+predicate; its validator and 26 unsafe mutations pass with production callbacks
+and the disable veto still closed. **Selected next:** implement and
+hardware-free-test that split executor, still disconnected from production.
+A later separately reviewed binding slice is required before a boot candidate,
+deployment, or device action can be selected.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

@@ -101,7 +101,10 @@ watchdog.
 Exactly one CPU_ON is permitted. Success requires arm64 secondary completion,
 full generic CPUHP completion, membership `0x3`, the accepted 4+4+2 topology,
 USB/netcat serviceability, and independent CPU8/CPU9 scheduler accounting.
-Only then may the owner retire the restore and cancel the watchdog.
+Only then may the owner retire the restore and durably publish success. The
+existing recovery takeover has no cancellation or refresh API, so its original
+15-second deadline remains authoritative and the expected reset terminates the
+experiment. See [`PHYSICAL_EXECUTOR.md`](PHYSICAL_EXECUTOR.md).
 
 ## Phase boundaries
 

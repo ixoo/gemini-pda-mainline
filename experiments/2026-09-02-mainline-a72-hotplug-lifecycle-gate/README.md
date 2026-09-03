@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-a72-hotplug-lifecycle-gate` |
-| Status | hardware-free CPU9 down/restore owner admitted; Buildbox compile pending |
+| Status | hardware-free owner passed; physical-executor contract frozen |
 | Subsystem | arm64 CPU hotplug, PSCI, MT6797 A72 membership |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-09-02 America/New_York |
@@ -50,7 +50,12 @@ handling, and exact restore token are implemented and machine-checked.
 
 - [`DESIGN.md`](DESIGN.md) fixes the end state, lifecycle ownership, failure
   boundary, and phase order.
+- [`PHYSICAL_EXECUTOR.md`](PHYSICAL_EXECUTOR.md) freezes the split physical
+  executor, corrects the inherited one-shot watchdog disposition, and defines
+  the independent CPU9-off/shared-state predicate.
 - [`contract.json`](contract.json) is the machine-readable gate.
+- [`physical-executor-contract.json`](physical-executor-contract.json) is the
+  hardware-free contract for the next implementation slice.
 - [`scripts/validate_contract.py`](scripts/validate_contract.py) validates the
   contract and optionally the exact prepared source.
 - [`scripts/test_contract.py`](scripts/test_contract.py) requires critical
@@ -196,6 +201,16 @@ failures or skips: owner 39/39, transition executor 12/12, and binder 9/9.
 It also verified zero production callers, physical backends, MMIO,
 retained-RAM, watchdog, SMC, physical CPU requests, or device action.
 
+The follow-on callback audit found an incompatibility in the initial prose:
+the already-used TOPRGU recovery takeover is deliberately irreversible and
+has no cancel or refresh API. CPU9 hotplug must inherit the exact watchdog
+identity established by CPU8 bring-up and finish its durable result before the
+original 15-second reset. It must not arm a second deadline or invent a cancel
+path. The physical-executor contract records that conservative correction,
+the split target/controller ownership, and the exact independent readback
+predicate. Its validator and 26 unsafe mutations pass without binding a
+callback or changing a boot candidate.
+
 ## Analysis
 
 The accepted online/topology/load evidence closes the entry-state uncertainty
@@ -225,8 +240,7 @@ requirement remains physical CPU9-off and same-boot CPU9 restore.
 
 ## Follow-up
 
-Freeze and implement the independently bounded physical executor, one-shot
-recovery watchdog, per-core/shared-state readback, and callback-binding slice.
-That slice must retain the validated lifecycle identities and failure
-boundaries and pass its own hardware-free tests before any boot candidate is
-selected.
+Implement and hardware-free-test the frozen split physical executor. It must
+inherit the existing one-shot watchdog identity, perform the per-core/shared
+readback classification, and remain disconnected from production callbacks.
+Only a separately reviewed binding slice may later open CPU9's disable veto.
