@@ -21,11 +21,11 @@ if hashlib.sha256(SOURCE.read_bytes()).hexdigest() != SOURCE_SHA256:
 text = SOURCE.read_text(encoding="utf-8")
 replacements = (
     ("9212c8b03df973362307902573980ec27071f89ef3728ed44064f6319a9edf37",
-     "24f2caac69f196dc316e627224f67a1fa5f0c26d4ef68e6f84461ba5492d7096", 1),
+     "aee4c11325a75a74a34fc06f95a78a8021b07cc3f9fc6fbacc8f405d0d126d04", 1),
     ("5fe8c059961f3d2bfc6e8461a9b8148e610821701f9cfac81eff2425c0ee39f6",
-     "9d7c84593e44683f943f1f64e2d811da825f32dfc56f4169b97843897cfc6a53", 1),
+     "c4fc31cf16c790989b284e5917396855eb5331c9b1c781660285350d41a5cecc", 1),
     ("2ef5aeb10f45d3a74f8cf6a2e8e8c2e2497842624a7150eb7a72f8bf322cb2d9",
-     "99415ca8c13fd6f30b34b805214ebbbbc1230951fae0c943c7cbaf6c1603439d", 1),
+     "48f7c1943223b652e44c55703f3d3c53ff15cceca0f4c7054169ccc346683586", 1),
     ("cpu9-completion-lock-repair-composed-dtb-independent",
      "cpu9-physical-hotplug-composed-dtb-independent", 2),
 )

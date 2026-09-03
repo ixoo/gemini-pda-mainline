@@ -1075,3 +1075,17 @@ identities are retained in
 The hardware-free repair gate is closed; one newly constructed and
 independently validated production candidate is now permitted. Retired
 candidate `9b60b576...` remains forbidden to repeat.
+
+Exact production profile commit `1de95a69...` now passes Buildbox package
+validation with the same `a1c6d67e...` 494-patch identity. Two independent
+provenance-only DT compositions produce `48f7c194...`; both structural
+validations pass and all ten DT mutations reject. Two independent Android-v0/LK
+assemblies and padding paths are byte-identical, both validators pass all 32
+LK gates and reject six container mutations, and the exact pre-trigger gate
+rejects all eight unsafe mutations. The raw successor is `a7ac6ac0...`; exact
+16 MiB inactive-`boot2` content is `a0114584...`. Its package, container,
+hypothesis, and tooling identities are retained in
+[`results/intersected-status-candidate-1de95a69-20260903.txt`](results/intersected-status-candidate-1de95a69-20260903.txt).
+No device access or write occurred during construction. This distinct
+candidate is selected for one guarded physical attempt after the exact tooling
+and evidence are published.

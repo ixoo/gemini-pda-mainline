@@ -7653,6 +7653,19 @@ one distinct `0505` successor for guarded inactive-`boot2` deployment. The
 boot hypothesis is that the previously observed primary-off/secondary-present
 CPU9 pair now passes the established intersection rule, allowing owner proof
 and exactly one CPU9 restore; all other 23 readback terms remain rejecting.
+Exact Buildbox production commit `1de95a69...` passes package validation with
+494-patch identity `a1c6d67e...`. Two independent provenance-only DT
+compositions are byte-identical at `48f7c194...`; both structural validators
+pass and all ten mutations reject. Two independent Android-v0/LK assemblies
+and padding paths are byte-identical, both validators pass 32/32 LK gates and
+reject all six container mutations, and the pre-trigger oracle rejects all
+eight mutations. Raw successor `a7ac6ac0...` yields exact 16 MiB candidate
+`a0114584...`; construction performed no device action. **Selected next:**
+publish the exact candidate tooling and evidence, then use the guarded live-GPT
+installer once against inactive logical `boot2`, require both full readbacks,
+remove temporary device files, and shut Gemian down cleanly. Only after that
+verified shutdown may the owner physically select `boot2` for this candidate's
+sole attempt.
 Do not repeat
 `4b027c97...`, `58313c3a8...`, or `9b60b576...`.
 
