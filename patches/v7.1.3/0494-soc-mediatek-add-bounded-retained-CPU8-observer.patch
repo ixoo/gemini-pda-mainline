@@ -1,4 +1,4 @@
-From ce479cf82fc23969d673dd5633a08c1334e3ff3f Mon Sep 17 00:00:00 2001
+From 0ba900c4d2f2aa2fbbfac41a36e6e8db2926574e Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Thu, 3 Sep 2026 04:01:00 +0000
 Subject: [PATCH] soc: mediatek: add bounded retained-CPU8 observer
@@ -7,21 +7,21 @@ Queue one asynchronous callback to CPU8, validate the exact active
 CPU9-down identity at OFF_COMMITTED, and bound controller waiting
 to 250 ms. Keep the one-shot context disconnected from callers.
 ---
- drivers/soc/mediatek/Kconfig                  |  28 ++
+ drivers/soc/mediatek/Kconfig                  |  29 ++
  drivers/soc/mediatek/Makefile                 |   2 +
  .../mt6797-a72-cpu8-observer-internal.h       |  63 ++++
  .../mediatek/mt6797-a72-cpu8-observer-test.c  | 306 ++++++++++++++++++
  .../soc/mediatek/mt6797-a72-cpu8-observer.c   | 198 ++++++++++++
- 5 files changed, 597 insertions(+)
+ 5 files changed, 598 insertions(+)
  create mode 100644 drivers/soc/mediatek/mt6797-a72-cpu8-observer-internal.h
  create mode 100644 drivers/soc/mediatek/mt6797-a72-cpu8-observer-test.c
  create mode 100644 drivers/soc/mediatek/mt6797-a72-cpu8-observer.c
 
 diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
-index 1f74f6e..c58ac3f 100644
+index 1f74f6e..6d98642 100644
 --- a/drivers/soc/mediatek/Kconfig
 +++ b/drivers/soc/mediatek/Kconfig
-@@ -782,6 +782,34 @@ config MTK_MT6797_A72_HOTPLUG_SNAPSHOT_KUNIT_TEST
+@@ -782,6 +782,35 @@ config MTK_MT6797_A72_HOTPLUG_SNAPSHOT_KUNIT_TEST
  	  operations only. No device, MMIO, I2C, SMC, retained-memory, CPU,
  	  watchdog, or network action occurs.
  
@@ -30,6 +30,7 @@ index 1f74f6e..c58ac3f 100644
 +	depends on SMP
 +	depends on MTK_MT6797_A72_HOTPLUG_EXECUTOR
 +	depends on ARM64_MT6797_A72_P24_TRANSACTION_OWNER_MODEL
++	depends on ARM64_MT6797_A72_CPU9_MEMBERSHIP
 +	default n
 +	help
 +	  Build a disconnected one-shot observer for the retained CPU8 during

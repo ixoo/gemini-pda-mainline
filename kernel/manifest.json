@@ -2187,10 +2187,18 @@
                     "configs/gemini-a72-p30-protocol.fragment",
                     "configs/gemini-a72-p24-closed-owner.fragment",
                     "configs/gemini-a72-p24-closed-hooks.fragment",
+                    "configs/gemini-a72-p32-rollback.fragment",
                     "configs/gemini-dvfsp-handoff-owner.fragment",
                     "configs/gemini-da921x-legacy-bind.fragment",
                     "configs/gemini-da921x-resource-only-provider.fragment",
                     "configs/gemini-da921x-provider-owner-refusal.fragment",
+                    "configs/gemini-i2c6-firmware-writer-transaction-window.fragment",
+                    "configs/gemini-da921x-positive-provider.fragment",
+                    "configs/gemini-a72-pre-p28-provider-abort.fragment",
+                    "configs/gemini-mt6797-a72-platform-state.fragment",
+                    "configs/gemini-dvfsp-bigidvfs-readonly.fragment",
+                    "configs/gemini-a72-default-off-binder-kunit.fragment",
+                    "configs/gemini-cpu9-membership-kunit.fragment",
                     "configs/gemini-a72-cpu8-observer-kunit.fragment"
                 ]
             },
