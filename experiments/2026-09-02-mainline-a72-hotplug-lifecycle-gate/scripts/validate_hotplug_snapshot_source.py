@@ -68,6 +68,31 @@ def main() -> int:
             "three long-lived source references changed",
         )
 
+        wrappers = (
+            (
+                "mt6797_hotplug_platform",
+                "return mt6797_a72_platform_state_snapshot(dev, snapshot);",
+            ),
+            (
+                "mt6797_hotplug_provider",
+                "return mt6797_a72_provider_snapshot(snapshot);",
+            ),
+            (
+                "mt6797_hotplug_clock",
+                "return mt6797_dvfsp_clock_backend_read(dev, snapshot);",
+            ),
+            (
+                "mt6797_hotplug_bigidvfs",
+                "return mt6797_bigidvfs_backend_read(dev, snapshot);",
+            ),
+        )
+        for name, exact_return in wrappers:
+            body = function_body(source, name)
+            require(
+                exact_return in body,
+                f"production backend wrapper changed: {name}",
+            )
+
         capture = function_body(source, "mt6797_a72_hotplug_snapshot_capture")
         ordered = (
             "ops->platform(source->platform, &platform)",
