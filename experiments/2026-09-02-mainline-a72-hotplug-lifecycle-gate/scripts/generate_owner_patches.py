@@ -264,6 +264,12 @@ def main() -> None:
 
         replay = temp / "replay"
         copy_parent(source_root, replay)
+        for patch_name in reversed(PATCH_NAMES[:2]):
+            run("git", "apply", "--reverse",
+                str(REPO_ROOT / "patches/v7.1.3" / patch_name), cwd=replay)
+        for relative, expected in PARENT_HASHES.items():
+            if sha256(replay / relative) != expected:
+                raise SystemExit(f"replay parent changed: {relative}")
         run("git", "init", "--quiet", cwd=replay)
         for patch_name in PATCH_NAMES:
             patch = package / patch_name
