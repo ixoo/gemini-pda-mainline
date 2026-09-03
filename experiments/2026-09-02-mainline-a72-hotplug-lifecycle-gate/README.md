@@ -1339,3 +1339,22 @@ permitted candidate adds one bounded terminal binder diagnostic, changes no
 CPU/firmware request budget, and exists solely to identify that post-success
 branch. Exact runtime identities and the frozen next decision are retained in
 [`results/p30e-rearm-runtime-attempt-1-restored-postsuccess-protocol-20260903.txt`](results/p30e-rearm-runtime-attempt-1-restored-postsuccess-protocol-20260903.txt).
+
+Patch `0510` implements exactly that diagnostic without changing the restore
+effect, firmware-call, or retry budgets. Its focused no-network binder-core
+KUnit suite passes 9/9, and exact production commit `35170505...` passes
+Buildbox package validation with 499-patch identity `a7cbb2da...`. Two
+independent provenance-only DT compositions agree at `959247f1...`; two
+independent Android-v0/LK builds agree on raw `fd015493...` and exact 16 MiB
+candidate `fe333d46...`. Both independent validators pass all 32 LK gates and
+reject six mutations; the DT and pre-trigger suites reject ten and eight
+mutations respectively. The production image contains exactly one bounded
+`GEMINI_A72_HOTPLUG_BINDING_V1` format and no KUnit or split-startup policy.
+Construction used no device and performed no hardware write. Exact package,
+candidate, decision-map, and tool identities are retained in
+[`results/postsuccess-diagnostic-candidate-35170505-20260903.txt`](results/postsuccess-diagnostic-candidate-35170505-20260903.txt).
+After publication, this distinct candidate is selected for one guarded
+inactive-`boot2` deployment, full readback, clean shutdown, and one physical
+attempt. The expected hardware sequence remains the already proven P30E
+restore; the sole new observation is the terminal binder line that selects
+the exact remaining software branch.

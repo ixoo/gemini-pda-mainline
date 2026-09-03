@@ -7763,6 +7763,22 @@ not change the CPU/firmware request budgets and do not repeat the current
 artifact. See the linked
 [runtime record](../experiments/2026-09-02-mainline-a72-hotplug-lifecycle-gate/results/p30e-rearm-runtime-attempt-1-restored-postsuccess-protocol-20260903.txt).
 
+That bounded diagnostic is now implemented as patch `0510`. Its focused
+hardware-free binder-core suite passes 9/9, and exact production commit
+`35170505...` passes Buildbox package validation with 499-patch identity
+`a7cbb2da...`. Two independent DT compositions produce `959247f1...`; two
+independent containers produce raw `fd015493...` and exact 16 MiB candidate
+`fe333d46...`. All 32 LK gates and independent validators pass, while ten DT,
+six container, and eight pre-trigger mutations reject. No device action was
+used during construction. **Selected next:** publish the exact candidate
+tooling and evidence, then use the guarded live-GPT installer once against
+inactive logical `boot2`, require both full readbacks, remove temporary files,
+and shut Gemian down. After the owner selects `boot2` once, preserve the
+already proven P30E sequence and use only the new terminal binder line to
+choose among nested `add_cpu()`, transaction revalidation, post-restore
+checkpoint, or terminal-return accounting; do not repeat either retired
+`7ffd60d0...` or the diagnostic candidate after it yields that line.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;
