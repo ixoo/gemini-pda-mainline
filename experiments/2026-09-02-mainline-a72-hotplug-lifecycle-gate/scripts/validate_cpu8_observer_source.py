@@ -187,6 +187,16 @@ def main() -> int:
             ) is not None,
             "one-shot IDLE-to-ARMED transition changed",
         )
+        require(
+            re.search(
+                r"if \(!completed\s*&&\s*atomic_cmpxchg\(&observer->state,\s*"
+                r"MT6797_A72_CPU8_OBSERVER_ARMED,\s*"
+                r"MT6797_A72_CPU8_OBSERVER_TIMED_OUT\)\s*==\s*"
+                r"MT6797_A72_CPU8_OBSERVER_ARMED\)\s*return -ETIMEDOUT;",
+                run,
+            ) is not None,
+            "exact timeout terminal transition changed",
+        )
         require(run.count("ops->dispatch(") == 1, "dispatch retry added")
         require(run.count("ops->wait_timeout(") == 1, "controller wait retry added")
 
