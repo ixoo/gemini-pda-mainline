@@ -334,14 +334,14 @@ int mt6797_a72_hotplug_private_down_with_ops(
 	}
 	if (ops->task_identity(context) != expected_task ||
 	    !ops->cpu_online(context, cpu) ||
-	    !READ_ONCE(dev->offline_disabled) || READ_ONCE(dev->offline)) {
+	    !dev->offline_disabled || dev->offline) {
 		ret = -EPERM;
 		goto out_unlock;
 	}
 
-	WRITE_ONCE(dev->offline_disabled, false);
+	dev->offline_disabled = false;
 	ret = ops->offline(context, dev);
-	WRITE_ONCE(dev->offline_disabled, true);
+	dev->offline_disabled = true;
 out_unlock:
 	ops->unlock(context);
 	return ret;

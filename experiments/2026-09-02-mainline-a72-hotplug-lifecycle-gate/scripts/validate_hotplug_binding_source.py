@@ -104,11 +104,11 @@ def validate(root: Path, require_tests: bool) -> None:
         "dev = ops->cpu_device(context, cpu);",
         "ops->task_identity(context) != expected_task",
         "!ops->cpu_online(context, cpu)",
-        "!READ_ONCE(dev->offline_disabled)",
-        "READ_ONCE(dev->offline)",
-        "WRITE_ONCE(dev->offline_disabled, false);",
+        "!dev->offline_disabled",
+        "dev->offline",
+        "dev->offline_disabled = false;",
         "ret = ops->offline(context, dev);",
-        "WRITE_ONCE(dev->offline_disabled, true);",
+        "dev->offline_disabled = true;",
         "ops->unlock(context);",
     )
     positions = [source.find(token) for token in private_order]
@@ -116,13 +116,13 @@ def validate(root: Path, require_tests: bool) -> None:
             "private transition contract incomplete")
     require(positions == sorted(positions),
             "private transition lock/gate/restore order changed")
-    require("!READ_ONCE(dev->offline_disabled) || READ_ONCE(dev->offline)"
+    require("!dev->offline_disabled || dev->offline"
             in source, "private public-veto/already-offline predicate changed")
     exact(source, "ret = ops->offline(context, dev);", 1,
           "private offline call count changed")
-    exact(source, "WRITE_ONCE(dev->offline_disabled, false);", 1,
+    exact(source, "dev->offline_disabled = false;", 1,
           "private veto opening count changed")
-    exact(source, "WRITE_ONCE(dev->offline_disabled, true);", 1,
+    exact(source, "dev->offline_disabled = true;", 1,
           "private veto restoration count changed")
     exact(source, "ret = add_cpu(cpu);", 1,
           "restore add-CPU call count changed")
