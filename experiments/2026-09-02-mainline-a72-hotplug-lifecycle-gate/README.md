@@ -346,6 +346,10 @@ handling, and exact restore token are implemented and machine-checked.
   ties that result to the established MT6797 two-word on-state semantics and
   fixes the narrow source, raw-evidence, call-budget, and test boundaries for
   patch `0505` before Buildbox generation.
+- [`results/intersected-status-generation-4179b8d7-20260903.txt`](results/intersected-status-generation-4179b8d7-20260903.txt)
+  records the exact Buildbox generation, byte-identical fetched patch, strict
+  review and replay, ten rejected mutations, and all-profile series audit for
+  the evidence-selected intersection repair.
 - [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
   is the exact admitted no-op-by-default implementation.
 - [`../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch)
@@ -1047,4 +1051,12 @@ snapshot includes bounded protected-clock transport writes, and its exact
 two-call budget is already proven. The patch adds no CPU, PSCI, MMIO, I2C,
 watchdog, retained-RAM, or device effect. Generate it from exact post-`0504`
 Buildbox source, reject its mutations, then admit and compile it before any
-new candidate. Do not repeat `9b60b576...` unchanged.
+new candidate. Three preliminary generator runs stopped before patch creation
+on over-broad assertion or mutation anchors; the exact chronology is retained
+in the definition result. Attempt 4 from pushed commit `4179b8d7...` passes
+source validation, ten rejecting mutations, strict review, replay, and the
+173-profile invariant. Generated patch `0505` is byte-identical to the fetched
+Buildbox artifact at SHA-256 `1fb082ca...` and changes only the executor and
+its focused test. Commit and push that exact admission, then compile and run
+the executor and production-binding KUnit profiles before constructing a new
+candidate. Do not repeat `9b60b576...` unchanged.

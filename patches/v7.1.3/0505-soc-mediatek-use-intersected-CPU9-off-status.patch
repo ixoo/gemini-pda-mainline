@@ -1,0 +1,71 @@
+From 8128962ac446080a2b1c22a5b75d2da0db504a9a Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 4 Sep 2026 01:01:00 +0000
+Subject: [PATCH] soc: mediatek: use intersected CPU9-off status
+
+Use the established MT6797 intersection of both CPU power-status
+words for the CPU9-off decision while continuing to require CPU8
+in both words. Preserve the raw mismatch bitmap and every call
+budget and hardware operation.
+---
+ .../mediatek/mt6797-a72-hotplug-executor-test.c   | 13 +++++++++++++
+ .../soc/mediatek/mt6797-a72-hotplug-executor.c    | 15 ++++++++++++---
+ 2 files changed, 25 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-hotplug-executor-test.c b/drivers/soc/mediatek/mt6797-a72-hotplug-executor-test.c
+index 2943a06..e7d96f1 100644
+--- a/drivers/soc/mediatek/mt6797-a72-hotplug-executor-test.c
++++ b/drivers/soc/mediatek/mt6797-a72-hotplug-executor-test.c
+@@ -517,6 +517,19 @@ static void mt6797_hotplug_readback_rejections(struct kunit *test)
+ 	KUNIT_EXPECT_TRUE(test,
+ 			  mt6797_a72_hotplug_readback_proves_cpu9_off(&baseline, &post));
+ 	post.spm_cpu_pwr_status |= MT6797_A72_HOTPLUG_CPU9_STATUS;
++	KUNIT_EXPECT_TRUE(test,
++			  mt6797_a72_hotplug_readback_proves_cpu9_off(&baseline, &post));
++	KUNIT_EXPECT_EQ(test, mt6797_a72_hotplug_readback_mismatch(
++		&baseline, &post),
++		(u32)MT6797_A72_HOTPLUG_MISMATCH_POST_STATUS_CPU9);
++	post = state->samples[1];
++	post.spm_cpu_pwr_status_2nd |= MT6797_A72_HOTPLUG_CPU9_STATUS;
++	KUNIT_EXPECT_TRUE(test,
++			  mt6797_a72_hotplug_readback_proves_cpu9_off(&baseline, &post));
++	KUNIT_EXPECT_EQ(test, mt6797_a72_hotplug_readback_mismatch(
++		&baseline, &post),
++		(u32)MT6797_A72_HOTPLUG_MISMATCH_POST_STATUS2_CPU9);
++	post.spm_cpu_pwr_status |= MT6797_A72_HOTPLUG_CPU9_STATUS;
+ 	KUNIT_EXPECT_FALSE(test,
+ 			   mt6797_a72_hotplug_readback_proves_cpu9_off(&baseline, &post));
+ 	post = state->samples[1];
+diff --git a/drivers/soc/mediatek/mt6797-a72-hotplug-executor.c b/drivers/soc/mediatek/mt6797-a72-hotplug-executor.c
+index 4a588a0..983e497 100644
+--- a/drivers/soc/mediatek/mt6797-a72-hotplug-executor.c
++++ b/drivers/soc/mediatek/mt6797-a72-hotplug-executor.c
+@@ -39,8 +39,8 @@ static bool mt6797_a72_hotplug_status_exact(
+ 	return readback->valid &&
+ 		(readback->spm_cpu_pwr_status & required) == required &&
+ 		(readback->spm_cpu_pwr_status_2nd & required) == required &&
+-		!(readback->spm_cpu_pwr_status & forbidden) &&
+-		!(readback->spm_cpu_pwr_status_2nd & forbidden) &&
++		!((readback->spm_cpu_pwr_status &
++		   readback->spm_cpu_pwr_status_2nd) & forbidden) &&
+ 		!((readback->cci_status_before | readback->cci_status_after) &
+ 		  MT6797_A72_HOTPLUG_CCI_PENDING);
+ }
+@@ -130,7 +130,16 @@ bool mt6797_a72_hotplug_readback_proves_cpu9_off(
+ 	const struct mt6797_a72_hotplug_readback *baseline,
+ 	const struct mt6797_a72_hotplug_readback *post_state)
+ {
+-	return !mt6797_a72_hotplug_readback_mismatch(baseline, post_state);
++	u32 raw_cpu9_mismatch =
++		MT6797_A72_HOTPLUG_MISMATCH_POST_STATUS_CPU9 |
++		MT6797_A72_HOTPLUG_MISMATCH_POST_STATUS2_CPU9;
++	u32 mismatch;
++
++	if (!post_state ||
++	    !mt6797_a72_hotplug_status_exact(post_state, false))
++		return false;
++	mismatch = mt6797_a72_hotplug_readback_mismatch(baseline, post_state);
++	return !(mismatch & ~raw_cpu9_mismatch);
+ }
+ 
+ static int mt6797_a72_hotplug_checkpoint(
