@@ -102,6 +102,9 @@ handling, and exact restore token are implemented and machine-checked.
 - `scripts/generate_watchdog_validator_patch.py` and
   `generate-watchdog-validator-on-buildbox` generate the exact disconnected
   watchdog prerequisite from the canonical prepared source.
+- `scripts/run-watchdog-validator-kunit-qemu` and
+  `classify-watchdog-validator-kunit.py` require the exact isolated Buildbox
+  package and seven-case no-network runtime proof.
 - [`results/contract-validation-20260902.txt`](results/contract-validation-20260902.txt)
   records the local contract/mutation pass and exact Buildbox prepared-source
   validation.
