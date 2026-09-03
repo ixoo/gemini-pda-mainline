@@ -249,7 +249,6 @@ SOURCE = kernel_text(r"""
             observer->expected = *identity;
             observer->ops = ops;
             observer->ops_context = ops_context;
-            smp_wmb();
 
             atomic_inc(&observer->dispatch_calls);
             ret = ops->dispatch(ops_context, MT6797_A72_CPU8_OBSERVER_CPU,
