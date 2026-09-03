@@ -31,6 +31,14 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-09-03 current-mainline power-observability gate](2026-09-03-mainline-power-observability-gate/README.md)
+  — audits the exact successful topology/lifecycle/load candidate before any
+  stress increase. Its resolved config disables CPU_FREQ and THERMAL, its
+  thermal/AUXADC nodes remain disabled, and its A72 nodes have no OPP/supply
+  contract, so another load cannot produce attributable temperature or rate
+  evidence. One redacted read-only boot is pending solely to revalidate the LK
+  handoff shape and live calibration-provider bind on this exact supported
+  path; it executes no CPU or load trigger and emits no calibration values.
 - [2026-09-02 mainline A72 physical-hotplug lifecycle gate](2026-09-02-mainline-a72-hotplug-lifecycle-gate/README.md)
   — incrementally closes the complete CPU9-only down/restore boundary while
   retaining CPU8, including exact ownership, bounded firmware calls, retained

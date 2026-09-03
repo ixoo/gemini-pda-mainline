@@ -7929,6 +7929,24 @@ thermal/frequency/topology/accounting observation around the same finite load.
 Do not increase duration or intensity unless attributable temperature and
 frequency state are available; interface absence selects implementation work.
 
+That exact offline audit now resolves the branch before another load: the
+validated package has `CONFIG_CPU_FREQ` and `CONFIG_THERMAL` unset, the MT6797
+thermal and AUXADC DT nodes remain disabled, and the A72 nodes have no OPP or
+supply contract. Their static `clock-frequency` properties are not runtime
+measurements. Repeating the finite workload therefore cannot add attributable
+temperature or frequency evidence and is not permitted. The built-in,
+root-only LK calibration provider and its disabled-consumer DT wiring are
+present, but live binding on this supported boot path has not been captured.
+The first attempted start during observer preparation showed neither USB nor
+a changed Gemian boot ID and is classified as no boot cycle, not a kernel
+result. **Selected next:** one fresh owner-selected `boot2` may run the
+source-pinned, redacted, read-only calibration-provider observation. It must
+make one netcat session, execute no CPU or load trigger, emit no calibration
+value, and require a changed boot ID plus exact provider binding. A binding
+failure selects provider/DT population repair; a pass selects fail-closed
+thermal-calibration implementation and AUXADC contract recovery before any
+thermal enablement or longer load.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;
