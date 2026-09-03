@@ -39,11 +39,13 @@ def validate(root: Path) -> None:
         '#include "auxadc_thermal_internal.h"',
         "bool requires_calibration;",
         ".requires_calibration = true,",
+        "bool calibration_required;",
+        "calibration_required = mt->conf->requires_calibration;",
         "ret = PTR_ERR(cell);",
         "mtk_thermal_calibration_length_valid(",
-        "mt->conf->requires_calibration,",
+        "mtk_thermal_calibration_length_valid(calibration_required, len)",
         "mtk_thermal_calibration_status(",
-        "ret = mtk_thermal_calibration_status(",
+        "mtk_thermal_calibration_status(calibration_required, ret)",
     ), "production driver")
     require(driver.count(".requires_calibration = true,") == 1,
             "required calibration must be MT6797-only match data")

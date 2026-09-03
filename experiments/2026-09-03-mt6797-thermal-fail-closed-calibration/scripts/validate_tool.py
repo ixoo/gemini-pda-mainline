@@ -30,6 +30,7 @@ def main() -> None:
     require(test.count("KUNIT_CASE(") == 9, "KUnit inventory changed")
     for token in (".requires_calibration = true,",
                   "ret = PTR_ERR(cell);",
+                  "calibration_required = mt->conf->requires_calibration;",
                   "MTK_SOC_THERMAL_KUNIT_TEST"):
         require(token in editor, f"editor token absent: {token}")
     for token in ("PARENT_SOURCE_STATE=cfb17989", "format-patch -2",

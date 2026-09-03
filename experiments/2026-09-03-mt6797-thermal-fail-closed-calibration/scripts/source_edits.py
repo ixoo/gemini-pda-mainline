@@ -179,6 +179,19 @@ def edit_production(root: Path) -> None:
     )
     replace_once(
         driver,
+        "\tsize_t len;\n\tint i, ret = 0;\n",
+        "\tsize_t len;\n\tbool calibration_required;\n\tint i, ret = 0;\n",
+    )
+    replace_once(
+        driver,
+        "\tmt->o_slope = 0;\n\n"
+        "\tcell = nvmem_cell_get(dev, \"calibration-data\");\n",
+        "\tmt->o_slope = 0;\n\n"
+        "\tcalibration_required = mt->conf->requires_calibration;\n"
+        "\tcell = nvmem_cell_get(dev, \"calibration-data\");\n",
+    )
+    replace_once(
+        driver,
         "\tcell = nvmem_cell_get(dev, \"calibration-data\");\n"
         "\tif (IS_ERR(cell)) {\n"
         "\t\tif (PTR_ERR(cell) == -EPROBE_DEFER)\n"
@@ -188,17 +201,13 @@ def edit_production(root: Path) -> None:
         "\tcell = nvmem_cell_get(dev, \"calibration-data\");\n"
         "\tif (IS_ERR(cell)) {\n"
         "\t\tret = PTR_ERR(cell);\n"
-        "\t\treturn mtk_thermal_calibration_status("
-        "mt->conf->requires_calibration,\n"
-        "\t\t\t\t\t\t     ret);\n"
+        "\t\treturn mtk_thermal_calibration_status(calibration_required, ret);\n"
         "\t}\n",
     )
     replace_once(
         driver,
         "\tif (len < 3 * sizeof(u32)) {\n",
-        "\tif (!mtk_thermal_calibration_length_valid("
-        "mt->conf->requires_calibration,\n"
-        "\t\t\t\t\t\t     len)) {\n",
+        "\tif (!mtk_thermal_calibration_length_valid(calibration_required, len)) {\n",
     )
     replace_once(
         driver,
@@ -207,9 +216,7 @@ def edit_production(root: Path) -> None:
         "\t\tret = 0;\n"
         "\t}\n",
         "\tif (ret) {\n"
-        "\t\tret = mtk_thermal_calibration_status("
-        "mt->conf->requires_calibration,\n"
-        "\t\t\t\t\t\t     ret);\n"
+        "\t\tret = mtk_thermal_calibration_status(calibration_required, ret);\n"
         "\t\tif (!ret)\n"
         "\t\t\tdev_info(dev, \"Device not calibrated, using default calibration values\\n\");\n"
         "\t}\n",
