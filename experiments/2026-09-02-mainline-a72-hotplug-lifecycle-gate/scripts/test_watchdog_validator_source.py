@@ -61,8 +61,9 @@ def main() -> int:
          "ops->write(context, WDT_MODE, 0);\n\t"
          "validation->mode = ops->read(context, WDT_MODE);"),
         ("drop-lock", "drivers/watchdog/mtk_wdt.c",
-         "spin_lock_irqsave(&mtk_wdt->recovery_lock, flags);",
-         "flags = 0;"),
+         "spin_lock_irqsave(&mtk_wdt->recovery_lock, flags);\n"
+         "\tret = mtk_wdt_recovery_validate_owner(",
+         "flags = 0;\n\tret = mtk_wdt_recovery_validate_owner("),
         ("drop-export", "drivers/watchdog/mtk_wdt.c",
          "EXPORT_SYMBOL_GPL(mtk_wdt_recovery_validate);", ""),
         ("add-takeover", "drivers/watchdog/mtk_wdt.c",
