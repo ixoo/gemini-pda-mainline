@@ -1,0 +1,683 @@
+#!/usr/bin/env python3
+"""Add the disconnected CPU9 restore executor implementation."""
+
+from __future__ import annotations
+
+import argparse
+from pathlib import Path
+from textwrap import dedent
+
+
+def replace_once(path: Path, old: str, new: str) -> None:
+    text = path.read_text(encoding="utf-8")
+    if text.count(old) != 1:
+        raise SystemExit(f"{path}: expected one anchor: {old.splitlines()[0]}")
+    path.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+
+def kernel_text(value: str) -> str:
+    lines = []
+    for line in dedent(value).lstrip("\n").splitlines(keepends=True):
+        stripped = line.lstrip(" ")
+        spaces = len(line) - len(stripped)
+        lines.append("\t" * (spaces // 8) + " " * (spaces % 8) + stripped)
+    return "".join(lines)
+
+
+INTERNAL_HEADER = kernel_text(r"""
+    /* SPDX-License-Identifier: GPL-2.0-only */
+    #ifndef __MT6797_A72_RESTORE_EXECUTOR_INTERNAL_H
+    #define __MT6797_A72_RESTORE_EXECUTOR_INTERNAL_H
+
+    #include <asm/mt6797_a72_membership.h>
+
+    #include <linux/atomic.h>
+    #include <linux/bitops.h>
+    #include <linux/types.h>
+
+    #define MT6797_A72_RESTORE_CPU8 8U
+    #define MT6797_A72_RESTORE_CPU9 9U
+    #define MT6797_A72_RESTORE_OFFLINE_MEMBERS BIT(0)
+    #define MT6797_A72_RESTORE_ONLINE_MEMBERS (BIT(0) | BIT(1))
+    #define MT6797_A72_RESTORE_OFFLINE_SYSTEM_MASK GENMASK_ULL(8, 0)
+    #define MT6797_A72_RESTORE_ONLINE_SYSTEM_MASK GENMASK_ULL(9, 0)
+
+    enum mt6797_a72_restore_executor_stage {
+            MT6797_A72_RESTORE_STAGE_NONE,
+            MT6797_A72_RESTORE_STAGE_VALIDATED,
+            MT6797_A72_RESTORE_STAGE_CPU_BOOT,
+            MT6797_A72_RESTORE_STAGE_PREPARED = 14,
+            MT6797_A72_RESTORE_STAGE_CPU_ON_COMMITTED = 15,
+            MT6797_A72_RESTORE_STAGE_SECONDARY_COMPLETE = 16,
+            MT6797_A72_RESTORE_STAGE_FULL_COMPLETE = 17,
+    };
+
+    enum mt6797_a72_restore_executor_terminal {
+            MT6797_A72_RESTORE_TERMINAL_NONE,
+            MT6797_A72_RESTORE_FAULT,
+            MT6797_A72_RESTORE_SUCCESS,
+    };
+
+    enum mt6797_a72_restore_executor_lifecycle {
+            MT6797_A72_RESTORE_IDLE,
+            MT6797_A72_RESTORE_PREPARING,
+            MT6797_A72_RESTORE_PREPARED,
+            MT6797_A72_RESTORE_VALIDATING,
+            MT6797_A72_RESTORE_VALIDATED,
+            MT6797_A72_RESTORE_COMMITTING,
+            MT6797_A72_RESTORE_ON_COMMITTED,
+            MT6797_A72_RESTORE_BOOTING,
+            MT6797_A72_RESTORE_ON_ISSUED,
+            MT6797_A72_RESTORE_SECONDARY_RECORDING,
+            MT6797_A72_RESTORE_SECONDARY_RECORDED,
+            MT6797_A72_RESTORE_COMPLETING,
+            MT6797_A72_RESTORE_TERMINAL,
+    };
+
+    struct mt6797_a72_restore_executor_controller {
+            atomic_t consumed;
+            atomic_t lifecycle;
+    };
+
+    struct mt6797_a72_restore_executor_request {
+            struct mt6797_a72_hotplug_transaction down_parent;
+            unsigned int cpu;
+            enum cpuhp_state target;
+            u32 members;
+            u32 online_mask;
+            u64 system_online_mask;
+            u64 controller_identity;
+            u64 watchdog_identity;
+            bool watchdog_owned;
+    };
+
+    struct mt6797_a72_restore_executor_result {
+            struct mt6797_a72_restore_executor_request request;
+            struct mt6797_a72_hotplug_transaction restore;
+            enum mt6797_a72_restore_executor_terminal terminal;
+            enum mt6797_a72_restore_executor_stage last_stage;
+            s32 stage_errno;
+            s32 publication_errno;
+            u32 prepare_calls;
+            u32 validate_calls;
+            u32 begin_calls;
+            u32 cpu_boot_calls;
+            u32 verify_calls;
+            u32 complete_calls;
+            u32 fail_calls;
+            u32 checkpoint_calls;
+            u32 terminal_calls;
+            bool attempted;
+            bool owner_prepared;
+            bool owner_validated;
+            bool cpu_on_committed;
+            bool cpu_boot_issued;
+            bool secondary_completed;
+            bool owner_completed;
+            bool completed;
+            bool rollback_suppressed;
+    };
+
+    struct mt6797_a72_restore_executor_ops {
+            int (*checkpoint)(void *context,
+                            enum mt6797_a72_restore_executor_stage stage,
+                            const struct mt6797_a72_restore_executor_result *result);
+            int (*prepare_restore)(void *context, unsigned int cpu,
+                            enum cpuhp_state target, bool cpu8_online,
+                            bool cpu9_online,
+                            struct mt6797_a72_hotplug_transaction *restore);
+            int (*validate_restore)(void *context,
+                            const struct mt6797_a72_restore_executor_request *request,
+                            const struct mt6797_a72_hotplug_transaction *restore);
+            int (*begin_restore)(void *context,
+                            struct mt6797_a72_hotplug_transaction *restore,
+                            bool cpu8_online, bool cpu9_online);
+            int (*cpu_boot)(void *context, unsigned int cpu);
+            int (*complete_restore)(void *context,
+                            struct mt6797_a72_hotplug_transaction *restore,
+                            bool cpu8_online, bool cpu9_online);
+            int (*verify_terminal)(void *context,
+                            const struct mt6797_a72_restore_executor_request *request,
+                            const struct mt6797_a72_hotplug_transaction *restore,
+                            u32 members, u32 online_mask,
+                            u64 system_online_mask);
+            int (*fail_restore)(void *context,
+                            struct mt6797_a72_hotplug_transaction *restore,
+                            int error);
+            int (*terminal)(void *context,
+                            const struct mt6797_a72_restore_executor_result *result);
+    };
+
+    void mt6797_a72_restore_executor_init(
+            struct mt6797_a72_restore_executor_controller *controller);
+    bool mt6797_a72_restore_down_parent_valid(
+            const struct mt6797_a72_hotplug_transaction *down_parent);
+    bool mt6797_a72_restore_transaction_valid(
+            const struct mt6797_a72_hotplug_transaction *down_parent,
+            const struct mt6797_a72_hotplug_transaction *restore,
+            bool cpu_on_committed, bool completed);
+    int mt6797_a72_restore_executor_preflight(
+            struct mt6797_a72_restore_executor_controller *controller,
+            const struct mt6797_a72_restore_executor_ops *ops, void *context,
+            const struct mt6797_a72_restore_executor_request *request,
+            struct mt6797_a72_restore_executor_result *result);
+    int mt6797_a72_restore_executor_validate(
+            struct mt6797_a72_restore_executor_controller *controller,
+            const struct mt6797_a72_restore_executor_ops *ops, void *context,
+            bool tasks_frozen, bool cpu8_online, bool cpu9_online,
+            u64 system_online_mask,
+            struct mt6797_a72_restore_executor_result *result);
+    int mt6797_a72_restore_executor_boot(
+            struct mt6797_a72_restore_executor_controller *controller,
+            const struct mt6797_a72_restore_executor_ops *ops, void *context,
+            unsigned int cpu, bool cpu8_online, bool cpu9_online,
+            struct mt6797_a72_restore_executor_result *result);
+    int mt6797_a72_restore_executor_secondary_complete(
+            struct mt6797_a72_restore_executor_controller *controller,
+            const struct mt6797_a72_restore_executor_ops *ops, void *context,
+            unsigned int cpu,
+            struct mt6797_a72_restore_executor_result *result);
+    int mt6797_a72_restore_executor_complete(
+            struct mt6797_a72_restore_executor_controller *controller,
+            const struct mt6797_a72_restore_executor_ops *ops, void *context,
+            unsigned int cpu, enum cpuhp_state target,
+            bool cpu8_online, bool cpu9_online, u32 members, u32 online_mask,
+            u64 system_online_mask,
+            struct mt6797_a72_restore_executor_result *result);
+    int mt6797_a72_restore_executor_rollback(
+            struct mt6797_a72_restore_executor_controller *controller,
+            const struct mt6797_a72_restore_executor_ops *ops, void *context,
+            unsigned int cpu, int error,
+            struct mt6797_a72_restore_executor_result *result,
+            bool *suppress_initial_rollback);
+
+    #endif /* __MT6797_A72_RESTORE_EXECUTOR_INTERNAL_H */
+    """)
+
+
+SOURCE = kernel_text(r"""
+    // SPDX-License-Identifier: GPL-2.0-only
+    /* Disconnected one-shot CPU9 restore executor. */
+
+    #include <linux/errno.h>
+    #include <linux/string.h>
+
+    #include "mt6797-a72-restore-executor-internal.h"
+
+    static bool mt6797_a72_restore_identity_valid(
+            const struct mt6797_a72_hotplug_identity *identity,
+            u32 operation, enum cpuhp_state target)
+    {
+            return identity && identity->abi == MT6797_A72_HOTPLUG_ABI &&
+                    identity->operation == operation && identity->target_cpu == 9 &&
+                    identity->cpuhp_target == target &&
+                    identity->target_mpidr == 0x201 && identity->generation &&
+                    identity->cookie && identity->parent_generation &&
+                    identity->parent_cookie && identity->generation != ~0ULL &&
+                    identity->cookie != ~0ULL &&
+                    identity->parent_generation != ~0ULL &&
+                    identity->parent_cookie != ~0ULL;
+    }
+
+    bool mt6797_a72_restore_down_parent_valid(
+            const struct mt6797_a72_hotplug_transaction *down_parent)
+    {
+            const struct mt6797_a72_cpu9_off_proof *proof;
+
+            if (!down_parent ||
+                !mt6797_a72_restore_identity_valid(&down_parent->identity,
+                        MT6797_A72_HOTPLUG_OPERATION_CPU9_DOWN, CPUHP_OFFLINE))
+                    return false;
+            proof = &down_parent->off_proof;
+            return down_parent->valid == 1 && down_parent->completed == 1 &&
+                    down_parent->off_committed == 1 && down_parent->off_proven == 1 &&
+                    !down_parent->restored && !down_parent->failure_error &&
+                    down_parent->entry_members == MT6797_A72_RESTORE_ONLINE_MEMBERS &&
+                    down_parent->entry_online_mask ==
+                            MT6797_A72_RESTORE_ONLINE_MEMBERS &&
+                    down_parent->budgets.cpu_off == MT6797_A72_BUDGET_CONSUMED &&
+                    down_parent->budgets.affinity == MT6797_A72_BUDGET_CONSUMED &&
+                    down_parent->budgets.cpu_on == MT6797_A72_BUDGET_NONE &&
+                    proof->abi == MT6797_A72_CPU9_OFF_PROOF_ABI &&
+                    proof->valid == 1 && proof->affinity_attempted == 1 &&
+                    proof->affinity_level == MT6797_A72_AFFINITY_LEVEL0 &&
+                    proof->affinity_state == MT6797_A72_AFFINITY_STATE_OFF &&
+                    proof->cpu9_per_core_off == 1 && proof->cpu8_responsive == 1 &&
+                    proof->shared_state_unchanged == 1 &&
+                    proof->members_before == MT6797_A72_RESTORE_ONLINE_MEMBERS &&
+                    proof->online_mask_after == MT6797_A72_RESTORE_OFFLINE_MEMBERS &&
+                    proof->transaction_generation ==
+                            down_parent->identity.generation &&
+                    proof->transaction_cookie == down_parent->identity.cookie &&
+                    !memcmp(&proof->provider_identity,
+                            &down_parent->provider_identity,
+                            sizeof(proof->provider_identity));
+    }
+
+    bool mt6797_a72_restore_transaction_valid(
+            const struct mt6797_a72_hotplug_transaction *down_parent,
+            const struct mt6797_a72_hotplug_transaction *restore,
+            bool cpu_on_committed, bool completed)
+    {
+            enum mt6797_a72_budget_state cpu_on = cpu_on_committed ?
+                    MT6797_A72_BUDGET_CONSUMED : MT6797_A72_BUDGET_AVAILABLE;
+
+            if (!mt6797_a72_restore_down_parent_valid(down_parent) || !restore ||
+                !mt6797_a72_restore_identity_valid(&restore->identity,
+                        MT6797_A72_HOTPLUG_OPERATION_CPU9_RESTORE, CPUHP_ONLINE))
+                    return false;
+            return restore->identity.parent_generation ==
+                            down_parent->identity.generation &&
+                    restore->identity.parent_cookie == down_parent->identity.cookie &&
+                    restore->identity.generation != down_parent->identity.generation &&
+                    restore->identity.cookie != down_parent->identity.cookie &&
+                    !memcmp(&restore->provider_identity,
+                            &down_parent->provider_identity,
+                            sizeof(restore->provider_identity)) &&
+                    restore->entry_members == MT6797_A72_RESTORE_OFFLINE_MEMBERS &&
+                    restore->entry_online_mask == MT6797_A72_RESTORE_OFFLINE_MEMBERS &&
+                    restore->budgets.cpu_off == MT6797_A72_BUDGET_NONE &&
+                    restore->budgets.affinity == MT6797_A72_BUDGET_NONE &&
+                    restore->budgets.cpu_on == cpu_on && restore->valid == 1 &&
+                    !restore->off_committed && !restore->off_proven &&
+                    restore->completed == completed &&
+                    restore->restored == completed && !restore->failure_error;
+    }
+
+    static bool mt6797_a72_restore_request_valid(
+            const struct mt6797_a72_restore_executor_request *request)
+    {
+            return request && request->cpu == MT6797_A72_RESTORE_CPU9 &&
+                    request->target == CPUHP_ONLINE &&
+                    request->members == MT6797_A72_RESTORE_OFFLINE_MEMBERS &&
+                    request->online_mask == MT6797_A72_RESTORE_OFFLINE_MEMBERS &&
+                    request->system_online_mask ==
+                            MT6797_A72_RESTORE_OFFLINE_SYSTEM_MASK &&
+                    request->controller_identity && request->watchdog_identity &&
+                    request->watchdog_owned &&
+                    mt6797_a72_restore_down_parent_valid(&request->down_parent);
+    }
+
+    static bool mt6797_a72_restore_ops_valid(
+            const struct mt6797_a72_restore_executor_ops *ops)
+    {
+            return ops && ops->checkpoint && ops->prepare_restore &&
+                    ops->validate_restore && ops->begin_restore && ops->cpu_boot &&
+                    ops->complete_restore && ops->verify_terminal &&
+                    ops->fail_restore && ops->terminal;
+    }
+
+    void mt6797_a72_restore_executor_init(
+            struct mt6797_a72_restore_executor_controller *controller)
+    {
+            if (!controller)
+                    return;
+            atomic_set(&controller->consumed, 0);
+            atomic_set(&controller->lifecycle, MT6797_A72_RESTORE_IDLE);
+    }
+
+    static int mt6797_a72_restore_terminal(
+            struct mt6797_a72_restore_executor_controller *controller,
+            const struct mt6797_a72_restore_executor_ops *ops, void *context,
+            struct mt6797_a72_restore_executor_result *result,
+            enum mt6797_a72_restore_executor_terminal terminal, int error)
+    {
+            int ret;
+
+            result->terminal = terminal;
+            result->terminal_calls++;
+            ret = ops->terminal(context, result);
+            if (ret) {
+                    result->publication_errno = ret;
+                    result->terminal = MT6797_A72_RESTORE_FAULT;
+                    result->stage_errno = ret;
+                    error = ret;
+            }
+            atomic_set_release(&controller->lifecycle,
+                               MT6797_A72_RESTORE_TERMINAL);
+            return error;
+    }
+
+    static int mt6797_a72_restore_fault(
+            struct mt6797_a72_restore_executor_controller *controller,
+            const struct mt6797_a72_restore_executor_ops *ops, void *context,
+            struct mt6797_a72_restore_executor_result *result, int error,
+            bool fail_owner)
+    {
+            int fail_ret = 0;
+
+            result->stage_errno = error ?: -EIO;
+            if (fail_owner && result->owner_prepared &&
+                !result->owner_completed && !result->fail_calls) {
+                    result->fail_calls++;
+                    fail_ret = ops->fail_restore(context, &result->restore,
+                                                 result->stage_errno);
+                    if (fail_ret)
+                            result->publication_errno = fail_ret;
+            }
+            return mt6797_a72_restore_terminal(controller, ops, context, result,
+                    MT6797_A72_RESTORE_FAULT,
+                    fail_ret ? fail_ret : result->stage_errno);
+    }
+
+    static int mt6797_a72_restore_checkpoint(
+            struct mt6797_a72_restore_executor_controller *controller,
+            const struct mt6797_a72_restore_executor_ops *ops, void *context,
+            struct mt6797_a72_restore_executor_result *result,
+            enum mt6797_a72_restore_executor_stage stage, bool fail_owner)
+    {
+            int ret;
+
+            result->last_stage = stage;
+            result->checkpoint_calls++;
+            ret = ops->checkpoint(context, stage, result);
+            if (!ret)
+                    return 0;
+            result->publication_errno = ret;
+            return mt6797_a72_restore_fault(controller, ops, context, result,
+                                            ret, fail_owner);
+    }
+
+    static int mt6797_a72_restore_unexpected(
+            struct mt6797_a72_restore_executor_controller *controller,
+            const struct mt6797_a72_restore_executor_ops *ops, void *context,
+            struct mt6797_a72_restore_executor_result *result)
+    {
+            int lifecycle = atomic_read_acquire(&controller->lifecycle);
+
+            if (lifecycle == MT6797_A72_RESTORE_IDLE ||
+                lifecycle == MT6797_A72_RESTORE_TERMINAL)
+                    return -EALREADY;
+            return mt6797_a72_restore_fault(controller, ops, context, result,
+                                            -EPROTO, true);
+    }
+
+    int mt6797_a72_restore_executor_preflight(
+            struct mt6797_a72_restore_executor_controller *controller,
+            const struct mt6797_a72_restore_executor_ops *ops, void *context,
+            const struct mt6797_a72_restore_executor_request *request,
+            struct mt6797_a72_restore_executor_result *result)
+    {
+            int ret;
+
+            if (!controller || !result || !mt6797_a72_restore_ops_valid(ops) ||
+                !mt6797_a72_restore_request_valid(request))
+                    return -EINVAL;
+            if (atomic_cmpxchg(&controller->consumed, 0, 1))
+                    return -EALREADY;
+            if (atomic_cmpxchg(&controller->lifecycle,
+                               MT6797_A72_RESTORE_IDLE,
+                               MT6797_A72_RESTORE_PREPARING) !=
+                MT6797_A72_RESTORE_IDLE)
+                    return -EALREADY;
+
+            memset(result, 0, sizeof(*result));
+            result->attempted = true;
+            result->request = *request;
+            result->last_stage = MT6797_A72_RESTORE_STAGE_PREPARED;
+            result->prepare_calls++;
+            ret = ops->prepare_restore(context, request->cpu, request->target,
+                                       true, false, &result->restore);
+            if (ret)
+                    return mt6797_a72_restore_fault(controller, ops, context,
+                                                    result, ret, false);
+            result->owner_prepared = true;
+            if (!mt6797_a72_restore_transaction_valid(
+                        &request->down_parent, &result->restore, false, false))
+                    return mt6797_a72_restore_fault(controller, ops, context,
+                                                    result, -EPROTO, true);
+            atomic_set_release(&controller->lifecycle,
+                               MT6797_A72_RESTORE_PREPARED);
+            return mt6797_a72_restore_checkpoint(controller, ops, context,
+                    result, MT6797_A72_RESTORE_STAGE_PREPARED, true);
+    }
+
+    int mt6797_a72_restore_executor_validate(
+            struct mt6797_a72_restore_executor_controller *controller,
+            const struct mt6797_a72_restore_executor_ops *ops, void *context,
+            bool tasks_frozen, bool cpu8_online, bool cpu9_online,
+            u64 system_online_mask,
+            struct mt6797_a72_restore_executor_result *result)
+    {
+            int ret;
+
+            if (!controller || !result || !mt6797_a72_restore_ops_valid(ops))
+                    return -EINVAL;
+            if (atomic_cmpxchg(&controller->lifecycle,
+                               MT6797_A72_RESTORE_PREPARED,
+                               MT6797_A72_RESTORE_VALIDATING) !=
+                MT6797_A72_RESTORE_PREPARED)
+                    return mt6797_a72_restore_unexpected(controller, ops, context,
+                                                         result);
+            result->last_stage = MT6797_A72_RESTORE_STAGE_VALIDATED;
+            if (tasks_frozen || !cpu8_online || cpu9_online ||
+                system_online_mask != MT6797_A72_RESTORE_OFFLINE_SYSTEM_MASK)
+                    return mt6797_a72_restore_fault(controller, ops, context,
+                                                    result, -EPROTO, true);
+            result->validate_calls++;
+            ret = ops->validate_restore(context, &result->request,
+                                        &result->restore);
+            if (ret)
+                    return mt6797_a72_restore_fault(controller, ops, context,
+                                                    result, ret, true);
+            result->owner_validated = true;
+            atomic_set_release(&controller->lifecycle,
+                               MT6797_A72_RESTORE_VALIDATED);
+            return 0;
+    }
+
+    int mt6797_a72_restore_executor_boot(
+            struct mt6797_a72_restore_executor_controller *controller,
+            const struct mt6797_a72_restore_executor_ops *ops, void *context,
+            unsigned int cpu, bool cpu8_online, bool cpu9_online,
+            struct mt6797_a72_restore_executor_result *result)
+    {
+            int ret;
+
+            if (!controller || !result || !mt6797_a72_restore_ops_valid(ops))
+                    return -EINVAL;
+            if (atomic_cmpxchg(&controller->lifecycle,
+                               MT6797_A72_RESTORE_VALIDATED,
+                               MT6797_A72_RESTORE_COMMITTING) !=
+                MT6797_A72_RESTORE_VALIDATED)
+                    return mt6797_a72_restore_unexpected(controller, ops, context,
+                                                         result);
+            result->last_stage = MT6797_A72_RESTORE_STAGE_CPU_ON_COMMITTED;
+            if (cpu != MT6797_A72_RESTORE_CPU9 || !cpu8_online || cpu9_online)
+                    return mt6797_a72_restore_fault(controller, ops, context,
+                                                    result, -EPROTO, true);
+            result->begin_calls++;
+            ret = ops->begin_restore(context, &result->restore,
+                                     cpu8_online, cpu9_online);
+            if (ret)
+                    return mt6797_a72_restore_fault(controller, ops, context,
+                                                    result, ret, true);
+            result->cpu_on_committed = true;
+            if (!mt6797_a72_restore_transaction_valid(&result->request.down_parent,
+                        &result->restore, true, false))
+                    return mt6797_a72_restore_fault(controller, ops, context,
+                                                    result, -EPROTO, true);
+            atomic_set_release(&controller->lifecycle,
+                               MT6797_A72_RESTORE_ON_COMMITTED);
+            ret = mt6797_a72_restore_checkpoint(controller, ops, context, result,
+                    MT6797_A72_RESTORE_STAGE_CPU_ON_COMMITTED, true);
+            if (ret)
+                    return ret;
+
+            atomic_set_release(&controller->lifecycle,
+                               MT6797_A72_RESTORE_BOOTING);
+            result->last_stage = MT6797_A72_RESTORE_STAGE_CPU_BOOT;
+            result->cpu_boot_calls++;
+            ret = ops->cpu_boot(context, cpu);
+            if (ret)
+                    return mt6797_a72_restore_fault(controller, ops, context,
+                                                    result, ret, true);
+            result->cpu_boot_issued = true;
+            atomic_set_release(&controller->lifecycle,
+                               MT6797_A72_RESTORE_ON_ISSUED);
+            return 0;
+    }
+
+    int mt6797_a72_restore_executor_secondary_complete(
+            struct mt6797_a72_restore_executor_controller *controller,
+            const struct mt6797_a72_restore_executor_ops *ops, void *context,
+            unsigned int cpu,
+            struct mt6797_a72_restore_executor_result *result)
+    {
+            int ret;
+
+            if (!controller || !result || !mt6797_a72_restore_ops_valid(ops))
+                    return -EINVAL;
+            if (atomic_cmpxchg(&controller->lifecycle,
+                               MT6797_A72_RESTORE_ON_ISSUED,
+                               MT6797_A72_RESTORE_SECONDARY_RECORDING) !=
+                MT6797_A72_RESTORE_ON_ISSUED)
+                    return mt6797_a72_restore_unexpected(controller, ops, context,
+                                                         result);
+            result->last_stage = MT6797_A72_RESTORE_STAGE_SECONDARY_COMPLETE;
+            if (cpu != MT6797_A72_RESTORE_CPU9)
+                    return mt6797_a72_restore_fault(controller, ops, context,
+                                                    result, -EPROTO, true);
+            result->secondary_completed = true;
+            ret = mt6797_a72_restore_checkpoint(controller, ops, context, result,
+                    MT6797_A72_RESTORE_STAGE_SECONDARY_COMPLETE, true);
+            if (ret)
+                    return ret;
+            atomic_set_release(&controller->lifecycle,
+                               MT6797_A72_RESTORE_SECONDARY_RECORDED);
+            return 0;
+    }
+
+    int mt6797_a72_restore_executor_complete(
+            struct mt6797_a72_restore_executor_controller *controller,
+            const struct mt6797_a72_restore_executor_ops *ops, void *context,
+            unsigned int cpu, enum cpuhp_state target,
+            bool cpu8_online, bool cpu9_online, u32 members, u32 online_mask,
+            u64 system_online_mask,
+            struct mt6797_a72_restore_executor_result *result)
+    {
+            int ret;
+
+            if (!controller || !result || !mt6797_a72_restore_ops_valid(ops))
+                    return -EINVAL;
+            if (atomic_cmpxchg(&controller->lifecycle,
+                               MT6797_A72_RESTORE_SECONDARY_RECORDED,
+                               MT6797_A72_RESTORE_COMPLETING) !=
+                MT6797_A72_RESTORE_SECONDARY_RECORDED)
+                    return mt6797_a72_restore_unexpected(controller, ops, context,
+                                                         result);
+            result->last_stage = MT6797_A72_RESTORE_STAGE_FULL_COMPLETE;
+            if (cpu != MT6797_A72_RESTORE_CPU9 || target != CPUHP_ONLINE ||
+                !cpu8_online || !cpu9_online ||
+                members != MT6797_A72_RESTORE_ONLINE_MEMBERS ||
+                online_mask != MT6797_A72_RESTORE_ONLINE_MEMBERS ||
+                system_online_mask != MT6797_A72_RESTORE_ONLINE_SYSTEM_MASK)
+                    return mt6797_a72_restore_fault(controller, ops, context,
+                                                    result, -EPROTO, true);
+            result->complete_calls++;
+            ret = ops->complete_restore(context, &result->restore,
+                                        cpu8_online, cpu9_online);
+            if (ret)
+                    return mt6797_a72_restore_fault(controller, ops, context,
+                                                    result, ret, true);
+            result->owner_completed = true;
+            if (!mt6797_a72_restore_transaction_valid(&result->request.down_parent,
+                        &result->restore, true, true))
+                    return mt6797_a72_restore_fault(controller, ops, context,
+                                                    result, -EPROTO, false);
+            result->verify_calls++;
+            ret = ops->verify_terminal(context, &result->request,
+                                       &result->restore, members, online_mask,
+                                       system_online_mask);
+            if (ret)
+                    return mt6797_a72_restore_fault(controller, ops, context,
+                                                    result, ret, false);
+            result->completed = true;
+            return mt6797_a72_restore_terminal(controller, ops, context, result,
+                                               MT6797_A72_RESTORE_SUCCESS, 0);
+    }
+
+    int mt6797_a72_restore_executor_rollback(
+            struct mt6797_a72_restore_executor_controller *controller,
+            const struct mt6797_a72_restore_executor_ops *ops, void *context,
+            unsigned int cpu, int error,
+            struct mt6797_a72_restore_executor_result *result,
+            bool *suppress_initial_rollback)
+    {
+            int lifecycle;
+
+            if (suppress_initial_rollback)
+                    *suppress_initial_rollback = false;
+            if (!controller || !result || !suppress_initial_rollback || !error ||
+                !mt6797_a72_restore_ops_valid(ops))
+                    return -EINVAL;
+            if (cpu != MT6797_A72_RESTORE_CPU9 || !result->attempted ||
+                !atomic_read_acquire(&controller->consumed))
+                    return -ENOENT;
+
+            *suppress_initial_rollback = true;
+            result->rollback_suppressed = true;
+            lifecycle = atomic_read_acquire(&controller->lifecycle);
+            if (lifecycle == MT6797_A72_RESTORE_TERMINAL)
+                    return 0;
+            if (lifecycle == MT6797_A72_RESTORE_IDLE)
+                    return -EALREADY;
+            return mt6797_a72_restore_fault(controller, ops, context, result,
+                                            error, true);
+    }
+    """)
+
+
+KCONFIG = kernel_text(r"""
+    config MTK_MT6797_A72_RESTORE_EXECUTOR
+            bool "MediaTek MT6797 disconnected CPU9 restore executor"
+            depends on ARM64 && ARCH_MEDIATEK
+            depends on ARM64_MT6797_A72_CPU9_MEMBERSHIP
+            depends on MTK_MT6797_A72_HOTPLUG_EXECUTOR
+            default n
+            help
+              Build a disconnected operation-injected state machine for one
+              parent-linked CPU9 restore after an exact CPU9-off transaction.
+              It requires one CPU_ON budget, secondary completion, full CPUHP
+              completion, terminal membership verification, and restore-owned
+              rollback routing.
+
+              This option binds no production callback and contains no direct
+              CPU, PSCI, MMIO, watchdog, retained-memory, network, storage, or
+              device operation. If unsure, say N.
+
+    """)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--source-root", type=Path, required=True)
+    args = parser.parse_args()
+    root = args.source_root.resolve()
+    mediatek = root / "drivers/soc/mediatek"
+    additions = {
+        mediatek / "mt6797-a72-restore-executor-internal.h": INTERNAL_HEADER,
+        mediatek / "mt6797-a72-restore-executor.c": SOURCE,
+    }
+    for source_path, text in additions.items():
+        if source_path.exists():
+            raise SystemExit(f"refusing to overwrite: {source_path}")
+        source_path.write_text(text, encoding="utf-8")
+    replace_once(
+        mediatek / "Kconfig",
+        "config MTK_MT6797_A72_CPU8_OBSERVER\n",
+        KCONFIG + "config MTK_MT6797_A72_CPU8_OBSERVER\n",
+    )
+    replace_once(
+        mediatek / "Makefile",
+        "obj-$(CONFIG_MTK_MT6797_A72_CPU8_OBSERVER) += "
+        "mt6797-a72-cpu8-observer.o\n",
+        "obj-$(CONFIG_MTK_MT6797_A72_RESTORE_EXECUTOR) += "
+        "mt6797-a72-restore-executor.o\n"
+        "obj-$(CONFIG_MTK_MT6797_A72_CPU8_OBSERVER) += "
+        "mt6797-a72-cpu8-observer.o\n",
+    )
+
+
+if __name__ == "__main__":
+    main()
