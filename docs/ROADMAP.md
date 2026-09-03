@@ -7789,6 +7789,20 @@ the owner physically selects `boot2` once; capture and validate the exact
 read-only pristine frame before the one trigger, then use the bounded terminal
 binder line as the sole new decision evidence.
 
+That single diagnostic attempt proved the restore path again and selected the
+exact remaining defect. CPU8 started, CPU9 started twice, CPUs `0-9` were
+online, and retained record 4 sealed restored-success at public stage 18 with
+zero error. The outer binder nevertheless checkpointed private stage 17 and
+returned `-EPROTO`; the shared private literal in its mock had hidden the
+stage shift introduced by the P30E-rearm work. **Selected next:** publish
+canonical patch `0511`, which maps the binder checkpoints to the public ledger
+symbols and adds direct mapping assertions; run the exact Buildbox binder-core
+and binding KUnit gates; then construct and validate one distinct production
+candidate. If that candidate reaches `ret=0`, `completed=1`, restore stage 18,
+and CPUs `0-9` online in its sole physical attempt, close the bring-up
+transaction and advance to repeatability, load/coherency, hotplug, thermal,
+and suspend validation rather than adding another bring-up mechanism.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

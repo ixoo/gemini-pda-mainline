@@ -500,3 +500,4 @@ v7.1.3/0507-arm64-mediatek-add-exact-CPU9-P30E-rearm.patch
 v7.1.3/0508-soc-mediatek-rearm-P30E-before-CPU9-restore.patch
 v7.1.3/0509-pstore-fix-A72-hotplug-v3-success-fixture.patch
 v7.1.3/0510-soc-mediatek-report-A72-hotplug-post-success-result.patch
+v7.1.3/0511-soc-mediatek-bind-A72-hotplug-checkpoints-symbolically.patch

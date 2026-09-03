@@ -1371,3 +1371,28 @@ was confirmed by SSH unreachability. Sanitized evidence is retained in
 The device is off for one owner-selected `boot2` attempt. The trigger remains
 forbidden until the fresh read-only frame passes the exact candidate and
 record-identity gate.
+
+The one diagnostic attempt then reproduced the successful hardware path and
+resolved the remaining software branch. After two interactive-shell prompt
+artifacts were rejected without a trigger, a PS1/PS2-suppressed pre-trigger
+frame passed and the sole trigger booted CPU8, booted CPU9 twice across the
+bounded down/restore transaction, and left CPUs `0-9` online. The terminal
+binder line reported `add_cpu_ret=0`, valid restore revalidation, restore
+completion at stage 18, and `p30e_rearmed=1`, but the outer binder attempted
+its post-restore checkpoint with private stage 17 and returned `-EPROTO` with
+`completed=0`. Changed-ID Gemian recovery corroborated a valid restored-success
+record 4 at stage 18, error zero, online mask `0x3ff`, and unchanged boot2.
+
+The exact source audit found stage-identity drift: patch `0507` inserted the
+public `P30E_REARMED` stage and shifted `RESTORE_COMPLETE` from 17 to 18, while
+the disconnected binder core and its mock both retained a private literal 17.
+That shared stale macro made the focused mock pass while the production ledger
+correctly rejected the physical checkpoint. Patch `0511` is the selected
+minimal repair: bind all three private binder checkpoint tokens to the public
+ledger symbols and assert those mappings directly. It changes no CPU,
+firmware, retry, or retained-record budget. Exact attempt identities, rejected
+transport frames, terminal fields, pstore corroboration, and the selected fix
+are retained in
+[`results/postsuccess-diagnostic-runtime-attempt-1-stage-drift-20260903.txt`](results/postsuccess-diagnostic-runtime-attempt-1-stage-drift-20260903.txt).
+No further physical attempt is permitted until the patch and evidence are
+published and the exact Buildbox binder-core and binding KUnit gates pass.

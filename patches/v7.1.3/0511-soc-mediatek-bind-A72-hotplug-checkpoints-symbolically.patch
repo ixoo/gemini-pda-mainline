@@ -1,0 +1,67 @@
+From 0000000000000000000000000000000000000511 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 3 Sep 2026 21:30:00 +0000
+Subject: [PATCH] soc: mediatek: bind A72 hotplug checkpoints symbolically
+
+The P30E rearm stage shifted RESTORE_COMPLETE from ledger stage 17 to 18,
+but the disconnected binder core retained a private literal 17.  Its mock
+also consumed that same literal, hiding the mismatch until the physical
+binding restored CPU9 successfully and rejected the post-restore
+checkpoint.
+
+Map all binder checkpoint tokens directly to their public ledger stages and
+assert those mappings in the focused success fixture.  This changes no
+CPU, firmware, retry, or retained-record budget.
+
+This is an experiment-only fix and is not submission-ready.
+---
+ .../mt6797-a72-hotplug-binder-core-internal.h      |  9 ++++++---
+ .../mediatek/mt6797-a72-hotplug-binder-core-test.c |  8 ++++++++
+ 2 files changed, 14 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-hotplug-binder-core-internal.h b/drivers/soc/mediatek/mt6797-a72-hotplug-binder-core-internal.h
+--- a/drivers/soc/mediatek/mt6797-a72-hotplug-binder-core-internal.h
++++ b/drivers/soc/mediatek/mt6797-a72-hotplug-binder-core-internal.h
+@@ -3,16 +3,19 @@
+ #define __MT6797_A72_HOTPLUG_BINDER_CORE_INTERNAL_H
+ 
+ #include <linux/atomic.h>
++#include <linux/gemini_a72_hotplug_ledger.h>
+ #include <linux/types.h>
+ 
+ #include <linux/soc/mediatek/mt6797-a72-binder.h>
+ 
+ #include "mt6797-a72-restore-executor-internal.h"
+ 
+ #define MT6797_A72_HOTPLUG_BINDER_CPU9 9U
+-#define MT6797_A72_HOTPLUG_BINDER_ENTRY_STAGE 1U
+-#define MT6797_A72_HOTPLUG_BINDER_DOWN_STAGE 13U
+-#define MT6797_A72_HOTPLUG_BINDER_RESTORE_STAGE 17U
++#define MT6797_A72_HOTPLUG_BINDER_ENTRY_STAGE \
++	GEMINI_A72_HOTPLUG_BINDING_PARENT
++#define MT6797_A72_HOTPLUG_BINDER_DOWN_STAGE GEMINI_A72_HOTPLUG_DOWN_COMPLETE
++#define MT6797_A72_HOTPLUG_BINDER_RESTORE_STAGE \
++	GEMINI_A72_HOTPLUG_RESTORE_COMPLETE
+ 
+ enum mt6797_a72_hotplug_binder_terminal {
+ 	MT6797_A72_HOTPLUG_BINDER_TERMINAL_NONE,
+diff --git a/drivers/soc/mediatek/mt6797-a72-hotplug-binder-core-test.c b/drivers/soc/mediatek/mt6797-a72-hotplug-binder-core-test.c
+--- a/drivers/soc/mediatek/mt6797-a72-hotplug-binder-core-test.c
++++ b/drivers/soc/mediatek/mt6797-a72-hotplug-binder-core-test.c
+@@ -278,6 +278,14 @@ static void binder_core_success_test(struct kunit *test)
+ 	u32 expected[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+ 	int ret;
+ 
++	KUNIT_EXPECT_EQ(test, (u32)MT6797_A72_HOTPLUG_BINDER_ENTRY_STAGE,
++			(u32)GEMINI_A72_HOTPLUG_BINDING_PARENT);
++	KUNIT_EXPECT_EQ(test, (u32)MT6797_A72_HOTPLUG_BINDER_DOWN_STAGE,
++			(u32)GEMINI_A72_HOTPLUG_DOWN_COMPLETE);
++	KUNIT_EXPECT_EQ(test,
++			(u32)MT6797_A72_HOTPLUG_BINDER_RESTORE_STAGE,
++			(u32)GEMINI_A72_HOTPLUG_RESTORE_COMPLETE);
++
+ 	ret = mt6797_a72_hotplug_binder_run(
+ 		&state->controller, &binder_core_ops, state, &state->request,
+ 		&state->result);
+-- 
+2.43.0
