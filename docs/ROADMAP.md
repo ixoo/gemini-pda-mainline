@@ -31,7 +31,7 @@ Cortex-A72 pair.
 | I2C6 transfer | Native packed/FIFO pointer-read and one exact one-message two-byte FIFO write are runtime proven. The write completed once with payload `[0xda, 0x46]`, exact no-retry accounting, and stable readback. | This closes only the reviewed same-value shape; arbitrary writes, failure recovery, stress, and resume remain open. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
 | Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected. A separate hardware-free implementation now models exact positive Buck-B acquire/release and passes all six focused fake-adapter cases. | Gate 6 is closed for the reviewed no-op, and the first Gate-7 provider source boundary is complete offline. Physical transition, production integration, consumers, and CPU requests remain disconnected. |
-| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The repaired physical candidate passed its exact READY gate and one trigger booted both A72s with correct affinity and MIDR. CPU8 and CPU9 reached independent CRC-valid online terminals. The CPU9-only down transaction then completed its sole CPU-off authorization, affinity-off observation, post-state snapshot, and retained-CPU8 callback with CPUs 0–8 online, but the composite hardware readback predicate returned `-EIO` before owner proof or restore. Automatic changed-ID recovery preserved the exact stage-12 record. The behavior-neutral 24-term retained mismatch bitmap is now admitted and passes both executor and production-binding Buildbox/QEMU regressions. The public A72 disable veto remains closed. | Build and independently validate one bitmap-enabled physical candidate, deploy it only to inactive `boot2`, then make one [CPU9 physical-off and same-boot restore attempt](../experiments/2026-09-02-mainline-a72-hotplug-lifecycle-gate/README.md). Use the named bitmap result to choose the next code change; keep CPU8-last-off, cpufreq/OPP, thermal, idle, suspend, and default-profile promotion separate. |
+| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. The exact bitmap-enabled physical attempt booted both A72s, then CPU9 reached one CPU_OFF authorization, architectural affinity-off, and Linux-offline while CPU8 remained online and responsive. Record 4 named exactly one failed term: the primary SPM CPU-status mirror showed CPU9 off, but the secondary mirror still showed CPU9 present at the single post-state sample; every other per-core/shared-state comparison passed. No restore was attempted, and automatic changed-ID recovery succeeded. The public A72 disable veto remains closed. | Inspect the existing dual-mirror semantics, then hardware-free prove the smallest boundary that distinguishes bounded secondary-mirror settling from a justified intersection-based CPU9-off rule. Build and test that exact change on Buildbox before selecting another [physical candidate](../experiments/2026-09-02-mainline-a72-hotplug-lifecycle-gate/README.md); keep CPU8-last-off, cpufreq/OPP, thermal, idle, suspend, and default-profile promotion separate. |
 
 The durable technical boundary is in
 [DA921x, I2C6, and Cortex-A72](hardware/da921x-i2c6-a72.md). The exact
@@ -7610,11 +7610,24 @@ container mutation, and eight pre-trigger mutation gates all pass. The
 distinct padded candidate is `9b60b576...`. Its guarded live-GPT deployment
 resolved inactive logical `boot2`, replaced exact predecessor `58313c3a8...`,
 passed on-device and independently streamed full readbacks, removed staging,
-and confirmed clean shutdown. **Selected next:** physically select `boot2`
-once, admit only an exact read-only pre-trigger frame over USB/netcat, then
-issue the sole trigger. Recover on the changed Gemian boot ID, decode record-4
-word 25, and change only the named mismatch boundary. Do not repeat
-`4b027c97...` or `58313c3a8...`.
+and confirmed clean shutdown. The sole bitmap-enabled boot passed the exact
+pre-trigger frame at fresh mainline boot ID `4cae6d10...`. One trigger booted
+both A72s and completed one CPU9-down authorization, architectural affinity-
+off observation, Linux-offline transition, post-state capture, and bounded
+CPU8 callback. CPUs 0--8 remained online. Record 4 retained stage 12,
+postcommit-down-fault `-EIO`, one CPU_OFF call, one affinity query, one CPU8
+IPI, no CPU_ON call, and bitmap `0x80002000`. Its only named term was
+`post-status2-cpu9-present`: the primary SPM CPU-status mirror showed CPU9 off,
+the secondary mirror still showed it present, CPU8 remained present in both,
+and all other 23 comparisons passed. Automatic recovery reached fresh Gemian
+boot ID `2a369fda...`; read-only pstore recovery copied and strictly decoded
+record 4 without removing it. Candidate `9b60b576...` is retired after this
+decision-bearing attempt. **Selected next:** inspect the admitted status-mirror
+semantics and implementation, then hardware-free prove the smallest change
+that distinguishes a bounded secondary-mirror settling delay from a truthful
+intersection-based CPU9-off rule. Build and test the exact successor on
+Buildbox before selecting a new physical candidate. Do not repeat
+`4b027c97...`, `58313c3a8...`, or `9b60b576...`.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

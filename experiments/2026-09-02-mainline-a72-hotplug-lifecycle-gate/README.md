@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-02-mainline-a72-hotplug-lifecycle-gate` |
-| Status | both A72s reached online proof; CPU9-only down reached post-state but failed exact readback proof |
+| Status | CPU9 reached affinity-off and Linux-offline with CPU8 retained; only the secondary SPM CPU-status mirror still reported CPU9 present |
 | Subsystem | arm64 CPU hotplug, PSCI, MT6797 A72 membership |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-09-02--2026-09-03 America/New_York |
@@ -330,6 +330,10 @@ handling, and exact restore token are implemented and machine-checked.
 - [`results/readback-bitmap-deployment-20260903.txt`](results/readback-bitmap-deployment-20260903.txt)
   records live-GPT target resolution, stable power, predecessor identity, the
   sole write, two matching full readbacks, cleanup, and confirmed shutdown.
+- [`results/physical-runtime-attempt-3-status2-cpu9-present-20260903.txt`](results/physical-runtime-attempt-3-status2-cpu9-present-20260903.txt)
+  records the exact bitmap-enabled boot, sole trigger, CPU9 affinity-off and
+  Linux-offline state, retained CPU8, the single secondary-status-mirror
+  mismatch, and automatic changed-ID recovery without a retry.
 - [`../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch`](../../patches/v7.1.3/0483-arm64-add-CPU-down-lifecycle-handoffs.patch)
   is the exact admitted no-op-by-default implementation.
 - [`../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch`](../../patches/v7.1.3/0484-arm64-mediatek-add-hardware-free-CPU9-hotplug-owner.patch)
@@ -997,7 +1001,25 @@ Exact production package commit `46539642...` and candidate `9b60b576...`
 pass all offline gates; the exact evidence is in
 [`results/readback-bitmap-candidate-46539642-20260903.txt`](results/readback-bitmap-candidate-46539642-20260903.txt).
 Its guarded live-GPT deployment then wrote exact logical `boot2`, passed two
-full readbacks, removed temporary files, and confirmed clean shutdown. The
-selected next action is one physical `boot2` selection, read-only pre-trigger
-validation over USB/netcat, and the sole trigger. After changed-boot-ID Gemian
-recovery, decode record-4 word 25 and change only the named mismatch boundary.
+full readbacks, removed temporary files, and confirmed clean shutdown.
+
+The sole physical selection passed the exact read-only pre-trigger gate on
+fresh boot ID `4cae6d10...`. One trigger booted CPU8 and CPU9, then completed
+one CPU9-down authorization and one affinity-off observation. CPU9 was absent
+from Linux's online mask while CPU8 remained online and responsive, producing
+online mask `0x1ff`. Record 4 retained generation 11, stage 12,
+postcommit-down-fault `-EIO`, one CPU_OFF call, one affinity query, one CPU8
+IPI, no CPU_ON restore, and bitmap `0x80002000`. The only named mismatch was
+`post-status2-cpu9-present`: the primary SPM CPU-status word showed CPU9 off,
+the secondary word still showed it present, and all other 23 comparisons
+passed. The watchdog then returned the device automatically to fresh Gemian
+boot ID `2a369fda...`; read-only recovery copied and strictly decoded record 4
+without removing remote pstore data. This retires `9b60b576...` after its one
+decision-bearing attempt.
+
+The observation proves a single-sample disagreement between the two SPM CPU
+power-status mirrors after architectural CPU9-off; it does not yet prove
+whether the second mirror merely settles later or has different completion
+semantics. Continue under the roadmap by inspecting the already admitted
+dual-mirror rules and then hardware-free proving the smallest diagnostic or
+acceptance repair. Do not repeat `9b60b576...` unchanged.
