@@ -146,6 +146,14 @@ def main() -> int:
         offsets = [callback.index(token) for token in callback_order]
         require(offsets == sorted(offsets), "callback validation order changed")
         require(
+            re.search(
+                r"observer->ops->current_cpu\(observer->ops_context\)\s*!=\s*"
+                r"MT6797_A72_CPU8_OBSERVER_CPU",
+                callback,
+            ) is not None,
+            "exact CPU8 comparison changed",
+        )
+        require(
             callback.count("observer->ops->identity_check(") == 1,
             "identity check retry added",
         )
