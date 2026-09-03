@@ -197,7 +197,8 @@ def validate_binder(root: Path) -> None:
     test_body = function_body(test, "mt6797_binder_parent_proof_test")
     for token in ("proof.online_mask", "proof.online_count, 10U",
                   "proof.watchdog_identity", "proof.watchdog_age_ns",
-                  "memcmp(&before, &state->binder", "-ETIME", "-EPERM",
+                  "kunit_kzalloc(test, sizeof(*before), GFP_KERNEL)",
+                  "memcmp(before, &state->binder", "-ETIME", "-EPERM",
                   "MT6797_A72_TRANSITION_FAULT_RETAIN_POSTISO"):
         require(token in test_body, f"binder proof test missing: {token}")
 

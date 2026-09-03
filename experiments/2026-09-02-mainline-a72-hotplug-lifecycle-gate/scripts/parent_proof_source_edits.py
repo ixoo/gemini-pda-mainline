@@ -446,14 +446,16 @@ BINDER_TEST = dedent("""\
     {
     \tstruct mt6797_binder_test_state *state = test->priv;
     \tstruct mt6797_a72_binder_parent_proof proof;
-    \tstruct mt6797_a72_binder before;
+    \tstruct mt6797_a72_binder *before;
     \tint ret;
 
+    \tbefore = kunit_kzalloc(test, sizeof(*before), GFP_KERNEL);
+    \tKUNIT_ASSERT_NOT_NULL(test, before);
     \tKUNIT_ASSERT_EQ(test, mt6797_binder_test_run_to_completion(state), 0);
     \tstate->cpu9_online = true;
     \tstate->parent_available = true;
     \tstate->monotonic_ns = TEST_TAKEOVER_NS + 2000000000ULL;
-    \tbefore = state->binder;
+    \t*before = state->binder;
     \tret = mt6797_a72_binder_test_parent_proof(&state->binder, &proof);
     \tKUNIT_ASSERT_EQ(test, ret, 0);
     \tKUNIT_EXPECT_EQ(test, proof.abi,
@@ -475,8 +477,8 @@ BINDER_TEST = dedent("""\
     \tKUNIT_EXPECT_EQ(test, proof.watchdog_takeover_ns, TEST_TAKEOVER_NS);
     \tKUNIT_EXPECT_EQ(test, proof.watchdog_age_ns, 2000000000ULL);
     \tKUNIT_EXPECT_EQ(test, state->watchdog_validations, 1U);
-    \tKUNIT_EXPECT_EQ(test, memcmp(&before, &state->binder,
-    \t\t\t\t       sizeof(before)), 0);
+    \tKUNIT_EXPECT_EQ(test, memcmp(before, &state->binder,
+    \t\t\t\t       sizeof(*before)), 0);
 
     \tstate->cpu9_online = false;
     \tmemset(&proof, 0xa5, sizeof(proof));
