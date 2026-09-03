@@ -970,3 +970,17 @@ secure call, production trigger, or device action. The host decoder now names
 bitmap-v1 terms while preserving legacy Boolean records and rejects unknown
 bitmap bits. Kernel compile, focused runtime KUnit, production-package review,
 candidate construction, and device action remain gated after patch admission.
+
+Patch `0504` is now admitted at exact pushed commit `7ca200d6...`; all 173
+manifest profiles retain canonical series order. Buildbox compiled the
+493-patch executor and production-binding KUnit profiles from that commit.
+The executor suite passes 9/9, including the new 24-term bitmap case and all
+preserved decision/one-shot cases. The production binding also compiles and
+its private-transition suite passes 9/9. Both runs used four-vCPU no-network
+QEMU, invoked no production binding or physical backend, and performed no CPU
+request, MMIO, I2C, retained-RAM, SMC, watchdog, device, or boot-candidate
+action. The exact evidence is in
+[`results/readback-bitmap-hardware-free-7ca200d6-20260903.txt`](results/readback-bitmap-hardware-free-7ca200d6-20260903.txt).
+The selected next action is the separate production-profile Buildbox build,
+followed by exact DT/container/candidate validation and one new `boot2`
+attempt; the two retired candidates remain forbidden.
