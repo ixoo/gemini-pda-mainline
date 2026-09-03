@@ -1520,3 +1520,24 @@ matching hashes, and cleanup. Permit one boot of unchanged `6ba8c953...` only
 after that combined classifier and forbidden-action audit pass; no duration
 increase, CPU_OFF beyond the one lifecycle transaction, retry, storage write,
 or manual reboot is admitted.
+
+That integrated gate is now offline-proven and changes no kernel, DT, config,
+container, or installed partition. It source-pins the successful lifecycle
+trigger and the previously accepted 1.9 MiB topology/RAM probe. On-device it
+requires binder stage-18 completion, the exact CPU8/CPU9 entry counts, CPUs
+`0-9`, and all ten 4+4+2 topology views before either of the two volatile
+`/run` files can be created. The combined host classifier then independently
+requires both established classifiers. The source pre-trigger suite rejects
+all eight mutations, the fresh wrapper additionally rejects the already-used
+mainline boot ID, and the integrated classifier rejects all 12 lifecycle,
+identity, topology, affinity, RAM, accounting, cleanup, boundary, and ordering
+mutations. Bash syntax, Python compilation, ShellCheck, source pins, and the
+forbidden-action audit pass; no device or Buildbox/native build was used.
+Exact tool identities are in
+[`results/topology-load-tooling-20260903.txt`](results/topology-load-tooling-20260903.txt).
+
+**Selected next:** publish this tooling, use the already-verified unchanged
+`boot2` candidate without rewriting it, and cleanly shut Gemian down. One fresh
+owner-selected `boot2` may then pass the strict read-only pre-trigger gate and
+execute the integrated transaction once. The first failure ends the attempt;
+no retry or load-duration increase is permitted.

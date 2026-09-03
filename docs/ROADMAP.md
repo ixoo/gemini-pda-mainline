@@ -7887,6 +7887,20 @@ four matching hashes, and cleanup. If its combined positive fixture and
 negative mutation/forbidden-action gates pass, use unchanged `6ba8c953...` for
 one separate bounded load/coherency boot; otherwise do not boot it.
 
+The integrated tooling now passes offline without changing or rebuilding the
+candidate. It source-pins the accepted lifecycle and topology/RAM paths and
+adds a device-side fail-closed boundary: binder stage 18, exact CPU8/CPU9 entry
+counts, CPUs `0-9`, and all ten 4+4+2 topology views must pass before the first
+volatile `/run` file write. The source pre-trigger gate still rejects all eight
+mutations, the fresh wrapper rejects the used `c1bd9a56...` mainline boot ID,
+and the combined classifier accepts one exact fixture and rejects 12 lifecycle,
+identity, topology, affinity, RAM, accounting, cleanup, and frame mutations.
+Syntax, ShellCheck, source pins, execution order, and forbidden-action audits
+pass. No kernel, DT, config, candidate, device, or native-build action was
+taken. **Selected next:** publish the tooling, leave exact `6ba8c953...` on
+`boot2` without a redundant write, shut Gemian down cleanly, and use one fresh
+owner-selected boot for the sole bounded lifecycle-plus-load transaction.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;
