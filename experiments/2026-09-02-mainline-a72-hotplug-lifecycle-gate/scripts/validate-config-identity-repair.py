@@ -17,7 +17,7 @@ MANIFEST = ROOT / "kernel/manifest.json"
 FRAGMENT = ROOT / "configs/gemini-a72-hotplug-physical-candidate.fragment"
 PROFILE = "gemini-a72-hotplug-physical-candidate"
 TARGET = "2e50cc09d2241006d819eeb0ed4151fbc6ed927e9e51b41e27c2dd7ce3cedd39"
-PREDECESSOR = "cda6d936e61122d825a7fe7649f1b69b86455d6034f36a6cd562ff457bccd3d1"
+PREDECESSOR = "c10a21881871dd9aad61f259d660a62fc24f989cb165bb61dc53af45438fe898"
 WORDS = tuple(TARGET[index:index + 16] for index in range(0, 64, 16))
 PREDECESSOR_WORDS = tuple(PREDECESSOR[index:index + 16] for index in range(0, 64, 16))
 

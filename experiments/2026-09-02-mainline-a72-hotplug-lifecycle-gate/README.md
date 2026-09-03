@@ -803,7 +803,9 @@ exposed USB/netcat serviceability, bound the admission controller, binder, and
 platform-state supplier, and presented CPUs 0--9 with only 0--7 online. The
 durable pre-trigger frame also exposed arm64 proof mask `0x40000`: the package
 provenance carried physical-profile configuration-input identity `2e50cc09...`
-while the kernel still embedded predecessor CPU9 identity `cda6d936...`. The
+while the kernel still embedded predecessor CPU9-progress identity
+`c10a2188...`. Exact little-endian sequence inspection of the built Image found
+that progress identity once and the earlier controller identity zero times. The
 single trigger was consumed and returned `-EAGAIN` at CPU9 controller failure
 stage 1. CPU8 core consumption, CPU8/CPU9 requests, CPU_OFF, hotplug-ledger
 entry, and watchdog takeover all remained zero. A validated USB-shell reboot

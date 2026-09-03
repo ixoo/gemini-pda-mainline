@@ -7581,7 +7581,8 @@ That attempt is complete and retires `4b027c97...`. Exact mainline USB/netcat
 serviceability provided a durable pre-trigger frame, but arm64 had already
 withheld READY at proof mask `0x40000`: the physical package/DT carried
 configuration-input identity `2e50cc09...` while the kernel still embedded
-predecessor CPU9 identity `cda6d936...`. The sole trigger returned `-EAGAIN`
+predecessor CPU9-progress identity `c10a2188...` (confirmed once in the built
+Image, with the earlier controller identity absent). The sole trigger returned `-EAGAIN`
 at CPU9-controller stage 1 with CPU8 core consumption, CPU8/CPU9 requests,
 CPU_OFF, watchdog takeover, and record-4 attempts all zero. Validated USB-shell
 recovery reached changed-ID Gemian; records 0 and 4 were logical-empty and the

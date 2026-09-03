@@ -32,7 +32,7 @@ def main() -> int:
             "#if IS_ENABLED(CONFIG_MTK_MT6797_A72_HOTPLUG_BINDING)", "#if 1", 1),
         "wrong-profile": baseline.replace("A72_HOTPLUG_BINDING", "A72_HOTPLUG_EXECUTOR", 1),
         "predecessor-overwritten": baseline.replace(
-            "0xcda6d936e61122d8", "0x2e50cc09d2241006", 1),
+            "0xc10a21881871dd9a", "0x2e50cc09d2241006", 1),
         "extra-code": baseline.replace("+#endif\n #endif", "+pr_info(\"unsafe\");\n+#endif\n #endif", 1),
     }
     for name, text in mutations.items():
