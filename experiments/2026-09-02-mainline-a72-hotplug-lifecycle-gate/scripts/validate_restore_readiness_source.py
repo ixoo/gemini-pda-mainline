@@ -91,7 +91,8 @@ def validate(root: Path) -> list[str]:
         "restore_first_cpu9_pwr_con", "restore_last_status",
         "restore_last_status2", "restore_last_cpu9_pwr_con",
     ):
-        require(errors, ledger_public.count(field) == 1,
+        field_type = "s32" if field == "restore_readiness_error" else "u32"
+        require(errors, ledger_public.count(f"\t{field_type} {field};") == 1,
                 f"public readiness field changed: {field}")
         require(errors, f".{field} =" in fill,
                 f"binding does not retain readiness field: {field}")
