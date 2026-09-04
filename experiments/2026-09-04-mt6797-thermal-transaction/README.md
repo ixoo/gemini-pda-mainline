@@ -93,8 +93,10 @@ patches 0514--0516. All five pinned thermal parent-file hashes were unchanged.
 The next review stopped at `git diff --check`: Python string escapes had kept
 generator indentation ahead of tabs. No package was published. The generator
 now emits canonical kernel indentation and literal diagnostic newlines. Patch
-generation, canonical admission, build, and isolated KUnit execution remain
-pending.
+generation then reached the semantic validator, which rejected an ambiguous
+cleanup-definition anchor that also matched its executor call. The anchor is
+now definition-specific. Canonical admission, build, and isolated KUnit
+execution remain pending.
 
 ## Follow-up
 

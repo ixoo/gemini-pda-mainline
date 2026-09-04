@@ -73,7 +73,7 @@ def main() -> int:
     )
     close = section(
         internal,
-        "mtk_thermal_transaction_close(",
+        "static inline void\nmtk_thermal_transaction_close(",
         "static inline bool\nmtk_thermal_transaction_ops_valid(",
     )
     ordered(
