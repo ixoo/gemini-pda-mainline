@@ -8035,6 +8035,24 @@ protection and PM callbacks out until their source contracts are independently
 closed. Do not add cpufreq/OPP, trips/cooling, CPU8/CPU9 load, idle, or suspend
 to this hardware-free gate.
 
+The linked
+[thermal transaction implementation](../experiments/2026-09-04-mt6797-thermal-transaction/README.md)
+now closes that hardware-free gate. Canonical patches `0517`--`0518` implement
+the exact reset, clock, APMIXED, global-idle, all-six-bank commit,
+first-valid-sample, and reverse-unwind order while leaving the unresolved
+`AUXADC_MISC[14]` bit untouched. Exact generation, replay, strict review, the
+507-patch Buildbox compile, and all six isolated no-network KUnit cases pass;
+the failure test exercises all 31 fallible positions. No candidate or device
+action occurred, so this is not yet thermal hardware support. **Selected
+next:** add the source-proven thermal reset tuple and one isolated serviceability
+profile that enables the thermal consumer while leaving the standalone AUXADC
+consumer disabled. Require exact calibration-provider, reset/clock,
+transaction, all-bank first-valid temperature, thermal-zone, PWRAP/MT6351,
+eMMC, console, and USB/netcat evidence, then changed-ID Gemian recovery and an
+unchanged-`boot2` attestation. Exclude IRQ/watchdog protection, trips/cooling,
+cpufreq/OPP, CPU8/CPU9 load, idle, suspend, and any repeat of an identical
+artifact.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

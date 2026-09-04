@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-thermal-transaction` |
-| Status | `running`; deterministic implementation prepared for Buildbox generation |
+| Status | `completed`; hardware-free implementation gate passed |
 | Subsystem | MT6797 thermal controller and AUXADC transaction |
 | Device variant | Planet Computers Gemini PDA, MT6797 |
 | Date(s) | 2026-09-04 |
@@ -62,6 +62,8 @@ this gate.
 - `scripts/classify-kunit.py`: exact six-case KTAP classifier.
 - `results/patch-generation-20260904.txt`: exact generation and admission
   receipt.
+- `results/buildbox-kunit-build-20260904.txt`: exact published build receipt.
+- `results/kunit-qemu-20260904.txt`: exact isolated runtime result.
 
 ## Procedure
 
@@ -117,13 +119,34 @@ The final Buildbox generation at repository commit `84d66801449c...` passes
 source semantics, exact two-patch replay, package checksums, and strict
 checkpatch with zero errors, warnings, or checks. The fetched patches are
 byte-identical to canonical patches 0517--0518. The resulting 507-entry series
-and all 178 manifest profiles pass the canonical-subsequence invariant. The
-isolated Buildbox build and KUnit execution remain pending.
+and all 178 manifest profiles pass the canonical-subsequence invariant.
+
+Exact published repository commit `1397a6fe14a7...` built the isolated profile
+on Buildbox. Both the production thermal adapter and focused KUnit object
+compiled and linked; 123 DTBs and all package checksums passed. The fetched
+package then ran once in no-network arm64 QEMU. Its only focused suite passed
+all six exact cases, including the complete success ledger, each of 31
+fallible positions returning to a closed state, invalid-start rejection,
+APMIXED mask, idle predicates, and first-sample validity. The private raw log
+is represented by SHA-256 `f47ce9b88a40...` and remains ignored.
+
+No boot candidate was built. No Gemini, firmware, storage, clock, reset, MMIO,
+thermal zone, or AUXADC hardware action occurred.
 
 ## Follow-up
 
-If the hardware-free gate passes, separately add the disabled thermal reset
-description and design one minimal serviceability candidate. That later gate
-must still exclude IRQ/watchdog protection, trips/cooling, cpufreq/OPP,
-CPU8/CPU9 load, idle, and suspend until valid temperature observability is
-proven.
+Separately add the thermal reset description and design one minimal
+serviceability candidate. Enable only the thermal consumer; keep the standalone
+AUXADC platform consumer disabled so ownership does not compete. Require exact
+calibration-provider, reset, clocks, ordered transaction, all-bank first-valid
+samples, thermal-zone, console, USB/netcat, eMMC, PWRAP, and MT6351 evidence,
+then recover to changed-ID Gemian and attest unchanged `boot2`. Keep
+IRQ/watchdog protection, trips/cooling, cpufreq/OPP, CPU8/CPU9 load, idle, and
+suspend excluded until valid temperature observability is proven.
+
+## Conclusion
+
+The hardware-free gate passes. The MT6797 path now has one source-pinned,
+fail-closed transaction and an exhaustive pure failure ledger. This proves
+ordering, cleanup, compilation, and helper behavior, but it deliberately does
+not yet claim that the Gemini hardware returns valid temperatures.
