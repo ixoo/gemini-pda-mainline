@@ -8167,13 +8167,16 @@ samples, the 845000 kHz live B-cluster sample, and all 13 ARMPLLDIV ratios. This
 proves the decoder math, not a live A72 frequency. Canonical patches
 `0527`--`0528` now add a three-attempt, read-only frequency observer and its
 focused hardware-free tests. Exact Buildbox compilation and isolated QEMU
-proof passed, so the observation boundary is ready for composition but still
-provides no live-device frequency claim. **Selected next:** build and validate
-one production successor combining that observer with the exact stage-18 4+4+2
-topology and now-proven thermal DT/config. Only that successor may run the
-already-proven finite dual-A72 volatile-RAM exchange while sampling temperature,
-frequency, topology, and independent accounting. Keep longer load, cpufreq/OPP
-changes, extra hotplug, idle, suspend, and same-artifact repeat closed.
+proof passed. Exact production commit `673df9c0...` then combined the observer
+with the successful stage-18 4+4+2 topology and proven thermal configuration.
+Its Buildbox package, exact thermal/topology/provenance DT transform, Android-v0
+LK candidate, zero-read pretrigger, and boot-ID-bound finite runtime gate all
+pass offline validation; padded candidate identity is `03cbaa72...`. This still
+provides no live-device frequency claim. **Selected next:** publish the frozen
+tooling, install that exact candidate to live-GPT-resolved inactive `boot2`
+with matching full readback and shutdown, then take one fresh pretrigger and
+one three-sample/four-round observation. Keep longer load, cpufreq/OPP changes,
+extra hotplug, idle, suspend, and same-artifact repeat closed.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

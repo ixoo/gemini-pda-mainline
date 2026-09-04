@@ -5,8 +5,9 @@
 The hardware-free-proved three-attempt frequency observer can be added to the
 exact successful stage-18 lifecycle and thermal configuration without changing
 CPU admission, CPU9 down/restore, voltage, frequency, policy, or workload. One
-later fresh boot can then attribute the B-cluster clock before, during, and
-after the already-proven finite dual-A72 volatile-RAM exchange.
+later fresh boot can then attribute the B-cluster clock before the workers are
+created, while both affinity-pinned writers are alive at their start barrier,
+and after the already-proven finite dual-A72 volatile-RAM exchange.
 
 ## Configuration boundary
 
@@ -48,8 +49,10 @@ candidate may be installed to live-GPT-resolved inactive `boot2` under the
 standing full-readback and shutdown policy.
 
 The one fresh boot must take exactly three successful frequency observations:
-before the finite dual-A72 RAM exchange, while both affinity-pinned workers are
-active, and after both finish. The same boot-ID-bound frame must also prove:
+before the finite dual-A72 RAM exchange, while both affinity-pinned writers are
+alive on both sides of the middle sample and waiting at their start barrier,
+and after both finish the four released rounds. The same boot-ID-bound frame
+must also prove:
 
 - stage-18 completion and exact CPUs 0--9 online;
 - package/cluster/core/thread topology matching 4+4+2;

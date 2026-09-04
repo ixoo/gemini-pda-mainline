@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-a72-frequency-observation` |
-| Status | `running`; bounded observer passed exact Buildbox/QEMU proof |
+| Status | `running`; exact production candidate and one-shot runtime gate passed offline |
 | Subsystem | MT6797 CPU clock readback / Cortex-A72 lifecycle |
 | Device variant | Gemini PDA x27, named development unit |
 | Date(s) | 2026-09-04 |
@@ -36,15 +36,20 @@ PLL values whose bit 31 change strobe remains set?
 
 ## Safety assessment
 
-The current phase is hardware-free. It generates normal review patches in a
-temporary Buildbox Git repository, builds an isolated KUnit profile from an
-exact clean pushed project commit, and runs that kernel under no-network QEMU.
-The decoder and tests make no hardware call and expose no write path.
+The completed offline phases generated normal review patches in a temporary
+Buildbox Git repository, ran isolated KUnit proof under no-network QEMU, built
+the production profile from exact clean pushed commit `673df9c0...`, and
+assembled its exact candidate without device access. The decoder and tests make
+no hardware call. The production runtime exposes exactly one inherited
+stage-18 lifecycle trigger plus three read-only frequency observations and a
+finite volatile-RAM workload; it has no storage or reboot action.
 
-No CPU request, PSCI call, hotplug action, secure call, MMIO access, regulator
-action, thermal action, retained-RAM write, device access, storage access, or
-boot candidate is authorized by this phase. CPUs 8 and 9 remain closed until
-the offline decoder gate and a separate observation composition pass.
+No device action occurred during the offline gate. The exact validated
+candidate is eligible for the standing guarded `boot2` workflow: live GPT
+resolution, inactive/unmounted target checks, no fresh backup, full 16 MiB
+readback, and clean shutdown. One later fresh boot may run only the frozen
+three-sample bounded observation; longer load and all policy experiments remain
+closed.
 
 ## Associated code
 
@@ -69,6 +74,21 @@ the offline decoder gate and a separate observation composition pass.
 - `scripts/run-observer-kunit-qemu` and
   `scripts/classify-observer-kunit.py`: exact focused-package runner and
   five-case KTAP classifier for the observer gate.
+- `scripts/build-production-dtb.py` and `scripts/validate-production-dtb.py`:
+  exact thermal/topology/provenance composition and independent DT-delta gate.
+- `scripts/build-production-candidate.sh` and
+  `scripts/validate-production-candidate.py`: deterministic Android-v0/LK
+  assembly and independent candidate oracle.
+- `scripts/remote-production-pretrigger.sh`,
+  `scripts/validate-production-pretrigger.py`, and
+  `scripts/collect-production-pretrigger.sh`: zero-observer-read, read-only
+  fresh-boot admission frame and direct-USB collector.
+- `scripts/build-production-runtime.sh`,
+  `scripts/classify-production-runtime.py`, and
+  `scripts/run-production-runtime.sh`: one boot-ID-bound stage-18, thermal,
+  frequency, accounting, and four-round volatile-RAM capture.
+- `scripts/install-production-boot2.sh`: exact-candidate guarded live-GPT
+  `boot2` installation and shutdown wrapper.
 - `results/source-semantics-audit-20260904.txt`: source and live-readback
   evidence that rejected the old decoder semantics.
 - `results/observer-patch-generation-20260904.txt`: exact replay, source/path,
@@ -76,6 +96,8 @@ the offline decoder gate and a separate observation composition pass.
 - `results/buildbox-observer-kunit-build-20260904.txt` and
   `results/qemu-observer-kunit-20260904.txt`: exact focused compilation,
   package, and five-case isolated runtime proof.
+- `results/production-candidate-20260904.txt`: exact Buildbox production
+  package, DT transform, LK candidate, and pretrigger/runtime mutation gate.
 
 ## Procedure
 
@@ -95,6 +117,10 @@ the offline decoder gate and a separate observation composition pass.
    enters any device profile.
 8. Only after that gate passes, compose one production successor with the
    runtime-proven thermal DT/configuration and stage-18 4+4+2 lifecycle.
+9. Independently validate its exact DT delta and Android-v0/LK container, then
+   freeze a boot-ID-bound zero-read pretrigger and finite runtime classifier.
+10. Publish those inputs before one guarded `boot2` installation and one fresh
+    live observation.
 
 ## Observations
 
@@ -141,6 +167,22 @@ the offline decoder gate and a separate observation composition pass.
   failed-attempt consumption. See
   [results/buildbox-observer-kunit-build-20260904.txt](results/buildbox-observer-kunit-build-20260904.txt)
   and [results/qemu-observer-kunit-20260904.txt](results/qemu-observer-kunit-20260904.txt).
+- Exact clean published revision `673df9c0...` built the production profile on
+  Buildbox. All 517 selected patches and package checksums passed; the resolved
+  configuration enables the stage-18 lifecycle, thermal serviceability, and
+  bounded observer while leaving KUnit, cpufreq/OPP, CPU idle, and suspend off.
+- The exact production DT is the successful 4+4+2 topology base plus only the
+  reviewed thermal transform and the new package's provenance leaf. Independent
+  structural validation passed with one policy-free thermal zone and preserved
+  USB, keyboard, eMMC, PWRAP, and lifecycle nodes.
+- The Android-v0/LK candidate has raw identity `d9f812c8...` and exact padded
+  `boot2` identity `03cbaa72...`. Its manifest and all LK gates pass with the
+  runtime-proven serviceability initramfs.
+- The pretrigger accepts no observer read and rejected 12 unsafe mutations. The
+  runtime accepts one exact positive fixture and rejected all 18 mutations. It
+  performs three observations, proves both CPU8/CPU9 writers alive on both
+  sides of the middle sample at their start barrier, then releases exactly four
+  volatile-RAM rounds and takes the final sample after completion.
 
 ## Analysis
 
@@ -158,16 +200,18 @@ as a second, unsupported stability oracle.
 
 ## Conclusion
 
-`partial pass`: both the corrected pure conversion boundary and the bounded
-observer have exact generation, Buildbox compilation, package, and isolated
-focused KUnit proof. The observer is now eligible for a separately reviewed
-production composition. This is not yet a live A72 frequency claim. No device
-action or boot candidate occurred in this phase.
+`offline production pass`: the corrected conversion, bounded observer,
+production profile, exact DT composition, LK candidate, pristine pretrigger,
+and finite runtime classifier all pass their independent gates. This is not yet
+a live A72 frequency or thermal-under-A72-load claim. No production-candidate
+device action has occurred yet.
 
 ## Follow-up
 
-Compose the proved read-only observer with the exact runtime-proven thermal
-DT/configuration and stage-18 4+4+2 lifecycle profile. Validate that successor
-offline before selecting one boot-ID-bound finite dual-A72 observation. Keep
-longer load, cpufreq/OPP, extra hotplug, idle, suspend, and identical-artifact
-repeats closed.
+Publish the frozen tooling and evidence, install exact padded candidate
+`03cbaa72...` to live-GPT-resolved inactive `boot2`, require matching full
+readback and shutdown, then make one fresh boot. Admit it only if the read-only
+pretrigger proves the exact release, provenance, pristine lifecycle, untouched
+observer budget, and thermal zone. Run the boot-ID-bound finite observation
+once. Keep longer load, cpufreq/OPP, extra hotplug, idle, suspend, and
+identical-artifact repeats closed.
