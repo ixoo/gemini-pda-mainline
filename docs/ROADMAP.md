@@ -8175,11 +8175,25 @@ pass offline validation; padded candidate identity is `03cbaa72...`. This still
 provides no live-device frequency claim. Published commit `75917139...` froze
 the tooling, then guarded deployment resolved inactive live-GPT `boot2`, wrote
 exact `03cbaa72...`, passed synchronized/flush/full-readback gates without a
-fresh backup, and shut the device down without rebooting it. **Selected next:**
-make one fresh physical `boot2` selection, take its zero-read pristine
-pretrigger, then make the one boot-ID-bound three-sample/four-round observation.
-Keep longer load, cpufreq/OPP changes, extra hotplug, idle, suspend, and
-same-artifact repeat closed.
+fresh backup, and shut the device down without rebooting it. The first fresh
+selection reached the exact kernel and direct-USB shell with thermal and
+CPU0--7 serviceability, although the owner saw no local console. Its zero-read
+pretrigger rejected before any mutation: the bounded frequency-observer
+attribute was absent and the late profile reported runtime-binding proof mask
+`0x40000`. Source and live diagnostics identify two composition omissions: the
+physical-profile binding contains only the prior configuration identity, and
+observer registration is owned only by a disconnected snapshot-adapter DT
+probe that production never instantiates. CPU8/CPU9 remained offline; the
+lifecycle trigger and all three observer attempts remain unconsumed. Native
+USB recovery returned changed-ID Gemian, and exact `03cbaa72...` is retired
+without repeat. **Selected next:** generate and hardware-free-test two focused
+successor changes on Buildbox: bind the exact production configuration
+identity, then attach the bounded observer to the physical binder's in-memory
+snapshot source. Require a static production-path registration oracle, focused
+tests, clean exact-profile build, independent DT/container validation, and a
+new candidate identity before one new guarded `boot2` attempt. Keep longer
+load, cpufreq/OPP changes, extra hotplug, idle, suspend, and same-artifact
+repeat closed.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

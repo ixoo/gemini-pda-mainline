@@ -127,9 +127,11 @@ if ! grep -Fq __A72_FREQUENCY_THERMAL_PRETRIGGER_BEGIN__ "$frame" ||
 	! grep -Fq __A72_FREQUENCY_THERMAL_PRETRIGGER_END__ "$frame"; then
 	die "pre-trigger frame did not complete rc=$nc_rc"
 fi
+set +e
 python3 "$validator" "$frame" --deployment-summary "$deployment_copy" >"$classification"
-grep -Fqx 'pretrigger_classification=serviceable-pristine-thermal-frequency-ready' "$classification" ||
-	die 'pre-trigger frame rejected'
+validator_rc=$?
+set -e
+[[ -s "$classification" ]] || die "pre-trigger validator produced no classification rc=$validator_rc"
 printf 'netcat_complete=yes status=%s\ntrigger_session=none\n' "$nc_rc" >>"$events"
 printf 'successful_mainline_left_running=yes\nnative_reboot_command_sent=no\n' >>"$events"
 (cd "$output" && sha256sum deployment-summary.txt observer-events.txt \
@@ -137,5 +139,12 @@ printf 'successful_mainline_left_running=yes\nnative_reboot_command_sent=no\n' >
 chmod 0600 "$output"/*
 cleanup
 trap - EXIT HUP INT TERM
+if ((validator_rc != 0)); then
+	cat "$classification"
+	printf 'trigger_session=none\nsuccessful_mainline_left_running=yes\ncapture=%s\n' "$output"
+	exit "$validator_rc"
+fi
+grep -Fqx 'pretrigger_classification=serviceable-pristine-thermal-frequency-ready' "$classification" ||
+	die 'pre-trigger validator returned success without the ready classification'
 printf 'pretrigger_classification=serviceable-pristine-thermal-frequency-ready\n'
 printf 'trigger_session=none\nsuccessful_mainline_left_running=yes\ncapture=%s\n' "$output"

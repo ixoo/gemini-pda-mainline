@@ -1,0 +1,69 @@
+result=pretrigger-rejected-before-runtime
+date_utc=2026-09-04
+candidate_sha256=03cbaa72eafed9077d9a6cafa33766c86eae702fdbc61decf503c16ad98c3c32
+kernel_release=7.1.3-gemini-a72-frequency-thermal
+boot_id=5e78e726-36ca-492f-832b-b548d84d2b42
+record_identity=c5db6133ad716994008ff3cd916dbe95566547bbe02416a05cfdb396fc157602
+config_inputs_sha256=18ded825be6993a5a403f8cd526e3682199cc55afce876f36b7f194faced0b25
+user_observation_console_visible=no
+usb_netcat_serviceable=yes
+cpu_possible=0-9
+cpu_present=0-9
+cpu_online=0-7
+cpu_offline=8-9
+thermal_zone_count=1
+thermal_zone_type=soc-thermal
+thermal_temperature_millicelsius=31700
+controller_bound=1
+binder_bound=1
+platform_state_bound=1
+controller_pristine=yes
+frequency_observer_count=0
+frequency_observer_mode=missing
+frequency_observer_attempts_consumed=0
+arm64_late_profile=blocked
+arm64_late_profile_proof_mask=0x40000
+arm64_late_profile_blocker=ARM64_LATE_CPU_BLOCK_RUNTIME_BINDING
+pretrigger_classification=rejected
+pretrigger_reason=capture-frequency_observer_count
+runtime_triggered=no
+frequency_observation_request=none
+sysfs_write_request=none
+cpu_admission_request=none
+cpu_off_request=none
+device_storage_access=none
+same_candidate_repeat_permitted=no
+postreject_diagnostic_session=read-only
+postreject_observer_paths=none
+postreject_platform_state=ready-no-caller
+recovery_transport=direct-usb-netcat
+recovery_reboot_requested=yes
+gemian_boot_id=963040cf-156a-43fe-9e91-5468916dd351
+gemian_kernel_release=3.18.41+
+
+Private capture identities:
+deployment_summary_sha256=96fce84d89ea7a57931fb1dac4611f11a20c1418421a7cf5fb5ead05b5f350a4
+observer_events_sha256=e9c93b4f4b602e4613bbcab91eb04ee8a5dfeeafdc4bd1416bfd614770cf4802
+postreject_diagnostic_sha256=ad4532ef214dc37c1a42a2e2fe48a8657dc3391fbabec026849a96f228c435cc
+pretrigger_classification_sha256=aedfd316ffcb0406c78555064455a2bb53632769d96c23352e71a0f437e7b0fc
+pretrigger_sha256=efa60c41b9fb10b7c67859ed27b8439988c6ca273aac62bfe7c0132d3a20d85f
+recovery_summary_sha256=8628fdf9755fc39baa1640af97aa7e4a82b60ae8547262946bacb18b20d87876
+
+Interpretation:
+
+The exact candidate reached the direct-USB shell and retained the known-good
+thermal and CPU0--7 baseline even though the owner saw no local console.  The
+pretrigger correctly stopped before any mutation because the frequency
+observer sysfs attribute was absent and the late CPU profile was blocked.
+
+The proof mask is bit 18, the runtime-binding blocker.  Canonical patch 0503
+binds the physical-hotplug configuration to config-input identity
+2e50cc09d2241006d819eeb0ed4151fbc6ed927e9e51b41e27c2dd7ce3cedd39,
+not this package's 18ded825... identity.  Independently, patch 0527 registers
+the observer attribute only from the disconnected snapshot-adapter platform
+probe.  The production DT has no such adapter node; the physical binder instead
+constructs its snapshot source in memory.  The diagnostic therefore found no
+observer path while the actual platform source later reported ready/no caller.
+
+Both defects are offline-correctable composition omissions.  This candidate is
+retired without firing its one-shot lifecycle or consuming an observer read.

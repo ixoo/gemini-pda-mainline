@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-a72-frequency-observation` |
-| Status | `running`; exact production candidate and one-shot runtime gate passed offline |
+| Status | `running`; first production boot rejected pristine, successor repair selected |
 | Subsystem | MT6797 CPU clock readback / Cortex-A72 lifecycle |
 | Device variant | Gemini PDA x27, named development unit |
 | Date(s) | 2026-09-04 |
@@ -192,6 +192,23 @@ closed.
   summary retained the source wrapper's prior experiment label; that metadata
   label was corrected immediately afterward and does not affect the recorded
   target, candidate, readback, boot ID, power, or shutdown evidence.
+- The first fresh physical selection booted the exact release and provenance on
+  boot ID `5e78e726...`; direct-USB netcat, thermal, controller, binder,
+  platform-state, and CPU0--7 serviceability were present. The owner observed
+  no visible local console, which is recorded separately from kernel identity
+  and runtime admission. The zero-read pretrigger rejected before any mutation:
+  the frequency observer attribute was absent, and the late CPU profile reported
+  runtime-binding proof mask `0x40000`. CPU8/CPU9 remained offline, the one-shot
+  trigger remained pristine, and no frequency read, sysfs write, CPU request,
+  storage access, or automatic reboot occurred.
+- One additional read-only diagnostic on that boot proved there was no observer
+  sysfs path and that the production platform source became ready with no
+  caller. Exact source comparison found two independent composition omissions:
+  patch `0503` knows only the older physical-profile configuration identity,
+  while patch `0527` registers the observer only on the disconnected snapshot
+  adapter whose DT node is absent from the production composition. Native USB
+  recovery then returned a changed boot ID on Gemian. See
+  [results/production-runtime-attempt-1-20260904.txt](results/production-runtime-attempt-1-20260904.txt).
 
 ## Analysis
 
@@ -202,23 +219,29 @@ sample into a false failure or a wrong frequency. This was discovered offline
 before composition and does not weaken the already proven stage-18 lifecycle,
 thermal, topology, RAM-integrity, or accounting results.
 
-The minimum corrective boundary is pure conversion logic plus focused tests.
-Transport stability remains owned by the existing protected-clock semaphore
-sample and the BigiDVFS identical-double-sample backend; bit 31 is not reused
-as a second, unsupported stability oracle.
+The decoder repair remains valid: transport stability is owned by the existing
+protected-clock semaphore sample and the BigiDVFS identical-double-sample
+backend; bit 31 is not reused as a second unsupported stability oracle. The
+first production boot exposed two later integration defects, not a conversion
+failure. The minimum successor must add this exact profile's compile-time
+runtime-binding identity and attach the bounded observer to the in-memory
+snapshot source actually owned by the physical binder. It must prove both
+paths offline before another device candidate is eligible.
 
 ## Conclusion
 
-`deployed production pass`: the corrected conversion, bounded observer,
-production profile, exact DT composition, LK candidate, pristine pretrigger,
-and finite runtime classifier all pass their independent gates, and exact
-`boot2` installation passed full-readback and shutdown gates. This is not yet a
-live A72 frequency or thermal-under-A72-load claim.
+`live pretrigger rejected`: the candidate was genuine and serviceable over USB,
+but it correctly stopped with a stale runtime-binding identity and no production
+observer attachment. This is not a CPU8/CPU9, frequency, load, or console pass.
+The exact candidate is retired without consuming either its lifecycle trigger
+or its observer budget.
 
 ## Follow-up
 
-Make one fresh physical `boot2` selection. Admit it only if the read-only
-pretrigger proves the exact release, provenance, pristine lifecycle, untouched
-observer budget, and thermal zone. Run the boot-ID-bound finite observation
-once. Keep longer load, cpufreq/OPP, extra hotplug, idle, suspend, and
-identical-artifact repeats closed.
+Generate two focused successor changes on Buildbox: bind the production
+configuration identity, then register the bounded observer on the physical
+binder's real snapshot source. Add an offline proof that the production path
+owns the observer attribute, rebuild and independently validate the exact
+profile and candidate, and only then permit one new guarded `boot2` attempt.
+Keep identical-artifact repeats, longer load, cpufreq/OPP, extra hotplug, idle,
+and suspend closed.
