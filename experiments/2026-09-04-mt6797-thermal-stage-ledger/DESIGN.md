@@ -47,8 +47,10 @@ probe completion.  Per-bank transaction checkpoints carry bank indices 0--5.
 
 ## Result map
 
-- Empty record after a changed boot cycle: thermal probe did not own the lane;
-  investigate boot selection or entry before this driver.
+- No CRC-valid record after a changed boot cycle: inconclusive.  It may mean
+  no entry, ownership refusal, or loss during return/recovery; do not infer a
+  thermal stage from absence.  The arm64-entry positive control previously
+  reached `/init` while producing the same empty post-return ramoops zones.
 - CRC-valid `BEFORE`: the named operation was entered but did not return.
 - CRC-valid `AFTER` with an error: the named operation returned that error.
 - Failure terminal: the probe returned after the recorded boundary.

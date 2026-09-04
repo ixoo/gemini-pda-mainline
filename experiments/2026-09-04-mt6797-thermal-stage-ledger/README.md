@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-thermal-stage-ledger` |
-| Status | exact candidate installed and device shut down; one boot2 attempt pending |
+| Status | one attributable boot2 cycle completed; no valid record recovered; candidate retired as inconclusive |
 | Subsystem | MT6797 thermal probe and ordered AUXADC transaction |
 | Device variant | Planet Computers Gemini PDA, MT6797 |
 | Date(s) | 2026-09-04 |
@@ -106,3 +106,15 @@ owned by the [thermal-serviceability experiment](../2026-09-04-mt6797-thermal-se
   active root remained `/dev/mmcblk0p29`; no backup or other partition write
   occurred. See
   [results/deployment-attempt-1-20260904.txt](results/deployment-attempt-1-20260904.txt).
+- One physical `boot2` selection returned automatically to changed-ID Gemian
+  before sampled USB/netcat serviceability. Recovery found no pstore member,
+  no mainline identity or panic in `last_kmsg`, and exact pstore-empty record-5
+  contents with no CRC-valid ledger copy. Gemian reported watchdog status 5,
+  FIQ step 0, and the usual `wdt_by_pass_pwk` reason; that reason is
+  nondiscriminating in this project. The earlier arm64-entry positive control
+  reached `/init` yet yielded the same empty post-return ramoops zones, so
+  absence after recovery cannot prove that this candidate failed before the
+  thermal probe. The result is therefore `inconclusive-pre-transport-no-valid-ledger`,
+  not a negative stage result, and the exact candidate is retired without
+  repeat. See
+  [results/runtime-attempt-1-no-retained-record-20260904.txt](results/runtime-attempt-1-no-retained-record-20260904.txt).

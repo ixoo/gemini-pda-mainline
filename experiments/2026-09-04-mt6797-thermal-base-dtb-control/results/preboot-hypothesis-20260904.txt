@@ -1,0 +1,16 @@
+experiment=2026-09-04-mt6797-thermal-base-dtb-control
+candidate_raw_sha256=fb660f34d631109eeeaa5625c457e141ff0beadafbdbf47375f11d11ca9e449d
+candidate_full_boot2_sha256=ec26245757291c4d7761683b7afc8042cc8bf98fd34a4c977946cf23a5147db5
+kernel_release=7.1.3-gemini-mt6797-thermal-stage-ledger
+device_variant=Planet Computers Gemini PDA MT6797
+hypothesis=The exact thermal-stage-ledger Image, config, initramfs, container contract, command line, and addresses produce positive USB/netcat serviceability when only the appended thermal-serviceability DT is replaced by the same package's base Gemini DT.
+unique_attribution=Relative to the retired stage-ledger candidate, the sole container payload change is the appended DTB: 966351e9795e1aaada61d6d9c3d2280b1413ca6a4493d03b5dd8c3425bd4aaa3 becomes d7b583545fc3b4916c363d9e4b70d0ee7aef815675ca8ba58894bdbaa2e1dccc. The kernel, config, initramfs, name, cmdline, addresses, and Android-v0 serializer remain exact.
+decision_live_exact_pass=Attribute the serviceability regression to the thermal DT delta or induced probes and split that DT delta before another thermal kernel change.
+decision_changed_gemian_without_live_frame=Inconclusive; do not infer execution from empty retained RAM and do not repeat this exact control.
+decision_live_rejected=Preserve the exact failed baseline predicate and repair it before thermal enablement.
+repeat_policy=One physical boot2 selection only; no identical repeat without a new independent decision-changing observation path.
+cpu8_cpu9_policy=No CPU request or load; CPUs 8-9 must remain offline.
+thermal_policy=Controller disabled, standalone AUXADC disabled, zero zones, zero temperature reads.
+installation_scope=live-GPT-resolved-inactive-boot2-only
+fresh_partition_backup=no-project-wide-starting-backup-is-recovery-source
+post_write_action=clean-shutdown-after-matching-full-partition-readback

@@ -8069,6 +8069,26 @@ failure return. Run its focused hardware-free tests and exact Buildbox profile
 before one new boot. Keep CPU requests, load, cpufreq/OPP, IRQ/watchdog policy,
 trips/cooling, idle, suspend, storage writes, and same-artifact repeat excluded.
 
+That ledger candidate passed its offline, Buildbox, container, live-GPT write,
+full-readback, and shutdown gates. One owner-selected `boot2` cycle then
+returned to changed-ID Gemian before sampled USB/netcat. Recovery found no
+pstore member, mainline identity, panic detail, or CRC-valid record-5 copy;
+record 5 had the exact pstore-empty header and all-ones payload. This is not a
+valid pre-probe result: the earlier arm64-entry positive control reached
+`/init` yet produced the same empty post-return ramoops zones, and Gemian's
+watchdog-class reason is also nondiscriminating. The exact candidate is retired
+as `inconclusive-pre-transport-no-valid-ledger` without repeat. **Selected
+next:** construct one DT-only control from the exact same published kernel,
+configuration, initramfs, Android-v0 container contract, and boot addresses,
+replacing only the appended thermal-serviceability DT with the package's base
+Gemini DT. The base DT keeps thermal disabled and causes the exact-DT ledger
+guard to refuse ownership. Require positive USB/netcat runtime identity and the
+known A53/PWRAP/MT6351/eMMC serviceability baseline; absence remains
+inconclusive, while a pass attributes the serviceability regression to the
+thermal DT delta and selects a finer DT enablement split before another thermal
+kernel change. Do not repeat either thermal candidate or infer execution from
+empty retained RAM.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

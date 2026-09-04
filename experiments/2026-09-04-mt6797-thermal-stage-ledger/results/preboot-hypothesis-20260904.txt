@@ -14,7 +14,7 @@ hypothesis=The thermal-serviceability DT reaches the MT6797 thermal probe, and t
 
 unique_attribution=This exact candidate is distinct from the retired parent and adds only the isolated CRC-protected record-5 thermal-stage observation path. It retains the same policy-free thermal serviceability DT, initramfs, boot addresses, disabled CPU frequency/idle/suspend policy, and no CPU admission or load trigger.
 
-decision_empty_after_changed_boot_id=The ledger never owned the lane; investigate boot selection or execution before thermal probe entry.
+decision_empty_after_changed_boot_id=Inconclusive: no entry, ownership refusal, and loss during return or recovery remain possible; do not infer a thermal stage from absence because the earlier arm64-entry positive control reached /init with the same empty post-return ramoops zones.
 decision_valid_before=The named operation was entered and did not return; investigate that hardware boundary.
 decision_valid_after_error=The named operation returned the retained errno; repair that resource or transaction boundary.
 decision_failure_terminal=The thermal probe returned after the retained named boundary; follow that failure path.

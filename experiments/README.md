@@ -31,13 +31,34 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-09-04 MT6797 thermal base-DT control](2026-09-04-mt6797-thermal-base-dtb-control/README.md)
+  — holds the exact thermal-stage kernel, configuration, initramfs, LK
+  container contract, command line, and addresses while changing only the
+  appended thermal-serviceability DT to the same package's base Gemini DT.
+  The offline candidate passes exact package, two-assembly, 32-gate LK,
+  padding, classifier, and guarded-installer checks. One positive USB/netcat
+  boot will distinguish the thermal DT delta from the current Image/config;
+  empty returned RAM is explicitly not used as a negative oracle.
+- [2026-09-04 MT6797 thermal-stage retained ledger](2026-09-04-mt6797-thermal-stage-ledger/README.md)
+  — adds a hardware-free-tested, empty-only, CRC-valid two-copy retained
+  ledger around the ordered thermal transaction. Its exact candidate returned
+  before sampled USB/netcat and no valid record survived Gemian recovery. The
+  earlier arm64-entry positive control invalidates empty returned RAM as proof
+  of absent execution, so the result is inconclusive and the candidate is
+  retired without repeat.
+- [2026-09-04 MT6797 thermal serviceability](2026-09-04-mt6797-thermal-serviceability/README.md)
+  — enables only the MT6797 thermal consumer and one policy-free zone after
+  the calibration, reset, transaction, and PWRAP prerequisites. Its first
+  exact boot returned before transport with empty pstore; it is retired as
+  inconclusive and led to the retained-ledger experiment.
 - [2026-09-04 MT6797 PMIC-wrapper reset serviceability](2026-09-04-mt6797-pwrap-reset-serviceability/README.md)
   — prepares the isolated runtime regression after the reset repair. It uses a
   fresh current-canonical profile rather than reviving the quarantined July
   DA9214 series, reuses the exact hardware-passed Candidate AW DT/initramfs as
   private controls, and permits only the PWRAP reset-cell change from 64 to 1.
-  Offline construction is in progress; no candidate or device action has yet
-  occurred.
+  The exact candidate passed on-device with natural PWRAP, MT6351 regulator,
+  VEMC/VIO18, eMMC, console, and USB/netcat serviceability and no targeted
+  error; changed-ID recovery reproduced the unchanged full `boot2` checksum.
 - [2026-09-03 MT6797 infracfg reset repair](2026-09-03-mt6797-infracfg-reset-repair/README.md)
   — completes the hardware-free follow-up selected by the transaction audit:
   a compact two-input map for only the source-proven thermal and PMIC-wrap
