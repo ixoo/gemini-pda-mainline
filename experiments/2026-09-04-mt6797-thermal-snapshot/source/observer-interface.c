@@ -17,8 +17,8 @@ static const struct mt6797_thermal_observer_ops mt6797_observer_ops = {
 };
 
 static ssize_t mt6797_temperature_snapshot_show(struct device *dev,
-					       struct device_attribute *attr,
-					       char *buf)
+						struct device_attribute *attr,
+						char *buf)
 {
 	struct mt6797_thermal_snapshot snapshot = {};
 	struct mtk_thermal *mt = dev_get_drvdata(dev);
@@ -27,13 +27,13 @@ static ssize_t mt6797_temperature_snapshot_show(struct device *dev,
 	int ret;
 
 	ret = mt6797_thermal_observer_capture(&mt->observer, &mt6797_observer_ops,
-					     mt, &snapshot);
+					      mt, &snapshot);
 	/* Return a record even on failure: do not invite error-read retries. */
 	len = sysfs_emit(buf,
-			"abi=%u attempt=%u error=%d complete=%u count=%u valid_mask=%u winner=%u maximum=%d start_ns=%llu end_ns=%llu\n",
-			snapshot.abi, snapshot.attempt, ret, snapshot.complete,
-			snapshot.count, snapshot.valid_mask, snapshot.winner,
-			snapshot.maximum, snapshot.start_ns, snapshot.end_ns);
+			 "abi=%u attempt=%u error=%d complete=%u count=%u valid_mask=%u winner=%u maximum=%d start_ns=%llu end_ns=%llu\n",
+			 snapshot.abi, snapshot.attempt, ret, snapshot.complete,
+			 snapshot.count, snapshot.valid_mask, snapshot.winner,
+			 snapshot.maximum, snapshot.start_ns, snapshot.end_ns);
 	for (i = 0; i < snapshot.count; i++) {
 		const struct mt6797_thermal_snapshot_sample *s = &snapshot.samples[i];
 
@@ -45,8 +45,8 @@ static ssize_t mt6797_temperature_snapshot_show(struct device *dev,
 }
 
 static ssize_t mt6797_temperature_snapshot_status_show(struct device *dev,
-						      struct device_attribute *attr,
-						      char *buf)
+						       struct device_attribute *attr,
+						       char *buf)
 {
 	struct mtk_thermal *mt = dev_get_drvdata(dev);
 	u32 attempts;
@@ -59,10 +59,8 @@ static ssize_t mt6797_temperature_snapshot_status_show(struct device *dev,
 			  MT6797_THERMAL_SNAPSHOT_ATTEMPTS);
 }
 
-static DEVICE_ATTR(mt6797_temperature_snapshot, 0400,
-		   mt6797_temperature_snapshot_show, NULL);
-static DEVICE_ATTR(mt6797_temperature_snapshot_status, 0400,
-		   mt6797_temperature_snapshot_status_show, NULL);
+static DEVICE_ATTR_ADMIN_RO(mt6797_temperature_snapshot);
+static DEVICE_ATTR_ADMIN_RO(mt6797_temperature_snapshot_status);
 
 static struct attribute *mt6797_observer_attrs[] = {
 	&dev_attr_mt6797_temperature_snapshot.attr,

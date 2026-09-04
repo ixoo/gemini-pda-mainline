@@ -33,8 +33,8 @@ replace('\t\t\tmt, conf->bank_data[bank->id].sensors[i], raw);', '''\t\t\tmt, co
 
 \t\tif (snapshot)
 \t\t\tmt6797_thermal_snapshot_append(snapshot, bank->id,
-\t\t\t\tconf->bank_data[bank->id].sensors[i], temp,
-\t\t\t\tmtk_thermal_temp_is_valid(temp));''')
+\t\t\t\t\t\t       conf->bank_data[bank->id].sensors[i], temp,
+\t\t\t\t\t\t       mtk_thermal_temp_is_valid(temp));''')
 replace('static void mt6797_eem_unpack_anchors', '''static int mtk_thermal_bank_temperature(struct mtk_thermal_bank *bank)
 {
 \treturn mtk_thermal_bank_temperature_capture(bank, NULL);

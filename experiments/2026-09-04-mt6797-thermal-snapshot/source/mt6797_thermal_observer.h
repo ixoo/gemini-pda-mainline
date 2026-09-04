@@ -7,6 +7,7 @@
 #include "mt6797_thermal_snapshot.h"
 
 struct mt6797_thermal_observer {
+	/* Serializes admission and the entire observer scan, never polling. */
 	struct mutex lock;
 	struct mt6797_thermal_snapshot_budget budget;
 };
@@ -26,9 +27,9 @@ mt6797_thermal_observer_init(struct mt6797_thermal_observer *observer)
 
 static inline int
 mt6797_thermal_observer_capture(struct mt6797_thermal_observer *observer,
-			       const struct mt6797_thermal_observer_ops *ops,
-			       void *context,
-			       struct mt6797_thermal_snapshot *snapshot)
+				const struct mt6797_thermal_observer_ops *ops,
+				void *context,
+				struct mt6797_thermal_snapshot *snapshot)
 {
 	int aggregate = INT_MIN;
 	int ret;
