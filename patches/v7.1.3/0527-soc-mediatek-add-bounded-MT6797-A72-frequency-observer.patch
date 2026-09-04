@@ -1,0 +1,370 @@
+From eabfc5b1cd5ca327ba374656aee5db0b2a341604 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 4 Sep 2026 19:01:00 +0000
+Subject: [PATCH 1/2] soc: mediatek: add bounded MT6797 A72 frequency observer
+
+Expose at most three read-only raw and decoded samples per boot.
+
+Reuse the stable protected-clock transports without CPU or policy action.
+---
+ drivers/soc/mediatek/Kconfig                  |  15 ++
+ drivers/soc/mediatek/Makefile                 |   1 +
+ .../mt6797-a72-frequency-observer-internal.h  |  69 +++++++
+ .../mediatek/mt6797-a72-frequency-observer.c  | 188 ++++++++++++++++++
+ .../mt6797-a72-hotplug-snapshot-internal.h    |   2 +
+ .../mediatek/mt6797-a72-hotplug-snapshot.c    |   5 +
+ 6 files changed, 280 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-a72-frequency-observer-internal.h
+ create mode 100644 drivers/soc/mediatek/mt6797-a72-frequency-observer.c
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index fbdc7af..8a06454 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -796,6 +796,21 @@ config MTK_MT6797_A72_HOTPLUG_SNAPSHOT_KUNIT_TEST
+ 	  operations only. No device, MMIO, I2C, SMC, retained-memory, CPU,
+ 	  watchdog, or network action occurs.
+ 
++
++config MTK_MT6797_A72_FREQUENCY_OBSERVER
++	bool "MediaTek MT6797 bounded A72 frequency observer"
++	depends on MTK_MT6797_A72_HOTPLUG_SNAPSHOT
++	depends on MTK_MT6797_DVFSP_STATE_DECODERS
++	default n
++	help
++	  Add one read-only attribute to the existing snapshot adapter. At most
++	  three reads per boot take bounded protected-clock and stable BigiDVFS
++	  samples, then publish raw register values and decoded cluster rates.
++
++	  The observer does not request a CPU, change voltage or frequency, select
++	  a policy, write retained memory, or add a Device Tree node. The protected
++	  clock transport retains its documented bounded semaphore writes.
++
+ config MTK_MT6797_A72_RESTORE_EXECUTOR
+ 	bool "MediaTek MT6797 disconnected CPU9 restore executor"
+ 	depends on ARM64 && ARCH_MEDIATEK
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+index 32f50ab..3f046ac 100644
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -41,6 +41,7 @@ obj-$(CONFIG_MTK_MT6797_A72_CPU9_EXECUTOR) += mt6797-a72-cpu9-executor.o
+ obj-$(CONFIG_MTK_MT6797_A72_HOTPLUG_EXECUTOR) += mt6797-a72-hotplug-executor.o
+ obj-$(CONFIG_MTK_MT6797_A72_HOTPLUG_EXECUTOR_KUNIT_TEST) += mt6797-a72-hotplug-executor-test.o
+ obj-$(CONFIG_MTK_MT6797_A72_HOTPLUG_SNAPSHOT) += mt6797-a72-hotplug-snapshot.o
++obj-$(CONFIG_MTK_MT6797_A72_FREQUENCY_OBSERVER) += mt6797-a72-frequency-observer.o
+ obj-$(CONFIG_MTK_MT6797_A72_HOTPLUG_SNAPSHOT_KUNIT_TEST) += mt6797-a72-hotplug-snapshot-test.o
+ obj-$(CONFIG_MTK_MT6797_A72_RESTORE_EXECUTOR) += mt6797-a72-restore-executor.o
+ obj-$(CONFIG_MTK_MT6797_A72_HOTPLUG_BINDER_CORE) += mt6797-a72-hotplug-binder-core.o
+diff --git a/drivers/soc/mediatek/mt6797-a72-frequency-observer-internal.h b/drivers/soc/mediatek/mt6797-a72-frequency-observer-internal.h
+new file mode 100644
+index 0000000..6dd967a
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-a72-frequency-observer-internal.h
+@@ -0,0 +1,69 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __MT6797_A72_FREQUENCY_OBSERVER_INTERNAL_H
++#define __MT6797_A72_FREQUENCY_OBSERVER_INTERNAL_H
++
++#include <linux/mutex.h>
++#include <linux/types.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-clock-state.h>
++
++#define MT6797_A72_FREQUENCY_OBSERVER_ABI 1U
++#define MT6797_A72_FREQUENCY_OBSERVER_MAX_ATTEMPTS 3U
++
++struct device;
++struct mt6797_a72_hotplug_snapshot_source;
++
++struct mt6797_a72_frequency_observer_controller {
++	/* Serialize the attempt budget and its paired transport calls. */
++	struct mutex lock;
++	u32 attempts;
++};
++
++struct mt6797_a72_frequency_observation {
++	u32 abi;
++	u32 attempt;
++	u64 clock_sample_generation;
++	u64 big_sample_generation;
++	u32 armplldiv_muxsel;
++	u32 armplldiv_ckdiv;
++	u32 big_pll_pcw;
++	u32 big_pll_enable_posdiv;
++	struct mt6797_dvfsp_clock_state state;
++};
++
++struct mt6797_a72_frequency_observer_trace {
++	u32 attempt;
++	u32 attempts_remaining;
++	u32 clock_calls;
++	u32 bigidvfs_calls;
++	u32 clock_poweron_writes_max;
++	u32 clock_acquire_writes_max;
++	u32 clock_release_writes_max;
++	u32 bigidvfs_stable_samples;
++	u32 bigidvfs_reads;
++	u32 bigidvfs_sram_set_calls;
++	bool complete;
++};
++
++#if IS_ENABLED(CONFIG_MTK_MT6797_A72_FREQUENCY_OBSERVER)
++void mt6797_a72_frequency_observer_init(
++	struct mt6797_a72_frequency_observer_controller *controller);
++int mt6797_a72_frequency_observer_sample(
++	struct mt6797_a72_frequency_observer_controller *controller,
++	const struct mt6797_a72_hotplug_snapshot_source *source,
++	struct mt6797_a72_frequency_observation *observation,
++	struct mt6797_a72_frequency_observer_trace *trace);
++int mt6797_a72_frequency_observer_register(struct device *dev);
++#else
++static inline void mt6797_a72_frequency_observer_init(
++	struct mt6797_a72_frequency_observer_controller *controller)
++{
++}
++
++static inline int mt6797_a72_frequency_observer_register(struct device *dev)
++{
++	return 0;
++}
++#endif
++
++#endif /* __MT6797_A72_FREQUENCY_OBSERVER_INTERNAL_H */
+diff --git a/drivers/soc/mediatek/mt6797-a72-frequency-observer.c b/drivers/soc/mediatek/mt6797-a72-frequency-observer.c
+new file mode 100644
+index 0000000..86eee32
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-a72-frequency-observer.c
+@@ -0,0 +1,188 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* Three-sample read-only MT6797 A72 frequency observation boundary. */
++
++#include <linux/device.h>
++#include <linux/errno.h>
++#include <linux/module.h>
++#include <linux/string.h>
++#include <linux/sysfs.h>
++
++#include "mt6797-a72-frequency-observer-internal.h"
++#include "mt6797-a72-hotplug-snapshot-internal.h"
++
++void mt6797_a72_frequency_observer_init(
++	struct mt6797_a72_frequency_observer_controller *controller)
++{
++	if (!controller)
++		return;
++	mutex_init(&controller->lock);
++	controller->attempts = 0;
++}
++
++static int mt6797_a72_frequency_observer_capture(
++	const struct mt6797_a72_hotplug_snapshot_source *source,
++	struct mt6797_a72_frequency_observation *observation,
++	struct mt6797_a72_frequency_observer_trace *trace)
++{
++	struct mt6797_dvfsp_clock_readback clock = { };
++	struct mt6797_bigidvfs_readback big = { };
++	int ret;
++
++	trace->clock_calls++;
++	ret = source->ops->clock(source->clock, &clock);
++	if (ret)
++		return ret;
++	if (clock.abi != MT6797_DVFSP_CLOCK_BACKEND_ABI || clock.reserved ||
++	    !clock.sample_generation)
++		return -EPROTO;
++
++	trace->bigidvfs_calls++;
++	ret = source->ops->bigidvfs(source->bigidvfs, &big);
++	if (ret)
++		return ret;
++	if (big.abi != MT6797_BIGIDVFS_BACKEND_ABI || big.reserved ||
++	    !big.sample_generation)
++		return -EPROTO;
++
++	ret = mt6797_dvfsp_clock_state_decode(
++		&clock, &big, &observation->state);
++	if (ret)
++		return ret;
++
++	observation->abi = MT6797_A72_FREQUENCY_OBSERVER_ABI;
++	observation->clock_sample_generation = clock.sample_generation;
++	observation->big_sample_generation = big.sample_generation;
++	observation->armplldiv_muxsel = clock.armplldiv_muxsel;
++	observation->armplldiv_ckdiv = clock.armplldiv_ckdiv;
++	observation->big_pll_pcw = big.pll_pcw;
++	observation->big_pll_enable_posdiv = big.pll_enable_posdiv;
++	trace->complete = true;
++	return 0;
++}
++
++int mt6797_a72_frequency_observer_sample(
++	struct mt6797_a72_frequency_observer_controller *controller,
++	const struct mt6797_a72_hotplug_snapshot_source *source,
++	struct mt6797_a72_frequency_observation *observation,
++	struct mt6797_a72_frequency_observer_trace *trace)
++{
++	int ret;
++
++	if (!observation || !trace)
++		return -EINVAL;
++	memset(observation, 0, sizeof(*observation));
++	memset(trace, 0, sizeof(*trace));
++	if (!controller || !source || !source->clock || !source->bigidvfs ||
++	    !source->ops || !source->ops->clock || !source->ops->bigidvfs)
++		return -EINVAL;
++
++	mutex_lock(&controller->lock);
++	if (controller->attempts >=
++	    MT6797_A72_FREQUENCY_OBSERVER_MAX_ATTEMPTS) {
++		trace->attempt = controller->attempts;
++		ret = -ENOSPC;
++		goto out_unlock;
++	}
++
++	controller->attempts++;
++	trace->attempt = controller->attempts;
++	trace->attempts_remaining =
++		MT6797_A72_FREQUENCY_OBSERVER_MAX_ATTEMPTS -
++		controller->attempts;
++	trace->clock_poweron_writes_max =
++		MT6797_A72_HOTPLUG_CLOCK_POWERON_WRITES;
++	trace->clock_acquire_writes_max =
++		MT6797_A72_HOTPLUG_CLOCK_ACQUIRE_WRITES_MAX;
++	trace->clock_release_writes_max =
++		MT6797_A72_HOTPLUG_CLOCK_RELEASE_WRITES_MAX;
++	trace->bigidvfs_stable_samples =
++		MT6797_A72_HOTPLUG_BIGIDVFS_STABLE_SAMPLES;
++	trace->bigidvfs_reads = MT6797_A72_HOTPLUG_BIGIDVFS_READS;
++
++	ret = mt6797_a72_frequency_observer_capture(source, observation, trace);
++	if (ret)
++		memset(observation, 0, sizeof(*observation));
++	else
++		observation->attempt = trace->attempt;
++
++out_unlock:
++	mutex_unlock(&controller->lock);
++	return ret;
++}
++
++static ssize_t a72_frequency_observation_show(
++	struct device *dev, struct device_attribute *attr, char *buf)
++{
++	struct mt6797_a72_hotplug_snapshot_source *source =
++		dev_get_drvdata(dev);
++	struct mt6797_a72_frequency_observer_trace trace;
++	struct mt6797_a72_frequency_observation observation;
++	const struct mt6797_dvfsp_clock_state_cluster *big;
++	ssize_t count = 0;
++	int ret;
++
++	if (!source)
++		return -ENODEV;
++	ret = mt6797_a72_frequency_observer_sample(
++		&source->frequency_observer, source, &observation, &trace);
++	if (ret) {
++		dev_info(dev,
++			 "GEMINI_A72_FREQUENCY_OBSERVATION_V1 attempt=%u/3 ret=%d\n",
++			 trace.attempt, ret);
++		return ret;
++	}
++
++	big = &observation.state.cluster[
++		MT6797_DVFSP_CLOCK_STATE_CLUSTER_B];
++	count += sysfs_emit_at(buf, count,
++		"abi=%u attempt=%u max_attempts=%u remaining=%u ",
++		observation.abi, observation.attempt,
++		MT6797_A72_FREQUENCY_OBSERVER_MAX_ATTEMPTS,
++		trace.attempts_remaining);
++	count += sysfs_emit_at(buf, count,
++		"clock_generation=%llu big_generation=%llu ",
++		(unsigned long long)observation.clock_sample_generation,
++		(unsigned long long)observation.big_sample_generation);
++	count += sysfs_emit_at(buf, count,
++		"armplldiv_muxsel=0x%08x armplldiv_ckdiv=0x%08x ",
++		observation.armplldiv_muxsel, observation.armplldiv_ckdiv);
++	count += sysfs_emit_at(buf, count,
++		"big_pll_pcw=0x%08x big_pll_enable_posdiv=0x%08x ",
++		observation.big_pll_pcw, observation.big_pll_enable_posdiv);
++	count += sysfs_emit_at(buf, count,
++		"b_pcw=0x%08x b_posdiv=%u b_mux=%u b_divider=%u ",
++		big->pll_pcw, big->posdiv, big->mux_selector,
++		big->divider_selector);
++	count += sysfs_emit_at(buf, count,
++		"ll_khz=%u l_khz=%u b_khz=%u cci_khz=%u\n",
++		observation.state.cluster[
++			MT6797_DVFSP_CLOCK_STATE_CLUSTER_LL].frequency_khz,
++		observation.state.cluster[
++			MT6797_DVFSP_CLOCK_STATE_CLUSTER_L].frequency_khz,
++		big->frequency_khz,
++		observation.state.cluster[
++			MT6797_DVFSP_CLOCK_STATE_CLUSTER_CCI].frequency_khz);
++	dev_info(dev, "GEMINI_A72_FREQUENCY_OBSERVATION_V1 %s", buf);
++	return count;
++}
++static DEVICE_ATTR_RO(a72_frequency_observation);
++
++static struct attribute *mt6797_a72_frequency_observer_attrs[] = {
++	&dev_attr_a72_frequency_observation.attr,
++	NULL,
++};
++
++static const struct attribute_group mt6797_a72_frequency_observer_group = {
++	.attrs = mt6797_a72_frequency_observer_attrs,
++};
++
++int mt6797_a72_frequency_observer_register(struct device *dev)
++{
++	if (!dev)
++		return -EINVAL;
++	return devm_device_add_group(dev,
++				     &mt6797_a72_frequency_observer_group);
++}
++
++MODULE_DESCRIPTION("Bounded read-only MT6797 A72 frequency observer");
++MODULE_LICENSE("GPL");
+diff --git a/drivers/soc/mediatek/mt6797-a72-hotplug-snapshot-internal.h b/drivers/soc/mediatek/mt6797-a72-hotplug-snapshot-internal.h
+index c9f647f..158e449 100644
+--- a/drivers/soc/mediatek/mt6797-a72-hotplug-snapshot-internal.h
++++ b/drivers/soc/mediatek/mt6797-a72-hotplug-snapshot-internal.h
+@@ -7,6 +7,7 @@
+ #include <linux/soc/mediatek/mt6797-bigidvfs-backend.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-clock-backend.h>
+ 
++#include "mt6797-a72-frequency-observer-internal.h"
+ #include "mt6797-a72-hotplug-executor-internal.h"
+ 
+ #define MT6797_A72_HOTPLUG_CLOCK_POWERON_WRITES 1U
+@@ -32,6 +33,7 @@ struct mt6797_a72_hotplug_snapshot_source {
+ 	struct device *clock;
+ 	struct device *bigidvfs;
+ 	const struct mt6797_a72_hotplug_snapshot_ops *ops;
++	struct mt6797_a72_frequency_observer_controller frequency_observer;
+ };
+ 
+ struct mt6797_a72_hotplug_snapshot_trace {
+diff --git a/drivers/soc/mediatek/mt6797-a72-hotplug-snapshot.c b/drivers/soc/mediatek/mt6797-a72-hotplug-snapshot.c
+index 0a578f6..5a74a62 100644
+--- a/drivers/soc/mediatek/mt6797-a72-hotplug-snapshot.c
++++ b/drivers/soc/mediatek/mt6797-a72-hotplug-snapshot.c
+@@ -62,6 +62,7 @@ void mt6797_a72_hotplug_snapshot_source_init(
+ 	source->clock = clock;
+ 	source->bigidvfs = bigidvfs;
+ 	source->ops = &mt6797_hotplug_ops;
++	mt6797_a72_frequency_observer_init(&source->frequency_observer);
+ }
+ 
+ static bool mt6797_hotplug_provider_valid(
+@@ -305,7 +306,11 @@ static int mt6797_a72_hotplug_snapshot_probe(struct platform_device *pdev)
+ 		return ret;
+ 	source->bigidvfs = dependency;
+ 	source->ops = &mt6797_hotplug_ops;
++	mt6797_a72_frequency_observer_init(&source->frequency_observer);
+ 	platform_set_drvdata(pdev, source);
++	ret = mt6797_a72_frequency_observer_register(dev);
++	if (ret)
++		return ret;
+ 
+ 	dev_info(dev, "snapshot adapter ready; production caller absent\n");
+ 	return 0;

@@ -1,0 +1,35 @@
+result=pass
+purpose=experiment-only-bounded-mt6797-a72-frequency-observer
+repository_commit=dab92819a90dd9025c11788c034c24f86380980c
+parent_source_state=6b4eb406857ae410a72bd9c87b099766678cfd1e99e4fc15c605b76747cc0b46
+parent_source_integrity=b084b2cebb4a88172f183ee437f3d118850acce768c752641ad25080b7f84d29
+baseline_commit=715927165cc41b75089b332cf737c83d8ccd491f
+production_commit=eabfc5b1cd5ca327ba374656aee5db0b2a341604
+test_commit=5d07493ca6b8305ef20922520359113d5338f63d
+generated_patch_count=2
+changed_path_count=9
+focused_kunit_case_count=5
+observation_attempts_per_boot=3
+hardware_transport=bounded-readback-only
+cpu_request=none
+policy_change=none
+synthetic_signoff=absent
+strict_checkpatch_errors=0
+strict_checkpatch_warnings=0
+strict_checkpatch_checks=0
+source_validation=pass
+patch_validation=pass
+exact_replay=pass
+native_vm_kernel_build=no
+device_action=none
+boot_candidate=false
+patch_0527_sha256=316171d9ce7dc507a3a43e1989ffaf7600d2760e1b2ae94bdc0ca8a991d11636
+patch_0528_sha256=f7b16d60e9852ebef63c1e79f0d6c997008eebfbc99752835c850bb0ab1b9820
+package_sha256s_sha256=541a6d7da9120206cbdaa7825795c94f27443ffb59eb41f812c32121364a01b0
+
+The first generation attempt at project revision 4551b376 was rejected by
+strict Checkpatch before any package was admitted. The generator's style and
+help-text edits were corrected and published as dab92819; the exact rerun above
+then passed replay, source/path validation, strict Checkpatch, and package
+checksum validation. The canonical 0527 and 0528 files are byte-identical to
+that validated package.

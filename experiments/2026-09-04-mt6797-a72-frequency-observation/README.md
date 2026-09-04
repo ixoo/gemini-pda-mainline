@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-a72-frequency-observation` |
-| Status | `running`; corrected decoder passed exact Buildbox/QEMU proof |
+| Status | `running`; decoder proved and bounded observer patches generated |
 | Subsystem | MT6797 CPU clock readback / Cortex-A72 lifecycle |
 | Device variant | Gemini PDA x27, named development unit |
 | Date(s) | 2026-09-04 |
@@ -64,8 +64,13 @@ the offline decoder gate and a separate observation composition pass.
 - `scripts/validate_observer_source.py` and
   `scripts/validate_observer_patches.py`: operation, budget, path, and normal
   format-patch oracles.
+- `scripts/run-observer-kunit-qemu` and
+  `scripts/classify-observer-kunit.py`: exact focused-package runner and
+  five-case KTAP classifier for the observer gate.
 - `results/source-semantics-audit-20260904.txt`: source and live-readback
   evidence that rejected the old decoder semantics.
+- `results/observer-patch-generation-20260904.txt`: exact replay, source/path,
+  Checkpatch, and package identity for canonical patches `0527` and `0528`.
 
 ## Procedure
 
@@ -113,6 +118,14 @@ the offline decoder gate and a separate observation composition pass.
   the live B-cluster sample as 845000 kHz using its separate post-divider, and
   covers every ARMPLLDIV ratio. See
   [results/kunit-qemu-20260904.txt](results/kunit-qemu-20260904.txt).
+- The initial bounded-observer generation attempt stopped at strict Checkpatch,
+  before an output package was admitted. After the generator was corrected,
+  exact clean pushed revision `dab92819...` produced and replayed canonical
+  patches `0527` and `0528`. Their source/path oracles and strict Checkpatch
+  pass, the latter with zero errors, warnings, or checks. The five injected
+  cases cover live-value composition, the three-attempt ceiling, failed-attempt
+  consumption, malformed generation, and null/source guards. See
+  [results/observer-patch-generation-20260904.txt](results/observer-patch-generation-20260904.txt).
 
 ## Analysis
 
@@ -130,15 +143,17 @@ as a second, unsupported stability oracle.
 
 ## Conclusion
 
-`partial pass`: the prior decoder semantics are rejected and the corrected pure
-conversion boundary has exact patch-generation, Buildbox compilation, package,
-and isolated six-case KUnit proof. This establishes decoder math, not a live
+`partial pass`: the corrected pure conversion boundary has exact generation,
+Buildbox compilation, package, and isolated six-case KUnit proof. The bounded
+live observer now has exact generation, replay, source/path, and strict review
+proof; its focused Buildbox/QEMU gate remains pending. This is not yet a live
 A72 frequency claim. No device action or boot candidate occurred in this phase.
 
 ## Follow-up
 
-Add one read-only lifecycle observation that publishes raw and decoded
-B-cluster values at bounded attributable points. Compose that observation with
-the proven thermal DT/configuration and exact 4+4+2 lifecycle profile. Keep
-longer load, cpufreq/OPP, extra hotplug, idle, suspend, and identical-artifact
-repeats closed.
+Build the admitted observer and its single focused suite from one exact clean
+pushed revision, then require all five cases to pass in isolated no-network
+arm64 QEMU. Only after that proof, compose the read-only observer with the
+proven thermal DT/configuration and exact 4+4+2 lifecycle profile. Keep longer
+load, cpufreq/OPP, extra hotplug, idle, suspend, and identical-artifact repeats
+closed.

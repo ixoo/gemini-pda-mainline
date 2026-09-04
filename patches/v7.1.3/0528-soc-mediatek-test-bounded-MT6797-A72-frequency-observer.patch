@@ -1,0 +1,285 @@
+From 5d07493ca6b8305ef20922520359113d5338f63d Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 4 Sep 2026 19:02:00 +0000
+Subject: [PATCH 2/2] soc: mediatek: test bounded MT6797 A72 frequency observer
+
+Cover live-value composition, attempt accounting, and refusal paths.
+---
+ drivers/soc/mediatek/Kconfig                  |  12 +
+ drivers/soc/mediatek/Makefile                 |   1 +
+ .../mt6797-a72-frequency-observer-test.c      | 231 ++++++++++++++++++
+ 3 files changed, 244 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-a72-frequency-observer-test.c
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index 8a06454..eecef65 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -811,6 +811,18 @@ config MTK_MT6797_A72_FREQUENCY_OBSERVER
+ 	  a policy, write retained memory, or add a Device Tree node. The protected
+ 	  clock transport retains its documented bounded semaphore writes.
+ 
++
++config MTK_MT6797_A72_FREQUENCY_OBSERVER_KUNIT_TEST
++	bool "KUnit tests for the bounded MT6797 A72 frequency observer"
++	depends on KUNIT=y
++	depends on MTK_MT6797_A72_FREQUENCY_OBSERVER
++	default n
++	help
++	  Exercise live-value composition, the three-attempt cap, failure budget,
++	  malformed samples, and source guards with injected memory records only.
++	  No device, MMIO, I2C, SMC, CPU, watchdog, or network action occurs.
++	  The production sysfs interface and hardware transports are not invoked.
++
+ config MTK_MT6797_A72_RESTORE_EXECUTOR
+ 	bool "MediaTek MT6797 disconnected CPU9 restore executor"
+ 	depends on ARM64 && ARCH_MEDIATEK
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+index 3f046ac..29b4525 100644
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -42,6 +42,7 @@ obj-$(CONFIG_MTK_MT6797_A72_HOTPLUG_EXECUTOR) += mt6797-a72-hotplug-executor.o
+ obj-$(CONFIG_MTK_MT6797_A72_HOTPLUG_EXECUTOR_KUNIT_TEST) += mt6797-a72-hotplug-executor-test.o
+ obj-$(CONFIG_MTK_MT6797_A72_HOTPLUG_SNAPSHOT) += mt6797-a72-hotplug-snapshot.o
+ obj-$(CONFIG_MTK_MT6797_A72_FREQUENCY_OBSERVER) += mt6797-a72-frequency-observer.o
++obj-$(CONFIG_MTK_MT6797_A72_FREQUENCY_OBSERVER_KUNIT_TEST) += mt6797-a72-frequency-observer-test.o
+ obj-$(CONFIG_MTK_MT6797_A72_HOTPLUG_SNAPSHOT_KUNIT_TEST) += mt6797-a72-hotplug-snapshot-test.o
+ obj-$(CONFIG_MTK_MT6797_A72_RESTORE_EXECUTOR) += mt6797-a72-restore-executor.o
+ obj-$(CONFIG_MTK_MT6797_A72_HOTPLUG_BINDER_CORE) += mt6797-a72-hotplug-binder-core.o
+diff --git a/drivers/soc/mediatek/mt6797-a72-frequency-observer-test.c b/drivers/soc/mediatek/mt6797-a72-frequency-observer-test.c
+new file mode 100644
+index 0000000..85fef78
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-a72-frequency-observer-test.c
+@@ -0,0 +1,231 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* In-memory tests for the bounded MT6797 A72 frequency observer. */
++
++#include <kunit/test.h>
++#include <linux/errno.h>
++#include <linux/string.h>
++
++#include "mt6797-a72-frequency-observer-internal.h"
++#include "mt6797-a72-hotplug-snapshot-internal.h"
++
++struct frequency_observer_test_state {
++	struct mt6797_dvfsp_clock_readback clock;
++	struct mt6797_bigidvfs_readback big;
++	u32 clock_calls;
++	u32 big_calls;
++	int clock_error;
++	int big_error;
++	u8 devices[2];
++};
++
++static struct frequency_observer_test_state *frequency_observer_state;
++
++static int frequency_observer_clock(
++	struct device *dev, struct mt6797_dvfsp_clock_readback *clock)
++{
++	struct frequency_observer_test_state *state = frequency_observer_state;
++
++	state->clock_calls++;
++	if (state->clock_error)
++		return state->clock_error;
++	*clock = state->clock;
++	return 0;
++}
++
++static int frequency_observer_big(
++	struct device *dev, struct mt6797_bigidvfs_readback *big)
++{
++	struct frequency_observer_test_state *state = frequency_observer_state;
++
++	state->big_calls++;
++	if (state->big_error)
++		return state->big_error;
++	*big = state->big;
++	return 0;
++}
++
++static const struct mt6797_a72_hotplug_snapshot_ops frequency_observer_ops = {
++	.clock = frequency_observer_clock,
++	.bigidvfs = frequency_observer_big,
++};
++
++static void frequency_observer_fill(
++	struct frequency_observer_test_state *state,
++	struct mt6797_a72_hotplug_snapshot_source *source,
++	struct mt6797_a72_frequency_observer_controller *controller)
++{
++	memset(state, 0, sizeof(*state));
++	state->clock = (struct mt6797_dvfsp_clock_readback) {
++		.abi = MT6797_DVFSP_CLOCK_BACKEND_ABI,
++		.sample_generation = 11,
++		.armplldiv_muxsel = 0x55,
++		.armplldiv_ckdiv = 0x42108,
++		.pll_ll = { 0, 0xc1114000, 0 },
++		.pll_l = { 0, 0x400c4000, 0 },
++		.pll_cci = { 0, 0xc10c1d89, 0 },
++	};
++	state->big = (struct mt6797_bigidvfs_readback) {
++		.abi = MT6797_BIGIDVFS_BACKEND_ABI,
++		.sample_generation = 13,
++		.pll_pcw = 0xc1130000,
++		.pll_enable_posdiv = 0x07001000,
++	};
++	memset(source, 0, sizeof(*source));
++	source->clock = (struct device *)&state->devices[0];
++	source->bigidvfs = (struct device *)&state->devices[1];
++	source->ops = &frequency_observer_ops;
++	mt6797_a72_frequency_observer_init(controller);
++	frequency_observer_state = state;
++}
++
++static void frequency_observer_live_values_test(struct kunit *test)
++{
++	struct mt6797_a72_frequency_observer_controller controller;
++	struct mt6797_a72_frequency_observer_trace trace;
++	struct mt6797_a72_frequency_observation observation;
++	struct mt6797_a72_hotplug_snapshot_source source;
++	struct frequency_observer_test_state *state;
++
++	state = kunit_kzalloc(test, sizeof(*state), GFP_KERNEL);
++	KUNIT_ASSERT_NOT_NULL(test, state);
++	frequency_observer_fill(state, &source, &controller);
++	KUNIT_ASSERT_EQ(test, mt6797_a72_frequency_observer_sample(
++		&controller, &source, &observation, &trace), 0);
++	KUNIT_EXPECT_EQ(test, observation.abi, 1U);
++	KUNIT_EXPECT_EQ(test, observation.attempt, 1U);
++	KUNIT_EXPECT_EQ(test, observation.clock_sample_generation, 11ULL);
++	KUNIT_EXPECT_EQ(test, observation.big_sample_generation, 13ULL);
++	KUNIT_EXPECT_EQ(test, observation.big_pll_pcw, 0xc1130000U);
++	KUNIT_EXPECT_EQ(test, observation.big_pll_enable_posdiv, 0x07001000U);
++	KUNIT_EXPECT_EQ(test, observation.state.cluster[
++		MT6797_DVFSP_CLOCK_STATE_CLUSTER_LL].frequency_khz, 897000U);
++	KUNIT_EXPECT_EQ(test, observation.state.cluster[
++		MT6797_DVFSP_CLOCK_STATE_CLUSTER_L].frequency_khz, 1274000U);
++	KUNIT_EXPECT_EQ(test, observation.state.cluster[
++		MT6797_DVFSP_CLOCK_STATE_CLUSTER_B].frequency_khz, 845000U);
++	KUNIT_EXPECT_EQ(test, observation.state.cluster[
++		MT6797_DVFSP_CLOCK_STATE_CLUSTER_CCI].frequency_khz, 629500U);
++	KUNIT_EXPECT_EQ(test, trace.clock_calls, 1U);
++	KUNIT_EXPECT_EQ(test, trace.bigidvfs_calls, 1U);
++	KUNIT_EXPECT_EQ(test, trace.clock_poweron_writes_max, 1U);
++	KUNIT_EXPECT_EQ(test, trace.clock_acquire_writes_max, 200U);
++	KUNIT_EXPECT_EQ(test, trace.clock_release_writes_max, 200U);
++	KUNIT_EXPECT_EQ(test, trace.bigidvfs_stable_samples, 2U);
++	KUNIT_EXPECT_EQ(test, trace.bigidvfs_reads, 8U);
++	KUNIT_EXPECT_EQ(test, trace.bigidvfs_sram_set_calls, 0U);
++	KUNIT_EXPECT_EQ(test, trace.attempts_remaining, 2U);
++	KUNIT_EXPECT_TRUE(test, trace.complete);
++}
++
++static void frequency_observer_budget_test(struct kunit *test)
++{
++	struct mt6797_a72_frequency_observer_controller controller;
++	struct mt6797_a72_frequency_observer_trace trace;
++	struct mt6797_a72_frequency_observation observation;
++	struct mt6797_a72_hotplug_snapshot_source source;
++	struct frequency_observer_test_state *state;
++	u32 attempt;
++
++	state = kunit_kzalloc(test, sizeof(*state), GFP_KERNEL);
++	KUNIT_ASSERT_NOT_NULL(test, state);
++	frequency_observer_fill(state, &source, &controller);
++	for (attempt = 1; attempt <= 3; attempt++) {
++		KUNIT_ASSERT_EQ(test, mt6797_a72_frequency_observer_sample(
++			&controller, &source, &observation, &trace), 0);
++		KUNIT_EXPECT_EQ(test, observation.attempt, attempt);
++		KUNIT_EXPECT_EQ(test, trace.attempts_remaining, 3U - attempt);
++	}
++	KUNIT_EXPECT_EQ(test, mt6797_a72_frequency_observer_sample(
++		&controller, &source, &observation, &trace), -ENOSPC);
++	KUNIT_EXPECT_EQ(test, state->clock_calls, 3U);
++	KUNIT_EXPECT_EQ(test, state->big_calls, 3U);
++	KUNIT_EXPECT_EQ(test, trace.clock_calls, 0U);
++	KUNIT_EXPECT_EQ(test, trace.bigidvfs_calls, 0U);
++	KUNIT_EXPECT_EQ(test, trace.attempt, 3U);
++	KUNIT_EXPECT_FALSE(test, trace.complete);
++}
++
++static void frequency_observer_failure_consumes_attempt_test(
++	struct kunit *test)
++{
++	struct mt6797_a72_frequency_observer_controller controller;
++	struct mt6797_a72_frequency_observer_trace trace;
++	struct mt6797_a72_frequency_observation observation;
++	struct mt6797_a72_frequency_observation zero = { };
++	struct mt6797_a72_hotplug_snapshot_source source;
++	struct frequency_observer_test_state *state;
++
++	state = kunit_kzalloc(test, sizeof(*state), GFP_KERNEL);
++	KUNIT_ASSERT_NOT_NULL(test, state);
++	frequency_observer_fill(state, &source, &controller);
++	state->clock_error = -EIO;
++	KUNIT_EXPECT_EQ(test, mt6797_a72_frequency_observer_sample(
++		&controller, &source, &observation, &trace), -EIO);
++	KUNIT_EXPECT_MEMEQ(test, &observation, &zero, sizeof(zero));
++	KUNIT_EXPECT_EQ(test, trace.attempt, 1U);
++	state->clock_error = 0;
++	KUNIT_EXPECT_EQ(test, mt6797_a72_frequency_observer_sample(
++		&controller, &source, &observation, &trace), 0);
++	KUNIT_EXPECT_EQ(test, mt6797_a72_frequency_observer_sample(
++		&controller, &source, &observation, &trace), 0);
++	KUNIT_EXPECT_EQ(test, mt6797_a72_frequency_observer_sample(
++		&controller, &source, &observation, &trace), -ENOSPC);
++	KUNIT_EXPECT_EQ(test, state->clock_calls, 3U);
++	KUNIT_EXPECT_EQ(test, state->big_calls, 2U);
++}
++
++static void frequency_observer_shape_refusal_test(struct kunit *test)
++{
++	struct mt6797_a72_frequency_observer_controller controller;
++	struct mt6797_a72_frequency_observer_trace trace;
++	struct mt6797_a72_frequency_observation observation;
++	struct mt6797_a72_frequency_observation zero = { };
++	struct mt6797_a72_hotplug_snapshot_source source;
++	struct frequency_observer_test_state *state;
++
++	state = kunit_kzalloc(test, sizeof(*state), GFP_KERNEL);
++	KUNIT_ASSERT_NOT_NULL(test, state);
++	frequency_observer_fill(state, &source, &controller);
++	state->clock.sample_generation = 0;
++	KUNIT_EXPECT_EQ(test, mt6797_a72_frequency_observer_sample(
++		&controller, &source, &observation, &trace), -EPROTO);
++	KUNIT_EXPECT_EQ(test, state->clock_calls, 1U);
++	KUNIT_EXPECT_EQ(test, state->big_calls, 0U);
++	KUNIT_EXPECT_MEMEQ(test, &observation, &zero, sizeof(zero));
++}
++
++static void frequency_observer_source_guards_test(struct kunit *test)
++{
++	struct mt6797_a72_frequency_observer_controller controller;
++	struct mt6797_a72_frequency_observer_trace trace;
++	struct mt6797_a72_frequency_observation observation;
++	struct mt6797_a72_hotplug_snapshot_source source = { };
++
++	mt6797_a72_frequency_observer_init(&controller);
++	KUNIT_EXPECT_EQ(test, mt6797_a72_frequency_observer_sample(
++		NULL, &source, &observation, &trace), -EINVAL);
++	KUNIT_EXPECT_EQ(test, mt6797_a72_frequency_observer_sample(
++		&controller, NULL, &observation, &trace), -EINVAL);
++	KUNIT_EXPECT_EQ(test, mt6797_a72_frequency_observer_sample(
++		&controller, &source, &observation, &trace), -EINVAL);
++	KUNIT_EXPECT_EQ(test, controller.attempts, 0U);
++}
++
++static struct kunit_case frequency_observer_cases[] = {
++	KUNIT_CASE(frequency_observer_live_values_test),
++	KUNIT_CASE(frequency_observer_budget_test),
++	KUNIT_CASE(frequency_observer_failure_consumes_attempt_test),
++	KUNIT_CASE(frequency_observer_shape_refusal_test),
++	KUNIT_CASE(frequency_observer_source_guards_test),
++	{ }
++};
++
++static struct kunit_suite frequency_observer_suite = {
++	.name = "mt6797-a72-frequency-observer",
++	.test_cases = frequency_observer_cases,
++};
++
++kunit_test_suite(frequency_observer_suite);
++
++MODULE_DESCRIPTION("MT6797 A72 bounded frequency observer KUnit tests");
++MODULE_LICENSE("GPL");
