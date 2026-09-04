@@ -428,6 +428,13 @@ Gemian; [read-only recovery readiness](results/cold-repeat-gemian-readiness.txt)
 confirms the candidate is unchanged and binds the revised shutdown gate. See the
 [offline validation](results/cold-repeat-offline-validation.txt).
 
+After protocol publication at `58eff105`, the exact Gemian recovery boot
+accepted `systemctl poweroff` after sync. Three bounded SSH probes then found
+the service unreachable. The [shutdown receipt](results/cold-repeat-shutdown.txt)
+binds that cycle to the verified unchanged candidate. No partition write,
+backup, kernel build or automatic reboot occurred. Physical boot2 selection
+and the pristine second-boot measurement remain pending.
+
 ## Analysis
 
 The current decoder cannot support an attributable A72 frequency observation.

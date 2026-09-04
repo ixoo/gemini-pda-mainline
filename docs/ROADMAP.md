@@ -8309,12 +8309,11 @@ broader hotplug, idle, suspend, and default-profile integration closed.
 
 The distinct [host cold-repeat protocol](../experiments/2026-09-04-mt6797-a72-frequency-observation/COLD_REPEAT.md)
 now freezes admission and explicit baseline comparison with fail-closed mutation
-fixtures. **Selected next:** after publication, cleanly shut down the exact
-current known-good session, observe its transport disappear, and have the owner
-physically select boot2. Require the recorded cold cycle and pristine new-ID
-gate before one bounded repeat; publish its comparison before widening scope.
-Gemian recovery now supplies the exact candidate checksum and shutdown
-boundary; require its recorded disconnect before the fresh physical selection.
+fixtures. Gemian recovery confirmed the unchanged candidate and clean shutdown;
+the experiment records the observed transport disconnect. **Selected next:**
+the owner physically selects boot2, then require the recorded cold cycle and
+pristine new-ID gate before one bounded repeat. Publish its comparison before
+widening scope.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

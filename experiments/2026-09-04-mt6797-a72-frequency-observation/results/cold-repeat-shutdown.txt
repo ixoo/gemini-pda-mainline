@@ -1,0 +1,8 @@
+boot_id=a59a6e44-5ff2-453e-a78b-4bbba106ed53
+kernel_release=3.18.41+
+shutdown_requested=yes
+ssh_disconnect_observed=yes
+boot2_sha256=ea2aae419220b3c2ea11780f9c91dbb51d509286cd76d2ba1741d9e08e837c9c
+partition_write=none
+backup_created=no
+reboot_requested=no
