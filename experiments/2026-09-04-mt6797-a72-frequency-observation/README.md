@@ -55,6 +55,15 @@ the offline decoder gate and a separate observation composition pass.
 - `scripts/validate_patches.py`: normal-patch and changed-path validator.
 - `scripts/run-kunit-qemu`: exact-package, no-network arm64 QEMU runner.
 - `scripts/classify-kunit.py`: exact focused KTAP classifier.
+- [`OBSERVER.md`](OBSERVER.md): frozen three-attempt live observation boundary,
+  transport budget, hardware-free gate, and eventual device decision branches.
+- `scripts/generate-observer-on-buildbox`: pinned two-patch observer generator,
+  exact replay, and strict review gate.
+- `scripts/observer_source_edits.py`: deterministic production observer and
+  injected five-case test edits.
+- `scripts/validate_observer_source.py` and
+  `scripts/validate_observer_patches.py`: operation, budget, path, and normal
+  format-patch oracles.
 - `results/source-semantics-audit-20260904.txt`: source and live-readback
   evidence that rejected the old decoder semantics.
 
@@ -72,6 +81,8 @@ the offline decoder gate and a separate observation composition pass.
 6. Only after that pass, define a separate read-only observation patch that
    composes decoded A72 frequency with the exact successful stage-18 topology,
    thermal, accounting, and bounded volatile-RAM evidence.
+7. Generate and hardware-free prove the three-attempt live observer before it
+   enters any device profile.
 
 ## Observations
 

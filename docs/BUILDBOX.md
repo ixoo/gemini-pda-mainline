@@ -638,6 +638,24 @@ two alternating CRC-committed copies, 19 updates for a complete nine-stage run
 plus terminal state, zero production callers, and no physical retained-memory
 access or device action.
 
+## MT6797 bounded A72 frequency-observer generation
+
+After the pure clock decoder passes, generate the separate live-observer review
+only from the clean pushed project commit and managed Linux source pinned
+through canonical patch `0526`:
+
+```sh
+./scripts/buildbox generate-mt6797-a72-frequency-observer-patches
+./scripts/buildbox fetch-mt6797-a72-frequency-observer-patches
+```
+
+The lane emits one production patch and one injected KUnit patch. It requires a
+read-only sysfs attribute, exactly three pre-transport-consumed attempts per
+boot, one protected-clock and one stable BigiDVFS call per admitted attempt,
+raw plus decoded output, exact replay, source/path validation, strict
+Checkpatch, and package checksums. It generates no candidate, contacts no
+device, makes no CPU request, and changes no clock, OPP, voltage, or policy.
+
 ## Remote storage and concurrency
 
 Buildbox uses its persistent home volume for the Git mirror, verified kernel
