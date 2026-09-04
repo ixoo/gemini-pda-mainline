@@ -65,6 +65,7 @@ def main() -> None:
     combined = "\n".join(texts)
     required = (
         "+#define MT6797_INFRA_PMIC_WRAP_RST\t1",
+        " /* TOPRGU resets: WDT_SWSYSRST */",
         "+\tINFRA_RST0_SET_OFFSET,",
         "+\tINFRA_RST2_SET_OFFSET,",
         "+\t.version = MTK_RST_SET_CLR,",
@@ -79,6 +80,7 @@ def main() -> None:
         "+\tINFRA_RST1_SET_OFFSET,",
         "+\t.version = MTK_RST_SIMPLE,",
         "+#define MT6797_INFRA_PMIC_WRAP_RST\t64",
+        "-#define MT6797_TOPRGU_",
         "boot2",
         "192.168.",
     )

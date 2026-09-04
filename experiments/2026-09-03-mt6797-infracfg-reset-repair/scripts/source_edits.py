@@ -165,7 +165,7 @@ def edit_binding(root: Path) -> None:
 
     text = binding.read_text(encoding="utf-8")
     start = text.index("/* INFRACFG resets: INFRA_GLOBALCON_RST0 */")
-    end = text.index("#endif /* _DT_BINDINGS_RESET_CONTROLLER_MT6797 */")
+    end = text.index("/* TOPRGU resets: WDT_SWSYSRST */")
     replacement = (
         "/* Source-proven infracfg reset inputs. */\n"
         "#define MT6797_INFRA_THERM_CTRL_RST\t0\n"

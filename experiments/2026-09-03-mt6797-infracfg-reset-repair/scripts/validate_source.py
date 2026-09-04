@@ -36,6 +36,8 @@ def main() -> None:
 
     require_once(binding, "#define MT6797_INFRA_THERM_CTRL_RST\t0", "binding")
     require_once(binding, "#define MT6797_INFRA_PMIC_WRAP_RST\t1", "binding")
+    require_once(binding, "/* TOPRGU resets: WDT_SWSYSRST */", "binding")
+    require_once(binding, "#define MT6797_TOPRGU_SW_RST_NUM\t\t18", "binding")
     for old in (
         "MT6797_INFRA_USB_TOP_RST",
         "MT6797_INFRA_SSUSB_TOP_RST",
