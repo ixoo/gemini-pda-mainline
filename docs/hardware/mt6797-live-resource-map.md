@@ -48,7 +48,7 @@ before upstream submission.
 
 | Block | Register windows | IRQ | Live clock/resource evidence | Linux 7.1.x consequence |
 | --- | --- | --- | --- | --- |
-| PMIC wrapper | `0x1000d000` + `0x1000` | 178 HIGH | 26 MHz PMICSPI mux/AP gate; infracfg reset ID 64 | Master/slave regmap exists; the local series adds the reset provider and complete SoC node |
+| PMIC wrapper | `0x1000d000` + `0x1000` | 178 HIGH | 26 MHz PMICSPI mux/AP gate; vendor linear reset ID 64 maps to local compact input 1 and RST2 SET/CLEAR `0x140/0x144` | Master/slave regmap exists; the corrected local reset, wrapper, MT6351 VEMC/VIO18, and eMMC path passes a named runtime serviceability regression |
 | EINT | `0x1000b000` + `0x1000` | 170 HIGH | 192 channels, 172 GPIO mappings, 16 hardware-debounce channels | The local series restores pinctrl EINT data/resource and virtual PMIC/built-in inputs |
 | UART0–3 | `0x11002000`–`0x11005000` + `0x1000` each; vendor UART0–3 also describe AP-DMA windows | UART SPIs 91–94; vendor DMA IRQs 108–115 | `INFRA_UART0`–`INFRA_UART3`; vendor UART0 has `INFRA_AP_DMA`; live `ttyMT0` console and four `mtk-uart` ports | Linux 7.1.3 `8250_mtk` reuses the 16550/PIO path and standard `mediatek,mt6797-uart` binding; keep the vendor VFIFO/DMA windows disabled until channel/IRQ ownership is recovered |
 | SPI0–5 | `0x1100a000`, `0x11012000`, `0x11018000`–`0x1101b000` + `0x1000` each | SPIs 122, 131–135 LOW | `CLK_TOP_MUX_SPI`/`syspll3_d2` parent and `INFRA_SPI`/`SPI1`–`SPI5` gates; vendor pad macros 0/1 | Patches 0072–0073 now map the recovered register/timing layout to Linux `spi-mt65xx` `mt6765_compat` (enhanced 16-bit timing, pad selection, mandatory TX, extended DMA) and add six disabled DT nodes with standard three-clock descriptions. SPI1 wiring is recovered as GPIO234–237 (`SPI1_*_B`), but the vendor DT's empty default plus explicit GPIO/SPI function switching is not yet reducible to a proven static mainline pinctrl state. Runtime transfer remains unproven. See the [SPI reuse audit](../../experiments/2026-07-14-upstream-mt6797-coverage-audit/results/spi-mt6797-controller-reuse-20260714.txt), [SPI1 pinctrl contract](../../experiments/2026-07-14-upstream-mt6797-coverage-audit/results/spi1-pinctrl-contract-20260714.txt), and [patch validation](../../experiments/2026-07-14-upstream-mt6797-coverage-audit/results/spi-mainline-patch-validation-c2feb-20260714.txt) |
@@ -459,10 +459,13 @@ the RST2 SET/CLEAR pair `+0x140/+0x144`. The repaired local provider exposes
 only those two compact public inputs, rejects the historical linear input 64,
 and bounds-checks the translated bank before deriving any register. The
 thermal node still has no reset phandle, while PMIC wrap is the sole current
-infracfg-reset consumer; its serviceability regression must precede thermal
-use. The intervening RST1 `+0x130/+0x134` pair follows the mainline MediaTek
+infracfg-reset consumer. Its dedicated regression now passes the corrected
+reset with MT6351 VEMC/VIO18, eMMC, USB, console, and CPU0--7 serviceability
+while CPUs 8--9 remain present but offline. The intervening RST1
+`+0x130/+0x134` pair follows the mainline MediaTek
 bank convention but remains quarantined until an MT6797 primary source closes
-it. See the [reset-repair experiment](../../experiments/2026-09-03-mt6797-infracfg-reset-repair/README.md).
+it. See the [reset-repair experiment](../../experiments/2026-09-03-mt6797-infracfg-reset-repair/README.md)
+and [corrected-reset runtime](../../experiments/2026-09-04-mt6797-pwrap-reset-serviceability/README.md).
 
 MT6797 standalone AUXADC conversion polls `CON2[0]` idle before clearing and
 triggering a channel. Its optional power helper can set `AUXADC_MISC[14]`, but
@@ -751,8 +754,12 @@ requires a reset. The local infracfg provider now maps compact public PMIC-wrap
 input 1 to the source-proven RST2 SET/CLEAR pair `0x140/0x144`; it no longer
 accepts the incorrect historical linear input 64. The local pwrap node carries
 the recovered clocks, reset, SPI178, and an MT6351 child whose level-high
-interrupt is EINT176. Compile and pure translation gates pass, but a dedicated
-runtime serviceability regression is still required for the corrected reset.
+interrupt is EINT176. The dedicated corrected-reset runtime binds the wrapper,
+MT6351 core and regulator child, VEMC/VIO18, and eMMC with zero targeted errors
+while retaining USB, console, all eight A53s, and the present-but-offline A72
+pair. This establishes serviceability for that exact reset consumer, not the
+complete regulator tree, suspend/resume, or thermal behavior. See the
+[serviceability result](../../experiments/2026-09-04-mt6797-pwrap-reset-serviceability/README.md).
 
 The PMIC external signal follows pseudo-GPIO262 to EINT176, level high with a
 1000 microsecond downstream debounce request. GPIO262 is outside the physical

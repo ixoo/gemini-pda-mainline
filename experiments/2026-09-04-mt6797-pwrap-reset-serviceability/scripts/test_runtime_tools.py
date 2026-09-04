@@ -134,6 +134,12 @@ def main() -> int:
     reboot = REBOOT.read_text(encoding="utf-8")
     if "/dev/mmc" in reboot or "device_partition_reads=none" not in reboot:
         raise AssertionError("native reboot path gained partition access")
+    for required in (
+        "/request_authorized=yes$/",
+        "exit yes != 1 || no != 0",
+    ):
+        if required not in reboot:
+            raise AssertionError("native reboot parser lost prompt-tolerant exact gate")
     with tempfile.TemporaryDirectory() as temporary:
         path = Path(temporary) / "frame.txt"
         path.write_text(good, encoding="utf-8")

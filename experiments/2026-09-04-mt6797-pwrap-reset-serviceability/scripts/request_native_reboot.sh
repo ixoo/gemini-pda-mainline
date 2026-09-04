@@ -118,7 +118,17 @@ nc_rc=$?
 set -e
 grep -Fq __GEMINI_PWRAP_NATIVE_REBOOT_BEGIN__ "$output" || die "native request did not begin rc=$nc_rc"
 grep -Fq __GEMINI_PWRAP_NATIVE_REBOOT_END__ "$output" || die "native request did not complete rc=$nc_rc"
-grep -Eq '^(GEMINI-AC-USB# )*request_authorized=yes\r?$' "$output" || die 'live reboot identity gate refused the request'
+awk '
+	/__GEMINI_PWRAP_NATIVE_REBOOT_BEGIN__/ {inside=1; next}
+	/__GEMINI_PWRAP_NATIVE_REBOOT_END__/ {inside=0}
+	inside {
+		line=$0
+		sub(/\r$/, "", line)
+		if (line ~ /request_authorized=yes$/) yes++
+		if (line ~ /request_authorized=no$/) no++
+	}
+	END {exit yes != 1 || no != 0}
+' "$output" || die 'live reboot identity gate refused the request'
 
 ssh_options=(ssh -o BatchMode=yes -o ConnectTimeout=3 -o IdentitiesOnly=yes \
 	-o IdentityAgent=none -o StrictHostKeyChecking=yes -o UpdateHostKeys=no -i "$identity")

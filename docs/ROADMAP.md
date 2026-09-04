@@ -8015,6 +8015,26 @@ suspend action. A pass permits the thermal transaction implementation to take
 the reset dependency; a failure returns to PMIC reset/clock ownership without
 enabling thermal.
 
+The linked
+[PMIC-wrapper reset serviceability regression](../experiments/2026-09-04-mt6797-pwrap-reset-serviceability/README.md)
+now closes that runtime prerequisite. Exact fresh boot `30ed4846...` exposed
+the corrected `<3 1>` PWRAP reset tuple and naturally bound PWRAP, its MT6351
+core/regulator child, VEMC/VIO18, MSDC, and the 58.2 GiB eMMC with all 33 GPT
+partitions and zero targeted errors. USB/netcat, the framebuffer console, all
+eight A53s, and present-but-offline CPUs 8--9 remained serviceable; thermal,
+AUXADC, cpufreq, idle, suspend, CPU triggers, load, temperature reads, and
+storage writes remained absent. One identity- and binary-hash-gated native
+reboot returned changed-ID Gemian, whose read-only live-GPT attestation
+reproduced the exact candidate checksum on inactive `boot2`. **Selected next:** implement and
+hardware-free-test the frozen MT6797 thermal/AUXADC transaction in dependency
+order: thermal reset ownership, unresolved AUXADC power-bit quarantine and
+pre-trigger global-idle handling, exact APMIXED mask, all-six-banks-before-
+enable commit, bounded first-valid sampling, and complete failure unwind.
+Keep standalone AUXADC and thermal DT nodes disabled; keep IRQ/watchdog
+protection and PM callbacks out until their source contracts are independently
+closed. Do not add cpufreq/OPP, trips/cooling, CPU8/CPU9 load, idle, or suspend
+to this hardware-free gate.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-pwrap-reset-serviceability` |
-| Status | `running`; exact runtime serviceability passed, recovery pending |
+| Status | `completed`; exact runtime serviceability and recovery passed |
 | Subsystem | MT6797 infracfg reset, PMIC wrapper, MT6351, and eMMC |
 | Device variant | Planet Computers Gemini PDA, MT6797 |
 | Date(s) | 2026-09-04 |
@@ -141,6 +141,18 @@ identity or transport yields no hardware conclusion.
   `possible/present=0-9`, `online=0-7`, `offline=8-9`; the corrected exact gate
   passes the same complete frame without another device observation. See
   [results/runtime-attempt-1-pwrap-serviceable-20260904.txt](results/runtime-attempt-1-pwrap-serviceable-20260904.txt).
+- The exact live release, boot ID, and inherited `/bin/reboot` SHA all matched
+  and authorized one native recovery request. The device-side action succeeded;
+  the initial host parser stopped afterward because interactive `> ` prefixes
+  preceded `request_authorized=yes`. No retry was issued. A bounded SSH check
+  confirmed Gemian `3.18.41+` on changed boot ID `00101221...`, and the parser
+  now evaluates the exact marker-bounded suffix. A final read-only live-GPT
+  attestation resolved inactive, unmounted `boot2` as p30 and reproduced exact
+  candidate checksum `5c7429b297c7...`; no recovery-side write occurred. See
+  [results/native-recovery-20260904.txt](results/native-recovery-20260904.txt).
+- The owner separately observed the framebuffer console working on this boot.
+  This is retained as a visual serviceability observation, not as evidence for
+  the thermal/AUXADC transaction or CPU8/CPU9 readiness.
 
 ## Analysis
 
@@ -160,7 +172,6 @@ AUXADC, frequency, CPU8/CPU9 load, idle, or suspend behavior.
 
 ## Follow-up
 
-Use the exact hash-gated native reboot path and require changed-ID Gemian.
-Then close this experiment, update the durable reset/support state, and begin
-the disconnected hardware-free thermal/AUXADC transaction implementation from
-the frozen audit design without enabling either DT node.
+Begin the disconnected hardware-free thermal/AUXADC transaction implementation
+from the frozen audit design without enabling either DT node. Preserve this
+exact PWRAP/MT6351/eMMC/serviceability baseline for the later runtime candidate.
