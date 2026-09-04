@@ -40,8 +40,8 @@ struct mt6797_thermal_snapshot {
 
 static inline int
 mt6797_thermal_snapshot_begin(struct mt6797_thermal_snapshot_budget *budget,
-			     struct mt6797_thermal_snapshot *snapshot,
-			     u64 start_ns)
+			      struct mt6797_thermal_snapshot *snapshot,
+			      u64 start_ns)
 {
 	if (!budget || !snapshot)
 		return -EINVAL;
@@ -70,8 +70,8 @@ mt6797_thermal_snapshot_begin(struct mt6797_thermal_snapshot_budget *budget,
 
 static inline int
 mt6797_thermal_snapshot_append(struct mt6797_thermal_snapshot *snapshot,
-			      u32 bank, u32 sensor, int temperature,
-			      bool valid)
+			       u32 bank, u32 sensor, int temperature,
+			       bool valid)
 {
 	static const u32 banks[MT6797_THERMAL_SNAPSHOT_SAMPLES] = {
 		0, 1, 2, 2, 3, 4, 5,
@@ -114,7 +114,7 @@ mt6797_thermal_snapshot_append(struct mt6797_thermal_snapshot *snapshot,
 
 static inline int
 mt6797_thermal_snapshot_finish(struct mt6797_thermal_snapshot *snapshot,
-			      u64 end_ns, int aggregate)
+			       u64 end_ns, int aggregate)
 {
 	if (!snapshot || !snapshot->active)
 		return -EINVAL;

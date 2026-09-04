@@ -5,8 +5,8 @@
 #include "mt6797_thermal_snapshot.h"
 
 static void mt6797_snapshot_fill(struct kunit *test,
-				struct mt6797_thermal_snapshot *snapshot,
-				u32 invalid_mask)
+				 struct mt6797_thermal_snapshot *snapshot,
+				 u32 invalid_mask)
 {
 	static const u32 banks[] = { 0, 1, 2, 2, 3, 4, 5 };
 	static const u32 sensors[] = { 0, 3, 1, 2, 1, 1, 1 };
@@ -17,9 +17,9 @@ static void mt6797_snapshot_fill(struct kunit *test,
 
 	for (i = 0; i < ARRAY_SIZE(banks); i++)
 		KUNIT_ASSERT_EQ(test,
-			mt6797_thermal_snapshot_append(snapshot, banks[i],
-						      sensors[i], temperatures[i],
-						      !(invalid_mask & (1U << i))), 0);
+				mt6797_thermal_snapshot_append(snapshot, banks[i],
+							       sensors[i], temperatures[i],
+							       !(invalid_mask & (1U << i))), 0);
 }
 
 static void mt6797_snapshot_complete_test(struct kunit *test)
@@ -52,7 +52,7 @@ static void mt6797_snapshot_budget_test(struct kunit *test)
 	}
 	for (i = 0; i < 2; i++)
 		KUNIT_EXPECT_EQ(test,
-			mt6797_thermal_snapshot_begin(&budget, &snapshot, 2), -ENOSPC);
+				mt6797_thermal_snapshot_begin(&budget, &snapshot, 2), -ENOSPC);
 	KUNIT_EXPECT_EQ(test, budget.attempts, MT6797_THERMAL_SNAPSHOT_ATTEMPTS);
 	KUNIT_EXPECT_FALSE(test, snapshot.active);
 }
@@ -64,9 +64,9 @@ static void mt6797_snapshot_order_test(struct kunit *test)
 
 	KUNIT_ASSERT_EQ(test, mt6797_thermal_snapshot_begin(&budget, &snapshot, 1), 0);
 	KUNIT_EXPECT_EQ(test,
-		mt6797_thermal_snapshot_append(&snapshot, 1, 3, 35000, true), -EINVAL);
+			mt6797_thermal_snapshot_append(&snapshot, 1, 3, 35000, true), -EINVAL);
 	KUNIT_EXPECT_EQ(test,
-		mt6797_thermal_snapshot_append(&snapshot, 0, 0, 35000, true), -EINVAL);
+			mt6797_thermal_snapshot_append(&snapshot, 0, 0, 35000, true), -EINVAL);
 	KUNIT_EXPECT_EQ(test, snapshot.count, 0U);
 	KUNIT_EXPECT_EQ(test, mt6797_thermal_snapshot_finish(&snapshot, 2, INT_MIN), -EINVAL);
 	KUNIT_EXPECT_FALSE(test, snapshot.complete);
@@ -116,7 +116,7 @@ static void mt6797_snapshot_lifecycle_test(struct kunit *test)
 	KUNIT_EXPECT_EQ(test, budget.attempts, 1U);
 	mt6797_snapshot_fill(test, &snapshot, 0);
 	KUNIT_EXPECT_EQ(test,
-		mt6797_thermal_snapshot_append(&snapshot, 5, 1, 35400, true), -EINVAL);
+			mt6797_thermal_snapshot_append(&snapshot, 5, 1, 35400, true), -EINVAL);
 	KUNIT_EXPECT_EQ(test, snapshot.count, 7U);
 	KUNIT_EXPECT_EQ(test, mt6797_thermal_snapshot_finish(&snapshot, 3, 36100), -EINVAL);
 	KUNIT_EXPECT_EQ(test, mt6797_thermal_snapshot_finish(&snapshot, 4, 36100), -EINVAL);
@@ -150,6 +150,7 @@ static struct kunit_suite mt6797_snapshot_suite = {
 	.name = "mt6797-thermal-snapshot",
 	.test_cases = mt6797_snapshot_cases,
 };
+
 kunit_test_suite(mt6797_snapshot_suite);
 
 MODULE_LICENSE("GPL");

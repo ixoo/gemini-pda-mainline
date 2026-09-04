@@ -34,7 +34,8 @@ cp "$source_root/$path/Kconfig" "$source_root/$path/Makefile" "$work/source/$pat
  git -c commit.gpgsign=false commit -qm 'Pinned thermal snapshot parent'
  cp "$script_dir/../source/mt6797_thermal_snapshot.h" "$path/"
  git add drivers
- git -c commit.gpgsign=false commit -qm 'thermal: mediatek: add bounded MT6797 snapshot collector'
+ git -c commit.gpgsign=false commit -qm 'thermal: mediatek: add bounded MT6797 snapshot collector' \
+  -m 'Preserve the existing bank scan order, converted values and validity in a bounded pure collector. Reject incomplete timing, aggregate disagreement and exhausted attempts without connecting a hardware call site.'
  cp "$script_dir/../source/mt6797_thermal_snapshot_test.c" "$path/"
  python3 - "$path" <<'PY'
 from pathlib import Path
@@ -51,6 +52,8 @@ s = s.replace(anchor, '''config MTK_SOC_THERMAL_SNAPSHOT_KUNIT_TEST
 \thelp
 \t  Test the disconnected bounded snapshot collector. No MMIO,
 \t  thermal callback, polling, CPU or platform device is invoked.
+\t  Cover sensor order, validity, maximum selection, timestamps,
+\t  failure sealing and the three-attempt observation budget.
 
 ''' + anchor)
 f.write_text(s)
@@ -61,7 +64,8 @@ f.write_text(s)
 PY
  git add drivers
  git diff --cached --check
- git -c commit.gpgsign=false commit -qm 'thermal: mediatek: test bounded MT6797 snapshot collector'
+ git -c commit.gpgsign=false commit -qm 'thermal: mediatek: test bounded MT6797 snapshot collector' \
+  -m 'Exercise complete and failing snapshots, exact sensor order, invalid data, maximum selection, timing and the three-attempt ceiling using injected records only.'
  mkdir "$work/patches"
  git format-patch -2 --no-signature --numbered --output-directory "$work/patches" >/dev/null
 )
