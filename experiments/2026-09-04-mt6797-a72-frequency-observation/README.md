@@ -419,6 +419,13 @@ experiments remain closed.
   requested, and the device remained on mainline. See
   [results/zero-divider-runtime-pass-20260904.txt](results/zero-divider-runtime-pass-20260904.txt).
 
+## Cold-boot repeatability protocol
+
+The distinct [cold-repeat protocol](COLD_REPEAT.md) freezes the successful
+candidate and published baseline. Offline admission and comparison tooling is
+ready; no second-boot runtime result is claimed. See the
+[offline validation](results/cold-repeat-offline-validation.txt).
+
 ## Analysis
 
 The current decoder cannot support an attributable A72 frequency observation.

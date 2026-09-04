@@ -1,0 +1,29 @@
+MT6797 A72 distinct cold-repeat offline validation
+Date: 2026-09-04
+baseline_published_revision=8d7d9ca0
+baseline_classification_sha256=6fdd283f07774f7c274065f853d37d18942c6db4e910d71e0e17a0826fa0aae4
+comparison_mutations_rejected=71
+cold_gate_mutations_rejected=9
+inherited_runtime_mutations_rejected=18
+inherited_pretrigger_mutations_rejected=12
+manifest_profiles_valid=184
+manifest_invariant_mutations_rejected=8
+bash_syntax=pass
+shellcheck=pass
+kernel_source_change=none
+kernel_build=not-required-host-protocol-only
+candidate_change=none
+device_partition_access=none
+device_storage_writes=none
+second_boot_runtime=not-yet-performed
+
+The baseline classifier bytes match the digest already published with the
+successful runtime pass. The new comparison accepts its synthetic fresh-ID
+control, rejects missing/extra/duplicate fields, reused identity, changed
+frequencies and action budgets, temperature envelope/spread violations,
+accounting failure and workload-result mutations. The pristine gate additionally
+rejects consumed lifecycle/observer state, wrong candidate/release, baseline ID
+reuse, thermal envelope violations and missing cold-cycle confirmation.
+The inherited raw-runtime suite checks finite workload materialization and
+lifecycle, observer, hash/accounting and frame mutations. No live second-run
+claim or broader hardware-support claim follows from these offline fixtures.

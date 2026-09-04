@@ -8307,6 +8307,15 @@ pristine accounting, the same bounded load ceiling, and an explicit comparison
 against this pass before admitting that run. Continue to keep cpufreq/OPP,
 broader hotplug, idle, suspend, and default-profile integration closed.
 
+The distinct [host cold-repeat protocol](../experiments/2026-09-04-mt6797-a72-frequency-observation/COLD_REPEAT.md)
+now freezes admission and explicit baseline comparison with fail-closed mutation
+fixtures. **Selected next:** after publication, cleanly shut down the exact
+baseline mainline session, observe USB disappearance, and have the owner
+physically select boot2. Require the recorded cold cycle and pristine new-ID
+gate before one bounded repeat; publish its comparison before widening scope.
+If USB is unavailable, restore that connection before attempting shutdown;
+absence alone does not establish a cold cycle or device failure.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;
