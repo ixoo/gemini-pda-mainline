@@ -15,7 +15,7 @@ readonly HOST_MAC_84=42:00:15:19:84:00
 readonly RELEASE=7.1.3-gemini-mt6797-pwrap-reset
 readonly INSTALLED_FULL_SHA256=5c7429b297c718f5af61367588975e292a8c239854ffd5ba527eb86da1e4a5a6
 readonly REBOOT_SHA256=3f439dbb0572b0f6f463c168d5b795dc93c9f41efd096f2154bd7f6b8524a2f7
-readonly CLASSIFIER_SHA256=5f781b183dba0f053e55acc28dbb0edb21e18c18735de101f599d486b8696455
+readonly CLASSIFIER_SHA256=f628143d6a70fdda8c6da5171c69e91647a51eb3cb65fa1577d2487540cb1ca6
 
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }
 capture_dir=

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-pwrap-reset-serviceability` |
-| Status | `running`; exact candidate installed and device shut down for boot |
+| Status | `running`; exact runtime serviceability passed, recovery pending |
 | Subsystem | MT6797 infracfg reset, PMIC wrapper, MT6351, and eMMC |
 | Device variant | Planet Computers Gemini PDA, MT6797 |
 | Date(s) | 2026-09-04 |
@@ -127,23 +127,40 @@ identity or transport yields no hardware conclusion.
   partition back as exact candidate `5c7429b297c7...`. It created no fresh
   backup and then shut the device down; SSH disappearance confirmed the power
   transition. See [results/deployment-20260904.txt](results/deployment-20260904.txt).
-- No runtime boot has been classified yet.
+- Fresh mainline boot ID `30ed4846...` matched the exact release and runtime
+  DT reset tuple `<3 1>`. PWRAP, its MT6351 core and regulator child,
+  `vemc_3v3`, `vio18`, MSDC, and one MMC card all bound; the 58.2 GiB user
+  area and all 33 GPT partitions appeared with zero targeted PWRAP/MMC errors.
+- USB/netcat completed one read-only session, CPUs 0--7 were online, and the
+  exact ten-CPU topology retained CPUs 8--9 as present but offline. The owner
+  also reported a working framebuffer console; screen state was not used as
+  the pass criterion. Thermal, cpufreq, idle, suspend, CPU triggers, load,
+  thermal reads, and storage access all remained absent.
+- The first classifier rejected only because its fixture incorrectly expected
+  `possible/present=0-7`. The observed canonical topology is
+  `possible/present=0-9`, `online=0-7`, `offline=8-9`; the corrected exact gate
+  passes the same complete frame without another device observation. See
+  [results/runtime-attempt-1-pwrap-serviceable-20260904.txt](results/runtime-attempt-1-pwrap-serviceable-20260904.txt).
 
 ## Analysis
 
-The compile result alone is not a hardware claim, but the candidate now has a
-single attributable runtime delta and a decision-complete observation path.
-Unlike the quarantined historical eMMC profile, the kernel is built from the
-current canonical series; unlike the reset KUnit profile, its production
-PWRAP, MT6351 regulator, and MediaTek MMC paths are present while test-only and
-thermal policy remain absent.
+The runtime result closes the risk identified by the reset audit: switching
+the active PWRAP consumer from historical linear ID 64 to compact public input
+1 does not regress its real reset, child creation, required rails, eMMC, A53,
+USB, or console serviceability. The present-but-offline CPU8/CPU9 topology is
+also preserved, so the classifier repair restores the intended stronger
+contract rather than accepting a reduced eight-CPU description.
 
 ## Conclusion
 
-Pending runtime evidence. The offline candidate is valid and bootable by
-contract, but it does not yet establish PWRAP runtime serviceability.
+`confirmed` on the named unit and exact candidate: MT6797 PWRAP survives the
+source-proven RST2 SET/CLEAR mapping and preserves MT6351 VEMC/VIO18 plus eMMC
+and development serviceability. This does not enable or validate thermal,
+AUXADC, frequency, CPU8/CPU9 load, idle, or suspend behavior.
 
 ## Follow-up
 
-Record the exact offline and runtime evidence, then update the durable reset
-fact and concise support state without claiming thermal readings.
+Use the exact hash-gated native reboot path and require changed-ID Gemian.
+Then close this experiment, update the durable reset/support state, and begin
+the disconnected hardware-free thermal/AUXADC transaction implementation from
+the frozen audit design without enabling either DT node.

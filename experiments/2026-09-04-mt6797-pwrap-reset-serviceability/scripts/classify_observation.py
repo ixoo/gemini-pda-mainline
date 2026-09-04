@@ -56,8 +56,8 @@ def classify(text: str, recovery_boot_id: str) -> str:
     require(bool(UUID.fullmatch(boot_id)), "boot-id")
     require(boot_id != recovery_boot_id, "unchanged-recovery-boot-id")
     for key, expected in (
-        ("cpu_possible", "0-7"), ("cpu_present", "0-7"),
-        ("cpu_online", "0-7"), ("cpu_offline", ""),
+        ("cpu_possible", "0-9"), ("cpu_present", "0-9"),
+        ("cpu_online", "0-7"), ("cpu_offline", "8-9"),
         ("pwrap_dt_resets_hex", "0000000300000001"),
         ("pwrap_driver", "mt-pmic-pwrap"), ("pwrap_bind_count", "1"),
         ("mt6351_core_bind_count", "1"),
