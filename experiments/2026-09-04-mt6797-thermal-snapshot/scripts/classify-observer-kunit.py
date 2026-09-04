@@ -92,11 +92,11 @@ def main() -> None:
         f"case inventory changed: {observed}",
     )
     require(
-        lines.count(f"# {SUITE}: pass:7 fail:0 skip:0 total:7") == 1,
+        lines.count(f"# {SUITE}: pass:10 fail:0 skip:0 total:10") == 1,
         "suite totals changed",
     )
     require(
-        lines.count("# Totals: pass:7 fail:0 skip:0 total:7") == 1,
+        lines.count("# Totals: pass:10 fail:0 skip:0 total:10") == 1,
         "global totals changed",
     )
     require(lines.count(f"ok 1 {SUITE}") == 1, "suite result absent")

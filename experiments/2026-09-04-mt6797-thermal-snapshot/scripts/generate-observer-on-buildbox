@@ -9,11 +9,11 @@ script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 repo=$(cd -- "$script_dir/../../.." && pwd -P)
 source_root=/workspace/gemini-pda/src/linux-7.1.3-series-source
 managed_root=/workspace/gemini-pda/thermal-observer-work
-output=/workspace/gemini-pda/thermal-observer-patches
+output=/workspace/gemini-pda/thermal-observer-corrected-patches
 [[ "$(git -C "$repo" rev-parse HEAD)" == "$revision" ]]
 [[ -z "$(git -C "$repo" status --porcelain)" ]]
-[[ "$(cat "$source_root/.gemini-source-state")" == 43d3b71e61e6a4568c51bde9a36beb6f3635b126417eb039ce1dab2cf8dc4e55 ]]
-[[ "$(cat "$source_root/.gemini-source-integrity")" == c6978e69b3e722374e756a1710b75ebe53eafdc3c015b469ff109c812486bafb ]]
+[[ "$(cat "$source_root/.gemini-source-state")" == 6826290503949b20dc31a6f47dcd075b4f1a5cd68e40bd01108bf25a77e2a94e ]]
+[[ "$(cat "$source_root/.gemini-source-integrity")" == d68be396bc9df5ef20262042917720692c2273c0d52cbc1ea586507468193ae3 ]]
 python3 "$repo/scripts/source-tree-integrity" verify "$source_root"
 [[ ! -e "$output" ]]
 mkdir -p "$managed_root"
@@ -21,11 +21,14 @@ work=$(mktemp -d "$managed_root/generation.XXXXXXXX")
 trap 'rm -rf -- "$work"' EXIT
 path=drivers/thermal/mediatek
 mkdir -p "$work/source/$path"
-for file in Kconfig auxadc_thermal.c mt6797_thermal_snapshot_test.c; do
+for file in Kconfig auxadc_thermal.c mt6797_thermal_snapshot_test.c mt6797_thermal_observer.h; do
  cp "$source_root/$path/$file" "$work/source/$path/"
 done
 (
  cd "$work/source"
+ # Undo only the two reviewed integration patches in this tiny scratch copy.
+ git apply --reverse "$repo/patches/v7.1.3/0538-thermal-mediatek-test-isolated-thermal-observer-owner.patch"
+ git apply --reverse "$repo/patches/v7.1.3/0537-thermal-mediatek-connect-bounded-MT6797-scan-observer.patch"
  git init -q
  git config user.name 'Gemini Mainline Experiment'
  git config user.email gemini-mainline@example.invalid

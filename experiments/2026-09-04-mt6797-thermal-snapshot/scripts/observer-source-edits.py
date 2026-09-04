@@ -60,7 +60,7 @@ replace('\tmutex_init(&mt->lock);', '''\tmutex_init(&mt->lock);
 replace('\n\treturn 0;\n\nfail_zone:', '''
 #if IS_ENABLED(CONFIG_MTK_SOC_THERMAL_OBSERVER)
 \tif (mt->conf == &mt6797_thermal_data) {
-\t\tret = devm_device_add_groups(&pdev->dev, mt6797_observer_groups);
+\t\tret = devm_device_add_group(&pdev->dev, &mt6797_observer_group);
 \t\tif (ret)
 \t\t\tdev_warn(&pdev->dev, "thermal observer unavailable: %d\\n", ret);
 \t}
