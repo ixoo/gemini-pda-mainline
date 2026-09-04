@@ -37,8 +37,12 @@ the loop. Positive identity-gated observations are unaffected.
   the pre-LK serviceability model and rejected the thermal probe with `ENODEV`
   before calibration or MMIO. Canonical patch `0524` changes only that string
   predicate while preserving every compatible, ramoops, address, size, reset,
-  thermal, and zone gate. Byte-identical generation, three rejection mutations,
-  and the 181-profile series invariant pass; Buildbox validation is next.
+  thermal, and zone gate. Byte-identical generation, three patch rejection
+  mutations, the 181-profile series invariant, both Buildbox profiles, all 15
+  focused QEMU cases, the LK container, and 17 runtime rejection cases pass.
+  Exact candidate `93a78b49...` preserves the decisive prior DT/initramfs and
+  is ready for one pre-armed read-only device attempt; CPU8/CPU9 load stays
+  closed.
 - [2026-09-04 MT6797 thermal serviceability DT repair](2026-09-04-mt6797-thermal-serviceability-dt-repair/README.md)
   — corrects the observation-channel confound in the base-DT control by
   deriving from the exact runtime-proven PWRAP/USB/console/eMMC DT. Its only

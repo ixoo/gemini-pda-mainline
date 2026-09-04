@@ -1,0 +1,17 @@
+experiment=2026-09-04-mt6797-thermal-ledger-live-model-repair
+candidate_raw_sha256=40361fae05a603b5f05c98ef88950a404ba95c646b7ded4f773e1088febca27d
+candidate_full_boot2_sha256=93a78b490a9ffbf32eb60c5c875f508fd05b43b726220b3ccdbe9277792752a4
+kernel_release=7.1.3-gemini-mt6797-thermal-stage-ledger
+device_variant=Planet Computers Gemini PDA MT6797
+hypothesis=Changing only the optional thermal ledger root-model predicate to the established live MT6797X identity lets the post-provider thermal retry pass ledger admission, bind naturally, register exactly one policy-free thermal zone, and produce three plausible read-only temperatures.
+unique_attribution=Relative to exact prior candidate ca3c25889b92673aa341fa97fc347c3469bc3b532d81045659a3afa1f563636a, the DT and initramfs are byte-identical and the kernel changes only canonical patch 0524; one initial return -517 followed by one return 0, a bound driver, one zone, and three temperatures uniquely distinguishes the repaired boundary from prior errno 19.
+decision_live_exact_pass=Close the thermal observability prerequisite and define one read-only frequency/topology/accounting observation around the already-proven finite CPU8/CPU9 load before increasing duration or intensity.
+decision_live_errno19=Reject the model repair or its live admission assumptions; preserve the exact frame and inspect the ledger guard state before any CPU8/CPU9 load.
+decision_live_later_thermal_failure=Preserve the exact transaction-stage evidence and repair only the first proven calibration or MMIO boundary before any CPU8/CPU9 load.
+decision_changed_gemian_without_live_frame=Classify a serviceability regression against the exact runtime-proven observation path; do not infer a thermal stage from visual state or empty returned RAM.
+repeat_policy=One physical boot2 selection only; no identical repeat without a new independent decision-changing observation path.
+cpu8_cpu9_policy=No CPU request or load; CPUs 8-9 must remain offline.
+thermal_policy=One natural post-provider bind and three read-only temperature samples; no trip, cooling map, standalone AUXADC, cpufreq, idle, or suspend action.
+installation_scope=live-GPT-resolved-inactive-boot2-only
+fresh_partition_backup=no-project-wide-starting-backup-is-recovery-source
+post_write_action=clean-shutdown-after-matching-full-partition-readback

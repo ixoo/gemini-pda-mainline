@@ -8122,14 +8122,24 @@ and `gemini_mt6797_thermal_ledger_begin()` returned `-ENODEV`. This also explain
 the empty earlier ledger without treating returned RAM as an execution oracle.
 An identity-gated native recovery returned changed-ID Gemian with no partition
 access; console ramoops independently preserved both probe returns, and live GPT
-reproduced exact `ca3c2588...` on inactive `boot2`. **Selected next:** admit
-canonical patch `0524`, changing only the ledger model predicate to the
-established live `MT6797X` identity while retaining every other admission gate.
-Run strict patch/series checks, the focused no-network ledger/transaction KUnit
-suite, and the production profile on Buildbox. Only after both builds pass may
-one exact successor reuse the runtime-proven DT/initramfs for a fresh read-only
-thermal frame. Keep CPU8/CPU9 requests, load, cpufreq/OPP, hotplug, idle,
-suspend, and same-artifact repeat closed.
+reproduced exact `ca3c2588...` on inactive `boot2`. Canonical patch `0524`
+changes only the ledger model predicate to the established live `MT6797X`
+identity while retaining every other admission gate. Published build commit
+`08fd5466...` passes the production profile and focused no-network
+ledger/transaction profile on Buildbox; all 15 isolated QEMU cases pass. Exact
+successor `93a78b49...` preserves prior runtime-proven DT `f131a064...` and
+initramfs `344d8a84...` byte-for-byte, passes all package and 32 LK-container
+gates, and has one-pass/17-rejection runtime tools. No native VM build or device
+action contributed to those results. **Selected next:** install that exact
+candidate to live-GPT-resolved inactive `boot2`, require matching full-partition
+readback and shutdown, then make one pre-armed read-only frame. A pass requires
+one initial thermal `-EPROBE_DEFER`, one later successful probe, natural driver
+bind, exactly one policy-free zone, and three plausible temperatures while CPUs
+8--9 remain offline; errno 19 or a later transaction error selects only the
+first proven boundary for repair. A changed-ID Gemian return without a frame is
+a serviceability regression, not a thermal-stage result. Keep CPU8/CPU9
+requests, load, cpufreq/OPP, hotplug, idle, suspend, and same-artifact repeat
+closed.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

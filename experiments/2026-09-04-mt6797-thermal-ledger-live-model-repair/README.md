@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-thermal-ledger-live-model-repair` |
-| Status | patch defined; hardware-free and Buildbox validation pending |
+| Status | Buildbox, focused KUnit, candidate, and observer gates pass; one device attempt pending |
 | Subsystem | optional thermal-stage ledger admission |
 | Device variant | Planet Computers Gemini PDA, MT6797 |
 | Date(s) | 2026-09-04 |
@@ -48,6 +48,15 @@ USB/console/PWRAP/eMMC DT.
   reproduces patch `0524` byte-for-byte.
 - `scripts/validate_patch.py` checks exact generation, one-file/one-string
   scope, source evidence, canonical ordering, and rejection mutations.
+- `scripts/validate_package.py`, `scripts/build_candidate.sh`, and
+  `scripts/validate_candidate.py` pin the exact Buildbox package and reproduce
+  the LK-compatible candidate while preserving the prior DT and initramfs.
+- `scripts/install_boot2.sh` permits one live-GPT-resolved inactive-`boot2`
+  write, matching full-partition readback, and clean shutdown without creating
+  a redundant device backup.
+- `scripts/remote_observe.sh`, `scripts/classify_observation.py`, and
+  `scripts/collect_runtime.sh` capture and classify one bounded read-only frame;
+  their offline harness includes one pass and 17 rejection cases.
 
 ## Procedure
 
@@ -69,6 +78,14 @@ console, calibration-provider, and CPU0--7 baselines. It also proves live model
 zero zones. Exact source places the failure at `gemini_mt6797_thermal_ledger_begin()`
 before calibration and all thermal transaction operations.
 
+Published commit `08fd5466...` builds on Buildbox in both production and
+focused-KUnit profiles. The isolated QEMU run passes all 15 ledger/transaction
+tests. Exact candidate `40361fae...`, padded as `93a78b49...` for the 16 MiB
+partition, preserves DT `f131a064...` and initramfs `344d8a84...` byte-for-byte
+from the decisive prior attempt. Package hashes, all 32 LK-container gates,
+independent assembly, and runtime-tool rejection tests pass. No native VM build
+or device action was used for these results.
+
 ## Analysis
 
 The new predicate is not a guess: `MT6797X` is the bootloader-published live
@@ -80,8 +97,9 @@ temperature observation itself passes.
 
 ## Conclusion
 
-The exact repair is defined but not yet admitted. No build or device action is
-claimed by this experiment yet.
+The exact repair is admitted offline as a boot candidate. The remaining step is
+one verified inactive-`boot2` installation followed by one pre-armed read-only
+runtime frame. CPU8/CPU9 requests and load remain closed.
 
 ## Follow-up
 
