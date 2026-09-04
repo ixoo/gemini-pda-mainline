@@ -16,6 +16,7 @@ the experiments that support or challenge it.
 | [Gemian hardware baseline](gemini-gemian-baseline.md) | Sanitized read-only observations from the working vendor kernel on the named unit. |
 | [DA921x, I2C6, and Cortex-A72](da921x-i2c6-a72.md) | Current regulator/transport/CPU boundary, evidence limits, and safety invariants. |
 | [MT6797 live resource map](mt6797-live-resource-map.md) | Register, IRQ, clock, rail, storage, display, GPU, connectivity, and USB resources mapped to Linux boundaries. |
+| [MT6797 thermal observation](mt6797-thermal-observation.md) | Aggregate temperature semantics, shared bank ownership, precision and freshness limits. |
 | [Gemini keyboard](keyboard.md) | AW9523 matrix wiring, physical keymap, and kernel/userspace mapping boundary. |
 | [Vendor kernel ABI](vendor-kernel-abi.md) | Private interfaces used by the working stack and their standard Linux replacements. |
 | [Vendor userspace](vendor-userspace.md) | Android HALs, services, libraries, compatibility bridges, and migration implications. |

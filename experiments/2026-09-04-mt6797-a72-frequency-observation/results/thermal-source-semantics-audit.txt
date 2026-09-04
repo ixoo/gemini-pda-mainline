@@ -1,0 +1,43 @@
+MT6797 thermal source semantics audit
+Date: 2026-09-04
+candidate_build_revision=556575a202e09d25093c578cded454854a3e6d08
+candidate_patchset_sha256=b7cccd63af8bb60975f4e994e614f8da07b933b76cb18085d5377da938eec169
+candidate_source_archive_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+expected_source_state=a6cf8f228e8aecff0c71b81db28c07fe83a1909d454759262a4fb1082fa7ed13
+observed_source_state=a6cf8f228e8aecff0c71b81db28c07fe83a1909d454759262a4fb1082fa7ed13
+verified_source_tree_integrity=2f7d22312c16db61b46c9db8300b89c1ff9b054f79cc0b800cf5e0c6e8b588ec
+thermal_sysfs_sha256=fd7dc96b10259f77ae21aa354b6f8c83f1bc19e9941ea9f209c5681a16f0c378
+thermal_helpers_sha256=4946ef75995a7418c03f50ee81f0c4835f9836ac0cf6a65dab3c5d44e8f610e2
+thermal_core_sha256=945aab1bee1ca860075ac855c7e009cbe6ee2fef863ea2ed3203868ea81116d2
+auxadc_thermal_sha256=143e0458d5dd4489a8843a250ee58ebf2bda4581e48e029a35efad6ffce575cd
+source_copy_created=no
+source_modified=no
+kernel_build=none
+device_access=none
+
+Exact source references relative to the managed Linux tree:
+- drivers/thermal/thermal_sysfs.c:37 temp_show calls thermal_zone_get_temp.
+- drivers/thermal/thermal_helpers.c:82 __thermal_zone_get_temp invokes get_temp;
+  optional nonzero emulated temperature can override its result.
+- drivers/thermal/thermal_helpers.c:127 thermal_zone_get_temp serializes the
+  callback with the zone lock and rejects invalid output.
+- drivers/thermal/mediatek/auxadc_thermal.c:630 bank-to-sensor table;
+  :657 MT6797 config selects six banks, shared bank switching and V4 conversion.
+- drivers/thermal/mediatek/auxadc_thermal.c:880 raw_to_mcelsius_v4 returns
+  integer tenths of a degree as millicelsius (100-millicelsius quantization).
+- drivers/thermal/mediatek/auxadc_thermal.c:915 mtk_thermal_get_bank locks and
+  writes PTPCORESEL; put_bank unlocks without a previous-bank restoration.
+- drivers/thermal/mediatek/auxadc_thermal.c:951 bank_temperature reads existing
+  measurement registers, validates converted values and returns their maximum.
+- drivers/thermal/mediatek/auxadc_thermal.c:1409 mtk_read_temp scans banks
+  sequentially and returns their maximum; :1430 binds it as get_temp.
+- drivers/thermal/mediatek/auxadc_thermal.c:1434 mtk_thermal_init_bank programs
+  sensor/filter/AHB polling controls. Timing comments are not live clock or
+  conversion-age measurements.
+- Canonical patch 0520 declares polling-delay=1000 for the policy-free zone.
+- build-production-runtime.sh frequency_observe reads frequency before temp;
+  its during anchor precedes the worker start-barrier release.
+
+The package configuration enables CONFIG_THERMAL_EMULATION. Captured host
+programs do not write emul_temp; its internal value was not independently read.
+No calibration values or proprietary source were exported or published.

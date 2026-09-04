@@ -452,6 +452,12 @@ all 16 hashes, with 69/69 accounting ticks. The
 the permitted rise difference and spread. The integrated comparison stays
 failed; this boot is now consumed and no additional load or retry is admitted.
 
+The [offline thermal source/timing audit](THERMAL_AUDIT.md) rejects a simple
+one-second sysfs cache explanation and finds similar observation intervals.
+It identifies missing temperature timestamps and bank/sensor attribution; the
+aggregate-only captures cannot separate cold transients from sampling effects.
+No further device action was taken for that audit.
+
 ## Analysis
 
 The current decoder cannot support an attributable A72 frequency observation.

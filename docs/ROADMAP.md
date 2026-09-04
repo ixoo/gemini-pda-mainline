@@ -8318,10 +8318,17 @@ refusal limits and all action ceilings. That single second-boot workload now
 reproduces stage 18, topology, all frequency records, independent accounting
 and every RAM hash. The complete comparison still rejects thermal rise and
 spread; preserve this failure and do not repeat the consumed workload.
-**Selected next:** audit existing thermal sampling/cache semantics and capture
-timing offline, distinguish cold transient behavior from observation artifacts,
-and define a bounded decision-changing observation contract before any further
-device action. Do not widen thermal thresholds to pass the consumed result.
+The [offline source/timing audit](../experiments/2026-09-04-mt6797-a72-frequency-observation/THERMAL_AUDIT.md)
+now rules out a simple sysfs polling-cache explanation and a longer observed
+frequency interval; it cannot attribute the aggregate to a specific sensor or
+conversion age. **Selected next:** design and hardware-free-test a bounded
+thermal snapshot that records per-bank converted values, validity, winning
+sensor and callback timing from the existing scan, with no extra register
+access or exported calibration. Preserve shared locking and isolate observer
+budgets from normal polling. Only after source/fixture review should its actual
+evidence-producing source delta proceed through Buildbox and an initially
+no-workload observation candidate. Do not widen thresholds or repeat either
+consumed workload.
 Integrated thermal repeatability, broader load/hotplug, cpufreq/OPP, idle,
 suspend and default integration remain open.
 
