@@ -196,7 +196,10 @@ def validate_vendor_source(data: dict, git_dir: Path) -> None:
     tc = contents["drivers/misc/mediatek/thermal/mt6797/src/mtk_tc.c"]
     reset = tc[tc.index("void tscpu_reset_thermal"):tc.index("int tscpu_read_temperature_info")]
     ordered(reset, [("assert", "INFRA_GLOBALCON_RST_0_SET"), ("deassert", "INFRA_GLOBALCON_RST_0_CLR")])
-    all_banks = tc[tc.index("void tscpu_thermal_initial_all_bank"):tc.index("#if THERMAL_INFORM_OTP")]
+    all_banks_start = tc.index("void tscpu_thermal_initial_all_bank")
+    all_banks = tc[
+        all_banks_start:tc.index("#if THERMAL_INFORM_OTP", all_banks_start)
+    ]
     ordered(all_banks, [("clear CH11", "AUXADC_CON1_CLR_V"), ("program banks", "thermal_reset_and_initial"), ("set CH11", "AUXADC_CON1_SET_V"), ("enable banks", "tscpu_thermal_enable_all_periodoc_sensing_point")])
 
     pwrap_h = contents["drivers/misc/mediatek/pmic_wrap/mt6797/pwrap_hal.h"]
