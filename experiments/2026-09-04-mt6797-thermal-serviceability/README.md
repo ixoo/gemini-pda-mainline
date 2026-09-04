@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-thermal-serviceability` |
-| Status | `running`; exact candidate selected, single hardware gate pending |
+| Status | `running`; candidate installed and device shut down, owner-selected boot pending |
 | Subsystem | MT6797 thermal controller, AUXADC transaction, reset, and NVMEM calibration |
 | Device variant | Planet Computers Gemini PDA, MT6797 |
 | Date(s) | 2026-09-04 |
@@ -112,9 +112,10 @@ same artifact.
 - The prepared source already uses symbolic PWRAP reset input 1. The thermal
   node lacks its required reset and remains disabled; standalone AUXADC is also
   disabled.
-- The owner reports that the framebuffer console is working on the currently
-  running boot. This observation is not attributed to this experiment until
-  exact runtime identity is collected, and it is not thermal proof.
+- The owner reported that the framebuffer console was working on the boot used
+  for installation. Exact preflight identity subsequently proved that boot was
+  known-good Gemian `3.18.41+`, not this thermal candidate, so the observation
+  is not attributed to this experiment and is not thermal proof.
 - Buildbox generated and replayed normal patches `0519` and `0520` from exact
   pushed revision `ea657e202935...` and prepared source state
   `b4dae5f2b949...`. The three-path source validator passed with one zone,
@@ -141,6 +142,12 @@ same artifact.
   source hashes, static read/write boundaries, and an independent reconstruction
   of the selected candidate. See
   [results/offline-runtime-tooling-20260904.txt](results/offline-runtime-tooling-20260904.txt).
+- The guarded installer resolved logical `boot2` from the live GPT as inactive,
+  unmounted `/dev/mmcblk0p30`, recorded predecessor `5c7429b297c...`, wrote the
+  selected candidate, flushed it, and obtained exact full-partition readback
+  `6f3d8d6e94ff...`. No fresh backup or other partition write occurred. The
+  device then shut down cleanly for owner selection. See
+  [results/deployment-attempt-1-20260904.txt](results/deployment-attempt-1-20260904.txt).
 
 ## Analysis
 
@@ -149,6 +156,11 @@ identity, linkage, configuration, structural DT, container, and padding gates.
 This is construction evidence only; it does not prove
 that calibration, reset, clocks, bank preparation, first samples, registration,
 or temperature reads work on hardware.
+
+The install and readback gate also passes, but remains deployment evidence. The
+next decision now depends solely on one exact-identity, read-only runtime frame
+after the owner selects `boot2`; no repeat write or second boot is authorized by
+the present result.
 
 ## Conclusion
 
