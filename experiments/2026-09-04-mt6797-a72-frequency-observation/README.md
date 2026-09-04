@@ -361,6 +361,14 @@ observer failure and all policy experiments remain closed.
   back all 16 MiB as exact `d4eb9cb9...`, made no new backup, issued no reboot,
   and confirmed shutdown. See
   [results/eproto-deployment-20260904.txt](results/eproto-deployment-20260904.txt).
+- The fresh diagnostic boot passed its exact pristine pretrigger on boot ID
+  `8f6181a5...` and completed stage 18 with CPUs 0--9 online. One userspace
+  observer read produced callbacks 1 and 2; both passed clock and BigiDVFS
+  transport and shape checks, then returned `-EPROTO` at `decode` with the same
+  raw tuple. The packed divider word was `0x00000008`: Big selector 8, with
+  LL/L/CCI selectors all zero. No additional observer request or workload ran,
+  no reboot was requested, and the device was left running. See
+  [results/eproto-runtime-decode-zero-divider-20260904.txt](results/eproto-runtime-decode-zero-divider-20260904.txt).
 
 ## Analysis
 
@@ -379,33 +387,31 @@ proves the physical binder can complete stage 18 with both Cortex-A72 CPUs
 online on this exact configuration. That is a material current-mainline CPU
 result even though the larger composite acceptance test rejected.
 
-The unresolved boundary is narrower than before the boot. The observer exists,
-and the repeat captured `EPROTO` twice from the first userspace request. This
-rules out the backend timeout/error and BigiDVFS `-EAGAIN` branches for those
-callbacks. The lifecycle's use of the same backends also passed their returns,
-ABI, and nonzero generations. What remains is the observer-only reserved-field
-checks or a decoder PLL/divider validation, but the current error log does not
-name which branch.
+The failure-stage candidate closes the remaining ambiguity. Both callbacks
+passed the observer's transport, ABI, generation, and reserved-field gates and
+failed only in the decoder. Its exact raw word gives the B cluster the admitted
+identity selector 8 but gives LL, L, and CCI selector 0. The pinned public
+vendor `_cpu_freq_calc()` treats zero as no division; the current pure decoder
+omitted zero from its explicit identity encodings. That omission fully explains
+both `EPROTO` results without weakening the already proven lifecycle or backend
+stability.
 
-The one `busybox cat` request caused two sysfs show callbacks after the negative
-return. That is an observed transport property, not a second request made by
-the failure handler. The corrected classifier preserves both callbacks rather
-than discarding the errno. The next kernel diagnostic must name the failure
-stage and preserve the existing three-callback ceiling without adding a
-hardware call. That exact discriminator now passes focused and production
-offline gates and has a distinct independently validated candidate identity.
+The one `busybox cat` request again caused two sysfs show callbacks after the
+negative return. That is an observed transport property, not a second request
+made by the failure handler. The classifier preserved the complete stage/raw
+record for both. The selected repair accepts only selector zero as another
+identity encoding, continues rejecting all other unknown selectors, and adds
+the exact live tuple to pure KUnit. The diagnostic candidate has no reason to
+boot again.
 
 ## Conclusion
 
-`stage-18 CPU8/CPU9 repeated; attributable EPROTO candidate ready`: exact successor
-`54a02dd0...` passed two pristine live transactions and completed stage 18 with
-CPUs 0--9 online on both. Changed-ID retained evidence independently sealed
-both restored-success results. The admitted error-capture repeat localized the
-frequency failure to `EPROTO`; one userspace request produced kernel attempts 1
-and 2, both failing before a sample, and no load ran. This is repeated live
-CPU8/CPU9 evidence, but not yet a frequency or composite load pass. Distinct
-candidate `d4eb9cb9...` is admitted only to name the failed branch and preserve
-its already-returned raw record.
+`stage-18 CPU8/CPU9 repeated; live zero-divider decoder repair selected`: exact
+diagnostic candidate `d4eb9cb9...` passed its pristine boot and repeated stage
+18 with CPUs 0--9 online. Both callbacks failed only at decode and preserved an
+identical complete raw tuple. The result identifies omitted live selector zero
+semantics for LL/L/CCI; it is not yet a frequency or composite load pass. The
+next candidate must contain the narrow, hardware-free-proven decoder repair.
 
 ## Follow-up
 

@@ -119,3 +119,12 @@ Production build revision `80abfffb...` passed package validation and produced
 independently validated candidate `d4eb9cb9...`. The host failure path now
 retains up to all three ordered six-line callback records and binds each stage
 to its raw fields without making another observation request.
+
+The fresh live attempt exercised that path exactly once. Stage 18 completed
+with CPUs 0--9 online, and the single userspace read produced two complete
+callback records. Both reached `decode` with clock ABI 2, BigiDVFS ABI 1,
+nonzero generations, zero reserved fields, and identical raw values. The
+divider word `0x00000008` exposes zero for LL/L/CCI and 8 for Big. Public vendor
+source treats zero as an identity divider; the current decoder rejects it.
+This selects an explicit zero-identity decoder repair and an exact live-tuple
+KUnit case. No further boot of `d4eb9cb9...` is permitted.

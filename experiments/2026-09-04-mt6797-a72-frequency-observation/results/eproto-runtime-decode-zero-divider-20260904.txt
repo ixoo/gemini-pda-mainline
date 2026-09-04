@@ -1,0 +1,118 @@
+MT6797 A72 frequency failure-stage runtime result
+Date: 2026-09-04
+
+Exact deployed candidate:
+repository_tooling_commit=158f896c
+repository_deployment_commit=50ae4ded
+kernel_release=7.1.3-gemini-a72-frequency-thermal
+candidate_sha256=d4eb9cb9ca63027b0226e6e3ef2878e5b7907153bc00c1248f701320cfe59a74
+record_identity_sha256=9e0f93057ef79b592bef8d8bedd2df87751df699fdcbee4745172a4854e8f6e1
+boot_id=8f6181a5-42bc-43ac-9fa8-2895cddeb275
+
+Pretrigger:
+classification=serviceable-pristine-thermal-frequency-ready
+cpu_online=0-7
+frequency_observer_attempts=0-of-3
+trigger_executions=0
+cpu8_requests=0
+cpu9_requests=0
+cpu_off_requests=0
+pretrigger_classification_sha256=5cd01c970c18d9a34419d94c1cec959af8a90794ab7b5460b69b256c61191614
+
+Bounded transaction:
+stage18=pass
+cpu_online_after=0-9
+cpu8_requests=1
+cpu9_requests=1
+cpu_off_requests=0
+hotplug_retries=0
+restore_validation_attempted=1
+restore_transaction_valid=1
+observer_userspace_requests=1
+observer_kernel_callbacks=2
+observer_attempts=1-2-of-3
+observer_errno=-71
+observer_failure_trace=complete
+observer_failure_stages=decode,decode
+load_probe=none
+additional_observer_request=none
+native_reboot_command_sent=no
+device_left_running=yes
+
+Callback 1:
+clock_abi=2
+clock_reserved=0
+clock_generation=4
+armplldiv_muxsel=0x00000055
+armplldiv_ckdiv=0x00000008
+pll_ll_con1=0xc1114000
+pll_l_con1=0x400c4000
+pll_cci_con1=0xc10c1d89
+big_abi=1
+big_reserved=0
+big_generation=4
+big_pll_pcw=0xb9b13b14
+big_pll_enable_posdiv=0x00ff1101
+
+Callback 2:
+clock_abi=2
+clock_reserved=0
+clock_generation=5
+armplldiv_muxsel=0x00000055
+armplldiv_ckdiv=0x00000008
+pll_ll_con1=0xc1114000
+pll_l_con1=0x400c4000
+pll_cci_con1=0xc10c1d89
+big_abi=1
+big_reserved=0
+big_generation=5
+big_pll_pcw=0xb9b13b14
+big_pll_enable_posdiv=0x00ff1101
+
+Private capture identities:
+runtime_sha256=a24febffb557060463f425da2a63c07c39b82f26591f65f3f33a7a77a1aec39a
+observer_events_sha256=8b21b448ed125ab6f396543bdc31ce74e99967b210c21b32088faed552d601d3
+runtime_classification_sha256=331df2dcbe3a0b003cb3c47146b712b8024fe02ecdea7b65d12c25bf439368e9
+runtime_events_sha256=44f089be176da8c7f47a523d640a9e48983b63e3195e3e709b2e212e2cbc3e9f
+capture_manifest_sha256=eeecd33a0263341e56071e24b9ebcb14e0ace2ed9b54feeb000110a8803d7778
+
+Source comparison:
+source=https://github.com/gemian/gemini-linux-kernel-3.18.git
+source_commit=f3d2a14bd1b8355c68e59e8bd4be6bc1525f9c24
+source_path=drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c
+source_blob=2a3c757a85f6fb10679a9e929523fd9745f995a0
+source_file_sha256=a420033f65c49bf509182388fcb803161e69e93cf7d334b723fe7a0c55b8c293
+source_function=_cpu_freq_calc
+source_divider_zero_behavior=identity
+
+Live field decode:
+mux_selectors=b:1,ll:1,l:1,cci:1
+divider_selectors=b:8,ll:0,l:0,cci:0
+big_frequency_khz=750000
+ll_frequency_khz=897000
+l_frequency_khz=1274000
+cci_frequency_khz=629500
+
+Safety and interpretation:
+boot_candidate=false
+device_storage_reads=none
+device_storage_writes=none
+cpufreq_changes=none
+opp_changes=none
+idle_or_suspend=none
+
+The exact diagnostic candidate achieved its sole purpose. Both callbacks
+passed clock and BigiDVFS transport and shape validation, then rejected the
+same stable raw tuple in the pure decoder. The packed divider word gives the
+Big cluster selector 8 and LL, L, and CCI selector 0. The pinned public vendor
+calculation treats selector 0 as an identity divider, as it does selectors 8,
+16, and 24. The existing mainline decoder admits the latter three but rejects
+zero. This fully explains both EPROTO returns.
+
+The selected repair is deliberately narrower than the vendor default branch:
+add selector 0 to the explicit identity encodings, retain fail-closed rejection
+for every other unknown selector, and add the exact live raw tuple to focused
+KUnit. No identical-candidate repeat is useful or admitted. A repaired
+candidate must pass patch replay, source/path validation, strict Checkpatch,
+the focused no-network arm64 KUnit gate, the production Buildbox gate, and the
+independent package/DT/container/runtime composition gates before one new boot.

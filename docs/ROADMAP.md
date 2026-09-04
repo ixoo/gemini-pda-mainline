@@ -8258,6 +8258,19 @@ boot2 and permit one fresh attempt only after the exact zero-read pretrigger
 passes. A failure must stop before load with complete stage/raw records;
 cpufreq/OPP, extra hotplug, idle, and suspend remain closed.
 
+That fresh attempt passed its exact pretrigger and completed stage 18 with CPUs
+0--9 online. One userspace observer read produced two kernel callbacks, both of
+which passed clock and BigiDVFS transport/shape checks and failed at `decode`
+with identical records. The packed divider word `0x00000008` gives Big selector
+8 and LL/L/CCI selector zero. Pinned public vendor `_cpu_freq_calc()` treats
+zero as no division, while the current mainline decoder omits that live
+encoding. The frame made no additional request, load, or reboot command and
+left the device running. **Selected next:** add a new canonical decoder repair
+that explicitly treats only selector zero as identity, retain rejection of all
+other unknown values, add the exact live tuple to focused KUnit, and pass the
+Buildbox/QEMU and full production composition gates before admitting a distinct
+candidate. Exact `d4eb9cb9...` must not boot again.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

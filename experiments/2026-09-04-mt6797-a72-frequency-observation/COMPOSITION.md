@@ -143,3 +143,13 @@ retired `54a02dd0...`, and independently read back the full partition as exact
 `d4eb9cb9...` under stable external power. It made no backup or reboot request
 and confirmed shutdown. The remaining next action is the owner's physical
 boot2 selection followed by the exact zero-read pretrigger.
+
+That fresh boot passed the pristine pretrigger and repeated stage 18 with CPUs
+0--9 online. One userspace read caused two callbacks; both passed transport and
+record-shape gates and failed at `decode` with identical raw values. The packed
+divider `0x00000008` means selector 8 for Big and selector 0 for LL/L/CCI. The
+pinned vendor calculation treats zero as identity, while the pure decoder does
+not explicitly admit it. No second request or load ran. Exact `d4eb9cb9...`
+must not boot again. The selected next composition adds only explicit selector
+zero identity semantics plus the exact live-tuple KUnit case, then repeats all
+offline gates before a new candidate is admitted.
