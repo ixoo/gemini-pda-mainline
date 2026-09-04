@@ -88,3 +88,38 @@ with no failure or skip. See [build validation](results/build-validation.txt)
 and the [strict KUnit result](results/kunit-pass.json). The initial remote QEMU
 launch found no system emulator; the validated package ran unchanged on the
 host emulator. This closes the pure collector gate, not production integration.
+
+## Production observer integration under review
+
+The prospective integration generator
+[scripts/generate-observer-on-buildbox](scripts/generate-observer-on-buildbox)
+adds a default-off MT6797-only interface and a separate mutex/budget owner.
+Each admitted read consumes one of three attempts before two monotonic clock
+callbacks and exactly one existing scan. Normal thermal-zone polling passes a
+null collector and does not touch that owner, budget or clock. The EEM bank
+reader also retains its null-collector wrapper. The existing bank lock remains
+held around selection, conversion and capture of that bank's values; other
+polling may interleave between banks, so this is a sequential scan, not an
+atomic simultaneous sensor snapshot or a conversion-age measurement.
+
+Two root-only, read-only platform attributes are proposed:
+`mt6797_temperature_snapshot` emits the bounded record, including failed and
+exhausted attempts as text; `mt6797_temperature_snapshot_status` reads only the
+attempt count and limit. Registration occurs after successful thermal probe,
+only for the exact MT6797 data table. Registration failure warns and leaves
+normal thermal behavior intact; any eventual host gate must reject a missing
+interface. Device-managed teardown removes the interface before driver state.
+No new MMIO access, calibration export, policy, storage write, CPU action or
+thermal emulation is introduced. An observer read directly uses the actual
+converted hardware scan and bypasses the thermal core's emulated value.
+
+Source review compares the exact parent and register/locking/conversion call
+inventory. That structural check is not sufficient by itself to prove dynamic
+return equivalence or read counts. The added KUnit owner fixtures check three
+successful attempts, fourth refusal with no clock/scan callbacks, consumed scan
+failure with sealed output, recovery on the next allowed attempt, invalid ops
+and active-record refusal. Production source review, strict patch review,
+Buildbox compilation, KUnit execution and a stronger scan-path oracle remain
+required before selecting a production profile or device candidate. These
+source templates are not yet a generated or tested kernel change. No additional
+boot or workload is admitted by this work.

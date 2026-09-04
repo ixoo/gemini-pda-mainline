@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+set -euo pipefail
+export LC_ALL=C PYTHONDONTWRITEBYTECODE=1
+export GIT_AUTHOR_DATE=2026-09-05T02:00:00Z GIT_COMMITTER_DATE=2026-09-05T02:00:00Z
+[[ $# == 1 && $1 =~ ^[0-9a-f]{40}$ ]] || exit 2
+revision=$1
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+repo=$(cd -- "$script_dir/../../.." && pwd -P)
+source_root=/workspace/gemini-pda/src/linux-7.1.3-series-source
+managed_root=/workspace/gemini-pda/thermal-observer-work
+output=/workspace/gemini-pda/thermal-observer-patches
+[[ "$(git -C "$repo" rev-parse HEAD)" == "$revision" ]]
+[[ -z "$(git -C "$repo" status --porcelain)" ]]
+[[ "$(cat "$source_root/.gemini-source-state")" == 43d3b71e61e6a4568c51bde9a36beb6f3635b126417eb039ce1dab2cf8dc4e55 ]]
+[[ "$(cat "$source_root/.gemini-source-integrity")" == c6978e69b3e722374e756a1710b75ebe53eafdc3c015b469ff109c812486bafb ]]
+python3 "$repo/scripts/source-tree-integrity" verify "$source_root"
+[[ ! -e "$output" ]]
+mkdir -p "$managed_root"
+work=$(mktemp -d "$managed_root/generation.XXXXXXXX")
+trap 'rm -rf -- "$work"' EXIT
+path=drivers/thermal/mediatek
+mkdir -p "$work/source/$path"
+for file in Kconfig auxadc_thermal.c mt6797_thermal_snapshot_test.c; do
+ cp "$source_root/$path/$file" "$work/source/$path/"
+done
+(
+ cd "$work/source"
+ git init -q
+ git config user.name 'Gemini Mainline Experiment'
+ git config user.email gemini-mainline@example.invalid
+ git add drivers
+ git -c commit.gpgsign=false commit -qm 'Pinned thermal observer parent'
+ python3 "$script_dir/observer-source-edits.py" "$work/source"
+ git add drivers
+ git -c commit.gpgsign=false commit -qm 'thermal: mediatek: connect bounded MT6797 scan observer' \
+  -m 'Capture converted samples from the existing bank scan using a separate three-attempt owner. Keep normal thermal polling outside observer accounting and expose root-only complete failure records without additional register accesses.'
+ python3 - "$path" "$script_dir/../source/observer-tests.c" <<'PYTHON'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1]) / 'mt6797_thermal_snapshot_test.c'
+s = p.read_text()
+s = s.replace('#include "mt6797_thermal_snapshot.h"', '#include "mt6797_thermal_observer.h"')
+anchor = 'static struct kunit_case mt6797_snapshot_cases[] = {'
+assert s.count(anchor) == 1
+s = s.replace(anchor, Path(sys.argv[2]).read_text() + "\n" + anchor + "\n" +
+    "\tKUNIT_CASE(mt6797_observer_budget_test),\n" +
+    "\tKUNIT_CASE(mt6797_observer_failure_test),\n" +
+    "\tKUNIT_CASE(mt6797_observer_invalid_test),")
+p.write_text(s)
+PYTHON
+ git add drivers
+ git diff --cached --check
+ git -c commit.gpgsign=false commit -qm 'thermal: mediatek: test isolated thermal observer owner' \
+  -m 'Exercise complete and failing snapshots, exact sensor order, invalid data, maximum selection, timing and the three-attempt ceiling using injected records only.'
+ mkdir "$work/patches"
+ git format-patch -2 --no-signature --numbered --output-directory "$work/patches" >/dev/null
+)
+patches=("$work"/patches/*.patch)
+[[ ${#patches[@]} == 2 ]]
+perl "$source_root/scripts/checkpatch.pl" --no-tree --strict \
+ --ignore MISSING_SIGN_OFF,FILE_PATH_CHANGES,COMMIT_LOG_LONG_LINE,OPEN_ENDED_LINE \
+ "${patches[@]}" >"$work/checkpatch.txt" || { cat "$work/checkpatch.txt"; exit 1; }
+git clone -q "$work/source" "$work/replay"
+git -C "$work/replay" reset --hard HEAD~2 >/dev/null
+git -C "$work/replay" config user.name 'Gemini Mainline Experiment'
+git -C "$work/replay" config user.email gemini-mainline@example.invalid
+git -C "$work/replay" -c commit.gpgsign=false am -q "${patches[@]}"
+[[ "$(git -C "$work/replay" rev-parse 'HEAD^{tree}')" == "$(git -C "$work/source" rev-parse 'HEAD^{tree}')" ]]
+printf 'generation_revision=%s\npatches=2\nreplay=identical-tree\nproduction_driver_changes=existing-scan-observer\nhardware_access=none\n' "$revision" >"$work/generation.txt"
+mkdir "$work/result"
+cp "${patches[0]}" "$work/result/0537-thermal-mediatek-connect-bounded-MT6797-scan-observer.patch"
+cp "${patches[1]}" "$work/result/0538-thermal-mediatek-test-isolated-thermal-observer-owner.patch"
+cp "$work/checkpatch.txt" "$work/generation.txt" "$work/result/"
+(cd "$work/result" && sha256sum ./* >SHA256SUMS)
+mv "$work/result" "$output"
+printf 'output=%s\n' "$output"
