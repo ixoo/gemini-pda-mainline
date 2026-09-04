@@ -64,7 +64,8 @@ def main() -> None:
         if needle not in combined:
             raise SystemExit(f"required patch contract absent: {needle!r}")
     forbidden = (
-        "MT6797_DVFSP_CLOCK_STATE_PLL_CHANGE",
+        "+#define MT6797_DVFSP_CLOCK_STATE_PLL_CHANGE",
+        "+\tif (!cluster || con1 & MT6797_DVFSP_CLOCK_STATE_PLL_CHANGE)",
         "+\treadl(",
         "+\twritel(",
         "+\tarm_smccc",
