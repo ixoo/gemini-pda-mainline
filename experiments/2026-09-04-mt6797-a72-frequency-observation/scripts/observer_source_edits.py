@@ -23,6 +23,7 @@ struct device;
 struct mt6797_a72_hotplug_snapshot_source;
 
 struct mt6797_a72_frequency_observer_controller {
+	/* Serialize the attempt budget and its paired transport calls. */
 	struct mutex lock;
 	u32 attempts;
 };
@@ -124,8 +125,8 @@ static int mt6797_a72_frequency_observer_capture(
 	    !big.sample_generation)
 		return -EPROTO;
 
-	ret = mt6797_dvfsp_clock_state_decode(&clock, &big,
-						&observation->state);
+	ret = mt6797_dvfsp_clock_state_decode(
+		&clock, &big, &observation->state);
 	if (ret)
 		return ret;
 
@@ -198,6 +199,7 @@ static ssize_t a72_frequency_observation_show(
 	struct mt6797_a72_frequency_observer_trace trace;
 	struct mt6797_a72_frequency_observation observation;
 	const struct mt6797_dvfsp_clock_state_cluster *big;
+	ssize_t count = 0;
 	int ret;
 
 	if (!source)
@@ -213,44 +215,27 @@ static ssize_t a72_frequency_observation_show(
 
 	big = &observation.state.cluster[
 		MT6797_DVFSP_CLOCK_STATE_CLUSTER_B];
-	dev_info(dev,
-		 "GEMINI_A72_FREQUENCY_OBSERVATION_V1 attempt=%u/3 ret=0 "
-		 "clock_generation=%llu big_generation=%llu "
-		 "armplldiv_muxsel=0x%08x armplldiv_ckdiv=0x%08x "
-		 "big_pll_pcw=0x%08x big_pll_enable_posdiv=0x%08x "
-		 "b_pcw=0x%08x b_posdiv=%u b_mux=%u b_divider=%u "
-		 "ll_khz=%u l_khz=%u b_khz=%u cci_khz=%u\n",
-		 observation.attempt,
-		 (unsigned long long)observation.clock_sample_generation,
-		 (unsigned long long)observation.big_sample_generation,
-		 observation.armplldiv_muxsel, observation.armplldiv_ckdiv,
-		 observation.big_pll_pcw, observation.big_pll_enable_posdiv,
-		 big->pll_pcw, big->posdiv, big->mux_selector,
-		 big->divider_selector,
-		 observation.state.cluster[
-			MT6797_DVFSP_CLOCK_STATE_CLUSTER_LL].frequency_khz,
-		 observation.state.cluster[
-			MT6797_DVFSP_CLOCK_STATE_CLUSTER_L].frequency_khz,
-		 big->frequency_khz,
-		 observation.state.cluster[
-			MT6797_DVFSP_CLOCK_STATE_CLUSTER_CCI].frequency_khz);
-
-	return sysfs_emit(buf,
-		"abi=%u attempt=%u max_attempts=%u remaining=%u "
-		"clock_generation=%llu big_generation=%llu "
-		"armplldiv_muxsel=0x%08x armplldiv_ckdiv=0x%08x "
-		"big_pll_pcw=0x%08x big_pll_enable_posdiv=0x%08x "
-		"b_pcw=0x%08x b_posdiv=%u b_mux=%u b_divider=%u "
-		"ll_khz=%u l_khz=%u b_khz=%u cci_khz=%u\n",
+	count += sysfs_emit_at(buf, count,
+		"abi=%u attempt=%u max_attempts=%u remaining=%u ",
 		observation.abi, observation.attempt,
 		MT6797_A72_FREQUENCY_OBSERVER_MAX_ATTEMPTS,
-		trace.attempts_remaining,
+		trace.attempts_remaining);
+	count += sysfs_emit_at(buf, count,
+		"clock_generation=%llu big_generation=%llu ",
 		(unsigned long long)observation.clock_sample_generation,
-		(unsigned long long)observation.big_sample_generation,
-		observation.armplldiv_muxsel, observation.armplldiv_ckdiv,
-		observation.big_pll_pcw, observation.big_pll_enable_posdiv,
+		(unsigned long long)observation.big_sample_generation);
+	count += sysfs_emit_at(buf, count,
+		"armplldiv_muxsel=0x%08x armplldiv_ckdiv=0x%08x ",
+		observation.armplldiv_muxsel, observation.armplldiv_ckdiv);
+	count += sysfs_emit_at(buf, count,
+		"big_pll_pcw=0x%08x big_pll_enable_posdiv=0x%08x ",
+		observation.big_pll_pcw, observation.big_pll_enable_posdiv);
+	count += sysfs_emit_at(buf, count,
+		"b_pcw=0x%08x b_posdiv=%u b_mux=%u b_divider=%u ",
 		big->pll_pcw, big->posdiv, big->mux_selector,
-		big->divider_selector,
+		big->divider_selector);
+	count += sysfs_emit_at(buf, count,
+		"ll_khz=%u l_khz=%u b_khz=%u cci_khz=%u\n",
 		observation.state.cluster[
 			MT6797_DVFSP_CLOCK_STATE_CLUSTER_LL].frequency_khz,
 		observation.state.cluster[
@@ -258,6 +243,8 @@ static ssize_t a72_frequency_observation_show(
 		big->frequency_khz,
 		observation.state.cluster[
 			MT6797_DVFSP_CLOCK_STATE_CLUSTER_CCI].frequency_khz);
+	dev_info(dev, "GEMINI_A72_FREQUENCY_OBSERVATION_V1 %s", buf);
+	return count;
 }
 static DEVICE_ATTR_RO(a72_frequency_observation);
 
@@ -544,6 +531,7 @@ config MTK_MT6797_A72_FREQUENCY_OBSERVER_KUNIT_TEST
 	  Exercise live-value composition, the three-attempt cap, failure budget,
 	  malformed samples, and source guards with injected memory records only.
 	  No device, MMIO, I2C, SMC, CPU, watchdog, or network action occurs.
+	  The production sysfs interface and hardware transports are not invoked.
 '''
 
 
