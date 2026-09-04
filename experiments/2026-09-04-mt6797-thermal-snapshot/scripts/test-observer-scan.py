@@ -9,6 +9,7 @@ from pathlib import Path
 import argparse
 import hashlib
 import re
+import resource
 import subprocess
 import tempfile
 
@@ -66,7 +67,7 @@ struct mtk_thermal {
 };
 struct thermal_zone_device { struct mtk_thermal *mt; };
 static struct mtk_thermal *thermal_zone_device_priv(struct thermal_zone_device *tz) { return tz->mt; }
-static int temperatures[7], reads, conversions, gets, puts, selected, held;
+static int temperatures[7], reads, conversions, bank_gets, bank_puts, selected, held;
 static const int expected_banks[] = {0, 1, 2, 2, 3, 4, 5};
 static const int expected_sensors[] = {0, 3, 1, 2, 1, 1, 1};
 static unsigned char registers[8];
@@ -82,15 +83,15 @@ static int convert(struct mtk_thermal *mt, int sensor, int32_t raw) {
 }
 static bool mtk_thermal_temp_is_valid(int t) { return t >= -20000 && t <= 150000; }
 static void mtk_thermal_get_bank(struct mtk_thermal_bank *bank) {
-    assert(!held && bank->id == gets);
-    selected = bank->id; held = 1; gets++;
+    assert(!held && bank->id == bank_gets);
+    selected = bank->id; held = 1; bank_gets++;
 }
 static void mtk_thermal_put_bank(struct mtk_thermal_bank *bank) {
-    assert(held && bank->id == puts);
-    held = 0; puts++;
+    assert(held && bank->id == bank_puts);
+    held = 0; bank_puts++;
 }
-static void reset_counts(void) { reads = conversions = gets = puts = held = 0; }
-static void check_counts(void) { assert(reads == 7 && conversions == 7 && gets == 6 && puts == 6 && !held); }
+static void reset_counts(void) { reads = conversions = bank_gets = bank_puts = held = 0; }
+static void check_counts(void) { assert(reads == 7 && conversions == 7 && bank_gets == 6 && bank_puts == 6 && !held); }
 '''
 main = r'''
 int main(void) {
@@ -155,5 +156,23 @@ with tempfile.TemporaryDirectory(prefix='scan-oracle.', dir=managed) as work:
     (root / 'oracle.c').write_text(preamble + '\n' + bank + '\n' + scan + '\n' + poll + '\n' + main)
     subprocess.run(['cc', '-std=gnu11', '-Wall', '-Wextra', '-Werror', '-I', str(root),
                     str(root / 'oracle.c'), '-o', str(root / 'oracle')], check=True)
+    resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
     subprocess.run([str(root / 'oracle')], check=True)
+    positive = (root / 'oracle.c').read_text()
+    mutations = {
+        'extra-read': ('raw = readl(', 'raw = readl(mt->thermal_base + conf->msr[i]); raw = readl('),
+        'missing-capture': ('if (snapshot)', 'if (0 && snapshot)'),
+        'invalid-return': ('temp = THERMAL_TEMP_INVALID;', 'temp = 0;'),
+        'missing-unlock': ('mtk_thermal_put_bank(bank);', '(void)bank;'),
+    }
+    for name, (old, new) in mutations.items():
+        assert positive.count(old) == 1, name
+        (root / 'oracle.c').write_text(positive.replace(old, new))
+        # Missing-unlock intentionally leaves an unused stub; ignore that only.
+        subprocess.run(['cc', '-std=gnu11', '-Wall', '-Wextra', '-Werror',
+                        '-Wno-unused-function', '-I', str(root),
+                        str(root / 'oracle.c'), '-o', str(root / 'oracle')], check=True)
+        result = subprocess.run([str(root / 'oracle')], capture_output=True)
+        assert result.returncode != 0, name
+    print('scan_mutations_rejected=4')
 print('driver_sha256=' + hashlib.sha256(text.encode()).hexdigest())
