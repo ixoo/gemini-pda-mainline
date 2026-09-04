@@ -6,6 +6,7 @@
 #include <linux/export.h>
 #include <linux/gemini_mt6797_thermal_ledger.h>
 #include <linux/io.h>
+#include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/of.h>
 #include <linux/of_address.h>

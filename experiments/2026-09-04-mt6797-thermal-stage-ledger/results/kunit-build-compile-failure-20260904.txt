@@ -1,0 +1,16 @@
+validation=mt6797-thermal-stage-ledger-kunit-build
+repository_commit=210067af8aad7ac58156d2f1793b96eaf9a05dda
+profile=mt6797-thermal-stage-ledger-kunit
+backend=buildbox
+job_log=/workspace/gemini-pda/jobs/210067af8aad7ac58156d2f1793b96eaf9a05dda-mt6797-thermal-stage-ledger-kunit-m0.log
+first_error_file=fs/pstore/gemini_mt6797_thermal_ledger.c
+first_error_line=431
+first_error=MODULE_DESCRIPTION unavailable without linux/module.h
+compile_completed=no
+kunit_ran=no
+native_vm_kernel_build=no
+hardware_action=none
+device_action=none
+boot_candidate=false
+result=failed
+next_action=regenerate and admit patches with explicit linux/module.h include, then retry exact Buildbox KUnit profile

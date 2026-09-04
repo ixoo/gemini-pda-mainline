@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-thermal-stage-ledger` |
-| Status | `patch-generated`; KUnit and production builds pending |
+| Status | `KUnit compile correction pending`; production build pending |
 | Subsystem | MT6797 thermal probe and ordered AUXADC transaction |
 | Device variant | Planet Computers Gemini PDA, MT6797 |
 | Date(s) | 2026-09-04 |
@@ -65,3 +65,10 @@ owned by the [thermal-serviceability experiment](../2026-09-04-mt6797-thermal-se
   KUnit cases, nine total transaction cases, and no CPU or storage action.
   Strict Checkpatch reported zero errors, warnings, or checks. See
   [results/patch-generation-20260904.txt](results/patch-generation-20260904.txt).
+- The first exact KUnit-profile build from admitted revision `210067af8aad...`
+  stopped while compiling the record-5 owner because its translation unit used
+  `MODULE_DESCRIPTION` and `MODULE_LICENSE` without including
+  `<linux/module.h>`. No KUnit, device, or storage action occurred. The
+  experiment template now carries that explicit include; the patches and
+  admitted series must be regenerated before retrying the build. See
+  [results/kunit-build-compile-failure-20260904.txt](results/kunit-build-compile-failure-20260904.txt).
