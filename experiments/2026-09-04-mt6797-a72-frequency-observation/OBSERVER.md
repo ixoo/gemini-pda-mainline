@@ -86,4 +86,15 @@ independent CPU8/CPU9 accounting movement, and all finite RAM hashes to match.
 A transport or decoder failure selects observation repair without increasing
 load. A lifecycle failure selects the existing lifecycle evidence path. A
 thermal anomaly stops the run. Longer load, cpufreq/OPP, extra hotplug, idle,
-suspend, and an identical-artifact repeat remain closed.
+and suspend remain closed.
+
+The first admitted successor boot completed stage 18 with both A72 CPUs online
+and independently retained that success, but its first observer read failed
+before a sample. The original host failure path omitted the already-generated
+kernel failure line, so the exact errno was lost before automatic Gemian
+recovery. One identical-candidate repeat is therefore permitted solely with a
+new independent observation path: after a failed first read it immediately
+emits the existing `attempt=N/3 ret=-ERRNO` line and CPU/lifecycle status, then
+proves no second observer request or load occurred. The errno must determine
+the next repair, and no further identical-artifact repeat is authorized by this
+exception.

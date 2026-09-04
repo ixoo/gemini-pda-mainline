@@ -10,10 +10,10 @@ readonly DEVICE_ADDRESS=10.15.19.82
 readonly DEVICE_PORT=2323
 readonly HOST_MAC_82=42:00:15:19:82:00
 readonly HOST_MAC_84=42:00:15:19:84:00
-readonly BUILDER_SHA256=25bbb9d3921f788c208e637b0b58269928f493414817ff2070c2287b4e8610a6
-readonly CLASSIFIER_SHA256=e75bd7bbbda1a88019ceefd0b37a81590ab4cc61d78159c45b3a61b7f5755d96
+readonly BUILDER_SHA256=fab00a36dc17b974a3effa7726a409f5336f5789eab2dbeeb2c4d7bf3e1d48de
+readonly CLASSIFIER_SHA256=3b53a484fd48637b8cda651f6590740d2681e720804309576742dadd14cea632
 readonly COMMAND_MARKER=__GEMINI_A72_FREQUENCY_RUNTIME_SCRIPT__
-readonly EXPECTED_CAPTURE=artifacts/runtime-captures/a72-frequency-thermal-successor-attempt-1
+readonly EXPECTED_CAPTURE=artifacts/runtime-captures/a72-frequency-thermal-successor-attempt-2
 
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }
 capture=
@@ -108,15 +108,30 @@ nc_rc=$?
 set -e
 chmod 0600 "$transcript"
 printf 'netcat_complete=yes status=%s\n' "$nc_rc" >>"$events"
+set +e
 python3 "$classifier" "$transcript" --boot-id "$boot_id" >"$classification"
-grep -Fqx 'runtime_classification=stage18-thermal-frequency-bounded-load-pass' "$classification" ||
-	die 'production runtime frame rejected'
-printf 'classification=pass\nnative_reboot_command_sent=no\ndevice_left_running=yes\n' >>"$events"
+classifier_rc=$?
+set -e
+[[ -s "$classification" ]] || die "runtime classifier produced no result rc=$classifier_rc"
+if ((classifier_rc == 0)); then
+	grep -Fqx 'runtime_classification=stage18-thermal-frequency-bounded-load-pass' "$classification" ||
+		die 'runtime classifier returned success without the pass classification'
+	classification_result=pass
+else
+	classification_result=rejected
+fi
+printf 'classification=%s\nnative_reboot_command_sent=no\ndevice_left_running=yes\n' \
+	"$classification_result" >>"$events"
 (cd "$capture" && sha256sum deployment-summary.txt observer-events.txt \
 	pretrigger-classification.txt pretrigger.txt runtime-classification.txt \
 	runtime-events.txt runtime.txt >SHA256SUMS)
 chmod 0600 "$capture"/*
 cleanup
 trap - EXIT HUP INT TERM
+if ((classifier_rc != 0)); then
+	cat "$classification"
+	printf 'native_reboot_command_sent=no\ncapture=%s\n' "$capture"
+	exit "$classifier_rc"
+fi
 printf 'runtime_classification=stage18-thermal-frequency-bounded-load-pass\n'
 printf 'retries=0\nnative_reboot_command_sent=no\ncapture=%s\n' "$capture"

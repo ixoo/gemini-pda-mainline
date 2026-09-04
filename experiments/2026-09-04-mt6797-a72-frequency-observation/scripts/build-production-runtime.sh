@@ -57,10 +57,31 @@ if lifecycle.count(shebang) != 1 or not lifecycle.startswith(shebang):
 lifecycle = lifecycle.replace(
     shebang, shebang + "# shellcheck disable=SC2016\n", 1,
 )
+identity_replacements = (
+    ("[ \"$($BB uname -r)\" = 7.1.3-gemini-a72-hotplug-physical ] || "
+     "reject_preflight kernel-identity",
+     "[ \"$($BB uname -r)\" = 7.1.3-gemini-a72-frequency-thermal ] || "
+     "reject_preflight kernel-identity"),
+    ("d4940602e7ad9cbc947376bfb9dc4222ef5a671faa15eb42a821df1852af9ba4",
+     "018de9150ffcf0b7b30fe7c45f3863555909c87e92ec4e868f30ef74a0e8cd2e"),
+)
+for old, new in identity_replacements:
+    if lifecycle.count(old) != 1 or lifecycle.count(new) != 0:
+        raise SystemExit("unsafe lifecycle production identity substitution")
+    lifecycle = lifecycle.replace(old, new, 1)
 old_exit = 'exit "$trigger_write_status"\n'
 gate = r'''frequency_reject()
 {
 	$BB printf '__A72_FREQUENCY_THERMAL_REJECTED__ reason=%s\n' "$1"
+	$BB printf 'failure_cpu_online='; $BB cat /sys/devices/system/cpu/online
+	$BB printf 'failure_cpu_offline='; $BB cat /sys/devices/system/cpu/offline
+	$BB printf 'failure_status='; $BB cat "$STATUS" 2>/dev/null || $BB printf 'unreadable\n'
+	$BB printf 'failure_frequency_log_count='; $BB dmesg 2>/dev/null |
+		$BB grep -Fc 'GEMINI_A72_FREQUENCY_OBSERVATION_V1'
+	$BB dmesg 2>/dev/null |
+		$BB grep -F 'GEMINI_A72_FREQUENCY_OBSERVATION_V1' |
+		$BB tail -n 3 || true
+	$BB printf '%s\n' failure_frequency_observation_request=none
 	exit 3
 }
 

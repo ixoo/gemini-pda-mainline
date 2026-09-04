@@ -181,6 +181,7 @@ def main() -> int:
     parser.add_argument("capture", type=Path)
     parser.add_argument("--boot-id", required=True)
     args = parser.parse_args()
+    text = ""
     try:
         require(bool(re.fullmatch(
             r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}",
@@ -255,7 +256,16 @@ def main() -> int:
     except (OSError, Rejected, UnicodeError) as error:
         print("runtime_classification=rejected")
         print(f"runtime_reason={error}")
-        print("frequency_observer_attempts=unknown")
+        failure = re.findall(
+            r"GEMINI_A72_FREQUENCY_OBSERVATION_V1 "
+            r"attempt=([1-3])/3 ret=(-[0-9]+)", text
+        )
+        if len(failure) == 1:
+            print(f"frequency_observer_attempts={failure[0][0]}-of-3")
+            print(f"frequency_observer_errno={failure[0][1]}")
+        else:
+            print("frequency_observer_attempts=unknown")
+            print("frequency_observer_errno=unknown")
         print("cpu_off_request_maximum=1")
         print("retries=0")
         print("native_reboot_requested=no")

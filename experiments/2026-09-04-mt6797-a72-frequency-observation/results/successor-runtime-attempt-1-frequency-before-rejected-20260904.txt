@@ -1,0 +1,122 @@
+result=stage18-pass-frequency-before-rejected
+date_utc=2026-09-04
+candidate_sha256=54a02dd0e46d54702284e679847c69f28c64cc392fca97c9b8d1940374484da7
+raw_candidate_sha256=24cb227b415a3285e4518318fece7cd1c080659d6132470e2e08d590fa58089f
+kernel_input_commit=5d892a1c83b8ae5099bbfd5d379f726d04c4ebde
+kernel_release=7.1.3-gemini-a72-frequency-thermal
+record_identity=018de9150ffcf0b7b30fe7c45f3863555909c87e92ec4e868f30ef74a0e8cd2e
+config_inputs_sha256=18ded825be6993a5a403f8cd526e3682199cc55afce876f36b7f194faced0b25
+boot_id=122934e8-05c2-4484-b759-7f1d2285340a
+user_observation_console_visible=no
+usb_netcat_serviceable=yes
+pretrigger_classification=serviceable-pristine-thermal-frequency-ready
+pretrigger_cpu_online=0-7
+pretrigger_cpu_offline=8-9
+pretrigger_observer_attempts=0-of-3
+pretrigger_trigger_executions=0
+pretrigger_late_profile=ready
+pretrigger_thermal_zone=soc-thermal
+initial_host_tooling_rejection=kernel-identity
+initial_host_tooling_mutation=none
+initial_host_tooling_trigger_commit=no
+runtime_trigger_commit=yes
+runtime_trigger_write_status=0
+runtime_trigger_executions=1
+runtime_operation_ret=0
+runtime_cpu_online=0-9
+runtime_cpu_offline=none
+runtime_cpu8_boot_count=1
+runtime_cpu9_boot_count=2
+runtime_binding_ret=0
+runtime_binding_terminal=5
+runtime_binding_last_stage=18
+runtime_binding_restore_last_stage=18
+runtime_binding_p30e_rearmed=1
+runtime_binding_cpu8_online=1
+runtime_binding_cpu9_online=1
+runtime_frequency_result=rejected-before-first-sample
+runtime_frequency_errno=not-captured
+runtime_frequency_observation_requests=1
+runtime_additional_frequency_requests=0
+runtime_workload_started=no
+runtime_native_reboot_requested=no
+automatic_return_to_gemian=yes
+recovery_boot_id=8c26b876-9f7a-499e-a8f4-7bd2264d08ee
+recovery_kernel_release=3.18.41+
+recovery_remote_pstore_records_removed=no
+hotplug_ledger_decode=pass
+hotplug_ledger_stage=18
+hotplug_ledger_terminal=restored-success
+hotplug_ledger_error=0
+hotplug_ledger_online_mask=0x3ff
+hotplug_ledger_members=0x3
+hotplug_ledger_cpu_off_calls=1
+hotplug_ledger_affinity_calls=1
+hotplug_ledger_cpu8_ipi_calls=1
+hotplug_ledger_cpu_on_calls=1
+hotplug_ledger_restore_readiness_samples=1
+hotplug_ledger_readback_mismatch=post-status2-cpu9-present
+thermal_ledger_decode=pass
+thermal_ledger_operation=probe-complete
+thermal_ledger_terminal=success
+selected_next=one-identical-candidate-error-capture-repeat
+
+Private attempt-capture identities:
+deployment_summary_sha256=247db2351038a1fe6e8bb1fc686f3fba35f7642a59d73a53518638c94affa3f3
+observer_events_sha256=e727c8d4b42f9f4b4a268d87600cda6506fb75385b8e633148466dbd0a365fe1
+pretrigger_classification_sha256=f9eba7065acf0dcf471fe3cdc4a569325b0958d973e993a180115cc434b0c3d9
+pretrigger_sha256=9886100f473300ab838d0fb27a94aba1d990d4f96be2f7bcef8273279ac4ca65
+runtime_classification_sha256=27073a1379372a45f4fd4ae1070b1f10ff60ac1e8b62e513b152adfd7f513042
+runtime_events_sha256=220299e19520040dea18641cad726f292e5b638dfb79a60f10f7dcae34f0f095
+runtime_transcript_sha256=697b8dbdc3aa4501259f3edb68754a82d96ea3292f96a6e93d46ed7945e28b6e
+
+Private initial host-tooling rejection identities:
+runtime_classification_sha256=6d02f07853001f2cc820f23c69550f69437cb03aca0f77e506c9bfa0c4c27da0
+runtime_events_sha256=13e4db60547db73a6f22b1f2273bcc1a4526279a16a0eea85a8aaec8c75fe829
+runtime_transcript_sha256=b0167d60582a1f870546184e16133b56593d90070116e80565dde03ee91848b2
+
+Private recovery identities:
+dmesg_ramoops_0_sha256=816824e027ae83724167220695a07c19df128fcd3449b51678bb747ad1ed7ae2
+dmesg_ramoops_1_sha256=c3d07cd4e0663b8a2c57bfcf8d58245462267c3d577d7212fe2a2a2176d0f4fb
+dmesg_ramoops_2_sha256=a735465121cfc5152da6ff06408a95650dfb760977fe10cb41648a3a3900796f
+dmesg_ramoops_3_sha256=036dd0eb2f829be76d175e56ca63515d3fb6fe6ac79405f5940071bad9b1646d
+dmesg_ramoops_4_sha256=d8c9ccfa0e1db387c127979b09f14b489c8fe7293032d9bd102f9294601afe48
+dmesg_ramoops_5_sha256=a31f5993995a9c9e06cd57b6cac496838ef42e84d547f70eb196a86e21f2729e
+hotplug_ledger_decoded_sha256=c09f8d9425996b203e4f7ca74e83b57a23b50da45257dcdb73aef88f2fe3f997
+thermal_ledger_decoded_sha256=084204572a6f67e3a90c00381303cfa4b3d536f9d4192d975a978bb32dac1e7f
+recovery_manifest_sha256=60d6f22dd56c40c26340eae4c268d00d5a8c883acbef7d9c5a3c8f5825e4a1ab
+
+Interpretation:
+
+The exact successor passed its zero-read admission frame. The first generated
+runtime still contained the inherited lifecycle release identity, so its
+device-side preflight rejected before remounting sysfs or firing the trigger.
+The host generator was corrected to materialize this production release and
+record identity, and the same pristine boot was then used for the permitted
+one-shot transaction.
+
+That transaction is a decisive current-mainline CPU result. It committed once,
+returned zero, brought CPU8 and CPU9 online, completed one CPU9-only down and
+restore, and ended with CPUs 0--9 online. The live binding record reached stage
+18 with both A72s online. Changed-ID Gemian recovery independently decoded the
+CRC-valid hotplug ledger as stage 18, restored-success, error zero, online mask
+0x3ff, and the exact one-call CPU_OFF/affinity/CPU8-IPI/CPU_ON budget. The
+recorded post-status2 CPU9-present mismatch bit coexists with the successful
+terminal state and is preserved rather than interpreted away. The thermal
+ledger also ended probe-complete/success.
+
+The combined thermal/frequency/load acceptance test did not pass. The first
+frequency observer read returned nonzero before a sample was printed, so no
+workers or load were started. The then-published failure path discarded the
+kernel's bounded failure line; automatic return to Gemian removed live dmesg
+before a read-only follow-up, leaving the exact errno unknown. No native reboot
+was requested by the host, and the owner's missing-console observation remains
+separate from the exact USB and retained-RAM evidence.
+
+One same-candidate repeat is justified solely because the revised host runtime
+adds a durable, independent observation path: on failure it immediately emits
+the existing kernel line `GEMINI_A72_FREQUENCY_OBSERVATION_V1 attempt=N/3
+ret=-ERRNO`, the CPU/status frame, and an explicit proof that no second observer
+read is made. The exact errno will select clock transport, stable BigiDVFS
+sampling, decoder/shape, or another specific repair. The repeat must not add
+load after an observer failure and must not perform a second observer read.

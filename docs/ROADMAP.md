@@ -31,7 +31,7 @@ Cortex-A72 pair.
 | I2C6 transfer | Native packed/FIFO pointer-read and one exact one-message two-byte FIFO write are runtime proven. The write completed once with payload `[0xda, 0x46]`, exact no-retry accounting, and stable readback. | This closes only the reviewed same-value shape; arbitrary writes, failure recovery, stress, and resume remain open. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
 | Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected. A separate hardware-free implementation now models exact positive Buck-B acquire/release and passes all six focused fake-adapter cases. | Gate 6 is closed for the reviewed no-op, and the first Gate-7 provider source boundary is complete offline. Physical transition, production integration, consumers, and CPU requests remain disconnected. |
-| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile, but the isolated exact path now completes CPU8/CPU9 admission plus one CPU9-only down/restore transaction on repeated fresh boots. The topology-preserving artifact publishes the standard one-package 4+4+2 map, and its first integrated bounded-load attempt preserved stage-18 success while CPU8/CPU9 passed exact affinity, four cross-CPU 1.9 MiB volatile-RAM hashes, independent 255/257-tick accounting, cleanup, and changed-boot retained proof. | Stop adding bring-up repairs: the transaction boundary is closed. Before increasing load duration, establish attributable thermal/frequency observability. Then run separate repeated cold-load, broader hotplug, idle/suspend, default-profile, and upstream gates while preserving A53 and serviceability baselines. |
+| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile, but the isolated exact path now completes CPU8/CPU9 admission plus one CPU9-only down/restore transaction on repeated fresh boots. The topology-preserving artifact publishes the standard one-package 4+4+2 map, and its first integrated bounded-load attempt preserved stage-18 success while CPU8/CPU9 passed exact affinity, four cross-CPU 1.9 MiB volatile-RAM hashes, independent 255/257-tick accounting, cleanup, and changed-boot retained proof. The thermal/frequency successor again completed stage 18 with CPUs 0--9 online, but its first frequency read failed before a sample while thermal retained success. | Stop adding bring-up repairs: the transaction boundary is closed and thermal observation is live-proven. Capture the exact first-read frequency errno, repair that narrow boundary, then run separate repeated cold-load, broader hotplug, idle/suspend, default-profile, and upstream gates while preserving A53 and serviceability baselines. |
 
 The durable technical boundary is in
 [DA921x, I2C6, and Cortex-A72](hardware/da921x-i2c6-a72.md). The exact
@@ -48,8 +48,8 @@ critical path is:
 1. preserve the completed DA921x, provider, CPU-up, serviceability, topology,
    RAM-integrity, repeated CPU9 down/restore, and bounded lifecycle-plus-load
    runtime gates;
-2. establish read-only thermal and frequency observability before increasing
-   load duration or intensity;
+2. preserve the live-proven thermal observation and establish read-only
+   frequency observability before increasing load duration or intensity;
 3. validate repeated cold-load cycles, broader hotplug, cpufreq/OPP, thermal
    protection, idle, and suspend as separate bounded gates;
 4. promote the proven A72 path from its isolated profile and take the reusable
@@ -71,7 +71,7 @@ fixed DA921x/A72 experiment baseline. The immediate critical chain is:
 The first three transitions and one bounded lifecycle-plus-load child now
 pass. The active critical chain is therefore:
 
-`thermal/frequency observability -> repeated bounded stress/cold boot -> broader hotplug -> idle/suspend -> default/upstream integration`
+`frequency observability (thermal proven) -> repeated bounded stress/cold boot -> broader hotplug -> idle/suspend -> default/upstream integration`
 
 ## Ordered gates
 
@@ -8208,11 +8208,30 @@ admitted identities and capture path. Guarded deployment resolved inactive
 live-GPT `boot2` as `/dev/mmcblk0p30`, replaced retired `03cbaa72...`, and
 independently read and compared the full 16 MiB as exact `54a02dd0...` under
 stable power. It made no new backup, issued no reboot, and confirmed shutdown.
-**Selected next:** make one fresh physical `boot2` selection with USB attached.
-Treat the display as non-authoritative: direct-USB netcat must prove the exact
-release, one read-only observer, ready late profile, and zero attempts before
-the one bounded runtime. Keep longer load, cpufreq/OPP changes, extra hotplug,
-idle, suspend, and same-artifact repeat closed.
+The fresh successor boot then passed that exact pristine USB/netcat gate on
+boot ID `122934e8...`, although the owner saw no local console. Its permitted
+one-shot lifecycle returned zero: CPU8 booted once, CPU9 booted before and
+after its one down/restore transaction, the binding completed at stage 18, and
+CPUs 0--9 remained online. The first frequency-observer read then failed before
+printing a sample, so the finite load did not start. The published host failure
+path did not retain the kernel's errno, and the device automatically returned
+to changed-ID Gemian without a host reboot request. Recovery independently
+decoded the CRC-valid hotplug ledger as stage 18, restored-success, error zero,
+online mask `0x3ff`, members `0x3`, and the exact one-call CPU_OFF, affinity,
+CPU8-IPI, and restore-CPU_ON budget; the thermal ledger ended probe-complete/
+success. This is direct exact-current-mainline evidence that CPU8 and CPU9 can
+complete the full lifecycle on the successor, but it is not yet a frequency or
+combined load pass. **Selected next:** publish the host-only failure-capture
+repair, verify exact `54a02dd0...` remains on inactive `boot2`, shut Gemian
+down, and make one justified identical-candidate repeat. The new path must
+immediately retain the existing `attempt=N/3 ret=-ERRNO` kernel line and CPU/
+lifecycle state after the first failed read, with no second observer request or
+load. `-EAGAIN` selects stable-sampling/timing work; `-ETIMEDOUT` or `-EIO`
+selects protected-clock transport work; `-EPROTO` selects record-shape/decoder
+work; any other errno selects a focused audit. If the first sample succeeds,
+continue only through the already-bounded three-sample/load frame. No further
+same-artifact repeat, longer load, cpufreq/OPP change, extra hotplug, idle, or
+suspend is admitted.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

@@ -145,12 +145,30 @@ def main() -> int:
             "boot-ID marker remained")
     require(materialized.count(BOOT_ID) == 2,
             "materialized boot-ID count changed")
+    require(materialized.count(
+        '[ "$($BB uname -r)" = 7.1.3-gemini-a72-frequency-thermal ] || '
+        'reject_preflight kernel-identity') == 1,
+        "production kernel identity was not materialized")
+    require(materialized.count(
+        "018de9150ffcf0b7b30fe7c45f3863555909c87e92ec4e868f30ef74a0e8cd2e"
+    ) == 1, "production record identity was not materialized")
+    for stale in (
+        '[ "$($BB uname -r)" = 7.1.3-gemini-a72-hotplug-physical ]',
+        "d4940602e7ad9cbc947376bfb9dc4222ef5a671faa15eb42a821df1852af9ba4",
+    ):
+        require(stale not in materialized,
+                f"stale lifecycle identity remained: {stale}")
     require(materialized.count("frequency_observe before") == 1 and
             materialized.count("frequency_observe during") == 1 and
             materialized.count("frequency_observe after") == 1,
             "three-attempt observation boundary changed")
     require(materialized.count('cat "$FREQUENCY_OBSERVER"') == 1,
             "observer transport site count changed")
+    require(materialized.count(
+        "failure_frequency_observation_request=none") == 1 and
+        materialized.count(
+            "grep -F 'GEMINI_A72_FREQUENCY_OBSERVATION_V1'") >= 2,
+        "observer failure evidence path changed")
     require(materialized.index("frequency_observe before") <
             materialized.index('kill -0 "$pid8"') <
             materialized.index("frequency_observe during") <
@@ -179,6 +197,15 @@ def main() -> int:
         in accepted.stdout,
         "success classification changed",
     )
+    failed = classify(
+        valid + "__A72_FREQUENCY_THERMAL_REJECTED__ reason=frequency-before\n"
+        "GEMINI_A72_FREQUENCY_OBSERVATION_V1 attempt=1/3 ret=-11\n"
+    )
+    require(failed.returncode == 3,
+            "observer failure fixture was not rejected")
+    require("frequency_observer_attempts=1-of-3" in failed.stdout and
+            "frequency_observer_errno=-11" in failed.stdout,
+            "observer failure identity was not preserved")
     mutations = (
         valid.replace("attempt=2", "attempt=1", 1),
         valid.replace("remaining=0", "remaining=1", 1),

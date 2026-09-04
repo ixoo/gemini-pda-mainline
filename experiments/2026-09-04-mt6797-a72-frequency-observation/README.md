@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-a72-frequency-observation` |
-| Status | `running`; successor installed and shut down, fresh boot selected |
+| Status | `running`; successor completed stage 18 with CPU8/CPU9 online, exact observer errno repeat pending |
 | Subsystem | MT6797 CPU clock readback / Cortex-A72 lifecycle |
 | Device variant | Gemini PDA x27, named development unit |
 | Date(s) | 2026-09-04 |
@@ -46,11 +46,13 @@ observations and a finite volatile-RAM workload; it has no storage or reboot
 action.
 
 No device action occurred during the offline gate. The exact validated
-candidate is eligible for the standing guarded `boot2` workflow: live GPT
-resolution, inactive/unmounted target checks, no fresh backup, full 16 MiB
-readback, and clean shutdown. One later fresh boot may run only the frozen
-three-sample bounded observation; longer load and all policy experiments remain
-closed.
+candidate used the standing guarded `boot2` workflow: live GPT resolution,
+inactive/unmounted target checks, no fresh backup, full 16 MiB readback, and
+clean shutdown. Its first live transaction completed the inherited stage-18
+lifecycle but stopped before load when the first frequency read failed. One
+same-candidate repeat is now limited to the revised, immediately durable errno
+capture path; longer load after an observer failure and all policy experiments
+remain closed.
 
 ## Associated code
 
@@ -111,6 +113,9 @@ closed.
   registration oracle, DT/container identities, and new candidate admission.
 - `results/successor-deployment-20260904.txt`: live-GPT target resolution,
   predecessor, exact full readback, no-backup policy, and confirmed shutdown.
+- `results/successor-runtime-attempt-1-frequency-before-rejected-20260904.txt`:
+  exact live CPU8/CPU9 stage-18 success, observer-first-read rejection,
+  changed-ID retained proof, and the decision-changing repeat boundary.
 
 ## Procedure
 
@@ -134,6 +139,9 @@ closed.
    freeze a boot-ID-bound zero-read pretrigger and finite runtime classifier.
 10. Publish those inputs before one guarded `boot2` installation and one fresh
     live observation.
+11. If the first observer read fails without preserving its kernel errno,
+    publish an immediate failure-log path and permit one identical-candidate
+    repeat solely to classify that error before selecting a code change.
 
 ## Observations
 
@@ -262,6 +270,27 @@ closed.
   compared all 16 MiB as exact successor `54a02dd0...`, made no new backup,
   issued no reboot, and confirmed clean shutdown. See
   [results/successor-deployment-20260904.txt](results/successor-deployment-20260904.txt).
+- The fresh successor boot reached exact release
+  `7.1.3-gemini-a72-frequency-thermal`, record `018de915...`, and boot ID
+  `122934e8...` over direct USB while the owner observed no visible console.
+  Its zero-read frame passed with one mode-0444 observer, thermal serviceability,
+  a ready late profile, CPUs 0--7 online, CPUs 8--9 offline, and pristine
+  observer/lifecycle accounting.
+- The initially generated runtime inherited the predecessor lifecycle release
+  check and rejected `kernel-identity` before any remount, trigger, CPU request,
+  or observer read. After correcting the host-only materialization, the same
+  pristine boot committed one trigger. CPU8 booted once, CPU9 booted before and
+  after its one down/restore transaction, the binding record returned zero at
+  stage 18, and CPUs 0--9 were online. The first frequency read then failed
+  before printing a sample, so the finite workload never started. The old host
+  failure path did not preserve the kernel errno.
+- The device returned automatically to changed-ID Gemian boot
+  `8c26b876...`; no native reboot command had been issued. Private recovery left
+  all remote records intact and decoded the CRC-valid hotplug ledger as stage
+  18, `restored-success`, error zero, online mask `0x3ff`, members `0x3`, and
+  one call each to CPU_OFF, affinity, CPU8 IPI, and restore CPU_ON. The thermal
+  ledger independently ended `probe-complete`/success. See
+  [results/successor-runtime-attempt-1-frequency-before-rejected-20260904.txt](results/successor-runtime-attempt-1-frequency-before-rejected-20260904.txt).
 
 ## Analysis
 
@@ -275,28 +304,38 @@ thermal, topology, RAM-integrity, or accounting results.
 The decoder repair remains valid: transport stability is owned by the existing
 protected-clock semaphore sample and the BigiDVFS identical-double-sample
 backend; bit 31 is not reused as a second unsupported stability oracle. The
-first production boot exposed two later integration defects, not a conversion
-failure. The successor now adds this exact profile's compile-time runtime-
-binding identity and attaches the bounded observer to the in-memory snapshot
-source owned by the physical binder. The clean production build, two focused
-runtime suites, static registration oracle, and independent candidate gates
-prove those paths offline; only live pretrigger evidence can now accept or
-reject their real-device composition.
+successor fixed the two integration omissions and its live transaction now
+proves the physical binder can complete stage 18 with both Cortex-A72 CPUs
+online on this exact configuration. That is a material current-mainline CPU
+result even though the larger composite acceptance test rejected.
+
+The unresolved boundary is narrower than before the boot. The observer exists
+and its first read was reached, but the old host failure path discarded the
+kernel's `attempt=N/3 ret=-ERRNO` line. Without that errno it is not responsible
+to guess between protected-clock transport, stable BigiDVFS sampling,
+decoder/shape, or another specific failure. The revised host-only runtime
+prints that existing log immediately, records CPU/status state, and explicitly
+makes no second observer request.
 
 ## Conclusion
 
-`successor installed`: the first candidate's live pretrigger correctly
-found a stale runtime-binding identity and no production observer attachment.
-Canonical patches `0529`--`0530` repair those two omissions, and exact successor
-`54a02dd0...` passes every required offline gate. This is not yet a live
-CPU8/CPU9 or frequency result. The guarded deployment and shutdown are now
-complete; one fresh boot and its zero-read pretrigger remain authorized.
+`stage-18 CPU8/CPU9 pass; frequency-before rejected`: exact successor
+`54a02dd0...` passed its pristine live pretrigger and completed one stage-18
+CPU8/CPU9 lifecycle with CPUs 0--9 online. Changed-ID retained evidence
+independently sealed the restored-success result. The first frequency observer
+read failed before producing a sample, no load ran, and the exact errno was not
+retained. This is a live CPU8/CPU9 result, but not yet a frequency or composite
+thermal/frequency/load pass.
 
 ## Follow-up
 
-On one physical `boot2` selection with USB attached, ignore display state as an
-admission oracle and use exact USB/netcat identity. The zero-read pretrigger
-must show one read-only observer attribute, the exact new record identity, a
-ready late profile, and zero consumed attempts before the single bounded
-runtime is permitted. Keep identical-artifact repeats, longer load, cpufreq/OPP,
-extra hotplug, idle, and suspend closed.
+Publish the host-only failure-capture repair, verify exact `54a02dd0...` still
+occupies inactive live-GPT `boot2`, and shut Gemian down. One identical-candidate
+repeat is permitted because it adds a durable independent observation that can
+change the next code action: on an observer failure it must immediately retain
+the exact attempt/errno line, CPU/status frame, and proof that no second read or
+load occurred. A successful first sample may continue through the already
+bounded three-sample/load protocol. Treat display state as non-authoritative
+and require the fresh USB/netcat identity gate. Keep all further identical-
+artifact repeats, longer load, cpufreq/OPP, extra hotplug, idle, and suspend
+closed.

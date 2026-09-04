@@ -86,12 +86,32 @@ must also prove:
 
 Any observer transport/decoder failure selects observer repair without more
 load. A lifecycle failure selects the existing lifecycle evidence path. A
-thermal anomaly stops the run. No retry, CPU_OFF beyond the inherited one-shot
-CPU9 transaction, cpufreq/OPP change, longer load, idle, suspend, partition
-access, or same-artifact repeat is permitted.
+thermal anomaly stops the run. No CPU_OFF beyond the inherited one-shot CPU9
+transaction, cpufreq/OPP change, longer load, idle, suspend, or runtime
+partition access is permitted.
 
 The new pretrigger is pinned to candidate `54a02dd0...` and record identity
 `018de915...`. Visible console state is explicitly non-authoritative: admission
 requires the direct-USB netcat frame to prove the exact release, changed boot
 ID, one read-only observer, ready late profile, thermal serviceability, CPUs
 0--7 online, CPUs 8--9 offline, and zero observer or lifecycle attempts.
+
+The first admitted boot passed that frame and completed the inherited one-shot
+lifecycle: CPU8 and CPU9 came online, CPU9 completed its down/restore
+transaction, the binding reached stage 18, and CPUs 0--9 remained online. The
+first frequency read then returned an error before a sample, so no workload
+started. Changed-ID retained evidence independently sealed stage 18 as
+restored-success. The host script used for that attempt did not emit the
+kernel's existing observer failure line, so its exact errno was lost when the
+device automatically returned to Gemian.
+
+One same-candidate repeat is admitted as an exception to the normal no-repeat
+rule because it adds a durable, decision-changing observation path without
+changing the kernel, DT, configuration, or workload. On the first failed read,
+the revised runtime prints the existing
+`GEMINI_A72_FREQUENCY_OBSERVATION_V1 attempt=N/3 ret=-ERRNO` line plus the
+current CPU and lifecycle status, performs no second observer read, starts no
+load, and issues no reboot. That exact errno selects the next repair. If the
+first sample succeeds, the original bounded three-sample/load protocol remains
+the only permitted continuation. No further identical-artifact repeat is
+admitted by this exception.

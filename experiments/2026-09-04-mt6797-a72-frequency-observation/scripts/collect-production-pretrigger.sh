@@ -14,7 +14,7 @@ readonly HOST_MAC_84=42:00:15:19:84:00
 readonly REMOTE_SHA256=71ea6e7c30c0874a002b05495071b3979d63e7a449b8557545ae553561b3d652
 readonly VALIDATOR_SHA256=7f86575611c8fcaed0e0f7049f4d14019525d426980f860ece354dfeced49f2b
 readonly COMMAND_MARKER=__GEMINI_A72_FREQUENCY_PRETRIGGER_SCRIPT__
-readonly EXPECTED_OUTPUT=artifacts/runtime-captures/a72-frequency-thermal-successor-attempt-1
+readonly EXPECTED_OUTPUT=artifacts/runtime-captures/a72-frequency-thermal-successor-attempt-2
 
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }
 deployment_summary=
@@ -61,7 +61,7 @@ private_root=$repo_root/artifacts/runtime-captures
 private_root=$(cd -- "$private_root" && pwd -P)
 [[ "$(stat -f '%Lp' "$private_root")" == 700 ]] || die 'private runtime root mode is not 0700'
 [[ "$(dirname -- "$output")" == "$private_root" ]] || die 'output escaped private runtime root'
-[[ "$(basename -- "$output")" == a72-frequency-thermal-successor-attempt-1 ]] || die 'output identity changed'
+[[ "$(basename -- "$output")" == a72-frequency-thermal-successor-attempt-2 ]] || die 'output identity changed'
 git -C "$repo_root" check-ignore -q -- "$output" || die 'output is not ignored by Git'
 [[ ! -e "$output" && ! -L "$output" ]] || die 'refusing to overwrite runtime evidence'
 mkdir -m 0700 "$output"
