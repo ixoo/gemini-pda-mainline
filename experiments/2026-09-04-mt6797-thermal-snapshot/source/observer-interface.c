@@ -67,6 +67,7 @@ static struct attribute *mt6797_observer_attrs[] = {
 	&dev_attr_mt6797_temperature_snapshot_status.attr,
 	NULL,
 };
+
 static const struct attribute_group mt6797_observer_group = {
 	.attrs = mt6797_observer_attrs,
 };

@@ -1,0 +1,12 @@
+experiment=mt6797-thermal-snapshot-observer
+first_build_revision=dbbb6663bd89fb2b3d63ce6cd61bf133dda3eee3
+first_build_backend=buildbox
+first_build_profile=mt6797-thermal-observer-kunit
+first_build_result=compile-failed
+first_build_error=implicit-declaration-of-devm_device_add_groups
+first_build_package=none
+correction=use-devm_device_add_group-with-single-static-attribute-group
+classifier_positive_cases=1
+classifier_mutations_rejected=11
+device_action=none
+boot_candidate=none
