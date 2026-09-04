@@ -87,6 +87,11 @@ the offline decoder gate and a separate observation composition pass.
   20:0 and reads post-divider bits 26:24.
 - The BigiDVFS getter performs integer-MHz truncation before post-divider and
   kHz conversion. The repair must preserve that order.
+- Buildbox generated and replayed exact normal patches `0525` and `0526` from
+  clean pushed project revision `1e2bde54f05b...` and prepared source state
+  `1f375445713c...`. The source and changed-path validators pass; strict
+  Checkpatch reports zero errors, warnings, or checks. See
+  [results/patch-generation-20260904.txt](results/patch-generation-20260904.txt).
 
 ## Analysis
 

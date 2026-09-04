@@ -1,0 +1,8 @@
+# Hardware-free proof of the corrected MT6797 protected clock-state decoder.
+# The handoff fragment leaves the protected-clock and BigiDVFS DT nodes
+# disabled, and QEMU has no MT6797 platform device. Only pure records are
+# decoded; no hardware transport is called.
+CONFIG_KUNIT=y
+CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND=y
+CONFIG_MTK_MT6797_DVFSP_CLOCK_STATE_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-mt6797-clock-state-kunit"

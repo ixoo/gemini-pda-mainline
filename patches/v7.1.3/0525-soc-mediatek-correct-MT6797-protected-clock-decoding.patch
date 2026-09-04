@@ -1,0 +1,179 @@
+From 3223c4c9ef08487c142046b1b104ddb44fefa7cc Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 4 Sep 2026 18:01:00 +0000
+Subject: [PATCH 1/2] soc: mediatek: correct MT6797 protected clock decoding
+
+Treat normal bit 31 as its write-trigger strobe, not a busy flag.
+
+Decode the separate 31-bit BigiDVFS PCW and POSDIV register.
+---
+ .../soc/mediatek/mt6797-dvfsp-clock-state.c   | 99 +++++++++++++------
+ .../soc/mediatek/mt6797-dvfsp-clock-state.h   |  4 +-
+ 2 files changed, 73 insertions(+), 30 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-clock-state.c b/drivers/soc/mediatek/mt6797-dvfsp-clock-state.c
+index 6d16cfa..601b56c 100644
+--- a/drivers/soc/mediatek/mt6797-dvfsp-clock-state.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-clock-state.c
+@@ -2,9 +2,10 @@
+ /*
+  * Pure conversion of the disabled MT6797 protected clock readbacks.
+  *
+- * The vendor formula is intentionally kept here as a conversion boundary:
+- * 26 MHz parent, PCW bits 20:0, POSDIV bits 26:24, and the documented
+- * ARMPLLDIV_CKDIV encodings. No hardware access is performed.
++ * The normal PLLs use a 21-bit PCW with 14 fractional bits and POSDIV in
++ * CON1. BigiDVFS instead uses a 31-bit PCW with 24 fractional bits and keeps
++ * POSDIV in a separate register. Bit 31 is a write-trigger strobe, not a
++ * readable busy state. No hardware access is performed here.
+  */
+ 
+ #include <linux/bitfield.h>
+@@ -75,27 +76,19 @@ static int mt6797_dvfsp_clock_divider_decode(
+ 	return 0;
+ }
+ 
+-static int mt6797_dvfsp_clock_frequency_decode(
+-	u32 pll_pcw, u32 posdiv, u32 divider_selector, u32 *frequency_khz)
++static int mt6797_dvfsp_clock_apply_divider(
++	u64 frequency, u32 divider_selector, u32 *frequency_khz)
+ {
+ 	struct mt6797_dvfsp_clock_divider divider;
+-	u64 frequency;
+ 	int ret;
+ 
+-	if (!frequency_khz || !pll_pcw || posdiv > 2)
+-		return -EPROTO;
++	if (!frequency_khz || !frequency)
++		return -ERANGE;
+ 
+ 	ret = mt6797_dvfsp_clock_divider_decode(divider_selector, &divider);
+ 	if (ret)
+ 		return ret;
+ 
+-	/* Match the vendor integer order: ((PCW * 26) >> 14) * 1000. */
+-	frequency = ((u64)pll_pcw * MT6797_DVFSP_CLOCK_STATE_PARENT_MHZ) >> 14;
+-	frequency *= 1000;
+-	if (posdiv == 1)
+-		frequency = div_u64(frequency, 2);
+-	else if (posdiv == 2)
+-		frequency = div_u64(frequency, 4);
+ 	frequency = div_u64(frequency * divider.numerator,
+ 				divider.denominator);
+ 	if (!frequency || frequency > U32_MAX)
+@@ -105,24 +98,75 @@ static int mt6797_dvfsp_clock_frequency_decode(
+ 	return 0;
+ }
+ 
++static int mt6797_dvfsp_clock_frequency_decode(
++	u32 pll_pcw, u32 posdiv, u32 divider_selector, u32 *frequency_khz)
++{
++	u64 frequency;
++
++	if (!pll_pcw || posdiv > 2)
++		return -EPROTO;
++
++	/* Match the normal vendor order: PCW to kHz, then POSDIV. */
++	frequency = ((u64)pll_pcw * MT6797_DVFSP_CLOCK_STATE_PARENT_MHZ) >> 14;
++	frequency *= 1000;
++	frequency = div_u64(frequency, BIT(posdiv));
++
++	return mt6797_dvfsp_clock_apply_divider(
++		frequency, divider_selector, frequency_khz);
++}
++
++static int mt6797_dvfsp_clock_big_frequency_decode(
++	u32 pll_pcw, u32 posdiv, u32 divider_selector, u32 *frequency_khz)
++{
++	u64 frequency;
++
++	if (!pll_pcw)
++		return -EPROTO;
++
++	/* BigiDVFS truncates to integer MHz before POSDIV and kHz conversion. */
++	frequency = ((u64)pll_pcw * MT6797_DVFSP_CLOCK_STATE_PARENT_MHZ) >> 24;
++	frequency = div_u64(frequency, BIT(posdiv));
++	frequency *= 1000;
++
++	return mt6797_dvfsp_clock_apply_divider(
++		frequency, divider_selector, frequency_khz);
++}
++
+ static int mt6797_dvfsp_clock_cluster_decode(
+ 	u32 con1, u32 mux, u32 divider_selector,
+ 	struct mt6797_dvfsp_clock_state_cluster *cluster)
+ {
+-	int ret;
+-
+-	if (!cluster || con1 & MT6797_DVFSP_CLOCK_STATE_PLL_CHANGE)
+-		return -EAGAIN;
++	if (!cluster)
++		return -EINVAL;
+ 
+ 	cluster->mux_selector = mux;
+ 	cluster->divider_selector = divider_selector;
+ 	cluster->pll_pcw = con1 & MT6797_DVFSP_CLOCK_STATE_PCW_MASK;
+ 	cluster->posdiv = FIELD_GET(MT6797_DVFSP_CLOCK_STATE_POSDIV_MASK,
+-					con1);
+-	ret = mt6797_dvfsp_clock_frequency_decode(
++				    con1);
++
++	return mt6797_dvfsp_clock_frequency_decode(
++		cluster->pll_pcw, cluster->posdiv, divider_selector,
++		&cluster->frequency_khz);
++}
++
++static int mt6797_dvfsp_clock_big_cluster_decode(
++	const struct mt6797_bigidvfs_readback *big, u32 mux,
++	u32 divider_selector, struct mt6797_dvfsp_clock_state_cluster *cluster)
++{
++	if (!big || !cluster)
++		return -EINVAL;
++
++	cluster->mux_selector = mux;
++	cluster->divider_selector = divider_selector;
++	cluster->pll_pcw = big->pll_pcw &
++		MT6797_DVFSP_CLOCK_STATE_BIG_PCW_MASK;
++	cluster->posdiv = FIELD_GET(MT6797_DVFSP_CLOCK_STATE_BIG_POSDIV_MASK,
++				    big->pll_enable_posdiv);
++
++	return mt6797_dvfsp_clock_big_frequency_decode(
+ 		cluster->pll_pcw, cluster->posdiv, divider_selector,
+ 		&cluster->frequency_khz);
+-	return ret;
+ }
+ 
+ int mt6797_dvfsp_clock_state_decode(
+@@ -158,13 +202,10 @@ int mt6797_dvfsp_clock_state_decode(
+ 				MT6797_DVFSP_CLOCK_STATE_CLUSTER_L]);
+ 	if (ret)
+ 		return ret;
+-	ret = mt6797_dvfsp_clock_cluster_decode(
+-		(big->pll_pcw & MT6797_DVFSP_CLOCK_STATE_PCW_MASK) |
+-			(big->pll_enable_posdiv & MT6797_DVFSP_CLOCK_STATE_POSDIV_MASK),
+-		FIELD_GET(GENMASK(1, 0),
+-				clock->armplldiv_muxsel), FIELD_GET(GENMASK(4, 0),
+-				clock->armplldiv_ckdiv), &state->cluster[
+-				MT6797_DVFSP_CLOCK_STATE_CLUSTER_B]);
++	ret = mt6797_dvfsp_clock_big_cluster_decode(
++		big, FIELD_GET(GENMASK(1, 0), clock->armplldiv_muxsel),
++		FIELD_GET(GENMASK(4, 0), clock->armplldiv_ckdiv),
++		&state->cluster[MT6797_DVFSP_CLOCK_STATE_CLUSTER_B]);
+ 	if (ret)
+ 		return ret;
+ 	ret = mt6797_dvfsp_clock_cluster_decode(
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-clock-state.h b/include/linux/soc/mediatek/mt6797-dvfsp-clock-state.h
+index 1974368..f1c824c 100644
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-clock-state.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-clock-state.h
+@@ -12,7 +12,9 @@
+ #define MT6797_DVFSP_CLOCK_STATE_PARENT_MHZ	26
+ #define MT6797_DVFSP_CLOCK_STATE_PCW_MASK	GENMASK(20, 0)
+ #define MT6797_DVFSP_CLOCK_STATE_POSDIV_MASK	GENMASK(26, 24)
+-#define MT6797_DVFSP_CLOCK_STATE_PLL_CHANGE	BIT(31)
++#define MT6797_DVFSP_CLOCK_STATE_PCW_STROBE	BIT(31)
++#define MT6797_DVFSP_CLOCK_STATE_BIG_PCW_MASK	GENMASK(30, 0)
++#define MT6797_DVFSP_CLOCK_STATE_BIG_POSDIV_MASK	GENMASK(14, 12)
+ #define MT6797_DVFSP_CLOCK_STATE_CLUSTER_COUNT	4
+ 
+ enum mt6797_dvfsp_clock_state_cluster_id {

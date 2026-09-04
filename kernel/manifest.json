@@ -3763,6 +3763,14 @@
                     "configs/gemini-mt6797-infracfg-reset-kunit.fragment"
                 ]
             },
+            "mt6797-dvfsp-clock-state-kunit": {
+                "base": "defconfig",
+                "patch_series": "patches/series",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-mt6797-dvfsp-clock-state-kunit.fragment"
+                ]
+            },
             "mt6797-pwrap-reset-serviceability": {
                 "base": "defconfig",
                 "patch_series": "patches/series",
