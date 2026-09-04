@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-a72-frequency-observation` |
-| Status | `running`; zero-divider successor admitted offline, deployment pending |
+| Status | `running`; zero-divider successor installed and device shut down |
 | Subsystem | MT6797 CPU clock readback / Cortex-A72 lifecycle |
 | Device variant | Gemini PDA x27, named development unit |
 | Date(s) | 2026-09-04 |
@@ -139,6 +139,9 @@ experiments remain closed.
 - `results/zero-divider-offline-candidate-20260904.txt`: exact production
   Buildbox package, DT, Android-v0/LK container, pretrigger/runtime mutation,
   and independent candidate admission for the repaired decoder.
+- `results/zero-divider-deployment-20260904.txt`: live-GPT target resolution,
+  predecessor replacement, exact full-partition readback, no-backup policy,
+  and confirmed shutdown for the repaired successor.
 
 ## Procedure
 
@@ -397,6 +400,14 @@ experiments remain closed.
   16 MiB candidate `ea2aae41...`; the 12 pretrigger and 18 runtime mutations
   are rejected. See
   [results/zero-divider-offline-candidate-20260904.txt](results/zero-divider-offline-candidate-20260904.txt).
+- Published tooling revision `165c69a5...` froze the candidate, installer,
+  pristine gate, and bounded runtime identities. Guarded deployment resolved
+  inactive live-GPT `boot2` as `/dev/mmcblk0p30`, distinct from Gemian root
+  `/dev/mmcblk0p29`, and replaced retired `d4eb9cb9...` under stable external
+  power. The synchronized, flushed write independently read all 16 MiB back as
+  exact `ea2aae41...`, made no fresh backup or reboot request, and confirmed
+  shutdown. See
+  [results/zero-divider-deployment-20260904.txt](results/zero-divider-deployment-20260904.txt).
 
 ## Analysis
 
@@ -434,17 +445,18 @@ arm64 QEMU. The diagnostic candidate has no reason to boot again.
 
 ## Conclusion
 
-`distinct zero-divider production candidate admitted offline`: exact diagnostic
+`distinct zero-divider production candidate installed and verified`: exact diagnostic
 candidate `d4eb9cb9...` identified omitted selector-zero semantics after stage
 18 completed with CPUs 0--9 online. Canonical patches `0533`--`0534` now pass
 the 5/5 observer and 7/7 decoder Buildbox/QEMU gates, and production candidate
-`ea2aae41...` passes the package, DT, LK-container, and runtime-tool gates. This
-is not yet a live frequency or composite-load pass.
+`ea2aae41...` passes offline gates plus guarded full-partition write/readback.
+The device is shut down. This is not yet a live frequency or composite-load
+pass.
 
 ## Follow-up
 
-Publish the exact candidate/tooling identities, then install `ea2aae41...` to
-live-GPT-resolved inactive `boot2`, require matching full readback and clean
-shutdown, and use one fresh boot for the exact zero-read pretrigger plus the
-bounded stage-18/frequency/runtime protocol. Do not repeat `d4eb9cb9...` or
-`54a02dd0...`. Keep cpufreq/OPP, extra hotplug, idle, and suspend closed.
+Physically select boot2, then require the exact zero-read pretrigger before one
+bounded stage-18/frequency/runtime protocol. A failure must stop before load;
+three valid samples may continue only into the existing finite four-round
+dual-A72 workload. Do not repeat `d4eb9cb9...` or `54a02dd0...`. Keep
+cpufreq/OPP, extra hotplug, idle, and suspend closed.

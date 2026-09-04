@@ -141,3 +141,8 @@ cpufreq, idle, and suspend disabled. Its independently validated candidate is
 `ea2aae41...`; the exact live-tuple success fixture and all 18 runtime
 mutations pass. The next evidence must therefore come from one fresh,
 identity-gated device boot, not another diagnostic-candidate repeat.
+
+The guarded deployment has now written and fully read back exact
+`ea2aae41...` on inactive live-GPT `boot2`, then cleanly shut the device down.
+No fresh backup or reboot was requested. The next accepted evidence begins
+with the zero-read pristine frame on a physically selected boot2 boot.

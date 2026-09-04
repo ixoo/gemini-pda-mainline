@@ -169,3 +169,10 @@ raw Android-v0/LK image `398ca636...`, and exact padded candidate
 `ea2aae41...`. The production registration oracle, 12 zero-read pretrigger
 mutations, and 18 bounded-runtime mutations pass. This distinct candidate is
 admitted for one guarded inactive-`boot2` installation and fresh boot only.
+
+Published tooling revision `165c69a5...` then completed that guarded install.
+Live GPT resolved inactive `boot2` as `/dev/mmcblk0p30`, distinct from Gemian
+root `/dev/mmcblk0p29`; exact `ea2aae41...` replaced retired `d4eb9cb9...` and
+matched a full 16 MiB readback under stable power. No fresh backup or reboot
+was requested, and clean shutdown was confirmed. The next action is the
+owner's physical boot2 selection followed by the exact pristine gate.

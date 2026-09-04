@@ -1,0 +1,40 @@
+MT6797 A72 frequency zero-divider successor deployment
+Date: 2026-09-04
+
+experiment=2026-09-04-mt6797-a72-frequency-observation
+tooling_commit=165c69a5
+result=write-synced-flushed-full-readback-verified
+target_logical_name=boot2
+target=/dev/mmcblk0p30
+root=/dev/mmcblk0p29
+predecessor_sha256=d4eb9cb9ca63027b0226e6e3ef2878e5b7907153bc00c1248f701320cfe59a74
+fresh_predecessor_backup=no
+candidate_sha256=ea2aae419220b3c2ea11780f9c91dbb51d509286cd76d2ba1741d9e08e837c9c
+readback_sha256=ea2aae419220b3c2ea11780f9c91dbb51d509286cd76d2ba1741d9e08e837c9c
+gemian_boot_id=e183b812-3497-4548-b75f-54b57e966d9f
+power_present=1
+power_capacity_percent=100
+power_health=Good
+external_power_online=1
+temporary_readback_removed=yes
+shutdown=requested-after-evidence-flush
+poweroff_ssh_rc=0
+post_shutdown_reachability=unreachable
+reboot=no
+private_summary_sha256=b70ae0376f314f5f645917c1f59a5fae200ca5b41156fb545de5b7e9d6f6b500
+
+Interpretation:
+
+The guarded installer resolved exactly one live GPT boot2 partition as
+/dev/mmcblk0p30, distinct from active Gemian root /dev/mmcblk0p29. The target
+was unmounted, writable, inactive, and 16 MiB under stable external power. It
+contained retired diagnostic predecessor d4eb9cb9... before the write.
+
+The installer staged exact admitted successor ea2aae41..., synchronized and
+flushed the bounded write, then independently streamed all 16 MiB back to the
+host. The readback matched exactly. No fresh partition backup was created; the
+temporary staging and readback files were removed.
+
+After evidence was flushed, the installer issued systemd poweroff, requested
+no reboot, and confirmed the device was unreachable. The next action is a
+physical boot2 selection followed by the exact zero-read pretrigger gate.

@@ -8285,11 +8285,12 @@ rejection. Exact clean production revision `556575a2...` then passes the
 Buildbox package and production-registration gates. Independent composition
 produces DT `46be0ae6...`, raw Android-v0/LK image `398ca636...`, and exact
 padded candidate `ea2aae41...`; package, DT, container, 12 pretrigger-mutation,
-and 18 runtime-mutation gates pass. **Selected next:** publish these exact
-tooling identities, install `ea2aae41...` once to live-GPT-resolved inactive
-`boot2` with full readback and shutdown, then require the pristine frame before
-one bounded stage-18/frequency/load attempt. No repeat of `d4eb9cb9...` is
-admitted.
+and 18 runtime-mutation gates pass. Published tooling revision `165c69a5...`
+then installed that exact candidate to live-GPT-resolved inactive `boot2`,
+matched a full 16 MiB readback under stable power, made no fresh backup or
+reboot request, and confirmed shutdown. **Selected next:** physically select
+boot2 and require the pristine frame before one bounded stage-18/frequency/load
+attempt. No repeat of `d4eb9cb9...` is admitted.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
