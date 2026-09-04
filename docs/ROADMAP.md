@@ -8277,9 +8277,15 @@ production delta adds only explicit selector-zero identity semantics; the
 focused test replays the exact live tuple and preserves rejection of selector
 one. Strict style/source/path validation passes, all 184 manifest profiles
 remain canonical, and the invariant self-test rejects all eight mutations.
-**Selected next:** build the exact clean pushed focused profile on Buildbox and
-run only its decoder/observer suites in isolated no-network arm64 QEMU. No
-device candidate is admitted by patch generation alone.
+Exact clean pushed revisions `5b25b071...` and `0ccb7aba...` then compiled the
+observer and decoder profiles on Buildbox from the identical 523-patch source
+state. Isolated no-network arm64 QEMU passes the observer suite 5/5 and the
+decoder suite 7/7, including the exact live tuple and retained selector-one
+rejection. **Selected next:** build the production profile from the clean
+published repair revision and independently validate its package, DT,
+Android-v0/LK container, pretrigger, and bounded runtime before admitting one
+distinct `boot2` candidate. No device candidate is admitted by the focused
+passes alone.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

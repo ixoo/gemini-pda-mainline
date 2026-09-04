@@ -133,6 +133,9 @@ observer failure and all policy experiments remain closed.
 - `results/eproto-deployment-20260904.txt`: live-GPT target resolution,
   predecessor replacement, exact full-partition readback, no-backup policy,
   and confirmed shutdown for the attributable diagnostic.
+- `results/zero-divider-focused-kunit-20260904.txt`: exact Buildbox packages
+  and isolated no-network 5/5 observer plus 7/7 decoder proof for the live
+  zero-divider repair.
 
 ## Procedure
 
@@ -377,6 +380,12 @@ observer failure and all policy experiments remain closed.
   manifest profiles preserve canonical order, and all eight invariant
   mutations are rejected. See
   [results/zero-divider-patch-generation-20260904.txt](results/zero-divider-patch-generation-20260904.txt).
+- Exact clean published revisions `5b25b071...` and `0ccb7aba...` then built
+  the observer and decoder profiles on Buildbox from identical source
+  `be41c068...` and 523-patch set `b7cccd63...`. Isolated no-network arm64 QEMU
+  passed the unchanged observer suite 5/5 and the decoder suite 7/7, including
+  the exact live tuple and separate selector-one rejection. See
+  [results/zero-divider-focused-kunit-20260904.txt](results/zero-divider-focused-kunit-20260904.txt).
 
 ## Analysis
 
@@ -409,23 +418,24 @@ negative return. That is an observed transport property, not a second request
 made by the failure handler. The classifier preserved the complete stage/raw
 record for both. The selected repair accepts only selector zero as another
 identity encoding, continues rejecting all other unknown selectors, and adds
-the exact live tuple to pure KUnit. The diagnostic candidate has no reason to
-boot again.
+the exact live tuple to pure KUnit. Both focused suites now pass in isolated
+arm64 QEMU. The diagnostic candidate has no reason to boot again.
 
 ## Conclusion
 
-`stage-18 CPU8/CPU9 repeated; live zero-divider decoder repair selected`: exact
-diagnostic candidate `d4eb9cb9...` passed its pristine boot and repeated stage
-18 with CPUs 0--9 online. Both callbacks failed only at decode and preserved an
-identical complete raw tuple. The result identifies omitted live selector zero
-semantics for LL/L/CCI; it is not yet a frequency or composite load pass. The
-next candidate must contain the narrow, hardware-free-proven decoder repair.
+`live zero-divider repair passes both focused suites`: exact diagnostic
+candidate `d4eb9cb9...` identified omitted selector-zero semantics after stage
+18 completed with CPUs 0--9 online. Canonical patches `0533`--`0534` now pass
+the 5/5 observer and 7/7 decoder Buildbox/QEMU gates. This is not yet a live
+frequency or composite-load pass; the production candidate still has to be
+built and independently admitted.
 
 ## Follow-up
 
-Physically select boot2, then require the exact zero-read pretrigger before one
-stage-18 transaction and observer request. A failure must yield complete
-stage/raw records and stop before load; a valid sample may continue only into
-the already-bounded three-sample workload. The full installation/readback and
-shutdown gate is complete for exact `d4eb9cb9...`. Do not repeat exact
+Build the production profile from the exact clean pushed repair revision,
+independently validate its package, DT, Android-v0/LK container, pretrigger,
+and runtime contracts, and publish one distinct candidate. Only then install
+it to live-GPT-resolved inactive `boot2`, require matching full readback and
+shutdown, and use one fresh boot for the exact zero-read pretrigger plus the
+bounded stage-18/frequency/runtime protocol. Do not repeat `d4eb9cb9...` or
 `54a02dd0...`. Keep cpufreq/OPP, extra hotplug, idle, and suspend closed.

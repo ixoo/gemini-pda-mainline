@@ -1,0 +1,67 @@
+MT6797 live zero-divider focused Buildbox/QEMU result
+Date: 2026-09-04
+
+Canonical input:
+patch_series_sha256=4c6b1388b39826b17a95238f0e9e8a551e0dcfd059a37bcdc905a70a84800e69
+patchset_sha256=b7cccd63af8bb60975f4e994e614f8da07b933b76cb18085d5377da938eec169
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patch_count=523
+production_patch=0533-soc-mediatek-accept-zero-MT6797-clock-divider.patch
+focused_test_patch=0534-soc-mediatek-test-live-zero-divider-clock-state.patch
+
+Observer build and isolated runtime:
+repository_commit=5b25b07189ec8ca883603c0f41c5ae33002e0aeb
+build_profile=mt6797-a72-frequency-observer-kunit
+buildbox_job=5b25b07189ec8ca883603c0f41c5ae33002e0aeb-mt6797-a72-frequency-observer-kunit-m0
+package=linux-7.1.3-gemini-mt6797-a72-frequency-observer-kunit-b7cccd63-1d88416a
+kernel_release=7.1.3-gemini-mt6797-a72-frequency-observer-kunit
+config_sha256=700d3b9e6fc8a18ae5fdcedd6bdd0b3add1e7eaf43b7896d5cf07bae25f6c77c
+image_sha256=2e4cb8916fc56ea4b9c4d0b9da91683d85f6906e1ee7c65a526762cb14b74bfc
+image_gzip_sha256=5ec10e6cbf9170ec3d56fc23640d07cad68deca15c42683718ede95cc7a308eb
+raw_log_sha256=ad2f023999d9e9139e7d7231edbe2b90bdf4fcbdc7dcc3cc3fdef60813fc7abe
+suite=mt6797-a72-frequency-observer
+cases_passed=5
+failures=0
+skips=0
+qemu_network=none
+
+Decoder build and isolated runtime:
+repository_commit=0ccb7abac980c60d7983175b1e592eeb929e05dd
+build_profile=mt6797-dvfsp-clock-state-kunit
+buildbox_job=0ccb7abac980c60d7983175b1e592eeb929e05dd-mt6797-dvfsp-clock-state-kunit-m0
+package=linux-7.1.3-gemini-mt6797-dvfsp-clock-state-kunit-b7cccd63-a1792d74
+kernel_release=7.1.3-gemini-mt6797-clock-state-kunit
+config_sha256=fb6067745c99896a14e7620c1065807252c8abf4830331d4a7ea8136f192d551
+image_sha256=897a1103512de496f991d62010ca10feba7a5e4f14339818f326ccdf1123a72d
+image_gzip_sha256=bab48ed05a18345e36e182afc2eb32aa1bf495273a1bac47fa46bb82fb6a8fc8
+raw_log_sha256=6b81d76044ebc6aaef358f0649df175ed341d1a001ce9656ddb6de1bf8b0aaa5
+suite=mt6797-dvfsp-clock-state
+cases_passed=7
+failures=0
+skips=0
+live_zero_divider_case=pass
+unknown_selector_one_rejection=pass
+qemu_network=none
+
+Contract:
+zero_divider_identity=explicit
+expected_ll_frequency_khz=897000
+expected_l_frequency_khz=1274000
+expected_b_frequency_khz=750000
+expected_cci_frequency_khz=629500
+observer_attempt_budget=unchanged
+additional_hardware_calls=0
+cpu_requests_added=0
+hardware_writes_added=0
+device_tree_changes=0
+native_vm_build=none
+device_action=none
+boot_candidate=false
+
+Both clean pushed focused profiles compiled on Buildbox from the identical
+523-patch source state. Isolated arm64 QEMU passed the unchanged five-case
+observer suite and the seven-case decoder suite, including the exact live
+PLL/divider tuple and a distinct unknown-selector rejection. This closes the
+hardware-free repair gate only. A production Buildbox package, independently
+validated DT/container, and exact candidate identity are still required before
+any boot2 write.

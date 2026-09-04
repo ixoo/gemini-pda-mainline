@@ -128,3 +128,10 @@ divider word `0x00000008` exposes zero for LL/L/CCI and 8 for Big. Public vendor
 source treats zero as an identity divider; the current decoder rejects it.
 This selects an explicit zero-identity decoder repair and an exact live-tuple
 KUnit case. No further boot of `d4eb9cb9...` is permitted.
+
+Canonical patches `0533`--`0534` now pass both focused no-network arm64 QEMU
+boundaries: the observer suite remains 5/5, and the decoder suite is 7/7 with
+the exact live zero-divider tuple plus a distinct unknown-selector rejection.
+The attempt ceiling, transport calls, CPU requests, hardware writes, and DT
+remain unchanged. This is hardware-free proof, not a new live observation or
+an admitted candidate.

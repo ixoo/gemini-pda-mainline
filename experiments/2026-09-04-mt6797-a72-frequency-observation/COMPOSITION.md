@@ -153,3 +153,11 @@ not explicitly admit it. No second request or load ran. Exact `d4eb9cb9...`
 must not boot again. The selected next composition adds only explicit selector
 zero identity semantics plus the exact live-tuple KUnit case, then repeats all
 offline gates before a new candidate is admitted.
+
+Canonical patches `0533`--`0534` now implement that exact boundary. Clean
+Buildbox packages from the identical 523-patch source state pass the unchanged
+observer suite 5/5 and the decoder suite 7/7 in isolated no-network arm64 QEMU.
+The new decoder case resolves the captured live tuple to LL 897000, L 1274000,
+Big 750000, and CCI 629500 kHz, while selector one remains rejected. This
+closes only the hardware-free gate; no successor boot candidate exists until
+the production package and full composition are independently validated.
