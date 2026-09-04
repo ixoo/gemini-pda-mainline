@@ -1,0 +1,79 @@
+MT6797 no-workload per-bank thermal observation
+Date: 2026-09-04
+protocol_revision=aa5f66bd
+deployment_revision=c20c44ad
+kernel_release=7.1.3-gemini-thermal-snapshot
+boot_id=ac3d28c7-69fe-4ccb-8145-cad85cbd0653
+candidate_sha256=666961b636b21b8598a64999e9dbf72af280ad99f07a6b745045320f24ca361b
+classification=no-workload-observer-pass
+private_manifest_validation=pass
+complete_raw_reclassification=pass
+pristine_gate=pass
+postflight_gate=pass
+preflight_temperature_millicelsius=30800
+postflight_temperature_millicelsius=31100
+snapshot_maxima_millicelsius=31100,30500,30700
+snapshot_spread_millicelsius=600
+scan_duration_ns=9000,10923,9231
+first_winning_slots=5,4,2
+complete_valid_samples=21-of-21
+observer_accounting=0-to-3-of-3
+cpu_online=0-7
+cpu_offline=8-9
+lifecycle=unchanged-exact-pristine
+frequency_observation_requests=0
+cpu_admission_requests=0
+cpu_off_requests=0
+workload_rounds=0
+snapshot_requests=3
+ordinary_temperature_reads=2
+transport_sessions=5
+retries=0
+device_storage_reads=none
+device_storage_writes=none
+device_temporary_files=none
+cleanup=transport-shells-exited
+reboot_requests=0
+session_left_running=yes
+owner_console_report=absent
+usb_netcat_serviceability=pass
+
+The USB interface appeared before its saved static address became active.
+The runner refused interface discovery before creating a capture or opening
+any device transport. An attempted host-address restoration lacked passwordless
+sudo and changed nothing. The saved address subsequently became active without
+a manual configuration change; the one admitted execution then completed all
+five sessions. No snapshot request was retried. A preliminary empty TCP
+reachability check did not trigger any observer or lifecycle operation.
+
+The owner reported no visible console. This record establishes USB execution
+and the exact runtime identity, not visible-console support or its failure cause.
+The three snapshots contain all seven converted bank/sensor slots, valid mask
+127, correct first-winning-slot aggregation and ordered callback intervals.
+The winning slot changes among repeated sensor-1 bank observations; these are
+sequential bank visits, not seven independent physical sensors or simultaneous
+conversions. Callback duration does not establish conversion age.
+
+This closes only the first no-workload observer-path gate. It does not explain
+the earlier workload-associated aggregate rise, establish thermal protection,
+or reopen the consumed workload. CPU8/CPU9 remain offline, every lifecycle
+field matches its complete pristine baseline, and frequency attempts remain
+zero. No additional observer read, workload, reboot or shutdown followed.
+
+Private evidence digests (raw transcripts remain ignored):
+SHA256SUMS_sha256=cf25f30034994523a50705348daea919bb3f92628ddf5e397156a32f0326e002
+classification.json_sha256=dbb3ef6b94ef0dc01676dff94721be49d10115e9f7438f0fbca82da797344765
+deployment-summary.txt_sha256=6f47eef465c9461536d6a72b5acd3c80d776ca4446ebf3f82bfecadea40eb945
+postflight.txt_sha256=a9e1d6992f6a47140424f1b9545a164e8d5fea9186fc6f66adeec91e0a1f7288
+preflight.txt_sha256=1a70e8e5027c9148e68841c7d4e8877cf505965387b422a1ec0ef5c05377129d
+read-1.requested_sha256=5fdde5ca456d097f1e19999e30d3517b22adb6f1f2bd03f6c445f30a922f6456
+read-1.txt_sha256=838232660a9927cd337400a68c063216d31b2d0e0d9d89ce2ad08c06f963bca3
+read-2.requested_sha256=d0a354a7a571ef3ebbc672ac0a776ec93446b61ff5691c62a78d72c1a0fe67c0
+read-2.txt_sha256=7c85c7f39164589acbb238b562469216ea60f739670c5429e06d8e9ccabe1d63
+read-3.requested_sha256=04f0cbafdd6c80da9adf19e80fd86cad31a6df3d44d7f696126228668321464c
+read-3.txt_sha256=ac2d59020fe57155c3053a420f107b61b28190017cdc51596ae5045285fedced
+started.json_sha256=3c82d09fe1481def6aa764e8f33d9bc45c76835f4f3508c526a44f77987ae0d0
+
+Sanitized output contains authorized boot/provenance identities, converted
+temperatures, timings, counters and digests only. Credentials, calibration,
+unit identifiers, private paths and full console text are excluded.

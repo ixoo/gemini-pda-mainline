@@ -1,6 +1,7 @@
 # First no-workload thermal observation
 
-This is the frozen observation contract and offline composition. The one-shot
+This protocol is consumed after its [successful bounded observation](results/no-workload-runtime-pass.txt).
+Do not execute it again. The following preserves the frozen observation contract and offline composition. The one-shot
 host runner and deployment receipt gate are validated below. Publication of
 this protocol precedes deployment and the owner's physical boot selection.
 
@@ -201,3 +202,27 @@ Expect retained boot text and USB/netcat at `10.15.19.82:2323`, initially with
 CPU8/CPU9 offline. Screen appearance alone does not admit the observation. A
 fresh exact pristine state must pass before the first of three bounded reads.
 No mainline boot or thermal-snapshot runtime pass is claimed by installation.
+
+
+## First runtime result
+
+Fresh boot `ac3d28c7...` passed the exact identity and full pristine gate.
+The [sanitized result](results/no-workload-runtime-pass.txt) and
+[complete parsed records](results/no-workload-runtime-pass.json) retain all
+three snapshots. Maxima were 31.1, 30.5 and 30.7 degrees C; all 21 converted
+slots were valid. Callback intervals were 9.000, 10.923 and 9.231 microseconds.
+The first winning slots were 5, 4 and 2, including ties across repeated
+sensor-1 bank observations. Ordinary pre/post temperatures were 30.8/31.1.
+
+The complete private manifest and raw transcript were reclassified offline
+and exactly reproduced the saved success classification. Postflight preserved
+CPUs 0--7 online, 8--9 offline, full pristine lifecycle state, zero frequency
+requests and exactly three consumed observer attempts. No device storage
+access, CPU workload or retry occurred. The mainline session remains running.
+The owner reported an absent console, while direct USB proved serviceability;
+no display conclusion follows from the thermal result.
+
+This pass proves the bounded observation path on this exact candidate only.
+It does not identify the cause of the earlier thermal-rise rejection or admit
+another read on this boot. Further protocol selection belongs to the
+[roadmap](../../docs/ROADMAP.md); the closed workload remains closed.

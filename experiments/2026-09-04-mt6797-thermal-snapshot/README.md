@@ -232,3 +232,15 @@ The published protocol now has a verified inactive-boot2 deployment and clean
 Gemian shutdown; see the [receipt and physical-selection boundary](NO_WORKLOAD.md#deployment-receipt-and-physical-selection-boundary).
 The device observation remains pending physical selection and a fresh pristine
 state. Installation alone does not establish a thermal runtime result.
+
+
+## No-workload runtime gate passed
+
+The exact fresh boot passed the frozen three-read protocol with all converted
+slots valid, correct winning-slot aggregation and preserved pristine CPU and
+frequency accounting. See the [runtime result](results/no-workload-runtime-pass.txt)
+and [parsed snapshots](results/no-workload-runtime-pass.json). This validates
+the per-bank observation path only. The observer budget is consumed; no further
+read or workload on this session is selected. The earlier thermal comparison
+remains rejected, and visible console output was absent by owner report despite
+working USB serviceability.

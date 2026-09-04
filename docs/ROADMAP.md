@@ -8342,17 +8342,20 @@ The actual interface and concurrency oracle now verifies bounded failure text,
 exhaustion without IO and isolated observer accounting. A removal audit found
 that transaction close preceded devres reader cleanup; the corrected grouped
 lifetime passes Buildbox and injected late-probe/remove checks. **Selected
-next:** physically select the verified
-[no-workload composition](../experiments/2026-09-04-mt6797-thermal-snapshot/NO_WORKLOAD.md),
-then require the new candidate's fresh pristine identity and at most three
-bounded thermal snapshots with CPU8/CPU9 offline. Protocol publication,
-guarded inactive-boot2 installation, complete readback and clean Gemian shutdown
-are recorded; no mainline observation has run. The runner now binds source
-hashes, deployment receipt and attempt accounting; partial-failure, durable
-request and restart-refusal fixtures pass. Stop and retain any refusal without
-retry. A complete result validates the observation path only and permits a
-separate attributable protocol design. Emulator, source audits and injected-IO
-results do not establish hardware thermal repeatability.
+next:** the first [no-workload observation](../experiments/2026-09-04-mt6797-thermal-snapshot/NO_WORKLOAD.md)
+has now passed on the exact fresh candidate, with complete per-bank records and
+unchanged pristine CPU/frequency accounting. Its three-read budget is consumed;
+do not rerun it. Design and validate a distinct prospective protocol that uses
+the proven per-bank/timing path to distinguish sensor contribution around the
+previously bounded lifecycle/load sequence. Retain the existing four-round
+ceiling and thermal refusal limits; do not reinterpret or relax the rejected
+cross-boot thermal comparison. Bind fresh identity and pristine accounting,
+explicit stage attribution, fixed observation budgets, failure cleanup and
+mutation fixtures before requesting a new physical boot. Reuse the exact
+candidate only if its existing observation budget suffices for that new
+hypothesis. Keep the current consumed session free of further diagnostic reads
+or workload. A successful observer path is not thermal protection or workload
+repeatability; the reported absent console remains separate from working USB.
 Integrated thermal repeatability, broader load/hotplug, cpufreq/OPP, idle,
 suspend and default integration remain open.
 
