@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-thermal-ledger-live-model-repair` |
-| Status | Buildbox, focused KUnit, candidate, and observer gates pass; one device attempt pending |
+| Status | exact candidate installed and device shut down; one pre-armed boot attempt pending |
 | Subsystem | optional thermal-stage ledger admission |
 | Device variant | Planet Computers Gemini PDA, MT6797 |
 | Date(s) | 2026-09-04 |
@@ -86,6 +86,13 @@ from the decisive prior attempt. Package hashes, all 32 LK-container gates,
 independent assembly, and runtime-tool rejection tests pass. No native VM build
 or device action was used for these results.
 
+Published installer commit `70443390...` wrote exact padded candidate
+`93a78b49...` to the single live-GPT-resolved inactive `boot2`, replacing
+`ca3c2588...`. Stable-power, unmounted/no-holder, exact-size, synchronization,
+flush, and full 16 MiB readback gates passed. No new backup or other partition
+write was made. Three consecutive closed TCP/22 samples confirm the required
+post-write shutdown. The physical boot attempt has not yet begun.
+
 ## Analysis
 
 The new predicate is not a guess: `MT6797X` is the bootloader-published live
@@ -97,9 +104,9 @@ temperature observation itself passes.
 
 ## Conclusion
 
-The exact repair is admitted offline as a boot candidate. The remaining step is
-one verified inactive-`boot2` installation followed by one pre-armed read-only
-runtime frame. CPU8/CPU9 requests and load remain closed.
+The exact repair is installed and the device is shut down. The remaining step
+is one pre-armed read-only runtime frame from a physical `boot2` selection.
+CPU8/CPU9 requests and load remain closed.
 
 ## Follow-up
 

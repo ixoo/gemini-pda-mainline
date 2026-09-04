@@ -8132,7 +8132,12 @@ initramfs `344d8a84...` byte-for-byte, passes all package and 32 LK-container
 gates, and has one-pass/17-rejection runtime tools. No native VM build or device
 action contributed to those results. **Selected next:** install that exact
 candidate to live-GPT-resolved inactive `boot2`, require matching full-partition
-readback and shutdown, then make one pre-armed read-only frame. A pass requires
+readback and shutdown, then make one pre-armed read-only frame. Published
+installer commit `70443390...` has now completed that write: predecessor
+`ca3c2588...` was replaced by exact `93a78b49...`; stable-power,
+unmounted/no-holder, sync, flush, matching full 16 MiB readback, no-new-backup,
+no-other-write, and three-closed-TCP shutdown gates passed. **Selected next:**
+arm the exact observer and make the single physical `boot2` selection. A pass requires
 one initial thermal `-EPROBE_DEFER`, one later successful probe, natural driver
 bind, exactly one policy-free zone, and three plausible temperatures while CPUs
 8--9 remain offline; errno 19 or a later transaction error selects only the
