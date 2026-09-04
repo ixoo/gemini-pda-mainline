@@ -218,24 +218,27 @@ static int mt6797_a72_frequency_observer_capture(
 """,
         """\tif (ret) {
 \t\tdev_info(dev,
-\t\t\t "GEMINI_A72_FREQUENCY_OBSERVATION_V1 "
-\t\t\t "attempt=%u/3 ret=%d stage=%s "
-\t\t\t "clock_abi=%u clock_reserved=%u clock_generation=%llu "
-\t\t\t "armplldiv_muxsel=0x%08x armplldiv_ckdiv=0x%08x "
-\t\t\t "pll_ll_con1=0x%08x pll_l_con1=0x%08x "
-\t\t\t "pll_cci_con1=0x%08x big_abi=%u big_reserved=%u "
-\t\t\t "big_generation=%llu big_pll_pcw=0x%08x "
-\t\t\t "big_pll_enable_posdiv=0x%08x\\n",
+\t\t\t "GEMINI_A72_FREQUENCY_OBSERVATION_V1 attempt=%u/3 ret=%d stage=%s\\n",
 \t\t\t trace.attempt, ret,
 \t\t\t mt6797_a72_frequency_observer_failure_name(
-\t\t\t\t trace.failure_stage),
+\t\t\t\t trace.failure_stage));
+\t\tdev_info(dev,
+\t\t\t "GEMINI_A72_FREQ_CLOCK_SHAPE_V1 abi=%u reserved=%u generation=%llu\\n",
 \t\t\t trace.clock_abi, trace.clock_reserved,
-\t\t\t (unsigned long long)trace.clock_sample_generation,
-\t\t\t trace.armplldiv_muxsel, trace.armplldiv_ckdiv,
+\t\t\t (unsigned long long)trace.clock_sample_generation);
+\t\tdev_info(dev,
+\t\t\t "GEMINI_A72_FREQ_CLOCK_DIV_V1 muxsel=0x%08x ckdiv=0x%08x\\n",
+\t\t\t trace.armplldiv_muxsel, trace.armplldiv_ckdiv);
+\t\tdev_info(dev,
+\t\t\t "GEMINI_A72_FREQ_PLL_V1 ll=0x%08x l=0x%08x cci=0x%08x\\n",
 \t\t\t trace.pll_ll_con1, trace.pll_l_con1,
-\t\t\t trace.pll_cci_con1, trace.big_abi,
-\t\t\t trace.big_reserved,
-\t\t\t (unsigned long long)trace.big_sample_generation,
+\t\t\t trace.pll_cci_con1);
+\t\tdev_info(dev,
+\t\t\t "GEMINI_A72_FREQ_BIG_SHAPE_V1 abi=%u reserved=%u generation=%llu\\n",
+\t\t\t trace.big_abi, trace.big_reserved,
+\t\t\t (unsigned long long)trace.big_sample_generation);
+\t\tdev_info(dev,
+\t\t\t "GEMINI_A72_FREQ_BIG_PLL_V1 pcw=0x%08x enable_posdiv=0x%08x\\n",
 \t\t\t trace.big_pll_pcw, trace.big_pll_enable_posdiv);
 \t\treturn ret;
 \t}
@@ -256,9 +259,9 @@ def add_failure_stage_tests(source_root: Path) -> None:
 """,
         """\tKUNIT_EXPECT_EQ(test, trace.attempts_remaining, 2U);
 \tKUNIT_EXPECT_EQ(test, trace.failure_stage,
-\t\tMT6797_A72_FREQUENCY_OBSERVER_FAILURE_NONE);
+\t\t\tMT6797_A72_FREQUENCY_OBSERVER_FAILURE_NONE);
 \tKUNIT_EXPECT_EQ(test, trace.clock_abi,
-\t\tMT6797_DVFSP_CLOCK_BACKEND_ABI);
+\t\t\tMT6797_DVFSP_CLOCK_BACKEND_ABI);
 \tKUNIT_EXPECT_EQ(test, trace.clock_sample_generation, 11ULL);
 \tKUNIT_EXPECT_EQ(test, trace.pll_ll_con1, 0xc1114000U);
 \tKUNIT_EXPECT_EQ(test, trace.pll_l_con1, 0x400c4000U);
@@ -278,7 +281,7 @@ def add_failure_stage_tests(source_root: Path) -> None:
         """\tKUNIT_EXPECT_MEMEQ(test, &observation, &zero, sizeof(zero));
 \tKUNIT_EXPECT_EQ(test, trace.attempt, 1U);
 \tKUNIT_EXPECT_EQ(test, trace.failure_stage,
-\t\tMT6797_A72_FREQUENCY_OBSERVER_FAILURE_CLOCK_TRANSPORT);
+\t\t\tMT6797_A72_FREQUENCY_OBSERVER_FAILURE_CLOCK_TRANSPORT);
 \tstate->clock_error = 0;
 """,
     )
@@ -321,7 +324,7 @@ def add_failure_stage_tests(source_root: Path) -> None:
 \tKUNIT_EXPECT_EQ(test, mt6797_a72_frequency_observer_sample(
 \t\t&controller, &source, &observation, &trace), -EPROTO);
 \tKUNIT_EXPECT_EQ(test, trace.failure_stage,
-\t\tMT6797_A72_FREQUENCY_OBSERVER_FAILURE_CLOCK_SHAPE);
+\t\t\tMT6797_A72_FREQUENCY_OBSERVER_FAILURE_CLOCK_SHAPE);
 \tKUNIT_EXPECT_EQ(test, trace.clock_reserved, 1U);
 \tKUNIT_EXPECT_EQ(test, state->clock_calls, 1U);
 \tKUNIT_EXPECT_EQ(test, state->big_calls, 0U);
@@ -332,7 +335,7 @@ def add_failure_stage_tests(source_root: Path) -> None:
 \tKUNIT_EXPECT_EQ(test, mt6797_a72_frequency_observer_sample(
 \t\t&controller, &source, &observation, &trace), -EIO);
 \tKUNIT_EXPECT_EQ(test, trace.failure_stage,
-\t\tMT6797_A72_FREQUENCY_OBSERVER_FAILURE_BIGIDVFS_TRANSPORT);
+\t\t\tMT6797_A72_FREQUENCY_OBSERVER_FAILURE_BIGIDVFS_TRANSPORT);
 \tKUNIT_EXPECT_EQ(test, state->clock_calls, 1U);
 \tKUNIT_EXPECT_EQ(test, state->big_calls, 1U);
 
@@ -341,7 +344,7 @@ def add_failure_stage_tests(source_root: Path) -> None:
 \tKUNIT_EXPECT_EQ(test, mt6797_a72_frequency_observer_sample(
 \t\t&controller, &source, &observation, &trace), -EPROTO);
 \tKUNIT_EXPECT_EQ(test, trace.failure_stage,
-\t\tMT6797_A72_FREQUENCY_OBSERVER_FAILURE_BIGIDVFS_SHAPE);
+\t\t\tMT6797_A72_FREQUENCY_OBSERVER_FAILURE_BIGIDVFS_SHAPE);
 \tKUNIT_EXPECT_EQ(test, trace.big_abi, MT6797_BIGIDVFS_BACKEND_ABI);
 \tKUNIT_EXPECT_EQ(test, trace.big_sample_generation, 0ULL);
 
@@ -350,7 +353,7 @@ def add_failure_stage_tests(source_root: Path) -> None:
 \tKUNIT_EXPECT_EQ(test, mt6797_a72_frequency_observer_sample(
 \t\t&controller, &source, &observation, &trace), -EPROTO);
 \tKUNIT_EXPECT_EQ(test, trace.failure_stage,
-\t\tMT6797_A72_FREQUENCY_OBSERVER_FAILURE_DECODE);
+\t\t\tMT6797_A72_FREQUENCY_OBSERVER_FAILURE_DECODE);
 \tKUNIT_EXPECT_EQ(test, trace.pll_ll_con1, 0U);
 \tKUNIT_EXPECT_EQ(test, trace.big_pll_pcw, 0xc1130000U);
 \tKUNIT_EXPECT_EQ(test, state->clock_calls, 1U);
