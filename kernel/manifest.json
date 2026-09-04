@@ -3747,6 +3747,14 @@
                     "configs/gemini-mt6797-thermal-calibration-kunit.fragment"
                 ]
             },
+            "mt6797-thermal-transaction-kunit": {
+                "base": "defconfig",
+                "patch_series": "patches/series",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-mt6797-thermal-transaction-kunit.fragment"
+                ]
+            },
             "mt6797-infracfg-reset-kunit": {
                 "base": "defconfig",
                 "patch_series": "patches/series",

@@ -1,0 +1,16 @@
+# Hardware-free proof of the ordered MT6797 thermal/AUXADC transaction.
+# The handoff fragment leaves thermal and standalone AUXADC DT nodes disabled;
+# QEMU has no matching MT6797 platform device. The profile compiles the
+# production adapter and executes only the callback-backed transaction suite.
+CONFIG_THERMAL=y
+CONFIG_THERMAL_OF=y
+CONFIG_MTK_THERMAL=y
+CONFIG_MTK_SOC_THERMAL=y
+CONFIG_NVMEM=y
+CONFIG_NVMEM_MTK_ATAG_DEVINFO=y
+# Existing EEM helpers in auxadc_thermal.o reference pure PPM validators behind
+# this owner symbol. With no matching DVFSP node, it cannot probe in QEMU.
+CONFIG_MTK_MT6797_DVFSP_HANDOFF=y
+CONFIG_KUNIT=y
+CONFIG_MTK_SOC_THERMAL_TRANSACTION_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-mt6797-thermal-transaction-kunit"

@@ -58,6 +58,10 @@ this gate.
 - `scripts/validate_source.py`: edited-source semantic checks.
 - `scripts/validate_patches.py`: normal-format-patch and path checks.
 - `scripts/generate-on-buildbox`: pinned two-patch generator and replay gate.
+- `scripts/run-kunit-qemu`: bounded, no-network arm64 QEMU runner.
+- `scripts/classify-kunit.py`: exact six-case KTAP classifier.
+- `results/patch-generation-20260904.txt`: exact generation and admission
+  receipt.
 
 ## Procedure
 
@@ -106,7 +110,15 @@ six production and four test alignment checks, again with no package, build,
 or device action. The remaining call continuations are now aligned or reduced
 to single lines. The following review passed the test patch with zero findings
 and left one production first-sample continuation check; that call is now one
-line. Canonical admission, build, and isolated KUnit execution remain pending.
+line. Canonical admission, build, and isolated KUnit execution were still
+pending at that point.
+
+The final Buildbox generation at repository commit `84d66801449c...` passes
+source semantics, exact two-patch replay, package checksums, and strict
+checkpatch with zero errors, warnings, or checks. The fetched patches are
+byte-identical to canonical patches 0517--0518. The resulting 507-entry series
+and all 178 manifest profiles pass the canonical-subsequence invariant. The
+isolated Buildbox build and KUnit execution remain pending.
 
 ## Follow-up
 
