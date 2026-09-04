@@ -1984,16 +1984,23 @@ The next ordered work remains source-only:
    thermal node and provider remain default-off, no EEM phase or hardware write
    occurred, and CPU8/CPU9 admission remains closed. See the
    [EEM calibration-builder Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/eem-calibration-builder-buildbox-20260806.txt).
-   Patch `0206` now adds a pure, source-backed decoder over the existing
-   disabled protected clock readbacks. It preserves generation tags and raw
-   mux/divider selectors, rejects malformed or in-flight PLL samples, and
-   applies the recovered 26 MHz PCW/POSDIV and ARMPLLDIV_CKDIV formulas to LL,
-   L, B, and CCI frequencies. Revision `4d5d8da` applies all 195 canonical
+   Patch `0206` added a pure, source-backed decoder over the existing disabled
+   protected clock readbacks. It preserves generation tags and raw
+   mux/divider selectors and applies the recovered 26 MHz PCW/POSDIV and
+   ARMPLLDIV_CKDIV formulas to LL, L, B, and CCI frequencies. Revision `4d5d8da` applies all 195 canonical
    entries on Buildbox, compiles the full arm64 kernel, produces 119 DTBs,
    passes package checksums, and has its validated package fetched. This is
    still compile-only: no clock or rail owner, provider, secure call, hardware
    write, firmware action, device boot, or CPU8/CPU9 admission is enabled. See
    the [clock-state decoder Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/clock-state-decoder-buildbox-20260806.txt).
+   Later live readback and exact public-source comparison found that this
+   compile-only decoder is not runtime-correct: it treats stable normal-PLL bit
+   31 as an in-flight flag and applies the normal 21-bit PCW / CON1 post-divider
+   layout to the distinct BigiDVFS 31-bit PCW / separate post-divider record.
+   The [attributable A72 frequency experiment](../experiments/2026-09-04-mt6797-a72-frequency-observation/README.md)
+   therefore repairs and proves this pure boundary before any frequency
+   observation is composed with the successful stage-18 lifecycle. No prior
+   compile-only result is promoted to hardware evidence.
    Patch `0207` now binds the vendor-identified CPU and PM transition events
    (`CPU_ONLINE`, `CPU_DOWN_PREPARE`, `CPU_DOWN_FAILED`,
    `PM_SUSPEND_PREPARE`, and `PM_POST_SUSPEND`) plus clock, rail, and PCM-fault

@@ -31,6 +31,14 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-09-04 MT6797 attributable A72 frequency observation](2026-09-04-mt6797-a72-frequency-observation/README.md)
+  — begins the frequency half of the observability gate after thermal runtime
+  success. Exact source and live-readback review rejects the old protected
+  clock decoder before physical composition: normal PLL bit 31 is a stable
+  write-trigger strobe rather than a busy flag, while BigiDVFS uses a distinct
+  31-bit/24-fraction PCW and separate bits-14:12 post-divider. A two-patch pure
+  decoder repair and six-case hardware-free KUnit gate are in progress on
+  Buildbox; CPUs 8--9, load, cpufreq/OPP, and device access remain closed.
 - [2026-09-04 MT6797 thermal-ledger live-model repair](2026-09-04-mt6797-thermal-ledger-live-model-repair/README.md)
   — follows the first serviceable thermal attempt's exact pre-transaction
   failure. LK publishes live model `MT6797X`, but the optional ledger required
