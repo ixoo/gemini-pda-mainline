@@ -123,9 +123,12 @@ and terminal lifecycle status, and no load or additional request followed.
 Changed-ID retained recovery again sealed hotplug and thermal success. The
 repeat exception is consumed. Exact `54a02dd0...` must not boot again.
 
-The next composition may differ only by one focused observer diagnostic that
-identifies whether `EPROTO` came from clock-record shape, BigiDVFS-record shape,
-or the decoder, with no new hardware call and the same three-callback ceiling.
-It requires source validation, focused KUnit coverage of every failure stage,
-an exact Buildbox production package, and a new independently validated
-candidate identity before one more live attempt can be selected.
+Canonical patches `0531`--`0532` are the only selected source delta for the
+next composition. They identify clock transport/shape, BigiDVFS
+transport/shape, or decoder rejection, preserve the raw values already returned
+by those calls, add no new hardware access, and keep the same three-callback
+ceiling. Exact patch replay, source/path validation, focused stage coverage,
+and strict Checkpatch pass. They still require focused and production Buildbox
+compilation, isolated no-network KUnit execution, and a new independently
+validated package, DT, container, pretrigger, runtime, and candidate identity
+before one more live attempt can be selected.

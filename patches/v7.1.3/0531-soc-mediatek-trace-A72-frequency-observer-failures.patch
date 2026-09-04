@@ -1,0 +1,183 @@
+From 6aec794a3a7f5b188380a559e305b8113a6b021b Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 4 Sep 2026 23:01:00 +0000
+Subject: [PATCH 1/2] soc: mediatek: trace A72 frequency observer failures
+
+Name each existing failure boundary and preserve its already-returned raw record fields in the bounded failure log.
+
+Do not add a transport call, hardware write, CPU request, or observation attempt.
+---
+ .../mt6797-a72-frequency-observer-internal.h  | 23 ++++++
+ .../mediatek/mt6797-a72-frequency-observer.c  | 81 ++++++++++++++++++-
+ 2 files changed, 102 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-frequency-observer-internal.h b/drivers/soc/mediatek/mt6797-a72-frequency-observer-internal.h
+index ee7abde..391ba2b 100644
+--- a/drivers/soc/mediatek/mt6797-a72-frequency-observer-internal.h
++++ b/drivers/soc/mediatek/mt6797-a72-frequency-observer-internal.h
+@@ -31,6 +31,15 @@ struct mt6797_a72_frequency_observation {
+ 	struct mt6797_dvfsp_clock_state state;
+ };
+ 
++enum mt6797_a72_frequency_observer_failure_stage {
++	MT6797_A72_FREQUENCY_OBSERVER_FAILURE_NONE = 0,
++	MT6797_A72_FREQUENCY_OBSERVER_FAILURE_CLOCK_TRANSPORT,
++	MT6797_A72_FREQUENCY_OBSERVER_FAILURE_CLOCK_SHAPE,
++	MT6797_A72_FREQUENCY_OBSERVER_FAILURE_BIGIDVFS_TRANSPORT,
++	MT6797_A72_FREQUENCY_OBSERVER_FAILURE_BIGIDVFS_SHAPE,
++	MT6797_A72_FREQUENCY_OBSERVER_FAILURE_DECODE,
++};
++
+ struct mt6797_a72_frequency_observer_trace {
+ 	u32 attempt;
+ 	u32 attempts_remaining;
+@@ -42,6 +51,20 @@ struct mt6797_a72_frequency_observer_trace {
+ 	u32 bigidvfs_stable_samples;
+ 	u32 bigidvfs_reads;
+ 	u32 bigidvfs_sram_set_calls;
++	enum mt6797_a72_frequency_observer_failure_stage failure_stage;
++	u32 clock_abi;
++	u32 clock_reserved;
++	u64 clock_sample_generation;
++	u32 armplldiv_muxsel;
++	u32 armplldiv_ckdiv;
++	u32 pll_ll_con1;
++	u32 pll_l_con1;
++	u32 pll_cci_con1;
++	u32 big_abi;
++	u32 big_reserved;
++	u64 big_sample_generation;
++	u32 big_pll_pcw;
++	u32 big_pll_enable_posdiv;
+ 	bool complete;
+ };
+ 
+diff --git a/drivers/soc/mediatek/mt6797-a72-frequency-observer.c b/drivers/soc/mediatek/mt6797-a72-frequency-observer.c
+index 726b4fe..e594c5d 100644
+--- a/drivers/soc/mediatek/mt6797-a72-frequency-observer.c
++++ b/drivers/soc/mediatek/mt6797-a72-frequency-observer.c
+@@ -19,6 +19,52 @@ void mt6797_a72_frequency_observer_init(
+ 	controller->attempts = 0;
+ }
+ 
++static const char *mt6797_a72_frequency_observer_failure_name(
++	enum mt6797_a72_frequency_observer_failure_stage stage)
++{
++	switch (stage) {
++	case MT6797_A72_FREQUENCY_OBSERVER_FAILURE_NONE:
++		return "none";
++	case MT6797_A72_FREQUENCY_OBSERVER_FAILURE_CLOCK_TRANSPORT:
++		return "clock-transport";
++	case MT6797_A72_FREQUENCY_OBSERVER_FAILURE_CLOCK_SHAPE:
++		return "clock-shape";
++	case MT6797_A72_FREQUENCY_OBSERVER_FAILURE_BIGIDVFS_TRANSPORT:
++		return "bigidvfs-transport";
++	case MT6797_A72_FREQUENCY_OBSERVER_FAILURE_BIGIDVFS_SHAPE:
++		return "bigidvfs-shape";
++	case MT6797_A72_FREQUENCY_OBSERVER_FAILURE_DECODE:
++		return "decode";
++	}
++
++	return "invalid";
++}
++
++static void mt6797_a72_frequency_observer_trace_clock(
++	struct mt6797_a72_frequency_observer_trace *trace,
++	const struct mt6797_dvfsp_clock_readback *clock)
++{
++	trace->clock_abi = clock->abi;
++	trace->clock_reserved = clock->reserved;
++	trace->clock_sample_generation = clock->sample_generation;
++	trace->armplldiv_muxsel = clock->armplldiv_muxsel;
++	trace->armplldiv_ckdiv = clock->armplldiv_ckdiv;
++	trace->pll_ll_con1 = clock->pll_ll[1];
++	trace->pll_l_con1 = clock->pll_l[1];
++	trace->pll_cci_con1 = clock->pll_cci[1];
++}
++
++static void mt6797_a72_frequency_observer_trace_big(
++	struct mt6797_a72_frequency_observer_trace *trace,
++	const struct mt6797_bigidvfs_readback *big)
++{
++	trace->big_abi = big->abi;
++	trace->big_reserved = big->reserved;
++	trace->big_sample_generation = big->sample_generation;
++	trace->big_pll_pcw = big->pll_pcw;
++	trace->big_pll_enable_posdiv = big->pll_enable_posdiv;
++}
++
+ static int mt6797_a72_frequency_observer_capture(
+ 	const struct mt6797_a72_hotplug_snapshot_source *source,
+ 	struct mt6797_a72_frequency_observation *observation,
+@@ -28,22 +74,32 @@ static int mt6797_a72_frequency_observer_capture(
+ 	struct mt6797_bigidvfs_readback big = { };
+ 	int ret;
+ 
++	trace->failure_stage =
++		MT6797_A72_FREQUENCY_OBSERVER_FAILURE_CLOCK_TRANSPORT;
+ 	trace->clock_calls++;
+ 	ret = source->ops->clock(source->clock, &clock);
+ 	if (ret)
+ 		return ret;
++	mt6797_a72_frequency_observer_trace_clock(trace, &clock);
++	trace->failure_stage = MT6797_A72_FREQUENCY_OBSERVER_FAILURE_CLOCK_SHAPE;
+ 	if (clock.abi != MT6797_DVFSP_CLOCK_BACKEND_ABI || clock.reserved ||
+ 	    !clock.sample_generation)
+ 		return -EPROTO;
+ 
++	trace->failure_stage =
++		MT6797_A72_FREQUENCY_OBSERVER_FAILURE_BIGIDVFS_TRANSPORT;
+ 	trace->bigidvfs_calls++;
+ 	ret = source->ops->bigidvfs(source->bigidvfs, &big);
+ 	if (ret)
+ 		return ret;
++	mt6797_a72_frequency_observer_trace_big(trace, &big);
++	trace->failure_stage =
++		MT6797_A72_FREQUENCY_OBSERVER_FAILURE_BIGIDVFS_SHAPE;
+ 	if (big.abi != MT6797_BIGIDVFS_BACKEND_ABI || big.reserved ||
+ 	    !big.sample_generation)
+ 		return -EPROTO;
+ 
++	trace->failure_stage = MT6797_A72_FREQUENCY_OBSERVER_FAILURE_DECODE;
+ 	ret = mt6797_dvfsp_clock_state_decode(
+ 		&clock, &big, &observation->state);
+ 	if (ret)
+@@ -56,6 +112,7 @@ static int mt6797_a72_frequency_observer_capture(
+ 	observation->armplldiv_ckdiv = clock.armplldiv_ckdiv;
+ 	observation->big_pll_pcw = big.pll_pcw;
+ 	observation->big_pll_enable_posdiv = big.pll_enable_posdiv;
++	trace->failure_stage = MT6797_A72_FREQUENCY_OBSERVER_FAILURE_NONE;
+ 	trace->complete = true;
+ 	return 0;
+ }
+@@ -126,8 +183,28 @@ ssize_t mt6797_a72_frequency_observer_render(
+ 		&source->frequency_observer, source, &observation, &trace);
+ 	if (ret) {
+ 		dev_info(dev,
+-			 "GEMINI_A72_FREQUENCY_OBSERVATION_V1 attempt=%u/3 ret=%d\n",
+-			 trace.attempt, ret);
++			 "GEMINI_A72_FREQUENCY_OBSERVATION_V1 attempt=%u/3 ret=%d stage=%s\n",
++			 trace.attempt, ret,
++			 mt6797_a72_frequency_observer_failure_name(
++				 trace.failure_stage));
++		dev_info(dev,
++			 "GEMINI_A72_FREQ_CLOCK_SHAPE_V1 abi=%u reserved=%u generation=%llu\n",
++			 trace.clock_abi, trace.clock_reserved,
++			 (unsigned long long)trace.clock_sample_generation);
++		dev_info(dev,
++			 "GEMINI_A72_FREQ_CLOCK_DIV_V1 muxsel=0x%08x ckdiv=0x%08x\n",
++			 trace.armplldiv_muxsel, trace.armplldiv_ckdiv);
++		dev_info(dev,
++			 "GEMINI_A72_FREQ_PLL_V1 ll=0x%08x l=0x%08x cci=0x%08x\n",
++			 trace.pll_ll_con1, trace.pll_l_con1,
++			 trace.pll_cci_con1);
++		dev_info(dev,
++			 "GEMINI_A72_FREQ_BIG_SHAPE_V1 abi=%u reserved=%u generation=%llu\n",
++			 trace.big_abi, trace.big_reserved,
++			 (unsigned long long)trace.big_sample_generation);
++		dev_info(dev,
++			 "GEMINI_A72_FREQ_BIG_PLL_V1 pcw=0x%08x enable_posdiv=0x%08x\n",
++			 trace.big_pll_pcw, trace.big_pll_enable_posdiv);
+ 		return ret;
+ 	}
+ 

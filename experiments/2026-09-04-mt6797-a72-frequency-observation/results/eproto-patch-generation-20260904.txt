@@ -1,0 +1,78 @@
+MT6797 A72 frequency EPROTO failure-stage patch generation
+Date: 2026-09-04
+
+Observation:
+- The admitted repeat of exact candidate 54a02dd0... completed the stage-18
+  CPU8/CPU9 lifecycle, then one userspace observer read caused two callbacks
+  that both returned -71 (EPROTO).
+- The retired image did not distinguish clock-record shape, BigiDVFS-record
+  shape, or decoder validation and must not be repeated.
+
+Generation:
+first_generation_repository_commit=ab66931f88812b3f1aa669ed296098dd3f67f574
+first_generation_result=rejected-by-strict-checkpatch
+first_generation_errors=0
+first_generation_warnings=7
+first_generation_checks=7
+first_generation_admitted_package=no
+repair_repository_commit=5367f7719dde5c82a4b740f81c7e49a2fb72a002
+parent_source_state=93fbb7712286785035f9dffc153d2f783b0ace8b119f5c9a86a15f99bf894d59
+parent_source_integrity=6f4bb1950a694ac466ed9637f22911a100d9768c2d26472191e67445b6a84b48
+baseline_commit=33b64107bb998ff2838d99aac140776a1eaf7d87
+production_commit=6aec794a3a7f5b188380a559e305b8113a6b021b
+test_commit=83831478a012c371f32f9b4184fa086801df786e
+generated_patch_count=2
+changed_path_count=3
+
+Canonical outputs:
+patch_0531_sha256=fbba1a6290082bfafc13612f8d3b32d77dc8aa864424e7865869ea3c1322a851
+patch_0532_sha256=575189b39ece9da281f3d7854b210a1a5b0d207b72b83e7263d19aca644f02de
+package_manifest_sha256=cdcdda0eb96486f3150d58625f292d5f9775780c7cebf00b33e8bff0d27e0785
+generation_receipt_sha256=a0833e3fc98d49ee572ab37b8b523fb7843c2c3471b2590f79b841817a7c8f90
+source_validation_sha256=0be61dd5f85a29a4ef0658760087f7cccb82866fded1ff4ab6e21e95d8ba2764
+patch_validation_sha256=05993c121281f7755127d54ed14d09d53536d5c78b0e381cf18966b932262422
+checkpatch_receipt_sha256=55f0b589d1bea44cfcce870b0c2aa979447d24236e0616ac195b225fbee948ce
+
+Validation:
+normal_format_patch_replay=pass
+source_validation=pass
+changed_path_validation=pass
+strict_checkpatch_errors=0
+strict_checkpatch_warnings=0
+strict_checkpatch_checks=0
+manifest_series_invariant_profiles=184
+manifest_series_invariant=pass
+manifest_series_mutations_rejected=8
+
+Contract:
+failure_stage_count=6
+failure_stages=none,clock-transport,clock-shape,bigidvfs-transport,bigidvfs-shape,decode
+failure_stage_kunit_coverage=complete
+observer_attempt_budget=3-unchanged
+clock_calls_per_attempt=1-unchanged
+bigidvfs_calls_per_admitted_attempt=1-unchanged
+additional_hardware_calls=0
+cpu_requests_added=0
+hardware_writes_added=0
+device_tree_changes=0
+native_vm_build=none
+device_action=none
+boot_candidate=false
+synthetic_signoff=absent
+
+Interpretation:
+
+Patch 0531 assigns a stable stage before each existing call or validation
+boundary and copies only fields already returned by the protected-clock and
+BigiDVFS records into the failure trace. A rejected callback now logs the stage
+and the raw shape/divider/PLL inputs needed to identify the decoder branch.
+It does not call either backend again.
+
+Patch 0532 injects success plus clock-transport, clock-shape, BigiDVFS-
+transport, BigiDVFS-shape, and decoder outcomes. It also preserves the existing
+attempt-consumption, fourth-read refusal, and exact transport-call accounting.
+
+This is a source and patch-generation result only. No kernel was compiled, no
+QEMU suite was run, no candidate was selected, and no device was contacted.
+The next gate is exact Buildbox compilation of the focused KUnit and production
+profiles, followed by isolated no-network execution of the focused suite.

@@ -318,6 +318,15 @@ remain closed.
   offline classifier now accepts consecutive identical failure lines and
   preserves `attempts=1-2-of-3`, two callbacks, and errno `-71`. See
   [results/successor-runtime-attempt-2-eproto-20260904.txt](results/successor-runtime-attempt-2-eproto-20260904.txt).
+- The first failure-stage generation was rejected only by strict style checks
+  and admitted no package. Corrected exact clean pushed revision `5367f771...`
+  then generated and replayed canonical patches `0531` and `0532` from exact
+  prepared source state `93fbb771...`. Source/path validation and strict
+  Checkpatch pass with zero errors, warnings, or checks. The six-state trace
+  covers success, both transport failures, both record-shape failures, and
+  decoder rejection while adding no hardware call, CPU request, write, DT
+  change, or attempt. See
+  [results/eproto-patch-generation-20260904.txt](results/eproto-patch-generation-20260904.txt).
 
 ## Analysis
 
@@ -363,11 +372,9 @@ CPU8/CPU9 evidence, but not yet a frequency or composite load pass.
 
 ## Follow-up
 
-Publish this exact `EPROTO` result and generate one focused successor patch on
-Buildbox that gives every failed observer callback a hardware-free-tested stage
-identity: clock transport/shape, BigiDVFS transport/shape, or decoder return.
-It must preserve the three-callback ceiling, existing hardware-call budget,
-successful record format, CPU lifecycle, DT, and configuration. A focused
-KUnit profile must prove each failure stage before any new candidate is
-assembled. Do not repeat exact `54a02dd0...`. Keep load, cpufreq/OPP, extra
-hotplug, idle, and suspend closed until a valid first frequency sample exists.
+Build canonical `0531`--`0532` through the exact focused KUnit and production
+profiles on Buildbox, then run only the focused suite in isolated no-network
+arm64 QEMU. A new candidate may be assembled only if those receipts and the
+independent package, DT, container, pretrigger, and runtime gates pass. Do not
+repeat exact `54a02dd0...`. Keep load, cpufreq/OPP, extra hotplug, idle, and
+suspend closed until a valid first frequency sample exists.

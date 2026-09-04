@@ -107,3 +107,12 @@ request, and started no load. Source review leaves three observer-local
 validation. No exact-artifact repeat remains permitted. A new candidate must
 first add hardware-free-tested failure-stage attribution without adding a
 transport call or increasing the three-callback budget.
+
+Canonical patches `0531`--`0532` now implement that source boundary. Each
+failed callback names one of clock transport, clock shape, BigiDVFS transport,
+BigiDVFS shape, or decode and emits the already-returned ABI, generation,
+reserved, mux/divider, and PLL fields. The success path remains `none`.
+Injected KUnit fixtures cover all six states and exact call accounting; patch
+replay, source/path validation, and strict style checks pass. This is not yet a
+compiled or runtime result. The focused suite and production profile must pass
+on Buildbox before a new candidate can be considered.

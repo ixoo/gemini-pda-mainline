@@ -8235,13 +8235,19 @@ request, started no load, and requested no reboot. Changed-ID recovery
 hotplug budget and thermal probe-complete/success. This excludes timeout, I/O,
 and BigiDVFS `-EAGAIN` branches for those callbacks, but the current log cannot
 distinguish clock-record shape, BigiDVFS-record shape, or decoder validation.
-**Selected next:** generate one focused successor patch on Buildbox that adds a
-hardware-free-tested failure-stage field to the existing observer log, covering
-each remaining `EPROTO` branch without a new hardware call or a larger
-three-callback budget. Build its focused and production profiles, assemble a
-new exact candidate, and permit a live attempt only after all source, KUnit,
-package, DT, container, and runtime gates pass. Exact `54a02dd0...` must not be
-repeated; load, cpufreq/OPP, extra hotplug, idle, and suspend remain closed.
+The first diagnostic generation was rejected at strict style review and
+admitted no package. Corrected exact clean revision `5367f771...` generated and
+replayed canonical patches `0531`--`0532` from prepared source state
+`93fbb771...`; exact source/path checks and strict Checkpatch pass with zero
+errors, warnings, or checks. The six-state trace covers success, both transport
+failures, both record-shape failures, and decoder rejection, snapshots only
+already-returned fields, and adds no hardware call, CPU request, write, DT
+change, or observation attempt. **Selected next:** build the exact focused
+KUnit and production profiles on Buildbox, run only the focused suite in
+isolated no-network arm64 QEMU, then assemble a new exact candidate only after
+all package, DT, container, pretrigger, and runtime gates pass. Exact
+`54a02dd0...` must not be repeated; load, cpufreq/OPP, extra hotplug, idle, and
+suspend remain closed.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

@@ -1,0 +1,109 @@
+From 83831478a012c371f32f9b4184fa086801df786e Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 4 Sep 2026 23:02:00 +0000
+Subject: [PATCH 2/2] soc: mediatek: test A72 frequency observer failure trace
+
+Cover success and every clock, BigiDVFS, and decoder failure stage with injected in-memory records.
+
+Keep the exact three-attempt and one-call-per-transport bounds.
+---
+ .../mt6797-a72-frequency-observer-test.c      | 52 +++++++++++++++++--
+ 1 file changed, 49 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-frequency-observer-test.c b/drivers/soc/mediatek/mt6797-a72-frequency-observer-test.c
+index 85fef78..8029d82 100644
+--- a/drivers/soc/mediatek/mt6797-a72-frequency-observer-test.c
++++ b/drivers/soc/mediatek/mt6797-a72-frequency-observer-test.c
+@@ -114,6 +114,17 @@ static void frequency_observer_live_values_test(struct kunit *test)
+ 	KUNIT_EXPECT_EQ(test, trace.bigidvfs_reads, 8U);
+ 	KUNIT_EXPECT_EQ(test, trace.bigidvfs_sram_set_calls, 0U);
+ 	KUNIT_EXPECT_EQ(test, trace.attempts_remaining, 2U);
++	KUNIT_EXPECT_EQ(test, trace.failure_stage,
++			MT6797_A72_FREQUENCY_OBSERVER_FAILURE_NONE);
++	KUNIT_EXPECT_EQ(test, trace.clock_abi,
++			MT6797_DVFSP_CLOCK_BACKEND_ABI);
++	KUNIT_EXPECT_EQ(test, trace.clock_sample_generation, 11ULL);
++	KUNIT_EXPECT_EQ(test, trace.pll_ll_con1, 0xc1114000U);
++	KUNIT_EXPECT_EQ(test, trace.pll_l_con1, 0x400c4000U);
++	KUNIT_EXPECT_EQ(test, trace.pll_cci_con1, 0xc10c1d89U);
++	KUNIT_EXPECT_EQ(test, trace.big_abi, MT6797_BIGIDVFS_BACKEND_ABI);
++	KUNIT_EXPECT_EQ(test, trace.big_sample_generation, 13ULL);
++	KUNIT_EXPECT_EQ(test, trace.big_pll_pcw, 0xc1130000U);
+ 	KUNIT_EXPECT_TRUE(test, trace.complete);
+ }
+ 
+@@ -163,6 +174,8 @@ static void frequency_observer_failure_consumes_attempt_test(
+ 		&controller, &source, &observation, &trace), -EIO);
+ 	KUNIT_EXPECT_MEMEQ(test, &observation, &zero, sizeof(zero));
+ 	KUNIT_EXPECT_EQ(test, trace.attempt, 1U);
++	KUNIT_EXPECT_EQ(test, trace.failure_stage,
++			MT6797_A72_FREQUENCY_OBSERVER_FAILURE_CLOCK_TRANSPORT);
+ 	state->clock_error = 0;
+ 	KUNIT_EXPECT_EQ(test, mt6797_a72_frequency_observer_sample(
+ 		&controller, &source, &observation, &trace), 0);
+@@ -174,7 +187,7 @@ static void frequency_observer_failure_consumes_attempt_test(
+ 	KUNIT_EXPECT_EQ(test, state->big_calls, 2U);
+ }
+ 
+-static void frequency_observer_shape_refusal_test(struct kunit *test)
++static void frequency_observer_failure_stages_test(struct kunit *test)
+ {
+ 	struct mt6797_a72_frequency_observer_controller controller;
+ 	struct mt6797_a72_frequency_observer_trace trace;
+@@ -185,13 +198,46 @@ static void frequency_observer_shape_refusal_test(struct kunit *test)
+ 
+ 	state = kunit_kzalloc(test, sizeof(*state), GFP_KERNEL);
+ 	KUNIT_ASSERT_NOT_NULL(test, state);
++
+ 	frequency_observer_fill(state, &source, &controller);
+-	state->clock.sample_generation = 0;
++	state->clock.reserved = 1;
+ 	KUNIT_EXPECT_EQ(test, mt6797_a72_frequency_observer_sample(
+ 		&controller, &source, &observation, &trace), -EPROTO);
++	KUNIT_EXPECT_EQ(test, trace.failure_stage,
++			MT6797_A72_FREQUENCY_OBSERVER_FAILURE_CLOCK_SHAPE);
++	KUNIT_EXPECT_EQ(test, trace.clock_reserved, 1U);
+ 	KUNIT_EXPECT_EQ(test, state->clock_calls, 1U);
+ 	KUNIT_EXPECT_EQ(test, state->big_calls, 0U);
+ 	KUNIT_EXPECT_MEMEQ(test, &observation, &zero, sizeof(zero));
++
++	frequency_observer_fill(state, &source, &controller);
++	state->big_error = -EIO;
++	KUNIT_EXPECT_EQ(test, mt6797_a72_frequency_observer_sample(
++		&controller, &source, &observation, &trace), -EIO);
++	KUNIT_EXPECT_EQ(test, trace.failure_stage,
++			MT6797_A72_FREQUENCY_OBSERVER_FAILURE_BIGIDVFS_TRANSPORT);
++	KUNIT_EXPECT_EQ(test, state->clock_calls, 1U);
++	KUNIT_EXPECT_EQ(test, state->big_calls, 1U);
++
++	frequency_observer_fill(state, &source, &controller);
++	state->big.sample_generation = 0;
++	KUNIT_EXPECT_EQ(test, mt6797_a72_frequency_observer_sample(
++		&controller, &source, &observation, &trace), -EPROTO);
++	KUNIT_EXPECT_EQ(test, trace.failure_stage,
++			MT6797_A72_FREQUENCY_OBSERVER_FAILURE_BIGIDVFS_SHAPE);
++	KUNIT_EXPECT_EQ(test, trace.big_abi, MT6797_BIGIDVFS_BACKEND_ABI);
++	KUNIT_EXPECT_EQ(test, trace.big_sample_generation, 0ULL);
++
++	frequency_observer_fill(state, &source, &controller);
++	state->clock.pll_ll[1] = 0;
++	KUNIT_EXPECT_EQ(test, mt6797_a72_frequency_observer_sample(
++		&controller, &source, &observation, &trace), -EPROTO);
++	KUNIT_EXPECT_EQ(test, trace.failure_stage,
++			MT6797_A72_FREQUENCY_OBSERVER_FAILURE_DECODE);
++	KUNIT_EXPECT_EQ(test, trace.pll_ll_con1, 0U);
++	KUNIT_EXPECT_EQ(test, trace.big_pll_pcw, 0xc1130000U);
++	KUNIT_EXPECT_EQ(test, state->clock_calls, 1U);
++	KUNIT_EXPECT_EQ(test, state->big_calls, 1U);
+ }
+ 
+ static void frequency_observer_source_guards_test(struct kunit *test)
+@@ -215,7 +261,7 @@ static struct kunit_case frequency_observer_cases[] = {
+ 	KUNIT_CASE(frequency_observer_live_values_test),
+ 	KUNIT_CASE(frequency_observer_budget_test),
+ 	KUNIT_CASE(frequency_observer_failure_consumes_attempt_test),
+-	KUNIT_CASE(frequency_observer_shape_refusal_test),
++	KUNIT_CASE(frequency_observer_failure_stages_test),
+ 	KUNIT_CASE(frequency_observer_source_guards_test),
+ 	{ }
+ };
