@@ -17,7 +17,7 @@ EXPECTED_CASES = (
     "frequency_observer_live_values_test",
     "frequency_observer_budget_test",
     "frequency_observer_failure_consumes_attempt_test",
-    "frequency_observer_shape_refusal_test",
+    "frequency_observer_failure_stages_test",
     "frequency_observer_source_guards_test",
 )
 
