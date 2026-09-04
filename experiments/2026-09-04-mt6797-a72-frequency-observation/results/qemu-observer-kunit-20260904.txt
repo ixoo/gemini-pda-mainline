@@ -1,0 +1,29 @@
+result=pass
+classification=exact_focused_kunit_pass
+repository_commit=ea9ad80ab8af8c7d37ba5e091d810539fe74b47c
+build_profile=mt6797-a72-frequency-observer-kunit
+kernel_release=7.1.3-gemini-mt6797-a72-frequency-observer-kunit
+config_sha256=700d3b9e6fc8a18ae5fdcedd6bdd0b3add1e7eaf43b7896d5cf07bae25f6c77c
+image_sha256=10e80df5bcdb94d9546a7a1deead978568bc976d9f172ed839679db5955df06d
+raw_log_sha256=d3bed869310d64693300bced437e399dc9834939b5c86a5fa7970ea7be4facba
+qemu_version=11.0.2
+network=none
+suite=mt6797-a72-frequency-observer
+case_1=frequency_observer_live_values_test
+case_2=frequency_observer_budget_test
+case_3=frequency_observer_failure_consumes_attempt_test
+case_4=frequency_observer_shape_refusal_test
+case_5=frequency_observer_source_guards_test
+cases_passed=5
+cases_failed=0
+cases_skipped=0
+unexpected_kunit_suites=0
+hardware_action=none
+device_action=none
+boot_candidate=false
+observed_utc=2026-09-04T17:44:04Z
+
+The only selected suite passed all five exact cases before the expected
+root-filesystem panic boundary. It proves record composition, the 845000 kHz
+B-cluster result, the three-attempt ceiling, failure-budget consumption,
+malformed-sample refusal, and source guards using injected memory records.

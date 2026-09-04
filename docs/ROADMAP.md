@@ -8164,9 +8164,12 @@ Canonical patches `0525`--`0526` correct those two formats and add a pure
 six-case test boundary. Exact clean revision `a14e7701...` passed the Buildbox
 arm64 build and isolated no-network QEMU suite, including the live normal-PLL
 samples, the 845000 kHz live B-cluster sample, and all 13 ARMPLLDIV ratios. This
-proves the decoder math, not a live A72 frequency. **Selected next:** compose
-that decoder into one read-only lifecycle observation at bounded attributable
-points, then build and validate one successor with the exact stage-18 4+4+2
+proves the decoder math, not a live A72 frequency. Canonical patches
+`0527`--`0528` now add a three-attempt, read-only frequency observer and its
+focused hardware-free tests. Exact Buildbox compilation and isolated QEMU
+proof passed, so the observation boundary is ready for composition but still
+provides no live-device frequency claim. **Selected next:** build and validate
+one production successor combining that observer with the exact stage-18 4+4+2
 topology and now-proven thermal DT/config. Only that successor may run the
 already-proven finite dual-A72 volatile-RAM exchange while sampling temperature,
 frequency, topology, and independent accounting. Keep longer load, cpufreq/OPP

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-a72-frequency-observation` |
-| Status | `running`; decoder proved and bounded observer patches generated |
+| Status | `running`; bounded observer passed exact Buildbox/QEMU proof |
 | Subsystem | MT6797 CPU clock readback / Cortex-A72 lifecycle |
 | Device variant | Gemini PDA x27, named development unit |
 | Date(s) | 2026-09-04 |
@@ -71,6 +71,9 @@ the offline decoder gate and a separate observation composition pass.
   evidence that rejected the old decoder semantics.
 - `results/observer-patch-generation-20260904.txt`: exact replay, source/path,
   Checkpatch, and package identity for canonical patches `0527` and `0528`.
+- `results/buildbox-observer-kunit-build-20260904.txt` and
+  `results/qemu-observer-kunit-20260904.txt`: exact focused compilation,
+  package, and five-case isolated runtime proof.
 
 ## Procedure
 
@@ -88,6 +91,8 @@ the offline decoder gate and a separate observation composition pass.
    thermal, accounting, and bounded volatile-RAM evidence.
 7. Generate and hardware-free prove the three-attempt live observer before it
    enters any device profile.
+8. Only after that gate passes, compose one production successor with the
+   runtime-proven thermal DT/configuration and stage-18 4+4+2 lifecycle.
 
 ## Observations
 
@@ -126,6 +131,14 @@ the offline decoder gate and a separate observation composition pass.
   cases cover live-value composition, the three-attempt ceiling, failed-attempt
   consumption, malformed generation, and null/source guards. See
   [results/observer-patch-generation-20260904.txt](results/observer-patch-generation-20260904.txt).
+- Exact clean published revision `ea9ad80a...` compiled the production observer
+  and its injected test object on Buildbox with all 517 selected patches and
+  every package checksum validated. The only selected no-network QEMU suite
+  then passed all five exact cases, including the live-value fixture's 845000
+  kHz B-cluster result, three attempts followed by transport-free refusal, and
+  failed-attempt consumption. See
+  [results/buildbox-observer-kunit-build-20260904.txt](results/buildbox-observer-kunit-build-20260904.txt)
+  and [results/qemu-observer-kunit-20260904.txt](results/qemu-observer-kunit-20260904.txt).
 
 ## Analysis
 
@@ -143,17 +156,16 @@ as a second, unsupported stability oracle.
 
 ## Conclusion
 
-`partial pass`: the corrected pure conversion boundary has exact generation,
-Buildbox compilation, package, and isolated six-case KUnit proof. The bounded
-live observer now has exact generation, replay, source/path, and strict review
-proof; its focused Buildbox/QEMU gate remains pending. This is not yet a live
-A72 frequency claim. No device action or boot candidate occurred in this phase.
+`partial pass`: both the corrected pure conversion boundary and the bounded
+observer have exact generation, Buildbox compilation, package, and isolated
+focused KUnit proof. The observer is now eligible for a separately reviewed
+production composition. This is not yet a live A72 frequency claim. No device
+action or boot candidate occurred in this phase.
 
 ## Follow-up
 
-Build the admitted observer and its single focused suite from one exact clean
-pushed revision, then require all five cases to pass in isolated no-network
-arm64 QEMU. Only after that proof, compose the read-only observer with the
-proven thermal DT/configuration and exact 4+4+2 lifecycle profile. Keep longer
-load, cpufreq/OPP, extra hotplug, idle, suspend, and identical-artifact repeats
-closed.
+Compose the proved read-only observer with the exact runtime-proven thermal
+DT/configuration and stage-18 4+4+2 lifecycle profile. Validate that successor
+offline before selecting one boot-ID-bound finite dual-A72 observation. Keep
+longer load, cpufreq/OPP, extra hotplug, idle, suspend, and identical-artifact
+repeats closed.
