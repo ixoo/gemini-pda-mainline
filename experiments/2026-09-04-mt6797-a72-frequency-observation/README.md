@@ -74,6 +74,10 @@ closed.
 - `scripts/run-observer-kunit-qemu` and
   `scripts/classify-observer-kunit.py`: exact focused-package runner and
   five-case KTAP classifier for the observer gate.
+- `scripts/generate-successor-on-buildbox`, `scripts/successor_source_edits.py`,
+  `scripts/validate-successor-source.py`, and
+  `scripts/validate-successor-patches.py`: pinned two-patch repair for the
+  production configuration binding and admission-owned observer attachment.
 - `scripts/build-production-dtb.py` and `scripts/validate-production-dtb.py`:
   exact thermal/topology/provenance composition and independent DT-delta gate.
 - `scripts/build-production-candidate.sh` and

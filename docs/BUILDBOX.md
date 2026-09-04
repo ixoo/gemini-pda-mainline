@@ -656,6 +656,22 @@ raw plus decoded output, exact replay, source/path validation, strict
 Checkpatch, and package checksums. It generates no candidate, contacts no
 device, makes no CPU request, and changes no clock, OPP, voltage, or policy.
 
+The first production pretrigger exposed a later composition gap. Generate its
+two focused successor patches from the clean pushed project and the managed
+source pinned through canonical patch `0528`:
+
+```sh
+./scripts/buildbox generate-mt6797-a72-frequency-successor-patches
+./scripts/buildbox fetch-mt6797-a72-frequency-successor-patches
+```
+
+This lane binds the exact production configuration-input identity and exposes
+the existing bounded observer through the admission controller's real snapshot
+source. It preserves the prior physical and fixture identities, adds no CPU
+request, hardware write, or Device Tree change, and returns only a
+checksum-validated patch review. Compilation and device eligibility remain
+separate later gates.
+
 ## Remote storage and concurrency
 
 Buildbox uses its persistent home volume for the Git mirror, verified kernel
