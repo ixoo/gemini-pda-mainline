@@ -1,4 +1,4 @@
-From deef8af012be1266f41e56eb88b4db55c6d18a07 Mon Sep 17 00:00:00 2001
+From 5764da61ee398f6aaad744ec3ebd0318cc435018 Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Sat, 5 Sep 2026 02:00:00 +0000
 Subject: [PATCH 1/2] thermal: mediatek: connect bounded MT6797 scan observer
@@ -6,9 +6,9 @@ Subject: [PATCH 1/2] thermal: mediatek: connect bounded MT6797 scan observer
 Capture converted samples from the existing bank scan using a separate three-attempt owner. Keep normal thermal polling outside observer accounting and expose root-only complete failure records without additional register accesses.
 ---
  drivers/thermal/mediatek/Kconfig              |  10 ++
- drivers/thermal/mediatek/auxadc_thermal.c     | 117 +++++++++++++++++-
+ drivers/thermal/mediatek/auxadc_thermal.c     | 120 +++++++++++++++++-
  .../mediatek/mt6797_thermal_observer.h        |  57 +++++++++
- 3 files changed, 179 insertions(+), 5 deletions(-)
+ 3 files changed, 182 insertions(+), 5 deletions(-)
  create mode 100644 drivers/thermal/mediatek/mt6797_thermal_observer.h
 
 diff --git a/drivers/thermal/mediatek/Kconfig b/drivers/thermal/mediatek/Kconfig
@@ -33,7 +33,7 @@ index 2f55911..c2405d7 100644
  	tristate "Test MediaTek AUXADC thermal calibration policy" if !KUNIT_ALL_TESTS
  	depends on KUNIT
 diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediatek/auxadc_thermal.c
-index 6c0afb6..c9f6d06 100644
+index 6c0afb6..f303769 100644
 --- a/drivers/thermal/mediatek/auxadc_thermal.c
 +++ b/drivers/thermal/mediatek/auxadc_thermal.c
 @@ -27,6 +27,9 @@
@@ -121,7 +121,7 @@ index 6c0afb6..c9f6d06 100644
  
  		mtk_thermal_put_bank(bank);
  	}
-@@ -1427,6 +1447,83 @@ static int mtk_read_temp(struct thermal_zone_device *tz, int *temperature)
+@@ -1427,6 +1447,86 @@ static int mtk_read_temp(struct thermal_zone_device *tz, int *temperature)
  	return 0;
  }
  
@@ -199,13 +199,16 @@ index 6c0afb6..c9f6d06 100644
 +	&dev_attr_mt6797_temperature_snapshot_status.attr,
 +	NULL,
 +};
-+ATTRIBUTE_GROUPS(mt6797_observer);
++
++static const struct attribute_group mt6797_observer_group = {
++	.attrs = mt6797_observer_attrs,
++};
 +#endif
 +
  static const struct thermal_zone_device_ops mtk_thermal_ops = {
  	.get_temp = mtk_read_temp,
  };
-@@ -2192,6 +2289,9 @@ static int mtk_thermal_probe(struct platform_device *pdev)
+@@ -2192,6 +2292,9 @@ static int mtk_thermal_probe(struct platform_device *pdev)
  		goto fail_resource;
  
  	mutex_init(&mt->lock);
@@ -215,13 +218,13 @@ index 6c0afb6..c9f6d06 100644
  	mt->dev = &pdev->dev;
  	platform_set_drvdata(pdev, mt);
  	for (i = 0; i < mt->conf->num_banks; i++) {
-@@ -2372,6 +2472,13 @@ static int mtk_thermal_probe(struct platform_device *pdev)
+@@ -2372,6 +2475,13 @@ static int mtk_thermal_probe(struct platform_device *pdev)
  		}
  	}
  
 +#if IS_ENABLED(CONFIG_MTK_SOC_THERMAL_OBSERVER)
 +	if (mt->conf == &mt6797_thermal_data) {
-+		ret = devm_device_add_groups(&pdev->dev, mt6797_observer_groups);
++		ret = devm_device_add_group(&pdev->dev, &mt6797_observer_group);
 +		if (ret)
 +			dev_warn(&pdev->dev, "thermal observer unavailable: %d\n", ret);
 +	}

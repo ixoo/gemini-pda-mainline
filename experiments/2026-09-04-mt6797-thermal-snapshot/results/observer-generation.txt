@@ -1,4 +1,4 @@
-generation_revision=483a620606fe44c13ff7fa1c90889fe944813076
+generation_revision=6c87748f25d12703e223e53a7544c7a816bec380
 patches=2
 replay=identical-tree
 production_driver_changes=existing-scan-observer

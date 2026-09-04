@@ -1,4 +1,4 @@
-From 5e24a3bc7b24fa6a9c4c77145a71a0530d59cd71 Mon Sep 17 00:00:00 2001
+From 89fcfff3ba05f21d3cb82409a7d3862d6c719fe3 Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Sat, 5 Sep 2026 02:00:00 +0000
 Subject: [PATCH 2/2] thermal: mediatek: test isolated thermal observer owner
