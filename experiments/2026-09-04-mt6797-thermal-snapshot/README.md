@@ -244,3 +244,11 @@ the per-bank observation path only. The observer budget is consumed; no further
 read or workload on this session is selected. The earlier thermal comparison
 remains rejected, and visible console output was absent by owner report despite
 working USB serviceability.
+
+
+The [prospective workload-attribution design](WORKLOAD_ATTRIBUTION.md) fixes
+three inherited stage boundaries and keeps the four-round ceiling. Its offline
+per-slot evaluator preserves diagnostic rows while rejecting thermal anomalies.
+A cleanup review found that inherited file removal does not reap live workers;
+execution remains unselected until the complete builder/runner and owned-child
+failure cleanup are implemented and tested. No further device read occurred.
