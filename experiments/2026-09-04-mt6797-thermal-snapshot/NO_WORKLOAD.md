@@ -1,8 +1,8 @@
 # First no-workload thermal observation
 
-This is the prospective observation contract and frozen offline composition.
-The candidate below is not yet admitted for deployment: the one-shot host
-runner and deployment receipt gate remain required before a boot request.
+This is the frozen observation contract and offline composition. The one-shot
+host runner and deployment receipt gate are validated below. Publication of
+this protocol precedes deployment and the owner's physical boot selection.
 
 ## Hypothesis and decision
 
@@ -75,7 +75,7 @@ attempts still zero, and an explicit cleanup/no-storage-write statement.
 
 No partition or filesystem backup is needed. Any eventual deployment remains
 restricted to live-GPT-resolved inactive boot2 with full readback and clean
-shutdown for physical selection. No deployment is admitted by this draft alone.
+shutdown for physical selection. Deployment must use the exact guarded installer below after publication.
 
 ## Frozen offline composition
 
@@ -116,7 +116,63 @@ attribute. The [state gate](scripts/observation_state.py) pins the full pristine
 lifecycle string from the successful baseline, including every existing field,
 and requires the observer status, exact identity, offline A72s and thermal
 bounds. Its 19 negative fixtures reject identity reuse, budget changes, missing
-fields, an unsafe path component and other admission failures. This does not
-yet supply the one-shot transport runner or an installation receipt. Deployment
-and a device boot remain unselected until those artifacts are validated and
-published; the composed image has not been written to the device.
+fields, an unsafe path component and other admission failures. The frozen runner below supplies the one-shot transport and strict receipt
+gate; an actual full-readback/shutdown receipt is still required before
+observation. The composed image has not yet been written to the device.
+
+
+## Frozen one-shot runner and deployment
+
+The [runner](scripts/run-observation.py) pins the SHA-256 of its orchestration,
+state gate, record parser and both remote scripts. The
+[orchestrator](scripts/observation_protocol.py) rejects missing, duplicate or
+unexpected deployment receipt fields, incorrect candidate/readback identity,
+active targets, inadequate power and absent shutdown confirmation. The
+[source-pinned installer](scripts/install-no-workload-boot2.sh) retains the
+established live-GPT, inactive-target, stable-power, exact-size, full-readback
+and clean-shutdown gates. It creates no new backup and never reboots.
+
+After publication, from the repository root:
+
+```sh
+experiments/2026-09-04-mt6797-thermal-snapshot/scripts/install-no-workload-boot2.sh --execute \
+  --target gemini@192.168.1.50 \
+  --candidate-dir artifacts/thermal-snapshot-composition/candidate-c2ddeea9 \
+  --evidence-dir artifacts/device-install-evidence/thermal-snapshot-deployment-1
+```
+
+Only after the owner physically selects the verified boot2 candidate:
+
+```sh
+python3 experiments/2026-09-04-mt6797-thermal-snapshot/scripts/run-observation.py \
+  --receipt artifacts/device-install-evidence/thermal-snapshot-deployment-1/deployment-summary.txt \
+  --execute
+```
+
+Omitting `--execute` validates source pins and the receipt without device access.
+The exclusive capture is
+`artifacts/runtime-captures/thermal-snapshot-no-workload-1`; any existing capture
+refuses reopening, including one interrupted before the first snapshot. Never
+rename or remove it to bypass refusal. Each snapshot request is recorded and
+flushed on the host before transport; interruption leaves that attempt spent.
+
+The ceiling is five interface-bound USB/netcat sessions: preflight, three
+separately validated snapshot reads, and postflight. Each state frame reads at
+most one ordinary aggregate temperature, and refuses ambiguous thermal-zone
+inventory without reading those temperatures. Snapshot reads two and three
+are preceded by one second of host spacing. Each session uses a five-second
+connection limit, fifteen-second idle limit and twenty-second outer timeout.
+There is no transport retry, fourth read, exhaustion test or automatic cleanup
+probe following a refusal. No remote temporary file is created. The remote
+read script rechecks exact kernel, boot, provenance, pristine lifecycle,
+offline A72s, read-only sysfs, path, modes and expected attempt count before
+its single consuming read. The host checks each complete result before the
+next request, then requires unchanged pristine state and exactly three attempts.
+
+[Offline validation](results/no-workload-runner-validation.txt) covers strict
+receipt mutations, orchestration failures and actual runner persistence with
+fake transport, including keyboard interruption and restart refusal. These
+checks establish bounded host behavior, not hardware thermal support. The
+previous workload remains consumed; no CPU workload, frequency read, CPU_OFF,
+partition access, cpufreq/OPP, idle, suspend or default-profile integration is
+admitted by this protocol.

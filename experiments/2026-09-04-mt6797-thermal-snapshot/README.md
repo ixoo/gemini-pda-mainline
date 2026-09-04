@@ -222,5 +222,7 @@ closed cold-repeat comparison.
 The [prospective protocol and frozen composition](NO_WORKLOAD.md) now pin the
 production observer profile, Buildbox package, exact DT provenance replacement
 and reproducible LK container. The full pristine state gate and parser have
-negative fixtures. No device write or observation has occurred; the one-shot
-host runner and deployment receipt gate remain required before selection.
+negative fixtures. The source-pinned one-shot host runner and strict deployment receipt gate now
+pass offline partial-failure, durable-attempt and restart-refusal fixtures.
+Publication precedes the guarded deployment; no runtime support claim follows
+from these host tests. See the linked protocol for exact budgets and commands.

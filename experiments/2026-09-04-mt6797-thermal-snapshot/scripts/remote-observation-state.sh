@@ -51,12 +51,16 @@ $BB printf 'frequency_log_count='; $BB dmesg 2>/dev/null | $BB grep -Fc 'GEMINI_
 thermal_zone_count=0
 thermal_zone_type=missing
 thermal_temperature=missing
+thermal_zone_path=
 for item in /sys/class/thermal/thermal_zone[0-9]*; do
 	[ -r "$item/type" ] && [ -r "$item/temp" ] || continue
 	thermal_zone_count=$((thermal_zone_count + 1))
-	thermal_zone_type=$($BB cat "$item/type")
-	thermal_temperature=$($BB cat "$item/temp")
+	thermal_zone_path=$item
 done
+if [ "$thermal_zone_count" = 1 ]; then
+	thermal_zone_type=$($BB cat "$thermal_zone_path/type")
+	thermal_temperature=$($BB cat "$thermal_zone_path/temp")
+fi
 $BB printf 'thermal_zone_count=%s\n' "$thermal_zone_count"
 $BB printf 'thermal_zone_type=%s\n' "$thermal_zone_type"
 $BB printf 'thermal_temperature_millicelsius=%s\n' "$thermal_temperature"

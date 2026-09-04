@@ -8342,15 +8342,16 @@ The actual interface and concurrency oracle now verifies bounded failure text,
 exhaustion without IO and isolated observer accounting. A removal audit found
 that transaction close preceded devres reader cleanup; the corrected grouped
 lifetime passes Buildbox and injected late-probe/remove checks. **Selected
-next:** finish the one-shot host transport/observation runner and deployment
-receipt validation for the [no-workload composition](../experiments/2026-09-04-mt6797-thermal-snapshot/NO_WORKLOAD.md).
-Its exact production profile, package and reproducible LK container now pass
-offline validation; the state gate pins complete pristine lifecycle accounting
-and the three-read observer budget. Bind the runner to the frozen candidate,
-fresh-boot identity and thermal refusal bounds, prove partial-failure/no-retry
-behavior, and publish its final protocol before admitting deployment and a
-physical boot. Emulator, source audits and injected-IO results do not
-establish hardware thermal repeatability.
+next:** publish the validated one-shot runner and deploy the frozen
+[no-workload composition](../experiments/2026-09-04-mt6797-thermal-snapshot/NO_WORKLOAD.md)
+through its exact live-GPT/full-readback/shutdown gates. Then require physical
+boot2 selection, the new candidate's fresh pristine identity and at most three
+bounded thermal snapshots with CPU8/CPU9 offline. The runner now binds source
+hashes, deployment receipt and attempt accounting; partial-failure, durable
+request and restart-refusal fixtures pass. Stop and retain any refusal without
+retry. A complete result validates the observation path only and permits a
+separate attributable protocol design. Emulator, source audits and injected-IO
+results do not establish hardware thermal repeatability.
 Integrated thermal repeatability, broader load/hotplug, cpufreq/OPP, idle,
 suspend and default integration remain open.
 
