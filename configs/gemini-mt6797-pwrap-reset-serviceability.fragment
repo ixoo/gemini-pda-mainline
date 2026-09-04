@@ -1,0 +1,12 @@
+# Isolated production profile for the corrected MT6797 PMIC-wrapper reset.
+# The preceding fragments retain the accepted USB/console/keyboard/SMP8 and
+# eMMC configuration.  This final fragment names the result and keeps every
+# adjacent power-management experiment out of the boot.
+CONFIG_LOCALVERSION="-gemini-mt6797-pwrap-reset"
+# CONFIG_LOCALVERSION_AUTO is not set
+
+# CONFIG_COMMON_CLK_MT6797_RESET_KUNIT_TEST is not set
+# CONFIG_THERMAL is not set
+# CONFIG_CPU_FREQ is not set
+# CONFIG_CPU_IDLE is not set
+# CONFIG_SUSPEND is not set

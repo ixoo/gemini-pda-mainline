@@ -31,6 +31,13 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-09-04 MT6797 PMIC-wrapper reset serviceability](2026-09-04-mt6797-pwrap-reset-serviceability/README.md)
+  — prepares the isolated runtime regression after the reset repair. It uses a
+  fresh current-canonical profile rather than reviving the quarantined July
+  DA9214 series, reuses the exact hardware-passed Candidate AW DT/initramfs as
+  private controls, and permits only the PWRAP reset-cell change from 64 to 1.
+  Offline construction is in progress; no candidate or device action has yet
+  occurred.
 - [2026-09-03 MT6797 infracfg reset repair](2026-09-03-mt6797-infracfg-reset-repair/README.md)
   — completes the hardware-free follow-up selected by the transaction audit:
   a compact two-input map for only the source-proven thermal and PMIC-wrap
