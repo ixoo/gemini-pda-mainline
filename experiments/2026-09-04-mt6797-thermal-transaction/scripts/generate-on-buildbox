@@ -3,7 +3,8 @@
 set -euo pipefail
 export LC_ALL=C
 
-readonly PARENT_SOURCE_STATE=49084a29725089735de735e0b63543ef44261ef1533075fe9a815574d48fa9f0
+readonly PARENT_SOURCE_STATE=c8b7023e45d7b15dd76d2bb3c2b9376be2e213fa738da399ce3ee3f11172694c
+readonly PARENT_SOURCE_INTEGRITY=e3e2f0a36e172ecd7ad7753433ec8c03429d904fa9fd79d64b269546a99086b1
 readonly THERMAL_C_SHA256=263ea74c3cb11c5e068b1df158743f86659818902a2da3842b23d5be41b6948e
 readonly INTERNAL_H_SHA256=8c763e4ba0d4c276c873605ea05fb77084f8fbdb86d3a0e5910581e1684ea5be
 readonly TEST_C_SHA256=d3ccf23bd069b2fca19239a8e468f4ea5b742647239c88c91433804aa0bf848d
@@ -25,6 +26,11 @@ readonly output_root=$3
 	die 'prepared source state marker absent or unsafe'
 [[ "$(<"$source_root/.gemini-source-state")" == "$PARENT_SOURCE_STATE" ]] ||
 	die 'prepared parent source state changed'
+[[ -f "$source_root/.gemini-source-integrity" &&
+   ! -L "$source_root/.gemini-source-integrity" ]] ||
+	die 'prepared source integrity marker absent or unsafe'
+[[ "$(<"$source_root/.gemini-source-integrity")" == "$PARENT_SOURCE_INTEGRITY" ]] ||
+	die 'prepared parent source integrity changed'
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 experiment_dir=$(cd -- "$script_dir/.." && pwd -P)
@@ -180,6 +186,7 @@ cat >"$partial/provenance/generation.txt" <<EOF
 purpose=experiment-only-hardware-free-mt6797-thermal-transaction
 repository_commit=$project_commit
 parent_source_state=$PARENT_SOURCE_STATE
+parent_source_integrity=$PARENT_SOURCE_INTEGRITY
 baseline_commit=$baseline_commit
 production_commit=$production_commit
 kunit_commit=$kunit_commit

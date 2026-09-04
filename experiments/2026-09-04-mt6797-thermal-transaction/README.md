@@ -28,7 +28,8 @@ and unwind independently observable before any DT enablement or device boot.
 - Canonical series before this gate: 505 entries, SHA-256
   `0fb18bba40d9d55bb6dc7e0f3d5b3ebfe7bdbc36963991ac77c1913883071010`.
 - Prepared Linux source state:
-  `49084a29725089735de735e0b63543ef44261ef1533075fe9a815574d48fa9f0`.
+  `c8b7023e45d7b15dd76d2bb3c2b9376be2e213fa738da399ce3ee3f11172694c`;
+  recursive integrity `e3e2f0a36e172ecd7ad7753433ec8c03429d904fa9fd79d64b269546a99086b1`.
 - Production and test parent hashes are pinned in
   `scripts/generate-on-buildbox`.
 - Source contracts come from the preceding
@@ -86,8 +87,11 @@ this gate.
 
 ## Result
 
-Pending Buildbox patch generation, canonical admission, build, and isolated
-KUnit execution.
+The first submission was correctly rejected before copying or editing source:
+the managed tree had advanced from the audit state through canonical reset
+patches 0514--0516. All five pinned thermal parent-file hashes were unchanged.
+The generator now pins the advanced source-state identity. Patch generation,
+canonical admission, build, and isolated KUnit execution remain pending.
 
 ## Follow-up
 
