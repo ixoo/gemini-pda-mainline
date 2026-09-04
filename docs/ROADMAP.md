@@ -8107,7 +8107,12 @@ A pass closes the thermal-observability prerequisite and selects read-only
 frequency/topology/accounting observation around the already-proven finite A72
 load; a changed-ID no-USB return is now a serviceability regression against a
 valid observation-path baseline. Do not add cpufreq/OPP, CPU load, hotplug,
-idle, suspend, or same-artifact repeat to this attempt.
+idle, suspend, or same-artifact repeat to this attempt. Published commit
+`048591e6...` has now installed that exact payload on live-GPT-resolved inactive
+`boot2`; synchronization, flush, full 16 MiB readback, stable-power, no-new-
+backup, no-other-write, and three-closed-TCP shutdown gates all passed.
+**Selected next:** arm the exact bounded observer and physically select `boot2`
+once; do not rewrite the verified partition.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

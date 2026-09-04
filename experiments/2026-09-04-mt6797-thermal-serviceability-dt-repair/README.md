@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-thermal-serviceability-dt-repair` |
-| Status | exact offline candidate selected; device attempt pending |
+| Status | exact candidate installed, fully read back, and device shut down; one boot2 attempt pending |
 | Subsystem | MT6797 thermal observation and preserved USB serviceability |
 | Device variant | Planet Computers Gemini PDA, MT6797 |
 | Date(s) | 2026-09-04 |
@@ -109,6 +109,14 @@ reproduce. The runtime positive fixture passes; thirteen identity, reset, USB,
 thermal, CPU, console, eMMC, temperature, action, and boot-ID mutations reject.
 Shell syntax, ShellCheck, source pins, single live-GPT write, no-new-backup,
 full-readback, and closed-TCP shutdown requirements pass offline.
+
+Published commit `048591e6...` passed all live deployment gates. Gemian boot
+`3c428441...` resolved inactive logical `boot2` as `/dev/mmcblk0p30`, wrote the
+exact `ca3c2588...` payload over retired `ec262457...`, synchronized and
+flushed it, and produced a matching full-partition readback under stable
+battery and external power. No backup or other partition write occurred. The
+clean shutdown request closed TCP/22 for three consecutive samples, so the
+device is confirmed off and ready for the single selected `boot2` attempt.
 
 ## Analysis
 
