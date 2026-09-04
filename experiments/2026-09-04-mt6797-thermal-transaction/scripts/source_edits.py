@@ -463,8 +463,9 @@ def production_helpers() -> str:
     \t\t\ttemperature = mt->raw_to_mcelsius(mt,
     \t\t\t\t\t     bank_conf->sensors[sensor], raw);
 
-    \t\t\tif (!mtk_thermal_mt6797_first_sample_valid(raw,
-    \t\t\t\t\t\t\t temperature)) {
+    \t\t\tvalid = mtk_thermal_mt6797_first_sample_valid(raw,
+    \t\t\t\t\t\t\t\t temperature);
+    \t\t\tif (!valid) {
     \t\t\t\tvalid = false;
     \t\t\t\tbreak;
     \t\t\t}
@@ -508,8 +509,7 @@ def production_helpers() -> str:
 
     static int
     mtk_thermal_map_phandle(struct device *dev, struct device_node *owner,
-    \t\t\t   const char *property, void __iomem **base,
-    \t\t\t   u64 *phys)
+    \t\t\tconst char *property, void __iomem **base, u64 *phys)
     {
     \tstruct device_node *node;
     \tint ret;
@@ -543,6 +543,7 @@ def probe_source() -> str:
     return dedent("""\
     static int mtk_thermal_probe(struct platform_device *pdev)
     {
+    \tconst struct mtk_thermal_transaction_ops *ops;
     \tstruct device_node *np = pdev->dev.of_node;
     \tstruct thermal_zone_device *tzdev;
     \tstruct mtk_thermal *mt;
@@ -555,13 +556,13 @@ def probe_source() -> str:
     \tmt->conf = of_device_get_match_data(&pdev->dev);
     \tif (!mt->conf)
     \t\treturn -EINVAL;
+    \tops = &mt6797_thermal_transaction_ops;
 
     \tret = mtk_thermal_get_calibration_data(&pdev->dev, mt);
     \tif (ret)
     \t\treturn ret;
 
-    \tmt->thermal_base = devm_platform_get_and_ioremap_resource(pdev, 0,
-    \t\t\t\t\t\t\t      NULL);
+    \tmt->thermal_base = devm_platform_get_and_ioremap_resource(pdev, 0, NULL);
     \tif (IS_ERR(mt->thermal_base))
     \t\treturn PTR_ERR(mt->thermal_base);
 
@@ -608,9 +609,8 @@ def probe_source() -> str:
     \t\t\t\t\t     "cannot acquire thermal clock\\n");
 
     \t\tmt->raw_to_mcelsius = raw_to_mcelsius_v4;
-    \t\tret = mtk_thermal_transaction_execute(mt,
-    \t\t\t\t&mt6797_thermal_transaction_ops,
-    \t\t\t\t&mt->transaction, mt->conf->num_banks);
+    \t\tret = mtk_thermal_transaction_execute(mt, ops, &mt->transaction,
+    \t\t\t\t\t\t      mt->conf->num_banks);
     \t\tif (ret)
     \t\t\treturn dev_err_probe(&pdev->dev, ret,
     \t\t\t\t\t     "MT6797 transaction failed\\n");
@@ -656,9 +656,7 @@ def probe_source() -> str:
     \tif (IS_ERR(tzdev)) {
     \t\tret = PTR_ERR(tzdev);
     \t\tif (mt->conf->version == MTK_THERMAL_V4)
-    \t\t\tmtk_thermal_transaction_close(mt,
-    \t\t\t\t&mt6797_thermal_transaction_ops,
-    \t\t\t\t&mt->transaction);
+    \t\t\tmtk_thermal_transaction_close(mt, ops, &mt->transaction);
     \t\treturn ret;
     \t}
 
@@ -674,8 +672,8 @@ def probe_source() -> str:
     \tstruct mtk_thermal *mt = platform_get_drvdata(pdev);
 
     \tif (mt && mt->conf->version == MTK_THERMAL_V4)
-    \t\tmtk_thermal_transaction_close(mt,
-    \t\t\t&mt6797_thermal_transaction_ops, &mt->transaction);
+    \t\tmtk_thermal_transaction_close(mt, &mt6797_thermal_transaction_ops,
+    \t\t\t\t\t      &mt->transaction);
     }
 
     """)
@@ -725,7 +723,7 @@ def test_source() -> str:
 
     static void
     mt6797_test_record(struct mt6797_test_context *context,
-    \t\t    enum mt6797_test_operation operation, int bank)
+    \t\t   enum mt6797_test_operation operation, int bank)
     {
     \tcontext->events[context->event_count].operation = operation;
     \tcontext->events[context->event_count].bank = bank;
@@ -734,7 +732,7 @@ def test_source() -> str:
 
     static int
     mt6797_test_fallible(struct mt6797_test_context *context,
-    \t\t\tenum mt6797_test_operation operation, int bank)
+    \t\t     enum mt6797_test_operation operation, int bank)
     {
     \tint ordinal = context->fallible_count++;
 
@@ -849,9 +847,9 @@ def test_source() -> str:
 
     static void
     mt6797_test_expect_event(struct kunit *test,
-    \t\t\t  const struct mt6797_test_context *context,
-    \t\t\t  unsigned int ordinal,
-    \t\t\t  enum mt6797_test_operation operation, int bank)
+    \t\t\t const struct mt6797_test_context *context,
+    \t\t\t unsigned int ordinal,
+    \t\t\t enum mt6797_test_operation operation, int bank)
     {
     \tKUNIT_ASSERT_LT(test, ordinal, context->event_count);
     \tKUNIT_EXPECT_EQ(test, context->events[ordinal].operation, operation);
@@ -908,15 +906,15 @@ def test_source() -> str:
     \t     fail_at++) {
     \t\tstruct mtk_thermal_transaction_state state = {};
     \t\tstruct mt6797_test_context context = { .fail_at = fail_at };
+    \t\tbool closed;
     \t\tint ret;
 
     \t\tret = mtk_thermal_transaction_execute(&context,
     \t\t\t\t\t\t      &mt6797_test_ops, &state,
     \t\t\t\t\t\t      MT6797_TEST_BANKS);
     \t\tKUNIT_EXPECT_EQ_MSG(test, ret, -EIO, "failure %d", fail_at);
-    \t\tKUNIT_EXPECT_TRUE_MSG(test,
-    \t\t\tmtk_thermal_transaction_state_is_closed(&state),
-    \t\t\t"failure %d left transaction open", fail_at);
+    \t\tclosed = mtk_thermal_transaction_state_is_closed(&state);
+    \t\tKUNIT_EXPECT_TRUE(test, closed);
     \t}
     }
 

@@ -101,8 +101,11 @@ semantics, patch shape, and deterministic replay, then stopped at strict style
 review: 17 production checks and two test warnings plus 47 test checks. It
 published no package and performed no build or device action. The generator now
 uses normal continuation layout, sleepable delay, and explicit KUnit callbacks
-instead of flow-control macros. Canonical admission, build, and isolated KUnit
-execution remain pending.
+instead of flow-control macros. That repair reduced the next strict review to
+six production and four test alignment checks, again with no package, build,
+or device action. The remaining call continuations are now aligned or reduced
+to single lines. Canonical admission, build, and isolated KUnit execution
+remain pending.
 
 ## Follow-up
 
