@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "experiment": "2026-09-04-mt6797-thermal-transaction",
+  "repository_parent": "afabe4df4e18eca3ab0d70648c9db1899479bd28",
+  "canonical_parent": {
+    "entry_count": 505,
+    "sha256": "0fb18bba40d9d55bb6dc7e0f3d5b3ebfe7bdbc36963991ac77c1913883071010"
+  },
+  "prepared_source_state": "49084a29725089735de735e0b63543ef44261ef1533075fe9a815574d48fa9f0",
+  "transaction": {
+    "bank_count": 6,
+    "sensor_count": 5,
+    "auxadc_channel": 11,
+    "auxadc_power_bit": 14,
+    "auxadc_power_bit_action": "none-unresolved",
+    "apmixed_register": "0x604",
+    "apmixed_clear_mask": "GENMASK(5, 4)",
+    "thermal_ahb_status": "0x418",
+    "thermal_ahb_busy_field": "31:16",
+    "auxadc_global_busy_bit": 0,
+    "first_sample_raw_zero_valid": false,
+    "irq_requested": false,
+    "temp_ahbto_programmed": false
+  },
+  "generated_patches": [
+    "patches/v7.1.3/0517-thermal-mediatek-add-MT6797-ordered-transaction.patch",
+    "patches/v7.1.3/0518-thermal-mediatek-test-MT6797-ordered-transaction.patch"
+  ],
+  "scope": {
+    "hardware_free": true,
+    "thermal_dt_enabled": false,
+    "auxadc_dt_enabled": false,
+    "thermal_reset_phandle_added": false,
+    "irq_or_watchdog_action": false,
+    "pm_callbacks": false,
+    "cpufreq_or_opp": false,
+    "cpu8_or_cpu9_action": false,
+    "device_action": false,
+    "boot_candidate": false
+  }
+}
