@@ -1,0 +1,36 @@
+MT6797 A72 cold-cycle temperature-rise protocol offline validation
+Date: 2026-09-04
+baseline_revision=8d7d9ca0
+retired_protocol_result_revision=1f8b8ab6
+baseline_pretrigger_sha256=aabc444b8336c94387a42adb771ff8aa515c6b2504bcba642624653fba34d0cc
+baseline_pretrigger_temperature_millicelsius=52800
+baseline_before_rise_millicelsius=700
+baseline_during_rise_millicelsius=700
+baseline_after_rise_millicelsius=900
+baseline_classification_sha256=6fdd283f07774f7c274065f853d37d18942c6db4e910d71e0e17a0826fa0aae4
+comparison_mutations_rejected=76
+gate_mutations_rejected=11
+positive_thermal_translations=6
+raw_orchestration_positive=1
+raw_orchestration_mutations_rejected=6
+bash_syntax=pass
+shellcheck=pass
+kernel_change=none
+candidate_change=none
+device_runtime_builder_change=none
+kernel_build=not-required
+
+The original private pretrigger digest was reverified before extracting its
+52800 millicelsius initial temperature. The new fixtures accept common thermal
+offsets and reject changed clocks, budgets, fields, topology/result categories,
+nonpositive accounting, excessive absolute temperatures, excessive positive or
+negative rise, within-run spread and reused/unselected boot identity. Gate
+fixtures reject consumed state, candidate/cycle mismatch and invalid initial
+temperatures. Raw-orchestration fixtures exercise the actual inherited lifecycle
+and concurrent-workload classifier instead of trusting success-summary text.
+
+The selected live mainline boot was read-only reidentified as
+1afc43e5-d4cd-4df6-a0e1-431eeef140df while preparing this protocol. That identity
+probe consumed no observer, lifecycle or workload action. The gate still
+requires a new complete pristine frame after publication; no hardware success
+is inferred from these offline tests.

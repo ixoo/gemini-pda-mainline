@@ -439,6 +439,12 @@ identity/pristine checks but the added cold-repeat temperature envelope rejected
 [rejected cold pretrigger](results/cold-repeat-pretrigger-rejected.txt).
 The second integrated measurement remains unperformed; the host did not retry.
 
+The prospective [temperature-rise protocol](COLD_RISE.md) separates initial
+temperature, rise and unchanged absolute upper limits. Its
+[offline fixtures](results/cold-rise-offline-validation.txt) bind the selected
+unspent boot to a new pristine frame and one unchanged finite workload.
+The first protocol and its rejection remain historical evidence.
+
 ## Analysis
 
 The current decoder cannot support an attributable A72 frequency observation.

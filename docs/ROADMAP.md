@@ -8312,12 +8312,14 @@ now freezes admission and explicit baseline comparison with fail-closed mutation
 fixtures. The fresh physical boot passed inherited identity/pristine checks,
 but the added host temperature envelope rejected before admission or load.
 The experiment records this as a cold-versus-warm comparison design limitation,
-not a hardware failure. **Selected next:** design and offline-validate a
-cold-start thermal comparison that distinguishes initial temperature from
-workload rise and justified anomaly limits, preserving the failed gate and
-all existing action ceilings. Publish that distinct contract before selecting
-any further device action; do not warm the device or retry this protocol.
-Integrated cold-boot repeatability and all broader scope remain open.
+not a hardware failure. The distinct [temperature-rise contract](../experiments/2026-09-04-mt6797-a72-frequency-observation/COLD_RISE.md)
+now separates initial state from workload rise while retaining absolute upper
+refusal limits and all action ceilings. **Selected next:** publish that
+contract and its offline fixtures, require a new pristine frame on the selected
+unspent second boot, then perform at most its one bounded workload and explicit
+baseline comparison. Preserve the earlier refusal; do not warm the device,
+retry the retired protocol or silently substitute a different boot.
+Integrated cold-cycle repeatability and all broader scope remain open.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
