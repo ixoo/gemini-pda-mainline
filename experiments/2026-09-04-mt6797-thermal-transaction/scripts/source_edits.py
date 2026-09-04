@@ -73,8 +73,7 @@ def transaction_header() -> str:
     };
 
     static inline bool
-    mtk_thermal_transaction_state_is_closed(
-    \tconst struct mtk_thermal_transaction_state *state)
+    mtk_thermal_transaction_state_is_closed(const struct mtk_thermal_transaction_state *state)
     {
     \treturn state && !state->auxadc_clock_enabled &&
     \t\t!state->thermal_clock_enabled && !state->reset_deasserted &&
@@ -105,9 +104,9 @@ def transaction_header() -> str:
     }
 
     static inline void
-    mtk_thermal_transaction_close(
-    \tvoid *context, const struct mtk_thermal_transaction_ops *ops,
-    \tstruct mtk_thermal_transaction_state *state)
+    mtk_thermal_transaction_close(void *context,
+    \t\t\t      const struct mtk_thermal_transaction_ops *ops,
+    \t\t\t      struct mtk_thermal_transaction_state *state)
     {
     \tif (!context || !ops || !state)
     \t\treturn;
@@ -135,8 +134,7 @@ def transaction_header() -> str:
     }
 
     static inline bool
-    mtk_thermal_transaction_ops_valid(
-    \tconst struct mtk_thermal_transaction_ops *ops)
+    mtk_thermal_transaction_ops_valid(const struct mtk_thermal_transaction_ops *ops)
     {
     \treturn ops && ops->enable_auxadc_clock &&
     \t\tops->disable_auxadc_clock && ops->enable_thermal_clock &&
@@ -150,9 +148,10 @@ def transaction_header() -> str:
     }
 
     static inline int
-    mtk_thermal_transaction_execute(
-    \tvoid *context, const struct mtk_thermal_transaction_ops *ops,
-    \tstruct mtk_thermal_transaction_state *state, unsigned int banks)
+    mtk_thermal_transaction_execute(void *context,
+    \t\t\t\tconst struct mtk_thermal_transaction_ops *ops,
+    \t\t\t\tstruct mtk_thermal_transaction_state *state,
+    \t\t\t\tunsigned int banks)
     {
     \tunsigned int bank;
     \tint ret;
@@ -282,10 +281,9 @@ def production_helpers() -> str:
 
     \tmt->apmixed_buffer_saved = readl(mt->apmixed_base +
     \t\t\t\t\t     APMIXED_SYS_TS_CON1);
-    \texpected = mtk_thermal_mt6797_apmixed_value(
-    \t\tmt->apmixed_buffer_saved);
+    \texpected = mtk_thermal_mt6797_apmixed_value(mt->apmixed_buffer_saved);
     \twritel(expected, mt->apmixed_base + APMIXED_SYS_TS_CON1);
-    \tudelay(200);
+    \tusleep_range(200, 250);
     \tvalue = readl(mt->apmixed_base + APMIXED_SYS_TS_CON1);
 
     \treturn value == expected ? 0 : -EIO;
@@ -392,10 +390,12 @@ def production_helpers() -> str:
     \twritel(TEMP_ADCWRITECTRL_ADC_MUX_WRITE,
     \t       controller_base + TEMP_ADCWRITECTRL);
 
-    \tfor (i = 0; i < conf->bank_data[num].num_sensors; i++)
-    \t\twritel(conf->sensor_mux_values[
-    \t\t\tconf->bank_data[num].sensors[i]],
+    \tfor (i = 0; i < conf->bank_data[num].num_sensors; i++) {
+    \t\tunsigned int sensor_id = conf->bank_data[num].sensors[i];
+
+    \t\twritel(conf->sensor_mux_values[sensor_id],
     \t\t       controller_base + conf->adcpnp[i]);
+    \t}
 
     \twritel(TEMP_ADCWRITECTRL_ADC_PNP_WRITE |
     \t       TEMP_ADCWRITECTRL_ADC_MUX_WRITE,
@@ -458,11 +458,13 @@ def production_helpers() -> str:
     \t\tmtk_thermal_get_bank(bank);
     \t\tfor (sensor = 0; sensor < bank_conf->num_sensors; sensor++) {
     \t\t\tu32 raw = readl(mt->thermal_base + mt->conf->msr[sensor]);
-    \t\t\tint temperature = mt->raw_to_mcelsius(
-    \t\t\t\tmt, bank_conf->sensors[sensor], raw);
+    \t\t\tint temperature;
 
-    \t\t\tif (!mtk_thermal_mt6797_first_sample_valid(
-    \t\t\t\traw, temperature)) {
+    \t\t\ttemperature = mt->raw_to_mcelsius(mt,
+    \t\t\t\t\t     bank_conf->sensors[sensor], raw);
+
+    \t\t\tif (!mtk_thermal_mt6797_first_sample_valid(raw,
+    \t\t\t\t\t\t\t temperature)) {
     \t\t\t\tvalid = false;
     \t\t\t\tbreak;
     \t\t\t}
@@ -504,10 +506,10 @@ def production_helpers() -> str:
     \tiounmap(base);
     }
 
-    static int mtk_thermal_map_phandle(struct device *dev,
-    \t\t\t\t     struct device_node *owner,
-    \t\t\t\t     const char *property,
-    \t\t\t\t     void __iomem **base, u64 *phys)
+    static int
+    mtk_thermal_map_phandle(struct device *dev, struct device_node *owner,
+    \t\t\t   const char *property, void __iomem **base,
+    \t\t\t   u64 *phys)
     {
     \tstruct device_node *node;
     \tint ret;
@@ -558,8 +560,8 @@ def probe_source() -> str:
     \tif (ret)
     \t\treturn ret;
 
-    \tmt->thermal_base = devm_platform_get_and_ioremap_resource(
-    \t\tpdev, 0, NULL);
+    \tmt->thermal_base = devm_platform_get_and_ioremap_resource(pdev, 0,
+    \t\t\t\t\t\t\t      NULL);
     \tif (IS_ERR(mt->thermal_base))
     \t\treturn PTR_ERR(mt->thermal_base);
 
@@ -579,8 +581,7 @@ def probe_source() -> str:
     \t\treturn ret;
     \t}
 
-    \tret = mtk_thermal_map_phandle(&pdev->dev, np,
-    \t\t\t\t      "mediatek,apmixedsys",
+    \tret = mtk_thermal_map_phandle(&pdev->dev, np, "mediatek,apmixedsys",
     \t\t\t\t      &mt->apmixed_base,
     \t\t\t\t      &mt->apmixed_phys_base);
     \tif (ret) {
@@ -607,9 +608,9 @@ def probe_source() -> str:
     \t\t\t\t\t     "cannot acquire thermal clock\\n");
 
     \t\tmt->raw_to_mcelsius = raw_to_mcelsius_v4;
-    \t\tret = mtk_thermal_transaction_execute(
-    \t\t\tmt, &mt6797_thermal_transaction_ops,
-    \t\t\t&mt->transaction, mt->conf->num_banks);
+    \t\tret = mtk_thermal_transaction_execute(mt,
+    \t\t\t\t&mt6797_thermal_transaction_ops,
+    \t\t\t\t&mt->transaction, mt->conf->num_banks);
     \t\tif (ret)
     \t\t\treturn dev_err_probe(&pdev->dev, ret,
     \t\t\t\t\t     "MT6797 transaction failed\\n");
@@ -632,8 +633,7 @@ def probe_source() -> str:
 
     \t\tmtk_thermal_turn_on_buffer(mt, mt->apmixed_base);
     \t\tif (mt->conf->version != MTK_THERMAL_V1)
-    \t\t\tmtk_thermal_release_periodic_ts(mt,
-    \t\t\t\t\t\tmt->auxadc_base);
+    \t\t\tmtk_thermal_release_periodic_ts(mt, mt->auxadc_base);
 
     \t\tif (mt->conf->version == MTK_THERMAL_V1)
     \t\t\tmt->raw_to_mcelsius = raw_to_mcelsius_v1;
@@ -645,9 +645,10 @@ def probe_source() -> str:
     \t\tfor (ctrl_id = 0; ctrl_id < mt->conf->num_controller;
     \t\t     ctrl_id++)
     \t\t\tfor (i = 0; i < mt->conf->num_banks; i++)
-    \t\t\t\tmtk_thermal_init_bank(
-    \t\t\t\t\tmt, i, mt->apmixed_phys_base,
-    \t\t\t\t\tmt->auxadc_phys_base, ctrl_id);
+    \t\t\t\tmtk_thermal_init_bank(mt, i,
+    \t\t\t\t\t\t      mt->apmixed_phys_base,
+    \t\t\t\t\t\t      mt->auxadc_phys_base,
+    \t\t\t\t\t\t      ctrl_id);
     \t}
 
     \ttzdev = devm_thermal_of_zone_register(&pdev->dev, 0, mt,
@@ -655,8 +656,8 @@ def probe_source() -> str:
     \tif (IS_ERR(tzdev)) {
     \t\tret = PTR_ERR(tzdev);
     \t\tif (mt->conf->version == MTK_THERMAL_V4)
-    \t\t\tmtk_thermal_transaction_close(
-    \t\t\t\tmt, &mt6797_thermal_transaction_ops,
+    \t\t\tmtk_thermal_transaction_close(mt,
+    \t\t\t\t&mt6797_thermal_transaction_ops,
     \t\t\t\t&mt->transaction);
     \t\treturn ret;
     \t}
@@ -673,9 +674,8 @@ def probe_source() -> str:
     \tstruct mtk_thermal *mt = platform_get_drvdata(pdev);
 
     \tif (mt && mt->conf->version == MTK_THERMAL_V4)
-    \t\tmtk_thermal_transaction_close(
-    \t\t\tmt, &mt6797_thermal_transaction_ops, &mt->transaction);
-
+    \t\tmtk_thermal_transaction_close(mt,
+    \t\t\t&mt6797_thermal_transaction_ops, &mt->transaction);
     }
 
     """)
@@ -723,18 +723,18 @@ def test_source() -> str:
     \tint fail_at;
     };
 
-    static void mt6797_test_record(struct mt6797_test_context *context,
-    \t\t\t\t enum mt6797_test_operation operation,
-    \t\t\t\t int bank)
+    static void
+    mt6797_test_record(struct mt6797_test_context *context,
+    \t\t    enum mt6797_test_operation operation, int bank)
     {
     \tcontext->events[context->event_count].operation = operation;
     \tcontext->events[context->event_count].bank = bank;
     \tcontext->event_count++;
     }
 
-    static int mt6797_test_fallible(
-    \tstruct mt6797_test_context *context,
-    \tenum mt6797_test_operation operation, int bank)
+    static int
+    mt6797_test_fallible(struct mt6797_test_context *context,
+    \t\t\tenum mt6797_test_operation operation, int bank)
     {
     \tint ordinal = context->fallible_count++;
 
@@ -742,52 +742,90 @@ def test_source() -> str:
     \treturn ordinal == context->fail_at ? -EIO : 0;
     }
 
-    #define MT6797_TEST_SIMPLE_INT(name, operation) \\
-    \tstatic int name(void *data) \\
-    \t{ \\
-    \t\treturn mt6797_test_fallible(data, operation, -1); \\
-    \t}
+    static int mt6797_test_auxadc_on(void *data)
+    {
+    \treturn mt6797_test_fallible(data, MT6797_TEST_AUXADC_CLOCK_ON, -1);
+    }
 
-    #define MT6797_TEST_SIMPLE_VOID(name, operation) \\
-    \tstatic void name(void *data) \\
-    \t{ \\
-    \t\tmt6797_test_record(data, operation, -1); \\
-    \t}
+    static void mt6797_test_auxadc_off(void *data)
+    {
+    \tmt6797_test_record(data, MT6797_TEST_AUXADC_CLOCK_OFF, -1);
+    }
 
-    MT6797_TEST_SIMPLE_INT(mt6797_test_auxadc_on,
-    \t\t\t MT6797_TEST_AUXADC_CLOCK_ON)
-    MT6797_TEST_SIMPLE_VOID(mt6797_test_auxadc_off,
-    \t\t\t  MT6797_TEST_AUXADC_CLOCK_OFF)
-    MT6797_TEST_SIMPLE_INT(mt6797_test_thermal_on,
-    \t\t\t MT6797_TEST_THERMAL_CLOCK_ON)
-    MT6797_TEST_SIMPLE_VOID(mt6797_test_thermal_off,
-    \t\t\t  MT6797_TEST_THERMAL_CLOCK_OFF)
-    MT6797_TEST_SIMPLE_INT(mt6797_test_reset, MT6797_TEST_RESET)
-    MT6797_TEST_SIMPLE_VOID(mt6797_test_assert_reset,
-    \t\t\t  MT6797_TEST_ASSERT_RESET)
-    MT6797_TEST_SIMPLE_INT(mt6797_test_apmixed, MT6797_TEST_APMIXED)
-    MT6797_TEST_SIMPLE_VOID(mt6797_test_restore_apmixed,
-    \t\t\t  MT6797_TEST_RESTORE_APMIXED)
-    MT6797_TEST_SIMPLE_INT(mt6797_test_idle, MT6797_TEST_IDLE)
-    MT6797_TEST_SIMPLE_VOID(mt6797_test_pause_disable,
-    \t\t\t  MT6797_TEST_PAUSE_DISABLE)
-    MT6797_TEST_SIMPLE_INT(mt6797_test_clear_channel,
-    \t\t\t MT6797_TEST_CLEAR_CHANNEL)
-    MT6797_TEST_SIMPLE_VOID(mt6797_test_disable_channel,
-    \t\t\t  MT6797_TEST_DISABLE_CHANNEL)
-    MT6797_TEST_SIMPLE_INT(mt6797_test_commit_channel,
-    \t\t\t MT6797_TEST_COMMIT_CHANNEL)
+    static int mt6797_test_thermal_on(void *data)
+    {
+    \treturn mt6797_test_fallible(data, MT6797_TEST_THERMAL_CLOCK_ON, -1);
+    }
 
-    #define MT6797_TEST_BANK_INT(name, operation) \\
-    \tstatic int name(void *data, unsigned int bank) \\
-    \t{ \\
-    \t\treturn mt6797_test_fallible(data, operation, bank); \\
-    \t}
+    static void mt6797_test_thermal_off(void *data)
+    {
+    \tmt6797_test_record(data, MT6797_TEST_THERMAL_CLOCK_OFF, -1);
+    }
 
-    MT6797_TEST_BANK_INT(mt6797_test_prepare_bank, MT6797_TEST_PREPARE_BANK)
-    MT6797_TEST_BANK_INT(mt6797_test_enable_bank, MT6797_TEST_ENABLE_BANK)
-    MT6797_TEST_BANK_INT(mt6797_test_release_bank, MT6797_TEST_RELEASE_BANK)
-    MT6797_TEST_BANK_INT(mt6797_test_first_sample, MT6797_TEST_FIRST_SAMPLE)
+    static int mt6797_test_reset(void *data)
+    {
+    \treturn mt6797_test_fallible(data, MT6797_TEST_RESET, -1);
+    }
+
+    static void mt6797_test_assert_reset(void *data)
+    {
+    \tmt6797_test_record(data, MT6797_TEST_ASSERT_RESET, -1);
+    }
+
+    static int mt6797_test_apmixed(void *data)
+    {
+    \treturn mt6797_test_fallible(data, MT6797_TEST_APMIXED, -1);
+    }
+
+    static void mt6797_test_restore_apmixed(void *data)
+    {
+    \tmt6797_test_record(data, MT6797_TEST_RESTORE_APMIXED, -1);
+    }
+
+    static int mt6797_test_idle(void *data)
+    {
+    \treturn mt6797_test_fallible(data, MT6797_TEST_IDLE, -1);
+    }
+
+    static void mt6797_test_pause_disable(void *data)
+    {
+    \tmt6797_test_record(data, MT6797_TEST_PAUSE_DISABLE, -1);
+    }
+
+    static int mt6797_test_clear_channel(void *data)
+    {
+    \treturn mt6797_test_fallible(data, MT6797_TEST_CLEAR_CHANNEL, -1);
+    }
+
+    static void mt6797_test_disable_channel(void *data)
+    {
+    \tmt6797_test_record(data, MT6797_TEST_DISABLE_CHANNEL, -1);
+    }
+
+    static int mt6797_test_commit_channel(void *data)
+    {
+    \treturn mt6797_test_fallible(data, MT6797_TEST_COMMIT_CHANNEL, -1);
+    }
+
+    static int mt6797_test_prepare_bank(void *data, unsigned int bank)
+    {
+    \treturn mt6797_test_fallible(data, MT6797_TEST_PREPARE_BANK, bank);
+    }
+
+    static int mt6797_test_enable_bank(void *data, unsigned int bank)
+    {
+    \treturn mt6797_test_fallible(data, MT6797_TEST_ENABLE_BANK, bank);
+    }
+
+    static int mt6797_test_release_bank(void *data, unsigned int bank)
+    {
+    \treturn mt6797_test_fallible(data, MT6797_TEST_RELEASE_BANK, bank);
+    }
+
+    static int mt6797_test_first_sample(void *data, unsigned int bank)
+    {
+    \treturn mt6797_test_fallible(data, MT6797_TEST_FIRST_SAMPLE, bank);
+    }
 
     static const struct mtk_thermal_transaction_ops mt6797_test_ops = {
     \t.enable_auxadc_clock = mt6797_test_auxadc_on,
@@ -809,9 +847,11 @@ def test_source() -> str:
     \t.first_sample = mt6797_test_first_sample,
     };
 
-    static void mt6797_test_expect_event(
-    \tstruct kunit *test, const struct mt6797_test_context *context,
-    \tunsigned int ordinal, enum mt6797_test_operation operation, int bank)
+    static void
+    mt6797_test_expect_event(struct kunit *test,
+    \t\t\t  const struct mt6797_test_context *context,
+    \t\t\t  unsigned int ordinal,
+    \t\t\t  enum mt6797_test_operation operation, int bank)
     {
     \tKUNIT_ASSERT_LT(test, ordinal, context->event_count);
     \tKUNIT_EXPECT_EQ(test, context->events[ordinal].operation, operation);
@@ -826,58 +866,38 @@ def test_source() -> str:
     \tunsigned int bank;
     \tint ret;
 
-    \tret = mtk_thermal_transaction_execute(
-    \t\t&context, &mt6797_test_ops, &state, MT6797_TEST_BANKS);
+    \tret = mtk_thermal_transaction_execute(&context, &mt6797_test_ops,
+    \t\t\t\t\t      &state, MT6797_TEST_BANKS);
     \tKUNIT_ASSERT_EQ(test, ret, 0);
     \tKUNIT_ASSERT_TRUE(test, state.ready);
 
-    \tmt6797_test_expect_event(test, &context, ordinal++,
-    \t\tMT6797_TEST_AUXADC_CLOCK_ON, -1);
-    \tmt6797_test_expect_event(test, &context, ordinal++,
-    \t\tMT6797_TEST_THERMAL_CLOCK_ON, -1);
-    \tmt6797_test_expect_event(test, &context, ordinal++,
-    \t\tMT6797_TEST_RESET, -1);
-    \tmt6797_test_expect_event(test, &context, ordinal++,
-    \t\tMT6797_TEST_APMIXED, -1);
-    \tmt6797_test_expect_event(test, &context, ordinal++,
-    \t\tMT6797_TEST_IDLE, -1);
-    \tmt6797_test_expect_event(test, &context, ordinal++,
-    \t\tMT6797_TEST_PAUSE_DISABLE, -1);
-    \tmt6797_test_expect_event(test, &context, ordinal++,
-    \t\tMT6797_TEST_CLEAR_CHANNEL, -1);
+    \tmt6797_test_expect_event(test, &context, ordinal++, MT6797_TEST_AUXADC_CLOCK_ON, -1);
+    \tmt6797_test_expect_event(test, &context, ordinal++, MT6797_TEST_THERMAL_CLOCK_ON, -1);
+    \tmt6797_test_expect_event(test, &context, ordinal++, MT6797_TEST_RESET, -1);
+    \tmt6797_test_expect_event(test, &context, ordinal++, MT6797_TEST_APMIXED, -1);
+    \tmt6797_test_expect_event(test, &context, ordinal++, MT6797_TEST_IDLE, -1);
+    \tmt6797_test_expect_event(test, &context, ordinal++, MT6797_TEST_PAUSE_DISABLE, -1);
+    \tmt6797_test_expect_event(test, &context, ordinal++, MT6797_TEST_CLEAR_CHANNEL, -1);
     \tfor (bank = 0; bank < MT6797_TEST_BANKS; bank++)
-    \t\tmt6797_test_expect_event(test, &context, ordinal++,
-    \t\t\tMT6797_TEST_PREPARE_BANK, bank);
-    \tmt6797_test_expect_event(test, &context, ordinal++,
-    \t\tMT6797_TEST_COMMIT_CHANNEL, -1);
+    \t\tmt6797_test_expect_event(test, &context, ordinal++, MT6797_TEST_PREPARE_BANK, bank);
+    \tmt6797_test_expect_event(test, &context, ordinal++, MT6797_TEST_COMMIT_CHANNEL, -1);
     \tfor (bank = 0; bank < MT6797_TEST_BANKS; bank++)
-    \t\tmt6797_test_expect_event(test, &context, ordinal++,
-    \t\t\tMT6797_TEST_ENABLE_BANK, bank);
+    \t\tmt6797_test_expect_event(test, &context, ordinal++, MT6797_TEST_ENABLE_BANK, bank);
     \tfor (bank = 0; bank < MT6797_TEST_BANKS; bank++)
-    \t\tmt6797_test_expect_event(test, &context, ordinal++,
-    \t\t\tMT6797_TEST_RELEASE_BANK, bank);
+    \t\tmt6797_test_expect_event(test, &context, ordinal++, MT6797_TEST_RELEASE_BANK, bank);
     \tfor (bank = 0; bank < MT6797_TEST_BANKS; bank++)
-    \t\tmt6797_test_expect_event(test, &context, ordinal++,
-    \t\t\tMT6797_TEST_FIRST_SAMPLE, bank);
+    \t\tmt6797_test_expect_event(test, &context, ordinal++, MT6797_TEST_FIRST_SAMPLE, bank);
     \tKUNIT_EXPECT_EQ(test, context.event_count, ordinal);
 
-    \tmtk_thermal_transaction_close(
-    \t\t&context, &mt6797_test_ops, &state);
-    \tmt6797_test_expect_event(test, &context, ordinal++,
-    \t\tMT6797_TEST_PAUSE_DISABLE, -1);
-    \tmt6797_test_expect_event(test, &context, ordinal++,
-    \t\tMT6797_TEST_DISABLE_CHANNEL, -1);
-    \tmt6797_test_expect_event(test, &context, ordinal++,
-    \t\tMT6797_TEST_RESTORE_APMIXED, -1);
-    \tmt6797_test_expect_event(test, &context, ordinal++,
-    \t\tMT6797_TEST_ASSERT_RESET, -1);
-    \tmt6797_test_expect_event(test, &context, ordinal++,
-    \t\tMT6797_TEST_THERMAL_CLOCK_OFF, -1);
-    \tmt6797_test_expect_event(test, &context, ordinal++,
-    \t\tMT6797_TEST_AUXADC_CLOCK_OFF, -1);
+    \tmtk_thermal_transaction_close(&context, &mt6797_test_ops, &state);
+    \tmt6797_test_expect_event(test, &context, ordinal++, MT6797_TEST_PAUSE_DISABLE, -1);
+    \tmt6797_test_expect_event(test, &context, ordinal++, MT6797_TEST_DISABLE_CHANNEL, -1);
+    \tmt6797_test_expect_event(test, &context, ordinal++, MT6797_TEST_RESTORE_APMIXED, -1);
+    \tmt6797_test_expect_event(test, &context, ordinal++, MT6797_TEST_ASSERT_RESET, -1);
+    \tmt6797_test_expect_event(test, &context, ordinal++, MT6797_TEST_THERMAL_CLOCK_OFF, -1);
+    \tmt6797_test_expect_event(test, &context, ordinal++, MT6797_TEST_AUXADC_CLOCK_OFF, -1);
     \tKUNIT_EXPECT_EQ(test, context.event_count, ordinal);
-    \tKUNIT_EXPECT_TRUE(test,
-    \t\tmtk_thermal_transaction_state_is_closed(&state));
+    \tKUNIT_EXPECT_TRUE(test, mtk_thermal_transaction_state_is_closed(&state));
     }
 
     static void mt6797_transaction_all_failures_close(struct kunit *test)
@@ -890,12 +910,12 @@ def test_source() -> str:
     \t\tstruct mt6797_test_context context = { .fail_at = fail_at };
     \t\tint ret;
 
-    \t\tret = mtk_thermal_transaction_execute(
-    \t\t\t&context, &mt6797_test_ops, &state,
-    \t\t\tMT6797_TEST_BANKS);
+    \t\tret = mtk_thermal_transaction_execute(&context,
+    \t\t\t\t\t\t      &mt6797_test_ops, &state,
+    \t\t\t\t\t\t      MT6797_TEST_BANKS);
     \t\tKUNIT_EXPECT_EQ_MSG(test, ret, -EIO, "failure %d", fail_at);
-    \t\tKUNIT_EXPECT_TRUE_MSG(
-    \t\t\ttest, mtk_thermal_transaction_state_is_closed(&state),
+    \t\tKUNIT_EXPECT_TRUE_MSG(test,
+    \t\t\tmtk_thermal_transaction_state_is_closed(&state),
     \t\t\t"failure %d left transaction open", fail_at);
     \t}
     }
@@ -904,17 +924,15 @@ def test_source() -> str:
     {
     \tstruct mtk_thermal_transaction_state state = {};
     \tstruct mt6797_test_context context = { .fail_at = -1 };
+    \tint ret;
 
-    \tKUNIT_EXPECT_EQ(test,
-    \t\tmtk_thermal_transaction_execute(
-    \t\t\t&context, &mt6797_test_ops, &state, 0),
-    \t\t-EINVAL);
+    \tret = mtk_thermal_transaction_execute(&context, &mt6797_test_ops,
+    \t\t\t\t\t      &state, 0);
+    \tKUNIT_EXPECT_EQ(test, ret, -EINVAL);
     \tstate.ready = true;
-    \tKUNIT_EXPECT_EQ(test,
-    \t\tmtk_thermal_transaction_execute(
-    \t\t\t&context, &mt6797_test_ops, &state,
-    \t\t\tMT6797_TEST_BANKS),
-    \t\t-EINVAL);
+    \tret = mtk_thermal_transaction_execute(&context, &mt6797_test_ops,
+    \t\t\t\t\t      &state, MT6797_TEST_BANKS);
+    \tKUNIT_EXPECT_EQ(test, ret, -EINVAL);
     }
 
     static void mt6797_transaction_apmixed_mask(struct kunit *test)
@@ -922,11 +940,11 @@ def test_source() -> str:
     \tu32 original = 0xa5a5a5f5;
     \tu32 expected = original & ~GENMASK(5, 4);
 
-    \tKUNIT_EXPECT_EQ(test,
-    \t\tmtk_thermal_mt6797_apmixed_value(original), expected);
+    \tKUNIT_EXPECT_EQ(test, mtk_thermal_mt6797_apmixed_value(original),
+    \t\t\texpected);
     \tKUNIT_EXPECT_EQ(test, expected & GENMASK(5, 4), 0U);
     \tKUNIT_EXPECT_EQ(test, expected & ~GENMASK(5, 4),
-    \t\toriginal & ~GENMASK(5, 4));
+    \t\t\toriginal & ~GENMASK(5, 4));
     }
 
     static void mt6797_transaction_idle_predicates(struct kunit *test)
@@ -939,16 +957,16 @@ def test_source() -> str:
 
     static void mt6797_transaction_first_sample_gate(struct kunit *test)
     {
-    \tKUNIT_EXPECT_FALSE(test,
-    \t\tmtk_thermal_mt6797_first_sample_valid(0, 25000));
-    \tKUNIT_EXPECT_FALSE(test,
-    \t\tmtk_thermal_mt6797_first_sample_valid(1, -20001));
-    \tKUNIT_EXPECT_FALSE(test,
-    \t\tmtk_thermal_mt6797_first_sample_valid(1, 150001));
-    \tKUNIT_EXPECT_TRUE(test,
-    \t\tmtk_thermal_mt6797_first_sample_valid(1, -20000));
-    \tKUNIT_EXPECT_TRUE(test,
-    \t\tmtk_thermal_mt6797_first_sample_valid(0xfff, 150000));
+    \tKUNIT_EXPECT_FALSE(test, mtk_thermal_mt6797_first_sample_valid(0,
+    \t\t\t\t\t\t\t\t       25000));
+    \tKUNIT_EXPECT_FALSE(test, mtk_thermal_mt6797_first_sample_valid(1,
+    \t\t\t\t\t\t\t\t       -20001));
+    \tKUNIT_EXPECT_FALSE(test, mtk_thermal_mt6797_first_sample_valid(1,
+    \t\t\t\t\t\t\t\t       150001));
+    \tKUNIT_EXPECT_TRUE(test, mtk_thermal_mt6797_first_sample_valid(1,
+    \t\t\t\t\t\t\t\t      -20000));
+    \tKUNIT_EXPECT_TRUE(test, mtk_thermal_mt6797_first_sample_valid(0xfff,
+    \t\t\t\t\t\t\t\t      150000));
     }
 
     static struct kunit_case mt6797_thermal_transaction_cases[] = {

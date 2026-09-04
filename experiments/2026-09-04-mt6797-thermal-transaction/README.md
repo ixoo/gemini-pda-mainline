@@ -94,8 +94,14 @@ The next review stopped at `git diff --check`: Python string escapes had kept
 generator indentation ahead of tabs. No package was published. The generator
 now emits canonical kernel indentation and literal diagnostic newlines. Patch
 generation then reached the semantic validator, which rejected an ambiguous
-cleanup-definition anchor that also matched its executor call. The anchor is
-now definition-specific. Canonical admission, build, and isolated KUnit
+cleanup-definition anchor that also matched its executor call. A subsequent
+run reached the patch validator and exposed an indentation-sensitive reset
+anchor. Both anchors are now definition-specific. The latest run passed source
+semantics, patch shape, and deterministic replay, then stopped at strict style
+review: 17 production checks and two test warnings plus 47 test checks. It
+published no package and performed no build or device action. The generator now
+uses normal continuation layout, sleepable delay, and explicit KUnit callbacks
+instead of flow-control macros. Canonical admission, build, and isolated KUnit
 execution remain pending.
 
 ## Follow-up
