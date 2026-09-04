@@ -1,0 +1,11 @@
+experiment=2026-09-03-mt6797-thermal-auxadc-transaction-audit
+observed_utc=2026-09-04T00:34:11Z
+repository_commit=1ac62aa9a7a25569165e175f8122d9824c18dfe4
+prepared_source_state=49084a29725089735de735e0b63543ef44261ef1533075fe9a815574d48fa9f0
+prepared_source_integrity=d23fbc7533cfe264398e45620e216113259468afaf06154262bd709360752d07
+vendor_commit=c5b0be85017ad0c599725e8273842efdbecdd88a
+self_test_mutations=11
+prepared_source_checked=yes
+vendor_source_checked=yes
+device_action=none
+result=pass

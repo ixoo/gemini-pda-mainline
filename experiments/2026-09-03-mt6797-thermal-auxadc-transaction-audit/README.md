@@ -54,6 +54,8 @@ a device boot to discover missing ordering or ownership rules.
   each vendor requirement with current mainline behavior.
 - [`results/source-audit-20260903.txt`](results/source-audit-20260903.txt)
   records the compact sanitized result.
+- [`results/buildbox-validation-20260903.txt`](results/buildbox-validation-20260903.txt)
+  records the exact published Buildbox validation.
 - [`scripts/validate.py`](scripts/validate.py) checks the contract, pinned
   repository inputs, exact prepared source, and pinned vendor tree without
   modifying them.
@@ -104,6 +106,9 @@ a device boot to discover missing ordering or ownership rules.
   channel-11, six-bank/five-sensor topology, and SPI 78 low DT resource agree
   with the pinned vendor source. Those correct constants do not repair the
   surrounding transaction.
+- At exact published repository commit `1ac62aa9a7a25569165e175f8122d9824c18dfe4`,
+  the read-only validator passed every pinned prepared-source and vendor-file
+  hash and ordering check plus 11 negative contract mutations on Buildbox.
 
 ## Analysis
 
