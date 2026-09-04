@@ -1,8 +1,8 @@
 # First no-workload thermal observation
 
-This is the prospective composition contract. It is not yet a selected device
-candidate: the exact package, container, candidate checksum and host execution
-receipt remain required before any deployment or boot request.
+This is the prospective observation contract and frozen offline composition.
+The candidate below is not yet admitted for deployment: the one-shot host
+runner and deployment receipt gate remain required before a boot request.
 
 ## Hypothesis and decision
 
@@ -76,3 +76,47 @@ attempts still zero, and an explicit cleanup/no-storage-write statement.
 No partition or filesystem backup is needed. Any eventual deployment remains
 restricted to live-GPT-resolved inactive boot2 with full readback and clean
 shutdown for physical selection. No deployment is admitted by this draft alone.
+
+## Frozen offline composition
+
+Exact production build `c2ddeea9` passes Buildbox and package verification;
+see [build evidence](results/no-workload-build.txt). Normalized active config
+comparison against the successful baseline changes only the thermal observer
+and local version. The new runtime A41 record is
+`7d67a19b3ae40ae1521293d7ffc834e6d06ae14a2d55de693ee9c815bdaee552`.
+
+The [constructor](scripts/compose-candidate.py) pins the complete package
+manifest, the previously successful DT and the unchanged initramfs. It updates
+only the package-provenance leaf and independently compares parsed trees,
+reservations, boot CPU and CPU topology. Two DT compositions and two container
+assemblies agree. The LK validator checks the exact kernel/ramdisk/DT, load
+addresses, command line and ARM64 decompression contract. The resulting raw
+container is 7131136 bytes, padded with zeros to 16777216 bytes:
+
+- raw SHA-256: `a4947cfe8079f9e9864f0edf1b30a446b9eb5089fb69e66f950d9901f2654ee0`;
+- padded SHA-256: `666961b636b21b8598a64999e9dbf72af280ad99f07a6b745045320f24ca361b`;
+- DT SHA-256: `c8e0a1483704acb4f6ec9843d2a04284059378543e44fac521bbea132d62b525`.
+
+See [composition](results/no-workload-composition.json) and
+[frozen validation](results/no-workload-candidate-validation.json). Two DT,
+two container-header and two padding mutations reject. The first derivation
+used an overlong header name and was refused before producing a candidate;
+the fixed container name is `gemini-tsnap`.
+
+The unchanged initramfs SHA-256 is
+`e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f`.
+Its audited `/init` mounts proc/sysfs read-only, writes only volatile run logs,
+starts the inherited console/USB services and bounded keyboard observation,
+and does not automatically trigger A72 admission or thermal snapshots. That
+inherited background activity remains part of the boot environment; this is
+not a claim of an otherwise idle system.
+
+The [state probe](scripts/remote-observation-state.sh) never reads the snapshot
+attribute. The [state gate](scripts/observation_state.py) pins the full pristine
+lifecycle string from the successful baseline, including every existing field,
+and requires the observer status, exact identity, offline A72s and thermal
+bounds. Its 19 negative fixtures reject identity reuse, budget changes, missing
+fields, an unsafe path component and other admission failures. This does not
+yet supply the one-shot transport runner or an installation receipt. Deployment
+and a device boot remain unselected until those artifacts are validated and
+published; the composed image has not been written to the device.

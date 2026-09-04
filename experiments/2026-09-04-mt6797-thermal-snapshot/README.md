@@ -215,3 +215,12 @@ It checks driver representability only: a future host protocol must separately
 pin candidate/boot identities, pristine counters and conservative thermal
 refusal bounds. This parser neither admits a device action nor replaces the
 closed cold-repeat comparison.
+
+
+## No-workload production composition
+
+The [prospective protocol and frozen composition](NO_WORKLOAD.md) now pin the
+production observer profile, Buildbox package, exact DT provenance replacement
+and reproducible LK container. The full pristine state gate and parser have
+negative fixtures. No device write or observation has occurred; the one-shot
+host runner and deployment receipt gate remain required before selection.
