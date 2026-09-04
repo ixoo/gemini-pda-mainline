@@ -8053,6 +8053,22 @@ unchanged-`boot2` attestation. Exclude IRQ/watchdog protection, trips/cooling,
 cpufreq/OPP, CPU8/CPU9 load, idle, suspend, and any repeat of an identical
 artifact.
 
+The linked thermal-serviceability candidate passed every offline package, DT,
+container, runtime-tooling, live-GPT install, full-readback, and shutdown gate.
+Its first owner-selected boot produced neither the exact mainline USB interface
+nor a runtime identity and returned to changed-ID Gemian with empty pstore;
+recovery reproduced the exact candidate on inactive `boot2`. Existing visual
+and boot-reason cautions make this pre-transport result inconclusive, and the
+candidate is retired without repeat. Recovery found the otherwise-unused
+ramoops record 5 at `0x44415000` in exact pstore-empty state. **Selected next:**
+add one default-off, empty-only, CRC-valid two-copy thermal-stage ledger in that
+record and wire it around the unchanged ordered transaction. Require bounded
+stages for entry, calibration, reset, clocks, global idle, all-bank preparation
+and commit, releases, first-valid samples, zone registration, and explicit
+failure return. Run its focused hardware-free tests and exact Buildbox profile
+before one new boot. Keep CPU requests, load, cpufreq/OPP, IRQ/watchdog policy,
+trips/cooling, idle, suspend, storage writes, and same-artifact repeat excluded.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

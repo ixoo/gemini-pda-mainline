@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-thermal-serviceability` |
-| Status | `running`; candidate installed and device shut down, owner-selected boot pending |
+| Status | `running`; first boot inconclusive pre-transport, retained-stage discriminator selected |
 | Subsystem | MT6797 thermal controller, AUXADC transaction, reset, and NVMEM calibration |
 | Device variant | Planet Computers Gemini PDA, MT6797 |
 | Date(s) | 2026-09-04 |
@@ -148,6 +148,16 @@ same artifact.
   `6f3d8d6e94ff...`. No fresh backup or other partition write occurred. The
   device then shut down cleanly for owner selection. See
   [results/deployment-attempt-1-20260904.txt](results/deployment-attempt-1-20260904.txt).
+- The observer was armed before the owner selected `boot2`, but the exact
+  mainline USB interface never appeared. The device instead returned on fresh
+  Gemian boot ID `f54c4692...`; pstore was empty and the exact candidate still
+  occupied inactive `boot2`. Gemian reported its usual watchdog-style boot
+  tokens, which are not treated as causal under the existing visual/reboot
+  evidence caution. No mainline identity, thermal binding, or temperature was
+  captured, so the candidate is retired as inconclusive and must not be
+  repeated. Recovery also found the otherwise-unused 4 KiB ramoops record 5 at
+  `0x44415000` in exact pstore-empty state. See
+  [results/runtime-attempt-1-inconclusive-pre-transport-20260904.txt](results/runtime-attempt-1-inconclusive-pre-transport-20260904.txt).
 
 ## Analysis
 
@@ -157,18 +167,24 @@ This is construction evidence only; it does not prove
 that calibration, reset, clocks, bank preparation, first samples, registration,
 or temperature reads work on hardware.
 
-The install and readback gate also passes, but remains deployment evidence. The
-next decision now depends solely on one exact-identity, read-only runtime frame
-after the owner selects `boot2`; no repeat write or second boot is authorized by
-the present result.
+The install and readback gate passed, but the first runtime attempt produced no
+mainline transport or durable stage evidence. It therefore neither validates
+nor localizes thermal activation. An unused, pstore-empty retained record is
+available for a decision-changing derivative that records entry and ordered
+thermal stages before transport; this is stronger than either a same-artifact
+repeat or screen-state inference.
 
 ## Conclusion
 
-`inconclusive` while the source, package, candidate, and single runtime gates
-are in progress. No thermal hardware claim has yet been made.
+`inconclusive`: the exact first candidate is retired after a pre-transport
+return to changed-ID Gemian. No thermal hardware claim has been made.
 
 ## Follow-up
 
-On a complete pass, use the thermal serviceability evidence only as a
-prerequisite for the separately gated CPU8/CPU9 path. It does not itself
-authorize CPU admission, OPP/cpufreq, load, idle, suspend, trips, or cooling.
+Add one default-off, empty-only, CRC-valid two-copy thermal-stage ledger in
+retained record 5 and instrument the existing transaction without changing its
+hardware order. The next attempt must distinguish kernel entry, calibration,
+reset, clocks, global idle, bank prepare/commit/release, first samples, zone
+registration, and explicit failure return. It retains every current exclusion
+and does not authorize CPU admission, OPP/cpufreq, load, idle, suspend, trips,
+or cooling.
