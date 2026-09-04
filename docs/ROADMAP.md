@@ -8342,11 +8342,12 @@ The actual interface and concurrency oracle now verifies bounded failure text,
 exhaustion without IO and isolated observer accounting. A removal audit found
 that transaction close preceded devres reader cleanup; the corrected grouped
 lifetime passes Buildbox and injected late-probe/remove checks. **Selected
-next:** publish the validated one-shot runner and deploy the frozen
-[no-workload composition](../experiments/2026-09-04-mt6797-thermal-snapshot/NO_WORKLOAD.md)
-through its exact live-GPT/full-readback/shutdown gates. Then require physical
-boot2 selection, the new candidate's fresh pristine identity and at most three
-bounded thermal snapshots with CPU8/CPU9 offline. The runner now binds source
+next:** physically select the verified
+[no-workload composition](../experiments/2026-09-04-mt6797-thermal-snapshot/NO_WORKLOAD.md),
+then require the new candidate's fresh pristine identity and at most three
+bounded thermal snapshots with CPU8/CPU9 offline. Protocol publication,
+guarded inactive-boot2 installation, complete readback and clean Gemian shutdown
+are recorded; no mainline observation has run. The runner now binds source
 hashes, deployment receipt and attempt accounting; partial-failure, durable
 request and restart-refusal fixtures pass. Stop and retain any refusal without
 retry. A complete result validates the observation path only and permits a

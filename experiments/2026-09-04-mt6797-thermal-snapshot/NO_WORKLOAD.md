@@ -118,7 +118,8 @@ and requires the observer status, exact identity, offline A72s and thermal
 bounds. Its 19 negative fixtures reject identity reuse, budget changes, missing
 fields, an unsafe path component and other admission failures. The frozen runner below supplies the one-shot transport and strict receipt
 gate; an actual full-readback/shutdown receipt is still required before
-observation. The composed image has not yet been written to the device.
+observation. The deployment below now has a validated receipt; the mainline observation
+has not been triggered.
 
 
 ## Frozen one-shot runner and deployment
@@ -176,3 +177,27 @@ checks establish bounded host behavior, not hardware thermal support. The
 previous workload remains consumed; no CPU workload, frequency read, CPU_OFF,
 partition access, cpufreq/OPP, idle, suspend or default-profile integration is
 admitted by this protocol.
+
+
+## Deployment receipt and physical-selection boundary
+
+Protocol revision `aa5f66bd` was published before deployment. The
+[sanitized receipt](results/no-workload-deployment.txt) records live-GPT boot2
+as `/dev/mmcblk0p30`, distinct from active root `/dev/mmcblk0p29`, under stable
+100-percent external power. Its predecessor matched the original successful
+candidate. The new exact 16 MiB candidate was written, synced and flushed;
+the device checksum and independent complete host readback matched, including
+byte-for-byte comparison. Temporary readback and staging were removed. No
+fresh backup or reboot was requested.
+
+Gemian boot `d9c1a1b3-72bc-43cb-99b4-e78b809592ce` accepted clean power-off
+with SSH exit zero, followed by observed unreachability. The frozen runner's
+receipt-only validation passes without contacting the device. Private files
+remain ignored; the published receipt includes only authorized partition,
+boot, power and checksum evidence, with no credentials or unit identifiers.
+
+The owner now physically selects boot2 using the established hardware sequence.
+Expect retained boot text and USB/netcat at `10.15.19.82:2323`, initially with
+CPU8/CPU9 offline. Screen appearance alone does not admit the observation. A
+fresh exact pristine state must pass before the first of three bounded reads.
+No mainline boot or thermal-snapshot runtime pass is claimed by installation.

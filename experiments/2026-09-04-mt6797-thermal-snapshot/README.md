@@ -226,3 +226,9 @@ negative fixtures. The source-pinned one-shot host runner and strict deployment 
 pass offline partial-failure, durable-attempt and restart-refusal fixtures.
 Publication precedes the guarded deployment; no runtime support claim follows
 from these host tests. See the linked protocol for exact budgets and commands.
+
+
+The published protocol now has a verified inactive-boot2 deployment and clean
+Gemian shutdown; see the [receipt and physical-selection boundary](NO_WORKLOAD.md#deployment-receipt-and-physical-selection-boundary).
+The device observation remains pending physical selection and a fresh pristine
+state. Installation alone does not establish a thermal runtime result.
