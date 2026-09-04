@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-thermal-base-dtb-control` |
-| Status | offline candidate validated; publication and guarded deployment pending |
+| Status | exact candidate installed and fully read back; Gemian poweroff hung; physical poweroff and one boot2 attempt pending |
 | Subsystem | appended DT discrimination before MT6797 thermal runtime |
 | Device variant | Planet Computers Gemini PDA, MT6797 |
 | Date(s) | 2026-09-04 |
@@ -95,3 +95,15 @@ PWRAP, eMMC, storage, retained-write, and boot-ID mutations. Syntax,
 ShellCheck, source-hash pins, live-GPT resolution, one-write limit, no-backup
 policy, full-readback requirement, and clean-shutdown path pass offline. No
 device or native-build action occurred.
+
+Published commit `d6dcdf6c...` then passed every live install gate. Gemian
+resolved inactive logical `boot2` as `/dev/mmcblk0p30`, wrote the exact
+`ec262457...` payload over retired `dcb2b4e8...`, synchronized and flushed it,
+and produced a matching full-partition readback with stable battery and USB
+power. No backup or other partition write occurred. The requested clean
+poweroff closed its original SSH session, but TCP/22 remained open and a new
+authenticated SSH connection stalled before opening a command channel. The
+device is therefore not claimed off. The observer now requires three closed
+TCP/22 samples instead of treating an SSH command failure as shutdown, and its
+Gemian identity probes have bounded post-authentication liveness. Physical
+poweroff is required before the one control boot.

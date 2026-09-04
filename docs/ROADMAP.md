@@ -8089,6 +8089,19 @@ thermal DT delta and selects a finer DT enablement split before another thermal
 kernel change. Do not repeat either thermal candidate or infer execution from
 empty retained RAM.
 
+The exact base-DT control is now published and installed. Live GPT resolved
+inactive `boot2`, and the synchronized, flushed full-partition readback matched
+exact `ec262457...`; no backup or other partition write occurred. Gemian's
+clean poweroff request closed the initiating SSH session but did not complete:
+TCP/22 remained open and authenticated while command-channel creation stalled.
+The deployment is therefore `readback-verified-shutdown-incomplete`, not
+powered off. The installer now requires three closed TCP/22 samples so this
+state cannot be misclassified again, and the collector bounds stalled Gemian
+sessions. **Selected next:** physically power the unit off, arm the exact
+observer, and select `boot2` once for the already-defined positive base-DT
+serviceability control; do not rewrite the verified partition or alter the
+control candidate.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

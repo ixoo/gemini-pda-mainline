@@ -120,12 +120,17 @@ def main() -> int:
         "PARTNAME) partname=$value", "partition_backup_created=no",
         "full boot2 readback mismatch", "shutdown_requested=yes-after-verified-readback",
         "experiment revision is not published at origin/main",
+        "shutdown_tcp22_closed_samples=3",
     ):
         if required not in installer:
             raise AssertionError(f"installer safety token absent: {required}")
     for forbidden in ("boot2-before.img", 'of="$backup"', "/dev/mmcblk0p30"):
         if forbidden in installer:
             raise AssertionError(f"installer gained forbidden path: {forbidden}")
+    if 'if ! ssh -n "${ssh_options[@]}" "$TARGET" true' in installer:
+        raise AssertionError("installer still mistakes command-channel failure for poweroff")
+    if "ServerAliveInterval=2" not in collector or "ServerAliveCountMax=2" not in collector:
+        raise AssertionError("collector Gemian probe is not bounded after authentication")
     print("positive_cases=1")
     print(f"rejection_cases={rejected}")
     print("remote_observer=read-only-static-pass")

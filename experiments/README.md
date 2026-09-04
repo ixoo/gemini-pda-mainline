@@ -35,10 +35,12 @@ the loop. Positive identity-gated observations are unaffected.
   — holds the exact thermal-stage kernel, configuration, initramfs, LK
   container contract, command line, and addresses while changing only the
   appended thermal-serviceability DT to the same package's base Gemini DT.
-  The offline candidate passes exact package, two-assembly, 32-gate LK,
-  padding, classifier, and guarded-installer checks. One positive USB/netcat
-  boot will distinguish the thermal DT delta from the current Image/config;
-  empty returned RAM is explicitly not used as a negative oracle.
+  The exact candidate passes package, two-assembly, 32-gate LK, padding,
+  classifier, and guarded-installer checks, and its inactive-`boot2` full
+  readback matches. Gemian did not finish powering off, so physical poweroff
+  remains required before the one control boot. One positive USB/netcat frame
+  will distinguish the thermal DT delta from the current Image/config; empty
+  returned RAM is explicitly not used as a negative oracle.
 - [2026-09-04 MT6797 thermal-stage retained ledger](2026-09-04-mt6797-thermal-stage-ledger/README.md)
   — adds a hardware-free-tested, empty-only, CRC-valid two-copy retained
   ledger around the ordered thermal transaction. Its exact candidate returned

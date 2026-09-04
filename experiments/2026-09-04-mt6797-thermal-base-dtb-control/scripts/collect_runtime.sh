@@ -85,7 +85,8 @@ chmod 0600 "$command_file"
 printf 'observer=armed\nrecovery_boot_id=%s\ninstalled_full_sha256=%s\narmed_utc=%s\n' \
 	"$recovery_boot_id" "$installed_full_sha256" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$events"
 
-ssh_command=(ssh -o BatchMode=yes -o ConnectTimeout=2 -o IdentitiesOnly=yes \
+ssh_command=(ssh -o BatchMode=yes -o ConnectTimeout=2 -o ConnectionAttempts=1 \
+	-o ServerAliveInterval=2 -o ServerAliveCountMax=2 -o IdentitiesOnly=yes \
 	-o IdentityAgent=none -o StrictHostKeyChecking=yes -o UpdateHostKeys=no -i "$identity")
 interface=
 mac=

@@ -22,7 +22,7 @@ while (($#)); do
 	esac
 done
 [[ -n "$output" ]] || die '--output is required'
-for command in awk basename chmod date dirname git mkdir mktemp rm sha256sum sleep ssh stat; do
+for command in awk basename chmod date dirname git mkdir mktemp nc rm sha256sum sleep ssh stat; do
 	command -v "$command" >/dev/null 2>&1 || die "required command missing: $command"
 done
 
@@ -62,7 +62,8 @@ evidence="$output/deployment.txt"
 readonly private_root output evidence
 
 ssh_options=(
-	-o BatchMode=yes -o ConnectTimeout=5 -o IdentitiesOnly=yes
+	-o BatchMode=yes -o ConnectTimeout=5 -o ConnectionAttempts=1
+	-o ServerAliveInterval=2 -o ServerAliveCountMax=2 -o IdentitiesOnly=yes
 	-o IdentityAgent=none -o StrictHostKeyChecking=yes -o UpdateHostKeys=no
 	-i "$identity"
 )
@@ -180,13 +181,18 @@ grep -Fqx "full_readback_sha256=$CANDIDATE_SHA256" "$evidence" || die 'deploymen
 grep -Fqx 'full_readback_match=yes' "$evidence" || die 'deployment readback did not pass'
 grep -Fqx 'shutdown_requested=yes-after-verified-readback' "$evidence" || die 'shutdown request missing'
 
-disconnected=no
+closed_samples=0
 for _ in {1..30}; do
-	if ! ssh -n "${ssh_options[@]}" "$TARGET" true >/dev/null 2>&1; then disconnected=yes; break; fi
+	if nc -G 1 -z 192.168.1.50 22 >/dev/null 2>&1; then
+		closed_samples=0
+	else
+		closed_samples=$((closed_samples + 1))
+		((closed_samples >= 3)) && break
+	fi
 	sleep 1
 done
-[[ "$disconnected" == yes ]] || die 'Gemian SSH did not disappear after shutdown request'
-printf 'ssh_exit_status=%s\nshutdown_disconnect_observed=yes\ndeployment_completed_utc=%s\n' "$ssh_rc" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >>"$evidence"
+((closed_samples >= 3)) || die 'Gemian TCP/22 remained open after shutdown request'
+printf 'ssh_exit_status=%s\nshutdown_tcp22_closed_samples=3\nshutdown_disconnect_observed=yes\ndeployment_completed_utc=%s\n' "$ssh_rc" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >>"$evidence"
 sha256sum "$evidence" >"$output/SHA256SUMS"
 chmod 0600 "$output"/*
 trap - EXIT HUP INT TERM
