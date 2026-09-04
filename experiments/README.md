@@ -32,11 +32,13 @@ the loop. Positive identity-gated observations are unaffected.
 ### Current DA921x, I2C6, and A72 line
 
 - [2026-09-03 MT6797 infracfg reset repair](2026-09-03-mt6797-infracfg-reset-repair/README.md)
-  — implements the hardware-free follow-up selected by the transaction audit:
+  — completes the hardware-free follow-up selected by the transaction audit:
   a compact two-input map for only the source-proven thermal and PMIC-wrap
   SET/CLEAR pairs, fail-closed register resolution, RST1 quarantine, and six
-  focused pure KUnit cases. Patch generation and Buildbox validation are in
-  progress; no DT node is enabled and no device action is in scope.
+  focused pure KUnit cases. Exact patch generation, strict review, the
+  published 505-patch Buildbox build, and all six isolated QEMU cases pass; no
+  DT node was enabled, no boot candidate was created, and no device action
+  occurred. PMIC-wrapper serviceability under the corrected reset is next.
 - [2026-09-03 MT6797 thermal/AUXADC transaction audit](2026-09-03-mt6797-thermal-auxadc-transaction-audit/README.md)
   — rejects immediate runtime enablement after an exact current-versus-vendor
   source audit. The canonical reset provider mistakes RST0

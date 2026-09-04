@@ -7995,6 +7995,26 @@ Buildbox build, give the repaired PMIC-wrap path its own serviceability
 regression before implementing the thermal transaction plan. OPP/cpufreq,
 trips, cooling, load, idle, and suspend remain excluded.
 
+The linked
+[infracfg reset repair](../experiments/2026-09-03-mt6797-infracfg-reset-repair/README.md)
+now closes that hardware-free gate. Canonical patches `0514`--`0516` replace
+the three-simple-bank model with compact thermal and PMIC-wrap inputs mapped to
+the source-proven `0x120/0x124` and `0x140/0x144` SET/CLEAR pairs, reject the
+old linear input 64 and out-of-bank translations before MMIO, and quarantine
+RST1. Exact generation and strict review pass; published commit `69da0ec0...`
+applies all 505 patches, links the focused profile, packages 123 DTBs with
+valid checksums, and passes all six exact no-network arm64 QEMU KUnit cases.
+This produced no boot candidate or device action and does not establish PMIC
+runtime behavior. **Selected next:** construct one isolated serviceability
+candidate whose only new runtime variable is the corrected PMIC-wrapper reset.
+Require exact kernel/DT/container identity, natural PWRAP and MT6351-child bind,
+the previously proven VEMC/VIO18 and eMMC baseline, USB/netcat serviceability,
+bounded observation, changed-ID recovery, and unchanged `boot2`; keep thermal
+and AUXADC disabled and issue no CPU, load, cpufreq, OPP, idle, hotplug, or
+suspend action. A pass permits the thermal transaction implementation to take
+the reset dependency; a failure returns to PMIC reset/clock ownership without
+enabling thermal.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

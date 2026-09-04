@@ -452,16 +452,17 @@ uses AUXADC channel 11 plus indirect valid/voltage data. This is a distinct
 thermal-controller/AUXADC contract rather than a generic IIO ADC-only path.
 
 The exact MT6797 reset and initialization transaction is now also source
-pinned. Thermal reset ID 0 asserts through infracfg RST0 SET at `+0x120` and
+pinned. Thermal reset input 0 asserts through infracfg RST0 SET at `+0x120` and
 deasserts through CLEAR at `+0x124`; `+0x128` is RST0 status, not a second reset
-bank. The PMIC-wrapper reset at logical ID 64 instead uses the RST2 SET/CLEAR
-pair `+0x140/+0x144`. The local clock patch currently mis-models `+0x120`,
-`+0x124`, and `+0x128` as three `MTK_RST_SIMPLE` banks. Consequently neither
-thermal ID 0 nor PMIC-wrapper ID 64 has the required translation. The thermal
-node has no reset phandle, while PMIC wrap is the sole current infracfg-reset
-consumer; repair and consumer regression must precede thermal use. The
-intervening RST1 `+0x130/+0x134` pair follows the mainline MediaTek bank
-convention but remains an inference until an MT6797 primary source closes it.
+bank. PMIC-wrapper reset input 1 translates to internal bank 1 bit 0 and uses
+the RST2 SET/CLEAR pair `+0x140/+0x144`. The repaired local provider exposes
+only those two compact public inputs, rejects the historical linear input 64,
+and bounds-checks the translated bank before deriving any register. The
+thermal node still has no reset phandle, while PMIC wrap is the sole current
+infracfg-reset consumer; its serviceability regression must precede thermal
+use. The intervening RST1 `+0x130/+0x134` pair follows the mainline MediaTek
+bank convention but remains quarantined until an MT6797 primary source closes
+it. See the [reset-repair experiment](../../experiments/2026-09-03-mt6797-infracfg-reset-repair/README.md).
 
 MT6797 standalone AUXADC conversion polls `CON2[0]` idle before clearing and
 triggering a channel. Its optional power helper can set `AUXADC_MISC[14]`, but
@@ -746,11 +747,12 @@ The wrapper's real clock candidates are `CLK_TOP_MUX_PMICSPI` and
 `CLK_INFRA_PMIC_AP`; both report 26 MHz live. The partial 4.9 port's dummy
 40 MHz wrapper clock is not hardware evidence. Linux 7.1.3 already contains
 MT6797 wrapper register data and the MT6351 16-bit slave regmap. Its pwrap data
-requires a reset, while the upstream MT6797 infracfg driver registers none.
-Historical code establishes simple reset banks at `0x120`, `0x124`, and
-`0x128`, with pwrap at linear ID 64 (bank 2 bit 0). The local series now adds
-that reset provider and a pwrap node with the recovered clocks, reset, SPI178,
-and an MT6351 child whose level-high interrupt is EINT176.
+requires a reset. The local infracfg provider now maps compact public PMIC-wrap
+input 1 to the source-proven RST2 SET/CLEAR pair `0x140/0x144`; it no longer
+accepts the incorrect historical linear input 64. The local pwrap node carries
+the recovered clocks, reset, SPI178, and an MT6351 child whose level-high
+interrupt is EINT176. Compile and pure translation gates pass, but a dedicated
+runtime serviceability regression is still required for the corrected reset.
 
 The PMIC external signal follows pseudo-GPIO262 to EINT176, level high with a
 1000 microsecond downstream debounce request. GPIO262 is outside the physical

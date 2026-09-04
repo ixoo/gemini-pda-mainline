@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-03-mt6797-infracfg-reset-repair` |
-| Status | `in progress`; hardware-free implementation gate |
+| Status | `completed`; hardware-free implementation gate passed |
 | Subsystem | MediaTek MT6797 infracfg reset controller |
 | Device variant | Planet Computers Gemini PDA, MT6797 |
 | Date(s) | 2026-09-03 to 2026-09-04 |
@@ -52,6 +52,8 @@ does not contact the Gemini.
 - `scripts/run-kunit-qemu`: bounded, no-network arm64 QEMU runner.
 - `scripts/classify-kunit.py`: exact six-case KTAP classifier.
 - `results/patch-generation-20260904.txt`: exact Buildbox generation receipt.
+- `results/buildbox-kunit-build-20260904.txt`: exact published build receipt.
+- `results/kunit-qemu-20260904.txt`: exact isolated runtime result.
 
 ## Procedure
 
@@ -91,8 +93,17 @@ does not contact the Gemini.
 - The canonical series and all 176 manifest profiles pass the repository
   subsequence invariant after admitting patches 0514 through 0516 and the
   isolated `mt6797-infracfg-reset-kunit` profile.
-- No kernel build, KUnit execution, candidate, or device action has occurred
-  yet. Those results must be recorded before this gate is complete.
+- Exact published repository commit `69da0ec0f06a...` built the focused profile
+  on Buildbox. All 505 patches applied, the production and KUnit objects linked,
+  123 DTBs were packaged, and every package checksum passed.
+- The independently fetched package ran for one bounded interval in no-network
+  arm64 QEMU. Its sole focused suite passed all six exact cases: descriptor
+  shape, thermal SET/CLEAR, PMIC-wrap SET/CLEAR, unknown public ID rejection,
+  historical linear ID 64 rejection, and out-of-bank internal ID rejection.
+  The raw log is represented by SHA-256 `954e68453ffe...`; it remains ignored
+  private build evidence rather than a repository artifact.
+- No boot candidate was constructed and no device, firmware, storage, or MMIO
+  action occurred.
 
 ## Non-scope
 
@@ -104,7 +115,15 @@ that requires its own later serviceability candidate.
 
 ## Follow-up
 
-After the hardware-free source, build, and KUnit gates pass, construct one
-isolated PMIC-wrapper serviceability candidate. Only after that consumer is
-shown to survive a real reset may the thermal transaction implementation take
-the repaired reset as a dependency.
+Construct one isolated PMIC-wrapper serviceability candidate. Only after that
+consumer is shown to survive the corrected real reset may the thermal
+transaction implementation take the repaired reset as a dependency.
+
+## Conclusion
+
+The hardware-free gate passes. The local MT6797 provider now represents the
+two source-proven SET/CLEAR pairs without exposing inferred RST1 or historical
+unverified inputs. The result establishes source, translation, rejection,
+compile, and pure-runtime behavior; it deliberately does not claim that the
+already-live PMIC-wrapper consumer survives the corrected transaction on the
+Gemini.
