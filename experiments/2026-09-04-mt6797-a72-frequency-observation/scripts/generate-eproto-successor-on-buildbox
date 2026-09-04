@@ -1,0 +1,200 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+export LC_ALL=C
+
+readonly PARENT_SOURCE_STATE=93fbb7712286785035f9dffc153d2f783b0ace8b119f5c9a86a15f99bf894d59
+readonly PARENT_SOURCE_INTEGRITY=6f4bb1950a694ac466ed9637f22911a100d9768c2d26472191e67445b6a84b48
+readonly OBSERVER_HEADER_SHA256=a47030b526f36c1012fc6b2aad51f073fa31a125cf24443816e4eca0922be7b1
+readonly OBSERVER_SOURCE_SHA256=c61a357e84d14ab1d7fe4155fa421a3be5ee2b4b1610bd86aff650b3341c7b45
+readonly OBSERVER_TEST_SHA256=c23bc20b93d3c5eabc071a77a0e4dc695b026280418d7b4cb379414829b1ff66
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+[[ $# == 3 ]] || die 'expected PROJECT_COMMIT SOURCE_ROOT OUTPUT_ROOT'
+readonly project_commit=$1
+readonly source_root=$2
+readonly output_root=$3
+[[ "$project_commit" =~ ^[0-9a-f]{40}$ ]] || die 'invalid project commit'
+[[ "$source_root" == /workspace/gemini-pda/src/linux-7.1.3-series-source ]] ||
+	die 'unexpected managed source root'
+[[ "$output_root" == /workspace/gemini-pda/* ]] || die 'unsafe output root'
+[[ -f "$source_root/.gemini-source-state" && ! -L "$source_root/.gemini-source-state" ]] ||
+	die 'prepared source state marker absent or unsafe'
+[[ "$(<"$source_root/.gemini-source-state")" == "$PARENT_SOURCE_STATE" ]] ||
+	die 'prepared parent source state changed'
+[[ -f "$source_root/.gemini-source-integrity" && ! -L "$source_root/.gemini-source-integrity" ]] ||
+	die 'prepared source integrity marker absent or unsafe'
+[[ "$(<"$source_root/.gemini-source-integrity")" == "$PARENT_SOURCE_INTEGRITY" ]] ||
+	die 'prepared source integrity changed'
+
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+experiment_dir=$(cd -- "$script_dir/.." && pwd -P)
+repository_dir=$(cd -- "$experiment_dir/../.." && pwd -P)
+readonly script_dir experiment_dir repository_dir
+[[ "$(git -C "$repository_dir" rev-parse HEAD)" == "$project_commit" ]] ||
+	die 'project checkout does not match requested commit'
+[[ -z "$(git -C "$repository_dir" status --porcelain)" ]] ||
+	die 'project checkout is dirty'
+for command in git perl python3 sha256sum; do
+	command -v "$command" >/dev/null 2>&1 || die "missing command: $command"
+done
+
+readonly soc="$source_root/drivers/soc/mediatek"
+for specification in \
+	"$soc/mt6797-a72-frequency-observer-internal.h:$OBSERVER_HEADER_SHA256" \
+	"$soc/mt6797-a72-frequency-observer.c:$OBSERVER_SOURCE_SHA256" \
+	"$soc/mt6797-a72-frequency-observer-test.c:$OBSERVER_TEST_SHA256"; do
+	path=${specification%%:*}
+	expected=${specification##*:}
+	printf '%s  %s\n' "$expected" "$path" | sha256sum --check --status ||
+		die "parent source changed: $path"
+done
+
+readonly work_root=/workspace/gemini-pda/mt6797-a72-frequency-eproto-work
+readonly package="$output_root/mt6797-a72-frequency-eproto-patches-${project_commit:0:12}"
+readonly partial="${package}.partial.$$"
+mkdir -p "$work_root" "$output_root"
+[[ ! -e "$partial" ]] || die 'stale output partial exists'
+if [[ -d "$package" && ! -L "$package" ]]; then
+	grep -Fx "repository_commit=$project_commit" \
+		"$package/provenance/generation.txt" >/dev/null ||
+		die 'existing package commit mismatch'
+	(cd "$package" && sha256sum --check --strict SHA256SUMS >/dev/null)
+	printf 'Generated MT6797 A72 frequency EPROTO patches at %s\n' "$package"
+	exit 0
+fi
+[[ ! -e "$package" ]] || die 'unsafe existing package path'
+
+work=$(mktemp -d "$work_root/generation.XXXXXX")
+readonly work
+cleanup() {
+	[[ ! -d "$work" || "$work" != "$work_root"/generation.* ]] || rm -rf -- "$work"
+	[[ ! -d "$partial" || "$partial" != "$output_root"/*.partial.* ]] || rm -rf -- "$partial"
+}
+trap cleanup EXIT
+
+mkdir -p "$work/source/drivers/soc/mediatek"
+cp -- "$soc/mt6797-a72-frequency-observer-internal.h" \
+	"$soc/mt6797-a72-frequency-observer.c" \
+	"$soc/mt6797-a72-frequency-observer-test.c" \
+	"$work/source/drivers/soc/mediatek/"
+git -C "$work/source" init --quiet
+git -C "$work/source" config user.name 'Gemini Mainline Experiment'
+git -C "$work/source" config user.email gemini-mainline@example.invalid
+git -C "$work/source" add -- drivers
+GIT_AUTHOR_DATE=2026-09-04T23:00:00Z GIT_COMMITTER_DATE=2026-09-04T23:00:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'MT6797 A72 frequency EPROTO diagnostic source parent'
+baseline_commit=$(git -C "$work/source" rev-parse HEAD)
+readonly baseline_commit
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/eproto_successor_source_edits.py" \
+	--source-root "$work/source" --phase production
+git -C "$work/source" diff --check
+git -C "$work/source" add -- \
+	drivers/soc/mediatek/mt6797-a72-frequency-observer-internal.h \
+	drivers/soc/mediatek/mt6797-a72-frequency-observer.c
+git -C "$work/source" diff --cached --check
+GIT_AUTHOR_NAME='Gemini Mainline Experiment' \
+GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid \
+GIT_COMMITTER_NAME='Gemini Mainline Experiment' \
+GIT_COMMITTER_EMAIL=gemini-mainline@example.invalid \
+GIT_AUTHOR_DATE=2026-09-04T23:01:00Z \
+GIT_COMMITTER_DATE=2026-09-04T23:01:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'soc: mediatek: trace A72 frequency observer failures' \
+		-m 'Name each existing failure boundary and preserve its already-returned raw record fields in the bounded failure log.' \
+		-m 'Do not add a transport call, hardware write, CPU request, or observation attempt.'
+production_commit=$(git -C "$work/source" rev-parse HEAD)
+readonly production_commit
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/eproto_successor_source_edits.py" \
+	--source-root "$work/source" --phase tests
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate-eproto-successor-source.py" \
+	--source-root "$work/source" >"$work/source-validation.txt"
+git -C "$work/source" diff --check
+git -C "$work/source" add -- \
+	drivers/soc/mediatek/mt6797-a72-frequency-observer-test.c
+git -C "$work/source" diff --cached --check
+GIT_AUTHOR_NAME='Gemini Mainline Experiment' \
+GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid \
+GIT_COMMITTER_NAME='Gemini Mainline Experiment' \
+GIT_COMMITTER_EMAIL=gemini-mainline@example.invalid \
+GIT_AUTHOR_DATE=2026-09-04T23:02:00Z \
+GIT_COMMITTER_DATE=2026-09-04T23:02:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'soc: mediatek: test A72 frequency observer failure trace' \
+		-m 'Cover success and every clock, BigiDVFS, and decoder failure stage with injected in-memory records.' \
+		-m 'Keep the exact three-attempt and one-call-per-transport bounds.'
+test_commit=$(git -C "$work/source" rev-parse HEAD)
+readonly test_commit
+
+mkdir -p "$partial/patches" "$partial/provenance"
+readonly patch1=0531-soc-mediatek-trace-A72-frequency-observer-failures.patch
+readonly patch2=0532-soc-mediatek-test-A72-frequency-observer-failure-trace.patch
+git -C "$work/source" format-patch -2 --no-signature --numbered \
+	--start-number 1 --output-directory "$partial/patches" >/dev/null
+generated1=$(find "$partial/patches" -maxdepth 1 -type f -name '0001-*.patch' -print)
+generated2=$(find "$partial/patches" -maxdepth 1 -type f -name '0002-*.patch' -print)
+[[ -n "$generated1" && -n "$generated2" ]] || die 'normal patch output absent'
+mv -- "$generated1" "$partial/patches/$patch1"
+mv -- "$generated2" "$partial/patches/$patch2"
+printf '%s\n' "$patch1" "$patch2" >"$partial/patches/series"
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate-eproto-successor-patches.py" \
+	--patch-dir "$partial/patches" >"$partial/provenance/patch-validation.txt"
+
+git clone --quiet "$work/source" "$work/verify"
+git -C "$work/verify" checkout --quiet --detach "$baseline_commit"
+git -C "$work/verify" config user.name 'Gemini Mainline Experiment'
+git -C "$work/verify" config user.email gemini-mainline@example.invalid
+git -C "$work/verify" am --quiet --committer-date-is-author-date \
+	"$partial/patches/$patch1" "$partial/patches/$patch2"
+[[ "$(git -C "$work/verify" rev-parse HEAD)" == "$test_commit" ]] ||
+	die 'normal patch replay did not reproduce generated commits'
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate-eproto-successor-source.py" \
+	--source-root "$work/verify" >/dev/null
+[[ -z "$(git -C "$work/verify" status --porcelain)" ]] ||
+	die 'verification source is dirty'
+
+if ! perl "$source_root/scripts/checkpatch.pl" --no-tree --strict \
+	--ignore MISSING_SIGN_OFF,FILE_PATH_CHANGES,COMMIT_LOG_LONG_LINE,OPEN_ENDED_LINE \
+	"$partial/patches/$patch1" "$partial/patches/$patch2" \
+	>"$partial/provenance/checkpatch.txt"; then
+	cat "$partial/provenance/checkpatch.txt" >&2
+	die 'strict checkpatch rejected generated patches'
+fi
+cp -- "$work/source-validation.txt" "$partial/provenance/source-validation.txt"
+cat >"$partial/provenance/generation.txt" <<EOF
+purpose=mt6797-a72-frequency-eproto-diagnostic
+repository_commit=$project_commit
+parent_source_state=$PARENT_SOURCE_STATE
+parent_source_integrity=$PARENT_SOURCE_INTEGRITY
+baseline_commit=$baseline_commit
+production_commit=$production_commit
+test_commit=$test_commit
+generated_patch_count=2
+changed_path_count=3
+failure_stage_count=6
+failure_stage_kunit_coverage=complete
+observer_attempt_budget=3-unchanged
+clock_calls_per_attempt=1-unchanged
+bigidvfs_calls_per_admitted_attempt=1-unchanged
+additional_hardware_calls=0
+cpu_requests_added=0
+hardware_writes_added=0
+device_tree_changes=0
+native_vm_build=none
+device_action=none
+boot_candidate=false
+synthetic_signoff=absent
+EOF
+(
+	cd "$partial"
+	find patches provenance -type f -print0 | sort -z |
+		xargs -0 sha256sum >SHA256SUMS
+	sha256sum --check --strict SHA256SUMS >/dev/null
+)
+mv "$partial" "$package"
+trap - EXIT
+rm -rf -- "$work"
+printf 'Generated MT6797 A72 frequency EPROTO patches at %s\n' "$package"

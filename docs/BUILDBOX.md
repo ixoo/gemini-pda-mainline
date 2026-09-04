@@ -672,6 +672,22 @@ request, hardware write, or Device Tree change, and returns only a
 checksum-validated patch review. Compilation and device eligibility remain
 separate later gates.
 
+The repeated production result narrowed the first sample failure to `EPROTO`.
+Generate the non-invasive failure-stage successor from the clean pushed project
+and the managed source pinned through canonical patch `0530`:
+
+```sh
+./scripts/buildbox generate-mt6797-a72-frequency-eproto-patches
+./scripts/buildbox fetch-mt6797-a72-frequency-eproto-patches
+```
+
+This lane emits one production diagnostic patch and one focused KUnit patch.
+It names the existing clock transport, clock record, BigiDVFS transport,
+BigiDVFS record, and decoder boundaries and logs only fields already returned
+by the two existing reads. Validation keeps the three-attempt budget, the one
+call per transport, and zero added CPU request, hardware write, Device Tree
+change, candidate construction, or device action.
+
 ## Remote storage and concurrency
 
 Buildbox uses its persistent home volume for the Git mirror, verified kernel
