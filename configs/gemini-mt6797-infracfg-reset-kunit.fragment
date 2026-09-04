@@ -1,0 +1,6 @@
+# Hardware-free proof of the MT6797 infracfg reset translation contract.
+# The handoff fragment keeps thermal/AUXADC disabled and QEMU has no matching
+# MT6797 platform device. Only pure descriptor arithmetic is executed.
+CONFIG_KUNIT=y
+CONFIG_COMMON_CLK_MT6797_RESET_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-mt6797-reset-kunit"

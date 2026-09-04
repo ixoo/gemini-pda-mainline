@@ -1,0 +1,168 @@
+From f8d039e8f6dbd805acf1c3f97673ef1baf3b9021 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 4 Sep 2026 00:42:00 +0000
+Subject: [PATCH 2/3] clk: mediatek: repair MT6797 infracfg resets
+
+Use source-proven SET/CLEAR pairs for thermal and PMIC wrap.
+
+Translate two compact public IDs and quarantine unsourced banks.
+
+Reject an invalid translated bank before any regmap write.
+---
+ drivers/clk/mediatek/clk-mt6797-reset.h | 28 +++++++++++++++++++++++++
+ drivers/clk/mediatek/clk-mt6797.c       | 14 +------------
+ drivers/clk/mediatek/reset.c            | 17 ++++++++-------
+ drivers/clk/mediatek/reset.h            | 28 +++++++++++++++++++++++++
+ 4 files changed, 66 insertions(+), 21 deletions(-)
+ create mode 100644 drivers/clk/mediatek/clk-mt6797-reset.h
+
+diff --git a/drivers/clk/mediatek/clk-mt6797-reset.h b/drivers/clk/mediatek/clk-mt6797-reset.h
+new file mode 100644
+index 0000000..01b04cc
+--- /dev/null
++++ b/drivers/clk/mediatek/clk-mt6797-reset.h
+@@ -0,0 +1,28 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __DRV_CLK_MTK_CLK_MT6797_RESET_H
++#define __DRV_CLK_MTK_CLK_MT6797_RESET_H
++
++#include <dt-bindings/reset/mt6797-resets.h>
++
++#include "reset.h"
++
++/* Only reset paths confirmed by exact MT6797 sources are exposed. */
++static u16 infra_rst_ofs[] = {
++	INFRA_RST0_SET_OFFSET,
++	INFRA_RST2_SET_OFFSET,
++};
++
++static u16 infra_rst_idx_map[] = {
++	[MT6797_INFRA_THERM_CTRL_RST] = 0 * RST_NR_PER_BANK,
++	[MT6797_INFRA_PMIC_WRAP_RST] = 1 * RST_NR_PER_BANK,
++};
++
++static const struct mtk_clk_rst_desc infra_rst_desc = {
++	.version = MTK_RST_SET_CLR,
++	.rst_bank_ofs = infra_rst_ofs,
++	.rst_bank_nr = ARRAY_SIZE(infra_rst_ofs),
++	.rst_idx_map = infra_rst_idx_map,
++	.rst_idx_map_nr = ARRAY_SIZE(infra_rst_idx_map),
++};
++
++#endif /* __DRV_CLK_MTK_CLK_MT6797_RESET_H */
+diff --git a/drivers/clk/mediatek/clk-mt6797.c b/drivers/clk/mediatek/clk-mt6797.c
+index 83023d4..7baa06f 100644
+--- a/drivers/clk/mediatek/clk-mt6797.c
++++ b/drivers/clk/mediatek/clk-mt6797.c
+@@ -10,7 +10,7 @@
+ #include "clk-gate.h"
+ #include "clk-mtk.h"
+ #include "clk-pll.h"
+-#include "reset.h"
++#include "clk-mt6797-reset.h"
+ 
+ #include <dt-bindings/clock/mt6797-clk.h>
+ 
+@@ -540,18 +540,6 @@ static const struct mtk_fixed_factor infra_fixed_divs[] = {
+ 	FACTOR(CLK_INFRA_13M, "clk13m", "clk26m", 1, 2),
+ };
+ 
+-static u16 infra_rst_ofs[] = {
+-	0x120,
+-	0x124,
+-	0x128,
+-};
+-
+-static const struct mtk_clk_rst_desc infra_rst_desc = {
+-	.version = MTK_RST_SIMPLE,
+-	.rst_bank_ofs = infra_rst_ofs,
+-	.rst_bank_nr = ARRAY_SIZE(infra_rst_ofs),
+-};
+-
+ static struct clk_hw_onecell_data *infra_clk_data;
+ 
+ static void mtk_infrasys_init_early(struct device_node *node)
+diff --git a/drivers/clk/mediatek/reset.c b/drivers/clk/mediatek/reset.c
+index 2e33039..8058b26 100644
+--- a/drivers/clk/mediatek/reset.c
++++ b/drivers/clk/mediatek/reset.c
+@@ -55,12 +55,14 @@ static int mtk_reset_update_set_clr(struct reset_controller_dev *rcdev,
+ 				    unsigned long id, bool deassert)
+ {
+ 	struct mtk_clk_rst_data *data = to_mtk_clk_rst_data(rcdev);
+-	unsigned int deassert_ofs = deassert ? 0x4 : 0;
++	unsigned int mask, reg;
++	int ret;
++
++	ret = mtk_reset_set_clr_reg(data->desc, id, deassert, &reg, &mask);
++	if (ret)
++		return ret;
+ 
+-	return regmap_write(data->regmap,
+-			    data->desc->rst_bank_ofs[id / RST_NR_PER_BANK] +
+-			    deassert_ofs,
+-			    BIT(id % RST_NR_PER_BANK));
++	return regmap_write(data->regmap, reg, mask);
+ }
+ 
+ static int mtk_reset_assert_set_clr(struct reset_controller_dev *rcdev,
+@@ -103,11 +105,10 @@ static int reset_xlate(struct reset_controller_dev *rcdev,
+ {
+ 	struct mtk_clk_rst_data *data = to_mtk_clk_rst_data(rcdev);
+ 
+-	if (reset_spec->args[0] >= rcdev->nr_resets ||
+-	    reset_spec->args[0] >= data->desc->rst_idx_map_nr)
++	if (reset_spec->args[0] >= rcdev->nr_resets)
+ 		return -EINVAL;
+ 
+-	return data->desc->rst_idx_map[reset_spec->args[0]];
++	return mtk_reset_xlate_index(data->desc, reset_spec->args[0]);
+ }
+ 
+ int mtk_register_reset_controller_with_dev(struct device *dev,
+diff --git a/drivers/clk/mediatek/reset.h b/drivers/clk/mediatek/reset.h
+index 562ffd2..e42613c 100644
+--- a/drivers/clk/mediatek/reset.h
++++ b/drivers/clk/mediatek/reset.h
+@@ -6,6 +6,8 @@
+ #ifndef __DRV_CLK_MTK_RESET_H
+ #define __DRV_CLK_MTK_RESET_H
+ 
++#include <linux/bitops.h>
++#include <linux/errno.h>
+ #include <linux/reset-controller.h>
+ #include <linux/types.h>
+ 
+@@ -59,6 +61,32 @@ struct mtk_clk_rst_data {
+ 	const struct mtk_clk_rst_desc *desc;
+ };
+ 
++static inline int
++mtk_reset_xlate_index(const struct mtk_clk_rst_desc *desc,
++		      unsigned int index)
++{
++	if (!desc->rst_idx_map || index >= desc->rst_idx_map_nr)
++		return -EINVAL;
++
++	return desc->rst_idx_map[index];
++}
++
++static inline int
++mtk_reset_set_clr_reg(const struct mtk_clk_rst_desc *desc,
++		      unsigned long id, bool deassert,
++		      unsigned int *reg, unsigned int *mask)
++{
++	unsigned int bank = id / RST_NR_PER_BANK;
++
++	if (bank >= desc->rst_bank_nr)
++		return -EINVAL;
++
++	*reg = desc->rst_bank_ofs[bank] + (deassert ? 0x4 : 0);
++	*mask = BIT(id % RST_NR_PER_BANK);
++
++	return 0;
++}
++
+ /**
+  * mtk_register_reset_controller - Register mediatek clock reset controller with device
+  * @np: Pointer to device.

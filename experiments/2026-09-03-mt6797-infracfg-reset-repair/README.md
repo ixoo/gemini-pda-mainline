@@ -48,7 +48,8 @@ does not contact the Gemini.
 - `scripts/source_edits.py`: deterministic production and KUnit edits.
 - `scripts/validate_source.py`: exact edited-source contract.
 - `scripts/validate_patches.py`: generated patch boundary checks.
-- `scripts/generate-on-buildbox`: pinned two-patch generator.
+- `scripts/generate-on-buildbox`: pinned three-patch generator.
+- `results/patch-generation-20260904.txt`: exact Buildbox generation receipt.
 
 ## Procedure
 
@@ -71,6 +72,25 @@ does not contact the Gemini.
   declared banks are rejected without a register address.
 - The descriptor uses `MTK_RST_SET_CLR`, contains two non-contiguous physical
   banks, and contains no RST1 base.
+
+## Observations
+
+- The first generated review correctly exposed two style issues: the binding
+  correction was combined with driver code and KUnit formatting was not yet
+  submission-clean. The generator was changed to emit three logical patches.
+- Manual diff review then found that the initial binding slice also removed
+  unrelated TOPRGU IDs added later in the canonical series. The edit and its
+  validator were narrowed before admission; all TOPRGU definitions are now
+  preserved.
+- The corrected Buildbox run at repository commit `be8fa9ff7542...` reproduced
+  the exact prepared source and emitted three normal patches. Patch replay,
+  source-contract checks, full-package checksums, and strict checkpatch all
+  pass; checkpatch reports zero errors, warnings, or checks for every patch.
+- The canonical series and all 176 manifest profiles pass the repository
+  subsequence invariant after admitting patches 0514 through 0516 and the
+  isolated `mt6797-infracfg-reset-kunit` profile.
+- No kernel build, KUnit execution, candidate, or device action has occurred
+  yet. Those results must be recorded before this gate is complete.
 
 ## Non-scope
 

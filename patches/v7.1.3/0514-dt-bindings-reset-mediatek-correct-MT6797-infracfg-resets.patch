@@ -1,0 +1,58 @@
+From 2962821ee9e3233cd1568d414cf35a376c096099 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 4 Sep 2026 00:41:00 +0000
+Subject: [PATCH 1/3] dt-bindings: reset: mediatek: correct MT6797 infracfg
+ resets
+
+Retain only the two inputs directly confirmed by exact sources.
+
+Use a compact input namespace and quarantine unsourced resets.
+---
+ include/dt-bindings/reset/mt6797-resets.h | 34 ++---------------------
+ 1 file changed, 3 insertions(+), 31 deletions(-)
+
+diff --git a/include/dt-bindings/reset/mt6797-resets.h b/include/dt-bindings/reset/mt6797-resets.h
+index e4ffa7c..0bab3a8 100644
+--- a/include/dt-bindings/reset/mt6797-resets.h
++++ b/include/dt-bindings/reset/mt6797-resets.h
+@@ -2,37 +2,9 @@
+ #ifndef _DT_BINDINGS_RESET_CONTROLLER_MT6797
+ #define _DT_BINDINGS_RESET_CONTROLLER_MT6797
+ 
+-/* INFRACFG resets: INFRA_GLOBALCON_RST0 */
+-#define MT6797_INFRA_THERM_CTRL_RST		0
+-#define MT6797_INFRA_USB_TOP_RST		1
+-#define MT6797_INFRA_PERI_IOMMU_RST		2
+-#define MT6797_INFRA_MM_IOMMU_RST		3
+-#define MT6797_INFRA_MSDC3_RST			4
+-#define MT6797_INFRA_MSDC2_RST			5
+-#define MT6797_INFRA_MSDC1_RST			6
+-#define MT6797_INFRA_MSDC0_RST			7
+-#define MT6797_INFRA_DRAMC_RST			8
+-#define MT6797_INFRA_AP_DMA_RST			9
+-#define MT6797_INFRA_MIPI_D_RST			10
+-#define MT6797_INFRA_MIPI_C_RST			11
+-#define MT6797_INFRA_BTIF_RST			12
+-#define MT6797_INFRA_CLDMA_RST			13
+-#define MT6797_INFRA_DVFS_PROC_0_RST		14
+-#define MT6797_INFRA_DVFS_PROC_1_RST		15
+-#define MT6797_INFRA_L2C_INFRA_0_RST		16
+-
+-/* INFRACFG resets: INFRA_GLOBALCON_RST1 */
+-#define MT6797_INFRA_SSUSB_TOP_RST		33
+-#define MT6797_INFRA_L2C_INFRA_1_RST		48
+-
+-/* INFRACFG resets: INFRA_GLOBALCON_RST2 */
+-#define MT6797_INFRA_PMIC_WRAP_RST		64
+-#define MT6797_INFRA_SPM_RST			65
+-#define MT6797_INFRA_USBSIF_RST			66
+-#define MT6797_INFRA_SCP_RST			67
+-#define MT6797_INFRA_CLDMA_AO_RST		68
+-#define MT6797_INFRA_SCP_SECURE_RST		69
+-#define MT6797_INFRA_SSUSB_DIG_PHY_B_RST	70
++/* Source-proven infracfg reset inputs. */
++#define MT6797_INFRA_THERM_CTRL_RST	0
++#define MT6797_INFRA_PMIC_WRAP_RST	1
+ 
+ /* TOPRGU resets: WDT_SWSYSRST */
+ #define MT6797_TOPRGU_INFRA_SW_RST		0
