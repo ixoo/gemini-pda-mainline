@@ -49,6 +49,8 @@ does not contact the Gemini.
 - `scripts/validate_source.py`: exact edited-source contract.
 - `scripts/validate_patches.py`: generated patch boundary checks.
 - `scripts/generate-on-buildbox`: pinned three-patch generator.
+- `scripts/run-kunit-qemu`: bounded, no-network arm64 QEMU runner.
+- `scripts/classify-kunit.py`: exact six-case KTAP classifier.
 - `results/patch-generation-20260904.txt`: exact Buildbox generation receipt.
 
 ## Procedure
