@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-thermal-stage-ledger` |
-| Status | KUnit compile and 15-case QEMU runtime passed; production build pending |
+| Status | production build and exact boot candidate validated; deployment pending |
 | Subsystem | MT6797 thermal probe and ordered AUXADC transaction |
 | Device variant | Planet Computers Gemini PDA, MT6797 |
 | Date(s) | 2026-09-04 |
@@ -85,3 +85,18 @@ owned by the [thermal-serviceability experiment](../2026-09-04-mt6797-thermal-se
   failures or skips; the run performed no MMIO, retained-RAM, CPU, storage, or
   device action. See
   [results/kunit-qemu-20260904.txt](results/kunit-qemu-20260904.txt).
+- Exact pushed revision `b66b03c722cd...` built the production profile on
+  Buildbox. Package checksums, provenance, the 512-patch canonical series,
+  record-5 configuration and symbols, and the unchanged thermal-serviceability
+  DT contract all passed. See
+  [results/production-buildbox-20260904.txt](results/production-buildbox-20260904.txt).
+- The Android-v0/LK container was assembled twice and then reproduced in a
+  separate temporary root. Both raw and exactly padded images were identical;
+  the selected full-`boot2` identity is `dcb2b4e8dd83...`. The record-5 decoder
+  passed 12 hardware-free positive and rejection cases, and the guarded
+  installer retains live-GPT resolution, full readback, and clean shutdown.
+  See [results/offline-candidate-20260904.txt](results/offline-candidate-20260904.txt).
+- Immediately before publication, the known-good Gemian boot remained
+  `f54c4692...`, record 5 was empty, battery was 100%, and USB power was online.
+  The one-boot hypothesis and result-to-action map are fixed in
+  [results/preboot-hypothesis-20260904.txt](results/preboot-hypothesis-20260904.txt).

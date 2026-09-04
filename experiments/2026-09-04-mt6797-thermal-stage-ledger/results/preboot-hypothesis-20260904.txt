@@ -1,0 +1,27 @@
+experiment=2026-09-04-mt6797-thermal-stage-ledger
+candidate_raw_sha256=c015bc244916ed9e62ee03d05a58d5e28141f123a19771ffaa3c19278b03cd0e
+candidate_full_boot2_sha256=dcb2b4e8dd8353177f86a81b3019b42becb286baf2ab0b73aafaf49901780486
+kernel_release=7.1.3-gemini-mt6797-thermal-stage-ledger
+device_variant=Planet Computers Gemini PDA MT6797
+preflight_os=3.18.41+
+preflight_architecture=aarch64
+preflight_boot_id=f54c4692-0b36-483b-ba93-73dd147af8ab
+preflight_record5=empty
+preflight_battery_capacity=100
+preflight_usb_power_online=1
+
+hypothesis=The thermal-serviceability DT reaches the MT6797 thermal probe, and the default-off record-5 ledger will retain the last entered or completed probe boundary even if USB/netcat never appears and the device returns to Gemian.
+
+unique_attribution=This exact candidate is distinct from the retired parent and adds only the isolated CRC-protected record-5 thermal-stage observation path. It retains the same policy-free thermal serviceability DT, initramfs, boot addresses, disabled CPU frequency/idle/suspend policy, and no CPU admission or load trigger.
+
+decision_empty_after_changed_boot_id=The ledger never owned the lane; investigate boot selection or execution before thermal probe entry.
+decision_valid_before=The named operation was entered and did not return; investigate that hardware boundary.
+decision_valid_after_error=The named operation returned the retained errno; repair that resource or transaction boundary.
+decision_failure_terminal=The thermal probe returned after the retained named boundary; follow that failure path.
+decision_success_terminal=Thermal probe and zone registration completed; collect a read-only live temperature/serviceability frame and resume the CPU8/CPU9 prerequisite chain.
+decision_live_usb_netcat=Collect the exact running release, thermal binding, temperatures, CPUs, PWRAP, MT6351, and eMMC state read-only.
+
+repeat_policy=Do not repeat this bit-identical candidate unless a new independent observation path can change the decision.
+installation_scope=live-GPT-resolved-inactive-boot2-only
+fresh_partition_backup=no-project-wide-starting-backup-is-recovery-source
+post_write_action=clean-shutdown-after-matching-full-partition-readback
