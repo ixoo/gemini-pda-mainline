@@ -135,3 +135,9 @@ the exact live zero-divider tuple plus a distinct unknown-selector rejection.
 The attempt ceiling, transport calls, CPU requests, hardware writes, and DT
 remain unchanged. This is hardware-free proof, not a new live observation or
 an admitted candidate.
+
+Production revision `556575a2...` now packages the same repair with KUnit,
+cpufreq, idle, and suspend disabled. Its independently validated candidate is
+`ea2aae41...`; the exact live-tuple success fixture and all 18 runtime
+mutations pass. The next evidence must therefore come from one fresh,
+identity-gated device boot, not another diagnostic-candidate repeat.

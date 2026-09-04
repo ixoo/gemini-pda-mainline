@@ -53,16 +53,16 @@ def sample(attempt: int) -> str:
         f"clock_generation={10 + attempt}",
         f"big_generation={12 + attempt}",
         "armplldiv_muxsel=0x00000055",
-        "armplldiv_ckdiv=0x00042108",
-        "big_pll_pcw=0xc1130000",
-        "big_pll_enable_posdiv=0x07001000",
-        "b_pcw=0x41130000",
+        "armplldiv_ckdiv=0x00000008",
+        "big_pll_pcw=0xb9b13b14",
+        "big_pll_enable_posdiv=0x00ff1101",
+        "b_pcw=0x39b13b14",
         "b_posdiv=1",
         "b_mux=1",
         "b_divider=8",
         "ll_khz=897000",
         "l_khz=1274000",
-        "b_khz=845000",
+        "b_khz=750000",
         "cci_khz=629500",
     ))
 
@@ -75,13 +75,13 @@ def failure_trace(attempt: int, errno: int, stage: str,
         "GEMINI_A72_FREQ_CLOCK_SHAPE_V1 "
         f"abi=1 reserved=0 generation={generation}",
         "GEMINI_A72_FREQ_CLOCK_DIV_V1 "
-        "muxsel=0x00000055 ckdiv=0x00042108",
+        "muxsel=0x00000055 ckdiv=0x00000008",
         "GEMINI_A72_FREQ_PLL_V1 "
         "ll=0xc1114000 l=0x400c4000 cci=0xc10c1d89",
         "GEMINI_A72_FREQ_BIG_SHAPE_V1 "
         f"abi=1 reserved=0 generation={generation + 2}",
         "GEMINI_A72_FREQ_BIG_PLL_V1 "
-        "pcw=0xc1130000 enable_posdiv=0x07001000",
+        "pcw=0xb9b13b14 enable_posdiv=0x00ff1101",
     ))
 
 
@@ -168,7 +168,7 @@ def main() -> int:
         'reject_preflight kernel-identity') == 1,
         "production kernel identity was not materialized")
     require(materialized.count(
-        "9e0f93057ef79b592bef8d8bedd2df87751df699fdcbee4745172a4854e8f6e1"
+        "d1e9f8c94a4369ca32c00643a0d2f92d5c0f91a43af236bf61a2409a2512a0a2"
     ) == 1, "production record identity was not materialized")
     for stale in (
         '[ "$($BB uname -r)" = 7.1.3-gemini-a72-hotplug-physical ]',
@@ -248,7 +248,7 @@ def main() -> int:
     malformed_failure = classify(
         valid + "__A72_FREQUENCY_THERMAL_REJECTED__ reason=frequency-before\n"
         + failure_trace(1, -71, "decode").replace(
-            "pcw=0xc1130000", "pcw=0xC1130000", 1
+            "pcw=0xb9b13b14", "pcw=0xB9B13B14", 1
         ) + "\n"
     )
     require(malformed_failure.returncode == 3 and
@@ -259,8 +259,8 @@ def main() -> int:
         valid.replace("attempt=2", "attempt=1", 1),
         valid.replace("remaining=0", "remaining=1", 1),
         valid.replace("clock_generation=12", "clock_generation=11", 1),
-        valid.replace("b_pcw=0x41130000", "b_pcw=0x41130001", 1),
-        valid.replace("b_khz=845000", "b_khz=846000", 1),
+        valid.replace("b_pcw=0x39b13b14", "b_pcw=0x39b13b15", 1),
+        valid.replace("b_khz=750000", "b_khz=751000", 1),
         valid.replace("thermal_during_millicelsius=37000",
                       "thermal_during_millicelsius=130000", 1),
         valid.replace("frequency_observer_mode=444",

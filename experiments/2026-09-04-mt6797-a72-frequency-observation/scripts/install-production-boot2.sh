@@ -28,12 +28,12 @@ import sys
 text = Path(sys.argv[1]).read_text(encoding="utf-8")
 replacements = (
     ("6ba8c9538dcff6559066088da943d96aaa8ad32d10a93b34c8bbeddc97464f75",
-     "d4eb9cb9ca63027b0226e6e3ef2878e5b7907153bc00c1248f701320cfe59a74", 1),
+     "ea2aae419220b3c2ea11780f9c91dbb51d509286cd76d2ba1741d9e08e837c9c", 1),
     ("650581d9884741659ab69370b41cff1d61cc8cae799cad589dd6a885f47bd722",
-     "d4c7060e53ae2e1139b0cd6f1ddccf2f91637614f42aee437fc8ba4c36b47e51", 1),
+     "819f1c08b7843fc912fd79c812d9e82e213910ff2b93937b66db0e294458eb16", 1),
     ("candidate-a72-topology-repeat-e02bfd85",
-     "candidate-mt6797-a72-frequency-eproto-9d0f27dc", 1),
-    ("a72-topology-repeat", "a72-frequency-thermal-eproto", 2),
+     "candidate-mt6797-a72-frequency-zero-divider-398ca636", 1),
+    ("a72-topology-repeat", "a72-frequency-thermal-zero-divider", 2),
 )
 for old, new, count in replacements:
     actual = text.count(old)

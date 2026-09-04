@@ -8281,11 +8281,15 @@ Exact clean pushed revisions `5b25b071...` and `0ccb7aba...` then compiled the
 observer and decoder profiles on Buildbox from the identical 523-patch source
 state. Isolated no-network arm64 QEMU passes the observer suite 5/5 and the
 decoder suite 7/7, including the exact live tuple and retained selector-one
-rejection. **Selected next:** build the production profile from the clean
-published repair revision and independently validate its package, DT,
-Android-v0/LK container, pretrigger, and bounded runtime before admitting one
-distinct `boot2` candidate. No device candidate is admitted by the focused
-passes alone.
+rejection. Exact clean production revision `556575a2...` then passes the
+Buildbox package and production-registration gates. Independent composition
+produces DT `46be0ae6...`, raw Android-v0/LK image `398ca636...`, and exact
+padded candidate `ea2aae41...`; package, DT, container, 12 pretrigger-mutation,
+and 18 runtime-mutation gates pass. **Selected next:** publish these exact
+tooling identities, install `ea2aae41...` once to live-GPT-resolved inactive
+`boot2` with full readback and shutdown, then require the pristine frame before
+one bounded stage-18/frequency/load attempt. No repeat of `d4eb9cb9...` is
+admitted.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

@@ -161,3 +161,11 @@ The new decoder case resolves the captured live tuple to LL 897000, L 1274000,
 Big 750000, and CCI 629500 kHz, while selector one remains rejected. This
 closes only the hardware-free gate; no successor boot candidate exists until
 the production package and full composition are independently validated.
+
+Exact clean production revision `556575a2...` now passes the Buildbox package
+gate. Independent composition preserves the established topology and thermal
+transform while binding new package provenance, producing DT `46be0ae6...`,
+raw Android-v0/LK image `398ca636...`, and exact padded candidate
+`ea2aae41...`. The production registration oracle, 12 zero-read pretrigger
+mutations, and 18 bounded-runtime mutations pass. This distinct candidate is
+admitted for one guarded inactive-`boot2` installation and fresh boot only.

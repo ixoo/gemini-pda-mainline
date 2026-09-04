@@ -63,7 +63,7 @@ identity_replacements = (
      "[ \"$($BB uname -r)\" = 7.1.3-gemini-a72-frequency-thermal ] || "
      "reject_preflight kernel-identity"),
     ("d4940602e7ad9cbc947376bfb9dc4222ef5a671faa15eb42a821df1852af9ba4",
-     "9e0f93057ef79b592bef8d8bedd2df87751df699fdcbee4745172a4854e8f6e1"),
+     "d1e9f8c94a4369ca32c00643a0d2f92d5c0f91a43af236bf61a2409a2512a0a2"),
 )
 for old, new in identity_replacements:
     if lifecycle.count(old) != 1 or lifecycle.count(new) != 0:

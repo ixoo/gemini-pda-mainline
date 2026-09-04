@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-a72-frequency-observation` |
-| Status | `running`; EPROTO diagnostic installed, read back, and shut down |
+| Status | `running`; zero-divider successor admitted offline, deployment pending |
 | Subsystem | MT6797 CPU clock readback / Cortex-A72 lifecycle |
 | Device variant | Gemini PDA x27, named development unit |
 | Date(s) | 2026-09-04 |
@@ -32,26 +32,26 @@ PLL values whose bit 31 change strobe remains set?
   `f3d2a14bd1b8355c68e59e8bd4be6bc1525f9c24` in the existing Buildbox
   public-source checkout.
 - Build backend: Buildbox only; no native VM build.
-- Boot path and target: none for the decoder-repair and KUnit gate.
+- Boot path and target: one guarded write to live-GPT-resolved inactive
+  `boot2` after the exact offline candidate/tooling commit is published.
 
 ## Safety assessment
 
-The completed offline phases generated normal review patches in a temporary
-Buildbox Git repository, ran isolated KUnit proof under no-network QEMU, built
-the successor production and focused profiles from exact clean pushed commit
-`5d892a1c...`, and assembled its exact candidate without device access. The
-decoder and tests make no hardware call. The production runtime exposes exactly
-one inherited stage-18 lifecycle trigger plus three read-only frequency
-observations and a finite volatile-RAM workload; it has no storage or reboot
-action.
+The completed repair phase generated normal review patches on Buildbox, passed
+the isolated 5/5 observer and 7/7 decoder suites, built the production profile
+from exact clean pushed commit `556575a2...`, and independently assembled
+candidate `ea2aae41...` without device access. The decoder and tests make no
+hardware call. The production runtime exposes exactly one inherited stage-18
+lifecycle trigger plus three read-only frequency observations and a finite
+volatile-RAM workload; it has no storage or reboot action.
 
-No device action occurred during the new failure-stage offline gate. Exact
-candidate `d4eb9cb9...` may use the standing guarded `boot2` workflow: live GPT
+No device action occurred during this offline gate. Exact candidate
+`ea2aae41...` may use the standing guarded `boot2` workflow: live GPT
 resolution, inactive/unmounted target checks, no fresh backup, full 16 MiB
-readback, and clean shutdown. Its runtime makes one userspace observer request;
-on failure it preserves every emitted six-line callback record, starts no load,
-makes no additional request, and issues no reboot. Longer load after an
-observer failure and all policy experiments remain closed.
+readback, and clean shutdown. On an observer failure the runtime preserves
+every emitted six-line callback record, starts no load, makes no additional
+request, and issues no reboot. Longer load after a failure and all policy
+experiments remain closed.
 
 ## Associated code
 
@@ -136,6 +136,9 @@ observer failure and all policy experiments remain closed.
 - `results/zero-divider-focused-kunit-20260904.txt`: exact Buildbox packages
   and isolated no-network 5/5 observer plus 7/7 decoder proof for the live
   zero-divider repair.
+- `results/zero-divider-offline-candidate-20260904.txt`: exact production
+  Buildbox package, DT, Android-v0/LK container, pretrigger/runtime mutation,
+  and independent candidate admission for the repaired decoder.
 
 ## Procedure
 
@@ -386,6 +389,14 @@ observer failure and all policy experiments remain closed.
   passed the unchanged observer suite 5/5 and the decoder suite 7/7, including
   the exact live tuple and separate selector-one rejection. See
   [results/zero-divider-focused-kunit-20260904.txt](results/zero-divider-focused-kunit-20260904.txt).
+- Exact clean published revision `556575a2...` built the production profile on
+  Buildbox from source `be41c068...` and 523-patch set `b7cccd63...`. Package
+  checks, all 124 packaged DTBs, the production registration oracle, and the
+  closed KUnit/cpufreq/idle/suspend policy pass. Independent composition
+  produced DT `46be0ae6...`, raw Android-v0/LK image `398ca636...`, and exact
+  16 MiB candidate `ea2aae41...`; the 12 pretrigger and 18 runtime mutations
+  are rejected. See
+  [results/zero-divider-offline-candidate-20260904.txt](results/zero-divider-offline-candidate-20260904.txt).
 
 ## Analysis
 
@@ -423,19 +434,17 @@ arm64 QEMU. The diagnostic candidate has no reason to boot again.
 
 ## Conclusion
 
-`live zero-divider repair passes both focused suites`: exact diagnostic
+`distinct zero-divider production candidate admitted offline`: exact diagnostic
 candidate `d4eb9cb9...` identified omitted selector-zero semantics after stage
 18 completed with CPUs 0--9 online. Canonical patches `0533`--`0534` now pass
-the 5/5 observer and 7/7 decoder Buildbox/QEMU gates. This is not yet a live
-frequency or composite-load pass; the production candidate still has to be
-built and independently admitted.
+the 5/5 observer and 7/7 decoder Buildbox/QEMU gates, and production candidate
+`ea2aae41...` passes the package, DT, LK-container, and runtime-tool gates. This
+is not yet a live frequency or composite-load pass.
 
 ## Follow-up
 
-Build the production profile from the exact clean pushed repair revision,
-independently validate its package, DT, Android-v0/LK container, pretrigger,
-and runtime contracts, and publish one distinct candidate. Only then install
-it to live-GPT-resolved inactive `boot2`, require matching full readback and
+Publish the exact candidate/tooling identities, then install `ea2aae41...` to
+live-GPT-resolved inactive `boot2`, require matching full readback and clean
 shutdown, and use one fresh boot for the exact zero-read pretrigger plus the
 bounded stage-18/frequency/runtime protocol. Do not repeat `d4eb9cb9...` or
 `54a02dd0...`. Keep cpufreq/OPP, extra hotplug, idle, and suspend closed.

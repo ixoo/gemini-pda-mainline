@@ -13,39 +13,41 @@ import subprocess
 
 
 ORIGIN = "https://github.com/ixoo/gemini-pda-mainline.git"
-PACKAGE_NAME = "linux-7.1.3-gemini-gemini-a72-frequency-thermal-candidate-19c93fc7-18ded825"
-PACKAGE_MANIFEST_SHA256 = "6f882d707a7064535f4320196c31fd199e1e441588f6933493f44caa21d5a697"
-BUILD_COMMIT = "80abfffb1b20a8e5c80a3d735e97c0c2c31e5d17"
+PACKAGE_NAME = "linux-7.1.3-gemini-gemini-a72-frequency-thermal-candidate-b7cccd63-18ded825"
+PACKAGE_MANIFEST_SHA256 = "b0c13ae492c6882816903fcaa9718629ee55e595a7535b5e28c2bb70eb6854bf"
+BUILD_COMMIT = "556575a202e09d25093c578cded454854a3e6d08"
 PROFILE = "gemini-a72-frequency-thermal-candidate"
 RELEASE = "7.1.3-gemini-a72-frequency-thermal"
-IMAGE_GZ_SHA256 = "fd8c186384de65a9b5afad20d79761fb854a2d8da253a45f4802c95e5111d2f5"
-SYSTEM_MAP_SHA256 = "d9a46b7ab764dbbfbb2454b95b1a5741b5073b46b4a5066111fdc2e90ebb9aa3"
+IMAGE_GZ_SHA256 = "bb355b5531de49b6aea75f74e6f1340a829a1e602ec1f48a935c64b599d4118d"
+SYSTEM_MAP_SHA256 = "724ad03896366e3ce8eeddada7bd743decc5235d81a0cbf277adb4fb911d2bee"
 CONFIG_SHA256 = "500b3fb53e403d16fcd00bcc9634148da9ef41ab58eec5b4401f5563e1ac24cf"
-BUILD_JSON_SHA256 = "e5b021b6a49a6baa2a3fc7d5bb644c9adb0bc00bae4e19fe8318de8d342b3391"
-PACKAGE_DTB_SHA256 = "a77dcabeaf186da58b1706bb33e81ca1079e80bb8931df77840342371b5cb3da"
-A41_RECORD_SHA256 = "8a7fc792693b59da5eacf1a5b3749c23cacbae7ca0b6ac4b7aee3db33d8e5be1"
+BUILD_JSON_SHA256 = "c243ee06650a83ab16ea10e9c0fd679a49bb4125c0b67a3fb02c0600ebb1ab11"
+PACKAGE_DTB_SHA256 = "df70033883ae3dc7bee7d3af42e7d1677573c153c24fc295b9b79d919f8722a3"
+A41_RECORD_SHA256 = "1cb788595e9af5aa977882308c82938b5d1c1848ae323f4b840172d0994598db"
 TOPOLOGY_DTB_SHA256 = "4b05758f0aa04fb6aeb91e69bed7224fbe411d9d5fe671ff167214725c32f923"
 THERMAL_OVERLAY_SHA256 = "2f0a9a424d75f3042cabcb54fce0518133deb89a065d5671b87fce287b8cc91a"
-PRODUCTION_DTB_SHA256 = "626095e4d53cd2e7eff0a3d42ee92fe3154383ac8b5b32b17431bfa9f2357cef"
+PRODUCTION_DTB_SHA256 = "46be0ae62bf66bf8e9f905ec3ad5eebbdc51c79ff3dc21859077ebe3f1aec363"
 INITRAMFS_SHA256 = "e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f"
 SERIALIZER_SHA256 = "569ca6f2b365f119c8c3668cb3d63724b29e76447e47638d707983ee8eafadf4"
 ANALYZER_SHA256 = "aa25edb2cf9675ab0c90d2655bbf1ad845b41e697f0b40ba1f357cec7646eb95"
-DT_VALIDATOR_SHA256 = "4311c0ea04f29fa3985e79f10f3cfb90f45fd4a5a17aa091d9403216b7b4e25c"
-RAW_SHA256 = "9d0f27dcd9e8d8d6130c56c2029d46803695d59d75f8366909594c9c526df767"
-RAW_SIZE = 7_133_184
-PADDED_SHA256 = "d4eb9cb9ca63027b0226e6e3ef2878e5b7907153bc00c1248f701320cfe59a74"
+DT_VALIDATOR_SHA256 = "b104f6ea11d0b60006dce46b2adaa0827452d643904d33eb5fc65be7ed610fee"
+RAW_SHA256 = "398ca636f54a2825ff32f1cba86d06fd55a0a4083c46c77c85a47f0be09804a7"
+RAW_SIZE = 7_131_136
+PADDED_SHA256 = "ea2aae419220b3c2ea11780f9c91dbb51d509286cd76d2ba1741d9e08e837c9c"
 BOOT2_SIZE = 16 * 1024 * 1024
-CANDIDATE_NAME = "candidate-mt6797-a72-frequency-eproto-9d0f27dc"
+CANDIDATE_NAME = "candidate-mt6797-a72-frequency-zero-divider-398ca636"
 DT_NAME = "mt6797-gemini-pda-a72-frequency-thermal.dtb"
 INITRAMFS_NAME = "gemini-a72-frequency-thermal-initramfs.img"
 BOOT_NAME = "gemini-mt6797-a72-frequency-thermal.boot.img"
 CONFIG_INPUTS_SHA256 = "18ded825be6993a5a403f8cd526e3682199cc55afce876f36b7f194faced0b25"
 SOURCE_SHA256 = "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc"
-PATCHSET_SHA256 = "19c93fc711cfaba7bcadd18e4448a56bd14a78e2881a04bb028de30f1e4c1683"
+PATCHSET_SHA256 = "b7cccd63af8bb60975f4e994e614f8da07b933b76cb18085d5377da938eec169"
 CONFIG_BINDING_PATCH_SHA256 = "de831423d783cdc72fd34a9b2705366bac4080d997a37c574dc8d13264d49187"
 PRODUCTION_OBSERVER_PATCH_SHA256 = "bcd86ad0b4aa27eb2798fef6630eb4543a8e2edf117e3a33ca73a50b3f24e21d"
 FAILURE_TRACE_PATCH_SHA256 = "fbba1a6290082bfafc13612f8d3b32d77dc8aa864424e7865869ea3c1322a851"
 FAILURE_TRACE_TEST_PATCH_SHA256 = "575189b39ece9da281f3d7854b210a1a5b0d207b72b83e7263d19aca644f02de"
+ZERO_DIVIDER_PATCH_SHA256 = "491711ab7558b549480e2d4ed3f855081ed3c46349ffd8751e758233d9652a7a"
+ZERO_DIVIDER_TEST_PATCH_SHA256 = "e92f06ac89c24ca545974e1cf31c7109e6d69677b34fe4f8b244cd7912d5e063"
 
 
 class CandidateError(ValueError):
@@ -146,6 +148,16 @@ def validate_production_registration(
         package / "provenance/patches/v7.1.3/"
         "0532-soc-mediatek-test-A72-frequency-observer-failure-trace.patch",
         FAILURE_TRACE_TEST_PATCH_SHA256, "frequency failure trace test patch",
+    )
+    exact_file(
+        package / "provenance/patches/v7.1.3/"
+        "0533-soc-mediatek-accept-zero-MT6797-clock-divider.patch",
+        ZERO_DIVIDER_PATCH_SHA256, "zero-divider production repair patch",
+    )
+    exact_file(
+        package / "provenance/patches/v7.1.3/"
+        "0534-soc-mediatek-test-live-zero-divider-clock-state.patch",
+        ZERO_DIVIDER_TEST_PATCH_SHA256, "zero-divider focused test patch",
     )
     for token in (
         "0x18ded825be6993a5, 0xa403f8cd526e3682",
@@ -296,7 +308,7 @@ def validate(args: argparse.Namespace) -> None:
     )
     expected_provenance = {
         "experiment": "2026-09-04-mt6797-a72-frequency-observation",
-        "variant": "stage18-thermal-frequency-eproto-diagnostic",
+        "variant": "stage18-thermal-frequency-zero-divider-repair",
         "repository_commit": BUILD_COMMIT,
         "profile": PROFILE,
         "kernel_release": RELEASE,
