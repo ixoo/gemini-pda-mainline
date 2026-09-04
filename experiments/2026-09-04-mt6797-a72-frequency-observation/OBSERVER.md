@@ -98,3 +98,12 @@ emits the existing `attempt=N/3 ret=-ERRNO` line and CPU/lifecycle status, then
 proves no second observer request or load occurred. The errno must determine
 the next repair, and no further identical-artifact repeat is authorized by this
 exception.
+
+The admitted repeat consumed that exception and captured two consecutive
+kernel callbacks from one userspace read, both `ret=-71` (`EPROTO`). The frame
+proved CPUs 0--9 and terminal stage-18 state, made no additional observer
+request, and started no load. Source review leaves three observer-local
+`EPROTO` branches: clock-record shape, BigiDVFS-record shape, or decoder
+validation. No exact-artifact repeat remains permitted. A new candidate must
+first add hardware-free-tested failure-stage attribution without adding a
+transport call or increasing the three-callback budget.

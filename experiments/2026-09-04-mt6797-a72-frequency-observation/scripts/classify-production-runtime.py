@@ -260,11 +260,20 @@ def main() -> int:
             r"GEMINI_A72_FREQUENCY_OBSERVATION_V1 "
             r"attempt=([1-3])/3 ret=(-[0-9]+)", text
         )
-        if len(failure) == 1:
-            print(f"frequency_observer_attempts={failure[0][0]}-of-3")
-            print(f"frequency_observer_errno={failure[0][1]}")
+        attempts = [int(item[0]) for item in failure]
+        errnos = {item[1] for item in failure}
+        if (attempts and attempts == list(range(1, len(attempts) + 1)) and
+                len(errnos) == 1):
+            if len(attempts) == 1:
+                attempt_summary = "1-of-3"
+            else:
+                attempt_summary = f"1-{attempts[-1]}-of-3"
+            print(f"frequency_observer_attempts={attempt_summary}")
+            print(f"frequency_observer_kernel_callbacks={len(attempts)}")
+            print(f"frequency_observer_errno={next(iter(errnos))}")
         else:
             print("frequency_observer_attempts=unknown")
+            print("frequency_observer_kernel_callbacks=unknown")
             print("frequency_observer_errno=unknown")
         print("cpu_off_request_maximum=1")
         print("retries=0")

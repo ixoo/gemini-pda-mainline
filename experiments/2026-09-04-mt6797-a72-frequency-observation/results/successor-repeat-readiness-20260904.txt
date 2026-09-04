@@ -1,0 +1,45 @@
+result=skipped-already-matching-full-readback-shutdown
+date_utc=2026-09-04
+published_capture_tooling_commit=cecfeb504342b7d372c523d4f7ffdb2f1f33443a
+target_logical_name=boot2
+target=/dev/mmcblk0p30
+root=/dev/mmcblk0p29
+predecessor_sha256=54a02dd0e46d54702284e679847c69f28c64cc392fca97c9b8d1940374484da7
+fresh_predecessor_backup=no
+candidate_sha256=54a02dd0e46d54702284e679847c69f28c64cc392fca97c9b8d1940374484da7
+write_performed=no
+readback_sha256=54a02dd0e46d54702284e679847c69f28c64cc392fca97c9b8d1940374484da7
+deployment_boot_id=8c26b876-9f7a-499e-a8f4-7bd2264d08ee
+power_present=1
+power_capacity_percent=100
+power_health=Good
+external_power_online=1
+temporary_readback_removed=yes
+private_summary_sha256=d8f56cc2d4ef65549ecdbd79775b830e67f8ccf086d8ac7780a0a94f08f868ca
+shutdown=requested-after-evidence-flush
+post_shutdown_reachability=unreachable
+reboot=no
+next_action=owner-physically-selects-boot2-for-attempt-2
+
+The published host-only repair preserves the exact kernel, DT, configuration,
+candidate, lifecycle, observer, and bounded workload. It corrects the inherited
+runtime identity materialization and adds only a durable first-read failure
+frame: CPU online/offline state, lifecycle status, the existing kernel
+`attempt=N/3 ret=-ERRNO` line, and explicit proof that no second observation is
+requested. The success path remains the original three-sample bounded load.
+
+The guarded readiness check resolved logical `boot2` from the live GPT as
+inactive, unmounted `/dev/mmcblk0p30`, distinct from Gemian root
+`/dev/mmcblk0p29`. Its full-partition checksum already matched the selected
+candidate, so no partition write and no fresh backup occurred. The helper
+independently completed the post-gate and full 16 MiB readback under stable
+external power, flushed the evidence, and cleanly powered the device off. No
+reboot command was issued.
+
+Boot hypothesis: the same exact successor will again complete stage 18 with
+CPU8 and CPU9 online, then either provide a valid first frequency sample or
+emit the exact failure errno that the prior host path lost. Unique evidence is
+the fresh boot-ID-bound USB/netcat frame plus the immediate failure log before
+any second read or load. A failed pretrigger or lifecycle retires the attempt;
+an observer errno selects its documented focused repair branch; a successful
+first sample permits only the already-bounded remaining samples and workload.

@@ -81,7 +81,7 @@ gate = r'''frequency_reject()
 	$BB dmesg 2>/dev/null |
 		$BB grep -F 'GEMINI_A72_FREQUENCY_OBSERVATION_V1' |
 		$BB tail -n 3 || true
-	$BB printf '%s\n' failure_frequency_observation_request=none
+	$BB printf '%s\n' failure_additional_frequency_observation_request=none
 	exit 3
 }
 

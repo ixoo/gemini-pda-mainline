@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-a72-frequency-observation` |
-| Status | `running`; successor completed stage 18 with CPU8/CPU9 online, exact observer errno repeat pending |
+| Status | `running`; successor repeated stage 18, observer `EPROTO` stage diagnostic next |
 | Subsystem | MT6797 CPU clock readback / Cortex-A72 lifecycle |
 | Device variant | Gemini PDA x27, named development unit |
 | Date(s) | 2026-09-04 |
@@ -116,6 +116,12 @@ remain closed.
 - `results/successor-runtime-attempt-1-frequency-before-rejected-20260904.txt`:
   exact live CPU8/CPU9 stage-18 success, observer-first-read rejection,
   changed-ID retained proof, and the decision-changing repeat boundary.
+- `results/successor-repeat-readiness-20260904.txt`: published host-only error
+  capture, exact already-current `boot2` readback, no-write decision, and
+  confirmed shutdown before the one admitted repeat.
+- `results/successor-runtime-attempt-2-eproto-20260904.txt`: repeated live
+  CPU8/CPU9 stage-18 success, exact two-callback `EPROTO` observation, retained
+  recovery, and the no-more-identical-repeat decision.
 
 ## Procedure
 
@@ -291,6 +297,27 @@ remain closed.
   one call each to CPU_OFF, affinity, CPU8 IPI, and restore CPU_ON. The thermal
   ledger independently ended `probe-complete`/success. See
   [results/successor-runtime-attempt-1-frequency-before-rejected-20260904.txt](results/successor-runtime-attempt-1-frequency-before-rejected-20260904.txt).
+- Commit `cecfeb50...` published the exact runtime identity repair, immediate
+  observer-failure log capture, attempt-2 private output path, and this runtime
+  record. The guarded readiness check then resolved inactive live-GPT `boot2`
+  as `/dev/mmcblk0p30`, found its full checksum already equal to
+  `54a02dd0...`, performed no write or backup, independently re-read the full
+  16 MiB under stable external power, and confirmed clean shutdown. See
+  [results/successor-repeat-readiness-20260904.txt](results/successor-repeat-readiness-20260904.txt).
+- The one admitted repeat passed its pristine frame on exact mainline boot ID
+  `196f51e7...` and again completed the full stage-18 lifecycle with CPU8 once,
+  CPU9 before and after restore, and CPUs 0--9 online. Its first userspace
+  observer request generated two kernel callbacks, attempts 1 and 2, both with
+  `ret=-71` (`EPROTO`). The immediate failure frame captured those lines and
+  terminal CPU/status state; it issued no additional observer request, started
+  no load, and requested no reboot.
+- Automatic changed-ID Gemian recovery `d9252db6...` again decoded the hotplug
+  ledger as stage 18, restored-success, error zero, online mask `0x3ff`, and
+  the one-call CPU_OFF/affinity/CPU8-IPI/CPU_ON budget. Thermal again ended
+  probe-complete/success, and remote pstore records were left intact. The
+  offline classifier now accepts consecutive identical failure lines and
+  preserves `attempts=1-2-of-3`, two callbacks, and errno `-71`. See
+  [results/successor-runtime-attempt-2-eproto-20260904.txt](results/successor-runtime-attempt-2-eproto-20260904.txt).
 
 ## Analysis
 
@@ -309,33 +336,38 @@ proves the physical binder can complete stage 18 with both Cortex-A72 CPUs
 online on this exact configuration. That is a material current-mainline CPU
 result even though the larger composite acceptance test rejected.
 
-The unresolved boundary is narrower than before the boot. The observer exists
-and its first read was reached, but the old host failure path discarded the
-kernel's `attempt=N/3 ret=-ERRNO` line. Without that errno it is not responsible
-to guess between protected-clock transport, stable BigiDVFS sampling,
-decoder/shape, or another specific failure. The revised host-only runtime
-prints that existing log immediately, records CPU/status state, and explicitly
-makes no second observer request.
+The unresolved boundary is narrower than before the boot. The observer exists,
+and the repeat captured `EPROTO` twice from the first userspace request. This
+rules out the backend timeout/error and BigiDVFS `-EAGAIN` branches for those
+callbacks. The lifecycle's use of the same backends also passed their returns,
+ABI, and nonzero generations. What remains is the observer-only reserved-field
+checks or a decoder PLL/divider validation, but the current error log does not
+name which branch.
+
+The one `busybox cat` request caused two sysfs show callbacks after the negative
+return. That is an observed transport property, not a second request made by
+the failure handler. The corrected classifier preserves both callbacks rather
+than discarding the errno. The next kernel diagnostic must name the failure
+stage and preserve the existing three-callback ceiling without adding a
+hardware call.
 
 ## Conclusion
 
-`stage-18 CPU8/CPU9 pass; frequency-before rejected`: exact successor
-`54a02dd0...` passed its pristine live pretrigger and completed one stage-18
-CPU8/CPU9 lifecycle with CPUs 0--9 online. Changed-ID retained evidence
-independently sealed the restored-success result. The first frequency observer
-read failed before producing a sample, no load ran, and the exact errno was not
-retained. This is a live CPU8/CPU9 result, but not yet a frequency or composite
-thermal/frequency/load pass.
+`stage-18 CPU8/CPU9 repeated; frequency observer EPROTO`: exact successor
+`54a02dd0...` passed two pristine live transactions and completed stage 18 with
+CPUs 0--9 online on both. Changed-ID retained evidence independently sealed
+both restored-success results. The admitted error-capture repeat localized the
+frequency failure to `EPROTO`; one userspace request produced kernel attempts 1
+and 2, both failing before a sample, and no load ran. This is repeated live
+CPU8/CPU9 evidence, but not yet a frequency or composite load pass.
 
 ## Follow-up
 
-Publish the host-only failure-capture repair, verify exact `54a02dd0...` still
-occupies inactive live-GPT `boot2`, and shut Gemian down. One identical-candidate
-repeat is permitted because it adds a durable independent observation that can
-change the next code action: on an observer failure it must immediately retain
-the exact attempt/errno line, CPU/status frame, and proof that no second read or
-load occurred. A successful first sample may continue through the already
-bounded three-sample/load protocol. Treat display state as non-authoritative
-and require the fresh USB/netcat identity gate. Keep all further identical-
-artifact repeats, longer load, cpufreq/OPP, extra hotplug, idle, and suspend
-closed.
+Publish this exact `EPROTO` result and generate one focused successor patch on
+Buildbox that gives every failed observer callback a hardware-free-tested stage
+identity: clock transport/shape, BigiDVFS transport/shape, or decoder return.
+It must preserve the three-callback ceiling, existing hardware-call budget,
+successful record format, CPU lifecycle, DT, and configuration. A focused
+KUnit profile must prove each failure stage before any new candidate is
+assembled. Do not repeat exact `54a02dd0...`. Keep load, cpufreq/OPP, extra
+hotplug, idle, and suspend closed until a valid first frequency sample exists.

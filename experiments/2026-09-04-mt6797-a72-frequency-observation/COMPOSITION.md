@@ -115,3 +115,17 @@ load, and issues no reboot. That exact errno selects the next repair. If the
 first sample succeeds, the original bounded three-sample/load protocol remains
 the only permitted continuation. No further identical-artifact repeat is
 admitted by this exception.
+
+That repeat passed the pristine gate and repeated stage 18 with CPUs 0--9
+online. One userspace read then caused kernel observer callbacks 1 and 2, both
+returning `-EPROTO`; the revised frame retained both exact lines, CPU state,
+and terminal lifecycle status, and no load or additional request followed.
+Changed-ID retained recovery again sealed hotplug and thermal success. The
+repeat exception is consumed. Exact `54a02dd0...` must not boot again.
+
+The next composition may differ only by one focused observer diagnostic that
+identifies whether `EPROTO` came from clock-record shape, BigiDVFS-record shape,
+or the decoder, with no new hardware call and the same three-callback ceiling.
+It requires source validation, focused KUnit coverage of every failure stage,
+an exact Buildbox production package, and a new independently validated
+candidate identity before one more live attempt can be selected.

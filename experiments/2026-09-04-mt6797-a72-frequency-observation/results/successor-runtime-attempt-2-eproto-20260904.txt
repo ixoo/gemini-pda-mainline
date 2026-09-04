@@ -1,0 +1,113 @@
+result=stage18-pass-frequency-eproto
+date_utc=2026-09-04
+candidate_sha256=54a02dd0e46d54702284e679847c69f28c64cc392fca97c9b8d1940374484da7
+raw_candidate_sha256=24cb227b415a3285e4518318fece7cd1c080659d6132470e2e08d590fa58089f
+kernel_input_commit=5d892a1c83b8ae5099bbfd5d379f726d04c4ebde
+capture_tooling_commit=cecfeb504342b7d372c523d4f7ffdb2f1f33443a
+kernel_release=7.1.3-gemini-a72-frequency-thermal
+record_identity=018de9150ffcf0b7b30fe7c45f3863555909c87e92ec4e868f30ef74a0e8cd2e
+config_inputs_sha256=18ded825be6993a5a403f8cd526e3682199cc55afce876f36b7f194faced0b25
+boot_id=196f51e7-f7fa-4fe4-ad36-22c4f4c3f2be
+user_observation_console_visible=not-reported
+usb_netcat_serviceable=yes
+pretrigger_classification=serviceable-pristine-thermal-frequency-ready
+pretrigger_cpu_online=0-7
+pretrigger_cpu_offline=8-9
+pretrigger_observer_attempts=0-of-3
+pretrigger_trigger_executions=0
+pretrigger_late_profile=ready
+pretrigger_thermal_zone=soc-thermal
+runtime_trigger_commit=yes
+runtime_trigger_write_status=0
+runtime_trigger_executions=1
+runtime_operation_ret=0
+runtime_cpu_online=0-9
+runtime_cpu_offline=none
+runtime_cpu8_boot_count=1
+runtime_cpu9_boot_count=2
+runtime_binding_ret=0
+runtime_binding_terminal=5
+runtime_binding_last_stage=18
+runtime_binding_restore_last_stage=18
+runtime_binding_p30e_rearmed=1
+runtime_binding_cpu8_online=1
+runtime_binding_cpu9_online=1
+runtime_userspace_frequency_requests=1
+runtime_frequency_kernel_callbacks=2
+runtime_frequency_attempts=1-2-of-3
+runtime_frequency_attempt_1_errno=-71
+runtime_frequency_attempt_2_errno=-71
+runtime_frequency_errno_name=EPROTO
+runtime_additional_frequency_request_after_failure=none
+runtime_workload_started=no
+runtime_native_reboot_requested=no
+automatic_return_to_gemian=yes
+recovery_boot_id=d9252db6-5aee-49a3-8148-0684d8e52710
+recovery_kernel_release=3.18.41+
+recovery_remote_pstore_records_removed=no
+hotplug_ledger_decode=pass
+hotplug_ledger_stage=18
+hotplug_ledger_terminal=restored-success
+hotplug_ledger_error=0
+hotplug_ledger_online_mask=0x3ff
+hotplug_ledger_members=0x3
+hotplug_ledger_cpu_off_calls=1
+hotplug_ledger_affinity_calls=1
+hotplug_ledger_cpu8_ipi_calls=1
+hotplug_ledger_cpu_on_calls=1
+hotplug_ledger_restore_readiness_samples=1
+hotplug_ledger_readback_mismatch=post-status2-cpu9-present
+thermal_ledger_decode=pass
+thermal_ledger_operation=probe-complete
+thermal_ledger_terminal=success
+same_candidate_repeat_permitted=no
+selected_next=offline-prove-eproto-stage-diagnostic-successor
+
+Private attempt-capture identities:
+deployment_summary_sha256=d8f56cc2d4ef65549ecdbd79775b830e67f8ccf086d8ac7780a0a94f08f868ca
+observer_events_sha256=438655f520974023d923dd2f0ccc3eaca8ce2a7881910b2bb6d81caa3441eb6b
+pretrigger_classification_sha256=5aafbed298db6042c003f4345b11b309b1e7345a8ecbcf52cd531ba142e90cfd
+pretrigger_sha256=dd1eada54d8af30825c8343c0353b00c5dd2aa2994dd2ab39f05ca5060a49304
+original_runtime_classification_sha256=0a297f014cf6e84ccc17001474c3cb8a5fdac4e317de360f45cb0d6cb39d37f5
+runtime_events_sha256=6220d7adb28679568ac61bb8e9de75015c45ec0bace4bda4924d2b5b384e6048
+runtime_transcript_sha256=f5a6e51ef49a461054ba05a415f18232514ecd8c8db6f23ca7e0d83947749669
+
+Private recovery identities:
+dmesg_ramoops_0_sha256=816824e027ae83724167220695a07c19df128fcd3449b51678bb747ad1ed7ae2
+dmesg_ramoops_1_sha256=c3d07cd4e0663b8a2c57bfcf8d58245462267c3d577d7212fe2a2a2176d0f4fb
+dmesg_ramoops_2_sha256=a735465121cfc5152da6ff06408a95650dfb760977fe10cb41648a3a3900796f
+dmesg_ramoops_3_sha256=036dd0eb2f829be76d175e56ca63515d3fb6fe6ac79405f5940071bad9b1646d
+dmesg_ramoops_4_sha256=d343cc2460ba246817f88a3eb081d351b096cdb616e185c00bb190635494de11
+dmesg_ramoops_5_sha256=a31f5993995a9c9e06cd57b6cac496838ef42e84d547f70eb196a86e21f2729e
+recovery_manifest_sha256=894aa4713badf227a0795b6a78697c97b98cc73a3741d5ddbddb3a93de4e7d9a
+
+Interpretation:
+
+The one admitted same-candidate repeat achieved its decision-changing purpose.
+The exact fresh pretrigger passed, and the one-shot lifecycle again brought
+CPU8 and CPU9 online, completed the CPU9 down/restore path, reached binding
+stage 18, and left CPUs 0--9 online. The retained hotplug and thermal ledgers
+again independently ended restored-success and probe-complete/success after a
+changed-ID automatic return to Gemian. No host reboot command was issued.
+
+The first userspace observer request produced two kernel sysfs show callbacks,
+attempts 1 and 2, and both returned `-71` (`EPROTO`). The revised failure frame
+captured those lines together with CPUs 0--9 and terminal lifecycle state. It
+made no additional observer request after failure, and the bounded workload did
+not start. The original classifier reported the attempt/errno as unknown only
+because it accepted exactly one failure line; the corrected offline classifier
+preserves the consecutive `1-2-of-3`, two-callback, `-71` result.
+
+This excludes a protected-clock timeout/error and BigiDVFS `-EAGAIN` stability
+failure for these two callbacks. Source review narrows `EPROTO` to the
+observer's clock-record shape check, BigiDVFS-record shape check, or frequency
+decoder validation. The successful lifecycle uses the same backends and passes
+their return, ABI, and nonzero-generation checks, but it does not test the
+observer's reserved fields or decoded PLL/divider shape. The current log cannot
+distinguish those remaining branches.
+
+Do not repeat this exact artifact. The next successor must add a hardware-free-
+tested failure-stage trace to the existing observer log, distinguishing clock
+shape, BigiDVFS shape, and decoder return while preserving the three-callback
+ceiling and making no new hardware call. Only that decision-changing kernel
+diagnostic may justify another device boot.

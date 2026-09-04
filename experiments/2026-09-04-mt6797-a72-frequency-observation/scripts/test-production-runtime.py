@@ -165,7 +165,7 @@ def main() -> int:
     require(materialized.count('cat "$FREQUENCY_OBSERVER"') == 1,
             "observer transport site count changed")
     require(materialized.count(
-        "failure_frequency_observation_request=none") == 1 and
+        "failure_additional_frequency_observation_request=none") == 1 and
         materialized.count(
             "grep -F 'GEMINI_A72_FREQUENCY_OBSERVATION_V1'") >= 2,
         "observer failure evidence path changed")
@@ -204,8 +204,20 @@ def main() -> int:
     require(failed.returncode == 3,
             "observer failure fixture was not rejected")
     require("frequency_observer_attempts=1-of-3" in failed.stdout and
+            "frequency_observer_kernel_callbacks=1" in failed.stdout and
             "frequency_observer_errno=-11" in failed.stdout,
             "observer failure identity was not preserved")
+    retried_failure = classify(
+        valid + "__A72_FREQUENCY_THERMAL_REJECTED__ reason=frequency-before\n"
+        "GEMINI_A72_FREQUENCY_OBSERVATION_V1 attempt=1/3 ret=-71\n"
+        "GEMINI_A72_FREQUENCY_OBSERVATION_V1 attempt=2/3 ret=-71\n"
+    )
+    require(retried_failure.returncode == 3,
+            "two-callback observer failure fixture was not rejected")
+    require("frequency_observer_attempts=1-2-of-3" in retried_failure.stdout and
+            "frequency_observer_kernel_callbacks=2" in retried_failure.stdout and
+            "frequency_observer_errno=-71" in retried_failure.stdout,
+            "two-callback observer failure identity was not preserved")
     mutations = (
         valid.replace("attempt=2", "attempt=1", 1),
         valid.replace("remaining=0", "remaining=1", 1),

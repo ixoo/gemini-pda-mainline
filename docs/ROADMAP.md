@@ -8221,17 +8221,27 @@ online mask `0x3ff`, members `0x3`, and the exact one-call CPU_OFF, affinity,
 CPU8-IPI, and restore-CPU_ON budget; the thermal ledger ended probe-complete/
 success. This is direct exact-current-mainline evidence that CPU8 and CPU9 can
 complete the full lifecycle on the successor, but it is not yet a frequency or
-combined load pass. **Selected next:** publish the host-only failure-capture
-repair, verify exact `54a02dd0...` remains on inactive `boot2`, shut Gemian
-down, and make one justified identical-candidate repeat. The new path must
-immediately retain the existing `attempt=N/3 ret=-ERRNO` kernel line and CPU/
-lifecycle state after the first failed read, with no second observer request or
-load. `-EAGAIN` selects stable-sampling/timing work; `-ETIMEDOUT` or `-EIO`
-selects protected-clock transport work; `-EPROTO` selects record-shape/decoder
-work; any other errno selects a focused audit. If the first sample succeeds,
-continue only through the already-bounded three-sample/load frame. No further
-same-artifact repeat, longer load, cpufreq/OPP change, extra hotplug, idle, or
-suspend is admitted.
+combined load pass. Published commit `cecfeb50...` corrected the inherited host
+runtime identity and retained the existing `attempt=N/3 ret=-ERRNO` kernel line
+plus CPU/lifecycle state after failure. The guarded readiness check found exact
+`54a02dd0...` already on inactive live-GPT `boot2`, made no write or backup,
+independently re-read all 16 MiB under stable external power, and confirmed
+shutdown. Its one admitted repeat passed the pristine frame on boot ID
+`196f51e7...` and again completed stage 18 with CPUs 0--9 online. One userspace
+observer read then produced kernel attempts 1 and 2, both `ret=-71` (`EPROTO`);
+the failure frame retained both lines and terminal state, issued no additional
+request, started no load, and requested no reboot. Changed-ID recovery
+`d9252db6...` independently resealed restored-success with the exact one-call
+hotplug budget and thermal probe-complete/success. This excludes timeout, I/O,
+and BigiDVFS `-EAGAIN` branches for those callbacks, but the current log cannot
+distinguish clock-record shape, BigiDVFS-record shape, or decoder validation.
+**Selected next:** generate one focused successor patch on Buildbox that adds a
+hardware-free-tested failure-stage field to the existing observer log, covering
+each remaining `EPROTO` branch without a new hardware call or a larger
+three-callback budget. Build its focused and production profiles, assemble a
+new exact candidate, and permit a live attempt only after all source, KUnit,
+package, DT, container, and runtime gates pass. Exact `54a02dd0...` must not be
+repeated; load, cpufreq/OPP, extra hotplug, idle, and suspend remain closed.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
