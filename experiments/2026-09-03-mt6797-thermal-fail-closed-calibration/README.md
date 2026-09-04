@@ -5,10 +5,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-03-mt6797-thermal-fail-closed-calibration` |
-| Status | `running` |
+| Status | `completed` |
 | Subsystem | MediaTek AUXADC thermal calibration |
 | Device variant | Planet Computers Gemini PDA, MT6797 |
-| Date(s) | 2026-09-03 |
+| Date(s) | 2026-09-03 to 2026-09-04 |
 | Investigator(s) | Gemini mainline project |
 | Tracking issue | CPU8/CPU9 power-observability gate |
 
@@ -58,18 +58,55 @@ touches no storage, writes no partition, and creates no boot candidate.
 
 ## Observations
 
-Pending.
+- The deterministic Buildbox generator produced two normal patches from the
+  pinned prepared source. Patch replay and strict checkpatch passed, and the
+  patch validator rejected all six unsafe mutations.
+- The first focused build compiled both the production driver and KUnit test,
+  then exposed an existing link dependency from MT6797 EEM helpers in the same
+  object to the DVFSP PPM policy validators. Enabling that existing validator
+  provider in the isolated profile resolved the link without adding a runtime
+  DT node or device action.
+- The second Buildbox build passed from exact clean, published repository
+  commit `b8fa37e34b5bf9000353e133de81e4ed527c9d99`. Its source, patchset, and
+  configuration SHA-256 values were respectively `be41c068...`, `e221392b...`,
+  and `971247f1...`; package checksums passed and modules were not built.
+- Isolated arm64 QEMU ran only `mtk-thermal-calibration-policy`. All nine exact
+  cases passed with zero failures or skips, including required/optional
+  success, missing and invalid data, deferred probe, and length-policy cases.
+  The raw console log SHA-256 is `03d4fb45...`.
+- No candidate was created, no device was contacted, and no hardware access
+  occurred. The detailed build and KUnit identities are retained in `results/`.
 
 ## Analysis
 
-Pending.
+The MT6797 policy now differs from the shared driver's legacy-compatible
+variants only at the explicitly selected calibration boundary. Missing,
+malformed, or invalid MT6797 calibration returns an error before clock enable,
+reset release, or thermal/AUXADC register writes. Deferred probe remains
+deferred, while other SoCs preserve their existing fallback and minimum-length
+behavior.
+
+The source checks, strict patch checks, exact Buildbox build, and pure-helper
+KUnit suite establish that policy without claiming a working thermal sensor.
+The earlier
+[calibration-provider experiment](../2026-09-03-mainline-power-observability-gate/README.md)
+independently proved that the named NVMEM provider binds on the Gemini runtime
+path; this experiment did not repeat that boot or read calibration values.
 
 ## Conclusion
 
-Pending.
+Confirmed for the hardware-free gate: MT6797 requires an exact, valid
+three-word calibration payload and fails closed otherwise, while optional
+variants retain their prior fallback behavior. All nine focused policy cases
+pass. Runtime temperature conversion, controller transactions, interrupts,
+and protection remain unproven and disabled.
 
 ## Follow-up
 
-If the hardware-free gate passes, keep the Gemini thermal and AUXADC DT nodes
-disabled while auditing the MT6797 clock/reset/idle/valid-bit/IRQ transaction
-contract. Do not add OPPs, cpufreq, trips, cooling, or longer CPU load yet.
+Keep the Gemini thermal and AUXADC DT nodes disabled while auditing the exact
+MT6797 thermal/AUXADC register transaction and enable ordering against the
+pinned vendor source and current mainline driver. Resolve global-idle ordering,
+clock/reset ownership, data-valid semantics, indirect-sampling constants, and
+IRQ/watchdog timeout behavior. Then hardware-free-test a transaction plan
+before any runtime enablement. Do not add OPPs, cpufreq, trips, cooling, longer
+CPU load, idle, or suspend yet.

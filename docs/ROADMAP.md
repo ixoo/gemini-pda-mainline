@@ -7961,6 +7961,21 @@ test that policy, then resolve the MT6797 AUXADC register, idle, clock/reset,
 valid-bit, and IRQ contract before any runtime enablement. OPP/cpufreq, trips,
 cooling, longer load, idle, and suspend remain outside that step.
 
+The linked
+[fail-closed calibration gate](../experiments/2026-09-03-mt6797-thermal-fail-closed-calibration/README.md)
+now passes source validation, strict patch checks, an exact published Buildbox
+build, and all nine isolated policy KUnit cases. MT6797 alone requires an exact,
+valid calibration payload before any clock, reset, or register side effect;
+other supported SoCs retain their existing fallback behavior. This is a
+hardware-free policy result, not thermal runtime support, and it produced no
+boot candidate or device action. **Selected next:** audit the exact MT6797
+thermal/AUXADC register transaction and enable ordering against the pinned
+vendor source and current mainline driver. Resolve global-idle ordering,
+clock/reset ownership, data-valid semantics, indirect-sampling constants, and
+IRQ/watchdog timeout behavior, then hardware-free-test a transaction plan
+before enabling either DT node. OPP/cpufreq, trips, cooling, load, idle, and
+suspend remain excluded.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;
