@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-a72-frequency-observation` |
-| Status | `running` |
+| Status | `running`; corrected decoder passed exact Buildbox/QEMU proof |
 | Subsystem | MT6797 CPU clock readback / Cortex-A72 lifecycle |
 | Device variant | Gemini PDA x27, named development unit |
 | Date(s) | 2026-09-04 |
@@ -92,6 +92,16 @@ the offline decoder gate and a separate observation composition pass.
   `1f375445713c...`. The source and changed-path validators pass; strict
   Checkpatch reports zero errors, warnings, or checks. See
   [results/patch-generation-20260904.txt](results/patch-generation-20260904.txt).
+- The exact clean pushed decoder revision `a14e7701...` passed a Buildbox arm64
+  build of both the production decoder and its focused test object. All 515
+  selected patches replayed and every packaged checksum passed. See
+  [results/buildbox-kunit-build-20260904.txt](results/buildbox-kunit-build-20260904.txt).
+- The fetched package then booted in isolated no-network arm64 QEMU and the
+  only selected KUnit suite passed all six cases. The proof accepts stable
+  normal-PLL bit-31 samples, derives the three live normal frequencies, derives
+  the live B-cluster sample as 845000 kHz using its separate post-divider, and
+  covers every ARMPLLDIV ratio. See
+  [results/kunit-qemu-20260904.txt](results/kunit-qemu-20260904.txt).
 
 ## Analysis
 
@@ -109,14 +119,15 @@ as a second, unsupported stability oracle.
 
 ## Conclusion
 
-`inconclusive`: the prior decoder semantics are rejected, and the replacement
-is undergoing hardware-free generation and KUnit proof. No new hardware claim
-or boot candidate exists yet.
+`partial pass`: the prior decoder semantics are rejected and the corrected pure
+conversion boundary has exact patch-generation, Buildbox compilation, package,
+and isolated six-case KUnit proof. This establishes decoder math, not a live
+A72 frequency claim. No device action or boot candidate occurred in this phase.
 
 ## Follow-up
 
-After exact Buildbox/KUnit success, add one read-only lifecycle observation
-that publishes raw and decoded B-cluster values at bounded attributable points.
-Compose that observation with the proven thermal DT/configuration and exact
-4+4+2 lifecycle profile. Keep longer load, cpufreq/OPP, extra hotplug, idle,
-suspend, and identical-artifact repeats closed.
+Add one read-only lifecycle observation that publishes raw and decoded
+B-cluster values at bounded attributable points. Compose that observation with
+the proven thermal DT/configuration and exact 4+4+2 lifecycle profile. Keep
+longer load, cpufreq/OPP, extra hotplug, idle, suspend, and identical-artifact
+repeats closed.

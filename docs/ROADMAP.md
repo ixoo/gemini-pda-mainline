@@ -8157,15 +8157,20 @@ returned changed-ID Gemian without partition access, console ramoops
 independently retained both thermal probe returns and clean driver shutdown,
 and live GPT reproduced exact `93a78b49...` on inactive `boot2`. This closes
 the thermal-observability prerequisite, not CPU8/CPU9 production readiness.
-**Selected next:** identify and offline-prove an attributable, read-only A72
-runtime-frequency channel, then compose it with the exact stage-18 4+4+2
-topology and the now-proven thermal DT/config. Only one bounded successor may
-run the already-proven finite dual-A72 volatile-RAM exchange while sampling
-temperature, frequency, topology, and independent accounting. If no truthful
-frequency channel exists, implement that observation boundary before load; do
-not treat static DT `clock-frequency` as runtime evidence. Keep longer load,
-cpufreq/OPP changes, extra hotplug, idle, suspend, and same-artifact repeat
-closed.
+The first runtime-frequency audit rejected the existing decoder before any
+device action: stable normal-PLL records retain the bit-31 write strobe, while
+the B cluster uses a 31-bit, 24-fractional-bit PCW and a separate post-divider.
+Canonical patches `0525`--`0526` correct those two formats and add a pure
+six-case test boundary. Exact clean revision `a14e7701...` passed the Buildbox
+arm64 build and isolated no-network QEMU suite, including the live normal-PLL
+samples, the 845000 kHz live B-cluster sample, and all 13 ARMPLLDIV ratios. This
+proves the decoder math, not a live A72 frequency. **Selected next:** compose
+that decoder into one read-only lifecycle observation at bounded attributable
+points, then build and validate one successor with the exact stage-18 4+4+2
+topology and now-proven thermal DT/config. Only that successor may run the
+already-proven finite dual-A72 volatile-RAM exchange while sampling temperature,
+frequency, topology, and independent accounting. Keep longer load, cpufreq/OPP
+changes, extra hotplug, idle, suspend, and same-artifact repeat closed.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
