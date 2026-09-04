@@ -1,0 +1,767 @@
+From 90f0ed042835ef937bca92252d28f000c143beb8 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 4 Sep 2026 18:03:00 +0000
+Subject: [PATCH 3/3] thermal: mediatek: trace MT6797 probe stages
+
+Record probe and forward transaction boundaries in the optional ledger.
+
+Keep cleanup untraced and preserve the no-hook hardware order.
+---
+ drivers/thermal/mediatek/auxadc_thermal.c     | 259 ++++++++++++++++--
+ .../mediatek/auxadc_thermal_internal.h        | 126 ++++++++-
+ .../mediatek/mt6797_auxadc_transaction_test.c | 153 +++++++++++
+ 3 files changed, 509 insertions(+), 29 deletions(-)
+
+diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediatek/auxadc_thermal.c
+index 67025c5..6c0afb6 100644
+--- a/drivers/thermal/mediatek/auxadc_thermal.c
++++ b/drivers/thermal/mediatek/auxadc_thermal.c
+@@ -1801,6 +1801,17 @@ static int mt6797_thermal_first_sample(void *context, unsigned int num)
+ 	return -ETIMEDOUT;
+ }
+ 
++#ifdef CONFIG_PSTORE_GEMINI_MT6797_THERMAL_LEDGER
++static int mt6797_thermal_trace(void *context, u32 operation,
++				u32 phase, u32 index, int result)
++{
++	(void)context;
++
++	return gemini_mt6797_thermal_ledger_checkpoint(
++		operation, phase, index, result, 0);
++}
++#endif
++
+ static const struct mtk_thermal_transaction_ops
+ mt6797_thermal_transaction_ops = {
+ 	.enable_auxadc_clock = mt6797_thermal_enable_auxadc_clock,
+@@ -1820,6 +1831,9 @@ mt6797_thermal_transaction_ops = {
+ 	.enable_bank = mt6797_thermal_enable_bank,
+ 	.release_bank = mt6797_thermal_release_bank,
+ 	.first_sample = mt6797_thermal_first_sample,
++#ifdef CONFIG_PSTORE_GEMINI_MT6797_THERMAL_LEDGER
++	.trace = mt6797_thermal_trace,
++#endif
+ };
+ 
+ static void mtk_thermal_iounmap(void *base)
+@@ -2104,12 +2118,26 @@ static void mtk_thermal_release_periodic_ts(struct mtk_thermal *mt,
+ 	writel((tmp & (~0x10e)), mt->thermal_base + TEMP_MSRCTL1);
+ }
+ 
++static int mt6797_thermal_probe_trace(u32 operation, u32 phase,
++				       int result, u32 terminal)
++{
++	int trace_ret;
++
++	trace_ret = gemini_mt6797_thermal_ledger_checkpoint(
++		operation, phase, GEMINI_MT6797_THERMAL_LEDGER_INDEX_NONE,
++		result, terminal);
++
++	return result ? result : trace_ret;
++}
++
+ static int mtk_thermal_probe(struct platform_device *pdev)
+ {
+ 	const struct mtk_thermal_transaction_ops *ops;
+ 	struct device_node *np = pdev->dev.of_node;
+ 	struct thermal_zone_device *tzdev;
+ 	struct mtk_thermal *mt;
++	bool is_v4;
++	bool traced;
+ 	int ctrl_id, i, ret;
+ 
+ 	mt = devm_kzalloc(&pdev->dev, sizeof(*mt), GFP_KERNEL);
+@@ -2120,14 +2148,48 @@ static int mtk_thermal_probe(struct platform_device *pdev)
+ 	if (!mt->conf)
+ 		return -EINVAL;
+ 	ops = &mt6797_thermal_transaction_ops;
++	is_v4 = mt->conf->version == MTK_THERMAL_V4;
++	traced = IS_ENABLED(CONFIG_PSTORE_GEMINI_MT6797_THERMAL_LEDGER) &&
++		is_v4;
++	if (traced) {
++		ret = gemini_mt6797_thermal_ledger_begin();
++		if (ret)
++			return ret;
++		ret = mt6797_thermal_probe_trace(
++			GEMINI_MT6797_THERMAL_PROBE,
++			GEMINI_MT6797_THERMAL_LEDGER_AFTER, 0, 0);
++		if (ret)
++			return ret;
++		ret = mt6797_thermal_probe_trace(
++			GEMINI_MT6797_THERMAL_CALIBRATION,
++			GEMINI_MT6797_THERMAL_LEDGER_BEFORE, 0, 0);
++		if (ret)
++			return ret;
++	}
+ 
+ 	ret = mtk_thermal_get_calibration_data(&pdev->dev, mt);
++	if (traced)
++		ret = mt6797_thermal_probe_trace(
++			GEMINI_MT6797_THERMAL_CALIBRATION,
++			GEMINI_MT6797_THERMAL_LEDGER_AFTER, ret, 0);
+ 	if (ret)
+-		return ret;
++		goto fail_calibration;
+ 
++	if (traced) {
++		ret = mt6797_thermal_probe_trace(
++			GEMINI_MT6797_THERMAL_RESOURCE,
++			GEMINI_MT6797_THERMAL_LEDGER_BEFORE, 0, 0);
++		if (ret)
++			goto fail_resource;
++	}
+ 	mt->thermal_base = devm_platform_get_and_ioremap_resource(pdev, 0, NULL);
+-	if (IS_ERR(mt->thermal_base))
+-		return PTR_ERR(mt->thermal_base);
++	ret = IS_ERR(mt->thermal_base) ? PTR_ERR(mt->thermal_base) : 0;
++	if (traced)
++		ret = mt6797_thermal_probe_trace(
++			GEMINI_MT6797_THERMAL_RESOURCE,
++			GEMINI_MT6797_THERMAL_LEDGER_AFTER, ret, 0);
++	if (ret)
++		goto fail_resource;
+ 
+ 	mutex_init(&mt->lock);
+ 	mt->dev = &pdev->dev;
+@@ -2137,46 +2199,110 @@ static int mtk_thermal_probe(struct platform_device *pdev)
+ 		mt->banks[i].mt = mt;
+ 	}
+ 
++	if (traced) {
++		ret = mt6797_thermal_probe_trace(
++			GEMINI_MT6797_THERMAL_AUXADC_MAP,
++			GEMINI_MT6797_THERMAL_LEDGER_BEFORE, 0, 0);
++		if (ret)
++			goto fail_auxadc_map;
++	}
+ 	ret = mtk_thermal_map_phandle(&pdev->dev, np, "mediatek,auxadc",
+ 				      &mt->auxadc_base,
+ 				      &mt->auxadc_phys_base);
++	if (traced)
++		ret = mt6797_thermal_probe_trace(
++			GEMINI_MT6797_THERMAL_AUXADC_MAP,
++			GEMINI_MT6797_THERMAL_LEDGER_AFTER, ret, 0);
+ 	if (ret) {
+ 		dev_err(&pdev->dev, "cannot map AUXADC: %d\n", ret);
+-		return ret;
++		goto fail_auxadc_map;
+ 	}
+ 
++	if (traced) {
++		ret = mt6797_thermal_probe_trace(
++			GEMINI_MT6797_THERMAL_APMIXED_MAP,
++			GEMINI_MT6797_THERMAL_LEDGER_BEFORE, 0, 0);
++		if (ret)
++			goto fail_apmixed_map;
++	}
+ 	ret = mtk_thermal_map_phandle(&pdev->dev, np, "mediatek,apmixedsys",
+ 				      &mt->apmixed_base,
+ 				      &mt->apmixed_phys_base);
++	if (traced)
++		ret = mt6797_thermal_probe_trace(
++			GEMINI_MT6797_THERMAL_APMIXED_MAP,
++			GEMINI_MT6797_THERMAL_LEDGER_AFTER, ret, 0);
+ 	if (ret) {
+ 		dev_err(&pdev->dev, "cannot map APMIXEDSYS: %d\n", ret);
+-		return ret;
++		goto fail_apmixed_map;
+ 	}
+ 
+-	if (mt->conf->version == MTK_THERMAL_V4) {
++	if (is_v4) {
++		ret = mt6797_thermal_probe_trace(
++			GEMINI_MT6797_THERMAL_RESET_ACQUIRE,
++			GEMINI_MT6797_THERMAL_LEDGER_BEFORE, 0, 0);
++		if (ret)
++			goto fail_reset_acquire;
+ 		mt->rst = devm_reset_control_get_exclusive(&pdev->dev, NULL);
+-		if (IS_ERR(mt->rst))
+-			return dev_err_probe(&pdev->dev, PTR_ERR(mt->rst),
+-					     "cannot acquire thermal reset\n");
++		ret = IS_ERR(mt->rst) ? PTR_ERR(mt->rst) : 0;
++		ret = mt6797_thermal_probe_trace(
++			GEMINI_MT6797_THERMAL_RESET_ACQUIRE,
++			GEMINI_MT6797_THERMAL_LEDGER_AFTER, ret, 0);
++		if (ret) {
++			ret = dev_err_probe(&pdev->dev, ret,
++					    "cannot acquire thermal reset\n");
++			goto fail_reset_acquire;
++		}
+ 
++		ret = mt6797_thermal_probe_trace(
++			GEMINI_MT6797_THERMAL_AUXADC_CLOCK_ACQUIRE,
++			GEMINI_MT6797_THERMAL_LEDGER_BEFORE, 0, 0);
++		if (ret)
++			goto fail_auxadc_clock_acquire;
+ 		mt->clk_auxadc = devm_clk_get(&pdev->dev, "auxadc");
+-		if (IS_ERR(mt->clk_auxadc))
+-			return dev_err_probe(&pdev->dev,
+-					     PTR_ERR(mt->clk_auxadc),
+-					     "cannot acquire AUXADC clock\n");
++		ret = IS_ERR(mt->clk_auxadc) ? PTR_ERR(mt->clk_auxadc) : 0;
++		ret = mt6797_thermal_probe_trace(
++			GEMINI_MT6797_THERMAL_AUXADC_CLOCK_ACQUIRE,
++			GEMINI_MT6797_THERMAL_LEDGER_AFTER, ret, 0);
++		if (ret) {
++			ret = dev_err_probe(&pdev->dev, ret,
++					    "cannot acquire AUXADC clock\n");
++			goto fail_auxadc_clock_acquire;
++		}
+ 
++		ret = mt6797_thermal_probe_trace(
++			GEMINI_MT6797_THERMAL_CLOCK_ACQUIRE,
++			GEMINI_MT6797_THERMAL_LEDGER_BEFORE, 0, 0);
++		if (ret)
++			goto fail_thermal_clock_acquire;
+ 		mt->clk_peri_therm = devm_clk_get(&pdev->dev, "therm");
+-		if (IS_ERR(mt->clk_peri_therm))
+-			return dev_err_probe(&pdev->dev,
+-					     PTR_ERR(mt->clk_peri_therm),
+-					     "cannot acquire thermal clock\n");
++		ret = IS_ERR(mt->clk_peri_therm) ?
++			PTR_ERR(mt->clk_peri_therm) : 0;
++		ret = mt6797_thermal_probe_trace(
++			GEMINI_MT6797_THERMAL_CLOCK_ACQUIRE,
++			GEMINI_MT6797_THERMAL_LEDGER_AFTER, ret, 0);
++		if (ret) {
++			ret = dev_err_probe(&pdev->dev, ret,
++					    "cannot acquire thermal clock\n");
++			goto fail_thermal_clock_acquire;
++		}
+ 
+ 		mt->raw_to_mcelsius = raw_to_mcelsius_v4;
++		ret = mt6797_thermal_probe_trace(
++			GEMINI_MT6797_THERMAL_TRANSACTION,
++			GEMINI_MT6797_THERMAL_LEDGER_BEFORE, 0, 0);
++		if (ret)
++			goto fail_transaction;
+ 		ret = mtk_thermal_transaction_execute(mt, ops, &mt->transaction,
+ 						      mt->conf->num_banks);
+-		if (ret)
+-			return dev_err_probe(&pdev->dev, ret,
+-					     "MT6797 transaction failed\n");
++		ret = mt6797_thermal_probe_trace(
++			GEMINI_MT6797_THERMAL_TRANSACTION,
++			GEMINI_MT6797_THERMAL_LEDGER_AFTER, ret, 0);
++		if (ret) {
++			ret = dev_err_probe(&pdev->dev, ret,
++					    "MT6797 transaction failed\n");
++			goto fail_transaction;
++		}
+ 	} else {
+ 		ret = device_reset_optional(&pdev->dev);
+ 		if (ret)
+@@ -2214,20 +2340,101 @@ static int mtk_thermal_probe(struct platform_device *pdev)
+ 						      ctrl_id);
+ 	}
+ 
++	if (traced) {
++		ret = mt6797_thermal_probe_trace(
++			GEMINI_MT6797_THERMAL_ZONE_REGISTER,
++			GEMINI_MT6797_THERMAL_LEDGER_BEFORE, 0, 0);
++		if (ret)
++			goto fail_zone;
++	}
+ 	tzdev = devm_thermal_of_zone_register(&pdev->dev, 0, mt,
+ 					      &mtk_thermal_ops);
+-	if (IS_ERR(tzdev)) {
+-		ret = PTR_ERR(tzdev);
+-		if (mt->conf->version == MTK_THERMAL_V4)
+-			mtk_thermal_transaction_close(mt, ops, &mt->transaction);
+-		return ret;
+-	}
++	ret = IS_ERR(tzdev) ? PTR_ERR(tzdev) : 0;
++	if (traced)
++		ret = mt6797_thermal_probe_trace(
++			GEMINI_MT6797_THERMAL_ZONE_REGISTER,
++			GEMINI_MT6797_THERMAL_LEDGER_AFTER, ret, 0);
++	if (ret)
++		goto fail_zone;
+ 
+ 	ret = devm_thermal_add_hwmon_sysfs(&pdev->dev, tzdev);
+ 	if (ret)
+ 		dev_warn(&pdev->dev, "error in thermal_add_hwmon_sysfs\n");
+ 
++	if (traced) {
++		ret = mt6797_thermal_probe_trace(
++			GEMINI_MT6797_THERMAL_PROBE_COMPLETE,
++			GEMINI_MT6797_THERMAL_LEDGER_TERMINAL, 0,
++			GEMINI_MT6797_THERMAL_LEDGER_SUCCESS);
++		if (ret) {
++			mtk_thermal_transaction_close(mt, ops, &mt->transaction);
++			return ret;
++		}
++	}
++
+ 	return 0;
++
++fail_zone:
++	if (traced)
++		mt6797_thermal_probe_trace(
++			GEMINI_MT6797_THERMAL_ZONE_REGISTER,
++			GEMINI_MT6797_THERMAL_LEDGER_TERMINAL, ret,
++			GEMINI_MT6797_THERMAL_LEDGER_FAILURE);
++	if (is_v4)
++		mtk_thermal_transaction_close(mt, ops, &mt->transaction);
++	return ret;
++fail_transaction:
++	mt6797_thermal_probe_trace(
++		GEMINI_MT6797_THERMAL_TRANSACTION,
++		GEMINI_MT6797_THERMAL_LEDGER_TERMINAL, ret,
++		GEMINI_MT6797_THERMAL_LEDGER_FAILURE);
++	return ret;
++fail_thermal_clock_acquire:
++	mt6797_thermal_probe_trace(
++		GEMINI_MT6797_THERMAL_CLOCK_ACQUIRE,
++		GEMINI_MT6797_THERMAL_LEDGER_TERMINAL, ret,
++		GEMINI_MT6797_THERMAL_LEDGER_FAILURE);
++	return ret;
++fail_auxadc_clock_acquire:
++	mt6797_thermal_probe_trace(
++		GEMINI_MT6797_THERMAL_AUXADC_CLOCK_ACQUIRE,
++		GEMINI_MT6797_THERMAL_LEDGER_TERMINAL, ret,
++		GEMINI_MT6797_THERMAL_LEDGER_FAILURE);
++	return ret;
++fail_reset_acquire:
++	mt6797_thermal_probe_trace(
++		GEMINI_MT6797_THERMAL_RESET_ACQUIRE,
++		GEMINI_MT6797_THERMAL_LEDGER_TERMINAL, ret,
++		GEMINI_MT6797_THERMAL_LEDGER_FAILURE);
++	return ret;
++fail_apmixed_map:
++	if (traced)
++		mt6797_thermal_probe_trace(
++			GEMINI_MT6797_THERMAL_APMIXED_MAP,
++			GEMINI_MT6797_THERMAL_LEDGER_TERMINAL, ret,
++			GEMINI_MT6797_THERMAL_LEDGER_FAILURE);
++	return ret;
++fail_auxadc_map:
++	if (traced)
++		mt6797_thermal_probe_trace(
++			GEMINI_MT6797_THERMAL_AUXADC_MAP,
++			GEMINI_MT6797_THERMAL_LEDGER_TERMINAL, ret,
++			GEMINI_MT6797_THERMAL_LEDGER_FAILURE);
++	return ret;
++fail_resource:
++	if (traced)
++		mt6797_thermal_probe_trace(
++			GEMINI_MT6797_THERMAL_RESOURCE,
++			GEMINI_MT6797_THERMAL_LEDGER_TERMINAL, ret,
++			GEMINI_MT6797_THERMAL_LEDGER_FAILURE);
++	return ret;
++fail_calibration:
++	if (traced)
++		mt6797_thermal_probe_trace(
++			GEMINI_MT6797_THERMAL_CALIBRATION,
++			GEMINI_MT6797_THERMAL_LEDGER_TERMINAL, ret,
++			GEMINI_MT6797_THERMAL_LEDGER_FAILURE);
++	return ret;
+ }
+ 
+ static void mtk_thermal_remove(struct platform_device *pdev)
+diff --git a/drivers/thermal/mediatek/auxadc_thermal_internal.h b/drivers/thermal/mediatek/auxadc_thermal_internal.h
+index 681ffda..614896f 100644
+--- a/drivers/thermal/mediatek/auxadc_thermal_internal.h
++++ b/drivers/thermal/mediatek/auxadc_thermal_internal.h
+@@ -4,6 +4,7 @@
+ 
+ #include <linux/bitops.h>
+ #include <linux/errno.h>
++#include <linux/gemini_mt6797_thermal_ledger.h>
+ #include <linux/types.h>
+ 
+ static inline int
+@@ -51,6 +52,8 @@ struct mtk_thermal_transaction_ops {
+ 	int (*enable_bank)(void *context, unsigned int bank);
+ 	int (*release_bank)(void *context, unsigned int bank);
+ 	int (*first_sample)(void *context, unsigned int bank);
++	int (*trace)(void *context, u32 operation, u32 phase, u32 index,
++		     int result);
+ };
+ 
+ static inline bool
+@@ -128,12 +131,27 @@ mtk_thermal_transaction_ops_valid(const struct mtk_thermal_transaction_ops *ops)
+ 		ops->release_bank && ops->first_sample;
+ }
+ 
++static inline int
++mtk_thermal_transaction_trace(void *context,
++			      const struct mtk_thermal_transaction_ops *ops,
++			      u32 operation, u32 phase, u32 index, int result)
++{
++	int trace_ret;
++
++	if (!ops->trace)
++		return result;
++	trace_ret = ops->trace(context, operation, phase, index, result);
++
++	return result ? result : trace_ret;
++}
++
+ static inline int
+ mtk_thermal_transaction_execute(void *context,
+ 				const struct mtk_thermal_transaction_ops *ops,
+ 				struct mtk_thermal_transaction_state *state,
+ 				unsigned int banks)
+ {
++	const u32 none = GEMINI_MT6797_THERMAL_LEDGER_INDEX_NONE;
+ 	unsigned int bank;
+ 	int ret;
+ 
+@@ -141,61 +159,163 @@ mtk_thermal_transaction_execute(void *context,
+ 	    !mtk_thermal_transaction_state_is_closed(state) || !banks)
+ 		return -EINVAL;
+ 
++	ret = mtk_thermal_transaction_trace(
++		context, ops, GEMINI_MT6797_THERMAL_AUXADC_CLOCK_ENABLE,
++		GEMINI_MT6797_THERMAL_LEDGER_BEFORE, none, 0);
++	if (ret)
++		goto fail;
+ 	ret = ops->enable_auxadc_clock(context);
++	if (!ret)
++		state->auxadc_clock_enabled = true;
++	ret = mtk_thermal_transaction_trace(
++		context, ops, GEMINI_MT6797_THERMAL_AUXADC_CLOCK_ENABLE,
++		GEMINI_MT6797_THERMAL_LEDGER_AFTER, none, ret);
+ 	if (ret)
+ 		goto fail;
+-	state->auxadc_clock_enabled = true;
+ 
++	ret = mtk_thermal_transaction_trace(
++		context, ops, GEMINI_MT6797_THERMAL_CLOCK_ENABLE,
++		GEMINI_MT6797_THERMAL_LEDGER_BEFORE, none, 0);
++	if (ret)
++		goto fail;
+ 	ret = ops->enable_thermal_clock(context);
++	if (!ret)
++		state->thermal_clock_enabled = true;
++	ret = mtk_thermal_transaction_trace(
++		context, ops, GEMINI_MT6797_THERMAL_CLOCK_ENABLE,
++		GEMINI_MT6797_THERMAL_LEDGER_AFTER, none, ret);
+ 	if (ret)
+ 		goto fail;
+-	state->thermal_clock_enabled = true;
+ 
++	ret = mtk_thermal_transaction_trace(
++		context, ops, GEMINI_MT6797_THERMAL_RESET,
++		GEMINI_MT6797_THERMAL_LEDGER_BEFORE, none, 0);
++	if (ret)
++		goto fail;
+ 	ret = ops->reset_thermal(context);
++	if (!ret)
++		state->reset_deasserted = true;
++	ret = mtk_thermal_transaction_trace(
++		context, ops, GEMINI_MT6797_THERMAL_RESET,
++		GEMINI_MT6797_THERMAL_LEDGER_AFTER, none, ret);
+ 	if (ret)
+ 		goto fail;
+-	state->reset_deasserted = true;
+ 
++	ret = mtk_thermal_transaction_trace(
++		context, ops, GEMINI_MT6797_THERMAL_APMIXED,
++		GEMINI_MT6797_THERMAL_LEDGER_BEFORE, none, 0);
++	if (ret)
++		goto fail;
+ 	state->apmixed_configured = true;
+ 	ret = ops->configure_apmixed(context);
++	ret = mtk_thermal_transaction_trace(
++		context, ops, GEMINI_MT6797_THERMAL_APMIXED,
++		GEMINI_MT6797_THERMAL_LEDGER_AFTER, none, ret);
+ 	if (ret)
+ 		goto fail;
+ 
++	ret = mtk_thermal_transaction_trace(
++		context, ops, GEMINI_MT6797_THERMAL_GLOBAL_IDLE,
++		GEMINI_MT6797_THERMAL_LEDGER_BEFORE, none, 0);
++	if (ret)
++		goto fail;
+ 	ret = ops->wait_for_idle(context);
++	ret = mtk_thermal_transaction_trace(
++		context, ops, GEMINI_MT6797_THERMAL_GLOBAL_IDLE,
++		GEMINI_MT6797_THERMAL_LEDGER_AFTER, none, ret);
+ 	if (ret)
+ 		goto fail;
+ 
++	ret = mtk_thermal_transaction_trace(
++		context, ops, GEMINI_MT6797_THERMAL_PAUSE_BANKS,
++		GEMINI_MT6797_THERMAL_LEDGER_BEFORE, none, 0);
++	if (ret)
++		goto fail;
+ 	state->banks_touched = true;
+ 	ops->pause_disable_banks(context);
++	ret = mtk_thermal_transaction_trace(
++		context, ops, GEMINI_MT6797_THERMAL_PAUSE_BANKS,
++		GEMINI_MT6797_THERMAL_LEDGER_AFTER, none, 0);
++	if (ret)
++		goto fail;
++
++	ret = mtk_thermal_transaction_trace(
++		context, ops, GEMINI_MT6797_THERMAL_CLEAR_CHANNEL,
++		GEMINI_MT6797_THERMAL_LEDGER_BEFORE, none, 0);
++	if (ret)
++		goto fail;
+ 	state->channel_touched = true;
+ 	ret = ops->clear_auxadc_channel(context);
++	ret = mtk_thermal_transaction_trace(
++		context, ops, GEMINI_MT6797_THERMAL_CLEAR_CHANNEL,
++		GEMINI_MT6797_THERMAL_LEDGER_AFTER, none, ret);
+ 	if (ret)
+ 		goto fail;
+ 
+ 	for (bank = 0; bank < banks; bank++) {
++		ret = mtk_thermal_transaction_trace(
++			context, ops, GEMINI_MT6797_THERMAL_PREPARE_BANK,
++			GEMINI_MT6797_THERMAL_LEDGER_BEFORE, bank, 0);
++		if (ret)
++			goto fail;
+ 		ret = ops->prepare_bank(context, bank);
++		ret = mtk_thermal_transaction_trace(
++			context, ops, GEMINI_MT6797_THERMAL_PREPARE_BANK,
++			GEMINI_MT6797_THERMAL_LEDGER_AFTER, bank, ret);
+ 		if (ret)
+ 			goto fail;
+ 	}
+ 
++	ret = mtk_thermal_transaction_trace(
++		context, ops, GEMINI_MT6797_THERMAL_COMMIT_CHANNEL,
++		GEMINI_MT6797_THERMAL_LEDGER_BEFORE, none, 0);
++	if (ret)
++		goto fail;
+ 	ret = ops->commit_auxadc_channel(context);
++	ret = mtk_thermal_transaction_trace(
++		context, ops, GEMINI_MT6797_THERMAL_COMMIT_CHANNEL,
++		GEMINI_MT6797_THERMAL_LEDGER_AFTER, none, ret);
+ 	if (ret)
+ 		goto fail;
+ 
+ 	for (bank = 0; bank < banks; bank++) {
++		ret = mtk_thermal_transaction_trace(
++			context, ops, GEMINI_MT6797_THERMAL_ENABLE_BANK,
++			GEMINI_MT6797_THERMAL_LEDGER_BEFORE, bank, 0);
++		if (ret)
++			goto fail;
+ 		ret = ops->enable_bank(context, bank);
++		ret = mtk_thermal_transaction_trace(
++			context, ops, GEMINI_MT6797_THERMAL_ENABLE_BANK,
++			GEMINI_MT6797_THERMAL_LEDGER_AFTER, bank, ret);
+ 		if (ret)
+ 			goto fail;
+ 	}
+ 
+ 	for (bank = 0; bank < banks; bank++) {
++		ret = mtk_thermal_transaction_trace(
++			context, ops, GEMINI_MT6797_THERMAL_RELEASE_BANK,
++			GEMINI_MT6797_THERMAL_LEDGER_BEFORE, bank, 0);
++		if (ret)
++			goto fail;
+ 		ret = ops->release_bank(context, bank);
++		ret = mtk_thermal_transaction_trace(
++			context, ops, GEMINI_MT6797_THERMAL_RELEASE_BANK,
++			GEMINI_MT6797_THERMAL_LEDGER_AFTER, bank, ret);
+ 		if (ret)
+ 			goto fail;
+ 	}
+ 
+ 	for (bank = 0; bank < banks; bank++) {
++		ret = mtk_thermal_transaction_trace(
++			context, ops, GEMINI_MT6797_THERMAL_FIRST_SAMPLE,
++			GEMINI_MT6797_THERMAL_LEDGER_BEFORE, bank, 0);
++		if (ret)
++			goto fail;
+ 		ret = ops->first_sample(context, bank);
++		ret = mtk_thermal_transaction_trace(
++			context, ops, GEMINI_MT6797_THERMAL_FIRST_SAMPLE,
++			GEMINI_MT6797_THERMAL_LEDGER_AFTER, bank, ret);
+ 		if (ret)
+ 			goto fail;
+ 	}
+diff --git a/drivers/thermal/mediatek/mt6797_auxadc_transaction_test.c b/drivers/thermal/mediatek/mt6797_auxadc_transaction_test.c
+index 8d17edc..5df7ba5 100644
+--- a/drivers/thermal/mediatek/mt6797_auxadc_transaction_test.c
++++ b/drivers/thermal/mediatek/mt6797_auxadc_transaction_test.c
+@@ -31,11 +31,21 @@ struct mt6797_test_event {
+ 	int bank;
+ };
+ 
++struct mt6797_test_trace_event {
++	u32 operation;
++	u32 phase;
++	u32 index;
++	int result;
++};
++
+ struct mt6797_test_context {
+ 	struct mt6797_test_event events[64];
++	struct mt6797_test_trace_event trace_events[64];
+ 	unsigned int event_count;
++	unsigned int trace_count;
+ 	int fallible_count;
+ 	int fail_at;
++	int trace_fail_at;
+ };
+ 
+ static void
+@@ -142,6 +152,20 @@ static int mt6797_test_first_sample(void *data, unsigned int bank)
+ 	return mt6797_test_fallible(data, MT6797_TEST_FIRST_SAMPLE, bank);
+ }
+ 
++static int mt6797_test_trace(void *data, u32 operation, u32 phase,
++			      u32 index, int result)
++{
++	struct mt6797_test_context *context = data;
++	unsigned int ordinal = context->trace_count++;
++
++	context->trace_events[ordinal].operation = operation;
++	context->trace_events[ordinal].phase = phase;
++	context->trace_events[ordinal].index = index;
++	context->trace_events[ordinal].result = result;
++
++	return ordinal == context->trace_fail_at ? -ECANCELED : 0;
++}
++
+ static const struct mtk_thermal_transaction_ops mt6797_test_ops = {
+ 	.enable_auxadc_clock = mt6797_test_auxadc_on,
+ 	.disable_auxadc_clock = mt6797_test_auxadc_off,
+@@ -284,6 +308,132 @@ static void mt6797_transaction_first_sample_gate(struct kunit *test)
+ 								      150000));
+ }
+ 
++static void
++mt6797_test_expect_trace(struct kunit *test,
++			  const struct mt6797_test_context *context,
++			  unsigned int ordinal, u32 operation, u32 phase,
++			  u32 index, int result)
++{
++	KUNIT_ASSERT_LT(test, ordinal, context->trace_count);
++	KUNIT_EXPECT_EQ(test, context->trace_events[ordinal].operation,
++			operation);
++	KUNIT_EXPECT_EQ(test, context->trace_events[ordinal].phase, phase);
++	KUNIT_EXPECT_EQ(test, context->trace_events[ordinal].index, index);
++	KUNIT_EXPECT_EQ(test, context->trace_events[ordinal].result, result);
++}
++
++static void
++mt6797_test_expect_trace_pair(struct kunit *test,
++			       const struct mt6797_test_context *context,
++			       unsigned int *ordinal, u32 operation, u32 index)
++{
++	mt6797_test_expect_trace(
++		test, context, (*ordinal)++, operation,
++		GEMINI_MT6797_THERMAL_LEDGER_BEFORE, index, 0);
++	mt6797_test_expect_trace(
++		test, context, (*ordinal)++, operation,
++		GEMINI_MT6797_THERMAL_LEDGER_AFTER, index, 0);
++}
++
++static void mt6797_transaction_trace_success_order(struct kunit *test)
++{
++	struct mtk_thermal_transaction_ops ops = mt6797_test_ops;
++	struct mtk_thermal_transaction_state state = {};
++	struct mt6797_test_context context = {
++		.fail_at = -1,
++		.trace_fail_at = -1,
++	};
++	const u32 none = GEMINI_MT6797_THERMAL_LEDGER_INDEX_NONE;
++	unsigned int ordinal = 0;
++	unsigned int bank;
++	int ret;
++
++	ops.trace = mt6797_test_trace;
++	ret = mtk_thermal_transaction_execute(&context, &ops, &state,
++					      MT6797_TEST_BANKS);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++
++	mt6797_test_expect_trace_pair(test, &context, &ordinal,
++		GEMINI_MT6797_THERMAL_AUXADC_CLOCK_ENABLE, none);
++	mt6797_test_expect_trace_pair(test, &context, &ordinal,
++		GEMINI_MT6797_THERMAL_CLOCK_ENABLE, none);
++	mt6797_test_expect_trace_pair(test, &context, &ordinal,
++		GEMINI_MT6797_THERMAL_RESET, none);
++	mt6797_test_expect_trace_pair(test, &context, &ordinal,
++		GEMINI_MT6797_THERMAL_APMIXED, none);
++	mt6797_test_expect_trace_pair(test, &context, &ordinal,
++		GEMINI_MT6797_THERMAL_GLOBAL_IDLE, none);
++	mt6797_test_expect_trace_pair(test, &context, &ordinal,
++		GEMINI_MT6797_THERMAL_PAUSE_BANKS, none);
++	mt6797_test_expect_trace_pair(test, &context, &ordinal,
++		GEMINI_MT6797_THERMAL_CLEAR_CHANNEL, none);
++	for (bank = 0; bank < MT6797_TEST_BANKS; bank++)
++		mt6797_test_expect_trace_pair(test, &context, &ordinal,
++			GEMINI_MT6797_THERMAL_PREPARE_BANK, bank);
++	mt6797_test_expect_trace_pair(test, &context, &ordinal,
++		GEMINI_MT6797_THERMAL_COMMIT_CHANNEL, none);
++	for (bank = 0; bank < MT6797_TEST_BANKS; bank++)
++		mt6797_test_expect_trace_pair(test, &context, &ordinal,
++			GEMINI_MT6797_THERMAL_ENABLE_BANK, bank);
++	for (bank = 0; bank < MT6797_TEST_BANKS; bank++)
++		mt6797_test_expect_trace_pair(test, &context, &ordinal,
++			GEMINI_MT6797_THERMAL_RELEASE_BANK, bank);
++	for (bank = 0; bank < MT6797_TEST_BANKS; bank++)
++		mt6797_test_expect_trace_pair(test, &context, &ordinal,
++			GEMINI_MT6797_THERMAL_FIRST_SAMPLE, bank);
++	KUNIT_EXPECT_EQ(test, context.trace_count, ordinal);
++	KUNIT_EXPECT_EQ(test, ordinal, 64U);
++}
++
++static void mt6797_transaction_trace_records_failure(struct kunit *test)
++{
++	struct mtk_thermal_transaction_ops ops = mt6797_test_ops;
++	struct mtk_thermal_transaction_state state = {};
++	struct mt6797_test_context context = {
++		.fail_at = 4,
++		.trace_fail_at = -1,
++	};
++	int ret;
++
++	ops.trace = mt6797_test_trace;
++	ret = mtk_thermal_transaction_execute(&context, &ops, &state,
++					      MT6797_TEST_BANKS);
++	KUNIT_ASSERT_EQ(test, ret, -EIO);
++	KUNIT_EXPECT_EQ(test, context.trace_count, 10U);
++	mt6797_test_expect_trace(
++		test, &context, 9, GEMINI_MT6797_THERMAL_GLOBAL_IDLE,
++		GEMINI_MT6797_THERMAL_LEDGER_AFTER,
++		GEMINI_MT6797_THERMAL_LEDGER_INDEX_NONE, -EIO);
++	KUNIT_EXPECT_TRUE(test, mtk_thermal_transaction_state_is_closed(&state));
++}
++
++static void mt6797_transaction_trace_fails_before_effect(struct kunit *test)
++{
++	struct mtk_thermal_transaction_ops ops = mt6797_test_ops;
++	struct mtk_thermal_transaction_state state = {};
++	struct mt6797_test_context context = {
++		.fail_at = -1,
++		.trace_fail_at = 2,
++	};
++	int ret;
++
++	ops.trace = mt6797_test_trace;
++	ret = mtk_thermal_transaction_execute(&context, &ops, &state,
++					      MT6797_TEST_BANKS);
++	KUNIT_ASSERT_EQ(test, ret, -ECANCELED);
++	KUNIT_EXPECT_EQ(test, context.trace_count, 3U);
++	KUNIT_EXPECT_EQ(test, context.event_count, 2U);
++	mt6797_test_expect_event(test, &context, 0,
++				  MT6797_TEST_AUXADC_CLOCK_ON, -1);
++	mt6797_test_expect_event(test, &context, 1,
++				  MT6797_TEST_AUXADC_CLOCK_OFF, -1);
++	mt6797_test_expect_trace(
++		test, &context, 2, GEMINI_MT6797_THERMAL_CLOCK_ENABLE,
++		GEMINI_MT6797_THERMAL_LEDGER_BEFORE,
++		GEMINI_MT6797_THERMAL_LEDGER_INDEX_NONE, 0);
++	KUNIT_EXPECT_TRUE(test, mtk_thermal_transaction_state_is_closed(&state));
++}
++
+ static struct kunit_case mt6797_thermal_transaction_cases[] = {
+ 	KUNIT_CASE(mt6797_transaction_success_order),
+ 	KUNIT_CASE(mt6797_transaction_all_failures_close),
+@@ -291,6 +441,9 @@ static struct kunit_case mt6797_thermal_transaction_cases[] = {
+ 	KUNIT_CASE(mt6797_transaction_apmixed_mask),
+ 	KUNIT_CASE(mt6797_transaction_idle_predicates),
+ 	KUNIT_CASE(mt6797_transaction_first_sample_gate),
++	KUNIT_CASE(mt6797_transaction_trace_success_order),
++	KUNIT_CASE(mt6797_transaction_trace_records_failure),
++	KUNIT_CASE(mt6797_transaction_trace_fails_before_effect),
+ 	{}
+ };
+ 

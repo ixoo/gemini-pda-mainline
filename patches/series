@@ -510,3 +510,6 @@ v7.1.3/0517-thermal-mediatek-add-MT6797-ordered-transaction.patch
 v7.1.3/0518-thermal-mediatek-test-MT6797-ordered-transaction.patch
 v7.1.3/0519-arm64-dts-mediatek-add-MT6797-thermal-reset.patch
 v7.1.3/0520-arm64-dts-mediatek-add-Gemini-thermal-serviceability.patch
+v7.1.3/0521-pstore-add-Gemini-MT6797-thermal-stage-ledger.patch
+v7.1.3/0522-pstore-test-Gemini-MT6797-thermal-stage-ledger.patch
+v7.1.3/0523-thermal-mediatek-trace-MT6797-probe-stages.patch

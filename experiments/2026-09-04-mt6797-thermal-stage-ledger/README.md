@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-thermal-stage-ledger` |
-| Status | `pre-build` |
+| Status | `patch-generated`; KUnit and production builds pending |
 | Subsystem | MT6797 thermal probe and ordered AUXADC transaction |
 | Device variant | Planet Computers Gemini PDA, MT6797 |
 | Date(s) | 2026-09-04 |
@@ -55,3 +55,13 @@ outside this experiment.
 The full wire, instrumentation, and fixed result map are in
 [DESIGN.md](DESIGN.md).  The retired parent and its inconclusive result remain
 owned by the [thermal-serviceability experiment](../2026-09-04-mt6797-thermal-serviceability/README.md).
+
+## Observations
+
+- Buildbox generated and normally replayed patches `0521`--`0523` from clean
+  pushed revision `051e1b917c8b...` and exact prepared source state
+  `53247e0ff37e...`. The source validator proved 23 operation identities, 64
+  ordered transaction trace events, zero cleanup trace events, six ledger
+  KUnit cases, nine total transaction cases, and no CPU or storage action.
+  Strict Checkpatch reported zero errors, warnings, or checks. See
+  [results/patch-generation-20260904.txt](results/patch-generation-20260904.txt).

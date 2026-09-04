@@ -27,8 +27,9 @@ zone, CPU, frequency, load, idle, suspend, trip, cooling, or reboot policy.
   performs ordering barriers, and requires exact readback.
 - The owner never clears, repairs, resumes, reopens, or retries a nonempty
   lane.  A terminal seals it.
-- The fixed successful path is bounded to 84 commits and 1,095 32-bit writes;
-  the implementation admits at most 96 commits.
+- The fixed successful path is bounded to 85 commits and 1,107 32-bit writes
+  from the observed pstore-empty predecessor (1,108 from raw-empty); the
+  implementation admits at most 96 commits.
 
 ## Instrumentation contract
 
