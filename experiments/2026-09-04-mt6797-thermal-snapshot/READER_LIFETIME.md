@@ -59,3 +59,13 @@ it is not a kernel lockdep or real-device contention claim.
 0107bb9da111bb3fc7a864c5083800232836abe6ea10f69b4253c82ac26a3a92  drivers/thermal/thermal_hwmon.c
 9c36000b318bc93138f023d7b9b66a44c8261d08c12b3b57527953aa3b0df5a8  fs/kernfs/dir.c
 ```
+
+## Executable checks
+
+The [actual late-probe/remove oracle](scripts/test-reader-lifetime.py) exercises
+group allocation refusal, pre-zone trace refusal, zone registration failure,
+post-zone trace failure, optional hwmon failure, terminal trace failure,
+optional observer registration failure and normal removal. Three mutations
+remove either drain call or omit the successful group seal; all reject.
+The [validation record](results/lifetime-validation.txt) also records the
+interface and scan oracles rerun against the corrected driver digest.

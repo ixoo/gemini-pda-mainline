@@ -8338,10 +8338,15 @@ That integration passes
 strict patch review, Buildbox compilation and all focused kernel tests. Its
 actual-scan oracle confirms polling/capture return equivalence and fixed read
 counts under injected validity combinations, including negative mutations.
-**Selected next:** validate the actual sysfs show/status and exhaustion records,
-removal ordering and concurrent polling isolation; then compose and validate an
-initially no-workload observation profile and prospective host protocol before
-selecting any new device candidate. Emulator and injected-IO results do not
+The actual interface and concurrency oracle now verifies bounded failure text,
+exhaustion without IO and isolated observer accounting. A removal audit found
+that transaction close preceded devres reader cleanup; the corrected grouped
+lifetime passes Buildbox and injected late-probe/remove checks. **Selected
+next:** compose and validate an initially no-workload observation profile and
+prospective host protocol, using the strict snapshot parser and the corrected
+reader lifetime. Pin candidate and fresh-boot identity, pristine counters,
+exact observation ceilings and thermal refusal bounds before selecting any new
+device candidate. Emulator, source audits and injected-IO results do not
 establish hardware thermal repeatability.
 Integrated thermal repeatability, broader load/hotplug, cpufreq/OPP, idle,
 suspend and default integration remain open.

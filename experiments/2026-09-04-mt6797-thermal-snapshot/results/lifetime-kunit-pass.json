@@ -1,0 +1,15 @@
+{
+  "boot_candidate": false,
+  "build_profile": "mt6797-thermal-observer-kunit",
+  "cases_passed": 10,
+  "classification": "exact_focused_kunit_pass",
+  "config_sha256": "59b3c903d0f9b952fd24947e7dc13c7ecd03f485bbaa56a8a21569408e01eaf7",
+  "device_action": "none",
+  "hardware_action": "none",
+  "image_sha256": "88b837eaef08ae9d310c8dc552e6427aff3dff1362ad765076bf16fd036723c7",
+  "kernel_release": "7.1.3-gemini-mt6797-thermal-observer-kunit",
+  "observed_utc": "2026-09-04T23:09:37Z",
+  "raw_log_sha256": "a67be299ce39b622474f572483f6178b044c697f0f0c62ced93a6a34668415cd",
+  "repository_commit": "97b6e4cd44b11e64e5309a30ab543504c0aef2d8",
+  "suite": "mt6797-thermal-snapshot"
+}

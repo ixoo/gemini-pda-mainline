@@ -193,3 +193,25 @@ exhaustion without IO, and eight competing observer requests alongside normal
 polling. This is a userspace concurrency test, not evidence of real kernfs,
 thermal workqueue or hardware behavior. Kernel removal guarantees require
 separate source attribution and the proposed group-ordering checks.
+
+## Interface and lifetime offline gate
+
+The [reader lifetime audit](READER_LIFETIME.md) identified and corrected the
+close-before-devres race through canonical patch `0539`. Exact revision
+`97b6e4cd` passes Buildbox compilation, package validation and all ten focused
+kernel tests in the bounded emulator; see the [exact result](results/lifetime-kunit-pass.json).
+Against that same driver, eight injected late-probe/remove paths pass, with three negative
+mutations rejected. The actual interface and scan oracles also pass again;
+see [lifetime validation](results/lifetime-validation.txt). Source attribution
+provides the real kernel drain semantics; the userspace fixtures do not execute
+kernfs teardown or thermal workqueues.
+
+The prospective host [record parser](scripts/thermal_snapshot_records.py)
+requires exact ABI fields, three ordered attempts, complete sensor identity and
+validity, aggregate/first-winning-slot agreement and monotonic scan intervals.
+Its [fixtures](scripts/test-thermal-snapshot-records.py) reject malformed,
+missing, duplicate and inconsistent fields, failure records and budget changes.
+It checks driver representability only: a future host protocol must separately
+pin candidate/boot identities, pristine counters and conservative thermal
+refusal bounds. This parser neither admits a device action nor replaces the
+closed cold-repeat comparison.
