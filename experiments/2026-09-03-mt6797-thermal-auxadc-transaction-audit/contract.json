@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "experiment": "2026-09-03-mt6797-thermal-auxadc-transaction-audit",
+  "repository_parent": "b26475fdcefccc16ff5522d12abbfe48e64a2f76",
+  "canonical_series": {
+    "entry_count": 502,
+    "sha256": "51d8eaf643d625581e27e040ff18c037b57cedb1889746c02768269ec6e67136"
+  },
+  "pinned_repository_inputs": {
+    "patches/v7.1.3/0001-dt-bindings-reset-mediatek-add-MT6797-infracfg-reset.patch": "e1e86ee9f4fd79b97e45cb6ea70e5977cf7caa8a2828aab9a1e50de8eac54cc0",
+    "patches/v7.1.3/0002-clk-mediatek-mt6797-add-infracfg-reset-controller.patch": "20f1deb716d745b5daba6bed4db934e413712798e80063d12b2c9384c9df730c",
+    "patches/v7.1.3/0007-arm64-dts-mediatek-mt6797-add-PMIC-wrapper.patch": "a629f0e6861ec82bf74ead4a84f4373580eb559500c6d6aed9b1a4e9637c5a73",
+    "patches/v7.1.3/0046-arm64-dts-mediatek-mt6797-add-disabled-thermal-dvfsp-resources.patch": "c19c35ff4d7c4b9339c3c12ab181919165dd8cdb005f5bf16b76bc01d723a587",
+    "patches/v7.1.3/0057-thermal-mediatek-add-MT6797-AUXADC-support.patch": "ee59d25155fdb4a1e9e44d02c95bd7bb7e4842e0decc02845612b226ec5de657",
+    "patches/v7.1.3/0512-thermal-mediatek-require-valid-MT6797-calibration.patch": "d27656cdd77c808927d6c097d79773570205e8357a2fbbd14502244c794c8a72",
+    "patches/v7.1.3/0513-thermal-mediatek-test-calibration-requirement-policy.patch": "6a0c947f15a1d2fae0a39a34e1aaf2907212b2761bd8cf538d60726a0596431a"
+  },
+  "prepared_source": {
+    "source_state": "49084a29725089735de735e0b63543ef44261ef1533075fe9a815574d48fa9f0",
+    "source_integrity": "d23fbc7533cfe264398e45620e216113259468afaf06154262bd709360752d07",
+    "files": {
+      "drivers/thermal/mediatek/auxadc_thermal.c": "263ea74c3cb11c5e068b1df158743f86659818902a2da3842b23d5be41b6948e",
+      "drivers/iio/adc/mt6577_auxadc.c": "e91f516325d1d5b2596c916d367c8947f733b4bd317c8dd0351ee80af818efe8",
+      "drivers/clk/mediatek/clk-mt6797.c": "aea5041078556536d0bac36fb76e5b3fcd2746fbae78c4a730c70fae0ab76b4a",
+      "drivers/clk/mediatek/reset.c": "8c1cdf2ad881dc20659340cd7f0244b8ff1a1b6d1d7b4cd1e74946533adcee76",
+      "drivers/clk/mediatek/reset.h": "0401a0df50c411faf95465b716691dbf8f1c369a6eedc2511d6694e68dc4f1b5",
+      "arch/arm64/boot/dts/mediatek/mt6797.dtsi": "bcfc0a1f1d1c7aae64d5aa1cb1f397bb9b1ecca8d2d4a3e07f36970d0b83fe3f",
+      "include/dt-bindings/reset/mt6797-resets.h": "6064791471a2db58bd3adbb31d6ebd685e97323ba9069137dc2432b710a9a273"
+    }
+  },
+  "vendor_source": {
+    "repository": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797.git",
+    "commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+    "files": {
+      "drivers/misc/mediatek/auxadc/mt_auxadc.c": "fa7ab5cfe1daef57fe3f06cb7822a17e684f103fffd11411f9d852c25e1f8e92",
+      "drivers/misc/mediatek/thermal/mt6797/inc/tscpu_settings.h": "220bab14ac81c960d9a91dbc4b6ce830816e07668577d21ea5d07fb9c72c6866",
+      "drivers/misc/mediatek/thermal/mt6797/src/mtk_tc.c": "9fd0d2a64d874c59d17a0f154b80b8d6c3050b67e881180fe3ef9ec878fc1cc2",
+      "drivers/misc/mediatek/thermal/common/thermal_zones/mtk_ts_cpu.c": "06d3cf2799661b38b9c3298d4167f359c812a369e8d9cd7b635273ed38d4e7c3",
+      "drivers/misc/mediatek/pmic_wrap/mt6797/pwrap_hal.h": "081247ca94459b78d4be15d9fab1ddc2a99f767a29a48ee3b2999b33f1e9478b",
+      "drivers/misc/mediatek/pmic_wrap/mt6797/pwrap_hal.c": "991ca49130ec394b67e14ced67f74ff847bff8dd20d0f698607beb6f674ed0c1",
+      "arch/arm64/configs/lineage_gemini_defconfig": "5f0018658a6e0858cbb730be427a379797afd9e2639a51e7f40d963b4e61115a"
+    }
+  },
+  "confirmed_constants": {
+    "thermal_reset_set": "0x120",
+    "thermal_reset_clear": "0x124",
+    "source_proven_reset_set_bases": ["0x120", "0x140"],
+    "inferred_rst1_set_base": "0x130",
+    "inferred_rst1_clear_base": "0x134",
+    "rst1_source_status": "unresolved",
+    "pmic_wrap_reset_set": "0x140",
+    "pmic_wrap_reset_clear": "0x144",
+    "auxadc_channel": 11,
+    "auxadc_power_bit": 14,
+    "vendor_gemini_auxadc_power_write": false,
+    "auxadc_power_bit_required_state": "unresolved",
+    "apmixed_buffer_clear_mask": "GENMASK(5, 4)",
+    "bank_count": 6,
+    "sensor_count": 5,
+    "temp_ahbpoll": "0x30d",
+    "temp_msrctl0": "0x492",
+    "temp_adcvalidmask": "0x2c",
+    "thermal_irq_spi": 78,
+    "thermal_irq_type": "level-low"
+  },
+  "selected_next": "MT6797_PROVEN_RESET_SET_CLR_REPAIR_RST1_CLOSURE_AND_PMIC_WRAP_AUDIT",
+  "implementation_scope": {
+    "hardware_free": true,
+    "thermal_dt_enabled": false,
+    "auxadc_dt_enabled": false,
+    "thermal_reset_phandle_added": false,
+    "thermal_sample": false,
+    "irq_or_watchdog_action": false,
+    "device_action": false,
+    "boot_candidate": false
+  }
+}

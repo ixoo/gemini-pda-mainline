@@ -31,14 +31,23 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-09-03 MT6797 thermal/AUXADC transaction audit](2026-09-03-mt6797-thermal-auxadc-transaction-audit/README.md)
+  — rejects immediate runtime enablement after an exact current-versus-vendor
+  source audit. The canonical reset provider mistakes RST0
+  SET/CLEAR/STATUS for three simple banks, AUXADC power-bit semantics remain
+  unresolved, and the thermal driver's APMIXED and release/per-bank enable
+  order contradicts the recovered transaction. The selected next step is a
+  hardware-free repair of the source-proven SET/CLEAR paths, closure or
+  quarantine of RST1, exact translation tests, and a PMIC-wrap consumer audit;
+  both DT nodes remain disabled and no device action occurred.
 - [2026-09-03 MT6797 fail-closed thermal calibration](2026-09-03-mt6797-thermal-fail-closed-calibration/README.md)
   — makes exact, valid NVMEM calibration mandatory only for MT6797 before any
   thermal clock, reset, or register side effect, while retaining the shared
   driver's fallback behavior for other SoCs. Deterministic patch generation,
   strict review, the exact published Buildbox build, and all nine isolated
   arm64 QEMU KUnit cases pass. This hardware-free gate produced no boot
-  candidate or device action; the thermal/AUXADC transaction contract remains
-  disabled and is the next audit.
+  candidate or device action; the subsequent transaction audit keeps runtime
+  enablement closed and identifies the reset provider as the first repair.
 - [2026-09-03 current-mainline power-observability gate](2026-09-03-mainline-power-observability-gate/README.md)
   — audits the exact successful topology/lifecycle/load candidate before any
   stress increase. Its resolved config disables CPU_FREQ and THERMAL, its

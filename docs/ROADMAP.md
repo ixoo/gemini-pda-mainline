@@ -7976,6 +7976,25 @@ IRQ/watchdog timeout behavior, then hardware-free-test a transaction plan
 before enabling either DT node. OPP/cpufreq, trips, cooling, load, idle, and
 suspend remain excluded.
 
+The linked
+[thermal/AUXADC transaction audit](../experiments/2026-09-03-mt6797-thermal-auxadc-transaction-audit/README.md)
+now rejects immediate enablement and freezes the missing order. The current
+infracfg provider registers `0x120/0x124/0x128` as three simple banks, although
+the pinned MT6797 sources establish thermal SET/CLEAR `0x120/0x124` and
+PMIC-wrap SET/CLEAR `0x140/0x144`; this misroutes both thermal ID 0 and the
+already-consumed PMIC-wrap ID 64. The conventional RST1 pair
+`0x130/0x134` remains source-unresolved. Separate defects remain in AUXADC power
+and pre-trigger idle ownership, the APMIXED mask, all-banks-before-enable
+commit, first-valid sampling, IRQ/protection, unwind, and PM. Both DT nodes
+remain disabled and the audit performed no build or device action. **Selected
+next:** repair the two source-proven MT6797 infracfg SET/CLEAR paths, close or
+quarantine RST1, and add focused ID-to-register tests while auditing the
+existing PMIC-wrap consumer. Keep the
+thermal reset phandle and both DT enables out of that change. After an exact
+Buildbox build, give the repaired PMIC-wrap path its own serviceability
+regression before implementing the thermal transaction plan. OPP/cpufreq,
+trips, cooling, load, idle, and suspend remain excluded.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

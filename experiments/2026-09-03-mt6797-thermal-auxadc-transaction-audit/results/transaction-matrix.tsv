@@ -1,0 +1,13 @@
+id	boundary	vendor_or_hardware_contract	current_linux_7_1_3	decision
+T01	calibration	exact three-word MT6797 payload before side effects	required before probe side effects by patches 0512-0513	closed
+T02	infracfg_reset	RST0 SET/CLEAR/STATUS at 0x120/0x124/0x128; RST2 PMIC-wrap SET/CLEAR at 0x140/0x144; RST1 pair unresolved	three MTK_RST_SIMPLE banks at 0x120/0x124/0x128	repair_first
+T03	thermal_reset	assert ID0 through SET 0x120 and deassert through CLEAR 0x124	thermal DT has no reset; optional reset performs no action	blocked
+T04	auxadc_power	Gemini defconfig leaves CONFIG_AUXADC_NEED_POWER_ON unset; thermal requires AUXADC initialization readiness	standalone mainline sets MISC bit14 while thermal does not; required state is unresolved	unresolved_keep_off
+T05	auxadc_idle	poll CON2 global idle before clear/trigger	MT6797 reuses mt8173 path and polls after trigger	blocked
+T06	auxadc_ownership	one owner coordinates clock, power, channel and suspend	thermal directly maps AUXADC while standalone driver independently owns same resources	keep_iio_disabled
+T07	apmixed_buffer	preserve unrelated TS_CON1 fields and clear only bits5:4; delay and verify	mask clears bits2:0 and bits5:4, then set forces bit0; no verify	blocked
+T08	bank_commit	pause/disable, prepare all six banks, set CH11 once, enable all banks, release all	CH11 and bank0 released before preparation; each bank enabled before final write-control	blocked
+T09	resource_mapping	reject missing or failed mappings	of_iomap return values are not checked	blocked
+T10	first_sample	bounded attributable valid sample from every configured sensor before publication	raw zero becomes 0 C and passes generic range; no first-valid gate	blocked
+T11	irq_timeout	SPI78 low bank status and acknowledgement owned before any IRQ-generating timeout	DT describes IRQ but driver requests none while writing TEMP_AHBTO=0xffffffff	unresolved_keep_off
+T12	protection_lifecycle	threshold/watchdog owner, unwind, remove and suspend/resume defined	vendor-private watchdog direct mode has no mainline owner; no thermal PM/unwind	unresolved_keep_off

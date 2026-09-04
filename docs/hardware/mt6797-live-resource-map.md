@@ -451,6 +451,38 @@ The controller selects banks through `PTPCORESEL`, samples `TEMPMSR0..3`, and
 uses AUXADC channel 11 plus indirect valid/voltage data. This is a distinct
 thermal-controller/AUXADC contract rather than a generic IIO ADC-only path.
 
+The exact MT6797 reset and initialization transaction is now also source
+pinned. Thermal reset ID 0 asserts through infracfg RST0 SET at `+0x120` and
+deasserts through CLEAR at `+0x124`; `+0x128` is RST0 status, not a second reset
+bank. The PMIC-wrapper reset at logical ID 64 instead uses the RST2 SET/CLEAR
+pair `+0x140/+0x144`. The local clock patch currently mis-models `+0x120`,
+`+0x124`, and `+0x128` as three `MTK_RST_SIMPLE` banks. Consequently neither
+thermal ID 0 nor PMIC-wrapper ID 64 has the required translation. The thermal
+node has no reset phandle, while PMIC wrap is the sole current infracfg-reset
+consumer; repair and consumer regression must precede thermal use. The
+intervening RST1 `+0x130/+0x134` pair follows the mainline MediaTek bank
+convention but remains an inference until an MT6797 primary source closes it.
+
+MT6797 standalone AUXADC conversion polls `CON2[0]` idle before clearing and
+triggering a channel. Its optional power helper can set `AUXADC_MISC[14]`, but
+the pinned Gemini vendor defconfig leaves `CONFIG_AUXADC_NEED_POWER_ON` unset
+and performs no such write. The current local IIO match both inherits an
+MT8173 order that checks global idle after trigger and sets bit 14
+unconditionally. The first thermal observer must keep the standalone IIO node
+disabled, preserve the unresolved bit, and give the thermal driver sole,
+explicit ownership of clock, channel-11 mode, teardown, and resume state.
+
+Thermal sensor-buffer enable preserves unrelated APMIXED `TS_CON1` fields and
+clears only bits 5:4, followed by a 200-microsecond delay and verification.
+Initialization pauses and disables sensing, prepares all six banks while
+channel 11 and `TEMPMONCTL0` remain off, then commits channel 11 once, enables
+every bank, and releases all pause bits. The current local driver changes
+unrelated `TS_CON1` bits, releases sampling before bank setup, and enables each
+bank before its final write-control programming. It also lacks a first-valid
+sample gate, IRQ ownership, hardware-protection owner, and complete unwind/PM
+path. These are durable source constraints, not runtime support. See the
+[transaction audit](../../experiments/2026-09-03-mt6797-thermal-auxadc-transaction-audit/README.md).
+
 See the [MT6797 thermal recovery experiment](../../experiments/2026-07-13-mt6797-thermal-recovery/README.md),
 its [source validation](../../experiments/2026-07-13-mt6797-thermal-recovery/results/mainline-thermal-source-validation.txt),
 and the disabled-only [resource patch](../../patches/v7.1.3/0046-arm64-dts-mediatek-mt6797-add-disabled-thermal-dvfsp-resources.patch).
@@ -475,14 +507,14 @@ adding only a cpufreq compatible would therefore leave the `clk_set_rate()`
 path without a vendor CPU clock owner. Linux 7.1.3 also has a generic
 MediaTek SVS provider with NVMEM calibration and
 `dev_pm_opp_adjust_voltage()` support, but it matches only newer SVS SoCs and
-does not cover the MT6797 EEM register/resource contract. Its generic
-AUXADC and AUXADC-thermal drivers likewise have no `mt6797` match. The generic
-AUXADC-thermal bank, shared-sensor, and calibration architecture can represent
-the recovered topology, but MT6797 needs explicit variant data for its `0x2c`
-valid mask, `0x492` filter, `0x30d` poll value, APMIXED buffer, IRQ/protection
-path, and ADC-OE conversion. An unrelated SoC's calibration data must not be
-reused. The local boundary implements a disabled MT6797 thermal variant and
-records only disabled DT resources.
+does not cover the MT6797 EEM register/resource contract. The generic AUXADC
+and AUXADC-thermal drivers did not originally have an `mt6797` match. The local
+disabled-only matches recover the bank topology, ADC-OE conversion, `0x2c`
+valid mask, `0x492` filter, and `0x30d` poll value, but the exact transaction
+audit rejects their reset, power, idle, APMIXED, enable, first-valid,
+IRQ/protection, and lifecycle boundaries. An unrelated SoC's calibration or
+transaction order must not be reused. The local boundary continues to record
+only disabled DT resources.
 A future chipset-specific cpufreq, thermal, or SPM driver must start disabled
 and preserve explicit voltage,
 calibration, and firmware safety boundaries. See the
