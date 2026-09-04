@@ -22,12 +22,16 @@ SOURCE_DIR = "candidate-mt6797-pwrap-reset-305230b1"
 SOURCE_MANIFEST_SHA256 = "528f38ae3459149bc6f12242118b69d104590bd8902eef7d3969a1cd1b8d0f17"
 SOURCE_INITRAMFS = "gemini-pwrap-reset-serviceability-initramfs.img"
 SOURCE_INITRAMFS_SHA256 = "344d8a8464bee60764df467f166aa73eddfcbd4d362d835aa2d6895534c31c4b"
+CANDIDATE_DIR = "candidate-mt6797-thermal-serviceability-ea54021d"
 PACKAGE_DTB = "dtbs/mediatek/mt6797-gemini-pda-thermal-serviceability.dtb"
 CANDIDATE_DTB = "mt6797-gemini-pda-thermal-serviceability.dtb"
 CANDIDATE_INITRAMFS = "gemini-mt6797-thermal-serviceability-initramfs.img"
 CANDIDATE_BOOT = "gemini-mt6797-thermal-serviceability.boot.img"
 PADDED_BOOT = "boot2-padded.img"
 BOOT2_SIZE = 16 * 1024 * 1024
+CANDIDATE_RAW_SIZE = 7553024
+CANDIDATE_RAW_SHA256 = "ea54021dbe1a7a2c320e568e6392b61a65b79263a16c89f624fd8cebc80b2102"
+CANDIDATE_PADDED_SHA256 = "6f3d8d6e94ff1ce587f0189a0c44db2abc7a29f487f1ec33e66e9db5e3505801"
 SERIALIZER_SHA256 = "569ca6f2b365f119c8c3668cb3d63724b29e76447e47638d707983ee8eafadf4"
 ANALYZER_SHA256 = "aa25edb2cf9675ab0c90d2655bbf1ad845b41e697f0b40ba1f357cec7646eb95"
 
@@ -61,7 +65,7 @@ def validate(
     source_initramfs = local_regular(initramfs_source / SOURCE_INITRAMFS, "source initramfs")
     if digest(source_initramfs) != SOURCE_INITRAMFS_SHA256:
         raise CandidateError("source initramfs changed")
-    if candidate.is_symlink() or not candidate.is_dir():
+    if candidate.name != CANDIDATE_DIR or candidate.is_symlink() or not candidate.is_dir():
         raise CandidateError("candidate directory is missing or unsafe")
 
     manifest_lines = local_regular(candidate / "SHA256SUMS", "candidate manifest").decode().splitlines()
@@ -160,6 +164,10 @@ def validate(
     )
     raw = local_regular(raw_path, "raw candidate")
     padded = local_regular(candidate / PADDED_BOOT, "padded candidate")
+    if len(raw) != CANDIDATE_RAW_SIZE or digest(raw) != CANDIDATE_RAW_SHA256:
+        raise CandidateError("selected raw candidate identity changed")
+    if digest(padded) != CANDIDATE_PADDED_SHA256:
+        raise CandidateError("selected padded candidate identity changed")
     if provenance.get("candidate_raw_sha256") != digest(raw):
         raise CandidateError("raw candidate provenance mismatch")
     if provenance.get("candidate_raw_size") != str(len(raw)):

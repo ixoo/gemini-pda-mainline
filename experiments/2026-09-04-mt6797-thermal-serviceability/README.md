@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-thermal-serviceability` |
-| Status | `running`; exact package passed, offline candidate gate in progress |
+| Status | `running`; exact candidate selected, single hardware gate pending |
 | Subsystem | MT6797 thermal controller, AUXADC transaction, reset, and NVMEM calibration |
 | Device variant | Planet Computers Gemini PDA, MT6797 |
 | Date(s) | 2026-09-04 |
@@ -64,9 +64,18 @@ change, idle, suspend, trip, cooling, or storage write is permitted.
 - `scripts/validate_patches.py`: generated-patch boundary validator.
 - `scripts/generate-on-buildbox`: pinned source, replay, and strict
   Checkpatch lane.
-
-Candidate, package, runtime, recovery, and installer tooling is added only
-after the source patches and focused Buildbox profile pass their offline gates.
+- `scripts/validate_package.py`: exact Buildbox package, linkage, and structural
+  base/service DT validator.
+- `scripts/build_candidate.sh` and `scripts/validate_candidate.py`: independent
+  deterministic Android-v0 construction and exact selected-candidate gate.
+- `scripts/remote_observe.sh`, `scripts/classify_observation.py`, and
+  `scripts/collect_runtime.sh`: one bounded read-only USB/netcat runtime frame.
+- `scripts/install_boot2.sh`: live-GPT-resolved, full-readback-verified guarded
+  `boot2` install followed by clean shutdown; no fresh backup.
+- `scripts/request_native_reboot.sh`: post-pass native reboot to changed-ID
+  Gemian without partition access.
+- `scripts/test_runtime_tools.py`: positive, rejection, source-integrity, and
+  static safety tests for the runtime path.
 
 ## Procedure
 
@@ -120,11 +129,24 @@ same artifact.
   thermal reset input 0, exactly one trip-free and cooling-free zone, and a
   disabled standalone AUXADC consumer. See
   [results/offline-package-20260904.txt](results/offline-package-20260904.txt).
+- Two independent Android-v0 assemblies matched byte-for-byte. The selected
+  raw candidate is `ea54021dbe1a...` (7,553,024 bytes), and its exact 16 MiB
+  zero-padded `boot2` image is `6f3d8d6e94ff...`. It contains the packaged
+  service DT and the retained serviceability netcat initramfs without
+  transformation. See
+  [results/offline-candidate-20260904.txt](results/offline-candidate-20260904.txt)
+  and the fixed [preboot hypothesis](results/preboot-hypothesis-20260904.txt).
+- The complete runtime, installer, and native-recovery tooling passes one
+  positive and fifteen decision-changing rejection fixtures, Shellcheck, pinned
+  source hashes, static read/write boundaries, and an independent reconstruction
+  of the selected candidate. See
+  [results/offline-runtime-tooling-20260904.txt](results/offline-runtime-tooling-20260904.txt).
 
 ## Analysis
 
-The exact Buildbox package passes its offline identity, linkage, configuration,
-and structural DT gates. This is construction evidence only; it does not prove
+The exact Buildbox package and deterministic boot candidate pass their offline
+identity, linkage, configuration, structural DT, container, and padding gates.
+This is construction evidence only; it does not prove
 that calibration, reset, clocks, bank preparation, first samples, registration,
 or temperature reads work on hardware.
 

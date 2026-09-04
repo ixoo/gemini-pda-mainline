@@ -16,6 +16,9 @@ readonly CANDIDATE_INITRAMFS=gemini-mt6797-thermal-serviceability-initramfs.img
 readonly CANDIDATE_BOOT=gemini-mt6797-thermal-serviceability.boot.img
 readonly PADDED_BOOT=boot2-padded.img
 readonly BOOT2_SIZE=16777216
+readonly CANDIDATE_DIR=candidate-mt6797-thermal-serviceability-ea54021d
+readonly CANDIDATE_RAW_SHA256=ea54021dbe1a7a2c320e568e6392b61a65b79263a16c89f624fd8cebc80b2102
+readonly CANDIDATE_PADDED_SHA256=6f3d8d6e94ff1ce587f0189a0c44db2abc7a29f487f1ec33e66e9db5e3505801
 
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }
 usage() { printf 'usage: %s --package DIR --initramfs-source DIR --output-parent DIR\n' "$0" >&2; }
@@ -64,7 +67,7 @@ esac
 work=$(mktemp -d "$output_parent/.thermal-serviceability-candidate.XXXXXXXX")
 cleanup() { [[ ! -d "${work:-}" ]] || rm -rf -- "$work"; }
 trap cleanup EXIT HUP INT TERM
-stage="$work/stage"
+stage="$work/$CANDIDATE_DIR"
 replica="$work/replica"
 mkdir "$stage" "$replica"
 
@@ -104,7 +107,10 @@ PY
 
 raw_sha=$(sha256sum "$stage/$CANDIDATE_BOOT" | awk '{print $1}')
 readonly raw_sha
-output="$output_parent/candidate-mt6797-thermal-serviceability-${raw_sha:0:8}"
+[[ "$raw_sha" == "$CANDIDATE_RAW_SHA256" ]] || die 'selected raw candidate identity changed'
+[[ "$(sha256sum "$stage/$PADDED_BOOT" | awk '{print $1}')" == "$CANDIDATE_PADDED_SHA256" ]] ||
+	die 'selected padded candidate identity changed'
+output="$output_parent/$CANDIDATE_DIR"
 [[ ! -e "$output" && ! -L "$output" ]] || die 'refusing to overwrite final candidate'
 {
 	printf 'experiment=2026-09-04-mt6797-thermal-serviceability\n'
