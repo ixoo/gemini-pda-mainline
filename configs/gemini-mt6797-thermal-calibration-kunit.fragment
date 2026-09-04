@@ -8,6 +8,10 @@ CONFIG_MTK_THERMAL=y
 CONFIG_MTK_SOC_THERMAL=y
 CONFIG_NVMEM=y
 CONFIG_NVMEM_MTK_ATAG_DEVINFO=y
+# The already-present EEM helpers in auxadc_thermal.o reference the two pure
+# PPM validators built behind this owner symbol. QEMU has no matching DVFSP DT
+# node, so the owner cannot probe or perform a platform action in this profile.
+CONFIG_MTK_MT6797_DVFSP_HANDOFF=y
 CONFIG_KUNIT=y
 CONFIG_MTK_SOC_THERMAL_KUNIT_TEST=y
 CONFIG_LOCALVERSION="-gemini-mt6797-thermal-cal-kunit"
