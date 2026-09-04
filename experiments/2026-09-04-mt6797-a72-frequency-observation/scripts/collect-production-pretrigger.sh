@@ -77,7 +77,8 @@ cleanup() { rm -f -- "${probe:-}" "${command_file:-}"; }
 trap cleanup EXIT HUP INT TERM
 cp "$deployment_summary" "$deployment_copy"
 chmod 0600 "$deployment_copy"
-"$remote" >"$probe"
+sed 's/\r$//' "$remote" >"$probe"
+chmod 0600 "$probe"
 grep -Fq "$COMMAND_MARKER" "$probe" && die 'command marker occurs in remote probe'
 {
 	printf "/bin/busybox sh <<'%s'\n" "$COMMAND_MARKER"
