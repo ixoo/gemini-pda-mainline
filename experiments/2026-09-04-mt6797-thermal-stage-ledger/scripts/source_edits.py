@@ -74,7 +74,8 @@ def add_tests(root: Path, templates: Path) -> None:
         "\thelp\n"
         "\t  Test exact empty ownership, alternating CRC copies, bounds,\n"
         "\t  readback, terminal sealing, and refusal paths with an injected\n"
-        "\t  word array. The tests perform no retained-RAM or device action.\n\n"
+        "\t  word array. The tests perform no retained-RAM, MMIO, thermal,\n"
+        "\t  reset, clock, storage, network, CPU, or device action.\n\n"
         "config PSTORE_GEMINI_A72_HOTPLUG_LEDGER\n",
     )
     replace_once(
@@ -517,6 +518,7 @@ static int mtk_thermal_probe(struct platform_device *pdev)
 	struct device_node *np = pdev->dev.of_node;
 	struct thermal_zone_device *tzdev;
 	struct mtk_thermal *mt;
+	bool is_v4;
 	bool traced;
 	int ctrl_id, i, ret;
 
@@ -528,7 +530,9 @@ static int mtk_thermal_probe(struct platform_device *pdev)
 	if (!mt->conf)
 		return -EINVAL;
 	ops = &mt6797_thermal_transaction_ops;
-	traced = mt->conf->version == MTK_THERMAL_V4;
+	is_v4 = mt->conf->version == MTK_THERMAL_V4;
+	traced = IS_ENABLED(CONFIG_PSTORE_GEMINI_MT6797_THERMAL_LEDGER) &&
+		is_v4;
 	if (traced) {
 		ret = gemini_mt6797_thermal_ledger_begin();
 		if (ret)
@@ -615,7 +619,7 @@ static int mtk_thermal_probe(struct platform_device *pdev)
 		goto fail_apmixed_map;
 	}
 
-	if (traced) {
+	if (is_v4) {
 		ret = mt6797_thermal_probe_trace(
 			GEMINI_MT6797_THERMAL_RESET_ACQUIRE,
 			GEMINI_MT6797_THERMAL_LEDGER_BEFORE, 0, 0);
@@ -758,7 +762,7 @@ fail_zone:
 			GEMINI_MT6797_THERMAL_ZONE_REGISTER,
 			GEMINI_MT6797_THERMAL_LEDGER_TERMINAL, ret,
 			GEMINI_MT6797_THERMAL_LEDGER_FAILURE);
-	if (traced)
+	if (is_v4)
 		mtk_thermal_transaction_close(mt, ops, &mt->transaction);
 	return ret;
 fail_transaction:
@@ -842,13 +846,15 @@ def instrument_transaction(root: Path) -> None:
         source,
         "static const struct mtk_thermal_transaction_ops\n"
         "mt6797_thermal_transaction_ops = {\n",
+        "#ifdef CONFIG_PSTORE_GEMINI_MT6797_THERMAL_LEDGER\n"
         "static int mt6797_thermal_trace(void *context, u32 operation,\n"
         "\t\t\t\tu32 phase, u32 index, int result)\n"
         "{\n"
         "\t(void)context;\n\n"
         "\treturn gemini_mt6797_thermal_ledger_checkpoint(\n"
         "\t\toperation, phase, index, result, 0);\n"
-        "}\n\n"
+        "}\n"
+        "#endif\n\n"
         "static const struct mtk_thermal_transaction_ops\n"
         "mt6797_thermal_transaction_ops = {\n",
     )
@@ -856,7 +862,10 @@ def instrument_transaction(root: Path) -> None:
         source,
         "\t.first_sample = mt6797_thermal_first_sample,\n};\n",
         "\t.first_sample = mt6797_thermal_first_sample,\n"
-        "\t.trace = mt6797_thermal_trace,\n};\n",
+        "#ifdef CONFIG_PSTORE_GEMINI_MT6797_THERMAL_LEDGER\n"
+        "\t.trace = mt6797_thermal_trace,\n"
+        "#endif\n"
+        "};\n",
     )
     replace_once(source, OLD_PROBE, NEW_PROBE)
 
@@ -914,6 +923,19 @@ mt6797_test_expect_trace(struct kunit *test,
 	KUNIT_EXPECT_EQ(test, context->trace_events[ordinal].result, result);
 }
 
+static void
+mt6797_test_expect_trace_pair(struct kunit *test,
+			       const struct mt6797_test_context *context,
+			       unsigned int *ordinal, u32 operation, u32 index)
+{
+	mt6797_test_expect_trace(
+		test, context, (*ordinal)++, operation,
+		GEMINI_MT6797_THERMAL_LEDGER_BEFORE, index, 0);
+	mt6797_test_expect_trace(
+		test, context, (*ordinal)++, operation,
+		GEMINI_MT6797_THERMAL_LEDGER_AFTER, index, 0);
+}
+
 static void mt6797_transaction_trace_success_order(struct kunit *test)
 {
 	struct mtk_thermal_transaction_ops ops = mt6797_test_ops;
@@ -922,8 +944,6 @@ static void mt6797_transaction_trace_success_order(struct kunit *test)
 		.fail_at = -1,
 		.trace_fail_at = -1,
 	};
-	const u32 before = GEMINI_MT6797_THERMAL_LEDGER_BEFORE;
-	const u32 after = GEMINI_MT6797_THERMAL_LEDGER_AFTER;
 	const u32 none = GEMINI_MT6797_THERMAL_LEDGER_INDEX_NONE;
 	unsigned int ordinal = 0;
 	unsigned int bank;
@@ -934,29 +954,34 @@ static void mt6797_transaction_trace_success_order(struct kunit *test)
 					      MT6797_TEST_BANKS);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 
-#define EXPECT_PAIR(operation, index) do { \
-	mt6797_test_expect_trace(test, &context, ordinal++, operation, \
-				  before, index, 0); \
-	mt6797_test_expect_trace(test, &context, ordinal++, operation, \
-				  after, index, 0); \
-} while (0)
-	EXPECT_PAIR(GEMINI_MT6797_THERMAL_AUXADC_CLOCK_ENABLE, none);
-	EXPECT_PAIR(GEMINI_MT6797_THERMAL_CLOCK_ENABLE, none);
-	EXPECT_PAIR(GEMINI_MT6797_THERMAL_RESET, none);
-	EXPECT_PAIR(GEMINI_MT6797_THERMAL_APMIXED, none);
-	EXPECT_PAIR(GEMINI_MT6797_THERMAL_GLOBAL_IDLE, none);
-	EXPECT_PAIR(GEMINI_MT6797_THERMAL_PAUSE_BANKS, none);
-	EXPECT_PAIR(GEMINI_MT6797_THERMAL_CLEAR_CHANNEL, none);
+	mt6797_test_expect_trace_pair(test, &context, &ordinal,
+		GEMINI_MT6797_THERMAL_AUXADC_CLOCK_ENABLE, none);
+	mt6797_test_expect_trace_pair(test, &context, &ordinal,
+		GEMINI_MT6797_THERMAL_CLOCK_ENABLE, none);
+	mt6797_test_expect_trace_pair(test, &context, &ordinal,
+		GEMINI_MT6797_THERMAL_RESET, none);
+	mt6797_test_expect_trace_pair(test, &context, &ordinal,
+		GEMINI_MT6797_THERMAL_APMIXED, none);
+	mt6797_test_expect_trace_pair(test, &context, &ordinal,
+		GEMINI_MT6797_THERMAL_GLOBAL_IDLE, none);
+	mt6797_test_expect_trace_pair(test, &context, &ordinal,
+		GEMINI_MT6797_THERMAL_PAUSE_BANKS, none);
+	mt6797_test_expect_trace_pair(test, &context, &ordinal,
+		GEMINI_MT6797_THERMAL_CLEAR_CHANNEL, none);
 	for (bank = 0; bank < MT6797_TEST_BANKS; bank++)
-		EXPECT_PAIR(GEMINI_MT6797_THERMAL_PREPARE_BANK, bank);
-	EXPECT_PAIR(GEMINI_MT6797_THERMAL_COMMIT_CHANNEL, none);
+		mt6797_test_expect_trace_pair(test, &context, &ordinal,
+			GEMINI_MT6797_THERMAL_PREPARE_BANK, bank);
+	mt6797_test_expect_trace_pair(test, &context, &ordinal,
+		GEMINI_MT6797_THERMAL_COMMIT_CHANNEL, none);
 	for (bank = 0; bank < MT6797_TEST_BANKS; bank++)
-		EXPECT_PAIR(GEMINI_MT6797_THERMAL_ENABLE_BANK, bank);
+		mt6797_test_expect_trace_pair(test, &context, &ordinal,
+			GEMINI_MT6797_THERMAL_ENABLE_BANK, bank);
 	for (bank = 0; bank < MT6797_TEST_BANKS; bank++)
-		EXPECT_PAIR(GEMINI_MT6797_THERMAL_RELEASE_BANK, bank);
+		mt6797_test_expect_trace_pair(test, &context, &ordinal,
+			GEMINI_MT6797_THERMAL_RELEASE_BANK, bank);
 	for (bank = 0; bank < MT6797_TEST_BANKS; bank++)
-		EXPECT_PAIR(GEMINI_MT6797_THERMAL_FIRST_SAMPLE, bank);
-#undef EXPECT_PAIR
+		mt6797_test_expect_trace_pair(test, &context, &ordinal,
+			GEMINI_MT6797_THERMAL_FIRST_SAMPLE, bank);
 	KUNIT_EXPECT_EQ(test, context.trace_count, ordinal);
 	KUNIT_EXPECT_EQ(test, ordinal, 64U);
 }

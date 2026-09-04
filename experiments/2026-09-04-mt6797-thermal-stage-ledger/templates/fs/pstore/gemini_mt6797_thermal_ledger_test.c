@@ -2,6 +2,7 @@
 /* In-memory tests for the Gemini MT6797 retained thermal-stage ledger. */
 
 #include <kunit/test.h>
+#include <linux/bitops.h>
 #include <linux/errno.h>
 #include <linux/gemini_mt6797_thermal_ledger.h>
 #include <linux/string.h>

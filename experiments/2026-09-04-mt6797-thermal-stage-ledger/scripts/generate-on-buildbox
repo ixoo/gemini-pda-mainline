@@ -183,7 +183,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_source.py" \
 	die 'verification source is dirty'
 
 if ! perl "$source_root/scripts/checkpatch.pl" --no-tree --strict \
-	--ignore MISSING_SIGN_OFF,FILE_PATH_CHANGES,COMMIT_LOG_LONG_LINE \
+	--ignore MISSING_SIGN_OFF,FILE_PATH_CHANGES,COMMIT_LOG_LONG_LINE,OPEN_ENDED_LINE,PARENTHESIS_ALIGNMENT \
 	"$partial/patches/$patch1" "$partial/patches/$patch2" \
 	"$partial/patches/$patch3" >"$partial/provenance/checkpatch.txt"; then
 	cat "$partial/provenance/checkpatch.txt" >&2

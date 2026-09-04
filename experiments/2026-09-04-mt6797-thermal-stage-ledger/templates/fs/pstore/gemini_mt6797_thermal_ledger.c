@@ -352,7 +352,7 @@ static void gemini_mt6797_thermal_ledger_mmio_write(void *context,
 static void gemini_mt6797_thermal_ledger_mmio_sync(void *context)
 {
 	(void)context;
-	wmb();
+	wmb(); /* Publish each complete record before its commit marker. */
 }
 
 static const struct gemini_mt6797_thermal_ledger_ops thermal_mmio_ops = {
