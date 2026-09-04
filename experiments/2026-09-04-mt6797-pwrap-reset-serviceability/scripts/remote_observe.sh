@@ -20,7 +20,9 @@ driver_name() {
 driver_bind_count() {
 	count=0
 	for item in "/sys/bus/platform/drivers/$1"/*; do
-		[ -L "$item" ] && count=$((count + 1))
+		[ -L "$item" ] || continue
+		[ "$($BB basename "$item")" = module ] && continue
+		count=$((count + 1))
 	done
 	$BB printf '%s\n' "$count"
 }

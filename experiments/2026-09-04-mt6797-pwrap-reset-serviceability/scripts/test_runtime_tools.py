@@ -11,6 +11,8 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 CLASSIFIER = SCRIPT_DIR / "classify_observation.py"
 REMOTE = SCRIPT_DIR / "remote_observe.sh"
+INSTALLER = SCRIPT_DIR / "install_boot2.sh"
+REBOOT = SCRIPT_DIR / "request_native_reboot.sh"
 RECOVERY = "11111111-2222-3333-4444-555555555555"
 MAINLINE = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 
@@ -113,6 +115,25 @@ def main() -> int:
     for forbidden in ("/dev/mmcblk", " dd ", "cpu*/online", ">/sys", "> /sys"):
         if forbidden in remote:
             raise AssertionError(f"remote observer gained forbidden token: {forbidden}")
+    if '[ "$($BB basename "$item")" = module ] && continue' not in remote:
+        raise AssertionError("driver binding count does not exclude module symlink")
+    installer = INSTALLER.read_text(encoding="utf-8")
+    if installer.count('of="$target"') != 1:
+        raise AssertionError("installer target-write count changed")
+    for required in (
+        "PARTNAME) partname=$value",
+        "partition_backup_created=no",
+        "full boot2 readback mismatch",
+        "shutdown_requested=yes-after-verified-readback",
+    ):
+        if required not in installer:
+            raise AssertionError(f"installer safety token absent: {required}")
+    for forbidden in ("boot2-before.img", 'of="$backup"', "/dev/mmcblk0p30"):
+        if forbidden in installer:
+            raise AssertionError(f"installer gained forbidden fixed/backup path: {forbidden}")
+    reboot = REBOOT.read_text(encoding="utf-8")
+    if "/dev/mmc" in reboot or "device_partition_reads=none" not in reboot:
+        raise AssertionError("native reboot path gained partition access")
     with tempfile.TemporaryDirectory() as temporary:
         path = Path(temporary) / "frame.txt"
         path.write_text(good, encoding="utf-8")
@@ -121,6 +142,8 @@ def main() -> int:
     print("positive_cases=1")
     print(f"rejection_cases={rejected}")
     print("remote_observer=read-only-static-pass")
+    print("installer=live-GPT-single-write-static-pass")
+    print("native_reboot=no-partition-static-pass")
     return 0
 
 

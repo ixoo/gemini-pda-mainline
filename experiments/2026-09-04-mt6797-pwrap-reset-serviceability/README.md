@@ -112,6 +112,11 @@ identity or transport yields no hardware conclusion.
 - The runtime classifier passes one complete fixture and rejects seven
   decision-changing mutations. Shell syntax, ShellCheck, and the observer's
   no-partition/no-write static gate pass.
+- A preboot audit additionally excluded the driver directory's `module`
+  symlink from bound-device counts and pinned the corrected observer hash;
+  installer single-write/live-GPT and native-reboot no-partition static gates
+  also pass. See
+  [results/runtime-tooling-hardening-20260904.txt](results/runtime-tooling-hardening-20260904.txt).
 - The exact offline and predeployment record is
   [results/offline-candidate-20260904.txt](results/offline-candidate-20260904.txt).
 - From changed-ID known-good Gemian, the guarded installer resolved inactive
