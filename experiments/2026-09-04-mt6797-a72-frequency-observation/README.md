@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-a72-frequency-observation` |
-| Status | `running`; first production boot rejected pristine, successor repair selected |
+| Status | `running`; successor passes offline gate, guarded deployment selected |
 | Subsystem | MT6797 CPU clock readback / Cortex-A72 lifecycle |
 | Device variant | Gemini PDA x27, named development unit |
 | Date(s) | 2026-09-04 |
@@ -38,11 +38,12 @@ PLL values whose bit 31 change strobe remains set?
 
 The completed offline phases generated normal review patches in a temporary
 Buildbox Git repository, ran isolated KUnit proof under no-network QEMU, built
-the production profile from exact clean pushed commit `673df9c0...`, and
-assembled its exact candidate without device access. The decoder and tests make
-no hardware call. The production runtime exposes exactly one inherited
-stage-18 lifecycle trigger plus three read-only frequency observations and a
-finite volatile-RAM workload; it has no storage or reboot action.
+the successor production and focused profiles from exact clean pushed commit
+`5d892a1c...`, and assembled its exact candidate without device access. The
+decoder and tests make no hardware call. The production runtime exposes exactly
+one inherited stage-18 lifecycle trigger plus three read-only frequency
+observations and a finite volatile-RAM workload; it has no storage or reboot
+action.
 
 No device action occurred during the offline gate. The exact validated
 candidate is eligible for the standing guarded `boot2` workflow: live GPT
@@ -105,6 +106,9 @@ closed.
 - `results/successor-patch-generation-20260904.txt`: exact Buildbox generation,
   replay, path, style, identity, and no-new-effect proof for canonical patches
   `0529` and `0530`.
+- `results/successor-offline-gate-20260904.txt`: exact successor production and
+  focused Buildbox packages, isolated 5/5 and 14/14 KUnit results, production
+  registration oracle, DT/container identities, and new candidate admission.
 
 ## Procedure
 
@@ -226,6 +230,28 @@ closed.
   budget, and all existing CPU actions. No DT, CPU request, hardware write,
   candidate, native VM build, or device action was added. See
   [results/successor-patch-generation-20260904.txt](results/successor-patch-generation-20260904.txt).
+- Exact clean published revision `5d892a1c...` built the successor production,
+  observer-KUnit, and hotplug-binding-KUnit profiles on Buildbox from source
+  `be41c068...` and patchset `0f2a0357...`. Isolated no-network arm64 QEMU
+  passed the observer suite 5/5 and binding suite 14/14 with zero failures or
+  skips. The latter linked the production binding but invoked it zero times and
+  performed no hardware action.
+- The production package's exact configuration identity is `18ded825...`.
+  A static package/source oracle proves the admission controller and its one
+  read-only frequency attribute are present exactly as intended, while KUnit
+  suites are absent. Independent composition preserved the 4+4+2 topology and
+  serviceability nodes, added only the reviewed thermal transform and one
+  package provenance leaf, and produced DT `a4bf5774...`.
+- Two deterministic Android-v0/LK assemblies produced raw candidate
+  `24cb227b...` and exact 16 MiB padded candidate `54a02dd0...`. All container,
+  package, structural DT, 12 pretrigger-mutation, and 18 runtime-mutation gates
+  pass; the independent validator reports `boot_candidate=true`. See
+  [results/successor-offline-gate-20260904.txt](results/successor-offline-gate-20260904.txt).
+- Before this successor was installed, the owner reported another selection
+  with no visible console. The host could only identify the already-running
+  Gemian recovery boot afterward, with its unchanged boot ID and 3.18 kernel.
+  That screen observation is therefore unattributed and is not evidence for or
+  against the successor.
 
 ## Analysis
 
@@ -240,25 +266,29 @@ The decoder repair remains valid: transport stability is owned by the existing
 protected-clock semaphore sample and the BigiDVFS identical-double-sample
 backend; bit 31 is not reused as a second unsupported stability oracle. The
 first production boot exposed two later integration defects, not a conversion
-failure. The minimum successor must add this exact profile's compile-time
-runtime-binding identity and attach the bounded observer to the in-memory
-snapshot source actually owned by the physical binder. It must prove both
-paths offline before another device candidate is eligible.
+failure. The successor now adds this exact profile's compile-time runtime-
+binding identity and attaches the bounded observer to the in-memory snapshot
+source owned by the physical binder. The clean production build, two focused
+runtime suites, static registration oracle, and independent candidate gates
+prove those paths offline; only live pretrigger evidence can now accept or
+reject their real-device composition.
 
 ## Conclusion
 
-`live pretrigger rejected`: the candidate was genuine and serviceable over USB,
-but it correctly stopped with a stale runtime-binding identity and no production
-observer attachment. This is not a CPU8/CPU9, frequency, load, or console pass.
-The exact candidate is retired without consuming either its lifecycle trigger
-or its observer budget.
+`successor admitted offline`: the first candidate's live pretrigger correctly
+found a stale runtime-binding identity and no production observer attachment.
+Canonical patches `0529`--`0530` repair those two omissions, and exact successor
+`54a02dd0...` passes every required offline gate. This is not yet a live
+CPU8/CPU9 or frequency result; it authorizes one new guarded deployment and
+fresh boot only.
 
 ## Follow-up
 
-Generate two focused successor changes on Buildbox: bind the production
-configuration identity, then register the bounded observer on the admission
-controller's real snapshot source. Add an offline proof that the production path
-owns the observer attribute, rebuild and independently validate the exact
-profile and candidate, and only then permit one new guarded `boot2` attempt.
-Keep identical-artifact repeats, longer load, cpufreq/OPP, extra hotplug, idle,
-and suspend closed.
+Publish the frozen successor tooling and evidence, install exact padded
+candidate `54a02dd0...` to live-GPT-resolved inactive `boot2`, require a full
+matching readback, and shut the device down. On one physical `boot2` selection,
+ignore display state as an admission oracle and use exact USB/netcat identity.
+The zero-read pretrigger must show one read-only observer attribute, the exact
+new record identity, a ready late profile, and zero consumed attempts before the
+single bounded runtime is permitted. Keep identical-artifact repeats, longer
+load, cpufreq/OPP, extra hotplug, idle, and suspend closed.

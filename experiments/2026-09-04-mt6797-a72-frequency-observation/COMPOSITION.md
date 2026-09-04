@@ -33,6 +33,15 @@ protected-clock, and BigiDVFS devices, initialize the snapshot source, and only
 then publish one top-level read-only attribute. No snapshot-adapter DT node is
 added, and the later one-shot trigger reuses the prepared devices.
 
+The exact clean successor package is built from published repository commit
+`5d892a1c83b8ae5099bbfd5d379f726d04c4ebde`, source identity `be41c068...`,
+patchset `0f2a0357...`, and configuration input identity `18ded825...`. Its
+production image is `02eea298...`; its static registration oracle finds the
+observer render path once, the admission probe once, and the attribute in the
+two expected compiled declarations while excluding all KUnit suites. The
+focused observer and production-binding packages pass 5/5 and 14/14 cases in
+isolated no-network arm64 QEMU.
+
 ## Device-tree boundary
 
 The structural base is exact topology/serviceability DT
@@ -48,6 +57,12 @@ An independent validator must prove both deltas, unique phandles, the exact
 4+4+2 map, enabled USB/keyboard/eMMC/PWRAP serviceability, enabled calibrated
 thermal controller, one policy-free zone, all physical lifecycle nodes, and
 the package-exact provenance record.
+
+That validation produces exact successor DT `a4bf5774...` with package record
+identity `018de915...`. Deterministic Android-v0/LK composition produces raw
+container `24cb227b...` (7,133,184 bytes) and padded candidate `54a02dd0...`
+(16,777,216 bytes). The latter is the only selected `boot2` identity; retired
+candidate `03cbaa72...` must not be repeated.
 
 ## Runtime boundary
 
@@ -74,3 +89,9 @@ load. A lifecycle failure selects the existing lifecycle evidence path. A
 thermal anomaly stops the run. No retry, CPU_OFF beyond the inherited one-shot
 CPU9 transaction, cpufreq/OPP change, longer load, idle, suspend, partition
 access, or same-artifact repeat is permitted.
+
+The new pretrigger is pinned to candidate `54a02dd0...` and record identity
+`018de915...`. Visible console state is explicitly non-authoritative: admission
+requires the direct-USB netcat frame to prove the exact release, changed boot
+ID, one read-only observer, ready late profile, thermal serviceability, CPUs
+0--7 online, CPUs 8--9 offline, and zero observer or lifecycle attempts.

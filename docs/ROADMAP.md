@@ -8192,12 +8192,24 @@ identity, then attach the bounded observer to the admission controller's real
 snapshot source. Exact clean revision `11af7dc3...` generated and replayed
 canonical patches `0529`--`0530`; their source/path, strict style, prior-
 identity preservation, three-attempt budget, no-DT, no-CPU-request, and
-no-hardware-write gates pass. **Selected next:** build the exact production
-profile plus focused observer and hotplug tests on Buildbox. Require a static
-production-path registration oracle, clean exact-profile build, isolated
-focused tests, independent DT/container validation, and a new candidate
-identity before one new guarded `boot2` attempt. Keep longer load, cpufreq/OPP
-changes, extra hotplug, idle, suspend, and same-artifact repeat closed.
+no-hardware-write gates pass. Exact clean published revision `5d892a1c...`
+then built the production, observer-KUnit, and hotplug-binding-KUnit profiles
+on Buildbox from source `be41c068...` and patchset `0f2a0357...`. The two
+isolated no-network arm64 QEMU suites pass 5/5 and 14/14 with no failure or
+skip. A static production oracle proves the admission-owned observer path is
+linked exactly as intended while KUnit is absent. Independent package, DT,
+Android-v0/LK, pretrigger, and runtime validation admit new raw candidate
+`24cb227b...` and exact padded candidate `54a02dd0...`; the DT is `a4bf5774...`
+and the package record identity is `018de915...`. A later owner report of no
+visible console occurred before this successor was installed and could be
+identified only as the unchanged Gemian recovery boot afterward, so it is not
+successor evidence. **Selected next:** publish the frozen successor tooling and
+offline evidence, install exact `54a02dd0...` to live-GPT-resolved inactive
+`boot2` with full readback and shutdown, then make one fresh physical selection.
+Treat the display as non-authoritative: direct-USB netcat must prove the exact
+release, one read-only observer, ready late profile, and zero attempts before
+the one bounded runtime. Keep longer load, cpufreq/OPP changes, extra hotplug,
+idle, suspend, and same-artifact repeat closed.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

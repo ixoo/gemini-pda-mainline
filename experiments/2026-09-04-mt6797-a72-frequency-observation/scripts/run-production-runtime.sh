@@ -13,7 +13,7 @@ readonly HOST_MAC_84=42:00:15:19:84:00
 readonly BUILDER_SHA256=25bbb9d3921f788c208e637b0b58269928f493414817ff2070c2287b4e8610a6
 readonly CLASSIFIER_SHA256=e75bd7bbbda1a88019ceefd0b37a81590ab4cc61d78159c45b3a61b7f5755d96
 readonly COMMAND_MARKER=__GEMINI_A72_FREQUENCY_RUNTIME_SCRIPT__
-readonly EXPECTED_CAPTURE=artifacts/runtime-captures/a72-frequency-thermal-attempt-1
+readonly EXPECTED_CAPTURE=artifacts/runtime-captures/a72-frequency-thermal-successor-attempt-1
 
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }
 capture=
