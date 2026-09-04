@@ -8172,11 +8172,14 @@ with the successful stage-18 4+4+2 topology and proven thermal configuration.
 Its Buildbox package, exact thermal/topology/provenance DT transform, Android-v0
 LK candidate, zero-read pretrigger, and boot-ID-bound finite runtime gate all
 pass offline validation; padded candidate identity is `03cbaa72...`. This still
-provides no live-device frequency claim. **Selected next:** publish the frozen
-tooling, install that exact candidate to live-GPT-resolved inactive `boot2`
-with matching full readback and shutdown, then take one fresh pretrigger and
-one three-sample/four-round observation. Keep longer load, cpufreq/OPP changes,
-extra hotplug, idle, suspend, and same-artifact repeat closed.
+provides no live-device frequency claim. Published commit `75917139...` froze
+the tooling, then guarded deployment resolved inactive live-GPT `boot2`, wrote
+exact `03cbaa72...`, passed synchronized/flush/full-readback gates without a
+fresh backup, and shut the device down without rebooting it. **Selected next:**
+make one fresh physical `boot2` selection, take its zero-read pristine
+pretrigger, then make the one boot-ID-bound three-sample/four-round observation.
+Keep longer load, cpufreq/OPP changes, extra hotplug, idle, suspend, and
+same-artifact repeat closed.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

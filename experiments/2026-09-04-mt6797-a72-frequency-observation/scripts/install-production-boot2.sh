@@ -46,10 +46,41 @@ for old, new, count in replacements:
 Path(sys.argv[2]).write_text(text, encoding="utf-8")
 PY
 chmod 0700 "$derived"
+evidence_dir=
+arguments=("$@")
+for ((index = 0; index < ${#arguments[@]}; index++)); do
+	if [[ "${arguments[$index]}" == --evidence-dir ]]; then
+		((index + 1 < ${#arguments[@]})) || die '--evidence-dir requires a value'
+		evidence_dir=${arguments[$((index + 1))]}
+	fi
+done
 set +e
 /bin/bash "$derived" "$@"
 rc=$?
 set -e
+if [[ "$rc" == 0 && -n "$evidence_dir" ]]; then
+	case "$evidence_dir" in /*) ;; *) evidence_dir=$repository/${evidence_dir#./} ;; esac
+	summary=$evidence_dir/deployment-summary.txt
+	[[ -f "$summary" && ! -L "$summary" ]] || die 'successful deployment summary is absent or unsafe'
+	python3 - "$summary" <<'PY'
+from pathlib import Path
+import os
+import sys
+
+path = Path(sys.argv[1])
+old = "experiment=2026-09-02-mainline-a72-hotplug-lifecycle-gate\n"
+new = "experiment=2026-09-04-mt6797-a72-frequency-observation\n"
+text = path.read_text(encoding="utf-8")
+if text.count(old) != 1 or text.count(new) != 0:
+    raise SystemExit("successful deployment summary label changed")
+temporary = path.with_name(".deployment-summary.normalized")
+temporary.write_text(text.replace(old, new, 1), encoding="utf-8")
+os.chmod(temporary, 0o600)
+os.replace(temporary, path)
+PY
+	(cd "$evidence_dir" && sha256sum deployment-summary.txt >SHA256SUMS)
+	chmod 0600 "$evidence_dir/SHA256SUMS"
+fi
 cleanup
 trap - EXIT HUP INT TERM
 exit "$rc"

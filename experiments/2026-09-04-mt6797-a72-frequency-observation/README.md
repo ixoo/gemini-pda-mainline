@@ -183,6 +183,15 @@ closed.
   performs three observations, proves both CPU8/CPU9 writers alive on both
   sides of the middle sample at their start barrier, then releases exactly four
   volatile-RAM rounds and takes the final sample after completion.
+- Guarded deployment from published commit `75917139...` resolved live GPT
+  `boot2` as inactive `/dev/mmcblk0p30`, distinct from Gemian root
+  `/dev/mmcblk0p29`. With stable external power and 100%/Good capacity it
+  replaced predecessor `93a78b49...`, synchronized and flushed the write, and
+  independently read back the full 16 MiB as exact `03cbaa72...`. No fresh
+  backup or reboot was requested and clean shutdown was confirmed. The private
+  summary retained the source wrapper's prior experiment label; that metadata
+  label was corrected immediately afterward and does not affect the recorded
+  target, candidate, readback, boot ID, power, or shutdown evidence.
 
 ## Analysis
 
@@ -200,17 +209,15 @@ as a second, unsupported stability oracle.
 
 ## Conclusion
 
-`offline production pass`: the corrected conversion, bounded observer,
+`deployed production pass`: the corrected conversion, bounded observer,
 production profile, exact DT composition, LK candidate, pristine pretrigger,
-and finite runtime classifier all pass their independent gates. This is not yet
-a live A72 frequency or thermal-under-A72-load claim. No production-candidate
-device action has occurred yet.
+and finite runtime classifier all pass their independent gates, and exact
+`boot2` installation passed full-readback and shutdown gates. This is not yet a
+live A72 frequency or thermal-under-A72-load claim.
 
 ## Follow-up
 
-Publish the frozen tooling and evidence, install exact padded candidate
-`03cbaa72...` to live-GPT-resolved inactive `boot2`, require matching full
-readback and shutdown, then make one fresh boot. Admit it only if the read-only
+Make one fresh physical `boot2` selection. Admit it only if the read-only
 pretrigger proves the exact release, provenance, pristine lifecycle, untouched
 observer budget, and thermal zone. Run the boot-ID-bound finite observation
 once. Keep longer load, cpufreq/OPP, extra hotplug, idle, suspend, and
