@@ -1,0 +1,13 @@
+# Hardware-free proof of the MT6797 thermal calibration requirement policy.
+# The handoff fragment keeps all Gemini thermal DT nodes disabled; QEMU has no
+# MT6797 platform device. This configuration builds the production driver and
+# executes only the pure policy-helper suite.
+CONFIG_THERMAL=y
+CONFIG_THERMAL_OF=y
+CONFIG_MTK_THERMAL=y
+CONFIG_MTK_SOC_THERMAL=y
+CONFIG_NVMEM=y
+CONFIG_NVMEM_MTK_ATAG_DEVINFO=y
+CONFIG_KUNIT=y
+CONFIG_MTK_SOC_THERMAL_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-mt6797-thermal-cal-kunit"

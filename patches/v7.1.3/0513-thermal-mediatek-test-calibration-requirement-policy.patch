@@ -1,0 +1,145 @@
+From 63ae5edb496cdb34f66e36d4e5ebf650c3c2d066 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 3 Sep 2026 16:02:00 +0000
+Subject: [PATCH 2/2] thermal: mediatek: test calibration requirement policy
+
+Cover optional compatibility, mandatory failures, deferral, and length.
+
+The focused suite invokes pure helpers and performs no hardware action.
+---
+ drivers/thermal/mediatek/Kconfig              | 11 +++
+ drivers/thermal/mediatek/Makefile             |  1 +
+ .../thermal/mediatek/auxadc_thermal_test.c    | 94 +++++++++++++++++++
+ 3 files changed, 106 insertions(+)
+ create mode 100644 drivers/thermal/mediatek/auxadc_thermal_test.c
+
+diff --git a/drivers/thermal/mediatek/Kconfig b/drivers/thermal/mediatek/Kconfig
+index d82c86d..bc5a7a0 100644
+--- a/drivers/thermal/mediatek/Kconfig
++++ b/drivers/thermal/mediatek/Kconfig
+@@ -18,6 +18,17 @@ config MTK_SOC_THERMAL
+ 	  This driver configures thermal controllers to collect
+ 	  temperature via AUXADC interface.
+ 
++config MTK_SOC_THERMAL_KUNIT_TEST
++	tristate "Test MediaTek AUXADC thermal calibration policy" if !KUNIT_ALL_TESTS
++	depends on KUNIT
++	depends on MTK_SOC_THERMAL
++	default KUNIT_ALL_TESTS
++	help
++	  Test the hardware-free calibration requirement policy used by
++	  the MediaTek AUXADC thermal driver. The test performs no MMIO,
++	  clock, reset, NVMEM, or platform-device operation. It does not
++	  register a platform device or create a bootable configuration.
++
+ config MTK_LVTS_THERMAL
+         tristate "LVTS Thermal Driver for MediaTek SoCs"
+         depends on HAS_IOMEM
+diff --git a/drivers/thermal/mediatek/Makefile b/drivers/thermal/mediatek/Makefile
+index 1c6daa1..1577a00 100644
+--- a/drivers/thermal/mediatek/Makefile
++++ b/drivers/thermal/mediatek/Makefile
+@@ -1,2 +1,3 @@
+ obj-$(CONFIG_MTK_SOC_THERMAL)	+= auxadc_thermal.o
++obj-$(CONFIG_MTK_SOC_THERMAL_KUNIT_TEST) += auxadc_thermal_test.o
+ obj-$(CONFIG_MTK_LVTS_THERMAL)	+= lvts_thermal.o
+diff --git a/drivers/thermal/mediatek/auxadc_thermal_test.c b/drivers/thermal/mediatek/auxadc_thermal_test.c
+new file mode 100644
+index 0000000..f748a04
+--- /dev/null
++++ b/drivers/thermal/mediatek/auxadc_thermal_test.c
+@@ -0,0 +1,94 @@
++// SPDX-License-Identifier: GPL-2.0-only
++#include <kunit/test.h>
++
++#include "auxadc_thermal_internal.h"
++
++static void mtk_thermal_optional_success(struct kunit *test)
++{
++	KUNIT_EXPECT_EQ(test, mtk_thermal_calibration_status(false, 0), 0);
++}
++
++static void mtk_thermal_required_success(struct kunit *test)
++{
++	KUNIT_EXPECT_EQ(test, mtk_thermal_calibration_status(true, 0), 0);
++}
++
++static void mtk_thermal_optional_missing_falls_back(struct kunit *test)
++{
++	KUNIT_EXPECT_EQ(test,
++			mtk_thermal_calibration_status(false, -ENOENT), 0);
++}
++
++static void mtk_thermal_required_missing_fails(struct kunit *test)
++{
++	KUNIT_EXPECT_EQ(test,
++			mtk_thermal_calibration_status(true, -ENOENT), -ENOENT);
++}
++
++static void mtk_thermal_optional_invalid_falls_back(struct kunit *test)
++{
++	KUNIT_EXPECT_EQ(test,
++			mtk_thermal_calibration_status(false, -EINVAL), 0);
++}
++
++static void mtk_thermal_required_invalid_fails(struct kunit *test)
++{
++	KUNIT_EXPECT_EQ(test,
++			mtk_thermal_calibration_status(true, -EINVAL), -EINVAL);
++}
++
++static void mtk_thermal_defer_always_propagates(struct kunit *test)
++{
++	KUNIT_EXPECT_EQ(test,
++			mtk_thermal_calibration_status(false, -EPROBE_DEFER),
++			-EPROBE_DEFER);
++	KUNIT_EXPECT_EQ(test,
++			mtk_thermal_calibration_status(true, -EPROBE_DEFER),
++			-EPROBE_DEFER);
++}
++
++static void mtk_thermal_optional_length_preserves_minimum(struct kunit *test)
++{
++	bool valid;
++
++	valid = mtk_thermal_calibration_length_valid(false, 2 * sizeof(u32));
++	KUNIT_EXPECT_FALSE(test, valid);
++	valid = mtk_thermal_calibration_length_valid(false, 3 * sizeof(u32));
++	KUNIT_EXPECT_TRUE(test, valid);
++	valid = mtk_thermal_calibration_length_valid(false, 4 * sizeof(u32));
++	KUNIT_EXPECT_TRUE(test, valid);
++}
++
++static void mtk_thermal_required_length_is_exact(struct kunit *test)
++{
++	bool valid;
++
++	valid = mtk_thermal_calibration_length_valid(true, 2 * sizeof(u32));
++	KUNIT_EXPECT_FALSE(test, valid);
++	valid = mtk_thermal_calibration_length_valid(true, 3 * sizeof(u32));
++	KUNIT_EXPECT_TRUE(test, valid);
++	valid = mtk_thermal_calibration_length_valid(true, 4 * sizeof(u32));
++	KUNIT_EXPECT_FALSE(test, valid);
++}
++
++static struct kunit_case mtk_thermal_calibration_cases[] = {
++	KUNIT_CASE(mtk_thermal_optional_success),
++	KUNIT_CASE(mtk_thermal_required_success),
++	KUNIT_CASE(mtk_thermal_optional_missing_falls_back),
++	KUNIT_CASE(mtk_thermal_required_missing_fails),
++	KUNIT_CASE(mtk_thermal_optional_invalid_falls_back),
++	KUNIT_CASE(mtk_thermal_required_invalid_fails),
++	KUNIT_CASE(mtk_thermal_defer_always_propagates),
++	KUNIT_CASE(mtk_thermal_optional_length_preserves_minimum),
++	KUNIT_CASE(mtk_thermal_required_length_is_exact),
++	{}
++};
++
++static struct kunit_suite mtk_thermal_calibration_suite = {
++	.name = "mtk-thermal-calibration-policy",
++	.test_cases = mtk_thermal_calibration_cases,
++};
++
++kunit_test_suite(mtk_thermal_calibration_suite);
++
++MODULE_LICENSE("GPL");

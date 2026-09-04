@@ -1,0 +1,119 @@
+From cf616b1ddc5f43ec1b66d0cfca577fa547c438ac Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 3 Sep 2026 16:01:00 +0000
+Subject: [PATCH 1/2] thermal: mediatek: require valid MT6797 calibration
+
+Make calibration mandatory only for the MT6797 match data.
+
+Propagate missing and invalid calibration instead of defaults.
+
+Require the exact three-word MT6797 NVMEM payload length.
+---
+ drivers/thermal/mediatek/auxadc_thermal.c     | 17 ++++++++-----
+ .../mediatek/auxadc_thermal_internal.h        | 25 +++++++++++++++++++
+ 2 files changed, 36 insertions(+), 6 deletions(-)
+ create mode 100644 drivers/thermal/mediatek/auxadc_thermal_internal.h
+
+diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediatek/auxadc_thermal.c
+index 9102f2b..4c934ae 100644
+--- a/drivers/thermal/mediatek/auxadc_thermal.c
++++ b/drivers/thermal/mediatek/auxadc_thermal.c
+@@ -26,6 +26,7 @@
+ #include <linux/soc/mediatek/mt6797-eem-calibration.h>
+ #include <linux/soc/mediatek/mt6797-eem-readback.h>
+ 
++#include "auxadc_thermal_internal.h"
+ #include "../thermal_hwmon.h"
+ 
+ /* AUXADC Registers */
+@@ -354,6 +355,7 @@ struct mtk_thermal_data {
+ 	const int num_controller;
+ 	const int *controller_offset;
+ 	bool need_switch_bank;
++	bool requires_calibration;
+ 	struct thermal_bank_cfg bank_data[MAX_NUM_ZONES];
+ 	enum mtk_thermal_version version;
+ 	u32 apmixed_buffer_ctl_reg;
+@@ -648,6 +650,7 @@ static const struct mtk_thermal_data mt6797_thermal_data = {
+ 	.num_controller = MT6797_NUM_CONTROLLER,
+ 	.controller_offset = mt6797_tc_offset,
+ 	.need_switch_bank = true,
++	.requires_calibration = true,
+ 	.bank_data = {
+ 		{ .num_sensors = 1, .sensors = mt6797_bank_data[0] },
+ 		{ .num_sensors = 1, .sensors = mt6797_bank_data[1] },
+@@ -1660,6 +1663,7 @@ static int mtk_thermal_get_calibration_data(struct device *dev,
+ 	struct nvmem_cell *cell;
+ 	u32 *buf;
+ 	size_t len;
++	bool calibration_required;
+ 	int i, ret = 0;
+ 
+ 	/* Start with default values */
+@@ -1670,11 +1674,11 @@ static int mtk_thermal_get_calibration_data(struct device *dev,
+ 	mt->degc_cali = 40;
+ 	mt->o_slope = 0;
+ 
++	calibration_required = mt->conf->requires_calibration;
+ 	cell = nvmem_cell_get(dev, "calibration-data");
+ 	if (IS_ERR(cell)) {
+-		if (PTR_ERR(cell) == -EPROBE_DEFER)
+-			return PTR_ERR(cell);
+-		return 0;
++		ret = PTR_ERR(cell);
++		return mtk_thermal_calibration_status(calibration_required, ret);
+ 	}
+ 
+ 	buf = (u32 *)nvmem_cell_read(cell, &len);
+@@ -1684,7 +1688,7 @@ static int mtk_thermal_get_calibration_data(struct device *dev,
+ 	if (IS_ERR(buf))
+ 		return PTR_ERR(buf);
+ 
+-	if (len < 3 * sizeof(u32)) {
++	if (!mtk_thermal_calibration_length_valid(calibration_required, len)) {
+ 		dev_warn(dev, "invalid calibration data\n");
+ 		ret = -EINVAL;
+ 		goto out;
+@@ -1709,8 +1713,9 @@ static int mtk_thermal_get_calibration_data(struct device *dev,
+ 	}
+ 
+ 	if (ret) {
+-		dev_info(dev, "Device not calibrated, using default calibration values\n");
+-		ret = 0;
++		ret = mtk_thermal_calibration_status(calibration_required, ret);
++		if (!ret)
++			dev_info(dev, "Device not calibrated, using default calibration values\n");
+ 	}
+ 
+ out:
+diff --git a/drivers/thermal/mediatek/auxadc_thermal_internal.h b/drivers/thermal/mediatek/auxadc_thermal_internal.h
+new file mode 100644
+index 0000000..eee14b9
+--- /dev/null
++++ b/drivers/thermal/mediatek/auxadc_thermal_internal.h
+@@ -0,0 +1,25 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __MTK_AUXADC_THERMAL_INTERNAL_H
++#define __MTK_AUXADC_THERMAL_INTERNAL_H
++
++#include <linux/errno.h>
++#include <linux/types.h>
++
++static inline int
++mtk_thermal_calibration_status(bool required, int ret)
++{
++	if (!ret || (!required && ret != -EPROBE_DEFER))
++		return 0;
++
++	return ret;
++}
++
++static inline bool
++mtk_thermal_calibration_length_valid(bool required, size_t len)
++{
++	const size_t expected = 3 * sizeof(u32);
++
++	return required ? len == expected : len >= expected;
++}
++
++#endif /* __MTK_AUXADC_THERMAL_INTERNAL_H */
