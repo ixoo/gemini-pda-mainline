@@ -87,32 +87,32 @@ def test_source() -> str:
 
     static void mt6797_reset_thermal_transaction(struct kunit *test)
     {
+    \tunsigned int index = MT6797_INFRA_THERM_CTRL_RST;
     \tunsigned int mask = 0, reg = 0;
+    \tint ret;
 
-    \tKUNIT_ASSERT_EQ(test,
-    \t\tmt6797_resolve(MT6797_INFRA_THERM_CTRL_RST, false,
-    \t\t\t\t&reg, &mask), 0);
+    \tret = mt6797_resolve(index, false, &reg, &mask);
+    \tKUNIT_ASSERT_EQ(test, ret, 0);
     \tKUNIT_EXPECT_EQ(test, reg, 0x120U);
     \tKUNIT_EXPECT_EQ(test, mask, BIT(0));
-    \tKUNIT_ASSERT_EQ(test,
-    \t\tmt6797_resolve(MT6797_INFRA_THERM_CTRL_RST, true,
-    \t\t\t\t&reg, &mask), 0);
+    \tret = mt6797_resolve(index, true, &reg, &mask);
+    \tKUNIT_ASSERT_EQ(test, ret, 0);
     \tKUNIT_EXPECT_EQ(test, reg, 0x124U);
     \tKUNIT_EXPECT_EQ(test, mask, BIT(0));
     }
 
     static void mt6797_reset_pwrap_transaction(struct kunit *test)
     {
+    \tunsigned int index = MT6797_INFRA_PMIC_WRAP_RST;
     \tunsigned int mask = 0, reg = 0;
+    \tint ret;
 
-    \tKUNIT_ASSERT_EQ(test,
-    \t\tmt6797_resolve(MT6797_INFRA_PMIC_WRAP_RST, false,
-    \t\t\t\t&reg, &mask), 0);
+    \tret = mt6797_resolve(index, false, &reg, &mask);
+    \tKUNIT_ASSERT_EQ(test, ret, 0);
     \tKUNIT_EXPECT_EQ(test, reg, 0x140U);
     \tKUNIT_EXPECT_EQ(test, mask, BIT(0));
-    \tKUNIT_ASSERT_EQ(test,
-    \t\tmt6797_resolve(MT6797_INFRA_PMIC_WRAP_RST, true,
-    \t\t\t\t&reg, &mask), 0);
+    \tret = mt6797_resolve(index, true, &reg, &mask);
+    \tKUNIT_ASSERT_EQ(test, ret, 0);
     \tKUNIT_EXPECT_EQ(test, reg, 0x144U);
     \tKUNIT_EXPECT_EQ(test, mask, BIT(0));
     }
@@ -131,12 +131,12 @@ def test_source() -> str:
 
     static void mt6797_reset_internal_bank_overflow_rejected(struct kunit *test)
     {
+    \tunsigned long id = 2 * RST_NR_PER_BANK;
     \tunsigned int mask = 0, reg = 0;
+    \tint ret;
 
-    \tKUNIT_EXPECT_EQ(test,
-    \t\tmtk_reset_set_clr_reg(&infra_rst_desc,
-    \t\t\t\t      2 * RST_NR_PER_BANK, false,
-    \t\t\t\t      &reg, &mask), -EINVAL);
+    \tret = mtk_reset_set_clr_reg(&infra_rst_desc, id, false, &reg, &mask);
+    \tKUNIT_EXPECT_EQ(test, ret, -EINVAL);
     }
 
     static struct kunit_case mt6797_infra_reset_cases[] = {
@@ -160,9 +160,22 @@ def test_source() -> str:
     """)
 
 
+def edit_binding(root: Path) -> None:
+    binding = root / "include/dt-bindings/reset/mt6797-resets.h"
+
+    text = binding.read_text(encoding="utf-8")
+    start = text.index("/* INFRACFG resets: INFRA_GLOBALCON_RST0 */")
+    end = text.index("#endif /* _DT_BINDINGS_RESET_CONTROLLER_MT6797 */")
+    replacement = (
+        "/* Source-proven infracfg reset inputs. */\n"
+        "#define MT6797_INFRA_THERM_CTRL_RST\t0\n"
+        "#define MT6797_INFRA_PMIC_WRAP_RST\t1\n\n"
+    )
+    binding.write_text(text[:start] + replacement + text[end:], encoding="utf-8")
+
+
 def edit_production(root: Path) -> None:
     clock = root / "drivers/clk/mediatek"
-    binding = root / "include/dt-bindings/reset/mt6797-resets.h"
 
     replace_once(
         clock / "reset.h",
@@ -247,17 +260,6 @@ def edit_production(root: Path) -> None:
     )
     write_new(clock / "clk-mt6797-reset.h", descriptor_header())
 
-    text = binding.read_text(encoding="utf-8")
-    start = text.index("/* INFRACFG resets: INFRA_GLOBALCON_RST0 */")
-    end = text.index("#endif /* _DT_BINDINGS_RESET_CONTROLLER_MT6797 */")
-    replacement = (
-        "/* Source-proven infracfg reset inputs. */\n"
-        "#define MT6797_INFRA_THERM_CTRL_RST\t0\n"
-        "#define MT6797_INFRA_PMIC_WRAP_RST\t1\n\n"
-    )
-    binding.write_text(text[:start] + replacement + text[end:], encoding="utf-8")
-
-
 def edit_kunit(root: Path) -> None:
     clock = root / "drivers/clk/mediatek"
     write_new(clock / "clk-mt6797-reset-test.c", test_source())
@@ -274,6 +276,7 @@ def edit_kunit(root: Path) -> None:
         \t  Test the hardware-free MT6797 infracfg reset index, register,
         \t  and mask translation. The test performs no MMIO, regmap,
         \t  clock, reset-controller registration, or platform operation.
+        \t  It validates only pure descriptor arithmetic and bounds.
 
         config COMMON_CLK_MT6797_CAMSYS
         """),
@@ -289,9 +292,13 @@ def edit_kunit(root: Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-root", type=Path, required=True)
-    parser.add_argument("--phase", choices=("production", "kunit"), required=True)
+    parser.add_argument(
+        "--phase", choices=("binding", "production", "kunit"), required=True
+    )
     args = parser.parse_args()
-    if args.phase == "production":
+    if args.phase == "binding":
+        edit_binding(args.source_root)
+    elif args.phase == "production":
         edit_production(args.source_root)
     else:
         edit_kunit(args.source_root)

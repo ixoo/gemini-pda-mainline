@@ -37,7 +37,7 @@ Commands:
   generate-mt6797-infracfg-reset-patches
                         Generate the fail-closed infracfg reset repair review
   fetch-mt6797-infracfg-reset-patches
-                        Fetch only that validated two-patch review
+                        Fetch only that validated three-patch review
   generate-i2c6-write-transport-patches
                         Generate the Gate-6 B2 kernel patch review
   fetch-i2c6-write-transport-patches
@@ -15973,7 +15973,7 @@ case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
 (cd "${package}" && sha256sum --check --strict SHA256SUMS >/dev/null)
 grep -Fx "repository_commit=${commit}" \
   "${package}/provenance/generation.txt" >/dev/null
-grep -Fx 'generated_patch_count=2' \
+grep -Fx 'generated_patch_count=3' \
   "${package}/provenance/generation.txt" >/dev/null
 grep -Fx 'synthetic_signoff=absent' \
   "${package}/provenance/generation.txt" >/dev/null
@@ -16047,7 +16047,7 @@ case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
 (cd "${package}" && sha256sum --check --strict SHA256SUMS >/dev/null)
 grep -Fx "repository_commit=${commit}" \
   "${package}/provenance/generation.txt" >/dev/null
-grep -Fx 'generated_patch_count=2' \
+grep -Fx 'generated_patch_count=3' \
   "${package}/provenance/generation.txt" >/dev/null
 tar -C "$(dirname "${package}")" -cf - -- "$(basename "${package}")"
 REMOTE
@@ -16056,7 +16056,7 @@ REMOTE
     cd "${temporary}/${package_name}"
     sha256sum --check --strict SHA256SUMS >/dev/null
     grep -Fx "repository_commit=${sha}" provenance/generation.txt >/dev/null
-    grep -Fx 'generated_patch_count=2' provenance/generation.txt >/dev/null
+    grep -Fx 'generated_patch_count=3' provenance/generation.txt >/dev/null
   )
   mv "${temporary}/${package_name}" "${destination}"
   rmdir "${temporary}"

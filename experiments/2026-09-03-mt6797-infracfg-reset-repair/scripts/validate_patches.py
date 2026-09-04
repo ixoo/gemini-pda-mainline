@@ -9,16 +9,18 @@ from pathlib import Path
 
 
 PATCHES = (
-    "0514-clk-mediatek-repair-MT6797-infracfg-resets.patch",
-    "0515-clk-mediatek-test-MT6797-infracfg-reset-translation.patch",
+    "0514-dt-bindings-reset-mediatek-correct-MT6797-infracfg-resets.patch",
+    "0515-clk-mediatek-repair-MT6797-infracfg-resets.patch",
+    "0516-clk-mediatek-test-MT6797-infracfg-reset-translation.patch",
 )
+
+BINDING_PATHS = {"include/dt-bindings/reset/mt6797-resets.h"}
 
 PRODUCTION_PATHS = {
     "drivers/clk/mediatek/clk-mt6797-reset.h",
     "drivers/clk/mediatek/clk-mt6797.c",
     "drivers/clk/mediatek/reset.c",
     "drivers/clk/mediatek/reset.h",
-    "include/dt-bindings/reset/mt6797-resets.h",
 }
 
 TEST_PATHS = {
@@ -53,9 +55,11 @@ def main() -> None:
             raise SystemExit(f"DT enable forbidden: {name}")
         texts.append(text)
 
-    if changed_paths(texts[0]) != PRODUCTION_PATHS:
+    if changed_paths(texts[0]) != BINDING_PATHS:
+        raise SystemExit("binding patch path boundary changed")
+    if changed_paths(texts[1]) != PRODUCTION_PATHS:
         raise SystemExit("production patch path boundary changed")
-    if changed_paths(texts[1]) != TEST_PATHS:
+    if changed_paths(texts[2]) != TEST_PATHS:
         raise SystemExit("KUnit patch path boundary changed")
 
     combined = "\n".join(texts)
@@ -82,8 +86,9 @@ def main() -> None:
         if needle in combined:
             raise SystemExit(f"forbidden patch content present: {needle!r}")
 
-    print("generated_patch_count=2")
-    print("production_path_count=5")
+    print("generated_patch_count=3")
+    print("binding_path_count=1")
+    print("production_path_count=4")
     print("kunit_path_count=3")
     print("synthetic_signoff=absent")
     print("device_action=none")

@@ -54,7 +54,8 @@ does not contact the Gemini.
 
 1. Correct the superseded July interpretation without rewriting its chronology.
 2. Validate, commit, and publish the deterministic generator.
-3. Generate two normal patches from the exact prepared source on Buildbox.
+3. Generate three normal patches from the exact prepared source on Buildbox:
+   binding correction, production repair, then focused KUnit coverage.
 4. Admit the production repair and focused KUnit test in canonical order.
 5. Build the exact pushed KUnit profile on Buildbox and run it in isolated
    arm64 QEMU.
