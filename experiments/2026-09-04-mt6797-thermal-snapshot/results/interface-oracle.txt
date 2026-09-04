@@ -1,0 +1,14 @@
+validation=actual-observer-interface-with-pthread-and-IO-adapters
+oracle_revision=a591ffba
+kernel_build_revision=fc37244f50c5e17e919f31aed952acd02b68471f
+driver_sha256=c51a7a23b8e32f1e93304f9fd30d1d21fa212ca04162fbca6f68fc93e1e12d4b
+actual_show_status=pass
+failure_text=pass
+exhausted_IO=0
+concurrent_admitted=3
+concurrent_refused=5
+concurrent_normal_polls=100
+interface_mutations_rejected=3
+mutations=negative-show-error,status-spends-budget,four-attempt-budget
+kernel_kernfs_execution=not-tested
+device_action=none

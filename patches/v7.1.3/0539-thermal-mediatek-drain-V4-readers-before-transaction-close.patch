@@ -1,0 +1,80 @@
+From ed46d910509ded23c0cd6f7af110ae91745c5977 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 5 Sep 2026 02:00:00 +0000
+Subject: [PATCH 1/1] thermal: mediatek: drain V4 readers before transaction
+ close
+
+Group thermal zone, hwmon and observer resources so remove and late probe failure drain readers before closing the thermal transaction. Earlier mappings, clocks and calibration ownership stay outside the group. Refuse group allocation failure before registering a reader.
+---
+ drivers/thermal/mediatek/auxadc_thermal.c | 25 ++++++++++++++++++-----
+ 1 file changed, 20 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediatek/auxadc_thermal.c
+index f303769..d83e30b 100644
+--- a/drivers/thermal/mediatek/auxadc_thermal.c
++++ b/drivers/thermal/mediatek/auxadc_thermal.c
+@@ -2237,6 +2237,7 @@ static int mtk_thermal_probe(struct platform_device *pdev)
+ 	struct thermal_zone_device *tzdev;
+ 	struct mtk_thermal *mt;
+ 	bool is_v4;
++	bool readers_group = false;
+ 	bool traced;
+ 	int ctrl_id, i, ret;
+ 
+@@ -2443,6 +2444,15 @@ static int mtk_thermal_probe(struct platform_device *pdev)
+ 						      ctrl_id);
+ 	}
+ 
++	/* Drain all public readers before closing the V4 transaction. */
++	if (is_v4) {
++		if (!devres_open_group(&pdev->dev, mt, GFP_KERNEL)) {
++			ret = -ENOMEM;
++			goto fail_zone;
++		}
++		readers_group = true;
++	}
++
+ 	if (traced) {
+ 		ret = mt6797_thermal_probe_trace(
+ 			GEMINI_MT6797_THERMAL_ZONE_REGISTER,
+@@ -2469,10 +2479,8 @@ static int mtk_thermal_probe(struct platform_device *pdev)
+ 			GEMINI_MT6797_THERMAL_PROBE_COMPLETE,
+ 			GEMINI_MT6797_THERMAL_LEDGER_TERMINAL, 0,
+ 			GEMINI_MT6797_THERMAL_LEDGER_SUCCESS);
+-		if (ret) {
+-			mtk_thermal_transaction_close(mt, ops, &mt->transaction);
+-			return ret;
+-		}
++		if (ret)
++			goto fail_zone;
+ 	}
+ 
+ #if IS_ENABLED(CONFIG_MTK_SOC_THERMAL_OBSERVER)
+@@ -2482,9 +2490,13 @@ static int mtk_thermal_probe(struct platform_device *pdev)
+ 			dev_warn(&pdev->dev, "thermal observer unavailable: %d\n", ret);
+ 	}
+ #endif
++	if (readers_group)
++		devres_close_group(&pdev->dev, mt);
+ 	return 0;
+ 
+ fail_zone:
++	if (readers_group)
++		devres_release_group(&pdev->dev, mt);
+ 	if (traced)
+ 		mt6797_thermal_probe_trace(
+ 			GEMINI_MT6797_THERMAL_ZONE_REGISTER,
+@@ -2551,9 +2563,12 @@ static void mtk_thermal_remove(struct platform_device *pdev)
+ {
+ 	struct mtk_thermal *mt = platform_get_drvdata(pdev);
+ 
+-	if (mt && mt->conf->version == MTK_THERMAL_V4)
++	if (mt && mt->conf->version == MTK_THERMAL_V4) {
++		/* Removal waits for active sysfs callbacks before clock shutdown. */
++		devres_release_group(&pdev->dev, mt);
+ 		mtk_thermal_transaction_close(mt, &mt6797_thermal_transaction_ops,
+ 					      &mt->transaction);
++	}
+ }
+ 
+ static struct platform_driver mtk_thermal_driver = {

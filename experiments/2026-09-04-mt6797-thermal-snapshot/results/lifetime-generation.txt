@@ -1,0 +1,5 @@
+generation_revision=a591ffbaf45900e4cb26cd49991f1614ac704448
+patches=1
+replay=identical-tree
+production_driver_changes=reader-drain-before-V4-close
+hardware_access=none
