@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-pwrap-reset-serviceability` |
-| Status | `planned`; offline candidate gate in progress |
+| Status | `running`; offline candidate and predeployment gates passed |
 | Subsystem | MT6797 infracfg reset, PMIC wrapper, MT6351, and eMMC |
 | Device variant | Planet Computers Gemini PDA, MT6797 |
 | Date(s) | 2026-09-04 |
@@ -32,8 +32,8 @@ AUXADC remain disabled.
 - DT parent: exact ignored Candidate AW DT, SHA-256 `e51891c839ab...`.
 - Initramfs parent: exact ignored Candidate AW image, SHA-256
   `344d8a8464be...`.
-- Boot target: inactive GPT-resolved logical `boot2` only after every offline
-  gate passes.
+- Boot target: inactive GPT-resolved logical `boot2`; the exact validated
+  padded candidate is SHA-256 `5c7429b297c7...`.
 
 The exact build, package, candidate, partition, boot, and recovery identities
 will be recorded in `results/` as each gate completes.
@@ -63,7 +63,14 @@ outside scope.
 - `scripts/validate_candidate.py`: independent package, DT, container, and
   padding validator.
 
-Runtime collection and its exact identity pins will be added before any boot.
+- `scripts/collect_runtime.sh`, `scripts/remote_observe.sh`, and
+  `scripts/classify_observation.py`: one bounded read-only natural-binding
+  frame with exact release, boot-ID, runtime-DT, driver, rail, eMMC, USB, and
+  CPU predicates.
+- `scripts/request_native_reboot.sh`: post-classification USB recovery through
+  the exact inherited `/bin/reboot` hash and changed-ID Gemian confirmation.
+- `scripts/install_boot2.sh`: live-GPT guarded installation, full readback,
+  no fresh partition backup, and clean shutdown.
 
 ## Procedure
 
@@ -92,16 +99,36 @@ identity or transport yields no hardware conclusion.
 - The historical eMMC profile cannot be selected: the repository invariant
   audit quarantines its noncanonical DA9214 series. This experiment instead
   uses the current canonical series and excludes the quarantined DA9214 path.
-- No build, candidate, device access, or hardware action has occurred yet.
+- Buildbox compiled exact pushed commit `ded915b81d56...` with kernel release
+  `7.1.3-gemini-mt6797-pwrap-reset`, canonical 505-patch set
+  `bc6d039d8801...`, and configuration `194834d90eb2...`; package checksums and
+  the focused validator passed.
+- Two independent assemblies were byte-identical. The raw candidate is
+  `305230b1e284...` (7,487,488 bytes), its exact 16 MiB padded form is
+  `5c7429b297c7...`, and its DT is `e1e4eca28932...`.
+- The FDT parser proves that the exact Candidate AW control DT changed only
+  PWRAP's second `resets` cell, from `<3 64>` to `<3 1>`. The inherited exact
+  initramfs is unchanged and the Android-v0 LK contract passes.
+- The runtime classifier passes one complete fixture and rejects seven
+  decision-changing mutations. Shell syntax, ShellCheck, and the observer's
+  no-partition/no-write static gate pass.
+- The exact offline and predeployment record is
+  [results/offline-candidate-20260904.txt](results/offline-candidate-20260904.txt).
+- No device access or hardware action has occurred for this candidate yet.
 
 ## Analysis
 
-Pending.
+The compile result alone is not a hardware claim, but the candidate now has a
+single attributable runtime delta and a decision-complete observation path.
+Unlike the quarantined historical eMMC profile, the kernel is built from the
+current canonical series; unlike the reset KUnit profile, its production
+PWRAP, MT6351 regulator, and MediaTek MMC paths are present while test-only and
+thermal policy remain absent.
 
 ## Conclusion
 
-Pending. A compile or offline candidate result cannot establish PWRAP runtime
-serviceability.
+Pending runtime evidence. The offline candidate is valid and bootable by
+contract, but it does not yet establish PWRAP runtime serviceability.
 
 ## Follow-up
 

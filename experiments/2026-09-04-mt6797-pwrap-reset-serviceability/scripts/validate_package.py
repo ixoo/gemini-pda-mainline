@@ -14,6 +14,7 @@ from pathlib import Path, PurePosixPath
 
 PROFILE = "mt6797-pwrap-reset-serviceability"
 ORIGIN = "https://github.com/ixoo/gemini-pda-mainline.git"
+BUILD_COMMIT = "ded915b81d56902d8800ff9fefc477480e4bcaa1"
 FRAGMENTS = [
     "configs/gemini-handoff.fragment",
     "configs/gemini-usbdiag.fragment",
@@ -42,12 +43,15 @@ REQUIRED_CONFIG = (
     "CONFIG_USB_ETH=y",
     "CONFIG_COMMON_CLK_MT6797=y",
     "CONFIG_RESET_CONTROLLER=y",
-    "# CONFIG_COMMON_CLK_MT6797_RESET_KUNIT_TEST is not set",
+    "# CONFIG_KUNIT is not set",
     "# CONFIG_THERMAL is not set",
     "# CONFIG_CPU_FREQ is not set",
     "# CONFIG_CPU_IDLE is not set",
     "# CONFIG_SUSPEND is not set",
     "# CONFIG_MODULES is not set",
+)
+FORBIDDEN_CONFIG = (
+    "CONFIG_COMMON_CLK_MT6797_RESET_KUNIT_TEST=y",
 )
 REQUIRED_SYMBOLS = (
     " pwrap_probe\n",
@@ -112,9 +116,16 @@ def validate(repository: Path, package: Path) -> dict[str, object]:
     }
     if manifest["config"]["profiles"].get(PROFILE) != expected_profile:
         raise PackageError("manifest profile changed")
-    commit = git(repository, "rev-parse", "HEAD")
-    if git(repository, "rev-parse", "origin/main") != commit:
-        raise PackageError("repository HEAD is not published at origin/main")
+    commit = BUILD_COMMIT
+    if git(repository, "cat-file", "-t", commit) != "commit":
+        raise PackageError("pinned Buildbox commit is absent")
+    published = subprocess.run(
+        ["git", "-C", str(repository), "merge-base", "--is-ancestor", commit,
+         "origin/main"],
+        check=False,
+    )
+    if published.returncode != 0:
+        raise PackageError("pinned Buildbox commit is not published at origin/main")
     if git(repository, "remote", "get-url", "origin") != ORIGIN:
         raise PackageError("unexpected origin URL")
     expected_root = repository / "artifacts/buildbox" / commit
@@ -137,6 +148,9 @@ def validate(repository: Path, package: Path) -> dict[str, object]:
     for line in REQUIRED_CONFIG:
         if line not in config_lines:
             raise PackageError(f"required configuration missing: {line}")
+    for line in FORBIDDEN_CONFIG:
+        if line in config_lines:
+            raise PackageError(f"forbidden configuration enabled: {line}")
     image = regular(package / "Image", "Image")
     image_gz = regular(package / "Image.gz", "Image.gz")
     if gzip.decompress(image_gz) != image:
