@@ -1,4 +1,4 @@
-From da5c4c56f686f56b46034a69a6cce5cc85f5291a Mon Sep 17 00:00:00 2001
+From 23096fa4830d88dcbfa8a489520104fa77b7dd8b Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Fri, 4 Sep 2026 18:02:00 +0000
 Subject: [PATCH 2/3] pstore: test Gemini MT6797 thermal-stage ledger

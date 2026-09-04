@@ -1,4 +1,4 @@
-From 9d9147b829c4f5eb0b423e6870ea4033af1991bd Mon Sep 17 00:00:00 2001
+From 84177e9c182c27e73d12ebbf78ba42573c7ee94a Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Fri, 4 Sep 2026 18:01:00 +0000
 Subject: [PATCH 1/3] pstore: add Gemini MT6797 thermal-stage ledger
@@ -9,10 +9,10 @@ Publish alternating CRC-valid copies and seal after one terminal.
 ---
  fs/pstore/Kconfig                             |  15 +
  fs/pstore/Makefile                            |   1 +
- fs/pstore/gemini_mt6797_thermal_ledger.c      | 432 ++++++++++++++++++
+ fs/pstore/gemini_mt6797_thermal_ledger.c      | 433 ++++++++++++++++++
  .../gemini_mt6797_thermal_ledger_internal.h   |  61 +++
  include/linux/gemini_mt6797_thermal_ledger.h  |  65 +++
- 5 files changed, 574 insertions(+)
+ 5 files changed, 575 insertions(+)
  create mode 100644 fs/pstore/gemini_mt6797_thermal_ledger.c
  create mode 100644 fs/pstore/gemini_mt6797_thermal_ledger_internal.h
  create mode 100644 include/linux/gemini_mt6797_thermal_ledger.h
@@ -57,10 +57,10 @@ index 1744ef6..3823bb0 100644
  obj-$(CONFIG_PSTORE_GEMINI_CPU9_TRANSITION_LEDGER_KUNIT_TEST) += gemini_cpu9_transition_ledger_test.o
 diff --git a/fs/pstore/gemini_mt6797_thermal_ledger.c b/fs/pstore/gemini_mt6797_thermal_ledger.c
 new file mode 100644
-index 0000000..74c077f
+index 0000000..dbb0dad
 --- /dev/null
 +++ b/fs/pstore/gemini_mt6797_thermal_ledger.c
-@@ -0,0 +1,432 @@
+@@ -0,0 +1,433 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/* One-shot retained record-5 ledger for the Gemini MT6797 thermal probe. */
 +
@@ -69,6 +69,7 @@ index 0000000..74c077f
 +#include <linux/export.h>
 +#include <linux/gemini_mt6797_thermal_ledger.h>
 +#include <linux/io.h>
++#include <linux/module.h>
 +#include <linux/mutex.h>
 +#include <linux/of.h>
 +#include <linux/of_address.h>

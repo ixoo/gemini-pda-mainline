@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-thermal-stage-ledger` |
-| Status | `KUnit compile correction pending`; production build pending |
+| Status | corrected patches regenerated; KUnit and production builds pending |
 | Subsystem | MT6797 thermal probe and ordered AUXADC transaction |
 | Device variant | Planet Computers Gemini PDA, MT6797 |
 | Date(s) | 2026-09-04 |
@@ -69,6 +69,11 @@ owned by the [thermal-serviceability experiment](../2026-09-04-mt6797-thermal-se
   stopped while compiling the record-5 owner because its translation unit used
   `MODULE_DESCRIPTION` and `MODULE_LICENSE` without including
   `<linux/module.h>`. No KUnit, device, or storage action occurred. The
-  experiment template now carries that explicit include; the patches and
-  admitted series must be regenerated before retrying the build. See
+  experiment template now carries that explicit include. See
   [results/kunit-build-compile-failure-20260904.txt](results/kunit-build-compile-failure-20260904.txt).
+- Buildbox regenerated and normally replayed corrected patches `0521`--`0523`
+  from clean pushed revision `2893813feada...`. The corrected review again
+  passed its source validator and strict Checkpatch with zero errors, warnings,
+  or checks; the only source change is the explicit module-header include and
+  consequent deterministic patch identities. See
+  [results/patch-regeneration-20260904.txt](results/patch-regeneration-20260904.txt).

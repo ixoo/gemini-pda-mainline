@@ -1,4 +1,4 @@
-From 90f0ed042835ef937bca92252d28f000c143beb8 Mon Sep 17 00:00:00 2001
+From 36ff85c56acc38bb691e75bf9c38765a9a63f2fc Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Fri, 4 Sep 2026 18:03:00 +0000
 Subject: [PATCH 3/3] thermal: mediatek: trace MT6797 probe stages
