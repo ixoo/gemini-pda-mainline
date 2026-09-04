@@ -25,6 +25,14 @@ then adds:
 KUnit, cpufreq, OPP policy, CPU idle, and suspend remain disabled. The physical
 lifecycle remains one-shot and public CPU hotplug remains closed.
 
+After the first live pretrigger, canonical patch `0529` binds this exact
+profile's `18ded825...` configuration identity without changing the profile
+fragments. Canonical patch `0530` makes the already-bound admission controller
+own the observer endpoint: its existing DT phandles resolve the platform-state,
+protected-clock, and BigiDVFS devices, initialize the snapshot source, and only
+then publish one top-level read-only attribute. No snapshot-adapter DT node is
+added, and the later one-shot trigger reuses the prepared devices.
+
 ## Device-tree boundary
 
 The structural base is exact topology/serviceability DT

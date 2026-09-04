@@ -8188,12 +8188,16 @@ lifecycle trigger and all three observer attempts remain unconsumed. Native
 USB recovery returned changed-ID Gemian, and exact `03cbaa72...` is retired
 without repeat. **Selected next:** generate and hardware-free-test two focused
 successor changes on Buildbox: bind the exact production configuration
-identity, then attach the bounded observer to the physical binder's in-memory
-snapshot source. Require a static production-path registration oracle, focused
-tests, clean exact-profile build, independent DT/container validation, and a
-new candidate identity before one new guarded `boot2` attempt. Keep longer
-load, cpufreq/OPP changes, extra hotplug, idle, suspend, and same-artifact
-repeat closed.
+identity, then attach the bounded observer to the admission controller's real
+snapshot source. Exact clean revision `11af7dc3...` generated and replayed
+canonical patches `0529`--`0530`; their source/path, strict style, prior-
+identity preservation, three-attempt budget, no-DT, no-CPU-request, and
+no-hardware-write gates pass. **Selected next:** build the exact production
+profile plus focused observer and hotplug tests on Buildbox. Require a static
+production-path registration oracle, clean exact-profile build, isolated
+focused tests, independent DT/container validation, and a new candidate
+identity before one new guarded `boot2` attempt. Keep longer load, cpufreq/OPP
+changes, extra hotplug, idle, suspend, and same-artifact repeat closed.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

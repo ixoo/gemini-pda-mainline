@@ -1,0 +1,39 @@
+result=pass
+repository_commit=11af7dc3e1f3bc0e43e60fee558a9423a44c2a7b
+build_backend=buildbox
+parent_source_state=285541e876f1ae5dff0f29d6dd1d6e87ca6216cc335a1b5abf903b803cd056a3
+parent_source_integrity=a64c75ca0b94b40bc0eca41a5c0b81dd0719319ddf3ad9baa5d7667fab115cef
+generated_patch_count=2
+changed_path_count=4
+patch_0529_sha256=de831423d783cdc72fd34a9b2705366bac4080d997a37c574dc8d13264d49187
+patch_0530_sha256=bcd86ad0b4aa27eb2798fef6630eb4543a8e2edf117e3a33ca73a50b3f24e21d
+production_config_identity=18ded825be6993a5a403f8cd526e3682199cc55afce876f36b7f194faced0b25
+prior_physical_identity=preserved
+fixture_identity=preserved
+production_observer_owner=a72-admission-controller
+production_snapshot_source=resolved-before-attribute
+disconnected_adapter_wrapper=preserved
+observer_attempt_budget=3-unchanged
+cpu_requests_added=0
+hardware_writes_added=0
+device_tree_changes=0
+normal_format_patches=yes
+synthetic_signoff=absent
+checkpatch_errors=0
+checkpatch_warnings=0
+checkpatch_checks=0
+exact_replay=pass
+source_validation=pass
+patch_path_validation=pass
+manifest_series_invariant=pass
+native_vm_kernel_build=no
+device_action=none
+boot_candidate=false
+
+Patch 0529 selects the captured production config-input identity only when the
+existing physical-hotplug binding and bounded frequency observer are both
+enabled. Patch 0530 resolves the admission controller's already-described
+platform-state, protected-clock, and BigiDVFS suppliers before publishing one
+top-level read-only observer attribute. The one-shot trigger later reuses that
+prepared source, so the observer is visible before mutation while its transport
+remains unavailable until all real suppliers are bound.

@@ -102,6 +102,9 @@ closed.
   package, and five-case isolated runtime proof.
 - `results/production-candidate-20260904.txt`: exact Buildbox production
   package, DT transform, LK candidate, and pretrigger/runtime mutation gate.
+- `results/successor-patch-generation-20260904.txt`: exact Buildbox generation,
+  replay, path, style, identity, and no-new-effect proof for canonical patches
+  `0529` and `0530`.
 
 ## Procedure
 
@@ -213,6 +216,16 @@ closed.
   adapter whose DT node is absent from the production composition. Native USB
   recovery then returned a changed boot ID on Gemian. See
   [results/production-runtime-attempt-1-20260904.txt](results/production-runtime-attempt-1-20260904.txt).
+- Exact clean pushed revision `11af7dc3...` generated and replayed successor
+  patches `0529` and `0530` on Buildbox. Strict path/source validators and
+  Checkpatch pass with zero errors, warnings, or checks. The first patch
+  preserves both predecessor identities while selecting exact `18ded825...`
+  for the observer+physical profile. The second resolves the production
+  admission controller's real snapshot suppliers before exposing one read-only
+  observer attribute; it preserves the disconnected adapter, three-attempt
+  budget, and all existing CPU actions. No DT, CPU request, hardware write,
+  candidate, native VM build, or device action was added. See
+  [results/successor-patch-generation-20260904.txt](results/successor-patch-generation-20260904.txt).
 
 ## Analysis
 
@@ -243,8 +256,8 @@ or its observer budget.
 ## Follow-up
 
 Generate two focused successor changes on Buildbox: bind the production
-configuration identity, then register the bounded observer on the physical
-binder's real snapshot source. Add an offline proof that the production path
+configuration identity, then register the bounded observer on the admission
+controller's real snapshot source. Add an offline proof that the production path
 owns the observer attribute, rebuild and independently validate the exact
 profile and candidate, and only then permit one new guarded `boot2` attempt.
 Keep identical-artifact repeats, longer load, cpufreq/OPP, extra hotplug, idle,

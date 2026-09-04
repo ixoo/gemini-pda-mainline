@@ -1,0 +1,157 @@
+From a31c364aaa5356c5ab64c4bbfe55b805b4e7e0ec Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 4 Sep 2026 20:02:00 +0000
+Subject: [PATCH 2/2] soc: mediatek: attach A72 frequency observer to
+ production
+
+Resolve the real admission-controller snapshot source before exposing the existing bounded read-only observer.
+
+Keep the disconnected adapter wrapper and the three-attempt budget unchanged.
+---
+ .../mt6797-a72-admission-controller.c         | 48 +++++++++++++++++++
+ .../mt6797-a72-frequency-observer-internal.h  |  3 ++
+ .../mediatek/mt6797-a72-frequency-observer.c  | 15 ++++--
+ 3 files changed, 62 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-admission-controller.c b/drivers/soc/mediatek/mt6797-a72-admission-controller.c
+index 962b566..e283d9a 100644
+--- a/drivers/soc/mediatek/mt6797-a72-admission-controller.c
++++ b/drivers/soc/mediatek/mt6797-a72-admission-controller.c
+@@ -24,6 +24,8 @@
+ 
+ #include "mt6797-a72-admission-controller-internal.h"
+ #include "mt6797-a72-cpu9-admission-controller-internal.h"
++#include "mt6797-a72-frequency-observer-internal.h"
++#include "mt6797-a72-hotplug-snapshot-internal.h"
+ #include "mt6797-a72-physical-source-observer-internal.h"
+ #include "mt6797-a72-transition-internal.h"
+ 
+@@ -38,6 +40,10 @@ struct mt6797_a72_admission_controller {
+ 	struct device *clock;
+ 	struct device *bigidvfs;
+ 	struct mt6797_a72_physical_source_context source;
++#if IS_ENABLED(CONFIG_MTK_MT6797_A72_FREQUENCY_OBSERVER)
++	struct mt6797_a72_hotplug_snapshot_source frequency_source;
++	bool frequency_source_ready;
++#endif
+ 	struct mt6797_a72_admission_controller_state state;
+ 	struct mt6797_a72_cpu9_admission_state cpu9;
+ 	struct mt6797_a72_admission_trigger_state trigger;
+@@ -271,6 +277,10 @@ static int mt6797_a72_admission_prepare(struct mt6797_a72_admission_controller *
+ 	struct device *dev = controller->dev;
+ 	int ret;
+ 
++#if IS_ENABLED(CONFIG_MTK_MT6797_A72_FREQUENCY_OBSERVER)
++	if (controller->frequency_source_ready)
++		return 0;
++#endif
+ 	ret = mt6797_a72_admission_resolve(dev, "mediatek,binder",
+ 					   &controller->binder);
+ 	if (ret)
+@@ -292,6 +302,11 @@ static int mt6797_a72_admission_prepare(struct mt6797_a72_admission_controller *
+ 	controller->bigidvfs = bigidvfs;
+ 	mt6797_a72_source_context_init(&controller->source, platform, clock,
+ 				       bigidvfs);
++#if IS_ENABLED(CONFIG_MTK_MT6797_A72_FREQUENCY_OBSERVER)
++	mt6797_a72_hotplug_snapshot_source_init(
++		&controller->frequency_source, platform, clock, bigidvfs);
++	controller->frequency_source_ready = true;
++#endif
+ 	return 0;
+ }
+ 
+@@ -669,6 +684,29 @@ static ssize_t trigger_store(struct device *dev,
+ 	return count;
+ }
+ 
++#if IS_ENABLED(CONFIG_MTK_MT6797_A72_FREQUENCY_OBSERVER)
++static ssize_t a72_frequency_observation_show(
++	struct device *dev, struct device_attribute *attr, char *buf)
++{
++	struct mt6797_a72_admission_controller *controller =
++		dev_get_drvdata(dev);
++
++	(void)attr;
++	return mt6797_a72_frequency_observer_render(
++		dev, &controller->frequency_source, buf);
++}
++static DEVICE_ATTR_RO(a72_frequency_observation);
++
++static struct attribute *mt6797_a72_admission_frequency_attrs[] = {
++	&dev_attr_a72_frequency_observation.attr,
++	NULL,
++};
++
++static const struct attribute_group mt6797_a72_admission_frequency_group = {
++	.attrs = mt6797_a72_admission_frequency_attrs,
++};
++#endif
++
+ static DEVICE_ATTR_RO(status);
+ static DEVICE_ATTR_WO(trigger);
+ 
+@@ -701,6 +739,16 @@ static int mt6797_a72_admission_probe(struct platform_device *pdev)
+ 	platform_set_drvdata(pdev, controller);
+ 
+ 	if (IS_ENABLED(CONFIG_MTK_MT6797_A72_ADMISSION_LIVE_TRIGGER)) {
++#if IS_ENABLED(CONFIG_MTK_MT6797_A72_FREQUENCY_OBSERVER)
++		ret = mt6797_a72_admission_prepare(controller);
++		if (ret)
++			return ret;
++		ret = devm_device_add_group(
++			dev, &mt6797_a72_admission_frequency_group);
++		if (ret)
++			return dev_err_probe(dev, ret,
++					     "frequency observer unavailable\n");
++#endif
+ 		ret = devm_device_add_group(dev,
+ 					    &mt6797_a72_admission_live_group);
+ 		if (ret)
+diff --git a/drivers/soc/mediatek/mt6797-a72-frequency-observer-internal.h b/drivers/soc/mediatek/mt6797-a72-frequency-observer-internal.h
+index 6dd967a..ee7abde 100644
+--- a/drivers/soc/mediatek/mt6797-a72-frequency-observer-internal.h
++++ b/drivers/soc/mediatek/mt6797-a72-frequency-observer-internal.h
+@@ -53,6 +53,9 @@ int mt6797_a72_frequency_observer_sample(
+ 	const struct mt6797_a72_hotplug_snapshot_source *source,
+ 	struct mt6797_a72_frequency_observation *observation,
+ 	struct mt6797_a72_frequency_observer_trace *trace);
++ssize_t mt6797_a72_frequency_observer_render(
++	struct device *dev,
++	struct mt6797_a72_hotplug_snapshot_source *source, char *buf);
+ int mt6797_a72_frequency_observer_register(struct device *dev);
+ #else
+ static inline void mt6797_a72_frequency_observer_init(
+diff --git a/drivers/soc/mediatek/mt6797-a72-frequency-observer.c b/drivers/soc/mediatek/mt6797-a72-frequency-observer.c
+index 86eee32..726b4fe 100644
+--- a/drivers/soc/mediatek/mt6797-a72-frequency-observer.c
++++ b/drivers/soc/mediatek/mt6797-a72-frequency-observer.c
+@@ -110,11 +110,10 @@ out_unlock:
+ 	return ret;
+ }
+ 
+-static ssize_t a72_frequency_observation_show(
+-	struct device *dev, struct device_attribute *attr, char *buf)
++ssize_t mt6797_a72_frequency_observer_render(
++	struct device *dev,
++	struct mt6797_a72_hotplug_snapshot_source *source, char *buf)
+ {
+-	struct mt6797_a72_hotplug_snapshot_source *source =
+-		dev_get_drvdata(dev);
+ 	struct mt6797_a72_frequency_observer_trace trace;
+ 	struct mt6797_a72_frequency_observation observation;
+ 	const struct mt6797_dvfsp_clock_state_cluster *big;
+@@ -165,6 +164,14 @@ static ssize_t a72_frequency_observation_show(
+ 	dev_info(dev, "GEMINI_A72_FREQUENCY_OBSERVATION_V1 %s", buf);
+ 	return count;
+ }
++
++static ssize_t a72_frequency_observation_show(
++	struct device *dev, struct device_attribute *attr, char *buf)
++{
++	(void)attr;
++	return mt6797_a72_frequency_observer_render(
++		dev, dev_get_drvdata(dev), buf);
++}
+ static DEVICE_ATTR_RO(a72_frequency_observation);
+ 
+ static struct attribute *mt6797_a72_frequency_observer_attrs[] = {
