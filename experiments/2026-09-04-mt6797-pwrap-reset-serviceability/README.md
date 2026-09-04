@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-pwrap-reset-serviceability` |
-| Status | `running`; offline candidate and predeployment gates passed |
+| Status | `running`; exact candidate installed and device shut down for boot |
 | Subsystem | MT6797 infracfg reset, PMIC wrapper, MT6351, and eMMC |
 | Device variant | Planet Computers Gemini PDA, MT6797 |
 | Date(s) | 2026-09-04 |
@@ -114,7 +114,15 @@ identity or transport yields no hardware conclusion.
   no-partition/no-write static gate pass.
 - The exact offline and predeployment record is
   [results/offline-candidate-20260904.txt](results/offline-candidate-20260904.txt).
-- No device access or hardware action has occurred for this candidate yet.
+- From changed-ID known-good Gemian, the guarded installer resolved inactive
+  `boot2` as `/dev/mmcblk0p30` while `/dev/mmcblk0p29` was the active root.
+  The 16 MiB target was writable, unmounted, holder-free, and on stable
+  external power with full battery. Its predecessor was `6ba8c9538dcf...`.
+- The installer wrote only `boot2`, synced, flushed, and read the complete
+  partition back as exact candidate `5c7429b297c7...`. It created no fresh
+  backup and then shut the device down; SSH disappearance confirmed the power
+  transition. See [results/deployment-20260904.txt](results/deployment-20260904.txt).
+- No runtime boot has been classified yet.
 
 ## Analysis
 
