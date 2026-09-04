@@ -122,6 +122,12 @@ remain closed.
 - `results/successor-runtime-attempt-2-eproto-20260904.txt`: repeated live
   CPU8/CPU9 stage-18 success, exact two-callback `EPROTO` observation, retained
   recovery, and the no-more-identical-repeat decision.
+- `results/eproto-patch-generation-20260904.txt`: strict Buildbox generation,
+  replay, source, style, and six-state failure-trace proof for canonical
+  patches `0531` and `0532`.
+- `results/eproto-focused-kunit-20260904.txt`: exact clean-revision Buildbox
+  compile and isolated no-network 5/5 arm64 KUnit proof for the failure-stage
+  diagnostic and its unchanged attempt/call budgets.
 
 ## Procedure
 
@@ -327,6 +333,12 @@ remain closed.
   decoder rejection while adding no hardware call, CPU request, write, DT
   change, or attempt. See
   [results/eproto-patch-generation-20260904.txt](results/eproto-patch-generation-20260904.txt).
+- Exact clean published revision `538bfb37...` built the 521-patch focused
+  profile on Buildbox. Its isolated no-network arm64 QEMU run passed all five
+  named observer cases, including the complete failure-stage matrix, with no
+  failure or skip. This is hardware-free diagnostic proof only; it does not
+  admit a candidate or make a live-frequency claim. See
+  [results/eproto-focused-kunit-20260904.txt](results/eproto-focused-kunit-20260904.txt).
 
 ## Analysis
 
@@ -372,9 +384,10 @@ CPU8/CPU9 evidence, but not yet a frequency or composite load pass.
 
 ## Follow-up
 
-Build canonical `0531`--`0532` through the exact focused KUnit and production
-profiles on Buildbox, then run only the focused suite in isolated no-network
-arm64 QEMU. A new candidate may be assembled only if those receipts and the
-independent package, DT, container, pretrigger, and runtime gates pass. Do not
-repeat exact `54a02dd0...`. Keep load, cpufreq/OPP, extra hotplug, idle, and
-suspend closed until a valid first frequency sample exists.
+Build the exact production profile from the same canonical `0531`--`0532`
+source, then run the independent package, DT, container, pretrigger, and
+runtime composition gates. The focused Buildbox and isolated no-network arm64
+QEMU gate is complete at 5/5. A new candidate may be assembled only if every
+remaining gate passes. Do not repeat exact `54a02dd0...`. Keep load,
+cpufreq/OPP, extra hotplug, idle, and suspend closed until a valid first
+frequency sample exists.

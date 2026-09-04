@@ -8242,12 +8242,14 @@ replayed canonical patches `0531`--`0532` from prepared source state
 errors, warnings, or checks. The six-state trace covers success, both transport
 failures, both record-shape failures, and decoder rejection, snapshots only
 already-returned fields, and adds no hardware call, CPU request, write, DT
-change, or observation attempt. **Selected next:** build the exact focused
-KUnit and production profiles on Buildbox, run only the focused suite in
-isolated no-network arm64 QEMU, then assemble a new exact candidate only after
-all package, DT, container, pretrigger, and runtime gates pass. Exact
-`54a02dd0...` must not be repeated; load, cpufreq/OPP, extra hotplug, idle, and
-suspend remain closed.
+change, or observation attempt. Exact clean published revision `538bfb37...`
+then built the 521-patch focused profile on Buildbox; its isolated no-network
+arm64 QEMU run passed all five named cases, including the complete failure-
+stage matrix, with no failure or skip. **Selected next:** build the exact
+production profile from the same source, then admit a new exact candidate only
+after all independent package, DT, container, pretrigger, and runtime gates
+pass. Exact `54a02dd0...` must not be repeated; load, cpufreq/OPP, extra
+hotplug, idle, and suspend remain closed.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
