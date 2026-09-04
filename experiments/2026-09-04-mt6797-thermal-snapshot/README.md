@@ -165,3 +165,31 @@ exhaustion behavior through the actual show callback, removal ordering and
 concurrent polling still need focused review/testing before a no-workload
 production observation candidate. No new device support claim, boot request,
 threshold relaxation or load permission follows from these offline passes.
+
+## Reader lifetime correction under review
+
+The removal audit found that `mtk_thermal_remove()` closes the V4 transaction
+before `device_unbind_cleanup()` releases device-managed resources. Merely
+registering the observer with devres therefore does not protect active readers
+from clock shutdown. The same ordering problem exists on late probe failures
+once a zone or hwmon interface has been published. The earlier statement about
+devres removing the interface before driver-state free remains true, but is
+insufficient to establish safe hardware lifetime.
+
+The prospective [lifetime patch generator](scripts/generate-lifetime-on-buildbox)
+places V4 thermal zone, hwmon and observer resources in one named devres group.
+Remove and late probe failure release that group before transaction close.
+Reverse resource release drains the observer first, then hwmon, then thermal
+zone polling; earlier mappings, clocks and driver state remain outside the
+group. Group allocation refusal closes the transaction without publishing a
+reader. Non-V4 removal behavior is unchanged. No bank or temperature scan is
+added by this change. Strict generation, compilation and lifecycle checks
+remain required before this correction can enter a device candidate.
+
+The [interface oracle](scripts/test-observer-interface.py) uses actual show,
+status, owner, bank and aggregate function bodies with pthread mutexes and
+injected IO/sysfs adapters. It checks complete and failed text, status purity,
+exhaustion without IO, and eight competing observer requests alongside normal
+polling. This is a userspace concurrency test, not evidence of real kernfs,
+thermal workqueue or hardware behavior. Kernel removal guarantees require
+separate source attribution and the proposed group-ordering checks.
