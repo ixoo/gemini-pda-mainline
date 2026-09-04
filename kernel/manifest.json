@@ -11,6 +11,14 @@
   "config": {
     "default_profile": "full",
     "profiles": {
+      "mt6797-thermal-observer-kunit": {
+        "base": "defconfig",
+        "patch_series": "patches/series",
+        "fragments": [
+          "configs/gemini-handoff.fragment",
+          "configs/gemini-mt6797-thermal-observer-kunit.fragment"
+        ]
+      },
       "mt6797-thermal-snapshot-kunit": {
         "base": "defconfig",
         "patch_series": "patches/series",

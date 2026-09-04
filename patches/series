@@ -526,3 +526,5 @@ v7.1.3/0533-soc-mediatek-accept-zero-MT6797-clock-divider.patch
 v7.1.3/0534-soc-mediatek-test-live-zero-divider-clock-state.patch
 v7.1.3/0535-thermal-mediatek-add-bounded-MT6797-snapshot-collector.patch
 v7.1.3/0536-thermal-mediatek-test-bounded-MT6797-snapshot-collector.patch
+v7.1.3/0537-thermal-mediatek-connect-bounded-MT6797-scan-observer.patch
+v7.1.3/0538-thermal-mediatek-test-isolated-thermal-observer-owner.patch

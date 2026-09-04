@@ -1,0 +1,294 @@
+From deef8af012be1266f41e56eb88b4db55c6d18a07 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 5 Sep 2026 02:00:00 +0000
+Subject: [PATCH 1/2] thermal: mediatek: connect bounded MT6797 scan observer
+
+Capture converted samples from the existing bank scan using a separate three-attempt owner. Keep normal thermal polling outside observer accounting and expose root-only complete failure records without additional register accesses.
+---
+ drivers/thermal/mediatek/Kconfig              |  10 ++
+ drivers/thermal/mediatek/auxadc_thermal.c     | 117 +++++++++++++++++-
+ .../mediatek/mt6797_thermal_observer.h        |  57 +++++++++
+ 3 files changed, 179 insertions(+), 5 deletions(-)
+ create mode 100644 drivers/thermal/mediatek/mt6797_thermal_observer.h
+
+diff --git a/drivers/thermal/mediatek/Kconfig b/drivers/thermal/mediatek/Kconfig
+index 2f55911..c2405d7 100644
+--- a/drivers/thermal/mediatek/Kconfig
++++ b/drivers/thermal/mediatek/Kconfig
+@@ -18,6 +18,16 @@ config MTK_SOC_THERMAL
+ 	  This driver configures thermal controllers to collect
+ 	  temperature via AUXADC interface.
+ 
++config MTK_SOC_THERMAL_OBSERVER
++	bool "Bounded MT6797 thermal scan observer"
++	depends on MTK_SOC_THERMAL
++	default n
++	help
++	  Expose three root-only temperature snapshots on MT6797 using
++	  the existing bank scan. Normal thermal polling spends no observer
++	  attempts. Export converted values and timing, never calibration.
++	  This diagnostic supplies no thermal protection or control policy.
++
+ config MTK_SOC_THERMAL_KUNIT_TEST
+ 	tristate "Test MediaTek AUXADC thermal calibration policy" if !KUNIT_ALL_TESTS
+ 	depends on KUNIT
+diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediatek/auxadc_thermal.c
+index 6c0afb6..c9f6d06 100644
+--- a/drivers/thermal/mediatek/auxadc_thermal.c
++++ b/drivers/thermal/mediatek/auxadc_thermal.c
+@@ -27,6 +27,9 @@
+ #include <linux/soc/mediatek/mt6797-eem-calibration.h>
+ #include <linux/soc/mediatek/mt6797-eem-readback.h>
+ 
++#include <linux/ktime.h>
++
++#include "mt6797_thermal_observer.h"
+ #include "auxadc_thermal_internal.h"
+ #include "../thermal_hwmon.h"
+ 
+@@ -387,6 +390,9 @@ struct mtk_thermal {
+ 	/* lock: for getting and putting banks */
+ 	struct mutex lock;
+ 
++#if IS_ENABLED(CONFIG_MTK_SOC_THERMAL_OBSERVER)
++	struct mt6797_thermal_observer observer;
++#endif
+ 	/* Calibration values */
+ 	s32 adc_ge;
+ 	s32 adc_oe;
+@@ -942,13 +948,16 @@ static void mtk_thermal_put_bank(struct mtk_thermal_bank *bank)
+ }
+ 
+ /**
+- * mtk_thermal_bank_temperature - get the temperature of a bank
++ * mtk_thermal_bank_temperature_capture - get the temperature of a bank
+  * @bank:	The bank
++ * @snapshot:	Optional collector for the existing converted samples
+  *
+  * The temperature of a bank is considered the maximum temperature of
+  * the sensors associated to the bank.
+  */
+-static int mtk_thermal_bank_temperature(struct mtk_thermal_bank *bank)
++static int
++mtk_thermal_bank_temperature_capture(struct mtk_thermal_bank *bank,
++				     struct mt6797_thermal_snapshot *snapshot)
+ {
+ 	struct mtk_thermal *mt = bank->mt;
+ 	const struct mtk_thermal_data *conf = mt->conf;
+@@ -961,6 +970,11 @@ static int mtk_thermal_bank_temperature(struct mtk_thermal_bank *bank)
+ 		temp = mt->raw_to_mcelsius(
+ 			mt, conf->bank_data[bank->id].sensors[i], raw);
+ 
++		if (snapshot)
++			mt6797_thermal_snapshot_append(snapshot, bank->id,
++						       conf->bank_data[bank->id].sensors[i], temp,
++						       mtk_thermal_temp_is_valid(temp));
++
+ 		/*
+ 		 * Depending on the filt/sen intervals and ADC polling time,
+ 		 * we may need up to 60 milliseconds after initialization: this
+@@ -980,6 +994,11 @@ static int mtk_thermal_bank_temperature(struct mtk_thermal_bank *bank)
+ 	return max;
+ }
+ 
++static int mtk_thermal_bank_temperature(struct mtk_thermal_bank *bank)
++{
++	return mtk_thermal_bank_temperature_capture(bank, NULL);
++}
++
+ static void mt6797_eem_unpack_anchors(u32 packed, u8 *anchors)
+ {
+ 	unsigned int i;
+@@ -1406,9 +1425,9 @@ int mt6797_eem_calibration_build(
+ }
+ EXPORT_SYMBOL_GPL(mt6797_eem_calibration_build);
+ 
+-static int mtk_read_temp(struct thermal_zone_device *tz, int *temperature)
++static int mtk_read_temp_scan(struct mtk_thermal *mt, int *temperature,
++			      struct mt6797_thermal_snapshot *snapshot)
+ {
+-	struct mtk_thermal *mt = thermal_zone_device_priv(tz);
+ 	int i;
+ 	int tempmax = INT_MIN;
+ 
+@@ -1417,7 +1436,8 @@ static int mtk_read_temp(struct thermal_zone_device *tz, int *temperature)
+ 
+ 		mtk_thermal_get_bank(bank);
+ 
+-		tempmax = max(tempmax, mtk_thermal_bank_temperature(bank));
++		tempmax = max(tempmax,
++			      mtk_thermal_bank_temperature_capture(bank, snapshot));
+ 
+ 		mtk_thermal_put_bank(bank);
+ 	}
+@@ -1427,6 +1447,83 @@ static int mtk_read_temp(struct thermal_zone_device *tz, int *temperature)
+ 	return 0;
+ }
+ 
++static int mtk_read_temp(struct thermal_zone_device *tz, int *temperature)
++{
++	return mtk_read_temp_scan(thermal_zone_device_priv(tz), temperature, NULL);
++}
++
++#if IS_ENABLED(CONFIG_MTK_SOC_THERMAL_OBSERVER)
++static u64 mt6797_observer_time_ns(void *context)
++{
++	return ktime_get_ns();
++}
++
++static int mt6797_observer_scan(void *context,
++				struct mt6797_thermal_snapshot *snapshot,
++				int *aggregate)
++{
++	return mtk_read_temp_scan(context, aggregate, snapshot);
++}
++
++static const struct mt6797_thermal_observer_ops mt6797_observer_ops = {
++	.time_ns = mt6797_observer_time_ns,
++	.scan = mt6797_observer_scan,
++};
++
++static ssize_t mt6797_temperature_snapshot_show(struct device *dev,
++						struct device_attribute *attr,
++						char *buf)
++{
++	struct mt6797_thermal_snapshot snapshot = {};
++	struct mtk_thermal *mt = dev_get_drvdata(dev);
++	ssize_t len;
++	u32 i;
++	int ret;
++
++	ret = mt6797_thermal_observer_capture(&mt->observer, &mt6797_observer_ops,
++					      mt, &snapshot);
++	/* Return a record even on failure: do not invite error-read retries. */
++	len = sysfs_emit(buf,
++			 "abi=%u attempt=%u error=%d complete=%u count=%u valid_mask=%u winner=%u maximum=%d start_ns=%llu end_ns=%llu\n",
++			 snapshot.abi, snapshot.attempt, ret, snapshot.complete,
++			 snapshot.count, snapshot.valid_mask, snapshot.winner,
++			 snapshot.maximum, snapshot.start_ns, snapshot.end_ns);
++	for (i = 0; i < snapshot.count; i++) {
++		const struct mt6797_thermal_snapshot_sample *s = &snapshot.samples[i];
++
++		len += sysfs_emit_at(buf, len,
++				     "slot=%u bank=%u sensor=%u temperature=%d valid=%u\n",
++				     i, s->bank, s->sensor, s->temperature, s->valid);
++	}
++	return len;
++}
++
++static ssize_t mt6797_temperature_snapshot_status_show(struct device *dev,
++						       struct device_attribute *attr,
++						       char *buf)
++{
++	struct mtk_thermal *mt = dev_get_drvdata(dev);
++	u32 attempts;
++
++	mutex_lock(&mt->observer.lock);
++	attempts = mt->observer.budget.attempts;
++	mutex_unlock(&mt->observer.lock);
++	return sysfs_emit(buf, "abi=%u attempts=%u limit=%u\n",
++			  MT6797_THERMAL_SNAPSHOT_ABI, attempts,
++			  MT6797_THERMAL_SNAPSHOT_ATTEMPTS);
++}
++
++static DEVICE_ATTR_ADMIN_RO(mt6797_temperature_snapshot);
++static DEVICE_ATTR_ADMIN_RO(mt6797_temperature_snapshot_status);
++
++static struct attribute *mt6797_observer_attrs[] = {
++	&dev_attr_mt6797_temperature_snapshot.attr,
++	&dev_attr_mt6797_temperature_snapshot_status.attr,
++	NULL,
++};
++ATTRIBUTE_GROUPS(mt6797_observer);
++#endif
++
+ static const struct thermal_zone_device_ops mtk_thermal_ops = {
+ 	.get_temp = mtk_read_temp,
+ };
+@@ -2192,6 +2289,9 @@ static int mtk_thermal_probe(struct platform_device *pdev)
+ 		goto fail_resource;
+ 
+ 	mutex_init(&mt->lock);
++#if IS_ENABLED(CONFIG_MTK_SOC_THERMAL_OBSERVER)
++	mt6797_thermal_observer_init(&mt->observer);
++#endif
+ 	mt->dev = &pdev->dev;
+ 	platform_set_drvdata(pdev, mt);
+ 	for (i = 0; i < mt->conf->num_banks; i++) {
+@@ -2372,6 +2472,13 @@ static int mtk_thermal_probe(struct platform_device *pdev)
+ 		}
+ 	}
+ 
++#if IS_ENABLED(CONFIG_MTK_SOC_THERMAL_OBSERVER)
++	if (mt->conf == &mt6797_thermal_data) {
++		ret = devm_device_add_groups(&pdev->dev, mt6797_observer_groups);
++		if (ret)
++			dev_warn(&pdev->dev, "thermal observer unavailable: %d\n", ret);
++	}
++#endif
+ 	return 0;
+ 
+ fail_zone:
+diff --git a/drivers/thermal/mediatek/mt6797_thermal_observer.h b/drivers/thermal/mediatek/mt6797_thermal_observer.h
+new file mode 100644
+index 0000000..42e8c33
+--- /dev/null
++++ b/drivers/thermal/mediatek/mt6797_thermal_observer.h
+@@ -0,0 +1,57 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __MT6797_THERMAL_OBSERVER_H
++#define __MT6797_THERMAL_OBSERVER_H
++
++#include <linux/mutex.h>
++
++#include "mt6797_thermal_snapshot.h"
++
++struct mt6797_thermal_observer {
++	/* Serializes admission and the entire observer scan, never polling. */
++	struct mutex lock;
++	struct mt6797_thermal_snapshot_budget budget;
++};
++
++struct mt6797_thermal_observer_ops {
++	u64 (*time_ns)(void *context);
++	int (*scan)(void *context, struct mt6797_thermal_snapshot *snapshot,
++		    int *aggregate);
++};
++
++static inline void
++mt6797_thermal_observer_init(struct mt6797_thermal_observer *observer)
++{
++	mutex_init(&observer->lock);
++	observer->budget.attempts = 0;
++}
++
++static inline int
++mt6797_thermal_observer_capture(struct mt6797_thermal_observer *observer,
++				const struct mt6797_thermal_observer_ops *ops,
++				void *context,
++				struct mt6797_thermal_snapshot *snapshot)
++{
++	int aggregate = INT_MIN;
++	int ret;
++
++	if (!observer || !ops || !ops->time_ns || !ops->scan || !snapshot)
++		return -EINVAL;
++
++	mutex_lock(&observer->lock);
++	/* Admission precedes even the clock callback. Failures spend attempts. */
++	ret = mt6797_thermal_snapshot_begin(&observer->budget, snapshot, 0);
++	if (ret)
++		goto unlock;
++
++	snapshot->start_ns = ops->time_ns(context);
++	ret = ops->scan(context, snapshot, &aggregate);
++	if (ret && !snapshot->error)
++		snapshot->error = ret;
++	ret = mt6797_thermal_snapshot_finish(snapshot, ops->time_ns(context),
++					     aggregate);
++unlock:
++	mutex_unlock(&observer->lock);
++	return ret;
++}
++
++#endif /* __MT6797_THERMAL_OBSERVER_H */

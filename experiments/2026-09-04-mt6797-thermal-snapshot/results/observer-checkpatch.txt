@@ -1,0 +1,14 @@
+---------------------------------------------------------------------------------------------------------------------------------------
+<generation>/patches/0001-thermal-mediatek-connect-bounded-MT6797-scan-observe.patch
+---------------------------------------------------------------------------------------------------------------------------------------
+total: 0 errors, 0 warnings, 0 checks, 256 lines checked
+
+<generation>/patches/0001-thermal-mediatek-connect-bounded-MT6797-scan-observe.patch passes the style checker; synthetic unsigned experiment metadata is not submission-ready.
+---------------------------------------------------------------------------------------------------------------------------------------
+<generation>/patches/0002-thermal-mediatek-test-isolated-thermal-observer-owne.patch
+---------------------------------------------------------------------------------------------------------------------------------------
+total: 0 errors, 0 warnings, 0 checks, 141 lines checked
+
+<generation>/patches/0002-thermal-mediatek-test-isolated-thermal-observer-owne.patch passes the style checker; synthetic unsigned experiment metadata is not submission-ready.
+
+NOTE: Ignored message types: COMMIT_LOG_LONG_LINE FILE_PATH_CHANGES MISSING_SIGN_OFF OPEN_ENDED_LINE

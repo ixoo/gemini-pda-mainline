@@ -8334,8 +8334,11 @@ now has canonical production-header and KUnit patches, strict style and replay
 validation, with no driver call site or device interface. Its focused Buildbox
 package and all no-network KUnit cases now pass. **Immediate gate:** connect
 the collector to the existing scan without additional MMIO and add the
-separately locked, default-off observer owner. Prove normal-polling isolation,
-exact read budgets, failure output and driver-return equivalence before
+separately locked, default-off observer owner. Canonical observer integration
+patches now pass strict style and replay review; its focused profile compiles
+the production interface alongside injected owner tests. Complete Buildbox and
+KUnit validation, then prove normal-polling isolation, exact read budgets,
+failure output and driver-return equivalence with a scan-path oracle before
 selecting a production observation profile or new candidate.
 Integrated thermal repeatability, broader load/hotplug, cpufreq/OPP, idle,
 suspend and default integration remain open.

@@ -123,3 +123,15 @@ Buildbox compilation, KUnit execution and a stronger scan-path oracle remain
 required before selecting a production profile or device candidate. These
 source templates are not yet a generated or tested kernel change. No additional
 boot or workload is admitted by this work.
+
+The corrected integration at `483a6206` generated canonical patches `0537`
+and `0538`, both with zero strict Checkpatch errors, warnings or checks and
+identical replay trees. Initial review findings were alignment, mutex comment
+and use of the canonical admin-only attribute macro; all were corrected.
+See [observer style review](results/observer-checkpatch.txt) and
+[generation identity](results/observer-generation.txt). The focused
+`mt6797-thermal-observer-kunit` profile compiles the actual driver/interface and
+ten collector/owner cases, with no matching device under QEMU. Build and test
+results are pending. Existing snapshot-only profiles now include the three
+owner tests when built from the extended canonical series; the earlier
+seven-case result remains pinned to its exact historical revision.
