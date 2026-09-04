@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-thermal-stage-ledger` |
-| Status | production build and exact boot candidate validated; deployment pending |
+| Status | exact candidate installed and device shut down; one boot2 attempt pending |
 | Subsystem | MT6797 thermal probe and ordered AUXADC transaction |
 | Device variant | Planet Computers Gemini PDA, MT6797 |
 | Date(s) | 2026-09-04 |
@@ -100,3 +100,9 @@ owned by the [thermal-serviceability experiment](../2026-09-04-mt6797-thermal-se
   `f54c4692...`, record 5 was empty, battery was 100%, and USB power was online.
   The one-boot hypothesis and result-to-action map are fixed in
   [results/preboot-hypothesis-20260904.txt](results/preboot-hypothesis-20260904.txt).
+- The guarded installer resolved logical `boot2` from the live GPT as inactive
+  `/dev/mmcblk0p30`, wrote exact padded identity `dcb2b4e8dd83...`, flushed it,
+  matched a full-partition readback, and cleanly shut the Gemini down. Gemian's
+  active root remained `/dev/mmcblk0p29`; no backup or other partition write
+  occurred. See
+  [results/deployment-attempt-1-20260904.txt](results/deployment-attempt-1-20260904.txt).
