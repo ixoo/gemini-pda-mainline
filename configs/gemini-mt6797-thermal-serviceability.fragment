@@ -1,0 +1,27 @@
+# Isolated MT6797 thermal/AUXADC serviceability profile. The preceding
+# fragments retain the accepted console, USB, keyboard, SMP8, PWRAP/MT6351,
+# and eMMC baseline. This fragment enables the source-proven thermal path but
+# leaves CPU frequency, idle, suspend, trips, cooling, and standalone AUXADC
+# policy outside the boot.
+CONFIG_LOCALVERSION="-gemini-mt6797-thermal-serviceability"
+# CONFIG_LOCALVERSION_AUTO is not set
+
+CONFIG_THERMAL=y
+CONFIG_THERMAL_OF=y
+CONFIG_MTK_THERMAL=y
+CONFIG_MTK_SOC_THERMAL=y
+CONFIG_NVMEM=y
+CONFIG_NVMEM_MTK_ATAG_DEVINFO=y
+
+# auxadc_thermal.o contains EEM helpers that link these existing pure DVFSP
+# validators. The owner is an explicit build dependency; no CPU admission,
+# I2C6, frequency, or OPP consumer is enabled by this profile.
+CONFIG_MTK_MT6797_DVFSP_HANDOFF=y
+
+# CONFIG_KUNIT is not set
+# CONFIG_COMMON_CLK_MT6797_RESET_KUNIT_TEST is not set
+# CONFIG_MTK_SOC_THERMAL_KUNIT_TEST is not set
+# CONFIG_MTK_SOC_THERMAL_TRANSACTION_KUNIT_TEST is not set
+# CONFIG_CPU_FREQ is not set
+# CONFIG_CPU_IDLE is not set
+# CONFIG_SUSPEND is not set
