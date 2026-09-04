@@ -473,7 +473,7 @@ def production_helpers() -> str:
     \t\tusleep_range(1000, 1500);
     \t}
 
-    \tdev_err(mt->dev, "bank %u has no valid first thermal sample\n", num);
+    \tdev_err(mt->dev, "bank %u has no valid first thermal sample\\n", num);
 
     \treturn -ETIMEDOUT;
     }
@@ -575,7 +575,7 @@ def probe_source() -> str:
     \t\t\t\t      &mt->auxadc_base,
     \t\t\t\t      &mt->auxadc_phys_base);
     \tif (ret) {
-    \t\tdev_err(&pdev->dev, "cannot map AUXADC: %d\n", ret);
+    \t\tdev_err(&pdev->dev, "cannot map AUXADC: %d\\n", ret);
     \t\treturn ret;
     \t}
 
@@ -584,7 +584,7 @@ def probe_source() -> str:
     \t\t\t\t      &mt->apmixed_base,
     \t\t\t\t      &mt->apmixed_phys_base);
     \tif (ret) {
-    \t\tdev_err(&pdev->dev, "cannot map APMIXEDSYS: %d\n", ret);
+    \t\tdev_err(&pdev->dev, "cannot map APMIXEDSYS: %d\\n", ret);
     \t\treturn ret;
     \t}
 
@@ -592,19 +592,19 @@ def probe_source() -> str:
     \t\tmt->rst = devm_reset_control_get_exclusive(&pdev->dev, NULL);
     \t\tif (IS_ERR(mt->rst))
     \t\t\treturn dev_err_probe(&pdev->dev, PTR_ERR(mt->rst),
-    \t\t\t\t\t     "cannot acquire thermal reset\n");
+    \t\t\t\t\t     "cannot acquire thermal reset\\n");
 
     \t\tmt->clk_auxadc = devm_clk_get(&pdev->dev, "auxadc");
     \t\tif (IS_ERR(mt->clk_auxadc))
     \t\t\treturn dev_err_probe(&pdev->dev,
     \t\t\t\t\t     PTR_ERR(mt->clk_auxadc),
-    \t\t\t\t\t     "cannot acquire AUXADC clock\n");
+    \t\t\t\t\t     "cannot acquire AUXADC clock\\n");
 
     \t\tmt->clk_peri_therm = devm_clk_get(&pdev->dev, "therm");
     \t\tif (IS_ERR(mt->clk_peri_therm))
     \t\t\treturn dev_err_probe(&pdev->dev,
     \t\t\t\t\t     PTR_ERR(mt->clk_peri_therm),
-    \t\t\t\t\t     "cannot acquire thermal clock\n");
+    \t\t\t\t\t     "cannot acquire thermal clock\\n");
 
     \t\tmt->raw_to_mcelsius = raw_to_mcelsius_v4;
     \t\tret = mtk_thermal_transaction_execute(
@@ -612,7 +612,7 @@ def probe_source() -> str:
     \t\t\t&mt->transaction, mt->conf->num_banks);
     \t\tif (ret)
     \t\t\treturn dev_err_probe(&pdev->dev, ret,
-    \t\t\t\t\t     "MT6797 transaction failed\n");
+    \t\t\t\t\t     "MT6797 transaction failed\\n");
     \t} else {
     \t\tret = device_reset_optional(&pdev->dev);
     \t\tif (ret)
@@ -622,13 +622,13 @@ def probe_source() -> str:
     \t\tif (IS_ERR(mt->clk_auxadc))
     \t\t\treturn dev_err_probe(&pdev->dev,
     \t\t\t\t\t     PTR_ERR(mt->clk_auxadc),
-    \t\t\t\t\t     "cannot enable AUXADC clock\n");
+    \t\t\t\t\t     "cannot enable AUXADC clock\\n");
 
     \t\tmt->clk_peri_therm = devm_clk_get_enabled(&pdev->dev, "therm");
     \t\tif (IS_ERR(mt->clk_peri_therm))
     \t\t\treturn dev_err_probe(&pdev->dev,
     \t\t\t\t\t     PTR_ERR(mt->clk_peri_therm),
-    \t\t\t\t\t     "cannot enable thermal clock\n");
+    \t\t\t\t\t     "cannot enable thermal clock\\n");
 
     \t\tmtk_thermal_turn_on_buffer(mt, mt->apmixed_base);
     \t\tif (mt->conf->version != MTK_THERMAL_V1)
@@ -663,7 +663,7 @@ def probe_source() -> str:
 
     \tret = devm_thermal_add_hwmon_sysfs(&pdev->dev, tzdev);
     \tif (ret)
-    \t\tdev_warn(&pdev->dev, "error in thermal_add_hwmon_sysfs\n");
+    \t\tdev_warn(&pdev->dev, "error in thermal_add_hwmon_sysfs\\n");
 
     \treturn 0;
     }

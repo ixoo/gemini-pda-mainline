@@ -90,8 +90,11 @@ this gate.
 The first submission was correctly rejected before copying or editing source:
 the managed tree had advanced from the audit state through canonical reset
 patches 0514--0516. All five pinned thermal parent-file hashes were unchanged.
-The generator now pins the advanced source-state identity. Patch generation,
-canonical admission, build, and isolated KUnit execution remain pending.
+The next review stopped at `git diff --check`: Python string escapes had kept
+generator indentation ahead of tabs. No package was published. The generator
+now emits canonical kernel indentation and literal diagnostic newlines. Patch
+generation, canonical admission, build, and isolated KUnit execution remain
+pending.
 
 ## Follow-up
 
