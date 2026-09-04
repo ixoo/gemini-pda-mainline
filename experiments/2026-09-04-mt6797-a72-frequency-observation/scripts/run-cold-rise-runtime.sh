@@ -137,7 +137,11 @@ if ((classifier_rc != 0)); then
 	printf 'native_reboot_command_sent=no\ncapture=%s\n' "$capture"
 	exit "$classifier_rc"
 fi
+set +e
 python3 "$script_dir/compare-cold-rise.py" compare --capture "$capture" >"$capture/cold-rise-comparison.txt"
+comparison_rc=$?
+set -e
 (cd "$capture" && sha256sum cold-rise-comparison.txt >>SHA256SUMS)
 cat "$capture/cold-rise-comparison.txt"
+((comparison_rc == 0)) || exit "$comparison_rc"
 printf 'retries=0\nnative_reboot_command_sent=no\ncapture=%s\n' "$capture"

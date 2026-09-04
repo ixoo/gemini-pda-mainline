@@ -8314,12 +8314,16 @@ but the added host temperature envelope rejected before admission or load.
 The experiment records this as a cold-versus-warm comparison design limitation,
 not a hardware failure. The distinct [temperature-rise contract](../experiments/2026-09-04-mt6797-a72-frequency-observation/COLD_RISE.md)
 now separates initial state from workload rise while retaining absolute upper
-refusal limits and all action ceilings. **Selected next:** publish that
-contract and its offline fixtures, require a new pristine frame on the selected
-unspent second boot, then perform at most its one bounded workload and explicit
-baseline comparison. Preserve the earlier refusal; do not warm the device,
-retry the retired protocol or silently substitute a different boot.
-Integrated cold-cycle repeatability and all broader scope remain open.
+refusal limits and all action ceilings. That single second-boot workload now
+reproduces stage 18, topology, all frequency records, independent accounting
+and every RAM hash. The complete comparison still rejects thermal rise and
+spread; preserve this failure and do not repeat the consumed workload.
+**Selected next:** audit existing thermal sampling/cache semantics and capture
+timing offline, distinguish cold transient behavior from observation artifacts,
+and define a bounded decision-changing observation contract before any further
+device action. Do not widen thermal thresholds to pass the consumed result.
+Integrated thermal repeatability, broader load/hotplug, cpufreq/OPP, idle,
+suspend and default integration remain open.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

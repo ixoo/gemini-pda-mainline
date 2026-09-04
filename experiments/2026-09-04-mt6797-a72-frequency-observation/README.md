@@ -444,6 +444,13 @@ temperature, rise and unchanged absolute upper limits. Its
 [offline fixtures](results/cold-rise-offline-validation.txt) bind the selected
 unspent boot to a new pristine frame and one unchanged finite workload.
 The first protocol and its rejection remain historical evidence.
+After publication at `44832080`, the new pristine frame passed and the one
+unspent transaction completed stage 18, all three fixed frequency samples and
+all 16 hashes, with 69/69 accounting ticks. The
+[thermal comparison rejected](results/cold-rise-runtime-thermal-rejected.txt):
+35.0 degrees C pretrigger rose to 35.6, 35.7 and 41.3 degrees C, exceeding
+the permitted rise difference and spread. The integrated comparison stays
+failed; this boot is now consumed and no additional load or retry is admitted.
 
 ## Analysis
 

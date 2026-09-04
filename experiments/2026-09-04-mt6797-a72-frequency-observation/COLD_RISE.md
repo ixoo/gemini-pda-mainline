@@ -1,5 +1,9 @@
 # Cold-cycle comparison using temperature rise
 
+This protocol is now consumed and closed to repetition after its
+[thermal-comparison rejection](results/cold-rise-runtime-thermal-rejected.txt).
+The preserved contract below was published before the workload.
+
 This is a distinct prospective host protocol. The [rejected first protocol](COLD_REPEAT.md)
 and its 34.0-degree pretrigger refusal remain unchanged. No past result is
 reclassified as an integrated pass. The baseline remains the exact
