@@ -106,6 +106,12 @@ same artifact.
 - The owner reports that the framebuffer console is working on the currently
   running boot. This observation is not attributed to this experiment until
   exact runtime identity is collected, and it is not thermal proof.
+- Buildbox generated and replayed normal patches `0519` and `0520` from exact
+  pushed revision `ea657e202935...` and prepared source state
+  `b4dae5f2b949...`. The three-path source validator passed with one zone,
+  zero trips, zero cooling maps, disabled standalone AUXADC, and the SoC node
+  still default-disabled. Strict Checkpatch reported zero errors, warnings, or
+  checks. See [results/patch-generation-20260904.txt](results/patch-generation-20260904.txt).
 
 ## Analysis
 
