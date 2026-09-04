@@ -14,6 +14,7 @@ BASE = HERE.parent / 'results/cold-repeat-baseline-classification.txt'
 RECEIPT = HERE.parent / 'results/cold-repeat-shutdown.txt'
 BASE_SHA = '6fdd283f07774f7c274065f853d37d18942c6db4e910d71e0e17a0826fa0aae4'
 OLD_BOOT = '50e87880-b73a-46c2-9914-cabe34acff8c'
+RECOVERY_BOOT = 'a59a6e44-5ff2-453e-a78b-4bbba106ed53'
 PINS = {
     'validate-production-pretrigger.py': '39fba1bc82080068ccfa90b9a7188e7beb78881b97ab3a5d01f700023feb186c',
     'classify-production-runtime.py': 'b186b6c1cf83d7757bbe401036d4660d950a25dd59e47aa71515dfb8b3c4f224',
@@ -70,14 +71,16 @@ def gate(capture):
     deployment = module.validate_deployment((capture / 'deployment-summary.txt').read_text())
     raw = (capture / 'pretrigger.txt').read_text()
     boot = module.validate_capture(raw, deployment)
-    require(boot != OLD_BOOT, 'reused-baseline-boot')
+    require(boot not in (OLD_BOOT, RECOVERY_BOOT), 'reused-baseline-or-recovery-boot')
     parsed = module.fields(module.bounded(raw.replace('\r', ''), module.BEGIN, module.END))
     require(48500 <= int(parsed['thermal_temperature_millicelsius']) <= 58500,
             'pretrigger-thermal-baseline-envelope')
     receipt = fields(RECEIPT.read_text())
-    require(receipt == {'boot_id': OLD_BOOT, 'kernel_release': module.RELEASE,
-                       'shutdown_requested': 'yes', 'usb_disconnect_observed': 'yes',
-                       'device_storage_writes': 'none', 'reboot_requested': 'no'},
+    require(receipt == {'boot_id': RECOVERY_BOOT, 'kernel_release': '3.18.41+',
+                       'shutdown_requested': 'yes', 'ssh_disconnect_observed': 'yes',
+                       'boot2_sha256': module.CANDIDATE,
+                       'partition_write': 'none', 'backup_created': 'no',
+                       'reboot_requested': 'no'},
             'cold-cycle-shutdown-receipt')
     return boot
 

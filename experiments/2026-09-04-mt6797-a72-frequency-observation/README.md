@@ -423,7 +423,9 @@ experiments remain closed.
 
 The distinct [cold-repeat protocol](COLD_REPEAT.md) freezes the successful
 candidate and published baseline. Offline admission and comparison tooling is
-ready; no second-boot runtime result is claimed. See the
+ready; no second-boot runtime result is claimed. The device has returned to
+Gemian; [read-only recovery readiness](results/cold-repeat-gemian-readiness.txt)
+confirms the candidate is unchanged and binds the revised shutdown gate. See the
 [offline validation](results/cold-repeat-offline-validation.txt).
 
 ## Analysis

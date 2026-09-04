@@ -46,9 +46,10 @@ spec.loader.exec_module(p)
 with tempfile.TemporaryDirectory(prefix='gemini-cold-repeat-', dir='/tmp') as name:
     root = Path(name)
     m.RECEIPT = root / 'shutdown.txt'
-    receipt = (f'boot_id={m.OLD_BOOT}\nkernel_release={p.validator.RELEASE}\n'
-               'shutdown_requested=yes\nusb_disconnect_observed=yes\n'
-               'device_storage_writes=none\nreboot_requested=no\n')
+    receipt = (f'boot_id={m.RECOVERY_BOOT}\nkernel_release=3.18.41+\n'
+               'shutdown_requested=yes\nssh_disconnect_observed=yes\n'
+               f'boot2_sha256={p.validator.CANDIDATE}\n'
+               'partition_write=none\nbackup_created=no\nreboot_requested=no\n')
     m.RECEIPT.write_text(receipt)
     deployment = p.deployment()
     (root / 'deployment-summary.txt').write_text(deployment)
@@ -57,6 +58,7 @@ with tempfile.TemporaryDirectory(prefix='gemini-cold-repeat-', dir='/tmp') as na
     assert m.gate(root) == p.RUNTIME_BOOT
     cases = [
         pristine.replace(p.RUNTIME_BOOT, m.OLD_BOOT),
+        pristine.replace(p.RUNTIME_BOOT, m.RECOVERY_BOOT),
         pristine.replace('frequency_log_count=0', 'frequency_log_count=1'),
         pristine.replace('trigger_executions=0', 'trigger_executions=1'),
         pristine.replace('53500', '58501'),
@@ -73,8 +75,9 @@ with tempfile.TemporaryDirectory(prefix='gemini-cold-repeat-', dir='/tmp') as na
     (root / 'pretrigger.txt').write_text(pristine)
     for bad_deployment, bad_receipt in [
         (deployment.replace(p.validator.CANDIDATE, '0' * 64), receipt),
-        (deployment, receipt.replace('usb_disconnect_observed=yes', 'usb_disconnect_observed=no')),
-        (deployment, receipt.replace(m.OLD_BOOT, p.RUNTIME_BOOT)),
+        (deployment, receipt.replace('ssh_disconnect_observed=yes', 'ssh_disconnect_observed=no')),
+        (deployment, receipt.replace(m.RECOVERY_BOOT, p.RUNTIME_BOOT)),
+        (deployment, receipt.replace(p.validator.CANDIDATE, '0' * 64)),
     ]:
         (root / 'deployment-summary.txt').write_text(bad_deployment)
         m.RECEIPT.write_text(bad_receipt)
@@ -83,4 +86,4 @@ with tempfile.TemporaryDirectory(prefix='gemini-cold-repeat-', dir='/tmp') as na
         except ValueError:
             continue
         raise SystemExit('unsafe candidate/cycle accepted')
-print('cold_gate_mutations_rejected=9')
+print('cold_gate_mutations_rejected=11')

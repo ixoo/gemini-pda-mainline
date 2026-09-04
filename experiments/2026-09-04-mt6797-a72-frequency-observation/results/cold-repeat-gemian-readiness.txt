@@ -1,0 +1,34 @@
+MT6797 A72 cold-repeat Gemian recovery readiness
+Date: 2026-09-04
+recovery_boot_id=a59a6e44-5ff2-453e-a78b-4bbba106ed53
+kernel_release=3.18.41+
+ssh_serviceability=pass
+sudo_noninteractive=pass
+target_logical_name=boot2
+target=/dev/mmcblk0p30
+root=/dev/mmcblk0p29
+target_mounted=no
+partition_bytes=16777216
+boot2_sha256=ea2aae419220b3c2ea11780f9c91dbb51d509286cd76d2ba1741d9e08e837c9c
+partition_write=none
+backup_created=no
+battery_present=1
+battery_capacity_percent=100
+battery_health=Good
+ac_online=0
+usb_power_online=0
+comparison_mutations_rejected=71
+cold_gate_mutations_rejected=11
+
+Owner reported Gemian running; SSH confirmed the exact recovery boot above.
+The return from the successful mainline session was not observed by this host.
+Live kernel GPT metadata resolved exactly one boot2 target. It is distinct
+from the active root, unmounted and exactly 16 MiB. Its complete read-only
+checksum matches the admitted baseline candidate. No replacement, staging,
+partition write, fresh backup or new kernel build is required.
+
+The amended protocol requires this exact Gemian boot, its candidate checksum,
+a clean poweroff request and observed SSH disconnect before physical boot2
+selection. It rejects reuse of either the baseline or recovery boot ID.
+The original baseline comparison and bounded workload remain unchanged.
+SSH banners and unrelated host/network identifiers are omitted.

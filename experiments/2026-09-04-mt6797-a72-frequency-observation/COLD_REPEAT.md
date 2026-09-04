@@ -27,13 +27,22 @@ bounds, all 16 hashes, independent accounting, cleanup and no storage writes.
 
 ## Admission and comparison
 
-Publish this protocol and offline results before shutdown. Record a clean
-power-off request on the exact baseline boot and observed USB disappearance in
-`results/cold-repeat-shutdown.txt`; no reboot, partition access or backup.
-Physical boot2 selection follows that disconnect. A changed ID alone is not
-proof of cold selection: the owner supplies the physical selection, while the
-host preserves shutdown/disconnect and fresh identity evidence. Electrical
-rail discharge is not measured by this protocol.
+Publish this protocol and offline results before shutdown. The device has
+already returned to Gemian, observed on recovery boot
+`a59a6e44-5ff2-453e-a78b-4bbba106ed53`, release `3.18.41+`. The mechanism of the
+intervening return was not captured; do not claim a host-observed power-off of
+the baseline mainline session. A fresh read-only full-partition checksum of
+live-GPT-resolved inactive boot2 matches the unchanged candidate.
+
+Record a clean Gemian power-off request and observed SSH disappearance in
+`results/cold-repeat-shutdown.txt`, binding that exact recovery boot and boot2
+checksum. No partition write or backup is needed. The fresh mainline ID must
+also differ from this recovery ID. Physical boot2 selection follows shutdown.
+The owner supplies the physical selection; the host preserves shutdown,
+disconnect, candidate and fresh identity evidence. Electrical rail discharge
+is not measured. Normal Gemian shutdown may flush its filesystem; the
+no-storage-write workload claim applies to the mainline measurement, not to
+ordinary Gemian shutdown bookkeeping.
 
 The distinct collector and runner use only
 `artifacts/runtime-captures/a72-frequency-thermal-cold-repeat-1`, refuse existing
@@ -83,7 +92,7 @@ continue to validate materialized workload and raw transcript rejection.
 No kernel source, manifest, patch, DT or configuration changes are needed.
 No kernel build or device filesystem backup is performed.
 
-After clean shutdown the current USB shell disappears. The owner physically
+After clean shutdown Gemian SSH disappears and the device powers down. The owner physically
 selects boot2 using the established hardware sequence. The retained console
 may show boot text; screen appearance alone does not admit the experiment.
 The expected authoritative service is USB/netcat at `10.15.19.82:2323`, initially
