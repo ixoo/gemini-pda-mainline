@@ -1,0 +1,60 @@
+MT6797 live zero-divider decoder patch-generation result
+Date: 2026-09-04
+
+Generation:
+repository_commit=5defc6cc3b04034702e78f210b55019f0dbaf94e
+runtime_evidence_commit=1127a16d
+buildbox_job=5defc6cc3b04034702e78f210b55019f0dbaf94e-mt6797-a72-frequency-zero-divider-patchgen
+package=mt6797-a72-frequency-zero-divider-patches-5defc6cc3b04
+package_manifest_sha256=707683fb721a4841803240e90945fe4bdc44f48cd89ead1f6cf6c90beec0bf83
+parent_source_state=a5e1af3822797f03b3c1a8808b5ad2eda6bb70b2e09469f0a5a61ad96a3bda60
+parent_source_integrity=921fc345e3b34bf551eb320554222cc9f98df4336f19538217e6964061881551
+baseline_commit=32b7b7cdd9dfd5caf10b99b16980e116ce5e3c87
+production_commit=63e691c16ae3a0d1f8d408db822dd283280d4198
+test_commit=702d9e318b561d2165e73e6b5b048697702ff899
+
+Generated patches:
+0533_sha256=491711ab7558b549480e2d4ed3f855081ed3c46349ffd8751e758233d9652a7a
+0534_sha256=e92f06ac89c24ca545974e1cf31c7109e6d69677b34fe4f8b244cd7912d5e063
+generated_patch_count=2
+changed_path_count=2
+normal_git_am_replay=pass
+reproduced_test_commit=pass
+source_validation=pass
+strict_checkpatch_errors=0
+strict_checkpatch_warnings=0
+strict_checkpatch_checks=0
+synthetic_signoff=absent
+
+Canonical admission:
+canonical_patch_series_sha256=4c6b1388b39826b17a95238f0e9e8a551e0dcfd059a37bcdc905a70a84800e69
+manifest_sha256=dd42cb9bc3dc5f2cb82e9697672a0a0aaaccc42becae198827425857f1a14b83
+manifest_profiles_checked=184
+manifest_invariant=pass
+manifest_invariant_mutations_rejected=8
+
+Contract:
+zero_divider_identity=explicit
+unknown_divider_rejection=retained
+live_tuple_kunit=present
+focused_decoder_cases=7
+expected_ll_frequency_khz=897000
+expected_l_frequency_khz=1274000
+expected_b_frequency_khz=750000
+expected_cci_frequency_khz=629500
+additional_hardware_calls=0
+cpu_requests_added=0
+hardware_writes_added=0
+device_tree_changes=0
+native_vm_build=none
+device_action=none
+boot_candidate=false
+
+Buildbox generated two normal patches from the exact managed prepared source.
+Patch 0533 adds selector zero to the explicit 1:1 divider encodings. Patch
+0534 covers selector zero in the complete divider table, changes the malformed
+selector fixture to one, and replays the exact live PLL/divider tuple. Clean
+replay, source/path checks, strict Checkpatch, all 184 manifest profiles, and
+the invariant mutation suite pass. This is source-only admission; the next
+gate is a clean pushed focused Buildbox build and isolated no-network arm64
+KUnit run.

@@ -1,0 +1,22 @@
+From 63e691c16ae3a0d1f8d408db822dd283280d4198 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 5 Sep 2026 00:01:00 +0000
+Subject: [PATCH 1/2] soc: mediatek: accept zero MT6797 clock divider
+
+Treat the observed zero ARMPLLDIV selector as an explicit identity ratio while retaining rejection for every other unknown encoding.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-clock-state.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-clock-state.c b/drivers/soc/mediatek/mt6797-dvfsp-clock-state.c
+index 601b56c..300e97a 100644
+--- a/drivers/soc/mediatek/mt6797-dvfsp-clock-state.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-clock-state.c
+@@ -30,6 +30,7 @@ static int mt6797_dvfsp_clock_divider_decode(
+ 		return -EINVAL;
+ 
+ 	switch (selector) {
++	case 0:
+ 	case 8:
+ 		*divider = (struct mt6797_dvfsp_clock_divider){ 1, 1 };
+ 		break;

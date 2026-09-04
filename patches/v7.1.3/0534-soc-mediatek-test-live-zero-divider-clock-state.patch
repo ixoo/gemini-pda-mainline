@@ -1,0 +1,90 @@
+From 702d9e318b561d2165e73e6b5b048697702ff899 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 5 Sep 2026 00:02:00 +0000
+Subject: [PATCH 2/2] soc: mediatek: test live zero-divider clock state
+
+Replay the exact live PLL and divider tuple and retain an explicit unknown-divider rejection case.
+---
+ .../mediatek/mt6797-dvfsp-clock-state-test.c  | 46 +++++++++++++++++--
+ 1 file changed, 43 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-clock-state-test.c b/drivers/soc/mediatek/mt6797-dvfsp-clock-state-test.c
+index a4a9063..87394d9 100644
+--- a/drivers/soc/mediatek/mt6797-dvfsp-clock-state-test.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-clock-state-test.c
+@@ -83,10 +83,10 @@ static void mt6797_clock_state_big_fields_test(struct kunit *test)
+ static void mt6797_clock_state_dividers_test(struct kunit *test)
+ {
+ 	static const u32 selector[] = {
+-		8, 9, 10, 11, 17, 18, 19, 20, 25, 26, 27, 28, 29,
++		0, 8, 9, 10, 11, 17, 18, 19, 20, 25, 26, 27, 28, 29,
+ 	};
+ 	static const u32 expected[] = {
+-		1976000, 1482000, 988000, 494000, 1580800, 1185600,
++		1976000, 1976000, 1482000, 988000, 494000, 1580800, 1185600,
+ 		790400, 395200, 1646666, 1317333, 988000, 658666, 329333,
+ 	};
+ 	struct mt6797_dvfsp_clock_readback clock;
+@@ -154,6 +154,44 @@ static void mt6797_clock_state_zero_pcw_test(struct kunit *test)
+ 			-EPROTO);
+ }
+ 
++static void mt6797_clock_state_live_zero_dividers_test(struct kunit *test)
++{
++	struct mt6797_dvfsp_clock_readback clock;
++	struct mt6797_bigidvfs_readback big;
++	struct mt6797_dvfsp_clock_state state;
++
++	mt6797_clock_state_valid(&clock, &big);
++	clock.armplldiv_ckdiv = 0x00000008;
++	big.pll_pcw = 0xb9b13b14;
++	big.pll_enable_posdiv = 0x00ff1101;
++	KUNIT_ASSERT_EQ(test,
++			mt6797_dvfsp_clock_state_decode(&clock, &big, &state), 0);
++	KUNIT_EXPECT_EQ(test,
++			state.cluster[MT6797_DVFSP_CLOCK_STATE_CLUSTER_LL].divider_selector,
++			0U);
++	KUNIT_EXPECT_EQ(test,
++			state.cluster[MT6797_DVFSP_CLOCK_STATE_CLUSTER_L].divider_selector,
++			0U);
++	KUNIT_EXPECT_EQ(test,
++			state.cluster[MT6797_DVFSP_CLOCK_STATE_CLUSTER_B].divider_selector,
++			8U);
++	KUNIT_EXPECT_EQ(test,
++			state.cluster[MT6797_DVFSP_CLOCK_STATE_CLUSTER_CCI].divider_selector,
++			0U);
++	KUNIT_EXPECT_EQ(test,
++			state.cluster[MT6797_DVFSP_CLOCK_STATE_CLUSTER_LL].frequency_khz,
++			897000U);
++	KUNIT_EXPECT_EQ(test,
++			state.cluster[MT6797_DVFSP_CLOCK_STATE_CLUSTER_L].frequency_khz,
++			1274000U);
++	KUNIT_EXPECT_EQ(test,
++			state.cluster[MT6797_DVFSP_CLOCK_STATE_CLUSTER_B].frequency_khz,
++			750000U);
++	KUNIT_EXPECT_EQ(test,
++			state.cluster[MT6797_DVFSP_CLOCK_STATE_CLUSTER_CCI].frequency_khz,
++			629500U);
++}
++
+ static void mt6797_clock_state_encoding_guards_test(struct kunit *test)
+ {
+ 	struct mt6797_dvfsp_clock_readback clock;
+@@ -166,7 +204,8 @@ static void mt6797_clock_state_encoding_guards_test(struct kunit *test)
+ 			mt6797_dvfsp_clock_state_decode(&clock, &big, &state),
+ 			-EPROTO);
+ 	mt6797_clock_state_valid(&clock, &big);
+-	clock.armplldiv_ckdiv &= ~GENMASK(4, 0);
++	clock.armplldiv_ckdiv =
++		(clock.armplldiv_ckdiv & ~GENMASK(4, 0)) | 1;
+ 	KUNIT_EXPECT_EQ(test,
+ 			mt6797_dvfsp_clock_state_decode(&clock, &big, &state),
+ 			-EPROTO);
+@@ -183,6 +222,7 @@ static struct kunit_case mt6797_clock_state_cases[] = {
+ 	KUNIT_CASE(mt6797_clock_state_dividers_test),
+ 	KUNIT_CASE(mt6797_clock_state_transport_guards_test),
+ 	KUNIT_CASE(mt6797_clock_state_zero_pcw_test),
++	KUNIT_CASE(mt6797_clock_state_live_zero_dividers_test),
+ 	KUNIT_CASE(mt6797_clock_state_encoding_guards_test),
+ 	{}
+ };

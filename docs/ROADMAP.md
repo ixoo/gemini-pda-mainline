@@ -8271,6 +8271,16 @@ other unknown values, add the exact live tuple to focused KUnit, and pass the
 Buildbox/QEMU and full production composition gates before admitting a distinct
 candidate. Exact `d4eb9cb9...` must not boot again.
 
+Exact clean tooling revision `5defc6cc...` has now generated and independently
+replayed canonical patches `0533`--`0534` from the managed source. The
+production delta adds only explicit selector-zero identity semantics; the
+focused test replays the exact live tuple and preserves rejection of selector
+one. Strict style/source/path validation passes, all 184 manifest profiles
+remain canonical, and the invariant self-test rejects all eight mutations.
+**Selected next:** build the exact clean pushed focused profile on Buildbox and
+run only its decoder/observer suites in isolated no-network arm64 QEMU. No
+device candidate is admitted by patch generation alone.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

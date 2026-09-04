@@ -369,6 +369,14 @@ observer failure and all policy experiments remain closed.
   LL/L/CCI selectors all zero. No additional observer request or workload ran,
   no reboot was requested, and the device was left running. See
   [results/eproto-runtime-decode-zero-divider-20260904.txt](results/eproto-runtime-decode-zero-divider-20260904.txt).
+- Exact clean tooling revision `5defc6cc...` generated and replayed canonical
+  patches `0533` and `0534` from managed prepared source state `a5e1af38...`.
+  Patch `0533` adds only selector zero to the explicit identity ratios; patch
+  `0534` replays the exact live tuple and retains unknown-selector rejection
+  with selector one. Source/path validation and strict Checkpatch pass, all 184
+  manifest profiles preserve canonical order, and all eight invariant
+  mutations are rejected. See
+  [results/zero-divider-patch-generation-20260904.txt](results/zero-divider-patch-generation-20260904.txt).
 
 ## Analysis
 
