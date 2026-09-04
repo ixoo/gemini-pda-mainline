@@ -1,0 +1,20 @@
+classification=not-a-kernel-boot-attempt
+reported_event=boot2-started-then-returned-to-Gemian
+observed_kernel=3.18.41+
+observed_architecture=aarch64
+observed_boot_id_before=f54c4692-0b36-483b-ba93-73dd147af8ab
+observed_boot_id_during=f54c4692-0b36-483b-ba93-73dd147af8ab
+observed_boot_id_after=f54c4692-0b36-483b-ba93-73dd147af8ab
+mainline_usb_interfaces=0
+mainline_netcat_sessions=0
+pstore_file_count=0
+active_root=/dev/mmcblk0p29
+thermal_candidate=retired-and-not-repeated
+runtime_claim=none
+
+The host observed the same live Gemian kernel and boot ID for the complete
+four-minute selection window and again after the owner reported that the UI
+had returned to Gemian. A Linux reboot would assign a new boot ID. This event
+therefore did not reach a new Gemian kernel and is not counted as a second
+runtime attempt of the retired thermal candidate. The screen transition alone
+does not establish bootloader selection, reset, or mainline kernel entry.

@@ -1,0 +1,25 @@
+# Isolated MT6797 thermal serviceability profile with the default-off retained
+# record-5 stage discriminator. The preceding fragments retain the accepted
+# console, USB, keyboard, SMP8, PWRAP/MT6351, and eMMC baseline.
+CONFIG_LOCALVERSION="-gemini-mt6797-thermal-stage-ledger"
+# CONFIG_LOCALVERSION_AUTO is not set
+
+CONFIG_THERMAL=y
+CONFIG_THERMAL_OF=y
+CONFIG_MTK_THERMAL=y
+CONFIG_MTK_SOC_THERMAL=y
+CONFIG_NVMEM=y
+CONFIG_NVMEM_MTK_ATAG_DEVINFO=y
+CONFIG_MTK_MT6797_DVFSP_HANDOFF=y
+CONFIG_PSTORE=y
+CONFIG_PSTORE_RAM=y
+CONFIG_PSTORE_GEMINI_MT6797_THERMAL_LEDGER=y
+
+# CONFIG_PSTORE_GEMINI_MT6797_THERMAL_LEDGER_KUNIT_TEST is not set
+# CONFIG_KUNIT is not set
+# CONFIG_COMMON_CLK_MT6797_RESET_KUNIT_TEST is not set
+# CONFIG_MTK_SOC_THERMAL_KUNIT_TEST is not set
+# CONFIG_MTK_SOC_THERMAL_TRANSACTION_KUNIT_TEST is not set
+# CONFIG_CPU_FREQ is not set
+# CONFIG_CPU_IDLE is not set
+# CONFIG_SUSPEND is not set

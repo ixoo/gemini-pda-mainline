@@ -158,6 +158,11 @@ same artifact.
   repeated. Recovery also found the otherwise-unused 4 KiB ramoops record 5 at
   `0x44415000` in exact pstore-empty state. See
   [results/runtime-attempt-1-inconclusive-pre-transport-20260904.txt](results/runtime-attempt-1-inconclusive-pre-transport-20260904.txt).
+- A later owner-reported start/return event was watched for four minutes and
+  retained the same Gemian boot ID `f54c4692...` before, throughout, and after
+  the event. It exposed no mainline USB and no pstore file, so Linux did not
+  reboot and this is explicitly not a second candidate attempt. See
+  [results/selection-event-2-not-a-boot-20260904.txt](results/selection-event-2-not-a-boot-20260904.txt).
 
 ## Analysis
 

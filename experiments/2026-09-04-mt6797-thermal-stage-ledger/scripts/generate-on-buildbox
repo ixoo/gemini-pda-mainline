@@ -1,0 +1,223 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+export LC_ALL=C
+
+readonly PARENT_SOURCE_STATE=53247e0ff37e03d3a7c12e86d9a9110284994cc633609bd518beee8277e58fa5
+readonly PARENT_SOURCE_INTEGRITY=ec1f5c9c5604738fc97a637bda25bffa2a768e393265e8dc48d8be0fa8bc76ba
+readonly PSTORE_KCONFIG_SHA256=e2b1b2d6644975fa8b60a6ba2ab9ff6adb514d5e03810840be821086421a79d1
+readonly PSTORE_MAKEFILE_SHA256=0f936156cd685f1c6008b7b6e1d2d7411ea3d7c4ca3a4d88ccc56e567a577eb4
+readonly THERMAL_SOURCE_SHA256=c10653d49ad5ff3da451f710980863f66e876ca3a4d3bb6420d39887bdd62ff5
+readonly THERMAL_INTERNAL_SHA256=b778269c8bc06b287414a0595ce95bf93935ca6d9b65c9e504b75a6f9d1a05d2
+readonly TRANSACTION_TEST_SHA256=452c1aceb331ec636f1afcb82fc6ef693147bc55d65cf62432d3a8c70c2688a0
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+
+[[ "$#" -eq 3 ]] || die 'expected PROJECT_COMMIT SOURCE_ROOT OUTPUT_ROOT'
+readonly project_commit=$1
+readonly source_root=$2
+readonly output_root=$3
+[[ "$project_commit" =~ ^[0-9a-f]{40}$ ]] || die 'invalid project commit'
+[[ "$source_root" == /workspace/gemini-pda/src/linux-7.1.3-series-source ]] ||
+	die 'unexpected managed source root'
+[[ "$output_root" == /workspace/gemini-pda/* ]] || die 'unsafe output root'
+[[ -f "$source_root/.gemini-source-state" && ! -L "$source_root/.gemini-source-state" ]] ||
+	die 'prepared source state marker absent or unsafe'
+[[ "$(<"$source_root/.gemini-source-state")" == "$PARENT_SOURCE_STATE" ]] ||
+	die 'prepared parent source state changed'
+[[ -f "$source_root/.gemini-source-integrity" && ! -L "$source_root/.gemini-source-integrity" ]] ||
+	die 'prepared source integrity marker absent or unsafe'
+[[ "$(<"$source_root/.gemini-source-integrity")" == "$PARENT_SOURCE_INTEGRITY" ]] ||
+	die 'prepared parent source integrity changed'
+
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+experiment_dir=$(cd -- "$script_dir/.." && pwd -P)
+repository_dir=$(cd -- "$experiment_dir/../.." && pwd -P)
+templates="$experiment_dir/templates"
+readonly script_dir experiment_dir repository_dir templates
+[[ "$(git -C "$repository_dir" rev-parse HEAD)" == "$project_commit" ]] ||
+	die 'project checkout does not match requested commit'
+[[ -z "$(git -C "$repository_dir" status --porcelain)" ]] ||
+	die 'project checkout is dirty'
+for command in git perl python3 sha256sum; do
+	command -v "$command" >/dev/null 2>&1 || die "missing command: $command"
+done
+
+check_source_hash() {
+	local expected=$1 relative=$2
+
+	printf '%s  %s\n' "$expected" "$source_root/$relative" |
+		sha256sum --check --status || die "prepared source changed: $relative"
+}
+check_source_hash "$PSTORE_KCONFIG_SHA256" fs/pstore/Kconfig
+check_source_hash "$PSTORE_MAKEFILE_SHA256" fs/pstore/Makefile
+check_source_hash "$THERMAL_SOURCE_SHA256" drivers/thermal/mediatek/auxadc_thermal.c
+check_source_hash "$THERMAL_INTERNAL_SHA256" drivers/thermal/mediatek/auxadc_thermal_internal.h
+check_source_hash "$TRANSACTION_TEST_SHA256" drivers/thermal/mediatek/mt6797_auxadc_transaction_test.c
+
+readonly work_root=/workspace/gemini-pda/mt6797-thermal-stage-ledger-work
+readonly package="$output_root/mt6797-thermal-stage-ledger-patches-${project_commit:0:12}"
+readonly partial="${package}.partial.$$"
+mkdir -p "$work_root" "$output_root"
+[[ ! -e "$partial" ]] || die 'stale output partial exists'
+if [[ -d "$package" && ! -L "$package" ]]; then
+	grep -Fx "repository_commit=$project_commit" "$package/provenance/generation.txt" >/dev/null ||
+		die 'existing package commit mismatch'
+	(cd "$package" && sha256sum --check --strict SHA256SUMS >/dev/null)
+	printf 'Generated MT6797 thermal-stage patch review at %s\n' "$package"
+	exit 0
+fi
+[[ ! -e "$package" ]] || die 'unsafe existing package path'
+
+work=$(mktemp -d "$work_root/generation.XXXXXX")
+readonly work
+cleanup() {
+	[[ ! -d "$work" || "$work" != "$work_root"/generation.* ]] || rm -rf -- "$work"
+	[[ ! -d "$partial" || "$partial" != "$output_root"/*.partial.* ]] || rm -rf -- "$partial"
+}
+trap cleanup EXIT
+
+mkdir -p "$work/source/fs/pstore" "$work/source/drivers/thermal/mediatek"
+cp -- "$source_root/fs/pstore/Kconfig" "$source_root/fs/pstore/Makefile" \
+	"$work/source/fs/pstore/"
+cp -- "$source_root/drivers/thermal/mediatek/auxadc_thermal.c" \
+	"$source_root/drivers/thermal/mediatek/auxadc_thermal_internal.h" \
+	"$source_root/drivers/thermal/mediatek/mt6797_auxadc_transaction_test.c" \
+	"$work/source/drivers/thermal/mediatek/"
+git -C "$work/source" init --quiet
+git -C "$work/source" config user.name 'Gemini Mainline Experiment'
+git -C "$work/source" config user.email gemini-mainline@example.invalid
+git -C "$work/source" add -- fs/pstore drivers/thermal/mediatek
+GIT_AUTHOR_DATE=2026-09-04T18:00:00Z GIT_COMMITTER_DATE=2026-09-04T18:00:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'bounded MT6797 thermal-stage source parent'
+baseline_commit=$(git -C "$work/source" rev-parse HEAD)
+readonly baseline_commit
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/source_edits.py" \
+	--source-root "$work/source" --templates "$templates" --phase core
+git -C "$work/source" diff --check
+git -C "$work/source" add -- fs/pstore include/linux/gemini_mt6797_thermal_ledger.h
+git -C "$work/source" diff --cached --check
+GIT_AUTHOR_NAME='Gemini Mainline Experiment' \
+GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid \
+GIT_COMMITTER_NAME='Gemini Mainline Experiment' \
+GIT_COMMITTER_EMAIL=gemini-mainline@example.invalid \
+GIT_AUTHOR_DATE=2026-09-04T18:01:00Z \
+GIT_COMMITTER_DATE=2026-09-04T18:01:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'pstore: add Gemini MT6797 thermal-stage ledger' \
+		-m 'Own exact ramoops record 5 only when it is raw-empty or pstore-empty.' \
+		-m 'Publish alternating CRC-valid copies and seal after one terminal.'
+core_commit=$(git -C "$work/source" rev-parse HEAD)
+readonly core_commit
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/source_edits.py" \
+	--source-root "$work/source" --templates "$templates" --phase tests
+git -C "$work/source" diff --check
+git -C "$work/source" add -- fs/pstore
+git -C "$work/source" diff --cached --check
+GIT_AUTHOR_NAME='Gemini Mainline Experiment' \
+GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid \
+GIT_COMMITTER_NAME='Gemini Mainline Experiment' \
+GIT_COMMITTER_EMAIL=gemini-mainline@example.invalid \
+GIT_AUTHOR_DATE=2026-09-04T18:02:00Z \
+GIT_COMMITTER_DATE=2026-09-04T18:02:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'pstore: test Gemini MT6797 thermal-stage ledger' \
+		-m 'Cover empty ownership, alternating CRC copies, bounds, readback,' \
+		-m 'terminal sealing, corruption fallback, and refusal paths in memory.'
+test_commit=$(git -C "$work/source" rev-parse HEAD)
+readonly test_commit
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/source_edits.py" \
+	--source-root "$work/source" --templates "$templates" --phase instrumentation
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_source.py" \
+	--source-root "$work/source" >"$work/source-validation.txt"
+git -C "$work/source" diff --check
+git -C "$work/source" add -- drivers/thermal/mediatek
+git -C "$work/source" diff --cached --check
+GIT_AUTHOR_NAME='Gemini Mainline Experiment' \
+GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid \
+GIT_COMMITTER_NAME='Gemini Mainline Experiment' \
+GIT_COMMITTER_EMAIL=gemini-mainline@example.invalid \
+GIT_AUTHOR_DATE=2026-09-04T18:03:00Z \
+GIT_COMMITTER_DATE=2026-09-04T18:03:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'thermal: mediatek: trace MT6797 probe stages' \
+		-m 'Record probe and forward transaction boundaries in the optional ledger.' \
+		-m 'Keep cleanup untraced and preserve the no-hook hardware order.'
+instrumentation_commit=$(git -C "$work/source" rev-parse HEAD)
+readonly instrumentation_commit
+
+mkdir -p "$partial/patches" "$partial/provenance"
+readonly patch1=0521-pstore-add-Gemini-MT6797-thermal-stage-ledger.patch
+readonly patch2=0522-pstore-test-Gemini-MT6797-thermal-stage-ledger.patch
+readonly patch3=0523-thermal-mediatek-trace-MT6797-probe-stages.patch
+git -C "$work/source" format-patch -3 --no-signature --numbered \
+	--start-number 1 --output-directory "$partial/patches" >/dev/null
+generated1=$(find "$partial/patches" -maxdepth 1 -type f -name '0001-*.patch' -print)
+generated2=$(find "$partial/patches" -maxdepth 1 -type f -name '0002-*.patch' -print)
+generated3=$(find "$partial/patches" -maxdepth 1 -type f -name '0003-*.patch' -print)
+[[ -n "$generated1" && -n "$generated2" && -n "$generated3" ]] ||
+	die 'normal patch output absent'
+mv -- "$generated1" "$partial/patches/$patch1"
+mv -- "$generated2" "$partial/patches/$patch2"
+mv -- "$generated3" "$partial/patches/$patch3"
+printf '%s\n' "$patch1" "$patch2" "$patch3" >"$partial/patches/series"
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_patches.py" \
+	--patch-dir "$partial/patches" >"$partial/provenance/patch-validation.txt"
+
+git clone --quiet "$work/source" "$work/verify"
+git -C "$work/verify" checkout --quiet --detach "$baseline_commit"
+git -C "$work/verify" config user.name 'Gemini Mainline Experiment'
+git -C "$work/verify" config user.email gemini-mainline@example.invalid
+git -C "$work/verify" am --quiet --committer-date-is-author-date \
+	"$partial/patches/$patch1" "$partial/patches/$patch2" \
+	"$partial/patches/$patch3"
+[[ "$(git -C "$work/verify" rev-parse HEAD)" == "$instrumentation_commit" ]] ||
+	die 'normal patch application did not reproduce generated commits'
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_source.py" \
+	--source-root "$work/verify" >/dev/null
+[[ -z "$(git -C "$work/verify" status --porcelain)" ]] ||
+	die 'verification source is dirty'
+
+if ! perl "$source_root/scripts/checkpatch.pl" --no-tree --strict \
+	--ignore MISSING_SIGN_OFF,FILE_PATH_CHANGES,COMMIT_LOG_LONG_LINE \
+	"$partial/patches/$patch1" "$partial/patches/$patch2" \
+	"$partial/patches/$patch3" >"$partial/provenance/checkpatch.txt"; then
+	cat "$partial/provenance/checkpatch.txt" >&2
+	die 'strict checkpatch rejected generated patches'
+fi
+cp -- "$work/source-validation.txt" "$partial/provenance/source-validation.txt"
+cat >"$partial/provenance/generation.txt" <<EOF
+purpose=experiment-only-mt6797-thermal-stage-ledger
+repository_commit=$project_commit
+parent_source_state=$PARENT_SOURCE_STATE
+parent_source_integrity=$PARENT_SOURCE_INTEGRITY
+baseline_commit=$baseline_commit
+core_commit=$core_commit
+test_commit=$test_commit
+instrumentation_commit=$instrumentation_commit
+generated_patch_count=3
+changed_path_count=11
+owned_record=5
+owned_base=0x44415000
+maximum_commits=96
+successful_transaction_trace_events=64
+synthetic_signoff=absent
+native_vm_kernel_build=no
+hardware_action=none
+device_action=none
+boot_candidate=false
+EOF
+(
+	cd "$partial"
+	find patches provenance -type f -print0 | sort -z |
+		xargs -0 sha256sum >SHA256SUMS
+	sha256sum --check --strict SHA256SUMS >/dev/null
+)
+mv "$partial" "$package"
+trap - EXIT
+rm -rf -- "$work"
+printf 'Generated MT6797 thermal-stage patch review at %s\n' "$package"

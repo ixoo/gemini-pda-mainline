@@ -1,0 +1,17 @@
+# Hardware-free proof of the MT6797 thermal-stage ledger and optional ordered
+# transaction tracing. QEMU has no matching MT6797 platform device; only the
+# injected-memory ledger and callback-backed transaction suites execute.
+CONFIG_THERMAL=y
+CONFIG_THERMAL_OF=y
+CONFIG_MTK_THERMAL=y
+CONFIG_MTK_SOC_THERMAL=y
+CONFIG_NVMEM=y
+CONFIG_NVMEM_MTK_ATAG_DEVINFO=y
+CONFIG_MTK_MT6797_DVFSP_HANDOFF=y
+CONFIG_PSTORE=y
+CONFIG_PSTORE_RAM=y
+CONFIG_PSTORE_GEMINI_MT6797_THERMAL_LEDGER=y
+CONFIG_PSTORE_GEMINI_MT6797_THERMAL_LEDGER_KUNIT_TEST=y
+CONFIG_KUNIT=y
+CONFIG_MTK_SOC_THERMAL_TRANSACTION_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-mt6797-thermal-stage-ledger-kunit"

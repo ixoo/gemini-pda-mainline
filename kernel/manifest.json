@@ -3797,6 +3797,31 @@
                     "configs/gemini-mt6797-thermal-serviceability.fragment"
                 ]
             },
+            "mt6797-thermal-stage-ledger-kunit": {
+                "base": "defconfig",
+                "patch_series": "patches/series",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-mt6797-thermal-stage-ledger-kunit.fragment"
+                ]
+            },
+            "mt6797-thermal-stage-ledger": {
+                "base": "defconfig",
+                "patch_series": "patches/series",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-usbdiag.fragment",
+                    "configs/gemini-clk-ignore-unused.fragment",
+                    "configs/gemini-observability.fragment",
+                    "configs/gemini-fbcon-rotation.fragment",
+                    "configs/gemini-keyboard.fragment",
+                    "configs/gemini-keyboard-wrrd.fragment",
+                    "configs/gemini-keyboard-manual-reboot.fragment",
+                    "configs/gemini-smp8.fragment",
+                    "configs/gemini-emmc-development.fragment",
+                    "configs/gemini-mt6797-thermal-stage-ledger.fragment"
+                ]
+            },
             "mt6797-a72-platform-state-source": {
                 "base": "defconfig",
                 "patch_series": "patches/series",
