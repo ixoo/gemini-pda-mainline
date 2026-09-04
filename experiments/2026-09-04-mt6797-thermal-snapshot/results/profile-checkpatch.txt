@@ -1,0 +1,5 @@
+total: 0 errors, 0 warnings, 0 checks, 17 lines checked
+
+<generation>/patches/0001-arm64-bind-Gemini-thermal-snapshot-configuration.patch passes style review; synthetic unsigned experiment metadata is not submission-ready.
+
+NOTE: Ignored message types: COMMIT_LOG_LONG_LINE FILE_PATH_CHANGES MISSING_SIGN_OFF OPEN_ENDED_LINE
