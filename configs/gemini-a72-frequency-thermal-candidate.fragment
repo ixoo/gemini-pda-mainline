@@ -1,0 +1,14 @@
+# Production composition for one bounded stage-18 4+4+2 observation. The
+# preceding fragments own the exact physical lifecycle, eMMC baseline, and
+# runtime-proven thermal ledger. This fragment adds only the three-attempt
+# read-only frequency observer and keeps every injected test and later power
+# policy outside the device image.
+CONFIG_MTK_MT6797_A72_FREQUENCY_OBSERVER=y
+# CONFIG_MTK_MT6797_A72_FREQUENCY_OBSERVER_KUNIT_TEST is not set
+# CONFIG_MTK_MT6797_DVFSP_CLOCK_STATE_KUNIT_TEST is not set
+# CONFIG_KUNIT is not set
+# CONFIG_CPU_FREQ is not set
+# CONFIG_CPU_IDLE is not set
+# CONFIG_SUSPEND is not set
+CONFIG_LOCALVERSION="-gemini-a72-frequency-thermal"
+# CONFIG_LOCALVERSION_AUTO is not set

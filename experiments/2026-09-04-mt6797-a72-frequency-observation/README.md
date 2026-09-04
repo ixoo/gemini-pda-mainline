@@ -57,6 +57,8 @@ the offline decoder gate and a separate observation composition pass.
 - `scripts/classify-kunit.py`: exact focused KTAP classifier.
 - [`OBSERVER.md`](OBSERVER.md): frozen three-attempt live observation boundary,
   transport budget, hardware-free gate, and eventual device decision branches.
+- [`COMPOSITION.md`](COMPOSITION.md): exact production-profile, DT, runtime,
+  and decision boundary for the stage-18 thermal/frequency successor.
 - `scripts/generate-observer-on-buildbox`: pinned two-patch observer generator,
   exact replay, and strict review gate.
 - `scripts/observer_source_edits.py`: deterministic production observer and
