@@ -19,6 +19,7 @@ EXPECTED_CASES = (
     "mt6797_clock_state_dividers_test",
     "mt6797_clock_state_transport_guards_test",
     "mt6797_clock_state_zero_pcw_test",
+    "mt6797_clock_state_live_zero_dividers_test",
     "mt6797_clock_state_encoding_guards_test",
 )
 
@@ -80,12 +81,19 @@ def main() -> None:
         observed == list(enumerate(EXPECTED_CASES, start=1)),
         f"case inventory changed: {observed}",
     )
+    expected_total = len(EXPECTED_CASES)
     require(
-        lines.count(f"# {SUITE}: pass:6 fail:0 skip:0 total:6") == 1,
+        lines.count(
+            f"# {SUITE}: pass:{expected_total} fail:0 skip:0 total:{expected_total}"
+        )
+        == 1,
         "suite totals changed",
     )
     require(
-        lines.count("# Totals: pass:6 fail:0 skip:0 total:6") == 1,
+        lines.count(
+            f"# Totals: pass:{expected_total} fail:0 skip:0 total:{expected_total}"
+        )
+        == 1,
         "global totals changed",
     )
     require(lines.count(f"ok 1 {SUITE}") == 1, "suite result absent")
