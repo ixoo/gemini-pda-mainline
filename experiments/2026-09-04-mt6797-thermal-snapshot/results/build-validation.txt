@@ -1,0 +1,47 @@
+MT6797 disconnected thermal snapshot build and test validation
+Date: 2026-09-04
+repository_revision=846391b22e9ed4576cf5e6b5751ab1afd93909c2
+profile=mt6797-thermal-snapshot-kunit
+backend=buildbox
+package_validation=pass
+patch_count=525
+patchset_sha256=cfb6549d2f72ed7a424f595b550c6f4667801bf154868320549a2c44e5b3a3e1
+config_sha256=4d4005a13a3821d62f42d454b870cff79b76d14bc7b9eb3c21f8f7c4adf3d7f6
+package_fetch=validated-export-only
+kunit_suite=mt6797-thermal-snapshot
+kunit_cases_passed=7
+kunit_failures=0
+kunit_skips=0
+qemu_host=development-host
+qemu_version=11.0.2
+qemu_machine=virt
+qemu_cpu=cortex-a53
+qemu_vcpus=4
+qemu_memory_mib=1024
+qemu_network=none
+qemu_timeout_seconds=45
+qemu_exit=124
+classifier_positive_fixture=1
+classifier_mutations_rejected=8
+manifest_profiles_valid=185
+manifest_invariant_mutations_rejected=8
+production_thermal_driver=disabled-in-test-config
+production_call_site=absent
+device_interface=absent
+boot_candidate=false
+device_action=none
+native_vm_build=none
+
+The exact pushed clean revision built and passed the Buildbox package gate.
+The prepared source was replaced only because the canonical source state gained
+the two new logical patches; no experiment-specific Linux source copy was made.
+The validated package was fetched through scripts/buildbox fetch-package for
+host QEMU execution. The initial Buildbox QEMU launch returned a missing-system-
+emulator error before any kernel execution. The host emulator ran the unchanged
+package with networking disabled. All seven named cases passed, followed by the
+expected no-root-filesystem panic; the bounded QEMU timeout ended the process.
+The strict classifier accepted the exact case inventory, totals and kernel.
+
+The pure collector is proven hardware-free only. This does not establish live
+sensor accuracy, snapshot locking/serialization in production, or a new device
+observation. No thermal thresholds were changed and no CPU workload was rerun.

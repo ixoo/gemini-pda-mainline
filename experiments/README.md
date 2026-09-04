@@ -31,6 +31,7 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-09-04 MT6797 bounded thermal snapshot collector](2026-09-04-mt6797-thermal-snapshot/README.md)
 - [2026-09-04 MT6797 attributable A72 frequency observation](2026-09-04-mt6797-a72-frequency-observation/README.md)
   — begins the frequency half of the observability gate after thermal runtime
   success. Exact source and live-readback review rejects the old protected

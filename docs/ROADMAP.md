@@ -8331,9 +8331,12 @@ no-workload observation candidate. Do not widen thresholds or repeat either
 consumed workload.
 The [disconnected snapshot collector](../experiments/2026-09-04-mt6797-thermal-snapshot/README.md)
 now has canonical production-header and KUnit patches, strict style and replay
-validation, with no driver call site or device interface. **Immediate gate:**
-build its named focused profile on Buildbox and run the exact no-network KUnit
-suite before adding the observation owner and driver wiring.
+validation, with no driver call site or device interface. Its focused Buildbox
+package and all no-network KUnit cases now pass. **Immediate gate:** connect
+the collector to the existing scan without additional MMIO and add the
+separately locked, default-off observer owner. Prove normal-polling isolation,
+exact read budgets, failure output and driver-return equivalence before
+selecting a production observation profile or new candidate.
 Integrated thermal repeatability, broader load/hotplug, cpufreq/OPP, idle,
 suspend and default integration remain open.
 

@@ -82,5 +82,9 @@ Published source revision `6fd0f7e9` generated canonical patches `0535` and
 pass strict Checkpatch with zero errors, warnings or checks and reproduce the
 same tree through independent patch replay. The pure collector has no normal
 driver call site. The named `mt6797-thermal-snapshot-kunit` manifest profile
-selects the canonical series and only this focused suite; its build and runtime
-result remain pending.
+selects the canonical series and only this focused suite. Exact clean revision
+`846391b2` passes the Buildbox package gate and all seven no-network QEMU cases
+with no failure or skip. See [build validation](results/build-validation.txt)
+and the [strict KUnit result](results/kunit-pass.json). The initial remote QEMU
+launch found no system emulator; the validated package ran unchanged on the
+host emulator. This closes the pure collector gate, not production integration.

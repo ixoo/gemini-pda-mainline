@@ -1,0 +1,15 @@
+{
+  "boot_candidate": false,
+  "build_profile": "mt6797-thermal-snapshot-kunit",
+  "cases_passed": 7,
+  "classification": "exact_focused_kunit_pass",
+  "config_sha256": "4d4005a13a3821d62f42d454b870cff79b76d14bc7b9eb3c21f8f7c4adf3d7f6",
+  "device_action": "none",
+  "hardware_action": "none",
+  "image_sha256": "447a91d20797882c272eff9c62be08233aaee66db67b7b498a6d46775a40e2b3",
+  "kernel_release": "7.1.3-gemini-mt6797-thermal-snapshot-kunit",
+  "observed_utc": "2026-09-04T22:24:57Z",
+  "raw_log_sha256": "b5e895ea26c68b7e497b7266458697f0055ee0483777973fc853008dc45775be",
+  "repository_commit": "846391b22e9ed4576cf5e6b5751ab1afd93909c2",
+  "suite": "mt6797-thermal-snapshot"
+}
