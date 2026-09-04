@@ -146,3 +146,12 @@ The guarded deployment has now written and fully read back exact
 `ea2aae41...` on inactive live-GPT `boot2`, then cleanly shut the device down.
 No fresh backup or reboot was requested. The next accepted evidence begins
 with the zero-read pristine frame on a physically selected boot2 boot.
+
+The fresh boot passed that pristine frame and consumed all three observer
+attempts successfully around the finite workload. Each record decoded LL
+897000, L 1274000, Big 750000, and CCI 629500 kHz from the stable live tuple;
+the middle observation occurred while both pinned A72 workers were alive.
+Stage 18, exact 4+4+2 topology, independent CPU8/CPU9 accounting, all bounded
+RAM hashes, cleanup, and plausible 53.5--53.7 degree C thermal observations
+passed in the same boot-ID-bound frame. The observer's selected live boundary
+is now complete.

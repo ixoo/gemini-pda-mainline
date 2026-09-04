@@ -408,6 +408,16 @@ experiments remain closed.
   exact `ea2aae41...`, made no fresh backup or reboot request, and confirmed
   shutdown. See
   [results/zero-divider-deployment-20260904.txt](results/zero-divider-deployment-20260904.txt).
+- The fresh exact successor boot passed its pristine USB/netcat gate on boot ID
+  `50e87880...`, then completed the one-shot stage-18 lifecycle with CPUs 0--9
+  online. All three observer records decoded the stable live tuple as LL 897
+  MHz, L 1274 MHz, Big 750 MHz, and CCI 629.5 MHz before, during, and after the
+  bounded workload. Both affinity-pinned A72 workers remained live across the
+  middle sample, independently advanced by 71/73 accounting ticks, and passed
+  all 16 writer/peer-reader hashes over four rounds. The policy-free thermal
+  zone moved from 53.5 to 53.7 degrees C. No storage write or reboot was
+  requested, and the device remained on mainline. See
+  [results/zero-divider-runtime-pass-20260904.txt](results/zero-divider-runtime-pass-20260904.txt).
 
 ## Analysis
 
@@ -445,18 +455,17 @@ arm64 QEMU. The diagnostic candidate has no reason to boot again.
 
 ## Conclusion
 
-`distinct zero-divider production candidate installed and verified`: exact diagnostic
-candidate `d4eb9cb9...` identified omitted selector-zero semantics after stage
-18 completed with CPUs 0--9 online. Canonical patches `0533`--`0534` now pass
-the 5/5 observer and 7/7 decoder Buildbox/QEMU gates, and production candidate
-`ea2aae41...` passes offline gates plus guarded full-partition write/readback.
-The device is shut down. This is not yet a live frequency or composite-load
-pass.
+`zero-divider production runtime passed`: exact candidate `ea2aae41...`
+completed stage 18, kept CPUs 0--9 online in the 4+4+2 topology, produced all
+three stable decoded frequency observations, retained plausible thermal state,
+and passed the finite dual-A72 concurrent workload with independent CPU8/CPU9
+accounting and all hashes exact. This closes the experiment's live
+frequency/thermal/load predicate, not default support or the broader A72 exit
+criteria.
 
 ## Follow-up
 
-Physically select boot2, then require the exact zero-read pretrigger before one
-bounded stage-18/frequency/runtime protocol. A failure must stop before load;
-three valid samples may continue only into the existing finite four-round
-dual-A72 workload. Do not repeat `d4eb9cb9...` or `54a02dd0...`. Keep
-cpufreq/OPP, extra hotplug, idle, and suspend closed.
+Archive this successful exact result and follow the ordered Roadmap. Any next
+device run must state a new decision-changing repeatability or support
+hypothesis; do not simply rerun this consumed one-shot protocol. Keep
+cpufreq/OPP, extra hotplug, idle, and suspend closed until their separate gates.

@@ -8292,6 +8292,21 @@ reboot request, and confirmed shutdown. **Selected next:** physically select
 boot2 and require the pristine frame before one bounded stage-18/frequency/load
 attempt. No repeat of `d4eb9cb9...` is admitted.
 
+That fresh exact boot passed its pristine frame on boot ID `50e87880...` and
+the complete bounded predicate. Stage 18 left CPUs 0--9 online; all three
+records decoded LL 897 MHz, L 1274 MHz, Big 750 MHz, and CCI 629.5 MHz; the
+policy-free thermal zone remained at 53.5--53.7 degrees C; and both pinned A72
+workers independently advanced by 71/73 ticks while all 16 finite writer and
+peer-reader hashes matched. No device storage write or reboot was requested.
+This closes the first integrated lifecycle/frequency/thermal/load gate on the
+named device. **Selected next:** freeze this candidate and result as the
+repeatability baseline, then design a fresh cold-boot repeat protocol whose
+independent observation is boot-to-boot reproducibility rather than an
+identical one-shot rerun. Require a new boot ID, exact candidate identity,
+pristine accounting, the same bounded load ceiling, and an explicit comparison
+against this pass before admitting that run. Continue to keep cpufreq/OPP,
+broader hotplug, idle, suspend, and default-profile integration closed.
+
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;
 - OPP and cpufreq tables with conservative voltage bounds;

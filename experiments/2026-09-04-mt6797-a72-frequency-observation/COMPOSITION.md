@@ -176,3 +176,12 @@ root `/dev/mmcblk0p29`; exact `ea2aae41...` replaced retired `d4eb9cb9...` and
 matched a full 16 MiB readback under stable power. No fresh backup or reboot
 was requested, and clean shutdown was confirmed. The next action is the
 owner's physical boot2 selection followed by the exact pristine gate.
+
+That fresh boot passed the exact pristine gate on boot ID `50e87880...` and
+completed stage 18 with CPUs 0--9 online. The observer returned three valid
+records around the bounded four-round dual-A72 workload. All three decode to LL
+897000, L 1274000, Big 750000, and CCI 629500 kHz; temperature was 53500,
+53500, and 53700 millicelsius. CPU8/CPU9 advanced independently by 71/73 ticks,
+both workers remained live across the middle sample, and all 16 writer and peer
+reader hashes matched. No storage write or reboot was requested. The exact
+composition therefore passes its selected live predicate.
