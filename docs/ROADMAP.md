@@ -8309,11 +8309,15 @@ broader hotplug, idle, suspend, and default-profile integration closed.
 
 The distinct [host cold-repeat protocol](../experiments/2026-09-04-mt6797-a72-frequency-observation/COLD_REPEAT.md)
 now freezes admission and explicit baseline comparison with fail-closed mutation
-fixtures. Gemian recovery confirmed the unchanged candidate and clean shutdown;
-the experiment records the observed transport disconnect. **Selected next:**
-the owner physically selects boot2, then require the recorded cold cycle and
-pristine new-ID gate before one bounded repeat. Publish its comparison before
-widening scope.
+fixtures. The fresh physical boot passed inherited identity/pristine checks,
+but the added host temperature envelope rejected before admission or load.
+The experiment records this as a cold-versus-warm comparison design limitation,
+not a hardware failure. **Selected next:** design and offline-validate a
+cold-start thermal comparison that distinguishes initial temperature from
+workload rise and justified anomaly limits, preserving the failed gate and
+all existing action ceilings. Publish that distinct contract before selecting
+any further device action; do not warm the device or retry this protocol.
+Integrated cold-boot repeatability and all broader scope remain open.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

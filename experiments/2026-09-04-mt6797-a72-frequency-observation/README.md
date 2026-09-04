@@ -433,7 +433,11 @@ accepted `systemctl poweroff` after sync. Three bounded SSH probes then found
 the service unreachable. The [shutdown receipt](results/cold-repeat-shutdown.txt)
 binds that cycle to the verified unchanged candidate. No partition write,
 backup, kernel build or automatic reboot occurred. Physical boot2 selection
-and the pristine second-boot measurement remain pending.
+was subsequently reported by the owner. The fresh frame passed inherited
+identity/pristine checks but the added cold-repeat temperature envelope rejected
+34.0 degrees C before any admission or load. See the
+[rejected cold pretrigger](results/cold-repeat-pretrigger-rejected.txt).
+The second integrated measurement remains unperformed; the host did not retry.
 
 ## Analysis
 

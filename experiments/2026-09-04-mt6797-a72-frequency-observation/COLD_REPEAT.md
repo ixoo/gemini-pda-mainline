@@ -1,5 +1,9 @@
 # Distinct cold-boot repeat protocol
 
+This protocol is closed to retry after its [cold pretrigger rejection](results/cold-repeat-pretrigger-rejected.txt).
+The following is the preserved prepublished contract, not authorization for
+another attempt.
+
 ## Hypothesis and attribution
 
 On the named Gemini PDA, the unchanged kernel, DT, configuration, and exact
