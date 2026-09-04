@@ -59,7 +59,7 @@ def main() -> int:
     combined = "\n".join(texts)
     for required in (
         "+mtk_thermal_transaction_execute(",
-        "+\tmt->rst = devm_reset_control_get_exclusive",
+        "+\t\tmt->rst = devm_reset_control_get_exclusive",
         "+\treturn value & ~GENMASK(5, 4);",
         "+\treturn !(value & BIT(0));",
         "+\treturn !(value >> 16);",
