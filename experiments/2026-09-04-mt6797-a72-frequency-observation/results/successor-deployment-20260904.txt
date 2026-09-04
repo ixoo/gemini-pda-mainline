@@ -1,0 +1,29 @@
+result=write-synced-flushed-full-readback-verified
+published_tooling_commit=198286f61bca3d2f6d54d7fd6c2425d7dca7e865
+target_logical_name=boot2
+target=/dev/mmcblk0p30
+root=/dev/mmcblk0p29
+predecessor_sha256=03cbaa72eafed9077d9a6cafa33766c86eae702fdbc61decf503c16ad98c3c32
+fresh_predecessor_backup=no
+candidate_sha256=54a02dd0e46d54702284e679847c69f28c64cc392fca97c9b8d1940374484da7
+readback_sha256=54a02dd0e46d54702284e679847c69f28c64cc392fca97c9b8d1940374484da7
+deployment_boot_id=963040cf-156a-43fe-9e91-5468916dd351
+power_present=1
+power_capacity_percent=100
+power_health=Good
+external_power_online=1
+temporary_readback_removed=yes
+private_summary_sha256=247db2351038a1fe6e8bb1fc686f3fba35f7642a59d73a53518638c94affa3f3
+shutdown=requested-after-evidence-flush
+post_shutdown_reachability=unreachable
+reboot=no
+next_action=owner-physically-selects-boot2-once-with-usb-attached
+
+The guarded installer resolved logical boot2 from the live GPT and proved it
+was the exact inactive, unmounted, writable 16 MiB partition, distinct from the
+known-good Gemian root. It recorded the predecessor checksum without making a
+new backup, wrote only when that checksum still matched, synchronized and
+flushed the target, verified its full-partition checksum, independently
+streamed and compared all 16 MiB byte-for-byte, removed temporary data, flushed
+the evidence, and requested a clean poweroff. SSH becoming unreachable
+confirmed shutdown; no reboot command was issued.

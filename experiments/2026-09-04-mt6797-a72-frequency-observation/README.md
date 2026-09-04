@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-a72-frequency-observation` |
-| Status | `running`; successor passes offline gate, guarded deployment selected |
+| Status | `running`; successor installed and shut down, fresh boot selected |
 | Subsystem | MT6797 CPU clock readback / Cortex-A72 lifecycle |
 | Device variant | Gemini PDA x27, named development unit |
 | Date(s) | 2026-09-04 |
@@ -109,6 +109,8 @@ closed.
 - `results/successor-offline-gate-20260904.txt`: exact successor production and
   focused Buildbox packages, isolated 5/5 and 14/14 KUnit results, production
   registration oracle, DT/container identities, and new candidate admission.
+- `results/successor-deployment-20260904.txt`: live-GPT target resolution,
+  predecessor, exact full readback, no-backup policy, and confirmed shutdown.
 
 ## Procedure
 
@@ -252,6 +254,14 @@ closed.
   Gemian recovery boot afterward, with its unchanged boot ID and 3.18 kernel.
   That screen observation is therefore unattributed and is not evidence for or
   against the successor.
+- Published tooling commit `198286f6...` froze the admitted identities and
+  direct-USB capture path. Its guarded installer then resolved inactive live-GPT
+  `boot2` as `/dev/mmcblk0p30`, distinct from Gemian root `/dev/mmcblk0p29`,
+  under stable external power at 100%/Good. It replaced retired predecessor
+  `03cbaa72...`, synchronized and flushed the write, independently read and
+  compared all 16 MiB as exact successor `54a02dd0...`, made no new backup,
+  issued no reboot, and confirmed clean shutdown. See
+  [results/successor-deployment-20260904.txt](results/successor-deployment-20260904.txt).
 
 ## Analysis
 
@@ -275,20 +285,18 @@ reject their real-device composition.
 
 ## Conclusion
 
-`successor admitted offline`: the first candidate's live pretrigger correctly
+`successor installed`: the first candidate's live pretrigger correctly
 found a stale runtime-binding identity and no production observer attachment.
 Canonical patches `0529`--`0530` repair those two omissions, and exact successor
 `54a02dd0...` passes every required offline gate. This is not yet a live
-CPU8/CPU9 or frequency result; it authorizes one new guarded deployment and
-fresh boot only.
+CPU8/CPU9 or frequency result. The guarded deployment and shutdown are now
+complete; one fresh boot and its zero-read pretrigger remain authorized.
 
 ## Follow-up
 
-Publish the frozen successor tooling and evidence, install exact padded
-candidate `54a02dd0...` to live-GPT-resolved inactive `boot2`, require a full
-matching readback, and shut the device down. On one physical `boot2` selection,
-ignore display state as an admission oracle and use exact USB/netcat identity.
-The zero-read pretrigger must show one read-only observer attribute, the exact
-new record identity, a ready late profile, and zero consumed attempts before the
-single bounded runtime is permitted. Keep identical-artifact repeats, longer
-load, cpufreq/OPP, extra hotplug, idle, and suspend closed.
+On one physical `boot2` selection with USB attached, ignore display state as an
+admission oracle and use exact USB/netcat identity. The zero-read pretrigger
+must show one read-only observer attribute, the exact new record identity, a
+ready late profile, and zero consumed attempts before the single bounded
+runtime is permitted. Keep identical-artifact repeats, longer load, cpufreq/OPP,
+extra hotplug, idle, and suspend closed.

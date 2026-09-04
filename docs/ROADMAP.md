@@ -8203,9 +8203,12 @@ Android-v0/LK, pretrigger, and runtime validation admit new raw candidate
 and the package record identity is `018de915...`. A later owner report of no
 visible console occurred before this successor was installed and could be
 identified only as the unchanged Gemian recovery boot afterward, so it is not
-successor evidence. **Selected next:** publish the frozen successor tooling and
-offline evidence, install exact `54a02dd0...` to live-GPT-resolved inactive
-`boot2` with full readback and shutdown, then make one fresh physical selection.
+successor evidence. Published tooling commit `198286f6...` then froze the
+admitted identities and capture path. Guarded deployment resolved inactive
+live-GPT `boot2` as `/dev/mmcblk0p30`, replaced retired `03cbaa72...`, and
+independently read and compared the full 16 MiB as exact `54a02dd0...` under
+stable power. It made no new backup, issued no reboot, and confirmed shutdown.
+**Selected next:** make one fresh physical `boot2` selection with USB attached.
 Treat the display as non-authoritative: direct-USB netcat must prove the exact
 release, one read-only observer, ready late profile, and zero attempts before
 the one bounded runtime. Keep longer load, cpufreq/OPP changes, extra hotplug,
