@@ -8089,18 +8089,25 @@ thermal DT delta and selects a finer DT enablement split before another thermal
 kernel change. Do not repeat either thermal candidate or infer execution from
 empty retained RAM.
 
-The exact base-DT control is now published and installed. Live GPT resolved
-inactive `boot2`, and the synchronized, flushed full-partition readback matched
-exact `ec262457...`; no backup or other partition write occurred. Gemian's
-clean poweroff request closed the initiating SSH session but did not complete:
-TCP/22 remained open and authenticated while command-channel creation stalled.
-The deployment is therefore `readback-verified-shutdown-incomplete`, not
-powered off. The installer now requires three closed TCP/22 samples so this
-state cannot be misclassified again, and the collector bounds stalled Gemian
-sessions. **Selected next:** physically power the unit off, arm the exact
-observer, and select `boot2` once for the already-defined positive base-DT
-serviceability control; do not rewrite the verified partition or alter the
-control candidate.
+The exact base-DT control was installed and attempted once. It produced no
+sampled mainline USB before a changed-ID Gemian return, and recovery reproduced
+exact `ec262457...` on inactive `boot2` with empty pstore. Exact DT comparison
+then invalidated the control: package base DT `d7b58354...` disables the USB
+controller, USB PHY, and keyboard and lacks simplefb, so the required positive
+observation channel was absent by construction. The prior thermal-serviceability
+DT `966351e9...` inherited that same confound. These two no-USB outcomes do not
+establish an Image/configuration failure or thermal probe stage, and empty
+returned RAM remains nondiscriminating. The controls are retired without
+repeat. **Selected next:** deploy exact `ca3c2588...`, derived from the
+runtime-proven PWRAP/USB/console/eMMC DT `e1e4eca2...` and changing only the
+root model, unique thermal phandle, source-proven reset, controller enablement,
+and one policy-free zone. Require one exact read-only live frame with natural
+thermal bind and three plausible temperatures while CPUs 8--9 remain offline.
+A pass closes the thermal-observability prerequisite and selects read-only
+frequency/topology/accounting observation around the already-proven finite A72
+load; a changed-ID no-USB return is now a serviceability regression against a
+valid observation-path baseline. Do not add cpufreq/OPP, CPU load, hotplug,
+idle, suspend, or same-artifact repeat to this attempt.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

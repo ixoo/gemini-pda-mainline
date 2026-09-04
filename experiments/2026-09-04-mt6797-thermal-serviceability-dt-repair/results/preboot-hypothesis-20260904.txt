@@ -1,0 +1,16 @@
+experiment=2026-09-04-mt6797-thermal-serviceability-dt-repair
+candidate_raw_sha256=dd7a6ec45389dc87b658c7eb22ee7022230cb9f435439875b981903770c21bf0
+candidate_full_boot2_sha256=ca3c25889b92673aa341fa97fc347c3469bc3b532d81045659a3afa1f563636a
+kernel_release=7.1.3-gemini-mt6797-thermal-stage-ledger
+device_variant=Planet Computers Gemini PDA MT6797
+hypothesis=The exact thermal-stage-ledger kernel produces a positive read-only thermal runtime frame when its appended DT is derived from the runtime-proven PWRAP serviceability DT and changes only the root model, thermal reset/controller enablement, and one policy-free zone.
+unique_attribution=Relative to runtime-proven DT e1e4eca289320533bad5c879e78055eaa86a295080b1154c13debe29ddd8ee4a, the repaired DT adds exactly two zone nodes and changes exactly seven properties while preserving enabled USB PHY/controller, keyboard, simplefb, PWRAP/MT6351, and eMMC serviceability.
+decision_live_exact_pass=Close the thermal observability prerequisite and define one read-only frequency/topology/accounting observation around the already-proven finite CPU8/CPU9 load before increasing duration or intensity.
+decision_changed_gemian_without_live_frame=Classify a serviceability regression against the runtime-proven observation-path baseline; recover durable evidence if present, but do not infer an exact thermal stage from an empty returned record.
+decision_live_rejected=Preserve the exact failed predicate and repair that boundary before any CPU8/CPU9 load.
+repeat_policy=One physical boot2 selection only; no identical repeat without a new independent decision-changing observation path.
+cpu8_cpu9_policy=No CPU request or load; CPUs 8-9 must remain offline.
+thermal_policy=Controller enabled with one policy-free zone and three read-only temperature samples; standalone AUXADC remains disabled.
+installation_scope=live-GPT-resolved-inactive-boot2-only
+fresh_partition_backup=no-project-wide-starting-backup-is-recovery-source
+post_write_action=clean-shutdown-after-matching-full-partition-readback

@@ -31,16 +31,26 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-09-04 MT6797 thermal serviceability DT repair](2026-09-04-mt6797-thermal-serviceability-dt-repair/README.md)
+  — corrects the observation-channel confound in the base-DT control by
+  deriving from the exact runtime-proven PWRAP/USB/console/eMMC DT. Its only
+  semantic changes are the root model, unique thermal phandle, source-proven
+  reset, controller enablement, and one policy-free zone. Two deterministic DT
+  and container constructions, the package/LK validators, thirteen runtime
+  rejection mutations, and guarded deployment checks pass. Exact candidate
+  `ca3c2588...` is selected for one read-only thermal observation; CPUs 8--9,
+  load, cpufreq/OPP, hotplug, idle, suspend, and native reboot remain closed.
 - [2026-09-04 MT6797 thermal base-DT control](2026-09-04-mt6797-thermal-base-dtb-control/README.md)
   — holds the exact thermal-stage kernel, configuration, initramfs, LK
   container contract, command line, and addresses while changing only the
   appended thermal-serviceability DT to the same package's base Gemini DT.
-  The exact candidate passes package, two-assembly, 32-gate LK, padding,
-  classifier, and guarded-installer checks, and its inactive-`boot2` full
-  readback matches. Gemian did not finish powering off, so physical poweroff
-  remains required before the one control boot. One positive USB/netcat frame
-  will distinguish the thermal DT delta from the current Image/config; empty
-  returned RAM is explicitly not used as a negative oracle.
+  The exact candidate passed its offline and guarded deployment gates, but its
+  attempted control boot had no USB before changed-ID Gemian return. Exact DT
+  comparison then showed the control itself disabled the USB controller/PHY
+  and keyboard and lacked simplefb, so it could never supply its required
+  positive observation. The result is inconclusive, no kernel failure is
+  inferred, and the candidate is retired in favor of the runtime-proven-DT
+  repair above.
 - [2026-09-04 MT6797 thermal-stage retained ledger](2026-09-04-mt6797-thermal-stage-ledger/README.md)
   — adds a hardware-free-tested, empty-only, CRC-valid two-copy retained
   ledger around the ordered thermal transaction. Its exact candidate returned

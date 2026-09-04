@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-thermal-base-dtb-control` |
-| Status | exact candidate installed and fully read back; Gemian poweroff hung; physical poweroff and one boot2 attempt pending |
+| Status | completed; attempted control invalidated because its DT disabled the required USB observation channel |
 | Subsystem | appended DT discrimination before MT6797 thermal runtime |
 | Device variant | Planet Computers Gemini PDA, MT6797 |
 | Date(s) | 2026-09-04 |
@@ -21,11 +21,11 @@ attribute the two prior pre-transport returns to the thermal DT delta or probes
 it induces, rather than to this Image/configuration/container.
 
 The base DT keeps both the MT6797 thermal controller and standalone AUXADC
-consumer disabled and has no thermal zone.  Its ordinary Gemini model also
-causes the exact-model thermal-ledger guard to refuse ownership, so this is a
-positive live-serviceability control, not another retained-RAM experiment.
-Absence of transport would remain inconclusive and would not revive empty RAM
-as a negative execution oracle.
+consumer disabled and has no thermal zone. Its ordinary Gemini model also
+causes the exact-model thermal-ledger guard to refuse ownership. Subsequent
+exact DT comparison found that it also disables the USB controller and PHY and
+keyboard and lacks the proven simple framebuffer. It was therefore incapable
+of serving as the intended positive USB control.
 
 ## Exact inputs
 
@@ -106,4 +106,17 @@ authenticated SSH connection stalled before opening a command channel. The
 device is therefore not claimed off. The observer now requires three closed
 TCP/22 samples instead of treating an SSH command failure as shutdown, and its
 Gemian identity probes have bounded post-authentication liveness. Physical
-poweroff is required before the one control boot.
+poweroff was required before the one control boot.
+
+That boot2 selection produced no sampled mainline USB and returned to changed-
+ID Gemian `3c428441...`. Read-only recovery confirmed empty pstore and the exact
+`ec262457...` payload still on inactive `boot2`. Exact DT comparison then found
+the confound: package base DT `d7b58354...` explicitly disables the USB
+controller, USB PHY, and keyboard and lacks the runtime-proven simple
+framebuffer. The prior thermal-serviceability DT `966351e9...` was derived from
+that same base and inherited the disabled observation path. Thus neither recent
+no-USB result establishes an Image/configuration failure or a thermal probe
+stage. The control is retired as
+`inconclusive-observation-channel-disabled-by-control-dt`; the selected
+successor derives from the exact runtime-proven PWRAP/USB/eMMC DT and changes
+only the thermal properties.

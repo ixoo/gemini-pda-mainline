@@ -1,0 +1,39 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Copyright (c) 2026 Julien Etienne
+ *
+ * Applied only to the exact runtime-proven PWRAP serviceability DTB.  Numeric
+ * phandle 3 is the infracfg controller in that pinned binary input.  The
+ * thermal target receives an overlay-local label so fdtoverlay assigns and
+ * fixes up one collision-free phandle for both the controller and its zone.
+ */
+
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target-path = "/";
+
+		__overlay__ {
+			model = "Planet Computers Gemini PDA (thermal serviceability)";
+
+			thermal-zones {
+				soc-thermal {
+					polling-delay-passive = <0>;
+					polling-delay = <1000>;
+					thermal-sensors = <&thermal_target>;
+				};
+			};
+		};
+	};
+
+	fragment@1 {
+		target-path = "/thermal@1100b000";
+
+		thermal_target: __overlay__ {
+			resets = <0x03 0>;
+			status = "okay";
+		};
+	};
+};
