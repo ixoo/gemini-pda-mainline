@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-thermal-stage-ledger` |
-| Status | corrected patches regenerated; KUnit and production builds pending |
+| Status | KUnit compile and 15-case QEMU runtime passed; production build pending |
 | Subsystem | MT6797 thermal probe and ordered AUXADC transaction |
 | Device variant | Planet Computers Gemini PDA, MT6797 |
 | Date(s) | 2026-09-04 |
@@ -77,3 +77,11 @@ owned by the [thermal-serviceability experiment](../2026-09-04-mt6797-thermal-se
   or checks; the only source change is the explicit module-header include and
   consequent deterministic patch identities. See
   [results/patch-regeneration-20260904.txt](results/patch-regeneration-20260904.txt).
+- Exact pushed revision `22ff6be964b9...` compiled and packaged the focused
+  KUnit profile on Buildbox with all package and provenance checks passing. See
+  [results/kunit-buildbox-20260904.txt](results/kunit-buildbox-20260904.txt).
+- The fetched Image then ran in isolated four-vCPU AArch64 QEMU with networking
+  disabled. Both intended suites and all 15 named cases passed with zero
+  failures or skips; the run performed no MMIO, retained-RAM, CPU, storage, or
+  device action. See
+  [results/kunit-qemu-20260904.txt](results/kunit-qemu-20260904.txt).
