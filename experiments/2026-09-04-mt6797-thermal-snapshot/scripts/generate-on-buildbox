@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+set -euo pipefail
+export LC_ALL=C PYTHONDONTWRITEBYTECODE=1
+export GIT_AUTHOR_DATE=2026-09-05T01:00:00Z GIT_COMMITTER_DATE=2026-09-05T01:00:00Z
+[[ $# == 1 && $1 =~ ^[0-9a-f]{40}$ ]] || exit 2
+revision=$1
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+repo=$(cd -- "$script_dir/../../.." && pwd -P)
+source_root=/workspace/gemini-pda/src/linux-7.1.3-series-source
+managed_root=/workspace/gemini-pda/thermal-snapshot-work
+output=/workspace/gemini-pda/thermal-snapshot-patches
+[[ "$(git -C "$repo" rev-parse HEAD)" == "$revision" ]]
+[[ -z "$(git -C "$repo" status --porcelain)" ]]
+[[ "$(cat "$source_root/.gemini-source-state")" == a6cf8f228e8aecff0c71b81db28c07fe83a1909d454759262a4fb1082fa7ed13 ]]
+[[ "$(cat "$source_root/.gemini-source-integrity")" == 2f7d22312c16db61b46c9db8300b89c1ff9b054f79cc0b800cf5e0c6e8b588ec ]]
+python3 "$repo/scripts/source-tree-integrity" verify "$source_root"
+[[ ! -e "$output" ]]
+mkdir -p "$managed_root"
+work=$(mktemp -d "$managed_root/generation.XXXXXXXX")
+trap 'rm -rf -- "$work"' EXIT
+path=drivers/thermal/mediatek
+mkdir -p "$work/source/$path"
+cp "$source_root/$path/Kconfig" "$source_root/$path/Makefile" "$work/source/$path/"
+(
+ cd "$work/source"
+ printf '%s\n' \
+ 'a56488aa44311275e4c99dbd0430b28dab6d46c859d9d3b0bea7c8bfb10baebc  drivers/thermal/mediatek/Kconfig' \
+ '58746c5b0bc32d8a0503b4f2cc82d1a0646a224d4432a5a19aa2c9fd26624d07  drivers/thermal/mediatek/Makefile' | sha256sum -c
+ git init -q
+ git config user.name 'Gemini Mainline Experiment'
+ git config user.email gemini-mainline@example.invalid
+ git add drivers
+ git -c commit.gpgsign=false commit -qm 'Pinned thermal snapshot parent'
+ cp "$script_dir/../source/mt6797_thermal_snapshot.h" "$path/"
+ git add drivers
+ git -c commit.gpgsign=false commit -qm 'thermal: mediatek: add bounded MT6797 snapshot collector'
+ cp "$script_dir/../source/mt6797_thermal_snapshot_test.c" "$path/"
+ python3 - "$path" <<'PY'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1])
+f = p / 'Kconfig'
+s = f.read_text()
+anchor = 'config MTK_LVTS_THERMAL\n'
+assert s.count(anchor) == 1
+s = s.replace(anchor, '''config MTK_SOC_THERMAL_SNAPSHOT_KUNIT_TEST
+\ttristate "Test MT6797 thermal snapshot collector" if !KUNIT_ALL_TESTS
+\tdepends on KUNIT
+\tdefault KUNIT_ALL_TESTS
+\thelp
+\t  Test the disconnected bounded snapshot collector. No MMIO,
+\t  thermal callback, polling, CPU or platform device is invoked.
+
+''' + anchor)
+f.write_text(s)
+f = p / 'Makefile'
+s = f.read_text()
+s += 'obj-$(CONFIG_MTK_SOC_THERMAL_SNAPSHOT_KUNIT_TEST) += mt6797_thermal_snapshot_test.o\n'
+f.write_text(s)
+PY
+ git add drivers
+ git diff --cached --check
+ git -c commit.gpgsign=false commit -qm 'thermal: mediatek: test bounded MT6797 snapshot collector'
+ mkdir "$work/patches"
+ git format-patch -2 --no-signature --numbered --output-directory "$work/patches" >/dev/null
+)
+patches=("$work"/patches/*.patch)
+[[ ${#patches[@]} == 2 ]]
+perl "$source_root/scripts/checkpatch.pl" --no-tree --strict \
+ --ignore MISSING_SIGN_OFF,FILE_PATH_CHANGES,COMMIT_LOG_LONG_LINE,OPEN_ENDED_LINE \
+ "${patches[@]}" >"$work/checkpatch.txt" || { cat "$work/checkpatch.txt"; exit 1; }
+git clone -q "$work/source" "$work/replay"
+git -C "$work/replay" reset --hard HEAD~2 >/dev/null
+git -C "$work/replay" config user.name 'Gemini Mainline Experiment'
+git -C "$work/replay" config user.email gemini-mainline@example.invalid
+git -C "$work/replay" -c commit.gpgsign=false am -q "${patches[@]}"
+[[ "$(git -C "$work/replay" rev-parse 'HEAD^{tree}')" == "$(git -C "$work/source" rev-parse 'HEAD^{tree}')" ]]
+printf 'generation_revision=%s\npatches=2\nreplay=identical-tree\nproduction_driver_changes=none\nhardware_access=none\n' "$revision" >"$work/generation.txt"
+mkdir "$work/result"
+cp "${patches[0]}" "$work/result/0535-thermal-mediatek-add-bounded-MT6797-snapshot-collector.patch"
+cp "${patches[1]}" "$work/result/0536-thermal-mediatek-test-bounded-MT6797-snapshot-collector.patch"
+cp "$work/checkpatch.txt" "$work/generation.txt" "$work/result/"
+(cd "$work/result" && sha256sum ./* >SHA256SUMS)
+mv "$work/result" "$output"
+printf 'output=%s\n' "$output"
