@@ -151,6 +151,18 @@ which is bank 2 bit 0. The current clock reset API can represent this as
 reset descriptor and binding/header, not a fake clock or removal of the pwrap
 reset capability.
 
+> **Correction (2026-09-04):** the paragraph above records the interpretation
+> used by this July experiment, not a durable hardware fact. A later exact
+> source audit found that the 4.9 three-register `MTK_RST_SIMPLE` model copied
+> an implementation artifact: MT6797 thermal uses SET/CLEAR `0x120/0x124`,
+> while both the pinned Gemini vendor kernel and Planet LK independently use
+> SET/CLEAR `0x140/0x144` for PMIC wrap. The current local patches therefore
+> address the wrong register for PMIC-wrap deassertion and leave RST1
+> unresolved. See the
+> [transaction audit](../2026-09-03-mt6797-thermal-auxadc-transaction-audit/README.md)
+> and its selected fail-closed reset repair. The chronology below is retained
+> as evidence of what was built and tested at the time.
+
 That prerequisite is now implemented as the first local Linux 7.1.3 series:
 
 1. [`dt-bindings: reset: mediatek: add MT6797 infracfg resets`](../../patches/v7.1.3/0001-dt-bindings-reset-mediatek-add-MT6797-infracfg-reset.patch)

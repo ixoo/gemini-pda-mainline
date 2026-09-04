@@ -1,0 +1,204 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+export LC_ALL=C
+
+readonly PARENT_SOURCE_STATE=49084a29725089735de735e0b63543ef44261ef1533075fe9a815574d48fa9f0
+readonly CLK_MT6797_SHA256=aea5041078556536d0bac36fb76e5b3fcd2746fbae78c4a730c70fae0ab76b4a
+readonly RESET_C_SHA256=8c1cdf2ad881dc20659340cd7f0244b8ff1a1b6d1d7b4cd1e74946533adcee76
+readonly RESET_H_SHA256=0401a0df50c411faf95465b716691dbf8f1c369a6eedc2511d6694e68dc4f1b5
+readonly BINDING_SHA256=6064791471a2db58bd3adbb31d6ebd685e97323ba9069137dc2432b710a9a273
+readonly KCONFIG_SHA256=6e77fa3de51fe9b9e37771a1b261a28f9eab420817b1882efb46a2846bf5c78d
+readonly MAKEFILE_SHA256=67db326a347e7b627e6e7c54be81655b9c95e8e455c920e7382a5a449123f504
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+
+[[ "$#" -eq 3 ]] || die 'expected PROJECT_COMMIT SOURCE_ROOT OUTPUT_ROOT'
+readonly project_commit=$1
+readonly source_root=$2
+readonly output_root=$3
+[[ "$project_commit" =~ ^[0-9a-f]{40}$ ]] || die 'invalid project commit'
+[[ "$source_root" == /workspace/gemini-pda/src/linux-7.1.3-series-source ]] ||
+	die 'unexpected managed source root'
+[[ "$output_root" == /workspace/gemini-pda/* ]] || die 'unsafe output root'
+[[ -f "$source_root/.gemini-source-state" && ! -L "$source_root/.gemini-source-state" ]] ||
+	die 'prepared source state marker absent or unsafe'
+[[ "$(<"$source_root/.gemini-source-state")" == "$PARENT_SOURCE_STATE" ]] ||
+	die 'prepared parent source state changed'
+
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+experiment_dir=$(cd -- "$script_dir/.." && pwd -P)
+repository_dir=$(cd -- "$experiment_dir/../.." && pwd -P)
+readonly script_dir experiment_dir repository_dir
+[[ "$(git -C "$repository_dir" rev-parse HEAD)" == "$project_commit" ]] ||
+	die 'project checkout does not match requested commit'
+[[ -z "$(git -C "$repository_dir" status --porcelain)" ]] ||
+	die 'project checkout is dirty'
+for command in git perl python3 sha256sum; do
+	command -v "$command" >/dev/null 2>&1 || die "missing command: $command"
+done
+
+readonly clock_dir="$source_root/drivers/clk/mediatek"
+readonly binding="$source_root/include/dt-bindings/reset/mt6797-resets.h"
+printf '%s  %s\n' "$CLK_MT6797_SHA256" "$clock_dir/clk-mt6797.c" |
+	sha256sum --check --status || die 'parent clk-mt6797.c changed'
+printf '%s  %s\n' "$RESET_C_SHA256" "$clock_dir/reset.c" |
+	sha256sum --check --status || die 'parent reset.c changed'
+printf '%s  %s\n' "$RESET_H_SHA256" "$clock_dir/reset.h" |
+	sha256sum --check --status || die 'parent reset.h changed'
+printf '%s  %s\n' "$BINDING_SHA256" "$binding" |
+	sha256sum --check --status || die 'parent reset binding changed'
+printf '%s  %s\n' "$KCONFIG_SHA256" "$clock_dir/Kconfig" |
+	sha256sum --check --status || die 'parent clock Kconfig changed'
+printf '%s  %s\n' "$MAKEFILE_SHA256" "$clock_dir/Makefile" |
+	sha256sum --check --status || die 'parent clock Makefile changed'
+
+readonly work_root=/workspace/gemini-pda/mt6797-reset-repair-work
+readonly package="$output_root/mt6797-reset-repair-patches-${project_commit:0:12}"
+readonly partial="${package}.partial.$$"
+mkdir -p "$work_root" "$output_root"
+[[ ! -e "$partial" ]] || die 'stale output partial exists'
+
+if [[ -d "$package" && ! -L "$package" ]]; then
+	grep -Fx "repository_commit=$project_commit" \
+		"$package/provenance/generation.txt" >/dev/null ||
+		die 'existing package commit mismatch'
+	(cd "$package" && sha256sum --check --strict SHA256SUMS >/dev/null)
+	printf 'Generated MT6797 reset repair patch review at %s\n' "$package"
+	exit 0
+fi
+[[ ! -e "$package" ]] || die 'unsafe existing package path'
+
+work=$(mktemp -d "$work_root/generation.XXXXXX")
+readonly work
+cleanup() {
+	[[ ! -d "$work" || "$work" != "$work_root"/generation.* ]] || rm -rf -- "$work"
+	[[ ! -d "$partial" || "$partial" != "$output_root"/*.partial.* ]] || rm -rf -- "$partial"
+}
+trap cleanup EXIT
+
+mkdir -p "$work/source/drivers/clk/mediatek" \
+	"$work/source/include/dt-bindings/reset"
+cp -- "$clock_dir/clk-mt6797.c" "$clock_dir/reset.c" "$clock_dir/reset.h" \
+	"$clock_dir/Kconfig" "$clock_dir/Makefile" \
+	"$work/source/drivers/clk/mediatek/"
+cp -- "$binding" "$work/source/include/dt-bindings/reset/"
+git -C "$work/source" init --quiet
+git -C "$work/source" config user.name 'Gemini Mainline Experiment'
+git -C "$work/source" config user.email gemini-mainline@example.invalid
+git -C "$work/source" add -- drivers/clk/mediatek include/dt-bindings/reset
+GIT_AUTHOR_DATE=2026-09-04T00:40:00Z \
+GIT_COMMITTER_DATE=2026-09-04T00:40:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'bounded MT6797 infracfg reset source parent'
+baseline_commit=$(git -C "$work/source" rev-parse HEAD)
+readonly baseline_commit
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/source_edits.py" \
+	--source-root "$work/source" --phase production
+git -C "$work/source" diff --check
+git -C "$work/source" add -- \
+	drivers/clk/mediatek/clk-mt6797-reset.h \
+	drivers/clk/mediatek/clk-mt6797.c \
+	drivers/clk/mediatek/reset.c \
+	drivers/clk/mediatek/reset.h \
+	include/dt-bindings/reset/mt6797-resets.h
+git -C "$work/source" diff --cached --check
+GIT_AUTHOR_NAME='Gemini Mainline Experiment' \
+GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid \
+GIT_COMMITTER_NAME='Gemini Mainline Experiment' \
+GIT_COMMITTER_EMAIL=gemini-mainline@example.invalid \
+GIT_AUTHOR_DATE=2026-09-04T00:41:00Z \
+GIT_COMMITTER_DATE=2026-09-04T00:41:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'clk: mediatek: repair MT6797 infracfg resets' \
+		-m 'Use source-proven SET/CLEAR pairs for thermal and PMIC wrap.' \
+		-m 'Translate two compact public IDs and quarantine unsourced banks.' \
+		-m 'Reject an invalid translated bank before any regmap write.'
+production_commit=$(git -C "$work/source" rev-parse HEAD)
+readonly production_commit
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/source_edits.py" \
+	--source-root "$work/source" --phase kunit
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_source.py" \
+	--source-root "$work/source" >"$work/source-validation.txt"
+git -C "$work/source" diff --check
+git -C "$work/source" add -- \
+	drivers/clk/mediatek/Kconfig \
+	drivers/clk/mediatek/Makefile \
+	drivers/clk/mediatek/clk-mt6797-reset-test.c
+git -C "$work/source" diff --cached --check
+GIT_AUTHOR_NAME='Gemini Mainline Experiment' \
+GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid \
+GIT_COMMITTER_NAME='Gemini Mainline Experiment' \
+GIT_COMMITTER_EMAIL=gemini-mainline@example.invalid \
+GIT_AUTHOR_DATE=2026-09-04T00:42:00Z \
+GIT_COMMITTER_DATE=2026-09-04T00:42:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'clk: mediatek: test MT6797 infracfg reset translation' \
+		-m 'Cover both source-proven SET/CLEAR pairs and fail-closed bounds.' \
+		-m 'The focused suite is pure and performs no hardware operation.'
+kunit_commit=$(git -C "$work/source" rev-parse HEAD)
+readonly kunit_commit
+
+mkdir -p "$partial/patches" "$partial/provenance"
+readonly patch1=0514-clk-mediatek-repair-MT6797-infracfg-resets.patch
+readonly patch2=0515-clk-mediatek-test-MT6797-infracfg-reset-translation.patch
+git -C "$work/source" format-patch -2 --no-signature --numbered \
+	--start-number 1 --output-directory "$partial/patches" >/dev/null
+generated1=$(find "$partial/patches" -maxdepth 1 -type f -name '0001-*.patch' -print)
+generated2=$(find "$partial/patches" -maxdepth 1 -type f -name '0002-*.patch' -print)
+[[ -n "$generated1" && -n "$generated2" ]] || die 'normal patch output absent'
+mv -- "$generated1" "$partial/patches/$patch1"
+mv -- "$generated2" "$partial/patches/$patch2"
+printf '%s\n' "$patch1" "$patch2" >"$partial/patches/series"
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_patches.py" \
+	--patch-dir "$partial/patches" >"$partial/provenance/patch-validation.txt"
+
+git clone --quiet "$work/source" "$work/verify"
+git -C "$work/verify" checkout --quiet --detach "$baseline_commit"
+git -C "$work/verify" config user.name 'Gemini Mainline Experiment'
+git -C "$work/verify" config user.email gemini-mainline@example.invalid
+git -C "$work/verify" am --quiet --committer-date-is-author-date \
+	"$partial/patches/$patch1" "$partial/patches/$patch2"
+[[ "$(git -C "$work/verify" rev-parse HEAD)" == "$kunit_commit" ]] ||
+	die 'normal patch application did not reproduce generated commits'
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_source.py" \
+	--source-root "$work/verify" >/dev/null
+[[ -z "$(git -C "$work/verify" status --porcelain)" ]] ||
+	die 'verification source is dirty'
+
+if ! perl "$source_root/scripts/checkpatch.pl" --no-tree --strict \
+	--ignore MISSING_SIGN_OFF,FILE_PATH_CHANGES,COMMIT_LOG_LONG_LINE \
+	"$partial/patches/$patch1" "$partial/patches/$patch2" \
+	>"$partial/provenance/checkpatch.txt"; then
+	cat "$partial/provenance/checkpatch.txt" >&2
+	die 'strict checkpatch rejected generated patches'
+fi
+cp -- "$work/source-validation.txt" "$partial/provenance/source-validation.txt"
+cat >"$partial/provenance/generation.txt" <<EOF
+purpose=experiment-only-hardware-free-mt6797-infracfg-reset-repair
+repository_commit=$project_commit
+parent_source_state=$PARENT_SOURCE_STATE
+baseline_commit=$baseline_commit
+production_commit=$production_commit
+kunit_commit=$kunit_commit
+generated_patch_count=2
+changed_path_count=8
+kunit_case_count=6
+generator=experiments/2026-09-03-mt6797-infracfg-reset-repair/scripts/generate-on-buildbox
+synthetic_signoff=absent
+native_vm_kernel_build=no
+hardware_action=none
+device_action=none
+boot_candidate=false
+EOF
+(
+	cd "$partial"
+	find patches provenance -type f -print0 | sort -z | xargs -0 sha256sum >SHA256SUMS
+	sha256sum --check --strict SHA256SUMS >/dev/null
+)
+mv "$partial" "$package"
+trap - EXIT
+rm -rf -- "$work"
+printf 'Generated MT6797 reset repair patch review at %s\n' "$package"
