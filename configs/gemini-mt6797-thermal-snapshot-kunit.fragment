@@ -1,0 +1,8 @@
+# Disconnected thermal snapshot collector: injected values only, no device.
+CONFIG_THERMAL=y
+CONFIG_THERMAL_OF=y
+CONFIG_MTK_THERMAL=y
+# CONFIG_MTK_SOC_THERMAL is not set
+CONFIG_KUNIT=y
+CONFIG_MTK_SOC_THERMAL_SNAPSHOT_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-mt6797-thermal-snapshot-kunit"

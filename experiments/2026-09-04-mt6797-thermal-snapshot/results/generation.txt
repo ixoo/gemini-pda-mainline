@@ -1,0 +1,5 @@
+generation_revision=6fd0f7e9cd4a1316a2dd225d566b3a932b0e4683
+patches=2
+replay=identical-tree
+production_driver_changes=none
+hardware_access=none

@@ -1,0 +1,14 @@
+---------------------------------------------------------------------------------------------------------------------------------------
+/workspace/gemini-pda/thermal-snapshot-work/generation.XoJOfsNE/patches/0001-thermal-mediatek-add-bounded-MT6797-snapshot-collect.patch
+---------------------------------------------------------------------------------------------------------------------------------------
+total: 0 errors, 0 warnings, 0 checks, 138 lines checked
+
+/workspace/gemini-pda/thermal-snapshot-work/generation.XoJOfsNE/patches/0001-thermal-mediatek-add-bounded-MT6797-snapshot-collect.patch has no obvious style problems and is ready for submission.
+---------------------------------------------------------------------------------------------------------------------------------------
+/workspace/gemini-pda/thermal-snapshot-work/generation.XoJOfsNE/patches/0002-thermal-mediatek-test-bounded-MT6797-snapshot-collec.patch
+---------------------------------------------------------------------------------------------------------------------------------------
+total: 0 errors, 0 warnings, 0 checks, 176 lines checked
+
+/workspace/gemini-pda/thermal-snapshot-work/generation.XoJOfsNE/patches/0002-thermal-mediatek-test-bounded-MT6797-snapshot-collec.patch has no obvious style problems and is ready for submission.
+
+NOTE: Ignored message types: COMMIT_LOG_LONG_LINE FILE_PATH_CHANGES MISSING_SIGN_OFF OPEN_ENDED_LINE

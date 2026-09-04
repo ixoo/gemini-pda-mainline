@@ -8329,6 +8329,11 @@ budgets from normal polling. Only after source/fixture review should its actual
 evidence-producing source delta proceed through Buildbox and an initially
 no-workload observation candidate. Do not widen thresholds or repeat either
 consumed workload.
+The [disconnected snapshot collector](../experiments/2026-09-04-mt6797-thermal-snapshot/README.md)
+now has canonical production-header and KUnit patches, strict style and replay
+validation, with no driver call site or device interface. **Immediate gate:**
+build its named focused profile on Buildbox and run the exact no-network KUnit
+suite before adding the observation owner and driver wiring.
 Integrated thermal repeatability, broader load/hotplug, cpufreq/OPP, idle,
 suspend and default integration remain open.
 

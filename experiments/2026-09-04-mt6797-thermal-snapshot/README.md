@@ -74,3 +74,13 @@ finished feature. Exact generation/build/test results belong here. Runtime
 support stays unchanged. Ordered implementation is in the
 [roadmap](../../docs/ROADMAP.md); the first eventual device gate must observe
 without adding a workload.
+
+## Patch review result
+
+Published source revision `6fd0f7e9` generated canonical patches `0535` and
+`0536` after correcting the initial strict-style review findings. Both patches
+pass strict Checkpatch with zero errors, warnings or checks and reproduce the
+same tree through independent patch replay. The pure collector has no normal
+driver call site. The named `mt6797-thermal-snapshot-kunit` manifest profile
+selects the canonical series and only this focused suite; its build and runtime
+result remain pending.
