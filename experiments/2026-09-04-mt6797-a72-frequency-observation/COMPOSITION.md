@@ -136,3 +136,10 @@ five isolated cases. Exact production build revision `80abfffb...` passes its
 respectively, and the failure path retains complete ordered stage/raw records
 for one or two callbacks. This distinct candidate is now selected for one
 guarded installation and fresh live attempt.
+
+Published tooling revision `158f896c...` froze those identities. The guarded
+installer resolved inactive live-GPT `boot2` as `/dev/mmcblk0p30`, replaced
+retired `54a02dd0...`, and independently read back the full partition as exact
+`d4eb9cb9...` under stable external power. It made no backup or reboot request
+and confirmed shutdown. The remaining next action is the owner's physical
+boot2 selection followed by the exact zero-read pretrigger.

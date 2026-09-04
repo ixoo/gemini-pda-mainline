@@ -8250,10 +8250,13 @@ stage matrix, with no failure or skip. Exact production build revision
 Android-v0/LK, pretrigger, runtime-tool, and candidate validation admit distinct
 padded candidate `d4eb9cb9...`; its failure path preserves each callback's
 stage and raw clock/BigiDVFS fields without another observation or load.
-**Selected next:** publish these exact identities, install that candidate to
-live-GPT-resolved inactive `boot2` with full readback and shutdown, then permit
-one fresh exact zero-read-pretriggered attempt. Exact `54a02dd0...` must not be
-repeated; cpufreq/OPP, extra hotplug, idle, and suspend remain closed.
+Published tooling revision `158f896c...` froze those identities. Guarded
+deployment resolved inactive live-GPT `boot2`, replaced retired `54a02dd0...`,
+independently read all 16 MiB back as exact `d4eb9cb9...`, made no fresh backup
+or reboot request, and confirmed shutdown. **Selected next:** physically select
+boot2 and permit one fresh attempt only after the exact zero-read pretrigger
+passes. A failure must stop before load with complete stage/raw records;
+cpufreq/OPP, extra hotplug, idle, and suspend remain closed.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

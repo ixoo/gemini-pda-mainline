@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-a72-frequency-observation` |
-| Status | `running`; exact EPROTO stage-diagnostic candidate admitted offline |
+| Status | `running`; EPROTO diagnostic installed, read back, and shut down |
 | Subsystem | MT6797 CPU clock readback / Cortex-A72 lifecycle |
 | Device variant | Gemini PDA x27, named development unit |
 | Date(s) | 2026-09-04 |
@@ -130,6 +130,9 @@ observer failure and all policy experiments remain closed.
 - `results/eproto-offline-candidate-20260904.txt`: exact production Buildbox
   package, DT, Android-v0/LK container, runtime-tool, mutation, and independent
   candidate admission for the new attributable diagnostic.
+- `results/eproto-deployment-20260904.txt`: live-GPT target resolution,
+  predecessor replacement, exact full-partition readback, no-backup policy,
+  and confirmed shutdown for the attributable diagnostic.
 
 ## Procedure
 
@@ -350,6 +353,14 @@ observer failure and all policy experiments remain closed.
   failure records, associates both callbacks from one userspace read, and
   rejects malformed traces without another read or load. See
   [results/eproto-offline-candidate-20260904.txt](results/eproto-offline-candidate-20260904.txt).
+- Published tooling revision `158f896c...` froze the exact candidate,
+  installer, zero-read pretrigger, and multi-callback runtime paths. Guarded
+  deployment resolved inactive live-GPT `boot2` as `/dev/mmcblk0p30`, distinct
+  from Gemian root `/dev/mmcblk0p29`, and replaced retired `54a02dd0...` under
+  stable external power. The synchronized, flushed write independently read
+  back all 16 MiB as exact `d4eb9cb9...`, made no new backup, issued no reboot,
+  and confirmed shutdown. See
+  [results/eproto-deployment-20260904.txt](results/eproto-deployment-20260904.txt).
 
 ## Analysis
 
@@ -398,10 +409,9 @@ its already-returned raw record.
 
 ## Follow-up
 
-Publish the exact candidate/tool identities, install `d4eb9cb9...` through the
-guarded live-GPT-resolved inactive `boot2` path, verify all 16 MiB, and shut the
-device down. On its fresh boot, require the exact zero-read pretrigger before
-one stage-18 transaction and observer request. A failure must yield complete
+Physically select boot2, then require the exact zero-read pretrigger before one
+stage-18 transaction and observer request. A failure must yield complete
 stage/raw records and stop before load; a valid sample may continue only into
-the already-bounded three-sample workload. Do not repeat exact `54a02dd0...`.
-Keep cpufreq/OPP, extra hotplug, idle, and suspend closed.
+the already-bounded three-sample workload. The full installation/readback and
+shutdown gate is complete for exact `d4eb9cb9...`. Do not repeat exact
+`54a02dd0...`. Keep cpufreq/OPP, extra hotplug, idle, and suspend closed.
