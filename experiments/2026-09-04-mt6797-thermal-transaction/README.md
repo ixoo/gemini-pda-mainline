@@ -104,8 +104,9 @@ uses normal continuation layout, sleepable delay, and explicit KUnit callbacks
 instead of flow-control macros. That repair reduced the next strict review to
 six production and four test alignment checks, again with no package, build,
 or device action. The remaining call continuations are now aligned or reduced
-to single lines. Canonical admission, build, and isolated KUnit execution
-remain pending.
+to single lines. The following review passed the test patch with zero findings
+and left one production first-sample continuation check; that call is now one
+line. Canonical admission, build, and isolated KUnit execution remain pending.
 
 ## Follow-up
 

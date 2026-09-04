@@ -463,8 +463,7 @@ def production_helpers() -> str:
     \t\t\ttemperature = mt->raw_to_mcelsius(mt,
     \t\t\t\t\t     bank_conf->sensors[sensor], raw);
 
-    \t\t\tvalid = mtk_thermal_mt6797_first_sample_valid(raw,
-    \t\t\t\t\t\t\t\t temperature);
+    \t\t\tvalid = mtk_thermal_mt6797_first_sample_valid(raw, temperature);
     \t\t\tif (!valid) {
     \t\t\t\tvalid = false;
     \t\t\t\tbreak;
