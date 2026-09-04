@@ -63,7 +63,7 @@ identity_replacements = (
      "[ \"$($BB uname -r)\" = 7.1.3-gemini-a72-frequency-thermal ] || "
      "reject_preflight kernel-identity"),
     ("d4940602e7ad9cbc947376bfb9dc4222ef5a671faa15eb42a821df1852af9ba4",
-     "018de9150ffcf0b7b30fe7c45f3863555909c87e92ec4e868f30ef74a0e8cd2e"),
+     "9e0f93057ef79b592bef8d8bedd2df87751df699fdcbee4745172a4854e8f6e1"),
 )
 for old, new in identity_replacements:
     if lifecycle.count(old) != 1 or lifecycle.count(new) != 0:
@@ -79,8 +79,8 @@ gate = r'''frequency_reject()
 	$BB printf 'failure_frequency_log_count='; $BB dmesg 2>/dev/null |
 		$BB grep -Fc 'GEMINI_A72_FREQUENCY_OBSERVATION_V1'
 	$BB dmesg 2>/dev/null |
-		$BB grep -F 'GEMINI_A72_FREQUENCY_OBSERVATION_V1' |
-		$BB tail -n 3 || true
+		$BB grep -E 'GEMINI_A72_(FREQUENCY_OBSERVATION_V1|FREQ_(CLOCK_SHAPE|CLOCK_DIV|PLL|BIG_SHAPE|BIG_PLL)_V1)' |
+		$BB tail -n 18 || true
 	$BB printf '%s\n' failure_additional_frequency_observation_request=none
 	exit 3
 }

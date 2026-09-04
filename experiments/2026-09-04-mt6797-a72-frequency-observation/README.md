@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-a72-frequency-observation` |
-| Status | `running`; successor repeated stage 18, observer `EPROTO` stage diagnostic next |
+| Status | `running`; exact EPROTO stage-diagnostic candidate admitted offline |
 | Subsystem | MT6797 CPU clock readback / Cortex-A72 lifecycle |
 | Device variant | Gemini PDA x27, named development unit |
 | Date(s) | 2026-09-04 |
@@ -45,14 +45,13 @@ one inherited stage-18 lifecycle trigger plus three read-only frequency
 observations and a finite volatile-RAM workload; it has no storage or reboot
 action.
 
-No device action occurred during the offline gate. The exact validated
-candidate used the standing guarded `boot2` workflow: live GPT resolution,
-inactive/unmounted target checks, no fresh backup, full 16 MiB readback, and
-clean shutdown. Its first live transaction completed the inherited stage-18
-lifecycle but stopped before load when the first frequency read failed. One
-same-candidate repeat is now limited to the revised, immediately durable errno
-capture path; longer load after an observer failure and all policy experiments
-remain closed.
+No device action occurred during the new failure-stage offline gate. Exact
+candidate `d4eb9cb9...` may use the standing guarded `boot2` workflow: live GPT
+resolution, inactive/unmounted target checks, no fresh backup, full 16 MiB
+readback, and clean shutdown. Its runtime makes one userspace observer request;
+on failure it preserves every emitted six-line callback record, starts no load,
+makes no additional request, and issues no reboot. Longer load after an
+observer failure and all policy experiments remain closed.
 
 ## Associated code
 
@@ -128,6 +127,9 @@ remain closed.
 - `results/eproto-focused-kunit-20260904.txt`: exact clean-revision Buildbox
   compile and isolated no-network 5/5 arm64 KUnit proof for the failure-stage
   diagnostic and its unchanged attempt/call budgets.
+- `results/eproto-offline-candidate-20260904.txt`: exact production Buildbox
+  package, DT, Android-v0/LK container, runtime-tool, mutation, and independent
+  candidate admission for the new attributable diagnostic.
 
 ## Procedure
 
@@ -339,6 +341,15 @@ remain closed.
   failure or skip. This is hardware-free diagnostic proof only; it does not
   admit a candidate or make a live-frequency claim. See
   [results/eproto-focused-kunit-20260904.txt](results/eproto-focused-kunit-20260904.txt).
+- Exact clean published build revision `80abfffb...` then compiled the same
+  521-patch production profile on Buildbox. Package, configuration, DT,
+  provenance, and all 124 packaged DTB checks passed. Independent composition
+  produced DT `626095e4...`, raw Android-v0/LK image `9d0f27dc...`, and exact
+  padded candidate `d4eb9cb9...`; all structural and container gates pass.
+  The revised host path preserves up to three complete ordered six-line
+  failure records, associates both callbacks from one userspace read, and
+  rejects malformed traces without another read or load. See
+  [results/eproto-offline-candidate-20260904.txt](results/eproto-offline-candidate-20260904.txt).
 
 ## Analysis
 
@@ -370,24 +381,27 @@ return. That is an observed transport property, not a second request made by
 the failure handler. The corrected classifier preserves both callbacks rather
 than discarding the errno. The next kernel diagnostic must name the failure
 stage and preserve the existing three-callback ceiling without adding a
-hardware call.
+hardware call. That exact discriminator now passes focused and production
+offline gates and has a distinct independently validated candidate identity.
 
 ## Conclusion
 
-`stage-18 CPU8/CPU9 repeated; frequency observer EPROTO`: exact successor
+`stage-18 CPU8/CPU9 repeated; attributable EPROTO candidate ready`: exact successor
 `54a02dd0...` passed two pristine live transactions and completed stage 18 with
 CPUs 0--9 online on both. Changed-ID retained evidence independently sealed
 both restored-success results. The admitted error-capture repeat localized the
 frequency failure to `EPROTO`; one userspace request produced kernel attempts 1
 and 2, both failing before a sample, and no load ran. This is repeated live
-CPU8/CPU9 evidence, but not yet a frequency or composite load pass.
+CPU8/CPU9 evidence, but not yet a frequency or composite load pass. Distinct
+candidate `d4eb9cb9...` is admitted only to name the failed branch and preserve
+its already-returned raw record.
 
 ## Follow-up
 
-Build the exact production profile from the same canonical `0531`--`0532`
-source, then run the independent package, DT, container, pretrigger, and
-runtime composition gates. The focused Buildbox and isolated no-network arm64
-QEMU gate is complete at 5/5. A new candidate may be assembled only if every
-remaining gate passes. Do not repeat exact `54a02dd0...`. Keep load,
-cpufreq/OPP, extra hotplug, idle, and suspend closed until a valid first
-frequency sample exists.
+Publish the exact candidate/tool identities, install `d4eb9cb9...` through the
+guarded live-GPT-resolved inactive `boot2` path, verify all 16 MiB, and shut the
+device down. On its fresh boot, require the exact zero-read pretrigger before
+one stage-18 transaction and observer request. A failure must yield complete
+stage/raw records and stop before load; a valid sample may continue only into
+the already-bounded three-sample workload. Do not repeat exact `54a02dd0...`.
+Keep cpufreq/OPP, extra hotplug, idle, and suspend closed.

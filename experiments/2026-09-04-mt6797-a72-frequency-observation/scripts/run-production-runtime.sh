@@ -10,10 +10,10 @@ readonly DEVICE_ADDRESS=10.15.19.82
 readonly DEVICE_PORT=2323
 readonly HOST_MAC_82=42:00:15:19:82:00
 readonly HOST_MAC_84=42:00:15:19:84:00
-readonly BUILDER_SHA256=c338e87a0f3dd5dfe0b4fed3c6b34b8be98d5e58d7f4cd1b55b6dd25b57864d3
-readonly CLASSIFIER_SHA256=7c226bcedc8cdd1522fa0190cfe3dbeea65dfc5cbd0a20f34d09ed359e109611
+readonly BUILDER_SHA256=8c06619c27cd94f1fa7018ec1150a443a09f68aa1908aa2d2630aa6c9b1dd711
+readonly CLASSIFIER_SHA256=b186b6c1cf83d7757bbe401036d4660d950a25dd59e47aa71515dfb8b3c4f224
 readonly COMMAND_MARKER=__GEMINI_A72_FREQUENCY_RUNTIME_SCRIPT__
-readonly EXPECTED_CAPTURE=artifacts/runtime-captures/a72-frequency-thermal-successor-attempt-2
+readonly EXPECTED_CAPTURE=artifacts/runtime-captures/a72-frequency-thermal-eproto-attempt-1
 
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }
 capture=

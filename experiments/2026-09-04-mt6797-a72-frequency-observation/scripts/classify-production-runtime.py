@@ -26,6 +26,18 @@ CONCURRENT_END = "__GEMINI_A72_CONCURRENT_MULTILINE_END__"
 LIFECYCLE_BEGIN = "__A72_TOPOLOGY_REPEAT_TRIGGER_BEGIN__"
 LIFECYCLE_END = "__A72_TOPOLOGY_REPEAT_TRIGGER_END__"
 LOG_MARKER = "GEMINI_A72_FREQUENCY_OBSERVATION_V1 "
+FAILURE_STAGES = {
+    "clock-transport", "clock-shape", "bigidvfs-transport",
+    "bigidvfs-shape", "decode",
+}
+FAILURE_MARKERS = (
+    LOG_MARKER,
+    "GEMINI_A72_FREQ_CLOCK_SHAPE_V1 ",
+    "GEMINI_A72_FREQ_CLOCK_DIV_V1 ",
+    "GEMINI_A72_FREQ_PLL_V1 ",
+    "GEMINI_A72_FREQ_BIG_SHAPE_V1 ",
+    "GEMINI_A72_FREQ_BIG_PLL_V1 ",
+)
 OBSERVATION_FIELDS = {
     "abi", "attempt", "max_attempts", "remaining", "clock_generation",
     "big_generation", "armplldiv_muxsel", "armplldiv_ckdiv",
@@ -126,6 +138,81 @@ def observation(value: str, attempt: int) -> dict[str, int | str]:
             f"observation-selector-range:{attempt}")
     numeric["raw"] = value
     return numeric
+
+
+def failure_records(text: str) -> list[dict[str, str]]:
+    """Return only complete, exact six-line failure records."""
+    events: list[tuple[str, str]] = []
+    for line in text.splitlines():
+        for marker in FAILURE_MARKERS:
+            if marker not in line:
+                continue
+            value = line.split(marker, 1)[1].strip()
+            if marker != LOG_MARKER or value.startswith("attempt="):
+                events.append((marker, value))
+            break
+
+    patterns = (
+        re.compile(
+            r"attempt=(?P<attempt>[1-3])/3 ret=(?P<errno>-[0-9]+) "
+            r"stage=(?P<stage>[a-z-]+)"
+        ),
+        re.compile(
+            r"abi=(?P<clock_abi>[0-9]+) "
+            r"reserved=(?P<clock_reserved>[0-9]+) "
+            r"generation=(?P<clock_generation>[0-9]+)"
+        ),
+        re.compile(
+            r"muxsel=(?P<muxsel>0x[0-9a-f]{8}) "
+            r"ckdiv=(?P<ckdiv>0x[0-9a-f]{8})"
+        ),
+        re.compile(
+            r"ll=(?P<pll_ll>0x[0-9a-f]{8}) "
+            r"l=(?P<pll_l>0x[0-9a-f]{8}) "
+            r"cci=(?P<pll_cci>0x[0-9a-f]{8})"
+        ),
+        re.compile(
+            r"abi=(?P<big_abi>[0-9]+) "
+            r"reserved=(?P<big_reserved>[0-9]+) "
+            r"generation=(?P<big_generation>[0-9]+)"
+        ),
+        re.compile(
+            r"pcw=(?P<big_pcw>0x[0-9a-f]{8}) "
+            r"enable_posdiv=(?P<big_enable_posdiv>0x[0-9a-f]{8})"
+        ),
+    )
+    records: list[dict[str, str]] = []
+    index = 0
+    while index < len(events):
+        if events[index][0] != LOG_MARKER:
+            index += 1
+            continue
+        group = events[index:index + len(FAILURE_MARKERS)]
+        if len(group) != len(FAILURE_MARKERS):
+            return []
+        record: dict[str, str] = {}
+        for event, marker, pattern in zip(group, FAILURE_MARKERS, patterns):
+            if event[0] != marker:
+                return []
+            matched = pattern.fullmatch(event[1])
+            if matched is None:
+                return []
+            record.update(matched.groupdict())
+        if record["stage"] not in FAILURE_STAGES:
+            return []
+        records.append(record)
+        index += len(FAILURE_MARKERS)
+    return records
+
+
+def failure_record_summary(record: dict[str, str]) -> str:
+    order = (
+        "attempt", "errno", "stage", "clock_abi", "clock_reserved",
+        "clock_generation", "muxsel", "ckdiv", "pll_ll", "pll_l",
+        "pll_cci", "big_abi", "big_reserved", "big_generation",
+        "big_pcw", "big_enable_posdiv",
+    )
+    return " ".join(f"{key}={record[key]}" for key in order)
 
 
 def load_concurrent():
@@ -275,6 +362,21 @@ def main() -> int:
             print("frequency_observer_attempts=unknown")
             print("frequency_observer_kernel_callbacks=unknown")
             print("frequency_observer_errno=unknown")
+        records = failure_records(text)
+        if (attempts and len(records) == len(attempts) and
+                [int(item["attempt"]) for item in records] == attempts):
+            print("frequency_observer_failure_trace=complete")
+            print("frequency_observer_failure_stages=" + ",".join(
+                item["stage"] for item in records
+            ))
+            for index, record in enumerate(records, 1):
+                print(
+                    f"frequency_observer_callback_{index}="
+                    f"{failure_record_summary(record)}"
+                )
+        else:
+            print("frequency_observer_failure_trace=unknown")
+            print("frequency_observer_failure_stages=unknown")
         print("cpu_off_request_maximum=1")
         print("retries=0")
         print("native_reboot_requested=no")

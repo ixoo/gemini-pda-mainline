@@ -1,0 +1,80 @@
+MT6797 A72 frequency EPROTO attributable successor offline gate
+Date: 2026-09-04
+
+Production Buildbox package:
+repository_commit=80abfffb1b20a8e5c80a3d735e97c0c2c31e5d17
+repository_dirty=false
+build_job=80abfffb1b20a8e5c80a3d735e97c0c2c31e5d17-gemini-a72-frequency-thermal-candidate-m0
+build_profile=gemini-a72-frequency-thermal-candidate
+kernel_release=7.1.3-gemini-a72-frequency-thermal
+artifact=linux-7.1.3-gemini-gemini-a72-frequency-thermal-candidate-19c93fc7-18ded825
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=19c93fc711cfaba7bcadd18e4448a56bd14a78e2881a04bb028de30f1e4c1683
+patch_count=521
+config_inputs_sha256=18ded825be6993a5a403f8cd526e3682199cc55afce876f36b7f194faced0b25
+config_sha256=500b3fb53e403d16fcd00bcc9634148da9ef41ab58eec5b4401f5563e1ac24cf
+image_gz_sha256=fd8c186384de65a9b5afad20d79761fb854a2d8da253a45f4802c95e5111d2f5
+system_map_sha256=d9a46b7ab764dbbfbb2454b95b1a5741b5073b46b4a5066111fdc2e90ebb9aa3
+package_manifest_sha256=6f882d707a7064535f4320196c31fd199e1e441588f6933493f44caa21d5a697
+build_json_sha256=e5b021b6a49a6baa2a3fc7d5bb644c9adb0bc00bae4e19fe8318de8d342b3391
+package_dtb_sha256=a77dcabeaf186da58b1706bb33e81ca1079e80bb8931df77840342371b5cb3da
+a41_record_file_sha256=8a7fc792693b59da5eacf1a5b3749c23cacbae7ca0b6ac4b7aee3db33d8e5be1
+a41_record_identity=9e0f93057ef79b592bef8d8bedd2df87751df699fdcbee4745172a4854e8f6e1
+package_validation=pass
+
+Composition:
+topology_dtb_sha256=4b05758f0aa04fb6aeb91e69bed7224fbe411d9d5fe671ff167214725c32f923
+thermal_overlay_sha256=2f0a9a424d75f3042cabcb54fce0518133deb89a065d5671b87fce287b8cc91a
+production_dtb_sha256=626095e4d53cd2e7eff0a3d42ee92fe3154383ac8b5b32b17431bfa9f2357cef
+dt_delta=exact-thermal-transform-plus-one-package-provenance-leaf
+initramfs_sha256=e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f
+candidate_variant=stage18-thermal-frequency-eproto-diagnostic
+candidate_raw_sha256=9d0f27dcd9e8d8d6130c56c2029d46803695d59d75f8366909594c9c526df767
+candidate_raw_size=7133184
+candidate_padded_sha256=d4eb9cb9ca63027b0226e6e3ef2878e5b7907153bc00c1248f701320cfe59a74
+candidate_padded_size=16777216
+candidate_manifest_sha256=d4c7060e53ae2e1139b0cd6f1ddccf2f91637614f42aee437fc8ba4c36b47e51
+android_v0_lk_validation=pass
+independent_dtb_validation=pass
+independent_candidate_validation=pass
+production_registration_oracle=pass
+failure_trace_patch_0531=exact
+failure_trace_test_patch_0532=exact
+boot_candidate=true
+
+Host runtime gates:
+pretrigger_mutations_rejected=12
+pretrigger_observer_reads=0
+pretrigger_device_writes=0
+runtime_success_cases=1
+runtime_mutations_rejected=18
+failure_trace_single_callback=complete
+failure_trace_two_callbacks=complete
+failure_trace_malformed_record=identified-unknown
+failure_capture_lines_max=18
+additional_observer_request_after_failure=none
+load_after_observer_failure=none
+native_reboot_request=none
+
+Safety:
+native_vm_kernel_build=none
+device_action=none
+hardware_write=none
+
+Interpretation:
+
+The exact production profile contains canonical patches 0531 and 0532, keeps
+the prior stage-18, thermal, topology, and three-attempt configuration, and
+leaves KUnit, cpufreq, CPU idle, and suspend disabled. The package, exact DT
+delta, deterministic Android-v0/LK container, and full 16 MiB zero-padded
+candidate all pass independent identity and structural validation.
+
+On a failed userspace read, the revised host capture preserves up to all three
+six-line kernel callback records in order. The classifier associates every
+stage with the ABI, generation, reserved, mux/divider, normal-PLL, and Big-PLL
+fields from that same callback. It makes no extra observer request, starts no
+load after a failure, and issues no reboot.
+
+This offline result admits exact candidate d4eb9cb9... for one guarded boot2
+installation and one fresh live attempt. It makes no new frequency or hardware
+support claim. Exact retired candidate 54a02dd0... remains prohibited.

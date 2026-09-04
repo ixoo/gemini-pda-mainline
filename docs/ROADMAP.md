@@ -8245,11 +8245,15 @@ already-returned fields, and adds no hardware call, CPU request, write, DT
 change, or observation attempt. Exact clean published revision `538bfb37...`
 then built the 521-patch focused profile on Buildbox; its isolated no-network
 arm64 QEMU run passed all five named cases, including the complete failure-
-stage matrix, with no failure or skip. **Selected next:** build the exact
-production profile from the same source, then admit a new exact candidate only
-after all independent package, DT, container, pretrigger, and runtime gates
-pass. Exact `54a02dd0...` must not be repeated; load, cpufreq/OPP, extra
-hotplug, idle, and suspend remain closed.
+stage matrix, with no failure or skip. Exact production build revision
+`80abfffb...` then passed the 521-patch Buildbox package gate. Independent DT,
+Android-v0/LK, pretrigger, runtime-tool, and candidate validation admit distinct
+padded candidate `d4eb9cb9...`; its failure path preserves each callback's
+stage and raw clock/BigiDVFS fields without another observation or load.
+**Selected next:** publish these exact identities, install that candidate to
+live-GPT-resolved inactive `boot2` with full readback and shutdown, then permit
+one fresh exact zero-read-pretriggered attempt. Exact `54a02dd0...` must not be
+repeated; cpufreq/OPP, extra hotplug, idle, and suspend remain closed.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

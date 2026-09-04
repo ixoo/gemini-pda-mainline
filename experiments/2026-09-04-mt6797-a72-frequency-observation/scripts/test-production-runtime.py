@@ -67,6 +67,24 @@ def sample(attempt: int) -> str:
     ))
 
 
+def failure_trace(attempt: int, errno: int, stage: str,
+                  generation: int = 11) -> str:
+    return "\n".join((
+        "GEMINI_A72_FREQUENCY_OBSERVATION_V1 "
+        f"attempt={attempt}/3 ret={errno} stage={stage}",
+        "GEMINI_A72_FREQ_CLOCK_SHAPE_V1 "
+        f"abi=1 reserved=0 generation={generation}",
+        "GEMINI_A72_FREQ_CLOCK_DIV_V1 "
+        "muxsel=0x00000055 ckdiv=0x00042108",
+        "GEMINI_A72_FREQ_PLL_V1 "
+        "ll=0xc1114000 l=0x400c4000 cci=0xc10c1d89",
+        "GEMINI_A72_FREQ_BIG_SHAPE_V1 "
+        f"abi=1 reserved=0 generation={generation + 2}",
+        "GEMINI_A72_FREQ_BIG_PLL_V1 "
+        "pcw=0xc1130000 enable_posdiv=0x07001000",
+    ))
+
+
 def passing_capture() -> str:
     lifecycle = load(LIFECYCLE_TEST, "topology_load_test")
     concurrent = load(CONCURRENT_TEST, "concurrent_runtime_test")
@@ -150,7 +168,7 @@ def main() -> int:
         'reject_preflight kernel-identity') == 1,
         "production kernel identity was not materialized")
     require(materialized.count(
-        "018de9150ffcf0b7b30fe7c45f3863555909c87e92ec4e868f30ef74a0e8cd2e"
+        "9e0f93057ef79b592bef8d8bedd2df87751df699fdcbee4745172a4854e8f6e1"
     ) == 1, "production record identity was not materialized")
     for stale in (
         '[ "$($BB uname -r)" = 7.1.3-gemini-a72-hotplug-physical ]',
@@ -167,7 +185,9 @@ def main() -> int:
     require(materialized.count(
         "failure_additional_frequency_observation_request=none") == 1 and
         materialized.count(
-            "grep -F 'GEMINI_A72_FREQUENCY_OBSERVATION_V1'") >= 2,
+            "grep -F 'GEMINI_A72_FREQUENCY_OBSERVATION_V1'") >= 1 and
+            "GEMINI_A72_(FREQUENCY_OBSERVATION_V1|FREQ_" in materialized and
+            "tail -n 18" in materialized,
         "observer failure evidence path changed")
     require(materialized.index("frequency_observe before") <
             materialized.index('kill -0 "$pid8"') <
@@ -199,25 +219,42 @@ def main() -> int:
     )
     failed = classify(
         valid + "__A72_FREQUENCY_THERMAL_REJECTED__ reason=frequency-before\n"
-        "GEMINI_A72_FREQUENCY_OBSERVATION_V1 attempt=1/3 ret=-11\n"
+        + failure_trace(1, -5, "clock-transport") + "\n"
     )
     require(failed.returncode == 3,
             "observer failure fixture was not rejected")
     require("frequency_observer_attempts=1-of-3" in failed.stdout and
             "frequency_observer_kernel_callbacks=1" in failed.stdout and
-            "frequency_observer_errno=-11" in failed.stdout,
+            "frequency_observer_errno=-5" in failed.stdout and
+            "frequency_observer_failure_trace=complete" in failed.stdout and
+            "frequency_observer_failure_stages=clock-transport" in failed.stdout,
             "observer failure identity was not preserved")
     retried_failure = classify(
         valid + "__A72_FREQUENCY_THERMAL_REJECTED__ reason=frequency-before\n"
-        "GEMINI_A72_FREQUENCY_OBSERVATION_V1 attempt=1/3 ret=-71\n"
-        "GEMINI_A72_FREQUENCY_OBSERVATION_V1 attempt=2/3 ret=-71\n"
+        + failure_trace(1, -71, "decode", 11) + "\n"
+        + failure_trace(2, -71, "decode", 12) + "\n"
     )
     require(retried_failure.returncode == 3,
             "two-callback observer failure fixture was not rejected")
     require("frequency_observer_attempts=1-2-of-3" in retried_failure.stdout and
             "frequency_observer_kernel_callbacks=2" in retried_failure.stdout and
-            "frequency_observer_errno=-71" in retried_failure.stdout,
+            "frequency_observer_errno=-71" in retried_failure.stdout and
+            "frequency_observer_failure_trace=complete" in retried_failure.stdout and
+            "frequency_observer_failure_stages=decode,decode" in retried_failure.stdout and
+            "frequency_observer_callback_2=attempt=2 errno=-71 stage=decode "
+            "clock_abi=1 clock_reserved=0 clock_generation=12" in
+            retried_failure.stdout,
             "two-callback observer failure identity was not preserved")
+    malformed_failure = classify(
+        valid + "__A72_FREQUENCY_THERMAL_REJECTED__ reason=frequency-before\n"
+        + failure_trace(1, -71, "decode").replace(
+            "pcw=0xc1130000", "pcw=0xC1130000", 1
+        ) + "\n"
+    )
+    require(malformed_failure.returncode == 3 and
+            "frequency_observer_failure_trace=unknown" in
+            malformed_failure.stdout,
+            "malformed failure trace was not identified")
     mutations = (
         valid.replace("attempt=2", "attempt=1", 1),
         valid.replace("remaining=0", "remaining=1", 1),

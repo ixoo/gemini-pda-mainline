@@ -113,6 +113,9 @@ failed callback names one of clock transport, clock shape, BigiDVFS transport,
 BigiDVFS shape, or decode and emits the already-returned ABI, generation,
 reserved, mux/divider, and PLL fields. The success path remains `none`.
 Injected KUnit fixtures cover all six states and exact call accounting; patch
-replay, source/path validation, and strict style checks pass. This is not yet a
-compiled or runtime result. The focused suite and production profile must pass
-on Buildbox before a new candidate can be considered.
+replay, source/path validation, and strict style checks pass. Exact clean
+revision `538bfb37...` then passed the five-case focused Buildbox/QEMU gate.
+Production build revision `80abfffb...` passed package validation and produced
+independently validated candidate `d4eb9cb9...`. The host failure path now
+retains up to all three ordered six-line callback records and binds each stage
+to its raw fields without making another observation request.

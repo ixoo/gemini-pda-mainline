@@ -128,7 +128,11 @@ next composition. They identify clock transport/shape, BigiDVFS
 transport/shape, or decoder rejection, preserve the raw values already returned
 by those calls, add no new hardware access, and keep the same three-callback
 ceiling. Exact patch replay, source/path validation, focused stage coverage,
-and strict Checkpatch pass. They still require focused and production Buildbox
-compilation, isolated no-network KUnit execution, and a new independently
-validated package, DT, container, pretrigger, runtime, and candidate identity
-before one more live attempt can be selected.
+and strict Checkpatch pass. Exact focused revision `538bfb37...` passes all
+five isolated cases. Exact production build revision `80abfffb...` passes its
+521-patch Buildbox package gate; independent composition yields DT
+`626095e4...`, raw image `9d0f27dc...`, and exact padded candidate
+`d4eb9cb9...`. Pretrigger and runtime tooling reject 12 and 18 mutations,
+respectively, and the failure path retains complete ordered stage/raw records
+for one or two callbacks. This distinct candidate is now selected for one
+guarded installation and fresh live attempt.
