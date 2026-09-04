@@ -513,3 +513,4 @@ v7.1.3/0520-arm64-dts-mediatek-add-Gemini-thermal-serviceability.patch
 v7.1.3/0521-pstore-add-Gemini-MT6797-thermal-stage-ledger.patch
 v7.1.3/0522-pstore-test-Gemini-MT6797-thermal-stage-ledger.patch
 v7.1.3/0523-thermal-mediatek-trace-MT6797-probe-stages.patch
+v7.1.3/0524-pstore-match-Gemini-thermal-ledger-after-LK-model-rewrite.patch

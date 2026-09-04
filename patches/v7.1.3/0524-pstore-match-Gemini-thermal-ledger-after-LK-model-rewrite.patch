@@ -1,0 +1,29 @@
+From 2603630f200175b379e2ed24166984132a1734e9 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 4 Sep 2026 20:01:00 +0000
+Subject: [PATCH] pstore: match Gemini thermal ledger after LK model rewrite
+
+LK publishes the live Gemini root model as MT6797X. Match that
+established runtime identity so the optional diagnostic ledger cannot
+reject the thermal probe before calibration or hardware access.
+
+Keep the compatible, ramoops, address, size, reset, thermal, and zone
+gates unchanged.
+---
+ fs/pstore/gemini_mt6797_thermal_ledger.c | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/fs/pstore/gemini_mt6797_thermal_ledger.c b/fs/pstore/gemini_mt6797_thermal_ledger.c
+index dbb0dad..68f96ae 100644
+--- a/fs/pstore/gemini_mt6797_thermal_ledger.c
++++ b/fs/pstore/gemini_mt6797_thermal_ledger.c
+@@ -296,8 +296,7 @@ static bool gemini_mt6797_thermal_ledger_exact_dt(void)
+ 
+ 	if (!of_machine_is_compatible("planet,gemini-pda") ||
+ 	    of_property_read_string(of_root, "model", &model) ||
+-	    strcmp(model,
+-		   "Planet Computers Gemini PDA (thermal serviceability)"))
++	    strcmp(model, "MT6797X"))
+ 		return false;
+ 	node = of_find_node_by_path("/reserved-memory/ramoops@44410000");
+ 	if (!node)

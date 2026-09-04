@@ -31,6 +31,14 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-09-04 MT6797 thermal-ledger live-model repair](2026-09-04-mt6797-thermal-ledger-live-model-repair/README.md)
+  — follows the first serviceable thermal attempt's exact pre-transaction
+  failure. LK publishes live model `MT6797X`, but the optional ledger required
+  the pre-LK serviceability model and rejected the thermal probe with `ENODEV`
+  before calibration or MMIO. Canonical patch `0524` changes only that string
+  predicate while preserving every compatible, ramoops, address, size, reset,
+  thermal, and zone gate. Byte-identical generation, three rejection mutations,
+  and the 181-profile series invariant pass; Buildbox validation is next.
 - [2026-09-04 MT6797 thermal serviceability DT repair](2026-09-04-mt6797-thermal-serviceability-dt-repair/README.md)
   — corrects the observation-channel confound in the base-DT control by
   deriving from the exact runtime-proven PWRAP/USB/console/eMMC DT. Its only
@@ -38,8 +46,10 @@ the loop. Positive identity-gated observations are unaffected.
   reset, controller enablement, and one policy-free zone. Two deterministic DT
   and container constructions, the package/LK validators, thirteen runtime
   rejection mutations, and guarded deployment checks pass. Exact candidate
-  `ca3c2588...` is selected for one read-only thermal observation; CPUs 8--9,
-  load, cpufreq/OPP, hotplug, idle, suspend, and native reboot remain closed.
+  `ca3c2588...` then booted with the expected serviceability baseline, but the
+  optional ledger rejected live model `MT6797X` before the thermal transaction,
+  leaving no zone. Changed-ID recovery and unchanged `boot2` passed; the exact
+  model-predicate repair above is next while CPUs 8--9 and load remain closed.
 - [2026-09-04 MT6797 thermal base-DT control](2026-09-04-mt6797-thermal-base-dtb-control/README.md)
   — holds the exact thermal-stage kernel, configuration, initramfs, LK
   container contract, command line, and addresses while changing only the

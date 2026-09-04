@@ -8111,8 +8111,25 @@ idle, suspend, or same-artifact repeat to this attempt. Published commit
 `048591e6...` has now installed that exact payload on live-GPT-resolved inactive
 `boot2`; synchronization, flush, full 16 MiB readback, stable-power, no-new-
 backup, no-other-write, and three-closed-TCP shutdown gates all passed.
-**Selected next:** arm the exact bounded observer and physically select `boot2`
-once; do not rewrite the verified partition.
+The single pre-armed attempt then produced a decisive live frame on boot ID
+`3e6d06e4...`: the exact release, USB/netcat, PWRAP/MT6351, eMMC, keyboard,
+console, calibration provider, and CPU0--7 baselines were serviceable. Thermal
+deferred before the provider, retried afterward, and returned errno 19 with no
+driver or zone. The live root model was `MT6797X`, not the pre-LK DT model.
+Exact source therefore localizes the stop before calibration and every thermal
+MMIO operation: the optional ledger's exact-DT gate required the pre-LK string
+and `gemini_mt6797_thermal_ledger_begin()` returned `-ENODEV`. This also explains
+the empty earlier ledger without treating returned RAM as an execution oracle.
+An identity-gated native recovery returned changed-ID Gemian with no partition
+access; console ramoops independently preserved both probe returns, and live GPT
+reproduced exact `ca3c2588...` on inactive `boot2`. **Selected next:** admit
+canonical patch `0524`, changing only the ledger model predicate to the
+established live `MT6797X` identity while retaining every other admission gate.
+Run strict patch/series checks, the focused no-network ledger/transaction KUnit
+suite, and the production profile on Buildbox. Only after both builds pass may
+one exact successor reuse the runtime-proven DT/initramfs for a fresh read-only
+thermal frame. Keep CPU8/CPU9 requests, load, cpufreq/OPP, hotplug, idle,
+suspend, and same-artifact repeat closed.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

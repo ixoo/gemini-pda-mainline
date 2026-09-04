@@ -14,8 +14,10 @@ CLASSIFIER = SCRIPT_DIR / "classify_observation.py"
 REMOTE = SCRIPT_DIR / "remote_observe.sh"
 COLLECTOR = SCRIPT_DIR / "collect_runtime.sh"
 INSTALLER = SCRIPT_DIR / "install_boot2.sh"
+RECOVERY_TOOL = SCRIPT_DIR / "request_native_recovery.sh"
 RECOVERY = "11111111-2222-3333-4444-555555555555"
 MAINLINE = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+CAPTURED_MAINLINE = "3e6d06e4-b89f-4db5-b292-c5df56dc6372"
 
 
 def load_classifier():
@@ -158,11 +160,25 @@ def main() -> int:
         raise AssertionError("installer mistakes command-channel failure for poweroff")
     if "ServerAliveInterval=2" not in collector or "ServerAliveCountMax=2" not in collector:
         raise AssertionError("collector Gemian probe is not bounded after authentication")
+    recovery_tool = RECOVERY_TOOL.read_text(encoding="utf-8")
+    for required in (
+        f"readonly MAINLINE_BOOT_ID={CAPTURED_MAINLINE}",
+        "readonly INSTALLED_FULL_SHA256=ca3c25889b92673aa341fa97fc347c3469bc3b532d81045659a3afa1f563636a",
+        "readonly FRAME_SHA256=969735f26636c12fb06eb96f2f484f2eb6dfb02f2e7369f2d5501630e88fa364",
+        "device_partition_reads=none device_storage_writes=none",
+        "request_count=1",
+    ):
+        if required not in recovery_tool:
+            raise AssertionError(f"native recovery safety token absent: {required}")
+    for forbidden in ("/dev/mmcblk", "poweroff", "reboot -f"):
+        if forbidden in recovery_tool:
+            raise AssertionError(f"native recovery gained forbidden token: {forbidden}")
     print("positive_cases=1")
     print(f"rejection_cases={rejected}")
     print("remote_observer=read-only-static-pass")
     print("collector=source-hashes-pinned")
     print("installer=live-GPT-single-write-static-pass")
+    print("native_recovery=exact-failed-frame-no-partition-static-pass")
     return 0
 
 

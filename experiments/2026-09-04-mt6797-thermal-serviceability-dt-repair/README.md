@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-thermal-serviceability-dt-repair` |
-| Status | exact candidate installed, fully read back, and device shut down; one boot2 attempt pending |
+| Status | completed; live serviceability passed but thermal probe was rejected before its transaction by the ledger's pre-LK model predicate |
 | Subsystem | MT6797 thermal observation and preserved USB serviceability |
 | Device variant | Planet Computers Gemini PDA, MT6797 |
 | Date(s) | 2026-09-04 |
@@ -130,8 +130,22 @@ retained record would still not prove which early stage executed.
 
 ## Conclusion
 
-The exact candidate is confirmed offline and selected for one device attempt.
-No runtime thermal-support claim is made yet.
+The single live attempt reached exact USB/netcat release and candidate identity
+with CPU0--7, PWRAP/MT6351, eMMC, keyboard, and console serviceability intact.
+The calibration provider bound, after which the thermal probe retried but
+returned errno 19 (`ENODEV`), leaving no driver or zone. The captured live root
+model is `MT6797X`: LK rewrote the candidate DT's serviceability model before
+Linux. Exact source inspection proves the optional ledger required the pre-LK
+model and returned `-ENODEV` before calibration or any thermal MMIO transaction.
+Thus the observation-path repair succeeded and the remaining failure is a
+one-predicate diagnostic-ledger bug, not a thermal-transaction failure.
+
+An exact identity-gated native recovery returned changed-ID Gemian without
+partition access. Private console ramoops independently contains both the
+initial deferred probe and post-provider errno-19 retry. Read-only live-GPT
+attestation reproduced exact `ca3c2588...` on inactive `boot2`. CPU8/CPU9 and
+load remained untouched. The candidate is retired without repeat; no runtime
+thermal-support claim is made yet.
 
 ## Follow-up
 
