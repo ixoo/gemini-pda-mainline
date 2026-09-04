@@ -1,0 +1,13 @@
+# First per-bank thermal observation: no workload or CPU lifecycle trigger.
+# Inherit the proven frequency/thermal composition; host protocol spends only
+# the dedicated thermal observer's three-attempt ceiling.
+CONFIG_MTK_SOC_THERMAL_OBSERVER=y
+# CONFIG_MTK_SOC_THERMAL_SNAPSHOT_KUNIT_TEST is not set
+# CONFIG_MTK_SOC_THERMAL_TRANSACTION_KUNIT_TEST is not set
+# CONFIG_MTK_SOC_THERMAL_KUNIT_TEST is not set
+# CONFIG_KUNIT is not set
+# CONFIG_CPU_FREQ is not set
+# CONFIG_CPU_IDLE is not set
+# CONFIG_SUSPEND is not set
+CONFIG_LOCALVERSION="-gemini-thermal-snapshot"
+# CONFIG_LOCALVERSION_AUTO is not set
