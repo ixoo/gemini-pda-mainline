@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-thermal-serviceability` |
-| Status | `running`; source and offline candidate gates in progress |
+| Status | `running`; exact package passed, offline candidate gate in progress |
 | Subsystem | MT6797 thermal controller, AUXADC transaction, reset, and NVMEM calibration |
 | Device variant | Planet Computers Gemini PDA, MT6797 |
 | Date(s) | 2026-09-04 |
@@ -112,10 +112,21 @@ same artifact.
   zero trips, zero cooling maps, disabled standalone AUXADC, and the SoC node
   still default-disabled. Strict Checkpatch reported zero errors, warnings, or
   checks. See [results/patch-generation-20260904.txt](results/patch-generation-20260904.txt).
+- Buildbox built the clean pushed revision `b023e88940f098...` as exact release
+  `7.1.3-gemini-mt6797-thermal-serviceability`. Independent package validation
+  pinned the source, patchset, configuration, kernel, System.map, base DT, and
+  service DT identities; required PWRAP, MT6351, eMMC, ATAG NVMEM, reset, and
+  thermal symbols are linked. The service DT contains PWRAP reset input 1,
+  thermal reset input 0, exactly one trip-free and cooling-free zone, and a
+  disabled standalone AUXADC consumer. See
+  [results/offline-package-20260904.txt](results/offline-package-20260904.txt).
 
 ## Analysis
 
-Pending exact Buildbox and hardware evidence.
+The exact Buildbox package passes its offline identity, linkage, configuration,
+and structural DT gates. This is construction evidence only; it does not prove
+that calibration, reset, clocks, bank preparation, first samples, registration,
+or temperature reads work on hardware.
 
 ## Conclusion
 
