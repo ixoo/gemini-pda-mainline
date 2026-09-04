@@ -121,8 +121,8 @@ failure with sealed output, recovery on the next allowed attempt, invalid ops
 and active-record refusal. Production source review, strict patch review,
 Buildbox compilation, KUnit execution and a stronger scan-path oracle remain
 required before selecting a production profile or device candidate. These
-source templates are not yet a generated or tested kernel change. No additional
-boot or workload is admitted by this work.
+source templates require the validation results below before their integration
+can advance. No additional boot or workload is admitted by this work.
 
 The corrected integration at `483a6206` generated canonical patches `0537`
 and `0538`, both with zero strict Checkpatch errors, warnings or checks and
@@ -132,6 +132,36 @@ See [observer style review](results/observer-checkpatch.txt) and
 [generation identity](results/observer-generation.txt). The focused
 `mt6797-thermal-observer-kunit` profile compiles the actual driver/interface and
 ten collector/owner cases, with no matching device under QEMU. Build and test
-results are pending. Existing snapshot-only profiles now include the three
+results are recorded below. Existing snapshot-only profiles now include the three
 owner tests when built from the extended canonical series; the earlier
 seven-case result remains pinned to its exact historical revision.
+
+## Integrated offline result
+
+Corrected kernel revision `fc37244f` passes the explicit Buildbox build and
+validated package fetch. All ten collector/owner cases pass in a bounded,
+network-disabled host QEMU run, without skips or failures. The initial build
+failed because the plural device-managed group API does not exist in this
+kernel; patch `0537` now uses the singular helper and a single static group.
+The corrected generation again passes strict style and identical tree replay.
+See [build evidence](results/observer-build-validation.txt) and
+[exact KUnit result](results/observer-kunit-pass.json). The ten-case classifier
+also passes one positive and eleven negative fixtures.
+
+The [scan oracle](scripts/test-observer-scan.py) extracts the actual bank,
+aggregate and polling function bodies from the prepared source and executes
+them with injected register, conversion and lock stubs. Across 128 validity
+patterns, normal polling and capture return identical aggregates; each scan
+performs seven reads, seven conversions and six bank lock pairs, and preserves
+all seven converted samples. Four mutations reject extra reads, omitted
+capture, changed invalid-temperature return and a missing bank unlock.
+The [result](results/observer-scan-oracle.txt) pins the actual driver digest.
+The initial harness counter collided with a C library function name; that
+fixture-only error was corrected before the passing run.
+
+This oracle validates function control flow with injected inputs, not real
+register timing, lock contention or silicon temperatures. Sysfs record parsing,
+exhaustion behavior through the actual show callback, removal ordering and
+concurrent polling still need focused review/testing before a no-workload
+production observation candidate. No new device support claim, boot request,
+threshold relaxation or load permission follows from these offline passes.

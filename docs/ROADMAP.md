@@ -8332,14 +8332,17 @@ consumed workload.
 The [disconnected snapshot collector](../experiments/2026-09-04-mt6797-thermal-snapshot/README.md)
 now has canonical production-header and KUnit patches, strict style and replay
 validation, with no driver call site or device interface. Its focused Buildbox
-package and all no-network KUnit cases now pass. **Immediate gate:** connect
-the collector to the existing scan without additional MMIO and add the
-separately locked, default-off observer owner. Canonical observer integration
-patches now pass strict style and replay review; its focused profile compiles
-the production interface alongside injected owner tests. Complete Buildbox and
-KUnit validation, then prove normal-polling isolation, exact read budgets,
-failure output and driver-return equivalence with a scan-path oracle before
-selecting a production observation profile or new candidate.
+package and all no-network KUnit cases now pass. The collector is now connected
+to the existing scan with a separately locked, default-off observer owner.
+That integration passes
+strict patch review, Buildbox compilation and all focused kernel tests. Its
+actual-scan oracle confirms polling/capture return equivalence and fixed read
+counts under injected validity combinations, including negative mutations.
+**Selected next:** validate the actual sysfs show/status and exhaustion records,
+removal ordering and concurrent polling isolation; then compose and validate an
+initially no-workload observation profile and prospective host protocol before
+selecting any new device candidate. Emulator and injected-IO results do not
+establish hardware thermal repeatability.
 Integrated thermal repeatability, broader load/hotplug, cpufreq/OPP, idle,
 suspend and default integration remain open.
 
