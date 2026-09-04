@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-thermal-ledger-live-model-repair` |
-| Status | exact candidate installed and device shut down; one pre-armed boot attempt pending |
+| Status | runtime pass; changed-ID Gemian recovery and unchanged boot2 verified |
 | Subsystem | optional thermal-stage ledger admission |
 | Device variant | Planet Computers Gemini PDA, MT6797 |
 | Date(s) | 2026-09-04 |
@@ -56,7 +56,7 @@ USB/console/PWRAP/eMMC DT.
   a redundant device backup.
 - `scripts/remote_observe.sh`, `scripts/classify_observation.py`, and
   `scripts/collect_runtime.sh` capture and classify one bounded read-only frame;
-  their offline harness includes one pass and 17 rejection cases.
+  their offline harness includes one pass and 18 rejection cases.
 
 ## Procedure
 
@@ -90,8 +90,30 @@ Published installer commit `70443390...` wrote exact padded candidate
 `93a78b49...` to the single live-GPT-resolved inactive `boot2`, replacing
 `ca3c2588...`. Stable-power, unmounted/no-holder, exact-size, synchronization,
 flush, and full 16 MiB readback gates passed. No new backup or other partition
-write was made. Three consecutive closed TCP/22 samples confirm the required
-post-write shutdown. The physical boot attempt has not yet begun.
+write was made. Three consecutive closed TCP/22 samples confirmed the required
+post-write shutdown before the physical attempt.
+
+The single pre-armed attempt then passed on mainline boot ID `95597a8b...`.
+The exact release, live model `MT6797X`, USB/netcat, visible and active serial
+console, PWRAP/MT6351, eMMC, calibration provider, and CPU0--7 baselines were
+present while CPUs 8--9 remained offline. Thermal deferred exactly once before
+the provider, retried successfully afterward, bound `mtk-thermal`, registered
+one policy-free `soc-thermal` zone, and returned 36.1, 36.1, and 35.9 degrees C.
+No CPU trigger, load, cpufreq, partition read, retained-RAM read, or device write
+occurred during the live observation.
+
+The initial classifier rejected only because it assumed a thermal-class
+`device` child symlink. This kernel exposes `thermal_zone0` as a virtual class
+device without that symlink; the exact successful platform probe, one bound
+`mtk-thermal` device, one exact-type zone, and three temperatures provide the
+attribution. The corrected contract passes the exact frame and now rejects 18
+mutations. This changes observation tooling only, not the measured kernel.
+
+One exact identity-gated USB request returned the device to changed-ID Gemian
+without partition access. Recovery `console-ramoops` independently preserves
+the thermal `-517` and later return 0 plus clean driver shutdown. A fresh live-
+GPT resolution and complete read confirmed inactive `boot2` still matches
+`93a78b49...`.
 
 ## Analysis
 
@@ -104,9 +126,10 @@ temperature observation itself passes.
 
 ## Conclusion
 
-The exact repair is installed and the device is shut down. The remaining step
-is one pre-armed read-only runtime frame from a physical `boot2` selection.
-CPU8/CPU9 requests and load remain closed.
+The live-model repair works and closes the thermal-observability prerequisite.
+It does not itself bring CPU8/CPU9 online: the next bounded A72 load remains
+closed until runtime frequency state is attributable alongside the now-proven
+temperature, topology, and accounting channels.
 
 ## Follow-up
 

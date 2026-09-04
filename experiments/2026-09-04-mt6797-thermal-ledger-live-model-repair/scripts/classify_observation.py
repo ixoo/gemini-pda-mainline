@@ -64,7 +64,11 @@ def classify(text: str, recovery_boot_id: str) -> tuple[str, tuple[int, int, int
         "vemc_3v3_count": "1", "vio18_count": "1", "mmc_card_count": "1",
         "mmc_card_type": "MMC", "mmcblk0_present": "1", "mmcblk0_partition_count": "33",
         "thermal_zone_count": "1", "thermal_zone_name": "thermal_zone0",
-        "thermal_zone_type": "soc-thermal", "thermal_zone_device": "1100b000.thermal",
+        # Thermal class zones are virtual devices here and expose no child
+        # `device` symlink. The unique bound mtk-thermal platform device, one
+        # zone, its exact type, successful probe, and live temperatures provide
+        # the attribution instead.
+        "thermal_zone_type": "soc-thermal", "thermal_zone_device": "none",
         "config_thermal": "1", "config_mtk_thermal": "1", "config_thermal_ledger": "1",
         "config_cpufreq_disabled": "1", "config_cpuidle_disabled": "1", "config_suspend_disabled": "1",
         "pwrap_error_count": "0", "mmc_error_count": "0", "thermal_error_count": "1",

@@ -39,10 +39,13 @@ the loop. Positive identity-gated observations are unaffected.
   predicate while preserving every compatible, ramoops, address, size, reset,
   thermal, and zone gate. Byte-identical generation, three patch rejection
   mutations, the 181-profile series invariant, both Buildbox profiles, all 15
-  focused QEMU cases, the LK container, and 17 runtime rejection cases pass.
+  focused QEMU cases, the LK container, and 18 runtime rejection cases pass.
   Exact candidate `93a78b49...` preserves the decisive prior DT/initramfs and
-  is ready for one pre-armed read-only device attempt; CPU8/CPU9 load stays
-  closed.
+  passed its single pre-armed attempt: thermal deferred once, then bound
+  naturally, exposed one policy-free zone, and returned three plausible
+  temperatures while USB, console, PWRAP/MT6351, eMMC, and CPUs 0--7 remained
+  healthy. Changed-ID recovery and unchanged `boot2` passed. This closes the
+  thermal prerequisite; attributable A72 frequency state is next before load.
 - [2026-09-04 MT6797 thermal serviceability DT repair](2026-09-04-mt6797-thermal-serviceability-dt-repair/README.md)
   — corrects the observation-channel confound in the base-DT control by
   deriving from the exact runtime-proven PWRAP/USB/console/eMMC DT. Its only

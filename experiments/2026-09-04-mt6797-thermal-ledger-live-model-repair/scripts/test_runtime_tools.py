@@ -14,8 +14,10 @@ CLASSIFIER = SCRIPT_DIR / "classify_observation.py"
 REMOTE = SCRIPT_DIR / "remote_observe.sh"
 COLLECTOR = SCRIPT_DIR / "collect_runtime.sh"
 INSTALLER = SCRIPT_DIR / "install_boot2.sh"
+RECOVERY_TOOL = SCRIPT_DIR / "request_native_recovery.sh"
 RECOVERY = "11111111-2222-3333-4444-555555555555"
 MAINLINE = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+CAPTURED_MAINLINE = "95597a8b-501c-4a76-afb0-5b5286bf55d8"
 
 
 def load_classifier():
@@ -53,7 +55,7 @@ def frame() -> str:
         "vio18_count": "1", "mmc_card_count": "1", "mmc_card_type": "MMC",
         "mmcblk0_present": "1", "mmcblk0_partition_count": "33",
         "thermal_zone_count": "1", "thermal_zone_name": "thermal_zone0",
-        "thermal_zone_type": "soc-thermal", "thermal_zone_device": "1100b000.thermal",
+        "thermal_zone_type": "soc-thermal", "thermal_zone_device": "none",
         "temperature_1_millicelsius": "38000",
         "temperature_2_millicelsius": "39000",
         "temperature_3_millicelsius": "38500", "config_thermal": "1",
@@ -110,6 +112,7 @@ def main() -> int:
         ("usb-disabled", "usb_controller_dt_status=okay", "usb_controller_dt_status=disabled"),
         ("thermal-unbound", "thermal_bind_count=1", "thermal_bind_count=0"),
         ("zone-missing", "thermal_zone_count=1", "thermal_zone_count=0"),
+        ("zone-device-contract", "thermal_zone_device=none", "thermal_zone_device=1100b000.thermal"),
         ("zero-temperature", "temperature_2_millicelsius=39000", "temperature_2_millicelsius=0"),
         ("cpu-loss", "cpu_online=0-7", "cpu_online=0-6"),
         ("console-loss", "console_active=ttyS0", "console_active=tty0"),
@@ -163,11 +166,26 @@ def main() -> int:
         raise AssertionError("installer mistakes command-channel failure for poweroff")
     if "ServerAliveInterval=2" not in collector or "ServerAliveCountMax=2" not in collector:
         raise AssertionError("collector Gemian probe is not bounded after authentication")
+    recovery_tool = RECOVERY_TOOL.read_text(encoding="utf-8")
+    for required in (
+        f"readonly MAINLINE_BOOT_ID={CAPTURED_MAINLINE}",
+        "readonly INSTALLED_FULL_SHA256=93a78b490a9ffbf32eb60c5c875f508fd05b43b726220b3ccdbe9277792752a4",
+        "readonly FRAME_SHA256=638d40bb9e46a2acf5ac7755dc91efb9e3b75a5f84e83a86b5741b10f6369802",
+        "classification=mt6797-thermal-ledger-live-model-repair-pass",
+        "device_partition_reads=none device_storage_writes=none",
+        "request_count=1",
+    ):
+        if required not in recovery_tool:
+            raise AssertionError(f"native recovery safety token absent: {required}")
+    for forbidden in ("/dev/mmcblk", "poweroff", "reboot -f"):
+        if forbidden in recovery_tool:
+            raise AssertionError(f"native recovery gained forbidden token: {forbidden}")
     print("positive_cases=1")
     print(f"rejection_cases={rejected}")
     print("remote_observer=read-only-static-pass")
     print("collector=source-hashes-pinned")
     print("installer=live-GPT-single-write-static-pass")
+    print("native_recovery=exact-success-frame-no-partition-static-pass")
     return 0
 
 

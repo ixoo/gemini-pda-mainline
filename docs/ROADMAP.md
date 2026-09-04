@@ -8129,21 +8129,35 @@ identity while retaining every other admission gate. Published build commit
 ledger/transaction profile on Buildbox; all 15 isolated QEMU cases pass. Exact
 successor `93a78b49...` preserves prior runtime-proven DT `f131a064...` and
 initramfs `344d8a84...` byte-for-byte, passes all package and 32 LK-container
-gates, and has one-pass/17-rejection runtime tools. No native VM build or device
+gates, and has one-pass/18-rejection runtime tools. No native VM build or device
 action contributed to those results. **Selected next:** install that exact
 candidate to live-GPT-resolved inactive `boot2`, require matching full-partition
 readback and shutdown, then make one pre-armed read-only frame. Published
 installer commit `70443390...` has now completed that write: predecessor
 `ca3c2588...` was replaced by exact `93a78b49...`; stable-power,
 unmounted/no-holder, sync, flush, matching full 16 MiB readback, no-new-backup,
-no-other-write, and three-closed-TCP shutdown gates passed. **Selected next:**
-arm the exact observer and make the single physical `boot2` selection. A pass requires
-one initial thermal `-EPROBE_DEFER`, one later successful probe, natural driver
-bind, exactly one policy-free zone, and three plausible temperatures while CPUs
-8--9 remain offline; errno 19 or a later transaction error selects only the
-first proven boundary for repair. A changed-ID Gemian return without a frame is
-a serviceability regression, not a thermal-stage result. Keep CPU8/CPU9
-requests, load, cpufreq/OPP, hotplug, idle, suspend, and same-artifact repeat
+no-other-write, and three-closed-TCP shutdown gates passed. The single pre-armed
+attempt then passed on fresh mainline boot ID `95597a8b...`: one initial thermal
+`-EPROBE_DEFER` was followed by a successful post-provider probe, natural
+`mtk-thermal` bind, exactly one policy-free `soc-thermal` zone, and three
+plausible temperatures at 36.1, 36.1, and 35.9 degrees C. USB/netcat, the
+owner-visible and active serial console, PWRAP/MT6351, eMMC, calibration
+provider, and CPUs 0--7 remained healthy while CPUs 8--9 stayed offline. The
+initial classifier's sole rejection was its false assumption that the virtual
+thermal class zone must expose a `device` child symlink; the repaired exact
+contract passes the frame and rejects 18 mutations. Identity-gated USB recovery
+returned changed-ID Gemian without partition access, console ramoops
+independently retained both thermal probe returns and clean driver shutdown,
+and live GPT reproduced exact `93a78b49...` on inactive `boot2`. This closes
+the thermal-observability prerequisite, not CPU8/CPU9 production readiness.
+**Selected next:** identify and offline-prove an attributable, read-only A72
+runtime-frequency channel, then compose it with the exact stage-18 4+4+2
+topology and the now-proven thermal DT/config. Only one bounded successor may
+run the already-proven finite dual-A72 volatile-RAM exchange while sampling
+temperature, frequency, topology, and independent accounting. If no truthful
+frequency channel exists, implement that observation boundary before load; do
+not treat static DT `clock-frequency` as runtime evidence. Keep longer load,
+cpufreq/OPP changes, extra hotplug, idle, suspend, and same-artifact repeat
 closed.
 
 - CPU topology and cache/CCI coherency under load;
