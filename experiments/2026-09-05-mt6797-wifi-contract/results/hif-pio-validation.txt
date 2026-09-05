@@ -1,0 +1,16 @@
+Finite HIF PIO primitive validation — 2026-09-05
+Base: 1e0ae9ea
+Original GPL-2.0-only component; existing source ledgers and encoder reused.
+Strict C11 -Wall -Wextra -Werror -pedantic plus address/undefined sanitizers.
+pio_order_endian_padding_refusal_partial_failure_no_retry=pass
+Managed temporary executable removed by immediate EXIT trap.
+No real I/O adapter, MMIO, status/retry/recovery or credits implemented.
+No device/backend/retained-input action. Kernel integration uncompiled.
+Prior negative observations preserved; DMA prerequisite language corrected.
+Existing sanitized encoder 29 cases and sizing 30 cases also pass.
+Repository checks pass: profiles=189, unchanged metadata debt=37; Linux-only
+artifact fixture skipped. New-file links, rights/privacy, diff checks pass.
+HIF_PIO.md sha256=63a3090e888a86c68d6b4275355541e2557c06e11bf6f2d7018ca680ed884fcc
+PIO_TRANSPORT_DESIGN.md sha256=7752a064a923d206f88659bcaba08135aa8cf97aeb04d63e6f11339a0902d9f6
+src/hif_pio.h sha256=00e4af207f8b8a4276d493b8ffd7420290fa6478ec9d10324e9df0719ab39023
+src/hif_pio_test.c sha256=1f72ddd2068bc2f4d38629f47d172f353020e704a27d93f2e216030ed87747de

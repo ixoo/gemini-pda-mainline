@@ -1,5 +1,10 @@
 # AHB PIO admission: encoding known, bounded completion missing
 
+Historical assessment: the blanket implementation gate below is narrowed by
+[the subsequent MMIO/transport reassessment](PIO_TRANSPORT_DESIGN.md).
+Its source observations remain valid; absence of a per-access timeout or
+PIO-specific completion bit is not by itself a reason to forbid a transport.
+
 The selected gen3 source does not supply the complete bounded PIO completion
 contract required by this investigation. Therefore **no encoder is added**
 and PIO is not admitted for first host-driver bring-up. This is a bounded
