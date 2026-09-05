@@ -388,3 +388,12 @@ local revalidation. The [current admission](V4_RUNTIME_ACCEPTANCE.md#current-adm
 selects guarded preparation after evidence publication, then one fresh-boot,
 workload-free corrected thermal observation. No new device operation or runtime
 claim follows from these offline results.
+
+
+The [V4 cycle preparation receipt](results/v4-cycle-preparation.txt) records the
+live-GPT-selected inactive boot2, verified root/target block identities, stable
+power, exact write and independent full-partition readback. The existing image
+was replaced by the frozen corrected candidate; no fresh backup was created.
+Clean shutdown was confirmed by lost SSH service. The host runner's offline
+receipt/candidate gate passes. Physical boot2 selection and the fresh pristine
+runtime gate remain pending; no corrected-image runtime result is claimed.

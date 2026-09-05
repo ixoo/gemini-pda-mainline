@@ -30,6 +30,11 @@ The following sections preserve design/build chronology. Earlier pending-state
 statements refer to those recorded stages; they do not supersede this current
 admission or relax any runtime boundary below.
 
+The [cycle preparation receipt](results/v4-cycle-preparation.txt) now confirms
+installation, exact independent full readback and clean shutdown. The offline
+host receipt gate passes. The device is ready for owner physical boot2 selection;
+no observation request has been made on the corrected image.
+
 ## Hypothesis and attributable evidence
 
 [Patch 0541](V4_CORRECTION.md) corrects offset normalization and calibration
