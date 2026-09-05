@@ -1,0 +1,49 @@
+{
+  "status": "PROPOSAL ONLY; coordinator selection and exact committed provenance required",
+  "profile": "mt6797-hif-parser-compile",
+  "base_config": "allnoconfig",
+  "fragment_destination": "configs/mt6797-hif-parser-compile.fragment",
+  "series": "patches/series-mt6797-provider-compile",
+  "append_after_existing_scaffold": [
+    "proposals/0001-wifi-mediatek-mt6797-private-hif-core.patch",
+    "proposals/0002-wifi-mediatek-add-mtke-parser.patch"
+  ],
+  "retained_existing_series_entries": [
+    "proposals/0001-clk-mediatek-remove-provider-on-reset-registration-error.patch",
+    "proposals/0001-pmdomain-mediatek-defer-initial-activation.patch",
+    "proposals/0001-lib-mt6797-hif-compile.patch"
+  ],
+  "source_directory": "/workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-provider-compile-source",
+  "build_directory": "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-hif-parser-compile",
+  "source_refresh": "Required once because effective patchset changes. Reuse managed path; serialize with all consumers; no duplicate source extraction. Historical artifacts remain valid; previous source marker does not.",
+  "required_objects": {
+    "drivers/net/wireless/mediatek/mt6797/hif.o": [
+      "mt6797_hif_alloc",
+      "mt6797_hif_free",
+      "mt6797_hif_read32",
+      "mt6797_hif_download_section"
+    ],
+    "drivers/net/wireless/mediatek/mt6797/mtke.o": [
+      "mtke_parse",
+      "mtke_get"
+    ],
+    "drivers/net/wireless/mediatek/mt6797/crc-kernel.o": [
+      "mtke_crc32"
+    ]
+  },
+  "hif_local_callbacks": [
+    "mt6797_hif_read",
+    "mt6797_hif_write"
+  ],
+  "crc_external_reference": "crc32_le",
+  "crc_library_object": "lib/crc/crc32.o",
+  "kernel_source": {
+    "archive_format": "tar.gz",
+    "archive_root": "linux-4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "git_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "released": "2026-09-05",
+    "sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+    "source_url": "https://codeload.github.com/torvalds/linux/tar.gz/4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "version": "7.3-rc1"
+  }
+}

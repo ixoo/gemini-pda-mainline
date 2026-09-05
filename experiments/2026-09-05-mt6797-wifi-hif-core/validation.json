@@ -1,0 +1,33 @@
+{
+  "scope": "host execution of actual hif.c with allocation/lock/time/scalar-I/O substitutions",
+  "kernel_compile": "NOT RUN",
+  "backend": "NOT ACCESSED",
+  "device": "NOT ACCESSED",
+  "publication": "NOT PERFORMED",
+  "patch_sha256": "199052ee662851fb4f1f5cc814a9a5e6d37535c84b6c360a18343a43404bc877",
+  "patch_reproduction_and_tree_replay": "PASS",
+  "flags": [
+    "-std=c11",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-pedantic",
+    "-fsanitize=address,undefined",
+    "-fno-omit-frame-pointer"
+  ],
+  "compiler": "Homebrew clang version 22.1.8",
+  "test_source_sha256": {
+    "test-hif.c": "fe64e7dfcf0a5a5becf797e643528ecf22aa1060c672b2c938578bdb992f110a",
+    "test-compat.h": "1d4dcb7f9285414ea68dc3b8a7279fa9e5b221ea2a84ba15ca66838959353e25"
+  },
+  "checkpatch_exclusions": [],
+  "compile_exit": 0,
+  "runtime_exit": 0,
+  "fixture_output": "register_literals=3 register_faults=6 section_io_faults=662 scalar_deadline_boundaries=666 next_chunk_deadline=pass\nactual_core_section_trace_credit_poison_ack_padding_no_retry=pass\n",
+  "sanitizer_stderr": "",
+  "checkpatch": {
+    "exit": 1,
+    "output": "WARNING: added, moved or deleted file(s), does MAINTAINERS need updating?\n#63: \nnew file mode 100644\n\nERROR: Missing Signed-off-by: line(s)\n\ntotal: 1 errors, 1 warnings, 0 checks, 1014 lines checked\n\nNOTE: For some of the reported defects, checkpatch may be able to\n      mechanically convert to the typical style using --fix or --fix-inplace.\n\n<project>/experiments/2026-09-05-mt6797-wifi-hif-core/0001-wifi-mediatek-mt6797-private-hif-core.patch has style problems, please review.\n\nNOTE: If any of the errors are false positives, please report\n      them to the maintainer, see CHECKPATCH in MAINTAINERS.\n",
+    "source_findings": 0
+  }
+}

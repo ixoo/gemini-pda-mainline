@@ -542,3 +542,5 @@ upstream-4d7d9486/0006-arm64-dts-mediatek-expose-MT6797-infracfg-resets.patch
 proposals/0001-clk-mediatek-remove-provider-on-reset-registration-error.patch
 proposals/0001-pmdomain-mediatek-defer-initial-activation.patch
 proposals/0001-lib-mt6797-hif-compile.patch
+proposals/0001-wifi-mediatek-mt6797-private-hif-core.patch
+proposals/0002-wifi-mediatek-add-mtke-parser.patch

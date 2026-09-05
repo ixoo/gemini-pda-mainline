@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: GPL-2.0-only
+config MT6797_HIF_CORE
+	bool "MT6797 private WLAN HIF transport core"
+	depends on ARM64 && COMPILE_TEST
+	default n
+	help
+	  Build the private ordered AHB transport and bounded ordinary INIT
+	  section implementation. There is no platform probe or runtime caller
+	  until a real CONSYS owner supplies the required powered mapping and
+	  exclusion. This option does not provide a usable Wi-Fi device.

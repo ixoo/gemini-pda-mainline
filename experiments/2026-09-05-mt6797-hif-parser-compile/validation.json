@@ -1,0 +1,21 @@
+{
+  "kernel_build": "NOT RUN",
+  "device": "NOT ACCESSED",
+  "patch_reproduction_and_replay": "PASS",
+  "patch_sha256": "8d296e627ee5df81a52647b1c846f39b72b32c90212988f5057acc0322b6d512",
+  "host_tests": {
+    "test-parser.py": {
+      "exit": 0,
+      "output": "PASS: 4487 differential cases; 1228 accepted with all views compared\n"
+    },
+    "test-memory.py": {
+      "exit": 0,
+      "output": "PASS: 4563 exact-allocation sanitizer cases\n"
+    }
+  },
+  "checkpatch": {
+    "exit": 1,
+    "exclusions": [],
+    "output": "WARNING: added, moved or deleted file(s), does MAINTAINERS need updating?\n#44: \nnew file mode 100644\n\nCHECK: Prefer kernel type 'u8' over 'uint8_t'\n#172: FILE: drivers/net/wireless/mediatek/mt6797/mtke.h:9:\n+typedef uint8_t u8;\n\nCHECK: Prefer kernel type 'u32' over 'uint32_t'\n#173: FILE: drivers/net/wireless/mediatek/mt6797/mtke.h:10:\n+typedef uint32_t u32;\n\nERROR: Missing Signed-off-by: line(s)\n\ntotal: 1 errors, 1 warnings, 2 checks, 168 lines checked\n\nNOTE: For some of the reported defects, checkpatch may be able to\n      mechanically convert to the typical style using --fix or --fix-inplace.\n\n<project>/experiments/2026-09-05-mt6797-hif-parser-compile/0002-wifi-mediatek-add-mtke-parser.patch has style problems, please review.\n\nNOTE: If any of the errors are false positives, please report\n      them to the maintainer, see CHECKPATCH in MAINTAINERS.\n"
+  }
+}

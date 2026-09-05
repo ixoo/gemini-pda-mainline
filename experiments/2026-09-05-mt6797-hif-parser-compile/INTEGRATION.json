@@ -1,0 +1,15 @@
+{
+  "parent_commit": "33455ea1",
+  "existing_consumers": [
+    "mt6797-hif-compile",
+    "mt6797-provider-compile"
+  ],
+  "new_profile": "mt6797-hif-parser-compile",
+  "series": "patches/series-mt6797-provider-compile",
+  "series_sha256": "43e08562b321cc9dc00cf26ce0f657e22b580b9554326763363fe2ad4213f76c",
+  "canonical_sha256": "e1490b8018e6318d7945c7124217ba7f4ff757b8000015ad2617b53424fb0210",
+  "source_refresh": "accepted; reuse managed provider source under Buildbox lock; no duplicate Linux tree",
+  "historical_scaffold_build_commit": "7d3c0a316095d1e75b51a2e4bb8ff10181c31b48",
+  "build": "pending",
+  "device": "not admitted"
+}
