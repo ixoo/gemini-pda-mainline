@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 set -euo pipefail
 umask 077
-export LC_ALL=C SOURCE_DATE_EPOCH=0 PYTHONDONTWRITEBYTECODE=1
+export LC_ALL=C SOURCE_DATE_EPOCH=0 PYTHONDONTWRITEBYTECODE=1 PYTHONOPTIMIZE=0
 [[ $# == 2 ]] || { echo 'usage: build-userspace.sh EXACT_REVISION MANAGED_ROOT' >&2; exit 2; }
 revision=$1
 managed=$2
@@ -21,7 +21,33 @@ stage="$managed/.a53-userspace-stage"
 [[ ! -L $stage ]]
 if [[ -e $stage ]]; then rm -rf -- "$stage"; fi
 mkdir -m 0700 "$stage"
-cleanup() { rm -rf -- "$stage"; }
+cleanup() {
+  result=$?
+  trap - EXIT
+  if [[ $result != 0 ]]; then
+    failures="$managed/failures"
+    [[ ! -L $failures ]] || exit "$result"
+    mkdir -p "$failures"
+    diagnostic="$failures/$revision"
+    if [[ ! -e $diagnostic && ! -L $diagnostic ]]; then
+      mkdir -m 0700 "$diagnostic"
+      # A finite allowlist excludes source trees, keys and private auth fixtures.
+      for log in one/configure.log one/build.log two/configure.log two/build.log \
+                 package/kmsg-parser-tests.txt package/kmsg-io-tests.txt package/kmsg-seal-tests.txt package/auth-tests.json \
+                 package/shell-tests.json package/session-shell-tests.json package/emmc-shell-tests.txt; do
+        if [[ -f $stage/$log && ! -L $stage/$log ]]; then
+          head -c 2097152 "$stage/$log" >"$diagnostic/${log//\//-}"
+          printf 'failure_log=%s\n' "$log" >&2
+          tail -n 50 "$stage/$log" >&2
+        fi
+      done
+      printf 'build_exit=%s\n' "$result" >"$diagnostic/result.txt"
+      printf 'failure_diagnostics=%s\n' "$diagnostic" >&2
+    fi
+  fi
+  rm -rf -- "$stage"
+  exit "$result"
+}
 trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' HUP TERM
@@ -59,21 +85,23 @@ for binary in dropbear dropbearkey dropbearconvert; do
   install -m 0700 "$stage/one/$binary" "$stage/package/$binary"
 done
 for replica in one two; do
-  for helper in keyboard-observe kmsg-capture; do
+  for helper in keyboard-observe kmsg-capture kmsg-seal; do
     if [[ $helper == keyboard-observe ]]; then
       helper_source="$here/../keyboard/keyboard-observe.c"
     else
-      helper_source="$here/src/kmsg-capture.c"
+      helper_source="$here/src/$helper.c"
     fi
     aarch64-linux-gnu-gcc -std=c11 -O2 -Wall -Wextra -Werror -static \
       "-ffile-prefix-map=$repository=." "$helper_source" -o "$stage/$replica/$helper"
   done
 done
-for helper in keyboard-observe kmsg-capture; do
+for helper in keyboard-observe kmsg-capture kmsg-seal; do
   cmp "$stage/one/$helper" "$stage/two/$helper"
   install -m 0700 "$stage/one/$helper" "$stage/package/$helper"
 done
 python3 "$here/test-kmsg.py" >"$stage/package/kmsg-parser-tests.txt" 2>&1
+KMSG_TEST_WORK_ROOT="$stage" python3 "$here/test-kmsg-io.py" >"$stage/package/kmsg-io-tests.txt" 2>&1
+KMSG_TEST_WORK_ROOT="$stage" python3 "$here/test-kmsg-seal.py" >"$stage/package/kmsg-seal-tests.txt" 2>&1
 install -m 0600 "$source_dir/LICENSE" "$stage/package/licenses/Dropbear-LICENSE"
 install -m 0600 "$source_dir/libtomcrypt/LICENSE" "$stage/package/licenses/LibTomCrypt-LICENSE"
 install -m 0600 "$source_dir/libtommath/LICENSE" "$stage/package/licenses/LibTomMath-LICENSE"
@@ -83,20 +111,22 @@ python3 - "$here" "$stage/package/inputs.json" <<'PY'
 import hashlib, json, pathlib, sys
 here = pathlib.Path(sys.argv[1])
 names = ('localoptions.h', 'scripts/build-userspace.sh', 'scripts/provision.py',
-         'scripts/test-auth.py', 'src/kmsg-capture.c', '../keyboard/keyboard-observe.c',
+         'scripts/test-auth.py', 'src/kmsg-capture.c', 'src/kmsg-seal.c', '../keyboard/keyboard-observe.c',
          '../keyboard/protocol.h')
 pathlib.Path(sys.argv[2]).write_text(json.dumps({name: hashlib.sha256((here / name).read_bytes()).hexdigest()
                                               for name in names}, indent=2, sort_keys=True) + '\n')
 PY
-python3 "$here/scripts/test-auth.py" --package "$stage/package" --work-root "$stage" >"$stage/package/auth-tests.json"
+python3 "$here/scripts/test-auth.py" --package "$stage/package" --work-root "$stage" >"$stage/package/auth-tests.json" 2>&1
 curl --fail --location --max-time 120 --output "$stage/busybox.deb" \
   https://ports.ubuntu.com/ubuntu-ports/pool/main/b/busybox/busybox-static_1.36.1-6ubuntu3.1_arm64.deb
 printf '%s  %s\n' d96535e0402c011e0ee43449799df2f4504d44b842e4f2b3a6cbc845508eaafc "$stage/busybox.deb" | sha256sum --check --strict
 dpkg-deb -x "$stage/busybox.deb" "$stage/busybox-root"
 busybox="$stage/busybox-root/usr/bin/busybox"
 printf '%s  %s\n' 52151e7f322f926b64049cdaa1410dc3ea6485525e0624b05813791c219ae933 "$busybox" | sha256sum --check --strict
-python3 "$here/scripts/test-shell.py" --busybox "$busybox" --work-root "$stage" >"$stage/package/shell-tests.json"
+python3 "$here/scripts/test-shell.py" --busybox "$busybox" --work-root "$stage" >"$stage/package/shell-tests.json" 2>&1
+python3 "$here/scripts/test-session-shell.py" --busybox "$busybox" --qemu qemu-aarch64-static --work-root "$stage" >"$stage/package/session-shell-tests.json" 2>&1
 EMMC_TEST_BUSYBOX="$busybox" EMMC_TEST_WORK_ROOT="$stage" python3 "$here/../emmc/test_packet.py" >"$stage/package/emmc-shell-tests.txt" 2>&1
+TMPDIR="$stage" "$repository/scripts/test-validate-kernel-artifact-provenance"
 install -m 0600 "$stage/busybox-root/usr/share/doc/busybox-static/copyright" "$stage/package/licenses/BusyBox-copyright"
 {
   printf 'repository_commit=%s\nsource_sha256=%s\n' "$revision" e098034a843699200c8c977a991fff73159735bf795d5f72ef672c41a6b1ae81
@@ -110,4 +140,10 @@ identity=$(sha256sum "$stage/package/SHA256SUMS" | awk '{print $1}')
 destination="$managed/userspace-$identity"
 [[ ! -e $destination && ! -L $destination ]]
 mv "$stage/package" "$destination"
+publication="$managed/published"
+[[ ! -L $publication ]]
+mkdir -p "$publication"
+[[ ! -e $publication/$revision && ! -L $publication/$revision && ! -L $publication/.partial ]]
+printf '%s\n' "$identity" >"$publication/.partial"
+mv "$publication/.partial" "$publication/$revision"
 printf 'validated_userspace_package=%s\n' "$destination"

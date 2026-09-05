@@ -40,7 +40,7 @@ def userspace_inventory(package, expected):
     records = sums.decode().splitlines()
     FOUNDATION['inventory'](package, {'manifest_sha256': expected, 'inventory_count': len(records)})
     required = {'dropbear', 'dropbearkey', 'dropbearconvert', 'keyboard-observe', 'kmsg-capture',
-                'auth-tests.json', 'localoptions.h', 'effective-options.txt', 'provenance.txt'}
+                'kmsg-seal', 'auth-tests.json', 'localoptions.h', 'effective-options.txt', 'provenance.txt'}
     require(required <= {p.name for p in package.iterdir()}, 'userspace package incomplete')
     require(regular(package / 'localoptions.h') == regular(HERE / 'localoptions.h'), 'server options drift')
     auth = json.loads(regular(package / 'auth-tests.json'))
@@ -84,6 +84,7 @@ def compose(parent, package, keys):
     added = {
         'bin/dropbear': (regular(package / 'dropbear'), 0o755),
         'bin/kmsg-capture': (regular(package / 'kmsg-capture'), 0o755),
+        'bin/kmsg-seal': (regular(package / 'kmsg-seal'), 0o755),
         'bin/keyboard-observe': (regular(package / 'keyboard-observe'), 0o755),
         'bin/emmc-observe': (regular(HERE.parent / 'emmc/observe.sh'), 0o755),
         'etc/passwd': (b'root:x:0:0:Administrator:/root:/bin/admin-shell\n', 0o644),
@@ -121,13 +122,20 @@ def main():
     package, parent, userspace = map(safe_directory, (args.package, args.foundation_candidate, args.userspace))
     foundation = json.loads(regular(HERE / 'foundation.json'))
     FOUNDATION['audit'](REPO, package, parent, foundation)
+    system_map = regular(package / 'System.map')
+    require(digest(system_map) == '07bf653ea74c2bae7e8747430d346b98aed850f3b24cf400a68db9612b6a7035' and
+            b' T __arm64_sys_pidfd_open\n' in system_map and
+            b' T __arm64_sys_pidfd_send_signal\n' in system_map, 'retained kernel pidfd interface')
     userspace_inventory(userspace, args.userspace_manifest_sha256)
     keys = credentials(REPO / 'artifacts/credentials/a53-auth')
     output_root = REPO / 'artifacts/a53-authenticated/candidates'
     for path in (output_root, *output_root.parents):
         require(not path.is_symlink(), 'symlink output root')
     output_root.mkdir(parents=True, mode=0o700, exist_ok=True)
-    with (output_root / '.build.lock').open('a') as lock:
+    descriptor = os.open(output_root / '.build.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(descriptor, 'r+') as lock:
+        info = os.fstat(lock.fileno())
+        require(stat.S_ISREG(info.st_mode) and info.st_uid == os.getuid() and info.st_nlink == 1, 'candidate lock identity')
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         stage = output_root / '.candidate-stage'
         require(not stage.is_symlink(), 'unsafe stale candidate stage')

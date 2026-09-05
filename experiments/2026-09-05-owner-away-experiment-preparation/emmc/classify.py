@@ -68,6 +68,8 @@ def classify(text: str, boot: str, release: str, padded_sha: str, busybox_sha: s
             return result | {"reason": f"malformed-{field}"}
     if int(values["elapsed_seconds"]) > 20:
         return result | {"reason": "deadline-exceeded"}
+    if values["dd_status"] == "137":
+        return result | {"reason": "read-timeout-or-kill"}
     if values["dd_status"] != "0":
         return result | {"classification": "fail", "reason": "read-command-failed"}
     if int(values["controller_error_count"]):

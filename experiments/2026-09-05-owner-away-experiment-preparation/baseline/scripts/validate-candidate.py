@@ -28,14 +28,14 @@ REMOVED = {"bin/usb-net", "bin/usb-shell", "bin/local-shell", "bin/emmc-flash-bo
 SOURCES = {"init": ("init", 0o755), "etc/inittab": ("inittab", 0o644),
            "bin/usb-auth": ("usb-auth", 0o755), "bin/console-status": ("console-status", 0o755),
            "bin/admin-shell": ("admin-shell", 0o755)}
-BINARIES = {"dropbear", "dropbearkey", "dropbearconvert", "keyboard-observe", "kmsg-capture"}
+BINARIES = {"dropbear", "dropbearkey", "dropbearconvert", "keyboard-observe", "kmsg-capture", "kmsg-seal"}
 USERSPACE_FILES = BINARIES | {"SHA256SUMS", "auth-tests.json", "localoptions.h", "inputs.json",
-    "effective-options.txt", "provenance.txt", "kmsg-parser-tests.txt", "licenses/Dropbear-LICENSE",
+    "effective-options.txt", "provenance.txt", "kmsg-parser-tests.txt", "kmsg-io-tests.txt", "kmsg-seal-tests.txt", "licenses/Dropbear-LICENSE",
     "licenses/LibTomCrypt-LICENSE", "licenses/LibTomMath-LICENSE", "shell-tests.json",
-    "emmc-shell-tests.txt", "licenses/BusyBox-copyright"}
+    "emmc-shell-tests.txt", "session-shell-tests.json", "licenses/BusyBox-copyright"}
 BUSYBOX_SHA = "52151e7f322f926b64049cdaa1410dc3ea6485525e0624b05813791c219ae933"
 INPUTS = {"localoptions.h", "scripts/build-userspace.sh", "scripts/provision.py", "scripts/test-auth.py",
-          "src/kmsg-capture.c", "../keyboard/keyboard-observe.c", "../keyboard/protocol.h"}
+          "src/kmsg-capture.c", "src/kmsg-seal.c", "../keyboard/keyboard-observe.c", "../keyboard/protocol.h"}
 AUTH_CASES = ["compiled-authentication-surface", "independent-host-key-conversion",
     "authorized-exec-separated-streams", "unapproved-key-refused", "password-authentication-refused",
     "host-identity-mismatch-refused", "forwarding-refused", "interrupted-server-refused"]
@@ -152,6 +152,10 @@ def check_userspace(package, manifest_sha, candidate_revision):
     tests = regular(package / "kmsg-parser-tests.txt").decode()
     require(re.search(r"Ran [1-9][0-9]* tests in [0-9.]+s\n\nOK\s*$", tests) is not None and
             "FAILED" not in tests and "ERROR" not in tests, "kernel-log parser tests missing or failed")
+    for name in ("kmsg-io-tests.txt", "kmsg-seal-tests.txt"):
+        io_tests = regular(package / name).decode()
+        require(re.search(r"Ran [1-9][0-9]* tests in [0-9.]+s\n\nOK\s*$", io_tests) is not None and
+                "FAILED" not in io_tests and "ERROR" not in io_tests, "injected kernel-log tests missing or failed")
     shell = load_json(package / "shell-tests.json")
     unit = shell.get("ulimit_f_block_bytes")
     require(type(unit) is int and unit in (512, 1024), "shell file-size unit")
@@ -164,13 +168,25 @@ def check_userspace(package, manifest_sha, candidate_revision):
             "device_action": "none; all effectful applets mocked", "kernel_evdev_vt_ioctl": "not-tested",
             "dropbear_binary": "not-executed-by-this-test", "candidate_init_boot": "not-tested",
             "private_fixtures": "removed"}, "exact BusyBox shell evidence differs")
+    session = load_json(package / "session-shell-tests.json")
+    session_tools = runpy.run_path(str(HERE / "scripts/test-session-shell.py"))
+    session_cases = session.get("cases")
+    require(type(session_cases) is list and len(session_cases) == 50 and
+            len(set(session_cases)) == 50 and all(re.fullmatch(r"(?:seal|recovery):[a-z-]+", item) for item in session_cases),
+            "session shell case inventory")
+    require(session == {"classification": "session-shell-fixtures-pass", "cases": session_cases,
+            "case_count": 50, "shell": "exact-ARM64-BusyBox-under-QEMU", "busybox_sha256": BUSYBOX_SHA,
+            "generated_source_sha256": session_tools["PINS"], "effects": "intercepted; no actual target signal or reboot",
+            "effect_guard_cases": 10, "effect_guard_optimization_levels": [0, 1], "python_optimization": 0,
+            "pidfd_kernel_behavior": "not-tested", "device_access": "none", "private_fixtures": "removed"},
+            "session shell evidence inventory or result")
     emmc = regular(package / "emmc-shell-tests.txt").decode()
     for line in ("emmc_fixture_mode=exact-busybox-qemu", "actual_busybox_sha256=" + BUSYBOX_SHA,
                  "observer_busybox_identity=fixture-dispatcher-hash"):
         require(emmc.splitlines().count(line) == 1, "exact BusyBox eMMC fixture identity")
     require(re.search(r"Ran [1-9][0-9]* tests in [0-9.]+s\n\nOK\s*$", emmc) is not None and
             "FAILED" not in emmc and "ERROR" not in emmc, "eMMC shell tests missing or failed")
-    tested_sources = {"scripts/test-shell.py", "test-kmsg.py", "../emmc/observe.sh",
+    tested_sources = {"scripts/test-shell.py", "scripts/test-session-shell.py", "scripts/session_steps.py", "test-kmsg.py", "test-kmsg-io.py", "tests/kmsg-io-harness.c", "test-kmsg-seal.py", "tests/kmsg-seal-harness.c", "../emmc/observe.sh",
                       "../emmc/classify.py", "../emmc/test_packet.py"}
     tested_sources.update("initramfs/" + name for name in shell_sources)
     for relative in tested_sources:
@@ -304,7 +320,8 @@ def validate(candidate, parent, userspace):
     require(emmc_source == git_source(manifest["repository_commit"], emmc.relative_to(REPO).as_posix()), "eMMC observer revision")
     new_files.update({"bin/dropbear": (regular(userspace / "dropbear"), 0o755),
         "bin/keyboard-observe": (regular(userspace / "keyboard-observe"), 0o755),
-        "bin/kmsg-capture": (regular(userspace / "kmsg-capture"), 0o755), "bin/emmc-observe": (emmc_source, 0o755),
+        "bin/kmsg-capture": (regular(userspace / "kmsg-capture"), 0o755),
+        "bin/kmsg-seal": (regular(userspace / "kmsg-seal"), 0o755), "bin/emmc-observe": (emmc_source, 0o755),
         "etc/passwd": (b"root:x:0:0:Administrator:/root:/bin/admin-shell\n", 0o644),
         "etc/group": (b"root:x:0:\n", 0o644), "etc/shells": (b"/bin/admin-shell\n", 0o644),
         "root/.ssh/authorized_keys": (authorized, 0o600), "etc/dropbear/host_key": (host_key, 0o600)})

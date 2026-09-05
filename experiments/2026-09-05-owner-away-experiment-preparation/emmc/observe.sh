@@ -123,12 +123,12 @@ printf 'read_attempts=1\nrequested_bytes=16777216\nread_timeout_seconds=20\n'
 # from the data pipe; sha256sum never receives diagnostic text. No raw capture.
 # timeout may not kill an uninterruptible kernel task: lost completion consumes
 # the attempt and requires recovery; it never permits another read.
-$BB timeout -s KILL 20 "$BB" sh -c '
-  "$1" dd if="$2" bs=4096 count=4096 2>"$3/dd.stderr"
-  result=$?
-  printf "%s\n" "$result" > "$3/dd.status"
-  exit "$result"
-' read "$BB" "$target" "$STATE" | $BB sha256sum > "$STATE/read.sha"
+(
+  result=0
+  $BB timeout -s KILL 20 "$BB" dd if="$target" bs=4096 count=4096 \
+    2>"$STATE/dd.stderr" || result=$?
+  printf '%s\n' "$result" > "$STATE/dd.status"
+) | $BB sha256sum > "$STATE/read.sha"
 after=$($BB date +%s) || refuse clock
 status=$($BB cat "$STATE/dd.status" 2>/dev/null) || refuse missing-dd-completion
 read_sha=$($BB cut -d ' ' -f 1 "$STATE/read.sha") || refuse missing-sha256

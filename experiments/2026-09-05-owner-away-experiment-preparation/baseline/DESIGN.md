@@ -3,6 +3,8 @@
 Preparation is **preparing**, with no deployment or runtime admission. The
 [foundation audit](BASELINE_AUDIT.md) owns the exact successful input identity.
 The [userspace contract](userspace.json) pins the intended additions. The
+[preparation record](PREPARATION_RESULTS.md) owns build/failure chronology;
+[SESSION.md](SESSION.md) owns exact first-session budgets and recovery branches. The
 kernel, resolved configuration and composed DT stay byte-identical; this is an
 independent authenticated observation path, not a marker-only repeated boot.
 
@@ -87,9 +89,9 @@ Preserve the proven native `/bin/reboot`, map, console helpers and BusyBox.
 Independently compare two assemblies and validate every member, kernel/DT,
 Android-v0 addresses/header, exact padding and secret-bearing output modes.
 
-The new installer must adopt the current `boot2-device-guard.sh` twice and
-bind a receipt to the full padded image digest. The historical installer is
-evidence, not reusable deployment authority. Candidate selection, live GPT,
+The default-validation [installer adapter](scripts/install-boot2.py) adopts the current `boot2-device-guard.sh` twice and
+bind a receipt to the full padded image digest. The pinned historical installer supplies reviewed derivation input; the
+complete adapted script and its gates are independently tested before use. Candidate selection, live GPT,
 inactive root/mount/holder/swap checks, stable power, full readback and clean
 shutdown remain mandatory. No generic runner or alternative writer is added.
 
@@ -102,5 +104,7 @@ require the owner to return to the known-good physical path. Missing USB gives
 no kernel conclusion. Console/auth regressions reject the baseline; a complete
 serviceability pass plus confirmed recovery permits matching dependent packets.
 Ten-cold-boot acceptance is cumulative and is not a prerequisite for those
-packets. Exact numeric combined-session budgets and complete receipt/recovery
-tools must be frozen before any preparation state advances to conditional.
+packets. The session record freezes the first-baseline numeric budgets; exact candidate
+construction, all receipt/recovery tests and independent review must complete
+before preparation can advance to conditional. Dependent packets retain their
+own separate admission and readiness predicates.

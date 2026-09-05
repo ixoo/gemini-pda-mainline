@@ -117,7 +117,10 @@ operation it must likewise preserve its attempt record and never dispatch it
 again on reconnect. A reboot does not renew this experiment's consumed budget.
 
 The device bytes flow directly from input-only `dd` to `sha256sum`, never into a
-capture file or transcript. `dd` status travels separately; absent status,
+capture file or transcript. The timeout monitors `dd` directly; the enclosing
+pipeline subshell records the resulting status outside that timed process.
+The earlier timed non-exec shell could leave its `dd` child and output pipe
+alive after the deadline and has been replaced. `dd` status travels separately; absent status,
 short reads, nonzero status or wrong checksum cannot pass. A timeout cannot
 guarantee that Linux kills a task stuck in uninterruptible I/O. At either
 deadline the attempt is consumed, the host stops issuing commands, and the
@@ -215,7 +218,8 @@ BusyBox/hardware identity/read operations. They exercise the shell flow on the
 host and always clean their temporary root. They do not run candidate AArch64
 BusyBox or establish its timeout, applet, mount-namespace or kernel behavior.
 
-The optional exact-app mode runs the outer and nested shell and ordinary
+The optional exact-app mode runs the outer shell (including its pipeline
+subshell) and ordinary
 text/file/hash applets through the specified actual BusyBox and QEMU:
 
 ```sh
@@ -224,19 +228,25 @@ EMMC_TEST_BUSYBOX="$PINNED_BUSYBOX" EMMC_TEST_WORK_ROOT="$MANAGED_TEST_ROOT" \
 ```
 
 The work root must already exist; each test creates and cleans a private child.
-`EMMC_TEST_QEMU` optionally selects the emulator (default `qemu-aarch64` on
-PATH). `EMMC_TEST_BUSYBOX_SHA256` optionally requires an expected digest; the
+`EMMC_TEST_QEMU` optionally selects the emulator; otherwise `qemu-aarch64`, then
+`qemu-aarch64-static`, are located on PATH. Symlinks resolve to a regular,
+executable canonical file, whose digest is reported.
+`EMMC_TEST_BUSYBOX_SHA256` optionally requires an expected digest; the
 actual binary digest is always reported. The candidate audit must independently
 match that reported identity. Host mode remains the default when no binary is
 supplied; its two real timeout tests are explicitly skipped.
 
 Hardware `readlink`/`stat`/`uname`/`dmesg`, partition `dd`, and the observer's
 20-second timeout effect stay mocked. Exact mode separately exercises the real
-timeout applet with a harmless local BusyBox sleep and an invalid duration;
-each runs in a fresh host process group with an independent four-second cleanup
-deadline. This tests interruptible userspace behavior, not a blocked kernel MMC
-operation. The dispatcher refuses non-fixture paths, symlink escapes, unknown
-applets and changed nested shell/awk programs using explicit checks that remain
+timeout applet against a harmless single-process worker that emits before the
+deadline and would emit again four seconds later. Direct timing must close the
+pipe before that later output. A regression control using the old non-exec
+timed shell must expose its surviving child's later output. The worker fixtures
+use one-second applet deadlines and independent six/seven-second host process
+group cleanup ceilings. A separate invalid-duration case has a four-second host
+ceiling and must never start its command. This tests interruptible userspace
+behavior, not a blocked kernel MMC operation. The dispatcher refuses non-fixture
+paths, symlink escapes, unknown applets and changed awk programs using explicit checks that remain
 active under optimized Python. No hardware device path is passed to an applet.
 
 Because the observer's transformed BusyBox path names that dispatcher, its
@@ -245,6 +255,12 @@ separate test identity, not evidence that the unmodified device observer's
 self-identity gate ran. QEMU applet tests remain distinct from complete
 unmodified Linux observation-shell, authenticated transport and physical I/O
 validation. No exact-mode result is claimed by adding this option.
+
+The first Buildbox exact-mode attempt stopped while locating QEMU, before any
+eMMC observer fixture executed. Canonical static-emulator lookup and a fixture
+for that lookup were added with the direct-`dd` timeout repair; this is not an
+exact observation-shell pass. The sanitized build chronology remains with the
+baseline owner.
 
 Before changing readiness, record exact-file hashes and parent revision,
 complete independent review, run equivalent success/refusal/interruption cases

@@ -3,7 +3,8 @@
 """Confined host or exact-BusyBox/QEMU fixtures; hardware stays mocked.
 
 Exact mode: EMMC_TEST_BUSYBOX and EMMC_TEST_WORK_ROOT are required together.
-EMMC_TEST_QEMU defaults to qemu-aarch64 on PATH. EMMC_TEST_BUSYBOX_SHA256 can
+EMMC_TEST_QEMU defaults to qemu-aarch64 or qemu-aarch64-static on PATH.
+EMMC_TEST_BUSYBOX_SHA256 can
 add an expected binary pin; the actual digest is always reported. No device or
 network access is performed. See README.md for the remaining evidence limits.
 """
@@ -23,6 +24,7 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest import mock
 
 HERE = Path(__file__).resolve().parent
 sys.dont_write_bytecode = True
@@ -109,18 +111,12 @@ elif cmd == "dd":
     sys.stdout.buffer.write(bytes(16777216 if mode=="pass" else 4096))
     sys.exit(0)
 elif cmd == "timeout":
-    require(len(args)==11 and args[:3]==["-s", "KILL", "20"], "timeout arguments")
-    require(args[3]==str(root/"bin/busybox") and args[4]=="sh", "timeout fixture command")
+    require(len(args)==8 and args[:3]==["-s", "KILL", "20"], "timeout arguments")
+    require(args[3]==str(root/"bin/busybox") and args[4]=="dd", "timeout direct worker")
+    require(args[5].startswith("if=") and args[6:]==["bs=4096", "count=4096"], "timeout read bounds")
+    confined(args[5][3:])
     if os.environ.get("EMMC_FIXTURE_DD")=="timeout": sys.exit(137)
     sys.exit(subprocess.run(args[3:], timeout=10).returncode)
-elif cmd == "sh":
-    require(len(args)==6 and args[0]=="-c" and args[2]=="read", "nested shell arguments")
-    require(hashlib.sha256(args[1].encode()).hexdigest()==os.environ["EMMC_FIXTURE_CHILD_SHA256"], "nested shell program")
-    require(args[3]==str(root/"bin/busybox"), "nested dispatcher")
-    path = confined(args[4])
-    require(path.parent==root/"dev" and re.fullmatch(r"mmcblk0p[1-9][0-9]*", path.name), "nested read target")
-    require(args[5]==str(root/"run/gemini-emmc-readonly"), "nested RAM state")
-    sys.exit(run_applet(cmd, args))
 else:
     require(cmd in ("cat", "cut", "grep", "awk", "find", "mkdir", "rm", "date"), "unreviewed applet")
     if cmd=="cat":
@@ -177,10 +173,15 @@ def exact_configuration():
     expected = os.environ.get("EMMC_TEST_BUSYBOX_SHA256")
     if expected is not None and expected != digest:
         raise RuntimeError("BusyBox expected SHA-256 mismatch")
-    emulator = shutil.which(os.environ.get("EMMC_TEST_QEMU", "qemu-aarch64"))
-    if emulator is None or not Path(emulator).is_file():
+    configured = os.environ.get("EMMC_TEST_QEMU")
+    choices = [configured] if configured else ["qemu-aarch64", "qemu-aarch64-static"]
+    emulator = next((resolved for name in choices if (resolved := shutil.which(name))), None)
+    if emulator is None:
+        raise RuntimeError("exact mode requires qemu-aarch64 or qemu-aarch64-static on PATH")
+    canonical_emulator = Path(emulator).resolve(strict=True)
+    if not canonical_emulator.is_file() or not os.access(canonical_emulator, os.X_OK):
         raise RuntimeError("exact mode requires a regular qemu-aarch64 executable")
-    return root, [str(Path(emulator).resolve()), str(busybox)], digest
+    return root, [str(canonical_emulator), str(busybox)], digest
 
 
 def bounded_process(command, environment, timeout=30):
@@ -205,6 +206,7 @@ class PacketTests(unittest.TestCase):
         print("emmc_fixture_mode=" + ("exact-busybox-qemu" if cls.exact_prefix else "host-mocked-busybox"), flush=True)
         if cls.actual_busybox_sha:
             print("actual_busybox_sha256=" + cls.actual_busybox_sha, flush=True)
+            print("qemu_executable_sha256=" + hashlib.sha256(Path(cls.exact_prefix[0]).read_bytes()).hexdigest(), flush=True)
             print("observer_busybox_identity=fixture-dispatcher-hash", flush=True)
 
     def setUp(self):
@@ -243,13 +245,11 @@ class PacketTests(unittest.TestCase):
         source = re.sub(r"(?<![A-Za-z0-9_/])/(?:bin/busybox|sys|proc|dev|run)(?=[/\"'\s)]|$)",
                         lambda match: str(self.root) + match.group(), source)
         programs = re.findall(r"\$BB awk(?: -F=)? '([^']*)'", source)
-        children = re.findall(r"\$BB timeout -s KILL 20 \"\$BB\" sh -c '([^']*)'", source)
-        if len(programs) != 3 or len(children) != 1:
+        if len(programs) != 3 or source.count('$BB timeout -s KILL 20 "$BB" dd ') != 1:
             raise RuntimeError("observer program boundaries changed; review fixture adapter")
         # These programs are known reviewed observer text. No fixture-supplied
-        # value can replace them or add another awk/sh invocation.
+        # value can replace them or add another awk invocation.
         self.env["EMMC_FIXTURE_AWK_HASHES"] = json.dumps([hashlib.sha256(value.encode()).hexdigest() for value in programs])
-        self.env["EMMC_FIXTURE_CHILD_SHA256"] = hashlib.sha256(children[0].encode()).hexdigest()
         self.write("observe.sh", source)
 
     def write(self, rel, content):
@@ -285,7 +285,7 @@ class PacketTests(unittest.TestCase):
         if self.exact_prefix:
             calls = [json.loads(line) for line in (self.root / "applet-calls.jsonl").read_text().splitlines()]
             self.assertTrue(all(call["mode"] == "exact" for call in calls))
-            expected = {"sh", "cat", "cut", "grep", "awk", "find", "mkdir", "rm", "date", "sha256sum"}
+            expected = {"cat", "cut", "grep", "awk", "find", "mkdir", "rm", "date", "sha256sum"}
             self.assertTrue(expected.issubset({call["applet"] for call in calls}))
         repeated = self.run_packet()
         self.assertNotEqual(repeated.returncode, 0)
@@ -301,11 +301,12 @@ class PacketTests(unittest.TestCase):
         result = self.run_packet()
         self.assertEqual(self.classify(result.stdout)["reason"], "read-command-failed", result.stderr)
 
-    def test_missing_completion_consumes_attempt(self):
+    def test_timeout_consumes_attempt(self):
         self.env["EMMC_FIXTURE_DD"] = "timeout"
         result = self.run_packet()
-        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.classify(result.stdout)["classification"], "inconclusive")
+        self.assertEqual(self.classify(result.stdout)["reason"], "read-timeout-or-kill")
         self.env.pop("EMMC_FIXTURE_DD")
         self.assert_refused_without_read()
 
@@ -414,17 +415,56 @@ class PacketTests(unittest.TestCase):
         self.assertIn("fixture refusal", result.stderr)
         self.assertFalse((self.root / "applet-calls.jsonl").exists())
 
+    def test_exact_configuration_resolves_static_emulator_symlink(self):
+        self.write("qemu-real", "#!/bin/sh\nexit 2\n")
+        (self.root / "qemu-real").chmod(0o700)
+        self.link("qemu-aarch64-static", "qemu-real")
+        environment = {key: value for key, value in os.environ.items() if not key.startswith("EMMC_TEST_")}
+        environment.update(EMMC_TEST_BUSYBOX=str(self.bb), EMMC_TEST_WORK_ROOT=str(self.root),
+                           EMMC_TEST_BUSYBOX_SHA256=self.bb_sha)
+        resolve = lambda name: str(self.root / name) if name == "qemu-aarch64-static" else None
+        with mock.patch.dict(os.environ, environment, clear=True), mock.patch.object(shutil, "which", side_effect=resolve):
+            root, prefix, digest = exact_configuration()
+        self.assertEqual(root, self.root)
+        self.assertEqual(prefix, [str(self.root / "qemu-real"), str(self.bb)])
+        self.assertEqual(digest, self.bb_sha)
+
+    def test_exact_configuration_rejects_wrong_busybox_identity(self):
+        environment = {key: value for key, value in os.environ.items() if not key.startswith("EMMC_TEST_")}
+        environment.update(EMMC_TEST_BUSYBOX=str(self.bb), EMMC_TEST_WORK_ROOT=str(self.root),
+                           EMMC_TEST_BUSYBOX_SHA256="0" * 64)
+        with mock.patch.dict(os.environ, environment, clear=True):
+            with self.assertRaisesRegex(RuntimeError, "expected SHA-256 mismatch"):
+                exact_configuration()
+
     @unittest.skipUnless(os.environ.get("EMMC_TEST_BUSYBOX"), "exact BusyBox/QEMU binary not supplied")
-    def test_exact_timeout_bounds_harmless_sleep(self):
-        # The child is an exact BusyBox sleep under QEMU, never a device read.
-        # Host-owned session cleanup also handles a broken timeout applet.
-        command = [*self.exact_prefix, "timeout", "-s", "KILL", "1", *self.exact_prefix, "sleep", "5"]
+    def test_exact_timeout_closes_emitting_worker(self):
+        # A single-process harmless worker emits again four seconds later. The
+        # old timed non-exec shell lets that worker outlive the one-second
+        # timeout and keep the output pipe open; a timed direct worker cannot.
+        self.write("emitter.py", 'import time\nprint("BEFORE", flush=True)\ntime.sleep(4)\nprint("AFTER", flush=True)\n')
+        emitter = str(self.root / "emitter.py")
+        command = [*self.exact_prefix, "timeout", "-s", "KILL", "1", sys.executable, emitter]
         start = time.monotonic()
-        result = bounded_process(command, self.env, timeout=4)
+        result = bounded_process(command, self.env, timeout=6)
         elapsed = time.monotonic() - start
         self.assertNotEqual(result.returncode, 0, result.stdout)
         self.assertGreaterEqual(elapsed, 0.7, result.stderr)
-        self.assertLess(elapsed, 4)
+        self.assertLess(elapsed, 3, "timed worker or its pipe survived the deadline")
+        self.assertEqual(result.stdout, "BEFORE\n", result.stderr)
+
+        # Regression control: the command after the worker deliberately stops
+        # ash from replacing itself with exec. Seeing AFTER proves this fixture
+        # detects the reviewed surviving-child failure, rather than just timing
+        # a process that never had an observable descendant.
+        old_shell = '"$1" "$2"; result=$?; printf "%s\\n" "$result" >&2'
+        control = [*self.exact_prefix, "timeout", "-s", "KILL", "1",
+                   *self.exact_prefix, "sh", "-c", old_shell, "read", sys.executable, emitter]
+        start = time.monotonic()
+        old_result = bounded_process(control, self.env, timeout=7)
+        self.assertNotEqual(old_result.returncode, 0)
+        self.assertEqual(old_result.stdout, "BEFORE\nAFTER\n", old_result.stderr)
+        self.assertGreaterEqual(time.monotonic() - start, 3.5)
 
     @unittest.skipUnless(os.environ.get("EMMC_TEST_BUSYBOX"), "exact BusyBox/QEMU binary not supplied")
     def test_exact_timeout_refuses_invalid_duration(self):
