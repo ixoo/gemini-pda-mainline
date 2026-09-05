@@ -77,3 +77,20 @@ profile, V4 series migration, kernel build, device boot or upstream submission.
 The source admission contract and eventual build boundary remain in
 [SOURCE_INTEGRATION.md](SOURCE_INTEGRATION.md). The immutable source archive
 identity remains in [its receipt](results/upstream-archive.json).
+
+## First Linux execution and cleanup correction
+
+Exact revision `06a5885c99cff7e07754e07dc9050b6e63f9fdd4` passed the seven
+source and six archive groups on Buildbox. The actual builder fixture rejected
+two failure-cleanup cases: wrong compression and changed archive root left an
+empty preparation directory. The job stopped before package fixtures or retained
+archive inspection and cleaned its disposable project checkout. No shared source
+or device state was touched.
+
+Bash on Linux unwound the preparation function's local `temporary` variable
+before its outer EXIT trap used it. Preparation now owns state and traps inside
+a subshell, which also prevents it from replacing a caller's cleanup trap.
+Download and preparation signal handlers exit through their cleanup traps.
+The download fixture additionally sends real SIGTERM to its parent after writing
+a partial file and requires complete cleanup. Linux revalidation is required;
+the first rejected execution is retained rather than treated as a pass.

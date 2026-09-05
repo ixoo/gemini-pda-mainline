@@ -348,6 +348,7 @@ download_source() (
   [[ ! -e "${ARCHIVE}" || -f "${ARCHIVE}" ]] || die "archive cache is not regular"
   [[ ! -e "${ARCHIVE}.partial" || -f "${ARCHIVE}.partial" ]] || die "unsafe partial archive"
   trap 'rm -f -- "${ARCHIVE}.partial"' EXIT
+  trap 'exit 130' HUP INT TERM
   rm -f -- "${ARCHIVE}.partial"
   if [[ ! -f "${ARCHIVE}" ]]; then
     echo "Downloading pinned Linux ${VERSION} source"
@@ -372,18 +373,18 @@ apply_patch_file() {
   git -C "${PREPARED_TREE}" apply --unidiff-zero "${path}"
 }
 
-prepare_kernel() {
-  local expected_state
-  local temporary
+prepare_kernel() (
+  # A subshell owns both staging state and its traps. Bash may unwind function
+  # locals before an outer EXIT trap; keep this state in the subshell instead.
   expected_state="$(source_state_hash)"
 
   mkdir -p "${SOURCE_ROOT}"
   # Interrupted preparation used to leave full extracted trees behind because
   # the cleanup trap only ran on normal function return.  These are disposable
   # VM-owned staging paths, never a published source tree.
-  for temporary in "${SOURCE_ROOT}"/.prepare-"${VERSION}".*; do
-    [[ -d "${temporary}" && ! -L "${temporary}" ]] || continue
-    rm -rf -- "${temporary}"
+  for prepare_temporary in "${SOURCE_ROOT}"/.prepare-"${VERSION}".*; do
+    [[ -d "${prepare_temporary}" && ! -L "${prepare_temporary}" ]] || continue
+    rm -rf -- "${prepare_temporary}"
   done
 
   if [[ -f "${SOURCE_DIR}/.gemini-source-state" ]] && \
@@ -396,19 +397,21 @@ prepare_kernel() {
   fi
 
   download_source
-  temporary="$(mktemp -d "${SOURCE_ROOT}/.prepare-${VERSION}.XXXXXX")"
-  PREPARED_TREE="${temporary}/${ARCHIVE_ROOT}"
+  prepare_temporary="$(mktemp -d "${SOURCE_ROOT}/.prepare-${VERSION}.XXXXXX")"
+  PREPARED_TREE="${prepare_temporary}/${ARCHIVE_ROOT}"
   export PREPARED_TREE
 
+  # shellcheck disable=SC2329 # Invoked by the subshell EXIT trap.
   cleanup_prepare() {
-    if [[ -n "${temporary:-}" && -d "${temporary}" && ! -L "${temporary}" ]]; then
-      rm -rf -- "${temporary}"
+    if [[ -n "${prepare_temporary:-}" && -d "${prepare_temporary}" && ! -L "${prepare_temporary}" ]]; then
+      rm -rf -- "${prepare_temporary}"
     fi
   }
   trap cleanup_prepare EXIT
+  trap 'exit 130' HUP INT TERM
 
   echo "Extracting Linux ${VERSION}"
-  python3 "${SCRIPT_DIR}/kernel-source-archive.py" "${ARCHIVE}" "${temporary}" \
+  python3 "${SCRIPT_DIR}/kernel-source-archive.py" "${ARCHIVE}" "${prepare_temporary}" \
     --sha256 "${SOURCE_SHA256}" --format "${ARCHIVE_FORMAT}" --root "${ARCHIVE_ROOT}"
   [[ -d "${PREPARED_TREE}" && ! -L "${PREPARED_TREE}" ]] || die "archive root was not extracted"
   git -C "${PREPARED_TREE}" init --quiet
@@ -423,9 +426,9 @@ prepare_kernel() {
   rm -rf "${SOURCE_DIR}"
   mv "${PREPARED_TREE}" "${SOURCE_DIR}"
   trap - EXIT
-  rm -rf "${temporary}"
+  rm -rf "${prepare_temporary}"
   echo "Prepared Linux ${VERSION} at ${SOURCE_DIR}"
-}
+)
 
 configure_kernel() {
   local expected_state

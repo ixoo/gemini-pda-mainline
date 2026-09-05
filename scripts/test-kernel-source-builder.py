@@ -50,9 +50,11 @@ class BuilderTests(unittest.TestCase):
         self.executable('fixture-gcc', '#!/bin/sh\necho aarch64-fixture\n')
         self.executable('fixture-ld', '#!/bin/sh\necho fixture-linker\n')
         self.executable('curl', '#!' + sys.executable + '\n' +
-                        'import os, pathlib, shutil, sys\n'
+                        'import os, pathlib, shutil, signal, sys\n'
                         'args=sys.argv[1:]\n'
                         'target=pathlib.Path(args[args.index("--output")+1])\n'
+                        'if os.environ.get("FIXTURE_DOWNLOAD_SIGNAL"):\n'
+                        ' target.write_bytes(b"partial"); os.kill(os.getppid(), signal.SIGTERM); sys.exit(0)\n'
                         'if os.environ.get("FIXTURE_DOWNLOAD_FAIL"):\n'
                         ' target.write_bytes(b"partial"); sys.exit(28)\n'
                         'shutil.copyfile(os.environ["FIXTURE_ARCHIVE"],target)\n')
@@ -105,6 +107,10 @@ class BuilderTests(unittest.TestCase):
         self.run_builder(success=False)
         self.assertEqual(list((self.root / 'cache').iterdir()), [])
         del self.env['FIXTURE_DOWNLOAD_FAIL']
+        self.env['FIXTURE_DOWNLOAD_SIGNAL'] = '1'
+        self.run_builder(success=False)
+        self.assertEqual(list((self.root / 'cache').iterdir()), [])
+        del self.env['FIXTURE_DOWNLOAD_SIGNAL']
         stale = self.root / 'cache' / ('linux-' + self.source['sha256'] + '.tar.gz.partial')
         stale.write_text('interrupted')
         self.run_builder()
