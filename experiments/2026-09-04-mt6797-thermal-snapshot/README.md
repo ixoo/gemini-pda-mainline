@@ -397,3 +397,31 @@ was replaced by the frozen corrected candidate; no fresh backup was created.
 Clean shutdown was confirmed by lost SSH service. The host runner's offline
 receipt/candidate gate passes. Physical boot2 selection and the fresh pristine
 runtime gate remain pending; no corrected-image runtime result is claimed.
+
+
+## Corrected V4 runtime result
+
+The owner-selected fresh boot passed the exact pristine gate and all three
+bounded snapshots. The [complete sanitized frames](results/v4-runtime-pass.txt)
+and [classification](results/v4-runtime-pass.json) bind the corrected release,
+record and candidate to the new boot. All seven slots were valid in every scan;
+maxima were 35.4, 35.0 and 35.1 degrees C. Ordinary pre/post readings were 34.9
+and 35.4 degrees C. Five transport sessions completed; all lifecycle/frequency
+budgets remained pristine, CPU0--7 stayed online and CPU8/9 stayed offline.
+No CPU load, admission/off request, storage read/write or retry occurred. Capture
+checksums and a full offline replay reproduce the classification.
+
+The Mac USB adapter required its documented static address to be restored through
+system administrator authorization before transport. This host configuration
+step consumed no device observer. The runtime proceeded once after the exact
+adapter and active link were verified.
+
+This establishes the corrected conversion's bounded observation path only.
+All three snapshot attempts are consumed and no further request or workload is
+admitted on this session; mainline remains running. The earlier integrated
+thermal comparison failures stand. Conversion age, calibrated accuracy and the
+physical cause of the workload-associated rise remain unresolved. The existing
+[source/timing decision](PASSIVE_DISCRIMINATOR_DECISION.md) provides no independent
+acquisition-age contract; this pass does not create one or justify another
+output-only boot. Follow the [roadmap](../../docs/ROADMAP.md) for the measurement
+dependency and parallel upstream/serviceability work.

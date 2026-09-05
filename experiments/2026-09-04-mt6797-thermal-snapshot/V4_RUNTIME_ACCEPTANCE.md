@@ -2,6 +2,14 @@
 
 ## Current admission
 
+**Completed and closed to repetition:** the [corrected runtime gate](results/v4-runtime-pass.txt)
+passed on the fresh receipt-bound boot. All three snapshot attempts are consumed;
+CPU8/9 remain offline and lifecycle/frequency accounting remains pristine.
+Only the corrected bounded observation path is established. No further read,
+load or retry is admitted on this session; earlier thermal rejections stand.
+The admission record below was published before the successful preparation
+and physical selection and is retained as provenance.
+
 The [exact-candidate shell result](results/v4-exact-shell-pass.json) closes the
 offline admission gate for padded candidate
 `b007af3d7025b804b34c6f1e717b2eca5e9fecf09b0ff731cede2a12116d993c`.

@@ -1,5 +1,11 @@
 # Corrected V4 candidate-pinned host protocol
 
+**Runtime complete:** the [saved frames](results/v4-runtime-pass.txt) and
+[classification](results/v4-runtime-pass.json) pass offline replay. The exclusive
+capture and all three snapshot requests are consumed. This protocol must not be
+executed again; the implementation and admission chronology below are retained
+for reproducibility. No broader thermal or CPU gate is opened.
+
 This implements the [runtime acceptance contract](V4_RUNTIME_ACCEPTANCE.md)
 for the frozen corrected candidate. The [exact-shell suite](results/v4-exact-shell-pass.json)
 now passes from published revision `871bdbb7`. The current decision selects the

@@ -30,25 +30,20 @@ cross-boot thermal repeatability, protection, unrestricted hotplug, suspend or
 default-profile support. Frequency observation is no longer the unresolved
 first-read gate.
 
-The active physical investigation remains the
-[corrected V4 thermal experiment](../experiments/2026-09-04-mt6797-thermal-snapshot/V4_RUNTIME_ACCEPTANCE.md).
-Its [candidate record](../experiments/2026-09-04-mt6797-thermal-snapshot/results/v4-candidate-composition.json)
-and [host protocol](../experiments/2026-09-04-mt6797-thermal-snapshot/V4_HOST_PROTOCOL.md)
-own exact identity and admission. The active installer integrates the
-block-device identity guard. Its synthetic deployment fixtures and the
-observer's exact-candidate shell tests pass; use the recorded protocol and
-evidence before any installation.
-The owner of that experiment alone records subsequent admission and result;
-this roadmap and the coordination registry cannot grant it.
+The [corrected V4 thermal regression](../experiments/2026-09-04-mt6797-thermal-snapshot/results/v4-runtime-pass.txt)
+passed its bounded no-workload observation contract. That session's snapshot
+budget is consumed; no additional read, workload or identical repeat is selected.
+The pass establishes the corrected observation path only. Earlier integrated
+thermal comparison rejections remain unchanged.
 
-After its bounded no-workload regression, make an explicit decision:
-
-- a failure stays within the corrected observation path and preserves evidence;
-- a pass establishes that path only, while previous thermal rejections stand;
-- reopening physical-versus-conversion-history causality requires an independently
-  supported measurement or acquisition-timing contract;
-- if no discriminating contract is feasible, mark that question externally
-  blocked and release its implementation slot to another subsystem.
+Physical-versus-conversion-history causality remains blocked on an independent
+measurement or a supported acquisition-timing contract. The existing source and
+timing audit supplies neither; another output-only boot cannot resolve it.
+Reopen that question only with a reviewed discriminating contract. Release this
+physical investigation slot and advance the ready upstream-preparation and A53
+serviceability work below; offline power/thermal ownership work may continue.
+The experiment owns exact candidate identities, chronology and any future
+admission. A newer build or this roadmap cannot authorize a repeat.
 
 Do not expand load, relax limits or add samples merely to turn the old comparison
 into a pass. CPU/RAM/frequency correctness, controlled thermal repeatability and
