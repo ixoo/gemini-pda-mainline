@@ -1,0 +1,659 @@
+diff --git a/lib/mt6797-hif-compile/hif_command.h b/lib/mt6797-hif-compile/hif_command.h
+index 6cfc681..b82d983 100644
+--- a/lib/mt6797-hif-compile/hif_command.h
++++ b/lib/mt6797-hif-compile/hif_command.h
+@@ -27,19 +27,22 @@ struct mt6797_hif_command {
+  * DMA_ENABLED preserves eight-byte RX alignment even for a PIO fallback.
+  * The caller owns initialized TX padding, RX capacity and all runtime gates.
+  */
+-static inline int
+-mt6797_hif_encode_command(unsigned int port, enum mt6797_hif_direction direction,
+-			 enum mt6797_hif_rx_policy policy, size_t payload_bytes,
+-			 size_t capacity, struct mt6797_hif_command *result)
++static inline int mt6797_hif_encode_command(unsigned int port,
++					    enum mt6797_hif_direction direction,
++					    enum mt6797_hif_rx_policy policy,
++					    size_t payload_bytes,
++					    size_t capacity,
++					    struct mt6797_hif_command *result)
+ {
+ 	struct mt6797_hif_transfer_size size;
+ 	int error;
+ 
+ 	if (!result)
+ 		return -EINVAL;
+-	*result = (struct mt6797_hif_command) { 0 };
++	*result = (struct mt6797_hif_command){0};
+ 	if ((direction != MT6797_HIF_READ && direction != MT6797_HIF_WRITE) ||
+-	    (policy != MT6797_HIF_PIO_ONLY && policy != MT6797_HIF_DMA_ENABLED) ||
++	    (policy != MT6797_HIF_PIO_ONLY &&
++	     policy != MT6797_HIF_DMA_ENABLED) ||
+ 	    port > 0x1ffffU)
+ 		return -EINVAL;
+ 	if ((direction == MT6797_HIF_WRITE && port != 0x34U) ||
+@@ -48,15 +51,17 @@ mt6797_hif_encode_command(unsigned int port, enum mt6797_hif_direction direction
+ 
+ 	/* The helper's false branch supplies four-byte TX/PIO-only RX rounding. */
+ 	error = mt6797_hif_transfer_size(payload_bytes, capacity,
+-		 direction == MT6797_HIF_READ && policy == MT6797_HIF_DMA_ENABLED,
+-		 &size);
++					 direction == MT6797_HIF_READ &&
++						 policy ==
++							 MT6797_HIF_DMA_ENABLED,
++					 &size);
+ 	if (error)
+ 		return error;
+ 	if (!size.command_count || size.command_count > 0x1ffU)
+ 		return -EMSGSIZE;
+ 	result->word = size.command_count | (port << 9) |
+-		(size.block_mode ? (1U << 27) : 0U) | (1U << 28) |
+-		(direction == MT6797_HIF_WRITE ? (1U << 31) : 0U);
++		       (size.block_mode ? (1U << 27) : 0U) | (1U << 28) |
++		       (direction == MT6797_HIF_WRITE ? (1U << 31) : 0U);
+ 	result->transfer_bytes = size.dma_bytes;
+ 	return 0;
+ }
+diff --git a/lib/mt6797-hif-compile/hif_config_phase.h b/lib/mt6797-hif-compile/hif_config_phase.h
+index 98b50b2..23e40e8 100644
+--- a/lib/mt6797-hif-compile/hif_config_phase.h
++++ b/lib/mt6797-hif-compile/hif_config_phase.h
+@@ -8,15 +8,16 @@
+  * Caller holds the existing owner/session/serialization contract throughout.
+  * No callback is added beyond the accepted scalar PIO seam.
+  */
+-static inline int
+-mt6797_config_send(struct mt6797_init_transaction *t,
+-		   const struct mt6797_hif_pio_io *io,
+-		   const unsigned char *command, size_t bytes, unsigned int sequence)
++static inline int mt6797_config_send(struct mt6797_init_transaction *t,
++				     const struct mt6797_hif_pio_io *io,
++				     const unsigned char *command, size_t bytes,
++				     unsigned int sequence)
+ {
+ 	unsigned char staging[20];
+ 	struct mt6797_hif_pio_result result;
+ 	size_t i;
+ 	int error;
++
+ 	if (!t)
+ 		return -EINVAL;
+ 	if (t->phase != MT6797_INIT_IDLE)
+@@ -33,7 +34,8 @@ mt6797_config_send(struct mt6797_init_transaction *t,
+ 	if (error)
+ 		return error;
+ 	error = mt6797_hif_pio_transfer(io, 0x34, MT6797_HIF_WRITE, staging,
+-				      sizeof(staging), sizeof(staging), &result);
++					sizeof(staging), sizeof(staging),
++					&result);
+ 	return mt6797_init_submitted(t, error);
+ }
+ 
+@@ -41,15 +43,16 @@ mt6797_config_send(struct mt6797_init_transaction *t,
+  * Zero returns EAGAIN without I/O. Exact length triggers one 32-byte PIO read
+  * and validation of its first 28 bytes. No raw reply escapes this function.
+  */
+-static inline int
+-mt6797_config_receive(struct mt6797_init_transaction *t,
+-		      const struct mt6797_hif_pio_io *io, unsigned int length,
+-		      unsigned int *firmware_status)
++static inline int mt6797_config_receive(struct mt6797_init_transaction *t,
++					const struct mt6797_hif_pio_io *io,
++					unsigned int length,
++					unsigned int *firmware_status)
+ {
+ 	unsigned char staging[32];
+ 	struct mt6797_hif_command span;
+ 	struct mt6797_hif_pio_result result;
+ 	int error;
++
+ 	if (firmware_status)
+ 		*firmware_status = 0;
+ 	if (!io || !io->read || !io->write || !firmware_status) {
+@@ -61,9 +64,11 @@ mt6797_config_receive(struct mt6797_init_transaction *t,
+ 	if (error)
+ 		return error;
+ 	error = mt6797_hif_pio_transfer(io, 0x50, MT6797_HIF_READ, staging,
+-				      span.transfer_bytes, sizeof(staging), &result);
++					span.transfer_bytes, sizeof(staging),
++					&result);
+ 	if (error)
+ 		return mt6797_init_abort(t);
+ 	return mt6797_init_accept_reply(t, staging, 28, firmware_status);
+ }
++
+ #endif
+diff --git a/lib/mt6797-hif-compile/hif_init_bounds.h b/lib/mt6797-hif-compile/hif_init_bounds.h
+index 53e14b0..be5ce80 100644
+--- a/lib/mt6797-hif-compile/hif_init_bounds.h
++++ b/lib/mt6797-hif-compile/hif_init_bounds.h
+@@ -7,10 +7,11 @@
+  * Caller establishes the fresh boot phase; this function never seeds/refunds.
+  * Frame length already includes INIT header, excludes bus padding.
+  */
+-static inline int
+-mt6797_init_debit(size_t frame_bytes, unsigned int *free_pages)
++static inline int mt6797_init_debit(size_t frame_bytes,
++				    unsigned int *free_pages)
+ {
+ 	unsigned int cost;
++
+ 	if (!free_pages || *free_pages > 104U)
+ 		return -EINVAL;
+ 	if (!frame_bytes || frame_bytes > 104U * 128U)
+@@ -26,18 +27,20 @@ mt6797_init_debit(size_t frame_bytes, unsigned int *free_pages)
+  * with RX aggregation/coalescing enabled. Read 32 into staging, decode 28.
+  * A pending length of zero is distinct from an unexpected nonzero event.
+  */
+-static inline int
+-mt6797_init_result_span(unsigned int reported_length, size_t staging_capacity,
+-			struct mt6797_hif_command *result)
++static inline int mt6797_init_result_span(unsigned int reported_length,
++					  size_t staging_capacity,
++					  struct mt6797_hif_command *result)
+ {
+ 	if (!result)
+ 		return -EINVAL;
+-	*result = (struct mt6797_hif_command) { 0 };
++	*result = (struct mt6797_hif_command){0};
+ 	if (!reported_length)
+ 		return -EAGAIN;
+ 	if (reported_length != 28U)
+ 		return -EMSGSIZE;
+ 	return mt6797_hif_encode_command(0x50U, MT6797_HIF_READ,
+-		MT6797_HIF_PIO_ONLY, 32U, staging_capacity, result);
++					 MT6797_HIF_PIO_ONLY, 32U,
++					 staging_capacity, result);
+ }
++
+ #endif
+diff --git a/lib/mt6797-hif-compile/hif_init_transaction.h b/lib/mt6797-hif-compile/hif_init_transaction.h
+index 60e53eb..cda35d5 100644
+--- a/lib/mt6797-hif-compile/hif_init_transaction.h
++++ b/lib/mt6797-hif-compile/hif_init_transaction.h
+@@ -7,6 +7,7 @@ static inline unsigned int mt6797_init_le16(const unsigned char *p)
+ {
+ 	return (unsigned int)p[0] | ((unsigned int)p[1] << 8);
+ }
++
+ static inline unsigned int mt6797_init_le32(const unsigned char *p)
+ {
+ 	return mt6797_init_le16(p) | (mt6797_init_le16(p + 2) << 16);
+@@ -15,9 +16,10 @@ static inline unsigned int mt6797_init_le32(const unsigned char *p)
+ /* Exact logical bytes only, not the 32-byte staging span. Nonzero status is
+  * well-formed firmware rejection (-EIO); diagnostics stay uninterpreted.
+  */
+-static inline int
+-mt6797_init_validate_result(const unsigned char *packet, size_t bytes,
+-			    unsigned int expected_sequence, unsigned int *status)
++static inline int mt6797_init_validate_result(const unsigned char *packet,
++					      size_t bytes,
++					      unsigned int expected_sequence,
++					      unsigned int *status)
+ {
+ 	if (!status)
+ 		return -EINVAL;
+@@ -32,10 +34,12 @@ mt6797_init_validate_result(const unsigned char *packet, size_t bytes,
+ 	return *status ? -EIO : 0;
+ }
+ 
+-static inline int
+-mt6797_init_validate_config(const unsigned char *p, size_t bytes, unsigned int sequence)
++static inline int mt6797_init_validate_config(const unsigned char *p,
++					      size_t bytes,
++					      unsigned int sequence)
+ {
+ 	unsigned int address, length, mode;
++
+ 	if (!p || sequence > 255U)
+ 		return -EINVAL;
+ 	if (bytes != 20 || mt6797_init_le16(p) != 20 ||
+@@ -53,8 +57,9 @@ mt6797_init_validate_config(const unsigned char *p, size_t bytes, unsigned int s
+ 	return 0;
+ }
+ 
+-static inline int
+-mt6797_init_validate_start(const unsigned char *p, size_t bytes, unsigned int sequence)
++static inline int mt6797_init_validate_start(const unsigned char *p,
++					     size_t bytes,
++					     unsigned int sequence)
+ {
+ 	if (!p || sequence > 255U)
+ 		return -EINVAL;
+@@ -66,9 +71,15 @@ mt6797_init_validate_start(const unsigned char *p, size_t bytes, unsigned int se
+ 	return 0;
+ }
+ 
+-enum mt6797_init_phase { MT6797_INIT_IDLE, MT6797_INIT_DISPATCH,
+-	MT6797_INIT_REPLY, MT6797_INIT_POISONED, MT6797_START_DISPATCH,
+-	MT6797_START_READY, MT6797_INIT_PAYLOAD };
++enum mt6797_init_phase {
++	MT6797_INIT_IDLE,
++	MT6797_INIT_DISPATCH,
++	MT6797_INIT_REPLY,
++	MT6797_INIT_POISONED,
++	MT6797_START_DISPATCH,
++	MT6797_START_READY,
++	MT6797_INIT_PAYLOAD
++};
+ 
+ /* Zero-initialize once, set each pool only from proven fresh INIT admission.
+  * Caller serializes all calls and owns a finite deadline/owner generation.
+@@ -89,11 +100,12 @@ static inline int mt6797_init_abort(struct mt6797_init_transaction *t)
+ 	return -EIO;
+ }
+ 
+-static inline int
+-mt6797_init_begin(struct mt6797_init_transaction *t, const unsigned char *command,
+-		  size_t bytes, unsigned int expected_sequence)
++static inline int mt6797_init_begin(struct mt6797_init_transaction *t,
++				    const unsigned char *command, size_t bytes,
++				    unsigned int expected_sequence)
+ {
+ 	int error;
++
+ 	if (!t)
+ 		return -EINVAL;
+ 	if (t->phase != MT6797_INIT_IDLE || t->free_pages > 104U)
+@@ -101,12 +113,14 @@ mt6797_init_begin(struct mt6797_init_transaction *t, const unsigned char *comman
+ 	error = mt6797_init_validate_config(command, bytes, expected_sequence);
+ 	if (error)
+ 		return error;
+-	if (t->used_sequences[expected_sequence / 8] & (1U << (expected_sequence % 8)))
++	if (t->used_sequences[expected_sequence / 8] &
++	    (1U << (expected_sequence % 8)))
+ 		return mt6797_init_abort(t);
+ 	error = mt6797_init_debit(bytes, &t->free_pages);
+ 	if (error)
+ 		return error;
+-	t->used_sequences[expected_sequence / 8] |= (unsigned char)(1U << (expected_sequence % 8));
++	t->used_sequences[expected_sequence / 8] |=
++		(unsigned char)(1U << (expected_sequence % 8));
+ 	t->expected_sequence = expected_sequence;
+ 	t->phase = MT6797_INIT_DISPATCH;
+ 	return 0;
+@@ -115,8 +129,8 @@ mt6797_init_begin(struct mt6797_init_transaction *t, const unsigned char *comman
+ /* Feed the finite PIO primitive's return outcome. Success means submitted,
+  * not acknowledged. Any uncertain/failing outcome permanently poisons state.
+  */
+-static inline int
+-mt6797_init_submitted(struct mt6797_init_transaction *t, int pio_error)
++static inline int mt6797_init_submitted(struct mt6797_init_transaction *t,
++					int pio_error)
+ {
+ 	if (!t)
+ 		return -EINVAL;
+@@ -126,11 +140,12 @@ mt6797_init_submitted(struct mt6797_init_transaction *t, int pio_error)
+ 	return 0;
+ }
+ 
+-static inline int
+-mt6797_start_begin(struct mt6797_init_transaction *t, const unsigned char *command,
+-		   size_t bytes, unsigned int expected_sequence)
++static inline int mt6797_start_begin(struct mt6797_init_transaction *t,
++				     const unsigned char *command, size_t bytes,
++				     unsigned int expected_sequence)
+ {
+ 	int error;
++
+ 	if (!t)
+ 		return -EINVAL;
+ 	if (t->phase != MT6797_INIT_IDLE || t->start_free_pages > 104U)
+@@ -138,19 +153,21 @@ mt6797_start_begin(struct mt6797_init_transaction *t, const unsigned char *comma
+ 	error = mt6797_init_validate_start(command, bytes, expected_sequence);
+ 	if (error)
+ 		return error;
+-	if (t->used_sequences[expected_sequence / 8] & (1U << (expected_sequence % 8)))
++	if (t->used_sequences[expected_sequence / 8] &
++	    (1U << (expected_sequence % 8)))
+ 		return mt6797_init_abort(t);
+ 	error = mt6797_init_debit(bytes, &t->start_free_pages);
+ 	if (error)
+ 		return error;
+-	t->used_sequences[expected_sequence / 8] |= (unsigned char)(1U << (expected_sequence % 8));
++	t->used_sequences[expected_sequence / 8] |=
++		(unsigned char)(1U << (expected_sequence % 8));
+ 	t->expected_sequence = expected_sequence;
+ 	t->phase = MT6797_START_DISPATCH;
+ 	return 0;
+ }
+ 
+-static inline int
+-mt6797_start_submitted(struct mt6797_init_transaction *t, int pio_error)
++static inline int mt6797_start_submitted(struct mt6797_init_transaction *t,
++					 int pio_error)
+ {
+ 	if (!t)
+ 		return -EINVAL;
+@@ -164,8 +181,8 @@ mt6797_start_submitted(struct mt6797_init_transaction *t, int pio_error)
+  * This is a level test, not proof that START caused a transition. Caller owns
+  * deadline and session validity; abort on timeout/ownership loss/read failure.
+  */
+-static inline int
+-mt6797_start_observe_ready(struct mt6797_init_transaction *t, unsigned int wcir)
++static inline int mt6797_start_observe_ready(struct mt6797_init_transaction *t,
++					     unsigned int wcir)
+ {
+ 	if (!t)
+ 		return -EINVAL;
+@@ -178,11 +195,13 @@ mt6797_start_observe_ready(struct mt6797_init_transaction *t, unsigned int wcir)
+ }
+ 
+ /* Validate port-0 length before dispatching the RX primitive. */
+-static inline int
+-mt6797_init_prepare_reply(struct mt6797_init_transaction *t, unsigned int length,
+-			  size_t capacity, struct mt6797_hif_command *span)
++static inline int mt6797_init_prepare_reply(struct mt6797_init_transaction *t,
++					    unsigned int length,
++					    size_t capacity,
++					    struct mt6797_hif_command *span)
+ {
+ 	int error;
++
+ 	if (span)
+ 		*span = (struct mt6797_hif_command){0};
+ 	if (!t)
+@@ -195,19 +214,21 @@ mt6797_init_prepare_reply(struct mt6797_init_transaction *t, unsigned int length
+ 	return error;
+ }
+ 
+-static inline int
+-mt6797_init_accept_reply(struct mt6797_init_transaction *t, const unsigned char *packet,
+-			 size_t logical_bytes, unsigned int *firmware_status)
++static inline int mt6797_init_accept_reply(struct mt6797_init_transaction *t,
++					   const unsigned char *packet,
++					   size_t logical_bytes,
++					   unsigned int *firmware_status)
+ {
+ 	int error;
++
+ 	if (firmware_status)
+ 		*firmware_status = 0;
+ 	if (!t)
+ 		return -EINVAL;
+ 	if (t->phase != MT6797_INIT_REPLY)
+ 		return mt6797_init_abort(t);
+-	error = mt6797_init_validate_result(packet, logical_bytes, t->expected_sequence,
+-					     firmware_status);
++	error = mt6797_init_validate_result(packet, logical_bytes,
++					    t->expected_sequence, firmware_status);
+ 	if (error) {
+ 		mt6797_init_abort(t);
+ 		return error;
+@@ -215,4 +236,5 @@ mt6797_init_accept_reply(struct mt6797_init_transaction *t, const unsigned char
+ 	t->phase = MT6797_INIT_IDLE;
+ 	return 0;
+ }
++
+ #endif
+diff --git a/lib/mt6797-hif-compile/hif_ordinary_section.h b/lib/mt6797-hif-compile/hif_ordinary_section.h
+index 5f1bb54..106855b 100644
+--- a/lib/mt6797-hif-compile/hif_ordinary_section.h
++++ b/lib/mt6797-hif-compile/hif_ordinary_section.h
+@@ -4,19 +4,28 @@
+ #include "hif_config_phase.h"
+ 
+ enum mt6797_section_kind { MT6797_SECTION_ORDINARY, MT6797_SECTION_EMI };
+-enum mt6797_section_phase { MT6797_SECTION_NEW, MT6797_SECTION_CONFIG,
+-	MT6797_SECTION_PAYLOAD, MT6797_SECTION_SUBMITTED, MT6797_SECTION_FAILED };
++enum mt6797_section_phase {
++	MT6797_SECTION_NEW,
++	MT6797_SECTION_CONFIG,
++	MT6797_SECTION_PAYLOAD,
++	MT6797_SECTION_SUBMITTED,
++	MT6797_SECTION_FAILED
++};
++
+ struct mt6797_ordinary_section {
+ 	enum mt6797_section_phase phase;
+ 	struct mt6797_init_transaction *transaction;
+ 	const unsigned char *data;
+ 	size_t length, submitted;
+ };
++
+ static inline int mt6797_section_fail(struct mt6797_ordinary_section *s)
+ {
+-	if (!s) return -EINVAL;
+-	s->phase=MT6797_SECTION_FAILED;
+-	if (s->transaction) mt6797_init_abort(s->transaction);
++	if (!s)
++		return -EINVAL;
++	s->phase = MT6797_SECTION_FAILED;
++	if (s->transaction)
++		mt6797_init_abort(s->transaction);
+ 	return -EIO;
+ }
+ 
+@@ -26,35 +35,58 @@ static inline int mt6797_section_fail(struct mt6797_ordinary_section *s)
+  */
+ static inline int
+ mt6797_section_begin(struct mt6797_ordinary_section *s,
+-	struct mt6797_init_transaction *t, const struct mt6797_hif_pio_io *io,
+-	enum mt6797_section_kind kind, const unsigned char *config, size_t config_bytes,
+-	unsigned int sequence, const unsigned char *data, size_t length)
++		     struct mt6797_init_transaction *t,
++		     const struct mt6797_hif_pio_io *io,
++		     enum mt6797_section_kind kind,
++		     const unsigned char *config, size_t config_bytes,
++		     unsigned int sequence, const unsigned char *data,
++		     size_t length)
+ {
+ 	int error;
+-	if (!s || !t || !data || kind!=MT6797_SECTION_ORDINARY) return -EINVAL;
+-	if (s->phase!=MT6797_SECTION_NEW) return mt6797_section_fail(s);
+-	error=mt6797_init_validate_config(config,config_bytes,sequence);
+-	if (error) return error;
+-	if (!length || length!=mt6797_init_le32(config+12)) return -EMSGSIZE;
+-	s->transaction=t; s->data=data; s->length=length; s->submitted=0;
+-	error=mt6797_config_send(t,io,config,config_bytes,sequence);
+-	if (error) { mt6797_section_fail(s); return error; }
+-	s->phase=MT6797_SECTION_CONFIG;
++
++	if (!s || !t || !data || kind != MT6797_SECTION_ORDINARY)
++		return -EINVAL;
++	if (s->phase != MT6797_SECTION_NEW)
++		return mt6797_section_fail(s);
++	error = mt6797_init_validate_config(config, config_bytes, sequence);
++	if (error)
++		return error;
++	if (!length || length != mt6797_init_le32(config + 12))
++		return -EMSGSIZE;
++	s->transaction = t;
++	s->data = data;
++	s->length = length;
++	s->submitted = 0;
++	error = mt6797_config_send(t, io, config, config_bytes, sequence);
++	if (error) {
++		mt6797_section_fail(s);
++		return error;
++	}
++	s->phase = MT6797_SECTION_CONFIG;
+ 	return 0;
+ }
+-static inline int
+-mt6797_section_ack(struct mt6797_ordinary_section *s,
+-	const struct mt6797_hif_pio_io *io, unsigned int length, unsigned int *status)
++
++static inline int mt6797_section_ack(struct mt6797_ordinary_section *s,
++				     const struct mt6797_hif_pio_io *io,
++				     unsigned int length, unsigned int *status)
+ {
+ 	int error;
+-	if (status) *status=0;
+-	if (!s) return -EINVAL;
+-	if (s->phase!=MT6797_SECTION_CONFIG) return mt6797_section_fail(s);
+-	error=mt6797_config_receive(s->transaction,io,length,status);
+-	if (error==-EAGAIN) return error;
+-	if (error) { mt6797_section_fail(s); return error; }
+-	s->phase=MT6797_SECTION_PAYLOAD;
+-	s->transaction->phase=MT6797_INIT_PAYLOAD;
++
++	if (status)
++		*status = 0;
++	if (!s)
++		return -EINVAL;
++	if (s->phase != MT6797_SECTION_CONFIG)
++		return mt6797_section_fail(s);
++	error = mt6797_config_receive(s->transaction, io, length, status);
++	if (error == -EAGAIN)
++		return error;
++	if (error) {
++		mt6797_section_fail(s);
++		return error;
++	}
++	s->phase = MT6797_SECTION_PAYLOAD;
++	s->transaction->phase = MT6797_INIT_PAYLOAD;
+ 	return 0;
+ }
+ 
+@@ -62,36 +94,52 @@ mt6797_section_ack(struct mt6797_ordinary_section *s,
+  * Scratch must be distinct from immutable section data and all state/I/O objects.
+  * At most 2560 bytes needed. Caller checks deadline/ownership between calls.
+  */
+-static inline int
+-mt6797_section_next(struct mt6797_ordinary_section *s,
+-	const struct mt6797_hif_pio_io *io, unsigned char *scratch, size_t capacity)
++static inline int mt6797_section_next(struct mt6797_ordinary_section *s,
++				      const struct mt6797_hif_pio_io *io,
++				      unsigned char *scratch, size_t capacity)
+ {
+ 	size_t chunk, bytes, i;
+ 	struct mt6797_hif_command command;
+ 	struct mt6797_hif_pio_result result;
+ 	int error;
+-	if (!s) return -EINVAL;
+-	if (s->phase!=MT6797_SECTION_PAYLOAD || !s->transaction ||
+-	    s->transaction->phase!=MT6797_INIT_PAYLOAD || !s->data ||
+-	    s->submitted>=s->length || !scratch || !io || !io->write)
++
++	if (!s)
++		return -EINVAL;
++	if (s->phase != MT6797_SECTION_PAYLOAD || !s->transaction ||
++	    s->transaction->phase != MT6797_INIT_PAYLOAD || !s->data ||
++	    s->submitted >= s->length || !scratch || !io || !io->write)
+ 		return mt6797_section_fail(s);
+-	chunk=s->length-s->submitted;
+-	if (chunk>2048) chunk=2048;
+-	bytes=8+chunk;
+-	error=mt6797_hif_encode_command(0x34,MT6797_HIF_WRITE,MT6797_HIF_PIO_ONLY,
+-		bytes,capacity,&command);
+-	if (error) { mt6797_section_fail(s); return error; }
+-	for (i=0;i<8;i++) scratch[i]=0;
+-	scratch[0]=(unsigned char)bytes; scratch[1]=(unsigned char)(bytes>>8);
+-	scratch[3]=0xc0; scratch[5]=0xa0;
+-	for (i=0;i<chunk;i++) scratch[8+i]=s->data[s->submitted+i];
+-	error=mt6797_hif_pio_transfer(io,0x34,MT6797_HIF_WRITE,scratch,bytes,capacity,&result);
+-	if (error) { mt6797_section_fail(s); return error; }
+-	s->submitted+=chunk;
+-	if (s->submitted==s->length) {
+-		s->phase=MT6797_SECTION_SUBMITTED;
+-		s->transaction->phase=MT6797_INIT_IDLE;
++	chunk = s->length - s->submitted;
++	if (chunk > 2048)
++		chunk = 2048;
++	bytes = 8 + chunk;
++	error = mt6797_hif_encode_command(0x34, MT6797_HIF_WRITE,
++					  MT6797_HIF_PIO_ONLY, bytes, capacity,
++					  &command);
++	if (error) {
++		mt6797_section_fail(s);
++		return error;
++	}
++	for (i = 0; i < 8; i++)
++		scratch[i] = 0;
++	scratch[0] = (unsigned char)bytes;
++	scratch[1] = (unsigned char)(bytes >> 8);
++	scratch[3] = 0xc0;
++	scratch[5] = 0xa0;
++	for (i = 0; i < chunk; i++)
++		scratch[8 + i] = s->data[s->submitted + i];
++	error = mt6797_hif_pio_transfer(io, 0x34, MT6797_HIF_WRITE, scratch,
++					bytes, capacity, &result);
++	if (error) {
++		mt6797_section_fail(s);
++		return error;
++	}
++	s->submitted += chunk;
++	if (s->submitted == s->length) {
++		s->phase = MT6797_SECTION_SUBMITTED;
++		s->transaction->phase = MT6797_INIT_IDLE;
+ 	}
+ 	return 0;
+ }
++
+ #endif
+diff --git a/lib/mt6797-hif-compile/hif_pio.h b/lib/mt6797-hif-compile/hif_pio.h
+index 92a8836..fb37011 100644
+--- a/lib/mt6797-hif-compile/hif_pio.h
++++ b/lib/mt6797-hif-compile/hif_pio.h
+@@ -24,11 +24,12 @@ struct mt6797_hif_pio_result {
+  * Zero return means finite submission/read completed, not firmware success.
+  * An I/O error may have side effects: no retry, rollback or credit refund.
+  */
+-static inline int
+-mt6797_hif_pio_transfer(const struct mt6797_hif_pio_io *io, unsigned int port,
+-		       enum mt6797_hif_direction direction, unsigned char *buffer,
+-		       size_t payload_bytes, size_t capacity,
+-		       struct mt6797_hif_pio_result *result)
++static inline int mt6797_hif_pio_transfer(const struct mt6797_hif_pio_io *io,
++					  unsigned int port,
++					  enum mt6797_hif_direction direction,
++					  unsigned char *buffer,
++					  size_t payload_bytes, size_t capacity,
++					  struct mt6797_hif_pio_result *result)
+ {
+ 	struct mt6797_hif_command command;
+ 	size_t offset;
+@@ -37,12 +38,12 @@ mt6797_hif_pio_transfer(const struct mt6797_hif_pio_io *io, unsigned int port,
+ 
+ 	if (!result)
+ 		return -EINVAL;
+-	*result = (struct mt6797_hif_pio_result) { 0 };
++	*result = (struct mt6797_hif_pio_result){0};
+ 	if (!io || !io->write || !buffer ||
+ 	    (direction == MT6797_HIF_READ && !io->read))
+ 		return -EINVAL;
+ 	error = mt6797_hif_encode_command(port, direction, MT6797_HIF_PIO_ONLY,
+-			payload_bytes, capacity, &command);
++					  payload_bytes, capacity, &command);
+ 	if (error)
+ 		return error;
+ 	if (io->write(io->context, 0, command.word))
+@@ -53,13 +54,17 @@ mt6797_hif_pio_transfer(const struct mt6797_hif_pio_io *io, unsigned int port,
+ 		if (direction == MT6797_HIF_WRITE) {
+ 			for (byte = 0; byte < 4; byte++)
+ 				if (offset + byte < payload_bytes)
+-					word |= (unsigned int)buffer[offset + byte] << (byte * 8);
++					word |= (unsigned int)
++							buffer[offset + byte]
++						<< (byte * 8);
+ 			error = io->write(io->context, 0x1000, word);
+ 		} else {
+ 			error = io->read(io->context, 0x1000, &word);
+ 			if (!error)
+ 				for (byte = 0; byte < 4; byte++)
+-					buffer[offset + byte] = (unsigned char)(word >> (byte * 8));
++					buffer[offset + byte] =
++						(unsigned char)(word >>
++								(byte * 8));
+ 		}
+ 		if (error)
+ 			return -EIO;
+@@ -68,4 +73,5 @@ mt6797_hif_pio_transfer(const struct mt6797_hif_pio_io *io, unsigned int port,
+ 	result->transfer_complete = true;
+ 	return 0;
+ }
++
+ #endif
+diff --git a/lib/mt6797-hif-compile/hif_transfer_size.h b/lib/mt6797-hif-compile/hif_transfer_size.h
+index 2ff627e..71e1371 100644
+--- a/lib/mt6797-hif-compile/hif_transfer_size.h
++++ b/lib/mt6797-hif-compile/hif_transfer_size.h
+@@ -33,7 +33,7 @@ mt6797_hif_transfer_size(size_t payload_bytes, size_t capacity, bool receive,
+ 
+ 	if (!result)
+ 		return -EINVAL;
+-	*result = (struct mt6797_hif_transfer_size) { 0 };
++	*result = (struct mt6797_hif_transfer_size){0};
+ 	/* This bound also makes every following round-up overflow-safe. */
+ 	if (!payload_bytes || payload_bytes > 511U * 512U)
+ 		return -EMSGSIZE;

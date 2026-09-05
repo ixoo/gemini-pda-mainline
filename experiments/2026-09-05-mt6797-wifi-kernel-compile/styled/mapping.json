@@ -1,0 +1,59 @@
+{
+  "reference_commit": "2d9983c7cf31189cf7e1aa3752e696092ffb8d86",
+  "historical_patch_sha256": "2d261d775dedf5ad96e4529a67323adbc52a53332e22e0808101875b184bf8be",
+  "formatter": "Homebrew clang-format version 22.1.8",
+  "format_config_sha256": "155421176779963a2c944cc3b250e6bd4e8240bec6677eea4b20cf539095bd3d",
+  "headers": {
+    "hif_transfer_size.h": {
+      "reference_sha256": "1c4542d509330474382d522924a2cb72795d2a806eae081d0c9f525699b3bd95",
+      "styled_sha256": "5e2b2737fc45fc968b09a28f701fd694d6fbcfdcde6e76256ced2ab3f7ed0945",
+      "identical_c_tokens": true,
+      "identical_directives": true,
+      "token_count": 246
+    },
+    "hif_command.h": {
+      "reference_sha256": "8758f34294f8270be433ec7e40c59dcd0595889b322884cf2919ae159f2e7d80",
+      "styled_sha256": "db29df931113f5c1e734b8fae28544148ad4087add6912b021c06590b47b3cdd",
+      "identical_c_tokens": true,
+      "identical_directives": true,
+      "token_count": 269
+    },
+    "hif_pio.h": {
+      "reference_sha256": "00e4af207f8b8a4276d493b8ffd7420290fa6478ec9d10324e9df0719ab39023",
+      "styled_sha256": "5862d6254384d3a4ac23dc2b79f084ad7842d7e2c94d762e7a18d4c3d101ef00",
+      "identical_c_tokens": true,
+      "identical_directives": true,
+      "token_count": 392
+    },
+    "hif_init_bounds.h": {
+      "reference_sha256": "d89ba46edea4fdc16adb9357cb6e678d371dac7ff818f1fe2f8f376a0d44636d",
+      "styled_sha256": "aa40d202ad72bd1b5ae878aca6a7486260633043aa6b9dbf9cafbdc093468409",
+      "identical_c_tokens": true,
+      "identical_directives": true,
+      "token_count": 168
+    },
+    "hif_init_transaction.h": {
+      "reference_sha256": "eaf7d30f2e5db62cf1124bd8cea911f3a708b91babda0e611e0fa42f0f328911",
+      "styled_sha256": "bb0a91a7e0769112e824dae76567648717fe3eb7985d05a137ac4958828e3d27",
+      "identical_c_tokens": true,
+      "identical_directives": true,
+      "token_count": 1200
+    },
+    "hif_config_phase.h": {
+      "reference_sha256": "b892c508e92039c927a7b1055a4e0b7890a69ea7823fa8c053b44a2e9df56d99",
+      "styled_sha256": "b78eb225ed0babfa31568707861fd59a79232dfbae906ca7f7d672961ea56858",
+      "identical_c_tokens": true,
+      "identical_directives": true,
+      "token_count": 363
+    },
+    "hif_ordinary_section.h": {
+      "reference_sha256": "011886f11ec3026f10e84ccf453a20c013c275d4fb3a448f08070406f2939e45",
+      "styled_sha256": "13992b05aaa4f5133b2e2c0601cc508005b3560d9a1ba004fceb1b055e95b0cb",
+      "identical_c_tokens": true,
+      "identical_directives": true,
+      "token_count": 725
+    }
+  },
+  "revised_patch_sha256": "2c2b243b862044dff6253602d1b3d283ceb4e836dfdb8350c392319250d3e22a",
+  "exact_patch_replay": true
+}

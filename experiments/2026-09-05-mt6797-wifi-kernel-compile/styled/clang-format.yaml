@@ -1,0 +1,20 @@
+# Original configuration for the bounded C-only style transformation.
+BasedOnStyle: LLVM
+UseTab: Always
+IndentWidth: 8
+TabWidth: 8
+ContinuationIndentWidth: 8
+ColumnLimit: 80
+BreakBeforeBraces: Linux
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: None
+AllowShortBlocksOnASingleLine: Never
+IndentCaseLabels: false
+SortIncludes: Never
+AlignAfterOpenBracket: Align
+AlignOperands: Align
+SpaceBeforeParens: ControlStatements
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowShortLoopsOnASingleLine: false
+ReflowComments: false
+BreakStringLiterals: false
