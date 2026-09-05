@@ -1,5 +1,35 @@
 # Corrected V4 runtime acceptance boundary
 
+## Current admission
+
+The [exact-candidate shell result](results/v4-exact-shell-pass.json) closes the
+offline admission gate for padded candidate
+`b007af3d7025b804b34c6f1e717b2eca5e9fecf09b0ff731cede2a12116d993c`.
+The [host protocol](V4_HOST_PROTOCOL.md) selects guarded installation to inactive
+live-GPT `boot2` from known-good Gemian after publication of this evidence.
+The candidate remains the existing `ba906730` runtime build and frozen container;
+the independent tooling packaging regression does not replace it.
+
+The new evidence sought is complete, internally consistent thermal records from
+the corrected conversion on one new attributable boot, with CPU0--7 online,
+CPU8/9 offline and all lifecycle/frequency budgets untouched. Exactly three
+snapshots and two ordinary thermal reads are permitted. A pass establishes
+that corrected bounded observation path only; any refusal or interruption
+preserves the capture and stops without retry. No outcome admits A72 load or
+changes the earlier thermal-repeatability rejection.
+
+Preparation requires the complete source-pinned installer, verified block
+identities and stable power; matching-image skip or a verified write is followed
+by independent full readback and clean shutdown. No fresh backup is made.
+Only the resulting complete receipt and owner-selected fresh boot permit the
+runtime pristine gate. The owner should expect the existing blank-console
+behavior and USB networking for the bounded mainline shell; a visible console
+is not the acceptance signal.
+
+The following sections preserve design/build chronology. Earlier pending-state
+statements refer to those recorded stages; they do not supersede this current
+admission or relax any runtime boundary below.
+
 ## Hypothesis and attributable evidence
 
 [Patch 0541](V4_CORRECTION.md) corrects offset normalization and calibration

@@ -1,9 +1,17 @@
 # Corrected V4 candidate-pinned host protocol
 
 This implements the [runtime acceptance contract](V4_RUNTIME_ACCEPTANCE.md)
-for the frozen corrected candidate. It does not yet admit installation or
-execution: exact-candidate shell validation and the complete device-cycle
-receipt are still required. No device was accessed to implement these tools.
+for the frozen corrected candidate. The [exact-shell suite](results/v4-exact-shell-pass.json)
+now passes from published revision `871bdbb7`. The current decision selects the
+guarded preparation command below after this evidence is published. Actual
+installation still requires every known-good Gemian, live-GPT, block-identity,
+power and full-readback gate. Runtime remains conditional on its complete
+shutdown receipt, owner physical selection and the exact fresh pristine gate.
+No device was accessed for these offline validations.
+
+Later sections preserve implementation chronology; statements that validation
+was pending describe those earlier stages. The current admission is stated here
+and in [runtime acceptance](V4_RUNTIME_ACCEPTANCE.md#current-admission).
 
 ## Fixed identities and source boundary
 
@@ -153,3 +161,19 @@ that refusal. Preparing the conditional shell fragments before formatting fixes
 it without changing either production remote script. Builder Python parsing and
 the 18-read/six-state host smoke checks now pass; the corrected published suite
 still must run before admission.
+
+## Published-revision exact-shell result
+
+At published revision `871bdbb7`, the complete suite passed using the exact
+hash-verified candidate BusyBox under AArch64 user-mode QEMU. All 18 read cases,
+six state cases, 30 host protocol scenarios, ten runner/restart cases, eight
+host path cases, 24 receipt mutations, three derivation mutations and 19 complete
+synthetic deployment cases passed. Builder Bash runs the deployment fixtures;
+they do not establish the physical Gemian state. The temporary Git worktree,
+initramfs copy, BusyBox and wrapper were removed. The selected candidate also
+passed frozen local validation after the independent packaging regression.
+
+The [sanitized result](results/v4-exact-shell-pass.json) binds the tested revision,
+initramfs, BusyBox, guard and candidate. No newer packaging artifact is selected.
+This closes offline admission only. The runtime hypothesis and refusal limits
+are unchanged, and the earlier thermal repeatability failures still stand.

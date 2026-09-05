@@ -379,3 +379,12 @@ Host/remote runner and exact-shell admission remain required; it is not installe
 The [corrected candidate host protocol](V4_HOST_PROTOCOL.md) now has a pinned
 runner, guarded installer adapter and passing host interruption/restart fixtures.
 Exact-candidate shell admission remains pending; no device action occurred.
+
+
+The corrected V4 [exact-candidate shell suite](results/v4-exact-shell-pass.json)
+now passes from published revision `871bdbb7`, including synthetic deployment
+and host evidence-path agreement. The selected candidate is unchanged after
+local revalidation. The [current admission](V4_RUNTIME_ACCEPTANCE.md#current-admission)
+selects guarded preparation after evidence publication, then one fresh-boot,
+workload-free corrected thermal observation. No new device operation or runtime
+claim follows from these offline results.
