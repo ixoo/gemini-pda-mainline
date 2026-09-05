@@ -1,0 +1,1 @@
+{"execution": "not requested", "package": {"image_sha256": "c0a7e412f6d778ae523f1dfd63f9c54db91e269fe45b06d7411663dbf88dcc1e", "inventory_sha256": "8393a89ef3dbdb3bbae967d6adc78cf5a1cd907c21f21e9ba2efc015ba041917", "kernel_release": "7.3.0-rc1-mt6797-infracfg-upstream-kunit", "members": 132}}

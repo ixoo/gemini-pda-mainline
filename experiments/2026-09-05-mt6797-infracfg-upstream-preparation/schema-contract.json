@@ -7,6 +7,7 @@
     "mediatek/mt6797-evb.dtb",
     "mediatek/mt6797-x20-dev.dtb"
   ],
+  "generated_file_bytes": 134217728,
   "integrity_timeout_seconds": 180,
   "kill_after_seconds": 5,
   "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",

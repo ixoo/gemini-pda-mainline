@@ -1,0 +1,17 @@
+{
+  "infracfg-qemu-4ec63076-attempt-1/qemu.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "infracfg-qemu-4ec63076-attempt-1/qmp.jsonl": "a8de9f7d56c534e4c0497462a7267f060d6eb8e87e9e738d81e2bfae48230957",
+  "infracfg-qemu-4ec63076-attempt-1/result.json": "b0d43767134086c0b4e66728f30c4d583f0408dfcfbe0d9bf438d481cc8068e0",
+  "infracfg-qemu-4ec63076-attempt-1/serial.log": "78c951c8fe2029d018fda051d4781eb1008c4467b23eb0482c65cb18b5628016",
+  "infracfg-schema-4ec63076-attempt-1/dt_binding_check.stderr": "e3c22d4acbf9a8e74d023fa098f6cf887c279b4a1b116d458f90d95b04584d87",
+  "infracfg-schema-4ec63076-attempt-1/dt_binding_check.stdout": "0d857a9645e7ef6165ef33344b2533d70c5bb46acf90dab2090ae3ce4829b409",
+  "infracfg-schema-4ec63076-attempt-1/result.json": "63c8b5ce8660fbb9b1afcc92e851d1cd1b1d44ad3bd4328eda5247059293d8ef",
+  "infracfg-schema-4ec63076-attempt-1/source-integrity-before.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "infracfg-schema-4ec63076-attempt-1/source-integrity-before.stdout": "bcb478c96d7a9f957cd14a9be767b27639437f98a38d0c20d1bd5f33a989d601",
+  "package-preflight.json": "29ac70885021b03a7b3165790f2dea83a276aaa5849c0b0cdfd15c0e880b7ec7",
+  "prefix-after.json": "288a8cf40a1edfa0f07d0471207e5da34dea3d49156b78fc8a1a2fd7fa12ea80",
+  "prefix-before.json": "288a8cf40a1edfa0f07d0471207e5da34dea3d49156b78fc8a1a2fd7fa12ea80",
+  "qemu-fixtures.log": "45dcb2a930857a19e4daf5d2cc47a0cb64765a69eea8cfa7b3823ad69afc57bb",
+  "schema-fixtures.log": "f0797b0ca48d1b8f8d3050ab5c04dd585ad362d12c2da978719e1f7a264e480a",
+  "setup-fixtures.log": "79afc01d222f8e2a5f2a7e152034a88801b0639ab7a0b2c9472a6d1bc133ad15"
+}

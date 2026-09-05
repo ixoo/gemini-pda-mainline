@@ -1,0 +1,15 @@
+test_collector_only_fake_process (__main__.SchemaTests.test_collector_only_fake_process) ... ok
+test_collector_timeout (__main__.SchemaTests.test_collector_timeout) ... ok
+test_default_is_only_plan (__main__.SchemaTests.test_default_is_only_plan) ... ok
+test_dtb_node_contract (__main__.SchemaTests.test_dtb_node_contract) ... ok
+test_exact_log_ceiling_refuses_even_zero_exit (__main__.SchemaTests.test_exact_log_ceiling_refuses_even_zero_exit) ... ok
+test_lock_contention_refuses_before_tools (__main__.SchemaTests.test_lock_contention_refuses_before_tools) ... ok
+test_nonzero_timeout_and_survivor_refusals (__main__.SchemaTests.test_nonzero_timeout_and_survivor_refusals) ... ok
+test_plan_scope (__main__.SchemaTests.test_plan_scope) ... ok
+test_processed_schema_contract (__main__.SchemaTests.test_processed_schema_contract) ... ok
+test_protected_files (__main__.SchemaTests.test_protected_files) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.527s
+
+OK

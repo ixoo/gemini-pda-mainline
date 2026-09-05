@@ -63,3 +63,40 @@ hold the shared Buildbox build lock and preserve the same source, configuration,
 kernel image and objects. QEMU and schema success remain
 separate results. No physical test or boot2 request follows from either
 preparation or execution.
+
+## First execution review and schema correction
+
+The coordinator adopts the [first attempt evidence](VALIDATION_ATTEMPT_1.md)
+from `f34f0b57`. Independent review verified all 15 inventory-listed files,
+seven embedded log hashes, exact CRLF bytes, the original QEMU refusal and
+the original process/argument/QMP conditions. The additional IRQ suite was
+confirmed against the pinned upstream Makefile and test source with matching
+hashes. The schema failure establishes a generated-file limit problem; its
+targeted input comparisons do not replace a full source postcheck.
+
+Review reproduced a hash-then-reopen race in the new prefix checker.
+`4f8ccfa4` fixes it by hashing and parsing one bounded receipt snapshot.
+All eight focused fixtures pass, and the real-member replacement regression
+independently fails against the old checker. The original evidence tree is
+byte-identical through this correction. This does not assert that a race
+occurred during the historical run or retroactively rerun its checks.
+
+The separate schema correction `f4ff1028` distinguishes a 128 MiB per-file
+generated-output ceiling from hard 16 MiB limits on each captured stream.
+Coordinator review and all 13 host fixtures pass; the assigned worker also
+passed all 13 fixtures on Linux from that exact clean Git checkout. One second
+schema attempt is admitted under the existing nonblocking Buildbox lock and
+unchanged source/build identities and time budgets. Its result must be reviewed
+separately. No QEMU repeat or new kernel build is selected.
+
+The [separate retained-log assessment](QEMU_OFFLINE_ASSESSMENT.md) records
+all eight intended arithmetic case passes and four additional upstream
+virtual-CPU IRQ case passes. Both independent review and coordinator accounting
+verified the pinned evidence and reproduced the original refusal, which remains
+unchanged. This assessment neither adds hardware coverage nor changes the
+execution contract.
+
+The [schema integration review](SCHEMA_INTEGRATION_REVIEW.md) accepts the
+completed second window's focused binding and two exact DTB checks after
+review of all diagnostics, hashes and source preservation. Original collector
+and failure receipts remain unchanged.

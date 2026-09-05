@@ -1,0 +1,3 @@
+# Preserve original serial/QMP CRLF bytes and their recorded hashes.
+infracfg-qemu-4ec63076-attempt-1/serial.log -text whitespace=trailing-space,space-before-tab,cr-at-eol
+infracfg-qemu-4ec63076-attempt-1/qmp.jsonl -text whitespace=trailing-space,space-before-tab,cr-at-eol

@@ -1,0 +1,123 @@
+Booting Linux on physical CPU 0x0000000000 [0x000f0510]
+Linux version 7.3.0-rc1-mt6797-infracfg-upstream-kunit (gemini-pda@devvm) (aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0, GNU ld (GNU Binutils for Debian) 2.40) #1 SMP PREEMPT 2026-09-05 00:00:00 UTC
+random: crng init done
+Machine model: linux,dummy-virt
+OF: reserved mem: Reserved memory: No reserved-memory node in the DT
+psci: probing for conduit method from DT.
+psci: PSCIv1.1 detected in firmware.
+psci: Using standard PSCI v0.2 function IDs
+psci: Trusted OS migration not required
+psci: SMC Calling Convention v1.0
+Zone ranges:
+  DMA      [mem 0x0000000040000000-0x000000005fffffff]
+  DMA32    empty
+  Normal   empty
+Movable zone start for each node
+Early memory node ranges
+  node   0: [mem 0x0000000040000000-0x000000005fffffff]
+Initmem setup node 0 [mem 0x0000000040000000-0x000000005fffffff]
+percpu: Embedded 14 pages/cpu s25248 r0 d32096 u57344
+Detected PIPT I-cache on CPU0
+CPU features: detected: 52-bit Virtual Addressing (LPA2)
+CPU features: detected: Spectre-v4
+CPU features: detected: Spectre-BHB
+alternatives: applying boot alternatives
+Kernel command line: console=ttyAMA0 kunit.enable=1 kunit.autorun=1 kunit_shutdown=poweroff
+printk: log buffer data + meta data: 131072 + 458752 = 589824 bytes
+Dentry cache hash table entries: 65536 (order: 7, 524288 bytes, linear)
+Inode-cache hash table entries: 32768 (order: 6, 262144 bytes, linear)
+software IO TLB: SWIOTLB bounce buffer size adjusted to 0MB
+software IO TLB: area num 2.
+software IO TLB: mapped [mem 0x000000005fc90000-0x000000005fd10000] (0MB)
+Built 1 zonelists, mobility grouping on.  Total pages: 131072
+mem auto-init: stack:all(zero), heap alloc:off, heap free:off
+SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1
+rcu: Hierarchical RCU implementation.
+rcu: 	RCU event tracing is enabled.
+rcu: 	RCU restricting CPUs from NR_CPUS=512 to nr_cpu_ids=2.
+rcu: RCU calculated value of scheduler-enlistment delay is 25 jiffies.
+rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2
+NR_IRQS: 64, nr_irqs: 64, preallocated irqs: 0
+Root IRQ handler: gic_handle_irq
+rcu: srcu_init: Setting srcu_struct sizes based on contention.
+clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 7645041785100000 ns
+arch_timer: cp15 timer running at 62.50MHz (virt).
+clocksource: arch_sys_counter: mask: 0x1ffffffffffffff max_cycles: 0x1cd42e208c, max_idle_ns: 881590405314 ns
+sched_clock: 57 bits at 63MHz, resolution 16ns, wraps every 4398046511096ns
+Console: colour dummy device 80x25
+Calibrating delay loop (skipped), value calculated using timer frequency.. 125.00 BogoMIPS (lpj=250000)
+pid_max: default: 32768 minimum: 301
+Mount-cache hash table entries: 1024 (order: 1, 8192 bytes, linear)
+Mountpoint-cache hash table entries: 1024 (order: 1, 8192 bytes, linear)
+VFS: Finished mounting rootfs on nullfs
+rcu: Hierarchical SRCU implementation.
+rcu: 	Max phase no-delay instances is 1000.
+smp: Bringing up secondary CPUs ...
+Detected PIPT I-cache on CPU1
+CPU1: Booted secondary processor 0x0000000001 [0x000f0510]
+smp: Brought up 1 node, 2 CPUs
+SMP: Total of 2 processors activated.
+CPU: All CPU(s) started at EL1
+CPU features: detected: 32-bit EL0 Support
+CPU features: detected: ARMv8.4 Translation Table Level
+CPU features: detected: Data cache clean to the PoU not required for I/D coherence
+CPU features: detected: CRC32 instructions
+CPU features: detected: Data independent timing control (DIT)
+CPU features: detected: RCpc load-acquire (LDAPR)
+CPU features: detected: 52-bit Virtual Addressing for KVM (LPA2)
+CPU features: detected: LSE atomic instructions
+CPU features: detected: Privileged Access Never
+CPU features: detected: Random Number Generator
+CPU features: detected: Speculation barrier (SB)
+CPU features: detected: Stage-2 Force Write-Back
+CPU features: detected: TLB range maintenance instructions
+CPU features: detected: XNX
+CPU features: detected: Speculative Store Bypassing Safe (SSBS)
+alternatives: applying system-wide alternatives
+Memory: 501488K/524288K available (2752K kernel code, 1036K rwdata, 1768K rodata, 2048K init, 359K bss, 20928K reserved, 0K cma-reserved)
+posixtimers hash table entries: 1024 (order: 2, 16384 bytes, linear)
+futex hash table entries: 512 (32768 bytes on 1 NUMA nodes, total 32 KiB, linear).
+DMA: preallocated 128 KiB GFP_KERNEL|GFP_DMA pool for atomic allocations
+ASID allocator initialised with 65536 entries
+Serial: AMBA PL011 UART driver
+9000000.pl011: ttyAMA0 MMIO:0x0000000009000000 (irq = 13, base_baud = 0) is a PL011 rev1
+printk: console [ttyAMA0] enabled
+clocksource: Switched to clocksource arch_sys_counter
+workingset: timestamp_bits=62 (anon: 57) max_order=17 bucket_order=0 (anon: 0)
+clk: Disabling unused clocks
+KTAP version 1
+1..3
+    KTAP version 1
+    # Subtest: refcount_interrupt
+    # module: refcount_interrupt_test
+    1..4
+    ok 1 test_single_irq_change
+    ok 2 test_nested_irq_change
+    ok 3 test_multiple_irq_change
+    ok 4 test_irq_save
+# refcount_interrupt: pass:4 fail:0 skip:0 total:4
+# Totals: pass:4 fail:0 skip:0 total:4
+ok 1 refcount_interrupt
+    KTAP version 1
+    # Subtest: mtk-reset-bounds
+    # module: reset_test
+    1..4
+    ok 1 mtk_reset_map_bounds
+    ok 2 mtk_reset_register_pairs
+    ok 3 mtk_reset_invalid_bank
+    ok 4 mtk_reset_missing_banks
+# mtk-reset-bounds: pass:4 fail:0 skip:0 total:4
+# Totals: pass:4 fail:0 skip:0 total:4
+ok 2 mtk-reset-bounds
+    KTAP version 1
+    # Subtest: mt6797-infracfg-reset
+    # module: clk_mt6797_reset_test
+    1..4
+    ok 1 mt6797_reset_descriptor
+    ok 2 mt6797_reset_thermal
+    ok 3 mt6797_reset_pwrap
+    ok 4 mt6797_reset_unexposed
+# mt6797-infracfg-reset: pass:4 fail:0 skip:0 total:4
+# Totals: pass:4 fail:0 skip:0 total:4
+ok 3 mt6797-infracfg-reset
+reboot: Power down

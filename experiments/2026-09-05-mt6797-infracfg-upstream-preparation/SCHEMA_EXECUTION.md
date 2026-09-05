@@ -1,6 +1,8 @@
 # Focused schema collector preparation
 
-Status: prepared for review, not executed. The [helper](scripts/schema-check.py)
+Status: revised after [attempt 1 refused](VALIDATION_ATTEMPT_1.md); the correction
+was reviewed and executed in one [second window](SCHEMA_ATTEMPT_2.md), which
+completed as `COLLECTED_REVIEW_REQUIRED`. No further execution is admitted. The [helper](scripts/schema-check.py)
 defaults to printing its plan. Only an integrator-assigned lock window can admit
 `--execute`. The [contract](schema-contract.json) freezes the existing source,
 protected build files and schema-tool setup. No kernel compile, extraction,
@@ -15,8 +17,9 @@ missing explicit DTB attribution, truncation, timeout or changed inputs refuses.
 
 ## Identity and lock
 
-Read-only preparation inspected the existing source markers and tool interfaces.
-It did not run the source-integrity verifier or a schema target. Source state is
+The initial read-only preparation inspected source markers and tool interfaces.
+The separately admitted first attempt ran the source-integrity precheck and
+binding recipe, then refused; its immutable receipt remains authoritative. Source state is
 `2d5410d33d5c55def94fdb025de329e4486d929963b097623bf35790b5840c3f`, integrity
 `90923e5fb4d9bf2db35049abb6011437bc334aeedc528f099591f6198e9fc7aa`.
 The source/build roots remain those of exact build
@@ -65,13 +68,17 @@ Proposed ceilings, requiring review with this helper:
 - Each make target: 300 seconds; each direct DTB check: 30 seconds.
 - Each full source-integrity read: 180 seconds; each tool version query: 5 seconds.
 - Every captured command: 16 MiB each for stdout/stderr, five-second TERM-to-KILL
-  grace and one bounded second for reaping; no core files.
+  grace and one bounded second for reaping; no core files. Parent-owned pipe
+  capture never writes more than 16 MiB per stream; reaching that limit refuses.
+- Each generated regular file: 128 MiB through inherited `RLIMIT_FSIZE`. This
+  is a per-file ceiling, not an aggregate quota; the fixed one-job recipes,
+  timeouts and free-space checks remain required.
 - At least 512 MiB free on the build filesystem and 256 MiB for captured evidence.
 - No retry or additional target; output goes to one new named attempt directory.
 
 The subprocess runner reuses the reviewed group cleanup, handled-signal guard
 and completed-decision publication semantics without changing QEMU's frozen
-runner or contract. Schema children receive their own 16 MiB file ceiling and
+runner or contract. Schema children receive the separate 128 MiB regular-file ceiling and
 Linux direct-child parent-death setup. SIGTERM/HUP/INT stop the batch and preserve
 incomplete evidence. Abrupt coordinator death does not provide arbitrary
 recursive descendant containment; the inherited build lock prevents another
@@ -95,7 +102,7 @@ python3 experiments/2026-09-05-mt6797-infracfg-upstream-preparation/scripts/sche
 # Only in an assigned lock window, from the exact reviewed repository revision:
 /workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/python \
   experiments/2026-09-05-mt6797-infracfg-upstream-preparation/scripts/schema-check.py \
-  --execute --output "$evidence_parent/infracfg-schema-4ec63076-attempt-1"
+  --execute --output "$evidence_parent/infracfg-schema-4ec63076-attempt-2"
 ```
 
 The host fixtures use tiny synthetic files/properties/processed-schema objects
@@ -104,3 +111,30 @@ input changes/symlinks, schema/DTB refusal, held-lock refusal, timeout and exact
 log-ceiling refusal even on zero exit. They do not replace exact Linux fixtures,
 real libfdt traversal, source-integrity checking or schema execution. Review and
 publish sanitized diagnostics only after an admitted run.
+
+## Correction evidence and limits
+
+The pinned source recipe `Documentation/devicetree/bindings/Makefile` has SHA-256
+`622c42e361dfd164313fa987a92f58bf555931a65ffe52d09927e2fccf224698`.
+Its `cmd_mk_schema` feeds `find_all_cmd` through an argument file to
+`dt-mk-schema`, then redirects the resulting JSON to `processed-schema.json`.
+Thus a focused DT schema filter does not make this aggregate generated file a
+small diagnostic stream. Attempt 1's exact error came from that redirected
+output; make reported deleting the partial target. A subsequent bounded
+read-only existence check confirmed that target absent. No source repair or
+manual partial-output removal was performed.
+
+The correction changes only host collection and the generated-file allowance.
+Thirteen offline fixtures include a real synthetic 17 MiB generated file that
+succeeds, independent stdout/stderr floods that refuse with each retained log
+hard-capped at 16 MiB, a scaled generated-file limit refusal, and the existing
+timeout, lock and protected-file tests. The stream collector drains both pipes
+without blocking one behind the other, rejects exact-limit output even at zero
+exit, and retains the original process-group cleanup/refusal semantics.
+
+These fixtures passed on macOS and subsequently on Linux from the exact
+reviewed revision before the second window. No schema target was rerun
+to choose 128 MiB, and no claim is made that this allowance is sufficient. If
+the reviewed second window exceeds its allowance or fails another gate, retain
+that refusal without automatic retry. Original attempt-1 receipts and its
+16 MiB limit remain unchanged.

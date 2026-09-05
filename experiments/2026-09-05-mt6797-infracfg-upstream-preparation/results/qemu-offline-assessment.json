@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "assessment": "reviewed-offline-accounting-of-immutable-attempt-1",
+  "evidence_revision": "f34f0b57532e4b67ba0dd9f011b1b8f6e52eff2d",
+  "original_execution_gate": "REFUSED",
+  "original_reason": "incomplete, unexpected or duplicate KTAP structure",
+  "original_refusal_reproduced": true,
+  "inventory_sha256": "9c846b56ceabf7cd2e977f6595efb1feda3067d7021abaff20f4d820d37fb87c",
+  "inventory_members_verified": 15,
+  "embedded_hashes_verified": 7,
+  "log_sha256": {
+    "qemu.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "qmp.jsonl": "a8de9f7d56c534e4c0497462a7267f060d6eb8e87e9e738d81e2bfae48230957",
+    "serial.log": "78c951c8fe2029d018fda051d4781eb1008c4467b23eb0482c65cb18b5628016"
+  },
+  "qemu_receipt_sha256": "b0d43767134086c0b4e66728f30c4d583f0408dfcfbe0d9bf438d481cc8068e0",
+  "original_helper_sha256": "dc07468056665a6217869b5d79e3a801fe9c8106359a1d14750105ac4a8141e8",
+  "original_contract_sha256": "b2cb6276a47b2f784c615bf2f79731559d9a205bdc1686e5660748385f3762e2",
+  "original_exit_argv_qmp_limits": "pass",
+  "exact_suites": {
+    "refcount_interrupt": [
+      "test_single_irq_change",
+      "test_nested_irq_change",
+      "test_multiple_irq_change",
+      "test_irq_save"
+    ],
+    "mtk-reset-bounds": [
+      "mtk_reset_map_bounds",
+      "mtk_reset_register_pairs",
+      "mtk_reset_invalid_bank",
+      "mtk_reset_missing_banks"
+    ],
+    "mt6797-infracfg-reset": [
+      "mt6797_reset_descriptor",
+      "mt6797_reset_thermal",
+      "mt6797_reset_pwrap",
+      "mt6797_reset_unexposed"
+    ]
+  },
+  "intended_arithmetic_cases_passed": 8,
+  "additional_virtual_cpu_irq_cases_passed": 4,
+  "complete_suites": 3,
+  "guest_poweroff": true,
+  "elapsed_seconds": 0.852986,
+  "prefix_check_receipts_identical": true,
+  "new_guest_run": false,
+  "execution_contract_changed": false,
+  "provider_mmio_or_hardware_support_claim": false,
+  "schema_acceptance": "separate; attempt 1 refused before DT checks",
+  "suite_order": [
+    "refcount_interrupt",
+    "mtk-reset-bounds",
+    "mt6797-infracfg-reset"
+  ]
+}

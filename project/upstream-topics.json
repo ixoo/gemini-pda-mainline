@@ -5,7 +5,7 @@
     {
       "id": "mt6797-infracfg-reset",
       "status": "local-preparation",
-      "owner": "integration owner: infracfg upstream preparation",
+      "owner": "CPU 8-9 Astra",
       "target": "Linux MediaTek clock/reset and Devicetree maintainers; resolve exact current target using MAINTAINERS/get_maintainer.pl before submission",
       "patches": [
         "patches/upstream-4d7d9486/0001-clk-mediatek-reject-out-of-bank-SET-CLEAR-reset-IDs.patch",
@@ -22,7 +22,6 @@
       ],
       "dependencies": [
         "Current maintainer target-tree and binding/ABI review",
-        "Exact coherent upstream revision compile, KUnit and schema validation",
         "Provider registration failure-path review and consumer evidence mapping",
         "Actual authorship audit and truthful DCO certification before submission"
       ],
@@ -38,7 +37,14 @@
         "patches/v7.1.3/0516-clk-mediatek-test-MT6797-infracfg-reset-translation.patch"
       ],
       "validation_profile": "mt6797-infracfg-upstream-kunit",
-      "admission": "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/BUILD_ADMISSION.md"
+      "admission": "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/BUILD_ADMISSION.md",
+      "validation": {
+        "scope": "Pinned 4d7d9486 topic only; changes to final target or patch inputs require relevant revalidation",
+        "build": "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/BUILD_ADMISSION.md",
+        "kunit": "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/QEMU_OFFLINE_ASSESSMENT.md",
+        "schema": "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/SCHEMA_INTEGRATION_REVIEW.md",
+        "submission_ready": false
+      }
     },
     {
       "id": "mt6797-toprgu-restart",

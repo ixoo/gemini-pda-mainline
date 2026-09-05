@@ -1,0 +1,33 @@
+test_each_missing_structural_line (__main__.LogTests.test_each_missing_structural_line) ... ok
+test_exit_refusals (__main__.LogTests.test_exit_refusals) ... ok
+test_mutations (__main__.LogTests.test_mutations) ... ok
+test_positive_orders_and_timestamp_prefix (__main__.LogTests.test_positive_orders_and_timestamp_prefix) ... ok
+test_changed_image (__main__.PackageTests.test_changed_image) ... ok
+test_changed_inventory (__main__.PackageTests.test_changed_inventory) ... ok
+test_directory_symlink (__main__.PackageTests.test_directory_symlink) ... ok
+test_missing_extra_symlink_fifo (__main__.PackageTests.test_missing_extra_symlink_fifo) ... ok
+test_positive (__main__.PackageTests.test_positive) ... ok
+test_provenance_mutations (__main__.PackageTests.test_provenance_mutations) ... ok
+test_traversal_duplicate_and_absolute (__main__.PackageTests.test_traversal_duplicate_and_absolute) ... ok
+test_unexpected_test (__main__.PackageTests.test_unexpected_test) ... ok
+test_unreadable_extra_subtree_refuses (__main__.PackageTests.test_unreadable_extra_subtree_refuses) ... ok
+test_command_exclusions (__main__.ProcessTests.test_command_exclusions) ... ok
+test_coordinator_sigkill_contains_direct_guest (__main__.ProcessTests.test_coordinator_sigkill_contains_direct_guest) ... ok
+test_default_never_executes (__main__.ProcessTests.test_default_never_executes) ... ok
+test_descendant_after_successful_leader_exit (__main__.ProcessTests.test_descendant_after_successful_leader_exit) ... ok
+test_handshake_and_guest_poweroff (__main__.ProcessTests.test_handshake_and_guest_poweroff) ... ok
+test_invalid_qmp (__main__.ProcessTests.test_invalid_qmp) ... ok
+test_privileged_executable_refuses (__main__.ProcessTests.test_privileged_executable_refuses) ... ok
+test_qmp_capability_error (__main__.ProcessTests.test_qmp_capability_error) ... ok
+test_qmp_flood (__main__.ProcessTests.test_qmp_flood) ... ok
+test_receipt_update_is_atomic_on_failure (__main__.ProcessTests.test_receipt_update_is_atomic_on_failure) ... ok
+test_runner_termination_preserves_receipt_and_stops_group (__main__.ProcessTests.test_runner_termination_preserves_receipt_and_stops_group) ... ok
+test_signal_on_each_side_of_completed_run_boundary (__main__.ProcessTests.test_signal_on_each_side_of_completed_run_boundary) ... ok
+test_timeout_term_and_kill (__main__.ProcessTests.test_timeout_term_and_kill) ... ok
+test_truncated_qmp (__main__.ProcessTests.test_truncated_qmp) ... ok
+test_pinned_setup_and_refusals (__main__.ToolSetupTests.test_pinned_setup_and_refusals) ... ok
+
+----------------------------------------------------------------------
+Ran 28 tests in 3.511s
+
+OK
