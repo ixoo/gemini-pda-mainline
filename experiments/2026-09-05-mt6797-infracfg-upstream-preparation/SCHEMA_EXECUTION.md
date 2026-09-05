@@ -1,7 +1,8 @@
 # Focused schema collector preparation
 
 Status: revised after [attempt 1 refused](VALIDATION_ATTEMPT_1.md); the correction
-is prepared for review, with no second execution admitted. The [helper](scripts/schema-check.py)
+was reviewed and executed in one [second window](SCHEMA_ATTEMPT_2.md), which
+completed as `COLLECTED_REVIEW_REQUIRED`. No further execution is admitted. The [helper](scripts/schema-check.py)
 defaults to printing its plan. Only an integrator-assigned lock window can admit
 `--execute`. The [contract](schema-contract.json) freezes the existing source,
 protected build files and schema-tool setup. No kernel compile, extraction,
@@ -131,8 +132,8 @@ timeout, lock and protected-file tests. The stream collector drains both pipes
 without blocking one behind the other, rejects exact-limit output even at zero
 exit, and retains the original process-group cleanup/refusal semantics.
 
-These fixtures passed on macOS; Linux fixtures from the new committed revision
-are still required before any second schema window. No schema target was rerun
+These fixtures passed on macOS and subsequently on Linux from the exact
+reviewed revision before the second window. No schema target was rerun
 to choose 128 MiB, and no claim is made that this allowance is sufficient. If
 the reviewed second window exceeds its allowance or fails another gate, retain
 that refusal without automatic retry. Original attempt-1 receipts and its

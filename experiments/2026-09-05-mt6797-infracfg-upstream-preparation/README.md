@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-05-mt6797-infracfg-upstream-preparation` |
-| Status | running; package validated; first QEMU and schema gates refused |
+| Status | running; package validated; first gates refused; second schema collection awaits review |
 | Subsystem | MediaTek clocks/resets and Devicetree |
 | Device variant | Gemini PDA MT6797; no hardware operation in this audit |
 | Investigator | Gemini mainline project, integration owner |
@@ -27,7 +27,9 @@ recorded in [build admission and execution](BUILD_ADMISSION.md). The
 [first validation attempts](VALIDATION_ATTEMPT_1.md) preserved a QEMU suite-scope
 refusal despite eight intended passing cases, and a schema file-size-limit
 refusal. Neither original gate passed; submission readiness and new hardware
-claims remain unestablished.
+claims remain unestablished. The separately admitted
+[second schema window](SCHEMA_ATTEMPT_2.md) completed all bounded checks and
+integrity comparisons; its collector outcome remains review-required.
 
 ## Provenance and reproducibility
 

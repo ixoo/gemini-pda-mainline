@@ -1,0 +1,15 @@
+{
+  "collection_result": "COLLECTED_REVIEW_REQUIRED",
+  "device_actions": 0,
+  "execution_revision": "f4ff1028e883c63e980c61f6bb076d99b97454ac",
+  "integrator_review": "pending",
+  "kernel_build_revision": "4ec63076aeb6388ba24b33ee20afcf19ced541e1",
+  "kernel_rebuilds": 0,
+  "linux_fixture_tests_passed": 13,
+  "new_guest_runs": 0,
+  "original_attempts": "preserved without reclassification",
+  "processed_schema_bytes": 28551455,
+  "processed_schema_sha256": "a3265d87a3617c19c3463fb3a728df2120b8932ee0be686dcd8c4f69fac82b38",
+  "remaining_attempt_directories": [],
+  "schema_window_complete": true
+}
