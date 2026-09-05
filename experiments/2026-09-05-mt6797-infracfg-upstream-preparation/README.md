@@ -264,3 +264,10 @@ mailmap, file-address harvesting and Fixes-derived recipients disabled. Empty
 local configuration and ignore files prevent account-specific exclusions.
 The resulting routes are candidates for review, not an automatic mailing list or
 proof of the final merge tree. No message or patch submission is sent.
+
+The maintainer audit completed for all six patches in both modes.
+[Review notes](REVIEW_NOTES.md) map their routes, identify the path-only omission
+of MediaTek reviewers for the generic changes, and record the binding
+compatibility question and source-level registration/resource review. The
+[full routing result](results/maintainer-routing.json) is pinned evidence;
+reviewer discovery does not establish a merge agreement or submission readiness.

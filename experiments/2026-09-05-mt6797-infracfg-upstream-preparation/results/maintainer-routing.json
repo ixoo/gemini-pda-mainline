@@ -1,0 +1,712 @@
+{
+  "limits": "pinned MAINTAINERS and patch matching only; no Git history, mailmap or live mailing-list overlap search",
+  "local_configuration": "empty config and ignore files",
+  "options": [
+    "--json",
+    "--no-tree",
+    "--no-git",
+    "--no-git-fallback",
+    "--no-git-blame",
+    "--no-file-emails",
+    "--no-mailmap",
+    "--no-fixes",
+    "--roles",
+    "--no-rolestats",
+    "--scm"
+  ],
+  "results": [
+    {
+      "modes": {
+        "paths-and-keywords": {
+          "maintainers": [
+            {
+              "email": "sboyd@kernel.org",
+              "name": "Stephen Boyd",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "bmasney+clk@redhat.com",
+              "name": "Brian Masney",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "jbrunet+clk@baylibre.com",
+              "name": "Jerome Brunet",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "matthias.bgg@gmail.com",
+              "name": "Matthias Brugger",
+              "role": "maintainer:ARM/Mediatek SoC support:Keyword:mediatek"
+            },
+            {
+              "email": "angelogioacchino.delregno@collabora.com",
+              "name": "AngeloGioacchino Del Regno",
+              "role": "maintainer:ARM/Mediatek SoC support:Keyword:mediatek"
+            },
+            {
+              "email": "linux-kernel@vger.kernel.org",
+              "name": "",
+              "role": "open list"
+            },
+            {
+              "email": "linux-clk@vger.kernel.org",
+              "name": "",
+              "role": "open list:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "linux-arm-kernel@lists.infradead.org",
+              "name": "",
+              "role": "moderated list:ARM/Mediatek SoC support:Keyword:mediatek"
+            },
+            {
+              "email": "linux-mediatek@lists.infradead.org",
+              "name": "",
+              "role": "moderated list:ARM/Mediatek SoC support:Keyword:mediatek"
+            }
+          ],
+          "scm": [
+            "git git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
+            "git git://git.kernel.org/pub/scm/linux/kernel/git/clk/linux.git"
+          ]
+        },
+        "paths-only": {
+          "maintainers": [
+            {
+              "email": "sboyd@kernel.org",
+              "name": "Stephen Boyd",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "bmasney+clk@redhat.com",
+              "name": "Brian Masney",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "jbrunet+clk@baylibre.com",
+              "name": "Jerome Brunet",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "linux-kernel@vger.kernel.org",
+              "name": "",
+              "role": "open list"
+            },
+            {
+              "email": "linux-clk@vger.kernel.org",
+              "name": "",
+              "role": "open list:COMMON CLK FRAMEWORK"
+            }
+          ],
+          "scm": [
+            "git git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
+            "git git://git.kernel.org/pub/scm/linux/kernel/git/clk/linux.git"
+          ]
+        }
+      },
+      "patch": "0001-clk-mediatek-reject-out-of-bank-SET-CLEAR-reset-IDs.patch",
+      "sha256": "ab875a831822e1809619f0034f29f8c068af133012da196ba59a62977b884fd5"
+    },
+    {
+      "modes": {
+        "paths-and-keywords": {
+          "maintainers": [
+            {
+              "email": "sboyd@kernel.org",
+              "name": "Stephen Boyd",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "bmasney+clk@redhat.com",
+              "name": "Brian Masney",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "jbrunet+clk@baylibre.com",
+              "name": "Jerome Brunet",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "matthias.bgg@gmail.com",
+              "name": "Matthias Brugger",
+              "role": "maintainer:ARM/Mediatek SoC support:Keyword:mediatek"
+            },
+            {
+              "email": "angelogioacchino.delregno@collabora.com",
+              "name": "AngeloGioacchino Del Regno",
+              "role": "maintainer:ARM/Mediatek SoC support:Keyword:mediatek"
+            },
+            {
+              "email": "linux-kernel@vger.kernel.org",
+              "name": "",
+              "role": "open list"
+            },
+            {
+              "email": "linux-clk@vger.kernel.org",
+              "name": "",
+              "role": "open list:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "linux-arm-kernel@lists.infradead.org",
+              "name": "",
+              "role": "moderated list:ARM/Mediatek SoC support:Keyword:mediatek"
+            },
+            {
+              "email": "linux-mediatek@lists.infradead.org",
+              "name": "",
+              "role": "moderated list:ARM/Mediatek SoC support:Keyword:mediatek"
+            }
+          ],
+          "scm": [
+            "git git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
+            "git git://git.kernel.org/pub/scm/linux/kernel/git/clk/linux.git"
+          ]
+        },
+        "paths-only": {
+          "maintainers": [
+            {
+              "email": "sboyd@kernel.org",
+              "name": "Stephen Boyd",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "bmasney+clk@redhat.com",
+              "name": "Brian Masney",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "jbrunet+clk@baylibre.com",
+              "name": "Jerome Brunet",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "linux-kernel@vger.kernel.org",
+              "name": "",
+              "role": "open list"
+            },
+            {
+              "email": "linux-clk@vger.kernel.org",
+              "name": "",
+              "role": "open list:COMMON CLK FRAMEWORK"
+            }
+          ],
+          "scm": [
+            "git git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
+            "git git://git.kernel.org/pub/scm/linux/kernel/git/clk/linux.git"
+          ]
+        }
+      },
+      "patch": "0002-clk-mediatek-test-reset-translation-bounds.patch",
+      "sha256": "211f2b95d24d7cb09085d99ade5bcd681254f55145e227920fd62b773f30d483"
+    },
+    {
+      "modes": {
+        "paths-and-keywords": {
+          "maintainers": [
+            {
+              "email": "sboyd@kernel.org",
+              "name": "Stephen Boyd",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "bmasney+clk@redhat.com",
+              "name": "Brian Masney",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "jbrunet+clk@baylibre.com",
+              "name": "Jerome Brunet",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "robh@kernel.org",
+              "name": "Rob Herring",
+              "role": "maintainer:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS"
+            },
+            {
+              "email": "krzk+dt@kernel.org",
+              "name": "Krzysztof Kozlowski",
+              "role": "maintainer:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS"
+            },
+            {
+              "email": "conor+dt@kernel.org",
+              "name": "Conor Dooley",
+              "role": "maintainer:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS"
+            },
+            {
+              "email": "p.zabel@pengutronix.de",
+              "name": "Philipp Zabel",
+              "role": "maintainer:RESET CONTROLLER FRAMEWORK"
+            },
+            {
+              "email": "matthias.bgg@gmail.com",
+              "name": "Matthias Brugger",
+              "role": "maintainer:ARM/Mediatek SoC support"
+            },
+            {
+              "email": "angelogioacchino.delregno@collabora.com",
+              "name": "AngeloGioacchino Del Regno",
+              "role": "maintainer:ARM/Mediatek SoC support"
+            },
+            {
+              "email": "linux-clk@vger.kernel.org",
+              "name": "",
+              "role": "open list:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "devicetree@vger.kernel.org",
+              "name": "",
+              "role": "open list:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS"
+            },
+            {
+              "email": "linux-kernel@vger.kernel.org",
+              "name": "",
+              "role": "open list"
+            },
+            {
+              "email": "linux-arm-kernel@lists.infradead.org",
+              "name": "",
+              "role": "moderated list:ARM/Mediatek SoC support"
+            },
+            {
+              "email": "linux-mediatek@lists.infradead.org",
+              "name": "",
+              "role": "moderated list:ARM/Mediatek SoC support"
+            }
+          ],
+          "scm": [
+            "git git://git.kernel.org/pub/scm/linux/kernel/git/clk/linux.git",
+            "git git://git.kernel.org/pub/scm/linux/kernel/git/robh/linux.git",
+            "git git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
+            "git https://git.pengutronix.de/git/pza/linux.git"
+          ]
+        },
+        "paths-only": {
+          "maintainers": [
+            {
+              "email": "sboyd@kernel.org",
+              "name": "Stephen Boyd",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "bmasney+clk@redhat.com",
+              "name": "Brian Masney",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "jbrunet+clk@baylibre.com",
+              "name": "Jerome Brunet",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "robh@kernel.org",
+              "name": "Rob Herring",
+              "role": "maintainer:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS"
+            },
+            {
+              "email": "krzk+dt@kernel.org",
+              "name": "Krzysztof Kozlowski",
+              "role": "maintainer:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS"
+            },
+            {
+              "email": "conor+dt@kernel.org",
+              "name": "Conor Dooley",
+              "role": "maintainer:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS"
+            },
+            {
+              "email": "p.zabel@pengutronix.de",
+              "name": "Philipp Zabel",
+              "role": "maintainer:RESET CONTROLLER FRAMEWORK"
+            },
+            {
+              "email": "matthias.bgg@gmail.com",
+              "name": "Matthias Brugger",
+              "role": "maintainer:ARM/Mediatek SoC support"
+            },
+            {
+              "email": "angelogioacchino.delregno@collabora.com",
+              "name": "AngeloGioacchino Del Regno",
+              "role": "maintainer:ARM/Mediatek SoC support"
+            },
+            {
+              "email": "linux-clk@vger.kernel.org",
+              "name": "",
+              "role": "open list:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "devicetree@vger.kernel.org",
+              "name": "",
+              "role": "open list:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS"
+            },
+            {
+              "email": "linux-kernel@vger.kernel.org",
+              "name": "",
+              "role": "open list"
+            },
+            {
+              "email": "linux-arm-kernel@lists.infradead.org",
+              "name": "",
+              "role": "moderated list:ARM/Mediatek SoC support"
+            },
+            {
+              "email": "linux-mediatek@lists.infradead.org",
+              "name": "",
+              "role": "moderated list:ARM/Mediatek SoC support"
+            }
+          ],
+          "scm": [
+            "git git://git.kernel.org/pub/scm/linux/kernel/git/clk/linux.git",
+            "git git://git.kernel.org/pub/scm/linux/kernel/git/robh/linux.git",
+            "git git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
+            "git https://git.pengutronix.de/git/pza/linux.git"
+          ]
+        }
+      },
+      "patch": "0003-dt-bindings-reset-mediatek-describe-MT6797-infracfg-.patch",
+      "sha256": "88e629b8a56aa892f43949bc052322efb38ba209df7b4d5c6a8d8df936c6fb03"
+    },
+    {
+      "modes": {
+        "paths-and-keywords": {
+          "maintainers": [
+            {
+              "email": "sboyd@kernel.org",
+              "name": "Stephen Boyd",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "bmasney+clk@redhat.com",
+              "name": "Brian Masney",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "jbrunet+clk@baylibre.com",
+              "name": "Jerome Brunet",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "matthias.bgg@gmail.com",
+              "name": "Matthias Brugger",
+              "role": "maintainer:ARM/Mediatek SoC support"
+            },
+            {
+              "email": "angelogioacchino.delregno@collabora.com",
+              "name": "AngeloGioacchino Del Regno",
+              "role": "maintainer:ARM/Mediatek SoC support"
+            },
+            {
+              "email": "linux-kernel@vger.kernel.org",
+              "name": "",
+              "role": "open list"
+            },
+            {
+              "email": "linux-clk@vger.kernel.org",
+              "name": "",
+              "role": "open list:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "linux-arm-kernel@lists.infradead.org",
+              "name": "",
+              "role": "moderated list:ARM/Mediatek SoC support"
+            },
+            {
+              "email": "linux-mediatek@lists.infradead.org",
+              "name": "",
+              "role": "moderated list:ARM/Mediatek SoC support"
+            }
+          ],
+          "scm": [
+            "git git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
+            "git git://git.kernel.org/pub/scm/linux/kernel/git/clk/linux.git"
+          ]
+        },
+        "paths-only": {
+          "maintainers": [
+            {
+              "email": "sboyd@kernel.org",
+              "name": "Stephen Boyd",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "bmasney+clk@redhat.com",
+              "name": "Brian Masney",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "jbrunet+clk@baylibre.com",
+              "name": "Jerome Brunet",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "matthias.bgg@gmail.com",
+              "name": "Matthias Brugger",
+              "role": "maintainer:ARM/Mediatek SoC support"
+            },
+            {
+              "email": "angelogioacchino.delregno@collabora.com",
+              "name": "AngeloGioacchino Del Regno",
+              "role": "maintainer:ARM/Mediatek SoC support"
+            },
+            {
+              "email": "linux-kernel@vger.kernel.org",
+              "name": "",
+              "role": "open list"
+            },
+            {
+              "email": "linux-clk@vger.kernel.org",
+              "name": "",
+              "role": "open list:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "linux-arm-kernel@lists.infradead.org",
+              "name": "",
+              "role": "moderated list:ARM/Mediatek SoC support"
+            },
+            {
+              "email": "linux-mediatek@lists.infradead.org",
+              "name": "",
+              "role": "moderated list:ARM/Mediatek SoC support"
+            }
+          ],
+          "scm": [
+            "git git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
+            "git git://git.kernel.org/pub/scm/linux/kernel/git/clk/linux.git"
+          ]
+        }
+      },
+      "patch": "0004-clk-mediatek-add-MT6797-infracfg-SET-CLEAR-resets.patch",
+      "sha256": "90a1d8aaff250e8b0086488138aec1527f535cde38aa2b6734c6b83344e41cc5"
+    },
+    {
+      "modes": {
+        "paths-and-keywords": {
+          "maintainers": [
+            {
+              "email": "sboyd@kernel.org",
+              "name": "Stephen Boyd",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "bmasney+clk@redhat.com",
+              "name": "Brian Masney",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "jbrunet+clk@baylibre.com",
+              "name": "Jerome Brunet",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "matthias.bgg@gmail.com",
+              "name": "Matthias Brugger",
+              "role": "maintainer:ARM/Mediatek SoC support"
+            },
+            {
+              "email": "angelogioacchino.delregno@collabora.com",
+              "name": "AngeloGioacchino Del Regno",
+              "role": "maintainer:ARM/Mediatek SoC support"
+            },
+            {
+              "email": "linux-kernel@vger.kernel.org",
+              "name": "",
+              "role": "open list"
+            },
+            {
+              "email": "linux-clk@vger.kernel.org",
+              "name": "",
+              "role": "open list:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "linux-arm-kernel@lists.infradead.org",
+              "name": "",
+              "role": "moderated list:ARM/Mediatek SoC support"
+            },
+            {
+              "email": "linux-mediatek@lists.infradead.org",
+              "name": "",
+              "role": "moderated list:ARM/Mediatek SoC support"
+            }
+          ],
+          "scm": [
+            "git git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
+            "git git://git.kernel.org/pub/scm/linux/kernel/git/clk/linux.git"
+          ]
+        },
+        "paths-only": {
+          "maintainers": [
+            {
+              "email": "sboyd@kernel.org",
+              "name": "Stephen Boyd",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "bmasney+clk@redhat.com",
+              "name": "Brian Masney",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "jbrunet+clk@baylibre.com",
+              "name": "Jerome Brunet",
+              "role": "maintainer:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "matthias.bgg@gmail.com",
+              "name": "Matthias Brugger",
+              "role": "maintainer:ARM/Mediatek SoC support"
+            },
+            {
+              "email": "angelogioacchino.delregno@collabora.com",
+              "name": "AngeloGioacchino Del Regno",
+              "role": "maintainer:ARM/Mediatek SoC support"
+            },
+            {
+              "email": "linux-kernel@vger.kernel.org",
+              "name": "",
+              "role": "open list"
+            },
+            {
+              "email": "linux-clk@vger.kernel.org",
+              "name": "",
+              "role": "open list:COMMON CLK FRAMEWORK"
+            },
+            {
+              "email": "linux-arm-kernel@lists.infradead.org",
+              "name": "",
+              "role": "moderated list:ARM/Mediatek SoC support"
+            },
+            {
+              "email": "linux-mediatek@lists.infradead.org",
+              "name": "",
+              "role": "moderated list:ARM/Mediatek SoC support"
+            }
+          ],
+          "scm": [
+            "git git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
+            "git git://git.kernel.org/pub/scm/linux/kernel/git/clk/linux.git"
+          ]
+        }
+      },
+      "patch": "0005-clk-mediatek-test-MT6797-infracfg-reset-mapping.patch",
+      "sha256": "10961fd177b6584985c717a3cc99338571addeb5d898397b9bd4816e4a31c2cf"
+    },
+    {
+      "modes": {
+        "paths-and-keywords": {
+          "maintainers": [
+            {
+              "email": "robh@kernel.org",
+              "name": "Rob Herring",
+              "role": "maintainer:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS"
+            },
+            {
+              "email": "krzk+dt@kernel.org",
+              "name": "Krzysztof Kozlowski",
+              "role": "maintainer:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS"
+            },
+            {
+              "email": "conor+dt@kernel.org",
+              "name": "Conor Dooley",
+              "role": "maintainer:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS"
+            },
+            {
+              "email": "matthias.bgg@gmail.com",
+              "name": "Matthias Brugger",
+              "role": "maintainer:ARM/Mediatek SoC support"
+            },
+            {
+              "email": "angelogioacchino.delregno@collabora.com",
+              "name": "AngeloGioacchino Del Regno",
+              "role": "maintainer:ARM/Mediatek SoC support"
+            },
+            {
+              "email": "devicetree@vger.kernel.org",
+              "name": "",
+              "role": "open list:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS"
+            },
+            {
+              "email": "linux-kernel@vger.kernel.org",
+              "name": "",
+              "role": "open list:ARM/Mediatek SoC support"
+            },
+            {
+              "email": "linux-arm-kernel@lists.infradead.org",
+              "name": "",
+              "role": "moderated list:ARM/Mediatek SoC support"
+            },
+            {
+              "email": "linux-mediatek@lists.infradead.org",
+              "name": "",
+              "role": "moderated list:ARM/Mediatek SoC support"
+            }
+          ],
+          "scm": [
+            "git git://git.kernel.org/pub/scm/linux/kernel/git/robh/linux.git",
+            "git git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git"
+          ]
+        },
+        "paths-only": {
+          "maintainers": [
+            {
+              "email": "robh@kernel.org",
+              "name": "Rob Herring",
+              "role": "maintainer:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS"
+            },
+            {
+              "email": "krzk+dt@kernel.org",
+              "name": "Krzysztof Kozlowski",
+              "role": "maintainer:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS"
+            },
+            {
+              "email": "conor+dt@kernel.org",
+              "name": "Conor Dooley",
+              "role": "maintainer:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS"
+            },
+            {
+              "email": "matthias.bgg@gmail.com",
+              "name": "Matthias Brugger",
+              "role": "maintainer:ARM/Mediatek SoC support"
+            },
+            {
+              "email": "angelogioacchino.delregno@collabora.com",
+              "name": "AngeloGioacchino Del Regno",
+              "role": "maintainer:ARM/Mediatek SoC support"
+            },
+            {
+              "email": "devicetree@vger.kernel.org",
+              "name": "",
+              "role": "open list:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS"
+            },
+            {
+              "email": "linux-kernel@vger.kernel.org",
+              "name": "",
+              "role": "open list:ARM/Mediatek SoC support"
+            },
+            {
+              "email": "linux-arm-kernel@lists.infradead.org",
+              "name": "",
+              "role": "moderated list:ARM/Mediatek SoC support"
+            },
+            {
+              "email": "linux-mediatek@lists.infradead.org",
+              "name": "",
+              "role": "moderated list:ARM/Mediatek SoC support"
+            }
+          ],
+          "scm": [
+            "git git://git.kernel.org/pub/scm/linux/kernel/git/robh/linux.git",
+            "git git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git"
+          ]
+        }
+      },
+      "patch": "0006-arm64-dts-mediatek-expose-MT6797-infracfg-resets.patch",
+      "sha256": "d7ccee4f2e8e3ae78cce2405c761bc1c76f915423a8b9ea8cbf22785c2e2bfbe"
+    }
+  ],
+  "submission": "not sent",
+  "tool_inputs": {
+    "MAINTAINERS": "39e65935b8f213dfa9b7a49a7341565855c6aec851288f0f32a0b2afcb35558a",
+    "scripts/get_maintainer.pl": "103c295e5c6cb557d2026a2b45ba7e9df9e09fd360339810f5f1e7f7309801cb"
+  },
+  "upstream_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "repository_commit": "8b3a62d3ffc86533cb8308fe70ac0185804d5b90"
+}
