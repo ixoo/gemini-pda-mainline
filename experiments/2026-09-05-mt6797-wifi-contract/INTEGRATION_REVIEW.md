@@ -59,5 +59,19 @@ No kernel build is
 needed because kernel, DT, configuration, manifest and patch-series inputs
 are unchanged. No additional device or RE-VM action occurred in this review.
 
-The separate command/ACK and shared-memory follow-up is outside this milestone
-review. Ordered implementation work remains in the [roadmap](../../docs/ROADMAP.md).
+## Separate command/ACK follow-up review
+
+After the milestone integration, Project Planning separately reviewed
+`054b4ec830b7f6f849faca7b842a3a210dc01867` against `eb236d28`. Its six additive
+files define a pure DOWNLOAD_CONFIG/CMD_RESULT model and shared EMI/remap/MPU
+ownership requirements. Both coordinator and independent review found no
+actionable defect within the documented source contract. The independent
+reviewer ran all 36 tests against the exact committed modules; all passed.
+Fresh retrieval of the vendor files failed during that review, so independent
+verification of their recorded source hashes was not repeated. The worker's
+source audit and its stated limits remain in the [follow-up](FOLLOWUP_HANDOFF.md).
+
+This model handles already delimited records. It supplies no transport, loader,
+PDA payload parser, device action or new readiness claim. The corrected core and
+presence helpers, original receipts and consumed packet are preserved during
+integration. Ordered work remains in the [roadmap](../../docs/ROADMAP.md).
