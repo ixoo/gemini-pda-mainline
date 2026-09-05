@@ -16,6 +16,8 @@ WORK = Path(os.environ.get('MONITOR_TEST_WORK_ROOT', str(HERE.parents[2] / 'arti
 CC = os.environ.get('MONITOR_TEST_CC', 'cc')
 QEMU = os.environ.get('MONITOR_TEST_QEMU')
 PREFIX = [QEMU] if QEMU else []
+FULL = os.environ.get("MONITOR_TEST_FULL_DURATION") == "1"
+OUTER_SECONDS = 225 if FULL else 3
 
 
 class MonitorTests(unittest.TestCase):
@@ -30,7 +32,7 @@ class MonitorTests(unittest.TestCase):
         cls.disabled = Path(cls.build.name) / 'disabled'
         for source, dest, extra in [('monitor-fixture.c', cls.fixture, ['-DFIXTURE_ROOT=' + json.dumps(str(WORK))]),
                                     ('monitor.c', cls.disabled, [])]:
-            subprocess.run([CC, *(['-static'] if QEMU else []), '-std=c11', '-Os', '-Wall', '-Wextra', '-Werror',
+            subprocess.run([CC, *(['-static'] if QEMU else []), *(['-DMONITOR_FULL_DURATION'] if FULL else []), '-std=c11', '-Os', '-Wall', '-Wextra', '-Werror',
                             str(HERE / source), '-o', str(dest), *extra],
                            check=True, capture_output=True, timeout=30)
 
@@ -91,7 +93,7 @@ class MonitorTests(unittest.TestCase):
                 if not stall:
                     drain(p.stdout, output)
                 drain(p.stderr, error)
-                if time.monotonic() - start > 3:
+                if time.monotonic() - start > OUTER_SECONDS:
                     timed_out = True
                     break
                 time.sleep(.002)
@@ -125,7 +127,7 @@ class MonitorTests(unittest.TestCase):
         fields = dict(line.split('=', 1) for line in raw.splitlines())
         self.assertEqual(fields['reaped'], '1')
         self.assertEqual(fields['identity_lost'], '0')
-        self.assertLess(time.monotonic() - start, 3)
+        self.assertLess(time.monotonic() - start, OUTER_SECONDS)
         return p.returncode, bytes(output), bytes(error), fields
 
     def test_default_entry_disabled_and_no_claim(self):
@@ -158,14 +160,24 @@ class MonitorTests(unittest.TestCase):
     def test_ignored_term_forced_cleanup(self):
         code, _, _, f = self.run_case('ignore')
         self.assertEqual((code, int(f['signal'])), (2, signal.SIGKILL))
-        self.assertGreaterEqual(int(f['term_ms']), 300)
-        self.assertGreaterEqual(int(f['kill_ms']), 380)
+        self.assertGreaterEqual(int(f['term_ms']), 280)
+        self.assertLessEqual(int(f['term_ms']), 300)
+        self.assertGreaterEqual(int(f['kill_ms']), 360)
+        self.assertLessEqual(int(f['kill_ms']), 380)
         self.assertLess(int(f['reap_ms']), 500)
+
+    def test_missed_hard_signal_bound_stays_late(self):
+        code, _, _, f = self.run_case('late-signal')
+        self.assertEqual(code, 2)
+        self.assertGreater(int(f['term_ms']), 300)
+        self.assertEqual(f['late'], '1')
+        self.assertEqual(f['reaped'], '1')
 
     def test_closed_child_output_does_not_mean_exit(self):
         code, _, _, f = self.run_case('close-live')
         self.assertEqual(code, 2)
-        self.assertGreaterEqual(int(f['term_ms']), 300)
+        self.assertGreaterEqual(int(f['term_ms']), 280)
+        self.assertLessEqual(int(f['term_ms']), 300)
 
     def test_forwarding_close_retains_capture(self):
         code, _, _, f = self.run_case('fill', close=True)

@@ -12,11 +12,18 @@ static void pause_ms(int n) { (void)poll(NULL, 0, n); }
 static void fixture_child(void)
 {
 	char line[64], b[4096];
-	if (!strcmp(mode, "ignore")) signal(SIGTERM, SIG_IGN);
+	if (!strcmp(mode, "ignore") || !strcmp(mode, "late-signal")) signal(SIGTERM, SIG_IGN);
 	/* The harness deliberately passes fd 47. Neither it nor stdin may leak. */
 	if (fcntl(47, F_GETFD) >= 0 || read(0, b, 1) != 0) _exit(124);
 	int n = snprintf(line, sizeof(line), "fixture-child=%ld\n", (long)getpid());
 	if (store(1, line, (size_t)n)) _exit(123);
+#ifdef MONITOR_FULL_DURATION
+	/* One harmless run witnesses the observation boundary then forced cleanup. */
+	if (!strcmp(mode, "ignore")) {
+		pause_ms(202000);
+		(void)store(1, "fixture-observation-boundary=202000\n", sizeof("fixture-observation-boundary=202000\n") - 1);
+	}
+#endif
 	if (!strcmp(mode, "nonzero")) _exit(7);
 	if (!strcmp(mode, "close-live")) { close(1); close(2); }
 	if (!strcmp(mode, "fill") || !strcmp(mode, "stderr") || !strcmp(mode, "limit")) {
@@ -38,9 +45,13 @@ static void fixture_after_defaults(void)
 {
 	if (!strcmp(mode, "late-default")) raise(SIGHUP);
 }
+static void fixture_before_term(void)
+{
+	if (!strcmp(mode, "late-signal")) pause_ms(40);
+}
 int main(int argc, char **argv)
 {
-	const char *modes[] = { "normal", "late", "late-default", "nonzero", "close-live", "ignore", "wait", "fill", "stderr", "limit" };
+	const char *modes[] = { "normal", "late", "late-default", "late-signal", "nonzero", "close-live", "ignore", "wait", "fill", "stderr", "limit" };
 	char resolved[PATH_MAX];
 	bool admitted = false;
 	if (argc != 3 || !realpath(argv[1], resolved) || strcmp(argv[1], resolved) ||
