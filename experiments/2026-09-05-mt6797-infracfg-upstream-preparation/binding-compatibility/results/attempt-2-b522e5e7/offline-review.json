@@ -1,0 +1,35 @@
+{
+  "comparison_rows": 50,
+  "row_identity_and_recorded_dtb_hashes": "pass",
+  "reported_validity_mismatches": [
+    {
+      "variant": "mandatory",
+      "case": "mt6797-byte",
+      "expected_valid": false,
+      "reported_valid": true
+    },
+    {
+      "variant": "optional",
+      "case": "mt6797-byte",
+      "expected_valid": false,
+      "reported_valid": true
+    }
+  ],
+  "classification": "refusal_preserved_no_schema_acceptance",
+  "primary_refusal": "nonempty_unattributed_decoder_stderr",
+  "additional_classifier_issue": "mandatory unknown-property carries both additionalProperties and required errors; current classifier only permits additionalProperties for that case",
+  "post_run": {
+    "exact_project_checkout_clean": true,
+    "scratch_absent": true,
+    "ownership_marker_exact": true,
+    "normal_lock_reacquired_released": true,
+    "full_source_integrity_before": "pass",
+    "full_source_integrity_after": "not_run_refusal_preceded_stage",
+    "protected_source_build_files_after": "pass_11_source_9_build",
+    "retained_processed_schema_and_tools_after": "pass"
+  },
+  "host_available_kib_before": 90877364,
+  "backend_workspace_available_kib_before": 275837836,
+  "device_access": false,
+  "repeat_execution_this_revision": false
+}

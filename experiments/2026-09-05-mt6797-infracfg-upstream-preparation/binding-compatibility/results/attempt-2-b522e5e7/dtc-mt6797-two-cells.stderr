@@ -1,0 +1,2 @@
+/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-two-cells.dts:9.9-30: Warning (resets_is_cell): /infracfg@10001000:#reset-cells: property is not a single cell
+/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-two-cells.dtb: Warning (resets_property): Failed prerequisite 'resets_is_cell'

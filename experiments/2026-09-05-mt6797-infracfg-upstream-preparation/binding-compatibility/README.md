@@ -81,3 +81,7 @@ copies. Backend execution still requires separate integrator review/admission.
 
 [Attempt 1](ATTEMPT_1.md) stopped at an unexpected dtc warning name/count before
 schema comparison. Its refusal is preserved; another execution is not admitted.
+
+[Attempt 2](ATTEMPT_2.md) reached 50 child rows but refused unlabelled decoder
+diagnostics; malformed-byte acceptance and a compound diagnostic-set mismatch
+also require review. Its refusal remains authoritative; no further run is admitted.
