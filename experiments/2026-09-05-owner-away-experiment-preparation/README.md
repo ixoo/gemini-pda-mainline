@@ -5,11 +5,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-05-owner-away-experiment-preparation` |
-| Status | `planned`; preparation design recorded only |
+| Status | preparation in progress; initial design below, current readiness in the linked queue |
 | Subsystem | A53 serviceability, authenticated USB, keyboard and eMMC |
 | Device variant | Named Planet Computers Gemini PDA, MT6797 |
 | Date(s) | 2026-09-05 |
-| Investigator(s) | Gemini mainline project; implementation owners unassigned |
+| Investigator(s) | A53 baseline and queued device tests; initial design by Gemini mainline project |
 | Tracking issue | [Preparation queue](../../project/experiment-queue.json) |
 
 ## Question or hypothesis
@@ -37,8 +37,9 @@ hardware admission. Queue membership does not imply readiness.
 
 ## Safety assessment
 
-Current work is documentation only. No device access, build, installation or
-runtime observation occurred. Preparation uses the
+The initial preparation design involved documentation only; it performed no
+device access, build, installation or runtime observation. Subsequent milestones
+belong in their own records. Preparation uses the
 [session contract](../../project/DEVICE_SESSION.md) and
 [safety policy](../../docs/SAFETY.md).
 
@@ -131,7 +132,7 @@ The [roadmap](../../docs/ROADMAP.md) alone orders work.
 
 ## Observations, analysis and conclusion
 
-Only this design and preparation scope are recorded. No new hardware hypothesis
+This initial record establishes design and preparation scope. No new hardware hypothesis
 has been tested; all three remain untested, with candidate and protocol evidence
 missing. Existing subsystem results remain scoped to their original artifacts.
 

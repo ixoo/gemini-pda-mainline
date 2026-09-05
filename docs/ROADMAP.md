@@ -75,8 +75,9 @@ not the starting point for unreviewed deployments.
 Keep one integration owner and at most three active implementation/research work
 items. Each item has one owner, a frozen parent, a bounded scope, a handoff and
 an upstream exit. These are staffing limits, not extra approval gates. Start
-with upstream preparation, A53 serviceability and keyboard/storage protocol
-preparation; the integrator reviews their handoffs. Offline power work continues
+with upstream preparation, A53 serviceability and Wi-Fi support; the integrator
+reviews their handoffs. Keyboard/storage protocol preparation stays with the A53
+worker. Offline power work continues
 when it can resolve a supported interface or measurement dependency. Unassigned work is not running.
 
 | Workstream | First bounded deliverable | Can proceed independently | Hardware or integration dependency |
@@ -85,10 +86,31 @@ when it can resolve a supported interface or measurement dependency. Unassigned 
 | A72 and power | Resolve a supported measurement or production-ownership contract; completed V4 is not a repeat queue item | Source/math review, fake-hardware tests, ownership design | Exact experiment admission; broader load waits for defensible thermal observation/protection gates |
 | Upstream preparation | Extract and review a minimal MT6797 infracfg reset topic from the corrected implementation | Authorship audit, dependency reduction, binding review, maintainer-target discovery | Truthful certification, focused compile/schema checks and existing exact runtime evidence before submission |
 | A53 serviceability | Specify and freeze an integration baseline and a ten-cold-boot regression protocol | Authenticated USB userspace, keyboard test plan, log separation, read-only storage tests | One scheduled device slot; persistent writes and power-off need their own reviewed protocols |
+| Wi-Fi | Resolve the exact CONSYS/WMT, firmware and HIF contract; implement the smallest supported path to standard networking | Upstream comparison, protocol/resource analysis, firmware-rights decisions, implementation and refusal fixtures | First diagnostic session needs a frozen recoverable baseline and attributable logs; no dependency on A72 completion or all ten cold boots |
 | Display, touch and GPU | Map the minimal DRM/panel dependency graph and resolve panel/backlight ownership | Compare current upstream bindings, documented resources and historical evidence | Shared clocks/resets/PMIC reviewed with power; GPU load waits for power/thermal prerequisites |
-| Connectivity, audio and sensors | Produce protocol/resource and firmware-rights decisions for each component | Identity matching, transport feasibility and upstream reuse research | Separate subsystem profiles and later runtime slots; no assumed vendor-ABI compatibility |
+| Bluetooth, GNSS, FM, audio and sensors | Produce protocol/resource and firmware-rights decisions for each component | Identity matching, transport feasibility and upstream reuse research | Separate subsystem profiles and later runtime slots; no assumed vendor-ABI compatibility |
 | Cellular and cameras | Identify upstream transport/pipeline feasibility and the irreducible blockers | Public interface, resource, licensing and existing-effort research | Shared-memory/crash isolation and radio or imaging-specific safety review before hardware work |
 | Standard boot and distribution | Define normal package/update/rollback consumption of the integration baseline | Packaging and retained-loader contract review | Reliable storage/recovery; loader replacement is separately admitted |
+
+Wi-Fi is a first-class usable-system requirement and an active workstream,
+not deferred peripheral polish. Its owner defines the shared connectivity
+power/firmware interface with the integration owner; Bluetooth and GNSS must
+not independently mutate that contract. The evidence must establish the exact
+transport and firmware protocol before choosing reuse or a new family driver.
+Neither a vendor node name nor a compiled MT76 module establishes a match.
+
+The Wi-Fi delivery sequence is a reviewed resource/firmware contract, bounded
+bring-up and enumeration, standard cfg80211 scanning and authenticated station
+association, then bounded bidirectional traffic and recovery tests. Stable
+reconnect, power management and coexistence remain explicit later acceptance.
+An upstream host driver using locally supplied retained firmware is an accepted
+path; fully open firmware is not a prerequisite. Separate technical and runtime
+blockers from blob distribution rights, and do not stall independent development
+solely because the latter are unresolved. Private network credentials and device
+calibration never enter Git. Queue a physical test only when its distinguishing
+observation and effect budget are ready. Prefer a bounded Gemian inventory when it can distinguish the transport
+without a new kernel or boot2 cycle; audit retained firmware/vendor source in
+parallel. Source and protocol implementation proceed alongside A53 work now.
 
 The [registry](../project/workstreams.json) records owners, scopes and evidence
 links. The [work item template](../project/WORK_ITEM.md) is the handoff contract.
@@ -130,7 +152,10 @@ cameras before committing large implementation effort to their assumed design.
 Owner availability must not become the project's global critical path. While a
 physical boot is unavailable, workers continue source and binding research,
 small upstream-topic preparation, implementation, host/fixture tests, authorized
-Buildbox builds, candidate packaging and review. Finish the blocked item's
+Buildbox builds, candidate packaging and review. Existing private dumps and
+Gemian live inspection are also available under the standing
+[inspection policy](SAFETY.md#standing-gemian-inspection-authorization); a reviewed
+return to Gemian can support discovery without an owner-selected boot2 cycle. Finish the blocked item's
 handoff, then move to independent work. Waiting device items do not occupy one
 of the three active worker slots.
 
@@ -146,15 +171,20 @@ The first preparation order is:
    PWRAP serviceability inputs, then freeze a candidate, authenticated userspace,
    separate logs and one bounded first-boot protocol. Do not assume today's
    similarly named profile reproduces the historical package.
-2. **Keyboard coverage:** prepare a bounded event classifier and finite owner
+2. **Wi-Fi:** resolve the documented firmware/transport gaps, implement and test
+   the smallest defensible path, and prepare its first discriminating session
+   against the A53 recovery/logging contract. Do not manufacture a boot candidate
+   while chipset, firmware ownership or resource assumptions remain unresolved.
+3. **Keyboard coverage:** prepare a bounded event classifier and finite owner
    key sequence against the baseline's declared input/console interface. Its
    runtime gate needs the first baseline USB/console pass, not all ten cold boots.
-3. **Read-only eMMC regression:** prepare exact device identification, finite
+4. **Read-only eMMC regression:** prepare exact device identification, finite
    read/time/error budgets and refusal tests against the same interface. Its
    runtime gate needs baseline serviceability and reviewed recovery, independently
    of keyboard completion. Persistent-root writes remain separate.
 
-Protocol work for all three can proceed concurrently. Items with unverified
+Protocol work across these items can proceed concurrently within the three-worker
+limit. Wi-Fi has its own worker; keyboard and storage remain with serviceability. Items with unverified
 candidate or protocol inputs remain planned/preparing. Conditional items have
 frozen validated inputs and await only an explicit runtime result predicate.
 The cumulative ten-cold-boot release gate remains distinct; schedule
@@ -321,11 +351,11 @@ changes. Each completes only at its own evidence and upstream boundary.
 | --- | --- |
 | M0: lab | Tested recovery, exact provenance, enforced safe tooling, automated checks and upstream-topic ownership |
 | M1: boot | Ten consecutive attributable cold boots; RAM, reservations, topology, timers, interrupts, PSCI and watchdog checked; loader DT/command-line mutations documented; generic/board changes publicly reviewed |
-| M2: headless system | Safe PMIC/regulators/RTC/restart/power-off, bounded repeated storage I/O, authenticated USB administration, battery/charger telemetry and preserved filesystems |
+| M2: headless system | Safe PMIC/regulators/RTC/restart/power-off, bounded repeated storage I/O, authenticated USB administration, Wi-Fi station association and bounded bidirectional traffic, battery/charger telemetry and preserved filesystems |
 | M3: input and ports | Keyboard map/modifiers/rollover/wake/LEDs/lid/buttons; microSD I/O/hotplug; both USB ports and supported roles with regression tests |
 | M4: local interaction | Native DRM graph/panel/backlight, repeated modeset/power cycles, reliable console and calibrated multitouch |
 | M5: power | Validated rail/OPP transitions, defensible thermal trips/cooling, charging protection, idle/runtime PM/suspend/wake and published power baselines |
-| M6: peripherals | GPU, audio, connectivity and sensors through standard upstream interfaces, explicit firmware boundary and PM coverage |
+| M6: peripherals | GPU, audio, Bluetooth/GNSS/FM and sensors through standard upstream interfaces; Wi-Fi reconnect/coexistence and PM coverage; explicit firmware boundaries |
 | M7: distribution | Reviewed/released host support, standard artifacts and maintained loader path, ordinary distro packaging, tested updates/rollback and only time-bounded backports |
 | Full variant coverage | Cellular and camera support on equipped variants, explicit feasibility/rights blockers, shared-memory isolation and subsystem-specific acceptance |
 

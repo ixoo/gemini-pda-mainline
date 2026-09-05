@@ -8,23 +8,24 @@
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
-      "preparation_state": "planned",
+      "preparation_state": "preparing",
       "device_state": "unselected",
-      "owner": null,
-      "reviewer": null,
+      "owner": "A53 baseline and queued device tests",
+      "reviewer": "Project Planning",
       "device_custodian": null,
       "experiment": "experiments/2026-09-05-owner-away-experiment-preparation/README.md#a53-authenticated-baseline",
       "session_packet": null,
       "candidate_record": null,
       "readiness_record": null,
-      "dependencies": []
+      "dependencies": [],
+      "owner_task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64"
     },
     "keyboard-coverage": {
       "workstream": "serviceability",
-      "preparation_state": "planned",
+      "preparation_state": "preparing",
       "device_state": "unselected",
-      "owner": null,
-      "reviewer": null,
+      "owner": "A53 baseline and queued device tests",
+      "reviewer": "Project Planning",
       "device_custodian": null,
       "experiment": "experiments/2026-09-05-owner-away-experiment-preparation/README.md#keyboard-coverage",
       "session_packet": null,
@@ -36,14 +37,15 @@
           "required_result": "Exact frozen baseline first boot passes authenticated USB and console serviceability; input interface is identified. Ten completed cold boots are not required.",
           "evidence": null
         }
-      ]
+      ],
+      "owner_task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64"
     },
     "emmc-readonly": {
       "workstream": "serviceability",
-      "preparation_state": "planned",
+      "preparation_state": "preparing",
       "device_state": "unselected",
-      "owner": null,
-      "reviewer": null,
+      "owner": "A53 baseline and queued device tests",
+      "reviewer": "Project Planning",
       "device_custodian": null,
       "experiment": "experiments/2026-09-05-owner-away-experiment-preparation/README.md#emmc-readonly",
       "session_packet": null,
@@ -55,7 +57,8 @@
           "required_result": "Exact frozen baseline passes serviceability with reviewed recovery and the read-only protocol has exact device identity and finite budgets. Keyboard coverage is independent.",
           "evidence": null
         }
-      ]
+      ],
+      "owner_task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64"
     }
   }
 }

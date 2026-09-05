@@ -169,6 +169,35 @@ configuration, safe tooling, hardware knowledge, and reproducible evidence.
   `~/reverse-engineering/gemini-vendor` as immutable evidence and store Ghidra,
   Radare2, and other analysis databases in guest-owned work directories.
 
+## Standing Gemian inspection and private reverse engineering
+
+- The owner authorizes analysis of the existing private firmware, partition and
+  userspace captures and read-only inspection of the running known-good Gemian
+  Linux system. Reuse the retained captures; keep raw bytes, analysis databases,
+  credentials and calibration private under the existing storage/redaction rules.
+  Use the RE VM for binary analysis, never as an automatic kernel-build fallback.
+- The owner accepts locally supplied retained binary firmware as a development
+  and device-test path. Fully open replacement firmware is not a prerequisite
+  for upstream host support. Keep exact blob identities and standard loading
+  contracts; unresolved redistribution alone does not stop private analysis or
+  otherwise admitted local testing. Do not commit or bundle a blob without
+  verified rights, and do not treat abandonment as a redistribution license.
+- The owner also authorizes return from a completed, attributable mainline
+  session to Gemian using the reviewed native recovery path. One named device
+  custodian must preserve pending unique evidence, verify the live release,
+  boot identity and required recovery-tool identity, then confirm changed-boot
+  known-good Gemian before probing. Do not interrupt an active experiment or
+  guess bootloader controls. An unavailable or mismatched path is a refusal.
+- Verify actual bindings, power/resource ownership and firmware activity in
+  Gemian; a vendor OS boot does not prove every device is active. Prefer bounded
+  reads of documented interfaces. Radio actions, debug ioctls, calibration,
+  resource writes and consuming observers require their own admitted protocols.
+- This inspection authorization does not select boot2 automatically, waive the
+  post-install shutdown rule, or add partition/firmware write authorization.
+  Coordinate all live access through the single device custodian and publish
+  only sanitized facts and independently reviewed reusable code with verified
+  source rights. Host-driver licensing and firmware rights are separate audits.
+
 ## Safety and validation
 
 - Never add a default action that writes the preloader, NVRAM, GPT, or an entire

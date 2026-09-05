@@ -2,21 +2,22 @@
   "schema_version": 1,
   "purpose": "Scope and ownership registry; docs/ROADMAP.md alone orders work. Ready means available, not staffed or admitted for hardware.",
   "coordination": {
-    "integration_owner": "Project integrator",
+    "integration_owner": "Project Planning",
     "max_active_worker_items": 3,
     "device_slots": 1,
     "build_policy": "Explicit Buildbox, shared mutations serialized by existing lock",
     "handoff_template": "project/WORK_ITEM.md",
     "roadmap": "docs/ROADMAP.md",
     "experiment_queue": "project/experiment-queue.json",
-    "owner_away_policy": "Continue independent offline work; waiting-device items free worker slots. Readiness is not physical admission."
+    "owner_away_policy": "Continue independent offline work; waiting-device items free worker slots. Readiness is not physical admission.",
+    "integration_task_id": "01a06f5d-d1f6-7a01-a80a-7457a3c64676"
   },
   "active_device_experiment": null,
   "workstreams": [
     {
       "id": "integration",
       "title": "Integration and lab",
-      "owner": "Project integrator",
+      "owner": "Project Planning",
       "status": "active",
       "scope": [
         "scripts/",
@@ -33,7 +34,8 @@
         "https://github.com/ixoo/gemini-pda-mainline/issues/6",
         "https://github.com/ixoo/gemini-pda-mainline/issues/8"
       ],
-      "dependencies": []
+      "dependencies": [],
+      "task_id": "01a06f5d-d1f6-7a01-a80a-7457a3c64676"
     },
     {
       "id": "power",
@@ -78,16 +80,17 @@
         "https://github.com/ixoo/gemini-pda-mainline/issues/5",
         "https://github.com/ixoo/gemini-pda-mainline/issues/10"
       ],
-      "dependencies": []
+      "dependencies": [],
+      "task_id": "01a06e5a-db89-7cf3-aecb-70056a44de7b"
     },
     {
       "id": "serviceability",
       "title": "A53 serviceability",
-      "owner": null,
-      "status": "ready",
+      "owner": "A53 baseline and queued device tests",
+      "status": "active",
       "scope": [
-        "new isolated serviceability experiment",
-        "USB userspace/input/storage protocol"
+        "experiments/2026-09-05-owner-away-experiment-preparation/",
+        "Authenticated USB/input/read-only storage protocol"
       ],
       "evidence": [
         "experiments/2026-09-04-mt6797-pwrap-reset-serviceability/README.md",
@@ -109,7 +112,29 @@
         "a53-authenticated-baseline",
         "keyboard-coverage",
         "emmc-readonly"
-      ]
+      ],
+      "task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64"
+    },
+    {
+      "id": "wifi",
+      "title": "Wi-Fi",
+      "owner": "Wi-Fi mainline support",
+      "task_id": "01a06f91-092d-71d0-acbe-4f38ccff2c56",
+      "status": "active",
+      "scope": [
+        "New MT6797 Wi-Fi contract experiment",
+        "Shared CONSYS/WMT and Wi-Fi firmware/HIF contract proposals"
+      ],
+      "evidence": [
+        "experiments/2026-07-12-connectivity-wmt-recovery/README.md",
+        "docs/hardware/firmware.md"
+      ],
+      "issue_urls": [
+        "https://github.com/ixoo/gemini-pda-mainline/issues/25"
+      ],
+      "dependencies": [],
+      "runtime_dependency": "An admitted recoverable session with attributable logs; read-only vendor-OS inventory may precede a new A53 candidate. No dependency on A72 completion or ten cold boots.",
+      "queue_items": []
     },
     {
       "id": "display",
@@ -133,11 +158,11 @@
     },
     {
       "id": "peripherals",
-      "title": "Connectivity, audio and sensors",
+      "title": "Bluetooth, GNSS, FM, audio and sensors",
       "owner": null,
       "status": "ready",
       "scope": [
-        "new protocol/firmware feasibility investigations"
+        "New non-Wi-Fi protocol/firmware feasibility investigations; shared CONSYS contract coordinated with Wi-Fi owner"
       ],
       "evidence": [
         "experiments/2026-07-12-connectivity-wmt-recovery/README.md",
@@ -193,6 +218,14 @@
     "last_completed_experiment": "experiments/2026-09-04-mt6797-thermal-snapshot/V4_RUNTIME_ACCEPTANCE.md",
     "result": "experiments/2026-09-04-mt6797-thermal-snapshot/results/v4-runtime-pass.txt",
     "queue": "project/experiment-queue.json",
-    "authority": "Completed observation and consumed budget do not authorize a repeat or imply the device has been released; obtain custodian handoff before changing its session."
+    "authority": "Completed observation and consumed budget do not authorize a repeat or imply the device has been released; obtain custodian handoff before changing its session.",
+    "next_inspection": {
+      "owner": "Wi-Fi mainline support",
+      "task_id": "01a06f91-092d-71d0-acbe-4f38ccff2c56",
+      "state": "bounded-inspection-in-progress",
+      "scope": "Bounded Gemian Wi-Fi transport/resource inventory; reviewed return to Gemian if required. No new boot2 candidate or partition write.",
+      "policy": "docs/SAFETY.md#standing-gemian-inspection-authorization",
+      "live_state": "Must be established by the assigned custodian; not inferred from this registry."
+    }
   }
 }

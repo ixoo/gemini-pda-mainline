@@ -73,6 +73,38 @@ full readback. Deployment requires a quiescent known-good OS and the complete
 guarded installer; a standalone passing check is not an installation receipt.
 The fixture tests do not establish behavior on the named hardware.
 
+## Standing Gemian inspection authorization
+
+The owner authorizes use of existing private firmware/partition/userspace
+captures for reverse engineering, and bounded read-only inspection of the
+known-good Gemian Linux system. Retained raw evidence stays access-restricted
+and ignored; analysis does not grant redistribution rights. Inspect individual
+source licenses separately from firmware licenses before reusing code.
+
+Locally supplied retained firmware blobs are an accepted development and
+otherwise admitted device-test path. Pin their exact identities and load them
+through a documented standard interface; replacing them with open firmware is
+not a prerequisite for upstream host support. Keep calibration private. Do not
+commit raw firmware blobs without verified redistribution rights. Unresolved
+redistribution alone is not a blocker to private analysis or the authorized local test path;
+abandonment does not supply a publishing license.
+
+Returning a completed, attributable mainline session to Gemian is also
+permitted through its reviewed native recovery path. Assign one device
+custodian, preserve pending unique evidence and verify the exact live kernel,
+boot identity and required recovery binary before requesting that transition.
+Require a changed boot identity and known-good Gemian confirmation afterward.
+Missing or mismatched observations defer the transition; never guess bootloader
+controls, interrupt an admitted experiment, or reinterpret this as automatic
+boot2 selection. The existing post-install clean-shutdown rule remains intact.
+
+Gemian supplies a reference implementation to inspect, not proof that every
+peripheral is active. Confirm actual bindings and resource/firmware state. Keep
+inspection bounded and avoid incidental thermal samples, debug transactions,
+radio control or calibration operations. Such effects need their own protocol;
+this authorization adds no partition or firmware writes. All tasks share the
+same physical access queue, even when no new boot2 image is needed.
+
 ## Standing retained-RAM diagnostic authorization
 
 The device owner gives standing authorization for isolated, default-off early
