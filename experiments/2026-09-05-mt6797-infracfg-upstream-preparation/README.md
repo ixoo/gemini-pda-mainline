@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-05-mt6797-infracfg-upstream-preparation` |
-| Status | running; input and dependency audit complete, final topic unbuilt |
+| Status | running; coherent review topic generated and style-checked, unbuilt |
 | Subsystem | MediaTek clocks/resets and Devicetree |
 | Device variant | Gemini PDA MT6797; no hardware operation in this audit |
 | Investigator | Gemini mainline project, integration owner |
@@ -21,8 +21,8 @@ upstream implementation has the compact reset-index and SET/CLEAR API needed
 for the two proved reset lines. It does not register an MT6797 reset provider.
 The local bounds protection remains a required part of the proposed series;
 using an existing API does not justify dropping a tested refusal guarantee.
-No final Linux patch, schema result, compile result or new hardware claim is
-produced here.
+The coherent review patches are now generated and replayed as recorded below.
+Schema, compile, KUnit execution and new hardware claims remain unestablished.
 
 ## Provenance and reproducibility
 
@@ -156,8 +156,9 @@ use the clean pushed revision and explicit Buildbox backend.
 
 - Owner: integration owner, branch `codex/infracfg-upstream-preparation` in an
   isolated small repository worktree; review is integration diff review.
-- Scope: this experiment only; no manifest, canonical series or candidate delta.
-- State: input/dependency audit review-ready; final upstream series active work.
+- Scope: this experiment and its upstream-topic inventory entry; no manifest,
+  canonical series or candidate delta.
+- State: coherent review archive generated; final upstream validation active work.
 - Validation: eight public input identities, nine local patch identities and
   seven auditor fixtures passed. The common repository gate passed, including
   all 189 profile-series invariants; Linux-only provenance fixtures were
@@ -215,3 +216,29 @@ continuation-alignment checks and one short Kconfig help paragraph. The
 result. The sparse source checkout and unpublished partial were removed. The
 continuations and help text were corrected before a new exact revision was
 submitted; no kernel compilation or device operation occurred in the failed run.
+
+
+## Coherent review archive result
+
+Exact generator revision `aa9828f93fe111ff80abec73d5a79c1af2873ae6` produced
+six normal patches against upstream `4d7d9486c04d917265f64c55bd23b2cc4fe7749c`.
+The generated head is `885ecc4a32ec54bc60b570d7a2c88d7b89fd4e18`, with final tree
+`04572ddae2b7f5fefaac76525f74c216a98a8c5d`. Replay through a separate Git index
+reproduced that exact complete upstream tree. All six patches pass pinned strict
+checkpatch with zero errors, warnings or checks under the declared exclusions.
+
+[The generation receipt](results/coherent-topic-generation.json) records each
+patch digest, all eleven changed-source digests, replay identity, style counts,
+package manifest and successful Linux repository CI. Host review verified the
+complete ten-file package inventory and every digest, then inspected each patch.
+The review archive is retained privately under
+`artifacts/upstream-review/infracfg-aa9828f9/`; it is not an active kernel series.
+Buildbox retains the matching small review package, and both disposable sparse
+source and project checkouts have been removed.
+
+This establishes reproducible derivation and patch applicability to the pinned
+upstream tree. It does not establish C compilation, KUnit execution, binding/DT
+schema validity, controller registration behavior or runtime support for this
+revision. Those gates, actual author certification and current maintainer
+routing remain open. The active device inputs and all historical patch bytes
+are unchanged; the topic inventory now links this bounded preparation record.

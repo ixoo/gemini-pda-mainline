@@ -1,0 +1,100 @@
+{
+  "certification": "unsigned experiment archive; not submission-ready",
+  "changed_files": {
+    "Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml": "83e13fddec7a39f2f6cc95408e9f3c4389fe55c9d33dfd635105d36c52c2979a",
+    "arch/arm64/boot/dts/mediatek/mt6797.dtsi": "8bddb48d07e5d5af1ee4a1f0fc2369f4424f47881cc070342a74b684b028f353",
+    "drivers/clk/mediatek/Kconfig": "3f87bc5158596cfb7d723e7d9efb82646596a9bc81399eba94ad9337540da40c",
+    "drivers/clk/mediatek/Makefile": "de8bad78288fea86b39d6c74044c0f3ca692290fd69ff7e93af00d372cd30ca2",
+    "drivers/clk/mediatek/clk-mt6797-reset-test.c": "d8ae35ac66827fc5b696aa896f8856739ff70321d00ca8c48c84d41c489cc23f",
+    "drivers/clk/mediatek/clk-mt6797-reset.h": "240dc21ef060bb0bb2cedb23ad356bfcb2a1d27e636928fea86abb30d107969a",
+    "drivers/clk/mediatek/clk-mt6797.c": "16a1e0b8af26fc09de6b9096f4c211eae5231d7505d962dae476fc1958ee94f9",
+    "drivers/clk/mediatek/reset-internal.h": "978e6630d2784074b4e9ff248077026072689e365f0bdc327d6948601acad189",
+    "drivers/clk/mediatek/reset-test.c": "01a861da34f550546da15534f29aee1118df69eac827216d1458b78839a95fd3",
+    "drivers/clk/mediatek/reset.c": "02e62f0b73481a51137442d609cdf88291e0e9108dafe078440054fa434fe315",
+    "include/dt-bindings/reset/mt6797-resets.h": "d83d278526a434d453f66235d28a737d4803fe315b82c6bea79d27ecb6c23269"
+  },
+  "checkpatch_ignored": [
+    "MISSING_SIGN_OFF",
+    "FILE_PATH_CHANGES",
+    "COMMIT_LOG_LONG_LINE"
+  ],
+  "checkpatch_sha256": "d99fb2047e9d675d659c7fe5c71b6695e3323842742a8e9251c8135a29d972cf",
+  "generated_head": "885ecc4a32ec54bc60b570d7a2c88d7b89fd4e18",
+  "hardware_action": "none",
+  "host_inventory_verification": "ten files; exact manifest inventory and all SHA-256 values pass",
+  "kernel_build": "not run",
+  "linux_repository_ci": {
+    "result": "success",
+    "url": "https://github.com/ixoo/gemini-pda-mainline/actions/runs/33941256922"
+  },
+  "package_manifest_sha256": "57314dde2db0512e21cd16efc34f51cec0bc9269c7e4b51319de40779cc8a2bc",
+  "patch_count": 6,
+  "patches": [
+    {
+      "checkpatch": {
+        "checks": 0,
+        "errors": 0,
+        "lines_checked": 75,
+        "warnings": 0
+      },
+      "name": "0001-clk-mediatek-reject-out-of-bank-SET-CLEAR-reset-IDs.patch",
+      "sha256": "ab875a831822e1809619f0034f29f8c068af133012da196ba59a62977b884fd5"
+    },
+    {
+      "checkpatch": {
+        "checks": 0,
+        "errors": 0,
+        "lines_checked": 114,
+        "warnings": 0
+      },
+      "name": "0002-clk-mediatek-test-reset-translation-bounds.patch",
+      "sha256": "211f2b95d24d7cb09085d99ade5bcd681254f55145e227920fd62b773f30d483"
+    },
+    {
+      "checkpatch": {
+        "checks": 0,
+        "errors": 0,
+        "lines_checked": 15,
+        "warnings": 0
+      },
+      "name": "0003-dt-bindings-reset-mediatek-describe-MT6797-infracfg-.patch",
+      "sha256": "88e629b8a56aa892f43949bc052322efb38ba209df7b4d5c6a8d8df936c6fb03"
+    },
+    {
+      "checkpatch": {
+        "checks": 0,
+        "errors": 0,
+        "lines_checked": 48,
+        "warnings": 0
+      },
+      "name": "0004-clk-mediatek-add-MT6797-infracfg-SET-CLEAR-resets.patch",
+      "sha256": "90a1d8aaff250e8b0086488138aec1527f535cde38aa2b6734c6b83344e41cc5"
+    },
+    {
+      "checkpatch": {
+        "checks": 0,
+        "errors": 0,
+        "lines_checked": 88,
+        "warnings": 0
+      },
+      "name": "0005-clk-mediatek-test-MT6797-infracfg-reset-mapping.patch",
+      "sha256": "10961fd177b6584985c717a3cc99338571addeb5d898397b9bd4816e4a31c2cf"
+    },
+    {
+      "checkpatch": {
+        "checks": 0,
+        "errors": 0,
+        "lines_checked": 7,
+        "warnings": 0
+      },
+      "name": "0006-arm64-dts-mediatek-expose-MT6797-infracfg-resets.patch",
+      "sha256": "d7ccee4f2e8e3ae78cce2405c761bc1c76f915423a8b9ea8cbf22785c2e2bfbe"
+    }
+  ],
+  "replay": "exact-tree-match",
+  "repository_commit": "aa9828f93fe111ff80abec73d5a79c1af2873ae6",
+  "schema_validation": "not run",
+  "scratch_cleanup": "verified: no infracfg project/source scratch directories or failed partial retained",
+  "tree": "04572ddae2b7f5fefaac76525f74c216a98a8c5d",
+  "upstream_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c"
+}

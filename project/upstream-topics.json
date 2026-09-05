@@ -5,7 +5,7 @@
     {
       "id": "mt6797-infracfg-reset",
       "status": "local-preparation",
-      "owner": null,
+      "owner": "integration owner: infracfg upstream preparation",
       "target": "Linux MediaTek clock/reset and Devicetree maintainers; resolve exact current target using MAINTAINERS/get_maintainer.pl before submission",
       "patches": [
         "patches/v7.1.3/0001-dt-bindings-reset-mediatek-add-MT6797-infracfg-reset.patch",
@@ -17,12 +17,14 @@
       ],
       "evidence": [
         "experiments/2026-09-03-mt6797-infracfg-reset-repair/README.md",
-        "experiments/2026-09-04-mt6797-pwrap-reset-serviceability/README.md"
+        "experiments/2026-09-04-mt6797-pwrap-reset-serviceability/README.md",
+        "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/README.md"
       ],
       "dependencies": [
-        "Current target-tree and binding/ABI review",
-        "Derive final minimal semantics without diagnostic or superseded reset behavior",
-        "Focused schema/build/runtime evidence mapped to final submission revision"
+        "Current maintainer target-tree and binding/ABI review",
+        "Exact coherent upstream revision compile, KUnit and schema validation",
+        "Provider registration failure-path review and consumer evidence mapping",
+        "Actual authorship audit and truthful DCO certification before submission"
       ],
       "authorship": "Unresolved: audit actual provenance and obtain truthful DCO certification; never replace a synthetic identity mechanically",
       "submission_url": null,
