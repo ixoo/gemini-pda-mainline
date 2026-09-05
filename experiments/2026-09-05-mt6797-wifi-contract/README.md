@@ -180,3 +180,12 @@ The [integration review](INTEGRATION_REVIEW.md) records the later Python 3.5
 populated-SDIO correction and current helper identities. Original session
 receipts retain the exact source identities used on hardware; neither the
 correction nor its host tests renew a consumed observation budget.
+
+## Retained storage follow-up
+
+The [storage and producer investigation](PROVENANCE.md) identifies the retained
+WIFI filesystem record and its two-byte userspace envelope. A pure inspector
+checks that envelope separately from the existing kernel-record contract.
+Static producer-family and public path-mapping evidence do not establish the
+installed restoration history or board/firmware applicability. No radio
+initialization, candidate selection or new observation budget follows.

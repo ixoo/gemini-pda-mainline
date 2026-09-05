@@ -127,8 +127,9 @@ shared source-provenance contract. The defect reproduces with the old publisher;
 the corrected publication suite passes 21 cases, including the selected override,
 legacy global and unprofiled inputs, malformed provenance refusals and unchanged
 fetchability of the original mislabeled package. No existing artifact is renamed,
-republished or rebuilt. Full Linux validator fixtures remain a CI check for this
-tooling correction; the original kernel package already passed its Linux validator.
+republished or rebuilt. The subsequent Linux CI run `33966096767` passed for
+correction commit `de9d0ddaf8f8328ed8c380ed337fadccc993081a`, including full
+validator fixtures. The original kernel package also passed its Linux validator.
 
 The [provider review](PROVIDER_FAILURE_REVIEW.md), adopted from `a5a3acf0`, passed
 independent verification of all five pinned upstream files and all six patch

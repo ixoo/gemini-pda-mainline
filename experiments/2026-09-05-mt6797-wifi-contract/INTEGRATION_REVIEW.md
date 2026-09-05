@@ -99,3 +99,24 @@ The common publication gate passed for all nine changed files and all 189
 manifest profiles. Earlier corrected collectors, consumed session and kernel
 inputs remain byte-identical. Linux-only package validation remains a CI gate;
 no hardware or private-record test was performed by integration.
+
+## Separate storage-envelope follow-up review
+
+Project Planning adopted the five additive files from
+`99b6af9fe44dca1a0ebc057bfcd881ebc3f3183c`. Independent review ran all 26 new
+storage and 23 unchanged record tests; all 49 passed. Both helper identities
+and all three pinned public init/fstab source hashes match. The conditional
+path mapping, strict size/trailer refusals, checksum-collision caveat and
+independent version-context boundary agree with the published contract.
+No actionable defect was found.
+
+The review used only published sanitized files. It did not reopen private
+captures, repeat the binary-derived producer interpretation or reproduce the
+retained filesystem inspection; those remain investigator-attributed evidence.
+The reviewed [provenance record](PROVENANCE.md) preserves the inconclusive
+installed-configuration recovery and unproved board/firmware applicability.
+Earlier helpers and immutable receipts remain unchanged. No kernel inputs,
+hardware support claim, device custody, candidate or queue readiness changes.
+
+The common publication checks passed, including all 190 manifest profiles.
+No kernel input changed or kernel build was required for this integration.

@@ -17,6 +17,13 @@ descriptions are evidence, not measured electrical behavior.
 | Retained WLAN image has a CRC-consistent MTKE section structure; runtime load attribution remains incomplete | Exact retained-file checksum, bounded RE-VM parser and vendor runtime evidence | Presence, a network interface and HIF log activity do not prove which image booted or permit redistribution |
 | The selected gen3 host consumes a fixed-size filesystem calibration record, with incomplete read/error enforcement and no audited record checksum gate | Pinned layout, reader and startup control flow; source-supported | Record presence and compatible versions do not establish factory provenance, board applicability, firmware application or regulatory approval; see the [calibration contract](../../experiments/2026-09-05-mt6797-wifi-contract/CALIBRATION.md) |
 
+The selected producer family adds a two-byte storage envelope around the WIFI
+record; the kernel consumer reads the logical payload. Retained-file presence,
+static producer analysis and public configuration mapping are separately
+attributed in the [storage contract](../../experiments/2026-09-05-mt6797-wifi-contract/PROVENANCE.md).
+A matching envelope does not authenticate calibration or prove its restoration
+history or applicability to this RF board and firmware.
+
 The supporting [implementation experiment](../../experiments/2026-09-05-mt6797-wifi-contract/README.md)
 owns source hashes, current upstream comparison, historical corrections and
 the bounded ancestry probe. The [original connectivity record](../../experiments/2026-07-12-connectivity-wmt-recovery/README.md)
