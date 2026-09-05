@@ -1,0 +1,20 @@
+{
+  "fixture_commit": "789fc97544cd88104bb6b5bac07ec3dbed9da8ab",
+  "fixture_directory": "experiments/2026-09-05-mt6797-wifi-contract/src",
+  "fixtures": {
+    "hif_transfer_size_test.c": "3982e5152066562614e09e06adbe81e0d03217ad2bf3393ca250daf91b0f28ff",
+    "hif_command_test.c": "a17a1fb7b94c1a3533d5ae8d22e1b8d2ec936724ae76c19f86d4b942cfc56676",
+    "hif_pio_test.c": "1f72ddd2068bc2f4d38629f47d172f353020e704a27d93f2e216030ed87747de",
+    "hif_init_bounds_test.c": "347dd8affcabad04a97a36ec11e70c4873a2459b95978d921c9020d062ed1ff1",
+    "hif_init_transaction_test.c": "88436958a6bd679e90b3b058c02e3defb5e67cfb01b44e6a43b586e785d16f90",
+    "hif_start_transaction_test.c": "99208a80aed0656d5081e71af15582b9ba3b65a432992016f54ca89ec4093463",
+    "hif_config_phase_test.c": "303082560f352f4d28e1fa770ce5ffde0503ec202909e707512c1e4b920edc94",
+    "hif_ordinary_section_test.c": "43854a0abb73c0da27c0d2cc3caf97c7741878843225b34f4bb099b76966a3fc"
+  },
+  "checkpatch_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "checkpatch_tools": {
+    "checkpatch.pl": "2553cc1a601e70522e03fbce633d4e79fa5936f7f56a66de1899b7ddd247820a",
+    "spelling.txt": "4095d4a8810f115bae1b7c0d8a1946beb3435f6e22d9a48ac009bb024bad1e68",
+    "const_structs.checkpatch": "ea064f6916a74763468037494aeb270aae34b7c97617e84d424ca5b8733539b2"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "status": "proposal-only; root integration and build admission required",
+  "integration_base": "789fc97544cd88104bb6b5bac07ec3dbed9da8ab",
+  "profile_name": "mt6797-hif-compile",
+  "profile": {
+    "base": "allnoconfig",
+    "fragments": [
+      "configs/mt6797-hif-compile.fragment"
+    ],
+    "kernel": {
+      "archive_format": "tar.gz",
+      "archive_root": "linux-4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "git_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "released": "2026-09-05",
+      "sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+      "source_url": "https://codeload.github.com/torvalds/linux/tar.gz/4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "version": "7.3-rc1"
+    },
+    "patch_series": "patches/series-mt6797-provider-compile"
+  },
+  "series_entries": [
+    "proposals/0001-lib-mt6797-hif-compile.patch"
+  ],
+  "fragment_source": "compile.fragment",
+  "patch_source": "0001-lib-mt6797-hif-compile.patch",
+  "existing_profile_changes": [
+    "mt6797-provider-compile shares the extended series: source/patch provenance changes; new compile symbol remains default n"
+  ],
+  "default_profile_changes": [],
+  "dt_changes": [],
+  "series_operation": {
+    "path": "patches/series-mt6797-provider-compile",
+    "action": "append",
+    "entry": "proposals/0001-lib-mt6797-hif-compile.patch",
+    "preserve_existing_entries": true
+  }
+}

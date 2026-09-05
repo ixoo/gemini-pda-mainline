@@ -1,0 +1,994 @@
+From 1f109e44935bb1b836a5640bdb1d8cf17f38f275 Mon Sep 17 00:00:00 2001
+From: MT6797 compile experiment <nobody@example.invalid>
+Date: Sat, 5 Sep 2026 00:00:00 +0000
+Subject: [PATCH] lib: compile MT6797 HIF protocol with ordered MMIO
+
+Compile the bounded PIO, INIT and ordinary-section code against
+real Linux types and ordered MMIO. Kernel-style formatting preserves
+the reference C token stream and passes the original host fixtures.
+No initcall, device registration, mapping acquisition or runtime
+caller is provided. Internal experiment, not an upstream submission.
+
+Synthetic non-certifying author; no DCO is asserted.
+Assisted-by: LLM
+---
+ lib/Kconfig.debug                             |   2 +
+ lib/Makefile                                  |   2 +
+ lib/mt6797-hif-compile/Kconfig                |  11 +
+ lib/mt6797-hif-compile/Makefile               |   2 +
+ lib/mt6797-hif-compile/hif_command.h          |  69 +++++
+ lib/mt6797-hif-compile/hif_config_phase.h     |  74 ++++++
+ lib/mt6797-hif-compile/hif_init_bounds.h      |  46 ++++
+ lib/mt6797-hif-compile/hif_init_transaction.h | 240 ++++++++++++++++++
+ lib/mt6797-hif-compile/hif_ordinary_section.h | 145 +++++++++++
+ lib/mt6797-hif-compile/hif_pio.h              |  77 ++++++
+ lib/mt6797-hif-compile/hif_transfer_size.h    |  60 +++++
+ lib/mt6797-hif-compile/kernel_adapter.c       | 103 ++++++++
+ lib/mt6797-hif-compile/kernel_adapter.h       |  41 +++
+ 13 files changed, 872 insertions(+)
+ create mode 100644 lib/mt6797-hif-compile/Kconfig
+ create mode 100644 lib/mt6797-hif-compile/Makefile
+ create mode 100644 lib/mt6797-hif-compile/hif_command.h
+ create mode 100644 lib/mt6797-hif-compile/hif_config_phase.h
+ create mode 100644 lib/mt6797-hif-compile/hif_init_bounds.h
+ create mode 100644 lib/mt6797-hif-compile/hif_init_transaction.h
+ create mode 100644 lib/mt6797-hif-compile/hif_ordinary_section.h
+ create mode 100644 lib/mt6797-hif-compile/hif_pio.h
+ create mode 100644 lib/mt6797-hif-compile/hif_transfer_size.h
+ create mode 100644 lib/mt6797-hif-compile/kernel_adapter.c
+ create mode 100644 lib/mt6797-hif-compile/kernel_adapter.h
+
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index 134b15a..64b1a58 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -3640,3 +3640,5 @@ config RUST_INLINE_HELPERS
+ endmenu # "Rust"
+ 
+ endmenu # Kernel hacking
++
++source "lib/mt6797-hif-compile/Kconfig"
+diff --git a/lib/Makefile b/lib/Makefile
+index dfab958..4cf9a3b 100644
+--- a/lib/Makefile
++++ b/lib/Makefile
+@@ -350,3 +350,5 @@ CONTEXT_ANALYSIS_test_context-analysis.o := y
+ obj-$(CONFIG_CONTEXT_ANALYSIS_TEST) += test_context-analysis.o
+ 
+ subdir-$(CONFIG_FORTIFY_SOURCE) += test_fortify
++
++obj-$(CONFIG_MT6797_HIF_COMPILE_TEST) += mt6797-hif-compile/
+diff --git a/lib/mt6797-hif-compile/Kconfig b/lib/mt6797-hif-compile/Kconfig
+new file mode 100644
+index 0000000..9261a18
+--- /dev/null
++++ b/lib/mt6797-hif-compile/Kconfig
+@@ -0,0 +1,11 @@
++# SPDX-License-Identifier: GPL-2.0-only
++config MT6797_HIF_COMPILE_TEST
++	bool "Compile MT6797 HIF protocol and MMIO boundary"
++	depends on ARM64 && COMPILE_TEST
++	default n
++	help
++	  Compile the experimental PIO/INIT/ordinary-section components with
++	  ordered Linux MMIO accessors. This registers no device, runs no test
++	  at boot and provides no operational Wi-Fi driver. It acquires no
++	  resources and never enables a connectivity power domain.
++	  Say N normally.
+diff --git a/lib/mt6797-hif-compile/Makefile b/lib/mt6797-hif-compile/Makefile
+new file mode 100644
+index 0000000..6bae8e0
+--- /dev/null
++++ b/lib/mt6797-hif-compile/Makefile
+@@ -0,0 +1,2 @@
++# SPDX-License-Identifier: GPL-2.0-only
++obj-y += kernel_adapter.o
+diff --git a/lib/mt6797-hif-compile/hif_command.h b/lib/mt6797-hif-compile/hif_command.h
+new file mode 100644
+index 0000000..b82d983
+--- /dev/null
++++ b/lib/mt6797-hif-compile/hif_command.h
+@@ -0,0 +1,69 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/* Original fixed-port command encoder; see HIF_COMMAND.md. */
++#ifndef GEMINI_HIF_COMMAND_H
++#define GEMINI_HIF_COMMAND_H
++
++#include "hif_transfer_size.h"
++
++enum mt6797_hif_direction {
++	MT6797_HIF_READ = 0,
++	MT6797_HIF_WRITE = 1,
++};
++
++/* Source use_dma policy, not a selection of the engine executing the command. */
++enum mt6797_hif_rx_policy {
++	MT6797_HIF_PIO_ONLY = 0,
++	MT6797_HIF_DMA_ENABLED = 1,
++};
++
++struct mt6797_hif_command {
++	unsigned int word;
++	size_t transfer_bytes;
++};
++
++/*
++ * Only INIT/data TX WTDR1 and response RX WRDR0/1 are admitted here.
++ * Function 1 and fixed-port mode are constants, not unvalidated caller fields.
++ * DMA_ENABLED preserves eight-byte RX alignment even for a PIO fallback.
++ * The caller owns initialized TX padding, RX capacity and all runtime gates.
++ */
++static inline int mt6797_hif_encode_command(unsigned int port,
++					    enum mt6797_hif_direction direction,
++					    enum mt6797_hif_rx_policy policy,
++					    size_t payload_bytes,
++					    size_t capacity,
++					    struct mt6797_hif_command *result)
++{
++	struct mt6797_hif_transfer_size size;
++	int error;
++
++	if (!result)
++		return -EINVAL;
++	*result = (struct mt6797_hif_command){0};
++	if ((direction != MT6797_HIF_READ && direction != MT6797_HIF_WRITE) ||
++	    (policy != MT6797_HIF_PIO_ONLY &&
++	     policy != MT6797_HIF_DMA_ENABLED) ||
++	    port > 0x1ffffU)
++		return -EINVAL;
++	if ((direction == MT6797_HIF_WRITE && port != 0x34U) ||
++	    (direction == MT6797_HIF_READ && port != 0x50U && port != 0x54U))
++		return -EINVAL;
++
++	/* The helper's false branch supplies four-byte TX/PIO-only RX rounding. */
++	error = mt6797_hif_transfer_size(payload_bytes, capacity,
++					 direction == MT6797_HIF_READ &&
++						 policy ==
++							 MT6797_HIF_DMA_ENABLED,
++					 &size);
++	if (error)
++		return error;
++	if (!size.command_count || size.command_count > 0x1ffU)
++		return -EMSGSIZE;
++	result->word = size.command_count | (port << 9) |
++		       (size.block_mode ? (1U << 27) : 0U) | (1U << 28) |
++		       (direction == MT6797_HIF_WRITE ? (1U << 31) : 0U);
++	result->transfer_bytes = size.dma_bytes;
++	return 0;
++}
++
++#endif
+diff --git a/lib/mt6797-hif-compile/hif_config_phase.h b/lib/mt6797-hif-compile/hif_config_phase.h
+new file mode 100644
+index 0000000..23e40e8
+--- /dev/null
++++ b/lib/mt6797-hif-compile/hif_config_phase.h
+@@ -0,0 +1,74 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef GEMINI_HIF_CONFIG_PHASE_H
++#define GEMINI_HIF_CONFIG_PHASE_H
++#include "hif_init_transaction.h"
++#include "hif_pio.h"
++
++/* One CONFIG phase, deliberately split at the caller's timed WRPLR wait.
++ * Caller holds the existing owner/session/serialization contract throughout.
++ * No callback is added beyond the accepted scalar PIO seam.
++ */
++static inline int mt6797_config_send(struct mt6797_init_transaction *t,
++				     const struct mt6797_hif_pio_io *io,
++				     const unsigned char *command, size_t bytes,
++				     unsigned int sequence)
++{
++	unsigned char staging[20];
++	struct mt6797_hif_pio_result result;
++	size_t i;
++	int error;
++
++	if (!t)
++		return -EINVAL;
++	if (t->phase != MT6797_INIT_IDLE)
++		return mt6797_init_abort(t);
++	/* Validate the whole exchange's I/O capability before consuming credit. */
++	if (!io || !io->write || !io->read)
++		return -EINVAL;
++	error = mt6797_init_validate_config(command, bytes, sequence);
++	if (error)
++		return error;
++	for (i = 0; i < sizeof(staging); i++)
++		staging[i] = command[i];
++	error = mt6797_init_begin(t, staging, sizeof(staging), sequence);
++	if (error)
++		return error;
++	error = mt6797_hif_pio_transfer(io, 0x34, MT6797_HIF_WRITE, staging,
++					sizeof(staging), sizeof(staging),
++					&result);
++	return mt6797_init_submitted(t, error);
++}
++
++/* Caller supplies this session's port-0 logical WRPLR length after a timed wait.
++ * Zero returns EAGAIN without I/O. Exact length triggers one 32-byte PIO read
++ * and validation of its first 28 bytes. No raw reply escapes this function.
++ */
++static inline int mt6797_config_receive(struct mt6797_init_transaction *t,
++					const struct mt6797_hif_pio_io *io,
++					unsigned int length,
++					unsigned int *firmware_status)
++{
++	unsigned char staging[32];
++	struct mt6797_hif_command span;
++	struct mt6797_hif_pio_result result;
++	int error;
++
++	if (firmware_status)
++		*firmware_status = 0;
++	if (!io || !io->read || !io->write || !firmware_status) {
++		if (t)
++			mt6797_init_abort(t);
++		return -EINVAL;
++	}
++	error = mt6797_init_prepare_reply(t, length, sizeof(staging), &span);
++	if (error)
++		return error;
++	error = mt6797_hif_pio_transfer(io, 0x50, MT6797_HIF_READ, staging,
++					span.transfer_bytes, sizeof(staging),
++					&result);
++	if (error)
++		return mt6797_init_abort(t);
++	return mt6797_init_accept_reply(t, staging, 28, firmware_status);
++}
++
++#endif
+diff --git a/lib/mt6797-hif-compile/hif_init_bounds.h b/lib/mt6797-hif-compile/hif_init_bounds.h
+new file mode 100644
+index 0000000..be5ce80
+--- /dev/null
++++ b/lib/mt6797-hif-compile/hif_init_bounds.h
+@@ -0,0 +1,46 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef GEMINI_HIF_INIT_BOUNDS_H
++#define GEMINI_HIF_INIT_BOUNDS_H
++#include "hif_command.h"
++
++/* Selected per-class boot INIT seed (TC0 and TC4): 8 * ceil((28 + 1532) / 128) = 104.
++ * Caller establishes the fresh boot phase; this function never seeds/refunds.
++ * Frame length already includes INIT header, excludes bus padding.
++ */
++static inline int mt6797_init_debit(size_t frame_bytes,
++				    unsigned int *free_pages)
++{
++	unsigned int cost;
++
++	if (!free_pages || *free_pages > 104U)
++		return -EINVAL;
++	if (!frame_bytes || frame_bytes > 104U * 128U)
++		return -EMSGSIZE;
++	cost = (unsigned int)((frame_bytes + 127U) / 128U);
++	if (cost > *free_pages)
++		return -ENOSPC;
++	*free_pages -= cost;
++	return 0;
++}
++
++/* Selected MT6797 CMD_RESULT is 28 logical bytes. Extra-read policy is +4,
++ * with RX aggregation/coalescing enabled. Read 32 into staging, decode 28.
++ * A pending length of zero is distinct from an unexpected nonzero event.
++ */
++static inline int mt6797_init_result_span(unsigned int reported_length,
++					  size_t staging_capacity,
++					  struct mt6797_hif_command *result)
++{
++	if (!result)
++		return -EINVAL;
++	*result = (struct mt6797_hif_command){0};
++	if (!reported_length)
++		return -EAGAIN;
++	if (reported_length != 28U)
++		return -EMSGSIZE;
++	return mt6797_hif_encode_command(0x50U, MT6797_HIF_READ,
++					 MT6797_HIF_PIO_ONLY, 32U,
++					 staging_capacity, result);
++}
++
++#endif
+diff --git a/lib/mt6797-hif-compile/hif_init_transaction.h b/lib/mt6797-hif-compile/hif_init_transaction.h
+new file mode 100644
+index 0000000..cda35d5
+--- /dev/null
++++ b/lib/mt6797-hif-compile/hif_init_transaction.h
+@@ -0,0 +1,240 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef GEMINI_HIF_INIT_TRANSACTION_H
++#define GEMINI_HIF_INIT_TRANSACTION_H
++#include "hif_init_bounds.h"
++
++static inline unsigned int mt6797_init_le16(const unsigned char *p)
++{
++	return (unsigned int)p[0] | ((unsigned int)p[1] << 8);
++}
++
++static inline unsigned int mt6797_init_le32(const unsigned char *p)
++{
++	return mt6797_init_le16(p) | (mt6797_init_le16(p + 2) << 16);
++}
++
++/* Exact logical bytes only, not the 32-byte staging span. Nonzero status is
++ * well-formed firmware rejection (-EIO); diagnostics stay uninterpreted.
++ */
++static inline int mt6797_init_validate_result(const unsigned char *packet,
++					      size_t bytes,
++					      unsigned int expected_sequence,
++					      unsigned int *status)
++{
++	if (!status)
++		return -EINVAL;
++	*status = 0;
++	if (!packet || expected_sequence > 255U)
++		return -EINVAL;
++	if (bytes != 28 || mt6797_init_le16(packet) != 28 ||
++	    mt6797_init_le16(packet + 2) != 0xe000 || packet[4] != 1 ||
++	    packet[5] != expected_sequence)
++		return -EPROTO;
++	*status = packet[8];
++	return *status ? -EIO : 0;
++}
++
++static inline int mt6797_init_validate_config(const unsigned char *p,
++					      size_t bytes,
++					      unsigned int sequence)
++{
++	unsigned int address, length, mode;
++
++	if (!p || sequence > 255U)
++		return -EINVAL;
++	if (bytes != 20 || mt6797_init_le16(p) != 20 ||
++	    mt6797_init_le16(p + 2) != 0x8000 || p[4] != 1 || p[5] != 0xa0 ||
++	    p[6] || p[7] != sequence)
++		return -EPROTO;
++	address = mt6797_init_le32(p + 8);
++	length = mt6797_init_le32(p + 12);
++	mode = mt6797_init_le32(p + 16);
++	/* Inclusive last address allows a range ending exactly at 2^32. */
++	if (!length || length - 1U > 0xffffffffU - address ||
++	    (mode & ~0x8000000fU) || !(mode & 0x80000000U) ||
++	    ((mode & 6U) && !(mode & 1U)))
++		return -EPROTO;
++	return 0;
++}
++
++static inline int mt6797_init_validate_start(const unsigned char *p,
++					     size_t bytes,
++					     unsigned int sequence)
++{
++	if (!p || sequence > 255U)
++		return -EINVAL;
++	if (bytes != 16 || mt6797_init_le16(p) != 16 ||
++	    mt6797_init_le16(p + 2) != 0x8000 || p[4] != 2 || p[5] != 0xa0 ||
++	    p[6] || p[7] != sequence || mt6797_init_le32(p + 8) > 1U)
++		return -EPROTO;
++	/* The address is not a permission or validity check. */
++	return 0;
++}
++
++enum mt6797_init_phase {
++	MT6797_INIT_IDLE,
++	MT6797_INIT_DISPATCH,
++	MT6797_INIT_REPLY,
++	MT6797_INIT_POISONED,
++	MT6797_START_DISPATCH,
++	MT6797_START_READY,
++	MT6797_INIT_PAYLOAD
++};
++
++/* Zero-initialize once, set each pool only from proven fresh INIT admission.
++ * Caller serializes all calls and owns a finite deadline/owner generation.
++ * No reset/refund entry point. Do not reconstruct this after failure.
++ */
++struct mt6797_init_transaction {
++	enum mt6797_init_phase phase;
++	unsigned int free_pages, start_free_pages, expected_sequence;
++	/* free_pages is CONFIG TC4; start_free_pages is START TC0. */
++	unsigned char used_sequences[32];
++};
++
++static inline int mt6797_init_abort(struct mt6797_init_transaction *t)
++{
++	if (!t)
++		return -EINVAL;
++	t->phase = MT6797_INIT_POISONED;
++	return -EIO;
++}
++
++static inline int mt6797_init_begin(struct mt6797_init_transaction *t,
++				    const unsigned char *command, size_t bytes,
++				    unsigned int expected_sequence)
++{
++	int error;
++
++	if (!t)
++		return -EINVAL;
++	if (t->phase != MT6797_INIT_IDLE || t->free_pages > 104U)
++		return mt6797_init_abort(t);
++	error = mt6797_init_validate_config(command, bytes, expected_sequence);
++	if (error)
++		return error;
++	if (t->used_sequences[expected_sequence / 8] &
++	    (1U << (expected_sequence % 8)))
++		return mt6797_init_abort(t);
++	error = mt6797_init_debit(bytes, &t->free_pages);
++	if (error)
++		return error;
++	t->used_sequences[expected_sequence / 8] |=
++		(unsigned char)(1U << (expected_sequence % 8));
++	t->expected_sequence = expected_sequence;
++	t->phase = MT6797_INIT_DISPATCH;
++	return 0;
++}
++
++/* Feed the finite PIO primitive's return outcome. Success means submitted,
++ * not acknowledged. Any uncertain/failing outcome permanently poisons state.
++ */
++static inline int mt6797_init_submitted(struct mt6797_init_transaction *t,
++					int pio_error)
++{
++	if (!t)
++		return -EINVAL;
++	if (t->phase != MT6797_INIT_DISPATCH || pio_error)
++		return mt6797_init_abort(t);
++	t->phase = MT6797_INIT_REPLY;
++	return 0;
++}
++
++static inline int mt6797_start_begin(struct mt6797_init_transaction *t,
++				     const unsigned char *command, size_t bytes,
++				     unsigned int expected_sequence)
++{
++	int error;
++
++	if (!t)
++		return -EINVAL;
++	if (t->phase != MT6797_INIT_IDLE || t->start_free_pages > 104U)
++		return mt6797_init_abort(t);
++	error = mt6797_init_validate_start(command, bytes, expected_sequence);
++	if (error)
++		return error;
++	if (t->used_sequences[expected_sequence / 8] &
++	    (1U << (expected_sequence % 8)))
++		return mt6797_init_abort(t);
++	error = mt6797_init_debit(bytes, &t->start_free_pages);
++	if (error)
++		return error;
++	t->used_sequences[expected_sequence / 8] |=
++		(unsigned char)(1U << (expected_sequence % 8));
++	t->expected_sequence = expected_sequence;
++	t->phase = MT6797_START_DISPATCH;
++	return 0;
++}
++
++static inline int mt6797_start_submitted(struct mt6797_init_transaction *t,
++					 int pio_error)
++{
++	if (!t)
++		return -EINVAL;
++	if (t->phase != MT6797_START_DISPATCH || pio_error)
++		return mt6797_init_abort(t);
++	t->phase = MT6797_START_READY;
++	return 0;
++}
++
++/* Caller supplies an attributable WCIR observation after successful START TX.
++ * This is a level test, not proof that START caused a transition. Caller owns
++ * deadline and session validity; abort on timeout/ownership loss/read failure.
++ */
++static inline int mt6797_start_observe_ready(struct mt6797_init_transaction *t,
++					     unsigned int wcir)
++{
++	if (!t)
++		return -EINVAL;
++	if (t->phase != MT6797_START_READY)
++		return mt6797_init_abort(t);
++	if (!(wcir & (1U << 21)))
++		return -EAGAIN;
++	t->phase = MT6797_INIT_IDLE;
++	return 0;
++}
++
++/* Validate port-0 length before dispatching the RX primitive. */
++static inline int mt6797_init_prepare_reply(struct mt6797_init_transaction *t,
++					    unsigned int length,
++					    size_t capacity,
++					    struct mt6797_hif_command *span)
++{
++	int error;
++
++	if (span)
++		*span = (struct mt6797_hif_command){0};
++	if (!t)
++		return -EINVAL;
++	if (t->phase != MT6797_INIT_REPLY)
++		return mt6797_init_abort(t);
++	error = mt6797_init_result_span(length, capacity, span);
++	if (error && error != -EAGAIN)
++		mt6797_init_abort(t);
++	return error;
++}
++
++static inline int mt6797_init_accept_reply(struct mt6797_init_transaction *t,
++					   const unsigned char *packet,
++					   size_t logical_bytes,
++					   unsigned int *firmware_status)
++{
++	int error;
++
++	if (firmware_status)
++		*firmware_status = 0;
++	if (!t)
++		return -EINVAL;
++	if (t->phase != MT6797_INIT_REPLY)
++		return mt6797_init_abort(t);
++	error = mt6797_init_validate_result(packet, logical_bytes,
++					    t->expected_sequence, firmware_status);
++	if (error) {
++		mt6797_init_abort(t);
++		return error;
++	}
++	t->phase = MT6797_INIT_IDLE;
++	return 0;
++}
++
++#endif
+diff --git a/lib/mt6797-hif-compile/hif_ordinary_section.h b/lib/mt6797-hif-compile/hif_ordinary_section.h
+new file mode 100644
+index 0000000..106855b
+--- /dev/null
++++ b/lib/mt6797-hif-compile/hif_ordinary_section.h
+@@ -0,0 +1,145 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef GEMINI_HIF_ORDINARY_SECTION_H
++#define GEMINI_HIF_ORDINARY_SECTION_H
++#include "hif_config_phase.h"
++
++enum mt6797_section_kind { MT6797_SECTION_ORDINARY, MT6797_SECTION_EMI };
++enum mt6797_section_phase {
++	MT6797_SECTION_NEW,
++	MT6797_SECTION_CONFIG,
++	MT6797_SECTION_PAYLOAD,
++	MT6797_SECTION_SUBMITTED,
++	MT6797_SECTION_FAILED
++};
++
++struct mt6797_ordinary_section {
++	enum mt6797_section_phase phase;
++	struct mt6797_init_transaction *transaction;
++	const unsigned char *data;
++	size_t length, submitted;
++};
++
++static inline int mt6797_section_fail(struct mt6797_ordinary_section *s)
++{
++	if (!s)
++		return -EINVAL;
++	s->phase = MT6797_SECTION_FAILED;
++	if (s->transaction)
++		mt6797_init_abort(s->transaction);
++	return -EIO;
++}
++
++/* Caller has validated ordinary-section metadata/bytes and retains immutable
++ * data, transaction, powered ownership and serialization for the entire phase.
++ * EMI is explicitly refused, not silently omitted. No destination permission.
++ */
++static inline int
++mt6797_section_begin(struct mt6797_ordinary_section *s,
++		     struct mt6797_init_transaction *t,
++		     const struct mt6797_hif_pio_io *io,
++		     enum mt6797_section_kind kind,
++		     const unsigned char *config, size_t config_bytes,
++		     unsigned int sequence, const unsigned char *data,
++		     size_t length)
++{
++	int error;
++
++	if (!s || !t || !data || kind != MT6797_SECTION_ORDINARY)
++		return -EINVAL;
++	if (s->phase != MT6797_SECTION_NEW)
++		return mt6797_section_fail(s);
++	error = mt6797_init_validate_config(config, config_bytes, sequence);
++	if (error)
++		return error;
++	if (!length || length != mt6797_init_le32(config + 12))
++		return -EMSGSIZE;
++	s->transaction = t;
++	s->data = data;
++	s->length = length;
++	s->submitted = 0;
++	error = mt6797_config_send(t, io, config, config_bytes, sequence);
++	if (error) {
++		mt6797_section_fail(s);
++		return error;
++	}
++	s->phase = MT6797_SECTION_CONFIG;
++	return 0;
++}
++
++static inline int mt6797_section_ack(struct mt6797_ordinary_section *s,
++				     const struct mt6797_hif_pio_io *io,
++				     unsigned int length, unsigned int *status)
++{
++	int error;
++
++	if (status)
++		*status = 0;
++	if (!s)
++		return -EINVAL;
++	if (s->phase != MT6797_SECTION_CONFIG)
++		return mt6797_section_fail(s);
++	error = mt6797_config_receive(s->transaction, io, length, status);
++	if (error == -EAGAIN)
++		return error;
++	if (error) {
++		mt6797_section_fail(s);
++		return error;
++	}
++	s->phase = MT6797_SECTION_PAYLOAD;
++	s->transaction->phase = MT6797_INIT_PAYLOAD;
++	return 0;
++}
++
++/* Exactly one <=2048-byte PDA chunk per call; no ACK wait or local credit debit.
++ * Scratch must be distinct from immutable section data and all state/I/O objects.
++ * At most 2560 bytes needed. Caller checks deadline/ownership between calls.
++ */
++static inline int mt6797_section_next(struct mt6797_ordinary_section *s,
++				      const struct mt6797_hif_pio_io *io,
++				      unsigned char *scratch, size_t capacity)
++{
++	size_t chunk, bytes, i;
++	struct mt6797_hif_command command;
++	struct mt6797_hif_pio_result result;
++	int error;
++
++	if (!s)
++		return -EINVAL;
++	if (s->phase != MT6797_SECTION_PAYLOAD || !s->transaction ||
++	    s->transaction->phase != MT6797_INIT_PAYLOAD || !s->data ||
++	    s->submitted >= s->length || !scratch || !io || !io->write)
++		return mt6797_section_fail(s);
++	chunk = s->length - s->submitted;
++	if (chunk > 2048)
++		chunk = 2048;
++	bytes = 8 + chunk;
++	error = mt6797_hif_encode_command(0x34, MT6797_HIF_WRITE,
++					  MT6797_HIF_PIO_ONLY, bytes, capacity,
++					  &command);
++	if (error) {
++		mt6797_section_fail(s);
++		return error;
++	}
++	for (i = 0; i < 8; i++)
++		scratch[i] = 0;
++	scratch[0] = (unsigned char)bytes;
++	scratch[1] = (unsigned char)(bytes >> 8);
++	scratch[3] = 0xc0;
++	scratch[5] = 0xa0;
++	for (i = 0; i < chunk; i++)
++		scratch[8 + i] = s->data[s->submitted + i];
++	error = mt6797_hif_pio_transfer(io, 0x34, MT6797_HIF_WRITE, scratch,
++					bytes, capacity, &result);
++	if (error) {
++		mt6797_section_fail(s);
++		return error;
++	}
++	s->submitted += chunk;
++	if (s->submitted == s->length) {
++		s->phase = MT6797_SECTION_SUBMITTED;
++		s->transaction->phase = MT6797_INIT_IDLE;
++	}
++	return 0;
++}
++
++#endif
+diff --git a/lib/mt6797-hif-compile/hif_pio.h b/lib/mt6797-hif-compile/hif_pio.h
+new file mode 100644
+index 0000000..fb37011
+--- /dev/null
++++ b/lib/mt6797-hif-compile/hif_pio.h
+@@ -0,0 +1,77 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef GEMINI_HIF_PIO_H
++#define GEMINI_HIF_PIO_H
++#include "hif_command.h"
++
++/* Offset-relative, ordered scalar I/O. Return zero on success, else error.
++ * A kernel adapter uses writel/readl on its held mapping. No status emulation.
++ */
++struct mt6797_hif_pio_io {
++	void *context;
++	int (*write)(void *context, unsigned int offset, unsigned int value);
++	int (*read)(void *context, unsigned int offset, unsigned int *value);
++};
++
++struct mt6797_hif_pio_result {
++	size_t data_bytes;
++	bool setup_submitted;
++	bool transfer_complete;
++};
++
++/* Caller holds powered mapping, driver ownership and setup/data serialization.
++ * Credits/RX length, session validity and response completion belong to caller.
++ * TX reads only payload bytes and supplies zero padding; RX stores padded bytes.
++ * Zero return means finite submission/read completed, not firmware success.
++ * An I/O error may have side effects: no retry, rollback or credit refund.
++ */
++static inline int mt6797_hif_pio_transfer(const struct mt6797_hif_pio_io *io,
++					  unsigned int port,
++					  enum mt6797_hif_direction direction,
++					  unsigned char *buffer,
++					  size_t payload_bytes, size_t capacity,
++					  struct mt6797_hif_pio_result *result)
++{
++	struct mt6797_hif_command command;
++	size_t offset;
++	unsigned int byte, word;
++	int error;
++
++	if (!result)
++		return -EINVAL;
++	*result = (struct mt6797_hif_pio_result){0};
++	if (!io || !io->write || !buffer ||
++	    (direction == MT6797_HIF_READ && !io->read))
++		return -EINVAL;
++	error = mt6797_hif_encode_command(port, direction, MT6797_HIF_PIO_ONLY,
++					  payload_bytes, capacity, &command);
++	if (error)
++		return error;
++	if (io->write(io->context, 0, command.word))
++		return -EIO;
++	result->setup_submitted = true;
++	for (offset = 0; offset < command.transfer_bytes; offset += 4) {
++		word = 0;
++		if (direction == MT6797_HIF_WRITE) {
++			for (byte = 0; byte < 4; byte++)
++				if (offset + byte < payload_bytes)
++					word |= (unsigned int)
++							buffer[offset + byte]
++						<< (byte * 8);
++			error = io->write(io->context, 0x1000, word);
++		} else {
++			error = io->read(io->context, 0x1000, &word);
++			if (!error)
++				for (byte = 0; byte < 4; byte++)
++					buffer[offset + byte] =
++						(unsigned char)(word >>
++								(byte * 8));
++		}
++		if (error)
++			return -EIO;
++		result->data_bytes += 4;
++	}
++	result->transfer_complete = true;
++	return 0;
++}
++
++#endif
+diff --git a/lib/mt6797-hif-compile/hif_transfer_size.h b/lib/mt6797-hif-compile/hif_transfer_size.h
+new file mode 100644
+index 0000000..71e1371
+--- /dev/null
++++ b/lib/mt6797-hif-compile/hif_transfer_size.h
+@@ -0,0 +1,60 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/* Original arithmetic only; see HIF_DMA_CONTRACT.md for admission limits. */
++#ifndef GEMINI_HIF_TRANSFER_SIZE_H
++#define GEMINI_HIF_TRANSFER_SIZE_H
++
++#ifdef __KERNEL__
++#include <linux/errno.h>
++#include <linux/types.h>
++#else
++#include <errno.h>
++#include <stdbool.h>
++#include <stddef.h>
++#endif
++
++struct mt6797_hif_transfer_size {
++	size_t dma_bytes;
++	unsigned int command_count;
++	bool block_mode;
++};
++
++/*
++ * Selected 512-byte block contract. No address, mapping, port or MMIO action.
++ * A zero command count is deliberately refused: its special meaning on this
++ * private SDIO-like HIF has not been established. TX padding must be initialized
++ * by the caller; RX storage must cover dma_bytes, not just payload_bytes.
++ */
++static inline int
++mt6797_hif_transfer_size(size_t payload_bytes, size_t capacity, bool receive,
++			 struct mt6797_hif_transfer_size *result)
++{
++	size_t bytes, count;
++	bool blocks;
++
++	if (!result)
++		return -EINVAL;
++	*result = (struct mt6797_hif_transfer_size){0};
++	/* This bound also makes every following round-up overflow-safe. */
++	if (!payload_bytes || payload_bytes > 511U * 512U)
++		return -EMSGSIZE;
++
++	bytes = (payload_bytes + 3U) & ~(size_t)3U;
++	blocks = bytes >= 512U;
++	if (blocks) {
++		count = (bytes + 511U) / 512U;
++		bytes = count * 512U;
++	} else {
++		if (receive)
++			bytes = (payload_bytes + 7U) & ~(size_t)7U;
++		count = bytes;
++	}
++	if (!count || count > 511U || bytes > 0xfffffU || bytes > capacity)
++		return -EMSGSIZE;
++
++	result->dma_bytes = bytes;
++	result->command_count = (unsigned int)count;
++	result->block_mode = blocks;
++	return 0;
++}
++
++#endif
+diff --git a/lib/mt6797-hif-compile/kernel_adapter.c b/lib/mt6797-hif-compile/kernel_adapter.c
+new file mode 100644
+index 0000000..3bdba92
+--- /dev/null
++++ b/lib/mt6797-hif-compile/kernel_adapter.c
+@@ -0,0 +1,103 @@
++// SPDX-License-Identifier: GPL-2.0-only
++#include <linux/align.h>
++#include "kernel_adapter.h"
++
++static bool mt6797_mapping_valid(const struct mt6797_compile_mapping *mapping)
++{
++	return mapping && mapping->base && mapping->bytes >= 0x1004 &&
++		IS_ALIGNED((unsigned long)mapping->base, sizeof(u32));
++}
++
++/* Ordered scalar MMIO, with no relaxed/raw accessor or status emulation.
++ * A successful return means the accessor returned, not bus/firmware success.
++ * readl/writel cannot report a recoverable device/bus fault through this API.
++ */
++static int mt6797_compile_write(void *context, unsigned int offset,
++				unsigned int value)
++{
++	struct mt6797_compile_mapping *mapping = context;
++
++	if (!mt6797_mapping_valid(mapping) || (offset != 0 && offset != 0x1000))
++		return -EINVAL;
++	writel(value, (u8 __iomem *)mapping->base + offset);
++	return 0;
++}
++
++static int mt6797_compile_read(void *context, unsigned int offset,
++			       unsigned int *value)
++{
++	struct mt6797_compile_mapping *mapping = context;
++
++	if (!value || !mt6797_mapping_valid(mapping) || offset != 0x1000)
++		return -EINVAL;
++	*value = readl((u8 __iomem *)mapping->base + offset);
++	return 0;
++}
++
++int mt6797_compile_bind(struct mt6797_compile_mapping *mapping,
++			struct mt6797_hif_pio_io *io)
++{
++	if (!io)
++		return -EINVAL;
++	*io = (struct mt6797_hif_pio_io) { 0 };
++	if (!mt6797_mapping_valid(mapping))
++		return -EINVAL;
++	io->context = mapping;
++	io->write = mt6797_compile_write;
++	io->read = mt6797_compile_read;
++	return 0;
++}
++
++/* Non-static typed entry points force kernel compilation of the connected
++ * inline protocol code. No initcall, registration, export or runtime caller.
++ */
++int mt6797_compile_pio(const struct mt6797_hif_pio_io *io, unsigned int port,
++		       enum mt6797_hif_direction direction, unsigned char *buffer,
++		       size_t bytes, size_t capacity,
++		       struct mt6797_hif_pio_result *result)
++{
++	return mt6797_hif_pio_transfer(io, port, direction, buffer, bytes,
++				      capacity, result);
++}
++
++int mt6797_compile_section_begin(struct mt6797_ordinary_section *section,
++				 struct mt6797_init_transaction *transaction,
++				 const struct mt6797_hif_pio_io *io, enum mt6797_section_kind kind,
++				 const unsigned char *config, size_t config_bytes,
++				 unsigned int sequence, const unsigned char *data, size_t length)
++{
++	return mt6797_section_begin(section, transaction, io, kind, config,
++				    config_bytes, sequence, data, length);
++}
++
++int mt6797_compile_section_ack(struct mt6797_ordinary_section *section,
++			       const struct mt6797_hif_pio_io *io, unsigned int length,
++			       unsigned int *status)
++{
++	return mt6797_section_ack(section, io, length, status);
++}
++
++int mt6797_compile_section_next(struct mt6797_ordinary_section *section,
++				const struct mt6797_hif_pio_io *io, unsigned char *scratch,
++				size_t capacity)
++{
++	return mt6797_section_next(section, io, scratch, capacity);
++}
++
++int mt6797_compile_start_begin(struct mt6797_init_transaction *transaction,
++			       const unsigned char *command, size_t bytes, unsigned int sequence)
++{
++	return mt6797_start_begin(transaction, command, bytes, sequence);
++}
++
++int mt6797_compile_start_submitted(struct mt6797_init_transaction *transaction,
++				   int pio_error)
++{
++	return mt6797_start_submitted(transaction, pio_error);
++}
++
++int mt6797_compile_start_ready(struct mt6797_init_transaction *transaction,
++			       unsigned int wcir)
++{
++	return mt6797_start_observe_ready(transaction, wcir);
++}
+diff --git a/lib/mt6797-hif-compile/kernel_adapter.h b/lib/mt6797-hif-compile/kernel_adapter.h
+new file mode 100644
+index 0000000..e4cb5a2
+--- /dev/null
++++ b/lib/mt6797-hif-compile/kernel_adapter.h
+@@ -0,0 +1,41 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_COMPILE_KERNEL_ADAPTER_H
++#define MT6797_COMPILE_KERNEL_ADAPTER_H
++
++#include <linux/io.h>
++#include "hif_ordinary_section.h"
++
++/* Compile-only boundary. The absent caller must own power, mapping lifetime,
++ * exclusive driver ownership and setup/data serialization. No resources are
++ * acquired here. This type and all referenced buffers must remain distinct.
++ */
++struct mt6797_compile_mapping {
++	void __iomem *base;
++	size_t bytes;
++};
++
++int mt6797_compile_bind(struct mt6797_compile_mapping *mapping,
++			struct mt6797_hif_pio_io *io);
++int mt6797_compile_pio(const struct mt6797_hif_pio_io *io, unsigned int port,
++		       enum mt6797_hif_direction direction, unsigned char *buffer,
++		       size_t bytes, size_t capacity,
++		       struct mt6797_hif_pio_result *result);
++int mt6797_compile_section_begin(struct mt6797_ordinary_section *section,
++				 struct mt6797_init_transaction *transaction,
++				 const struct mt6797_hif_pio_io *io, enum mt6797_section_kind kind,
++				 const unsigned char *config, size_t config_bytes,
++				 unsigned int sequence, const unsigned char *data, size_t length);
++int mt6797_compile_section_ack(struct mt6797_ordinary_section *section,
++			       const struct mt6797_hif_pio_io *io, unsigned int length,
++			       unsigned int *status);
++int mt6797_compile_section_next(struct mt6797_ordinary_section *section,
++				const struct mt6797_hif_pio_io *io, unsigned char *scratch,
++				size_t capacity);
++int mt6797_compile_start_begin(struct mt6797_init_transaction *transaction,
++			       const unsigned char *command, size_t bytes, unsigned int sequence);
++int mt6797_compile_start_submitted(struct mt6797_init_transaction *transaction,
++				   int pio_error);
++int mt6797_compile_start_ready(struct mt6797_init_transaction *transaction,
++			       unsigned int wcir);
++
++#endif

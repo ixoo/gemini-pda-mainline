@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: GPL-2.0-only
+config MT6797_HIF_COMPILE_TEST
+	bool "Compile MT6797 HIF protocol and MMIO boundary"
+	depends on ARM64 && COMPILE_TEST
+	default n
+	help
+	  Compile the experimental PIO/INIT/ordinary-section components with
+	  ordered Linux MMIO accessors. This registers no device, runs no test
+	  at boot and provides no operational Wi-Fi driver. It acquires no
+	  resources and never enables a connectivity power domain.
+	  Say N normally.

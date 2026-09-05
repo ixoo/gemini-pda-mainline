@@ -11,6 +11,22 @@
   "config": {
     "default_profile": "full",
     "profiles": {
+      "mt6797-hif-compile": {
+        "base": "allnoconfig",
+        "fragments": [
+          "configs/mt6797-hif-compile.fragment"
+        ],
+        "kernel": {
+          "archive_format": "tar.gz",
+          "archive_root": "linux-4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+          "git_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+          "released": "2026-09-05",
+          "sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+          "source_url": "https://codeload.github.com/torvalds/linux/tar.gz/4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+          "version": "7.3-rc1"
+        },
+        "patch_series": "patches/series-mt6797-provider-compile"
+      },
       "mt6797-provider-compile": {
         "base": "allnoconfig",
         "fragments": [
