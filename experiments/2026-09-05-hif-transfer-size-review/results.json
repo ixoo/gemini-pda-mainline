@@ -1,0 +1,18 @@
+{
+  "reviewed_revision": "b3e056c7f661ebd4533061d39c62d6bbb2b7efda",
+  "input_sha256": {
+    "hif_transfer_size.h": "1c4542d509330474382d522924a2cb72795d2a806eae081d0c9f525699b3bd95",
+    "hif_transfer_size_test.c": "3982e5152066562614e09e06adbe81e0d03217ad2bf3393ca250daf91b0f28ff"
+  },
+  "compiler": "Apple clang version 21.0.0 (clang-2100.1.1.101)",
+  "hif_transfer_size_test.c": "transfer_size_cases=30 null_output_refused=1 result=pass",
+  "exhaustive.c": "checks=3672080 size_t_bits=64 null_output_refused=1 result=pass",
+  "mutations_refused": {
+    "capacity-check-removed": "failure payload=1 capacity=0 rx=0",
+    "count-512-admitted": "failure payload=505 capacity=512 rx=1",
+    "late-block-mode": "failure payload=509 capacity=512 rx=0",
+    "failure-output-not-cleared": "failure payload=0 capacity=0 rx=0"
+  },
+  "kernel_backend_device_access": false,
+  "temporary_files_removed": true
+}

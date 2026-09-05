@@ -1,0 +1,30 @@
+HIF DMA/EMI contract validation — 2026-09-05
+Base: 850b05698d82c97655cba9552a2eb38d7c36d9ff
+Scope: bounded source/mapping contract and pure transfer-size arithmetic.
+Public inputs: 13 source identities at existing Planet and upstream Linux pins.
+Retained kernel identity rechecked against private provenance; reused existing
+ELF and board DT. Named HifPdmaInit/HifPdmaStart inspected for channel mapping
+and unconditional extension writes. No address-width meaning inferred from them.
+Private mapping/analysis records remain guest-owned under restricted workspace;
+no private binary identities, disassembly, DT contents or firmware published.
+Host validation command: cc -std=c11 -Wall -Wextra -Werror -pedantic
+-fsanitize=address,undefined src/hif_transfer_size_test.c -o MANAGED_TEST_BINARY
+Result: transfer_size_cases=30 null_output_refused=1 result=pass;
+AddressSanitizer and UndefinedBehaviorSanitizer reported no error.
+Managed temporary binary removed on exit; no retained build/source copies.
+Policies exercised: 4/8-byte rounding, 512-byte mode boundary, ambiguous RX
+byte-count 512 refusal, 511-block limit, insufficient padded capacity,
+zero/SIZE_MAX refusal, zeroed failure output and NULL-output refusal.
+Rights review: original GPL-2.0-only helper/fixture; selected HIF sizing sources
+carry GPLv2 notices; no vendor implementation copied or firmware rights claimed.
+Kernel includes/integration not compiled; no kernel build or hardware tests.
+No live device, radio, calibration, partition, register or model/reset action.
+RE shell closed. Prior SPM handoffs unchanged. DMA address translation,
+exclusive channel admission, quiescence and actual post-LK ownership remain open.
+Common repository checks: python3 -B scripts/check-repository passed;
+profiles=189; unchanged grandfathered metadata debt=37; Linux-only artifact
+fixture skipped. New-file links/JSON/privacy and git diff --check passed.
+HIF_DMA_CONTRACT.md sha256=a29d7b34aaa3b8942c3fb751c24f0493c74f2ff245cf9d3ca1353b157b4e7dfc
+hif-dma-sources.json sha256=87db5fde3cdb9a112949492ce6b407f55b36e685a1c2958b48c11f48059de3b2
+hif_transfer_size.h sha256=1c4542d509330474382d522924a2cb72795d2a806eae081d0c9f525699b3bd95
+hif_transfer_size_test.c sha256=3982e5152066562614e09e06adbe81e0d03217ad2bf3393ca250daf91b0f28ff

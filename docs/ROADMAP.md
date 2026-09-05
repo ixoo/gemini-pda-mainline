@@ -147,6 +147,24 @@ cameras before committing large implementation effort to their assumed design.
 - Integrate small coherent topics; keep diagnostic interfaces default-off and
   removable. Record tested integration revisions separately from topic results.
 
+### Device-test cadence
+
+When the owner and device are available, prioritize the next reviewed,
+decision-changing device session over extending an already sufficient offline
+test suite. The integrator closes concrete deployment defects and the custodian
+runs the admitted test promptly; host-test completion is not a runtime result.
+After each session, preserve and classify evidence before choosing the next
+change. Do not repeat identical artifacts merely to maintain a testing cadence.
+
+For the selected A53 baseline, finish corrected installation, obtain verified
+readback and clean shutdown, then issue the single physical boot request here
+in Project Planning. Use its first authenticated USB/logging/recovery result to
+admit keyboard and read-only storage tests independently. Wi-Fi progresses its
+host implementation and resource contract in parallel, with its next physical
+observation chosen to resolve an explicit blocker. If the owner is unavailable,
+leave the exact session packet ready and continue the next independent item;
+do not make all workers wait for boot2.
+
 ### Owner-away progress
 
 Owner availability must not become the project's global critical path. While a

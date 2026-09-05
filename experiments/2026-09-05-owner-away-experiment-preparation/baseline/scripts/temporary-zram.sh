@@ -61,6 +61,14 @@ if [[ $ACTION == restore ]]; then
  printf 'temporary_zram=restoration-complete\n'
  exit 0
 fi
+# Two fresh samples, then a separate immediate pre-mutation gate.
+for sample in 1 2; do
+ identity
+ active
+ printf 'pre_deactivation_sample=%s\n' "$sample"
+ [[ $sample == 2 ]] || sleep 2
+done
+identity
 active
 printf 'temporary_zram=deactivation-begin\n'
 # If this call is interrupted/indeterminate, changed stays no: reconcile before

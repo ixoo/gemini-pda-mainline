@@ -16,10 +16,10 @@
       "experiment": "experiments/2026-09-05-owner-away-experiment-preparation/README.md#a53-authenticated-baseline",
       "session_packet": "experiments/2026-09-05-owner-away-experiment-preparation/baseline/SESSION.md",
       "candidate_record": "experiments/2026-09-05-owner-away-experiment-preparation/baseline/PREPARATION_RESULTS.md",
-      "readiness_record": "experiments/2026-09-05-owner-away-experiment-preparation/baseline/ATTENDED_INTEGRATION.md",
+      "readiness_record": "experiments/2026-09-05-owner-away-experiment-preparation/baseline/INSTALL_RETRY.md",
       "dependencies": [],
       "owner_task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64",
-      "readiness_note": "The new baseline was not written. Owner-authorized read-only verification confirmed the same known-good Gemian boot, working authenticated access and restored swap. Corrected installer host validation is reviewed; a finite retry protocol remains under preparation. No verified deployment, shutdown or waiting-owner-boot receipt."
+      "readiness_note": "Corrected installer and fresh prerequisite sampling passed independent host review. One prerequisite action is admitted under the owning finite retry protocol; installation awaits its reviewed result. No successful deployment, shutdown or waiting-owner-boot receipt."
     },
     "keyboard-coverage": {
       "workstream": "serviceability",
