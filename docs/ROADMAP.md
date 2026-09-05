@@ -75,13 +75,14 @@ not the starting point for unreviewed deployments.
 Keep one integration owner and at most three active implementation/research work
 items. Each item has one owner, a frozen parent, a bounded scope, a handoff and
 an upstream exit. These are staffing limits, not extra approval gates. Start
-with power, upstream preparation and serviceability; the integrator completes
-infrastructure and reviews their handoffs. Unassigned work is not running.
+with upstream preparation, A53 serviceability and keyboard/storage protocol
+preparation; the integrator reviews their handoffs. Offline power work continues
+when it can resolve a supported interface or measurement dependency. Unassigned work is not running.
 
 | Workstream | First bounded deliverable | Can proceed independently | Hardware or integration dependency |
 | --- | --- | --- | --- |
 | Integration and lab | Shared checks, immutable packages, one active deployment path, baseline registry | Tooling fixtures, documentation and review | Serialize manifest/series integration and shared Buildbox mutations |
-| A72 and power | Finish corrected thermal regression; decide the measurement dependency | Source/math review, fake-hardware tests, ownership design | Exact experiment admission; broader load waits for defensible thermal observation/protection gates |
+| A72 and power | Resolve a supported measurement or production-ownership contract; completed V4 is not a repeat queue item | Source/math review, fake-hardware tests, ownership design | Exact experiment admission; broader load waits for defensible thermal observation/protection gates |
 | Upstream preparation | Extract and review a minimal MT6797 infracfg reset topic from the corrected implementation | Authorship audit, dependency reduction, binding review, maintainer-target discovery | Truthful certification, focused compile/schema checks and existing exact runtime evidence before submission |
 | A53 serviceability | Specify and freeze an integration baseline and a ten-cold-boot regression protocol | Authenticated USB userspace, keyboard test plan, log separation, read-only storage tests | One scheduled device slot; persistent writes and power-off need their own reviewed protocols |
 | Display, touch and GPU | Map the minimal DRM/panel dependency graph and resolve panel/backlight ownership | Compare current upstream bindings, documented resources and historical evidence | Shared clocks/resets/PMIC reviewed with power; GPU load waits for power/thermal prerequisites |
@@ -124,23 +125,93 @@ cameras before committing large implementation effort to their assumed design.
 - Integrate small coherent topics; keep diagnostic interfaces default-off and
   removable. Record tested integration revisions separately from topic results.
 
+### Owner-away progress
+
+Owner availability must not become the project's global critical path. While a
+physical boot is unavailable, workers continue source and binding research,
+small upstream-topic preparation, implementation, host/fixture tests, authorized
+Buildbox builds, candidate packaging and review. Finish the blocked item's
+handoff, then move to independent work. Waiting device items do not occupy one
+of the three active worker slots.
+
+Keep a short look-ahead of up to three fully prepared, decision-useful device
+items when the evidence supports them. This is a ceiling, not a quota: do not
+build speculative variants to fill it. More ideas may remain as cheap protocol
+or source research. Reuse frozen baseline inputs and prepared Buildbox sources;
+retain only artifacts needed by open items and verified recovery.
+
+The first preparation order is:
+
+1. **A53 authenticated USB baseline:** recover and audit the exact runtime-proven
+   PWRAP serviceability inputs, then freeze a candidate, authenticated userspace,
+   separate logs and one bounded first-boot protocol. Do not assume today's
+   similarly named profile reproduces the historical package.
+2. **Keyboard coverage:** prepare a bounded event classifier and finite owner
+   key sequence against the baseline's declared input/console interface. Its
+   runtime gate needs the first baseline USB/console pass, not all ten cold boots.
+3. **Read-only eMMC regression:** prepare exact device identification, finite
+   read/time/error budgets and refusal tests against the same interface. Its
+   runtime gate needs baseline serviceability and reviewed recovery, independently
+   of keyboard completion. Persistent-root writes remain separate.
+
+Protocol work for all three can proceed concurrently. Items with unverified
+candidate or protocol inputs remain planned/preparing. Conditional items have
+frozen validated inputs and await only an explicit runtime result predicate.
+The cumulative ten-cold-boot release gate remains distinct; schedule
+its attributable cycles around useful compatible tests without silently changing
+inputs or increasing action budgets. Upstream work consumes no device slot.
+
+The [preparation record](../experiments/2026-09-05-owner-away-experiment-preparation/README.md)
+owns these initial hypotheses and missing evidence. The
+[queue inventory](../project/experiment-queue.json) reports readiness and links
+to experiment-owned [session packets](../project/DEVICE_SESSION.md); it contains
+no executable action and does not choose priority independently of this roadmap.
+
 ### One device queue
 
-The named Gemini is a serial resource. The current thermal task owns its active
-experiment until it records a completed or blocked handoff. Other workers may
-prepare candidates and protocols offline but may not install, collect consuming
-observations or change the device session concurrently.
+The named Gemini is a serial resource. Before changing its session, identify its
+custodian and obtain the current experiment's handoff; a completed observation
+is not permission to reclaim an uninspected device. Completed V4 observations
+must not be repeated merely because the owner returns.
 
-Each queued item supplies an exact validated candidate, hypothesis, action
-budget, distinguishing evidence, recovery path and decision map. The custodian
-selects one ready item, records the cycle and publishes its result before the
-next item can proceed. Existing standing boot2 authorization is preserved; a
-queue entry is neither new authorization nor a reason to ask again.
+An item is **ready** only when its exact candidate and protocol are frozen,
+applicable build/package/container and shell/refusal checks pass, dependency
+predicates are satisfied, and capture/classification/recovery are prepared.
+**Conditional** means offline preparation is complete but a named runtime
+predicate remains. **Preparing** and **planned** are not ready for an owner
+session. Only an installed, readback-verified selected item can be marked
+**waiting-owner-boot**; record that deployment in its experiment.
 
-A device result may serve several workstreams only when they share the exact
-relevant inputs and the protocol measures each claimed behavior. An unrelated
-passing boot or package is not a substitute. Do not bundle multiple
-boot-critical changes merely to save a physical cycle.
+One custodian selects one ready item, using the roadmap order and actual
+readiness. The existing guarded boot2 installation and clean-shutdown policy
+applies, including its standing authorization when the known-good OS is
+reachable. Stage only that selected candidate; never replace a staged candidate
+with another queued image before its result or explicit supersession is recorded.
+Physical boot2 selection remains the owner's action for each required cycle.
+
+When the owner returns, present one session card: the exact physical action,
+expected screen/USB behavior, approximate owner time if known, any key presses
+or cable changes, and stop/recovery instructions. Use the already prepared
+capture and classifier once identity and admission checks pass. Record pass,
+failure or inconclusive evidence and reconsider dependencies before selecting
+the next item. A queue is not a blind batch runner or permission to reboot.
+
+If the owner becomes unavailable mid-session, stop at the protocol's defined
+safe boundary; do not hold a stress/load test open or restart a consumed observer.
+Release the worker to offline work. Notify about a new actionable session or
+changed requirement, not repeated unchanged requests for physical selection.
+
+Invalidate readiness when relevant candidate/protocol inputs change, required
+results are withdrawn, an observation budget is consumed, or new evidence
+supersedes the hypothesis. Preserve old receipts. A failed prerequisite blocks
+its dependents while independent ready items remain available. Recheck physical
+identity, partition state, power and recovery at deployment time; preparation
+cannot freeze those observations.
+
+One boot may serve several workstreams only when the exact relevant inputs,
+measurement interference, ordering and combined finite budget were reviewed in
+advance. Keep the per-test evidence attributable, abort affected dependents on
+failure, and never bundle multiple boot-critical changes merely to save a cycle.
 
 ### Progress measures and review cadence
 
@@ -149,7 +220,8 @@ topics awaiting review, regression passes on exact inputs, unresolved shared
 blockers, and why each consumed boot changed a decision. Track rejected and
 inconclusive outcomes too. Patch, build and document counts are not progress
 measures. Review priorities weekly or when a decisive result changes a
-workstream's dependencies; no timer or automation is created by this plan.
+workstream's dependencies. Scheduled continuations are managed separately in
+the app and use this roadmap; the document itself is not a scheduler.
 
 ## A53 development-system release gate
 
@@ -158,13 +230,15 @@ from a named runtime-proven serviceability candidate and audit its required
 kernel/DT/config inputs before defining a new frozen manifest profile. Do not
 silently promote an old experimental profile or the moving `full` default.
 
-The first acceptance protocol requires ten attributable cold boots, preserved
-recovery, CPU0-7 identity, console/log capture, keyboard input and authenticated
-USB administration. Keep CPU8/9 offline and retain the protocol's existing
-power/load bounds. Then add bounded read-only eMMC checks, explicitly admitted
-persistent-root I/O and validated orderly restart/power-off as separate steps.
-No daily-driver, storage-reliability or thermal-protection claim follows merely
-from the ten-boot gate.
+The cumulative development-system release protocol requires ten attributable
+cold boots, preserved recovery, CPU0-7 identity, console/log capture, keyboard
+input and authenticated USB administration. Keep CPU8/9 offline and retain the
+protocol's existing power/load bounds. Separately reviewed keyboard and bounded
+read-only eMMC packets may run once their first-baseline-boot dependencies pass;
+they need not wait for all ten cycles. Explicitly admitted persistent-root I/O
+and validated orderly restart/power-off remain separate steps. No daily-driver,
+storage-reliability or thermal-protection claim follows merely from the ten-boot
+gate.
 
 ## Upstream delivery gate
 

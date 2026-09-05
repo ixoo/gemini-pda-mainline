@@ -19,6 +19,12 @@ contract, not a new approval requirement or an alternative roadmap.
   finite action budget, attributable result and recovery. Name the custodian.
 - **Upstream:** target subsystem/tree, authorship/certification status, public
   review link when available and local-patch removal condition.
+- **Owner-away work:** what can finish without physical selection; the bounded
+  handoff that frees this worker for another offline item.
+- **Device readiness:** planned/preparing/conditional/ready separately from
+  deployment state; link an experiment-owned [session packet](DEVICE_SESSION.md)
+  and its [queue entry](experiment-queue.json). State exact result predicates,
+  invalidation conditions and all required owner interactions.
 - **Handoff:** exact commit, changed paths, tests actually run, known failures,
   artifact references and what evidence permits integration.
 - **State:** ready, active, waiting-build, waiting-device, waiting-upstream,

@@ -7,15 +7,11 @@
     "device_slots": 1,
     "build_policy": "Explicit Buildbox, shared mutations serialized by existing lock",
     "handoff_template": "project/WORK_ITEM.md",
-    "roadmap": "docs/ROADMAP.md"
+    "roadmap": "docs/ROADMAP.md",
+    "experiment_queue": "project/experiment-queue.json",
+    "owner_away_policy": "Continue independent offline work; waiting-device items free worker slots. Readiness is not physical admission."
   },
-  "active_device_experiment": {
-    "workstream": "power",
-    "record": "experiments/2026-09-04-mt6797-thermal-snapshot/V4_RUNTIME_ACCEPTANCE.md",
-    "candidate_record": "experiments/2026-09-04-mt6797-thermal-snapshot/results/v4-candidate-composition.json",
-    "host_protocol": "experiments/2026-09-04-mt6797-thermal-snapshot/V4_HOST_PROTOCOL.md",
-    "authority": "Admission is recorded by the owning experiment; this pointer grants no device action."
-  },
+  "active_device_experiment": null,
   "workstreams": [
     {
       "id": "integration",
@@ -42,8 +38,8 @@
     {
       "id": "power",
       "title": "A72 and power",
-      "owner": "Active thermal experiment custodian",
-      "status": "active",
+      "owner": null,
+      "status": "blocked",
       "scope": [
         "experiments/2026-09-04-mt6797-thermal-snapshot/"
       ],
@@ -60,20 +56,22 @@
       ],
       "dependencies": [
         "integration"
-      ]
+      ],
+      "blocker": "Physical-versus-conversion-history causality requires an independent measurement or supported acquisition-timing contract; completed V4 is not awaiting another boot."
     },
     {
       "id": "upstream",
       "title": "Upstream preparation",
-      "owner": null,
-      "status": "ready",
+      "owner": "CPU 8-9 Astra",
+      "status": "active",
       "scope": [
         "project/upstream-topics.json",
         "topic-local binding/driver review"
       ],
       "evidence": [
         "experiments/2026-09-03-mt6797-infracfg-reset-repair/README.md",
-        "experiments/2026-09-04-mt6797-pwrap-reset-serviceability/README.md"
+        "experiments/2026-09-04-mt6797-pwrap-reset-serviceability/README.md",
+        "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/README.md"
       ],
       "issue_urls": [
         "https://github.com/ixoo/gemini-pda-mainline/issues/3",
@@ -93,7 +91,8 @@
       ],
       "evidence": [
         "experiments/2026-09-04-mt6797-pwrap-reset-serviceability/README.md",
-        "docs/hardware/keyboard.md"
+        "docs/hardware/keyboard.md",
+        "experiments/2026-09-05-owner-away-experiment-preparation/README.md"
       ],
       "issue_urls": [
         "https://github.com/ixoo/gemini-pda-mainline/issues/7",
@@ -105,6 +104,11 @@
       ],
       "dependencies": [
         "integration"
+      ],
+      "queue_items": [
+        "a53-authenticated-baseline",
+        "keyboard-coverage",
+        "emmc-readonly"
       ]
     },
     {
@@ -184,5 +188,11 @@
         "serviceability"
       ]
     }
-  ]
+  ],
+  "device_handoff": {
+    "last_completed_experiment": "experiments/2026-09-04-mt6797-thermal-snapshot/V4_RUNTIME_ACCEPTANCE.md",
+    "result": "experiments/2026-09-04-mt6797-thermal-snapshot/results/v4-runtime-pass.txt",
+    "queue": "project/experiment-queue.json",
+    "authority": "Completed observation and consumed budget do not authorize a repeat or imply the device has been released; obtain custodian handoff before changing its session."
+  }
 }

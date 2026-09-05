@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
+  "roadmap": "docs/ROADMAP.md#owner-away-progress",
+  "session_template": "project/DEVICE_SESSION.md",
+  "selected_item": null,
+  "selection_note": "No new session selected by this preparation plan; current physical custody and live state require the existing custodian handoff.",
+  "items": {
+    "a53-authenticated-baseline": {
+      "workstream": "serviceability",
+      "preparation_state": "planned",
+      "device_state": "unselected",
+      "owner": null,
+      "reviewer": null,
+      "device_custodian": null,
+      "experiment": "experiments/2026-09-05-owner-away-experiment-preparation/README.md#a53-authenticated-baseline",
+      "session_packet": null,
+      "candidate_record": null,
+      "readiness_record": null,
+      "dependencies": []
+    },
+    "keyboard-coverage": {
+      "workstream": "serviceability",
+      "preparation_state": "planned",
+      "device_state": "unselected",
+      "owner": null,
+      "reviewer": null,
+      "device_custodian": null,
+      "experiment": "experiments/2026-09-05-owner-away-experiment-preparation/README.md#keyboard-coverage",
+      "session_packet": null,
+      "candidate_record": null,
+      "readiness_record": null,
+      "dependencies": [
+        {
+          "item": "a53-authenticated-baseline",
+          "required_result": "Exact frozen baseline first boot passes authenticated USB and console serviceability; input interface is identified. Ten completed cold boots are not required.",
+          "evidence": null
+        }
+      ]
+    },
+    "emmc-readonly": {
+      "workstream": "serviceability",
+      "preparation_state": "planned",
+      "device_state": "unselected",
+      "owner": null,
+      "reviewer": null,
+      "device_custodian": null,
+      "experiment": "experiments/2026-09-05-owner-away-experiment-preparation/README.md#emmc-readonly",
+      "session_packet": null,
+      "candidate_record": null,
+      "readiness_record": null,
+      "dependencies": [
+        {
+          "item": "a53-authenticated-baseline",
+          "required_result": "Exact frozen baseline passes serviceability with reviewed recovery and the read-only protocol has exact device identity and finite budgets. Keyboard coverage is independent.",
+          "evidence": null
+        }
+      ]
+    }
+  }
+}

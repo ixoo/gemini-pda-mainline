@@ -78,6 +78,31 @@ configuration, safe tooling, hardware knowledge, and reproducible evidence.
   `From:` identity only when it has no synthetic sign-off and remains
   explicitly not submission-ready.
 
+## Progress while the owner is unavailable
+
+- Owner absence blocks physical boot selection, not independent research,
+  implementation, review, host tests or authorized Buildbox work. Finish a
+  bounded handoff for a waiting item and take the next ready offline item from
+  `docs/ROADMAP.md`; do not leave every worker waiting for the same device.
+- Prepare experiments through reproducible candidate construction, validators,
+  refusal fixtures, evidence capture, classification and recovery instructions
+  before requesting an owner session. Keep preparation readiness separate from
+  physical admission in `project/experiment-queue.json`.
+- Exact candidate identities, dependencies, action budgets, owner instructions
+  and pass/fail/inconclusive branches belong in the owning experiment. The
+  queue links to those records; the roadmap alone orders work.
+- Several experiments may be prepared, but only one candidate may be selected
+  for deployment at a time. Existing standing boot2 authorization is unchanged;
+  physical selection remains the owner's action and never becomes an automatic
+  reboot or a blind batch of queued tests.
+- A candidate or protocol change, withdrawn prerequisite, consumed observation
+  budget or superseding result invalidates the affected readiness claim. Review
+  each result before admitting dependent work; independent offline work continues.
+- On the owner's return, provide one concise session plan with the next exact
+  physical action, expected behavior, required interaction and stop conditions.
+  Reuse a boot for compatible tests only when their combined effects and budgets
+  were reviewed in advance. See `docs/ROADMAP.md#owner-away-progress`.
+
 ## Storage stewardship
 
 - Treat SSD space as a shared, finite development resource. Check host and VM
