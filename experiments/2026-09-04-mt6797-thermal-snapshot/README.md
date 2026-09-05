@@ -332,3 +332,7 @@ Host refusal fixtures pass; the new exact-shell admission gate remains pending.
 The [corrected Gemian adapter exact-shell gate](results/gemian-recovery-final-shell-pass.json)
 now passes. The documented guarded installer is selected for cycle preparation;
 receipt validation and physical selection remain prerequisites to runtime.
+
+The [Gemian recovery cycle receipt](results/recovery-cycle-preparation.txt) now
+passes: boot2 was already exact, independent full readback matched, and clean
+shutdown was confirmed. Physical selection precedes the new pristine gate.

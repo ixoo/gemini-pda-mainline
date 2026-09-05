@@ -1,0 +1,17 @@
+experiment=2026-09-04-mt6797-thermal-snapshot
+result=skipped-already-matching
+target_logical_name=boot2
+target=/dev/mmcblk0p30
+root=/dev/mmcblk0p29
+predecessor_sha256=666961b636b21b8598a64999e9dbf72af280ad99f07a6b745045320f24ca361b
+fresh_predecessor_backup=no
+candidate_sha256=666961b636b21b8598a64999e9dbf72af280ad99f07a6b745045320f24ca361b
+readback_sha256=666961b636b21b8598a64999e9dbf72af280ad99f07a6b745045320f24ca361b
+boot_id=5d45171e-6c70-4fe4-99b6-715ac22ca826
+power=1|100|Good|1
+temporary_readback_removed=yes
+shutdown=requested-after-evidence-flush
+poweroff_ssh_rc=0
+post_shutdown_reachability=unreachable
+reboot=no
+next_action=owner-physically-selects-boot2

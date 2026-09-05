@@ -1,0 +1,26 @@
+Gemian recovery cycle preparation
+protocol_source_revision=ec05d52173e69bf0eaceec5ba9e256f9a6b0c7e5
+admission_publication=6bea366d
+source_boot_id=5d45171e-6c70-4fe4-99b6-715ac22ca826
+live_GPT_target=/dev/mmcblk0p30
+active_root=/dev/mmcblk0p29
+power=1|100|Good|1
+boot2_write=skipped-already-matching
+independent_full_readback_bytes=16777216
+independent_full_readback_byte_comparison=pass
+temporary_readback_removed=yes
+fresh_backup_created=no
+kernel_build=none
+poweroff_ssh_rc=0
+post_shutdown_reachability=unreachable
+reboot_requested=no
+Gemian_recovery_runner_receipt_validation=pass
+new_mainline_boot_observed=no
+new_workload_requested=no
+next_action=owner-physically-selects-boot2
+deployment_receipt_sha256=32eb2d6389ed4dbafd29547000f356af1077b76b9fc084867b69c0ed5d248b62
+private_preparation_log_sha256=0bbbb1cf735e7971d932d2f1a976229f016a8acbda45c03d0e00f09b770093ff
+The complete original receipt is published separately. The full partition read
+was verification, not a new retained backup. Private operational log warnings
+and absolute host paths are omitted; no credentials, calibration or serials
+are published. Shutdown/unreachability does not measure electrical rail discharge.

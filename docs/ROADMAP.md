@@ -8379,11 +8379,13 @@ now retains exact live-GPT inactive boot2 validation, matching-image skip/full
 readback, source boot binding and complete shutdown receipt validation with
 host mutation fixtures. The corrected complete adapter now passes the exact candidate shell suite on
 published revision `ec05d521`, including initial precision refusal before any
-workload request. **Selected next:** prepare the named Gemian boot through the
-guarded installer, skip an already-matching image, require the complete full
-readback/shutdown receipt, then ask the owner to select boot2. After selection,
-run only the new receipt-bound pristine gate and one bounded recovery attempt.
-Reuse the existing image; preserve unknown conversion age and prior rejection. No further diagnostic reads or workload on the consumed
+workload request. The named Gemian preparation now passed with the image already matching,
+independent full readback/byte comparison and confirmed clean shutdown. The
+receipt-only runner check passes. **Selected next:** the owner physically
+selects boot2; then require the new receipt-bound pristine frame and perform
+one bounded recovery attempt with final accounting. Preserve any rejection
+without retry. Reuse the existing image and retain unknown conversion age and
+prior thermal rejection. No further diagnostic reads or workload on the consumed
 session; no repeat is admitted. Any future boot requires a distinct,
 decision-changing hypothesis and published bounded protocol. Integrated thermal
 repeatability, broader load/hotplug, cpufreq/OPP, idle, suspend, thermal protection

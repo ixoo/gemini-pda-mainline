@@ -128,3 +128,15 @@ image, require full readback and complete shutdown evidence, then validate the
 receipt offline before asking the owner to select boot2. The runtime remains
 gated on that receipt and a fresh pristine mainline frame. No additional
 thermal snapshot or workload is permitted on any consumed session.
+
+
+## Prepared device cycle
+
+The [deployment receipt](results/recovery-Gemian-deployment.txt) and
+[preparation record](results/recovery-cycle-preparation.txt) now validate.
+Live-GPT boot2 already matched the exact candidate, so no write occurred.
+The independent full-partition readback and byte comparison passed under stable
+power, temporary readback was removed, and Gemian shutdown/unreachability was
+confirmed. The new runner's receipt-only check passes without device access.
+No new mainline boot or recovery workload is claimed yet. Physical boot2
+selection is now required before the exact pristine gate and single run.
