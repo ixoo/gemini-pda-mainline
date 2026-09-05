@@ -1,0 +1,17 @@
+{
+  "archive_copied": false,
+  "archive_sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+  "cleanup": "disposable Git-fetched checkout and all fixture temporary roots removed",
+  "device_access": false,
+  "fixture_sha256": "fd94d54b8bcb0a601bf195e3fae74e3bc5c4e8d5b28700b223354afde11567f8",
+  "helper_sha256": "f01ce9896cedf43f5aae8768b517fe8bd16d9adb2497d4f78360e06f16607d64",
+  "kernel_build": false,
+  "linux_archive_groups": 7,
+  "linux_builder_groups": 4,
+  "members_inspected": 102310,
+  "project_revision": "e1bfec0ed7004ba0e2f4a3eaa4894992c2e9b0d5",
+  "regression": "Prior e3f0304d accepted the two-symlink traversal in memory; corrected inventory rejects both member orders and hard-link variant before extraction",
+  "result": "pass",
+  "schema": 1,
+  "source_extracted": false
+}

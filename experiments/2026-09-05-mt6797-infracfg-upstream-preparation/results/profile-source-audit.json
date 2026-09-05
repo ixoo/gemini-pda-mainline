@@ -1,0 +1,38 @@
+{
+  "cache_observation": {
+    "cache_real_directory": true,
+    "destination_exists": false,
+    "mutation": false,
+    "same_filesystem": false,
+    "source_bytes": 269814253,
+    "source_link_count": 1,
+    "source_regular": true
+  },
+  "files": {
+    "Documentation/devicetree/bindings/Makefile": "622c42e361dfd164313fa987a92f58bf555931a65ffe52d09927e2fccf224698",
+    "arch/arm64/Kconfig": "9770a554fc7c110ec7cf47ce9f51fc156d0ac1b7750714838c40c109e86717e0",
+    "arch/arm64/Kconfig.platforms": "f1a787b9201e8199a70fc2050aaf757c1c5ee24e3c480ea82c1ea48726a30d92",
+    "arch/arm64/boot/dts/mediatek/Makefile": "fc4994382f6d1e6224e382a788875364c9879282fd4d3c1e3500a1b8793e7d6c",
+    "arch/arm64/boot/dts/mediatek/mt6797-evb.dts": "ace973acc8e7b761e83cf8d3095dcdffa5f8d872a8ab53400f2a86c2b920fa2a",
+    "arch/arm64/boot/dts/mediatek/mt6797-x20-dev.dts": "65ff8e775ecf330e4d3fd21ae16ce0e4d714272c4592472df52dcc9259adbc07",
+    "drivers/clk/Kconfig": "690766a7cfca17bddb901fc40d4032ed9c0d279b909e2753ddc42427e9a9cf18",
+    "drivers/clk/mediatek/Kconfig": "6634c6e7c14ca9a72fc0a258ca9b8a575c53bc451919646feb644c7b9354c3c0",
+    "drivers/firmware/psci/Kconfig": "5d77c195004c135312301d95592006d8156755647990516b274b9dfad9cf57a9",
+    "drivers/mfd/Kconfig": "fb26622d2f5ac4f6100f6aece915937c38a909617cd2d08b80a55af10ebf58ca",
+    "drivers/tty/serial/Kconfig": "a93243e822eb803efbdfd578f71b3a6bb98a280ece14f6efe1997d0f875f91cb",
+    "lib/kunit/Kconfig": "8066b0ddb3036116a40f4076208d70f51acf75080d89b3d41ce59461ab175a50",
+    "lib/kunit/executor.c": "bc33830735dc8ca54a8774fe7c66f97b08ce7d1b91f7f3b0ba891bc524edb905",
+    "tools/testing/kunit/qemu_configs/arm64.py": "b0f1105046f7e49d304856caed0d251e5a6975d9f6315721d1f93c979673ef8c"
+  },
+  "method": "Read-only selected-file inspection from the retained verified Buildbox archive; no persistent source tree extraction",
+  "not_run": [
+    "Kconfig resolution",
+    "kernel compile",
+    "QEMU",
+    "schema validation",
+    "cache migration",
+    "device access"
+  ],
+  "schema": 1,
+  "upstream_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c"
+}

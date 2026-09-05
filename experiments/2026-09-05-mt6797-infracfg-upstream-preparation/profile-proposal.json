@@ -1,0 +1,130 @@
+{
+  "archive_adoption": {
+    "bytes": 269814253,
+    "destination_relative_to_buildbox_home": ".cache/gemini-pda/linux-45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d.tar.gz",
+    "observed_destination_exists": false,
+    "observed_same_filesystem": false,
+    "observed_source_link_count": 1,
+    "performed": false,
+    "sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+    "source_relative_to_workspace": "cache/upstream-snapshots/linux-4d7d9486c04d917265f64c55bd23b2cc4fe7749c.tar.gz"
+  },
+  "binding": {
+    "dtbs": [
+      "mediatek/mt6797-evb.dtb",
+      "mediatek/mt6797-x20-dev.dtb"
+    ],
+    "schema": "clock/mediatek,infracfg.yaml",
+    "targets": [
+      "dt_binding_check",
+      "dtbs_check"
+    ]
+  },
+  "fragment": {
+    "sha256": "ddfa5d4f2f9e8d5b7f336853a596b2c2fd78247dd4a06f76ed6996225099f7fd",
+    "source": "upstream-kunit.fragment"
+  },
+  "generated_tree": "04572ddae2b7f5fefaac76525f74c216a98a8c5d",
+  "manifest_entry": {
+    "base": "allnoconfig",
+    "fragments": [
+      "configs/mt6797-infracfg-upstream-kunit.fragment"
+    ],
+    "kernel": {
+      "archive_format": "tar.gz",
+      "archive_root": "linux-4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "git_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "released": "2026-09-05",
+      "sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+      "source_url": "https://codeload.github.com/torvalds/linux/tar.gz/4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "version": "7.3-rc1"
+    },
+    "patch_series": "patches/series-mt6797-infracfg-upstream-kunit"
+  },
+  "patches": [
+    {
+      "path": "patches/upstream-4d7d9486/0001-clk-mediatek-reject-out-of-bank-SET-CLEAR-reset-IDs.patch",
+      "sha256": "ab875a831822e1809619f0034f29f8c068af133012da196ba59a62977b884fd5"
+    },
+    {
+      "path": "patches/upstream-4d7d9486/0002-clk-mediatek-test-reset-translation-bounds.patch",
+      "sha256": "211f2b95d24d7cb09085d99ade5bcd681254f55145e227920fd62b773f30d483"
+    },
+    {
+      "path": "patches/upstream-4d7d9486/0003-dt-bindings-reset-mediatek-describe-MT6797-infracfg-.patch",
+      "sha256": "88e629b8a56aa892f43949bc052322efb38ba209df7b4d5c6a8d8df936c6fb03"
+    },
+    {
+      "path": "patches/upstream-4d7d9486/0004-clk-mediatek-add-MT6797-infracfg-SET-CLEAR-resets.patch",
+      "sha256": "90a1d8aaff250e8b0086488138aec1527f535cde38aa2b6734c6b83344e41cc5"
+    },
+    {
+      "path": "patches/upstream-4d7d9486/0005-clk-mediatek-test-MT6797-infracfg-reset-mapping.patch",
+      "sha256": "10961fd177b6584985c717a3cc99338571addeb5d898397b9bd4816e4a31c2cf"
+    },
+    {
+      "path": "patches/upstream-4d7d9486/0006-arm64-dts-mediatek-expose-MT6797-infracfg-resets.patch",
+      "sha256": "d7ccee4f2e8e3ae78cce2405c761bc1c76f915423a8b9ea8cbf22785c2e2bfbe"
+    }
+  ],
+  "preservation": {
+    "baseline": "results/baseline-profile-inputs.json",
+    "default_profile": "full",
+    "existing_profiles": 189,
+    "global_source": "unchanged"
+  },
+  "profile_name": "mt6797-infracfg-upstream-kunit",
+  "qemu": {
+    "accel": "tcg",
+    "command_line": "console=ttyAMA0 kunit.enable=1 kunit.autorun=1 kunit_shutdown=poweroff",
+    "cpu": "max",
+    "disks": false,
+    "dtb": "QEMU-generated; no MT6797 DTB supplied",
+    "expected_suites": {
+      "mt6797-infracfg-reset": [
+        "mt6797_reset_descriptor",
+        "mt6797_reset_thermal",
+        "mt6797_reset_pwrap",
+        "mt6797_reset_unexposed"
+      ],
+      "mtk-reset-bounds": [
+        "mtk_reset_map_bounds",
+        "mtk_reset_register_pairs",
+        "mtk_reset_invalid_bank",
+        "mtk_reset_missing_banks"
+      ]
+    },
+    "image": "Image.gz",
+    "kill_after_seconds": 5,
+    "machine": "virt",
+    "memory_mib": 512,
+    "network": false,
+    "smp": 2,
+    "timeout_seconds": 45
+  },
+  "resolved_required_y": [
+    "ARM64",
+    "64BIT",
+    "OF",
+    "OF_EARLY_FLATTREE",
+    "ARM_AMBA",
+    "ARM_ARCH_TIMER",
+    "ARM_GIC",
+    "ARM_PSCI_FW",
+    "COMMON_CLK",
+    "COMMON_CLK_MEDIATEK",
+    "RESET_CONTROLLER",
+    "REGMAP_MMIO"
+  ],
+  "schema": 1,
+  "state": "proposal-only; no build or device admission",
+  "v4_freeze": {
+    "effective_inputs_sha256": "8ebf93711d8b989f3395abfbc54c26245572de0c444d30cca2179190f1111e52",
+    "fragment_count": 34,
+    "old_series": "patches/series",
+    "patch_count": 531,
+    "profile": "gemini-thermal-v4-corrected",
+    "proposed_series": "patches/series-gemini-thermal-v4-corrected",
+    "series_sha256": "17661860b45c2e381fa823a2e36f9b10b761c66cd4d592fafccb88d7401cc4fd"
+  }
+}

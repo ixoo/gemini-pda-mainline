@@ -1,0 +1,72 @@
+From 48cabcbac75066c604f1ae19640473baf40b590d Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 5 Sep 2026 03:03:00 +0000
+Subject: [PATCH 4/6] clk: mediatek: add MT6797 infracfg SET/CLEAR resets
+
+Use the existing compact reset map to select two non-contiguous SET/CLEAR banks. Register the reset provider before platform clock allocation so a reset-registration failure adds no platform clock state.
+---
+ drivers/clk/mediatek/clk-mt6797-reset.h | 28 +++++++++++++++++++++++++
+ drivers/clk/mediatek/clk-mt6797.c       |  7 ++++++-
+ 2 files changed, 34 insertions(+), 1 deletion(-)
+ create mode 100644 drivers/clk/mediatek/clk-mt6797-reset.h
+
+diff --git a/drivers/clk/mediatek/clk-mt6797-reset.h b/drivers/clk/mediatek/clk-mt6797-reset.h
+new file mode 100644
+index 0000000..03640da
+--- /dev/null
++++ b/drivers/clk/mediatek/clk-mt6797-reset.h
+@@ -0,0 +1,28 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __DRV_CLK_MTK_MT6797_RESET_H
++#define __DRV_CLK_MTK_MT6797_RESET_H
++
++#include <dt-bindings/reset/mt6797-resets.h>
++#include <linux/kernel.h>
++
++#include "reset.h"
++
++static u16 infra_rst_ofs[] = {
++	INFRA_RST0_SET_OFFSET,
++	INFRA_RST2_SET_OFFSET,
++};
++
++static u16 infra_rst_idx_map[] = {
++	[MT6797_INFRA_THERM_CTRL_RST] = 0 * RST_NR_PER_BANK,
++	[MT6797_INFRA_PMIC_WRAP_RST] = 1 * RST_NR_PER_BANK,
++};
++
++static const struct mtk_clk_rst_desc infra_rst_desc = {
++	.version = MTK_RST_SET_CLR,
++	.rst_bank_ofs = infra_rst_ofs,
++	.rst_bank_nr = ARRAY_SIZE(infra_rst_ofs),
++	.rst_idx_map = infra_rst_idx_map,
++	.rst_idx_map_nr = ARRAY_SIZE(infra_rst_idx_map),
++};
++
++#endif /* __DRV_CLK_MTK_MT6797_RESET_H */
+diff --git a/drivers/clk/mediatek/clk-mt6797.c b/drivers/clk/mediatek/clk-mt6797.c
+index ebf850a..13acdbc 100644
+--- a/drivers/clk/mediatek/clk-mt6797.c
++++ b/drivers/clk/mediatek/clk-mt6797.c
+@@ -10,6 +10,7 @@
+ #include "clk-gate.h"
+ #include "clk-mtk.h"
+ #include "clk-pll.h"
++#include "clk-mt6797-reset.h"
+ 
+ #include <dt-bindings/clock/mt6797-clk.h>
+ 
+@@ -569,8 +570,12 @@ CLK_OF_DECLARE_DRIVER(mtk_infra, "mediatek,mt6797-infracfg",
+ 
+ static int mtk_infrasys_init(struct platform_device *pdev)
+ {
+-	int i;
+ 	struct device_node *node = pdev->dev.of_node;
++	int i, ret;
++
++	ret = mtk_register_reset_controller_with_dev(&pdev->dev, &infra_rst_desc);
++	if (ret)
++		return ret;
+ 
+ 	if (!infra_clk_data) {
+ 		infra_clk_data = mtk_alloc_clk_data(CLK_INFRA_NR);

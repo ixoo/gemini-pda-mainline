@@ -1,0 +1,22 @@
+From 885ecc4a32ec54bc60b570d7a2c88d7b89fd4e18 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 5 Sep 2026 03:05:00 +0000
+Subject: [PATCH 6/6] arm64: dts: mediatek: expose MT6797 infracfg resets
+
+Declare one reset cell on the existing infracfg provider. Consumer nodes and power policy are separate changes.
+---
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+index 8ac98a3..5618342 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -121,6 +121,7 @@
+ 		compatible = "mediatek,mt6797-infracfg", "syscon";
+ 		reg = <0 0x10001000 0 0x1000>;
+ 		#clock-cells = <1>;
++		#reset-cells = <1>;
+ 	};
+ 
+ 	pio: pinctrl@10005000 {

@@ -1,0 +1,117 @@
+From f4496a0032ff683620a71f1046cd9b1250e5f993 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 5 Sep 2026 03:04:00 +0000
+Subject: [PATCH 5/6] clk: mediatek: test MT6797 infracfg reset mapping
+
+Check both supported reset pairs and reject unexposed public indices. Test the same descriptor and private helpers as the provider without MMIO or controller registration.
+---
+ drivers/clk/mediatek/Kconfig                 | 10 +++
+ drivers/clk/mediatek/Makefile                |  1 +
+ drivers/clk/mediatek/clk-mt6797-reset-test.c | 65 ++++++++++++++++++++
+ 3 files changed, 76 insertions(+)
+ create mode 100644 drivers/clk/mediatek/clk-mt6797-reset-test.c
+
+diff --git a/drivers/clk/mediatek/Kconfig b/drivers/clk/mediatek/Kconfig
+index b4aef43..c97685b 100644
+--- a/drivers/clk/mediatek/Kconfig
++++ b/drivers/clk/mediatek/Kconfig
+@@ -357,6 +357,16 @@ config COMMON_CLK_MT6797
+ 	help
+ 	  This driver supports MediaTek MT6797 basic clocks.
+ 
++config COMMON_CLK_MT6797_RESET_KUNIT_TEST
++	tristate "Test MT6797 infracfg reset mapping" if !KUNIT_ALL_TESTS
++	depends on KUNIT
++	default KUNIT_ALL_TESTS
++	help
++	  Test the two supported MT6797 reset lines and the rejected
++	  public indices using the production descriptor and helpers.
++	  Verify thermal and PMIC-wrapper SET/CLEAR offsets and masks.
++	  This test does not register a controller or access hardware.
++
+ config COMMON_CLK_MT6797_MMSYS
+ 	tristate "Clock driver for MediaTek MT6797 mmsys"
+ 	depends on COMMON_CLK_MT6797
+diff --git a/drivers/clk/mediatek/Makefile b/drivers/clk/mediatek/Makefile
+index 3f38db7..5a7d47e 100644
+--- a/drivers/clk/mediatek/Makefile
++++ b/drivers/clk/mediatek/Makefile
+@@ -31,6 +31,7 @@ obj-$(CONFIG_COMMON_CLK_MT6795_MMSYS) += clk-mt6795-mm.o
+ obj-$(CONFIG_COMMON_CLK_MT6795_VDECSYS) += clk-mt6795-vdecsys.o
+ obj-$(CONFIG_COMMON_CLK_MT6795_VENCSYS) += clk-mt6795-vencsys.o
+ obj-$(CONFIG_COMMON_CLK_MT6797) += clk-mt6797.o
++obj-$(CONFIG_COMMON_CLK_MT6797_RESET_KUNIT_TEST) += clk-mt6797-reset-test.o
+ obj-$(CONFIG_COMMON_CLK_MT6797_IMGSYS) += clk-mt6797-img.o
+ obj-$(CONFIG_COMMON_CLK_MT6797_MMSYS) += clk-mt6797-mm.o
+ obj-$(CONFIG_COMMON_CLK_MT6797_VDECSYS) += clk-mt6797-vdec.o
+diff --git a/drivers/clk/mediatek/clk-mt6797-reset-test.c b/drivers/clk/mediatek/clk-mt6797-reset-test.c
+new file mode 100644
+index 0000000..ce7a4a5
+--- /dev/null
++++ b/drivers/clk/mediatek/clk-mt6797-reset-test.c
+@@ -0,0 +1,65 @@
++// SPDX-License-Identifier: GPL-2.0-only
++#include <kunit/test.h>
++#include <linux/module.h>
++
++#include "clk-mt6797-reset.h"
++#include "reset-internal.h"
++
++static void mt6797_reset_descriptor(struct kunit *test)
++{
++	KUNIT_EXPECT_EQ(test, infra_rst_desc.version, MTK_RST_SET_CLR);
++	KUNIT_EXPECT_EQ(test, infra_rst_desc.rst_bank_nr, 2U);
++	KUNIT_EXPECT_EQ(test, infra_rst_desc.rst_idx_map_nr, 2U);
++	KUNIT_EXPECT_EQ(test, infra_rst_ofs[0], (u16)0x120);
++	KUNIT_EXPECT_EQ(test, infra_rst_ofs[1], (u16)0x140);
++}
++
++static void expect_pair(struct kunit *test, unsigned int index,
++			unsigned int expected_reg)
++{
++	unsigned int reg = 0, mask = 0;
++	int id = mtk_reset_xlate_index(&infra_rst_desc, index);
++
++	KUNIT_ASSERT_GE(test, id, 0);
++	KUNIT_ASSERT_EQ(test, mtk_reset_set_clr_reg(&infra_rst_desc, id, false,
++						    &reg, &mask), 0);
++	KUNIT_EXPECT_EQ(test, reg, expected_reg);
++	KUNIT_EXPECT_EQ(test, mask, BIT(0));
++	KUNIT_ASSERT_EQ(test, mtk_reset_set_clr_reg(&infra_rst_desc, id, true,
++						    &reg, &mask), 0);
++	KUNIT_EXPECT_EQ(test, reg, expected_reg + 4);
++	KUNIT_EXPECT_EQ(test, mask, BIT(0));
++}
++
++static void mt6797_reset_thermal(struct kunit *test)
++{
++	expect_pair(test, MT6797_INFRA_THERM_CTRL_RST, 0x120);
++}
++
++static void mt6797_reset_pwrap(struct kunit *test)
++{
++	expect_pair(test, MT6797_INFRA_PMIC_WRAP_RST, 0x140);
++}
++
++static void mt6797_reset_unexposed(struct kunit *test)
++{
++	KUNIT_EXPECT_EQ(test, mtk_reset_xlate_index(&infra_rst_desc, 2), -EINVAL);
++	KUNIT_EXPECT_EQ(test, mtk_reset_xlate_index(&infra_rst_desc, 64), -EINVAL);
++}
++
++static struct kunit_case mt6797_reset_cases[] = {
++	KUNIT_CASE(mt6797_reset_descriptor),
++	KUNIT_CASE(mt6797_reset_thermal),
++	KUNIT_CASE(mt6797_reset_pwrap),
++	KUNIT_CASE(mt6797_reset_unexposed),
++	{}
++};
++
++static struct kunit_suite mt6797_reset_suite = {
++	.name = "mt6797-infracfg-reset",
++	.test_cases = mt6797_reset_cases,
++};
++
++kunit_test_suite(mt6797_reset_suite);
++
++MODULE_LICENSE("GPL");

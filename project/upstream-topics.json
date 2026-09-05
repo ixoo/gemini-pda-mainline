@@ -8,12 +8,12 @@
       "owner": "integration owner: infracfg upstream preparation",
       "target": "Linux MediaTek clock/reset and Devicetree maintainers; resolve exact current target using MAINTAINERS/get_maintainer.pl before submission",
       "patches": [
-        "patches/v7.1.3/0001-dt-bindings-reset-mediatek-add-MT6797-infracfg-reset.patch",
-        "patches/v7.1.3/0002-clk-mediatek-mt6797-add-infracfg-reset-controller.patch",
-        "patches/v7.1.3/0003-arm64-dts-mediatek-mt6797-expose-infracfg-resets.patch",
-        "patches/v7.1.3/0514-dt-bindings-reset-mediatek-correct-MT6797-infracfg-resets.patch",
-        "patches/v7.1.3/0515-clk-mediatek-repair-MT6797-infracfg-resets.patch",
-        "patches/v7.1.3/0516-clk-mediatek-test-MT6797-infracfg-reset-translation.patch"
+        "patches/upstream-4d7d9486/0001-clk-mediatek-reject-out-of-bank-SET-CLEAR-reset-IDs.patch",
+        "patches/upstream-4d7d9486/0002-clk-mediatek-test-reset-translation-bounds.patch",
+        "patches/upstream-4d7d9486/0003-dt-bindings-reset-mediatek-describe-MT6797-infracfg-.patch",
+        "patches/upstream-4d7d9486/0004-clk-mediatek-add-MT6797-infracfg-SET-CLEAR-resets.patch",
+        "patches/upstream-4d7d9486/0005-clk-mediatek-test-MT6797-infracfg-reset-mapping.patch",
+        "patches/upstream-4d7d9486/0006-arm64-dts-mediatek-expose-MT6797-infracfg-resets.patch"
       ],
       "evidence": [
         "experiments/2026-09-03-mt6797-infracfg-reset-repair/README.md",
@@ -28,12 +28,22 @@
       ],
       "authorship": "Unresolved: audit actual provenance and obtain truthful DCO certification; never replace a synthetic identity mechanically",
       "submission_url": null,
-      "removal_condition": "Select a pinned upstream baseline containing the accepted equivalent changes, verify regression evidence, then remove corresponding local integration patches"
+      "removal_condition": "Select a pinned upstream baseline containing the accepted equivalent changes, verify regression evidence, then remove corresponding local integration patches",
+      "historical_patches": [
+        "patches/v7.1.3/0001-dt-bindings-reset-mediatek-add-MT6797-infracfg-reset.patch",
+        "patches/v7.1.3/0002-clk-mediatek-mt6797-add-infracfg-reset-controller.patch",
+        "patches/v7.1.3/0003-arm64-dts-mediatek-mt6797-expose-infracfg-resets.patch",
+        "patches/v7.1.3/0514-dt-bindings-reset-mediatek-correct-MT6797-infracfg-resets.patch",
+        "patches/v7.1.3/0515-clk-mediatek-repair-MT6797-infracfg-resets.patch",
+        "patches/v7.1.3/0516-clk-mediatek-test-MT6797-infracfg-reset-translation.patch"
+      ],
+      "validation_profile": "mt6797-infracfg-upstream-kunit",
+      "admission": "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/BUILD_ADMISSION.md"
     },
     {
       "id": "mt6797-toprgu-restart",
       "status": "readiness-assessment",
-      "owner": null,
+      "owner": "CPU 8-9 Astra",
       "target": "Linux watchdog subsystem; resolve current maintainers and tree before submission",
       "patches": [
         "patches/v7.1.3/0081-watchdog-mtk-set-MT6797-auto-restart-mode.patch",

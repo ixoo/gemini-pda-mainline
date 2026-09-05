@@ -255,6 +255,12 @@ corrective review are recorded in [INTEGRATION_REVIEW.md](INTEGRATION_REVIEW.md)
 The global manifest and canonical series remain unchanged; admitting and building
 the new upstream profile are subsequent steps.
 
+The [concrete profile proposal](PROFILE_PROPOSAL.md) supplies exact source and
+patch identities, KUnit/QEMU expectations and cache migration requirements.
+[Build admission](BUILD_ADMISSION.md) records integration of those inputs and
+the remaining build, package and execution gates. Neither record selects a
+device candidate.
+
 ## Maintainer discovery method
 
 [The maintainer auditor](scripts/audit-maintainers.py) runs the pinned upstream

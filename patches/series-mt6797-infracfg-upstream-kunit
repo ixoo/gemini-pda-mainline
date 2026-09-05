@@ -1,0 +1,6 @@
+upstream-4d7d9486/0001-clk-mediatek-reject-out-of-bank-SET-CLEAR-reset-IDs.patch
+upstream-4d7d9486/0002-clk-mediatek-test-reset-translation-bounds.patch
+upstream-4d7d9486/0003-dt-bindings-reset-mediatek-describe-MT6797-infracfg-.patch
+upstream-4d7d9486/0004-clk-mediatek-add-MT6797-infracfg-SET-CLEAR-resets.patch
+upstream-4d7d9486/0005-clk-mediatek-test-MT6797-infracfg-reset-mapping.patch
+upstream-4d7d9486/0006-arm64-dts-mediatek-expose-MT6797-infracfg-resets.patch

@@ -1,0 +1,39 @@
+From 82a54d2409754c56aaa500234572318a1fe5813a Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 5 Sep 2026 03:02:00 +0000
+Subject: [PATCH 3/6] dt-bindings: reset: mediatek: describe MT6797 infracfg
+ resets
+
+Expose only thermal and PMIC-wrapper reset lines as compact IDs 0 and 1. Their two SET/CLEAR pairs are at 0x120/0x124 and 0x140/0x144. Leave unproved reset lines and TOPRGU outside this binding.
+---
+ .../devicetree/bindings/clock/mediatek,infracfg.yaml      | 1 +
+ include/dt-bindings/reset/mt6797-resets.h                 | 8 ++++++++
+ 2 files changed, 9 insertions(+)
+ create mode 100644 include/dt-bindings/reset/mt6797-resets.h
+
+diff --git a/Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml b/Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml
+index d1d3070..5b412ef 100644
+--- a/Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml
++++ b/Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml
+@@ -66,6 +66,7 @@ if:
+           - mediatek,mt2701-infracfg
+           - mediatek,mt2712-infracfg
+           - mediatek,mt6795-infracfg
++          - mediatek,mt6797-infracfg
+           - mediatek,mt7622-infracfg
+           - mediatek,mt7986-infracfg
+           - mediatek,mt8135-infracfg
+diff --git a/include/dt-bindings/reset/mt6797-resets.h b/include/dt-bindings/reset/mt6797-resets.h
+new file mode 100644
+index 0000000..a990474
+--- /dev/null
++++ b/include/dt-bindings/reset/mt6797-resets.h
+@@ -0,0 +1,8 @@
++/* SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause) */
++#ifndef _DT_BINDINGS_RESET_MT6797_H
++#define _DT_BINDINGS_RESET_MT6797_H
++
++#define MT6797_INFRA_THERM_CTRL_RST	0
++#define MT6797_INFRA_PMIC_WRAP_RST	1
++
++#endif /* _DT_BINDINGS_RESET_MT6797_H */

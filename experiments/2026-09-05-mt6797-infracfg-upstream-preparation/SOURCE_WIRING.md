@@ -128,3 +128,10 @@ covers the reviewer's escaping symlink in both archive orders and a hard-link
 variant. All must refuse before extraction and leave the destination empty.
 This correction must be reviewed before source-wiring integration. No actual
 kernel source extraction, build or device access is required for these fixtures.
+
+The correction's [Linux receipt](results/source-links-linux.json) now records
+exact revision `e1bfec0ed7004ba0e2f4a3eaa4894992c2e9b0d5`: all seven archive
+and four builder groups pass, and the retained source digest and all 102,310
+members pass the revised inventory rule. No source tree was extracted. The
+integrator's independent re-review accepted this correction; the proposal's
+remaining profile/adoption work is described in [PROFILE_PROPOSAL.md](PROFILE_PROPOSAL.md).
