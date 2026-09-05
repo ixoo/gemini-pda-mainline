@@ -282,3 +282,19 @@ The [final combined shell/host gate](results/final-protocol-shell-pass.json)
 now passes on published protocol revision `70cc45e5`. The exact image is reused;
 the [final protocol](FINAL_PROTOCOL.md) selects guarded shutdown/cycle preparation
 before owner-selected boot2 and the single fresh pristine workload.
+
+
+## Bounded attribution runtime result
+
+The fresh pristine boot completed the single frozen workload and final
+accounting gate. The [sanitized result](results/attribution-runtime-thermal-rejected.txt)
+and [per-slot classification](results/attribution-runtime-thermal-rejected.json)
+retain a thermal rejection: the workers-complete rise and aggregate spread
+exceeded the unchanged comparison limits. CPU lifecycle, topology, fixed
+frequencies, independent accounting, all 16 hashes and cleanup passed.
+Bank 0/sensor 0 had the largest same-slot rise and became the final maximum;
+winner selection alone therefore does not account for the observed change.
+Conversion age and physical cause remain unknown. This candidate is an
+observation successor, so this result does not close the original exact-image
+cold-repeat gate. The workload and three-snapshot budget are consumed; no retry
+is admitted. The device remains on mainline after final accounting.

@@ -124,3 +124,19 @@ frame matched, USB became unreachable, and receipt-only validation passed.
 No additional observer read, workload, partition access or rebuild occurred.
 The owner subsequently reported boot2 started. The fresh pristine gate and one
 bounded runtime remain to be executed; selection alone is not admission.
+
+
+## Bounded attribution runtime result
+
+The fresh pristine boot completed the single frozen workload and final
+accounting gate. The [sanitized result](results/attribution-runtime-thermal-rejected.txt)
+and [per-slot classification](results/attribution-runtime-thermal-rejected.json)
+retain a thermal rejection: the workers-complete rise and aggregate spread
+exceeded the unchanged comparison limits. CPU lifecycle, topology, fixed
+frequencies, independent accounting, all 16 hashes and cleanup passed.
+Bank 0/sensor 0 had the largest same-slot rise and became the final maximum;
+winner selection alone therefore does not account for the observed change.
+Conversion age and physical cause remain unknown. This candidate is an
+observation successor, so this result does not close the original exact-image
+cold-repeat gate. The workload and three-snapshot budget are consumed; no retry
+is admitted. The device remains on mainline after final accounting.

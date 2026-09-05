@@ -1,0 +1,60 @@
+Bounded thermal attribution runtime: thermal comparison rejected
+Date: 2026-09-04
+Protocol source: 70cc45e5; offline admission: 83379588; cycle publication: ea938f0a
+Named device: project Gemini PDA
+Boot ID: 056703de-bf29-4956-891e-ff69d19fdd68
+Kernel: 7.1.3-gemini-thermal-snapshot
+Candidate SHA256: 666961b636b21b8598a64999e9dbf72af280ad99f07a6b745045320f24ca361b
+A41 record: 7d67a19b3ae40ae1521293d7ffc834e6d06ae14a2d55de693ee9c815bdaee552
+
+New boot identity, full pristine lifecycle, CPU0-7 online/8-9 offline,
+zero frequency/snapshot accounting and exact deployment/cycle receipts passed.
+One nonconsuming host TCP readiness probe preceded the three shell sessions.
+Stage 18 and one CPU9 down/restore passed; topology was 4+4+2, CPU0-9 online.
+Four rounds per writer/peer reader: all 16 hashes passed; CPU8/9 ticks 74/74.
+Payload remained 1914704 bytes; spin ceiling remained 1000000.
+All three frequency records: LL 897, L 1274, Big 750, CCI 629.5 MHz.
+All three snapshots contained seven valid converted slots. Initial ordinary
+aggregate: 35100 mC; post-lifecycle/writers-waiting/workers-complete maxima:
+36300/36700/41900 mC. Final ordinary aggregate: 37500 mC.
+Final accounting passed: three frequency attempts, three snapshot attempts,
+unchanged validated terminal lifecycle, same boot/identity, read-only sysfs.
+All owned workers reaped; cancellation file absent; RAM cleanup passed.
+One workload request, zero retries, two ordinary thermal reads.
+No device storage writes, partition access, new backup, rebuild or reboot.
+Host exit status: 3. Offline manifest, classifier and postflight replay: pass.
+
+The comparison rejects workers-complete rise (6800 versus baseline 900 mC,
+difference 5900 > 5000) and aggregate spread (5600 > 5000 mC).
+First winning slots changed 6 -> 4 -> 0, without ties. Bank 0/sensor 0 rose
+35500 -> 36300 -> 41900 mC, the largest same-slot change (+6400 mC).
+This distinguishes a rise within that slot from winner selection alone.
+It does not establish conversion freshness, physical sensor location or cause.
+Scan durations were 10000/10461/10385 ns. The writers-waiting boundary is
+before hashing starts, not an observation inside the hash loops. Repeated
+sensor 1 bank slots are not independent physical sensors.
+
+The earlier cross-boot thermal rejection remains rejected. This observation
+candidate differs from the original baseline; this is attribution evidence,
+not a successful exact-candidate cold-repeat gate. The session and observer
+budget are consumed. No repeat or wider workload is admitted. Device left on
+mainline after the successful final accounting frame; no new display claim.
+Sanitization: only selected identity, bounded runtime fields and evidence hashes
+published; raw shell captures remain private. No keys, calibration or serials.
+
+Private evidence SHA256 inventory:
+4e4bc2b635e9f3a8b4ae908725dff5ac52bfedc3cc2b766d9bb4ee2622a3ad8f  classification.json
+b55e54fb52ed50995671c0d5c1adb2e4c45a35283d2732dc0d22b46e51fd0023  cycle-receipt.json
+6f47eef465c9461536d6a72b5acd3c80d776ca4446ebf3f82bfecadea40eb945  deployment-summary.txt
+0f9be69feeaa5b942497c80ac067e755f8a3aee26eb04fe0d438845453a17c7c  postflight.txt
+b89b832ebaae2184d76c72639db035f890cc3e820d52c45267a7bf7319f30fdc  preflight.txt
+0449d8667019c05218be66505d0fdb907b880b4e5620f47f6bac5c90a6d94416  program.sh
+0e535a49dca31a9748cb31ca00e4d8c8e82ccb4183ea36cde812a22113c87bc7  runtime-classification.json
+f96340266b0f3cb4b512d5138bc6cc19b9342ea53df3b7cfc6d7c75773b09b91  runtime.txt
+00bf9ab25b5531cba5437bbaab6d221590ecc586bcb4f6311f9e3280df7b4712  transport-1-meta.json
+b89b832ebaae2184d76c72639db035f890cc3e820d52c45267a7bf7319f30fdc  transport-1.txt
+00bf9ab25b5531cba5437bbaab6d221590ecc586bcb4f6311f9e3280df7b4712  transport-2-meta.json
+f96340266b0f3cb4b512d5138bc6cc19b9342ea53df3b7cfc6d7c75773b09b91  transport-2.txt
+00bf9ab25b5531cba5437bbaab6d221590ecc586bcb4f6311f9e3280df7b4712  transport-3-meta.json
+0f9be69feeaa5b942497c80ac067e755f8a3aee26eb04fe0d438845453a17c7c  transport-3.txt
+3dd2ea9b1ce229e09bd106c00f9ae193c6d8e7b17db050fbedfb64f14b1fb11c  workload.requested

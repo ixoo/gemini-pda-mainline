@@ -8354,22 +8354,20 @@ under user-mode emulation; its injected adapters make no new hardware claim.
 The [frozen host protocol](../experiments/2026-09-04-mt6797-thermal-snapshot/FINAL_PROTOCOL.md)
 now passes host receipt, persistence, interruption and postflight fixtures.
 Final exact-candidate shell validation, including SIGPIPE cleanup and the host
-suite, now passes on the published protocol. The guarded shutdown/cycle receipt
-is verified and the owner reports boot2 started. **Selected next:** require the
-new exact pristine frame, then run the single bounded attribution program and
-its final accounting gate. Retain any rejection without retry. Preserve
-payload/round/spin ceilings and require child quiescence before file-cleanup
-success. Retain the existing four-round
-ceiling and thermal refusal limits; do not reinterpret or relax the rejected
-cross-boot thermal comparison. Bind fresh identity and pristine accounting,
-explicit stage attribution, fixed observation budgets, failure cleanup and
-mutation fixtures before requesting a new physical boot. Reuse the exact
-candidate only if its existing observation budget suffices for that new
-hypothesis. Keep the current consumed session free of further diagnostic reads
-or workload. A successful observer path is not thermal protection or workload
-repeatability; the reported absent console remains separate from working USB.
-Integrated thermal repeatability, broader load/hotplug, cpufreq/OPP, idle,
-suspend and default integration remain open.
+suite, now passes on the published protocol. The fresh attribution runtime now
+completed with passing CPU/RAM/frequency/cleanup and final accounting, but its
+[thermal comparison rejected](../experiments/2026-09-04-mt6797-thermal-snapshot/results/attribution-runtime-thermal-rejected.txt).
+The per-slot evidence identifies the largest rise within bank 0/sensor 0,
+which became the final maximum; a winning-slot change alone is insufficient.
+**Selected next:** perform an offline source/register-contract audit of sensor
+mapping and conversion freshness against the captured slot trajectories before
+proposing another device experiment. Preserve the rejection and unchanged
+comparison limits. No further diagnostic reads or workload on the consumed
+session; no repeat is admitted. Any future boot requires a distinct,
+decision-changing hypothesis and published bounded protocol. Integrated thermal
+repeatability, broader load/hotplug, cpufreq/OPP, idle, suspend, thermal protection
+and default integration remain closed to admission. The absent console report
+remains separate from working USB.
 
 - CPU topology and cache/CCI coherency under load;
 - clock and reset ownership;

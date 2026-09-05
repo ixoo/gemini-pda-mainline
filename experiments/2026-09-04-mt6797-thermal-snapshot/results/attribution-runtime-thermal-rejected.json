@@ -1,0 +1,196 @@
+{
+  "boot_id": "056703de-bf29-4956-891e-ff69d19fdd68",
+  "cancellation_file": "absent",
+  "candidate_sha256": "666961b636b21b8598a64999e9dbf72af280ad99f07a6b745045320f24ca361b",
+  "classification": "bounded-attribution-thermal-rejected",
+  "device_action": "none-offline-classification",
+  "inherited_runtime": {
+    "after_b_khz": "750000",
+    "after_cci_khz": "629500",
+    "after_l_khz": "1274000",
+    "after_ll_khz": "897000",
+    "after_temperature_millicelsius": "41900",
+    "before_b_khz": "750000",
+    "before_cci_khz": "629500",
+    "before_l_khz": "1274000",
+    "before_ll_khz": "897000",
+    "before_temperature_millicelsius": "36300",
+    "binder_completed": "1",
+    "boot_id": "056703de-bf29-4956-891e-ff69d19fdd68",
+    "concurrent_rounds": "4",
+    "cpu8_accounting_delta": "74",
+    "cpu9_accounting_delta": "74",
+    "cpu_map": "0-3,4-7,8-9",
+    "cpu_off_requests": "1",
+    "cpu_online": "0-9",
+    "device_storage_writes": "none",
+    "during_b_khz": "750000",
+    "during_cci_khz": "629500",
+    "during_l_khz": "1274000",
+    "during_ll_khz": "897000",
+    "during_temperature_millicelsius": "36700",
+    "frequency_log_records": "3-of-3",
+    "frequency_observer_attempts": "3-of-3",
+    "native_reboot_requested": "no",
+    "peer_reader_checksums": "8-of-8",
+    "restore_stage": "18",
+    "retries": "0",
+    "runtime_classification": "stage18-thermal-frequency-bounded-load-pass",
+    "trigger_attempts": "1",
+    "worker_liveness_during_observation": "both-before-and-after",
+    "writer_checksums": "8-of-8"
+  },
+  "kernel_release": "7.1.3-gemini-thermal-snapshot",
+  "ordinary_thermal_reads": 2,
+  "owned_workers_reaped": true,
+  "postflight": "pass",
+  "retries": 0,
+  "snapshot_requests": 3,
+  "thermal": {
+    "aggregate_spread": 5600,
+    "classification": "thermal-envelope-rejected",
+    "conversion_age": "unknown",
+    "device_action": "none",
+    "first_winning_slots": [
+      6,
+      4,
+      0
+    ],
+    "initial_aggregate": 35100,
+    "maxima": [
+      36300,
+      36700,
+      41900
+    ],
+    "overall_workload_classification": "not-evaluated",
+    "rises_from_initial_aggregate": [
+      1200,
+      1600,
+      6800
+    ],
+    "scan_duration_ns": [
+      10000,
+      10461,
+      10385
+    ],
+    "slots": [
+      {
+        "bank": 0,
+        "complete_minus_post_lifecycle": 6400,
+        "complete_minus_waiting": 5600,
+        "sensor": 0,
+        "slot": 0,
+        "temperatures": [
+          35500,
+          36300,
+          41900
+        ],
+        "waiting_minus_post_lifecycle": 800
+      },
+      {
+        "bank": 1,
+        "complete_minus_post_lifecycle": 100,
+        "complete_minus_waiting": 0,
+        "sensor": 3,
+        "slot": 1,
+        "temperatures": [
+          32300,
+          32400,
+          32400
+        ],
+        "waiting_minus_post_lifecycle": 100
+      },
+      {
+        "bank": 2,
+        "complete_minus_post_lifecycle": 1400,
+        "complete_minus_waiting": 1300,
+        "sensor": 1,
+        "slot": 2,
+        "temperatures": [
+          36200,
+          36300,
+          37600
+        ],
+        "waiting_minus_post_lifecycle": 100
+      },
+      {
+        "bank": 2,
+        "complete_minus_post_lifecycle": 300,
+        "complete_minus_waiting": 300,
+        "sensor": 2,
+        "slot": 3,
+        "temperatures": [
+          32900,
+          32900,
+          33200
+        ],
+        "waiting_minus_post_lifecycle": 0
+      },
+      {
+        "bank": 3,
+        "complete_minus_post_lifecycle": 1900,
+        "complete_minus_waiting": 1200,
+        "sensor": 1,
+        "slot": 4,
+        "temperatures": [
+          36000,
+          36700,
+          37900
+        ],
+        "waiting_minus_post_lifecycle": 700
+      },
+      {
+        "bank": 4,
+        "complete_minus_post_lifecycle": 1700,
+        "complete_minus_waiting": 1400,
+        "sensor": 1,
+        "slot": 5,
+        "temperatures": [
+          36200,
+          36500,
+          37900
+        ],
+        "waiting_minus_post_lifecycle": 300
+      },
+      {
+        "bank": 5,
+        "complete_minus_post_lifecycle": 1300,
+        "complete_minus_waiting": 1100,
+        "sensor": 1,
+        "slot": 6,
+        "temperatures": [
+          36300,
+          36500,
+          37600
+        ],
+        "waiting_minus_post_lifecycle": 200
+      }
+    ],
+    "stages": [
+      "post-lifecycle",
+      "writers-waiting",
+      "workers-complete"
+    ],
+    "start_intervals_ns": [
+      129670308,
+      685881538
+    ],
+    "tied_maximum_slots": [
+      [
+        6
+      ],
+      [
+        4
+      ],
+      [
+        0
+      ]
+    ],
+    "violations": [
+      "workers-complete:baseline-rise-bound",
+      "aggregate-spread-bound"
+    ]
+  },
+  "transport_sessions": 3,
+  "workload_requests": 1
+}
