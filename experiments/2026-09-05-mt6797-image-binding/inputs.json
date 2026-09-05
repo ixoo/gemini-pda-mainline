@@ -1,0 +1,36 @@
+{
+  "upstream_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "dependencies": {
+    "image-plan.c": {
+      "commit": "f9c13fe954cc8141de51b8f5c87c44632a1e3eea",
+      "path": "experiments/2026-09-05-mt6797-whole-image-plan/src/image-plan.c",
+      "sha256": "219d7efa892679fb5bfb8d215f8e306bc16da3a6a879d0c7ee57ff7c3934455e"
+    },
+    "image-plan.h": {
+      "commit": "f9c13fe954cc8141de51b8f5c87c44632a1e3eea",
+      "path": "experiments/2026-09-05-mt6797-whole-image-plan/src/image-plan.h",
+      "sha256": "425b137eb0d829218600b0e35a2c7268ff2aa4643923bdd148b8061bae33772e"
+    },
+    "mtke.c": {
+      "commit": "f9c13fe954cc8141de51b8f5c87c44632a1e3eea",
+      "path": "experiments/2026-09-05-mt6797-hif-parser-compile/src/mtke.c",
+      "sha256": "d468050e29e50d335565a80e8025703e3b09ca2bb399ba6957c7102463018f8b"
+    },
+    "mtke.h": {
+      "commit": "f9c13fe954cc8141de51b8f5c87c44632a1e3eea",
+      "path": "experiments/2026-09-05-mt6797-hif-parser-compile/src/mtke.h",
+      "sha256": "f410c0bbcd8f5bf131e9fac9b824a297c91b3f27e0861b8188891eb29ec91ff1"
+    }
+  },
+  "base_makefile": {
+    "commit": "f9c13fe954cc8141de51b8f5c87c44632a1e3eea",
+    "path": "experiments/2026-09-05-mt6797-wifi-hif-core/src/Makefile",
+    "sha256": "b23c87e964ad6432fd255fef742b0a34346cbba3a06ff2e66eb792ec837d9ee4"
+  },
+  "base_makefile_suffix": "obj-y += mtke.o crc-kernel.o\nobj-y += image-plan.o\n",
+  "checkpatch": {
+    "checkpatch.pl": "2553cc1a601e70522e03fbce633d4e79fa5936f7f56a66de1899b7ddd247820a",
+    "spelling.txt": "4095d4a8810f115bae1b7c0d8a1946beb3435f6e22d9a48ac009bb024bad1e68",
+    "const_structs.checkpatch": "ea064f6916a74763468037494aeb270aae34b7c97617e84d424ca5b8733539b2"
+  }
+}

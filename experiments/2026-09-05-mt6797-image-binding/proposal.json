@@ -1,0 +1,29 @@
+{
+  "scope": "Private immutable image binding/lifetime; all active entry refused",
+  "dependency_commit": "f9c13fe954cc8141de51b8f5c87c44632a1e3eea",
+  "patch": "0004-wifi-mediatek-retain-private-image-bindings.patch",
+  "patch_sha256": "62edcead89a4ae6845208201ecc5bc320bb688d9a8d28d4a6f50107eec098c08",
+  "kernel_delta": [
+    "drivers/net/wireless/mediatek/mt6797/image-binding.c",
+    "drivers/net/wireless/mediatek/mt6797/image-binding.h",
+    "drivers/net/wireless/mediatek/mt6797/Makefile"
+  ],
+  "object": "drivers/net/wireless/mediatek/mt6797/image-binding.o",
+  "source_sha256": {
+    "image-binding.c": "32c1da6e462200e531379d2deb4924abddb54a57a8caf8ba09630c69c3935a68",
+    "image-binding.h": "422c45d95845663a57e1eb62940ffe6f6d19673b79d58b021698463109cc8adb"
+  },
+  "canonical_series_changed": false,
+  "manifest_changed": false,
+  "kernel_build": "NOT RUN",
+  "hardware_access": "NONE",
+  "submission_ready": false,
+  "author_metadata": "Synthetic non-certifying experiment identity; no DCO sign-off",
+  "future_compile_acceptance": [
+    "Exact source hashes and kernel .cmd compilation for image-binding.o",
+    "Nonzero AArch64 public binding/owner function definitions and private archive membership",
+    "References to real image-plan/allocator/mutex functions",
+    "No registration, initcall, exported provider grant or active-success path",
+    "No MT6797_BINDING_HOST_TEST hooks in kernel object"
+  ]
+}

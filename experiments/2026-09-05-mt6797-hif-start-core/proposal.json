@@ -1,0 +1,21 @@
+{
+  "status": "proposal only; no selected build/runtime caller",
+  "prerequisite": "existing private HIF/parser and complete image-plan patch",
+  "profile": "mt6797-hif-parser-compile",
+  "series": "patches/series-mt6797-provider-compile",
+  "append_after": "proposals/0003-wifi-mediatek-prevalidate-image-plan.patch",
+  "append_patch": "proposals/0004-wifi-mediatek-execute-bounded-start.patch",
+  "patch_sha256": "5b1ed48e14c705d16b9cdcf87bf37854b6b8e64852342989164696dee0a87ca5",
+  "config_delta": "none",
+  "kernel_files": [
+    "drivers/net/wireless/mediatek/mt6797/hif.c",
+    "drivers/net/wireless/mediatek/mt6797/hif.h"
+  ],
+  "new_global_functions": [
+    "mt6797_hif_start_submit",
+    "mt6797_hif_start_observe_ready"
+  ],
+  "object": "drivers/net/wireless/mediatek/mt6797/hif.o",
+  "source_effect": "shared provider patchset refresh; coordinator audits consumers and serializes reuse of managed source path; no duplicate tree",
+  "runtime": "unbound internal API; admitted whole-image and actual retained owner remain prerequisites"
+}

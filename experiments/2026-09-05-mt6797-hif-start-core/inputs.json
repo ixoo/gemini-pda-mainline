@@ -1,0 +1,65 @@
+{
+  "upstream_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "upstream_files": {
+    "drivers/net/wireless/mediatek/Makefile": "7947470d6cf0724dcf1da9b45e3fbc4a78470f5b85a4de21ff1872ac66d1be26",
+    "drivers/net/wireless/mediatek/Kconfig": "7637f36bf9f374dde6df785e3caab3a1750b488f9dff841e0578b8c49a4682fd"
+  },
+  "protocol_commit": "a3f5be2466ddb9f6f0fcc2dff539e1daae387665",
+  "protocol_directory": "experiments/2026-09-05-mt6797-wifi-kernel-compile/styled/headers",
+  "protocol_headers": {
+    "hif_transfer_size.h": "5e2b2737fc45fc968b09a28f701fd694d6fbcfdcde6e76256ced2ab3f7ed0945",
+    "hif_command.h": "db29df931113f5c1e734b8fae28544148ad4087add6912b021c06590b47b3cdd",
+    "hif_pio.h": "5862d6254384d3a4ac23dc2b79f084ad7842d7e2c94d762e7a18d4c3d101ef00",
+    "hif_init_bounds.h": "aa40d202ad72bd1b5ae878aca6a7486260633043aa6b9dbf9cafbdc093468409",
+    "hif_init_transaction.h": "bb0a91a7e0769112e824dae76567648717fe3eb7985d05a137ac4958828e3d27",
+    "hif_config_phase.h": "b78eb225ed0babfa31568707861fd59a79232dfbae906ca7f7d672961ea56858",
+    "hif_ordinary_section.h": "13992b05aaa4f5133b2e2c0601cc508005b3560d9a1ba004fceb1b055e95b0cb"
+  },
+  "adapter_files": {
+    "Kconfig": "ea55e89be1a049e2efa1451276379e07fc8263998550b27a0336b5c543127603",
+    "Makefile": "b23c87e964ad6432fd255fef742b0a34346cbba3a06ff2e66eb792ec837d9ee4",
+    "hif.c": "3a47e287d73eaf6cf0b1f57d41766f842e9e8505ab311a0d2d5d59561ca94153",
+    "hif.h": "286bc13eba86a7bbb41c8422db835d78742d57fb5ff0cb06e29e0f832ff4b3fd"
+  },
+  "parser_commit": "1badfaa6ee83cc3d352a2bd9179efee391888730",
+  "parser_files": {
+    "mtke.c": "d468050e29e50d335565a80e8025703e3b09ca2bb399ba6957c7102463018f8b",
+    "mtke.h": "f410c0bbcd8f5bf131e9fac9b824a297c91b3f27e0861b8188891eb29ec91ff1",
+    "crc-kernel.c": "8e9de8f0bee60dcd9b842050ac2b78528082657c3beb7b7379b3757964b83af8",
+    "test-memory.c": "73f407d98aff3bbe7a0be2216fbc7fd69e4c22840c1212e76b378ec23bf35ef8",
+    "test-memory.py": "bad2073efed7a4b72b6e6ad6b9bdf029dad23a827e192ba3e624158301859cd0",
+    "test-parser.py": "781106f2932a3b23089ea7d95f18f98c94a7655f91f9bab735aa1cc2a5e71914"
+  },
+  "original_parser_files": {
+    "mtke.c": "60550e34e7d4c19d3dc3bc1930bae7916c99df12ed5f9e2356aa6e60c16cbc04",
+    "mtke.h": "f410c0bbcd8f5bf131e9fac9b824a297c91b3f27e0861b8188891eb29ec91ff1",
+    "crc-kernel.c": "71a3684d999a1b5beccf8210d5201df574ba81adfd71253b4f69fbd873d76a3d",
+    "test-memory.c": "73f407d98aff3bbe7a0be2216fbc7fd69e4c22840c1212e76b378ec23bf35ef8",
+    "test-memory.py": "bad2073efed7a4b72b6e6ad6b9bdf029dad23a827e192ba3e624158301859cd0",
+    "test-parser.py": "781106f2932a3b23089ea7d95f18f98c94a7655f91f9bab735aa1cc2a5e71914"
+  },
+  "reviewed_dependencies": {
+    "include/linux/crc32.h": "1e9d1d38fecd017f477975f5da59a6ae6c81e9b55274c33dc1f39302ac6ce9ca",
+    "lib/crc/Kconfig": "eabccbdec7e5d6c1102039041f24379078eb2b81f09455c12f965f4d33b996a5",
+    "lib/crc/Makefile": "4739d839c474123c6073c6950d78d7a273b3fc107e1f9d612b2b85241ed45d71",
+    "drivers/net/Kconfig": "b0100ba1b77d170abae9eb7a09f2ce8f2c02781e620ac4bf65d035c743bc274e",
+    "drivers/net/wireless/Kconfig": "ea488e7551aada65fdccb483441d02023786f0115ced24324299826822e4bf61"
+  },
+  "plan_files": {
+    "image-plan.c": "219d7efa892679fb5bfb8d215f8e306bc16da3a6a879d0c7ee57ff7c3934455e",
+    "image-plan.h": "425b137eb0d829218600b0e35a2c7268ff2aa4643923bdd148b8061bae33772e"
+  },
+  "oracle_commit": "b7855931aca15778d839800f31472a1cb19abac4",
+  "oracle_files": {
+    "wifi_whole_image.py": "9f9a07ff034c13c6958aae16679f10040f91b3dd73e10fb231458db908bb0f47",
+    "wifi_firmware.py": "4d8b57da9dabf20070aff27f6a5cc21f1f958c8b127af70ced8620a9be5c1f98"
+  },
+  "start_files": {
+    "hif.c": "79adeeee28a728aa2a6a284b4b435e76e35e459dec106966a4cbbd09fdef2f64",
+    "hif.h": "04d4215cc038ca4fbdb1f5dfcca31e698ebba17e7a336aca0bc36536cec5dc21"
+  },
+  "regression_files": {
+    "test-hif.c": "fe64e7dfcf0a5a5becf797e643528ecf22aa1060c672b2c938578bdb992f110a",
+    "test-compat.h": "1d4dcb7f9285414ea68dc3b8a7279fa9e5b221ea2a84ba15ca66838959353e25"
+  }
+}

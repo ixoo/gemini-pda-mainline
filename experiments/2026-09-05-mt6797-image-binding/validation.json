@@ -1,0 +1,36 @@
+{
+  "patch_sha256": "62edcead89a4ae6845208201ecc5bc320bb688d9a8d28d4a6f50107eec098c08",
+  "patch_reproduction_and_replay": "PASS",
+  "kernel_build": "NOT RUN",
+  "backend": "NOT ACCESSED",
+  "hardware": "NOT ACCESSED",
+  "same_code_host_test": "binding_checks=52\nconcurrent_claim_rounds=32\nactive_entry=refused\n",
+  "sanitizer_flags": [
+    "-std=c11",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-Wconversion",
+    "-pedantic",
+    "-pthread",
+    "-O1",
+    "-g",
+    "-fsanitize=address,undefined",
+    "-fno-sanitize-recover=all",
+    "-fno-omit-frame-pointer"
+  ],
+  "compiler": "Apple clang version 21.0.0 (clang-2100.1.1.101)",
+  "source_hashes": {
+    "image-binding.c": "32c1da6e462200e531379d2deb4924abddb54a57a8caf8ba09630c69c3935a68",
+    "image-binding.h": "422c45d95845663a57e1eb62940ffe6f6d19673b79d58b021698463109cc8adb"
+  },
+  "test_hashes": {
+    "binding-test-compat.h": "86b9e1cfc846225215f3ac27d43f672eb67793915d4df7638632ba554cf260a3",
+    "test-binding.c": "a4bb5b71d9962ce07424d92f002796ed40efb81d050e6b4d87f5b86ab4d9b4e4"
+  },
+  "checkpatch": {
+    "exit": 1,
+    "exclusions": [],
+    "output": "WARNING: added, moved or deleted file(s), does MAINTAINERS need updating?\n#32: \nnew file mode 100644\n\nERROR: Missing Signed-off-by: line(s)\n\ntotal: 1 errors, 1 warnings, 0 checks, 454 lines checked\n\nNOTE: For some of the reported defects, checkpatch may be able to\n      mechanically convert to the typical style using --fix or --fix-inplace.\n\n<project>/experiments/2026-09-05-mt6797-image-binding/0004-wifi-mediatek-retain-private-image-bindings.patch has style problems, please review.\n\nNOTE: If any of the errors are false positives, please report\n      them to the maintainer, see CHECKPATCH in MAINTAINERS.\n"
+  }
+}

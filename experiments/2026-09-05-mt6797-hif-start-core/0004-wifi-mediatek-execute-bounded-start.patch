@@ -1,0 +1,157 @@
+From 08b12a2924e3d60a1eb4d82a22d465a4a4a3d136 Mon Sep 17 00:00:00 2001
+From: MT6797 compile experiment <nobody@example.invalid>
+Date: Sat, 5 Sep 2026 00:00:00 +0000
+Subject: [PATCH] wifi: mediatek: execute private START with bounded readiness
+ observation
+
+Reuse INIT START credit/sequence primitives and actual ordered PIO.
+Latch one deadline and attempt, separating submission from WCIR readiness.
+No runtime caller, whole-image permission or owner acquisition is added.
+
+Internal experiment only; synthetic non-certifying author, no DCO.
+Assisted-by: LLM
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c | 87 ++++++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.h | 15 ++++
+ 2 files changed, 102 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 5a8e206..bc1366b 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -21,6 +21,9 @@ struct mt6797_hif {
+ 	struct mt6797_init_transaction *transaction;
+ 	struct mt6797_hif_pio_io io;
+ 	u64 deadline_ns;
++	u64 start_deadline_ns;
++	bool start_attempted;
++	bool firmware_ready;
+ 	int first_error;
+ 	u8 scratch[2560];
+ };
+@@ -125,6 +128,9 @@ static int mt6797_hif_enter(struct mt6797_hif *hif, u64 deadline_ns)
+ 
+ 	hif->first_error = 0;
+ 	hif->deadline_ns = deadline_ns;
++	if (hif->start_attempted && !hif->firmware_ready &&
++	    deadline_ns > hif->start_deadline_ns)
++		return mt6797_hif_fail(hif, -EINVAL);
+ 	if (hif->transaction->phase != MT6797_INIT_IDLE &&
+ 	    hif->transaction->phase != MT6797_START_READY)
+ 		return mt6797_hif_fail(hif, -EIO);
+@@ -189,6 +195,10 @@ mt6797_hif_download_section(struct mt6797_hif *hif,
+ 		return -EINVAL;
+ 	if (!mutex_trylock(&hif->mutex))
+ 		return -EBUSY;
++	if (hif->start_attempted) {
++		error = -EIO;
++		goto out;
++	}
+ 	error = mt6797_hif_enter(hif, deadline_ns);
+ 	if (error)
+ 		goto out;
+@@ -225,3 +235,80 @@ out:
+ 	mutex_unlock(&hif->mutex);
+ 	return error;
+ }
++
++int mt6797_hif_start_submit(struct mt6797_hif *hif, const u8 *command,
++			    size_t bytes, unsigned int sequence, u64 deadline_ns)
++{
++	struct mt6797_hif_pio_result result;
++	unsigned int i;
++	int error;
++
++	if (!hif)
++		return -EINVAL;
++	if (!mutex_trylock(&hif->mutex))
++		return -EBUSY;
++	if (hif->start_attempted) {
++		error = -EIO;
++		goto out;
++	}
++	hif->start_attempted = true;
++	hif->start_deadline_ns = deadline_ns;
++	error = mt6797_hif_enter(hif, deadline_ns);
++	if (error)
++		goto out;
++	error = mt6797_start_begin(hif->transaction, command, bytes, sequence);
++	if (error)
++		goto out;
++	/* The frozen validator proved exactly 16 immutable command bytes. */
++	for (i = 0; i < 16; i++)
++		hif->scratch[i] = command[i];
++	error = mt6797_hif_pio_transfer(&hif->io, 0x34, MT6797_HIF_WRITE,
++					hif->scratch, 16, sizeof(hif->scratch),
++					&result);
++	error = mt6797_start_submitted(hif->transaction, error);
++	if (!error)
++		error = mt6797_hif_guard(hif);
++out:
++	if (error)
++		error = mt6797_hif_fail(hif, error);
++	mutex_unlock(&hif->mutex);
++	return error;
++}
++
++int mt6797_hif_start_observe_ready(struct mt6797_hif *hif, u32 *wcir)
++{
++	int error;
++
++	if (!wcir)
++		return -EINVAL;
++	*wcir = 0;
++	if (!hif)
++		return -EINVAL;
++	if (!mutex_trylock(&hif->mutex))
++		return -EBUSY;
++	if (!hif->start_attempted || hif->firmware_ready ||
++	    hif->transaction->phase != MT6797_START_READY) {
++		error = -EIO;
++		goto out;
++	}
++	error = mt6797_hif_enter(hif, hif->start_deadline_ns);
++	if (error)
++		goto out;
++	error = mt6797_hif_read32_locked(hif, 0, wcir);
++	if (!error)
++		error = mt6797_hif_guard(hif);
++	if (!error)
++		error = mt6797_start_observe_ready(hif->transaction, *wcir);
++	if (!error)
++		hif->firmware_ready = true;
++out:
++	if (error && (error != -EAGAIN || hif->first_error)) {
++		*wcir = 0;
++		error = mt6797_hif_fail(hif, error);
++		/* EAGAIN is reserved for a valid pending WCIR observation. */
++		if (error == -EAGAIN)
++			error = -EIO;
++	}
++	mutex_unlock(&hif->mutex);
++	return error;
++}
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 261ffd5..00f4f9d 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -51,4 +51,19 @@ mt6797_hif_download_section(struct mt6797_hif *hif,
+ 			    const struct mt6797_hif_section_request *request,
+ 			    u64 deadline_ns, struct mt6797_hif_section_result *result);
+ 
++/* Caller proves complete image/EMI sealing and retains all owner resources
++ * before calling: an uncertain write can already have started firmware.
++ * Same mapping, IRQ/reset exclusion and immutable storage contract as download.
++ * One attempt per context. Zero means START TX submitted, never readiness.
++ * No ACK read, image completeness check, ownership acquisition or retry occurs.
++ */
++int mt6797_hif_start_submit(struct mt6797_hif *hif, const u8 *command,
++			    size_t bytes, unsigned int sequence, u64 deadline_ns);
++/* One actual WCIR read under the unchanged START absolute deadline. Zero means
++ * the ready level was observed, -EAGAIN means pending; neither proves causality.
++ * Pending observations may repeat only before that deadline. Other failures
++ * poison the retained transaction. No internal polling or renewed budget.
++ */
++int mt6797_hif_start_observe_ready(struct mt6797_hif *hif, u32 *wcir);
++
+ #endif
