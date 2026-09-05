@@ -129,8 +129,10 @@ boot2_device_guard() (
 		{ _boot2_guard_fail 'invalid partition identity'; return 1; }
 	parent_id=$(cat -- "${target_sys%/*}/dev") ||
 		{ _boot2_guard_fail 'missing parent block identity'; return 1; }
-	_boot2_guard_valid_id "$parent_id" && [[ "$parent_id" != "$target_id" ]] ||
-		{ _boot2_guard_fail 'invalid parent block identity'; return 1; }
+	if ! _boot2_guard_valid_id "$parent_id" || [[ "$parent_id" == "$target_id" ]]; then
+		_boot2_guard_fail 'invalid parent block identity'
+		return 1
+	fi
 	_boot2_guard_sysfs_device "$parent_id" >/dev/null || return 1
 	mountinfo=$(cat -- /proc/self/mountinfo) ||
 		{ _boot2_guard_fail 'cannot read mountinfo'; return 1; }

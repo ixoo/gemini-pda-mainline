@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "initial_ci_commit": "d80ef8e803efcadb6ba5792b22827b648ccf9e54",
+  "run_url": "https://github.com/ixoo/gemini-pda-mainline/actions/runs/33939569516",
+  "classification": "shellcheck-version-compatibility-corrected",
+  "failure": "Ubuntu ShellCheck 0.9 reports SC2015 for an intentional parent-identity AND/OR refusal; local newer ShellCheck accepted it. Linux fixture execution had not begun.",
+  "correction": "Use explicit if with unchanged parent-identity refusal semantics.",
+  "guard_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
+  "local_validation": [
+    "Bash syntax",
+    "ShellCheck",
+    "18 guard test groups"
+  ],
+  "linux_rerun": "pending"
+}
