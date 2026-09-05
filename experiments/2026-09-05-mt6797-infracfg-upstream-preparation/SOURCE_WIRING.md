@@ -112,3 +112,19 @@ cache location with verified identity and a migration receipt; do not silently
 make a second retained copy. The actual legacy release archive was not unpacked
 or inventoried in this run; legacy xz preparation and package compatibility were
 covered by real synthetic archives/packages rather than a kernel build.
+
+## Independent review: traversal before normalization
+
+Review of `e3f0304d` found that lexical normalization could hide a link component
+before the chain check. With `linux-test/sub -> .`, the target
+`sub/../outside` lexically normalizes inside the root, but filesystem traversal
+follows `sub` first and then moves outside the root. Source integrity hashes the
+link text and does not establish safe resolution. The earlier passing fixture
+and snapshot receipts remain scoped observations, not a proof of this boundary.
+
+The extractor now checks every appended target component against the complete
+member inventory before any subsequent `..` can remove it. The regression group
+covers the reviewer's escaping symlink in both archive orders and a hard-link
+variant. All must refuse before extraction and leave the destination empty.
+This correction must be reviewed before source-wiring integration. No actual
+kernel source extraction, build or device access is required for these fixtures.

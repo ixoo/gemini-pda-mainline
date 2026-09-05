@@ -21,7 +21,7 @@ def components(name):
     return tuple(parts)
 
 
-def link_target(member, root):
+def link_target(member, root, members):
     target = member.linkname
     if not target or target.startswith('/') or '\\' in target:
         raise ValueError('unsafe archive link')
@@ -37,6 +37,11 @@ def link_target(member, root):
             parts.pop()
         else:
             parts.append(part)
+            # Check traversal before a later '..' can erase this component.
+            # A lexical final target alone cannot model filesystem symlinks.
+            ancestor = members.get(tuple(parts))
+            if ancestor is not None and (ancestor.issym() or ancestor.islnk()):
+                raise ValueError('archive link traversal refused')
     if not parts or parts[0] != root:
         raise ValueError('link outside archive root')
     return tuple(parts)
@@ -69,7 +74,7 @@ def inspect(archive, root):
             if parent is not None and not parent.isdir():
                 raise ValueError('archive member below non-directory')
         if member.issym() or member.islnk():
-            target = link_target(member, root)
+            target = link_target(member, root, members)
             # Disallow targets through other links: lexical containment alone
             # does not establish containment after symlink expansion and '..'.
             for end in range(1, len(target) + 1):
@@ -122,7 +127,7 @@ def unpack(path, destination, digest, archive_format, root):
                     if member.issym():
                         target.symlink_to(member.linkname)
                     elif member.islnk():
-                        os.link(staging.joinpath(*link_target(member, root)), target)
+                        os.link(staging.joinpath(*link_target(member, root, members)), target)
                 os.replace(staging / root, destination / root)
 
 
