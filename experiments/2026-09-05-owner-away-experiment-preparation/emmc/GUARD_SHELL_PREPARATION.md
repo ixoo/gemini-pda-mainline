@@ -1,7 +1,8 @@
 # eMMC logger guard exact-shell preparation
 
-Status: host fixtures passed; exact BusyBox execution awaits a separately
-assigned Buildbox window. Collection and completion drafts remain disabled,
+Status: host and exact BusyBox fixtures passed; the assigned execution is
+recorded in [GUARD_SHELL_RESULTS.md](GUARD_SHELL_RESULTS.md). The protocol below
+was prepared before that one execution. Collection and completion drafts remain disabled,
 with runtime facts unset. This item changes no candidate, first-baseline
 protocol, physical admission or target action budget.
 
@@ -148,4 +149,5 @@ hashes, 90/600-second budgets and one-second cleanup. It must also record
 `device_access: false`, `target_bodies_executed: false` and claim
 `guard-before-fixed-body-and-exact-dispatch-only`. A failure, wrong identity,
 partial receipt or exhausted budget does not pass. Preserve diagnostics and
-review before any retry. Exact execution and physical readiness remain pending.
+review before any retry. Exact execution now has its linked receipt; physical
+readiness remains separate and pending.
