@@ -245,15 +245,19 @@ are unchanged; the topic inventory now links this bounded preparation record.
 
 ## Exact-upstream build dependency
 
-The existing builder and package validator use one global kernel source and
-assume an xz release archive with root `linux-VERSION`. The exact upstream topic
-is based on a post-7.3-rc1 commit; the existing 7.1.3 local repair build cannot
-validate that whole revision. A [tested integration handoff](SOURCE_INTEGRATION.md)
-now supplies a complete source-selection/provenance contract and preservation
-fingerprints for all 189 existing profiles. This proposal remains experiment
-code until the integration owner reviews and wires it into the production
-builder and verifier. The global manifest, canonical series and shared scripts
-are unchanged by this handoff.
+The original global-source dependency now has a reviewed production
+[source-wiring implementation](SOURCE_WIRING.md), including preservation
+fingerprints for all 189 existing profiles. The exact upstream topic still
+requires separate source-profile and patch admission; a local 7.1.3 repair
+build cannot validate that complete upstream revision. The global source,
+canonical selection and existing candidate inputs remain unchanged.
+
+The [concrete profile proposal](PROFILE_PROPOSAL.md) supplies the exact source
+and six-patch selection, proposed minimal KUnit/QEMU configuration, schema/DT
+targets, V4 freeze requirements and a single retained-archive migration plan.
+It remains experiment-only and has not been resolved, built or executed.
+The [corrective Linux receipt](results/source-links-linux.json) records the
+reviewed traversal fix passing on the exact retained snapshot without extraction.
 
 ## Maintainer discovery method
 
