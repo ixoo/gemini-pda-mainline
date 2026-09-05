@@ -1,0 +1,43 @@
+{
+  "attempt": 1,
+  "attempt_budget": 1,
+  "captured_utc": "2026-09-05T03:26:15.821736+00:00",
+  "collector_sha256": "c89820e47e499fd6bc5ebc39846125ab7e64fd38df12a17bdb4ddc58c8489d65",
+  "command_exit": 2,
+  "private_capture_sha256": "d9d2a8df89f691f16f04b878f2d16c5027262b58db88299239c5ae1a819f4464",
+  "repeat": "not_admitted",
+  "result": {
+    "budget": {
+      "bytes_read": 100,
+      "max_file_bytes": 4096,
+      "max_sdio_entries": 32,
+      "max_seconds": 15,
+      "max_total_bytes": 262144,
+      "sdio_entries_seen": 0
+    },
+    "classification": "incomplete_or_unrecognized_metadata",
+    "facts": {
+      "model": "vendor_mt6797x",
+      "sdio": {
+        "absence_interpretation": "no_silicon_or_bus_absence_claim",
+        "functions": [],
+        "state": "observed"
+      },
+      "wlan": {
+        "reason": "metadata_unavailable",
+        "state": "unavailable"
+      }
+    },
+    "firmware_reads": 0,
+    "identity": {
+      "boot_id": "65ad474e-847b-4d48-880a-9693d5d1c7b1",
+      "kernel": "3.18.41+"
+    },
+    "identity_checked_end": true,
+    "mode": "live",
+    "radio_operations": 0,
+    "schema": 1,
+    "silicon_identity": "unproven",
+    "status": "inconclusive"
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "attempt": 1,
+  "attempt_budget": 1,
+  "captured_utc": "2026-09-05T03:33:19.832545+00:00",
+  "command_exit": 2,
+  "diagnostic_sha256": "f2e5e344b81d4f4faee1e56b602f02c460aba9f62d148e2026714f3025b27fcd",
+  "helper_sha256": "c89820e47e499fd6bc5ebc39846125ab7e64fd38df12a17bdb4ddc58c8489d65",
+  "private_capture_sha256": "9747111f9b17423f64bc3d33292d52050f42e8cb0a472550a1e6c8c6ac12c4c2",
+  "repeat": "not_admitted",
+  "result": {
+    "budget": {
+      "components_per_resolution": 96,
+      "fixed_paths": 8,
+      "identity_bytes_read": 92,
+      "max_seconds": 10,
+      "symlink_depth_per_resolution": 16
+    },
+    "identity": {
+      "boot_id": "65ad474e-847b-4d48-880a-9693d5d1c7b1",
+      "kernel": "3.18.41+"
+    },
+    "identity_checked_end": true,
+    "mode": "live",
+    "paths": {
+      "clock_names": {
+        "entry_kind": "unavailable",
+        "resolved_relation": "unavailable",
+        "target_kind": "unavailable"
+      },
+      "compatible": {
+        "entry_kind": "unavailable",
+        "resolved_relation": "unavailable",
+        "target_kind": "unavailable"
+      },
+      "device": {
+        "entry_kind": "symlink",
+        "resolved_relation": "expected",
+        "target_kind": "directory"
+      },
+      "driver": {
+        "entry_kind": "symlink",
+        "resolved_relation": "expected",
+        "target_kind": "directory"
+      },
+      "of_node": {
+        "entry_kind": "unavailable",
+        "resolved_relation": "unavailable",
+        "target_kind": "unavailable"
+      },
+      "platform_driver": {
+        "entry_kind": "symlink",
+        "resolved_relation": "expected",
+        "target_kind": "directory"
+      },
+      "subsystem": {
+        "entry_kind": "symlink",
+        "resolved_relation": "expected",
+        "target_kind": "directory"
+      },
+      "wlan": {
+        "entry_kind": "symlink",
+        "resolved_relation": "expected",
+        "target_kind": "directory"
+      }
+    },
+    "property_payload_reads": 0,
+    "provenance": {
+      "helper_path": "experiments/2026-09-05-mt6797-wifi-contract/scripts/wifi_sysfs.py",
+      "helper_sha256": "c89820e47e499fd6bc5ebc39846125ab7e64fd38df12a17bdb4ddc58c8489d65",
+      "verification": "caller_must_pin_loaded_source_bytes"
+    },
+    "radio_operations": 0,
+    "schema": 1,
+    "status": "inconclusive"
+  }
+}
