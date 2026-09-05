@@ -362,3 +362,9 @@ The [V4 conversion audit](V4_CONVERSION_AUDIT.md) identifies encoded-offset
 rounding differences and a dormant ABB index hazard. Synthetic tests of the
 exact production function support a focused correction; no deployed source or
 hardware claim changed, and the multi-degree thermal response remains unresolved.
+
+
+The [corrected-image runtime contract](V4_RUNTIME_ACCEPTANCE.md) now defines a
+workload-free regression gate for the changed conversion. Its offline
+orchestrator passes refusal and budget fixtures; candidate/profile binding and
+exact-shell admission are still required. No new boot or device action is admitted.

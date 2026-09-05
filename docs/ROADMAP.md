@@ -8400,13 +8400,16 @@ Patch 0541 is now generated, style-checked and replayed from the clean published
 tooling, and its decoder/converter tests pass again. The isolated compile profile
 selects it; every pre-existing profile retains its exact predecessor patch and
 configuration inputs. The isolated [Buildbox compilation and package verification](../experiments/2026-09-04-mt6797-thermal-snapshot/results/v4-correction-build-pass.json)
-now pass; the built source matches the tested correction. **Selected next:**
-define the corrected-image runtime acceptance boundary and distinct candidate
-identity. Start with a no-workload conversion/observer regression gate, retaining
-pristine lifecycle/frequency accounting and bounded snapshots; do not assume
-this small arithmetic correction resolves the prior workload thermal rejection.
-Publish and validate that protocol and configuration binding before selecting
-or building a boot candidate. The compile package is not admitted for boot. No further diagnostic reads or workload on the consumed
+now pass; the built source matches the tested correction. The [corrected-image no-workload contract](../experiments/2026-09-04-mt6797-thermal-snapshot/V4_RUNTIME_ACCEPTANCE.md)
+now fixes the regression hypothesis, distinct release, unchanged finite budgets,
+pristine accounting, precision/refusal rules and output claim. Its offline
+orchestrator passes 30 scenarios and rejects old identities without altering
+the consumed predecessor protocol. **Selected next:** bind the runtime profile's
+config-input identity and release, validate the selector/source boundary, then
+build and independently compose a uniquely identified corrected candidate.
+Complete the candidate-pinned host/remote runner, durable-capture mutations and
+exact-candidate shell validation before installation or owner boot selection.
+The existing compile package remains unadmitted for boot. No further diagnostic reads or workload on the consumed
 session; no repeat is admitted. Any future boot requires a distinct,
 decision-changing hypothesis and published bounded protocol. Integrated thermal
 repeatability, broader load/hotplug, cpufreq/OPP, idle, suspend, thermal protection
