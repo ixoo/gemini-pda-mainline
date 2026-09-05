@@ -60,6 +60,13 @@ classification uses retained bytes individually verified against the admitted
 manifests; it does not classify a later reopening of a checked path. Returned
 result hashes also derive from those verified snapshots.
 
+Each bounded file read samples metadata on the same held descriptor before and
+after reading. Device/inode identity, type and mode, owner/group, link count and
+size must be equal; captured length must match that size. Private reads must
+have mode `0600`, the current owner and one link at both measured instants.
+These checks do not prove the absence of every transient filesystem mutation
+or promise that archive metadata remains unchanged after verification.
+
 ## Output and integration
 
 A passing result identifies the accepted baseline/recovery classification,

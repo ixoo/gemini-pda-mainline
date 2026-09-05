@@ -85,6 +85,14 @@ def safe_read(path, limit=65536, *, private=False):
         with os.fdopen(fd, 'rb', closefd=False) as stream:
             data = stream.read(limit + 1)
         need(len(data) <= limit, 'input-grew')
+        # Recheck the same held object after the bounded read. Equality with
+        # the validated first sample preserves its type, privacy and size at
+        # both measured instants; it cannot exclude all transient mutations.
+        after = os.fstat(fd)
+        metadata = ('st_dev', 'st_ino', 'st_mode', 'st_uid', 'st_gid', 'st_nlink', 'st_size')
+        need(all(getattr(info, key) == getattr(after, key) for key in metadata),
+             'input-metadata-changed-during-read')
+        need(len(data) == info.st_size == after.st_size, 'input-size-differs-from-read')
         return data
     finally:
         os.close(fd)

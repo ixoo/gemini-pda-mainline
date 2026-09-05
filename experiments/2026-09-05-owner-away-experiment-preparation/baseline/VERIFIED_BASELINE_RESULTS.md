@@ -18,8 +18,8 @@ deployment hashes so a caller can compare its independently prepared inputs.
 
 | Source | SHA-256 |
 | --- | --- |
-| `scripts/verified_baseline.py` | `dc60a0778c7fc1a937e880cf2c0c01fd218837728715dee69d419c7792741a86` |
-| `scripts/test-verified-baseline.py` | `bac4cc20dc07880c4cf0c8215b31fc1adfff895bb800c5d836861ef5eacbaba0` |
+| `scripts/verified_baseline.py` | `ba70f6df476283c0113d433ae856940cc9c031f864019da95f014324e16c926e` |
+| `scripts/test-verified-baseline.py` | `857b370594f9c82b983ceeb1f7e43a4d87f5c53946659a89e8f1c8b3f33888b3` |
 
 The component pins its complete seven-file production source closure: the
 baseline collector, finishing helper, session parsers, deployment adapter,
@@ -31,14 +31,35 @@ It imports no keyboard implementation or fixture into production verification.
 Independent extraction review found a privacy race: an initial single-link
 check was followed by the finishing helper's snapshot reader, which did not
 check the link count. A deterministic mutation introduced an outside hardlink
-between those operations and still obtained a verified result. The final
-implementation retains bytes read through descriptors that enforce file type,
-owner, mode, single-link count and size, and requires those exact bytes to match
-the manifest-verified snapshot. The race now refuses. No other concrete
-source-closure, output-binding or baseline-acceptance gap was found in review.
+between those operations and still obtained a verified result. The
+implementation at `e9ad2eede401173a7609566dd32dfae637596d66` retained bytes read
+through descriptors that enforce file type, owner, mode, single-link count and
+size, and required those exact bytes to match
+the manifest-verified snapshot. That earlier mutation refused, but a later
+integration review found a narrower race within the bounded read itself.
 
-All 21 shared-verifier methods passed in normal and optimized Python, and all
-21 passed again after applying the source at its intended repository path.
+The integration reviewer added an outside hardlink after the initial
+descriptor metadata sample for the original attempt's `result.json`. The
+unchanged captured bytes still passed verification while the link persisted.
+A deterministic local regression reproduced that acceptance against `e9ad2eed`.
+The correction samples the same still-open descriptor again after reading and
+requires device/inode, type/mode, owner/group, link count and size to equal the
+validated first sample, with captured length equal to both sampled sizes.
+Existing manifest/digest and retained-snapshot comparisons remain in place.
+
+Three new methods inject persistent hardlink, mode and size changes after the
+actual stream read returns its unchanged bytes but before the bounded reader
+returns. Each covers original, authentication and confirmation result files.
+All nine cases now refuse immediately at the metadata comparison. Before this
+correction, the original hardlink case was accepted; other cases could refuse
+later inventory or checksum checks. The measured before/after checks do not
+prove that all transient filesystem mutations are absent or that metadata
+cannot change after verification.
+
+All 24 shared-verifier methods passed in normal and optimized Python after the
+correction. The original 21 methods had passed in both modes at `e9ad2eed`.
+Independent correction review found no actionable defect and reran the positive
+archive method plus the three new regression methods successfully.
 The full positive archive test forbids credential/image reads, file writes,
 sockets and subprocess creation during verification. Refusal cases include
 external anchor mismatches, source drift before import, changed claims and
@@ -55,7 +76,10 @@ future prerequisites for either dependent packet.
 
 ## Private packet integration checkpoint
 
-Both ignored packet drafts now import the exact shared verifier source above.
+The following historical checkpoint used the initial `e9ad2eed` verifier
+digest `dc60a0778c7fc1a937e880cf2c0c01fd218837728715dee69d419c7792741a86`.
+Both ignored packet drafts pinned that source. Adoption of the corrected
+digest requires updating and rechecking those draft pins; they remain disabled.
 The keyboard draft replaced its duplicate archive parser with a 49-line pinned
 adapter; 25 launcher and 19 archive methods passed normally and with Python
 optimization enabled. No keyboard protocol or supervisor implementation changed.

@@ -3,6 +3,7 @@
 """Synthetic retained archives only; creates no keys, sockets or boot images."""
 import builtins
 import copy
+from contextlib import contextmanager
 import io
 import importlib.util
 import json
@@ -185,6 +186,50 @@ class AggregateTests(unittest.TestCase):
     def verify(self):
         return A.verify(self.root, self.bindings)
 
+    @contextmanager
+    def mutate_private_read(self, path, mutation):
+        """Change the retained object after read, before safe_read can return."""
+        real_fdopen, real_fstat, real_read = os.fdopen, os.fstat, A.safe_read
+        real_snapshot = A.private_snapshot
+        target = path.stat()
+        changed = []
+        class RacedStream:
+            def __init__(self, stream):
+                self.stream = stream
+
+            def __enter__(self):
+                self.stream.__enter__()
+                return self
+
+            def __exit__(self, *args):
+                return self.stream.__exit__(*args)
+
+            def read(self, limit):
+                raw = self.stream.read(limit)
+                mutation()
+                changed.append(True)
+                return raw
+
+        def raced_open(fd, *args, **kwargs):
+            stream = real_fdopen(fd, *args, **kwargs)
+            info = real_fstat(fd)
+            if not changed and (info.st_dev, info.st_ino) == (target.st_dev, target.st_ino):
+                return RacedStream(stream)
+            return stream
+
+        def raced_read(current, *args, **kwargs):
+            if Path(current) == path and kwargs.get('private') is True:
+                with patch.object(A.os, 'fdopen', side_effect=raced_open):
+                    return real_read(current, *args, **kwargs)
+            return real_read(current, *args, **kwargs)
+
+        def raced_snapshot(*args, **kwargs):
+            with patch.object(A, 'safe_read', side_effect=raced_read):
+                return real_snapshot(*args, **kwargs)
+
+        with patch.object(A, 'private_snapshot', side_effect=raced_snapshot):
+            yield changed
+
     def rebind_phase(self, phase):
         directory = self.sessions / phase
         pin = refresh(directory)
@@ -298,6 +343,48 @@ class AggregateTests(unittest.TestCase):
                         self.verify()
                 self.assertTrue(outside.exists(), 'race hook was not reached')
                 outside.unlink()
+
+    def test_persistent_hardlink_during_private_read_refuses(self):
+        outside = self.root.parent / 'during-read-hardlink'
+        for directory in (self.attempt, self.sessions / 'auth-checks', self.sessions / 'confirm-recovery'):
+            with self.subTest(directory=directory.name):
+                path = directory / 'result.json'
+                try:
+                    with self.mutate_private_read(path, lambda: os.link(path, outside)) as changed:
+                        with self.assertRaisesRegex(ValueError, 'input-metadata-changed-during-read'):
+                            self.verify()
+                    self.assertEqual(changed, [True])
+                    self.assertEqual(path.stat().st_nlink, 2)
+                    self.assertEqual(path.stat().st_ino, outside.stat().st_ino)
+                finally:
+                    outside.unlink(missing_ok=True)
+
+    def test_mode_change_during_private_read_refuses(self):
+        for directory in (self.attempt, self.sessions / 'auth-checks', self.sessions / 'confirm-recovery'):
+            with self.subTest(directory=directory.name):
+                path = directory / 'result.json'
+                try:
+                    with self.mutate_private_read(path, lambda: path.chmod(0o640)) as changed:
+                        with self.assertRaisesRegex(ValueError, 'input-metadata-changed-during-read'):
+                            self.verify()
+                    self.assertEqual(changed, [True])
+                    self.assertEqual(path.stat().st_mode & 0o7777, 0o640)
+                finally:
+                    path.chmod(0o600)
+
+    def test_size_change_during_private_read_refuses(self):
+        for directory in (self.attempt, self.sessions / 'auth-checks', self.sessions / 'confirm-recovery'):
+            with self.subTest(directory=directory.name):
+                path = directory / 'result.json'
+                original = path.read_bytes()
+                try:
+                    with self.mutate_private_read(path, lambda: path.write_bytes(original + b' ')) as changed:
+                        with self.assertRaisesRegex(ValueError, 'input-metadata-changed-during-read'):
+                            self.verify()
+                    self.assertEqual(changed, [True])
+                    self.assertEqual(path.stat().st_size, len(original) + 1)
+                finally:
+                    write(path, original)
 
     def test_prior_parsers_cannot_reopen_live_evidence(self):
         real_tools = A.tools
