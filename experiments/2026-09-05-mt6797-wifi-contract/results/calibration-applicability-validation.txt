@@ -1,0 +1,18 @@
+Calibration applicability reconciliation — 2026-09-05
+Base: 69bd2662
+Existing calibration, producer/storage docs and receipts read; completed source
+and backup hashing not repeated. Immutable retained evidence read in RE VM.
+Read-only debugfs file read checked for expected extent, status and stderr.
+Existing storage inspector matched envelope; no values or private hashes emitted.
+ELF default symbol/segment bounds and symbol relocations inspected in both ABIs.
+Full defaults equal across ABIs. All record bytes outside MAC extent equal default.
+No inference of restoration branch, uncalibrated device or current firmware pairing.
+Public selected consumer flags/commands and capability source traced.
+Host omission of override distinguished from unproved on-chip calibration selection.
+Normal-command loader integration deferred because that implementation/firmware
+contract is absent, not because a record must contain unique calibration bytes.
+No new generic validator, model, firmware export, VM files, live/radio action or build.
+RE VM shell closed. Documentation and sanitized comparison only; no code test changes.
+Repository checks PASS: 189 profiles, unchanged grandfathered metadata debt 37.
+Linux-only artifact-provenance fixture skipped. Three new files reviewed for
+JSON, links, source attribution and sensitive-data exclusion; diff checks PASS.

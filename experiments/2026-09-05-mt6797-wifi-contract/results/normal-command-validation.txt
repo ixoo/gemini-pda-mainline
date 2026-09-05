@@ -1,0 +1,19 @@
+Normal command helper validation — 2026-09-05
+Base: 5841adaf
+Original normal_command.h and normal_command_test.c, pinned public sources only.
+Strict C11 -Wall -Wextra -Werror -pedantic with ASan/UBSan: PASS.
+Literal capability/NVRAM/port1 reply PIO trace: PASS.
+All 322 scalar transfer failure positions: PASS, no refund/retry.
+All 65536 logical RX lengths plus staging bounds: PASS.
+1536 header byte substitutions and logical size variants: PASS.
+Independent normal TC4 page admission and shared INIT/normal sequence history: PASS.
+Synthetic512-byte payload unchanged; no real calibration/firmware inputs.
+Capability calibration-failure fields parsed as data, not calibration approval.
+No NVRAM ACK invented; normal submission is not firmware application proof.
+Seven frozen headers unchanged; no live I/O, backend, resource reset or push.
+Temporary executable cleaned on exit; kernel include branch not separately tested.
+Ignored MAC/date/reserved-field mutation tests and payload preservation PASS.
+Repository checks PASS: 189 profiles, unchanged grandfathered metadata debt 37.
+Linux-only artifact-provenance fixture skipped. Five new files reviewed for
+source identities, local links, GPL identifiers and sensitive-data exclusion.
+Seven frozen header byte identities PASS; no unrelated residue or artifacts.
