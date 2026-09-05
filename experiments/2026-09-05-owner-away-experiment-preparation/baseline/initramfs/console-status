@@ -1,0 +1,22 @@
+#!/bin/busybox sh
+# SPDX-License-Identifier: MIT
+# shellcheck shell=dash
+# shellcheck disable=SC2016
+export PATH=/bin TERM=linux
+umask 077
+/bin/busybox chvt 1 || exit 1
+/bin/busybox stty sane || exit 1
+keymap=/etc/gemini-us.bkeymap
+expected=02f8048d76aa0cedf73617b13ea03a2a4e74de88222cb1922d9d19630906675c
+[ "$(/bin/busybox sha256sum "$keymap" | /bin/busybox awk '{print $1}')" = "$expected" ] || exit 1
+/bin/console-unicode-mode >/run/a53/unicode.status 2>&1 || exit 1
+if ! /bin/console-keymap-verify --verify "$keymap" >/run/a53/keymap.status 2>&1; then
+    /bin/console-keymap-verify --preflight "$keymap" >/run/a53/keymap-preflight.status 2>&1 || exit 1
+    /bin/busybox loadkmap <"$keymap" || exit 1
+    /bin/console-keymap-verify --verify "$keymap" >/run/a53/keymap.status 2>&1 || exit 1
+fi
+/bin/busybox clear
+printf '%s\n' 'Gemini A53 authenticated baseline' 'USB administration requires the prepared SSH key.'
+printf '%s\n' 'This screen accepts no commands. Wait for the agreed keyboard test.'
+printf '%s\n' 'If the screen or USB service is missing, follow the session recovery card.'
+printf 'console=ready\n' >/run/a53/console.status

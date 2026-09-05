@@ -1,0 +1,721 @@
+{
+  "schema_version": 1,
+  "id": "keyboard-targeted-v1",
+  "state": "preparing",
+  "map_sha256": "02f8048d76aa0cedf73617b13ea03a2a4e74de88222cb1922d9d19630906675c",
+  "step_seconds": 10,
+  "idle_seconds": 2,
+  "max_events_per_step": 64,
+  "max_tty_bytes_per_step": 128,
+  "capture_sessions": 1,
+  "steps": [
+    {
+      "index": 0,
+      "instruction": "Hold left Shift, hold Fn, tap 1, release Fn, release Shift; tap A",
+      "key_edges": [
+        [
+          42,
+          1
+        ],
+        [
+          125,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          125,
+          0
+        ],
+        [
+          42,
+          0
+        ],
+        [
+          30,
+          1
+        ],
+        [
+          30,
+          0
+        ]
+      ],
+      "vt_hex": "1b5b5b4161"
+    },
+    {
+      "index": 1,
+      "instruction": "Hold left Shift, hold Fn, tap 2, release Fn, release Shift; tap A",
+      "key_edges": [
+        [
+          42,
+          1
+        ],
+        [
+          125,
+          1
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          125,
+          0
+        ],
+        [
+          42,
+          0
+        ],
+        [
+          30,
+          1
+        ],
+        [
+          30,
+          0
+        ]
+      ],
+      "vt_hex": "1b5b5b4261"
+    },
+    {
+      "index": 2,
+      "instruction": "Hold left Shift, hold Fn, tap 3, release Fn, release Shift; tap A",
+      "key_edges": [
+        [
+          42,
+          1
+        ],
+        [
+          125,
+          1
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          125,
+          0
+        ],
+        [
+          42,
+          0
+        ],
+        [
+          30,
+          1
+        ],
+        [
+          30,
+          0
+        ]
+      ],
+      "vt_hex": "1b5b5b4361"
+    },
+    {
+      "index": 3,
+      "instruction": "Hold left Shift, hold Fn, tap 4, release Fn, release Shift; tap A",
+      "key_edges": [
+        [
+          42,
+          1
+        ],
+        [
+          125,
+          1
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          125,
+          0
+        ],
+        [
+          42,
+          0
+        ],
+        [
+          30,
+          1
+        ],
+        [
+          30,
+          0
+        ]
+      ],
+      "vt_hex": "1b5b5b4461"
+    },
+    {
+      "index": 4,
+      "instruction": "Hold left Shift, hold Fn, tap 5, release Fn, release Shift; tap A",
+      "key_edges": [
+        [
+          42,
+          1
+        ],
+        [
+          125,
+          1
+        ],
+        [
+          6,
+          1
+        ],
+        [
+          6,
+          0
+        ],
+        [
+          125,
+          0
+        ],
+        [
+          42,
+          0
+        ],
+        [
+          30,
+          1
+        ],
+        [
+          30,
+          0
+        ]
+      ],
+      "vt_hex": "1b5b5b4561"
+    },
+    {
+      "index": 5,
+      "instruction": "Hold left Shift, hold Fn, tap 6, release Fn, release Shift; tap A",
+      "key_edges": [
+        [
+          42,
+          1
+        ],
+        [
+          125,
+          1
+        ],
+        [
+          7,
+          1
+        ],
+        [
+          7,
+          0
+        ],
+        [
+          125,
+          0
+        ],
+        [
+          42,
+          0
+        ],
+        [
+          30,
+          1
+        ],
+        [
+          30,
+          0
+        ]
+      ],
+      "vt_hex": "1b5b31377e61"
+    },
+    {
+      "index": 6,
+      "instruction": "Hold left Shift, hold Fn, tap 7, release Fn, release Shift; tap A",
+      "key_edges": [
+        [
+          42,
+          1
+        ],
+        [
+          125,
+          1
+        ],
+        [
+          8,
+          1
+        ],
+        [
+          8,
+          0
+        ],
+        [
+          125,
+          0
+        ],
+        [
+          42,
+          0
+        ],
+        [
+          30,
+          1
+        ],
+        [
+          30,
+          0
+        ]
+      ],
+      "vt_hex": "1b5b31387e61"
+    },
+    {
+      "index": 7,
+      "instruction": "Hold left Shift, hold Fn, tap 8, release Fn, release Shift; tap A",
+      "key_edges": [
+        [
+          42,
+          1
+        ],
+        [
+          125,
+          1
+        ],
+        [
+          9,
+          1
+        ],
+        [
+          9,
+          0
+        ],
+        [
+          125,
+          0
+        ],
+        [
+          42,
+          0
+        ],
+        [
+          30,
+          1
+        ],
+        [
+          30,
+          0
+        ]
+      ],
+      "vt_hex": "1b5b31397e61"
+    },
+    {
+      "index": 8,
+      "instruction": "Hold left Shift, hold Fn, tap 9, release Fn, release Shift; tap A",
+      "key_edges": [
+        [
+          42,
+          1
+        ],
+        [
+          125,
+          1
+        ],
+        [
+          10,
+          1
+        ],
+        [
+          10,
+          0
+        ],
+        [
+          125,
+          0
+        ],
+        [
+          42,
+          0
+        ],
+        [
+          30,
+          1
+        ],
+        [
+          30,
+          0
+        ]
+      ],
+      "vt_hex": "1b5b32307e61"
+    },
+    {
+      "index": 9,
+      "instruction": "Hold left Shift, hold Fn, tap 0, release Fn, release Shift; tap A",
+      "key_edges": [
+        [
+          42,
+          1
+        ],
+        [
+          125,
+          1
+        ],
+        [
+          11,
+          1
+        ],
+        [
+          11,
+          0
+        ],
+        [
+          125,
+          0
+        ],
+        [
+          42,
+          0
+        ],
+        [
+          30,
+          1
+        ],
+        [
+          30,
+          0
+        ]
+      ],
+      "vt_hex": "1b5b32317e61"
+    },
+    {
+      "index": 10,
+      "instruction": "Hold Fn, tap Left (Home), release Fn; tap A",
+      "key_edges": [
+        [
+          125,
+          1
+        ],
+        [
+          105,
+          1
+        ],
+        [
+          105,
+          0
+        ],
+        [
+          125,
+          0
+        ],
+        [
+          30,
+          1
+        ],
+        [
+          30,
+          0
+        ]
+      ],
+      "vt_hex": "1b5b317e61"
+    },
+    {
+      "index": 11,
+      "instruction": "Hold Fn, tap Up (Page Up), release Fn; tap A",
+      "key_edges": [
+        [
+          125,
+          1
+        ],
+        [
+          103,
+          1
+        ],
+        [
+          103,
+          0
+        ],
+        [
+          125,
+          0
+        ],
+        [
+          30,
+          1
+        ],
+        [
+          30,
+          0
+        ]
+      ],
+      "vt_hex": "1b5b357e61"
+    },
+    {
+      "index": 12,
+      "instruction": "Hold Fn, tap Down (Page Down), release Fn; tap A",
+      "key_edges": [
+        [
+          125,
+          1
+        ],
+        [
+          108,
+          1
+        ],
+        [
+          108,
+          0
+        ],
+        [
+          125,
+          0
+        ],
+        [
+          30,
+          1
+        ],
+        [
+          30,
+          0
+        ]
+      ],
+      "vt_hex": "1b5b367e61"
+    },
+    {
+      "index": 13,
+      "instruction": "Hold Fn, tap Right (End), release Fn; tap A",
+      "key_edges": [
+        [
+          125,
+          1
+        ],
+        [
+          106,
+          1
+        ],
+        [
+          106,
+          0
+        ],
+        [
+          125,
+          0
+        ],
+        [
+          30,
+          1
+        ],
+        [
+          30,
+          0
+        ]
+      ],
+      "vt_hex": "1b5b347e61"
+    },
+    {
+      "index": 14,
+      "instruction": "Hold left Shift, tap A, release Shift; tap A",
+      "key_edges": [
+        [
+          42,
+          1
+        ],
+        [
+          30,
+          1
+        ],
+        [
+          30,
+          0
+        ],
+        [
+          42,
+          0
+        ],
+        [
+          30,
+          1
+        ],
+        [
+          30,
+          0
+        ]
+      ],
+      "vt_hex": "4161"
+    },
+    {
+      "index": 15,
+      "instruction": "Hold right Shift, tap A, release Shift; tap A",
+      "key_edges": [
+        [
+          54,
+          1
+        ],
+        [
+          30,
+          1
+        ],
+        [
+          30,
+          0
+        ],
+        [
+          54,
+          0
+        ],
+        [
+          30,
+          1
+        ],
+        [
+          30,
+          0
+        ]
+      ],
+      "vt_hex": "4161"
+    },
+    {
+      "index": 16,
+      "instruction": "Hold Ctrl, press A, release Ctrl, release A; tap A",
+      "key_edges": [
+        [
+          29,
+          1
+        ],
+        [
+          30,
+          1
+        ],
+        [
+          29,
+          0
+        ],
+        [
+          30,
+          0
+        ],
+        [
+          30,
+          1
+        ],
+        [
+          30,
+          0
+        ]
+      ],
+      "vt_hex": "0161"
+    },
+    {
+      "index": 17,
+      "instruction": "Hold Alt, tap A, release Alt; tap A",
+      "key_edges": [
+        [
+          56,
+          1
+        ],
+        [
+          30,
+          1
+        ],
+        [
+          30,
+          0
+        ],
+        [
+          56,
+          0
+        ],
+        [
+          30,
+          1
+        ],
+        [
+          30,
+          0
+        ]
+      ],
+      "vt_hex": "1b6161"
+    },
+    {
+      "index": 18,
+      "instruction": "Tap Fn and release; tap A",
+      "key_edges": [
+        [
+          125,
+          1
+        ],
+        [
+          125,
+          0
+        ],
+        [
+          30,
+          1
+        ],
+        [
+          30,
+          0
+        ]
+      ],
+      "vt_hex": "61"
+    },
+    {
+      "index": 19,
+      "instruction": "Tap H, E, L, P, Enter, releasing each before the next",
+      "key_edges": [
+        [
+          35,
+          1
+        ],
+        [
+          35,
+          0
+        ],
+        [
+          18,
+          1
+        ],
+        [
+          18,
+          0
+        ],
+        [
+          38,
+          1
+        ],
+        [
+          38,
+          0
+        ],
+        [
+          25,
+          1
+        ],
+        [
+          25,
+          0
+        ],
+        [
+          28,
+          1
+        ],
+        [
+          28,
+          0
+        ]
+      ],
+      "vt_hex": "68656c700d"
+    }
+  ]
+}

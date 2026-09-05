@@ -1,0 +1,1170 @@
+{
+  "schema_version": 1,
+  "purpose": "Historical exact-input foundation; not a new boot candidate or hardware admission.",
+  "repository_build_commit": "ded915b81d56902d8800ff9fefc477480e4bcaa1",
+  "audit_parent": "2891e041fbc5291956bd90882f0f52fea11f2504",
+  "origin": "https://github.com/ixoo/gemini-pda-mainline.git",
+  "upstream": {
+    "version": "7.1.3",
+    "released": "2026-07-04",
+    "source_url": "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.1.3.tar.xz",
+    "sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc"
+  },
+  "profile_name": "mt6797-pwrap-reset-serviceability",
+  "historical_profile": {
+    "base": "defconfig",
+    "patch_series": "patches/series",
+    "fragments": [
+      "configs/gemini-handoff.fragment",
+      "configs/gemini-usbdiag.fragment",
+      "configs/gemini-clk-ignore-unused.fragment",
+      "configs/gemini-observability.fragment",
+      "configs/gemini-fbcon-rotation.fragment",
+      "configs/gemini-keyboard.fragment",
+      "configs/gemini-keyboard-wrrd.fragment",
+      "configs/gemini-keyboard-manual-reboot.fragment",
+      "configs/gemini-smp8.fragment",
+      "configs/gemini-emmc-development.fragment",
+      "configs/gemini-mt6797-pwrap-reset-serviceability.fragment"
+    ]
+  },
+  "historical_manifest_sha256": "4e4eab4ad5a73a390fd5394d336250056fc719765729ccd29356b039ef1e49ed",
+  "historical_series": {
+    "path": "patches/series",
+    "sha256": "0fb18bba40d9d55bb6dc7e0f3d5b3ebfe7bdbc36963991ac77c1913883071010",
+    "patch_count": 505
+  },
+  "fragments": {
+    "configs/gemini-handoff.fragment": "cb786eb244637af11858cb0ca31c138be32bf0104582ec589fc0eb2d50933f5e",
+    "configs/gemini-usbdiag.fragment": "dc9f6a5ac23cde753c785198d4df40173c5a973e8305ef7359b0bdc8d04d4190",
+    "configs/gemini-clk-ignore-unused.fragment": "0a78b7535a74feb112f109b2bd043a6c43421c073e28797f3fb83a7938c23e61",
+    "configs/gemini-observability.fragment": "64497ba384665a80fd9c1be02e9356fd76254b4e91b12035d7feef350f5e35b2",
+    "configs/gemini-fbcon-rotation.fragment": "8228d1d52315e9d0194678276f28cf752e18971ffdc20617ea5bb7345b65bd18",
+    "configs/gemini-keyboard.fragment": "73f167333798d95ca6141f1bf04718997dff0344295750e20e8b83f68155729a",
+    "configs/gemini-keyboard-wrrd.fragment": "5f392c5a308ee088c87283fa8e60fc2c9551c2a5281aaac87c7b98d3a6803490",
+    "configs/gemini-keyboard-manual-reboot.fragment": "7173234adbf112eeac0c2b67626aad23b987df92bb554402b81a2e2f9d6fd449",
+    "configs/gemini-smp8.fragment": "ec0a5ac9c2f773d60a387e2e464ec1c82a2a4de8fb47d726ad696f8ab39b2c2f",
+    "configs/gemini-emmc-development.fragment": "de95f65dc94cdb85e62963f74270c597832c84e7b6dc77a351bf0d5b935c80e1",
+    "configs/gemini-mt6797-pwrap-reset-serviceability.fragment": "b8dbdab1ab5fdfa21c72a5b28cbf8ea785e141d18418fa1b2d3811c01d3391d9"
+  },
+  "build": {
+    "schema": 1,
+    "generated_utc": "2026-09-04T01:21:01Z",
+    "kernel_release": "7.1.3-gemini-mt6797-pwrap-reset",
+    "build_profile": "mt6797-pwrap-reset-serviceability",
+    "base_config": "defconfig",
+    "config_fragments": [
+      "configs/gemini-handoff.fragment",
+      "configs/gemini-usbdiag.fragment",
+      "configs/gemini-clk-ignore-unused.fragment",
+      "configs/gemini-observability.fragment",
+      "configs/gemini-fbcon-rotation.fragment",
+      "configs/gemini-keyboard.fragment",
+      "configs/gemini-keyboard-wrrd.fragment",
+      "configs/gemini-keyboard-manual-reboot.fragment",
+      "configs/gemini-smp8.fragment",
+      "configs/gemini-emmc-development.fragment",
+      "configs/gemini-mt6797-pwrap-reset-serviceability.fragment"
+    ],
+    "config_inputs_sha256": "2d5840c3eca68e648b422aa00b5f354a73fa577f44bdcbfea78b5d2adc842979",
+    "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+    "patchset_sha256": "bc6d039d88019e95c6e08c9a8caf78f611a8e238ca1cfb234672db3d31d6bcae",
+    "config_sha256": "194834d90eb2443f4b14ba8f2078ba16fe0c63f69088fcc8c063fe25af01c410",
+    "modules_built": false,
+    "build_architecture": "x86_64",
+    "target_architecture": "arm64",
+    "toolchain_mode": "cross",
+    "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+    "compiler_full_version": "12.2.0",
+    "compiler_target": "aarch64-linux-gnu",
+    "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+    "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+    "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+    "ccache_enabled": true,
+    "ccache_version": "ccache version 4.7.5",
+    "repository_commit": "ded915b81d56902d8800ff9fefc477480e4bcaa1",
+    "repository_dirty": false
+  },
+  "package": {
+    "directory_name": "linux-7.1.3-gemini-mt6797-pwrap-reset-serviceability-bc6d039d-2d5840c3",
+    "manifest_sha256": "46a6602a2af1fa159eb1c89e451049f6818f738a53b1c01226e2ff100302c745",
+    "inventory_count": 646,
+    "identities": {
+      "Image": {
+        "size": 13688840,
+        "sha256": "ee9162e607c263c039aabb22848d35fcefdb47daeaff82fcb3af69b7d3ef2838"
+      },
+      "Image.gz": {
+        "size": 5636902,
+        "sha256": "6682b2f7d4843c9460576380f28eb14289620e74c7d9b1f0c70ae33eeed3d4e5"
+      },
+      "System.map": {
+        "size": 2380223,
+        "sha256": "07bf653ea74c2bae7e8747430d346b98aed850f3b24cf400a68db9612b6a7035"
+      },
+      "kernel.config": {
+        "size": 109997,
+        "sha256": "194834d90eb2443f4b14ba8f2078ba16fe0c63f69088fcc8c063fe25af01c410"
+      }
+    }
+  },
+  "candidate": {
+    "directory_name": "candidate-mt6797-pwrap-reset-305230b1",
+    "manifest_sha256": "528f38ae3459149bc6f12242118b69d104590bd8902eef7d3969a1cd1b8d0f17",
+    "inventory_count": 12,
+    "identities": {
+      "gemini-mt6797-pwrap-reset-serviceability.boot.img": {
+        "size": 7487488,
+        "sha256": "305230b1e2845ce39e1ebee8a6d0ce420bc5766c837a2473dc9409551402bda3"
+      },
+      "boot2-padded.img": {
+        "size": 16777216,
+        "sha256": "5c7429b297c718f5af61367588975e292a8c239854ffd5ba527eb86da1e4a5a6"
+      },
+      "mt6797-gemini-pda-pwrap-reset-serviceability.dtb": {
+        "size": 26826,
+        "sha256": "e1e4eca289320533bad5c879e78055eaa86a295080b1154c13debe29ddd8ee4a"
+      },
+      "gemini-pwrap-reset-serviceability-initramfs.img": {
+        "size": 1820254,
+        "sha256": "344d8a8464bee60764df467f166aa73eddfcbd4d362d835aa2d6895534c31c4b"
+      }
+    }
+  },
+  "container": {
+    "format": "android-v0-LK",
+    "name": "gemini-obs-L",
+    "cmdline": "bootopt=64S3,32N2,64N2",
+    "kernel_addr": "0x40200000",
+    "ramdisk_addr": "0x45000000",
+    "second_addr": "0x40f00000",
+    "tags_addr": "0x44000000"
+  },
+  "initramfs_members": {
+    ".": {
+      "mode": "0o40755",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 2
+    },
+    "bin": {
+      "mode": "0o40755",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 2
+    },
+    "bin/ac-record": {
+      "mode": "0o100755",
+      "size": 365,
+      "sha256": "56a2e0944e77cbf18ab9b1146c14ee0bc3a3ac800fb13a72fe8136aa32ae608a",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1
+    },
+    "bin/ash": {
+      "mode": "0o120777",
+      "size": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1,
+      "target": "busybox"
+    },
+    "bin/busybox": {
+      "mode": "0o100755",
+      "size": 1914704,
+      "sha256": "52151e7f322f926b64049cdaa1410dc3ea6485525e0624b05813791c219ae933",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1
+    },
+    "bin/cat": {
+      "mode": "0o120777",
+      "size": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1,
+      "target": "busybox"
+    },
+    "bin/chvt": {
+      "mode": "0o120777",
+      "size": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1,
+      "target": "busybox"
+    },
+    "bin/clear": {
+      "mode": "0o120777",
+      "size": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1,
+      "target": "busybox"
+    },
+    "bin/console-keymap-verify": {
+      "mode": "0o100755",
+      "size": 537576,
+      "sha256": "29735d212e74d0b0040a3ead173a83223b89ce5d947b697a115707eb3d23b238",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1
+    },
+    "bin/console-unicode-mode": {
+      "mode": "0o100755",
+      "size": 537584,
+      "sha256": "5949ee28aedeb8f8ba7b5486abbec7714034f7b833265bace9a1438b8a1dd650",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1
+    },
+    "bin/dd": {
+      "mode": "0o120777",
+      "size": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1,
+      "target": "busybox"
+    },
+    "bin/emmc-flash-boot2": {
+      "mode": "0o100755",
+      "size": 4691,
+      "sha256": "a4aa07eedefac73804483039f1db48206628fe8894b085627183802a4be7c88d",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1
+    },
+    "bin/init": {
+      "mode": "0o120777",
+      "size": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1,
+      "target": "busybox"
+    },
+    "bin/input-event-capture": {
+      "mode": "0o100755",
+      "size": 710808,
+      "sha256": "b9b555ce176a8bb29b492a73f06288784baf4f54786bed514ff1230efd732602",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1
+    },
+    "bin/ip": {
+      "mode": "0o120777",
+      "size": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1,
+      "target": "busybox"
+    },
+    "bin/local-shell": {
+      "mode": "0o100755",
+      "size": 3119,
+      "sha256": "2569bb4ebe8f1617e5e3c7f0885d9a487f36a4a687a663851b5f21240583047d",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1
+    },
+    "bin/mount": {
+      "mode": "0o120777",
+      "size": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1,
+      "target": "busybox"
+    },
+    "bin/nc": {
+      "mode": "0o120777",
+      "size": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1,
+      "target": "busybox"
+    },
+    "bin/ping": {
+      "mode": "0o120777",
+      "size": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1,
+      "target": "busybox"
+    },
+    "bin/readlink": {
+      "mode": "0o120777",
+      "size": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1,
+      "target": "busybox"
+    },
+    "bin/reboot": {
+      "mode": "0o100755",
+      "size": 653,
+      "sha256": "3f439dbb0572b0f6f463c168d5b795dc93c9f41efd096f2154bd7f6b8524a2f7",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1
+    },
+    "bin/reboot-dispatch.env": {
+      "mode": "0o100444",
+      "size": 27,
+      "sha256": "8255ad7ab034cd3d760690a8b57eebcb67c974d321249ed8ee3a4f142f53e90a",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1
+    },
+    "bin/sh": {
+      "mode": "0o120777",
+      "size": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1,
+      "target": "busybox"
+    },
+    "bin/sleep": {
+      "mode": "0o120777",
+      "size": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1,
+      "target": "busybox"
+    },
+    "bin/stty": {
+      "mode": "0o120777",
+      "size": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1,
+      "target": "busybox"
+    },
+    "bin/true": {
+      "mode": "0o120777",
+      "size": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1,
+      "target": "busybox"
+    },
+    "bin/usb-net": {
+      "mode": "0o100755",
+      "size": 1753,
+      "sha256": "2144721bf4344f5af04fe59133f9848e54bd9315a9b51cd96534774242603ead",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1
+    },
+    "bin/usb-shell": {
+      "mode": "0o100755",
+      "size": 2053,
+      "sha256": "a16caea4c54196041175254bef26d165b214efd1c1f9bc1d0e2ecad83670aa71",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1
+    },
+    "bin/x-probe": {
+      "mode": "0o100755",
+      "size": 3468,
+      "sha256": "f2ccbf92828f1288f2e8745c2aab273a44bad960a5323518a1b30f07214d1fcd",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1
+    },
+    "bin/x-record": {
+      "mode": "0o100755",
+      "size": 366,
+      "sha256": "fdd918a9a023af443dda24c2e12e1d307e583326605f190f9a00eacc4439f55e",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1
+    },
+    "dev": {
+      "mode": "0o40755",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 2
+    },
+    "etc": {
+      "mode": "0o40755",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 2
+    },
+    "etc/gemini-us.bkeymap": {
+      "mode": "0o100444",
+      "size": 2311,
+      "sha256": "02f8048d76aa0cedf73617b13ea03a2a4e74de88222cb1922d9d19630906675c",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1
+    },
+    "etc/inittab": {
+      "mode": "0o100644",
+      "size": 62,
+      "sha256": "48820916541c1fdb73e4d3ef294724a8606cc32abc8fea24f4b8cb7e0e679489",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1
+    },
+    "init": {
+      "mode": "0o100755",
+      "size": 2016,
+      "sha256": "c938a65e963dae815c5fa9e51442026b8464d470a10bb9615d8de73599295222",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 1
+    },
+    "proc": {
+      "mode": "0o40755",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 2
+    },
+    "run": {
+      "mode": "0o40755",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 2
+    },
+    "sys": {
+      "mode": "0o40755",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uid": 0,
+      "gid": 0,
+      "mtime": 0,
+      "nlink": 2
+    }
+  },
+  "dt_resource_properties": [
+    {
+      "path": "/t-phy@11290000/usb-phy@11290800",
+      "property": "reg",
+      "hex": "00000000112908000000000000000100"
+    },
+    {
+      "path": "/t-phy@11290000/usb-phy@11290800",
+      "property": "clocks",
+      "hex": "00000002"
+    },
+    {
+      "path": "/t-phy@11290000/usb-phy@11290800",
+      "property": "clock-names",
+      "hex": "72656600"
+    },
+    {
+      "path": "/t-phy@11290000/usb-phy@11290800",
+      "property": "#phy-cells",
+      "hex": "00000001"
+    },
+    {
+      "path": "/t-phy@11290000/usb-phy@11290800",
+      "property": "status",
+      "hex": "6f6b617900"
+    },
+    {
+      "path": "/t-phy@11290000/usb-phy@11290800",
+      "property": "mediatek,force-b-session-valid",
+      "hex": ""
+    },
+    {
+      "path": "/t-phy@11290000/usb-phy@11290800",
+      "property": "phandle",
+      "hex": "00000005"
+    },
+    {
+      "path": "/usb@11271000",
+      "property": "compatible",
+      "hex": "6d6564696174656b2c6d74363739372d6d747533006d6564696174656b2c6d74753300"
+    },
+    {
+      "path": "/usb@11271000",
+      "property": "reg",
+      "hex": "0000000011271000000000000000300000000000112807000000000000000100"
+    },
+    {
+      "path": "/usb@11271000",
+      "property": "reg-names",
+      "hex": "6d6163006970706300"
+    },
+    {
+      "path": "/usb@11271000",
+      "property": "interrupts",
+      "hex": "000000000000007f00000008"
+    },
+    {
+      "path": "/usb@11271000",
+      "property": "interrupt-names",
+      "hex": "64657669636500"
+    },
+    {
+      "path": "/usb@11271000",
+      "property": "phys",
+      "hex": "0000000500000003"
+    },
+    {
+      "path": "/usb@11271000",
+      "property": "clocks",
+      "hex": "000000030000004b000000030000004c0000000300000045"
+    },
+    {
+      "path": "/usb@11271000",
+      "property": "clock-names",
+      "hex": "7379735f636b007265665f636b006d63755f636b00"
+    },
+    {
+      "path": "/usb@11271000",
+      "property": "#address-cells",
+      "hex": "00000001"
+    },
+    {
+      "path": "/usb@11271000",
+      "property": "#size-cells",
+      "hex": "00000001"
+    },
+    {
+      "path": "/usb@11271000",
+      "property": "ranges",
+      "hex": ""
+    },
+    {
+      "path": "/usb@11271000",
+      "property": "status",
+      "hex": "6f6b617900"
+    },
+    {
+      "path": "/usb@11271000",
+      "property": "assigned-clocks",
+      "hex": "000000060000001d"
+    },
+    {
+      "path": "/usb@11271000",
+      "property": "assigned-clock-parents",
+      "hex": "0000000600000042"
+    },
+    {
+      "path": "/usb@11271000",
+      "property": "dr_mode",
+      "hex": "7065726970686572616c00"
+    },
+    {
+      "path": "/usb@11271000",
+      "property": "maximum-speed",
+      "hex": "686967682d737065656400"
+    },
+    {
+      "path": "/power-controller@10006000",
+      "property": "compatible",
+      "hex": "6d6564696174656b2c6d74363739372d73637073797300"
+    },
+    {
+      "path": "/power-controller@10006000",
+      "property": "#power-domain-cells",
+      "hex": "00000001"
+    },
+    {
+      "path": "/power-controller@10006000",
+      "property": "reg",
+      "hex": "00000000100060000000000000001000"
+    },
+    {
+      "path": "/power-controller@10006000",
+      "property": "clocks",
+      "hex": "000000060000000a000000060000002200000006000000060000000600000008"
+    },
+    {
+      "path": "/power-controller@10006000",
+      "property": "clock-names",
+      "hex": "6d6667006d66675f35326d006d6d007664656300"
+    },
+    {
+      "path": "/power-controller@10006000",
+      "property": "infracfg",
+      "hex": "00000003"
+    },
+    {
+      "path": "/power-controller@10006000",
+      "property": "phandle",
+      "hex": "0000000b"
+    },
+    {
+      "path": "/pwrap@1000d000",
+      "property": "compatible",
+      "hex": "6d6564696174656b2c6d74363739372d707772617000"
+    },
+    {
+      "path": "/pwrap@1000d000",
+      "property": "reg",
+      "hex": "000000001000d0000000000000001000"
+    },
+    {
+      "path": "/pwrap@1000d000",
+      "property": "reg-names",
+      "hex": "707772617000"
+    },
+    {
+      "path": "/pwrap@1000d000",
+      "property": "interrupts",
+      "hex": "00000000000000b200000004"
+    },
+    {
+      "path": "/pwrap@1000d000",
+      "property": "clocks",
+      "hex": "00000006000000160000000300000002"
+    },
+    {
+      "path": "/pwrap@1000d000",
+      "property": "clock-names",
+      "hex": "737069007772617000"
+    },
+    {
+      "path": "/pwrap@1000d000",
+      "property": "resets",
+      "hex": "0000000300000001"
+    },
+    {
+      "path": "/pwrap@1000d000",
+      "property": "reset-names",
+      "hex": "707772617000"
+    },
+    {
+      "path": "/i2c@1100e000",
+      "property": "pinctrl-0",
+      "hex": "0000002d"
+    },
+    {
+      "path": "/i2c@1100e000",
+      "property": "pinctrl-names",
+      "hex": "64656661756c7400"
+    },
+    {
+      "path": "/i2c@1100e000",
+      "property": "mediatek,use-push-pull",
+      "hex": ""
+    },
+    {
+      "path": "/i2c@1100e000",
+      "property": "clock-frequency",
+      "hex": "0033e140"
+    },
+    {
+      "path": "/i2c@1100e000",
+      "property": "access-controllers",
+      "hex": "0000002c"
+    },
+    {
+      "path": "/i2c@1100e000",
+      "property": "compatible",
+      "hex": "6d6564696174656b2c6d74363739372d693263006d6564696174656b2c6d74363537372d69326300"
+    },
+    {
+      "path": "/i2c@1100e000",
+      "property": "reg",
+      "hex": "000000001100e000000000000000100000000000110005000000000000000080"
+    },
+    {
+      "path": "/i2c@1100e000",
+      "property": "interrupts",
+      "hex": "000000000000005800000008"
+    },
+    {
+      "path": "/i2c@1100e000",
+      "property": "clocks",
+      "hex": "0000000300000036000000030000002e"
+    },
+    {
+      "path": "/i2c@1100e000",
+      "property": "clock-names",
+      "hex": "6d61696e00646d6100"
+    },
+    {
+      "path": "/i2c@1100e000",
+      "property": "clock-div",
+      "hex": "0000000a"
+    },
+    {
+      "path": "/i2c@1100e000",
+      "property": "#address-cells",
+      "hex": "00000001"
+    },
+    {
+      "path": "/i2c@1100e000",
+      "property": "#size-cells",
+      "hex": "00000000"
+    },
+    {
+      "path": "/i2c@1100e000",
+      "property": "status",
+      "hex": "6f6b617900"
+    },
+    {
+      "path": "/i2c@1101c000",
+      "property": "clock-frequency",
+      "hex": "00061a80"
+    },
+    {
+      "path": "/i2c@1101c000",
+      "property": "pinctrl-0",
+      "hex": "0000002a"
+    },
+    {
+      "path": "/i2c@1101c000",
+      "property": "pinctrl-names",
+      "hex": "64656661756c7400"
+    },
+    {
+      "path": "/i2c@1101c000",
+      "property": "compatible",
+      "hex": "6d6564696174656b2c6d74363739372d693263006d6564696174656b2c6d74363537372d69326300"
+    },
+    {
+      "path": "/i2c@1101c000",
+      "property": "reg",
+      "hex": "000000001101c000000000000000100000000000110003800000000000000080"
+    },
+    {
+      "path": "/i2c@1101c000",
+      "property": "interrupts",
+      "hex": "000000000000005300000008"
+    },
+    {
+      "path": "/i2c@1101c000",
+      "property": "clocks",
+      "hex": "000000030000003c000000030000002e"
+    },
+    {
+      "path": "/i2c@1101c000",
+      "property": "clock-names",
+      "hex": "6d61696e00646d6100"
+    },
+    {
+      "path": "/i2c@1101c000",
+      "property": "clock-div",
+      "hex": "0000000a"
+    },
+    {
+      "path": "/i2c@1101c000",
+      "property": "#address-cells",
+      "hex": "00000001"
+    },
+    {
+      "path": "/i2c@1101c000",
+      "property": "#size-cells",
+      "hex": "00000000"
+    },
+    {
+      "path": "/i2c@1101c000",
+      "property": "status",
+      "hex": "6f6b617900"
+    },
+    {
+      "path": "/mmc@11230000",
+      "property": "compatible",
+      "hex": "6d6564696174656b2c6d74363739372d6d6d6300"
+    },
+    {
+      "path": "/mmc@11230000",
+      "property": "reg",
+      "hex": "00000000112300000000000000010000"
+    },
+    {
+      "path": "/mmc@11230000",
+      "property": "interrupts",
+      "hex": "000000000000004f00000008"
+    },
+    {
+      "path": "/mmc@11230000",
+      "property": "clocks",
+      "hex": "000000030000002100000006000000100000000600000011"
+    },
+    {
+      "path": "/mmc@11230000",
+      "property": "clock-names",
+      "hex": "736f757263650068636c6b00736f757263655f636700"
+    },
+    {
+      "path": "/mmc@11230000",
+      "property": "status",
+      "hex": "6f6b617900"
+    },
+    {
+      "path": "/mmc@11230000",
+      "property": "pinctrl-names",
+      "hex": "64656661756c740073746174655f75687300"
+    },
+    {
+      "path": "/mmc@11230000",
+      "property": "pinctrl-0",
+      "hex": "00000019"
+    },
+    {
+      "path": "/mmc@11230000",
+      "property": "pinctrl-1",
+      "hex": "00000019"
+    },
+    {
+      "path": "/mmc@11230000",
+      "property": "bus-width",
+      "hex": "00000008"
+    },
+    {
+      "path": "/mmc@11230000",
+      "property": "max-frequency",
+      "hex": "017d7840"
+    },
+    {
+      "path": "/mmc@11230000",
+      "property": "vmmc-supply",
+      "hex": "0000001a"
+    },
+    {
+      "path": "/mmc@11230000",
+      "property": "vqmmc-supply",
+      "hex": "0000001b"
+    },
+    {
+      "path": "/mmc@11230000",
+      "property": "non-removable",
+      "hex": ""
+    },
+    {
+      "path": "/mmc@11230000",
+      "property": "no-sd",
+      "hex": ""
+    },
+    {
+      "path": "/mmc@11230000",
+      "property": "no-sdio",
+      "hex": ""
+    },
+    {
+      "path": "/reserved-memory/memory@40000000",
+      "property": "reg",
+      "hex": "00000000400000000000000000001000"
+    },
+    {
+      "path": "/reserved-memory/memory@40000000",
+      "property": "no-map",
+      "hex": ""
+    },
+    {
+      "path": "/reserved-memory/memory@44400000",
+      "property": "reg",
+      "hex": "00000000444000000000000000010000"
+    },
+    {
+      "path": "/reserved-memory/memory@44400000",
+      "property": "no-map",
+      "hex": ""
+    },
+    {
+      "path": "/reserved-memory/ramoops@44410000",
+      "property": "compatible",
+      "hex": "72616d6f6f707300"
+    },
+    {
+      "path": "/reserved-memory/ramoops@44410000",
+      "property": "reg",
+      "hex": "000000004441000000000000000e0000"
+    },
+    {
+      "path": "/reserved-memory/ramoops@44410000",
+      "property": "record-size",
+      "hex": "00001000"
+    },
+    {
+      "path": "/reserved-memory/ramoops@44410000",
+      "property": "console-size",
+      "hex": "00010000"
+    },
+    {
+      "path": "/reserved-memory/ramoops@44410000",
+      "property": "ftrace-size",
+      "hex": "00001000"
+    },
+    {
+      "path": "/reserved-memory/ramoops@44410000",
+      "property": "pmsg-size",
+      "hex": "00020000"
+    },
+    {
+      "path": "/reserved-memory/ramoops@44410000",
+      "property": "mem-type",
+      "hex": "00000000"
+    },
+    {
+      "path": "/reserved-memory/ramoops@44410000",
+      "property": "no-map",
+      "hex": ""
+    },
+    {
+      "path": "/reserved-memory/memory@444f0000",
+      "property": "reg",
+      "hex": "00000000444f00000000000000010000"
+    },
+    {
+      "path": "/reserved-memory/memory@444f0000",
+      "property": "no-map",
+      "hex": ""
+    },
+    {
+      "path": "/reserved-memory/memory@44600000",
+      "property": "compatible",
+      "hex": "6d6564696174656b2c6d74363739372d6174662d72657365727665642d6d656d6f727900"
+    },
+    {
+      "path": "/reserved-memory/memory@44600000",
+      "property": "reg",
+      "hex": "00000000446000000000000000010000"
+    },
+    {
+      "path": "/reserved-memory/memory@44600000",
+      "property": "no-map",
+      "hex": ""
+    },
+    {
+      "path": "/reserved-memory/memory@44610000",
+      "property": "compatible",
+      "hex": "6d6564696174656b2c6d74363739372d6174662d72616d64756d702d6d656d6f727900"
+    },
+    {
+      "path": "/reserved-memory/memory@44610000",
+      "property": "reg",
+      "hex": "00000000446100000000000000030000"
+    },
+    {
+      "path": "/reserved-memory/memory@44610000",
+      "property": "no-map",
+      "hex": ""
+    },
+    {
+      "path": "/reserved-memory/memory@44640000",
+      "property": "compatible",
+      "hex": "6d6564696174656b2c63616368652d64756d702d6d656d6f727900"
+    },
+    {
+      "path": "/reserved-memory/memory@44640000",
+      "property": "reg",
+      "hex": "00000000446400000000000000030000"
+    },
+    {
+      "path": "/reserved-memory/memory@44640000",
+      "property": "no-map",
+      "hex": ""
+    },
+    {
+      "path": "/reserved-memory/memory@44800000",
+      "property": "reg",
+      "hex": "00000000448000000000000000100000"
+    },
+    {
+      "path": "/reserved-memory/memory@44800000",
+      "property": "no-map",
+      "hex": ""
+    },
+    {
+      "path": "/reserved-memory/memory@46000000",
+      "property": "reg",
+      "hex": "00000000460000000000000000400000"
+    },
+    {
+      "path": "/reserved-memory/memory@46000000",
+      "property": "no-map",
+      "hex": ""
+    },
+    {
+      "path": "/reserved-memory/reserve-memory-ccci_md1",
+      "property": "compatible",
+      "hex": "6d6564696174656b2c726573657276652d6d656d6f72792d636363695f6d643100"
+    },
+    {
+      "path": "/reserved-memory/reserve-memory-ccci_md1",
+      "property": "no-map",
+      "hex": ""
+    },
+    {
+      "path": "/reserved-memory/reserve-memory-ccci_md1",
+      "property": "size",
+      "hex": "000000000a100000"
+    },
+    {
+      "path": "/reserved-memory/reserve-memory-ccci_md1",
+      "property": "alignment",
+      "hex": "0000000002000000"
+    },
+    {
+      "path": "/reserved-memory/reserve-memory-ccci_md1",
+      "property": "alloc-ranges",
+      "hex": "00000000400000000000000080000000"
+    },
+    {
+      "path": "/reserved-memory/reserve-memory-ccci_share",
+      "property": "compatible",
+      "hex": "6d6564696174656b2c726573657276652d6d656d6f72792d636363695f736861726500"
+    },
+    {
+      "path": "/reserved-memory/reserve-memory-ccci_share",
+      "property": "no-map",
+      "hex": ""
+    },
+    {
+      "path": "/reserved-memory/reserve-memory-ccci_share",
+      "property": "size",
+      "hex": "0000000000600000"
+    },
+    {
+      "path": "/reserved-memory/reserve-memory-ccci_share",
+      "property": "alignment",
+      "hex": "0000000004000000"
+    },
+    {
+      "path": "/reserved-memory/reserve-memory-ccci_share",
+      "property": "alloc-ranges",
+      "hex": "00000000400000000000000050000000"
+    },
+    {
+      "path": "/reserved-memory/consys-reserve-memory",
+      "property": "compatible",
+      "hex": "6d6564696174656b2c636f6e7379732d726573657276652d6d656d6f727900"
+    },
+    {
+      "path": "/reserved-memory/consys-reserve-memory",
+      "property": "no-map",
+      "hex": ""
+    },
+    {
+      "path": "/reserved-memory/consys-reserve-memory",
+      "property": "size",
+      "hex": "0000000000200000"
+    },
+    {
+      "path": "/reserved-memory/consys-reserve-memory",
+      "property": "alignment",
+      "hex": "0000000000200000"
+    },
+    {
+      "path": "/reserved-memory/consys-reserve-memory",
+      "property": "alloc-ranges",
+      "hex": "00000000400000000000000080000000"
+    },
+    {
+      "path": "/reserved-memory/spm-reserve-memory",
+      "property": "compatible",
+      "hex": "6d6564696174656b2c73706d2d726573657276652d6d656d6f727900"
+    },
+    {
+      "path": "/reserved-memory/spm-reserve-memory",
+      "property": "no-map",
+      "hex": ""
+    },
+    {
+      "path": "/reserved-memory/spm-reserve-memory",
+      "property": "size",
+      "hex": "0000000000016000"
+    },
+    {
+      "path": "/reserved-memory/spm-reserve-memory",
+      "property": "alignment",
+      "hex": "0000000000010000"
+    },
+    {
+      "path": "/reserved-memory/spm-reserve-memory",
+      "property": "alloc-ranges",
+      "hex": "00000000400000000000000080000000"
+    },
+    {
+      "path": "/reserved-memory/reserve-memory-scp_share",
+      "property": "compatible",
+      "hex": "6d6564696174656b2c726573657276652d6d656d6f72792d7363705f736861726500"
+    },
+    {
+      "path": "/reserved-memory/reserve-memory-scp_share",
+      "property": "no-map",
+      "hex": ""
+    },
+    {
+      "path": "/reserved-memory/reserve-memory-scp_share",
+      "property": "size",
+      "hex": "0000000001000000"
+    },
+    {
+      "path": "/reserved-memory/reserve-memory-scp_share",
+      "property": "alignment",
+      "hex": "0000000001000000"
+    },
+    {
+      "path": "/reserved-memory/reserve-memory-scp_share",
+      "property": "alloc-ranges",
+      "hex": "00000000400000000000000050000000"
+    }
+  ],
+  "historical_evidence": {
+    "offline": "experiments/2026-09-04-mt6797-pwrap-reset-serviceability/results/offline-candidate-20260904.txt",
+    "runtime": "experiments/2026-09-04-mt6797-pwrap-reset-serviceability/results/runtime-attempt-1-pwrap-serviceable-20260904.txt",
+    "deployment": "experiments/2026-09-04-mt6797-pwrap-reset-serviceability/results/deployment-20260904.txt",
+    "recovery": "experiments/2026-09-04-mt6797-pwrap-reset-serviceability/results/native-recovery-20260904.txt"
+  }
+}
