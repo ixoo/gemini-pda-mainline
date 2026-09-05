@@ -1,0 +1,14 @@
+{
+  "offline_comparison_replay": "pass",
+  "independent_expected_matrix": "pass",
+  "rows": 50,
+  "dtb_and_dts_identity_checks": 50,
+  "schema_errors_and_decoded_validity_unchanged_from_attempt2": true,
+  "actual_per_case_decoder_captures": 4,
+  "command_results_reviewed": 33,
+  "all_commands_return_zero_without_timeout_or_signals": true,
+  "both_full_source_integrity_scans": "pass",
+  "optional_full_valid": 10,
+  "mandatory_full_valid": 9,
+  "root_acceptance_pending": true
+}
