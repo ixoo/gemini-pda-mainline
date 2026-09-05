@@ -316,3 +316,12 @@ The original acquisition location is historical: the verified archive was
 subsequently adopted into the production checksum-keyed cache and used by the
 successful build. [The execution record](BUILD_ADMISSION.md#completed-build-and-fetch)
 owns those results; do not reacquire another copy at the old location.
+
+## Unsigned submission readiness
+
+The [current readiness packet](SUBMISSION_READINESS.md) pins maintainer-tree
+refs, exact patch routing and a concrete unmerged MT6797 probe-conversion
+overlap. It proposes preserving optional reset cells for older DT descriptions,
+corrects the DTS header-dependency assumption, and maps evidence and remaining
+author/DCO decisions. The [cover text](UNSIGNED_COVER_LETTER.md) remains unsigned
+and unsent; no patch, manifest, validation run or device admission changes.

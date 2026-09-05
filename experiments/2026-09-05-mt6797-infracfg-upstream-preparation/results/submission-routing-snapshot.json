@@ -1,0 +1,431 @@
+{
+  "actual_topic_patches": [
+    {
+      "path": "patches/upstream-4d7d9486/0001-clk-mediatek-reject-out-of-bank-SET-CLEAR-reset-IDs.patch",
+      "sha256": "ab875a831822e1809619f0034f29f8c068af133012da196ba59a62977b884fd5"
+    },
+    {
+      "path": "patches/upstream-4d7d9486/0002-clk-mediatek-test-reset-translation-bounds.patch",
+      "sha256": "211f2b95d24d7cb09085d99ade5bcd681254f55145e227920fd62b773f30d483"
+    },
+    {
+      "path": "patches/upstream-4d7d9486/0003-dt-bindings-reset-mediatek-describe-MT6797-infracfg-.patch",
+      "sha256": "88e629b8a56aa892f43949bc052322efb38ba209df7b4d5c6a8d8df936c6fb03"
+    },
+    {
+      "path": "patches/upstream-4d7d9486/0004-clk-mediatek-add-MT6797-infracfg-SET-CLEAR-resets.patch",
+      "sha256": "90a1d8aaff250e8b0086488138aec1527f535cde38aa2b6734c6b83344e41cc5"
+    },
+    {
+      "path": "patches/upstream-4d7d9486/0005-clk-mediatek-test-MT6797-infracfg-reset-mapping.patch",
+      "sha256": "10961fd177b6584985c717a3cc99338571addeb5d898397b9bd4816e4a31c2cf"
+    },
+    {
+      "path": "patches/upstream-4d7d9486/0006-arm64-dts-mediatek-expose-MT6797-infracfg-resets.patch",
+      "sha256": "d7ccee4f2e8e3ae78cce2405c761bc1c76f915423a8b9ea8cbf22785c2e2bfbe"
+    }
+  ],
+  "additional_archive_checks": [
+    {
+      "bytes": 74560,
+      "matching_lines": [
+        "<LI><A HREF=\"112486.html\">[PATCH v11 05/24] phy: mediatek: ufs: Add support for resets",
+        "<LI><A HREF=\"112487.html\">[PATCH v11 06/24] scsi: ufs: mediatek: Rework resets",
+        "<LI><A HREF=\"112493.html\">[PATCH v11 12/24] scsi: ufs: mediatek: Remove undocumented downstream reset cruft",
+        "<LI><A HREF=\"112689.html\">[PATCH v5 1/2] Bluetooth: btusb: mediatek: Fix leaked runtime PM reference in reset",
+        "<LI><A HREF=\"112764.html\">[PATCH v5 1/2] Bluetooth: btusb: mediatek: Fix leaked runtime PM reference in reset",
+        "<LI><A HREF=\"112735.html\">[PATCH v6 08/27] dt-bindings: clock: mediatek: Add MT8189 system/base clocks and resets",
+        "<LI><A HREF=\"112738.html\">[PATCH v6 10/27] clk: mediatek: pll: Add BAR reset register offsets"
+      ],
+      "sha256": "c443f1969671ddcb09978dd025704acb8ec495cc40bac160394b51c2977d8a19",
+      "status": "read",
+      "url": "https://lists.infradead.org/pipermail/linux-mediatek/2026-September/thread.html"
+    },
+    {
+      "bytes": 266361,
+      "matching_lines": [
+        "<LI><A HREF=\"111212.html\">[PATCH v5 08/25] dt-bindings: clock: mediatek: Add MT8189 system/base clocks and resets",
+        "<LI><A HREF=\"111209.html\">[PATCH v5 10/25] clk: mediatek: pll: Add BAR reset register offsets",
+        "<LI><A HREF=\"111282.html\">[PATCH v5 10/25] clk: mediatek: pll: Add BAR reset register offsets",
+        "<LI><A HREF=\"111265.html\">[PATCH 18/32] clk: mediatek: mt6797: Switch to common probe/remove helpers",
+        "<LI><A HREF=\"111272.html\">[PATCH 25/32] clk: mediatek: mt8173-infracfg: Switch to common probe/remove helpers",
+        "<LI><A HREF=\"111591.html\">[PATCH v3 2/8] watchdog: mediatek: Add wdt/toprgu resets for MT6589",
+        "<LI><A HREF=\"111592.html\">[PATCH v3 3/8] arm: dts: mediatek: mt6589: Enable toprgu reset controller",
+        "<LI><A HREF=\"111598.html\">[PATCH v3 3/8] arm: dts: mediatek: mt6589: Enable toprgu reset controller",
+        "<LI><A HREF=\"111599.html\">[PATCH v3 3/8] arm: dts: mediatek: mt6589: Enable toprgu reset controller",
+        "<LI><A HREF=\"111600.html\">[PATCH v3 3/8] arm: dts: mediatek: mt6589: Enable toprgu reset controller",
+        "<LI><A HREF=\"111605.html\">[PATCH v3 3/8] arm: dts: mediatek: mt6589: Enable toprgu reset controller",
+        "<LI><A HREF=\"111607.html\">[PATCH v3 3/8] arm: dts: mediatek: mt6589: Enable toprgu reset controller",
+        "<LI><A HREF=\"111609.html\">[PATCH v3 3/8] arm: dts: mediatek: mt6589: Enable toprgu reset controller",
+        "<LI><A HREF=\"111597.html\">[PATCH v3 8/8] soc: mediatek: mtk-mmsys: Add resets for mt8167",
+        "<LI><A HREF=\"111843.html\">[PATCH 1/3] ASoC: mt6797: fix wrong unwind order and error code in enable_clock",
+        "<LI><A HREF=\"111844.html\">[PATCH 2/3] ASoC: mt6797: Use dev_err_probe() for error handling",
+        "<LI><A HREF=\"111845.html\">[PATCH 3/3] ASoC: mt6797: Drop redundant probe error messages",
+        "<LI><A HREF=\"111882.html\">[PATCH 1/3] ASoC: mt6797: fix wrong unwind order and error code in enable_clock",
+        "<LI><A HREF=\"111888.html\">[PATCH 1/3] ASoC: mt6797: fix wrong unwind order and error code in enable_clock",
+        "<LI><A HREF=\"111877.html\">[PATCH 2/2] Bluetooth: btusb: mediatek: Fix leaked runtime PM reference in reset",
+        "<LI><A HREF=\"111910.html\">[PATCH v2 1/2] Bluetooth: btusb: mediatek: Fix leaked runtime PM reference in reset",
+        "<LI><A HREF=\"111933.html\">[PATCH v2 1/2] Bluetooth: btusb: mediatek: Fix leaked runtime PM reference in reset",
+        "<LI><A HREF=\"111951.html\">[PATCH v2 1/2] Bluetooth: btusb: mediatek: Fix leaked runtime PM reference in reset",
+        "<LI><A HREF=\"111920.html\">[PATCH v4 2/7] watchdog: mediatek: Add wdt/toprgu resets for mt6589",
+        "<LI><A HREF=\"112273.html\">[PATCH v4 2/7] watchdog: mediatek: Add wdt/toprgu resets for mt6589",
+        "<LI><A HREF=\"112283.html\">[PATCH v4 2/7] watchdog: mediatek: Add wdt/toprgu resets for mt6589",
+        "<LI><A HREF=\"112285.html\">[PATCH v4 2/7] watchdog: mediatek: Add wdt/toprgu resets for mt6589",
+        "<LI><A HREF=\"111922.html\">[PATCH v4 3/7] arm: dts: mediatek: mt6589: Enable toprgu reset controller",
+        "<LI><A HREF=\"111936.html\">[PATCH v4 3/7] arm: dts: mediatek: mt6589: Enable toprgu reset controller",
+        "<LI><A HREF=\"111941.html\">[PATCH v4 3/7] arm: dts: mediatek: mt6589: Enable toprgu reset controller",
+        "<LI><A HREF=\"111925.html\">[PATCH v4 6/7] soc: mediatek: mtk-mmsys: Add resets for mt8167",
+        "<LI><A HREF=\"111912.html\">[PATCH v2 1/3] ASoC: mediatek: mt6797: fix wrong unwind order and error code in enable_clock",
+        "<LI><A HREF=\"111913.html\">[PATCH v2 2/3] ASoC: mediatek: mt6797: Use dev_err_probe() for error handling",
+        "<LI><A HREF=\"111945.html\">[PATCH v2 2/3] ASoC: mediatek: mt6797: Use dev_err_probe() for error handling",
+        "<LI><A HREF=\"111914.html\">[PATCH v2 3/3] ASoC: mediatek: mt6797: Drop redundant probe error messages",
+        "<LI><A HREF=\"111946.html\">[PATCH v2 3/3] ASoC: mediatek: mt6797: Drop redundant probe error messages",
+        "<LI><A HREF=\"111944.html\">[PATCH v2 1/3] ASoC: mediatek: mt6797: fix wrong unwind order and error code in enable_clock",
+        "<LI><A HREF=\"111964.html\">[PATCH v2 1/3] ASoC: mediatek: mt6797: fix wrong unwind order and error code in enable_clock",
+        "<LI><A HREF=\"111998.html\">[PATCH v3 1/2] Bluetooth: btusb: mediatek: Fix leaked runtime PM reference in reset",
+        "<LI><A HREF=\"112061.html\">[PATCH v3 0/3] ASoC: mediatek: mt6797: Fix error handling",
+        "<LI><A HREF=\"112062.html\">[PATCH v3 1/3] ASoC: mediatek: mt6797: fix wrong unwind order and error code in enable_clock",
+        "<LI><A HREF=\"112063.html\">[PATCH v3 2/3] ASoC: mediatek: mt6797: Use dev_err_probe() for error handling",
+        "<LI><A HREF=\"112064.html\">[PATCH v3 3/3] ASoC: mediatek: mt6797: Drop redundant probe error messages",
+        "<LI><A HREF=\"112102.html\">[PATCH v4 1/2] Bluetooth: btusb: mediatek: Fix leaked runtime PM reference in reset",
+        "<LI><A HREF=\"112222.html\">[PATCH v6 04/11] drm/mediatek: mtk_dsi: Cleanup encoder if reset fails during bind"
+      ],
+      "sha256": "b7f16a30faaa1f37f6b46a8d9542cd5323adc8d17089eaeae95a550fce249df9",
+      "status": "read",
+      "url": "https://lists.infradead.org/pipermail/linux-mediatek/2026-August/thread.html"
+    },
+    {
+      "bytes": 28221,
+      "matching_lines": [
+        "<a class=\"filter-action\" href=\"?q=mt6797&amp;state=*\">",
+        "Search = <strong>mt6797</strong>",
+        "<a class=\"filter-action\" href=\"?q=mt6797&amp;archive=both\">",
+        "<input name=\"q\" class=\"form-control\" value=\"mt6797\">",
+        "<a class=\"colinactive\" href=\"/project/linux-clk/list/?q=mt6797&order=name\">Patch</a>",
+        "<a class=\"colactive\" href=\"/project/linux-clk/list/?q=mt6797&order=date\">",
+        "<a class=\"colactive\" href=\"/project/linux-clk/list/?q=mt6797&order=date\">",
+        "<a class=\"colinactive\" href=\"/project/linux-clk/list/?q=mt6797&order=submitter\">",
+        "<a class=\"colinactive\" href=\"/project/linux-clk/list/?q=mt6797&order=delegate\">Delegate</a>",
+        "<a class=\"colinactive\" href=\"/project/linux-clk/list/?q=mt6797&order=state\">State</a>"
+      ],
+      "sha256": "c213e1737cc670bcf6dd380c4866dcef3bbf193b0e588f3be6c356b360e5c503",
+      "status": "read",
+      "url": "https://patchwork.kernel.org/project/linux-clk/list/?q=mt6797"
+    }
+  ],
+  "clock_common_helper_source": {
+    "bytes": 16200,
+    "reset_failure_has_provider_removal": false,
+    "sha256": "e8a89dffaffedfce01489b0887fb425d64649d6fb841157bbcea5aac0fc93e59",
+    "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/clk/linux/+/91b1b8d437abe0cd83210d8f257b785a63047aa9/drivers/clk/mediatek/clk-mtk.c?format=TEXT"
+  },
+  "clock_existing_file_byte_equality_to_tested_base": {
+    "Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml": true,
+    "MAINTAINERS": false,
+    "arch/arm64/boot/dts/mediatek/mt6797.dtsi": true,
+    "drivers/clk/mediatek/Kconfig": false,
+    "drivers/clk/mediatek/Makefile": true,
+    "drivers/clk/mediatek/clk-mt6797.c": true,
+    "drivers/clk/mediatek/reset.c": true,
+    "scripts/get_maintainer.pl": true
+  },
+  "clock_kconfig_difference": "--- tested-mainline/Kconfig\n+++ clock-next/Kconfig\n@@ -541,6 +541,7 @@\n \ttristate \"Clock and power driver for MediaTek MT8173 mfgtop\"\n \tdepends on COMMON_CLK_MT8173\n \tdepends on PM\n+\tdepends on OF\n \tdefault COMMON_CLK_MT8173\n \tselect PM_GENERIC_DOMAINS\n \tselect PM_GENERIC_DOMAINS_OF\n",
+  "common_helper_source": {
+    "bytes": 16200,
+    "sha256": "e8a89dffaffedfce01489b0887fb425d64649d6fb841157bbcea5aac0fc93e59",
+    "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/drivers/clk/mediatek/clk-mtk.c"
+  },
+  "device_access": false,
+  "kernel_build": false,
+  "limits": "selected files and refs only; no full tree ancestry/rebase or unpublished overlap claim; no mail sent",
+  "mailing_list_search": {
+    "absence_claim": false,
+    "status": "Direct Lore query HTTP403; alternative official MediaTek archive found concrete MT6797 common-probe overlap",
+    "url": "https://lore.kernel.org/all/?q=mt6797+infracfg+reset"
+  },
+  "maintainer_sections": {
+    "clock": [
+      "ARM/Mediatek SoC support\nM:\tMatthias Brugger <matthias.bgg@gmail.com>\nM:\tAngeloGioacchino Del Regno <angelogioacchino.delregno@collabora.com>\nL:\tlinux-kernel@vger.kernel.org\nL:\tlinux-arm-kernel@lists.infradead.org (moderated for non-subscribers)\nL:\tlinux-mediatek@lists.infradead.org (moderated for non-subscribers)\nS:\tMaintained\nW:\thttps://mtk.wiki.kernel.org/\nC:\tirc://irc.libera.chat/linux-mediatek\nF:\tarch/arm/boot/dts/mediatek/\nF:\tarch/arm/mach-mediatek/\nF:\tarch/arm64/boot/dts/mediatek/\nF:\tdrivers/soc/mediatek/\nN:\tmtk\nN:\tmt[2678]\nK:\tmediatek",
+      "COMMON CLK FRAMEWORK\nM:\tStephen Boyd <sboyd@kernel.org>\nM:\tBrian Masney <bmasney+clk@redhat.com>\nM:\tJerome Brunet <jbrunet+clk@baylibre.com>\nL:\tlinux-clk@vger.kernel.org\nS:\tMaintained\nQ:\thttp://patchwork.kernel.org/project/linux-clk/list/\nT:\tgit git://git.kernel.org/pub/scm/linux/kernel/git/clk/linux.git\nF:\tDocumentation/devicetree/bindings/clock/\nF:\tdrivers/clk/\nF:\tinclude/dt-bindings/clock/\nF:\tinclude/linux/clk-pr*\nF:\tinclude/linux/clk/\nF:\tinclude/linux/of_clk.h\nF:\tscripts/gdb/linux/clk.py\nF:\trust/helpers/clk.c\nF:\trust/kernel/clk.rs\nX:\tdrivers/clk/clkdev.c",
+      "OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS\nM:\tRob Herring <robh@kernel.org>\nM:\tKrzysztof Kozlowski <krzk+dt@kernel.org>\nM:\tConor Dooley <conor+dt@kernel.org>\nL:\tdevicetree@vger.kernel.org\nS:\tMaintained\nQ:\thttp://patchwork.kernel.org/project/devicetree/list/\nC:\tirc://irc.libera.chat/devicetree\nP:\tDocumentation/process/maintainer-devicetree.rst\nT:\tgit git://git.kernel.org/pub/scm/linux/kernel/git/robh/linux.git\nF:\tDocumentation/devicetree/\nF:\tDocumentation/process/maintainer-devicetree.rst\nF:\tarch/*/boot/dts/\nF:\tinclude/dt-bindings/",
+      "RESET CONTROLLER FRAMEWORK\nM:\tPhilipp Zabel <p.zabel@pengutronix.de>\nS:\tMaintained\nT:\tgit https://git.pengutronix.de/git/pza/linux.git\nF:\tDocumentation/devicetree/bindings/reset/\nF:\tDocumentation/driver-api/reset.rst\nF:\tdrivers/reset/\nF:\tinclude/dt-bindings/reset/\nF:\tinclude/linux/reset-controller.h\nF:\tinclude/linux/reset.h\nF:\tinclude/linux/reset/\nK:\t\\b(?:devm_|of_)?reset_control(?:ler_[a-z]+|_[a-z_]+)?\\b"
+    ],
+    "mainline": [
+      "ARM/Mediatek SoC support\nM:\tMatthias Brugger <matthias.bgg@gmail.com>\nM:\tAngeloGioacchino Del Regno <angelogioacchino.delregno@collabora.com>\nL:\tlinux-kernel@vger.kernel.org\nL:\tlinux-arm-kernel@lists.infradead.org (moderated for non-subscribers)\nL:\tlinux-mediatek@lists.infradead.org (moderated for non-subscribers)\nS:\tMaintained\nW:\thttps://mtk.wiki.kernel.org/\nC:\tirc://irc.libera.chat/linux-mediatek\nF:\tarch/arm/boot/dts/mediatek/\nF:\tarch/arm/mach-mediatek/\nF:\tarch/arm64/boot/dts/mediatek/\nF:\tdrivers/soc/mediatek/\nN:\tmtk\nN:\tmt[2678]\nK:\tmediatek",
+      "COMMON CLK FRAMEWORK\nM:\tStephen Boyd <sboyd@kernel.org>\nM:\tBrian Masney <bmasney+clk@redhat.com>\nM:\tJerome Brunet <jbrunet+clk@baylibre.com>\nL:\tlinux-clk@vger.kernel.org\nS:\tMaintained\nQ:\thttp://patchwork.kernel.org/project/linux-clk/list/\nT:\tgit git://git.kernel.org/pub/scm/linux/kernel/git/clk/linux.git\nF:\tDocumentation/devicetree/bindings/clock/\nF:\tdrivers/clk/\nF:\tinclude/dt-bindings/clock/\nF:\tinclude/linux/clk-pr*\nF:\tinclude/linux/clk/\nF:\tinclude/linux/of_clk.h\nF:\tscripts/gdb/linux/clk.py\nF:\trust/helpers/clk.c\nF:\trust/kernel/clk.rs\nX:\tdrivers/clk/clkdev.c",
+      "OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS\nM:\tRob Herring <robh@kernel.org>\nM:\tKrzysztof Kozlowski <krzk+dt@kernel.org>\nM:\tConor Dooley <conor+dt@kernel.org>\nL:\tdevicetree@vger.kernel.org\nS:\tMaintained\nQ:\thttp://patchwork.kernel.org/project/devicetree/list/\nC:\tirc://irc.libera.chat/devicetree\nP:\tDocumentation/process/maintainer-devicetree.rst\nT:\tgit git://git.kernel.org/pub/scm/linux/kernel/git/robh/linux.git\nF:\tDocumentation/devicetree/\nF:\tDocumentation/process/maintainer-devicetree.rst\nF:\tarch/*/boot/dts/\nF:\tinclude/dt-bindings/",
+      "RESET CONTROLLER FRAMEWORK\nM:\tPhilipp Zabel <p.zabel@pengutronix.de>\nS:\tMaintained\nT:\tgit https://git.pengutronix.de/git/pza/linux.git\nF:\tDocumentation/devicetree/bindings/reset/\nF:\tDocumentation/driver-api/reset.rst\nF:\tdrivers/reset/\nF:\tinclude/dt-bindings/reset/\nF:\tinclude/linux/reset-controller.h\nF:\tinclude/linux/reset.h\nF:\tinclude/linux/reset/\nK:\t\\b(?:devm_|of_)?reset_control(?:ler_[a-z]+|_[a-z_]+)?\\b"
+    ],
+    "mediatek": [
+      "ARM/Mediatek SoC support\nM:\tMatthias Brugger <matthias.bgg@gmail.com>\nM:\tAngeloGioacchino Del Regno <angelogioacchino.delregno@collabora.com>\nL:\tlinux-kernel@vger.kernel.org\nL:\tlinux-arm-kernel@lists.infradead.org (moderated for non-subscribers)\nL:\tlinux-mediatek@lists.infradead.org (moderated for non-subscribers)\nS:\tMaintained\nW:\thttps://mtk.wiki.kernel.org/\nC:\tirc://irc.libera.chat/linux-mediatek\nF:\tarch/arm/boot/dts/mediatek/\nF:\tarch/arm/mach-mediatek/\nF:\tarch/arm64/boot/dts/mediatek/\nF:\tdrivers/soc/mediatek/\nN:\tmtk\nN:\tmt[2678]\nK:\tmediatek",
+      "COMMON CLK FRAMEWORK\nM:\tMichael Turquette <mturquette@baylibre.com>\nM:\tStephen Boyd <sboyd@kernel.org>\nR:\tBrian Masney <bmasney@redhat.com>\nL:\tlinux-clk@vger.kernel.org\nS:\tMaintained\nQ:\thttp://patchwork.kernel.org/project/linux-clk/list/\nT:\tgit git://git.kernel.org/pub/scm/linux/kernel/git/clk/linux.git\nF:\tDocumentation/devicetree/bindings/clock/\nF:\tdrivers/clk/\nF:\tinclude/dt-bindings/clock/\nF:\tinclude/linux/clk-pr*\nF:\tinclude/linux/clk/\nF:\tinclude/linux/of_clk.h\nF:\tscripts/gdb/linux/clk.py\nF:\trust/helpers/clk.c\nF:\trust/kernel/clk.rs\nX:\tdrivers/clk/clkdev.c",
+      "OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS\nM:\tRob Herring <robh@kernel.org>\nM:\tKrzysztof Kozlowski <krzk+dt@kernel.org>\nM:\tConor Dooley <conor+dt@kernel.org>\nL:\tdevicetree@vger.kernel.org\nS:\tMaintained\nQ:\thttp://patchwork.kernel.org/project/devicetree/list/\nC:\tirc://irc.libera.chat/devicetree\nT:\tgit git://git.kernel.org/pub/scm/linux/kernel/git/robh/linux.git\nF:\tDocumentation/devicetree/\nF:\tarch/*/boot/dts/\nF:\tinclude/dt-bindings/",
+      "RESET CONTROLLER FRAMEWORK\nM:\tPhilipp Zabel <p.zabel@pengutronix.de>\nS:\tMaintained\nT:\tgit https://git.pengutronix.de/git/pza/linux.git\nF:\tDocumentation/devicetree/bindings/reset/\nF:\tDocumentation/driver-api/reset.rst\nF:\tdrivers/reset/\nF:\tinclude/dt-bindings/reset/\nF:\tinclude/linux/reset-controller.h\nF:\tinclude/linux/reset.h\nF:\tinclude/linux/reset/\nK:\t\\b(?:devm_|of_)?reset_control(?:ler_[a-z]+|_[a-z_]+)?\\b"
+    ]
+  },
+  "observed_at_utc": "2026-09-05T14:00:44.175878+00:00",
+  "overlap_cover_and_replies": [
+    {
+      "bytes": 9105,
+      "sha256": "94cba5ca9b0e0a0295dc81d51f878336ef76b276535108e39a244400de8c7127",
+      "url": "https://lists.infradead.org/pipermail/linux-mediatek/2026-August/111247.html"
+    },
+    {
+      "bytes": 3241,
+      "sha256": "cc226633883617a4ab984a2195ebe61672bab6c92dcb9687aea4c6b539c52a52",
+      "url": "https://lists.infradead.org/pipermail/linux-mediatek/2026-August/111296.html"
+    },
+    {
+      "bytes": 5271,
+      "sha256": "3191a106c38dfc1674d183d1f73fe9813c3bce85a92e469fcb4f2377bd56ff2c",
+      "url": "https://lists.infradead.org/pipermail/linux-mediatek/2026-August/111298.html"
+    },
+    {
+      "bytes": 6079,
+      "sha256": "d1d3496bd74fcbe06678bab5b8ad1791dae60a7405413b49c81476f1e330c84d",
+      "url": "https://lists.infradead.org/pipermail/linux-mediatek/2026-August/111302.html"
+    }
+  ],
+  "overlap_message": {
+    "bytes": 9469,
+    "sha256": "24a70dea9023083d1ee04f4a3508c781eb42332f7458ef1f58900b4631a13c57",
+    "url": "https://lists.infradead.org/pipermail/linux-mediatek/2026-August/111265.html"
+  },
+  "primary_files": [
+    {
+      "bytes": 2384,
+      "path": "Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml",
+      "sha256": "0610f891e326d1e0a7ce9ffe3ef0513ab229bf37eee8177de0999cac17157c6f",
+      "status": "present",
+      "tree": "mainline",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml"
+    },
+    {
+      "bytes": 4290,
+      "path": "drivers/clk/mediatek/reset.c",
+      "sha256": "8c1cdf2ad881dc20659340cd7f0244b8ff1a1b6d1d7b4cd1e74946533adcee76",
+      "status": "present",
+      "tree": "mainline",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/drivers/clk/mediatek/reset.c"
+    },
+    {
+      "bytes": 34673,
+      "path": "drivers/clk/mediatek/Kconfig",
+      "sha256": "6634c6e7c14ca9a72fc0a258ca9b8a575c53bc451919646feb644c7b9354c3c0",
+      "status": "present",
+      "tree": "mainline",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/drivers/clk/mediatek/Kconfig"
+    },
+    {
+      "bytes": 10756,
+      "path": "drivers/clk/mediatek/Makefile",
+      "sha256": "6af23f8e56cbb5e9fdda850fb8201f384053f89e8b3347aa8a6cd98239678b11",
+      "status": "present",
+      "tree": "mainline",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/drivers/clk/mediatek/Makefile"
+    },
+    {
+      "bytes": 23000,
+      "path": "drivers/clk/mediatek/clk-mt6797.c",
+      "sha256": "eaad6324621679371f33bbb76e10bcb0d3374b1f2dbbd837323b3f9e8fee1534",
+      "status": "present",
+      "tree": "mainline",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/drivers/clk/mediatek/clk-mt6797.c"
+    },
+    {
+      "bytes": 11331,
+      "path": "arch/arm64/boot/dts/mediatek/mt6797.dtsi",
+      "sha256": "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83",
+      "status": "present",
+      "tree": "mainline",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/arch/arm64/boot/dts/mediatek/mt6797.dtsi"
+    },
+    {
+      "bytes": 927914,
+      "path": "MAINTAINERS",
+      "sha256": "39e65935b8f213dfa9b7a49a7341565855c6aec851288f0f32a0b2afcb35558a",
+      "status": "present",
+      "tree": "mainline",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/MAINTAINERS"
+    },
+    {
+      "bytes": 71115,
+      "path": "scripts/get_maintainer.pl",
+      "sha256": "103c295e5c6cb557d2026a2b45ba7e9df9e09fd360339810f5f1e7f7309801cb",
+      "status": "present",
+      "tree": "mainline",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/scripts/get_maintainer.pl"
+    },
+    {
+      "code": 404,
+      "path": "drivers/clk/mediatek/reset-internal.h",
+      "status": "http-error",
+      "tree": "mainline",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/drivers/clk/mediatek/reset-internal.h"
+    },
+    {
+      "code": 404,
+      "path": "drivers/clk/mediatek/reset-test.c",
+      "status": "http-error",
+      "tree": "mainline",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/drivers/clk/mediatek/reset-test.c"
+    },
+    {
+      "code": 404,
+      "path": "drivers/clk/mediatek/clk-mt6797-reset.h",
+      "status": "http-error",
+      "tree": "mainline",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/drivers/clk/mediatek/clk-mt6797-reset.h"
+    },
+    {
+      "code": 404,
+      "path": "drivers/clk/mediatek/clk-mt6797-reset-test.c",
+      "status": "http-error",
+      "tree": "mainline",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/drivers/clk/mediatek/clk-mt6797-reset-test.c"
+    },
+    {
+      "code": 404,
+      "path": "include/dt-bindings/reset/mt6797-resets.h",
+      "status": "http-error",
+      "tree": "mainline",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/include/dt-bindings/reset/mt6797-resets.h"
+    },
+    {
+      "bytes": 2384,
+      "path": "Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml",
+      "sha256": "0610f891e326d1e0a7ce9ffe3ef0513ab229bf37eee8177de0999cac17157c6f",
+      "status": "present",
+      "tree": "clock",
+      "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/clk/linux/+/91b1b8d437abe0cd83210d8f257b785a63047aa9/Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml?format=TEXT"
+    },
+    {
+      "bytes": 4290,
+      "path": "drivers/clk/mediatek/reset.c",
+      "sha256": "8c1cdf2ad881dc20659340cd7f0244b8ff1a1b6d1d7b4cd1e74946533adcee76",
+      "status": "present",
+      "tree": "clock",
+      "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/clk/linux/+/91b1b8d437abe0cd83210d8f257b785a63047aa9/drivers/clk/mediatek/reset.c?format=TEXT"
+    },
+    {
+      "bytes": 34688,
+      "path": "drivers/clk/mediatek/Kconfig",
+      "sha256": "712eede24414e708c2b140e6860111b7f4f8f9f2ef356a2330286c3af1a2d351",
+      "status": "present",
+      "tree": "clock",
+      "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/clk/linux/+/91b1b8d437abe0cd83210d8f257b785a63047aa9/drivers/clk/mediatek/Kconfig?format=TEXT"
+    },
+    {
+      "bytes": 10756,
+      "path": "drivers/clk/mediatek/Makefile",
+      "sha256": "6af23f8e56cbb5e9fdda850fb8201f384053f89e8b3347aa8a6cd98239678b11",
+      "status": "present",
+      "tree": "clock",
+      "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/clk/linux/+/91b1b8d437abe0cd83210d8f257b785a63047aa9/drivers/clk/mediatek/Makefile?format=TEXT"
+    },
+    {
+      "bytes": 23000,
+      "path": "drivers/clk/mediatek/clk-mt6797.c",
+      "sha256": "eaad6324621679371f33bbb76e10bcb0d3374b1f2dbbd837323b3f9e8fee1534",
+      "status": "present",
+      "tree": "clock",
+      "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/clk/linux/+/91b1b8d437abe0cd83210d8f257b785a63047aa9/drivers/clk/mediatek/clk-mt6797.c?format=TEXT"
+    },
+    {
+      "bytes": 11331,
+      "path": "arch/arm64/boot/dts/mediatek/mt6797.dtsi",
+      "sha256": "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83",
+      "status": "present",
+      "tree": "clock",
+      "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/clk/linux/+/91b1b8d437abe0cd83210d8f257b785a63047aa9/arch/arm64/boot/dts/mediatek/mt6797.dtsi?format=TEXT"
+    },
+    {
+      "bytes": 928091,
+      "path": "MAINTAINERS",
+      "sha256": "c9f85d60dcab471dc311a71529702d0efac74c145fbb0dc7518e0ed6c61ef9b5",
+      "status": "present",
+      "tree": "clock",
+      "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/clk/linux/+/91b1b8d437abe0cd83210d8f257b785a63047aa9/MAINTAINERS?format=TEXT"
+    },
+    {
+      "bytes": 71115,
+      "path": "scripts/get_maintainer.pl",
+      "sha256": "103c295e5c6cb557d2026a2b45ba7e9df9e09fd360339810f5f1e7f7309801cb",
+      "status": "present",
+      "tree": "clock",
+      "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/clk/linux/+/91b1b8d437abe0cd83210d8f257b785a63047aa9/scripts/get_maintainer.pl?format=TEXT"
+    },
+    {
+      "code": 404,
+      "path": "drivers/clk/mediatek/reset-internal.h",
+      "status": "http-error",
+      "tree": "clock",
+      "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/clk/linux/+/91b1b8d437abe0cd83210d8f257b785a63047aa9/drivers/clk/mediatek/reset-internal.h?format=TEXT"
+    },
+    {
+      "code": 404,
+      "path": "drivers/clk/mediatek/reset-test.c",
+      "status": "http-error",
+      "tree": "clock",
+      "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/clk/linux/+/91b1b8d437abe0cd83210d8f257b785a63047aa9/drivers/clk/mediatek/reset-test.c?format=TEXT"
+    },
+    {
+      "code": 404,
+      "path": "drivers/clk/mediatek/clk-mt6797-reset.h",
+      "status": "http-error",
+      "tree": "clock",
+      "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/clk/linux/+/91b1b8d437abe0cd83210d8f257b785a63047aa9/drivers/clk/mediatek/clk-mt6797-reset.h?format=TEXT"
+    },
+    {
+      "code": 404,
+      "path": "drivers/clk/mediatek/clk-mt6797-reset-test.c",
+      "status": "http-error",
+      "tree": "clock",
+      "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/clk/linux/+/91b1b8d437abe0cd83210d8f257b785a63047aa9/drivers/clk/mediatek/clk-mt6797-reset-test.c?format=TEXT"
+    },
+    {
+      "code": 404,
+      "path": "include/dt-bindings/reset/mt6797-resets.h",
+      "status": "http-error",
+      "tree": "clock",
+      "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/clk/linux/+/91b1b8d437abe0cd83210d8f257b785a63047aa9/include/dt-bindings/reset/mt6797-resets.h?format=TEXT"
+    },
+    {
+      "bytes": 11331,
+      "path": "arch/arm64/boot/dts/mediatek/mt6797.dtsi",
+      "sha256": "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83",
+      "status": "present",
+      "tree": "mediatek",
+      "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/mediatek/linux/+/f5be25e697e0362103625b1b197af126ae4ba5f7/arch/arm64/boot/dts/mediatek/mt6797.dtsi?format=TEXT"
+    },
+    {
+      "bytes": 916147,
+      "path": "MAINTAINERS",
+      "sha256": "6bc5dc04a7843773c2391fc3438dfeeeaac1b299e9d4fb332c93ec9bbd86670c",
+      "status": "present",
+      "tree": "mediatek",
+      "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/mediatek/linux/+/f5be25e697e0362103625b1b197af126ae4ba5f7/MAINTAINERS?format=TEXT"
+    }
+  ],
+  "refs": {
+    "clock": {
+      "observed_refs": "91b1b8d437abe0cd83210d8f257b785a63047aa9\trefs/heads/clk-next",
+      "ref": "refs/heads/clk-next",
+      "remote": "https://git.kernel.org/pub/scm/linux/kernel/git/clk/linux.git",
+      "revision": "91b1b8d437abe0cd83210d8f257b785a63047aa9"
+    },
+    "mainline": {
+      "observed_refs": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c\trefs/heads/master",
+      "ref": "refs/heads/master",
+      "remote": "https://github.com/torvalds/linux.git",
+      "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c"
+    },
+    "mediatek": {
+      "observed_refs": "f5be25e697e0362103625b1b197af126ae4ba5f7\trefs/heads/for-next",
+      "ref": "refs/heads/for-next",
+      "remote": "https://git.kernel.org/pub/scm/linux/kernel/git/mediatek/linux.git",
+      "revision": "f5be25e697e0362103625b1b197af126ae4ba5f7"
+    }
+  },
+  "schema_execution": false
+}
