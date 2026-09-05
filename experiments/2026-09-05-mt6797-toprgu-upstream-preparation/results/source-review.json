@@ -1,0 +1,54 @@
+{
+  "date": "2026-09-05",
+  "upstream_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "method": "Read individual public files at immutable revision; no source extraction, build or device access.",
+  "sources": [
+    {
+      "path": "drivers/watchdog/mtk_wdt.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/drivers/watchdog/mtk_wdt.c",
+      "sha256": "75980000791cad302a15451642a2ce5a2dbd7748b52f52942233d4705e1f3593"
+    },
+    {
+      "path": "drivers/firmware/psci/psci.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/drivers/firmware/psci/psci.c",
+      "sha256": "310ec046e86d4eafbe326234c1998611eba9d83af6696589d75e5838a94d6a5c"
+    },
+    {
+      "path": "Documentation/devicetree/bindings/watchdog/mediatek,mtk-wdt.yaml",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/Documentation/devicetree/bindings/watchdog/mediatek,mtk-wdt.yaml",
+      "sha256": "99d3401f93a450f9bc23eb2d2b2a06baf7308ff0d70628737c5362372e158249"
+    },
+    {
+      "path": "arch/arm64/boot/dts/mediatek/mt6797.dtsi",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/arch/arm64/boot/dts/mediatek/mt6797.dtsi",
+      "sha256": "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83"
+    },
+    {
+      "path": "MAINTAINERS",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/MAINTAINERS",
+      "sha256": "39e65935b8f213dfa9b7a49a7341565855c6aec851288f0f32a0b2afcb35558a"
+    }
+  ],
+  "historical_patches": [
+    {
+      "path": "patches/v7.1.3/0081-watchdog-mtk-set-MT6797-auto-restart-mode.patch",
+      "sha256": "4a05513e1d4dd32b85f0860d85ce9223c0968d5c4748015c383ece6f1e6ff842",
+      "authorship": "Synthetic internal From identity; no truthful human DCO established by this review."
+    },
+    {
+      "path": "patches/v7.1.3/0087-watchdog-mtk-prioritize-MT6797-TOPRGU-restart.patch",
+      "sha256": "81168e4cc12d9ffad7645f667c0211d8dff73b0dadda3ebd422f63378e411d56",
+      "authorship": "Synthetic internal From identity; no truthful human DCO established by this review."
+    },
+    {
+      "path": "patches/v7.1.3/0090-watchdog-mtk-expose-MT6797-TOPRGU-resets.patch",
+      "sha256": "d7699b40087a7b830802d3c868e01f30f76fb92d12c54dc2f58d0ced1fdb245a",
+      "authorship": "Synthetic internal From identity; no truthful human DCO established by this review."
+    }
+  ],
+  "maintainer_tree_check": {
+    "url": "https://www.linux-watchdog.org/linux-watchdog.git/",
+    "result": "HTTPS certificate expired; refs not obtained; verification not bypassed",
+    "consequence": "Pending maintainer-tree overlap remains unresolved; not submission-ready."
+  }
+}
