@@ -207,7 +207,10 @@ added. Complete logs/authentication, ordinary recovery, owner console acceptance
 serviceability and confirmed recovery together produce
 `first-authenticated-baseline-and-recovery-pass`.
 
-Ordinary native recovery requires the admitted preservation proof to pass again
+Original observations and prior phases are parsed from retained, hash-verified
+byte snapshots. Classification never reopens a previously checked evidence
+file, and collector preparation inputs must match the admitted snapshot.
+Ordinary native recovery requires the preservation proof to pass again
 immediately before the command; local evidence changes stop it. Emergency
 recovery remains available under the narrow fields above after authentication
 or preservation failure when the original baseline identity was established.

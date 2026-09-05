@@ -44,6 +44,48 @@ def load(path, limit=131072):
     return json.loads(regular(path, limit), object_pairs_hook=C['no_duplicates'])
 
 
+def verified_snapshot(directory, manifest):
+    """Retain bytes that individually match the already pinned manifest.
+
+    Inventory verification alone does not bind a subsequent open of a path.
+    Callers must classify this snapshot, never reopen the evidence afterward.
+    """
+    require(len(manifest) <= 16384, 'snapshot manifest bound')
+    result = {}
+    for line in manifest.decode('ascii').splitlines():
+        match = re.fullmatch(r'([0-9a-f]{64})  ([A-Za-z0-9_./-]+)', line)
+        require(match is not None, 'snapshot manifest framing')
+        expected, name = match.groups()
+        path = Path(name)
+        require(not path.is_absolute() and '..' not in path.parts and path.as_posix() == name and
+                name not in result and name != 'SHA256SUMS', 'snapshot manifest path/duplicate')
+        raw = regular(directory / path, 4 * 1024 * 1024)
+        require(sha(raw) == expected, 'snapshot member differs from pinned manifest')
+        result[name] = raw
+    return result
+
+
+def snapshot_read(snapshot, name, limit):
+    raw = snapshot[name]
+    require(len(raw) <= limit, 'snapshot member exceeds parser limit')
+    return raw
+
+
+def snapshot_load(snapshot, name, limit=131072):
+    return json.loads(snapshot_read(snapshot, name, limit), object_pairs_hook=C['no_duplicates'])
+
+
+def phase_reader(directory, snapshot):
+    def read(path, limit):
+        if snapshot is None:
+            return regular(path, limit)
+        return snapshot_read(snapshot, path.relative_to(directory).as_posix(), limit)
+
+    def parsed(path, limit=131072):
+        return json.loads(read(path, limit), object_pairs_hook=C['no_duplicates'])
+    return read, parsed
+
+
 def verified_attempt(path):
     C['directory'](path)
     raw = regular(path / 'SHA256SUMS', 16384)
@@ -67,17 +109,21 @@ def prepare(attempt, admission_path):
             C['UUID'].fullmatch(attempt.name), 'baseline attempt location')
     C['ignored'](REPO, admission_path)
     manifest = verified_attempt(attempt)
+    snapshot = verified_snapshot(attempt, manifest)
     prepared = C['prepare'](REPO, attempt / 'admission.json', attempt / 'deployment-summary.txt')
-    previous = load(attempt / 'result.json')
-    baseline = C['classify_capture'](prepared, regular(attempt / 'stdout.txt', C['STDOUT_LIMIT']),
-                                     regular(attempt / 'stderr.txt', C['STDERR_LIMIT']), previous['process'])
+    require(prepared['admission_raw'] == snapshot['admission.json'] and
+            prepared['deployment_raw'] == snapshot['deployment-summary.txt'] and
+            prepared['candidate_raw'] == snapshot['candidate.json'], 'prepared inputs differ from pinned snapshot')
+    previous = snapshot_load(snapshot, 'result.json')
+    baseline = C['classify_capture'](prepared, snapshot_read(snapshot, 'stdout.txt', C['STDOUT_LIMIT']),
+                                     snapshot_read(snapshot, 'stderr.txt', C['STDERR_LIMIT']), previous['process'])
     require(baseline['classification'] == previous['classification'] == 'baseline-observation-only-pass',
             'first observation must independently pass; use physical recovery if identity was inconclusive')
-    claim = load(attempt / 'claim.json')
+    claim = snapshot_load(snapshot, 'claim.json')
     require(claim['candidate_manifest_sha256'] == sha(prepared['candidate_raw']) and
             claim['admission_sha256'] == sha(prepared['admission_raw']) and
             claim['deployment_receipt_sha256'] == sha(prepared['deployment_raw']) and
-            regular(attempt / 'remote-observe.sh', 65536) == C['remote_script'](prepared), 'baseline claim drift')
+            snapshot_read(snapshot, 'remote-observe.sh', 65536) == C['remote_script'](prepared), 'baseline claim drift')
     admission_raw = regular(admission_path, 16384)
     admission = json.loads(admission_raw, object_pairs_hook=C['no_duplicates'])
     required = {'schema', 'experiment', 'action', 'baseline_admission_id', 'baseline_manifest_sha256',
@@ -284,7 +330,8 @@ def verify_phase(directory, expected, action):
     require(wanted == seen | {'SHA256SUMS'}, 'phase manifest inventory')
 
 
-def verify_phase_commands(directory, context, action):
+def verify_phase_commands(directory, context, action, *, snapshot=None):
+    read, parsed = phase_reader(directory, snapshot)
     candidate, boot = context['prepared']['candidate'], context['baseline']['boot_id']
     probe = S['probe_script'](candidate, boot)
     commands = {'rejected-key': probe, 'wrong-host': probe, 'positive-probe': probe,
@@ -292,8 +339,8 @@ def verify_phase_commands(directory, context, action):
                 'native-reboot': S['recovery_script'](candidate, boot)}
     for label in PHASE_LABELS[action]:
         child = directory / label
-        require(regular(child / 'command.sh', 65536) == commands[label], 'prior fixed command changed')
-        process = load(child / 'process.json')
+        require(read(child / 'command.sh', 65536) == commands[label], 'prior fixed command changed')
+        process = parsed(child / 'process.json')
         require(set(process) == {'exit_status', 'reason', 'stdin_complete', 'stdout_bytes', 'stderr_bytes', 'elapsed_seconds'},
                 'prior process inventory')
         require(type(process['exit_status']) is int and type(process['stdin_complete']) is bool and
@@ -302,35 +349,38 @@ def verify_phase_commands(directory, context, action):
                 0 <= process['elapsed_seconds'] <= (31 if label == 'log-export' else 16), 'prior process framing/deadline')
         for name, limit in (('stdout', 3 * 1024 * 1024 if label == 'log-export' else 131072), ('stderr', 16384)):
             require(type(process[name + '_bytes']) is int and
-                    process[name + '_bytes'] == len(regular(child / (name + '.txt'), limit)), 'prior stream count')
+                    process[name + '_bytes'] == len(read(child / (name + '.txt'), limit)), 'prior stream count')
 
 
 def verify_prior_phase(context, action, expected):
     require(action in PHASE_LABELS, 'prior phase scope')
     directory = REPO / 'artifacts/a53-authenticated/sessions' / context['attempt'].name / action
     verify_phase(directory, expected, action)
+    manifest = regular(directory / 'SHA256SUMS', 16384)
+    require(sha(manifest) == expected, 'prior snapshot manifest pin')
+    snapshot = verified_snapshot(directory, manifest)
     # Only request-recovery depends on preserve-log; auth/export have no
     # predecessors. The exact action check rejects recursive confirm claims.
     # Prepare independently rechecks the exact original attempt,
     # source identities, candidate, custody and this phase's admitted budgets.
-    require(load(directory / 'admission.json')['action'] == action, 'prior phase action binding')
+    require(snapshot_load(snapshot, 'admission.json')['action'] == action, 'prior phase action binding')
     prior = prepare(context['attempt'], directory / 'admission.json')
-    require(prior['manifest'] == context['manifest'] and
+    require(prior['admission_raw'] == snapshot['admission.json'] and
+            prior['manifest'] == context['manifest'] and
             prior['prepared']['candidate_raw'] == context['prepared']['candidate_raw'] and
             prior['baseline']['boot_id'] == context['baseline']['boot_id'], 'prior baseline/candidate binding')
-    require(json_bytes(load(directory / 'claim.json')) == json_bytes(phase_claim(prior)), 'prior phase claim binding')
-    verify_phase_commands(directory, prior, action)
+    require(json_bytes(snapshot_load(snapshot, 'claim.json')) == json_bytes(phase_claim(prior)), 'prior phase claim binding')
+    verify_phase_commands(directory, prior, action, snapshot=snapshot)
     boot = prior['baseline']['boot_id']
     if action == 'auth-checks':
-        result = recheck_auth(directory, boot)
+        result = recheck_auth(directory, boot, snapshot=snapshot)
     elif action == 'preserve-log':
-        result = recheck_export(directory, boot)
+        result = recheck_export(directory, boot, snapshot=snapshot)
     else:
-        child = directory / 'native-reboot'
-        result = S['parse_recovery_request'](regular(child / 'stdout.txt', 131072),
-                                              load(child / 'process.json'), boot)
+        result = S['parse_recovery_request'](snapshot_read(snapshot, 'native-reboot/stdout.txt', 131072),
+                                              snapshot_load(snapshot, 'native-reboot/process.json'), boot)
         result.update(recovery_context(prior))
-    require(json_bytes(load(directory / 'result.json')) == json_bytes(result), 'prior phase result differs from raw evidence')
+    require(json_bytes(snapshot_load(snapshot, 'result.json')) == json_bytes(result), 'prior phase result differs from raw evidence')
     return result
 
 
@@ -383,30 +433,32 @@ def classify_prior_phases(context):
     return {action: phase_proof(context, action) for action in PRIOR_FIELDS}
 
 
-def recheck_auth(directory, boot):
+def recheck_auth(directory, boot, *, snapshot=None):
+    read, parsed = phase_reader(directory, snapshot)
     for label, diagnostic in (('rejected-key', b'Permission denied (publickey)'),
                               ('wrong-host', b'Host key verification failed')):
         child = directory / label
-        process = load(child / 'process.json')
-        require(not regular(child / 'stdout.txt', 131072) and diagnostic in regular(child / 'stderr.txt', 16384) and
+        process = parsed(child / 'process.json')
+        require(not read(child / 'stdout.txt', 131072) and diagnostic in read(child / 'stderr.txt', 16384) and
                 process['exit_status'] == 255 and process['reason'] in (None, 'stdin-closed'), 'negative auth evidence')
     child = directory / 'positive-probe'
-    process = load(child / 'process.json')
-    require(not regular(child / 'stderr.txt', 16384) and process['exit_status'] == 0 and
+    process = parsed(child / 'process.json')
+    require(not read(child / 'stderr.txt', 16384) and process['exit_status'] == 0 and
             process['reason'] is None and process['stdin_complete'] and
-            regular(child / 'stdout.txt', 131072) == ('authenticated_boot_id=' + boot + '\n').encode(),
+            read(child / 'stdout.txt', 131072) == ('authenticated_boot_id=' + boot + '\n').encode(),
             'positive auth evidence')
     return {'classification': 'authentication-checks-pass', 'boot_id': boot,
             'negative_auth': 'key-and-host-refused-plus-fresh-authenticated-probe'}
 
 
-def recheck_export(directory, boot):
+def recheck_export(directory, boot, *, snapshot=None):
+    read, parsed_json = phase_reader(directory, snapshot)
     child = directory / 'log-export'
-    parsed = S['parse_log_export'](regular(child / 'stdout.txt', 3 * 1024 * 1024),
-                                  regular(child / 'stderr.txt', 16384), load(child / 'process.json'))
+    parsed = S['parse_log_export'](read(child / 'stdout.txt', 3 * 1024 * 1024),
+                                  read(child / 'stderr.txt', 16384), parsed_json(child / 'process.json'))
     require(set(parsed['files']) <= set(EXPORT_FILES), 'export file scope')
     for name in EXPORT_FILES:
-        require(regular(directory / name, S['LIMIT'] if name == 'kmsg.log' else 8192) ==
+        require(read(directory / name, S['LIMIT'] if name == 'kmsg.log' else 8192) ==
                 parsed['files'].get(name, b''), 'exported raw evidence differs from captured transport')
     return {'classification': parsed['result']['classification'], 'boot_id': boot, 'export': parsed['result']}
 

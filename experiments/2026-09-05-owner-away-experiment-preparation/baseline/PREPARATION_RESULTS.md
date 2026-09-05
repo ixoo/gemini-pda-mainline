@@ -237,3 +237,74 @@ found no actionable runner issue. Bash syntax, ShellCheck and the common
 repository gate pass, including all 189 manifest profiles. The Linux-only
 provenance fixture remains part of the forthcoming Buildbox run. No kernel
 build, DT/schema, device or runtime acceptance is claimed by these checks.
+
+## Validated userspace package and private candidate
+
+Published revision `e9c028005b88ef8536ecb58c095e8d172253fa12` completed the
+Git-fetched userspace Buildbox workflow. All six static ARM64 binaries matched
+between two independent build directories. The package passed authentication
+against the exact emulated server, native parser/logger/seal checks (15/12/9),
+six runner methods, 25 exact BusyBox init cases, all 28 exact eMMC methods
+(272.128 seconds), and all 61 exact session cases with ten effect guards and
+four parser-transport checks. The Linux artifact-provenance fixture passed
+four positive cases and rejected 21 mutations. The validated package was
+fetched through the bounded publication-receipt workflow, then independently
+validated locally against its complete 23-file inventory and published source.
+
+| Identity | SHA-256 |
+| --- | --- |
+| Userspace `SHA256SUMS` (22 members) | `dfeb746505b7ad01423e91e952e76620f845b048ae2e8c5cf8a311e0d4443e60` |
+| Raw Android-v0 `boot.img` | `a25fe4cb907f4f3da2bf9f36fcf38b3fff7d8ba84adc37562fdcff2f1a422daf` |
+| Full 16 MiB `boot2-padded.img` | `a423ad63fbb97d0f3fc4726d3957e05d3951480996b754d839a89d80a1232821` |
+| Private `candidate.json` | `54b07f0c70e77fd1e34fde4fc1c929980f0d8c3410f0a97ce3f15ffec1a66179` |
+| Composed `initramfs.img` | `a678c4051204754dbb8043b25d3f61e0e6b4936fc4c92bea012140b9b6687d7a` |
+
+The raw container is 8,722,432 bytes, the initramfs is 3,055,358 bytes with
+47 members, and padding is exactly 16,777,216 bytes. Two fresh initramfs and
+container assemblies matched. Independent validation confirmed the retained
+Image/DT/config, exact member delta, credentials/options, static binaries,
+source-bound test receipts, LK fields and zero padding. All 23 real private
+candidate mutations were refused; the temporary copy was removed and the
+original remained unchanged. The all-zero Git-revision mutation deliberately
+produced Git's missing-path diagnostic before its expected refusal.
+
+The guarded installer's default local validation passed Bash syntax and
+ShellCheck, with generated installer SHA-256
+`c3621fbc7a037708b217551ede8f6ec5d9317529084f1876e784d195dcaa5b22`.
+It made no connection or device change. Package, candidate and host credentials
+remain private below ignored artifacts; the candidate contains a private host
+key and must not be published. The build staging and disposable authentication
+fixtures were removed. The historical kernel was neither rebuilt nor changed.
+
+Construction is complete, but session readiness remains preparing pending
+coordinator review of the candidate and corrected host evidence handling below. There is no
+physical admission, deployment, boot, live pidfd/VT/evdev evidence or support
+claim for this candidate.
+
+## Host evidence snapshot correction
+
+Independent review of the dependent packet drafts exposed a verify-then-read
+race. The same pattern was reproduced in the baseline finishing helper: an
+observation manifest bound to a CPU0–9 failure could be followed by replaced
+CPU0–7 stdout after inventory verification, and preparation accepted the
+replacement. Rechecking the same sequence before dispatch does not bind the
+parsed bytes to the admitted manifest. The host-only correction retains
+hash-verified bytes for classification and binds returned collector preparation
+inputs to that snapshot. Original admission, deployment and candidate bytes
+must match the snapshot; prior authentication, log export and native recovery
+commands, process records and results are all parsed from bound snapshots.
+No target shell, userspace package or candidate bytes changed.
+
+All 47 host session methods pass normally and with Python optimization enabled:
+40 existing methods plus seven deterministic race regressions, including
+replacement after inventory or snapshot acquisition and changed collector
+preparation inputs. The corrected finishing helper has SHA-256
+`f6fc5cf6a73518385af714b4f8566e32e4b231338cf231b0204d0b5aa96564a0`.
+Admissions must pin this corrected source. The generated seal and recovery
+identities retain their exact-shell validation from the successful package.
+
+After integration, all 47 session methods passed again and the existing private
+candidate independently revalidated without reconstruction. The common
+repository gate passed, including all 189 manifest profiles. The Linux-only
+provenance gate had already passed in the successful package build; no kernel,
+DT/schema or device test was added for this host-only correction.

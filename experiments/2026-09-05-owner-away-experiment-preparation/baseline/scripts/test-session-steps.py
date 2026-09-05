@@ -666,6 +666,122 @@ class PriorPhaseTests(unittest.TestCase):
         self.check_unpreserved_export(frame(log=b'x' * 2097152, overrides={
             'kmsg.log': {'size_before': '2097153', 'size_after': '2097153', 'truncated': 'yes'}}))
 
+    def baseline_swap(self, hook):
+        path = self.attempt / 'stdout.txt'; original = path.read_bytes()
+        self.write(path, original.replace(b'cpu_online=0-7', b'cpu_online=0-9'))
+        self.refresh(self.attempt)
+        admission = self.admission('auth-checks')
+        scope = F['prepare'].__globals__; real = scope[hook]
+        def raced(directory, *args):
+            result = real(directory, *args)
+            if directory == self.attempt:
+                self.write(path, original)
+            return result
+        with patch.dict(scope, {hook: raced}), self.assertRaises(ValueError):
+            F['prepare'](self.attempt, admission)
+        self.assertEqual(self.calls, [])
+
+    def test_baseline_swap_after_inventory_cannot_improve_failed_capture(self):
+        self.baseline_swap('verified_attempt')
+
+    def test_baseline_swap_after_snapshot_parses_only_bound_capture(self):
+        self.baseline_swap('verified_snapshot')
+
+    def test_original_prepare_admission_and_deployment_rereads_are_bound(self):
+        originals = {name: (self.attempt / name).read_bytes() for name in
+                     ('admission.json', 'deployment-summary.txt', 'claim.json')}
+        real = F['C']['prepare']
+        for changed in ('admission', 'deployment'):
+            with self.subTest(changed=changed):
+                admission_path = self.admission('auth-checks')
+                def raced(repo, baseline_admission, deployment_path):
+                    value = json.loads(originals['admission.json'])
+                    claim = json.loads(originals['claim.json'])
+                    if changed == 'admission':
+                        value['custodian_role'] = 'Changed after snapshot'
+                    else:
+                        lines = originals['deployment-summary.txt'].decode().splitlines()
+                        deployment = ('\n'.join('boot_id=' + OLD if line.startswith('boot_id=') else line
+                                                for line in lines) + '\n').encode()
+                        self.write(deployment_path, deployment)
+                        value['deployment_receipt_sha256'] = F['sha'](deployment)
+                        claim['deployment_receipt_sha256'] = F['sha'](deployment)
+                    raw = F['json_bytes'](value)
+                    self.write(baseline_admission, raw)
+                    claim['admission_sha256'] = F['sha'](raw)
+                    self.write(self.attempt / 'claim.json', F['json_bytes'](claim))
+                    return real(repo, baseline_admission, deployment_path)
+                try:
+                    with patch.dict(F['C'], prepare=raced), self.assertRaisesRegex(ValueError, 'prepared inputs differ'):
+                        F['prepare'](self.attempt, admission_path)
+                finally:
+                    for name, raw in originals.items(): self.write(self.attempt / name, raw)
+        self.assertEqual(self.calls, [])
+
+    def prior_auth_swap(self, hook):
+        directory, _ = self.phase('auth-checks')
+        errpath = directory / 'rejected-key/stderr.txt'; procpath = directory / 'rejected-key/process.json'
+        original_err, original_proc = errpath.read_bytes(), procpath.read_bytes()
+        self.write(errpath, b'Network unavailable\n')
+        process = json.loads(original_proc); process['stderr_bytes'] = len(errpath.read_bytes())
+        self.write(procpath, F['json_bytes'](process))
+        pin = self.refresh(directory)
+        scope = F['verify_prior_phase'].__globals__; real = scope[hook]
+        def raced(path, *args):
+            result = real(path, *args)
+            if path == directory:
+                self.write(errpath, original_err); self.write(procpath, original_proc)
+            return result
+        with patch.dict(scope, {hook: raced}):
+            context = self.confirmation(auth=pin)
+        self.assertEqual(context['prior_proof']['auth-checks']['classification'], 'incomplete')
+        self.assertFalse(F['perform'](context)['full_baseline_eligible'])
+
+    def test_prior_auth_swap_after_inventory_refuses(self):
+        self.prior_auth_swap('verify_phase')
+
+    def test_prior_auth_swap_after_snapshot_cannot_improve_refusal(self):
+        self.prior_auth_swap('verified_snapshot')
+
+    def test_prior_failed_log_snapshot_cannot_be_replaced_for_ordinary_recovery(self):
+        directory, _ = self.phase('preserve-log')
+        names = ('log-export/stdout.txt', 'log-export/process.json', 'kmsg.status')
+        original = {name: (directory / name).read_bytes() for name in names}
+        raw_status = status(result='failed', reason='deadline-expired')
+        raw = frame(raw_status=raw_status)
+        self.write(directory / names[0], raw)
+        metadata = json.loads(original[names[1]]); metadata['stdout_bytes'] = len(raw)
+        self.write(directory / names[1], F['json_bytes'](metadata))
+        self.write(directory / 'kmsg.status', raw_status.removeprefix(b'logger_exit=0\n'))
+        pin = self.refresh(directory)
+        scope = F['verify_prior_phase'].__globals__; real = scope['verified_snapshot']
+        def raced(path, manifest):
+            snapshot = real(path, manifest)
+            if path == directory:
+                for name, data in original.items(): self.write(directory / name, data)
+            return snapshot
+        with patch.dict(scope, verified_snapshot=raced), self.assertRaises(ValueError):
+            F['prepare'](self.attempt, self.admission('request-recovery', export_pin=pin, recovery_mode='ordinary'))
+        self.assertEqual(self.calls, ['log-export'])
+
+    def test_prior_native_snapshot_cannot_be_replaced_with_success(self):
+        directory, _ = self.phase('request-recovery')
+        outpath = directory / 'native-reboot/stdout.txt'; procpath = directory / 'native-reboot/process.json'
+        original_out, original_proc = outpath.read_bytes(), procpath.read_bytes()
+        self.write(outpath, b'')
+        metadata = json.loads(original_proc); metadata['stdout_bytes'] = 0
+        self.write(procpath, F['json_bytes'](metadata))
+        pin = self.refresh(directory)
+        scope = F['verify_prior_phase'].__globals__; real = scope['verified_snapshot']
+        def raced(path, manifest):
+            snapshot = real(path, manifest)
+            if path == directory:
+                self.write(outpath, original_out); self.write(procpath, original_proc)
+            return snapshot
+        with patch.dict(scope, verified_snapshot=raced): context = self.confirmation(request=pin)
+        self.assertEqual(context['prior_proof']['request-recovery']['classification'], 'incomplete')
+        self.assertFalse(F['perform'](context)['full_baseline_eligible'])
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
