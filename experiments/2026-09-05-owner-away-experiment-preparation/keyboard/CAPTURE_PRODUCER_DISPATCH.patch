@@ -1,0 +1,50 @@
+--- a/experiments/2026-09-05-owner-away-experiment-preparation/baseline/scripts/buildbox_userspace.py
++++ b/experiments/2026-09-05-owner-away-experiment-preparation/baseline/scripts/buildbox_userspace.py
+@@ -26,7 +26,7 @@
+ revision=$1
+ branch=$2
+ kind=$3
+-[[ $kind == userspace || $kind == keyboard-monitor ]]
++[[ $kind == userspace || $kind == keyboard-monitor || $kind == keyboard-capture ]]
+ [[ $revision =~ ^[0-9a-f]{40}$ && ( $branch == codex/a53-authenticated-baseline || $branch == main ) ]]
+ root=/workspace/gemini-a53-userspace
+ [[ ! -L $root ]]
+@@ -52,8 +52,11 @@
+   mv "$partial" "$checkout"
+   trap - EXIT HUP INT TERM
+ fi
+-if [[ $kind == keyboard-monitor ]]; then
+-  timeout 1200 bash "$checkout/experiments/2026-09-05-owner-away-experiment-preparation/keyboard/build-monitor.sh" "$revision" "$root"
++if [[ $kind == keyboard-monitor || $kind == keyboard-capture ]]; then
++  mode=disabled
++  build_seconds=1200
++  if [[ $kind == keyboard-capture ]]; then mode=capture; build_seconds=1500; fi
++  timeout "$build_seconds" bash "$checkout/experiments/2026-09-05-owner-away-experiment-preparation/keyboard/build-monitor.sh" "$revision" "$root" "$mode"
+ else
+   bash "$checkout/experiments/2026-09-05-owner-away-experiment-preparation/baseline/scripts/build-userspace.sh" "$revision" "$root"
+ fi
+@@ -63,9 +66,9 @@
+ revision=$1
+ identity=$2
+ kind=$3
+-[[ $kind == userspace || $kind == keyboard-monitor ]]
++[[ $kind == userspace || $kind == keyboard-monitor || $kind == keyboard-capture ]]
+ publication=published
+-[[ $kind == userspace ]] || publication=keyboard-monitor-published
++[[ $kind == userspace ]] || publication="$kind-published"
+ [[ $revision =~ ^[0-9a-f]{40}$ && $identity =~ ^[0-9a-f]{64}$ ]]
+ root=/workspace/gemini-a53-userspace
+ exec 8>"$root/.dispatch.lock"
+@@ -226,9 +229,11 @@
+     parser.add_argument('--keyboard-monitor', action='store_true', help='build/fetch the disabled keyboard monitor only')
+     parser.add_argument('--branch', choices=(BRANCH, 'main'), default=BRANCH,
+                         help='published source branch; defaults to existing worker branch')
++    parser.add_argument('--keyboard-capture', action='store_true', help='explicit enabled monitor plus full-duration/disconnect validation')
+     args = parser.parse_args()
++    require(not (args.keyboard_monitor and args.keyboard_capture), 'choose one keyboard build mode')
+     branch = args.branch
+-    kind = 'keyboard-monitor' if args.keyboard_monitor else 'userspace'
++    kind = 'keyboard-capture' if args.keyboard_capture else 'keyboard-monitor' if args.keyboard_monitor else 'userspace'
+     os.umask(0o077)
+     require(git('remote', 'get-url', 'origin') == ORIGIN, 'unexpected origin')
+     if args.fetch_only:

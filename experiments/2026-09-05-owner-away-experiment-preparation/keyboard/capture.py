@@ -62,6 +62,19 @@ def prepare(admission, package):
     manifest = json.loads((package / 'manifest.json').read_bytes())
     require(manifest.get('production_entry') == 'enabled-admission-v1' and
         manifest.get('inputs', {}).get('monitor.c') == sha((HERE/'monitor.c').read_bytes()), 'enabled reviewed build required')
+    require(manifest.get('capture_source_identity') == admission['source_identity'], 'producer/runtime source closure')
+    for name,field in (('full-duration.json','full_duration_receipt_sha256'),('disconnect.json','disconnect_receipt_sha256')):
+        raw = (package/name).read_bytes()
+        require(len(raw)<=16384 and sha(raw)==admission[field], 'packaged lifecycle proof identity')
+        proof=json.loads(raw,object_pairs_hook=L['unique'])
+        require(proof.get('monitor_source_sha256') == manifest['inputs']['monitor.c'] and
+            proof.get('fixture_source_sha256') == manifest['inputs']['monitor-fixture.c'], 'lifecycle proof source identity')
+        if name=='full-duration.json':
+            require(proof.get('classification')=='harmless-full-duration-lifecycle-observed' and
+                proof.get('deadline_contract_met') is True and proof.get('status',{}).get('reaped')=='1', 'full-duration proof incomplete')
+        else:
+            require(proof.get('classification')=='exact-dropbear-disconnect-private-capture-and-reap-pass' and
+                proof.get('monitor_exit')==2 and proof.get('monitor_status',{}).get('reaped')=='1', 'disconnect proof incomplete')
     binary = (package / 'keyboard-monitor').read_bytes()
     require(type(admission['monitor_bytes']) is int and 0 < len(binary) == admission['monitor_bytes'] <= 131072
         and sha(binary) == admission['monitor_sha256'], 'exact enabled binary')

@@ -17,6 +17,12 @@ static void fixture_child(void)
 	if (fcntl(47, F_GETFD) >= 0 || read(0, b, 1) != 0) _exit(124);
 	int n = snprintf(line, sizeof(line), "fixture-child=%ld\n", (long)getpid());
 	if (store(1, line, (size_t)n)) _exit(123);
+	if (!strcmp(mode, "disconnect")) {
+		for (;;) {
+			if (store(1, "fixture-progress\n", sizeof("fixture-progress\n") - 1)) _exit(122);
+			pause_ms(20);
+		}
+	}
 #ifdef MONITOR_FULL_DURATION
 	/* One harmless run witnesses the observation boundary then forced cleanup. */
 	if (!strcmp(mode, "ignore")) {
@@ -51,7 +57,7 @@ static void fixture_before_term(void)
 }
 int main(int argc, char **argv)
 {
-	const char *modes[] = { "normal", "late", "late-default", "late-signal", "nonzero", "close-live", "ignore", "wait", "fill", "stderr", "limit" };
+	const char *modes[] = { "normal", "late", "late-default", "late-signal", "disconnect", "nonzero", "close-live", "ignore", "wait", "fill", "stderr", "limit" };
 	char resolved[PATH_MAX];
 	bool admitted = false;
 	if (argc != 3 || !realpath(argv[1], resolved) || strcmp(argv[1], resolved) ||
@@ -63,7 +69,19 @@ int main(int argc, char **argv)
 	int dir = open(resolved, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
 	struct stat s;
 	if (dir < 0 || fstat(dir, &s) || s.st_uid != getuid() || (s.st_mode & 0777) != 0700) return 2;
+	if (!strcmp(mode, "disconnect")) {
+		char text[32]; int n = snprintf(text, sizeof(text), "%ld\n", (long)getpid());
+		int fd = exclusive(dir, "monitor.pid");
+		if (fd < 0 || store(fd, text, (size_t)n) || fsync(fd)) return 2;
+		close(fd);
+	}
 	int result = keyboard_monitor_run(dir, "event0", "64");
+	if (!strcmp(mode, "disconnect")) {
+		char text[16]; int n = snprintf(text, sizeof(text), "%d\n", result);
+		int fd = exclusive(dir, "monitor.exit");
+		if (fd < 0 || store(fd, text, (size_t)n) || fsync(fd)) return 2;
+		close(fd);
+	}
 	close(dir);
 	return result;
 }

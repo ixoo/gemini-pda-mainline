@@ -5,9 +5,21 @@ set -euo pipefail
 umask 077
 export LC_ALL=C SOURCE_DATE_EPOCH=0 PYTHONDONTWRITEBYTECODE=1 PYTHONOPTIMIZE=0
 unset CPATH C_INCLUDE_PATH CPLUS_INCLUDE_PATH LIBRARY_PATH COMPILER_PATH GCC_EXEC_PREFIX REALGCC CFLAGS CPPFLAGS LDFLAGS
-[[ $# == 2 ]] || { echo 'usage: build-monitor.sh EXACT_REVISION MANAGED_ROOT' >&2; exit 2; }
+[[ $# == 2 || $# == 3 ]] || { echo 'usage: build-monitor.sh EXACT_REVISION MANAGED_ROOT [disabled|capture]' >&2; exit 2; }
 revision=$1
 managed=$2
+mode=${3:-disabled}
+[[ $mode == disabled || $mode == capture ]]
+kind=keyboard-monitor
+binary_name=keyboard-monitor-disabled
+production_entry=disabled
+compile_flags=()
+if [[ $mode == capture ]]; then
+  kind=keyboard-capture
+  binary_name=keyboard-monitor
+  production_entry=enabled-admission-v1
+  compile_flags=(-DKEYBOARD_MONITOR_ENABLED=1)
+fi
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 repository=$(git -C "$here" rev-parse --show-toplevel)
 [[ $revision =~ ^[0-9a-f]{40}$ ]]
@@ -31,7 +43,7 @@ cleanup() {
     diagnostic="$managed/keyboard-monitor-failure-$revision"
     if [[ ! -e $diagnostic && ! -L $diagnostic ]]; then
       mkdir -m 0700 "$diagnostic"
-      for log in configure.log build.log tests.txt; do
+      for log in configure.log build.log tests.txt full-duration.json full-duration.stderr disconnect.json disconnect.stderr; do
         if [[ -f $stage/$log && ! -L $stage/$log ]]; then
           head -c 2097152 "$stage/$log" >"$diagnostic/$log"
         fi
@@ -63,6 +75,11 @@ printf '%s  %s\n' c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b5788038
   "$cc" --version
   "$qemu" --version
   dpkg-query -W gcc-12-aarch64-linux-gnu binutils-aarch64-linux-gnu qemu-user-static
+  if [[ $mode == capture ]]; then
+    for tool in unshare ssh python3; do sha256sum "$(realpath "$(command -v "$tool")")"; done
+    unshare --version
+    dpkg-query -W util-linux openssh-client python3
+  fi
 } >"$stage/package/tool-inputs.txt"
 curl --fail --location --proto '=https' --max-time 120 --max-filesize 1082499 \
   -o "$stage/musl.tar.gz" https://musl.libc.org/releases/musl-1.2.6.tar.gz
@@ -86,7 +103,7 @@ compiler="$stage/musl-install/bin/musl-gcc"
 for replica in one two; do
   mkdir "$stage/$replica"
   timeout 60 "$compiler" -std=c11 -Os -static -ffunction-sections -fdata-sections \
-    -Wall -Wextra -Werror "-ffile-prefix-map=$repository=." "-ffile-prefix-map=$stage=." \
+    -Wall -Wextra -Werror "${compile_flags[@]}" "-ffile-prefix-map=$repository=." "-ffile-prefix-map=$stage=." \
     -Wl,--gc-sections,-u,keyboard_monitor_run "-Wl,-Map,$stage/$replica/monitor.map" \
     "$here/monitor.c" -o "$stage/$replica/monitor"
   aarch64-linux-gnu-readelf -h "$stage/$replica/monitor" | grep -q AArch64
@@ -101,44 +118,63 @@ cmp "$stage/one/monitor" "$stage/two/monitor"
 mkdir -m 0700 "$stage/fixtures"
 timeout 90 env MONITOR_TEST_WORK_ROOT="$stage/fixtures" MONITOR_TEST_CC="$compiler" \
   MONITOR_TEST_QEMU="$qemu" python3 "$here/test-monitor.py" >"$stage/tests.txt" 2>&1
-python3 - "$qemu" "$stage/one/monitor" <<'PY'
+python3 - "$mode" "$qemu" "$stage/one/monitor" <<'PY'
 import resource, subprocess, sys
 def limits():
     resource.setrlimit(resource.RLIMIT_FSIZE, (131072, 131072))
-p = subprocess.run(sys.argv[1:], capture_output=True, timeout=5, preexec_fn=limits)
-if (p.returncode, p.stdout, p.stderr) != (2, b'', b'refused: target-admission-disabled\n'):
+p = subprocess.run(sys.argv[2:], capture_output=True, timeout=5, preexec_fn=limits)
+expected = b'refused: target-admission-disabled\n' if sys.argv[1] == 'disabled' else b''
+if (p.returncode, p.stdout, p.stderr) != (2, b'', expected):
     raise SystemExit('full-engine production executable did not refuse exactly')
 PY
-install -m 0700 "$stage/one/monitor" "$stage/package/keyboard-monitor-disabled"
+if [[ $mode == capture ]]; then
+  mkdir -m 0700 "$stage/full-duration-fixtures"
+  timeout 260 python3 "$here/full-duration.py" --compiler "$compiler" --qemu "$qemu" \
+    --work-root "$stage/full-duration-fixtures" --output "$stage/full-duration-evidence" >"$stage/full-duration.json" 2>"$stage/full-duration.stderr"
+  timeout 45 unshare --user --map-root-user --mount --pid --fork --kill-child=KILL --mount-proc \
+    python3 "$here/test-disconnect.py" --compiler "$compiler" --qemu "$qemu" \
+    --package "$managed/userspace-dfeb746505b7ad01423e91e952e76620f845b048ae2e8c5cf8a311e0d4443e60" \
+    --work-root "$stage" --output "$stage/disconnect-evidence" >"$stage/disconnect.json" 2>"$stage/disconnect.stderr"
+  install -m 0600 "$stage/full-duration.json" "$stage/package/full-duration.json"
+  install -m 0600 "$stage/disconnect.json" "$stage/package/disconnect.json"
+  mv "$stage/disconnect-evidence" "$stage/package/disconnect-evidence"
+  mv "$stage/full-duration-evidence" "$stage/package/full-duration-evidence"
+fi
+install -m 0700 "$stage/one/monitor" "$stage/package/$binary_name"
 install -m 0600 "$stage/one/monitor.map" "$stage/package/monitor.map"
 install -m 0600 "$stage/tests.txt" "$stage/package/fixture-tests.txt"
 install -m 0600 "$musl/COPYRIGHT" "$stage/package/licenses/musl-COPYRIGHT"
 install -m 0600 "$repository/LICENSE" "$stage/package/licenses/repository-LICENSE"
 install -m 0600 /usr/share/doc/gcc-12-aarch64-linux-gnu/copyright "$stage/package/licenses/GCC-copyright"
-printf 'repository_commit=%s\nproduction_entry=disabled\ndevice_action=none\n' "$revision" >"$stage/package/provenance.txt"
-python3 - "$here" "$stage" "$revision" <<'PY'
-import hashlib, json, pathlib, sys
+printf 'repository_commit=%s\nproduction_entry=%s\ndevice_action=none\n' "$revision" "$production_entry" >"$stage/package/provenance.txt"
+python3 - "$here" "$stage" "$revision" "$binary_name" "$production_entry" <<'PY'
+import hashlib, json, pathlib, sys, runpy
 here, stage = map(pathlib.Path, sys.argv[1:3])
 sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
-inputs = {p.name: sha(p) for p in [here/'monitor.c', here/'monitor-fixture.c', here/'test-monitor.py', here/'build-monitor.sh', stage/'musl.tar.gz']}
+inputs = {p.name: sha(p) for p in [here/'monitor.c', here/'monitor-fixture.c', here/'test-monitor.py', here/'build-monitor.sh', here/'full-duration.py', here/'test-disconnect.py', here/'capture.py', here/'../baseline/scripts/provision.py', here/'../baseline/scripts/buildbox_userspace.py', stage/'musl.tar.gz']}
 library = {str(p.relative_to(stage/'musl-install')): sha(p) for p in sorted((stage/'musl-install').rglob('*')) if p.is_file()}
 result = {'revision': sys.argv[3], 'inputs': inputs, 'library_inputs': library,
-          'stripped_bytes': (stage/'package/keyboard-monitor-disabled').stat().st_size,
+          'stripped_bytes': (stage/'package'/sys.argv[4]).stat().st_size,
           'replicas_identical': True, 'full_engine_retained': True,
           'fixture_scope': 'scaled ARM64 Linux QEMU only; no evdev/VT or full-duration claim',
-          'production_entry': 'disabled', 'device_action': 'none'}
+          'production_entry': sys.argv[5], 'device_action': 'none'}
+if sys.argv[5] == 'enabled-admission-v1':
+    result['capture_source_identity'] = runpy.run_path(str(here/'capture.py'))['source_identity']()
+    result['full_duration_sha256'] = sha(stage/'package/full-duration.json')
+    result['disconnect_sha256'] = sha(stage/'package/disconnect.json')
+    result['fixture_scope'] = 'scaled ARM64 QEMU, full-duration harmless lifecycle and exact retained Dropbear disconnect; no device'
 (stage/'package/manifest.json').write_text(json.dumps(result, indent=2, sort_keys=True)+'\n')
 PY
 (cd "$stage/package"; find . -type f -print0 | sort -z | xargs -0 sha256sum) >"$stage/SHA256SUMS"
 mv "$stage/SHA256SUMS" "$stage/package/SHA256SUMS"
 identity=$(sha256sum "$stage/package/SHA256SUMS" | awk '{print $1}')
-destination="$managed/keyboard-monitor-$identity"
+destination="$managed/$kind-$identity"
 [[ ! -e $destination && ! -L $destination ]]
 mv "$stage/package" "$destination"
-publication="$managed/keyboard-monitor-published"
+publication="$managed/$kind-published"
 [[ ! -L $publication ]]
 mkdir -p "$publication"
 [[ ! -e $publication/$revision && ! -L $publication/$revision && ! -L $publication/.partial ]]
 printf '%s\n' "$identity" >"$publication/.partial"
 mv "$publication/.partial" "$publication/$revision"
-printf 'validated_keyboard_monitor_package=%s\n' "$destination"
+printf 'validated_%s_package=%s\n' "${kind//-/_}" "$destination"
