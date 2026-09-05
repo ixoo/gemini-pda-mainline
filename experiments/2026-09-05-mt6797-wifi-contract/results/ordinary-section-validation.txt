@@ -1,0 +1,20 @@
+Ordinary-section composition validation — 2026-09-05
+Base: ef9c6bf6 accepted host credit correction.
+Reused selected ordering/chunk/PIO ledgers; no new raw/private source inputs.
+Original GPL-2.0-only composition, no vendor implementation copied.
+Strict C11 -Wall -Wextra -Werror -pedantic plus ASan/UBSan:
+ordinary_section_two_chunk_flow_660_failure_points_credit_isolation=pass
+config_tc4_start_tc0_independent_pool_exhaustion=pass
+start_submission_readiness_timeout_sequence_no_ack_no_refund=pass
+config_phase_exact_pio_ack_flow_all_access_failures=pass
+Real CONFIG/PIO composition used by fake flow; no per-chunk ACK/debit invented.
+Payload phase reserves the transaction against CONFIG/START interleaving.
+EMI refusal and image-wide START eligibility boundary explicitly documented.
+Managed temporary binaries removed by immediate EXIT trap.
+No device/backend access, kernel build, firmware permissions or feature push.
+Repository checks pass: 189 profiles, unchanged metadata debt=37; Linux-only
+artifact fixture skipped. New-file links, rights/privacy and diff checks pass.
+ORDINARY_SECTION.md sha256=f3bd2f29d1e4c97e9dea1f727aa2cbdca956cf9dac9bf75772b17658a32c79c7
+src/hif_ordinary_section.h sha256=011886f11ec3026f10e84ccf453a20c013c275d4fb3a448f08070406f2939e45
+src/hif_ordinary_section_test.c sha256=43854a0abb73c0da27c0d2cc3caf97c7741878843225b34f4bb099b76966a3fc
+src/hif_init_transaction.h sha256=eaf7d30f2e5db62cf1124bd8cea911f3a708b91babda0e611e0fa42f0f328911

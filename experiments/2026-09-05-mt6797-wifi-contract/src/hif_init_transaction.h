@@ -68,7 +68,7 @@ mt6797_init_validate_start(const unsigned char *p, size_t bytes, unsigned int se
 
 enum mt6797_init_phase { MT6797_INIT_IDLE, MT6797_INIT_DISPATCH,
 	MT6797_INIT_REPLY, MT6797_INIT_POISONED, MT6797_START_DISPATCH,
-	MT6797_START_READY };
+	MT6797_START_READY, MT6797_INIT_PAYLOAD };
 
 /* Zero-initialize once, set each pool only from proven fresh INIT admission.
  * Caller serializes all calls and owns a finite deadline/owner generation.
