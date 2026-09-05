@@ -4,12 +4,12 @@
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
   "selected_item": "a53-authenticated-baseline",
-  "selection_note": "The frozen baseline remains selected for preparation with sole custody held. Its attempted upload failed before write. A subsequent owner-authorized SSH check verified unchanged Gemian; corrected installation preparation continues offline.",
+  "selection_note": "The selected authenticated baseline has a verified guarded boot2 installation, matching full-partition readback and clean shutdown. One owner physical boot2 selection is pending.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
-      "preparation_state": "preparing",
-      "device_state": "selected",
+      "preparation_state": "ready",
+      "device_state": "waiting-owner-boot",
       "owner": "A53 baseline and queued device tests",
       "reviewer": "Project Planning",
       "device_custodian": "A53 baseline and queued device tests",
@@ -19,7 +19,7 @@
       "readiness_record": "experiments/2026-09-05-owner-away-experiment-preparation/baseline/INSTALL_RETRY.md",
       "dependencies": [],
       "owner_task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64",
-      "readiness_note": "Corrected installer and fresh prerequisite sampling passed independent host review. One prerequisite action is admitted under the owning finite retry protocol; installation awaits its reviewed result. No successful deployment, shutdown or waiting-owner-boot receipt."
+      "readiness_note": "Corrected installation completed; full readback matches the frozen candidate and clean shutdown is confirmed. Root independently validated receipt and inventories. Await one owner boot2 selection; no baseline runtime test yet."
     },
     "keyboard-coverage": {
       "workstream": "serviceability",

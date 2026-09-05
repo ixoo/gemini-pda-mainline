@@ -1,7 +1,9 @@
 # First authenticated A53 baseline session
 
-Status: **preparing, unselected, no device admission**. This is an operator
-protocol and handoff draft. Project Planning alone sends the owner the
+Status: **selected, installed and waiting for one owner boot2 selection**.
+The [reviewed installation receipt](INSTALL_RETRY.md#completed-installation-and-owner-handoff)
+binds the current candidate; no runtime result exists yet. This is the operator
+protocol for that first session. Project Planning alone sends the owner the
 “Ready for boot2 — action needed” card, after its selected candidate has a
 verified guarded installation, full-partition readback and clean-shutdown
 receipt and the queue is `waiting-owner-boot`. A userspace build, candidate

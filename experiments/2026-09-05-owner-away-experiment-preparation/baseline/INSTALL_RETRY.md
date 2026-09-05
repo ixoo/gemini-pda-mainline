@@ -139,3 +139,38 @@ Only the one prerequisite deactivation is initially admitted. The custodian
 must return its immutable outcome for review before the installer is admitted.
 This is not a physical boot request or evidence that boot2 has been written.
 All failure and restoration limits above remain in force.
+
+## Completed installation and owner handoff
+
+The one prerequisite completed with exit 0 in 2.805 seconds, both fresh samples
+and final identity/memory gates passing. The corrected installer then completed
+with exit 0 in 36.187 seconds on the same Gemian boot. Live GPT selected logical
+boot2 at `/dev/mmcblk0p30` (179:30), distinct from root `/dev/mmcblk0p29` (179:29).
+The predecessor checksum was
+`b007af3d7025b804b34c6f1e717b2eca5e9fecf09b0ff731cede2a12116d993c`.
+Write, sync, flush and independent full-partition readback produced exactly the
+padded candidate digest in the input table. Staging/readback cleanup completed;
+clean poweroff returned zero and the bounded follow-up found it unreachable.
+No automatic reboot or restoration followed successful shutdown.
+
+Project Planning independently inspected the private action claim, process,
+streams and deployment summary; checked the retained checksum inventories and
+exact derived installer digest; and ran the strict deployment receipt parser
+successfully. The deployment summary SHA256 is
+`5aed5d6554922835ad6e50091056f9145b2fc1b07d40507353c38202e4b50543`.
+Private receipts remain under the agreed `installer-execution-2` and
+`a53-authenticated-baseline-deployment-2` identities. This establishes installation
+and shutdown only, not successful mainline execution.
+
+The selected queue item is now waiting for one owner boot2 selection. Keep the
+usual USB data cable connected. Power on using the established silver-button
+boot2 selection during LK startup, then immediately report the screen here.
+Expect “Gemini A53 authenticated baseline” and the SSH-key-only administration
+notice. Do not type commands or run keyboard tests. If that screen has not
+appeared within 60 seconds, report the observed state and do not repeat the boot.
+Unexpected heat, charging anomalies or reset loops stop the session. An
+unattributed boot uses the established physical Gemian recovery path; an
+attributable session uses the reviewed log-preservation/native-recovery protocol.
+The custodian must begin capture promptly: the RAM logger's original ten-minute
+limit remains unchanged. The exact observation and recovery budgets are in
+[SESSION.md](SESSION.md).

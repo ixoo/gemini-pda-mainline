@@ -1,0 +1,21 @@
+WIFI_START bounded decoder validation — 2026-09-05
+Base: f7422a4c
+Scope: 16-byte source-constructor command decoder in existing INIT helper.
+Public source identities: three at the existing Planet pin; original GPL-2.0-only
+implementation and synthetic tests, no vendor implementation copied.
+test_wifi_start.py: 9 tests pass, including exhaustive byte-sequence values,
+every truncation and each non-constructor override bit.
+test_wifi_init_protocol.py: existing 36 tests pass.
+test_wifi_init_session.py: existing 32 tests pass.
+Python AST syntax checks pass. No shell changes; bash/ShellCheck not applicable.
+No device, radio, backend, retained-input, calibration or kernel action.
+No address admission, ACK/readiness model, session integration or DMA semantics.
+Initial repository check correctly refused a not-yet-created receipt link;
+the receipt was added before final validation.
+Common repository checks: pass; profiles=189; unchanged metadata debt=37.
+Linux-only artifact-provenance fixture skipped on this host.
+New-file links, JSON, syntax, rights/privacy review and git diff --check pass.
+WIFI_START.md sha256=968fdf295305d0a1f29479c1a087b54a8aaa7bde442e15ba88b7c4f970abc053
+scripts/wifi_init_protocol.py sha256=e695555cbde41efab997a11d8fabdda7c7ca8f7d3e2fb51b2a8d13c9db17b0f2
+scripts/test_wifi_start.py sha256=c16f4786cf647a07f944e656591b4d06da5e01050e61f42c5eb63a331622a11d
+results/wifi-start-sources.json sha256=a53acdfbb8b17864a423ddba017fdc5752967b9ff085f4b54f4e8d5509edfd77
