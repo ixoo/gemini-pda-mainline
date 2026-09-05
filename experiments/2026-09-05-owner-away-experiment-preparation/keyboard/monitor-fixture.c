@@ -17,6 +17,13 @@ static void fixture_child(void)
 	if (fcntl(47, F_GETFD) >= 0 || read(0, b, 1) != 0) _exit(124);
 	int n = snprintf(line, sizeof(line), "fixture-child=%ld\n", (long)getpid());
 	if (store(1, line, (size_t)n)) _exit(123);
+#ifdef MONITOR_FULL_DURATION
+	/* One harmless run witnesses the observation boundary then forced cleanup. */
+	if (!strcmp(mode, "ignore")) {
+		pause_ms(202000);
+		(void)store(1, "fixture-observation-boundary=202000\n", sizeof("fixture-observation-boundary=202000\n") - 1);
+	}
+#endif
 	if (!strcmp(mode, "nonzero")) _exit(7);
 	if (!strcmp(mode, "close-live")) { close(1); close(2); }
 	if (!strcmp(mode, "fill") || !strcmp(mode, "stderr") || !strcmp(mode, "limit")) {

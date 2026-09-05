@@ -16,6 +16,8 @@ WORK = Path(os.environ.get('MONITOR_TEST_WORK_ROOT', str(HERE.parents[2] / 'arti
 CC = os.environ.get('MONITOR_TEST_CC', 'cc')
 QEMU = os.environ.get('MONITOR_TEST_QEMU')
 PREFIX = [QEMU] if QEMU else []
+FULL = os.environ.get("MONITOR_TEST_FULL_DURATION") == "1"
+OUTER_SECONDS = 225 if FULL else 3
 
 
 class MonitorTests(unittest.TestCase):
@@ -30,7 +32,7 @@ class MonitorTests(unittest.TestCase):
         cls.disabled = Path(cls.build.name) / 'disabled'
         for source, dest, extra in [('monitor-fixture.c', cls.fixture, ['-DFIXTURE_ROOT=' + json.dumps(str(WORK))]),
                                     ('monitor.c', cls.disabled, [])]:
-            subprocess.run([CC, *(['-static'] if QEMU else []), '-std=c11', '-Os', '-Wall', '-Wextra', '-Werror',
+            subprocess.run([CC, *(['-static'] if QEMU else []), *(['-DMONITOR_FULL_DURATION'] if FULL else []), '-std=c11', '-Os', '-Wall', '-Wextra', '-Werror',
                             str(HERE / source), '-o', str(dest), *extra],
                            check=True, capture_output=True, timeout=30)
 
@@ -91,7 +93,7 @@ class MonitorTests(unittest.TestCase):
                 if not stall:
                     drain(p.stdout, output)
                 drain(p.stderr, error)
-                if time.monotonic() - start > 3:
+                if time.monotonic() - start > OUTER_SECONDS:
                     timed_out = True
                     break
                 time.sleep(.002)
@@ -125,7 +127,7 @@ class MonitorTests(unittest.TestCase):
         fields = dict(line.split('=', 1) for line in raw.splitlines())
         self.assertEqual(fields['reaped'], '1')
         self.assertEqual(fields['identity_lost'], '0')
-        self.assertLess(time.monotonic() - start, 3)
+        self.assertLess(time.monotonic() - start, OUTER_SECONDS)
         return p.returncode, bytes(output), bytes(error), fields
 
     def test_default_entry_disabled_and_no_claim(self):

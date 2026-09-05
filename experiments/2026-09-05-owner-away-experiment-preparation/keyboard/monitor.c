@@ -21,7 +21,7 @@
 #endif
 
 #define FILE_LIMIT 98304
-#ifdef MONITOR_FIXTURE
+#if defined(MONITOR_FIXTURE) && !defined(MONITOR_FULL_DURATION)
 #define TERM_MS 300
 #define KILL_MS 380
 #define END_MS 500
@@ -38,6 +38,11 @@ static void fixture_after_defaults(void);
 #define GRACE_MS 4000
 #define REAP_MS 1000
 #define TICK_MS 20
+#endif
+#if defined(MONITOR_FIXTURE) && defined(MONITOR_FULL_DURATION)
+static void fixture_child(void);
+static void fixture_after_status(void);
+static void fixture_after_defaults(void);
 #endif
 
 static volatile sig_atomic_t cancelled;
@@ -261,10 +266,27 @@ finish:
 }
 
 #ifndef MONITOR_FIXTURE
-int main(void)
+#ifndef KEYBOARD_MONITOR_ENABLED
+#define KEYBOARD_MONITOR_ENABLED 0
+#endif
+int main(int argc, char **argv)
 {
+#if KEYBOARD_MONITOR_ENABLED
+	/* Only the reviewed host admission adapter may deliver an enabled build.
+	 * The target entry still accepts no command, parent path or helper override. */
+	if (argc != 3) return 2;
+	int parent = open("/a53-keyboard-delivery", O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+	struct stat st;
+	if (parent < 0 || fstat(parent, &st) || st.st_uid != 0 ||
+	    (st.st_mode & 0777) != 0700) return 2;
+	int result = keyboard_monitor_run(parent, argv[1], argv[2]);
+	close(parent);
+	return result;
+#else
+	(void)argc; (void)argv;
 	static const char refusal[] = "refused: target-admission-disabled\n";
 	(void)store(2, refusal, sizeof(refusal) - 1);
 	return 2;
+#endif
 }
 #endif
