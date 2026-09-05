@@ -1,0 +1,100 @@
+{
+  "build_log_sha256": "e6319587e6e9f2a62af7bb3608271caa79b50ae6446b198281b0d3d0d6f0b575",
+  "build_state": "2cb239559af1d04ea85e03b0c2165de90b8993cbf8d9f3114a9a9b661df02916",
+  "compiler_diagnostics": [],
+  "device_action": false,
+  "kernel_execution": false,
+  "lock": "held for read-only metadata audit; released on exit",
+  "objects": {
+    "drivers/base/regmap/regmap-mmio.o": {
+      "bytes": 12696,
+      "command_sha256": "26bf1958760daac68521c22020b4a49a92f19a6c0c68e52dff262f929a1f744d",
+      "elf": "ELF64 little-endian AArch64 relocatable",
+      "sha256": "d8862f126fb17be11ab5651f49917387495f9b09d7936d893c2e0f06b44a7860"
+    },
+    "drivers/clk/mediatek/clk-mt6797.o": {
+      "bytes": 40776,
+      "command_sha256": "016ddc4374d044891e85a77047dbbd4726eb680c4937102341299cbf19fea0ec",
+      "elf": "ELF64 little-endian AArch64 relocatable",
+      "sha256": "4c0411bf4d8d326bb82450b26b0f3b49d44d59451b9fdc963212d839db5224f2"
+    },
+    "drivers/clk/mediatek/clk-mtk.o": {
+      "bytes": 16376,
+      "command_sha256": "f7733662ac1a676a61f3b9efc574e25d9c1a568db572168873d0d39ffc91fb54",
+      "elf": "ELF64 little-endian AArch64 relocatable",
+      "sha256": "6040115066c8cf551896736171dcdfc3f9541e4f136bf71044af9deab9c1e6aa"
+    },
+    "drivers/clk/mediatek/reset.o": {
+      "bytes": 4880,
+      "command_sha256": "9373f1bab18d2f339b4b7c6fb858caaf8b22e26e44952305d2d219ac3e91d170",
+      "elf": "ELF64 little-endian AArch64 relocatable",
+      "sha256": "6d00dcdd31038cf1b3bf1721a9d56844654e4847f12dad6967072041f93c6a40"
+    },
+    "drivers/mfd/syscon.o": {
+      "bytes": 9192,
+      "command_sha256": "d689b8b9803908561b6823fc2ebe2d4b58cff39a107a50a5042272953b36541d",
+      "elf": "ELF64 little-endian AArch64 relocatable",
+      "sha256": "a7ab62516c9f46b1517d948a6253055ace8e04ba69543704afaf0536e65f4349"
+    },
+    "drivers/pmdomain/core.o": {
+      "bytes": 50872,
+      "command_sha256": "c8da39357d74f6d99969095e80c42fb93682ae3d9737a0d8c5926ef1614d6351",
+      "elf": "ELF64 little-endian AArch64 relocatable",
+      "sha256": "458ea5eddb1bb4c83d6582c5850d7fb60dcc89cc691b74514b544982fed71168"
+    },
+    "drivers/pmdomain/mediatek/mtk-scpsys.o": {
+      "bytes": 17688,
+      "command_sha256": "dbed0398f5109115b97db3fb7ffb7b0a69804ceea440d85fad217f7bd78f04a8",
+      "elf": "ELF64 little-endian AArch64 relocatable",
+      "sha256": "459656cc71511ec07f60028499cbb3ff5b5fc32505026ce31eb52a09d3c31311"
+    },
+    "drivers/regulator/core.o": {
+      "bytes": 113176,
+      "command_sha256": "468ea4cedee34d9e1bffd5eca2d037f3602b413a2d3f5b3a91d7b1bbdc3c92d4",
+      "elf": "ELF64 little-endian AArch64 relocatable",
+      "sha256": "99b90874eb58f1ce3b7fdb824db030ad7b4c4992df8e22a9f7049e8f7c855a52"
+    },
+    "drivers/regulator/devres.o": {
+      "bytes": 15368,
+      "command_sha256": "ff54075ca0415cee4996602cb649f1b35d6ae5ccff0cde65bfdcdbf19afe11be",
+      "elf": "ELF64 little-endian AArch64 relocatable",
+      "sha256": "fc9f1192816a890f8656420e57e49de128ef089af906da7705f7ba71dec3c56a"
+    },
+    "drivers/reset/core.o": {
+      "bytes": 25784,
+      "command_sha256": "9fceca8f7d805c8b0b0d6adbc33d1622168270fd339beaf170f016a1f6a652c5",
+      "elf": "ELF64 little-endian AArch64 relocatable",
+      "sha256": "ddf4effe33f5c59cf72af684b521a6f033c501c6f2137e6034e6541fac398fa5"
+    },
+    "drivers/soc/mediatek/mtk-infracfg.o": {
+      "bytes": 3264,
+      "command_sha256": "165aad5ae075cd701f28cc68aae08002e882e745e8ae736af6ddddb965d20620",
+      "elf": "ELF64 little-endian AArch64 relocatable",
+      "sha256": "93a71d6cdfd5409e2a768324b31aa44531c416be7bd2faa7d16c8afa26a1e3b2"
+    }
+  },
+  "profile": "mt6797-provider-compile",
+  "referenced_symbols_defined_in_linked_kernel": true,
+  "repository_commit": "7029b1368134eef359dc43997bad84b73f426578",
+  "required_undefined_references": {
+    "drivers/clk/mediatek/clk-mtk.o": [
+      "mtk_register_reset_controller_with_dev",
+      "of_clk_del_provider"
+    ],
+    "drivers/pmdomain/mediatek/mtk-scpsys.o": [
+      "pm_genpd_init",
+      "of_genpd_add_provider_onecell",
+      "devm_regulator_get_optional",
+      "regulator_enable",
+      "regulator_disable"
+    ]
+  },
+  "schema": 1,
+  "source_integrity": "6985809664221074c150469d7f539995c62baf2a90f854f62d8ad90c995ca6a4",
+  "source_integrity_verification": "source_tree_integrity=6985809664221074c150469d7f539995c62baf2a90f854f62d8ad90c995ca6a4",
+  "source_sha256": {
+    "drivers/clk/mediatek/clk-mtk.c": "01f33c475e9bbe6ffef504d8247acd618bd53cc563de42abef4ada96b8344646",
+    "drivers/pmdomain/mediatek/mtk-scpsys.c": "216b022e433b2a55b255d30933e313e296415c624306dd6b0c4f76ac65a51f54"
+  },
+  "source_state": "5b6edbcdec8f50df55991d6703b7a42060b0308e51eae992fe73047382a1e16d"
+}

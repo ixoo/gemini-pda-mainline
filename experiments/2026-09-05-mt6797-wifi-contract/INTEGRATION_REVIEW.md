@@ -189,3 +189,9 @@ The integrator now selects the unchanged proposal only in the isolated
 [provider compile profile](../2026-09-05-mt6797-infracfg-upstream-preparation/PROVIDER_COMPILE.md).
 Existing profile inputs and all SoC capability selections remain unchanged.
 The build record owns actual compile/fetch status; this adds no physical readiness.
+
+The isolated two-patch profile now has a successful exact Buildbox build and
+validated fetch at `7029b136`, with real PM/regulator/reset cores enabled.
+[The result](../2026-09-05-mt6797-infracfg-upstream-preparation/PROVIDER_COMPILE.md#completed-build-and-package-review)
+verifies source hashes, object/linkage metadata and all package members. It
+closes compilation only; driver execution and Wi-Fi hardware support remain open.

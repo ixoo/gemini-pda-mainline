@@ -83,3 +83,47 @@ tree. Host control-flow fixtures retain their separate scope.
 Status at admission: source/profile review complete; compilation, resolved
 configuration, object/linkage review and validated fetch pending. Actual driver
 lifecycle execution, CONN ownership/activation and Wi-Fi usability remain open.
+
+## Completed build and package review
+
+The exact admitted revision `7029b1368134eef359dc43997bad84b73f426578`
+built successfully with `BUILD_MODULES=0` and `KERNEL_JOBS=64`. A first local
+invocation could not refresh Git's `FETCH_HEAD` under the filesystem sandbox;
+it stopped before remote submission. Retrying that local preflight with the
+authorized Git access submitted one kernel build. No input was changed or
+failed kernel build repeated. Publication CI passed for the input revision.
+
+The normal builder applied exactly the two patches, resolved every requested
+configuration option, linked the ARM64 kernel and validated its package. The
+checkout remained clean and frozen through the standard validated fetch. The
+[build provenance](results/provider-compile-7029b136/build.json) records GCC
+12.2.0, binutils 2.40, exact tool hashes, source, patchset and configuration.
+
+| Identity | Result |
+| --- | --- |
+| Release | `7.3.0-rc1-mt6797-provider-compile` |
+| Package inventory SHA-256 | `600e586a6a4559dac20ecd807c1dbb7348aff31576ab83d4741a046f9ffeea5e` |
+| Ordered patchset SHA-256 | `60359786b91f96abde693f4397e95af3930ed22e2641c04a1a28897767b4dafb` |
+| Resolved configuration SHA-256 | `3910887ce880cc55ab561819ec368756aaecf032663464d009ebea484b9af06d` |
+| Image.gz SHA-256 | `675a5eaa9cbdcbbd02cff62f09678dbc9e7cc73e668001009c6e3060098cf9d4` |
+
+The [package review](results/provider-compile-7029b136/package-review.json)
+verified all 128 original [inventory members](results/provider-compile-7029b136/SHA256SUMS)
+and all enabled/disabled configuration predicates. The inventory is package-relative,
+not relative to this review directory; the kernel package remains ignored.
+
+A separate [backend metadata review](results/provider-compile-7029b136/backend-review.json)
+held the existing shared lock and verified the prepared source-tree integrity,
+both exact patched-file hashes, all eleven ARM64 relocatable objects and their
+command-record hashes. The two modified objects reference real genpd, regulator
+and reset/provider functions, and those functions are defined in the linked
+kernel. No warning/error diagnostics were found in the bounded build log.
+Only metadata was returned; no source/object tree was fetched.
+
+This establishes compilation and linkage on the selected source/configuration.
+It does not execute provider registration, reset-failure cleanup, domain
+withholding or CONN transitions in a kernel. Prior actual-C host fixtures retain
+their narrower scope. No device access, QEMU run, new schema execution, boot
+container or hardware-support promotion occurred. The one source state, build
+and validated package remain retained for open provider review; the older
+six-patch source and package are unchanged.

@@ -358,3 +358,14 @@ original six-patch topic and its prior results remain unchanged.
 
 The separate [provider compilation](PROVIDER_COMPILE.md) selects only the two
 reviewed lifecycle proposals; it does not replace the six-patch validation.
+
+## Binding compatibility preparation review
+
+The five-file [compatibility preparation](binding-compatibility/README.md)
+from `369d2cbc` is adopted after coordinator review. The pure derivation was
+reproduced: it retains the exact eight-line two-ID header diff, omits only the
+schema hunk and rejects all three changed inputs. The 25 prepared DTS cases
+cover old/new MT6797 descriptions, malformed values and eight existing required
+compatible branches. Their outcomes remain expectations; no schema case has
+been executed by this preparation or its integration. Original patch bytes,
+selected profiles and the just-built two-patch source state remain unchanged.

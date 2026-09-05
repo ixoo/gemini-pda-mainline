@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "generated_utc": "2026-09-05T15:57:28Z",
+  "kernel_release": "7.3.0-rc1-mt6797-provider-compile",
+  "build_profile": "mt6797-provider-compile",
+  "base_config": "allnoconfig",
+  "config_fragments": [
+    "configs/mt6797-provider-compile.fragment"
+  ],
+  "config_inputs_sha256": "48c57d7e13649e925f3a9bc716d36770a9972bbe46287052c9de719bb6537857",
+  "source_sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+  "kernel_source": {
+    "archive_format": "tar.gz",
+    "archive_root": "linux-4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "git_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "released": "2026-09-05",
+    "sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+    "source_url": "https://codeload.github.com/torvalds/linux/tar.gz/4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "version": "7.3-rc1"
+  },
+  "patchset_sha256": "60359786b91f96abde693f4397e95af3930ed22e2641c04a1a28897767b4dafb",
+  "config_sha256": "3910887ce880cc55ab561819ec368756aaecf032663464d009ebea484b9af06d",
+  "modules_built": false,
+  "build_architecture": "x86_64",
+  "target_architecture": "arm64",
+  "toolchain_mode": "cross",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "compiler_full_version": "12.2.0",
+  "compiler_target": "aarch64-linux-gnu",
+  "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+  "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+  "ccache_enabled": true,
+  "ccache_version": "ccache version 4.7.5",
+  "repository_commit": "7029b1368134eef359dc43997bad84b73f426578",
+  "repository_dirty": false
+}
