@@ -252,3 +252,10 @@ per-slot evaluator preserves diagnostic rows while rejecting thermal anomalies.
 A cleanup review found that inherited file removal does not reap live workers;
 execution remains unselected until the complete builder/runner and owned-child
 failure cleanup are implemented and tested. No further device read occurred.
+
+
+The [cleanup transform and host fixtures](WORKLOAD_ATTRIBUTION.md#cooperative-cleanup-implementation-and-host-fixtures)
+now cover cancellation, reaping and signals during child registration. They
+preserve the consumed source and finite workload limits. Full observation-runner
+integration and candidate-shell validation remain open; no device action follows
+from this host-only result.

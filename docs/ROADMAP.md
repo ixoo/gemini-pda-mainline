@@ -8348,9 +8348,10 @@ unchanged pristine CPU/frequency accounting. Its three-read budget is consumed;
 do not rerun it. The [prospective attribution design](../experiments/2026-09-04-mt6797-thermal-snapshot/WORKLOAD_ATTRIBUTION.md)
 now fixes three explicit stage boundaries and a tested offline per-slot thermal
 evaluator. **Selected next:** implement the source-pinned builder, complete
-runtime classifier and one-shot runner. First repair and fixture-test owned
-worker termination/reaping on failure: the inherited cleanup only removes
-files, which cannot prove quiescence after an observation refusal. Retain the existing four-round
+runtime classifier and one-shot runner. The source-pinned cooperative cleanup now passes host-shell worker, signal and
+fork-registration tests. Integrate it without changing payload/round/spin
+ceilings, validate the candidate shell contract and full failure paths, and
+require child quiescence before file-cleanup success. Retain the existing four-round
 ceiling and thermal refusal limits; do not reinterpret or relax the rejected
 cross-boot thermal comparison. Bind fresh identity and pristine accounting,
 explicit stage attribution, fixed observation budgets, failure cleanup and

@@ -1,0 +1,50 @@
+Bounded workload cooperative cancellation and reaping fixtures
+Date: 2026-09-04
+inherited_source_sha256=c6bc8a26f2f79487d1bbfd9c8a294e589afd02ba17acf31647736dff7f100316
+actual_worker_body_cases=12
+signal_cleanup_cases=3
+spawn_registration_signal_cases=1
+simultaneous_owned_children=4
+cancellation_publication_failure_cases=1
+negative_cleanup_mutations_rejected=2
+source_identity_mutations_rejected=1
+worker_payload_bytes=preserved-after-removing-reviewed-cancellation-checks
+rounds=4
+spin_limit=1000000
+numeric_pid_signals=none
+bash_syntax=pass
+shellcheck_materialized_posix_shell=pass
+device_action=none
+kernel_build=none
+
+The source-pinned transform preserves the retired source file. It adds one
+RAM cancellation flag checked at each barrier iteration and before each round,
+waits every registered child before file removal, and clears handles after
+normal waits. It does not signal numeric PIDs. A current foreground operation
+can complete before cancellation; no new round begins after its next check.
+Failure to publish cancellation still waits all finite children and reports
+failure. Signal handlers defer exit across the fork/$! registration interval;
+cleanup ignores further caught signals while joining already-owned children.
+
+Twelve real host-shell cases execute the four actual worker bodies at a waiting
+barrier, inside an injected held RAM operation, and after normal completion.
+Only host paths, proc affinity inputs and finite-operation adapters differ.
+The tests reverse the permitted body edits and require byte equality with the
+original worker bodies. They do not establish device affinity or performance.
+Three caught-signal cases exercise the materialized cleanup/traps. A fourth
+injects TERM exactly between fork and child registration. Four concurrent
+children and cancellation-publication failure separately verify joining.
+Removing cancellation or the wait fails the oracle. A changed inherited source
+hash rejects before materialization.
+
+An initial source substitution matched pid8 inside reader_pid8; strict anchor
+counts rejected it before output. The correction anchors the entire assignment
+line. ShellCheck also required a targeted annotation for the function invoked
+with arguments from signal traps; the actual signal fixtures execute it.
+
+These tests use the host POSIX shell, not the candidate's BusyBox ash. Integration
+with the full attribution builder, exact-shell validation, transport failure
+handling and complete runtime classification remain required before a device
+workload is admitted. SIGKILL, power loss and indefinitely stalled kernel IO do
+not have a cleanup guarantee. Incomplete transport never proves remote cleanup.
+No extra device observation, workload, shutdown or boot request was performed.

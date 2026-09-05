@@ -110,3 +110,30 @@ fixtures are synthetic and make no new device observation.
 cpufreq/OPP, broader hotplug, idle, suspend, thermal protection and default
 integration remain closed. Implementation order and boot selection belong to
 the [roadmap](../../docs/ROADMAP.md).
+
+
+## Cooperative cleanup implementation and host fixtures
+
+The [source-pinned transform](scripts/workload_cleanup.py) now adds cooperative
+cancellation and child reaping without editing the consumed predecessor. Each
+worker checks one RAM flag while waiting and before starting a new round. A
+current foreground RAM operation may finish; the parent waits for every owned
+worker before removing its files. This avoids signalling reused numeric PIDs.
+Failed cancellation publication still joins finite children, then refuses.
+The payload operations, four rounds and spin ceiling remain intact; added
+cancellation checks can affect timing and are not a claim of byte-identical
+instruction execution or unchanged thermal response.
+
+Caught signals are deferred across each fork/child-handle registration window.
+Normal waits clear their handles, and cleanup suppresses recursive caught
+signals while joining children. Uncatchable termination and stalled kernel IO
+remain outside a guaranteed cleanup result; missing transport evidence cannot
+be promoted to successful cleanup.
+
+The [host fixtures](scripts/test-workload-cleanup.py) and
+[validation record](results/workload-cleanup-validation.txt) exercise actual
+worker bodies through injected host adapters, signal cleanup, the registration
+race and all four simultaneous handles. Mutations removing cancellation or
+waiting reject. This is not yet a complete executable attribution protocol:
+the materialized program must be integrated with the observation builder and
+validated in the candidate's shell contract before any new device workload.
