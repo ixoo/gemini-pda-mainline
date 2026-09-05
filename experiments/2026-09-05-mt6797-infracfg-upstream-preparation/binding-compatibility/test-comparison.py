@@ -51,7 +51,7 @@ runner.retained.accepted_command(facts)
 for bad in [dict(facts, returncode=1), dict(facts, stop_reason='log-limit'), dict(facts, cleanup={'group_absent':False}), dict(facts, elapsed_seconds=6)]:
     refuse(lambda:runner.retained.accepted_command(bad))
 refuse(lambda:runner.optional(b'unpinned schema'))
-runner.dtc_diagnostics({'name':'mt6797-byte'}, 'fixture.dts:9.1: Warning (reset_cells_is_cell): /infracfg@10001000:#reset-cells: property is not a single cell\n', Path('fixture.dts'))
+runner.dtc_diagnostics({'name':'mt6797-byte'}, "mt6797-byte.dts:9.1: Warning (resets_is_cell): /infracfg@10001000:#reset-cells: property is not a single cell\nmt6797-byte.dtb: Warning (resets_property): Failed prerequisite 'resets_is_cell'\n", Path('mt6797-byte.dts'))
 refuse(lambda:runner.dtc_diagnostics({'name':'mt6797-new-one'}, 'warning', Path('fixture.dts')))
 refuse(lambda:runner.dtc_diagnostics({'name':'mt6797-byte'}, 'Traceback: decoder failed', Path('fixture.dts')))
 with tempfile.TemporaryDirectory(prefix='gemini-binding-guards-') as temporary:

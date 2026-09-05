@@ -5,6 +5,8 @@ No new target implementation, helper build, exact execution or device action
 was performed for this decision. The selected baseline and first physical boot
 remain unchanged. Actual keyboard metadata is a later runtime predicate and
 does not prevent preparing the remaining host/target contracts offline.
+The later [minimal monitor handoff](MONITOR.md) records the source-only
+implementation, host tests and separately reviewable size/library proposal.
 
 ## Existing work to retain
 

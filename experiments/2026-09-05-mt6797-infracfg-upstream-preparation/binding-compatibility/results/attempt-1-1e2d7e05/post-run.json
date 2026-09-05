@@ -1,0 +1,14 @@
+{
+  "exact_project_checkout_clean": true,
+  "scratch_absent": true,
+  "ownership_marker_exact": true,
+  "normal_lock_reacquired_released": true,
+  "host_available_kib_before": 90865748,
+  "backend_workspace_available_kib_before": 275903172,
+  "full_source_integrity_before": "pass",
+  "full_source_integrity_after": "not_run_refusal_preceded_stage",
+  "protected_source_build_files_after": "pass_11_source_9_build",
+  "retained_processed_schema_and_tools_after": "pass",
+  "device_access": false,
+  "repeat_execution": false
+}
