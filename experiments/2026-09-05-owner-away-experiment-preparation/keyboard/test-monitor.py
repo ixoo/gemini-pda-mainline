@@ -12,7 +12,10 @@ import time
 import unittest
 
 HERE = Path(__file__).resolve().parent
-WORK = HERE.parents[2] / 'artifacts/a53-authenticated/development/keyboard-monitor-tests'
+WORK = Path(os.environ.get('MONITOR_TEST_WORK_ROOT', str(HERE.parents[2] / 'artifacts/a53-authenticated/development/keyboard-monitor-tests'))).absolute()
+CC = os.environ.get('MONITOR_TEST_CC', 'cc')
+QEMU = os.environ.get('MONITOR_TEST_QEMU')
+PREFIX = [QEMU] if QEMU else []
 
 
 class MonitorTests(unittest.TestCase):
@@ -27,7 +30,7 @@ class MonitorTests(unittest.TestCase):
         cls.disabled = Path(cls.build.name) / 'disabled'
         for source, dest, extra in [('monitor-fixture.c', cls.fixture, ['-DFIXTURE_ROOT=' + json.dumps(str(WORK))]),
                                     ('monitor.c', cls.disabled, [])]:
-            subprocess.run(['cc', '-std=c11', '-Os', '-Wall', '-Wextra', '-Werror',
+            subprocess.run([CC, *(['-static'] if QEMU else []), '-std=c11', '-Os', '-Wall', '-Wextra', '-Werror',
                             str(HERE / source), '-o', str(dest), *extra],
                            check=True, capture_output=True, timeout=30)
 
@@ -47,7 +50,7 @@ class MonitorTests(unittest.TestCase):
             resource.setrlimit(resource.RLIMIT_NOFILE, (1024, 1024))
 
         try:
-            p = subprocess.Popen([str(self.fixture), str(self.root), mode], stdin=subprocess.DEVNULL,
+            p = subprocess.Popen([*PREFIX, str(self.fixture), str(self.root), mode], stdin=subprocess.DEVNULL,
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE, pass_fds=(47,),
                                  start_new_session=True, preexec_fn=limits)
         finally:
@@ -126,7 +129,7 @@ class MonitorTests(unittest.TestCase):
         return p.returncode, bytes(output), bytes(error), fields
 
     def test_default_entry_disabled_and_no_claim(self):
-        result = subprocess.run([str(self.disabled)], capture_output=True, timeout=1)
+        result = subprocess.run([*PREFIX, str(self.disabled)], capture_output=True, timeout=1)
         self.assertEqual(result.returncode, 2)
         self.assertIn(b'target-admission-disabled', result.stderr)
         self.assertFalse((self.root / 'keyboard-attempt').exists())
@@ -138,7 +141,7 @@ class MonitorTests(unittest.TestCase):
         self.assertEqual(out, (self.root / 'keyboard-attempt/observer.stdout').read_bytes())
         self.assertTrue(out.endswith(b'fixture-done\n'))
         before = {p.name: p.read_bytes() for p in (self.root / 'keyboard-attempt').iterdir()}
-        second = subprocess.run([str(self.fixture), str(self.root), 'normal'], capture_output=True, timeout=1)
+        second = subprocess.run([*PREFIX, str(self.fixture), str(self.root), 'normal'], capture_output=True, timeout=1)
         self.assertEqual(second.returncode, 2)
         self.assertEqual(before, {p.name: p.read_bytes() for p in (self.root / 'keyboard-attempt').iterdir()})
 

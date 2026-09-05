@@ -25,6 +25,8 @@ set -euo pipefail
 umask 077
 revision=$1
 branch=$2
+kind=$3
+[[ $kind == userspace || $kind == keyboard-monitor ]]
 [[ $revision =~ ^[0-9a-f]{40}$ && $branch == codex/a53-authenticated-baseline ]]
 root=/workspace/gemini-a53-userspace
 [[ ! -L $root ]]
@@ -50,19 +52,27 @@ if [[ ! -e $checkout ]]; then
   mv "$partial" "$checkout"
   trap - EXIT HUP INT TERM
 fi
-bash "$checkout/experiments/2026-09-05-owner-away-experiment-preparation/baseline/scripts/build-userspace.sh" "$revision" "$root"
+if [[ $kind == keyboard-monitor ]]; then
+  timeout 1200 bash "$checkout/experiments/2026-09-05-owner-away-experiment-preparation/keyboard/build-monitor.sh" "$revision" "$root"
+else
+  bash "$checkout/experiments/2026-09-05-owner-away-experiment-preparation/baseline/scripts/build-userspace.sh" "$revision" "$root"
+fi
 '''
 REMOTE_FETCH = r'''
 set -euo pipefail
 revision=$1
 identity=$2
+kind=$3
+[[ $kind == userspace || $kind == keyboard-monitor ]]
+publication=published
+[[ $kind == userspace ]] || publication=keyboard-monitor-published
 [[ $revision =~ ^[0-9a-f]{40}$ && $identity =~ ^[0-9a-f]{64}$ ]]
 root=/workspace/gemini-a53-userspace
 exec 8>"$root/.dispatch.lock"
 flock -n 8
-[[ -f $root/published/$revision && ! -L $root/published/$revision ]]
-[[ $(cat "$root/published/$revision") == "$identity" ]]
-package="$root/userspace-$identity"
+[[ -f $root/$publication/$revision && ! -L $root/$publication/$revision ]]
+[[ $(cat "$root/$publication/$revision") == "$identity" ]]
+package="$root/$kind-$identity"
 [[ -d $package && ! -L $package ]]
 cd "$package"
 [[ $(sha256sum SHA256SUMS | cut -d' ' -f1) == "$identity" ]]
@@ -91,7 +101,7 @@ def managed_dir(path):
 
 def clear_partial(stage):
     """Only this fixed managed name is disposable; never follow linked state."""
-    require(stage.name == '.fetch-userspace', 'unexpected partial name')
+    require(stage.name in ('.fetch-userspace', '.fetch-keyboard-monitor'), 'unexpected partial name')
     if not stage.exists() and not stage.is_symlink():
         return
     require(not stage.is_symlink() and stage.is_dir(), 'partial path type')
@@ -213,7 +223,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--fetch-only', nargs=2, metavar=('REVISION', 'MANIFEST_SHA256'),
                         help='recover an already published exact package; never builds')
+    parser.add_argument('--keyboard-monitor', action='store_true', help='build/fetch the disabled keyboard monitor only')
     args = parser.parse_args()
+    kind = 'keyboard-monitor' if args.keyboard_monitor else 'userspace'
     os.umask(0o077)
     require(git('remote', 'get-url', 'origin') == ORIGIN, 'unexpected origin')
     if args.fetch_only:
@@ -237,23 +249,23 @@ def main():
                 'transfer lock identity')
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         if identity is None:
-            log = output / 'userspace-build.log'
+            log = output / (kind + '-build.log')
             require(not log.exists() and not log.is_symlink(),
                     'build log already exists; preserve it and use --fetch-only for a published package')
             with log.open('xb') as stream:
-                result = subprocess.run(SSH + ['/bin/bash', '-s', '--', revision, BRANCH],
+                result = subprocess.run(SSH + ['/bin/bash', '-s', '--', revision, BRANCH, kind],
                                         input=REMOTE_BUILD.encode(), stdout=stream,
                                         stderr=subprocess.STDOUT, timeout=1800)
             print(log.read_text(errors='replace'), end='', flush=True)
             require(result.returncode == 0, 'userspace build failed; diagnostics preserved in userspace-build.log')
-            matches = re.findall(r'^validated_userspace_package=/workspace/gemini-a53-userspace/userspace-([0-9a-f]{64})$',
+            matches = re.findall(r'^validated_' + kind.replace('-', '_') + r'_package=/workspace/gemini-a53-userspace/' + kind + r'-([0-9a-f]{64})$',
                                  log.read_text(), re.MULTILINE)
             require(len(matches) == 1, 'published package identity missing; inspect exact remote publication receipt')
             identity = matches[0]
             require(not git('status', '--porcelain') and git('rev-parse', 'HEAD') == revision,
                     'source changed during build')
-        stage = output / '.fetch-userspace'
-        destination = output / ('userspace-' + identity)
+        stage = output / ('.fetch-' + kind)
+        destination = output / (kind + '-' + identity)
         clear_partial(stage)
         if destination.exists() or destination.is_symlink():
             require(not destination.is_symlink() and destination.is_dir(), 'destination type')
@@ -261,13 +273,13 @@ def main():
         else:
             stage.mkdir(mode=0o700)
             try:
-                fetch_bounded(SSH + ['/bin/bash', '-s', '--', revision, identity], REMOTE_FETCH.encode(),
+                fetch_bounded(SSH + ['/bin/bash', '-s', '--', revision, identity, kind], REMOTE_FETCH.encode(),
                               stage / 'package.tar.gz')
                 extract(stage / 'package.tar.gz', stage / 'package', identity, revision)
                 os.rename(stage / 'package', destination)
             finally:
                 clear_partial(stage)
-        print('fetched_userspace=' + destination.relative_to(REPO).as_posix())
+        print('fetched_' + kind.replace('-', '_') + '=' + destination.relative_to(REPO).as_posix())
 
 
 if __name__ == '__main__':
