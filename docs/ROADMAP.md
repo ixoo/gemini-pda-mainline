@@ -8394,13 +8394,13 @@ The [V4 arithmetic/index audit](../experiments/2026-09-04-mt6797-thermal-snapsho
 now identifies missing encoded-offset normalization and a dormant ABB index
 hazard. Synthetic exact-function tests reproduce small rounding differences;
 normalization removes them in the tested grid. Neither finding establishes the
-cause of the runtime thermal rise. **Selected next:** implement a focused V4
-correction with explicit sensor-to-calibration indexing, preserve current bank
-selection and other SoCs, and test the actual production decoder/converter with
-distinct synthetic coefficients, range/ID/zero-code cases and rejecting mutations.
-Publish the clean patch and validation before any explicit Buildbox build.
-A corrected image still needs a distinct bounded admission protocol; do not
-promote old thermal comparisons or request another unchanged boot. No further diagnostic reads or workload on the consumed
+cause of the runtime thermal rise. The [focused correction tooling](../experiments/2026-09-04-mt6797-thermal-snapshot/V4_CORRECTION.md)
+now passes exact decoder/converter synthetic cases and ten rejecting mutations.
+**Selected next:** generate and replay the single patch from its clean published
+revision, admit it through an isolated profile, then build the exact clean pushed
+revision with the explicit Buildbox backend. A corrected image still needs a
+distinct bounded admission protocol; do not promote old thermal comparisons or
+request another unchanged boot. No further diagnostic reads or workload on the consumed
 session; no repeat is admitted. Any future boot requires a distinct,
 decision-changing hypothesis and published bounded protocol. Integrated thermal
 repeatability, broader load/hotplug, cpufreq/OPP, idle, suspend, thermal protection

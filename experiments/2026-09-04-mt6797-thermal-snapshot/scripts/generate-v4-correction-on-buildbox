@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+set -euo pipefail
+export LC_ALL=C PYTHONDONTWRITEBYTECODE=1
+export GIT_AUTHOR_DATE=2026-09-05T03:00:00Z GIT_COMMITTER_DATE=2026-09-05T03:00:00Z
+[[ $# == 1 && $1 =~ ^[0-9a-f]{40}$ ]] || exit 2
+revision=$1
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+repo=$(cd -- "$script_dir/../../.." && pwd -P)
+source_root=/workspace/gemini-pda/src/linux-7.1.3-series-source
+managed_root=/workspace/gemini-pda/thermal-v4-correction-work
+output=/workspace/gemini-pda/thermal-v4-correction-patches
+[[ "$(git -C "$repo" rev-parse HEAD)" == "$revision" ]]
+[[ -z "$(git -C "$repo" status --porcelain)" ]]
+[[ "$(cat "$source_root/.gemini-source-state")" == 1600493923955724c1bf1bf0efbafcc9100bbb5064ed659e6d188083dae498b1 ]]
+[[ "$(cat "$source_root/.gemini-source-integrity")" == b93dd5956143346cb5bc74035e11b95c2b83027dc0528043483c98d316470cac ]]
+python3 "$repo/scripts/source-tree-integrity" verify "$source_root"
+[[ ! -e "$output" ]]
+mkdir -p "$managed_root"
+work=$(mktemp -d "$managed_root/generation.XXXXXXXX")
+trap 'rm -rf -- "$work"' EXIT
+path=drivers/thermal/mediatek
+mkdir -p "$work/source/$path"
+cp "$source_root/$path/auxadc_thermal.c" "$work/source/$path/"
+(
+ cd "$work/source"
+ git init -q
+ git config user.name 'Gemini Mainline Experiment'
+ git config user.email gemini-mainline@example.invalid
+ git add drivers
+ git -c commit.gpgsign=false commit -qm 'Pinned V4 conversion parent'
+ python3 "$script_dir/test-v4-correction.py" --source "$source_root/$path/auxadc_thermal.c" >"$work/tests.txt"
+ python3 "$script_dir/correct-v4-conversion.py" "$path/auxadc_thermal.c" "$path/corrected.c"
+ mv "$path/corrected.c" "$path/auxadc_thermal.c"
+ git add drivers
+ git diff --cached --check
+ git -c commit.gpgsign=false commit -qm 'thermal: mediatek: correct MT6797 offset and calibration index' \
+  -m 'Normalize encoded ADC offset before separately rounding the measured and room-temperature terms. Select calibration through the V4 sensor map so ABB cannot use the unrelated VTS5 entry, and reject invalid sensor IDs before indexing. Preserve the active bank layout and all other conversion versions. Synthetic decoder/converter checks cover all nonzero raw codes across a bounded calibration grid and reject ten mutations. This experimental archive has no certifying sign-off and is not submission-ready.'
+ mkdir "$work/patches"
+ git format-patch -1 --no-signature --numbered --output-directory "$work/patches" >/dev/null
+)
+patches=("$work"/patches/*.patch)
+[[ ${#patches[@]} == 1 ]]
+perl "$source_root/scripts/checkpatch.pl" --no-tree --strict \
+ --ignore MISSING_SIGN_OFF,FILE_PATH_CHANGES,COMMIT_LOG_LONG_LINE,OPEN_ENDED_LINE \
+ "${patches[@]}" >"$work/checkpatch.txt" || { cat "$work/checkpatch.txt"; exit 1; }
+git clone -q "$work/source" "$work/replay"
+git -C "$work/replay" reset --hard HEAD~1 >/dev/null
+git -C "$work/replay" config user.name 'Gemini Mainline Experiment'
+git -C "$work/replay" config user.email gemini-mainline@example.invalid
+git -C "$work/replay" -c commit.gpgsign=false am -q "${patches[@]}"
+[[ "$(git -C "$work/replay" rev-parse 'HEAD^{tree}')" == "$(git -C "$work/source" rev-parse 'HEAD^{tree}')" ]]
+printf 'generation_revision=%s\npatches=1\nreplay=identical-tree\nproduction_driver_changes=V4-offset-and-calibration-index\nhardware_access=none\n' "$revision" >"$work/generation.txt"
+mkdir "$work/result"
+cp "${patches[0]}" "$work/result/0541-thermal-mediatek-correct-MT6797-offset-and-calibration-index.patch"
+cp "$work/checkpatch.txt" "$work/generation.txt" "$work/tests.txt" "$work/result/"
+(cd "$work/result" && sha256sum ./* >SHA256SUMS)
+mv "$work/result" "$output"
+printf 'output=%s\n' "$output"
