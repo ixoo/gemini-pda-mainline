@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: MIT
 """Exact-package validation and one bounded pure-KUnit QEMU run. Dry-run default."""
 import argparse
+from contextlib import contextmanager
+import ctypes
 import hashlib
 import itertools
 import json
@@ -42,6 +44,10 @@ def regular(path):
         return stream.read()
 
 
+def traversal_error(error):
+    raise Refusal("package traversal failed: " + str(error))
+
+
 def verify_package(package, contract=CONTRACT):
     require(package.is_dir() and not package.is_symlink(), 'package must be a real directory')
     inventory = regular(package / 'SHA256SUMS')
@@ -56,7 +62,7 @@ def verify_package(package, contract=CONTRACT):
         require(name not in entries, 'duplicate inventory member')
         entries[name] = checksum
     actual = set()
-    for root, dirs, files in os.walk(package, followlinks=False):
+    for root, dirs, files in os.walk(package, followlinks=False, onerror=traversal_error):
         for name in dirs:
             require(not (Path(root) / name).is_symlink(), 'directory symlink')
         for name in files:
@@ -115,6 +121,7 @@ def classify_log(raw, contract=CONTRACT):
 
 
 def classify_exit(facts, contract=CONTRACT):
+    require(facts.get('cleanup', {}).get('group_absent') is True, 'process group cleanup required')
     require(facts['returncode'] == 0, 'QEMU exit failure')
     require(facts['stop_reason'] is None, 'host stop: ' + str(facts['stop_reason']))
     require(0 < facts['elapsed_seconds'] <= contract['timeout_seconds'], 'runtime budget')
@@ -130,20 +137,92 @@ def classify_exit(facts, contract=CONTRACT):
 
 def command(binary, image, serial, contract=CONTRACT):
     return [str(binary), '-machine', 'virt', '-accel', 'tcg', '-cpu', 'max',
-            '-smp', '2', '-m', '512M', '-nodefaults', '-nic', 'none',
+            '-smp', '2', '-m', '512M', '-no-user-config', '-nodefaults', '-nic', 'none',
             '-display', 'none', '-monitor', 'none', '-serial', 'file:' + str(serial),
             '-qmp', 'stdio', '-S', '-no-reboot', '-kernel', str(image),
             '-append', contract['command_line']]
 
 
-def child_limits():
+def child_limits(parent_pid):
+    if sys.platform.startswith('linux'):
+        # Bound the direct QEMU process even when the coordinator is SIGKILLed.
+        # Linux clears this setting in forked descendants; it is not a cgroup.
+        libc = ctypes.CDLL(None, use_errno=True)
+        libc.prctl.argtypes = [ctypes.c_int] + [ctypes.c_ulong] * 4
+        libc.prctl.restype = ctypes.c_int
+        if libc.prctl(1, signal.SIGKILL, 0, 0, 0) != 0:  # PR_SET_PDEATHSIG
+            raise OSError(ctypes.get_errno(), 'PR_SET_PDEATHSIG failed')
+        if os.getppid() != parent_pid:  # Parent may die before prctl is installed.
+            os.kill(os.getpid(), signal.SIGKILL)
     # Protect the evidence filesystem even if QEMU floods a file between polls.
     resource.setrlimit(resource.RLIMIT_FSIZE, (MAX_LOG, MAX_LOG))
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
 
 
-def capture(argv, output, contract=CONTRACT):
+@contextmanager
+def interruption_guard():
+    # Record signals rather than raising inside Popen or cleanup. Repeated signals
+    # cannot interrupt the finite cleanup and durable receipt publication.
+    state = {'signal': None}
+    def record(signum, _frame):
+        if state['signal'] is None:
+            state['signal'] = signal.Signals(signum).name
+    previous = {sig: signal.signal(sig, record)
+                for sig in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT)}
+    try:
+        yield state
+    finally:
+        for sig, handler in previous.items():
+            signal.signal(sig, handler)
+
+
+def cleanup_group(process, facts, grace):
+    """Clean the entire owned group even after a successful leader exit/EOF."""
+    cleanup = {'group_absent': False, 'term_sent': False, 'kill_sent': False}
+    facts['cleanup'] = cleanup
+    try:
+        try:
+            os.killpg(process.pid, 0)
+        except ProcessLookupError:
+            cleanup['group_absent'] = True
+        else:
+            if facts['stop_reason'] is None:
+                facts['stop_reason'] = 'surviving-process-group'
+            try:
+                os.killpg(process.pid, signal.SIGTERM)
+                cleanup['term_sent'] = True
+            except ProcessLookupError:
+                pass
+        try:
+            process.wait(timeout=grace)
+        except subprocess.TimeoutExpired:
+            pass
+    except OSError as exc:
+        facts['stop_reason'] = 'cleanup: ' + str(exc)
+    finally:
+        # Never condition descendant cleanup on the leader's return code. A
+        # surviving group already refuses the run, even when KILL cleans it.
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+            cleanup['kill_sent'] = True
+        except ProcessLookupError:
+            pass
+        except OSError as exc:
+            facts['stop_reason'] = 'cleanup kill: ' + str(exc)
+        try:
+            process.wait(timeout=1)
+        except subprocess.TimeoutExpired:
+            facts['stop_reason'] = 'cleanup leader did not reap'
+        facts['returncode'] = process.returncode
+        process.stdin.close()
+        process.stdout.close()
+
+
+def capture(argv, output, contract=CONTRACT, interrupted=None):
     """Internal process primitive; tests supply tiny fake processes, never a guest."""
+    if interrupted is None:
+        with interruption_guard() as state:
+            return capture(argv, output, contract, state)
     started = time.monotonic()
     facts = {'stop_reason': None, 'qmp_events': [], 'qmp_capabilities': False, 'qmp_cont': False}
     process = None
@@ -151,12 +230,18 @@ def capture(argv, output, contract=CONTRACT):
     qmp_count = 0
     greeting = False
     try:
+        require(interrupted['signal'] is None, 'interrupted before launch')
         with (output / 'qemu.stderr').open('xb') as err, (output / 'qmp.jsonl').open('xb') as qmp:
+            parent_pid = os.getpid()
             process = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                       stderr=err, start_new_session=True, preexec_fn=child_limits)
+                                       stderr=err, start_new_session=True,
+                                       preexec_fn=lambda: child_limits(parent_pid))
             with selectors.DefaultSelector() as selector:
                 selector.register(process.stdout, selectors.EVENT_READ)
                 while selector.get_map():
+                    if interrupted['signal'] is not None:
+                        facts['stop_reason'] = 'interrupted: ' + interrupted['signal']
+                        break
                     elapsed = time.monotonic() - started
                     if elapsed >= contract['timeout_seconds']:
                         facts['stop_reason'] = 'timeout'
@@ -196,37 +281,86 @@ def capture(argv, output, contract=CONTRACT):
                             else:
                                 raise Refusal('unexpected QMP reply')
                 require(not pending, 'truncated QMP record')
-            if facts['stop_reason'] is None:
-                try:
-                    process.wait(timeout=max(0.001, contract['timeout_seconds'] - (time.monotonic() - started)))
-                except subprocess.TimeoutExpired:
+            while facts['stop_reason'] is None and process.poll() is None:
+                if interrupted['signal'] is not None:
+                    facts['stop_reason'] = 'interrupted: ' + interrupted['signal']
+                elif time.monotonic() - started >= contract['timeout_seconds']:
                     facts['stop_reason'] = 'timeout'
-    except (ValueError, OSError) as exc:
+                else:
+                    time.sleep(0.01)
+    except (ValueError, OSError, subprocess.SubprocessError) as exc:
         facts['stop_reason'] = type(exc).__name__ + ': ' + str(exc)
     finally:
+        if interrupted['signal'] is not None:
+            facts['stop_reason'] = 'interrupted: ' + interrupted['signal']
         if process is not None:
-            if process.poll() is None or facts['stop_reason'] is not None:
-                try:
-                    os.killpg(process.pid, signal.SIGTERM)
-                except ProcessLookupError:
-                    pass
-                try:
-                    process.wait(timeout=contract['kill_after_seconds'])
-                except subprocess.TimeoutExpired:
-                    os.killpg(process.pid, signal.SIGKILL)
-                    process.wait(timeout=1)
-                # Also stop descendants if their group leader exited first.
-                try:
-                    os.killpg(process.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
-            facts['returncode'] = process.returncode
-            process.stdin.close()
-            process.stdout.close()
+            cleanup_group(process, facts, contract['kill_after_seconds'])
+            if interrupted['signal'] is not None:
+                facts['stop_reason'] = 'interrupted: ' + interrupted['signal']
         else:
             facts['returncode'] = None
+            facts['cleanup'] = {'group_absent': True, 'term_sent': False, 'kill_sent': False}
         facts['elapsed_seconds'] = round(time.monotonic() - started, 6)
     return facts
+
+
+def write_receipt(output, receipt):
+    # An uncatchable interruption during publication must retain the prior
+    # complete INCOMPLETE receipt, not truncate it in place.
+    pending = output / 'result.json.pending'
+    created = False
+    try:
+        descriptor = os.open(pending, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        created = True
+        with os.fdopen(descriptor, 'w') as stream:
+            stream.write(json.dumps(receipt, indent=2, sort_keys=True) + '\n')
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(pending, output / 'result.json')
+        descriptor = os.open(output, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+    finally:
+        if created:
+            pending.unlink(missing_ok=True)
+
+
+def run_attempt(binary, package, output, receipt, interrupted):
+    """Preserve initial and final receipts under the caller's signal guard."""
+    try:
+        argv = command(binary, package / 'Image.gz', output / 'serial.log')
+        # Receipt uses neutral paths; raw QMP/serial/stderr contain no host credentials.
+        receipt['argv'] = command(binary.name, '<package>/Image.gz', '<output>/serial.log')
+        write_receipt(output, receipt)
+        facts = capture(argv, output, interrupted=interrupted)
+        receipt['process'] = facts
+        require(interrupted['signal'] is None, 'interrupted: ' + str(interrupted['signal']))
+        verify_package(package)  # Any input change during execution rejects the result.
+        classify_exit(facts)
+        receipt['tests'] = classify_log(regular(output / 'serial.log'))
+        require(not regular(output / 'qemu.stderr').strip(), 'unexpected QEMU stderr')
+        receipt['result'] = 'PASS'
+    except (OSError, ValueError) as exc:
+        receipt['result'] = 'REFUSED'
+        receipt['reason'] = str(exc)
+    finally:
+        receipt['logs'] = {p.name: digest(regular(p)) for p in output.iterdir()
+                           if p.name != 'result.json' and p.is_file()}
+        if interrupted['signal'] is not None:
+            receipt['result'] = 'INCOMPLETE'
+            receipt['reason'] = 'interrupted: ' + interrupted['signal']
+        write_receipt(output, receipt)
+
+
+def validate_executable(binary):
+    mode = binary.stat().st_mode
+    require(stat.S_ISREG(mode) and not mode & (stat.S_ISUID | stat.S_ISGID),
+            'QEMU must be a regular non-setid executable')
+    # Privileged exec clears PDEATHSIG. Refuse capability-bearing binaries as
+    # well; an unreadable xattr inventory is not evidence of no capabilities.
+    require('security.capability' not in os.listxattr(binary), 'QEMU file capabilities unsupported')
 
 
 def main():
@@ -249,32 +383,13 @@ def main():
     binary = shutil.which('qemu-system-aarch64')
     require(binary is not None, 'QEMU missing')
     binary = Path(binary).resolve()
+    validate_executable(binary)
     version = subprocess.run([str(binary), '--version'], capture_output=True, timeout=5, check=True)
     output.mkdir(mode=0o700)  # Existing evidence consumes this attempt; no overwrite/retry.
-    receipt = {'package': identity, 'qemu_sha256': digest(regular(binary)),
-               'qemu_version': version.stdout.decode().strip(), 'result': 'INCOMPLETE'}
-    try:
-        argv = command(binary, package / 'Image.gz', output / 'serial.log')
-        # Receipt uses neutral paths; raw QMP/serial/stderr contain no host credentials.
-        receipt['argv'] = command(binary.name, '<package>/Image.gz', '<output>/serial.log')
-        (output / 'result.json').write_text(json.dumps(receipt, indent=2) + '\n')
-        facts = capture(argv, output)
-        receipt['process'] = facts
-        verify_package(package)  # Any input change during execution rejects the result.
-        classify_exit(facts)
-        receipt['tests'] = classify_log(regular(output / 'serial.log'))
-        require(not regular(output / 'qemu.stderr').strip(), 'unexpected QEMU stderr')
-        receipt['result'] = 'PASS'
-    except (OSError, ValueError) as exc:
-        receipt['result'] = 'REFUSED'
-        receipt['reason'] = str(exc)
-    finally:
-        receipt['logs'] = {p.name: digest(regular(p)) for p in output.iterdir()
-                           if p.name != 'result.json' and p.is_file()}
-        with (output / 'result.json').open('w') as stream:
-            stream.write(json.dumps(receipt, indent=2, sort_keys=True) + '\n')
-            stream.flush()
-            os.fsync(stream.fileno())
+    with interruption_guard() as interrupted:
+        receipt = {'package': identity, 'qemu_sha256': digest(regular(binary)),
+                   'qemu_version': version.stdout.decode().strip(), 'result': 'INCOMPLETE'}
+        run_attempt(binary, package, output, receipt, interrupted)
     print(json.dumps(receipt, sort_keys=True))
     require(receipt['result'] == 'PASS', 'run refused; preserve evidence and review before any retry')
 

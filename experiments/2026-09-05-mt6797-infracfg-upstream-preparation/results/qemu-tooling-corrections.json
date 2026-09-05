@@ -1,0 +1,52 @@
+{
+  "common_repository_gate": "pass; 190 profiles",
+  "corrected_preparation_revision": "417fbbfc",
+  "corrections": [
+    "unconditional group cleanup; surviving group refuses acceptance",
+    "deferred TERM/HUP/INT handling and atomic durable incomplete receipts",
+    "fail-closed os.walk onerror",
+    "fixed -no-user-config argv",
+    "Linux direct-child PDEATHSIG plus parent-race and privileged-exec gates"
+  ],
+  "date": "2026-09-05",
+  "execution_admission": "awaits integrator review and exact Linux fixture pass",
+  "files_sha256": {
+    "QEMU_VALIDATION.md": "b9b30b1b5eb2cff74bec36a38265eccd86e44f1818987b2a7a5c0f4a4ec17a58",
+    "scripts/qemu-check.py": "b799674627a7b6b8f63ca2fe89bfab09981b13a09aca5201c35b48c73ccd149c",
+    "scripts/test-qemu-check.py": "525d3be377570df9ef1bd0791d0a8a31006b8bfc63bc31d3f0fd5a88ce03a10d"
+  },
+  "host_fixtures": {
+    "host_note": "Process-state checks ran outside macOS sandbox; no QEMU executed.",
+    "passed": 25,
+    "real_process_checks": "zero-exit leader with pipe-closing TERM-resistant descendant; repeated TERM/HUP/INT runner signals; parent cleanup/reaping and durable incomplete receipt",
+    "skipped": 1,
+    "skipped_case": "Linux direct-child parent-death SIGKILL containment",
+    "tests": 26
+  },
+  "not_run": [
+    "Linux parent-death fixture",
+    "QEMU guest",
+    "schema commands",
+    "kernel compile",
+    "device access"
+  ],
+  "package_dry_run": {
+    "inventory_sha256": "8393a89ef3dbdb3bbae967d6adc78cf5a1cd907c21f21e9ba2efc015ba041917",
+    "members": 132,
+    "result": "pass"
+  },
+  "residual_limit": "PDEATHSIG covers direct QEMU only; Linux clears it for forked descendants. Arbitrary descendant-tree containment after coordinator SIGKILL is not claimed.",
+  "review_findings": [
+    "process group survives zero-exit leader/stdout EOF",
+    "runner TERM/HUP interrupts cleanup and receipt",
+    "os.walk silently skips unreadable extra subtree",
+    "nodefaults does not disable implicit user configuration"
+  ],
+  "schema": 1,
+  "unchanged": [
+    "exact4ecpackage",
+    "qemu-contract.json",
+    "guest workload/timing budgets",
+    "shared source/build/cache"
+  ]
+}

@@ -19,6 +19,8 @@ The [runner](scripts/qemu-check.py) validates all 132 inventory members,
 rejects missing/extra/symlink/special entries and pins complete source, patch,
 configuration, clean repository revision and enabled KUnit identities. There is
 no alternate-contract CLI. Package checking is the default and launches nothing.
+Traversal errors, including an unreadable extra subtree, refuse the inventory;
+an omitted subtree is never treated as an empty directory.
 
 The [fixtures](scripts/test-qemu-check.py) use synthetic tiny packages, KTAP
 and Python subprocesses, never QEMU or kernel builds. They exercise complete
@@ -26,6 +28,10 @@ results in either suite order, missing structural lines, duplicated/truncated
 results, wrong cases/plans/release/command line, skips/failures/diagnostics,
 wrong poweroff/exit/timing, inventory/provenance changes, unsafe paths, handshake
 and real TERM-resistant process cleanup. Temporary roots are context-managed.
+Correction fixtures additionally cover a descendant that closes its pipes and
+outlives a zero-exit leader, handled runner interruption, atomic receipt failure,
+implicit configuration exclusion and privileged-executable refusal. A Linux-only
+fixture kills the coordinator and checks direct-child parent-death containment.
 
 ## Reviewed execution proposal
 
@@ -48,6 +54,8 @@ python3 experiments/2026-09-05-mt6797-infracfg-upstream-preparation/scripts/qemu
 The argv is fixed: `virt`, TCG, `max`, two CPUs, 512 MiB, Image.gz and the
 admitted command line. No disks, networking, initramfs or supplied board DTB;
 QEMU generates the virtual DT. No graphical display or human monitor exists.
+`-no-user-config` disables implicit configuration loading; `-nodefaults` alone
+only disables default devices and does not establish that configuration boundary.
 Serial and stderr go to bounded separate logs. QEMU executable digest/version,
 neutralized argv, events, elapsed time, exit status and log digests are retained.
 
@@ -64,6 +72,30 @@ or malformed output terminates the process group, with five seconds before
 KILL. Serial/stderr file sizes are capped at 2 MiB each, QMP at 64 KiB; core
 files are disabled. These limits supplement, not extend, the admitted time budget.
 A timed-out run fails even if complete passing test lines appeared first.
+
+Always inspect and clean the owned process group, including after a zero-exit
+leader and stdout EOF. A surviving group refuses acceptance even if cleanup
+successfully kills it. TERM is followed by KILL within the five-second grace;
+a final one-second bounded reap does not extend the guest's runtime allowance.
+SIGTERM, SIGHUP and SIGINT received by the runner are recorded rather than raised
+inside process creation or cleanup. Repeated handled signals cannot bypass group
+cleanup or final atomic, fsynced `INCOMPLETE` receipt publication. The initial
+receipt is also durable before launch. An interrupted replacement preserves the
+prior complete receipt instead of truncating it in place.
+
+On Linux the direct QEMU child sets `PR_SET_PDEATHSIG=SIGKILL` before exec and
+checks that its parent did not die before setup. Non-setid and no-file-capability
+execution are required because privileged exec can clear that setting. This
+contains the direct guest if the coordinator is abruptly killed; it cannot
+publish a final receipt after uncatchable SIGKILL, so the initial incomplete
+receipt remains authoritative. The
+[Linux API contract](https://man7.org/linux/man-pages/man2/PR_SET_PDEATHSIG.2const.html)
+clears the setting in forked descendants. This is not a cgroup or arbitrary
+descendant-tree guarantee: a separately forked descendant could survive an
+uncatchable coordinator kill. The reviewed QEMU invocation has no external
+helper/service arguments. Any dependency on external descendants requires a
+separate containment review. The surviving-descendant fixture exercises cleanup
+robustness, not an observed QEMU child-process behavior.
 
 Acceptance requires an exact release/command line, one complete top-level KTAP
 plan with the two named suites and four exact cases each, no failures/skips/
