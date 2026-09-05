@@ -1,0 +1,260 @@
+From 8aa881c78a12268a26bab07f1c624ccccc46a8dd Mon Sep 17 00:00:00 2001
+From: "Codex experiment author (non-certifying)" <codex-experiment@invalid>
+Date: Sat, 5 Sep 2026 10:22:01 -0400
+Subject: [PATCH] pmdomain: mediatek: allow standalone domains to defer initial
+ activation
+
+The legacy provider powers every domain during registration. A future
+standalone domain that requires preparation before activation cannot use
+that path, even while its consumer is disabled.
+
+Add an opt-in capability that registers an initially-off domain without
+calling a power callback. Reject on, mixed or unavailable status and
+isolate that domain's resource and initialization failures with a NULL
+onecell slot. Recheck status after resource acquisition. Keep the normal
+initial activation and error behavior for existing domains.
+
+Limit the capability to domains without subdomain relationships. Invalid
+linked use is rejected before resource or power side effects. This avoids
+silently stripping an existing domain's dependency.
+
+No domain data selects the capability in this proposal. An off ACK is not
+proof of Linux ownership, external reset or rail preparation. Consumer
+attachment and runtime PM can still power an admitted domain; their
+sequencing remains a prerequisite for any future use.
+
+Internal experiment proposal, not submission-ready. Independently authored
+with AI assistance; the synthetic author is non-certifying and no DCO
+sign-off is asserted. Base source: Linux
+4d7d9486c04d917265f64c55bd23b2cc4fe7749c, mtk-scpsys.c SHA-256
+9ce2b2c95a38bc4c7b801aff9b7c26da2dc8ec2e3fd34199adaedf1db3007226.
+---
+ drivers/pmdomain/mediatek/mtk-scpsys.c | 131 ++++++++++++++++++++-----
+ 1 file changed, 106 insertions(+), 25 deletions(-)
+
+diff --git a/drivers/pmdomain/mediatek/mtk-scpsys.c b/drivers/pmdomain/mediatek/mtk-scpsys.c
+index efc8f27..d430670 100644
+--- a/drivers/pmdomain/mediatek/mtk-scpsys.c
++++ b/drivers/pmdomain/mediatek/mtk-scpsys.c
+@@ -25,6 +25,8 @@
+ 
+ #define MTK_SCPD_ACTIVE_WAKEUP		BIT(0)
+ #define MTK_SCPD_FWAIT_SRAM		BIT(1)
++/* Standalone domains only; requires an initially-off, Linux-owned island. */
++#define MTK_SCPD_KEEP_DEFAULT_OFF	BIT(2)
+ #define MTK_SCPD_CAPS(_scpd, _x)	((_scpd)->data->caps & (_x))
+ 
+ #define SPM_VDE_PWR_CON			0x0210
+@@ -117,7 +119,7 @@ static const char * const clk_names[] = {
+  * @sram_pdn_ack_bits: The mask for sram power control acked bits.
+  * @bus_prot_mask: The mask for single step bus protection.
+  * @clk_id: The basic clocks required by this power domain.
+- * @caps: The flag for active wake-up action.
++ * @caps: Domain capabilities and initial activation policy.
+  */
+ struct scp_domain_data {
+ 	const char *name;
+@@ -191,6 +193,27 @@ static int scpsys_domain_is_on(struct scp_domain *scpd)
+ 	return -EINVAL;
+ }
+ 
++static int scpsys_check_initially_off(struct scp_domain *scpd)
++{
++	int ret;
++
++	if (!IS_ENABLED(CONFIG_PM_GENERIC_DOMAINS))
++		return -EOPNOTSUPP;
++
++	if (!scpd->data->sta_mask)
++		return -EINVAL;
++
++	ret = scpsys_domain_is_on(scpd);
++	return ret > 0 ? -EBUSY : ret;
++}
++
++static void scpsys_withhold_domain(struct scp *scp, int index, int error)
++{
++	scp->pd_data.domains[index] = NULL;
++	dev_warn(scp->dev, "%s: domain withheld: %d\n",
++		 scp->domains[index].data->name, error);
++}
++
+ static int scpsys_regulator_enable(struct scp_domain *scpd)
+ {
+ 	if (!scpd->supply)
+@@ -425,7 +448,7 @@ static struct scp *init_scp(struct platform_device *pdev,
+ 			bool bus_prot_reg_update)
+ {
+ 	struct genpd_onecell_data *pd_data;
+-	int i, j;
++	int i, j, ret;
+ 	struct scp *scp;
+ 	struct clk *clk[CLK_MAX];
+ 
+@@ -468,10 +491,24 @@ static struct scp *init_scp(struct platform_device *pdev,
+ 		struct scp_domain *scpd = &scp->domains[i];
+ 		const struct scp_domain_data *data = &scp_domain_data[i];
+ 
++		scpd->scp = scp;
++		scpd->data = data;
++		pd_data->domains[i] = &scpd->genpd;
++
++		if (MTK_SCPD_CAPS(scpd, MTK_SCPD_KEEP_DEFAULT_OFF)) {
++			ret = scpsys_check_initially_off(scpd);
++			if (ret) {
++				scpsys_withhold_domain(scp, i, ret);
++				continue;
++			}
++		}
++
+ 		scpd->supply = devm_regulator_get_optional(&pdev->dev, data->name);
+ 		if (IS_ERR(scpd->supply)) {
+ 			if (PTR_ERR(scpd->supply) == -ENODEV)
+ 				scpd->supply = NULL;
++			else if (MTK_SCPD_CAPS(scpd, MTK_SCPD_KEEP_DEFAULT_OFF))
++				scpsys_withhold_domain(scp, i, PTR_ERR(scpd->supply));
+ 			else
+ 				return ERR_CAST(scpd->supply);
+ 		}
+@@ -486,10 +523,8 @@ static struct scp *init_scp(struct platform_device *pdev,
+ 		struct generic_pm_domain *genpd = &scpd->genpd;
+ 		const struct scp_domain_data *data = &scp_domain_data[i];
+ 
+-		pd_data->domains[i] = genpd;
+-		scpd->scp = scp;
+-
+-		scpd->data = data;
++		if (!pd_data->domains[i])
++			continue;
+ 
+ 		for (j = 0; j < MAX_CLKS && data->clk_id[j]; j++) {
+ 			struct clk *c = clk[data->clk_id[j]];
+@@ -497,12 +532,19 @@ static struct scp *init_scp(struct platform_device *pdev,
+ 			if (IS_ERR(c)) {
+ 				dev_err(&pdev->dev, "%s: clk unavailable\n",
+ 					data->name);
++				if (MTK_SCPD_CAPS(scpd, MTK_SCPD_KEEP_DEFAULT_OFF)) {
++					scpsys_withhold_domain(scp, i, PTR_ERR(c));
++					break;
++				}
+ 				return ERR_CAST(c);
+ 			}
+ 
+ 			scpd->clk[j] = c;
+ 		}
+ 
++		if (!pd_data->domains[i])
++			continue;
++
+ 		genpd->name = data->name;
+ 		genpd->power_off = scpsys_power_off;
+ 		genpd->power_on = scpsys_power_on;
+@@ -513,36 +555,55 @@ static struct scp *init_scp(struct platform_device *pdev,
+ 	return scp;
+ }
+ 
++static int scpsys_register_domain(struct scp_domain *scpd)
++{
++	struct generic_pm_domain *genpd = &scpd->genpd;
++	bool on;
++	int ret;
++
++	if (MTK_SCPD_CAPS(scpd, MTK_SCPD_KEEP_DEFAULT_OFF)) {
++		/* Recheck after resource acquisition and before registration. */
++		ret = scpsys_check_initially_off(scpd);
++		if (ret)
++			return ret;
++
++		return pm_genpd_init(genpd, NULL, true);
++	}
++
++	/*
++	 * Initially turn on other domains to make them usable with !CONFIG_PM
++	 * and to get hardware in sync with software. Unused domains will be
++	 * switched off during late_init time.
++	 */
++	on = !WARN_ON(genpd->power_on(genpd) < 0);
++	pm_genpd_init(genpd, NULL, !on);
++
++	return 0;
++}
++
+ static void mtk_register_power_domains(struct platform_device *pdev,
+ 				struct scp *scp, int num)
+ {
+-	struct genpd_onecell_data *pd_data;
++	struct genpd_onecell_data *pd_data = &scp->pd_data;
+ 	int i, ret;
+ 
+ 	for (i = 0; i < num; i++) {
+ 		struct scp_domain *scpd = &scp->domains[i];
+-		struct generic_pm_domain *genpd = &scpd->genpd;
+-		bool on;
+-
+-		/*
+-		 * Initially turn on all domains to make the domains usable
+-		 * with !CONFIG_PM and to get the hardware in sync with the
+-		 * software.  The unused domains will be switched off during
+-		 * late_init time.
+-		 */
+-		on = !WARN_ON(genpd->power_on(genpd) < 0);
+ 
+-		pm_genpd_init(genpd, NULL, !on);
+-	}
++		if (!pd_data->domains[i])
++			continue;
+ 
+-	/*
+-	 * We are not allowed to fail here since there is no way to unregister
+-	 * a power domain. Once registered above we have to keep the domains
+-	 * valid.
+-	 */
++		pd_data->domains[i] = NULL;
++		ret = scpsys_register_domain(scpd);
++		if (ret) {
++			scpsys_withhold_domain(scp, i, ret);
++			continue;
++		}
+ 
+-	pd_data = &scp->pd_data;
++		pd_data->domains[i] = &scpd->genpd;
++	}
+ 
++	/* NULL slots leave withheld domains unavailable at their original IDs. */
+ 	ret = of_genpd_add_provider_onecell(pdev->dev.of_node, pd_data);
+ 	if (ret)
+ 		dev_err(&pdev->dev, "Failed to add OF provider: %d\n", ret);
+@@ -1113,6 +1174,21 @@ static const struct of_device_id of_scpsys_match_tbl[] = {
+ 	}
+ };
+ 
++static int scpsys_check_deferred_topology(const struct scp_soc_data *soc)
++{
++	const struct scp_subdomain *sd;
++	int i;
++
++	/* Withholding a linked domain could break another domain's dependency. */
++	for (i = 0, sd = soc->subdomains; i < soc->num_subdomains; i++, sd++) {
++		if ((soc->domains[sd->origin].caps |
++		     soc->domains[sd->subdomain].caps) & MTK_SCPD_KEEP_DEFAULT_OFF)
++			return -EINVAL;
++	}
++
++	return 0;
++}
++
+ static int scpsys_probe(struct platform_device *pdev)
+ {
+ 	const struct scp_subdomain *sd;
+@@ -1123,6 +1199,11 @@ static int scpsys_probe(struct platform_device *pdev)
+ 
+ 	soc = of_device_get_match_data(&pdev->dev);
+ 
++	ret = scpsys_check_deferred_topology(soc);
++	if (ret)
++		return dev_err_probe(&pdev->dev, ret,
++				     "Deferred domains must be standalone\n");
++
+ 	scp = init_scp(pdev, soc->domains, soc->num_domains, &soc->regs,
+ 			soc->bus_prot_reg_update);
+ 	if (IS_ERR(scp))
