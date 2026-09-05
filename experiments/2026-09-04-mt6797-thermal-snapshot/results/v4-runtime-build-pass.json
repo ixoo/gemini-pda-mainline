@@ -1,0 +1,39 @@
+{
+  "backend": "buildbox",
+  "build_profile": "gemini-thermal-v4-corrected",
+  "candidate": "not-yet-composed",
+  "classification": "corrected-runtime-profile-build-pass",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+  "config_inputs_sha256": "f789e69598a86a9f2522b4fc5c408f7c972d88396da10b018156a66bc8337e22",
+  "config_sha256": "7a131d97f6d1e3a14853e612b95b9191a675d85e92326918566e44b86432caa6",
+  "device_access": "none",
+  "generated_utc": "2026-09-05T02:17:10Z",
+  "kernel_release": "7.1.3-gemini-thermal-v4-corrected",
+  "modules_built": false,
+  "normalized_config_changes": {
+    "CONFIG_LOCALVERSION": [
+      "\"-gemini-thermal-snapshot\"",
+      "\"-gemini-thermal-v4-corrected\""
+    ]
+  },
+  "package_inputs": {
+    "Image.gz": "dfc47d82176de99e68e8cd28305d5732a02d0cfe64f1424554876c7d3186ad34",
+    "SHA256SUMS": "5be259bc7888cf19506b0c8fb60ff4e3458d9c18faffeff6f706fba53c2ee182",
+    "dtbs/mediatek/mt6797-gemini-pda.dtb": "fa5f487b5449ed59778237c776b98a73c5ca2bb20c567f27fd3781bdffe52767",
+    "kernel.config": "7a131d97f6d1e3a14853e612b95b9191a675d85e92326918566e44b86432caa6",
+    "provenance/a41-record.json": "7c4bd8ad7e4b18011c5c4f2f3d7118eeb7bd3ed2a9e63650be90a634cb3274d2",
+    "provenance/build.json": "2047f437bd3cab89e1b896ad35c48298e2d9bf50e0d0357578fc9714dfacc370"
+  },
+  "package_manifest_replay": "pass",
+  "patchset_sha256": "940a0fbb03d9aed26aae1cef27d8065b137b094bb6581b9990b773caaa53c5c0",
+  "record_identity": "6972913af84c5b651848516456d1c6744015f3fc02a9d18596441a6c82d97ad3",
+  "repository_commit": "ba9067309dce21c3cfae750bc89de53f42bbb67f",
+  "repository_dirty": false,
+  "source_integrity": "b3c8bcd98fe9002b6811072281ed062cd91271f2677dd3cdc8c0b840077c2fd9",
+  "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+  "source_state": "75fb8df4cd9413cc0d2e9311136703ef40e80c6ab5d8075ad67dc9f30ba821f2",
+  "target_architecture": "arm64",
+  "tested_converter_sha256": "0e833aac1850c3e2910f5feb463f5e7a1a8943b77b1f99bfac4ca9e708f1ded4",
+  "tested_psci_sha256": "ab37fc176ee2581c522201a0001c7f7458abc40bbac9a849a5907e273c4c5361"
+}

@@ -146,3 +146,16 @@ selects the new binding. This admits one explicit Buildbox build after this
 patch/profile revision is committed and pushed cleanly. Compilation and package
 validation do not admit installation or the consuming observer; candidate
 composition, host persistence and exact-shell gates remain required.
+
+
+## Runtime-profile build result
+
+The [runtime-profile build receipt](results/v4-runtime-build-pass.json) passes
+on clean published revision `ba9067309dce21c3cfae750bc89de53f42bbb67f`.
+The explicit Buildbox build, package validation, required fetch and independent
+local package-manifest replay passed. Both built source files match their tested
+hashes. The resolved config differs from the compile control only in local
+version; the config-input digest matches the new kernel binding exactly.
+The emitted A41 record identity is
+`6972913af84c5b651848516456d1c6744015f3fc02a9d18596441a6c82d97ad3`.
+No candidate has yet been composed or admitted, and no device access occurred.

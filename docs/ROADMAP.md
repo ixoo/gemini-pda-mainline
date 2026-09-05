@@ -8406,9 +8406,12 @@ pristine accounting, precision/refusal rules and output claim. Its offline
 orchestrator passes 30 scenarios and rejects old identities without altering
 the consumed predecessor protocol. The runtime profile and exact config-input digest are now declared, with a
 source-pinned binding editor and generation checks. The binding patch now passes selector/refusal checks, style checks and replay;
-all predecessor profiles retain their exact patch inputs. **Selected next:**
-build `gemini-thermal-v4-corrected` from the clean pushed revision on Buildbox,
-then independently compose and validate its uniquely identified candidate.
+all predecessor profiles retain their exact patch inputs. The [runtime-profile build](../experiments/2026-09-04-mt6797-thermal-snapshot/results/v4-runtime-build-pass.json)
+now passes Buildbox, package/fetch verification and exact config-binding checks;
+only the resolved local version differs from the compile control. **Selected
+next:** independently compose and validate the corrected candidate with the
+unchanged initramfs and proven DT topology, permitting only its new provenance
+leaf, then freeze its output identities in the host and remote runner.
 Complete the candidate-pinned host/remote runner, durable-capture mutations and
 exact-candidate shell validation before installation or owner boot selection.
 The existing compile package remains unadmitted for boot. No further diagnostic reads or workload on the consumed
