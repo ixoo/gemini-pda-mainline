@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "state": "preparing",
+  "candidate_sha256": null,
+  "image_sha256": null,
+  "dtb_sha256": null,
+  "config_sha256": null,
+  "initramfs_sha256": null,
+  "helper_sha256": null,
+  "launcher_sha256": null,
+  "protocol_sha256": null,
+  "kernel_release": null,
+  "input_sysfs_realpath": null,
+  "input_capabilities_sha256": null,
+  "baseline_first_boot_result_sha256": null,
+  "baseline_recovery_result_sha256": null
+}

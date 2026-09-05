@@ -1,0 +1,2 @@
+tty1::once:/bin/console-status
+::ctrlaltdel:/bin/busybox true

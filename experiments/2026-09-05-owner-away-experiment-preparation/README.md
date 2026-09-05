@@ -17,8 +17,11 @@
 Can each session packet be prepared and independently validated offline so that
 the owner's return requires only its stated physical actions and an already
 reviewed, attributable observation? The proposed hardware hypotheses are below.
-No packet has a new candidate, executable protocol, accepted action budget or
-hardware admission. Queue membership does not imply readiness.
+The authenticated baseline now has a reproducibly constructed private candidate
+and reviewed session tools; its [preparation evidence](baseline/PREPARATION_RESULTS.md)
+and [integration review](baseline/INTEGRATION.md) own the current gates. Keyboard
+and eMMC preparation is linked below. None has physical admission, and queue
+membership does not imply readiness.
 
 ## Provenance and environment
 
@@ -32,8 +35,8 @@ hardware admission. Queue membership does not imply readiness.
 - The present `mt6797-pwrap-reset-serviceability` profile selects a later frozen
   series; equivalence to its earlier runtime-tested package is not established
   by that name. The quarantined historical eMMC profile is not a foundation.
-- New candidate, protocol, runner, installer and dependency identities remain
-  unset until their exact provenance and offline checks are recorded here.
+- The [baseline preparation record](baseline/PREPARATION_RESULTS.md) now pins
+  candidate, protocol, runner and installer identities and their offline checks.
 
 ## Safety assessment
 
@@ -56,9 +59,11 @@ selection remains physical; admission of one packet never starts another.
 
 ## Associated code
 
-None added. Candidate constructors, observation runners, classifiers, fixtures
-and exact-shell validation remain to be implemented and linked before any
-packet can be marked ready for the owner.
+The [baseline session](baseline/SESSION.md) links its constructor, validators,
+guarded installer, capture and recovery helpers. The [keyboard packet](keyboard/README.md)
+and [eMMC packet](emmc/README.md) own their observers, classifiers and fixture
+results. Their later launchers and physical prerequisites remain preparing;
+neither dependent packet is included in the first baseline boot.
 
 ## Proposed session packets
 
@@ -92,9 +97,10 @@ console and no retained modifier after release.
 
 Prepare a finite owner key sequence, exact input-device/map checks, event
 classifier and synthetic malformed/missing-event cases using the
-[keyboard evidence](../../docs/hardware/keyboard.md). The sequence, time budget
-and coverage claims are not fixed yet. IRQ/wake, rollover and unknown contacts
-must not be inferred from a map-only pass.
+[keyboard evidence](../../docs/hardware/keyboard.md). The [packet](keyboard/README.md)
+owns the proposed sequence, bounds and coverage; actual metadata, delivery and
+session integration remain prerequisites. IRQ/wake, rollover and unknown
+contacts must not be inferred from a map-only pass.
 
 Execution depends on the new baseline's attributable USB/console pass and
 matching candidate inputs, plus the owner's key presses. It need not wait for
@@ -113,8 +119,9 @@ exact candidate, while issuing no storage write or mount operation.
 Prepare live device/range identity checks, finite byte/time limits, a read-only
 observer and failure classifier against the
 [existing storage evidence](../2026-07-25-emmc-development/README.md). Target
-ranges, repeat count and budgets remain undecided. Private partition contents
-must not enter published evidence; retain only reviewed metadata and results.
+ranges and finite budgets are proposed in the [packet](emmc/README.md);
+its launcher and exact session integration remain preparing. Private partition
+contents must not enter published evidence; retain only reviewed metadata and results.
 
 Execution depends on baseline serviceability and reviewed recovery, independently
 of keyboard coverage. Identity ambiguity refuses before reads. Targeted errors
@@ -132,9 +139,10 @@ The [roadmap](../../docs/ROADMAP.md) alone orders work.
 
 ## Observations, analysis and conclusion
 
-This initial record establishes design and preparation scope. No new hardware hypothesis
-has been tested; all three remain untested, with candidate and protocol evidence
-missing. Existing subsystem results remain scoped to their original artifacts.
+The initial record established preparation scope. The linked records now hold
+offline construction and protocol evidence, while all three new hardware
+hypotheses remain untested. Existing subsystem results remain scoped to their
+original artifacts.
 
 ## Follow-up
 

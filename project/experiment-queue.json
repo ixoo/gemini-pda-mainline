@@ -14,11 +14,12 @@
       "reviewer": "Project Planning",
       "device_custodian": null,
       "experiment": "experiments/2026-09-05-owner-away-experiment-preparation/README.md#a53-authenticated-baseline",
-      "session_packet": null,
-      "candidate_record": null,
-      "readiness_record": null,
+      "session_packet": "experiments/2026-09-05-owner-away-experiment-preparation/baseline/SESSION.md",
+      "candidate_record": "experiments/2026-09-05-owner-away-experiment-preparation/baseline/PREPARATION_RESULTS.md",
+      "readiness_record": "experiments/2026-09-05-owner-away-experiment-preparation/baseline/INTEGRATION.md",
       "dependencies": [],
-      "owner_task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64"
+      "owner_task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64",
+      "readiness_note": "Candidate construction and independent offline validation complete; final recovery host-pin preparation and physical admission remain pending. No installation, custodian or boot selection."
     },
     "keyboard-coverage": {
       "workstream": "serviceability",
@@ -28,7 +29,7 @@
       "reviewer": "Project Planning",
       "device_custodian": null,
       "experiment": "experiments/2026-09-05-owner-away-experiment-preparation/README.md#keyboard-coverage",
-      "session_packet": null,
+      "session_packet": "experiments/2026-09-05-owner-away-experiment-preparation/keyboard/README.md",
       "candidate_record": null,
       "readiness_record": null,
       "dependencies": [
@@ -48,7 +49,7 @@
       "reviewer": "Project Planning",
       "device_custodian": null,
       "experiment": "experiments/2026-09-05-owner-away-experiment-preparation/README.md#emmc-readonly",
-      "session_packet": null,
+      "session_packet": "experiments/2026-09-05-owner-away-experiment-preparation/emmc/README.md",
       "candidate_record": null,
       "readiness_record": null,
       "dependencies": [

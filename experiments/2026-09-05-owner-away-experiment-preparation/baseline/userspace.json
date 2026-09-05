@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "dropbear": {
+    "version": "2026.94",
+    "url": "https://matt.ucc.asn.au/dropbear/releases/dropbear-2026.94.tar.bz2",
+    "sha256": "e098034a843699200c8c977a991fff73159735bf795d5f72ef672c41a6b1ae81",
+    "checksum_source": "https://matt.ucc.asn.au/dropbear/SHA256SUM.asc",
+    "signature_verified": false,
+    "rights": "Retain LICENSE, libtomcrypt/LICENSE and libtommath/LICENSE in private binary package; inspect configured static runtime license before distribution."
+  },
+  "transport": {
+    "device": "usb0",
+    "address": "10.15.19.82/24",
+    "port": 22,
+    "authentication": "one provisioned Ed25519 public key; password and forwarding compiled out",
+    "host_verification": "offline-provisioned host key; strict known_hosts; no trust-on-first-use",
+    "python": false
+  },
+  "runtime": {
+    "online": "0-7",
+    "offline": "8-9",
+    "possible": "0-9",
+    "present": "0-9",
+    "logs": "/run/a53/kmsg.log",
+    "kernel_log_bytes": 2097152,
+    "kernel_log_seconds": 600,
+    "automatic_input_capture": false,
+    "storage_writes": false,
+    "thermal_reads": false,
+    "cpu_load": false
+  },
+  "preparation_state": "preparing",
+  "candidate": null
+}

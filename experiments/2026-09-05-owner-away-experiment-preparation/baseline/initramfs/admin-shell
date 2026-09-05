@@ -1,0 +1,7 @@
+#!/bin/busybox sh
+# SPDX-License-Identifier: MIT
+# shellcheck shell=dash
+export PATH=/bin
+export ENV=/bin/reboot-dispatch.env
+export PS1='GEMINI-A53-SSH# '
+exec /bin/busybox ash "$@"

@@ -1,0 +1,21 @@
+#!/bin/busybox sh
+# SPDX-License-Identifier: MIT
+# shellcheck shell=dash
+export PATH=/bin
+umask 077
+set -eu
+waited=0
+while [ ! -d /sys/class/net/usb0 ] && [ "$waited" -lt 30 ]; do
+    /bin/busybox sleep 1
+    waited=$((waited + 1))
+done
+[ -d /sys/class/net/usb0 ] || exit 1
+/bin/busybox ip link set usb0 up
+/bin/busybox ip address add 10.15.19.82/24 dev usb0
+# Password/forwarding paths are also compiled out. No -R host-key generation,
+# environment forwarding, nc fallback, daemon restart or default network route.
+# BusyBox ash file-size ceiling is tested with the exact candidate shell.
+ulimit -f 256
+exec /bin/dropbear -F -s -j -k -l usb0 -p 10.15.19.82:22 \
+    -D /root/.ssh -r /etc/dropbear/host_key -P /run/a53/ssh-pid \
+    -I 60 -M 360 -T 2 2>/run/a53/ssh.log
