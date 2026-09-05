@@ -1,5 +1,10 @@
 # Retained firmware calibration investigation boundary
 
+The subsequent [executable-mapping investigation](FIRMWARE_EXECUTABLE_MAPPING.md)
+establishes a stronger NDS32 mapping candidate and split-immediate references;
+it supersedes the analysis-not-run status below, but still attributes no handler
+or calibration precedence.
+
 The bounded retained-firmware inspection does **not** establish whether on-chip
 EFUSE, compiled defaults or the submitted WIFI record takes precedence. It does
 establish that encryption is not a blanket obstacle to offline investigation:
