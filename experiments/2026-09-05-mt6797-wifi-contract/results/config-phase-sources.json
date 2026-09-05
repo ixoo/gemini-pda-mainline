@@ -1,0 +1,26 @@
+{
+  "scope": "Public selected download ordering and chunk rules",
+  "sources": [
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/hif_tx.h",
+      "bytes": 4837,
+      "sha256": "fb29ef49498d3416daa0f1ba9f1f312d1b262c5e01971c7338918f5d1521eaef"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/config.h",
+      "bytes": 30266,
+      "sha256": "c773b8e5e07978d60565c2eeee976dae3e285ecb9152062fe3bb50b1358a1c32"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c",
+      "bytes": 215814,
+      "sha256": "56bf99536fcb96de5a5198943aec96c9efccb8af89261b29c62046e6560c422f"
+    }
+  ]
+}

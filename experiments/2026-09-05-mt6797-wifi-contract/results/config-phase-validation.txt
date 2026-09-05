@@ -1,0 +1,17 @@
+Connected CONFIG phase validation — 2026-09-05
+Base: 3f3a1988
+Three public selected source identities rechecked for ordering/chunk policy.
+Original GPL-2.0-only composition; existing PIO/INIT components unchanged.
+Strict C11 -Wall -Wextra -Werror -pedantic with ASan/UBSan:
+config_phase_exact_pio_ack_flow_all_access_failures=pass
+Literal synthetic CONFIG/response shapes correspond to existing Python fixtures.
+Success flow and all 15 individual access failures exercised; no retry/refund.
+Managed temporary executable removed by immediate EXIT trap.
+No device/backend action, MMIO adapter, payload/EMI execution or feature push.
+Kernel integration uncompiled; local handoff is only the connected CONFIG phase.
+Repository checks pass: 189 profiles, unchanged metadata debt=37; Linux-only
+artifact fixture skipped. New-file links, JSON, rights/privacy and diff checks pass.
+CONFIG_PHASE.md sha256=b64c542f2b5ef7b004e46417b4ff31b483d806b179e1db2695420a1a4a80cf32
+src/hif_config_phase.h sha256=b892c508e92039c927a7b1055a4e0b7890a69ea7823fa8c053b44a2e9df56d99
+src/hif_config_phase_test.c sha256=303082560f352f4d28e1fa770ce5ffde0503ec202909e707512c1e4b920edc94
+results/config-phase-sources.json sha256=0f2dc801e11cb46a409c21865143df696d532f52bb80297a5dceaef13d04b722
