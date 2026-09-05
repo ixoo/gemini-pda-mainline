@@ -92,7 +92,7 @@ class CaptureTests(unittest.TestCase):
                 patch.dict(M['perform'].__globals__,{'execution_gate':lambda:None}), \
                 patch.object(Path,'mkdir',side_effect=AssertionError('claim')), \
                 patch('subprocess.Popen',side_effect=AssertionError('transport')):
-            with self.assertRaisesRegex(ValueError,'source changed'):
+            with self.assertRaisesRegex(ValueError,'^imported closure drift$'):
                 M['perform'](context,'capture',True)
 
 if __name__ == '__main__':unittest.main()
