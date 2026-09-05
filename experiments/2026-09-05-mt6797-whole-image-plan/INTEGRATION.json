@@ -1,0 +1,18 @@
+{
+  "parent_commit": "73a214f6",
+  "profile": "mt6797-hif-parser-compile",
+  "existing_consumers": [
+    "mt6797-hif-compile",
+    "mt6797-hif-parser-compile",
+    "mt6797-provider-compile"
+  ],
+  "series": "patches/series-mt6797-provider-compile",
+  "series_sha256": "0db1a3697340550f533670fededa14eb100608f371284e4c9c7f7764e85282a7",
+  "canonical_sha256": "ac96fa0c77b6e8d53c2d41643a7fa1141ff5fb86cb0c670c2c53daf82390bb1a",
+  "source_refresh": "accepted; reuse managed provider source under Buildbox lock; no duplicate Linux tree",
+  "configuration_delta": "none",
+  "prior_build_receipt": "../2026-09-05-mt6797-hif-parser-compile/BUILD_RESULT.md",
+  "independent_host_validation": "2360 differential inputs, 34828 descriptions; 280 sanitizer cases plus invalidation/null/late-entry checks passed",
+  "build": "pending",
+  "device": "not admitted"
+}

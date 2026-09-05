@@ -1,0 +1,194 @@
+From 139e3b723a390d7a1e13cac0434c7579e76d3098 Mon Sep 17 00:00:00 2001
+From: MT6797 compile experiment <nobody@example.invalid>
+Date: Sat, 5 Sep 2026 00:00:00 +0000
+Subject: [PATCH] wifi: mediatek: prevalidate complete MTKE image plans
+
+Account for all ordinary and EMI sections before publishing a plan.
+Separate descriptive planning from unresolved EMI execution admission.
+No transfer, registration, ownership or START path is supplied.
+
+Internal experiment only; synthetic non-certifying author, no DCO.
+Assisted-by: LLM
+---
+ drivers/net/wireless/mediatek/mt6797/Makefile |   1 +
+ .../net/wireless/mediatek/mt6797/image-plan.c | 101 ++++++++++++++++++
+ .../net/wireless/mediatek/mt6797/image-plan.h |  53 +++++++++
+ 3 files changed, 155 insertions(+)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/image-plan.c
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/image-plan.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Makefile b/drivers/net/wireless/mediatek/mt6797/Makefile
+index be9a2c3..b26f977 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Makefile
++++ b/drivers/net/wireless/mediatek/mt6797/Makefile
+@@ -1,3 +1,4 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+ obj-y += hif.o
+ obj-y += mtke.o crc-kernel.o
++obj-y += image-plan.o
+diff --git a/drivers/net/wireless/mediatek/mt6797/image-plan.c b/drivers/net/wireless/mediatek/mt6797/image-plan.c
+new file mode 100644
+index 0000000..119b574
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/image-plan.c
+@@ -0,0 +1,101 @@
++// SPDX-License-Identifier: GPL-2.0-only
++#include "image-plan.h"
++
++void mt6797_image_plan_invalidate(struct mt6797_image_plan *plan)
++{
++	if (plan)
++		*plan = (struct mt6797_image_plan){0};
++}
++
++int mt6797_image_plan_prepare(struct mt6797_image_plan *plan,
++			      const u8 *data, size_t size)
++{
++	struct mtke_context image = {0};
++	struct mt6797_image_plan pending = {0};
++	struct mtke_view view;
++	unsigned int i;
++	int error;
++
++	if (!plan)
++		return -1;
++	mt6797_image_plan_invalidate(plan);
++	error = mtke_parse(&image, data, size);
++	if (error)
++		return error;
++	/* No partial view is published while later entries remain unchecked. */
++	for (i = 0; i < image.count; i++) {
++		error = mtke_get(&image, i, &view);
++		if (error)
++			return error;
++		if (view.emi) {
++			pending.emi_sections++;
++			pending.emi_bytes += view.length;
++		} else {
++			pending.ordinary_sections++;
++			pending.ordinary_bytes += view.length;
++		}
++		pending.sections++;
++	}
++	/* The parser proves disjoint payloads within the 1 MiB input cap.
++	 * Consequently neither byte total nor their sum can overflow size_t.
++	 */
++	if (pending.sections != image.count ||
++	    pending.ordinary_sections + pending.emi_sections != image.count)
++		return -1;
++	*plan = pending;
++	plan->image = image;
++	plan->valid = 1;
++	return 0;
++}
++
++int mt6797_image_plan_describe(const struct mt6797_image_plan *plan,
++			       unsigned int index,
++			       struct mt6797_plan_section *section)
++{
++	struct mtke_view view;
++	int error;
++
++	if (!section)
++		return -1;
++	*section = (struct mt6797_plan_section){0};
++	if (!plan || !plan->valid)
++		return -1;
++	error = mtke_get(&plan->image, index, &view);
++	if (error)
++		return error;
++	*section = (struct mt6797_plan_section){
++		.offset = view.offset,
++		.length = view.length,
++		.destination = view.destination,
++		.emi_offset = view.emi_offset,
++		.emi = view.emi,
++		.raw_encrypted = view.raw_encrypted,
++		.raw_key_index = view.raw_key_index,
++		.encrypted = view.encrypted,
++		.key_index = view.key_index,
++	};
++	return 0;
++}
++
++int mt6797_image_plan_admit(const struct mt6797_image_plan *plan)
++{
++	if (!plan || !plan->valid)
++		return -1;
++	if (plan->emi_sections)
++		return MT6797_PLAN_EMI_OWNER_REQUIRED;
++	return 0;
++}
++
++int mt6797_image_plan_get_ordinary(const struct mt6797_image_plan *plan,
++				   unsigned int index, struct mtke_view *view)
++{
++	int error;
++
++	if (!view)
++		return -1;
++	*view = (struct mtke_view){0};
++	error = mt6797_image_plan_admit(plan);
++	if (error)
++		return error;
++	return mtke_get(&plan->image, index, view);
++}
+diff --git a/drivers/net/wireless/mediatek/mt6797/image-plan.h b/drivers/net/wireless/mediatek/mt6797/image-plan.h
+new file mode 100644
+index 0000000..dd11b73
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/image-plan.h
+@@ -0,0 +1,53 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_IMAGE_PLAN_H
++#define MT6797_IMAGE_PLAN_H
++
++#include "mtke.h"
++
++#define MT6797_PLAN_EMI_OWNER_REQUIRED (-3)
++
++/* All fields are private except the accounting summary. Caller owns immutable
++ * input until every view is discarded, serializes all access, and keeps input,
++ * context and output storage distinct. No ownership/transfer admission occurs.
++ */
++struct mt6797_image_plan {
++	struct mtke_context image;
++	unsigned int sections;
++	unsigned int ordinary_sections;
++	unsigned int emi_sections;
++	size_t ordinary_bytes;
++	size_t emi_bytes;
++	int valid;
++};
++
++/* Descriptive metadata never includes a payload pointer or transfer handle. */
++struct mt6797_plan_section {
++	u32 offset;
++	u32 length;
++	u32 destination;
++	u32 emi_offset;
++	unsigned int emi;
++	unsigned int raw_encrypted;
++	unsigned int raw_key_index;
++	unsigned int encrypted;
++	unsigned int key_index;
++};
++
++/* Zero means the complete descriptive plan is valid, including EMI sections.
++ * Parser errors (-1/-2) invalidate the whole plan. No execution is admitted.
++ */
++int mt6797_image_plan_prepare(struct mt6797_image_plan *plan,
++			      const u8 *data, size_t size);
++int mt6797_image_plan_describe(const struct mt6797_image_plan *plan,
++			       unsigned int index,
++			       struct mt6797_plan_section *section);
++/* This implementation has no real EMI owner binding. Mixed images return -3;
++ * there is deliberately no owner Boolean or callback that can bypass it.
++ * Ordinary-only success still requires separate image and HIF admission.
++ */
++int mt6797_image_plan_admit(const struct mt6797_image_plan *plan);
++int mt6797_image_plan_get_ordinary(const struct mt6797_image_plan *plan,
++				   unsigned int index, struct mtke_view *view);
++void mt6797_image_plan_invalidate(struct mt6797_image_plan *plan);
++
++#endif

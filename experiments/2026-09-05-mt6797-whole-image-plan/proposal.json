@@ -1,0 +1,29 @@
+{
+  "status": "offline proposal; no build or runtime selection",
+  "prerequisite": "reviewed private HIF/parser compiled at root receipt 00199159",
+  "profile": "mt6797-hif-parser-compile",
+  "configuration_delta": "none; existing parser CRC32 and private directory selection suffice",
+  "series": "patches/series-mt6797-provider-compile",
+  "append_patch": "proposals/0003-wifi-mediatek-prevalidate-image-plan.patch",
+  "append_after": "proposals/0002-wifi-mediatek-add-mtke-parser.patch",
+  "patch_sha256": "76a93d441fe09db132bd1fbe03ebb0ad24d2743e0f0a72b100e08a62b6beb35c",
+  "kernel_files": [
+    "drivers/net/wireless/mediatek/mt6797/image-plan.c",
+    "drivers/net/wireless/mediatek/mt6797/image-plan.h",
+    "drivers/net/wireless/mediatek/mt6797/Makefile"
+  ],
+  "new_object": "drivers/net/wireless/mediatek/mt6797/image-plan.o",
+  "global_functions": [
+    "mt6797_image_plan_prepare",
+    "mt6797_image_plan_describe",
+    "mt6797_image_plan_admit",
+    "mt6797_image_plan_get_ordinary",
+    "mt6797_image_plan_invalidate"
+  ],
+  "parser_references": [
+    "mtke_parse",
+    "mtke_get"
+  ],
+  "source_effect": "append changes shared provider patchset; coordinator audits consumers and serializes managed source refresh; reuse source path, no duplicate tree",
+  "runtime": "no registration, owner implementation, firmware acquisition, transfer, START or caller"
+}

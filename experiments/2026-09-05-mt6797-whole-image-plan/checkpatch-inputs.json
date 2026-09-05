@@ -1,0 +1,8 @@
+{
+  "upstream_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "files": {
+    "checkpatch.pl": "2553cc1a601e70522e03fbce633d4e79fa5936f7f56a66de1899b7ddd247820a",
+    "spelling.txt": "4095d4a8810f115bae1b7c0d8a1946beb3435f6e22d9a48ac009bb024bad1e68",
+    "const_structs.checkpatch": "ea064f6916a74763468037494aeb270aae34b7c97617e84d424ca5b8733539b2"
+  }
+}

@@ -544,3 +544,4 @@ proposals/0001-pmdomain-mediatek-defer-initial-activation.patch
 proposals/0001-lib-mt6797-hif-compile.patch
 proposals/0001-wifi-mediatek-mt6797-private-hif-core.patch
 proposals/0002-wifi-mediatek-add-mtke-parser.patch
+proposals/0003-wifi-mediatek-prevalidate-image-plan.patch
