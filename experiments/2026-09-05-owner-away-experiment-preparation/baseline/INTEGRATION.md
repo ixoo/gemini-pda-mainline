@@ -69,3 +69,31 @@ disabled for this first boot. Their private launcher drafts are bounded
 handoffs; actual metadata, delivery and exact session integration remain
 separate gates. A first-baseline runtime pass supplies a dependency, not
 automatic permission to run either packet.
+
+## Shared accepted-archive verifier
+
+The four-file [accepted-archive verifier](VERIFIED_BASELINE.md) is adopted
+through worker revision `6d3bd4f09dd2d91cbf36b7cada802d65801b4257`.
+Independent review checked its five external bindings, seven-file source
+closure, snapshot-derived classification and original/mainline/recovered boot
+identity joins. A reproduced descriptor-privacy race was corrected before
+adoption: the same held descriptor's identity, owner, full mode, link count and
+size are compared before and after the bounded read, with captured-length
+agreement. These two samples do not prove absence of every transient mutation.
+
+All 24 host tests pass normally and optimized, including nine persistent
+metadata-change cases. The reviewer independently reproduced the old reader's
+hardlink acceptance and the corrected refusal. The corrected source digest is
+`ba70f6df476283c0113d433ae856940cc9c031f864019da95f014324e16c926e`.
+This credential-free reader validates an already collected archive; it performs
+no device action and grants no admission. Dependent private drafts must refresh
+their exact source pins before use. The first-baseline target, candidate and
+session protocol remain unchanged, with no build or candidate retest required.
+
+The separate three-file [eMMC guard fixture](../emmc/GUARD_SHELL_PREPARATION.md)
+from `4038246f` also passed independent review and all 52 host cases normally
+and optimized. It checks genuine command composition before substituting fixed
+sentinels for execution; it never runs the storage observer body. One bounded
+ARM64 fixture window is assigned under the shared Buildbox lock, using only the
+exact public BusyBox binary. Its result is a separate gate and does not change
+the preparing state or include eMMC in the first physical baseline session.
