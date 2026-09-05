@@ -76,3 +76,22 @@ success/skip, refusal, interruption, cleanup and pinned-trust mutation cases.
 The alias fixture passed six cases in 0.031 seconds. Generated Bash syntax and
 ShellCheck passed, and the actual candidate passed local-only validation. No
 corrected device deployment, kernel build or hardware support result is claimed.
+
+A subsequent independent remote-shell fixture run exposed eight failing cases
+because its metadata still assigned the admitted stage to a non-root uid, its
+owner-refusal case supplied uid zero, and its uploader extraction assumed the
+old command prefix. The earlier nine-test host result did not cover this suite.
+The fixture now models uid zero explicitly, retains actual fixture mode/size/link
+counts, checks the exact sudo command prefix before extracting its shell body,
+and adds a non-root stale-owner refusal. Production code and guards are unchanged
+by this fixture correction. All 38 actual remote gate cases and 11 actual stage
+cases pass in 4.278 seconds; the nine host installer tests pass again in 9.020
+seconds. These remain host-injected metadata tests, not a device retry.
+
+The owner subsequently clarified that the device was still in Gemian and
+explicitly authorized SSH verification. One bounded read-only check verified
+the same known-good Gemian boot, authenticated SSH/passwordless-sudo serviceability
+and restored swap state. This resolves the ambiguous physical-boot report at
+that observation. No installation, swap change, reboot or baseline test followed;
+further live work still requires the coordinator's review and admission. The
+private receipt is `owner-gemian-verification-1/` in the attended archive.
