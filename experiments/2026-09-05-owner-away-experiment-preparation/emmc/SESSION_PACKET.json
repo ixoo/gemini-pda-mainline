@@ -1,0 +1,67 @@
+{
+  "candidate_padded_sha256": "a423ad63fbb97d0f3fc4726d3957e05d3951480996b754d839a89d80a1232821",
+  "candidate_raw_sha256": "a25fe4cb907f4f3da2bf9f36fcf38b3fff7d8ba84adc37562fdcff2f1a422daf",
+  "execution_enabled": false,
+  "experiment": "emmc-readonly",
+  "measurement": {
+    "inner_read_deadline_seconds": 20,
+    "length_bytes": 16777216,
+    "logical_partition": "boot2",
+    "offset_bytes": 0,
+    "read_count": 1,
+    "retry_count": 0,
+    "sectors": 32768,
+    "write_count": 0
+  },
+  "preparation_only": true,
+  "prerequisite_bindings": {
+    "admission_id": "2a40562a-7ee3-4899-af82-b0faa19df575",
+    "baseline_manifest_sha256": "266398b98b7c7052714a1c14e465846c4355b268756ff9ca7055644f808cee9c",
+    "candidate_manifest_sha256": "54b07f0c70e77fd1e34fde4fc1c929980f0d8c3410f0a97ce3f15ffec1a66179",
+    "candidate_sha256": "a25fe4cb907f4f3da2bf9f36fcf38b3fff7d8ba84adc37562fdcff2f1a422daf",
+    "confirmation_manifest_sha256": "c380610d72b3771340886b2a2a772ddfc5e92a35a486bb2994b26ffc0c581dac",
+    "phase_manifests": {
+      "auth-checks": "aa0d6160c0c3bfed72994008ee2b9401b3d1f9289163db88693118d7c8894e44",
+      "preserve-log": "8293a8ad758770f1529ea01a1479d9d1b6e6a7b0834ce77cf49091277b6bf3de",
+      "request-recovery": "ddea308955c0ee801fe6f68c6c3a56e8120d89136428da30ca312cad67751e3b"
+    }
+  },
+  "prerequisite_selector": "reviewed-supplemental",
+  "purpose": "one-new-read-serviceability-measurement",
+  "runtime": {
+    "custodian": null,
+    "execution_admission": null,
+    "new_boot_id": null,
+    "owner_console_accepted": false,
+    "physical_selection_confirmed": false,
+    "stable_power_confirmed": false
+  },
+  "schema": 1,
+  "sequence": [
+    "preflight-on-new-boot",
+    "one-read",
+    "postflight-same-boot",
+    "separately-admitted-log-preservation",
+    "separately-admitted-recovery-request",
+    "owner-confirmed-known-good-probe"
+  ],
+  "source_pins": {
+    "baseline/scripts/collect-baseline.py": "efbca1e464e04005d3b7d503742b426eb9f642140ec289c40bc43563852208cf",
+    "baseline/scripts/finish-baseline.py": "f6fc5cf6a73518385af714b4f8566e32e4b231338cf231b0204d0b5aa96564a0",
+    "baseline/scripts/session_steps.py": "762616bb386647e0a25addd36ad9dba2f6384ebde4858f89a806a32678fc60fc",
+    "baseline/scripts/supplemental_recovery.py": "c0cc57dbc8c782bb7a995716c3b0dcdd74d7068dc84200d3954012a619b8b293",
+    "baseline/scripts/verified_baseline.py": "ba70f6df476283c0113d433ae856940cc9c031f864019da95f014324e16c926e",
+    "emmc/classify.py": "0be35e88eb3868e515d2185932519d0fb878260eced50f336e6dde301983acc3",
+    "emmc/guarded_observation.py": "5fe4472b3ed61812cc05b6662decac89f6799d81de06def4f8bae51cb920317d",
+    "emmc/observe.sh": "dbdf6a7c07c9ad895e75e8dc83b229567da7b22e92d905f284ff43208d902e31",
+    "emmc/prerequisite.py": "402847813aac73da5abb7ad993cbd326510d9fc0ba85ec5ad9cf0399d4e48621"
+  },
+  "transport_seconds": {
+    "confirm_recovery": 15,
+    "postflight": 45,
+    "preflight": 45,
+    "preserve_log": 30,
+    "read": 40,
+    "request_recovery": 15
+  }
+}
