@@ -1,0 +1,11 @@
+make: Entering directory '/workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-infracfg-upstream-kunit-source'
+make  -C /workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit \
+-f /workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-infracfg-upstream-kunit-source/Makefile dt_binding_check
+make[1]: Entering directory '/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit'
+make --no-print-directory -C /workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit \
+-f /workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-infracfg-upstream-kunit-source/Makefile dt_binding_check
+make -f /workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-infracfg-upstream-kunit-source/scripts/Makefile.build obj=Documentation/devicetree/bindings
+# SCHEMA  Documentation/devicetree/bindings/processed-schema.json
+  f=$(mktemp) ; find /workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-infracfg-upstream-kunit-source/Documentation/devicetree/bindings \( -name '*.yaml' ! -name 'processed-schema*' \) > $f ; dt-mk-schema -j  @$f > Documentation/devicetree/bindings/processed-schema.json ; rm -f $f
+make[1]: Leaving directory '/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit'
+make: Leaving directory '/workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-infracfg-upstream-kunit-source'

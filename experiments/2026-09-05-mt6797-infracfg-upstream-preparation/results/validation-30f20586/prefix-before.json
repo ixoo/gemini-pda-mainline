@@ -1,0 +1,12 @@
+{
+  "allowed_extra": "setup-receipt.json",
+  "execution_revision": "30f20586cf19293fd985e4aec838c75b3d1c94c6",
+  "guest_run": false,
+  "loader_resolution": "unchanged",
+  "prefix_members": 2257,
+  "qemu_sha256": "7148d1e6c8587f9b017dbcd2ab6d18eb9b84d20ef5284e0c4915b614c8a61b31",
+  "qemu_version": "QEMU emulator version 7.2.22 (Debian 1:7.2+dfsg-7+deb12u18+b3)\nCopyright (c) 2003-2022 Fabrice Bellard and the QEMU Project developers",
+  "resolved_libraries": 50,
+  "result": "PASS",
+  "setup_receipt_sha256": "1decebf970329e45d881dab6a7fdc8dc8fb1df62a848f875048dcecd05ed1f1b"
+}

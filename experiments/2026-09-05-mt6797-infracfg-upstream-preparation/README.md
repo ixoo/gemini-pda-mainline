@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-05-mt6797-infracfg-upstream-preparation` |
-| Status | running; exact upstream profile built and package validated; QEMU/schema pending |
+| Status | running; package validated; first QEMU and schema gates refused |
 | Subsystem | MediaTek clocks/resets and Devicetree |
 | Device variant | Gemini PDA MT6797; no hardware operation in this audit |
 | Investigator | Gemini mainline project, integration owner |
@@ -23,8 +23,11 @@ The local bounds protection remains a required part of the proposed series;
 using an existing API does not justify dropping a tested refusal guarantee.
 The coherent review patches are now generated and replayed as recorded below.
 The exact upstream profile now compiles and its package passes validation as
-recorded in [build admission and execution](BUILD_ADMISSION.md). Schema, KUnit
-execution and new hardware claims remain unestablished.
+recorded in [build admission and execution](BUILD_ADMISSION.md). The
+[first validation attempts](VALIDATION_ATTEMPT_1.md) preserved a QEMU suite-scope
+refusal despite eight intended passing cases, and a schema file-size-limit
+refusal. Neither original gate passed; submission readiness and new hardware
+claims remain unestablished.
 
 ## Provenance and reproducibility
 

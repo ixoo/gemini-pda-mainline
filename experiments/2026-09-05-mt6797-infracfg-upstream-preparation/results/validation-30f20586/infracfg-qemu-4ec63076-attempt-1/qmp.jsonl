@@ -1,0 +1,5 @@
+{"QMP": {"version": {"qemu": {"micro": 22, "minor": 2, "major": 7}, "package": "Debian 1:7.2+dfsg-7+deb12u18+b3"}, "capabilities": ["oob"]}}
+{"return": {}, "id": "caps"}
+{"timestamp": {"seconds": 1788614944, "microseconds": 374321}, "event": "RESUME"}
+{"return": {}, "id": "start"}
+{"timestamp": {"seconds": 1788614945, "microseconds": 102586}, "event": "SHUTDOWN", "data": {"guest": true, "reason": "guest-shutdown"}}

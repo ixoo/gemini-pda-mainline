@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "/workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/dt-mk-schema", line 8, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/workspace/gemini-pda/cache/validation-tools/schema-2026.6/lib/python3.11/site-packages/dtschema/mk_schema.py", line 38, in main
+    json.dump(schemas, f, indent=4, sort_keys=True)
+  File "/usr/lib/python3.11/json/__init__.py", line 180, in dump
+    fp.write(chunk)
+OSError: [Errno 27] File too large
+Exception ignored in: <_io.TextIOWrapper name='<stdout>' mode='w' encoding='utf-8'>
+OSError: [Errno 27] File too large
+make[3]: *** [/workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-infracfg-upstream-kunit-source/Documentation/devicetree/bindings/Makefile:75: Documentation/devicetree/bindings/processed-schema.json] Error 120
+make[3]: *** Deleting file 'Documentation/devicetree/bindings/processed-schema.json'
+make[2]: *** [/workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-infracfg-upstream-kunit-source/Makefile:1717: dt_binding_schemas] Error 2
+make[1]: *** [/workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-infracfg-upstream-kunit-source/Makefile:248: __sub-make] Error 2
+make: *** [Makefile:248: __sub-make] Error 2
