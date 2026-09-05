@@ -1,0 +1,17 @@
+PIO runtime gate reassessment — 2026-09-05
+Base: 20891ca9
+Eight new pinned public primary-source identities; prior PIO ledger reused.
+Reviewed upstream device-I/O contract and smsc911x FIFO primitives separately
+from selected gen3 ownership, credit, length and protocol-completion paths.
+Result: per-access timeout/PIO-done absence is not a blanket implementation
+gate. Minimal transaction design recorded; remaining lifecycle, credits,
+RX policy and ordering/recovery facts distinguished explicitly.
+Prior negative observations retained with a supersession link.
+No MMIO/device/backend/retained-input access or implementation change.
+Original analysis only; no proprietary source or input published.
+Repository checks pass: profiles=189, unchanged metadata debt=37.
+Linux-only artifact fixture skipped; no kernel/DT/device tests applicable.
+New-file links, JSON, rights/privacy review and git diff --check pass.
+PIO_TRANSPORT_DESIGN.md sha256=eda964992370faf09be205da01fd251111db8144f011532e7116174c4da817b4
+PIO_COMPLETION.md sha256=08d0758a134a23778c131f4c98fc49b73e4a897eaec732dff08e3828fb2ab971
+results/pio-reassessment-sources.json sha256=2f56c506f5d4ec683c821b8760e60cfd1dc640a480e7c0f48d3db42dd0f56287
