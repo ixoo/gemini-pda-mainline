@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 import runpy
 import subprocess
+import time
 
 
 def inspect(interfaces, routes, destination, host_address):
@@ -94,3 +95,36 @@ if __name__ == '__main__':
     except ValueError as exc:
         print(json.dumps({'ready':False,'scope':'mainline-usb-only','reason':str(exc)}))
         raise SystemExit(2)
+
+
+def identity_window(context, directory):
+    """One authorized identity connection, returning an in-process timing receipt.
+
+    Capture starts before all local/transport work. Conservative elapsed time
+    includes guard execution and host suspension (maximum of both clocks).
+    Caller must keep this process for the separately admitted read and seal.
+    """
+    prepared = context['dependency']['prepared']
+    excluded_boots = {context['dependency']['first_boot'], context['dependency']['recovered_boot'],
+                      prepared['recovery_id']}
+    mono, wall = time.monotonic(), time.time()
+    process = identity_once(prepared, directory)
+    module = runpy.run_path(str(Path(__file__).with_name('collect-emmc.py')))
+    directory = Path(directory)
+    out = module['regular'](directory / 'stdout.txt', 4096)
+    err = module['regular'](directory / 'stderr.txt', 4096)
+    module['process_ok'](out, err, process, 10, 4096)
+    match = re.fullmatch(rb'([0-9a-f-]{36})\n([^\n]+)\n([0-9]+(?:\.[0-9]+)?) [0-9]+(?:\.[0-9]+)?\n', out)
+    if not match:
+        raise ValueError('identity framing invalid')
+    boot = match[1].decode('ascii')
+    if not module['C']['UUID'].fullmatch(boot) or boot in excluded_boots:
+        raise ValueError('new identity boot required')
+    if match[2].decode('ascii') != module['S']['RELEASE']:
+        raise ValueError('identity kernel mismatch')
+    receipt = module['LiveWindow'](module['sha'](prepared['candidate_raw']), boot,
+        context['admission']['admission_id'], module['sha'](context['admission_raw']),
+        float(match[3]), mono, wall)
+    receipt.require(module['sha'](prepared['candidate_raw']), boot,
+        context['admission']['admission_id'], module['sha'](context['admission_raw']), 164, 400)
+    return receipt

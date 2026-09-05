@@ -1,0 +1,38 @@
+{
+  "action": "single-read-session",
+  "action_budgets": {
+    "outer_read_seconds": 40,
+    "post_observations": 1,
+    "post_seconds": 45,
+    "pre_observations": 1,
+    "pre_seconds": 45,
+    "read_attempts": 1,
+    "read_seconds": 20,
+    "requested_bytes": 16777216,
+    "retries": 0
+  },
+  "admission_id": null,
+  "baseline_admission_id": "2a40562a-7ee3-4899-af82-b0faa19df575",
+  "baseline_manifest_sha256": "266398b98b7c7052714a1c14e465846c4355b268756ff9ca7055644f808cee9c",
+  "candidate_manifest_sha256": "54b07f0c70e77fd1e34fde4fc1c929980f0d8c3410f0a97ce3f15ffec1a66179",
+  "confirmation_manifest_sha256": "c380610d72b3771340886b2a2a772ddfc5e92a35a486bb2994b26ffc0c581dac",
+  "custodian_role": null,
+  "custody_exclusive": false,
+  "custody_handoff_sha256": null,
+  "deployment_receipt_sha256": "5aed5d6554922835ad6e50091056f9145b2fc1b07d40507353c38202e4b50543",
+  "experiment": "a53-emmc-readonly",
+  "no_other_device_operations": false,
+  "physical_selection_confirmed": false,
+  "prerequisite_phase_manifests": {
+    "auth-checks": "aa0d6160c0c3bfed72994008ee2b9401b3d1f9289163db88693118d7c8894e44",
+    "preserve-log": "8293a8ad758770f1529ea01a1479d9d1b6e6a7b0834ce77cf49091277b6bf3de",
+    "request-recovery": "ddea308955c0ee801fe6f68c6c3a56e8120d89136428da30ca312cad67751e3b"
+  },
+  "prerequisite_selector": "reviewed-supplemental",
+  "schema": 1,
+  "source_identity": {
+    "launcher_sha256": "2a59e87b8b90c73a8ecad06933f277868e7201bea9c2a082a033ab2193e0b6ba",
+    "pins_sha256": "22cc12f5e9ee5da069823e09d2d70fca1f0b2c18df6ed1c2a58fd7e17b7c660c"
+  },
+  "stable_power_confirmed": false
+}

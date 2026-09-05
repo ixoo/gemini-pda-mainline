@@ -286,9 +286,9 @@ def prepare(path):
 
 def prepare_admission(raw):
     """Validate one admission byte string; prior callers supply a pinned snapshot."""
-    require(len(raw) <= 16384, 'admission byte bound')
+    require(type(raw) is bytes and len(raw) <= 16384, 'admission byte bound')
     admission = json.loads(raw, object_pairs_hook=L['unique'])
-    require(set(admission) == ADMISSION_FIELDS and type(admission['schema']) is int and admission['schema'] == 1 and
+    require(type(admission) is dict and set(admission) == ADMISSION_FIELDS and type(admission['schema']) is int and admission['schema'] == 1 and
             admission['experiment'] == 'a53-emmc-readonly' and admission['action'] in STEPS, 'completion admission scope')
     action = admission['action']
     for name in ('observation_admission_id', 'boot_id'):
@@ -339,8 +339,15 @@ def prepare_admission(raw):
     return context
 
 
-def perform(context, execute=False):
+def perform(context, execute=False, live_window=None):
     if execute: L['execution_gate']()
+    require(type(context) is dict and set(context) == {'admission', 'admission_raw', 'observation', 'proof'},
+            'prepared completion context required')
+    require(type(context['admission']) is dict and type(context['admission_raw']) is bytes,
+            'prepared completion admission required')
+    if execute:
+        require(prepare_admission(context['admission_raw']) == context,
+                'completion admission changed after preparation')
     action = context['admission']['action']
     if not execute:
         return {'classification': 'dry-run', 'readiness': 'preparing', 'network_access': 'none',
@@ -348,6 +355,11 @@ def perform(context, execute=False):
     require(source_identity() == context['admission']['source_identity'] and
             observation(context['admission']['observation_manifest_sha256']) == context['observation'] and
             proofs(context) == context['proof'], 'evidence changed after preparation')
+    if action == 'preserve-log':
+        require(isinstance(live_window, L['LiveWindow']), 'authenticated live timing receipt required')
+        live_window.require(context['admission']['candidate_manifest_sha256'],
+                            context['admission']['boot_id'], context['admission']['observation_admission_id'],
+                            sha(context['observation']['context']['admission_raw']), 31)
     C['private_root'](ROOT)
     directory = ROOT / action
     directory.mkdir(mode=0o700)

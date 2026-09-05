@@ -24,3 +24,18 @@ storage reads or recovery actions were performed for this coordinator review.
 
 The next useful physical measurement remains the bounded read described by
 [the packet](SESSION_PACKET.json); exact revised admission must precede execution.
+
+## Revised source review
+
+The frozen repair `0b57ea97` revalidates callable admissions and binds logger
+timing to an authenticated, process-local boot/session receipt. Independent
+launcher (18), completion (22) and session (8) suites passed. Integration retained
+main's newer USB-route refusal for routes lacking `U` or carrying `G`, `R` or `B`,
+then refreshed the helper and dependent source pins. The combined session and
+host-route suites passed; the default runner reports dry-run with no network.
+
+This closes the identified source-review gaps. Final preparation still requires
+the integrated checks and exact retained candidate/prerequisite review. Physical
+selection, present power, fresh identity and logger time remain runtime gates.
+The old private admission and keyboard capture package cannot inherit the new
+source identity; neither is silently refreshed by this review.

@@ -3,6 +3,7 @@
 """PREPARING: one authenticated eMMC read; completion is separately admitted."""
 import argparse
 import hashlib
+import importlib.util
 import json
 import math
 import os
@@ -19,7 +20,8 @@ SOURCE_NAMES = {'baseline/scripts/collect-baseline.py', 'baseline/scripts/finish
                 'baseline/scripts/session_steps.py', 'baseline/scripts/verified_baseline.py',
                 'emmc/observe.sh', 'emmc/classify.py', 'emmc/guarded_observation.py',
                 'baseline/scripts/supplemental_recovery.py', 'emmc/prerequisite.py',
-                'emmc/recovery_v2.py', 'emmc/execution_gate.py'}
+                'emmc/recovery_v2.py', 'emmc/execution_gate.py', 'emmc/live_window.py',
+                'emmc/mainline_host.py', 'emmc/session.py'}
 GUARD_NAME = 'emmc/guarded_observation.py'
 VERIFIER_NAME = 'baseline/scripts/verified_baseline.py'
 
@@ -65,6 +67,15 @@ def source_identity():
 
 
 source_identity()  # Refuse source drift before importing the shared contracts.
+# Share the process-local receipt type across separately loaded adapters.
+_window_name = '_gemini_emmc_live_window'
+if _window_name not in sys.modules:
+    _spec = importlib.util.spec_from_file_location(_window_name, HERE / 'live_window.py')
+    _module = importlib.util.module_from_spec(_spec)
+    sys.modules[_window_name] = _module
+    _spec.loader.exec_module(_module)
+LiveWindow = sys.modules[_window_name].LiveWindow
+
 C = runpy.run_path(str(EXPERIMENT / 'baseline/scripts/collect-baseline.py'))
 F = runpy.run_path(str(EXPERIMENT / 'baseline/scripts/finish-baseline.py'))
 S = runpy.run_path(str(EXPERIMENT / 'baseline/scripts/session_steps.py'))
@@ -165,7 +176,7 @@ def completed_baseline(admission):
 
 
 def check_admission(value):
-    require(set(value) == FIELDS and type(value['schema']) is int and value['schema'] == 1 and
+    require(type(value) is dict and set(value) == FIELDS and type(value['schema']) is int and value['schema'] == 1 and
             value['experiment'] == 'a53-emmc-readonly' and value['action'] == 'single-read-session', 'admission scope/inventory')
     for name in ('admission_id', 'baseline_admission_id'):
         require(isinstance(value[name], str) and C['UUID'].fullmatch(value[name]), 'admission UUID')
@@ -260,15 +271,25 @@ def phase_capture(context, root, phase, boot):
                           regular(directory / 'stderr.txt', 16384), process, boot)
 
 
-def collect(context, execute=False):
+def collect(context, execute=False, live_window=None):
     if not execute:
         return {'classification': 'dry-run', 'readiness': 'preparing', 'network_access': 'none',
                 'attempt_created': False, 'budgets': BUDGETS,
                 'completion': 'separate preservation and recovery admission required'}
     execution_gate()
+    require(type(context) is dict and set(context) == {'admission', 'admission_raw', 'dependency'},
+            'prepared observation context required')
+    require(type(context['admission']) is dict and type(context['admission_raw']) is bytes,
+            'prepared admission required')
+    require(json.loads(context['admission_raw'], object_pairs_hook=unique) == context['admission'],
+            'prepared admission bytes changed')
+    check_admission(context['admission'])
     require(source_identity() == context['admission']['source_identity'], 'source changed after preparation')
     # Recheck the complete prior chain immediately before permanently claiming.
     require(completed_baseline(context['admission']) == context['dependency'], 'dependency changed after preparation')
+    require(isinstance(live_window, LiveWindow), 'authenticated live timing receipt required')
+    live_window.require(context['admission']['candidate_manifest_sha256'], None,
+                        context['admission']['admission_id'], sha(context['admission_raw']), 164, 400)
     C['private_root'](ATTEMPT_ROOT.parent)
     ATTEMPT_ROOT.mkdir(mode=0o700)  # Fixed experiment scope: a new UUID is no reset.
     C['write_new'](ATTEMPT_ROOT / 'claim.json', json_bytes(session_claim(context)))
@@ -278,9 +299,14 @@ def collect(context, execute=False):
     results, boot = {}, None
     try:
         for phase in ('pre', 'read', 'post'):
+            # Include one second runner tolerance per phase and for log export.
+            live_window.require(context['admission']['candidate_manifest_sha256'], boot,
+                context['admission']['admission_id'], sha(context['admission_raw']),
+                {'pre': 164, 'read': 118, 'post': 77}[phase])
             results[phase] = phase_capture(context, ATTEMPT_ROOT, phase, boot)
             if phase == 'pre':
                 boot = results[phase]['boot_id']
+                require(boot == live_window.boot, 'identity/preflight boot changed')
         outcome = {'classification': 'read-serviceability-only-pass', 'boot_id': boot,
                    'phases': results, 'readiness': 'preparing',
                    'remaining': ['independent-log-preservation-and-continuity', 'changed-ID-known-good-recovery']}

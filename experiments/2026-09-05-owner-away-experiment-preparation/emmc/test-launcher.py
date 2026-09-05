@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import runpy
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 
@@ -80,6 +81,8 @@ class LauncherTests(unittest.TestCase):
         self.context = {'admission': self.admission, 'admission_raw': L['json_bytes'](self.admission), 'dependency': self.dependency}
         self.capture = T['good_capture'](self.prepared).replace(T['BOOT'].encode(), BOOT.encode())
         self.calls = []
+        self.window = L['LiveWindow'](self.admission['candidate_manifest_sha256'], BOOT,
+            ADMISSION, L['sha'](self.context['admission_raw']), 10.0, time.monotonic(), time.time())
 
     def test_admission_refuses_missing_custody_budget_and_identity(self):
         L['check_admission'](self.admission)
@@ -95,6 +98,47 @@ class LauncherTests(unittest.TestCase):
         bad = copy.deepcopy(self.admission); bad['action_budgets']['read_attempts'] = True
         with self.assertRaises(ValueError): L['check_admission'](bad)
 
+    def test_enabled_preclaim_admission_and_live_timing_refusals(self):
+        from dataclasses import replace
+        contexts = [None, {}, {**self.context, 'admission': None}]
+        for field in ('custody_exclusive', 'physical_selection_confirmed',
+                      'no_other_device_operations', 'stable_power_confirmed'):
+            value = copy.deepcopy(self.context)
+            value['admission'][field] = False
+            value['admission_raw'] = L['json_bytes'](value['admission'])
+            contexts.append(value)
+        value = copy.deepcopy(self.context)
+        value['admission']['source_identity'] = {}
+        value['admission_raw'] = L['json_bytes'](value['admission'])
+        contexts.append(value)
+        value = copy.deepcopy(self.context)
+        del value['admission']['stable_power_confirmed']
+        value['admission_raw'] = L['json_bytes'](value['admission'])
+        contexts.append(value)
+        value = copy.deepcopy(self.context)
+        value['admission_raw'] = b'{}'
+        contexts.append(value)
+        windows = [None, replace(self.window, uptime=400),
+                   replace(self.window, uptime=float('nan')),
+                   replace(self.window, monotonic_start=time.monotonic() + 100),
+                   replace(self.window, wall_start=time.time() + 100),
+                   replace(self.window, candidate='0'*64),
+                   replace(self.window, session=BOOT),
+                   replace(self.window, admission_sha256='0'*64),
+                   replace(self.window, monotonic_start=time.monotonic() - 601)]
+        with patch.dict(G, {'execution_gate': lambda: None,
+                            'completed_baseline': lambda _: self.dependency}), \
+             patch.dict(C, {'private_root': lambda _: self.fail('claim boundary reached'),
+                            'write_new': lambda *a: self.fail('write reached')}):
+            for value in contexts:
+                with self.subTest(context=value), self.assertRaises(ValueError):
+                    L['collect'](value, True, self.window)
+            for window in windows:
+                with self.subTest(window=window), self.assertRaises(ValueError):
+                    L['collect'](self.context, True, window)
+        self.assertFalse((self.root / 'attempt').exists())
+        self.assertEqual(self.calls, [])
+
     def test_dry_run_creates_no_claim_or_connection(self):
         with patch.dict(G, {'ATTEMPT_ROOT': self.root / 'attempt'}):
             self.assertEqual(L['collect'](self.context)['classification'], 'dry-run')
@@ -102,7 +146,9 @@ class LauncherTests(unittest.TestCase):
         self.assertEqual(self.calls, [])
 
     def test_staged_cli_cannot_execute(self):
-        with self.assertRaisesRegex(ValueError, 'execution disabled'):
+        def disabled():
+            raise ValueError('execution disabled')
+        with patch.dict(G, {'execution_gate': disabled}), self.assertRaisesRegex(ValueError, 'execution disabled'):
             L['collect'](self.context, True)
 
     def test_exact_candidate_observer_command_and_no_extra_read(self):
@@ -142,7 +188,7 @@ class LauncherTests(unittest.TestCase):
                             'source_identity': lambda: self.admission['source_identity'],
                             'completed_baseline': lambda _: self.dependency}), \
              patch.dict(C, {'run_once': fake_transport}):
-            return L['collect'](self.context, True)
+            return L['collect'](self.context, True, self.window)
 
     def test_pre_read_post_claims_and_no_automatic_completion(self):
         result = self.fixture_collect()
@@ -180,6 +226,10 @@ class LauncherTests(unittest.TestCase):
     def test_second_attempt_and_new_uuid_do_not_renew_budget(self):
         self.fixture_collect()
         self.admission['admission_id'] = '00000000-0000-0000-0000-000000000007'
+        self.context['admission_raw'] = L['json_bytes'](self.admission)
+        self.window = L['LiveWindow'](self.admission['candidate_manifest_sha256'], BOOT,
+            self.admission['admission_id'], L['sha'](self.context['admission_raw']),
+            10.0, time.monotonic(), time.time())
         with self.assertRaises(FileExistsError): self.fixture_collect()
         self.assertEqual(self.calls, ['pre', 'read', 'post'])
 

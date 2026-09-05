@@ -15,7 +15,11 @@ BOOT = '11111111-1111-4111-8111-111111111111'
 
 class RuntimeBoundaryTests(unittest.TestCase):
     def test_both_runtime_entries_refuse_before_context_or_transport(self):
-        with patch('subprocess.Popen', side_effect=AssertionError('no process')):
+        def disabled():
+            raise ValueError('execution disabled')
+        with patch('subprocess.Popen', side_effect=AssertionError('no process')), \
+             patch.dict(L['collect'].__globals__, {'execution_gate': disabled}), \
+             patch.dict(M['L'], {'execution_gate': disabled}):
             for entry in (L['collect'], M['perform']):
                 with self.assertRaisesRegex(ValueError, 'execution disabled'):
                     entry(None, True)

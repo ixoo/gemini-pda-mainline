@@ -67,6 +67,42 @@ class CompletionTests(unittest.TestCase):
         ):
             value.start(); self.addCleanup(value.stop)
 
+    def test_enabled_completion_preclaim_admission_and_timing_refusals(self):
+        from dataclasses import replace
+        self.observe()
+        context = self.admission_for('preserve-log')
+        contexts = [None, {}, {**context, 'admission': None}]
+        for field in ('custody_exclusive', 'no_other_device_operations', 'observer_transport_stopped'):
+            value = copy.deepcopy(context)
+            value['admission'][field] = False
+            value['admission_raw'] = L['json_bytes'](value['admission'])
+            contexts.append(value)
+        value = copy.deepcopy(context)
+        value['admission']['source_identity'] = {}
+        value['admission_raw'] = L['json_bytes'](value['admission'])
+        contexts.append(value)
+        value = copy.deepcopy(context)
+        del value['admission']['custody_exclusive']
+        value['admission_raw'] = L['json_bytes'](value['admission'])
+        contexts.append(value)
+        value = copy.deepcopy(context)
+        value['admission']['custody_exclusive'] = False  # Raw/context divergence.
+        contexts.append(value)
+        windows = [None, replace(self.window, uptime=570),
+                   replace(self.window, boot=NEW), replace(self.window, session=NEW),
+                   replace(self.window, admission_sha256='0'*64)]
+        with patch.dict(L, {'execution_gate': lambda: None}), \
+             patch.dict(C, {'private_root': lambda _: self.fail('claim boundary reached'),
+                            'write_new': lambda *a: self.fail('write reached')}):
+            for value in contexts:
+                with self.subTest(context=value), self.assertRaises(ValueError):
+                    M['perform'](value, True, self.window)
+            for window in windows:
+                with self.subTest(window=window), self.assertRaises(ValueError):
+                    M['perform'](context, True, window)
+        self.assertFalse(self.finish_root.exists())
+        self.assertEqual(self.finish_calls, [])
+
     def seal_manifest(self, directory):
         raw = ''.join(L['sha'](path.read_bytes()) + '  ' + path.relative_to(directory).as_posix() + '\n'
                       for path in sorted(directory.rglob('*')) if path.is_file() and path.name != 'SHA256SUMS').encode()
@@ -124,7 +160,7 @@ class CompletionTests(unittest.TestCase):
 
         with patch.dict(L, {'execution_gate': lambda: None}), patch.dict(N, {'__file__': str(L['EXPERIMENT'] / 'emmc/finish-emmc.py')}), \
              patch.dict(C, {'run_once': transport}):
-            return M['perform'](context, True)
+            return M['perform'](context, True, self.window)
 
     def preservation(self, **kwargs):
         context = self.admission_for('preserve-log')
@@ -141,7 +177,9 @@ class CompletionTests(unittest.TestCase):
     def test_staged_execution_refused_and_dry_run_has_no_effects(self):
         self.observe(); context = self.admission_for('preserve-log')
         self.assertEqual(M['perform'](context)['classification'], 'dry-run')
-        with self.assertRaisesRegex(ValueError, 'execution disabled'):
+        def disabled():
+            raise ValueError('execution disabled')
+        with patch.dict(L, {'execution_gate': disabled}), self.assertRaisesRegex(ValueError, 'execution disabled'):
             M['perform'](context, True)
         self.assertFalse(self.finish_root.exists())
         self.assertEqual(self.finish_calls, [])
