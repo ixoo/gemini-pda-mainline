@@ -1,0 +1,30 @@
+Retained SPM/CSPM attribution validation — 2026-09-05
+Base: cf0d9f17b88423c432bc0ec32b845ef8a7d866bc
+Scope: one retained kernel and one retained TEE component; static analysis only.
+Private identity chain: retained boot identity and kernel-field identity checked;
+gzip output equals retained Image; trailing bytes equal retained board DTB;
+ELF .kernel equals Image. TEE identity matches the earlier retained component.
+No binary identity, raw bytes or disassembly included in this publication.
+Methods: existing symbol-bearing ELF, GNU AArch64 objdump, Capstone,
+retained DT resource mapping, bounded direct-call and argument tracing.
+Cross-checks: five kernel key-store sites, five TEE CSPM key-store sites,
+and two parameterized TEE SPM store sites decoded with both disassemblers.
+Four TEE direct write-helper caller sites traced to CPU/cluster offsets;
+indirect/computed/other-component paths remain unexcluded.
+Correction: MOVZ-aware query replaces incomplete preliminary mnemonic query;
+all nine low-half 0x6000 constructor candidates classified before conclusion.
+Private provenance/analysis JSON confirmed present and parseable after resume;
+analysis directory mode 0700 and principal records mode 0600 verified.
+Existing kernel and firmware reused without duplicate extraction. Small analysis
+products remain guest-owned; RE shell closed. No VM configuration changed.
+No device access, new capture, radio/register action, kernel build, reset-credit
+use or model change. No claim of current runtime execution or hardware support.
+Publication review: independently written facts/methods/limits only; no copied
+vendor code, proprietary documents, private binary identities or calibration.
+Common repository checks: python3 -B scripts/check-repository passed;
+profiles=189, unchanged grandfathered metadata debt=37. Linux-only artifact
+fixture skipped. New-file local links, privacy review and diff whitespace passed.
+Initial draft check found the not-yet-created receipt link; resolved before
+this successful run. No kernel/checkpatch/DT-schema/hardware tests required
+or run for this text-only publication.
+RETAINED_SPM_ATTRIBUTION.md sha256=9b7dca863dec9d979cf38827d5a3a196327e563e066f669b23e9aaf2c316075e
