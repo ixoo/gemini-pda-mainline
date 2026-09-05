@@ -54,7 +54,7 @@ git -C "$work" remote add origin https://github.com/torvalds/linux.git
 # Git-only metadata plus the one source file and checker. No Linux tree export.
 timeout 60 git -C "$work" -c protocol.version=2 fetch --quiet --filter=blob:none --depth=1 origin "$upstream"
 git -C "$work" sparse-checkout init --no-cone
-printf '/drivers/clk/mediatek/clk-mtk.c\n/scripts/checkpatch.pl\n/scripts/spelling.txt\n' |
+printf '/drivers/clk/mediatek/clk-mtk.c\n/scripts/checkpatch.pl\n/scripts/spelling.txt\n/scripts/const_structs.checkpatch\n' |
 	git -C "$work" sparse-checkout set --no-cone --stdin
 timeout 30 git -C "$work" checkout --quiet --detach "$upstream"
 [[ $(git -C "$work" rev-parse HEAD) == "$upstream" ]] || die 'wrong upstream parent'

@@ -24,10 +24,10 @@ normal remove are unchanged. Driver-core failed-probe cleanup already clears
 driver data, so this proposal adds no redundant driver-data reset.
 
 ```diff
- 		if (r)
--			goto unregister_clks;
-+			goto unregister_provider;
- 	}
+         if (r)
+-            goto unregister_clks;
++            goto unregister_provider;
+     }
 ```
 
 The new two-line label/removal precedes `unregister_clks`. The entire corrected
