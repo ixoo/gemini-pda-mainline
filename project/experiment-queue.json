@@ -4,7 +4,7 @@
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
   "selected_item": null,
-  "selection_note": "The authenticated baseline first boot is completed and Gemian recovery confirmed. Supplemental recovery evidence is accepted for dependent preparation; original native-request and aggregate results are unchanged. No repeat or dependent device session is selected.",
+  "selection_note": "The new eMMC runtime path is reviewed, but its one identity check timed out. No read is selected for execution while current device state and power remain unknown; custody stays with the A53 task.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -43,15 +43,15 @@
     },
     "emmc-readonly": {
       "workstream": "serviceability",
-      "preparation_state": "preparing",
+      "preparation_state": "conditional",
       "device_state": "unselected",
       "owner": "A53 baseline and queued device tests",
       "reviewer": "Project Planning",
-      "device_custodian": null,
+      "device_custodian": "A53 baseline and queued device tests",
       "experiment": "experiments/2026-09-05-owner-away-experiment-preparation/README.md#emmc-readonly",
       "session_packet": "experiments/2026-09-05-owner-away-experiment-preparation/emmc/README.md",
-      "candidate_record": null,
-      "readiness_record": null,
+      "candidate_record": "experiments/2026-09-05-owner-away-experiment-preparation/emmc/SESSION_PACKET.json",
+      "readiness_record": "experiments/2026-09-05-owner-away-experiment-preparation/emmc/RUNTIME_HANDOFF.md",
       "dependencies": [
         {
           "item": "a53-authenticated-baseline",
@@ -60,7 +60,7 @@
         }
       ],
       "owner_task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64",
-      "readiness_note": "Supplemental baseline recovery evidence is accepted for preparation. Explicit prerequisite proof binding and protocol review remain required before readiness or device selection."
+      "readiness_note": "Runtime source reviewed and exact enablement approved; enabled identities and failed identity check are recorded in IDENTITY_ATTEMPT_RECEIPT.json. Observer unconsumed. Actual device state, power and logger lifetime remain unestablished; no further connection or recovery admitted."
     },
     "wifi-parent-attribution": {
       "workstream": "wifi",

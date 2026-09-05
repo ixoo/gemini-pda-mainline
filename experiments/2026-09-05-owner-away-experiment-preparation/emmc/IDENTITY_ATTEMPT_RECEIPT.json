@@ -1,0 +1,58 @@
+{
+  "actions": {
+    "emmc_postflight": false,
+    "emmc_preflight": false,
+    "emmc_read": false,
+    "identity_check_consumed": true,
+    "log_export": false,
+    "log_seal": false,
+    "native_recovery": false,
+    "reboot": false
+  },
+  "classification": "identity-check-inconclusive-read-deferred",
+  "command_sha256": "3b1927faca7fc1cdd76e1051e2c6d6b73d8b162f29bb968f4be65737bbb72dc9",
+  "disposition": "No further device connection; sole custody retained pending coordinator review of owner-visible state.",
+  "enabled_completion_identity": {
+    "completion_sha256": "77aed6f7be6cd790c6db92a33611b97e21cbf2af09ebd0d6caf3279000781343",
+    "launcher": {
+      "launcher_sha256": "ee739d2855a7fffd14d6c6bd08a64c6e3c22973522e1a81ebcae09ce4310326f",
+      "pins_sha256": "be7847ca613ea08b5dc602951ab43c2b9fb0bd1a619c4bb9d8abe93bac89e762"
+    }
+  },
+  "enabled_files": {
+    "SESSION_PACKET.json": "ea86d3226e2646f7000adb351e3d7f3efab76482ece7435255a285611b46cb23",
+    "execution_gate.py": "62845b4b0ecce7f540554a58a0e58e3246531e655de8edff6a13477bba48c4d6",
+    "source-pins.json": "be7847ca613ea08b5dc602951ab43c2b9fb0bd1a619c4bb9d8abe93bac89e762"
+  },
+  "enabled_source_identity": {
+    "launcher_sha256": "ee739d2855a7fffd14d6c6bd08a64c6e3c22973522e1a81ebcae09ce4310326f",
+    "pins_sha256": "be7847ca613ea08b5dc602951ab43c2b9fb0bd1a619c4bb9d8abe93bac89e762"
+  },
+  "enablement": "exact reviewed ENABLEMENT.patch applied; enabled identities below are separate from disabled revision",
+  "facts": {
+    "current_boot_age": null,
+    "current_boot_identity": null,
+    "logger_liveness": null,
+    "owner_console_acceptance": null,
+    "stable_power": null
+  },
+  "limits": {
+    "connections": 1,
+    "retries": 0,
+    "stderr_bytes": 4096,
+    "stdout_bytes": 4096,
+    "transport_seconds": 10
+  },
+  "process": {
+    "elapsed_seconds": 9.054,
+    "exit_status": -15,
+    "reason": "outer-timeout",
+    "stderr_bytes": 0,
+    "stdin_complete": true,
+    "stdout_bytes": 0
+  },
+  "reviewed_disabled_revision": "767a21e66dcc1f0fef8be0573215162548d12480",
+  "schema": 1,
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

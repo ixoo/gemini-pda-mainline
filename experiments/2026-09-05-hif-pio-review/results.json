@@ -1,0 +1,21 @@
+{
+  "reviewed_commit": "54c9caac9aa947774b312107e1cb57904c912f50",
+  "scope": "host scalar-callback behavior only",
+  "input_sha256": {
+    "hif_pio.h": "00e4af207f8b8a4276d493b8ffd7420290fa6478ec9d10324e9df0719ab39023",
+    "hif_command.h": "8758f34294f8270be433ec7e40c59dcd0595889b322884cf2919ae159f2e7d80",
+    "hif_transfer_size.h": "1c4542d509330474382d522924a2cb72795d2a806eae081d0c9f525699b3bd95",
+    "hif_pio_test.c": "1f72ddd2068bc2f4d38629f47d172f353020e704a27d93f2e216030ed87747de"
+  },
+  "compiler": "Homebrew clang version 22.1.8",
+  "mutants": {
+    "tx-byte-order": "attributable assertion/sanitizer refusal",
+    "rx-byte-order": "attributable assertion/sanitizer refusal",
+    "wrong-setup-offset": "attributable assertion/sanitizer refusal",
+    "failed-read-stored": "attributable assertion/sanitizer refusal",
+    "capacity-check-removed": "attributable assertion/sanitizer refusal"
+  },
+  "hif_pio_test.c": "pio_order_endian_padding_refusal_partial_failure_no_retry=pass",
+  "boundary-test.c": "independent_pio_boundary_cases=10041 PASS",
+  "result": "PASS"
+}

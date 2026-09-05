@@ -1,0 +1,47 @@
+{
+  "scope": "Pinned selected gen3 public source; runtime config not observed",
+  "sources": [
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/config.h",
+      "bytes": 30266,
+      "sha256": "c773b8e5e07978d60565c2eeee976dae3e285ecb9152062fe3bb50b1358a1c32"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/nic_tx.h",
+      "bytes": 59012,
+      "sha256": "a51b8357b2a5fc0fdff095866d693194274f552cb2e722016bb1ce7c81612db7"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/hal.h",
+      "bytes": 18239,
+      "sha256": "24b9bce2fc8b331d75a330cae8c9291816bb90cff8078200cd7ecb719f180ee0"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_tx.c",
+      "bytes": 104350,
+      "sha256": "1f479d41bab8e2b5bba68eb6514f3e977559d31d97c39c7833f3dc9f111cd1ed"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_rx.c",
+      "bytes": 126321,
+      "sha256": "a844bdf75065a152e78d30c789aabb398b0d0f336d30d6ffd028793bf091412b"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c",
+      "bytes": 215814,
+      "sha256": "56bf99536fcb96de5a5198943aec96c9efccb8af89261b29c62046e6560c422f"
+    }
+  ]
+}
