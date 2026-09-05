@@ -70,7 +70,7 @@ changed-ID rules and incomplete-versus-complete result distinctions remain.
 original baseline session source and closure are untouched. It requires the
 complete expected same-boot request frame plus exactly one announcement emitted
 by the pinned wrapper. Missing, duplicated, modified or extra output refuses.
-Complete stdin, exit 255 and no transport failure reason remain mandatory;
+Complete stdin, empty stderr, exit 255 and no transport failure reason remain mandatory;
 timeouts and interruptions are not promoted. The remote recovery shell is the
 unchanged original generator. A future timeout remains incomplete and requires
 review; prerequisite supplemental acceptance does not waive this new phase.
@@ -89,3 +89,10 @@ No actual device operation, kernel/backend build, candidate change or readiness
 promotion occurred. Tests do not establish performance or hardware support.
 Coordinator review of the exact enablement diff and actual new session facts is
 the remaining execution gate; the runtime code itself is complete.
+
+Coordinator stderr review correction: the completion adapter now explicitly
+requires empty stderr before interpreting native-request success. A valid exact
+stdout frame and exit255 with diagnostic stderr is inconclusive; raw stdout,
+stderr, process and consumed claim remain preserved, and a second attempt refuses.
+The completion suite now contains 21 cases. Updated completion/source packet
+identities and the unapplied enablement diff include this correction.

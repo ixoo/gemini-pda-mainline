@@ -39,7 +39,7 @@
   "runtime_wiring": {
     "completion": "emmc/finish-emmc.py",
     "completion_source_identity": {
-      "completion_sha256": "171a7fa207a980445a9ba4669dc32964f9f396cfe05faf77a4023ae1b1510698",
+      "completion_sha256": "77aed6f7be6cd790c6db92a33611b97e21cbf2af09ebd0d6caf3279000781343",
       "launcher": {
         "launcher_sha256": "ee739d2855a7fffd14d6c6bd08a64c6e3c22973522e1a81ebcae09ce4310326f",
         "pins_sha256": "017377e8ffcda4564facfdda88c0c56d4342843497b7dedf96b34fa682d8952f"
@@ -71,7 +71,7 @@
     "emmc/classify.py": "0be35e88eb3868e515d2185932519d0fb878260eced50f336e6dde301983acc3",
     "emmc/collect-emmc.py": "ee739d2855a7fffd14d6c6bd08a64c6e3c22973522e1a81ebcae09ce4310326f",
     "emmc/execution_gate.py": "347d0bee7417e4abc048e058b3d3c1e72fbd09d9e75c218f1af5c68dd70eaade",
-    "emmc/finish-emmc.py": "171a7fa207a980445a9ba4669dc32964f9f396cfe05faf77a4023ae1b1510698",
+    "emmc/finish-emmc.py": "77aed6f7be6cd790c6db92a33611b97e21cbf2af09ebd0d6caf3279000781343",
     "emmc/guarded_observation.py": "5fe4472b3ed61812cc05b6662decac89f6799d81de06def4f8bae51cb920317d",
     "emmc/observe.sh": "dbdf6a7c07c9ad895e75e8dc83b229567da7b22e92d905f284ff43208d902e31",
     "emmc/prerequisite.py": "402847813aac73da5abb7ad993cbd326510d9fc0ba85ec5ad9cf0399d4e48621",

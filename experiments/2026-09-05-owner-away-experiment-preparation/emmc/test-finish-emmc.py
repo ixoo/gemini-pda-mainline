@@ -347,6 +347,21 @@ class CompletionTests(unittest.TestCase):
         with self.assertRaises(ValueError): self.execute(context)
         self.assertFalse(self.finish_root.exists())
 
+    def test_native_stderr_diagnostics_remain_inconclusive_and_preserved(self):
+        self.observe()
+        pin, _ = self.preservation()
+        context = self.admission_for('request-recovery', preservation_manifest_sha256=pin)
+        diagnostics = b'synthetic SSH diagnostic\n'
+        result = self.execute(context, err=diagnostics)
+        self.assertEqual(result['classification'], 'inconclusive')
+        directory = self.finish_root / 'request-recovery'
+        self.assertEqual((directory / 'native-reboot/stderr.txt').read_bytes(), diagnostics)
+        self.assertIn(b'__A53_NATIVE_RECOVERY_END__', (directory / 'native-reboot/stdout.txt').read_bytes())
+        self.assertEqual(json.loads((directory / 'native-reboot/process.json').read_text())['exit_status'], 255)
+        self.assertTrue((directory / 'claim.json').is_file())
+        with self.assertRaises((ValueError, FileExistsError)):
+            self.execute(context)
+
     def test_completion_process_counts_types_elapsed_and_native_frame_refuse(self):
         self.observe(); context = self.admission_for('preserve-log'); raw = W['frame']()
         for changes in ({'stdout_bytes': True}, {'stdout_bytes': len(raw) + 1}, {'exit_status': False},

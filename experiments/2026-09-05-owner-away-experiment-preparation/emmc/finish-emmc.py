@@ -201,6 +201,7 @@ def classify_phase(context, out, err, process):
                   'export': parsed['result'], 'controller_error_count': errors}
         return result, {name: parsed['files'].get(name, b'') for name in F['EXPORT_FILES']}
     if action == 'request-recovery':
+        require(err == b'', 'native recovery stderr diagnostics')
         result = S['parse_recovery_request'](out, process, boot)
         result.update({name: context['admission'][name] for name in
                        ('recovery_mode', 'emergency_reason', 'acknowledge_unique_ram_loss')})
