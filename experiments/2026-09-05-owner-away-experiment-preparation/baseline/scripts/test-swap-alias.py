@@ -13,6 +13,33 @@ FUNCTION = SOURCE[SOURCE.index('active() {'):SOURCE.index('\ninactive() {')]
 
 
 class AliasTests(unittest.TestCase):
+    def test_fresh_sample_order_and_refusals(self):
+        sequence = SOURCE[SOURCE.index('# Two fresh samples,'):
+                          SOURCE.index('\nchanged=yes')]
+        self.assertEqual(sequence.count('/sbin/swapoff -- /dev/block/zram0'), 1)
+        sequence = sequence.replace('/sbin/swapoff -- /dev/block/zram0',
+                                    'printf "mutation\\n"')
+        mocks = r'''set -euo pipefail
+count=0
+identity() { count=$((count+1)); printf 'identity:%s\n' "$count"; [[ "$FAIL" != "identity:$count" ]]; }
+active() { printf 'active:%s\n' "$count"; [[ "$FAIL" != "active:$count" ]]; }
+sleep() { [[ "$*" == 2 ]]; printf 'sleep:2\n'; [[ "$FAIL" != sleep ]]; }
+'''
+        for failure in ('none', 'identity:1', 'active:1', 'sleep', 'identity:2',
+                        'active:2', 'identity:3', 'active:3'):
+            with self.subTest(failure=failure):
+                result = subprocess.run(['bash', '-c', mocks + sequence],
+                                        env=dict(os.environ, FAIL=failure),
+                                        text=True, capture_output=True, timeout=3)
+                self.assertEqual(result.returncode == 0, failure == 'none', result.stderr)
+                lines = result.stdout.splitlines()
+                self.assertEqual(lines.count('mutation'), int(failure == 'none'))
+                if failure == 'none':
+                    self.assertEqual(lines, ['identity:1', 'active:1',
+                        'pre_deactivation_sample=1', 'sleep:2', 'identity:2', 'active:2',
+                        'pre_deactivation_sample=2', 'identity:3', 'active:3',
+                        'temporary_zram=deactivation-begin', 'mutation'])
+
     def test_exact_aliases_and_refusals(self):
         root = HERE.parents[3] / 'artifacts/a53-authenticated/development/swap-alias-tests'
         root.mkdir(parents=True, exist_ok=True)

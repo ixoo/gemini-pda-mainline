@@ -13,7 +13,7 @@ No live work is performed by this handoff or scheduled coordination.
 | `scripts/install-boot2.py` entry point | `78f3ade3a410055269183cc81fe243f46db77b2127f120a9d1d3ea5b41d867d3` |
 | `scripts/installer.py` corrected adapter | `ef9cf896f9b62b903b7d16176b5da40096e54cc839c5001fd2f5047638f72a6f` |
 | Locally derived corrected installer | `fb62efa6fc74840698f6a2538963262d3949ee1678ee6d23fb7708654cd5ad8d` |
-| `scripts/temporary-zram.sh` alias-aware adjustment | `73c2a17fd09e6134375a410e3509e4f12fd5aa8af22da7a451298ef9d115bde9` |
+| `scripts/temporary-zram.sh` alias-aware adjustment | `128e0728a9b520a0bdfa676a0b67cc915e140fb9a545b53b543afa3a3256ad4a` |
 | Unchanged raw boot candidate | `a25fe4cb907f4f3da2bf9f36fcf38b3fff7d8ba84adc37562fdcff2f1a422daf` |
 | Exact padded candidate | `a423ad63fbb97d0f3fc4726d3957e05d3951480996b754d839a89d80a1232821` |
 | Candidate manifest | `54b07f0c70e77fd1e34fde4fc1c929980f0d8c3410f0a97ce3f15ffec1a66179` |
@@ -62,7 +62,10 @@ new receipt paths and available tmpfs space must pass the existing checks.
 
 The deactivation must freshly match the privately recorded Gemian boot, release,
 architecture, init mount namespace, exact configured backing, utility hashes,
-one unused swap entry and memory margin. Only the original and canonical
+one unused swap entry and memory margin. Run those identity/active predicates
+twice two seconds apart, then again immediately before the deactivation command.
+Every sample must independently satisfy the unchanged zero-usage and memory
+gates; no historical sample substitutes for a fresh one. Only the original and canonical
 spellings resolving to that same backing are accepted. Its successful receipt
 must show no active swap and preserved identity/memory. A changed boot or record
 refuses; do not assume the earlier read-only observation is still current.
@@ -116,3 +119,10 @@ Validation for these executable revisions is recorded in the attended outcome:
 38 actual remote gate cases, 11 stage cases, nine host installer tests and six
 alias fixture cases passed. This document adds no executable behavior. No retry
 has run and no hardware support claim is promoted.
+
+The sampling correction passes eight inert sequence cases: exact two-sample /
+two-second wait / immediate-check ordering, plus refusal at each identity/active
+gate or the wait. No refused sequence reaches the inert mutation marker. The
+six alias cases also pass (two methods, 0.052 seconds); Bash syntax and ShellCheck
+pass. These fixtures execute only the extracted predicate/sequence, never a
+device command. The correction does not itself consume or admit a live action.
