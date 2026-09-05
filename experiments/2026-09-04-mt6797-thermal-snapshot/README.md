@@ -298,3 +298,7 @@ Conversion age and physical cause remain unknown. This candidate is an
 observation successor, so this result does not close the original exact-image
 cold-repeat gate. The workload and three-snapshot budget are consumed; no retry
 is admitted. The device remains on mainline after final accounting.
+
+The [sensor mapping and freshness audit](SENSOR_FRESHNESS_AUDIT.md) now binds
+the interpretation to the integrity-verified production source. Snapshot validity
+is a converted-range predicate, not proof of conversion freshness.

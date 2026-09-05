@@ -8359,10 +8359,14 @@ completed with passing CPU/RAM/frequency/cleanup and final accounting, but its
 [thermal comparison rejected](../experiments/2026-09-04-mt6797-thermal-snapshot/results/attribution-runtime-thermal-rejected.txt).
 The per-slot evidence identifies the largest rise within bank 0/sensor 0,
 which became the final maximum; a winning-slot change alone is insufficient.
-**Selected next:** perform an offline source/register-contract audit of sensor
-mapping and conversion freshness against the captured slot trajectories before
-proposing another device experiment. Preserve the rejection and unchanged
-comparison limits. No further diagnostic reads or workload on the consumed
+The [exact-source mapping/freshness audit](../experiments/2026-09-04-mt6797-thermal-snapshot/SENSOR_FRESHNESS_AUDIT.md)
+now confirms that validity is a converted-range predicate and repeated sensor IDs
+use separate bank measurements; neither establishes conversion age or placement.
+**Selected next:** establish the register contract for any proposed freshness
+observation, including read side effects, bank ownership and what its outcomes
+can distinguish. Design and test that observation offline before admitting a
+source change or another boot. If no verified freshness signal exists, retain
+unknown age. Preserve the rejection and unchanged comparison limits. No further diagnostic reads or workload on the consumed
 session; no repeat is admitted. Any future boot requires a distinct,
 decision-changing hypothesis and published bounded protocol. Integrated thermal
 repeatability, broader load/hotplug, cpufreq/OPP, idle, suspend, thermal protection
