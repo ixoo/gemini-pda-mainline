@@ -1,0 +1,11 @@
+Recovery exact-candidate shell validation
+actual_worker_body_cases=12 signal_cleanup_cases=4 spawn_registration_signal_cases=1 simultaneous_children=4 cancellation_publication_failure=1 negative_cleanup_mutations=2 source_identity_mutations=1 original_worker_payload_bytes=preserved device_action=none
+validation=recovery-thermal-assessment response_cases=3 timing_edges=2 slot_identity_cases=1 within_bounds_nonpromotion_cases=1 mutations_rejected=18 cli_cases=3 device_action=none
+recovery_builder=pass unchanged_worker_bodies=4 combined_cases=2 combined_mutations_rejected=20 consumed_boots_rejected=4 cli_cases=3 device_action=none
+recovery_boundary_cases=14 caught_signals=4 no_snapshot_after_quiescence_or_sleep_refusal=pass device_action=none
+generated_recovery_observer_cases=11 device_action=none
+recovery_shutdown_guard_cases=10 actual_shutdowns=0 device_action=none
+cycle_scenarios=4 workload_scenarios=13 restart_refusals=17 receipt_field_mutations=16 receipt_duplicate_refusals=1 manifest_tamper_refusals=1 resealed_semantic_mutations=4 device_action=none
+managed_test_cleanup=pass
+No kernel build, device workload, shutdown or partition operation occurred.
+The temporary Git test checkout, initramfs copy and extracted BusyBox were removed.

@@ -1,0 +1,17 @@
+Recovery cycle starting-state observation
+host_known_mainline_USB_gadget=not-enumerated
+known_good_OS_transport=SSH
+kernel_release=3.18.41+
+boot_id=5d45171e-6c70-4fe4-99b6-715ac22ca826
+identity_command_exit=0
+mainline_shutdown_requested=no
+Gemian_shutdown_requested=no
+recovery_capture_started=no
+workload_requested=no
+partition_access=none
+kernel_build=none
+result=old-mainline-cycle-prerequisite-not-applicable
+next_gate=publish-and-test-known-good-OS-cycle-receipt-adapter
+Only kernel and boot identity were read. No device-failure conclusion follows
+from missing host USB enumeration. SSH operational warnings and host-local
+paths are omitted; no credentials or private device identifiers are published.

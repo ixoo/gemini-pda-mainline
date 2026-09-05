@@ -1,9 +1,10 @@
 # Frozen recovery host protocol
 
 The [recovery design](RECOVERY_DESIGN.md) and source-pinned program are now
-connected to [the host runner](scripts/run-recovery.py). Its execution remains
-unselected until the complete exact-candidate shell suite passes and that
-result is published. This document is the reviewable protocol, not evidence
+connected to [the host runner](scripts/run-recovery.py). The complete exact-candidate shell suite now passes on published source
+revision `3a32fd29`. The device has since been identified in Gemian, so its
+old-mainline shutdown prerequisite cannot be satisfied. This version is not
+selected for device execution; a known-good-OS cycle adapter is required. This document is the reviewable protocol, not evidence
 of another boot or successful thermal comparison.
 
 ## Identity and cycle
@@ -90,3 +91,30 @@ shutdown occurs in those fixtures. Exact-candidate BusyBox validation must run
 from a clean published revision with `run-candidate-shell-tests.py --suite recovery`.
 Its adapter limitations and source identities must be retained with the result
 before any real preparation command above is selected.
+
+
+## Exact-shell admission result
+
+The [exact candidate pass](results/recovery-exact-shell-pass.json) and
+[fixture counts](results/recovery-exact-shell-pass.txt) cover the complete recovery
+suite on clean revision `3a32fd29c9030fe427b6b2064ee990e9ea618ccd` under AArch64
+user-mode emulation. They include real worker bodies, generated observer and
+recovery boundary, caught signals, guarded shutdown with injected operations,
+pristine/host state and one-shot refusal paths. Temporary test artifacts and
+checkout were removed. This is not a new hardware result.
+
+The host no longer enumerates the known mainline USB gadget. A bounded SSH
+identity check instead found Gemian kernel `3.18.41+` on boot
+`5d45171e-6c70-4fe4-99b6-715ac22ca826`; see the
+[start-state record](results/recovery-cycle-start-state.txt). The previous
+attribution session cannot provide this version's exact shutdown frame.
+No shutdown capture or new workload has started. Missing USB enumeration was
+not treated as a failed device boot.
+
+The workload source and exact-shell result remain useful, but a fresh-cycle
+receipt cannot be fabricated from a different OS. Adapt the cycle prerequisite
+to the observed known-good OS: validate the same inactive live-GPT boot2 target
+and exact full image through the standing installer, skip a matching image,
+retain the complete readback/shutdown receipt and reject source boot reuse.
+Publish and test that adapter before device preparation. No owner boot2 selection
+is requested until the resulting receipt proves clean shutdown/unreachability.

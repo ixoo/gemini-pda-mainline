@@ -8372,12 +8372,15 @@ The source-pinned builder and combined classifier now pass host transcript,
 executed recovery-boundary and generated-observer fixtures, retaining all four
 worker bodies and frequency/liveness gates. The [recovery host protocol](../experiments/2026-09-04-mt6797-thermal-snapshot/RECOVERY_PROTOCOL.md)
 now binds an exclusive capture, published source result, terminal-state shutdown,
-fresh pristine gate and final accounting with host refusal fixtures. **Selected
-next:** run the complete recovery suite under the exact candidate BusyBox from
-the clean published revision, then publish its result before cycle preparation
-and owner-selected boot2. A host fixture pass alone admits no device action.
-Preserve unknown conversion age, the previous rejection and unchanged comparison
-limits. No further diagnostic reads or workload on the consumed
+fresh pristine gate and final accounting with host refusal fixtures. The complete recovery suite now passes under the exact candidate BusyBox on
+published revision `3a32fd29`. The device is now identified in Gemian, so the
+old-mainline shutdown prerequisite no longer applies. **Selected next:** adapt
+and offline-test the fresh-cycle receipt to that known-good OS, retaining exact
+live-GPT inactive boot2 validation, matching-image skip/full-readback policy,
+shutdown/unreachability and fresh boot identity. Publish the adapter before
+preparing the device; physical boot2 selection follows only after the new
+receipt validates. Reuse the existing candidate and bounded workload, preserving
+unknown conversion age, the previous rejection and unchanged comparison limits. No further diagnostic reads or workload on the consumed
 session; no repeat is admitted. Any future boot requires a distinct,
 decision-changing hypothesis and published bounded protocol. Integrated thermal
 repeatability, broader load/hotplug, cpufreq/OPP, idle, suspend, thermal protection

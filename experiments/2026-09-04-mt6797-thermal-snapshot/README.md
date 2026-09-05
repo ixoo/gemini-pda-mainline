@@ -319,3 +319,8 @@ remain required before execution.
 The [frozen recovery host protocol](RECOVERY_PROTOCOL.md) now has a one-shot
 runner and cycle/postflight fixtures. Exact-candidate shell validation remains
 required before real shutdown or runtime admission.
+
+The [complete recovery exact-shell suite](results/recovery-exact-shell-pass.json)
+now passes on the frozen published source. The device is now identified in Gemian, so the old-mainline cycle prerequisite
+must be adapted and validated before preparation. No new runtime or hardware
+support claim follows from the emulator result.
