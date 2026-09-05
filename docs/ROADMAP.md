@@ -86,7 +86,7 @@ when it can resolve a supported interface or measurement dependency. Unassigned 
 | A72 and power | Resolve a supported measurement or production-ownership contract; completed V4 is not a repeat queue item | Source/math review, fake-hardware tests, ownership design | Exact experiment admission; broader load waits for defensible thermal observation/protection gates |
 | Upstream preparation | Extract and review a minimal MT6797 infracfg reset topic from the corrected implementation | Authorship audit, dependency reduction, binding review, maintainer-target discovery | Truthful certification, focused compile/schema checks and existing exact runtime evidence before submission |
 | A53 serviceability | Specify and freeze an integration baseline and a ten-cold-boot regression protocol | Authenticated USB userspace, keyboard test plan, log separation, read-only storage tests | One scheduled device slot; persistent writes and power-off need their own reviewed protocols |
-| Wi-Fi | Resolve the exact CONSYS/WMT, firmware and HIF contract; implement the smallest supported path to standard networking | Upstream comparison, protocol/resource analysis, firmware-rights decisions, implementation and refusal fixtures | First diagnostic session needs a frozen recoverable baseline and attributable logs; no dependency on A72 completion or all ten cold boots |
+| Wi-Fi | Specify shared CONSYS/EMI/AP-DMA ownership and implement the gen3 AHB command/firmware contract | Protocol/resource analysis, retained-capture calibration research, implementation and refusal fixtures | First mainline session needs a frozen recoverable baseline and attributable logs; no dependency on A72 completion or all ten cold boots |
 | Display, touch and GPU | Map the minimal DRM/panel dependency graph and resolve panel/backlight ownership | Compare current upstream bindings, documented resources and historical evidence | Shared clocks/resets/PMIC reviewed with power; GPU load waits for power/thermal prerequisites |
 | Bluetooth, GNSS, FM, audio and sensors | Produce protocol/resource and firmware-rights decisions for each component | Identity matching, transport feasibility and upstream reuse research | Separate subsystem profiles and later runtime slots; no assumed vendor-ABI compatibility |
 | Cellular and cameras | Identify upstream transport/pipeline feasibility and the irreducible blockers | Public interface, resource, licensing and existing-effort research | Shared-memory/crash isolation and radio or imaging-specific safety review before hardware work |
@@ -171,9 +171,11 @@ The first preparation order is:
    PWRAP serviceability inputs, then freeze a candidate, authenticated userspace,
    separate logs and one bounded first-boot protocol. Do not assume today's
    similarly named profile reproduces the historical package.
-2. **Wi-Fi:** resolve the documented firmware/transport gaps, implement and test
-   the smallest defensible path, and prepare its first discriminating session
-   against the A53 recovery/logging contract. Do not manufacture a boot candidate
+2. **Wi-Fi:** implement and test the selected gen3 command/response contract,
+   resolve shared EMI/AP-DMA ownership and applicable calibration inputs, then
+   prepare the first mainline session against the A53 recovery/logging contract.
+   Use the [Wi-Fi contract](hardware/mt6797-wifi.md) and existing private captures.
+   Do not manufacture a boot candidate
    while chipset, firmware ownership or resource assumptions remain unresolved.
 3. **Keyboard coverage:** prepare a bounded event classifier and finite owner
    key sequence against the baseline's declared input/console interface. Its
@@ -218,6 +220,14 @@ applies, including its standing authorization when the known-good OS is
 reachable. Stage only that selected candidate; never replace a staged candidate
 with another queued image before its result or explicit supersession is recorded.
 Physical boot2 selection remains the owner's action for each required cycle.
+
+Centralize physical-start requests in the integration task recorded in the
+workstream registry. Send one **Ready for boot2 — action needed** session card
+after the selected image has a verified installation/readback and clean-shutdown
+receipt, with queue state **waiting-owner-boot**. Include physical steps,
+expected screen/USB behavior, required interaction and stop/recovery conditions.
+Link the owning session packet and avoid repeating an unchanged request. A
+preparation or compile result cannot substitute for that deployment receipt.
 
 When the owner returns, present one session card: the exact physical action,
 expected screen/USB behavior, approximate owner time if known, any key presses

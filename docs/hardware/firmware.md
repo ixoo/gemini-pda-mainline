@@ -35,7 +35,7 @@ The sanitized per-file manifest is in the
 | Touchscreen | `novatek_ts_fw.bin` | NVT driver requested it and reported a matching checksum; seven private extractions are byte-identical at 118,784 bytes (SHA-256 `4cab8b83dfabe89864521539fb4da9ee0fbea1737b03d5f0d3e159cd076f4f1c`) | Required by the vendor NVT path; redistribution/license unknown; keep out of Git and keep mainline firmware update disabled by default. See the [copy audit](../../experiments/2026-07-12-input-backlight-recovery/results/nvt-firmware-copy-audit-20260714.txt) |
 | MT6797 SPM | Nine `pcm_*.bin` files | Vendor kernel reported all nine SPM program versions | Power-management microcode; license unknown |
 | Connectivity | `WMT_SOC.cfg`, two `ROMv3_patch_*.bin` files | `wmt_launcher` is running; WMT status reports MT279 ROM E1, branch W1715MP, patch `20180307`, matching the ROMv3 header text | MT6797 CONSYS/WMT connectivity, BT, and GNSS/FLP patch/config; per-file load log and license remain unresolved |
-| Wi-Fi | `WIFI_RAM_CODE_6797` | Present; `mt-wifi` is bound and live dmesg shows HIF-SDIO traffic | Load was not independently attributed to this file in the retained log; license unknown |
+| Wi-Fi | `WIFI_RAM_CODE_6797` | Present; `mt-wifi` has observed platform ancestry. HIF-SDIO log messages do not establish an SDIO bus or exact image load | Retained MTKE structure validated; runtime load attribution and redistribution rights remain unresolved. See the [Wi-Fi contract](mt6797-wifi.md) |
 | FM | `fm_cust.cfg`, MT6631 coefficient and patch files | Vendor config is installed; kernel config and `/dev/fm` identify the MT6631 FM path | Coefficient/patch load and physical FM population remain unverified; license unknown |
 | Cellular modem | `modem_3_3g_n.img` | Active CCCI/CLDMA stack; file present in vendor directory | Proprietary baseband firmware; never load outside the intended modem path |
 | Modem logging | Catcher and engineering filter files | Present alongside modem image | Diagnostic filters, not executable modem firmware |
@@ -62,7 +62,13 @@ touchscreen followed the same fallback path from `/system/etc/firmware`.
 The MT6797 WMT/BTIF/Wi-Fi/GNSS transport and its source-level comparison are
 documented in the [connectivity/WMT recovery experiment](../../experiments/2026-07-12-connectivity-wmt-recovery/README.md).
 
-## Exclusions
+## Firmware-file inventory exclusions
+
+These exclusions describe the firmware-file inventory only. The later
+[private partition backup](../../experiments/2026-07-14-mmc-partition-backup/README.md)
+has a separate scope and includes protected configuration partitions. Applicable
+retained captures may be analyzed privately under the standing inspection policy;
+their integrity and calibration applicability must be established separately.
 
 - `/lib/firmware` contains 27 Debian package files for unrelated USB, serial,
   audio, and amateur-radio hardware. No Gemini runtime load evidence was found,

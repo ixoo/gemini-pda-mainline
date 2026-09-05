@@ -59,6 +59,21 @@
         }
       ],
       "owner_task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64"
+    },
+    "wifi-parent-attribution": {
+      "workstream": "wifi",
+      "preparation_state": "stale",
+      "device_state": "complete",
+      "owner": "Wi-Fi mainline support",
+      "reviewer": "Project Planning",
+      "device_custodian": null,
+      "experiment": "experiments/2026-09-05-mt6797-wifi-contract/README.md",
+      "session_packet": "experiments/2026-09-05-mt6797-wifi-contract/SESSION.md",
+      "candidate_record": null,
+      "readiness_record": "experiments/2026-09-05-mt6797-wifi-contract/results/device-session.md",
+      "dependencies": [],
+      "owner_task_id": "01a06f91-092d-71d0-acbe-4f38ccff2c56",
+      "readiness_note": "Completed Gemian metadata observations; budgets consumed and custody released. No new boot2 candidate. Corrected helpers are not admitted for another attempt."
     }
   }
 }

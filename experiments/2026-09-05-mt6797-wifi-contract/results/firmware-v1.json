@@ -1,0 +1,17 @@
+{
+  "phase": "mtkw_comparator",
+  "inspector_sha256": "e8f6e4981404de39c85be6ef99a4d75a1fbd9af74546a19de3beb5d6f6322978",
+  "result": {
+    "artifact_identity": "recorded_gemini_wifi_firmware",
+    "file_bytes": 411632,
+    "hardware_access": false,
+    "load_authorized": false,
+    "reason": "unsupported_container_format",
+    "redistribution_permission": "unresolved",
+    "runtime_loader_applicability": "unproven",
+    "sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+    "status": "inconclusive"
+  },
+  "separate_public_magic_class": "MTKE",
+  "method": "Exact retained private file inspected in RE VM; no bytes, addresses or payload strings emitted; source snapshot retained privately."
+}

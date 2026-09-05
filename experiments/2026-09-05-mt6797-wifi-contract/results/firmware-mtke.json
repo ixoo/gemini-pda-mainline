@@ -1,0 +1,40 @@
+{
+  "inspector_sha256": "4d8b57da9dabf20070aff27f6a5cc21f1f958c8b127af70ced8620a9be5c1f98",
+  "tests_passed": 55,
+  "environment": "existing RE VM immutable retained vendor payload; streamed inspector; no firmware copy or load",
+  "result": {
+    "artifact_identity": "recorded_gemini_wifi_firmware",
+    "container_crc_matches": true,
+    "destination_ranges_disjoint": true,
+    "emi_destination_ranges_disjoint": true,
+    "emi_destination_ranges_in_window": true,
+    "emi_section_count": 2,
+    "emi_window_bytes": 524288,
+    "file_bytes": 411632,
+    "format": "planet_gen3_mt6797_mtke",
+    "hardware_access": false,
+    "header_bytes": 24,
+    "hif_encrypted_section_count": 2,
+    "hif_key_index_masking_needed": false,
+    "hif_section_count": 2,
+    "load_authorized": false,
+    "reason": "bounded_mtke_structure",
+    "redistribution_permission": "unresolved",
+    "reserved_fields_zero": true,
+    "runtime_loader_applicability": "unproven",
+    "section_count": 4,
+    "section_lengths": [
+      5840,
+      8992,
+      331296,
+      65392
+    ],
+    "section_payload_bytes": 411520,
+    "section_table_bytes": 64,
+    "sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+    "source_sections_disjoint": true,
+    "status": "structurally_valid",
+    "unreferenced_file_bytes": 24
+  },
+  "scope": "File structure only; source-derived HIF/EMI classification is not a runtime load observation."
+}

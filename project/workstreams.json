@@ -68,7 +68,8 @@
       "status": "active",
       "scope": [
         "project/upstream-topics.json",
-        "topic-local binding/driver review"
+        "topic-local binding/driver review",
+        "Isolated production source-selection/builder/validator proposal; shared input admission and main integration remain with Project Planning"
       ],
       "evidence": [
         "experiments/2026-09-03-mt6797-infracfg-reset-repair/README.md",
@@ -122,19 +123,23 @@
       "task_id": "01a06f91-092d-71d0-acbe-4f38ccff2c56",
       "status": "active",
       "scope": [
-        "New MT6797 Wi-Fi contract experiment",
+        "experiments/2026-09-05-mt6797-wifi-contract/",
         "Shared CONSYS/WMT and Wi-Fi firmware/HIF contract proposals"
       ],
       "evidence": [
         "experiments/2026-07-12-connectivity-wmt-recovery/README.md",
-        "docs/hardware/firmware.md"
+        "docs/hardware/firmware.md",
+        "docs/hardware/mt6797-wifi.md",
+        "experiments/2026-09-05-mt6797-wifi-contract/README.md"
       ],
       "issue_urls": [
         "https://github.com/ixoo/gemini-pda-mainline/issues/25"
       ],
       "dependencies": [],
       "runtime_dependency": "An admitted recoverable session with attributable logs; read-only vendor-OS inventory may precede a new A53 candidate. No dependency on A72 completion or ten cold boots.",
-      "queue_items": []
+      "queue_items": [
+        "wifi-parent-attribution"
+      ]
     },
     {
       "id": "display",
@@ -215,15 +220,15 @@
     }
   ],
   "device_handoff": {
-    "last_completed_experiment": "experiments/2026-09-04-mt6797-thermal-snapshot/V4_RUNTIME_ACCEPTANCE.md",
-    "result": "experiments/2026-09-04-mt6797-thermal-snapshot/results/v4-runtime-pass.txt",
+    "last_completed_experiment": "experiments/2026-09-05-mt6797-wifi-contract/SESSION.md",
+    "result": "experiments/2026-09-05-mt6797-wifi-contract/results/device-session.md",
     "queue": "project/experiment-queue.json",
     "authority": "Completed observation and consumed budget do not authorize a repeat or imply the device has been released; obtain custodian handoff before changing its session.",
     "next_inspection": {
       "owner": "Wi-Fi mainline support",
       "task_id": "01a06f91-092d-71d0-acbe-4f38ccff2c56",
       "state": "completed-custody-released",
-      "evidence_state": "Sanitized experiment handoff pending integration; no further physical inspection assigned.",
+      "evidence_state": "Sanitized completed-session evidence integrated; no further physical inspection assigned.",
       "scope": "Bounded Gemian Wi-Fi transport/resource inventory; reviewed return to Gemian if required. No new boot2 candidate or partition write.",
       "policy": "docs/SAFETY.md#standing-gemian-inspection-authorization",
       "live_state": "Must be established by the assigned custodian; not inferred from this registry."

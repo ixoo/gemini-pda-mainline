@@ -60,7 +60,7 @@ before upstream submission.
 | USB 1 | `0x11200000` + `0x1000`; SIF `0x11210000` + `0x1000` | 73 LOW | infra ICUSB and SSUSB reference clocks | Standard MUSB-like core, but distinct MT6797 USB11 SIF/PHY, `0xa0`/`0xa4`/`0xa8` level-1 IRQ block, six-endpoint host contract, and two-clock glue; reuse MUSB core only after the USB11 boundary is modeled |
 | AFE | `0x11220000` + `0x10000` | 151 LOW | upstream binding already names eight clocks and audio power domain | Add SoC node using `mediatek,mt6797-audio`; only `0x000`–`0x84c` is used by the upstream regmap |
 | CONSYS/WMT | `0x18070000` + `0x200`; AP RGU `0x10007000` + `0x100`; TOPCKGEN `0x10000000` + `0x2000`; SPM `0x10006000` + `0x1000` | 284/285 LOW | `SCP_SYS_CONN`; VCN18/VCN28/VCN33 BT/VCN33 Wi-Fi; dynamic 2 MiB no-map reserve | New MT6797 consys power/clock/reset/firmware owner; keep disabled until ownership and protocol are specified |
-| WMT Wi-Fi HIF | `0x180f0000` + `0x1100` | 283 LOW | `INFRA_AP_DMA` (`wifi-dma`) | Proprietary gen2 cfg80211/MAC over MT6797 AP-DMA; not an MT76-compatible MAC; new firmware/HIF boundary required |
+| WMT Wi-Fi HIF | `0x180f0000` + `0x1100` | 283 LOW | `INFRA_AP_DMA` (`wifi-dma`) | Vendor gen3 AHB SDIO-like path over MT6797 AP-DMA; exact register/firmware protocol has no demonstrated upstream match. See the [Wi-Fi contract](mt6797-wifi.md) |
 | BTIF | `0x1100c000` + `0x1000`; TX `0x11000a00` + `0x80`; RX `0x11000a80` + `0x80` | 130/116/117 LOW | `INFRA_BTIF` and `INFRA_AP_DMA`; consys BGF wake uses SPI 284 | Reuse Linux STP/H:4 and HCI layers where proven; add an MT6797 BTIF/DMA transport, not `/dev/stpwmt` |
 | MSDC0 | `0x11230000` + `0x10000` | 79 LOW | `CLK_INFRA_MSDC0` | The local MT6797 `mtk-sd` path and Gemini eMMC node enumerate the DF4064 user area, boot areas, and GPT at 25 MHz with explicit VEMC/VIO18. Guarded inactive-`boot2` I/O works; reliability and suspend remain open |
 | MSDC1 | `0x11240000` + `0x10000` | 80 LOW | `CLK_INFRA_MSDC1` | Add microSD only after pinctrl, rails, and voltage switching are modeled |
@@ -1582,19 +1582,21 @@ runtime high, and runtime low. `WMT_SOC.cfg` says `wmt_gps_lna_pin=0` and
 `wmt_gps_lna_enable=0`, which is a configuration distinction, not a physical
 population proof.
 
-The Wi-Fi child is a vendor HIF/DMA engine, not a self-contained upstream
-wireless MAC: `wifi@180f0000` uses one `0x1100` window, SPI 283, and the
+The Wi-Fi child exposes a vendor HIF/DMA interface: `wifi@180f0000` uses
+one `0x1100` window, SPI 283, and the
 `INFRA_AP_DMA` clock. The live Planet DTS has no second DMA window. A generic
 Gemian reference tree contains an alternate second window and `hardware-values`
 property; those values are rejected for Gemini until live evidence supports
-them. The vendor dmesg contains `HIF-SDIO` traffic and the platform driver is
-`mt-wifi`, while the public Linux 7.1.3 tree has no `mediatek,wifi` or MT6797
-WMT/SDIO Wi-Fi driver (its `btmtksdio` code is Bluetooth-only and targets
-different chips). The source audit shows a full proprietary gen2
-cfg80211/MAC stack over an MT6797 AP-DMA HIF, not an mt76-compatible MAC; a
-new Wi-Fi firmware/HIF boundary is required unless a separately documented
-upstream protocol implementation is found. Do not bind `mt76` by
-compatible-string similarity. A fresh read-only repeat observed `wlan0` up
+them. Direct netdev ancestry identifies the platform driver `mt-wifi`.
+The selected Planet build uses gen3 AHB SDIO-like glue with a private SDIO
+shim; `HIF-SDIO` log text does not establish a standard SDIO parent. Audited
+host files carry GPLv2 notices, independently of the retained firmware's
+unresolved redistribution rights. No audited upstream driver demonstrates
+the exact MT6797 register, DMA and firmware protocol match. Some `mt76`
+devices are integrated MACs, so integration alone is not a compatibility
+test. The [Wi-Fi contract](mt6797-wifi.md) links the selected-source audit,
+actual ancestry observation and their limits. Do not bind `mt76` by
+compatible-string similarity. An earlier read-only repeat observed `wlan0` up
 with carrier and cumulative BTIF TX/RX DMA activity while `mtk_wmt` owned the
 shared CONSYS resources; this confirms active vendor use without proving a
 mainline protocol. See the
