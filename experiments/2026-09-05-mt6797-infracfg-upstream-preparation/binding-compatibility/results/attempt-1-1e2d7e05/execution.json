@@ -1,0 +1,9 @@
+{
+  "repository_commit": "1e2d7e05ea29dcb17573756837d89b44bd3b1ea3",
+  "published_ref": "refs/heads/main",
+  "exit_code": 1,
+  "elapsed_seconds": 28.597,
+  "outer_timeout_seconds": 1000,
+  "kill_grace_seconds": 5,
+  "executions": 1
+}

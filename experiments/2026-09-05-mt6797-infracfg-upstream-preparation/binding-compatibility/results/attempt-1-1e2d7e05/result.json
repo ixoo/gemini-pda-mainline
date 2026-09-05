@@ -1,0 +1,416 @@
+{
+  "after": {
+    "build": {
+      ".config": "d37fb4ebef4ecdcd5854ada8ae3a4c8eed29c630fddd77329bc0a8beed246530",
+      "arch/arm64/boot/Image.gz": "c0a7e412f6d778ae523f1dfd63f9c54db91e269fe45b06d7411663dbf88dcc1e",
+      "arch/arm64/boot/dts/mediatek/mt6797-evb.dtb": "e6226ae9628dd0356772f69f5e7987aa8a19cdd92616114c4ef0b92dfac94109",
+      "arch/arm64/boot/dts/mediatek/mt6797-x20-dev.dtb": "698d683f4c8fef4d4887911e913198c859ac0cadd1042370571466d06fd785c3",
+      "drivers/clk/mediatek/clk-mt6797-reset-test.o": "49f2c59ee4942aff787f57fe76073c7b8f296fff9e8c7d9bdef075eebc50a09c",
+      "drivers/clk/mediatek/clk-mt6797.o": "ac31e10f83c5baf145f91983fbf30dfe22a7f4fc352de5543891806077f31f86",
+      "drivers/clk/mediatek/reset-test.o": "df10679309a0024909a3f4f52117a1c64fd6b8a7c09cce3ec64c64cc533f8947",
+      "drivers/clk/mediatek/reset.o": "f8f0a72621b94fff10acc4d5e7b6142788961492cddac1d1cda3a6a7d88a55bf",
+      "include/config/kernel.release": "200aed562b70c9a2b94d4f223e9f67836fd230a0400a0f09a1bee5792c19fd17"
+    },
+    "source": {
+      "Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml": "83e13fddec7a39f2f6cc95408e9f3c4389fe55c9d33dfd635105d36c52c2979a",
+      "arch/arm64/boot/dts/mediatek/mt6797.dtsi": "8bddb48d07e5d5af1ee4a1f0fc2369f4424f47881cc070342a74b684b028f353",
+      "drivers/clk/mediatek/Kconfig": "3f87bc5158596cfb7d723e7d9efb82646596a9bc81399eba94ad9337540da40c",
+      "drivers/clk/mediatek/Makefile": "de8bad78288fea86b39d6c74044c0f3ca692290fd69ff7e93af00d372cd30ca2",
+      "drivers/clk/mediatek/clk-mt6797-reset-test.c": "d8ae35ac66827fc5b696aa896f8856739ff70321d00ca8c48c84d41c489cc23f",
+      "drivers/clk/mediatek/clk-mt6797-reset.h": "240dc21ef060bb0bb2cedb23ad356bfcb2a1d27e636928fea86abb30d107969a",
+      "drivers/clk/mediatek/clk-mt6797.c": "16a1e0b8af26fc09de6b9096f4c211eae5231d7505d962dae476fc1958ee94f9",
+      "drivers/clk/mediatek/reset-internal.h": "978e6630d2784074b4e9ff248077026072689e365f0bdc327d6948601acad189",
+      "drivers/clk/mediatek/reset-test.c": "01a861da34f550546da15534f29aee1118df69eac827216d1458b78839a95fd3",
+      "drivers/clk/mediatek/reset.c": "02e62f0b73481a51137442d609cdf88291e0e9108dafe078440054fa434fe315",
+      "include/dt-bindings/reset/mt6797-resets.h": "d83d278526a434d453f66235d28a737d4803fe315b82c6bea79d27ecb6c23269"
+    }
+  },
+  "before": {
+    "build": {
+      ".config": "d37fb4ebef4ecdcd5854ada8ae3a4c8eed29c630fddd77329bc0a8beed246530",
+      "arch/arm64/boot/Image.gz": "c0a7e412f6d778ae523f1dfd63f9c54db91e269fe45b06d7411663dbf88dcc1e",
+      "arch/arm64/boot/dts/mediatek/mt6797-evb.dtb": "e6226ae9628dd0356772f69f5e7987aa8a19cdd92616114c4ef0b92dfac94109",
+      "arch/arm64/boot/dts/mediatek/mt6797-x20-dev.dtb": "698d683f4c8fef4d4887911e913198c859ac0cadd1042370571466d06fd785c3",
+      "drivers/clk/mediatek/clk-mt6797-reset-test.o": "49f2c59ee4942aff787f57fe76073c7b8f296fff9e8c7d9bdef075eebc50a09c",
+      "drivers/clk/mediatek/clk-mt6797.o": "ac31e10f83c5baf145f91983fbf30dfe22a7f4fc352de5543891806077f31f86",
+      "drivers/clk/mediatek/reset-test.o": "df10679309a0024909a3f4f52117a1c64fd6b8a7c09cce3ec64c64cc533f8947",
+      "drivers/clk/mediatek/reset.o": "f8f0a72621b94fff10acc4d5e7b6142788961492cddac1d1cda3a6a7d88a55bf",
+      "include/config/kernel.release": "200aed562b70c9a2b94d4f223e9f67836fd230a0400a0f09a1bee5792c19fd17"
+    },
+    "source": {
+      "Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml": "83e13fddec7a39f2f6cc95408e9f3c4389fe55c9d33dfd635105d36c52c2979a",
+      "arch/arm64/boot/dts/mediatek/mt6797.dtsi": "8bddb48d07e5d5af1ee4a1f0fc2369f4424f47881cc070342a74b684b028f353",
+      "drivers/clk/mediatek/Kconfig": "3f87bc5158596cfb7d723e7d9efb82646596a9bc81399eba94ad9337540da40c",
+      "drivers/clk/mediatek/Makefile": "de8bad78288fea86b39d6c74044c0f3ca692290fd69ff7e93af00d372cd30ca2",
+      "drivers/clk/mediatek/clk-mt6797-reset-test.c": "d8ae35ac66827fc5b696aa896f8856739ff70321d00ca8c48c84d41c489cc23f",
+      "drivers/clk/mediatek/clk-mt6797-reset.h": "240dc21ef060bb0bb2cedb23ad356bfcb2a1d27e636928fea86abb30d107969a",
+      "drivers/clk/mediatek/clk-mt6797.c": "16a1e0b8af26fc09de6b9096f4c211eae5231d7505d962dae476fc1958ee94f9",
+      "drivers/clk/mediatek/reset-internal.h": "978e6630d2784074b4e9ff248077026072689e365f0bdc327d6948601acad189",
+      "drivers/clk/mediatek/reset-test.c": "01a861da34f550546da15534f29aee1118df69eac827216d1458b78839a95fd3",
+      "drivers/clk/mediatek/reset.c": "02e62f0b73481a51137442d609cdf88291e0e9108dafe078440054fa434fe315",
+      "include/dt-bindings/reset/mt6797-resets.h": "d83d278526a434d453f66235d28a737d4803fe315b82c6bea79d27ecb6c23269"
+    }
+  },
+  "commands": [
+    {
+      "argv": [
+        "git",
+        "ls-remote",
+        "--exit-code",
+        "--refs",
+        "https://github.com/ixoo/gemini-pda-mainline.git",
+        "refs/heads/main"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.280304,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "publication.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "publication.stdout": "713a79c15adcbc1f16c28342d4bae93a3a3a06f5163b6a8d2251753a69589019"
+      },
+      "name": "publication",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/python",
+        "/workspace/gemini-pda/checkouts/1e2d7e05ea29dcb17573756837d89b44bd3b1ea3/scripts/source-tree-integrity",
+        "verify",
+        "/workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-infracfg-upstream-kunit-source"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 14.817495,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "source-before.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source-before.stdout": "bcb478c96d7a9f957cd14a9be767b27639437f98a38d0c20d1bd5f33a989d601"
+      },
+      "name": "source-before",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/dt-doc-validate",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mandatory/clock/mediatek,infracfg.yaml"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.869717,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "mandatory-doc.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mandatory-doc.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "mandatory-doc",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/dt-mk-schema",
+        "-j",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mandatory/processed.json",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mandatory/clock/mediatek,infracfg.yaml"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 2.075576,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "mandatory-process.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mandatory-process.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "mandatory-process",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/dt-doc-validate",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/optional/clock/mediatek,infracfg.yaml"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.8688,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "optional-doc.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "optional-doc.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "optional-doc",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/dt-mk-schema",
+        "-j",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/optional/processed.json",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/optional/clock/mediatek,infracfg.yaml"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 2.065628,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "optional-process.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "optional-process.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "optional-process",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-old-absent.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-old-absent.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.005652,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt6797-old-absent.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dtc-mt6797-old-absent.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt6797-old-absent",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-new-one.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-new-one.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.006534,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt6797-new-one.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dtc-mt6797-new-one.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt6797-new-one",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-zero.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-zero.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.005546,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt6797-zero.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dtc-mt6797-zero.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt6797-zero",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-two.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-two.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.005229,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt6797-two.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dtc-mt6797-two.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt6797-two",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-two-cells.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-two-cells.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.005084,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt6797-two-cells.stderr": "5b70bc81cdd4b35c69d2b72cb9930f67aa3d79a60b0869a3317d41b86092139d",
+        "dtc-mt6797-two-cells.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt6797-two-cells",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    }
+  ],
+  "completion": {
+    "boundary": "blocked-pending-signal-snapshot-after-validation-cleanup-and-log-digests",
+    "decision": "REFUSED",
+    "later_signals": "do-not-reclassify-completed-decision"
+  },
+  "dtbs": {
+    "mt6797-new-one": {
+      "dtb": "661158e5be13f7db7566fb359c602449b22c7515d2bba796f2af248d9c43fd90",
+      "dts": "9a384d27b41fcc033219c8075b23c7b410ad452856698aca0c09ed098f2bfb05"
+    },
+    "mt6797-old-absent": {
+      "dtb": "d01ba823c688eb7e9ae02822405737cf1f42f483169654155e56d5675c246383",
+      "dts": "fc62b84edd497da8ae9d3a41a1ace3a12fd176a8b4ecf5ea7b8405b4234f389e"
+    },
+    "mt6797-two": {
+      "dtb": "f6f4b4c8d3285fe5556fd7070cdd6d0d0c6c4aa431dc9d9f583b80e2fcaea299",
+      "dts": "a42048595b9ce5c0483b693f7c7fd12e9cbf943f3ac2e00309874d2a52f0cd16"
+    },
+    "mt6797-zero": {
+      "dtb": "6889609a1091663dc26fbff87454df7b1e5786044c2d3899c33228aeabe0aadd",
+      "dts": "0b99b04c6ef0d47b43a56d52cbdd9ece9f1809e6a3d4873266d4135d56d093ec"
+    }
+  },
+  "fixtures_sha256": "163afec1f1edbd09dac325453a21b5bdcf2a87765184724bab6ab505099f371d",
+  "published_ref": "refs/heads/main",
+  "reason": "unexpected dtc diagnostic",
+  "repository_commit": "1e2d7e05ea29dcb17573756837d89b44bd3b1ea3",
+  "result": "REFUSED",
+  "scratch_removed": true,
+  "tools": {
+    "aarch64-linux-gnu-gcc": {
+      "path": "/usr/bin/aarch64-linux-gnu-gcc-12",
+      "sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+      "version": "aarch64-linux-gnu-gcc-12 (Debian 12.2.0-14) 12.2.0\nCopyright (C) 2022 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+    },
+    "aarch64-linux-gnu-ld": {
+      "path": "/usr/bin/aarch64-linux-gnu-ld.bfd",
+      "sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+      "version": "GNU ld (GNU Binutils for Debian) 2.40\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) a later version.\nThis program has absolutely no warranty."
+    },
+    "build-dtc": {
+      "path": "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+      "sha256": "918bd1e8ee0ac2f08210e16eedc6486f6daa4872a108c9a4cc8f1b78422301a5",
+      "version": "Version: DTC 1.7.2-g53373d13"
+    },
+    "dt-doc-validate": {
+      "path": "/workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/dt-doc-validate",
+      "sha256": "c888aa0c3610177be991a29abbc99d39e7e3167bdfcff032883fc719a75e256f",
+      "version": "2026.6"
+    },
+    "dt-mk-schema": {
+      "path": "/workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/dt-mk-schema",
+      "sha256": "0060ed219838c6f2a9370603dd8582c7bc3b653c63bec239f20ef220ae8beb5c",
+      "version": "2026.6"
+    },
+    "dt-validate": {
+      "path": "/workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/dt-validate",
+      "sha256": "2d5c81138cb0b43072c5b68683d431c2bd88b301be7f624be68f1e2d157e4330",
+      "version": "2026.6"
+    },
+    "dtc": {
+      "path": "/usr/bin/dtc",
+      "sha256": "84a8279cdc8200af26d5d91182408374baef54867c1e23381cee769f2dd37d5d",
+      "version": "Version: DTC 1.6.1"
+    },
+    "make": {
+      "path": "/usr/bin/make",
+      "sha256": "00b2c2071bf57aa52559a91bf8a4ddcd0fcfd4718da2f83100593a45896c1fec",
+      "version": "GNU Make 4.3\nBuilt for x86_64-pc-linux-gnu\nCopyright (C) 1988-2020 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law."
+    },
+    "yamllint": {
+      "path": "/workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/yamllint",
+      "sha256": "e72a35839ecc6cc532cb99277674c851b0344bb0767bfb4ff94964e388f5e31e",
+      "version": "yamllint 1.38.0"
+    }
+  }
+}

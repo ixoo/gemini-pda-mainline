@@ -78,3 +78,6 @@ original topic. No new build or hardware support result is claimed here.
 structured comparison and refusal fixtures. It supersedes the prospective
 make-based processing step above with direct retained schema tools on two small
 copies. Backend execution still requires separate integrator review/admission.
+
+[Attempt 1](ATTEMPT_1.md) stopped at an unexpected dtc warning name/count before
+schema comparison. Its refusal is preserved; another execution is not admitted.
