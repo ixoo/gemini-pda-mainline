@@ -102,3 +102,7 @@ build, KUnit execution, binding/DT checks, failure-path tests, author certificat
 or maintainer feedback. Exact upstream build support remains the separately
 owned [source-selection integration](SOURCE_INTEGRATION.md). No device action
 is required by this routing or source review.
+
+The [failure/lifetime follow-up](PROVIDER_FAILURE_REVIEW.md) adds the concrete
+driver-core cleanup chain, retained reset-handle SRCU invalidation and existing
+clock error-handling boundaries. It leaves the source/profile proposal unchanged.
