@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "session_id": "79c7a398-7248-4f2e-ab17-d065ae091d16",
+  "state": "read-and-log-pass-native-recovery-inconclusive-awaiting-known-good",
+  "custodian_task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64",
+  "evidence_basis": "Custodian-reported completed preselection checks and shutdown transport; private raw evidence retained by custodian",
+  "candidate_record": "SESSION_PACKET.json",
+  "session_protocol": "SESSION_CARD.md",
+  "preselection": {
+    "kernel_release": "3.18.41+",
+    "architecture": "aarch64",
+    "boot_id": "1b2ffc97-3b3a-454c-b6cc-bceddfec1de1",
+    "battery_percent": 100,
+    "battery_health": "Good",
+    "usb_power_online": true,
+    "source_candidate_deployment_prerequisite_revalidation": "passed",
+    "read_claim": "absent"
+  },
+  "pstore_preservation": {
+    "bytes": 65524,
+    "sha256": "1034f25f41c1ea5d49c9b489da7f8cb55527ee86ce1aec5096dfc1282834874c",
+    "private_copy_verified": true,
+    "remote_deleted": false
+  },
+  "shutdown": {
+    "submitted_count": 1,
+    "reviewed_guard_marker": "__GEMIAN_SHUTDOWN_READY__",
+    "ssh_exit_status": 255,
+    "transport_result": "connection closed by remote host",
+    "electrical_off_verified": false
+  },
+  "owner_boot_report_received": true,
+  "physical_admission_complete": true,
+  "read_started": true,
+  "pause_policy": "After this one admitted device test, preserve and classify evidence, complete reviewed recovery, then pause all work without selecting another test.",
+  "owner_console_readable": true,
+  "owner_external_power_connected": true,
+  "runtime": {
+    "boot_id": "0b71058e-d3ca-4bce-bfdd-8d7103e8a188",
+    "pre_read_post": "passed",
+    "read_bytes": 16777216,
+    "read_count": 1,
+    "read_sha256": "a423ad63fbb97d0f3fc4726d3957e05d3951480996b754d839a89d80a1232821",
+    "sealed_log_bytes": 121074,
+    "sealed_log_records": 1746,
+    "controller_errors": 0,
+    "observation_manifest_sha256": "6fd4e057a00c768a7f9d88389c10944181dd7cef9e42a39118a9cfc7ac59aca6",
+    "preservation_manifest_sha256": "00d35571ef509b2933828eeee2936e33692d093b4e5b10693420d3980754b7ee"
+  },
+  "recovery_review": {
+    "admission_sha256": "fe4104cc704153fcb7904b00b7ccd1c119cea11b8de97c566079f50e0637a983",
+    "command_sha256": "4d389f1b21e17876d6fb2bb0b54f120be03dd83f59914777a6279ae2ec14ed39",
+    "independent_prepare_validation": "passed",
+    "request_outcome": "inconclusive: outer timeout despite complete native-request markers",
+    "request_manifest_sha256": "1dd939597cae203875d39203207e403e69aba28420898f42b62401c9a1e9f107",
+    "request_count": 1,
+    "request_elapsed_seconds": 14.058,
+    "request_exit_status": 255,
+    "request_stdout_bytes": 305,
+    "request_stderr_bytes": 0,
+    "retry_count": 0
+  }
+}

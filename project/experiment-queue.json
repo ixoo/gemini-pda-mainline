@@ -3,8 +3,8 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": null,
-  "selection_note": "Owner-requested normal Gemian SSH check succeeded. USB absence did not imply device unreachability; authenticate the live OS before selecting a transport. No eMMC read ran or is selected.",
+  "selected_item": "emmc-readonly",
+  "selection_note": "Final pre-pause eMMC read and complete log preservation passed. Native recovery request consumed once but its SSH completion was inconclusive; await owner-confirmed Gemian return and the separately admitted known-good check. No additional test is selected.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -45,14 +45,14 @@
     "emmc-readonly": {
       "workstream": "serviceability",
       "preparation_state": "stale",
-      "device_state": "complete",
+      "device_state": "read-complete-recovery-pending",
       "owner": "A53 baseline and queued device tests",
       "reviewer": "Project Planning",
       "device_custodian": "A53 baseline and queued device tests",
       "experiment": "experiments/2026-09-05-owner-away-experiment-preparation/README.md#emmc-readonly",
       "session_packet": "experiments/2026-09-05-owner-away-experiment-preparation/emmc/README.md",
       "candidate_record": "experiments/2026-09-05-owner-away-experiment-preparation/emmc/SESSION_PACKET.json",
-      "readiness_record": "experiments/2026-09-05-owner-away-experiment-preparation/emmc/INTEGRATED_SESSION_OUTCOME.md",
+      "readiness_record": "experiments/2026-09-05-owner-away-experiment-preparation/emmc/PAUSE_SESSION_PREPARATION.json",
       "dependencies": [
         {
           "item": "a53-authenticated-baseline",
@@ -61,7 +61,7 @@
         }
       ],
       "owner_task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64",
-      "readiness_note": "Attempt closed: late mainline identity refused before storage read; terminal log completely preserved; native recovery transport remained incomplete while independent changed-ID Gemian return passed. Device left running Gemian. The consumed identity admission is stale; a future session requires fresh reviewed admission and timely owner coordination. Existing candidate is unchanged and no storage support claim was added."
+      "readiness_note": "Fresh session consumed its single 16 MiB read and saved a complete error-free controller log. Native recovery markers were complete but transport timed out; no retry. Known-good confirmation remains pending actual owner return. Finish recovery evidence, then pause all work."
     },
     "wifi-parent-attribution": {
       "workstream": "wifi",
