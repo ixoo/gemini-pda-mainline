@@ -8408,12 +8408,12 @@ the consumed predecessor protocol. The runtime profile and exact config-input di
 source-pinned binding editor and generation checks. The binding patch now passes selector/refusal checks, style checks and replay;
 all predecessor profiles retain their exact patch inputs. The [runtime-profile build](../experiments/2026-09-04-mt6797-thermal-snapshot/results/v4-runtime-build-pass.json)
 now passes Buildbox, package/fetch verification and exact config-binding checks;
-only the resolved local version differs from the compile control. **Selected
-next:** independently compose and validate the corrected candidate with the
-unchanged initramfs and proven DT topology, permitting only its new provenance
-leaf, then freeze its output identities in the host and remote runner.
-Complete the candidate-pinned host/remote runner, durable-capture mutations and
-exact-candidate shell validation before installation or owner boot selection.
+only the resolved local version differs from the compile control. The [corrected offline candidate](../experiments/2026-09-04-mt6797-thermal-snapshot/results/v4-candidate-composition.json)
+now reproduces across two assemblies with unchanged initramfs and DT topology,
+only the new provenance leaf, and passing LK/padding/manifest mutation checks.
+**Selected next:** pin that exact candidate, record and release in the new host
+and remote runner; validate durable request/capture/restart refusals, complete
+cycle-receipt handling and the exact candidate shell before installation.
 The existing compile package remains unadmitted for boot. No further diagnostic reads or workload on the consumed
 session; no repeat is admitted. Any future boot requires a distinct,
 decision-changing hypothesis and published bounded protocol. Integrated thermal

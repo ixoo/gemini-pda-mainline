@@ -368,3 +368,9 @@ The [corrected-image runtime contract](V4_RUNTIME_ACCEPTANCE.md) now defines a
 workload-free regression gate for the changed conversion. Its offline
 orchestrator passes refusal and budget fixtures; candidate/profile binding and
 exact-shell admission are still required. No new boot or device action is admitted.
+
+
+The corrected candidate now passes [offline composition](results/v4-candidate-composition.json)
+and [frozen validation](results/v4-candidate-validation.json), including unchanged
+initramfs/topology and rejected DT, header, padding and manifest mutations.
+Host/remote runner and exact-shell admission remain required; it is not installed.

@@ -1,0 +1,17 @@
+{
+  "build_revision": "ba9067309dce21c3cfae750bc89de53f42bbb67f",
+  "candidate_padded_sha256": "b007af3d7025b804b34c6f1e717b2eca5e9fecf09b0ff731cede2a12116d993c",
+  "candidate_raw_sha256": "0430cee5f6891f48c90d5ab196c7d9141cd50870efe44c3328499e7d89b20fd2",
+  "candidate_raw_size": 7131136,
+  "classification": "offline-composition-not-deployed",
+  "device_action": "none",
+  "dt_delta": "exact-package-provenance-leaf-only",
+  "dt_mutations_rejected": 2,
+  "dtb_sha256": "94f5ee8ae61b938b1717ab0990d16dddeb883bd556f8794efa6e1b97b84b4a72",
+  "independent_DT_compositions": 2,
+  "independent_container_assemblies": 2,
+  "initramfs_sha256": "e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f",
+  "package": "linux-7.1.3-gemini-gemini-thermal-v4-corrected-940a0fbb-f789e695",
+  "record_identity": "6972913af84c5b651848516456d1c6744015f3fc02a9d18596441a6c82d97ad3",
+  "release": "7.1.3-gemini-thermal-v4-corrected"
+}

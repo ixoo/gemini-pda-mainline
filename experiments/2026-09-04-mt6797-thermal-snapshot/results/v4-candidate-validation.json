@@ -1,0 +1,9 @@
+{
+  "candidate_padded_sha256": "b007af3d7025b804b34c6f1e717b2eca5e9fecf09b0ff731cede2a12116d993c",
+  "candidate_raw_sha256": "0430cee5f6891f48c90d5ab196c7d9141cd50870efe44c3328499e7d89b20fd2",
+  "classification": "frozen-offline-candidate-pass",
+  "container_mutations_rejected": 2,
+  "device_action": "none",
+  "manifest_mutations_rejected": 4,
+  "padding_mutations_rejected": 2
+}

@@ -158,4 +158,43 @@ hashes. The resolved config differs from the compile control only in local
 version; the config-input digest matches the new kernel binding exactly.
 The emitted A41 record identity is
 `6972913af84c5b651848516456d1c6744015f3fc02a9d18596441a6c82d97ad3`.
-No candidate has yet been composed or admitted, and no device access occurred.
+At this build boundary no candidate had yet been composed or admitted, and no
+device access occurred; offline composition is recorded below.
+
+
+## Frozen offline candidate
+
+The [corrected constructor](scripts/compose-v4-candidate.py) pins the validated
+runtime package and all six package inputs from the build receipt. It preserves
+the proven topology/thermal DT, reservations, boot CPU and the exact audited
+initramfs. Only the package's provenance leaf changes. Two DT compositions and
+two container assemblies produced identical bytes; parsed-tree comparison and
+the independent CPU-map validator passed. Two DT mutations rejected.
+
+The [composition result](results/v4-candidate-composition.json) freezes:
+
+- raw container: 7131136 bytes, SHA256
+  `0430cee5f6891f48c90d5ab196c7d9141cd50870efe44c3328499e7d89b20fd2`;
+- padded boot2 image: 16777216 bytes, SHA256
+  `b007af3d7025b804b34c6f1e717b2eca5e9fecf09b0ff731cede2a12116d993c`;
+- composed DT SHA256:
+  `94f5ee8ae61b938b1717ab0990d16dddeb883bd556f8794efa6e1b97b84b4a72`;
+- unchanged initramfs SHA256:
+  `e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f`.
+
+The private candidate is `artifacts/thermal-snapshot-composition/candidate-v4-ba906730`.
+The container name is `gemini-tv4`; addresses, boot arguments, LK contract and
+ARM64 decompression bounds remain checked by the pinned independent analyzer.
+The [frozen validator](scripts/validate-v4-candidate.py) checks the complete file
+inventory and manifest, all content identities and exact zero padding. Its
+[validation receipt](results/v4-candidate-validation.json) records two rejected
+header mutations, two padding mutations and four manifest mutations. Temporary
+composition and mutation files were removed. No device operation or kernel
+rebuild occurred during composition.
+
+This candidate is validated offline, not admitted for installation. The
+candidate-pinned host/remote runner, complete cycle receipt, durable restart
+refusals and exact candidate shell validation remain required before any
+consuming observation or physical boot. Existing consumed protocols cannot be
+retargeted by simply substituting a candidate hash. Thermal repeatability and
+all wider CPU/power-management gates remain closed.
