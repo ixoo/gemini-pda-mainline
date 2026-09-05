@@ -41,7 +41,7 @@ case "$(uname -m)" in
   *) die "expected an aarch64 native builder or x86_64 cross-builder" ;;
 esac
 
-for command in awk basename cmp find gzip head jq od sha256sum sort tail tr uniq wc; do
+for command in awk basename cmp find gzip head jq od python3 sha256sum sort tail tr uniq wc; do
   require_command "${command}"
 done
 
@@ -187,11 +187,6 @@ jq -e '
 ' "${kernel_manifest}" >/dev/null || \
   die "invalid provenance/kernel-manifest.json"
 
-manifest_source_sha256="$(jq -er '.kernel.sha256' "${kernel_manifest}")"
-build_source_sha256="$(jq -er '.source_sha256' "${build_json}")"
-[[ "${build_source_sha256}" == "${manifest_source_sha256}" ]] || \
-  die "provenance source_sha256 does not match the packaged kernel manifest"
-
 build_profile="$(jq -r '
   if has("build_profile") and .build_profile != null then .build_profile else "" end
 ' "${build_json}")"
@@ -255,6 +250,12 @@ else
     ' "${build_json}" >/dev/null || \
     die "legacy build base_config/config_fragments disagree with the packaged manifest"
 fi
+
+source_contract="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)/kernel_source_contract.py"
+[[ -f "${source_contract}" && ! -L "${source_contract}" ]] || \
+  die "kernel source contract is missing or unsafe"
+python3 "${source_contract}" "${kernel_manifest}" --build "${build_json}" >/dev/null || \
+  die "packaged kernel source provenance refused"
 
 validate_relative_path "selected patch series" "${selected_series}"
 [[ "${selected_series}" == patches/* ]] || \

@@ -195,7 +195,9 @@ def run_fixtures(root: Path) -> None:
                        "test-validate-kernel-artifact-provenance", "test-check-repository",
                        "boot2-device-guard-test.py", "test-build-kernel-backend",
                        "test-buildbox-preflight",
-                       "test-kernel-package-publication"):
+                       "test-kernel-package-publication",
+                       "test-kernel-source-contract.py", "test-kernel-source-archive.py",
+                       "test-kernel-source-builder.py"):
             argv = [str(root / "scripts" / script)]
             if script.endswith(".py"):
                 argv.insert(0, sys.executable)
