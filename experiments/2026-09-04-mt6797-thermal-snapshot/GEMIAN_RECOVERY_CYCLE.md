@@ -111,3 +111,20 @@ non-100-mC values before program creation and request publication. A new
 preflight mutation proves that no workload request follows this refusal.
 This earlier pass does not admit device preparation. Revalidate the corrected
 published revision under the exact candidate shell before selection.
+
+
+## Final adapter admission
+
+The [corrected full exact-shell suite](results/gemian-recovery-final-shell-pass.json)
+passes on clean published revision `ec05d52173e69bf0eaceec5ba9e256f9a6b0c7e5`,
+including the pre-admission precision refusal and all 15 Gemian host/restart
+cases. The same exact candidate BusyBox and initramfs hashes were verified;
+temporary binary, artifact copy and Git checkout were removed. No device
+operation or kernel build was part of validation.
+
+Publication of this result selects the exact guarded installation command
+above on the named Gemian boot. Reuse the existing candidate, skip a matching
+image, require full readback and complete shutdown evidence, then validate the
+receipt offline before asking the owner to select boot2. The runtime remains
+gated on that receipt and a fresh pristine mainline frame. No additional
+thermal snapshot or workload is permitted on any consumed session.

@@ -8377,11 +8377,13 @@ published revision `3a32fd29`. The device is now identified in Gemian, so the
 old-mainline shutdown prerequisite no longer applies. The [Gemian cycle adapter](../experiments/2026-09-04-mt6797-thermal-snapshot/GEMIAN_RECOVERY_CYCLE.md)
 now retains exact live-GPT inactive boot2 validation, matching-image skip/full
 readback, source boot binding and complete shutdown receipt validation with
-host mutation fixtures. **Selected next:** validate this complete adapter under
-the exact candidate shell from its clean published revision, publish admission,
-then prepare the device through the guarded installer. Physical boot2 selection
-follows only after the receipt validates. Reuse the existing image and bounded
-workload; preserve unknown conversion age and the prior thermal rejection. No further diagnostic reads or workload on the consumed
+host mutation fixtures. The corrected complete adapter now passes the exact candidate shell suite on
+published revision `ec05d521`, including initial precision refusal before any
+workload request. **Selected next:** prepare the named Gemian boot through the
+guarded installer, skip an already-matching image, require the complete full
+readback/shutdown receipt, then ask the owner to select boot2. After selection,
+run only the new receipt-bound pristine gate and one bounded recovery attempt.
+Reuse the existing image; preserve unknown conversion age and prior rejection. No further diagnostic reads or workload on the consumed
 session; no repeat is admitted. Any future boot requires a distinct,
 decision-changing hypothesis and published bounded protocol. Integrated thermal
 repeatability, broader load/hotplug, cpufreq/OPP, idle, suspend, thermal protection
