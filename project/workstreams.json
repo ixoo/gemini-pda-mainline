@@ -12,7 +12,7 @@
     "owner_away_policy": "Continue independent offline work; waiting-device items free worker slots. Readiness is not physical admission.",
     "integration_task_id": "01a06f5d-d1f6-7a01-a80a-7457a3c64676"
   },
-  "active_device_experiment": null,
+  "active_device_experiment": "a53-authenticated-baseline",
   "workstreams": [
     {
       "id": "integration",
@@ -232,6 +232,13 @@
       "scope": "Bounded Gemian Wi-Fi transport/resource inventory; reviewed return to Gemian if required. No new boot2 candidate or partition write.",
       "policy": "docs/SAFETY.md#standing-gemian-inspection-authorization",
       "live_state": "Must be established by the assigned custodian; not inferred from this registry."
+    },
+    "current_session": {
+      "owner": "A53 baseline and queued device tests",
+      "task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64",
+      "state": "attended-prerequisites-custody-held",
+      "evidence": "experiments/2026-09-05-owner-away-experiment-preparation/baseline/SWAP_MISSING_FACTS.md",
+      "scope": "Frozen authenticated baseline installation prerequisites; no physical boot request without verified deployment and clean shutdown."
     }
   }
 }

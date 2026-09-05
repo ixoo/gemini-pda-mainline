@@ -3,23 +3,23 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": null,
-  "selection_note": "No new session selected by this preparation plan; current physical custody and live state require the existing custodian handoff.",
+  "selected_item": "a53-authenticated-baseline",
+  "selection_note": "Owner-attended preparation is assigned exclusively to the baseline custodian. Installation stopped before staging/write; no physical boot is requested. Exact prerequisite actions and results remain in the linked experiment.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
       "preparation_state": "preparing",
-      "device_state": "unselected",
+      "device_state": "selected",
       "owner": "A53 baseline and queued device tests",
       "reviewer": "Project Planning",
-      "device_custodian": null,
+      "device_custodian": "A53 baseline and queued device tests",
       "experiment": "experiments/2026-09-05-owner-away-experiment-preparation/README.md#a53-authenticated-baseline",
       "session_packet": "experiments/2026-09-05-owner-away-experiment-preparation/baseline/SESSION.md",
       "candidate_record": "experiments/2026-09-05-owner-away-experiment-preparation/baseline/PREPARATION_RESULTS.md",
-      "readiness_record": "experiments/2026-09-05-owner-away-experiment-preparation/baseline/INTEGRATION.md",
+      "readiness_record": "experiments/2026-09-05-owner-away-experiment-preparation/baseline/SWAP_MISSING_FACTS.md",
       "dependencies": [],
       "owner_task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64",
-      "readiness_note": "Candidate construction, independent offline validation, saved host USB policy and recovery credential colocation complete. Live USB interface absent at host review; current screen/connection need owner clarification. Live custody, identity and guarded deployment remain unselected; no installation or new boot request."
+      "readiness_note": "Frozen candidate remains prepared, with sole custody held for attended installation prerequisites. Active swap prevented staging; read-only ownership investigation is in progress. No candidate upload, partition write, shutdown or waiting-owner-boot receipt."
     },
     "keyboard-coverage": {
       "workstream": "serviceability",
