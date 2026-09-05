@@ -69,3 +69,7 @@ observer/guard/body evidence retains its scope; no new live observation was run.
 Coordinator review must decide the subsequent runtime wiring and admission.
 This preparation does not change queue readiness or custody, enable eMMC,
 connect to a device, deploy, reboot or request a backend build.
+
+The complete tracked launcher/completion wiring, preserved original-source
+boundary, new-session recovery parser and exact unapplied enablement diff are
+now in [RUNTIME_HANDOFF.md](RUNTIME_HANDOFF.md). Execution remains disabled.
