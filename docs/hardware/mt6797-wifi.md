@@ -17,6 +17,24 @@ descriptions are evidence, not measured electrical behavior.
 | Retained WLAN image has a CRC-consistent MTKE section structure; runtime load attribution remains incomplete | Exact retained-file checksum, bounded RE-VM parser and vendor runtime evidence | Presence, a network interface and HIF log activity do not prove which image booted or permit redistribution |
 | The selected gen3 host consumes a fixed-size filesystem calibration record, with incomplete read/error enforcement and no audited record checksum gate | Pinned layout, reader and startup control flow; source-supported | Record presence and compatible versions do not establish factory provenance, board applicability, firmware application or regulatory approval; see the [calibration contract](../../experiments/2026-09-05-mt6797-wifi-contract/CALIBRATION.md) |
 
+
+The shared SPM control register is `0x10006000 + 0`; CSPM
+`0x11015000 + 0` is a different block despite using the same key value.
+Pinned public sources and the retained-kernel static audit attribute keyed
+SPM enabling writes to normal-world initialization and CONN transition paths.
+This is high-confidence static attribution, not proof of current execution,
+exclusive ownership, suspend lifetime or safe clearing/restoration. The
+[source decision](../../experiments/2026-09-05-mt6797-wifi-contract/SPM_KEY_ORDER.md),
+[retained attribution](../../experiments/2026-09-05-mt6797-wifi-contract/RETAINED_SPM_ATTRIBUTION.md)
+and [independent scope review](../../experiments/2026-09-05-spm-attribution-review/README.md)
+record the exact inputs, methods and remaining uncertainty.
+
+For this variant, selected Planet/Gemian source and retained-kernel control
+flow place CONN clock-disable before reset assertion during power-off. The
+legacy upstream provider uses the opposite order. This supports a per-domain
+ordering distinction; it does not establish electrical equivalence, successful
+transitions or a reason to reorder unrelated domains.
+
 The selected producer family adds a two-byte storage envelope around the WIFI
 record; the kernel consumer reads the logical payload. Retained-file presence,
 static producer analysis and public configuration mapping are separately

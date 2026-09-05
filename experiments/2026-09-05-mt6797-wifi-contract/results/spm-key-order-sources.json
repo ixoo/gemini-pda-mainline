@@ -1,0 +1,89 @@
+{
+  "scope": "Public source identities; SPM_KEY_ORDER.md is original analysis, no vendor code copied.",
+  "sources": [
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/clk/mediatek/clk-mt6797-pg.c",
+      "sha256": "4a661ed078bddaba15b7a7a2db27ca59ced8883a1b71c545bbbe24cddd64d58f",
+      "bytes": 88028
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c",
+      "sha256": "0ec8e9c1594626d0b31f2d2623927d614f63af4437c16df838e10e11258663ce",
+      "bytes": 42002
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/mt6797/include/mtk_wcn_consys_hw.h",
+      "sha256": "3ee7631a95a12f5cddd860c213e51e75e1cb3146ca858a892aaae55b4d22fad1",
+      "bytes": 12181
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/base/power/include/spm_v2/mt_spm_reg_mt6797.h",
+      "sha256": "a89a7b879f0b5ef8fd7d9625ff767741c6ad9e4f56a6bd82b52865cfd2d93c6b",
+      "bytes": 86278
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/base/power/spm_v2/mt_spm.c",
+      "sha256": "9fba5a03e3ea761e575f7fa4ad355d3d69256e78e86a8f6409654c50d1a2797c",
+      "bytes": 73654
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/base/power/mt6797/mt_pm_init.c",
+      "sha256": "6b022172c9b80bf92ca1a42d5d036e3e7e40e121ddad7f6d9340cd6461a5b223",
+      "bytes": 17860
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/base/power/spm_v2/mt_spm_sleep.c",
+      "sha256": "67bed25e4fb6f12c3ceae7ce2480ae7a91846334629f28c6575ea89e080bafb5",
+      "bytes": 31167
+    },
+    {
+      "repository": "gemian/gemini-linux-kernel-3.18",
+      "revision": "d388d350cb2dda8f23b99be6fa5db9628896e87f",
+      "path": "drivers/clk/mediatek/clk-mt6797-pg.c",
+      "sha256": "a362bb15b31978b629a5628d1e3942da6479e5a53879857a046a8d1a2cd73de4",
+      "bytes": 87659
+    },
+    {
+      "repository": "torvalds/linux",
+      "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "path": "drivers/pmdomain/mediatek/mtk-scpsys.c",
+      "sha256": "9ce2b2c95a38bc4c7b801aff9b7c26da2dc8ec2e3fd34199adaedf1db3007226",
+      "bytes": 29139
+    },
+    {
+      "repository": "torvalds/linux",
+      "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "path": "drivers/pmdomain/mediatek/mtk-pm-domains.c",
+      "sha256": "7c270b5541008e80eba016f0da0aea109af5e824d0d85549843c8810853b415c",
+      "bytes": 40505
+    },
+    {
+      "repository": "torvalds/linux",
+      "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "path": "drivers/clk/mediatek/clk-mt6797.c",
+      "sha256": "eaad6324621679371f33bbb76e10bcb0d3374b1f2dbbd837323b3f9e8fee1534",
+      "bytes": 23000
+    },
+    {
+      "repository": "gregkh/linux",
+      "revision": "199c9959d3a9b53f346c221757fc7ac507fbac50",
+      "path": "drivers/pmdomain/mediatek/mtk-scpsys.c",
+      "sha256": "9ce2b2c95a38bc4c7b801aff9b7c26da2dc8ec2e3fd34199adaedf1db3007226",
+      "bytes": 29139
+    }
+  ]
+}
