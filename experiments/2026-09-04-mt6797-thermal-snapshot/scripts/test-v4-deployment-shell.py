@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
-from v4_installer_guard import derive
+from v4_installer_guard import compose
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
@@ -14,7 +14,7 @@ spec = importlib.util.spec_from_file_location('guard_tests', REPO/'scripts/boot2
 shared = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(shared)
 source = (REPO/'experiments/2026-08-14-mt6797-runtime-provenance-observer/scripts/install-boot2.sh').read_text()
-derived = derive(source, (REPO/'scripts/boot2-device-guard.sh').read_bytes())
+derived = compose(source, (REPO/'scripts/boot2-device-guard.sh').read_bytes())
 remote = derived.split("<<'REMOTE'\n")[1].split('\nREMOTE\n')[0]
 # The only shell-condition adapter replaces the real block-node test. Metadata
 # applets below are injected; all production guard and write-order logic runs.

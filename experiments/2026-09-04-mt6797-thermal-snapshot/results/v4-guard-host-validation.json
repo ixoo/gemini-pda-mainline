@@ -7,6 +7,8 @@
   "device_action": "none",
   "exact_candidate_busybox": "not-yet-run",
   "guard_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
+  "host_evidence_path_cases": 8,
+  "host_runner_path_agreement": "pass",
   "kernel_build": "none",
   "observation_smoke_read_cases": 18,
   "observation_smoke_shell": "host-bash-and-host-applets-only",
@@ -19,14 +21,14 @@
   "shared_guard_test_groups": 18,
   "shellcheck": "pass",
   "sources": {
-    "install-v4-boot2.sh": "7bee032602e8bb92a44dec3b164f39682c036aaeb6b4a4b43ce3e04a3a046e44",
+    "install-v4-boot2.sh": "f8cdee58efc930f8d0473b1f715aad973e0d8a0153edb756691efe9604122e16",
     "run-v4-observation.py": "c9085c9054a4ec3ce1de19a5eaba09eb13171cb8d0856e787ff1b89881916c69",
     "run-v4-shell-tests.py": "d009d34616d2c3274938a8ef78dddbbb4a917d4f7f5f1935233f513547a73410",
-    "test-v4-deployment-shell.py": "c0c949ede4674f49187159b4a5e52bc9f466612424ba5826563300dd4582c68b",
-    "test-v4-installer-guard.py": "a561ba6886552c64c137d9f27a69ea20147c35a6daa24bf477cd3f4f07481751",
+    "test-v4-deployment-shell.py": "8234d5b97699f611d5296c5c39ef565d374311d6d6658d37bd05831afe67b9c2",
+    "test-v4-installer-guard.py": "7c550c47a3c2a7b196cf78d05c0284d634748bd854c570b3fdbc79d8dd4fcea7",
     "test-v4-remote-shell.py": "763725a5b037a300d41d520abfe60b9c5aa391d907c7e49409b74f56d10be00d",
     "v4_deployment_receipt.py": "2ef4fc09a11207e2f43cce9c1d328905b636d618c72f3ab76325ef766201c5b7",
-    "v4_installer_guard.py": "899db88f3add65c7fc39d310198bba5a7fb98c6259286b6d50375a6419b5e03b",
+    "v4_installer_guard.py": "9c72675e3043dcf735c8a368800ce9297ca6c343d81283505e7030de82253211",
     "v4_observation_protocol.py": "893a5aacd667d0cfde56b7cc1bf127798a7206b2e8c87a2c25dd736c08846fe1"
   }
 }

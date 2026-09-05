@@ -63,3 +63,23 @@ live_target_number="$(single_value target_major_minor "$probe_output")" || die '
             "printf 'result=%s\\ntarget_logical_name=boot2\\ntarget=%s\\nroot=%s\\n' \"$result\" \"$live_target\" \"$live_root\"\n" +
             "\tprintf 'boot2_device_guard=passed\\nboot2_device_guard_sha256=" + GUARD_SHA256 + "\\ntarget_major_minor=%s\\nroot_major_minor=%s\\n' \"$live_target_number\" \"$live_root_number\"")
     return source
+
+
+def compose(source, guard):
+    """Derive the entire final installer, including its receipt directory contract."""
+    if hashlib.sha256(source.encode()).hexdigest() != 'deaa0e886a881132dd49ee1e3d5b0e6f776400f51fa86a8d0b7c791e979d12a8':
+        raise ValueError('historical installer identity changed')
+    for old, new, count in (
+        ('ea603c1b1a64d4f1aa9cac3e53957a3e858a7ce04127f1aef36d4b0e8173cb02', 'b007af3d7025b804b34c6f1e717b2eca5e9fecf09b0ff731cede2a12116d993c', 1),
+        ('ad92d496dfb4fd183c35e6e0f32ce626b2045528657fb2567d8561dd02540f1a', 'dca4bb9e13601552a9e0b2da24a0b14f74959586a13b15d0281ac4225196fde9', 1),
+        ('gemian-runtime-provenance-observer-rndis-1d303dda10b4', 'candidate-v4-ba906730', 1),
+        ('2026-08-14-mt6797-runtime-provenance-observer', '2026-09-04-mt6797-thermal-snapshot', 1),
+        ('provenance-observer', 'thermal-v4', 7),
+    ):
+        if source.count(old) != count:
+            raise ValueError('V4 installer identity anchor changed')
+        source = source.replace(old, new)
+    if source.count('thermal-v4-deployment-*') != 2:
+        raise ValueError('V4 evidence path anchors changed')
+    source = source.replace('thermal-v4-deployment-*', 'thermal-v4-deployment-1')
+    return derive(source, guard)

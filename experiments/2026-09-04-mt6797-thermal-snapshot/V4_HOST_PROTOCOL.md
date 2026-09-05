@@ -136,3 +136,12 @@ Ordered work belongs to the [roadmap](../../docs/ROADMAP.md).
 The [host validation receipt](results/v4-guard-host-validation.json) binds these
 preliminary checks to exact sources; it explicitly leaves physical admission
 and exact-candidate execution pending.
+
+The final host argument gate now accepts only `thermal-v4-deployment-1`, matching
+the runner's frozen receipt path. An offline integration review found that the
+inherited global name substitution had left a different evidence prefix; this
+would have refused the published installation command before SSH. The entire
+V4 derivation is now shared by the installer and deployment fixtures. Eight
+executed host-path cases prove runner agreement and refusal of alternative,
+existing or symlinked capture directories. No device attempt encountered this
+host-only defect.

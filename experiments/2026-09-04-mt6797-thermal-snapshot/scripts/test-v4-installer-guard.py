@@ -3,16 +3,17 @@
 """Offline derivation and deployment-receipt refusal tests; no device IO."""
 from pathlib import Path
 import runpy
+import os
 import subprocess
 import tempfile
-from v4_installer_guard import derive, GUARD_SHA256
+from v4_installer_guard import derive, compose, GUARD_SHA256
 from v4_deployment_receipt import receipt
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
 source = (REPO / 'experiments/2026-08-14-mt6797-runtime-provenance-observer/scripts/install-boot2.sh').read_text()
 guard = (REPO / 'scripts/boot2-device-guard.sh').read_bytes()
-derived = derive(source, guard)
+derived = compose(source, guard)
 with tempfile.TemporaryDirectory(prefix='gemini-v4-guard-', dir='/tmp') as root:
     script = Path(root) / 'installer.sh'
     script.write_text(derived)
@@ -30,6 +31,50 @@ for text, library in (
         pass
     else:
         raise AssertionError('changed derivation source admitted')
+
+assert 'thermal-v4-deployment-1' in derived
+assert 'thermal-v4-deployment-*' not in derived
+assert 'thermal-snapshot-deployment-' not in derived
+assert 'candidate-v4-ba906730' in derived
+try:
+    compose(source + '\n', guard)
+except ValueError:
+    pass
+else:
+    raise AssertionError('unreviewed historical installer accepted')
+
+# Execute the actual host evidence-path gate before any SSH setup. The runner
+# supplies the authority for the only accepted receipt directory.
+runner = runpy.run_path(str(HERE/'run-v4-observation.py'))
+relative = runner['RECEIPT'].parent.relative_to(REPO)
+start = '[[ -d "$evidence_root" && ! -L "$evidence_root" ]]'
+end = '\nssh_command=('
+assert derived.count(start) == derived.count(end) == 1
+gate = start + derived.split(start)[1].split(end)[0]
+with tempfile.TemporaryDirectory(prefix='gemini-v4-host-gate-', dir='/tmp') as temporary:
+    root = Path(temporary).resolve()
+    evidence = root/'artifacts/device-install-evidence'
+    evidence.mkdir(parents=True)
+    expected = root/relative
+    env = dict(os.environ, repo_root=str(root), evidence_root=str(evidence))
+    program = 'set -eu\ndie() { exit 2; }\ngit() { [[ "$*" == "-C $repo_root check-ignore -q $evidence_dir" ]]; }\n' + gate + '\nprintf "%s\\n" "$evidence_dir"\n'
+    paths = [(str(relative), True), (str(expected), True),
+             (str(relative).replace('thermal-v4', 'thermal-snapshot'), False),
+             (str(relative).replace('deployment-1', 'deployment-2'), False),
+             (str(relative) + '/child', False), ('artifacts/elsewhere/thermal-v4-deployment-1', False)]
+    for path, admitted in paths:
+        result = subprocess.run(['bash','-c',program], env=dict(env,evidence_dir=path),
+                                text=True,capture_output=True,timeout=5)
+        assert (result.returncode == 0) == admitted, (path, result.stderr)
+        if admitted: assert result.stdout.strip() == str(expected)
+    expected.mkdir()
+    result = subprocess.run(['bash','-c',program],env=dict(env,evidence_dir=str(relative)),capture_output=True)
+    assert result.returncode != 0, 'existing capture accepted'
+    expected.rmdir()
+    expected.symlink_to(evidence, target_is_directory=True)
+    result = subprocess.run(['bash','-c',program],env=dict(env,evidence_dir=str(relative)),capture_output=True)
+    assert result.returncode != 0, 'symlink capture accepted'
+print('host_evidence_path_cases=8 runner_path_agreement=pass transport_access=none')
 
 fixture = runpy.run_path(str(HERE / 'test-observation-protocol.py'))
 fields = dict(fixture['receipt_fields'], boot2_device_guard='passed',
