@@ -157,3 +157,30 @@ ACK states cannot be silently adopted as off. Outer reset and rails, SPM access
 ownership, transition ordering and partial-failure recovery remain prerequisites
 for actual CONN activation. This adoption changes no kernel input, candidate,
 custody, readiness or hardware-support claim and requires no kernel build.
+
+## Deferred-registration kernel proposal review
+
+Project Planning adopts the five additive files at
+`e47791426ce286146b9b88a5b2abda8bb8d9b29e`. Independent review checked
+the exact provider/core source pins and the complete patch, runner and C fixture.
+The actual core skips NULL slots and preserves original lookup indices; static
+linked use is rejected before provider effects, and only eligible standalone
+entries can be withheld. No kernel correctness blocker was found. Integration
+also verified the published patch, runner, fixture and document hashes.
+
+The worker's 79 host scenarios, 12 unsafe mutations and sanitizer result exercise
+actual extracted provider functions and the core onecell translator. Integration
+did not repeat that fixture. Its initialization/publication operations are stubs;
+real genpd allocation, provider-device publication and devres cleanup are
+source-reviewed boundaries, not executed fixture coverage. The runner's socket
+timeout is not a total download deadline, its reads/output lack byte caps, and
+direct-child timeouts are not process-group containment. Do not claim hard
+end-to-end execution bounds from those limits. These tooling limitations do not
+change the reviewed kernel branching.
+
+The proposal remains outside all selected series and SoC data. It is suitable
+for a separately pinned compile-only Buildbox profile after shared-input review;
+that compilation has not yet run. Outer preparation must precede consumer
+attachment/runtime-PM activation, not merely consumer probe. Ownership, reset,
+rails, SPM authority and transition recovery remain unresolved; neither passive
+registration nor its host tests establish Wi-Fi support or admit a device test.

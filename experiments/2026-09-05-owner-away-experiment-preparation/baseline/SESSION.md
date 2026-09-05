@@ -56,6 +56,8 @@ The direct USB host interface must already have its reviewed `10.15.19.1/24`
 configuration. The device binds only `usb0`, `10.15.19.82:22`; fixed private
 host-key verification rejects a different endpoint. No DHCP, route changes or
 network configuration are hidden in these capture commands.
+The [host readiness handoff](HOST_READINESS.md) records saved host policy,
+current interface absence and the concrete remaining local preparation.
 
 | Phase | Maximum actions and duration | Evidence and stop condition |
 | --- | --- | --- |

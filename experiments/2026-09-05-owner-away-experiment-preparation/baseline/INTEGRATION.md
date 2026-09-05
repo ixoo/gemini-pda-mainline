@@ -121,3 +121,20 @@ monitor. The inherited 128 KiB file-growth limit and executable RAM delivery
 remain explicit feasibility gates. No helper or candidate is rebuilt here.
 Neither dependent packet enters the first baseline boot; preparation and
 physical admission remain separate.
+
+## Host setup resolution
+
+The [host readiness handoff](HOST_READINESS.md) through `420fa46a` distinguishes
+correct saved USB policy from the absent live interface. The coordinator also
+completed its two-file recovery credential colocation in the private
+candidate-owning checkout, with exclusive creation, permissions and exact-byte
+readback. No image or trust enrollment changed. The remaining owner clarification
+is the current visible screen and established USB data connection; another
+boot is not selected. Live custody/deployment remain unassigned.
+
+The worker subsequently confirmed the copied bytes and private-path checks, and
+ran the unchanged installer in local-validation-only mode. Candidate/input
+validation, adapter derivation, Bash syntax and ShellCheck passed with the
+previously reviewed adapter digest. No execution flag, live admission or device
+connection was used. This closes local tool setup without fabricating deployment
+or prior-result fields required by the collector and finishing phases.
