@@ -1,0 +1,18 @@
+Rob Herring <robh@kernel.org> (maintainer:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS)
+Krzysztof Kozlowski <krzk+dt@kernel.org> (maintainer:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS)
+Conor Dooley <conor+dt@kernel.org> (maintainer:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS)
+Matthias Brugger <matthias.bgg@gmail.com> (maintainer:ARM/Mediatek SoC support)
+AngeloGioacchino Del Regno <angelogioacchino.delregno@collabora.com> (maintainer:ARM/Mediatek SoC support)
+Stephen Boyd <sboyd@kernel.org> (maintainer:COMMON CLK FRAMEWORK)
+Brian Masney <bmasney+clk@redhat.com> (maintainer:COMMON CLK FRAMEWORK)
+Jerome Brunet <jbrunet+clk@baylibre.com> (maintainer:COMMON CLK FRAMEWORK)
+Philipp Zabel <p.zabel@pengutronix.de> (maintainer:RESET CONTROLLER FRAMEWORK)
+devicetree@vger.kernel.org (open list:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS)
+linux-kernel@vger.kernel.org (open list:ARM/Mediatek SoC support)
+linux-arm-kernel@lists.infradead.org (moderated list:ARM/Mediatek SoC support)
+linux-mediatek@lists.infradead.org (moderated list:ARM/Mediatek SoC support)
+linux-clk@vger.kernel.org (open list:COMMON CLK FRAMEWORK)
+git git://git.kernel.org/pub/scm/linux/kernel/git/robh/linux.git
+git git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
+git git://git.kernel.org/pub/scm/linux/kernel/git/clk/linux.git
+git https://git.pengutronix.de/git/pza/linux.git

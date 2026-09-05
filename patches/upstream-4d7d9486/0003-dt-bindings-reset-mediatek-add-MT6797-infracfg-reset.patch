@@ -1,0 +1,28 @@
+From 0d3d11f9304085d44124a750ab613663abb2ed53 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 5 Sep 2026 03:02:00 +0000
+Subject: [PATCH 3/6] dt-bindings: reset: mediatek: add MT6797 infracfg reset
+ IDs
+
+Expose the thermal and PMIC-wrapper reset IDs.
+Keep the existing optional reset-cell binding unchanged so older
+MT6797 descriptions remain valid.
+---
+ include/dt-bindings/reset/mt6797-resets.h | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+ create mode 100644 include/dt-bindings/reset/mt6797-resets.h
+
+diff --git a/include/dt-bindings/reset/mt6797-resets.h b/include/dt-bindings/reset/mt6797-resets.h
+new file mode 100644
+index 0000000..a990474
+--- /dev/null
++++ b/include/dt-bindings/reset/mt6797-resets.h
+@@ -0,0 +1,8 @@
++/* SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause) */
++#ifndef _DT_BINDINGS_RESET_MT6797_H
++#define _DT_BINDINGS_RESET_MT6797_H
++
++#define MT6797_INFRA_THERM_CTRL_RST	0
++#define MT6797_INFRA_PMIC_WRAP_RST	1
++
++#endif /* _DT_BINDINGS_RESET_MT6797_H */

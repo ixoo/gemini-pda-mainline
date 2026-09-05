@@ -1,0 +1,10 @@
+arch/arm64/boot/dts/mediatek/mt6797.dtsi
+drivers/clk/mediatek/Kconfig
+drivers/clk/mediatek/Makefile
+drivers/clk/mediatek/clk-mt6797-reset-test.c
+drivers/clk/mediatek/clk-mt6797-reset.h
+drivers/clk/mediatek/clk-mt6797.c
+drivers/clk/mediatek/reset-internal.h
+drivers/clk/mediatek/reset-test.c
+drivers/clk/mediatek/reset.c
+include/dt-bindings/reset/mt6797-resets.h

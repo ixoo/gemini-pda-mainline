@@ -1,0 +1,38 @@
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0001-clk-mediatek-reject-out-of-bank-SET-CLEAR-reset-IDs.patch
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+total: 0 errors, 0 warnings, 0 checks, 75 lines checked
+
+/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0001-clk-mediatek-reject-out-of-bank-SET-CLEAR-reset-IDs.patch has no obvious style problems and is ready for submission.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0002-clk-mediatek-test-reset-translation-bounds.patch
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+total: 0 errors, 0 warnings, 0 checks, 114 lines checked
+
+/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0002-clk-mediatek-test-reset-translation-bounds.patch has no obvious style problems and is ready for submission.
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0003-dt-bindings-reset-mediatek-add-MT6797-infracfg-reset.patch
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+total: 0 errors, 0 warnings, 0 checks, 8 lines checked
+
+/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0003-dt-bindings-reset-mediatek-add-MT6797-infracfg-reset.patch has no obvious style problems and is ready for submission.
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0004-clk-mediatek-add-MT6797-infracfg-SET-CLEAR-resets.patch
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+total: 0 errors, 0 warnings, 0 checks, 48 lines checked
+
+/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0004-clk-mediatek-add-MT6797-infracfg-SET-CLEAR-resets.patch has no obvious style problems and is ready for submission.
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0005-clk-mediatek-test-MT6797-infracfg-reset-mapping.patch
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+total: 0 errors, 0 warnings, 0 checks, 88 lines checked
+
+/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0005-clk-mediatek-test-MT6797-infracfg-reset-mapping.patch has no obvious style problems and is ready for submission.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0006-arm64-dts-mediatek-expose-MT6797-infracfg-resets.patch
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+total: 0 errors, 0 warnings, 0 checks, 7 lines checked
+
+/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0006-arm64-dts-mediatek-expose-MT6797-infracfg-resets.patch has no obvious style problems and is ready for submission.
+
+NOTE: Ignored message types: COMMIT_LOG_LONG_LINE FILE_PATH_CHANGES MISSING_SIGN_OFF

@@ -1,6 +1,7 @@
 # Revised topic generation: bounded execution plan
 
-Status: host tooling prepared; backend execution **not admitted or performed**.
+Status: this plan was used by [attempt 1](ATTEMPT_1.md) and
+[attempt 2](ATTEMPT_2.md); no further execution is admitted here.
 The integrator must first review and publish the exact execution revision on
 `origin/main`, then assign one Buildbox generation window. This is generation
 of an unsigned review archive, not a kernel build or device operation.
@@ -113,8 +114,8 @@ uses `write-tree --missing-ok` in generation and replay to avoid prefetching
 unrelated omitted blobs. It retains full indexed tree identities and every
 explicit changed-source/footprint/replay check. All original limits are unchanged.
 The correction passed the [synthetic host check](partial-tree-host-check.json)
-and existing 36 refusals, but has not run on Buildbox. A fresh exact-revision
-admission is required; this document does not select a retry.
+and existing 36 refusals, and was exercised by [attempt 2](ATTEMPT_2.md). Any further execution needs
+a fresh exact-revision admission; this document does not select another run.
 
 ## Coordinator tooling review
 

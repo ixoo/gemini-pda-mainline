@@ -10,7 +10,7 @@
       "patches": [
         "patches/upstream-4d7d9486/0001-clk-mediatek-reject-out-of-bank-SET-CLEAR-reset-IDs.patch",
         "patches/upstream-4d7d9486/0002-clk-mediatek-test-reset-translation-bounds.patch",
-        "patches/upstream-4d7d9486/0003-dt-bindings-reset-mediatek-describe-MT6797-infracfg-.patch",
+        "patches/upstream-4d7d9486/0003-dt-bindings-reset-mediatek-add-MT6797-infracfg-reset.patch",
         "patches/upstream-4d7d9486/0004-clk-mediatek-add-MT6797-infracfg-SET-CLEAR-resets.patch",
         "patches/upstream-4d7d9486/0005-clk-mediatek-test-MT6797-infracfg-reset-mapping.patch",
         "patches/upstream-4d7d9486/0006-arm64-dts-mediatek-expose-MT6797-infracfg-resets.patch"
@@ -20,10 +20,11 @@
         "experiments/2026-09-04-mt6797-pwrap-reset-serviceability/README.md",
         "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/README.md",
         "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/SUBMISSION_READINESS.md",
-        "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/revised-topic/README.md"
+        "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/revised-topic/README.md",
+        "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/revised-topic/ATTEMPT_2.md",
+        "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/revised-topic/INTEGRATION.md"
       ],
       "dependencies": [
-        "Generate and replay the reviewed header-only reset topic; accepted compatibility evidence preserves optional reset cells for old MT6797 DT descriptions",
         "Coordinate the pending MT6797 common-probe conversion; fix post-publication reset-error cleanup before adopting its reset hook",
         "Review final provider ordering and map consumer evidence to the exact final revision",
         "Actual authorship audit and truthful DCO certification before submission"
@@ -39,10 +40,10 @@
         "patches/v7.1.3/0515-clk-mediatek-repair-MT6797-infracfg-resets.patch",
         "patches/v7.1.3/0516-clk-mediatek-test-MT6797-infracfg-reset-translation.patch"
       ],
-      "validation_profile": "mt6797-infracfg-upstream-kunit",
+      "validation_profile": "mt6797-infracfg-revised-kunit",
       "admission": "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/BUILD_ADMISSION.md",
       "validation": {
-        "scope": "Pinned 4d7d9486 topic only; changes to final target or patch inputs require relevant revalidation",
+        "scope": "Revised application series: exact source/tree replay accepted; C/header/DTS/config bytes match the original tested topic. New profile has not been rebuilt or device-tested; see revised-topic/INTEGRATION.md.",
         "build": "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/BUILD_ADMISSION.md",
         "kunit": "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/QEMU_OFFLINE_ASSESSMENT.md",
         "schema": "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/SCHEMA_INTEGRATION_REVIEW.md",

@@ -1,0 +1,2163 @@
+{
+  "after": {
+    "build": {
+      ".config": "d37fb4ebef4ecdcd5854ada8ae3a4c8eed29c630fddd77329bc0a8beed246530",
+      "arch/arm64/boot/Image.gz": "c0a7e412f6d778ae523f1dfd63f9c54db91e269fe45b06d7411663dbf88dcc1e",
+      "arch/arm64/boot/dts/mediatek/mt6797-evb.dtb": "e6226ae9628dd0356772f69f5e7987aa8a19cdd92616114c4ef0b92dfac94109",
+      "arch/arm64/boot/dts/mediatek/mt6797-x20-dev.dtb": "698d683f4c8fef4d4887911e913198c859ac0cadd1042370571466d06fd785c3",
+      "drivers/clk/mediatek/clk-mt6797-reset-test.o": "49f2c59ee4942aff787f57fe76073c7b8f296fff9e8c7d9bdef075eebc50a09c",
+      "drivers/clk/mediatek/clk-mt6797.o": "ac31e10f83c5baf145f91983fbf30dfe22a7f4fc352de5543891806077f31f86",
+      "drivers/clk/mediatek/reset-test.o": "df10679309a0024909a3f4f52117a1c64fd6b8a7c09cce3ec64c64cc533f8947",
+      "drivers/clk/mediatek/reset.o": "f8f0a72621b94fff10acc4d5e7b6142788961492cddac1d1cda3a6a7d88a55bf",
+      "include/config/kernel.release": "200aed562b70c9a2b94d4f223e9f67836fd230a0400a0f09a1bee5792c19fd17"
+    },
+    "source": {
+      "Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml": "83e13fddec7a39f2f6cc95408e9f3c4389fe55c9d33dfd635105d36c52c2979a",
+      "arch/arm64/boot/dts/mediatek/mt6797.dtsi": "8bddb48d07e5d5af1ee4a1f0fc2369f4424f47881cc070342a74b684b028f353",
+      "drivers/clk/mediatek/Kconfig": "3f87bc5158596cfb7d723e7d9efb82646596a9bc81399eba94ad9337540da40c",
+      "drivers/clk/mediatek/Makefile": "de8bad78288fea86b39d6c74044c0f3ca692290fd69ff7e93af00d372cd30ca2",
+      "drivers/clk/mediatek/clk-mt6797-reset-test.c": "d8ae35ac66827fc5b696aa896f8856739ff70321d00ca8c48c84d41c489cc23f",
+      "drivers/clk/mediatek/clk-mt6797-reset.h": "240dc21ef060bb0bb2cedb23ad356bfcb2a1d27e636928fea86abb30d107969a",
+      "drivers/clk/mediatek/clk-mt6797.c": "16a1e0b8af26fc09de6b9096f4c211eae5231d7505d962dae476fc1958ee94f9",
+      "drivers/clk/mediatek/reset-internal.h": "978e6630d2784074b4e9ff248077026072689e365f0bdc327d6948601acad189",
+      "drivers/clk/mediatek/reset-test.c": "01a861da34f550546da15534f29aee1118df69eac827216d1458b78839a95fd3",
+      "drivers/clk/mediatek/reset.c": "02e62f0b73481a51137442d609cdf88291e0e9108dafe078440054fa434fe315",
+      "include/dt-bindings/reset/mt6797-resets.h": "d83d278526a434d453f66235d28a737d4803fe315b82c6bea79d27ecb6c23269"
+    }
+  },
+  "before": {
+    "build": {
+      ".config": "d37fb4ebef4ecdcd5854ada8ae3a4c8eed29c630fddd77329bc0a8beed246530",
+      "arch/arm64/boot/Image.gz": "c0a7e412f6d778ae523f1dfd63f9c54db91e269fe45b06d7411663dbf88dcc1e",
+      "arch/arm64/boot/dts/mediatek/mt6797-evb.dtb": "e6226ae9628dd0356772f69f5e7987aa8a19cdd92616114c4ef0b92dfac94109",
+      "arch/arm64/boot/dts/mediatek/mt6797-x20-dev.dtb": "698d683f4c8fef4d4887911e913198c859ac0cadd1042370571466d06fd785c3",
+      "drivers/clk/mediatek/clk-mt6797-reset-test.o": "49f2c59ee4942aff787f57fe76073c7b8f296fff9e8c7d9bdef075eebc50a09c",
+      "drivers/clk/mediatek/clk-mt6797.o": "ac31e10f83c5baf145f91983fbf30dfe22a7f4fc352de5543891806077f31f86",
+      "drivers/clk/mediatek/reset-test.o": "df10679309a0024909a3f4f52117a1c64fd6b8a7c09cce3ec64c64cc533f8947",
+      "drivers/clk/mediatek/reset.o": "f8f0a72621b94fff10acc4d5e7b6142788961492cddac1d1cda3a6a7d88a55bf",
+      "include/config/kernel.release": "200aed562b70c9a2b94d4f223e9f67836fd230a0400a0f09a1bee5792c19fd17"
+    },
+    "source": {
+      "Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml": "83e13fddec7a39f2f6cc95408e9f3c4389fe55c9d33dfd635105d36c52c2979a",
+      "arch/arm64/boot/dts/mediatek/mt6797.dtsi": "8bddb48d07e5d5af1ee4a1f0fc2369f4424f47881cc070342a74b684b028f353",
+      "drivers/clk/mediatek/Kconfig": "3f87bc5158596cfb7d723e7d9efb82646596a9bc81399eba94ad9337540da40c",
+      "drivers/clk/mediatek/Makefile": "de8bad78288fea86b39d6c74044c0f3ca692290fd69ff7e93af00d372cd30ca2",
+      "drivers/clk/mediatek/clk-mt6797-reset-test.c": "d8ae35ac66827fc5b696aa896f8856739ff70321d00ca8c48c84d41c489cc23f",
+      "drivers/clk/mediatek/clk-mt6797-reset.h": "240dc21ef060bb0bb2cedb23ad356bfcb2a1d27e636928fea86abb30d107969a",
+      "drivers/clk/mediatek/clk-mt6797.c": "16a1e0b8af26fc09de6b9096f4c211eae5231d7505d962dae476fc1958ee94f9",
+      "drivers/clk/mediatek/reset-internal.h": "978e6630d2784074b4e9ff248077026072689e365f0bdc327d6948601acad189",
+      "drivers/clk/mediatek/reset-test.c": "01a861da34f550546da15534f29aee1118df69eac827216d1458b78839a95fd3",
+      "drivers/clk/mediatek/reset.c": "02e62f0b73481a51137442d609cdf88291e0e9108dafe078440054fa434fe315",
+      "include/dt-bindings/reset/mt6797-resets.h": "d83d278526a434d453f66235d28a737d4803fe315b82c6bea79d27ecb6c23269"
+    }
+  },
+  "certification": "synthetic non-certifying review identity; actual authors/DCO unresolved",
+  "commands": [
+    {
+      "argv": [
+        "git",
+        "--version"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.007289,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "git-version.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "git-version.stdout": "469b1acf8275955250bdef50b4190688e8e36453cfcb29816ae6dcfb31097039"
+      },
+      "name": "git-version",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "perl",
+        "--version"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.005568,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "perl-version.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "perl-version.stdout": "e29bf30746ff7ed9c1279dd62ea89f2860ef695958e394fca564f34ed071ea2f"
+      },
+      "name": "perl-version",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "ls-remote",
+        "--exit-code",
+        "--refs",
+        "https://github.com/ixoo/gemini-pda-mainline.git",
+        "refs/heads/main"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.292065,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "publication.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "publication.stdout": "74bd450cc8d52fdd7c053c5a5e592fb8e96c00041ffa304dc4e575e1a3dd4e9f"
+      },
+      "name": "publication",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/python",
+        "/workspace/gemini-pda/checkouts/725c6756e30c0e13613ee740f1a69d896fb8bea1/scripts/source-tree-integrity",
+        "verify",
+        "/workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-infracfg-upstream-kunit-source"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 14.90676,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "source-before.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source-before.stdout": "bcb478c96d7a9f957cd14a9be767b27639437f98a38d0c20d1bd5f33a989d601"
+      },
+      "name": "source-before",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "init",
+        "--bare",
+        "--quiet"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.009061,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "git-init.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "git-init.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "git-init",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "remote",
+        "add",
+        "origin",
+        "https://github.com/torvalds/linux.git"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.007085,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "git-remote.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "git-remote.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "git-remote",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "-c",
+        "protocol.version=2",
+        "fetch",
+        "--quiet",
+        "--filter=blob:none",
+        "--depth=1",
+        "origin",
+        "4d7d9486c04d917265f64c55bd23b2cc4fe7749c"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 1.052156,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "git-fetch.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "git-fetch.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "git-fetch",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 60
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "rev-parse",
+        "FETCH_HEAD"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.007426,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "upstream-identity.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "upstream-identity.stdout": "ffcad7b1c2f275e3d7977e79bf6d461e3f8edff00d214f06e09dad34f960adb5"
+      },
+      "name": "upstream-identity",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "ls-tree",
+        "-r",
+        "--name-only",
+        "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+        "--",
+        "include/dt-bindings/reset/mt6797-resets.h",
+        "drivers/clk/mediatek/reset-internal.h",
+        "drivers/clk/mediatek/reset-test.c",
+        "drivers/clk/mediatek/clk-mt6797-reset.h",
+        "drivers/clk/mediatek/clk-mt6797-reset-test.c"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.007209,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "new-paths-absent.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "new-paths-absent.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "new-paths-absent",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "read-tree",
+        "4d7d9486c04d917265f64c55bd23b2cc4fe7749c"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.222335,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "index-parent.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "index-parent.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "index-parent",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "update-ref",
+        "HEAD",
+        "4d7d9486c04d917265f64c55bd23b2cc4fe7749c"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.008491,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "head-parent.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "head-parent.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "head-parent",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "apply",
+        "--cached",
+        "--check",
+        "/workspace/gemini-pda/checkouts/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/upstream-4d7d9486/0001-clk-mediatek-reject-out-of-bank-SET-CLEAR-reset-IDs.patch"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.342668,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-1-check.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-1-check.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "input-1-check",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "apply",
+        "--cached",
+        "/workspace/gemini-pda/checkouts/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/upstream-4d7d9486/0001-clk-mediatek-reject-out-of-bank-SET-CLEAR-reset-IDs.patch"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.113224,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-1-apply.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-1-apply.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "input-1-apply",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "diff",
+        "--cached",
+        "--check"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.03548,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-1-whitespace.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-1-whitespace.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "input-1-whitespace",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "write-tree",
+        "--missing-ok"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.104821,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-1-tree.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-1-tree.stdout": "0af9e37248ac85f42612e8d4d36705a93e48fe5defb3bcff67c0e897824ce25d"
+      },
+      "name": "input-1-tree",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "commit-tree",
+        "f806d583e377288fe3c4a83ccd3215125c567a1c",
+        "-p",
+        "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+        "-F",
+        "/workspace/gemini-pda/tmp/infracfg-revised-generation/run/message"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.008429,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-1-commit.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-1-commit.stdout": "7273b3a296b8c30d6abdee94e63ce2444346190990c0485c5ec7535258c39cbe"
+      },
+      "name": "input-1-commit",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "update-ref",
+        "HEAD",
+        "ef85af6b76cd1f8c28aac853cb0e6ed7360d5f11"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.007041,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-1-head.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-1-head.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "input-1-head",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "apply",
+        "--cached",
+        "--check",
+        "/workspace/gemini-pda/checkouts/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/upstream-4d7d9486/0002-clk-mediatek-test-reset-translation-bounds.patch"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.619051,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-2-check.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-2-check.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "input-2-check",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "apply",
+        "--cached",
+        "/workspace/gemini-pda/checkouts/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/upstream-4d7d9486/0002-clk-mediatek-test-reset-translation-bounds.patch"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.114104,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-2-apply.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-2-apply.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "input-2-apply",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "diff",
+        "--cached",
+        "--check"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.034598,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-2-whitespace.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-2-whitespace.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "input-2-whitespace",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "write-tree",
+        "--missing-ok"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.106052,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-2-tree.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-2-tree.stdout": "ad088b92e044f6c913dd3c14b7a80fa9acae36d3b01e75ae59e051773f42ca54"
+      },
+      "name": "input-2-tree",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "commit-tree",
+        "f7c4cd8f034363c9d35ede2a145f59d1f86f6dcf",
+        "-p",
+        "ef85af6b76cd1f8c28aac853cb0e6ed7360d5f11",
+        "-F",
+        "/workspace/gemini-pda/tmp/infracfg-revised-generation/run/message"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.008344,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-2-commit.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-2-commit.stdout": "6dfed7e6bd4acdbaea93227821a6e877db17583a7eebc9e2f0b97d77016b5a7f"
+      },
+      "name": "input-2-commit",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "update-ref",
+        "HEAD",
+        "91d4630b922a48fde24a9cd6a5f50110d2858fde"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.008688,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-2-head.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-2-head.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "input-2-head",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "apply",
+        "--cached",
+        "--check",
+        "/workspace/gemini-pda/checkouts/725c6756e30c0e13613ee740f1a69d896fb8bea1/experiments/2026-09-05-mt6797-infracfg-upstream-preparation/revised-topic/0003-mt6797-reset-header-only.diff"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.039959,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-3-check.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-3-check.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "input-3-check",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "apply",
+        "--cached",
+        "/workspace/gemini-pda/checkouts/725c6756e30c0e13613ee740f1a69d896fb8bea1/experiments/2026-09-05-mt6797-infracfg-upstream-preparation/revised-topic/0003-mt6797-reset-header-only.diff"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.112197,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-3-apply.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-3-apply.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "input-3-apply",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "diff",
+        "--cached",
+        "--check"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.033074,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-3-whitespace.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-3-whitespace.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "input-3-whitespace",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "write-tree",
+        "--missing-ok"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.100763,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-3-tree.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-3-tree.stdout": "028474d2d1e879e09f21e2abab9e2b98c906671d3af6ebb7e311eb45c7ae4b5f"
+      },
+      "name": "input-3-tree",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "commit-tree",
+        "b561ba2590ccdb1b4ec8f3ba783cee8a0dd67efa",
+        "-p",
+        "91d4630b922a48fde24a9cd6a5f50110d2858fde",
+        "-F",
+        "/workspace/gemini-pda/tmp/infracfg-revised-generation/run/message"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.009401,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-3-commit.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-3-commit.stdout": "3c31e9697e3a5a696d8b57da70d154e369b70f036e4e99b24f83022bfbeafecb"
+      },
+      "name": "input-3-commit",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "update-ref",
+        "HEAD",
+        "0d3d11f9304085d44124a750ab613663abb2ed53"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.008024,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-3-head.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-3-head.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "input-3-head",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "apply",
+        "--cached",
+        "--check",
+        "/workspace/gemini-pda/checkouts/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/upstream-4d7d9486/0004-clk-mediatek-add-MT6797-infracfg-SET-CLEAR-resets.patch"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.339669,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-4-check.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-4-check.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "input-4-check",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "apply",
+        "--cached",
+        "/workspace/gemini-pda/checkouts/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/upstream-4d7d9486/0004-clk-mediatek-add-MT6797-infracfg-SET-CLEAR-resets.patch"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.112843,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-4-apply.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-4-apply.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "input-4-apply",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "diff",
+        "--cached",
+        "--check"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.033716,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-4-whitespace.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-4-whitespace.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "input-4-whitespace",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "write-tree",
+        "--missing-ok"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.103068,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-4-tree.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-4-tree.stdout": "d568fb8bb0fa241c84b9129fb37e5e02abb4eef9ec590747eb5fe8d30efb79c4"
+      },
+      "name": "input-4-tree",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "commit-tree",
+        "73d09f989f3b98c2b7f6c843a446d88aa4faa2ac",
+        "-p",
+        "0d3d11f9304085d44124a750ab613663abb2ed53",
+        "-F",
+        "/workspace/gemini-pda/tmp/infracfg-revised-generation/run/message"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.00939,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-4-commit.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-4-commit.stdout": "f8699803f79259888335228025a910fa1a244d2a8a2989d61f9fa626882ece91"
+      },
+      "name": "input-4-commit",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "update-ref",
+        "HEAD",
+        "bb0e33916825d2f6a362def8386cdd74b82ee7c0"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.007816,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-4-head.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-4-head.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "input-4-head",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "apply",
+        "--cached",
+        "--check",
+        "/workspace/gemini-pda/checkouts/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/upstream-4d7d9486/0005-clk-mediatek-test-MT6797-infracfg-reset-mapping.patch"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.041439,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-5-check.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-5-check.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "input-5-check",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "apply",
+        "--cached",
+        "/workspace/gemini-pda/checkouts/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/upstream-4d7d9486/0005-clk-mediatek-test-MT6797-infracfg-reset-mapping.patch"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.114659,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-5-apply.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-5-apply.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "input-5-apply",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "diff",
+        "--cached",
+        "--check"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.03451,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-5-whitespace.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-5-whitespace.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "input-5-whitespace",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "write-tree",
+        "--missing-ok"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.104878,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-5-tree.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-5-tree.stdout": "504d3766962aba5e598fc26d35f54813934d52bd6a5302c7eb298e03597eff23"
+      },
+      "name": "input-5-tree",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "commit-tree",
+        "88d9bcb2464b67a46c3e825c7b08d89762410971",
+        "-p",
+        "bb0e33916825d2f6a362def8386cdd74b82ee7c0",
+        "-F",
+        "/workspace/gemini-pda/tmp/infracfg-revised-generation/run/message"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.009283,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-5-commit.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-5-commit.stdout": "fd96a7c2f19c646d7b0e6fabab357930c4f6f94127a3b0478b4740edb776e93c"
+      },
+      "name": "input-5-commit",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "update-ref",
+        "HEAD",
+        "7174df0a1c6ccd8d244fef989852b1c1a7486bf2"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.008757,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-5-head.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-5-head.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "input-5-head",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "apply",
+        "--cached",
+        "--check",
+        "/workspace/gemini-pda/checkouts/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/upstream-4d7d9486/0006-arm64-dts-mediatek-expose-MT6797-infracfg-resets.patch"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.33137,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-6-check.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-6-check.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "input-6-check",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "apply",
+        "--cached",
+        "/workspace/gemini-pda/checkouts/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/upstream-4d7d9486/0006-arm64-dts-mediatek-expose-MT6797-infracfg-resets.patch"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.110606,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-6-apply.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-6-apply.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "input-6-apply",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "diff",
+        "--cached",
+        "--check"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.033879,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-6-whitespace.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-6-whitespace.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "input-6-whitespace",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "write-tree",
+        "--missing-ok"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.104001,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-6-tree.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-6-tree.stdout": "b875c960aaa4196055adf824afa8541269010d214c628de7f27419f58f9417f7"
+      },
+      "name": "input-6-tree",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "commit-tree",
+        "bf26a25105f86061d9600a33e2461a76d072176e",
+        "-p",
+        "7174df0a1c6ccd8d244fef989852b1c1a7486bf2",
+        "-F",
+        "/workspace/gemini-pda/tmp/infracfg-revised-generation/run/message"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.008529,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-6-commit.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-6-commit.stdout": "5130d93b3a5555d988affdf31054b40214ebfbd278670b1de01caef5b4bc1e69"
+      },
+      "name": "input-6-commit",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "update-ref",
+        "HEAD",
+        "2338c81b81a52c5af4876bac9552ce4582fe9414"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.008048,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "input-6-head.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-6-head.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "input-6-head",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "diff",
+        "--name-only",
+        "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+        "2338c81b81a52c5af4876bac9552ce4582fe9414"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.008252,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "final-paths.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "final-paths.stdout": "204945a815ba0ea2b79aaba89a66b58c3bdf910edccf684f6356beaf4bd8c748"
+      },
+      "name": "final-paths",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "bash",
+        "-o",
+        "pipefail",
+        "-c",
+        "git \"$@\" | sha256sum",
+        "source-hash",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "show",
+        "2338c81b81a52c5af4876bac9552ce4582fe9414:Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.616071,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "final-hash-0.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "final-hash-0.stdout": "e1c1c7035d197a48a26214e28d89af8903802fea442ae872781b273df28c672a"
+      },
+      "name": "final-hash-0",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "bash",
+        "-o",
+        "pipefail",
+        "-c",
+        "git \"$@\" | sha256sum",
+        "source-hash",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "show",
+        "2338c81b81a52c5af4876bac9552ce4582fe9414:arch/arm64/boot/dts/mediatek/mt6797.dtsi"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.013726,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "final-hash-1.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "final-hash-1.stdout": "6ee13556e2d316be4288658a6569552ffcb07ff2d557a5af9b74ea7fd9abe63c"
+      },
+      "name": "final-hash-1",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "bash",
+        "-o",
+        "pipefail",
+        "-c",
+        "git \"$@\" | sha256sum",
+        "source-hash",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "show",
+        "2338c81b81a52c5af4876bac9552ce4582fe9414:drivers/clk/mediatek/Kconfig"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.011345,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "final-hash-2.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "final-hash-2.stdout": "5e33e75075e368c801a3c60299205827a7857cb8972b6541a0f54f9b553ec114"
+      },
+      "name": "final-hash-2",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "bash",
+        "-o",
+        "pipefail",
+        "-c",
+        "git \"$@\" | sha256sum",
+        "source-hash",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "show",
+        "2338c81b81a52c5af4876bac9552ce4582fe9414:drivers/clk/mediatek/Makefile"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.011064,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "final-hash-3.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "final-hash-3.stdout": "4e8e1d11c7b17e4f29f628e4777b56192a223f657306641e2f32764c1e6eeb04"
+      },
+      "name": "final-hash-3",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "bash",
+        "-o",
+        "pipefail",
+        "-c",
+        "git \"$@\" | sha256sum",
+        "source-hash",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "show",
+        "2338c81b81a52c5af4876bac9552ce4582fe9414:drivers/clk/mediatek/clk-mt6797-reset-test.c"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.010954,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "final-hash-4.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "final-hash-4.stdout": "f1cdb9b0cadda79d68ef9dc9781420d18174512f34f056ffc7551982b4105707"
+      },
+      "name": "final-hash-4",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "bash",
+        "-o",
+        "pipefail",
+        "-c",
+        "git \"$@\" | sha256sum",
+        "source-hash",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "show",
+        "2338c81b81a52c5af4876bac9552ce4582fe9414:drivers/clk/mediatek/clk-mt6797-reset.h"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.011923,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "final-hash-5.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "final-hash-5.stdout": "006700111bbe06526eb9d39e3d4f3008b9925f5a20216945794363318ce2da41"
+      },
+      "name": "final-hash-5",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "bash",
+        "-o",
+        "pipefail",
+        "-c",
+        "git \"$@\" | sha256sum",
+        "source-hash",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "show",
+        "2338c81b81a52c5af4876bac9552ce4582fe9414:drivers/clk/mediatek/clk-mt6797.c"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.012864,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "final-hash-6.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "final-hash-6.stdout": "132049eefc8ceacca2643b6c070e9f2045c7e62a0fffd0ebd58fa93d2878fd99"
+      },
+      "name": "final-hash-6",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "bash",
+        "-o",
+        "pipefail",
+        "-c",
+        "git \"$@\" | sha256sum",
+        "source-hash",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "show",
+        "2338c81b81a52c5af4876bac9552ce4582fe9414:drivers/clk/mediatek/reset-internal.h"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.013516,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "final-hash-7.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "final-hash-7.stdout": "48ba352a5f07a521566fd7b58999c59eb23217f38e10536e48e8ee8173b1ceef"
+      },
+      "name": "final-hash-7",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "bash",
+        "-o",
+        "pipefail",
+        "-c",
+        "git \"$@\" | sha256sum",
+        "source-hash",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "show",
+        "2338c81b81a52c5af4876bac9552ce4582fe9414:drivers/clk/mediatek/reset-test.c"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.011191,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "final-hash-8.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "final-hash-8.stdout": "a808a947a1d0ec5d82680ce3e43a46d99b7a26a9fd71b735c1955fc9a381158d"
+      },
+      "name": "final-hash-8",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "bash",
+        "-o",
+        "pipefail",
+        "-c",
+        "git \"$@\" | sha256sum",
+        "source-hash",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "show",
+        "2338c81b81a52c5af4876bac9552ce4582fe9414:drivers/clk/mediatek/reset.c"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.01104,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "final-hash-9.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "final-hash-9.stdout": "fd0b6c48f7bd72534619f4d2107f82af79e38498217e6689f0636bb64d576eac"
+      },
+      "name": "final-hash-9",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "bash",
+        "-o",
+        "pipefail",
+        "-c",
+        "git \"$@\" | sha256sum",
+        "source-hash",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "show",
+        "2338c81b81a52c5af4876bac9552ce4582fe9414:include/dt-bindings/reset/mt6797-resets.h"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.011951,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "final-hash-10.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "final-hash-10.stdout": "d0a9c81867e134e3b871063eff9e684d237c1a5c8e6ddd8ec067d5185d1dbabf"
+      },
+      "name": "final-hash-10",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "format-patch",
+        "--no-signature",
+        "--numbered",
+        "--output-directory",
+        "/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches",
+        "4d7d9486c04d917265f64c55bd23b2cc4fe7749c..2338c81b81a52c5af4876bac9552ce4582fe9414"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.016632,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "format-patch.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "format-patch.stdout": "16f1a20833d863f085e8b8866a06fbcbb216f26f2563ffd93466de51d6dede24"
+      },
+      "name": "format-patch",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "read-tree",
+        "4d7d9486c04d917265f64c55bd23b2cc4fe7749c"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.221907,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "replay-parent.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "replay-parent.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "replay-parent",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "apply",
+        "--cached",
+        "--check",
+        "/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0001-clk-mediatek-reject-out-of-bank-SET-CLEAR-reset-IDs.patch"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.042026,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "replay-1-check.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "replay-1-check.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "replay-1-check",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "apply",
+        "--cached",
+        "/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0001-clk-mediatek-reject-out-of-bank-SET-CLEAR-reset-IDs.patch"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.112571,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "replay-1-apply.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "replay-1-apply.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "replay-1-apply",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "apply",
+        "--cached",
+        "--check",
+        "/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0002-clk-mediatek-test-reset-translation-bounds.patch"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.041963,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "replay-2-check.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "replay-2-check.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "replay-2-check",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "apply",
+        "--cached",
+        "/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0002-clk-mediatek-test-reset-translation-bounds.patch"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.109038,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "replay-2-apply.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "replay-2-apply.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "replay-2-apply",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "apply",
+        "--cached",
+        "--check",
+        "/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0003-dt-bindings-reset-mediatek-add-MT6797-infracfg-reset.patch"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.040839,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "replay-3-check.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "replay-3-check.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "replay-3-check",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "apply",
+        "--cached",
+        "/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0003-dt-bindings-reset-mediatek-add-MT6797-infracfg-reset.patch"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.10806,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "replay-3-apply.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "replay-3-apply.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "replay-3-apply",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "apply",
+        "--cached",
+        "--check",
+        "/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0004-clk-mediatek-add-MT6797-infracfg-SET-CLEAR-resets.patch"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.040896,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "replay-4-check.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "replay-4-check.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "replay-4-check",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "apply",
+        "--cached",
+        "/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0004-clk-mediatek-add-MT6797-infracfg-SET-CLEAR-resets.patch"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.108562,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "replay-4-apply.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "replay-4-apply.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "replay-4-apply",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "apply",
+        "--cached",
+        "--check",
+        "/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0005-clk-mediatek-test-MT6797-infracfg-reset-mapping.patch"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.040241,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "replay-5-check.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "replay-5-check.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "replay-5-check",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "apply",
+        "--cached",
+        "/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0005-clk-mediatek-test-MT6797-infracfg-reset-mapping.patch"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.108289,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "replay-5-apply.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "replay-5-apply.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "replay-5-apply",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "apply",
+        "--cached",
+        "--check",
+        "/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0006-arm64-dts-mediatek-expose-MT6797-infracfg-resets.patch"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.039303,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "replay-6-check.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "replay-6-check.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "replay-6-check",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "apply",
+        "--cached",
+        "/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0006-arm64-dts-mediatek-expose-MT6797-infracfg-resets.patch"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.111916,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "replay-6-apply.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "replay-6-apply.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "replay-6-apply",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "git",
+        "--git-dir=/workspace/gemini-pda/tmp/infracfg-revised-generation/run/objects.git",
+        "write-tree",
+        "--missing-ok"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.103261,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "replay-tree.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "replay-tree.stdout": "b875c960aaa4196055adf824afa8541269010d214c628de7f27419f58f9417f7"
+      },
+      "name": "replay-tree",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "perl",
+        "/workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-infracfg-upstream-kunit-source/scripts/checkpatch.pl",
+        "--no-tree",
+        "--strict",
+        "--ignore",
+        "MISSING_SIGN_OFF,FILE_PATH_CHANGES,COMMIT_LOG_LONG_LINE",
+        "/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0001-clk-mediatek-reject-out-of-bank-SET-CLEAR-reset-IDs.patch",
+        "/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0002-clk-mediatek-test-reset-translation-bounds.patch",
+        "/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0003-dt-bindings-reset-mediatek-add-MT6797-infracfg-reset.patch",
+        "/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0004-clk-mediatek-add-MT6797-infracfg-SET-CLEAR-resets.patch",
+        "/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0005-clk-mediatek-test-MT6797-infracfg-reset-mapping.patch",
+        "/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0006-arm64-dts-mediatek-expose-MT6797-infracfg-resets.patch"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.997858,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "checkpatch.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "checkpatch.stdout": "61212cc1ddcb34760718e821a1701b3d33d830fdd328aa1e626c14da72338c63"
+      },
+      "name": "checkpatch",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "bash",
+        "-c",
+        "cd \"$1\" || exit; shift; exec perl scripts/get_maintainer.pl --no-git --no-git-fallback --no-git-blame --no-file-emails --no-mailmap --no-fixes --roles --no-rolestats --scm \"$@\"",
+        "maintainer-review",
+        "/workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-infracfg-upstream-kunit-source",
+        "/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0001-clk-mediatek-reject-out-of-bank-SET-CLEAR-reset-IDs.patch",
+        "/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0002-clk-mediatek-test-reset-translation-bounds.patch",
+        "/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0003-dt-bindings-reset-mediatek-add-MT6797-infracfg-reset.patch",
+        "/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0004-clk-mediatek-add-MT6797-infracfg-SET-CLEAR-resets.patch",
+        "/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0005-clk-mediatek-test-MT6797-infracfg-reset-mapping.patch",
+        "/workspace/gemini-pda/review-packages/infracfg-revised/725c6756e30c0e13613ee740f1a69d896fb8bea1/patches/0006-arm64-dts-mediatek-expose-MT6797-infracfg-resets.patch"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 3.273014,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "maintainers.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "maintainers.stdout": "2d1b4f86e6406f11f175591d084b01e9cabedf888ed943ca0f84a20a3887901e"
+      },
+      "name": "maintainers",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/python",
+        "/workspace/gemini-pda/checkouts/725c6756e30c0e13613ee740f1a69d896fb8bea1/scripts/source-tree-integrity",
+        "verify",
+        "/workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-infracfg-upstream-kunit-source"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 14.963086,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "source-after.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source-after.stdout": "bcb478c96d7a9f957cd14a9be767b27639437f98a38d0c20d1bd5f33a989d601"
+      },
+      "name": "source-after",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 180
+    }
+  ],
+  "completion": {
+    "boundary": "blocked-pending-signal-snapshot-after-validation-cleanup-and-log-digests",
+    "decision": "COLLECTED_REVIEW_REQUIRED",
+    "later_signals": "do-not-reclassify-completed-decision"
+  },
+  "final_source_sha256": {
+    "Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml": "0610f891e326d1e0a7ce9ffe3ef0513ab229bf37eee8177de0999cac17157c6f",
+    "arch/arm64/boot/dts/mediatek/mt6797.dtsi": "8bddb48d07e5d5af1ee4a1f0fc2369f4424f47881cc070342a74b684b028f353",
+    "drivers/clk/mediatek/Kconfig": "3f87bc5158596cfb7d723e7d9efb82646596a9bc81399eba94ad9337540da40c",
+    "drivers/clk/mediatek/Makefile": "de8bad78288fea86b39d6c74044c0f3ca692290fd69ff7e93af00d372cd30ca2",
+    "drivers/clk/mediatek/clk-mt6797-reset-test.c": "d8ae35ac66827fc5b696aa896f8856739ff70321d00ca8c48c84d41c489cc23f",
+    "drivers/clk/mediatek/clk-mt6797-reset.h": "240dc21ef060bb0bb2cedb23ad356bfcb2a1d27e636928fea86abb30d107969a",
+    "drivers/clk/mediatek/clk-mt6797.c": "16a1e0b8af26fc09de6b9096f4c211eae5231d7505d962dae476fc1958ee94f9",
+    "drivers/clk/mediatek/reset-internal.h": "978e6630d2784074b4e9ff248077026072689e365f0bdc327d6948601acad189",
+    "drivers/clk/mediatek/reset-test.c": "01a861da34f550546da15534f29aee1118df69eac827216d1458b78839a95fd3",
+    "drivers/clk/mediatek/reset.c": "02e62f0b73481a51137442d609cdf88291e0e9108dafe078440054fa434fe315",
+    "include/dt-bindings/reset/mt6797-resets.h": "d83d278526a434d453f66235d28a737d4803fe315b82c6bea79d27ecb6c23269"
+  },
+  "generated_head": "2338c81b81a52c5af4876bac9552ce4582fe9414",
+  "git_version": "git version 2.39.5",
+  "mode": "revised",
+  "patches": {
+    "0001-clk-mediatek-reject-out-of-bank-SET-CLEAR-reset-IDs.patch": "ab875a831822e1809619f0034f29f8c068af133012da196ba59a62977b884fd5",
+    "0002-clk-mediatek-test-reset-translation-bounds.patch": "211f2b95d24d7cb09085d99ade5bcd681254f55145e227920fd62b773f30d483",
+    "0003-dt-bindings-reset-mediatek-add-MT6797-infracfg-reset.patch": "0c8af0a97f42424830d5c6b59f9830a42d4212b728507ea6f433f7a8713fff25",
+    "0004-clk-mediatek-add-MT6797-infracfg-SET-CLEAR-resets.patch": "cdebf647bc8d78a7f9bd272c8f959af6dfca1bbb8a1a4204f7bb2e0457ef33e1",
+    "0005-clk-mediatek-test-MT6797-infracfg-reset-mapping.patch": "224ec2f5e912abace4e0ef47f3300f7c78f47bea2980e7107e8ef0ad346ffeaa",
+    "0006-arm64-dts-mediatek-expose-MT6797-infracfg-resets.patch": "985a2e3fb7365201f2c203dcdf141f374fd54ef85edc727919a3abaa33af6a36"
+  },
+  "perl_version": "This is perl 5, version 36, subversion 0 (v5.36.0) built for x86_64-linux-gnu-thread-multi\n(with 60 registered patches, see perl -V for more detail)\n\nCopyright 1987-2022, Larry Wall\n\nPerl may be copied only under the terms of either the Artistic License or the\nGNU General Public License, which may be found in the Perl 5 source kit.\n\nComplete documentation for Perl, including FAQ lists, should be found on\nthis system using \"man perl\" or \"perldoc perl\".  If you have access to the\nInternet, point your browser at https://www.perl.org/, the Perl Home Page.",
+  "proposal_sha256": "d387544cb48726d2b49fe8cf19650e89cbaef3ddb623e2a151a1491e88d07cee",
+  "published_ref": "refs/heads/main",
+  "replay": "exact-full-tree-match",
+  "repository_commit": "725c6756e30c0e13613ee740f1a69d896fb8bea1",
+  "result": "COLLECTED_REVIEW_REQUIRED",
+  "retained_dtbs": {
+    "mediatek/mt6797-evb.dtb": {
+      "node": "syscon@10001000",
+      "reset_cells": 1
+    },
+    "mediatek/mt6797-x20-dev.dtb": {
+      "node": "syscon@10001000",
+      "reset_cells": 1
+    }
+  },
+  "scratch_removed": true,
+  "tools": {
+    "aarch64-linux-gnu-gcc": {
+      "path": "/usr/bin/aarch64-linux-gnu-gcc-12",
+      "sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+      "version": "aarch64-linux-gnu-gcc-12 (Debian 12.2.0-14) 12.2.0\nCopyright (C) 2022 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+    },
+    "aarch64-linux-gnu-ld": {
+      "path": "/usr/bin/aarch64-linux-gnu-ld.bfd",
+      "sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+      "version": "GNU ld (GNU Binutils for Debian) 2.40\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) a later version.\nThis program has absolutely no warranty."
+    },
+    "build-dtc": {
+      "path": "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+      "sha256": "918bd1e8ee0ac2f08210e16eedc6486f6daa4872a108c9a4cc8f1b78422301a5",
+      "version": "Version: DTC 1.7.2-g53373d13"
+    },
+    "dt-doc-validate": {
+      "path": "/workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/dt-doc-validate",
+      "sha256": "c888aa0c3610177be991a29abbc99d39e7e3167bdfcff032883fc719a75e256f",
+      "version": "2026.6"
+    },
+    "dt-mk-schema": {
+      "path": "/workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/dt-mk-schema",
+      "sha256": "0060ed219838c6f2a9370603dd8582c7bc3b653c63bec239f20ef220ae8beb5c",
+      "version": "2026.6"
+    },
+    "dt-validate": {
+      "path": "/workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/dt-validate",
+      "sha256": "2d5c81138cb0b43072c5b68683d431c2bd88b301be7f624be68f1e2d157e4330",
+      "version": "2026.6"
+    },
+    "dtc": {
+      "path": "/usr/bin/dtc",
+      "sha256": "84a8279cdc8200af26d5d91182408374baef54867c1e23381cee769f2dd37d5d",
+      "version": "Version: DTC 1.6.1"
+    },
+    "make": {
+      "path": "/usr/bin/make",
+      "sha256": "00b2c2071bf57aa52559a91bf8a4ddcd0fcfd4718da2f83100593a45896c1fec",
+      "version": "GNU Make 4.3\nBuilt for x86_64-pc-linux-gnu\nCopyright (C) 1988-2020 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law."
+    },
+    "yamllint": {
+      "path": "/workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/yamllint",
+      "sha256": "e72a35839ecc6cc532cb99277674c851b0344bb0767bfb4ff94964e388f5e31e",
+      "version": "yamllint 1.38.0"
+    }
+  },
+  "tree": "bf26a25105f86061d9600a33e2461a76d072176e"
+}
