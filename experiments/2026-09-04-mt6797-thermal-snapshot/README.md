@@ -356,3 +356,9 @@ The [post-recovery discriminator review](PASSIVE_DISCRIMINATOR_DECISION.md)
 uses both retained traces and the existing source contract. It finds no
 supported passive measurement of conversion age, so further output-only traces
 do not justify a causal classification or another boot. Rejections stand.
+
+
+The [V4 conversion audit](V4_CONVERSION_AUDIT.md) identifies encoded-offset
+rounding differences and a dormant ABB index hazard. Synthetic tests of the
+exact production function support a focused correction; no deployed source or
+hardware claim changed, and the multi-degree thermal response remains unresolved.

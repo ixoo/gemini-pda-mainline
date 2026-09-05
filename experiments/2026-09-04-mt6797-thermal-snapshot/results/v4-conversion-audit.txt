@@ -1,0 +1,27 @@
+Offline V4 arithmetic audit, 2026-09-04
+production_source_sha256=e2ce72fa105be597a5c7a3cea37499512093c86ba4cc4ac85b92c10b0254c481
+reference_revision=c5b0be85017ad0c599725e8273842efdbecdd88a
+reference_mtk_tc_c_sha256=9fd0d2a64d874c59d17a0f154b80b8d6c3050b67e881180fe3ef9ec878fc1cc2
+method=exact-pure-production-function-in-synthetic-host-harness
+backend=buildbox
+compiler_options=-std=gnu11 -O2 -Wall -Wextra -fsanitize=undefined -fno-sanitize-recover=all
+synthetic_witness=ge:265,oe:265,vts:0,deg:1,slope:0,sign:0,raw:2926,actual:55700,reference:55600
+synthetic_cases=1990170
+reference_differences=393255
+maximum_difference_mC=200
+accepted_range_differences=109185
+accepted_range_maximum_difference_mC=100
+output_min_mC=-155600
+output_max_mC=834700
+upper_mask_cases=3980340
+monotonicity=pass
+quantization=pass
+bounded_range_differences=37449
+normalized_reference_equivalence=pass
+undefined_behavior_sanitizer=pass
+kernel_source_modified=no
+kernel_build=none
+device_access=none
+private_calibration_used=no
+temporary_harness_removed=yes
+new_boot_admitted=no

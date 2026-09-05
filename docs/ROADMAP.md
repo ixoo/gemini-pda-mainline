@@ -8390,14 +8390,17 @@ The [passive-discriminator review](../experiments/2026-09-04-mt6797-thermal-snap
 now finds no supported passive freshness discriminator in the retained contract.
 A denser trace, different wait or observer timestamp cannot by itself distinguish
 physical response from conversion history; no new boot is selected.
-**Selected next:** audit the exact V4 conversion and calibration-index path
-against its pinned reference and current tests, using synthetic inputs only.
-Check arithmetic width, sign/truncation, monotonicity, range and sensor-index
-mapping before proposing a measurement-path change. Preserve any discrepancy
-as an offline finding; a fix requires focused regression evidence and the normal
-published Buildbox/candidate gates before device admission. If that audit finds
-no defect, retain unknown cause and require an independently supported hardware
-measurement contract before reopening thermal repeatability. No further diagnostic reads or workload on the consumed
+The [V4 arithmetic/index audit](../experiments/2026-09-04-mt6797-thermal-snapshot/V4_CONVERSION_AUDIT.md)
+now identifies missing encoded-offset normalization and a dormant ABB index
+hazard. Synthetic exact-function tests reproduce small rounding differences;
+normalization removes them in the tested grid. Neither finding establishes the
+cause of the runtime thermal rise. **Selected next:** implement a focused V4
+correction with explicit sensor-to-calibration indexing, preserve current bank
+selection and other SoCs, and test the actual production decoder/converter with
+distinct synthetic coefficients, range/ID/zero-code cases and rejecting mutations.
+Publish the clean patch and validation before any explicit Buildbox build.
+A corrected image still needs a distinct bounded admission protocol; do not
+promote old thermal comparisons or request another unchanged boot. No further diagnostic reads or workload on the consumed
 session; no repeat is admitted. Any future boot requires a distinct,
 decision-changing hypothesis and published bounded protocol. Integrated thermal
 repeatability, broader load/hotplug, cpufreq/OPP, idle, suspend, thermal protection
