@@ -165,6 +165,12 @@ configuration, safe tooling, hardware knowledge, and reproducible evidence.
   item `codex-gemini-192.168.1.50`; use `IdentitiesOnly=yes` and
   `IdentityAgent=none` to avoid transient agent failures. Never print or commit
   the private key.
+- Treat Gemian LAN SSH and mainline USB SSH as separate access paths. A missing
+  USB network interface or route does not establish that Gemian SSH is unavailable.
+  When the owner asks to check SSH, use the usual known-good Gemian endpoint for
+  a bounded authenticated OS/boot-identity check before requesting a physical
+  action. Choose subsequent probes from the observed live OS; do not infer boot2
+  identity from a relayed screen/boot report or retry an observer blindly.
 - Run `./scripts/dev-vm re-shell` for binary analysis. Treat
   `~/reverse-engineering/gemini-vendor` as immutable evidence and store Ghidra,
   Radare2, and other analysis databases in guest-owned work directories.

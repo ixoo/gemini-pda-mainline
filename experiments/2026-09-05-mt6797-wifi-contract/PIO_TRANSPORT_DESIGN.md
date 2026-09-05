@@ -1,5 +1,9 @@
 # Minimal PIO transport: separate FIFO submission from firmware completion
 
+Credit correction: [CONFIG uses TC4; START uses TC0](INIT_CREDIT_CORRECTION.md).
+Earlier shared-credit/TC0-CONFIG claims below are superseded; historical
+validation receipts are preserved and do not validate the corrected pools.
+
 The earlier [PIO assessment](PIO_COMPLETION.md) overreached by treating a
 missing per-access latency bound as a blanket implementation blocker. A
 counted FIFO loop is a normal transport primitive. The known HIF accesses
@@ -41,7 +45,7 @@ All vendor references use the existing Planet pin recorded in
 | Layer | Selected source evidence | Minimal transport responsibility |
 | --- | --- | --- |
 | Power and ownership | `nicpmSetDriverOwn` reads WHLPCR `0x4`, requests ownership with bit 9, and observes driver ownership at bit 8. Its polling has a 2048 ms source deadline and approximately 1 ms sleeps. Port helpers reject fatal/reset/firmware-own state, although RX's true return is misleading. | Hold the existing provider/lifetime owner; serialize acquisition and prevent concurrent firmware-own release/reset. Observe ownership, propagate refusal as an error, and never claim bytes were read from a skipped operation. No normal FIFO access while firmware-owned. |
-| TX admission | `nicTxAcquireResource` debits TC page counts under a lock. INIT constructors use TC0 and `nicTxGetPageCount(..., TRUE)`; pages are 128 bytes. Startup resets the source ledger to eight maximum-frame buffers for TC0. `nicTxPollingResource` reads returned counts with 256 attempts and 50 ms delays. | Debit sufficient pages before setup. Establish the boot-phase ledger and release-counter mapping from the matching firmware contract; do not equate an ACK with returned credit. One outer deadline must cover repeated acquire/poll attempts. |
+| TX admission | `nicTxAcquireResource` debits TC page counts under a lock. CONFIG uses TC4 and START uses TC0, each with `nicTxGetPageCount(..., TRUE)`; pages are 128 bytes. Startup resets the source ledger to eight maximum-frame buffers for TC0. `nicTxPollingResource` reads returned counts with 256 attempts and 50 ms delays. | Debit sufficient pages before setup. Establish the boot-phase ledger and release-counter mapping from the matching firmware contract; do not equate an ACK with returned credit. One outer deadline must cover repeated acquire/poll attempts. |
 | RX availability | `nicRxWaitResponse` polls WRPLR `0x90`; low/high halves describe port 0/1. It rejects logical length beyond capacity before reading. Optional extra-four-byte mode changes the transfer span. | Wait for nonzero length under a session deadline, validate logical and padded capacities separately, then read exactly the selected transfer span. Keep the reported logical length for the decoder; do not feed padding as another record. |
 | FIFO submission | Existing setup at HIF `+0`, ordered data accesses at `+0x1000`, and setup/data serialization are source-supported. | Use the existing encoder with PIO-only policy and a finite word loop. Return “submitted/read” at this layer, not firmware success. No per-word ready/busy bit is required by the audited path. |
 | Command completion | DOWNLOAD_CONFIG consumes a matching CMD_RESULT with success status; WIFI_START returns after TX and startup separately polls WCIR WLAN_READY. | Reuse the exact INIT decoder/session boundary for CONFIG. Use a bounded readiness wait for START; never wait for an invented START ACK. WLAN_READY after START is not a prerequisite for sending INIT commands. |

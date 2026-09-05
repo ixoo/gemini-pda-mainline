@@ -1,12 +1,16 @@
 # C WIFI_START validation and readiness boundary
 
+Credit correction: [CONFIG uses TC4; START uses TC0](INIT_CREDIT_CORRECTION.md).
+Earlier shared-credit/TC0-CONFIG claims below are superseded; historical
+validation receipts are preserved and do not validate the corrected pools.
+
 The [existing C INIT header](src/hif_init_transaction.h) now includes
 `mt6797_init_validate_start`, `mt6797_start_begin`,
 `mt6797_start_submitted` and `mt6797_start_observe_ready`. These implement
 the already-established [WIFI_START constructor contract](WIFI_START.md)
 alongside the [CONFIG state boundary](INIT_TRANSACTION_C.md). The shared
-transaction owns one credit count and one consumed-sequence bitmap for both
-command kinds; no generic transport interface is added.
+transaction owns separate CONFIG/TC4 and START/TC0 credit counts, plus one
+consumed-sequence bitmap for both command kinds; no generic transport interface is added.
 
 The validator requires exactly 16 logical bytes, count 16, queue `0x8000`,
 command 2, type `0xa0`, zero reserved byte, independently expected sequence
@@ -45,7 +49,7 @@ sequence and credit are available. The caller owns legal firmware-phase
 progression and resource lifetime, as with the existing CONFIG boundary.
 
 The [focused C fixture](src/hif_start_transaction_test.c) tests CONFIG then
-START, shared credit/sequence history, readiness pending/success, failed TX,
+START, independent credits and shared sequence history, readiness pending/success, failed TX,
 early observation, wrong ACK, duplicate submission, timeout/owner failure,
 poison persistence, malformed command/credit state and exhaustion. Both
 START and existing CONFIG state fixtures pass strict C11 warnings and

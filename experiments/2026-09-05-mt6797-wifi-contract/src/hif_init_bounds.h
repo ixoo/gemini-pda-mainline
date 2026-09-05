@@ -3,7 +3,7 @@
 #define GEMINI_HIF_INIT_BOUNDS_H
 #include "hif_command.h"
 
-/* Selected boot INIT seed only: 8 * ceil((28 + 1532) / 128) = 104.
+/* Selected per-class boot INIT seed (TC0 and TC4): 8 * ceil((28 + 1532) / 128) = 104.
  * Caller establishes the fresh boot phase; this function never seeds/refunds.
  * Frame length already includes INIT header, excludes bus padding.
  */

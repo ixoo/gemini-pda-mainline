@@ -70,13 +70,14 @@ enum mt6797_init_phase { MT6797_INIT_IDLE, MT6797_INIT_DISPATCH,
 	MT6797_INIT_REPLY, MT6797_INIT_POISONED, MT6797_START_DISPATCH,
 	MT6797_START_READY };
 
-/* Zero-initialize once, set free_pages only from proven fresh INIT admission.
+/* Zero-initialize once, set each pool only from proven fresh INIT admission.
  * Caller serializes all calls and owns a finite deadline/owner generation.
  * No reset/refund entry point. Do not reconstruct this after failure.
  */
 struct mt6797_init_transaction {
 	enum mt6797_init_phase phase;
-	unsigned int free_pages, expected_sequence;
+	unsigned int free_pages, start_free_pages, expected_sequence;
+	/* free_pages is CONFIG TC4; start_free_pages is START TC0. */
 	unsigned char used_sequences[32];
 };
 
@@ -132,14 +133,14 @@ mt6797_start_begin(struct mt6797_init_transaction *t, const unsigned char *comma
 	int error;
 	if (!t)
 		return -EINVAL;
-	if (t->phase != MT6797_INIT_IDLE || t->free_pages > 104U)
+	if (t->phase != MT6797_INIT_IDLE || t->start_free_pages > 104U)
 		return mt6797_init_abort(t);
 	error = mt6797_init_validate_start(command, bytes, expected_sequence);
 	if (error)
 		return error;
 	if (t->used_sequences[expected_sequence / 8] & (1U << (expected_sequence % 8)))
 		return mt6797_init_abort(t);
-	error = mt6797_init_debit(bytes, &t->free_pages);
+	error = mt6797_init_debit(bytes, &t->start_free_pages);
 	if (error)
 		return error;
 	t->used_sequences[expected_sequence / 8] |= (unsigned char)(1U << (expected_sequence % 8));

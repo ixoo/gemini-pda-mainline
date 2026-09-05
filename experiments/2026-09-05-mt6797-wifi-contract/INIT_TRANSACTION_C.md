@@ -1,5 +1,9 @@
 # C CONFIG transaction boundary
 
+Credit correction: [CONFIG uses TC4; START uses TC0](INIT_CREDIT_CORRECTION.md).
+Earlier shared-credit/TC0-CONFIG claims below are superseded; historical
+validation receipts are preserved and do not validate the corrected pools.
+
 [`hif_init_transaction.h`](src/hif_init_transaction.h) connects the existing
 [INIT wire contract](INIT_PROTOCOL.md), [page debit/RX span](INIT_CREDITS_RX.md)
 and [finite PIO primitive](HIF_PIO.md) without implementing transport discovery,
@@ -23,7 +27,7 @@ firmware authenticity is inferred.
 
 ## Adapter call sequence
 
-The caller zero-initializes one transaction and sets `free_pages` from proven
+The caller zero-initializes one transaction and sets CONFIG/TC4 `free_pages` from proven
 fresh INIT admission. It holds ownership, resource lifetime, session identity
 and a lock serializing every state call. The packet and structures must be
 valid, distinct and stable for each call. After begin, the caller must submit

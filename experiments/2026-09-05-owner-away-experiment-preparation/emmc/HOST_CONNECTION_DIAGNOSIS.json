@@ -1,0 +1,10 @@
+{
+  "emmc_read_executed": false,
+  "gemian_boot_identity_changed": false,
+  "gemian_lan_current_state_confirmed": true,
+  "mainline_observation_executed": false,
+  "ssh_configuration_changed": false,
+  "successful_baseline_usb_interface_address_route_present": true,
+  "usb_interface_address_route_present": false,
+  "usb_timeout_proves_device_unreachable": false
+}

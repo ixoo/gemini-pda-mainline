@@ -1,0 +1,22 @@
+Material credit-class correction — 2026-09-05
+Base: a27fab0e
+CONFIG call site selects TC4; START selects TC0. Four public identities recorded.
+Same adapter sequence allocator independently establishes shared sequence history.
+Original state correction: independent CONFIG free_pages / START start_free_pages.
+Strict C11 -Wall -Wextra -Werror -pedantic plus ASan/UBSan:
+config_tc4_start_tc0_independent_pool_exhaustion=pass
+start_submission_readiness_timeout_sequence_no_ack_no_refund=pass
+config_transaction_submission_reply_poison_no_refund=pass
+config_phase_exact_pio_ack_flow_all_access_failures=pass
+104 CONFIG then 104 START debits exercise separate depletion without borrowing.
+Old shared-credit validation receipts intentionally unchanged; new supersession
+notice and corrected claims added to INIT/START/CONFIG/PIO design documents.
+Uncommitted ordinary-section payload work excluded from this correction handoff.
+No device/backend access or feature push. Kernel adapter remains uncompiled.
+Repository checks pass: 189 profiles, unchanged metadata debt=37; Linux-only
+artifact fixture skipped. Correction links, JSON, rights/privacy and diff checks pass.
+INIT_CREDIT_CORRECTION.md sha256=f1626050eb7deec7ce34a473ea2b8f364823f6ca3777a368d16f16856241d6bb
+src/hif_init_bounds.h sha256=d89ba46edea4fdc16adb9357cb6e678d371dac7ff818f1fe2f8f376a0d44636d
+src/hif_init_transaction.h sha256=49124428d23d8c5e0380fa9540e5f104140fab2cf5ca67eecee1c4a60c9914e0
+src/hif_start_transaction_test.c sha256=f1d0f3dcb03c452717b616a3d7b94838db310f7df5cea6984645a1aac58a5f6b
+results/credit-correction-sources.json sha256=a377d12723e2fa28077e3aa31f27480d25937d7c5630f2fd278f1d7d6335b092

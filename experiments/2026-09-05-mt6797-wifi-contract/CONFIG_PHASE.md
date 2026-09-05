@@ -1,5 +1,9 @@
 # Connected CONFIG request/ACK phase
 
+Credit correction: [CONFIG uses TC4; START uses TC0](INIT_CREDIT_CORRECTION.md).
+Earlier shared-credit/TC0-CONFIG claims below are superseded; historical
+validation receipts are preserved and do not validate the corrected pools.
+
 [`hif_config_phase.h`](src/hif_config_phase.h) is the first connected
 firmware-download phase: validated CONFIG, credit debit, actual finite PIO
 submission, response-length admission, PIO receive and matching ACK acceptance.
@@ -33,7 +37,7 @@ those later phase adapters already exist.
 
 `mt6797_config_send` checks idle state, both scalar I/O callbacks and the
 command before dispatch. It copies the validated 20 bytes into fixed stack
-staging, calls the accepted transaction begin/debit, submits through the
+staging, calls the accepted CONFIG/TC4 transaction begin/debit, submits through the
 accepted PIO primitive, and records its outcome. A zero return means
 submitted and waiting for a reply, not section configuration success.
 The copy ensures the submitted bytes are the validated bytes within this

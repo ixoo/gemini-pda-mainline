@@ -1,5 +1,9 @@
 # INIT credit debit and extra-read integration
 
+Credit correction: [CONFIG uses TC4; START uses TC0](INIT_CREDIT_CORRECTION.md).
+Earlier shared-credit/TC0-CONFIG claims below are superseded; historical
+validation receipts are preserved and do not validate the corrected pools.
+
 [`hif_init_bounds.h`](src/hif_init_bounds.h) supplies two concrete bounded
 pieces for the existing protocol and PIO primitive: boot-INIT page debit and
 the selected CMD_RESULT receive span. It does not read counters or replenish
@@ -18,7 +22,7 @@ frame uses `ceil((28 + 0 + 1532) / 128) = 13` pages; therefore TC0 starts
 with 104 pages, not eight pages. This seed belongs only to the matching
 fresh INIT phase, not an arbitrary live session or software retry.
 
-INIT CONFIG/START constructors acquire TC0 with
+INIT CONFIG acquires TC4 and START acquires TC0, each with
 `nicTxGetPageCount(record_length, TRUE)`. TRUE means the frame already
 includes its descriptor/header, so cost is `ceil(record_length / 128)`.
 The 20-byte CONFIG and 16-byte START each cost one page. Do not add the

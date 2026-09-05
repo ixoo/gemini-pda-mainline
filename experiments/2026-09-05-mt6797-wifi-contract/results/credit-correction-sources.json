@@ -1,0 +1,33 @@
+{
+  "scope": "Public call sites, independent credit seeds and shared sequence allocator",
+  "sources": [
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c",
+      "bytes": 215814,
+      "sha256": "56bf99536fcb96de5a5198943aec96c9efccb8af89261b29c62046e6560c422f"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic.c",
+      "bytes": 123091,
+      "sha256": "6ccae6fbbd21287df1247720f2056c3961a5d1cdeeba5bcc2246a6e8de4b0ce4"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/nic_tx.h",
+      "bytes": 59012,
+      "sha256": "a51b8357b2a5fc0fdff095866d693194274f552cb2e722016bb1ce7c81612db7"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_tx.c",
+      "bytes": 104350,
+      "sha256": "1f479d41bab8e2b5bba68eb6514f3e977559d31d97c39c7833f3dc9f111cd1ed"
+    }
+  ]
+}
