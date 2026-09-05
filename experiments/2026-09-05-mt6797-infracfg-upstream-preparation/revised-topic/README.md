@@ -72,17 +72,13 @@ proposal, and that compile is not a build of this revised reset topic.
 
 ## Generation path and exact validation boundary
 
-Reuse the existing [Git generation/replay path](../scripts/generate-on-buildbox)
-in a separately reviewed window; do not run the historical generator unchanged,
-because its binding phase deliberately reconstructs the old mandatory hunk.
-The required generation delta is specific: in the six-phase sequence, replace
-the binding-phase payload with the supplied derived header diff and leave the
-schema at its pinned upstream bytes. The old intermediate checker expects the
-mandatory schema, so it must not be bypassed and then falsely reported as passed.
-An exact revised input path can instead apply the six ordered review payloads
-through the existing Git apply/commit/format-patch and separate-index replay
-operations, with complete source hashes from `proposal.json` as the final check.
-No new validation framework is proposed here.
+The existing [generator](../scripts/generate-on-buildbox) now has an explicit
+`--revised EXACT_REVISION FULL_BRANCH_REF` mode. Its historical single-revision
+mode and phase editor remain unchanged. The revised path applies the exact six
+ordered inputs using bare Git metadata and separate indexes, with every final
+source hash and changed path checked against the immutable proposal. The
+[execution plan](EXECUTION.md) defines one bounded generation window for the
+integrator to admit after publication. No backend execution has occurred.
 
 The replacement position-3 subject should describe adding MT6797 reset IDs.
 Its message should explain the two exported IDs and why the existing optional
