@@ -1,0 +1,41 @@
+{
+  "boot_id": "b0a9e555-b1e7-4455-b65d-79dcf6116578",
+  "candidate_and_selected_prerequisite_reverified": true,
+  "classification": "authenticated-known-good-current-state-and-retained-deployment-verified",
+  "current_shutdown_performed": false,
+  "custody": "exclusive A53 test task",
+  "deployment_receipt_sha256": "5aed5d6554922835ad6e50091056f9145b2fc1b07d40507353c38202e4b50543",
+  "draft_refusal": "custody/selection/power unconfirmed",
+  "installer_manifest_verified": true,
+  "integrated_identity_claim_exists": false,
+  "kernel": "3.18.41+",
+  "known_good_boot_unchanged": true,
+  "local_privacy_preflight": "initial refusal before claim/connection; evidence parent restricted to 0700, then one connection",
+  "new_partition_write": false,
+  "original_baseline_log": "complete-through-seal; retained immutable",
+  "os": "Debian GNU/Linux 9 (stretch)",
+  "pending_unique_evidence_scope": "no pending admitted mainline storage capture in local records; remote pstore not inventoried",
+  "physical_admission": false,
+  "power": {
+    "ac_online": "0",
+    "battery_capacity": "100",
+    "battery_health": "Good",
+    "battery_present": "1",
+    "usb_online": "1"
+  },
+  "power_scope": "sample-only; continuity through physical selection requires owner confirmation",
+  "process": {
+    "elapsed_seconds": 0.451,
+    "exit_status": 0,
+    "reason": null,
+    "stderr_bytes": 0,
+    "stdin_complete": true,
+    "stdout_bytes": 406
+  },
+  "raw_stdout_sha256": "145c81c573d9c84e085226cf3589d50d04eb4b2b7ca0d06ea63ef9ac5b79057c",
+  "read_attempt_exists": false,
+  "retained_full_readback": "matched",
+  "retained_shutdown": "confirmed-unreachable-before-original-session",
+  "schema": 1,
+  "source_commit": "33455ea1c610ed9704bbd9ee99957eaf64ae9197"
+}

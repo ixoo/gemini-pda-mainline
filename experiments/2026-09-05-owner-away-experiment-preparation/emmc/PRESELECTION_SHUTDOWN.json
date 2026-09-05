@@ -1,0 +1,63 @@
+{
+  "candidate_padded_sha256": "a423ad63fbb97d0f3fc4726d3957e05d3951480996b754d839a89d80a1232821",
+  "classification": "clean-shutdown-request-succeeded-and-two-bounded-disconnects",
+  "custody_exclusive": true,
+  "disconnect_probes": [
+    {
+      "elapsed_seconds": 5.053,
+      "exit_status": -15,
+      "reason": "outer-timeout",
+      "stderr_bytes": 0,
+      "stdin_complete": true,
+      "stdout_bytes": 0
+    },
+    {
+      "elapsed_seconds": 5.055,
+      "exit_status": -15,
+      "reason": "outer-timeout",
+      "stderr_bytes": 0,
+      "stdin_complete": true,
+      "stdout_bytes": 0
+    }
+  ],
+  "disconnect_scope": "two known-good SSH connection deadlines; no claim of electrical measurement",
+  "known_good_boot_id": "b0a9e555-b1e7-4455-b65d-79dcf6116578",
+  "known_good_kernel": "3.18.41+",
+  "mainline_identity_observations": 0,
+  "next_action": "coordinator asks owner for usual physical boot2 selection; finalize facts only after actual reply",
+  "partition_writes": 0,
+  "physical_selection_confirmed": false,
+  "power_before_shutdown": {
+    "ac_online": "0",
+    "battery_capacity": "100",
+    "battery_health": "Good",
+    "battery_present": "1",
+    "usb_online": "1"
+  },
+  "power_continuity_confirmed": false,
+  "preselection_manifest_sha256": "96ea4a81ae69477529144208288e91afa34e1466e772535bad7a467b0d002270",
+  "pstore": {
+    "bytes": 65524,
+    "clear_operations": 0,
+    "manifest_sha256": "d683669a55a68b788fbd799615a271071f2daf1bf47d5891a35e44782459d39c",
+    "mounted": true,
+    "payload_identities_verified": true,
+    "preserved_privately": true,
+    "private_evidence_fsynced": true,
+    "records": 1,
+    "unchanged_before_shutdown": true
+  },
+  "reboot_requests": 0,
+  "schema": 1,
+  "shutdown_process": {
+    "elapsed_seconds": 0.595,
+    "exit_status": 0,
+    "reason": null,
+    "stderr_bytes": 0,
+    "stdin_complete": true,
+    "stdout_bytes": 237
+  },
+  "shutdown_stdout_sha256": "29e9f9b4694f6a43ed542fec8e26f3ea08abc96d056b1b6c2a5dde632d915179",
+  "source_commit": "33455ea1c610ed9704bbd9ee99957eaf64ae9197",
+  "storage_read_attempts": 0
+}
