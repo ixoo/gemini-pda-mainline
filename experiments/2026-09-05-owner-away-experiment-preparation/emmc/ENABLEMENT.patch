@@ -1,0 +1,72 @@
+--- a/experiments/2026-09-05-owner-away-experiment-preparation/emmc/execution_gate.py
++++ b/experiments/2026-09-05-owner-away-experiment-preparation/emmc/execution_gate.py
+@@ -1,4 +1,4 @@
+ # SPDX-License-Identifier: MIT
+ """Coordinator-reviewed execution boundary; no environment or CLI override."""
+ def require_enabled():
+-    raise ValueError('eMMC execution disabled pending final coordinator review')
++    return None
+--- a/experiments/2026-09-05-owner-away-experiment-preparation/emmc/source-pins.json
++++ b/experiments/2026-09-05-owner-away-experiment-preparation/emmc/source-pins.json
+@@ -5,7 +5,7 @@
+   "baseline/scripts/supplemental_recovery.py": "c0cc57dbc8c782bb7a995716c3b0dcdd74d7068dc84200d3954012a619b8b293",
+   "baseline/scripts/verified_baseline.py": "ba70f6df476283c0113d433ae856940cc9c031f864019da95f014324e16c926e",
+   "emmc/classify.py": "0be35e88eb3868e515d2185932519d0fb878260eced50f336e6dde301983acc3",
+-  "emmc/execution_gate.py": "347d0bee7417e4abc048e058b3d3c1e72fbd09d9e75c218f1af5c68dd70eaade",
++  "emmc/execution_gate.py": "62845b4b0ecce7f540554a58a0e58e3246531e655de8edff6a13477bba48c4d6",
+   "emmc/guarded_observation.py": "5fe4472b3ed61812cc05b6662decac89f6799d81de06def4f8bae51cb920317d",
+   "emmc/observe.sh": "dbdf6a7c07c9ad895e75e8dc83b229567da7b22e92d905f284ff43208d902e31",
+   "emmc/prerequisite.py": "402847813aac73da5abb7ad993cbd326510d9fc0ba85ec5ad9cf0399d4e48621",
+--- a/experiments/2026-09-05-owner-away-experiment-preparation/emmc/SESSION_PACKET.json
++++ b/experiments/2026-09-05-owner-away-experiment-preparation/emmc/SESSION_PACKET.json
+@@ -1,7 +1,7 @@
+ {
+   "candidate_padded_sha256": "a423ad63fbb97d0f3fc4726d3957e05d3951480996b754d839a89d80a1232821",
+   "candidate_raw_sha256": "a25fe4cb907f4f3da2bf9f36fcf38b3fff7d8ba84adc37562fdcff2f1a422daf",
+-  "execution_enabled": false,
++  "execution_enabled": true,
+   "experiment": "emmc-readonly",
+   "measurement": {
+     "inner_read_deadline_seconds": 20,
+@@ -13,7 +13,7 @@
+     "sectors": 32768,
+     "write_count": 0
+   },
+-  "preparation_only": true,
++  "preparation_only": false,
+   "prerequisite_bindings": {
+     "admission_id": "2a40562a-7ee3-4899-af82-b0faa19df575",
+     "baseline_manifest_sha256": "266398b98b7c7052714a1c14e465846c4355b268756ff9ca7055644f808cee9c",
+@@ -42,14 +42,14 @@
+       "completion_sha256": "77aed6f7be6cd790c6db92a33611b97e21cbf2af09ebd0d6caf3279000781343",
+       "launcher": {
+         "launcher_sha256": "ee739d2855a7fffd14d6c6bd08a64c6e3c22973522e1a81ebcae09ce4310326f",
+-        "pins_sha256": "017377e8ffcda4564facfdda88c0c56d4342843497b7dedf96b34fa682d8952f"
++        "pins_sha256": "be7847ca613ea08b5dc602951ab43c2b9fb0bd1a619c4bb9d8abe93bac89e762"
+       }
+     },
+     "execution_gate": "emmc/execution_gate.py",
+     "launcher": "emmc/collect-emmc.py",
+     "launcher_source_identity": {
+       "launcher_sha256": "ee739d2855a7fffd14d6c6bd08a64c6e3c22973522e1a81ebcae09ce4310326f",
+-      "pins_sha256": "017377e8ffcda4564facfdda88c0c56d4342843497b7dedf96b34fa682d8952f"
++      "pins_sha256": "be7847ca613ea08b5dc602951ab43c2b9fb0bd1a619c4bb9d8abe93bac89e762"
+     },
+     "new_session_recovery_parser": "emmc/recovery_v2.py"
+   },
+@@ -70,13 +70,13 @@
+     "baseline/scripts/verified_baseline.py": "ba70f6df476283c0113d433ae856940cc9c031f864019da95f014324e16c926e",
+     "emmc/classify.py": "0be35e88eb3868e515d2185932519d0fb878260eced50f336e6dde301983acc3",
+     "emmc/collect-emmc.py": "ee739d2855a7fffd14d6c6bd08a64c6e3c22973522e1a81ebcae09ce4310326f",
+-    "emmc/execution_gate.py": "347d0bee7417e4abc048e058b3d3c1e72fbd09d9e75c218f1af5c68dd70eaade",
++    "emmc/execution_gate.py": "62845b4b0ecce7f540554a58a0e58e3246531e655de8edff6a13477bba48c4d6",
+     "emmc/finish-emmc.py": "77aed6f7be6cd790c6db92a33611b97e21cbf2af09ebd0d6caf3279000781343",
+     "emmc/guarded_observation.py": "5fe4472b3ed61812cc05b6662decac89f6799d81de06def4f8bae51cb920317d",
+     "emmc/observe.sh": "dbdf6a7c07c9ad895e75e8dc83b229567da7b22e92d905f284ff43208d902e31",
+     "emmc/prerequisite.py": "402847813aac73da5abb7ad993cbd326510d9fc0ba85ec5ad9cf0399d4e48621",
+     "emmc/recovery_v2.py": "70d2b34b505278b81e98ffdb63a3c6963e20025a4a6ce05bf9e7de756f0e6279",
+-    "emmc/source-pins.json": "017377e8ffcda4564facfdda88c0c56d4342843497b7dedf96b34fa682d8952f"
++    "emmc/source-pins.json": "be7847ca613ea08b5dc602951ab43c2b9fb0bd1a619c4bb9d8abe93bac89e762"
+   },
+   "transport_seconds": {
+     "confirm_recovery": 15,
