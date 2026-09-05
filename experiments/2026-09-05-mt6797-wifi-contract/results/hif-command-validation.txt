@@ -1,0 +1,16 @@
+HIF command encoder validation — 2026-09-05
+Base: a02897a9
+Inputs: existing eight-source PIO ledger; original GPL-2.0-only arithmetic.
+Strict C11 -Wall -Wextra -Werror -pedantic with address/undefined sanitizers.
+New command fixtures: 29 cases plus NULL-output refusal, pass.
+Existing sizing fixtures: 30 cases plus NULL-output refusal, pass.
+Managed temporary executables removed by immediate EXIT trap.
+No shell script changes; no MMIO, device, backend or kernel build.
+Kernel include branch/integration uncompiled; runtime admission remains open.
+PIO_COMPLETION negative finding and accepted sizing helper unchanged.
+Repository checks pass: 189 profiles, unchanged metadata debt 37; Linux-only
+artifact-provenance fixture skipped. New-file links, rights/privacy and
+git diff --check pass. No artifacts or unrelated paths in handoff.
+HIF_COMMAND.md sha256=209fd5bf10213c76475d79a6d754ecc16b5ccf55d0510068488627cfa7ce2edb
+src/hif_command.h sha256=8758f34294f8270be433ec7e40c59dcd0595889b322884cf2919ae159f2e7d80
+src/hif_command_test.c sha256=a17a1fb7b94c1a3533d5ae8d22e1b8d2ec936724ae76c19f86d4b942cfc56676
