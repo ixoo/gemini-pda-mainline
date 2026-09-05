@@ -16,5 +16,6 @@ valid for their exact old inputs. See [provider impact](provider-impact.json)
 for reconstruction. Default, active boot candidates and reset-topic source are
 unaffected. No duplicate Linux source tree is requested.
 
-Actual kernel compilation and emitted-object acceptance remain pending.
+Actual kernel compilation and emitted-object acceptance passed in the
+[Buildbox result](BUILD_RESULT.md).
 This profile is compile-only and is not selected for device deployment.
