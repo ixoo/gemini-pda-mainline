@@ -14,6 +14,7 @@ import json
 import os
 from pathlib import Path
 import resource
+import selectors
 import shutil
 import signal
 import stat
@@ -116,7 +117,9 @@ def check_processed(path, contract=C):
 
 def collect(command, output, env, lock_fd, interrupted, contract=C):
     facts = {'name': command['name'], 'argv': command['argv'],
-             'timeout_seconds': command['timeout'], 'stop_reason': None}
+             'timeout_seconds': command['timeout'], 'stop_reason': None,
+             'log_bytes': contract['log_bytes'],
+             'generated_file_bytes': contract['generated_file_bytes']}
     process = None
     started = time.monotonic()
     stdout, stderr = (output / (command['name'] + suffix) for suffix in ('.stdout', '.stderr'))
@@ -130,36 +133,52 @@ def collect(command, output, env, lock_fd, interrupted, contract=C):
             if os.getppid() != parent_pid:
                 os.kill(os.getpid(), signal.SIGKILL)
         resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
-        resource.setrlimit(resource.RLIMIT_FSIZE, (contract['log_bytes'], contract['log_bytes']))
+        resource.setrlimit(resource.RLIMIT_FSIZE, (contract['generated_file_bytes'], contract['generated_file_bytes']))
     try:
         require(interrupted['signal'] is None, 'interrupted before command')
-        with stdout.open('xb') as out, stderr.open('xb') as err:
+        # Capture through pipes so the parent enforces the smaller stream cap.
+        # RLIMIT_FSIZE independently bounds generated regular files in children.
+        with stdout.open('xb') as out, stderr.open('xb') as err, selectors.DefaultSelector() as selector:
             parent_pid = os.getpid()
-            # Retain the lock in the command tree if the coordinator dies. A new
-            # build must not race surviving descendants; no recursive kill claim.
-            process = subprocess.Popen(command['argv'], stdout=out, stderr=err,
+            process = subprocess.Popen(command['argv'], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                        stdin=subprocess.DEVNULL, env=env, start_new_session=True,
                                        preexec_fn=limits, pass_fds=(lock_fd,))
-            while process.poll() is None:
+            counts = {out: 0, err: 0}
+            for pipe, destination in ((process.stdout, out), (process.stderr, err)):
+                os.set_blocking(pipe.fileno(), False)
+                selector.register(pipe, selectors.EVENT_READ, destination)
+            while process.poll() is None or selector.get_map():
                 if interrupted['signal'] is not None:
                     facts['stop_reason'] = 'interrupted: ' + interrupted['signal']
                     break
                 if time.monotonic() - started >= command['timeout']:
                     facts['stop_reason'] = 'timeout'
                     break
-                if max(stdout.stat().st_size, stderr.stat().st_size) >= contract['log_bytes']:
-                    facts['stop_reason'] = 'log-limit'
+                for key, _events in selector.select(timeout=0.05):
+                    chunk = os.read(key.fileobj.fileno(), 65536)
+                    if not chunk:
+                        selector.unregister(key.fileobj)
+                        continue
+                    destination = key.data
+                    remaining = contract['log_bytes'] - counts[destination]
+                    kept = chunk[:remaining]
+                    destination.write(kept)
+                    counts[destination] += len(kept)
+                    if counts[destination] >= contract['log_bytes']:
+                        facts['stop_reason'] = 'log-limit'
+                        break
+                if facts['stop_reason'] is not None:
                     break
-                time.sleep(0.05)
     except (OSError, ValueError, subprocess.SubprocessError) as exc:
         facts['stop_reason'] = str(exc)
     finally:
         if process is not None:
-            # The shared helper expects pipe handles; this collector uses files.
-            # Attach harmless close-only objects for its deterministic cleanup.
+            # The shared helper closes stdin/stdout; close stderr here as well.
             process.stdin = open(os.devnull, 'wb')
-            process.stdout = open(os.devnull, 'rb')
-            guard.cleanup_group(process, facts, contract['kill_after_seconds'])
+            try:
+                guard.cleanup_group(process, facts, contract['kill_after_seconds'])
+            finally:
+                process.stderr.close()
         else:
             facts['returncode'] = None
             facts['cleanup'] = {'group_absent': True}

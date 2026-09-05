@@ -126,6 +126,45 @@ class SchemaTests(unittest.TestCase):
         with self.assertRaises(m.Refusal): m.accepted_command(facts)
         self.assertLessEqual((self.path / 'log-ceiling.stdout').stat().st_size, 4096)
 
+    def test_generated_output_above_log_limit(self):
+        lock = self.path / 'lock';lock.write_text('')
+        descriptor = os.open(lock, os.O_RDONLY);self.addCleanup(os.close, descriptor)
+        generated = self.path / 'generated.json'
+        code = "import sys;open(sys.argv[1],'wb').write(b'x'*(17*1024*1024));print('done')"
+        cmd = {'name': 'generated', 'argv': [sys.executable, '-c', code, str(generated)], 'timeout': 5}
+        with m.guard.interruption_guard() as state:
+            facts = m.collect(cmd, self.path, os.environ.copy(), descriptor, state)
+        m.accepted_command(facts)
+        self.assertEqual(generated.stat().st_size, 17*1024*1024)
+        self.assertEqual(facts['generated_file_bytes'], 128*1024*1024)
+        self.assertEqual(facts['log_bytes'], 16*1024*1024)
+        self.assertEqual((self.path / 'generated.stdout').read_text(), 'done\n')
+
+    def test_each_stream_above_16_mib_is_bounded(self):
+        lock = self.path / 'lock';lock.write_text('')
+        descriptor = os.open(lock, os.O_RDONLY);self.addCleanup(os.close, descriptor)
+        for fd, suffix in [(1, 'stdout'), (2, 'stderr')]:
+            cmd = {'name': 'flood-' + suffix, 'argv': [sys.executable, '-c',
+                   f'import os;os.write({fd},b"x"*(17*1024*1024))'], 'timeout': 5}
+            with m.guard.interruption_guard() as state:
+                facts = m.collect(cmd, self.path, os.environ.copy(), descriptor, state)
+            self.assertEqual(facts['stop_reason'], 'log-limit')
+            self.assertEqual((self.path / (cmd['name'] + '.' + suffix)).stat().st_size, 16*1024*1024)
+            self.assertTrue(facts['cleanup']['group_absent'] or facts['cleanup']['term_sent'])
+            with self.assertRaises(m.Refusal): m.accepted_command(facts)
+
+    def test_generated_file_ceiling_still_enforced(self):
+        lock = self.path / 'lock';lock.write_text('')
+        descriptor = os.open(lock, os.O_RDONLY);self.addCleanup(os.close, descriptor)
+        generated = self.path / 'too-large'
+        cmd = {'name': 'file-ceiling', 'argv': [sys.executable, '-c',
+               "import sys;f=open(sys.argv[1],'wb',buffering=0);assert f.write(b'x'*8192)==8192", str(generated)], 'timeout': 2}
+        c = dict(m.C, generated_file_bytes=4096)
+        with m.guard.interruption_guard() as state:
+            facts = m.collect(cmd, self.path, os.environ.copy(), descriptor, state, c)
+        self.assertLessEqual(generated.stat().st_size, 4096)
+        with self.assertRaises(m.Refusal): m.accepted_command(facts)
+
     def test_collector_timeout(self):
         lock = self.path / 'lock';lock.write_text('')
         descriptor = os.open(lock, os.O_RDONLY);self.addCleanup(os.close, descriptor)
