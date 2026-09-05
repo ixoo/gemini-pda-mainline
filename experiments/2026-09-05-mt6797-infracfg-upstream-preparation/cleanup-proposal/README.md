@@ -83,14 +83,25 @@ PYTHONDONTWRITEBYTECODE=1 python3 experiments/2026-09-05-mt6797-infracfg-upstrea
 ## Unsigned patch generation and admission
 
 The [generator](generate-on-buildbox) requires an exact clean published project
-revision, the normal existing nonblocking Buildbox lock and sufficient space.
+revision and full published branch ref, the normal existing nonblocking Buildbox
+lock and sufficient space. A fresh query to the exact project origin, with a
+30-second timeout and five-second forced-kill grace, must advertise that ref at
+the requested revision; network failure,
+missing/moved refs or extra response lines refuse without stale-ref fallback.
+The generation receipt retains the checked ref. Invoke with both the full commit
+and full `refs/heads/...` name after the coordinator assigns the window.
 After a separately assigned window, it uses a disposable sparse upstream Git
 checkout containing the one source file and review checker, derives the fix,
 commits with an explicit synthetic non-certifying identity, emits a real
 `git format-patch`, checks replay against the exact full parent tree and runs
 strict checkpatch with only missing sign-off exempted. It removes sparse source
-scratch and retains only a patch/check/identity package for review. No package
-or prepared kernel tree is modified or exported.
+scratch and retains only a patch/check/identity package for review. Scratch uses
+one private, ownership-marked directory under the existing Buildbox lock. Every
+run validates that directory before removing a stale `run` left by SIGKILL;
+unknown ownership, wrong permissions and symlinks refuse. The current run installs
+its cleanup trap before creating source state. The empty owned root and marker
+remain for safe next-run recovery. Historical random scratch paths are not
+deleted. No package or prepared kernel tree is modified or exported.
 
 The fixed experiment timestamp and synthetic `From` are reproducibility metadata,
 not a claim about a human author's identity or certification. Actual authorship,
@@ -99,3 +110,9 @@ routing must be resolved before upstream submission. No tag or signature is
 invented. Root admission is required before changing any active series or
 allocating a subsequent build. The optional-reset-cell binding correction stays
 the next separate small topic after this cleanup handoff.
+
+The focused [generator guard fixtures](test-generator-guards.py) exercise the
+actual shell guard functions with a synthetic remote response and private host
+scratch. They check exact/moved/missing/multiple refs, remote failure, recognized
+stale recovery and refusal of unknown, public or symlinked scratch. All 14 cases
+pass locally; Bash syntax and ShellCheck also pass. They do not execute the backend generator or establish a Buildbox result.

@@ -5,8 +5,40 @@ set -euo pipefail
 export LC_ALL=C PYTHONDONTWRITEBYTECODE=1
 
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
-[[ $# == 1 && $1 =~ ^[0-9a-f]{40}$ ]] || die 'expected exact published project revision'
-readonly revision=$1
+# Guard functions are exercised directly by test-generator-guards.py.
+verify_published() {
+	local advertised
+	advertised=$(timeout --kill-after=5 30 git ls-remote --exit-code --refs \
+		https://github.com/ixoo/gemini-pda-mainline.git "$2") || die 'remote publication check failed'
+	[[ $advertised == "$1"$'\t'"$2" ]] || die 'advertised ref does not equal requested revision'
+}
+
+prepare_scratch() {
+	python3 - "$1" <<'PYGUARD'
+import os, pathlib, shutil, stat, sys
+root = pathlib.Path(sys.argv[1])
+identity = 'clk-mtk reset cleanup generator scratch v1\n'
+if not root.exists() and not root.is_symlink():
+    root.mkdir(mode=0o700)
+    (root / '.owner').write_text(identity)
+info = root.lstat()
+if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
+    raise SystemExit('scratch root must be a private owned directory')
+marker = root / '.owner'
+if marker.is_symlink() or not marker.is_file() or marker.read_text() != identity:
+    raise SystemExit('unrecognized scratch ownership marker')
+work = root / 'run'
+if work.is_symlink() or (work.exists() and not work.is_dir()):
+    raise SystemExit('unexpected scratch run type')
+if work.exists():
+    shutil.rmtree(work)
+PYGUARD
+}
+
+# Entry point: never source or execute backend actions in host guard fixtures.
+[[ $# == 2 && $1 =~ ^[0-9a-f]{40}$ && $2 == refs/heads/* ]] || die 'expected exact project revision and full published branch ref'
+readonly revision=$1 published_ref=$2
+git check-ref-format "$published_ref" || die 'invalid published branch ref'
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 repo=$(git -C "$here" rev-parse --show-toplevel)
 readonly here repo
@@ -15,6 +47,7 @@ readonly here repo
 [[ -z $(git -C "$repo" status --porcelain) ]] || die 'dirty project checkout'
 [[ $(git -C "$repo" remote get-url origin) == https://github.com/ixoo/gemini-pda-mainline.git ]] || die 'wrong project origin'
 for tool in git python3 perl flock timeout; do command -v "$tool" >/dev/null || die "missing $tool"; done
+verify_published "$revision" "$published_ref"
 readonly upstream=4d7d9486c04d917265f64c55bd23b2cc4fe7749c
 readonly scratch=/workspace/gemini-pda/tmp
 readonly output_root=/workspace/gemini-pda/review-packages/clk-mtk-reset-cleanup
@@ -40,15 +73,16 @@ if [[ -e $partial ]]; then
 	[[ -d $partial ]] || die 'unexpected partial type'
 	rm -rf -- "$partial"
 fi
-work=$(mktemp -d "$scratch/clk-mtk-reset-cleanup.XXXXXX")
-readonly work
+readonly scratch_root="$scratch/clk-mtk-reset-cleanup"
+readonly work="$scratch_root/run"
+prepare_scratch "$scratch_root"
 cleanup() {
 	rm -rf -- "$work"
 	[[ ! -d $partial || -L $partial ]] || rm -rf -- "$partial"
 }
 trap cleanup EXIT
 trap 'exit 130' INT TERM
-mkdir "$partial"
+mkdir "$work" "$partial"
 git -C "$work" init --quiet
 git -C "$work" remote add origin https://github.com/torvalds/linux.git
 # Git-only metadata plus the one source file and checker. No Linux tree export.
@@ -90,13 +124,14 @@ git -C "$work" apply --cached "$partial/0001-clk-mediatek-remove-provider-on-res
 unset GIT_INDEX_FILE
 perl "$work/scripts/checkpatch.pl" --no-tree --strict --ignore MISSING_SIGN_OFF \
 	"$partial/0001-clk-mediatek-remove-provider-on-reset-registration-error.patch" >"$partial/checkpatch.txt"
-python3 - "$work" "$revision" "$upstream" <<'PY' >"$partial/generation.json"
+python3 - "$work" "$revision" "$upstream" "$published_ref" <<'PY' >"$partial/generation.json"
 import hashlib,json,pathlib,subprocess,sys
-work, revision, upstream = sys.argv[1:]
+work, revision, upstream, published_ref = sys.argv[1:]
 def git(*args):return subprocess.check_output(['git','-C',work,*args],text=True).strip()
 path='drivers/clk/mediatek/clk-mtk.c'
 assert git('diff','--name-only',upstream,'HEAD')==path
-print(json.dumps({'repository_commit':revision,'upstream_commit':upstream,
+print(json.dumps({'repository_commit':revision,'published_ref':published_ref,
+ 'publication_check':'live exact origin ref advertisement before generation','upstream_commit':upstream,
  'generated_commit':git('rev-parse','HEAD'),'tree':git('rev-parse','HEAD^{tree}'),
  'changed_files':[path],'corrected_source_sha256':hashlib.sha256((pathlib.Path(work)/path).read_bytes()).hexdigest(),
  'replay':'exact full tree match','certification':'unsigned synthetic review identity; actual author/DCO unresolved',
