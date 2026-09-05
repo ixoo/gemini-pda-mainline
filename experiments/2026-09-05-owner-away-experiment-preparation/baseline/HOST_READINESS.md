@@ -1,14 +1,15 @@
 # First-baseline host readiness handoff
 
 Host-only review at 2026-09-05 14:45 UTC, source parent
-`4a000f099ed8271155ed084a641517ed0b3b6fcf`. No device connection, network
-configuration, credential copy/enrollment, installation or observation occurred.
+`4a000f099ed8271155ed084a641517ed0b3b6fcf`, followed by the coordinator's local
+credential colocation and unchanged-tool preparation check. No device connection,
+network configuration, trust enrollment, installation or observation occurred.
 
 **Decision:** host network configuration is already saved correctly. The live
-USB interface is absent. The remaining offline preparation is to colocate two
-existing recovery credential files with the retained candidate and A53 keys;
-then the normal custodian can use the existing tools. No development or build
-cycle is needed to resolve these host prerequisites. Actual deployment, physical
+USB interface was absent. The two existing recovery credential files are now
+colocated with the retained candidate and A53 keys, and local installer/tool
+preparation passes. The normal custodian can use the existing tools; no further
+development or build cycle is needed for these host prerequisites. Actual deployment, physical
 selection and runtime acceptance remain separate facts.
 
 ## Already complete
@@ -32,6 +33,12 @@ selection and runtime acceptance remain separate facts.
   `artifacts/credentials/gemini_ed25519` and
   `artifacts/credentials/a53-recovery-known_hosts`. The latter matches the
   already reviewed recovery-pin handoff. No new trust was learned.
+  The coordinator subsequently copied both files into the A53 worker's existing
+  mode-0700 credential directory using exclusive mode-0600 creation, flushing
+  and readback verification. The worker independently confirmed exact existing
+  source/destination bytes, ownership, regular files and mode 0600; the unchanged
+  collector's private-path checks also pass. No credential bytes or fingerprints
+  are recorded here.
 - Installer, collector, finishing helper, session generator and deployment
   receipt adapter are byte-identical between the two checkouts. Required local
   Python, Bash, ShellCheck, SSH/key tooling and reviewed shell utilities are
@@ -75,16 +82,12 @@ an absent interface alone cannot identify a defective cable or kernel.
 
 ## Exact remaining preparation and session handoff
 
-1. **Offline, before installation/owner selection:** use the retained A53 worker
-   worktree as the execution checkout. The coordinator checkout currently lacks
-   this candidate directory and A53 credential directory; the worker lacks the
-   two recovery files named above. The custodian should copy only those two
-   existing files into the worker's corresponding ignored credential paths,
-   with exclusive creation, mode 0600, caller ownership, no symlinks and exact
-   source/destination checksum comparison. Refuse existing conflicting files.
-   Retain the original recovery files. This is local reuse of existing trust,
-   not host-key enrollment. Do not copy the candidate or substitute credential
-   paths through symlinks. No such copy was made in this review.
+1. **Offline colocation complete:** use the retained A53 worker worktree as the
+   execution checkout. The coordinator checkout lacks this candidate directory
+   and A53 credential directory; the worker now has all required credentials at
+   the fixed paths. The original recovery files remain in the coordinator
+   checkout. No candidate copy or symlink substitution is needed. Do not repeat
+   the completed credential copy or treat it as a remaining setup gate.
 2. **Use existing installation/session tooling:** recheck the exact private
    paths and current source pins in the execution checkout. Follow the existing
    installer default validation and guarded installation procedure when the
@@ -118,4 +121,30 @@ for repeated user permission. Prepare their fixed fields and command references
 offline; fill result hashes and actual owner observations as they become known.
 Only physical selection/availability and facts genuinely requiring the owner
 remain owner interactions. A timeout never supplies a missing fact or grants a
-retry. This handoff does not alter the first-boot budget or shared queue.
+  retry. This handoff does not alter the first-boot budget or shared queue.
+
+## Unchanged local preparation result
+
+The existing `scripts/install-boot2.py` ran with its three explicit retained
+inputs and **without** `--execute` or `--target`: this worker's candidate
+`candidate-a25fe4cb907f4f3da2bf9f36fcf38b3fff7d8ba84adc37562fdcff2f1a422daf`,
+the retained historical `candidate-mt6797-pwrap-reset-305230b1` foundation,
+and userspace package manifest
+`dfeb746505b7ad01423e91e952e76620f845b048ae2e8c5cf8a311e0d4443e60`
+from build `e9c028005b88ef8536ecb58c095e8d172253fa12`.
+
+It exited zero with `installer_derivation=pass`, `mode=local-validation-only`,
+`device_action=none` and `physical_admission=false`. This includes the unchanged
+candidate/package/member/credential validation, installer derivation, Bash
+syntax and ShellCheck. The generated local adapter SHA-256 was
+`c3621fbc7a037708b217551ede8f6ec5d9317529084f1876e784d195dcaa5b22`;
+that value binds this execution checkout's actual private paths, not a portable
+deployment identity. No temporary `derive-*` directory remains.
+
+The collector's existing source-closure check, finisher module load and private
+recovery-path checks passed without calling their dispatch functions. No live
+admission, deployment receipt, attempt or phase claim was created. Full collector
+and phase preparation still require actual deployment/selection/prior-result
+records; their absence now is an operational prerequisite, not missing software
+or a reason to fabricate a dry-run admission. No device serviceability claim
+follows from these local checks.
