@@ -61,20 +61,22 @@ network configuration are hidden in these capture commands.
 | --- | --- | --- |
 | Physical selection | One owner selection | Exact installed candidate from guarded receipt; no automatic retry |
 | Baseline observation | One SSH command, 45 seconds | Exact live init/userspace hashes, kernel config, CPU/PWRAP/MMC metadata, console/map and boot ID; no partition-content or thermal-value read |
-| Negative authentication | One wrong key, one wrong host pin; 15 seconds each | Expected rejection text, nonzero SSH status, no remote stdout |
-| Fresh positive probe | One SSH command, 15 seconds | Same boot and exact relevant userspace after both refusals |
-| Log seal/export | One SSH command, 30 seconds | At most 10 seconds waiting for logger exit; 3 MiB stdout and 16 KiB stderr bounds |
-| Native recovery request | One SSH command, 15 seconds | Same boot, exact inherited reboot wrapper, one request; no sync or partition operation |
+| `auth-checks` | One wrong key, one wrong host pin, one fresh positive probe; 15 seconds each | Expected rejection text, nonzero SSH status, no remote stdout; fresh positive confirms the same boot and userspace; any failure stops this phase |
+| `preserve-log` | One separately admitted SSH command, 30 seconds | At most one pidfd signal and 10 seconds waiting for exit; already terminal loggers receive no signal; 3 MiB stdout and 16 KiB stderr bounds |
+| `request-recovery` | One separately admitted SSH command, 15 seconds | Ordinary recovery requires verified local log preservation; emergency recovery requires the exact exception fields below; same boot and inherited reboot wrapper, no sync or partition operation |
 | Known-good confirmation | One separately admitted SSH command, 15 seconds | Owner confirms physical recovery/availability; exact Gemian release and a boot ID different from both predecessor and mainline |
 
 The first observation's 128 KiB stdout/16 KiB stderr and each transport's fixed
-outer deadline include termination/reaping. Authentication plus sealing is at
-most 75 seconds of network time plus 10 seconds for local disposable key
-creation. The logger starts during init and has a 600-second absolute deadline
+outer deadline include termination/reaping. Authentication has at most 45 seconds
+of network time plus 10 seconds for local disposable key creation. Preservation
+has a separate admission and 30-second budget. The logger starts during init and has a 600-second absolute deadline
 and 2 MiB cap. Start capture promptly after service appears; finish sealing well
 before that deadline. Waiting for an owner is not permission to extend it. If
 missed, preserve partial evidence, recover, and review before selecting a new
-attempt. No test automatically repeats on disconnect.
+attempt. A failed authentication phase does not prevent a separately reviewed
+preservation admission. A timeout or disconnect never starts an automatic export,
+recovery command or another SSH connection. Review the saved evidence before
+admitting another phase. No test automatically repeats on disconnect.
 
 The console acceptance is the owner's observation of a readable status screen
 and absence of command interpretation. Software `console.status`, foreground
@@ -102,25 +104,48 @@ under ignored `artifacts/a53-authenticated/sessions/<baseline-admission-id>/`;
 existing, failed or interrupted phases refuse another execution. The exact
 phase admission has schema 1, experiment `a53-authenticated-baseline`, and:
 
-- `action`: `auth-and-seal`, `request-recovery` or `confirm-recovery`.
+- `action`: `auth-checks`, `preserve-log`, `request-recovery` or `confirm-recovery`.
 - `baseline_admission_id`, `baseline_manifest_sha256`,
   `candidate_manifest_sha256`, `finish_source_sha256`, `steps_source_sha256`:
   hashes/identity of the reviewed prior capture and current scripts.
 - `custodian_role`, `custody_handoff_sha256`, `custody_exclusive: true`,
   `no_other_device_operations: true`: the current coordinator's handoff.
-- `action_budgets`: exactly the matching fixed dictionary in
-  [`finish-baseline.py`](scripts/finish-baseline.py); booleans cannot stand in
-  for numeric budgets.
+- `action_budgets`: exactly `{"rejected_key":1,"wrong_host":1,"positive_probe":1}`
+  for `auth-checks`, `{"log_export":1}` for `preserve-log`,
+  `{"native_reboot":1}` for `request-recovery`, or `{"known_good_probe":1}` for
+  `confirm-recovery`. Booleans cannot stand in for numeric budgets.
 - `owner_console_accepted`: the actual owner observation, never assumed.
 - `physical_recovery_confirmed`: false except for the separately admitted
   known-good confirmation after owner recovery/availability.
-- `known_good_known_hosts_sha256`, `auth_seal_manifest_sha256`,
-  `native_request_manifest_sha256`: null for the first two actions. For
-  confirmation, pin the preverified private known-good host file and available prior
-  phase checksum manifests; an absent prior phase has a null manifest pin. A
-  known-good probe remains available after interrupted request capture, but
-  missing/failed request or authentication/log evidence cannot
-  produce a complete-baseline pass.
+- `known_good_known_hosts_sha256`: null except for confirmation, which pins
+  the preverified private known-good host file.
+- `auth_checks_manifest_sha256`, `log_export_manifest_sha256`,
+  `native_request_manifest_sha256`: all null for authentication/preservation.
+  Recovery requests pin only the preservation manifest, mandatory for ordinary
+  recovery. Confirmation pins all available prior phase manifests; an absent
+  phase has a null pin. Every supplied phase is checked offline against its
+  original admission, baseline/candidate/source hashes, claim, exact fixed
+  commands, process records, raw evidence and complete private inventory.
+- `recovery_mode`: null except for `request-recovery`, where it is exactly
+  `ordinary` or `emergency`.
+- `emergency_reason`, `acknowledge_unique_ram_loss`: both null for ordinary
+  recovery and all other phases. Emergency recovery requires acknowledgement
+  exactly `true` and one reviewed reason from the table below. False, numeric
+  substitutes, unspecified reasons and extra fields are refused.
+
+| Emergency reason | Required circumstance and evidence |
+| --- | --- |
+| `log-export-unavailable` | No independently verifiable local export phase is available: it was unsafe/unavailable to attempt, or its recorded inventory/admission cannot be verified. Pin the consumed attempt's manifest when available; this does not admit a retry. |
+| `log-preservation-incomplete` | A pinned, independently verified export exists but cannot preserve every available regular byte or confirm a terminal logger. Examples include transport truncation, read errors, changed files and a bounded prefix. |
+| `immediate-safety-stop` | The custodian has observed a session stop condition requiring immediate recovery; preserving logs would delay that response. This exception does not waive fixed identity/host/RAM checks or authorize other commands. |
+
+The emergency acknowledgement records that native recovery may destroy unique
+RAM evidence. It is a narrow recovery admission, never a full-baseline pass or
+permission to retry an export. If the fixed native command cannot safely run,
+use the established physical recovery path. A known-good confirmation remains
+available after missing or interrupted prior phases, but their missing/failed
+proof cannot produce a complete-baseline pass. The confirmation has its own
+owner availability assertion and one probe budget.
 
 The Gemian key remains `artifacts/credentials/gemini_ed25519`. Its reviewed host
 pin must be prepared offline in private
@@ -142,7 +167,31 @@ refusal. Both seal and recovery claims first require a unique RAM root and
 `/run` tmpfs, real private `/run/a53`, and no swap. They do not mount or repair
 anything.
 
-Seal acceptance requires complete transport, the atomically published status,
+The preservation phase always retains bounded separated stdout/stderr and
+the process outcome, including on parser or transport failure. It decodes every
+available completed file block into the exact private names `kmsg.log`,
+`kmsg.status`, `kmsg.status.partial`, and `kmsg-exit`. Unavailable files have empty
+local placeholders; only their accompanying parsed state distinguishes absence
+from an available empty file. Each result records file type, before/after size,
+captured bytes/hash, read/encoding outcome, stability and truncation, plus logger
+terminal state before export, signal attempts, transport completion and preservation completion.
+Files, directories and the final checksum manifest are flushed locally before
+the next phase can rely on them. The original RAM evidence is never deleted.
+
+`preservation_complete` requires complete framing and transport, a terminal
+logger confirmed before reading the log, a complete regular log, and successful unchanged, untruncated capture
+of every present regular file. Missing auxiliary files remain explicitly missing;
+symlinks, nonregular/unreadable files, read/encoding errors, changed snapshots,
+unconfirmed terminal state and capped prefixes refuse ordinary recovery. A
+complete export of an already exited failed/deadline logger can satisfy this
+preservation condition while its baseline log classification stays inconclusive.
+The terminal witness is a canonical exit code from a held, verified regular
+`kmsg-exit` descriptor before any export file is read. Final status or an exit
+code observed only after the log copy cannot establish preservation: the logger
+could have appended records in between. That case requires emergency recovery
+even when the later file blocks are otherwise complete.
+
+Seal acceptance additionally requires the single signal in this attempt, the atomically published status,
 logger exit code zero, independent record/count/byte validation and the raw
 log's hash. It proves coverage through the explicit seal, not messages created
 later during recovery. A deadline or missing final status never counts as clean
@@ -154,12 +203,16 @@ wrapper, which invokes BusyBox `reboot -n -f`. The exact request frame followed
 by SSH disconnect means only `native-recovery-requested`. It does not prove
 that Gemian returned. One separately admitted known-good probe must show
 `3.18.41+`, `aarch64` and a changed boot ID. No post-recovery partition read is
-added. Complete logs/authentication, owner console acceptance, original baseline
+added. Complete logs/authentication, ordinary recovery, owner console acceptance, original baseline
 serviceability and confirmed recovery together produce
 `first-authenticated-baseline-and-recovery-pass`.
 
-Recovery is still available after negative-authentication or log-seal failure
-when the original baseline identity was established. If baseline identity or
+Ordinary native recovery requires the admitted preservation proof to pass again
+immediately before the command; local evidence changes stop it. Emergency
+recovery remains available under the narrow fields above after authentication
+or preservation failure when the original baseline identity was established.
+Neither path retries another phase or automatically starts after a failed SSH
+command. If baseline identity or
 USB never became attributable, stop network actions and use the owner's
 established physical known-good recovery path. Unusual heat, charging anomalies,
 reset loops, changed recovery behavior or an unreadable screen stop the session.

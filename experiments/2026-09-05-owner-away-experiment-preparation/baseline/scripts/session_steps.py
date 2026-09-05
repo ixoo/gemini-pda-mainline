@@ -68,51 +68,220 @@ def ram_guard_script():
 
 def seal_script(candidate, boot):
     script = identity_script(candidate, boot) + ram_guard_script() + r'''
-# Only RAM state and the identified logger are affected. Claim before signalling.
+# Claim once, including failed/pre-exited loggers. Never restart an observer.
 $BB mkdir /run/a53/log-seal-attempt
-[ ! -e /run/a53/kmsg.status ]
-[ ! -L /run/a53/kmsg.status ]
-[ ! -e /run/a53/kmsg-exit ]
-[ ! -L /run/a53/kmsg-exit ]
-/bin/kmsg-seal
+stop=preexisting-terminal
+signal_attempts=0
+signal_status=none
+if [ ! -e /run/a53/kmsg.status ] && [ ! -L /run/a53/kmsg.status ] &&
+   [ ! -e /run/a53/kmsg-exit ] && [ ! -L /run/a53/kmsg-exit ]; then
+  signal_attempts=1
+  if /bin/kmsg-seal; then signal_status=0; stop=signalled
+  else signal_status=$?; stop=signal-failed; fi
+fi
 count=0
-while [ ! -e /run/a53/kmsg-exit ]; do
-  [ "$count" -lt 10 ] || exit 1
-  $BB sleep 1
+while [ ! -e /run/a53/kmsg-exit ] && [ ! -L /run/a53/kmsg-exit ]; do
+  if [ "$count" -ge 10 ]; then
+    [ "$stop" != signalled ] || stop=wait-timeout
+    break
+  fi
+  $BB sleep 1 || break
   count=$((count + 1))
 done
-[ -f /run/a53/kmsg-exit ]
-[ ! -L /run/a53/kmsg-exit ]
-[ "$($BB cat /run/a53/kmsg-exit)" = 0 ]
-[ ! -e /run/a53/kmsg.status.partial ]
-[ ! -L /run/a53/kmsg.status.partial ]
-[ -f /run/a53/kmsg.status ]
-[ ! -L /run/a53/kmsg.status ]
-[ -f /run/a53/kmsg.log ]
-[ ! -L /run/a53/kmsg.log ]
-[ "$($BB wc -c </run/a53/kmsg.log)" -le 2097152 ]
-$BB printf '__A53_LOG_SEAL_BEGIN__\n'
-$BB printf 'logger_exit=0\n'
-$BB cat /run/a53/kmsg.status
-$BB printf '__A53_LOG_BASE64__\n'
-$BB base64 /run/a53/kmsg.log
-$BB printf '__A53_LOG_SEAL_END__\n'
+terminal_before_export=no
+exit_path=/run/a53/kmsg-exit
+if [ ! -L "$exit_path" ] && [ -f "$exit_path" ]; then
+  expected_exit=$($BB stat -c '%d:%i' "$exit_path") || expected_exit=-
+  if exec 3<"$exit_path"; then
+    held_exit=$($BB stat -Lc '%d:%i' /proc/self/fd/3) || held_exit=-
+    exit_size=$($BB stat -Lc '%s' /proc/self/fd/3) || exit_size=-
+    if [ "$expected_exit" != - ] && [ "$held_exit" = "$expected_exit" ] &&
+       [ ! -L "$exit_path" ] && [ -f /proc/self/fd/3 ]; then
+      case "$exit_size" in 2|3|4)
+        encoded_exit=$($BB head -c 5 <&3 | $BB base64) || encoded_exit=invalid
+        exit_value=$($BB printf '%s' "$encoded_exit" | $BB base64 -d) || exit_value=invalid
+        case "$exit_value" in 0|[1-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
+          expected_encoding=$($BB printf '%s\n' "$exit_value" | $BB base64) || expected_encoding=invalid
+          if [ "$encoded_exit" = "$expected_encoding" ] &&
+             [ "$($BB stat -Lc '%s' /proc/self/fd/3)" = "$exit_size" ] &&
+             [ ! -L "$exit_path" ] && [ "$($BB stat -c '%d:%i' "$exit_path")" = "$expected_exit" ]; then
+            terminal_before_export=yes
+          fi;;
+        esac;;
+      esac
+    fi
+  fi
+  exec 3<&-
+fi
+$BB printf '__A53_LOG_EXPORT_BEGIN__\nschema=gemini-log-export-v2\nstop=%s\nsignal_attempts=%s\nsignal_status=%s\nterminal_before_export=%s\n__A53_LOG_EXPORT_FILES__\n' "$stop" "$signal_attempts" "$signal_status" "$terminal_before_export"
+export_file() {
+  name=$1; ceiling=$2; path=/run/a53/$name
+  state=missing; before=-; after=-; read_status=none; encode_status=none
+  stable=not-applicable; truncated=no; identity=-
+  if [ -L "$path" ]; then state=symlink
+  elif [ ! -e "$path" ]; then state=missing
+  elif [ ! -f "$path" ]; then state=nonregular
+  else
+    state=unreadable
+    identity=$($BB stat -c '%d:%i' "$path") || identity=-
+    if exec 3<"$path"; then
+      # Read only a held regular descriptor matching the non-symlink source.
+      held=$($BB stat -Lc '%d:%i' /proc/self/fd/3) || held=-
+      if [ "$identity" != - ] && [ "$held" = "$identity" ] &&
+         [ ! -L "$path" ] && [ -f /proc/self/fd/3 ]; then
+        state=regular
+        before=$($BB stat -Lc '%s' /proc/self/fd/3) || before=-
+      else state=changed; fi
+    fi
+  fi
+  $BB printf '__A53_LOG_FILE_BEGIN__\nname=%s\nstate=%s\nsize_before=%s\nlimit=%s\n__A53_LOG_FILE_BASE64__\n' "$name" "$state" "$before" "$ceiling"
+  if [ "$state" = regular ]; then
+    if (set +e; $BB head -c "$ceiling" <&3
+        read_status=$?
+        $BB printf '%s\n' "$read_status" >"/run/a53/log-seal-attempt/$name.read-exit") | $BB base64; then
+      encode_status=0
+    else encode_status=$?; fi
+    read_status=$($BB cat "/run/a53/log-seal-attempt/$name.read-exit") || read_status=unknown
+    after=$($BB stat -Lc '%s' /proc/self/fd/3) || after=-
+    current=$($BB stat -c '%d:%i' "$path") || current=-
+    stable=no
+    if [ ! -L "$path" ] && [ "$current" = "$identity" ] && [ "$before" = "$after" ]; then stable=yes; fi
+    case "$before:$after" in *[!0-9:]*|:*) truncated=unknown;;
+      *) if [ "$before" -gt "$ceiling" ] || [ "$after" -gt "$ceiling" ]; then truncated=yes; fi;;
+    esac
+  fi
+  exec 3<&-
+  $BB printf '\n__A53_LOG_FILE_META__\nsize_after=%s\nread_status=%s\nencode_status=%s\nstable=%s\ntruncated=%s\n__A53_LOG_FILE_END__\n' "$after" "$read_status" "$encode_status" "$stable" "$truncated"
+}
+export_file kmsg.log 2097152
+export_file kmsg.status 8192
+export_file kmsg.status.partial 8192
+export_file kmsg-exit 8192
+$BB printf '__A53_LOG_EXPORT_END__\n'
 '''
     return script.encode()
 
 
 def parse_seal(raw, stderr, process):
-    require(not stderr and process['exit_status'] == 0 and process['reason'] is None and
-            process['stdin_complete'], 'log transport incomplete')
-    begin, middle, end = b'__A53_LOG_SEAL_BEGIN__\n', b'__A53_LOG_BASE64__\n', b'__A53_LOG_SEAL_END__\n'
-    require(len(raw) <= 3 * 1024 * 1024 and raw.startswith(begin) and raw.endswith(end) and
-            all(raw.count(mark) == 1 for mark in (begin, middle, end)), 'log stream framing')
-    status_raw, encoded = raw[len(begin):-len(end)].split(middle)
-    require(encoded.endswith(b'\n'), 'base64 terminator')
-    require(all(re.fullmatch(rb'[A-Za-z0-9+/=]{1,76}', line) for line in encoded.splitlines()), 'base64 lines')
-    log = base64.b64decode(b''.join(encoded.splitlines()), validate=True)
-    value = classify_log(log, status_raw)
-    return log, status_raw, value
+    exported = parse_log_export(raw, stderr, process)
+    require(exported['result']['classification'] == 'complete-log-through-seal',
+            exported['result']['reason'])
+    return exported['files']['kmsg.log'], b'logger_exit=0\n' + exported['files']['kmsg.status'], exported['result']['log']
+
+
+EXPORT_FILES = {'kmsg.log': LIMIT, 'kmsg.status': 8192, 'kmsg.status.partial': 8192, 'kmsg-exit': 8192}
+
+
+def parse_log_export(raw, stderr, process):
+    """Retain parsed file prefixes even when framing/transport/log acceptance fails."""
+    files, metadata = {}, {}
+    result = {'classification': 'log-export-inconclusive', 'export_complete': False,
+              'logger_terminal': False, 'preservation_complete': False,
+              'terminal_before_export': False,
+              'transport_complete': not stderr and type(process.get('exit_status')) is int and
+              process.get('exit_status') == 0 and process.get('reason') is None and
+              process.get('stdin_complete') is True, 'files': metadata, 'signal_attempts': None,
+              'signal_status': None, 'stop': None, 'reason': 'export incomplete', 'log': None}
+    try:
+        require(len(raw) <= 3 * 1024 * 1024, 'export stream bound')
+        begin, header_end = b'__A53_LOG_EXPORT_BEGIN__\n', b'__A53_LOG_EXPORT_FILES__\n'
+        require(raw.startswith(begin) and raw.count(header_end) == 1, 'export header framing')
+        header_raw, remainder = raw[len(begin):].split(header_end, 1)
+        header = fields(header_raw)
+        require(set(header) == {'schema', 'stop', 'signal_attempts', 'signal_status', 'terminal_before_export'} and
+                header['schema'] == 'gemini-log-export-v2' and
+                header['terminal_before_export'] in ('yes', 'no') and
+                header['stop'] in ('preexisting-terminal', 'signalled', 'signal-failed', 'wait-timeout') and
+                header['signal_attempts'] in ('0', '1'), 'export header fields')
+        if header['signal_attempts'] == '0':
+            require(header['stop'] == 'preexisting-terminal' and header['signal_status'] == 'none', 'terminal signal fields')
+        else:
+            require(re.fullmatch(r'0|[1-9][0-9]{0,2}', header['signal_status']) and
+                    int(header['signal_status']) <= 255 and
+                    ((header['stop'] in ('signalled', 'wait-timeout') and header['signal_status'] == '0') or
+                     (header['stop'] == 'signal-failed' and header['signal_status'] != '0')), 'signal result fields')
+        result.update(stop=header['stop'], signal_attempts=int(header['signal_attempts']), signal_status=header['signal_status'],
+                      terminal_before_export=header['terminal_before_export'] == 'yes')
+        for name, ceiling in EXPORT_FILES.items():
+            file_begin, data_begin = b'__A53_LOG_FILE_BEGIN__\n', b'__A53_LOG_FILE_BASE64__\n'
+            meta_begin, file_end = b'__A53_LOG_FILE_META__\n', b'__A53_LOG_FILE_END__\n'
+            require(remainder.startswith(file_begin) and data_begin in remainder, 'file header incomplete')
+            pre_raw, remainder = remainder[len(file_begin):].split(data_begin, 1)
+            pre = fields(pre_raw)
+            require(set(pre) == {'name', 'state', 'size_before', 'limit'} and pre['name'] == name and
+                    pre['limit'] == str(ceiling) and pre['state'] in
+                    ('regular', 'missing', 'symlink', 'nonregular', 'unreadable', 'changed'), 'file header fields')
+            require(meta_begin in remainder, 'file data incomplete')
+            encoded, remainder = remainder.split(meta_begin, 1)
+            require(encoded.endswith(b'\n'), 'file data terminator')
+            data = base64.b64decode(b''.join(encoded.splitlines()), validate=True)
+            require(len(data) <= ceiling and encoded == base64.encodebytes(data) + b'\n', 'file base64 framing/bound')
+            if pre['state'] == 'regular':
+                files[name] = data
+            else:
+                require(not data, 'nonregular file exported data')
+            require(file_end in remainder, 'file metadata incomplete')
+            post_raw, remainder = remainder.split(file_end, 1)
+            post = fields(post_raw)
+            require(set(post) == {'size_after', 'read_status', 'encode_status', 'stable', 'truncated'}, 'file metadata fields')
+            for value in (pre['size_before'], post['size_after']):
+                require(value == '-' or re.fullmatch(r'0|[1-9][0-9]{0,19}', value), 'file size framing')
+            if pre['state'] == 'regular':
+                require(post['stable'] in ('yes', 'no') and post['truncated'] in ('yes', 'no', 'unknown') and
+                        all(value == 'unknown' or (re.fullmatch(r'0|[1-9][0-9]{0,2}', value) and int(value) <= 255)
+                            for value in (post['read_status'], post['encode_status'])), 'regular file metadata')
+                if '-' not in (pre['size_before'], post['size_after']):
+                    truncated = max(int(pre['size_before']), int(post['size_after'])) > ceiling
+                    require(post['truncated'] == ('yes' if truncated else 'no'), 'truncation marker mismatch')
+                else:
+                    require(post['truncated'] == 'unknown', 'unknown size truncation marker')
+                if post['stable'] == 'yes':
+                    require(pre['size_before'] == post['size_after'] != '-', 'stable size mismatch')
+                    if post['read_status'] == post['encode_status'] == '0':
+                        require(len(data) == min(int(pre['size_before']), ceiling), 'captured byte count')
+            else:
+                require(pre['size_before'] == post['size_after'] == '-' and post['read_status'] == post['encode_status'] == 'none' and
+                        post['stable'] == 'not-applicable' and post['truncated'] == 'no', 'absent file metadata')
+            metadata[name] = {'state': pre['state'], 'size_before': pre['size_before'], **post,
+                              'captured_bytes': len(data), 'sha256': digest(data) if pre['state'] == 'regular' else None}
+        require(remainder == b'__A53_LOG_EXPORT_END__\n', 'export footer/trailing records')
+        result['export_complete'] = True
+        def full_file(name):
+            item = metadata[name]
+            return (item['state'] == 'regular' and item['stable'] == 'yes' and item['truncated'] == 'no' and
+                    item['read_status'] == item['encode_status'] == '0')
+        if full_file('kmsg-exit'):
+            value = files['kmsg-exit']
+            result['logger_terminal'] = bool(re.fullmatch(rb'(0|[1-9][0-9]{0,2})\n', value) and int(value) <= 255)
+        if full_file('kmsg.status'):
+            try:
+                terminal = fields(files['kmsg.status'])
+                numeric = {'first_seq', 'last_seq', 'records', 'bytes', 'elapsed_ms', 'byte_limit', 'deadline_ms'}
+                valid = (set(terminal) == {'schema', 'sealed', 'result', 'reason'} | numeric and
+                         terminal['schema'] == 'gemini-kmsg-v1' and terminal['sealed'] == 'yes' and
+                         terminal['result'] in ('pass', 'failed') and re.fullmatch(r'[a-z][a-z-]{0,63}', terminal['reason']) and
+                         all(re.fullmatch(r'0|[1-9][0-9]{0,19}', terminal[key]) for key in numeric))
+                result['logger_terminal'] = result['logger_terminal'] or bool(valid)
+            except (ValueError, UnicodeError):
+                pass
+        result['preservation_complete'] = bool(result['transport_complete'] and result['logger_terminal'] and
+                                              result['terminal_before_export'] and
+                                              full_file('kmsg.log') and all(item['state'] == 'missing' or full_file(name)
+                                              for name, item in metadata.items()))
+        require(result['transport_complete'], 'log transport incomplete')
+        require(result['terminal_before_export'], 'logger termination was not proved before reading the log')
+        require(result['stop'] == 'signalled' and result['signal_status'] == '0', 'logger was not explicitly sealed by this attempt')
+        require(metadata['kmsg.status.partial']['state'] == 'missing', 'partial status remains')
+        for name in ('kmsg.log', 'kmsg.status', 'kmsg-exit'):
+            item = metadata[name]
+            require(item['state'] == 'regular' and item['stable'] == 'yes' and item['truncated'] == 'no' and
+                    item['read_status'] == item['encode_status'] == '0', 'incomplete logger file: ' + name)
+        require(files['kmsg-exit'] == b'0\n', 'logger did not exit zero')
+        result['log'] = classify_log(files['kmsg.log'], b'logger_exit=0\n' + files['kmsg.status'])
+        result.update(classification='complete-log-through-seal', reason=None)
+    except (ValueError, KeyError, TypeError, UnicodeError) as error:
+        result['reason'] = str(error)
+    return {'files': files, 'result': result}
 
 
 def classify_log(log, status_raw):

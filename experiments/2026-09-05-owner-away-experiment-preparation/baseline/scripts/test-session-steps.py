@@ -33,9 +33,31 @@ def status(log=LOG, **overrides):
     return ''.join(k + '=' + str(v) + '\n' for k, v in fields.items()).encode()
 
 
-def frame(log=LOG, raw_status=None):
-    return b'__A53_LOG_SEAL_BEGIN__\n' + (raw_status or status(log)) + b'__A53_LOG_BASE64__\n' + \
-        base64.encodebytes(log) + b'__A53_LOG_SEAL_END__\n'
+def frame(log=LOG, raw_status=None, *, stop='signalled', terminal_before_export='yes', overrides=None):
+    """Independent wire-format fixture, including per-file failures/prefixes."""
+    overrides = overrides or {}
+    raw = (f'__A53_LOG_EXPORT_BEGIN__\nschema=gemini-log-export-v2\nstop={stop}\n'
+           f'signal_attempts={0 if stop == "preexisting-terminal" else 1}\n'
+           f'signal_status={"none" if stop == "preexisting-terminal" else "1" if stop == "signal-failed" else "0"}\n'
+           f'terminal_before_export={terminal_before_export}\n'
+           '__A53_LOG_EXPORT_FILES__\n').encode()
+    data = {'kmsg.log': log, 'kmsg.status': (raw_status or status(log)).removeprefix(b'logger_exit=0\n'),
+            'kmsg.status.partial': None, 'kmsg-exit': b'0\n'}
+    for name, ceiling in [('kmsg.log', 2097152), ('kmsg.status', 8192), ('kmsg.status.partial', 8192), ('kmsg-exit', 8192)]:
+        item = data[name]
+        spec = {'data': item, 'state': 'missing' if item is None else 'regular',
+                'size_before': '-' if item is None else str(len(item)),
+                'size_after': '-' if item is None else str(len(item)),
+                'read_status': 'none' if item is None else '0', 'encode_status': 'none' if item is None else '0',
+                'stable': 'not-applicable' if item is None else 'yes', 'truncated': 'no'}
+        spec.update(overrides.get(name, {}))
+        raw += (f'__A53_LOG_FILE_BEGIN__\nname={name}\nstate={spec["state"]}\nsize_before={spec["size_before"]}\n'
+                f'limit={ceiling}\n__A53_LOG_FILE_BASE64__\n').encode()
+        raw += base64.encodebytes(spec['data'] or b'') + b'\n__A53_LOG_FILE_META__\n'
+        raw += ''.join(key + '=' + str(spec[key]) + '\n' for key in
+                       ('size_after', 'read_status', 'encode_status', 'stable', 'truncated')).encode()
+        raw += b'__A53_LOG_FILE_END__\n'
+    return raw + b'__A53_LOG_EXPORT_END__\n'
 
 
 class LogTests(unittest.TestCase):
@@ -79,11 +101,52 @@ class LogTests(unittest.TestCase):
             S['parse_seal'](frame(), b'error', PROCESS)
 
     def test_log_frame_extra_missing_duplicate_invalid_base64(self):
-        for raw in (b'noise' + frame(), frame() + b'noise', frame().replace(b'__A53_LOG_SEAL_END__\n', b''),
-                    frame().replace(b'__A53_LOG_BASE64__\n', b'__A53_LOG_BASE64__\n__A53_LOG_BASE64__\n'),
+        for raw in (b'noise' + frame(), frame() + b'noise', frame().replace(b'__A53_LOG_EXPORT_END__\n', b''),
+                    frame().replace(b'__A53_LOG_FILE_BASE64__\n', b'__A53_LOG_FILE_BASE64__\n__A53_LOG_FILE_BASE64__\n'),
                     frame().replace(base64.encodebytes(LOG), b'!\n')):
             with self.assertRaises(ValueError):
                 S['parse_seal'](raw, b'', PROCESS)
+
+    def test_export_schema_refuses_forged_headers_file_order_sizes_and_metadata(self):
+        original = frame()
+        changes = [
+            (b'stop=signalled\n', b'stop=signalled\nstop=signalled\n'),
+            (b'stop=signalled\n', b'stop=signalled\nextra=1\n'),
+            (b'stop=signalled\n', b'stop=preexisting-terminal\n'),
+            (b'signal_attempts=1\n', b'signal_attempts=0\n'),
+            (b'signal_status=0\n', b'signal_status=1\n'),
+            (b'terminal_before_export=yes\n', b'terminal_before_export=unknown\n'),
+            (b'terminal_before_export=yes\n', b'terminal_before_export=yes\nterminal_before_export=yes\n'),
+            (b'name=kmsg.log\n', b'name=kmsg-exit\n'),
+            (b'name=kmsg.log\n', b'name=kmsg.log\nname=kmsg.log\n'),
+            (b'name=kmsg.log\n', b'name=kmsg.log\nextra=1\n'),
+            (b'limit=2097152\n', b'limit=2097153\n'),
+            (b'state=regular\n', b'state=arbitrary\n'),
+            (b'size_before=' + str(len(LOG)).encode() + b'\n', b'size_before=1\n'),
+            (b'size_after=' + str(len(LOG)).encode() + b'\n', b'size_after=1\n'),
+            (b'read_status=0\n', b'read_status=0\nread_status=0\n'),
+            (b'read_status=0\n', b'read_status=0\nextra=1\n'),
+            (b'encode_status=0\n', b'encode_status=256\n'),
+            (b'truncated=no\n', b'truncated=yes\n'),
+            (b'stable=yes\n', b'stable=not-applicable\n'),
+            (base64.encodebytes(LOG), base64.encodebytes(LOG).replace(b'\n', b'\r\n')),
+            (b'__A53_LOG_EXPORT_END__\n', b''),
+        ]
+        for before, after in changes:
+            with self.subTest(before=before, after=after):
+                parsed = S['parse_log_export'](original.replace(before, after, 1), b'', PROCESS)
+                self.assertEqual(parsed['result']['classification'], 'log-export-inconclusive')
+                self.assertFalse(parsed['result']['preservation_complete'])
+                self.assertFalse(parsed['result']['export_complete'])
+
+    def test_transport_failure_retains_complete_earlier_file_blocks(self):
+        raw = frame().split(b'name=kmsg.status\n', 1)[0]
+        parsed = S['parse_log_export'](raw, b'transport stopped\n', {**PROCESS, 'reason': 'interrupted'})
+        self.assertEqual(parsed['files'], {'kmsg.log': LOG})
+        self.assertEqual(parsed['result']['files']['kmsg.log']['sha256'], hashlib.sha256(LOG).hexdigest())
+        self.assertFalse(parsed['result']['transport_complete'])
+        self.assertFalse(parsed['result']['export_complete'])
+        self.assertFalse(parsed['result']['preservation_complete'])
 
     def test_native_request_is_not_recovery(self):
         raw = (f'__A53_NATIVE_RECOVERY_BEGIN__\nboot_id={BOOT}\nreboot_sha256={S["REBOOT_SHA"]}\n'
@@ -119,7 +182,7 @@ class HostTests(unittest.TestCase):
         self.addCleanup(self.work.cleanup)
         self.root = Path(self.work.name).resolve()
         self.root.chmod(0o700)
-        self.context = {'admission': {'action': 'auth-and-seal'}}
+        self.context = {'admission': {'action': 'auth-checks'}}
 
     def test_default_dry_run_no_process_or_state(self):
         with patch('subprocess.Popen', side_effect=AssertionError('process forbidden')):
@@ -127,7 +190,8 @@ class HostTests(unittest.TestCase):
         self.assertEqual(list(self.root.iterdir()), [])
 
     def test_step_inventory_is_bounded(self):
-        self.assertEqual(F['STEPS'], {'auth-and-seal': {'rejected_key': 1, 'wrong_host': 1, 'positive_probe': 1, 'log_seal': 1},
+        self.assertEqual(F['STEPS'], {'auth-checks': {'rejected_key': 1, 'wrong_host': 1, 'positive_probe': 1},
+                                     'preserve-log': {'log_export': 1},
                                      'request-recovery': {'native_reboot': 1}, 'confirm-recovery': {'known_good_probe': 1}})
 
     def test_phase_manifest_corruption_and_extra_member(self):
@@ -206,6 +270,8 @@ class PriorPhaseTests(unittest.TestCase):
         scope.start(); self.addCleanup(scope.stop)
         self.calls = []
         self.interrupted = None
+        self.export_raw = frame()
+        self.transport_overrides = {}
         transport = patch.dict(F['C'], run_once=self.fake_run)
         transport.start(); self.addCleanup(transport.stop)
 
@@ -221,8 +287,8 @@ class PriorPhaseTests(unittest.TestCase):
             code = 255
         elif label == 'positive-probe':
             out, err, code = ('authenticated_boot_id=' + self.boot + '\n').encode(), b'', 0
-        elif label == 'log-seal':
-            out, err, code = frame(), b'', 0
+        elif label == 'log-export':
+            out, err, code = self.export_raw, b'', 0
         elif label == 'native-reboot':
             out = (f'__A53_NATIVE_RECOVERY_BEGIN__\nboot_id={self.boot}\nreboot_sha256={S["REBOOT_SHA"]}\n'
                    'request_count=1\npartition_access=none\nsync_requested=no\n__A53_NATIVE_RECOVERY_END__\n').encode()
@@ -236,9 +302,11 @@ class PriorPhaseTests(unittest.TestCase):
         self.write(child / 'stdout.txt', out)
         self.write(child / 'stderr.txt', err)
         return {'reason': 'interrupted' if label == self.interrupted else None, 'exit_status': code,
-                'stdin_complete': True, 'stdout_bytes': len(out), 'stderr_bytes': len(err), 'elapsed_seconds': 0.1}
+                'stdin_complete': True, 'stdout_bytes': len(out), 'stderr_bytes': len(err), 'elapsed_seconds': 0.1,
+                **self.transport_overrides.get(label, {})}
 
-    def admission(self, action, auth_pin=None, request_pin=None):
+    def admission(self, action, auth_pin=None, request_pin=None, export_pin=None, *,
+                  recovery_mode=None, emergency_reason=None, acknowledge=None):
         confirming = action == 'confirm-recovery'
         value = {'schema': 1, 'experiment': 'a53-authenticated-baseline', 'action': action,
                  'baseline_admission_id': self.attempt.name,
@@ -251,13 +319,21 @@ class PriorPhaseTests(unittest.TestCase):
                  'action_budgets': F['STEPS'][action], 'owner_console_accepted': confirming,
                  'physical_recovery_confirmed': confirming,
                  'known_good_known_hosts_sha256': F['sha']((self.repo / 'artifacts/credentials/a53-recovery-known_hosts').read_bytes()) if confirming else None,
-                 'auth_seal_manifest_sha256': auth_pin, 'native_request_manifest_sha256': request_pin}
+                 'auth_checks_manifest_sha256': auth_pin, 'native_request_manifest_sha256': request_pin,
+                 'log_export_manifest_sha256': export_pin, 'recovery_mode': recovery_mode,
+                 'emergency_reason': emergency_reason, 'acknowledge_unique_ram_loss': acknowledge}
         path = self.repo / 'artifacts/a53-authenticated/records' / (action + '.json')
         self.write(path, F['json_bytes'](value))
         return path
 
-    def phase(self, action):
-        context = F['prepare'](self.attempt, self.admission(action))
+    def phase(self, action, **admission):
+        if action == 'request-recovery' and not admission:
+            # Explicit fixture admission after a separately executed export.
+            export = self.sessions / 'preserve-log'
+            if not export.exists():
+                self.phase('preserve-log')
+            admission = {'recovery_mode': 'ordinary', 'export_pin': self.refresh(export)}
+        context = F['prepare'](self.attempt, self.admission(action, **admission))
         result = F['perform'](context, execute=True)
         return self.sessions / action, result
 
@@ -268,13 +344,15 @@ class PriorPhaseTests(unittest.TestCase):
         self.write(directory / 'SHA256SUMS', raw)
         return F['sha'](raw)
 
-    def confirmation(self, auth=None, request=None):
-        return F['prepare'](self.attempt, self.admission('confirm-recovery', auth, request))
+    def confirmation(self, auth=None, request=None, export=None):
+        if export is None and (self.sessions / 'preserve-log/SHA256SUMS').exists():
+            export = F['sha']((self.sessions / 'preserve-log/SHA256SUMS').read_bytes())
+        return F['prepare'](self.attempt, self.admission('confirm-recovery', auth, request, export))
 
     def test_complete_phases_prepare_dry_run_and_confirm(self):
-        auth, first = self.phase('auth-and-seal')
+        auth, first = self.phase('auth-checks')
         request, second = self.phase('request-recovery')
-        self.assertEqual(first['classification'], 'authenticated-log-seal-pass')
+        self.assertEqual(first['classification'], 'authentication-checks-pass')
         self.assertEqual(second['classification'], 'native-recovery-requested')
         context = self.confirmation(self.refresh(auth), self.refresh(request))
         self.assertTrue(all(item['classification'] == 'verified' for item in context['prior_proof'].values()))
@@ -296,7 +374,7 @@ class PriorPhaseTests(unittest.TestCase):
         self.assertEqual(self.calls, ['known-good-probe'])
 
     def test_interrupted_native_request_remains_observable_without_full_pass(self):
-        auth, _ = self.phase('auth-and-seal')
+        auth, _ = self.phase('auth-checks')
         self.interrupted = 'native-reboot'
         request, result = self.phase('request-recovery')
         self.assertEqual(result['classification'], 'inconclusive')
@@ -308,10 +386,10 @@ class PriorPhaseTests(unittest.TestCase):
         self.assertEqual(self.calls[count:], ['known-good-probe'])
 
     def test_prior_admission_source_candidate_baseline_and_budget_changes_refuse(self):
-        directory, _ = self.phase('auth-and-seal')
+        directory, _ = self.phase('auth-checks')
         path = directory / 'admission.json'
         original = path.read_bytes()
-        for field, value in (('candidate_manifest_sha256', '0' * 64), ('finish_source_sha256', '0' * 64),
+        for field, value in (('schema', True), ('candidate_manifest_sha256', '0' * 64), ('finish_source_sha256', '0' * 64),
                              ('steps_source_sha256', '0' * 64), ('baseline_manifest_sha256', '0' * 64),
                              ('baseline_admission_id', OLD), ('action', 'confirm-recovery'),
                              ('action_budgets', {'rejected_key': 99})):
@@ -320,11 +398,11 @@ class PriorPhaseTests(unittest.TestCase):
                 changed[field] = value
                 self.write(path, F['json_bytes'](changed))
                 context = self.confirmation(self.refresh(directory))
-                self.assertEqual(context['prior_proof']['auth-and-seal']['classification'], 'incomplete')
+                self.assertEqual(context['prior_proof']['auth-checks']['classification'], 'incomplete')
         self.write(path, original)
 
     def test_claim_and_fixed_command_changes_refuse(self):
-        for action in ('auth-and-seal', 'request-recovery'):
+        for action in ('auth-checks', 'preserve-log', 'request-recovery'):
             directory, _ = self.phase(action)
             paths = [directory / 'claim.json', *(directory / label / 'command.sh' for label in F['PHASE_LABELS'][action])]
             for path in paths:
@@ -336,18 +414,19 @@ class PriorPhaseTests(unittest.TestCase):
                     else:
                         self.write(path, original + b'printf injected\n')
                     pin = self.refresh(directory)
-                    context = self.confirmation(pin if action == 'auth-and-seal' else None,
-                                                pin if action == 'request-recovery' else None)
+                    context = self.confirmation(pin if action == 'auth-checks' else None,
+                                                pin if action == 'request-recovery' else None,
+                                                pin if action == 'preserve-log' else None)
                     self.assertEqual(context['prior_proof'][action]['classification'], 'incomplete')
                     self.write(path, original)
 
     def test_complete_inventory_rejects_missing_files_extra_directories_and_links(self):
-        directory, _ = self.phase('auth-and-seal')
-        for relative in ('admission.json', 'claim.json', 'positive-probe/command.sh', 'log-seal/process.json'):
+        directory, _ = self.phase('auth-checks')
+        for relative in ('admission.json', 'claim.json', 'positive-probe/command.sh', 'positive-probe/process.json'):
             with self.subTest(missing=relative):
                 path = directory / relative; original = path.read_bytes(); path.unlink()
                 context = self.confirmation(self.refresh(directory))
-                self.assertEqual(context['prior_proof']['auth-and-seal']['classification'], 'incomplete')
+                self.assertEqual(context['prior_proof']['auth-checks']['classification'], 'incomplete')
                 self.write(path, original)
         for kind in ('directory', 'symlink', 'file', 'hardlink'):
             with self.subTest(extra=kind):
@@ -357,7 +436,7 @@ class PriorPhaseTests(unittest.TestCase):
                 elif kind == 'hardlink': os.link(directory / 'result.json', extra)
                 else: self.write(extra, b'extra')
                 context = self.confirmation(self.refresh(directory))
-                self.assertEqual(context['prior_proof']['auth-and-seal']['classification'], 'incomplete')
+                self.assertEqual(context['prior_proof']['auth-checks']['classification'], 'incomplete')
                 if kind == 'directory': extra.rmdir()
                 else: extra.unlink()
 
@@ -376,7 +455,7 @@ class PriorPhaseTests(unittest.TestCase):
             self.write(path, original)
 
     def test_process_record_counts_and_types_refuse(self):
-        directory, _ = self.phase('auth-and-seal')
+        directory, _ = self.phase('auth-checks')
         path = directory / 'positive-probe/process.json'; original = path.read_bytes()
         for field, value in (('stdout_bytes', 1), ('exit_status', False), ('elapsed_seconds', 50),
                              ('stdin_complete', False), ('extra', 'unexpected')):
@@ -384,7 +463,7 @@ class PriorPhaseTests(unittest.TestCase):
                 changed = json.loads(original); changed[field] = value
                 self.write(path, F['json_bytes'](changed))
                 context = self.confirmation(auth=self.refresh(directory))
-                self.assertEqual(context['prior_proof']['auth-and-seal']['classification'], 'incomplete')
+                self.assertEqual(context['prior_proof']['auth-checks']['classification'], 'incomplete')
 
     def test_claim_and_result_boolean_integer_substitution_refuses(self):
         directory, _ = self.phase('request-recovery')
@@ -400,23 +479,192 @@ class PriorPhaseTests(unittest.TestCase):
                 self.write(path, original)
 
     def test_evidence_changed_after_prepare_cannot_promote(self):
-        auth, _ = self.phase('auth-and-seal'); request, _ = self.phase('request-recovery')
+        auth, _ = self.phase('auth-checks'); request, _ = self.phase('request-recovery')
         context = self.confirmation(self.refresh(auth), self.refresh(request))
         self.write(auth / 'positive-probe/command.sh', b'changed after preparation\n')
         result = F['perform'](context, execute=True)
         self.assertEqual(result['baseline_classification'], 'recovered-with-baseline-incomplete')
 
     def test_repaired_evidence_cannot_upgrade_incomplete_preparation(self):
-        auth, _ = self.phase('auth-and-seal'); request, _ = self.phase('request-recovery')
+        auth, _ = self.phase('auth-checks'); request, _ = self.phase('request-recovery')
         auth_pin, request_pin = self.refresh(auth), self.refresh(request)
         path = auth / 'positive-probe/command.sh'; original = path.read_bytes()
         self.write(path, b'corrupt before preparation\n')
         context = self.confirmation(auth_pin, request_pin)
-        self.assertEqual(context['prior_proof']['auth-and-seal']['classification'], 'incomplete')
+        self.assertEqual(context['prior_proof']['auth-checks']['classification'], 'incomplete')
         self.write(path, original)
         result = F['perform'](context, execute=True)
-        self.assertEqual(result['prior_proof']['auth-and-seal']['classification'], 'verified')
+        self.assertEqual(result['prior_proof']['auth-checks']['classification'], 'verified')
         self.assertEqual(result['baseline_classification'], 'recovered-with-baseline-incomplete')
+
+    def test_auth_timeout_stops_without_export_then_separate_preservation_is_available(self):
+        self.transport_overrides['rejected-key'] = {'reason': 'outer-timeout'}
+        auth, result = self.phase('auth-checks')
+        self.assertEqual(result['classification'], 'inconclusive')
+        self.assertEqual(self.calls, ['rejected-key'])
+        self.assertEqual((auth / 'rejected-key/stderr.txt').read_bytes(), b'Permission denied (publickey)')
+        export, result = self.phase('preserve-log')
+        self.assertEqual(self.calls, ['rejected-key', 'log-export'])
+        self.assertTrue(result['export']['preservation_complete'])
+        request, _ = self.phase('request-recovery')
+        result = F['perform'](self.confirmation(self.refresh(auth), self.refresh(request)), execute=True)
+        self.assertEqual(result['baseline_classification'], 'recovered-with-baseline-incomplete')
+        with self.assertRaises(FileExistsError):
+            self.phase('preserve-log')
+        self.assertEqual(self.calls.count('log-export'), 1)
+        for name in F['EXPORT_FILES']:
+            self.assertEqual(stat.S_IMODE((export / name).stat().st_mode), 0o600)
+
+    def test_preexited_failure_preserves_partial_and_allows_only_incomplete_baseline(self):
+        self.phase('auth-checks')
+        partial = b'schema=gemini-kmsg-v1\nsealed=no\nresult=failed\nreason=status-write-error\n'
+        self.export_raw = frame(raw_status=status(result='failed', reason='deadline-expired', elapsed_ms='600000'),
+                                stop='preexisting-terminal', overrides={
+                                    'kmsg-exit': {'data': b'1\n'},
+                                    'kmsg.status.partial': {'data': partial, 'state': 'regular',
+                                                           'size_before': str(len(partial)), 'size_after': str(len(partial)),
+                                                           'read_status': '0', 'encode_status': '0', 'stable': 'yes'}})
+        export, result = self.phase('preserve-log')
+        self.assertEqual(result['classification'], 'log-export-inconclusive')
+        self.assertTrue(result['export']['preservation_complete'])
+        self.assertEqual(result['export']['signal_attempts'], 0)
+        self.assertEqual((export / 'kmsg.status.partial').read_bytes(), partial)
+        self.assertEqual((export / 'kmsg-exit').read_bytes(), b'1\n')
+        request, result = self.phase('request-recovery')
+        self.assertEqual(result['classification'], 'native-recovery-requested')
+        context = self.confirmation(self.refresh(self.sessions / 'auth-checks'), self.refresh(request))
+        self.assertFalse(F['perform'](context)['full_baseline_eligible'])
+        self.assertEqual(F['perform'](context, execute=True)['baseline_classification'], 'recovered-with-baseline-incomplete')
+
+    def test_interrupted_export_keeps_raw_and_decoded_prefix_but_requires_emergency(self):
+        self.export_raw = frame().split(b'name=kmsg.status\n', 1)[0]
+        self.transport_overrides['log-export'] = {'reason': 'outer-timeout', 'exit_status': -15}
+        export, result = self.phase('preserve-log')
+        self.assertFalse(result['export']['export_complete'])
+        self.assertFalse(result['export']['preservation_complete'])
+        self.assertEqual((export / 'kmsg.log').read_bytes(), LOG)
+        self.assertEqual((export / 'kmsg.status').read_bytes(), b'')
+        self.assertEqual((export / 'log-export/stdout.txt').read_bytes(), self.export_raw)
+        self.assertEqual(json.loads((export / 'log-export/process.json').read_bytes())['reason'], 'outer-timeout')
+        count = len(self.calls)
+        with self.assertRaises(ValueError):
+            F['prepare'](self.attempt, self.admission('request-recovery', export_pin=self.refresh(export), recovery_mode='ordinary'))
+        self.assertEqual(len(self.calls), count)
+        self.assertFalse((self.sessions / 'request-recovery').exists())
+        request, result = self.phase('request-recovery', export_pin=self.refresh(export), recovery_mode='emergency',
+                                     emergency_reason='log-preservation-incomplete', acknowledge=True)
+        self.assertEqual(result['recovery_mode'], 'emergency')
+        self.assertTrue(result['acknowledge_unique_ram_loss'])
+        self.assertEqual(self.calls[count:], ['native-reboot'])
+        result = F['perform'](self.confirmation(request=self.refresh(request)), execute=True)
+        self.assertEqual(result['baseline_classification'], 'recovered-with-baseline-incomplete')
+
+    def test_unavailable_export_requires_exact_emergency_admission(self):
+        invalid = [dict(recovery_mode='ordinary'), dict(recovery_mode='emergency'),
+                   dict(recovery_mode='emergency', emergency_reason='anything', acknowledge=True),
+                   dict(recovery_mode='emergency', emergency_reason='log-export-unavailable', acknowledge=1),
+                   dict(recovery_mode='emergency', emergency_reason='log-preservation-incomplete', acknowledge=True)]
+        for changes in invalid:
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                F['prepare'](self.attempt, self.admission('request-recovery', **changes))
+        self.assertEqual(self.calls, [])
+        path = self.admission('auth-checks', emergency_reason='immediate-safety-stop', acknowledge=True)
+        with self.assertRaises(ValueError):
+            F['prepare'](self.attempt, path)
+        request, result = self.phase('request-recovery', recovery_mode='emergency',
+                                     emergency_reason='log-export-unavailable', acknowledge=True)
+        self.assertEqual(result['preservation_proof']['classification'], 'missing')
+        self.assertEqual(self.calls, ['native-reboot'])
+        self.assertEqual((request / 'admission.json').stat().st_mode & 0o777, 0o600)
+
+    def test_available_export_rejects_unavailable_reason_and_nonnull_normal_ack(self):
+        export, _ = self.phase('preserve-log')
+        pin = self.refresh(export)
+        for values in [dict(recovery_mode='emergency', emergency_reason='log-export-unavailable', acknowledge=True),
+                       dict(recovery_mode='emergency', emergency_reason='log-preservation-incomplete', acknowledge=True),
+                       dict(recovery_mode='ordinary', acknowledge=False),
+                       dict(recovery_mode='ordinary', emergency_reason='immediate-safety-stop')]:
+            with self.subTest(values=values), self.assertRaises(ValueError):
+                F['prepare'](self.attempt, self.admission('request-recovery', export_pin=pin, **values))
+        context = F['prepare'](self.attempt, self.admission('request-recovery', export_pin=pin,
+                                  recovery_mode='emergency', emergency_reason='immediate-safety-stop', acknowledge=True))
+        self.assertEqual(F['perform'](context)['recovery_mode'], 'emergency')
+        self.assertEqual(self.calls, ['log-export'])
+
+    def test_partial_local_evidence_mutation_refuses_ordinary_recovery(self):
+        export, _ = self.phase('preserve-log')
+        for relative in ('kmsg.log', 'kmsg.status', 'kmsg.status.partial', 'kmsg-exit', 'result.json', 'log-export/command.sh'):
+            with self.subTest(relative=relative):
+                path = export / relative; original = path.read_bytes()
+                self.write(path, original + b'changed\n')
+                pin = self.refresh(export)
+                with self.assertRaises(ValueError):
+                    F['prepare'](self.attempt, self.admission('request-recovery', export_pin=pin, recovery_mode='ordinary'))
+                self.assertEqual(self.confirmation(export=pin)['prior_proof']['preserve-log']['classification'], 'incomplete')
+                self.write(path, original)
+        self.assertEqual(self.calls, ['log-export'])
+
+    def test_preservation_changed_after_prepare_refuses_before_native_request(self):
+        export, _ = self.phase('preserve-log')
+        context = F['prepare'](self.attempt, self.admission('request-recovery', export_pin=self.refresh(export), recovery_mode='ordinary'))
+        self.write(export / 'kmsg.log', LOG + b'changed\n')
+        result = F['perform'](context, execute=True)
+        self.assertEqual(result['classification'], 'inconclusive')
+        self.assertEqual(self.calls, ['log-export'])
+        self.assertFalse((self.sessions / 'request-recovery/native-reboot').exists())
+
+    def test_parser_failure_preserves_bounded_streams_and_consumes_export(self):
+        with patch.dict(F['S'], parse_log_export=lambda *_args: (_ for _ in ()).throw(ValueError('fixture parser failure'))):
+            export, result = self.phase('preserve-log')
+        self.assertEqual(result['classification'], 'inconclusive')
+        self.assertEqual((export / 'log-export/stdout.txt').read_bytes(), self.export_raw)
+        self.assertTrue((export / 'log-export/stderr.txt').exists())
+        self.assertTrue((export / 'log-export/process.json').exists())
+        self.assertTrue((export / 'SHA256SUMS').exists())
+        with self.assertRaises(FileExistsError):
+            self.phase('preserve-log')
+        with self.assertRaises(ValueError):
+            F['prepare'](self.attempt, self.admission('request-recovery', export_pin=self.refresh(export), recovery_mode='ordinary'))
+        context = F['prepare'](self.attempt, self.admission('request-recovery', export_pin=self.refresh(export),
+                                  recovery_mode='emergency', emergency_reason='log-export-unavailable', acknowledge=True))
+        self.assertEqual(F['perform'](context)['preservation_proof']['classification'], 'incomplete')
+        self.assertEqual(self.calls, ['log-export'])
+
+    def check_unpreserved_export(self, raw):
+        self.export_raw = raw
+        export, result = self.phase('preserve-log')
+        self.assertTrue(result['export']['export_complete'])
+        self.assertFalse(result['export']['preservation_complete'])
+        self.assertEqual(result['classification'], 'log-export-inconclusive')
+        pin = self.refresh(export)
+        with self.assertRaises(ValueError):
+            F['prepare'](self.attempt, self.admission('request-recovery', export_pin=pin, recovery_mode='ordinary'))
+        context = F['prepare'](self.attempt, self.admission('request-recovery', export_pin=pin,
+                                   recovery_mode='emergency', emergency_reason='log-preservation-incomplete', acknowledge=True))
+        self.assertEqual(F['perform'](context)['preservation_proof']['classification'], 'verified')
+        self.assertEqual(self.calls, ['log-export'])
+        self.assertEqual((export / 'log-export/stdout.txt').read_bytes(), raw)
+
+    def test_read_error_with_full_framing_refuses_ordinary_recovery(self):
+        self.check_unpreserved_export(frame(overrides={'kmsg.log': {'read_status': '1'}}))
+
+    def test_changed_snapshot_with_full_framing_refuses_ordinary_recovery(self):
+        self.check_unpreserved_export(frame(overrides={'kmsg.log': {'stable': 'no', 'size_after': str(len(LOG) + 1)}}))
+
+    def test_unconfirmed_terminal_logger_refuses_ordinary_recovery(self):
+        missing = {'data': None, 'state': 'missing', 'size_before': '-', 'size_after': '-',
+                   'read_status': 'none', 'encode_status': 'none', 'stable': 'not-applicable'}
+        self.check_unpreserved_export(frame(stop='wait-timeout', overrides={'kmsg.status': missing, 'kmsg-exit': missing}))
+
+    def test_logger_exiting_after_log_copy_cannot_authorize_ordinary_recovery(self):
+        # All four later blocks are otherwise healthy/stable. A terminal
+        # status obtained after the log cannot establish that the earlier
+        # copy included records appended before that later exit.
+        self.check_unpreserved_export(frame(terminal_before_export='no'))
+
+    def test_prefix_cap_refuses_ordinary_recovery(self):
+        self.check_unpreserved_export(frame(log=b'x' * 2097152, overrides={
+            'kmsg.log': {'size_before': '2097153', 'size_after': '2097153', 'truncated': 'yes'}}))
 
 
 if __name__ == '__main__':

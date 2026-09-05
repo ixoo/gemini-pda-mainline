@@ -20,10 +20,21 @@ import tempfile
 HERE = Path(__file__).resolve().parent
 S = runpy.run_path(str(HERE / 'session_steps.py'))
 BOOT = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
-PINS = {'seal': 'e639b8550cfc696e1357b80c1599f75f3e67da1ce996ce724b8b3039eb65af5d',
+PINS = {'seal': '0dd2822ae10990b5b2d7fe888a6ea8114e334aa35438137beb8ef6e34d679005',
         'recovery': '2228aff8c2f4d12816fd813debc3fc2c8dd8f4dc36a88814db54d958c07d0266'}
+COMMON_CASES = ['good', 'boot-mismatch', 'kernel-mismatch', 'cpu-mismatch', 'member-mismatch',
+                'swap-active', 'persistent-run', 'persistent-root', 'duplicate-run', 'duplicate-root',
+                'a53-submount', 'log-submount', 'run-symlink', 'a53-symlink', 'mode-mismatch',
+                'owner-mismatch', 'existing-claim']
+SEAL_CASES = ['existing-status', 'existing-exit', 'dangling-status', 'dangling-exit',
+              'preexited-failure', 'preexited-deadline', 'preexited-partial', 'preexited-cap', 'preexited-gap',
+              'preexited-malformed-exit', 'late-terminal', 'helper-refusal', 'exit-timeout', 'logger-failed',
+              'partial-status', 'dangling-partial', 'exit-symlink', 'missing-status',
+              'status-symlink', 'log-symlink', 'log-replaced', 'log-vanished', 'oversize-log',
+              'empty-log', 'failed-status', 'oversize-status', 'read-failed']
+EXPECTED_CASES = ['seal:' + case for case in COMMON_CASES + SEAL_CASES] + ['recovery:' + case for case in COMMON_CASES]
 PROXY = r'''
-import base64,json,pathlib,subprocess,sys,textwrap
+import base64,json,os,pathlib,subprocess,sys,textwrap
 def require(value, reason):
     if not value: raise SystemExit(reason)
 root=pathlib.Path(__file__).parent
@@ -39,7 +50,7 @@ if name=='helper-reboot':
 if name=='helper-kmsg-seal':
     require((ram/'log-seal-attempt').is_dir(), 'claim missing before signal helper')
     if case=='helper-refusal': raise SystemExit(1)
-    if case=='exit-timeout': raise SystemExit(0)
+    if case in ('exit-timeout','late-terminal'): raise SystemExit(0)
     (ram/'kmsg-exit').write_text('1\n' if case=='logger-failed' else '0\n')
     if case=='exit-symlink':
         (ram/'kmsg-exit').rename(ram/'exit-copy')
@@ -49,6 +60,7 @@ if name=='helper-kmsg-seal':
     if case=='missing-status': raise SystemExit(0)
     status=(root/'expected-status').read_bytes()
     if case=='failed-status': status=status.replace(b'result=pass',b'result=failed')
+    if case=='oversize-status': status=b'x'*8193
     if case=='status-symlink':
         (ram/'status-copy').write_bytes(status)
         (ram/'kmsg.status').symlink_to('status-copy')
@@ -66,16 +78,43 @@ elif applet=='sha256sum':
     require(value, 'unreviewed hash path')
     print(('0'*64 if case=='member-mismatch' else value)+'  '+args[0])
 elif applet=='stat':
-    require(len(args)==3 and args[:2]==['-c','%u:%g:%a'] and args[2] in (str(root/'run'),str(ram)),
-            'unreviewed stat path/arguments')
-    print('0:0:755' if case=='mode-mismatch' else '1:0:700' if case=='owner-mismatch' else '0:0:700')
+    if len(args)==3 and args[:2]==['-c','%u:%g:%a'] and args[2] in (str(root/'run'),str(ram)):
+        print('0:0:755' if case=='mode-mismatch' else '1:0:700' if case=='owner-mismatch' else '0:0:700')
+    else:
+        require(len(args)==3 and args[0] in ('-c','-Lc') and args[1] in ('%d:%i','%s') and
+                (args[2]==c['fd_path'] or args[2].startswith(str(ram)+'/')), 'unreviewed stat path/arguments')
+        if case=='late-terminal' and args==['-c','%d:%i',str(ram/'kmsg.log')]:
+            (ram/'kmsg-exit').write_text('0\n')
+            (ram/'kmsg.status').write_bytes((root/'expected-status').read_bytes())
+            (ram/'kmsg.status.partial').unlink(missing_ok=True)
+        if case in ('log-replaced','log-vanished') and args==['-c','%d:%i',str(ram/'kmsg.log')] and not (root/'replaced').exists():
+            st=(ram/'kmsg.log').lstat()
+            (ram/'kmsg.log').rename(ram/'original-log')
+            if case=='log-replaced':
+                (ram/'decoy').write_bytes(b'NEVER EXPORT THIS REPLACEMENT\n')
+                (ram/'kmsg.log').symlink_to('decoy')
+            (root/'replaced').write_text('yes\n')
+            print(str(st.st_dev)+':'+str(st.st_ino))
+            raise SystemExit(0)
+        if c['busybox']:
+            raise SystemExit(subprocess.call(c['runner']+['stat']+args,
+                                             pass_fds=(3,) if args[2]==c['fd_path'] else ()))
+        st=os.fstat(3) if args[2]==c['fd_path'] else pathlib.Path(args[2]).lstat()
+        print(str(st.st_size) if args[1]=='%s' else str(st.st_dev)+':'+str(st.st_ino))
 elif applet=='sleep':
     require(args==['1'], 'unreviewed sleep arguments')
 elif applet=='base64' and not c['busybox']:
-    require(len(args)==1 and args[0].startswith(str(root)+'/'), 'unreviewed base64 path')
-    data=base64.b64encode(pathlib.Path(args[0]).read_bytes()).decode()
-    print('\n'.join(textwrap.wrap(data,76)))
-elif applet in ('cat','awk','mkdir','wc','printf','base64'):
+    require(args in ([],['-d']), 'unreviewed base64 arguments')
+    data=sys.stdin.buffer.read(2097153)
+    require(len(data)<=2097152, 'base64 input bound')
+    sys.stdout.buffer.write(base64.b64decode(data,validate=True) if args else base64.encodebytes(data))
+elif applet in ('cat','awk','mkdir','wc','printf','base64','head'):
+    if applet=='head':
+        require(args in (['-c','5'],['-c','8192'],['-c','2097152']), 'unreviewed head arguments')
+        if case=='read-failed':
+            sys.stdout.buffer.write(sys.stdin.buffer.read(7))
+            raise SystemExit(1)
+    if applet=='base64': require(args in ([],['-d']), 'unreviewed base64 arguments')
     for arg in args:
         if arg.startswith('/'):
             require(arg.startswith(str(root)+'/'), 'absolute path escaped fixture')
@@ -83,7 +122,7 @@ elif applet in ('cat','awk','mkdir','wc','printf','base64'):
         command=c['runner']+[applet]+args
     else:
         executable={'cat':'/bin/cat','awk':'/usr/bin/awk','mkdir':'/bin/mkdir','wc':'/usr/bin/wc',
-                    'printf':'/usr/bin/printf'}[applet]
+                    'printf':'/usr/bin/printf','head':'/usr/bin/head'}[applet]
         command=[executable]+args
     raise SystemExit(subprocess.call(command))
 else:
@@ -131,6 +170,10 @@ def fixture(root, phase, case, script, runner, exact):
     log = b'6,0,1,-;fixture first record\n6,1,2,-;fixture second record\n'
     if case == 'oversize-log':
         log = b'x' * (S['LIMIT'] + 1)
+    if case == 'preexited-cap':
+        log = b'x' * S['LIMIT']
+    if case == 'preexited-gap':
+        log = log.replace(b'6,1,2,', b'6,3,2,')
     if case == 'empty-log':
         log = b''
     (ram / 'kmsg.log').write_bytes(log)
@@ -144,21 +187,35 @@ def fixture(root, phase, case, script, runner, exact):
         (ram / 'kmsg.status').write_bytes(status)
     if case == 'existing-exit':
         (ram / 'kmsg-exit').write_text('0\n')
+    if case.startswith('preexited-'):
+        (ram / 'kmsg-exit').write_text('1\n')
+        if case == 'preexited-malformed-exit':
+            (ram / 'kmsg-exit').write_bytes(b'0\0')
+        status = status.replace(b'result=pass', b'result=failed')
+        reason = {'preexited-deadline': 'deadline-expired', 'preexited-cap': 'byte-limit',
+                  'preexited-gap': 'sequence-gap'}.get(case, 'ring-overrun')
+        status = status.replace(b'reason=sealed-on-sigterm', b'reason=' + reason.encode())
+        if case == 'preexited-partial':
+            (ram / 'kmsg.status.partial').write_bytes(status)
+        else:
+            (ram / 'kmsg.status.partial').unlink()
+            (ram / 'kmsg.status').write_bytes(status)
     if case == 'dangling-status':
         (ram / 'kmsg.status').symlink_to('missing-status')
     if case == 'dangling-exit':
         (ram / 'kmsg-exit').symlink_to('missing-exit')
     if case == 'existing-claim':
         (ram / ('log-seal-attempt' if phase == 'seal' else 'native-recovery-attempt')).mkdir()
+    fd_path = '/proc/self/fd/3' if Path('/proc/self/fd').is_dir() else '/dev/fd/3'
     paths = {'/bin/busybox': str(root / 'bb-proxy'), '/bin/reboot': str(root / 'helper-reboot'),
              '/bin/kmsg-seal': str(root / 'helper-kmsg-seal'), '/bin/kmsg-capture': str(root / 'logger-file'),
-             '/init': str(root / 'init-file'), '/proc/': str(root / 'proc') + '/',
+             '/init': str(root / 'init-file'), '/proc/self/fd/3': fd_path, '/proc/': str(root / 'proc') + '/',
              '/sys/': str(root / 'sys') + '/', '/run': str(root / 'run')}
     pattern = re.compile('|'.join(re.escape(path) for path in sorted(paths, key=len, reverse=True)))
     transformed = pattern.sub(lambda match: paths[match[0]], script.decode())
     # Source pins above are the authority for this exact transformation set.
     hashes = {paths['/' + name]: value['sha256'] for name, value in candidate()['members'].items()}
-    config = {'case': case, 'release': S['RELEASE'], 'hashes': hashes, 'runner': runner, 'busybox': exact}
+    config = {'case': case, 'release': S['RELEASE'], 'hashes': hashes, 'runner': runner, 'busybox': exact, 'fd_path': fd_path}
     (root / 'fixture.json').write_text(json.dumps(config))
     for name in ('bb-proxy', 'helper-reboot', 'helper-kmsg-seal'):
         path = root / name
@@ -199,17 +256,8 @@ def main():
         require(qemu is not None, 'QEMU missing; exact shell not tested')
         runner = [qemu, str(args.busybox.resolve())]
         inventory = subprocess.run(runner + ['--list'], capture_output=True, timeout=5, check=True)
-        require({'sh', 'stat', 'awk', 'cat', 'mkdir', 'sha256sum', 'uname', 'sleep', 'wc', 'base64', 'printf'} <=
+        require({'sh', 'stat', 'awk', 'cat', 'mkdir', 'sha256sum', 'uname', 'sleep', 'wc', 'base64', 'printf', 'head'} <=
                 set(inventory.stdout.decode().splitlines()), 'required applet missing')
-    common = ['good', 'boot-mismatch', 'kernel-mismatch', 'cpu-mismatch', 'member-mismatch',
-              'swap-active', 'persistent-run', 'persistent-root', 'duplicate-run', 'duplicate-root',
-              'a53-submount', 'log-submount',
-              'run-symlink', 'a53-symlink', 'mode-mismatch', 'owner-mismatch', 'existing-claim']
-    seal_only = ['existing-status', 'existing-exit', 'dangling-status', 'dangling-exit',
-                 'helper-refusal', 'exit-timeout', 'logger-failed',
-                 'partial-status', 'dangling-partial', 'exit-symlink', 'missing-status',
-                 'status-symlink', 'log-symlink', 'oversize-log',
-                 'empty-log', 'failed-status']
     results = []
     with tempfile.TemporaryDirectory(prefix='a53-session-shell-', dir=work_root) as work:
         base = Path(work)
@@ -228,7 +276,7 @@ def main():
                 require(process.returncode != 0 and diagnostic in process.stderr and not process.stdout,
                         'effect guard disabled at Python optimization ' + optimization)
         for phase, script in scripts.items():
-            for case in common + (seal_only if phase == 'seal' else []):
+            for case in COMMON_CASES + (SEAL_CASES if phase == 'seal' else []):
                 root = base / (phase + '-' + case)
                 path = fixture(root, phase, case, script, runner, exact)
                 command = runner + ['sh', str(path)] if exact else ['/bin/sh', str(path)]
@@ -243,34 +291,61 @@ def main():
                         require(process.returncode == 0, 'positive seal shell failed')
                         S['parse_seal'](process.stdout, process.stderr,
                                         {'exit_status': 0, 'reason': None, 'stdin_complete': True})
+                        for altered in ({'exit_status': 255, 'reason': None, 'stdin_complete': True},
+                                        {'exit_status': 0, 'reason': 'outer-timeout', 'stdin_complete': True},
+                                        {'exit_status': 0, 'reason': None, 'stdin_complete': False}):
+                            rejected = S['parse_log_export'](process.stdout, b'', altered)
+                            require(rejected['files']['kmsg.log'] and not rejected['result']['preservation_complete'] and
+                                    rejected['result']['classification'] == 'log-export-inconclusive', 'transport failure promoted/lost data')
+                        partial = process.stdout.split(b'__A53_LOG_FILE_END__\n', 1)[0] + b'__A53_LOG_FILE_END__\n'
+                        rejected = S['parse_log_export'](partial, b'', {'exit_status': 255, 'reason': None, 'stdin_complete': True})
+                        require(rejected['files']['kmsg.log'] and not rejected['result']['export_complete'] and
+                                not rejected['result']['preservation_complete'], 'partial transport lost completed log block')
                     else:
                         require(process.returncode == 94 and process.stdout.endswith(b'__A53_NATIVE_RECOVERY_END__\n'),
                                 'native helper return must remain a failure (94)')
-                elif case in common or case in ('existing-status', 'existing-exit', 'dangling-status', 'dangling-exit'):
+                elif case in COMMON_CASES:
                     require(process.returncode != 0 and not effects, phase + ' guard did not refuse: ' + case)
-                    if case in common and case != 'existing-claim':
+                    if case in COMMON_CASES and case != 'existing-claim':
                         claim = root / 'run/a53' / ('log-seal-attempt' if phase == 'seal' else 'native-recovery-attempt')
                         require(not claim.exists(), phase + ' guard consumed remote claim: ' + case)
                 else:
-                    require([call['name'] for call in effects] == ['helper-kmsg-seal'], 'sealing helper retry/unexpected effect')
-                    if case in ('empty-log', 'failed-status'):
-                        require(process.returncode == 0, 'malformed-status fixture did not reach independent parser')
-                        try:
-                            S['parse_seal'](process.stdout, process.stderr,
-                                            {'exit_status': 0, 'reason': None, 'stdin_complete': True})
-                        except ValueError:
-                            pass
-                        else:
-                            raise ValueError('independent parser accepted ' + case)
+                    terminal_before = case.startswith('preexited-') or case in (
+                        'existing-status', 'existing-exit', 'dangling-status', 'dangling-exit')
+                    require([call['name'] for call in effects] == ([] if terminal_before else ['helper-kmsg-seal']),
+                            'terminal logger signalled/helper retry: ' + case)
+                    exported = S['parse_log_export'](process.stdout, process.stderr,
+                                                   {'exit_status': process.returncode, 'reason': None, 'stdin_complete': True})
+                    require(process.returncode == 0 and exported['result']['export_complete'],
+                            'failed logger evidence export incomplete: ' + case + ': ' + str(exported['result']))
+                    require(exported['result']['classification'] == 'log-export-inconclusive', 'failed logger promoted: ' + case)
+                    if case not in ('log-symlink', 'log-replaced', 'log-vanished'):
+                        require('kmsg.log' in exported['files'], 'available log discarded: ' + case)
                     else:
-                        require(process.returncode != 0 and b'__A53_LOG_SEAL_END__' not in process.stdout,
-                                'incomplete logger accepted: ' + case)
+                        require('kmsg.log' not in exported['files'] and
+                                exported['result']['files']['kmsg.log']['state'] ==
+                                {'log-symlink': 'symlink', 'log-replaced': 'changed', 'log-vanished': 'unreadable'}[case],
+                                'unsafe log read')
+                    if case.startswith('preexited-') and case != 'preexited-malformed-exit':
+                        require(exported['result']['preservation_complete'] and exported['files']['kmsg-exit'] == b'1\n',
+                                'terminal failed evidence not preserved')
+                    if case in ('oversize-log', 'oversize-status'):
+                        name = 'kmsg.log' if case == 'oversize-log' else 'kmsg.status'
+                        require(len(exported['files'][name]) == S['EXPORT_FILES'][name] and
+                                exported['result']['files'][name]['truncated'] == 'yes' and
+                                not exported['result']['preservation_complete'], 'oversize prefix/mark lost')
+                    if case in ('read-failed', 'exit-timeout', 'helper-refusal', 'dangling-partial', 'exit-symlink',
+                                'late-terminal', 'preexited-malformed-exit'):
+                        require(not exported['result']['preservation_complete'], 'unsafe export promoted as preserved')
+                    if case in ('late-terminal', 'preexited-malformed-exit'):
+                        require(not exported['result']['terminal_before_export'], 'unproved initial termination accepted')
                     if case == 'exit-timeout':
                         sleeps = [call for call in calls if call['name'] == 'bb-proxy' and call['args'] == ['sleep', '1']]
                         require(len(sleeps) == 10, 'logger exit wait bound changed')
                 results.append(phase + ':' + case)
     print(json.dumps({'classification': 'session-shell-fixtures-pass', 'cases': results,
-                      'case_count': len(results), 'shell': 'exact-ARM64-BusyBox-under-QEMU' if exact else 'host-/bin/sh',
+                      'case_count': len(results), 'parser_transport_cases': 4,
+                      'shell': 'exact-ARM64-BusyBox-under-QEMU' if exact else 'host-/bin/sh',
                       'generated_source_sha256': PINS, 'effects': 'intercepted; no actual target signal or reboot',
                       'effect_guard_cases': len(guard_cases) * 2, 'effect_guard_optimization_levels': [0, 1],
                       'python_optimization': sys.flags.optimize,

@@ -16,9 +16,32 @@ ALLOWED_UNDEFINED = {
     "exit", "error", "errno_location", "fprintf", "printf", "puts", "fputs", "fwrite",
     "snprintf", "memcpy", "memset", "memmove", "memcmp", "bzero", "strcmp", "strlen",
     "stderr", "stderrp", "stdout", "stdoutp", "stack_chk_fail", "stack_chk_guard",
-    "chkstk_darwin", "cxa_finalize", "gmon_start", "ITM_deregisterTMCloneTable",
-    "ITM_registerTMCloneTable", "libc_start_main", "dyld_stub_binder",
+    "chkstk_darwin", "libc_start_main", "dyld_stub_binder",
 }
+# These exact GNU/ELF CRT hooks are optional weak functions, not host I/O.
+# Keep trailing underscores and require nm's weak-function marker explicitly.
+ELF_WEAK_STARTUP = {
+    "__gmon_start__", "_ITM_deregisterTMCloneTable", "_ITM_registerTMCloneTable",
+    "__cxa_finalize",
+}
+
+
+def audit_undefined(output):
+    for line in output.splitlines():
+        if not line.strip():
+            continue
+        parts = line.split()
+        if len(parts) == 1:  # Darwin nm -u emits only names, without a type.
+            kind, raw = None, parts[0]
+        elif len(parts) == 2 and parts[0] in {"U", "w", "v"}:
+            kind, raw = parts
+        else:
+            raise RuntimeError(f"unreviewed undefined-symbol framing: {line}")
+        raw = raw.split("@", 1)[0]
+        if kind == "w" and raw in ELF_WEAK_STARTUP:
+            continue
+        if raw.lstrip("_") not in ALLOWED_UNDEFINED:
+            raise RuntimeError(f"unreviewed host syscall linkage: {raw}")
 
 
 class KmsgSealTests(unittest.TestCase):
@@ -35,11 +58,23 @@ class KmsgSealTests(unittest.TestCase):
                         str(HERE / "tests/kmsg-seal-harness.c"), "-o", str(cls.binary)], check=True)
         output = subprocess.run(["nm", "-u", str(cls.binary)], text=True,
                                 capture_output=True, check=True).stdout
-        for line in output.splitlines():
-            if line.strip():
-                symbol = line.split()[-1].split("@", 1)[0].lstrip("_")
-                if symbol not in ALLOWED_UNDEFINED:
-                    raise RuntimeError(f"unreviewed host syscall linkage: {symbol}")
+        audit_undefined(output)
+
+    def test_link_audit_accepts_only_reviewed_startup_hooks(self):
+        audit_undefined("\n".join("w " + name for name in ELF_WEAK_STARTUP))
+        audit_undefined(" U ___error\n U _memcpy\n U __libc_start_main@GLIBC_2.34\n"
+                        " w __cxa_finalize@GLIBC_2.2.5\n")
+        audit_undefined("___error\n_memcpy\n___chkstk_darwin\n")
+        for symbol in ("open", "openat", "read", "write", "kill", "syscall", "poll",
+                       "sigaction", "clock_gettime", "unknown", "__gmon_start", "__gmon_start___"):
+            for kind in ("U", "w"):
+                with self.subTest(symbol=symbol, kind=kind), self.assertRaises(RuntimeError):
+                    audit_undefined(f"{kind} {symbol}@GLIBC_2.2.5\n")
+        for symbol in ELF_WEAK_STARTUP:
+            with self.subTest(strong_hook=symbol), self.assertRaises(RuntimeError):
+                audit_undefined("U " + symbol)
+        with self.assertRaises(RuntimeError):
+            audit_undefined("unexpected nm framing U _memcpy")
 
     def case(self, name):
         process = subprocess.run([str(self.binary), name], text=True,

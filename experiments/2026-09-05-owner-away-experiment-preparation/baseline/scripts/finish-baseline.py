@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Separately admitted, one-shot authentication/log and native-recovery steps."""
+"""Separately admitted authentication, RAM-log preservation and recovery steps."""
 import argparse
 import json
 import os
@@ -15,14 +15,29 @@ C = runpy.run_path(str(HERE / 'collect-baseline.py'))
 S = runpy.run_path(str(HERE / 'session_steps.py'))
 REPO = C['REPO']
 require, sha, regular = C['require'], C['sha'], C['regular']
-STEPS = {'auth-and-seal': {'rejected_key': 1, 'wrong_host': 1, 'positive_probe': 1, 'log_seal': 1},
+STEPS = {'auth-checks': {'rejected_key': 1, 'wrong_host': 1, 'positive_probe': 1},
+         'preserve-log': {'log_export': 1},
          'request-recovery': {'native_reboot': 1}, 'confirm-recovery': {'known_good_probe': 1}}
-PHASE_LABELS = {'auth-and-seal': ('rejected-key', 'wrong-host', 'positive-probe', 'log-seal'),
+PHASE_LABELS = {'auth-checks': ('rejected-key', 'wrong-host', 'positive-probe'),
+                'preserve-log': ('log-export',),
                 'request-recovery': ('native-reboot',)}
+EXPORT_FILES = ('kmsg.log', 'kmsg.status', 'kmsg.status.partial', 'kmsg-exit')
+PRIOR_FIELDS = {'auth-checks': 'auth_checks_manifest_sha256',
+                'preserve-log': 'log_export_manifest_sha256',
+                'request-recovery': 'native_request_manifest_sha256'}
+EMERGENCY_REASONS = {'log-export-unavailable', 'log-preservation-incomplete', 'immediate-safety-stop'}
 
 
 def json_bytes(value):
     return (json.dumps(value, indent=2, sort_keys=True) + '\n').encode()
+
+
+def sync_directory(path):
+    fd = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
 
 
 def load(path, limit=131072):
@@ -69,8 +84,9 @@ def prepare(attempt, admission_path):
                 'candidate_manifest_sha256', 'finish_source_sha256', 'steps_source_sha256',
                 'custodian_role', 'custody_handoff_sha256', 'custody_exclusive', 'no_other_device_operations',
                 'action_budgets', 'owner_console_accepted', 'physical_recovery_confirmed',
-                'known_good_known_hosts_sha256', 'auth_seal_manifest_sha256', 'native_request_manifest_sha256'}
-    require(set(admission) == required and admission['schema'] == 1 and
+                'known_good_known_hosts_sha256', *PRIOR_FIELDS.values(),
+                'recovery_mode', 'emergency_reason', 'acknowledge_unique_ram_loss'}
+    require(set(admission) == required and type(admission['schema']) is int and admission['schema'] == 1 and
             admission['experiment'] == 'a53-authenticated-baseline' and admission['action'] in STEPS,
             'finish admission inventory/scope')
     require(admission['baseline_admission_id'] == attempt.name == prepared['admission']['admission_id'] and
@@ -89,7 +105,7 @@ def prepare(attempt, admission_path):
     if admission['action'] == 'confirm-recovery':
         require(admission['physical_recovery_confirmed'] is True and
                 C['SHA'].fullmatch(admission['known_good_known_hosts_sha256']), 'physical recovery/pin unconfirmed')
-        for field in ('auth_seal_manifest_sha256', 'native_request_manifest_sha256'):
+        for field in PRIOR_FIELDS.values():
             require(admission[field] is None or C['SHA'].fullmatch(admission[field]), 'prior phase manifest pin')
         known = REPO / 'artifacts/credentials/a53-recovery-known_hosts'
         require(sha(regular(known, 16384)) == admission['known_good_known_hosts_sha256'], 'known-good host pin')
@@ -98,14 +114,32 @@ def prepare(attempt, admission_path):
         regular(REPO / 'artifacts/credentials/gemini_ed25519', 16384)
     else:
         require(admission['known_good_known_hosts_sha256'] is None and
-                admission['physical_recovery_confirmed'] is False and admission['auth_seal_manifest_sha256'] is None and
+                admission['physical_recovery_confirmed'] is False and admission['auth_checks_manifest_sha256'] is None and
                 admission['native_request_manifest_sha256'] is None, 'unexpected recovery fields')
+        pin = admission['log_export_manifest_sha256']
+        require((admission['action'] == 'request-recovery' and
+                 (pin is None or isinstance(pin, str) and C['SHA'].fullmatch(pin))) or pin is None,
+                'unexpected log export pin')
+    if admission['action'] == 'request-recovery':
+        require(admission['recovery_mode'] in ('ordinary', 'emergency'), 'explicit recovery mode required')
+        if admission['recovery_mode'] == 'emergency':
+            require(admission['emergency_reason'] in EMERGENCY_REASONS and
+                    admission['acknowledge_unique_ram_loss'] is True, 'emergency reason/RAM loss acknowledgement')
+        else:
+            require(admission['log_export_manifest_sha256'] is not None and
+                    admission['emergency_reason'] is None and admission['acknowledge_unique_ram_loss'] is None,
+                    'ordinary recovery requires preserved-log pin and null emergency fields')
+    else:
+        require(all(admission[field] is None for field in
+                    ('recovery_mode', 'emergency_reason', 'acknowledge_unique_ram_loss')), 'unexpected emergency fields')
     context = {'prepared': prepared, 'baseline': baseline, 'attempt': attempt, 'manifest': manifest,
                'admission': admission, 'admission_raw': admission_raw}
     if admission['action'] == 'confirm-recovery':
         # This classification happens before creating the consumed-budget
         # directory. Missing proof permits only the independent recovery probe.
         context['prior_proof'] = classify_prior_phases(context)
+    elif admission['action'] == 'request-recovery':
+        context['preservation_proof'] = recovery_preservation(context)
     return context
 
 
@@ -125,7 +159,7 @@ def authenticated_command(context):
     return C['ssh_command'](prepared['keys'])
 
 
-def auth_and_seal(context, directory):
+def auth_checks(context, directory):
     prepared, boot = context['prepared'], context['baseline']['boot_id']
     # Disposable keys are generated locally and removed on success/failure.
     transient = directory / '.negative-keys'
@@ -163,13 +197,23 @@ def auth_and_seal(context, directory):
             if path.exists() or path.is_symlink():
                 path.unlink()
         transient.rmdir()
-    out, err, process = invoke(context, directory, 'log-seal', authenticated_command(context),
-                              S['seal_script'](prepared['candidate'], boot), 30, stdout_limit=3 * 1024 * 1024)
-    log, status, result = S['parse_seal'](out, err, process)
-    C['write_new'](directory / 'kmsg.log', log)
-    C['write_new'](directory / 'kmsg.status', status)
-    return {'classification': 'authenticated-log-seal-pass', 'boot_id': boot, 'log': result,
+    return {'classification': 'authentication-checks-pass', 'boot_id': boot,
             'negative_auth': 'key-and-host-refused-plus-fresh-authenticated-probe'}
+
+
+def preserve_log(context, directory):
+    boot = context['baseline']['boot_id']
+    out, err, process = invoke(context, directory, 'log-export', authenticated_command(context),
+                              S['seal_script'](context['prepared']['candidate'], boot), 30,
+                              stdout_limit=3 * 1024 * 1024)
+    parsed = S['parse_log_export'](out, err, process)
+    require(set(parsed['files']) <= set(EXPORT_FILES), 'export file scope')
+    # Fixed empty placeholders represent unavailable files only together with
+    # the parser's per-file state. The original bounded streams are retained
+    # even if framing is truncated or no individual file can be decoded.
+    for name in EXPORT_FILES:
+        C['write_new'](directory / name, parsed['files'].get(name, b''))
+    return {'classification': parsed['result']['classification'], 'boot_id': boot, 'export': parsed['result']}
 
 
 def known_good_command(context):
@@ -200,8 +244,8 @@ def phase_files(action):
     files = {'admission.json', 'claim.json', 'result.json', 'SHA256SUMS'}
     files.update(label + '/' + name for label in PHASE_LABELS[action]
                  for name in ('command.sh', 'process.json', 'stdout.txt', 'stderr.txt'))
-    if action == 'auth-and-seal':
-        files.update(('kmsg.log', 'kmsg.status'))
+    if action == 'preserve-log':
+        files.update(EXPORT_FILES)
     return files
 
 
@@ -244,7 +288,7 @@ def verify_phase_commands(directory, context, action):
     candidate, boot = context['prepared']['candidate'], context['baseline']['boot_id']
     probe = S['probe_script'](candidate, boot)
     commands = {'rejected-key': probe, 'wrong-host': probe, 'positive-probe': probe,
-                'log-seal': S['seal_script'](candidate, boot),
+                'log-export': S['seal_script'](candidate, boot),
                 'native-reboot': S['recovery_script'](candidate, boot)}
     for label in PHASE_LABELS[action]:
         child = directory / label
@@ -255,8 +299,8 @@ def verify_phase_commands(directory, context, action):
         require(type(process['exit_status']) is int and type(process['stdin_complete']) is bool and
                 (process['reason'] is None or isinstance(process['reason'], str)) and
                 type(process['elapsed_seconds']) in (int, float) and
-                0 <= process['elapsed_seconds'] <= (31 if label == 'log-seal' else 16), 'prior process framing/deadline')
-        for name, limit in (('stdout', 3 * 1024 * 1024 if label == 'log-seal' else 131072), ('stderr', 16384)):
+                0 <= process['elapsed_seconds'] <= (31 if label == 'log-export' else 16), 'prior process framing/deadline')
+        for name, limit in (('stdout', 3 * 1024 * 1024 if label == 'log-export' else 131072), ('stderr', 16384)):
             require(type(process[name + '_bytes']) is int and
                     process[name + '_bytes'] == len(regular(child / (name + '.txt'), limit)), 'prior stream count')
 
@@ -265,8 +309,9 @@ def verify_prior_phase(context, action, expected):
     require(action in PHASE_LABELS, 'prior phase scope')
     directory = REPO / 'artifacts/a53-authenticated/sessions' / context['attempt'].name / action
     verify_phase(directory, expected, action)
-    # Reject a confirm phase here before prepare() so dependency verification
-    # cannot recurse. Prepare independently rechecks the exact original attempt,
+    # Only request-recovery depends on preserve-log; auth/export have no
+    # predecessors. The exact action check rejects recursive confirm claims.
+    # Prepare independently rechecks the exact original attempt,
     # source identities, candidate, custody and this phase's admitted budgets.
     require(load(directory / 'admission.json')['action'] == action, 'prior phase action binding')
     prior = prepare(context['attempt'], directory / 'admission.json')
@@ -276,29 +321,66 @@ def verify_prior_phase(context, action, expected):
     require(json_bytes(load(directory / 'claim.json')) == json_bytes(phase_claim(prior)), 'prior phase claim binding')
     verify_phase_commands(directory, prior, action)
     boot = prior['baseline']['boot_id']
-    if action == 'auth-and-seal':
+    if action == 'auth-checks':
         result = recheck_auth(directory, boot)
+    elif action == 'preserve-log':
+        result = recheck_export(directory, boot)
     else:
         child = directory / 'native-reboot'
         result = S['parse_recovery_request'](regular(child / 'stdout.txt', 131072),
                                               load(child / 'process.json'), boot)
+        result.update(recovery_context(prior))
     require(json_bytes(load(directory / 'result.json')) == json_bytes(result), 'prior phase result differs from raw evidence')
+    return result
+
+
+def phase_proof(context, action):
+    expected = context['admission'][PRIOR_FIELDS[action]]
+    if expected is None:
+        return {'classification': 'missing', 'manifest_sha256': None, 'reason': 'no admitted phase manifest'}
+    try:
+        result = verify_prior_phase(context, action, expected)
+        proof = {'classification': 'verified', 'manifest_sha256': expected}
+        if action == 'preserve-log':
+            proof['preservation_complete'] = result['export']['preservation_complete']
+            proof['complete_log'] = result['classification'] == 'complete-log-through-seal'
+        if action == 'request-recovery':
+            proof['recovery_mode'] = result['recovery_mode']
+        return proof
+    except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
+        return {'classification': 'incomplete', 'manifest_sha256': expected, 'reason': str(error)}
+
+
+def recovery_preservation(context):
+    proof = phase_proof(context, 'preserve-log')
+    admission = context['admission']
+    if admission['recovery_mode'] == 'ordinary':
+        require(proof['classification'] == 'verified' and proof['preservation_complete'] is True,
+                'ordinary recovery requires a complete local preservation of all bounded available RAM log evidence')
+    elif admission['emergency_reason'] == 'log-export-unavailable':
+        require(proof['classification'] != 'verified', 'log export is available; emergency reason does not match')
+    elif admission['emergency_reason'] == 'log-preservation-incomplete':
+        require(proof['classification'] == 'verified' and proof['preservation_complete'] is False,
+                'incomplete preservation emergency requires its verified partial export')
+    return proof
+
+
+def recovery_context(context):
+    return {field: context['admission'][field] for field in
+            ('recovery_mode', 'emergency_reason', 'acknowledge_unique_ram_loss')} | {
+                'preservation_proof': context['preservation_proof']}
+
+
+def full_baseline_eligible(context, proof):
+    return (all(item['classification'] == 'verified' for item in proof.values()) and
+            proof['preserve-log']['complete_log'] is True and
+            proof['preserve-log']['preservation_complete'] is True and
+            proof['request-recovery']['recovery_mode'] == 'ordinary' and
+            context['admission']['owner_console_accepted'] is True)
 
 
 def classify_prior_phases(context):
-    result = {}
-    for action, field in (('auth-and-seal', 'auth_seal_manifest_sha256'),
-                          ('request-recovery', 'native_request_manifest_sha256')):
-        expected = context['admission'][field]
-        if expected is None:
-            result[action] = {'classification': 'missing', 'manifest_sha256': None, 'reason': 'no admitted phase manifest'}
-            continue
-        try:
-            verify_prior_phase(context, action, expected)
-            result[action] = {'classification': 'verified', 'manifest_sha256': expected}
-        except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
-            result[action] = {'classification': 'incomplete', 'manifest_sha256': expected, 'reason': str(error)}
-    return result
+    return {action: phase_proof(context, action) for action in PRIOR_FIELDS}
 
 
 def recheck_auth(directory, boot):
@@ -314,13 +396,19 @@ def recheck_auth(directory, boot):
             process['reason'] is None and process['stdin_complete'] and
             regular(child / 'stdout.txt', 131072) == ('authenticated_boot_id=' + boot + '\n').encode(),
             'positive auth evidence')
-    child = directory / 'log-seal'
-    log, status, result = S['parse_seal'](regular(child / 'stdout.txt', 3 * 1024 * 1024),
-                                    regular(child / 'stderr.txt', 16384), load(child / 'process.json'))
-    require(log == regular(directory / 'kmsg.log', S['LIMIT']) and
-            status == regular(directory / 'kmsg.status', 8192), 'exported log evidence')
-    return {'classification': 'authenticated-log-seal-pass', 'boot_id': boot, 'log': result,
+    return {'classification': 'authentication-checks-pass', 'boot_id': boot,
             'negative_auth': 'key-and-host-refused-plus-fresh-authenticated-probe'}
+
+
+def recheck_export(directory, boot):
+    child = directory / 'log-export'
+    parsed = S['parse_log_export'](regular(child / 'stdout.txt', 3 * 1024 * 1024),
+                                  regular(child / 'stderr.txt', 16384), load(child / 'process.json'))
+    require(set(parsed['files']) <= set(EXPORT_FILES), 'export file scope')
+    for name in EXPORT_FILES:
+        require(regular(directory / name, S['LIMIT'] if name == 'kmsg.log' else 8192) ==
+                parsed['files'].get(name, b''), 'exported raw evidence differs from captured transport')
+    return {'classification': parsed['result']['classification'], 'boot_id': boot, 'export': parsed['result']}
 
 
 def perform(context, execute=False):
@@ -330,7 +418,9 @@ def perform(context, execute=False):
                   'budgets': STEPS[action], 'physical_admission': 'separate owner/custody decision'}
         if action == 'confirm-recovery':
             result['prior_proof'] = context['prior_proof']
-            result['full_baseline_eligible'] = all(proof['classification'] == 'verified' for proof in context['prior_proof'].values()) and context['admission']['owner_console_accepted']
+            result['full_baseline_eligible'] = full_baseline_eligible(context, context['prior_proof'])
+        elif action == 'request-recovery':
+            result.update(recovery_context(context))
         return result
     root = REPO / 'artifacts/a53-authenticated/sessions' / context['attempt'].name
     C['private_root'](root)
@@ -338,20 +428,25 @@ def perform(context, execute=False):
     directory.mkdir(mode=0o700)  # One immutable attempt per phase, including interrupted failures.
     C['write_new'](directory / 'admission.json', context['admission_raw'])
     C['write_new'](directory / 'claim.json', json_bytes(phase_claim(context)))
-    fd = os.open(root, os.O_RDONLY)
-    try:
-        os.fsync(fd)
-    finally:
-        os.close(fd)
+    sync_directory(directory)
+    sync_directory(root)
+    sync_directory(root.parent)
+    sync_directory(root.parent.parent)
     boot = context['baseline']['boot_id']
     try:
-        if action == 'auth-and-seal':
-            result = auth_and_seal(context, directory)
+        if action == 'auth-checks':
+            result = auth_checks(context, directory)
+        elif action == 'preserve-log':
+            result = preserve_log(context, directory)
         elif action == 'request-recovery':
-            # Recovery remains available when authentication/log sealing failed.
+            # Recheck local preservation immediately before the separately
+            # admitted request. A timeout never triggers another connection.
+            require(recovery_preservation(context) == context['preservation_proof'],
+                    'preservation evidence changed after recovery preparation')
             out, _err, process = invoke(context, directory, 'native-reboot', authenticated_command(context),
                                        S['recovery_script'](context['prepared']['candidate'], boot), 15)
             result = S['parse_recovery_request'](out, process, boot)
+            result.update(recovery_context(context))
         else:
             out, err, process = invoke(context, directory, 'known-good-probe', known_good_command(context),
                                       S['GEMIAN_PROBE'], 15)
@@ -360,18 +455,24 @@ def perform(context, execute=False):
             # never become full admission by repairing files during execution.
             proof = classify_prior_phases(context)
             result['prior_proof'] = proof
-            if (proof == context['prior_proof'] and all(item['classification'] == 'verified' for item in proof.values())
-                    and context['admission']['owner_console_accepted'] is True):
+            if proof == context['prior_proof'] and full_baseline_eligible(context, proof):
                 result['baseline_classification'] = 'first-authenticated-baseline-and-recovery-pass'
             else:
                 result['baseline_classification'] = 'recovered-with-baseline-incomplete'
-    except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
+    except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
         result = {'classification': 'inconclusive', 'reason': str(error), 'budget': 'consumed',
                   'next_action': 'review evidence; no repeat; physical recovery if identity or USB is unavailable'}
     C['write_new'](directory / 'result.json', json_bytes(result))
     manifest = ''.join(sha(regular(path, 4 * 1024 * 1024)) + '  ' + path.relative_to(directory).as_posix() + '\n'
                        for path in sorted(directory.rglob('*')) if path.is_file())
     C['write_new'](directory / 'SHA256SUMS', manifest.encode())
+    # Persist file names as well as fsynced contents before any later phase
+    # can rely on this export to authorize destruction of the RAM original.
+    for child in directory.iterdir():
+        if child.is_dir():
+            sync_directory(child)
+    sync_directory(directory)
+    sync_directory(root)
     return result
 
 
@@ -387,7 +488,7 @@ def main():
     except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
         result = {'classification': 'refused', 'reason': str(error)}
     print(json.dumps(result, sort_keys=True))
-    return 2 if result['classification'] in ('refused', 'inconclusive') else 0
+    return 2 if result['classification'] in ('refused', 'inconclusive', 'log-export-inconclusive') else 0
 
 
 if __name__ == '__main__':

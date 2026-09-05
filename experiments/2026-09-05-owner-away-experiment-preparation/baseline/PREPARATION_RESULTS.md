@@ -64,19 +64,21 @@ If success was published but its stdout was lost, inspect the exact remote
 choose a package by timestamp or rebuild to recover a lost download.
 
 Thirteen local transfer/refusal fixtures pass. Transfer output is capped at
-32 MiB while streaming, and archive members are inspected incrementally. They cover partial cleanup without log
-loss, linked/unmanaged state, archive traversal/links/duplicates, changed hashes,
+32 MiB while streaming, and archive members are inspected incrementally. They
+cover partial cleanup without log loss, linked/unmanaged state, archive
+traversal/links/duplicates, changed hashes,
 missing/extra inventory, revision mismatch, verified package reuse, oversized
-transfer refusal, timed-out process cleanup and interruption after stdout closes. They do
-not simulate an actual network outage. Publication or build failure before a
+transfer refusal, timed-out process cleanup and interruption after stdout
+closes. They do not simulate an actual network outage. Publication or build failure before a
 valid publication receipt remains a failed build requiring review.
 
 ## Additional offline gates
 
 The syscall-injected logger harness runs the unchanged capture loop, parser and
-seal code against bounded in-memory fixtures. Eleven test methods cover 47
+seal code against bounded in-memory fixtures. Twelve test methods cover 47
 modeled scenarios including signal draining, sequence gaps, deadline, byte cap,
-partial writes, atomic publication errors and restart refusal. Symbol checks
+partial writes, atomic publication errors and restart refusal, plus the symbol
+audit's own allowed-hook/refused-I/O cases. Symbol checks
 prevent accidental host device I/O. These are not real Linux signal-scheduling,
 filesystem or device tests.
 
@@ -99,3 +101,52 @@ an on-device pidfd execution result. The helper still refuses unsupported,
 denied, exited or mismatched processes and has no numeric-PID fallback. Its
 only signal effect is one SIGTERM sent through the verified process handle;
 separate logger exit/status checks determine seal acceptance.
+
+
+## Second published attempt and review corrections
+
+Revision `cfe1279f764d2a0fb8826405de928b85ee5ad501` completed the two static
+ARM64 build replicas and fifteen parser cases, then failed before the injected
+I/O scenarios ran: the Linux executable symbol audit rejected the compiler's
+weak `__gmon_start__` profiling hook. No validated package or candidate was
+published. Bounded diagnostics survived both remotely and in the local build
+log. The fix narrowly admits known ELF startup hooks while retaining the ban
+on real file/device/signal linkage. Platform fixture and exact-shell checks are
+moved before compilation, so a setup refusal does not trigger unnecessary
+repeated binary builds.
+
+The retained Image's embedded `IKCFG_ST`/`IKCFG_ED` gzip member was independently
+extracted in memory and exactly matches the package's `kernel.config`, SHA-256
+`194834d90eb2443f4b14ba8f2078ba16fe0c63f69088fcc8c063fe25af01c410`.
+Thus the first-baseline collector's expected `/proc/config.gz` payload has a
+checked artifact basis; physical execution remains untested.
+
+Independent review also found that the first seal protocol refused a failed or
+already-exited logger before exporting its unique partial RAM evidence, while
+ordinary recovery could destroy it. That protocol is superseded before any
+device use: separate admitted bounded log preservation must retain available
+failed/partial records without promoting them to a clean-log pass. Ordinary
+recovery requires the preserved export; explicit unsafe/emergency recovery stays
+available under its separately recorded narrow admission. No prior first-boot
+readiness claim exists to retain through this correction.
+
+The export also requires a canonical logger-exit witness before reading the
+first log byte. A logger that terminates only after export starts cannot make
+an earlier snapshot complete. The host retains bounded raw stdout, stderr,
+process results and parsed file prefixes even when framing or transport fails;
+errors, file changes and truncation prevent ordinary recovery admission.
+
+Eight focused package-receipt methods pass with Python optimization both off
+and on. Parser, injected I/O, pidfd-seal and exact eMMC reports require their
+complete 15/12/9/28-test counts, one well-formed result and no skipped or failed
+outcomes. The session-shell receipt binds the complete ordered case inventory.
+This closes acceptance of short or malformed test reports without changing
+any target binary source.
+
+The corrected session layer passes 40 host methods. The generated shell
+protocol passes all 61 host-shell cases with Python optimization enabled, ten
+effect-guard misuse checks across optimization levels, and four parser
+transport checks. Generated shell syntax and ShellCheck pass. The common
+repository gate passes, including all 189 manifest profiles; its Linux-only
+artifact-provenance fixture is deferred to the explicit userspace Buildbox
+run. These host results do not establish exact ARM64 shell or device behavior.

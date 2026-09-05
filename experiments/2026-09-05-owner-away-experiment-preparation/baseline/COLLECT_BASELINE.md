@@ -158,10 +158,12 @@ runner or authorize an extra connection.
 
 The separate [session shell harness](scripts/test-session-shell.py) checks the
 generated sealing and recovery scripts without target effects. Its exact source
-pins must match before any fixture executes. The 50 cases cover identity and RAM
+pins must match before any fixture executes. The 61 cases cover identity and RAM
 guards before the remote claim, duplicate and descendant mounts, symlinks,
-existing claims/status, logger refusal/timeout/failure, malformed log evidence,
-and the native helper unexpectedly returning. Every signal-helper/reboot call is
+existing claims, pre-exited failure/gap/cap/deadline/partial status, logger
+refusal/timeout/failure, late termination, malformed exit records, replaced or
+vanished files, malformed log evidence, and
+the native helper unexpectedly returning. Every signal-helper/reboot call is
 intercepted; direct numeric `kill` is refused. Ten deliberate proxy misuse cases
 also prove the effect guards remain active with Python optimization both off
 and on. The default uses the host shell:
@@ -177,3 +179,44 @@ device effect remain intercepted. Neither mode proves Linux pidfd behavior,
 logger/device operation, or a successful physical recovery. The single JSON
 result distinguishes host-shell from exact-BusyBox execution and includes the
 generated source digests and optimization level.
+
+## Failed logger evidence export
+
+The fixed `seal_script` now emits the strict `gemini-log-export-v2` envelope.
+An already-published final status or exit file consumes the export claim but
+causes no new signal. Otherwise the identified pidfd helper is invoked once,
+followed by at most ten one-second waits. Failure or timeout still reaches the
+bounded export. Nothing restarts the logger or repeats a consumed claim.
+
+The envelope contains `kmsg.log` (at most 2 MiB), `kmsg.status`,
+`kmsg.status.partial` and `kmsg-exit` (at most 8192 bytes each). It records missing,
+symlink, nonregular, changed and unreadable paths without reading their contents.
+For a regular file the exporter opens a held descriptor, checks its device/inode
+against the non-symlink source before reading, and records sizes and identity
+stability around the read. It streams a bounded prefix through base64 and records
+read/encoding status and truncation. Only small read-status receipts are written
+inside the exclusive RAM claim; no second multi-megabyte log file is created.
+
+`parse_log_export` returns raw captured file bytes separately from its JSON
+classification. Complete earlier file blocks remain available if a later block
+or transport fails. The caller must retain the original stdout, stderr and
+process record even when the parser cannot recover a file block. A failed or
+pre-exited logger remains `log-export-inconclusive`, including when all its
+evidence has been preserved.
+
+`preservation_complete` requires a complete error-free transport and envelope,
+a verified canonical exit record held and read before the first exported file,
+a complete regular log, and every available file captured
+without errors, changes or truncation. This is an evidence-retention predicate,
+not baseline acceptance. `complete-log-through-seal` additionally requires this
+attempt's successful explicit seal, the same earlier termination witness,
+exact zero exit, absent partial status, and
+the original strict final-status/contiguous-record predicate. The `parse_seal`
+compatibility entry point returns its original tuple only for that complete
+pass. Old seal envelopes are rejected.
+
+A terminal status that appears after the log was read cannot prove that the
+captured bytes include the final tail. The `terminal_before_export` header must
+therefore be true for either complete preservation or acceptance. A final status
+without an earlier valid exit file still has its bytes exported, but remains
+insufficient for ordinary recovery admission.

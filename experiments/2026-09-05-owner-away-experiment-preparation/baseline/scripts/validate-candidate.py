@@ -108,6 +108,17 @@ def git_source(revision, path):
     return AUDIT["git_bytes"](REPO, revision, path)
 
 
+def check_unittest_receipt(raw, count):
+    """Accept one complete fixed suite, with no skipped or failed outcomes."""
+    require(type(raw) is bytes and type(count) is int and count > 0, "unittest receipt input")
+    report = raw.decode("ascii")
+    summaries = re.findall(r"^Ran .*", report, re.MULTILINE)
+    ending = re.search(r"(?:\A|\n)Ran ([0-9]+) tests in ([0-9]+(?:\.[0-9]+)?)s\n\nOK\n?\Z", report)
+    require(len(summaries) == 1 and ending is not None and ending[1] == str(count) and
+            re.search(r"\b(?:FAIL|FAILED|ERROR|skipped)\b|\.\.\. (?:expected failure|unexpected success)\b",
+                      report) is None, "unittest receipt incomplete, malformed, skipped or failed")
+
+
 def check_userspace(package, manifest_sha, candidate_revision):
     package = private_tree(package, USERSPACE_FILES, BINARIES, {"licenses"})
     require(re.fullmatch(r"[0-9a-f]{64}", manifest_sha), "userspace manifest format")
@@ -149,13 +160,9 @@ def check_userspace(package, manifest_sha, candidate_revision):
             "server": "exact-AArch64-binary-under-QEMU", "command_shell": "builder-account-shell",
             "candidate-init-boot": "not-tested", "device_action": "none", "private-fixtures": "removed"},
             "authentication evidence inventory or result")
-    tests = regular(package / "kmsg-parser-tests.txt").decode()
-    require(re.search(r"Ran [1-9][0-9]* tests in [0-9.]+s\n\nOK\s*$", tests) is not None and
-            "FAILED" not in tests and "ERROR" not in tests, "kernel-log parser tests missing or failed")
-    for name in ("kmsg-io-tests.txt", "kmsg-seal-tests.txt"):
-        io_tests = regular(package / name).decode()
-        require(re.search(r"Ran [1-9][0-9]* tests in [0-9.]+s\n\nOK\s*$", io_tests) is not None and
-                "FAILED" not in io_tests and "ERROR" not in io_tests, "injected kernel-log tests missing or failed")
+    check_unittest_receipt(regular(package / "kmsg-parser-tests.txt"), 15)
+    for name, count in (("kmsg-io-tests.txt", 12), ("kmsg-seal-tests.txt", 9)):
+        check_unittest_receipt(regular(package / name), count)
     shell = load_json(package / "shell-tests.json")
     unit = shell.get("ulimit_f_block_bytes")
     require(type(unit) is int and unit in (512, 1024), "shell file-size unit")
@@ -170,22 +177,22 @@ def check_userspace(package, manifest_sha, candidate_revision):
             "private_fixtures": "removed"}, "exact BusyBox shell evidence differs")
     session = load_json(package / "session-shell-tests.json")
     session_tools = runpy.run_path(str(HERE / "scripts/test-session-shell.py"))
-    session_cases = session.get("cases")
-    require(type(session_cases) is list and len(session_cases) == 50 and
-            len(set(session_cases)) == 50 and all(re.fullmatch(r"(?:seal|recovery):[a-z-]+", item) for item in session_cases),
+    session_cases = session_tools["EXPECTED_CASES"]
+    require(type(session_cases) is list and len(session_cases) == len(set(session_cases)) == 61 and
+            session.get("cases") == session_cases,
             "session shell case inventory")
     require(session == {"classification": "session-shell-fixtures-pass", "cases": session_cases,
-            "case_count": 50, "shell": "exact-ARM64-BusyBox-under-QEMU", "busybox_sha256": BUSYBOX_SHA,
+            "case_count": 61, "shell": "exact-ARM64-BusyBox-under-QEMU", "busybox_sha256": BUSYBOX_SHA,
             "generated_source_sha256": session_tools["PINS"], "effects": "intercepted; no actual target signal or reboot",
             "effect_guard_cases": 10, "effect_guard_optimization_levels": [0, 1], "python_optimization": 0,
+            "parser_transport_cases": 4,
             "pidfd_kernel_behavior": "not-tested", "device_access": "none", "private_fixtures": "removed"},
             "session shell evidence inventory or result")
     emmc = regular(package / "emmc-shell-tests.txt").decode()
     for line in ("emmc_fixture_mode=exact-busybox-qemu", "actual_busybox_sha256=" + BUSYBOX_SHA,
                  "observer_busybox_identity=fixture-dispatcher-hash"):
         require(emmc.splitlines().count(line) == 1, "exact BusyBox eMMC fixture identity")
-    require(re.search(r"Ran [1-9][0-9]* tests in [0-9.]+s\n\nOK\s*$", emmc) is not None and
-            "FAILED" not in emmc and "ERROR" not in emmc, "eMMC shell tests missing or failed")
+    check_unittest_receipt(regular(package / "emmc-shell-tests.txt"), 28)
     tested_sources = {"scripts/test-shell.py", "scripts/test-session-shell.py", "scripts/session_steps.py", "test-kmsg.py", "test-kmsg-io.py", "tests/kmsg-io-harness.c", "test-kmsg-seal.py", "tests/kmsg-seal-harness.c", "../emmc/observe.sh",
                       "../emmc/classify.py", "../emmc/test_packet.py"}
     tested_sources.update("initramfs/" + name for name in shell_sources)

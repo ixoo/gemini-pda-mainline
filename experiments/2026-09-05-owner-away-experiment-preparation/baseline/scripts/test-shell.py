@@ -21,7 +21,7 @@ SOURCE_DIGESTS = {
     'console-status': 'b61d8ab47dbe36859980c3685985b9042eb71f5c1279b5c92cac5d9b9e4a7523',
 }
 APPLET_SET = {'sh', 'awk', 'sleep', 'ip', 'sha256sum', 'chvt', 'stty',
-              'loadkmap', 'clear', 'mount', 'mkdir', 'cat', 'uname', 'init', 'dd', 'stat', 'base64', 'wc'}
+              'loadkmap', 'clear', 'mount', 'mkdir', 'cat', 'uname', 'init', 'dd', 'stat', 'base64', 'wc', 'head'}
 MAP_SHA = '02f8048d76aa0cedf73617b13ea03a2a4e74de88222cb1922d9d19630906675c'
 
 # The proxy owns every effectful call. It never executes mount, ip, chvt, stty,

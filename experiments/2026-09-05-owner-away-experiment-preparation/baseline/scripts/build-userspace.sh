@@ -38,7 +38,14 @@ cleanup() {
         if [[ -f $stage/$log && ! -L $stage/$log ]]; then
           head -c 2097152 "$stage/$log" >"$diagnostic/${log//\//-}"
           printf 'failure_log=%s\n' "$log" >&2
-          tail -n 50 "$stage/$log" >&2
+          if [[ $log == package/* ]]; then
+            tail -n 50 "$stage/$log" >&2
+          else
+            # Full bounded compiler diagnostics are retained remotely; avoid
+            # flooding the dispatch receipt with one enormous linker command.
+            tail -c 1024 "$stage/$log" >&2
+            printf '\n' >&2
+          fi
         fi
       done
       printf 'build_exit=%s\n' "$result" >"$diagnostic/result.txt"
@@ -52,12 +59,26 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' HUP TERM
 df -Pk "$managed" | awk 'NR==2 {if ($4 < 524288) exit 1}'
+mkdir "$stage/package" "$stage/package/licenses"
+python3 "$here/test-kmsg.py" >"$stage/package/kmsg-parser-tests.txt" 2>&1
+KMSG_TEST_WORK_ROOT="$stage" python3 "$here/test-kmsg-io.py" >"$stage/package/kmsg-io-tests.txt" 2>&1
+KMSG_TEST_WORK_ROOT="$stage" python3 "$here/test-kmsg-seal.py" >"$stage/package/kmsg-seal-tests.txt" 2>&1
+curl --fail --location --max-time 120 --output "$stage/busybox.deb" \
+  https://ports.ubuntu.com/ubuntu-ports/pool/main/b/busybox/busybox-static_1.36.1-6ubuntu3.1_arm64.deb
+printf '%s  %s\n' d96535e0402c011e0ee43449799df2f4504d44b842e4f2b3a6cbc845508eaafc "$stage/busybox.deb" | sha256sum --check --strict
+dpkg-deb -x "$stage/busybox.deb" "$stage/busybox-root"
+busybox="$stage/busybox-root/usr/bin/busybox"
+printf '%s  %s\n' 52151e7f322f926b64049cdaa1410dc3ea6485525e0624b05813791c219ae933 "$busybox" | sha256sum --check --strict
+python3 "$here/scripts/test-shell.py" --busybox "$busybox" --work-root "$stage" >"$stage/package/shell-tests.json" 2>&1
+python3 "$here/scripts/test-session-shell.py" --busybox "$busybox" --qemu qemu-aarch64-static --work-root "$stage" >"$stage/package/session-shell-tests.json" 2>&1
+EMMC_TEST_BUSYBOX="$busybox" EMMC_TEST_WORK_ROOT="$stage" python3 "$here/../emmc/test_packet.py" >"$stage/package/emmc-shell-tests.txt" 2>&1
+TMPDIR="$stage" "$repository/scripts/test-validate-kernel-artifact-provenance"
+install -m 0600 "$stage/busybox-root/usr/share/doc/busybox-static/copyright" "$stage/package/licenses/BusyBox-copyright"
 curl --fail --location --max-time 120 --output "$stage/source.tar.bz2" \
   https://matt.ucc.asn.au/dropbear/releases/dropbear-2026.94.tar.bz2
 printf '%s  %s\n' e098034a843699200c8c977a991fff73159735bf795d5f72ef672c41a6b1ae81 "$stage/source.tar.bz2" | sha256sum --check --strict
 tar -xjf "$stage/source.tar.bz2" -C "$stage"
 source_dir="$stage/dropbear-2026.94"
-mkdir "$stage/package" "$stage/package/licenses"
 for replica in one two; do
   mkdir "$stage/$replica"
   install -m 0600 "$here/localoptions.h" "$stage/$replica/localoptions.h"
@@ -99,9 +120,6 @@ for helper in keyboard-observe kmsg-capture kmsg-seal; do
   cmp "$stage/one/$helper" "$stage/two/$helper"
   install -m 0700 "$stage/one/$helper" "$stage/package/$helper"
 done
-python3 "$here/test-kmsg.py" >"$stage/package/kmsg-parser-tests.txt" 2>&1
-KMSG_TEST_WORK_ROOT="$stage" python3 "$here/test-kmsg-io.py" >"$stage/package/kmsg-io-tests.txt" 2>&1
-KMSG_TEST_WORK_ROOT="$stage" python3 "$here/test-kmsg-seal.py" >"$stage/package/kmsg-seal-tests.txt" 2>&1
 install -m 0600 "$source_dir/LICENSE" "$stage/package/licenses/Dropbear-LICENSE"
 install -m 0600 "$source_dir/libtomcrypt/LICENSE" "$stage/package/licenses/LibTomCrypt-LICENSE"
 install -m 0600 "$source_dir/libtommath/LICENSE" "$stage/package/licenses/LibTomMath-LICENSE"
@@ -117,17 +135,6 @@ pathlib.Path(sys.argv[2]).write_text(json.dumps({name: hashlib.sha256((here / na
                                               for name in names}, indent=2, sort_keys=True) + '\n')
 PY
 python3 "$here/scripts/test-auth.py" --package "$stage/package" --work-root "$stage" >"$stage/package/auth-tests.json" 2>&1
-curl --fail --location --max-time 120 --output "$stage/busybox.deb" \
-  https://ports.ubuntu.com/ubuntu-ports/pool/main/b/busybox/busybox-static_1.36.1-6ubuntu3.1_arm64.deb
-printf '%s  %s\n' d96535e0402c011e0ee43449799df2f4504d44b842e4f2b3a6cbc845508eaafc "$stage/busybox.deb" | sha256sum --check --strict
-dpkg-deb -x "$stage/busybox.deb" "$stage/busybox-root"
-busybox="$stage/busybox-root/usr/bin/busybox"
-printf '%s  %s\n' 52151e7f322f926b64049cdaa1410dc3ea6485525e0624b05813791c219ae933 "$busybox" | sha256sum --check --strict
-python3 "$here/scripts/test-shell.py" --busybox "$busybox" --work-root "$stage" >"$stage/package/shell-tests.json" 2>&1
-python3 "$here/scripts/test-session-shell.py" --busybox "$busybox" --qemu qemu-aarch64-static --work-root "$stage" >"$stage/package/session-shell-tests.json" 2>&1
-EMMC_TEST_BUSYBOX="$busybox" EMMC_TEST_WORK_ROOT="$stage" python3 "$here/../emmc/test_packet.py" >"$stage/package/emmc-shell-tests.txt" 2>&1
-TMPDIR="$stage" "$repository/scripts/test-validate-kernel-artifact-provenance"
-install -m 0600 "$stage/busybox-root/usr/share/doc/busybox-static/copyright" "$stage/package/licenses/BusyBox-copyright"
 {
   printf 'repository_commit=%s\nsource_sha256=%s\n' "$revision" e098034a843699200c8c977a991fff73159735bf795d5f72ef672c41a6b1ae81
   printf 'compiler=%s\n' "$(aarch64-linux-gnu-gcc --version | head -1)"
