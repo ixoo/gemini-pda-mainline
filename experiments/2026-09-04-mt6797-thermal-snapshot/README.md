@@ -265,3 +265,9 @@ The [generated attribution program and combined classifier](WORKLOAD_ATTRIBUTION
 now pass host fixtures, including per-record rejection and inherited runtime
 checks. The observer replaces the existing aggregate read at each of the three
 boundaries. Exact BusyBox and one-shot transport validation remain open.
+
+
+The [exact candidate shell gate](WORKLOAD_ATTRIBUTION.md#exact-candidate-shell-validation)
+now passes on Buildbox under user-mode emulation, including the actual ash and
+parser applets. The recorded result remains hardware-free. The remaining
+execution prerequisites are the one-shot host runner and fresh-cycle receipt.

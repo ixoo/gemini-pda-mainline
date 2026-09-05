@@ -8349,9 +8349,10 @@ do not rerun it. The [prospective attribution design](../experiments/2026-09-04-
 now fixes three explicit stage boundaries and a tested offline per-slot thermal
 evaluator. The source-pinned builder and combined runtime classifier now pass host
 fixtures, including integrated cleanup, stage placement and per-record refusal.
-**Selected next:** validate the generated program and cleanup against the exact
-candidate BusyBox shell, then complete the one-shot host transport and fresh-cycle
-receipt gate with durable attempt seals and timeout/no-retry fixtures. Preserve
+The exact candidate BusyBox shell/parser gate now also passes on Buildbox
+under user-mode emulation; its injected adapters make no new hardware claim.
+**Selected next:** complete the one-shot host transport and fresh-cycle receipt
+gate with durable attempt seals and timeout/no-retry fixtures. Preserve
 payload/round/spin ceilings and require child quiescence before file-cleanup
 success. Retain the existing four-round
 ceiling and thermal refusal limits; do not reinterpret or relax the rejected

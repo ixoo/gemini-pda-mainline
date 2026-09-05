@@ -1,0 +1,52 @@
+Exact candidate BusyBox shell and parser validation
+Date: 2026-09-04
+revision=b38a1629c338b192c5338c7f77d77895b949928d
+classification=candidate-shell-fixtures-pass
+initramfs_sha256=e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f
+busybox_sha256=52151e7f322f926b64049cdaa1410dc3ea6485525e0624b05813791c219ae933
+busybox_size=1914704
+busybox_version=1.36.1
+emulator=qemu-aarch64-static
+host_shellcheck_version=0.11.0
+buildbox_shellcheck_version=0.9.0
+kernel_build=none
+device_action=none
+managed_test_cleanup=pass
+
+actual_worker_body_cases=12 signal_cleanup_cases=3 spawn_registration_signal_cases=1 simultaneous_children=4 cancellation_publication_failure=1 negative_cleanup_mutations=2 source_identity_mutations=1 original_worker_payload_bytes=preserved device_action=none
+materialized_shell=pass combined_positive=1 thermal_rejection_retained=1 combined_mutations_rejected=14 classifier_cli_exit_cases=3 observer_fragment_cases=9 consumed_boot_refusals=3 device_action=none
+
+The harness extracts only the exact hash-bound AArch64 BusyBox executable
+from the retained candidate initramfs. Tests invoke its ash shell and parser
+applets explicitly through QEMU. Worker hardware/affinity and finite-operation
+adapters remain injected host fixtures; this does not test Gemini scheduling,
+thermal registers, USB transport or kernel behavior. Parent controllers and
+classifier orchestration run in host Python. Generated shell syntax is checked
+by candidate ash and by Buildbox ShellCheck.
+
+Buildbox fetched the published revision through its managed Git mirror. Only
+the validated 2 MiB initramfs artifact was streamed for extraction; no Linux
+source tree was copied, synchronized or rebuilt. Temporary binary, archive and
+isolated checkout were removed after each run, including refusals. Managed
+workspace free space was 270 GiB before the first run.
+
+The first run on 1dbee50e stopped at old-linter notices before runtime fixtures.
+The second on 88828dec passed exact-shell cleanup and stopped at three remaining
+paired-condition lint notices in the combined program. The final b38a1629 run
+passes both suites. Changes between these revisions are explanatory targeted
+lint annotations and refreshed source pins, with no runtime behavior changes.
+Indirect signal callbacks and intentional paired guards remain exercised by
+fixtures; no rejection or cleanup branch was removed to silence lint.
+
+The one-shot transport runner, fresh-cycle receipt, durable attempt state and
+transport-timeout/no-retry validation remain prerequisites for device execution.
+No further action was performed on the consumed mainline session.
+
+Private complete-log digests:
+candidate-shell-1.txt_sha256=94d6c1cb3632cd46589bd7339b2ddbb80f3772e017cc9b93823da88fa6eccec4
+candidate-shell-2.txt_sha256=1fd37e80149770518ff1072007b044abb9186a7a6ee9ead69d8f5a5a0707a38e
+candidate-shell-3.txt_sha256=4c308fd1283d1cde9eba46db9416a7af44631ff5a48ac1ec95bf477b498736ef
+
+Sanitized evidence excludes full host paths, storage-volume identifiers and
+private raw tool output. No firmware, binary, credential or calibration data
+is included; exact artifact identities are recorded as authorized digests.

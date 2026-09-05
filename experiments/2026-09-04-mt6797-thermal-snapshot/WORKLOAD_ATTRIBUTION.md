@@ -166,3 +166,24 @@ and classifier exit behavior. See the [validation record](results/attribution-pr
 These are host fixtures. The transport runner, fresh-cycle receipt, durable
 no-retry state and candidate BusyBox shell validation remain required before
 execution. No new boot or workload is admitted by this implementation stage.
+
+
+## Exact candidate shell validation
+
+Published revision `b38a1629` passes the offline fixtures under the exact
+candidate's BusyBox 1.36.1 AArch64 executable, extracted from the hash-bound
+retained initramfs and invoked through Buildbox's user-mode QEMU. The
+[summary](results/candidate-shell-pass.json) and
+[validation record](results/candidate-shell-validation.txt) distinguish real
+candidate shell/parser execution from injected hardware/operation adapters.
+Both cleanup/signal and complete attribution fixture suites pass. Temporary
+artifact copies, executable and isolated test checkout were removed.
+
+The [harness](scripts/run-candidate-shell-tests.py) requires a clean checkout
+at an explicitly supplied revision, exact archive/binary identities and an
+existing managed work root. It has no emulator fallback or device transport.
+Earlier runs stopped at older ShellCheck notices; the final source adds
+explanatory annotations for intentional paired guards and indirect callbacks.
+No runtime condition or kernel source changed. This closes the candidate-shell
+prerequisite only; the host transport/receipt gate is still required before
+any physical boot request or workload.
