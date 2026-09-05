@@ -1,0 +1,96 @@
+{
+  "scope": "Public source identities only; retained configuration and analysis stay private.",
+  "sources": [
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "arch/arm64/include/asm/dma-mapping.h",
+      "bytes": 4006,
+      "sha256": "aa8d2f554948eafc99a5dbffad9e70dccb136d3645caf35f2ff7281c0151a990"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "arch/arm64/mm/dma-mapping.c",
+      "bytes": 12438,
+      "sha256": "5c822da405eae0341aceadf4c916f075490f60aef68d2458d6c7890eed9bacc5"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "lib/swiotlb.c",
+      "bytes": 27851,
+      "sha256": "29649c26e49fe5021bb82ec8d9db2dc162a02c4522c0f4215026371ad7ac1011"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "arch/arm64/configs/lineage_gemini_defconfig",
+      "bytes": 102819,
+      "sha256": "5f0018658a6e0858cbb730be427a379797afd9e2639a51e7f40d963b4e61115a"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "arch/arm64/boot/dts/mt6797.dtsi",
+      "bytes": 104424,
+      "sha256": "eaac86c8752ebd8ddf18b831eb3bc52a08f87475a213bb521650bf95dabb3e5e"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c",
+      "bytes": 93439,
+      "sha256": "39921d80191b674940246425123b52fa140262a7e17022f90f02dd88389932b2"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/dramc/mt6797/mt_dramc.c",
+      "bytes": 45251,
+      "sha256": "f11adbabdfb30096904a9566ef3428672852a814448ba6b01c6d61aae2df45c4"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/cqdma/cqdma.c",
+      "bytes": 19522,
+      "sha256": "8b313886dc00af5e0cee5677ceac0add39f6cd7123b9efb073d09d2ef7fde64f"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/i2c/busses/i2c-mt65xx.c",
+      "bytes": 22772,
+      "sha256": "04d228c18b902a5bd775e9d664c47036e3bf966b5f754618ea0481d3fe64c935"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/i2c/mt6797/i2c.c",
+      "bytes": 50243,
+      "sha256": "de265a2c35814d80a53e785d4f47537f4ec42b9f7004fffa58879cfc76d421b5"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/i2c/mt6797/i2c_common.c",
+      "bytes": 12404,
+      "sha256": "54b3e51ba5d5aea3c132502bb76891ab7cdbe6fb63810241cc860cc30a23bc88"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/i2c/mt6797/mt_i2c.h",
+      "bytes": 8628,
+      "sha256": "8b94338d631dcceb47d337b5b12d21b6e11ddb3d918f89ea53c8b78bdf2f3ba7"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c",
+      "bytes": 15404,
+      "sha256": "83c23a5582be2dcaa385359b7cd0f82af0ec9d6a4e102ea6faea57f59d75b480"
+    }
+  ]
+}

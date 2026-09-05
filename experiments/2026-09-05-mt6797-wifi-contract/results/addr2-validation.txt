@@ -1,0 +1,22 @@
+ADDR2 static attribution validation — 2026-09-05
+Base: b3e056c7f661ebd4533061d39c62d6bbb2b7efda
+Scope: exact retained HIF/configuration and bounded public DMA comparisons.
+Public inputs: 13 source identities at existing Planet pin; read in memory.
+Reused retained Image/ELF and earlier HIF attribution in the RE VM.
+Extracted embedded IKCONFIG to restricted guest analysis workspace only.
+Inspected dram_4gb_init, enable_4G, __swiotlb_map_page, swiotlb_map_page
+direct/bounce-success paths, and arm64_dma_init. No claim that all possible
+DMA-ops overrides or runtime device state have been exhaustively inspected.
+Private input hashes, config and disassembly remain guest-only; shell closed.
+Result: runtime mode selector identified; HIF effective translation unresolved.
+No DMA mask, implementation, source-tree copy, capture or hardware action.
+Publication contains original analysis and public source metadata only;
+no vendor source/disassembly, private identities, artifacts or host paths.
+New-file relative links, JSON and bounded sensitive-data checks passed.
+python3 -B scripts/check-repository: pass; profiles=189; unchanged metadata
+debt=37. Linux-only artifact-provenance fixture skipped on this host.
+No shell/code changes; bash -n, ShellCheck and kernel/checkpatch/DT/device
+tests not applicable to this documentation-only follow-up. No kernel build.
+git diff --check passed; prior handoffs and shared planning files unchanged.
+ADDR2_TRANSLATION.md sha256=df024c03246a4386e301862861cc6a9511dd49131fa89d8877a73b08dfe8fc5e
+addr2-sources.json sha256=460d5b405f348e6bc92ca673e01e08b45a1a961e922080f999222474b46453c9
