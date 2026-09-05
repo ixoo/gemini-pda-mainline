@@ -156,14 +156,22 @@ runs the admitted test promptly; host-test completion is not a runtime result.
 After each session, preserve and classify evidence before choosing the next
 change. Do not repeat identical artifacts merely to maintain a testing cadence.
 
-For the selected A53 baseline, finish corrected installation, obtain verified
-readback and clean shutdown, then issue the single physical boot request here
-in Project Planning. Use its first authenticated USB/logging/recovery result to
-admit keyboard and read-only storage tests independently. Wi-Fi progresses its
-host implementation and resource contract in parallel, with its next physical
-observation chosen to resolve an explicit blocker. If the owner is unavailable,
-leave the exact session packet ready and continue the next independent item;
-do not make all workers wait for boot2.
+Use the existing [authenticated baseline outcome](../experiments/2026-09-05-owner-away-experiment-preparation/baseline/ATTENDED_OUTCOME.md)
+and [supplemental recovery review](../experiments/2026-09-05-owner-away-experiment-preparation/baseline/RECOVERY_WITNESS_REVIEW.md)
+as the separately scoped prerequisites for keyboard and read-only storage work.
+Do not repeat that baseline merely to activate a dependent item. Before asking
+for a new physical cycle, establish the actual OS and appropriate transport;
+follow the [transport reference](../experiments/2026-09-05-owner-away-experiment-preparation/emmc/TRANSPORT_REFERENCE.md)
+when a USB connection is absent. A relayed boot report does not replace live
+identity or establish that a different OS is unreachable.
+
+Complete the next admitted storage observation when the owner is available;
+keyboard capture preparation proceeds independently. Keep physical-start requests
+in Project Planning and require the selected candidate's verified deployment
+and clean-shutdown handoff. Wi-Fi progresses kernel integration and its shared
+resource/firmware contract in parallel, with physical observations chosen to
+resolve explicit blockers. If the owner is unavailable, leave the exact session
+packet ready and continue independent work; do not make all workers wait for boot2.
 
 ### Owner-away progress
 
@@ -183,26 +191,31 @@ build speculative variants to fill it. More ideas may remain as cheap protocol
 or source research. Reuse frozen baseline inputs and prepared Buildbox sources;
 retain only artifacts needed by open items and verified recovery.
 
-The first preparation order is:
+The remaining preparation order is:
 
-1. **A53 authenticated USB baseline:** recover and audit the exact runtime-proven
-   PWRAP serviceability inputs, then freeze a candidate, authenticated userspace,
-   separate logs and one bounded first-boot protocol. Do not assume today's
-   similarly named profile reproduces the historical package.
-2. **Wi-Fi:** implement and test the selected gen3 command/response contract,
-   resolve shared EMI/AP-DMA ownership and identify the retained calibration
-   record's producer, restoration path and board/firmware applicability, then
-   prepare the first mainline session against the A53 recovery/logging contract.
+1. **Preserve the accepted baseline foundation:** reuse its exact candidate,
+   authenticated userspace, logging and reviewed recovery closure. Repair only
+   an identified invalidated prerequisite; a similarly named newer profile is
+   not a replacement for recorded inputs. Do not spend a boot on another marker.
+2. **Wi-Fi:** compile the connected transfer components through the actual Linux
+   interfaces, then complete a validated whole-image plan and shared EMI/AP-DMA
+   ownership. Identify the retained calibration record's producer, restoration
+   path and board/firmware applicability before admitting the first mainline
+   bring-up. Keep ordinary section submission distinct from firmware execution;
+   missing EMI ownership must not become a success flag or skipped section.
    Use the [Wi-Fi contract](hardware/mt6797-wifi.md) and existing private captures.
-   Do not manufacture a boot candidate
-   while chipset, firmware ownership or resource assumptions remain unresolved.
-3. **Keyboard coverage:** prepare a bounded event classifier and finite owner
-   key sequence against the baseline's declared input/console interface. Its
-   runtime gate needs the first baseline USB/console pass, not all ten cold boots.
-4. **Read-only eMMC regression:** prepare exact device identification, finite
-   read/time/error budgets and refusal tests against the same interface. Its
-   runtime gate needs baseline serviceability and reviewed recovery, independently
-   of keyboard completion. Persistent-root writes remain separate.
+   Host fixtures and compile-only adapters do not establish usable Wi-Fi.
+3. **Keyboard coverage:** finish coherent capture admission, finite owner key
+   sequence, classification and complete private evidence export. Reuse the
+   measured monitor and retain the full-duration timing obligation; inert binary
+   delivery alone is not a device test. Its runtime gate needs the first baseline
+   USB/console pass, not all ten cold boots.
+4. **Read-only eMMC regression:** finish the fresh-session handoff against the
+   actual OS/transport and execute the prepared bounded read when physical
+   selection is available. Preserve prior inconclusive connections; a failed
+   local USB prerequisite must not consume a device observation. Its runtime gate
+   needs baseline serviceability and reviewed recovery, independently of keyboard
+   completion. Persistent-root writes remain separate.
 
 Protocol work across these items can proceed concurrently within the three-worker
 limit. Wi-Fi has its own worker; keyboard and storage remain with serviceability. Items with unverified

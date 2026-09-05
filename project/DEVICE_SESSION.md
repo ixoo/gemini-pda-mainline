@@ -14,6 +14,8 @@ executed by the queue itself.
 - Frozen repository revision and exact source, patch/config/profile identities:
 - Immutable package, candidate, DT, initramfs and runner/validator records:
 - Current custody/handoff reference; unknown device state must be checked live:
+- Authenticated current OS/boot identity and selected transport; local prerequisites for that transport:
+- Source and time of the owner's physical-start report; distinguish it from authenticated identity:
 
 ## Question and dependencies
 
