@@ -1,0 +1,15 @@
+INIT debit and response-span validation — 2026-09-05
+Base: 54c9caac
+Six pinned public selected gen3 inputs; runtime ExtraTxDone unobserved.
+Original GPL-2.0-only helpers and synthetic tests, no vendor code copied.
+Strict C11 -Wall -Wextra -Werror -pedantic plus address/undefined sanitizers.
+init_debit_boundaries_exhaustion_and_all_u16_response_lengths=pass
+Managed temporary binary removed by immediate EXIT trap.
+No replenishment/refund, counter read, MMIO, device/backend or private access.
+Kernel integration uncompiled; source selection distinguished from runtime.
+Repository checks pass: 189 profiles, unchanged metadata debt=37; Linux-only
+artifact fixture skipped. New-file links, JSON, rights/privacy and diff checks pass.
+INIT_CREDITS_RX.md sha256=8488195b09c6524a1def84e14548cb6552710fbf718e14df5206538e5f8b11e5
+src/hif_init_bounds.h sha256=8164fd971ab685c25bf483976db0ca06414d1951b58cf92d10bc81568006579c
+src/hif_init_bounds_test.c sha256=347dd8affcabad04a97a36ec11e70c4873a2459b95978d921c9020d062ed1ff1
+results/init-bounds-sources.json sha256=4abe2c9df4d18f7f0120cded641016b34aefe97036a9334c79bd13131cadc9ec
