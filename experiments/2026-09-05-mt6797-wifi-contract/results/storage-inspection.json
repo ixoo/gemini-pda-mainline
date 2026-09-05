@@ -1,0 +1,36 @@
+{
+  "date_utc": "2026-09-05",
+  "capture": "20260715T020041Z",
+  "owning_record": "../PROVENANCE.md",
+  "inspection": "read_only_retained_file_in_memory",
+  "selected_private_inputs_verified_against_own_manifests": true,
+  "driver_context_source": "Planet_c5b0be85017ad0c599725e8273842efdbecdd88a_gen3_os_version_h",
+  "driver_own_version": 512,
+  "driver_peer_version": 0,
+  "helper_sha256": {
+    "wifi_nvram.py": "ca5a814d58beb9465e3e221cbe512837ea3b546eb9502eb6551c3d3d25e518cd",
+    "wifi_nvram_storage.py": "f24195bde40a3dd9300210c08f488e8e9ad49d9495f7901a3d73eef01c3ccba0"
+  },
+  "result": {
+    "status": "record_inspected",
+    "record_bytes": 512,
+    "storage_bytes": 514,
+    "storage_integrity": "matched",
+    "source_record_versions_compatible": true,
+    "source_firmware_versions": "not_supplied",
+    "record_provenance": "not_established_by_structure",
+    "calibration_applicability": "unproven",
+    "regulatory_approval": "unproven",
+    "hardware_access": false,
+    "load_authorized": false,
+    "transmit_authorized": false
+  },
+  "installed_configuration_recovery": "inconclusive_filesystem_metadata_checksum_error",
+  "checksum_verification_disabled": false,
+  "filesystem_repair_or_journal_replay": false,
+  "vendor_code_executed": false,
+  "private_records_values_identifiers_or_hashes_emitted": false,
+  "record_or_image_exported": false,
+  "new_acquisition": false,
+  "device_or_radio_operation": false
+}
