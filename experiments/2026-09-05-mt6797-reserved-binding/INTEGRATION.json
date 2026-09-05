@@ -1,0 +1,24 @@
+{
+  "parent_commit": "3f74c0a1a561c14ad25942271413a1617607c470",
+  "profile": "mt6797-hif-parser-compile",
+  "existing_consumers": [
+    "mt6797-hif-compile",
+    "mt6797-provider-compile",
+    "mt6797-hif-parser-compile"
+  ],
+  "series": "patches/series-mt6797-provider-compile",
+  "series_sha256": "700457b2fadb399313ed30710cccbca13f21529bef42f2ffa84cda31ab33cd0c",
+  "canonical_sha256": "c834342989ab815d09d2ca36546f75a562389284e5a7b3c139c01cdf035f2ad4",
+  "patch": "proposals/0006-wifi-mediatek-describe-reserved-memory.patch",
+  "patch_sha256": "2798d49d202edc441c775a78c06ec0d261169f426fdadb04cf6c5e052fba545c",
+  "configuration_delta": "none; existing resolved OF, OF_ADDRESS and OF_RESERVED_MEM are enabled",
+  "source_refresh": "Reuse managed provider source path under Buildbox lock; changed patch set requires refresh",
+  "build": "pending",
+  "device": "not admitted",
+  "acceptance": [
+    "Exact source hashes and .cmd compilation for image-binding.o",
+    "Nonzero AArch64 definitions for bind_reserved/reserved_info/unbind_reserved",
+    "References to real OF reserved-memory/device/node APIs",
+    "No host hooks, mapping, DMA setup, initcall, registration, SMC or active-success path"
+  ]
+}
