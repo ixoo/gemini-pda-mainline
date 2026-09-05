@@ -16,6 +16,8 @@ import sys
 from pathlib import Path
 from typing import Callable
 
+from kernel_source_contract import check_provenance, load_manifest
+
 
 VALIDATOR = Path(__file__).resolve().with_name("validate-kernel-artifact")
 CHECKSUM_LINE = re.compile(r"([0-9a-f]{64})  (\./\S+)\n")
@@ -131,8 +133,13 @@ def publish_package(
         fcntl.flock(lock, fcntl.LOCK_EX)
         validate(staging)
         sums = verified_inventory(staging)
-        manifest = json.loads((staging / "provenance/kernel-manifest.json").read_text())
-        version = manifest["kernel"]["version"]
+        manifest = load_manifest(staging / "provenance/kernel-manifest.json")
+        build = load_manifest(staging / "provenance/build.json")
+        selected = check_provenance(manifest, build)
+        # Historical global-source packages recorded only the source checksum.
+        # Preserve their naming while resolving modern profile overrides from
+        # the same provenance contract used by the builder and validator.
+        version = selected["kernel"].get("version", manifest["kernel"]["version"])
         if not isinstance(version, str) or not re.fullmatch(
             r"[0-9][A-Za-z0-9.+_-]{0,39}", version
         ):

@@ -118,6 +118,117 @@ class PublicationTests(unittest.TestCase):
     def publish(self, package: Path) -> Path:
         return publisher.publish_package(self.root, package, self.validate)
 
+    def source_override_package(self) -> Path:
+        package = self.package()
+        manifest_path = package / "provenance/kernel-manifest.json"
+        build_path = package / "provenance/build.json"
+        manifest = json.loads(manifest_path.read_text())
+        build = json.loads(build_path.read_text())
+        manifest["kernel"].update(
+            released="2026-07-01", source_url="https://example.invalid/linux-7.1.3.tar.xz"
+        )
+        source = {
+            "version": "7.3-rc1", "released": "2026-09-05",
+            "source_url": "https://example.invalid/upstream.tar.gz", "sha256": "8" * 64,
+            "archive_format": "tar.gz", "archive_root": "linux-upstream",
+        }
+        manifest["config"]["profiles"]["fixture"]["kernel"] = source
+        # Publication follows the packaged build, not the manifest default.
+        manifest["config"]["default_profile"] = "full"
+        manifest["config"]["profiles"]["full"] = {
+            "base": "defconfig", "fragments": ["configs/test.fragment"]
+        }
+        build.update(kernel_source=source, source_sha256=source["sha256"],
+                     kernel_release="7.3.0-rc1-test")
+        manifest_path.write_text(json.dumps(manifest, sort_keys=True) + "\n")
+        build_path.write_text(json.dumps(build, sort_keys=True) + "\n")
+        refresh_sums(package)
+        return package
+
+    def test_publication_uses_selected_source_instead_of_global_default(self) -> None:
+        package = self.source_override_package()
+        identity = digest((package / "SHA256SUMS").read_bytes())
+        result = self.publish(package)
+        self.assertEqual(result.name, f"linux-7.3-rc1-gemini-{identity}")
+
+    def test_global_source_names_preserve_legacy_and_complete_provenance(self) -> None:
+        for complete in (False, True):
+            with self.subTest(complete=complete):
+                package = self.package()
+                if complete:
+                    manifest_path = package / "provenance/kernel-manifest.json"
+                    build_path = package / "provenance/build.json"
+                    manifest = json.loads(manifest_path.read_text())
+                    build = json.loads(build_path.read_text())
+                    manifest["kernel"].update(
+                        released="2026-07-01",
+                        source_url="https://example.invalid/linux-7.1.3.tar.xz"
+                    )
+                    build["kernel_source"] = {
+                        **manifest["kernel"], "archive_format": "tar.xz", "archive_root": "linux-7.1.3"
+                    }
+                    manifest_path.write_text(json.dumps(manifest, sort_keys=True) + "\n")
+                    build_path.write_text(json.dumps(build, sort_keys=True) + "\n")
+                    refresh_sums(package)
+                identity = digest((package / "SHA256SUMS").read_bytes())
+                self.assertEqual(self.publish(package).name, f"linux-7.1.3-gemini-{identity}")
+
+    def test_publication_refuses_invalid_override_provenance(self) -> None:
+        for mutation in ("missing-tuple", "global-digest", "wrong-version", "null-override"):
+            with self.subTest(mutation=mutation):
+                package = self.source_override_package()
+                manifest_path = package / "provenance/kernel-manifest.json"
+                build_path = package / "provenance/build.json"
+                manifest = json.loads(manifest_path.read_text())
+                build = json.loads(build_path.read_text())
+                if mutation == "missing-tuple":
+                    del build["kernel_source"]
+                elif mutation == "global-digest":
+                    build["source_sha256"] = manifest["kernel"]["sha256"]
+                elif mutation == "wrong-version":
+                    build["kernel_source"]["version"] = manifest["kernel"]["version"]
+                else:
+                    manifest["config"]["profiles"]["fixture"]["kernel"] = None
+                manifest_path.write_text(json.dumps(manifest, sort_keys=True) + "\n")
+                build_path.write_text(json.dumps(build, sort_keys=True) + "\n")
+                refresh_sums(package)
+                with self.assertRaises((publisher.PublicationError, ValueError)):
+                    self.publish(package)
+                self.assertTrue(package.is_dir())
+                self.assertEqual(list(self.root.glob("linux-*")), [])
+
+    def test_unprofiled_legacy_package_keeps_global_source_name(self) -> None:
+        package = self.package()
+        manifest_path = package / "provenance/kernel-manifest.json"
+        build_path = package / "provenance/build.json"
+        manifest = json.loads(manifest_path.read_text())
+        build = json.loads(build_path.read_text())
+        manifest["config"] = manifest["config"]["profiles"]["fixture"]
+        del build["build_profile"]
+        del build["config_inputs_sha256"]
+        manifest_path.write_text(json.dumps(manifest, sort_keys=True) + "\n")
+        build_path.write_text(json.dumps(build, sort_keys=True) + "\n")
+        refresh_sums(package)
+        identity = digest((package / "SHA256SUMS").read_bytes())
+        self.assertEqual(self.publish(package).name, f"linux-7.1.3-gemini-{identity}")
+
+    def test_preexisting_global_label_for_override_remains_fetchable_and_unchanged(self) -> None:
+        package = self.source_override_package()
+        identity = digest((package / "SHA256SUMS").read_bytes())
+        historical = self.root / f"linux-7.1.3-gemini-{identity}"
+        package.rename(historical)
+        before = (historical / "provenance/build.json").stat()
+        result = subprocess.run(
+            [sys.executable, str(HELPER), "verify-inventory", str(historical),
+             "--expected-sha256", identity, "--repository-commit", "4" * 40,
+             "--profile", "fixture", "--modules", "0"],
+            capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        after = (historical / "provenance/build.json").stat()
+        self.assertEqual((before.st_ino, before.st_mtime_ns), (after.st_ino, after.st_mtime_ns))
+        self.assertEqual(list(self.root.glob("linux-*")), [historical])
+
     def test_publish_only_after_validation(self) -> None:
         package = self.package()
         called = []

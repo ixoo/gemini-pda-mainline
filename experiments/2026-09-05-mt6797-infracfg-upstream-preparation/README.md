@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-05-mt6797-infracfg-upstream-preparation` |
-| Status | running; coherent review topic generated and style-checked, unbuilt |
+| Status | running; exact upstream profile built and package validated; QEMU/schema pending |
 | Subsystem | MediaTek clocks/resets and Devicetree |
 | Device variant | Gemini PDA MT6797; no hardware operation in this audit |
 | Investigator | Gemini mainline project, integration owner |
@@ -22,14 +22,17 @@ for the two proved reset lines. It does not register an MT6797 reset provider.
 The local bounds protection remains a required part of the proposed series;
 using an existing API does not justify dropping a tested refusal guarantee.
 The coherent review patches are now generated and replayed as recorded below.
-Schema, compile, KUnit execution and new hardware claims remain unestablished.
+The exact upstream profile now compiles and its package passes validation as
+recorded in [build admission and execution](BUILD_ADMISSION.md). Schema, KUnit
+execution and new hardware claims remain unestablished.
 
 ## Provenance and reproducibility
 
 The repository parent is `77d0e419`. The observed upstream commit is
 `4d7d9486c04d917265f64c55bd23b2cc4fe7749c`; the related Gemini tree is
-`e744a43f9d68cd3251dc0c9743ca41aac74853a8`. These are review inputs, not changes
-to the kernel manifest or a declaration of the final maintainer merge base.
+`e744a43f9d68cd3251dc0c9743ca41aac74853a8`. These began as review inputs; the
+isolated test profile now pins the upstream commit. That admission does not
+select the final maintainer merge base.
 
 [Sources](sources.json) pins complete hashes and lengths for six upstream
 files, two related patches and nine historical local patches.
@@ -236,7 +239,7 @@ The review archive is retained privately under
 Buildbox retains the matching small review package, and both disposable sparse
 source and project checkouts have been removed.
 
-This establishes reproducible derivation and patch applicability to the pinned
+At that stage this established reproducible derivation and patch applicability to the pinned
 upstream tree. It does not establish C compilation, KUnit execution, binding/DT
 schema validity, controller registration behavior or runtime support for this
 revision. Those gates, actual author certification and current maintainer
@@ -252,8 +255,8 @@ validate that whole revision. A [tested integration handoff](SOURCE_INTEGRATION.
 now supplies a complete source-selection/provenance contract and preservation
 fingerprints for all 189 existing profiles. Production integration and its
 corrective review are recorded in [INTEGRATION_REVIEW.md](INTEGRATION_REVIEW.md).
-The global manifest and canonical series remain unchanged; admitting and building
-the new upstream profile are subsequent steps.
+The global source remains unchanged. The isolated profile and six appended
+canonical patches were subsequently admitted and built as recorded below.
 
 The [concrete profile proposal](PROFILE_PROPOSAL.md) supplies exact source and
 patch identities, KUnit/QEMU expectations and cache migration requirements.
@@ -304,3 +307,7 @@ and no archive or kernel source was copied to the host. The complete upstream
 Git tree was not independently reconstructed by this archive scan.
 The acquisition scanner is not an extraction validator; production preparation
 additionally checks complete link traversal as recorded in the integration review.
+The original acquisition location is historical: the verified archive was
+subsequently adopted into the production checksum-keyed cache and used by the
+successful build. [The execution record](BUILD_ADMISSION.md#completed-build-and-fetch)
+owns those results; do not reacquire another copy at the old location.

@@ -1,0 +1,36 @@
+{
+  "changes": {
+    "cache": false,
+    "device": false,
+    "manifest": false,
+    "patches": false,
+    "profile": false,
+    "source_tree": false
+  },
+  "files": {
+    "drivers/base/dd.c": "03dbcf0f223b28da2006cc9fe851c8782c4c17f50e35027c94e2b4ef208b0e52",
+    "drivers/clk/mediatek/clk-gate.c": "f7ce5febabcda46321b658c8bc00d747d50c09f9b7642313227153c8dbceef8b",
+    "drivers/clk/mediatek/clk-mt6797.c": "eaad6324621679371f33bbb76e10bcb0d3374b1f2dbbd837323b3f9e8fee1534",
+    "drivers/reset/core.c": "bb8683f8973883979481512a4f6e21deac741776dfb3370591bc611988c49762",
+    "include/linux/mfd/syscon.h": "e09615d6d9ed796255e80e4c91ca2d95e48237225258ec2435358ae4767a2ece"
+  },
+  "method": "Read-only selected-file inspection from retained verified upstream archive and exact generated provider patch",
+  "new_findings": [
+    "Probe failure releases managed reset registration through driver-core devres cleanup",
+    "Unregister nulls retained consumer controller pointers and synchronizes SRCU; checked assert/deassert reject missing controller with ENODEV",
+    "MT6797 gate-return handling and clock rollback remain existing limitations",
+    "Syscon gate dependency predates patch; immediate reset-registration error propagation is new"
+  ],
+  "not_run": [
+    "fault injection",
+    "concurrent unregister",
+    "driver unbind/rebind",
+    "KUnit",
+    "kernel build",
+    "schema validation",
+    "hardware test"
+  ],
+  "provider_patch_sha256": "90a1d8aaff250e8b0086488138aec1527f535cde38aa2b6734c6b83344e41cc5",
+  "schema": 1,
+  "upstream_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c"
+}

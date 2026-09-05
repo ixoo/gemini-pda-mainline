@@ -1,0 +1,19 @@
+{
+  "available_bytes": 10457591808,
+  "bytes": 269814253,
+  "destination": "<buildbox-home>/.cache/gemini-pda/linux-45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d.tar.gz",
+  "destination_present": true,
+  "execute": true,
+  "receipt": "<buildbox-home>/.cache/gemini-pda/linux-45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d.tar.gz.adoption.json",
+  "required_bytes": 336923117,
+  "sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+  "source_present": false,
+  "stale_partial": false,
+  "state": "adopted",
+  "schema": 1,
+  "repository_commit": "4ec63076aeb6388ba24b33ee20afcf19ced541e1",
+  "linux_fixture_tests": 26,
+  "linux_fixture_failures": 0,
+  "old_archive_removed_after_durable_receipt": true,
+  "host_received_archive_or_source": false
+}
