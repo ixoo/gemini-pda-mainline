@@ -1,0 +1,16 @@
+AHB PIO contract audit — 2026-09-05
+Base: e0a412cd
+Scope: eight pinned public source files, read over HTTPS in memory.
+Result: command/port encoding established; bounded completion and safe
+partial-transfer failure contract not established. No encoder implemented.
+Reviewed exact PIO RX/TX branches, command layout, function/block/DMA
+selection, INIT TX routing and response-length polling.
+No device/MMIO, backend, retained-input, calibration or source-tree action.
+Original source analysis and public identities only; no vendor code copied.
+No shell/code/kernel changes; syntax tools, host encoder fixtures and
+kernel/device tests are not applicable to this negative documentation result.
+Common repository checks: pass; profiles=189; unchanged metadata debt=37.
+Linux-only artifact-provenance fixture skipped on this host.
+New-file links, JSON, rights/privacy review and git diff --check: pass.
+PIO_COMPLETION.md sha256=ac96aa73b4608a6e816468d9f7b38a29e6a43fb08022e22ca00ee92f4537125c
+results/pio-sources.json sha256=933a05089872470d266cafa1bcf080b3debabc4b2104575dd4c9622df5d3ecf3
