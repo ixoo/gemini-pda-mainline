@@ -105,3 +105,40 @@ shared-boundary comparisons are within bounds, never device admission.
 Broader hotplug, cpufreq/OPP, conversion triggers, filter changes, interrupt
 reads, longer stress, idle/suspend and default integration remain closed.
 The [roadmap](../../docs/ROADMAP.md) owns implementation order.
+
+
+## Generated program and combined classifier
+
+The [recovery builder](scripts/build-recovery-runtime.py) now derives from the
+hash-pinned attribution builder without changing any of the four complete
+worker bodies. It keeps all three frequency/liveness boundaries, removes the
+waiting thermal read, assigns attempts 1/2 to before/completion, and reserves
+attempt 3 for the recovery boundary. Converted-value bounds are checked on the
+device before proceeding; the host rechecks exact nanosecond timing.
+
+The successful path joins and cleans up before checking empty owned-child
+handles, no pending spawn/exit and absence of every owned RAM file, including
+dangling symlinks. It checks these predicates both before and after the one
+sleep. Cleanup intentionally ignores further caught signals while joining;
+the new path re-arms HUP/INT/TERM/PIPE handlers before waiting. A refusal or
+caught signal in the tested boundary prevents the next snapshot. A timing
+failure is detected after retaining the third record; it never invites retry.
+CPU accounting is captured before cleanup/wait, so the recovery interval does
+not enlarge the measured owned-work window.
+
+The [combined classifier](scripts/classify-recovery-runtime.py) validates all
+three actual snapshot records and stage ordering, frequency values/logs,
+liveness, quiescence receipts and cleanup. It calls the pinned lifecycle and
+concurrent validators directly; it does not manufacture a waiting temperature
+to pass the old integrated classifier. Its result is bounded recovery observed
+or comparison rejected, never full integrated repeatability. The host postflight
+is explicitly unevaluated until the future runner supplies it.
+
+The [host fixture result](results/recovery-runtime-host-fixtures.txt) includes
+unchanged-worker comparisons, 20 combined transcript mutations, four consumed
+boot refusals, three command-line outcomes, 14 executed boundary cases (including
+four caught signals), and 11 cases exercising the actual generated snapshot
+function. These use injected adapters and the host shell. They do not establish
+exact-candidate BusyBox behavior or hardware performance. Complete exclusive
+host capture/cycle binding and exact-shell validation remain admission gates;
+no device execution follows from this result.

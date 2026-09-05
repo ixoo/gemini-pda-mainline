@@ -8368,13 +8368,14 @@ validity is not thermal-result freshness, and IRQ side effects remain unresolved
 The [recovery design and thermal evaluator](../experiments/2026-09-04-mt6797-thermal-snapshot/RECOVERY_DESIGN.md)
 now specify a bounded post-completion time point and preserve comparison
 rejection independently of recovery. Offline response/refusal fixtures pass.
-**Selected next:** implement and test the complete source-pinned recovery
-program and combined classifier, preserving worker liveness and cleanup while
-moving only the thermal stage placement. Then bind the exclusive host capture,
-cycle/pristine/postflight gates and exact-candidate shell validation before any
-new boot is admitted. The pure thermal assessor cannot establish stage placement,
-worker quiescence or the complete action budget. Preserve unknown conversion
-age, the previous rejection and unchanged comparison limits. No further diagnostic reads or workload on the consumed
+The source-pinned builder and combined classifier now pass host transcript,
+executed recovery-boundary and generated-observer fixtures, retaining all four
+worker bodies and frequency/liveness gates. **Selected next:** bind recovery to
+an exclusive durable host capture with cycle/pristine/postflight gates, then
+run the complete suite under the exact candidate BusyBox before publishing a
+new execution admission. Source-stage checks and injected receipts alone do not
+prove runtime quiescence. Preserve unknown conversion age, the previous rejection
+and unchanged comparison limits. No further diagnostic reads or workload on the consumed
 session; no repeat is admitted. Any future boot requires a distinct,
 decision-changing hypothesis and published bounded protocol. Integrated thermal
 repeatability, broader load/hotplug, cpufreq/OPP, idle, suspend, thermal protection

@@ -310,3 +310,8 @@ signal. A bounded reported-temperature recovery design is prospective only.
 The [recovery design and offline thermal evaluator](RECOVERY_DESIGN.md) now
 freeze response semantics and timing without admitting a device run. Complete
 source-pinned execution and worker-quiescence validation remain required.
+
+The [generated recovery program and combined classifier](RECOVERY_DESIGN.md#generated-program-and-combined-classifier)
+now pass host transcript and executed boundary/observer fixtures. The worker
+bodies are unchanged; host transport/cycle binding and exact-shell validation
+remain required before execution.

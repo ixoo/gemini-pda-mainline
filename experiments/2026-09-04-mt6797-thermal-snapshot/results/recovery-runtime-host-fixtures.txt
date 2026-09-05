@@ -1,0 +1,21 @@
+Recovery generated-program host validation
+parent_publication=493ddc58
+fixture_execution=host-shell-and-Python-with-injected-hardware-adapters
+exact_candidate_BusyBox_validation=pending
+new_host_runner_and_cycle_binding=pending
+device_action=none
+kernel_build=none
+
+validation=recovery-thermal-assessment response_cases=3 timing_edges=2 slot_identity_cases=1 within_bounds_nonpromotion_cases=1 mutations_rejected=18 cli_cases=3 device_action=none
+recovery_builder=pass unchanged_worker_bodies=4 combined_cases=2 combined_mutations_rejected=20 consumed_boots_rejected=4 cli_cases=3 device_action=none
+recovery_boundary_cases=14 caught_signals=4 no_snapshot_after_quiescence_or_sleep_refusal=pass device_action=none
+generated_recovery_observer_cases=11 device_action=none
+
+Source digests:
+07d74c69c806df8938ea67043eb8a48d3827c3b4baeb488a6b83fea9aefcc2ee  scripts/build-recovery-runtime.py
+ddb47c8d269ceb1aed5acbb7672235126f66fed8fd9837a5ef8c14a20c86f82b  scripts/classify-recovery-runtime.py
+39b579fb99e035b53d5ecc7b0e3f97d21f7277169fdcb308b5f3c2fc1ae1683a  scripts/assess-recovery-thermal.py
+01e153810440a42ee26d7502170bedbaf2ffe5b50c5f04f6680a6d5724a59b4f  scripts/test-recovery-thermal.py
+15c0a2c9625972d2c29ff6367c0c83bdd8c00a264a3c71ce7bdd9939f7fdc3b4  scripts/test-recovery-runtime.py
+d3d8ae241938ef6e32c978461698ccd5e06d18bbe35a08c3f02edffe2d4ee50a  scripts/test-recovery-boundary.py
+8a5ae897a42374655860cc36d949aa5a305338ddfd7bc19aaf41c4e3747b1980  scripts/test-recovery-observer.py
