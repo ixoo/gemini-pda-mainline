@@ -1,0 +1,26 @@
+{
+  "date_utc": "2026-09-05",
+  "capture": "20260715T020041Z",
+  "owning_experiment": "experiments/2026-07-14-mmc-partition-backup/README.md",
+  "private_manifest_sha256_verified": true,
+  "capture_directory_mode": "0700",
+  "capture_directory_owner_matches_process": true,
+  "capture_directory_is_symlink": false,
+  "selected_images": [
+    {"label": "nvram", "bytes": 5242880},
+    {"label": "nvcfg", "bytes": 8388608},
+    {"label": "nvdata", "bytes": 33554432},
+    {"label": "protect1", "bytes": 8388608},
+    {"label": "protect2", "bytes": 13074432}
+  ],
+  "each_image_exact_manifest_status": "ok",
+  "each_image_expected_actual_local_size_equal": true,
+  "each_image_regular_owner_only_and_owned_by_process": true,
+  "each_image_full_sha256_matches_private_manifest": true,
+  "private_digests_or_manifest_rows_emitted": false,
+  "raw_images_copied_mounted_or_extracted": false,
+  "calibration_record_identified_or_parsed": false,
+  "new_acquisition": false,
+  "device_access": false,
+  "limitation": "Transport integrity and retained inventory only; capture was not an atomic filesystem snapshot and record applicability is unproven."
+}

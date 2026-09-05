@@ -75,3 +75,27 @@ This model handles already delimited records. It supplies no transport, loader,
 PDA payload parser, device action or new readiness claim. The corrected core and
 presence helpers, original receipts and consumed packet are preserved during
 integration. Ordered work remains in the [roadmap](../../docs/ROADMAP.md).
+
+## Separate calibration follow-up review
+
+Project Planning reviewed the five additive files in
+`ca4e114d697b03e5b7b846d3f1365050f1620c3c` against `a0ad5499`.
+Coordinator and independent reviewer each ran all 23 synthetic tests; all
+passed. Independent review verified the pinned layout, manufacture-version
+checks, legacy power branch, firmware-version comparison and MAC predicate
+against vendor source with matching recorded hashes. No actionable defect was
+found. The review did not access private records or a device, reproduce the
+backup-integrity receipt, or fully repeat the regulatory-table audit.
+
+The [calibration contract](CALIBRATION.md) distinguishes retained-image integrity,
+record structure, source compatibility and unproven board/firmware applicability.
+Its pure inspector never emits raw inputs or grants loading/transmit authority.
+Integration preserves earlier helper bytes and immutable receipts, links the
+new source fact from the hardware contract, and keeps record producer/restoration
+research in the roadmap. No candidate, physical readiness or hardware support
+claim changes. No kernel inputs changed or kernel build was required.
+
+The common publication gate passed for all nine changed files and all 189
+manifest profiles. Earlier corrected collectors, consumed session and kernel
+inputs remain byte-identical. Linux-only package validation remains a CI gate;
+no hardware or private-record test was performed by integration.

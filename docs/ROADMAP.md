@@ -172,7 +172,8 @@ The first preparation order is:
    separate logs and one bounded first-boot protocol. Do not assume today's
    similarly named profile reproduces the historical package.
 2. **Wi-Fi:** implement and test the selected gen3 command/response contract,
-   resolve shared EMI/AP-DMA ownership and applicable calibration inputs, then
+   resolve shared EMI/AP-DMA ownership and identify the retained calibration
+   record's producer, restoration path and board/firmware applicability, then
    prepare the first mainline session against the A53 recovery/logging contract.
    Use the [Wi-Fi contract](hardware/mt6797-wifi.md) and existing private captures.
    Do not manufacture a boot candidate
