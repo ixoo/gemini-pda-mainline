@@ -31,9 +31,9 @@ Before a candidate can be selected, its manifest must pin:
 - the unchanged audited initramfs, exact DT composition, raw/padded container
   hashes and sizes, and independent LK/decompression and mutation checks.
 
-The runtime profile is now declared below, but no generated binding patch,
-runtime candidate, installation command or executable device runner is admitted
-yet. These are required inputs to a later frozen runner. The protocol object accepts explicit
+The runtime profile and generated binding patch are now admitted for building
+below, but no runtime candidate, installation command or executable device
+runner is admitted yet. These are required inputs to a later frozen runner. The protocol object accepts explicit
 candidate/record identities only for offline composition and fixtures; it is
 not a substitute for proving those identities from a package and container.
 No unknown identity may be learned from the device and accepted as expected.
@@ -127,3 +127,22 @@ replays it, and removes temporary work. The existing compile profile must be
 frozen before this binding patch enters the canonical series. No build may
 use the runtime profile until generation and selector checks pass and the
 exact patch is admitted and pushed. The old runtime profile remains unchanged.
+
+
+## Binding generation and build admission
+
+Published tooling revision `f3641db2eb02c54a874714b37390f2aae227c043` generated
+[patch 0542](../../patches/v7.1.3/0542-arm64-bind-corrected-Gemini-thermal-V4-configuration.patch).
+The [selector tests](results/v4-profile-selector-tests.txt) pass four branches,
+four source-mutation refusals and two profile-mutation checks. The
+[generation receipt](results/v4-profile-generation.txt) records identical-tree
+replay; the [sanitized style check](results/v4-profile-checkpatch.txt) passes.
+The corrected PSCI file hash is
+`ab37fc176ee2581c522201a0001c7f7458abc40bbac9a849a5907e273c4c5361`.
+
+All 188 predecessor profiles retain their exact selected patch contents,
+including the now-frozen compile profile. Only the corrected runtime profile
+selects the new binding. This admits one explicit Buildbox build after this
+patch/profile revision is committed and pushed cleanly. Compilation and package
+validation do not admit installation or the consuming observer; candidate
+composition, host persistence and exact-shell gates remain required.

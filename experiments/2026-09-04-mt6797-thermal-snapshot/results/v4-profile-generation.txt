@@ -1,0 +1,5 @@
+generation_revision=f3641db2eb02c54a874714b37390f2aae227c043
+patches=1
+replay=identical-tree
+production_driver_changes=config-input-binding-only
+hardware_access=none

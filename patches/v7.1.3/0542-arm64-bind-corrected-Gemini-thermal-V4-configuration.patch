@@ -1,0 +1,25 @@
+From e5fe68a0ddc3f8a170c116948b4b4d25a9c06bdc Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 5 Sep 2026 04:00:00 +0000
+Subject: [PATCH 1/1] arm64: bind corrected Gemini thermal V4 configuration
+
+Bind the corrected V4 runtime profile to its new release and exact config-input digest under the thermal observer selector. Preserve the other selector branches. The predecessor thermal profile stays reproducible through its frozen series. This experimental archive has no certifying sign-off and is not submission-ready.
+---
+ arch/arm64/kernel/mt6797_psci.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
+index bf0d0cd..0e77510 100644
+--- a/arch/arm64/kernel/mt6797_psci.c
++++ b/arch/arm64/kernel/mt6797_psci.c
+@@ -69,8 +69,8 @@ static const u64 mt6797_a72_config_input_identity[ARM64_LATE_CPU_ID_WORDS] __ini
+ #if IS_ENABLED(CONFIG_MTK_MT6797_A72_FREQUENCY_OBSERVER)
+ #if IS_ENABLED(CONFIG_MTK_SOC_THERMAL_OBSERVER)
+ static const u64 mt6797_a72_config_input_identity[ARM64_LATE_CPU_ID_WORDS] __initconst = {
+-	0x8fe1675a22f82e9e, 0xfbc38a994a95eaae,
+-	0xb32fbc46b6fad425, 0x61f3e01d3097b3a5,
++	0xf789e69598a86a9f, 0x2522b4fc5c408f7c,
++	0x972d88396da10b01, 0x8156a66bc8337e22,
+ };
+ #else
+ static const u64 mt6797_a72_config_input_identity[ARM64_LATE_CPU_ID_WORDS] __initconst = {

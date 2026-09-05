@@ -53,7 +53,7 @@
       },
       "mt6797-thermal-v4-correction-compile": {
         "base": "defconfig",
-        "patch_series": "patches/series",
+        "patch_series": "patches/series-v4-correction-compile",
         "fragments": [
           "configs/gemini-handoff.fragment",
           "configs/gemini-usbdiag.fragment",

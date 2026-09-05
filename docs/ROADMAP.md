@@ -8405,10 +8405,10 @@ now fixes the regression hypothesis, distinct release, unchanged finite budgets,
 pristine accounting, precision/refusal rules and output claim. Its offline
 orchestrator passes 30 scenarios and rejects old identities without altering
 the consumed predecessor protocol. The runtime profile and exact config-input digest are now declared, with a
-source-pinned binding editor and generation checks. **Selected next:** generate
-and validate that binding from the clean published revision, freeze the compile
-profile's prior series, and admit the patch before building and independently
-composing the uniquely identified corrected candidate.
+source-pinned binding editor and generation checks. The binding patch now passes selector/refusal checks, style checks and replay;
+all predecessor profiles retain their exact patch inputs. **Selected next:**
+build `gemini-thermal-v4-corrected` from the clean pushed revision on Buildbox,
+then independently compose and validate its uniquely identified candidate.
 Complete the candidate-pinned host/remote runner, durable-capture mutations and
 exact-candidate shell validation before installation or owner boot selection.
 The existing compile package remains unadmitted for boot. No further diagnostic reads or workload on the consumed

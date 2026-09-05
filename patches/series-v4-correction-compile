@@ -531,4 +531,3 @@ v7.1.3/0538-thermal-mediatek-test-isolated-thermal-observer-owner.patch
 v7.1.3/0539-thermal-mediatek-drain-V4-readers-before-transaction-close.patch
 v7.1.3/0540-arm64-bind-Gemini-thermal-snapshot-configuration.patch
 v7.1.3/0541-thermal-mediatek-correct-MT6797-offset-and-calibration-index.patch
-v7.1.3/0542-arm64-bind-corrected-Gemini-thermal-V4-configuration.patch
