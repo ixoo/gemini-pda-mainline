@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "revision": "75636670d933b9231f36fddf2ce876801568f64e",
+  "package_manifest_sha256": "7eb7313217d0efe306b33a8bd7f90a4e782c7d0931ce71362b2de0ce8a33767f",
+  "binary_sha256": "f4dd3a4c3e1a8d3a1e4bbdb9de2713972ba7efc44643b8b7703e520091a1fccb",
+  "stripped_bytes": 66672,
+  "package_member_hashes_verified": true,
+  "source_hashes_verified": true,
+  "build_exit_status": 0,
+  "build_log_sha256": "6f683eb8854cb9df65f960ed7097013ede249a0f8adda0c62bfd7913f82723b0",
+  "cleanup": {
+    "locks_reacquired": true,
+    "managed_stage_absent": true,
+    "source_checkout_clean": true
+  },
+  "device_action": "none",
+  "scope": "full-engine size and scaled ARM64 QEMU lifecycle only; production entry disabled"
+}

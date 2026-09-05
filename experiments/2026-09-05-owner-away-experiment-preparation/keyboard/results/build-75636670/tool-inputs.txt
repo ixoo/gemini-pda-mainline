@@ -1,0 +1,21 @@
+repository_commit=75636670d933b9231f36fddf2ce876801568f64e
+c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846  /usr/bin/aarch64-linux-gnu-gcc-12
+e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08  /usr/bin/aarch64-linux-gnu-ld.bfd
+4f55e2e88dc05dc0f619562d5795b8eb25ed2ad2547504fb4835207a6911c350  /usr/bin/qemu-aarch64-static
+49b906db048bd4be400bc885e3aed84e778cffa48a426fe5b9716bd80ea88e47  /usr/bin/aarch64-linux-gnu-as
+086da15d802a53c33c0aeccfb2de663f724edab8fdca7e10b242cfefe24673dc  /usr/bin/aarch64-linux-gnu-ar
+b3933719fca8ed4504f875b4ddf8e36767b4820ba42e97597a72310837d951f8  /usr/bin/aarch64-linux-gnu-strip
+716843c4034e24fa7d8e7d2a590dd1645aebf2b87ddc3a888144923174b2a562  /usr/bin/aarch64-linux-gnu-readelf
+8c96a896d028a526484718ca8f1ea9d2f2c6f38490dea2c32a391abc8dd09f01  /usr/bin/aarch64-linux-gnu-nm
+bd201647ea988ff6060fc73595a3f7edbe4aff485e18efa4afd02c432dfffb17  /usr/lib/gcc-cross/aarch64-linux-gnu/12/cc1
+5cde35acdc58ad84b548efe9bade4ed8151154db35d7fc3bca1240db77e68dff  /usr/lib/gcc-cross/aarch64-linux-gnu/12/libgcc.a
+aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0
+Copyright (C) 2022 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+qemu-aarch64 version 7.2.22 (Debian 1:7.2+dfsg-7+deb12u18+b3)
+Copyright (c) 2003-2022 Fabrice Bellard and the QEMU Project developers
+binutils-aarch64-linux-gnu	2.40-2
+gcc-12-aarch64-linux-gnu	12.2.0-14cross1
+qemu-user-static	1:7.2+dfsg-7+deb12u18+b3
