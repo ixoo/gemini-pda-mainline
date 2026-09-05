@@ -19,10 +19,11 @@
         "experiments/2026-09-03-mt6797-infracfg-reset-repair/README.md",
         "experiments/2026-09-04-mt6797-pwrap-reset-serviceability/README.md",
         "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/README.md",
-        "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/SUBMISSION_READINESS.md"
+        "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/SUBMISSION_READINESS.md",
+        "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/revised-topic/README.md"
       ],
       "dependencies": [
-        "Preserve optional reset cells for old MT6797 DT descriptions and validate the corrected topic",
+        "Generate and replay the reviewed header-only reset topic; accepted compatibility evidence preserves optional reset cells for old MT6797 DT descriptions",
         "Coordinate the pending MT6797 common-probe conversion; fix post-publication reset-error cleanup before adopting its reset hook",
         "Review final provider ordering and map consumer evidence to the exact final revision",
         "Actual authorship audit and truthful DCO certification before submission"

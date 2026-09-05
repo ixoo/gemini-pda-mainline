@@ -1,0 +1,11 @@
+{
+  "derivation": "pass",
+  "input_sha256": "88e629b8a56aa892f43949bc052322efb38ba209df7b4d5c6a8d8df936c6fb03",
+  "derived_git_diff_sha256": "dc1e60d1a528931eb035093132b35c4c32a7169d62a2cf8b4b77777fdee99ba2",
+  "derived_git_diff_bytes": 481,
+  "header_bytes_preserved": true,
+  "changed_input_refusals": 3,
+  "prepared_schema_cases": 25,
+  "schema_cases_executed": 0,
+  "backend_actions": false
+}
