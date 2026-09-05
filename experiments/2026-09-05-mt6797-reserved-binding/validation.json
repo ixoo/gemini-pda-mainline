@@ -1,0 +1,36 @@
+{
+  "patch_sha256": "2798d49d202edc441c775a78c06ec0d261169f426fdadb04cf6c5e052fba545c",
+  "patch_reproduction_and_replay": "PASS",
+  "kernel_build": "NOT RUN",
+  "backend": "NOT ACCESSED",
+  "hardware": "NOT ACCESSED",
+  "same_code_host_test": "binding_checks=52\nconcurrent_claim_rounds=32\nactive_entry=refused\nreserved_checks=37\nnode_refs=balanced\ndevice_refs=balanced\nactive_entry=refused\n",
+  "sanitizer_flags": [
+    "-std=c11",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-Wconversion",
+    "-pedantic",
+    "-pthread",
+    "-O1",
+    "-g",
+    "-fsanitize=address,undefined",
+    "-fno-sanitize-recover=all",
+    "-fno-omit-frame-pointer"
+  ],
+  "compiler": "Apple clang version 21.0.0 (clang-2100.1.1.101)",
+  "source_hashes": {
+    "image-binding.c": "1a4409afd38ddd3bcf79c4cf4a0f78c79fc0277892d3fc0735a50e10a490428e",
+    "image-binding.h": "96e10dc350ea282b2c47e81c017ce406ae4af945c5ac127c3e77d153d48475b8"
+  },
+  "test_hashes": {
+    "binding-test-compat.h": "0ca81412fe63263e33f391dbece5446b388899f3e07665100972c01239862566",
+    "test-reserved.c": "8904fc25cf4f0d9d83839ab0f66d2234dd4c1c9e704e62c0395f9f8bfa456112"
+  },
+  "checkpatch": {
+    "exit": 1,
+    "exclusions": [],
+    "output": "ERROR: Missing Signed-off-by: line(s)\n\ntotal: 1 errors, 0 warnings, 0 checks, 358 lines checked\n\nNOTE: For some of the reported defects, checkpatch may be able to\n      mechanically convert to the typical style using --fix or --fix-inplace.\n\n<project>/experiments/2026-09-05-mt6797-reserved-binding/0005-wifi-mediatek-describe-reserved-memory.patch has style problems, please review.\n\nNOTE: If any of the errors are false positives, please report\n      them to the maintainer, see CHECKPATCH in MAINTAINERS.\n"
+  }
+}

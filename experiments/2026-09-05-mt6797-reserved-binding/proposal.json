@@ -1,0 +1,27 @@
+{
+  "scope": "Passive Linux OF reserved-memory descriptor in existing image owner; active entry refused",
+  "dependency_commit": "3c672049e7e3fb98825072fdb24399bffa574088",
+  "patch": "0005-wifi-mediatek-describe-reserved-memory.patch",
+  "patch_sha256": "2798d49d202edc441c775a78c06ec0d261169f426fdadb04cf6c5e052fba545c",
+  "kernel_delta": [
+    "drivers/net/wireless/mediatek/mt6797/image-binding.c",
+    "drivers/net/wireless/mediatek/mt6797/image-binding.h"
+  ],
+  "object": "drivers/net/wireless/mediatek/mt6797/image-binding.o",
+  "source_sha256": {
+    "image-binding.c": "1a4409afd38ddd3bcf79c4cf4a0f78c79fc0277892d3fc0735a50e10a490428e",
+    "image-binding.h": "96e10dc350ea282b2c47e81c017ce406ae4af945c5ac127c3e77d153d48475b8"
+  },
+  "canonical_series_changed": false,
+  "manifest_changed": false,
+  "kernel_build": "NOT RUN",
+  "hardware_access": "NONE",
+  "submission_ready": false,
+  "author_metadata": "Synthetic non-certifying experiment identity; no DCO sign-off",
+  "future_compile_acceptance": [
+    "Exact source hashes and .cmd compilation for image-binding.o",
+    "Nonzero AArch64 definitions for bind_reserved/reserved_info/unbind_reserved",
+    "References to real OF reserved-memory/device/node APIs",
+    "No host hooks, mapping, DMA setup, initcall, registration, SMC or active-success path"
+  ]
+}

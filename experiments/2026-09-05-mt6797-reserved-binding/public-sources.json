@@ -1,0 +1,30 @@
+{
+  "upstream_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "files": [
+    {
+      "path": "include/linux/of_reserved_mem.h",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/include/linux/of_reserved_mem.h",
+      "sha256": "69227378eff05059a2f563c0e7685cbd8a0060fd6beb9822ce0be71378beb8b5"
+    },
+    {
+      "path": "drivers/of/of_reserved_mem.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/drivers/of/of_reserved_mem.c",
+      "sha256": "df750fd2023c11c41991c34cc6f1d40bcd53458c19492f15b23fa0e59e125d50"
+    },
+    {
+      "path": "include/linux/of.h",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/include/linux/of.h",
+      "sha256": "cef3c80f7b56a4e4e280780baf314f4b8495ccd0dd929ac08d6a08363f11ccbc"
+    },
+    {
+      "path": "drivers/of/base.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/drivers/of/base.c",
+      "sha256": "c125b21edad7a562f4afa0863205afec403c628f95a762d3a33b984c027a1432"
+    },
+    {
+      "path": "drivers/of/address.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/drivers/of/address.c",
+      "sha256": "5a1b2dda196fd29ef3326c15a696eafabb85d7b1894358c6ef9d75eaec519257"
+    }
+  ]
+}
