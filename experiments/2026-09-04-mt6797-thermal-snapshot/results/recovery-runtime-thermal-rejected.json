@@ -1,0 +1,213 @@
+{
+  "boot_id": "6bd8ef2e-d7b1-4b4f-95a7-c97e13992a4c",
+  "candidate_sha256": "666961b636b21b8598a64999e9dbf72af280ad99f07a6b745045320f24ca361b",
+  "classification": "bounded-recovery-comparison-rejected",
+  "concurrent_rounds": 4,
+  "cpu8_accounting_delta": 71,
+  "cpu9_accounting_delta": 70,
+  "cpu_map": "0-3,4-7,8-9",
+  "cpu_online": "0-9",
+  "cycle_source": "exact-Gemian-deployment-and-shutdown",
+  "deployment_receipt_sha256": "32eb2d6389ed4dbafd29547000f356af1077b76b9fc084867b69c0ed5d248b62",
+  "device_action": "none-offline-classification",
+  "device_storage_writes": "none",
+  "frequency_records": [
+    {
+      "abi": 1,
+      "armplldiv_ckdiv": 8,
+      "armplldiv_muxsel": 85,
+      "attempt": 1,
+      "b_divider": 8,
+      "b_khz": 750000,
+      "b_mux": 1,
+      "b_pcw": 967916308,
+      "b_posdiv": 1,
+      "big_generation": 4,
+      "big_pll_enable_posdiv": 16716033,
+      "big_pll_pcw": 3115399956,
+      "cci_khz": 629500,
+      "clock_generation": 4,
+      "l_khz": 1274000,
+      "ll_khz": 897000,
+      "max_attempts": 3,
+      "raw": "abi=1 attempt=1 max_attempts=3 remaining=2 clock_generation=4 big_generation=4 armplldiv_muxsel=0x00000055 armplldiv_ckdiv=0x00000008 big_pll_pcw=0xb9b13b14 big_pll_enable_posdiv=0x00ff1101 b_pcw=0x39b13b14 b_posdiv=1 b_mux=1 b_divider=8 ll_khz=897000 l_khz=1274000 b_khz=750000 cci_khz=629500",
+      "remaining": 2
+    },
+    {
+      "abi": 1,
+      "armplldiv_ckdiv": 8,
+      "armplldiv_muxsel": 85,
+      "attempt": 2,
+      "b_divider": 8,
+      "b_khz": 750000,
+      "b_mux": 1,
+      "b_pcw": 967916308,
+      "b_posdiv": 1,
+      "big_generation": 5,
+      "big_pll_enable_posdiv": 16716033,
+      "big_pll_pcw": 3115399956,
+      "cci_khz": 629500,
+      "clock_generation": 5,
+      "l_khz": 1274000,
+      "ll_khz": 897000,
+      "max_attempts": 3,
+      "raw": "abi=1 attempt=2 max_attempts=3 remaining=1 clock_generation=5 big_generation=5 armplldiv_muxsel=0x00000055 armplldiv_ckdiv=0x00000008 big_pll_pcw=0xb9b13b14 big_pll_enable_posdiv=0x00ff1101 b_pcw=0x39b13b14 b_posdiv=1 b_mux=1 b_divider=8 ll_khz=897000 l_khz=1274000 b_khz=750000 cci_khz=629500",
+      "remaining": 1
+    },
+    {
+      "abi": 1,
+      "armplldiv_ckdiv": 8,
+      "armplldiv_muxsel": 85,
+      "attempt": 3,
+      "b_divider": 8,
+      "b_khz": 750000,
+      "b_mux": 1,
+      "b_pcw": 967916308,
+      "b_posdiv": 1,
+      "big_generation": 6,
+      "big_pll_enable_posdiv": 16716033,
+      "big_pll_pcw": 3115399956,
+      "cci_khz": 629500,
+      "clock_generation": 6,
+      "l_khz": 1274000,
+      "ll_khz": 897000,
+      "max_attempts": 3,
+      "raw": "abi=1 attempt=3 max_attempts=3 remaining=0 clock_generation=6 big_generation=6 armplldiv_muxsel=0x00000055 armplldiv_ckdiv=0x00000008 big_pll_pcw=0xb9b13b14 big_pll_enable_posdiv=0x00ff1101 b_pcw=0x39b13b14 b_posdiv=1 b_mux=1 b_divider=8 ll_khz=897000 l_khz=1274000 b_khz=750000 cci_khz=629500",
+      "remaining": 0
+    }
+  ],
+  "full_integrated_repeatability": "not-established",
+  "host_postflight": "pass",
+  "kernel_release": "7.1.3-gemini-thermal-snapshot",
+  "ordinary_thermal_reads": 2,
+  "owned_workers_reaped": true,
+  "peer_reader_checksums": "8-of-8",
+  "postflight": "pass",
+  "recovery_owned_workers": "quiescent",
+  "restore_stage": 18,
+  "retries": 0,
+  "snapshot_requests": 3,
+  "source_boot_id": "5d45171e-6c70-4fe4-99b6-715ac22ca826",
+  "thermal": {
+    "classification": "reported-temperature-response-only",
+    "conversion_age": "unknown",
+    "device_action": "none",
+    "focus_slot": 0,
+    "full_baseline_comparison": "not-evaluated-missing-writers-waiting-stage",
+    "initial_aggregate": 30800,
+    "maxima": [
+      32100,
+      37100,
+      31100
+    ],
+    "overall_workload_classification": "not-evaluated",
+    "physical_cooling": "not-established",
+    "prior_thermal_rejection": "unchanged",
+    "recovery_interval_ns": 2065876847,
+    "shared_boundary_comparison": "rejected",
+    "slots": [
+      {
+        "bank": 0,
+        "complete_minus_pre": 5900,
+        "recovery_minus_complete": -6500,
+        "response": "decreased",
+        "sensor": 0,
+        "slot": 0,
+        "temperatures": [
+          31200,
+          37100,
+          30600
+        ]
+      },
+      {
+        "bank": 1,
+        "complete_minus_pre": 300,
+        "recovery_minus_complete": 100,
+        "response": "increased",
+        "sensor": 3,
+        "slot": 1,
+        "temperatures": [
+          28100,
+          28400,
+          28500
+        ]
+      },
+      {
+        "bank": 2,
+        "complete_minus_pre": 1900,
+        "recovery_minus_complete": -2400,
+        "response": "decreased",
+        "sensor": 1,
+        "slot": 2,
+        "temperatures": [
+          31600,
+          33500,
+          31100
+        ]
+      },
+      {
+        "bank": 2,
+        "complete_minus_pre": 300,
+        "recovery_minus_complete": -200,
+        "response": "decreased",
+        "sensor": 2,
+        "slot": 3,
+        "temperatures": [
+          28700,
+          29000,
+          28800
+        ]
+      },
+      {
+        "bank": 3,
+        "complete_minus_pre": 2000,
+        "recovery_minus_complete": -2400,
+        "response": "decreased",
+        "sensor": 1,
+        "slot": 4,
+        "temperatures": [
+          31500,
+          33500,
+          31100
+        ]
+      },
+      {
+        "bank": 4,
+        "complete_minus_pre": 1200,
+        "recovery_minus_complete": -2400,
+        "response": "decreased",
+        "sensor": 1,
+        "slot": 5,
+        "temperatures": [
+          32100,
+          33300,
+          30900
+        ]
+      },
+      {
+        "bank": 5,
+        "complete_minus_pre": 1300,
+        "recovery_minus_complete": -2400,
+        "response": "decreased",
+        "sensor": 1,
+        "slot": 6,
+        "temperatures": [
+          32000,
+          33300,
+          30900
+        ]
+      }
+    ],
+    "stages": [
+      "pre-workload",
+      "workers-complete",
+      "post-completion"
+    ],
+    "violations": [
+      "workers-complete:baseline-rise-bound"
+    ]
+  },
+  "transport_sessions": 3,
+  "workload_requests": 1,
+  "writer_checksums": "8-of-8"
+}

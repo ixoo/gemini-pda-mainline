@@ -8381,11 +8381,17 @@ host mutation fixtures. The corrected complete adapter now passes the exact cand
 published revision `ec05d521`, including initial precision refusal before any
 workload request. The named Gemian preparation now passed with the image already matching,
 independent full readback/byte comparison and confirmed clean shutdown. The
-receipt-only runner check passes. **Selected next:** the owner physically
-selects boot2; then require the new receipt-bound pristine frame and perform
-one bounded recovery attempt with final accounting. Preserve any rejection
-without retry. Reuse the existing image and retain unknown conversion age and
-prior thermal rejection. No further diagnostic reads or workload on the consumed
+receipt-only runner check passes. The fresh [recovery runtime](../experiments/2026-09-04-mt6797-thermal-snapshot/results/recovery-runtime-thermal-rejected.txt)
+now completed with CPU/RAM/frequency, cleanup, quiescence and final accounting
+passing. The affected slot decreased at the bounded recovery time point, but
+the workers-complete baseline-rise comparison still rejected. This establishes
+only a reported response; conversion age and physical cause remain unknown.
+**Selected next:** use the retained per-slot traces and source/register audit to
+determine whether a distinct passive observation can distinguish conversion
+history from physical temperature response. Publish its falsifiable decision
+and bounded protocol before any new boot; if no safe discriminator is supported,
+retain the unresolved thermal gate. Do not infer physical cooling or relax the
+comparison from this decrease. No further diagnostic reads or workload on the consumed
 session; no repeat is admitted. Any future boot requires a distinct,
 decision-changing hypothesis and published bounded protocol. Integrated thermal
 repeatability, broader load/hotplug, cpufreq/OPP, idle, suspend, thermal protection

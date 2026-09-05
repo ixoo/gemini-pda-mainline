@@ -1,0 +1,68 @@
+Bounded thermal recovery runtime: shared-boundary comparison rejected
+Date: 2026-09-04
+Named device: project Gemini PDA
+Protocol source: ec05d52173e69bf0eaceec5ba9e256f9a6b0c7e5
+Offline admission: 6bea366d; cycle publication/runtime checkout: 93c4e1a3
+Boot ID: 6bd8ef2e-d7b1-4b4f-95a7-c97e13992a4c
+Source Gemian boot: 5d45171e-6c70-4fe4-99b6-715ac22ca826
+Kernel: 7.1.3-gemini-thermal-snapshot
+Candidate SHA256: 666961b636b21b8598a64999e9dbf72af280ad99f07a6b745045320f24ca361b
+A41 record: 7d67a19b3ae40ae1521293d7ffc834e6d06ae14a2d55de693ee9c815bdaee552
+
+New boot identity and complete pristine lifecycle/observer accounting passed.
+The verified Gemian shutdown receipt bound this cycle; boot2 already matched,
+so preparation wrote no partition and created no backup. One empty host TCP
+readiness probe preceded three shell sessions. No visible-console claim.
+Stage 18, one CPU9 down/restore and complete 4+4+2 topology passed, CPUs 0-9
+online. CPU8/9 advanced independently by 71/70 scheduler ticks. All 16 bounded
+writer/peer-reader hashes passed across four rounds per worker, with unchanged
+1914704-byte payload and 1000000 spin ceiling.
+All three frequency records: LL 897, L 1274, Big 750, CCI 629.5 MHz.
+Initial ordinary temperature: 30800 mC; postflight ordinary: 32300 mC.
+Pre-workload/workers-complete/post-completion maxima: 32100/37100/31100 mC.
+Seven valid converted slots per snapshot; all absolute and precision gates pass.
+After successful worker cleanup, the one two-second wait passed both quiescence
+gates. Recovery snapshot start followed completion snapshot end by 2065876847 ns,
+inside the unchanged 2000000000..3000000000 ns interval.
+Bank 0/sensor 0: 31200 -> 37100 -> 30600 mC; rise 5900, recovery delta -6500.
+Six slots decreased after completion; bank 1/sensor 3 increased by 100 mC.
+The reported bank-0 rise did not persist at the single recovery time point.
+This is a reported-temperature response, not proof of conversion freshness,
+physical cooling, sensor placement, protection or the cause of the rise.
+
+The workers-complete rise was 6300 mC versus the published baseline's 900 mC:
+difference 5400 > 5000, so the shared-boundary comparison remains rejected.
+The first-two-stage spread was 5000 mC, at its bound; pre-workload rise was
+1300 versus baseline 700 mC, within its bound. Later decrease cannot erase the
+rejection. No writers-waiting thermal sample exists in this recovery protocol;
+full baseline comparison was not evaluated and integrated repeatability is not
+established. The earlier cold-rise and attribution rejections remain unchanged.
+
+Final accounting and serviceability passed: same boot/record, unchanged terminal
+lifecycle, three frequency and three snapshot attempts, read-only sysfs, all
+owned workers reaped and RAM cleanup complete. One workload request, zero
+retries, two ordinary thermal reads. No device storage writes, partition access,
+new backup, rebuild, reboot, broader hotplug, cpufreq/OPP, idle or suspend.
+Host exit status: 3. Independent offline manifest, pristine, exact generated
+program, classification and postflight replay: pass. No additional device read
+was used for replay. The session and observer budgets are consumed; no retry.
+Device left running mainline after successful final accounting.
+Sanitization: selected identities, bounded runtime fields and evidence hashes
+only; raw shell captures remain private. No keys, calibration, serials or host paths.
+
+Private evidence SHA256 inventory:
+be16e9df7420a9f1e59678867478bd2535f4f0c4d85573ffa03e3767933e7ccc  classification.json
+32eb2d6389ed4dbafd29547000f356af1077b76b9fc084867b69c0ed5d248b62  deployment-summary.txt
+511937a96bffbe61bbe4879571c19b9caeb1f4de59632e9494b116247c191506  postflight.txt
+f3c16357a0ffa08e54060d794f35da017b3a1904668162df9764e6f5e5da6cf4  preflight.txt
+d316a3b80f935f6ad4073d17e22515ac7fd69feee076f6bded523cb27065cf0b  program.sh
+034969529bead923270ad1d61ab6edfb9fbab7b11fe2f0604531e9e50cb0cb6a  runtime-classification.json
+d5c38a986d797d3528403c141eebcb70cd8da8bda567c34b384ee0c77ab8dfff  runtime.txt
+4e4bc2b635e9f3a8b4ae908725dff5ac52bfedc3cc2b766d9bb4ee2622a3ad8f  source-runtime-classification.json
+00bf9ab25b5531cba5437bbaab6d221590ecc586bcb4f6311f9e3280df7b4712  transport-1-meta.json
+f3c16357a0ffa08e54060d794f35da017b3a1904668162df9764e6f5e5da6cf4  transport-1.txt
+00bf9ab25b5531cba5437bbaab6d221590ecc586bcb4f6311f9e3280df7b4712  transport-2-meta.json
+d5c38a986d797d3528403c141eebcb70cd8da8bda567c34b384ee0c77ab8dfff  transport-2.txt
+00bf9ab25b5531cba5437bbaab6d221590ecc586bcb4f6311f9e3280df7b4712  transport-3-meta.json
+511937a96bffbe61bbe4879571c19b9caeb1f4de59632e9494b116247c191506  transport-3.txt
+3dd2ea9b1ce229e09bd106c00f9ae193c6d8e7b17db050fbedfb64f14b1fb11c  workload.requested

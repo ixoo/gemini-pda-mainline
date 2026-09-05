@@ -140,3 +140,17 @@ power, temporary readback was removed, and Gemian shutdown/unreachability was
 confirmed. The new runner's receipt-only check passes without device access.
 No new mainline boot or recovery workload is claimed yet. Physical boot2
 selection is now required before the exact pristine gate and single run.
+
+
+## Recovery runtime result
+
+The fresh receipt-bound boot completed the single recovery protocol. The
+[sanitized runtime record](results/recovery-runtime-thermal-rejected.txt) and
+[per-slot classification](results/recovery-runtime-thermal-rejected.json) retain
+the shared-boundary thermal rejection while CPU lifecycle, topology, all 16
+hashes, fixed frequencies, cleanup and final accounting passed. Bank 0/sensor 0
+reported 37.1 degrees C at completion and 30.6 degrees C after the bounded
+recovery interval. This distinguishes a decrease at the new time point from a
+persistent reported rise; conversion freshness and physical cause remain unknown.
+Full integrated repeatability is not established. The session and all three
+snapshot attempts are consumed; no retry is admitted. Mainline remains running.
