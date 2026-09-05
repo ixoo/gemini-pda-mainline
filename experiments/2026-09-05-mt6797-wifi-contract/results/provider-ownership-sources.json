@@ -1,0 +1,85 @@
+{
+  "scope": "Public source identities for PROVIDER_OWNERSHIP.md; no hardware or build evidence.",
+  "sources": [
+    {
+      "repository": "torvalds/linux",
+      "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "path": "drivers/power/sequencing/core.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/drivers/power/sequencing/core.c",
+      "bytes": 27947,
+      "sha256": "86fe4cb3e77f1eeece1bd065ba7378bb5892499f344fb9de8af1761e449eda78"
+    },
+    {
+      "repository": "torvalds/linux",
+      "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "path": "include/linux/pwrseq/consumer.h",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/include/linux/pwrseq/consumer.h",
+      "bytes": 1340,
+      "sha256": "fb1fcc1a0e8438b96b663fcd75c1273fb20e375b2b4c40e6a7bddd3dd53a9609"
+    },
+    {
+      "repository": "torvalds/linux",
+      "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "path": "include/linux/pwrseq/provider.h",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/include/linux/pwrseq/provider.h",
+      "bytes": 2586,
+      "sha256": "f5b719e0bdc05633134e1bccadfbd5bcc4d7d8d5ce8ea7222d234c1cc44574c7"
+    },
+    {
+      "repository": "torvalds/linux",
+      "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "path": "drivers/pmdomain/mediatek/mtk-scpsys.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/drivers/pmdomain/mediatek/mtk-scpsys.c",
+      "bytes": 29139,
+      "sha256": "9ce2b2c95a38bc4c7b801aff9b7c26da2dc8ec2e3fd34199adaedf1db3007226"
+    },
+    {
+      "repository": "torvalds/linux",
+      "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "path": "drivers/pmdomain/core.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/drivers/pmdomain/core.c",
+      "bytes": 108547,
+      "sha256": "32e2f6b0988eba52a2f662fdc2d7132022fbe980f281b2a82babcf3d7f46e18a"
+    },
+    {
+      "repository": "gregkh/linux",
+      "revision": "199c9959d3a9b53f346c221757fc7ac507fbac50",
+      "path": "drivers/power/sequencing/core.c",
+      "url": "https://raw.githubusercontent.com/gregkh/linux/199c9959d3a9b53f346c221757fc7ac507fbac50/drivers/power/sequencing/core.c",
+      "bytes": 27059,
+      "sha256": "22550b6d006a42afc61c8f69e89ff6d0a2a3e545366dc317b8e2eff8f79f74f2"
+    },
+    {
+      "repository": "gregkh/linux",
+      "revision": "199c9959d3a9b53f346c221757fc7ac507fbac50",
+      "path": "include/linux/pwrseq/consumer.h",
+      "url": "https://raw.githubusercontent.com/gregkh/linux/199c9959d3a9b53f346c221757fc7ac507fbac50/include/linux/pwrseq/consumer.h",
+      "bytes": 1197,
+      "sha256": "64d85a844688d3df7e8b00e3730f236ea19f2d45dae0c4523415be533df463fe"
+    },
+    {
+      "repository": "gregkh/linux",
+      "revision": "199c9959d3a9b53f346c221757fc7ac507fbac50",
+      "path": "include/linux/pwrseq/provider.h",
+      "url": "https://raw.githubusercontent.com/gregkh/linux/199c9959d3a9b53f346c221757fc7ac507fbac50/include/linux/pwrseq/provider.h",
+      "bytes": 2586,
+      "sha256": "f5b719e0bdc05633134e1bccadfbd5bcc4d7d8d5ce8ea7222d234c1cc44574c7"
+    },
+    {
+      "repository": "gregkh/linux",
+      "revision": "199c9959d3a9b53f346c221757fc7ac507fbac50",
+      "path": "drivers/pmdomain/mediatek/mtk-scpsys.c",
+      "url": "https://raw.githubusercontent.com/gregkh/linux/199c9959d3a9b53f346c221757fc7ac507fbac50/drivers/pmdomain/mediatek/mtk-scpsys.c",
+      "bytes": 29139,
+      "sha256": "9ce2b2c95a38bc4c7b801aff9b7c26da2dc8ec2e3fd34199adaedf1db3007226"
+    },
+    {
+      "repository": "gregkh/linux",
+      "revision": "199c9959d3a9b53f346c221757fc7ac507fbac50",
+      "path": "drivers/pmdomain/core.c",
+      "url": "https://raw.githubusercontent.com/gregkh/linux/199c9959d3a9b53f346c221757fc7ac507fbac50/drivers/pmdomain/core.c",
+      "bytes": 103395,
+      "sha256": "2326e3de634eefe0468dfe03e5c11650f5e014fda08923861154d9a19d7f9d8e"
+    }
+  ]
+}

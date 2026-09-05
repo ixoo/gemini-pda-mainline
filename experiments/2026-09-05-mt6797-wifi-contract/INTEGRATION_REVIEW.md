@@ -195,3 +195,10 @@ validated fetch at `7029b136`, with real PM/regulator/reset cores enabled.
 [The result](../2026-09-05-mt6797-infracfg-upstream-preparation/PROVIDER_COMPILE.md#completed-build-and-package-review)
 verifies source hashes, object/linkage metadata and all package members. It
 closes compilation only; driver execution and Wi-Fi hardware support remain open.
+
+The consumer-ordering handoff `1720d877` and provider-ownership addendum
+`245c85e1` passed independent source review. The
+[ownership decision](PROVIDER_OWNERSHIP.md) records why runtime-suspend success
+cannot release outer prerequisites, the smaller provider-owned direction and
+its remaining failure/lifetime blockers. These are source conclusions, not a
+CONN implementation, runtime admission or Wi-Fi support result.

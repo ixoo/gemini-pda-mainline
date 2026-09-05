@@ -1,0 +1,113 @@
+{
+  "schema": 1,
+  "kind": "consys_consumer_ordering_source_audit",
+  "parent_commit": "e47791426ce286146b9b88a5b2abda8bb8d9b29e",
+  "pins": {
+    "upstream": {
+      "repository": "https://github.com/torvalds/linux",
+      "commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c"
+    },
+    "stable": {
+      "repository": "https://github.com/gregkh/linux",
+      "commit": "199c9959d3a9b53f346c221757fc7ac507fbac50",
+      "version": "7.1.3"
+    }
+  },
+  "files": [
+    {
+      "path": "drivers/base/platform.c",
+      "upstream_sha256": "8f979e2aa2af1a5460acd99db7c6f214f61a36fb9045805bd046bd49affa5e5e",
+      "stable_sha256": "c1967f53f66da20c515d32ca3242bd6f365b31f2678f7125bf71cc16ed56a258",
+      "upstream_bytes": 43324,
+      "stable_bytes": 40059
+    },
+    {
+      "path": "drivers/base/power/common.c",
+      "upstream_sha256": "5f902397c11504c95036463353a6a9513ab0f9ba3378579a956274389f2c1158",
+      "stable_sha256": "5f902397c11504c95036463353a6a9513ab0f9ba3378579a956274389f2c1158",
+      "upstream_bytes": 13587,
+      "stable_bytes": 13587
+    },
+    {
+      "path": "drivers/base/power/runtime.c",
+      "upstream_sha256": "3ba6c4baf1adeaa90043f46db08dfc9df2809209b4e29386e9148d26da827a9a",
+      "stable_sha256": "86a4ab8982d610b0ff1a1eb998adaf99a5f914833a56e70fb62efda2764af566",
+      "upstream_bytes": 59259,
+      "stable_bytes": 59259
+    },
+    {
+      "path": "drivers/pmdomain/core.c",
+      "upstream_sha256": "32e2f6b0988eba52a2f662fdc2d7132022fbe980f281b2a82babcf3d7f46e18a",
+      "stable_sha256": "2326e3de634eefe0468dfe03e5c11650f5e014fda08923861154d9a19d7f9d8e",
+      "upstream_bytes": 108547,
+      "stable_bytes": 103395
+    },
+    {
+      "path": "include/linux/pm_domain.h",
+      "upstream_sha256": "b7c4110988035af7818c3ecc9e149102f1f14c9b68877b164319289f936fb25e",
+      "stable_sha256": "be5fca20fb76258978f289cdb7303fb5e98eea6ca50ae9779490194ecc073107",
+      "upstream_bytes": 19132,
+      "stable_bytes": 18678
+    },
+    {
+      "path": "include/linux/pm_runtime.h",
+      "upstream_sha256": "1c1383101d72ce3028df6d9ad3640c2020a041f5c1820b1698d1657b648b04f6",
+      "stable_sha256": "1c1383101d72ce3028df6d9ad3640c2020a041f5c1820b1698d1657b648b04f6",
+      "upstream_bytes": 29030,
+      "stable_bytes": 29030
+    },
+    {
+      "path": "drivers/reset/core.c",
+      "upstream_sha256": "bb8683f8973883979481512a4f6e21deac741776dfb3370591bc611988c49762",
+      "stable_sha256": "bb8683f8973883979481512a4f6e21deac741776dfb3370591bc611988c49762",
+      "upstream_bytes": 41159,
+      "stable_bytes": 41159
+    },
+    {
+      "path": "drivers/regulator/core.c",
+      "upstream_sha256": "9896430492f89adde15547b72780e8e795dcdf2a7b46c87237fa69941172f8fd",
+      "stable_sha256": "c71e9692e31d8331284b9a1976c43489d3eb9dd59d6e8838b54b98946d0738b2",
+      "upstream_bytes": 181755,
+      "stable_bytes": 180955
+    },
+    {
+      "path": "include/linux/reset.h",
+      "upstream_sha256": "4ea7a8ad0ae08f9faccb3ac3fce11ded9bdfd8ade87307d2fdc61e5085c19daa",
+      "stable_sha256": "4ea7a8ad0ae08f9faccb3ac3fce11ded9bdfd8ade87307d2fdc61e5085c19daa",
+      "upstream_bytes": 39383,
+      "stable_bytes": 39383
+    }
+  ],
+  "identical_function_bodies": {
+    "drivers/base/platform.c": [
+      "platform_probe"
+    ],
+    "drivers/pmdomain/core.c": [
+      "genpd_dev_pm_attach",
+      "genpd_dev_pm_attach_by_id",
+      "__genpd_dev_pm_attach",
+      "genpd_runtime_suspend",
+      "genpd_power_off",
+      "genpd_dev_pm_detach"
+    ],
+    "drivers/base/power/runtime.c": [
+      "rpm_get_suppliers",
+      "__rpm_callback"
+    ],
+    "drivers/regulator/core.c": [
+      "regulator_bulk_enable"
+    ]
+  },
+  "findings": {
+    "automatic_single_domain_attachment": "platform_probe precedes driver probe and OF attachment requests power_on=true",
+    "explicit_attachment": "by-name/by-id uses a virtual device and power_on=false but requires a parent not already attached",
+    "runtime_links": "supplier resume precedes consumer callback; avoid automatic runtime links where parent must prepare first",
+    "bulk_regulators": "bulk enable schedules asynchronously and cannot encode the reviewed ordered delay",
+    "power_off_receipt": "runtime suspend success and detach are not a completed island OFF result",
+    "implementation_decision": "no driver skeleton until legitimate attachment entry point and outer preparation/teardown contracts exist"
+  },
+  "kernel_or_driver_patch_added": false,
+  "consumer_or_domain_selected": false,
+  "hardware_tested": false,
+  "new_executable_fixture": false
+}

@@ -73,3 +73,8 @@ set smaller explicit per-fixture caps in the eventual invocation. Full
 The two existing MT6797 DTBs must still be checked for one reset cell when a
 revised topic is generated, and the five unaffected patch bytes compared to the
 original topic. No new build or hardware support result is claimed here.
+
+[The exact execution proposal](EXECUTION.md) now supplies the narrow runner,
+structured comparison and refusal fixtures. It supersedes the prospective
+make-based processing step above with direct retained schema tools on two small
+copies. Backend execution still requires separate integrator review/admission.

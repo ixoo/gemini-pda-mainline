@@ -1,0 +1,6 @@
+{
+  "synthetic_complete_comparison": "pass",
+  "unsafe_cases_rejected": 24,
+  "owned_stale_recovery": "pass",
+  "schema_DTC_backend_device_execution": false
+}

@@ -1,0 +1,7 @@
+{
+  "optional_binding_sha256": "0610f891e326d1e0a7ce9ffe3ef0513ab229bf37eee8177de0999cac17157c6f",
+  "mandatory_binding_sha256": "83e13fddec7a39f2f6cc95408e9f3c4389fe55c9d33dfd635105d36c52c2979a",
+  "derivation": "exact byte equality with pinned upstream",
+  "schema_execution": false,
+  "source_persisted": false
+}
