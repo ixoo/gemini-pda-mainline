@@ -276,3 +276,9 @@ execution prerequisites are the one-shot host runner and fresh-cycle receipt.
 The [frozen host protocol](FINAL_PROTOCOL.md) and actual entrypoint now pass
 host failure/persistence fixtures. Execution remains gated on final exact-shell
 validation including the added SIGPIPE cleanup and host suite.
+
+
+The [final combined shell/host gate](results/final-protocol-shell-pass.json)
+now passes on published protocol revision `70cc45e5`. The exact image is reused;
+the [final protocol](FINAL_PROTOCOL.md) selects guarded shutdown/cycle preparation
+before owner-selected boot2 and the single fresh pristine workload.

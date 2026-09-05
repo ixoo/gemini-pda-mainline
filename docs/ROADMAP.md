@@ -8353,10 +8353,10 @@ The exact candidate BusyBox shell/parser gate now also passes on Buildbox
 under user-mode emulation; its injected adapters make no new hardware claim.
 The [frozen host protocol](../experiments/2026-09-04-mt6797-thermal-snapshot/FINAL_PROTOCOL.md)
 now passes host receipt, persistence, interruption and postflight fixtures.
-**Selected next:** run final exact-candidate shell validation including SIGPIPE
-cleanup and the host suite, publish that result, then prepare the guarded
-shutdown/cycle receipt for owner-selected boot2. Admit only the one fresh
-pristine workload and retain any rejection without retry. Preserve
+Final exact-candidate shell validation, including SIGPIPE cleanup and the host
+suite, now passes on the published protocol. **Selected next:** prepare the
+guarded shutdown/cycle receipt, then require owner-selected boot2 and the one
+fresh pristine workload. Retain any rejection without retry. Preserve
 payload/round/spin ceilings and require child quiescence before file-cleanup
 success. Retain the existing four-round
 ceiling and thermal refusal limits; do not reinterpret or relax the rejected

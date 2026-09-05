@@ -1,8 +1,10 @@
 # Frozen attribution host protocol
 
 This protocol binds the [attribution design](WORKLOAD_ATTRIBUTION.md) to one
-fresh cycle and one bounded execution. Publication and the final exact-shell
-fixture pass are required before the shutdown command below is selected.
+fresh cycle and one bounded execution. Protocol revision `70cc45e5` is published and the
+[final exact-shell fixture pass](results/final-protocol-shell-pass.json) now
+covers SIGPIPE cleanup and the host entrypoint. The guarded shutdown command
+below is selected after publication of this result.
 The currently consumed no-workload boot cannot run this workload.
 
 ## Hypothesis and limits
@@ -100,3 +102,14 @@ Transport loss does not prove immediate remote cancellation or cleanup; only
 complete evidence can establish the runtime cleanup predicate. Uncatchable
 termination or stalled kernel IO has no cleanup guarantee. Partial evidence and
 attempt seals remain permanently retained; no recovery workload is admitted.
+
+
+## Final offline admission result
+
+The exact-candidate shell run passed all worker/observer fixtures, four caught
+signals including SIGPIPE, the registration race and the real host entrypoint
+with injected USB. Seventeen started captures refused restarting; malformed,
+changed and incomplete evidence rejected. Temporary artifacts and checkout were
+removed. The source and image are frozen; no build, partition write or extra
+read on the consumed mainline session was needed for validation. Cycle
+preparation and a fresh pristine frame remain mandatory before the workload.
