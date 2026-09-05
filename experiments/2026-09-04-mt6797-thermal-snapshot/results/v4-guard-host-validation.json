@@ -26,7 +26,7 @@
     "run-v4-shell-tests.py": "d009d34616d2c3274938a8ef78dddbbb4a917d4f7f5f1935233f513547a73410",
     "test-v4-deployment-shell.py": "8234d5b97699f611d5296c5c39ef565d374311d6d6658d37bd05831afe67b9c2",
     "test-v4-installer-guard.py": "7c550c47a3c2a7b196cf78d05c0284d634748bd854c570b3fdbc79d8dd4fcea7",
-    "test-v4-remote-shell.py": "763725a5b037a300d41d520abfe60b9c5aa391d907c7e49409b74f56d10be00d",
+    "test-v4-remote-shell.py": "45e9122cb2b48a35e3cdb2bff765cd4f6b21e9becc61c35b8b353d3be8d95c08",
     "v4_deployment_receipt.py": "2ef4fc09a11207e2f43cce9c1d328905b636d618c72f3ab76325ef766201c5b7",
     "v4_installer_guard.py": "9c72675e3043dcf735c8a368800ce9297ca6c343d81283505e7030de82253211",
     "v4_observation_protocol.py": "893a5aacd667d0cfde56b7cc1bf127798a7206b2e8c87a2c25dd736c08846fe1"

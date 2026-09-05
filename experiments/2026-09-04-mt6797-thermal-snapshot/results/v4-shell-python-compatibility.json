@@ -1,0 +1,16 @@
+{
+  "affected_source": "scripts/test-v4-remote-shell.py",
+  "classification": "offline-suite-refused-before-fixture-execution",
+  "corrected_fixture_sha256": "45e9122cb2b48a35e3cdb2bff765cd4f6b21e9becc61c35b8b353d3be8d95c08",
+  "corrected_host_smoke_read_cases": 18,
+  "corrected_host_smoke_state_cases": 6,
+  "corrected_python311_parse": "pass",
+  "correction": "Prepare the conditional shell fragments before formatting the fixture prefix",
+  "device_action": "none",
+  "exact_candidate_execution": "pending-published-corrected-revision",
+  "failure": "Python 3.11 rejects backslash in f-string expression",
+  "kernel_build": "none",
+  "production_remote_scripts_changed": false,
+  "temporary_remote_worktree_and_initramfs": "removed-by-cleanup-trap",
+  "tested_revision": "494321f9a32fded97df35381fecf2698497b53a8"
+}

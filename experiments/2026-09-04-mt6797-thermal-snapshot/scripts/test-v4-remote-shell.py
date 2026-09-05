@@ -80,6 +80,9 @@ def main():
             if case=='state-post':put(SNAP+'_status','abi=1 attempts=3 limit=3\n',0o400)
             # Only IO targets and hardware-dependent applets are adapted. All
             # shell tests, pipelines, globbing and parser applets execute intact.
+            read_failure = 'return 1' if case == 'read-error' else ':'
+            boot_change = ('"$BB_REAL" printf "' + DEPLOY + '\\n" > "$BB_FIXTURE/proc/sys/kernel/random/boot_id"'
+                           if case == 'after-boot-change' else ':')
             prefix=f'''BB_FIXTURE={shlex.quote(str(root))}
 BB_REAL={shlex.quote(busybox)}
 bb() {{
@@ -92,8 +95,8 @@ bb() {{
    "$BB_REAL" chmod 600 "$BB_FIXTURE{SNAP}_status"
    "$BB_REAL" printf 'abi=1 attempts={attempt} limit=3\\n' > "$BB_FIXTURE{SNAP}_status"
    "$BB_REAL" chmod 400 "$BB_FIXTURE{SNAP}_status"
-   {'return 1' if case=='read-error' else ':'}
-   {'"$BB_REAL" printf "'+DEPLOY+'\\n" > "$BB_FIXTURE/proc/sys/kernel/random/boot_id"' if case=='after-boot-change' else ':'}
+   {read_failure}
+   {boot_change}
   fi
   case "$2" in */thermal_zone*/temp) "$BB_REAL" printf 'read\\n' >> "$BB_FIXTURE/temperature-reads" ;; esac
   "$BB_REAL" "$@" ;;

@@ -145,3 +145,11 @@ V4 derivation is now shared by the installer and deployment fixtures. Eight
 executed host-path cases prove runner agreement and refusal of alternative,
 existing or symlinked capture directories. No device attempt encountered this
 host-only defect.
+
+The first clean published suite at `494321f9` stopped before fixture execution
+because builder Python 3.11 rejected a backslash in a fixture f-string expression.
+The [compatibility record](results/v4-shell-python-compatibility.json) preserves
+that refusal. Preparing the conditional shell fragments before formatting fixes
+it without changing either production remote script. Builder Python parsing and
+the 18-read/six-state host smoke checks now pass; the corrected published suite
+still must run before admission.
