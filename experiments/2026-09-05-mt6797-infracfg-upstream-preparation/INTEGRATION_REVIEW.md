@@ -52,3 +52,13 @@ Linux package validation at integration remains a CI gate. No kernel build,
 KUnit/schema execution, source extraction or device test was performed by this
 integration. Durable build documentation now describes the complete source tuple,
 cache identity and provenance rules; kernel profile admission remains separate.
+
+## Integration CI correction
+
+Integration revision `680fca9b` stopped in
+[Linux CI](https://github.com/ixoo/gemini-pda-mainline/actions/runs/33964777239)
+before fixture execution: Ubuntu's older ShellCheck reports the trap-invoked
+cleanup body as SC2317, while the local version reports SC2329. The existing
+function-scoped annotation now covers both diagnostics and explains the indirect
+EXIT-trap call. No shell execution changes; cleanup remains exercised by the
+failure and real-signal fixtures. The full gate remains enabled.

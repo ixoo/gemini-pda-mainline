@@ -401,7 +401,7 @@ prepare_kernel() (
   PREPARED_TREE="${prepare_temporary}/${ARCHIVE_ROOT}"
   export PREPARED_TREE
 
-  # shellcheck disable=SC2329 # Invoked by the subshell EXIT trap.
+  # shellcheck disable=SC2317,SC2329 # Invoked indirectly by the subshell EXIT trap.
   cleanup_prepare() {
     if [[ -n "${prepare_temporary:-}" && -d "${prepare_temporary}" && ! -L "${prepare_temporary}" ]]; then
       rm -rf -- "${prepare_temporary}"
