@@ -8404,9 +8404,11 @@ now pass; the built source matches the tested correction. The [corrected-image n
 now fixes the regression hypothesis, distinct release, unchanged finite budgets,
 pristine accounting, precision/refusal rules and output claim. Its offline
 orchestrator passes 30 scenarios and rejects old identities without altering
-the consumed predecessor protocol. **Selected next:** bind the runtime profile's
-config-input identity and release, validate the selector/source boundary, then
-build and independently compose a uniquely identified corrected candidate.
+the consumed predecessor protocol. The runtime profile and exact config-input digest are now declared, with a
+source-pinned binding editor and generation checks. **Selected next:** generate
+and validate that binding from the clean published revision, freeze the compile
+profile's prior series, and admit the patch before building and independently
+composing the uniquely identified corrected candidate.
 Complete the candidate-pinned host/remote runner, durable-capture mutations and
 exact-candidate shell validation before installation or owner boot selection.
 The existing compile package remains unadmitted for boot. No further diagnostic reads or workload on the consumed

@@ -31,9 +31,9 @@ Before a candidate can be selected, its manifest must pin:
 - the unchanged audited initramfs, exact DT composition, raw/padded container
   hashes and sizes, and independent LK/decompression and mutation checks.
 
-There is no selected runtime profile, new binding patch, runtime candidate,
-installation command or executable device runner in this document. These are
-required inputs to a later frozen runner. The protocol object accepts explicit
+The runtime profile is now declared below, but no generated binding patch,
+runtime candidate, installation command or executable device runner is admitted
+yet. These are required inputs to a later frozen runner. The protocol object accepts explicit
 candidate/record identities only for offline composition and fixtures; it is
 not a substitute for proving those identities from a package and container.
 No unknown identity may be learned from the device and accepted as expected.
@@ -104,3 +104,26 @@ USB service remains separate from the previously absent visible console.
 
 No device operation, rebuild or candidate creation occurred while defining this
 contract. The ordered implementation remains in the [roadmap](../../docs/ROADMAP.md).
+
+
+## Runtime profile and pending binding generation
+
+`gemini-thermal-v4-corrected` inherits the complete compile profile and appends
+only [its release fragment](../../configs/gemini-thermal-v4-corrected.fragment).
+The intended config-input SHA256 is
+`f789e69598a86a9f2522b4fc5c408f7c972d88396da10b018156a66bc8337e22`.
+No observer/workload/power policy is changed by that fragment. The functional
+kernel change remains the tested V4 arithmetic/index correction; the new
+identity ensures that the runtime cannot be confused with its predecessor.
+
+The [binding editor](scripts/v4-profile-source-edits.py) pins the current PSCI
+file and changes only the thermal selector's four identity words. It checks
+all four frequency/thermal selector combinations, preserves other branches,
+rejects four source mutations, and distinguishes reordered or missing fragments.
+The [generation wrapper](scripts/generate-v4-profile-on-buildbox) requires a
+clean published revision and full production-source integrity, then creates
+one normal patch from a temporary single-file Git repository, style-checks and
+replays it, and removes temporary work. The existing compile profile must be
+frozen before this binding patch enters the canonical series. No build may
+use the runtime profile until generation and selector checks pass and the
+exact patch is admitted and pushed. The old runtime profile remains unchanged.

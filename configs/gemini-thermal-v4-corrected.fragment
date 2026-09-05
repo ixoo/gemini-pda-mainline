@@ -1,0 +1,4 @@
+# Corrected V4 conversion regression: no workload or CPU admission is automatic.
+# Inherit the snapshot policy; use a separately bound runtime identity.
+CONFIG_LOCALVERSION="-gemini-thermal-v4-corrected"
+# CONFIG_LOCALVERSION_AUTO is not set

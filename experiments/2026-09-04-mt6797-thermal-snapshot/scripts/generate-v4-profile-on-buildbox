@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+set -euo pipefail
+export LC_ALL=C PYTHONDONTWRITEBYTECODE=1
+export GIT_AUTHOR_DATE=2026-09-05T04:00:00Z GIT_COMMITTER_DATE=2026-09-05T04:00:00Z
+[[ $# == 1 && $1 =~ ^[0-9a-f]{40}$ ]] || exit 2
+revision=$1
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+repo=$(cd -- "$script_dir/../../.." && pwd -P)
+source_root=/workspace/gemini-pda/src/linux-7.1.3-series-source
+managed_root=/workspace/gemini-pda/thermal-v4-profile-work
+output=/workspace/gemini-pda/thermal-v4-profile-patches
+[[ "$(git -C "$repo" rev-parse HEAD)" == "$revision" ]]
+[[ -z "$(git -C "$repo" status --porcelain)" ]]
+[[ "$(cat "$source_root/.gemini-source-state")" == 40f8065390f03ce2af00f60084977c14fd664e8ad4aa939d5cabc9ce63c94c3e ]]
+[[ "$(cat "$source_root/.gemini-source-integrity")" == 4ae968c08aae6eed3053dacefe0b63d05f8b2c0ce1623756add339d674fabf3e ]]
+python3 "$repo/scripts/source-tree-integrity" verify "$source_root"
+[[ ! -e "$output" ]]
+mkdir -p "$managed_root"
+work=$(mktemp -d "$managed_root/generation.XXXXXXXX")
+trap 'rm -rf -- "$work"' EXIT
+path=arch/arm64/kernel
+mkdir -p "$work/source/$path"
+cp "$source_root/$path/mt6797_psci.c" "$work/source/$path/"
+(
+ cd "$work/source"
+ git init -q
+ git config user.name 'Gemini Mainline Experiment'
+ git config user.email gemini-mainline@example.invalid
+ git add arch
+ git -c commit.gpgsign=false commit -qm 'Pinned thermal observation profile parent'
+ python3 "$script_dir/v4-profile-source-edits.py" "$work/source" >"$work/selector-tests.txt"
+ git add arch
+ git diff --cached --check
+ git -c commit.gpgsign=false commit -qm 'arm64: bind corrected Gemini thermal V4 configuration' \
+  -m 'Bind the corrected V4 runtime profile to its new release and exact config-input digest under the thermal observer selector. Preserve the other selector branches. The predecessor thermal profile stays reproducible through its frozen series. This experimental archive has no certifying sign-off and is not submission-ready.'
+ mkdir "$work/patches"
+ git format-patch -1 --no-signature --numbered --output-directory "$work/patches" >/dev/null
+)
+patches=("$work"/patches/*.patch)
+[[ ${#patches[@]} == 1 ]]
+perl "$source_root/scripts/checkpatch.pl" --no-tree --strict \
+ --ignore MISSING_SIGN_OFF,FILE_PATH_CHANGES,COMMIT_LOG_LONG_LINE,OPEN_ENDED_LINE \
+ "${patches[@]}" >"$work/checkpatch.txt" || { cat "$work/checkpatch.txt"; exit 1; }
+git clone -q "$work/source" "$work/replay"
+git -C "$work/replay" reset --hard HEAD~1 >/dev/null
+git -C "$work/replay" config user.name 'Gemini Mainline Experiment'
+git -C "$work/replay" config user.email gemini-mainline@example.invalid
+git -C "$work/replay" -c commit.gpgsign=false am -q "${patches[@]}"
+[[ "$(git -C "$work/replay" rev-parse 'HEAD^{tree}')" == "$(git -C "$work/source" rev-parse 'HEAD^{tree}')" ]]
+printf 'generation_revision=%s\npatches=1\nreplay=identical-tree\nproduction_driver_changes=config-input-binding-only\nhardware_access=none\n' "$revision" >"$work/generation.txt"
+mkdir "$work/result"
+cp "${patches[0]}" "$work/result/0542-arm64-bind-corrected-Gemini-thermal-V4-configuration.patch"
+cp "$work/checkpatch.txt" "$work/generation.txt" "$work/selector-tests.txt" "$work/result/"
+(cd "$work/result" && sha256sum ./* >SHA256SUMS)
+mv "$work/result" "$output"
+printf 'output=%s\n' "$output"
