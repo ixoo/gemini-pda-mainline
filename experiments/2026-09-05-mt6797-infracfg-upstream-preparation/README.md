@@ -254,3 +254,13 @@ fingerprints for all 189 existing profiles. This proposal remains experiment
 code until the integration owner reviews and wires it into the production
 builder and verifier. The global manifest, canonical series and shared scripts
 are unchanged by this handoff.
+
+## Maintainer discovery method
+
+[The maintainer auditor](scripts/audit-maintainers.py) runs the pinned upstream
+`get_maintainer.pl` against all six exact generated patch digests on Buildbox.
+It records path-only and path-plus-keyword modes separately, with Git history,
+mailmap, file-address harvesting and Fixes-derived recipients disabled. Empty
+local configuration and ignore files prevent account-specific exclusions.
+The resulting routes are candidates for review, not an automatic mailing list or
+proof of the final merge tree. No message or patch submission is sent.
