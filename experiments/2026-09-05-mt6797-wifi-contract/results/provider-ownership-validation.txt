@@ -1,0 +1,21 @@
+Provider ownership source review — 2026-09-05
+Base consumer-ordering commit: 1720d8773de92715ef2c9027ca50de905ab2060c
+Scope: source-only comparison; no implementation or candidate selection.
+Public source identities verified: 10 (five paths at two pinned revisions).
+SCPSYS source is byte-identical across the two pins.
+Pwrseq core full cross-pin diff reviewed: consumer API rename, unregister lock
+ordering, device accessor and debug output differ; described retention behavior
+is present at both pins. Provider header is byte-identical.
+Original consumer-ordering document, ledger and receipt remain unchanged.
+Validation: python3 -B scripts/check-repository passed; 189 profiles checked,
+37 unchanged grandfathered metadata issues; Linux-only artifact test skipped.
+New Markdown local links resolve; JSON parses; full new-file content reviewed
+for licensing and sensitive material. Records contain original analysis and
+public source identities/links, not copied source trees or private evidence.
+Not run: kernel build, checkpatch, DT schemas, device tests. Documentation only;
+no backend or device window used, and no provider/consumer behavior tested.
+Existing deferred-registration fixture runner unchanged: per-request timeout
+is not a total/byte cap, captured subprocess output is unbounded, and process
+timeouts do not establish process-group containment.
+PROVIDER_OWNERSHIP.md sha256=4daa3a4e7d17294933b61f9cb903123c31fadb7c5a627c190936e81842760bb9
+provider-ownership-sources.json sha256=5ac652c560b72ff438e0fdf7362c78f628737daacacdd863007dd6255fddb90d
