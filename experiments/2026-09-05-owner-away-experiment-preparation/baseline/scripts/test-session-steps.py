@@ -150,15 +150,7 @@ class LogTests(unittest.TestCase):
 
     def test_native_request_is_not_recovery(self):
         raw = (f'__A53_NATIVE_RECOVERY_BEGIN__\nboot_id={BOOT}\nreboot_sha256={S["REBOOT_SHA"]}\n'
-               'request_count=1\npartition_access=none\nsync_requested=no\n__A53_NATIVE_RECOVERY_END__\n').encode() + S['REBOOT_ANNOUNCEMENT']
-        for invalid in (raw.removesuffix(S['REBOOT_ANNOUNCEMENT']),
-                        raw + S['REBOOT_ANNOUNCEMENT'],
-                        raw.replace(b'Candidate AB:', b'Candidate XX:'),
-                        raw.replace(b'boot_id=' + BOOT.encode(), b'boot_id=' + NEW.encode()),
-                        raw.replace(S['REBOOT_SHA'].encode(), b'0' * 64), raw[:-1]):
-            with self.subTest(invalid=invalid):
-                with self.assertRaises(ValueError):
-                    S['parse_recovery_request'](invalid, {**PROCESS, 'exit_status': 255}, BOOT)
+               'request_count=1\npartition_access=none\nsync_requested=no\n__A53_NATIVE_RECOVERY_END__\n').encode()
         result = S['parse_recovery_request'](raw, {**PROCESS, 'exit_status': 255}, BOOT)
         self.assertFalse(result['recovery_confirmed'])
         for changes in ({'exit_status': 0}, {'exit_status': 94}, {'reason': 'outer-timeout'}, {'stdin_complete': False}):
@@ -299,7 +291,7 @@ class PriorPhaseTests(unittest.TestCase):
             out, err, code = self.export_raw, b'', 0
         elif label == 'native-reboot':
             out = (f'__A53_NATIVE_RECOVERY_BEGIN__\nboot_id={self.boot}\nreboot_sha256={S["REBOOT_SHA"]}\n'
-                   'request_count=1\npartition_access=none\nsync_requested=no\n__A53_NATIVE_RECOVERY_END__\n').encode() + S['REBOOT_ANNOUNCEMENT']
+                   'request_count=1\npartition_access=none\nsync_requested=no\n__A53_NATIVE_RECOVERY_END__\n').encode()
             err, code = b'Connection closed\n', 255
         elif label == 'known-good-probe':
             self.assertEqual(command[-2:], ['gemini@192.168.1.50', '/bin/sh -s'])

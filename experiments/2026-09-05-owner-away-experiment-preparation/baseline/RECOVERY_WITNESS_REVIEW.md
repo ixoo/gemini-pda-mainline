@@ -1,66 +1,76 @@
-# Native recovery witness — parser correction and supplemental assessment
+# Supplemental recovery verification with original archive closure
 
-Status: offline review proposal. No device connection, repeat request, new boot,
-candidate change or readiness promotion is authorized. The original request
-remains inconclusive and the original whole-session result remains
-`recovered-with-baseline-incomplete`.
+The coordinator accepted the limited supplemental criterion: authenticated
+baseline/authentication/complete log, exact same-boot request frame and pinned
+wrapper announcement, owner-observed return, and independent changed-ID Gemian.
+This permits preparation of dependent tests; it does not admit their execution.
+The original request remains inconclusive and the original whole-session result
+remains `recovered-with-baseline-incomplete`.
 
-## Exact future parser correction
+## Original source retained
 
-The existing hash-pinned reboot wrapper emits one announcement after the
-collector's complete request frame and before invoking BusyBox reboot. The old
-parser expected only the frame, so even an otherwise clean SSH disconnect with
-the real wrapper output would fail. The corrected parser requires the exact
-frame followed by that one exact announcement; missing, modified, duplicated,
-truncated or extra output refuses. The immutable historical wrapper bytes were
-read offline and their digest independently matched `REBOOT_SHA`; the expected
-announcement was checked against those bytes. No wrapper or generated remote
-recovery shell changes.
+The attempted in-place wrapper-output parser correction would invalidate the
+original seven-file source closure and phase admission hashes. It is withdrawn:
+`session_steps.py` and its tests are restored byte-for-byte to their original
+versions. No original source pins, admissions, manifests or results are changed.
+The original strict aggregate verifier still refuses the actual archive with
+`native request/SSH disconnect unconfirmed`.
 
-Transport requirements remain unchanged: complete stdin, exit status 255 and
-no transport failure reason. An outer timeout, interruption, helper return or
-other status cannot become `native-recovery-requested`. Applying the corrected
-parser to the saved raw request passes the output comparison but still refuses
-its outer timeout. Original phase/source snapshots and results are not edited.
-A future admission must pin the new parser source; historical phase review must
-continue using its recorded original source and manifest identities.
+A future parser revision must use a separately versioned execution/verification
+path while retaining this original closure. Repointing historical admissions or
+repinning their source hashes is not a migration strategy. No future parser or
+new device protocol is introduced here.
 
-Focused fixtures reject missing or duplicate announcement, changed announcement,
-wrong boot, wrong wrapper hash, truncated output and extra lines. Existing tests
-continue to reject timeout, incomplete stdin, normal return and wrapper-return
-status. All 47 session-step tests pass in 28.978 seconds, including prior snapshot
-and incomplete-recovery anti-promotion cases. The host-shell fixture suite also
-passes all 61 generated seal/recovery cases, with intercepted effects and no
-actual target signal/reboot; temporary fixtures were removed. Generated remote
-shell identities are unchanged. Target pidfd behavior was not retested.
+## Narrow separate verifier
 
-## Supplemental proof from this session
+[`supplemental_recovery.py`](scripts/supplemental_recovery.py) pins the original
+aggregate verifier itself, which validates the original seven-file source closure
+before importing any original evidence-processing helpers. It uses their exact
+inventory, private-file, manifest, snapshot, command, claim, admission, baseline,
+authentication, log and known-good parsers. It never calls a transport or opens
+candidate images or credentials.
 
-The preserved evidence can support a separate, explicitly supplemental statement:
+The caller must supply independently reviewed candidate/baseline/confirmation
+and all three prior-phase manifest identities. The supplemental verifier requires:
 
-- A complete same-boot request frame and the exact pinned wrapper announcement
-  were received after authenticated baseline checks and complete log preservation.
-- The owner subsequently reported the known-good screen had returned.
-- A separately admitted authenticated known-good probe confirmed Gemian with a
-  boot identity distinct from both the preceding Gemian and mainline boots.
+- Original raw baseline and authentication reparsing to pass, complete log
+  preservation and exact ordinary-recovery admission/command identities.
+- The exact complete same-boot recovery frame followed by the one exact
+  announcement of the hash-pinned wrapper; no extra, missing or changed bytes.
+- Complete stdin, empty stderr, exit 255, the exact `outer-timeout` reason and
+  elapsed time in the original 14–15-second termination window. Arbitrary
+  timeouts, interruptions, early failures and successful requests are outside
+  this narrow supplemental case.
+- The unchanged stored inconclusive request result and original parser refusal.
+- Both owner console acceptance and physical-return observation in the bound
+  confirmation admission, all matching prior manifests, exact known-good probe,
+  clean confirmation process and a boot ID different from both earlier boots.
+- The unchanged final incomplete-baseline result and a final source/inventory
+  recheck. The original full-eligibility predicate must remain false.
 
-Together these establish a requested recovery followed by independently verified
-known-good return. They do not establish the missing orderly SSH-disconnect
-witness, the precise reboot instant, or by themselves exclude every intervening
-physical action. The announcement precedes reboot invocation and is not itself
-proof that reboot completed. A 255 status caused by the local timeout is not an
-independent disconnect observation.
+Only then does it return
+`supplemental-authenticated-baseline-recovery-verified`, with the original
+classifications preserved, `orderly_ssh_disconnect_proven=false` and
+`dependent_admission=false`. This is a separate evidence result, never an original
+whole-session pass. The announcement precedes reboot invocation; the combined
+proof establishes requested recovery followed by independently verified return,
+not the missing SSH-disconnect witness or exact reboot instant.
 
-A coordinator could accept those combined observations as supplemental recovery
-evidence without another boot, if the acceptance criterion explicitly permits
-owner-confirmed return plus the independent changed-ID probe. Such a record must
-pin the existing baseline/auth/log/request/confirmation manifests and original
-source identities, retain the timed-out request result verbatim, and label the
-combined conclusion separately from the automated classifier. It must not write
-`native-recovery-requested` into the old phase or forge a passing session result.
-No supplemental acceptance or dependent-experiment admission is made here.
+## Validation and actual archive demonstration
 
-The current strict criterion still leaves the baseline incomplete. Root review
-must decide whether the available supplemental proof is sufficient for its next
-admission, or whether an independently justified future recovery observation is
-required. The parser correction alone cannot answer that policy/evidence choice.
+Four synthetic test methods exercise a valid distinct supplemental proof and
+refuse changed output, wrong boot, malformed/truncated announcement, arbitrary
+transport reasons/status/timing, incomplete stdin, missing owner observation,
+failed confirmation, incomplete authentication/log evidence, changed source
+bindings and independently pinned manifest mismatches. Semantically mutated
+fixtures refresh their manifests so refusal is not merely a checksum mismatch.
+The tests pass in 0.527 seconds. All 24 original aggregate tests also pass in 1.354 seconds; no archive fixture
+rewrites production evidence.
+
+On the actual immutable session, an offline read using the coordinator-reviewed
+bindings independently demonstrated both results: original strict aggregate
+refusal and the distinct supplemental verification. These outputs are stored
+separately from the original attempt/session under the private attended archive's
+`supplemental-offline-review/`. No device connection, repeat boot, candidate
+change, eMMC enablement or readiness promotion occurred. The coordinator owns
+any subsequent preparation or admission decision.
