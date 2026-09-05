@@ -53,11 +53,12 @@ def transform(source):
     result=replace_exact(source,'START_READ=/run/.gemini-a72-concurrent-start-read\n',
                          'START_READ=/run/.gemini-a72-concurrent-start-read\nCANCEL='+CANCEL+'\n\n'+STOP)
     result=replace_exact(result,'cleanup()\n{\n',
-                         'cleanup()\n{\n\ttrap "" HUP INT TERM\n\tstop_workers || return 1\n')
+                         'cleanup()\n{\n\ttrap "" HUP INT TERM PIPE\n\tstop_workers || return 1\n')
     result=replace_exact(result,'"$START_WRITE" "$START_READ"','"$START_WRITE" "$START_READ" "$CANCEL"',2)
     result=replace_exact(result,"\tfor output in",'\tstop_workers || exit 3\n\tfor output in')
     result=replace_exact(result,'trap cleanup EXIT HUP INT TERM',
-                         "trap cleanup EXIT\ntrap 'request_exit 129' HUP\ntrap 'request_exit 130' INT\ntrap 'request_exit 143' TERM")
+                         "trap cleanup EXIT\ntrap 'request_exit 129' HUP\ntrap 'request_exit 130' INT\ntrap 'request_exit 143' TERM\ntrap 'request_exit 141' PIPE")
+    result=replace_exact(result,'trap - EXIT HUP INT TERM','trap - EXIT HUP INT TERM PIPE')
     # Defer caught signals across fork/$! registration; cleanup must own every child.
     for mask in ('100','200'):
         result=replace_exact(result,f"$BB taskset {mask} $BB sh -c '",

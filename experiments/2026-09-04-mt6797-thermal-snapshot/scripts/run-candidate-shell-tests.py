@@ -63,7 +63,7 @@ def main():
         banner=(identity.stdout+identity.stderr).splitlines()[0]
         env=os.environ | {'GEMINI_TEST_SHELL':json.dumps([str(wrapper),'sh']),
                           'GEMINI_TEST_BUSYBOX':str(wrapper),'PYTHONDONTWRITEBYTECODE':'1'}
-        for name in ('test-workload-cleanup.py','test-attribution-runtime.py'):
+        for name in ('test-workload-cleanup.py','test-attribution-runtime.py','test-attribution-host.py'):
             result=subprocess.run([sys.executable,str(HERE/name)],env=env,text=True,capture_output=True,timeout=120)
             if result.returncode:
                 print(result.stdout);print(result.stderr,file=sys.stderr)

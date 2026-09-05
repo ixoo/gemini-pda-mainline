@@ -1,0 +1,37 @@
+Frozen attribution host entrypoint validation
+Date: 2026-09-04
+cycle_scenarios=4
+workload_scenarios=13
+restart_refusals=17
+receipt_field_mutations_rejected=15
+receipt_duplicate_refusals=1
+manifest_tamper_refusals=1
+cycle_request_seal=durable-before-transport
+workload_request_seal=durable-before-transport
+runtime_transport_session_ceiling=3
+workload_request_ceiling=1
+snapshot_ceiling=3
+frequency_ceiling=3
+ordinary_temperature_read_ceiling=2
+retry_ceiling=0
+host_manifest_integrity=pass
+source_pins=complete
+host_syntax_and_shellcheck=pass
+kernel_build=none
+device_action=none
+
+The actual entrypoint executes with fake USB subprocess responses. Cycle tests
+cover expected disconnect, truncation, continued reachability and timeout with
+a complete request frame. Workload tests cover success, retained thermal
+rejection, hot/consumed preflight, timeout/nonzero/truncated runtime, keyboard
+interruption and final-frame timeout, boot change, missing fields, hot values
+and accounting drift. Every started capture refuses a second execution without
+another USB call. Request markers precede possibly consuming transport calls;
+all retained evidence passes its host checksum manifest after each outcome.
+
+The runtime classifier is real in these fixtures, including inherited CPU/RAM
+validation and the thermal evaluator. Device responses are synthetic. Shutdown
+shell syntax and ShellCheck pass, but no shutdown command was sent to hardware.
+The cooperative cleanup adds a caught SIGPIPE path; its four signal fixtures
+pass on the host. A final exact-candidate BusyBox run including the host suite
+is required before cycle preparation is admitted.

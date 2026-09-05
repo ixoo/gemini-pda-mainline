@@ -271,3 +271,8 @@ The [exact candidate shell gate](WORKLOAD_ATTRIBUTION.md#exact-candidate-shell-v
 now passes on Buildbox under user-mode emulation, including the actual ash and
 parser applets. The recorded result remains hardware-free. The remaining
 execution prerequisites are the one-shot host runner and fresh-cycle receipt.
+
+
+The [frozen host protocol](FINAL_PROTOCOL.md) and actual entrypoint now pass
+host failure/persistence fixtures. Execution remains gated on final exact-shell
+validation including the added SIGPIPE cleanup and host suite.

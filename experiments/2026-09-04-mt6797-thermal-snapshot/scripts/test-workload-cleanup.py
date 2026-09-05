@@ -108,7 +108,7 @@ stop_workers || exit 96
     # Exercise the materialized signal traps and cleanup body, not a rewrite.
     cleanup=text[text.index('cleanup()\n'):text.index('file_state()\n')]
     traps=text[text.index('trap cleanup EXIT\n'):text.index("$BB printf '%s\\n' __GEMINI_A72_CONCURRENT_MULTILINE_BEGIN__")]
-    for sig,code in ((signal.SIGHUP,129),(signal.SIGINT,130),(signal.SIGTERM,143)):
+    for sig,code in ((signal.SIGHUP,129),(signal.SIGINT,130),(signal.SIGTERM,143),(signal.SIGPIPE,141)):
         case=root/f'signal-{sig}';case.mkdir()
         values='\n'.join(f'{key}={case/key}' for key in ('CANCEL','FILE8','FILE9','OUT8','OUT9','READ8','READ9','START_WRITE','START_READ'))
         harness=case/'parent.sh'
@@ -188,4 +188,4 @@ wait "$saved_pid" 2>/dev/null || :
 exit "$result"
 ''')
         assert subprocess.run(SHELL+[str(harness)],timeout=5).returncode!=0
-print('actual_worker_body_cases=12 signal_cleanup_cases=3 spawn_registration_signal_cases=1 simultaneous_children=4 cancellation_publication_failure=1 negative_cleanup_mutations=2 source_identity_mutations=1 original_worker_payload_bytes=preserved device_action=none')
+print('actual_worker_body_cases=12 signal_cleanup_cases=4 spawn_registration_signal_cases=1 simultaneous_children=4 cancellation_publication_failure=1 negative_cleanup_mutations=2 source_identity_mutations=1 original_worker_payload_bytes=preserved device_action=none')

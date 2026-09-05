@@ -187,3 +187,16 @@ explanatory annotations for intentional paired guards and indirect callbacks.
 No runtime condition or kernel source changed. This closes the candidate-shell
 prerequisite only; the host transport/receipt gate is still required before
 any physical boot request or workload.
+
+
+## Frozen host entrypoint
+
+The [final host protocol](FINAL_PROTOCOL.md) now fixes exclusive cycle/runtime
+captures, receipt and raw-frame verification, fresh-boot admission, durable
+request seals, transport timeouts and postflight accounting. Its
+[host fixtures](scripts/test-attribution-host.py) and
+[offline result](results/attribution-host-validation.txt) exercise the real
+entrypoint with fake USB, including interruption and refusal to restart. The
+cleanup adds explicit SIGPIPE handling. A final exact-candidate shell run for
+this combined revision is required before cycle preparation; the device has
+not been contacted by these tests.
