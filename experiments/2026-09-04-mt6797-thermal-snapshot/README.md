@@ -374,3 +374,8 @@ The corrected candidate now passes [offline composition](results/v4-candidate-co
 and [frozen validation](results/v4-candidate-validation.json), including unchanged
 initramfs/topology and rejected DT, header, padding and manifest mutations.
 Host/remote runner and exact-shell admission remain required; it is not installed.
+
+
+The [corrected candidate host protocol](V4_HOST_PROTOCOL.md) now has a pinned
+runner, guarded installer adapter and passing host interruption/restart fixtures.
+Exact-candidate shell admission remains pending; no device action occurred.

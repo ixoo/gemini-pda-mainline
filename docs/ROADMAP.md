@@ -8411,9 +8411,13 @@ now passes Buildbox, package/fetch verification and exact config-binding checks;
 only the resolved local version differs from the compile control. The [corrected offline candidate](../experiments/2026-09-04-mt6797-thermal-snapshot/results/v4-candidate-composition.json)
 now reproduces across two assemblies with unchanged initramfs and DT topology,
 only the new provenance leaf, and passing LK/padding/manifest mutation checks.
-**Selected next:** pin that exact candidate, record and release in the new host
-and remote runner; validate durable request/capture/restart refusals, complete
-cycle-receipt handling and the exact candidate shell before installation.
+The [candidate-pinned host protocol](../experiments/2026-09-04-mt6797-thermal-snapshot/V4_HOST_PROTOCOL.md)
+now passes interruption, restart, receipt and source-refusal fixtures; the
+source-pinned installer adapter retains all guarded write/readback/shutdown gates.
+**Selected next:** execute the new remote checks under the exact candidate
+BusyBox with synthetic state, including identity, lifecycle and attempt refusals,
+and run the complete host suite from a clean published revision. Publish that
+admission before known-good-OS preparation, installation or physical selection.
 The existing compile package remains unadmitted for boot. No further diagnostic reads or workload on the consumed
 session; no repeat is admitted. Any future boot requires a distinct,
 decision-changing hypothesis and published bounded protocol. Integrated thermal

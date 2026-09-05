@@ -31,9 +31,9 @@ Before a candidate can be selected, its manifest must pin:
 - the unchanged audited initramfs, exact DT composition, raw/padded container
   hashes and sizes, and independent LK/decompression and mutation checks.
 
-The runtime profile and generated binding patch are now admitted for building
-below, but no runtime candidate, installation command or executable device
-runner is admitted yet. These are required inputs to a later frozen runner. The protocol object accepts explicit
+The runtime profile, binding and offline candidate are now validated below.
+The executable host tools are described in [the host protocol](V4_HOST_PROTOCOL.md),
+but installation and device execution are not admitted yet. These are required inputs to a later frozen runner. The protocol object accepts explicit
 candidate/record identities only for offline composition and fixtures; it is
 not a substitute for proving those identities from a package and container.
 No unknown identity may be learned from the device and accepted as expected.
@@ -198,3 +198,9 @@ refusals and exact candidate shell validation remain required before any
 consuming observation or physical boot. Existing consumed protocols cannot be
 retargeted by simply substituting a candidate hash. Thermal repeatability and
 all wider CPU/power-management gates remain closed.
+
+
+The [candidate-pinned host protocol](V4_HOST_PROTOCOL.md) now provides the strict
+receipt/candidate gate, durable one-shot runner and identity-only remote adapter.
+Host interruption/restart/refusal fixtures and installer derivation pass.
+Exact-candidate shell validation remains required before device preparation.
