@@ -16,7 +16,7 @@
   "configuration_delta": "none",
   "source_refresh": "reuse managed provider source under Buildbox lock; no duplicate Linux tree",
   "prior_build_receipt": "../2026-09-05-mt6797-whole-image-plan/BUILD_RESULT.md",
-  "build": "pending",
+  "build": "compilation and linkage accepted",
   "device": "not admitted",
   "acceptance": [
     "Exact reviewed HIF and binding source hashes, real kernel compilation commands with no host-test macros",
@@ -24,5 +24,7 @@
     "Real image-plan, allocation and mutex references; ordered START PIO and WCIR access disassembly",
     "Prior parser/CRC/complete-plan compilation and linkage preserved",
     "No private initcall, exported symbols, registration or test-only generation hook; active binding entry still refuses"
-  ]
+  ],
+  "build_commit": "387642749402421324f1b5710f5efe335ec5fa63",
+  "build_receipt": "BUILD_RESULT.md"
 }

@@ -112,5 +112,5 @@ actual owner and complete whole-image executor; no device boot is requested.
 
 [The integration record](INTEGRATION.json) selects this delta and the reviewed
 [immutable image binding](../2026-09-05-mt6797-image-binding/README.md) for the
-existing isolated compile profile. Kernel compilation and linkage acceptance
-remain pending; this selects no runtime caller or device candidate.
+existing isolated compile profile. [Kernel compilation and linkage passed](BUILD_RESULT.md); this selects no
+runtime caller or device candidate.

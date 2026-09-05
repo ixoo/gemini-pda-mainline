@@ -91,8 +91,8 @@ kernel compilation and cannot decrease the counter even in tests.
 
 Strict checkpatch reports no source findings. Its generic MAINTAINERS warning
 and missing-DCO error are retained unfiltered because the archived author
-makes no certification. No kernel compile or hardware test has run for this
-delta; host shims do not validate kernel allocator/mutex integration.
+makes no certification. Host shims do not validate kernel allocator/mutex integration; subsequent
+kernel compilation is recorded below. No hardware test has run for this delta.
 
 ## Exact next provider connection
 
@@ -124,5 +124,5 @@ Buildbox compile; [proposal.json](proposal.json) identifies this patch's delta.
 
 [The shared compile integration](../2026-09-05-mt6797-hif-start-core/INTEGRATION.json)
 places this patch after START in the canonical series, under filename `0005`,
-without changing its bytes. Compilation remains pending. Active entry remains
-refused and no device candidate is selected.
+without changing its bytes. [Compilation and linkage passed](../2026-09-05-mt6797-hif-start-core/BUILD_RESULT.md).
+Active entry remains refused and no device candidate is selected.
