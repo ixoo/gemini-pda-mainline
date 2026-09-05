@@ -271,3 +271,18 @@ of MediaTek reviewers for the generic changes, and record the binding
 compatibility question and source-level registration/resource review. The
 [full routing result](results/maintainer-routing.json) is pinned evidence;
 reviewer discovery does not establish a merge agreement or submission readiness.
+
+## Upstream source archive acquisition
+
+[The bounded acquisition helper](scripts/acquire-upstream-archive.py) downloads
+one immutable upstream snapshot directly on Buildbox, with a 512 MiB compressed
+limit, five-minute download bound and eight-GiB member-content ceiling. It scans
+archive headers without extracting a source tree, refuses traversal, escaping
+links, duplicate members and special nodes, and compares twelve reviewed files
+against [pinned inputs](archive-inputs.json), including the upstream Makefile.
+Five [fixture groups](scripts/test-archive-members.py) cover member safety and
+actual small archive content refusals. This is source acquisition, not a build
+or an independent full-Git-tree equivalence proof. A retained archive may be
+reused only against its subsequently published checksum; unexpected existing
+state is preserved and refused. Regenerable abandoned partial downloads are
+cleaned under an exclusive acquisition lock.
