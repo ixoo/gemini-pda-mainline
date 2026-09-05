@@ -4,6 +4,8 @@
 import importlib.util
 from pathlib import Path
 import re
+import os
+import json
 import subprocess
 import sys
 import tempfile
@@ -17,6 +19,8 @@ builder=load('builder',HERE/'build-attribution-runtime.py')
 classifier=load('classifier',HERE/'classify-attribution-runtime.py')
 parent=load('parent_fixture',ROOT/'experiments/2026-09-04-mt6797-a72-frequency-observation/scripts/test-production-runtime.py')
 BOOT=parent.BOOT_ID
+SHELL=json.loads(os.environ.get('GEMINI_TEST_SHELL','["sh"]'))
+assert isinstance(SHELL,list) and SHELL and all(isinstance(v,str) for v in SHELL)
 
 def record(n,maximum):
     values=[maximum-600+i*100 for i in range(7)]
@@ -66,7 +70,7 @@ for mutation in mutations:
     else:raise AssertionError('bad combined transcript admitted')
 with tempfile.TemporaryDirectory(prefix='gemini-attribution-fixtures-',dir='/tmp') as tmp:
     root=Path(tmp);path=root/'program.sh';path.write_text(program)
-    subprocess.run(['bash','-n',str(path)],check=True)
+    subprocess.run(SHELL+['-n',str(path)],check=True)
     subprocess.run(['shellcheck',str(path)],check=True)
     for transcript,expected in ((valid,0),(capture(41300),3),(mutations[0],1)):
         capture_path=root/'capture.txt';capture_path.write_text(transcript)
@@ -79,6 +83,7 @@ if [ "$1" = cat ] && [ "$2" = "$SNAPSHOT" ]; then
  printf 'read\\n' >> "$COUNT"
  printf 'abi=1 attempts=%s limit=3\\n' "$NEXT" > "${SNAPSHOT}_status"
 fi
+if [ -n "${GEMINI_TEST_BUSYBOX:-}" ]; then exec "$GEMINI_TEST_BUSYBOX" "$@"; fi
 exec "$@"
 ''');adapter.chmod(0o700)
     fragment=(HERE/'attribution-observer.sh').read_text()
@@ -105,7 +110,7 @@ frequency_reject() {{ printf 'refused=%s\\n' "$1"; exit 3; }}
 {fragment}
 attribution_observe {label}
 '''
-        outcome=subprocess.run(['sh'],input=harness,text=True,capture_output=True)
+        outcome=subprocess.run(SHELL,input=harness,text=True,capture_output=True)
         assert outcome.returncode==(0 if kind=='valid' else 3),(kind,outcome.stderr)
         assert len(count.read_text().splitlines())==(0 if kind=='stale' else 1)
 print('materialized_shell=pass combined_positive=1 thermal_rejection_retained=1 combined_mutations_rejected=14 classifier_cli_exit_cases=3 observer_fragment_cases=9 consumed_boot_refusals=3 device_action=none')

@@ -3,12 +3,18 @@
 """Real shell child cancellation/reaping with injected RAM-operation adapters."""
 from pathlib import Path
 import re
+import os
+import json
+import shlex
 import signal
 import time
 import subprocess
 import tempfile
 from workload_cleanup import STOP, SOURCE, transform, materialize
 
+SHELL=json.loads(os.environ.get('GEMINI_TEST_SHELL','["sh"]'))
+assert isinstance(SHELL,list) and SHELL and all(isinstance(v,str) for v in SHELL)
+SHELL_TEXT=shlex.join(SHELL)
 text=materialize()
 # Undo exactly the reviewed inline additions: every original worker byte survives.
 original=SOURCE.read_text()
@@ -26,7 +32,7 @@ else:raise AssertionError('source mutation admitted')
 with tempfile.TemporaryDirectory(prefix='gemini-cleanup-fixtures-',dir='/tmp') as tmp:
     root=Path(tmp)
     script=root/'materialized.sh';script.write_text(text)
-    subprocess.run(['bash','-n',str(script)],check=True)
+    subprocess.run(SHELL+['-n',str(script)],check=True)
     subprocess.run(['shellcheck',str(script)],check=True)
     # Live children use the actual worker bodies. Only platform/operation adapters
     # change: host paths, proc affinity inputs, and a held finite RAM operation.
@@ -43,6 +49,7 @@ case "$1" in
   ;;
 esac
 command=$1; shift
+if [ -n "${GEMINI_TEST_BUSYBOX:-}" ]; then exec "$GEMINI_TEST_BUSYBOX" "$command" "$@"; fi
 exec "$command" "$@"
 ''');adapter.chmod(0o700)
     for index in range(4):
@@ -70,7 +77,7 @@ export READY
 HOLD_OPERATION={'1' if phase=='active' else '0'}
 export HOLD_OPERATION
 {STOP}
-sh {worker} {args} >{case/'output'} 2>&1 &
+{SHELL_TEXT} {worker} {args} >{case/'output'} 2>&1 &
 pid8=$!
 '''+ (f'while [ ! -e {ready} ]; do sleep .01; done\n' if phase=='active' else f'wait "$pid8" || :; pid8=\n' if phase=='completed' else '')+f'''
 stop_workers || exit 90
@@ -80,7 +87,7 @@ rm -f {target}
 sleep .02
 [ ! -e {target} ] || exit 93
 ''')
-            subprocess.run(['sh',str(harness)],check=True,timeout=5)
+            subprocess.run(SHELL+[str(harness)],check=True,timeout=5)
     # All four handles must be reaped, including mixed already-finished/live children.
     multi=root/'four-children.sh'
     multi.write_text(f"""#!/bin/sh
@@ -97,7 +104,7 @@ reader_pid8=$!
 reader_pid9=$!
 stop_workers || exit 96
 """+''.join(f'[ -e {root/f"four-done-{n}"} ] || exit 97\n' for n in range(1,5)))
-    subprocess.run(['sh',str(multi)],check=True,timeout=5)
+    subprocess.run(SHELL+[str(multi)],check=True,timeout=5)
     # Exercise the materialized signal traps and cleanup body, not a rewrite.
     cleanup=text[text.index('cleanup()\n'):text.index('file_state()\n')]
     traps=text[text.index('trap cleanup EXIT\n'):text.index("$BB printf '%s\\n' __GEMINI_A72_CONCURRENT_MULTILINE_BEGIN__")]
@@ -118,7 +125,7 @@ pid8=$!
 touch {case/'ready'}
 while :; do sleep .01; done
 """)
-        child=subprocess.Popen(['sh',str(harness)])
+        child=subprocess.Popen(SHELL+[str(harness)])
         try:
             deadline=time.monotonic()+3
             while not (case/'ready').exists() and time.monotonic()<deadline:time.sleep(.01)
@@ -147,7 +154,7 @@ spawn_in_progress=0
 [ "$pending_exit" = 0 ] || exit "$pending_exit"
 exit 98
 """)
-    assert subprocess.run(['sh',str(harness)],timeout=5).returncode==143
+    assert subprocess.run(SHELL+[str(harness)],timeout=5).returncode==143
     assert (gap/'done').exists() and not (gap/'FILE8').exists()
     # A failed cancellation publication still waits for finite owned children.
     failed=root/'failed-publication.sh'
@@ -160,7 +167,7 @@ pid8=$!
 stop_workers && exit 94
 [ -e {root/'finite-done'} ] || exit 95
 ''')
-    subprocess.run(['sh',str(failed)],check=True,timeout=5)
+    subprocess.run(SHELL+[str(failed)],check=True,timeout=5)
     # Remove each essential half and prove the oracle refuses the mutant.
     for name,mutant in [('no-wait',STOP.replace('wait "$pid8" || :;',':;')),
                         ('no-cancel',STOP.replace('$BB touch "$CANCEL" || cancel_status=1',':'))]:
@@ -180,5 +187,5 @@ stop_workers
 wait "$saved_pid" 2>/dev/null || :
 exit "$result"
 ''')
-        assert subprocess.run(['sh',str(harness)],timeout=5).returncode!=0
+        assert subprocess.run(SHELL+[str(harness)],timeout=5).returncode!=0
 print('actual_worker_body_cases=12 signal_cleanup_cases=3 spawn_registration_signal_cases=1 simultaneous_children=4 cancellation_publication_failure=1 negative_cleanup_mutations=2 source_identity_mutations=1 original_worker_payload_bytes=preserved device_action=none')
