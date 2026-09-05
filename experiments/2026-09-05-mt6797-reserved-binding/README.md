@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-05-mt6797-reserved-binding` |
-| Status | Completed offline proposal; kernel compilation pending integration |
+| Status | Offline proposal and isolated kernel compilation accepted |
 | Subsystem | MT6797 connectivity firmware image ownership |
 | Device variant | Gemini PDA target; no device accessed |
 | Date | 2026-09-05 |
@@ -108,6 +108,6 @@ Checkpatch reports zero warnings or style checks and the expected missing
 Confirmed only for the tested host model: the owner can retain and revalidate
 this descriptor while continuing to refuse active entry. The host shims do not
 prove actual Linux reference behavior, linkage, boot resource correctness, or
-hardware support. No kernel build or physical test ran in this work item. The
-integrator owns the explicit Buildbox compilation and its source/object identity
-checks. Ordered follow-up remains in the [roadmap](../../docs/ROADMAP.md).
+hardware support. The subsequent [Buildbox acceptance](BUILD_RESULT.md) records
+real kernel compilation, source/object identities and linkage. No physical test
+ran. Ordered follow-up remains in the [roadmap](../../docs/ROADMAP.md).
