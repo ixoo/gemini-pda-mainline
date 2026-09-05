@@ -1,0 +1,20 @@
+# Isolated compile-only provider lifecycle review; never a device candidate.
+CONFIG_ARCH_MEDIATEK=y
+CONFIG_COMMON_CLK_MT6797=y
+CONFIG_MFD_SYSCON=y
+CONFIG_MTK_SCPSYS=y
+CONFIG_PM=y
+CONFIG_REGULATOR=y
+CONFIG_LOCALVERSION="-mt6797-provider-compile"
+# CONFIG_LOCALVERSION_AUTO is not set
+# CONFIG_MTK_SCPSYS_PM_DOMAINS is not set
+# CONFIG_MTK_MFG_PM_DOMAIN is not set
+# CONFIG_MODULES is not set
+# CONFIG_KUNIT is not set
+# CONFIG_NET is not set
+# CONFIG_USB is not set
+# CONFIG_MMC is not set
+# CONFIG_CPU_FREQ is not set
+# CONFIG_CPU_IDLE is not set
+# CONFIG_SUSPEND is not set
+# CONFIG_HIBERNATION is not set

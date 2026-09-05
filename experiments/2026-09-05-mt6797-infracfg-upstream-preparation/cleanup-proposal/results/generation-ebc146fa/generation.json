@@ -1,0 +1,17 @@
+{
+  "active_series_changed": false,
+  "certification": "unsigned synthetic review identity; actual author/DCO unresolved",
+  "changed_files": [
+    "drivers/clk/mediatek/clk-mtk.c"
+  ],
+  "corrected_source_sha256": "01f33c475e9bbe6ffef504d8247acd618bd53cc563de42abef4ada96b8344646",
+  "device_action": false,
+  "generated_commit": "9493a56d44ee06a3cbbc253a827f99b0a07d072a",
+  "kernel_build": false,
+  "publication_check": "live exact origin ref advertisement before generation",
+  "published_ref": "refs/heads/codex/infracfg-validation-results",
+  "replay": "exact full tree match",
+  "repository_commit": "ebc146fa14da2120d1ba109626955879ba3b38c1",
+  "tree": "422847a3f1a1328b85dc77b36024379641f041ad",
+  "upstream_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c"
+}

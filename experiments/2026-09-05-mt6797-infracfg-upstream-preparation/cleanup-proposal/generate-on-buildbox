@@ -1,0 +1,146 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# One separate unsigned patch; no kernel build or active-series mutation.
+set -euo pipefail
+export LC_ALL=C PYTHONDONTWRITEBYTECODE=1
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+# Guard functions are exercised directly by test-generator-guards.py.
+verify_published() {
+	local advertised
+	advertised=$(timeout --kill-after=5 30 git ls-remote --exit-code --refs \
+		https://github.com/ixoo/gemini-pda-mainline.git "$2") || die 'remote publication check failed'
+	[[ $advertised == "$1"$'\t'"$2" ]] || die 'advertised ref does not equal requested revision'
+}
+
+prepare_scratch() {
+	python3 - "$1" <<'PYGUARD'
+import os, pathlib, shutil, stat, sys
+root = pathlib.Path(sys.argv[1])
+identity = 'clk-mtk reset cleanup generator scratch v1\n'
+if not root.exists() and not root.is_symlink():
+    root.mkdir(mode=0o700)
+    (root / '.owner').write_text(identity)
+info = root.lstat()
+if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
+    raise SystemExit('scratch root must be a private owned directory')
+marker = root / '.owner'
+if marker.is_symlink() or not marker.is_file() or marker.read_text() != identity:
+    raise SystemExit('unrecognized scratch ownership marker')
+work = root / 'run'
+if work.is_symlink() or (work.exists() and not work.is_dir()):
+    raise SystemExit('unexpected scratch run type')
+if work.exists():
+    shutil.rmtree(work)
+PYGUARD
+}
+
+# Entry point: never source or execute backend actions in host guard fixtures.
+[[ $# == 2 && $1 =~ ^[0-9a-f]{40}$ && $2 == refs/heads/* ]] || die 'expected exact project revision and full published branch ref'
+readonly revision=$1 published_ref=$2
+git check-ref-format "$published_ref" || die 'invalid published branch ref'
+here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+repo=$(git -C "$here" rev-parse --show-toplevel)
+readonly here repo
+[[ $(uname -s) == Linux && $repo == /workspace/gemini-pda/checkouts/* ]] || die 'managed Buildbox checkout required'
+[[ $(git -C "$repo" rev-parse HEAD) == "$revision" ]] || die 'wrong project revision'
+[[ -z $(git -C "$repo" status --porcelain) ]] || die 'dirty project checkout'
+[[ $(git -C "$repo" remote get-url origin) == https://github.com/ixoo/gemini-pda-mainline.git ]] || die 'wrong project origin'
+for tool in git python3 perl flock timeout; do command -v "$tool" >/dev/null || die "missing $tool"; done
+verify_published "$revision" "$published_ref"
+readonly upstream=4d7d9486c04d917265f64c55bd23b2cc4fe7749c
+readonly scratch=/workspace/gemini-pda/tmp
+readonly output_root=/workspace/gemini-pda/review-packages/clk-mtk-reset-cleanup
+readonly package="$output_root/$revision"
+readonly partial="$package.partial"
+[[ -d $scratch && ! -L $scratch ]] || die 'managed scratch missing or symlinked'
+mkdir -p "$output_root"
+[[ ! -L $output_root ]] || die 'symlinked output root'
+# Use the existing common lock; never recreate, truncate or remove it.
+readonly lock="$HOME/gemini-pda-buildbox/build.lock"
+[[ -f $lock && ! -L $lock ]] || die 'existing normal Buildbox lock required'
+exec 9<"$lock"
+flock -n 9 || die 'Buildbox window busy'
+python3 - "$scratch" "$output_root" <<'PY'
+import shutil,sys
+for path in sys.argv[1:]:
+    if shutil.disk_usage(path).free < 512 * 1024 * 1024:
+        raise SystemExit('at least 512 MiB free required')
+PY
+[[ ! -e $package && ! -L $package ]] || die 'existing result; preserve and inspect'
+[[ ! -L $partial ]] || die 'symlinked partial'
+if [[ -e $partial ]]; then
+	[[ -d $partial ]] || die 'unexpected partial type'
+	rm -rf -- "$partial"
+fi
+readonly scratch_root="$scratch/clk-mtk-reset-cleanup"
+readonly work="$scratch_root/run"
+prepare_scratch "$scratch_root"
+cleanup() {
+	rm -rf -- "$work"
+	[[ ! -d $partial || -L $partial ]] || rm -rf -- "$partial"
+}
+trap cleanup EXIT
+trap 'exit 130' INT TERM
+mkdir "$work" "$partial"
+git -C "$work" init --quiet
+git -C "$work" remote add origin https://github.com/torvalds/linux.git
+# Git-only metadata plus the one source file and checker. No Linux tree export.
+timeout 60 git -C "$work" -c protocol.version=2 fetch --quiet --filter=blob:none --depth=1 origin "$upstream"
+git -C "$work" sparse-checkout init --no-cone
+printf '/drivers/clk/mediatek/clk-mtk.c\n/scripts/checkpatch.pl\n/scripts/spelling.txt\n/scripts/const_structs.checkpatch\n' |
+	git -C "$work" sparse-checkout set --no-cone --stdin
+timeout 30 git -C "$work" checkout --quiet --detach "$upstream"
+[[ $(git -C "$work" rev-parse HEAD) == "$upstream" ]] || die 'wrong upstream parent'
+[[ -z $(git -C "$work" status --porcelain) ]] || die 'dirty upstream parent'
+python3 - "$here" "$work" <<'PY'
+import importlib.util,pathlib,sys
+here, work = map(pathlib.Path, sys.argv[1:])
+spec = importlib.util.spec_from_file_location('cleanup', here / 'derive.py')
+d = importlib.util.module_from_spec(spec);spec.loader.exec_module(d)
+p = work / d.SOURCE_PATH
+p.write_bytes(d.derive(p.read_bytes()))
+PY
+git -C "$work" add --sparse drivers/clk/mediatek/clk-mtk.c
+git -C "$work" diff --cached --check
+export GIT_AUTHOR_NAME='Gemini Mainline Experiment' GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid
+export GIT_COMMITTER_NAME=$GIT_AUTHOR_NAME GIT_COMMITTER_EMAIL=$GIT_AUTHOR_EMAIL
+export GIT_AUTHOR_DATE=2026-09-05T19:00:00Z GIT_COMMITTER_DATE=2026-09-05T19:00:00Z
+git -C "$work" -c commit.gpgsign=false commit --quiet --no-gpg-sign \
+	-m 'clk: mediatek: remove clock provider when reset registration fails' \
+	-m 'The common probe publishes its clock provider before registering resets.
+If reset registration fails, the current unwind frees the clock data but
+leaves the OF provider published with that data pointer.
+
+Remove the published provider before unwinding the clocks on this error.
+Keep clock-publication failure on its existing path, which has no provider
+to remove.'
+git -C "$work" format-patch --no-signature --stdout -1 HEAD >"$partial/0001-clk-mediatek-remove-provider-on-reset-registration-error.patch"
+export GIT_INDEX_FILE="$work/.git/replay-index"
+git -C "$work" read-tree "$upstream"
+git -C "$work" apply --cached --check "$partial/0001-clk-mediatek-remove-provider-on-reset-registration-error.patch"
+git -C "$work" apply --cached "$partial/0001-clk-mediatek-remove-provider-on-reset-registration-error.patch"
+[[ $(git -C "$work" write-tree) == "$(git -C "$work" rev-parse 'HEAD^{tree}')" ]] || die 'replay tree mismatch'
+unset GIT_INDEX_FILE
+perl "$work/scripts/checkpatch.pl" --no-tree --strict --ignore MISSING_SIGN_OFF \
+	"$partial/0001-clk-mediatek-remove-provider-on-reset-registration-error.patch" >"$partial/checkpatch.txt"
+python3 - "$work" "$revision" "$upstream" "$published_ref" <<'PY' >"$partial/generation.json"
+import hashlib,json,pathlib,subprocess,sys
+work, revision, upstream, published_ref = sys.argv[1:]
+def git(*args):return subprocess.check_output(['git','-C',work,*args],text=True).strip()
+path='drivers/clk/mediatek/clk-mtk.c'
+assert git('diff','--name-only',upstream,'HEAD')==path
+print(json.dumps({'repository_commit':revision,'published_ref':published_ref,
+ 'publication_check':'live exact origin ref advertisement before generation','upstream_commit':upstream,
+ 'generated_commit':git('rev-parse','HEAD'),'tree':git('rev-parse','HEAD^{tree}'),
+ 'changed_files':[path],'corrected_source_sha256':hashlib.sha256((pathlib.Path(work)/path).read_bytes()).hexdigest(),
+ 'replay':'exact full tree match','certification':'unsigned synthetic review identity; actual author/DCO unresolved',
+ 'kernel_build':False,'active_series_changed':False,'device_action':False},indent=2,sort_keys=True))
+PY
+(
+	cd "$partial"
+	sha256sum ./*.patch checkpatch.txt generation.json >SHA256SUMS
+	sha256sum --check --strict SHA256SUMS >/dev/null
+)
+mv "$partial" "$package"
+printf 'review_package=%s\n' "$package"

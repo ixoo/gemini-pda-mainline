@@ -1,0 +1,5 @@
+total: 0 errors, 0 warnings, 0 checks, 16 lines checked
+
+/workspace/gemini-pda/review-packages/clk-mtk-reset-cleanup/ebc146fa14da2120d1ba109626955879ba3b38c1.partial/0001-clk-mediatek-remove-provider-on-reset-registration-error.patch has no obvious style problems and is ready for submission.
+
+NOTE: Ignored message types: MISSING_SIGN_OFF

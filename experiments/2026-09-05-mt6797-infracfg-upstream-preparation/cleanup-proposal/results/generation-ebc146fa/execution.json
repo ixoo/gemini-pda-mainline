@@ -1,0 +1,8 @@
+{
+  "exit_code": 0,
+  "elapsed_seconds": 47.085,
+  "outer_limit_seconds": 600,
+  "forced_kill_grace_seconds": 5,
+  "repository_commit": "ebc146fa14da2120d1ba109626955879ba3b38c1",
+  "published_ref": "refs/heads/codex/infracfg-validation-results"
+}

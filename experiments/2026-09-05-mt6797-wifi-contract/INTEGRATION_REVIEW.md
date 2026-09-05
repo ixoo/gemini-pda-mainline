@@ -184,3 +184,8 @@ that compilation has not yet run. Outer preparation must precede consumer
 attachment/runtime-PM activation, not merely consumer probe. Ownership, reset,
 rails, SPM authority and transition recovery remain unresolved; neither passive
 registration nor its host tests establish Wi-Fi support or admit a device test.
+
+The integrator now selects the unchanged proposal only in the isolated
+[provider compile profile](../2026-09-05-mt6797-infracfg-upstream-preparation/PROVIDER_COMPILE.md).
+Existing profile inputs and all SoC capability selections remain unchanged.
+The build record owns actual compile/fetch status; this adds no physical readiness.

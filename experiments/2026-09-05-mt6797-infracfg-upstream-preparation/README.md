@@ -338,3 +338,23 @@ the minimal correction need not add a second clear. Publication failure must
 retain its existing unwind path. These are reviewed implementation directions,
 not changed patch inputs. The validated six-patch topic and its original
 receipts remain unchanged; revised inputs need their relevant checks.
+
+## Common-helper cleanup integration
+
+The [separate cleanup proposal](cleanup-proposal/README.md), generator and
+[completed generation record](cleanup-proposal/GENERATION_RESULT.md) are
+adopted through `20254243`. Independent review confirmed the reset-error
+edge and actual-C fixture coverage. The generator's publication and stale
+scratch corrections passed 14 actual-shell guard cases in coordinator review.
+Integration verified all four original package members, their byte counts and
+SHA-256 identities, and the original inventory's explicit patch-path mapping.
+The receipt records successful full-tree replay and strict style checks.
+No second generation, private transport reproduction or device action occurred.
+
+The fix removes the published clock provider before freeing its data after
+reset-registration failure; clock-publication failure keeps its existing unwind.
+Actual author certification and in-kernel validation remain separate. The
+original six-patch topic and its prior results remain unchanged.
+
+The separate [provider compilation](PROVIDER_COMPILE.md) selects only the two
+reviewed lifecycle proposals; it does not replace the six-patch validation.
