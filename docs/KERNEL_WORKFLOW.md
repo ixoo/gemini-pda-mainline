@@ -367,6 +367,10 @@ artifacts/tooling/repository-checks/bin/python3 scripts/check-repository
 With those dependencies already installed, `./scripts/check-repository` is
 equivalent. Linux CI supplies its own environment and runs the Linux-only
 artifact-provenance fixtures. The gate reports any local skips explicitly.
+A clean checkout can check a complete integration range with
+`./scripts/check-repository --base BASE_COMMIT`. The manual CI workflow accepts
+the same optional `base` revision, including when an earlier run failed before
+checking the full change set.
 
 ## Repository publication gate
 

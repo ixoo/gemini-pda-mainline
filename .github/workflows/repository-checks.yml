@@ -5,6 +5,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      base:
+        description: Optional base revision for a complete corrective or integration review
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -19,7 +24,7 @@ jobs:
     timeout-minutes: 15
     env:
       PYTHONDONTWRITEBYTECODE: '1'
-      CHECK_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+      CHECK_BASE_SHA: ${{ inputs.base || github.event.pull_request.base.sha || github.event.before }}
     steps:
       - name: Read repository history
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
