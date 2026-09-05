@@ -110,3 +110,21 @@ retry or source/build repair was performed. Any future schema window needs a
 reviewed distinction between bounded diagnostic output and legitimate generated
 schema size, with refusal fixtures and preserved exact kernel inputs. Ordered
 follow-up remains in the [roadmap](../../docs/ROADMAP.md#upstream-delivery-gate).
+
+## Later checker review: receipt snapshot correction
+
+Independent review reproduced a hash/parse race in the originally streamed
+prefix checker: it hashed the setup receipt, then reopened that path to parse
+its inventory. Replacement between those reads could associate the old digest
+with a different accepted inventory. This is a demonstrated checker defect,
+not evidence that the retained historical receipt was replaced. The original
+attempts and before/after receipts remain immutable, with their original scope.
+
+The corrected checker reads one bounded snapshot (at most 4 MiB), hashes those
+bytes and parses those same bytes. A nonblocking, no-follow open and descriptor
+regular-file check reject substituted symlinks or special files; size mismatch
+or an exceeded bound refuses. Eight offline fixtures pass. The deterministic
+race fixture changes the receipt and one of 2257 tiny prefix files immediately
+after the read; the real setup prefix verifier rejects the changed file against
+the hashed original inventory. No emulator, schema or device run was repeated
+for this correction, and no historical receipt was replaced or reclassified.

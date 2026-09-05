@@ -12,6 +12,7 @@ import subprocess
 
 REVISION = '30f20586cf19293fd985e4aec838c75b3d1c94c6'
 EXPERIMENT = 'experiments/2026-09-05-mt6797-infracfg-upstream-preparation'
+RECEIPT_MAX_BYTES = 4 * 1024 * 1024
 
 
 def require(condition, reason):
@@ -28,6 +29,21 @@ def sha(path):
     return h.hexdigest()
 
 
+def receipt_snapshot(path):
+    # A single bounded snapshot supplies both the identity and parsed inventory.
+    # No second open/read may choose different bytes after the hash check.
+    def regular_open(name, flags):
+        return os.open(name, flags | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with open(path, 'rb', opener=regular_open) as stream:
+        info = os.fstat(stream.fileno())
+        require(stat.S_ISREG(info.st_mode), 'regular setup receipt required')
+        require(0 < info.st_size <= RECEIPT_MAX_BYTES, 'setup receipt size')
+        raw = stream.read(RECEIPT_MAX_BYTES + 1)
+    require(len(raw) == info.st_size and len(raw) <= RECEIPT_MAX_BYTES,
+            'setup receipt size changed or exceeded limit')
+    return raw
+
+
 def fail_walk(error):
     raise error
 
@@ -39,9 +55,12 @@ def verify(checkout):
     evidence = json.loads((experiment / 'results/qemu-debian-setup.json').read_text())
     prefix = Path(evidence['destination'])
     require(prefix.resolve() == prefix and prefix.is_dir(), 'real fixed QEMU prefix required')
-    receipt_sha = sha(prefix / 'setup-receipt.json')
+    require(stat.S_ISREG((prefix / 'setup-receipt.json').lstat().st_mode),
+            'regular setup receipt required')
+    receipt_bytes = receipt_snapshot(prefix / 'setup-receipt.json')
+    receipt_sha = hashlib.sha256(receipt_bytes).hexdigest()
     require(receipt_sha == evidence['remote_receipt_sha256'], 'setup receipt changed')
-    receipt = json.loads((prefix / 'setup-receipt.json').read_text())
+    receipt = json.loads(receipt_bytes)
     members = receipt['members']
     actual = set()
     for root, directories, files in os.walk(prefix, followlinks=False, onerror=fail_walk):
