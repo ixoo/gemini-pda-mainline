@@ -44,7 +44,7 @@ def extract_busybox(raw):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--suite',choices=('attribution','recovery'),default='attribution')
+    p.add_argument('--suite',choices=('attribution','recovery','gemian-recovery'),default='attribution')
     p.add_argument('--initramfs',type=Path,required=True)
     p.add_argument('--work-root',type=Path,required=True)
     p.add_argument('--expected-revision',required=True)
@@ -67,6 +67,9 @@ def main():
         tests = ('test-workload-cleanup.py','test-attribution-runtime.py','test-attribution-host.py') if a.suite=='attribution' else (
             'test-workload-cleanup.py','test-recovery-thermal.py','test-recovery-runtime.py',
             'test-recovery-boundary.py','test-recovery-observer.py','test-recovery-shutdown.py','test-recovery-host.py')
+        if a.suite=='gemian-recovery':
+            subprocess.run(['bash',str(HERE/'install-recovery-boot2.sh'),'--validate-only'],check=True)
+            tests += ('test-gemian-recovery.py',)
         for name in tests:
             result=subprocess.run([sys.executable,str(HERE/name)],env=env,text=True,capture_output=True,timeout=120)
             if result.returncode:

@@ -324,3 +324,7 @@ The [complete recovery exact-shell suite](results/recovery-exact-shell-pass.json
 now passes on the frozen published source. The device is now identified in Gemian, so the old-mainline cycle prerequisite
 must be adapted and validated before preparation. No new runtime or hardware
 support claim follows from the emulator result.
+
+The [Gemian cycle adapter](GEMIAN_RECOVERY_CYCLE.md) now binds preparation to
+the observed known-good boot and requires the complete guarded installer receipt.
+Host refusal fixtures pass; the new exact-shell admission gate remains pending.

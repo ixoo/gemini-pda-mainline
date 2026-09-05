@@ -1,0 +1,15 @@
+Gemian recovery adapter host validation
+parent_publication=b599e5a1
+positive_cases=1 mutations_rejected=19
+classification=bounded-recovery-observed
+classification=bounded-recovery-comparison-rejected
+Gemian_receipt_positive=2 receipt_mutations_rejected=19 evidence_boundary_refusals=3 host_scenarios=14 restart_refusals=14 device_action=none
+installer_derivation=pass
+actual_installer_source_boot_guard_cases=2
+simulated_partition_probes=1
+actual_device_access=none
+exact_candidate_shell_validation=pending
+5b0727a21ac73a93c8a73bb3d3faf1dd8b7f8b12e99344a428feb32e897b124c  scripts/run-gemian-recovery.py
+c921cb5e11b74fc76bdeda893482db908cd17ae151985317bf2875a6d5bbc6e4  scripts/install-recovery-boot2.sh
+1af34d8061f3c30f0352e3592b6a9e7e5bce0bc55e9650a6399ccb2bc50211be  scripts/test-gemian-recovery.py
+ff0a3642d4a8a6875228f80da34427d52b807778d0b829744c2aee0bc4d98ada  scripts/run-candidate-shell-tests.py
