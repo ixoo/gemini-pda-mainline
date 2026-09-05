@@ -15,7 +15,7 @@ HERE=Path(__file__).resolve().parent
 ROOT=HERE.parents[2]
 BUILDER=ROOT/'experiments/2026-09-04-mt6797-a72-frequency-observation/scripts/build-production-runtime.sh'
 BUILDER_SHA='241854bde76396d2713a7cc5a75ea53f7e56fa1b143a3a2278c3b7f64fff52eb'
-CLEANUP_SHA='09393392fc4caa685e226c1963674bd8eadebfd40bf1a9e32dc90d04b2746b75'
+CLEANUP_SHA='209a24a3215603ae614a37625c559738f093d9f35915a86bda3b4dee4c07d452'
 OBSERVER_SHA='22e4414c325070d037a5d933e070042492b91344be39b941c5b71458114a02d9'
 RECORD='7d67a19b3ae40ae1521293d7ffc834e6d06ae14a2d55de693ee9c815bdaee552'
 RELEASE='7.1.3-gemini-thermal-snapshot'
@@ -26,6 +26,7 @@ for item in /sys/bus/platform/devices/*/mt6797_temperature_snapshot; do
 	[ -r "$item" ] || continue
 	snapshot_count=$((snapshot_count + 1))
 done
+# shellcheck disable=SC2015 # Both inventory checks must pass.
 [ "$snapshot_count" = 1 ] && [ -r "$SNAPSHOT" ] || reject_preflight snapshot-inventory
 [ "$($BB stat -c %a "$SNAPSHOT")" = 400 ] || reject_preflight snapshot-mode
 [ "$($BB stat -c %a "${SNAPSHOT}_status")" = 400 ] || reject_preflight snapshot-status-mode

@@ -15,7 +15,7 @@ reader_pid9=
 spawn_in_progress=0
 pending_exit=0
 
-# shellcheck disable=SC2329 # Invoked with a status by signal traps.
+# shellcheck disable=SC2329,SC2317 # Invoked with a status by signal traps.
 request_exit()
 {
 	if [ "$spawn_in_progress" = 1 ]; then
@@ -74,6 +74,12 @@ def transform(source):
                          'while [ "$done_rounds" -lt "$rounds" ]; do\n\t[ ! -e "$cancel" ] || exit 24\n',4)
     for pid,status in (('pid8','writer8_status'),('pid9','writer9_status'),('reader_pid8','reader8_status'),('reader_pid9','reader9_status')):
         result=replace_exact(result,f'wait "${pid}"; {status}=$?\n',f'wait "${pid}"; {status}=$?; {pid}=\n')
+    for gate in (
+        '[ -d /run ] && [ -w /run ] || finish_failure run-not-writable',
+        '[ "$writer8_status" = 0 ] && [ "$writer9_status" = 0 ] || finish_failure writer-child-failed',
+        '[ "$reader8_status" = 0 ] && [ "$reader9_status" = 0 ] || finish_failure reader-child-failed',
+    ):
+        result=replace_exact(result,gate,'# shellcheck disable=SC2015 # Either failed condition must reject.\n'+gate)
     return result
 
 
