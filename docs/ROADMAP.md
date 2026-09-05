@@ -109,6 +109,8 @@ cameras before committing large implementation effort to their assumed design.
 - Use one small Git worktree per active work item and a `codex/` topic branch.
   No worktree contains a Linux tree. The integrator owns `kernel/manifest.json`,
   canonical series ordering and roadmap edits; workers submit proposed deltas.
+  Freeze the integration checkout from build submission through package fetch;
+  workers continue only in their own worktrees during that window.
 - Freeze explicit patch/config inputs for active baselines before an unrelated
   canonical extension could change them. Verify every existing profile's
   effective input before and after integration. Historical invalid profiles

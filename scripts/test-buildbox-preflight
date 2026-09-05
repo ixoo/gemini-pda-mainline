@@ -1,0 +1,133 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
+"""Reject failed Git preflight even when stale tracking matches local HEAD."""
+
+from __future__ import annotations
+
+import json
+import os
+import shutil
+import subprocess
+import tempfile
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parent.parent
+GIT_STUB = r'''#!/usr/bin/env python3
+import json
+import os
+import sys
+
+arguments = sys.argv[1:]
+if arguments[:1] != ["-C"]:
+    raise SystemExit("fixture requires explicit repository")
+arguments = arguments[2:]
+with open(os.environ["TEST_CALLS"], "a", encoding="ascii") as calls:
+    calls.write(json.dumps(["git", *arguments]) + "\n")
+fault = os.environ["TEST_FAULT"]
+commit = "a" * 40
+if arguments in (["diff", "--quiet"], ["diff", "--cached", "--quiet"]):
+    pass
+elif arguments == ["ls-files", "--others", "--exclude-standard"]:
+    if fault == "inventory":
+        raise SystemExit(128)
+    if fault == "untracked":
+        print("unreviewed-file.txt")
+elif arguments == ["symbolic-ref", "--quiet", "--short", "HEAD"]:
+    print("main")
+elif arguments == ["check-ref-format", "--branch", "main"]:
+    pass
+elif arguments == ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"]:
+    print("origin/main")
+elif arguments == ["remote", "get-url", "origin"]:
+    print("https://example.invalid/wrong.git" if fault == "wrong-origin" else
+          "https://github.com/ixoo/gemini-pda-mainline.git")
+    if fault == "remote-url":
+        raise SystemExit(128)
+elif arguments == ["fetch", "--quiet", "origin", "refs/heads/main:refs/remotes/origin/main"]:
+    if fault == "fetch":
+        print("injected FETCH_HEAD write failure", file=sys.stderr)
+        raise SystemExit(128)
+elif arguments in (["rev-parse", "HEAD"], ["rev-parse", "--verify", "HEAD"]):
+    print("not-a-commit" if fault == "invalid-local" else commit)
+    if fault == "local-resolution":
+        raise SystemExit(128)
+elif arguments in (["rev-parse", "refs/remotes/origin/main"],
+                   ["rev-parse", "--verify", "refs/remotes/origin/main"]):
+    print("not-a-commit" if fault == "invalid-remote" else
+          "b" * 40 if fault == "unpushed" else commit)
+    if fault == "remote-resolution":
+        raise SystemExit(128)
+else:
+    raise SystemExit("unexpected fixture git command: " + repr(arguments))
+'''
+SSH_STUB = r'''#!/usr/bin/env python3
+import json
+import os
+import sys
+
+# Consume, but never execute, the remote build/generation program.
+sys.stdin.read()
+with open(os.environ["TEST_CALLS"], "a", encoding="ascii") as calls:
+    calls.write(json.dumps(["ssh", "simulated-submission"]) + "\n")
+'''
+
+
+def main() -> None:
+    cases = (
+        ("none", "", True),
+        ("fetch", "cannot refresh origin/main", False),
+        ("inventory", "cannot inspect untracked files", False),
+        ("remote-url", "cannot resolve the upstream remote URL", False),
+        ("local-resolution", "cannot resolve local HEAD", False),
+        ("remote-resolution", "cannot resolve refreshed origin/main", False),
+        ("invalid-local", "invalid local or upstream commit identity", False),
+        ("invalid-remote", "invalid local or upstream commit identity", False),
+        ("unpushed", "HEAD is not pushed", False),
+        ("wrong-origin", "upstream remote must be", False),
+        ("untracked", "commit or remove untracked files", False),
+    )
+    with tempfile.TemporaryDirectory(prefix="gemini-preflight-", dir=tempfile.gettempdir()) as directory:
+        fixture = Path(directory)
+        scripts = fixture / "scripts"
+        commands = fixture / "commands"
+        scripts.mkdir()
+        commands.mkdir()
+        shutil.copy2(ROOT / "scripts/buildbox", scripts / "buildbox")
+        for name, source in (("git", GIT_STUB), ("ssh", SSH_STUB)):
+            script = commands / name
+            script.write_text(source, encoding="ascii")
+            script.chmod(0o700)
+        calls_path = fixture / "calls.jsonl"
+        count = 0
+        for command in ("build-kernel", "generate-i2c6-write-transport-patches"):
+            for fault, diagnostic, succeeds in cases:
+                calls_path.unlink(missing_ok=True)
+                result = subprocess.run(
+                    ["bash", str(scripts / "buildbox"), command],
+                    env={
+                        "PATH": str(commands) + os.pathsep + os.environ["PATH"],
+                        "TEST_CALLS": str(calls_path), "TEST_FAULT": fault,
+                        "KERNEL_PROFILE": "fixture",
+                    },
+                    capture_output=True, text=True, check=False,
+                )
+                calls = [json.loads(line) for line in calls_path.read_text().splitlines()]
+                submitted = any(call[0] == "ssh" for call in calls)
+                if (result.returncode == 0) != succeeds or submitted != succeeds:
+                    raise SystemExit(f"{command}/{fault}: unsafe preflight result: {result.stdout}{result.stderr}")
+                if not succeeds:
+                    if diagnostic not in result.stderr or "Submitting" in result.stdout:
+                        raise SystemExit(f"{command}/{fault}: missing rejection or premature submission")
+                if fault == "fetch" and any(call[:2] == ["git", "rev-parse"] and
+                                            call[-1] in ("HEAD", "refs/remotes/origin/main") for call in calls):
+                    raise SystemExit("failed fetch continued to stale commit comparison")
+                count += 1
+        print("validation=buildbox-preflight")
+        print(f"cases_passed={count}")
+        print("failed_fetch_with_matching_stale_tracking=rejected")
+        print("builder_or_hardware_access=none")
+
+
+if __name__ == "__main__":
+    main()

@@ -11,7 +11,19 @@
     "ShellCheck",
     "18 guard test groups"
   ],
-  "linux_rerun": "pending",
+  "linux_rerun": {
+    "classification": "pass",
+    "commit": "494321f9a32fded97df35381fecf2698497b53a8",
+    "base_commit": "5194011ee370080ca4f231764dca11f021fdb330",
+    "run_url": "https://github.com/ixoo/gemini-pda-mainline/actions/runs/33939936574",
+    "completed_utc": "2026-09-05T02:45:28Z",
+    "changed_files_checked": 41,
+    "profiles_checked": 189,
+    "full_artifact_positive_cases": 4,
+    "full_artifact_mutations_rejected": 21,
+    "package_publication_tests": 16,
+    "linux_only_branches_executed": true
+  },
   "additional_failure": {
     "commit": "04bff8255a20a3d765a54007461aaa1927023303",
     "run_url": "https://github.com/ixoo/gemini-pda-mainline/actions/runs/33939676576",

@@ -194,6 +194,7 @@ def run_fixtures(root: Path) -> None:
         for script in ("test-manifest-series-invariant", "test-source-tree-integrity",
                        "test-validate-kernel-artifact-provenance", "test-check-repository",
                        "boot2-device-guard-test.py", "test-build-kernel-backend",
+                       "test-buildbox-preflight",
                        "test-kernel-package-publication"):
             argv = [str(root / "scripts" / script)]
             if script.endswith(".py"):

@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "classification": "first-build-and-inventory-pass-command-rerun-required",
+  "repository_commit": "494321f9a32fded97df35381fecf2698497b53a8",
+  "profile": "gemini-thermal-v4-corrected",
+  "modules_built": false,
+  "build_completed_utc": "2026-09-05T02:46:25Z",
+  "build_exit_status": 0,
+  "package_name": "linux-7.1.3-gemini-5724e24411e543d47b2308026f024696b58df4ea4dd92253bcccbfdfedc90c91",
+  "package_inventory_sha256": "5724e24411e543d47b2308026f024696b58df4ea4dd92253bcccbfdfedc90c91",
+  "full_remote_validator": "passed",
+  "local_inventory_and_requested_provenance": "passed",
+  "source_reused": true,
+  "source_state": "75fb8df4cd9413cc0d2e9311136703ef40e80c6ab5d8075ad67dc9f30ba821f2",
+  "kernel_image_gzip_sha256": "dfc47d82176de99e68e8cd28305d5732a02d0cfe64f1424554876c7d3186ad34",
+  "config_sha256": "7a131d97f6d1e3a14853e612b95b9191a675d85e92326918566e44b86432caa6",
+  "patchset_sha256": "940a0fbb03d9aed26aae1cef27d8065b137b094bb6581b9990b773caaa53c5c0",
+  "active_candidate_changed": false,
+  "hardware_action": "none",
+  "previous_package": {
+    "name": "linux-7.1.3-gemini-gemini-thermal-v4-corrected-940a0fbb-f789e695",
+    "inventory_sha256": "5be259bc7888cf19506b0c8fb60ff4e3458d9c18faffeff6f706fba53c2ee182",
+    "inventory_unchanged": true,
+    "all_file_checksums": "passed"
+  },
+  "failures_observed": [
+    {
+      "stage": "local preflight",
+      "result": "A denied FETCH_HEAD write was ignored inside Bash command substitution. Remote independently fetched and verified the requested commit. Shared preflight now explicitly refuses failed Git observations; regression fixtures exercise stale matching refs."
+    },
+    {
+      "stage": "after validated local package transfer",
+      "exit_status": 2,
+      "result": "Concurrent editing of the running large shell script shifted its dispatcher while Bash was still reading it. Package inventory/provenance independently revalidated afterward. The integration checkout must remain frozen through fetch; a complete clean rerun is required."
+    }
+  ],
+  "final_clean_rerun": "pending"
+}

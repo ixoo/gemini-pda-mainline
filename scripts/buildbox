@@ -496,12 +496,15 @@ require_clean_pushed_head() {
   local remote_sha
   local remote_url
   local upstream
+  local untracked
 
   git -C "${REPO_DIR}" diff --quiet || \
     die "commit tracked worktree changes before using buildbox"
   git -C "${REPO_DIR}" diff --cached --quiet || \
     die "commit staged changes before using buildbox"
-  [[ -z "$(git -C "${REPO_DIR}" ls-files --others --exclude-standard)" ]] || \
+  untracked="$(git -C "${REPO_DIR}" ls-files --others --exclude-standard)" || \
+    die "cannot inspect untracked files before using buildbox"
+  [[ -z "${untracked}" ]] || \
     die "commit or remove untracked files before using buildbox"
 
   branch="$(git -C "${REPO_DIR}" symbolic-ref --quiet --short HEAD)" || \
@@ -520,15 +523,24 @@ require_clean_pushed_head() {
      "${remote_branch}" =~ ^[A-Za-z0-9._/-]+$ ]] || \
     die "unsafe upstream branch: ${upstream}"
 
-  remote_url="$(git -C "${REPO_DIR}" remote get-url "${remote_name}")"
+  remote_url="$(git -C "${REPO_DIR}" remote get-url "${remote_name}")" || \
+    die "cannot resolve the upstream remote URL before using buildbox"
   [[ "${remote_url}" == "${REMOTE_URL}" ]] || \
     die "upstream remote must be ${REMOTE_URL}; found ${remote_url}"
 
+  # This function runs inside command substitution, where Bash can disable
+  # errexit. Check every Git result explicitly; stale tracking is not proof.
   git -C "${REPO_DIR}" fetch --quiet "${remote_name}" \
-    "refs/heads/${remote_branch}:refs/remotes/${remote_name}/${remote_branch}"
-  local_sha="$(git -C "${REPO_DIR}" rev-parse HEAD)"
+    "refs/heads/${remote_branch}:refs/remotes/${remote_name}/${remote_branch}" || \
+    die "cannot refresh ${upstream}; buildbox submission deferred"
+  local_sha="$(git -C "${REPO_DIR}" rev-parse --verify HEAD)" || \
+    die "cannot resolve local HEAD before using buildbox"
   remote_sha="$(git -C "${REPO_DIR}" rev-parse \
-    "refs/remotes/${remote_name}/${remote_branch}")"
+    --verify "refs/remotes/${remote_name}/${remote_branch}")" || \
+    die "cannot resolve refreshed ${upstream} before using buildbox"
+  [[ "${local_sha}" =~ ^([0-9a-f]{40}|[0-9a-f]{64})$ && \
+     "${remote_sha}" =~ ^([0-9a-f]{40}|[0-9a-f]{64})$ ]] || \
+    die "invalid local or upstream commit identity; buildbox submission deferred"
   [[ "${local_sha}" == "${remote_sha}" ]] || \
     die "HEAD is not pushed to ${upstream}; push it before using buildbox"
 
