@@ -103,8 +103,7 @@ finalization path with synthetic passing logs and process results.
 On Linux the direct QEMU child sets `PR_SET_PDEATHSIG=SIGKILL` before exec and
 checks that its parent did not die before setup. Non-setid and no-file-capability
 execution are required because privileged exec can clear that setting. This
-contains the direct guest if the coordinator is abruptly killed. If final
-publication has not completed before uncatchable SIGKILL, the initial incomplete
+contains the direct guest if the coordinator is abruptly killed. If uncatchable SIGKILL occurs before final atomic replacement, the initial incomplete
 receipt remains authoritative. The
 [Linux API contract](https://man7.org/linux/man-pages/man2/PR_SET_PDEATHSIG.2const.html)
 clears the setting in forked descendants. This is not a cgroup or arbitrary
