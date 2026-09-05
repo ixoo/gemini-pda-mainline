@@ -2,9 +2,9 @@
 
 Project Planning reviewed the private custodian receipts for the first attended
 installation session. The frozen candidate has **not been written to boot2**.
-Custody remains with A53 baseline and queued device tests; all live actions are
-paused after an owner report of a boot2 start in another task. The current boot
-must be clarified rather than inferred from earlier Gemian observations.
+Custody remains with A53 baseline and queued device tests. The owner clarified
+that the device was still in Gemian; a subsequent explicitly authorized
+read-only SSH check verified that state. Corrective preparation continues offline.
 
 ## Candidate and attempted installation
 
@@ -46,8 +46,8 @@ usage, original priority and utility hashes. The swap table reported its
 canonical path rather than the original alias. Project Planning accepts the
 observed restoration on backing-device identity; the original nonzero command
 result remains preserved as an exact-spelling verifier refusal. No second
-restoration or priority adjustment was performed. This describes the last
-verified Gemian state, not the device state after the later boot2-start report.
+restoration or priority adjustment was performed. This describes the restoration observation; the later owner-authorized
+verification below independently confirmed the same Gemian boot.
 
 The custodian retains the immutable private receipts below its ignored
 `artifacts/a53-authenticated/attended-install-1/` directory, including
@@ -56,10 +56,32 @@ and `swap-restoration-reconciliation-1`. Raw startup material and authentication
 inputs are not republished. The integrator inspected the saved outcomes and
 relevant streams; it performed no device access.
 
-## Current boundary
+## Independent correction review and current boundary
 
-Offline corrective work covers root-owned temporary staging, explicitly pinned
-Gemian SSH trust with host-key updates disabled, and canonical backing identity
-in restoration checks. Those changes need independent review and a fresh
-admission. Owner boot clarification comes before any resumed live action.
-No Ready-for-boot2 request, new image installation or runtime support is claimed.
+Project Planning reviewed the ten-file handoff through worker revision
+`c747370c`, including the root-owned staging and pinned-trust changes from
+`a6f9a7a4`. The earlier independent remote-shell run failed eight cases because
+its ownership and command extraction fixtures still modeled the old transport.
+The correction retains production guards and tests non-root ownership refusal;
+it does not waive the staging gate. The [owning outcome](ATTENDED_OUTCOME.md)
+records the correction and its limits.
+
+The separate `owner-gemian-verification-1` private receipt completed with exit 0,
+no stderr and no device mutations. Project Planning inspected its saved process,
+classification and output: known-good release, unchanged boot identity,
+authenticated sudo serviceability and the restored unused swap state were
+observed. This resolves the ambiguous physical-boot report at that observation.
+It does not imply continuing liveness or authorize replay of consumed actions.
+
+Independent integration checks passed: 38 remote gate cases and 11 staging
+cases in 4.119 seconds, nine host installer tests in 8.516 seconds, and six
+swap-alias cases in 0.047 seconds. Changed shell sources passed Bash syntax and
+ShellCheck; changed Python sources parsed successfully. These fixtures use
+injected platform metadata and perform no device access. No kernel build was
+needed for this host-tooling and evidence change.
+
+The installer correction is accepted as host-tested preparation. The candidate
+is unchanged; the corrected derived installer has its own deployment-2 evidence
+identity. A finite retry handoff is being prepared, and no deployment occurs
+from scheduled coordination. No Ready-for-boot2 request, successful installation
+or new runtime support is claimed.

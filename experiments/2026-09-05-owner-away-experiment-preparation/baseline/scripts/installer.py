@@ -13,7 +13,7 @@ DERIVER = 'experiments/2026-09-04-mt6797-thermal-snapshot/scripts/v4_installer_g
 PINS = {BASE: 'deaa0e886a881132dd49ee1e3d5b0e6f776400f51fa86a8d0b7c791e979d12a8',
         DERIVER: '9c72675e3043dcf735c8a368800ce9297ca6c343d81283505e7030de82253211',
         'scripts/boot2-device-guard.sh': '0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf'}
-RECEIPT_NAME = 'a53-authenticated-baseline-deployment-1'
+RECEIPT_NAME = 'a53-authenticated-baseline-deployment-2'
 
 # A quiescent known-good OS is still required: these observations do not lock
 # mounts or swap configuration. No helper enables/disables swap or mounts a FS.
@@ -28,12 +28,11 @@ a53_no_swap() {
     awk 'NR != 1 || NF != 5 || $1 != "Filename" || $2 != "Type" || $3 != "Size" || $4 != "Used" || $5 != "Priority" {bad=1} END {exit (bad || NR != 1)}' /proc/swaps
 }
 a53_stage_identity() {
-    local stage=$1 owner mode size links expected_owner
+    local stage=$1 owner mode size links
     [[ "$stage" =~ ^/dev/shm/\.gemini-a53-${EXPECTED_CANDIDATE}\.[A-Za-z0-9]{8}$ ]] || return 1
     [[ -f "$stage" && ! -L "$stage" ]] || return 1
-    expected_owner=$(id -u gemini) || return 1
     read -r owner mode size links <<<"$(stat -c '%u %a %s %h' -- "$stage")" || return 1
-    [[ "$owner" == "$expected_owner" && "$mode" == 600 && "$links" == 1 &&
+    [[ "$owner" == 0 && "$mode" == 600 && "$links" == 1 &&
        "$size" =~ ^(0|[1-9][0-9]{0,7})$ ]] || return 1
     (( size <= EXPECTED_SIZE )) || return 1
 }
@@ -43,7 +42,7 @@ STAGE_FUNCTION = r'''
 remote_stage() {
     local action=$1 path=${2:-none}
     "${ssh_command[@]}" "$target" \
-        "env STAGE_ACTION='$action' EXPECTED_STAGE='$path' EXPECTED_CANDIDATE='$CANDIDATE_SHA256' EXPECTED_SIZE='$BOOT2_SIZE' /bin/bash -s" <<'A53_STAGE'
+        "sudo -n env STAGE_ACTION='$action' EXPECTED_STAGE='$path' EXPECTED_CANDIDATE='$CANDIDATE_SHA256' EXPECTED_SIZE='$BOOT2_SIZE' /bin/bash -s" <<'A53_STAGE'
 set -euo pipefail
 export LC_ALL=C
 umask 077
@@ -139,6 +138,25 @@ def derive(sources, repo, candidate, foundation, userspace):
             raise ValueError('A53 installer anchor changed: ' + old[:70])
         source = source.replace(old, new)
 
+    old_ssh = """ssh_command=(
+\tssh -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=5
+\t-o ServerAliveCountMax=6 -o IdentitiesOnly=yes -o IdentityAgent=none
+\t-o StrictHostKeyChecking=yes -i "$identity"
+)"""
+    new_ssh = """recovery_trust="$repo_root/artifacts/credentials/a53-recovery-known_hosts"
+[[ -f "$recovery_trust" && ! -L "$recovery_trust" ]] || die 'recovery trust file missing'
+[[ "$(sha256sum "$recovery_trust" | awk '{print $1}')" == d43262bd1f9c76d02eb633900f5e5502e2342d6c1b41586a2d7e524a2293768f ]] || die 'recovery trust identity changed'
+ssh_command=(
+\tssh -F /dev/null -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=5
+\t-o ServerAliveCountMax=6 -o IdentitiesOnly=yes -o IdentityAgent=none
+\t-o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$recovery_trust"
+\t-o GlobalKnownHostsFile=/dev/null -o UpdateHostKeys=no
+\t-o HostKeyAlgorithms=ssh-ed25519 -o PubkeyAcceptedAlgorithms=ssh-ed25519
+\t-o PasswordAuthentication=no -o KbdInteractiveAuthentication=no
+\t-o ProxyCommand=none -o ProxyJump=none -o ControlMaster=no -o ControlPath=none
+\t-o ClearAllForwardings=yes -o ForwardAgent=no -o ForwardX11=no -i "$identity"
+)"""
+    replace(old_ssh, new_ssh)
     replace('ea603c1b1a64d4f1aa9cac3e53957a3e858a7ce04127f1aef36d4b0e8173cb02', candidate_sha)
     replace('ad92d496dfb4fd183c35e6e0f32ce626b2045528657fb2567d8561dd02540f1a', manifest_sha)
     replace('gemian-runtime-provenance-observer-rndis-1d303dda10b4', candidate.name)
@@ -200,7 +218,7 @@ cat >"$EXPECTED_STAGE"
 a53_tmpfs_mount && a53_no_swap && a53_stage_identity "$EXPECTED_STAGE" || exit 2
 [[ "$(stat -c '%s' -- "$EXPECTED_STAGE")" == "$EXPECTED_SIZE" ]] || exit 2
 '''
-    upload_command = shlex.quote('/bin/bash -c ' + shlex.quote(upload) + ' a53-upload')
+    upload_command = shlex.quote('sudo -n /bin/bash -c ' + shlex.quote(upload) + ' a53-upload')
     old_upload = '''\t"${ssh_command[@]}" "$target" \\
 \t\t"test -f '$stage' && test ! -L '$stage' && cat >'$stage' && chmod 600 '$stage'" \\
 \t\t<"$candidate" || die 'candidate upload failed'

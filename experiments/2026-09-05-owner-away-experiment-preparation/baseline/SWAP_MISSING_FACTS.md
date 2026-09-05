@@ -79,3 +79,7 @@ coordinator must admit the exact new source before its one-shot dispatch.
 Host validation: Bash syntax and ShellCheck pass for both scripts. The corrected
 ownership command has not run; no ownership resolution or runtime readiness is
 claimed. These read-only selector changes need no kernel build or Buildbox access.
+
+The subsequent admitted reads, failed upload, accepted abort restoration and
+current live-access pause are recorded in [the attended outcome](ATTENDED_OUTCOME.md).
+That record supersedes the preparation-time next-action statements above.

@@ -61,6 +61,7 @@ elif 'STAGE_ACTION=' in command:
     mode=re.search("STAGE_ACTION='([^']+)'",command).group(1)
     remote=sys.stdin.read()
     if 'a53_tmpfs_mount' not in remote or 'a53_no_swap' not in remote: refuse()
+    if not command.startswith('sudo -n env ') or '"$owner" == 0' not in remote: refuse()
     action('stage-'+mode)
     if mode=='prepare':
         if case=='stage-refused': refuse()
@@ -70,7 +71,7 @@ elif 'STAGE_ACTION=' in command:
         if case=='cleanup-refused': refuse()
         (root/'stage').unlink()
     else: refuse()
-elif command.startswith('/bin/bash -c ') and 'a53-upload' in command:
+elif command.startswith('sudo -n /bin/bash -c ') and 'a53-upload' in command:
     action('upload')
     data=sys.stdin.buffer.read()
     if data!=candidate.read_bytes(): refuse()
@@ -134,6 +135,9 @@ class InstallerTests(unittest.TestCase):
         key.parent.mkdir(parents=True)
         key.write_text('inert test identity; never used by SSH\n')
         key.chmod(0o600)
+        cls.trust = key.parent / 'a53-recovery-known_hosts'
+        cls.trust.write_text('inert pinned trust fixture; no real host identity\n')
+        cls.trust.chmod(0o600)
         cls.evidence_root = cls.repo / 'artifacts/device-install-evidence'
         cls.evidence_root.mkdir()
         cls.evidence = cls.evidence_root / RECEIPT_NAME
@@ -145,6 +149,7 @@ class InstallerTests(unittest.TestCase):
             path.write_text(source)
             path.chmod(0o700)
         cls.source = derive(cls.sources, cls.repo, cls.candidate, cls.candidate, cls.candidate)
+        cls.source = cls.source.replace('d43262bd1f9c76d02eb633900f5e5502e2342d6c1b41586a2d7e524a2293768f', hashlib.sha256(cls.trust.read_bytes()).hexdigest())
         cls.script = cls.root / 'install.sh'
         cls.script.write_text(cls.source)
         subprocess.run(['bash', '-n', str(cls.script)], check=True)
@@ -173,6 +178,14 @@ class InstallerTests(unittest.TestCase):
         actions = (self.root / 'actions').read_text().splitlines()
         self.assertNotIn('UNEXPECTED-TRANSPORT', actions)
         return result, actions
+
+    def test_explicit_trust_and_root_stage_contract(self):
+        for option in ('-F /dev/null', 'StrictHostKeyChecking=yes',
+                       'UserKnownHostsFile=$recovery_trust', 'GlobalKnownHostsFile=/dev/null',
+                       'UpdateHostKeys=no'):
+            self.assertIn(option, self.source)
+        self.assertIn('"$owner" == 0', STAGE_LIBRARY)
+        self.assertNotIn('id -u gemini', STAGE_LIBRARY)
 
     def test_host_success_and_skip(self):
         for case in ('pass', 'already-current', 'poweroff-disconnect'):
@@ -218,7 +231,7 @@ class InstallerTests(unittest.TestCase):
     def test_local_identity_refusals_precede_transport(self):
         key = self.repo / 'artifacts/credentials/gemini_ed25519'
         for path, kind in ((self.image, 'byte'), (self.manifest, 'byte'),
-                           (self.tools / 'validate-candidate.py', 'byte'), (key, 'mode')):
+                           (self.tools / 'validate-candidate.py', 'byte'), (self.trust, 'byte'), (key, 'mode')):
             with self.subTest(path=path.name, kind=kind):
                 if kind == 'byte':
                     with path.open('r+b') as stream:

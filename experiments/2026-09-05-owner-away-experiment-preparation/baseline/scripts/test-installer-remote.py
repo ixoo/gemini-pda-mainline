@@ -73,10 +73,10 @@ stat() {
   if [[ "$*" == "-c %s -- $EXPECTED_STAGE" ]]; then
    if [[ "$CASE" == stage-short ]]; then printf '512\n'; else printf '16777216\n'; fi
   else
-   if [[ "$CASE" == stage-owner ]]; then printf '0 600 16777216 1\n'
-   elif [[ "$CASE" == stage-mode || "$CASE" == mode-before-write && -f "$FIXTURE/stage-hashed" ]]; then printf '1000 644 16777216 1\n'
-   elif [[ "$CASE" == stage-links ]]; then printf '1000 600 16777216 2\n'
-   else printf '1000 600 16777216 1\n'; fi
+   if [[ "$CASE" == stage-owner ]]; then printf '1000 600 16777216 1\n'
+   elif [[ "$CASE" == stage-mode || "$CASE" == mode-before-write && -f "$FIXTURE/stage-hashed" ]]; then printf '0 644 16777216 1\n'
+   elif [[ "$CASE" == stage-links ]]; then printf '0 600 16777216 2\n'
+   else printf '0 600 16777216 1\n'; fi
   fi
  else guard_stat "$@"; fi
 }
@@ -116,7 +116,10 @@ class RemoteTests(unittest.TestCase):
             preparation = source.split("<<'A53_STAGE'\n")[1].split('\nA53_STAGE\n')[0]
             assignment = source.split('\tupload_command=')[1].split('\n\t"${ssh_command[@]}"')[0]
             command = subprocess.check_output(['bash', '-c', 'upload_command=' + assignment + '\nprintf "%s" "$upload_command"'], text=True)
-            upload = shlex.split(command)[2]
+            argv = shlex.split(command)
+            self.assertEqual(argv[:4], ['sudo', '-n', '/bin/bash', '-c'])
+            self.assertEqual(argv[5:], ['a53-upload'])
+            upload = argv[4]
             mocks = r'''
 readlink() { printf '%s\n' "$STAGE_ROOT"; }
 findmnt() { printf '%s %s\n' "$STAGE_ROOT" "${FILESYSTEM:-tmpfs}"; }
@@ -124,10 +127,10 @@ id() { printf '%s\n' "$FIXTURE_UID"; }
 df() { printf 'Filesystem 1-blocks Used Available Capacity Mounted\ntmpfs 99999999 0 %s 0%% %s\n' "${AVAILABLE:-99999999}" "$STAGE_ROOT"; }
 stat() {
  if [[ "${@: -1}" == "$STAGE_ROOT" ]]; then printf '0 1777\n'; return; fi
- python3 -c 'import os,stat,sys; s=os.lstat(sys.argv[1]); print(s.st_size if sys.argv[2]=="%s" else "%s %s %s %s" % (s.st_uid,format(stat.S_IMODE(s.st_mode),"o"),s.st_size,s.st_nlink))' "${@: -1}" "$2"
+ python3 -c 'import os,stat,sys; s=os.lstat(sys.argv[1]); print(s.st_size if sys.argv[2]=="%s" else "%s %s %s %s" % (int(os.environ["FIXTURE_UID"]),format(stat.S_IMODE(s.st_mode),"o"),s.st_size,s.st_nlink))' "${@: -1}" "$2"
 }
 '''
-            cases = ('pass', 'stale-pass', 'stale-mode', 'stale-symlink', 'stale-hardlink',
+            cases = ('pass', 'stale-pass', 'stale-owner', 'stale-mode', 'stale-symlink', 'stale-hardlink',
                      'multiple-stale', 'active-swap', 'bad-swap-table', 'persistent', 'low-space')
             for case in cases:
                 with self.subTest(case=case):
@@ -152,8 +155,10 @@ stat() {
                     text = preparation.replace('/dev/shm', str(shm)).replace('/proc/swaps', str(swaps))
                     # All production stage branches execute. Only platform
                     # metadata and filesystem paths are replaced in fixtures.
+                    # UID is injected because host fixtures run without sudo;
+                    # mode, size and link count come from actual fixture files.
                     text = text.replace('umask 077\n', 'umask 077\n' + mocks)
-                    env = dict(os.environ, STAGE_ROOT=str(shm), FIXTURE_UID=str(os.getuid()),
+                    env = dict(os.environ, STAGE_ROOT=str(shm), FIXTURE_UID='1000' if case == 'stale-owner' else '0',
                                EXPECTED_STAGE='none', EXPECTED_CANDIDATE=sha, EXPECTED_SIZE='4', STAGE_ACTION='prepare',
                                AVAILABLE='0' if case == 'low-space' else '99999999', FILESYSTEM='ext4' if case == 'persistent' else 'tmpfs')
                     result = subprocess.run(['bash', '-c', text], env=env, text=True, capture_output=True, timeout=5)

@@ -4,7 +4,7 @@
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
   "selected_item": "a53-authenticated-baseline",
-  "selection_note": "The frozen baseline remains selected for preparation with sole custody held. Its attempted upload failed before write; the reported later boot is unattributed and all live actions are paused pending clarification.",
+  "selection_note": "The frozen baseline remains selected for preparation with sole custody held. Its attempted upload failed before write. A subsequent owner-authorized SSH check verified unchanged Gemian; corrected installation preparation continues offline.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -19,7 +19,7 @@
       "readiness_record": "experiments/2026-09-05-owner-away-experiment-preparation/baseline/ATTENDED_INTEGRATION.md",
       "dependencies": [],
       "owner_task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64",
-      "readiness_note": "Installation failed during upload before partition write. Last verified Gemian swap state was restored; live actions are paused after an owner boot2-start report. Current boot requires clarification. Custody held; no verified deployment, shutdown or waiting-owner-boot receipt."
+      "readiness_note": "The new baseline was not written. Owner-authorized read-only verification confirmed the same known-good Gemian boot, working authenticated access and restored swap. Corrected installer host validation is reviewed; a finite retry protocol remains under preparation. No verified deployment, shutdown or waiting-owner-boot receipt."
     },
     "keyboard-coverage": {
       "workstream": "serviceability",

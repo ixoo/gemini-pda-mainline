@@ -236,7 +236,7 @@
     "current_session": {
       "owner": "A53 baseline and queued device tests",
       "task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64",
-      "state": "live-actions-paused-custody-held",
+      "state": "gemian-verified-offline-preparation-custody-held",
       "evidence": "experiments/2026-09-05-owner-away-experiment-preparation/baseline/ATTENDED_INTEGRATION.md",
       "scope": "Frozen authenticated baseline installation prerequisites; no physical boot request without verified deployment and clean shutdown."
     }
