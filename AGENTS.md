@@ -240,6 +240,12 @@ configuration, safe tooling, hardware knowledge, and reproducible evidence.
   IMEI values, calibration data, personal identifiers, raw partition contents,
   proprietary material, or unsanitized private evidence; those remain excluded
   under the repository's existing review and redaction rules.
+- On 2026-09-05 the owner explicitly extended standing push approval to reviewed
+  project code, patches, profiles, tooling and documentation at the same exact
+  `origin/main`, including the pending HIF compilation profile and MTKE parser.
+  Record and use this approval without another prompt. Existing staged review,
+  validation, source-rights and redaction requirements still apply; this grants
+  no additional device operation or upstream author certification.
 - Run `bash -n` and ShellCheck for shell changes, `git diff --check`, the relevant
   kernel checks, and the smallest meaningful build through
   `./scripts/build-kernel --backend buildbox`. Run a VM kernel build only when

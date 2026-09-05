@@ -287,6 +287,16 @@ failure, and never bundle multiple boot-critical changes merely to save a cycle.
 
 ### Progress measures and review cadence
 
+Regular device validation is an explicit owner priority. At each integration
+review, assess the next useful hardware regression and advance its preparation;
+after a meaningful hardware-facing change, run the admitted device protocol at
+the next available owner session before claiming runtime support. Record the
+exact inputs, real-device result and any issue it exposed. Host tests and
+compilation do not replace this check. Use the single custodian and existing
+session budgets, and continue independent offline work while physical selection
+is unavailable. A cadence requirement does not authorize blind repeat boots or
+reusing a consumed observation budget.
+
 At each integration review, record: accepted/released upstream topics, local
 topics awaiting review, regression passes on exact inputs, unresolved shared
 blockers, and why each consumed boot changed a decision. Track rejected and
