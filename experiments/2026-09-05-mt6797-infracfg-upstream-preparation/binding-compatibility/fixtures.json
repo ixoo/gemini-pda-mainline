@@ -1,0 +1,156 @@
+{
+  "scope": "prospective focused DT schema fixtures; no schema execution recorded",
+  "binding": "clock/mediatek,infracfg.yaml",
+  "cases": [
+    {
+      "name": "mt6797-old-absent",
+      "dts": "/dts-v1/;\n/ {\n    #address-cells = <1>;\n    #size-cells = <1>;\n    infracfg@10001000 {\n        compatible = \"mediatek,mt6797-infracfg\", \"syscon\";\n        reg = <0x10001000 0x1000>;\n        #clock-cells = <1>;\n        \n    };\n};\n",
+      "expected_valid": true,
+      "expected_focus": "#reset-cells"
+    },
+    {
+      "name": "mt6797-new-one",
+      "dts": "/dts-v1/;\n/ {\n    #address-cells = <1>;\n    #size-cells = <1>;\n    infracfg@10001000 {\n        compatible = \"mediatek,mt6797-infracfg\", \"syscon\";\n        reg = <0x10001000 0x1000>;\n        #clock-cells = <1>;\n        #reset-cells = <1>;\n    };\n};\n",
+      "expected_valid": true,
+      "expected_focus": "#reset-cells"
+    },
+    {
+      "name": "mt6797-zero",
+      "dts": "/dts-v1/;\n/ {\n    #address-cells = <1>;\n    #size-cells = <1>;\n    infracfg@10001000 {\n        compatible = \"mediatek,mt6797-infracfg\", \"syscon\";\n        reg = <0x10001000 0x1000>;\n        #clock-cells = <1>;\n        #reset-cells = <0>;\n    };\n};\n",
+      "expected_valid": false,
+      "expected_focus": "#reset-cells"
+    },
+    {
+      "name": "mt6797-two",
+      "dts": "/dts-v1/;\n/ {\n    #address-cells = <1>;\n    #size-cells = <1>;\n    infracfg@10001000 {\n        compatible = \"mediatek,mt6797-infracfg\", \"syscon\";\n        reg = <0x10001000 0x1000>;\n        #clock-cells = <1>;\n        #reset-cells = <2>;\n    };\n};\n",
+      "expected_valid": false,
+      "expected_focus": "#reset-cells"
+    },
+    {
+      "name": "mt6797-two-cells",
+      "dts": "/dts-v1/;\n/ {\n    #address-cells = <1>;\n    #size-cells = <1>;\n    infracfg@10001000 {\n        compatible = \"mediatek,mt6797-infracfg\", \"syscon\";\n        reg = <0x10001000 0x1000>;\n        #clock-cells = <1>;\n        #reset-cells = <1 1>;\n    };\n};\n",
+      "expected_valid": false,
+      "expected_focus": "#reset-cells"
+    },
+    {
+      "name": "mt6797-string",
+      "dts": "/dts-v1/;\n/ {\n    #address-cells = <1>;\n    #size-cells = <1>;\n    infracfg@10001000 {\n        compatible = \"mediatek,mt6797-infracfg\", \"syscon\";\n        reg = <0x10001000 0x1000>;\n        #clock-cells = <1>;\n        #reset-cells = \"1\";\n    };\n};\n",
+      "expected_valid": false,
+      "expected_focus": "#reset-cells"
+    },
+    {
+      "name": "mt6797-byte",
+      "dts": "/dts-v1/;\n/ {\n    #address-cells = <1>;\n    #size-cells = <1>;\n    infracfg@10001000 {\n        compatible = \"mediatek,mt6797-infracfg\", \"syscon\";\n        reg = <0x10001000 0x1000>;\n        #clock-cells = <1>;\n        #reset-cells = [01];\n    };\n};\n",
+      "expected_valid": false,
+      "expected_focus": "#reset-cells"
+    },
+    {
+      "name": "mt6797-boolean",
+      "dts": "/dts-v1/;\n/ {\n    #address-cells = <1>;\n    #size-cells = <1>;\n    infracfg@10001000 {\n        compatible = \"mediatek,mt6797-infracfg\", \"syscon\";\n        reg = <0x10001000 0x1000>;\n        #clock-cells = <1>;\n        #reset-cells;\n    };\n};\n",
+      "expected_valid": false,
+      "expected_focus": "#reset-cells"
+    },
+    {
+      "name": "mt6797-unknown-property",
+      "dts": "/dts-v1/;\n/ {\n    #address-cells = <1>;\n    #size-cells = <1>;\n    infracfg@10001000 {\n        compatible = \"mediatek,mt6797-infracfg\", \"syscon\";\n        reg = <0x10001000 0x1000>;\n        #clock-cells = <1>;\n        unreviewed-property;\n    };\n};\n",
+      "expected_valid": false,
+      "expected_focus": "additionalProperties"
+    },
+    {
+      "name": "mt2701-absent",
+      "dts": "/dts-v1/;\n/ {\n    #address-cells = <1>;\n    #size-cells = <1>;\n    infracfg@10001000 {\n        compatible = \"mediatek,mt2701-infracfg\", \"syscon\";\n        reg = <0x10001000 0x1000>;\n        #clock-cells = <1>;\n        \n    };\n};\n",
+      "expected_valid": false,
+      "expected_focus": "#reset-cells"
+    },
+    {
+      "name": "mt2701-one",
+      "dts": "/dts-v1/;\n/ {\n    #address-cells = <1>;\n    #size-cells = <1>;\n    infracfg@10001000 {\n        compatible = \"mediatek,mt2701-infracfg\", \"syscon\";\n        reg = <0x10001000 0x1000>;\n        #clock-cells = <1>;\n        #reset-cells = <1>;\n    };\n};\n",
+      "expected_valid": true,
+      "expected_focus": "#reset-cells"
+    },
+    {
+      "name": "mt2712-absent",
+      "dts": "/dts-v1/;\n/ {\n    #address-cells = <1>;\n    #size-cells = <1>;\n    infracfg@10001000 {\n        compatible = \"mediatek,mt2712-infracfg\", \"syscon\";\n        reg = <0x10001000 0x1000>;\n        #clock-cells = <1>;\n        \n    };\n};\n",
+      "expected_valid": false,
+      "expected_focus": "#reset-cells"
+    },
+    {
+      "name": "mt2712-one",
+      "dts": "/dts-v1/;\n/ {\n    #address-cells = <1>;\n    #size-cells = <1>;\n    infracfg@10001000 {\n        compatible = \"mediatek,mt2712-infracfg\", \"syscon\";\n        reg = <0x10001000 0x1000>;\n        #clock-cells = <1>;\n        #reset-cells = <1>;\n    };\n};\n",
+      "expected_valid": true,
+      "expected_focus": "#reset-cells"
+    },
+    {
+      "name": "mt6795-absent",
+      "dts": "/dts-v1/;\n/ {\n    #address-cells = <1>;\n    #size-cells = <1>;\n    infracfg@10001000 {\n        compatible = \"mediatek,mt6795-infracfg\", \"syscon\";\n        reg = <0x10001000 0x1000>;\n        #clock-cells = <1>;\n        \n    };\n};\n",
+      "expected_valid": false,
+      "expected_focus": "#reset-cells"
+    },
+    {
+      "name": "mt6795-one",
+      "dts": "/dts-v1/;\n/ {\n    #address-cells = <1>;\n    #size-cells = <1>;\n    infracfg@10001000 {\n        compatible = \"mediatek,mt6795-infracfg\", \"syscon\";\n        reg = <0x10001000 0x1000>;\n        #clock-cells = <1>;\n        #reset-cells = <1>;\n    };\n};\n",
+      "expected_valid": true,
+      "expected_focus": "#reset-cells"
+    },
+    {
+      "name": "mt7622-absent",
+      "dts": "/dts-v1/;\n/ {\n    #address-cells = <1>;\n    #size-cells = <1>;\n    infracfg@10001000 {\n        compatible = \"mediatek,mt7622-infracfg\", \"syscon\";\n        reg = <0x10001000 0x1000>;\n        #clock-cells = <1>;\n        \n    };\n};\n",
+      "expected_valid": false,
+      "expected_focus": "#reset-cells"
+    },
+    {
+      "name": "mt7622-one",
+      "dts": "/dts-v1/;\n/ {\n    #address-cells = <1>;\n    #size-cells = <1>;\n    infracfg@10001000 {\n        compatible = \"mediatek,mt7622-infracfg\", \"syscon\";\n        reg = <0x10001000 0x1000>;\n        #clock-cells = <1>;\n        #reset-cells = <1>;\n    };\n};\n",
+      "expected_valid": true,
+      "expected_focus": "#reset-cells"
+    },
+    {
+      "name": "mt7986-absent",
+      "dts": "/dts-v1/;\n/ {\n    #address-cells = <1>;\n    #size-cells = <1>;\n    infracfg@10001000 {\n        compatible = \"mediatek,mt7986-infracfg\", \"syscon\";\n        reg = <0x10001000 0x1000>;\n        #clock-cells = <1>;\n        \n    };\n};\n",
+      "expected_valid": false,
+      "expected_focus": "#reset-cells"
+    },
+    {
+      "name": "mt7986-one",
+      "dts": "/dts-v1/;\n/ {\n    #address-cells = <1>;\n    #size-cells = <1>;\n    infracfg@10001000 {\n        compatible = \"mediatek,mt7986-infracfg\", \"syscon\";\n        reg = <0x10001000 0x1000>;\n        #clock-cells = <1>;\n        #reset-cells = <1>;\n    };\n};\n",
+      "expected_valid": true,
+      "expected_focus": "#reset-cells"
+    },
+    {
+      "name": "mt8135-absent",
+      "dts": "/dts-v1/;\n/ {\n    #address-cells = <1>;\n    #size-cells = <1>;\n    infracfg@10001000 {\n        compatible = \"mediatek,mt8135-infracfg\", \"syscon\";\n        reg = <0x10001000 0x1000>;\n        #clock-cells = <1>;\n        \n    };\n};\n",
+      "expected_valid": false,
+      "expected_focus": "#reset-cells"
+    },
+    {
+      "name": "mt8135-one",
+      "dts": "/dts-v1/;\n/ {\n    #address-cells = <1>;\n    #size-cells = <1>;\n    infracfg@10001000 {\n        compatible = \"mediatek,mt8135-infracfg\", \"syscon\";\n        reg = <0x10001000 0x1000>;\n        #clock-cells = <1>;\n        #reset-cells = <1>;\n    };\n};\n",
+      "expected_valid": true,
+      "expected_focus": "#reset-cells"
+    },
+    {
+      "name": "mt8173-absent",
+      "dts": "/dts-v1/;\n/ {\n    #address-cells = <1>;\n    #size-cells = <1>;\n    infracfg@10001000 {\n        compatible = \"mediatek,mt8173-infracfg\", \"syscon\";\n        reg = <0x10001000 0x1000>;\n        #clock-cells = <1>;\n        \n    };\n};\n",
+      "expected_valid": false,
+      "expected_focus": "#reset-cells"
+    },
+    {
+      "name": "mt8173-one",
+      "dts": "/dts-v1/;\n/ {\n    #address-cells = <1>;\n    #size-cells = <1>;\n    infracfg@10001000 {\n        compatible = \"mediatek,mt8173-infracfg\", \"syscon\";\n        reg = <0x10001000 0x1000>;\n        #clock-cells = <1>;\n        #reset-cells = <1>;\n    };\n};\n",
+      "expected_valid": true,
+      "expected_focus": "#reset-cells"
+    },
+    {
+      "name": "mt8183-absent",
+      "dts": "/dts-v1/;\n/ {\n    #address-cells = <1>;\n    #size-cells = <1>;\n    infracfg@10001000 {\n        compatible = \"mediatek,mt8183-infracfg\", \"syscon\";\n        reg = <0x10001000 0x1000>;\n        #clock-cells = <1>;\n        \n    };\n};\n",
+      "expected_valid": false,
+      "expected_focus": "#reset-cells"
+    },
+    {
+      "name": "mt8183-one",
+      "dts": "/dts-v1/;\n/ {\n    #address-cells = <1>;\n    #size-cells = <1>;\n    infracfg@10001000 {\n        compatible = \"mediatek,mt8183-infracfg\", \"syscon\";\n        reg = <0x10001000 0x1000>;\n        #clock-cells = <1>;\n        #reset-cells = <1>;\n    };\n};\n",
+      "expected_valid": true,
+      "expected_focus": "#reset-cells"
+    }
+  ]
+}
