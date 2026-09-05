@@ -1,7 +1,7 @@
 # Exact focused compatibility execution proposal
 
-Corrected after the [first refused attempt](ATTEMPT_1.md); **no second backend
-execution is admitted**. [run-fixtures.py](run-fixtures.py) defaults to a plan-only message.
+Corrected after [attempt 2](ATTEMPT_2.md); **no third backend execution is
+admitted**. [run-fixtures.py](run-fixtures.py) defaults to a plan-only message.
 It reuses the existing [schema collector](../scripts/schema-check.py) and its
 process-group cleanup, stream ceilings, generated-file limit, interruption and
 atomic receipt publication. It adds no generic validation or process framework.
@@ -61,11 +61,12 @@ hash and every command's bounded stdout/stderr/status, including expected warnin
 `dtschema.DTValidator`, decodes the same DTBs, requires the one expected node and
 matching schema selection, and collects actual `iter_errors` results. It does
 not reimplement JSON Schema rules. Each of the 50 rows records variant, fixture,
-node, compatible, DTB digest, validity and structured schema/path/validator/message
-attribution. The parent checks processed-file identities, fixture/DTB identities
+node, compatible, DTB digest, raw property bytes/width, bounded per-case decoder
+diagnostics, decoded-schema validity, full validity and structured
+schema/path/validator/message attribution. The parent checks processed-file identities, fixture/DTB identities
 and the complete comparison. Only old MT6797 omission may change outcome.
 Unexpected schema/node/property, missing/duplicate rows, no attributed diagnostic,
-crash, decoder warning, timeout or truncated output refuses. A process exit status
+crash, unattributed decoder warning, timeout or truncated output refuses. A process exit status
 alone cannot establish rejection. All expected negative diagnostics are retained.
 
 Successful collection ends at `COLLECTED_REVIEW_REQUIRED`; the integrator must
@@ -137,3 +138,8 @@ checks pass. Original binding patches and kernel profiles remain unchanged.
 [The warning-chain correction](WARNING_CHAIN.md) follows the immutable first
 refusal. It changes no input/budget or schema outcome, and needs new explicit
 admission before another backend run.
+
+[Per-case decoder attribution](DECODER_ATTRIBUTION.md) follows attempt 2. It
+requires exact audited decoder-module hashes and raw-property/capture attribution,
+retains decoded-schema validity separately, and leaves full expected outcomes
+unchanged. No third run is admitted by this prepared correction.

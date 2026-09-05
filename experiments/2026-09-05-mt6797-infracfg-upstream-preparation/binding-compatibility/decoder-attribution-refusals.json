@@ -1,0 +1,8 @@
+{
+  "retained_schema_errors_preserved": true,
+  "synthetic_per_case_partition_matches_retained_aggregate": true,
+  "corrected_classifier_with_retained_errors_and_synthetic_raw_capture": "pass",
+  "malformed_byte_decoded_schema_valid_but_full_validation_invalid": true,
+  "unsafe_attributions_rejected": 20,
+  "new_backend_decoder_or_schema_execution": false
+}

@@ -136,6 +136,7 @@ def execute(revision, published_ref):
                 out, err = run('compare', [str(Path(C['tools_root']) / 'bin/python'), str(HERE / 'compare.py'), '--child', str(work), str(HERE / 'fixtures.json')], 60)
                 require(not err, 'unattributed schema decoder/runtime diagnostic')
                 result = json.loads(out)
+                require(result.get('decoder_modules_sha256') == compare.DECODER_MODULES, 'wrong decoder source identity')
                 for variant, digest in result['processed_sha256'].items():
                     require(variant in ('mandatory', 'optional') and retained.sha(work / variant / 'processed.json') == digest, 'processed output identity')
                 require(set(result['processed_sha256']) == {'mandatory', 'optional'}, 'missing processed identity')

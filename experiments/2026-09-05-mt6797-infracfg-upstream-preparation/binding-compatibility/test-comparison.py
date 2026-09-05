@@ -24,6 +24,18 @@ for variant in ('mandatory', 'optional'):
             error.update(path=['#reset-cells'], schema_path=['properties', '#reset-cells', 'const'], validator='const', message='1 was expected')
         rows.append({'variant': variant, 'case': case['name'], 'valid': valid, 'errors': [] if valid else [error],
                      'node': '/infracfg@10001000', 'compatible': 'mediatek,' + case['name'].split('-')[0] + '-infracfg'})
+for row in rows:
+    case = next(c for c in cases if c['name'] == row['case'])
+    raw = compare.raw_expected(case)
+    if case['name'] == 'mt6797-byte':
+        row['errors'] = []
+    if case['name'] == 'mt6797-unknown-property' and row['variant'] == 'mandatory':
+        row['errors'].append({'schema': compare.SCHEMA_ID, 'path': [], 'schema_path': ['then','required'],
+                              'validator': 'required', 'message': "'#reset-cells' is a required property"})
+    stderr = f'#reset-cells: size ({len(raw)}) error for type uint32\n' if raw is not None and len(raw) in (1,2) else ''
+    row.update(raw_reset_cells=compare.raw_record(raw), raw_width_valid=raw is None or len(raw)==4,
+               decoder_stderr=stderr, decoder_diagnostics=compare.decoder_record(case,raw,stderr),
+               decoded_schema_valid=not row['errors'])
 assert compare.classify(rows, cases)['rows'] == 50
 rejected = 0
 
