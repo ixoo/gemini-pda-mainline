@@ -207,3 +207,11 @@ certification and final routing remain required before submission. The sparse
 checkout is removed on exit. Generated review patches remain outside the active
 kernel patch inventory until a separately reviewed integration mechanism exists.
 No build, schema validation, hardware operation or submission is implicit.
+
+The first Buildbox generation at `b18a0a13` reproduced all six commits through
+exact-tree patch replay, then correctly refused publication on five KUnit
+continuation-alignment checks and one short Kconfig help paragraph. The
+[sanitized refusal](results/first-generation-style-refusal.json) preserves that
+result. The sparse source checkout and unpublished partial were removed. The
+continuations and help text were corrected before a new exact revision was
+submitted; no kernel compilation or device operation occurred in the failed run.

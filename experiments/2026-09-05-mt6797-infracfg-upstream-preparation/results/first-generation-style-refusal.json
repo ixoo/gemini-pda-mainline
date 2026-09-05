@@ -1,0 +1,19 @@
+{
+  "repository_commit": "b18a0a13397abcfdb3956ff8abfb48bdd6efe01e",
+  "upstream_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "generation": "six patches generated",
+  "replay": "exact upstream tree match",
+  "checkpatch": {
+    "errors": 0,
+    "warnings": 1,
+    "checks": 5,
+    "result": "rejected"
+  },
+  "findings": [
+    "Five continuation alignment checks in KUnit sources",
+    "MT6797 Kconfig help paragraph too short"
+  ],
+  "package_published": false,
+  "kernel_build": "not run",
+  "hardware_action": "none"
+}

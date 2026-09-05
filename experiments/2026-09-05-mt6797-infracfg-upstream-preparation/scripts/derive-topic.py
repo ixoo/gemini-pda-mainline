@@ -124,11 +124,11 @@ static void mtk_reset_register_pairs(struct kunit *test)
 	unsigned int reg = 0, mask = 0;
 
 	KUNIT_ASSERT_EQ(test, mtk_reset_set_clr_reg(&test_desc, 0, false,
-						 &reg, &mask), 0);
+						    &reg, &mask), 0);
 	KUNIT_EXPECT_EQ(test, reg, 0x120U);
 	KUNIT_EXPECT_EQ(test, mask, BIT(0));
 	KUNIT_ASSERT_EQ(test, mtk_reset_set_clr_reg(&test_desc, 63, true,
-						 &reg, &mask), 0);
+						    &reg, &mask), 0);
 	KUNIT_EXPECT_EQ(test, reg, 0x144U);
 	KUNIT_EXPECT_EQ(test, mask, BIT(31));
 }
@@ -140,7 +140,7 @@ static void expect_no_address(struct kunit *test,
 	unsigned int reg = 0xfeed, mask = 0xbeef;
 
 	KUNIT_EXPECT_EQ(test, mtk_reset_set_clr_reg(desc, id, false,
-						 &reg, &mask), -EINVAL);
+						    &reg, &mask), -EINVAL);
 	KUNIT_EXPECT_EQ(test, reg, 0xfeedU);
 	KUNIT_EXPECT_EQ(test, mask, 0xbeefU);
 }
@@ -210,11 +210,11 @@ static void expect_pair(struct kunit *test, unsigned int index,
 
 	KUNIT_ASSERT_GE(test, id, 0);
 	KUNIT_ASSERT_EQ(test, mtk_reset_set_clr_reg(&infra_rst_desc, id, false,
-						 &reg, &mask), 0);
+						    &reg, &mask), 0);
 	KUNIT_EXPECT_EQ(test, reg, expected_reg);
 	KUNIT_EXPECT_EQ(test, mask, BIT(0));
 	KUNIT_ASSERT_EQ(test, mtk_reset_set_clr_reg(&infra_rst_desc, id, true,
-						 &reg, &mask), 0);
+						    &reg, &mask), 0);
 	KUNIT_EXPECT_EQ(test, reg, expected_reg + 4);
 	KUNIT_EXPECT_EQ(test, mask, BIT(0));
 }
@@ -338,7 +338,9 @@ config COMMON_CLK_MEDIATEK_FHCTL
 	default KUNIT_ALL_TESTS
 	help
 	  Test the two supported MT6797 reset lines and the rejected
-	  public indices. This test does not access hardware.
+	  public indices using the production descriptor and helpers.
+	  Verify thermal and PMIC-wrapper SET/CLEAR offsets and masks.
+	  This test does not register a controller or access hardware.
 
 config COMMON_CLK_MT6797_MMSYS
 ''')
