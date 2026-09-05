@@ -1,0 +1,20 @@
+Whole-image planner host validation — 2026-09-05
+Base lower-operation audit: 4a72f1ea
+Scope: original Python planner, abstract EMI owner/lease and synthetic tests.
+python3 -B scripts/test_wifi_whole_image.py: 20 tests PASS
+python3 -B scripts/test_wifi_firmware.py: 55 tests PASS
+(Test paths are relative to the owning experiment.)
+Python AST syntax, GPL identifiers and bounded sensitive-pattern review PASS.
+All seven protocol headers byte-identical to 2d9983c7; no API changes.
+Literal SMC32 call/range/region words checked independently in mock expectations.
+Declared and unknown signed secure statuses tested at opening and final restore.
+Copy/visibility/restore/ownership/ordinary/START failure handling tested.
+Immutable input, every-section accounting and adjacent RAM preservation tested.
+START does not release the EMI lease or establish firmware readiness.
+No live provider, firmware input, file I/O, backend, device operation or push.
+Kernel compilation/DT/checkpatch and shell checks not applicable to Python scope.
+Repository gate initially refused a not-yet-created receipt link; fixed here.
+Repository gate PASS: 189 profiles; 37 unchanged grandfathered metadata issues.
+Linux-only artifact-provenance fixture skipped; all applicable host gates pass.
+Final interruption test PASS: terminal failure and bounded restoration on cancellation.
+All four new files reviewed; local links, original license and sensitive-data checks pass.
