@@ -172,9 +172,9 @@ marker and lock. No Linux tree or generated binary is committed.
 [Validation](results/deferred-genpd-validation.txt) records exact source,
 patch and fixture identities, counts, independent review and publication
 checks. Checkpatch is run with only the deliberate missing-DCO exemption;
-that result is not submission readiness. Full kernel compilation remains
-pending the integrator's explicit Buildbox admission/window after commit,
-push and canonical input selection. No VM kernel build is permitted or used.
+that result is not submission readiness. [The selected Buildbox compile passed](../2026-09-05-mt6797-infracfg-upstream-preparation/PROVIDER_COMPILE.md#completed-build-and-package-review)
+with the real provider and linked kernel dependencies. This does not execute
+registration or CONN transitions; no device or VM kernel build is claimed.
 
 The eventual destination is the upstream MediaTek power-domain provider,
 reviewed through [GENERIC PM DOMAINS](https://github.com/torvalds/linux/blob/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/MAINTAINERS#L11014)

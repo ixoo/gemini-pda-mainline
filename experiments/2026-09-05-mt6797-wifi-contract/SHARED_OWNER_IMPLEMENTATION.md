@@ -86,7 +86,7 @@ their effects, not installed as success-returning placeholders:
 | `image_emi_open(image, deadline)` | After ordinary-section completion, apply the reviewed writable region-18 policy once, preserving the first error and raw SMC status. Mark the attempt before the call. |
 | `image_emi_copy(image, section_index, deadline)` | Resolve bytes/offset/length from the retained plan internally; reject ordinary, out-of-range, duplicate or out-of-order entries; enforce bounds and copy only that section. No caller-supplied physical address, payload pointer or permission word. |
 | `image_emi_seal(image, deadline)` | Require all planned EMI copies, establish copy visibility, apply the reviewed final policy, and recheck the same owner generation. Sealed is a real effect/state result, not a caller-set flag. |
-| Executor START operation | Under the same owner/transaction exclusion, require complete ordinary accounting plus sealed EMI; record START attempted before the first I/O, call the real START transport, then record submitted separately from observed readiness. Current HIF core has no START operation; do not claim otherwise. |
+| Executor START operation | Under the same owner/transaction exclusion, require complete ordinary accounting plus sealed EMI; record START attempted before the first I/O, call the real START transport, then record submitted separately from observed readiness. Use the [reviewed private START core](../2026-09-05-mt6797-hif-start-core/README.md); its [compile acceptance](../2026-09-05-mt6797-hif-start-core/BUILD_RESULT.md) does not supply the missing owner or executor. |
 | `image_abort(image, primary_error)` | Poison the image and HIF transaction immediately. Perform at most the specifically safe bounded containment action below. Retain the binding and physical responsibilities after effects. |
 | `image_close(image, deadline)` | Attempt owner-controlled quiescence and release only after that succeeds. Return an error and retain the object/resources if it cannot be proved. No unconditional `void put()` may implement this operation. |
 
@@ -272,8 +272,11 @@ mapping visibility; and HIF IRQ/host-ownership transitions. AP-DMA translation
 and idle recovery apply only to the DMA backend. Firmware calibration RE is
 not a prerequisite for this offline implementation proposal.
 
-Host implementation can now add the private binding/executor lifetime and
-complete-plan checks while preserving refusal at unresolved effect boundaries.
+The [private immutable binding](../2026-09-05-mt6797-image-binding/README.md)
+now implements copied plan storage, owner generations and passive lifetime
+checks, with [kernel compilation accepted](../2026-09-05-mt6797-hif-start-core/BUILD_RESULT.md).
+The real resource owner and complete executor still need implementation;
+active binding entry continues to refuse at unresolved effect boundaries.
 Meaningful fixtures should exercise stale-plan/generation rejection, competing
 clients, partial effects, failed containment and retained lifetimes on the
 same implementation. They must not call a mock's result hardware support.
