@@ -92,7 +92,7 @@ terminal_before_export=no
 exit_path=/run/a53/kmsg-exit
 if [ ! -L "$exit_path" ] && [ -f "$exit_path" ]; then
   expected_exit=$($BB stat -c '%d:%i' "$exit_path") || expected_exit=-
-  if exec 3<"$exit_path"; then
+  if command exec 3<"$exit_path"; then
     held_exit=$($BB stat -Lc '%d:%i' /proc/self/fd/3) || held_exit=-
     exit_size=$($BB stat -Lc '%s' /proc/self/fd/3) || exit_size=-
     if [ "$expected_exit" != - ] && [ "$held_exit" = "$expected_exit" ] &&
@@ -124,7 +124,7 @@ export_file() {
   else
     state=unreadable
     identity=$($BB stat -c '%d:%i' "$path") || identity=-
-    if exec 3<"$path"; then
+    if command exec 3<"$path"; then
       # Read only a held regular descriptor matching the non-symlink source.
       held=$($BB stat -Lc '%d:%i' /proc/self/fd/3) || held=-
       if [ "$identity" != - ] && [ "$held" = "$identity" ] &&

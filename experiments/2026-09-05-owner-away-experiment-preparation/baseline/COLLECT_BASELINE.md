@@ -197,6 +197,15 @@ stability around the read. It streams a bounded prefix through base64 and record
 read/encoding status and truncation. Only small read-status receipts are written
 inside the exclusive RAM claim; no second multi-megabyte log file is created.
 
+Both descriptor openings use `command exec`: the exact inherited BusyBox exits
+the shell on a failed redirection of bare `exec`, even inside `if`, whereas
+`command exec` permits the refusal branch and preserves an opened descriptor.
+The unchanged `8abd7a0439dd042e15985497fe62531a1c67f89d` exact-shell run exposed
+this at `log-vanished`; its failure diagnostics were retained and staging was
+cleaned before this correction. The existing healthy and vanished-log cases
+exercise both outcomes. The vanished-log case now also requires later final
+status and exit bytes to survive, while preservation remains incomplete.
+
 `parse_log_export` returns raw captured file bytes separately from its JSON
 classification. Complete earlier file blocks remain available if a later block
 or transport fails. The caller must retain the original stdout, stderr and

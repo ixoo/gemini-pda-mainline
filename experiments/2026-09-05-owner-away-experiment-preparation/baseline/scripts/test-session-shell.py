@@ -23,17 +23,17 @@ import time
 HERE = Path(__file__).resolve().parent
 S = runpy.run_path(str(HERE / 'session_steps.py'))
 BOOT = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
-PINS = {'seal': '0dd2822ae10990b5b2d7fe888a6ea8114e334aa35438137beb8ef6e34d679005',
+PINS = {'seal': '43a7391076eaf1cf58fe1773d619e973165680a4e63c01f134bf4bc60edfda34',
         'recovery': '2228aff8c2f4d12816fd813debc3fc2c8dd8f4dc36a88814db54d958c07d0266'}
 COMMON_CASES = ['good', 'boot-mismatch', 'kernel-mismatch', 'cpu-mismatch', 'member-mismatch',
                 'swap-active', 'persistent-run', 'persistent-root', 'duplicate-run', 'duplicate-root',
                 'a53-submount', 'log-submount', 'run-symlink', 'a53-symlink', 'mode-mismatch',
                 'owner-mismatch', 'existing-claim']
-SEAL_CASES = ['existing-status', 'existing-exit', 'dangling-status', 'dangling-exit',
+SEAL_CASES = ['log-vanished', 'existing-status', 'existing-exit', 'dangling-status', 'dangling-exit',
               'preexited-failure', 'preexited-deadline', 'preexited-partial', 'preexited-cap', 'preexited-gap',
               'preexited-malformed-exit', 'late-terminal', 'helper-refusal', 'exit-timeout', 'logger-failed',
               'partial-status', 'dangling-partial', 'exit-symlink', 'missing-status',
-              'status-symlink', 'log-symlink', 'log-replaced', 'log-vanished', 'oversize-log',
+              'status-symlink', 'log-symlink', 'log-replaced', 'oversize-log',
               'empty-log', 'failed-status', 'oversize-status', 'read-failed']
 EXPECTED_CASES = ['seal:' + case for case in COMMON_CASES + SEAL_CASES] + ['recovery:' + case for case in COMMON_CASES]
 # Exact emulation measured 14.596 seconds for healthy seal (68 safe calls).
@@ -519,6 +519,12 @@ def main():
                                 exported['result']['files']['kmsg.log']['state'] ==
                                 {'log-symlink': 'symlink', 'log-replaced': 'changed', 'log-vanished': 'unreadable'}[case],
                                 'unsafe log read')
+                    if case == 'log-vanished':
+                        require(exported['files'].get('kmsg.status') == (root / 'expected-status').read_bytes() and
+                                exported['files'].get('kmsg-exit') == b'0\n' and
+                                exported['result']['files']['kmsg.status.partial']['state'] == 'missing' and
+                                not exported['result']['preservation_complete'],
+                                'vanished log discarded later status/exit evidence or promoted preservation')
                     if case.startswith('preexited-') and case != 'preexited-malformed-exit':
                         require(exported['result']['preservation_complete'] and exported['files']['kmsg-exit'] == b'1\n',
                                 'terminal failed evidence not preserved')

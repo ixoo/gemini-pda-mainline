@@ -175,3 +175,27 @@ output, timeout diagnostics, descendants retaining or closing pipes, and
 interruption during cleanup after EOF. Three representative host exports
 confirm unchanged healthy, failed-but-preserved and timed-out classifications.
 The full 61-case exact suite remains mandatory in the next Buildbox package.
+
+## Exact-shell descriptor-opening correction
+
+Revision `8abd7a0439dd042e15985497fe62531a1c67f89d` reached the existing
+`log-vanished` exact-shell regression, where export stopped with incomplete
+framing and no recovered file block. Native parser/logger/seal and the 25
+exact init cases had passed. The build again stopped before compilation;
+bounded logs were retained and staging removed, with no published package.
+
+A read-only probe of that same BusyBox explains the host/target difference:
+failed redirection on the special `exec` builtin exits BusyBox ash even inside
+an `if`. Prefixing it with the shell's `command` builtin makes the open failure
+return to its refusal branch. A successful open still retains descriptor 3,
+verified separately by an EOF read. Both held-descriptor openings use this
+form so an unreadable or vanished source is reported while the remaining
+bounded files continue to export. Missing bytes still prevent preservation
+acceptance. Exact full-suite validation remains required after this fix.
+
+The corrected source passes the focused healthy/vanished-log host checks and
+all 40 session integration methods. The vanished-log regression explicitly
+requires later final-status and exit bytes to remain available and is ordered
+early in the exact suite. The generated seal identity is now
+`43a7391076eaf1cf58fe1773d619e973165680a4e63c01f134bf4bc60edfda34`;
+the recovery command and device budgets are unchanged.
