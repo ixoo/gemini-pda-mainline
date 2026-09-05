@@ -1,6 +1,8 @@
 # Corrected installation retry — finite handoff
 
-Status: offline preparation only. The last authorized read-only check verified
+Status: executed once after separate coordinator admissions; see the
+[verified second-installation outcome](ATTENDED_OUTCOME.md#corrected-second-installation-result).
+The preparation and budget contract below remains the historical admission record. The last authorized read-only check verified
 the unchanged known-good Gemian boot with swap restored and SSH serviceability.
 It does not authorize another deactivation or installation. The coordinator owns
 admission, shared queue state and the central physical-selection notification.
@@ -117,8 +119,7 @@ A failed readback or shutdown must never become a Ready notification.
 
 Validation for these executable revisions is recorded in the attended outcome:
 38 actual remote gate cases, 11 stage cases, nine host installer tests and six
-alias fixture cases passed. This document adds no executable behavior. No retry
-has run and no hardware support claim is promoted.
+alias fixture cases passed. This document adds no executable behavior. The completed retry establishes deployment only; no hardware support claim is promoted.
 
 The sampling correction passes eight inert sequence cases: exact two-sample /
 two-second wait / immediate-check ordering, plus refusal at each identity/active

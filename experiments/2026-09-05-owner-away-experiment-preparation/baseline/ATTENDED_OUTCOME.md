@@ -1,11 +1,12 @@
 # Attended installation outcome and offline correction
 
-The candidate was not written. The owner-authorized read-only check subsequently
-verified the same known-good Gemian boot, restored swap and SSH serviceability,
-resolving the ambiguous boot2 report at that observation. The sole baseline
-custodian remains assigned; further device actions are not admitted. No
-Ready-for-boot2 baseline handoff was issued. The finite proposed retry is in
-[the retry handoff](INSTALL_RETRY.md).
+The corrected second installation wrote the selected candidate to logical boot2,
+verified the full readback, and completed the requested clean shutdown with
+subsequent unreachability. The strict deployment receipt passed independent
+validation and its boot identity matches the successful prerequisite. The sole
+baseline custodian remains assigned pending the coordinator's central handoff.
+No physical boot selection or baseline runtime observation has occurred in this
+attempt. The first failed installation and all earlier receipts remain preserved.
 
 ## Observed sequence
 
@@ -97,3 +98,25 @@ and restored swap state. This resolves the ambiguous physical-boot report at
 that observation. No installation, swap change, reboot or baseline test followed;
 further live work still requires the coordinator's review and admission. The
 private receipt is `owner-gemian-verification-1/` in the attended archive.
+
+## Corrected second installation result
+
+After exact-source review, the separately claimed second deactivation passed
+both fresh samples, the immediate gate and inactive postcondition. The separately
+admitted corrected installer then completed once with exit zero in 36.187 seconds.
+It recorded the predecessor checksum, wrote only live-GPT-resolved boot2, synced
+and flushed, verified its full-partition checksum, removed staging, and performed
+a matching independent full readback. Its strict receipt and receipt checksum
+passed independent validation. The initial/probe/write/post identities match the
+prerequisite boot. Temporary readback data was removed.
+
+The installer requested clean shutdown, recorded a successful poweroff request
+and subsequent unreachability, and performed no reboot. No abort restoration was
+needed. The private immutable records are `temporary-zram-deactivate-2/` and
+`installer-execution-2/` in the attended archive, plus the separately validated
+`a53-authenticated-baseline-deployment-2` deployment evidence. Exact candidate
+and corrected installer pins are retained in [the retry handoff](INSTALL_RETRY.md).
+
+This is a verified deployment result, not a successful baseline boot or hardware
+support promotion. The coordinator alone reviews the receipt and issues the
+physical-selection notification; the worker has not requested that action.
