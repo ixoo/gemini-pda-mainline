@@ -19,7 +19,7 @@ REPO=HERE.parents[2]
 OUTPUT=REPO/'artifacts/runtime-captures/thermal-v4-no-workload-1'
 RECEIPT=REPO/'artifacts/device-install-evidence/thermal-v4-deployment-1/deployment-summary.txt'
 # Frozen dependencies: any source change refuses before device access.
-PINS={'v4_observation_protocol.py': 'c68d5228eb665547e2fd963bf367ba616a4873f06660710e48e352fdad230097', 'observation_protocol.py': 'ac8067307a46bc80478697bd30dddab78459f298a408b4de48dd8fd649a7bf6c', 'observation_state.py': '217b176e5825cfb1423a51b0b4b99a443b5d00d3a7149ad7c9f7e06c77c628dc', 'thermal_snapshot_records.py': '3d16447c3a213c658814a27795d6964d2c21c99424806aa51bd582f78e90da74', 'remote-observation-state.sh': 'bada6f961efaf2ee3be8d43647942143381ecfadb0b00f4be329d8fd5ad5c9ae', 'remote-v4-observation-read.sh': '5fd20ca9077e3c5fe08a9369485bc07dfa101f73545791efc54e2749ae401a4f', 'validate-v4-candidate.py': '6c542e7d5182f87c400003c92f55982ccbe576ec840a4874c6f0414ddac1f99a', 'run-observation.py': '6f87d631cab6626d8ffe54c008ac327b515cf79a46b98117a6d4c72d2b8e11e1'}
+PINS={'v4_observation_protocol.py': '893a5aacd667d0cfde56b7cc1bf127798a7206b2e8c87a2c25dd736c08846fe1', 'observation_protocol.py': 'ac8067307a46bc80478697bd30dddab78459f298a408b4de48dd8fd649a7bf6c', 'observation_state.py': '217b176e5825cfb1423a51b0b4b99a443b5d00d3a7149ad7c9f7e06c77c628dc', 'thermal_snapshot_records.py': '3d16447c3a213c658814a27795d6964d2c21c99424806aa51bd582f78e90da74', 'remote-observation-state.sh': 'bada6f961efaf2ee3be8d43647942143381ecfadb0b00f4be329d8fd5ad5c9ae', 'remote-v4-observation-read.sh': '5fd20ca9077e3c5fe08a9369485bc07dfa101f73545791efc54e2749ae401a4f', 'validate-v4-candidate.py': '6c542e7d5182f87c400003c92f55982ccbe576ec840a4874c6f0414ddac1f99a', 'run-observation.py': '6f87d631cab6626d8ffe54c008ac327b515cf79a46b98117a6d4c72d2b8e11e1'}
 
 def validate_sources():
     if not PINS: raise ValueError('runner is not frozen')
@@ -54,7 +54,7 @@ def main():
     validate_sources()
     from v4_observation_protocol import Protocol
     protocol=Protocol(CANDIDATE, RECORD)
-    run,receipt=protocol.run,protocol.parent.receipt
+    run,receipt=protocol.run,protocol.receipt
     if args.receipt.absolute()!=RECEIPT.absolute(): raise ValueError('unexpected deployment receipt path')
     directory=RECEIPT.parent
     if directory.is_symlink() or not directory.is_dir() or directory.stat().st_mode & 0o777!=0o700:

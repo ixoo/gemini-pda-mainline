@@ -18,6 +18,7 @@ runner=importlib.util.module_from_spec(spec);spec.loader.exec_module(runner)
 runner.validate_sources()
 pre=fixture['pre'].replace('7.1.3-gemini-thermal-snapshot','7.1.3-gemini-thermal-v4-corrected').replace(fixture['RECORD'],runner.RECORD)
 deployment=fixture['deployment'].replace(fixture['CANDIDATE'],runner.CANDIDATE)
+deployment = deployment.rstrip('\n') + '\nboot2_device_guard=passed\nboot2_device_guard_sha256=0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf\ntarget_major_minor=179:30\nroot_major_minor=179:29\n'
 scenarios=('success','preflight-refused','preflight-timeout','read-timeout','nonzero','interrupt',
            'pause-interrupt','postflight-failure','second-hot','seal-interrupt')
 with tempfile.TemporaryDirectory(prefix='gemini-v4-runner-',dir='/tmp') as name:

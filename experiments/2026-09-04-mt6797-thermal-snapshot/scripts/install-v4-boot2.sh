@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: MIT
-# Retarget the source-pinned live-GPT installer; no recovery or write gate changes.
+# Retarget the pinned installer and add verified block identity at every gate.
 set -euo pipefail
 export LC_ALL=C PYTHONDONTWRITEBYTECODE=1
 umask 077
@@ -10,9 +10,11 @@ source_installer=$repo/experiments/2026-08-14-mt6797-runtime-provenance-observer
 [[ "$(sha256sum "$source_installer" | awk '{print $1}')" == deaa0e886a881132dd49ee1e3d5b0e6f776400f51fa86a8d0b7c791e979d12a8 ]]
 derived=$(mktemp "$script_dir/.derived-v4-install.XXXXXXXX")
 trap 'rm -f -- "$derived"' EXIT HUP INT TERM
-python3 - "$source_installer" "$derived" <<'PY'
+python3 - "$source_installer" "$derived" "$script_dir" "$repo/scripts/boot2-device-guard.sh" <<'PY'
 from pathlib import Path
 import sys
+sys.path.insert(0,sys.argv[3])
+from v4_installer_guard import derive
 s=Path(sys.argv[1]).read_text()
 for old,new,count in (
  ('ea603c1b1a64d4f1aa9cac3e53957a3e858a7ce04127f1aef36d4b0e8173cb02','b007af3d7025b804b34c6f1e717b2eca5e9fecf09b0ff731cede2a12116d993c',1),
@@ -23,7 +25,9 @@ for old,new,count in (
 ):
  if s.count(old)!=count:raise ValueError('installer source anchor changed: '+old)
  s=s.replace(old,new)
-Path(sys.argv[2]).write_text(s)
+guard=Path(sys.argv[4])
+if guard.is_symlink() or not guard.is_file():raise ValueError('unsafe guard source')
+Path(sys.argv[2]).write_text(derive(s,guard.read_bytes()))
 PY
 bash -n "$derived"
 shellcheck "$derived"

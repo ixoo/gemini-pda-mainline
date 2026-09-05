@@ -10,6 +10,7 @@ candidate, record = '3' * 64, '4' * 64
 protocol = Protocol(candidate, record)
 pre = fixture['pre'].replace('7.1.3-gemini-thermal-snapshot', RELEASE).replace(fixture['RECORD'], record)
 deployment = fixture['deployment'].replace(fixture['CANDIDATE'], candidate)
+deployment = deployment.rstrip('\n') + '\nboot2_device_guard=passed\nboot2_device_guard_sha256=0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf\ntarget_major_minor=179:30\nroot_major_minor=179:29\n'
 boot = fixture['boot']
 post = pre.replace('abi=1 attempts=0 limit=3', 'abi=1 attempts=3 limit=3')
 

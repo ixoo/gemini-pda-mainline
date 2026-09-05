@@ -8,6 +8,7 @@ import re
 
 HERE = Path(__file__).resolve().parent
 PINS = {
+    'v4_deployment_receipt': '2ef4fc09a11207e2f43cce9c1d328905b636d618c72f3ab76325ef766201c5b7',
     'observation_state': '217b176e5825cfb1423a51b0b4b99a443b5d00d3a7149ad7c9f7e06c77c628dc',
     'observation_protocol': 'ac8067307a46bc80478697bd30dddab78459f298a408b4de48dd8fd649a7bf6c',
     'thermal_snapshot_records': '3d16447c3a213c658814a27795d6964d2c21c99424806aa51bd582f78e90da74',
@@ -56,6 +57,9 @@ class Protocol:
         self.parent = module('observation_protocol')
         self.parent.CANDIDATE = candidate
 
+    def receipt(self, raw):
+        return module('v4_deployment_receipt').receipt(raw, self.candidate)
+
     def state_gate(self, raw, deployment_boot, attempts=0, expected_boot=None):
         values = self.state.validate_state(raw, record_identity=self.record,
                                           deployment_boot=deployment_boot, attempts=attempts,
@@ -65,7 +69,7 @@ class Protocol:
         return values
 
     def run(self, transport, save, request, pause, deployment):
-        deployment_boot = self.parent.receipt(deployment)
+        deployment_boot = self.receipt(deployment)
         raw = transport('state', None, None)
         save('preflight.txt', raw)
         pre = self.state_gate(raw, deployment_boot)
