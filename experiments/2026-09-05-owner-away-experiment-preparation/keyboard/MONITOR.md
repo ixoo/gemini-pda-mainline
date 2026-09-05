@@ -147,6 +147,51 @@ Actual executable RAM location, transport byte/readback checks and runtime
 admission remain the existing independent gates. No `/run` mount change,
 limit increase, first-baseline retest, observer replacement or boot is proposed.
 
+
+## Runnable userspace package path
+
+[build-monitor.sh](build-monitor.sh) now implements the bounded compile path.
+The existing [userspace dispatcher](../baseline/scripts/buildbox_userspace.py)
+selects it with `--keyboard-monitor`; `--keyboard-monitor --fetch-only REVISION
+MANIFEST_SHA256` retrieves an already validated package without compiling again.
+The normal userspace selection is retained. The same dispatch and userspace
+locks serialize work. Only a clean published worker revision is eligible.
+
+After coordinator source review and an assigned userspace window, invoke:
+
+```sh
+python3 experiments/2026-09-05-owner-away-experiment-preparation/baseline/scripts/buildbox_userspace.py --keyboard-monitor
+```
+
+One invocation has a 1,200-second remote compilation/validation ceiling within
+the existing 1,800-second dispatch ceiling. It checks at least 512 MiB free,
+verifies compiler/linker and archive/member pins, configures/builds one private
+static musl library, and links two independent full-engine outputs. The checked
+map and defined symbol precede stripping; AArch64, static linkage, byte equality,
+and the 131,072-byte limit are required. The actual full-engine binary must also
+return the exact disabled-entry refusal under QEMU and the inherited file limit.
+
+The existing 11-method fixture suite accepts explicit compiler/QEMU/work-root
+inputs for this build. It exercises the Linux branch under ARM64 QEMU with
+scaled deadlines and no real input/VT device. QEMU incompatibility or any failed
+case stops publication; no target success is inferred from the native host run.
+Full-duration timing remains outside this invocation and requires its own review.
+
+The package retains source/archive hashes, resolved tool hashes and package
+versions, all installed library/header/wrapper hashes, link map, test results,
+exact stripped size, and repository, musl and GCC notices. Compiler/linker and
+musl pins are the reviewed proposal above; additional resolved tool identities
+are captured for review, not silently described as previously admitted pins.
+Temporary source/build/fixture directories are cleaned on success or failure;
+failed compiler/test logs use a finite per-revision diagnostic destination.
+Only the validated package is fetched through the existing checked extractor.
+
+Local validation: all 11 native fixture methods pass; two routing tests cover
+both package kinds and fetch-only behavior with mocked transports and the real
+package extractor. Python parsing, shell syntax, ShellCheck (including both
+embedded dispatcher scripts), and whitespace checks pass. No backend execution,
+ARM64 compile/QEMU result, size measurement or device action is claimed yet.
+
 ## Integration review
 
 Project Planning reviewed the disabled production entry, direct-child lifecycle,
@@ -162,3 +207,20 @@ fetch succeeded. Only in-memory archive inspection occurred. Retained linked
 artifacts must include applicable copyright/license notices, including notices
 for linked third-party portions; preserve the full archive COPYRIGHT record.
 No Buildbox window or target execution is granted by this input review.
+
+## Build tooling integration review
+
+Project Planning reviewed `dd6ebd84` and the focused main-branch proposal from
+`3b3f8474`. Independent native execution passed all 11 monitor methods; routing
+tests cover both package kinds, both allowed branches and early refusal of an
+unlisted branch. Shell syntax and ShellCheck pass. The original source review
+above is preserved. This accepts a bounded Buildbox userspace measurement of
+the full retained engine, the pinned musl input and the scaled ARM64 fixtures.
+Production entry remains disabled, and this is not device delivery admission.
+
+The assigned invocation uses `--keyboard-monitor --branch main` from the clean
+published integration revision. The existing backend window is free; no kernel
+build or source copy is selected. Host free space was approximately 86 GiB; the
+builder independently requires 512 MiB before extraction. Publication and fetch
+must finish before changing the integration checkout. A failed run remains
+evidence for review, not permission for an automatic retry.
