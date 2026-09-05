@@ -8396,11 +8396,14 @@ hazard. Synthetic exact-function tests reproduce small rounding differences;
 normalization removes them in the tested grid. Neither finding establishes the
 cause of the runtime thermal rise. The [focused correction tooling](../experiments/2026-09-04-mt6797-thermal-snapshot/V4_CORRECTION.md)
 now passes exact decoder/converter synthetic cases and ten rejecting mutations.
-**Selected next:** generate and replay the single patch from its clean published
-revision, admit it through an isolated profile, then build the exact clean pushed
-revision with the explicit Buildbox backend. A corrected image still needs a
-distinct bounded admission protocol; do not promote old thermal comparisons or
-request another unchanged boot. No further diagnostic reads or workload on the consumed
+Patch 0541 is now generated, style-checked and replayed from the clean published
+tooling, and its decoder/converter tests pass again. The isolated compile profile
+selects it; every pre-existing profile retains its exact predecessor patch and
+configuration inputs. **Selected next:** build `mt6797-thermal-v4-correction-compile`
+from the exact clean pushed revision with the explicit Buildbox backend. Treat
+that output as compilation evidence only. Before any corrected-image runtime,
+bind a distinct configuration/candidate identity and publish a bounded admission
+protocol; never relabel old thermal comparisons or reuse a consumed session. No further diagnostic reads or workload on the consumed
 session; no repeat is admitted. Any future boot requires a distinct,
 decision-changing hypothesis and published bounded protocol. Integrated thermal
 repeatability, broader load/hotplug, cpufreq/OPP, idle, suspend, thermal protection

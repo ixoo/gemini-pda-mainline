@@ -1,0 +1,11 @@
+decode_cases=177
+conversion_grid_cases=3316950
+upper_mask_cases=6633900
+distinct_sensor_ID_cases=81900
+mutations_rejected=10
+corrected_source_sha256=0e833aac1850c3e2910f5feb463f5e7a1a8943b77b1f99bfac4ca9e708f1ded4
+source_boundary=conversion-only
+source_identity_refusal=pass
+temporary_harness_removed=yes
+device_access=none
+kernel_build=none

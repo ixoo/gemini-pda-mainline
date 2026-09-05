@@ -38,3 +38,23 @@ from this initial host test. No existing runtime protocol is authorized for a
 changed image. A new candidate must bind its corrected source identity and
 retain all admission, accounting, cleanup and thermal-refusal constraints.
 Ordered work remains in the [roadmap](../../docs/ROADMAP.md).
+
+
+## Generated patch and compilation admission
+
+Clean published revision `7d8688815e8925258eb3cad635a94e5c6322645e` generated
+[patch 0541](../../patches/v7.1.3/0541-thermal-mediatek-correct-MT6797-offset-and-calibration-index.patch).
+The [generation receipt](results/v4-correction-generation.txt),
+[repeated exact-function tests](results/v4-correction-tests.txt), and
+[sanitized style check](results/v4-correction-checkpatch.txt) pass. Replay
+produced an identical source tree. Patch SHA256:
+`670dba907508d4b2001ee44facb5c07a182a403f14b668e685a0285c31665d34`.
+
+The isolated `mt6797-thermal-v4-correction-compile` profile inherits the snapshot
+configuration for a compile check only. It is not a boot candidate, and the old
+configuration binding/release must not be used to claim a corrected runtime.
+All 187 pre-existing profiles retain their exact patch bytes and configuration
+inputs; 159 previous canonical-series users now name the frozen predecessor
+series. Only the new profile selects the correction. The canonical superset
+still orders all patches. This avoids silently changing the default or the
+identity of the deployed snapshot profile. No new runtime protocol is admitted.

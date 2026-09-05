@@ -1,0 +1,40 @@
+From 0e14956f061709511948e08afd642971d280216d Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 5 Sep 2026 03:00:00 +0000
+Subject: [PATCH 1/1] thermal: mediatek: correct MT6797 offset and calibration
+ index
+
+Normalize encoded ADC offset before separately rounding the measured and room-temperature terms. Select calibration through the V4 sensor map so ABB cannot use the unrelated VTS5 entry, and reject invalid sensor IDs before indexing. Preserve the active bank layout and all other conversion versions. Synthetic decoder/converter checks cover all nonzero raw codes across a bounded calibration grid and reject ten mutations. This experimental archive has no certifying sign-off and is not submission-ready.
+---
+ drivers/thermal/mediatek/auxadc_thermal.c | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediatek/auxadc_thermal.c
+index d83e30b..03a8777 100644
+--- a/drivers/thermal/mediatek/auxadc_thermal.c
++++ b/drivers/thermal/mediatek/auxadc_thermal.c
+@@ -886,6 +886,12 @@ static int raw_to_mcelsius_v3(struct mtk_thermal *mt, int sensno, s32 raw)
+ static int raw_to_mcelsius_v4(struct mtk_thermal *mt, int sensno, s32 raw)
+ {
+ 	s64 gain, x_roomt, measured, delta, slope_denominator;
++	s64 offset = mt->adc_oe - 512;
++	int vts_index;
++
++	if (sensno < 0 || sensno >= mt->conf->num_sensors)
++		return THERMAL_TEMP_INVALID;
++	vts_index = mt->conf->vts_index[sensno];
+ 
+ 	if (!(raw & GENMASK(11, 0)))
+ 		return THERMAL_TEMP_INVALID;
+@@ -895,9 +901,9 @@ static int raw_to_mcelsius_v4(struct mtk_thermal *mt, int sensno, s32 raw)
+ 	if (gain <= 0)
+ 		return THERMAL_TEMP_INVALID;
+ 
+-	x_roomt = (((((s64)mt->vts[sensno] + 3350 - mt->adc_oe) *
++	x_roomt = (((((s64)mt->vts[vts_index] + 3350 - offset) *
+ 		      10000) >> 12) * 10000) / gain;
+-	measured = (((((s64)raw - mt->adc_oe) * 10000) >> 12) *
++	measured = (((((s64)raw - offset) * 10000) >> 12) *
+ 		    10000) / gain;
+ 	delta = (measured - x_roomt) * 15 / 18;
+ 	slope_denominator = 1663 +

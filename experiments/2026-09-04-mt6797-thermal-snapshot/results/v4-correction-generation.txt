@@ -1,0 +1,5 @@
+generation_revision=7d8688815e8925258eb3cad635a94e5c6322645e
+patches=1
+replay=identical-tree
+production_driver_changes=V4-offset-and-calibration-index
+hardware_access=none
