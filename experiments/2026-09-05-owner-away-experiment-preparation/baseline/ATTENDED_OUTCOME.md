@@ -1,12 +1,12 @@
 # Attended installation outcome and offline correction
 
-The corrected second installation wrote the selected candidate to logical boot2,
-verified the full readback, and completed the requested clean shutdown with
-subsequent unreachability. The strict deployment receipt passed independent
-validation and its boot identity matches the successful prerequisite. The sole
-baseline custodian remains assigned pending the coordinator's central handoff.
-No physical boot selection or baseline runtime observation has occurred in this
-attempt. The first failed installation and all earlier receipts remain preserved.
+The corrected installation and first physical baseline session completed through
+verified changed-ID Gemian recovery. Baseline observation, authentication,
+owner console acceptance and log preservation passed. The native recovery-request
+transport witness timed out, so the fixed overall result remains
+`recovered-with-baseline-incomplete`; no dependent experiment is admitted.
+The sole baseline custodian remains assigned pending coordinator handoff. Exact
+chronology and preserved failed attempts follow below.
 
 ## Observed sequence
 
@@ -120,3 +120,43 @@ and corrected installer pins are retained in [the retry handoff](INSTALL_RETRY.m
 This is a verified deployment result, not a successful baseline boot or hardware
 support promotion. The coordinator alone reviews the receipt and issues the
 physical-selection notification; the worker has not requested that action.
+
+## First physical baseline session
+
+The owner confirmed boot2 selection after deployment. Host-only inspection found
+the unique expected gadget interface, active carrier, the fixed host address and
+a direct subnet route on that interface. No address correction or SSH canary was
+needed. The route lookup socket was sandbox-denied; the routing table supplied
+the direct-route evidence. A local archive-permission gate failed before any
+collector claim or transport; tightening the owner-controlled archive to mode
+0700 allowed the same admission to create exactly one observation attempt.
+
+The fixed collector returned `baseline-observation-only-pass`: authenticated
+capture, exact live configuration/member identities and serviceability predicates
+passed on an attributable boot distinct from the deployment OS. It used one SSH
+attempt, exited zero in 1.263 seconds and produced no stderr. The owner separately
+confirmed that the authenticated-baseline screen was readable.
+
+The separately admitted authentication checks passed: rejected key, wrong host
+pin and fresh positive authentication. The one admitted log preservation returned
+`complete-log-through-seal`, including terminal-before-export evidence and all
+1746 records / 121077 bytes from sequence zero through explicit seal. No remote
+records were deleted.
+
+The ordinary native recovery request remains `inconclusive`. Its exact request
+frame and wrapper announcement were captured, but the transport reached its
+outer timeout after 14.011 seconds without the required confirmed disconnect.
+The request budget was consumed; it was not repeated or reclassified as success.
+
+After the owner confirmed Gemian had returned, one separately admitted known-good
+probe established `changed-ID-Gemian`, distinct from both the preceding Gemian
+and mainline boot identities. Prior authentication and log proofs verified; the
+native request proof remained incomplete. The fixed overall classifier returned
+`recovered-with-baseline-incomplete`. This confirms known-good recovery without
+silently converting the incomplete native-request witness into a full baseline
+pass or admitting dependent experiments.
+
+All exact observations, phase manifests and private raw records remain in the
+collector attempt and its corresponding session archive. No input, storage,
+radio or thermal experiment was added. Further queue, custody and physical-session
+actions belong to the coordinator; no follow-on device action is admitted here.
