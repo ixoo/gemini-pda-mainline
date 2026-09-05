@@ -8347,11 +8347,13 @@ has now passed on the exact fresh candidate, with complete per-bank records and
 unchanged pristine CPU/frequency accounting. Its three-read budget is consumed;
 do not rerun it. The [prospective attribution design](../experiments/2026-09-04-mt6797-thermal-snapshot/WORKLOAD_ATTRIBUTION.md)
 now fixes three explicit stage boundaries and a tested offline per-slot thermal
-evaluator. **Selected next:** implement the source-pinned builder, complete
-runtime classifier and one-shot runner. The source-pinned cooperative cleanup now passes host-shell worker, signal and
-fork-registration tests. Integrate it without changing payload/round/spin
-ceilings, validate the candidate shell contract and full failure paths, and
-require child quiescence before file-cleanup success. Retain the existing four-round
+evaluator. The source-pinned builder and combined runtime classifier now pass host
+fixtures, including integrated cleanup, stage placement and per-record refusal.
+**Selected next:** validate the generated program and cleanup against the exact
+candidate BusyBox shell, then complete the one-shot host transport and fresh-cycle
+receipt gate with durable attempt seals and timeout/no-retry fixtures. Preserve
+payload/round/spin ceilings and require child quiescence before file-cleanup
+success. Retain the existing four-round
 ceiling and thermal refusal limits; do not reinterpret or relax the rejected
 cross-boot thermal comparison. Bind fresh identity and pristine accounting,
 explicit stage attribution, fixed observation budgets, failure cleanup and

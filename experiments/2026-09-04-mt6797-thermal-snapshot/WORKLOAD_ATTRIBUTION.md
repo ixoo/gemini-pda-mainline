@@ -137,3 +137,32 @@ race and all four simultaneous handles. Mutations removing cancellation or
 waiting reject. This is not yet a complete executable attribution protocol:
 the materialized program must be integrated with the observation builder and
 validated in the candidate's shell contract before any new device workload.
+
+
+## Generated program and combined host classifier
+
+The [offline builder](scripts/build-attribution-runtime.py) now integrates the
+source-pinned cleanup before applying the inherited production observation
+sequence. It binds the new kernel/record identity and refuses known consumed
+boots. Its pre-admission checks include the exact pristine lifecycle hash,
+unique observer pair, root-only modes and zero snapshot/frequency accounting.
+The [observer fragment](scripts/attribution-observer.sh) emits each complete raw
+record and derives its aggregate through a strict bounded parser, refusing
+malformed or out-of-range values before another stage proceeds. It replaces
+ordinary temperature reads rather than adding another scan at each boundary.
+
+The [combined classifier](scripts/classify-attribution-runtime.py) checks raw
+record/stage placement, aggregate equality, final accounting and owned-worker
+cleanup before delegating the inherited CPU/topology/frequency/RAM predicate to
+its hash-pinned classifier. It validates both new release fields before the
+explicit normalization needed by that predecessor. Baseline frequencies and
+bounded independent CPU progress remain mandatory. Its separate thermal
+assessment retains per-slot attribution while rejecting the unchanged rise
+and spread limits; the combined result stays nonzero on rejection.
+
+[Program fixtures](scripts/test-attribution-runtime.py) cover generated shell,
+the actual observer function with injected files, complete transcript mutations
+and classifier exit behavior. See the [validation record](results/attribution-program-validation.txt).
+These are host fixtures. The transport runner, fresh-cycle receipt, durable
+no-retry state and candidate BusyBox shell validation remain required before
+execution. No new boot or workload is admitted by this implementation stage.

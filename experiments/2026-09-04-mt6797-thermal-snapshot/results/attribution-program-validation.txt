@@ -1,0 +1,54 @@
+Prospective bounded attribution program and combined classifier validation
+Date: 2026-09-04
+materialized_shell_syntax=pass
+materialized_shell_shellcheck=pass
+combined_positive_fixtures=1
+thermal_rejection_with_attribution_retained=1
+combined_mutations_rejected=14
+classifier_cli_exit_cases=3
+observer_fragment_cases=9
+consumed_boot_identity_refusals=3
+manifest_profiles_checked=187
+snapshot_read_sites=1
+snapshot_call_ceiling=3
+ordinary_temperature_reads_inside_workload=0
+frequency_observation_ceiling=3
+workload_rounds=4
+spin_limit=1000000
+kernel_build=none
+device_action=none
+
+The builder pins the inherited production builder, cleanup transform and
+observer fragment. The inherited builder continues to pin its lifecycle and
+worker sources. Derivation integrates cleanup before boot binding, replaces
+only the three ordinary thermal reads with single snapshot reads, and retains
+the inherited frequency/order/lifecycle/RAM sequence. It adds exact pre-admission
+snapshot mode/count/pristine-accounting and full-lifecycle-hash checks. No
+kernel, DT, configuration, initramfs or device partition change is involved.
+
+The actual observer fragment runs against injected host file adapters. Three
+positive stages and six refusals cover hot values, incomplete validity, wrong
+winner, truncation, stale pre-accounting and wrong post-accounting. Stale
+accounting consumes zero snapshots; each other case consumes exactly one. The
+fragment enforces the nonnegative/58500 bounds before allowing continuation and
+emits the raw record before parsing so failed evidence is preserved.
+
+The complete classifier separately validates stage placement, exact snapshot
+fields, aggregate equality, observer counts, worker reaping and cancellation
+cleanup. Only then does it remove validated snapshot blocks and normalize the
+two exact release fields for the pinned inherited lifecycle/topology/frequency/
+RAM classifier. It requires baseline frequencies and positive bounded accounting,
+and applies the independently pinned per-slot thermal evaluator. Thermal rise
+and spread rejection retains attribution and returns nonzero. Malformed evidence
+also returns nonzero. A thermal-only pass cannot bypass the inherited runtime
+predicate or claim hardware support.
+
+Host syntax, generated-shell ShellCheck, Python syntax and local-link checks
+pass. An obsolete THERMAL_ZONE assignment became unused after replacing its
+read; it was removed from the generated program. The standalone observer
+fragment has a targeted ShellCheck annotation for literal awk field expressions.
+
+Buildbox has qemu-aarch64-static available. Candidate BusyBox ash execution,
+one-shot transport/receipt integration, timeout persistence and complete
+failure-capture validation remain required. No exact-shell or hardware pass is
+claimed by these host fixtures. The consumed mainline session was not contacted.

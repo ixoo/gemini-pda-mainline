@@ -259,3 +259,9 @@ now cover cancellation, reaping and signals during child registration. They
 preserve the consumed source and finite workload limits. Full observation-runner
 integration and candidate-shell validation remain open; no device action follows
 from this host-only result.
+
+
+The [generated attribution program and combined classifier](WORKLOAD_ATTRIBUTION.md#generated-program-and-combined-host-classifier)
+now pass host fixtures, including per-record rejection and inherited runtime
+checks. The observer replaces the existing aggregate read at each of the three
+boundaries. Exact BusyBox and one-shot transport validation remain open.
