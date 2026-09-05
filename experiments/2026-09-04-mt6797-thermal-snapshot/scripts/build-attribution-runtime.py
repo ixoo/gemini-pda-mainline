@@ -74,6 +74,12 @@ def build(boot):
 [ "$($BB cat "${SNAPSHOT}_status")" = 'abi=1 attempts=3 limit=3' ] || finish_failure snapshot-final-accounting
 $BB printf '%s\\n' owned_workers_reaped=yes cancellation_file=absent snapshot_final_attempts=3
 $BB printf '%s\\n' concurrent_result=pass''')
+    for guard in (
+        '\t[ -r "$item/type" ] && [ -r "$item/temp" ] || continue',
+        '[ "$writer8_alive_before_observation" = 1 ] && [ "$writer9_alive_before_observation" = 1 ] ||',
+        '[ "$writer8_alive_after_observation" = 1 ] && [ "$writer9_alive_after_observation" = 1 ] ||',
+    ):
+        out=replace_exact(out,guard,'# shellcheck disable=SC2015 # Both checks are required.\n'+guard)
     return out
 
 
