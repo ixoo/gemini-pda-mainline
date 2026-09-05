@@ -97,3 +97,27 @@ sentinels for execution; it never runs the storage observer body. One bounded
 ARM64 fixture window is assigned under the shared Buildbox lock, using only the
 exact public BusyBox binary. Its result is a separate gate and does not change
 the preparing state or include eMMC in the first physical baseline session.
+
+## Exact guard result and dependent packet handoffs
+
+The three-file eMMC result at `ba2ed132` and four-file admission/capture
+handoff at `4a000f09` are adopted as preparation evidence. Integration verified
+the exact 2,846-byte receipt and digest, all 52 ordered case names, source and
+executable pins, budgets and reconstructed original-program/guard/tail hashes.
+All eleven source pins in the eMMC and keyboard handoff tables match main.
+The exact run was performed once by the worker; integration did not rerun it
+or independently repeat its private transport and cleanup observations.
+
+[The result](../emmc/GUARD_SHELL_RESULTS.md) closes the previously assigned
+ARM64 guard-fixture window. Its scope is fixed sentinels and exact command
+composition/dispatch, not execution of storage or baseline observer bodies.
+The [eMMC handoff](../emmc/ADMISSION_HANDOFF.md) keeps actual runtime facts
+unfilled and makes clear that private staging-path checks alone are not a
+durable production disable. Executable promotion remains separately reviewed.
+
+The [keyboard decision](../keyboard/CAPTURE_DELIVERY_DECISION.md) retains the
+validated observer and identifies the minimum independent termination/capture
+monitor. The inherited 128 KiB file-growth limit and executable RAM delivery
+remain explicit feasibility gates. No helper or candidate is rebuilt here.
+Neither dependent packet enters the first baseline boot; preparation and
+physical admission remain separate.

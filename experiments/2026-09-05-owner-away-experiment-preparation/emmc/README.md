@@ -13,10 +13,13 @@
 | Installer/receipt | Reuse that baseline's current guarded installer and immutable full-readback receipt |
 | Reviewer/custodian | Unassigned; no custody or hardware admission inferred |
 
-This packet is **not conditional-ready or ready**. Exact candidate, BusyBox,
-observation-shell, independent log capture, authenticated transport/deadline,
-serviceability and recovery identities remain missing. Its host fixtures are
-useful implementation evidence, not substitutes for those gates. The
+This packet is **not conditional-ready or ready**. The
+[admission handoff](ADMISSION_HANDOFF.md) separates completed offline artifacts,
+exact guard checks and private adapter tests from the actual baseline,
+deployment, custody, observation, full-log and recovery predicates still needed.
+Executable drafts remain private and refuse execution at their staging paths;
+promotion requires a durable disabled gate. Offline fixtures cannot supply those
+runtime facts. The
 [queue](../../../project/experiment-queue.json) inventories readiness; the
 [roadmap](../../../docs/ROADMAP.md) alone schedules work.
 

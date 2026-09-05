@@ -139,3 +139,21 @@ Real provider locking, transport completion, cancellation, stale-receive
 handling and recovery remain implementation prerequisites. No kernel input,
 shared-resource ownership, candidate, queue readiness or hardware support
 claim changes. No kernel build or device action was needed for integration.
+
+## CONN power-domain contract review
+
+Project Planning adopts the three additive files from
+`df61a2356023d7db4f74901624ae95ba28f2fc8a`. Independent review re-fetched
+and verified 14 decisive primary files, confirmed the selected protection bits
+17/18, dual-ACK semantics and the legacy provider's unconditional initial
+power-on. Five peripheral source pins were not independently re-fetched; this
+is not a second complete 19-file audit. JSON masks, aliases, references and
+local reset/regulator links were checked. No blocking finding remains.
+
+The [contract](POWER_DOMAIN.md) supports a separate provider change that can
+register an eligible initially-off domain without activating it, while preserving
+existing multimedia domains when the new domain is withheld. Both-on and mixed
+ACK states cannot be silently adopted as off. Outer reset and rails, SPM access
+ownership, transition ordering and partial-failure recovery remain prerequisites
+for actual CONN activation. This adoption changes no kernel input, candidate,
+custody, readiness or hardware-support claim and requires no kernel build.

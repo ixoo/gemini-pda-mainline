@@ -322,3 +322,19 @@ The original acquisition location is historical: the verified archive was
 subsequently adopted into the production checksum-keyed cache and used by the
 successful build. [The execution record](BUILD_ADMISSION.md#completed-build-and-fetch)
 owns those results; do not reacquire another copy at the old location.
+
+## Submission readiness integration
+
+The [unsigned readiness packet](SUBMISSION_READINESS.md) and
+[cover draft](UNSIGNED_COVER_LETTER.md) from `bca8d158` are adopted after
+independent review of advertised refs, selected primary-file identities, patch
+pins, routing and the concrete pending MT6797 common-probe conversion.
+No message has been sent and no author certification is inferred.
+
+The review accepts the proposed optional reset-cell compatibility correction
+and the separate common-helper cleanup fix for reset failure after clock
+publication. Normal driver-core failed-probe cleanup already clears driver data;
+the minimal correction need not add a second clear. Publication failure must
+retain its existing unwind path. These are reviewed implementation directions,
+not changed patch inputs. The validated six-patch topic and its original
+receipts remain unchanged; revised inputs need their relevant checks.

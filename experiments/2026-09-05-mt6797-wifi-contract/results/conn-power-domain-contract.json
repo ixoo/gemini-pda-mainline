@@ -1,0 +1,298 @@
+{
+  "schema": 1,
+  "kind": "mt6797_conn_power_domain_public_source_contract",
+  "parent_commit": "fcb1cb6b889fb738f8ac34e210d50f625982c246",
+  "status": "register_fields_representable_probe_admission_missing",
+  "kernel_patch_added": false,
+  "hardware_tested": false,
+  "executable_policy": false,
+  "candidate_selected": false,
+  "pins": {
+    "upstream": {
+      "repository": "https://github.com/torvalds/linux",
+      "commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "role": "upstream_source_audit_baseline_not_repository_kernel_selection"
+    },
+    "vendor": {
+      "repository": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797",
+      "commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "role": "selected_planet_public_ccf_and_wmt_source_evidence"
+    },
+    "gemian_comparator": {
+      "repository": "https://github.com/gemian/gemini-linux-kernel-3.18",
+      "commit": "d388d350cb2dda8f23b99be6fa5db9628896e87f",
+      "role": "independent_public_provider_and_dt_comparator_not_runtime_transition_evidence"
+    }
+  },
+  "source_selection": {
+    "basis": "Public defconfig, header, DT and provider selection; not a newly observed runtime call trace.",
+    "planet_defconfig": "OF, common clocks and MT6797 common-clock provider enabled; MTK_CLKMGR disabled; MTK watchdog enabled.",
+    "dt_clock": {"name": "conn", "binding_name": "SCP_SYS_CONN", "binding_id": 2},
+    "provider_domain": {"name": "SYS_CONN", "internal_id": 1, "gate": "pg_conn", "parent": null, "preclock": null},
+    "namespace_boundary": "Vendor clock-binding ID 2 and provider-internal ID 1 are not upstream power-domain IDs.",
+    "gemian_corroboration": "The pinned provider agrees on CONN control/status/protection and island order; its mt6797.dts maps the conn clock to SCP_SYS_CONN. No matching common MT6797 WMT implementation was established from that pin.",
+    "sources": ["vendor_defconfig", "vendor_dt", "vendor_clock_ids", "vendor_ccf_header", "vendor_ccf", "vendor_wmt_header", "gemian_ccf", "gemian_dt"]
+  },
+  "register_contract": {
+    "spm": {
+      "physical_base": "0x10006000",
+      "control_offset": "0x032c",
+      "status_offsets": ["0x0180", "0x0184"],
+      "status_mask": "0x00000002",
+      "control_bits": {
+        "power_reset_release": 0,
+        "isolation": 1,
+        "power_on": 2,
+        "power_on_second": 3,
+        "clock_disable": 4
+      },
+      "sram_power_down_mask_for_domain_data": "0x00000000",
+      "sram_ack_mask_for_domain_data": "0x00000000",
+      "sram_basis": "Selected CCF CONN routine has no SRAM transition; existing upstream fields accept zero masks. Legacy zero-mask helpers still access the control register.",
+      "generic_conn_offset_0x0280_applicable": false
+    },
+    "infracfg": {
+      "physical_base": "0x10001000",
+      "protection_enable_offset": "0x0220",
+      "protection_ack_offset": "0x0228",
+      "selected_ccf_mask": "0x00060000",
+      "selected_ccf_bits": [17, 18],
+      "upstream_method": "masked_register_update_with_ack_poll",
+      "inactive_wmt_direct_branch_mask": "0x000c0000",
+      "inactive_wmt_direct_branch_bits": [18, 19],
+      "inactive_branch_basis": "CONSYS_PWR_ON_OFF_API_AVAILABLE is 1; the alternative direct-register branch and its CONSYS_PROT_MASK are not the selected CCF contract.",
+      "wmt_topckgen_view_physical_base": "0x10000000",
+      "wmt_topckgen_view_offsets": ["0x1220", "0x1228"],
+      "offset_basis": "WMT's TOPCKGEN-relative view and the INFRACFG-relative view refer to the same public register locations; do not create competing mappings."
+    },
+    "external_cpu_reset": {
+      "controller": "AP_RGU",
+      "physical_base": "0x10007000",
+      "register_offset": "0x0018",
+      "bit": 12,
+      "write_key": "0x88000000",
+      "distinct_from_spm_power_reset_release_bit": true,
+      "ownership": "Separate reset-provider prerequisite; the power-domain data fields do not assert this reset."
+    },
+    "sources": ["vendor_ccf", "vendor_dt", "vendor_wmt_header", "vendor_watchdog", "vendor_watchdog_header", "upstream_scpsys", "upstream_infracfg", "upstream_infracfg_header"]
+  },
+  "representation": {
+    "supported_by_existing_legacy_fields": [
+      "control_offset_and_dual_status_offsets",
+      "single_bit_domain_status_mask",
+      "zero_sram_masks",
+      "single_step_bus_protection_mask"
+    ],
+    "existing_domain_ids": "0 through 11; none names CONN. Append a new binding ID rather than reusing GPU IDs.",
+    "optional_supply": "One domain-named regulator; absence is accepted and does not block activation.",
+    "basic_clocks": "Up to three predefined clock IDs enabled before island power-on; this is not the outer WMT preparation sequence.",
+    "missing_operation": "Per-domain suppression of probe-time power-on with explicit initial-state admission in the currently bound legacy MT6797 provider.",
+    "sources": ["upstream_scpsys", "upstream_power_ids", "upstream_legacy_binding"]
+  },
+  "probe_admission": {
+    "existing_legacy_behavior": "Provider registration invokes power_on for every listed domain before any consumer request. A disabled consumer or missing optional supply does not prevent it. Power-on failure warns and registration continues.",
+    "reviewed_template_status": "proposed_minimum_semantics_not_implemented_or_hardware_validated",
+    "initial_both_status_bits_clear": "May register the domain as off without calling either power callback; this does not authorize a later transition or prove all preparation complete.",
+    "initial_both_status_bits_set": "Must not blindly adopt the on-state or declare it off; resource ownership and handoff remain unproved.",
+    "initial_status_bits_mixed": "Refuse admission; do not normalize the hardware with a power callback.",
+    "existing_newer_driver_mechanism": {
+      "capability": "MTK_SCPD_KEEP_DEFAULT_OFF",
+      "mt6797_supported_by_that_driver": false,
+      "behavior": "Skips initial power_on, warns if status says on, then initializes genpd as off.",
+      "limitation": "Precedent for suppressing initial activation, not a complete firmware-on adoption or mixed-state refusal implementation."
+    },
+    "sources": ["upstream_scpsys", "upstream_pm_domains", "upstream_pm_domains_header", "upstream_pm_binding"]
+  },
+  "source_sequences": {
+    "vendor_ccf_preamble": "Write SPM register-control enable/key at offset 0x0000 before either transition.",
+    "vendor_ccf_on": [
+      "set_power_on",
+      "set_power_on_second",
+      "wait_both_status_bits_set",
+      "clear_clock_disable",
+      "clear_isolation",
+      "release_spm_reset",
+      "clear_bus_protection_and_wait"
+    ],
+    "vendor_ccf_off": [
+      "set_bus_protection_and_wait",
+      "set_isolation",
+      "set_clock_disable",
+      "assert_spm_reset",
+      "clear_power_on",
+      "clear_power_on_second",
+      "wait_both_status_bits_clear"
+    ],
+    "upstream_legacy_on": [
+      "enable_optional_supply",
+      "enable_basic_clocks",
+      "set_power_on",
+      "set_power_on_second",
+      "wait_both_status_bits_set",
+      "clear_clock_disable",
+      "clear_isolation",
+      "release_spm_reset",
+      "enable_sram_using_domain_masks",
+      "clear_bus_protection_and_wait"
+    ],
+    "upstream_legacy_off": [
+      "set_bus_protection_and_wait",
+      "disable_sram_using_domain_masks",
+      "set_isolation",
+      "assert_spm_reset",
+      "set_clock_disable",
+      "clear_power_on",
+      "clear_power_on_second",
+      "wait_both_status_bits_clear",
+      "disable_basic_clocks",
+      "disable_optional_supply"
+    ],
+    "off_order_difference": "Vendor CCF disables the clock before asserting SPM reset; legacy upstream asserts reset first. Equivalence is unproved.",
+    "polling_boundary": "Legacy upstream power/SRAM polling uses nominal one-second limits; protection has its own bounded ACK poll. These do not provide complete transaction rollback.",
+    "sources": ["vendor_ccf", "upstream_scpsys", "upstream_infracfg"]
+  },
+  "unresolved_ownership_and_recovery": {
+    "spm_global_register_control": "Vendor writes 0x0b160001 at SPM offset 0x0000. Neither audited upstream power-domain driver supplies this operation; ownership, necessity on the selected baseline and safe restoration remain unproved.",
+    "outer_preparation": "VCN rails, the CONN-to-AP sleep mask, external CPU reset and subsequent WMT preparation are outside island domain data and need coordinated owners.",
+    "optional_ahb_clock_branch": "The selected WMT header sets CONSYS_AHB_CLK_MAGEMENT to 0; do not infer that inactive branch as a mandatory clock dependency.",
+    "legacy_power_on_failure": "Clocks and optional supply are disabled, but power/reset/isolation/protection registers are not fully restored.",
+    "legacy_power_off_failure": "Returns an error without reconstructing the prior domain state.",
+    "decision": "No bare CONN domain-data patch or active candidate. Resolve provider admission, outer prerequisites, ordering and failure ownership before enabling a consumer.",
+    "sources": ["vendor_ccf", "vendor_wmt", "vendor_wmt_header", "upstream_scpsys", "upstream_pm_domains"]
+  },
+  "public_sources": [
+    {
+      "id": "upstream_scpsys",
+      "pin": "upstream",
+      "path": "drivers/pmdomain/mediatek/mtk-scpsys.c",
+      "sha256": "9ce2b2c95a38bc4c7b801aff9b7c26da2dc8ec2e3fd34199adaedf1db3007226",
+      "line_ranges": [[122, 191], [194, 411], [459, 548], [755, 823], [1044, 1054]]
+    },
+    {
+      "id": "upstream_pm_domains",
+      "pin": "upstream",
+      "path": "drivers/pmdomain/mediatek/mtk-pm-domains.c",
+      "sha256": "7c270b5541008e80eba016f0da0aea109af5e824d0d85549843c8810853b415c",
+      "line_ranges": [[89, 105], [478, 598], [696, 834], [985, 1019], [1283, 1351]]
+    },
+    {
+      "id": "upstream_pm_domains_header",
+      "pin": "upstream",
+      "path": "drivers/pmdomain/mediatek/mtk-pm-domains.h",
+      "sha256": "23c19fe1b9c9af0e983c3ec936a9807aa0d0b2bdba2f35ba84869b512cab6444",
+      "line_ranges": [[6, 24], [155, 183]]
+    },
+    {
+      "id": "upstream_pm_binding",
+      "pin": "upstream",
+      "path": "Documentation/devicetree/bindings/power/mediatek,power-controller.yaml",
+      "sha256": "06def271693ef856cc420ceeea5099f3276713ae55ae87ef667e54596eff906c",
+      "line_ranges": [[24, 42]]
+    },
+    {
+      "id": "upstream_power_ids",
+      "pin": "upstream",
+      "path": "include/dt-bindings/power/mt6797-power.h",
+      "sha256": "201e215b5f058fbb043c6f3503e8ab42c8caab0ae41a7b634024f88cef4c4034",
+      "line_ranges": [[10, 21]]
+    },
+    {
+      "id": "upstream_legacy_binding",
+      "pin": "upstream",
+      "path": "Documentation/devicetree/bindings/soc/mediatek/scpsys.txt",
+      "sha256": "268cd1c119b7239eb521f4440dc263fcf01f7670b7bb43f1e9817b460274e249",
+      "line_ranges": [[19, 58]]
+    },
+    {
+      "id": "upstream_infracfg",
+      "pin": "upstream",
+      "path": "drivers/soc/mediatek/mtk-infracfg.c",
+      "sha256": "f2ae233096fc7c284f9170a91a1dc37151ad4268f976f679620f6431492096de",
+      "line_ranges": [[13, 74]]
+    },
+    {
+      "id": "upstream_infracfg_header",
+      "pin": "upstream",
+      "path": "include/linux/soc/mediatek/infracfg.h",
+      "sha256": "c77c59cc8e8d0e91a5b6d1eb52cb236fda4ae1709bbffc84fe1020d701d112b9",
+      "line_ranges": [[442, 445]]
+    },
+    {
+      "id": "vendor_ccf",
+      "pin": "vendor",
+      "path": "drivers/clk/mediatek/clk-mt6797-pg.c",
+      "sha256": "4a661ed078bddaba15b7a7a2db27ca59ced8883a1b71c545bbbe24cddd64d58f",
+      "line_ranges": [[132, 199], [260, 268], [398, 457], [574, 661], [1914, 1918], [2097, 2104], [2239, 2304], [2340, 2382], [2406, 2447], [2526, 2526]]
+    },
+    {
+      "id": "vendor_wmt",
+      "pin": "vendor",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c",
+      "sha256": "0ec8e9c1594626d0b31f2d2623927d614f63af4437c16df838e10e11258663ce",
+      "line_ranges": [[226, 244], [279, 355], [395, 496], [609, 755]]
+    },
+    {
+      "id": "vendor_wmt_header",
+      "pin": "vendor",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/mt6797/include/mtk_wcn_consys_hw.h",
+      "sha256": "3ee7631a95a12f5cddd860c213e51e75e1cb3146ca858a892aaae55b4d22fad1",
+      "line_ranges": [[39, 46], [67, 88], [123, 125], [162, 189]]
+    },
+    {
+      "id": "vendor_defconfig",
+      "pin": "vendor",
+      "path": "arch/arm64/configs/lineage_gemini_defconfig",
+      "sha256": "5f0018658a6e0858cbb730be427a379797afd9e2639a51e7f40d963b4e61115a",
+      "line_ranges": [[272, 272], [1002, 1002], [1123, 1123], [2303, 2304], [3139, 3155]]
+    },
+    {
+      "id": "vendor_dt",
+      "pin": "vendor",
+      "path": "arch/arm64/boot/dts/mt6797.dtsi",
+      "sha256": "eaac86c8752ebd8ddf18b831eb3bc52a08f87475a213bb521650bf95dabb3e5e",
+      "line_ranges": [[815, 819], [3759, 3772]]
+    },
+    {
+      "id": "vendor_clock_ids",
+      "pin": "vendor",
+      "path": "include/dt-bindings/clock/mt6797-clk.h",
+      "sha256": "e0be7f014dbdffd6ca46acef1bb87d7aceae04921f78c60ddca93e6afc01bb96",
+      "line_ranges": [[324, 324]]
+    },
+    {
+      "id": "vendor_ccf_header",
+      "pin": "vendor",
+      "path": "drivers/clk/mediatek/clk-mt6797-pg.h",
+      "sha256": "b3214783e1167fa1a523500fed95966121659ed9068d0556410b83c8786cd5d9",
+      "line_ranges": [[16, 22]]
+    },
+    {
+      "id": "vendor_watchdog",
+      "pin": "vendor",
+      "path": "drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c",
+      "sha256": "816e82eddf63d2bf9366b84ff238b3ff305c7929bea3bd694a229c0294acd6bc",
+      "line_ranges": [[396, 453]]
+    },
+    {
+      "id": "vendor_watchdog_header",
+      "pin": "vendor",
+      "path": "drivers/watchdog/mediatek/wdt/mt6797/mt_wdt.h",
+      "sha256": "fdbd42a1e238cc5148486a0d765434bddf008808244ad76af77d9371a208fa30",
+      "line_ranges": [[26, 26], [100, 104]]
+    },
+    {
+      "id": "gemian_ccf",
+      "pin": "gemian_comparator",
+      "path": "drivers/clk/mediatek/clk-mt6797-pg.c",
+      "sha256": "a362bb15b31978b629a5628d1e3942da6479e5a53879857a046a8d1a2cd73de4",
+      "line_ranges": [[132, 199], [565, 652], [2517, 2517]]
+    },
+    {
+      "id": "gemian_dt",
+      "pin": "gemian_comparator",
+      "path": "arch/arm64/boot/dts/mt6797.dts",
+      "sha256": "ff05ba39562efce685bf3c1127eca6986ee318184d6354edbb048626d8e9cc0a",
+      "line_ranges": [[3767, 3780]]
+    }
+  ]
+}

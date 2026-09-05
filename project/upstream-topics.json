@@ -6,7 +6,7 @@
       "id": "mt6797-infracfg-reset",
       "status": "local-preparation",
       "owner": "CPU 8-9 Astra",
-      "target": "Linux MediaTek clock/reset and Devicetree maintainers; resolve exact current target using MAINTAINERS/get_maintainer.pl before submission",
+      "target": "Clock tree for reset implementation/tests/header, with MediaTek/reset/DT review; MediaTek tree for the independent SoC DTS declaration. Pinned routing and pending conversion are recorded in SUBMISSION_READINESS.md; refresh for final submission.",
       "patches": [
         "patches/upstream-4d7d9486/0001-clk-mediatek-reject-out-of-bank-SET-CLEAR-reset-IDs.patch",
         "patches/upstream-4d7d9486/0002-clk-mediatek-test-reset-translation-bounds.patch",
@@ -18,11 +18,13 @@
       "evidence": [
         "experiments/2026-09-03-mt6797-infracfg-reset-repair/README.md",
         "experiments/2026-09-04-mt6797-pwrap-reset-serviceability/README.md",
-        "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/README.md"
+        "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/README.md",
+        "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/SUBMISSION_READINESS.md"
       ],
       "dependencies": [
-        "Current maintainer target-tree and binding/ABI review",
-        "Provider registration failure-path review and consumer evidence mapping",
+        "Preserve optional reset cells for old MT6797 DT descriptions and validate the corrected topic",
+        "Coordinate the pending MT6797 common-probe conversion; fix post-publication reset-error cleanup before adopting its reset hook",
+        "Review final provider ordering and map consumer evidence to the exact final revision",
         "Actual authorship audit and truthful DCO certification before submission"
       ],
       "authorship": "Unresolved: audit actual provenance and obtain truthful DCO certification; never replace a synthetic identity mechanically",
