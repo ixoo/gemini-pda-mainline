@@ -64,12 +64,12 @@
     {
       "id": "upstream",
       "title": "Upstream preparation",
-      "owner": "CPU 8-9 Astra",
+      "owner": "Kernel integration and upstream review",
       "status": "active",
       "scope": [
-        "project/upstream-topics.json",
-        "topic-local binding/driver review",
-        "Isolated production source-selection/builder/validator proposal; shared input admission and main integration remain with Project Planning"
+        "Topic-local upstream binding/driver review and truthful submission preparation",
+        "Compile-only Linux integration proposals for accepted protocol components",
+        "Shared manifest, canonical series and backend admission remain with Project Planning"
       ],
       "evidence": [
         "experiments/2026-09-03-mt6797-infracfg-reset-repair/README.md",

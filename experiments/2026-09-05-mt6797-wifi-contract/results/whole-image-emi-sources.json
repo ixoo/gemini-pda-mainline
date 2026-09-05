@@ -1,0 +1,33 @@
+{
+  "scope": "Public selected EMI routing and protection API evidence",
+  "sources": [
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c",
+      "bytes": 215814,
+      "sha256": "56bf99536fcb96de5a5198943aec96c9efccb8af89261b29c62046e6560c422f"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c",
+      "bytes": 42002,
+      "sha256": "0ec8e9c1594626d0b31f2d2623927d614f63af4437c16df838e10e11258663ce"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c",
+      "bytes": 93439,
+      "sha256": "39921d80191b674940246425123b52fa140262a7e17022f90f02dd88389932b2"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/emi_mpu.h",
+      "bytes": 9747,
+      "sha256": "a59c8a9a3e6fbb6889d131e23a413597f7bf5f188d82c4e953a66ce2a5aed68d"
+    }
+  ]
+}

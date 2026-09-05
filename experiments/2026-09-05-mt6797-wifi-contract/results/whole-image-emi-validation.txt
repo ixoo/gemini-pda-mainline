@@ -1,0 +1,17 @@
+Whole-image EMI obligation audit — 2026-09-05
+Base: 2d9983c7
+Four pinned public sources rechecked; existing private-metadata summary and
+sanitized parser contract inspected without reopening retained inputs.
+Findings: indices >=2 require EMI; no active fgEmiDownloaded skip condition;
+MPU public wrapper discards lower int result and returns unchanged zero;
+parser output is sanitized metadata, not an executable owned section plan.
+Missing provider/reservation/protection/remap/visibility/error inputs specified.
+No speculative writer, done flag, generic framework or header/API changes.
+Compile-only worker informed that the seven-header API remains stable.
+No device/backend action, raw/private input, feature push or firmware permission.
+Documentation/source-metadata only; kernel build, code tests and shell checks
+not applicable to this bounded negative implementation-admission result.
+Repository checks pass: 189 profiles, unchanged metadata debt=37; Linux-only
+artifact fixture skipped. New-file links, JSON, rights/privacy and diff checks pass.
+WHOLE_IMAGE_EMI.md sha256=142926dbeab6d7596260ab9aa58a767a6efdaf20174558feba71c2ffe38b6c30
+results/whole-image-emi-sources.json sha256=70310d68c38a047895411931b1bc51898c9a0e968a0a8a1534b9b89255d070e0
