@@ -32,7 +32,7 @@ BINARIES = {"dropbear", "dropbearkey", "dropbearconvert", "keyboard-observe", "k
 USERSPACE_FILES = BINARIES | {"SHA256SUMS", "auth-tests.json", "localoptions.h", "inputs.json",
     "effective-options.txt", "provenance.txt", "kmsg-parser-tests.txt", "kmsg-io-tests.txt", "kmsg-seal-tests.txt", "licenses/Dropbear-LICENSE",
     "licenses/LibTomCrypt-LICENSE", "licenses/LibTomMath-LICENSE", "shell-tests.json",
-    "emmc-shell-tests.txt", "session-shell-tests.json", "licenses/BusyBox-copyright"}
+    "emmc-shell-tests.txt", "emmc-runner-tests.txt", "session-shell-tests.json", "licenses/BusyBox-copyright"}
 BUSYBOX_SHA = "52151e7f322f926b64049cdaa1410dc3ea6485525e0624b05813791c219ae933"
 INPUTS = {"localoptions.h", "scripts/build-userspace.sh", "scripts/provision.py", "scripts/test-auth.py",
           "src/kmsg-capture.c", "src/kmsg-seal.c", "../keyboard/keyboard-observe.c", "../keyboard/protocol.h"}
@@ -163,6 +163,7 @@ def check_userspace(package, manifest_sha, candidate_revision):
     check_unittest_receipt(regular(package / "kmsg-parser-tests.txt"), 15)
     for name, count in (("kmsg-io-tests.txt", 12), ("kmsg-seal-tests.txt", 9)):
         check_unittest_receipt(regular(package / name), count)
+    check_unittest_receipt(regular(package / "emmc-runner-tests.txt"), 6)
     shell = load_json(package / "shell-tests.json")
     unit = shell.get("ulimit_f_block_bytes")
     require(type(unit) is int and unit in (512, 1024), "shell file-size unit")
@@ -191,11 +192,11 @@ def check_userspace(package, manifest_sha, candidate_revision):
             "session shell evidence inventory or result")
     emmc = regular(package / "emmc-shell-tests.txt").decode()
     for line in ("emmc_fixture_mode=exact-busybox-qemu", "actual_busybox_sha256=" + BUSYBOX_SHA,
-                 "observer_busybox_identity=fixture-dispatcher-hash"):
+                 "observer_busybox_identity=fixture-dispatcher-hash", "observer_fixture_timeout_seconds=90"):
         require(emmc.splitlines().count(line) == 1, "exact BusyBox eMMC fixture identity")
     check_unittest_receipt(regular(package / "emmc-shell-tests.txt"), 28)
     tested_sources = {"scripts/test-shell.py", "scripts/test-session-shell.py", "scripts/session_steps.py", "test-kmsg.py", "test-kmsg-io.py", "tests/kmsg-io-harness.c", "test-kmsg-seal.py", "tests/kmsg-seal-harness.c", "../emmc/observe.sh",
-                      "../emmc/classify.py", "../emmc/test_packet.py"}
+                      "../emmc/classify.py", "../emmc/test_packet.py", "../emmc/test-runner.py"}
     tested_sources.update("initramfs/" + name for name in shell_sources)
     for relative in tested_sources:
         path = (HERE / relative).resolve(strict=True)

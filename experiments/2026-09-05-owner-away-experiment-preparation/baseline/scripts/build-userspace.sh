@@ -34,7 +34,8 @@ cleanup() {
       # A finite allowlist excludes source trees, keys and private auth fixtures.
       for log in one/configure.log one/build.log two/configure.log two/build.log \
                  package/kmsg-parser-tests.txt package/kmsg-io-tests.txt package/kmsg-seal-tests.txt package/auth-tests.json \
-                 package/shell-tests.json package/session-shell-tests.json package/emmc-shell-tests.txt; do
+                 package/shell-tests.json package/session-shell-tests.json package/emmc-shell-tests.txt \
+                 package/emmc-runner-tests.txt; do
         if [[ -f $stage/$log && ! -L $stage/$log ]]; then
           head -c 2097152 "$stage/$log" >"$diagnostic/${log//\//-}"
           printf 'failure_log=%s\n' "$log" >&2
@@ -63,6 +64,7 @@ mkdir "$stage/package" "$stage/package/licenses"
 python3 "$here/test-kmsg.py" >"$stage/package/kmsg-parser-tests.txt" 2>&1
 KMSG_TEST_WORK_ROOT="$stage" python3 "$here/test-kmsg-io.py" >"$stage/package/kmsg-io-tests.txt" 2>&1
 KMSG_TEST_WORK_ROOT="$stage" python3 "$here/test-kmsg-seal.py" >"$stage/package/kmsg-seal-tests.txt" 2>&1
+EMMC_TEST_WORK_ROOT="$stage" python3 "$here/../emmc/test-runner.py" >"$stage/package/emmc-runner-tests.txt" 2>&1
 curl --fail --location --max-time 120 --output "$stage/busybox.deb" \
   https://ports.ubuntu.com/ubuntu-ports/pool/main/b/busybox/busybox-static_1.36.1-6ubuntu3.1_arm64.deb
 printf '%s  %s\n' d96535e0402c011e0ee43449799df2f4504d44b842e4f2b3a6cbc845508eaafc "$stage/busybox.deb" | sha256sum --check --strict
@@ -70,8 +72,8 @@ dpkg-deb -x "$stage/busybox.deb" "$stage/busybox-root"
 busybox="$stage/busybox-root/usr/bin/busybox"
 printf '%s  %s\n' 52151e7f322f926b64049cdaa1410dc3ea6485525e0624b05813791c219ae933 "$busybox" | sha256sum --check --strict
 python3 "$here/scripts/test-shell.py" --busybox "$busybox" --work-root "$stage" >"$stage/package/shell-tests.json" 2>&1
-python3 "$here/scripts/test-session-shell.py" --busybox "$busybox" --qemu qemu-aarch64-static --work-root "$stage" >"$stage/package/session-shell-tests.json" 2>&1
 EMMC_TEST_BUSYBOX="$busybox" EMMC_TEST_WORK_ROOT="$stage" python3 "$here/../emmc/test_packet.py" >"$stage/package/emmc-shell-tests.txt" 2>&1
+python3 "$here/scripts/test-session-shell.py" --busybox "$busybox" --qemu qemu-aarch64-static --work-root "$stage" >"$stage/package/session-shell-tests.json" 2>&1
 TMPDIR="$stage" "$repository/scripts/test-validate-kernel-artifact-provenance"
 install -m 0600 "$stage/busybox-root/usr/share/doc/busybox-static/copyright" "$stage/package/licenses/BusyBox-copyright"
 curl --fail --location --max-time 120 --output "$stage/source.tar.bz2" \

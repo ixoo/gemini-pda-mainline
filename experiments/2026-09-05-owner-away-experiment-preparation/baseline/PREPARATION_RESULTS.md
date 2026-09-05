@@ -199,3 +199,41 @@ requires later final-status and exit bytes to remain available and is ordered
 early in the exact suite. The generated seal identity is now
 `43a7391076eaf1cf58fe1773d619e973165680a4e63c01f134bf4bc60edfda34`;
 the recovery command and device budgets are unchanged.
+
+## Exact session pass and eMMC fixture correction
+
+Revision `e9370067438563fa11685e711f4450168fcf77aa` passed all 61 exact
+ARM64 BusyBox session cases, including the vanished-log export regression,
+seven bounded-runner checks, ten effect guards and four parser-transport checks.
+Its native parser/logger/seal and 25 exact init cases also passed. The eMMC
+suite passed 26 of 28 methods; the positive observer and classifier-mutation
+methods exceeded the fixture's 30-second ceiling. The run stopped before
+compilation, retained bounded diagnostics and removed staging. It produced no
+validated package or candidate.
+
+An independent diagnostic from unchanged published revision
+`8abd7a0439dd042e15985497fe62531a1c67f89d` reproduced the same two fixture
+timeouts. A single positive observer run with a 90-second diagnostic ceiling
+completed in 30.515 seconds, with zero exit, no stderr and 923 stdout bytes.
+The classifier accepted exactly one 16 MiB read as partial read-integrity
+evidence; independent log, serviceability and changed-ID recovery remain
+required. The diagnostic staging was removed. This measurement supports a
+fixture-only timing correction; it is not package or hardware acceptance.
+
+The exact observer fixture ceiling is now 90 seconds, with the host-mode
+ceiling remaining 30 seconds. Explicit timeout regressions retain their
+4/6/7-second limits; the actual observer's 20-second read deadline and planned
+40-second transport ceiling are unchanged. The harness bounds stdout to
+128 KiB, stderr to 16 KiB, cleanup to one second, and diagnostics to short
+stream and dispatch tails. Six independent process tests cover timeout,
+stream overflow, descendant cleanup and interruption, including after EOF.
+Their complete receipt is mandatory in the userspace package and bound to the
+published test source. The complete exact eMMC suite must pass before the
+next session suite and compilation run.
+
+All six runner methods and eight receipt-refusal methods pass locally; the
+receipt checks also pass with Python optimization enabled. Independent review
+found no actionable runner issue. Bash syntax, ShellCheck and the common
+repository gate pass, including all 189 manifest profiles. The Linux-only
+provenance fixture remains part of the forthcoming Buildbox run. No kernel
+build, DT/schema, device or runtime acceptance is claimed by these checks.

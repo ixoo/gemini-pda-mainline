@@ -12,7 +12,7 @@ HERE = Path(__file__).resolve().parent
 VALIDATOR = HERE / "validate-candidate.py"
 CHECK = runpy.run_path(str(VALIDATOR))["check_unittest_receipt"]
 SUITES = {"kmsg-parser-tests.txt": 15, "kmsg-io-tests.txt": 12,
-          "kmsg-seal-tests.txt": 9, "emmc-shell-tests.txt": 28}
+          "kmsg-seal-tests.txt": 9, "emmc-shell-tests.txt": 28, "emmc-runner-tests.txt": 6}
 
 
 def receipt(count, *, elapsed="0.123", prefix=b"", verdict="OK"):
@@ -26,11 +26,11 @@ class CandidateReceiptTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             CHECK(raw, count)
 
-    def test_exact_four_suites_pass_with_realistic_verbose_reports(self):
+    def test_exact_five_suites_pass_with_realistic_verbose_reports(self):
         for name, count in SUITES.items():
             with self.subTest(receipt=name):
                 prefix = (b"emmc_fixture_mode=exact-busybox-qemu\n"
-                          b"observer_busybox_identity=fixture-dispatcher-hash\n") if name.startswith("emmc") else b""
+                          b"observer_busybox_identity=fixture-dispatcher-hash\n") if name == "emmc-shell-tests.txt" else b""
                 CHECK(receipt(count, prefix=prefix), count)
                 CHECK(receipt(count, elapsed="1"), count)
                 CHECK(receipt(count).removesuffix(b"\n"), count)
@@ -82,7 +82,7 @@ class CandidateReceiptTests(unittest.TestCase):
             with self.subTest(count=count):
                 self.refuse(receipt(15), count)
 
-    def test_all_four_package_receipts_use_the_shared_gate(self):
+    def test_all_five_package_receipts_use_the_shared_gate(self):
         # Check the receipt-only production section, including its real loop,
         # while refusing any new call that would require broader fixtures.
         tree = ast.parse(VALIDATOR.read_text())

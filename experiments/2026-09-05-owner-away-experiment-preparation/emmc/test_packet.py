@@ -18,6 +18,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import selectors
 import signal
 import subprocess
 import sys
@@ -70,6 +71,8 @@ def run_applet(name, values):
 
 require(len(sys.argv) > 1, "missing applet")
 cmd, *args = sys.argv[1:]
+with (root / "dispatch-calls.jsonl").open("a") as record:
+    record.write(json.dumps({"applet": cmd, "args": [value.replace(str(root), "<fixture>")[:512] for value in args[:8]]}) + "\n")
 if cmd == "readlink":
     require(len(args) == 1 or (len(args)==2 and args[0]=="-f"), "readlink arguments")
     path = confined(args[-1], follow="-f" in args)
@@ -184,26 +187,129 @@ def exact_configuration():
     return root, [str(canonical_emulator), str(busybox)], digest
 
 
-def bounded_process(command, environment, timeout=30):
-    """Kill only the fresh session owned by this fixture, including descendants."""
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                               text=True, env=environment, start_new_session=True)
-    try:
-        stdout, stderr = process.communicate(timeout=timeout)
-        return subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
-    finally:
-        try:
-            os.killpg(process.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
-        process.communicate()
+FIXTURE_STREAM_LIMITS = {'stdout': 131072, 'stderr': 16384}
+FIXTURE_CLEANUP_SECONDS = 1
 
+
+class FixtureRunError(ValueError):
+    def __init__(self, diagnostic):
+        self.diagnostic = diagnostic
+        super().__init__(json.dumps(diagnostic, sort_keys=True))
+
+
+def bounded_process(command, environment, timeout=30):
+    """Bound only a fresh, disposable fixture group and its captured output."""
+    started = time.monotonic()
+    deadline = started + timeout
+    buffers = {name: bytearray() for name in FIXTURE_STREAM_LIMITS}
+    selector = selectors.DefaultSelector()
+    process, reason = None, None
+    interrupted, handlers = [], {}
+
+    def drain(wait):
+        nonlocal reason
+        for key, _ in selector.select(wait):
+            try:
+                data = os.read(key.fileobj.fileno(), 65536)
+            except BlockingIOError:
+                continue
+            if not data:
+                selector.unregister(key.fileobj)
+                key.fileobj.close()
+                continue
+            name = key.data
+            available = FIXTURE_STREAM_LIMITS[name] - len(buffers[name])
+            buffers[name].extend(data[:available])
+            if len(data) > available:
+                reason = reason or name + '-limit'
+
+    def signal_group(number):
+        if process is not None:
+            try:
+                os.killpg(process.pid, number)
+            except ProcessLookupError:
+                pass
+
+    try:
+        for number in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+            handlers[number] = signal.signal(number, lambda received, _frame: interrupted.append(received))
+        process = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE, env=environment, start_new_session=True)
+        for name in FIXTURE_STREAM_LIMITS:
+            stream = getattr(process, name)
+            os.set_blocking(stream.fileno(), False)
+            selector.register(stream, selectors.EVENT_READ, name)
+        while selector.get_map() or process.poll() is None:
+            if interrupted:
+                reason = 'fixture-interrupted-' + str(interrupted[0])
+                break
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                reason = 'fixture-timeout'
+                break
+            drain(min(0.05, remaining))
+            if reason:
+                break
+    finally:
+        cleanup_deadline = time.monotonic() + FIXTURE_CLEANUP_SECONDS
+        signal_group(signal.SIGTERM)
+        grace = min(cleanup_deadline, time.monotonic() + 0.1)
+        while process is not None and time.monotonic() < grace:
+            if selector.get_map():
+                drain(min(0.02, max(0, grace - time.monotonic())))
+            else:
+                time.sleep(min(0.01, max(0, grace - time.monotonic())))
+        if process is not None:
+            process.poll()
+        signal_group(signal.SIGKILL)
+        if process is not None:
+            try:
+                process.wait(timeout=max(0.01, cleanup_deadline - time.monotonic()))
+            except subprocess.TimeoutExpired:
+                reason = reason or 'fixture-cleanup-timeout'
+            while selector.get_map() and time.monotonic() < cleanup_deadline:
+                drain(min(0.02, max(0, cleanup_deadline - time.monotonic())))
+            for name in FIXTURE_STREAM_LIMITS:
+                stream = getattr(process, name)
+                if stream and not stream.closed:
+                    stream.close()
+        selector.close()
+        for number, previous in handlers.items():
+            signal.signal(number, previous)
+    if interrupted:
+        reason = reason or 'fixture-interrupted-' + str(interrupted[0])
+    if reason:
+        recent = []
+        root_text = environment.get('EMMC_FIXTURE_ROOT')
+        if root_text:
+            root = Path(root_text)
+            trace = root / 'dispatch-calls.jsonl'
+            if (root.name.startswith('gemini-emmc-fixture-') and root.is_dir() and not root.is_symlink()
+                    and trace.is_file() and not trace.is_symlink()):
+                with trace.open('rb') as stream:
+                    size = stream.seek(0, os.SEEK_END)
+                    stream.seek(max(0, size - 8192))
+                    lines = stream.read(8192).splitlines()
+                if size > 8192:
+                    lines = lines[1:]
+                recent = [line[-1024:].decode('utf-8', errors='backslashreplace') for line in lines[-8:]]
+        raise FixtureRunError({'classification': 'emmc-fixture-runner-failed', 'reason': reason,
+            'fixture_timeout_seconds': timeout, 'fixture_cleanup_seconds': FIXTURE_CLEANUP_SECONDS,
+            'elapsed_seconds': round(time.monotonic() - started, 3),
+            'return_code': process.returncode if process else None,
+            'captured_bytes': {name: len(data) for name, data in buffers.items()},
+            'stdout_tail': bytes(buffers['stdout'][-4096:]).decode('utf-8', errors='backslashreplace'),
+            'stderr_tail': bytes(buffers['stderr'][-4096:]).decode('utf-8', errors='backslashreplace'),
+            'recent_dispatches': recent})
+    return subprocess.CompletedProcess(command, process.returncode,
+                                       bytes(buffers['stdout']).decode(), bytes(buffers['stderr']).decode())
 
 class PacketTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.work_root, cls.exact_prefix, cls.actual_busybox_sha = exact_configuration()
         print("emmc_fixture_mode=" + ("exact-busybox-qemu" if cls.exact_prefix else "host-mocked-busybox"), flush=True)
+        print("observer_fixture_timeout_seconds=" + str(90 if cls.exact_prefix else 30), flush=True)
         if cls.actual_busybox_sha:
             print("actual_busybox_sha256=" + cls.actual_busybox_sha, flush=True)
             print("qemu_executable_sha256=" + hashlib.sha256(Path(cls.exact_prefix[0]).read_bytes()).hexdigest(), flush=True)
@@ -264,7 +370,8 @@ class PacketTests(unittest.TestCase):
 
     def run_packet(self):
         shell = [*self.exact_prefix, "sh"] if self.exact_prefix else ["/bin/sh"]
-        result = bounded_process([*shell, str(self.root / "observe.sh"), BOOT, RELEASE, PADDED_SHA, self.bb_sha], self.env)
+        result = bounded_process([*shell, str(self.root / "observe.sh"), BOOT, RELEASE, PADDED_SHA, self.bb_sha],
+                                 self.env, timeout=90 if self.exact_prefix else 30)
         return result
 
     def classify(self, stdout):
