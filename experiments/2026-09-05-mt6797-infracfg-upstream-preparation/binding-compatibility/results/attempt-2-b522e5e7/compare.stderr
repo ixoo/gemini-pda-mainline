@@ -1,0 +1,4 @@
+#reset-cells: size (2) error for type uint32
+#reset-cells: size (1) error for type uint32
+#reset-cells: size (2) error for type uint32
+#reset-cells: size (1) error for type uint32

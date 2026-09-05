@@ -1,0 +1,1085 @@
+{
+  "after": {
+    "build": {
+      ".config": "d37fb4ebef4ecdcd5854ada8ae3a4c8eed29c630fddd77329bc0a8beed246530",
+      "arch/arm64/boot/Image.gz": "c0a7e412f6d778ae523f1dfd63f9c54db91e269fe45b06d7411663dbf88dcc1e",
+      "arch/arm64/boot/dts/mediatek/mt6797-evb.dtb": "e6226ae9628dd0356772f69f5e7987aa8a19cdd92616114c4ef0b92dfac94109",
+      "arch/arm64/boot/dts/mediatek/mt6797-x20-dev.dtb": "698d683f4c8fef4d4887911e913198c859ac0cadd1042370571466d06fd785c3",
+      "drivers/clk/mediatek/clk-mt6797-reset-test.o": "49f2c59ee4942aff787f57fe76073c7b8f296fff9e8c7d9bdef075eebc50a09c",
+      "drivers/clk/mediatek/clk-mt6797.o": "ac31e10f83c5baf145f91983fbf30dfe22a7f4fc352de5543891806077f31f86",
+      "drivers/clk/mediatek/reset-test.o": "df10679309a0024909a3f4f52117a1c64fd6b8a7c09cce3ec64c64cc533f8947",
+      "drivers/clk/mediatek/reset.o": "f8f0a72621b94fff10acc4d5e7b6142788961492cddac1d1cda3a6a7d88a55bf",
+      "include/config/kernel.release": "200aed562b70c9a2b94d4f223e9f67836fd230a0400a0f09a1bee5792c19fd17"
+    },
+    "source": {
+      "Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml": "83e13fddec7a39f2f6cc95408e9f3c4389fe55c9d33dfd635105d36c52c2979a",
+      "arch/arm64/boot/dts/mediatek/mt6797.dtsi": "8bddb48d07e5d5af1ee4a1f0fc2369f4424f47881cc070342a74b684b028f353",
+      "drivers/clk/mediatek/Kconfig": "3f87bc5158596cfb7d723e7d9efb82646596a9bc81399eba94ad9337540da40c",
+      "drivers/clk/mediatek/Makefile": "de8bad78288fea86b39d6c74044c0f3ca692290fd69ff7e93af00d372cd30ca2",
+      "drivers/clk/mediatek/clk-mt6797-reset-test.c": "d8ae35ac66827fc5b696aa896f8856739ff70321d00ca8c48c84d41c489cc23f",
+      "drivers/clk/mediatek/clk-mt6797-reset.h": "240dc21ef060bb0bb2cedb23ad356bfcb2a1d27e636928fea86abb30d107969a",
+      "drivers/clk/mediatek/clk-mt6797.c": "16a1e0b8af26fc09de6b9096f4c211eae5231d7505d962dae476fc1958ee94f9",
+      "drivers/clk/mediatek/reset-internal.h": "978e6630d2784074b4e9ff248077026072689e365f0bdc327d6948601acad189",
+      "drivers/clk/mediatek/reset-test.c": "01a861da34f550546da15534f29aee1118df69eac827216d1458b78839a95fd3",
+      "drivers/clk/mediatek/reset.c": "02e62f0b73481a51137442d609cdf88291e0e9108dafe078440054fa434fe315",
+      "include/dt-bindings/reset/mt6797-resets.h": "d83d278526a434d453f66235d28a737d4803fe315b82c6bea79d27ecb6c23269"
+    }
+  },
+  "before": {
+    "build": {
+      ".config": "d37fb4ebef4ecdcd5854ada8ae3a4c8eed29c630fddd77329bc0a8beed246530",
+      "arch/arm64/boot/Image.gz": "c0a7e412f6d778ae523f1dfd63f9c54db91e269fe45b06d7411663dbf88dcc1e",
+      "arch/arm64/boot/dts/mediatek/mt6797-evb.dtb": "e6226ae9628dd0356772f69f5e7987aa8a19cdd92616114c4ef0b92dfac94109",
+      "arch/arm64/boot/dts/mediatek/mt6797-x20-dev.dtb": "698d683f4c8fef4d4887911e913198c859ac0cadd1042370571466d06fd785c3",
+      "drivers/clk/mediatek/clk-mt6797-reset-test.o": "49f2c59ee4942aff787f57fe76073c7b8f296fff9e8c7d9bdef075eebc50a09c",
+      "drivers/clk/mediatek/clk-mt6797.o": "ac31e10f83c5baf145f91983fbf30dfe22a7f4fc352de5543891806077f31f86",
+      "drivers/clk/mediatek/reset-test.o": "df10679309a0024909a3f4f52117a1c64fd6b8a7c09cce3ec64c64cc533f8947",
+      "drivers/clk/mediatek/reset.o": "f8f0a72621b94fff10acc4d5e7b6142788961492cddac1d1cda3a6a7d88a55bf",
+      "include/config/kernel.release": "200aed562b70c9a2b94d4f223e9f67836fd230a0400a0f09a1bee5792c19fd17"
+    },
+    "source": {
+      "Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml": "83e13fddec7a39f2f6cc95408e9f3c4389fe55c9d33dfd635105d36c52c2979a",
+      "arch/arm64/boot/dts/mediatek/mt6797.dtsi": "8bddb48d07e5d5af1ee4a1f0fc2369f4424f47881cc070342a74b684b028f353",
+      "drivers/clk/mediatek/Kconfig": "3f87bc5158596cfb7d723e7d9efb82646596a9bc81399eba94ad9337540da40c",
+      "drivers/clk/mediatek/Makefile": "de8bad78288fea86b39d6c74044c0f3ca692290fd69ff7e93af00d372cd30ca2",
+      "drivers/clk/mediatek/clk-mt6797-reset-test.c": "d8ae35ac66827fc5b696aa896f8856739ff70321d00ca8c48c84d41c489cc23f",
+      "drivers/clk/mediatek/clk-mt6797-reset.h": "240dc21ef060bb0bb2cedb23ad356bfcb2a1d27e636928fea86abb30d107969a",
+      "drivers/clk/mediatek/clk-mt6797.c": "16a1e0b8af26fc09de6b9096f4c211eae5231d7505d962dae476fc1958ee94f9",
+      "drivers/clk/mediatek/reset-internal.h": "978e6630d2784074b4e9ff248077026072689e365f0bdc327d6948601acad189",
+      "drivers/clk/mediatek/reset-test.c": "01a861da34f550546da15534f29aee1118df69eac827216d1458b78839a95fd3",
+      "drivers/clk/mediatek/reset.c": "02e62f0b73481a51137442d609cdf88291e0e9108dafe078440054fa434fe315",
+      "include/dt-bindings/reset/mt6797-resets.h": "d83d278526a434d453f66235d28a737d4803fe315b82c6bea79d27ecb6c23269"
+    }
+  },
+  "commands": [
+    {
+      "argv": [
+        "git",
+        "ls-remote",
+        "--exit-code",
+        "--refs",
+        "https://github.com/ixoo/gemini-pda-mainline.git",
+        "refs/heads/main"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.524452,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "publication.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "publication.stdout": "b9db4899dd4a5fa3db4b6fe2df41cb9bf89b885e61ace54e6622ef6de4f9eae1"
+      },
+      "name": "publication",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/python",
+        "/workspace/gemini-pda/checkouts/b522e5e71d9346924ff3992f278f1705f72819b8/scripts/source-tree-integrity",
+        "verify",
+        "/workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-infracfg-upstream-kunit-source"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 14.840999,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "source-before.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source-before.stdout": "bcb478c96d7a9f957cd14a9be767b27639437f98a38d0c20d1bd5f33a989d601"
+      },
+      "name": "source-before",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/dt-doc-validate",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mandatory/clock/mediatek,infracfg.yaml"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.870164,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "mandatory-doc.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mandatory-doc.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "mandatory-doc",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/dt-mk-schema",
+        "-j",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mandatory/processed.json",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mandatory/clock/mediatek,infracfg.yaml"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 2.07166,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "mandatory-process.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mandatory-process.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "mandatory-process",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/dt-doc-validate",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/optional/clock/mediatek,infracfg.yaml"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.86886,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "optional-doc.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "optional-doc.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "optional-doc",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/dt-mk-schema",
+        "-j",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/optional/processed.json",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/optional/clock/mediatek,infracfg.yaml"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 2.07933,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "optional-process.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "optional-process.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "optional-process",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 30
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-old-absent.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-old-absent.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.006892,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt6797-old-absent.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dtc-mt6797-old-absent.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt6797-old-absent",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-new-one.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-new-one.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.006269,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt6797-new-one.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dtc-mt6797-new-one.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt6797-new-one",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-zero.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-zero.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.005536,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt6797-zero.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dtc-mt6797-zero.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt6797-zero",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-two.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-two.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.005251,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt6797-two.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dtc-mt6797-two.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt6797-two",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-two-cells.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-two-cells.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.005302,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt6797-two-cells.stderr": "5b70bc81cdd4b35c69d2b72cb9930f67aa3d79a60b0869a3317d41b86092139d",
+        "dtc-mt6797-two-cells.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt6797-two-cells",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-string.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-string.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.005608,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt6797-string.stderr": "de7d78bb10b48f92790d18db1168155b3243422588738f91bb17ce3a73c5af57",
+        "dtc-mt6797-string.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt6797-string",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-byte.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-byte.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.005169,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt6797-byte.stderr": "845f818dc202df043c5fd5d6f232f205bbc36d2dca1f791c90b1ae2d2cc92999",
+        "dtc-mt6797-byte.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt6797-byte",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-boolean.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-boolean.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.005831,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt6797-boolean.stderr": "87f40e671ce1e831dc2d034b82984fce53af2b811f0f14b398eb169f68b18905",
+        "dtc-mt6797-boolean.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt6797-boolean",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-unknown-property.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6797-unknown-property.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.005063,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt6797-unknown-property.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dtc-mt6797-unknown-property.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt6797-unknown-property",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt2701-absent.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt2701-absent.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.004934,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt2701-absent.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dtc-mt2701-absent.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt2701-absent",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt2701-one.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt2701-one.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.004888,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt2701-one.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dtc-mt2701-one.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt2701-one",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt2712-absent.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt2712-absent.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.004896,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt2712-absent.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dtc-mt2712-absent.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt2712-absent",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt2712-one.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt2712-one.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.004894,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt2712-one.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dtc-mt2712-one.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt2712-one",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6795-absent.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6795-absent.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.004852,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt6795-absent.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dtc-mt6795-absent.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt6795-absent",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6795-one.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt6795-one.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.004929,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt6795-one.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dtc-mt6795-one.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt6795-one",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt7622-absent.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt7622-absent.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.005199,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt7622-absent.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dtc-mt7622-absent.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt7622-absent",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt7622-one.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt7622-one.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.005129,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt7622-one.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dtc-mt7622-one.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt7622-one",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt7986-absent.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt7986-absent.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.005102,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt7986-absent.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dtc-mt7986-absent.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt7986-absent",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt7986-one.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt7986-one.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.005197,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt7986-one.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dtc-mt7986-one.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt7986-one",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt8135-absent.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt8135-absent.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.004878,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt8135-absent.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dtc-mt8135-absent.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt8135-absent",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt8135-one.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt8135-one.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.004901,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt8135-one.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dtc-mt8135-one.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt8135-one",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt8173-absent.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt8173-absent.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.005048,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt8173-absent.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dtc-mt8173-absent.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt8173-absent",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt8173-one.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt8173-one.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.005205,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt8173-one.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dtc-mt8173-one.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt8173-one",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt8183-absent.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt8183-absent.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.004983,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt8183-absent.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dtc-mt8183-absent.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt8183-absent",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+        "-I",
+        "dts",
+        "-O",
+        "dtb",
+        "-o",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt8183-one.dtb",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run/mt8183-one.dts"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.00633,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "dtc-mt8183-one.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dtc-mt8183-one.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "name": "dtc-mt8183-one",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 5
+    },
+    {
+      "argv": [
+        "/workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/python",
+        "/workspace/gemini-pda/checkouts/b522e5e71d9346924ff3992f278f1705f72819b8/experiments/2026-09-05-mt6797-infracfg-upstream-preparation/binding-compatibility/compare.py",
+        "--child",
+        "/workspace/gemini-pda/tmp/infracfg-binding-compatibility/run",
+        "/workspace/gemini-pda/checkouts/b522e5e71d9346924ff3992f278f1705f72819b8/experiments/2026-09-05-mt6797-infracfg-upstream-preparation/binding-compatibility/fixtures.json"
+      ],
+      "cleanup": {
+        "group_absent": true,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "elapsed_seconds": 0.551087,
+      "generated_file_bytes": 134217728,
+      "log_bytes": 262144,
+      "logs": {
+        "compare.stderr": "fc95e32cb76dce3832e66cd3c6ee1b088a6f26810eb385deca692b2ef7120c37",
+        "compare.stdout": "3853dbc027ea0d4633aaa954f34f3957904d9443b162a1bfeab2273a0cc5082c"
+      },
+      "name": "compare",
+      "returncode": 0,
+      "stop_reason": null,
+      "timeout_seconds": 60
+    }
+  ],
+  "completion": {
+    "boundary": "blocked-pending-signal-snapshot-after-validation-cleanup-and-log-digests",
+    "decision": "REFUSED",
+    "later_signals": "do-not-reclassify-completed-decision"
+  },
+  "dtbs": {
+    "mt2701-absent": {
+      "dtb": "6c4cf0c22281e8cdc33294973b33d1b483bf9ac72ae1a4cd3eb58b6471deea11",
+      "dts": "1e4ea596fafb4c8a8877f8ed9dbe59404c7af0e947c30958939e7d42215ae015"
+    },
+    "mt2701-one": {
+      "dtb": "0ea9239a013d465227265f64cc236a284a834159948133e6bd50c01d47edeed4",
+      "dts": "373ada847b58f17e5dbdb41ab61658a11b9085b5a129c648030eab3d7e2145e6"
+    },
+    "mt2712-absent": {
+      "dtb": "446548ee7e1ffba25370bb93febbd138ff419a8415b545aa33c4066f1cedea71",
+      "dts": "6236f7ad33aaf08420e65a753124df6d5a75b70edd482baeb9dd78564f2e46d8"
+    },
+    "mt2712-one": {
+      "dtb": "51fe9ade9516717b0cf94d0959ae741190060ba644d96cec243e65dc61547d92",
+      "dts": "2533f4196fc16daccffa2336b4fbfc33c05c97ebed2f00d1f928a0b5b92925fd"
+    },
+    "mt6795-absent": {
+      "dtb": "957f521373f4fed0d68791d4f987d7cf52c27cc4abe2d28ca310dc8768dba094",
+      "dts": "6429b8dc7d228741da4ab2239f2cb1af0fb7d3d8867fb7b524c68a1ac0099461"
+    },
+    "mt6795-one": {
+      "dtb": "ddd68a6a292a493658bc32d329cd4d3ba3413ce015a372a6097043def18500ba",
+      "dts": "221ed93e138fc8bafc7360eabdde01e9e8be35571e5f156889eaca6ce8ac9908"
+    },
+    "mt6797-boolean": {
+      "dtb": "c4d47e117b36a7fb7dbd68ac539a349584be42a35d282a4202121769f82787b2",
+      "dts": "40b04971160bf78b9dc03ed43a4e65dd59b3376c1eabf391f79d8b4bae6adfc2"
+    },
+    "mt6797-byte": {
+      "dtb": "e3a3a146bc5778005b99988e44608a49ba016bf48314eff0120d798cb399cbc3",
+      "dts": "33dca8e0aaa70e004f5777dd7110df4af6081d7d4fcb05486edad1093437836b"
+    },
+    "mt6797-new-one": {
+      "dtb": "661158e5be13f7db7566fb359c602449b22c7515d2bba796f2af248d9c43fd90",
+      "dts": "9a384d27b41fcc033219c8075b23c7b410ad452856698aca0c09ed098f2bfb05"
+    },
+    "mt6797-old-absent": {
+      "dtb": "d01ba823c688eb7e9ae02822405737cf1f42f483169654155e56d5675c246383",
+      "dts": "fc62b84edd497da8ae9d3a41a1ace3a12fd176a8b4ecf5ea7b8405b4234f389e"
+    },
+    "mt6797-string": {
+      "dtb": "a741388023f14a3a3ddac76ba865651bad05e6229d77cd1b2d2cba26c9511f0c",
+      "dts": "26a23ec2ca531613b8cc920b577c3c5dbfa60464297d37df6688430a3bcbed01"
+    },
+    "mt6797-two": {
+      "dtb": "f6f4b4c8d3285fe5556fd7070cdd6d0d0c6c4aa431dc9d9f583b80e2fcaea299",
+      "dts": "a42048595b9ce5c0483b693f7c7fd12e9cbf943f3ac2e00309874d2a52f0cd16"
+    },
+    "mt6797-two-cells": {
+      "dtb": "3d827af0f6291b14a449696d8f7486c98a17a499299300aa0ac32dd9327a17df",
+      "dts": "2c670dd56f60a34c2dcd9025e8fddbd62b354a52b8c1644958af82f6af9c3a43"
+    },
+    "mt6797-unknown-property": {
+      "dtb": "340d716f2cc90095ac152d4e1f6b933faa6648be9fb797b286b12df3593583e3",
+      "dts": "3e948ce97bc06efe048c9cfef5707bb8a5d8e66f332fa45c72aed9b2a5f8c954"
+    },
+    "mt6797-zero": {
+      "dtb": "6889609a1091663dc26fbff87454df7b1e5786044c2d3899c33228aeabe0aadd",
+      "dts": "0b99b04c6ef0d47b43a56d52cbdd9ece9f1809e6a3d4873266d4135d56d093ec"
+    },
+    "mt7622-absent": {
+      "dtb": "84d567dea2d226f4469fd5e49452a3ab6d7bca2b58895e9d841f2ef49d295710",
+      "dts": "e5e3947fd0be3ace8f132c7d733a091ce99d53c1afd69d72fe7b7c1e8b0a633b"
+    },
+    "mt7622-one": {
+      "dtb": "ceaaa0f52670310f22689a59be0a028a1d868d2c4ef833d04c634fa9d4b5a136",
+      "dts": "a1edbdbb0bceae221a9503c2095c56f28b31cd4856a010b4badef7a60a0bfd71"
+    },
+    "mt7986-absent": {
+      "dtb": "99f3504a9043470cbf5f5e40cb0036c908327dc6c65b373754f4a8408b8a9103",
+      "dts": "e1f956d5cd54b1b00104f73af35f094ded72c1169db9f689f6e3a5863a9e240c"
+    },
+    "mt7986-one": {
+      "dtb": "755c6c27d10e6484f2867b53c36df25204d9da05f5e53fe98fe4523136b0a7b8",
+      "dts": "3f843654f7e4e4c97f8ad5648e340f49242c9aa85f0f1c14f839f85ee7d563d9"
+    },
+    "mt8135-absent": {
+      "dtb": "064b0939640275527dfe9a27f409d9adc184a7bead1eb78dd1575ec199f316da",
+      "dts": "edfe1d348cfb2e051d49d72e0e7371d7b00577580a158adf61fd975b60e6cc92"
+    },
+    "mt8135-one": {
+      "dtb": "162ea894d496cab89676a5d59cf3321bf247897e689ab439a6522bf817254d08",
+      "dts": "ca6fde57a9da4f9ff9676b2c2bbc7ae10af0b0cb59d00e3395ba7da19fafa8df"
+    },
+    "mt8173-absent": {
+      "dtb": "9f0a1c7fb5733b24308d2a9c8b00e01774726f361909edfa37c4c2de76071004",
+      "dts": "aff9b5902435c6e2eb3272b9171ddf4ea6c00f1a4e397fa8695475d9b1f5d07f"
+    },
+    "mt8173-one": {
+      "dtb": "40e6a36297c4bac8a2c20f87c3a66e763adecb09e7b330aa8ff47afe4422e898",
+      "dts": "f0aab2476a89dadd29dd115431427f740b1765837f23d96ef107454f1819c646"
+    },
+    "mt8183-absent": {
+      "dtb": "a4ba2ae4bbb07c0cee0e1e5d8abf7d1988da05e824f09da618c6e7c0438ab781",
+      "dts": "9be1b0dc1b8bf10930e65fc7cf9365a102bc4a116d61779c51ac7380920712a8"
+    },
+    "mt8183-one": {
+      "dtb": "4f0052bb06f1496d479ff0d1684d06705b4fe5b5dc84ed2870fb4e0e1dc22f2a",
+      "dts": "437aba468329cdf2d383d0e941c1c0379697c1955f05f6449913af042ee957c3"
+    }
+  },
+  "fixtures_sha256": "163afec1f1edbd09dac325453a21b5bdcf2a87765184724bab6ab505099f371d",
+  "published_ref": "refs/heads/main",
+  "reason": "unattributed schema decoder/runtime diagnostic",
+  "repository_commit": "b522e5e71d9346924ff3992f278f1705f72819b8",
+  "result": "REFUSED",
+  "scratch_removed": true,
+  "tools": {
+    "aarch64-linux-gnu-gcc": {
+      "path": "/usr/bin/aarch64-linux-gnu-gcc-12",
+      "sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+      "version": "aarch64-linux-gnu-gcc-12 (Debian 12.2.0-14) 12.2.0\nCopyright (C) 2022 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+    },
+    "aarch64-linux-gnu-ld": {
+      "path": "/usr/bin/aarch64-linux-gnu-ld.bfd",
+      "sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+      "version": "GNU ld (GNU Binutils for Debian) 2.40\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) a later version.\nThis program has absolutely no warranty."
+    },
+    "build-dtc": {
+      "path": "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit/scripts/dtc/dtc",
+      "sha256": "918bd1e8ee0ac2f08210e16eedc6486f6daa4872a108c9a4cc8f1b78422301a5",
+      "version": "Version: DTC 1.7.2-g53373d13"
+    },
+    "dt-doc-validate": {
+      "path": "/workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/dt-doc-validate",
+      "sha256": "c888aa0c3610177be991a29abbc99d39e7e3167bdfcff032883fc719a75e256f",
+      "version": "2026.6"
+    },
+    "dt-mk-schema": {
+      "path": "/workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/dt-mk-schema",
+      "sha256": "0060ed219838c6f2a9370603dd8582c7bc3b653c63bec239f20ef220ae8beb5c",
+      "version": "2026.6"
+    },
+    "dt-validate": {
+      "path": "/workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/dt-validate",
+      "sha256": "2d5c81138cb0b43072c5b68683d431c2bd88b301be7f624be68f1e2d157e4330",
+      "version": "2026.6"
+    },
+    "dtc": {
+      "path": "/usr/bin/dtc",
+      "sha256": "84a8279cdc8200af26d5d91182408374baef54867c1e23381cee769f2dd37d5d",
+      "version": "Version: DTC 1.6.1"
+    },
+    "make": {
+      "path": "/usr/bin/make",
+      "sha256": "00b2c2071bf57aa52559a91bf8a4ddcd0fcfd4718da2f83100593a45896c1fec",
+      "version": "GNU Make 4.3\nBuilt for x86_64-pc-linux-gnu\nCopyright (C) 1988-2020 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law."
+    },
+    "yamllint": {
+      "path": "/workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/yamllint",
+      "sha256": "e72a35839ecc6cc532cb99277674c851b0344bb0767bfb4ff94964e388f5e31e",
+      "version": "yamllint 1.38.0"
+    }
+  }
+}
