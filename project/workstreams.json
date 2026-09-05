@@ -222,7 +222,8 @@
     "next_inspection": {
       "owner": "Wi-Fi mainline support",
       "task_id": "01a06f91-092d-71d0-acbe-4f38ccff2c56",
-      "state": "bounded-inspection-in-progress",
+      "state": "completed-custody-released",
+      "evidence_state": "Sanitized experiment handoff pending integration; no further physical inspection assigned.",
       "scope": "Bounded Gemian Wi-Fi transport/resource inventory; reviewed return to Gemian if required. No new boot2 candidate or partition write.",
       "policy": "docs/SAFETY.md#standing-gemian-inspection-authorization",
       "live_state": "Must be established by the assigned custodian; not inferred from this registry."
