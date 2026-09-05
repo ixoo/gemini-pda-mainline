@@ -59,20 +59,23 @@ AW9523 provider and matrix consumer, the normalized matrix, 20 ms polling and
 The parent must verify these against the candidate's composed DT, configuration
 and userspace. No kernel or DT change is requested by this packet.
 
-Candidate, Image, DT, configuration, initramfs, exact helper and launcher hashes,
-kernel release, real input sysfs path, capability digest, and baseline/recovery
-result hashes remain missing. So do an exact ARM64 helper build, the complete
-launch/receipt wrapper, an exact-userspace execution fixture, independent review,
-and combined session/power-duration review. These missing gates prevent both
-conditional readiness and physical admission.
+The exact ARM64 observer is now retained in the validated baseline userspace
+package. The [capture/delivery decision](CAPTURE_DELIVERY_DECISION.md) records
+its identity, existing behavior and the minimum remaining lifecycle work.
+The frozen packet still lacks actual baseline/recovery results, current input
+identity/capabilities, reader exclusion, admitted launch/delivery evidence and
+combined session/power-duration review. Those are separate from the completed
+build and source review; neither conditional readiness nor physical admission
+is established.
 
 ## Frozen proposed observation protocol
 
 [protocol.json](protocol.json) is the reviewable v1 sequence. It contains 142
 press/release transitions (71 presses) in 20 ten-second windows after a
 two-second no-input check: 202 seconds of timed input windows. The launcher must
-send TERM by 210 seconds and reap the process group by 215 seconds, recording
-any forced interruption as inconclusive. It requests no added
+send TERM by 210 seconds, KILL by 214 seconds if necessary, and reap its direct
+observer child by 215 seconds, recording forced interruption or a missed deadline
+as inconclusive. It requests no added
 boot, load, thermal samples, storage reads/writes, mount, LED, wake, suspend,
 clock, rail or CPU-admission action. The 10-second window is an engineering
 ceiling, not measured owner timing; its usability and the baseline's existing
@@ -112,20 +115,22 @@ releases all keys. There is no automated reset or transition to another packet.
   checked, never changed. The baseline must separately audit its meta policy.
 - No keyboard-map, CPU, regulator, storage or VT-selection writes. It changes
   tty1 termios temporarily to capture control keys without invoking a shell,
-  then restores the saved attributes on normal exit and handled INT/TERM/HUP.
+  then attempts to restore the saved attributes on normal exit and handled
+  INT/TERM/HUP/PIPE. A failed restoration withholds acceptance.
 - Two input descriptors, 64 input records and 128 VT bytes per window, at most
   1,280 input records and 2,560 VT bytes. `SYN_DROPPED`, EOF, partial records,
   poll errors and exceeded bounds withhold the complete footer.
-- stdout is the private machine transcript over authenticated SSH; instructions
-  go to tty1. stdout is nonblocking and output saturation stops capture. Raw
+- stdout is the private machine transcript, retained directly in RAM and
+  forwarded over authenticated SSH by the proposed monitor; instructions go to
+  tty1. stdout is nonblocking and output saturation stops capture. Raw
   test bytes are not sent to the kernel log or interpreted as
   commands. Linux evdev/VT ABI and signal behavior still need target validation.
 
 The admitted baseline launcher must provide exclusive tty1 ownership. Merely
 opening `/dev/tty1` does not establish exclusivity. No local shell, getty, competing
 observer or old automatic capture may read input throughout this session. The
-baseline may use a passive console-status display, but the launcher must quiesce
-its writes while instructions are displayed. It must verify the unique matrix
+baseline's passive console-status worker must have exited naturally, verified
+without signaling or restarting it. The launcher must verify the unique matrix
 event sysfs ancestry and matrix provider, compare capabilities and device numbers
 to the frozen contract, and run the reused
 [console-keymap verifier](../../2026-07-20-keyboard-console-map-diagnostic/src/console-keymap-verify.c)
