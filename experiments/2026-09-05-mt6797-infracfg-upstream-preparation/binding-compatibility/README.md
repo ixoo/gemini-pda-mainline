@@ -85,3 +85,9 @@ schema comparison. Its refusal is preserved; another execution is not admitted.
 [Attempt 2](ATTEMPT_2.md) reached 50 child rows but refused unlabelled decoder
 diagnostics; malformed-byte acceptance and a compound diagnostic-set mismatch
 also require review. Its refusal remains authoritative; no further run is admitted.
+
+After the decoder correction received separate integrator review and admission,
+[attempt 3](ATTEMPT_3.md) completed the 50-row focused comparison with actual
+per-case decoder/raw-property evidence. The independent integration review
+accepted that focused result; earlier refusals remain unchanged and no further
+run is admitted.

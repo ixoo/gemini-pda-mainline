@@ -1,0 +1,10 @@
+{
+  "scratch_removed": true,
+  "protected_inputs_rechecked": true,
+  "tools_rechecked": true,
+  "processed_preserved": true,
+  "checkout_clean": true,
+  "lock_reacquired_and_released": true,
+  "source_full_after_scan_in_runner": true,
+  "review_method": "separate pinned-schema-Python read-only file/tool checks under independently reacquired existing lock"
+}

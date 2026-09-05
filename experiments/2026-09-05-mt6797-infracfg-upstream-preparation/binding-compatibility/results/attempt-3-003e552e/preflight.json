@@ -1,0 +1,9 @@
+{
+  "repository_commit": "003e552ec598061cb711e321bb39a36fab846079",
+  "lock_probe": "acquired-and-released",
+  "headroom_bytes": {
+    "/workspace/gemini-pda/tmp": 282390851584,
+    "/workspace/gemini-pda/artifacts/binding-compatibility": 282390851584
+  },
+  "evidence_revision_absent": true
+}
