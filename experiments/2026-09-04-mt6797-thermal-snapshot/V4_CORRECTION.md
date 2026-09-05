@@ -58,3 +58,16 @@ inputs; 159 previous canonical-series users now name the frozen predecessor
 series. Only the new profile selects the correction. The canonical superset
 still orders all patches. This avoids silently changing the default or the
 identity of the deployed snapshot profile. No new runtime protocol is admitted.
+
+
+## Compile result
+
+The [Buildbox compile/package receipt](results/v4-correction-build-pass.json)
+passes for clean published revision `57c07ecb89c6c8401da1946a85c55547216de04f`.
+The built production file matches the tested corrected SHA256. Kernel Image,
+compressed Image and DTBs were packaged and validated; the required package
+fetch and independent local manifest replay passed. Host/Buildbox available
+space was checked before building. No native VM build or device operation ran.
+The package remains private under the managed Buildbox export root for the
+open correction work. This is compile evidence only; no runtime support is
+promoted and no slot write or physical boot is selected.

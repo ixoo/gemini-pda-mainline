@@ -8399,11 +8399,14 @@ now passes exact decoder/converter synthetic cases and ten rejecting mutations.
 Patch 0541 is now generated, style-checked and replayed from the clean published
 tooling, and its decoder/converter tests pass again. The isolated compile profile
 selects it; every pre-existing profile retains its exact predecessor patch and
-configuration inputs. **Selected next:** build `mt6797-thermal-v4-correction-compile`
-from the exact clean pushed revision with the explicit Buildbox backend. Treat
-that output as compilation evidence only. Before any corrected-image runtime,
-bind a distinct configuration/candidate identity and publish a bounded admission
-protocol; never relabel old thermal comparisons or reuse a consumed session. No further diagnostic reads or workload on the consumed
+configuration inputs. The isolated [Buildbox compilation and package verification](../experiments/2026-09-04-mt6797-thermal-snapshot/results/v4-correction-build-pass.json)
+now pass; the built source matches the tested correction. **Selected next:**
+define the corrected-image runtime acceptance boundary and distinct candidate
+identity. Start with a no-workload conversion/observer regression gate, retaining
+pristine lifecycle/frequency accounting and bounded snapshots; do not assume
+this small arithmetic correction resolves the prior workload thermal rejection.
+Publish and validate that protocol and configuration binding before selecting
+or building a boot candidate. The compile package is not admitted for boot. No further diagnostic reads or workload on the consumed
 session; no repeat is admitted. Any future boot requires a distinct,
 decision-changing hypothesis and published bounded protocol. Integrated thermal
 repeatability, broader load/hotplug, cpufreq/OPP, idle, suspend, thermal protection
