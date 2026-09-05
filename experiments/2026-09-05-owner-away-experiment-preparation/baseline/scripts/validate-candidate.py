@@ -186,6 +186,7 @@ def check_userspace(package, manifest_sha, candidate_revision):
             "generated_source_sha256": session_tools["PINS"], "effects": "intercepted; no actual target signal or reboot",
             "effect_guard_cases": 10, "effect_guard_optimization_levels": [0, 1], "python_optimization": 0,
             "parser_transport_cases": 4,
+            "runner_test_cases": 7, "fixture_timeout_seconds": 45, "fixture_cleanup_seconds": 1,
             "pidfd_kernel_behavior": "not-tested", "device_access": "none", "private_fixtures": "removed"},
             "session shell evidence inventory or result")
     emmc = regular(package / "emmc-shell-tests.txt").decode()

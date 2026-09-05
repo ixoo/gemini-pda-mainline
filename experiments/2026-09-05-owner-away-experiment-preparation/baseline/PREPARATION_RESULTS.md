@@ -150,3 +150,28 @@ transport checks. Generated shell syntax and ShellCheck pass. The common
 repository gate passes, including all 189 manifest profiles; its Linux-only
 artifact-provenance fixture is deferred to the explicit userspace Buildbox
 run. These host results do not establish exact ARM64 shell or device behavior.
+
+## Exact-shell fixture timing correction
+
+Revision `d8225b8c7cd00bcec291c9cd8c018ca132524711` passed the Linux parser
+(15), injected logger (12), pidfd-seal (9) and exact BusyBox init/app-inventory
+(25) checks. Its first exact session case exceeded the harness's eight-second
+limit, stopping the build before Dropbear extraction or compilation. Selected
+diagnostics were retained and disposable staging was removed. No package or
+candidate was published.
+
+One bounded diagnostic reran only that positive case from the unchanged
+published Git checkout and checksum-pinned BusyBox. It completed in 14.596
+seconds: 68 intercepted/file calls, zero exit, no stderr, 1372 stdout bytes,
+and independently parsed complete seal and preservation. The isolated
+diagnostic used a 45-second cap and process-group cleanup; its staging was
+removed. This identifies emulation/fixture overhead rather than a blocked
+operation. The fixture deadline is corrected separately from the unchanged
+30-second device export budget. Timeout/flood diagnostics and process-group
+cleanup are added to the harness before another exact run.
+
+The corrected harness passes seven focused process tests, including bounded
+output, timeout diagnostics, descendants retaining or closing pipes, and
+interruption during cleanup after EOF. Three representative host exports
+confirm unchanged healthy, failed-but-preserved and timed-out classifications.
+The full 61-case exact suite remains mandatory in the next Buildbox package.

@@ -12,10 +12,13 @@ import os
 from pathlib import Path
 import re
 import runpy
+import selectors
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
+import time
 
 HERE = Path(__file__).resolve().parent
 S = runpy.run_path(str(HERE / 'session_steps.py'))
@@ -33,6 +36,11 @@ SEAL_CASES = ['existing-status', 'existing-exit', 'dangling-status', 'dangling-e
               'status-symlink', 'log-symlink', 'log-replaced', 'log-vanished', 'oversize-log',
               'empty-log', 'failed-status', 'oversize-status', 'read-failed']
 EXPECTED_CASES = ['seal:' + case for case in COMMON_CASES + SEAL_CASES] + ['recovery:' + case for case in COMMON_CASES]
+# Exact emulation measured 14.596 seconds for healthy seal (68 safe calls).
+# This harness-only ceiling does not alter the target's 30-second export budget.
+CASE_TIMEOUT_SECONDS = 45
+CLEANUP_SECONDS = 1
+STREAM_LIMITS = {'stdout': 3 * 1024 * 1024, 'stderr': 16384}
 PROXY = r'''
 import base64,json,os,pathlib,subprocess,sys,textwrap
 def require(value, reason):
@@ -133,6 +141,189 @@ else:
 def require(value, reason):
     if not value:
         raise ValueError(reason)
+
+
+class FixtureExecutionError(ValueError):
+    def __init__(self, diagnostic):
+        self.diagnostic = diagnostic
+        super().__init__(json.dumps(diagnostic, sort_keys=True))
+
+
+def fixture_diagnostic(root, phase, case, reason, process, buffers, started):
+    recent = []
+    path = root / 'calls.jsonl'
+    if path.is_file() and not path.is_symlink():
+        with path.open('rb') as stream:
+            size = stream.seek(0, os.SEEK_END)
+            stream.seek(max(0, size - 8192))
+            raw = stream.read(8192)
+        lines = raw.splitlines()
+        if size > 8192:
+            lines = lines[1:]
+        recent = [line[-1024:].decode('utf-8', errors='backslashreplace') for line in lines[-8:]]
+    return {'classification': 'session-shell-fixture-failed', 'phase': phase, 'case': case,
+            'reason': reason, 'elapsed_seconds': round(time.monotonic() - started, 3),
+            'return_code': process.returncode if process else None,
+            'captured_bytes': {name: len(data) for name, data in buffers.items()},
+            'stdout_tail': bytes(buffers['stdout'][-4096:]).decode('utf-8', errors='backslashreplace'),
+            'stderr_tail': bytes(buffers['stderr'][-4096:]).decode('utf-8', errors='backslashreplace'),
+            'recent_calls': recent, 'cleanup_budget_seconds': CLEANUP_SECONDS}
+
+
+def run_fixture(command, root, phase, case, timeout=CASE_TIMEOUT_SECONDS, env=None):
+    """Capture bounded fixture output; stop its isolated group on every exit."""
+    started = time.monotonic()
+    deadline = started + timeout
+    buffers = {name: bytearray() for name in STREAM_LIMITS}
+    selector = selectors.DefaultSelector()
+    process, reason = None, None
+    interrupted, handlers = [], {}
+
+    def drain(wait):
+        nonlocal reason
+        for key, _event in selector.select(wait):
+            try:
+                data = os.read(key.fileobj.fileno(), 65536)
+            except BlockingIOError:
+                continue
+            if not data:
+                selector.unregister(key.fileobj)
+                key.fileobj.close()
+                continue
+            name = key.data
+            available = STREAM_LIMITS[name] - len(buffers[name])
+            buffers[name].extend(data[:available])
+            if len(data) > available:
+                reason = reason or name + '-limit'
+
+    def signal_group(number):
+        if process is not None:
+            try:
+                os.killpg(process.pid, number)
+            except ProcessLookupError:
+                pass
+
+    try:
+        for number in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+            handlers[number] = signal.signal(number, lambda received, _frame: interrupted.append(received))
+        process = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE, start_new_session=True, env=env)
+        for name in STREAM_LIMITS:
+            stream = getattr(process, name)
+            os.set_blocking(stream.fileno(), False)
+            selector.register(stream, selectors.EVENT_READ, name)
+        while selector.get_map() or process.poll() is None:
+            if interrupted:
+                reason = 'interrupted-' + str(interrupted[0])
+                break
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                reason = 'fixture-timeout'
+                break
+            drain(min(0.05, remaining))
+            if reason:
+                break
+    finally:
+        # A leader can exit while a descendant keeps a pipe open, or close all
+        # pipes while leaving a background process. Clean the whole new group.
+        cleanup_deadline = time.monotonic() + CLEANUP_SECONDS
+        signal_group(signal.SIGTERM)
+        grace = min(cleanup_deadline, time.monotonic() + 0.2)
+        while process is not None and time.monotonic() < grace:
+            if selector.get_map():
+                drain(min(0.02, max(0, grace - time.monotonic())))
+            else:
+                time.sleep(min(0.01, max(0, grace - time.monotonic())))
+        if process is not None:
+            process.poll()  # Reap an exited leader before signalling remaining group members.
+        signal_group(signal.SIGKILL)
+        if process is not None:
+            try:
+                process.wait(timeout=max(0.01, cleanup_deadline - time.monotonic()))
+            except subprocess.TimeoutExpired:
+                reason = reason or 'fixture-cleanup-timeout'
+            while selector.get_map() and time.monotonic() < cleanup_deadline:
+                drain(min(0.02, max(0, cleanup_deadline - time.monotonic())))
+            for name in STREAM_LIMITS:
+                stream = getattr(process, name)
+                if stream and not stream.closed:
+                    stream.close()
+        selector.close()
+        for number, previous in handlers.items():
+            signal.signal(number, previous)
+    if interrupted:
+        reason = reason or 'interrupted-' + str(interrupted[0])
+    if reason:
+        raise FixtureExecutionError(fixture_diagnostic(root, phase, case, reason, process, buffers, started))
+    return subprocess.CompletedProcess(command, process.returncode, bytes(buffers['stdout']), bytes(buffers['stderr']))
+
+
+def runner_checks(root):
+    """Real disposable process fixtures; never launch target/device operations."""
+    root.mkdir(mode=0o700)
+    cases = 0
+    result = run_fixture([sys.executable, '-c', 'import sys; print("normal"); print("stderr",file=sys.stderr)'],
+                         root, 'runner', 'normal', timeout=2)
+    require(result.returncode == 0 and result.stdout == b'normal\n' and result.stderr == b'stderr\n', 'runner normal capture')
+    cases += 1
+    (root / 'calls.jsonl').write_text(''.join(json.dumps({'fixture_call': n}) + '\n' for n in range(2000)))
+    for name, source, expected in (
+        ('timeout', 'import time; print("before-timeout",flush=True); time.sleep(10)', 'fixture-timeout'),
+        ('stdout-limit', 'import os; os.write(1,b"x"*(4*1024*1024))', 'stdout-limit'),
+        ('stderr-limit', 'import os; os.write(2,b"x"*32768)', 'stderr-limit')):
+        started = time.monotonic()
+        try:
+            run_fixture([sys.executable, '-c', source], root, 'runner', name, timeout=0.4 if name == 'timeout' else 2)
+        except FixtureExecutionError as error:
+            diagnostic = error.diagnostic
+            require(diagnostic['phase'] == 'runner' and diagnostic['case'] == name and
+                    diagnostic['reason'] == expected and len(diagnostic['recent_calls']) == 8 and
+                    len(diagnostic['stdout_tail']) <= 4096 and len(diagnostic['stderr_tail']) <= 4096 and
+                    all(diagnostic['captured_bytes'][stream] <= ceiling for stream, ceiling in STREAM_LIMITS.items()) and
+                    time.monotonic() - started < 3.5, 'runner bounded failure diagnostic')
+            if name == 'timeout':
+                require('before-timeout' in diagnostic['stdout_tail'], 'timeout lost partial output')
+        else:
+            raise ValueError('runner accepted ' + name)
+        cases += 1
+    markers = []
+    for keep_pipe in (True, False):
+        marker = root / ('child-linger-' + str(keep_pipe))
+        markers.append(marker)
+        child = ('import os,signal,time; from pathlib import Path; signal.signal(signal.SIGTERM,signal.SIG_IGN); '
+                 + ('' if keep_pipe else 'os.close(1); os.close(2); ') +
+                 'time.sleep(1.4); Path(' + repr(str(marker)) + ').write_text("lingered"); time.sleep(10)')
+        parent = 'import subprocess,sys; subprocess.Popen([sys.executable,"-c",' + repr(child) + '])'
+        try:
+            run_fixture([sys.executable, '-c', parent], root, 'runner', 'descendant-' + str(keep_pipe), timeout=0.4)
+        except FixtureExecutionError as error:
+            require(keep_pipe and error.diagnostic['reason'] == 'fixture-timeout', 'descendant timeout framing')
+        else:
+            require(not keep_pipe, 'pipe-holding descendant escaped timeout')
+        cases += 1
+    time.sleep(1.5)
+    require(not any(marker.exists() for marker in markers), 'fixture descendant survived group cleanup')
+    real_sleep = time.sleep
+    injected = False
+    def interrupt_after_eof(seconds):
+        nonlocal injected
+        if not injected:
+            injected = True
+            os.kill(os.getpid(), signal.SIGTERM)
+        real_sleep(seconds)
+    time.sleep = interrupt_after_eof
+    try:
+        try:
+            run_fixture([sys.executable, '-c', 'print("EOF",flush=True)'], root, 'runner', 'signal-after-eof', timeout=2)
+        except FixtureExecutionError as error:
+            require(injected and error.diagnostic['reason'] == 'interrupted-' + str(signal.SIGTERM) and
+                    'EOF' in error.diagnostic['stdout_tail'], 'post-EOF signal accepted')
+        else:
+            raise ValueError('post-EOF signal ignored during cleanup')
+    finally:
+        time.sleep = real_sleep
+    cases += 1
+    return cases
 
 
 def candidate():
@@ -255,12 +446,14 @@ def main():
         qemu = shutil.which(args.qemu)
         require(qemu is not None, 'QEMU missing; exact shell not tested')
         runner = [qemu, str(args.busybox.resolve())]
-        inventory = subprocess.run(runner + ['--list'], capture_output=True, timeout=5, check=True)
+        inventory = run_fixture(runner + ['--list'], HERE, 'inventory', 'busybox-applet-list', timeout=5)
+        require(inventory.returncode == 0 and not inventory.stderr, 'BusyBox applet inventory failed')
         require({'sh', 'stat', 'awk', 'cat', 'mkdir', 'sha256sum', 'uname', 'sleep', 'wc', 'base64', 'printf', 'head'} <=
                 set(inventory.stdout.decode().splitlines()), 'required applet missing')
     results = []
     with tempfile.TemporaryDirectory(prefix='a53-session-shell-', dir=work_root) as work:
         base = Path(work)
+        runner_test_cases = runner_checks(base / 'runner-checks')
         guard_root = base / 'effect-guards'
         fixture(guard_root, 'seal', 'good', scripts['seal'], runner, exact)
         guard_cases = [('bb-proxy', ['kill', '-TERM', '1'], b'unreviewed applet'),
@@ -270,9 +463,9 @@ def main():
                        ('helper-kmsg-seal', [], b'claim missing before signal helper')]
         for optimization in ('0', '1'):
             for name, arguments, diagnostic in guard_cases:
-                process = subprocess.run([str(guard_root / name)] + arguments,
-                                         env={**os.environ, 'PYTHONOPTIMIZE': optimization},
-                                         capture_output=True, timeout=5)
+                process = run_fixture([str(guard_root / name)] + arguments, guard_root, 'effect-guard',
+                                      name + '-opt' + optimization, timeout=5,
+                                      env={**os.environ, 'PYTHONOPTIMIZE': optimization})
                 require(process.returncode != 0 and diagnostic in process.stderr and not process.stdout,
                         'effect guard disabled at Python optimization ' + optimization)
         for phase, script in scripts.items():
@@ -280,7 +473,7 @@ def main():
                 root = base / (phase + '-' + case)
                 path = fixture(root, phase, case, script, runner, exact)
                 command = runner + ['sh', str(path)] if exact else ['/bin/sh', str(path)]
-                process = subprocess.run(command, capture_output=True, timeout=8)
+                process = run_fixture(command, root, phase, case)
                 calls_file = root / 'calls.jsonl'
                 calls = [json.loads(line) for line in calls_file.read_text().splitlines()] if calls_file.exists() else []
                 effects = [call for call in calls if call['name'] in ('helper-reboot', 'helper-kmsg-seal')]
@@ -345,6 +538,8 @@ def main():
                 results.append(phase + ':' + case)
     print(json.dumps({'classification': 'session-shell-fixtures-pass', 'cases': results,
                       'case_count': len(results), 'parser_transport_cases': 4,
+                      'runner_test_cases': runner_test_cases, 'fixture_timeout_seconds': CASE_TIMEOUT_SECONDS,
+                      'fixture_cleanup_seconds': CLEANUP_SECONDS,
                       'shell': 'exact-ARM64-BusyBox-under-QEMU' if exact else 'host-/bin/sh',
                       'generated_source_sha256': PINS, 'effects': 'intercepted; no actual target signal or reboot',
                       'effect_guard_cases': len(guard_cases) * 2, 'effect_guard_optimization_levels': [0, 1],
@@ -355,4 +550,10 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except FixtureExecutionError as error:
+        # Buildbox redirects stdout to the retained fixture receipt; do not
+        # leave the useful diagnostic only in an ephemeral traceback.
+        print(json.dumps(error.diagnostic, sort_keys=True))
+        raise SystemExit(2)
