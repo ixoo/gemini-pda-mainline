@@ -24,6 +24,8 @@
 #if defined(MONITOR_FIXTURE) && !defined(MONITOR_FULL_DURATION)
 #define TERM_MS 300
 #define KILL_MS 380
+#define TERM_TRIGGER_MS 280
+#define KILL_TRIGGER_MS 360
 #define END_MS 500
 #define GRACE_MS 80
 #define REAP_MS 120
@@ -31,9 +33,12 @@
 static void fixture_child(void);
 static void fixture_after_status(void);
 static void fixture_after_defaults(void);
+static void fixture_before_term(void);
 #else
 #define TERM_MS 210000
 #define KILL_MS 214000
+#define TERM_TRIGGER_MS 209000
+#define KILL_TRIGGER_MS 213000
 #define END_MS 215000
 #define GRACE_MS 4000
 #define REAP_MS 1000
@@ -43,6 +48,7 @@ static void fixture_after_defaults(void);
 static void fixture_child(void);
 static void fixture_after_status(void);
 static void fixture_after_defaults(void);
+static void fixture_before_term(void);
 #endif
 
 static volatile sig_atomic_t cancelled;
@@ -130,7 +136,7 @@ int keyboard_monitor_run(int parent, const char *event, const char *minor)
 	off_t out_size = 0, err_size = 0, sent = 0;
 	int term_error = 0, kill_error = 0;
 	int64_t start = milliseconds(), term_time = -1, kill_time = -1, reap_time = -1;
-	int64_t kill_at = start + KILL_MS, end_at = start + END_MS;
+	int64_t kill_at = start + KILL_TRIGGER_MS, end_at = start + END_MS;
 	struct sigaction action = { .sa_handler = cancel }, ordinary = { .sa_handler = SIG_DFL };
 	sigset_t blocked, original;
 	bool mask_held = false;
@@ -197,7 +203,7 @@ int keyboard_monitor_run(int parent, const char *event, const char *minor)
 		if (err_size) FAIL("observer-stderr");
 		if (cancelled) FAIL("cancelled");
 		if (!reason && forward(out, out_size, &sent)) FAIL("forward-close-or-stall");
-		if (now >= start + TERM_MS && !terminal) FAIL("deadline");
+		if (now >= start + TERM_TRIGGER_MS && !terminal) FAIL("deadline");
 		if (now >= end_at) { late = true; FAIL("reap-deadline"); }
 		if (terminal && (reason || sent == out_size)) {
 			pid_t got = waitpid(child, &child_status, WNOHANG);
@@ -205,18 +211,25 @@ int keyboard_monitor_run(int parent, const char *event, const char *minor)
 			if (got < 0 && errno != EINTR) { identity_lost = true; FAIL("reap-identity"); break; }
 		}
 		if (reason && !terminal && term_time < 0) {
-			term_time = milliseconds() - start;
+#ifdef MONITOR_FIXTURE
+			fixture_before_term();
+#endif
 			if (kill(child, SIGTERM)) term_error = errno;
-			if (now + GRACE_MS < kill_at) kill_at = now + GRACE_MS;
-			if (kill_at + REAP_MS < end_at) end_at = kill_at + REAP_MS;
+			term_time = milliseconds() - start;
+			/* Early cancellation may shorten cleanup. Scheduled expiry retains
+			 * the original final bound, with headroom before signal upper bounds. */
+			if (strcmp(reason, "deadline")) {
+				if (now + GRACE_MS < kill_at) kill_at = now + GRACE_MS;
+				if (kill_at + REAP_MS < end_at) end_at = kill_at + REAP_MS;
+			}
 		}
 		if (!terminal && now >= kill_at && kill_time < 0) {
-			kill_time = milliseconds() - start;
 			if (kill(child, SIGKILL)) kill_error = errno;
+			kill_time = milliseconds() - start;
 		}
 		if (now >= end_at) break;
 		int64_t next = end_at;
-		if (term_time < 0 && start + TERM_MS < next) next = start + TERM_MS;
+		if (term_time < 0 && start + TERM_TRIGGER_MS < next) next = start + TERM_TRIGGER_MS;
 		if (kill_time < 0 && kill_at < next) next = kill_at;
 		int delay = next - now < TICK_MS ? (int)(next - now) : TICK_MS;
 		if (delay > 0 && poll(NULL, 0, delay) < 0 && errno != EINTR) FAIL("poll");

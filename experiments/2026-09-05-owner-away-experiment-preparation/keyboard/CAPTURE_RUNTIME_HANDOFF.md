@@ -102,3 +102,33 @@ capture and export shells pass syntax and ShellCheck (SC2016 excluded for awk
 field expressions). Enabled entry and full-duration fixture compile natively;
 neither was executed. No ARM64 enabled build, full-duration run, exact target
 shell execution, live metadata proof, capture/export or device action occurred.
+
+
+## Focused coordinator corrections after the initial handoff
+
+The admission source identity now includes the eMMC launcher's own identity,
+its exact selected source-pins inventory, the original baseline verifier's
+transitive pinned members, and direct host-route/package-verifier sources.
+Preparation and pre-effect checks reject drift in any of those inputs. A fixture
+mutates an imported host helper and verifies refusal before claims or transport.
+The fixed baseline source closure itself is not modified.
+
+Signal trigger targets now precede the unchanged measured upper bounds:
+TERM triggers at 209 seconds and must be measured by 210; KILL triggers at 213
+and must be measured by 214. The original 202-second observation interval and
+215-second final upper bound remain. One second of finite scheduling headroom
+is reserved before each signal bound; it is not extra tolerance after a run.
+Early cancellation may shorten cleanup, while scheduled expiry retains the
+original final bound. Signal timestamps are sampled after the syscall returns.
+Actual upper-bound misses still mark the lifecycle late and refuse acceptance.
+
+Scaled fixtures use 280/360 ms triggers with unchanged 300/380 ms signal bounds
+and 500 ms final bound. Normal forced cleanup stays within those bounds; a
+fixture-only 40 ms pre-TERM delay crosses the hard bound and is explicitly
+recorded late despite successful reaping. Twelve native monitor methods and six
+capture/refusal methods pass; the latter also pass under optimized Python.
+The first closure fixture run exposed source files being treated as private
+mode-0600 evidence; reads now explicitly use the existing regular-source mode
+while retaining type/symlink/size checks. No backend/full-duration/device run was
+performed. The original accepted package, size and full-engine receipts remain
+unchanged and are not relabelled as evidence for these changed source bytes.

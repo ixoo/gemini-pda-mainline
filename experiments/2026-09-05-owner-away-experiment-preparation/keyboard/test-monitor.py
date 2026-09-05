@@ -160,14 +160,24 @@ class MonitorTests(unittest.TestCase):
     def test_ignored_term_forced_cleanup(self):
         code, _, _, f = self.run_case('ignore')
         self.assertEqual((code, int(f['signal'])), (2, signal.SIGKILL))
-        self.assertGreaterEqual(int(f['term_ms']), 300)
-        self.assertGreaterEqual(int(f['kill_ms']), 380)
+        self.assertGreaterEqual(int(f['term_ms']), 280)
+        self.assertLessEqual(int(f['term_ms']), 300)
+        self.assertGreaterEqual(int(f['kill_ms']), 360)
+        self.assertLessEqual(int(f['kill_ms']), 380)
         self.assertLess(int(f['reap_ms']), 500)
+
+    def test_missed_hard_signal_bound_stays_late(self):
+        code, _, _, f = self.run_case('late-signal')
+        self.assertEqual(code, 2)
+        self.assertGreater(int(f['term_ms']), 300)
+        self.assertEqual(f['late'], '1')
+        self.assertEqual(f['reaped'], '1')
 
     def test_closed_child_output_does_not_mean_exit(self):
         code, _, _, f = self.run_case('close-live')
         self.assertEqual(code, 2)
-        self.assertGreaterEqual(int(f['term_ms']), 300)
+        self.assertGreaterEqual(int(f['term_ms']), 280)
+        self.assertLessEqual(int(f['term_ms']), 300)
 
     def test_forwarding_close_retains_capture(self):
         code, _, _, f = self.run_case('fill', close=True)

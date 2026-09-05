@@ -80,4 +80,19 @@ class CaptureTests(unittest.TestCase):
             for action in ('delivery','capture','export'):
                 with self.assertRaisesRegex(ValueError,'disabled'):M['perform'](None,action,True)
 
+    def test_imported_helper_drift_refuses_before_effect(self):
+        identity = M['source_identity']()
+        context = {'admission':{'source_identity':identity}}
+        original = M['C']['regular']
+        helper = (HERE/'../emmc/mainline_host.py').resolve()
+        def changed(path, *args, **kwargs):
+            raw = original(path,*args,**kwargs)
+            return raw+b'\n# changed helper\n' if Path(path).resolve()==helper else raw
+        with patch.dict(M['C'],{'regular':changed}), \
+                patch.dict(M['perform'].__globals__,{'execution_gate':lambda:None}), \
+                patch.object(Path,'mkdir',side_effect=AssertionError('claim')), \
+                patch('subprocess.Popen',side_effect=AssertionError('transport')):
+            with self.assertRaisesRegex(ValueError,'source changed'):
+                M['perform'](context,'capture',True)
+
 if __name__ == '__main__':unittest.main()

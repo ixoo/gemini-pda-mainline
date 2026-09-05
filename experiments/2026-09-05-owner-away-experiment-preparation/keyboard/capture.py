@@ -25,8 +25,17 @@ def execution_gate():
 
 
 def source_identity():
-    return {name: sha((HERE / name).read_bytes()) for name in
-            ('capture.py', 'monitor.c', 'delivery.py', 'classify.py', 'protocol.json')}
+    launcher = L['source_identity']()  # Checks the exact selected eMMC closure.
+    members = json.loads(C['regular'](HERE/'../emmc/source-pins.json',16384,private=False),object_pairs_hook=L['unique'])
+    closure = {'experiments/2026-09-05-owner-away-experiment-preparation/'+name: value
+               for name,value in members.items()}
+    closure.update(dict(L['V']['SOURCE_PINS']))
+    for name,value in closure.items():
+        require(sha(C['regular'](L['REPO']/name,262144,private=False)) == value, 'imported closure drift')
+    direct = ('capture.py','monitor.c','delivery.py','classify.py','protocol.json',
+              '../emmc/mainline_host.py','../baseline/scripts/buildbox_userspace.py')
+    return {'local_and_direct':{name:sha(C['regular'](HERE/name,262144,private=False)) for name in direct},
+            'emmc_launcher':launcher,'pinned_members':closure}
 
 
 def prepare(admission, package):
