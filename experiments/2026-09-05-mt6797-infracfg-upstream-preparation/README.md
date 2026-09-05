@@ -242,3 +242,15 @@ schema validity, controller registration behavior or runtime support for this
 revision. Those gates, actual author certification and current maintainer
 routing remain open. The active device inputs and all historical patch bytes
 are unchanged; the topic inventory now links this bounded preparation record.
+
+## Exact-upstream build dependency
+
+The existing builder and package validator use one global kernel source and
+assume an xz release archive with root `linux-VERSION`. The exact upstream topic
+is based on a post-7.3-rc1 commit; the existing 7.1.3 local repair build cannot
+validate that whole revision. A [tested integration handoff](SOURCE_INTEGRATION.md)
+now supplies a complete source-selection/provenance contract and preservation
+fingerprints for all 189 existing profiles. This proposal remains experiment
+code until the integration owner reviews and wires it into the production
+builder and verifier. The global manifest, canonical series and shared scripts
+are unchanged by this handoff.

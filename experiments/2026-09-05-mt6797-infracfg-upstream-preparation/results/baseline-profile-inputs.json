@@ -1,0 +1,951 @@
+{
+  "default_profile": "full",
+  "profiles": {
+    "a72-a34-eligibility": {
+      "effective_inputs_sha256": "cbb658dca006156d32ebc2f5a91350caa4f9eaa7a18f4b9d5f51eac24c89563b",
+      "fragment_count": 13,
+      "patch_count": 529
+    },
+    "a72-a34-eligibility-kunit": {
+      "effective_inputs_sha256": "fcd423c6b475c215546e427161ba0199b2ca5a130c7f5ce4979df1c7396485bc",
+      "fragment_count": 14,
+      "patch_count": 529
+    },
+    "a72-a34-v2-kunit": {
+      "effective_inputs_sha256": "be7ba53c62754acb41e7dec3c67153a596ecedae8803754691e2cb7fa8924f88",
+      "fragment_count": 13,
+      "patch_count": 529
+    },
+    "a72-admission-candidate": {
+      "effective_inputs_sha256": "08c16659174db0d6e581413f3aea84226085732bb0e71f5b7ba7cb2d33230011",
+      "fragment_count": 25,
+      "patch_count": 529
+    },
+    "a72-admission-controller-kunit": {
+      "effective_inputs_sha256": "db3cfa53407c03381a657a570171bcd63d274540e3e18b312f4b86bc1c3c603c",
+      "fragment_count": 24,
+      "patch_count": 529
+    },
+    "a72-admission-durable-candidate": {
+      "effective_inputs_sha256": "537024b915b92b1a29a3e622245102b6f048a2ffe81bc6e3f1fe2da598b3ff5f",
+      "fragment_count": 25,
+      "patch_count": 529
+    },
+    "a72-admission-live-trigger-candidate": {
+      "effective_inputs_sha256": "89d90547f5e989c1baada9257912ea3fdb693b61aed5ca0c345abccb9ffa1c7e",
+      "fragment_count": 26,
+      "patch_count": 529
+    },
+    "a72-admission-live-trigger-kunit": {
+      "effective_inputs_sha256": "687a95769ca39abc9a9789d23437f854e258fb4d0160251761ba7baa175e5e43",
+      "fragment_count": 24,
+      "patch_count": 529
+    },
+    "a72-admission-trace-kunit": {
+      "effective_inputs_sha256": "db8de2377e9b6ebe9f8de908408e8a3588e4bea47a3259cbc18a80509e37e44e",
+      "fragment_count": 24,
+      "patch_count": 529
+    },
+    "a72-admission-trace-softfail-candidate": {
+      "effective_inputs_sha256": "0044e352d0c763aa5e0b01cf3e43e4027e97bcc1f3ab96be8467681e39fded8c",
+      "fragment_count": 26,
+      "patch_count": 529
+    },
+    "a72-admission-trace-softfail-kunit": {
+      "effective_inputs_sha256": "88ef9ccf7ef970dbfead162bf2a3140aff04434e7cabd9f7d4a5cce015297cf5",
+      "fragment_count": 24,
+      "patch_count": 529
+    },
+    "a72-atomic-publication-kunit": {
+      "effective_inputs_sha256": "088d0f8dc243c4c9c166416f3551a8dbf27df498bba9e2c5211284d84a62a6da",
+      "fragment_count": 13,
+      "patch_count": 529
+    },
+    "a72-cpu-status-mask-candidate": {
+      "effective_inputs_sha256": "2054f0e183ac51409fc0770251b9b2e93461b3b016cbb1d4ba1b1775aa69015a",
+      "fragment_count": 22,
+      "patch_count": 529
+    },
+    "a72-cpu-status-mask-kunit": {
+      "effective_inputs_sha256": "03629bb5cd1481c4f110a70c693c58939dfe1013c0484c168778c9f8a2046d3c",
+      "fragment_count": 20,
+      "patch_count": 529
+    },
+    "a72-cpu9-controller-candidate": {
+      "effective_inputs_sha256": "7310cf91979647d960046c9a9d14b5a3d85c3e7ee2055b9f3645ce5f5103e1c7",
+      "fragment_count": 27,
+      "patch_count": 529
+    },
+    "a72-cpu9-progress-candidate": {
+      "effective_inputs_sha256": "844bd07041379c1ecbc085236dd9b1da87f5929b2efa0365a79baea2ba9cfa09",
+      "fragment_count": 28,
+      "patch_count": 529
+    },
+    "a72-default-off-binder-kunit": {
+      "effective_inputs_sha256": "dd6a6c2784332e77fd1dc839358a08d3745ad83368aea3e077e98699bd25876a",
+      "fragment_count": 24,
+      "patch_count": 529
+    },
+    "a72-derived-admission-kunit": {
+      "effective_inputs_sha256": "b7712276bff12d0c63a16e1d7e80b5d53de194d99972cf236e9851fd58da6941",
+      "fragment_count": 12,
+      "patch_count": 529
+    },
+    "a72-direct-state-kunit": {
+      "effective_inputs_sha256": "a5c66868499a40e69b385c02005069ca6ad95211e87e8c847e5029a1cac00d12",
+      "fragment_count": 13,
+      "patch_count": 529
+    },
+    "a72-early-initcall-ledger": {
+      "effective_inputs_sha256": "10d4d882920e280bcee570a9814da53f11d704f646af5d6feb38f24730d53311",
+      "fragment_count": 22,
+      "patch_count": 529
+    },
+    "a72-global-initcall-ledger": {
+      "effective_inputs_sha256": "a6d8ad1ce250730c6ca6a165a9f27d26475fc6d0542ded79aec15e4d008eaa05",
+      "fragment_count": 22,
+      "patch_count": 529
+    },
+    "a72-hotplug-lifecycle-kunit": {
+      "effective_inputs_sha256": "05b443f6e1a4d1447eb7c568f4fe28cb8d91ca649c87d2ab526db9fcb29e7127",
+      "fragment_count": 10,
+      "patch_count": 529
+    },
+    "a72-p24-provider-owner-refusal": {
+      "effective_inputs_sha256": "3e1cb4f92c5cca3cf4310b01d178f001253d487cbadffad4b9e5b2142e44e864",
+      "fragment_count": 17,
+      "patch_count": 529
+    },
+    "a72-p30e-wire": {
+      "effective_inputs_sha256": "11ba7874a9d49ee3de941be2511242687c5a54f09f86a1b05df33f94c1f19d0e",
+      "fragment_count": 12,
+      "patch_count": 529
+    },
+    "a72-p32-rollback": {
+      "effective_inputs_sha256": "a61b9b96a51a4cf3bf20152b6690dec1af89a918aa2da68db68b594d3615447e",
+      "fragment_count": 11,
+      "patch_count": 529
+    },
+    "a72-physical-executor-kunit": {
+      "effective_inputs_sha256": "277b56f63b2170c38e03ab8e6ec0c2178a8ad808ac67d768a16921b5d8155728",
+      "fragment_count": 10,
+      "patch_count": 529
+    },
+    "a72-physical-source-candidate": {
+      "effective_inputs_sha256": "cb0a446dbedccc8a5e3d1132be09d64726b795031390bc373fbd7fc250fc5856",
+      "fragment_count": 22,
+      "patch_count": 529
+    },
+    "a72-physical-source-init-probe-ledger": {
+      "effective_inputs_sha256": "2d7d3a8c7a7725d964cc2fa226fd93f80bb2ab4aa016d2a6b55aa5617a8ab7a6",
+      "fragment_count": 22,
+      "patch_count": 529
+    },
+    "a72-physical-source-kunit": {
+      "effective_inputs_sha256": "2da952df70eb761daf69f7bf253d476027dae74e81f46692b967bc4744e29255",
+      "fragment_count": 21,
+      "patch_count": 529
+    },
+    "a72-physical-source-precapture-ledger": {
+      "effective_inputs_sha256": "d963ae6aac19f72566d6d5bd81d2004f0e677294c01254132d7ce404f8ef464d",
+      "fragment_count": 22,
+      "patch_count": 529
+    },
+    "a72-platform-movement-candidate": {
+      "effective_inputs_sha256": "3aba01228c0d8dd74cc4b7ef9849b8c0f6939566216dea9d6ff3d07c94a9eb8c",
+      "fragment_count": 22,
+      "patch_count": 529
+    },
+    "a72-platform-movement-kunit": {
+      "effective_inputs_sha256": "15ef0812b89b386f508c311b00d9478da3a51132e031b42e22747138db9ba50a",
+      "fragment_count": 20,
+      "patch_count": 529
+    },
+    "a72-platform-provider-clock-candidate": {
+      "effective_inputs_sha256": "b387cccfd618105cc8951008e4b24c8461397336eaeceb85f51bb9d7cc8cfcdd",
+      "fragment_count": 22,
+      "patch_count": 529
+    },
+    "a72-platform-provider-clock-generator-parent": {
+      "effective_inputs_sha256": "f235116ec158e3db009778e96b5e3f2b91526fa6369987565cc3030acdbad11e",
+      "fragment_count": 1,
+      "patch_count": 362
+    },
+    "a72-platform-provider-clock-kunit": {
+      "effective_inputs_sha256": "820c1d5369353d08517266b81c9bad5a6ec5774653009540a119e82a054c329d",
+      "fragment_count": 20,
+      "patch_count": 529
+    },
+    "a72-platform-provider-clock-stage-candidate": {
+      "effective_inputs_sha256": "262158f6df192778142bb0580dbeb9af36496f37d99cee08e6da8542bb23e5b0",
+      "fragment_count": 22,
+      "patch_count": 529
+    },
+    "a72-platform-provider-clock-stage-kunit": {
+      "effective_inputs_sha256": "e1cdcaeb6366f0164936ba1fe0b583cffb8eb57ce461d84502ab66c6dad68929",
+      "fragment_count": 20,
+      "patch_count": 529
+    },
+    "a72-platform-provider-ready-candidate": {
+      "effective_inputs_sha256": "1dc7a87dec2587656b43ea6167618e96e6f59cf0d845abf523a5d098d8708ded",
+      "fragment_count": 22,
+      "patch_count": 529
+    },
+    "a72-platform-provider-ready-kunit": {
+      "effective_inputs_sha256": "364ef07e36038bb5a7d709d1271a6e00fe18dba07b06679f0e047aa14d89b729",
+      "fragment_count": 19,
+      "patch_count": 529
+    },
+    "a72-platform-provider-snapshot-candidate": {
+      "effective_inputs_sha256": "1b6a96ef07a2cbc73d59cf1d22698059a8352fb93ccd77b1a6df95b89ad4968c",
+      "fragment_count": 22,
+      "patch_count": 529
+    },
+    "a72-platform-provider-snapshot-kunit": {
+      "effective_inputs_sha256": "19995c562b1d0f49e34c5a926336e3e09975bd12ff890ca6cb4412305790058c",
+      "fragment_count": 19,
+      "patch_count": 529
+    },
+    "a72-platform-snapshot-candidate": {
+      "effective_inputs_sha256": "5e6025ef2057ddfff9bced950e216fe031c0a2f128db9541265a603850103081",
+      "fragment_count": 22,
+      "patch_count": 529
+    },
+    "a72-platform-snapshot-kunit": {
+      "effective_inputs_sha256": "676a7a87a46211ed7235c18b9592eb42dc59b17a47ce3f055acd3704b6773d2b",
+      "fragment_count": 3,
+      "patch_count": 529
+    },
+    "a72-transition-executor-kunit": {
+      "effective_inputs_sha256": "f27ecbcd32eb073ea82d63b867305d5e3320ac41f030b8fff1ea3326150cb176",
+      "fragment_count": 10,
+      "patch_count": 529
+    },
+    "clock-backend-entry-ledger": {
+      "effective_inputs_sha256": "6f475ac4bd82af5a0aa73ea5d7f750eccc599567aebb0f7bd8b77d1d62e579c6",
+      "fragment_count": 11,
+      "patch_count": 529
+    },
+    "da921x-clock-cspm-coexistence": {
+      "effective_inputs_sha256": "9404cbc2be2b5c0317638543fc7f5f33fdb138e3211007d47627f1512d339e4e",
+      "fragment_count": 25,
+      "patch_count": 529
+    },
+    "da921x-clock-entry-first-dmesg": {
+      "effective_inputs_sha256": "31ded4e55add580ca09a4e48fa00c3fbf27f3275f3f5d51bf51ebebe823d5828",
+      "fragment_count": 24,
+      "patch_count": 529
+    },
+    "da921x-current-service-control": {
+      "effective_inputs_sha256": "1237dec26aeef81c883f03a5bfa4a0242cd6aec4c58219a284f9c9d1c4f11e40",
+      "fragment_count": 21,
+      "patch_count": 529
+    },
+    "da921x-dual-modalias-entry-classification": {
+      "effective_inputs_sha256": "53281e212efdd6bcc4fc24511ac5eab2a397e884c8f15ab91b960f29d7d06087",
+      "fragment_count": 17,
+      "patch_count": 529
+    },
+    "da921x-dual-modalias-envelope-state": {
+      "effective_inputs_sha256": "d0c4644ff017437d88b547a130c851892bf76b4db19d7db76b1ed6412bf35280",
+      "fragment_count": 17,
+      "patch_count": 529
+    },
+    "da921x-dual-modalias-path-state": {
+      "effective_inputs_sha256": "8e4318b3d3f7de0097ba379c39b777ab3ad086916a458fefdaef1ab6ff6b9545",
+      "fragment_count": 17,
+      "patch_count": 529
+    },
+    "da921x-dual-modalias-pre-dispatch-suppression": {
+      "effective_inputs_sha256": "23fb08c0cb80f50a2e5fa84bcdf11782004a68c70dd966e933e6e6c923c08f26",
+      "fragment_count": 17,
+      "patch_count": 529
+    },
+    "da921x-dual-modalias-stage-state": {
+      "effective_inputs_sha256": "75dda9e2f0f2e74142d7874873500492ed6a7fecfa3a0eeb40903c1957b2ad25",
+      "fragment_count": 17,
+      "patch_count": 529
+    },
+    "da921x-dual-modalias-state": {
+      "effective_inputs_sha256": "e0e9f82c705a043f5dbfb16c8267ebcc284bb3c656e10f8e2f29617b05bc95c3",
+      "fragment_count": 17,
+      "patch_count": 529
+    },
+    "da921x-first-dmesg-raw-write": {
+      "effective_inputs_sha256": "364a1ebcb130f0d3ced97963df0116de1fcb6d5ccdae7f206dded18046a6ad88",
+      "fragment_count": 24,
+      "patch_count": 529
+    },
+    "da921x-i2c6-firmware-writer-attestation": {
+      "effective_inputs_sha256": "cd906c611c05c69b4b1d41ba58931e022fb92f5edcc389f90d5541a3039b0216",
+      "fragment_count": 19,
+      "patch_count": 529
+    },
+    "da921x-i2c6-firmware-writer-transaction-window": {
+      "effective_inputs_sha256": "d570d4777530868116b8de7f9f20d3e5e16af56d642515b058e2677fc840a80a",
+      "fragment_count": 19,
+      "patch_count": 529
+    },
+    "da921x-legacy-bind": {
+      "effective_inputs_sha256": "9cb613f91280325043958bf01587cac1ef557d9b230b6653a4cdc127b0761559",
+      "fragment_count": 14,
+      "patch_count": 529
+    },
+    "da921x-legacy-lifecycle": {
+      "effective_inputs_sha256": "2e0d56acc21668731633cd70d8747d1c3fa30753d86b3c4f63729880ef162c9e",
+      "fragment_count": 15,
+      "patch_count": 529
+    },
+    "da921x-lk-clock-readonly-provider": {
+      "effective_inputs_sha256": "4f27c26a3aa7d6447e9258f679a478fc2701fbdaec6e67142b316f9d025cc302",
+      "fragment_count": 18,
+      "patch_count": 529
+    },
+    "da921x-manual-checkpoint-control": {
+      "effective_inputs_sha256": "34678b7d709beb53437534b1ace432c68723158092c970bb86ce300a8a2d87c5",
+      "fragment_count": 22,
+      "patch_count": 529
+    },
+    "da921x-manual-checkpoint-map-control": {
+      "effective_inputs_sha256": "3a25315d428a4aed9b3e27f58b6fe2b9e91a906ba1a16c3e1bc6dd0abc048c6f",
+      "fragment_count": 25,
+      "patch_count": 529
+    },
+    "da921x-manual-checkpoint-prefix-control": {
+      "effective_inputs_sha256": "7da0f73a110eaa958e12690b8513f1451f4ff35ad37ac48f4d7f249561f07d35",
+      "fragment_count": 24,
+      "patch_count": 529
+    },
+    "da921x-manual-checkpoint-raw-write": {
+      "effective_inputs_sha256": "91e199df85d683ad12986faf46913cdb412f81a8b49054a922c2b5485766831d",
+      "fragment_count": 24,
+      "patch_count": 529
+    },
+    "da921x-manual-checkpoint-stage-control": {
+      "effective_inputs_sha256": "f0fb5d59611f06688fbc68abb3ac9a94b8ec220f402880015d35010955dbbfda",
+      "fragment_count": 23,
+      "patch_count": 529
+    },
+    "da921x-modules-arm64-entry-ledger": {
+      "effective_inputs_sha256": "08d2bba7d79fb0afc77c5641481f7dc0322e6eb2e335597511844cca7b61fe8a",
+      "fragment_count": 17,
+      "patch_count": 529
+    },
+    "da921x-modules-post-ramoops-checkpoint": {
+      "effective_inputs_sha256": "3647c023301de1dd30388fab10fb9f00a0516e69f7eac5815892c3e5b39b4509",
+      "fragment_count": 17,
+      "patch_count": 529
+    },
+    "da921x-modules-pre-ramoops-ledger": {
+      "effective_inputs_sha256": "b729b9c70dc37e89fb48c2de5c63e7fcb817ac337cbb9239e06cbf3c29848317",
+      "fragment_count": 17,
+      "patch_count": 529
+    },
+    "da921x-natural-device-add": {
+      "effective_inputs_sha256": "330137566774a2f9f6fb3313817c6047654d7aa87b1deb6b4186902f083e35e9",
+      "fragment_count": 17,
+      "patch_count": 529
+    },
+    "da921x-netlink-skb-serialization": {
+      "effective_inputs_sha256": "c789e738624f2bb31388c954700241518944ea4e0ca334525a833f5c8ae8bb93",
+      "fragment_count": 17,
+      "patch_count": 529
+    },
+    "da921x-of-event-layout-correction": {
+      "effective_inputs_sha256": "3d0beed9368cb044683352a99fa63c0f4a365f801bd33be8fd1a68f6b4fa9fde",
+      "fragment_count": 17,
+      "patch_count": 529
+    },
+    "da921x-of-modalias-diagnostic": {
+      "effective_inputs_sha256": "0ad56533eab009940211d840b3e5cc07423f588cb048e7444da564d64bbd7c9e",
+      "fragment_count": 17,
+      "patch_count": 529
+    },
+    "da921x-of-modalias-pre-dispatch-suppression": {
+      "effective_inputs_sha256": "bdfc7e10dc03c92a32ea2b6a199883c4dd820de2665aa4940da6585487778d58",
+      "fragment_count": 17,
+      "patch_count": 529
+    },
+    "da921x-of-modalias-private-generation": {
+      "effective_inputs_sha256": "d93f26fac8b95e955b29ec50b33d3f10f643e8249ea07b1a8832e99ddb7d9e39",
+      "fragment_count": 17,
+      "patch_count": 529
+    },
+    "da921x-of-modalias-private-insertion": {
+      "effective_inputs_sha256": "192ed5b18c5b8d30f75563136896bacd7a8a2088b6fd82ffa217b3f4d1a7c1ee",
+      "fragment_count": 17,
+      "patch_count": 529
+    },
+    "da921x-of-modalias-real-env-rollback": {
+      "effective_inputs_sha256": "d64bbfe6744d4222aacbebf3eca656a80716d29b4beedacfebe3a6ae54cad470",
+      "fragment_count": 17,
+      "patch_count": 529
+    },
+    "da921x-positive-provider": {
+      "effective_inputs_sha256": "932c45e8f6800bb7f686cceebec78bc4f3aa807e8e57f1a34f745245e4e70857",
+      "fragment_count": 19,
+      "patch_count": 529
+    },
+    "da921x-positive-provider-kunit": {
+      "effective_inputs_sha256": "7dc5803cd7544bade4dc227b4a97f683a9f644386ffb0e63dee21a0d04364788",
+      "fragment_count": 20,
+      "patch_count": 529
+    },
+    "da921x-post-event-lifecycle": {
+      "effective_inputs_sha256": "fbdca3ed9fbb48a39e33e0513f1429c4e8c529fe6c64c7814713b95cea6f673c",
+      "fragment_count": 18,
+      "patch_count": 529
+    },
+    "da921x-post-serviceability-module": {
+      "effective_inputs_sha256": "3ac8e7840fd0f50ea580c9c6427b3ef8423ca668bb3e0c3aed42d4bd43323a62",
+      "fragment_count": 16,
+      "patch_count": 529
+    },
+    "da921x-pre-p28-provider-abort": {
+      "effective_inputs_sha256": "af8d44c46de8ff601ed4a7e905a2f0c6a93c34f97d8b738822eea7ddb07f8bb6",
+      "fragment_count": 20,
+      "patch_count": 529
+    },
+    "da921x-pre-p28-provider-abort-kunit": {
+      "effective_inputs_sha256": "445fc33d5fdb5c94ceba70530fe2c42d44f46a540f7bb650abbf32d10957ee61",
+      "fragment_count": 21,
+      "patch_count": 529
+    },
+    "da921x-protected-clock-first-dmesg-call": {
+      "effective_inputs_sha256": "30368679bf8031a0e488a08c527d9c18fe701a1d639236b8dad3879029921e83",
+      "fragment_count": 27,
+      "patch_count": 529
+    },
+    "da921x-provider-state-kunit": {
+      "effective_inputs_sha256": "89b9b1e9c026a2f00364effda22182e61b783fcaad2322906416d101c57b4800",
+      "fragment_count": 21,
+      "patch_count": 529
+    },
+    "da921x-readonly-observer": {
+      "effective_inputs_sha256": "5bf5fe1ec115c666e22dcc23fdc9e9d29acf307a8c91714aef4863248e32ef61",
+      "fragment_count": 16,
+      "patch_count": 529
+    },
+    "da921x-readonly-observer-kunit": {
+      "effective_inputs_sha256": "b7a45a0a49ffc4fcf90b50954be7adc94e64c9f31ba58a82346424ff379baaa7",
+      "fragment_count": 17,
+      "patch_count": 529
+    },
+    "da921x-readonly-preflight-ledger": {
+      "effective_inputs_sha256": "a7244f75cba7cae9cd74bf988a0d1c8cab9b20e8c94517f44950225be6efbfbf",
+      "fragment_count": 19,
+      "patch_count": 529
+    },
+    "da921x-readonly-snapshot-kunit": {
+      "effective_inputs_sha256": "fe9a7a3231b1c4920711812f509f44fabb5a3f8e002d95671415caa1ebbf2b35",
+      "fragment_count": 18,
+      "patch_count": 529
+    },
+    "da921x-resource-only-provider": {
+      "effective_inputs_sha256": "eef2c1cdf7d63b69a40ad63f1db731a54abe1141a6024bfa950630c12bd4480e",
+      "fragment_count": 15,
+      "patch_count": 529
+    },
+    "da921x-resource-only-provider-modules-control": {
+      "effective_inputs_sha256": "5574ebc3f0306a4ded4cacb8301a3eec8220002c11e6483bf2dde009686640d3",
+      "fragment_count": 16,
+      "patch_count": 529
+    },
+    "da921x-runtime-preflight-ledger": {
+      "effective_inputs_sha256": "9925daf7da801521b20b1f2a9a79a3302de8f6cd5df96f4ef65b06b84f5946bb",
+      "fragment_count": 19,
+      "patch_count": 529
+    },
+    "da921x-same-value-write": {
+      "effective_inputs_sha256": "77d0711f8286db4987019aa65cfe8315038a86943c33c69ec84c48ddec1d37fb",
+      "fragment_count": 20,
+      "patch_count": 529
+    },
+    "da921x-same-value-write-kunit": {
+      "effective_inputs_sha256": "b45c3f136ecdc01e6e159b051ed598617b8e5804ccd1359d645087340ab360f8",
+      "fragment_count": 21,
+      "patch_count": 529
+    },
+    "da921x-uevent-bounded-listener": {
+      "effective_inputs_sha256": "cc2baa4e4fa7daf2c809dcfe2a4706a1f364f581fda94c6f231592feadfe3d22",
+      "fragment_count": 17,
+      "patch_count": 529
+    },
+    "da921x-uevent-listener-discovery": {
+      "effective_inputs_sha256": "433f8fc74015302d7b3e7f72019d4a78fda7dcc9b3f9b1c0089e9088a4100fa6",
+      "fragment_count": 17,
+      "patch_count": 529
+    },
+    "da921x-uevent-net-broadcast": {
+      "effective_inputs_sha256": "6a2fd34d2c6cee3188ad895780c01b09ea20ac0c4e23be49da07720edaea482a",
+      "fragment_count": 17,
+      "patch_count": 529
+    },
+    "da921x-uevent-no-listener-delivery": {
+      "effective_inputs_sha256": "292f6f77455e359fb8a9fd5ad6dcb91bf138e7bdfc8b34be61dd59f3f7591575",
+      "fragment_count": 17,
+      "patch_count": 529
+    },
+    "da921x-uevent-normal-fallthrough": {
+      "effective_inputs_sha256": "3cd882b5cc09c55650d45bf540c1f2e57e8d1fc5841188d62bd19593b8e64c3b",
+      "fragment_count": 17,
+      "patch_count": 529
+    },
+    "da921x-uevent-single-multicast": {
+      "effective_inputs_sha256": "1953e65d65c66d54e91a25cafd80083aa82569d6efed307fb314d85b4581fc88",
+      "fragment_count": 17,
+      "patch_count": 529
+    },
+    "da921x-uevent-untagged-dispatch": {
+      "effective_inputs_sha256": "5605b3b43127454ace032c88996d0866ec091c0813502f3a5914679130e9dc0e",
+      "fragment_count": 17,
+      "patch_count": 529
+    },
+    "dvfsp-clock-backend-readonly": {
+      "effective_inputs_sha256": "4824aa377ceb3520dc0f2b04c86b5cfa9a88f1965071ec3581c3a807eb28ca0b",
+      "fragment_count": 2,
+      "patch_count": 529
+    },
+    "dvfsp-owner-kunit": {
+      "effective_inputs_sha256": "160e44a69a534e6a5d3be21bed24edce307bcc761f387a128f5cce5e1698fbe9",
+      "fragment_count": 7,
+      "patch_count": 529
+    },
+    "dvfsp-protected-readback": {
+      "effective_inputs_sha256": "cdbee652b6d58993d6a40da247919867c98b6ea3c4d068105e1ec4fa372ef6e5",
+      "fragment_count": 4,
+      "patch_count": 529
+    },
+    "dvfsp-resource-owner-readonly": {
+      "effective_inputs_sha256": "d54b50888871dbb56b0446c0413232e3a4dddc8e7ed293dce458ff30c2820a84",
+      "fragment_count": 6,
+      "patch_count": 529
+    },
+    "full": {
+      "effective_inputs_sha256": "44e2a6634534445c9bc6a7705293201a742225e33ad6683d386344018ef0710f",
+      "fragment_count": 1,
+      "patch_count": 529
+    },
+    "gemini-a72-cpu8-observer-kunit": {
+      "effective_inputs_sha256": "e4b809f4f72dcf805ae0f2c5678b3c78654a010779d26c56c3a4605c1ff15edd",
+      "fragment_count": 26,
+      "patch_count": 529
+    },
+    "gemini-a72-frequency-thermal-candidate": {
+      "effective_inputs_sha256": "793070e14638170556ebc634f11ca15c23e6728d80bbdfcdd4dd10679383babd",
+      "fragment_count": 32,
+      "patch_count": 529
+    },
+    "gemini-a72-hotplug-binder-core-kunit": {
+      "effective_inputs_sha256": "fab6c149b9481cf74f8899a91a99e22eb7bcd9465ce700084dfbb4964ca5a13d",
+      "fragment_count": 28,
+      "patch_count": 529
+    },
+    "gemini-a72-hotplug-binding-kunit": {
+      "effective_inputs_sha256": "9dab9c3cc0007fd3122bd050a8eb3685eb1412e50b1e49455b8a57cf4b8a9f50",
+      "fragment_count": 29,
+      "patch_count": 529
+    },
+    "gemini-a72-hotplug-ledger-kunit": {
+      "effective_inputs_sha256": "f3ea1da89292289ee95a1678c8d6f5bf349ee9bf1131ce7b4d25fcdbf88b77df",
+      "fragment_count": 10,
+      "patch_count": 529
+    },
+    "gemini-a72-hotplug-physical-candidate": {
+      "effective_inputs_sha256": "bc62287d9620ba05671f6bdd05bbb778b551a5795ba2c533b6c79b3f1cb65788",
+      "fragment_count": 29,
+      "patch_count": 529
+    },
+    "gemini-a72-hotplug-snapshot-kunit": {
+      "effective_inputs_sha256": "d4613aa92af5153465e6cac1ef78e26afb904bb1c5c956f535601bc95edb08af",
+      "fragment_count": 21,
+      "patch_count": 529
+    },
+    "gemini-a72-p30e-rearm-kunit": {
+      "effective_inputs_sha256": "fdbc65e6ae8fac4cf761d4544a50e73f5725ed6388b21d809adf8d0ba3aa1695",
+      "fragment_count": 13,
+      "patch_count": 529
+    },
+    "gemini-a72-restore-executor-kunit": {
+      "effective_inputs_sha256": "087952b43d4f9197b31f6b9657d7380760a0f3e17ec68091d9a4001b595f09ca",
+      "fragment_count": 26,
+      "patch_count": 529
+    },
+    "gemini-cpu9-controller-kunit": {
+      "effective_inputs_sha256": "8c85ae9e0352b2392d8e391a00006381c3236d8e8bac13f9e35644965727c2ff",
+      "fragment_count": 26,
+      "patch_count": 529
+    },
+    "gemini-cpu9-dispatch-kunit": {
+      "effective_inputs_sha256": "1c629cd023b53b8a4b29039c0fefa4c7317f5db565355aca8005de78ebd6581f",
+      "fragment_count": 25,
+      "patch_count": 529
+    },
+    "gemini-cpu9-executor-kunit": {
+      "effective_inputs_sha256": "fac4d996dc32998eb64c2bf7b5a754e36dcaff1243d3ec06ac82dc333e290c96",
+      "fragment_count": 25,
+      "patch_count": 529
+    },
+    "gemini-cpu9-membership-kunit": {
+      "effective_inputs_sha256": "a0ffaed24ba2e756be5d332fa4bade018f3f739b431fc2a1a85314f71b0c52a7",
+      "fragment_count": 25,
+      "patch_count": 529
+    },
+    "gemini-cpu9-transition-ledger-kunit": {
+      "effective_inputs_sha256": "ad2be4f879bc9697b1cd50ba6ce2a167ffd5ac134421546a4583a5bf17b777b4",
+      "fragment_count": 10,
+      "patch_count": 529
+    },
+    "gemini-thermal-snapshot-candidate": {
+      "effective_inputs_sha256": "f6379480e3434826871253d814e36cc708264bbece07966d7b24ad61ecccdb9f",
+      "fragment_count": 33,
+      "patch_count": 529
+    },
+    "gemini-thermal-v4-corrected": {
+      "effective_inputs_sha256": "8ebf93711d8b989f3395abfbc54c26245572de0c444d30cca2179190f1111e52",
+      "fragment_count": 34,
+      "patch_count": 531
+    },
+    "gemini-transition-ledger-kunit": {
+      "effective_inputs_sha256": "df3e9ea90572fced4492e8ddc13ec954deb893bc96c2c5de8243ba87286a84a2",
+      "fragment_count": 10,
+      "patch_count": 529
+    },
+    "handoff": {
+      "effective_inputs_sha256": "c5d30201daf8af54d4fa9162a9c2c7673dbf3bc510db0d494f7d1d3452386755",
+      "fragment_count": 1,
+      "patch_count": 529
+    },
+    "i2c6-write-transport-kunit": {
+      "effective_inputs_sha256": "96376303899d4ebe7fa6ff2c45e86bb50e075fb48e9c81b9868654f6dbfdc430",
+      "fragment_count": 20,
+      "patch_count": 529
+    },
+    "mt6797-a72-bigidvfs-sram-kunit": {
+      "effective_inputs_sha256": "8546da429ef08ff18a369d0eb41e561a4d247fca6272e9e99e88748758387519",
+      "fragment_count": 10,
+      "patch_count": 529
+    },
+    "mt6797-a72-frequency-observer-kunit": {
+      "effective_inputs_sha256": "bfb12b33e751bfdced09e46a421547ac817d366712c4ebbd24f1fcaf751bd7e0",
+      "fragment_count": 21,
+      "patch_count": 529
+    },
+    "mt6797-a72-platform-effect-kunit": {
+      "effective_inputs_sha256": "32b72bbce24a2727886e9e972e0c3ffb2c25b8525af371874bcb3c503fc48717",
+      "fragment_count": 10,
+      "patch_count": 529
+    },
+    "mt6797-a72-platform-state-source": {
+      "effective_inputs_sha256": "fbde560bf35aae7680684328c0a487dec778522cadfdaea88271b692da5eaf26",
+      "fragment_count": 2,
+      "patch_count": 529
+    },
+    "mt6797-dvfsp-clock-state-kunit": {
+      "effective_inputs_sha256": "22b797aa5d7449a99e097b7fa6c9c395191d656e0e29fbd0b0137a6e7f5793c2",
+      "fragment_count": 2,
+      "patch_count": 529
+    },
+    "mt6797-infracfg-reset-kunit": {
+      "effective_inputs_sha256": "a06ec467f3d00c734e25e5136c04497b58e9c418f5a9369a8257d6c850d55c51",
+      "fragment_count": 2,
+      "patch_count": 529
+    },
+    "mt6797-pwrap-reset-serviceability": {
+      "effective_inputs_sha256": "92b114858a34c962d2e4d46725b1b7c13cf8dd339b26de3e4361acde6ae5bdd9",
+      "fragment_count": 11,
+      "patch_count": 529
+    },
+    "mt6797-thermal-calibration-kunit": {
+      "effective_inputs_sha256": "375dd2113da5b1cce43b03573ef0ba1413c5584a129ebd7dbd353d813f8d3e54",
+      "fragment_count": 2,
+      "patch_count": 529
+    },
+    "mt6797-thermal-observer-kunit": {
+      "effective_inputs_sha256": "bc646c1172b58ea6cb4546433debc887c35cec1195cd64dfc377fb1cdb96c4f8",
+      "fragment_count": 2,
+      "patch_count": 529
+    },
+    "mt6797-thermal-serviceability": {
+      "effective_inputs_sha256": "e26ac9f9f60a68f08261475fd3ba4c06179c57b6e892170e063e64095b6a0776",
+      "fragment_count": 11,
+      "patch_count": 529
+    },
+    "mt6797-thermal-snapshot-kunit": {
+      "effective_inputs_sha256": "f2b7854fe5b4a383af65e3c0909b8ffe33bb30fd61653830f71209f4e3c37030",
+      "fragment_count": 2,
+      "patch_count": 529
+    },
+    "mt6797-thermal-stage-ledger": {
+      "effective_inputs_sha256": "d6c6a4ab08a6d9d6902b998132c6418386d1a3fb2a800e7ff42ce0f7403ebeaa",
+      "fragment_count": 11,
+      "patch_count": 529
+    },
+    "mt6797-thermal-stage-ledger-kunit": {
+      "effective_inputs_sha256": "0f9c72d045e0d758ba0969ac728308b70ad436b4985dff25dab9cd80a25f2e3a",
+      "fragment_count": 2,
+      "patch_count": 529
+    },
+    "mt6797-thermal-transaction-kunit": {
+      "effective_inputs_sha256": "841e39459a120d904685ba50314032074618dd2969c5423daf4ac1ef51d7d77f",
+      "fragment_count": 2,
+      "patch_count": 529
+    },
+    "mt6797-thermal-v4-correction-compile": {
+      "effective_inputs_sha256": "741daf0df086680988a0bf937d89563d01f2d5e6776963b4e9d0bc5b360683f7",
+      "fragment_count": 33,
+      "patch_count": 530
+    },
+    "mtk-ram-console-parser": {
+      "effective_inputs_sha256": "f48dbffd4fdd58c39bfaad5adceb86ca0ca5351e81ecae85fa5c5f32e9af9aa6",
+      "fragment_count": 10,
+      "patch_count": 529
+    },
+    "mtk-ram-console-parser-kunit": {
+      "effective_inputs_sha256": "34da72a6eb3a6711281363a17c9d0a96c01358aede118c26473346551674f954",
+      "fragment_count": 11,
+      "patch_count": 529
+    },
+    "mtk-ram-console-reader": {
+      "effective_inputs_sha256": "3876d18d1fb0ff4092349bab7eadcd4ef2e88edae20450c7a14353f811e19e2b",
+      "fragment_count": 10,
+      "patch_count": 529
+    },
+    "mtk-ram-console-reader-kunit": {
+      "effective_inputs_sha256": "dfd1c1f300c21f3067f72e926464dee385766778b9090cbb424aa9a0acfb0026",
+      "fragment_count": 11,
+      "patch_count": 529
+    },
+    "mtk-wdt-boot-status": {
+      "effective_inputs_sha256": "fa6c3e6b0454a01f3db549777032c66faad4ab3c367a74941ddaa6ccdf6e2a71",
+      "fragment_count": 10,
+      "patch_count": 529
+    },
+    "mtk-wdt-boot-status-kunit": {
+      "effective_inputs_sha256": "2d4d1b98b5cac9fc7ba1786f1eb57789d0c365bd6ac12ae3c5fe06402311bb17",
+      "fragment_count": 11,
+      "patch_count": 529
+    },
+    "mtk-wdt-recovery-takeover-kunit": {
+      "effective_inputs_sha256": "bc30c337f211a9f2d9b307398f9279ca09795c3f10185a9884379f6473dd4bc1",
+      "fragment_count": 10,
+      "patch_count": 529
+    },
+    "observability": {
+      "effective_inputs_sha256": "fc8e3a31a4c321b70d2484a38bcd5be0c21c299ba254416ad5578fb632dd68c9",
+      "fragment_count": 4,
+      "patch_count": 529
+    },
+    "observability-fbcon-rotation": {
+      "effective_inputs_sha256": "c23875b090c3d615f9bde06687e294297e642fef0ccc60e7fc385020334b947c",
+      "fragment_count": 5,
+      "patch_count": 529
+    },
+    "observability-fbcon-rotation-keyboard": {
+      "effective_inputs_sha256": "2d3166b4ec00749e2f1988e9c6b79a4a03c0029eff739339926cecae3e6cc960",
+      "fragment_count": 6,
+      "patch_count": 529
+    },
+    "observability-fbcon-rotation-keyboard-polling": {
+      "effective_inputs_sha256": "2d3166b4ec00749e2f1988e9c6b79a4a03c0029eff739339926cecae3e6cc960",
+      "fragment_count": 6,
+      "patch_count": 529
+    },
+    "observability-fbcon-rotation-keyboard-wrrd": {
+      "effective_inputs_sha256": "753df4197e1964b8342174da84b5e01e032cca26064d195afb14c0346283a70f",
+      "fragment_count": 7,
+      "patch_count": 529
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot": {
+      "effective_inputs_sha256": "e0743f076d8357f7f7e4b2c6fca63d009abfa411dbf436a47c448e06ae128227",
+      "fragment_count": 8,
+      "patch_count": 529
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8": {
+      "effective_inputs_sha256": "00e522eb4b46f94b7cd08bcff0962e53c2014d87b86eb514a4fa153deb2431c1",
+      "fragment_count": 9,
+      "patch_count": 529
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer": {
+      "effective_inputs_sha256": "82ac543e6005085b45b7421228dd952053385b5dc77336c61dc0bdf9cb9b7f1c",
+      "fragment_count": 10,
+      "patch_count": 529
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist": {
+      "effective_inputs_sha256": "7881a8002d63d8ab16a7669f463c49a557c0ea0bdc981ccf25dbdaf8efcc5865",
+      "fragment_count": 11,
+      "patch_count": 529
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-observer": {
+      "effective_inputs_sha256": "38ac1a86cad1db3c04bbd8c63ce17635895569803a34b2d4cb20a60ff172809e",
+      "fragment_count": 12,
+      "patch_count": 95
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner": {
+      "effective_inputs_sha256": "19f272a74e962f0e8d88009f8c9bf0d8934001448754413a6ee1a38f0ea43a8e",
+      "fragment_count": 12,
+      "patch_count": 97
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-ap-dma-observer": {
+      "effective_inputs_sha256": "9f89150e2fb0f6bca2a64f5d5c2b524fd0807afb717d67fdd7a73f7cb7d6b02b",
+      "fragment_count": 13,
+      "patch_count": 97
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer": {
+      "effective_inputs_sha256": "b23eac1f84e634e96cc55b470e7499a66ec60a99104acb055e5c8c981b02c4b2",
+      "fragment_count": 13,
+      "patch_count": 101
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer-ap-dma-preserve": {
+      "effective_inputs_sha256": "582ba64eec9c3528d3f811895e1029b944e05f3b3cc3a943973f4a9a81266470",
+      "fragment_count": 13,
+      "patch_count": 102
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer-ap-dma-preserve-curie": {
+      "effective_inputs_sha256": "fb1871f103b8621a9c1fa8dde62cb94525bfe5abcf29868220e55d3dcdc24241",
+      "fragment_count": 14,
+      "patch_count": 110
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer-ap-dma-preserve-fermi": {
+      "effective_inputs_sha256": "8c15a66b792f312072069e6c5c71b80a02826943cf33177c0efc48dc0651026d",
+      "fragment_count": 14,
+      "patch_count": 109
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer-ap-dma-preserve-gauss": {
+      "effective_inputs_sha256": "dd259cf7633a6403d8746f77715078d96254917d7e1c564ab24cadb852c130f7",
+      "fragment_count": 14,
+      "patch_count": 111
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer-ap-dma-preserve-i2cdev-cassini": {
+      "effective_inputs_sha256": "d63c619786e3e9320113fdfdd9288b573337ec03d6255dd9a98a075813fe94e8",
+      "fragment_count": 14,
+      "patch_count": 102
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer-ap-dma-preserve-orion": {
+      "effective_inputs_sha256": "9375d1783bcea67b82983aabbbbfa8968a5ad97cab574bbfaacf19c59e7ebf9d",
+      "fragment_count": 14,
+      "patch_count": 106
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer-ap-dma-preserve-quasar": {
+      "effective_inputs_sha256": "d9854b077af2d3f7b57a4ec3fc74e33f2671b541fec0f22171d1b7c61076b6a6",
+      "fragment_count": 14,
+      "patch_count": 108
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer-ap-dma-preserve-vega": {
+      "effective_inputs_sha256": "b248b681edd77353dd5b6f4adb2f407e4c319e83b21c78de5e239b6c4e4e634e",
+      "fragment_count": 14,
+      "patch_count": 107
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer-pm-audit": {
+      "effective_inputs_sha256": "8bee4d899e0ffdd4e0904ea977bf82547e3f07795743c3b8f796043e8cd478bd",
+      "fragment_count": 14,
+      "patch_count": 101
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate": {
+      "effective_inputs_sha256": "0c93d66c94b51c2158e3b36db22260a73aab11915b558432fc23f6f3216c8a13",
+      "fragment_count": 9,
+      "patch_count": 89
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate-a41": {
+      "effective_inputs_sha256": "b3f8203ea67158ebd9cb1e04da68a67c4a321e9873a4a9dcac1f2f01c8ee31e0",
+      "fragment_count": 10,
+      "patch_count": 91
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate-a41-immutable-plan": {
+      "effective_inputs_sha256": "9bc2e7e6e3cac51fd04ceeb4aca27606b3982b109611a1b933f218f3b6d47da1",
+      "fragment_count": 10,
+      "patch_count": 93
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate-a41-kernel-identity": {
+      "effective_inputs_sha256": "8d2eecdf23ca4e6c316a7d3c6113211733841507e445ec98eedcf5deb3dd772b",
+      "fragment_count": 10,
+      "patch_count": 99
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate-a41-kernel-identity-p30-protocol": {
+      "effective_inputs_sha256": "52f178d1ba851cac7fb7b8d28d5667505bc14905f72ca6bc7cf943c5d1962590",
+      "fragment_count": 11,
+      "patch_count": 100
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate-a41-kernel-identity-p30-protocol-p24-closed-owner": {
+      "effective_inputs_sha256": "dc2a362e55e54405769973a653d678d1629cdfae4938527df903c3be5a4d2ae8",
+      "fragment_count": 12,
+      "patch_count": 101
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate-a41-kernel-identity-p30-protocol-p24-closed-owner-hooks": {
+      "effective_inputs_sha256": "f0bb618421ddc1ceb78b5c51c446cd4c4e7e6f7b1468fec9a00463b8335f052a",
+      "fragment_count": 13,
+      "patch_count": 112
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate-a41-per-target-plan": {
+      "effective_inputs_sha256": "12341333ba20aaafc1149d850ec0838cb210efb64f9cb0ed0959bc54e9d4fb5c",
+      "fragment_count": 10,
+      "patch_count": 95
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate-a41-planner": {
+      "effective_inputs_sha256": "027a98b0eba951c85152bbf5348c35610ddad86fea6eddd1977de2e7f504d9c7",
+      "fragment_count": 10,
+      "patch_count": 92
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate-a41-runtime-evidence-owner": {
+      "effective_inputs_sha256": "cd6e281e1815912c42d78539f2055158a0f646534d5e0fca99195f5883b914a5",
+      "fragment_count": 10,
+      "patch_count": 97
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate-a41-six-row-fixture": {
+      "effective_inputs_sha256": "239c0339bb31528b1dd7b4971a62e8d43dd016233c834fa28efac48f3f5e3288",
+      "fragment_count": 10,
+      "patch_count": 96
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate-a41-static-census": {
+      "effective_inputs_sha256": "45416ff1eda9cfedb5d0984fba9e028e1b6ee20ba7db8964871ec189fb308d12",
+      "fragment_count": 10,
+      "patch_count": 94
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate-cpu8-request": {
+      "effective_inputs_sha256": "12e0752379a8e8db4471504b8e2f98b487d13f2cab89c50fd6c62b8d60ec397e",
+      "fragment_count": 10,
+      "patch_count": 89
+    },
+    "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate-cpu9-request": {
+      "effective_inputs_sha256": "2c553e60edc9a2a0f18b634d3de70b7e7e4d252eb5bdb2bd691eec1dcd151bc5",
+      "fragment_count": 11,
+      "patch_count": 89
+    },
+    "protected-readback-call-ledger": {
+      "effective_inputs_sha256": "682841c448af6be0c1a697d50401a062c435069449d4c8212b6109b0922a1d02",
+      "fragment_count": 13,
+      "patch_count": 529
+    },
+    "protected-readback-kunit": {
+      "effective_inputs_sha256": "b3abfb288708f026707b1fe3837557b77eadf3b3f8b263e9646776a61f889a9d",
+      "fragment_count": 4,
+      "patch_count": 529
+    },
+    "protected-readback-observer": {
+      "effective_inputs_sha256": "505ad27e02b98099eda70c4af3595116fa2fe9f4b662a672e5c4e82855e8b972",
+      "fragment_count": 12,
+      "patch_count": 529
+    },
+    "protected-readback-probe-gate-ledger": {
+      "effective_inputs_sha256": "b56ebec489eb305487bf4fc20a6c6c84424743c437038317cd7c16739ce5f79e",
+      "fragment_count": 13,
+      "patch_count": 529
+    },
+    "protected-readback-raw-entry-ledger": {
+      "effective_inputs_sha256": "a35f06adc97fa35722093c80aaa0e403bbca542dda01dba2670f27cc5e31b4d2",
+      "fragment_count": 14,
+      "patch_count": 529
+    },
+    "usbdiag": {
+      "effective_inputs_sha256": "7df60987d2d76b3d578f80ac736cf217896caa04682a391437002bc1db96a74a",
+      "fragment_count": 2,
+      "patch_count": 529
+    },
+    "usbdiag-clkignore": {
+      "effective_inputs_sha256": "abb3b1ae3aa93ac8af06d8b18b652dec343091c2482826af1daf4bf9da881664",
+      "fragment_count": 3,
+      "patch_count": 529
+    }
+  },
+  "schema_version": 1
+}
