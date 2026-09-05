@@ -302,3 +302,7 @@ is admitted. The device remains on mainline after final accounting.
 The [sensor mapping and freshness audit](SENSOR_FRESHNESS_AUDIT.md) now binds
 the interpretation to the integrity-verified production source. Snapshot validity
 is a converted-range predicate, not proof of conversion freshness.
+
+The [register-contract audit](REGISTER_CONTRACT.md) rejects treating AUXADC
+input validity or interrupt status as an established thermal-result freshness
+signal. A bounded reported-temperature recovery design is prospective only.

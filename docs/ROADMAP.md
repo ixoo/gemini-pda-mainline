@@ -8362,11 +8362,17 @@ which became the final maximum; a winning-slot change alone is insufficient.
 The [exact-source mapping/freshness audit](../experiments/2026-09-04-mt6797-thermal-snapshot/SENSOR_FRESHNESS_AUDIT.md)
 now confirms that validity is a converted-range predicate and repeated sensor IDs
 use separate bank measurements; neither establishes conversion age or placement.
-**Selected next:** establish the register contract for any proposed freshness
-observation, including read side effects, bank ownership and what its outcomes
-can distinguish. Design and test that observation offline before admitting a
-source change or another boot. If no verified freshness signal exists, retain
-unknown age. Preserve the rejection and unchanged comparison limits. No further diagnostic reads or workload on the consumed
+The [register-contract review](../experiments/2026-09-04-mt6797-thermal-snapshot/REGISTER_CONTRACT.md)
+finds no verified passive freshness signal in the reviewed sources. AUXADC input
+validity is not thermal-result freshness, and IRQ side effects remain unresolved.
+**Selected next:** design and offline-test a bounded reported-temperature recovery
+protocol using the existing snapshot interface: pre-workload, workers-complete,
+and one timed post-completion observation, with unchanged finite work ceilings.
+Require quiescent owned workers, new identity, explicit timing and complete
+accounting; retain unknown conversion age and distinguish response classification
+from the rejected integrated thermal comparison. No new boot or source change
+is admitted until that complete protocol and its negative fixtures are published.
+Preserve the rejection and unchanged comparison limits. No further diagnostic reads or workload on the consumed
 session; no repeat is admitted. Any future boot requires a distinct,
 decision-changing hypothesis and published bounded protocol. Integrated thermal
 repeatability, broader load/hotplug, cpufreq/OPP, idle, suspend, thermal protection
