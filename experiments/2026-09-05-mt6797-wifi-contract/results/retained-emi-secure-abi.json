@@ -1,0 +1,86 @@
+{
+  "scope": "Read-only static analysis of existing private retained TEE image; no current runtime claim",
+  "image_bytes": 5242880,
+  "image_sha256": "2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3",
+  "analysis_address_minus_file_offset": "0x000ff3c0",
+  "retained_payload_file_extent_half_open": [
+    "0x1000",
+    "0x17e00"
+  ],
+  "capstone_version": "4.0.2",
+  "objdump_version": "GNU Binutils for Ubuntu 2.42",
+  "windows": [
+    {
+      "name": "smc32-dispatch",
+      "file_offset_start": "0x91c8",
+      "file_offset_end_exclusive": "0x91d8",
+      "analysis_address_start": "0x108588",
+      "sha256": "6c4c71d0f657a2420bb45d380965e316f39f60fc990f2f14e642db22295a64b3"
+    },
+    {
+      "name": "smc64-dispatch",
+      "file_offset_start": "0x9690",
+      "file_offset_end_exclusive": "0x96a0",
+      "analysis_address_start": "0x108a50",
+      "sha256": "b86b09b1a46d83bc856bb7f4c1eb69b42649abbcb3a8964cc6e401041598f72a"
+    },
+    {
+      "name": "set-call",
+      "file_offset_start": "0x9cb4",
+      "file_offset_end_exclusive": "0x9cc8",
+      "analysis_address_start": "0x109074",
+      "sha256": "b9cecf2cfd9cf388ff888870bb950ef3e3a777bab3a352e92ae56f7b7ff31bc9"
+    },
+    {
+      "name": "range-and-selector",
+      "file_offset_start": "0x6148",
+      "file_offset_end_exclusive": "0x61c8",
+      "analysis_address_start": "0x105508",
+      "sha256": "8b53a527d8274863a640dd48a9ef1378c432ac0f3d02419dd8844fe3a13aac6b"
+    },
+    {
+      "name": "region18",
+      "file_offset_start": "0x66d0",
+      "file_offset_end_exclusive": "0x6720",
+      "analysis_address_start": "0x105a90",
+      "sha256": "a577da9beab3e8d152916d01da07e40953e1123106167c5ab3f262b02f578f1a"
+    },
+    {
+      "name": "region19",
+      "file_offset_start": "0x6720",
+      "file_offset_end_exclusive": "0x6770",
+      "analysis_address_start": "0x105ae0",
+      "sha256": "5b608fb8b0d494ad23161d70a8377684e8b98d86b1c6b806b72ef9d78adec25c"
+    },
+    {
+      "name": "shared-store",
+      "file_offset_start": "0x62b4",
+      "file_offset_end_exclusive": "0x62c0",
+      "analysis_address_start": "0x105674",
+      "sha256": "203a3a25b52f5b7634e3eb38f18625ce668a5c7dde290b11cc84a315700eb975"
+    },
+    {
+      "name": "return",
+      "file_offset_start": "0x68cc",
+      "file_offset_end_exclusive": "0x68d4",
+      "analysis_address_start": "0x105c8c",
+      "sha256": "2f6110664dbd16b514a0c2c7c8326932a36e85d2f15b91e57ca76efd2c7a625a"
+    },
+    {
+      "name": "zero-extend-return",
+      "file_offset_start": "0x9fac",
+      "file_offset_end_exclusive": "0x9fb4",
+      "analysis_address_start": "0x10936c",
+      "sha256": "8e4642c5dbe8af92b655b264d6a5d2d52764e36dd2554eb8a8eeaadbee35edf6"
+    },
+    {
+      "name": "region-table",
+      "file_offset_start": "0x13228",
+      "file_offset_end_exclusive": "0x13254",
+      "analysis_address_start": "0x1125e8",
+      "sha256": "d7a87474788c196feb61b534542b2b40f3cf85b0e333e380dcd950f9964a82dc"
+    }
+  ],
+  "firmware_bytes_included": false,
+  "current_live_verification": false
+}

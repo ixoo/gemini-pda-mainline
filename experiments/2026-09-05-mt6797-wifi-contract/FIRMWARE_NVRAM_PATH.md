@@ -1,5 +1,10 @@
 # One predecessor trace from the NVRAM reference
 
+The [subsequent target trace](FIRMWARE_NVRAM_CALL_TARGET.md) resolves the
+computed-call destination on one conditional path to an immediate-derived
+plaintext-code candidate. It supersedes the numeric-target uncertainty below;
+the target's contract and incoming entry remain unproved.
+
 A bounded static trace now connects a plausible local entry boundary to the
 first instruction-aligned NVRAM reference candidate. The referenced address
 remains in the default NDS32 ABI's first argument register until an indirect

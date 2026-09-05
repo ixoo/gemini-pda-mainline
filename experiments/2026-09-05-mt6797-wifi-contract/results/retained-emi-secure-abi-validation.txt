@@ -1,0 +1,18 @@
+Retained EMI secure ABI audit — 2026-09-05
+Base: 65a7265a
+Read-only existing 5 MiB private retained image inspected in RE VM.
+Initial and final SHA-256 identical and equal to historical sanitized identity.
+No extraction, source checkout, private-byte copy, new VM file or database.
+Capstone 4.0.2: bounded dispatch, range, region18/19 and return paths decoded.
+GNU objdump 2.42: ten critical instruction mnemonics independently cross-checked.
+Ten bounded windows recorded as file offsets, analysis addresses and SHA-256.
+Declared public ABI compared with actual retained dispatch/error paths.
+Address truncation distinguished from caller-required alignment/confinement.
+Region18/19 lock/register paths separated from domain-name and ownership inference.
+No emulation, runtime firmware verification, SMC, device read/write, radio or build.
+RE VM session closed. No firmware bytes/disassembly/private paths in handoff.
+Documentation and sanitized metadata only; code/kernel/shell tests not applicable.
+Repository checks PASS: 189 profiles, unchanged grandfathered metadata debt 37.
+Linux-only artifact provenance fixture skipped. Three new files reviewed for
+local links, JSON/window bounds, rights and sensitive content; diff checks PASS.
+No source push attempted.

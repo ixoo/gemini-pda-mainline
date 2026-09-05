@@ -1,0 +1,17 @@
+Pure C EMI ABI helper validation — 2026-09-05
+Base retained audit: 81a6ecc5
+Original emi_abi.h plus focused emi_abi_test.c; seven protocol headers unchanged.
+Strict C11 -Wall -Wextra -Werror -pedantic compile: PASS.
+ASan/UBSan execution: PASS.
+131070 exhaustive low-bit alignment refusals: PASS; all output fields cleared.
+Both selector sample words and full normalized-domain edges: PASS.
+Owner confinement, underflow, reversed ranges, wrap/upper-alias refusals: PASS.
+Every high policy bit (including lock bit), invalid region/context refusals: PASS.
+15 literal raw/signed-status cases, known/unknown/boundary/high-word cases: PASS.
+Kernel integration worker reports no API conflict; owner admission remains separate.
+No live SMC, selector read, mapping, device, firmware input, backend or push.
+Managed temporary executable cleaned by immediate trap.
+Kernel include branch/build not tested; shell changes none.
+Repository checks PASS: 189 profiles, unchanged grandfathered metadata debt 37.
+Linux-only artifact-provenance fixture skipped. Four new files reviewed for
+links, original license and sensitive data. Seven frozen header identities PASS.
