@@ -11,5 +11,11 @@
     "ShellCheck",
     "18 guard test groups"
   ],
-  "linux_rerun": "pending"
+  "linux_rerun": "pending",
+  "additional_failure": {
+    "commit": "04bff8255a20a3d765a54007461aaa1927023303",
+    "run_url": "https://github.com/ixoo/gemini-pda-mainline/actions/runs/33939676576",
+    "failure": "ShellCheck0.9 flags the trap-only cleanup function as SC2317; newer ShellCheck flags SC2329, already narrowly suppressed.",
+    "correction": "Document both diagnostics on the trap-invoked function only; runtime code unchanged."
+  }
 }
