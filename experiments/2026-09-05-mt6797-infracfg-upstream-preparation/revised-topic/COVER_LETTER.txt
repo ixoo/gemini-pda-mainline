@@ -1,0 +1,76 @@
+Subject: [PATCH 0/6] clk: mediatek: add MT6797 infracfg reset support and bounds tests
+
+MT6797's infracfg clock provider does not expose its reset controller.
+The MediaTek SET/CLEAR reset path also indexes the descriptor's bank
+array without first validating the translated bank. This series checks
+that translation and exposes the two MT6797 reset lines supported by the
+source audit: thermal and PMIC wrapper.
+
+Public reset IDs 0 and 1 map to bit zero of the SET/CLEAR pairs at
+0x120/0x124 and 0x140/0x144 respectively. Other banks and reset names are
+not exposed. The generic helper rejects invalid public mappings and
+out-of-range translated banks before register access. MT6797 registers
+its reset provider before allocating/registering the platform clocks,
+so a reset-registration error returns before those clock operations.
+
+The public reset header contains only these two IDs. The existing schema
+already permits an optional one-cell reset declaration and is unchanged,
+preserving descriptions that omit it. The shared MT6797 DTS declares
+one reset cell; no reset consumer or power-management policy is added.
+
+The patches separate the generic helper and four arithmetic tests, public
+header, MT6797 descriptor/provider and four descriptor tests, and the DTS
+declaration. The DTS patch has no new-header include or consumer phandle,
+so its compilation does not require an immutable header branch. The
+provider and any future consumers still need coordinated semantic order.
+
+Validation:
+
+- The revised six-patch archive applies and replays to the same complete
+  Git tree on the base below. All eleven relevant final source hashes
+  were checked, including the unchanged upstream binding.
+- C, header, DTS and configuration bytes match the earlier compiled
+  topic. Its QEMU run reported all eight intended arithmetic cases and
+  four additional upstream cases passing. Those tests exercise pure
+  translation, not MMIO or provider lifetime.
+- A focused 50-row schema comparison was independently accepted. It
+  distinguishes decoder errors from schema results and confirms that
+  preserving the optional binding accepts the old MT6797 description
+  without relaxing the tested malformed-property constraints.
+- Both retained MT6797 DTBs contain one reset cell. They were not rebuilt
+  for the schema-only correction. The newly named application profile
+  has not been separately compiled or tested on hardware.
+- Strict checkpatch reports no errors, warnings or checks with the
+  recorded experiment exclusions for sign-off, file-path changes and
+  commit-message line length. Authorship and certification remain a
+  separate human submission step; checkpatch is not that certification.
+
+This topic overlaps Akari Tsuyukusa's MT6797 common probe/remove conversion:
+https://lists.infradead.org/pipermail/linux-mediatek/2026-August/111265.html
+
+That conversion removes the private probe edited here. Please advise the
+preferred ordering. If it is selected first, the reset descriptor can
+use the common helper's rst_desc hook after the post-publication reset
+error unwind is corrected and reviewed on that exact base. A separate
+cleanup proposal addresses that unwind; it is not included here. This
+series does not import the rest of the common-probe conversion.
+
+Codex/LLM assistance was used to audit pinned upstream and historical
+project inputs, regenerate the bounded helpers and focused tests,
+remove the mandatory-binding delta, and prepare the validation and
+review records. The work was guided by retaining only attributable
+reset mappings, preserving old-DT compatibility, and rejecting invalid
+translation before register access. Assistance affected code/test and
+message preparation across the topic. The recorded tests and source
+comparisons above establish their stated scopes; they do not replace
+human review or authorship/certification.
+
+The six changes are:
+  clk: mediatek: reject out-of-bank SET/CLEAR reset IDs
+  clk: mediatek: test reset translation bounds
+  dt-bindings: reset: mediatek: add MT6797 infracfg reset IDs
+  clk: mediatek: add MT6797 infracfg SET/CLEAR resets
+  clk: mediatek: test MT6797 infracfg reset mapping
+  arm64: dts: mediatek: expose MT6797 infracfg resets
+
+base-commit: 4d7d9486c04d917265f64c55bd23b2cc4fe7749c

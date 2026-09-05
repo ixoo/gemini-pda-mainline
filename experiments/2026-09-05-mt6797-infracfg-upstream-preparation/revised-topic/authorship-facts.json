@@ -1,0 +1,110 @@
+{
+  "integrated_revision": "538906df82588885e5f2606cf40901f354c90748",
+  "status": "provenance facts only; actual authors and DCO unresolved",
+  "historical_inputs": [
+    {
+      "path": "patches/v7.1.3/0001-dt-bindings-reset-mediatek-add-MT6797-infracfg-reset.patch",
+      "sha256": "e1e86ee9f4fd79b97e45cb6ea70e5977cf7caa8a2828aab9a1e50de8eac54cc0",
+      "recorded_from": "Julien Etienne <julien.etienne@gmail.com>",
+      "recorded_signoffs": [
+        "Signed-off-by: Julien Etienne <julien.etienne@gmail.com>"
+      ],
+      "meaning": "historical metadata, not certification of regenerated work"
+    },
+    {
+      "path": "patches/v7.1.3/0002-clk-mediatek-mt6797-add-infracfg-reset-controller.patch",
+      "sha256": "20f1deb716d745b5daba6bed4db934e413712798e80063d12b2c9384c9df730c",
+      "recorded_from": "Julien Etienne <julien.etienne@gmail.com>",
+      "recorded_signoffs": [
+        "Signed-off-by: Julien Etienne <julien.etienne@gmail.com>"
+      ],
+      "meaning": "historical metadata, not certification of regenerated work"
+    },
+    {
+      "path": "patches/v7.1.3/0003-arm64-dts-mediatek-mt6797-expose-infracfg-resets.patch",
+      "sha256": "87d147f3e5d76e6af2e7393e0392086533cbdac3e6859974985338db905db163",
+      "recorded_from": "Julien Etienne <julien.etienne@gmail.com>",
+      "recorded_signoffs": [
+        "Signed-off-by: Julien Etienne <julien.etienne@gmail.com>"
+      ],
+      "meaning": "historical metadata, not certification of regenerated work"
+    },
+    {
+      "path": "patches/v7.1.3/0514-dt-bindings-reset-mediatek-correct-MT6797-infracfg-resets.patch",
+      "sha256": "7b7e88138f47892b642c230c9ac9e9306f06a467e397a0cc9f3f96c0791351a7",
+      "recorded_from": "Gemini Mainline Experiment <gemini-mainline@example.invalid>",
+      "recorded_signoffs": [],
+      "meaning": "historical metadata, not certification of regenerated work"
+    },
+    {
+      "path": "patches/v7.1.3/0515-clk-mediatek-repair-MT6797-infracfg-resets.patch",
+      "sha256": "4b11d7021bc3c6f033ce2fdec34fef39df442fae2df9be759a5d591763cfb562",
+      "recorded_from": "Gemini Mainline Experiment <gemini-mainline@example.invalid>",
+      "recorded_signoffs": [],
+      "meaning": "historical metadata, not certification of regenerated work"
+    },
+    {
+      "path": "patches/v7.1.3/0516-clk-mediatek-test-MT6797-infracfg-reset-translation.patch",
+      "sha256": "6eee979cc78256f008d08ddf2dd5d9e46650c6729f5a37d9b9011bfcbd9391d7",
+      "recorded_from": "Gemini Mainline Experiment <gemini-mainline@example.invalid>",
+      "recorded_signoffs": [],
+      "meaning": "historical metadata, not certification of regenerated work"
+    }
+  ],
+  "selected_patches": [
+    {
+      "path": "patches/upstream-4d7d9486/0001-clk-mediatek-reject-out-of-bank-SET-CLEAR-reset-IDs.patch",
+      "sha256": "ab875a831822e1809619f0034f29f8c068af133012da196ba59a62977b884fd5",
+      "position": 1,
+      "recorded_from": "Gemini Mainline Experiment <gemini-mainline@example.invalid>",
+      "subject": "[PATCH 1/6] clk: mediatek: reject out-of-bank SET/CLEAR reset IDs",
+      "certification_trailers": [],
+      "actual_human_authorship": "not established by repository metadata"
+    },
+    {
+      "path": "patches/upstream-4d7d9486/0002-clk-mediatek-test-reset-translation-bounds.patch",
+      "sha256": "211f2b95d24d7cb09085d99ade5bcd681254f55145e227920fd62b773f30d483",
+      "position": 2,
+      "recorded_from": "Gemini Mainline Experiment <gemini-mainline@example.invalid>",
+      "subject": "[PATCH 2/6] clk: mediatek: test reset translation bounds",
+      "certification_trailers": [],
+      "actual_human_authorship": "not established by repository metadata"
+    },
+    {
+      "path": "patches/upstream-4d7d9486/0003-dt-bindings-reset-mediatek-add-MT6797-infracfg-reset.patch",
+      "sha256": "0c8af0a97f42424830d5c6b59f9830a42d4212b728507ea6f433f7a8713fff25",
+      "position": 3,
+      "recorded_from": "Gemini Mainline Experiment <gemini-mainline@example.invalid>",
+      "subject": "[PATCH 3/6] dt-bindings: reset: mediatek: add MT6797 infracfg reset\n IDs",
+      "certification_trailers": [],
+      "actual_human_authorship": "not established by repository metadata"
+    },
+    {
+      "path": "patches/upstream-4d7d9486/0004-clk-mediatek-add-MT6797-infracfg-SET-CLEAR-resets.patch",
+      "sha256": "90a1d8aaff250e8b0086488138aec1527f535cde38aa2b6734c6b83344e41cc5",
+      "position": 4,
+      "recorded_from": "Gemini Mainline Experiment <gemini-mainline@example.invalid>",
+      "subject": "[PATCH 4/6] clk: mediatek: add MT6797 infracfg SET/CLEAR resets",
+      "certification_trailers": [],
+      "actual_human_authorship": "not established by repository metadata"
+    },
+    {
+      "path": "patches/upstream-4d7d9486/0005-clk-mediatek-test-MT6797-infracfg-reset-mapping.patch",
+      "sha256": "10961fd177b6584985c717a3cc99338571addeb5d898397b9bd4816e4a31c2cf",
+      "position": 5,
+      "recorded_from": "Gemini Mainline Experiment <gemini-mainline@example.invalid>",
+      "subject": "[PATCH 5/6] clk: mediatek: test MT6797 infracfg reset mapping",
+      "certification_trailers": [],
+      "actual_human_authorship": "not established by repository metadata"
+    },
+    {
+      "path": "patches/upstream-4d7d9486/0006-arm64-dts-mediatek-expose-MT6797-infracfg-resets.patch",
+      "sha256": "d7ccee4f2e8e3ae78cce2405c761bc1c76f915423a8b9ea8cbf22785c2e2bfbe",
+      "position": 6,
+      "recorded_from": "Gemini Mainline Experiment <gemini-mainline@example.invalid>",
+      "subject": "[PATCH 6/6] arm64: dts: mediatek: expose MT6797 infracfg resets",
+      "certification_trailers": [],
+      "actual_human_authorship": "not established by repository metadata"
+    }
+  ]
+}

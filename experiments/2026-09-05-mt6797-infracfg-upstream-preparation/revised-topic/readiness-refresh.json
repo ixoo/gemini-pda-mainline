@@ -1,0 +1,333 @@
+{
+  "observed_at_utc": "2026-09-05T19:35:24.997127+00:00",
+  "integrated_revision": "538906df82588885e5f2606cf40901f354c90748",
+  "profile": {
+    "base": "allnoconfig",
+    "fragments": [
+      "configs/mt6797-infracfg-upstream-kunit.fragment"
+    ],
+    "kernel": {
+      "archive_format": "tar.gz",
+      "archive_root": "linux-4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "git_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "released": "2026-09-05",
+      "sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+      "source_url": "https://codeload.github.com/torvalds/linux/tar.gz/4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "version": "7.3-rc1"
+    },
+    "patch_series": "patches/series-mt6797-infracfg-revised-kunit"
+  },
+  "selected_patches": [
+    {
+      "path": "patches/upstream-4d7d9486/0001-clk-mediatek-reject-out-of-bank-SET-CLEAR-reset-IDs.patch",
+      "sha256": "ab875a831822e1809619f0034f29f8c068af133012da196ba59a62977b884fd5"
+    },
+    {
+      "path": "patches/upstream-4d7d9486/0002-clk-mediatek-test-reset-translation-bounds.patch",
+      "sha256": "211f2b95d24d7cb09085d99ade5bcd681254f55145e227920fd62b773f30d483"
+    },
+    {
+      "path": "patches/upstream-4d7d9486/0003-dt-bindings-reset-mediatek-add-MT6797-infracfg-reset.patch",
+      "sha256": "0c8af0a97f42424830d5c6b59f9830a42d4212b728507ea6f433f7a8713fff25"
+    },
+    {
+      "path": "patches/upstream-4d7d9486/0004-clk-mediatek-add-MT6797-infracfg-SET-CLEAR-resets.patch",
+      "sha256": "90a1d8aaff250e8b0086488138aec1527f535cde38aa2b6734c6b83344e41cc5"
+    },
+    {
+      "path": "patches/upstream-4d7d9486/0005-clk-mediatek-test-MT6797-infracfg-reset-mapping.patch",
+      "sha256": "10961fd177b6584985c717a3cc99338571addeb5d898397b9bd4816e4a31c2cf"
+    },
+    {
+      "path": "patches/upstream-4d7d9486/0006-arm64-dts-mediatek-expose-MT6797-infracfg-resets.patch",
+      "sha256": "d7ccee4f2e8e3ae78cce2405c761bc1c76f915423a8b9ea8cbf22785c2e2bfbe"
+    }
+  ],
+  "refs": {
+    "clock": {
+      "remote": "https://git.kernel.org/pub/scm/linux/kernel/git/clk/linux.git",
+      "ref": "refs/heads/clk-next",
+      "revision": "91b1b8d437abe0cd83210d8f257b785a63047aa9"
+    },
+    "mainline": {
+      "remote": "https://github.com/torvalds/linux.git",
+      "ref": "refs/heads/master",
+      "revision": "9f0346dcbea363787186c94ef94dd01aaa215afa"
+    },
+    "mediatek": {
+      "remote": "https://git.kernel.org/pub/scm/linux/kernel/git/mediatek/linux.git",
+      "ref": "refs/heads/for-next",
+      "revision": "f5be25e697e0362103625b1b197af126ae4ba5f7"
+    }
+  },
+  "primary_sources": [
+    {
+      "tree": "mainline",
+      "path": "MAINTAINERS",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/9f0346dcbea363787186c94ef94dd01aaa215afa/MAINTAINERS",
+      "status": "present",
+      "bytes": 927884,
+      "sha256": "1b6bd8418b8bbdcbce595c4648c10afaf23370e3de243a282dbc992798de3a84",
+      "matches_prior_file": false,
+      "sections": [
+        "ARM/Mediatek SoC support\nM:\tMatthias Brugger <matthias.bgg@gmail.com>\nM:\tAngeloGioacchino Del Regno <angelogioacchino.delregno@collabora.com>\nL:\tlinux-kernel@vger.kernel.org\nL:\tlinux-arm-kernel@lists.infradead.org (moderated for non-subscribers)\nL:\tlinux-mediatek@lists.infradead.org (moderated for non-subscribers)\nS:\tMaintained\nW:\thttps://mtk.wiki.kernel.org/\nC:\tirc://irc.libera.chat/linux-mediatek\nF:\tarch/arm/boot/dts/mediatek/\nF:\tarch/arm/mach-mediatek/\nF:\tarch/arm64/boot/dts/mediatek/\nF:\tdrivers/soc/mediatek/\nN:\tmtk\nN:\tmt[2678]\nK:\tmediatek",
+        "COMMON CLK FRAMEWORK\nM:\tStephen Boyd <sboyd@kernel.org>\nM:\tBrian Masney <bmasney+clk@redhat.com>\nM:\tJerome Brunet <jbrunet+clk@baylibre.com>\nL:\tlinux-clk@vger.kernel.org\nS:\tMaintained\nQ:\thttp://patchwork.kernel.org/project/linux-clk/list/\nT:\tgit git://git.kernel.org/pub/scm/linux/kernel/git/clk/linux.git\nF:\tDocumentation/devicetree/bindings/clock/\nF:\tdrivers/clk/\nF:\tinclude/dt-bindings/clock/\nF:\tinclude/linux/clk-pr*\nF:\tinclude/linux/clk/\nF:\tinclude/linux/of_clk.h\nF:\tscripts/gdb/linux/clk.py\nF:\trust/helpers/clk.c\nF:\trust/kernel/clk.rs\nX:\tdrivers/clk/clkdev.c",
+        "OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS\nM:\tRob Herring <robh@kernel.org>\nM:\tKrzysztof Kozlowski <krzk+dt@kernel.org>\nM:\tConor Dooley <conor+dt@kernel.org>\nL:\tdevicetree@vger.kernel.org\nS:\tMaintained\nQ:\thttp://patchwork.kernel.org/project/devicetree/list/\nC:\tirc://irc.libera.chat/devicetree\nP:\tDocumentation/process/maintainer-devicetree.rst\nT:\tgit git://git.kernel.org/pub/scm/linux/kernel/git/robh/linux.git\nF:\tDocumentation/devicetree/\nF:\tDocumentation/process/maintainer-devicetree.rst\nF:\tarch/*/boot/dts/\nF:\tinclude/dt-bindings/",
+        "RESET CONTROLLER FRAMEWORK\nM:\tPhilipp Zabel <p.zabel@pengutronix.de>\nS:\tMaintained\nT:\tgit https://git.pengutronix.de/git/pza/linux.git\nF:\tDocumentation/devicetree/bindings/reset/\nF:\tDocumentation/driver-api/reset.rst\nF:\tdrivers/reset/\nF:\tinclude/dt-bindings/reset/\nF:\tinclude/linux/reset-controller.h\nF:\tinclude/linux/reset.h\nF:\tinclude/linux/reset/\nK:\t\\b(?:devm_|of_)?reset_control(?:ler_[a-z]+|_[a-z_]+)?\\b"
+      ],
+      "relevant_sections_match_prior": true
+    },
+    {
+      "tree": "mainline",
+      "path": "drivers/clk/mediatek/clk-mt6797.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/9f0346dcbea363787186c94ef94dd01aaa215afa/drivers/clk/mediatek/clk-mt6797.c",
+      "status": "present",
+      "bytes": 23000,
+      "sha256": "eaad6324621679371f33bbb76e10bcb0d3374b1f2dbbd837323b3f9e8fee1534",
+      "matches_prior_file": true,
+      "private_infrasys_init_present": true,
+      "matches_tested_derivation_input": true
+    },
+    {
+      "tree": "mainline",
+      "path": "drivers/clk/mediatek/clk-mtk.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/9f0346dcbea363787186c94ef94dd01aaa215afa/drivers/clk/mediatek/clk-mtk.c",
+      "status": "present",
+      "bytes": 16200,
+      "sha256": "e8a89dffaffedfce01489b0887fb425d64649d6fb841157bbcea5aac0fc93e59",
+      "matches_tested_common_helper": true
+    },
+    {
+      "tree": "mainline",
+      "path": "drivers/clk/mediatek/reset.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/9f0346dcbea363787186c94ef94dd01aaa215afa/drivers/clk/mediatek/reset.c",
+      "status": "present",
+      "bytes": 4290,
+      "sha256": "8c1cdf2ad881dc20659340cd7f0244b8ff1a1b6d1d7b4cd1e74946533adcee76",
+      "matches_prior_file": true,
+      "matches_tested_derivation_input": true
+    },
+    {
+      "tree": "mainline",
+      "path": "drivers/clk/mediatek/reset.h",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/9f0346dcbea363787186c94ef94dd01aaa215afa/drivers/clk/mediatek/reset.h",
+      "status": "present",
+      "bytes": 2198,
+      "sha256": "0401a0df50c411faf95465b716691dbf8f1c369a6eedc2511d6694e68dc4f1b5",
+      "matches_tested_derivation_input": true
+    },
+    {
+      "tree": "mainline",
+      "path": "drivers/clk/mediatek/Kconfig",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/9f0346dcbea363787186c94ef94dd01aaa215afa/drivers/clk/mediatek/Kconfig",
+      "status": "present",
+      "bytes": 34673,
+      "sha256": "6634c6e7c14ca9a72fc0a258ca9b8a575c53bc451919646feb644c7b9354c3c0",
+      "matches_prior_file": true,
+      "matches_tested_derivation_input": true
+    },
+    {
+      "tree": "mainline",
+      "path": "drivers/clk/mediatek/Makefile",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/9f0346dcbea363787186c94ef94dd01aaa215afa/drivers/clk/mediatek/Makefile",
+      "status": "present",
+      "bytes": 10756,
+      "sha256": "6af23f8e56cbb5e9fdda850fb8201f384053f89e8b3347aa8a6cd98239678b11",
+      "matches_prior_file": true,
+      "matches_tested_derivation_input": true
+    },
+    {
+      "tree": "mainline",
+      "path": "arch/arm64/boot/dts/mediatek/mt6797.dtsi",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/9f0346dcbea363787186c94ef94dd01aaa215afa/arch/arm64/boot/dts/mediatek/mt6797.dtsi",
+      "status": "present",
+      "bytes": 11331,
+      "sha256": "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83",
+      "matches_prior_file": true,
+      "matches_tested_derivation_input": true
+    },
+    {
+      "tree": "mainline",
+      "path": "Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/9f0346dcbea363787186c94ef94dd01aaa215afa/Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml",
+      "status": "present",
+      "bytes": 2384,
+      "sha256": "0610f891e326d1e0a7ce9ffe3ef0513ab229bf37eee8177de0999cac17157c6f",
+      "matches_prior_file": true,
+      "matches_tested_derivation_input": true
+    },
+    {
+      "tree": "mainline",
+      "path": "include/dt-bindings/reset/mt6797-resets.h",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/9f0346dcbea363787186c94ef94dd01aaa215afa/include/dt-bindings/reset/mt6797-resets.h",
+      "status": "http-error",
+      "http_status": 404
+    },
+    {
+      "tree": "mainline",
+      "path": "drivers/clk/mediatek/reset-internal.h",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/9f0346dcbea363787186c94ef94dd01aaa215afa/drivers/clk/mediatek/reset-internal.h",
+      "status": "http-error",
+      "http_status": 404
+    },
+    {
+      "tree": "mainline",
+      "path": "drivers/clk/mediatek/reset-test.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/9f0346dcbea363787186c94ef94dd01aaa215afa/drivers/clk/mediatek/reset-test.c",
+      "status": "http-error",
+      "http_status": 404
+    },
+    {
+      "tree": "mainline",
+      "path": "drivers/clk/mediatek/clk-mt6797-reset.h",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/9f0346dcbea363787186c94ef94dd01aaa215afa/drivers/clk/mediatek/clk-mt6797-reset.h",
+      "status": "http-error",
+      "http_status": 404
+    },
+    {
+      "tree": "mainline",
+      "path": "drivers/clk/mediatek/clk-mt6797-reset-test.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/9f0346dcbea363787186c94ef94dd01aaa215afa/drivers/clk/mediatek/clk-mt6797-reset-test.c",
+      "status": "http-error",
+      "http_status": 404
+    },
+    {
+      "tree": "clock",
+      "path": "MAINTAINERS",
+      "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/clk/linux/+/91b1b8d437abe0cd83210d8f257b785a63047aa9/MAINTAINERS?format=TEXT",
+      "status": "present",
+      "bytes": 928091,
+      "sha256": "c9f85d60dcab471dc311a71529702d0efac74c145fbb0dc7518e0ed6c61ef9b5",
+      "matches_prior_file": true,
+      "sections": [
+        "ARM/Mediatek SoC support\nM:\tMatthias Brugger <matthias.bgg@gmail.com>\nM:\tAngeloGioacchino Del Regno <angelogioacchino.delregno@collabora.com>\nL:\tlinux-kernel@vger.kernel.org\nL:\tlinux-arm-kernel@lists.infradead.org (moderated for non-subscribers)\nL:\tlinux-mediatek@lists.infradead.org (moderated for non-subscribers)\nS:\tMaintained\nW:\thttps://mtk.wiki.kernel.org/\nC:\tirc://irc.libera.chat/linux-mediatek\nF:\tarch/arm/boot/dts/mediatek/\nF:\tarch/arm/mach-mediatek/\nF:\tarch/arm64/boot/dts/mediatek/\nF:\tdrivers/soc/mediatek/\nN:\tmtk\nN:\tmt[2678]\nK:\tmediatek",
+        "COMMON CLK FRAMEWORK\nM:\tStephen Boyd <sboyd@kernel.org>\nM:\tBrian Masney <bmasney+clk@redhat.com>\nM:\tJerome Brunet <jbrunet+clk@baylibre.com>\nL:\tlinux-clk@vger.kernel.org\nS:\tMaintained\nQ:\thttp://patchwork.kernel.org/project/linux-clk/list/\nT:\tgit git://git.kernel.org/pub/scm/linux/kernel/git/clk/linux.git\nF:\tDocumentation/devicetree/bindings/clock/\nF:\tdrivers/clk/\nF:\tinclude/dt-bindings/clock/\nF:\tinclude/linux/clk-pr*\nF:\tinclude/linux/clk/\nF:\tinclude/linux/of_clk.h\nF:\tscripts/gdb/linux/clk.py\nF:\trust/helpers/clk.c\nF:\trust/kernel/clk.rs\nX:\tdrivers/clk/clkdev.c",
+        "OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS\nM:\tRob Herring <robh@kernel.org>\nM:\tKrzysztof Kozlowski <krzk+dt@kernel.org>\nM:\tConor Dooley <conor+dt@kernel.org>\nL:\tdevicetree@vger.kernel.org\nS:\tMaintained\nQ:\thttp://patchwork.kernel.org/project/devicetree/list/\nC:\tirc://irc.libera.chat/devicetree\nP:\tDocumentation/process/maintainer-devicetree.rst\nT:\tgit git://git.kernel.org/pub/scm/linux/kernel/git/robh/linux.git\nF:\tDocumentation/devicetree/\nF:\tDocumentation/process/maintainer-devicetree.rst\nF:\tarch/*/boot/dts/\nF:\tinclude/dt-bindings/",
+        "RESET CONTROLLER FRAMEWORK\nM:\tPhilipp Zabel <p.zabel@pengutronix.de>\nS:\tMaintained\nT:\tgit https://git.pengutronix.de/git/pza/linux.git\nF:\tDocumentation/devicetree/bindings/reset/\nF:\tDocumentation/driver-api/reset.rst\nF:\tdrivers/reset/\nF:\tinclude/dt-bindings/reset/\nF:\tinclude/linux/reset-controller.h\nF:\tinclude/linux/reset.h\nF:\tinclude/linux/reset/\nK:\t\\b(?:devm_|of_)?reset_control(?:ler_[a-z]+|_[a-z_]+)?\\b"
+      ],
+      "relevant_sections_match_prior": true
+    },
+    {
+      "tree": "clock",
+      "path": "drivers/clk/mediatek/clk-mt6797.c",
+      "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/clk/linux/+/91b1b8d437abe0cd83210d8f257b785a63047aa9/drivers/clk/mediatek/clk-mt6797.c?format=TEXT",
+      "status": "present",
+      "bytes": 23000,
+      "sha256": "eaad6324621679371f33bbb76e10bcb0d3374b1f2dbbd837323b3f9e8fee1534",
+      "matches_prior_file": true,
+      "private_infrasys_init_present": true
+    },
+    {
+      "tree": "mediatek",
+      "path": "MAINTAINERS",
+      "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/mediatek/linux/+/f5be25e697e0362103625b1b197af126ae4ba5f7/MAINTAINERS?format=TEXT",
+      "status": "present",
+      "bytes": 916147,
+      "sha256": "6bc5dc04a7843773c2391fc3438dfeeeaac1b299e9d4fb332c93ec9bbd86670c",
+      "matches_prior_file": true,
+      "sections": [
+        "ARM/Mediatek SoC support\nM:\tMatthias Brugger <matthias.bgg@gmail.com>\nM:\tAngeloGioacchino Del Regno <angelogioacchino.delregno@collabora.com>\nL:\tlinux-kernel@vger.kernel.org\nL:\tlinux-arm-kernel@lists.infradead.org (moderated for non-subscribers)\nL:\tlinux-mediatek@lists.infradead.org (moderated for non-subscribers)\nS:\tMaintained\nW:\thttps://mtk.wiki.kernel.org/\nC:\tirc://irc.libera.chat/linux-mediatek\nF:\tarch/arm/boot/dts/mediatek/\nF:\tarch/arm/mach-mediatek/\nF:\tarch/arm64/boot/dts/mediatek/\nF:\tdrivers/soc/mediatek/\nN:\tmtk\nN:\tmt[2678]\nK:\tmediatek",
+        "COMMON CLK FRAMEWORK\nM:\tMichael Turquette <mturquette@baylibre.com>\nM:\tStephen Boyd <sboyd@kernel.org>\nR:\tBrian Masney <bmasney@redhat.com>\nL:\tlinux-clk@vger.kernel.org\nS:\tMaintained\nQ:\thttp://patchwork.kernel.org/project/linux-clk/list/\nT:\tgit git://git.kernel.org/pub/scm/linux/kernel/git/clk/linux.git\nF:\tDocumentation/devicetree/bindings/clock/\nF:\tdrivers/clk/\nF:\tinclude/dt-bindings/clock/\nF:\tinclude/linux/clk-pr*\nF:\tinclude/linux/clk/\nF:\tinclude/linux/of_clk.h\nF:\tscripts/gdb/linux/clk.py\nF:\trust/helpers/clk.c\nF:\trust/kernel/clk.rs\nX:\tdrivers/clk/clkdev.c",
+        "OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS\nM:\tRob Herring <robh@kernel.org>\nM:\tKrzysztof Kozlowski <krzk+dt@kernel.org>\nM:\tConor Dooley <conor+dt@kernel.org>\nL:\tdevicetree@vger.kernel.org\nS:\tMaintained\nQ:\thttp://patchwork.kernel.org/project/devicetree/list/\nC:\tirc://irc.libera.chat/devicetree\nT:\tgit git://git.kernel.org/pub/scm/linux/kernel/git/robh/linux.git\nF:\tDocumentation/devicetree/\nF:\tarch/*/boot/dts/\nF:\tinclude/dt-bindings/",
+        "RESET CONTROLLER FRAMEWORK\nM:\tPhilipp Zabel <p.zabel@pengutronix.de>\nS:\tMaintained\nT:\tgit https://git.pengutronix.de/git/pza/linux.git\nF:\tDocumentation/devicetree/bindings/reset/\nF:\tDocumentation/driver-api/reset.rst\nF:\tdrivers/reset/\nF:\tinclude/dt-bindings/reset/\nF:\tinclude/linux/reset-controller.h\nF:\tinclude/linux/reset.h\nF:\tinclude/linux/reset/\nK:\t\\b(?:devm_|of_)?reset_control(?:ler_[a-z]+|_[a-z_]+)?\\b"
+      ],
+      "relevant_sections_match_prior": true
+    },
+    {
+      "tree": "mail-archive",
+      "path": "2026-September/thread.html",
+      "url": "https://lists.infradead.org/pipermail/linux-mediatek/2026-September/thread.html",
+      "status": "present",
+      "bytes": 74814,
+      "sha256": "b623d94228e294206482daed8107ccaf691a59de0b12c5cc7de98bcdc307be30",
+      "matching_lines": []
+    },
+    {
+      "tree": "mail-archive",
+      "path": "2026-August/thread.html",
+      "url": "https://lists.infradead.org/pipermail/linux-mediatek/2026-August/thread.html",
+      "status": "present",
+      "bytes": 266361,
+      "sha256": "b7f16a30faaa1f37f6b46a8d9542cd5323adc8d17089eaeae95a550fce249df9",
+      "matching_lines": [
+        "<LI><A HREF=\"111247.html\">[PATCH 00/32] clk: mediatek: Migrate to common probe/remove helpers and fix memory leaks",
+        "<LI><A HREF=\"111256.html\">[PATCH 09/32] clk: mediatek: Add cpumux support to common probe/remove helpers",
+        "<LI><A HREF=\"111257.html\">[PATCH 10/32] clk: mediatek: Add PLL support to common probe/remove helpers",
+        "<LI><A HREF=\"111259.html\">[PATCH 12/32] clk: mediatek: Add pllfh support to common probe/remove helpers",
+        "<LI><A HREF=\"111260.html\">[PATCH 13/32] clk: mediatek: mt2701: Switch to common probe/remove helpers",
+        "<LI><A HREF=\"111307.html\">[PATCH 13/32] clk: mediatek: mt2701: Switch to common probe/remove helpers",
+        "<LI><A HREF=\"111261.html\">[PATCH 14/32] clk: mediatek: mt2712-apmixedsys: Switch to common probe/remove helpers",
+        "<LI><A HREF=\"111262.html\">[PATCH 15/32] clk: mediatek: mt6735-apmixedsys: Switch to common probe/remove helpers",
+        "<LI><A HREF=\"111263.html\">[PATCH 16/32] clk: mediatek: mt6779: Switch to common probe/remove helpers",
+        "<LI><A HREF=\"111264.html\">[PATCH 17/32] clk: mediatek: mt6795: Switch to common probe/remove helpers",
+        "<LI><A HREF=\"111265.html\">[PATCH 18/32] clk: mediatek: mt6797: Switch to common probe/remove helpers",
+        "<LI><A HREF=\"111266.html\">[PATCH 19/32] clk: mediatek: mt7622: Switch to common probe/remove helpers",
+        "<LI><A HREF=\"111267.html\">[PATCH 20/32] clk: mediatek: mt7981-apmixed: Switch to common probe/remove helpers",
+        "<LI><A HREF=\"111268.html\">[PATCH 21/32] clk: mediatek: mt7986-apmixed: Switch to common probe/remove helpers",
+        "<LI><A HREF=\"111269.html\">[PATCH 22/32] clk: mediatek: mt7988-apmixed: Switch to common probe/remove helpers",
+        "<LI><A HREF=\"111270.html\">[PATCH 23/32] clk: mediatek: mt8135-apmixedsys: Switch to common probe/remove helpers",
+        "<LI><A HREF=\"111271.html\">[PATCH 24/32] clk: mediatek: mt8167-apmixedsys: Switch to common probe/remove helpers",
+        "<LI><A HREF=\"111272.html\">[PATCH 25/32] clk: mediatek: mt8173-infracfg: Switch to common probe/remove helpers",
+        "<LI><A HREF=\"111273.html\">[PATCH 26/32] clk: mediatek: mt8183: Switch to common probe/remove helpers",
+        "<LI><A HREF=\"111274.html\">[PATCH 27/32] clk: mediatek: mt8186-apmixedsys: Switch to common probe/remove helpers",
+        "<LI><A HREF=\"111275.html\">[PATCH 28/32] clk: mediatek: mt8188-apmixedsys: Switch to common probe/remove helpers",
+        "<LI><A HREF=\"111276.html\">[PATCH 29/32] clk: mediatek: mt8192: Switch to common probe/remove helpers",
+        "<LI><A HREF=\"111277.html\">[PATCH 30/32] clk: mediatek: mt8195: Switch to common probe/remove helpers",
+        "<LI><A HREF=\"111278.html\">[PATCH 31/32] clk: mediatek: mt8196: Switch to common probe/remove helpers",
+        "<LI><A HREF=\"111279.html\">[PATCH 32/32] clk: mediatek: mt8516-apmixedsys: Switch to common probe/remove helpers",
+        "<LI><A HREF=\"111296.html\">[PATCH 00/32] clk: mediatek: Migrate to common probe/remove helpers and fix memory leaks",
+        "<LI><A HREF=\"111298.html\">[PATCH 00/32] clk: mediatek: Migrate to common probe/remove helpers and fix memory leaks",
+        "<LI><A HREF=\"111302.html\">[PATCH 00/32] clk: mediatek: Migrate to common probe/remove helpers and fix memory leaks",
+        "<LI><A HREF=\"111843.html\">[PATCH 1/3] ASoC: mt6797: fix wrong unwind order and error code in enable_clock",
+        "<LI><A HREF=\"111844.html\">[PATCH 2/3] ASoC: mt6797: Use dev_err_probe() for error handling",
+        "<LI><A HREF=\"111845.html\">[PATCH 3/3] ASoC: mt6797: Drop redundant probe error messages",
+        "<LI><A HREF=\"111882.html\">[PATCH 1/3] ASoC: mt6797: fix wrong unwind order and error code in enable_clock",
+        "<LI><A HREF=\"111888.html\">[PATCH 1/3] ASoC: mt6797: fix wrong unwind order and error code in enable_clock",
+        "<LI><A HREF=\"111912.html\">[PATCH v2 1/3] ASoC: mediatek: mt6797: fix wrong unwind order and error code in enable_clock",
+        "<LI><A HREF=\"111913.html\">[PATCH v2 2/3] ASoC: mediatek: mt6797: Use dev_err_probe() for error handling",
+        "<LI><A HREF=\"111945.html\">[PATCH v2 2/3] ASoC: mediatek: mt6797: Use dev_err_probe() for error handling",
+        "<LI><A HREF=\"111914.html\">[PATCH v2 3/3] ASoC: mediatek: mt6797: Drop redundant probe error messages",
+        "<LI><A HREF=\"111946.html\">[PATCH v2 3/3] ASoC: mediatek: mt6797: Drop redundant probe error messages",
+        "<LI><A HREF=\"111944.html\">[PATCH v2 1/3] ASoC: mediatek: mt6797: fix wrong unwind order and error code in enable_clock",
+        "<LI><A HREF=\"111964.html\">[PATCH v2 1/3] ASoC: mediatek: mt6797: fix wrong unwind order and error code in enable_clock",
+        "<LI><A HREF=\"112061.html\">[PATCH v3 0/3] ASoC: mediatek: mt6797: Fix error handling",
+        "<LI><A HREF=\"112062.html\">[PATCH v3 1/3] ASoC: mediatek: mt6797: fix wrong unwind order and error code in enable_clock",
+        "<LI><A HREF=\"112063.html\">[PATCH v3 2/3] ASoC: mediatek: mt6797: Use dev_err_probe() for error handling",
+        "<LI><A HREF=\"112064.html\">[PATCH v3 3/3] ASoC: mediatek: mt6797: Drop redundant probe error messages"
+      ]
+    },
+    {
+      "tree": "mail-archive",
+      "path": "2026-August/111265.html",
+      "url": "https://lists.infradead.org/pipermail/linux-mediatek/2026-August/111265.html",
+      "status": "present",
+      "bytes": 9469,
+      "sha256": "24a70dea9023083d1ee04f4a3508c781eb42332f7458ef1f58900b4631a13c57",
+      "matching_lines": [
+        "<TITLE> [PATCH 18/32] clk: mediatek: mt6797: Switch to common probe/remove helpers",
+        "<LI>Previous message (by thread): <A HREF=\"111264.html\">[PATCH 17/32] clk: mediatek: mt6795: Switch to common probe/remove helpers",
+        "<LI>Next message (by thread): <A HREF=\"111266.html\">[PATCH 19/32] clk: mediatek: mt7622: Switch to common probe/remove helpers",
+        "<LI>Previous message (by thread): <A HREF=\"111264.html\">[PATCH 17/32] clk: mediatek: mt6795: Switch to common probe/remove helpers",
+        "<LI>Next message (by thread): <A HREF=\"111266.html\">[PATCH 19/32] clk: mediatek: mt7622: Switch to common probe/remove helpers"
+      ]
+    },
+    {
+      "tree": "mainline-process",
+      "path": "Documentation/process/coding-assistants.rst",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/9f0346dcbea363787186c94ef94dd01aaa215afa/Documentation/process/coding-assistants.rst",
+      "bytes": 4063,
+      "sha256": "507f4beeeca27be242dda6da7bb18723aeeff06296f01fb54f597aea855523fe",
+      "assisted_by_present": true
+    },
+    {
+      "tree": "mainline-process",
+      "path": "Documentation/process/submitting-patches.rst",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/9f0346dcbea363787186c94ef94dd01aaa215afa/Documentation/process/submitting-patches.rst",
+      "bytes": 41972,
+      "sha256": "d8192ff9d09e394e63d724a2201ca1bf5a7d64c8c3ab404294992914272c821a",
+      "assisted_by_present": true
+    }
+  ],
+  "limits": "22 sources; 2MB each maximum; 20 seconds per read; at most 4 concurrent host reads; no kernel checkout/rebase/build/backend/device; archive absence is not global absence",
+  "browser_archive_access": "web open failed; bounded direct HTTPS retrieval succeeded and is hashed here"
+}
