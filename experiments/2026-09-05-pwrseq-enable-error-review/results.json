@@ -1,0 +1,82 @@
+{
+  "sources": [
+    {
+      "label": "project-upstream",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/drivers/power/sequencing/core.c",
+      "sha256": "86fe4cb3e77f1eeece1bd065ba7378bb5892499f344fb9de8af1761e449eda78",
+      "function": "pwrseq_enable",
+      "posted_hunk_applies": true
+    },
+    {
+      "label": "observed-mainline",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/0d9ff90a5422cc7509258aaaba1e7481df4d332a/drivers/power/sequencing/core.c",
+      "sha256": "86fe4cb3e77f1eeece1bd065ba7378bb5892499f344fb9de8af1761e449eda78",
+      "function": "pwrseq_enable",
+      "posted_hunk_applies": true
+    },
+    {
+      "label": "pwrseq-for-current",
+      "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/brgl/linux/+/3b54dbd119805361695cb50ca6a875f4c7518b74/drivers/power/sequencing/core.c?format=TEXT",
+      "sha256": "86fe4cb3e77f1eeece1bd065ba7378bb5892499f344fb9de8af1761e449eda78",
+      "function": "pwrseq_enable",
+      "posted_hunk_applies": true
+    },
+    {
+      "label": "pwrseq-for-next",
+      "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/brgl/linux/+/3b04e9b8056e868c3e9a04cc74168c7c9a18746a/drivers/power/sequencing/core.c?format=TEXT",
+      "sha256": "86fe4cb3e77f1eeece1bd065ba7378bb5892499f344fb9de8af1761e449eda78",
+      "function": "pwrseq_enable",
+      "posted_hunk_applies": true
+    },
+    {
+      "label": "project-stable",
+      "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/stable/linux/+/199c9959d3a9b53f346c221757fc7ac507fbac50/drivers/power/sequencing/core.c?format=TEXT",
+      "sha256": "22550b6d006a42afc61c8f69e89ff6d0a2a3e545366dc317b8e2eff8f79f74f2",
+      "function": "pwrseq_power_on",
+      "posted_hunk_applies": true
+    }
+  ],
+  "compiler": "Apple clang version 21.0.0 (clang-2100.1.1.101)",
+  "stable_function_name_only_normalized": true,
+  "results": {
+    "original": {
+      "null": "pass",
+      "already-on": "pass",
+      "unregistered": "pass",
+      "unit-fail-no-post": "pass",
+      "unit-fail-post-success": "fail",
+      "unit-fail-post-error": "fail",
+      "success-no-post": "pass",
+      "success-post": "pass",
+      "post-failure": "pass",
+      "post-and-rollback-failure": "pass"
+    },
+    "posted-fix": {
+      "null": "pass",
+      "already-on": "pass",
+      "unregistered": "pass",
+      "unit-fail-no-post": "pass",
+      "unit-fail-post-success": "pass",
+      "unit-fail-post-error": "pass",
+      "success-no-post": "pass",
+      "success-post": "pass",
+      "post-failure": "pass",
+      "post-and-rollback-failure": "pass"
+    },
+    "wrong-success-return": {
+      "null": "pass",
+      "already-on": "pass",
+      "unregistered": "pass",
+      "unit-fail-no-post": "fail",
+      "unit-fail-post-success": "fail",
+      "unit-fail-post-error": "fail",
+      "success-no-post": "pass",
+      "success-post": "pass",
+      "post-failure": "pass",
+      "post-and-rollback-failure": "pass"
+    }
+  },
+  "temporary_files_removed": true,
+  "kernel_build_or_device_access": false,
+  "scope": "actual enable function; unit operations/device/locks stubbed; no concurrency or provider-lifetime proof"
+}
