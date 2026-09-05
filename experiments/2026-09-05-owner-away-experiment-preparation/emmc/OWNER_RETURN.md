@@ -1,0 +1,24 @@
+# Owner-reported return after the deferred identity check
+
+The coordinator relayed the owner's answer, “Yes, Gemian is back”, to the
+question whether the Gemini had returned to its normal Gemian screen after
+the restart. This is an owner-visible return report, not an authenticated
+changed-boot-ID result or evidence of a successful mainline test.
+
+The [exact attempt receipt](IDENTITY_ATTEMPT_RECEIPT.json) remains unchanged:
+one identity-only connection timed out with no output. No eMMC preflight,
+read, postflight, seal, export, native recovery or reboot was performed by this
+worker. Its raw command, claim, streams and process outcome remain retained.
+There is no observed mainline boot identity or sealed eMMC observation manifest.
+
+The reviewed [completion adapter](finish-emmc.py) requires those observation
+bindings before its known-good confirmation can execute. The owner's report
+does not manufacture them. No connection was made on receipt of this report;
+standalone confirmation needs separately reviewed scope. The original baseline
+and its supplemental recovery classification are unaffected.
+
+The eMMC read budget remains unconsumed, with new-session admission still
+required before the read. It is not a ready-to-run test on the basis of this
+screen report. Keyboard preparation has a runnable userspace build path awaiting
+coordinator review and a Buildbox window; see [monitor handoff](../keyboard/MONITOR.md).
+The [roadmap](../../../docs/ROADMAP.md) retains ownership of work ordering.
