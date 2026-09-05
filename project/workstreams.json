@@ -10,9 +10,11 @@
     "roadmap": "docs/ROADMAP.md",
     "experiment_queue": "project/experiment-queue.json",
     "owner_away_policy": "Continue independent offline work; waiting-device items free worker slots. Readiness is not physical admission.",
-    "integration_task_id": "01a06f5d-d1f6-7a01-a80a-7457a3c64676"
+    "integration_task_id": "01a06f5d-d1f6-7a01-a80a-7457a3c64676",
+    "execution_state": "paused-by-owner-after-final-device-test",
+    "pause_record": "experiments/2026-09-05-owner-away-experiment-preparation/emmc/PAUSE_SESSION_PREPARATION.json"
   },
-  "active_device_experiment": "emmc-readonly",
+  "active_device_experiment": null,
   "workstreams": [
     {
       "id": "integration",
@@ -236,9 +238,9 @@
     "current_session": {
       "owner": "A53 baseline and queued device tests",
       "task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64",
-      "state": "gemian-ssh-confirmed-after-owner-request",
-      "evidence": "experiments/2026-09-05-owner-away-experiment-preparation/emmc/OWNER_REQUESTED_CURRENT_STATE.json",
-      "scope": "Sole custody retained. Normal Gemian SSH confirmed known-good release and unchanged boot ID. USB absence is not general SSH unreachability. No mainline probe, read, seal or reboot followed; authenticate live OS before choosing any subsequent protocol."
+      "state": "closed-known-good-gemian-confirmed-paused",
+      "evidence": "experiments/2026-09-05-owner-away-experiment-preparation/emmc/PAUSE_SESSION_PREPARATION.json",
+      "scope": "Final read-only eMMC session closed. Authenticated changed-boot Gemian confirmed; native request transport uncertainty preserved. No further device action or work item is selected; paused at owner request."
     }
   }
 }

@@ -3,8 +3,8 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": "emmc-readonly",
-  "selection_note": "Final pre-pause eMMC read and complete log preservation passed. Native recovery request consumed once but its SSH completion was inconclusive; await owner-confirmed Gemian return and the separately admitted known-good check. No additional test is selected.",
+  "selected_item": null,
+  "selection_note": "Final pre-pause session closed: one read and complete error-free log passed; changed-boot Gemian LAN SSH confirmed. Native request transport remains inconclusive. Work paused at owner request; no next test selected.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -45,7 +45,7 @@
     "emmc-readonly": {
       "workstream": "serviceability",
       "preparation_state": "stale",
-      "device_state": "read-complete-recovery-pending",
+      "device_state": "complete",
       "owner": "A53 baseline and queued device tests",
       "reviewer": "Project Planning",
       "device_custodian": "A53 baseline and queued device tests",
@@ -61,7 +61,7 @@
         }
       ],
       "owner_task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64",
-      "readiness_note": "Fresh session consumed its single 16 MiB read and saved a complete error-free controller log. Native recovery markers were complete but transport timed out; no retry. Known-good confirmation remains pending actual owner return. Finish recovery evidence, then pause all work."
+      "readiness_note": "Single read and log budgets consumed. Independent changed-ID Gemian confirmation passed; native request transport remains inconclusive and the aggregate remains incomplete. Exact results and pause closure are in the readiness record. No retry or dependent test selected."
     },
     "wifi-parent-attribution": {
       "workstream": "wifi",
