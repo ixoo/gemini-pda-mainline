@@ -1,0 +1,24 @@
+SPM key and CONN ordering source review — 2026-09-05
+Base: 245c85e1a3c443607f4440b4ba900fae9d8c712c
+Scope: original public-source analysis; no implementation, candidate or API model.
+Verified 12 public source identities at four existing pinned revisions.
+Reviewed selected WMT preamble, selected Planet/Gemian CCF transition order,
+SPM register fields, PM initialization call, and shared SPM enable helper.
+Upstream absence conclusion is scoped to both power-domain providers and the
+MT6797 clock provider; legacy source is identical across the two Linux pins.
+Local legacy-provider patch search found only 0047 and 0050; neither adds key
+initialization. Same-value CSPM writes and historical SPM+0x218 names excluded.
+Exploratory search limitations: upstream recursive tree API was truncated;
+subsequent directory enumeration was used. A guessed cpuidle source path was
+absent. One vendor mt_udi.c decode failed; it is not an audited absence input.
+No whole-kernel or retained-firmware absence claim is made.
+Retained metadata inspection remains local under ignored mode-0700 directory
+with mode-0600 record. No private observations or binary contents staged.
+Validation: python3 -B scripts/check-repository passed; profiles=189,
+grandfathered_metadata_debt=37 unchanged; Linux-only artifact fixture skipped.
+New JSON parses; Markdown local links resolve; new-file license/privacy review
+and git diff --check passed. No artifacts or unrelated residue staged.
+Not run: kernel build, checkpatch, DT schemas, hardware tests, retained-binary
+analysis. No device, radio, register, VM or builder operations performed.
+SPM_KEY_ORDER.md sha256=730731f169dac016b8146b0d4cd05783cb7b63ced45658eb4454f8192f227f6e
+spm-key-order-sources.json sha256=d9b01d82a59a254114f660d8dc60a232e1ad0baa7dc3d7daf01600a7c316dbb8
