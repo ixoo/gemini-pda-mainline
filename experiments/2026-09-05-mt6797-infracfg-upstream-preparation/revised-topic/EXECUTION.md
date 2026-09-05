@@ -105,6 +105,17 @@ diff and sensitive-data exclusions were reviewed. Linux-only package-provenance
 fixtures remain CI-only. No backend generation, kernel build, checkpatch, schema,
 QEMU or device execution is claimed by these host results.
 
+## First attempt and corrected partial-clone tree writing
+
+The first admitted run refused during ordinary tree writing; see
+[its immutable result and diagnosis](ATTEMPT_1.md). The revised generator now
+uses `write-tree --missing-ok` in generation and replay to avoid prefetching
+unrelated omitted blobs. It retains full indexed tree identities and every
+explicit changed-source/footprint/replay check. All original limits are unchanged.
+The correction passed the [synthetic host check](partial-tree-host-check.json)
+and existing 36 refusals, but has not run on Buildbox. A fresh exact-revision
+admission is required; this document does not select a retry.
+
 ## Coordinator tooling review
 
 The coordinator reviewed the revised generator and retained historical path,

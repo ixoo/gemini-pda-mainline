@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/workspace/gemini-pda/checkouts/7209e9d07026456be01e19c0cc87e9b04a13ffda/experiments/2026-09-05-mt6797-infracfg-upstream-preparation/scripts/derive-topic.py", line 647, in <module>
+    main()
+  File "/workspace/gemini-pda/checkouts/7209e9d07026456be01e19c0cc87e9b04a13ffda/experiments/2026-09-05-mt6797-infracfg-upstream-preparation/scripts/derive-topic.py", line 604, in main
+    revised_generate(args.revised_generate, args.published_ref)
+  File "/workspace/gemini-pda/checkouts/7209e9d07026456be01e19c0cc87e9b04a13ffda/experiments/2026-09-05-mt6797-infracfg-upstream-preparation/scripts/derive-topic.py", line 592, in revised_generate
+    require(receipt['result'] == 'COLLECTED_REVIEW_REQUIRED', 'generation refused; preserve evidence before any retry')
+  File "/workspace/gemini-pda/checkouts/7209e9d07026456be01e19c0cc87e9b04a13ffda/experiments/2026-09-05-mt6797-infracfg-upstream-preparation/scripts/qemu-check.py", line 35, in require
+    raise Refusal(message)
+schema_process_guard.Refusal: generation refused; preserve evidence before any retry

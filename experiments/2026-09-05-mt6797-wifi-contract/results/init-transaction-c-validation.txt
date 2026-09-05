@@ -1,0 +1,19 @@
+C CONFIG transaction validation — 2026-09-05
+Base: 69b66ca0
+Source contract reused from existing INIT protocol and bounds records.
+Strict C11 -Wall -Wextra -Werror -pedantic; state fixture ASan/UBSan pass:
+config_transaction_submission_reply_poison_no_refund=pass
+Independent existing Python synthetic fixtures versus C test-library exports:
+independent_python_c_wire_comparisons=12854 result=pass
+Differential library compiled without sanitizers for loading into host Python;
+state executable separately sanitized. Managed temporary outputs removed.
+Initial build exposed unavailable host EREMOTEIO; replaced with portable EIO
+for firmware rejection with explicit status output, then both checks passed.
+No new public source inputs, vendor implementation, raw/private packet data,
+MMIO, device/backend action, retry/refund or reset. Kernel branch uncompiled.
+Repository checks pass: 189 profiles, unchanged metadata debt=37; Linux-only
+artifact fixture skipped. New-file syntax, links, rights/privacy and diff checks pass.
+INIT_TRANSACTION_C.md sha256=05e9cd06297244a7baeb5c6e0a0ebe53011505ba9c99b188379c7adbbeb0c536
+src/hif_init_transaction.h sha256=d1431493da4d97d709046db3245a217863bb057600ae63cd7271c6ac03e061fb
+src/hif_init_transaction_test.c sha256=2e6f838701d5420085cc48a56467844497d2e80b8e3238c9070f59dfdaca3923
+scripts/test_init_c_crosscheck.py sha256=ce3f7f89873592a007b5771bc426d28726703ecb464f0f0be37f94e926c31a5d
