@@ -22,3 +22,19 @@ required before the read. It is not a ready-to-run test on the basis of this
 screen report. Keyboard preparation has a runnable userspace build path awaiting
 coordinator review and a Buildbox window; see [monitor handoff](../keyboard/MONITOR.md).
 The [roadmap](../../../docs/ROADMAP.md) retains ownership of work ordering.
+
+
+A later separate coordinator authorization admitted one current-state inspection
+using the pinned known-good SSH trust and three fixed read-only inputs. The
+[authenticated receipt](KNOWN_GOOD_CURRENT_STATE.json) confirms kernel
+`3.18.41+`, Debian 9 identification and the same boot ID as the previous confirmed
+Gemian state. Transport completed with no diagnostics. This is current-state
+confirmation only; it does not establish a changed boot or promote the eMMC
+session. No further connection, deployment or reboot followed. An initial local
+command-construction syntax error occurred before any execution or claim; the
+corrected invocation made the sole admitted connection.
+
+Next physical action, once coordinated and freshly admitted, is owner selection
+of boot2 for the still-unconsumed read session with current power and console
+confirmation and sufficient original logger lifetime. No physical action is
+requested automatically by this receipt.
