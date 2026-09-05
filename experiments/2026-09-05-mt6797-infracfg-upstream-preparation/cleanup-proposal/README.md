@@ -1,7 +1,7 @@
 # Separate common-clock reset-registration cleanup proposal
 
-Status: implementation and host fault fixtures prepared; unsigned format-patch
-generation awaits its assigned Git-only preparation window. This proposal does
+Status: unsigned patch generated and verified in the assigned Git-only window;
+[the exact result](GENERATION_RESULT.md) is ready for independent review. This proposal does
 not change the validated six-patch infracfg topic, its manifest or its profile.
 No kernel, schema, QEMU or device execution is selected.
 

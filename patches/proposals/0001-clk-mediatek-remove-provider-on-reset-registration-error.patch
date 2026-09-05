@@ -1,0 +1,39 @@
+From 9493a56d44ee06a3cbbc253a827f99b0a07d072a Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 5 Sep 2026 19:00:00 +0000
+Subject: [PATCH] clk: mediatek: remove clock provider when reset registration
+ fails
+
+The common probe publishes its clock provider before registering resets.
+If reset registration fails, the current unwind frees the clock data but
+leaves the OF provider published with that data pointer.
+
+Remove the published provider before unwinding the clocks on this error.
+Keep clock-publication failure on its existing path, which has no provider
+to remove.
+---
+ drivers/clk/mediatek/clk-mtk.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/clk/mediatek/clk-mtk.c b/drivers/clk/mediatek/clk-mtk.c
+index 3dfdd3a..d9a36a7 100644
+--- a/drivers/clk/mediatek/clk-mtk.c
++++ b/drivers/clk/mediatek/clk-mtk.c
+@@ -586,7 +586,7 @@ static int __mtk_clk_simple_probe(struct platform_device *pdev,
+ 		r = mtk_register_reset_controller_with_dev(&pdev->dev,
+ 							   mcd->rst_desc);
+ 		if (r)
+-			goto unregister_clks;
++			goto unregister_provider;
+ 	}
+ 
+ 	if (mcd->need_runtime_pm)
+@@ -594,6 +594,8 @@ static int __mtk_clk_simple_probe(struct platform_device *pdev,
+ 
+ 	return r;
+ 
++unregister_provider:
++	of_clk_del_provider(node);
+ unregister_clks:
+ 	if (mcd->clks)
+ 		mtk_clk_unregister_gates(mcd->clks, mcd->num_clks, clk_data);

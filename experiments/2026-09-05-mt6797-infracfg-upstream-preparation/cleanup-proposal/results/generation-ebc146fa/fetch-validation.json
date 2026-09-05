@@ -1,0 +1,23 @@
+{
+  "members": {
+    "0001-clk-mediatek-remove-provider-on-reset-registration-error.patch": {
+      "bytes": 1419,
+      "sha256": "eabc1a33c23b4511a285bb2660376585f4e8332f2bca124ffab606e308ee9a62"
+    },
+    "checkpatch.txt": {
+      "bytes": 340,
+      "sha256": "917fc6529380598ec392fe215a1aae3fc6667788d1d3a595929f6f823d9d3628"
+    },
+    "generation.json": {
+      "bytes": 771,
+      "sha256": "25adff7633d41c2e8d86dd316f7fc7e28b88064aba7afbac8d0e2f524ec6be68"
+    },
+    "SHA256SUMS": {
+      "bytes": 299,
+      "sha256": "cfc8b948b29efd77dd08d87f9ecbbad0c8ce26af6482c6a73e3097cd969784b3"
+    }
+  },
+  "inventory": "exact_four_regular_files",
+  "remote_and_local_hashes": "pass",
+  "receipt_pins": "pass"
+}

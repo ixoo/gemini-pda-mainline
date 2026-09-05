@@ -1,0 +1,20 @@
+{
+  "post_run_checks": {
+    "scratch_run_absent": true,
+    "package_partial_absent": true,
+    "scratch_ownership_marker_exact": true,
+    "project_checkout_clean": true,
+    "normal_lock_reacquired_and_released": true
+  },
+  "free_space_before_kib": {
+    "host": 90996180,
+    "backend_workspace": 278158908,
+    "backend_home": 9915644
+  },
+  "source_limits": "Sparse disposable upstream Git checkout: one driver source plus checkpatch, spelling, const_structs. Full parent tree metadata used for replay; no complete Linux source extraction. Scratch removed; project Git checkout retained.",
+  "package_bytes": 2829,
+  "package_members": 4,
+  "kernel_compilation": false,
+  "managed_kernel_source_build_package_changes": false,
+  "device_contact": false
+}
