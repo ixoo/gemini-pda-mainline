@@ -1,3 +1,5 @@
 # Format-patch payload lines and the mail signature delimiter look like outer
 # diff whitespace to `git diff --check`; check their contents with checkpatch.
 *.patch whitespace=-trailing-space,-space-before-tab
+# Preserve this original tool-version receipt byte-for-byte, including its final blank line.
+experiments/2026-09-05-mt6797-infracfg-upstream-preparation/revised-topic/results/attempt-1-7209e9d0/perl-version.stdout whitespace=-blank-at-eof

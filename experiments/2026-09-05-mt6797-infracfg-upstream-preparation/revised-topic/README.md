@@ -143,3 +143,10 @@ Common repository checks passed for four scoped files (190 profiles; unchanged
 metadata debt 37). JSON/link review and diff/sensitive-data checks passed. No
 backend generation, kernel build, checkpatch, new schema/QEMU or device run
 was performed for this proposal.
+
+## First generation result
+
+[Attempt 1](ATTEMPT_1.md) refused at ordinary tree writing and produced no
+review archive. Its receipt and logs are preserved unchanged. The narrowly
+corrected partial-clone tree-writing mode has host validation only and awaits
+separate review/publication/admission; no backend retry is selected.

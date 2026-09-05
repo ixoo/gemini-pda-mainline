@@ -527,7 +527,9 @@ def revised_generate(revision, published_ref):
                     run(f'input-{number}-check', git + ['apply', '--cached', '--check', patch])
                     run(f'input-{number}-apply', git + ['apply', '--cached', patch])
                     run(f'input-{number}-whitespace', git + ['diff', '--cached', '--check'])
-                    tree = run(f'input-{number}-tree', git + ['write-tree'])
+                    # Tree IDs preserve every indexed reference; omitted unrelated
+                    # blobs need not be fetched. Final source hashes remain mandatory.
+                    tree = run(f'input-{number}-tree', git + ['write-tree', '--missing-ok'])
                     message = work / 'message'
                     if number == 3:
                         body = 'Expose the thermal and PMIC-wrapper reset IDs.\nKeep the existing optional reset-cell binding unchanged so older\nMT6797 descriptions remain valid.'
@@ -561,7 +563,7 @@ def revised_generate(revision, published_ref):
                 for number, patch in enumerate(patches, 1):
                     run(f'replay-{number}-check', git + ['apply', '--cached', '--check', str(patch)])
                     run(f'replay-{number}-apply', git + ['apply', '--cached', str(patch)])
-                require(run('replay-tree', git + ['write-tree']) == tree, 'replay tree mismatch')
+                require(run('replay-tree', git + ['write-tree', '--missing-ok']) == tree, 'replay tree mismatch')
                 source = Path(contract['source_root'])
                 run('checkpatch', ['perl', str(source / 'scripts/checkpatch.pl'), '--no-tree', '--strict',
                                   '--ignore', 'MISSING_SIGN_OFF,FILE_PATH_CHANGES,COMMIT_LOG_LONG_LINE', *map(str, patches)])

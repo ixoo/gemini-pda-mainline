@@ -1,0 +1,25 @@
+{
+  "git_version_observed": "2.39.5",
+  "upstream_tag": "v2.39.5",
+  "upstream_commit": "cc7d11c16782041a6bb73e2fb56417b7d4c6d186",
+  "sources": [
+    {
+      "path": "cache-tree.c",
+      "url": "https://raw.githubusercontent.com/git/git/cc7d11c16782041a6bb73e2fb56417b7d4c6d186/cache-tree.c",
+      "bytes": 25002,
+      "sha256": "d8fa2cfc4765962b2d4c9bd83f97eac3dce239dc05e6e6cb5e6ab6e6bd4e3fdb"
+    },
+    {
+      "path": "builtin/write-tree.c",
+      "url": "https://raw.githubusercontent.com/git/git/cc7d11c16782041a6bb73e2fb56417b7d4c6d186/builtin/write-tree.c",
+      "bytes": 1543,
+      "sha256": "3992c527e8abf280fd7469950e9e9b3316056e93a4becd7aba637c709d20a9a2"
+    },
+    {
+      "path": "Documentation/git-write-tree.txt",
+      "url": "https://raw.githubusercontent.com/git/git/cc7d11c16782041a6bb73e2fb56417b7d4c6d186/Documentation/git-write-tree.txt",
+      "bytes": 1026,
+      "sha256": "ccbec1bb2e2a3aa4ea8dff595c0d4e7e5b9c70d9ccc06bd7d6ba4688c736a02a"
+    }
+  ]
+}
