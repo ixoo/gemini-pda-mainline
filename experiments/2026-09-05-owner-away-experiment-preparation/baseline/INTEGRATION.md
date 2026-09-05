@@ -40,13 +40,23 @@ publication CI. No duplicate build or device test was run for integration.
 
 ## Remaining session prerequisites
 
-The required private recovery host-pin file was absent in both the primary
-and worker checkout during independent review. Prepare it only from an
-already verified Gemian host identity; an unauthenticated network scan cannot
-supply that trust. Direct USB host configuration, current custody, live device
-identity, recovery availability and power also remain to be established before
-physical admission. No scheduled offline preparation run performs those device
-actions.
+The required private recovery host-pin file was initially absent in both
+checkouts. The coordinator prepared the primary checkout's mode-0600,
+Git-ignored `artifacts/credentials/a53-recovery-known_hosts` from the owner's
+existing mode-0600 SSH known-host database. It selects that database's unique
+Ed25519 entry for the known Gemian address; no network scan or new trust
+enrollment occurred. The dedicated file digest is
+`d43262bd1f9c76d02eb633900f5e5502e2342d6c1b41586a2d7e524a2293768f`.
+Creation was exclusive and the file and containing directory were flushed.
+
+This reuses the owner's configured trust store. Retained historical recovery
+receipts do not independently record that exact fingerprint, so this preparation
+does not claim to reconstruct its original enrollment or prove a currently
+reachable host identity. Live strict host checking remains mandatory, with no
+automatic key replacement. Direct USB host configuration, current custody,
+live device identity, recovery availability and power also remain to be
+established before physical admission. No scheduled offline preparation run
+performs those device actions.
 
 After the candidate and exact corrected tools are admitted, a named custodian
 must perform the guarded logical-boot2 installation, full-partition readback

@@ -19,7 +19,7 @@
       "readiness_record": "experiments/2026-09-05-owner-away-experiment-preparation/baseline/INTEGRATION.md",
       "dependencies": [],
       "owner_task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64",
-      "readiness_note": "Candidate construction and independent offline validation complete; final recovery host-pin preparation and physical admission remain pending. No installation, custodian or boot selection."
+      "readiness_note": "Candidate construction, independent offline validation and recovery pin preparation complete; host USB/session setup and physical admission remain pending. No installation, custodian or boot selection."
     },
     "keyboard-coverage": {
       "workstream": "serviceability",
