@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-2.0-only
-"""Pure model for one MT6797 gen3 DOWNLOAD_CONFIG / CMD_RESULT exchange.
+"""Pure gen3 DOWNLOAD_CONFIG / CMD_RESULT and WIFI_START record decoders.
 
 Inputs are already delimited logical records, not raw transport captures.
 There is no file reader, transmitter, loader, packet builder or hardware API.
+The CLI contract remains scoped to the original DOWNLOAD_CONFIG exchange.
 """
 
 import json
@@ -12,6 +13,8 @@ import sys
 
 
 DOWNLOAD_CONFIG_BYTES = 20
+WIFI_START_BYTES = 16
+WIFI_START_ID = 2
 MT6797_RESULT_BYTES = 28
 COMMAND_QUEUE = 0x8000
 PDA_QUEUE = 0xC000
@@ -100,6 +103,43 @@ def decode_download_config(packet, *, expected_sequence):
         "encryption_requested": bool(mode & ENCRYPTION_MODE),
         "reset_requested": bool(mode & RESET_OPTION),
         "ack_requested": True,
+    }
+
+
+def decode_wifi_start(packet, *, expected_sequence):
+    """Decode the selected constructor shape, without authorizing execution.
+
+    The constructor emits override 0 or 1, even though its header also names
+    a delay-calibration bit. Addresses are deliberately neither returned nor
+    admitted as executable destinations. This command has no modeled ACK.
+    """
+    _check_sequence(expected_sequence)
+    _check_record(packet, WIFI_START_BYTES)
+    _, queue, command, packet_type, reserved, sequence = struct.unpack_from("<HHBBBB", packet)
+    if queue != COMMAND_QUEUE:
+        raise Refusal("command_queue_mismatch")
+    if command != WIFI_START_ID:
+        raise Refusal("not_wifi_start")
+    if packet_type != COMMAND_PACKET_TYPE:
+        raise Refusal("command_packet_type_mismatch")
+    if sequence != expected_sequence:
+        raise Refusal("command_sequence_mismatch")
+    if reserved != 0:
+        raise Refusal("command_reserved_not_source_constructor")
+    override = struct.unpack_from("<I", packet, 8)[0]
+    if override not in (0, 1):
+        raise Refusal("start_override_not_source_constructor")
+    return {
+        "status": "decoded",
+        "command": "wifi_start",
+        "packet_bytes": WIFI_START_BYTES,
+        "sequence_matches": True,
+        "start_address_override": bool(override),
+        "start_address_validated": False,
+        "firmware_ready_proven": False,
+        "runtime_protocol_match": "unproven",
+        "hardware_access": False,
+        "load_authorized": False,
     }
 
 
