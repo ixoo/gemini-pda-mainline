@@ -1,0 +1,33 @@
+{
+  "cases": {
+    "corrected": {
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "PASS success-and-normal-remove\nPASS reset-failure-after-publication\nPASS clock-publication-failure\nPASS gate-failure-before-publication\nPASS allocation-failure\nPASS no-reset-descriptor-and-remove\n"
+    },
+    "late-removal-after-free": {
+      "returncode": 1,
+      "stderr": "case=reset-failure-after-publication line=302 trace=map alloc fixed+ factor+ mux+ composite+ divider+ gate+ provider+ reset gate- divider- composite- mux- factor- fixed- free provider- \ncase=clock-publication-failure line=304 trace=map alloc fixed+ factor+ mux+ composite+ divider+ gate+ provider+ gate- divider- composite- mux- factor- fixed- free provider- \ncase=gate-failure-before-publication line=306 trace=map alloc fixed+ factor+ mux+ composite+ divider+ gate+ divider- composite- mux- factor- fixed- free provider- \n",
+      "stdout": "PASS success-and-normal-remove\nPASS allocation-failure\nPASS no-reset-descriptor-and-remove\n"
+    },
+    "original-regression": {
+      "returncode": 1,
+      "stderr": "case=reset-failure-after-publication line=299 trace=map alloc fixed+ factor+ mux+ composite+ divider+ gate+ provider+ reset gate- divider- composite- mux- factor- fixed- free \n",
+      "stdout": "PASS success-and-normal-remove\nPASS clock-publication-failure\nPASS gate-failure-before-publication\nPASS allocation-failure\nPASS no-reset-descriptor-and-remove\n"
+    },
+    "wrong-publication-failure-unwind": {
+      "returncode": 1,
+      "stderr": "case=clock-publication-failure line=304 trace=map alloc fixed+ factor+ mux+ composite+ divider+ gate+ provider+ provider- gate- divider- composite- mux- factor- fixed- free \n",
+      "stdout": "PASS success-and-normal-remove\nPASS reset-failure-after-publication\nPASS gate-failure-before-publication\nPASS allocation-failure\nPASS no-reset-descriptor-and-remove\n"
+    }
+  },
+  "compiler_version": "Apple clang version 21.0.0 (clang-2100.1.1.101)",
+  "corrected_source_sha256": "01f33c475e9bbe6ffef504d8247acd618bd53cc563de42abef4ada96b8344646",
+  "device_action": false,
+  "host_compiler": "cc",
+  "host_platform": "Darwin/arm64",
+  "kernel_build": false,
+  "scope": "exact probe/remove C bodies with stub framework calls; not kernel integration",
+  "source_sha256": "e8a89dffaffedfce01489b0887fb425d64649d6fb841157bbcea5aac0fc93e59",
+  "wrong_inputs_rejected": 3
+}
