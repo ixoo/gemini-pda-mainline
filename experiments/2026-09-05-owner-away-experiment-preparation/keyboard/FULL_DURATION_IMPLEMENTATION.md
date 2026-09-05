@@ -1,8 +1,9 @@
 # Harmless duration package implementation — local review only
 
 This implements the offline path proposed in
-[FULL_DURATION_PROPOSAL.md](FULL_DURATION_PROPOSAL.md). No backend window has
-been consumed. Capture's host gate and production monitor default remain off.
+[FULL_DURATION_PROPOSAL.md](FULL_DURATION_PROPOSAL.md). The initial local review was followed by one assigned
+[Buildbox timing result](results/duration-6d8c9b18/RESULT.md). Capture's host gate
+and production monitor default remain off.
 The original `monitor.c` and `monitor-fixture.c` bytes are unchanged.
 
 ## Assigned-window entry

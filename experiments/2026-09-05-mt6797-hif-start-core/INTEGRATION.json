@@ -1,0 +1,28 @@
+{
+  "parent_commit": "96befc5368e6cf9cdb0ce2d73fc71d3066c38a29",
+  "profile": "mt6797-hif-parser-compile",
+  "existing_consumers": [
+    "mt6797-hif-compile",
+    "mt6797-hif-parser-compile",
+    "mt6797-provider-compile"
+  ],
+  "series": "patches/series-mt6797-provider-compile",
+  "series_sha256": "9396ee4ddc137651a7e1f7c55a70a78f58059cc7f45d2d135590c9be07f6c191",
+  "canonical_sha256": "482cbc6d186b7af1c1659f821403935ca278f5b1479794e108f7f1c1b368bfd0",
+  "patches": {
+    "proposals/0004-wifi-mediatek-execute-bounded-start.patch": "5b1ed48e14c705d16b9cdcf87bf37854b6b8e64852342989164696dee0a87ca5",
+    "proposals/0005-wifi-mediatek-retain-private-image-bindings.patch": "62edcead89a4ae6845208201ecc5bc320bb688d9a8d28d4a6f50107eec098c08"
+  },
+  "configuration_delta": "none",
+  "source_refresh": "reuse managed provider source under Buildbox lock; no duplicate Linux tree",
+  "prior_build_receipt": "../2026-09-05-mt6797-whole-image-plan/BUILD_RESULT.md",
+  "build": "pending",
+  "device": "not admitted",
+  "acceptance": [
+    "Exact reviewed HIF and binding source hashes, real kernel compilation commands with no host-test macros",
+    "AArch64 nonzero START and binding API definitions; private archive membership and matching vmlinux/System.map",
+    "Real image-plan, allocation and mutex references; ordered START PIO and WCIR access disassembly",
+    "Prior parser/CRC/complete-plan compilation and linkage preserved",
+    "No private initcall, exported symbols, registration or test-only generation hook; active binding entry still refuses"
+  ]
+}

@@ -107,3 +107,10 @@ its earlier checksum; unchanged parser/CRC/plan inputs remain separately pinned.
 Scope no-initcall/no-export/no-registration checks to these private objects.
 Compilation would establish linkage only. Runtime use remains blocked on the
 actual owner and complete whole-image executor; no device boot is requested.
+
+## Coordinator integration
+
+[The integration record](INTEGRATION.json) selects this delta and the reviewed
+[immutable image binding](../2026-09-05-mt6797-image-binding/README.md) for the
+existing isolated compile profile. Kernel compilation and linkage acceptance
+remain pending; this selects no runtime caller or device candidate.

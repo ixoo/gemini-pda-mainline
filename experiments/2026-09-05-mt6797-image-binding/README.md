@@ -119,3 +119,10 @@ passive registry is not that provider, and AP-DMA translation remains a
 separate backend issue rather than a prerequisite for PIO host implementation.
 The coordinator owns eventual series selection and a separately admitted
 Buildbox compile; [proposal.json](proposal.json) identifies this patch's delta.
+
+## Coordinator integration
+
+[The shared compile integration](../2026-09-05-mt6797-hif-start-core/INTEGRATION.json)
+places this patch after START in the canonical series, under filename `0005`,
+without changing its bytes. Compilation remains pending. Active entry remains
+refused and no device candidate is selected.
