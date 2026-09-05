@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Generate an unsigned review archive, not a build or deployment candidate.
+set -euo pipefail
+export LC_ALL=C
+export PYTHONDONTWRITEBYTECODE=1
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+[[ $# == 1 && $1 =~ ^[0-9a-f]{40}$ ]] || die 'expected exact project commit'
+readonly revision=$1
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+repo=$(git -C "$script_dir" rev-parse --show-toplevel)
+readonly script_dir repo
+[[ $(uname -s) == Linux && $repo == /workspace/gemini-pda/* ]] || die 'Buildbox only'
+[[ $(git -C "$repo" rev-parse HEAD) == "$revision" ]] || die 'wrong checkout'
+[[ -z $(git -C "$repo" status --porcelain) ]] || die 'dirty checkout'
+[[ $(git -C "$repo" remote get-url origin) == https://github.com/ixoo/gemini-pda-mainline.git ]] || die 'wrong project origin'
+for command in git perl python3 flock sha256sum; do
+	command -v "$command" >/dev/null || die "missing $command"
+done
+readonly upstream=4d7d9486c04d917265f64c55bd23b2cc4fe7749c
+readonly package_root=/workspace/gemini-pda/review-packages/infracfg-upstream
+readonly package="$package_root/$revision"
+readonly partial="$package.partial"
+readonly scratch=/workspace/gemini-pda/tmp
+mkdir -p "$package_root" "$scratch"
+[[ ! -L $package_root && ! -L $scratch ]] || die 'unsafe managed root'
+exec 9>"$package_root/generation.lock"
+flock -n 9 || die 'generation already active'
+[[ ! -e $package && ! -L $package ]] || die 'package already exists; inspect retained result'
+# With the exclusive lock held, only this exact abandoned partial may be removed.
+[[ ! -L $partial ]] || die 'unsafe partial'
+if [[ -e $partial ]]; then
+	[[ -d $partial ]] || die 'unexpected partial type'
+	rm -rf -- "$partial"
+fi
+work=$(mktemp -d "$scratch/infracfg-topic.XXXXXX")
+readonly work
+cleanup() {
+	rm -rf -- "$work"
+	[[ ! -d $partial || -L $partial ]] || rm -rf -- "$partial"
+}
+trap cleanup EXIT
+trap 'exit 130' INT TERM
+mkdir "$partial"
+# A sparse, disposable upstream Git checkout stays on Buildbox. No source copy
+# is transferred from the host or retained after the review archive is complete.
+git -C "$work" init --quiet
+git -C "$work" remote add origin https://github.com/torvalds/linux.git
+git -C "$work" -c protocol.version=2 fetch --quiet --filter=blob:none --depth=1 origin "$upstream"
+git -C "$work" sparse-checkout init --no-cone
+python3 - "$script_dir/../derivation-inputs.json" <<'PY' >"$work/input-paths"
+import json, sys
+for entry in json.load(open(sys.argv[1]))['remote']:
+    print('/' + entry['path'])
+PY
+git -C "$work" sparse-checkout set --no-cone --stdin <"$work/input-paths"
+rm "$work/input-paths"
+git -C "$work" checkout --quiet --detach "$upstream"
+[[ $(git -C "$work" rev-parse HEAD) == "$upstream" ]] || die 'wrong upstream parent'
+[[ -z $(git -C "$work" status --porcelain) ]] || die 'dirty upstream parent'
+# New paths are explicitly materialized by the generator and added with --sparse.
+export GIT_AUTHOR_NAME='Gemini Mainline Experiment'
+export GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid
+export GIT_COMMITTER_NAME=$GIT_AUTHOR_NAME
+export GIT_COMMITTER_EMAIL=$GIT_AUTHOR_EMAIL
+phases=(bounds bounds-test binding provider provider-test dts)
+subjects=(
+	'clk: mediatek: reject out-of-bank SET/CLEAR reset IDs'
+	'clk: mediatek: test reset translation bounds'
+	'dt-bindings: reset: mediatek: describe MT6797 infracfg resets'
+	'clk: mediatek: add MT6797 infracfg SET/CLEAR resets'
+	'clk: mediatek: test MT6797 infracfg reset mapping'
+	'arm64: dts: mediatek: expose MT6797 infracfg resets'
+)
+bodies=(
+	'Validate translated reset banks before indexing register offsets or calling regmap. Keep the bank full-width until validation and leave outputs untouched on invalid input. Share the private arithmetic with focused tests.'
+	'Exercise public-map limits, missing maps and banks, boundary bits, malformed mapped IDs and full-width invalid IDs without accessing hardware.'
+	'Expose only thermal and PMIC-wrapper reset lines as compact IDs 0 and 1. Their two SET/CLEAR pairs are at 0x120/0x124 and 0x140/0x144. Leave unproved reset lines and TOPRGU outside this binding.'
+	'Use the existing compact reset map to select two non-contiguous SET/CLEAR banks. Register the reset provider before platform clock allocation so a reset-registration failure adds no platform clock state.'
+	'Check both supported reset pairs and reject unexposed public indices. Test the same descriptor and private helpers as the provider without MMIO or controller registration.'
+	'Declare one reset cell on the existing infracfg provider. Consumer nodes and power policy are separate changes.'
+)
+for i in "${!phases[@]}"; do
+	python3 "$script_dir/derive-topic.py" --source-root "$work" --phase "${phases[$i]}"
+	git -C "$work" add --sparse --all
+	git -C "$work" diff --cached --check
+	export GIT_AUTHOR_DATE="2026-09-05T03:0${i}:00Z"
+	export GIT_COMMITTER_DATE=$GIT_AUTHOR_DATE
+	git -C "$work" -c commit.gpgsign=false commit --quiet --no-gpg-sign \
+		-m "${subjects[$i]}" -m "${bodies[$i]}"
+done
+mkdir "$partial/patches"
+git -C "$work" format-patch --no-signature --numbered --output-directory "$partial/patches" "$upstream..HEAD" >/dev/null
+patches=("$partial"/patches/*.patch)
+[[ ${#patches[@]} == 6 ]] || die 'wrong patch count'
+for patch in "${patches[@]}"; do basename "$patch"; done >"$partial/patches/series"
+# A separate Git index applies every patch to the actual pinned upstream tree.
+# It does not duplicate Linux sources or the object database.
+export GIT_INDEX_FILE="$work/.git/replay-index"
+git -C "$work" read-tree "$upstream"
+for patch in "${patches[@]}"; do git -C "$work" apply --cached --check "$patch"; git -C "$work" apply --cached "$patch"; done
+[[ $(git -C "$work" write-tree) == "$(git -C "$work" rev-parse 'HEAD^{tree}')" ]] || die 'replay tree mismatch'
+unset GIT_INDEX_FILE
+perl "$work/scripts/checkpatch.pl" --no-tree --strict \
+	--ignore MISSING_SIGN_OFF,FILE_PATH_CHANGES,COMMIT_LOG_LONG_LINE \
+	"${patches[@]}" >"$partial/checkpatch.txt" || {
+	cat "$partial/checkpatch.txt" >&2
+	die 'checkpatch failed'
+}
+python3 - "$work" "$revision" "$upstream" <<'PY' >"$partial/generation.json"
+import hashlib, json, pathlib, subprocess, sys
+root, revision, upstream = sys.argv[1:]
+def git(*args):
+    return subprocess.check_output(['git', '-C', root, *args], text=True).strip()
+paths = git('diff', '--name-only', upstream, 'HEAD').splitlines()
+print(json.dumps(dict(repository_commit=revision, upstream_commit=upstream,
+    generated_head=git('rev-parse', 'HEAD'), tree=git('rev-parse', 'HEAD^{tree}'),
+    replay='exact-tree-match', patch_count=6,
+    changed_files={p: hashlib.sha256((pathlib.Path(root)/p).read_bytes()).hexdigest() for p in paths},
+    certification='unsigned experiment archive; not submission-ready',
+    kernel_build='not run', schema_validation='not run', hardware_action='none'), indent=2, sort_keys=True))
+PY
+(
+	cd "$partial"
+	find patches -type f -print0 | sort -z | xargs -0 sha256sum >SHA256SUMS
+	sha256sum checkpatch.txt generation.json >>SHA256SUMS
+	sha256sum --check --strict SHA256SUMS >/dev/null
+)
+mv "$partial" "$package"
+printf 'review_package=%s\n' "$package"

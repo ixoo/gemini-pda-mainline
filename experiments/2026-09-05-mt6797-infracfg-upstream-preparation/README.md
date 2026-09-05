@@ -169,3 +169,41 @@ use the clean pushed revision and explicit Buildbox backend.
   pinned upstream baseline and pass regression before removing local patches.
 - Follow-up priority is owned by the [roadmap](../../docs/ROADMAP.md), not this
   historical handoff. This audit does not authorize a boot or upstream send.
+
+## Coherent derivation tooling
+
+[The derivation manifest](derivation-inputs.json) separately freezes upstream
+Kconfig, Makefile and checkpatch inputs alongside the previously audited
+sources. It does not alter the historical input-audit receipt.
+[The generator](scripts/generate-on-buildbox) accepts one exact clean, published
+project commit on Buildbox. It fetches the pinned upstream Git commit into a
+bounded sparse scratch checkout and emits six unsigned normal patches in an
+ignored review package. The six commits separate generic protection, generic
+KUnit, binding, provider, SoC KUnit and DTS. They do not enter the active
+canonical series or any runtime profile at this preparation stage.
+
+[Source derivation](scripts/derive-topic.py) verifies every original file hash,
+every intermediate source, and absence of the new paths in the actual upstream
+Git tree before editing. Reset registration precedes platform clock allocation;
+this intentionally differs from the historical placement and needs final build
+and failure-path validation. The private reset helper retains a full-width bank,
+rejects a missing offset table and leaves output addresses untouched on error.
+The generated KUnit suites cover generic arithmetic separately from MT6797
+mapping; their presence is not a claim that they have run.
+
+[Eight derivation tests](scripts/test-derivation.py) passed against the pinned
+public inputs, including all eleven parent-input mutations and all six repeated
+phase refusals. They also check exact phase footprints, source anchors, provider
+registration order and exclusion of consumer/TOPRGU changes. They fetch public
+inputs into memory and do not compile or execute kernel C. The initial DTS
+anchor allowed a repeated insertion; its closing-node boundary was tightened
+before publication and the repeat fixture now rejects it.
+
+The generation gate performs normal patch replay against the complete upstream
+Git tree using a second index, compares the resulting tree identity, and runs
+pinned strict checkpatch. Missing sign-off, new-file MAINTAINERS bookkeeping and
+commit-log line length are explicitly excluded from this internal style gate;
+certification and final routing remain required before submission. The sparse
+checkout is removed on exit. Generated review patches remain outside the active
+kernel patch inventory until a separately reviewed integration mechanism exists.
+No build, schema validation, hardware operation or submission is implicit.
