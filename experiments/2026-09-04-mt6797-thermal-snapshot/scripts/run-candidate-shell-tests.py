@@ -44,6 +44,7 @@ def extract_busybox(raw):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--suite',choices=('attribution','recovery'),default='attribution')
     p.add_argument('--initramfs',type=Path,required=True)
     p.add_argument('--work-root',type=Path,required=True)
     p.add_argument('--expected-revision',required=True)
@@ -63,13 +64,16 @@ def main():
         banner=(identity.stdout+identity.stderr).splitlines()[0]
         env=os.environ | {'GEMINI_TEST_SHELL':json.dumps([str(wrapper),'sh']),
                           'GEMINI_TEST_BUSYBOX':str(wrapper),'PYTHONDONTWRITEBYTECODE':'1'}
-        for name in ('test-workload-cleanup.py','test-attribution-runtime.py','test-attribution-host.py'):
+        tests = ('test-workload-cleanup.py','test-attribution-runtime.py','test-attribution-host.py') if a.suite=='attribution' else (
+            'test-workload-cleanup.py','test-recovery-thermal.py','test-recovery-runtime.py',
+            'test-recovery-boundary.py','test-recovery-observer.py','test-recovery-shutdown.py','test-recovery-host.py')
+        for name in tests:
             result=subprocess.run([sys.executable,str(HERE/name)],env=env,text=True,capture_output=True,timeout=120)
             if result.returncode:
                 print(result.stdout);print(result.stderr,file=sys.stderr)
                 raise ValueError('candidate shell fixture rejected: '+name)
             print(result.stdout,end='')
-        print(json.dumps({'classification':'candidate-shell-fixtures-pass','revision':revision,
+        print(json.dumps({'classification':'candidate-shell-fixtures-pass','suite':a.suite,'revision':revision,
                           'initramfs_sha256':INITRAMFS_SHA,'busybox_sha256':BUSYBOX_SHA,
                           'busybox_banner':banner,'emulator':Path(qemu).name,
                           'shell_and_parser_applets':'exact-candidate','device_action':'none',

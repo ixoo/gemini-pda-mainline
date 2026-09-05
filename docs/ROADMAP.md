@@ -8370,12 +8370,14 @@ now specify a bounded post-completion time point and preserve comparison
 rejection independently of recovery. Offline response/refusal fixtures pass.
 The source-pinned builder and combined classifier now pass host transcript,
 executed recovery-boundary and generated-observer fixtures, retaining all four
-worker bodies and frequency/liveness gates. **Selected next:** bind recovery to
-an exclusive durable host capture with cycle/pristine/postflight gates, then
-run the complete suite under the exact candidate BusyBox before publishing a
-new execution admission. Source-stage checks and injected receipts alone do not
-prove runtime quiescence. Preserve unknown conversion age, the previous rejection
-and unchanged comparison limits. No further diagnostic reads or workload on the consumed
+worker bodies and frequency/liveness gates. The [recovery host protocol](../experiments/2026-09-04-mt6797-thermal-snapshot/RECOVERY_PROTOCOL.md)
+now binds an exclusive capture, published source result, terminal-state shutdown,
+fresh pristine gate and final accounting with host refusal fixtures. **Selected
+next:** run the complete recovery suite under the exact candidate BusyBox from
+the clean published revision, then publish its result before cycle preparation
+and owner-selected boot2. A host fixture pass alone admits no device action.
+Preserve unknown conversion age, the previous rejection and unchanged comparison
+limits. No further diagnostic reads or workload on the consumed
 session; no repeat is admitted. Any future boot requires a distinct,
 decision-changing hypothesis and published bounded protocol. Integrated thermal
 repeatability, broader load/hotplug, cpufreq/OPP, idle, suspend, thermal protection

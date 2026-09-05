@@ -1,0 +1,15 @@
+Recovery one-shot host fixtures
+parent_publication=0a2c6422
+exact_candidate_shell_gate=pending
+positive_cases=1 mutations_rejected=19
+classification=cycle-prepared
+classification=cycle-prepared
+classification=bounded-recovery-observed
+classification=bounded-recovery-comparison-rejected
+cycle_scenarios=4 workload_scenarios=13 restart_refusals=17 receipt_field_mutations=16 receipt_duplicate_refusals=1 manifest_tamper_refusals=1 resealed_semantic_mutations=4 device_action=none
+recovery_shutdown_guard_cases=10 actual_shutdowns=0 device_action=none
+da6de59f9be659be9b2e7e45a777028a6266cbc238188890ad6434f43eaf0364  scripts/run-recovery.py
+86e97ee0ccc84e41698bc540ddfe3e13dc717f3903341bcb172e9343c3d85725  scripts/remote-recovery-shutdown.sh
+b493d43ed23f15e2799964a59a3c426d86475860a5cf8ebcb0d6da8697b81708  scripts/run-candidate-shell-tests.py
+3c0df7d201c6af812dd08e31c07f850a62b880cfbbb36a1afaba818a2ffb29ee  scripts/test-recovery-host.py
+c8e56b023c0eda228d1216cc13e6e989431f2ffc4fc42ef71b9b41d0af42442a  scripts/test-recovery-shutdown.py

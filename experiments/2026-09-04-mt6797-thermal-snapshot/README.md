@@ -315,3 +315,7 @@ The [generated recovery program and combined classifier](RECOVERY_DESIGN.md#gene
 now pass host transcript and executed boundary/observer fixtures. The worker
 bodies are unchanged; host transport/cycle binding and exact-shell validation
 remain required before execution.
+
+The [frozen recovery host protocol](RECOVERY_PROTOCOL.md) now has a one-shot
+runner and cycle/postflight fixtures. Exact-candidate shell validation remains
+required before real shutdown or runtime admission.
