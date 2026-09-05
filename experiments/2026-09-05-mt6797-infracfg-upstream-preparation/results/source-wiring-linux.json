@@ -1,0 +1,41 @@
+{
+  "archive_fixture_groups": 6,
+  "builder_fixture_groups": 4,
+  "cleanup": "disposable checkout removed by successful EXIT trap; fixture temporary roots removed",
+  "code_sha256": {
+    "scripts/kernel": "619d5faa1c7af7979620302de8bdec73ce4b7a56a512ea40f32c0c4fa9b1998d",
+    "scripts/kernel-source-archive.py": "5f0cf18347fbb92826e66577178a295e9d062ea2b25e7ec3eda761457ec4e1e4",
+    "scripts/kernel_source_contract.py": "f2c79a96b765d560323ef57faaf35151bccf77a8f6dbbdf819201c40e12106b3",
+    "scripts/test-kernel-source-archive.py": "408d255d3c9c97f8735b70289dc580e6e5ee1d5b584534cba904bec8baa720cc",
+    "scripts/test-kernel-source-builder.py": "f438f3d978502ef873f142d66b5726b4c733e5a351cc96741b1d0527485ea8b0",
+    "scripts/test-kernel-source-contract.py": "2841b5833ee367a0ad1118fd32c59f95732b25356f7b08e5d4b852f0c404acd2",
+    "scripts/test-validate-kernel-artifact-provenance": "0ac0eb3fbd30d65ba4964b4f0f200d7ca91472be685a47424b2ba071926d989f",
+    "scripts/validate-kernel-artifact": "6b3d3c3cc72e2c3d5d4addc82e52f46a89ca6f7757240079123080c7d7c5cff0"
+  },
+  "device_access": false,
+  "execution": "Buildbox; disposable Git-fetched exact-revision project checkout",
+  "kernel_build": false,
+  "limitations": [
+    "Synthetic builder fixtures do not compile or package a real kernel",
+    "Retained snapshot checked without full extraction or independent Git-tree equivalence",
+    "No actual legacy release archive member inventory repeated",
+    "Source-profile admission, selected-input migration and final integration remain with integrator"
+  ],
+  "linux_package_mutations_rejected": 28,
+  "linux_package_positive_cases": 6,
+  "manifest_config_patch_series_changes": false,
+  "prior_failure": "Linux Bash unwound preparation locals before outer EXIT trap; wrong-compression and changed-root fixtures detected leftover staging directories",
+  "prior_rejected_revision": "06a5885c99cff7e07754e07dc9050b6e63f9fdd4",
+  "project_revision": "02c6c39b9ae7c75785dcd9e256f8bdece3b06116",
+  "real_source_tree_extracted": false,
+  "result": "pass",
+  "retained_snapshot": {
+    "copied": false,
+    "extracted": false,
+    "inspection": "pass",
+    "members_inspected": 102310,
+    "sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d"
+  },
+  "schema": 1,
+  "source_contract_groups": 7
+}

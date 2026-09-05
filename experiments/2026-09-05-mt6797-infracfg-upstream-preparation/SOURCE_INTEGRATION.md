@@ -9,7 +9,7 @@ parent is a post-7.3-rc1 commit; compiling the old local 7.1.3 repair cannot sta
 in for validation of that complete upstream tree.
 
 The original contract below is now implemented by the isolated
-[production-wiring proposal](SOURCE_WIRING.md), pending Linux validation and
+[production-wiring proposal](SOURCE_WIRING.md), with passing Linux validation and pending
 integrator review.
 The upstream worker owns the experiment scripts below. Project Planning owns
 integration into shared scripts, manifest and canonical series. No kernel build
@@ -131,7 +131,7 @@ Fifteen test groups passed, including the live repository comparison preserving
 all 189 baseline profiles and real input/order mutations. The common repository
 gate passed; Linux-only artifact fixtures remain an integration/CI requirement.
 The pure contract and preservation oracle are review-ready. Archive acquisition is complete. Production wiring is proposed separately;
-Linux validation, profile admission, kernel compilation, KUnit execution and
+Profile admission, kernel compilation, KUnit execution and
 schema checks remain open. The integrator can review this bounded dependency
 without waiting for physical boot selection. Until shared integration is
 complete, this experiment must not claim that Buildbox supports profile source
