@@ -1,9 +1,12 @@
 # Attended installation outcome and offline correction
 
-The candidate was not written. The sole baseline custodian remains assigned.
-The later owner-authorized SSH verification below resolved the ambiguous boot
-report as unchanged Gemian. No Ready-for-boot2 baseline handoff was issued;
-corrective preparation remains separate from any subsequent installation.
+The corrected installation and first physical baseline session completed through
+verified changed-ID Gemian recovery. Baseline observation, authentication,
+owner console acceptance and log preservation passed. The native recovery-request
+transport witness timed out, so the fixed overall result remains
+`recovered-with-baseline-incomplete`; no dependent experiment is admitted.
+The sole baseline custodian remains assigned pending coordinator handoff. Exact
+chronology and preserved failed attempts follow below.
 
 ## Observed sequence
 
@@ -95,3 +98,96 @@ and restored swap state. This resolves the ambiguous physical-boot report at
 that observation. No installation, swap change, reboot or baseline test followed;
 further live work still requires the coordinator's review and admission. The
 private receipt is `owner-gemian-verification-1/` in the attended archive.
+
+## Corrected second installation result
+
+After exact-source review, the separately claimed second deactivation passed
+both fresh samples, the immediate gate and inactive postcondition. The separately
+admitted corrected installer then completed once with exit zero in 36.187 seconds.
+It recorded the predecessor checksum, wrote only live-GPT-resolved boot2, synced
+and flushed, verified its full-partition checksum, removed staging, and performed
+a matching independent full readback. Its strict receipt and receipt checksum
+passed independent validation. The initial/probe/write/post identities match the
+prerequisite boot. Temporary readback data was removed.
+
+The installer requested clean shutdown, recorded a successful poweroff request
+and subsequent unreachability, and performed no reboot. No abort restoration was
+needed. The private immutable records are `temporary-zram-deactivate-2/` and
+`installer-execution-2/` in the attended archive, plus the separately validated
+`a53-authenticated-baseline-deployment-2` deployment evidence. Exact candidate
+and corrected installer pins are retained in [the retry handoff](INSTALL_RETRY.md).
+
+This is a verified deployment result, not a successful baseline boot or hardware
+support promotion. The coordinator alone reviews the receipt and issues the
+physical-selection notification; the worker has not requested that action.
+
+## First physical baseline session
+
+The owner confirmed boot2 selection after deployment. Host-only inspection found
+the unique expected gadget interface, active carrier, the fixed host address and
+a direct subnet route on that interface. No address correction or SSH canary was
+needed. The route lookup socket was sandbox-denied; the routing table supplied
+the direct-route evidence. A local archive-permission gate failed before any
+collector claim or transport; tightening the owner-controlled archive to mode
+0700 allowed the same admission to create exactly one observation attempt.
+
+The fixed collector returned `baseline-observation-only-pass`: authenticated
+capture, exact live configuration/member identities and serviceability predicates
+passed on an attributable boot distinct from the deployment OS. It used one SSH
+attempt, exited zero in 1.263 seconds and produced no stderr. The owner separately
+confirmed that the authenticated-baseline screen was readable.
+
+The separately admitted authentication checks passed: rejected key, wrong host
+pin and fresh positive authentication. The one admitted log preservation returned
+`complete-log-through-seal`, including terminal-before-export evidence and all
+1746 records / 121077 bytes from sequence zero through explicit seal. No remote
+records were deleted.
+
+The ordinary native recovery request remains `inconclusive`. Its exact request
+frame and wrapper announcement were captured, but the transport reached its
+outer timeout after 14.011 seconds without the required confirmed disconnect.
+The request budget was consumed; it was not repeated or reclassified as success.
+
+After the owner confirmed Gemian had returned, one separately admitted known-good
+probe established `changed-ID-Gemian`, distinct from both the preceding Gemian
+and mainline boot identities. Prior authentication and log proofs verified; the
+native request proof remained incomplete. The fixed overall classifier returned
+`recovered-with-baseline-incomplete`. This confirms known-good recovery without
+silently converting the incomplete native-request witness into a full baseline
+pass or admitting dependent experiments.
+
+All exact observations, phase manifests and private raw records remain in the
+collector attempt and its corresponding session archive. No input, storage,
+radio or thermal experiment was added. Further queue, custody and physical-session
+actions belong to the coordinator; no follow-on device action is admitted here.
+
+## Independent integration assessment of the session
+
+Project Planning independently reparsed the saved original capture with the
+shared verifier, verified authentication/export phase inventories and raw
+results, and verified the final confirmation inventory and changed-ID Gemian
+probe. The completed checks reproduce the classifications above. The first
+confirmation-check invocation used a prior-phase-only helper and refused before
+parsing; the dedicated confirmation inventory helper then passed. Neither call
+performed device access.
+
+The exact candidate, configuration and deployment identities are in the linked
+retry record. This was one first baseline boot of the project's named Gemini,
+not a ten-cold-boot regression. The original native-request timeout and combined
+incomplete result remain unchanged. Offline review will determine whether a
+separate, explicit recovery proof can use the complete saved request and actual
+changed-ID Gemian confirmation; no repeat boot is selected to repair a parser.
+
+Reviewed private inventory SHA256 values:
+
+| Evidence | SHA256 |
+| --- | --- |
+| Original observation | `266398b98b7c7052714a1c14e465846c4355b268756ff9ca7055644f808cee9c` |
+| Authentication checks | `aa0d6160c0c3bfed72994008ee2b9401b3d1f9289163db88693118d7c8894e44` |
+| Log preservation | `8293a8ad758770f1529ea01a1479d9d1b6e6a7b0834ce77cf49091277b6bf3de` |
+| Inconclusive native request | `ddea308955c0ee801fe6f68c6c3a56e8120d89136428da30ca312cad67751e3b` |
+| Known-good confirmation | `c380610d72b3771340886b2a2a772ddfc5e92a35a486bb2994b26ffc0c581dac` |
+
+No raw RAM logs, credentials, MAC addresses or personal identifiers are published.
+The completed physical-session budget is consumed, Gemian is confirmed recovered,
+and custody is released. Further live actions need the next named session.

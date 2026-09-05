@@ -3,23 +3,23 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": "a53-authenticated-baseline",
-  "selection_note": "The selected authenticated baseline has a verified guarded boot2 installation, matching full-partition readback and clean shutdown. One owner physical boot2 selection is pending.",
+  "selected_item": null,
+  "selection_note": "The authenticated baseline first boot is completed and Gemian recovery confirmed. Its native-request witness remains inconclusive; no repeat or dependent device session is selected. Offline recovery-validation correction continues.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
-      "preparation_state": "ready",
-      "device_state": "waiting-owner-boot",
+      "preparation_state": "stale",
+      "device_state": "complete",
       "owner": "A53 baseline and queued device tests",
       "reviewer": "Project Planning",
-      "device_custodian": "A53 baseline and queued device tests",
+      "device_custodian": null,
       "experiment": "experiments/2026-09-05-owner-away-experiment-preparation/README.md#a53-authenticated-baseline",
       "session_packet": "experiments/2026-09-05-owner-away-experiment-preparation/baseline/SESSION.md",
       "candidate_record": "experiments/2026-09-05-owner-away-experiment-preparation/baseline/PREPARATION_RESULTS.md",
-      "readiness_record": "experiments/2026-09-05-owner-away-experiment-preparation/baseline/INSTALL_RETRY.md",
+      "readiness_record": "experiments/2026-09-05-owner-away-experiment-preparation/baseline/ATTENDED_OUTCOME.md",
       "dependencies": [],
       "owner_task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64",
-      "readiness_note": "Corrected installation completed; full readback matches the frozen candidate and clean shutdown is confirmed. Root independently validated receipt and inventories. Await one owner boot2 selection; no baseline runtime test yet."
+      "readiness_note": "One baseline observation, authentication checks, readable console and complete log preservation passed. Changed-ID Gemian return is confirmed, but the native-request transport timed out and the fixed combined result remains recovered-with-baseline-incomplete. All session budgets consumed; offline validation correction only, no dependent admission."
     },
     "keyboard-coverage": {
       "workstream": "serviceability",
