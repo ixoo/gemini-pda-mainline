@@ -97,5 +97,7 @@ No partial-transfer recovery is invented. Its absence prevents transparent
 retry/restart, not a finite primitive that fails the session and leaves
 recovery to the owner. A production removable driver still needs a reviewed
 teardown path; retaining the owner on uncertainty cannot be disguised as
-successful release. DMA translation and full Wi-Fi usability remain required
-for the overall project. This reassessment adds no device/backend action.
+successful release. Full Wi-Fi usability remains the user-facing requirement.
+DMA is a performance option if a functioning PIO path meets that requirement;
+translation proof is required before enabling DMA, not before usable Wi-Fi
+through PIO. This reassessment adds no device/backend action.
