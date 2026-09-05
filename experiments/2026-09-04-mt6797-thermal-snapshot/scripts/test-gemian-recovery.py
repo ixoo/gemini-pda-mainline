@@ -89,7 +89,7 @@ def main():
             except ValueError: pass
             else: raise AssertionError('invalid manifest admitted')
             write_receipt(directory, raw_receipt)
-        scenarios = ('observed', 'comparison-reject', 'pre-Gemian-boot', 'pre-consumed', 'pre-hot',
+        scenarios = ('observed', 'comparison-reject', 'pre-Gemian-boot', 'pre-consumed', 'pre-hot', 'pre-quantization',
                      'runtime-timeout', 'runtime-truncated', 'runtime-nonzero', 'interrupt',
                      'post-timeout', 'post-boot', 'post-hot', 'post-accounting', 'post-missing')
         for scenario in scenarios:
@@ -106,6 +106,7 @@ def main():
                     raw = pre
                     if scenario == 'pre-Gemian-boot': raw = raw.replace(f.BOOT, host.GEMIAN_BOOT)
                     if scenario == 'pre-consumed': raw = raw.replace(f.BOOT, host.CORE.SOURCE_BOOT)
+                    if scenario == 'pre-quantization': raw = re.sub('thermal_temperature_millicelsius=[0-9]+', 'thermal_temperature_millicelsius=35001', raw)
                     if scenario == 'pre-hot': raw = re.sub('thermal_temperature_millicelsius=[0-9]+', 'thermal_temperature_millicelsius=59000', raw)
                 elif n == 2:
                     assert (case / 'run/workload.requested').read_text() == 'requested=yes\n'

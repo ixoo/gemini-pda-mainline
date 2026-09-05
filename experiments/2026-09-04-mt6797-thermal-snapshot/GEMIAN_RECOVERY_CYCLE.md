@@ -99,3 +99,15 @@ USB. The installer derivation passes Bash syntax and ShellCheck. The complete
 `--suite gemian-recovery` exact-candidate BusyBox validation must be published
 before the preparation command above is selected. The underlying program's
 prior exact-shell pass does not alone validate this new host adapter.
+
+
+## Initial-state precision review
+
+The [first adapter exact-shell run](results/gemian-recovery-shell-c50c340b.json)
+passed its fixtures on `c50c340b`, but a review found that initial temperature
+precision was enforced by the thermal assessor only after execution. Its
+inherited pristine gate already checked range; the adapter now also rejects
+non-100-mC values before program creation and request publication. A new
+preflight mutation proves that no workload request follows this refusal.
+This earlier pass does not admit device preparation. Revalidate the corrected
+published revision under the exact candidate shell before selection.

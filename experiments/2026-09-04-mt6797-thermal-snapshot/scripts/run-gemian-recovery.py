@@ -65,6 +65,8 @@ def workload(capture, deployment):
     pre = state.validate_state(raw, record_identity=protocol.RECORD, deployment_boot=boot)
     if pre['boot_id'] in classifier.CLOSED_BOOTS | {GEMIAN_BOOT}:
         raise ValueError('consumed boot identity')
+    if int(pre['thermal_temperature_millicelsius']) % 100:
+        raise ValueError('initial temperature precision refusal')
     if pre['thermal_snapshot_path'] != protocol.PATH:
         raise ValueError('thermal device path changed')
     _, late = CORE.frame(raw)

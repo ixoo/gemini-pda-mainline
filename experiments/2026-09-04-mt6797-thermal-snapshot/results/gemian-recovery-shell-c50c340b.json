@@ -1,0 +1,16 @@
+{
+  "busybox_banner": "BusyBox v1.36.1 (Ubuntu 1:1.36.1-6ubuntu3.1) multi-call binary.",
+  "busybox_sha256": "52151e7f322f926b64049cdaa1410dc3ea6485525e0624b05813791c219ae933",
+  "classification": "candidate-shell-fixtures-pass",
+  "device_action": "none",
+  "device_admission": "not-selected-initial-precision-preflight-gap",
+  "emulator": "qemu-aarch64-static",
+  "initramfs_sha256": "e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f",
+  "kernel_build": "none",
+  "log_sha256": "4af736795f4260f21481a995da3d87cb8d17160c1f8e70022963662b91b4f0af",
+  "managed_test_cleanup": "pass",
+  "revision": "c50c340b6bc2e67925df082380e4e19578f85251",
+  "shell_and_parser_applets": "exact-candidate",
+  "suite": "gemian-recovery",
+  "temporary_binary": "removed-on-exit"
+}
