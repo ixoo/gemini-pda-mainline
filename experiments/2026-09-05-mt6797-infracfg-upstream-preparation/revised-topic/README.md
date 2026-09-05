@@ -15,7 +15,8 @@ position 3 references the supplied 481-byte diff, SHA-256
 `dc1e60d1a528931eb035093132b35c4c32a7169d62a2cf8b4b77777fdee99ba2`.
 This is a usable Git patch payload, **not a newly generated format-patch mail**.
 No replacement Git commit/tree identity, mail author or certification is invented.
-A full regenerated mail archive requires a separately assigned backend window.
+A separately admitted window has now produced a full regenerated archive;
+[attempt 2](ATTEMPT_2.md) records its measured result pending independent acceptance.
 
 [Existing derivation](../binding-compatibility/derive.py) generated that file
 from exact original patch 3 SHA-256
@@ -78,7 +79,7 @@ mode and phase editor remain unchanged. The revised path applies the exact six
 ordered inputs using bare Git metadata and separate indexes, with every final
 source hash and changed path checked against the immutable proposal. The
 [execution plan](EXECUTION.md) defines one bounded generation window for the
-integrator to admit after publication. No backend execution has occurred.
+integrator to admit after publication. The subsequent [attempt 2](ATTEMPT_2.md) records collected backend evidence.
 
 The replacement position-3 subject should describe adding MT6797 reset IDs.
 Its message should explain the two exported IDs and why the existing optional
@@ -108,8 +109,9 @@ Required at that admitted generation boundary:
 Existing evidence can be carried with its scope: original topic compilation,
 reset arithmetic tests and original binding/DT checks; accepted 50-row focused
 optionality comparison with attributed raw/decoder errors; separate actual-C
-provider tests and two-proposal compilation. Full revised-topic generation,
-exact replay/style/routing and final submission certification remain pending.
+provider tests and two-proposal compilation. Revised generation/replay/style/routing evidence is now collected in
+[attempt 2](ATTEMPT_2.md); independent acceptance and final submission
+certification remain pending.
 
 ## Authorship, DCO and destination
 
@@ -150,3 +152,9 @@ was performed for this proposal.
 review archive. Its receipt and logs are preserved unchanged. The narrowly
 corrected partial-clone tree-writing mode has host validation only and awaits
 separate review/publication/admission; no backend retry is selected.
+
+## Corrected generation collected
+
+[Attempt 2](ATTEMPT_2.md) completed the exact source-hash/full-tree replay and
+review-tool checks with retained state preserved. Its original decision remains
+COLLECTED_REVIEW_REQUIRED. No new backend window or submission is selected.

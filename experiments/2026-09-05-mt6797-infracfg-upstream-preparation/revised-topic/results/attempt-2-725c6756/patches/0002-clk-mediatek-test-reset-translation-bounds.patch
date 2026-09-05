@@ -1,0 +1,143 @@
+From 91d4630b922a48fde24a9cd6a5f50110d2858fde Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 5 Sep 2026 03:01:00 +0000
+Subject: [PATCH 2/6] clk: mediatek: test reset translation bounds
+
+Exercise public-map limits, missing maps and banks, boundary bits, malformed mapped IDs and full-width invalid IDs without accessing hardware.
+---
+ drivers/clk/mediatek/Kconfig      |  8 +++
+ drivers/clk/mediatek/Makefile     |  1 +
+ drivers/clk/mediatek/reset-test.c | 94 +++++++++++++++++++++++++++++++
+ 3 files changed, 103 insertions(+)
+ create mode 100644 drivers/clk/mediatek/reset-test.c
+
+diff --git a/drivers/clk/mediatek/Kconfig b/drivers/clk/mediatek/Kconfig
+index b059d44..b4aef43 100644
+--- a/drivers/clk/mediatek/Kconfig
++++ b/drivers/clk/mediatek/Kconfig
+@@ -11,6 +11,14 @@ config COMMON_CLK_MEDIATEK
+ 	help
+ 	  MediaTek SoCs' clock support.
+ 
++config COMMON_CLK_MEDIATEK_RESET_KUNIT_TEST
++	tristate "Test MediaTek reset bounds" if !KUNIT_ALL_TESTS
++	depends on KUNIT
++	default KUNIT_ALL_TESTS
++	help
++	  Test reset index and SET/CLEAR register translation without
++	  registering a reset controller or accessing hardware.
++
+ config COMMON_CLK_MEDIATEK_FHCTL
+ 	bool "clock driver for MediaTek FHCTL hardware control"
+ 	select COMMON_CLK_MEDIATEK
+diff --git a/drivers/clk/mediatek/Makefile b/drivers/clk/mediatek/Makefile
+index 892a54e..3f38db7 100644
+--- a/drivers/clk/mediatek/Makefile
++++ b/drivers/clk/mediatek/Makefile
+@@ -1,5 +1,6 @@
+ # SPDX-License-Identifier: GPL-2.0
+ obj-$(CONFIG_COMMON_CLK_MEDIATEK) += clk-mtk.o clk-pll.o clk-gate.o clk-apmixed.o clk-cpumux.o reset.o clk-mux.o
++obj-$(CONFIG_COMMON_CLK_MEDIATEK_RESET_KUNIT_TEST) += reset-test.o
+ obj-$(CONFIG_COMMON_CLK_MEDIATEK_FHCTL) += clk-fhctl.o clk-pllfh.o
+ 
+ obj-$(CONFIG_COMMON_CLK_MT6735) += clk-mt6735-apmixedsys.o clk-mt6735-infracfg.o clk-mt6735-pericfg.o clk-mt6735-topckgen.o
+diff --git a/drivers/clk/mediatek/reset-test.c b/drivers/clk/mediatek/reset-test.c
+new file mode 100644
+index 0000000..74bd434
+--- /dev/null
++++ b/drivers/clk/mediatek/reset-test.c
+@@ -0,0 +1,94 @@
++// SPDX-License-Identifier: GPL-2.0-only
++#include <kunit/test.h>
++#include <linux/limits.h>
++#include <linux/module.h>
++
++#include "reset-internal.h"
++
++static u16 test_offsets[] = { 0x120, 0x140 };
++static u16 test_map[] = { 0, 32, 64 };
++
++static const struct mtk_clk_rst_desc test_desc = {
++	.rst_bank_ofs = test_offsets,
++	.rst_bank_nr = ARRAY_SIZE(test_offsets),
++	.rst_idx_map = test_map,
++	.rst_idx_map_nr = ARRAY_SIZE(test_map),
++};
++
++static void mtk_reset_map_bounds(struct kunit *test)
++{
++	struct mtk_clk_rst_desc desc = test_desc;
++
++	KUNIT_EXPECT_EQ(test, mtk_reset_xlate_index(&desc, 0), 0);
++	KUNIT_EXPECT_EQ(test, mtk_reset_xlate_index(&desc, 1), 32);
++	KUNIT_EXPECT_EQ(test, mtk_reset_xlate_index(&desc, 3), -EINVAL);
++	KUNIT_EXPECT_EQ(test, mtk_reset_xlate_index(&desc, UINT_MAX), -EINVAL);
++	desc.rst_idx_map = NULL;
++	KUNIT_EXPECT_EQ(test, mtk_reset_xlate_index(&desc, 0), -EINVAL);
++}
++
++static void mtk_reset_register_pairs(struct kunit *test)
++{
++	unsigned int reg = 0, mask = 0;
++
++	KUNIT_ASSERT_EQ(test, mtk_reset_set_clr_reg(&test_desc, 0, false,
++						    &reg, &mask), 0);
++	KUNIT_EXPECT_EQ(test, reg, 0x120U);
++	KUNIT_EXPECT_EQ(test, mask, BIT(0));
++	KUNIT_ASSERT_EQ(test, mtk_reset_set_clr_reg(&test_desc, 63, true,
++						    &reg, &mask), 0);
++	KUNIT_EXPECT_EQ(test, reg, 0x144U);
++	KUNIT_EXPECT_EQ(test, mask, BIT(31));
++}
++
++static void expect_no_address(struct kunit *test,
++			      const struct mtk_clk_rst_desc *desc,
++			      unsigned long id)
++{
++	unsigned int reg = 0xfeed, mask = 0xbeef;
++
++	KUNIT_EXPECT_EQ(test, mtk_reset_set_clr_reg(desc, id, false,
++						    &reg, &mask), -EINVAL);
++	KUNIT_EXPECT_EQ(test, reg, 0xfeedU);
++	KUNIT_EXPECT_EQ(test, mask, 0xbeefU);
++}
++
++static void mtk_reset_invalid_bank(struct kunit *test)
++{
++	int id = mtk_reset_xlate_index(&test_desc, 2);
++
++	KUNIT_ASSERT_EQ(test, id, 64);
++	expect_no_address(test, &test_desc, id);
++	expect_no_address(test, &test_desc, ULONG_MAX);
++	/* Also catches a bank narrowed to zero on a 64-bit build. */
++	if (BITS_PER_LONG > 32)
++		expect_no_address(test, &test_desc, (unsigned long)(1ULL << 37));
++}
++
++static void mtk_reset_missing_banks(struct kunit *test)
++{
++	struct mtk_clk_rst_desc desc = test_desc;
++
++	desc.rst_bank_nr = 0;
++	expect_no_address(test, &desc, 0);
++	desc = test_desc;
++	desc.rst_bank_ofs = NULL;
++	expect_no_address(test, &desc, 0);
++}
++
++static struct kunit_case mtk_reset_cases[] = {
++	KUNIT_CASE(mtk_reset_map_bounds),
++	KUNIT_CASE(mtk_reset_register_pairs),
++	KUNIT_CASE(mtk_reset_invalid_bank),
++	KUNIT_CASE(mtk_reset_missing_banks),
++	{}
++};
++
++static struct kunit_suite mtk_reset_suite = {
++	.name = "mtk-reset-bounds",
++	.test_cases = mtk_reset_cases,
++};
++
++kunit_test_suite(mtk_reset_suite);
++
++MODULE_LICENSE("GPL");

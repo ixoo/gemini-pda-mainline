@@ -3,3 +3,4 @@
 *.patch whitespace=-trailing-space,-space-before-tab
 # Preserve this original tool-version receipt byte-for-byte, including its final blank line.
 experiments/2026-09-05-mt6797-infracfg-upstream-preparation/revised-topic/results/attempt-1-7209e9d0/perl-version.stdout whitespace=-blank-at-eof
+experiments/2026-09-05-mt6797-infracfg-upstream-preparation/revised-topic/results/attempt-2-725c6756/perl-version.stdout whitespace=-blank-at-eof

@@ -1,0 +1,49 @@
+{
+  "result": "COLLECTED_REVIEW_REQUIRED",
+  "scope": "host hashes and exact selected payload comparison; integrator acceptance pending",
+  "patches": [
+    {
+      "position": 1,
+      "mail_sha256": "ab875a831822e1809619f0034f29f8c068af133012da196ba59a62977b884fd5",
+      "payload_matches_selected_input": true,
+      "payload_sha256": "6e4adc25d9f2eea6975dac921bcd7c82522d16c48ddd739adc78ac98675c4404",
+      "actual_commit": "ef85af6b76cd1f8c28aac853cb0e6ed7360d5f11"
+    },
+    {
+      "position": 2,
+      "mail_sha256": "211f2b95d24d7cb09085d99ade5bcd681254f55145e227920fd62b773f30d483",
+      "payload_matches_selected_input": true,
+      "payload_sha256": "39e7bd5bc424befc95f61027cb2306e12ef7c0eacee8505476cf2e5af2ebdd04",
+      "actual_commit": "91d4630b922a48fde24a9cd6a5f50110d2858fde"
+    },
+    {
+      "position": 3,
+      "mail_sha256": "0c8af0a97f42424830d5c6b59f9830a42d4212b728507ea6f433f7a8713fff25",
+      "payload_matches_selected_input": true,
+      "payload_sha256": "dc1e60d1a528931eb035093132b35c4c32a7169d62a2cf8b4b77777fdee99ba2",
+      "actual_commit": "0d3d11f9304085d44124a750ab613663abb2ed53"
+    },
+    {
+      "position": 4,
+      "mail_sha256": "cdebf647bc8d78a7f9bd272c8f959af6dfca1bbb8a1a4204f7bb2e0457ef33e1",
+      "payload_matches_selected_input": true,
+      "payload_sha256": "dcd8b3f8fc4732a0e1fb7257582137a0cd1900aa15565a516feb3a7d95b93731",
+      "actual_commit": "bb0e33916825d2f6a362def8386cdd74b82ee7c0"
+    },
+    {
+      "position": 5,
+      "mail_sha256": "224ec2f5e912abace4e0ef47f3300f7c78f47bea2980e7107e8ef0ad346ffeaa",
+      "payload_matches_selected_input": true,
+      "payload_sha256": "eb06cbbb9bed11083af8199a9a1c9f146e352bbf25f50b4076dec2c018ef3c73",
+      "actual_commit": "7174df0a1c6ccd8d244fef989852b1c1a7486bf2"
+    },
+    {
+      "position": 6,
+      "mail_sha256": "985a2e3fb7365201f2c203dcdf141f374fd54ef85edc727919a3abaa33af6a36",
+      "payload_matches_selected_input": true,
+      "payload_sha256": "24250bc8ba80341a7babb44681e12ab40e1988a2399de97d5b2b5ad0e1a33ff7",
+      "actual_commit": "2338c81b81a52c5af4876bac9552ce4582fe9414"
+    }
+  ],
+  "certification": "synthetic non-certifying identity; no certification trailers"
+}
