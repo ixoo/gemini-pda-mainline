@@ -306,3 +306,7 @@ is a converted-range predicate, not proof of conversion freshness.
 The [register-contract audit](REGISTER_CONTRACT.md) rejects treating AUXADC
 input validity or interrupt status as an established thermal-result freshness
 signal. A bounded reported-temperature recovery design is prospective only.
+
+The [recovery design and offline thermal evaluator](RECOVERY_DESIGN.md) now
+freeze response semantics and timing without admitting a device run. Complete
+source-pinned execution and worker-quiescence validation remain required.

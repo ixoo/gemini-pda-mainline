@@ -8365,14 +8365,16 @@ use separate bank measurements; neither establishes conversion age or placement.
 The [register-contract review](../experiments/2026-09-04-mt6797-thermal-snapshot/REGISTER_CONTRACT.md)
 finds no verified passive freshness signal in the reviewed sources. AUXADC input
 validity is not thermal-result freshness, and IRQ side effects remain unresolved.
-**Selected next:** design and offline-test a bounded reported-temperature recovery
-protocol using the existing snapshot interface: pre-workload, workers-complete,
-and one timed post-completion observation, with unchanged finite work ceilings.
-Require quiescent owned workers, new identity, explicit timing and complete
-accounting; retain unknown conversion age and distinguish response classification
-from the rejected integrated thermal comparison. No new boot or source change
-is admitted until that complete protocol and its negative fixtures are published.
-Preserve the rejection and unchanged comparison limits. No further diagnostic reads or workload on the consumed
+The [recovery design and thermal evaluator](../experiments/2026-09-04-mt6797-thermal-snapshot/RECOVERY_DESIGN.md)
+now specify a bounded post-completion time point and preserve comparison
+rejection independently of recovery. Offline response/refusal fixtures pass.
+**Selected next:** implement and test the complete source-pinned recovery
+program and combined classifier, preserving worker liveness and cleanup while
+moving only the thermal stage placement. Then bind the exclusive host capture,
+cycle/pristine/postflight gates and exact-candidate shell validation before any
+new boot is admitted. The pure thermal assessor cannot establish stage placement,
+worker quiescence or the complete action budget. Preserve unknown conversion
+age, the previous rejection and unchanged comparison limits. No further diagnostic reads or workload on the consumed
 session; no repeat is admitted. Any future boot requires a distinct,
 decision-changing hypothesis and published bounded protocol. Integrated thermal
 repeatability, broader load/hotplug, cpufreq/OPP, idle, suspend, thermal protection

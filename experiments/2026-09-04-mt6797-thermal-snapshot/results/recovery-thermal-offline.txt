@@ -1,0 +1,1 @@
+validation=recovery-thermal-assessment response_cases=3 timing_edges=2 slot_identity_cases=1 within_bounds_nonpromotion_cases=1 mutations_rejected=18 cli_cases=3 device_action=none
