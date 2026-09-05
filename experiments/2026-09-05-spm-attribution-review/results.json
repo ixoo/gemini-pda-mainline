@@ -1,0 +1,51 @@
+{
+  "review_date": "2026-09-05",
+  "decision": "accept-public-source-claims-and-retained-report-scope",
+  "review_inputs": [
+    {
+      "revision": "cf0d9f17b88423c432bc0ec32b845ef8a7d866bc",
+      "path": "experiments/2026-09-05-mt6797-wifi-contract/SPM_KEY_ORDER.md",
+      "sha256": "730731f169dac016b8146b0d4cd05783cb7b63ced45658eb4454f8192f227f6e"
+    },
+    {
+      "revision": "cf0d9f17b88423c432bc0ec32b845ef8a7d866bc",
+      "path": "experiments/2026-09-05-mt6797-wifi-contract/results/spm-key-order-sources.json",
+      "sha256": "d9b01d82a59a254114f660d8dc60a232e1ad0baa7dc3d7daf01600a7c316dbb8"
+    },
+    {
+      "revision": "cf0d9f17b88423c432bc0ec32b845ef8a7d866bc",
+      "path": "experiments/2026-09-05-mt6797-wifi-contract/results/spm-key-order-validation.txt",
+      "sha256": "58a7019f261e871c613942e28e7c6b659a85193c4a5d69dcde3d04f4cf9eb811"
+    },
+    {
+      "revision": "850b05698d82c97655cba9552a2eb38d7c36d9ff",
+      "path": "experiments/2026-09-05-mt6797-wifi-contract/RETAINED_SPM_ATTRIBUTION.md",
+      "sha256": "9b7dca863dec9d979cf38827d5a3a196327e563e066f669b23e9aaf2c316075e"
+    },
+    {
+      "revision": "850b05698d82c97655cba9552a2eb38d7c36d9ff",
+      "path": "experiments/2026-09-05-mt6797-wifi-contract/results/retained-spm-attribution-validation.txt",
+      "sha256": "75d7d85aa8e32918fbeba16b279266b7e331d65ed8819738211313cf0ff32342"
+    }
+  ],
+  "public_source_ledger_entries_independently_hash_verified": 12,
+  "public_source_revisions": 4,
+  "retained_binary_analysis_independently_reexecuted": false,
+  "retained_reports_reviewed": [
+    "active-gemian-boot-binary-audit-20260726.txt",
+    "tee-owner-disassembly-20260806.txt",
+    "retained-spm-attribution-validation.txt"
+  ],
+  "scope_checks": {
+    "spm_cspm_distinct": true,
+    "spm_0x218_not_enable_register": true,
+    "selected_off_order_differs_from_legacy": true,
+    "initialization_outside_disabled_pm_block": true,
+    "no_whole_firmware_absence_inference": true,
+    "no_runtime_execution_inference": true,
+    "no_restore_or_concurrency_admission": true
+  },
+  "device_backend_private_RE_access": false,
+  "author_files_modified": false,
+  "new_framework_or_fixture": false
+}
