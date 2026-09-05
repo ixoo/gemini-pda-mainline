@@ -6,6 +6,13 @@ export LC_ALL=C
 export PYTHONDONTWRITEBYTECODE=1
 
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+# Explicit revised mode is independent of the historical editor below.
+if [[ ${1:-} == --revised ]]; then
+	[[ $# == 3 && $2 =~ ^[0-9a-f]{40}$ && $3 == refs/heads/* ]] || die 'expected --revised EXACT_REVISION FULL_BRANCH_REF'
+	exec /workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin/python -B \
+		"$(dirname -- "${BASH_SOURCE[0]}")/derive-topic.py" \
+		--revised-generate "$2" --published-ref "$3"
+fi
 [[ $# == 1 && $1 =~ ^[0-9a-f]{40}$ ]] || die 'expected exact project commit'
 readonly revision=$1
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
