@@ -1,0 +1,47 @@
+{
+  "build_commit": "4ec63076aeb6388ba24b33ee20afcf19ced541e1",
+  "build_root": "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-infracfg-upstream-kunit",
+  "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+  "direct_timeout_seconds": 30,
+  "dtbs": [
+    "mediatek/mt6797-evb.dtb",
+    "mediatek/mt6797-x20-dev.dtb"
+  ],
+  "integrity_timeout_seconds": 180,
+  "kill_after_seconds": 5,
+  "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+  "log_bytes": 16777216,
+  "make_timeout_seconds": 300,
+  "protected_build_files": {
+    ".config": "d37fb4ebef4ecdcd5854ada8ae3a4c8eed29c630fddd77329bc0a8beed246530",
+    "arch/arm64/boot/Image.gz": "c0a7e412f6d778ae523f1dfd63f9c54db91e269fe45b06d7411663dbf88dcc1e",
+    "arch/arm64/boot/dts/mediatek/mt6797-evb.dtb": "e6226ae9628dd0356772f69f5e7987aa8a19cdd92616114c4ef0b92dfac94109",
+    "arch/arm64/boot/dts/mediatek/mt6797-x20-dev.dtb": "698d683f4c8fef4d4887911e913198c859ac0cadd1042370571466d06fd785c3",
+    "drivers/clk/mediatek/clk-mt6797-reset-test.o": "49f2c59ee4942aff787f57fe76073c7b8f296fff9e8c7d9bdef075eebc50a09c",
+    "drivers/clk/mediatek/clk-mt6797.o": "ac31e10f83c5baf145f91983fbf30dfe22a7f4fc352de5543891806077f31f86",
+    "drivers/clk/mediatek/reset-test.o": "df10679309a0024909a3f4f52117a1c64fd6b8a7c09cce3ec64c64cc533f8947",
+    "drivers/clk/mediatek/reset.o": "f8f0a72621b94fff10acc4d5e7b6142788961492cddac1d1cda3a6a7d88a55bf",
+    "include/config/kernel.release": "200aed562b70c9a2b94d4f223e9f67836fd230a0400a0f09a1bee5792c19fd17"
+  },
+  "schema": 1,
+  "schema_filter": "clock/mediatek,infracfg.yaml",
+  "schema_id": "http://devicetree.org/schemas/clock/mediatek,infracfg.yaml#",
+  "source_files": {
+    "Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml": "83e13fddec7a39f2f6cc95408e9f3c4389fe55c9d33dfd635105d36c52c2979a",
+    "arch/arm64/boot/dts/mediatek/mt6797.dtsi": "8bddb48d07e5d5af1ee4a1f0fc2369f4424f47881cc070342a74b684b028f353",
+    "drivers/clk/mediatek/Kconfig": "3f87bc5158596cfb7d723e7d9efb82646596a9bc81399eba94ad9337540da40c",
+    "drivers/clk/mediatek/Makefile": "de8bad78288fea86b39d6c74044c0f3ca692290fd69ff7e93af00d372cd30ca2",
+    "drivers/clk/mediatek/clk-mt6797-reset-test.c": "d8ae35ac66827fc5b696aa896f8856739ff70321d00ca8c48c84d41c489cc23f",
+    "drivers/clk/mediatek/clk-mt6797-reset.h": "240dc21ef060bb0bb2cedb23ad356bfcb2a1d27e636928fea86abb30d107969a",
+    "drivers/clk/mediatek/clk-mt6797.c": "16a1e0b8af26fc09de6b9096f4c211eae5231d7505d962dae476fc1958ee94f9",
+    "drivers/clk/mediatek/reset-internal.h": "978e6630d2784074b4e9ff248077026072689e365f0bdc327d6948601acad189",
+    "drivers/clk/mediatek/reset-test.c": "01a861da34f550546da15534f29aee1118df69eac827216d1458b78839a95fd3",
+    "drivers/clk/mediatek/reset.c": "02e62f0b73481a51137442d609cdf88291e0e9108dafe078440054fa434fe315",
+    "include/dt-bindings/reset/mt6797-resets.h": "d83d278526a434d453f66235d28a737d4803fe315b82c6bea79d27ecb6c23269"
+  },
+  "source_integrity": "90923e5fb4d9bf2db35049abb6011437bc334aeedc528f099591f6198e9fc7aa",
+  "source_root": "/workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-infracfg-upstream-kunit-source",
+  "source_state": "2d5410d33d5c55def94fdb025de329e4486d929963b097623bf35790b5840c3f",
+  "tools_root": "/workspace/gemini-pda/cache/validation-tools/schema-2026.6",
+  "tools_setup_sha256": "36a938aee866f09eb650769e8f5ae049f7793a719f966eaf5050a2d761a90383"
+}

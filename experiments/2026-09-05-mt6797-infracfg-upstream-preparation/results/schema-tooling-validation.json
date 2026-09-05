@@ -1,0 +1,35 @@
+{
+  "common_repository_gate": "pass; 190 profiles",
+  "date": "2026-09-05",
+  "files_sha256": {
+    "QEMU_VALIDATION.md": "f87f507afaebdb901ec0be9ed119c47f5eaed6496e173d4d81ddf3c23673f424",
+    "SCHEMA_EXECUTION.md": "499ee2c8e4232626ac2082ae04b44a10fd36c20c211d46d5369fb4c04180430f",
+    "schema-contract.json": "f82c1ce3973406126a04f3c503c841815c24932f84b44985d1cc9229568ae2d5",
+    "scripts/schema-check.py": "0279f1dfbd994390d381587ba6ba2185a1304677c8a09487bf0872c9e67acafa",
+    "scripts/test-schema-check.py": "9c83bdbb50d4d27e299ea5ddd9e8193fb9f37da066d3e468e9975863354ac479"
+  },
+  "fixture_tests_passed": 10,
+  "fixtures": "synthetic protected files, properties, processed-schema objects and Python subprocesses; no make or dtschema targets",
+  "linux_provenance_fixture": "skipped on macOS; mandatory in CI",
+  "metadata_inspection": "read-only retained source markers/recipe text and pinned schema tools help/source interfaces; Python bytecode writes disabled",
+  "not_run": [
+    "schema helper --execute",
+    "source-integrity verifier",
+    "dt_binding_check",
+    "dtbs_check",
+    "direct DTB validation",
+    "real libfdt DTB traversal",
+    "QEMU guest",
+    "kernel compile",
+    "device action"
+  ],
+  "preparation_base": "610a6ae9",
+  "review": "pending integrator review and assigned shared-build lock window",
+  "schema": 1,
+  "unchanged": [
+    "QEMU runner code",
+    "QEMU contract",
+    "exact4ecpackage",
+    "source/build/cache"
+  ]
+}

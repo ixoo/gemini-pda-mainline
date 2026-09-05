@@ -1,0 +1,27 @@
+{
+  "common_repository_gate": "pass; 190 profiles",
+  "date": "2026-09-05",
+  "execution_admission": "awaits integrator review and exact Linux fixture pass",
+  "files_sha256": {
+    "QEMU_VALIDATION.md": "44ce15390f1d9b82aed3c5f845ec67264a0ba49d8b56311546538143c9ecec88",
+    "qemu-contract.json": "b2cb6276a47b2f784c615bf2f79731559d9a205bdc1686e5660748385f3762e2",
+    "scripts/qemu-check.py": "4589fcfb965a041442d403835592236baddef35e0da90f9daac0450f48ef31b6",
+    "scripts/test-qemu-check.py": "030354208ccf51fd47379df0a1380a3f67a0a147c7e26b82a11fe1e0a1d9333f"
+  },
+  "fixture_tests_passed": 20,
+  "fixtures": "synthetic KTAP, tiny packages and fake Python subprocesses; no QEMU",
+  "host_package_dry_run": {
+    "inventory_sha256": "8393a89ef3dbdb3bbae967d6adc78cf5a1cd907c21f21e9ba2efc015ba041917",
+    "members": 132,
+    "result": "pass"
+  },
+  "linux_provenance_fixture": "skipped on macOS; mandatory in CI",
+  "not_run": [
+    "QEMU guest",
+    "schema commands",
+    "kernel build",
+    "device access"
+  ],
+  "repository_base": "4ec63076aeb6388ba24b33ee20afcf19ced541e1",
+  "schema": 1
+}

@@ -138,3 +138,6 @@ no fault-injection, concurrent detach or full clock-driver lifetime test ran.
 The separate [TOPRGU assessment](../2026-09-05-mt6797-toprgu-upstream-preparation/README.md),
 adopted from `df489707`, likewise passed independent source/evidence review and
 remains unready for submission. Neither changes the build's inputs.
+
+The subsequent [virtual-test integration](QEMU_INTEGRATION.md) owns runner
+corrections, isolated dependency setup and remaining Linux/execution checks.

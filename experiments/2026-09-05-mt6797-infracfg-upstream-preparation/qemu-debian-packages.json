@@ -1,0 +1,686 @@
+{
+  "backend": {
+    "apt_lists": "absent",
+    "architecture": "amd64",
+    "distribution": "Debian 12 bookworm",
+    "inventory_scope": "bounded read-only search of PATH and known tool roots; not an exhaustive filesystem proof",
+    "machine": "x86_64",
+    "name": "Buildbox",
+    "retained_user_emulator_package": {
+      "package": "qemu-user-static",
+      "version": "1:7.2+dfsg-7+deb12u18+b3"
+    },
+    "sudo": false,
+    "system_emulator_in_path": false,
+    "uid": 10001
+  },
+  "date_utc": "2026-09-05",
+  "free_space_admission_minimum_bytes": 536870912,
+  "installed_dependency_versions": {
+    "adduser": "3.134",
+    "libbpf1": "1:1.1.2-0+deb12u1",
+    "libbsd0": "0.11.7-2",
+    "libc6": "2.36-9+deb12u14",
+    "libcap-ng0": "0.8.3-1+b3",
+    "libcap2": "1:2.66-4+deb12u3+b1",
+    "libcap2-bin": "1:2.66-4+deb12u3+b1",
+    "libdw1": "0.188-2.1",
+    "libexpat1": "2.5.0-1+deb12u2",
+    "libfdt1": "1.6.1-4+b1",
+    "libffi8": "3.4.4-1",
+    "libgcc-s1": "12.2.0-14+deb12u1",
+    "libglib2.0-0": "2.74.6-2+deb12u9",
+    "libgmp10": "2:6.2.1+dfsg1-1.1",
+    "libgnutls30": "3.7.9-2+deb12u7",
+    "libhogweed6": "3.8.1-2",
+    "libkmod2": "30+20221128-1",
+    "liblz4-1": "1.9.4-1",
+    "libncursesw6": "6.4-4",
+    "libnettle8": "3.8.1-2",
+    "libnl-3-200": "3.7.0-0.2+b1",
+    "libnspr4": "2:4.35-1",
+    "libnss3": "2:3.87.1-1+deb12u4",
+    "libsasl2-2": "2.1.28+dfsg-10",
+    "libseccomp2": "2.5.4-1+deb12u1",
+    "libssl3": "3.0.20-1~deb12u2",
+    "libstdc++6": "12.2.0-14+deb12u1",
+    "libsystemd0": "252.39-1~deb12u2",
+    "libtinfo6": "6.4-4",
+    "libudev1": "252.39-1~deb12u2",
+    "libunwind8": "1.6.2-3",
+    "libuuid1": "2.38.1-5+deb12u3",
+    "libzstd1": "1.5.4+dfsg2-5",
+    "zlib1g": "1:1.2.13.dfsg-1"
+  },
+  "metadata_trust": {
+    "limitations": [
+      "Depends relation versions and alternatives must be checked against the verified .deb control records before extraction; depends_names is a graph, not a complete Debian relation parser.",
+      "Existing installed dependency versions are an observed host baseline; prefix setup must recheck them and refuse unexplained changes.",
+      "No recommends or suggests selected; binary linkage and requested machine support remain untested."
+    ],
+    "method": "recursive Depends package-name closure against installed dpkg package names; selected amd64/all download records",
+    "payload_bytes_verified": false,
+    "provider": "official Debian HTTPS package/dependency pages",
+    "release_signature_verified": false,
+    "version_epoch_method": "All 39 official package detail titles independently inspected; epoch restored to the exact selected filename version."
+  },
+  "package_count": 39,
+  "packages": [
+    {
+      "architecture": "all",
+      "bytes": 2906084,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/iso-codes",
+      "depends_names": [],
+      "metadata_url": "https://packages.debian.org/bookworm/all/iso-codes/download",
+      "package": "iso-codes",
+      "sha256": "b1beb869303229c38288d4ddacfd582c91f594759b5767c9cecebd87f16ff70e",
+      "url": "https://deb.debian.org/debian/pool/main/i/iso-codes/iso-codes_4.15.0-1_all.deb",
+      "version": "4.15.0-1"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 13360,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libaio1",
+      "depends_names": [
+        "libc6"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libaio1/download",
+      "package": "libaio1",
+      "sha256": "d1476e4beab3d85f8a7d31de94c27472711ed3ef399ce70708e24b259426125b",
+      "url": "https://deb.debian.org/debian/pool/main/liba/libaio/libaio1_0.3.113-4_amd64.deb",
+      "version": "0.3.113-4"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 361788,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libasound2",
+      "depends_names": [
+        "libasound2-data",
+        "libc6"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libasound2/download",
+      "package": "libasound2",
+      "sha256": "44c77b076a7b11ae99712439022d822245b1994c435da564ebd320bb676faf4c",
+      "url": "https://deb.debian.org/debian/pool/main/a/alsa-lib/libasound2_1.2.8-1+b1_amd64.deb",
+      "version": "1.2.8-1+b1"
+    },
+    {
+      "architecture": "all",
+      "bytes": 20488,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libasound2-data",
+      "depends_names": [],
+      "metadata_url": "https://packages.debian.org/bookworm/all/libasound2-data/download",
+      "package": "libasound2-data",
+      "sha256": "fe0780d2d3674b2977e0acb0d48b448ad72ba1642564b7dc537f55e839984c2d",
+      "url": "https://deb.debian.org/debian/pool/main/a/alsa-lib/libasound2-data_1.2.8-1_all.deb",
+      "version": "1.2.8-1"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 90456,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libbrlapi0.8",
+      "depends_names": [
+        "libc6",
+        "libsystemd0"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libbrlapi0.8/download",
+      "package": "libbrlapi0.8",
+      "sha256": "7c8bfc4f1fb0a39f3bbc88a77f0b46f8feb923c4182207a95ea19ef01a9a43c7",
+      "url": "https://deb.debian.org/debian/pool/main/b/brltty/libbrlapi0.8_6.5-7+deb12u1_amd64.deb",
+      "version": "6.5-7+deb12u1"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 91068,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libcacard0",
+      "depends_names": [
+        "libc6",
+        "libglib2.0-0",
+        "libnspr4",
+        "libnss3",
+        "libpcsclite1"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libcacard0/download",
+      "package": "libcacard0",
+      "sha256": "6ab099fc8ee08ebc52b85a4dc7534d7add9cefd6e0f450037b78a42e65804454",
+      "url": "https://deb.debian.org/debian/pool/main/libc/libcacard/libcacard0_2.8.0-3_amd64.deb",
+      "version": "1:2.8.0-3"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 569084,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libcapstone4",
+      "depends_names": [
+        "libc6"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libcapstone4/download",
+      "package": "libcapstone4",
+      "sha256": "41277f0388184f6e3b9fc02eda3184afbc999314b25b77ed75e8049428bdfe5e",
+      "url": "https://deb.debian.org/debian/pool/main/c/capstone/libcapstone4_4.0.2-5_amd64.deb",
+      "version": "4.0.2-5"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 21124,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libdaxctl1",
+      "depends_names": [
+        "libc6",
+        "libkmod2",
+        "libuuid1"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libdaxctl1/download",
+      "package": "libdaxctl1",
+      "sha256": "af5f9ffe642ae25301eb88fdb2fa9e3c06dcfc5e131fbcee7575adf0adcc9abb",
+      "url": "https://deb.debian.org/debian/pool/main/n/ndctl/libdaxctl1_76.1-1_amd64.deb",
+      "version": "76.1-1"
+    },
+    {
+      "architecture": "all",
+      "bytes": 7112,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libdrm-common",
+      "depends_names": [],
+      "metadata_url": "https://packages.debian.org/bookworm/all/libdrm-common/download",
+      "package": "libdrm-common",
+      "sha256": "32f9664138b38b224383c6986457d5ad2ec8efd559b1a0ce7749405f7a451aad",
+      "url": "https://deb.debian.org/debian/pool/main/libd/libdrm/libdrm-common_2.4.114-1_all.deb",
+      "version": "2.4.114-1"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 37472,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libdrm2",
+      "depends_names": [
+        "libc6",
+        "libdrm-common"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libdrm2/download",
+      "package": "libdrm2",
+      "sha256": "be18fb670797ba32da9628cf3e8acd83160d8db8c8dd842501dd8e401c3b5371",
+      "url": "https://deb.debian.org/debian/pool/main/libd/libdrm/libdrm2_2.4.114-1+b1_amd64.deb",
+      "version": "2.4.114-1+b1"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 189092,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libepoxy0",
+      "depends_names": [
+        "libc6"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libepoxy0/download",
+      "package": "libepoxy0",
+      "sha256": "050cbedc9c2a5cce976151c720a3817f2103a01e6ac255bdd6f2c6a7509b04c3",
+      "url": "https://deb.debian.org/debian/pool/main/libe/libepoxy/libepoxy0_1.5.10-1_amd64.deb",
+      "version": "1.5.10-1"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 8840,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libexecs0",
+      "depends_names": [
+        "libc6"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libexecs0/download",
+      "package": "libexecs0",
+      "sha256": "35065556f06c5de1fc49c409943a8951638e4e9f8e21bd06f66b508fae935d1b",
+      "url": "https://deb.debian.org/debian/pool/main/libe/libexecs/libexecs0_1.3-2_amd64.deb",
+      "version": "1.3-2"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 88108,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libfuse3-3",
+      "depends_names": [
+        "libc6"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libfuse3-3/download",
+      "package": "libfuse3-3",
+      "sha256": "bf535cec5e965823fd03199b4029f9e9f3952111eb12824b5d2b96c8cca1a918",
+      "url": "https://deb.debian.org/debian/pool/main/f/fuse3/libfuse3-3_3.14.0-4_amd64.deb",
+      "version": "3.14.0-4"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 38132,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libgbm1",
+      "depends_names": [
+        "libc6",
+        "libdrm2",
+        "libexpat1",
+        "libgcc-s1",
+        "libwayland-server0"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libgbm1/download",
+      "package": "libgbm1",
+      "sha256": "4323840f2b7b3e108990848529125d99c0956ae5a854c1e0568ed08c8faeaa2e",
+      "url": "https://deb.debian.org/debian/pool/main/m/mesa/libgbm1_22.3.6-1+deb12u2_amd64.deb",
+      "version": "22.3.6-1+deb12u2"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 933796,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libgstreamer-plugins-base1.0-0",
+      "depends_names": [
+        "iso-codes",
+        "libc6",
+        "libglib2.0-0",
+        "libgstreamer1.0-0",
+        "liborc-0.4-0",
+        "zlib1g"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libgstreamer-plugins-base1.0-0/download",
+      "package": "libgstreamer-plugins-base1.0-0",
+      "sha256": "28a543ac3b395b38dac16e98597a3a2d1b09b0183ac6ec70675c5d468dfb4874",
+      "url": "https://deb.debian.org/debian/pool/main/g/gst-plugins-base1.0/libgstreamer-plugins-base1.0-0_1.22.0-3+deb12u6_amd64.deb",
+      "version": "1.22.0-3+deb12u6"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 1169664,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libgstreamer1.0-0",
+      "depends_names": [
+        "libc6",
+        "libcap2",
+        "libcap2-bin",
+        "libdw1",
+        "libglib2.0-0",
+        "libunwind8"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libgstreamer1.0-0/download",
+      "package": "libgstreamer1.0-0",
+      "sha256": "97fa34146e892871db0b60b70494b238519c5ae906ddbdd31c39a5a77b5e5499",
+      "url": "https://deb.debian.org/debian/pool/main/g/gstreamer1.0/libgstreamer1.0-0_1.22.0-2+deb12u1_amd64.deb",
+      "version": "1.22.0-2+deb12u1"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 60720,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libibverbs1",
+      "depends_names": [
+        "adduser",
+        "libc6",
+        "libnl-3-200",
+        "libnl-route-3-200"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libibverbs1/download",
+      "package": "libibverbs1",
+      "sha256": "35054815259fee46173240254246d03b673a5cd5c528aaac96fd15ac428a8d59",
+      "url": "https://deb.debian.org/debian/pool/main/r/rdma-core/libibverbs1_44.0-2_amd64.deb",
+      "version": "44.0-2"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 166332,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libjpeg62-turbo",
+      "depends_names": [
+        "libc6"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libjpeg62-turbo/download",
+      "package": "libjpeg62-turbo",
+      "sha256": "95ec30140789a342add8f8371ed018924de51b539056522b66f207b25cba9cad",
+      "url": "https://deb.debian.org/debian/pool/main/libj/libjpeg-turbo/libjpeg62-turbo_2.1.5-2_amd64.deb",
+      "version": "1:2.1.5-2"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 61728,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libndctl6",
+      "depends_names": [
+        "libc6",
+        "libdaxctl1",
+        "libkmod2",
+        "libudev1",
+        "libuuid1"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libndctl6/download",
+      "package": "libndctl6",
+      "sha256": "3654dd3a0a05fdc28af8bcd307109ec41a9ea92218bf29816ff467a8c5e7d57f",
+      "url": "https://deb.debian.org/debian/pool/main/n/ndctl/libndctl6_76.1-1_amd64.deb",
+      "version": "76.1-1"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 184596,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libnl-route-3-200",
+      "depends_names": [
+        "libc6",
+        "libnl-3-200"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libnl-route-3-200/download",
+      "package": "libnl-route-3-200",
+      "sha256": "0fdcc425ae2982788c085c76a7cb0eda3e3db99d41bd1ce56082ee18e9f1e21f",
+      "url": "https://deb.debian.org/debian/pool/main/libn/libnl3/libnl-route-3-200_3.7.0-0.2+b1_amd64.deb",
+      "version": "3.7.0-0.2+b1"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 20964,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libnuma1",
+      "depends_names": [
+        "libc6"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libnuma1/download",
+      "package": "libnuma1",
+      "sha256": "639e1ab6bd66ead40db8a22c332d7199679fa22db261cac34444eb8eb4c17dda",
+      "url": "https://deb.debian.org/debian/pool/main/n/numactl/libnuma1_2.0.16-1_amd64.deb",
+      "version": "2.0.16-1"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 195192,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libopus0",
+      "depends_names": [
+        "libc6"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libopus0/download",
+      "package": "libopus0",
+      "sha256": "c172e212f9039e741916aa8e12f3670d1e049dc0c16685325641288c2d83faa7",
+      "url": "https://deb.debian.org/debian/pool/main/o/opus/libopus0_1.3.1-3_amd64.deb",
+      "version": "1.3.1-3"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 164044,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/liborc-0.4-0",
+      "depends_names": [
+        "libc6"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/liborc-0.4-0/download",
+      "package": "liborc-0.4-0",
+      "sha256": "f2b775c4281fc4d02432833cef274cfaa927a446bdf619f02292bd83b201fe3a",
+      "url": "https://deb.debian.org/debian/pool/main/o/orc/liborc-0.4-0_0.4.33-2_amd64.deb",
+      "version": "1:0.4.33-2"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 49704,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libpcsclite1",
+      "depends_names": [
+        "libc6"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libpcsclite1/download",
+      "package": "libpcsclite1",
+      "sha256": "d1bb373fad074443b83e96ed31800d5a12964daf820c1daeb701867da089a728",
+      "url": "https://deb.debian.org/debian/pool/main/p/pcsc-lite/libpcsclite1_1.9.9-2_amd64.deb",
+      "version": "1.9.9-2"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 545588,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libpixman-1-0",
+      "depends_names": [
+        "libc6"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libpixman-1-0/download",
+      "package": "libpixman-1-0",
+      "sha256": "9ed75ef81b6b1eba9e1357f8b0ce01d31112b0e07b2b685bee2cf627a8932892",
+      "url": "https://deb.debian.org/debian/pool/main/p/pixman/libpixman-1-0_0.42.2-1_amd64.deb",
+      "version": "0.42.2-1"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 90012,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libpmem1",
+      "depends_names": [
+        "libc6",
+        "libdaxctl1",
+        "libndctl6"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libpmem1/download",
+      "package": "libpmem1",
+      "sha256": "63ed00821aecdb5537b51b6f378cf571144d02ac3af2f95141bfa0e397359a76",
+      "url": "https://deb.debian.org/debian/pool/main/p/pmdk/libpmem1_1.12.1-2_amd64.deb",
+      "version": "1.12.1-2"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 276660,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libpng16-16",
+      "depends_names": [
+        "libc6",
+        "zlib1g"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libpng16-16/download",
+      "package": "libpng16-16",
+      "sha256": "a56d64bfaa9da12aafb83347909e62e6fd5fd251e6b34c194065911a30359978",
+      "url": "https://deb.debian.org/debian/pool/main/libp/libpng1.6/libpng16-16_1.6.39-2+deb12u5_amd64.deb",
+      "version": "1.6.39-2+deb12u5"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 68632,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/librdmacm1",
+      "depends_names": [
+        "libc6",
+        "libibverbs1",
+        "libnl-3-200"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/librdmacm1/download",
+      "package": "librdmacm1",
+      "sha256": "16b18625834371d023b81477823074ea0d34c478d58dbef3f01107984f47d034",
+      "url": "https://deb.debian.org/debian/pool/main/r/rdma-core/librdmacm1_44.0-2_amd64.deb",
+      "version": "44.0-2"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 62980,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libslirp0",
+      "depends_names": [
+        "libc6",
+        "libglib2.0-0"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libslirp0/download",
+      "package": "libslirp0",
+      "sha256": "e21e19f0e99e57f254162f61416ea82f00cbc6ab9eb6bead4f5a5a8944ede27e",
+      "url": "https://deb.debian.org/debian/pool/main/libs/libslirp/libslirp0_4.7.0-1_amd64.deb",
+      "version": "4.7.0-1"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 27312,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libsndio7.0",
+      "depends_names": [
+        "libasound2",
+        "libbsd0",
+        "libc6"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libsndio7.0/download",
+      "package": "libsndio7.0",
+      "sha256": "c4cc979126cc558549db25d42e2849a9d5dcdf7928e0ece69c38c374021a078b",
+      "url": "https://deb.debian.org/debian/pool/main/s/sndio/libsndio7.0_1.9.0-0.3+b2_amd64.deb",
+      "version": "1.9.0-0.3+b2"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 345984,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libspice-server1",
+      "depends_names": [
+        "libc6",
+        "libgcc-s1",
+        "libglib2.0-0",
+        "libgstreamer-plugins-base1.0-0",
+        "libgstreamer1.0-0",
+        "libjpeg62-turbo",
+        "liblz4-1",
+        "libopus0",
+        "liborc-0.4-0",
+        "libpixman-1-0",
+        "libsasl2-2",
+        "libssl3",
+        "libstdc++6",
+        "zlib1g"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libspice-server1/download",
+      "package": "libspice-server1",
+      "sha256": "84ced2626aa55d876c08406492004c6e4e533358e9faf8745993c72340eada60",
+      "url": "https://deb.debian.org/debian/pool/main/s/spice/libspice-server1_0.15.1-1_amd64.deb",
+      "version": "0.15.1-1"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 12572,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/liburing2",
+      "depends_names": [
+        "libc6"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/liburing2/download",
+      "package": "liburing2",
+      "sha256": "c23077e3640e6cb4b819c134b3f41d5cf21b3edac099654b1b4142c3069a39a3",
+      "url": "https://deb.debian.org/debian/pool/main/libu/liburing/liburing2_2.3-3_amd64.deb",
+      "version": "2.3-3"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 62592,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libusb-1.0-0",
+      "depends_names": [
+        "libc6",
+        "libudev1"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libusb-1.0-0/download",
+      "package": "libusb-1.0-0",
+      "sha256": "0a8a6c4a7d944538f2820cbde2a313f2fe6f94c21ffece9e6f372fc2ab8072e1",
+      "url": "https://deb.debian.org/debian/pool/main/libu/libusb-1.0/libusb-1.0-0_1.0.26-1_amd64.deb",
+      "version": "2:1.0.26-1"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 18740,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libusbredirparser1",
+      "depends_names": [
+        "libc6"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libusbredirparser1/download",
+      "package": "libusbredirparser1",
+      "sha256": "88573485ff4096850ebcbcb368f23e6c22e94e51622e4d592ecb9d15ca510b82",
+      "url": "https://deb.debian.org/debian/pool/main/u/usbredir/libusbredirparser1_0.13.0-2_amd64.deb",
+      "version": "0.13.0-2"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 27868,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libvdeplug2",
+      "depends_names": [
+        "libc6",
+        "libexecs0"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libvdeplug2/download",
+      "package": "libvdeplug2",
+      "sha256": "1ace8e6571009bb4b8e3c5e093609f30f3ffca96578d35d61100f1e73fd2110d",
+      "url": "https://deb.debian.org/debian/pool/main/v/vdeplug4/libvdeplug2_4.0.1-4_amd64.deb",
+      "version": "4.0.1-4"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 35876,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/libwayland-server0",
+      "depends_names": [
+        "libc6",
+        "libffi8"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/libwayland-server0/download",
+      "package": "libwayland-server0",
+      "sha256": "df0396221d7b794496a687ec61fae82b6465648bc0ab6501ba0a5ed7f56eb8d6",
+      "url": "https://deb.debian.org/debian/pool/main/w/wayland/libwayland-server0_1.21.0-1_amd64.deb",
+      "version": "1.21.0-1"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 8909200,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/qemu-system-arm",
+      "depends_names": [
+        "libaio1",
+        "libbpf1",
+        "libc6",
+        "libcapstone4",
+        "libfdt1",
+        "libfuse3-3",
+        "libgcc-s1",
+        "libglib2.0-0",
+        "libgmp10",
+        "libgnutls30",
+        "libhogweed6",
+        "libibverbs1",
+        "libjpeg62-turbo",
+        "libnettle8",
+        "libnuma1",
+        "libpixman-1-0",
+        "libpmem1",
+        "libpng16-16",
+        "librdmacm1",
+        "libsasl2-2",
+        "libseccomp2",
+        "libslirp0",
+        "libudev1",
+        "liburing2",
+        "libvdeplug2",
+        "libzstd1",
+        "qemu-system-common",
+        "qemu-system-data",
+        "zlib1g"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/qemu-system-arm/download",
+      "package": "qemu-system-arm",
+      "sha256": "78c4adf16152bb8ae1994784e966365128cae04d8ae37bc161bb0b6617c17d9c",
+      "url": "https://deb.debian.org/debian/pool/main/q/qemu/qemu-system-arm_7.2+dfsg-7+deb12u18+b3_amd64.deb",
+      "version": "1:7.2+dfsg-7+deb12u18+b3"
+    },
+    {
+      "architecture": "amd64",
+      "bytes": 2189244,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/qemu-system-common",
+      "depends_names": [
+        "libaio1",
+        "libasound2",
+        "libbrlapi0.8",
+        "libc6",
+        "libcacard0",
+        "libcap-ng0",
+        "libepoxy0",
+        "libfuse3-3",
+        "libgbm1",
+        "libglib2.0-0",
+        "libgmp10",
+        "libgnutls30",
+        "libhogweed6",
+        "libncursesw6",
+        "libnettle8",
+        "libnuma1",
+        "libpixman-1-0",
+        "libseccomp2",
+        "libsndio7.0",
+        "libspice-server1",
+        "libtinfo6",
+        "liburing2",
+        "libusb-1.0-0",
+        "libusbredirparser1",
+        "libzstd1",
+        "zlib1g"
+      ],
+      "metadata_url": "https://packages.debian.org/bookworm/amd64/qemu-system-common/download",
+      "package": "qemu-system-common",
+      "sha256": "cc6bbe2d5e0b9ed6306f054008967b0564dc06b2558ea5142590f522ccca9b2b",
+      "url": "https://deb.debian.org/debian/pool/main/q/qemu/qemu-system-common_7.2+dfsg-7+deb12u18+b3_amd64.deb",
+      "version": "1:7.2+dfsg-7+deb12u18+b3"
+    },
+    {
+      "architecture": "all",
+      "bytes": 1297476,
+      "dependency_metadata_url": "https://packages.debian.org/bookworm/qemu-system-data",
+      "depends_names": [],
+      "metadata_url": "https://packages.debian.org/bookworm/all/qemu-system-data/download",
+      "package": "qemu-system-data",
+      "sha256": "8d7647370573fe9871949acf60d0c000546c2c089008a70accb3d015781e6bf1",
+      "url": "https://deb.debian.org/debian/pool/main/q/qemu/qemu-system-data_7.2+dfsg-7+deb12u18_all.deb",
+      "version": "1:7.2+dfsg-7+deb12u18"
+    }
+  ],
+  "purpose": "rootless Debian bookworm QEMU AArch64 system emulator for pure KUnit",
+  "requested_packages": [
+    "qemu-system-arm",
+    "qemu-system-common",
+    "qemu-system-data"
+  ],
+  "schema": 1,
+  "status": "metadata_prepared_no_package_download_or_install",
+  "total_archive_bytes": 21419684
+}

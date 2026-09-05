@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "prefix_present": true,
+  "staging_remaining": false,
+  "system_python": {
+    "path": "/usr/bin/python3.11",
+    "sha256": "6d972cf21be56fe3c947ab6ba257ff8d08c342dd2714442986791bd9a6dfabfe",
+    "version": "Python 3.11.2"
+  },
+  "host_compiler": {
+    "path": "/usr/bin/x86_64-linux-gnu-gcc-12",
+    "sha256": "75e997ec62297a6484f491bae28ab0ccb489daba23e398fd10fe68e9e6f0def8",
+    "version": "x86_64-linux-gnu-gcc-12 (Debian 12.2.0-14+deb12u1) 12.2.0"
+  },
+  "bootstrap_packages": {
+    "python3-pip": "23.0.1+dfsg-1",
+    "python3-venv": "3.11.2-1+b1",
+    "python3.11": "3.11.2-6+deb12u8"
+  },
+  "setup_receipt_sha256": "36a938aee866f09eb650769e8f5ae049f7793a719f966eaf5050a2d761a90383"
+}

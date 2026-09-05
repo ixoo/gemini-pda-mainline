@@ -1,0 +1,53 @@
+{
+  "command_line": "console=ttyAMA0 kunit.enable=1 kunit.autorun=1 kunit_shutdown=poweroff",
+  "enabled_kunit": [
+    "CONFIG_COMMON_CLK_MEDIATEK_RESET_KUNIT_TEST",
+    "CONFIG_COMMON_CLK_MT6797_RESET_KUNIT_TEST",
+    "CONFIG_KUNIT",
+    "CONFIG_KUNIT_DEFAULT_ENABLED",
+    "CONFIG_KUNIT_AUTORUN_ENABLED"
+  ],
+  "image_sha256": "c0a7e412f6d778ae523f1dfd63f9c54db91e269fe45b06d7411663dbf88dcc1e",
+  "inventory_sha256": "8393a89ef3dbdb3bbae967d6adc78cf5a1cd907c21f21e9ba2efc015ba041917",
+  "kill_after_seconds": 5,
+  "provenance": {
+    "base_config": "allnoconfig",
+    "build_profile": "mt6797-infracfg-upstream-kunit",
+    "config_fragments": [
+      "configs/mt6797-infracfg-upstream-kunit.fragment"
+    ],
+    "config_inputs_sha256": "3be47778d75a05e78f170784c3e83e0e96b75759d79da6b9bb1fb3659f88fdb5",
+    "config_sha256": "d37fb4ebef4ecdcd5854ada8ae3a4c8eed29c630fddd77329bc0a8beed246530",
+    "kernel_release": "7.3.0-rc1-mt6797-infracfg-upstream-kunit",
+    "kernel_source": {
+      "archive_format": "tar.gz",
+      "archive_root": "linux-4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "git_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "released": "2026-09-05",
+      "sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+      "source_url": "https://codeload.github.com/torvalds/linux/tar.gz/4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "version": "7.3-rc1"
+    },
+    "modules_built": false,
+    "patchset_sha256": "56c806083a666dfb6642f77282c61e651d6c058e424c4aa82ba46ae97d36a481",
+    "repository_commit": "4ec63076aeb6388ba24b33ee20afcf19ced541e1",
+    "repository_dirty": false,
+    "target_architecture": "arm64"
+  },
+  "schema": 1,
+  "suites": {
+    "mt6797-infracfg-reset": [
+      "mt6797_reset_descriptor",
+      "mt6797_reset_thermal",
+      "mt6797_reset_pwrap",
+      "mt6797_reset_unexposed"
+    ],
+    "mtk-reset-bounds": [
+      "mtk_reset_map_bounds",
+      "mtk_reset_register_pairs",
+      "mtk_reset_invalid_bank",
+      "mtk_reset_missing_banks"
+    ]
+  },
+  "timeout_seconds": 45
+}

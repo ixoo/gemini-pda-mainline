@@ -1,0 +1,776 @@
+{
+  "archive_bytes": 21419684,
+  "complete_package_member_scan_and_extracted_hashes_verified": true,
+  "control_dependency_relations_verified": true,
+  "date_utc": "2026-09-05",
+  "destination": "/workspace/gemini-pda/tools/qemu-bookworm-7.2-deb12u18-b3",
+  "download_and_staging_state_removed": true,
+  "guest_or_device_action": false,
+  "inspection": {
+    "cpu_listing_sha256": "3454dcb2d9d4274c289d2984f698e13eee1f0ad682689d34ca1469718c75ebb4",
+    "cpu_max": true,
+    "executable_sha256": "7148d1e6c8587f9b017dbcd2ab6d18eb9b84d20ef5284e0c4915b614c8a61b31",
+    "guest_run": false,
+    "machine_listing_sha256": "df8d85de5611cc7d533c75bfc0a5042ade9d2535dac61d6f35630ce37ba9005b",
+    "machine_virt": true,
+    "resolved_libraries": {
+      "$QEMU_PREFIX/lib/x86_64-linux-gnu/libfuse3.so.3.14.0": {
+        "bytes": 264216,
+        "sha256": "af29b8d26a57aa29416fb3333170aec8a77ce868db8693a546df2f122748ed53"
+      },
+      "$QEMU_PREFIX/usr/lib/x86_64-linux-gnu/libaio.so.1.0.2": {
+        "bytes": 14184,
+        "sha256": "a912d3c2a289fe84d59c7852a4038fc512aad75a076d22cb4d46c7b95d246caf"
+      },
+      "$QEMU_PREFIX/usr/lib/x86_64-linux-gnu/libcapstone.so.4": {
+        "bytes": 6663072,
+        "sha256": "faae0495d13e17b65ef579358dada70ee98b609b575d5a56951e073280660acd"
+      },
+      "$QEMU_PREFIX/usr/lib/x86_64-linux-gnu/libdaxctl.so.1.2.5": {
+        "bytes": 47096,
+        "sha256": "b2576a160c4f1222497bd96e8709a07973a4cc05e2263acd775154c2cfd2435b"
+      },
+      "$QEMU_PREFIX/usr/lib/x86_64-linux-gnu/libibverbs.so.1.14.44.0": {
+        "bytes": 133744,
+        "sha256": "f809f34bc16cc21be248da374ef72e44d5e336eae4bb10f5a2cebf3c330aa163"
+      },
+      "$QEMU_PREFIX/usr/lib/x86_64-linux-gnu/libjpeg.so.62.3.0": {
+        "bytes": 600128,
+        "sha256": "dad87949ccad2be7e40a02986306087fdcfb35ccaadd59aea923a3f96d290eec"
+      },
+      "$QEMU_PREFIX/usr/lib/x86_64-linux-gnu/libndctl.so.6.1.21": {
+        "bytes": 180264,
+        "sha256": "43e7e7d99b85f2ca384ec69831baf94c055821341eab52ed490f72a15cdd2bd5"
+      },
+      "$QEMU_PREFIX/usr/lib/x86_64-linux-gnu/libnl-route-3.so.200.26.0": {
+        "bytes": 581800,
+        "sha256": "6a64fbc77d0281b2670a3a8c57b6edb75ea3627a8b752611ac3598de88b7d2b5"
+      },
+      "$QEMU_PREFIX/usr/lib/x86_64-linux-gnu/libnuma.so.1.0.0": {
+        "bytes": 52312,
+        "sha256": "bb2bb9250f348587ea3b7594a0a22055312134e55d065434d1f7e22e99ebf1d5"
+      },
+      "$QEMU_PREFIX/usr/lib/x86_64-linux-gnu/libpixman-1.so.0.42.2": {
+        "bytes": 698384,
+        "sha256": "cbbdbb3a14ee65123419a6bafcca3f66faad1255efd05ef818da66da1baf9eee"
+      },
+      "$QEMU_PREFIX/usr/lib/x86_64-linux-gnu/libpmem.so.1.0.0": {
+        "bytes": 346240,
+        "sha256": "ea5ecede5ff804ca2d4bde094e4b3ff971cc478f8882d791d4a5698597b3965a"
+      },
+      "$QEMU_PREFIX/usr/lib/x86_64-linux-gnu/libpng16.so.16.39.0": {
+        "bytes": 219056,
+        "sha256": "5518ea5152046061f30bc1b49598e393acc7c0799dcb216b6703a6d27597deab"
+      },
+      "$QEMU_PREFIX/usr/lib/x86_64-linux-gnu/librdmacm.so.1.3.44.0": {
+        "bytes": 121960,
+        "sha256": "12633b98c1c2eb0d5cd3da5ab8cadc8d4b785494ebea751f0f09ef91e4575fa9"
+      },
+      "$QEMU_PREFIX/usr/lib/x86_64-linux-gnu/libslirp.so.0.4.0": {
+        "bytes": 141176,
+        "sha256": "cd021edf1481d66728604dfbc8dc3d7526f694a814a7a42ca8808beec6b7996b"
+      },
+      "$QEMU_PREFIX/usr/lib/x86_64-linux-gnu/liburing.so.2.3": {
+        "bytes": 22448,
+        "sha256": "2f6aaaea8fc49298cae14598e5b913122798cf41fe0d6cf1884c1d3c73d2263b"
+      },
+      "$QEMU_PREFIX/usr/lib/x86_64-linux-gnu/libvdeplug.so.4.0.0": {
+        "bytes": 14632,
+        "sha256": "e462bcbdf538d60ee8aabf40e3d61027f8e000f2454cc07364701fe397e6cb96"
+      },
+      "/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2": {
+        "bytes": 215000,
+        "sha256": "02bcda52c1a5dfc236f94d9e5255b4a0e26347d8a372a5223b650e31f291ce3c"
+      },
+      "/usr/lib/x86_64-linux-gnu/libblkid.so.1.1.0": {
+        "bytes": 355328,
+        "sha256": "cc3d6ca965cab25eacb8d7d98f0b13be7c94a19583983fb864ba10163e5536b0"
+      },
+      "/usr/lib/x86_64-linux-gnu/libbpf.so.1.1.2": {
+        "bytes": 358880,
+        "sha256": "81e825111b6ce1db0e3fa06acbe0304d0e32b71c78a4ed23e58d1a93c8117273"
+      },
+      "/usr/lib/x86_64-linux-gnu/libc.so.6": {
+        "bytes": 1926232,
+        "sha256": "6b4a45352fd0c540a9c7c718f35ce8c8e46a4e482f9d3885a910c32d1a0e1421"
+      },
+      "/usr/lib/x86_64-linux-gnu/libcrypto.so.3": {
+        "bytes": 4734232,
+        "sha256": "72db1b3de8b7dfbaba4c056135f408da555f9d5e137c82129478e07e769f8070"
+      },
+      "/usr/lib/x86_64-linux-gnu/libelf-0.188.so": {
+        "bytes": 109088,
+        "sha256": "b58343c451efd4db9e7de55a9243fa388ea4fcfe53fc4f159d909dc878efe3e4"
+      },
+      "/usr/lib/x86_64-linux-gnu/libfdt-1.6.1.so": {
+        "bytes": 38904,
+        "sha256": "eec98cca18bb43f3f1c9af3ff67fdba8daeeaad4c220cb890f38cb9931fec170"
+      },
+      "/usr/lib/x86_64-linux-gnu/libffi.so.8.1.2": {
+        "bytes": 43480,
+        "sha256": "983e72b7e964f3db43fe8a3dc8b338e731fade6ca38df6867aebb58186aaeb68"
+      },
+      "/usr/lib/x86_64-linux-gnu/libgcc_s.so.1": {
+        "bytes": 125312,
+        "sha256": "2bd1552c47799ef67e701e81d4383061fd76059868e446e63560f0dd0d5ec14e"
+      },
+      "/usr/lib/x86_64-linux-gnu/libgio-2.0.so.0.7400.6": {
+        "bytes": 1953008,
+        "sha256": "5eb29a8a41206d23ea321159267e2799e5426975fb4501a062f90efc4450444d"
+      },
+      "/usr/lib/x86_64-linux-gnu/libglib-2.0.so.0.7400.6": {
+        "bytes": 1273360,
+        "sha256": "1708487c60fb32855e9d4aec503f0c32dcb74c6834a839e015ccbd27a606a879"
+      },
+      "/usr/lib/x86_64-linux-gnu/libgmodule-2.0.so.0.7400.6": {
+        "bytes": 18480,
+        "sha256": "99144134d198f50b484b257fdc7c82a4035ff6c6753575e31457d5494bf23965"
+      },
+      "/usr/lib/x86_64-linux-gnu/libgmp.so.10.4.1": {
+        "bytes": 529216,
+        "sha256": "7376c9af0afd6e7698a64ee19de3c8a0199418664974384c70435a51c7ff7f3f"
+      },
+      "/usr/lib/x86_64-linux-gnu/libgnutls.so.30.34.3": {
+        "bytes": 2209528,
+        "sha256": "779b25d20249988bea2c1aa6bbeb218f5ae7ea8a9d30ce4f54ea37372965cc4b"
+      },
+      "/usr/lib/x86_64-linux-gnu/libgobject-2.0.so.0.7400.6": {
+        "bytes": 387288,
+        "sha256": "59c621c45fadf0024cacd9e6982f540c26d1a0922c14d0c1dbe408129afe2385"
+      },
+      "/usr/lib/x86_64-linux-gnu/libhogweed.so.6.6": {
+        "bytes": 292856,
+        "sha256": "480675ed8d58f9266ced954eb746c74a6c4ae3479bf5dccbcbc56ff0c814b9e4"
+      },
+      "/usr/lib/x86_64-linux-gnu/libidn2.so.0.3.8": {
+        "bytes": 198776,
+        "sha256": "864f32ec2dc74d90c51d389a02b30003465b84e2090bf940039c0cd4b41b8f63"
+      },
+      "/usr/lib/x86_64-linux-gnu/libkmod.so.2.4.0": {
+        "bytes": 112696,
+        "sha256": "43dde0a5a18efb37f2b0724fb84afaeeb0150a5e237b496c8063843b761d444a"
+      },
+      "/usr/lib/x86_64-linux-gnu/liblzma.so.5.4.1": {
+        "bytes": 190456,
+        "sha256": "983464a4e0e840f85b519cb7b6153b60c75d6473f4d4c32a5a37b3f9894c52c3"
+      },
+      "/usr/lib/x86_64-linux-gnu/libm.so.6": {
+        "bytes": 911904,
+        "sha256": "7f2ca87f652f56b094462474b076749e90e689d0ecb9cb63c7679820b271b4e7"
+      },
+      "/usr/lib/x86_64-linux-gnu/libmount.so.1.1.0": {
+        "bytes": 404096,
+        "sha256": "70c1da7f7a3d802c498f4938449bfc7a51877c46b16572d1a396901c032758bc"
+      },
+      "/usr/lib/x86_64-linux-gnu/libnettle.so.8.6": {
+        "bytes": 317544,
+        "sha256": "63f8ec7a41906ad65a800d27294cdbb34bf6c709252a575ed513a3c048d71019"
+      },
+      "/usr/lib/x86_64-linux-gnu/libnl-3.so.200.26.0": {
+        "bytes": 139128,
+        "sha256": "a9aeb09860d011cfafde5d8333e532d99d668ad49d2f994657e75176d0617da9"
+      },
+      "/usr/lib/x86_64-linux-gnu/libp11-kit.so.0.3.0": {
+        "bytes": 1261376,
+        "sha256": "a0a560ae54a793a11ab78d6ce12b902537932b2d7aab2352250391a035977ef1"
+      },
+      "/usr/lib/x86_64-linux-gnu/libpcre2-8.so.0.11.2": {
+        "bytes": 629384,
+        "sha256": "19c626251526131ac9340826c8f7bcb693c6ceb9d5da55919c3aa45d972b704f"
+      },
+      "/usr/lib/x86_64-linux-gnu/libsasl2.so.2.0.25": {
+        "bytes": 113392,
+        "sha256": "0e214d8cc294d6ce547946b2b1145d394a06bba3aea7506f0f37b38d32d660bf"
+      },
+      "/usr/lib/x86_64-linux-gnu/libseccomp.so.2.5.4": {
+        "bytes": 129312,
+        "sha256": "df79d556924ecb71a946482802a0a0d584c30a7a25e564eccf19b7b72996bbbe"
+      },
+      "/usr/lib/x86_64-linux-gnu/libselinux.so.1": {
+        "bytes": 174312,
+        "sha256": "0207e4908ea384e186c75925b0e56996a3eccecd48c99252aeb757d0d3451c93"
+      },
+      "/usr/lib/x86_64-linux-gnu/libtasn1.so.6.6.3": {
+        "bytes": 83968,
+        "sha256": "139e933ac55f26bb80520fc63893ff2a528055fdf8058d8341bbd9d7bd762a5e"
+      },
+      "/usr/lib/x86_64-linux-gnu/libudev.so.1.7.5": {
+        "bytes": 182544,
+        "sha256": "99a5e38f8b45ec2729e5bc24d2d8e2f04d260a2455431a1f9d61f500b31060dd"
+      },
+      "/usr/lib/x86_64-linux-gnu/libunistring.so.2.2.0": {
+        "bytes": 1792040,
+        "sha256": "bc5951aa3d6eaba20ff9688efa3420dc95785aae3709ec48ff6df46d6f409ee5"
+      },
+      "/usr/lib/x86_64-linux-gnu/libuuid.so.1.3.0": {
+        "bytes": 34872,
+        "sha256": "94176513740e4b8d24a68e6c37a43986b488f2910c9eaa34f69bd7ba8c49307d"
+      },
+      "/usr/lib/x86_64-linux-gnu/libz.so.1.2.13": {
+        "bytes": 121280,
+        "sha256": "7e2a72b4c4b38c61e6962de6e3f4a5e9ae692e732c68deead10a7ce2135a7f68"
+      },
+      "/usr/lib/x86_64-linux-gnu/libzstd.so.1.5.4": {
+        "bytes": 763816,
+        "sha256": "37412b7ac11063c25a375bdff6f4fdb340362f926cd9c3a55962e8a9c9bc702e"
+      }
+    },
+    "version": "QEMU emulator version 7.2.22 (Debian 1:7.2+dfsg-7+deb12u18+b3)\nCopyright (c) 2003-2022 Fabrice Bellard and the QEMU Project developers"
+  },
+  "inventory_sha256": "99f81a08d3cee92a3878ec9c5a94d3575e000b3358f27a87ec6377fbfe43f97e",
+  "maintainer_scripts_executed": false,
+  "member_count": 2257,
+  "member_manifest_sha256": "66e1b6dff2ddc38034871e4b3effefe1ddbe5a38a5e67124169f7f9f8de3fb89",
+  "module_and_data_inventory": {
+    "usr/lib/x86_64-linux-gnu/qemu/accel-tcg-i386.so": {
+      "bytes": 22608,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "816940f030e3bf19792ac40b862b70ca559895b89dabd88dc7a6591d1c06666e"
+    },
+    "usr/lib/x86_64-linux-gnu/qemu/accel-tcg-x86_64.so": {
+      "bytes": 22608,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "e113de9d435e9b4cb118e2a9dbd0f0954d24ded7034e5ec0ed1baa6111dfeb5b"
+    },
+    "usr/lib/x86_64-linux-gnu/qemu/audio-alsa.so": {
+      "bytes": 30976,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "f5140c4fdd4b93ca75a680ef2464fd7c68dd4caef3e46e5b4710266609b81345"
+    },
+    "usr/lib/x86_64-linux-gnu/qemu/audio-dbus.so": {
+      "bytes": 211280,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "e62739a655adf48cf5f4f7615c60f97dbcf4312ed9c4ba27e041586fc9d22c16"
+    },
+    "usr/lib/x86_64-linux-gnu/qemu/audio-oss.so": {
+      "bytes": 18688,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "4f51e2cc2307529bf73d24d1209c114978b8441e8353d86b66e94e025b2a4f19"
+    },
+    "usr/lib/x86_64-linux-gnu/qemu/audio-sndio.so": {
+      "bytes": 14592,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "90625e44fc1fedf42705e0fb872cf3737cd136ec71b61acf8ee27afa2d37df1d"
+    },
+    "usr/lib/x86_64-linux-gnu/qemu/audio-spice.so": {
+      "bytes": 18768,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "bb837a3ba87527a8e0e9aefe3cc02bd5037e47b3b6034481285ec10f7004c634"
+    },
+    "usr/lib/x86_64-linux-gnu/qemu/chardev-baum.so": {
+      "bytes": 18512,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "2a2f5715eff0d6ee3755f59e5bb057d7280c81fc7b9a9335dc304a9788c5a61f"
+    },
+    "usr/lib/x86_64-linux-gnu/qemu/chardev-spice.so": {
+      "bytes": 26856,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "10a56bace57940efb0669f85c21fdbc5f295ba3b508761a40acbc698c91360cf"
+    },
+    "usr/lib/x86_64-linux-gnu/qemu/hw-display-qxl.so": {
+      "bytes": 101128,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "b0a18d19ea3a05c9da3dc5cde80621868c4b368c8b11715c3afdc8ce5f1b29c9"
+    },
+    "usr/lib/x86_64-linux-gnu/qemu/hw-display-virtio-gpu-pci-gl.so": {
+      "bytes": 14264,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "a35de82ddb4b2a66a1629dbfa8b53cf4819ddb4267b82c771dc96ec20ecb526b"
+    },
+    "usr/lib/x86_64-linux-gnu/qemu/hw-display-virtio-gpu-pci.so": {
+      "bytes": 14552,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "97bfabb94c2308daceaf8377ebb1f27c0f51cb56bb5340d841a0d4bd561783c0"
+    },
+    "usr/lib/x86_64-linux-gnu/qemu/hw-display-virtio-gpu.so": {
+      "bytes": 66560,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "0840f1c65ce3621d913d3719a804f8a646907681ea4ea460ac6f723bb7fe8d78"
+    },
+    "usr/lib/x86_64-linux-gnu/qemu/hw-display-virtio-vga-gl.so": {
+      "bytes": 14296,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "d071bb9179c612f05ce842121ccca89d17644e2b83466d0d566502c60f7061fe"
+    },
+    "usr/lib/x86_64-linux-gnu/qemu/hw-display-virtio-vga.so": {
+      "bytes": 14880,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "46bdf8c84c43d0158fa365eb6a432629fb44b92af78cc85f9fffd67e32b784b9"
+    },
+    "usr/lib/x86_64-linux-gnu/qemu/hw-s390x-virtio-gpu-ccw.so": {
+      "bytes": 14552,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "1f3475b28ab7c909a3d271ca2ff302b9d132245339dc46fbaa6526ce77b48cfb"
+    },
+    "usr/lib/x86_64-linux-gnu/qemu/hw-usb-host.so": {
+      "bytes": 56872,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "c4cc7918db31749ad07d45cdd38df68ef417473b2467558e5fb74c8a46e77e81"
+    },
+    "usr/lib/x86_64-linux-gnu/qemu/hw-usb-redirect.so": {
+      "bytes": 68624,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "ecadf76de179432373232c10965252e6c4d2100cf47f012b5380f1767de3d749"
+    },
+    "usr/lib/x86_64-linux-gnu/qemu/hw-usb-smartcard.so": {
+      "bytes": 32376,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "f1a1d87635aa7d36097d16ad797756934a30910f4aa4cd04607ebcb3b0b3f930"
+    },
+    "usr/lib/x86_64-linux-gnu/qemu/ui-curses.so": {
+      "bytes": 43128,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "6222d09052de5ad4cfd7354e95bb23be68a558e72328e9defbaea795c0d7120c"
+    },
+    "usr/lib/x86_64-linux-gnu/qemu/ui-dbus.so": {
+      "bytes": 243848,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "575d599ac145de9b1b647950d73f3de4c5bb619b13fef82d80ad587d8e487167"
+    },
+    "usr/lib/x86_64-linux-gnu/qemu/ui-egl-headless.so": {
+      "bytes": 14448,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "80d149c3806f2603e7a429379f044a80ef8bee801709e918055f36b616c1c51e"
+    },
+    "usr/lib/x86_64-linux-gnu/qemu/ui-opengl.so": {
+      "bytes": 31368,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "cd36a12c7542cb14981f5aa904b50254acef31c1eebe8c5cec9d484cef1c41c1"
+    },
+    "usr/lib/x86_64-linux-gnu/qemu/ui-spice-app.so": {
+      "bytes": 14448,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "cb2675e6ff8e0271d0960bc919076bec4dd89ca327de1a377ca67a913f62ed03"
+    },
+    "usr/lib/x86_64-linux-gnu/qemu/ui-spice-core.so": {
+      "bytes": 69104,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "f13bdf00002256cd76d680b4ee84cb5286ebdf46ba2c0d682653cd2e474b0c23"
+    },
+    "usr/share/qemu/QEMU,VGA.bin": {
+      "bytes": 1112,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "0598d03abae4525c40e48e8d638a2342cc44056ab034ae91a737843a891e050a"
+    },
+    "usr/share/qemu/QEMU,cgthree.bin": {
+      "bytes": 850,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "a99f3a06fdac5cf5d72bd0fd24647d897302c3ff8e918add65168185f8cbdf4d"
+    },
+    "usr/share/qemu/QEMU,tcx.bin": {
+      "bytes": 1402,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "92da99a770ab24f96c33c78382940cac8b25e88cb110634c1b32aa2d8cb852e7"
+    },
+    "usr/share/qemu/bamboo.dtb": {
+      "bytes": 3173,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "90f7b887ef793cdd5982de3300b8bda3175eb508ba2c010a7b5a6a21cb00c512"
+    },
+    "usr/share/qemu/bios-microvm.bin": {
+      "bytes": 0,
+      "kind": "link",
+      "mode": 511,
+      "target": "qboot.rom"
+    },
+    "usr/share/qemu/canyonlands.dtb": {
+      "bytes": 9779,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "3e7ed2ed8637d8c8a1e619d8a280bc2da853e7a17eab689597c7b69770e503b0"
+    },
+    "usr/share/qemu/hppa-firmware.img": {
+      "bytes": 178504,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "8138c33d7ec8dc2c22d2b2963dba31794f428bf6efd235fd8c9ef680de1624d8"
+    },
+    "usr/share/qemu/keymaps": {
+      "bytes": 0,
+      "kind": "directory",
+      "mode": 493
+    },
+    "usr/share/qemu/keymaps/ar": {
+      "bytes": 28605,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "059ab719df4296edb800d399501e3823e1e6f470cc06a3a4564f4bb2dbd5c1fc"
+    },
+    "usr/share/qemu/keymaps/bepo": {
+      "bytes": 27809,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "01ccdb7e2d0b20f517e03d39cc70802ad83dfc1ed2e5d50ff9b4a4f77e37a9f8"
+    },
+    "usr/share/qemu/keymaps/cz": {
+      "bytes": 29209,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "3664b3f13e6cfff0e6d05f12000aa6610eff04f570707261ec35ca830ded6c36"
+    },
+    "usr/share/qemu/keymaps/da": {
+      "bytes": 29230,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "95ef0c168f0b25e936a7ff944da820a43af8028b515cc6709724f457e105c187"
+    },
+    "usr/share/qemu/keymaps/de": {
+      "bytes": 29183,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "cda7dc9656f007ca3e88e5bac50f20c7f61f934bcec2e87c6d61859e632ddb98"
+    },
+    "usr/share/qemu/keymaps/de-ch": {
+      "bytes": 29214,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "3260cb64fdcdf48e2b53c5d0573dc2a9410d7d3aae227ed42dda945f9ab74e06"
+    },
+    "usr/share/qemu/keymaps/en-gb": {
+      "bytes": 29219,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "e14229b7f9165bf226bf4de968fd5f6a504014a2179de08c2b2184cefe68174e"
+    },
+    "usr/share/qemu/keymaps/en-us": {
+      "bytes": 27086,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "52cf4c523e686078699ed58761c7e1443080305237a5f67a3716832570c5c8e5"
+    },
+    "usr/share/qemu/keymaps/es": {
+      "bytes": 29203,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "d9b1da8193232882705bd4a312c0923b6d91268f1e1a8eed2afbd7fc37681c06"
+    },
+    "usr/share/qemu/keymaps/et": {
+      "bytes": 27291,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "95af1e25132185e3cb271d491086ccf09cb667033afb718f1a11e974e80a838f"
+    },
+    "usr/share/qemu/keymaps/fi": {
+      "bytes": 28604,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "4c5cd5359c18635187d7af9570088a7bbd21f96d961aedbc4c9fb1e5df099281"
+    },
+    "usr/share/qemu/keymaps/fo": {
+      "bytes": 29217,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "3750b8090caea3cf6c827b97f5ecc2d1172c33d960141c50f96e61c53f682ccf"
+    },
+    "usr/share/qemu/keymaps/fr": {
+      "bytes": 29204,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "60d9baa3565b7727b4178704100bffb02cbd5b527a9dcc9f9ca76d76767b166e"
+    },
+    "usr/share/qemu/keymaps/fr-be": {
+      "bytes": 29211,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "522b5e758375e3d796fba096a46077766bd44548c8c61a4abe946e3116c1ad97"
+    },
+    "usr/share/qemu/keymaps/fr-ca": {
+      "bytes": 27564,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "9ee3fc13beec6e74f40fb6d150d7fe3b0afe4557fdf0769601e662a122a88cc0"
+    },
+    "usr/share/qemu/keymaps/fr-ch": {
+      "bytes": 29215,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "7b2ad2929f3b7b4f5d60176bd7e1852f91efbcfe2700e8df9bc9b891609a7170"
+    },
+    "usr/share/qemu/keymaps/hr": {
+      "bytes": 29255,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "e8391ed09015ce8459a98e3470daddd3a6d95c4c7e93b750098f5a321fd57482"
+    },
+    "usr/share/qemu/keymaps/hu": {
+      "bytes": 29207,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "763a938ed2fdd224b9cb8ad606d02aabc93a0e3fb7a5e5e9caafa0ec8c05d422"
+    },
+    "usr/share/qemu/keymaps/is": {
+      "bytes": 29254,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "6eb4e5bd93ca2f7a2059a31fd014444108eb684ecd97902da2492b0a0f6e3cdc"
+    },
+    "usr/share/qemu/keymaps/it": {
+      "bytes": 29312,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "12d090cdcb6af0e95a0c0330b8b7f0ac0446ab8cf7140b4f8c6c797c08e9c219"
+    },
+    "usr/share/qemu/keymaps/ja": {
+      "bytes": 27163,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "a4561aefcc2fd2f4ba01604001c9c0dc67469514ea0a665063b72e79d5d9c687"
+    },
+    "usr/share/qemu/keymaps/lt": {
+      "bytes": 29166,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "0bfc98e913451c0b9082d0317deffa03c6f0c53a1422cb4f4c1ef64dc3939d2f"
+    },
+    "usr/share/qemu/keymaps/lv": {
+      "bytes": 28618,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "be4f1e28325ae2ea927bd51e31863a327e64c0a938725fd02c2a7260660bdf77"
+    },
+    "usr/share/qemu/keymaps/mk": {
+      "bytes": 27685,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "71068ffe163ce6684b35f423e897e00c97debe0c3df555c43d26b46a79ca68e7"
+    },
+    "usr/share/qemu/keymaps/nl": {
+      "bytes": 29268,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "70cb1b41f184d61520867e639e6b69cddea4b0e2458c5502c7c40512301876c7"
+    },
+    "usr/share/qemu/keymaps/no": {
+      "bytes": 29563,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "95b3fe5258264b827ba01acc7a774bd9edbaec52c54e582a0737c33087a92514"
+    },
+    "usr/share/qemu/keymaps/pl": {
+      "bytes": 29327,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "5f3da802f81f385c58179272e48c4f8680dfdfe55383c504a6d84b3b7a8aadfb"
+    },
+    "usr/share/qemu/keymaps/pt": {
+      "bytes": 29195,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "29161e1b8b61b761c3f3bff237ca73ce4ee3316a99090890b32469824b5eed8a"
+    },
+    "usr/share/qemu/keymaps/pt-br": {
+      "bytes": 29175,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "fbb9491c0bfc4253cced9d8a20965aca98d0249c4626fe6e7d31358b24e34e8d"
+    },
+    "usr/share/qemu/keymaps/ru": {
+      "bytes": 27704,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "afa015a736cd935fc38a0df62fd6ab2f3c64b44c48b3e6d95969cbbfcdc43e91"
+    },
+    "usr/share/qemu/keymaps/sl": {
+      "bytes": 4632,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "bea8fe8ac0ca281038ac0e1788c39f090507ff0646bd4f57cc18f6873b030147"
+    },
+    "usr/share/qemu/keymaps/sv": {
+      "bytes": 3346,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "97731fbe91f254d81c005ffc232180a8dd7baeb6d699f0f0fc15e341672f96b3"
+    },
+    "usr/share/qemu/keymaps/th": {
+      "bytes": 27829,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "6dd9562a2b10c81f658ad96075fd87832777e87357620e89c7d070e4097fbbb9"
+    },
+    "usr/share/qemu/keymaps/tr": {
+      "bytes": 29142,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "f59f8cc154f0dc8b45166b524b9c1e649ba027e39381aac286663ad2227ddce8"
+    },
+    "usr/share/qemu/kvmvapic.bin": {
+      "bytes": 9216,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "6cec4aeb2119374152fa0ffdb76a30ff4f44fea12cc77ed0d3948335a7b5a7a3"
+    },
+    "usr/share/qemu/linuxboot.bin": {
+      "bytes": 1024,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "1ecfb26c19da9dc00cdec0d0d738db69aeea4f1231c0c0ffc483ff69b3cda6ce"
+    },
+    "usr/share/qemu/linuxboot_dma.bin": {
+      "bytes": 1536,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "388e7e5dc15ac1884cd5a65cccee09ff68837a50da41228f88a0fd45f4f2ff7d"
+    },
+    "usr/share/qemu/multiboot.bin": {
+      "bytes": 1024,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "13a3f9f119797b8776105f020f36572ce6a20fa2c60d3b8112818bfaefcdd348"
+    },
+    "usr/share/qemu/multiboot_dma.bin": {
+      "bytes": 1024,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "46def003b1c413cc4a5880d858ca54456ad6978d5fdb6e1b7d086b2905a66df0"
+    },
+    "usr/share/qemu/npcm7xx_bootrom.bin": {
+      "bytes": 736,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "2b17c3531daba9c133cbaa53595052e799505b2b4b3005ebc7b229f5c5e64322"
+    },
+    "usr/share/qemu/openbios-ppc": {
+      "bytes": 677196,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "7bd0ddedc0ae8fc664b35ecd67c384c96ce48e66ad6e2697daf26ca84b007938"
+    },
+    "usr/share/qemu/openbios-sparc32": {
+      "bytes": 382080,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "5dd1054a3239ce34b0ea74fcc45df9aa253a9ce05fba9d819eca386d839eb119"
+    },
+    "usr/share/qemu/openbios-sparc64": {
+      "bytes": 1593408,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "0da253fb6aed224e40a6dd3ac709bc8045fa669c088e5ef936ec24c0f7c85d60"
+    },
+    "usr/share/qemu/opensbi-riscv64-generic-fw_dynamic.bin": {
+      "bytes": 115328,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "165408f04d43bfad382773533458212383d83f0874470ba0e1ecc35603473deb"
+    },
+    "usr/share/qemu/opensbi-riscv64-generic-fw_dynamic.elf": {
+      "bytes": 116784,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "16133a992f795dcd9b6c39ce6f6debefb5b407264ca73ab3b07eeffe987ec7ac"
+    },
+    "usr/share/qemu/palcode-clipper": {
+      "bytes": 111216,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "6d134992e148ed3fd4575890c95e136d672943d88103a960ac0c1f3dc4e035e9"
+    },
+    "usr/share/qemu/pvh.bin": {
+      "bytes": 1536,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "bac467fcfca0232cc87f4054463df09c341d633dab3daeedc4ad73e5658f9d02"
+    },
+    "usr/share/qemu/qboot.rom": {
+      "bytes": 65536,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "5c4d986a8829abc3ccc45302bb0e9e93e9f78435a6ed4d13a48f4e2822f91f74"
+    },
+    "usr/share/qemu/s390-ccw.img": {
+      "bytes": 63104,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "f7eb969377a89842e01dcecc5c81af46308fafb32d0dba95c2da2b4ad8f9e2b0"
+    },
+    "usr/share/qemu/s390-netboot.img": {
+      "bytes": 104096,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "f77a8a36396cfbbcf95031293ef42dd9ab08bce48aba983a73fdafc2fda1bfef"
+    },
+    "usr/share/qemu/sgabios.bin": {
+      "bytes": 4096,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "1b6336a7e2c0a5ce0d78e415be244fb5457ce5986bcfa5aedde264d2a2e82874"
+    },
+    "usr/share/qemu/skiboot.lid": {
+      "bytes": 2527240,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "bd877d8484bd1091e11774924491e9f0590cebd5e39c14f1f818f933855d378e"
+    },
+    "usr/share/qemu/slof.bin": {
+      "bytes": 996688,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "395eb5e594a2da325bb4f8bc80dec006f90e45b68a13b02e06447ea18d53304f"
+    },
+    "usr/share/qemu/trace-events-all": {
+      "bytes": 455672,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "6db4fb2538f5775e1b549628751d3c20a875514c2ad17862e72809adb7915f49"
+    },
+    "usr/share/qemu/vhost-user": {
+      "bytes": 0,
+      "kind": "directory",
+      "mode": 493
+    },
+    "usr/share/qemu/vhost-user/50-qemu-virtiofsd.json": {
+      "bytes": 107,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "e7e8a634312ff730b2ffc8f52f433859e3f13b19a488fc2f456d1106f4b50fcf"
+    },
+    "usr/share/qemu/vof.bin": {
+      "bytes": 3488,
+      "kind": "file",
+      "mode": 420,
+      "sha256": "3af6a8e4c96ca22e2506dfa2323501a6ae34be82bf6514e4c299f40fecd07044"
+    }
+  },
+  "native_installed_dependency_versions_verified": true,
+  "package_count": 39,
+  "prior_attempt": "Refused at exact package control identity before extraction; four filename-omitted Debian version epochs corrected in metadata with unchanged payload URLs/sizes/hashes; temporary state removed.",
+  "publication_no_replace_and_fsynced": true,
+  "regular_files_rehashed_after_publication": 1323,
+  "remote_receipt_bytes": 412557,
+  "remote_receipt_sha256": "1decebf970329e45d881dab6a7fdc8dc8fb1df62a848f875048dcecd05ed1f1b",
+  "schema": 1,
+  "setup_helper_sha256": "d4757d526691598ab27ec92852b6c6b42bcb7af1f59d375766732600eb2cec09",
+  "status": "setup_ready_no_guest_run",
+  "system_installation": false,
+  "unpacked_member_bytes": 107557800
+}
