@@ -36,7 +36,8 @@ a vendor ABI wrapper, or a disabled speculative DT node would not remove the
 missing protocol and ownership contracts.
 
 Subsequent offline slices define the [INIT command/response contract](INIT_PROTOCOL.md),
-[shared memory ownership](OWNERSHIP.md), and [calibration input contract](CALIBRATION.md).
+[shared memory ownership](OWNERSHIP.md), [calibration input contract](CALIBRATION.md),
+and the [one-pending-command lifecycle](INIT_SESSION.md).
 Their pure validators establish framing and selected source predicates; they do
 not authorize loading or radio activity. Integration reviews and their limits
 are recorded in [INTEGRATION_REVIEW.md](INTEGRATION_REVIEW.md).

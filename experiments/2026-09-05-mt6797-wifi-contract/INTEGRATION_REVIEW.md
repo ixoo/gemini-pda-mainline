@@ -120,3 +120,22 @@ hardware support claim, device custody, candidate or queue readiness changes.
 
 The common publication checks passed, including all 190 manifest profiles.
 No kernel input changed or kernel build was required for this integration.
+
+## Separate INIT-session follow-up review
+
+Project Planning adopts the four additive files from
+`fcb1cb6b889fb738f8ac34e210d50f625982c246`. Independent review passed all
+68 session/decoder tests normally and with Python optimization. A separate
+exploration checked 8,865 traces, 25,914 transitions and 12,835 fixed refusals
+without mutation. Serialization, deadline boundaries, completion attribution,
+terminal failures and sequence bookkeeping had no actionable findings. The
+recorded helper/document hashes match and the prior decoder is unchanged.
+This review did not refetch the vendor sources or repeat their earlier audit.
+
+The [session model](INIT_SESSION.md) remains a sequential host reference.
+Deadline enforcement requires caller observations; sequence nonreuse applies
+within one object; generation labels do not authenticate received bytes.
+Real provider locking, transport completion, cancellation, stale-receive
+handling and recovery remain implementation prerequisites. No kernel input,
+shared-resource ownership, candidate, queue readiness or hardware support
+claim changes. No kernel build or device action was needed for integration.
