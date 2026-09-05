@@ -1,0 +1,103 @@
+{
+  "device_access": "none",
+  "traces": {
+    "attribution": {
+      "boot_id": "056703de-bf29-4956-891e-ff69d19fdd68",
+      "first_to_last_delta_by_slot": [
+        6400,
+        100,
+        1400,
+        300,
+        1900,
+        1700,
+        1300
+      ],
+      "input_sha256": "4e4bc2b635e9f3a8b4ae908725dff5ac52bfedc3cc2b766d9bb4ee2622a3ad8f",
+      "last_interval_delta_by_slot": [
+        5600,
+        0,
+        1300,
+        300,
+        1200,
+        1400,
+        1100
+      ],
+      "maxima": [
+        36300,
+        36700,
+        41900
+      ],
+      "same_sensor_1_bank_spread": [
+        300,
+        400,
+        300
+      ],
+      "stages": [
+        "post-lifecycle",
+        "writers-waiting",
+        "workers-complete"
+      ],
+      "winning_slots": [
+        [
+          6
+        ],
+        [
+          4
+        ],
+        [
+          0
+        ]
+      ]
+    },
+    "recovery": {
+      "boot_id": "6bd8ef2e-d7b1-4b4f-95a7-c97e13992a4c",
+      "first_to_last_delta_by_slot": [
+        -600,
+        400,
+        -500,
+        100,
+        -400,
+        -1200,
+        -1100
+      ],
+      "input_sha256": "be16e9df7420a9f1e59678867478bd2535f4f0c4d85573ffa03e3767933e7ccc",
+      "last_interval_delta_by_slot": [
+        -6500,
+        100,
+        -2400,
+        -200,
+        -2400,
+        -2400,
+        -2400
+      ],
+      "maxima": [
+        32100,
+        37100,
+        31100
+      ],
+      "same_sensor_1_bank_spread": [
+        600,
+        200,
+        200
+      ],
+      "stages": [
+        "pre-workload",
+        "workers-complete",
+        "post-completion"
+      ],
+      "winning_slots": [
+        [
+          5
+        ],
+        [
+          0
+        ],
+        [
+          2,
+          4
+        ]
+      ]
+    }
+  },
+  "units": "millicelsius"
+}

@@ -350,3 +350,9 @@ recovery interval. This distinguishes a decrease at the new time point from a
 persistent reported rise; conversion freshness and physical cause remain unknown.
 Full integrated repeatability is not established. The session and all three
 snapshot attempts are consumed; no retry is admitted. Mainline remains running.
+
+
+The [post-recovery discriminator review](PASSIVE_DISCRIMINATOR_DECISION.md)
+uses both retained traces and the existing source contract. It finds no
+supported passive measurement of conversion age, so further output-only traces
+do not justify a causal classification or another boot. Rejections stand.

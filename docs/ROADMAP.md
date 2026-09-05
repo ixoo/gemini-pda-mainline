@@ -8386,12 +8386,18 @@ now completed with CPU/RAM/frequency, cleanup, quiescence and final accounting
 passing. The affected slot decreased at the bounded recovery time point, but
 the workers-complete baseline-rise comparison still rejected. This establishes
 only a reported response; conversion age and physical cause remain unknown.
-**Selected next:** use the retained per-slot traces and source/register audit to
-determine whether a distinct passive observation can distinguish conversion
-history from physical temperature response. Publish its falsifiable decision
-and bounded protocol before any new boot; if no safe discriminator is supported,
-retain the unresolved thermal gate. Do not infer physical cooling or relax the
-comparison from this decrease. No further diagnostic reads or workload on the consumed
+The [passive-discriminator review](../experiments/2026-09-04-mt6797-thermal-snapshot/PASSIVE_DISCRIMINATOR_DECISION.md)
+now finds no supported passive freshness discriminator in the retained contract.
+A denser trace, different wait or observer timestamp cannot by itself distinguish
+physical response from conversion history; no new boot is selected.
+**Selected next:** audit the exact V4 conversion and calibration-index path
+against its pinned reference and current tests, using synthetic inputs only.
+Check arithmetic width, sign/truncation, monotonicity, range and sensor-index
+mapping before proposing a measurement-path change. Preserve any discrepancy
+as an offline finding; a fix requires focused regression evidence and the normal
+published Buildbox/candidate gates before device admission. If that audit finds
+no defect, retain unknown cause and require an independently supported hardware
+measurement contract before reopening thermal repeatability. No further diagnostic reads or workload on the consumed
 session; no repeat is admitted. Any future boot requires a distinct,
 decision-changing hypothesis and published bounded protocol. Integrated thermal
 repeatability, broader load/hotplug, cpufreq/OPP, idle, suspend, thermal protection
