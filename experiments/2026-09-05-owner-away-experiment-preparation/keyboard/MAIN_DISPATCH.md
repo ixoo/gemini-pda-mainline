@@ -27,3 +27,29 @@ The proposal is now applied to the dispatcher. Independent routing tests cover
 main build/fetch, retained worker build/fetch and refusal of an unlisted branch
 before transport. The archived proposal remains unchanged. No backend result
 is implied by accepting this source change.
+
+## Post-build publication refusal
+
+The dispatcher now performs the claimed second exact branch advertisement
+check after local HEAD/cleanliness verification and before fetch. Ref drift or
+an empty advertisement preserves the successful build log/package and refuses
+automatic collection. The six mocked routing methods include changed refs on
+both allowed branches and both package kinds, empty post-build output, and
+unchanged build/fetch-only behavior. These tests never contact Buildbox.
+
+The timeout values are termination/wait targets, not guarantees of remote
+cessation; see [the explicit limitation](MONITOR.md#dispatcher-completion-and-timeout-limits).
+No timeout escalation, backend run or completed-receipt change is included.
+
+Host correction checks at base `75636670d933b9231f36fddf2ce876801568f64e`:
+all six mocked routing methods pass, including five post-build refusal variants;
+Python/embedded Bash syntax, ShellCheck and the common repository gate pass
+(192 profiles, unchanged metadata debt 37). This validates the correction's
+host scope, not the coordinator's subsequently changed main checkout. The
+original monitor fixtures and backend build were not repeated.
+
+Project Planning independently applied and reviewed `8aeda777` on current
+main. All six mocked routing methods and the common repository gate passed
+(192 profiles; unchanged metadata debt 37). The successful build measurement
+and acceptance receipt were preserved byte-for-byte. No backend repetition
+or device action was needed for this correction.

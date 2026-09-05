@@ -163,8 +163,9 @@ After coordinator source review and an assigned userspace window, invoke:
 python3 experiments/2026-09-05-owner-away-experiment-preparation/baseline/scripts/buildbox_userspace.py --keyboard-monitor
 ```
 
-One invocation has a 1,200-second remote compilation/validation ceiling within
-the existing 1,800-second dispatch ceiling. It checks at least 512 MiB free,
+One invocation requests termination of the remote build after 1,200 seconds;
+the local dispatcher waits at most 1,800 seconds for its SSH subprocess. These
+are termination/wait targets, not proof that all remote work has ceased. It checks at least 512 MiB free,
 verifies compiler/linker and archive/member pins, configures/builds one private
 static musl library, and links two independent full-engine outputs. The checked
 map and defined symbol precede stripping; AArch64, static linkage, byte equality,
@@ -224,3 +225,26 @@ build or source copy is selected. Host free space was approximately 86 GiB; the
 builder independently requires 512 MiB before extraction. Publication and fetch
 must finish before changing the integration checkout. A failed run remains
 evidence for review, not permission for an automatic retry.
+
+## Dispatcher completion and timeout limits
+
+After a successful remote build, the dispatcher verifies local cleanliness and
+HEAD, then queries the exact selected origin branch again. A changed or empty
+remote advertisement refuses before fetch while preserving the original build
+log and remote publication. Fetch-only remains a separate, explicit retrieval
+of an already published revision/package; it does not build or require that
+historical revision to remain the branch tip. A successful ref check is a
+point-in-time observation, not a branch freeze.
+
+The shell timeouts request TERM without a subsequent KILL deadline. The local
+SSH wait timeout does not establish remote process cessation. Nested build
+commands and fixture-created sessions must not be assumed to be covered by a
+single process-group signal. A timeout, disconnect or missing terminal result
+therefore leaves completion inconclusive until the original run's processes,
+locks and managed stage have been accounted for. Preserve its logs and do not
+start a duplicate invocation. Lock availability alone does not prove every
+fixture descendant has exited. No escalation or new process framework is added
+by this correction; a future stronger cleanup contract needs its own review.
+
+This limitation does not reclassify a completed successful measurement with its
+recorded post-state checks. The original build receipt remains unchanged.

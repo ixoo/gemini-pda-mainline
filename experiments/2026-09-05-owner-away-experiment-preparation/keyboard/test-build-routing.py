@@ -17,7 +17,7 @@ WORK = HERE.parents[2] / 'artifacts/a53-authenticated/development/keyboard-build
 
 
 class RoutingTests(unittest.TestCase):
-    def exercise(self, kind, fetch_only, branch=None):
+    def exercise(self, kind, fetch_only, branch=None, post_build_ref=None):
         branch = branch or MODULE['BRANCH']
         WORK.mkdir(mode=0o700, parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(dir=WORK) as temporary:
@@ -27,14 +27,18 @@ class RoutingTests(unittest.TestCase):
             sums = (hashlib.sha256(provenance).hexdigest() + '  ./provenance.txt\n').encode()
             identity = hashlib.sha256(sums).hexdigest()
             calls = []
+            publication_reads = 0
 
             def git(*args):
+                nonlocal publication_reads
+                if args == ('ls-remote', '--exit-code', 'origin', 'refs/heads/' + branch):
+                    publication_reads += 1
+                    return revision if publication_reads == 1 or post_build_ref is None else post_build_ref
                 return {('remote', 'get-url', 'origin'): MODULE['ORIGIN'],
                         ('status', '--porcelain'): '',
                         ('branch', '--show-current'): branch,
                         ('rev-parse', 'HEAD'): revision,
-                        ('rev-parse', revision + '^{commit}'): revision,
-                        ('ls-remote', '--exit-code', 'origin', 'refs/heads/' + branch): revision}[args]
+                        ('rev-parse', revision + '^{commit}'): revision}[args]
 
             def build(command, **kwargs):
                 self.assertFalse(fetch_only)
@@ -63,7 +67,18 @@ class RoutingTests(unittest.TestCase):
             globals_ = MODULE['main'].__globals__
             with patch.dict(globals_, {'REPO': root, 'git': git, 'fetch_bounded': fetch}), \
                     patch('sys.argv', argv), patch('subprocess.run', side_effect=build):
+                if post_build_ref is not None:
+                    with self.assertRaisesRegex(ValueError, 'published branch changed during build'):
+                        MODULE['main']()
+                    self.assertEqual(calls, ['build'])
+                    self.assertEqual(publication_reads, 2)
+                    output = root/'artifacts/buildbox'/revision
+                    self.assertTrue((output/(kind + '-build.log')).is_file())
+                    self.assertFalse((output/('.fetch-' + kind)).exists())
+                    self.assertFalse((output/(kind + '-' + identity)).exists())
+                    return
                 MODULE['main']()
+            self.assertEqual(publication_reads, 0 if fetch_only else 2)
             self.assertEqual(calls, ['fetch'] if fetch_only else ['build', 'fetch'])
             self.assertTrue((root/'artifacts/buildbox'/revision/(kind + '-' + identity)/'SHA256SUMS').is_file())
             self.assertFalse((root/'artifacts/buildbox'/revision/('.fetch-' + kind)).exists())
@@ -84,6 +99,15 @@ class RoutingTests(unittest.TestCase):
     def test_main_build_and_fetch(self):
         self.exercise('keyboard-monitor', False, 'main')
         self.exercise('keyboard-monitor', True, 'main')
+
+    def test_remote_ref_drift_refuses_before_fetch(self):
+        for branch in ('main', MODULE['BRANCH']):
+            for kind in ('userspace', 'keyboard-monitor'):
+                with self.subTest(branch=branch, kind=kind):
+                    self.exercise(kind, False, branch, post_build_ref='b' * 40)
+
+    def test_empty_post_build_ref_refuses_before_fetch(self):
+        self.exercise('keyboard-monitor', False, 'main', post_build_ref='')
 
     def test_fetch_only_never_builds_either_kind(self):
         for kind in ('userspace', 'keyboard-monitor'):

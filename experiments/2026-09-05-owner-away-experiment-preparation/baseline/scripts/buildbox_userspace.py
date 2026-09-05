@@ -267,6 +267,10 @@ def main():
             identity = matches[0]
             require(not git('status', '--porcelain') and git('rev-parse', 'HEAD') == revision,
                     'source changed during build')
+            published = git('ls-remote', '--exit-code', 'origin',
+                            'refs/heads/' + branch).split()
+            require(published and published[0] == revision,
+                    'published branch changed during build; preserve package and review before fetch')
         stage = output / ('.fetch-' + kind)
         destination = output / (kind + '-' + identity)
         clear_partial(stage)
