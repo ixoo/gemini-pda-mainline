@@ -10,6 +10,8 @@ UUID = re.compile(r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}')
 SHA = re.compile(r'[0-9a-f]{64}')
 LIMIT = 2097152
 REBOOT_SHA = '3f439dbb0572b0f6f463c168d5b795dc93c9f41efd096f2154bd7f6b8524a2f7'
+# Exact stdout emitted by the wrapper identified above, before reboot(2).
+REBOOT_ANNOUNCEMENT = b'Candidate AB: kernel restart requested now (BusyBox reboot -n -f).\n'
 
 
 def require(value, reason):
@@ -324,7 +326,8 @@ exit 94
 def parse_recovery_request(raw, process, boot):
     expected = (f'__A53_NATIVE_RECOVERY_BEGIN__\nboot_id={boot}\nreboot_sha256={REBOOT_SHA}\n'
                 'request_count=1\npartition_access=none\nsync_requested=no\n__A53_NATIVE_RECOVERY_END__\n').encode()
-    require(raw == expected and process['stdin_complete'] and process['reason'] is None and
+    require(raw == expected + REBOOT_ANNOUNCEMENT, 'native request/wrapper output mismatch')
+    require(process['stdin_complete'] and process['reason'] is None and
             process['exit_status'] == 255, 'native request/SSH disconnect unconfirmed')
     return {'classification': 'native-recovery-requested', 'boot_id': boot, 'request_count': 1,
             'recovery_confirmed': False}
