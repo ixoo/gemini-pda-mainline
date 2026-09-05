@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "upstream_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "remote": [
+    {
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/drivers/clk/mediatek/clk-mt6797.c",
+      "path": "drivers/clk/mediatek/clk-mt6797.c",
+      "sha256": "eaad6324621679371f33bbb76e10bcb0d3374b1f2dbbd837323b3f9e8fee1534",
+      "bytes": 23000
+    },
+    {
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/drivers/clk/mediatek/reset.c",
+      "path": "drivers/clk/mediatek/reset.c",
+      "sha256": "8c1cdf2ad881dc20659340cd7f0244b8ff1a1b6d1d7b4cd1e74946533adcee76",
+      "bytes": 4290
+    },
+    {
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/drivers/clk/mediatek/reset.h",
+      "path": "drivers/clk/mediatek/reset.h",
+      "sha256": "0401a0df50c411faf95465b716691dbf8f1c369a6eedc2511d6694e68dc4f1b5",
+      "bytes": 2198
+    },
+    {
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml",
+      "path": "Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml",
+      "sha256": "0610f891e326d1e0a7ce9ffe3ef0513ab229bf37eee8177de0999cac17157c6f",
+      "bytes": 2384
+    },
+    {
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/arch/arm64/boot/dts/mediatek/mt6797.dtsi",
+      "path": "arch/arm64/boot/dts/mediatek/mt6797.dtsi",
+      "sha256": "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83",
+      "bytes": 11331
+    },
+    {
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/MAINTAINERS",
+      "path": "MAINTAINERS",
+      "sha256": "39e65935b8f213dfa9b7a49a7341565855c6aec851288f0f32a0b2afcb35558a",
+      "bytes": 927914
+    },
+    {
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/drivers/clk/mediatek/Kconfig",
+      "path": "drivers/clk/mediatek/Kconfig",
+      "sha256": "6634c6e7c14ca9a72fc0a258ca9b8a575c53bc451919646feb644c7b9354c3c0",
+      "bytes": 34673
+    },
+    {
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/drivers/clk/mediatek/Makefile",
+      "path": "drivers/clk/mediatek/Makefile",
+      "sha256": "6af23f8e56cbb5e9fdda850fb8201f384053f89e8b3347aa8a6cd98239678b11",
+      "bytes": 10756
+    },
+    {
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/scripts/checkpatch.pl",
+      "path": "scripts/checkpatch.pl",
+      "sha256": "2553cc1a601e70522e03fbce633d4e79fa5936f7f56a66de1899b7ddd247820a",
+      "bytes": 245615
+    },
+    {
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/scripts/spelling.txt",
+      "path": "scripts/spelling.txt",
+      "sha256": "4095d4a8810f115bae1b7c0d8a1946beb3435f6e22d9a48ac009bb024bad1e68",
+      "bytes": 36610
+    },
+    {
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/scripts/const_structs.checkpatch",
+      "path": "scripts/const_structs.checkpatch",
+      "sha256": "ea064f6916a74763468037494aeb270aae34b7c97617e84d424ca5b8733539b2",
+      "bytes": 1646
+    },
+    {
+      "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/Makefile",
+      "path": "Makefile",
+      "sha256": "2ed4185f07916d1480e22a14d2ae8bd39f25ffc71a4781bf8d4a41f763949b69",
+      "bytes": 81066
+    }
+  ]
+}

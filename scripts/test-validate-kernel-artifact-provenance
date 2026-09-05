@@ -405,6 +405,40 @@ printf 'changed content\n' >> "${case_dir}/provenance/patches/vtest/0001.patch"
 refresh_sums "${case_dir}"
 expect_rejection changed-patch-content "${case_dir}" 'patchset_sha256 does not match'
 
+case_dir="$(clone_case legacy-minimal-source)"
+replace_json "${case_dir}/provenance/kernel-manifest.json" '.kernel |= {sha256}'
+refresh_sums "${case_dir}"
+expect_pass legacy-minimal-source "${case_dir}" 'patch_series=patches/series-gate'
+
+case_dir="$(clone_case source-override)"
+replace_json "${case_dir}/provenance/kernel-manifest.json" '
+  .kernel.version = "7.1.3" |
+  .config.profiles.gate.kernel = {
+    version: "7.3-rc1", released: "2026-09-05",
+    source_url: "https://example.invalid/snapshot.tar.gz",
+    sha256: ("a" * 64), archive_format: "tar.gz", archive_root: "linux-snapshot"
+  }'
+source_tuple="$(jq -c '.config.profiles.gate.kernel' "${case_dir}/provenance/kernel-manifest.json")"
+# shellcheck disable=SC2016 # jq variables, not shell expansions.
+replace_json "${case_dir}/provenance/build.json" --argjson source "${source_tuple}" \
+  '.kernel_source = $source | .source_sha256 = $source.sha256'
+refresh_sums "${case_dir}"
+expect_pass source-override "${case_dir}" 'patch_series=patches/series-gate'
+source_override_case="${case_dir}"
+for field in version released source_url sha256 archive_format archive_root; do
+  case_dir="${test_root}/source-missing-${field}"
+  cp -a "${source_override_case}" "${case_dir}"
+  # shellcheck disable=SC2016 # jq field variable.
+  replace_json "${case_dir}/provenance/build.json" --arg field "${field}" 'del(.kernel_source[$field])'
+  refresh_sums "${case_dir}"
+  expect_rejection "source-missing-${field}" "${case_dir}" 'source tuple disagrees'
+done
+case_dir="${test_root}/source-override-no-tuple"
+cp -a "${source_override_case}" "${case_dir}"
+replace_json "${case_dir}/provenance/build.json" 'del(.kernel_source)'
+refresh_sums "${case_dir}"
+expect_rejection source-override-no-tuple "${case_dir}" 'requires complete source provenance'
+
 printf 'validation=kernel-artifact-provenance-self-test\n'
 printf 'positive_cases=%s\n' "${pass_count}"
 printf 'mutations_rejected=%s\n' "${rejection_count}"

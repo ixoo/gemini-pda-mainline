@@ -113,14 +113,6 @@ manifest_value() {
 require_command python3
 "${MANIFEST_SERIES_VALIDATOR}" "${MANIFEST}" >/dev/null
 
-VERSION="$(manifest_value '.kernel.version')"
-readonly VERSION
-RELEASED="$(manifest_value '.kernel.released')"
-readonly RELEASED
-SOURCE_URL="$(manifest_value '.kernel.source_url')"
-readonly SOURCE_URL
-SOURCE_SHA256="$(manifest_value '.kernel.sha256')"
-readonly SOURCE_SHA256
 ARCH="$(manifest_value '.architecture')"
 readonly ARCH
 DEFAULT_PROFILE="$(manifest_value '.config.default_profile')"
@@ -140,6 +132,17 @@ jq -e --arg profile "${KERNEL_PROFILE}" '
   (($manifest.config.profiles[$profile].patch_series //
     $manifest.patch_series) | type == "string" and length > 0)
 ' "${MANIFEST}" >/dev/null || die "kernel profile is not defined correctly: ${KERNEL_PROFILE}"
+SOURCE_SELECTION="$(python3 "${SCRIPT_DIR}/kernel_source_contract.py" "${MANIFEST}" --profile "${KERNEL_PROFILE}")"
+readonly SOURCE_SELECTION
+KERNEL_SOURCE="$(jq -ce '.kernel' <<<"${SOURCE_SELECTION}")"
+readonly KERNEL_SOURCE
+VERSION="$(jq -er '.version' <<<"${KERNEL_SOURCE}")"
+RELEASED="$(jq -er '.released' <<<"${KERNEL_SOURCE}")"
+SOURCE_URL="$(jq -er '.source_url' <<<"${KERNEL_SOURCE}")"
+SOURCE_SHA256="$(jq -er '.sha256' <<<"${KERNEL_SOURCE}")"
+ARCHIVE_FORMAT="$(jq -er '.archive_format' <<<"${KERNEL_SOURCE}")"
+ARCHIVE_ROOT="$(jq -er '.archive_root' <<<"${KERNEL_SOURCE}")"
+readonly VERSION RELEASED SOURCE_URL SOURCE_SHA256 ARCHIVE_FORMAT ARCHIVE_ROOT
 BASE_CONFIG="$(jq -er --arg profile "${KERNEL_PROFILE}" \
   '.config.profiles[$profile].base' "${MANIFEST}")"
 readonly BASE_CONFIG
@@ -186,7 +189,13 @@ else
   BUILD_DIR="${BUILD_ROOT}/linux-${VERSION}-${KERNEL_PROFILE}"
 fi
 readonly BUILD_DIR
-readonly ARCHIVE="${CACHE_ROOT}/linux-${VERSION}.tar.xz"
+if [[ "$(jq -er '.selection' <<<"${SOURCE_SELECTION}")" == global &&
+      "${ARCHIVE_FORMAT}" == tar.xz && "${ARCHIVE_ROOT}" == "linux-${VERSION}" ]]; then
+  ARCHIVE="${CACHE_ROOT}/linux-${VERSION}.tar.xz"
+else
+  ARCHIVE="${CACHE_ROOT}/linux-${SOURCE_SHA256}.${ARCHIVE_FORMAT}"
+fi
+readonly ARCHIVE
 
 usage() {
   cat <<'EOF'
@@ -300,8 +309,15 @@ config_hash() {
 }
 
 source_state_hash() {
-  printf '%s\n%s\n%s\n' "${VERSION}" "${SOURCE_SHA256}" "$(patchset_hash)" \
-    | sha256sum | awk '{print $1}'
+  {
+    printf '%s\n%s\n%s\n' "${VERSION}" "${SOURCE_SHA256}" "$(patchset_hash)"
+    # Preserve legacy tree markers; modern archive policy changes must force
+    # revalidation even when they name the same compressed bytes.
+    if [[ "$(jq -er '.selection' <<<"${SOURCE_SELECTION}")" != global ||
+          "${ARCHIVE_FORMAT}" != tar.xz || "${ARCHIVE_ROOT}" != "linux-${VERSION}" ]]; then
+      printf '%s\n' "${KERNEL_SOURCE}"
+    fi
+  } | sha256sum | awk '{print $1}'
 }
 
 source_integrity_valid() {
@@ -324,19 +340,30 @@ build_state_hash() {
   } | sha256sum | awk '{print $1}'
 }
 
-download_source() {
+download_source() (
+  # The enclosing build workflow serializes cache/source mutations. Keep one
+  # known partial file and clean it on failure or a subsequent interrupted run.
   mkdir -p "${CACHE_ROOT}"
+  [[ ! -L "${ARCHIVE}" && ! -L "${ARCHIVE}.partial" ]] || die "unsafe archive cache link"
+  [[ ! -e "${ARCHIVE}" || -f "${ARCHIVE}" ]] || die "archive cache is not regular"
+  [[ ! -e "${ARCHIVE}.partial" || -f "${ARCHIVE}.partial" ]] || die "unsafe partial archive"
+  trap 'rm -f -- "${ARCHIVE}.partial"' EXIT
+  trap 'exit 130' HUP INT TERM
+  rm -f -- "${ARCHIVE}.partial"
   if [[ ! -f "${ARCHIVE}" ]]; then
-    echo "Downloading Linux ${VERSION} from kernel.org"
-    curl --fail --location --retry 3 --output "${ARCHIVE}.partial" "${SOURCE_URL}"
+    echo "Downloading pinned Linux ${VERSION} source"
+    curl --fail --location --proto '=https' --proto-redir '=https' \
+      --retry 3 --max-time 300 --max-filesize 536870912 \
+      --output "${ARCHIVE}.partial" "${SOURCE_URL}"
+    printf '%s  %s\n' "${SOURCE_SHA256}" "${ARCHIVE}.partial" | \
+      sha256sum --check --status || die "downloaded kernel archive checksum mismatch"
     mv "${ARCHIVE}.partial" "${ARCHIVE}"
   fi
-
   if ! printf '%s  %s\n' "${SOURCE_SHA256}" "${ARCHIVE}" | sha256sum --check --status; then
     rm -f "${ARCHIVE}"
     die "kernel archive checksum mismatch; removed ${ARCHIVE}"
   fi
-}
+)
 
 apply_patch_file() {
   local relative="$1"
@@ -346,18 +373,18 @@ apply_patch_file() {
   git -C "${PREPARED_TREE}" apply --unidiff-zero "${path}"
 }
 
-prepare_kernel() {
-  local expected_state
-  local temporary
+prepare_kernel() (
+  # A subshell owns both staging state and its traps. Bash may unwind function
+  # locals before an outer EXIT trap; keep this state in the subshell instead.
   expected_state="$(source_state_hash)"
 
   mkdir -p "${SOURCE_ROOT}"
   # Interrupted preparation used to leave full extracted trees behind because
   # the cleanup trap only ran on normal function return.  These are disposable
   # VM-owned staging paths, never a published source tree.
-  for temporary in "${SOURCE_ROOT}"/.prepare-"${VERSION}".*; do
-    [[ -d "${temporary}" && ! -L "${temporary}" ]] || continue
-    rm -rf -- "${temporary}"
+  for prepare_temporary in "${SOURCE_ROOT}"/.prepare-"${VERSION}".*; do
+    [[ -d "${prepare_temporary}" && ! -L "${prepare_temporary}" ]] || continue
+    rm -rf -- "${prepare_temporary}"
   done
 
   if [[ -f "${SOURCE_DIR}/.gemini-source-state" ]] && \
@@ -370,20 +397,23 @@ prepare_kernel() {
   fi
 
   download_source
-  temporary="$(mktemp -d "${SOURCE_ROOT}/.prepare-${VERSION}.XXXXXX")"
-  PREPARED_TREE="${temporary}/linux-${VERSION}"
+  prepare_temporary="$(mktemp -d "${SOURCE_ROOT}/.prepare-${VERSION}.XXXXXX")"
+  PREPARED_TREE="${prepare_temporary}/${ARCHIVE_ROOT}"
   export PREPARED_TREE
 
+  # shellcheck disable=SC2329 # Invoked by the subshell EXIT trap.
   cleanup_prepare() {
-    if [[ -n "${temporary:-}" && -d "${temporary}" && ! -L "${temporary}" ]]; then
-      rm -rf -- "${temporary}"
+    if [[ -n "${prepare_temporary:-}" && -d "${prepare_temporary}" && ! -L "${prepare_temporary}" ]]; then
+      rm -rf -- "${prepare_temporary}"
     fi
   }
   trap cleanup_prepare EXIT
+  trap 'exit 130' HUP INT TERM
 
   echo "Extracting Linux ${VERSION}"
-  tar -xJf "${ARCHIVE}" -C "${temporary}"
-  [[ -d "${PREPARED_TREE}" ]] || die "archive did not contain linux-${VERSION}"
+  python3 "${SCRIPT_DIR}/kernel-source-archive.py" "${ARCHIVE}" "${prepare_temporary}" \
+    --sha256 "${SOURCE_SHA256}" --format "${ARCHIVE_FORMAT}" --root "${ARCHIVE_ROOT}"
+  [[ -d "${PREPARED_TREE}" && ! -L "${PREPARED_TREE}" ]] || die "archive root was not extracted"
   git -C "${PREPARED_TREE}" init --quiet
   for_each_patch apply_patch_file
   printf '%s\n' "${expected_state}" > "${PREPARED_TREE}/.gemini-source-state"
@@ -396,9 +426,9 @@ prepare_kernel() {
   rm -rf "${SOURCE_DIR}"
   mv "${PREPARED_TREE}" "${SOURCE_DIR}"
   trap - EXIT
-  rm -rf "${temporary}"
+  rm -rf "${prepare_temporary}"
   echo "Prepared Linux ${VERSION} at ${SOURCE_DIR}"
-}
+)
 
 configure_kernel() {
   local expected_state
@@ -627,6 +657,7 @@ package_artifacts() (
     --argjson config_fragments "${config_fragments_json}" \
     --arg config_inputs_sha256 "${config_input_hash}" \
     --arg source_sha256 "${SOURCE_SHA256}" \
+    --argjson kernel_source "${KERNEL_SOURCE}" \
     --arg patchset_sha256 "${patch_hash}" \
     --arg config_sha256 "${resolved_config_sha256}" \
     --argjson modules_built "${modules_built}" \
@@ -652,6 +683,7 @@ package_artifacts() (
       config_fragments: $config_fragments,
       config_inputs_sha256: $config_inputs_sha256,
       source_sha256: $source_sha256,
+      kernel_source: $kernel_source,
       patchset_sha256: $patchset_sha256,
       config_sha256: $config_sha256,
       modules_built: $modules_built,
@@ -757,6 +789,7 @@ source=${SOURCE_DIR}
 build=${BUILD_DIR}
 artifacts=${ARTIFACT_ROOT}
 cache=${CACHE_ROOT}
+archive=${ARCHIVE}
 EOF
 }
 

@@ -73,6 +73,30 @@ and clean-worktree provenance locally before it is retained.
 Only the validated package is transferred;
 remote sources, builds, caches, and checkouts remain remote and regenerable.
 
+## Source selection and cache
+
+The selected manifest profile may pin a complete source override as described in
+[the kernel workflow](KERNEL_WORKFLOW.md#pinned-inputs). The existing global
+release keeps its cache and prepared-source paths. Other archives use the full
+source SHA-256 and declared compression in their cache name; changing the source
+tuple invalidates reuse of a prepared tree. Builds sharing a patch selection
+reuse a matching managed tree and retain separate configuration build directories.
+
+Downloads use a bounded HTTPS request and a managed partial file, verified before
+publication. Preparation validates the declared compression and root and inspects
+the complete archive before installing a source tree. Unexpected roots, traversal,
+links through other links, unsupported file types and exceeded size/member bounds
+refuse. Archive or patch validation failure leaves the previous source tree in
+place and cleans its temporary state. Existing Buildbox locking serializes these
+mutations.
+
+If the exact archive is already retained under a previous cache location, review
+its identity and adopt it into the required location with a recorded receipt.
+Avoid downloading or retaining a duplicate merely because the cache name changed.
+This is source-cache maintenance on Buildbox; Linux source trees are never copied
+between hosts. Source-profile admission, a successful build and candidate
+selection remain separate steps.
+
 ## Immutable kernel packages
 
 Kernel packaging uses a locked, managed staging directory and runs the complete

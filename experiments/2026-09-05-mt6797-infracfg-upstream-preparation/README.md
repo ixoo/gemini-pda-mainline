@@ -242,3 +242,59 @@ schema validity, controller registration behavior or runtime support for this
 revision. Those gates, actual author certification and current maintainer
 routing remain open. The active device inputs and all historical patch bytes
 are unchanged; the topic inventory now links this bounded preparation record.
+
+## Exact-upstream build dependency
+
+The original builder and package validator used one global kernel source and
+assumed an xz release archive with root `linux-VERSION`. The exact upstream topic
+is based on a post-7.3-rc1 commit; the existing 7.1.3 local repair build cannot
+validate that whole revision. A [tested integration handoff](SOURCE_INTEGRATION.md)
+now supplies a complete source-selection/provenance contract and preservation
+fingerprints for all 189 existing profiles. Production integration and its
+corrective review are recorded in [INTEGRATION_REVIEW.md](INTEGRATION_REVIEW.md).
+The global manifest and canonical series remain unchanged; admitting and building
+the new upstream profile are subsequent steps.
+
+## Maintainer discovery method
+
+[The maintainer auditor](scripts/audit-maintainers.py) runs the pinned upstream
+`get_maintainer.pl` against all six exact generated patch digests on Buildbox.
+It records path-only and path-plus-keyword modes separately, with Git history,
+mailmap, file-address harvesting and Fixes-derived recipients disabled. Empty
+local configuration and ignore files prevent account-specific exclusions.
+The resulting routes are candidates for review, not an automatic mailing list or
+proof of the final merge tree. No message or patch submission is sent.
+
+The maintainer audit completed for all six patches in both modes.
+[Review notes](REVIEW_NOTES.md) map their routes, identify the path-only omission
+of MediaTek reviewers for the generic changes, and record the binding
+compatibility question and source-level registration/resource review. The
+[full routing result](results/maintainer-routing.json) is pinned evidence;
+reviewer discovery does not establish a merge agreement or submission readiness.
+
+## Upstream source archive acquisition
+
+[The bounded acquisition helper](scripts/acquire-upstream-archive.py) downloads
+one immutable upstream snapshot directly on Buildbox, with a 512 MiB compressed
+limit, five-minute download bound and eight-GiB member-content ceiling. It scans
+archive headers without extracting a source tree, refuses traversal, lexically
+escaping link targets, duplicate members and special nodes, and compares twelve reviewed files
+against [pinned inputs](archive-inputs.json), including the upstream Makefile.
+Five [fixture groups](scripts/test-archive-members.py) cover member safety and
+actual small archive content refusals. This is source acquisition, not a build
+or an independent full-Git-tree equivalence proof. A retained archive may be
+reused only against its subsequently published checksum; unexpected existing
+state is preserved and refused. Regenerable abandoned partial downloads are
+cleaned under an exclusive acquisition lock.
+
+Exact acquisition revision `68edda42` passed: the gzip archive is 269,814,253
+bytes, SHA-256
+`45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d`, with root
+`linux-4d7d9486c04d917265f64c55bd23b2cc4fe7749c`. All 102,310 members passed the
+header safety scan; all twelve reviewed input hashes agree. The
+[archive receipt](results/upstream-archive.json) records the exact source URL,
+content counts and reusable Buildbox cache location. No Linux tree was extracted
+and no archive or kernel source was copied to the host. The complete upstream
+Git tree was not independently reconstructed by this archive scan.
+The acquisition scanner is not an extraction validator; production preparation
+additionally checks complete link traversal as recorded in the integration review.

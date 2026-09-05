@@ -34,10 +34,12 @@ the separate DCO sign-off required for an upstream submission.
 Both backends perform the same pinned workflow:
 
 1. read `kernel/manifest.json`;
-2. download the pinned kernel.org source archive into the guest cache;
-3. verify the source SHA-256 before extraction;
-4. reuse or prepare a guest-ext4 source tree keyed by the effective patch
-   series;
+2. resolve the selected profile's complete source tuple and download its pinned
+   HTTPS archive into the backend cache;
+3. verify the source SHA-256, compression, root and complete member inventory
+   before extraction;
+4. reuse or prepare a backend source tree whose recorded source and effective
+   patch inputs match;
 5. apply the selected patches in canonical order;
 6. start from the profile's arm64 base configuration and merge its fragments;
 7. build `Image`, LK-compatible `Image.gz`, and arm64 DTBs out of tree;
@@ -55,10 +57,26 @@ checkout. Print the VM paths with:
 
 `kernel/manifest.json` is the build authority for:
 
-- kernel version, source URL, and source SHA-256;
+- kernel version, release date, source URL, SHA-256 and archive format/root;
 - default configuration profile;
 - each profile's base configuration and ordered fragments;
 - an optional named patch-series subsequence for an experiment.
+
+The global `kernel` object remains the fallback. A profile may select a different
+source with its own complete `kernel` object containing `version`, `released`,
+`source_url`, `sha256`, `archive_format` and `archive_root`. An override is never
+partially merged with global fields; missing, null or malformed values refuse.
+Supported archives are `tar.xz` and `tar.gz`, with one declared `linux-*` root.
+An existing four-field global tuple retains its `tar.xz` / `linux-VERSION`
+defaults. Pin a snapshot's `git_commit` and immutable commit URL when admitting
+that source, and verify its archive against the reviewed upstream inputs.
+
+The builder and package validator share
+[`kernel_source_contract.py`](../scripts/kernel_source_contract.py). New packages
+record the complete effective tuple. Profile overrides require that exact tuple
+in provenance; historical global-source packages retain their earlier checksum
+contract. These source checks supplement the existing package, configuration,
+patch and compiler checks. See the [Buildbox cache contract](BUILDBOX.md#source-selection-and-cache).
 
 The manifest stays pinned until reviewed and changed in Git. Checking for a
 newer kernel never changes build inputs:
