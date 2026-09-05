@@ -286,3 +286,13 @@ or an independent full-Git-tree equivalence proof. A retained archive may be
 reused only against its subsequently published checksum; unexpected existing
 state is preserved and refused. Regenerable abandoned partial downloads are
 cleaned under an exclusive acquisition lock.
+
+Exact acquisition revision `68edda42` passed: the gzip archive is 269,814,253
+bytes, SHA-256
+`45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d`, with root
+`linux-4d7d9486c04d917265f64c55bd23b2cc4fe7749c`. All 102,310 members passed the
+header safety scan; all twelve reviewed input hashes agree. The
+[archive receipt](results/upstream-archive.json) records the exact source URL,
+content counts and reusable Buildbox cache location. No Linux tree was extracted
+and no archive or kernel source was copied to the host. The complete upstream
+Git tree was not independently reconstructed by this archive scan.

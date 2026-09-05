@@ -1,0 +1,30 @@
+{
+  "archive_format": "tar.gz",
+  "archive_root": "linux-4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "attribution": "immutable upstream HTTPS snapshot; reviewed input hashes agree; full Git tree equivalence not independently established",
+  "bytes": 269814253,
+  "cache_relative_path": "cache/upstream-snapshots/linux-4d7d9486c04d917265f64c55bd23b2cc4fe7749c.tar.gz",
+  "cache_reused": false,
+  "kernel_build": "not run",
+  "member_count": 102310,
+  "reviewed_inputs": {
+    "Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml": "0610f891e326d1e0a7ce9ffe3ef0513ab229bf37eee8177de0999cac17157c6f",
+    "MAINTAINERS": "39e65935b8f213dfa9b7a49a7341565855c6aec851288f0f32a0b2afcb35558a",
+    "Makefile": "2ed4185f07916d1480e22a14d2ae8bd39f25ffc71a4781bf8d4a41f763949b69",
+    "arch/arm64/boot/dts/mediatek/mt6797.dtsi": "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83",
+    "drivers/clk/mediatek/Kconfig": "6634c6e7c14ca9a72fc0a258ca9b8a575c53bc451919646feb644c7b9354c3c0",
+    "drivers/clk/mediatek/Makefile": "6af23f8e56cbb5e9fdda850fb8201f384053f89e8b3347aa8a6cd98239678b11",
+    "drivers/clk/mediatek/clk-mt6797.c": "eaad6324621679371f33bbb76e10bcb0d3374b1f2dbbd837323b3f9e8fee1534",
+    "drivers/clk/mediatek/reset.c": "8c1cdf2ad881dc20659340cd7f0244b8ff1a1b6d1d7b4cd1e74946533adcee76",
+    "drivers/clk/mediatek/reset.h": "0401a0df50c411faf95465b716691dbf8f1c369a6eedc2511d6694e68dc4f1b5",
+    "scripts/checkpatch.pl": "2553cc1a601e70522e03fbce633d4e79fa5936f7f56a66de1899b7ddd247820a",
+    "scripts/const_structs.checkpatch": "ea064f6916a74763468037494aeb270aae34b7c97617e84d424ca5b8733539b2",
+    "scripts/spelling.txt": "4095d4a8810f115bae1b7c0d8a1946beb3435f6e22d9a48ac009bb024bad1e68"
+  },
+  "sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+  "source_tree_extracted": false,
+  "source_url": "https://codeload.github.com/torvalds/linux/tar.gz/4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "uncompressed_member_bytes": 1640404295,
+  "upstream_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "repository_commit": "68edda42bf9ca4fa59607ed47b2a42ca76b8a473"
+}

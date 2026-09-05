@@ -94,11 +94,12 @@ and select only those six in the new upstream profile. Every manifest profile
 must still pass the existing canonical-subsequence audit. Do not apply both the
 historical integration repair and the coherent upstream equivalent to one tree.
 
-The new profile needs an independently hashed source archive for exact upstream
-commit `4d7d9486c04d917265f64c55bd23b2cc4fe7749c`, the archive-root/compression
+The new profile now has an [independently hashed archive](results/upstream-archive.json)
+for exact upstream commit `4d7d9486c04d917265f64c55bd23b2cc4fe7749c`, the archive-root/compression
 contract, a small arm64 QEMU configuration with both new KUnit suites, and exact
 expected patch identities from the generation receipt. Those build inputs are
-not yet admitted. No placeholder checksum is a usable source selection.
+not yet admitted; the source acquisition receipt supplies the concrete archive
+identity without selecting a profile. No placeholder checksum is a usable source selection.
 
 ## Validation before build
 
