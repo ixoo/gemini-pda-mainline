@@ -1,0 +1,35 @@
+{
+  "boot_id": "b0a9e555-b1e7-4455-b65d-79dcf6116578",
+  "classification": "known-good-current-state-confirmed",
+  "command_sha256": "47aa0b77d3c79d7618f81ccb5c8a1f5b2eef1671285cfbc274d7f72d1ab7a905",
+  "device_writes": false,
+  "emmc_read_executed": false,
+  "kernel": "3.18.41+",
+  "limits": {
+    "connections": 1,
+    "retries": 0,
+    "stderr_bytes": 4096,
+    "stdout_bytes": 4096,
+    "transport_seconds": 15
+  },
+  "matches_retained_known_good_kernel": true,
+  "os_release_id": "debian",
+  "os_release_version_id": "9",
+  "owner_statement": "It is there, check ssh... please record this for future reference",
+  "owner_statement_source": "coordinator relay; separate from authenticated observation",
+  "process": {
+    "elapsed_seconds": 0.481,
+    "exit_status": 0,
+    "reason": null,
+    "stderr_bytes": 0,
+    "stdin_complete": true,
+    "stdout_bytes": 307
+  },
+  "reboot_executed": false,
+  "recovery_from_unobserved_mainline_boot_proven": false,
+  "same_as_previous_confirmed_gemian_boot_id": true,
+  "schema": 1,
+  "scope": "fresh owner-requested Gemian LAN current-state check",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stdout_sha256": "0d88477dc053c9b01f9fd4fb15bfa392f18474843926941b69a6d49b8a52f6d4"
+}
