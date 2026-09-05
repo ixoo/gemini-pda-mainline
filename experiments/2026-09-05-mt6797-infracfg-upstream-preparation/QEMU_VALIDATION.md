@@ -78,16 +78,33 @@ leader and stdout EOF. A surviving group refuses acceptance even if cleanup
 successfully kills it. TERM is followed by KILL within the five-second grace;
 a final one-second bounded reap does not extend the guest's runtime allowance.
 SIGTERM, SIGHUP and SIGINT received by the runner are recorded rather than raised
-inside process creation or cleanup. Repeated handled signals cannot bypass group
-cleanup or final atomic, fsynced `INCOMPLETE` receipt publication. The initial
+inside process creation or cleanup. Before the completion boundary below,
+repeated handled signals cannot bypass group cleanup or final atomic, fsynced
+`INCOMPLETE` receipt publication. The initial
 receipt is also durable before launch. An interrupted replacement preserves the
 prior complete receipt instead of truncating it in place.
+
+Completion has an explicit cancellation boundary. After process cleanup,
+package/result validation and log digests finish, the runner blocks its handled
+signals and takes one final pending-signal snapshot. A signal already recorded
+or pending at that snapshot changes the result to `INCOMPLETE`. That snapshot
+freezes the decision; the receipt records this boundary and the decision.
+Signals arriving later, including during atomic replacement, do not reclassify
+the completed run. They are delivered after publication when the old signal mask
+is restored. No guest work occurs after the decision is frozen. This prevents
+an endless moving cancellation boundary after genuine completion.
+
+Regression fixtures deliver real SIGTERM, SIGHUP and SIGINT immediately before
+the blocked snapshot and from the final replacement call. The former must persist
+and return `INCOMPLETE`; the latter must preserve the already validated `PASS`
+with explicit completion semantics. These six timing cases exercise the actual
+finalization path with synthetic passing logs and process results.
 
 On Linux the direct QEMU child sets `PR_SET_PDEATHSIG=SIGKILL` before exec and
 checks that its parent did not die before setup. Non-setid and no-file-capability
 execution are required because privileged exec can clear that setting. This
-contains the direct guest if the coordinator is abruptly killed; it cannot
-publish a final receipt after uncatchable SIGKILL, so the initial incomplete
+contains the direct guest if the coordinator is abruptly killed. If final
+publication has not completed before uncatchable SIGKILL, the initial incomplete
 receipt remains authoritative. The
 [Linux API contract](https://man7.org/linux/man-pages/man2/PR_SET_PDEATHSIG.2const.html)
 clears the setting in forked descendants. This is not a cgroup or arbitrary

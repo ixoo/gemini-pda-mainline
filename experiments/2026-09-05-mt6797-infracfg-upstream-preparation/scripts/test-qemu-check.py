@@ -367,6 +367,45 @@ with m.interruption_guard() as state:
         self.assertEqual(json.loads((self.path / 'result.json').read_text())['result'], 'INCOMPLETE')
         self.assertFalse((self.path / 'result.json.pending').exists())
 
+    def test_signal_on_each_side_of_completed_run_boundary(self):
+        for signum in m.HANDLED_SIGNALS:
+            for when in ('before-snapshot', 'during-final-replace'):
+                with self.subTest(signal=signum, when=when):
+                    output = self.path / (str(signum) + '-' + when)
+                    output.mkdir()
+                    (output / 'serial.log').write_bytes(good_log())
+                    (output / 'qemu.stderr').write_bytes(b'')
+                    receipt = {'result': 'INCOMPLETE'}
+                    original_replace = os.replace
+                    original_pending = signal.sigpending
+                    replacements = 0
+                    def replacing(source, target):
+                        nonlocal replacements
+                        replacements += 1
+                        if replacements == 2 and when == 'during-final-replace':
+                            os.kill(os.getpid(), signum)
+                        return original_replace(source, target)
+                    def snapshot():
+                        if when == 'before-snapshot':
+                            os.kill(os.getpid(), signum)
+                        return original_pending()
+                    with m.interruption_guard() as state:
+                        with mock.patch.object(m, 'capture', return_value=good_exit()), \
+                             mock.patch.object(m, 'verify_package', return_value={}), \
+                             mock.patch.object(m.os, 'replace', side_effect=replacing), \
+                             mock.patch.object(m.signal, 'sigpending', side_effect=snapshot):
+                            m.run_attempt(Path('fixture-qemu'), Path('fixture-package'), output, receipt, state)
+                        self.assertEqual(state['signal'], signal.Signals(signum).name)
+                    persisted = json.loads((output / 'result.json').read_text())
+                    expected = 'INCOMPLETE' if when == 'before-snapshot' else 'PASS'
+                    self.assertEqual(receipt['result'], expected)
+                    self.assertEqual(persisted['result'], expected)
+                    self.assertEqual(persisted['completion']['decision'], expected)
+                    self.assertEqual(persisted['completion']['later_signals'],
+                                     'do-not-reclassify-completed-decision')
+                    self.assertEqual(replacements, 2)
+                    self.assertFalse((output / 'result.json.pending').exists())
+
     def test_privileged_executable_refuses(self):
         executable = self.path / 'fake-qemu'
         executable.write_text('fixture')

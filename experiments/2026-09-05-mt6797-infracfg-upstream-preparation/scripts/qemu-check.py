@@ -23,6 +23,7 @@ HERE = Path(__file__).resolve().parent
 CONTRACT = json.loads((HERE.parent / 'qemu-contract.json').read_text())
 MAX_LOG = 2 * 1024 * 1024
 MAX_QMP = 65536
+HANDLED_SIGNALS = (signal.SIGTERM, signal.SIGHUP, signal.SIGINT)
 
 
 class Refusal(ValueError):
@@ -168,7 +169,7 @@ def interruption_guard():
         if state['signal'] is None:
             state['signal'] = signal.Signals(signum).name
     previous = {sig: signal.signal(sig, record)
-                for sig in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT)}
+                for sig in HANDLED_SIGNALS}
     try:
         yield state
     finally:
@@ -327,6 +328,32 @@ def write_receipt(output, receipt):
             pending.unlink(missing_ok=True)
 
 
+def publish_completed_result(output, receipt, interrupted):
+    """Freeze a completed run at the final blocked pending-signal snapshot.
+
+    Validation, cleanup and log digests are already complete. Signals observed
+    through this snapshot cancel acceptance. Signals arriving afterwards cannot
+    cancel that completed decision while its receipt is atomically published.
+    """
+    prior_mask = signal.pthread_sigmask(signal.SIG_BLOCK, HANDLED_SIGNALS)
+    try:
+        pending = signal.sigpending().intersection(HANDLED_SIGNALS)
+        observed = interrupted['signal']
+        if observed is None and pending:
+            observed = signal.Signals(min(pending)).name
+        if observed is not None:
+            receipt['result'] = 'INCOMPLETE'
+            receipt['reason'] = 'interrupted: ' + observed
+        receipt['completion'] = {
+            'boundary': 'blocked-pending-signal-snapshot-after-validation-cleanup-and-log-digests',
+            'decision': receipt['result'],
+            'later_signals': 'do-not-reclassify-completed-decision',
+        }
+        write_receipt(output, receipt)
+    finally:
+        signal.pthread_sigmask(signal.SIG_SETMASK, prior_mask)
+
+
 def run_attempt(binary, package, output, receipt, interrupted):
     """Preserve initial and final receipts under the caller's signal guard."""
     try:
@@ -348,10 +375,7 @@ def run_attempt(binary, package, output, receipt, interrupted):
     finally:
         receipt['logs'] = {p.name: digest(regular(p)) for p in output.iterdir()
                            if p.name != 'result.json' and p.is_file()}
-        if interrupted['signal'] is not None:
-            receipt['result'] = 'INCOMPLETE'
-            receipt['reason'] = 'interrupted: ' + interrupted['signal']
-        write_receipt(output, receipt)
+        publish_completed_result(output, receipt, interrupted)
 
 
 def validate_executable(binary):

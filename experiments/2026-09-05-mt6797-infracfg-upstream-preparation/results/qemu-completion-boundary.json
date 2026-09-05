@@ -1,0 +1,39 @@
+{
+  "after_boundary": "decision frozen; signals during atomic publication do not reclassify completed evidence",
+  "before_boundary": "recorded or pending handled signal yields INCOMPLETE",
+  "boundary": "blocked pending-signal snapshot after validation, cleanup and log digests",
+  "common_repository_gate": "pass; 190 profiles",
+  "corrected_revision": "c5b30dfa",
+  "date": "2026-09-05",
+  "decision": "explicit completed-run cancellation boundary",
+  "execution_admission": "awaits integrator review and exact Linux fixtures",
+  "files_sha256": {
+    "QEMU_VALIDATION.md": "99bf9c3b05b781bc0cefbd36a7e4abdc8381f950c0ea3f8a00d4982090dcabca",
+    "scripts/qemu-check.py": "199db9ff466b5f2023a2993efee81ef604ef8f54df841b305c227f0b59c3d080",
+    "scripts/test-qemu-check.py": "b0854191a5189ee96955ec32f949e939412341b95c1699a8943c1b2f4f6c6055"
+  },
+  "fixture_signals": [
+    "SIGTERM",
+    "SIGHUP",
+    "SIGINT"
+  ],
+  "fixture_timing_cases": 6,
+  "fixtures_total": 27,
+  "host_passed": 26,
+  "host_skipped": 1,
+  "not_run": [
+    "Linux parent-death fixture",
+    "QEMU guest",
+    "schema",
+    "kernel build",
+    "device access"
+  ],
+  "schema": 1,
+  "skipped": "Linux-only direct-child parent-death fixture",
+  "unchanged": [
+    "qemu-contract.json",
+    "exact4ecpackage",
+    "guest limits",
+    "source/build/cache"
+  ]
+}
