@@ -1,5 +1,8 @@
 # Owner action card — for coordinator delivery
 
+This historical card is superseded by the [completed session outcome](INTEGRATED_SESSION_OUTCOME.md).
+The device returned to Gemian; this card requests no new selection.
+
 Coordinator update: the owner subsequently reported “boot2 started”. Physical
 selection is confirmed; external-power continuity and readable mainline text
 remain unconfirmed. The custodian has prepared the matching selection-confirmed

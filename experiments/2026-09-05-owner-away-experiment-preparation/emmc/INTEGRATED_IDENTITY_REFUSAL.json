@@ -1,0 +1,39 @@
+{
+  "admission_id": "23fbcf29-f20f-46d2-bf0f-d7441162a9c0",
+  "admission_sha256": "35110222adc2da5e3f17fd962be2538f48f8d9110a642eb9b7a1ef269c1e88ec",
+  "classification": "identity-guard-refused-before-storage-read",
+  "full_identity_guard_passed": false,
+  "global_read_claim_exists": false,
+  "identity_age_limit_seconds": 400,
+  "identity_attempts": 1,
+  "identity_manifest_sha256": "2469d676ae4886c7f904ffec55a8ff281710ec8ef817ff8a471b78b0e2be8d57",
+  "live_window_minted": false,
+  "log_preservation_performed": false,
+  "logger_lifetime_seconds": 600,
+  "next_action": "coordinator reviews separate terminal-log preservation and recovery; no replay or fabricated observation manifest",
+  "observed_boot_id": "e9292d0d-37e5-4d9d-8650-415743929986",
+  "observed_kernel": "7.1.3-gemini-mt6797-pwrap-reset",
+  "observed_uptime_seconds": 821.69,
+  "owner_physical_selection_confirmed": true,
+  "owner_power_readability_reply": "device is powered and readable.",
+  "process": {
+    "elapsed_seconds": 0.267,
+    "exit_status": 1,
+    "reason": null,
+    "stderr_bytes": 0,
+    "stdin_complete": true,
+    "stdout_bytes": 84
+  },
+  "raw_stdout_sha256": "e1b4a0a7e103ce711e2d04516fe59e1614d238ef3c43299cc374ff0b22900a12",
+  "recovery_performed": false,
+  "retry_count": 0,
+  "schema": 1,
+  "source_commit": "33455ea1c610ed9704bbd9ee99957eaf64ae9197",
+  "source_identity": {
+    "launcher_sha256": "2a59e87b8b90c73a8ecad06933f277868e7201bea9c2a082a033ab2193e0b6ba",
+    "pins_sha256": "22cc12f5e9ee5da069823e09d2d70fca1f0b2c18df6ed1c2a58fd7e17b7c660c"
+  },
+  "specific_guard_failure": "not identified by empty stderr; do not infer",
+  "storage_read_attempts": 0,
+  "timing_observation": "returned uptime exceeds both admitted bounds"
+}

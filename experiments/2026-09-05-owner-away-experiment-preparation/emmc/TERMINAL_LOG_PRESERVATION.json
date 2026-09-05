@@ -1,0 +1,82 @@
+{
+  "boot_id": "e9292d0d-37e5-4d9d-8650-415743929986",
+  "candidate_manifest_sha256": "54b07f0c70e77fd1e34fde4fc1c929980f0d8c3410f0a97ce3f15ffec1a66179",
+  "classification": "log-export-inconclusive",
+  "command": {
+    "attempts": 1,
+    "bytes": 5774,
+    "retries": 0,
+    "sha256": "87e7202a53c7f8959716a300c417969812913c701c77188f366174cf2ff25944",
+    "stderr_limit": 16384,
+    "stdout_limit": 3145728,
+    "transport_seconds": 30
+  },
+  "decoded_files": {
+    "kmsg-exit": {
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "state": "regular"
+    },
+    "kmsg.log": {
+      "bytes": 121083,
+      "sha256": "99a1e0437c533f467682d4f01d429714bdf0333b5c4a3fa2e3bf1782678020e8",
+      "state": "regular"
+    },
+    "kmsg.status": {
+      "bytes": 179,
+      "sha256": "3277dfd475a76f5555cd6e13125a8523b50f9f5de9db9df93ff056ffdc1a3802",
+      "state": "regular"
+    },
+    "kmsg.status.partial": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "state": "missing"
+    }
+  },
+  "export": {
+    "export_complete": true,
+    "logger_terminal": true,
+    "preservation_complete": true,
+    "reason": "logger was not explicitly sealed by this attempt",
+    "signal_attempts": 0,
+    "signal_status": "none",
+    "stop": "preexisting-terminal",
+    "terminal_before_export": true,
+    "transport_complete": true
+  },
+  "logger_exit": "1",
+  "logger_status": {
+    "byte_limit": "2097152",
+    "bytes": "121083",
+    "deadline_ms": "600000",
+    "elapsed_ms": "600000",
+    "first_seq": "0",
+    "last_seq": "1745",
+    "reason": "deadline-expired",
+    "records": "1746",
+    "result": "failed",
+    "schema": "gemini-kmsg-v1",
+    "sealed": "yes"
+  },
+  "manifest_sha256": "db5a1f16e99ea9590fb48b061183e2fb2e9c54f148b9686a9f91fd89af1102b9",
+  "private_bytes_fsynced_rehashed_and_reparsed": true,
+  "process": {
+    "elapsed_seconds": 0.475,
+    "exit_status": 0,
+    "reason": null,
+    "stderr_bytes": 0,
+    "stdin_complete": true,
+    "stdout_bytes": 164902
+  },
+  "recovery_performed": false,
+  "schema": 1,
+  "scope": "separate terminal-session preservation, not storage observation",
+  "source_pins": {
+    "baseline/scripts/collect-baseline.py": "efbca1e464e04005d3b7d503742b426eb9f642140ec289c40bc43563852208cf",
+    "baseline/scripts/finish-baseline.py": "f6fc5cf6a73518385af714b4f8566e32e4b231338cf231b0204d0b5aa96564a0",
+    "baseline/scripts/session_steps.py": "762616bb386647e0a25addd36ad9dba2f6384ebde4858f89a806a32678fc60fc",
+    "emmc/recovery_v2.py": "70d2b34b505278b81e98ffdb63a3c6963e20025a4a6ce05bf9e7de756f0e6279"
+  },
+  "storage_acceptance": false,
+  "storage_read_attempts": 0
+}

@@ -1,0 +1,64 @@
+{
+  "actions_after_known_good_confirmation": "none; device remains running Gemian",
+  "custody": "exclusive A53 test task",
+  "mainline_boot": "e9292d0d-37e5-4d9d-8650-415743929986",
+  "native_request_reclassified": false,
+  "overall": "known-good-return-confirmed-with-native-request-incomplete",
+  "phases": {
+    "confirm-known-good": {
+      "manifest_sha256": "0fed9929f799db60ded8825030b1e12cd798a55f7b24db1deb91fda1386fb632",
+      "process": {
+        "elapsed_seconds": 0.603,
+        "exit_status": 0,
+        "reason": null,
+        "stderr_bytes": 0,
+        "stdin_complete": true,
+        "stdout_bytes": 82
+      },
+      "result": {
+        "boot_id": "1b2ffc97-3b3a-454c-b6cc-bceddfec1de1",
+        "classification": "changed-ID-Gemian"
+      },
+      "stdout_sha256": "e522a07b0ee20faac5976b5c77e528e19a73a2762bd7c79c656172d4035441da"
+    },
+    "request-recovery": {
+      "manifest_sha256": "130747e29cdfe4852780e3b45dbb60ce06e86352fba850cd5e7f1cd0637af2b8",
+      "process": {
+        "elapsed_seconds": 14.093,
+        "exit_status": 255,
+        "reason": "outer-timeout",
+        "stderr_bytes": 0,
+        "stdin_complete": true,
+        "stdout_bytes": 305
+      },
+      "result": {
+        "classification": "native-recovery-request-incomplete",
+        "reason": "native request/SSH disconnect unconfirmed",
+        "recovery_confirmed": false
+      },
+      "stdout_sha256": "5c05ba370f4724121e77205ae542103ce033797b19578fceb8dc3460660a3d31"
+    }
+  },
+  "preservation_manifest_sha256": "db5a1f16e99ea9590fb48b061183e2fb2e9c54f148b9686a9f91fd89af1102b9",
+  "previous_known_good_boot": "b0a9e555-b1e7-4455-b65d-79dcf6116578",
+  "reboot_sha256": "3f439dbb0572b0f6f463c168d5b795dc93c9f41efd096f2154bd7f6b8524a2f7",
+  "recovery_command": {
+    "attempts": 1,
+    "bytes": 1859,
+    "retries": 0,
+    "sha256": "5bd70fb8be7f4c3f7ab8bf314f02b971aa1f913c5d8be38f81bc663191997cf7",
+    "stderr_limit": 16384,
+    "stdout_limit": 131072,
+    "transport_seconds": 15
+  },
+  "schema": 1,
+  "scope": "independent recovery of refused storage session; no observation fabricated",
+  "source_pins": {
+    "baseline/scripts/collect-baseline.py": "efbca1e464e04005d3b7d503742b426eb9f642140ec289c40bc43563852208cf",
+    "baseline/scripts/finish-baseline.py": "f6fc5cf6a73518385af714b4f8566e32e4b231338cf231b0204d0b5aa96564a0",
+    "baseline/scripts/session_steps.py": "762616bb386647e0a25addd36ad9dba2f6384ebde4858f89a806a32678fc60fc",
+    "emmc/recovery_v2.py": "70d2b34b505278b81e98ffdb63a3c6963e20025a4a6ce05bf9e7de756f0e6279"
+  },
+  "storage_acceptance": false,
+  "storage_read_attempts": 0
+}
