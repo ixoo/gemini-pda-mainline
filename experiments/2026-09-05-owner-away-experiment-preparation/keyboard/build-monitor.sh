@@ -5,9 +5,11 @@ set -euo pipefail
 umask 077
 export LC_ALL=C SOURCE_DATE_EPOCH=0 PYTHONDONTWRITEBYTECODE=1 PYTHONOPTIMIZE=0
 unset CPATH C_INCLUDE_PATH CPLUS_INCLUDE_PATH LIBRARY_PATH COMPILER_PATH GCC_EXEC_PREFIX REALGCC CFLAGS CPPFLAGS LDFLAGS
-[[ $# == 2 ]] || { echo 'usage: build-monitor.sh EXACT_REVISION MANAGED_ROOT' >&2; exit 2; }
+[[ $# == 2 || $# == 3 ]] || { echo 'usage: build-monitor.sh EXACT_REVISION MANAGED_ROOT [keyboard-monitor|keyboard-duration]' >&2; exit 2; }
 revision=$1
 managed=$2
+kind=${3:-keyboard-monitor}
+[[ $kind == keyboard-monitor || $kind == keyboard-duration ]]
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 repository=$(git -C "$here" rev-parse --show-toplevel)
 [[ $revision =~ ^[0-9a-f]{40}$ ]]
@@ -20,15 +22,30 @@ git -C "$repository" branch -r --contains "$revision" | grep -q origin/
 [[ $(realpath "$managed") == "$managed" ]]
 exec 9>"$managed/.userspace.lock"
 flock -n 9
-stage="$managed/.keyboard-monitor-stage"
+stage="$managed/.$kind-stage"
 [[ ! -L $stage ]]
+if [[ $kind == keyboard-duration ]]; then
+  [[ ! -e $managed/keyboard-duration-attempt-$revision && ! -L $managed/keyboard-duration-attempt-$revision ]]
+  [[ ! -e $managed/$kind-failure-$revision && ! -L $managed/$kind-failure-$revision ]]
+  if [[ -e $stage || -L $stage ]]; then
+    echo 'retained duration stage requires review before reuse or cleanup' >&2
+    exit 2
+  fi
+fi
 [[ ! -e $stage ]] || rm -rf -- "$stage"
 mkdir -m 0700 "$stage"
 cleanup() {
   result=$?
   trap - EXIT
+  if [[ $kind == keyboard-duration ]] &&
+     { [[ $result != 0 ]] || [[ ! -f $stage/duration-cleanup-safe || -L $stage/duration-cleanup-safe ]] ||
+       [[ $(cat "$stage/duration-cleanup-safe") != sealed-terminal-cleanup-complete ]]; }; then
+    echo 'duration stage retained: proof or terminal cleanup incomplete; descendants not established ceased' >&2
+    [[ $result != 0 ]] || result=2
+    exit "$result"
+  fi
   if [[ $result != 0 ]]; then
-    diagnostic="$managed/keyboard-monitor-failure-$revision"
+    diagnostic="$managed/$kind-failure-$revision"
     if [[ ! -e $diagnostic && ! -L $diagnostic ]]; then
       mkdir -m 0700 "$diagnostic"
       for log in configure.log build.log tests.txt; do
@@ -36,7 +53,7 @@ cleanup() {
           head -c 2097152 "$stage/$log" >"$diagnostic/$log"
         fi
       done
-      printf 'exit=%s\n' "$result" >"$diagnostic/result.txt"
+      printf 'exit=%s\ndescendant_cessation=not-established-by-wrapper\n' "$result" >"$diagnostic/result.txt"
     fi
   fi
   rm -rf -- "$stage"
@@ -75,14 +92,29 @@ printf '%s  %s\n' b870108ec5e7790e9f9919064f1b9421d62d5f9b0e6c230c6adf7ea2da62e9
   ef7baf50ae403b3bf40c7403754daac024de9acf3c83e9b7b4cb9f80eaead343 "$musl/tools/musl-gcc.specs.sh" | sha256sum --check --strict
 (
   cd "$stage/musl-build"
-  timeout 120 env CC="$cc" CROSS_COMPILE=aarch64-linux-gnu- \
+  timeout --kill-after=5 120 env CC="$cc" CROSS_COMPILE=aarch64-linux-gnu- \
     CFLAGS="-Os -ffile-prefix-map=$stage=. -fdebug-prefix-map=$stage=." \
     "$musl/configure" --target=aarch64-linux-musl --disable-shared --enable-wrapper=gcc \
     --prefix="$stage/musl-install" >"$stage/configure.log" 2>&1
-  timeout 600 make -j4 >"$stage/build.log" 2>&1
-  timeout 120 make install >>"$stage/build.log" 2>&1
+  timeout --kill-after=5 600 make -j4 >"$stage/build.log" 2>&1
+  timeout --kill-after=5 120 make install >>"$stage/build.log" 2>&1
 )
 compiler="$stage/musl-install/bin/musl-gcc"
+if [[ $kind == keyboard-duration ]]; then
+  (
+    set -o noclobber
+    printf 'repository_commit=%s\n' "$revision" >"$managed/keyboard-duration-attempt-$revision"
+  )
+  mkdir -m 0700 "$stage/fixtures"
+  timeout --kill-after=5 300 python3 "$here/full-duration.py" --compiler "$compiler" \
+    --qemu "$qemu" --library-root "$stage/musl-install" --work-root "$stage/fixtures" \
+    --tool-inputs "$stage/package/tool-inputs.txt" --musl-archive "$stage/musl.tar.gz" \
+    --output "$stage/package/proof" --cleanup-receipt "$stage/duration-cleanup-safe" >"$stage/package/classification.json"
+  install -m 0600 "$musl/COPYRIGHT" "$stage/package/licenses/musl-COPYRIGHT"
+  install -m 0600 "$repository/LICENSE" "$stage/package/licenses/repository-LICENSE"
+  install -m 0600 /usr/share/doc/gcc-12-aarch64-linux-gnu/copyright "$stage/package/licenses/GCC-copyright"
+  printf 'repository_commit=%s\nproduction_entry=none\ndevice_action=none\n' "$revision" >"$stage/package/provenance.txt"
+else
 for replica in one two; do
   mkdir "$stage/$replica"
   timeout 60 "$compiler" -std=c11 -Os -static -ffunction-sections -fdata-sections \
@@ -129,16 +161,17 @@ result = {'revision': sys.argv[3], 'inputs': inputs, 'library_inputs': library,
           'production_entry': 'disabled', 'device_action': 'none'}
 (stage/'package/manifest.json').write_text(json.dumps(result, indent=2, sort_keys=True)+'\n')
 PY
+fi
 (cd "$stage/package"; find . -type f -print0 | sort -z | xargs -0 sha256sum) >"$stage/SHA256SUMS"
 mv "$stage/SHA256SUMS" "$stage/package/SHA256SUMS"
 identity=$(sha256sum "$stage/package/SHA256SUMS" | awk '{print $1}')
-destination="$managed/keyboard-monitor-$identity"
+destination="$managed/$kind-$identity"
 [[ ! -e $destination && ! -L $destination ]]
 mv "$stage/package" "$destination"
-publication="$managed/keyboard-monitor-published"
+publication="$managed/$kind-published"
 [[ ! -L $publication ]]
 mkdir -p "$publication"
 [[ ! -e $publication/$revision && ! -L $publication/$revision && ! -L $publication/.partial ]]
 printf '%s\n' "$identity" >"$publication/.partial"
 mv "$publication/.partial" "$publication/$revision"
-printf 'validated_keyboard_monitor_package=%s\n' "$destination"
+printf 'validated_%s_package=%s\n' "${kind//-/_}" "$destination"

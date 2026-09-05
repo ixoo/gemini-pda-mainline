@@ -7,6 +7,7 @@ import hashlib
 import os
 from pathlib import Path, PurePosixPath
 import re
+import runpy
 import shutil
 import selectors
 import signal
@@ -26,7 +27,7 @@ umask 077
 revision=$1
 branch=$2
 kind=$3
-[[ $kind == userspace || $kind == keyboard-monitor ]]
+[[ $kind == userspace || $kind == keyboard-monitor || $kind == keyboard-duration ]]
 [[ $revision =~ ^[0-9a-f]{40}$ && ( $branch == codex/a53-authenticated-baseline || $branch == main ) ]]
 root=/workspace/gemini-a53-userspace
 [[ ! -L $root ]]
@@ -52,7 +53,9 @@ if [[ ! -e $checkout ]]; then
   mv "$partial" "$checkout"
   trap - EXIT HUP INT TERM
 fi
-if [[ $kind == keyboard-monitor ]]; then
+if [[ $kind == keyboard-duration ]]; then
+  timeout --kill-after=10 1500 bash "$checkout/experiments/2026-09-05-owner-away-experiment-preparation/keyboard/build-monitor.sh" "$revision" "$root" keyboard-duration
+elif [[ $kind == keyboard-monitor ]]; then
   timeout 1200 bash "$checkout/experiments/2026-09-05-owner-away-experiment-preparation/keyboard/build-monitor.sh" "$revision" "$root"
 else
   bash "$checkout/experiments/2026-09-05-owner-away-experiment-preparation/baseline/scripts/build-userspace.sh" "$revision" "$root"
@@ -63,9 +66,9 @@ set -euo pipefail
 revision=$1
 identity=$2
 kind=$3
-[[ $kind == userspace || $kind == keyboard-monitor ]]
+[[ $kind == userspace || $kind == keyboard-monitor || $kind == keyboard-duration ]]
 publication=published
-[[ $kind == userspace ]] || publication=keyboard-monitor-published
+[[ $kind == userspace ]] || publication="$kind-published"
 [[ $revision =~ ^[0-9a-f]{40}$ && $identity =~ ^[0-9a-f]{64}$ ]]
 root=/workspace/gemini-a53-userspace
 exec 8>"$root/.dispatch.lock"
@@ -101,7 +104,7 @@ def managed_dir(path):
 
 def clear_partial(stage):
     """Only this fixed managed name is disposable; never follow linked state."""
-    require(stage.name in ('.fetch-userspace', '.fetch-keyboard-monitor'), 'unexpected partial name')
+    require(stage.name in ('.fetch-userspace', '.fetch-keyboard-monitor', '.fetch-keyboard-duration'), 'unexpected partial name')
     if not stage.exists() and not stage.is_symlink():
         return
     require(not stage.is_symlink() and stage.is_dir(), 'partial path type')
@@ -140,6 +143,37 @@ def check_package(target, identity, revision):
     provenance = (target / 'provenance.txt').read_text().splitlines()
     require([line for line in provenance if line.startswith('repository_commit=')] ==
             ['repository_commit=' + revision], 'package revision')
+
+
+def check_duration(target, revision):
+    """Bind fetched proof to actual source bytes in its submitted Git revision."""
+    here = REPO / 'experiments/2026-09-05-owner-away-experiment-preparation/keyboard'
+    proof = runpy.run_path(str(here / 'duration-proof.py'))
+    expected = {}
+    for name in proof['SOURCE_NAMES']:
+        path = (here / name).resolve().relative_to(REPO).as_posix()
+        raw = subprocess.check_output(['git', '-C', str(REPO), 'show', revision + ':' + path])
+        expected[name] = hashlib.sha256(raw).hexdigest()
+    require(hashlib.sha256((here / 'duration-proof.py').read_bytes()).hexdigest() ==
+            expected['duration-proof.py'], 'duration validator differs from submitted revision')
+    inventory = {p.relative_to(target).as_posix() for p in target.rglob('*') if p.is_file()}
+    require(inventory == {'SHA256SUMS', 'provenance.txt', 'classification.json', 'tool-inputs.txt',
+                          'licenses/musl-COPYRIGHT', 'licenses/repository-LICENSE', 'licenses/GCC-copyright'} |
+            {'proof/' + name for name in proof['FILES'] | {'SHA256SUMS'}}, 'duration package inventory')
+    inputs = proof['decode']((target / 'proof/inputs.json').read_bytes())
+    tool_lines = (target / 'tool-inputs.txt').read_text().splitlines()
+    require(tool_lines.count('repository_commit=' + revision) == 1 and
+            any(line.startswith(inputs['tools']['qemu'] + '  ') for line in tool_lines),
+            'duration actual tool identity')
+    require(hashlib.sha256((target / 'tool-inputs.txt').read_bytes()).hexdigest() ==
+            inputs['tool_inputs_sha256'], 'duration tool provenance binding')
+    require(hashlib.sha256((target / 'licenses/repository-LICENSE').read_bytes()).hexdigest() ==
+            expected['../../../LICENSE'] and hashlib.sha256((target / 'licenses/musl-COPYRIGHT').read_bytes()).hexdigest() ==
+            'b870108ec5e7790e9f9919064f1b9421d62d5f9b0e6c230c6adf7ea2da62e97b', 'duration license binding')
+    result = proof['classify'](target / 'proof', expected)
+    require(proof['decode']((target / 'classification.json').read_bytes()) == result,
+            'duration classification mismatch')
+    print('duration_classification=' + result['classification'])
 
 
 def extract(archive_path, target, identity, revision):
@@ -223,12 +257,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--fetch-only', nargs=2, metavar=('REVISION', 'MANIFEST_SHA256'),
                         help='recover an already published exact package; never builds')
-    parser.add_argument('--keyboard-monitor', action='store_true', help='build/fetch the disabled keyboard monitor only')
+    kinds = parser.add_mutually_exclusive_group()
+    kinds.add_argument('--keyboard-duration', action='store_true', help='one harmless production-duration fixture proof only')
+    kinds.add_argument('--keyboard-monitor', action='store_true', help='build/fetch the disabled keyboard monitor only')
     parser.add_argument('--branch', choices=(BRANCH, 'main'), default=BRANCH,
                         help='published source branch; defaults to existing worker branch')
     args = parser.parse_args()
     branch = args.branch
-    kind = 'keyboard-monitor' if args.keyboard_monitor else 'userspace'
+    kind = 'keyboard-duration' if args.keyboard_duration else ('keyboard-monitor' if args.keyboard_monitor else 'userspace')
     os.umask(0o077)
     require(git('remote', 'get-url', 'origin') == ORIGIN, 'unexpected origin')
     if args.fetch_only:
@@ -286,6 +322,8 @@ def main():
                 os.rename(stage / 'package', destination)
             finally:
                 clear_partial(stage)
+        if kind == 'keyboard-duration':
+            check_duration(destination, revision)
         print('fetched_' + kind.replace('-', '_') + '=' + destination.relative_to(REPO).as_posix())
 
 

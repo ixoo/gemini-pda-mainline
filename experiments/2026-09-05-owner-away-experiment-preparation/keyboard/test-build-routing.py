@@ -60,13 +60,14 @@ class RoutingTests(unittest.TestCase):
                 calls.append('fetch')
 
             argv = ['buildbox_userspace.py', '--branch', branch]
-            if kind == 'keyboard-monitor':
-                argv.append('--keyboard-monitor')
+            if kind in ('keyboard-monitor', 'keyboard-duration'):
+                argv.append('--' + kind)
             if fetch_only:
                 argv += ['--fetch-only', revision, identity]
             globals_ = MODULE['main'].__globals__
             with patch.dict(globals_, {'REPO': root, 'git': git, 'fetch_bounded': fetch}), \
-                    patch('sys.argv', argv), patch('subprocess.run', side_effect=build):
+                    patch('sys.argv', argv), patch('subprocess.run', side_effect=build), \
+                    patch.dict(globals_, {'check_duration': lambda target, rev: calls.append('proof')}):
                 if post_build_ref is not None:
                     with self.assertRaisesRegex(ValueError, 'published branch changed during build'):
                         MODULE['main']()
@@ -79,12 +80,13 @@ class RoutingTests(unittest.TestCase):
                     return
                 MODULE['main']()
             self.assertEqual(publication_reads, 0 if fetch_only else 2)
-            self.assertEqual(calls, ['fetch'] if fetch_only else ['build', 'fetch'])
+            self.assertEqual(calls, (['fetch'] if fetch_only else ['build', 'fetch']) +
+                             (['proof'] if kind == 'keyboard-duration' else []))
             self.assertTrue((root/'artifacts/buildbox'/revision/(kind + '-' + identity)/'SHA256SUMS').is_file())
             self.assertFalse((root/'artifacts/buildbox'/revision/('.fetch-' + kind)).exists())
 
     def test_legacy_and_monitor_build_paths(self):
-        for kind in ('userspace', 'keyboard-monitor'):
+        for kind in ('userspace', 'keyboard-monitor', 'keyboard-duration'):
             with self.subTest(kind=kind):
                 self.exercise(kind, False)
 
@@ -99,10 +101,12 @@ class RoutingTests(unittest.TestCase):
     def test_main_build_and_fetch(self):
         self.exercise('keyboard-monitor', False, 'main')
         self.exercise('keyboard-monitor', True, 'main')
+        self.exercise('keyboard-duration', False, 'main')
+        self.exercise('keyboard-duration', True, 'main')
 
     def test_remote_ref_drift_refuses_before_fetch(self):
         for branch in ('main', MODULE['BRANCH']):
-            for kind in ('userspace', 'keyboard-monitor'):
+            for kind in ('userspace', 'keyboard-monitor', 'keyboard-duration'):
                 with self.subTest(branch=branch, kind=kind):
                     self.exercise(kind, False, branch, post_build_ref='b' * 40)
 
@@ -110,7 +114,7 @@ class RoutingTests(unittest.TestCase):
         self.exercise('keyboard-monitor', False, 'main', post_build_ref='')
 
     def test_fetch_only_never_builds_either_kind(self):
-        for kind in ('userspace', 'keyboard-monitor'):
+        for kind in ('userspace', 'keyboard-monitor', 'keyboard-duration'):
             with self.subTest(kind=kind):
                 self.exercise(kind, True)
 

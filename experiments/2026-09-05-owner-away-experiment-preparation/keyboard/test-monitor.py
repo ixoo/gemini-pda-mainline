@@ -6,6 +6,8 @@ import os
 from pathlib import Path
 import resource
 import signal
+import shutil
+from types import SimpleNamespace
 import subprocess
 import tempfile
 import time
@@ -18,6 +20,16 @@ QEMU = os.environ.get('MONITOR_TEST_QEMU')
 PREFIX = [QEMU] if QEMU else []
 FULL = os.environ.get("MONITOR_TEST_FULL_DURATION") == "1"
 OUTER_SECONDS = 225 if FULL else 3
+FIXTURE_ONLY = os.environ.get('MONITOR_TEST_FIXTURE_ONLY') == '1'
+
+
+def temporary(prefix):
+    if FIXTURE_ONLY:
+        # Evidence retention must survive GC and interpreter exit. TemporaryDirectory
+        # finalizers would erase originals even when explicit cleanup is withheld.
+        name = tempfile.mkdtemp(prefix=prefix, dir=WORK)
+        return SimpleNamespace(name=name, cleanup=lambda: shutil.rmtree(name))
+    return tempfile.TemporaryDirectory(prefix=prefix, dir=WORK)
 
 
 class MonitorTests(unittest.TestCase):
@@ -26,18 +38,20 @@ class MonitorTests(unittest.TestCase):
         WORK.mkdir(parents=True, exist_ok=True, mode=0o700)
         if WORK.is_symlink() or WORK.stat().st_mode & 0o777 != 0o700:
             raise RuntimeError('unsafe managed fixture root')
-        cls.build = tempfile.TemporaryDirectory(prefix='build-', dir=WORK)
+        cls.build = temporary('build-')
         cls.addClassCleanup(cls.build.cleanup)
         cls.fixture = Path(cls.build.name) / 'fixture'
         cls.disabled = Path(cls.build.name) / 'disabled'
-        for source, dest, extra in [('monitor-fixture.c', cls.fixture, ['-DFIXTURE_ROOT=' + json.dumps(str(WORK))]),
-                                    ('monitor.c', cls.disabled, [])]:
+        builds = [('monitor-fixture.c', cls.fixture, ['-DFIXTURE_ROOT=' + json.dumps(str(WORK))])]
+        if not FIXTURE_ONLY:
+            builds.append(('monitor.c', cls.disabled, []))
+        for source, dest, extra in builds:
             subprocess.run([CC, *(['-static'] if QEMU else []), *(['-DMONITOR_FULL_DURATION'] if FULL else []), '-std=c11', '-Os', '-Wall', '-Wextra', '-Werror',
                             str(HERE / source), '-o', str(dest), *extra],
                            check=True, capture_output=True, timeout=30)
 
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix='case-', dir=WORK)
+        self.temp = temporary('case-')
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
 
@@ -60,6 +74,7 @@ class MonitorTests(unittest.TestCase):
         output = bytearray()
         error = bytearray()
         start = time.monotonic()
+        self.last_run = {'process': p, 'stdout': output, 'stderr': error, 'start': start}
         delivered = False
         timed_out = False
         terminal = False
