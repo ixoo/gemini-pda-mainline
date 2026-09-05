@@ -1,9 +1,11 @@
 # Attended installation outcome and offline correction
 
-The candidate was not written. The sole baseline custodian remains assigned, but
-all live access is paused while the coordinator clarifies an owner report of
-physical boot2 selection. No Ready-for-boot2 baseline handoff was issued. A boot
-of the previously installed artifact cannot be attributed to this candidate.
+The candidate was not written. The owner-authorized read-only check subsequently
+verified the same known-good Gemian boot, restored swap and SSH serviceability,
+resolving the ambiguous boot2 report at that observation. The sole baseline
+custodian remains assigned; further device actions are not admitted. No
+Ready-for-boot2 baseline handoff was issued. The finite proposed retry is in
+[the retry handoff](INSTALL_RETRY.md).
 
 ## Observed sequence
 
