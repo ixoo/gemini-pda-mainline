@@ -1,0 +1,248 @@
+#!/usr/bin/env python3
+"""Bounded, hardware-free publication checks; never build or access a device.
+
+Requires Python 3 with PyYAML, bash, Git, jq, and ShellCheck. By default inspect
+staged, unstaged and untracked nonignored files. --base REF checks REF..HEAD for
+CI. Always verify manifest invariants, patch metadata and the focused fixtures.
+Kernel/checkpatch/DT validation remains a separate explicit Buildbox gate.
+"""
+
+from __future__ import annotations
+
+import argparse
+import ast
+import hashlib
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path, PurePosixPath
+from urllib.parse import unquote, urlsplit
+
+
+ROOT = Path(__file__).resolve().parent.parent
+DEBT = "experiments/2026-09-05-project-corrective-review/results/metadata-debt.json"
+DEBT_SHA256 = "9b320d4560a2edfb705f22277f3ea12676dd5356918f44257bee51a913fcd556"
+SYNTHETIC = re.compile(
+    r"(?i)(?:example\.(?:com|org|net|invalid)|@(?:[^\s>]+\.)?invalid>|"
+    r"\b(?:noreply|no-reply)@|"
+    r"Gemini (?:PDA |Mainline)|Your Name|you@example)"
+)
+PRIVATE_SUFFIXES = {".img", ".bin", ".raw", ".dump", ".dtb", ".dtbo", ".cpio",
+                    ".ext4", ".sparse", ".mbn", ".elf", ".ko", ".o", ".pem", ".key"}
+SECRET_PATTERNS = [
+    ("private key", re.compile(r"-----BEGIN (?:(?:OPENSSH|RSA|EC|DSA|ENCRYPTED) )?PRIVATE KEY-----")),
+    ("GitHub token", re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,})\b")),
+    ("AWS access key", re.compile(r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b")),
+    ("personal absolute path", re.compile(r"/(?:Users|home)/[A-Za-z0-9_.-]+/")),
+    ("unit-unique identifier", re.compile(
+        r"(?i)\b(?:imei|meid|serial(?:_number)?)\s*[:=]\s*[\"']?"
+        r"(?:[0-9]{14,16}|[0-9a-f]{16})\b")),
+]
+
+
+class CheckError(RuntimeError):
+    """A publication gate failed."""
+
+
+def command(argv: list[str], root: Path = ROOT) -> str:
+    result = subprocess.run(argv, cwd=root, text=True, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE, check=False)
+    if result.returncode:
+        raise CheckError(f"{' '.join(argv[:3])}: {result.stderr.strip() or result.stdout.strip()}")
+    return result.stdout
+
+
+def git_paths(arguments: list[str], root: Path = ROOT) -> set[str]:
+    return set(filter(None, command(["git", *arguments, "-z"], root).split("\0")))
+
+
+def changed_paths(root: Path, base: str | None) -> set[str]:
+    if base:
+        commit = command(["git", "rev-parse", "--verify", f"{base}^{{commit}}"], root).strip()
+        return git_paths(["diff", "--name-only", "--diff-filter=ACMRT", commit, "HEAD"], root)
+    return (git_paths(["diff", "--name-only", "--diff-filter=ACMRT", "HEAD"], root)
+            | git_paths(["ls-files", "--others", "--exclude-standard"], root))
+
+
+def publication_path(name: str) -> None:
+    path = PurePosixPath(name)
+    if (path.is_absolute() or ".." in path.parts or "\n" in name
+            or any(ord(char) < 32 for char in name)
+            or path.parts[0] in {"artifacts", "linux", "downloads", "build", "rootfs"}
+            or path.suffix.lower() in PRIVATE_SUFFIXES
+            or path.name in {"id_rsa", "id_ed25519", ".env"}
+            or name.endswith(".cpio.gz")):
+        raise CheckError(f"excluded publication path: {name}")
+
+
+def text_hygiene(name: str, text: str) -> None:
+    for label, pattern in SECRET_PATTERNS:
+        match = pattern.search(text)
+        if match:
+            line = text.count("\n", 0, match.start()) + 1
+            # Never echo the matched secret or personal path.
+            raise CheckError(f"{name}:{line}: possible {label}; review and redact")
+
+
+def patch_signoffs(text: str) -> list[str]:
+    header = text.split("\n---\n", 1)[0]
+    return [line for line in header.splitlines()
+            if line.startswith("Signed-off-by:") and SYNTHETIC.search(line)]
+
+
+def metadata_debt(root: Path, paths: set[str]) -> tuple[int, int]:
+    raw = (root / DEBT).read_bytes()
+    if hashlib.sha256(raw).hexdigest() != DEBT_SHA256:
+        raise CheckError("historical metadata audit changed; preserve the fixed evidence record")
+    audit = json.loads(raw)
+    known = {entry["path"]: entry for entry in audit["entries"]}
+    historical = 0
+    for name in sorted(paths):
+        if not name.startswith("patches/") or not name.endswith(".patch"):
+            continue
+        path = root / name
+        if not path.exists():
+            continue
+        if path.is_symlink():
+            raise CheckError(f"symlinked patch: {name}")
+        data = path.read_bytes()
+        signatures = patch_signoffs(data.decode("utf-8"))
+        if not signatures:
+            continue
+        record = known.get(name)
+        if (not record or record["sha256"] != hashlib.sha256(data).hexdigest()
+                or signatures != [item["trailer"] for item in record["synthetic_signoffs"]]):
+            raise CheckError(f"new or changed synthetic DCO certification: {name}")
+        historical += 1
+    return historical, len(known)
+
+
+def markdown_links(root: Path, name: str, text: str) -> None:
+    # Exclude examples in code fences and inline code. Check local destinations,
+    # never fetch web links, and leave heading-anchor semantics to human review.
+    prose = re.sub(r"(?ms)^\s*(`{3,}|~{3,}).*?^\s*\1\s*$", "", text)
+    prose = re.sub(r"`[^`\n]+`", "", prose)
+    destinations = re.findall(r"\]\((<[^>]+>|[^\s)]+)(?:\s+\"[^\"]*\")?\)", prose)
+    destinations += re.findall(r"(?m)^\s*\[[^\]]+\]:\s*(<[^>]+>|\S+)", prose)
+    for destination in destinations:
+        target = destination.strip("<>")
+        parsed = urlsplit(target)
+        if parsed.scheme or parsed.netloc or not parsed.path:
+            continue
+        decoded = unquote(parsed.path)
+        path = ((root / decoded.lstrip("/")) if decoded.startswith("/")
+                else (root / name).parent / decoded).resolve()
+        if not path.is_relative_to(root.resolve()):
+            raise CheckError(f"{name}: link escapes repository: {target}")
+        if not path.exists():
+            raise CheckError(f"{name}: missing local link target: {target}")
+
+
+def inspect_file(root: Path, name: str) -> None:
+    publication_path(name)
+    path = root / name
+    if path.is_symlink():
+        raise CheckError(f"changed symlink requires explicit review: {name}")
+    data = path.read_bytes()
+    if b"\0" in data:
+        raise CheckError(f"binary input requires explicit redistribution review: {name}")
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise CheckError(f"non-UTF-8 input requires explicit review: {name}") from error
+    text_hygiene(name, text)
+    first = text.splitlines()[0] if text else ""
+    shell = bool(re.match(r"#!.*(?:/|\s)(?:bash|sh)(?:\s|$)", first))
+    if shell or path.suffix == ".sh":
+        command(["bash", "-n", name], root)
+        command(["shellcheck", "--external-sources", name], root)
+    if "python" in first or path.suffix == ".py":
+        ast.parse(text, filename=name)
+    if path.suffix == ".json":
+        json.loads(text)
+    if path.suffix in {".yml", ".yaml"}:
+        try:
+            import yaml
+        except ImportError as error:
+            raise CheckError("PyYAML is required to validate changed YAML") from error
+        document = yaml.safe_load(text)
+        if name.startswith(".github/workflows/") and isinstance(document, dict):
+            for job in document.get("jobs", {}).values():
+                for step in job.get("steps", []):
+                    if "run" not in step:
+                        continue
+                    if step.get("shell", "bash") != "bash":
+                        raise CheckError(f"{name}: review non-Bash workflow step explicitly")
+                    for argv in (["bash", "-n"], ["shellcheck", "--shell=bash", "-"]):
+                        result = subprocess.run(argv, input=step["run"], text=True,
+                                                capture_output=True, check=False)
+                        if result.returncode:
+                            raise CheckError(f"{name}: workflow shell: {result.stderr or result.stdout}")
+    if path.suffix == ".md":
+        markdown_links(root, name, text)
+
+
+def run_fixtures(root: Path) -> None:
+    # Constrain existing mktemp-based fixtures to one managed temporary root.
+    with tempfile.TemporaryDirectory(prefix="gemini-repository-check-",
+                                     dir=tempfile.gettempdir()) as scratch:
+        environment = dict(os.environ, TMPDIR=scratch, PYTHONDONTWRITEBYTECODE="1")
+        for script in ("test-manifest-series-invariant", "test-source-tree-integrity",
+                       "test-validate-kernel-artifact-provenance", "test-check-repository",
+                       "boot2-device-guard-test.py", "test-build-kernel-backend",
+                       "test-kernel-package-publication"):
+            argv = [str(root / "scripts" / script)]
+            if script.endswith(".py"):
+                argv.insert(0, sys.executable)
+            result = subprocess.run(argv, cwd=root,
+                                    env=environment, check=False)
+            if result.returncode == 77 and sys.platform != "linux":
+                print(f"SKIP {script}: Linux-only; mandatory in CI", flush=True)
+            elif result.returncode:
+                raise CheckError(f"focused fixture failed: {script}")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--base", help="validate committed changes since this revision (CI)")
+    args = parser.parse_args()
+    for dependency in ("git", "bash", "jq", "shellcheck"):
+        if not shutil.which(dependency):
+            raise CheckError(f"required command not found: {dependency}")
+    if args.base and command(["git", "status", "--porcelain"]):
+        raise CheckError("--base requires a clean checkout; omit it to review local changes")
+    paths = changed_paths(ROOT, args.base)
+    tracked = git_paths(["ls-files"], ROOT)
+    for name in sorted(tracked | paths):
+        publication_path(name)
+    if args.base:
+        command(["git", "diff", "--check", args.base, "HEAD"])
+    else:
+        command(["git", "diff", "--check"])
+        command(["git", "diff", "--cached", "--check"])
+    historical, audited = metadata_debt(ROOT, tracked | paths)
+    print(f"metadata_debt=unresolved grandfathered_current={historical} audited={audited}", flush=True)
+    for name in sorted(paths):
+        try:
+            inspect_file(ROOT, name)
+        except (SyntaxError, ValueError) as error:
+            raise CheckError(f"{name}: invalid syntax ({type(error).__name__})") from error
+    print(f"changed_files_checked={len(paths)}", flush=True)
+    print(command([str(ROOT / "scripts/validate-manifest-series")]), end="", flush=True)
+    run_fixtures(ROOT)
+    print("repository_checks=pass")
+    print("not_run=kernel-build,checkpatch,DT-schemas,device-tests")
+    print("kernel_build_requires=./scripts/build-kernel --backend buildbox")
+    print("sensitive_scan=bounded patterns; file-by-file human review remains required")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (CheckError, OSError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        raise SystemExit(1) from error

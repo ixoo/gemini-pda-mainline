@@ -9,6 +9,7 @@ readonly REPO_DIR
 readonly MANIFEST="${REPO_DIR}/kernel/manifest.json"
 readonly MANIFEST_SERIES_VALIDATOR="${SCRIPT_DIR}/validate-manifest-series"
 readonly SOURCE_INTEGRITY_HELPER="${SCRIPT_DIR}/source-tree-integrity"
+readonly PACKAGE_PUBLISHER="${SCRIPT_DIR}/publish-kernel-package"
 
 die() {
   echo "error: $*" >&2
@@ -521,19 +522,21 @@ assert_build_inputs_unchanged() {
     die "configuration or toolchain inputs changed during build; rerun the build"
 }
 
-package_artifacts() {
+package_artifacts() (
   local kernel_release="$1"
   local expected_source_state="$2"
   local expected_build_state="$3"
   local patch_hash="$4"
   local config_input_hash="$5"
   local config_fragments_json
-  local package_name
+  local artifact_root
   local repository_commit
   local repository_dirty
   local resolved_config_sha256
   local temporary
   local sums_file
+  local staging_root
+  local stale
   local fragment
   local modules_built=false
 
@@ -550,16 +553,41 @@ package_artifacts() {
   [[ "${repository_dirty}" == true || "${repository_dirty}" == false ]] || \
     die "GEMINI_REPOSITORY_DIRTY must be true or false"
 
-  if [[ "${KERNEL_PROFILE}" == full ]]; then
-    package_name="linux-${VERSION}-gemini-${patch_hash:0:12}"
-  else
-    package_name="linux-${VERSION}-gemini-${KERNEL_PROFILE}-${patch_hash:0:8}-${config_input_hash:0:8}"
-  fi
-  PACKAGE_DIR="${ARTIFACT_ROOT}/${package_name}"
-  export PACKAGE_DIR
-  temporary="${PACKAGE_DIR}.partial"
-
-  rm -rf "${temporary}"
+  require_command flock
+  [[ -f "${PACKAGE_PUBLISHER}" && ! -L "${PACKAGE_PUBLISHER}" ]] || \
+    die "package publisher is missing or unsafe"
+  mkdir -p "${ARTIFACT_ROOT}"
+  [[ ! -L "${ARTIFACT_ROOT}" ]] || die "artifact root may not be a symlink"
+  artifact_root="$(cd "${ARTIFACT_ROOT}" && pwd -P)"
+  staging_root="${artifact_root}/.kernel-package-staging"
+  [[ ! -L "${artifact_root}/.kernel-package-staging.lock" ]] || \
+    die "package staging lock may not be a symlink"
+  exec 8>"${artifact_root}/.kernel-package-staging.lock"
+  flock 8
+  [[ ! -L "${staging_root}" ]] || die "package staging root may not be a symlink"
+  mkdir -p "${staging_root}"
+  # The staging lock covers construction and publication. Only this helper's
+  # disposable partial directories can be removed after an interrupted run.
+  for stale in "${staging_root}"/package.*; do
+    [[ -e "${stale}" || -L "${stale}" ]] || continue
+    [[ "${stale##*/}" =~ ^package\.[A-Za-z0-9_]{8}$ ]] || \
+      die "unexpected entry in the managed package staging root: ${stale}"
+    [[ -d "${stale}" && ! -L "${stale}" ]] || \
+      die "unsafe stale package staging entry: ${stale}"
+    rm -rf -- "${stale}"
+  done
+  # Invoked by EXIT after either successful publication or a failed stage.
+  # shellcheck disable=SC2329
+  cleanup_package() {
+    if [[ -n "${temporary:-}" && -d "${temporary}" && ! -L "${temporary}" ]]; then
+      rm -rf -- "${temporary}"
+    fi
+  }
+  temporary="$(mktemp -d "${staging_root}/package.XXXXXXXX")"
+  trap cleanup_package EXIT
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
+  trap 'exit 129' HUP
   mkdir -p "${temporary}/dtbs/mediatek" "${temporary}/provenance/configs"
   PACKAGE_DIR="${temporary}"
   export PACKAGE_DIR
@@ -664,10 +692,10 @@ package_artifacts() {
       --build-provenance "${PACKAGE_DIR}/provenance/build.json"
   fi
 
-  sums_file="${temporary}.SHA256SUMS"
+  sums_file="${temporary}/.SHA256SUMS.partial"
   (
     cd "${PACKAGE_DIR}"
-    find . -type f ! -path ./SHA256SUMS -print0 \
+    find . -type f ! -path ./SHA256SUMS ! -path ./.SHA256SUMS.partial -print0 \
       | sort -z \
       | xargs -0 sha256sum > "${sums_file}"
   )
@@ -676,11 +704,10 @@ package_artifacts() {
   assert_build_inputs_unchanged \
     "${expected_source_state}" "${expected_build_state}"
 
-  PACKAGE_DIR="${ARTIFACT_ROOT}/${package_name}"
-  rm -rf "${PACKAGE_DIR}"
-  mv "${temporary}" "${PACKAGE_DIR}"
+  PACKAGE_DIR="$(python3 "${PACKAGE_PUBLISHER}" publish \
+    --artifact-root "${artifact_root}" --staging "${temporary}")"
   echo "Packaged artifacts at ${PACKAGE_DIR}"
-}
+)
 
 build_kernel() {
   local jobs="${KERNEL_JOBS:-$(nproc)}"

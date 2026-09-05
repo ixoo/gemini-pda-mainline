@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "classification": "local-corrective-tooling-pass",
+  "checked_utc": "2026-09-05T02:35:33.654753+00:00",
+  "parent_repository_commit": "5194011ee370080ca4f231764dca11f021fdb330",
+  "profiles_checked": 189,
+  "invariant_mutations_rejected": 8,
+  "source_integrity_mutations_rejected": 7,
+  "publication_mutations_rejected": 13,
+  "device_guard_test_groups": 18,
+  "backend_cases": 12,
+  "package_publication_tests": 16,
+  "checks": [
+    "changed-file syntax",
+    "Bash syntax",
+    "ShellCheck",
+    "JSON/YAML",
+    "workflow Bash",
+    "local Markdown targets",
+    "bounded sensitive/path scan",
+    "git diff --check",
+    "canonical series invariant"
+  ],
+  "deferred": [
+    "Linux-only full artifact provenance",
+    "Linux branch of full package validation",
+    "Buildbox build and fetch",
+    "physical device validation"
+  ],
+  "kernel_inputs_changed": false,
+  "synthetic_signoff_debt": {
+    "all_patches": 37,
+    "canonical_patches": 29,
+    "resolved": false
+  },
+  "raw_output_sha256": "f281f1cd01196b6bf44c5016040e610f505052c05c38ecf75cb3e6577b339518"
+}

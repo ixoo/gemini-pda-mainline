@@ -9,11 +9,12 @@ usage() {
   cat <<'EOF'
 Usage: ./scripts/build-kernel [--backend auto|buildbox|vm]
 
-Build the manifest-selected kernel. The default "auto" backend uses buildbox
-when it is reachable and ready, otherwise it falls back to the local VM.
+Build the manifest-selected kernel on buildbox. If buildbox is unavailable,
+the build is deferred. "auto" is retained as an alias for buildbox; it never
+falls back to the VM. Use the VM only for an explicitly owner-requested build.
 
 Environment:
-  GEMINI_BUILD_BACKEND  auto, buildbox, or vm (default: auto)
+  GEMINI_BUILD_BACKEND  buildbox, auto, or vm (default: buildbox)
   KERNEL_PROFILE       Manifest profile
   BUILD_MODULES=1      Build and package modules
   KERNEL_JOBS=N        Parallel build jobs
@@ -25,7 +26,7 @@ die() {
   exit 1
 }
 
-backend="${GEMINI_BUILD_BACKEND:-auto}"
+backend="${GEMINI_BUILD_BACKEND:-buildbox}"
 if [[ "$#" -gt 0 ]]; then
   case "$1" in
     --backend=*) backend="${1#--backend=}"; shift ;;
@@ -44,15 +45,12 @@ fi
 [[ "$#" -eq 0 ]] || die "unexpected arguments"
 
 case "${backend}" in
-  auto)
-    if "${SCRIPT_DIR}/buildbox" available; then
-      backend=buildbox
-    else
-      echo "buildbox is unavailable; using the local development VM" >&2
-      backend=vm
-    fi
+  auto|buildbox)
+    "${SCRIPT_DIR}/buildbox" available || \
+      die "buildbox is unavailable; kernel build deferred (VM builds require an explicit owner request)"
+    backend=buildbox
     ;;
-  buildbox|vm) ;;
+  vm) ;;
   *) die "backend must be auto, buildbox, or vm" ;;
 esac
 

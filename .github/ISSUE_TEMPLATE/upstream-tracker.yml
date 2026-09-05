@@ -21,8 +21,7 @@ body:
     attributes:
       label: Public series URL
       placeholder: "https://lore.kernel.org/..."
-    validations:
-      required: true
+      description: Leave blank during local preparation; add the public URL when posted.
   - type: input
     id: version
     attributes:
@@ -37,8 +36,7 @@ body:
     id: feedback
     attributes:
       label: Maintainer feedback and next action
-    validations:
-      required: true
+      description: Record the next local preparation step now; add maintainer feedback after review starts.
   - type: input
     id: accepted
     attributes:

@@ -182,8 +182,8 @@ retained BootROM / preloader / ATF / LK
   -> legacy DA921x read-only board contract
   -> runtime-proven legacy-family read-only regulator provider
   -> one runtime-proven default-off same-value write/readback
-  -> unimplemented production rail ownership and active rollback
-  -> unavailable Cortex-A72 CPUs 8 and 9
+  -> isolated A72 admission, CPU9 down/restore and bounded load evidence
+  -> incomplete production power management and default-profile integration
 ```
 
 | Layer | Implemented boundary | Deliberately outside the claim |
@@ -193,12 +193,31 @@ retained BootROM / preloader / ATF / LK
 | Input | AW9523 plus generic matrix path | Complete key/wake/rollover regression protocol |
 | USB | Peripheral gadget Ethernet and development shell | Host mode, role switching, charging, both-port mapping |
 | Restart | Native MT6797 TOPRGU restart | Full power-off, suspend, and every reset source |
-| CPU | Eight Cortex-A53 CPUs online on the diagnostic baseline | A72, OPP/cpufreq, idle, thermal, suspend, scheduler policy |
+| CPU | A53 serviceability plus isolated dual-A72 topology, bounded execution and CPU9 down/restore | Default A72 integration, general hotplug/stress, OPP/cpufreq, idle, protection and suspend |
 | I2C6 | Exact native packed/FIFO one-byte pointer plus one-byte read and one reviewed two-byte same-value write | Arbitrary messages or writes, failure recovery, stress, and resume |
 | External regulator | Read-only legacy-family board tuple, two-provider registration, and one default-off same-value write/readback | Active rail transitions, production ownership, rollback, consumers, resume |
 
 This table is an implementation map, not an experiment ledger. Exact runtime
 evidence and negative results remain in the linked experiment directories.
+
+## Parallel ownership
+
+Independent work uses small repository worktrees with one named owner per
+change. Linux source and build outputs stay on Buildbox; worktrees do not carry
+copies of kernel trees. The integrator alone composes shared manifest/series
+changes and updates the current roadmap. Every worker supplies a pinned parent,
+reviewable delta, evidence, dependencies and an upstream removal condition.
+
+Hardware-free research and validation may run concurrently. Buildbox serializes
+its managed source/build mutations. A single device custodian admits one exact
+experiment at a time; task completion or a newer package never grants boot
+admission. Shared transport and deployment mechanisms belong in `scripts/`;
+experiment-specific policy and immutable receipts remain in experiments.
+
+The [work item template](../project/WORK_ITEM.md) defines the handoff contract.
+The [roadmap](ROADMAP.md#parallel-delivery) owns priorities, staffing limits and
+acceptance gates. The [registry](../project/workstreams.json) is coordination
+metadata, not authority to build, deploy or promote hardware support.
 
 ## Decision records
 

@@ -1,0 +1,188 @@
+{
+  "schema_version": 1,
+  "purpose": "Scope and ownership registry; docs/ROADMAP.md alone orders work. Ready means available, not staffed or admitted for hardware.",
+  "coordination": {
+    "integration_owner": "Project integrator",
+    "max_active_worker_items": 3,
+    "device_slots": 1,
+    "build_policy": "Explicit Buildbox, shared mutations serialized by existing lock",
+    "handoff_template": "project/WORK_ITEM.md",
+    "roadmap": "docs/ROADMAP.md"
+  },
+  "active_device_experiment": {
+    "workstream": "power",
+    "record": "experiments/2026-09-04-mt6797-thermal-snapshot/V4_RUNTIME_ACCEPTANCE.md",
+    "candidate_record": "experiments/2026-09-04-mt6797-thermal-snapshot/results/v4-candidate-composition.json",
+    "host_protocol": "experiments/2026-09-04-mt6797-thermal-snapshot/V4_HOST_PROTOCOL.md",
+    "authority": "Admission is recorded by the owning experiment; this pointer grants no device action."
+  },
+  "workstreams": [
+    {
+      "id": "integration",
+      "title": "Integration and lab",
+      "owner": "Project integrator",
+      "status": "active",
+      "scope": [
+        "scripts/",
+        "kernel/manifest.json",
+        "patches/series",
+        "docs/ROADMAP.md",
+        ".github/workflows/"
+      ],
+      "evidence": [
+        "experiments/2026-09-05-project-corrective-review/README.md"
+      ],
+      "issue_urls": [
+        "https://github.com/ixoo/gemini-pda-mainline/issues/1",
+        "https://github.com/ixoo/gemini-pda-mainline/issues/6",
+        "https://github.com/ixoo/gemini-pda-mainline/issues/8"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "power",
+      "title": "A72 and power",
+      "owner": "Active thermal experiment custodian",
+      "status": "active",
+      "scope": [
+        "experiments/2026-09-04-mt6797-thermal-snapshot/"
+      ],
+      "evidence": [
+        "experiments/2026-09-04-mt6797-thermal-snapshot/V4_RUNTIME_ACCEPTANCE.md",
+        "experiments/2026-09-04-mt6797-thermal-snapshot/V4_HOST_PROTOCOL.md"
+      ],
+      "issue_urls": [
+        "https://github.com/ixoo/gemini-pda-mainline/issues/11",
+        "https://github.com/ixoo/gemini-pda-mainline/issues/12",
+        "https://github.com/ixoo/gemini-pda-mainline/issues/13",
+        "https://github.com/ixoo/gemini-pda-mainline/issues/22",
+        "https://github.com/ixoo/gemini-pda-mainline/issues/23"
+      ],
+      "dependencies": [
+        "integration"
+      ]
+    },
+    {
+      "id": "upstream",
+      "title": "Upstream preparation",
+      "owner": null,
+      "status": "ready",
+      "scope": [
+        "project/upstream-topics.json",
+        "topic-local binding/driver review"
+      ],
+      "evidence": [
+        "experiments/2026-09-03-mt6797-infracfg-reset-repair/README.md",
+        "experiments/2026-09-04-mt6797-pwrap-reset-serviceability/README.md"
+      ],
+      "issue_urls": [
+        "https://github.com/ixoo/gemini-pda-mainline/issues/3",
+        "https://github.com/ixoo/gemini-pda-mainline/issues/5",
+        "https://github.com/ixoo/gemini-pda-mainline/issues/10"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "serviceability",
+      "title": "A53 serviceability",
+      "owner": null,
+      "status": "ready",
+      "scope": [
+        "new isolated serviceability experiment",
+        "USB userspace/input/storage protocol"
+      ],
+      "evidence": [
+        "experiments/2026-09-04-mt6797-pwrap-reset-serviceability/README.md",
+        "docs/hardware/keyboard.md"
+      ],
+      "issue_urls": [
+        "https://github.com/ixoo/gemini-pda-mainline/issues/7",
+        "https://github.com/ixoo/gemini-pda-mainline/issues/14",
+        "https://github.com/ixoo/gemini-pda-mainline/issues/15",
+        "https://github.com/ixoo/gemini-pda-mainline/issues/16",
+        "https://github.com/ixoo/gemini-pda-mainline/issues/17",
+        "https://github.com/ixoo/gemini-pda-mainline/issues/19"
+      ],
+      "dependencies": [
+        "integration"
+      ]
+    },
+    {
+      "id": "display",
+      "title": "Display, touch and GPU",
+      "owner": null,
+      "status": "ready",
+      "scope": [
+        "new display dependency investigation"
+      ],
+      "evidence": [
+        "experiments/2026-07-11-gemini-panel-recovery/README.md",
+        "experiments/2026-07-12-mt6797-gpu-panfrost-recovery/README.md"
+      ],
+      "issue_urls": [
+        "https://github.com/ixoo/gemini-pda-mainline/issues/18",
+        "https://github.com/ixoo/gemini-pda-mainline/issues/20",
+        "https://github.com/ixoo/gemini-pda-mainline/issues/21",
+        "https://github.com/ixoo/gemini-pda-mainline/issues/24"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "peripherals",
+      "title": "Connectivity, audio and sensors",
+      "owner": null,
+      "status": "ready",
+      "scope": [
+        "new protocol/firmware feasibility investigations"
+      ],
+      "evidence": [
+        "experiments/2026-07-12-connectivity-wmt-recovery/README.md",
+        "experiments/2026-07-12-audio-afe-recovery/README.md",
+        "experiments/2026-07-12-sensor-iio-recovery/README.md"
+      ],
+      "issue_urls": [
+        "https://github.com/ixoo/gemini-pda-mainline/issues/25",
+        "https://github.com/ixoo/gemini-pda-mainline/issues/26",
+        "https://github.com/ixoo/gemini-pda-mainline/issues/27"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "full-coverage",
+      "title": "Cellular and cameras",
+      "owner": null,
+      "status": "ready",
+      "scope": [
+        "new public transport/pipeline feasibility investigation"
+      ],
+      "evidence": [
+        "experiments/2026-07-13-camera-recovery/README.md",
+        "docs/hardware/firmware.md"
+      ],
+      "issue_urls": [
+        "https://github.com/ixoo/gemini-pda-mainline/issues/30"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "distribution",
+      "title": "Standard boot and distribution",
+      "owner": null,
+      "status": "ready",
+      "scope": [
+        "new distribution/loader contract review"
+      ],
+      "evidence": [
+        "docs/ARCHITECTURE.md",
+        "experiments/2026-07-12-boot-contract-recovery/README.md"
+      ],
+      "issue_urls": [
+        "https://github.com/ixoo/gemini-pda-mainline/issues/28",
+        "https://github.com/ixoo/gemini-pda-mainline/issues/29"
+      ],
+      "dependencies": [
+        "serviceability"
+      ]
+    }
+  ]
+}

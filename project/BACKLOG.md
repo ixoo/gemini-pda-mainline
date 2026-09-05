@@ -1,6 +1,10 @@
 # Initial backlog
 
-The GitHub issues are the live record. This seed list captures intended scope and milestone placement so project structure remains reviewable in Git.
+GitHub issues track public discussion and upstream acceptance. This seed list
+preserves stable issue links; the [roadmap](../docs/ROADMAP.md) alone owns current
+ordering, dependencies and milestone exits. The [workstream registry](workstreams.json)
+records scope and ownership. Open seed issues do not imply that no local work
+has been completed.
 
 | Milestone | Issue | Acceptance summary |
 | --- | --- | --- |

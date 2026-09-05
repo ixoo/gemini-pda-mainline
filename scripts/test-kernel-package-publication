@@ -1,0 +1,279 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
+"""Exercise immutable publication, failed gates, and transferred inventories."""
+
+from __future__ import annotations
+
+import gzip
+import hashlib
+import importlib.machinery
+import importlib.util
+import json
+import struct
+import subprocess
+import sys
+import tempfile
+import unittest
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from unittest import mock
+
+
+ROOT = Path(__file__).resolve().parent.parent
+HELPER = ROOT / "scripts/publish-kernel-package"
+loader = importlib.machinery.SourceFileLoader("kernel_package", str(HELPER))
+specification = importlib.util.spec_from_loader(loader.name, loader)
+assert specification is not None
+publisher = importlib.util.module_from_spec(specification)
+loader.exec_module(publisher)
+
+
+def digest(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def refresh_sums(package: Path) -> None:
+    lines = []
+    for path in sorted(package.rglob("*")):
+        if path.is_file() and path.name != "SHA256SUMS":
+            lines.append(f"{digest(path.read_bytes())}  ./{path.relative_to(package).as_posix()}\n")
+    (package / "SHA256SUMS").write_text("".join(lines), encoding="ascii")
+
+
+class PublicationTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory(
+            prefix="gemini-package-tests-", dir=tempfile.gettempdir()
+        )
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name).resolve()
+        self.staging_root = self.root / ".kernel-package-staging"
+        self.staging_root.mkdir()
+
+    def package(self, **changes: object) -> Path:
+        package = Path(tempfile.mkdtemp(prefix="package.", dir=self.staging_root))
+        profile = str(changes.pop("build_profile", "fixture"))
+        config = str(changes.pop("config", "CONFIG_TEST=y\n")).encode("ascii")
+        patch = b"synthetic test patch\n"
+        series = b"vtest/0001.patch\n"
+        image = bytearray(64)
+        struct.pack_into("<Q", image, 16, len(image))
+        image[56:60] = b"ARMd"
+        files = {
+            "Image": bytes(image),
+            "Image.gz": gzip.compress(bytes(image), mtime=0),
+            "System.map": b"0000000000000000 T synthetic_test_symbol\n",
+            "kernel.config": config,
+            "dtbs/mediatek/test.dtb": b"synthetic test DTB\n",
+            "provenance/series": series,
+            "provenance/patches/vtest/0001.patch": patch,
+            "provenance/configs/test.fragment": config,
+        }
+        config_inputs = (
+            f"profile={profile}\nbase=defconfig\n"
+            f"{digest(config)}  configs/test.fragment\n"
+        ).encode("ascii")
+        patchset = (
+            f"{digest(series)}  patches/series\n"
+            f"{digest(patch)}  vtest/0001.patch\n"
+        ).encode("ascii")
+        manifest = {
+            "schema": 1, "kernel": {"version": "7.1.3", "sha256": "1" * 64},
+            "architecture": "arm64", "patch_series": "patches/series",
+            "config": {"default_profile": profile, "profiles": {
+                profile: {"base": "defconfig", "fragments": ["configs/test.fragment"]}
+            }},
+        }
+        build = {
+            "schema": 1, "generated_utc": "2026-09-05T00:00:00Z",
+            "kernel_release": "7.1.3-test", "build_profile": profile,
+            "base_config": "defconfig", "config_fragments": ["configs/test.fragment"],
+            "config_inputs_sha256": digest(config_inputs), "source_sha256": "1" * 64,
+            "patchset_sha256": digest(patchset), "config_sha256": digest(config),
+            "modules_built": False, "build_architecture": "x86_64",
+            "target_architecture": "arm64", "toolchain_mode": "cross",
+            "compiler": "synthetic gcc", "compiler_target": "aarch64-linux-gnu",
+            "compiler_sha256": "2" * 64, "linker": "synthetic ld",
+            "linker_sha256": "3" * 64, "ccache_enabled": False,
+            "repository_commit": "4" * 40, "repository_dirty": False,
+        }
+        build.update(changes)
+        files["provenance/kernel-manifest.json"] = json.dumps(manifest, sort_keys=True).encode() + b"\n"
+        files["provenance/build.json"] = json.dumps(build, sort_keys=True).encode() + b"\n"
+        for relative, data in files.items():
+            path = package / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(data)
+        refresh_sums(package)
+        return package
+
+    def validate(self, package: Path) -> None:
+        if sys.platform.startswith("linux"):
+            publisher.validate_artifact(package)
+        else:
+            # The complete shell gate runs on Linux CI/Buildbox. These tests
+            # still execute the real publication and inventory code on macOS.
+            publisher.verified_inventory(package)
+
+    def publish(self, package: Path) -> Path:
+        return publisher.publish_package(self.root, package, self.validate)
+
+    def test_publish_only_after_validation(self) -> None:
+        package = self.package()
+        called = []
+
+        def validate(candidate: Path) -> None:
+            self.assertEqual(list(self.root.glob("linux-*")), [])
+            self.validate(candidate)
+            called.append(candidate)
+
+        result = publisher.publish_package(self.root, package, validate)
+        self.assertEqual(called, [package])
+        self.assertTrue(result.is_dir())
+        self.assertFalse(package.exists())
+
+    def test_repeat_preserves_original_package(self) -> None:
+        first = self.publish(self.package())
+        before = (first / "provenance/build.json").stat()
+        duplicate = self.package()
+        self.assertEqual(self.publish(duplicate), first)
+        after = (first / "provenance/build.json").stat()
+        self.assertEqual((before.st_ino, before.st_mtime_ns), (after.st_ino, after.st_mtime_ns))
+        self.assertEqual(len(list(self.root.glob("linux-*"))), 1)
+
+    def test_concurrent_identical_publications_preserve_one_package(self) -> None:
+        packages = [self.package(), self.package()]
+        with ThreadPoolExecutor(max_workers=2) as workers:
+            results = list(workers.map(self.publish, packages))
+        self.assertEqual(results[0], results[1])
+        self.assertEqual(len(list(self.root.glob("linux-*"))), 1)
+        self.assertEqual(sum(package.exists() for package in packages), 1)
+
+    def test_build_identities_and_outputs_do_not_replace_each_other(self) -> None:
+        first = self.publish(self.package())
+        original = (first / "SHA256SUMS").read_bytes()
+        variants = (
+            {"repository_commit": "5" * 40}, {"modules_built": True},
+            {"compiler_sha256": "6" * 64}, {"linker_sha256": "7" * 64},
+            {"config": "CONFIG_TEST=n\n"}, {"build_profile": "another-profile"},
+            {"generated_utc": "2026-09-05T00:01:00Z"},
+        )
+        paths = {first}
+        for variant in variants:
+            paths.add(self.publish(self.package(**variant)))
+        self.assertEqual(len(paths), len(variants) + 1)
+        self.assertEqual((first / "SHA256SUMS").read_bytes(), original)
+
+    def test_long_manifest_profile_has_bounded_package_name(self) -> None:
+        manifest = json.loads((ROOT / "kernel/manifest.json").read_text())
+        profile = max(manifest["config"]["profiles"], key=len)
+        self.assertLess(len(self.publish(self.package(build_profile=profile)).name), 128)
+
+    def test_validator_failure_never_publishes(self) -> None:
+        def reject(_: Path) -> None:
+            raise publisher.PublicationError("injected full validation rejection")
+
+        package = self.package()
+        with self.assertRaises(publisher.PublicationError):
+            publisher.publish_package(self.root, package, reject)
+        self.assertTrue(package.exists())
+        self.assertEqual(list(self.root.glob("linux-*")), [])
+
+    def test_checksum_failure_never_publishes(self) -> None:
+        package = self.package()
+        (package / "Image").write_bytes(b"changed")
+        with self.assertRaises(publisher.PublicationError):
+            self.publish(package)
+        self.assertEqual(list(self.root.glob("linux-*")), [])
+
+    def test_existing_corrupt_package_is_not_replaced(self) -> None:
+        destination = self.publish(self.package())
+        (destination / "Image").write_bytes(b"retain corruption for diagnosis")
+        with self.assertRaises(publisher.PublicationError):
+            self.publish(self.package())
+        self.assertEqual((destination / "Image").read_bytes(), b"retain corruption for diagnosis")
+
+    def test_existing_destination_symlink_is_rejected(self) -> None:
+        package = self.package()
+        identity = digest((package / "SHA256SUMS").read_bytes())
+        destination = self.root / f"linux-7.1.3-gemini-{identity}"
+        destination.symlink_to(self.staging_root, target_is_directory=True)
+        with self.assertRaises(publisher.PublicationError):
+            self.publish(package)
+        self.assertTrue(destination.is_symlink())
+
+    def test_legacy_package_path_is_preserved(self) -> None:
+        legacy = self.root / "linux-7.1.3-gemini-fixture-oldhash"
+        legacy.mkdir()
+        (legacy / "keep").write_text("older validated experiment package")
+        self.publish(self.package())
+        self.assertEqual((legacy / "keep").read_text(), "older validated experiment package")
+
+    def test_staging_outside_managed_root_is_rejected(self) -> None:
+        package = self.package()
+        elsewhere = self.root / "unmanaged"
+        package.rename(elsewhere)
+        with self.assertRaises(publisher.PublicationError):
+            self.publish(elsewhere)
+
+    def test_inventory_rejects_path_escape_duplicate_extra_and_symlink(self) -> None:
+        for mutation in ("escape", "duplicate", "extra", "symlink"):
+            with self.subTest(mutation=mutation):
+                package = self.package()
+                sums = package / "SHA256SUMS"
+                if mutation == "escape":
+                    sums.write_text("0" * 64 + "  ./../outside\n")
+                elif mutation == "duplicate":
+                    sums.write_text(sums.read_text() * 2)
+                elif mutation == "extra":
+                    (package / "untracked-extra").write_text("must reject")
+                else:
+                    (package / "directory-link").symlink_to(self.root, target_is_directory=True)
+                with self.assertRaises(publisher.PublicationError):
+                    publisher.verified_inventory(package)
+
+    def test_inventory_rejects_directory_enumeration_failure(self) -> None:
+        package = self.package()
+        with mock.patch.object(publisher.os, "scandir", side_effect=PermissionError("injected unreadable directory")):
+            with self.assertRaisesRegex(publisher.PublicationError, "cannot enumerate"):
+                publisher.verified_inventory(package)
+
+    def test_fetch_inventory_requires_recorded_identity(self) -> None:
+        package = self.package()
+        for expected, succeeds in ((digest((package / "SHA256SUMS").read_bytes()), True), ("0" * 64, False)):
+            result = subprocess.run(
+                [sys.executable, str(HELPER), "verify-inventory", str(package), "--expected-sha256", expected],
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode == 0, succeeds, result.stderr)
+
+    def test_legacy_fetch_rejects_self_consistent_wrong_build_provenance(self) -> None:
+        for change in (
+            {}, {"repository_commit": "5" * 40}, {"build_profile": "another-profile"},
+            {"modules_built": True}, {"repository_dirty": True},
+        ):
+            with self.subTest(change=change):
+                package = self.package(**change)
+                result = subprocess.run(
+                    [sys.executable, str(HELPER), "verify-inventory", str(package),
+                     "--repository-commit", "4" * 40, "--profile", "fixture", "--modules", "0"],
+                    capture_output=True, text=True, check=False,
+                )
+                self.assertEqual(result.returncode == 0, not change, result.stderr)
+
+    def test_content_addressed_name_remains_a_transfer_gate_without_job_digest(self) -> None:
+        package = self.publish(self.package())
+        (package / "System.map").write_text("self-consistent replacement content\n")
+        refresh_sums(package)
+        result = subprocess.run(
+            [sys.executable, str(HELPER), "verify-inventory", str(package)],
+            capture_output=True, text=True, check=False,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("immutable package name", result.stderr)
+
+
+if __name__ == "__main__":
+    if not sys.platform.startswith("linux"):
+        print("full_package_validator=deferred-to-Linux; publication-and-inventory-tests=local", flush=True)
+    unittest.main()

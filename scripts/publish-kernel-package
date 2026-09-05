@@ -1,0 +1,199 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
+"""Validate and publish an immutable kernel package without replacing history."""
+
+from __future__ import annotations
+
+import argparse
+import fcntl
+import hashlib
+import json
+import os
+import re
+import stat
+import subprocess
+import sys
+from pathlib import Path
+from typing import Callable
+
+
+VALIDATOR = Path(__file__).resolve().with_name("validate-kernel-artifact")
+CHECKSUM_LINE = re.compile(r"([0-9a-f]{64})  (\./\S+)\n")
+
+
+class PublicationError(Exception):
+    """A package cannot safely become a published artifact."""
+
+
+def regular_directory(path: Path) -> None:
+    if not stat.S_ISDIR(path.lstat().st_mode):
+        raise PublicationError(f"not a regular directory: {path.name}")
+
+
+def file_digest(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def verified_inventory(package: Path) -> bytes:
+    """Check every file, including paths and entries ignored by sha256sum -c."""
+    regular_directory(package)
+    files: dict[str, Path] = {}
+
+    def walk_error(error: OSError) -> None:
+        raise PublicationError("cannot enumerate the complete package inventory") from error
+
+    for directory, directories, filenames in os.walk(
+        package, followlinks=False, onerror=walk_error
+    ):
+        for name in directories + filenames:
+            path = Path(directory) / name
+            mode = path.lstat().st_mode
+            if stat.S_ISDIR(mode):
+                continue
+            if not stat.S_ISREG(mode):
+                raise PublicationError("package contains a non-regular entry")
+            files["./" + path.relative_to(package).as_posix()] = path
+    sums_path = files.pop("./SHA256SUMS", None)
+    if sums_path is None:
+        raise PublicationError("missing regular SHA256SUMS")
+    sums = sums_path.read_bytes()
+    expected: dict[str, str] = {}
+    for line in sums.decode("ascii").splitlines(keepends=True):
+        match = CHECKSUM_LINE.fullmatch(line)
+        if match is None:
+            raise PublicationError("malformed SHA256SUMS line")
+        digest, relative = match.groups()
+        if any(part in ("", ".", "..") for part in relative[2:].split("/")):
+            raise PublicationError("unsafe SHA256SUMS path")
+        if relative in expected or relative == "./SHA256SUMS":
+            raise PublicationError("duplicate or recursive SHA256SUMS entry")
+        expected[relative] = digest
+    if not expected or expected.keys() != files.keys():
+        raise PublicationError("SHA256SUMS is not the exact package inventory")
+    for relative, path in files.items():
+        if file_digest(path) != expected[relative]:
+            raise PublicationError(f"package checksum mismatch: {relative}")
+    return sums
+
+
+def validate_artifact(package: Path) -> None:
+    result = subprocess.run(
+        [str(VALIDATOR), str(package)],
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    if result.returncode:
+        raise PublicationError("kernel package validation failed:\n" + result.stdout)
+
+
+def verify_transfer_identity(package: Path, commit: str, profile: str, modules: bool) -> None:
+    """Bind transferred bytes to the requested job, including historical jobs."""
+    build = json.loads((package / "provenance/build.json").read_text())
+    if (
+        build.get("repository_commit") != commit
+        or build.get("build_profile") != profile
+        or build.get("modules_built") is not modules
+        or build.get("repository_dirty") is not False
+    ):
+        raise PublicationError("transferred provenance does not match the requested build")
+
+
+def publish_package(
+    artifact_root: Path,
+    staging: Path,
+    validate: Callable[[Path], None] = validate_artifact,
+) -> Path:
+    """Publish a validated tree; the caller owns cleanup of staging on failure."""
+    regular_directory(artifact_root)
+    artifact_root = artifact_root.resolve(strict=True)
+    staging_root = artifact_root / ".kernel-package-staging"
+    regular_directory(staging_root)
+    regular_directory(staging)
+    staging = staging.resolve(strict=True)
+    if staging.parent != staging_root or not re.fullmatch(
+        r"package\.[A-Za-z0-9_]{8}", staging.name
+    ):
+        raise PublicationError("staging must be a managed package temporary directory")
+
+    # Cooperating publishers serialize the existence check and atomic rename.
+    # Never open a symlink or truncate an existing lock entry.
+    lock_path = artifact_root / ".kernel-package-publish.lock"
+    descriptor = os.open(lock_path, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(descriptor, "r+") as lock:
+        if not stat.S_ISREG(os.fstat(lock.fileno()).st_mode):
+            raise PublicationError("package publication lock is not a regular file")
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        validate(staging)
+        sums = verified_inventory(staging)
+        manifest = json.loads((staging / "provenance/kernel-manifest.json").read_text())
+        version = manifest["kernel"]["version"]
+        if not isinstance(version, str) or not re.fullmatch(
+            r"[0-9][A-Za-z0-9.+_-]{0,39}", version
+        ):
+            raise PublicationError("invalid kernel version for package publication")
+        # The complete inventory covers provenance, commit, module mode,
+        # toolchain, full profile, configuration, DTBs and actual output bytes.
+        # Keep timestamp-bearing provenance exact: ABI-7 also hashes it into DT.
+        identity = hashlib.sha256(sums).hexdigest()
+        destination = artifact_root / f"linux-{version}-gemini-{identity}"
+        if os.path.lexists(destination):
+            regular_directory(destination)
+            validate(destination)
+            if verified_inventory(destination) != sums:
+                raise PublicationError("immutable package destination has different content")
+            return destination
+        os.rename(staging, destination)
+        return destination
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    commands = parser.add_subparsers(dest="command", required=True)
+    publish = commands.add_parser("publish", help="validate and publish managed staging")
+    publish.add_argument("--artifact-root", type=Path, required=True)
+    publish.add_argument("--staging", type=Path, required=True)
+    verify = commands.add_parser("verify-inventory", help="verify every transferred file")
+    verify.add_argument("package", type=Path)
+    verify.add_argument("--expected-sha256", default="")
+    verify.add_argument("--repository-commit")
+    verify.add_argument("--profile")
+    verify.add_argument("--modules", choices=("0", "1"))
+    arguments = parser.parse_args()
+    if arguments.command == "publish":
+        print(publish_package(arguments.artifact_root, arguments.staging))
+    else:
+        if arguments.expected_sha256 and not re.fullmatch(
+            r"[0-9a-f]{64}", arguments.expected_sha256
+        ):
+            raise PublicationError("invalid expected inventory identity")
+        identity = hashlib.sha256(verified_inventory(arguments.package)).hexdigest()
+        if arguments.expected_sha256 and identity != arguments.expected_sha256:
+            raise PublicationError("transferred inventory does not match the validated job")
+        named_identity = re.fullmatch(
+            r"linux-[A-Za-z0-9.+_-]+-gemini-([0-9a-f]{64})", arguments.package.name
+        )
+        if named_identity and named_identity[1] != identity:
+            raise PublicationError("inventory does not match the immutable package name")
+        requested = (arguments.repository_commit, arguments.profile, arguments.modules)
+        if any(value is not None for value in requested):
+            if any(value is None for value in requested):
+                raise PublicationError("commit, profile and module mode are required together")
+            verify_transfer_identity(
+                arguments.package, arguments.repository_commit, arguments.profile,
+                arguments.modules == "1",
+            )
+        print(f"package_inventory_sha256={identity}")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (PublicationError, OSError, UnicodeError, ValueError, KeyError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        raise SystemExit(1) from error

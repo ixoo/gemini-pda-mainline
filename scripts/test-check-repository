@@ -1,0 +1,97 @@
+#!/usr/bin/env python3
+"""Mutation tests for the publication gate; no kernel or device interaction."""
+
+from __future__ import annotations
+
+import importlib.machinery
+import importlib.util
+import hashlib
+import json
+import os
+import tempfile
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parent.parent
+loader = importlib.machinery.SourceFileLoader("repository_checks", str(ROOT / "scripts/check-repository"))
+spec = importlib.util.spec_from_loader(loader.name, loader)
+checks = importlib.util.module_from_spec(spec)
+loader.exec_module(checks)
+
+
+def rejected(action, label: str) -> None:
+    try:
+        action()
+    except checks.CheckError:
+        return
+    raise SystemExit(f"unsafe mutation accepted: {label}")
+
+
+def main() -> None:
+    mutations = 0
+    for name in ("artifacts/evidence.txt", "../outside.txt", "firmware.img", "key.pem"):
+        rejected(lambda: checks.publication_path(name), name)
+        mutations += 1
+    for secret in ("-----BEGIN " + "OPENSSH PRIVATE KEY-----",
+                   "ghp_" + "a" * 36, "/" + "Users/" + "someone/private.txt",
+                   "imei=" + "123456789012345"):
+        rejected(lambda: checks.text_hygiene("new.txt", secret), "sensitive text")
+        mutations += 1
+    checks.text_hygiene("safe.txt", "boot_id=1234\nsha256=" + "a" * 64)
+    with tempfile.TemporaryDirectory(prefix="repository-mutations-", dir=os.environ.get("TMPDIR")) as temporary:
+        root = Path(temporary)
+        audit_path = root / checks.DEBT
+        audit_path.parent.mkdir(parents=True)
+        # Synthetic certification exists only in this disposable mutation fixture.
+        original = b"From: Fixture Author <fixture@example.invalid>\nSigned-off-by: Fixture Author <fixture@example.invalid>\n---\nfixture patch\n"
+        entry = {"path": "patches/old.patch", "sha256": hashlib.sha256(original).hexdigest(),
+                 "synthetic_signoffs": [{"trailer": original.decode().splitlines()[1]}]}
+        audit_path.write_text(json.dumps({"entries": [entry]}))
+        checks.DEBT_SHA256 = hashlib.sha256(audit_path.read_bytes()).hexdigest()
+        historical = root / entry["path"]
+        historical.parent.mkdir(parents=True)
+        historical.write_bytes(original)
+        assert checks.metadata_debt(root, {entry["path"]}) == (1, 1)
+        historical.write_bytes(original + b"\nchanged\n")
+        rejected(lambda: checks.metadata_debt(root, {entry["path"]}), "changed debt bytes")
+        mutations += 1
+        historical.write_bytes(original)
+        new = root / "patches/new.patch"
+        new.write_bytes(original)
+        rejected(lambda: checks.metadata_debt(root, {"patches/new.patch"}), "copied debt at new path")
+        mutations += 1
+        audit_path.write_bytes(audit_path.read_bytes() + b"\n")
+        rejected(lambda: checks.metadata_debt(root, set()), "changed audit record")
+        mutations += 1
+        (root / "target.md").write_text("# Target\n")
+        checks.markdown_links(root, "README.md", "[target](target.md#target)")
+        rejected(lambda: checks.markdown_links(root, "README.md", "[missing](absent.md)"), "broken link")
+        mutations += 1
+        rejected(lambda: checks.markdown_links(root, "README.md", "[escape](../outside.md)"), "escaping link")
+        mutations += 1
+        git_root = root / "change-selection"
+        git_root.mkdir()
+        checks.command(["git", "init", "--quiet"], git_root)
+        checks.command(["git", "config", "user.name", "Repository Test Fixture"], git_root)
+        checks.command(["git", "config", "user.email", "fixture@example.invalid"], git_root)
+        checks.command(["git", "config", "core.hooksPath", "/dev/null"], git_root)
+        (git_root / ".gitignore").write_text("ignored.txt\n")
+        (git_root / "tracked.txt").write_text("original\n")
+        checks.command(["git", "add", ".gitignore", "tracked.txt"], git_root)
+        checks.command(["git", "commit", "--quiet", "--no-gpg-sign", "-m", "fixture base"], git_root)
+        base = checks.command(["git", "rev-parse", "HEAD"], git_root).strip()
+        (git_root / "tracked.txt").write_text("unstaged edit\n")
+        (git_root / "staged.txt").write_text("staged addition\n")
+        (git_root / "untracked.txt").write_text("untracked addition\n")
+        (git_root / "ignored.txt").write_text("not publication input\n")
+        checks.command(["git", "add", "staged.txt"], git_root)
+        assert checks.changed_paths(git_root, None) == {"tracked.txt", "staged.txt", "untracked.txt"}
+        checks.command(["git", "add", "tracked.txt"], git_root)
+        checks.command(["git", "commit", "--quiet", "--no-gpg-sign", "-m", "fixture change"], git_root)
+        assert checks.changed_paths(git_root, base) == {"tracked.txt", "staged.txt"}
+    print(f"validation=repository-publication-gate mutations_rejected={mutations} result=pass")
+    print("change_selection=staged,unstaged,untracked,committed-range")
+
+
+if __name__ == "__main__":
+    main()

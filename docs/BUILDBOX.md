@@ -1,40 +1,39 @@
 # Buildbox kernel builds
 
-The x86_64 buildbox is the preferred kernel-build backend when it is reachable.
+The x86_64 buildbox is the normal kernel-build backend.
 It fetches committed project inputs from the public repository, maintains its
 own pinned Linux source archive and prepared tree, cross-compiles arm64 outputs,
-and retains validated packages until an explicit fetch. No project checkout,
+and publishes immutable validated packages for an explicit fetch. No project checkout,
 Linux source tree, build directory, cache, credential, or device evidence is
 synchronized from the development Mac.
 
-The local ARM64 VM remains an explicit supported backend and the independent
-native-build reference.
+The local ARM64 VM remains available only for a build explicitly requested by
+the owner, including a native-build reference when that is the requested test.
 
 ## Selecting a backend
 
-The normal entry point selects buildbox when its SSH endpoint, required tools,
-writable workspace, and repository access are available. It falls back to the
-local VM only when that availability probe fails:
-
-```sh
-./scripts/build-kernel
-```
-
-Select either backend explicitly when the distinction is part of an experiment:
+The normal entry point checks Buildbox's SSH endpoint, required tools, writable
+workspace, and repository access. If any availability check fails, it defers
+the build and reports the failure:
 
 ```sh
 ./scripts/build-kernel --backend buildbox
+```
+
+Omitting `--backend` also selects Buildbox. The legacy `auto` selection is an
+alias for Buildbox and never falls back to the VM. Only when the owner
+explicitly requests a VM build, use:
+
+```sh
 ./scripts/build-kernel --backend vm
 ```
 
-`GEMINI_BUILD_BACKEND=auto|buildbox|vm` provides the equivalent environment
+`GEMINI_BUILD_BACKEND=buildbox|auto|vm` provides the equivalent environment
 control. `KERNEL_PROFILE`, `BUILD_MODULES`, and `KERNEL_JOBS` retain their usual
 meanings.
 
-An available buildbox does not cause an uncommitted or unpushed checkout to fall
-back silently to the VM. The remote build fails before submission so it cannot
-test inputs different from the local worktree. Use the explicit VM backend when
-an intentionally uncommitted compile check is required.
+Uncommitted or unpushed inputs fail before submission. A Buildbox build failure
+also remains a failure; neither condition selects another backend.
 
 ## Commit-based build contract
 
@@ -55,7 +54,7 @@ Typical use is:
 ```sh
 git commit
 git push origin HEAD
-KERNEL_PROFILE=PROFILE_NAME ./scripts/build-kernel
+KERNEL_PROFILE=PROFILE_NAME ./scripts/build-kernel --backend buildbox
 KERNEL_PROFILE=PROFILE_NAME ./scripts/buildbox fetch-package
 ```
 
@@ -65,9 +64,43 @@ The fetched package is written below the ignored path:
 artifacts/buildbox/COMMIT/PACKAGE/
 ```
 
-Fetching refuses to overwrite an existing package and verifies the complete
-packaged `SHA256SUMS` after transfer. Only the validated package is transferred;
+Fetching refuses to overwrite an existing package and verifies the exact
+regular-file inventory and every checksum after transfer. New job records also
+pin the SHA-256 of `SHA256SUMS`, which must match before and after transfer.
+Historical job records remain fetchable without that additional field. Every
+transferred package must also match the requested commit, profile, module mode,
+and clean-worktree provenance locally before it is retained.
+Only the validated package is transferred;
 remote sources, builds, caches, and checkouts remain remote and regenerable.
+
+## Immutable kernel packages
+
+Kernel packaging uses a locked, managed staging directory and runs the complete
+package validator before making a package visible below the artifact root.
+Published directory names have this bounded form, regardless of profile length:
+
+```text
+linux-VERSION-gemini-SHA256_OF_SHA256SUMS/
+```
+
+That full inventory identity covers every packaged output and provenance file,
+including the repository commit, full profile, module mode, configuration and
+recorded compiler/linker identities. An exact repeated package reuses its
+validated original directory. A differing package receives a different path;
+publication never deletes or replaces an existing package. A corrupted or
+unsafe occupied destination causes publication to fail for review.
+
+Timestamp-bearing provenance stays exact because ABI-7 embeds its digest in the
+DTB. Rebuilds with different recorded timestamps therefore retain distinct
+packages even when their kernel images match. Reproducibility comparisons must
+use the experiment's declared normalization contract. Keep only the packages
+needed by open experiments after recording the comparison; package publication
+does not perform retention cleanup. Existing package paths remain untouched.
+
+Staging is removed on success, failure, or interruption. The next invocation
+removes only stale package staging under its dedicated root while holding the
+staging lock. Kernel sources, published packages, and private evidence are not
+staging cleanup targets.
 
 ## Gemian observer compile-review lane
 
@@ -720,7 +753,9 @@ identities. A buildbox package still requires the ordinary package validator;
 neither compilation nor validation is hardware evidence.
 
 For a decision-critical candidate, retain the experiment's required independent
-build or reproducibility oracle. The native VM remains available for that lane:
+build or reproducibility oracle. Reuse Buildbox's verified prepared source with
+an independent build directory for that test. A native VM comparison requires
+an explicit owner request:
 
 ```sh
 KERNEL_PROFILE=PROFILE_NAME ./scripts/build-kernel --backend vm

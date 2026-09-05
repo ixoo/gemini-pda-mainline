@@ -1,0 +1,418 @@
+{
+  "schema": 1,
+  "audit_date": "2026-09-05",
+  "repository_commit": "5194011ee370080ca4f231764dca11f021fdb330",
+  "status": "unresolved-historical-metadata-debt",
+  "scope": "Tracked patch files only; exact original bytes are grandfathered for reproducibility, never certified or submission-ready. No new or changed patch may retain a synthetic sign-off. Original historical commits and evidence remain unchanged.",
+  "patches_with_synthetic_signoffs": 37,
+  "canonical_patches_with_synthetic_signoffs": 29,
+  "entries": [
+    {
+      "path": "patches/v7.1.3/0021-dt-bindings-clock-mediatek-add-MT6797-CAM-and-MJC.patch",
+      "sha256": "df7b724bfdd38301416a4e0474338a9f7ef8fbde882d3e27a39c22b7f12c8f05",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 8,
+          "trailer": "Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0022-clk-mediatek-add-MT6797-CAM-and-MJC-clocks.patch",
+      "sha256": "03dfe99596f00f1c406c36da968b9d53de2368008c26c8caebc62cb9a28eee26",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 10,
+          "trailer": "Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0023-dt-bindings-iommu-mediatek-add-MT6797-M4U-and-SMI.patch",
+      "sha256": "a1a32015c0ece6f12a847ec9f53683288f0d4c713295827d92c1a9b1f704442b",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 13,
+          "trailer": "Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0024-iommu-mediatek-add-MT6797-M4U-and-SMI-support.patch",
+      "sha256": "86ae3fa90ee32167d53a1327b4ab4efa7d5c29d2639ef8ba661200da89ad1abc",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 17,
+          "trailer": "Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0025-arm64-dts-mediatek-mt6797-add-M4U-and-SMI.patch",
+      "sha256": "393c62c4d8e28aa5fa71c04a3730aedd422a3eaad4aa320588395280c603b787",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 12,
+          "trailer": "Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0026-dt-bindings-mailbox-mediatek-add-MT6797-GCE.patch",
+      "sha256": "885f213bcf2f8cf0c6dfd878b1639e793f119c083a649ee742c0bfb95df01f2c",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 14,
+          "trailer": "Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0027-arm64-dts-mediatek-mt6797-add-CMDQ-GCE.patch",
+      "sha256": "0169859639d810f1c816a72fad9ae4f2110e96c97fa137545d1b1485bc603b1e",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 15,
+          "trailer": "Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0028-dt-bindings-soc-mediatek-add-MT6797-display-mutex.patch",
+      "sha256": "2e7cd718dc6f50ca45cb6f0980e27440b6872b4d021fc10c2db54ef789f5332d",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 10,
+          "trailer": "Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0029-soc-mediatek-mtk-mutex-add-MT6797-support.patch",
+      "sha256": "13cc999701af741feeef9e5118c0e9305944557ae5857a207cb3b2cf4e2be1d3",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 13,
+          "trailer": "Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0030-arm64-dts-mediatek-mt6797-add-display-mutex.patch",
+      "sha256": "ca0321c0038a2306102c9189ee4df76f8768ec8601345eee5526d77f8ba2750b",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 13,
+          "trailer": "Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0031-soc-mediatek-mtk-mmsys-add-MT6797-routes-and-resets.patch",
+      "sha256": "6e0d0bdb9da84ea4f54b01602f76ee9720161c9dc00ff198f0925e2d466c86cd",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 17,
+          "trailer": "Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0032-arm64-dts-mediatek-mt6797-expose-MMSYS-controls.patch",
+      "sha256": "ff26e66d25e83ffaf1f73b9a4fc6f938bffabc560d7bd3b1f8d037e78a66156f",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 11,
+          "trailer": "Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0033-dt-bindings-display-mediatek-add-MT6797-OVL-and-R.patch",
+      "sha256": "83e8dd899185d96478736470cae41ac2b083dd77362dd41d7fc6f8573c5e8c4a",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 11,
+          "trailer": "Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0034-drm-mediatek-add-MT6797-OVL-and-RDMA-support.patch",
+      "sha256": "915355419e7aa346897a8ff6434eea992963da73071db7262e370dfb2ae5eafa",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 16,
+          "trailer": "Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0035-dt-bindings-display-mediatek-add-MT6797-fixed-fun.patch",
+      "sha256": "7b0cab9c47051a93cb92eebcc00424cf7d0e9d0b8b3f9e43f8e282fa7a8178e1",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 12,
+          "trailer": "Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0036-drm-mediatek-add-MT6797-fixed-function-display-s.patch",
+      "sha256": "28edec9b8eea65c0d8a14a658e6cbeab012b75d04966d7b62de4b9a6d6cfd97a",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 21,
+          "trailer": "Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0057-thermal-mediatek-add-MT6797-AUXADC-support.patch",
+      "sha256": "ee59d25155fdb4a1e9e44d02c95bd7bb7e4842e0decc02845612b226ec5de657",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 18,
+          "trailer": "Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0066-phy-mediatek-tphy-add-MT6797-V1-compatible.patch",
+      "sha256": "57fa8bc5c12e25a56663bba8eb59a784b9e4570b80b140f92deb85facfba90a4",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 11,
+          "trailer": "Signed-off-by: Gemini Mainline Maintainers <gemini-mainline@example.invalid>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0067-usb-mediatek-add-MT6797-MTU3-xHCI-compatible.patch",
+      "sha256": "802feff60737dc71cff0a34a3edd94b2861b6c6bb011e46055e03f38830d2942",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 14,
+          "trailer": "Signed-off-by: Gemini Mainline Maintainers <gemini-mainline@example.invalid>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0068-arm64-dts-mediatek-add-disabled-MT6797-USB3-topology.patch",
+      "sha256": "c0043e9e2e1308eb26310cdd65520de198021eac5235ea4bca6f4a3e54c09ec6",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 15,
+          "trailer": "Signed-off-by: Gemini Mainline Maintainers <gemini-mainline@example.invalid>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0069-usb-musb-mediatek-add-MT6797-USB11-data.patch",
+      "sha256": "45ba5f74255ec19c1c856a6f165731bf3eed743dd4919e9f4f4b510236ad877e",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 14,
+          "trailer": "Signed-off-by: Gemini Mainline Maintainers <gemini-mainline@example.invalid>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0070-arm64-dts-mediatek-add-disabled-MT6797-USB11-topology.patch",
+      "sha256": "3d9dac7e08ea87089512df905f1a5aaec5a83cda130f9ed6251c3539221be4b5",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 10,
+          "trailer": "Signed-off-by: Gemini Mainline Maintainers <gemini-mainline@example.invalid>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0096-regulator-da9211-support-legacy-DA9214-interface.patch",
+      "sha256": "dae5933e959ee220aea8cd9e950236ac7967cd5a8cfe04b4ee21220c53712df6",
+      "canonical_at_audit": false,
+      "synthetic_signoffs": [
+        {
+          "line": 33,
+          "trailer": "Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0097-dt-bindings-soc-mediatek-add-MT6797-DVFSP-handoff-owner.patch",
+      "sha256": "11b5fb7c0cf8ef034fa3e1db706d05e3bab7f5aeade0d7592a2213ed7e3ac910",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 16,
+          "trailer": "Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0098-soc-mediatek-add-MT6797-DVFSP-one-way-handoff.patch",
+      "sha256": "260f84c885d9f25524162ab097f1377137b55b5461af2b429d4508f1cfe58748",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 19,
+          "trailer": "Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0099-dt-bindings-mediatek-gate-MT6797-I2C-with-DVFSP-handoff.patch",
+      "sha256": "11c6f09cdc02bfcf82a20946af40ef05e935f8679a34a01e6145728e8420115f",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 10,
+          "trailer": "Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0100-soc-mediatek-require-ready-MT6797-DVFSP-handoff-supplier.patch",
+      "sha256": "c3b1f67ef13a8b694af2d7e99b57bea68928b1e25f94898b4137cc1a629a7313",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 14,
+          "trailer": "Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0101-i2c-mediatek-require-MT6797-DVFSP-handoff.patch",
+      "sha256": "f2427527f16b75c9abd4578d1a235278e7ac1ac7311ed9e68803e5ac395487aa",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 14,
+          "trailer": "Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0102-arm64-dts-mediatek-enable-childless-Gemini-I2C6-after-handoff.patch",
+      "sha256": "b18ed3111ca3035180b4ce5b45556618c0a8295a471c0c5b11caf114be677094",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 11,
+          "trailer": "Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0103-soc-mediatek-preserve-shared-MT6797-AP-DMA-owner.patch",
+      "sha256": "fd9311de9614a8ccef404cc821785f95b651983078be42e4903834c322d747b2",
+      "canonical_at_audit": true,
+      "synthetic_signoffs": [
+        {
+          "line": 17,
+          "trailer": "Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0104-regulator-da9211-require-exact-legacy-DA9214-signature.patch",
+      "sha256": "c38231bf3508861acf62941ad979f3884e3105300d46df433b886c50908a8c50",
+      "canonical_at_audit": false,
+      "synthetic_signoffs": [
+        {
+          "line": 17,
+          "trailer": "Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0106-regulator-da9211-use-legacy-DA9214-page-selector.patch",
+      "sha256": "b04776c58b02ebf2c59206710ab9ef8bc1b3f1ae953db3a1a47b296c2c9f7192",
+      "canonical_at_audit": false,
+      "synthetic_signoffs": [
+        {
+          "line": 17,
+          "trailer": "Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0107-regulator-da9211-use-write-only-legacy-page-selector.patch",
+      "sha256": "a12c93fcd7c4b2f84d287e2c5251c6590814373963e39cdaa9ad43c43fd25ef0",
+      "canonical_at_audit": false,
+      "synthetic_signoffs": [
+        {
+          "line": 17,
+          "trailer": "Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0108-regulator-da9211-reproduce-legacy-page-selector-rmw.patch",
+      "sha256": "729f3145c9dc4efbf0e5c0243cdd1f52177793969acdceaee079e65cb41c0597",
+      "canonical_at_audit": false,
+      "synthetic_signoffs": [
+        {
+          "line": 19,
+          "trailer": "Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0109-regulator-da9211-use-vendor-shaped-legacy-i2c-transfers.patch",
+      "sha256": "85c4cdfb0079337a26e2a7721138e51cc119ead83bfe0da7d21e486bedc8099a",
+      "canonical_at_audit": false,
+      "synthetic_signoffs": [
+        {
+          "line": 19,
+          "trailer": "Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0110-regulator-da9211-use-write-only-selector-explicit-identity-reads.patch",
+      "sha256": "a77061d3ae042eddee5349d65e28fd6f351dadea327afcac74eb787f42aae3aa",
+      "canonical_at_audit": false,
+      "synthetic_signoffs": [
+        {
+          "line": 17,
+          "trailer": "Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>"
+        }
+      ]
+    },
+    {
+      "path": "patches/v7.1.3/0113-regulator-da9211-preserve-legacy-page-revert-selector.patch",
+      "sha256": "9ebbce80af5d98b8fdf93b583e54f3ec4cf689eb2bef60e6d48d2f9cbd1da4bc",
+      "canonical_at_audit": false,
+      "synthetic_signoffs": [
+        {
+          "line": 18,
+          "trailer": "Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>"
+        }
+      ]
+    }
+  ]
+}

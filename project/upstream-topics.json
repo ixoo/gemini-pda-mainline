@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "purpose": "Upstream preparation inventory; priorities live in docs/ROADMAP.md. No topic is currently certified or submission-ready.",
+  "topics": [
+    {
+      "id": "mt6797-infracfg-reset",
+      "status": "local-preparation",
+      "owner": null,
+      "target": "Linux MediaTek clock/reset and Devicetree maintainers; resolve exact current target using MAINTAINERS/get_maintainer.pl before submission",
+      "patches": [
+        "patches/v7.1.3/0001-dt-bindings-reset-mediatek-add-MT6797-infracfg-reset.patch",
+        "patches/v7.1.3/0002-clk-mediatek-mt6797-add-infracfg-reset-controller.patch",
+        "patches/v7.1.3/0003-arm64-dts-mediatek-mt6797-expose-infracfg-resets.patch",
+        "patches/v7.1.3/0514-dt-bindings-reset-mediatek-correct-MT6797-infracfg-resets.patch",
+        "patches/v7.1.3/0515-clk-mediatek-repair-MT6797-infracfg-resets.patch",
+        "patches/v7.1.3/0516-clk-mediatek-test-MT6797-infracfg-reset-translation.patch"
+      ],
+      "evidence": [
+        "experiments/2026-09-03-mt6797-infracfg-reset-repair/README.md",
+        "experiments/2026-09-04-mt6797-pwrap-reset-serviceability/README.md"
+      ],
+      "dependencies": [
+        "Current target-tree and binding/ABI review",
+        "Derive final minimal semantics without diagnostic or superseded reset behavior",
+        "Focused schema/build/runtime evidence mapped to final submission revision"
+      ],
+      "authorship": "Unresolved: audit actual provenance and obtain truthful DCO certification; never replace a synthetic identity mechanically",
+      "submission_url": null,
+      "removal_condition": "Select a pinned upstream baseline containing the accepted equivalent changes, verify regression evidence, then remove corresponding local integration patches"
+    },
+    {
+      "id": "mt6797-toprgu-restart",
+      "status": "readiness-assessment",
+      "owner": null,
+      "target": "Linux watchdog subsystem; resolve current maintainers and tree before submission",
+      "patches": [
+        "patches/v7.1.3/0081-watchdog-mtk-set-MT6797-auto-restart-mode.patch",
+        "patches/v7.1.3/0087-watchdog-mtk-prioritize-MT6797-TOPRGU-restart.patch",
+        "patches/v7.1.3/0090-watchdog-mtk-expose-MT6797-TOPRGU-resets.patch"
+      ],
+      "evidence": [
+        "experiments/2026-07-20-mt6797-kernel-restart-diagnostic/README.md"
+      ],
+      "dependencies": [
+        "Separate restart capability from reset-controller export and experimental observers",
+        "Recheck final semantics and runtime evidence against current target tree"
+      ],
+      "authorship": "Unresolved: actual author and truthful certifier required",
+      "submission_url": null,
+      "removal_condition": "Remove only after accepted equivalents are in the selected upstream baseline and exact restart regression passes"
+    }
+  ]
+}

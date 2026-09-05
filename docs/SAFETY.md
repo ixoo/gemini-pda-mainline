@@ -36,6 +36,43 @@ Any future proposal to touch one of these areas requires a separate design and e
 - Keep power stable during writes.
 - Change one boot-critical variable at a time.
 
+### Device identity before a boot2 write
+
+New and active installers must use the read-only
+[`boot2-device-guard.sh`](../scripts/boot2-device-guard.sh) in their remote
+deployment shell after resolving `boot2` from the live GPT, and again
+immediately before writing. Historical closed experiment installers remain
+immutable evidence and must not be reused without this integration.
+
+Source the reviewed library or embed the bytes between its explicit library
+markers, pinning the complete source digest in the candidate's installer
+validation. Call `boot2_device_guard "$target" "$major_minor"` with the exact
+GPT-selected device and its independently obtained, validated live device
+number. The guard verifies the block node against sysfs and rejects target
+mounts by kernel major:minor, regardless of `/dev/root`, UUID aliases, or bind
+mount source text. It derives the actual root from the unique `/` mountinfo
+entry and verifies its live sysfs/device-node identity; no root partition number
+is assumed. An absent, pseudo-device, malformed, or unresolved root is a refusal.
+It verifies that the target is a partition and also rejects use of its whole
+parent disk. Holders, target or parent swap aliases, unsupported swap identities,
+and a caller outside the init mount namespace are refusals. Missing observations
+never count as an inactive device.
+
+The successful output records `target_device`, `target_major_minor`,
+`root_device`, and `root_major_minor`. Preserve these in deployment evidence;
+pass the observed root number as the optional third argument when pinning the
+root across deployment stages. Refuse an empty or duplicate evidence field.
+The guard has no write action and requires explicit `--check` when run directly.
+Its hardware-free tests are in
+[`boot2-device-guard-test.py`](../scripts/boot2-device-guard-test.py).
+
+This metadata check supplements the existing exact target, GPT label, parent,
+size, writable-state, power, candidate, checksum, and recovery gates. It does
+not lock mounts, inspect other mount namespaces, authorize a write, or replace
+full readback. Deployment requires a quiescent known-good OS and the complete
+guarded installer; a standalone passing check is not an installation receipt.
+The fixture tests do not establish behavior on the named hardware.
+
 ## Standing retained-RAM diagnostic authorization
 
 The device owner gives standing authorization for isolated, default-off early

@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
+"""Check backend dispatch without contacting a builder or starting a build."""
+
+from __future__ import annotations
+
+import os
+import shutil
+import subprocess
+import tempfile
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parent.parent
+
+
+def main() -> None:
+    with tempfile.TemporaryDirectory(prefix="gemini-backend-", dir=tempfile.gettempdir()) as directory:
+        fixture = Path(directory)
+        shutil.copy2(ROOT / "scripts/build-kernel", fixture / "build-kernel")
+        (fixture / "buildbox").write_text(
+            '#!/bin/sh\n'
+            'printf "buildbox %s\\n" "$*" >> "$TEST_CALLS"\n'
+            'case "$1" in\n'
+            'available) exit "$TEST_AVAILABLE" ;;\n'
+            'build-kernel) exit "$TEST_BUILD_RESULT" ;;\n'
+            '*) exit 99 ;;\n'
+            'esac\n',
+            encoding="ascii",
+        )
+        (fixture / "dev-vm").write_text(
+            '#!/bin/sh\nprintf "vm %s\\n" "$*" >> "$TEST_CALLS"\n',
+            encoding="ascii",
+        )
+        for script in ("buildbox", "dev-vm"):
+            (fixture / script).chmod(0o700)
+        calls = fixture / "calls"
+        cases = [
+            ("default-ready", [], None, 0, 0, 0, ["buildbox available", "buildbox build-kernel"]),
+            ("default-unavailable", [], None, 1, 0, 1, ["buildbox available"]),
+            ("auto-ready", ["--backend", "auto"], None, 0, 0, 0, ["buildbox available", "buildbox build-kernel"]),
+            ("auto-unavailable", ["--backend=auto"], None, 1, 0, 1, ["buildbox available"]),
+            ("environment-auto-unavailable", [], "auto", 1, 0, 1, ["buildbox available"]),
+            ("explicit-buildbox-unavailable", ["--backend=buildbox"], None, 1, 0, 1, ["buildbox available"]),
+            ("build-failure", [], None, 0, 42, 42, ["buildbox available", "buildbox build-kernel"]),
+            ("explicit-vm", ["--backend", "vm"], None, 1, 0, 0, ["vm build-kernel"]),
+            ("environment-vm", [], "vm", 1, 0, 0, ["vm build-kernel"]),
+            ("argument-overrides-environment", ["--backend=buildbox"], "vm", 1, 0, 1, ["buildbox available"]),
+            ("invalid-backend", ["--backend=invalid"], None, 0, 0, 1, []),
+            ("missing-backend", ["--backend"], None, 0, 0, 1, []),
+        ]
+        for name, arguments, backend, available, build_result, expected_status, expected_calls in cases:
+            calls.unlink(missing_ok=True)
+            environment = {
+                "PATH": os.environ["PATH"],
+                "TEST_CALLS": str(calls),
+                "TEST_AVAILABLE": str(available),
+                "TEST_BUILD_RESULT": str(build_result),
+            }
+            if backend is not None:
+                environment["GEMINI_BUILD_BACKEND"] = backend
+            result = subprocess.run(
+                ["bash", str(fixture / "build-kernel"), *arguments],
+                env=environment, text=True, capture_output=True, check=False,
+            )
+            actual_calls = calls.read_text().splitlines() if calls.exists() else []
+            if result.returncode != expected_status or actual_calls != expected_calls:
+                raise SystemExit(f"{name}: unexpected dispatch: {actual_calls}, status={result.returncode}")
+            if available and expected_calls == ["buildbox available"]:
+                if "kernel build deferred" not in result.stderr:
+                    raise SystemExit(f"{name}: missing deferred-build explanation")
+        print("validation=build-kernel-backend")
+        print(f"cases_passed={len(cases)}")
+        print("builder_or_hardware_access=none")
+
+
+if __name__ == "__main__":
+    main()

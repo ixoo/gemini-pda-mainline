@@ -709,6 +709,7 @@ jq -n \
   --argjson modules_built "$(if [[ "${modules}" == 1 ]]; then printf true; else printf false; fi)" \
   --arg package "${package}" \
   --arg package_name "$(basename "${package}")" \
+  --arg package_inventory_sha256 "$(sha256sum "${package}/SHA256SUMS" | awk '{print $1}')" \
   --arg completed_utc "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   '{
     status: $status,
@@ -717,6 +718,7 @@ jq -n \
     modules_built: $modules_built,
     package: $package,
     package_name: $package_name,
+    package_inventory_sha256: $package_inventory_sha256,
     completed_utc: $completed_utc
   }' > "${job_record}.partial"
 mv "${job_record}.partial" "${job_record}"
@@ -731,6 +733,7 @@ fetch_package() {
   local job_key
   local modules
   local package_name
+  local package_inventory_sha256
   local profile
   local remote_command
   local sha
@@ -738,6 +741,7 @@ fetch_package() {
 
   require_command git
   require_command jq
+  require_command python3
   require_command sha256sum
   require_command ssh
   require_command tar
@@ -758,23 +762,29 @@ fetch_package() {
       .repository_commit == $commit and
       .profile == $profile and
       .modules_built == $modules and
-      (.package_name | test("^[A-Za-z0-9_.+-]+$"))
+      (.package_name | test("^linux-[A-Za-z0-9_.+-]+$")) and
+      (.package_inventory_sha256 == null or
+        (.package_inventory_sha256 | type == "string" and test("^[0-9a-f]{64}$")))
     ' >/dev/null || die "buildbox job record is invalid"
   package_name="$(printf '%s' "${job_info}" | jq -er '.package_name')"
+  package_inventory_sha256="$(printf '%s' "${job_info}" | jq -r '.package_inventory_sha256 // ""')"
   destination="${REPO_DIR}/artifacts/buildbox/${sha}/${package_name}"
   [[ ! -e "${destination}" ]] || die "refusing to overwrite ${destination}"
   mkdir -p "$(dirname "${destination}")"
   temporary="$(mktemp -d "$(dirname "${destination}")/.fetch.XXXXXX")"
   trap 'test -n "${temporary:-}" && test -d "${temporary}" && rm -rf -- "${temporary}"' EXIT
 
-  printf -v remote_command 'bash -s -- %q %q %q %q' \
-    "${job_key}" "${sha}" "${profile}" "${modules}"
+  printf -v remote_command 'bash -s -- %q %q %q %q %q %q' \
+    "${job_key}" "${sha}" "${profile}" "${modules}" \
+    "${package_name}" "${package_inventory_sha256}"
   ssh_buildbox "${remote_command}" <<'REMOTE' | tar -C "${temporary}" -xf -
 set -euo pipefail
 readonly job_key="$1"
 readonly commit="$2"
 readonly profile="$3"
 readonly modules="$4"
+readonly expected_package_name="$5"
+readonly expected_inventory_sha256="$6"
 readonly artifact_root=/workspace/gemini-pda/artifacts
 readonly record="/workspace/gemini-pda/jobs/${job_key}.json"
 [[ -f "${record}" && ! -L "${record}" ]]
@@ -790,6 +800,10 @@ case "${package}" in
   "${artifact_root}"/*) ;;
   *) echo "error: unsafe package path in job record" >&2; exit 1 ;;
 esac
+[[ "${package}" == "${artifact_root}/${expected_package_name}" ]] || {
+  echo "error: package selection changed during fetch" >&2
+  exit 1
+}
 [[ -d "${package}" && ! -L "${package}" ]]
 jq -e \
   --arg commit "${commit}" \
@@ -800,14 +814,20 @@ jq -e \
     .build_profile == $profile and
     .modules_built == $modules
   ' "${package}/provenance/build.json" >/dev/null
+if [[ -n "${expected_inventory_sha256}" ]]; then
+  [[ "$(sha256sum "${package}/SHA256SUMS" | awk '{print $1}')" == \
+    "${expected_inventory_sha256}" ]] || {
+    echo "error: validated package inventory changed before fetch" >&2
+    exit 1
+  }
+fi
 tar -C "$(dirname "${package}")" -cf - -- "$(basename "${package}")"
 REMOTE
 
   [[ -d "${temporary}/${package_name}" ]]
-  (
-    cd "${temporary}/${package_name}"
-    sha256sum --check --strict SHA256SUMS
-  )
+  python3 "${SCRIPT_DIR}/publish-kernel-package" verify-inventory \
+    "${temporary}/${package_name}" --expected-sha256 "${package_inventory_sha256}" \
+    --repository-commit "${sha}" --profile "${profile}" --modules "${modules}"
   mv "${temporary}/${package_name}" "${destination}"
   rmdir "${temporary}"
   trap - EXIT

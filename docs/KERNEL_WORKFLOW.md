@@ -10,25 +10,20 @@ partition.
 
 ## One-command build
 
-From macOS, use the backend-selecting entry point:
-
-```sh
-./scripts/build-kernel
-```
-
-It prefers the x86_64 buildbox when that backend is reachable and ready, and
-otherwise falls back to the ARM64 development VM. Select either backend
-explicitly when its identity matters:
+Use the explicit Buildbox entry point:
 
 ```sh
 ./scripts/build-kernel --backend buildbox
-./scripts/build-kernel --backend vm
 ```
 
+The default also selects Buildbox. An unavailable Buildbox stops the build;
+`auto` never falls back to a VM. A native VM build requires an explicit owner
+request for that build and explicit `--backend vm` or `GEMINI_BUILD_BACKEND=vm`.
+
 Buildbox accepts only a clean, pushed commit and fetches it directly from the
-project repository. The VM can build intentional uncommitted local inputs
-through its read-only checkout mount. See [Buildbox kernel builds](BUILDBOX.md)
-for the commit, storage, artifact-fetch, and provenance contract.
+project repository. See [Buildbox kernel builds](BUILDBOX.md) for the commit,
+storage, immutable-package, fetch and provenance contract. Independent task
+worktrees contain only this small patch repository, never Linux source copies.
 
 Repository commit signing is not a Buildbox prerequisite. When the signing
 agent or owner is unavailable, create the repository commit with
@@ -151,7 +146,7 @@ That is a packaging constraint, not an arm64 upstream default.
 Select a non-default profile explicitly:
 
 ```sh
-KERNEL_PROFILE=PROFILE_NAME ./scripts/build-kernel
+KERNEL_PROFILE=PROFILE_NAME ./scripts/build-kernel --backend buildbox
 ```
 
 Use the exact profile recorded by the experiment. Do not guess a similarly
@@ -159,21 +154,11 @@ named profile or edit a built package in place.
 
 ## Individual build stages
 
-The one-command build is preferred. These stages are available for diagnosis:
-
-```sh
-./scripts/dev-vm kernel status
-./scripts/dev-vm kernel prepare
-./scripts/dev-vm kernel configure
-./scripts/dev-vm kernel build
-```
-
-The handoff and USB diagnostic shortcuts select their manifest profiles:
-
-```sh
-./scripts/dev-vm build-handoff-kernel
-./scripts/dev-vm build-usbdiag-kernel
-```
+Use `./scripts/buildbox doctor` and the build log for normal diagnosis. Source
+preparation, configuration and compilation use the managed Buildbox workflow.
+The legacy `dev-vm kernel prepare/configure/build` and VM build shortcuts are
+only for a specifically owner-requested native VM build; they are not a fallback
+for an unavailable Buildbox or an intentionally dirty worktree.
 
 ## Storage lifecycle
 
@@ -233,11 +218,17 @@ development LK contract.
 
 ## Package validation
 
-Validate the selected package, or pass an explicit guest package directory:
+Buildbox validates the selected package before publication. Fetch only its
+validated package with the same explicit profile:
 
 ```sh
-./scripts/dev-vm validate-kernel
+KERNEL_PROFILE=PROFILE_NAME ./scripts/buildbox fetch-package
 ```
+
+For an explicit package inspection on a supported Linux builder, use
+`./scripts/validate-kernel-artifact PATH` with the appropriate artifact root.
+On macOS, the Buildbox fetch helper verifies the transferred inventory and
+provenance; it does not run the Linux-only validator locally.
 
 The validator checks:
 
@@ -351,9 +342,10 @@ submission-ready:
   experiments/2026-07-14-patch-quality-audit/scripts/audit-checkpatch.sh
 ```
 
-This is a review gate, not a build or hardware gate. Resolve current
-Checkpatch, binding, provenance, authorship, and sign-off issues in the patch
-that introduced them. Before upstream submission, author metadata must identify
+This is a review gate, not a build or hardware gate. Resolve Checkpatch, binding, provenance, authorship and sign-off issues in the
+coherent upstream preparation series. Preserve historical experiment patch bytes
+and their receipts; do not rewrite old evidence or mechanically replace an
+author identity. Before upstream submission, author metadata must identify
 the actual author and every sign-off must be a truthful DCO certification.
 Never fabricate a certifying identity or sign-off. A clearly synthetic
 `From:` identity is acceptable only for an unsigned internal experiment
@@ -361,9 +353,29 @@ archive that remains explicitly not submission-ready. The
 [patch-quality experiment](../experiments/2026-07-14-patch-quality-audit/README.md)
 contains detailed audit results.
 
+## Local validation dependencies
+
+The common gate requires Python 3, Git, Bash, jq, ShellCheck and PyYAML. Use an
+ignored reusable environment rather than changing the system Python:
+
+```sh
+python3 -m venv artifacts/tooling/repository-checks
+artifacts/tooling/repository-checks/bin/python3 -m pip install PyYAML==6.0.3
+artifacts/tooling/repository-checks/bin/python3 scripts/check-repository
+```
+
+With those dependencies already installed, `./scripts/check-repository` is
+equivalent. Linux CI supplies its own environment and runs the Linux-only
+artifact-provenance fixtures. The gate reports any local skips explicitly.
+
 ## Repository publication gate
 
 Before committing or pushing any repository change, including documentation:
+
+Run `./scripts/check-repository` for the common offline gate; Linux CI also
+executes the provenance fixtures that cannot run on macOS. This does not replace
+experiment-specific tests, kernel/DT checks, Buildbox compilation or hardware
+acceptance. Documentation-only changes do not need a kernel rebuild.
 
 1. stage the intended scope and inspect the complete staged name/status and
    diffstat, including newly added files;

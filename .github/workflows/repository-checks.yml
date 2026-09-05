@@ -1,0 +1,46 @@
+name: Repository checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repository-checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publication-and-fixtures:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      CHECK_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+    steps:
+      - name: Read repository history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install bounded validation dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y jq shellcheck python3-yaml
+      - name: Check changed publication inputs and focused fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_ref="${CHECK_BASE_SHA}"
+          if [[ -z "${base_ref}" || "${base_ref}" =~ ^0+$ ]]; then
+            base_ref="$(git rev-parse HEAD^)"
+          fi
+          /usr/bin/python3 scripts/check-repository --base "${base_ref}"
+
+# No kernel compilation, SSH, package publication, secrets, device access or
+# partition operations run here. Kernel work separately requires a clean,
+# pushed revision and ./scripts/build-kernel --backend buildbox, then its
+# focused checkpatch, DT/schema, package and experiment validation gates.

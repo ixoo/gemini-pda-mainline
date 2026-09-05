@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "repository_commit": "5194011ee370080ca4f231764dca11f021fdb330",
+  "path": "docs/ROADMAP.md",
+  "git_blob": "e772f91f0c06c9018e76afa197112f1ca3667ca6",
+  "sha256": "4bd1523acbfe1070d539cef9a900d2390bbe5edfac6af25c9a1005d977bc6e12",
+  "line_count": 8580,
+  "archive_url": "https://github.com/ixoo/gemini-pda-mainline/blob/5194011ee370080ca4f231764dca11f021fdb330/docs/ROADMAP.md",
+  "purpose": "Immutable pre-consolidation chronology; historical instructions do not admit a new build or boot."
+}
