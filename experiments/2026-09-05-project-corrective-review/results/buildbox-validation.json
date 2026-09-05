@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "classification": "first-build-and-inventory-pass-command-rerun-required",
+  "classification": "corrective-build-and-fetch-pass-with-recorded-initial-failures",
   "repository_commit": "494321f9a32fded97df35381fecf2698497b53a8",
   "profile": "gemini-thermal-v4-corrected",
   "modules_built": false,
@@ -34,5 +34,21 @@
       "result": "Concurrent editing of the running large shell script shifted its dispatcher while Bash was still reading it. Package inventory/provenance independently revalidated afterward. The integration checkout must remain frozen through fetch; a complete clean rerun is required."
     }
   ],
-  "final_clean_rerun": "pending"
+  "final_clean_rerun": {
+    "repository_commit": "871bdbb7c27ec5af9e3e66dbef773075466bcccc",
+    "completed_utc": "2026-09-05T02:50:04Z",
+    "build_exit_status": 0,
+    "fetch_exit_status": 0,
+    "package_name": "linux-7.1.3-gemini-ba6c86b3bb051fce34b5466c42a8a8a024814b44c4ffc61224700aaf455a885e",
+    "package_inventory_sha256": "ba6c86b3bb051fce34b5466c42a8a8a024814b44c4ffc61224700aaf455a885e",
+    "full_remote_validator": "passed",
+    "local_inventory_and_requested_provenance": "passed",
+    "kernel_image_and_config_identical_to_selected_inputs": true,
+    "source_state_unchanged": true,
+    "previous_package_inventory_and_all_file_checksums": "passed",
+    "first_regression_package_inventory_unchanged": true,
+    "integration_checkout_frozen_through_fetch": true,
+    "selected_candidate_changed": false,
+    "hardware_action": "none"
+  }
 }

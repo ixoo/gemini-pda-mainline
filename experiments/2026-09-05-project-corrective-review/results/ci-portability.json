@@ -29,5 +29,14 @@
     "run_url": "https://github.com/ixoo/gemini-pda-mainline/actions/runs/33939676576",
     "failure": "ShellCheck0.9 flags the trap-only cleanup function as SC2317; newer ShellCheck flags SC2329, already narrowly suppressed.",
     "correction": "Document both diagnostics on the trap-invoked function only; runtime code unchanged."
+  },
+  "final_integration_run": {
+    "classification": "pass",
+    "commit": "871bdbb7c27ec5af9e3e66dbef773075466bcccc",
+    "base_commit": "5194011ee370080ca4f231764dca11f021fdb330",
+    "run_url": "https://github.com/ixoo/gemini-pda-mainline/actions/runs/33940109743",
+    "completed_utc": "2026-09-05T02:49:24Z",
+    "preflight_cases": 22,
+    "linux_only_branches_executed": true
   }
 }

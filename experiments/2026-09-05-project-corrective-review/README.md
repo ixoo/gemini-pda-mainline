@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-05-project-corrective-review` |
-| Status | running; offline corrections under validation |
+| Status | complete for repository corrections and parallel-work proposal |
 | Subsystem | Repository workflow, deployment guards and delivery coordination |
 | Device variant | No device action; planned protocols retain the named MT6797X Gemini boundary |
 | Date | 2026-09-05 UTC |
@@ -36,7 +36,7 @@ upstream acceptance. Those counts describe this audit only.
 This work changes repository tooling and coordination documents. It does not
 change kernel patches, manifest selections, configuration fragments or the
 active corrected thermal candidate. The thermal owner retains control of that
-experiment and must independently validate integration of the new mount guard.
+experiment and independently validated integration of the new mount guard.
 No historical installer is automatically made current by adding a shared helper.
 
 Device writing, consuming runtime observations and firmware operations are not
@@ -68,14 +68,35 @@ an opportunistic cleanup target.
 
 ## Validation and limitations
 
-The [local gate](results/local-validation.json) passes the shared invariant,
-source-integrity, publication, backend, device-guard and package fixtures, plus
-changed-file syntax, shell, links and bounded publication checks. Independent
-review found and corrected legacy-fetch provenance and unreadable-inventory
-cases. Linux-only full artifact validation and the real Buildbox build/fetch
-remain pending. Fixtures establish refusal/identity behavior,
-not the physical device's mount state or hardware support. Exact target-shell
-and installer integration evidence belongs to the thermal experiment.
+The [initial local gate](results/local-validation.json) and subsequent
+[Linux CI runs](results/ci-portability.json) pass the shared invariant,
+source-integrity, publication, backend, preflight, device-guard and package
+fixtures, plus changed-file syntax, shell, links and bounded publication checks.
+Linux exercised the full artifact provenance validator and full-package branch.
+All 189 selectable profiles satisfy canonical order. Independent review found
+and corrected legacy-fetch provenance and unreadable-inventory cases.
+
+The final [Buildbox build and fetch](results/buildbox-validation.json) both
+returned success at `871bdbb7c27ec5af9e3e66dbef773075466bcccc`. The managed source
+was reused, the kernel image and configuration retained their selected-input
+checksums, and older packages remained unchanged. New package identity includes
+the complete inventory and exact repository provenance. Two failures in the
+initial run are recorded: an ignored local Git refresh failure, fixed with
+explicit refusal and 22 preflight cases; and a post-transfer shell parse error
+caused by editing the running dispatcher. The final run froze the integration
+checkout through fetch and passed cleanly. Workers must use separate worktrees
+during that window.
+
+The thermal [shell-suite record](../2026-09-04-mt6797-thermal-snapshot/results/v4-exact-shell-pass.json)
+confirms the exact candidate BusyBox/QEMU suite passed at that
+same published revision, together with installer/path/receipt and synthetic
+deployment fixtures. Its [host protocol](../2026-09-04-mt6797-thermal-snapshot/V4_HOST_PROTOCOL.md)
+owns the exact test record and device admission. Fixtures establish
+refusal/identity behavior, not physical mount state or hardware support.
+No device boot/write was performed by this corrective review. Kernel patches,
+manifest and configuration inputs are unchanged, so no new checkpatch or DT
+schema claim is made. The regression packages do not replace the selected boot
+candidate.
 
 The existing synthetic sign-offs remain unresolved historical debt. Existing
 patch bytes and evidence hashes are preserved. New upstream submission topics

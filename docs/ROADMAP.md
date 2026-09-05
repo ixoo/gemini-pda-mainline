@@ -34,8 +34,10 @@ The active physical investigation remains the
 [corrected V4 thermal experiment](../experiments/2026-09-04-mt6797-thermal-snapshot/V4_RUNTIME_ACCEPTANCE.md).
 Its [candidate record](../experiments/2026-09-04-mt6797-thermal-snapshot/results/v4-candidate-composition.json)
 and [host protocol](../experiments/2026-09-04-mt6797-thermal-snapshot/V4_HOST_PROTOCOL.md)
-own exact identity and admission. Finish exact-candidate shell validation and
-integration of the block-device identity guard before any installation.
+own exact identity and admission. The active installer integrates the
+block-device identity guard. Its synthetic deployment fixtures and the
+observer's exact-candidate shell tests pass; use the recorded protocol and
+evidence before any installation.
 The owner of that experiment alone records subsequent admission and result;
 this roadmap and the coordination registry cannot grant it.
 
@@ -61,7 +63,7 @@ Before new work relies on shared infrastructure:
 
 1. enforce Buildbox-only automatic selection and immutable validated packages;
 2. use block-device identities for mounted/root/holder refusals in the active
-   installer, with tests under its exact target shell;
+   installer, with deployment refusal fixtures and exact observation-shell tests;
 3. run the common repository gate and applicable Linux provenance fixtures;
 4. preserve the active kernel/profile/candidate inputs while correcting tooling;
 5. block submission of synthetic certifications and inventory their historical
