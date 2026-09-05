@@ -1,0 +1,15 @@
+EMI lower-operation follow-up — 2026-09-05
+Base: 0115ea4d
+16 pinned public source identities in cumulative ledger; no vendor source copied.
+Secure-call lower operation and selected PSCI configuration traced.
+Declared signed status distinguished from observed firmware behavior.
+Range ownership, permission authority and operation result separated.
+Pinned upstream provider comparison bounded to recorded integration surfaces.
+Compile-only provider and synthetic whole-image planner proposed, not implemented.
+Seven integration headers unchanged. No device, backend, private inputs or writes.
+Documentation/metadata only: kernel build, C tests and shell checks not applicable.
+JSON structure and git diff --check pass.
+Repository gate passed: 189 profiles, unchanged grandfathered metadata debt 37.
+Linux-only artifact fixture skipped as documented by the gate.
+Reviewed all three changed/new text files for links, rights and sensitive data;
+no artifacts, copied proprietary material, personal host paths or credentials.

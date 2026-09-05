@@ -1,5 +1,5 @@
 {
-  "scope": "Public selected EMI routing and protection API evidence",
+  "scope": "Public EMI routing, lower secure-call operation and bounded pinned-upstream provider comparison",
   "sources": [
     {
       "repository": "lineage-geminipda/android_kernel_planet_mt6797",
@@ -28,6 +28,90 @@
       "path": "drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/emi_mpu.h",
       "bytes": 9747,
       "sha256": "a59c8a9a3e6fbb6889d131e23a413597f7bf5f188d82c4e953a66ce2a5aed68d"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/emi_mpu/emi_reg_rw.c",
+      "bytes": 2254,
+      "sha256": "da41e7d325aa4d3207a38bd566f39680a3b2275db87b4ba0919d266375d858e0"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/mt_secure_api.h",
+      "bytes": 4170,
+      "sha256": "f810af34727ccedfa6a24cf9721d75301875e32cc6e9c6e1aaa5a6cb8ba4b421"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/emi_mpu/Makefile",
+      "bytes": 679,
+      "sha256": "b3cf682061824e6ed04ff1c59376af1f12e296c689b31c67826760532052469d"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "drivers/misc/mediatek/emi_mpu/mt6797/Makefile",
+      "bytes": 489,
+      "sha256": "473c7455bb9b1d624ceec7e484f1f4a0679480179ed52fba72afec9a92f074ce"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "arch/arm64/configs/lineage_gemini_defconfig",
+      "bytes": 102819,
+      "sha256": "5f0018658a6e0858cbb730be427a379797afd9e2639a51e7f40d963b4e61115a"
+    },
+    {
+      "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+      "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "path": "arch/arm64/configs/aeon6797_6m_n_defconfig",
+      "bytes": 14304,
+      "sha256": "83f33ed07c17abe8dceaee64afd26de0cc970c0bae93681b68906636e21e883f"
+    },
+    {
+      "repository": "torvalds/linux",
+      "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "path": "include/linux/soc/mediatek/mtk_sip_svc.h",
+      "bytes": 918,
+      "sha256": "1ab89603c0b30fce2105059a45a549a1722ea0486d64c24d8c5a4d9828179449"
+    },
+    {
+      "repository": "torvalds/linux",
+      "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "path": "drivers/soc/mediatek/Kconfig",
+      "bytes": 2873,
+      "sha256": "7e85e245ec98934226170f7d151df13dc5a3fe49240b009ab20f02b0c2400dcc"
+    },
+    {
+      "repository": "torvalds/linux",
+      "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "path": "drivers/soc/mediatek/Makefile",
+      "bytes": 477,
+      "sha256": "a7a4e5f6da219caffbc95d549d83811473e2fb012f0ee3eb5219da95df1ee0ac"
+    },
+    {
+      "repository": "torvalds/linux",
+      "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "path": "drivers/soc/mediatek/mtk-devapc.c",
+      "bytes": 7721,
+      "sha256": "6695f79907f4390e66c2da7691463f93c416d71347dcd35b2f31863bf365ad63"
+    },
+    {
+      "repository": "torvalds/linux",
+      "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "path": "drivers/memory/Makefile",
+      "bytes": 1334,
+      "sha256": "10ece1c10c4436b51848947e223ff70e60702ad6de65c531d22b5ab15059a680"
+    },
+    {
+      "repository": "torvalds/linux",
+      "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "path": "drivers/memory/Kconfig",
+      "bytes": 8600,
+      "sha256": "75891cd20ef178b3eeffce2caf6c3ca61930fd5e1dd112cacb1f562f080d7ee4"
     }
   ]
 }
