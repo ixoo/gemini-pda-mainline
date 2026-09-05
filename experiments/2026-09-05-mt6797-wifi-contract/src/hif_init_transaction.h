@@ -53,8 +53,22 @@ mt6797_init_validate_config(const unsigned char *p, size_t bytes, unsigned int s
 	return 0;
 }
 
+static inline int
+mt6797_init_validate_start(const unsigned char *p, size_t bytes, unsigned int sequence)
+{
+	if (!p || sequence > 255U)
+		return -EINVAL;
+	if (bytes != 16 || mt6797_init_le16(p) != 16 ||
+	    mt6797_init_le16(p + 2) != 0x8000 || p[4] != 2 || p[5] != 0xa0 ||
+	    p[6] || p[7] != sequence || mt6797_init_le32(p + 8) > 1U)
+		return -EPROTO;
+	/* The address is not a permission or validity check. */
+	return 0;
+}
+
 enum mt6797_init_phase { MT6797_INIT_IDLE, MT6797_INIT_DISPATCH,
-	MT6797_INIT_REPLY, MT6797_INIT_POISONED };
+	MT6797_INIT_REPLY, MT6797_INIT_POISONED, MT6797_START_DISPATCH,
+	MT6797_START_READY };
 
 /* Zero-initialize once, set free_pages only from proven fresh INIT admission.
  * Caller serializes all calls and owns a finite deadline/owner generation.
@@ -108,6 +122,57 @@ mt6797_init_submitted(struct mt6797_init_transaction *t, int pio_error)
 	if (t->phase != MT6797_INIT_DISPATCH || pio_error)
 		return mt6797_init_abort(t);
 	t->phase = MT6797_INIT_REPLY;
+	return 0;
+}
+
+static inline int
+mt6797_start_begin(struct mt6797_init_transaction *t, const unsigned char *command,
+		   size_t bytes, unsigned int expected_sequence)
+{
+	int error;
+	if (!t)
+		return -EINVAL;
+	if (t->phase != MT6797_INIT_IDLE || t->free_pages > 104U)
+		return mt6797_init_abort(t);
+	error = mt6797_init_validate_start(command, bytes, expected_sequence);
+	if (error)
+		return error;
+	if (t->used_sequences[expected_sequence / 8] & (1U << (expected_sequence % 8)))
+		return mt6797_init_abort(t);
+	error = mt6797_init_debit(bytes, &t->free_pages);
+	if (error)
+		return error;
+	t->used_sequences[expected_sequence / 8] |= (unsigned char)(1U << (expected_sequence % 8));
+	t->expected_sequence = expected_sequence;
+	t->phase = MT6797_START_DISPATCH;
+	return 0;
+}
+
+static inline int
+mt6797_start_submitted(struct mt6797_init_transaction *t, int pio_error)
+{
+	if (!t)
+		return -EINVAL;
+	if (t->phase != MT6797_START_DISPATCH || pio_error)
+		return mt6797_init_abort(t);
+	t->phase = MT6797_START_READY;
+	return 0;
+}
+
+/* Caller supplies an attributable WCIR observation after successful START TX.
+ * This is a level test, not proof that START caused a transition. Caller owns
+ * deadline and session validity; abort on timeout/ownership loss/read failure.
+ */
+static inline int
+mt6797_start_observe_ready(struct mt6797_init_transaction *t, unsigned int wcir)
+{
+	if (!t)
+		return -EINVAL;
+	if (t->phase != MT6797_START_READY)
+		return mt6797_init_abort(t);
+	if (!(wcir & (1U << 21)))
+		return -EAGAIN;
+	t->phase = MT6797_INIT_IDLE;
 	return 0;
 }
 

@@ -15,6 +15,10 @@ int check_config(const unsigned char *p, size_t n, unsigned int seq)
 {
 	return mt6797_init_validate_config(p, n, seq) ? 2 : 0;
 }
+int check_start(const unsigned char *p, size_t n, unsigned int seq)
+{
+	return mt6797_init_validate_start(p, n, seq) ? 2 : 0;
+}
 
 int main(void)
 {

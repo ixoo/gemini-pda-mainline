@@ -4,7 +4,7 @@
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
   "selected_item": null,
-  "selection_note": "The new eMMC runtime path is reviewed, but its one identity check timed out. No read is selected for execution while current device state and power remain unknown; custody stays with the A53 task.",
+  "selection_note": "Gemian current state is authenticated. The unconsumed eMMC read needs a fresh coordinated boot2 session; no candidate is selected for execution.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -60,7 +60,7 @@
         }
       ],
       "owner_task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64",
-      "readiness_note": "Runtime source reviewed and exact enablement approved; enabled identities and failed identity check are recorded in IDENTITY_ATTEMPT_RECEIPT.json. Observer unconsumed. Actual device state, power and logger lifetime remain unestablished; no further connection or recovery admitted."
+      "readiness_note": "Runtime source reviewed and exact enablement approved. The identity-only mainline attempt timed out; observer remains unconsumed. Separate KNOWN_GOOD_CURRENT_STATE.json confirms Gemian with the previously recorded boot ID, not changed-boot recovery from that attempt. Fresh boot2 admission, power and logger lifetime remain required."
     },
     "wifi-parent-attribution": {
       "workstream": "wifi",

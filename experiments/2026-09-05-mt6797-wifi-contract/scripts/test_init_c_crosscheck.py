@@ -10,6 +10,7 @@ import sys
 
 import wifi_init_protocol as protocol
 from test_wifi_init_protocol import command, result
+from test_wifi_start import packet as start
 
 
 def main():
@@ -18,6 +19,7 @@ def main():
     for name, fixture, decoder in (
         ("check_config", command(), protocol.decode_download_config),
         ("check_result", result(), protocol.decode_command_result),
+        ("check_start", start(), protocol.decode_wifi_start),
     ):
         check = getattr(library, name)
         check.argtypes = [ctypes.c_char_p, ctypes.c_size_t, ctypes.c_uint]

@@ -1,0 +1,19 @@
+C START boundary validation — 2026-09-05
+Base: 2e53e0c3 (local adopted CONFIG handoff; feature push not retried).
+Reused public WIFI_START and PIO source contracts; WCIR bit21 rechecked.
+Original GPL-2.0-only code, no vendor source copied.
+Strict C11 -Wall -Wextra -Werror -pedantic; ASan/UBSan:
+start_submission_readiness_timeout_sequence_no_ack_no_refund=pass
+config_transaction_submission_reply_poison_no_refund=pass
+Independent Python fixture versus unsanitized local test-library exports:
+independent_python_c_wire_comparisons=17225 result=pass
+Managed temporary binaries removed by immediate EXIT trap.
+No MMIO/polling, device/backend action, ACK invention or address admission.
+Kernel include branch/adapter uncompiled; caller owns deadline and freshness.
+Repository checks pass: 189 profiles, unchanged metadata debt=37; Linux-only
+artifact fixture skipped. Syntax, links, rights/privacy and diff checks pass.
+START_TRANSACTION_C.md sha256=3954fdfec9f189abf6d9e0d729a39ef9dfd514c21d41839585f25fab3a48d6c5
+src/hif_init_transaction.h sha256=26820d75f5c6a9b28a66f387e58859dc503c6bb84d245e42f97579194d00c20e
+src/hif_init_transaction_test.c sha256=88436958a6bd679e90b3b058c02e3defb5e67cfb01b44e6a43b586e785d16f90
+src/hif_start_transaction_test.c sha256=7e868ac5f16892aed72b281e48fb5ad2ba165b6e02f06d94c7375aeccaa21748
+scripts/test_init_c_crosscheck.py sha256=af9b05e08b9e25d9a1819a367752915705ea83ce8587d7366ad72f2381f13cac
