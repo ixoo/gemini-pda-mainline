@@ -57,11 +57,15 @@ def scratch_root(root):
 
 
 def dtc_diagnostics(case, text, source):
-    if not text:
+    malformed = case['name'] in ('mt6797-two-cells', 'mt6797-string', 'mt6797-byte', 'mt6797-boolean')
+    require(source.name == case['name'] + '.dts', 'wrong diagnostic fixture path')
+    if not malformed:
+        require(not text, 'unexpected dtc diagnostic case')
         return
-    require(case['name'] in ('mt6797-two-cells', 'mt6797-string', 'mt6797-byte', 'mt6797-boolean'), 'unexpected dtc diagnostic case')
     lines = text.splitlines()
-    require(len(lines) == 1 and re.fullmatch(re.escape(str(source)) + r':[0-9]+\.[0-9]+(?:-[0-9]+(?:\.[0-9]+)?)?: Warning \(reset_cells_is_cell\): /infracfg@10001000:#reset-cells: property is not a single cell', lines[0]), 'unexpected dtc diagnostic')
+    require(len(lines) == 2 and text == '\n'.join(lines) + '\n', 'missing/extra dtc diagnostic chain')
+    require(re.fullmatch(re.escape(str(source)) + r':[0-9]+\.[0-9]+(?:-[0-9]+(?:\.[0-9]+)?)?: Warning \(resets_is_cell\): /infracfg@10001000:#reset-cells: property is not a single cell', lines[0]), 'unexpected primary dtc diagnostic')
+    require(lines[1] == str(source.with_suffix('.dtb')) + ": Warning (resets_property): Failed prerequisite 'resets_is_cell'", 'unexpected dependent dtc diagnostic')
 
 
 def execute(revision, published_ref):

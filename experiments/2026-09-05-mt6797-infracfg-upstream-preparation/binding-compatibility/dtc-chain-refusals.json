@@ -1,0 +1,8 @@
+{
+  "observed_chain_replay": "pass",
+  "synthetic_other_malformed_case_attribution": "pass",
+  "positive_no_diagnostic": "pass",
+  "unsafe_chains_rejected": 17,
+  "observed_diagnostic_sha256": "5b70bc81cdd4b35c69d2b72cb9930f67aa3d79a60b0869a3317d41b86092139d",
+  "backend_DTC_schema_execution": false
+}

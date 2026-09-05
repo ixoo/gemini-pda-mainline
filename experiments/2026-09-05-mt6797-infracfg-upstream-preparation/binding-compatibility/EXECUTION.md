@@ -1,7 +1,7 @@
 # Exact focused compatibility execution proposal
 
-Prepared for integrator review; **no backend window or schema execution has
-occurred**. [run-fixtures.py](run-fixtures.py) defaults to a plan-only message.
+Corrected after the [first refused attempt](ATTEMPT_1.md); **no second backend
+execution is admitted**. [run-fixtures.py](run-fixtures.py) defaults to a plan-only message.
 It reuses the existing [schema collector](../scripts/schema-check.py) and its
 process-group cleanup, stream ceilings, generated-file limit, interruption and
 atomic receipt publication. It adds no generic validation or process framework.
@@ -50,10 +50,11 @@ step: no `make`, full `dt_binding_check`, `dtbs_check`, new source extraction or
 old processed-schema rewrite is required for this focused comparison. Standard
 dtschema core dependencies come from the retained tool environment.
 
-Compile the 25 pinned [DTS cases](fixtures.json) once with retained dtc. Only the
-single, exactly attributed `reset_cells_is_cell` warning is allowed for the
-four malformed-cell forms; unexpected diagnostics or nonzero compiler exit
-refuse. Positive cases must compile without diagnostics. Retain each DTS/DTB
+Compile the 25 pinned [DTS cases](fixtures.json) once with retained dtc. Require
+the exact two-line `resets_is_cell` / `resets_property` prerequisite warning
+chain for the four malformed-cell forms. Attribute its primary line to the
+exact DTS/node/property and its dependent line to that fixture DTB and check
+name. Missing/extra/unrelated diagnostics or nonzero compiler exit refuse. Positive cases must compile without diagnostics. Retain each DTS/DTB
 hash and every command's bounded stdout/stderr/status, including expected warnings.
 
 [compare.py](compare.py) loads both processed schemas through actual
@@ -91,9 +92,11 @@ removing a recognized stale `run`. Cleanup is installed before source creation.
 Success and handled failures remove `run`, retaining only root/marker. SIGKILL
 leaves recognizable scratch for the next separately admitted run; it does not
 permit overwriting the prior evidence. Evidence is exclusive-create beneath
-its exact revision, never replaced or opportunistically deleted. Source/tool
-preservation checks run even after failure; interrupted/unproven cleanup cannot
-be accepted. Record independent post-run lock reacquisition before handoff.
+its exact revision, never replaced or opportunistically deleted. The full source-integrity scan runs before execution and again on the successful
+path. After a handled failure, the final checks cover the 20 pinned source/build
+files, source markers, retained processed schema and tool identities; they do
+not constitute a second full-tree scan. Interrupted/unproven cleanup cannot be
+accepted. Record independent post-run lock reacquisition before handoff.
 
 After admission, wrap this invocation with the stated outer timeout, substituting
 the exact published revision/ref in the exact managed checkout:
@@ -119,3 +122,18 @@ reversed expected outcome, unattributed/wrong schema/node/property diagnostics,
 wrong input bytes, command failure/overrun/live group and unsafe scratch. An
 exact synthetic 50-row table and recognized stale cleanup pass. These are host
 fixtures; they establish neither dtschema decoder outcomes nor a backend result.
+
+## Integration review
+
+Project Planning reviewed the seven-file handoff at
+`099b63ff2a1d8dc695cb4b207b248ff4ed50bcd0`, its reused collector, and the
+fixture/input identities. Independent host execution reproduced the complete
+synthetic comparison and all 24 refusals. The runner is accepted for one
+separately assigned bounded Buildbox validation window after this revision is
+published; no schema outcome or kernel support is established by that review.
+An unsuccessful run remains refused even when its limited final preservation
+checks pass. Original binding patches and kernel profiles remain unchanged.
+
+[The warning-chain correction](WARNING_CHAIN.md) follows the immutable first
+refusal. It changes no input/budget or schema outcome, and needs new explicit
+admission before another backend run.
