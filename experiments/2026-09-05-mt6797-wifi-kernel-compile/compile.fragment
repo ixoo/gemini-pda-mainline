@@ -1,0 +1,17 @@
+# Compile-only arm64 library: no device candidate or probe path.
+CONFIG_ARCH_MEDIATEK=y
+CONFIG_COMPILE_TEST=y
+CONFIG_MT6797_HIF_COMPILE_TEST=y
+CONFIG_LOCALVERSION="-mt6797-hif-compile"
+# CONFIG_LOCALVERSION_AUTO is not set
+# CONFIG_MODULES is not set
+# CONFIG_NET is not set
+# CONFIG_WLAN is not set
+# CONFIG_KUNIT is not set
+# CONFIG_USB is not set
+# CONFIG_MMC is not set
+# CONFIG_PM is not set
+# CONFIG_CPU_FREQ is not set
+# CONFIG_CPU_IDLE is not set
+# CONFIG_SUSPEND is not set
+# CONFIG_HIBERNATION is not set

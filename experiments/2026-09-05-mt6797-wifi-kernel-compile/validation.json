@@ -1,0 +1,45 @@
+{
+  "status": "host-preparation-only; kernel build not run",
+  "integration_base": "789fc97544cd88104bb6b5bac07ec3dbed9da8ab",
+  "protocol_headers": 7,
+  "patch_sha256": "2d261d775dedf5ad96e4529a67323adbc52a53332e22e0808101875b184bf8be",
+  "generation_runs": 2,
+  "deterministic_bytes": true,
+  "exact_patch_tree_replay": true,
+  "python_syntax": "PASS",
+  "checkpatch_source_sha256": "2553cc1a601e70522e03fbce633d4e79fa5936f7f56a66de1899b7ddd247820a",
+  "checkpatch_exit": 1,
+  "checkpatch_log": "checkpatch.json",
+  "common_gate": {
+    "result": "PASS",
+    "checkout_base": "789fc97544cd88104bb6b5bac07ec3dbed9da8ab",
+    "profiles_checked": 192,
+    "grandfathered_metadata_debt": 37,
+    "linux_package_provenance": "SKIPPED locally; mandatory CI"
+  },
+  "kernel_compile": "NOT RUN",
+  "backend": "NOT ACCESSED",
+  "device": "NOT ACCESSED",
+  "checkpatch_tools": {
+    "checkpatch.pl": "2553cc1a601e70522e03fbce633d4e79fa5936f7f56a66de1899b7ddd247820a",
+    "spelling.txt": "4095d4a8810f115bae1b7c0d8a1946beb3435f6e22d9a48ac009bb024bad1e68",
+    "const_structs.checkpatch": "ea064f6916a74763468037494aeb270aae34b7c97617e84d424ca5b8733539b2"
+  },
+  "checkpatch_counts": {
+    "errors": 85,
+    "warnings": 12,
+    "checks": 20
+  },
+  "checkpatch_findings_by_file": {
+    "mail metadata": 2,
+    "lib/mt6797-hif-compile/hif_command.h": 2,
+    "lib/mt6797-hif-compile/hif_config_phase.h": 4,
+    "lib/mt6797-hif-compile/hif_init_bounds.h": 1,
+    "lib/mt6797-hif-compile/hif_init_transaction.h": 7,
+    "lib/mt6797-hif-compile/hif_ordinary_section.h": 99,
+    "lib/mt6797-hif-compile/hif_pio.h": 2
+  },
+  "checkpatch_interpretation": "FAIL: unchanged protocol-header style plus mail metadata; no new adapter/Kconfig/Makefile findings. No sign-off fabricated.",
+  "proposed_in_memory_profiles": 193,
+  "proposed_in_memory_series_audit": "PASS"
+}

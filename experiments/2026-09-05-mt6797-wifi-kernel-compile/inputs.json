@@ -1,0 +1,24 @@
+{
+  "upstream_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "upstream_files": {
+    "lib/Makefile": "be40f4f2788103e882c50bb29fc497624a4e28cd3b52f8867a3b6e40217fdc52",
+    "lib/Kconfig.debug": "634f9002a73bd797cc5150c75f8aebe7a62b6233ec8b75387bbc0d4fa8d38be0"
+  },
+  "protocol_commit": "2d9983c7cf31189cf7e1aa3752e696092ffb8d86",
+  "protocol_directory": "experiments/2026-09-05-mt6797-wifi-contract/src",
+  "protocol_headers": {
+    "hif_transfer_size.h": "1c4542d509330474382d522924a2cb72795d2a806eae081d0c9f525699b3bd95",
+    "hif_command.h": "8758f34294f8270be433ec7e40c59dcd0595889b322884cf2919ae159f2e7d80",
+    "hif_pio.h": "00e4af207f8b8a4276d493b8ffd7420290fa6478ec9d10324e9df0719ab39023",
+    "hif_init_bounds.h": "d89ba46edea4fdc16adb9357cb6e678d371dac7ff818f1fe2f8f376a0d44636d",
+    "hif_init_transaction.h": "eaf7d30f2e5db62cf1124bd8cea911f3a708b91babda0e611e0fa42f0f328911",
+    "hif_config_phase.h": "b892c508e92039c927a7b1055a4e0b7890a69ea7823fa8c053b44a2e9df56d99",
+    "hif_ordinary_section.h": "011886f11ec3026f10e84ccf453a20c013c275d4fb3a448f08070406f2939e45"
+  },
+  "adapter_files": {
+    "Kconfig": "6c2407d9d0d8fb1a8d5c8782f3aa4240406d33cfe8982429c0815e7058b8b7d6",
+    "Makefile": "eb3c0d043bcb1f131471919b955263f9f63ff45ae49fc187ecc0281418a3a9a0",
+    "kernel_adapter.c": "4287e82590d273e172c44c2dafb4571eea4e7a26d2c4d86c43efc1429fc9eff2",
+    "kernel_adapter.h": "4123dbdeec4a1a10af21b5603ca0b09f280ce9821a403b46694d5fb4055a659b"
+  }
+}

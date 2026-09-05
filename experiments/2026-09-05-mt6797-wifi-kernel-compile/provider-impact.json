@@ -1,0 +1,54 @@
+{
+  "base": "789fc97544cd88104bb6b5bac07ec3dbed9da8ab",
+  "existing_selectors": [
+    "mt6797-provider-compile"
+  ],
+  "new_selector": "mt6797-hif-compile",
+  "canonical_before_sha256": "4a50bc078145c9c14c1c1af22ea6fb1d41e183a499707822fb8c527e63f887ed",
+  "canonical_append_after": "proposals/0001-pmdomain-mediatek-defer-initial-activation.patch",
+  "canonical_append_after_line": 543,
+  "canonical_new_entry": "proposals/0001-lib-mt6797-hif-compile.patch",
+  "series_before_sha256": "7941b29026d4fddb0035660f3ab0142425370e044d2a01981586740042ecd78f",
+  "series_before_entries": [
+    "proposals/0001-clk-mediatek-remove-provider-on-reset-registration-error.patch",
+    "proposals/0001-pmdomain-mediatek-defer-initial-activation.patch"
+  ],
+  "series_after_entries": [
+    "proposals/0001-clk-mediatek-remove-provider-on-reset-registration-error.patch",
+    "proposals/0001-pmdomain-mediatek-defer-initial-activation.patch",
+    "proposals/0001-lib-mt6797-hif-compile.patch"
+  ],
+  "historical_provider_audit": {
+    "repository_commit": "7029b1368134eef359dc43997bad84b73f426578",
+    "source_state": "5b6edbcdec8f50df55991d6703b7a42060b0308e51eae992fe73047382a1e16d",
+    "source_integrity": "6985809664221074c150469d7f539995c62baf2a90f854f62d8ad90c995ca6a4",
+    "build_state": "2cb239559af1d04ea85e03b0c2165de90b8993cbf8d9f3114a9a9b661df02916"
+  },
+  "managed_source": "/workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-provider-compile-source",
+  "new_build_directory": "/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-hif-compile",
+  "preserved_profiles": {
+    "full": {
+      "base": "defconfig",
+      "fragments": [
+        "configs/gemini.fragment"
+      ]
+    },
+    "mt6797-infracfg-revised-kunit": {
+      "base": "allnoconfig",
+      "fragments": [
+        "configs/mt6797-infracfg-upstream-kunit.fragment"
+      ],
+      "kernel": {
+        "archive_format": "tar.gz",
+        "archive_root": "linux-4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+        "git_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+        "released": "2026-09-05",
+        "sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+        "source_url": "https://codeload.github.com/torvalds/linux/tar.gz/4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+        "version": "7.3-rc1"
+      },
+      "patch_series": "patches/series-mt6797-infracfg-revised-kunit"
+    }
+  },
+  "scope": "append library patch; no existing patch bytes, device tree or default profile edit"
+}
