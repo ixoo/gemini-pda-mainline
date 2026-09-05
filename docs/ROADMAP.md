@@ -8354,9 +8354,10 @@ under user-mode emulation; its injected adapters make no new hardware claim.
 The [frozen host protocol](../experiments/2026-09-04-mt6797-thermal-snapshot/FINAL_PROTOCOL.md)
 now passes host receipt, persistence, interruption and postflight fixtures.
 Final exact-candidate shell validation, including SIGPIPE cleanup and the host
-suite, now passes on the published protocol. **Selected next:** prepare the
-guarded shutdown/cycle receipt, then require owner-selected boot2 and the one
-fresh pristine workload. Retain any rejection without retry. Preserve
+suite, now passes on the published protocol. The guarded shutdown/cycle receipt
+is verified and the owner reports boot2 started. **Selected next:** require the
+new exact pristine frame, then run the single bounded attribution program and
+its final accounting gate. Retain any rejection without retry. Preserve
 payload/round/spin ceilings and require child quiescence before file-cleanup
 success. Retain the existing four-round
 ceiling and thermal refusal limits; do not reinterpret or relax the rejected

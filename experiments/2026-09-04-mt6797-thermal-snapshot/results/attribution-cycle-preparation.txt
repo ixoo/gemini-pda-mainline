@@ -1,0 +1,35 @@
+Attribution cycle preparation
+Date: 2026-09-04
+protocol_revision=70cc45e5
+admission_publication=83379588
+source_boot_id=ac3d28c7-69fe-4ccb-8145-cad85cbd0653
+shutdown_frame=exact-match
+shutdown_transport_timeout=no
+shutdown_transport_returncode=0
+post_shutdown_reachability=two-consecutive-failed-TCP-probes
+cycle_manifest_and_raw_frame_validation=pass
+additional_snapshot_requests=0
+additional_frequency_requests=0
+workload_requests=0
+partition_access=none
+backup_created=no
+kernel_build=none
+reboot_requested=no
+owner_reports_next_boot2_started=yes
+
+The published guarded USB program verified the exact consumed no-workload
+session, pristine CPU lifecycle, offline A72s, zero frequency attempts, three
+already-consumed snapshots and no device-backed mounts. It emitted its request
+frame, synced and requested kernel power-off. The host observed unreachability
+and validated the full cycle manifest without another device request. Electrical
+rail discharge and screen state were not measured. The owner subsequently
+reported selecting boot2; a new exact pristine frame remains mandatory.
+
+Private evidence digests:
+SHA256SUMS_sha256=0f296cab44b70f67c1927e35c9fb616b7650c158cf0f31a00b574540fb6a5d25
+classification.json_sha256=b55e54fb52ed50995671c0d5c1adb2e4c45a35283d2732dc0d22b46e51fd0023
+cycle-receipt.json_sha256=b55e54fb52ed50995671c0d5c1adb2e4c45a35283d2732dc0d22b46e51fd0023
+deployment-summary.txt_sha256=6f47eef465c9461536d6a72b5acd3c80d776ca4446ebf3f82bfecadea40eb945
+shutdown.requested_sha256=3dd2ea9b1ce229e09bd106c00f9ae193c6d8e7b17db050fbedfb64f14b1fb11c
+transport-1-meta.json_sha256=00bf9ab25b5531cba5437bbaab6d221590ecc586bcb4f6311f9e3280df7b4712
+transport-1.txt_sha256=7e7b70117129c1d71f72c38efe481a736f498c37f68f649a108cf8a18f1e74d7

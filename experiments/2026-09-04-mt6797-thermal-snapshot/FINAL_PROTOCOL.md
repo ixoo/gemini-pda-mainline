@@ -113,3 +113,14 @@ changed and incomplete evidence rejected. Temporary artifacts and checkout were
 removed. The source and image are frozen; no build, partition write or extra
 read on the consumed mainline session was needed for validation. Cycle
 preparation and a fresh pristine frame remain mandatory before the workload.
+
+
+## Prepared cycle
+
+The [cycle receipt](results/attribution-cycle-receipt.json) and
+[preparation evidence](results/attribution-cycle-preparation.txt) bind the
+published shutdown to the consumed no-workload session. The complete request
+frame matched, USB became unreachable, and receipt-only validation passed.
+No additional observer read, workload, partition access or rebuild occurred.
+The owner subsequently reported boot2 started. The fresh pristine gate and one
+bounded runtime remain to be executed; selection alone is not admission.
