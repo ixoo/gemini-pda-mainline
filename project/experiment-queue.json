@@ -4,7 +4,7 @@
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
   "selected_item": null,
-  "selection_note": "The authenticated baseline first boot is completed and Gemian recovery confirmed. Its native-request witness remains inconclusive; no repeat or dependent device session is selected. Offline recovery-validation correction continues.",
+  "selection_note": "The authenticated baseline first boot is completed and Gemian recovery confirmed. Supplemental recovery evidence is accepted for dependent preparation; original native-request and aggregate results are unchanged. No repeat or dependent device session is selected.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -19,7 +19,7 @@
       "readiness_record": "experiments/2026-09-05-owner-away-experiment-preparation/baseline/ATTENDED_OUTCOME.md",
       "dependencies": [],
       "owner_task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64",
-      "readiness_note": "One baseline observation, authentication checks, readable console and complete log preservation passed. Changed-ID Gemian return is confirmed, but the native-request transport timed out and the fixed combined result remains recovered-with-baseline-incomplete. All session budgets consumed; offline validation correction only, no dependent admission."
+      "readiness_note": "Baseline observation, authentication, readable console and complete log preservation passed. Supplemental recovery review verifies changed-ID Gemian return while preserving the original inconclusive native-request witness and incomplete aggregate. All session budgets consumed; dependent preparation may proceed, execution is not admitted. See baseline/RECOVERY_WITNESS_REVIEW.md."
     },
     "keyboard-coverage": {
       "workstream": "serviceability",
@@ -59,7 +59,8 @@
           "evidence": null
         }
       ],
-      "owner_task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64"
+      "owner_task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64",
+      "readiness_note": "Supplemental baseline recovery evidence is accepted for preparation. Explicit prerequisite proof binding and protocol review remain required before readiness or device selection."
     },
     "wifi-parent-attribution": {
       "workstream": "wifi",
