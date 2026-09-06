@@ -77,6 +77,27 @@
       "dependencies": [],
       "owner_task_id": "01a06f91-092d-71d0-acbe-4f38ccff2c56",
       "readiness_note": "Completed Gemian metadata observations; budgets consumed and custody released. No new boot2 candidate. Corrected helpers are not admitted for another attempt."
+    },
+    "mt6797-toprgu-minimal-restart": {
+      "workstream": "watchdog",
+      "preparation_state": "ready",
+      "device_state": "unselected",
+      "owner": "MT6797 TOPRGU minimal restart diagnostic",
+      "reviewer": "Project Planning",
+      "device_custodian": null,
+      "experiment": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/README.md",
+      "session_packet": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/session-packet.json",
+      "candidate_record": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/results/candidate-readiness-20260906.txt",
+      "readiness_record": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/CANDIDATE_WORK_ITEM.md",
+      "dependencies": [
+        {
+          "item": "a53-authenticated-baseline",
+          "required_result": "Authenticated USB serviceability, complete log preservation and changed-ID Gemian recovery are accepted preparation inputs.",
+          "evidence": "experiments/2026-09-05-owner-away-experiment-preparation/baseline/RECOVERY_WITNESS_REVIEW.md"
+        }
+      ],
+      "owner_task_id": null,
+      "readiness_note": "Two byte-identical private constructions and independent validation passed at source 8b0e8ff7. Guarded installer derivation passed. Deployment, readback, clean shutdown and physical selection remain pending."
     }
   }
 }

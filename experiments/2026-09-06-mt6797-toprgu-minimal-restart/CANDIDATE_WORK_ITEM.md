@@ -155,8 +155,8 @@
   validation, review and readiness classification may finish without a
   physical selection. Stop with a conditional/ready handoff; never install or
   select the candidate merely because preparation passes.
-- **Device readiness:** `offline-preparation-accepted`; private candidate
-  construction, validation, deployment and physical admission remain pending.
+- **Device readiness:** `candidate-validated`; guarded deployment, receipt
+  review and physical admission remain pending.
   Any change to patch, profile, package, DT,
   initramfs, credentials, candidate, installer, collector, classifier, time
   bound, action budget or recovery tool invalidates readiness. The experiment
@@ -167,9 +167,10 @@
   known limitations, and an explicit statement that no device action occurred.
 - **State:** candidate, deployment and one-process session preparation tooling
   accepted after independent Sol Medium integration review and Astra Medium
-  action-boundary review. Publication checks pass. No candidate has been
-  constructed, no session admission exists, and no device or network action
-  occurred.
+  action-boundary review. Exact clean published revision `8b0e8ff7...` produced
+  two byte-identical private candidates and passed the independent validator;
+  the derived guarded installer also passed local validation. No deployment or
+  session admission exists, and no device or network action occurred.
 - **Efficiency loop:** if this offline handoff is accepted, the primary task
   appends exactly one considered/accepted item to the active workflow ledger
   with observed timestamps, actual routes, first-review result, rework and

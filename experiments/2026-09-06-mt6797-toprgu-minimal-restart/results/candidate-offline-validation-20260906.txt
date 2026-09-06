@@ -1,19 +1,21 @@
 experiment=2026-09-06-mt6797-toprgu-minimal-restart
-timestamp_utc=2026-09-06T12:48:27Z
-candidate_construction=attempted; no candidate retained
+timestamp_utc=2026-09-06T12:59:42Z
+candidate_construction=PASS; two byte-identical constructions; independent validation PASS
 construction_attempt_1=refusal; noncanonical supplied serviceability DT identity
 construction_attempt_2=refusal; executable ELF token misclassified by script closure
-post_repair_construction=pending clean published source
+construction_attempt_3=refusal; invalid directory-link-count validator gate; no candidate retained
+construction_attempt_4=PASS; clean published source 8b0e8ff73e8e55b8919a18ed6dd979cc07cb47b0
 device_access=none
 network_access=none
-private_key_bytes=not_read
+administrator_private_key_bytes=not_read
+candidate_credential_inputs=read only for private construction
 physical_admission=false
 integration_review=ACCEPT; gpt-5.6-sol medium; frozen staged preparation snapshot
 specialist_review=ACCEPT; gpt-6-astra medium; action-boundary review
 
 tests:
-  PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_candidate_build.py: PASS (13 tests)
-  PYTHONDONTWRITEBYTECODE=1 python3 -OO scripts/test_candidate_build.py: PASS (13 tests)
+  PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_candidate_build.py: PASS (15 tests)
+  PYTHONDONTWRITEBYTECODE=1 python3 -OO scripts/test_candidate_build.py: PASS (15 tests)
   PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_candidate.py: PASS (19 tests)
   PYTHONDONTWRITEBYTECODE=1 python3 -OO scripts/test_candidate.py: PASS (19 tests)
   PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate.py: PASS (10 refusal fixtures; 195 manifest profiles audited)
@@ -29,4 +31,4 @@ source_pins:
   authenticated_userspace_manifest=dfeb746505b7ad01423e91e952e76620f845b048ae2e8c5cf8a311e0d4443e60
   recovery_known_hosts=d43262bd1f9c76d02eb633900f5e5502e2342d6c1b41586a2d7e524a2293768f
 
-classification=offline-preparation-accepted; candidate-and-device-gates-pending
+classification=private-candidate-and-installer-ready; deployment-and-device-gates-pending

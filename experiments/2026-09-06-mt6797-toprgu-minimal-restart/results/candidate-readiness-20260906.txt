@@ -1,0 +1,35 @@
+experiment=2026-09-06-mt6797-toprgu-minimal-restart
+timestamp_utc=2026-09-06T12:59:42Z
+source_commit=8b0e8ff73e8e55b8919a18ed6dd979cc07cb47b0
+source_equals_origin_main=yes
+candidate_builds=2
+candidate_builds_byte_identical=yes
+independent_candidate_validation=PASS
+local_installer_derivation=PASS
+device_access=none
+network_access=none
+physical_admission=false
+
+candidate:
+  release=7.1.3-gemini-mt6797-toprgu-minimal-restart
+  package_inventory_sha256=9b14f15515bb56ec19eb39611a1262edfe56d9df25d3ed69828c4318d76498ca
+  base_dtb_sha256=d7b583545fc3b4916c363d9e4b70d0ee7aef815675ca8ba58894bdbaa2e1dccc
+  serviceability_dtb_sha256=58629ff9f48ffa3840b04a336d45a52da7f2c1483a4400d2a0f1637fe9638037
+  userspace_manifest_sha256=dfeb746505b7ad01423e91e952e76620f845b048ae2e8c5cf8a311e0d4443e60
+  input_id=4e80c3c93e5a1826d6e599ab6a942885548c8221bec727c9a940666ee38292dd
+  initramfs_sha256=43ec6950edc4fb9c21758458869ef05bd05bf992f7bc90a79f1896debaa3c8f5
+  raw_sha256=c075d139afbd71627e6449509be443d5daf7088cf166a7f587889df357a12039
+  padded_sha256=22edf533734ac52e56f3291c90264359fec2eaccc79cd68acf28b20d9cb216e8
+  manifest_sha256=d3cd5d8a9f3b29b20ff58d05e2f8289c2d8ab54154c9e957b974b9f656b60871
+  raw_size=8851456
+  padded_size=16777216
+
+deployment_preparation:
+  installer_sha256=edde1fc7847aa246b66d59977c09a7f688ef14f5498ea55cc7ecb029d8017551
+  expected_predecessor_sha256=a423ad63fbb97d0f3fc4726d3957e05d3951480996b754d839a89d80a1232821
+  predecessor_source=last verified authenticated-baseline boot2 deployment
+  live_predecessor_mismatch=refusal; no write
+  target_resolution=live GPT logical boot2 only
+  post_write_requirement=matching full-partition readback and clean shutdown
+
+classification=candidate-ready; deployment-and-physical-selection-pending

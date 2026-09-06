@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-06-mt6797-toprgu-minimal-restart` |
-| Status | Offline candidate preparation accepted; private candidate and device gates remain pending |
+| Status | Private candidate validated; guarded deployment and device gates remain pending |
 | Subsystem | MediaTek watchdog system restart |
 | Device variant | Existing named Gemini PDA; retail subvariant unconfirmed |
 | Date | 2026-09-06 |
@@ -92,6 +92,13 @@ effectful script text; no candidate was retained. The repaired classifier scans
 executable non-ELF members while exact ELF members remain bound byte-for-byte to
 the pinned foundation and userspace. Independent Sol and Astra review accepted
 that repair; construction must rerun from its clean published revision.
+
+Clean published revision `8b0e8ff73e8e55b8919a18ed6dd979cc07cb47b0`
+then produced two byte-identical candidates and passed the independent validator.
+The candidate and locally validated installer identities are recorded in
+[`results/candidate-readiness-20260906.txt`](results/candidate-readiness-20260906.txt).
+This is construction evidence only; boot2 has not been written and no physical
+selection or runtime claim exists.
 
 The prior Buildbox attempt at exact commit
 `e70982c09a16a0bb8b152a0dfcada7db69d2a0bf` failed before applying 0543 because
