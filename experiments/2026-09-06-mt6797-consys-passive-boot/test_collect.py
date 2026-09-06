@@ -44,7 +44,7 @@ def refuse(raw: bytes, text: str) -> None:
 
 def main() -> int:
     check(M.EXPECTED_CANDIDATE == "" and M.EXPECTED_INPUT_ID == "",
-          "collector must remain disabled until the corrected candidate is pinned")
+          "collector must remain disabled until the replacement is pinned")
     result = M.classify(capture())
     check(result["state"] == "BOUND" and result["generation"] == 1 and
           all(value == 0 for value in result["effect_counters"].values()),

@@ -129,3 +129,32 @@ identities, while proving that authenticated USB follows the exact passive
 release gate. The collector pins are deliberately empty until the corrected
 candidate is rebuilt and reviewed. Physical admission, installation and boot
 selection remain false.
+
+## Specialist-rejected corrected candidate
+
+The runtime-identity repair was committed and pushed as
+`67423ca0602124e05578d74d954b566b48ad9aab`. The same exact construction
+command above was replayed from that clean `origin/main`; the builder's internal
+validator and explicit normal/optimized invocations passed.
+
+```text
+candidate=159f7801657d36e10d4bb06cce089c46ba13dbcd03e34dcc99a4aa42c6ab1a08
+input_id=2177a3d07cdcede79477a9c760cc3915c81305545a393b28dd8f368a8154262f
+initramfs_sha256=94d61fb3469f44588983781ca084733005c2b095b6bd53af1607b967b261c567
+raw_sha256=ab3cb8fc828c1aa1b955e5cc7315332ac487dc6d5e35b616cc01ac55bbb39434
+padded_sha256=159f7801657d36e10d4bb06cce089c46ba13dbcd03e34dcc99a4aa42c6ab1a08
+raw_size=8853504 padded_size=16777216
+```
+
+The extracted `/init` contains exactly one
+`uname -r = 7.1.3-gemini-consys-passive` gate before `/bin/usb-auth &`, and
+both `/init` and `/bin/reboot` carry the passive candidate, input and marker
+identities. Fixtures reject the prior archive and injected stale TOPRGU text in
+any executable script. The collector pins the corrected candidate/input pair.
+Specialist review rejected the packet after independently finding TOPRGU text
+in `bin/console-status` and `bin/admin-shell`, plus the historical restart
+marker in `bin/x-record`. The replacement sources use passive-only text,
+`bin/x-record` is removed, and `/bin/reboot` becomes an exact `exit 126`
+refusal stub rather than an effectful retained wrapper. The collector pins are
+empty pending a newly built candidate. Physical admission, installation and
+boot selection remain false.

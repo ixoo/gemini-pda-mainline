@@ -38,19 +38,24 @@ FOUNDATION_INITRAMFS_SHA256 = "344d8a8464bee60764df467f166aa73eddfcbd4d362d835aa
 LK_LIMIT = _parent.LK_LIMIT
 PAGE = _parent.PAGE
 ADDRESSES = _parent.ADDRESSES
-REMOVED = _parent.REMOVED
+REMOVED = set(_parent.REMOVED) | {"bin/x-record"}
 REQUIRED_USERSPACE = _parent.REQUIRED_USERSPACE
 FORBIDDEN_TEXT = _parent.FORBIDDEN_TEXT
 OLD_EXECUTABLE_TEXT = _parent.OLD_EXECUTABLE_TEXT
 PUBLIC_INIT_SOURCE_DIGESTS = dict(_parent.PUBLIC_INIT_SOURCE_DIGESTS)
 PUBLIC_INIT_SOURCE_DIGESTS["init"] = "b4f2312a56143d7538f3e94bf83bfd70c2804db836195ccfbb7a07ba815757be"
+PUBLIC_INIT_SOURCE_DIGESTS["admin-shell"] = "237f62a5d7c7a17aaa825989c775aa934dfc90db21d14a982ae3919a430a0655"
+PUBLIC_INIT_SOURCE_DIGESTS["console-status"] = "9f16e44a82b23be67c2f2538de8f0591604aea84d82e47e20ea62e705841c992"
 del PUBLIC_INIT_SOURCE_DIGESTS["reboot-toprgu"]
-PUBLIC_INIT_SOURCE_DIGESTS["reboot-passive"] = "fcfacfa8d1c9472f3a9b5b6ba8076274f6e898ceb2eadb731f8f628d13f49fcd"
+PUBLIC_INIT_SOURCE_DIGESTS["reboot-passive"] = "e0019b7bdc9c57842438e773ebf35eeba1a4e1db3e146d3bf942f8420e6c7a3d"
 STALE_IDENTITY_TEXT = (
     b"7.1.3-gemini-mt6797-toprgu-minimal-restart",
     b"mt6797-toprgu-minimal-restart",
     b"GEMINI_TOPRGU_V1",
     b"contract=toprgu-minimal-restart-v1",
+    b"Gemini TOPRGU",
+    b"GEMINI-TOPRGU",
+    b"GEMINI_MT6797_KERNEL_RESTART_20260720_AB",
 )
 ARTIFACT_ROOT = Path(__file__).resolve().parents[3] / "artifacts/consys-passive"
 
@@ -73,6 +78,10 @@ def validate_source_pins(repo: Path) -> None:
             PUBLIC_INIT_SOURCE_DIGESTS["init"],
         "experiments/2026-09-06-mt6797-consys-passive-boot/initramfs/reboot-passive":
             PUBLIC_INIT_SOURCE_DIGESTS["reboot-passive"],
+        "experiments/2026-09-06-mt6797-consys-passive-boot/initramfs/admin-shell":
+            PUBLIC_INIT_SOURCE_DIGESTS["admin-shell"],
+        "experiments/2026-09-06-mt6797-consys-passive-boot/initramfs/console-status":
+            PUBLIC_INIT_SOURCE_DIGESTS["console-status"],
     }
     for relative, expected in pins.items():
         require(sha(regular(repo / relative, relative)) == expected,
@@ -132,8 +141,8 @@ def compose_initramfs(repo, foundation, userspace, credentials, input_id):
         "init": (current / "init", "init"),
         "inittab": (parent / "inittab", "etc/inittab"),
         "usb-auth": (parent / "usb-auth", "bin/usb-auth"),
-        "console-status": (parent / "console-status", "bin/console-status"),
-        "admin-shell": (parent / "admin-shell", "bin/admin-shell"),
+        "console-status": (current / "console-status", "bin/console-status"),
+        "admin-shell": (current / "admin-shell", "bin/admin-shell"),
         "reboot-passive": (current / "reboot-passive", "bin/reboot"),
     }
     for source, (path, target) in sources.items():

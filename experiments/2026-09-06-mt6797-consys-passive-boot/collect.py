@@ -16,8 +16,6 @@ MAX_INPUT = 64 * 1024
 RECORD = re.compile(r"^mt6797-consys-passive: state=BOUND generation=([1-9][0-9]*) client=wlan-passive power=0 reset=0 remap=0 protection=0 firmware=0 radio=0 dma=0$")
 UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
-# Empty until the corrected passive-specific initramfs candidate is rebuilt
-# and independently accepted. An empty pin makes every write refuse.
 EXPECTED_CANDIDATE = ""
 EXPECTED_INPUT_ID = ""
 REPO = Path(__file__).resolve().parents[2]

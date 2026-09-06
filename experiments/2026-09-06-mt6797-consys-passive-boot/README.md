@@ -108,7 +108,20 @@ it: `/init` still required the parent TOPRGU release and would hold before
 starting authenticated USB. The corrected builder and independent validator
 now use passive-specific init/wrapper sources and reject stale TOPRGU executable
 identities. The collector has empty candidate/input pins and therefore refuses
-all output until a corrected candidate is rebuilt and reviewed. Physical
+all output until a corrected candidate is rebuilt and reviewed.
+
+The corrected clean replay from published commit
+`67423ca0602124e05578d74d954b566b48ad9aab` produced candidate
+`159f7801657d36e10d4bb06cce089c46ba13dbcd03e34dcc99a4aa42c6ab1a08`
+with input identity
+`2177a3d07cdcede79477a9c760cc3915c81305545a393b28dd8f368a8154262f`.
+Its exact passive release gate precedes `/bin/usb-auth &`, but specialist review
+found three further inherited identities: TOPRGU console/admin-shell text and a
+historical `x-record` restart marker. It also identified that the retained
+restart wrapper's containment was procedural. This candidate is rejected. The
+next repair replaces both serviceability scripts, removes `x-record`, and makes
+`/bin/reboot` an exact `exit 126` refusal stub with no restart implementation.
+The collector pins are empty until another candidate passes review. Physical
 admission remains false and no device action was taken.
 
 ## Handoff limits

@@ -6,6 +6,7 @@ import importlib.util
 import json
 import shutil
 import tempfile
+from dataclasses import replace
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -16,7 +17,9 @@ if SPEC is None or SPEC.loader is None:
 V = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(V)
 CANDIDATE = (HERE.parents[1] / "artifacts/consys-passive/candidates/"
-             "candidate-a487c5b33d100e75271d56b02535cb2b31f951d745090a54e5ee1287af4c800d")
+             "candidate-159f7801657d36e10d4bb06cce089c46ba13dbcd03e34dcc99a4aa42c6ab1a08")
+REJECTED = (HERE.parents[1] / "artifacts/consys-passive/candidates/"
+            "candidate-a487c5b33d100e75271d56b02535cb2b31f951d745090a54e5ee1287af4c800d")
 
 
 def check(ok: bool, reason: str) -> None:
@@ -53,9 +56,41 @@ def main() -> int:
     V.validate_container(CANDIDATE, manifest)
     cases = 2
     parse, _ = V.C.load_newc_tools(HERE.parents[1])
-    stale_members = parse((CANDIDATE / "initramfs.img").read_bytes())
-    refuse(lambda: V.validate_runtime_identities(stale_members, manifest["input_id"]),
+    current_members = parse((CANDIDATE / "initramfs.img").read_bytes())
+    refuse(lambda: V.validate_runtime_identities(current_members, manifest["input_id"]),
+           "passive refusal-wrapper/runtime inventory")
+    cases += 1
+    stale_manifest = json.loads((REJECTED / "candidate.json").read_text(encoding="utf-8"))
+    stale_members = parse((REJECTED / "initramfs.img").read_bytes())
+    stale_focus = dict(stale_members)
+    stale_focus.pop("bin/x-record")
+    for name, source in (("bin/admin-shell", "admin-shell"),
+                         ("bin/console-status", "console-status")):
+        stale_focus[name] = replace(stale_focus[name],
+                                    data=(HERE / "initramfs" / source).read_bytes())
+    stale_refusal = (HERE / "initramfs/reboot-passive").read_bytes().replace(
+        b"INPUT_ID_PLACEHOLDER", stale_manifest["input_id"].encode("ascii"))
+    stale_focus["bin/reboot"] = replace(stale_focus["bin/reboot"], data=stale_refusal)
+    refuse(lambda: V.validate_runtime_identities(stale_focus, stale_manifest["input_id"]),
            "passive release gate")
+    cases += 1
+    prospective = dict(current_members)
+    prospective.pop("bin/x-record")
+    for name, source in (("bin/admin-shell", "admin-shell"),
+                         ("bin/console-status", "console-status")):
+        prospective[name] = replace(prospective[name],
+                                    data=(HERE / "initramfs" / source).read_bytes())
+    refusal = (HERE / "initramfs/reboot-passive").read_bytes().replace(
+        b"INPUT_ID_PLACEHOLDER", manifest["input_id"].encode("ascii"))
+    prospective["bin/reboot"] = replace(prospective["bin/reboot"], data=refusal)
+    V.validate_runtime_identities(prospective, manifest["input_id"])
+    cases += 1
+    injected = dict(prospective)
+    injected["bin/usb-auth"] = replace(
+        injected["bin/usb-auth"],
+        data=injected["bin/usb-auth"].data + V.C.STALE_IDENTITY_TEXT[0])
+    refuse(lambda: V.validate_runtime_identities(injected, manifest["input_id"]),
+           "stale TOPRGU executable identity")
     cases += 1
     init_source = (HERE / "initramfs/init").read_bytes()
     gate = b'[ "$(/bin/busybox uname -r)" = 7.1.3-gemini-consys-passive ]'

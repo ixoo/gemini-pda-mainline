@@ -63,8 +63,8 @@ def independent_replay(foundation: Path, userspace: Path, credentials: Path,
         "init": (current / "init", "init"),
         "inittab": (parent / "inittab", "etc/inittab"),
         "usb-auth": (parent / "usb-auth", "bin/usb-auth"),
-        "console-status": (parent / "console-status", "bin/console-status"),
-        "admin-shell": (parent / "admin-shell", "bin/admin-shell"),
+        "console-status": (current / "console-status", "bin/console-status"),
+        "admin-shell": (current / "admin-shell", "bin/admin-shell"),
         "reboot-passive": (current / "reboot-passive", "bin/reboot"),
     }
     for source, (path, target) in sources.items():
@@ -169,8 +169,9 @@ def validate_dtb(candidate: Path, base_dtb: Path) -> None:
 
 
 def validate_runtime_identities(members: dict, input_id: str) -> None:
-    require("bin/reboot" in members and stat.S_IMODE(members["bin/reboot"].mode) == 0o755,
-            "inherited TOPRGU wrapper placement changed")
+    require("bin/reboot" in members and "bin/x-record" not in members and
+            stat.S_IMODE(members["bin/reboot"].mode) == 0o755,
+            "passive refusal-wrapper/runtime inventory changed")
     wrapper = members["bin/reboot"].data
     init = members["init"].data
     gate = b'[ "$(/bin/busybox uname -r)" = ' + C.RELEASE.encode("ascii") + b" ] || hold kernel-mismatch"
@@ -179,11 +180,18 @@ def validate_runtime_identities(members: dict, input_id: str) -> None:
     require(init.count(b"GEMINI_CONSYS_PASSIVE_V1") == 1 and
             init.count(b"candidate=" + C.RELEASE.encode("ascii")) == 1,
             "passive entry marker identity changed")
-    require(wrapper.count(b"'" + input_id.encode("ascii") + b"'") == 1 and
-            wrapper.count(b"'" + C.RELEASE.encode("ascii") + b"'") == 1 and
-            wrapper.count(b"GEMINI_CONSYS_PASSIVE_V1") == 1 and
-            wrapper.count(b"exec /bin/busybox reboot -n -f") == 1,
-            "inherited wrapper passive identity changed")
+    wrapper_source = C.regular(HERE / "initramfs/reboot-passive", "reboot refusal source")
+    require(wrapper_source.count(b"INPUT_ID_PLACEHOLDER") == 1 and
+            wrapper == wrapper_source.replace(b"INPUT_ID_PLACEHOLDER",
+                                               input_id.encode("ascii")) and
+            wrapper.count(b"exit 126") == 1 and
+            not any(token in wrapper for token in C.FORBIDDEN_TEXT),
+            "passive reboot refusal identity changed")
+    require(members["bin/admin-shell"].data ==
+            C.regular(HERE / "initramfs/admin-shell", "passive admin shell") and
+            members["bin/console-status"].data ==
+            C.regular(HERE / "initramfs/console-status", "passive console status"),
+            "passive serviceability identity changed")
     for name, member in members.items():
         if C.is_untrusted_action_data(member):
             require(not any(token in member.data for token in C.STALE_IDENTITY_TEXT),

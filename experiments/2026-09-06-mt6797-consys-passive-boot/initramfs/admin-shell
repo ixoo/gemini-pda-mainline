@@ -1,0 +1,8 @@
+#!/bin/busybox sh
+# SPDX-License-Identifier: MIT
+# shellcheck shell=dash
+export PATH=/bin
+# The passive session admits observation commands only. No restart, power,
+# firmware, radio, storage or other effectful command is part of its protocol.
+export PS1='GEMINI-CONSYS-PASSIVE-SSH# '
+exec /bin/busybox ash "$@"
