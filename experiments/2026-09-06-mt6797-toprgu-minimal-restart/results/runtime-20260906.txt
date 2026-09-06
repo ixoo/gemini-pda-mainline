@@ -1,5 +1,5 @@
 experiment=2026-09-06-mt6797-toprgu-minimal-restart
-observed_utc=2026-09-06T17:08:00Z
+mainline_preflight_confirmed_utc=2026-09-06T17:23:54Z
 recovery_confirmed_utc=2026-09-06T17:28:54Z
 device=Gemini PDA; sanitized named project device
 candidate_release=7.1.3-gemini-mt6797-toprgu-minimal-restart
