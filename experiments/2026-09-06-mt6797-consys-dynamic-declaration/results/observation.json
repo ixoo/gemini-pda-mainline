@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "repository_parent": "aa94cd163701d6542249700693b2aeb153460d13",
+  "status": "pass",
+  "classification": "valid_dynamic_declaration_allocation_unresolved",
+  "attempt_consumed": true,
+  "elapsed_seconds": 0.7,
+  "identity": {
+    "release": "3.18.41+",
+    "boot_id": "ce741f2c-462f-424e-aa90-49bada3a116f",
+    "model": "MT6797X",
+    "stable_at_boundaries": true
+  },
+  "declaration": {
+    "root_address_cells": 2,
+    "root_size_cells": 2,
+    "reserved_address_cells": 2,
+    "reserved_size_cells": 2,
+    "reserved_ranges": "present-empty",
+    "reg": "missing",
+    "size_bytes": 2097152,
+    "alignment_bytes": 2097152,
+    "allocation_ranges": [
+      {
+        "start": "0x40000000",
+        "size": "0x80000000",
+        "end_inclusive": "0xbfffffff"
+      }
+    ],
+    "no_map": true,
+    "reusable": false,
+    "reads_atomic": false
+  },
+  "parser_implication": {
+    "declaration_syntax": "compatible",
+    "initialized_record_match": "unobserved",
+    "allocated_base_and_extent": "unobserved",
+    "physical_reservation_or_protection": "unproved"
+  },
+  "collector_sha256": {
+    "remote-collect.sh": "e462bdb5af67812ff72a4c8c8cc9c4048a64fe0a32d61306b217caae5f27ef3c",
+    "collect.py": "210ca2cf43547476f76f3aed6433967c83a5e5f616c68d596124e43ba76663d6",
+    "test_collect.py": "dfb38ad64b85c7c012bb69088cf273055a510c25066757173fcd36ddbc3f3578"
+  },
+  "validation": {
+    "bash_syntax": "pass",
+    "shellcheck": "pass",
+    "host_refusal_fixtures": 12,
+    "specialist_precollection_review": "accept"
+  },
+  "effects": {
+    "device_writes": false,
+    "privilege": false,
+    "register_or_resource_reads": false,
+    "firmware_or_calibration_reads": false,
+    "radio_control": false,
+    "boot_or_power_change": false
+  }
+}
