@@ -29,7 +29,7 @@ static unsigned int mt6797_init_le32(const u8 *p)
 }
 
 static int mt6797_init_validate_config(const u8 *p, size_t bytes,
-					       unsigned int sequence)
+				       unsigned int sequence)
 {
 	unsigned int address, length, mode;
 
@@ -57,8 +57,7 @@ struct mt6797_ordinary_transfer_batch {
 	size_t aggregate_bytes;
 	int attempted;
 	int first_error;
-	struct mt6797_ordinary_transfer_request requests[
-		MTKE_MAX_SECTIONS];
+	struct mt6797_ordinary_transfer_request requests[MTKE_MAX_SECTIONS];
 };
 
 #ifdef ORDINARY_TRANSFER_HOST_TEST
@@ -120,9 +119,10 @@ static int ordinary_disjoint(const void *left, size_t left_bytes,
 	return left_end <= right_start || right_end <= left_start;
 }
 
-static int ordinary_request_spans_valid(
-	const struct mt6797_ordinary_transfer_request *requests, size_t count,
-	const struct mt6797_ordinary_transfer_batch *batch)
+static int
+ordinary_request_spans_valid(const struct mt6797_ordinary_transfer_request *requests,
+			     size_t count,
+			     const struct mt6797_ordinary_transfer_batch *batch)
 {
 	size_t i, j;
 
@@ -133,27 +133,27 @@ static int ordinary_request_spans_valid(
 		const struct mt6797_ordinary_transfer_request *request = &requests[i];
 
 		if (!ordinary_disjoint(requests, count * sizeof(*requests),
-				      request->config, request->config_bytes) ||
+				       request->config, request->config_bytes) ||
 		    !ordinary_disjoint(requests, count * sizeof(*requests),
-				      request->data, request->length) ||
+				       request->data, request->length) ||
 		    !ordinary_disjoint(batch, sizeof(*batch), request->config,
-				      request->config_bytes) ||
+				       request->config_bytes) ||
 		    !ordinary_disjoint(batch, sizeof(*batch), request->data,
-				      request->length) ||
+				       request->length) ||
 		    !ordinary_disjoint(request->config, request->config_bytes,
-				      request->data, request->length))
+				       request->data, request->length))
 			return -EINVAL;
 		for (j = 0; j < i; j++) {
 			if (!ordinary_disjoint(request->config, request->config_bytes,
-					      requests[j].config,
-					      requests[j].config_bytes) ||
+					       requests[j].config,
+					       requests[j].config_bytes) ||
 			    !ordinary_disjoint(request->config, request->config_bytes,
-					      requests[j].data, requests[j].length) ||
+					       requests[j].data, requests[j].length) ||
 			    !ordinary_disjoint(request->data, request->length,
-					      requests[j].config,
-					      requests[j].config_bytes) ||
+					       requests[j].config,
+					       requests[j].config_bytes) ||
 			    !ordinary_disjoint(request->data, request->length,
-					      requests[j].data, requests[j].length))
+					       requests[j].data, requests[j].length))
 				return -EINVAL;
 		}
 	}
@@ -161,8 +161,8 @@ static int ordinary_request_spans_valid(
 }
 
 struct mt6797_ordinary_transfer_batch *
-mt6797_ordinary_transfer_prepare(
-	const struct mt6797_ordinary_transfer_request *requests, size_t count)
+mt6797_ordinary_transfer_prepare(const struct mt6797_ordinary_transfer_request *requests,
+				 size_t count)
 {
 	struct mt6797_ordinary_transfer_batch *batch;
 	size_t i, aggregate = 0;
@@ -179,8 +179,8 @@ mt6797_ordinary_transfer_prepare(
 		const struct mt6797_ordinary_transfer_request *request = &requests[i];
 		size_t j;
 
-		if (request->kind != MT6797_SECTION_ORDINARY ||
-		    !request->config || request->config_bytes != MT6797_ORDINARY_TRANSFER_CONFIG_BYTES ||
+		if (request->kind != MT6797_SECTION_ORDINARY || !request->config ||
+		    request->config_bytes != MT6797_ORDINARY_TRANSFER_CONFIG_BYTES ||
 		    !request->data || !request->length ||
 		    request->length > MTKE_MAX_BYTES ||
 		    request->sequence == 0 || request->sequence > 255U ||
@@ -211,9 +211,9 @@ void mt6797_ordinary_transfer_free(struct mt6797_ordinary_transfer_batch *batch)
 		ordinary_free(batch);
 }
 
-static int ordinary_result_spans_valid(
-	const struct mt6797_ordinary_transfer_batch *batch,
-	const struct mt6797_ordinary_transfer_result *result)
+static int
+ordinary_result_spans_valid(const struct mt6797_ordinary_transfer_batch *batch,
+			    const struct mt6797_ordinary_transfer_result *result)
 {
 	size_t i;
 
@@ -234,9 +234,10 @@ static int ordinary_result_spans_valid(
 	return 1;
 }
 
-int mt6797_ordinary_transfer_execute(
-	struct mt6797_ordinary_transfer_batch *batch, struct mt6797_hif *hif,
-	u64 deadline_ns, struct mt6797_ordinary_transfer_result *result)
+int
+mt6797_ordinary_transfer_execute(struct mt6797_ordinary_transfer_batch *batch,
+				 struct mt6797_hif *hif, u64 deadline_ns,
+				 struct mt6797_ordinary_transfer_result *result)
 {
 	size_t i;
 
@@ -265,7 +266,7 @@ int mt6797_ordinary_transfer_execute(
 		int error;
 
 		error = mt6797_hif_download_section(hif, &request, deadline_ns,
-						     &section);
+						    &section);
 		if (error || section.submitted != request.length) {
 			if (!error)
 				error = -EPROTO;

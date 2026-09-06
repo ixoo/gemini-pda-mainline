@@ -1,15 +1,15 @@
 {
   "state": "review-ready",
-  "timestamp_utc": "2026-09-06T14:43:21Z",
+  "timestamp_utc": "2026-09-06T14:54:53Z",
   "normal_and_optimized": "pass (2 builds, 9 host test functions)",
   "asan_ubsan": "pass",
   "checkpatch": "not run: pinned Linux source tree unavailable",
   "source_sha256": {
-    "ordinary-transfer.c": "e1796a31bbc72f4a64ed3622cbf09ec43bf5e5a26459b01b3d2d29ab16a8f4a7",
-    "ordinary-transfer.h": "105d26971fde38eaecfb1342d0d6c105047796eed0c5145174a2d2cdb1fb64a5",
-    "ordinary-transfer-test.c": "ab1c4302fac3091661a7f6d742afc1481a67b09c61336fb8c73550fe12f9be76"
+    "ordinary-transfer.c": "e9f378ce4d16f6b7d221e3ff53ae920c98cc5adfbad169ba1e7b0d6d161ef911",
+    "ordinary-transfer.h": "8ab31e6adbf8533326d9658f9be4f8dc5065f37ba2dce4e395700a03d03f2868",
+    "ordinary-transfer-test.c": "1db3746e0848bc605aeb8db24ed7211bafe1cb15a9596c386107083a993ac288"
   },
-  "generated_patch_sha256": "d4fb15f85e1e5642e4d068eabaf198f5e0d2d7e6c02e382baed02b76108db5ad",
+  "generated_patch_sha256": "b284bd19cbe1cc1d6810b53ba49936a5cb9b86cc22e8141397b647e69ce3d954",
   "refusal_fixture_groups": 18,
   "production_callers": 0,
   "device_or_backend": "none",

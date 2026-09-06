@@ -11,9 +11,9 @@ Internal compile experiment only; synthetic non-certifying author, no DCO.
 Assisted-by: LLM
 ---
  drivers/net/wireless/mediatek/mt6797/Makefile             |   1 +
- drivers/net/wireless/mediatek/mt6797/ordinary-transfer.c | 283 +
- drivers/net/wireless/mediatek/mt6797/ordinary-transfer.h |  76 +
- 3 files changed, 360 insertions(+)
+ drivers/net/wireless/mediatek/mt6797/ordinary-transfer.c | 284 +
+ drivers/net/wireless/mediatek/mt6797/ordinary-transfer.h |  84 +
+ 3 files changed, 369 insertions(+)
  create mode 100644 drivers/net/wireless/mediatek/mt6797/ordinary-transfer.c
  create mode 100644 drivers/net/wireless/mediatek/mt6797/ordinary-transfer.h
 
@@ -31,7 +31,7 @@ diff --git a/drivers/net/wireless/mediatek/mt6797/ordinary-transfer.c b/drivers/
 new file mode 100644
 --- /dev/null
 +++ b/drivers/net/wireless/mediatek/mt6797/ordinary-transfer.c
-@@ -0,0 +1,283 @@
+@@ -0,0 +1,284 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +#ifdef ORDINARY_TRANSFER_HOST_TEST
 +#include <errno.h>
@@ -63,7 +63,7 @@ new file mode 100644
 +}
 +
 +static int mt6797_init_validate_config(const u8 *p, size_t bytes,
-+					       unsigned int sequence)
++				       unsigned int sequence)
 +{
 +	unsigned int address, length, mode;
 +
@@ -91,8 +91,7 @@ new file mode 100644
 +	size_t aggregate_bytes;
 +	int attempted;
 +	int first_error;
-+	struct mt6797_ordinary_transfer_request requests[
-+		MTKE_MAX_SECTIONS];
++	struct mt6797_ordinary_transfer_request requests[MTKE_MAX_SECTIONS];
 +};
 +
 +#ifdef ORDINARY_TRANSFER_HOST_TEST
@@ -154,9 +153,10 @@ new file mode 100644
 +	return left_end <= right_start || right_end <= left_start;
 +}
 +
-+static int ordinary_request_spans_valid(
-+	const struct mt6797_ordinary_transfer_request *requests, size_t count,
-+	const struct mt6797_ordinary_transfer_batch *batch)
++static int
++ordinary_request_spans_valid(const struct mt6797_ordinary_transfer_request *requests,
++			     size_t count,
++			     const struct mt6797_ordinary_transfer_batch *batch)
 +{
 +	size_t i, j;
 +
@@ -167,27 +167,27 @@ new file mode 100644
 +		const struct mt6797_ordinary_transfer_request *request = &requests[i];
 +
 +		if (!ordinary_disjoint(requests, count * sizeof(*requests),
-+				      request->config, request->config_bytes) ||
++				       request->config, request->config_bytes) ||
 +		    !ordinary_disjoint(requests, count * sizeof(*requests),
-+				      request->data, request->length) ||
++				       request->data, request->length) ||
 +		    !ordinary_disjoint(batch, sizeof(*batch), request->config,
-+				      request->config_bytes) ||
++				       request->config_bytes) ||
 +		    !ordinary_disjoint(batch, sizeof(*batch), request->data,
-+				      request->length) ||
++				       request->length) ||
 +		    !ordinary_disjoint(request->config, request->config_bytes,
-+				      request->data, request->length))
++				       request->data, request->length))
 +			return -EINVAL;
 +		for (j = 0; j < i; j++) {
 +			if (!ordinary_disjoint(request->config, request->config_bytes,
-+					      requests[j].config,
-+					      requests[j].config_bytes) ||
++					       requests[j].config,
++					       requests[j].config_bytes) ||
 +			    !ordinary_disjoint(request->config, request->config_bytes,
-+					      requests[j].data, requests[j].length) ||
++					       requests[j].data, requests[j].length) ||
 +			    !ordinary_disjoint(request->data, request->length,
-+					      requests[j].config,
-+					      requests[j].config_bytes) ||
++					       requests[j].config,
++					       requests[j].config_bytes) ||
 +			    !ordinary_disjoint(request->data, request->length,
-+					      requests[j].data, requests[j].length))
++					       requests[j].data, requests[j].length))
 +				return -EINVAL;
 +		}
 +	}
@@ -195,8 +195,8 @@ new file mode 100644
 +}
 +
 +struct mt6797_ordinary_transfer_batch *
-+mt6797_ordinary_transfer_prepare(
-+	const struct mt6797_ordinary_transfer_request *requests, size_t count)
++mt6797_ordinary_transfer_prepare(const struct mt6797_ordinary_transfer_request *requests,
++				 size_t count)
 +{
 +	struct mt6797_ordinary_transfer_batch *batch;
 +	size_t i, aggregate = 0;
@@ -213,8 +213,8 @@ new file mode 100644
 +		const struct mt6797_ordinary_transfer_request *request = &requests[i];
 +		size_t j;
 +
-+		if (request->kind != MT6797_SECTION_ORDINARY ||
-+		    !request->config || request->config_bytes != MT6797_ORDINARY_TRANSFER_CONFIG_BYTES ||
++		if (request->kind != MT6797_SECTION_ORDINARY || !request->config ||
++		    request->config_bytes != MT6797_ORDINARY_TRANSFER_CONFIG_BYTES ||
 +		    !request->data || !request->length ||
 +		    request->length > MTKE_MAX_BYTES ||
 +		    request->sequence == 0 || request->sequence > 255U ||
@@ -245,9 +245,9 @@ new file mode 100644
 +		ordinary_free(batch);
 +}
 +
-+static int ordinary_result_spans_valid(
-+	const struct mt6797_ordinary_transfer_batch *batch,
-+	const struct mt6797_ordinary_transfer_result *result)
++static int
++ordinary_result_spans_valid(const struct mt6797_ordinary_transfer_batch *batch,
++			    const struct mt6797_ordinary_transfer_result *result)
 +{
 +	size_t i;
 +
@@ -268,9 +268,10 @@ new file mode 100644
 +	return 1;
 +}
 +
-+int mt6797_ordinary_transfer_execute(
-+	struct mt6797_ordinary_transfer_batch *batch, struct mt6797_hif *hif,
-+	u64 deadline_ns, struct mt6797_ordinary_transfer_result *result)
++int
++mt6797_ordinary_transfer_execute(struct mt6797_ordinary_transfer_batch *batch,
++				 struct mt6797_hif *hif, u64 deadline_ns,
++				 struct mt6797_ordinary_transfer_result *result)
 +{
 +	size_t i;
 +
@@ -299,7 +300,7 @@ new file mode 100644
 +		int error;
 +
 +		error = mt6797_hif_download_section(hif, &request, deadline_ns,
-+						     &section);
++						    &section);
 +		if (error || section.submitted != request.length) {
 +			if (!error)
 +				error = -EPROTO;
@@ -320,21 +321,21 @@ diff --git a/drivers/net/wireless/mediatek/mt6797/ordinary-transfer.h b/drivers/
 new file mode 100644
 --- /dev/null
 +++ b/drivers/net/wireless/mediatek/mt6797/ordinary-transfer.h
-@@ -0,0 +1,76 @@
+@@ -0,0 +1,84 @@
 +/* SPDX-License-Identifier: GPL-2.0-only */
 +#ifndef MT6797_ORDINARY_TRANSFER_H
 +#define MT6797_ORDINARY_TRANSFER_H
 +
 +#ifdef ORDINARY_TRANSFER_HOST_TEST
 +#include <stddef.h>
-+#include <stdint.h>
-+typedef uint8_t u8;
-+typedef uint32_t u32;
-+typedef uint64_t u64;
++typedef unsigned char u8;
++typedef unsigned int u32;
++typedef unsigned long long u64;
 +#define MTKE_MAX_BYTES (1024U * 1024U)
 +#define MTKE_MAX_SECTIONS 256U
 +struct mt6797_hif;
 +enum mt6797_section_kind { MT6797_SECTION_ORDINARY, MT6797_SECTION_EMI };
++
 +struct mt6797_hif_section_request {
 +	enum mt6797_section_kind kind;
 +	const u8 *config;
@@ -343,6 +344,7 @@ new file mode 100644
 +	const u8 *data;
 +	size_t length;
 +};
++
 +struct mt6797_hif_section_result {
 +	size_t submitted;
 +	unsigned int firmware_status;
@@ -374,26 +376,33 @@ new file mode 100644
 +
 +struct mt6797_ordinary_transfer_batch;
 +
-+/* The caller retains powered ownership, exclusion, generation and all source
++/*
++ * The caller retains powered ownership, exclusion, generation and all source
 + * buffers across preparation and execution. This object makes none of those
-+ * claims and has no production caller or owner-token escape hatch. */
++ * claims and has no production caller or owner-token escape hatch.
++ */
 +struct mt6797_ordinary_transfer_batch *
-+mt6797_ordinary_transfer_prepare(
-+	const struct mt6797_ordinary_transfer_request *requests, size_t count);
++mt6797_ordinary_transfer_prepare(const struct mt6797_ordinary_transfer_request *requests,
++				 size_t count);
 +
 +/* Free only after every caller has joined; this releases no HIF/hardware state. */
 +void mt6797_ordinary_transfer_free(struct mt6797_ordinary_transfer_batch *batch);
 +
-+/* One absolute monotonic deadline covers the whole batch. The HIF context and
-+ * result storage must remain disjoint from every retained input span. */
-+int mt6797_ordinary_transfer_execute(
-+	struct mt6797_ordinary_transfer_batch *batch, struct mt6797_hif *hif,
-+	u64 deadline_ns, struct mt6797_ordinary_transfer_result *result);
++/*
++ * One absolute monotonic deadline covers the whole batch. The HIF context and
++ * result storage must remain disjoint from every retained input span.
++ */
++int
++mt6797_ordinary_transfer_execute(struct mt6797_ordinary_transfer_batch *batch,
++				 struct mt6797_hif *hif, u64 deadline_ns,
++				 struct mt6797_ordinary_transfer_result *result);
 +
 +#ifdef ORDINARY_TRANSFER_HOST_TEST
-+int mt6797_hif_download_section(struct mt6797_hif *hif,
-+	const struct mt6797_hif_section_request *request, u64 deadline_ns,
-+	struct mt6797_hif_section_result *result);
++int
++mt6797_hif_download_section(struct mt6797_hif *hif,
++			    const struct mt6797_hif_section_request *request,
++			    u64 deadline_ns,
++			    struct mt6797_hif_section_result *result);
 +#endif
 +
 +#endif
