@@ -496,6 +496,50 @@ class CandidateBuildTests(unittest.TestCase):
                              (HERE / "validate-dtb.py").resolve(strict=True))
             self.assertTrue(Path(calls[0][1]).is_file())
 
+    def test_real_candidate_directory_metadata_accepts_normal_link_count(self):
+        with tempfile.TemporaryDirectory(prefix="toprgu-directory-") as raw:
+            root = Path(raw)
+            candidate = root / "candidate"
+            candidate.mkdir(mode=0o700)
+            candidate.chmod(0o700)
+            (candidate / "nested").mkdir(mode=0o700)
+            self.assertGreaterEqual(candidate.lstat().st_nlink, 2)
+            VALIDATOR.validate_candidate_directory(candidate)
+
+            wrong_mode = root / "wrong-mode"
+            wrong_mode.mkdir(mode=0o755)
+            wrong_mode.chmod(0o755)
+            with self.assertRaisesRegex(ValueError, "candidate directory"):
+                VALIDATOR.validate_candidate_directory(wrong_mode)
+
+            link = root / "candidate-link"
+            link.symlink_to(candidate, target_is_directory=True)
+            with self.assertRaisesRegex(ValueError, "candidate directory"):
+                VALIDATOR.validate_candidate_directory(link)
+
+    def test_candidate_parent_symlink_escape_is_refused(self):
+        with tempfile.TemporaryDirectory(prefix="toprgu-parent-escape-") as raw:
+            root = Path(raw)
+            artifacts = root / "artifacts"
+            artifacts.mkdir(mode=0o700)
+            outside = root / "outside"
+            outside.mkdir(mode=0o700)
+            escaped_parent = artifacts / "alias"
+            escaped_parent.symlink_to(outside, target_is_directory=True)
+            candidate = escaped_parent / ("candidate-" + "a" * 64)
+            candidate.mkdir(mode=0o700)
+            candidate.chmod(0o700)
+
+            with mock.patch.object(VALIDATOR, "REPO", root), \
+                 mock.patch.object(VALIDATOR.C, "validate_source_pins"), \
+                 mock.patch.object(VALIDATOR.subprocess, "run",
+                                    return_value=SimpleNamespace(returncode=0)):
+                with self.assertRaisesRegex(ValueError, "escapes the real artifacts root"):
+                    VALIDATOR.validate(candidate, base_dtb=Path("base"),
+                                       foundation_initramfs=Path("foundation"),
+                                       userspace=Path("userspace"),
+                                       credentials=Path("credentials"))
+
     def test_shell_and_python_syntax(self):
         shell_files = [HERE / "build-serviceability-dtb.sh"] + list((HERE.parent / "initramfs").iterdir())
         for path in shell_files:

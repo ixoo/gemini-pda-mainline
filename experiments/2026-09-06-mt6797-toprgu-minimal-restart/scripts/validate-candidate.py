@@ -248,6 +248,31 @@ def validate_dtb(candidate: Path, base_dtb: Path, manifest: dict) -> None:
                     "--expected-sha256", C.SERVICEABILITY_DTB_SHA256], check=True)
 
 
+def validate_candidate_directory(candidate: Path) -> None:
+    """Check the private candidate directory without treating link count as a gate.
+
+    A real directory normally has link count 2 (and more when it contains
+    subdirectories); unlike candidate files, that count is not a hardlink
+    safety invariant.  Every candidate member below remains nlink==1.
+    """
+    info = candidate.lstat()
+    require(not candidate.is_symlink() and stat.S_ISDIR(info.st_mode) and
+            stat.S_IMODE(info.st_mode) == 0o700 and info.st_uid == os.getuid(),
+            "candidate directory is not private")
+
+
+def validate_candidate_parent(candidate: Path) -> None:
+    """Reject lexical artifact paths whose parent escapes through a symlink."""
+    artifacts = REPO / "artifacts"
+    root_info = artifacts.lstat()
+    require(not artifacts.is_symlink() and stat.S_ISDIR(root_info.st_mode),
+            "artifacts root is not a real directory")
+    real_root = artifacts.resolve(strict=True)
+    real_parent = candidate.parent.resolve(strict=True)
+    require(real_parent.is_relative_to(real_root),
+            "candidate parent escapes the real artifacts root")
+
+
 def validate(candidate: Path, *, base_dtb: Path, foundation_initramfs: Path,
              userspace: Path, credentials: Path) -> dict:
     C.validate_source_pins(REPO)
@@ -257,10 +282,8 @@ def validate(candidate: Path, *, base_dtb: Path, foundation_initramfs: Path,
             subprocess.run(["git", "-C", str(REPO), "check-ignore", "-q", "--", str(candidate)],
                            check=False).returncode == 0,
             "candidate output is outside ignored artifacts")
-    info = candidate.lstat()
-    require(stat.S_ISDIR(info.st_mode) and stat.S_IMODE(info.st_mode) == 0o700 and
-            info.st_uid == os.getuid() and info.st_nlink == 1,
-            "candidate directory is not private")
+    validate_candidate_parent(candidate)
+    validate_candidate_directory(candidate)
     require({p.name for p in candidate.iterdir()} == FILES, "candidate inventory changed")
     for path in candidate.iterdir():
         member = path.lstat()
@@ -299,7 +322,7 @@ def main() -> int:
     p.add_argument("--userspace", type=Path, required=True)
     p.add_argument("--credentials", type=Path, required=True)
     a = p.parse_args()
-    print(json.dumps(validate(a.candidate.resolve(strict=True), base_dtb=a.base_dtb,
+    print(json.dumps(validate(a.candidate.absolute(), base_dtb=a.base_dtb,
                               foundation_initramfs=a.foundation_initramfs,
                               userspace=a.userspace, credentials=a.credentials), sort_keys=True))
     return 0
