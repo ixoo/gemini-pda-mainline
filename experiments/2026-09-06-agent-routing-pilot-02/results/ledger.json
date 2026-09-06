@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 1,
-  "next_accepted_sequence": 2,
-  "next_considered_sequence": 2,
+  "accepted_count": 2,
+  "next_accepted_sequence": 3,
+  "next_considered_sequence": 3,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -79,6 +79,54 @@
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/results/candidate-offline-validation-20260906.txt"
       }
+    },
+    {
+      "considered_sequence": 2,
+      "accepted_sequence": 2,
+      "candidate_id": "toprgu-ram-zram-staging-policy",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "implementation",
+      "risk_class": "hard-uncertainty",
+      "acceptance_contract": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/CANDIDATE_WORK_ITEM.md",
+      "review_comparison_group": "toprgu-ram-zram-staging-policy",
+      "parent": "ea2038331018d1a0eee0865f56bf4fbcae742e5d",
+      "owner_route": {
+        "role": "gemini_implementer",
+        "model": "gpt-5.6-luna",
+        "effort": "high"
+      },
+      "review_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-06T13:10:23.211539Z",
+        "review_ready_at": "2026-09-06T13:27:21.332027Z",
+        "accepted_at": "2026-09-06T13:33:17Z",
+        "timing_source": "observed UTC dispatch, frozen-review and clean-rederivation timestamps",
+        "elapsed_minutes": 22.89647435,
+        "review_rework_minutes": 5.92779955,
+        "first_review_accepted": false,
+        "rework_cycles": 1,
+        "escalated": true,
+        "escalation_reason": "initial scope touched immutable historical evidence and active zram created a residual secret-residency uncertainty",
+        "escalation_packet": {
+          "evidence": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/results/deployment-policy-20260906.txt",
+          "attempts": [
+            "restored the completed baseline adapter and relocated the exception to the active TOPRGU derivation layer",
+            "bound the admitted state to exact zero-use RAM-only zram identity and retained independent target/parent swap exclusion"
+          ],
+          "unresolved_question": "could transient credential-bearing tmpfs pages reside in active zram without persistent backing",
+          "next_discriminating_check": "require explicit owner risk acceptance plus exact no-backing/writeback identity and mutation refusals"
+        },
+        "review_failure_class": "scope-containment",
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/results/deployment-policy-20260906.txt"
+      }
     }
   ],
   "checkpoints": [
@@ -92,6 +140,21 @@
       ],
       "comparable_item_ids": [
         "mt6797-toprgu-authenticated-runtime-preparation"
+      ],
+      "conclusion": "too-small",
+      "evidence": "experiments/2026-09-06-agent-routing-pilot-02/README.md"
+    },
+    {
+      "id": "pilot-02-post-item-two-scope-repair",
+      "after_accepted_sequence": 2,
+      "after_considered_sequence": 2,
+      "trigger": "early-signal",
+      "trigger_item_ids": [
+        "toprgu-ram-zram-staging-policy"
+      ],
+      "comparable_item_ids": [
+        "mt6797-toprgu-authenticated-runtime-preparation",
+        "toprgu-ram-zram-staging-policy"
       ],
       "conclusion": "too-small",
       "evidence": "experiments/2026-09-06-agent-routing-pilot-02/README.md"

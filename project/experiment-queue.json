@@ -80,7 +80,7 @@
     },
     "mt6797-toprgu-minimal-restart": {
       "workstream": "watchdog",
-      "preparation_state": "preparing",
+      "preparation_state": "ready",
       "device_state": "unselected",
       "owner": "MT6797 TOPRGU minimal restart diagnostic",
       "reviewer": "Project Planning",
@@ -97,7 +97,7 @@
         }
       ],
       "owner_task_id": null,
-      "readiness_note": "Candidate 22edf533 remains independently validated. The prior installer was invalidated after its active-swap refusal. A TOPRGU-only exact RAM-zram exception is review-accepted but awaits clean publication and recorded rederivation; deployment and physical selection remain pending."
+      "readiness_note": "Candidate 22edf533 remains independently validated. The exact RAM-only zram exception was published at 334c3d91 and cleanly rederived as installer 3e1afaef. It does not mutate swap and retains the target/parent guard. Guarded deployment, readback, shutdown and physical selection remain pending."
     }
   }
 }

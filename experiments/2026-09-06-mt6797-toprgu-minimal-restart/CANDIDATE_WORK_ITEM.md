@@ -161,10 +161,10 @@
   validation, review and readiness classification may finish without a
   physical selection. Stop with a conditional/ready handoff; never install or
   select the candidate merely because preparation passes.
-- **Device readiness:** `candidate-validated`; the revised zram-preserving
-  installer is review-accepted but awaits a clean pushed publication and
-  refreshed derivation identity. Guarded deployment, receipt review and
-  physical admission remain pending.
+- **Device readiness:** `deployment-ready`; the unchanged candidate and revised
+  zram-preserving installer were revalidated from clean pushed publication
+  `334c3d91...`. Guarded deployment, receipt review and physical admission
+  remain pending; the queue is unselected.
   Any change to patch, profile, package, DT,
   initramfs, credentials, candidate, installer, collector, classifier, time
   bound, action budget or recovery tool invalidates readiness. The experiment
@@ -178,10 +178,11 @@
   action-boundary review. Exact clean published revision `8b0e8ff7...` produced
   two byte-identical private candidates and passed the independent validator;
   those candidate bytes remain unchanged. The prior installer identity was
-  invalidated after its active-swap refusal; a TOPRGU-only RAM-zram exception
-  passed local validation and review but is not deployment-ready until its
-  clean publication and exact rederivation are recorded. No deployment or
-  session admission exists.
+  invalidated after its active-swap refusal. A TOPRGU-only RAM-zram exception
+  passed local validation and independent review, was published at
+  `334c3d91...`, and rederived as installer
+  `3e1afaef7f5f839e7ae824243b7c73de5423872a0e1585402a172835ef7134db`.
+  No deployment or session admission exists yet.
 - **Efficiency loop:** if this offline handoff is accepted, the primary task
   appends exactly one considered/accepted item to the active workflow ledger
   with observed timestamps, actual routes, first-review result, rework and

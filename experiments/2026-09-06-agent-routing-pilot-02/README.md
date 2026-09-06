@@ -31,3 +31,13 @@ durability defects. It is the cohort's only accepted item and has no comparable
 peer, so the checkpoint conclusion is `too-small`; baseline decision
 `baseline-01` remains unchanged. This checkpoint does not justify a settings
 change.
+
+## Item-two early-signal checkpoint
+
+Accepted item 2, `toprgu-ram-zram-staging-policy`, independently triggered an
+immediate scope-containment signal. The first attempt edited a completed
+historical adapter; integration
+restored it and moved the exception into the active TOPRGU layer before Sol and
+Astra acceptance. The two items share a hard-uncertainty implementation class,
+but they exercise different safety contracts and remain too few for a routing
+change. Baseline decision `baseline-01` remains unchanged.

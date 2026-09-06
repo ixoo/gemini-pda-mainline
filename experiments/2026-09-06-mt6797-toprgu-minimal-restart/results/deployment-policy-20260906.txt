@@ -2,7 +2,8 @@ experiment=2026-09-06-mt6797-toprgu-minimal-restart
 record=guarded-deployment-policy-transition
 date_utc=2026-09-06
 parent_commit=ea2038331018d1a0eee0865f56bf4fbcae742e5d
-state=review-accepted; clean publication and exact rederivation pending
+state=deployment-ready; physical selection remains unselected
+publication_commit=334c3d91c6659f75532ff66e354fc41d3dedd1f9
 
 unchanged_candidate:
   padded_sha256=22edf533734ac52e56f3291c90264359fec2eaccc79cd68acf28b20d9cb216e8
@@ -38,9 +39,12 @@ review:
   candidate_tests=21/21 normal and 21/21 optimized pass
   historical_baseline_installer_tests=9/9 normal and 9/9 optimized pass
   shared_boot2_guard_tests=18/18 normal and 18/18 optimized pass
-  private_derivation=pass; provisional installer sha256 fefa127a70c445bda449d346c55dba86209075f8b775f5a25ae5dd4ff65f8a74
+  private_derivation=pass from the exact clean pushed publication
+  installer_sha256=3e1afaef7f5f839e7ae824243b7c73de5423872a0e1585402a172835ef7134db
   generated_bash_syntax=pass
   generated_shellcheck=pass
 
 No swap operation, candidate upload, partition write, shutdown, reboot, or
-physical selection occurred while preparing this policy transition.
+physical selection occurred while preparing and publishing this policy
+transition. The guarded deployment is now ready to run against its exact live
+predecessor; deployment receipt review remains required before selection.

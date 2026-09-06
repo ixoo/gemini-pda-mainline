@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-06-mt6797-toprgu-minimal-restart` |
-| Status | Private candidate validated; revised installer accepted, publication/deployment pending |
+| Status | Candidate and revised installer validated; guarded deployment pending |
 | Subsystem | MediaTek watchdog system restart |
 | Device variant | Existing named Gemini PDA; retail subvariant unconfirmed |
 | Date | 2026-09-06 |
@@ -114,6 +114,12 @@ RAM-only exception above and required that swap remain untouched. The previous
 installer digest in the candidate-readiness record is therefore historical;
 the revised policy and eventual clean-publication identity are tracked in
 [`results/deployment-policy-20260906.txt`](results/deployment-policy-20260906.txt).
+Publication `334c3d91c6659f75532ff66e354fc41d3dedd1f9` was then
+revalidated from a clean origin-matching worktree and produced the exact
+installer SHA-256
+`3e1afaef7f5f839e7ae824243b7c73de5423872a0e1585402a172835ef7134db`.
+This restores deployment readiness without changing the candidate bytes or
+selecting the physical experiment.
 
 The prior Buildbox attempt at exact commit
 `e70982c09a16a0bb8b152a0dfcada7db69d2a0bf` failed before applying 0543 because
