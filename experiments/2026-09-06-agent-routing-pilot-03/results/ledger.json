@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "cohort_id": "2026-09-06-agent-routing-pilot-03",
+  "baseline_commit": "63919a7ca33d1a0f5f6b5eaef9f33c58e79ec808",
+  "baseline_decision_id": "baseline-01",
+  "settings_baseline": {
+    "coordinator": {
+      "role": "gemini_reasoner",
+      "model": "gpt-5.6-sol",
+      "effort": "medium"
+    },
+    "executor": {
+      "role": "gemini_executor",
+      "model": "gpt-5.6-luna",
+      "effort": "medium"
+    },
+    "implementer": {
+      "role": "gemini_implementer",
+      "model": "gpt-5.6-luna",
+      "effort": "high"
+    },
+    "specialist": {
+      "role": "gemini_specialist",
+      "model": "gpt-6-astra",
+      "effort": "medium"
+    },
+    "maximum_spawned_agent_threads_excluding_primary": 3
+  },
+  "target_accepted_offline_items": 10,
+  "checkpoint_interval": 5,
+  "rolling_window_after_pilot": 10,
+  "accepted_count": 0,
+  "next_accepted_sequence": 1,
+  "next_considered_sequence": 1,
+  "considered_items": [],
+  "checkpoints": [],
+  "settings_decisions": []
+}

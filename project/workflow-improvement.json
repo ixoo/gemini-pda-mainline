@@ -3,7 +3,7 @@
   "purpose": "Pointer to the effective workflow decision and active measurement cohort; not a measurement ledger, scheduler, work authorization or performance ranking.",
   "policy": "project/WORKFLOW_IMPROVEMENT.md",
   "work_item_template": "project/WORK_ITEM.md",
-  "active_cohort_id": "2026-09-06-agent-routing-pilot-02",
+  "active_cohort_id": "2026-09-06-agent-routing-pilot-03",
   "cohorts": [
     {
       "id": "2026-09-05-agent-routing-pilot-01",
@@ -15,9 +15,17 @@
     },
     {
       "id": "2026-09-06-agent-routing-pilot-02",
-      "state": "collecting",
+      "state": "complete",
       "record": "experiments/2026-09-06-agent-routing-pilot-02/README.md",
       "ledger": "experiments/2026-09-06-agent-routing-pilot-02/results/ledger.json",
+      "baseline_commit": "63919a7ca33d1a0f5f6b5eaef9f33c58e79ec808",
+      "baseline_decision_id": "baseline-01"
+    },
+    {
+      "id": "2026-09-06-agent-routing-pilot-03",
+      "state": "collecting",
+      "record": "experiments/2026-09-06-agent-routing-pilot-03/README.md",
+      "ledger": "experiments/2026-09-06-agent-routing-pilot-03/results/ledger.json",
       "baseline_commit": "63919a7ca33d1a0f5f6b5eaef9f33c58e79ec808",
       "baseline_decision_id": "baseline-01"
     }

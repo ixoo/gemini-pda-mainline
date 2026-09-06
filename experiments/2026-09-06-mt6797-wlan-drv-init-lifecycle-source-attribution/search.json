@@ -1,0 +1,226 @@
+{
+  "schema_version": 1,
+  "budgets": {
+    "batches": 2,
+    "new_regular_files": 8,
+    "directory_inventories": 1,
+    "contextual_rereads": 2
+  },
+  "batches": [
+    {
+      "id": 1,
+      "clock_sample_before_freeze": "2026-09-06 18:28:17 UTC",
+      "purpose": "Mandatory complete drv_init Makefile first; no body selected from filenames alone.",
+      "requests": [
+        {
+          "request_id": "drv_make",
+          "source_id": "drv_make",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect/drv_init/Makefile",
+          "kind": "raw",
+          "expected_git_blob_sha1": "bb84384b9a24f2a083a6caad9411765b75ee1047",
+          "expected_size": 590
+        }
+      ],
+      "read_policy": "Complete Makefile only."
+    },
+    {
+      "id": 2,
+      "clock_sample_before_freeze": "2026-09-06 18:29:46 UTC",
+      "purpose": "Inspect only the Makefile-demonstrated connection/common/WLAN lifecycle producers and direct calls. Final batch.",
+      "requests": [
+        {
+          "request_id": "conn_drv_init",
+          "source_id": "conn_drv_init",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect/drv_init/conn_drv_init.c",
+          "kind": "raw",
+          "expected_git_blob_sha1": "8112d2a1d95e2cb37faf2e4558ec00138f3ff130",
+          "expected_size": 2248
+        },
+        {
+          "request_id": "common_drv_init",
+          "source_id": "common_drv_init",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect/drv_init/common_drv_init.c",
+          "kind": "raw",
+          "expected_git_blob_sha1": "8b358d3b346915c5b841c90665cfed8f9dd33f60",
+          "expected_size": 1651
+        },
+        {
+          "request_id": "wlan_drv_init",
+          "source_id": "wlan_drv_init",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect/drv_init/wlan_drv_init.c",
+          "kind": "raw",
+          "expected_git_blob_sha1": "5b0d039a4a4254040f589c78369e60ddc96e1d80",
+          "expected_size": 1867
+        }
+      ],
+      "read_policy": "Complete three small lifecycle source files in memory. Follow no unrelated component body; no additional source fetch after this batch."
+    }
+  ],
+  "requests": [
+    {
+      "request_id": "drv_make",
+      "source_id": "drv_make",
+      "path": "drivers/misc/mediatek/connectivity/common/common_detect/drv_init/Makefile",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_detect/drv_init/Makefile",
+      "kind": "raw",
+      "batch": 1,
+      "started_utc": "2026-09-06T18:28:59.821304+00:00",
+      "status": 200,
+      "sha256": "5743b4c9764738ff5dd36bce2a8233434f4724e15145573b46ef5ceedcccd6ac",
+      "git_blob_sha1": "bb84384b9a24f2a083a6caad9411765b75ee1047",
+      "size": 590,
+      "line_count": 22,
+      "finished_utc": "2026-09-06T18:28:59.991684+00:00"
+    },
+    {
+      "request_id": "conn_drv_init",
+      "source_id": "conn_drv_init",
+      "path": "drivers/misc/mediatek/connectivity/common/common_detect/drv_init/conn_drv_init.c",
+      "kind": "raw",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_detect/drv_init/conn_drv_init.c",
+      "batch": 2,
+      "started_utc": "2026-09-06T18:30:15.783097+00:00",
+      "status": 200,
+      "sha256": "01a19e83933b7e46030b25a0ff3c8fe15d5db9a51196003a1d63e6a757828f43",
+      "git_blob_sha1": "8112d2a1d95e2cb37faf2e4558ec00138f3ff130",
+      "size": 2248,
+      "line_count": 80,
+      "finished_utc": "2026-09-06T18:30:16.012088+00:00"
+    },
+    {
+      "request_id": "common_drv_init",
+      "source_id": "common_drv_init",
+      "path": "drivers/misc/mediatek/connectivity/common/common_detect/drv_init/common_drv_init.c",
+      "kind": "raw",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_detect/drv_init/common_drv_init.c",
+      "batch": 2,
+      "started_utc": "2026-09-06T18:30:15.783107+00:00",
+      "status": 200,
+      "sha256": "12381bc3dcbe79475111205c1428e13763b78b270e6ef2d8313f374f55ff973b",
+      "git_blob_sha1": "8b358d3b346915c5b841c90665cfed8f9dd33f60",
+      "size": 1651,
+      "line_count": 57,
+      "finished_utc": "2026-09-06T18:30:16.028583+00:00"
+    },
+    {
+      "request_id": "wlan_drv_init",
+      "source_id": "wlan_drv_init",
+      "path": "drivers/misc/mediatek/connectivity/common/common_detect/drv_init/wlan_drv_init.c",
+      "kind": "raw",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_detect/drv_init/wlan_drv_init.c",
+      "batch": 2,
+      "started_utc": "2026-09-06T18:30:15.783091+00:00",
+      "status": 200,
+      "sha256": "92bea150715ef09d2661d427dd33a1a3c290acf6123106add093c1028ebcacad",
+      "git_blob_sha1": "5b0d039a4a4254040f589c78369e60ddc96e1d80",
+      "size": 1867,
+      "line_count": 74,
+      "finished_utc": "2026-09-06T18:30:15.924463+00:00"
+    }
+  ],
+  "no_hits": [
+    {
+      "request_id": "conn_drv_init",
+      "source_id": "conn_drv_init",
+      "lines": [
+        1,
+        80
+      ],
+      "targets": [
+        "mtk_wcn_wlan_gen3_exit",
+        "module_init",
+        "module_exit",
+        "initcall registration"
+      ],
+      "result": "No occurrence/registration in complete selected file; not a repository-wide absence claim."
+    },
+    {
+      "request_id": "common_drv_init",
+      "source_id": "common_drv_init",
+      "lines": [
+        1,
+        57
+      ],
+      "targets": [
+        "mtk_wcn_wlan_gen3_exit",
+        "module_init",
+        "module_exit",
+        "initcall registration"
+      ],
+      "result": "No occurrence/registration in complete selected file; not a repository-wide absence claim."
+    },
+    {
+      "request_id": "wlan_drv_init",
+      "source_id": "wlan_drv_init",
+      "lines": [
+        1,
+        74
+      ],
+      "targets": [
+        "mtk_wcn_wlan_gen3_exit",
+        "module_init",
+        "module_exit",
+        "initcall registration"
+      ],
+      "result": "No occurrence/registration in complete selected file; not a repository-wide absence claim."
+    },
+    {
+      "request_id": "selected-three-source-corpus",
+      "source_ids": [
+        "conn_drv_init",
+        "common_drv_init",
+        "wlan_drv_init"
+      ],
+      "target": "caller of do_connectivity_driver_init outside its definition",
+      "result": "No caller in this bounded corpus; no extra request made."
+    }
+  ],
+  "contextual_rereads": [],
+  "makefile_selection": {
+    "source_id": "drv_make",
+    "source_sha256": "5743b4c9764738ff5dd36bce2a8233434f4724e15145573b46ef5ceedcccd6ac",
+    "lines": [
+      1,
+      22
+    ],
+    "config_mtk_combo": "y",
+    "config_mtk_combo_chip": "CONSYS_6797",
+    "selected_wlan_generation": "MTK_WCN_WLAN_GEN3",
+    "literal_obj_y_order": [
+      "conn_drv_init.o",
+      "common_drv_init.o",
+      "bluetooth_drv_init.o",
+      "gps_drv_init.o",
+      "fm_drv_init.o",
+      "wlan_drv_init.o"
+    ],
+    "selected_audit_sources": [
+      "conn_drv_init.c",
+      "common_drv_init.c",
+      "wlan_drv_init.c"
+    ],
+    "other_component_bodies_excluded": true,
+    "ant_line_boundary": "Line 20 uses the literal obj-($(CONFIG_MTK_COMBO_ANT)) spelling; no conventional obj-y/obj-m ANT selection is inferred or audited."
+  },
+  "counts": {
+    "network_requests": 4,
+    "raw_successes": 4,
+    "raw_failures": 0,
+    "new_regular_files": 4,
+    "inherited_regular_files": 6,
+    "source_identity_tuples": 10,
+    "batches": 2,
+    "directory_inventories": 0,
+    "contextual_rereads": 0,
+    "no_hit_records": 4
+  },
+  "stop": {
+    "reason": "two-batch-budget-exhausted",
+    "additional_source_reads_permitted": false,
+    "unresolved": [
+      "outer producer/caller and registration of do_connectivity_driver_init",
+      "gen3 exit caller, registration/invocation mechanism and exit ordering",
+      "observed final linkage/runtime chip argument/effects"
+    ]
+  }
+}

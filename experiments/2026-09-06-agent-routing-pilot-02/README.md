@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-06-agent-routing-pilot-02` |
-| Status | collecting |
+| Status | complete; ten accepted offline items measured, baseline retained |
 | Subsystem | Project coordination and Codex routing settings |
 | Device variant | None; offline work only |
 | Date(s) | 2026-09-06 onward |
@@ -186,3 +186,33 @@ invocation after offline acceptance. Authenticated SSH or the expected identity
 refused before the remote admission barrier, so no selected mount/file read was
 admitted and the observation budget remains unconsumed. It is excluded as a
 device session and changes no accepted-item or checkpoint count.
+
+## Item ten and cohort close
+
+Accepted item 10, `mt6797-wlan-drv-init-lifecycle-source-attribution`, begins
+with the exact selected detector Makefile and follows only its demonstrated
+connection, common and WLAN lifecycle sources. It resolves the conditional
+direct initialization chain, integer-result aggregation and explicit call
+order. The outer producer/final aggregate consumer, actual weak/ordinary final
+linkage and chip argument, and every gen3 exit invocation/order remain
+explicitly unresolved. The first complete handoff passed Sol review without
+rework; normal and optimized verification each rejected 41 mutations.
+
+This is the fifth accepted item in the comparable hard-uncertainty Wi-Fi owner
+source-attribution group. Its median elapsed time is 20.0666667 minutes and
+median review time is 5.4833333 minutes. First-review acceptance is 3/5; none
+of the five items escalated, and credits are unavailable throughout. Two prior
+publication-integrity misses were repaired before integration, while all five
+accepted results preserved narrow source-only authority. The evidence supports
+keeping Astra Medium ownership and Sol Medium review; it does not measure an
+alternative route or justify changing a setting. Baseline decision
+`baseline-01` remains effective.
+
+The complete cohort contains thirteen considered candidates and ten accepted
+offline items. Across all accepted items, median elapsed time is 26.875 minutes
+and median review/rework time is 9.4722331 minutes; first-review acceptance is
+3/10. Four items escalated for distinct safety or scope questions. Because the
+work types and acceptance contracts are heterogeneous, the cohort-wide figures
+are descriptive rather than a settings comparison. The item-ten close
+conclusion is `no-change`: baseline decision `baseline-01` is retained, no
+settings experiment remains open, and measurement continues in pilot 03.

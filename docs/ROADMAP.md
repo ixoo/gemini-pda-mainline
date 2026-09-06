@@ -204,7 +204,11 @@ The remaining preparation order is:
    bring-up. Keep ordinary section submission distinct from firmware execution;
    missing EMI ownership must not become a success flag or skipped section.
    Use the [Wi-Fi contract](hardware/mt6797-wifi.md) and existing private captures.
-   Host fixtures and compile-only adapters do not establish usable Wi-Fi.
+   Host fixtures and compile-only adapters do not establish usable Wi-Fi. Before
+   promoting the lifecycle scaffolding, resolve the build-selected outer caller
+   of `do_connectivity_driver_init`, its final aggregate handling and an actual
+   teardown reference; do not infer exit order by reversing the established
+   initialization sequence.
 3. **Keyboard coverage:** finish coherent capture admission, finite owner key
    sequence, classification and complete private evidence export. Reuse the
    measured monitor and retain the full-duration timing obligation; inert binary

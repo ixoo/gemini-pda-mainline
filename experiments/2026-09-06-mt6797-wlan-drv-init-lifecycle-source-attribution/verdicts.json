@@ -1,0 +1,300 @@
+{
+  "schema_version": 1,
+  "repository_parent": "30d414811724c25ebd4183c00f06cd8d27aebb0b",
+  "source_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+  "authority": {
+    "runtime_equivalence": false,
+    "resource_ownership": false,
+    "firmware_success": false,
+    "radio_enablement": false,
+    "vendor_code_reusable": false,
+    "vendor_api_reusable": false,
+    "device_action_allowed": false,
+    "hardware_support_claim": false
+  },
+  "citations": {
+    "config": {
+      "source_id": "config",
+      "lines": [
+        1336,
+        1359
+      ],
+      "symbol": "MT6797 and Wi-Fi selection"
+    },
+    "wlan_make": {
+      "source_id": "wlan_make",
+      "lines": [
+        1,
+        35
+      ],
+      "symbol": "built-in/gen3 selection"
+    },
+    "gen3_object_mode": {
+      "source_id": "gen3_make",
+      "lines": [
+        79,
+        81
+      ],
+      "symbol": "CONFIG_MTK_COMBO_WIFI object selection"
+    },
+    "hif_macro": {
+      "source_id": "gen3_config",
+      "lines": [
+        44,
+        56
+      ],
+      "symbol": "MTK_WCN_HIF_SDIO MT6797 branch"
+    },
+    "init_exit": {
+      "source_id": "gl_init",
+      "lines": [
+        2441,
+        2536
+      ],
+      "symbol": "initWlan/exitWlan and built-in exports"
+    },
+    "detect_objects": {
+      "source_id": "detect_make",
+      "lines": [
+        21,
+        37
+      ],
+      "symbol": "selected SoC detector and drv_init directory"
+    },
+    "drv_build_guard": {
+      "source_id": "drv_make",
+      "lines": [
+        1,
+        12
+      ],
+      "symbol": "built-in guard and generation macro"
+    },
+    "drv_objects": {
+      "source_id": "drv_make",
+      "lines": [
+        14,
+        22
+      ],
+      "symbol": "literal object assignments"
+    },
+    "wlan_source": {
+      "source_id": "wlan_drv_init",
+      "lines": [
+        20,
+        74
+      ],
+      "symbol": "complete WLAN wrapper source region"
+    },
+    "wlan_char_init": {
+      "source_id": "wlan_drv_init",
+      "lines": [
+        24,
+        36
+      ],
+      "symbol": "do_wlan_drv_init character initialization"
+    },
+    "wlan_gen3_call": {
+      "source_id": "wlan_drv_init",
+      "lines": [
+        38,
+        50
+      ],
+      "symbol": "chip cases and gen3 integer accumulation"
+    },
+    "wlan_return": {
+      "source_id": "wlan_drv_init",
+      "lines": [
+        65,
+        74
+      ],
+      "symbol": "do_wlan_drv_init return"
+    },
+    "connection_weak": {
+      "source_id": "conn_drv_init",
+      "lines": [
+        29,
+        33
+      ],
+      "symbol": "weak fallback definition"
+    },
+    "connection_common": {
+      "source_id": "conn_drv_init",
+      "lines": [
+        41,
+        52
+      ],
+      "symbol": "common aggregate early return"
+    },
+    "connection_order": {
+      "source_id": "conn_drv_init",
+      "lines": [
+        54,
+        80
+      ],
+      "symbol": "remaining component call order and sum"
+    },
+    "common_order": {
+      "source_id": "common_drv_init",
+      "lines": [
+        25,
+        55
+      ],
+      "symbol": "common sequential initialization and sum"
+    },
+    "connection_corpus": {
+      "source_id": "conn_drv_init",
+      "lines": [
+        1,
+        80
+      ],
+      "symbol": "bounded complete connection source"
+    },
+    "common_corpus": {
+      "source_id": "common_drv_init",
+      "lines": [
+        1,
+        57
+      ],
+      "symbol": "bounded complete common source"
+    }
+  },
+  "state_model": {
+    "selected_mode": "built-in",
+    "config_mtk_combo": "y",
+    "config_mtk_combo_wifi": "y",
+    "config_mtk_combo_chip": "CONSYS_6797",
+    "selected_generation_macro": "MTK_WCN_WLAN_GEN3",
+    "makefile_obj_y_order": [
+      "conn_drv_init.o",
+      "common_drv_init.o",
+      "bluetooth_drv_init.o",
+      "gps_drv_init.o",
+      "fm_drv_init.o",
+      "wlan_drv_init.o"
+    ],
+    "selected_audit_sources": [
+      "conn_drv_init.c",
+      "common_drv_init.c",
+      "wlan_drv_init.c"
+    ],
+    "ant_standard_object_selection": null,
+    "wlan_chip_argument_condition": "0x6797 (0x6630 shares this case)",
+    "wlan_strong_definition": "wlan_drv_init.c:do_wlan_drv_init",
+    "wlan_weak_fallback": "conn_drv_init.c:do_wlan_drv_init",
+    "final_link_selection_observed": false,
+    "gen3_direct_caller": "do_wlan_drv_init",
+    "wlan_wrapper_direct_caller": "do_connectivity_driver_init",
+    "outer_connectivity_caller": null,
+    "init_registration_mechanism": null,
+    "gen3_result_handling": "returned by gen3 export; added to WLAN aggregate; WLAN aggregate added to connection aggregate",
+    "wifi_char_init_failure_stops_gen3": false,
+    "common_result_handling": "four integer init results summed",
+    "common_nonzero_stops_connection_sequence": true,
+    "noncommon_failure_stops_connection_sequence": false,
+    "zero_aggregate_proves_all_success": false,
+    "connection_call_order": [
+      "common",
+      "Bluetooth",
+      "GPS",
+      "FM",
+      "WLAN",
+      "ANT"
+    ],
+    "common_call_order": [
+      "set_chip_type",
+      "HIF-SDIO",
+      "common",
+      "STP-UART",
+      "STP-SDIO"
+    ],
+    "wlan_call_order": [
+      "WMT-Wi-Fi character device",
+      "gen3 WLAN"
+    ],
+    "exit_caller": null,
+    "exit_registration_mechanism": null,
+    "exit_invoked": null,
+    "exit_call_order": null
+  },
+  "predicates": {
+    "selected_objects": {
+      "verdict": "resolved",
+      "claim": "The first-fetched Makefile selects the gen3 macro and explicitly lists connection, common and WLAN drv-init objects as built-in for the pinned product settings.",
+      "evidence": [
+        "config",
+        "detect_objects",
+        "drv_build_guard",
+        "drv_objects"
+      ],
+      "conditions": "CONFIG_MTK_COMBO=y and CONFIG_MTK_COMBO_CHIP=CONSYS_6797. The exact obj-y list also contains Bluetooth, GPS and FM objects, whose bodies are excluded. Line 20 uses the nonstandard literal obj-($(CONFIG_MTK_COMBO_ANT)) spelling; no conventional ANT object selection is claimed. Object-list order is not an execution order.",
+      "missing": "No missing selected connection/common/WLAN object edge within this Makefile boundary. Actual link output and the separate ANT assignment interpretation are not tested.",
+      "next_discriminator": "Use only the three demonstrated lifecycle sources for this audit. Any ANT build question or final-image selection requires a separately scoped check."
+    },
+    "gen3_init_caller": {
+      "verdict": "unresolved",
+      "claim": "The conditional direct chain is do_connectivity_driver_init to do_wlan_drv_init to mtk_wcn_wlan_gen3_init, but its outer producer and initialization registration mechanism remain unestablished.",
+      "evidence": [
+        "drv_build_guard",
+        "drv_objects",
+        "connection_weak",
+        "connection_common",
+        "connection_order",
+        "wlan_char_init",
+        "wlan_gen3_call",
+        "init_exit"
+      ],
+      "conditions": "CONFIG_MTK_COMBO_WIFI is defined, MTK_WCN_WLAN_GEN3 is selected, chip_id reaches case 0x6797, and the common aggregate is zero. The selected WLAN file defines an ordinary do_wlan_drv_init while the connection file declares a __weak fallback. The chain describes the ordinary implementation when linked as intended; no final link or actual argument value is observed. The gen3 export is inherited from the accepted predecessor.",
+      "missing": "No caller of do_connectivity_driver_init or initcall/module registration appears in the three complete selected sources. Include bodies and an external producer are outside the exhausted two-batch corpus; the weak/ordinary final link has not been tested.",
+      "next_discriminator": "A new bounded contract must establish the exact direct caller/producer of do_connectivity_driver_init and its build selection before claiming boot-time registration or invocation. Do not start repository-wide search or infer a live caller."
+    },
+    "init_return_handling": {
+      "verdict": "resolved",
+      "claim": "Every established integer init caller retains the value only through arithmetic accumulation: the gen3 export returns initWlan status, WLAN adds it to character-device init status, and connection adds the WLAN aggregate to other components.",
+      "evidence": [
+        "init_exit",
+        "wlan_char_init",
+        "wlan_gen3_call",
+        "wlan_return",
+        "connection_common",
+        "connection_order",
+        "common_order"
+      ],
+      "conditions": "The WLAN wrapper does not stop after a nonzero character-device init result. The common wrapper calls four initializers and sums their results; the connection wrapper stops only if that common aggregate is nonzero. Later component errors are logged, accumulated and do not stop subsequent calls. A sum is not lossless error identity: zero is not proof each addend succeeded. Callee implementations outside these wrappers are not inspected.",
+      "missing": "No missing return-handling edge among the established wrappers. The consumer of do_connectivity_driver_init's final aggregate and deeper callee return contracts remain unknown.",
+      "next_discriminator": "When the external producer is separately established, inspect whether it returns, converts or discards the connection aggregate; never promote zero aggregate to individual component or firmware success."
+    },
+    "gen3_exit_caller": {
+      "verdict": "unresolved",
+      "claim": "The inherited gen3 exit export exists, but no call to it or teardown registration mechanism is established in the selected drv-init corpus.",
+      "evidence": [
+        "init_exit",
+        "wlan_source",
+        "connection_corpus",
+        "common_corpus"
+      ],
+      "conditions": "All three demonstrated source files were read completely. None contains mtk_wcn_wlan_gen3_exit or a direct module_init/module_exit/initcall registration. This is a bounded textual/source absence, not repository-wide absence, not proof of header behavior, and not proof that teardown cannot happen.",
+      "missing": "An outer exit producer/caller and a mechanism invoking it remain missing. The accepted predecessor's static NULL-remove result is not an invocation mechanism and is not changed here.",
+      "next_discriminator": "A new bounded caller/producer audit must establish an actual teardown reference and build selection, or preserve unresolved. Do not infer automatic built-in unload or reverse initialization order."
+    },
+    "explicit_order": {
+      "verdict": "resolved",
+      "claim": "The connection wrapper's explicit call order is common, Bluetooth, GPS, FM, WLAN, ANT; WLAN calls character-device initialization before gen3 initialization. Common itself calls chip-type setting, HIF-SDIO, common, STP-UART and STP-SDIO in that order.",
+      "evidence": [
+        "connection_common",
+        "connection_order",
+        "common_order",
+        "wlan_char_init",
+        "wlan_gen3_call"
+      ],
+      "conditions": "Only source sequencing of direct calls is established. A nonzero common aggregate returns before other component calls; later nonzero results do not stop the sequence. No unrelated component body is audited. Makefile object order is recorded separately and is not used to infer call order.",
+      "missing": "No missing ordering edge inside these shown functions. Their external invocation, asynchronous effects, resource retention and all exit ordering remain unknown.",
+      "next_discriminator": "Preserve these conditional call orders when reviewing a future producer; establish exit order from an actual teardown body, never by reversing this init sequence."
+    }
+  },
+  "escalation": {
+    "evidence": "Makefile-selected direct init wrappers and aggregate returns are joined. The source has an ordinary WLAN definition and a __weak fallback; outer producer, init registration and all gen3 exit invocation remain absent from the selected corpus.",
+    "attempts": "Mandatory Makefile first, selection frozen, then only its three demonstrated lifecycle source bodies. Two batches and four successful requests, no failures, inventories, source repairs or contextual rereads. Source and request budgets are preserved.",
+    "unresolved_question": "Who calls do_connectivity_driver_init with the relevant chip argument, how is that producer registered and how is its aggregate consumed; who, if anyone in an admitted corpus, invokes the gen3 exit export?",
+    "next_discriminating_check": "A separately scoped direct-producer audit with explicit build-selected caller evidence and sufficient bounded selection. No whole-tree search, extra batch or device action under this item."
+  }
+}
