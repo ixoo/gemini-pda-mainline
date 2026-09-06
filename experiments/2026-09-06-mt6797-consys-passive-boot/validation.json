@@ -37,7 +37,7 @@
     "git_diff_check": "pass",
     "kernel_buildbox": "pass: exact f9981eaf63381a558f77be251da4c2320cb4321b",
     "checkpatch": "pass: 0 errors; 4 non-blocking warnings; 3 style checks",
-    "device": "boot2 deployment and one passive runtime observation verified; device left running",
+    "device": "boot2 deployment, one passive runtime observation and changed-ID Gemian recovery verified",
     "hardware_support": false
   },
   "integration_review": {
@@ -215,6 +215,22 @@
     "budgets_consumed": ["physical-boot", "authenticated-collection"],
     "device_left_running": true,
     "hardware_support": false
+  },
+  "recovery": {
+    "completed_utc": "2026-09-06T23:27:11Z",
+    "record": "experiments/2026-09-06-mt6797-consys-passive-boot/results/recovery-20260906.txt",
+    "record_sha256": "ebe9eff20d292a56c5be8876377bdb5ec1cedea68d687b6cec1e7920e3403dcd",
+    "method": "owner-physical-selection",
+    "authenticated_connections": 1,
+    "release": "3.18.41+",
+    "architecture": "aarch64",
+    "boot_id": "2b2a317f-94ff-43b3-a51f-2fa6c5ba0bf9",
+    "changed_from_passive": true,
+    "changed_from_deployment": true,
+    "known_good_gemian": true,
+    "device_custody_released": true,
+    "additional_device_action": false,
+    "independent_review": "accepted by Sol at 2026-09-06T23:29:41Z"
   },
   "scope": {
     "runtime_support": false,

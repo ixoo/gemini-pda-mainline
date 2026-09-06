@@ -14,7 +14,7 @@
     "execution_state": "active-owner-available",
     "pause_record": "experiments/2026-09-05-owner-away-experiment-preparation/emmc/PAUSE_SESSION_PREPARATION.json"
   },
-  "active_device_experiment": "mt6797-consys-passive-boot",
+  "active_device_experiment": null,
   "workstreams": [
     {
       "id": "integration",
@@ -237,10 +237,10 @@
     }
   ],
   "device_handoff": {
-    "last_completed_experiment": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/README.md",
-    "result": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/results/runtime-20260906.txt",
+    "last_completed_experiment": "experiments/2026-09-06-mt6797-consys-passive-boot/README.md",
+    "result": "experiments/2026-09-06-mt6797-consys-passive-boot/results/recovery-20260906.txt",
     "queue": "project/experiment-queue.json",
-    "authority": "Completed observation and consumed budget do not authorize a repeat or imply the device has been released; obtain custodian handoff before changing its session.",
+    "authority": "The passive observation and recovery are complete, both budgets are consumed and device custody is released. Any later experiment requires fresh selection and admission; do not repeat this candidate.",
     "next_inspection": {
       "owner": "Wi-Fi mainline support",
       "task_id": "01a06f91-092d-71d0-acbe-4f38ccff2c56",
@@ -250,12 +250,6 @@
       "policy": "docs/SAFETY.md#standing-gemian-inspection-authorization",
       "live_state": "Must be established by the assigned custodian; not inferred from this registry."
     },
-    "current_session": {
-      "owner": "Wi-Fi mainline support",
-      "task_id": "01a06f91-092d-71d0-acbe-4f38ccff2c56",
-      "state": "collection-complete-awaiting-owner-recovery",
-      "evidence": "experiments/2026-09-06-mt6797-consys-passive-boot/results/runtime-20260906.txt",
-      "scope": "Exact candidate 08fc0614 passed changed-boot identity, authenticated serviceability and its sole passive log collection with BOUND generation 1 and all effect counters zero. Boot and collection budgets are consumed. The device remains running the passive image pending owner-directed physical recovery; no retry or automatic reboot is admitted."
-    }
+    "current_session": null
   }
 }

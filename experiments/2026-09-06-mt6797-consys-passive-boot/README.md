@@ -190,6 +190,18 @@ Independent Sol review accepted the sanitized runtime integration at
 private/public hash cross-checks and complete repository publication gate. The
 review made no usable-Wi-Fi or effect-bearing hardware claim.
 
+The owner then used the physical recovery path. One bounded authenticated LAN
+check observed Gemian `3.18.41+` on AArch64 with boot ID
+`2b2a317f-94ff-43b3-a51f-2fa6c5ba0bf9`, distinct from both the passive-runtime
+and deployment identities. The sanitized
+[recovery record](results/recovery-20260906.txt) closes the session and releases
+device custody. The passive image's refusal-only reboot stub was not bypassed;
+no remote reboot, power, firmware or radio action was issued.
+
+Independent Sol review accepted the recovery closure at
+`2026-09-06T23:29:41Z`, including chronology, changed identities, released
+custody, consumed budgets and repository publication checks.
+
 ## Handoff limits
 
 The patch deliberately stops at passive `BOUND`. It does not add power/reset
@@ -198,6 +210,5 @@ loading, AP-DMA, cfg80211/rfkill, radio activation, removal, suspend/resume,
 recovery or a Device Tree change. The exact candidate passed its one admitted
 passive runtime observation; this proves only the effect-free binding and
 instrumentation path on the named device. It does not establish usable Wi-Fi or
-authorize an effect-bearing follow-up. The device remains on the passive image
-pending owner-directed physical recovery, and hardware support remains
-unproven.
+authorize an effect-bearing follow-up. Changed-ID known-good Gemian recovery is
+confirmed, device custody is released, and hardware support remains unproven.

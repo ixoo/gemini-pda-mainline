@@ -3,8 +3,8 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": "mt6797-consys-passive-boot",
-  "selection_note": "The exact passive CONSYS candidate passed its one physical boot2 selection and one authenticated passive collection. Both budgets are consumed. The device remains running that effect-free image pending owner-directed physical recovery; no automatic reboot is admitted.",
+  "selected_item": null,
+  "selection_note": "The passive CONSYS session is complete: exact deployment, one owner boot2 selection, one authenticated passive collection and changed-ID known-good Gemian recovery passed. Both experiment budgets are consumed, device custody is released and no candidate is selected.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -95,11 +95,11 @@
     },
     "mt6797-consys-passive-boot": {
       "workstream": "wifi",
-      "preparation_state": "ready",
-      "device_state": "running",
+      "preparation_state": "stale",
+      "device_state": "complete",
       "owner": "Wi-Fi mainline support",
       "reviewer": "Project Planning",
-      "device_custodian": "Wi-Fi mainline support",
+      "device_custodian": null,
       "experiment": "experiments/2026-09-06-mt6797-consys-passive-boot/README.md",
       "session_packet": "experiments/2026-09-06-mt6797-consys-passive-boot/SESSION.md",
       "candidate_record": "experiments/2026-09-06-mt6797-consys-passive-boot/validation.json",
@@ -112,7 +112,7 @@
         }
       ],
       "owner_task_id": "01a06f91-092d-71d0-acbe-4f38ccff2c56",
-      "readiness_note": "The exact passive candidate passed verified installation, one owner boot2 selection and one authenticated collection. Changed boot identity, exact release, healthy logger and BOUND generation 1 passed with all seven effect counters zero. Both session budgets are consumed; the device remains on the passive image pending owner-directed physical recovery. No retry, automatic reboot or usable-Wi-Fi claim."
+      "readiness_note": "The exact passive candidate passed verified installation, one owner boot2 selection and one authenticated collection. Changed boot identity, exact release, healthy logger and BOUND generation 1 passed with all seven effect counters zero. A second changed boot identity confirmed known-good Gemian recovery. Both budgets are consumed, custody is released and the candidate must not be retried. No usable-Wi-Fi claim."
     },
     "mt6797-toprgu-minimal-restart": {
       "workstream": "watchdog",

@@ -1,0 +1,14 @@
+experiment=2026-09-06-mt6797-consys-passive-boot
+completed_utc=2026-09-06T23:27:11Z
+recovery_method=owner-physical-selection
+authenticated_connections=1
+release=3.18.41+
+architecture=aarch64
+recovery_boot_id=2b2a317f-94ff-43b3-a51f-2fa6c5ba0bf9
+passive_boot_id=21bb3c59-c698-40cc-9405-084f50193842
+deployment_boot_id=c1ecb2fc-e050-4531-9ad6-6e09aeebfa78
+changed_from_passive=yes
+changed_from_deployment=yes
+known_good_gemian=yes
+device_custody=released
+additional_device_action=none
