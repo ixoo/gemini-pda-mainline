@@ -1,0 +1,239 @@
+{
+  "schema_version": 1,
+  "parent_commit": "82405bb9eafb3af37cafb331e1bc0eaeb2518f3f",
+  "repository": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797.git",
+  "commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+  "tree": {
+    "url": "https://api.github.com/repos/lineage-geminipda/android_kernel_planet_mt6797/git/trees/c5b0be85017ad0c599725e8273842efdbecdd88a?recursive=1",
+    "api_reported_sha": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+    "truncated": false,
+    "entry_count": 59243,
+    "response_sha256": "aa447a91303a94b3711c4bf8193b9e10e5f32ca744bc84adff62d875c0e8a34e",
+    "inventory_sha256": "ad2da62434b736b1619896383dd2f46192d93a956454a9c833f5939835bda1ef",
+    "canonicalization": "JSON array in API order, each entry limited to existing path/mode/type/sha/size keys; sort_keys=True,separators=(comma,colon), UTF-8",
+    "selected_paths": [
+      {
+        "path": "drivers/misc/mediatek/devapc/mt6797/devapc.c",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "67fe4f735480753434898411bc753e4976dff165",
+        "size": 29835
+      },
+      {
+        "path": "drivers/misc/mediatek/devapc/mt6797/devapc.h",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "d8c1b46f6f59585f325ede8ff8ef13f111f7931d",
+        "size": 4132
+      },
+      {
+        "path": "drivers/misc/mediatek/eccci/mt6797/ccci_platform.c",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "e9fb8a381f16f4796933540baf665f3a374121bb",
+        "size": 38764
+      },
+      {
+        "path": "drivers/misc/mediatek/eccci/mt6797/ccci_platform.h",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "e0162849b144dd7fc6b4756cd2b93c92e2998b5d",
+        "size": 2915
+      },
+      {
+        "path": "drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "96128217defbfb79950deeb6443f82d17f2025b8",
+        "size": 93439
+      },
+      {
+        "path": "drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/emi_mpu.h",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "f6372c0b9271d90a59079e7c1004ed198bbe23c4",
+        "size": 9747
+      }
+    ],
+    "filtered_discovery_paths": [
+      "drivers/misc/mediatek/devapc/mt6797",
+      "drivers/misc/mediatek/devapc/mt6797/Makefile",
+      "drivers/misc/mediatek/devapc/mt6797/devapc.c",
+      "drivers/misc/mediatek/devapc/mt6797/devapc.h",
+      "drivers/misc/mediatek/eccci/mt6797",
+      "drivers/misc/mediatek/eccci/mt6797/Makefile",
+      "drivers/misc/mediatek/eccci/mt6797/ccci_config.h",
+      "drivers/misc/mediatek/eccci/mt6797/ccci_platform.c",
+      "drivers/misc/mediatek/eccci/mt6797/ccci_platform.h",
+      "drivers/misc/mediatek/eccci/mt6797/ccif_c2k_platform.c",
+      "drivers/misc/mediatek/eccci/mt6797/ccif_c2k_platform.h",
+      "drivers/misc/mediatek/eccci/mt6797/cldma_platform.c",
+      "drivers/misc/mediatek/eccci/mt6797/cldma_platform.h",
+      "drivers/misc/mediatek/eccci/mt6797/cldma_reg.h",
+      "drivers/misc/mediatek/eccci/mt6797/modem_reg_base.h",
+      "drivers/misc/mediatek/emi_mpu/mt6797",
+      "drivers/misc/mediatek/emi_mpu/mt6797/Makefile",
+      "drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c",
+      "drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/emi_mpu.h"
+    ]
+  },
+  "sources": [
+    {
+      "id": "emi-c",
+      "path": "drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c",
+      "size": 93439,
+      "sha256": "39921d80191b674940246425123b52fa140262a7e17022f90f02dd88389932b2",
+      "git_blob_sha1": "96128217defbfb79950deeb6443f82d17f2025b8",
+      "file_level_license": "GPL-2.0-only",
+      "license_notice_lines": [
+        1,
+        12
+      ],
+      "purpose": "Trace permission setter, master/domain violation decoders, CONSYS master table, and region-23 initialization.",
+      "rights": "Public source inspected under file-level GPL-2.0-only notice; no code imported or excerpts published"
+    },
+    {
+      "id": "emi-h",
+      "path": "drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/emi_mpu.h",
+      "size": 9747,
+      "sha256": "a59c8a9a3e6fbb6889d131e23a413597f7bf5f188d82c4e953a66ce2a5aed68d",
+      "git_blob_sha1": "f6372c0b9271d90a59079e7c1004ed198bbe23c4",
+      "file_level_license": "GPL-2.0-only",
+      "license_notice_lines": [
+        1,
+        12
+      ],
+      "purpose": "Trace eight-field packing, permission constants, and register/master declarations.",
+      "rights": "Public source inspected under file-level GPL-2.0-only notice; no code imported or excerpts published"
+    },
+    {
+      "id": "devapc-c",
+      "path": "drivers/misc/mediatek/devapc/mt6797/devapc.c",
+      "size": 29835,
+      "sha256": "be1dae42f431ea8729a3101db7baa465df00769fec432a590f335f311ae18514",
+      "git_blob_sha1": "67fe4f735480753434898411bc753e4976dff165",
+      "file_level_license": "GPL-2.0-only",
+      "license_notice_lines": [
+        1,
+        12
+      ],
+      "purpose": "Determine whether DEVAPC diagnostic master/domain decoding establishes routing assignments.",
+      "rights": "Public source inspected under file-level GPL-2.0-only notice; no code imported or excerpts published"
+    },
+    {
+      "id": "devapc-h",
+      "path": "drivers/misc/mediatek/devapc/mt6797/devapc.h",
+      "size": 4132,
+      "sha256": "e12e80f10623c753626c9ae5f4b7efbd14036e9ad95fd7bca96a5b4c873f70b7",
+      "git_blob_sha1": "d8c1b46f6f59585f325ede8ff8ef13f111f7931d",
+      "file_level_license": "GPL-2.0-only",
+      "license_notice_lines": [
+        1,
+        12
+      ],
+      "purpose": "Check exposed DEVAPC register and diagnostic definitions for routing/priority authority.",
+      "rights": "Public source inspected under file-level GPL-2.0-only notice; no code imported or excerpts published"
+    },
+    {
+      "id": "ccci-c",
+      "path": "drivers/misc/mediatek/eccci/mt6797/ccci_platform.c",
+      "size": 38764,
+      "sha256": "d7092013b0fa14b12c37e96a973c3179c565c1a1e1ebef3a6c27ec38b566a156",
+      "git_blob_sha1": "e9fb8a381f16f4796933540baf665f3a374121bb",
+      "file_level_license": "GPL-2.0-only",
+      "license_notice_lines": [
+        1,
+        12
+      ],
+      "purpose": "Inspect explicit domain labels, default permission rows, region roles and modem region-set call sites.",
+      "rights": "Public source inspected under file-level GPL-2.0-only notice; no code imported or excerpts published"
+    },
+    {
+      "id": "ccci-h",
+      "path": "drivers/misc/mediatek/eccci/mt6797/ccci_platform.h",
+      "size": 2915,
+      "sha256": "ea9bbefef867f8a097428bb2fc3bf336b767b4f1064dc2f554e1dfc11cb48fa7",
+      "git_blob_sha1": "e0162849b144dd7fc6b4756cd2b93c92e2998b5d",
+      "file_level_license": "GPL-2.0-only",
+      "license_notice_lines": [
+        1,
+        12
+      ],
+      "purpose": "Check companion platform declarations for assignment or priority definitions.",
+      "rights": "Public source inspected under file-level GPL-2.0-only notice; no code imported or excerpts published"
+    }
+  ],
+  "records": [
+    {
+      "id": "emi-abi",
+      "path": "experiments/2026-09-05-mt6797-wifi-contract/EMI_ABI.md",
+      "sha256": "60bd8c436b22495719512b8a1cd9dae0bffb062511811d67cff436d94a0f0c71",
+      "purpose": "Frozen arithmetic/ABI restrictions",
+      "rights": "Existing sanitized project evidence; metadata cited only"
+    },
+    {
+      "id": "retained-abi",
+      "path": "experiments/2026-09-05-mt6797-wifi-contract/RETAINED_EMI_SECURE_ABI.md",
+      "sha256": "8c4963c1d9e63b98bb7dcdad8ed41e442f1f6171e8c599869758f4984e7a7f06",
+      "purpose": "Frozen secure-handler interpretation; no new interpretation",
+      "rights": "Existing sanitized project evidence; metadata cited only"
+    },
+    {
+      "id": "shared-owner",
+      "path": "experiments/2026-09-05-mt6797-wifi-contract/SHARED_OWNER_IMPLEMENTATION.md",
+      "sha256": "a71e51e2ff2676b63d21bbd8e83fc6af98c24e77d47f4fe541e60d11be1c1021",
+      "purpose": "Frozen ownership and interval constraints",
+      "rights": "Existing sanitized project evidence; metadata cited only"
+    },
+    {
+      "id": "retained-windows",
+      "path": "experiments/2026-09-05-mt6797-wifi-contract/results/retained-emi-secure-abi.json",
+      "sha256": "fc1f249aa50b975298d559f8446dce7de24068a3aa88fab3b81ad83f1f3bcfe2",
+      "purpose": "Frozen private artifact/window hashes",
+      "rights": "Existing sanitized project evidence; metadata cited only"
+    },
+    {
+      "id": "public-source-ledger",
+      "path": "experiments/2026-09-05-mt6797-wifi-contract/results/whole-image-emi-sources.json",
+      "sha256": "f69382b0ddaa09f9dd1f5eebf76d55f4b2e41734f1e9cd199e9fe2346b20d9ef",
+      "purpose": "Public source-path discovery; not a fresh WLAN/WMT trace",
+      "rights": "Existing sanitized project evidence; metadata cited only"
+    },
+    {
+      "id": "historical-tee-identity",
+      "path": "experiments/2026-07-22-a72-firmware-power-contract/results/live-tee-identity-20260723.txt",
+      "sha256": "3f2753800637a9650ce210b57f2d531f62b62daeef095262deff86c4a1f25b55",
+      "purpose": "Filename locator only; no current-state inference",
+      "rights": "Existing sanitized project evidence; metadata cited only"
+    },
+    {
+      "id": "historical-mapping",
+      "path": "experiments/2026-08-06-da921x-page-owner-audit/results/tee-owner-disassembly-20260806.txt",
+      "sha256": "d7b3b7848dc6e0df9e11845193a3e77e72d2fd64034454b194c9f9e340ccd5a2",
+      "purpose": "Filename/mapping locator only; no new private interpretation",
+      "rights": "Existing sanitized project evidence; metadata cited only"
+    }
+  ],
+  "private_artifacts": [
+    {
+      "id": "retained-tee",
+      "size": 5242880,
+      "sha256": "2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3",
+      "rights": "Private retained firmware; redistribution unestablished; no private path, bytes or disassembly published",
+      "purpose": "Read-only whole-file and existing window-hash verification only",
+      "window_record_id": "retained-windows",
+      "verified_windows": [
+        "range-and-selector",
+        "region18",
+        "region19",
+        "shared-store",
+        "region-table"
+      ],
+      "new_interpretation": false
+    }
+  ],
+  "verification_replay": {
+    "started_utc": "2026-09-06T05:06:10.629742+00:00",
+    "stopped_utc": "2026-09-06T05:06:12.199346+00:00"
+  }
+}

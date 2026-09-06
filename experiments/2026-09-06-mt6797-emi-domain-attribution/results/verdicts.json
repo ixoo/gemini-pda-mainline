@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "allowed_verdicts": [
+    "resolved",
+    "contradicted",
+    "unresolved"
+  ],
+  "policy_selection_allowed": false,
+  "verdicts": {
+    "ap": {
+      "verdict": "unresolved",
+      "evidence_class": "observed-source-fact",
+      "hardware_routing_established": false,
+      "citations": [
+        {
+          "source_id": "ccci-c",
+          "sha256": "d7092013b0fa14b12c37e96a973c3179c565c1a1e1ebef3a6c27ec38b566a156",
+          "locator": "MPU_ATTR_DEFAULT column labels, line 129; domain comment line 91"
+        },
+        {
+          "source_id": "emi-c",
+          "sha256": "39921d80191b674940246425123b52fa140262a7e17022f90f02dd88389932b2",
+          "locator": "protect_ap_region, lines 2196-2212"
+        }
+      ],
+      "observation": "Source calls D0 AP and region-23 request permits D0.",
+      "missing_link": "No complete AP master-to-hardware-domain-selector-to-field trace.",
+      "next_discriminator": "Obtain exact MT6797 AP assignment-register semantics and retained initialization trace establishing its domain."
+    },
+    "consys": {
+      "verdict": "unresolved",
+      "evidence_class": "observed-source-fact",
+      "hardware_routing_established": false,
+      "citations": [
+        {
+          "source_id": "ccci-c",
+          "sha256": "d7092013b0fa14b12c37e96a973c3179c565c1a1e1ebef3a6c27ec38b566a156",
+          "locator": "Domain labels, lines 91 and 129"
+        },
+        {
+          "source_id": "emi-c",
+          "sha256": "39921d80191b674940246425123b52fa140262a7e17022f90f02dd88389932b2",
+          "locator": "MST_ID_PERI_18 at lines 569-570; separate master and domain decoding at 854-864"
+        }
+      ],
+      "observation": "Source calls D2 CONN and independently classifies a CONSYS AXI master on port 6.",
+      "missing_link": "No hardware assignment joins that master to D2, including bridge/security overrides.",
+      "next_discriminator": "Establish the identified CONSYS AXI master's assignment register and effective bridge override semantics from exact MT6797 evidence."
+    },
+    "wlan": {
+      "verdict": "unresolved",
+      "evidence_class": "observed-source-fact",
+      "hardware_routing_established": false,
+      "citations": [
+        {
+          "source_id": "ccci-c",
+          "sha256": "d7092013b0fa14b12c37e96a973c3179c565c1a1e1ebef3a6c27ec38b566a156",
+          "locator": "MPU_REGION_ID_WIFI_EMI_FW line 84 and MPU_ATTR_DEFAULT row 18"
+        },
+        {
+          "source_id": "retained-abi",
+          "sha256": "8c4963c1d9e63b98bb7dcdad8ed41e442f1f6171e8c599869758f4984e7a7f06",
+          "locator": "Region 18, neighboring 19, and policy authority"
+        }
+      ],
+      "observation": "Region-18 caller policy permits D2; retained setter transports the low 24 bits.",
+      "missing_link": "WLAN fetch/data routing is not traced to that CONSYS master or domain; host AP-DMA is not equivalent evidence.",
+      "next_discriminator": "Locate an attributable retained WLAN fetch/data transaction with independently decoded master and domain."
+    },
+    "overlap_priority": {
+      "verdict": "unresolved",
+      "evidence_class": "observed-source-fact",
+      "priority_rule_established": false,
+      "active_region_applicability_established": false,
+      "citations": [
+        {
+          "source_id": "emi-c",
+          "sha256": "39921d80191b674940246425123b52fa140262a7e17022f90f02dd88389932b2",
+          "locator": "protect_ap_region lines 2196-2212 and emi_mpu_mod_init line 2345"
+        },
+        {
+          "source_id": "ccci-c",
+          "sha256": "d7092013b0fa14b12c37e96a973c3179c565c1a1e1ebef3a6c27ec38b566a156",
+          "locator": "Region definitions lines 63-87 and MPU_ATTR_DEFAULT rows 0-20"
+        },
+        {
+          "source_id": "retained-abi",
+          "sha256": "8c4963c1d9e63b98bb7dcdad8ed41e442f1f6171e8c599869758f4984e7a7f06",
+          "locator": "Region 18, neighboring 19, and policy authority"
+        }
+      ],
+      "observation": "Whole-DRAM region-23 request potentially overlaps WLAN/WMT requests; full active region state is unknown.",
+      "missing_link": "Neither exact MT6797 arbitration rule nor applicability to all active overlapping regions at WLAN loading is established.",
+      "next_discriminator": "Obtain the exact MT6797 region-match arbitration specification, then compare it with an attributable retained complete region-state snapshot."
+    }
+  },
+  "runtime_region_state": "Unknown for every region 0 through 23; source setters and default rows are not active-state receipts."
+}

@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 4,
-  "next_accepted_sequence": 5,
-  "next_considered_sequence": 7,
+  "accepted_count": 5,
+  "next_accepted_sequence": 6,
+  "next_considered_sequence": 8,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -220,8 +220,71 @@
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-06-mt6797-remap-fields-compile/BUILD_RESULT.md"
       }
+    },
+    {
+      "considered_sequence": 7,
+      "accepted_sequence": 5,
+      "candidate_id": "mt6797-emi-domain-attribution",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "reasoning",
+      "risk_class": "hard-uncertainty",
+      "acceptance_contract": "experiments/2026-09-06-mt6797-emi-domain-attribution/WORK_ITEM.md",
+      "parent": "82405bb9eafb3af37cafb331e1bc0eaeb2518f3f",
+      "owner_route": {
+        "role": "gemini_specialist",
+        "model": "gpt-6-astra",
+        "effort": "medium"
+      },
+      "review_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-06T04:57:48Z",
+        "review_ready_at": "2026-09-06T05:03:55Z",
+        "accepted_at": "2026-09-06T05:21:50Z",
+        "timing_source": "observed UTC work-contract, handoff, repair and final-review timestamps",
+        "elapsed_minutes": 24.0333333333,
+        "review_rework_minutes": 17.9166666667,
+        "first_review_accepted": false,
+        "rework_cycles": 3,
+        "escalated": true,
+        "escalation_reason": "two verifier-boundary repair reviews still left mutable record metadata and verdict-predicate gaps",
+        "escalation_packet": {
+          "evidence": "experiments/2026-09-06-mt6797-emi-domain-attribution/WORK_ITEM.md",
+          "attempts": [
+            "added machine-readable inputs, verdicts and bounded search inventories after the initial handoff",
+            "froze public tree cardinality and separated queried source files from citation-only supporting records"
+          ],
+          "unresolved_question": "could the verifier authoritatively reject coordinated metadata, rights and verdict-predicate mutations?",
+          "next_discriminating_check": "freeze exact metadata independently and require mutation fixtures to reject path/hash co-mutation, rights drift and predicate promotion under normal and optimized Python"
+        },
+        "review_failure_class": null,
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-06-mt6797-emi-domain-attribution/README.md"
+      }
     }
   ],
-  "checkpoints": [],
+  "checkpoints": [
+    {
+      "id": "pilot-01-item-five",
+      "after_accepted_sequence": 5,
+      "after_considered_sequence": 7,
+      "trigger": "interval",
+      "trigger_item_ids": [
+        "mt6797-emi-domain-attribution"
+      ],
+      "comparable_item_ids": [
+        "mt6797-emi-abi-kernel-compile",
+        "mt6797-remap-fields-kernel-compile"
+      ],
+      "conclusion": "too-small",
+      "evidence": "experiments/2026-09-05-agent-routing-pilot/README.md"
+    }
+  ],
   "settings_decisions": []
 }

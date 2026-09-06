@@ -76,36 +76,56 @@ when every item in the cohort segment uses the same observed source and unit.
 
 ## Observations
 
-The ledger contains two eligible accepted offline items. Both missed first-review
-acceptance. For the first, integration corrected an evidence-link claim, then the first live
-entry exposed fixture coupling in the dedicated workflow self-test. The bounded
-repair was escalated as a scope expansion and accepted after the validator and
-all fifteen refusal cases passed; no immediate safety, publication, provenance
-or scope-containment defect occurred.
-The second implemented a passive dynamic reserved-memory descriptor. Its first
-integration review found inaccurate OF missing-property semantics, a static
-mixed-cell regression and an insufficient borrowed-property lifetime premise.
-After escalation, owned declaration copies and faithful boundary fixtures closed
-those defects; the re-review accepted 52 predecessor binding checks, 32
-concurrency rounds and 72 reserved-memory checks. Credits remain unavailable.
-Creation of this loop remains explicitly excluded because its eligibility and
-timing contract did not exist before the work began. Existing routing remains
-the baseline; no optimization decision has been made.
-The passive CONSYS ownership snapshot is also recorded in the contiguous
-considered sequence and excluded as a device session; it does not change the
-accepted count.
+The contiguous ledger now contains seven considered candidates: five eligible
+accepted offline items, one cohort-bootstrap exclusion and one device-session
+exclusion. All five accepted items missed first-review acceptance. The first two
+required escalation: the integration item exposed live-ledger fixture coupling,
+and the dynamic reserved-memory implementation needed corrected OF semantics,
+owned declaration copies and static-path regression coverage. The next two
+cross-file implementation items required bounded evidence or verifier repairs
+but no escalation; exact Buildbox compilation and host checks accepted both.
+
+Item five was a hard-uncertainty source investigation. It retained four
+unresolved EMI routing/priority verdicts and blocked policy selection. Two
+verifier-boundary repairs still left mutable metadata and predicate gaps, so the
+required escalation added independent frozen metadata and 34 mutation-refusal
+fixtures before final Sol review accepted it. Credits are unavailable for all
+five items. No accepted measurement is inferred from model identity or elapsed
+time.
+
+Creation of this loop remains excluded because its eligibility and timing
+contract did not exist before work began. The passive CONSYS ownership snapshot
+also remains excluded as a device session; neither changes the accepted count.
+
+## Item-five checkpoint
+
+Checkpoint `pilot-01-item-five` closes accepted sequence 5 and considered
+sequence 7. The cohort is too heterogeneous for a route change: it contains one
+cross-file integration item, one hard-uncertainty implementation, two
+cross-file implementations and one hard-uncertainty reasoning item. Only the
+two cross-file kernel-compile implementations form a useful like-work subgroup
+with the same owner and review routes and materially similar host, patch replay,
+provenance and Buildbox acceptance checks.
+
+That two-item subgroup has median elapsed time 29.64092795 minutes and median
+review/rework time 20.23501580835 minutes. First-review acceptance is 0/2 and
+neither item escalated. Two observations cannot distinguish route behavior from
+task-specific verifier and evidence demands. Credits cannot be compared because
+both measurements are unavailable. The other work types have only one item
+each, so they are not used as performance comparators.
 
 ## Analysis
 
-Pending sufficient comparable evidence. A five-item checkpoint may conclude
-that the cohort is too small or heterogeneous, and `no-change` is a valid
-result. Safety, publication, provenance and scope-containment failures trigger
-immediate review regardless of sample size.
+The required interval review concludes `too-small`. The review misses justify
+continuing to measure precise acceptance defects, but do not establish that one
+model, effort or concurrency setting caused them. No safety, publication,
+provenance or scope-containment failure was accepted into the repository. A
+settings experiment still lacks the five comparable items required by policy.
 
 ## Conclusion
 
-Inconclusive while the cohort is collecting. The existing routing remains in
-effect for new work.
+No settings change. The frozen baseline remains in effect while the cohort
+continues toward ten eligible accepted offline items.
 
 ## Follow-up
 
