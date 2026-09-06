@@ -161,3 +161,28 @@ This repeats the publication-integrity signal. Items 4, 5, 7 and 8 are
 comparable hard-uncertainty source-attribution reasoning tasks, but four remain
 below the five-item evidence floor for a settings experiment. The checkpoint
 is `too-small`; baseline decision `baseline-01` remains unchanged.
+
+## Item nine and early-signal checkpoint
+
+Accepted item 9, `mt6797-wifi-live-nvram-identity-preparation`, implements a
+dry-run-by-default, one-SSH Gemian observer with a durable host ACK barrier
+before any selected mount or file read. It confines private digest evidence,
+pins exact SSH trust and requires stable admitted boot identity, exact mount
+counts, a valid 514-byte envelope, bounded binary sizes and all three private
+matches for its narrow identity-only pass.
+
+Review found and repaired safety-critical trust, consumption-barrier, boot-
+admission and raw-failure confinement gaps, followed by narrow-pass size and
+read-limit documentation repairs. All 41 normal and optimized fixtures plus
+the repository gate passed before acceptance. This safety signal receives an
+early checkpoint. The item is the cohort's only bounded live-observer
+preparation item, so the conclusion is `too-small`; baseline decision
+`baseline-01` remains unchanged and no settings decision is made.
+
+## Considered item twelve
+
+`mt6797-wifi-live-nvram-identity-pre-admission-attempt` records the first live
+invocation after offline acceptance. Authenticated SSH or the expected identity
+refused before the remote admission barrier, so no selected mount/file read was
+admitted and the observation budget remains unconsumed. It is excluded as a
+device session and changes no accepted-item or checkpoint count.

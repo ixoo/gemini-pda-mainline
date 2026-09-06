@@ -1,0 +1,42 @@
+{
+  "status": "offline-preparation validation complete; later live attempt is outside this receipt",
+  "frozen_parent": "5b879ccb941a5853b70f1f7744da169be76b18f7",
+  "python_tests": {
+    "normal": "PASS; live_nvram_identity_fixtures=pass cases=41",
+    "optimized": "PASS; live_nvram_identity_fixtures=pass cases=41",
+    "python_compile": "PASS"
+  },
+  "shell_checks": {
+    "bash_n": "PASS",
+    "shellcheck": "PASS"
+  },
+  "default_mode": "PASS; no SSH, device or private-input access",
+  "protocol": {
+    "ssh_processes": 1,
+    "remote_scripts": 1,
+    "remote_deadline_seconds": 15,
+    "host_deadline_seconds": 20,
+    "combined_output_bytes": 8192,
+    "mountinfo_parsed_bytes": 262144,
+    "mountinfo_read_bytes": 262145,
+    "binary_bytes": 4194304,
+    "wifi_bytes": 514
+  },
+  "offline_validation_hardware": "NOT ACCESSED",
+  "offline_validation_private_inputs": "NOT ACCESSED",
+  "offline_validation_network": "NOT ACCESSED",
+  "kernel_build": "NOT RUN; no kernel input changed",
+  "common_repository_gate": "PASS; scripts/check-repository",
+  "known_limits": [
+    "The root-owned container PID mount/root view may refuse non-root access.",
+    "The sequential file reads are not an atomic filesystem snapshot.",
+    "A digest and envelope match establishes identity only, not calibration, firmware, RF or transmit safety."
+  ],
+  "source_hashes": {
+    "collect.py": "7e2507286c218616147cd41dee8dd6023e536ab9204bb5c96635b474a68424c0",
+    "remote-collect.sh": "ccd8399dcc0d81067e0b909454dd3777bb805ab9cf9885893ee057fc225721f5",
+    "test_collect.py": "ecc36a82f5db07bdac3f9790a7247110754076f44b78cb95f3b4b716bb9b0dac",
+    "README.md": "6cfeddda2aa0889c180fd34557cf217405c00f1f8cc450c1be7f06793016673f",
+    "SESSION.md": "6b43d168d8d3578f5e3325326fdca77b312b315001a9ef353074b9e4beb17838"
+  }
+}

@@ -78,6 +78,21 @@
       "owner_task_id": "01a06f91-092d-71d0-acbe-4f38ccff2c56",
       "readiness_note": "Completed Gemian metadata observations; budgets consumed and custody released. No new boot2 candidate. Corrected helpers are not admitted for another attempt."
     },
+    "wifi-live-nvram-identity": {
+      "workstream": "wifi",
+      "preparation_state": "stale",
+      "device_state": "unselected",
+      "owner": "Wi-Fi mainline support",
+      "reviewer": "Project Planning",
+      "device_custodian": null,
+      "experiment": "experiments/2026-09-06-mt6797-wifi-live-nvram-identity/README.md",
+      "session_packet": "experiments/2026-09-06-mt6797-wifi-live-nvram-identity/SESSION.md",
+      "candidate_record": null,
+      "readiness_record": "experiments/2026-09-06-mt6797-wifi-live-nvram-identity/results/pre-admission-refusal-20260906.md",
+      "dependencies": [],
+      "owner_task_id": "01a06f91-092d-71d0-acbe-4f38ccff2c56",
+      "readiness_note": "Offline packet passed independent review. Its first one-SSH invocation refused before the admission barrier, so no selected data was read and the observation budget remains unconsumed. Do not retry automatically; re-establish live OS/transport and review a fresh admission if boot identity changed. No boot2 candidate or partition write."
+    },
     "mt6797-toprgu-minimal-restart": {
       "workstream": "watchdog",
       "preparation_state": "stale",

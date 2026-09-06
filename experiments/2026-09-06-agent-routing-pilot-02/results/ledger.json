@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 8,
-  "next_accepted_sequence": 9,
-  "next_considered_sequence": 11,
+  "accepted_count": 9,
+  "next_accepted_sequence": 10,
+  "next_considered_sequence": 13,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -399,6 +399,54 @@
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-06-mt6797-wlan-builtin-lifecycle-source-attribution/verdicts.json"
       }
+    },
+    {
+      "considered_sequence": 11,
+      "accepted_sequence": 9,
+      "candidate_id": "mt6797-wifi-live-nvram-identity-preparation",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "implementation",
+      "risk_class": "hard-uncertainty",
+      "acceptance_contract": "experiments/2026-09-06-mt6797-wifi-live-nvram-identity/WORK_ITEM.md",
+      "review_comparison_group": "bounded-live-device-observer-preparation",
+      "parent": "5b879ccb941a5853b70f1f7744da169be76b18f7",
+      "owner_route": {
+        "role": "gemini_implementer",
+        "model": "gpt-5.6-luna",
+        "effort": "high"
+      },
+      "review_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-06T17:37:31Z",
+        "review_ready_at": "2026-09-06T18:09:40Z",
+        "accepted_at": "2026-09-06T18:13:30Z",
+        "timing_source": "observed UTC dispatch, stable implementation handoff and final-review timestamps",
+        "elapsed_minutes": 35.9833333,
+        "review_rework_minutes": 3.8333333,
+        "first_review_accepted": false,
+        "rework_cycles": 3,
+        "escalated": false,
+        "escalation_reason": null,
+        "escalation_packet": null,
+        "review_failure_class": "safety",
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-06-mt6797-wifi-live-nvram-identity/validation.json"
+      }
+    },
+    {
+      "considered_sequence": 12,
+      "candidate_id": "mt6797-wifi-live-nvram-identity-pre-admission-attempt",
+      "disposition": "excluded",
+      "reason": "device-session",
+      "note": "The one bounded SSH invocation refused before the remote admission barrier. No selected mount/file read was admitted and the observation budget remains unconsumed; device sessions are excluded from accepted offline items.",
+      "evidence": "experiments/2026-09-06-mt6797-wifi-live-nvram-identity/results/pre-admission-refusal-20260906.md"
     }
   ],
   "checkpoints": [
@@ -490,6 +538,20 @@
         "mt6797-emi-adapter-source-attribution",
         "mt6797-wlan-common-lifetime-source-attribution",
         "mt6797-wlan-builtin-lifecycle-source-attribution"
+      ],
+      "conclusion": "too-small",
+      "evidence": "experiments/2026-09-06-agent-routing-pilot-02/README.md"
+    },
+    {
+      "id": "pilot-02-post-item-nine-safety-repair",
+      "after_accepted_sequence": 9,
+      "after_considered_sequence": 11,
+      "trigger": "early-signal",
+      "trigger_item_ids": [
+        "mt6797-wifi-live-nvram-identity-preparation"
+      ],
+      "comparable_item_ids": [
+        "mt6797-wifi-live-nvram-identity-preparation"
       ],
       "conclusion": "too-small",
       "evidence": "experiments/2026-09-06-agent-routing-pilot-02/README.md"
