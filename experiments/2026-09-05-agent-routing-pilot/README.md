@@ -76,9 +76,9 @@ when every item in the cohort segment uses the same observed source and unit.
 
 ## Observations
 
-The contiguous ledger now contains ten considered candidates: seven eligible
+The contiguous ledger now contains eleven considered candidates: seven eligible
 accepted offline items, one cohort-bootstrap exclusion, one device-session
-exclusion and one pre-dispatch tooling-contract exclusion. All seven accepted
+exclusion and two pre-dispatch tooling-contract exclusions. All seven accepted
 items missed first-review acceptance. The first two
 required escalation: the integration item exposed live-ledger fixture coupling,
 and the dynamic reserved-memory implementation needed corrected OF semantics,
@@ -117,6 +117,14 @@ arrival-independent joins, but still left an impractical worst-case retained
 state bound and incomplete canonical success/refusal protocol. Its declared
 two-repair stop activated before implementation, private analysis, VM access or
 device access; the exact escalation remains in its work contract.
+
+A fresh sparse-state tooling candidate then bounded retained cells and froze
+the outer success/refusal protocol. Two contract repairs still left a mixed
+acyclic/source-cycle propagation case that could ignore an admitted predecessor,
+plus one missing refusal code and an ambiguous terminal map kind. Its own stop
+therefore activated before implementation. This second exclusion confirms that
+the line was becoming a larger analysis framework; offline progress pivots to
+an independent roadmap item rather than weakening the attribution method.
 
 ## Post-item-six early-signal checkpoint
 
@@ -164,7 +172,8 @@ settings change is justified.
 Creation of this loop remains excluded because its eligibility and timing
 contract did not exist before work began. The passive CONSYS ownership snapshot
 also remains excluded as a device session. The stopped tooling contract is an
-abandoned pre-dispatch candidate. None changes the accepted count.
+abandoned pre-dispatch candidate, as is its independently scoped sparse
+successor. None changes the accepted count.
 
 ## Item-five checkpoint
 

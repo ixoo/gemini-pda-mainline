@@ -31,7 +31,7 @@
   "rolling_window_after_pilot": 10,
   "accepted_count": 7,
   "next_accepted_sequence": 8,
-  "next_considered_sequence": 11,
+  "next_considered_sequence": 12,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -363,6 +363,14 @@
       "reason": "abandoned",
       "note": "Two pre-dispatch contract-repair reviews still left an impractical worst-case propagation-state bound and incomplete canonical success/refusal protocol, so the declared two-repair stop activated before implementation or private analysis.",
       "evidence": "experiments/2026-09-06-mt6797-firmware-nvram-readonly-tooling/WORK_ITEM.md"
+    },
+    {
+      "considered_sequence": 11,
+      "candidate_id": "mt6797-firmware-nvram-sparse-tooling",
+      "disposition": "excluded",
+      "reason": "abandoned",
+      "note": "A fresh sparse-state contract closed the earlier storage and wire-format gaps, but two repair reviews still left incomplete mixed source-SCC propagation and two exact refusal/terminal-schema gaps; its stop activated before implementation or private analysis.",
+      "evidence": "experiments/2026-09-06-mt6797-firmware-nvram-sparse-tooling/WORK_ITEM.md"
     }
   ],
   "checkpoints": [
