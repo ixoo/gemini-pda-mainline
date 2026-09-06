@@ -76,9 +76,10 @@ when every item in the cohort segment uses the same observed source and unit.
 
 ## Observations
 
-The contiguous ledger now contains nine considered candidates: seven eligible
-accepted offline items, one cohort-bootstrap exclusion and one device-session
-exclusion. All seven accepted items missed first-review acceptance. The first two
+The contiguous ledger now contains ten considered candidates: seven eligible
+accepted offline items, one cohort-bootstrap exclusion, one device-session
+exclusion and one pre-dispatch tooling-contract exclusion. All seven accepted
+items missed first-review acceptance. The first two
 required escalation: the integration item exposed live-ledger fixture coupling,
 and the dynamic reserved-memory implementation needed corrected OF semantics,
 owned declaration copies and static-path regression coverage. The next two
@@ -108,6 +109,14 @@ missing start-after-end fixture. Two bounded repair passes closed those issues;
 the exact 13-patch Buildbox build then replayed, compiled and linked the real
 AArch64 object and validated/fetched the package. It selected no permission or
 runtime caller and did not escalate. Credits remain unavailable.
+
+The proposed deterministic read-only firmware traversal tool is considered
+sequence ten but is not an accepted offline item. Two pre-dispatch contract
+repairs closed its fixed branch caps, read-only capability direction and
+arrival-independent joins, but still left an impractical worst-case retained
+state bound and incomplete canonical success/refusal protocol. Its declared
+two-repair stop activated before implementation, private analysis, VM access or
+device access; the exact escalation remains in its work contract.
 
 ## Post-item-six early-signal checkpoint
 
@@ -154,7 +163,8 @@ settings change is justified.
 
 Creation of this loop remains excluded because its eligibility and timing
 contract did not exist before work began. The passive CONSYS ownership snapshot
-also remains excluded as a device session; neither changes the accepted count.
+also remains excluded as a device session. The stopped tooling contract is an
+abandoned pre-dispatch candidate. None changes the accepted count.
 
 ## Item-five checkpoint
 

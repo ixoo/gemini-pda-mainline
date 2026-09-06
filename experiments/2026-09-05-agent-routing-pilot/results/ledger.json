@@ -31,7 +31,7 @@
   "rolling_window_after_pilot": 10,
   "accepted_count": 7,
   "next_accepted_sequence": 8,
-  "next_considered_sequence": 10,
+  "next_considered_sequence": 11,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -355,6 +355,14 @@
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-06-mt6797-resource-layout-compile/BUILD_RESULT.md"
       }
+    },
+    {
+      "considered_sequence": 10,
+      "candidate_id": "mt6797-firmware-nvram-readonly-tooling",
+      "disposition": "excluded",
+      "reason": "abandoned",
+      "note": "Two pre-dispatch contract-repair reviews still left an impractical worst-case propagation-state bound and incomplete canonical success/refusal protocol, so the declared two-repair stop activated before implementation or private analysis.",
+      "evidence": "experiments/2026-09-06-mt6797-firmware-nvram-readonly-tooling/WORK_ITEM.md"
     }
   ],
   "checkpoints": [
