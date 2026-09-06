@@ -210,11 +210,15 @@ The remaining preparation order is:
    retained loader statically supplies a property/query-derived normalized
    scalar after cleanup, then logs and discards the init result; this vendor
    compatibility path neither forces an actual runtime `0x6797` value nor
-   defines a mainline ABI. Before promoting the lifecycle scaffolding, design
-   the standard interface/error contract and resolve actual final linkage plus
-   an explicit gen3 teardown edge. Exit order must not be inferred by reversing
-   initialization, and the vendor WMT ioctl must not be copied merely to run the
-   retained loader.
+   defines a mainline ABI. The accepted
+   [standard interface/error design](../experiments/2026-09-06-mt6797-mainline-connectivity-interface-design/README.md)
+   makes the next slice an effect-free passive CONSYS descriptor plus opaque
+   WLAN client binding. Build and boot that slice with attributable evidence
+   that it makes zero power, reset, remap, protection, firmware, radio and DMA
+   calls before admitting any effect-bearing implementation. Later lifecycle
+   work must still resolve actual final linkage plus an explicit gen3 teardown
+   edge. Exit order must not be inferred by reversing initialization, and the
+   vendor WMT ioctl must not be copied merely to run the retained loader.
 3. **Keyboard coverage:** finish coherent capture admission, finite owner key
    sequence, classification and complete private evidence export. Reuse the
    measured monitor and retain the full-duration timing obligation; inert binary

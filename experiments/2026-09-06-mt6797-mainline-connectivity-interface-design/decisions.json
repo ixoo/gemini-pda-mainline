@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "repository_parent": "7daaf3811a95e7187bd378e0ce345bf4b536630c",
+  "default_hypothesis": {
+    "statement": "No new userspace lifecycle ABI is needed.",
+    "result": "supported",
+    "test": {
+      "dependency_and_bind": "platform-driver probe and device links",
+      "firmware_acquisition": "request_firmware using DT-selected compatible data and stable names",
+      "network_registration": "cfg80211 wiphy and normal net-device registration",
+      "operator_activation": "cfg80211 and rfkill, never an automatic radio-on action",
+      "diagnostics": "structured kernel logs and optional devlink health reporting/recovery",
+      "remove_suspend_resume": "driver-core, PM and provider/client callbacks"
+    },
+    "counterexample_search": [
+      "The retained loader's chip property does not require a new ABI: compatible data and provider-owned discovery can select the kernel variant.",
+      "The vendor module-init aggregate does not require a new ABI: typed probe and activation failures remain on their originating kernel operations.",
+      "Recovery does not require a character device: only the common owner may expose an explicit bounded health recovery after quiescence is implementable."
+    ],
+    "reversal_condition": "Reopen design only if attributable hardware evidence proves a necessary operation cannot be owned by a kernel driver or represented by an existing standard subsystem; never adopt the retained ioctl merely for compatibility."
+  },
+  "decisions": [
+    {
+      "id": "userspace_abi",
+      "classification": "no_new_userspace_lifecycle_abi",
+      "inputs": ["docs/ARCHITECTURE.md", "experiments/2026-09-06-mt6797-wmt-loader-ioctl-static-attribution-v3/README.md"],
+      "rationale": "All admitted lifecycle responsibilities have standard kernel entry points. The retained loader is static compatibility evidence, not a contract to preserve.",
+      "rejected_alternatives": [
+        {"option": "WMT-compatible character device and ioctl", "reason": "It copies a private vendor ABI, preserves scalar command policy in userspace and obscures typed ownership errors."},
+        {"option": "project-specific lifecycle daemon API", "reason": "It duplicates platform, firmware, cfg80211, rfkill, PM and health interfaces without an established missing operation."}
+      ],
+      "responsibility": "Kernel drivers own lifecycle; normal network userspace uses cfg80211/rfkill and optional standard health diagnostics only.",
+      "unresolved_prerequisite": "Exact firmware naming and any health reporter are reviewed with the eventual driver; neither creates a lifecycle ABI."
+    },
+    {
+      "id": "owner_boundary",
+      "classification": "one_consys_provider_many_clients",
+      "inputs": ["experiments/2026-09-05-mt6797-wifi-contract/OWNERSHIP.md", "experiments/2026-09-05-mt6797-wifi-contract/SHARED_OWNER_IMPLEMENTATION.md"],
+      "rationale": "Power, reset, shared remap fields, protection policy and reserved EMI outlive one WLAN call and interact with WMT, BT, GNSS, firmware and secure-world actors.",
+      "rejected_alternatives": [
+        {"option": "WLAN maps and writes CONSYS resources directly", "reason": "It duplicates shared ownership and cannot preserve another client's remap or protection field."},
+        {"option": "consumer devres owns the shared reservation", "reason": "Consumer removal cannot release memory or power while firmware quiescence is unproved."},
+        {"option": "WLAN resets the AP-DMA block on error", "reason": "The controller, clock and protection resources are shared with independent DMA users."}
+      ],
+      "responsibility": "A CONSYS provider owns island admission, reset coordination, shared regmap fields, EMI reservation/protection and epochs. WLAN owns its immutable image, HIF transaction and cfg80211 object. WLAN receives no raw physical addresses, shared MMIO pointers, reset controls or protection permission words. The DMAengine/controller owner owns AP-DMA; WLAN may hold only an admitted channel while the provider coordinates shared prerequisites.",
+      "no_export_acceptance": ["raw_physical_addresses", "shared_mmio_pointers", "reset_controls", "protection_permission_words"],
+      "unresolved_prerequisite": "External firmware-writer exclusion, deployed secure-service authority, master/domain identities and a coherent downloader handoff remain unproved."
+    },
+    {
+      "id": "probe_and_firmware",
+      "classification": "passive_probe_then_owned_activation",
+      "inputs": ["experiments/2026-09-05-mt6797-wifi-contract/SHARED_OWNER_IMPLEMENTATION.md", "experiments/2026-09-05-mt6797-wifi-contract/WHOLE_IMAGE_PLANNER.md"],
+      "rationale": "Provider probe may resolve and validate resources without activation. WLAN may acquire and fully parse immutable firmware passively. Hardware loading begins only after an owner epoch confirms power, exclusion, HIF readiness, remap identity and the complete plan. An activation refusal before the first effect remains passive; any failed or partial activation after an attempted effect is retained in FAULT_HELD.",
+      "rejected_alternatives": [
+        {"option": "map vendor module-init aggregate to probe success", "reason": "Arithmetic aggregation loses the failing operation and the retained loader discards the local init result."},
+        {"option": "load on provider registration", "reason": "Registration proves neither a WLAN consumer nor an owned downloader epoch."},
+        {"option": "register usable cfg80211 state before firmware readiness", "reason": "Capabilities and operational readiness would be published before their required firmware evidence."}
+      ],
+      "responsibility": "Provider publishes only a passive handle after complete resource validation. WLAN requests firmware, creates a private plan, activates through the provider, observes firmware readiness, then separately registers the wiphy/net device while leaving radio transmission off until a standard user request. Registration failure after firmware effects enters FAULT_HELD and retains the complete callback/object/code lifetime until owner quiescence.",
+      "unresolved_prerequisite": "The actual power/reset handoff and firmware capability discovery must be implemented before registration can become runtime code."
+    },
+    {
+      "id": "typed_errors",
+      "classification": "first_error_with_separate_containment",
+      "inputs": ["experiments/2026-09-05-mt6797-wifi-contract/INIT_SESSION.md", "experiments/2026-09-05-mt6797-wifi-contract/WHOLE_IMAGE_EMI.md"],
+      "rationale": "Each dependency and effect has a distinct caller response. Preserve the first primary errno, raw secure status where applicable and a separate containment error; never add error integers or replace them with success. Poisoning is determined by whether an effect was attempted or ownership became uncertain, not by the errno label alone.",
+      "rejected_alternatives": [
+        {"option": "arithmetic errno aggregation", "reason": "The sum cannot identify which component failed and can alias another result."},
+        {"option": "log and discard init failure", "reason": "Probe or activation would report success while the required firmware state is absent."},
+        {"option": "best-effort cleanup hidden from caller", "reason": "A failed quiesce or seal changes ownership and must remain visible and retained."}
+      ],
+      "responsibility": "Provider returns dependency, ownership and effect errors; WLAN returns parse, transport, firmware protocol/readiness and registration errors. Both retain first_error and containment_error separately in the epoch. An effect-free -EOPNOTSUPP can remain passive, while -EOPNOTSUPP returned after a secure-operation attempt is possibly effective and must enter FAULT_HELD.",
+      "unresolved_prerequisite": "Map deployed secure-service status and real transport completion into typed errno without losing the raw diagnostic value."
+    },
+    {
+      "id": "teardown",
+      "classification": "quiescence_proven_release",
+      "inputs": ["experiments/2026-09-05-mt6797-wifi-contract/SHARED_OWNER_IMPLEMENTATION.md", "experiments/2026-09-06-mt6797-connectivity-producer-source-attribution/README.md"],
+      "rationale": "Teardown follows acquired resource dependencies and observable quiescence. The missing vendor gen3 exit caller and reversed initialization order establish no safe release sequence.",
+      "rejected_alternatives": [
+        {"option": "reverse vendor initialization", "reason": "Reverse order does not prove firmware, IRQ, HIF or DMA quiescence."},
+        {"option": "release on timeout", "reason": "A timeout is uncertainty, not evidence that in-flight access ended."},
+        {"option": "consumer free drops shared resources", "reason": "The provider must retain possible effects until quiescence or explicit recovery succeeds."}
+      ],
+      "responsibility": "WLAN blocks new work, detaches standard network entry points, drains its queues/IRQ/NAPI/HIF and asks firmware to quiesce. Consumer callbacks, transaction objects, module/code lifetime and provider/client references remain pinned through failed probe, registration, remove or unbind. Only a positive owner witness permits their release together with remap/protection/reservation/channel and power responsibilities; otherwise enter FAULT_HELD.",
+      "unresolved_prerequisite": "A bounded firmware-stop witness, HIF/AP-DMA idle proof and provider-owned coherent OFF sequence are not implemented."
+    },
+    {
+      "id": "pm_and_recovery",
+      "classification": "owner_epoch_recovery_only",
+      "inputs": ["experiments/2026-09-05-mt6797-wifi-contract/INIT_SESSION.md", "experiments/2026-09-05-mt6797-wifi-contract/SHARED_OWNER_IMPLEMENTATION.md"],
+      "rationale": "Any ownership loss, late or uncertain I/O, protection/remap failure, START failure or readiness loss after an attempted effect poisons the epoch. A refusal proven to precede every effect may remain passive. Bounded readiness observation is not a START retry.",
+      "rejected_alternatives": [
+        {"option": "automatic START or firmware replay", "reason": "Sequences and effects are consumed and may still be live."},
+        {"option": "automatic radio restoration after resume", "reason": "Resume must not silently cause RF activity; normal cfg80211/rfkill policy remains authoritative."},
+        {"option": "client-issued common reset", "reason": "A shared reset can disrupt other clients and destroy diagnostics."}
+      ],
+      "responsibility": "Suspend uses the same quiesce witness and may retain FAULT_HELD resources on failure. Resume creates a new owner generation and revalidates everything. Only the CONSYS owner may run one explicit, bounded health recovery after all affected clients are coordinated.",
+      "unresolved_prerequisite": "The common reset/OFF recovery and cross-client coordination protocol must be demonstrated before a health recover operation is exposed."
+    },
+    {
+      "id": "proposal_disposition",
+      "classification": "compile_helpers_not_runtime_driver",
+      "inputs": ["patches/proposals/0001-wifi-mediatek-mt6797-private-hif-core.patch", "patches/proposals/0012-wifi-mediatek-compile-ordinary-transfer-bridge.patch"],
+      "rationale": "The twelve Wi-Fi proposals provide bounded parsers, protocol helpers and composition seams, but deliberately lack the real provider, resource acquisition, runtime caller and cfg80211 registration.",
+      "rejected_alternatives": [
+        {"option": "promote the series as a usable driver", "reason": "Compilation and host fixtures do not establish ownership, effects, firmware readiness or network registration."},
+        {"option": "discard every helper", "reason": "Pure bounds, parser and transaction logic remains useful when wrapped by a real owner and typed lifecycle."}
+      ],
+      "responsibility": "Keep pure helpers compile-only; change all raw-resource, binding, START, EMI and transfer APIs to take opaque owner epochs and preserve state/error evidence. Companion proposals remain separately classified.",
+      "unresolved_prerequisite": "Each retained helper needs file-level upstream review and integration tests against the provider API."
+    },
+    {
+      "id": "upstream_structure",
+      "classification": "standard_subsystem_split",
+      "inputs": ["docs/ARCHITECTURE.md", "docs/hardware/mt6797-wifi.md"],
+      "rationale": "Shared SoC ownership and wireless protocol belong to different review domains, connected by a private typed kernel interface rather than a user ABI.",
+      "rejected_alternatives": [
+        {"option": "Gemini-only monolithic driver", "reason": "It mixes reusable MT6797 ownership, board description and WLAN protocol."},
+        {"option": "raw firmware/calibration sysfs or ioctl", "reason": "It exposes private manufacturing data and unconstrained physical effects."},
+        {"option": "devlink health as proof of support", "reason": "Diagnostics and recovery plumbing do not establish that firmware or radio hardware works."}
+      ],
+      "responsibility": "Place the common provider under drivers/soc/mediatek with reviewed DT binding and private client API; place WLAN under drivers/net/wireless/mediatek, use request_firmware and cfg80211/rfkill, and add devlink health only for bounded diagnosed recovery. Keep SoC and Gemini DT changes separate.",
+      "unresolved_prerequisite": "Maintainer review must settle final filenames, binding shape, firmware-name table and whether devlink health is appropriate."
+    }
+  ],
+  "smallest_next_slice": {
+    "name": "passive_consys_provider_binding",
+    "scope": "Implement an effect-free CONSYS provider descriptor and WLAN passive client binding only; do not power, reset, map for access, change remap/protection, load firmware, register cfg80211 or touch AP-DMA.",
+    "acceptance_tests": [
+      "Missing provider and not-yet-ready dependencies return -EPROBE_DEFER without publishing a client handle.",
+      "Malformed, overlapping, wrapped, non-no-map or insufficient reserved-memory resources are rejected before publication.",
+      "The provider publishes one opaque generation-bound handle and never exports raw physical addresses, permission words or MMIO pointers to WLAN.",
+      "A copied immutable plan can bind passively; stale generation, competing image and consumer removal are covered without hardware effects.",
+      "Normal and fault-injected unit tests prove zero power, reset, remap, protection, firmware, radio and DMA calls.",
+      "Kernel compile, DT-binding validation if a binding is added, focused unit tests and repository checks pass without a runtime-support claim."
+    ],
+    "exit_condition": "Only after independent ownership review may a later slice add owner activation and one reversible effect at a time."
+  },
+  "authority": {
+    "new_userspace_abi": false,
+    "vendor_ioctl_compatibility": false,
+    "runtime_support": false,
+    "hardware_support": false,
+    "firmware_redistribution": false,
+    "automatic_radio_action": false,
+    "device_or_build_action": false
+  }
+}

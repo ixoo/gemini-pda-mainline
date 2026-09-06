@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 2,
-  "next_accepted_sequence": 3,
-  "next_considered_sequence": 5,
+  "accepted_count": 3,
+  "next_accepted_sequence": 4,
+  "next_considered_sequence": 6,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -127,6 +127,54 @@
         "credit_source": "unavailable",
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-06-mt6797-wmt-loader-ioctl-static-attribution-v3/verdicts.json"
+      }
+    },
+    {
+      "considered_sequence": 5,
+      "accepted_sequence": 3,
+      "candidate_id": "mt6797-mainline-connectivity-interface-design",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "reasoning",
+      "risk_class": "hard-uncertainty",
+      "acceptance_contract": "experiments/2026-09-06-mt6797-mainline-connectivity-interface-design/WORK_ITEM.md",
+      "review_comparison_group": "mt6797-wifi-owner-interface-design",
+      "parent": "7daaf3811a95e7187bd378e0ce345bf4b536630c",
+      "owner_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "review_route": {
+        "role": "gemini_specialist",
+        "model": "gpt-6-astra",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-06T20:02:55Z",
+        "review_ready_at": "2026-09-06T20:23:28Z",
+        "accepted_at": "2026-09-06T20:25:29Z",
+        "timing_source": "observed UTC dispatch, corrected review-ready handoff and independent-review acceptance timestamps",
+        "elapsed_minutes": 22.5666667,
+        "review_rework_minutes": 9.6666667,
+        "first_review_accepted": false,
+        "rework_cycles": 1,
+        "escalated": true,
+        "escalation_reason": "The first state model conflated passive and possibly-effective activation failure, omitted a registration boundary and tied containment too closely to errno.",
+        "escalation_packet": {
+          "evidence": "experiments/2026-09-06-mt6797-mainline-connectivity-interface-design/VALIDATION.md",
+          "attempts": [
+            "repaired the verifier's classification-length predicate after its first false rejection",
+            "repaired the raw-resource predicate after its second literal-only false rejection and stopped for independent escalation"
+          ],
+          "unresolved_question": "could activation or wireless-registration failure release effect-bearing or callable lifetimes before owner-proven quiescence merely because of the returned errno or failed unbind",
+          "next_discriminating_check": "model effect-free and possibly-effective activation outcomes plus post-readiness registration failure, then require all possibly effective resources and callable lifetimes to remain held until owner-proven OFF"
+        },
+        "review_failure_class": null,
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-06-mt6797-mainline-connectivity-interface-design/VALIDATION.md"
       }
     }
   ],

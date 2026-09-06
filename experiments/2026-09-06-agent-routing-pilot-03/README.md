@@ -27,12 +27,16 @@ or hardware authority.
 
 ## Current state
 
-The first two accepted items are the bounded MT6797 connectivity-producer source
-attribution and the fresh single-batch `wmt_loader` static attribution. Astra
-Medium resolved the kernel-side detector producer/return/registration split and
-then the retained loader's local value/order/return path; Sol Medium accepted
-both final candidates on first review. Two earlier loader candidates are
-explicitly excluded: v1 crossed its one-binary tool boundary, and v2 replayed an
-interval not clearly admitted by its frozen contract. The fresh v3 candidate
-removed replay and reused neither attempt's raw output. Two accepted items are
-too early for a comparable-cohort checkpoint, so `baseline-01` remains unchanged.
+The first three accepted items are the bounded MT6797 connectivity-producer
+source attribution, the fresh single-batch `wmt_loader` static attribution and
+the mainline connectivity lifecycle/interface design. Astra Medium resolved the
+kernel-side detector producer/return/registration split and then the retained
+loader's local value/order/return path; Sol Medium accepted both final
+attribution candidates on first review. The design reversed those roles: Sol
+owned the cross-file design and Astra rejected the first state model, which was
+then corrected and accepted after one rework cycle. Two earlier loader
+candidates are explicitly excluded: v1 crossed its one-binary tool boundary,
+and v2 replayed an interval not clearly admitted by its frozen contract. The
+fresh v3 candidate removed replay and reused neither attempt's raw output. Three
+accepted items are too early for a comparable-cohort checkpoint, so
+`baseline-01` remains unchanged.
