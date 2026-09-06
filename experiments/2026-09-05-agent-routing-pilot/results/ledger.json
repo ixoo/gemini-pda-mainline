@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 0,
-  "next_accepted_sequence": 1,
-  "next_considered_sequence": 2,
+  "accepted_count": 1,
+  "next_accepted_sequence": 2,
+  "next_considered_sequence": 3,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -40,6 +40,53 @@
       "reason": "cohort-bootstrap",
       "note": "Created the measurement contract itself, so eligibility and timing were not frozen before work began.",
       "evidence": "experiments/2026-09-05-agent-routing-pilot/README.md"
+    },
+    {
+      "considered_sequence": 2,
+      "accepted_sequence": 1,
+      "candidate_id": "mt6797-infracfg-topic-first-ordering",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "integration",
+      "risk_class": "cross-file",
+      "acceptance_contract": "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/WORK_ITEM.md",
+      "parent": "eb32d1cab482bec7ce21b8a16f94eed70fa4b9db",
+      "owner_route": {
+        "role": "gemini_implementer",
+        "model": "gpt-5.6-luna",
+        "effort": "high"
+      },
+      "review_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-06T01:24:12Z",
+        "review_ready_at": "2026-09-06T01:36:25Z",
+        "accepted_at": "2026-09-06T01:43:13Z",
+        "timing_source": "observed UTC timestamps in the work contract and integration review",
+        "elapsed_minutes": 19.0166666667,
+        "review_rework_minutes": 6.8,
+        "first_review_accepted": false,
+        "rework_cycles": 2,
+        "escalated": true,
+        "escalation_reason": "acceptance check exposed live-ledger fixture coupling and required a bounded scope expansion",
+        "escalation_packet": {
+          "evidence": "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/WORK_ITEM.md",
+          "attempts": [
+            "corrected an over-broad evidence-link description during first integration review",
+            "ran the validator and dedicated refusal suite against the first nonempty live cohort"
+          ],
+          "unresolved_question": "could refusal fixtures isolate a synthetic bootstrap ledger without changing validator policy?",
+          "next_discriminating_check": "rerun the validator and all fifteen refusal fixtures with the live accepted item retained"
+        },
+        "review_failure_class": null,
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/WORK_ITEM.md"
+      }
     }
   ],
   "checkpoints": [],

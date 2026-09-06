@@ -6,7 +6,7 @@
       "id": "mt6797-infracfg-reset",
       "status": "local-preparation",
       "owner": "CPU 8-9 Astra",
-      "target": "Clock tree for reset implementation/tests/header, with MediaTek/reset/DT review; MediaTek tree for the independent SoC DTS declaration. Pinned routing and pending conversion are recorded in SUBMISSION_READINESS.md; refresh for final submission.",
+      "target": "Clock tree for reset implementation/tests/header, with MediaTek/reset/DT review; MediaTek tree for the independent SoC DTS declaration. Local ordering is explicitly topic-first because the inspected current trees lack the MT6797 common-probe conversion; maintainers and the conversion author still decide upstream ordering.",
       "patches": [
         "patches/upstream-4d7d9486/0001-clk-mediatek-reject-out-of-bank-SET-CLEAR-reset-IDs.patch",
         "patches/upstream-4d7d9486/0002-clk-mediatek-test-reset-translation-bounds.patch",
@@ -25,7 +25,8 @@
         "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/revised-topic/INTEGRATION.md"
       ],
       "dependencies": [
-        "Coordinate the pending MT6797 common-probe conversion; fix post-publication reset-error cleanup before adopting its reset hook",
+        "Coordinate ordering with the pending MT6797 common-probe conversion; adapt only provider integration if that conversion is selected first",
+        "The separately implemented and locally validated common-helper cleanup is conditional and excluded from this topic; review it before any conversion-first adaptation",
         "Review final provider ordering and map consumer evidence to the exact final revision",
         "Actual authorship audit and truthful DCO certification before submission"
       ],

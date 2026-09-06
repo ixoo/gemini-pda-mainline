@@ -3,28 +3,34 @@
 The exact application series at `538906df82588885e5f2606cf40901f354c90748`
 is technically collected and independently accepted, but **not ready to send**
 with its synthetic unsigned metadata. The human authorship/certification and
-assistance disclosure must be finalized; maintainers still determine ordering
-with the overlapping probe conversion. No upstream message or new build is
-selected. [Integration](https://github.com/ixoo/gemini-pda-mainline/blob/538906df82588885e5f2606cf40901f354c90748/experiments/2026-09-05-mt6797-infracfg-upstream-preparation/revised-topic/INTEGRATION.md)
+assistance disclosure must be finalized. Local preparation now explicitly
+selects the six-patch topic first because the overlapping MT6797 common-probe
+conversion is absent from the inspected current trees; that is not maintainer
+ordering agreement. No upstream message or new build is selected.
+[Integration](https://github.com/ixoo/gemini-pda-mainline/blob/538906df82588885e5f2606cf40901f354c90748/experiments/2026-09-05-mt6797-infracfg-upstream-preparation/revised-topic/INTEGRATION.md)
 limits inherited evidence: the newly named profile was not rebuilt or run on
 hardware. This review supersedes the old readiness packet's pending binding
 correction and compile-only common-cleanup proposals, not their original records.
 
 ## Fresh routing and overlap
 
-The [refresh ledger](readiness-refresh.json) pins the six integrated patch
-hashes, profile and current advertised refs. Mainline advanced to
-`9f0346dcbea363787186c94ef94dd01aaa215afa`; clock `clk-next` remains
-`91b1b8d437abe0cd83210d8f257b785a63047aa9` and MediaTek `for-next` remains
+The prior [readiness ledger](readiness-refresh.json) pins the six integrated
+patch hashes and profile. The [current-ref record](../results/upstream-ordering-refresh-20260906.json)
+records the exact inspected refs. Mainline is
+`9f0346dcbea363787186c94ef94dd01aaa215afa`; clock `clk-next` is
+`91b1b8d437abe0cd83210d8f257b785a63047aa9`; MediaTek `for-next` is
 `f5be25e697e0362103625b1b197af126ae4ba5f7`.
 
-The selected mainline reset/provider/Kconfig/Makefile/schema/DTS files match
-the prior tested-base bytes. Its common helper also matches the earlier audit.
-All five newly introduced paths return 404 at that exact mainline commit.
-The private MT6797 probe remains in both mainline and clock. Current mainline
-and clock maintainers agree in the four relevant sections; MediaTek's older
-clock contact section must not override them. These are immutable-file/ref
-comparisons, not full-tree application, ancestry or rebase tests.
+The compact [refresh record](../results/upstream-ordering-refresh-20260906.json)
+enumerates all eleven patch-footprint paths against the three official refs.
+For byte identity, this handoff claims only the four paths independently
+verified by the coordinator: `clk-mt6797.c`, the supplemental `clk-mtk.c`, the
+infracfg binding, and `mt6797.dtsi`. The record retains the other path statuses
+without promoting them to an outgoing replay result. The MT6797 file still
+uses `mtk_infrasys_init()` and has no common-probe conversion symbol in the
+inspected mainline or clock snapshots. Exact outgoing replay on the final
+current tree remains required before send; these are not ancestry or rebase
+tests.
 
 Proposed recipients, confirmed against the actual archive's
 [maintainer output](results/attempt-2-725c6756/maintainers.stdout) and refreshed
@@ -43,17 +49,18 @@ send. Do not infer acknowledgements or merge agreements from routing output.
 The [August 3 common-probe conversion](https://lists.infradead.org/pipermail/linux-mediatek/2026-August/111265.html)
 by Akari Tsuyukusa removes the function edited by patch 4. The official August
 and September thread indexes and exact message were refreshed; no newer
-MT6797 conversion title appeared in those bounded indexes. This does not
+MT6797 conversion title appeared in those bounded indexes, and the conversion
+is absent from the current selected files. This does not
 exclude another list, unindexed version, private branch or unpublished work.
 The web viewer failed on those archive URLs; bounded direct HTTPS retrieval
 succeeded and its hashes are recorded. There is no new evidence of acceptance.
 
-Keep current reset-first registration if this topic goes first. If maintainers
-select the conversion first, adapt only provider integration to its `rst_desc`
-hook on that exact base. The separate common clock cleanup is now implemented
-and compiled, but is neither in this series nor observed in current mainline;
-its post-publication reset-error ordering would be a prerequisite to that
-adaptation. [Provider compile evidence](https://github.com/ixoo/gemini-pda-mainline/blob/a65946fb8bdd66232e95d61506cb43d27a5d22f6/experiments/2026-09-05-mt6797-infracfg-upstream-preparation/PROVIDER_COMPILE.md)
+Keep current reset-first registration for the locally selected topic-first
+ordering. If maintainers select the conversion first, adapt only provider
+integration to its `rst_desc` hook on that exact base. The separate common
+clock cleanup is implemented and validated locally, but is conditional and
+excluded from this topic; its post-publication reset-error ordering would be a
+prerequisite to that adaptation. [Provider compile evidence](https://github.com/ixoo/gemini-pda-mainline/blob/a65946fb8bdd66232e95d61506cb43d27a5d22f6/experiments/2026-09-05-mt6797-infracfg-upstream-preparation/PROVIDER_COMPILE.md)
 does not justify importing the conversion or passive SCPSYS changes here.
 
 ## Per-patch provenance and actual authorship boundary
@@ -129,13 +136,24 @@ gate (190 worker profiles; unchanged metadata debt 37). Root's integrated
 192-profile validation remains the separate integration record. No kernel,
 schema, QEMU, backend or device execution was performed for this refresh.
 
+## Current blockers and handoff
+
+The local ordering decision is bounded and reviewable, but the topic remains
+conditional. Before sending, run current-tree outgoing replay, checkpatch and
+get_maintainer on the exact final patches. Resolve the actual authorship,
+truthful DCO certification and `Assisted-by` disclosure for each patch, then
+coordinate ordering with the clock/MediaTek maintainers and the conversion
+author. No manifest, profile, canonical series or patch bytes change here.
+
 ## Coordinator review
 
 Project Planning checked the selected and historical patch hashes against the
 actual integration worktree and confirmed the profile matches the manifest.
-The cover retains the original test and no-new-build scope. Current official
-coding-assistant and generated-content guidance was independently read; its
-assistance disclosure and human-certification boundaries match this packet.
-This accepts the preparation handoff, not permission to submit or proof of
-human authorship. The worker's 190-profile check remains historical; integration
-checks cover all 192 profiles.
+The cover retains the original test and no-new-build scope. The current
+official-ref refresh independently covers all eleven footprint paths and
+records the topic-first local ordering without promoting it to maintainer
+agreement. Current official coding-assistant and generated-content guidance
+was independently read; its assistance disclosure and human-certification
+boundaries match this packet. This accepts the preparation handoff, not
+permission to submit or proof of human authorship. The worker's 190-profile
+check remains historical; integration checks cover all 192 profiles.

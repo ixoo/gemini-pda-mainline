@@ -85,6 +85,11 @@ def accepted(pointer: dict, number: int, *, risk: str = "routine",
 def add_items(pointer: dict, count: int) -> None:
     ledger_path = ROOT / pointer["cohorts"][0]["ledger"]
     ledger = MODULE.load_json(ledger_path)
+    bootstrap = next(item for item in ledger["considered_items"]
+                     if item.get("candidate_id") == "workflow-loop-bootstrap")
+    ledger["considered_items"] = [copy.deepcopy(bootstrap)]
+    ledger["checkpoints"] = []
+    ledger["settings_decisions"] = []
     ledger["considered_items"].extend(accepted(pointer, number) for number in range(1, count + 1))
     ledger["accepted_count"] = count
     ledger["next_accepted_sequence"] = count + 1

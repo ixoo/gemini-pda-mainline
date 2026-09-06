@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "observed_at_utc": "2026-09-06T01:29:52Z",
+  "repository_parent": "eb32d1cab482bec7ce21b8a16f94eed70fa4b9db",
+  "upstream_base": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "decision": {
+    "local_order": "topic-first",
+    "status": "conditional-not-ready",
+    "basis": "The retained current-ref inspection reports the MT6797 common-probe conversion absent from mainline and clk-next; maintainer ordering is still external.",
+    "cleanup_proposal": "implemented-and-validated-locally-but-conditional-and-excluded",
+    "hardware_action": "none"
+  },
+  "refs": {
+    "mainline": {
+      "remote": "https://github.com/torvalds/linux.git",
+      "ref": "refs/heads/master",
+      "revision": "9f0346dcbea363787186c94ef94dd01aaa215afa"
+    },
+    "clock": {
+      "remote": "https://git.kernel.org/pub/scm/linux/kernel/git/clk/linux.git",
+      "ref": "refs/heads/clk-next",
+      "revision": "91b1b8d437abe0cd83210d8f257b785a63047aa9"
+    },
+    "mediatek": {
+      "remote": "https://git.kernel.org/pub/scm/linux/kernel/git/mediatek/linux.git",
+      "ref": "refs/heads/for-next",
+      "revision": "f5be25e697e0362103625b1b197af126ae4ba5f7"
+    }
+  },
+  "footprint": [
+    {
+      "path": "drivers/clk/mediatek/reset-internal.h",
+      "mainline": { "status": 404 },
+      "clock": { "status": 404 },
+      "mediatek": { "status": 404 }
+    },
+    {
+      "path": "drivers/clk/mediatek/reset.c",
+      "mainline": { "status": 200, "bytes": 4290, "sha256": "8c1cdf2ad881dc20659340cd7f0244b8ff1a1b6d1d7b4cd1e74946533adcee76" },
+      "clock": { "status": 200, "bytes": 4290, "sha256": "8c1cdf2ad881dc20659340cd7f0244b8ff1a1b6d1d7b4cd1e74946533adcee76" },
+      "mediatek": { "status": 200, "bytes": 4290, "sha256": "8c1cdf2ad881dc20659340cd7f0244b8ff1a1b6d1d7b4cd1e74946533adcee76" }
+    },
+    {
+      "path": "drivers/clk/mediatek/reset-test.c",
+      "mainline": { "status": 404 },
+      "clock": { "status": 404 },
+      "mediatek": { "status": 404 }
+    },
+    {
+      "path": "drivers/clk/mediatek/Kconfig",
+      "mainline": { "status": 200, "bytes": 34673, "sha256": "6634c6e7c14ca9a72fc0a258ca9b8a575c53bc451919646feb644c7b9354c3c0" },
+      "clock": { "status": 200, "bytes": 34688, "sha256": "712eede24414e708c2b140e6860111b7f4f8f9f2ef356a2330286c3af1a2d351", "difference": "unrelated MT8173 mfgtop OF dependency" },
+      "mediatek": { "status": 200, "bytes": 34351, "sha256": "7fc2955a8c0eea257f9320641542929a97759485ffadde9f48c046f9783547ec" }
+    },
+    {
+      "path": "drivers/clk/mediatek/Makefile",
+      "mainline": { "status": 200, "bytes": 10756, "sha256": "6af23f8e56cbb5e9fdda850fb8201f384053f89e8b3347aa8a6cd98239678b11" },
+      "clock": { "status": 200, "bytes": 10756, "sha256": "6af23f8e56cbb5e9fdda850fb8201f384053f89e8b3347aa8a6cd98239678b11" },
+      "mediatek": { "status": 200, "bytes": 10694, "sha256": "d4938ae54d40715d3cec345b5d4b441fcd8c28ea34d9f520a3a5b9b6205b5288" }
+    },
+    {
+      "path": "include/dt-bindings/reset/mt6797-resets.h",
+      "mainline": { "status": 404 },
+      "clock": { "status": 404 },
+      "mediatek": { "status": 404 }
+    },
+    {
+      "path": "Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml",
+      "mainline": { "status": 200, "bytes": 2384, "sha256": "0610f891e326d1e0a7ce9ffe3ef0513ab229bf37eee8177de0999cac17157c6f" },
+      "clock": { "status": 200, "bytes": 2384, "sha256": "0610f891e326d1e0a7ce9ffe3ef0513ab229bf37eee8177de0999cac17157c6f" },
+      "mediatek": { "status": 200, "bytes": 2384, "sha256": "0610f891e326d1e0a7ce9ffe3ef0513ab229bf37eee8177de0999cac17157c6f" }
+    },
+    {
+      "path": "drivers/clk/mediatek/clk-mt6797-reset.h",
+      "mainline": { "status": 404 },
+      "clock": { "status": 404 },
+      "mediatek": { "status": 404 }
+    },
+    {
+      "path": "drivers/clk/mediatek/clk-mt6797.c",
+      "mainline": { "status": 200, "bytes": 23000, "sha256": "eaad6324621679371f33bbb76e10bcb0d3374b1f2dbbd837323b3f9e8fee1534", "matches_pinned": true, "mtk_infrasys_init": true },
+      "clock": { "status": 200, "bytes": 23000, "sha256": "eaad6324621679371f33bbb76e10bcb0d3374b1f2dbbd837323b3f9e8fee1534", "mtk_infrasys_init": true },
+      "mediatek": { "status": 200, "bytes": 23000, "sha256": "eaad6324621679371f33bbb76e10bcb0d3374b1f2dbbd837323b3f9e8fee1534" }
+    },
+    {
+      "path": "drivers/clk/mediatek/clk-mt6797-reset-test.c",
+      "mainline": { "status": 404 },
+      "clock": { "status": 404 },
+      "mediatek": { "status": 404 }
+    },
+    {
+      "path": "arch/arm64/boot/dts/mediatek/mt6797.dtsi",
+      "mainline": { "status": 200, "bytes": 11331, "sha256": "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83", "matches_pinned": true },
+      "clock": { "status": 200, "bytes": 11331, "sha256": "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83" },
+      "mediatek": { "status": 200, "bytes": 11331, "sha256": "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83" }
+    }
+  ],
+  "baseline_comparison": {
+    "fresh_byte_identity_claims_limited_to": [
+      "drivers/clk/mediatek/clk-mt6797.c",
+      "drivers/clk/mediatek/clk-mtk.c",
+      "Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml",
+      "arch/arm64/boot/dts/mediatek/mt6797.dtsi"
+    ],
+    "verified_paths": [
+      { "path": "drivers/clk/mediatek/clk-mt6797.c", "sha256": "eaad6324621679371f33bbb76e10bcb0d3374b1f2dbbd837323b3f9e8fee1534", "matches_pinned": true },
+      { "path": "drivers/clk/mediatek/clk-mtk.c", "sha256": "e8a89dffaffedfce01489b0887fb425d64649d6fb841157bbcea5aac0fc93e59", "matches_pinned": true },
+      { "path": "Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml", "sha256": "0610f891e326d1e0a7ce9ffe3ef0513ab229bf37eee8177de0999cac17157c6f", "matches_pinned": true },
+      { "path": "arch/arm64/boot/dts/mediatek/mt6797.dtsi", "sha256": "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83", "matches_pinned": true }
+    ],
+    "note": "The common helper is a supplemental selected source, not one of the eleven patch-footprint paths. Other present-footprint hashes and statuses are retained observations; exact outgoing replay remains required before send."
+  },
+  "summary": {
+    "paths_checked": 11,
+    "mainline_present": 6,
+    "mainline_absent": 5,
+    "mainline_present_match_pinned_claims": 3,
+    "common_probe_conversion_in_current_mt6797_file": false,
+    "refs_verified_with_git_ls_remote": true
+  },
+  "limits": "Selected-file/ref verification only; byte-identity claims are limited to the four root-verified paths above. Exact outgoing replay, checkpatch and get_maintainer remain pre-send work; no build, device access, upstream contact, or claim about unpublished work."
+}

@@ -76,10 +76,15 @@ when every item in the cohort segment uses the same observed source and unit.
 
 ## Observations
 
-No eligible accepted item has been recorded yet. Creation of this loop is
-explicitly excluded because its eligibility and timing contract did not exist
-before the work began. Existing routing remains the baseline; no optimization
-decision has been made.
+The ledger contains one eligible accepted offline item. It missed first-review
+acceptance: integration corrected an evidence-link claim, then the first live
+entry exposed fixture coupling in the dedicated workflow self-test. The bounded
+repair was escalated as a scope expansion and accepted after the validator and
+all fifteen refusal cases passed; no immediate safety, publication, provenance
+or scope-containment defect occurred.
+Creation of this loop remains explicitly excluded because its eligibility and
+timing contract did not exist before the work began. Existing routing remains
+the baseline; no optimization decision has been made.
 
 ## Analysis
 
