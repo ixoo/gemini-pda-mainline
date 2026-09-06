@@ -27,16 +27,19 @@ or hardware authority.
 
 ## Current state
 
-The first three accepted items are the bounded MT6797 connectivity-producer
+The first four accepted items are the bounded MT6797 connectivity-producer
 source attribution, the fresh single-batch `wmt_loader` static attribution and
-the mainline connectivity lifecycle/interface design. Astra Medium resolved the
+the mainline connectivity lifecycle/interface design followed by its passive
+CONSYS/WLAN boot slice. Astra Medium resolved the
 kernel-side detector producer/return/registration split and then the retained
 loader's local value/order/return path; Sol Medium accepted both final
 attribution candidates on first review. The design reversed those roles: Sol
 owned the cross-file design and Astra rejected the first state model, which was
-then corrected and accepted after one rework cycle. Two earlier loader
+then corrected and accepted after one rework cycle. Luna High implemented the
+passive slice and Sol Medium accepted it after one repair for OF reference
+ownership, exact Kconfig selection and optimized-fixture integrity. Two earlier loader
 candidates are explicitly excluded: v1 crossed its one-binary tool boundary,
 and v2 replayed an interval not clearly admitted by its frozen contract. The
-fresh v3 candidate removed replay and reused neither attempt's raw output. Three
+fresh v3 candidate removed replay and reused neither attempt's raw output. Four
 accepted items are too early for a comparable-cohort checkpoint, so
 `baseline-01` remains unchanged.

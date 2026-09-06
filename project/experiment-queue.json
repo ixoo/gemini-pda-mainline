@@ -93,6 +93,27 @@
       "owner_task_id": "01a06f91-092d-71d0-acbe-4f38ccff2c56",
       "readiness_note": "Offline packet passed independent review. Its first one-SSH invocation refused before the admission barrier, so no selected data was read and the observation budget remains unconsumed. Do not retry automatically; re-establish live OS/transport and review a fresh admission if boot identity changed. No boot2 candidate or partition write."
     },
+    "mt6797-consys-passive-boot": {
+      "workstream": "wifi",
+      "preparation_state": "preparing",
+      "device_state": "unselected",
+      "owner": "Wi-Fi mainline support",
+      "reviewer": "Project Planning",
+      "device_custodian": null,
+      "experiment": "experiments/2026-09-06-mt6797-consys-passive-boot/README.md",
+      "session_packet": "experiments/2026-09-06-mt6797-consys-passive-boot/SESSION.md",
+      "candidate_record": null,
+      "readiness_record": "experiments/2026-09-06-mt6797-consys-passive-boot/validation.json",
+      "dependencies": [
+        {
+          "item": "a53-authenticated-baseline",
+          "required_result": "Reuse the authenticated USB serviceability and changed-ID Gemian recovery foundation; the prior TOPRGU restart action is not repeated.",
+          "evidence": "experiments/2026-09-05-owner-away-experiment-preparation/baseline/RECOVERY_WITNESS_REVIEW.md"
+        }
+      ],
+      "owner_task_id": "01a06f91-092d-71d0-acbe-4f38ccff2c56",
+      "readiness_note": "Offline implementation and independent review passed. Buildbox package, exact candidate, zero-effect collector, recovery identities and guarded deployment remain pending. No boot2 selection or partition write is admitted yet."
+    },
     "mt6797-toprgu-minimal-restart": {
       "workstream": "watchdog",
       "preparation_state": "stale",

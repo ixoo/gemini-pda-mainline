@@ -1,0 +1,302 @@
+From 5a4dcb7a11d0e9c7ef3db5f09c7bb6f6f9c69f3a Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 6 Sep 2026 21:00:00 +0000
+Subject: [PATCH] soc: mediatek: add passive MT6797 CONSYS boot binding
+
+Add a built-in, effect-free diagnostic for the Gemini reserved-memory
+description.  It validates the unique dynamic no-map reservation before
+publishing one opaque provider generation, then binds one passive WLAN client
+with balanced private references.
+
+The diagnostic never maps or claims the reservation and has no power, reset,
+remap, protection, firmware, radio, or DMA call path.  Its single success
+record is deliberately bounded and does not expose an address or pointer.
+
+Internal experiment only; the synthetic author is non-certifying and there is
+no DCO sign-off.  This does not establish Wi-Fi or hardware support.
+---
+ drivers/soc/mediatek/Kconfig                    |  13 ++
+ drivers/soc/mediatek/Makefile                   |   1 +
+ drivers/soc/mediatek/mt6797-consys-passive.c    | 233 +++++++++++++++++++++++
+ 3 files changed, 247 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-consys-passive.c
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index eecef65..f3a3d10 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -821,5 +821,18 @@ config MTK_MT6797_A72_FREQUENCY_OBSERVER_KUNIT_TEST
+ 	  The production sysfs interface and hardware transports are not invoked.
+ 
++config MTK_MT6797_CONSYS_PASSIVE_BOOT
++	bool "MediaTek MT6797 passive CONSYS/WLAN boot binding"
++	depends on ARCH_MEDIATEK
++	depends on OF
++	depends on OF_RESERVED_MEM
++	default n
++	help
++	  Validate the Gemini dynamic no-map CONSYS reservation and bind one
++	  passive WLAN client to an opaque provider generation at late init.
++	  This observer does not map or claim memory and performs no power, reset,
++	  remap, protection, firmware, radio, or DMA operation.  It is a bounded
++	  boot diagnostic and does not provide a usable Wi-Fi device.
++
+ config MTK_MT6797_A72_RESTORE_EXECUTOR
+ 	bool "MediaTek MT6797 disconnected CPU9 restore executor"
+ 	depends on ARM64 && ARCH_MEDIATEK
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+index 29b4525..83bf1df 100644
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -42,6 +42,7 @@ obj-$(CONFIG_MTK_MT6797_A72_HOTPLUG_EXECUTOR) += mt6797-a72-hotplug-executor.o
+ obj-$(CONFIG_MTK_MT6797_A72_HOTPLUG_EXECUTOR_KUNIT_TEST) += mt6797-a72-hotplug-executor-test.o
+ obj-$(CONFIG_MTK_MT6797_A72_HOTPLUG_SNAPSHOT) += mt6797-a72-hotplug-snapshot.o
+ obj-$(CONFIG_MTK_MT6797_A72_FREQUENCY_OBSERVER) += mt6797-a72-frequency-observer.o
++obj-$(CONFIG_MTK_MT6797_CONSYS_PASSIVE_BOOT) += mt6797-consys-passive.o
+ obj-$(CONFIG_MTK_MT6797_A72_FREQUENCY_OBSERVER_KUNIT_TEST) += mt6797-a72-frequency-observer-test.o
+ obj-$(CONFIG_MTK_MT6797_A72_HOTPLUG_SNAPSHOT_KUNIT_TEST) += mt6797-a72-hotplug-snapshot-test.o
+ obj-$(CONFIG_MTK_MT6797_A72_RESTORE_EXECUTOR) += mt6797-a72-restore-executor.o
+diff --git a/drivers/soc/mediatek/mt6797-consys-passive.c b/drivers/soc/mediatek/mt6797-consys-passive.c
+new file mode 100644
+index 0000000..f5e7a11
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-consys-passive.c
+@@ -0,0 +1,233 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Effect-free MT6797 CONSYS metadata observer and passive WLAN binding.
++ *
++ * This file intentionally stops at the BOUND state.  It is not a provider
++ * for any effect-bearing operation and exports no client-facing symbol.
++ */
++
++#include <linux/byteorder/generic.h>
++#include <linux/errno.h>
++#include <linux/init.h>
++#include <linux/kernel.h>
++#include <linux/of.h>
++#include <linux/of_reserved_mem.h>
++#include <linux/refcount.h>
++#include <linux/sizes.h>
++#include <linux/slab.h>
++#include <linux/types.h>
++
++#define MT6797_CONSYS_COMPAT "mediatek,consys-reserve-memory"
++#define MT6797_CONSYS_SIZE SZ_2M
++#define MT6797_CONSYS_ALIGN SZ_2M
++#define MT6797_CONSYS_RANGE_BASE 0x40000000ULL
++#define MT6797_CONSYS_RANGE_SIZE 0x80000000ULL
++#define MT6797_PASSIVE_CLIENT "wlan-passive"
++
++struct mt6797_passive_effects {
++	const u32 power;
++	const u32 reset;
++	const u32 remap;
++	const u32 protection;
++	const u32 firmware;
++	const u32 radio;
++	const u32 dma;
++};
++
++/* Immutable by construction: this slice has no effect call or increment path. */
++static const struct mt6797_passive_effects mt6797_effects = {
++	.power = 0,
++	.reset = 0,
++	.remap = 0,
++	.protection = 0,
++	.firmware = 0,
++	.radio = 0,
++	.dma = 0,
++};
++
++struct mt6797_passive_provider {
++	refcount_t references;
++	u64 generation;
++	bool published;
++};
++
++/* The WLAN side retains only this opaque generation-bound reference. */
++struct mt6797_passive_handle {
++	struct mt6797_passive_provider *provider;
++	u64 generation;
++};
++
++struct mt6797_passive_client {
++	struct mt6797_passive_handle handle;
++	bool bound;
++};
++
++static struct mt6797_passive_client mt6797_wlan_client;
++
++static int mt6797_read_cells(const __be32 *cells, int length,
++			      unsigned int count, u64 *value)
++{
++	unsigned int index;
++
++	if (!cells || !value || count < 1 || count > 2 ||
++	    length != (int)(count * sizeof(*cells)))
++		return -EINVAL;
++
++	*value = 0;
++	for (index = 0; index < count; index++)
++		*value = (*value << 32) | be32_to_cpu(cells[index]);
++	return 0;
++}
++
++static int mt6797_read_property(const struct device_node *node,
++				const char *name, unsigned int cells, u64 *value)
++{
++	const __be32 *property;
++	int length;
++
++	property = of_get_property(node, name, &length);
++	return mt6797_read_cells(property, length, cells, value);
++}
++
++static int mt6797_validate_reserved_memory(struct device_node *node)
++{
++	const struct reserved_mem *reserved;
++	u64 size, alignment, range_base, range_size, range_end;
++	struct device_node *root, *parent, *duplicate;
++	int length;
++
++	if (!node || !of_device_is_available(node))
++		return -ENODEV;
++
++	/* The OF iterator consumes its from reference; retain the caller's node. */
++	duplicate = of_find_compatible_node(of_node_get(node), NULL,
++					   MT6797_CONSYS_COMPAT);
++	if (duplicate) {
++		of_node_put(duplicate);
++		return -EINVAL;
++	}
++
++	root = of_find_node_by_path("/reserved-memory");
++	parent = of_get_parent(node);
++	if (!root || !parent || parent != root ||
++	    !of_device_is_available(root)) {
++		of_node_put(parent);
++		of_node_put(root);
++		return -EINVAL;
++	}
++	of_node_put(parent);
++	of_node_put(root);
++
++	/* A dynamic reservation must not also carry a static address. */
++	if (of_find_property(node, "reg", &length))
++		return -EINVAL;
++
++	if (!of_property_read_bool(node, "no-map") ||
++	    of_property_read_bool(node, "reusable") ||
++	    of_property_read_bool(node, "no-map-fixup"))
++		return -EOPNOTSUPP;
++
++	if (mt6797_read_property(node, "size", 2, &size) ||
++	    mt6797_read_property(node, "alignment", 2, &alignment))
++		return -EINVAL;
++	if (size != MT6797_CONSYS_SIZE || alignment != MT6797_CONSYS_ALIGN)
++		return -EINVAL;
++
++	/* The range is one address/size pair with two cells each. */
++	/* Decode the pair separately to avoid retaining any physical address. */
++	{
++		const __be32 *ranges = of_get_property(node, "alloc-ranges", &length);
++
++		if (!ranges || length != 16 ||
++		    mt6797_read_cells(ranges, 8, 2, &range_base) ||
++		    mt6797_read_cells(ranges + 2, 8, 2, &range_size))
++			return -EINVAL;
++	}
++	if (range_base != MT6797_CONSYS_RANGE_BASE ||
++	    range_size != MT6797_CONSYS_RANGE_SIZE || !range_size ||
++	    range_size - 1 > ~(u64)0 - range_base)
++		return -ERANGE;
++	range_end = range_base + range_size - 1;
++
++	reserved = of_reserved_mem_lookup(node);
++	if (!reserved || reserved->ops || reserved->priv || !reserved->base ||
++	    reserved->size != MT6797_CONSYS_SIZE ||
++	    reserved->base % MT6797_CONSYS_ALIGN ||
++	    reserved->size - 1 > ~(u64)0 - (u64)reserved->base)
++		return -ERANGE;
++	if ((u64)reserved->base < range_base ||
++	    (u64)reserved->base + reserved->size - 1 > range_end)
++		return -ERANGE;
++
++	return 0;
++}
++
++static int mt6797_passive_client_acquire(
++	struct mt6797_passive_client *client,
++	struct mt6797_passive_provider *provider)
++{
++	if (!client || !provider || client->bound || !provider->published ||
++	    !provider->generation)
++		return client && client->bound ? -EBUSY : -ENODEV;
++	if (!refcount_inc_not_zero(&provider->references))
++		return -ESTALE;
++	client->handle = (struct mt6797_passive_handle){
++		.provider = provider,
++		.generation = provider->generation,
++	};
++	client->bound = true;
++	return 0;
++}
++
++static void __maybe_unused
++mt6797_passive_client_release(struct mt6797_passive_client *client)
++{
++	if (!client || !client->bound)
++		return;
++	if (client->handle.provider &&
++	    client->handle.generation == client->handle.provider->generation)
++		refcount_dec(&client->handle.provider->references);
++	*client = (struct mt6797_passive_client){0};
++}
++
++static int __init mt6797_consys_passive_init(void)
++{
++	struct mt6797_passive_provider *provider;
++	struct device_node *node;
++	int error;
++
++	node = of_find_compatible_node(NULL, NULL, MT6797_CONSYS_COMPAT);
++	if (!node) {
++		pr_info("mt6797-consys-passive: state=UNBOUND error=%d\n", -ENODEV);
++		return 0;
++	}
++	error = mt6797_validate_reserved_memory(node);
++	of_node_put(node);
++	if (error) {
++		pr_info("mt6797-consys-passive: state=UNBOUND error=%d\n", error);
++		return 0;
++	}
++
++	provider = kzalloc(sizeof(*provider), GFP_KERNEL);
++	if (!provider)
++		return 0;
++	refcount_set(&provider->references, 1);
++	provider->generation = 1;
++	provider->published = true;
++
++	error = mt6797_passive_client_acquire(&mt6797_wlan_client, provider);
++	if (error) {
++		kfree(provider);
++		pr_info("mt6797-consys-passive: state=UNBOUND error=%d\n", error);
++		return 0;
++	}
++
++	pr_info("mt6797-consys-passive: state=BOUND generation=%llu "
++		"client=%s power=%u reset=%u remap=%u protection=%u "
++		"firmware=%u radio=%u dma=%u\n",
++		(unsigned long long)mt6797_wlan_client.handle.generation,
++		MT6797_PASSIVE_CLIENT, mt6797_effects.power, mt6797_effects.reset,
++		mt6797_effects.remap, mt6797_effects.protection,
++		mt6797_effects.firmware, mt6797_effects.radio, mt6797_effects.dma);
++	return 0;
++}
++
++late_initcall(mt6797_consys_passive_init);
+
+-- 
+2.43.0

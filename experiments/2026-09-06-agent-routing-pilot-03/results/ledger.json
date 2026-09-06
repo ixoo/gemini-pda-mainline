@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 3,
-  "next_accepted_sequence": 4,
-  "next_considered_sequence": 6,
+  "accepted_count": 4,
+  "next_accepted_sequence": 5,
+  "next_considered_sequence": 7,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -175,6 +175,46 @@
         "credit_source": "unavailable",
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-06-mt6797-mainline-connectivity-interface-design/VALIDATION.md"
+      }
+    },
+    {
+      "considered_sequence": 6,
+      "accepted_sequence": 4,
+      "candidate_id": "mt6797-consys-passive-boot",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "implementation",
+      "risk_class": "cross-file",
+      "acceptance_contract": "experiments/2026-09-06-mt6797-consys-passive-boot/WORK_ITEM.md",
+      "review_comparison_group": "mt6797-wifi-passive-owner-implementation",
+      "parent": "5ff87b372419e506a92a052db22da0dcfa13cb8b",
+      "owner_route": {
+        "role": "gemini_implementer",
+        "model": "gpt-5.6-luna",
+        "effort": "high"
+      },
+      "review_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-06T20:34:18Z",
+        "review_ready_at": "2026-09-06T21:01:27Z",
+        "accepted_at": "2026-09-06T21:03:32Z",
+        "timing_source": "observed UTC frozen-contract, corrected handoff and independent-review acceptance timestamps",
+        "elapsed_minutes": 29.2333333,
+        "review_rework_minutes": 3.5333333,
+        "first_review_accepted": false,
+        "rework_cycles": 1,
+        "escalated": false,
+        "escalation_reason": null,
+        "escalation_packet": null,
+        "review_failure_class": null,
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-06-mt6797-consys-passive-boot/validation.json"
       }
     }
   ],

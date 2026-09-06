@@ -1,0 +1,3 @@
+# Effect-free MT6797 CONSYS/WLAN passive boot diagnostic.
+CONFIG_MTK_MT6797_CONSYS_PASSIVE_BOOT=y
+CONFIG_LOCALVERSION="-gemini-consys-passive"

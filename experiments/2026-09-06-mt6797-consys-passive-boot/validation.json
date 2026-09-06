@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "experiment": "mt6797-consys-passive-boot",
+  "review_ready_utc": "2026-09-06T21:01:27Z",
+  "parent_commit": "5ff87b372419e506a92a052db22da0dcfa13cb8b",
+  "linux_source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+  "parent_profile": "mt6797-toprgu-minimal-restart",
+  "patch": {
+    "path": "patches/v7.1.3/0544-soc-mediatek-add-MT6797-passive-CONSYS-boot-binding.patch",
+    "sha256": "83eb8c176d6cfa6f3d4f343c1acfe396f34349600c74cf701932c95515e67cf6",
+    "preimages": {
+      "drivers/soc/mediatek/Kconfig": "eecef65",
+      "drivers/soc/mediatek/Makefile": "29b4525",
+      "drivers/soc/mediatek/mt6797-consys-passive.c": "0000000"
+    }
+  },
+  "profile_fragment": {
+    "path": "configs/gemini-mt6797-consys-passive.fragment",
+    "sha256": "470f68c8da4bfa345b0cd25ca3b27024c33596251204ff98f7ac60909d265941"
+  },
+  "series": {
+    "path": "patches/series-mt6797-consys-passive-boot",
+    "sha256": "8fdbd1b0a28ff71c9fbbf72554e005876a78250157c82e68ed8e14c1e58d6ef1",
+    "canonical_subsequence_checked": true,
+    "parent_series_integration_pending": false
+  },
+  "fixtures": {
+    "path": "experiments/2026-09-06-mt6797-consys-passive-boot/test_passive_boot.py",
+    "sha256": "2c776009c35ebef31c2c96a7294c2ab396435294def06039937a48010a6dd910",
+    "assert_free_oracles": true,
+    "mutation_refusals": 21,
+    "normal": {"status": "pass", "cases": 45},
+    "optimized": {"status": "pass", "cases": 45}
+  },
+  "checks": {
+    "git_apply_stat": "pass",
+    "git_diff_check": "pass",
+    "kernel_buildbox": "deferred",
+    "checkpatch": "pass: 0 errors; 4 non-blocking warnings; 3 style checks",
+    "device": "not-run",
+    "hardware_support": false
+  },
+  "integration_review": {
+    "route": "Sol Medium",
+    "status": "accepted",
+    "accepted_utc": "2026-09-06T21:03:32Z",
+    "repairs": 1,
+    "first_review_accepted": false
+  },
+  "scope": {
+    "runtime_support": false,
+    "userspace_abi": false,
+    "device_action": false,
+    "commit_or_push": false
+  }
+}

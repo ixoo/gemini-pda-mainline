@@ -131,6 +131,7 @@
         "experiments/2026-09-06-mt6797-connectivity-producer-source-attribution/",
         "experiments/2026-09-06-mt6797-wmt-loader-ioctl-static-attribution-v3/",
         "experiments/2026-09-06-mt6797-mainline-connectivity-interface-design/",
+        "experiments/2026-09-06-mt6797-consys-passive-boot/",
         "Shared CONSYS/WMT and Wi-Fi firmware/HIF contract proposals"
       ],
       "evidence": [
@@ -142,7 +143,8 @@
         "experiments/2026-09-06-mt6797-wlan-drv-init-lifecycle-source-attribution/README.md",
         "experiments/2026-09-06-mt6797-connectivity-producer-source-attribution/README.md",
         "experiments/2026-09-06-mt6797-wmt-loader-ioctl-static-attribution-v3/README.md",
-        "experiments/2026-09-06-mt6797-mainline-connectivity-interface-design/README.md"
+        "experiments/2026-09-06-mt6797-mainline-connectivity-interface-design/README.md",
+        "experiments/2026-09-06-mt6797-consys-passive-boot/README.md"
       ],
       "issue_urls": [
         "https://github.com/ixoo/gemini-pda-mainline/issues/25"
