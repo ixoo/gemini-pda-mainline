@@ -1,0 +1,480 @@
+{
+  "schema_version": 1,
+  "repository_parent": "a770a606ef28244d143fe270f76264ea6d0391d0",
+  "source_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+  "authority": {
+    "linux_owner_established": false,
+    "vendor_code_reusable": false,
+    "vendor_api_reusable": false,
+    "runtime_authority": false,
+    "device_action_allowed": false,
+    "hardware_support_claim": false,
+    "safe_reuse_established": false
+  },
+  "interpretation": "Conditional pinned-source attribution. A resolved predicate resolves only its stated source boundary, not binary equivalence or physical resource effects.",
+  "citations": {
+    "config": {
+      "source_id": "config",
+      "lines": [
+        1336,
+        1359
+      ],
+      "symbol": "MT6797 and Wi-Fi selection"
+    },
+    "wlan_make": {
+      "source_id": "wlan_make",
+      "lines": [
+        1,
+        35
+      ],
+      "symbol": "built-in/gen3 selection"
+    },
+    "gen3_make": {
+      "source_id": "gen3_make",
+      "lines": [
+        7,
+        20
+      ],
+      "symbol": "MT6797 macro"
+    },
+    "hif_select": {
+      "source_id": "gen3_make",
+      "lines": [
+        70,
+        97
+      ],
+      "symbol": "AHB include/object selection"
+    },
+    "hif_objects": {
+      "source_id": "gen3_make",
+      "lines": [
+        188,
+        197
+      ],
+      "symbol": "AHB objects"
+    },
+    "wmt_mode": {
+      "source_id": "gen3_config",
+      "lines": [
+        165,
+        167
+      ],
+      "symbol": "MTK_WCN_SINGLE_MODULE"
+    },
+    "fw_mode": {
+      "source_id": "gen3_config",
+      "lines": [
+        492,
+        501
+      ],
+      "symbol": "firmware download guards"
+    },
+    "platform_mode": {
+      "source_id": "hif_h",
+      "lines": [
+        25,
+        42
+      ],
+      "symbol": "CONF_HIF_DEV_MISC"
+    },
+    "callback_type": {
+      "source_id": "wmt_exp_h",
+      "lines": [
+        298,
+        308
+      ],
+      "symbol": "MTK_WCN_WMT_WLAN_CB_INFO"
+    },
+    "callback_api": {
+      "source_id": "wmt_exp_h",
+      "lines": [
+        335,
+        344
+      ],
+      "symbol": "callback registration API"
+    },
+    "registration": {
+      "source_id": "ahb",
+      "lines": [
+        1596,
+        1642
+      ],
+      "symbol": "HifAhbPltmProbe/Remove"
+    },
+    "assignment": {
+      "source_id": "wmt_exp",
+      "lines": [
+        573,
+        611
+      ],
+      "symbol": "mtk_wcn_wmt_wlan_reg/unreg"
+    },
+    "bus_register": {
+      "source_id": "ahb",
+      "lines": [
+        240,
+        290
+      ],
+      "symbol": "glRegisterBus/glUnregisterBus"
+    },
+    "platform_driver": {
+      "source_id": "ahb",
+      "lines": [
+        201,
+        217
+      ],
+      "symbol": "MtkPltmAhbDriver"
+    },
+    "init_exit": {
+      "source_id": "gl_init",
+      "lines": [
+        2441,
+        2536
+      ],
+      "symbol": "initWlan/exitWlan and built-in exports"
+    },
+    "function_request": {
+      "source_id": "wifi_chrdev",
+      "lines": [
+        326,
+        338
+      ],
+      "symbol": "WIFI_write function-on caller"
+    },
+    "queue_request": {
+      "source_id": "wmt_exp",
+      "lines": [
+        89,
+        138
+      ],
+      "symbol": "mtk_wcn_wmt_func_ctrl"
+    },
+    "on_off_api": {
+      "source_id": "wmt_exp",
+      "lines": [
+        159,
+        191
+      ],
+      "symbol": "mtk_wcn_wmt_func_on/off"
+    },
+    "queue": {
+      "source_id": "wmt_lib",
+      "lines": [
+        1186,
+        1269
+      ],
+      "symbol": "wmt_lib_put_act_op"
+    },
+    "worker": {
+      "source_id": "wmt_lib",
+      "lines": [
+        1017,
+        1096
+      ],
+      "symbol": "wmtd_thread"
+    },
+    "op_table": {
+      "source_id": "wmt_core",
+      "lines": [
+        264,
+        269
+      ],
+      "symbol": "wmt_core_opfunc"
+    },
+    "op_dispatch": {
+      "source_id": "wmt_core",
+      "lines": [
+        492,
+        522
+      ],
+      "symbol": "wmt_core_opid"
+    },
+    "wifi_table": {
+      "source_id": "wmt_core",
+      "lines": [
+        73,
+        77
+      ],
+      "symbol": "gpWmtFuncOps Wi-Fi guard"
+    },
+    "wifi_ops": {
+      "source_id": "wmt_func",
+      "lines": [
+        107,
+        116
+      ],
+      "symbol": "wmt_func_wifi_ops"
+    },
+    "wifi_on": {
+      "source_id": "wmt_func",
+      "lines": [
+        694,
+        726
+      ],
+      "symbol": "wmt_func_wifi_on"
+    },
+    "wifi_off": {
+      "source_id": "wmt_func",
+      "lines": [
+        729,
+        760
+      ],
+      "symbol": "wmt_func_wifi_off"
+    },
+    "probe": {
+      "source_id": "ahb",
+      "lines": [
+        1412,
+        1459
+      ],
+      "symbol": "HifAhbProbe"
+    },
+    "remove": {
+      "source_id": "ahb",
+      "lines": [
+        1472,
+        1507
+      ],
+      "symbol": "HifAhbRemove"
+    },
+    "firmware_caller": {
+      "source_id": "gl_init",
+      "lines": [
+        2019,
+        2058
+      ],
+      "symbol": "wlanProbe firmware lifetime"
+    },
+    "firmware_mapping": {
+      "source_id": "gl_kal",
+      "lines": [
+        361,
+        421
+      ],
+      "symbol": "firmware mapping and unmapping"
+    },
+    "firmware_disabled": {
+      "source_id": "gl_kal",
+      "lines": [
+        425,
+        491
+      ],
+      "symbol": "disabled request_firmware branch"
+    },
+    "adapter": {
+      "source_id": "wlan_lib",
+      "lines": [
+        407,
+        457
+      ],
+      "symbol": "wlanAdapterStart download dispatch"
+    },
+    "adapter_failure": {
+      "source_id": "wlan_lib",
+      "lines": [
+        690,
+        711
+      ],
+      "symbol": "wlanAdapterStart cleanup tail"
+    },
+    "probe_failure": {
+      "source_id": "gl_init",
+      "lines": [
+        2233,
+        2259
+      ],
+      "symbol": "wlanProbe cleanup switch"
+    },
+    "wlan_remove_guard": {
+      "source_id": "gl_init",
+      "lines": [
+        2270,
+        2305
+      ],
+      "symbol": "wlanRemove guards"
+    },
+    "wlan_remove_order": {
+      "source_id": "gl_init",
+      "lines": [
+        2394,
+        2427
+      ],
+      "symbol": "wlanRemove stop/free/unregister"
+    },
+    "common_on": {
+      "source_id": "wmt_core",
+      "lines": [
+        1026,
+        1087
+      ],
+      "symbol": "opfunc_pwr_on"
+    },
+    "common_off": {
+      "source_id": "wmt_core",
+      "lines": [
+        1091,
+        1130
+      ],
+      "symbol": "opfunc_pwr_off"
+    },
+    "func_on": {
+      "source_id": "wmt_core",
+      "lines": [
+        1134,
+        1276
+      ],
+      "symbol": "opfunc_func_on"
+    },
+    "func_off": {
+      "source_id": "wmt_core",
+      "lines": [
+        1279,
+        1373
+      ],
+      "symbol": "opfunc_func_off"
+    },
+    "state_reset": {
+      "source_id": "wmt_exp",
+      "lines": [
+        565,
+        570
+      ],
+      "symbol": "mtk_wcn_wmt_system_state_reset"
+    },
+    "power_bits": {
+      "source_id": "wmt_ctrl",
+      "lines": [
+        367,
+        399
+      ],
+      "symbol": "power control state-bit requests"
+    }
+  },
+  "predicates": {
+    "callback_assignment": {
+      "verdict": "resolved",
+      "claim": "WLAN supplies a stack callback object; common registration copies its function pointers, and common Wi-Fi-on invokes the registered WLAN probe. Direction is common-to-WLAN.",
+      "evidence": [
+        "callback_type",
+        "callback_api",
+        "registration",
+        "assignment",
+        "bus_register",
+        "wifi_on"
+      ],
+      "boundary": "Exact definitions/assignments in the selected AHB/WMT source branch. The stack object itself is not retained; copied callbacks are globals. HifAhbPltmProbe ignores registration's return and returns zero.",
+      "missing": "No missing assignment edge; actual built-in initialization and active binary equivalence remain outside this resolved source boundary.",
+      "next_discriminator": "Close the common compile guard and exported built-in initialization caller before claiming this is an executed selected-image chain."
+    },
+    "function_on_to_firmware": {
+      "verdict": "unresolved",
+      "claim": "The conditional source chain joins WIFI_write to queued WMT operation dispatch, common Wi-Fi callback, HifAhbProbe, wlanProbe and the local firmware buffer passed to wlanAdapterStart.",
+      "evidence": [
+        "function_request",
+        "queue_request",
+        "on_off_api",
+        "queue",
+        "worker",
+        "op_table",
+        "op_dispatch",
+        "wifi_table",
+        "wifi_ops",
+        "wifi_on",
+        "bus_register",
+        "probe",
+        "init_exit",
+        "firmware_caller",
+        "firmware_mapping",
+        "firmware_disabled",
+        "adapter"
+      ],
+      "boundary": "The caller maps then synchronously calls AdapterStart then unmaps the buffer on return, including AdapterStart failure. Mapping failure skips the caller unmap; mapping's load-failure path frees/closes. The request_firmware alternative is disabled. Queue waiting and worker execution are separate contexts; timeout is not completion proof.",
+      "missing": "CFG_FUNC_WIFI_SUPPORT definition/common build closure and the exact built-in init caller were not selected before the three-batch cap. No OSAL timeout/cancellation or callback synchronization guarantee is established.",
+      "next_discriminator": "A fresh narrow build/include and built-in init selection audit, plus separately scoped queue timeout/callback synchronization proof; no device test is admitted."
+    },
+    "common_lifetime": {
+      "verdict": "contradicted",
+      "claim": "A universal rule that common power is held before, throughout and after every WLAN probe callback is contradicted by the deferred-registration source path.",
+      "evidence": [
+        "common_on",
+        "func_on",
+        "wifi_on",
+        "state_reset",
+        "assignment",
+        "queue_request",
+        "queue",
+        "power_bits"
+      ],
+      "boundary": "Normal queued success establishes WMT FUNC_ON before callback and promotes Wi-Fi state only after zero return, with no common release in that synchronous path. But a missing callback sets gWifiProbed and returns -2; core failure may power down when all consumers are off. System-state-reset does not clear that pending flag. Registration later directly invokes it, without reacquiring common power or promoting the normal Wi-Fi state in that body. This is a source path, not a claim it happened.",
+      "missing": "No universal reference lifetime is proved. Concurrent resets/unregister, timeout and physical rail/clock retention are unjoined. WMT_STAT_PWR is changed before the platform effect returns, so it cannot certify effect success.",
+      "next_discriminator": "Separate normal and late-registration protocols; prove exclusion or recovery of late registration and synchronization before proposing a retained provider reference."
+    },
+    "failure_propagation": {
+      "verdict": "resolved",
+      "claim": "The inspected branches distinguish callback error, missing callback, common driver status and pending registration state; failures are not success-state promotions.",
+      "evidence": [
+        "probe",
+        "wifi_on",
+        "func_on",
+        "common_off",
+        "state_reset",
+        "assignment",
+        "queue",
+        "queue_request",
+        "power_bits"
+      ],
+      "boundary": "wlanProbe failure causes pfWlanRemove and -1 at HIF; common maps nonzero callback to -1 and missing callback to -2, setting its Wi-Fi bit only on zero. Core sets Wi-Fi POWER_OFF on callback failure and conditionally requests common power-off if all listed consumers are off; other active consumers keep common state. It preserves the function-on error even if cleanup fails. POWER_OFF bookkeeping may be set despite a failed power-off effect; a disabled power-off flag refuses that operation. Late-registration callback failure returns -2 without clearing the pending flag or copied callbacks. Host-awake get/put is per request, not a retained WLAN-provider reference.",
+      "missing": "Resolved at the inspected source return/state boundary only. Timeout execution completion, deeper effect status, cleanup correctness and concurrent state coherence are not established.",
+      "next_discriminator": "Independently audit OSAL timeout ownership and all state writers before runtime/refcount conclusions; do not infer resource release from POWER_OFF bookkeeping."
+    },
+    "cleanup_order": {
+      "verdict": "unresolved",
+      "claim": "Function-off, probe failure and unregister have distinct visible cleanup orders, not one proved symmetric provider-release contract.",
+      "evidence": [
+        "wifi_off",
+        "func_off",
+        "common_off",
+        "remove",
+        "probe",
+        "probe_failure",
+        "adapter_failure",
+        "wlan_remove_guard",
+        "wlan_remove_order",
+        "bus_register",
+        "registration",
+        "assignment",
+        "init_exit",
+        "platform_driver",
+        "wlan_make"
+      ],
+      "boundary": "Function-off calls WLAN remove before clearing Wi-Fi bit on callback success; core marks Wi-Fi POWER_OFF even on callback failure, then may power off all-common state and overwrite the earlier return with power-off result. HIF remove calls wlanRemove then PALDO-off request and returns zero. Probe failure calls pfWlanRemove directly, not HifAhbRemove, after wlanProbe's own failure switch. Unregister calls wlanRemove then platform_driver_unregister; the platform remove body only clears callbacks and does not request function-off. The selected makefile defines built-in mode, while the driver remove field uses __exit_p; a module-unload guarantee cannot be assumed.",
+      "missing": "Exact __exit_p/build selection and invocation of built-in exit are unjoined. No proof that probe-failure's additional remove is safe, that its PALDO request is balanced, or that unregister synchronizes an in-flight callback. This audit does not repair these paths.",
+      "next_discriminator": "A separate narrow built-in exit/__exit_p and failure-cleanup lifetime review with complete resource acquisition/release tables, before any Linux ownership or reuse proposal."
+    }
+  },
+  "state_model": {
+    "callback_direction": "common-to-wlan",
+    "normal_before": "WMT_FUNC_ON",
+    "normal_during": "no common release in synchronous call chain",
+    "normal_after": "WIFI_FUNC_ON on zero return",
+    "callback_failure_wifi_state": "POWER_OFF",
+    "missing_callback_result": -2,
+    "missing_callback_pending_flag": 1,
+    "state_reset_clears_pending_flag": false,
+    "late_registration_reacquires_common_power": false,
+    "late_registration_promotes_wifi_state": false,
+    "host_awake_reference": "released after queue wait returns, including timeout",
+    "function_off_wifi_state": "POWER_OFF even on callback failure",
+    "wmt_wlan_unreg_body_clears_callbacks": true,
+    "built_in_unregister_reaches_callback_clear": null,
+    "unregister_calls_function_off": false,
+    "probe_failure_calls_full_hif_remove": false,
+    "universal_lifetime_retained": false
+  },
+  "escalation": {
+    "evidence": "Deferred registration bypasses normal common on/state promotion; bookkeeping and effect status differ; cleanup paths are asymmetric.",
+    "attempts": "Three frozen public-fetch batches; 26 successful requests; four newly selected regular files; no repair or device attempt. Two declared contextual rereads, plus incidental repeated locator context. Unmeasured initial freeze labels removed rather than represented as clock evidence.",
+    "unresolved_question": "Can any selected-image, synchronized common-provider lifetime be certified across late registration, request timeout and built-in unregister? Not from this bounded corpus.",
+    "next_discriminating_check": "New separately scoped common build/include + built-in initialization/exit audit; then exact callback/OSAL synchronization and resource balancing review. No further reads under this item."
+  }
+}

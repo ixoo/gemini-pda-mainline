@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 6,
-  "next_accepted_sequence": 7,
-  "next_considered_sequence": 8,
+  "accepted_count": 7,
+  "next_accepted_sequence": 8,
+  "next_considered_sequence": 9,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -311,6 +311,46 @@
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-06-mt6797-conn-domain-compile/validation.json"
       }
+    },
+    {
+      "considered_sequence": 8,
+      "accepted_sequence": 7,
+      "candidate_id": "mt6797-wlan-common-lifetime-source-attribution",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "reasoning",
+      "risk_class": "hard-uncertainty",
+      "acceptance_contract": "experiments/2026-09-06-mt6797-wlan-common-lifetime-source-attribution/WORK_ITEM.md",
+      "review_comparison_group": "mt6797-wifi-owner-source-attribution",
+      "parent": "a770a606ef28244d143fe270f76264ea6d0391d0",
+      "owner_route": {
+        "role": "gemini_specialist",
+        "model": "gpt-6-astra",
+        "effort": "medium"
+      },
+      "review_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-06T16:40:36Z",
+        "review_ready_at": "2026-09-06T16:53:58Z",
+        "accepted_at": "2026-09-06T17:08:04Z",
+        "timing_source": "observed UTC work-contract creation, first complete handoff and final-review timestamps",
+        "elapsed_minutes": 27.4666667,
+        "review_rework_minutes": 14.1,
+        "first_review_accepted": false,
+        "rework_cycles": 1,
+        "escalated": false,
+        "escalation_reason": null,
+        "escalation_packet": null,
+        "review_failure_class": "publication",
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-06-mt6797-wlan-common-lifetime-source-attribution/verdicts.json"
+      }
     }
   ],
   "checkpoints": [
@@ -368,6 +408,22 @@
       ],
       "comparable_item_ids": [
         "mt6797-conn-domain-nonregistration-compile"
+      ],
+      "conclusion": "too-small",
+      "evidence": "experiments/2026-09-06-agent-routing-pilot-02/README.md"
+    },
+    {
+      "id": "pilot-02-post-item-seven-publication-integrity",
+      "after_accepted_sequence": 7,
+      "after_considered_sequence": 8,
+      "trigger": "early-signal",
+      "trigger_item_ids": [
+        "mt6797-wlan-common-lifetime-source-attribution"
+      ],
+      "comparable_item_ids": [
+        "mt6797-consys-owner-source-attribution",
+        "mt6797-emi-adapter-source-attribution",
+        "mt6797-wlan-common-lifetime-source-attribution"
       ],
       "conclusion": "too-small",
       "evidence": "experiments/2026-09-06-agent-routing-pilot-02/README.md"

@@ -106,3 +106,28 @@ so this item receives an early checkpoint. It is the cohort's only
 nonregistration descriptor item and has no comparable peer; the conclusion is
 `too-small`, baseline decision `baseline-01` remains unchanged, and no settings
 change is made.
+
+## Item seven and early-signal checkpoint
+
+Accepted item 7, `mt6797-wlan-common-lifetime-source-attribution`, joins the
+selected public WMT/WLAN callback and state-machine edges without promoting them
+to live-device equivalence. Callback assignment and narrow failure bookkeeping
+are resolved. The complete built-in function-on/firmware chain and symmetric
+cleanup remain unresolved. Most importantly, a composable late-registration
+path can invoke the pending WLAN callback after common power-off without
+reacquiring common power or promoting normal Wi-Fi state, contradicting a
+universal retained-common-resource inference at the source level.
+
+First integration review accepted the five semantic verdicts and strict search
+accounting but found that coordinated evidence/citation edits escaped the
+verifier and that one unregister boolean exceeded the unresolved built-in
+`__exit_p` boundary. One bounded repair independently froze all 17 source tuples
+and 42 citation anchors, compared 13 predecessor tuples field-for-field, added
+co-mutation refusals and separated function-body callback clearing from unknown
+built-in reachability. The second review accepted the handoff.
+
+The verifier escape is a publication-integrity early signal. Items 4, 5 and 7
+are comparable hard-uncertainty source-attribution reasoning tasks, but three
+items remain below the five-item evidence floor for a settings experiment. The
+checkpoint conclusion is `too-small`; baseline decision `baseline-01` remains
+unchanged and no settings decision is made.

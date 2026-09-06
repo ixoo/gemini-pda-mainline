@@ -1,0 +1,539 @@
+{
+  "schema_version": 1,
+  "budgets": {
+    "batches": 3,
+    "new_regular_files": 16,
+    "contextual_rereads": 2
+  },
+  "batches": [
+    {
+      "id": 1,
+      "purpose": "Determine build-selection guards and callback object assignment/invocation; initial reads only.",
+      "files": [
+        {
+          "id": "config",
+          "path": "arch/arm64/configs/lineage_gemini_defconfig",
+          "expected_blob": "3346814fd2d65b519387caed4c3f5189ed25e9d3"
+        },
+        {
+          "id": "wmt_func",
+          "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c",
+          "expected_blob": "b3d8d45250f7f8cdebbc53806aeac473139d9f4d"
+        },
+        {
+          "id": "wmt_exp_h",
+          "path": "drivers/misc/mediatek/connectivity/common/common_main/include/wmt_exp.h",
+          "expected_blob": "35f6b499539890eb1ee907bad0bdb163b175bf18"
+        },
+        {
+          "id": "ahb",
+          "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c",
+          "expected_blob": "2baa62315535274b0585b598346614c6307d320f"
+        },
+        {
+          "id": "wlan_make",
+          "path": "drivers/misc/mediatek/connectivity/wlan/Makefile"
+        },
+        {
+          "id": "gen3_make",
+          "path": "drivers/misc/mediatek/connectivity/wlan/gen3/Makefile"
+        },
+        {
+          "id": "gen3_config",
+          "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/config.h"
+        }
+      ],
+      "patterns": "config: connectivity/WLAN/COMBO; Makefiles: entire file; gen3_config: HIF/WMT; ahb: callback/probe/bus register bodies 1350-1670; wmt_func: Wi-Fi functions 540-762; wmt_exp_h: callback declarations",
+      "freeze_order": 1,
+      "freeze_method": "Allowlist written with apply_patch before this batch's requests; wall-clock freeze time not measured."
+    },
+    {
+      "id": 2,
+      "purpose": "Join function-on dispatch, registration assignment, WLAN firmware/probe cleanup and common state transitions. Initial selected-function reads; ahb and wmt_func initial uninspected ranges only.",
+      "files": [
+        {
+          "id": "wmt_core",
+          "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c",
+          "expected_blob": "cc17b778efcb6fab2f87484a1d09caf05e4b1227"
+        },
+        {
+          "id": "wmt_exp",
+          "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_exp.c",
+          "expected_blob": "db7993b9233c2719d875f80d1f62d127a012400b"
+        },
+        {
+          "id": "wmt_func",
+          "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c",
+          "expected_blob": "b3d8d45250f7f8cdebbc53806aeac473139d9f4d"
+        },
+        {
+          "id": "wmt_lib",
+          "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c",
+          "expected_blob": "dca2d325cd057cb032c1a18f4ee46c50a08c8ef4"
+        },
+        {
+          "id": "wmt_dev",
+          "path": "drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c",
+          "expected_blob": "70f7a422608c2159532caab2f191012ca6a99ac7"
+        },
+        {
+          "id": "wlan_lib",
+          "path": "drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c",
+          "expected_blob": "f876ed6b8a725b435a4bdbe23736bbc59839d463"
+        },
+        {
+          "id": "gl_init",
+          "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c",
+          "expected_blob": "9b62a50b7e6749157e97aa5ef17bf4699a78f1ce"
+        },
+        {
+          "id": "gl_kal",
+          "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c",
+          "expected_blob": "7458b96c5693b3f10c9209d0707d4555195ddd72"
+        },
+        {
+          "id": "ahb",
+          "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c",
+          "expected_blob": "2baa62315535274b0585b598346614c6307d320f"
+        },
+        {
+          "id": "wifi_chrdev",
+          "path": "drivers/misc/mediatek/connectivity/wlan/wmt_chrdev_wifi.c",
+          "expected_blob": "6a6f6ec46414ba638608fb2240baa9042895ba0b"
+        }
+      ],
+      "patterns": "Selected function bodies: wmt_exp wlan registration/unregistration/func_ctrl/on/off; wmt_core opfunc_func_on/off and power_on/off plus operation dispatch; wmt_lib operation queue completion worker; wmt_dev deferred WLAN registration work; gl_init wlan init/exit/probe/remove; gl_kal firmware mapping/unmapping; wlan_lib AdapterStart; wifi_chrdev WMT function calls; ahb glRegisterBus/glUnregisterBus and CONFIG definitions; wmt_func global callback definitions and operation table. No previously inspected function body reread.",
+      "freeze_order": 2,
+      "freeze_method": "Allowlist written with apply_patch before this batch's requests; wall-clock freeze time not measured."
+    },
+    {
+      "id": 3,
+      "purpose": "Close exact include/build guards, dispatch table and system-state-reset locators, and two context gaps in queue/completion functions. Final batch; any remaining unjoined edge is unresolved.",
+      "files": [
+        {
+          "id": "wmt_core",
+          "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c",
+          "expected_blob": "cc17b778efcb6fab2f87484a1d09caf05e4b1227"
+        },
+        {
+          "id": "wmt_ctrl",
+          "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ctrl.c",
+          "expected_blob": "063b92c81f0d78ad6558cc49dc67ed9830f6b098"
+        },
+        {
+          "id": "wmt_exp",
+          "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_exp.c",
+          "expected_blob": "db7993b9233c2719d875f80d1f62d127a012400b"
+        },
+        {
+          "id": "wmt_lib",
+          "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c",
+          "expected_blob": "dca2d325cd057cb032c1a18f4ee46c50a08c8ef4"
+        },
+        {
+          "id": "gl_init",
+          "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c",
+          "expected_blob": "9b62a50b7e6749157e97aa5ef17bf4699a78f1ce"
+        },
+        {
+          "id": "gl_kal",
+          "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c",
+          "expected_blob": "7458b96c5693b3f10c9209d0707d4555195ddd72"
+        },
+        {
+          "id": "ahb",
+          "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c",
+          "expected_blob": "2baa62315535274b0585b598346614c6307d320f"
+        },
+        {
+          "id": "gen3_config",
+          "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/config.h"
+        },
+        {
+          "id": "hif_h",
+          "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h"
+        }
+      ],
+      "patterns": "ahb 1-240; hif_h CONF_HIF_DEV_MISC and guards; gen3_config firmware-download guards; gl_init initWlan/exitWlan 2430-2538; gl_kal 1-200 guards; wmt_core gpWmtFuncOps and core opid handler/core_ctrl and system_state_reset locator; wmt_exp system_state_reset locator; wmt_ctrl hardware power-on/off functions; wmt_lib wmtd_thread 1017-1096 and put_act_op 1186-1290 plus system_state_reset/gWifiProbed locators.",
+      "freeze_order": 3,
+      "freeze_method": "Allowlist written with apply_patch before this batch's requests; wall-clock freeze time not measured."
+    }
+  ],
+  "requests": [
+    {
+      "source_id": "config",
+      "path": "arch/arm64/configs/lineage_gemini_defconfig",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/arch/arm64/configs/lineage_gemini_defconfig",
+      "started_utc": "2026-09-06T16:43:33.450855+00:00",
+      "status": 200,
+      "sha256": "5f0018658a6e0858cbb730be427a379797afd9e2639a51e7f40d963b4e61115a",
+      "git_blob_sha1": "3346814fd2d65b519387caed4c3f5189ed25e9d3",
+      "size": 102819,
+      "line_count": 3770,
+      "finished_utc": "2026-09-06T16:43:33.780490+00:00",
+      "batch": 1
+    },
+    {
+      "source_id": "wmt_func",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c",
+      "started_utc": "2026-09-06T16:43:33.780612+00:00",
+      "status": 200,
+      "sha256": "c57079b29491338fa635dd36f550f3be53b4a2cee343b1dce1c9e4d365b4589d",
+      "git_blob_sha1": "b3d8d45250f7f8cdebbc53806aeac473139d9f4d",
+      "size": 20783,
+      "line_count": 762,
+      "finished_utc": "2026-09-06T16:43:33.901405+00:00",
+      "batch": 1
+    },
+    {
+      "source_id": "wmt_exp_h",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/include/wmt_exp.h",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/include/wmt_exp.h",
+      "started_utc": "2026-09-06T16:43:33.901642+00:00",
+      "status": 200,
+      "sha256": "1075776ee00218e66941eabdc42e81277f84acb1c7d42de9cfb49df4e8b6763d",
+      "git_blob_sha1": "35f6b499539890eb1ee907bad0bdb163b175bf18",
+      "size": 14698,
+      "line_count": 419,
+      "finished_utc": "2026-09-06T16:43:34.119976+00:00",
+      "batch": 1
+    },
+    {
+      "source_id": "ahb",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c",
+      "started_utc": "2026-09-06T16:43:34.120063+00:00",
+      "status": 200,
+      "sha256": "d9b4e80fe98695284627e495ad640e39728ebe7df235df129f64d48e8a2e726b",
+      "git_blob_sha1": "2baa62315535274b0585b598346614c6307d320f",
+      "size": 49595,
+      "line_count": 1753,
+      "finished_utc": "2026-09-06T16:43:34.226435+00:00",
+      "batch": 1
+    },
+    {
+      "source_id": "wlan_make",
+      "path": "drivers/misc/mediatek/connectivity/wlan/Makefile",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/Makefile",
+      "started_utc": "2026-09-06T16:43:34.226765+00:00",
+      "status": 200,
+      "sha256": "46185e00d63f9c29ee721781c9fd43b9f3e6f157f26d3610c60c63e00351fc33",
+      "git_blob_sha1": "94649acb330f21f5a75603e5b5fe6abba3df0190",
+      "size": 924,
+      "line_count": 35,
+      "finished_utc": "2026-09-06T16:43:34.459677+00:00",
+      "batch": 1
+    },
+    {
+      "source_id": "gen3_make",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/Makefile",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/Makefile",
+      "started_utc": "2026-09-06T16:43:34.459755+00:00",
+      "status": 200,
+      "sha256": "5e099f94e6c79593a9210b97096646d2d8e2b0ddd7110a8870519b3dd5c49204",
+      "git_blob_sha1": "a1027c1d0c963d12b23473dc211d6e32c4ded32f",
+      "size": 6205,
+      "line_count": 225,
+      "finished_utc": "2026-09-06T16:43:34.664812+00:00",
+      "batch": 1
+    },
+    {
+      "source_id": "gen3_config",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/config.h",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/config.h",
+      "started_utc": "2026-09-06T16:43:34.665048+00:00",
+      "status": 200,
+      "sha256": "c773b8e5e07978d60565c2eeee976dae3e285ecb9152062fe3bb50b1358a1c32",
+      "git_blob_sha1": "e97dcc72f8f762ce003b4784c493ad3bd1bf9e34",
+      "size": 30266,
+      "line_count": 821,
+      "finished_utc": "2026-09-06T16:43:34.780063+00:00",
+      "batch": 1
+    },
+    {
+      "source_id": "wmt_core",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c",
+      "started_utc": "2026-09-06T16:45:29.501977+00:00",
+      "batch": 2,
+      "status": 200,
+      "sha256": "e9f438c5c6033f0bf831347c69d656ec917b3e705648d3d27fb1b27409334f1e",
+      "git_blob_sha1": "cc17b778efcb6fab2f87484a1d09caf05e4b1227",
+      "size": 93721,
+      "line_count": 3016,
+      "finished_utc": "2026-09-06T16:45:29.882581+00:00"
+    },
+    {
+      "source_id": "wmt_exp",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_exp.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_exp.c",
+      "started_utc": "2026-09-06T16:45:29.542476+00:00",
+      "batch": 2,
+      "status": 200,
+      "sha256": "9ee1dfe7f361c02d24b1c443d2e1ef13d7b054509feb2d5dfc00f2620a5d6b12",
+      "git_blob_sha1": "db7993b9233c2719d875f80d1f62d127a012400b",
+      "size": 20731,
+      "line_count": 734,
+      "finished_utc": "2026-09-06T16:45:29.652697+00:00"
+    },
+    {
+      "source_id": "wmt_func",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c",
+      "started_utc": "2026-09-06T16:45:29.503214+00:00",
+      "batch": 2,
+      "status": 200,
+      "sha256": "c57079b29491338fa635dd36f550f3be53b4a2cee343b1dce1c9e4d365b4589d",
+      "git_blob_sha1": "b3d8d45250f7f8cdebbc53806aeac473139d9f4d",
+      "size": 20783,
+      "line_count": 762,
+      "finished_utc": "2026-09-06T16:45:29.580030+00:00"
+    },
+    {
+      "source_id": "wmt_lib",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c",
+      "started_utc": "2026-09-06T16:45:29.557979+00:00",
+      "batch": 2,
+      "status": 200,
+      "sha256": "e363d3377aab1de6f81d94dd482bcdba5eb55884792f45e1688ebf850f991e4f",
+      "git_blob_sha1": "dca2d325cd057cb032c1a18f4ee46c50a08c8ef4",
+      "size": 54747,
+      "line_count": 2196,
+      "finished_utc": "2026-09-06T16:45:29.700266+00:00"
+    },
+    {
+      "source_id": "wmt_dev",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c",
+      "started_utc": "2026-09-06T16:45:29.558301+00:00",
+      "batch": 2,
+      "status": 200,
+      "sha256": "d7be291ca5e2962be24def406260b5bb21a4b85438f64a1064944686a84fd62e",
+      "git_blob_sha1": "70f7a422608c2159532caab2f191012ca6a99ac7",
+      "size": 39254,
+      "line_count": 1482,
+      "finished_utc": "2026-09-06T16:45:29.826511+00:00"
+    },
+    {
+      "source_id": "wlan_lib",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c",
+      "started_utc": "2026-09-06T16:45:29.595433+00:00",
+      "batch": 2,
+      "status": 200,
+      "sha256": "56bf99536fcb96de5a5198943aec96c9efccb8af89261b29c62046e6560c422f",
+      "git_blob_sha1": "f876ed6b8a725b435a4bdbe23736bbc59839d463",
+      "size": 215814,
+      "line_count": 6819,
+      "finished_utc": "2026-09-06T16:45:29.944599+00:00"
+    },
+    {
+      "source_id": "gl_init",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c",
+      "started_utc": "2026-09-06T16:45:29.605056+00:00",
+      "batch": 2,
+      "status": 200,
+      "sha256": "8a644f0c9f3e37c6f66654cf3aeecb8e5f4cd71405e67f79105da7c8f87a7665",
+      "git_blob_sha1": "9b62a50b7e6749157e97aa5ef17bf4699a78f1ce",
+      "size": 76036,
+      "line_count": 2543,
+      "finished_utc": "2026-09-06T16:45:29.884566+00:00"
+    },
+    {
+      "source_id": "gl_kal",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c",
+      "started_utc": "2026-09-06T16:45:29.595790+00:00",
+      "batch": 2,
+      "status": 200,
+      "sha256": "749c5fc0e6cf3614d15e237e2d65cf92858d483ef1d678f6d9aee0f87bf348f1",
+      "git_blob_sha1": "7458b96c5693b3f10c9209d0707d4555195ddd72",
+      "size": 153027,
+      "line_count": 5158,
+      "finished_utc": "2026-09-06T16:45:29.748232+00:00"
+    },
+    {
+      "source_id": "ahb",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c",
+      "started_utc": "2026-09-06T16:45:29.611022+00:00",
+      "batch": 2,
+      "status": 200,
+      "sha256": "d9b4e80fe98695284627e495ad640e39728ebe7df235df129f64d48e8a2e726b",
+      "git_blob_sha1": "2baa62315535274b0585b598346614c6307d320f",
+      "size": 49595,
+      "line_count": 1753,
+      "finished_utc": "2026-09-06T16:45:29.666043+00:00"
+    },
+    {
+      "source_id": "wifi_chrdev",
+      "path": "drivers/misc/mediatek/connectivity/wlan/wmt_chrdev_wifi.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/wmt_chrdev_wifi.c",
+      "started_utc": "2026-09-06T16:45:29.616520+00:00",
+      "batch": 2,
+      "status": 200,
+      "sha256": "b2791e8354a41a53265a2619f9bfd8ec2ebe37319a0a8e9aa085c9ae15f9d3f5",
+      "git_blob_sha1": "6a6f6ec46414ba638608fb2240baa9042895ba0b",
+      "size": 14426,
+      "line_count": 547,
+      "finished_utc": "2026-09-06T16:45:29.832318+00:00"
+    },
+    {
+      "source_id": "wmt_core",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c",
+      "started_utc": "2026-09-06T16:47:01.735427+00:00",
+      "batch": 3,
+      "status": 200,
+      "sha256": "e9f438c5c6033f0bf831347c69d656ec917b3e705648d3d27fb1b27409334f1e",
+      "git_blob_sha1": "cc17b778efcb6fab2f87484a1d09caf05e4b1227",
+      "size": 93721,
+      "line_count": 3016,
+      "finished_utc": "2026-09-06T16:47:01.809086+00:00"
+    },
+    {
+      "source_id": "wmt_ctrl",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ctrl.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ctrl.c",
+      "started_utc": "2026-09-06T16:47:01.753601+00:00",
+      "batch": 3,
+      "status": 200,
+      "sha256": "4fdc36fab251ba206c580268be73d9b9161005821bffe0ad01f3bf8a6b8800ec",
+      "git_blob_sha1": "063b92c81f0d78ad6558cc49dc67ed9830f6b098",
+      "size": 31505,
+      "line_count": 1093,
+      "finished_utc": "2026-09-06T16:47:01.990238+00:00"
+    },
+    {
+      "source_id": "wmt_exp",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_exp.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_exp.c",
+      "started_utc": "2026-09-06T16:47:01.736292+00:00",
+      "batch": 3,
+      "status": 200,
+      "sha256": "9ee1dfe7f361c02d24b1c443d2e1ef13d7b054509feb2d5dfc00f2620a5d6b12",
+      "git_blob_sha1": "db7993b9233c2719d875f80d1f62d127a012400b",
+      "size": 20731,
+      "line_count": 734,
+      "finished_utc": "2026-09-06T16:47:01.799708+00:00"
+    },
+    {
+      "source_id": "wmt_lib",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c",
+      "started_utc": "2026-09-06T16:47:01.755039+00:00",
+      "batch": 3,
+      "status": 200,
+      "sha256": "e363d3377aab1de6f81d94dd482bcdba5eb55884792f45e1688ebf850f991e4f",
+      "git_blob_sha1": "dca2d325cd057cb032c1a18f4ee46c50a08c8ef4",
+      "size": 54747,
+      "line_count": 2196,
+      "finished_utc": "2026-09-06T16:47:01.821166+00:00"
+    },
+    {
+      "source_id": "gl_init",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c",
+      "started_utc": "2026-09-06T16:47:01.779622+00:00",
+      "batch": 3,
+      "status": 200,
+      "sha256": "8a644f0c9f3e37c6f66654cf3aeecb8e5f4cd71405e67f79105da7c8f87a7665",
+      "git_blob_sha1": "9b62a50b7e6749157e97aa5ef17bf4699a78f1ce",
+      "size": 76036,
+      "line_count": 2543,
+      "finished_utc": "2026-09-06T16:47:01.870521+00:00"
+    },
+    {
+      "source_id": "gl_kal",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c",
+      "started_utc": "2026-09-06T16:47:01.785517+00:00",
+      "batch": 3,
+      "status": 200,
+      "sha256": "749c5fc0e6cf3614d15e237e2d65cf92858d483ef1d678f6d9aee0f87bf348f1",
+      "git_blob_sha1": "7458b96c5693b3f10c9209d0707d4555195ddd72",
+      "size": 153027,
+      "line_count": 5158,
+      "finished_utc": "2026-09-06T16:47:01.868185+00:00"
+    },
+    {
+      "source_id": "ahb",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c",
+      "started_utc": "2026-09-06T16:47:01.804397+00:00",
+      "batch": 3,
+      "status": 200,
+      "sha256": "d9b4e80fe98695284627e495ad640e39728ebe7df235df129f64d48e8a2e726b",
+      "git_blob_sha1": "2baa62315535274b0585b598346614c6307d320f",
+      "size": 49595,
+      "line_count": 1753,
+      "finished_utc": "2026-09-06T16:47:01.877331+00:00"
+    },
+    {
+      "source_id": "gen3_config",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/config.h",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/config.h",
+      "started_utc": "2026-09-06T16:47:01.824043+00:00",
+      "batch": 3,
+      "status": 200,
+      "sha256": "c773b8e5e07978d60565c2eeee976dae3e285ecb9152062fe3bb50b1358a1c32",
+      "git_blob_sha1": "e97dcc72f8f762ce003b4784c493ad3bd1bf9e34",
+      "size": 30266,
+      "line_count": 821,
+      "finished_utc": "2026-09-06T16:47:01.887076+00:00"
+    },
+    {
+      "source_id": "hif_h",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h",
+      "started_utc": "2026-09-06T16:47:01.811229+00:00",
+      "batch": 3,
+      "status": 200,
+      "sha256": "e9d18516cc49e6290203a827551ea7cb890af155d2ae9ddd0fd9ec03888fb87c",
+      "git_blob_sha1": "5eac33401b9158ba63ac44151765ca6affcc1882",
+      "size": 10855,
+      "line_count": 343,
+      "finished_utc": "2026-09-06T16:47:01.993512+00:00"
+    }
+  ],
+  "contextual_rereads": [
+    {
+      "batch": 3,
+      "source_id": "wmt_lib",
+      "symbol": "wmtd_thread",
+      "lines": [
+        1017,
+        1096
+      ],
+      "reason": "Batch-2 name was wmt_lib_thread; only locator contexts were returned, so explicit worker body is needed."
+    },
+    {
+      "batch": 3,
+      "source_id": "wmt_lib",
+      "symbol": "wmt_lib_put_act_op",
+      "lines": [
+        1186,
+        1290
+      ],
+      "reason": "Brace extraction did not return full function; explicit bounded context closes queue/completion edge."
+    }
+  ],
+  "accounting_notes": [
+    "Initial manually entered freeze-time labels removed because they were not clock measurements; measured network start/end times retained unchanged.",
+    "Two declared contextual whole-function rereads; incidental locator contexts also repeated portions of previously shown functions. These are not counted as additional deliberate rereads; strict interpretation of the reread cap is an integration-review question.",
+    "Batch 2 wmt_dev had no hit for selected deferred-registration function name; callback assignment/deferred path was found in wmt_exp.",
+    "No fetch failed. No source body or source excerpt is stored in repository files."
+  ],
+  "stop": {
+    "reason": "batch-budget-exhausted",
+    "additional_fetches_permitted": false,
+    "remaining_edges": [
+      "CFG_FUNC_WIFI_SUPPORT definition and selected common build/include closure",
+      "actual built-in init caller and __exit_p expansion/unregister invocation",
+      "concurrent/timeout callback synchronization and physical resource retention"
+    ]
+  }
+}
