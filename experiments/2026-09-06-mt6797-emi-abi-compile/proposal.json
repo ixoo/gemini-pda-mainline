@@ -1,0 +1,22 @@
+{
+  "status": "pre-Buildbox integration accepted; clean pushed build pending",
+  "frozen_parent": "9e3851500113515392e97fb8d21bf83ed4c6f2a8",
+  "linux_source": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "profile": "mt6797-hif-parser-compile",
+  "predecessor_series": "patches/series-mt6797-provider-compile through proposal 0007",
+  "append_after": "proposals/0007-wifi-mediatek-describe-dynamic-reserved-memory.patch",
+  "patch": "0008-wifi-mediatek-compile-emi-abi.patch",
+  "patch_sha256": "ac87496f89b81419bbf2219acf7f9f140fec14d3b4cf37075107f2afa2f396f9",
+  "kernel_delta": [
+    "drivers/net/wireless/mediatek/mt6797/Makefile",
+    "drivers/net/wireless/mediatek/mt6797/emi-abi.c",
+    "drivers/net/wireless/mediatek/mt6797/emi-abi.h"
+  ],
+  "object": "drivers/net/wireless/mediatek/mt6797/emi-abi.o",
+  "host_test": "src/emi-abi-test.c linked against separately compiled src/emi-abi.c",
+  "runtime_caller": "none; linked object is intentionally unreferenced",
+  "hardware_access": "NONE",
+  "prebuild_integration_review": "PASS",
+  "submission_ready": false,
+  "author_metadata": "Synthetic non-certifying experiment identity; no DCO sign-off"
+}

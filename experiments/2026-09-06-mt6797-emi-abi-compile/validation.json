@@ -1,0 +1,48 @@
+{
+  "patch_sha256": "ac87496f89b81419bbf2219acf7f9f140fec14d3b4cf37075107f2afa2f396f9",
+  "patch_reproduction_and_replay": "PASS",
+  "kernel_build": "PENDING INTEGRATOR BUILD",
+  "backend": "NOT ACCESSED",
+  "hardware": "NOT ACCESSED",
+  "runtime_caller": "NONE; object is linked but unreferenced",
+  "effect_api_scan": "PASS",
+  "host_test": "emi_abi_alignment_131070_refusals_selector_bounds_status_cases=pass\n",
+  "sanitizer_flags": [
+    "-std=c11",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-Wconversion",
+    "-Wsign-conversion",
+    "-pedantic",
+    "-O1",
+    "-g",
+    "-fsanitize=address,undefined",
+    "-fno-sanitize-recover=all",
+    "-fno-omit-frame-pointer"
+  ],
+  "compiler": "Apple clang version 21.0.0 (clang-2100.1.1.101)",
+  "checkpatch": {
+    "exit": 1,
+    "checkpatch_sha256": "2553cc1a601e70522e03fbce633d4e79fa5936f7f56a66de1899b7ddd247820a",
+    "auxiliary_sha256": {
+      "spelling.txt": "4095d4a8810f115bae1b7c0d8a1946beb3435f6e22d9a48ac009bb024bad1e68",
+      "const_structs.checkpatch": "ea064f6916a74763468037494aeb270aae34b7c97617e84d424ca5b8733539b2"
+    },
+    "allowed_findings": [
+      "WARNING: added, moved or deleted file(s), does MAINTAINERS need updating?",
+      "ERROR: Missing Signed-off-by: line(s)"
+    ],
+    "output": "WARNING: added, moved or deleted file(s), does MAINTAINERS need updating?\n#30: \nnew file mode 100644\n\nERROR: Missing Signed-off-by: line(s)\n\ntotal: 1 errors, 1 warnings, 0 checks, 126 lines checked\n\nNOTE: For some of the reported defects, checkpatch may be able to\n      mechanically convert to the typical style using --fix or --fix-inplace.\n\n<project>/experiments/2026-09-06-mt6797-emi-abi-compile/0008-wifi-mediatek-compile-emi-abi.patch has style problems, please review.\n\nNOTE: If any of the errors are false positives, please report\n      them to the maintainer, see CHECKPATCH in MAINTAINERS.\n"
+  },
+  "source_hashes": {
+    "emi-abi-test.c": "c1d2934bcc0de7c347797123e21c046c2ea1a2f544d4f5d575c2d1f8c618e30e",
+    "emi-abi.c": "30a3b12a1f8ffeccef9e1e9ffa88c65a20fbdbb61134f70c369148e4b090c688",
+    "emi-abi.h": "332007a278e478e96a442d1beb4d39a30d3ca11f1a24e756107562c84dc0d93b"
+  },
+  "limitations": [
+    "Linux __KERNEL__ include branch is not host-compiled.",
+    "Buildbox requires the integrator's clean pushed commit and shared series.",
+    "No runtime caller, secure call, mapping, firmware or hardware path exists."
+  ]
+}

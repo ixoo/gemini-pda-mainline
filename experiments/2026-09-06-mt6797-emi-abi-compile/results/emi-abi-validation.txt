@@ -1,0 +1,29 @@
+MT6797 EMI ABI compile proposal validation — 2026-09-06
+Frozen parent: 9e3851500113515392e97fb8d21bf83ed4c6f2a8.
+Frozen Linux source: 4d7d9486c04d917265f64c55bd23b2cc4fe7749c.
+Generated patch replay and exact source reproduction: PASS.
+Patch SHA-256: ac87496f89b81419bbf2219acf7f9f140fec14d3b4cf37075107f2afa2f396f9.
+Patch scope: mt6797/Makefile plus new emi-abi.c and emi-abi.h only.
+Strict host compile: PASS with -std=c11 -Wall -Wextra -Werror -Wconversion
+ -Wsign-conversion -pedantic and separately compiled emi-abi.o.
+Kernel/host assertion spelling: PASS; kernel uses linux/build_bug.h and host
+uses assert.h with shared lowercase static_assert spelling.
+ASan/UBSan execution: PASS; exhaustive alignment, confinement, selector,
+policy, region and signed-result cases pass.
+Alignment refusal cases: 131070; invalid selector cases include unset, -1 and 99.
+Effectful API and runtime-caller scan: PASS; no caller, init, export, secure
+call, mapping, DMA, firmware, IRQ, regulator or platform hook exists.
+Checkpatch (Linux 4d7d9486 scripts/checkpatch.pl): PASS for source findings;
+only expected synthetic missing Signed-off-by error and MAINTAINERS warning
+remain. No continuation-alignment or assertion-spelling findings remain.
+Checkpatch dictionaries were pinned and colocated: spelling.txt
+4095d4a8810f115bae1b7c0d8a1946beb3435f6e22d9a48ac009bb024bad1e68;
+const_structs.checkpatch ea064f6916a74763468037494aeb270aae34b7c97617e84d424ca5b8733539b2.
+No degraded-mode dictionary warnings were emitted; scratch cwd was cleaned.
+Buildbox: NOT RUN; shared series/manifest and clean pushed commit are
+integrator-owned prerequisites.
+Hardware, boot candidate, partition, firmware and live secure service: NONE.
+Limitation: __KERNEL__ include branch and real arm64 emi-abi.o are unverified
+until the integrator replays proposals 0001 through 0008 and runs Buildbox.
+The helper requires distinct owner/output storage as a caller precondition;
+it does not attempt to detect aliases.

@@ -1,0 +1,20 @@
+{
+  "frozen_parent": "9e3851500113515392e97fb8d21bf83ed4c6f2a8",
+  "linux_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "checkpatch_sha256": "2553cc1a601e70522e03fbce633d4e79fa5936f7f56a66de1899b7ddd247820a",
+  "checkpatch_auxiliary": {
+    "spelling.txt": "4095d4a8810f115bae1b7c0d8a1946beb3435f6e22d9a48ac009bb024bad1e68",
+    "const_structs.checkpatch": "ea064f6916a74763468037494aeb270aae34b7c97617e84d424ca5b8733539b2"
+  },
+  "predecessor_patches": {
+    "proposals/0001-wifi-mediatek-mt6797-private-hif-core.patch": "199052ee662851fb4f1f5cc814a9a5e6d37535c84b6c360a18343a43404bc877",
+    "proposals/0002-wifi-mediatek-add-mtke-parser.patch": "8d296e627ee5df81a52647b1c846f39b72b32c90212988f5057acc0322b6d512",
+    "proposals/0003-wifi-mediatek-prevalidate-image-plan.patch": "76a93d441fe09db132bd1fbe03ebb0ad24d2743e0f0a72b100e08a62b6beb35c",
+    "proposals/0004-wifi-mediatek-execute-bounded-start.patch": "5b1ed48e14c705d16b9cdcf87bf37854b6b8e64852342989164696dee0a87ca5",
+    "proposals/0005-wifi-mediatek-retain-private-image-bindings.patch": "62edcead89a4ae6845208201ecc5bc320bb688d9a8d28d4a6f50107eec098c08",
+    "proposals/0006-wifi-mediatek-describe-reserved-memory.patch": "2798d49d202edc441c775a78c06ec0d261169f426fdadb04cf6c5e052fba545c",
+    "proposals/0007-wifi-mediatek-describe-dynamic-reserved-memory.patch": "684db9c82d60d42cfbb197ce9f52dd3899f76e1f7c29925554162a73d11aafd0"
+  },
+  "kernel_directory": "drivers/net/wireless/mediatek/mt6797",
+  "patch": "0008-wifi-mediatek-compile-emi-abi.patch"
+}

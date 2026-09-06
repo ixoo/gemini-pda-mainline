@@ -1,0 +1,162 @@
+From e3ab0b02ff1fe570e2db7b2f76a7895e896ff9e7 Mon Sep 17 00:00:00 2001
+From: MT6797 compile experiment <nobody@example.invalid>
+Date: Sun, 6 Sep 2026 00:00:00 +0000
+Subject: [PATCH] wifi: mediatek: compile MT6797 EMI ABI helper
+
+Add the original pure argument/result helper as a separately
+compiled private object. No runtime caller, secure call, mapping,
+or hardware admission is supplied.
+
+Internal experiment only; synthetic non-certifying author, no DCO.
+Assisted-by: LLM
+---
+ drivers/net/wireless/mediatek/mt6797/Makefile |  1 +
+ .../net/wireless/mediatek/mt6797/emi-abi.c    | 53 ++++++++++++++
+ .../net/wireless/mediatek/mt6797/emi-abi.h    | 69 +++++++++++++++++++
+ 3 files changed, 123 insertions(+)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/emi-abi.c
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/emi-abi.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Makefile b/drivers/net/wireless/mediatek/mt6797/Makefile
+index 1f62a45..7a9b253 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Makefile
++++ b/drivers/net/wireless/mediatek/mt6797/Makefile
+@@ -3,3 +3,4 @@ obj-y += hif.o
+ obj-y += mtke.o crc-kernel.o
+ obj-y += image-plan.o
+ obj-y += image-binding.o
++obj-y += emi-abi.o
+diff --git a/drivers/net/wireless/mediatek/mt6797/emi-abi.c b/drivers/net/wireless/mediatek/mt6797/emi-abi.c
+new file mode 100644
+index 0000000..cb137db
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/emi-abi.c
+@@ -0,0 +1,53 @@
++// SPDX-License-Identifier: GPL-2.0-only
++#include "emi-abi.h"
++
++int mt6797_emi_prepare(const struct mt6797_emi_owner_range *owner,
++		       unsigned long long start, unsigned long long end,
++		       unsigned int permissions, struct mt6797_emi_arguments *arguments)
++{
++	unsigned long long translation, first, last;
++
++	if (!arguments)
++		return -EINVAL;
++	*arguments = (struct mt6797_emi_arguments){0};
++	if (!owner || owner->region < 2 || owner->region > 23 ||
++	    permissions & ~0x00ffffffU)
++		return -EINVAL;
++	switch (owner->selector) {
++	case MT6797_EMI_SELECTOR_BIT13_CLEAR:
++		translation = 0x40000000ULL;
++		break;
++	case MT6797_EMI_SELECTOR_BIT13_SET:
++		translation = 0;
++		break;
++	default:
++		return -EINVAL;
++	}
++	/* Check before subtraction: neither reservation nor requested interval
++	 * may rely on firmware underflow, upper-bit truncation or wrap.
++	 */
++	if (owner->start > owner->end || owner->start < translation ||
++	    owner->end - translation > 0xffffffffULL || start > end ||
++	    start < owner->start || end > owner->end ||
++	    (start & 0xffffULL) || (end & 0xffffULL) != 0xffffULL)
++		return -ERANGE;
++	first = start - translation;
++	last = end - translation;
++	arguments->function_id = MT6797_EMI_SMC32_SET;
++	arguments->start = start;
++	arguments->end = end;
++	arguments->region_permission = (owner->region << 27) | permissions;
++	arguments->range_word = ((unsigned int)(first >> 16) << 16) |
++		(unsigned int)(last >> 16);
++	return 0;
++}
++
++struct mt6797_emi_result mt6797_emi_decode_result(unsigned long long raw)
++{
++	unsigned int low = (unsigned int)(raw & 0xffffffffULL);
++	struct mt6797_emi_result result = {.raw = raw};
++
++	result.status = low <= 0x7fffffffU ? (int)low :
++		-1 - (int)(0xffffffffU - low);
++	return result;
++}
+diff --git a/drivers/net/wireless/mediatek/mt6797/emi-abi.h b/drivers/net/wireless/mediatek/mt6797/emi-abi.h
+new file mode 100644
+index 0000000..035ef83
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/emi-abi.h
+@@ -0,0 +1,69 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/* Original ABI validation arithmetic; provenance and limits in EMI_ABI.md. */
++#ifndef GEMINI_EMI_ABI_H
++#define GEMINI_EMI_ABI_H
++
++#ifdef __KERNEL__
++#include <linux/build_bug.h>
++#include <linux/errno.h>
++#include <linux/types.h>
++#else
++#include <assert.h>
++#include <errno.h>
++#include <stddef.h>
++#endif
++
++static_assert(sizeof(unsigned int) == 4, "EMI ABI requires 32-bit unsigned int");
++static_assert(sizeof(int) == 4, "EMI ABI requires 32-bit int");
++static_assert(sizeof(unsigned long long) == 8, "EMI ABI requires 64-bit values");
++
++#define MT6797_EMI_SMC32_SET 0x82000209U
++
++/* Zero-initialized or unknown selector context is deliberately inadmissible. */
++enum mt6797_emi_selector {
++	MT6797_EMI_SELECTOR_UNSET,
++	MT6797_EMI_SELECTOR_BIT13_CLEAR,
++	MT6797_EMI_SELECTOR_BIT13_SET,
++};
++
++/* Facts supplied by an existing exclusive owner, not an acquired lease.
++ * Inclusive reservation and region ownership must remain valid through the
++ * eventual call. This helper does not read/lock the global selector or MMIO.
++ */
++struct mt6797_emi_owner_range {
++	unsigned long long start;
++	unsigned long long end;
++	enum mt6797_emi_selector selector;
++	unsigned int region;
++};
++
++struct mt6797_emi_arguments {
++	unsigned int function_id;
++	unsigned long long start;
++	unsigned long long end;
++	unsigned int region_permission;
++	/* Expected encoded register word for review; never written by this helper. */
++	unsigned int range_word;
++};
++
++struct mt6797_emi_result {
++	unsigned long long raw;
++	int status;
++};
++
++/* Distinct output storage is a caller precondition; zero output on every
++ * refusal. The helper does not attempt to identify storage aliases.
++ * Permissions are strictly low 24 bits; lock bit 26 and all other high bits
++ * are refused rather than silently masked. Neither values nor region numbers
++ * establish the caller's authority to set those fields.
++ */
++int mt6797_emi_prepare(const struct mt6797_emi_owner_range *owner,
++		       unsigned long long start, unsigned long long end,
++		       unsigned int permissions, struct mt6797_emi_arguments *arguments);
++
++/* Interpret the low word without implementation-defined unsigned-to-signed
++ * conversion. Raw high bits are retained, not interpreted as success.
++ */
++struct mt6797_emi_result mt6797_emi_decode_result(unsigned long long raw);
++
++#endif
