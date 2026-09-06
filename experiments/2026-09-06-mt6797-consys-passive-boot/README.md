@@ -79,8 +79,25 @@ After the compile escalation and repaired integration, Buildbox applied all
 observer, and validated package inventory
 `7c43a80cce28a15dc70306e3b8c225b537f1589eec4ac7411a46d422d705401c`.
 The immutable facts are in [the Buildbox receipt](results/buildbox-f9981eaf.txt).
-No VM build, device boot, candidate construction or hardware access occurred.
 Compilation does not establish Wi-Fi or hardware support.
+
+## Rejected candidate construction
+
+The first builder draft produced two byte-identical Android-v0 assemblies at
+`artifacts/consys-passive/candidates/candidate-d10528c86fbc1b0da5983a692d95b86562633882be7e1273bfa926627e8d9f0c`.
+Independent review confirmed that image's actual container bytes, but rejected
+the admission tooling: its input identity inherited parent series pins, its
+validator did not relate every raw payload byte to the pinned inputs, and its
+builder and collector did not confine outputs to the private ignored tree. Its
+historical draft input identity was
+`c395f6f55c7d71b85ad18946637479380209bfe327572d96fc3ed18cf2673358`, its
+initramfs is `972d4d813539d98a60b1f7f6f38594d584fe560c619156760919b2001308b47f`,
+and its exact 16 MiB padded image is the directory identity above.
+
+That draft is not deployable. The repaired builder, validator and collector are
+under review; they pin the new series/profile inputs, replay every container
+payload and header field, and fix outputs below `artifacts/consys-passive/`.
+Physical admission remains false and no device action was taken.
 
 ## Handoff limits
 

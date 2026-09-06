@@ -52,3 +52,49 @@ validated package inventory
 `7c43a80cce28a15dc70306e3b8c225b537f1589eec4ac7411a46d422d705401c`.
 The package is fetched below ignored artifacts. No device, firmware, private
 capture, candidate or boot slot was touched; physical readiness is still false.
+
+## Rejected candidate/collector draft
+
+Candidate preparation was attempted offline with the exact Buildbox package,
+the retained authenticated serviceability initramfs, the existing serviceability
+DT transform output, and the reviewed credentials. The builder replayed the
+DT/initramfs/Android-v0 assembly twice; both byte streams matched. The private
+candidate is `candidate-d10528c86fbc1b0da5983a692d95b86562633882be7e1273bfa926627e8d9f0c`.
+
+```text
+release=7.1.3-gemini-consys-passive
+profile=mt6797-consys-passive-boot
+input_id=c395f6f55c7d71b85ad18946637479380209bfe327572d96fc3ed18cf2673358
+initramfs_sha256=972d4d813539d98a60b1f7f6f38594d584fe560c619156760919b2001308b47f
+raw_sha256=0ae8e6e27693d3241c35932ba664321e984cc1c165afa5e09d5c1af43b07525f
+padded_sha256=d10528c86fbc1b0da5983a692d95b86562633882be7e1273bfa926627e8d9f0c
+raw_size=8853504 padded_size=16777216
+```
+
+Independent review rejected that validator and collector despite confirming the
+draft image bytes independently. A controlled raw-payload mutation passed the
+draft validator after its self-reported hashes were recomputed, outputs were not
+confined, and refusal coverage was incomplete. The draft candidate and its
+`c395f6...` input identity are therefore not admissible. Repaired fixtures now
+exercise 14 candidate/container cases and 23 collector cases in both normal and
+optimized Python modes; a clean published construction and independent replay
+remain required. Physical admission, installation and boot selection remain
+false.
+
+The future passive session expressly forbids invoking `/bin/reboot`, the
+inherited TOPRGU wrapper, BusyBox `reboot`, `poweroff`, or any equivalent
+restart/power command, manually or through a helper. The only admitted runtime
+operation is one authenticated bounded read of the existing log capture,
+followed by host-side classification. Any request to exercise the wrapper ends
+the session without action.
+
+The retained foundation input is:
+
+```text
+<foundation-repository>/artifacts/mt6797-pwrap-reset-serviceability/candidate-mt6797-pwrap-reset-305230b1/gemini-pwrap-reset-serviceability-initramfs.img
+sha256=344d8a8464bee60764df467f166aa73eddfcbd4d362d835aa2d6895534c31c4b
+```
+
+Exact construction and independent validation command lines will be frozen
+here after the repaired tools are committed, pushed and rerun from a clean
+`origin/main`. Candidate readiness remains false until that replay completes.

@@ -70,6 +70,31 @@
     "inventory_sha256": "7c43a80cce28a15dc70306e3b8c225b537f1589eec4ac7411a46d422d705401c",
     "hardware_support": false
   },
+  "private_candidate": {
+    "directory": "artifacts/consys-passive/candidates/candidate-d10528c86fbc1b0da5983a692d95b86562633882be7e1273bfa926627e8d9f0c",
+    "release": "7.1.3-gemini-consys-passive",
+    "profile": "mt6797-consys-passive-boot",
+    "input_id": "c395f6f55c7d71b85ad18946637479380209bfe327572d96fc3ed18cf2673358",
+    "initramfs_sha256": "972d4d813539d98a60b1f7f6f38594d584fe560c619156760919b2001308b47f",
+    "raw_sha256": "0ae8e6e27693d3241c35932ba664321e984cc1c165afa5e09d5c1af43b07525f",
+    "padded_sha256": "d10528c86fbc1b0da5983a692d95b86562633882be7e1273bfa926627e8d9f0c",
+    "raw_size": 8853504,
+    "padded_size": 16777216,
+    "independent_replays": 2,
+    "validator": "rejected: incomplete raw payload binding",
+    "admission": "rejected: superseded input identity and tooling",
+    "physical_admission": false
+  },
+  "collector": {
+    "path": "experiments/2026-09-06-mt6797-consys-passive-boot/collect.py",
+    "fixtures": {
+      "normal": {"status": "repair-fixtures-pass", "cases": 23},
+      "optimized": {"status": "repair-fixtures-pass", "cases": 23}
+    },
+    "device_action": false,
+    "physical_admission": false,
+    "independent_review": "rejected: output confinement and refusal coverage"
+  },
   "scope": {
     "runtime_support": false,
     "userspace_abi": false,
