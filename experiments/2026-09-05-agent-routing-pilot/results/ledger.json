@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 6,
-  "next_accepted_sequence": 7,
-  "next_considered_sequence": 9,
+  "accepted_count": 7,
+  "next_accepted_sequence": 8,
+  "next_considered_sequence": 10,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -151,6 +151,7 @@
       "offline_eligible": true,
       "work_type": "implementation",
       "risk_class": "cross-file",
+      "review_comparison_group": "mt6797-kernel-compile-helper-v1",
       "acceptance_contract": "experiments/2026-09-06-mt6797-emi-abi-compile/WORK_ITEM.md",
       "parent": "9e3851500113515392e97fb8d21bf83ed4c6f2a8",
       "owner_route": {
@@ -190,6 +191,7 @@
       "offline_eligible": true,
       "work_type": "implementation",
       "risk_class": "cross-file",
+      "review_comparison_group": "mt6797-kernel-compile-helper-v1",
       "acceptance_contract": "experiments/2026-09-06-mt6797-remap-fields-compile/WORK_ITEM.md",
       "parent": "ef212d454c7497aa5fcf60ed4182d7d104bd8ca9",
       "owner_route": {
@@ -313,6 +315,46 @@
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-06-mt6797-firmware-nvram-handler-attribution/README.md"
       }
+    },
+    {
+      "considered_sequence": 9,
+      "accepted_sequence": 7,
+      "candidate_id": "mt6797-resource-layout-kernel-compile",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "implementation",
+      "risk_class": "cross-file",
+      "review_comparison_group": "mt6797-kernel-compile-helper-v1",
+      "acceptance_contract": "experiments/2026-09-06-mt6797-resource-layout-compile/WORK_ITEM.md",
+      "parent": "f43a702c107e3685c92c4d275dc3547acf7302ce",
+      "owner_route": {
+        "role": "gemini_implementer",
+        "model": "gpt-5.6-luna",
+        "effort": "high"
+      },
+      "review_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-06T05:32:44Z",
+        "review_ready_at": "2026-09-06T05:41:21Z",
+        "accepted_at": "2026-09-06T06:11:43Z",
+        "timing_source": "observed UTC dispatch, first handoff and final post-Buildbox review timestamps",
+        "elapsed_minutes": 38.9833333333,
+        "review_rework_minutes": 30.3666666667,
+        "first_review_accepted": false,
+        "rework_cycles": 2,
+        "escalated": false,
+        "escalation_reason": null,
+        "escalation_packet": null,
+        "review_failure_class": null,
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-06-mt6797-resource-layout-compile/BUILD_RESULT.md"
+      }
     }
   ],
   "checkpoints": [
@@ -343,6 +385,24 @@
       "comparable_item_ids": [
         "mt6797-emi-domain-attribution",
         "mt6797-firmware-nvram-handler-attribution"
+      ],
+      "conclusion": "too-small",
+      "evidence": "experiments/2026-09-05-agent-routing-pilot/README.md"
+    },
+    {
+      "id": "pilot-01-post-item-seven-compile-review-misses",
+      "after_accepted_sequence": 7,
+      "after_considered_sequence": 9,
+      "trigger": "early-signal",
+      "trigger_item_ids": [
+        "mt6797-emi-abi-kernel-compile",
+        "mt6797-remap-fields-kernel-compile",
+        "mt6797-resource-layout-kernel-compile"
+      ],
+      "comparable_item_ids": [
+        "mt6797-emi-abi-kernel-compile",
+        "mt6797-remap-fields-kernel-compile",
+        "mt6797-resource-layout-kernel-compile"
       ],
       "conclusion": "too-small",
       "evidence": "experiments/2026-09-05-agent-routing-pilot/README.md"

@@ -76,9 +76,9 @@ when every item in the cohort segment uses the same observed source and unit.
 
 ## Observations
 
-The contiguous ledger now contains eight considered candidates: six eligible
+The contiguous ledger now contains nine considered candidates: seven eligible
 accepted offline items, one cohort-bootstrap exclusion and one device-session
-exclusion. All six accepted items missed first-review acceptance. The first two
+exclusion. All seven accepted items missed first-review acceptance. The first two
 required escalation: the integration item exposed live-ledger fixture coupling,
 and the dynamic reserved-memory implementation needed corrected OF semantics,
 owned declaration copies and static-path regression coverage. The next two
@@ -100,6 +100,14 @@ tooling contract. Two chronology-only review repairs aligned the work contract
 with the accepted stop receipt. Credits are unavailable for all six items. No
 accepted measurement is inferred from model identity or elapsed
 time.
+
+Item seven compiled the pure MT6797 reserved-resource layout bridge. Its first
+review found a selector-range incompatibility with the predecessor EMI ABI,
+an unavailable freshness claim, incomplete refusal-output poisoning and a
+missing start-after-end fixture. Two bounded repair passes closed those issues;
+the exact 13-patch Buildbox build then replayed, compiled and linked the real
+AArch64 object and validated/fetched the package. It selected no permission or
+runtime caller and did not escalate. Credits remain unavailable.
 
 ## Post-item-six early-signal checkpoint
 
@@ -126,6 +134,23 @@ The conclusion remains `too-small`. The shared miss signal warrants preserving
 the precise failure classes and continuing measurement, but two technically
 different investigations do not support a route or settings change. No safety,
 publication, provenance or scope-containment failure was accepted.
+
+## Post-item-seven compile-review checkpoint
+
+Checkpoint `pilot-01-post-item-seven-compile-review-misses` closes accepted
+sequence 7 and considered sequence 9. The EMI ABI, remap-fields and
+resource-layout compile items share the explicit prospective review group
+`mt6797-kernel-compile-helper-v1`: all are cross-file Luna High implementations
+with Sol Medium review, deterministic synthetic patches, strict host fixtures,
+canonical-series integration, exact Buildbox compilation and object/linkage
+evidence. All three missed first-review acceptance and none escalated.
+
+The three-item group has median elapsed time 30.1279534333 minutes and median
+review/rework time 21.56612915 minutes. First-review acceptance is 0/3; credits
+are unavailable throughout. The conclusion remains `too-small`: three items do
+not meet the five-comparable-item threshold for a settings experiment, and the
+misses arose from distinct contract, provenance and interface defects. No
+settings change is justified.
 
 Creation of this loop remains excluded because its eligibility and timing
 contract did not exist before work began. The passive CONSYS ownership snapshot

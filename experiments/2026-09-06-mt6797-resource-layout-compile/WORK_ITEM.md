@@ -97,12 +97,15 @@
 - **Handoff:** exact proposal/source identities, host fixture counts, replay
   and Checkpatch results, no-caller/no-policy/no-effect proof, Buildbox package
   and `resource-layout.o` evidence, and every unresolved provider dependency.
-- **State:** active. Implementation contract drafted at
+- **State:** complete. Implementation contract drafted at
   `2026-09-06T05:26:51Z`, passed Sol pre-dispatch review at
   `2026-09-06T05:32:26Z`, and implementation began at
   `2026-09-06T05:32:44Z`. The repaired implementation was review-ready at
   `2026-09-06T05:50:22Z` and passed final pre-Buildbox Sol review at
-  `2026-09-06T05:51:12Z`.
+  `2026-09-06T05:51:12Z`. Buildbox generated and validated the exact pushed
+  commit's package at `2026-09-06T06:06:49Z`; the package fetch completed by
+  `2026-09-06T06:08:34Z`, and final post-Buildbox Sol acceptance was recorded
+  at `2026-09-06T06:11:43Z`. This offline compile work item is complete.
 - **Efficiency loop:** if accepted, append one sanitized item to the active
   workflow ledger with actual timing, routes, review/rework, escalation and
   measured credits or explicit unavailability.

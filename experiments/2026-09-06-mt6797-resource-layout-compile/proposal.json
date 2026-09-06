@@ -1,5 +1,5 @@
 {
-  "status": "Pre-Buildbox integration review passed; exact build pending",
+  "status": "Buildbox compilation and object linkage accepted",
   "frozen_parent": "f43a702c107e3685c92c4d275dc3547acf7302ce",
   "linux_source": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
   "profile": "mt6797-hif-parser-compile",
@@ -18,6 +18,11 @@
   "host_test": "src/resource-layout-test.c linked with separately compiled predecessor remap-fields.c",
   "runtime_caller": "none; constructor is linked but unreferenced",
   "hardware_access": "NONE",
+  "prebuild_integration_review": "PASS after two bounded repair passes",
+  "buildbox_commit": "80992c3a76c9db08298935f8068241a389f222e1",
+  "buildbox_job": "80992c3a76c9db08298935f8068241a389f222e1-mt6797-hif-parser-compile-m0",
+  "package_inventory_sha256": "d6b7a5a6b6432cb5d77e9c7089ecc40d549e31c8ff91226d1f0e0e999834edee",
+  "object_sha256": "dd67589e7315f0ffc48a91f060a8dec73aba38fd3c9ba3b4abd8636cdc48325c",
   "evidence_documents": {
     "experiments/2026-09-05-mt6797-wifi-contract/OWNERSHIP.md": "5a7044e62fc5688ef7c14f53f536dbf6a18a7e64719dd0236ead39ab540d3435",
     "experiments/2026-09-05-mt6797-wifi-contract/SHARED_OWNER_IMPLEMENTATION.md": "a71e51e2ff2676b63d21bbd8e83fc6af98c24e77d47f4fe541e60d11be1c1021",
