@@ -261,6 +261,40 @@ class InstallerTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "predecessor"):
             installer.derive(Path("missing"), Path("missing"), Path("missing"), "short")
 
+    def test_deployment_receipt_resolves_repository_and_accepts_verified_write(self):
+        parser = runpy.run_path(str(HERE / "deployment_receipt.py"))
+        self.assertEqual(parser["REPO"], HERE.parents[2])
+        candidate = "b" * 64
+        manifest = "e" * 64
+        predecessor = "a" * 64
+        raw = "\n".join((
+            "experiment=2026-09-06-mt6797-toprgu-minimal-restart",
+            "candidate_manifest_sha256=" + manifest,
+            "result=write-synced-flushed-full-readback-verified",
+            "target_logical_name=boot2",
+            "target=/dev/mmcblk0p30",
+            "root=/dev/mmcblk0p29",
+            "boot2_device_guard=passed",
+            "boot2_device_guard_sha256=" + installer.BOOT2_GUARD_SHA256,
+            "target_major_minor=179:30",
+            "root_major_minor=179:29",
+            "predecessor_sha256=" + predecessor,
+            "fresh_predecessor_backup=no",
+            "candidate_sha256=" + candidate,
+            "readback_sha256=" + candidate,
+            "boot_id=11111111-1111-4111-8111-111111111111",
+            "power=1|100|Good|1",
+            "temporary_readback_removed=yes",
+            "shutdown=requested-after-evidence-flush",
+            "poweroff_ssh_rc=255",
+            "post_shutdown_reachability=unreachable",
+            "reboot=no",
+            "next_action=owner-physically-selects-boot2",
+        ))
+        self.assertEqual(
+            parser["receipt"](raw, candidate, manifest, predecessor),
+            "11111111-1111-4111-8111-111111111111")
+
 
 class RunnerTests(unittest.TestCase):
     def test_directory_publication_precedes_selection_marker_and_prompt(self):

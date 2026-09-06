@@ -41,3 +41,11 @@ restored it and moved the exception into the active TOPRGU layer before Sol and
 Astra acceptance. The two items share a hard-uncertainty implementation class,
 but they exercise different safety contracts and remain too few for a routing
 change. Baseline decision `baseline-01` remains unchanged.
+
+## Considered item three
+
+`mt6797-toprgu-guarded-deployment-closeout` records the selected candidate's
+guarded boot2 write, full readback, clean shutdown and the local receipt-path
+repair needed to validate the preserved final summary. It is excluded as a
+device session under the measurement policy, so accepted-item count and routing
+checkpoint state remain unchanged.

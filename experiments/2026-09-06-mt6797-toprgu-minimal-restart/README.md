@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-06-mt6797-toprgu-minimal-restart` |
-| Status | Candidate and revised installer validated; guarded deployment pending |
+| Status | Candidate deployed and readback verified; waiting for owner physical boot2 selection |
 | Subsystem | MediaTek watchdog system restart |
 | Device variant | Existing named Gemini PDA; retail subvariant unconfirmed |
 | Date | 2026-09-06 |
@@ -120,6 +120,18 @@ installer SHA-256
 `3e1afaef7f5f839e7ae824243b7c73de5423872a0e1585402a172835ef7134db`.
 This restores deployment readiness without changing the candidate bytes or
 selecting the physical experiment.
+
+The guarded deployment then resolved live logical `boot2` to
+`/dev/mmcblk0p30`, verified the admitted predecessor, wrote the candidate once,
+synced and flushed it, matched a full-partition readback, and confirmed the
+known-good OS was unreachable after its clean shutdown request. The generated
+installer's final local receipt check exposed a repository-root path defect only
+after those device steps had completed. The write was not repeated. The parser
+repair and regression fixture now accept the unchanged final private summary;
+the sanitized [deployment receipt](results/deployment-20260906.txt) records the
+exact identities and failure boundary. The candidate is installed and awaits
+the owner's one physical `boot2` selection. No physical selection or runtime
+TOPRGU result exists yet.
 
 The prior Buildbox attempt at exact commit
 `e70982c09a16a0bb8b152a0dfcada7db69d2a0bf` failed before applying 0543 because

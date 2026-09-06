@@ -31,7 +31,7 @@
   "rolling_window_after_pilot": 10,
   "accepted_count": 2,
   "next_accepted_sequence": 3,
-  "next_considered_sequence": 3,
+  "next_considered_sequence": 4,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -127,6 +127,14 @@
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/results/deployment-policy-20260906.txt"
       }
+    },
+    {
+      "considered_sequence": 3,
+      "candidate_id": "mt6797-toprgu-guarded-deployment-closeout",
+      "disposition": "excluded",
+      "reason": "device-session",
+      "note": "The guarded boot2 write, full readback, shutdown and post-device receipt-path repair close one device deployment session; policy excludes device sessions from accepted offline items.",
+      "evidence": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/results/deployment-20260906.txt"
     }
   ],
   "checkpoints": [

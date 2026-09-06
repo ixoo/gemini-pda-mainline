@@ -1,0 +1,46 @@
+experiment=2026-09-06-mt6797-toprgu-minimal-restart
+result=write-synced-flushed-full-readback-verified-and-clean-shutdown
+date=2026-09-06 America/New_York
+device=named Gemini PDA development unit
+
+source_commit=c4d890c500bda6726e27740cee38b04e8769b8bc
+installer_sha256=3e1afaef7f5f839e7ae824243b7c73de5423872a0e1585402a172835ef7134db
+candidate_manifest_sha256=d3cd5d8a9f3b29b20ff58d05e2f8289c2d8ab54154c9e957b974b9f656b60871
+candidate_padded_sha256=22edf533734ac52e56f3291c90264359fec2eaccc79cd68acf28b20d9cb216e8
+target_logical_name=boot2
+target_live_gpt=/dev/mmcblk0p30
+target_major_minor=179:30
+active_root=/dev/mmcblk0p29
+active_root_major_minor=179:29
+boot2_device_guard=passed
+predecessor_sha256=a423ad63fbb97d0f3fc4726d3957e05d3951480996b754d839a89d80a1232821
+fresh_predecessor_backup=no
+recovery_basis=verified-project-wide-device-backup-captured-at-project-start
+power_capacity_percent=100
+power_health=Good
+external_power=present
+write=completed-once
+sync_and_flush=completed
+full_partition_readback_sha256=22edf533734ac52e56f3291c90264359fec2eaccc79cd68acf28b20d9cb216e8
+full_partition_readback=matched
+temporary_readback_removed=yes
+clean_shutdown=requested
+post_shutdown_reachability=unreachable
+automatic_reboot=no
+
+The generated installer completed every remote write, readback, postflight and
+shutdown step. Its final local receipt invocation then refused because the
+TOPRGU parser resolved the repository one directory above the checkout. The
+device write was not repeated. The ignored final summary is SHA-256
+e49ab5f3906abe921ec0c90af2c00e844fa33406f8c7f9497ed39ff72f69ac63;
+its original pre-receipt checksum is retained separately and exactly matches
+the summary's first 18 lines before the post-shutdown fields were appended.
+
+The repaired parser independently accepted that unchanged final summary while
+bound to the exact candidate, manifest and admitted predecessor above. The
+repair changes local source and future derived-installer identity only; it does
+not alter or rerun the completed device operation. The private evidence retains
+the exact boot identity. No raw partition bytes, credentials, serial, IMEI,
+calibration data or personal identifier are published here.
+
+classification=deployment-passed; waiting for owner physical boot2 selection

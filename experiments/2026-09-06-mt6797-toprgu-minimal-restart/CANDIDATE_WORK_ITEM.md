@@ -161,10 +161,14 @@
   validation, review and readiness classification may finish without a
   physical selection. Stop with a conditional/ready handoff; never install or
   select the candidate merely because preparation passes.
-- **Device readiness:** `deployment-ready`; the unchanged candidate and revised
+- **Device readiness:** `waiting-owner-boot`; the unchanged candidate and revised
   zram-preserving installer were revalidated from clean pushed publication
-  `334c3d91...`. Guarded deployment, receipt review and physical admission
-  remain pending; the queue is unselected.
+  `334c3d91...`. Guarded deployment from clean queue publication `c4d890c5...`
+  completed its single write, sync/flush, exact full readback and clean shutdown.
+  A local repository-root defect made the final receipt parser refuse only after
+  those device steps; the repaired parser accepted the unchanged preserved
+  summary, so the device operation was not repeated. The queue selects this item
+  solely for the owner's one physical `boot2` selection.
   Any change to patch, profile, package, DT,
   initramfs, credentials, candidate, installer, collector, classifier, time
   bound, action budget or recovery tool invalidates readiness. The experiment
@@ -182,7 +186,10 @@
   passed local validation and independent review, was published at
   `334c3d91...`, and rederived as installer
   `3e1afaef7f5f839e7ae824243b7c73de5423872a0e1585402a172835ef7134db`.
-  No deployment or session admission exists yet.
+  That exact installer deployed candidate `22edf533...` once and verified its
+  full readback before clean shutdown. The repaired local receipt parser and
+  regression fixture close the post-device validation defect; physical
+  selection and the one-attempt runtime session remain pending.
 - **Efficiency loop:** if this offline handoff is accepted, the primary task
   appends exactly one considered/accepted item to the active workflow ledger
   with observed timestamps, actual routes, first-review result, rework and

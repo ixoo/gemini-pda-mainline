@@ -10,7 +10,7 @@ import re
 import runpy
 
 HERE = Path(__file__).resolve().parent
-REPO = HERE.parents[3]
+REPO = HERE.parents[2]
 BASELINE = REPO / "experiments/2026-09-05-owner-away-experiment-preparation/baseline/scripts/deployment_receipt.py"
 BASELINE_SHA256 = "a2dc643ddedf5c9c93ede43598208cafd17242fccbb45db6ddaf078f30ae6f23"
 V4 = REPO / "experiments/2026-09-04-mt6797-thermal-snapshot/scripts/v4_deployment_receipt.py"

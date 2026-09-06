@@ -3,8 +3,8 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": null,
-  "selection_note": "Final pre-pause session closed: one read and complete error-free log passed; changed-boot Gemian LAN SSH confirmed. Native request transport remains inconclusive. Work paused at owner request; no next test selected.",
+  "selected_item": "mt6797-toprgu-minimal-restart",
+  "selection_note": "The exact TOPRGU candidate is installed in logical boot2 with matching full readback and confirmed clean shutdown. It is selected only for the owner's one physical boot2 selection; no automatic reboot or runtime action has occurred.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -48,7 +48,7 @@
       "device_state": "complete",
       "owner": "A53 baseline and queued device tests",
       "reviewer": "Project Planning",
-      "device_custodian": "A53 baseline and queued device tests",
+      "device_custodian": null,
       "experiment": "experiments/2026-09-05-owner-away-experiment-preparation/README.md#emmc-readonly",
       "session_packet": "experiments/2026-09-05-owner-away-experiment-preparation/emmc/README.md",
       "candidate_record": "experiments/2026-09-05-owner-away-experiment-preparation/emmc/SESSION_PACKET.json",
@@ -81,13 +81,13 @@
     "mt6797-toprgu-minimal-restart": {
       "workstream": "watchdog",
       "preparation_state": "ready",
-      "device_state": "unselected",
+      "device_state": "waiting-owner-boot",
       "owner": "MT6797 TOPRGU minimal restart diagnostic",
       "reviewer": "Project Planning",
-      "device_custodian": null,
+      "device_custodian": "MT6797 TOPRGU minimal restart diagnostic",
       "experiment": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/README.md",
       "session_packet": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/session-packet.json",
-      "candidate_record": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/results/deployment-policy-20260906.txt",
+      "candidate_record": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/results/deployment-20260906.txt",
       "readiness_record": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/CANDIDATE_WORK_ITEM.md",
       "dependencies": [
         {
@@ -97,7 +97,7 @@
         }
       ],
       "owner_task_id": null,
-      "readiness_note": "Candidate 22edf533 remains independently validated. The exact RAM-only zram exception was published at 334c3d91 and cleanly rederived as installer 3e1afaef. It does not mutate swap and retains the target/parent guard. Guarded deployment, readback, shutdown and physical selection remain pending."
+      "readiness_note": "Candidate 22edf533 remains independently validated. Installer 3e1afaef wrote logical boot2 once, synced/flushed it, matched the full readback and shut the known-good OS down. A post-device local parser-path defect was repaired and the preserved final receipt accepted without repeating the write. The owner must physically select boot2; no runtime action has occurred."
     }
   }
 }
