@@ -1,0 +1,222 @@
+{
+  "schema_version": 1,
+  "experiment": "2026-09-06-mt6797-emi-adapter-source-attribution",
+  "repository_parent": "cb035d7f8b9f782b1b8b1139352621fe2a38c025",
+  "source_repository": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797",
+  "source_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+  "started_utc": "2026-09-06T15:41:55.774253+00:00",
+  "allowlist_frozen_utc": "2026-09-06 15:43:18 UTC",
+  "file_cap": 16,
+  "batch_cap": 2,
+  "reference_hop_cap": 2,
+  "allowlist": [
+    {
+      "id": "adapter",
+      "path": "drivers/misc/mediatek/emi_mpu/emi_reg_rw.c",
+      "git_blob_sha1": "7d62aff90c2f4d13b8e1f98a4a4168ce80da62d9",
+      "size": 2254,
+      "mode": "100644",
+      "inventory_request": "tree-2"
+    },
+    {
+      "id": "mpu_make",
+      "path": "drivers/misc/mediatek/emi_mpu/Makefile",
+      "git_blob_sha1": "be2c3335b5889e82c9e81e8e7dbfae115fce20ee",
+      "size": 679,
+      "mode": "100644",
+      "inventory_request": "tree-2"
+    },
+    {
+      "id": "mt6797_make",
+      "path": "drivers/misc/mediatek/emi_mpu/mt6797/Makefile",
+      "git_blob_sha1": "aaf07d73bdeba4cfaf17d73f290293b24570fd47",
+      "size": 489,
+      "mode": "100644",
+      "inventory_request": "tree-2"
+    },
+    {
+      "id": "mediatek_make",
+      "path": "drivers/misc/mediatek/Makefile",
+      "git_blob_sha1": "2afe7d66aab9d7b4fcc498c981d22dc81a3d0c9e",
+      "size": 8416,
+      "mode": "100755",
+      "inventory_request": "tree-2"
+    },
+    {
+      "id": "mediatek_kconfig",
+      "path": "drivers/misc/mediatek/Kconfig",
+      "git_blob_sha1": "c597ae4302d78816b244c52a7cbf60487caab038",
+      "size": 14100,
+      "mode": "100755",
+      "inventory_request": "tree-2"
+    },
+    {
+      "id": "mpu_kconfig",
+      "path": "drivers/misc/mediatek/emi_mpu/Kconfig",
+      "git_blob_sha1": "b9e1c530c8f17576a493bd275397bc75edfbb08d",
+      "size": 204,
+      "mode": "100644",
+      "inventory_request": "tree-2"
+    },
+    {
+      "id": "config",
+      "path": "arch/arm64/configs/lineage_gemini_defconfig",
+      "git_blob_sha1": "3346814fd2d65b519387caed4c3f5189ed25e9d3",
+      "size": 102819,
+      "mode": "100644",
+      "inventory_request": "tree-1"
+    },
+    {
+      "id": "secure",
+      "path": "drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/mt_secure_api.h",
+      "git_blob_sha1": "d8a87373539ccee21d6ce0f252f6a4fa6bb61613",
+      "size": 4170,
+      "mode": "100644",
+      "inventory_request": "tree-1"
+    },
+    {
+      "id": "declaration",
+      "path": "drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/emi_mpu.h",
+      "git_blob_sha1": "f6372c0b9271d90a59079e7c1004ed198bbe23c4",
+      "size": 9747,
+      "mode": "100644",
+      "inventory_request": "tree-1"
+    },
+    {
+      "id": "outer",
+      "path": "drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c",
+      "git_blob_sha1": "96128217defbfb79950deeb6443f82d17f2025b8",
+      "size": 93439,
+      "mode": "100644",
+      "inventory_request": "tree-2"
+    }
+  ],
+  "tree_requests": [
+    {
+      "request_id": "tree-1",
+      "url": "https://api.github.com/repos/lineage-geminipda/android_kernel_planet_mt6797/git/trees/c5b0be85017ad0c599725e8273842efdbecdd88a?recursive=1",
+      "final_url": "https://api.github.com/repos/lineage-geminipda/android_kernel_planet_mt6797/git/trees/c5b0be85017ad0c599725e8273842efdbecdd88a?recursive=1",
+      "started_utc": "2026-09-06T15:41:55.774253+00:00",
+      "finished_utc": "2026-09-06T15:42:05.142240+00:00",
+      "http_status": 200,
+      "sha256": "aa447a91303a94b3711c4bf8193b9e10e5f32ca744bc84adff62d875c0e8a34e",
+      "size": 16183922,
+      "tree_sha": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "entries": 59243,
+      "truncated": false
+    },
+    {
+      "request_id": "tree-2",
+      "url": "https://api.github.com/repos/lineage-geminipda/android_kernel_planet_mt6797/git/trees/c5b0be85017ad0c599725e8273842efdbecdd88a?recursive=1",
+      "final_url": "https://api.github.com/repos/lineage-geminipda/android_kernel_planet_mt6797/git/trees/c5b0be85017ad0c599725e8273842efdbecdd88a?recursive=1",
+      "started_utc": "2026-09-06T15:42:24.126936+00:00",
+      "finished_utc": "2026-09-06T15:42:25.078128+00:00",
+      "http_status": 200,
+      "sha256": "aa447a91303a94b3711c4bf8193b9e10e5f32ca744bc84adff62d875c0e8a34e",
+      "size": 16183922,
+      "tree_sha": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "entries": 59243,
+      "truncated": false
+    }
+  ],
+  "local_inputs": [
+    {
+      "path": "experiments/2026-09-06-mt6797-consys-owner-source-attribution/verdicts.json",
+      "sha256": "beaa116bf405d8143353b98bb458143eb2ff1ad07020f72fb8006a0df3750af9"
+    },
+    {
+      "path": "experiments/2026-09-06-mt6797-consys-owner-source-attribution/inputs.json",
+      "sha256": "157c990f2f3a04099723ce7098e61840ec3756842381397e787b8ed5956e9496"
+    },
+    {
+      "path": "experiments/2026-09-06-mt6797-consys-owner-source-attribution/search-attempts.json",
+      "sha256": "408963b5f149130f507570448a868861d681096cca69be477105caee4ab73113"
+    },
+    {
+      "path": "experiments/2026-09-05-mt6797-wifi-contract/RETAINED_EMI_SECURE_ABI.md",
+      "sha256": "8c4963c1d9e63b98bb7dcdad8ed41e442f1f6171e8c599869758f4984e7a7f06"
+    },
+    {
+      "path": "experiments/2026-09-05-mt6797-wifi-contract/EMI_ABI.md",
+      "sha256": "60bd8c436b22495719512b8a1cd9dae0bffb062511811d67cff436d94a0f0c71"
+    }
+  ],
+  "raw_sources": [
+    {
+      "source_id": "adapter",
+      "sha256": "da41e7d325aa4d3207a38bd566f39680a3b2275db87b4ba0919d266375d858e0",
+      "git_blob_sha1": "7d62aff90c2f4d13b8e1f98a4a4168ce80da62d9",
+      "size": 2254,
+      "line_count": 92
+    },
+    {
+      "source_id": "config",
+      "sha256": "5f0018658a6e0858cbb730be427a379797afd9e2639a51e7f40d963b4e61115a",
+      "git_blob_sha1": "3346814fd2d65b519387caed4c3f5189ed25e9d3",
+      "size": 102819,
+      "line_count": 3770
+    },
+    {
+      "source_id": "declaration",
+      "sha256": "a59c8a9a3e6fbb6889d131e23a413597f7bf5f188d82c4e953a66ce2a5aed68d",
+      "git_blob_sha1": "f6372c0b9271d90a59079e7c1004ed198bbe23c4",
+      "size": 9747,
+      "line_count": 299
+    },
+    {
+      "source_id": "mediatek_kconfig",
+      "sha256": "949b2c044a42c7d759f0c9a1c308deb7b44f2cc1b269a61c570dfb1826edf13d",
+      "git_blob_sha1": "c597ae4302d78816b244c52a7cbf60487caab038",
+      "size": 14100,
+      "line_count": 430
+    },
+    {
+      "source_id": "mediatek_make",
+      "sha256": "0d8deea7e507597b5a00b8cd7a8e03b8185d5dda4e9e2a23b375fd7cae615597",
+      "git_blob_sha1": "2afe7d66aab9d7b4fcc498c981d22dc81a3d0c9e",
+      "size": 8416,
+      "line_count": 218
+    },
+    {
+      "source_id": "mpu_kconfig",
+      "sha256": "7435ced4c9486c93a6cc9eb199ce8b610257c87be63c21c6ca2026fa652b0cbd",
+      "git_blob_sha1": "b9e1c530c8f17576a493bd275397bc75edfbb08d",
+      "size": 204,
+      "line_count": 10
+    },
+    {
+      "source_id": "mpu_make",
+      "sha256": "b3cf682061824e6ed04ff1c59376af1f12e296c689b31c67826760532052469d",
+      "git_blob_sha1": "be2c3335b5889e82c9e81e8e7dbfae115fce20ee",
+      "size": 679,
+      "line_count": 21
+    },
+    {
+      "source_id": "mt6797_make",
+      "sha256": "473c7455bb9b1d624ceec7e484f1f4a0679480179ed52fba72afec9a92f074ce",
+      "git_blob_sha1": "aaf07d73bdeba4cfaf17d73f290293b24570fd47",
+      "size": 489,
+      "line_count": 15
+    },
+    {
+      "source_id": "outer",
+      "sha256": "39921d80191b674940246425123b52fa140262a7e17022f90f02dd88389932b2",
+      "git_blob_sha1": "96128217defbfb79950deeb6443f82d17f2025b8",
+      "size": 93439,
+      "line_count": 2629
+    },
+    {
+      "source_id": "secure",
+      "sha256": "f810af34727ccedfa6a24cf9721d75301875e32cc6e9c6e1aaa5a6cb8ba4b421",
+      "git_blob_sha1": "d8a87373539ccee21d6ce0f252f6a4fa6bb61613",
+      "size": 4170,
+      "line_count": 134
+    }
+  ],
+  "rights": {
+    "source_study_only": true,
+    "source_bodies_retained": false,
+    "source_excerpts_in_artifacts": false,
+    "source_copy_permission": false
+  }
+}

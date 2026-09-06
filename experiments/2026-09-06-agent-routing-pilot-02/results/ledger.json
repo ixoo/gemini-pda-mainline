@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 4,
-  "next_accepted_sequence": 5,
-  "next_considered_sequence": 6,
+  "accepted_count": 5,
+  "next_accepted_sequence": 6,
+  "next_considered_sequence": 7,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -223,6 +223,46 @@
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-06-mt6797-consys-owner-source-attribution/verdicts.json"
       }
+    },
+    {
+      "considered_sequence": 6,
+      "accepted_sequence": 5,
+      "candidate_id": "mt6797-emi-adapter-source-attribution",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "reasoning",
+      "risk_class": "hard-uncertainty",
+      "acceptance_contract": "experiments/2026-09-06-mt6797-emi-adapter-source-attribution/WORK_ITEM.md",
+      "review_comparison_group": "mt6797-wifi-owner-source-attribution",
+      "parent": "cb035d7f8b9f782b1b8b1139352621fe2a38c025",
+      "owner_route": {
+        "role": "gemini_specialist",
+        "model": "gpt-6-astra",
+        "effort": "medium"
+      },
+      "review_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-06T15:41:55.774253Z",
+        "review_ready_at": "2026-09-06T15:50:46Z",
+        "accepted_at": "2026-09-06T15:53:58Z",
+        "timing_source": "observed UTC first inventory request, complete validation and final-review timestamps",
+        "elapsed_minutes": 12.0370958,
+        "review_rework_minutes": 3.2,
+        "first_review_accepted": true,
+        "rework_cycles": 0,
+        "escalated": false,
+        "escalation_reason": null,
+        "escalation_packet": null,
+        "review_failure_class": null,
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-06-mt6797-emi-adapter-source-attribution/verdicts.json"
+      }
     }
   ],
   "checkpoints": [
@@ -251,6 +291,21 @@
       "comparable_item_ids": [
         "mt6797-toprgu-authenticated-runtime-preparation",
         "toprgu-ram-zram-staging-policy"
+      ],
+      "conclusion": "too-small",
+      "evidence": "experiments/2026-09-06-agent-routing-pilot-02/README.md"
+    },
+    {
+      "id": "pilot-02-item-five-interval",
+      "after_accepted_sequence": 5,
+      "after_considered_sequence": 6,
+      "trigger": "interval",
+      "trigger_item_ids": [
+        "mt6797-emi-adapter-source-attribution"
+      ],
+      "comparable_item_ids": [
+        "mt6797-consys-owner-source-attribution",
+        "mt6797-emi-adapter-source-attribution"
       ],
       "conclusion": "too-small",
       "evidence": "experiments/2026-09-06-agent-routing-pilot-02/README.md"

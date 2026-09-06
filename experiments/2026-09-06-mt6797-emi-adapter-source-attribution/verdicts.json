@@ -1,0 +1,258 @@
+{
+  "schema_version": 1,
+  "repository_parent": "cb035d7f8b9f782b1b8b1139352621fe2a38c025",
+  "source_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+  "claim_scope": "Exact pinned public source and its named defconfig, not the running kernel, a linker map or deployed secure firmware.",
+  "authority": {
+    "deployed_adapter_established": false,
+    "secure_firmware_compatibility_established": false,
+    "policy_selected": false,
+    "vendor_code_reusable": false,
+    "vendor_api_reusable": false,
+    "linux_owner_established": false,
+    "runtime_authority": false,
+    "device_action_allowed": false,
+    "hardware_support_claim": false
+  },
+  "rights": {
+    "source_study_only": true,
+    "source_copy_permission": false,
+    "firmware_redistribution_permission": false
+  },
+  "citations": {
+    "build_parent": {
+      "source_id": "mediatek_make",
+      "lines": [
+        15,
+        22
+      ],
+      "symbol": "CONFIG_MTK_EMI_MPU"
+    },
+    "build_object": {
+      "source_id": "mpu_make",
+      "lines": [
+        14,
+        21
+      ],
+      "symbol": "emi_reg_rw.o"
+    },
+    "build_outer": {
+      "source_id": "mt6797_make",
+      "lines": [
+        14,
+        14
+      ],
+      "symbol": "emi_mpu.o"
+    },
+    "config_arm64": {
+      "source_id": "config",
+      "lines": [
+        5,
+        7
+      ],
+      "symbol": "CONFIG_ARM64"
+    },
+    "config_soc": {
+      "source_id": "config",
+      "lines": [
+        272,
+        272
+      ],
+      "symbol": "CONFIG_ARCH_MT6797"
+    },
+    "config_psci": {
+      "source_id": "config",
+      "lines": [
+        285,
+        285
+      ],
+      "symbol": "CONFIG_MTK_PSCI"
+    },
+    "config_platform": {
+      "source_id": "config",
+      "lines": [
+        1097,
+        1098
+      ],
+      "symbol": "CONFIG_MTK_PLATFORM"
+    },
+    "config_emi": {
+      "source_id": "config",
+      "lines": [
+        1420,
+        1420
+      ],
+      "symbol": "CONFIG_MTK_EMI_MPU"
+    },
+    "header_include": {
+      "source_id": "adapter",
+      "lines": [
+        35,
+        36
+      ],
+      "symbol": "mach/mt_secure_api.h"
+    },
+    "adapter_body": {
+      "source_id": "adapter",
+      "lines": [
+        74,
+        82
+      ],
+      "symbol": "mt_emi_mpu_set_region_protection"
+    },
+    "adapter_declaration": {
+      "source_id": "declaration",
+      "lines": [
+        297,
+        298
+      ],
+      "symbol": "mt_emi_mpu_set_region_protection"
+    },
+    "secure_id": {
+      "source_id": "secure",
+      "lines": [
+        21,
+        39
+      ],
+      "symbol": "MTK_SIP_KERNEL_EMIMPU_SET"
+    },
+    "secure_macro": {
+      "source_id": "secure",
+      "lines": [
+        93,
+        94
+      ],
+      "symbol": "emi_mpu_smc_set"
+    },
+    "secure_arguments": {
+      "source_id": "secure",
+      "lines": [
+        46,
+        58
+      ],
+      "symbol": "mt_secure_call"
+    },
+    "secure_return": {
+      "source_id": "secure",
+      "lines": [
+        60,
+        62
+      ],
+      "symbol": "mt_secure_call"
+    },
+    "outer_pack_and_drop": {
+      "source_id": "outer",
+      "lines": [
+        1124,
+        1138
+      ],
+      "symbol": "emi_mpu_set_region_protection"
+    }
+  },
+  "predecessor_citations": {
+    "wlan_region18": {
+      "verdicts_path": "experiments/2026-09-06-mt6797-consys-owner-source-attribution/verdicts.json",
+      "citation_key": "region18_request",
+      "source_id": "wlan_lib",
+      "lines": [
+        838,
+        887
+      ],
+      "symbol": "wlanImageDividDownload",
+      "inputs_path": "experiments/2026-09-06-mt6797-consys-owner-source-attribution/inputs.json",
+      "source_sha256": "56bf99536fcb96de5a5198943aec96c9efccb8af89261b29c62046e6560c422f"
+    }
+  },
+  "predicates": {
+    "adapter_definition": {
+      "verdict": "resolved",
+      "evidence": [
+        "build_parent",
+        "build_object",
+        "config_arm64",
+        "config_soc",
+        "config_psci",
+        "config_platform",
+        "config_emi",
+        "header_include",
+        "adapter_body"
+      ],
+      "claim": "emi_reg_rw.c provides the single inspected definition, selected as emi_reg_rw.o by the EMI Makefile under the parent EMI_MPU gate. The named public defconfig enables that gate and MTK_PSCI, identifies MT6797 and ARM64, and selects the mt6797 platform include path.",
+      "boundary": "This is source/build-selection evidence for the named defconfig, not a compiled object or proof that the deployed kernel uses it. The definition's non-PSCI zero-return branch is conditional, not a second selected definition.",
+      "unresolved": "Whole-kernel link uniqueness, effective configuration changes and deployment equivalence were not inspected.",
+      "next_discriminator": "If deployment attribution becomes necessary, admit a separate exact running-kernel/configuration identity check; this source result alone cannot supply it."
+    },
+    "secure_call_mapping": {
+      "verdict": "resolved",
+      "evidence": [
+        "header_include",
+        "adapter_body",
+        "build_parent",
+        "config_platform",
+        "config_arm64",
+        "config_psci",
+        "secure_id",
+        "secure_macro",
+        "secure_arguments"
+      ],
+      "claim": "The PSCI branch returns emi_mpu_smc_set(start,end,region_permission), whose MT6797 macro invokes mt_secure_call with function identifier 0x82000209 followed by start, end and packed region_permission. The ARM64 function assigns these respectively to x0, x1, x2 and x3 and issues SMC #0.",
+      "boundary": "The literal is 0x82000209 even in the ARM64 function; the function's comment is not permission to substitute 0xc2000209. Start/end remain u64 arguments; the unsigned packed word is promoted into x3. No parameter/range validation or ownership acquisition is added in this adapter.",
+      "unresolved": "Current firmware acceptance of that function identifier and layout is not established by this source audit.",
+      "next_discriminator": "Any proposed runtime connection must separately establish current firmware compatibility and admitted ownership; no secure call is authorized here."
+    },
+    "adapter_return_semantics": {
+      "verdict": "resolved",
+      "evidence": [
+        "config_arm64",
+        "config_psci",
+        "adapter_body",
+        "secure_arguments",
+        "secure_return",
+        "outer_pack_and_drop"
+      ],
+      "claim": "The raw ARM64 result is the updated x0-bound u64 variable. mt_secure_call explicitly converts it to int and returns that int; the selected adapter directly returns it without errno remapping. The outer EMI wrapper ignores the adapter result and returns its own zero.",
+      "boundary": "The explicit narrowing is the vendor signed-int/low-word boundary; the full raw 64-bit value is not retained by the adapter interface. This audit does not turn the source cast into a portable-C implementation, validate inline-assembly compiler behavior, or infer successful hardware configuration from any zero. Without either PSCI option, the adapter's fallback returns zero without making the call.",
+      "unresolved": "Actual runtime raw values, compiler-generated object behavior and correct recovery from denied/failed policy changes remain outside this source attribution.",
+      "next_discriminator": "A separately reviewed provider must preserve raw status and handle the signed low word under its accepted ABI contract; this item neither changes the vendor wrapper nor selects that provider."
+    },
+    "region18_end_to_end": {
+      "verdict": "resolved",
+      "evidence": [
+        "outer_pack_and_drop",
+        "adapter_body",
+        "secure_id",
+        "secure_macro",
+        "secure_arguments",
+        "secure_return",
+        "config_arm64",
+        "config_psci"
+      ],
+      "predecessor_evidence": [
+        "wlan_region18"
+      ],
+      "claim": "The frozen WLAN requester passes literal region18 and its first-half-MiB bounds to the outer wrapper. That wrapper masks permissions to 24 bits and carries region18 in bits31:27 (0x90000000), passing original start/end and the packed word to the selected adapter. The adapter/macro put that packed word in x3 for identifier 0x82000209, while the lower returned int is discarded by the outer wrapper.",
+      "boundary": "End-to-end describes source argument flow and the lost-status boundary, not secure-firmware execution, current region ownership or successful programming. Both predecessor region18 requests use this path. No firmware implementation, lock state, master/domain assignment, selector state or deployed configuration was re-established.",
+      "unresolved": "All physical/runtime authority and the other CONSYS ownership predicates remain unresolved by this item.",
+      "next_discriminator": "Use the owning roadmap and a separately admitted owner contract for any future runtime work; there is no remaining adapter-source gap in this bounded chain."
+    }
+  },
+  "mapping": {
+    "function_id": "0x82000209",
+    "argument_registers": {
+      "x0": "function_id",
+      "x1": "original 64-bit start",
+      "x2": "original 64-bit inclusive end",
+      "x3": "packed unsigned region and permission word"
+    },
+    "region18_high_bits": "0x90000000",
+    "permission_mask": "0x00ffffff",
+    "region_field": "bits31:27",
+    "raw_return": "x0 (u64)",
+    "secure_wrapper_return": "explicit conversion to int",
+    "adapter_return": "same int under PSCI selection",
+    "outer_return": "zero; lower int discarded"
+  },
+  "contradictions": [],
+  "compatibility_note": "The accepted retained-ABI documents are constraints only. Their distinction between signed low-word status and full raw evidence agrees with this source narrowing; neither their historical firmware identity nor the public configuration proves today's deployed state.",
+  "linux_inference": "The missing source adapter edge is closed, but no reusable vendor API or established Linux owner follows. Reservation, remap synchronization, policy and deployment admission remain outside this item."
+}

@@ -69,3 +69,16 @@ four power/reset, common handoff, remap and secure-EMI chains remain unresolved.
 The first complete handoff passed Sol review without rework. This source-
 attribution reasoning item has no comparable peer in the cohort, so it triggers
 no routing checkpoint or settings change.
+
+## Item five and interval checkpoint
+
+Accepted item 5, `mt6797-emi-adapter-source-attribution`, closes the public-
+source path from the selected EMI adapter through its secure-call mapping and
+status return. It records that the outer vendor wrapper, not the adapter, drops
+the status. All runtime, ownership, policy and reuse authorities remain false.
+The first complete handoff passed Sol review without rework.
+
+This fifth accepted item triggers the cohort's interval checkpoint. Items 4 and
+5 are comparable hard-uncertainty source-attribution reasoning tasks, but two
+items are too few for a routing decision. Baseline decision `baseline-01`
+remains unchanged.
