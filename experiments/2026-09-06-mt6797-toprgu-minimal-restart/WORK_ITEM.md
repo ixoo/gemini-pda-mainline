@@ -104,10 +104,13 @@
   preimage produces effective blob `9ee35ef`; 0543 pins the replayed blob
   without rewriting historical evidence. No source tree was copied, and the
   temporary files were removed automatically.
-- **State:** complete offline; applicability repair 2 accepted at
-  `2026-09-06T09:22:50Z`. Earlier
-  semantic and identity repairs remain in the verifier. Buildbox compilation,
-  device readiness and hardware equivalence remain pending separate gates.
+- **State:** Buildbox validation passed at `2026-09-06T09:28:29Z` from exact
+  repository commit `745ecaea21c004a377a01287bea8ac3b58c2d6e2`; all 530 patches applied,
+  `mtk_wdt.o` compiled, Linux linked, and the package checksum/provenance gate
+  passed. The validated package was fetched below the ignored
+  `artifacts/buildbox/745ecaea21c004a377a01287bea8ac3b58c2d6e2/` tree. Device readiness,
+  candidate construction and hardware equivalence remain pending separate
+  gates.
 - **Efficiency loop:** recorded as considered sequence 14 / accepted sequence
   10 with unchanged timing, first-review, rework and publication-failure
   measurements. The publication early-signal and item-ten close checkpoints
