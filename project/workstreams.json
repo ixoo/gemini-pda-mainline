@@ -236,11 +236,11 @@
       "live_state": "Must be established by the assigned custodian; not inferred from this registry."
     },
     "current_session": {
-      "owner": "A53 baseline and queued device tests",
-      "task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64",
-      "state": "closed-known-good-gemian-confirmed-paused",
-      "evidence": "experiments/2026-09-05-owner-away-experiment-preparation/emmc/PAUSE_SESSION_PREPARATION.json",
-      "scope": "Final read-only eMMC session closed. Authenticated changed-boot Gemian confirmed; native request transport uncertainty preserved. No further device action or work item is selected; paused at owner request."
+      "owner": "MT6797 TOPRGU minimal restart diagnostic",
+      "task_id": null,
+      "state": "waiting-owner-boot",
+      "evidence": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/results/deployment-20260906.txt",
+      "scope": "Exact candidate 22edf533 is installed in logical boot2 with matching full readback and confirmed clean shutdown. The owner must physically select boot2 for the one-attempt TOPRGU session; no automatic reboot or runtime action has occurred."
     }
   }
 }
