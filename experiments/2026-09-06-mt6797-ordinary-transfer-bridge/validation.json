@@ -1,9 +1,24 @@
 {
-  "state": "review-ready",
-  "timestamp_utc": "2026-09-06T14:54:53Z",
+  "state": "accepted",
+  "timestamp_utc": "2026-09-06T15:00:30Z",
   "normal_and_optimized": "pass (2 builds, 9 host test functions)",
   "asan_ubsan": "pass",
-  "checkpatch": "not run: pinned Linux source tree unavailable",
+  "checkpatch": {
+    "exit": 1,
+    "pinned_linux_checkpatch_sha256": "2553cc1a601e70522e03fbce633d4e79fa5936f7f56a66de1899b7ddd247820a",
+    "allowed_findings": [
+      "WARNING: added, moved or deleted file(s), does MAINTAINERS need updating?",
+      "ERROR: Missing Signed-off-by: line(s)"
+    ],
+    "finding_count": {
+      "errors": 1,
+      "warnings": 1,
+      "checks": 0,
+      "lines_checked": 372
+    },
+    "spdx_helper": "unavailable: Buildbox Python ply module is not installed; repository license checks and direct SPDX inspection passed",
+    "assessment": "Expected only: synthetic non-certifying experiment author has no truthful DCO sign-off; temporary new private files are not submission-ready."
+  },
   "source_sha256": {
     "ordinary-transfer.c": "e9f378ce4d16f6b7d221e3ff53ae920c98cc5adfbad169ba1e7b0d6d161ef911",
     "ordinary-transfer.h": "8ab31e6adbf8533326d9658f9be4f8dc5065f37ba2dce4e395700a03d03f2868",
@@ -12,7 +27,21 @@
   "generated_patch_sha256": "b284bd19cbe1cc1d6810b53ba49936a5cb9b86cc22e8141397b647e69ce3d954",
   "refusal_fixture_groups": 18,
   "production_callers": 0,
-  "device_or_backend": "none",
+  "device_or_backend": "Buildbox compile only; no device",
+  "buildbox": {
+    "repository_commit": "086c2f24f7edf29156f440fa9ba160e59711856f",
+    "job": "086c2f24f7edf29156f440fa9ba160e59711856f-mt6797-hif-parser-compile-m0",
+    "completed_utc": "2026-09-06T15:00:30Z",
+    "package_inventory_sha256": "630f80ff1bf03ff798570e357e351139649ebfb74bfd116a8e6030f851e3c5ab",
+    "patchset_sha256": "ab6134d2d21c48869592d1dbde6c1cf3babe2e796e5e69409d38ddd80199f191",
+    "config_sha256": "b7c37fa4b68056470ef392a9d6eef55cd3b56f5310ed9e20fbf91b31231c3282",
+    "object_sha256": "cc57b69bcbb11c6237a5f69479fcb8ad50a1b3862dd7a98d1013a52cbf7bb59f",
+    "command_record_sha256": "b52073682ae1eeffe4ffba4bdb5379761fbe6ee71610d4aa127917a40be85f09",
+    "object_format": "ELF 64-bit LSB relocatable, ARM aarch64, not stripped",
+    "real_hif_symbol_resolved_in_vmlinux": true,
+    "runtime_callers": 0,
+    "host_test_macro_in_command": false
+  },
   "limitations": [
     "Caller-held real owner, generation, power and whole-image obligations are not represented by this lower-level API.",
     "Compile evidence cannot establish hardware support or usable Wi-Fi.",

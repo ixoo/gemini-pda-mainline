@@ -17,7 +17,11 @@ readiness, real ownership or usable Wi-Fi.
 `src/ordinary-transfer-test.c` supplies an inert HIF symbol and exhaustive
 host refusal/progress fixtures. `scripts/verify.py` regenerates the exact
 patch, runs normal and optimized builds, ASan/UBSan, and source-boundary
-checks. No device, network, VM or private capture is accessed.
+checks. That host verifier accesses no device, network, VM or private capture.
+
+The [Buildbox result](BUILD_RESULT.md) records accepted AArch64 compilation,
+real HIF linkage, zero production callers and the exact validated package. It
+is compile/link evidence only and makes no hardware-support claim.
 
 The patch is an internal synthetic-author experiment with no DCO and is not
 submission-ready. The integrator alone may copy it into the provider series.
