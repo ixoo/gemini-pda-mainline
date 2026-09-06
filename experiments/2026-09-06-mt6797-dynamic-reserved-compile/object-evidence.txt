@@ -1,0 +1,66 @@
+collection_utc=2026-09-06T03:33:04Z
+repository_commit=dca5365cf278f05e4d82cffc0a283d65870e5942
+buildbox_job=dca5365cf278f05e4d82cffc0a283d65870e5942-mt6797-hif-parser-compile-m0
+profile=mt6797-hif-parser-compile
+object=drivers/net/wireless/mediatek/mt6797/image-binding.o
+command_record=drivers/net/wireless/mediatek/mt6797/.image-binding.o.cmd
+source=drivers/net/wireless/mediatek/mt6797/image-binding.c
+
+$ sha256sum "$object" "$command_record" "$source"
+5e62422dc32fe44e9376994082d4e216ab52d60640e058b3446aedc95cc63c61  drivers/net/wireless/mediatek/mt6797/image-binding.o
+9db7da2f1b1ec573291339b7d645be26196845d510396f5625aca64dd22594c0  drivers/net/wireless/mediatek/mt6797/.image-binding.o.cmd
+1bc3041d9a6688a3601913d5bda819eb52098aa33523d148d9341de9ea91d60b  drivers/net/wireless/mediatek/mt6797/image-binding.c
+
+$ readelf -h "$object" | grep -E "Class:|Data:|Type:|Machine:"
+  Class:                             ELF64
+  Data:                              2's complement, little endian
+  Type:                              REL (Relocatable file)
+  Machine:                           AArch64
+
+$ sed -n '1p' "$command_record"
+savedcmd_drivers/net/wireless/mediatek/mt6797/image-binding.o := ccache aarch64-linux-gnu-gcc -Wp,-MMD,drivers/net/wireless/mediatek/mt6797/.image-binding.o.d -nostdinc -I/workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-provider-compile-source/arch/arm64/include -I./arch/arm64/include/generated -I/workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-provider-compile-source/include -I./include -I/workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-provider-compile-source/arch/arm64/include/uapi -I./arch/arm64/include/generated/uapi -I/workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-provider-compile-source/include/uapi -I./include/generated/uapi -include /workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-provider-compile-source/include/linux/compiler-version.h -include /workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-provider-compile-source/include/linux/kconfig.h -include /workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-provider-compile-source/include/linux/compiler_types.h -D__KERNEL__ -mlittle-endian -DKASAN_SHADOW_SCALE_SHIFT= -fmacro-prefix-map=/workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-provider-compile-source/= -fshort-wchar -funsigned-char -fno-common -fno-PIE -fno-strict-aliasing -std=gnu11 -fms-extensions -mgeneral-regs-only -DCONFIG_CC_HAS_K_CONSTRAINT=1 -Wno-psabi -mabi=lp64 -fno-asynchronous-unwind-tables -fno-unwind-tables -mbranch-protection=none -Wa,-march=armv8.5-a -DARM64_ASM_ARCH='"armv8.5-a"' -DKASAN_SHADOW_SCALE_SHIFT= -fno-delete-null-pointer-checks -O2 -fno-allow-store-data-races -fno-stack-protector -fno-omit-frame-pointer -fno-optimize-sibling-calls -ftrivial-auto-var-init=zero -fno-stack-clash-protection -falign-functions=4 -fno-strict-overflow -fno-stack-check -fconserve-stack -fno-builtin-wcslen -Wall -Wextra -Wundef -Werror=implicit-function-declaration -Werror=implicit-int -Werror=return-type -Werror=strict-prototypes -Wno-format-security -Wno-trigraphs -Wno-frame-address -Wno-address-of-packed-member -Wmissing-declarations -Wmissing-prototypes -Wframe-larger-than=2048 -Wno-main -Wno-type-limits -Wno-dangling-pointer -Wvla-larger-than=1 -Wno-pointer-sign -Wcast-function-type -Wno-array-bounds -Wno-stringop-overflow -Wno-alloc-size-larger-than -Wimplicit-fallthrough=5 -Werror=date-time -Werror=incompatible-pointer-types -Werror=designated-init -Wenum-conversion -Wunused -Wno-unused-but-set-variable -Wno-unused-const-variable -Wno-packed-not-aligned -Wno-format-overflow -Wno-format-truncation -Wno-stringop-truncation -Wno-override-init -Wno-missing-field-initializers -Wno-shift-negative-value -Wno-maybe-uninitialized -Wno-sign-compare -Wno-unused-parameter -I/workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-provider-compile-source/drivers/net/wireless/mediatek/mt6797 -Idrivers/net/wireless/mediatek/mt6797 -DKBUILD_MODFILE='"drivers/net/wireless/mediatek/mt6797/image-binding"' -DKBUILD_BASENAME='"image_binding"' -DKBUILD_MODNAME='"image_binding"' -D__KBUILD_MODNAME=image_binding -c -o drivers/net/wireless/mediatek/mt6797/image-binding.o /workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-provider-compile-source/drivers/net/wireless/mediatek/mt6797/image-binding.c
+savedcmd_whitespace=normalized
+savedcmd_shell_token_count=103
+savedcmd_nul_joined_token_sha256=b7ba223a07f20585f11d8232eaadcc5c561fb784b9c71af99bc9b2c864d51505
+
+$ nm "$object" | awk '/ [Tt] mt6797_/'
+0000000000000cd0 t mt6797_binding_validate
+000000000000045c t mt6797_declaration_equal
+0000000000001738 T mt6797_image_binding_begin
+0000000000001354 T mt6797_image_binding_create
+00000000000015e8 T mt6797_image_binding_describe
+0000000000001870 T mt6797_image_binding_hold_fault
+0000000000001530 T mt6797_image_binding_info
+00000000000017d0 T mt6797_image_binding_invalidate
+00000000000016b4 T mt6797_image_binding_prevalidate
+0000000000001910 T mt6797_image_binding_release
+0000000000000e64 T mt6797_image_owner_alloc
+0000000000000f44 T mt6797_image_owner_bind_reserved
+0000000000001244 T mt6797_image_owner_claim
+0000000000000ec0 T mt6797_image_owner_free
+000000000000109c T mt6797_image_owner_reserved_info
+000000000000118c T mt6797_image_owner_unbind_reserved
+00000000000012e0 T mt6797_image_owner_unclaim
+0000000000000000 t mt6797_property_view_get
+000000000000007c t mt6797_read_cells
+00000000000000d4 t mt6797_reserved_declaration_capture
+00000000000003d0 t mt6797_reserved_put
+0000000000000634 t mt6797_reserved_resolve
+
+$ nm -u "$object" | awk '/ of_|__of_/'
+                 U __of_parse_phandle_with_args
+                 U of_address_to_resource
+                 U of_device_is_available
+                 U of_device_is_compatible
+                 U of_find_node_opts_by_path
+                 U of_find_property
+                 U of_get_parent
+                 U of_n_addr_cells
+                 U of_n_size_cells
+                 U of_property_count_elems_of_size
+                 U of_property_read_bool
+                 U of_reserved_mem_lookup
+                 U of_reserved_mem_region_to_resource
+
+Collection was read-only. Paths are Buildbox-managed source/build roots; no
+host path, credential, object byte stream or proprietary input is retained.

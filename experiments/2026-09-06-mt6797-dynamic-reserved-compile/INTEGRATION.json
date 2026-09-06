@@ -12,5 +12,14 @@
   "configuration_changed": false,
   "default_profiles_changed": false,
   "device_tree_changed": false,
-  "build_status": "repair_validated_rebuild_pending"
+  "build_status": "passed",
+  "build_commit": "dca5365cf278f05e4d82cffc0a283d65870e5942",
+  "buildbox_job": "dca5365cf278f05e4d82cffc0a283d65870e5942-mt6797-hif-parser-compile-m0",
+  "package_inventory_sha256": "e8c99f8a80dad553f6d6fc204f5cd5fba86587831dea63994f2cdfc4037919b5",
+  "patchset_sha256": "10d141bfcd610773a4bdc892fd68d9ad88839dd60fe2e97146ded087bf1c139a",
+  "config_sha256": "b7c37fa4b68056470ef392a9d6eef55cd3b56f5310ed9e20fbf91b31231c3282",
+  "object_sha256": "5e62422dc32fe44e9376994082d4e216ab52d60640e058b3446aedc95cc63c61",
+  "object_command_sha256": "9db7da2f1b1ec573291339b7d645be26196845d510396f5625aca64dd22594c0",
+  "object_evidence": "experiments/2026-09-06-mt6797-dynamic-reserved-compile/object-evidence.txt",
+  "object_evidence_sha256": "7cb1230fe1036eb09ed3e1bafc86d881adfc74e7e8be9a343cc5b36c8df3f631"
 }
