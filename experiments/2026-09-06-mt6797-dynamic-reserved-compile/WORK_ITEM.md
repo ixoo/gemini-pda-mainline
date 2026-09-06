@@ -31,6 +31,8 @@
   missing DCO is expected and blocks submission.
 - **Handoff:** integration identity, Buildbox receipt, limitations and rollback
   (remove only the new proposal entry/file) with exact validation results.
-- **State:** integrating; Buildbox not yet submitted.
+- **State:** the first real compile exposed Linux's `current` macro colliding
+  with two local identifiers. The semantic-preserving rename to `observed` is
+  host-validated and awaits the exact follow-up Buildbox compile.
 - **Efficiency loop:** the Buildbox run is build-only; record the accepted
   integration handoff once, not the build as a second offline item.

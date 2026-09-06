@@ -117,14 +117,14 @@ static int mt6797_property_view_get(const struct device_node *node,
 	return 0;
 }
 
-static int mt6797_property_equal(const struct mt6797_property_view *current,
+static int mt6797_property_equal(const struct mt6797_property_view *observed,
 				 const u8 *saved, int saved_length,
 				 int saved_present)
 {
-	if (current->present != saved_present || current->length != saved_length)
+	if (observed->present != saved_present || observed->length != saved_length)
 		return -ESTALE;
-	if (current->present && current->length &&
-	    memcmp(current->bytes, saved, (size_t)current->length))
+	if (observed->present && observed->length &&
+	    memcmp(observed->bytes, saved, (size_t)observed->length))
 		return -ESTALE;
 	return 0;
 }
@@ -189,7 +189,7 @@ fail:
 static int mt6797_declaration_equal(const struct device_node *node,
 				    const struct mt6797_reserved_declaration *saved)
 {
-	struct mt6797_reserved_declaration current = {0};
+	struct mt6797_reserved_declaration observed = {0};
 	struct mt6797_property_view view;
 	int address_cells = of_n_addr_cells((struct device_node *)node);
 	int size_cells = of_n_size_cells((struct device_node *)node);
@@ -197,40 +197,40 @@ static int mt6797_declaration_equal(const struct device_node *node,
 
 	error = mt6797_reserved_declaration_capture((struct device_node *)node,
 						    address_cells, size_cells,
-						    &current);
+						    &observed);
 	if (error)
 		return error;
-	if (current.dynamic != saved->dynamic ||
-	    current.address_cells != saved->address_cells ||
-	    current.size_cells != saved->size_cells ||
-	    current.declared_size != saved->declared_size ||
-	    current.alignment_present != saved->alignment_present ||
-	    current.alignment != saved->alignment ||
-	    current.reg_present != saved->reg_present ||
-	    current.alloc_ranges_present != saved->alloc_ranges_present)
+	if (observed.dynamic != saved->dynamic ||
+	    observed.address_cells != saved->address_cells ||
+	    observed.size_cells != saved->size_cells ||
+	    observed.declared_size != saved->declared_size ||
+	    observed.alignment_present != saved->alignment_present ||
+	    observed.alignment != saved->alignment ||
+	    observed.reg_present != saved->reg_present ||
+	    observed.alloc_ranges_present != saved->alloc_ranges_present)
 		return -ESTALE;
 	view = (struct mt6797_property_view){
-		.bytes = current.reg,
-		.length = current.reg_length,
-		.present = current.reg_present,
+		.bytes = observed.reg,
+		.length = observed.reg_length,
+		.present = observed.reg_present,
 	};
 	error = mt6797_property_equal(&view, saved->reg, saved->reg_length,
 				      saved->reg_present);
 	if (error)
 		return error;
 	view = (struct mt6797_property_view){
-		.bytes = current.size,
-		.length = current.size_length,
-		.present = current.size_present,
+		.bytes = observed.size,
+		.length = observed.size_length,
+		.present = observed.size_present,
 	};
 	error = mt6797_property_equal(&view, saved->size, saved->size_length,
 				      saved->size_present);
 	if (error)
 		return error;
 	view = (struct mt6797_property_view){
-		.bytes = current.alignment_raw,
-		.length = current.alignment_length,
-		.present = current.alignment_present,
+		.bytes = observed.alignment_raw,
+		.length = observed.alignment_length,
+		.present = observed.alignment_present,
 	};
 	error = mt6797_property_equal(&view, saved->alignment_raw,
 				      saved->alignment_length,
@@ -238,9 +238,9 @@ static int mt6797_declaration_equal(const struct device_node *node,
 	if (error)
 		return error;
 	view = (struct mt6797_property_view){
-		.bytes = current.alloc_ranges,
-		.length = current.alloc_ranges_length,
-		.present = current.alloc_ranges_present,
+		.bytes = observed.alloc_ranges,
+		.length = observed.alloc_ranges_length,
+		.present = observed.alloc_ranges_present,
 	};
 	return mt6797_property_equal(&view, saved->alloc_ranges,
 				     saved->alloc_ranges_length,

@@ -7,10 +7,10 @@
   "predecessor": "proposals/0006-wifi-mediatek-describe-reserved-memory.patch",
   "proposal": "proposals/0007-wifi-mediatek-describe-dynamic-reserved-memory.patch",
   "source_patch": "experiments/2026-09-06-mt6797-dynamic-reserved-binding/0006-wifi-mediatek-describe-dynamic-reserved-memory.patch",
-  "patch_sha256": "d44a641d9fb2e2b03500977d47e188491e4e6fec4bdbe37dbd910f81648cea80",
+  "patch_sha256": "684db9c82d60d42cfbb197ce9f52dd3899f76e1f7c29925554162a73d11aafd0",
   "manifest_changed": false,
   "configuration_changed": false,
   "default_profiles_changed": false,
   "device_tree_changed": false,
-  "build_status": "pending"
+  "build_status": "repair_validated_rebuild_pending"
 }

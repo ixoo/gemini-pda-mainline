@@ -1,5 +1,5 @@
 {
-  "patch_sha256": "d44a641d9fb2e2b03500977d47e188491e4e6fec4bdbe37dbd910f81648cea80",
+  "patch_sha256": "684db9c82d60d42cfbb197ce9f52dd3899f76e1f7c29925554162a73d11aafd0",
   "patch_reproduction_and_replay": "PASS",
   "kernel_build": "NOT RUN",
   "backend": "NOT ACCESSED",
@@ -21,7 +21,7 @@
   ],
   "compiler": "Apple clang version 21.0.0 (clang-2100.1.1.101)",
   "source_hashes": {
-    "image-binding.c": "f7b8951000922ed3b2957b1b2131ad6d7cf728ff630df49ed090ed2a9cf12ba8",
+    "image-binding.c": "1bc3041d9a6688a3601913d5bda819eb52098aa33523d148d9341de9ea91d60b",
     "image-binding.h": "9b3fe189de6dde91f9ddcbdeeaa035f8db9cbe3bb2655e6a37ede0db699a84d4"
   },
   "test_hashes": {
