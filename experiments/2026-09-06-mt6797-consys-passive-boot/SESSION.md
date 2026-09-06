@@ -155,6 +155,30 @@ installer preparation at `2026-09-06T22:34:23Z`. The acceptance does not grant
 device admission or establish hardware support. Physical admission,
 installation and boot selection remain false.
 
+## Guarded installer accepted
+
+The deployment adapter source-pins parent installer
+`8aef9f6ed975fac3f09d7e3c057a601a444be854efb0ea6de26035adf288388a`
+and binds the accepted candidate to expected predecessor
+`22edf533734ac52e56f3291c90264359fec2eaccc79cd68acf28b20d9cb216e8`.
+The exact ignored derived installer is
+`e0c8c9606f0d88093bde3802de03a2ac86f6f49dd8c4ea78bb92fc128f95fcd0`.
+
+Normal and optimized installer fixtures pass seven cases each. Derivation
+revalidated the candidate, package, DTB, initramfs, userspace and credential
+public inputs, then passed Bash syntax and ShellCheck. Independent Sol review
+rejected one nested-symlink output escape; the repaired path walk rejects every
+intermediate symlink/traversal and confines new outputs to the real private
+passive-artifact root. Re-review accepted the packet at
+`2026-09-06T22:45:23Z`.
+
+The derived installer preserves the exact live-GPT, inactive/unmounted/non-swap
+target, size, writable-state, power, predecessor, single-write, flush and full
+readback gates. It skips an already matching partition and otherwise requests
+clean shutdown after verified evidence with `reboot=no`. Standing authorization
+admits that guarded `boot2` installation; it does not admit automatic reboot or
+physical boot selection. No device action has yet occurred in this record.
+
 ## Specialist-rejected corrected candidate
 
 The runtime-identity repair was committed and pushed as

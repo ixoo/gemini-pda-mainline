@@ -136,11 +136,34 @@ collector pins this exact pair. Final specialist review accepted the candidate
 for guarded installer preparation at `2026-09-06T22:34:23Z`. This is not device
 admission or a hardware-support claim.
 
+## Guarded deployment packet
+
+The passive adapter source-pins the reviewed TOPRGU installer and changes only
+the candidate validator, receipt classifier, evidence identity and experiment
+label. It binds candidate `08fc0614...1c2` to the exact installed TOPRGU
+predecessor `22edf533...16e8`. The derived private installer has SHA-256
+`e0c8c9606f0d88093bde3802de03a2ac86f6f49dd8c4ea78bb92fc128f95fcd0`.
+
+The inherited closure resolves logical `boot2` from the live GPT and refuses an
+active, mounted, swap-backed, wrongly sized, non-writable or unstable-power
+target. It accepts only the exact predecessor or an already matching full
+partition, stages the exact 16 MiB image, performs one bounded write, flushes,
+and requires a matching full-partition readback. A verified write ends in clean
+shutdown with `reboot=no`; it never selects the boot slot.
+
+Seven installer/receipt refusal fixtures pass in normal and optimized modes.
+The first Sol review found a nested-symlink output escape; the repair now walks
+every component below the real private root and rejects traversal or symlinks.
+Sol re-review accepted the repaired deployment packet at
+`2026-09-06T22:45:23Z`. This admits the standing guarded `boot2` installation,
+not an automatic reboot, physical boot selection or hardware-support claim.
+
 ## Handoff limits
 
 The patch deliberately stops at passive `BOUND`. It does not add power/reset
 ownership, MMIO or reserved-memory mapping, resource requests, firmware
 loading, AP-DMA, cfg80211/rfkill, radio activation, removal, suspend/resume,
-recovery or a Device Tree change. The device readiness state remains
-`preparing` pending an exact candidate, collector and independent packet
-review; no physical action is admitted by this record.
+recovery or a Device Tree change. The exact candidate, collector and guarded
+installer packet are ready. One standing-authorized `boot2` installation is
+admitted only while every live gate passes; physical boot selection remains
+the owner's action and hardware support remains unproven.

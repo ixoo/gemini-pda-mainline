@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 4,
-  "next_accepted_sequence": 5,
-  "next_considered_sequence": 7,
+  "accepted_count": 5,
+  "next_accepted_sequence": 6,
+  "next_considered_sequence": 8,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -216,8 +216,85 @@
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-06-mt6797-consys-passive-boot/validation.json"
       }
+    },
+    {
+      "considered_sequence": 7,
+      "accepted_sequence": 5,
+      "candidate_id": "mt6797-consys-passive-candidate-preparation",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "implementation",
+      "risk_class": "hard-uncertainty",
+      "acceptance_contract": "experiments/2026-09-06-mt6797-consys-passive-boot/CANDIDATE_WORK_ITEM.md",
+      "review_comparison_group": "mt6797-private-boot-candidate-preparation",
+      "parent": "a6662d2d60097ed0da6328d8e6243cb0afd2de49",
+      "owner_route": {
+        "role": "gemini_implementer",
+        "model": "gpt-5.6-luna",
+        "effort": "high"
+      },
+      "review_route": {
+        "role": "gemini_specialist",
+        "model": "gpt-6-astra",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-06T21:35:05Z",
+        "review_ready_at": "2026-09-06T22:32:49Z",
+        "accepted_at": "2026-09-06T22:34:23Z",
+        "timing_source": "observed UTC contract publication, final review-ready record, first-review rejection and specialist acceptance timestamps",
+        "elapsed_minutes": 59.3,
+        "review_rework_minutes": 40.4666667,
+        "first_review_accepted": false,
+        "rework_cycles": 3,
+        "escalated": true,
+        "escalation_reason": "Two Sol reviews rejected incomplete container/provenance coverage and a stale runtime release gate; Astra then resolved residual inherited restart identities and procedural effect containment.",
+        "escalation_packet": {
+          "evidence": "experiments/2026-09-06-mt6797-consys-passive-boot/validation.json",
+          "attempts": [
+            "bound every Android-v0 payload and confined private output after the first review",
+            "replaced the inherited runtime release gate and added executable-identity scans after the second review"
+          ],
+          "unresolved_question": "whether remaining serviceability scripts and the inherited reboot wrapper still exposed TOPRGU identity or an effect-bearing path",
+          "next_discriminating_check": "independently inspect every executable member, remove historical restart artifacts, and require an exact input-bound exit-126 reboot refusal"
+        },
+        "review_failure_class": "scope-containment",
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-06-mt6797-consys-passive-boot/validation.json"
+      }
     }
   ],
-  "checkpoints": [],
+  "checkpoints": [
+    {
+      "id": "pilot-03-item-five-interval",
+      "after_accepted_sequence": 5,
+      "after_considered_sequence": 7,
+      "trigger": "interval",
+      "trigger_item_ids": [
+        "mt6797-consys-passive-candidate-preparation"
+      ],
+      "comparable_item_ids": [
+        "mt6797-consys-passive-candidate-preparation"
+      ],
+      "conclusion": "too-small",
+      "evidence": "experiments/2026-09-06-agent-routing-pilot-03/README.md"
+    },
+    {
+      "id": "pilot-03-item-five-scope-containment",
+      "after_accepted_sequence": 5,
+      "after_considered_sequence": 7,
+      "trigger": "early-signal",
+      "trigger_item_ids": [
+        "mt6797-consys-passive-candidate-preparation"
+      ],
+      "comparable_item_ids": [
+        "mt6797-consys-passive-candidate-preparation"
+      ],
+      "conclusion": "no-change",
+      "evidence": "experiments/2026-09-06-agent-routing-pilot-03/README.md"
+    }
+  ],
   "settings_decisions": []
 }

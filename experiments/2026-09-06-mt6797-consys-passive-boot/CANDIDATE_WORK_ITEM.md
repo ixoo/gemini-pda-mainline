@@ -58,4 +58,6 @@
   the implementation owner.
 - **Model route:** `gemini_implementer` (Luna High). Review returns to Sol
   Medium. `/root` remains the sole live device custodian.
-- **State:** implementation authorized; physical admission remains false.
+- **State:** offline candidate and guarded installer packet accepted. The
+  standing `boot2` installation is admitted only under every live guard;
+  physical boot selection remains the owner's action.

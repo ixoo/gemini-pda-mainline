@@ -3,8 +3,8 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": null,
-  "selection_note": "The TOPRGU selection was consumed as inconclusive after its live ramoops identity failed the post-selection gate. No restart request was issued; changed-ID known-good Gemian recovery is confirmed. No device item is currently selected.",
+  "selected_item": "mt6797-consys-passive-boot",
+  "selection_note": "The exact passive CONSYS candidate is selected for one guarded boot2 installation and later owner physical boot selection. Installation must bind predecessor 22edf533...16e8 or skip an already matching full partition, verify full readback, and shut down without reboot. The one physical boot and collection budgets remain unconsumed.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -95,14 +95,14 @@
     },
     "mt6797-consys-passive-boot": {
       "workstream": "wifi",
-      "preparation_state": "preparing",
-      "device_state": "unselected",
+      "preparation_state": "ready",
+      "device_state": "selected",
       "owner": "Wi-Fi mainline support",
       "reviewer": "Project Planning",
-      "device_custodian": null,
+      "device_custodian": "primary Codex task",
       "experiment": "experiments/2026-09-06-mt6797-consys-passive-boot/README.md",
       "session_packet": "experiments/2026-09-06-mt6797-consys-passive-boot/SESSION.md",
-      "candidate_record": null,
+      "candidate_record": "experiments/2026-09-06-mt6797-consys-passive-boot/validation.json",
       "readiness_record": "experiments/2026-09-06-mt6797-consys-passive-boot/validation.json",
       "dependencies": [
         {
@@ -112,7 +112,7 @@
         }
       ],
       "owner_task_id": "01a06f91-092d-71d0-acbe-4f38ccff2c56",
-      "readiness_note": "Offline implementation and independent review passed. Buildbox package, exact candidate, zero-effect collector, recovery identities and guarded deployment remain pending. No boot2 selection or partition write is admitted yet."
+      "readiness_note": "Buildbox package, exact passive candidate/input, zero-effect collector, recovery identities and guarded deployment packet passed independent review. One standing-authorized boot2 installation is admitted under the exact live guards, followed by clean shutdown. The owner alone physically selects boot2; no automatic reboot and no hardware-support claim."
     },
     "mt6797-toprgu-minimal-restart": {
       "workstream": "watchdog",

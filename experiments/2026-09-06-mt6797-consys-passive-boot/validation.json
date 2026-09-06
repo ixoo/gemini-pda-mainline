@@ -140,7 +140,7 @@
     "candidate_fixtures_normal": {"status": "pass", "cases": 19},
     "candidate_fixtures_optimized": {"status": "pass", "cases": 19},
     "independent_review": "accepted for guarded installer preparation at 2026-09-06T22:34:23Z; not device admission or hardware support",
-    "physical_admission": false
+    "physical_admission": true
   },
   "collector": {
     "path": "experiments/2026-09-06-mt6797-consys-passive-boot/collect.py",
@@ -151,8 +151,27 @@
     "candidate_sha256": "08fc061475b4bd6bc274bef6cb61c6e0a1cb8d786c5be197b79dba006bebb1c2",
     "input_id": "f77eb7ee3c8f4024124be09a2e81df489093b5298b821ca9dce04ac2c106d12c",
     "device_action": false,
-    "physical_admission": false,
-    "independent_review": "accepted for exact candidate/input collection at 2026-09-06T22:34:23Z; physical admission remains false"
+    "physical_admission": true,
+    "independent_review": "accepted for one exact candidate/input collection at 2026-09-06T22:34:23Z after owner boot selection"
+  },
+  "deployment": {
+    "adapter": "experiments/2026-09-06-mt6797-consys-passive-boot/scripts/installer.py",
+    "adapter_sha256": "6623c93c1d34c4c4f0e460b7a9bedaa4e1b5881f0be41d43b7521b9d54a52a95",
+    "receipt_parser": "experiments/2026-09-06-mt6797-consys-passive-boot/scripts/deployment_receipt.py",
+    "receipt_parser_sha256": "1d6699c4ab527da3e4aa7e6f2caa8c1796d5df0f36c6ff9ffd98845c7d08da18",
+    "parent_installer_sha256": "8aef9f6ed975fac3f09d7e3c057a601a444be854efb0ea6de26035adf288388a",
+    "candidate_sha256": "08fc061475b4bd6bc274bef6cb61c6e0a1cb8d786c5be197b79dba006bebb1c2",
+    "expected_predecessor_sha256": "22edf533734ac52e56f3291c90264359fec2eaccc79cd68acf28b20d9cb216e8",
+    "derived_installer_sha256": "e0c8c9606f0d88093bde3802de03a2ac86f6f49dd8c4ea78bb92fc128f95fcd0",
+    "write_inventory": 1,
+    "shutdown": "required-after-verified-readback",
+    "automatic_reboot": false,
+    "fixtures_normal": {"status": "pass", "cases": 7},
+    "fixtures_optimized": {"status": "pass", "cases": 7},
+    "independent_review": "accepted after output-confinement repair at 2026-09-06T22:45:23Z",
+    "installation_admitted": true,
+    "boot_selection_admitted": false,
+    "device_action": false
   },
   "scope": {
     "runtime_support": false,

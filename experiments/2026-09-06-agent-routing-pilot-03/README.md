@@ -25,9 +25,9 @@ and early-signal checkpoints follow
 This record changes no model, effort, concurrency, build, publication, device
 or hardware authority.
 
-## Current state
+## Item-five checkpoint
 
-The first four accepted items are the bounded MT6797 connectivity-producer
+The first five accepted items are the bounded MT6797 connectivity-producer
 source attribution, the fresh single-batch `wmt_loader` static attribution and
 the mainline connectivity lifecycle/interface design followed by its passive
 CONSYS/WLAN boot slice. Astra Medium resolved the
@@ -37,9 +37,19 @@ attribution candidates on first review. The design reversed those roles: Sol
 owned the cross-file design and Astra rejected the first state model, which was
 then corrected and accepted after one rework cycle. Luna High implemented the
 passive slice and Sol Medium accepted it after one repair for OF reference
-ownership, exact Kconfig selection and optimized-fixture integrity. Two earlier loader
+ownership, exact Kconfig selection and optimized-fixture integrity. Luna High
+then prepared the private passive boot candidate; two Sol reviews rejected
+container/provenance and runtime-release defects, and Astra resolved the
+remaining inherited restart identities before accepting the third repair. Two earlier loader
 candidates are explicitly excluded: v1 crossed its one-binary tool boundary,
 and v2 replayed an interval not clearly admitted by its frozen contract. The
-fresh v3 candidate removed replay and reused neither attempt's raw output. Four
-accepted items are too early for a comparable-cohort checkpoint, so
+fresh v3 candidate removed replay and reused neither attempt's raw output.
+
+Accepted item five triggers the interval checkpoint and its inherited-action
+defect triggers an immediate scope-containment review. The candidate-preparation
+contract is the only hard-uncertainty private-boot construction in this cohort,
+so the comparable group is too small for a route decision. The escalation was
+required by concrete action-containment defects, not a measured route cost.
+The final Astra review was the existing required safety escalation and does not
+justify weakening or changing the default route. Credits remain unavailable.
 `baseline-01` remains unchanged.
