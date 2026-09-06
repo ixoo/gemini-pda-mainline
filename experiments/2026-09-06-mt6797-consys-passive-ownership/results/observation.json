@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "experiment_id": "2026-09-06-mt6797-consys-passive-ownership",
+  "observed_at": "2026-09-06T02:01:31Z",
+  "repository_revision": "99831dc50f93577c4535ae96d56adfc774985a3f",
+  "attempt": {
+    "limit": 1,
+    "consumed": 1,
+    "collector_exit_status": 0,
+    "elapsed_seconds": 0.7,
+    "rerun_permitted": false
+  },
+  "executed_collectors": {
+    "hash_algorithm": "sha256",
+    "collect.py": "555ff25d96b75b01546d78a47795f801b4ebd1a36329793b3eca2d09dc24a068",
+    "remote-collect.sh": "a9853b267166bd278b43775d356c30e7181e247bed97af53951fad8204c34a99"
+  },
+  "identity": {
+    "release_start": "3.18.41+",
+    "boot_id_start": "ce741f2c-462f-424e-aa90-49bada3a116f",
+    "model_start": "MT6797X",
+    "release_end": "3.18.41+",
+    "boot_id_end": "ce741f2c-462f-424e-aa90-49bada3a116f",
+    "model_end": "MT6797X",
+    "stable": true
+  },
+  "reserved_memory": {
+    "root_address_cells": {
+      "status": "present",
+      "bytes": 4,
+      "hex": "00000002"
+    },
+    "root_size_cells": {
+      "status": "present",
+      "bytes": 4,
+      "hex": "00000002"
+    },
+    "reserved_address_cells": {
+      "status": "present",
+      "bytes": 4,
+      "hex": "00000002"
+    },
+    "reserved_size_cells": {
+      "status": "present",
+      "bytes": 4,
+      "hex": "00000002"
+    },
+    "ranges": {
+      "status": "present",
+      "bytes": 0,
+      "hex": ""
+    },
+    "matching_nodes": [
+      {
+        "name": "consys-reserve-memory",
+        "reg_status": "missing",
+        "no_map": true,
+        "reusable": false
+      }
+    ],
+    "classification": "dynamic-no-map-descriptor-live-range-unresolved"
+  },
+  "platform_devices": [
+    {
+      "role": "additional-owner-observation",
+      "device": "18070000.consys",
+      "driver": "mtk_wmt",
+      "resource_status": "missing"
+    },
+    {
+      "role": "wlan-attribution-crosscheck",
+      "device": "180f0000.wifi",
+      "driver": "mt-wifi",
+      "resource_status": "missing"
+    },
+    {
+      "role": "additional-owner-observation",
+      "device": "10001000.btcvsd",
+      "driver": "unbound",
+      "resource_status": "missing"
+    },
+    {
+      "role": "additional-owner-observation",
+      "device": "10001000.infracfg_ao",
+      "driver": "unbound",
+      "resource_status": "missing"
+    },
+    {
+      "role": "additional-owner-observation",
+      "device": "10001000.scpsys",
+      "driver": "unbound",
+      "resource_status": "missing"
+    },
+    {
+      "role": "additional-owner-observation",
+      "device": "10001000.usb2jtag",
+      "driver": "unbound",
+      "resource_status": "missing"
+    },
+    {
+      "role": "additional-owner-observation",
+      "device": "11000000.ap_dma",
+      "driver": "unbound",
+      "resource_status": "missing"
+    }
+  ],
+  "iomem": {
+    "status": "unreadable",
+    "matching_lines": []
+  },
+  "host_observations": [
+    {
+      "kind": "ssh-client-hostfile-update",
+      "status": "failed",
+      "effect": "none",
+      "detail": "The client attempted and could not replace its local known_hosts file. The post-result wrapper disables UpdateHostKeys while retaining strict host-key checking; the device collection was not repeated."
+    },
+    {
+      "kind": "ssh-client-key-exchange-advisory",
+      "status": "warning",
+      "effect": "none"
+    },
+    {
+      "kind": "remote-locale",
+      "status": "warning",
+      "effect": "none"
+    }
+  ],
+  "result": {
+    "classification": "inconclusive-live-range-confirmed-descriptor-and-bindings",
+    "confirmed": [
+      "The running Gemian DT presents a dynamic no-map consys-reserve-memory node without a reg property.",
+      "The running Gemian kernel binds 18070000.consys to mtk_wmt.",
+      "The WLAN attribution cross-check binds 180f0000.wifi to mt-wifi."
+    ],
+    "not_established": [
+      "current reserved-memory base or extent",
+      "exclusive firmware ownership or firmware quiescence",
+      "safe active MMIO, reset, clock, power, DMA or firmware operation"
+    ]
+  }
+}

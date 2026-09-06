@@ -31,7 +31,7 @@
   "rolling_window_after_pilot": 10,
   "accepted_count": 1,
   "next_accepted_sequence": 2,
-  "next_considered_sequence": 3,
+  "next_considered_sequence": 4,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -87,6 +87,14 @@
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/WORK_ITEM.md"
       }
+    },
+    {
+      "considered_sequence": 3,
+      "candidate_id": "mt6797-consys-passive-ownership-snapshot",
+      "disposition": "excluded",
+      "reason": "device-session",
+      "note": "The bounded preparation and one-shot live Gemian metadata collection form one device session, which policy excludes from accepted offline items.",
+      "evidence": "experiments/2026-09-06-mt6797-consys-passive-ownership/README.md"
     }
   ],
   "checkpoints": [],

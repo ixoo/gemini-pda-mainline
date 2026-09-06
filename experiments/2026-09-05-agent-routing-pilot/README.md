@@ -85,6 +85,9 @@ or scope-containment defect occurred.
 Creation of this loop remains explicitly excluded because its eligibility and
 timing contract did not exist before the work began. Existing routing remains
 the baseline; no optimization decision has been made.
+The passive CONSYS ownership snapshot is also recorded in the contiguous
+considered sequence and excluded as a device session; it does not change the
+accepted count.
 
 ## Analysis
 
