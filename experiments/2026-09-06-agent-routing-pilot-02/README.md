@@ -82,3 +82,27 @@ This fifth accepted item triggers the cohort's interval checkpoint. Items 4 and
 5 are comparable hard-uncertainty source-attribution reasoning tasks, but two
 items are too few for a routing decision. Baseline decision `baseline-01`
 remains unchanged.
+
+## Item six and early-signal checkpoint
+
+Accepted item 6, `mt6797-conn-domain-nonregistration-compile`, began with a
+specialist decision on whether a compile-only registered MT6797 CONN domain
+could remain inert while its outer rail/reset ownership and failure recovery
+were unresolved. Astra rejected that direction because successful onecell
+publication would expose the ordinary incomplete power callbacks even without
+a current DT consumer. The accepted implementation instead compiles an exact
+experiment-local descriptor against the pinned provider types, keeps proposed
+ID 12 private, and proves that the real binding, domain table, registered count,
+subdomains, match path and callbacks remain unchanged.
+
+First integration review found incomplete coverage of the third clock slot,
+handled-interruption cleanup and stale kernel-check wording. One bounded repair
+added a behavioral clock mutation, cleanup self-test and explicit nonapplicability
+of a kernel patch, Checkpatch and Buildbox after the specialist rejection. The
+second review and full repository gate passed.
+
+The rejected registration boundary is an immediate scope-containment signal,
+so this item receives an early checkpoint. It is the cohort's only
+nonregistration descriptor item and has no comparable peer; the conclusion is
+`too-small`, baseline decision `baseline-01` remains unchanged, and no settings
+change is made.

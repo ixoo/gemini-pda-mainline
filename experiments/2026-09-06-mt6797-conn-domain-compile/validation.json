@@ -1,0 +1,87 @@
+{
+  "state": "review-ready",
+  "parent": "57956d050f743465740d93efd14b6a1b42c9410f",
+  "linux_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "kernel_patch": "NOT APPLICABLE; Astra rejected kernel patch/public binding changes",
+  "checkpatch": "NOT APPLICABLE; no kernel patch is generated",
+  "buildbox": "NOT APPLICABLE; no provider/profile integration is authorized",
+  "hardware": "NOT ACCESSED",
+  "backend": "NOT ACCESSED",
+  "runtime_caller": "NONE; descriptor is unreachable from provider data",
+  "provider_source_sha256": "9ce2b2c95a38bc4c7b801aff9b7c26da2dc8ec2e3fd34199adaedf1db3007226",
+  "provider_patched_sha256": "216b022e433b2a55b255d30933e313e296415c624306dd6b0c4f76ac65a51f54",
+  "binding_sha256": "201e215b5f058fbb043c6f3503e8ab42c8caab0ae41a7b634024f88cef4c4034",
+  "provider_snapshot": {
+    "domain_data": "e2d9e200dd1a32d8102db5c5913c27089e269b88abd9e71d8a7d5005d1ac58ce",
+    "soc_data": "fb1437dede3b567db7006e52532f1559ccae894a4e08e0134e09d54287f58881",
+    "subdomains": "11e9c4eea804f080a61f381f56f14d427fcd4cfd8ae20ba14c11063217dc00bb",
+    "match_and_callbacks": "b5730e659a5e9e2b64607c1440678204c3bdb5e75308eb716c3139bb449038e4",
+    "existing_ids": 12,
+    "registered_count": 12
+  },
+  "host_test": "conn_domain_typed_descriptor=pass",
+  "compiler": "Apple clang version 21.0.0 (clang-2100.1.1.101)",
+  "sanitizer_flags": [
+    "-std=c11",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-Wconversion",
+    "-Wsign-conversion",
+    "-pedantic",
+    "-O2",
+    "-g",
+    "-fsanitize=address,undefined",
+    "-fno-sanitize-recover=all",
+    "-fno-omit-frame-pointer",
+    "-include",
+    "<managed-temp>/actual-provider-types.h",
+    "-I",
+    "<project>/experiments/2026-09-06-mt6797-conn-domain-compile/src"
+  ],
+  "unsafe_mutations_rejected": [
+    "third_slot_clk_id",
+    "wire_descriptor_into_mt6797_data",
+    "increase_registered_count",
+    "add_public_consumer_id",
+    "change_existing_binding_id"
+  ],
+  "mutation_results": {
+    "third_slot_clk_id": "fixture_rejected",
+    "wire_descriptor_into_mt6797_data": "verifier_rejected",
+    "increase_registered_count": "verifier_rejected",
+    "add_public_consumer_id": "verifier_rejected",
+    "change_existing_binding_id": "verifier_rejected"
+  },
+  "deferred_registration_reuse": [
+    "source_pin=4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "patch_application=pass",
+    "actual_C_functions_compiled=10",
+    "generic_pm=1 deferred_genpd=pass pm_generic_domains=1 scenarios=67 checks=5761",
+    "generic_pm=0 deferred_genpd=pass pm_generic_domains=0 scenarios=12 checks=742",
+    "address_undefined_sanitizers=pass",
+    "unsafe_mutations_rejected=12"
+  ],
+  "interruption_cleanup": {
+    "label": "handled_sigterm_cleanup",
+    "worker_exit": 143,
+    "verify_temp_dirs_remaining": 0,
+    "result": "PASS"
+  },
+  "source_hashes": {
+    "conn-domain-test.c": "63b6b97406f1c0988912e89855a1c01cba7b13609f7a3533e29f7f70c5affc75",
+    "conn-domain.c": "f6601b4489debc9c8eebc462f51ecdf285ab247c3e301236a0107f5608c156f7",
+    "conn-domain.h": "db5f30cd64df91a4159bb81487cc28ff16f82defc3bba4cd50a55de051297836"
+  },
+  "evidence_documents": {
+    "experiments/2026-09-05-mt6797-wifi-contract/POWER_DOMAIN.md": "31b90aac6612c87b31d047aea7384400167e22eee7a82f5f5da872f878594513",
+    "experiments/2026-09-05-mt6797-wifi-contract/PROVIDER_OWNERSHIP.md": "59d229177a9ffc64692e15a972f459c821626dd7d3735257abe0ff23bc1dc6af",
+    "experiments/2026-09-05-mt6797-wifi-contract/DEFERRED_REGISTRATION.md": "6cab259a60b195941cdd80cd03c913ac934f1140c72e490aea6978a3d3bbdcda"
+  },
+  "limitations": [
+    "The descriptor is compiled against extracted actual provider types; no kernel tree is retained.",
+    "The local proposed ID is not added to the public binding or registered provider data.",
+    "Compile and deferred fixtures do not establish CONN ownership, sequencing, recovery or hardware behavior.",
+    "No Buildbox build, device action or runtime Wi-Fi claim is made."
+  ]
+}

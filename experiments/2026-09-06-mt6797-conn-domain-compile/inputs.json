@@ -1,0 +1,20 @@
+{
+  "parent": "57956d050f743465740d93efd14b6a1b42c9410f",
+  "linux_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "provider_path": "drivers/pmdomain/mediatek/mtk-scpsys.c",
+  "provider_sha256": "9ce2b2c95a38bc4c7b801aff9b7c26da2dc8ec2e3fd34199adaedf1db3007226",
+  "provider_patched_sha256": "216b022e433b2a55b255d30933e313e296415c624306dd6b0c4f76ac65a51f54",
+  "binding_path": "include/dt-bindings/power/mt6797-power.h",
+  "binding_sha256": "201e215b5f058fbb043c6f3503e8ab42c8caab0ae41a7b634024f88cef4c4034",
+  "deferred_runner": "experiments/2026-09-05-mt6797-wifi-contract/scripts/test_deferred_genpd.py",
+  "deferred_runner_sha256": "b3e0930e5908c06bea3eafc40cab4017753983a273603229b5b2f58cb4f973a6",
+  "deferred_fixture": "experiments/2026-09-05-mt6797-wifi-contract/src/deferred_genpd_test.c",
+  "deferred_fixture_sha256": "73aeb44da99e4f3b2f499bd94f3e227eec53cfe44e1c9a4ed54ffdadd6e79360",
+  "deferred_registration_patch": "patches/proposals/0001-pmdomain-mediatek-defer-initial-activation.patch",
+  "deferred_registration_patch_sha256": "e2338d566150a9e5a929b6a37e1bf76e356c4989391dd8549ed36b8e7554bc7f",
+  "evidence_documents": {
+    "experiments/2026-09-05-mt6797-wifi-contract/POWER_DOMAIN.md": "31b90aac6612c87b31d047aea7384400167e22eee7a82f5f5da872f878594513",
+    "experiments/2026-09-05-mt6797-wifi-contract/PROVIDER_OWNERSHIP.md": "59d229177a9ffc64692e15a972f459c821626dd7d3735257abe0ff23bc1dc6af",
+    "experiments/2026-09-05-mt6797-wifi-contract/DEFERRED_REGISTRATION.md": "6cab259a60b195941cdd80cd03c913ac934f1140c72e490aea6978a3d3bbdcda"
+  }
+}

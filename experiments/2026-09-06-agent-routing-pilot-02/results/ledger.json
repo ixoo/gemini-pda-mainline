@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 5,
-  "next_accepted_sequence": 6,
-  "next_considered_sequence": 7,
+  "accepted_count": 6,
+  "next_accepted_sequence": 7,
+  "next_considered_sequence": 8,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -263,6 +263,54 @@
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-06-mt6797-emi-adapter-source-attribution/verdicts.json"
       }
+    },
+    {
+      "considered_sequence": 7,
+      "accepted_sequence": 6,
+      "candidate_id": "mt6797-conn-domain-nonregistration-compile",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "implementation",
+      "risk_class": "hard-uncertainty",
+      "acceptance_contract": "experiments/2026-09-06-mt6797-conn-domain-compile/WORK_ITEM.md",
+      "review_comparison_group": "mt6797-wifi-nonregistration-compile",
+      "parent": "57956d050f743465740d93efd14b6a1b42c9410f",
+      "owner_route": {
+        "role": "gemini_implementer",
+        "model": "gpt-5.6-luna",
+        "effort": "high"
+      },
+      "review_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-06T16:02:29Z",
+        "review_ready_at": "2026-09-06T16:17:24Z",
+        "accepted_at": "2026-09-06T16:32:15Z",
+        "timing_source": "observed UTC work-contract creation, first complete receipt and final-review timestamps",
+        "elapsed_minutes": 29.7666667,
+        "review_rework_minutes": 14.85,
+        "first_review_accepted": false,
+        "rework_cycles": 1,
+        "escalated": true,
+        "escalation_reason": "specialist review rejected a registered incomplete CONN domain and required a nonregistered typed descriptor before implementation",
+        "escalation_packet": {
+          "evidence": "experiments/2026-09-06-mt6797-conn-domain-compile/WORK_ITEM.md",
+          "attempts": [
+            "replaced the proposed public binding and registered domain with an experiment-local typed descriptor and local proposed ID",
+            "added full clock-array mutation coverage, handled-interruption cleanup proof and explicit kernel-check non-applicability after first integration review"
+          ],
+          "unresolved_question": "could an incomplete domain remain reviewably inert after onecell publication merely because no current DT consumer selects it",
+          "next_discriminating_check": "trace successful onecell lookup and single-domain attachment, then require the artifact to remain unreachable from all provider registration paths"
+        },
+        "review_failure_class": "scope-containment",
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-06-mt6797-conn-domain-compile/validation.json"
+      }
     }
   ],
   "checkpoints": [
@@ -306,6 +354,20 @@
       "comparable_item_ids": [
         "mt6797-consys-owner-source-attribution",
         "mt6797-emi-adapter-source-attribution"
+      ],
+      "conclusion": "too-small",
+      "evidence": "experiments/2026-09-06-agent-routing-pilot-02/README.md"
+    },
+    {
+      "id": "pilot-02-post-item-six-registration-containment",
+      "after_accepted_sequence": 6,
+      "after_considered_sequence": 7,
+      "trigger": "early-signal",
+      "trigger_item_ids": [
+        "mt6797-conn-domain-nonregistration-compile"
+      ],
+      "comparable_item_ids": [
+        "mt6797-conn-domain-nonregistration-compile"
       ],
       "conclusion": "too-small",
       "evidence": "experiments/2026-09-06-agent-routing-pilot-02/README.md"
