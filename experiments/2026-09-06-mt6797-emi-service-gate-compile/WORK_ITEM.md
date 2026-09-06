@@ -154,7 +154,7 @@
   callback/state/result proof; no-backend/no-caller/no-policy/no-effect proof;
   replay/Checkpatch/manifest/repository results; Buildbox package, object and
   symbol evidence; all unresolved provider dependencies.
-- **State:** contract drafted at `2026-09-06T06:44:29Z`; pending Sol Medium
+- **State:** complete. Contract drafted at `2026-09-06T06:44:29Z`; pending Sol Medium
   pre-dispatch review. Review at `2026-09-06T06:48:08Z` required alias-safe
   clearing, external serialization, exact errnos/generation behavior, complete
   layout invariants and canonical-series integration; repair 1 applies those
@@ -167,7 +167,10 @@
   scope violation. Repair 1 completed before repeat review at
   `2026-09-06T07:22:21Z`; repair 2 completed at `2026-09-06T07:24:30Z`.
   Final pre-Buildbox Sol acceptance was recorded at
-  `2026-09-06T07:25:36Z`. Shared integration and Buildbox validation remain.
+  `2026-09-06T07:25:36Z`. Buildbox generated and validated the exact pushed
+  commit's package at `2026-09-06T07:31:35Z`, and final post-Buildbox Sol
+  acceptance was recorded at `2026-09-06T07:37:46Z`. This offline compile work
+  item is complete.
 - **Efficiency loop:** if accepted, append one sanitized observed offline-item
   measurement to the active workflow ledger with actual routes, timestamps,
   review/rework, escalation and measured credits or explicit unavailability.

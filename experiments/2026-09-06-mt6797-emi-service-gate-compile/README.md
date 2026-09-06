@@ -13,8 +13,9 @@ reset effect.
 The generated local proposal is
 [`0011-wifi-mediatek-compile-emi-service-gate.patch`](0011-wifi-mediatek-compile-emi-service-gate.patch).
 Run `python3 -B scripts/verify.py` to reproduce the patch, strict host fixture,
-linkage and static-boundary evidence. Checkpatch is pending the integrator's
-pinned Linux/Buildbox replay; this verifier performs no network access. The fixture covers valid
+linkage and static-boundary evidence. Pinned Linux Checkpatch and the real
+AArch64 Buildbox result are recorded in `BUILD_RESULT.md`; this verifier
+performs no network access. The fixture covers valid
 generation boundaries, all enumerated layout and exact-alias refusals,
 selector-CLEAR representability, cleared outputs, source descriptor mutation,
 permissions, callback ordering and arguments, exactly-once calls, every
@@ -24,7 +25,7 @@ refusal, and the preserved active `image_binding_begin()` refusal.
 The predecessor series, design evidence and the pinned Checkpatch identity are
 recorded in `inputs.json`.
 Canonical-series replay, profile/manifest integration and Buildbox compilation
-remain integrator-owned. No device or hardware support claim follows from this
+passed on the exact pushed commit. No device or hardware support claim follows from this
 compile experiment. The copied layout is descriptive; the real provider must
 still establish reservation lifetime, selector stability, external-writer
 exclusion, serialization, deployed SMC compatibility, permission policy,

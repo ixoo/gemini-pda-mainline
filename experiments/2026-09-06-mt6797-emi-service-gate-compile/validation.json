@@ -64,9 +64,9 @@
     "experiments/2026-09-05-mt6797-wifi-contract/SHARED_OWNER_IMPLEMENTATION.md": "a71e51e2ff2676b63d21bbd8e83fc6af98c24e77d47f4fe541e60d11be1c1021"
   },
   "evidence_document_identity": "PASS",
-  "proposal_replay": "PENDING INTEGRATOR LINUX REPLAY",
-  "kernel_build": "PENDING INTEGRATOR BUILD",
-  "backend": "NOT ACCESSED",
+  "proposal_replay": "PASS; fourteen-entry selected series replayed by Buildbox",
+  "kernel_build": "PASS; Linux 7.3-rc1 AArch64 object and final vmlinux",
+  "backend": "BUILDBOX",
   "hardware": "NOT ACCESSED",
   "runtime_caller": "NONE; gate is linked but unreferenced",
   "effect_api_scan": "PASS",
@@ -117,10 +117,31 @@
   ],
   "compiler": "Apple clang version 21.0.0 (clang-2100.1.1.101)",
   "checkpatch": {
-    "status": "PENDING INTEGRATOR",
-    "reason": "Pinned Linux Checkpatch and Buildbox replay are integrator-owned.",
-    "network": "NOT ACCESSED",
-    "pinned_linux_checkpatch_sha256": "2553cc1a601e70522e03fbce633d4e79fa5936f7f56a66de1899b7ddd247820a"
+    "exit": 1,
+    "pinned_linux_checkpatch_sha256": "2553cc1a601e70522e03fbce633d4e79fa5936f7f56a66de1899b7ddd247820a",
+    "allowed_findings": [
+      "WARNING: added, moved or deleted file(s), does MAINTAINERS need updating?",
+      "ERROR: Missing Signed-off-by: line(s)"
+    ],
+    "finding_count": {
+      "errors": 1,
+      "warnings": 1,
+      "checks": 0,
+      "lines_checked": 196
+    },
+    "assessment": "Expected only: synthetic non-certifying experiment author has no truthful DCO sign-off; temporary new private files are not submission-ready."
+  },
+  "buildbox": {
+    "repository_commit": "d1a0f9a9d840c4f050871b5128dc06aefb897214",
+    "job": "d1a0f9a9d840c4f050871b5128dc06aefb897214-mt6797-hif-parser-compile-m0",
+    "completed_utc": "2026-09-06T07:31:35Z",
+    "package_inventory_sha256": "d026dedd107b0f94cc7c521a4689f4d25e03dedeefd154fe5344816435533a51",
+    "patchset_sha256": "38011ee2b838f4365da2c81f277d7a41137ddbcb9c6c6a69b857870d92937e01",
+    "object_sha256": "3ace5752b66f93d40ce0ba88dd012b0404cf76b39f2d377e648ea03ef9887b6f",
+    "command_record_sha256": "18768a5dfd9491848f84a387b03b25efca2ec3c32581582a7d6d645f5f279a6f",
+    "object_format": "ELF 64-bit LSB relocatable, ARM aarch64, not stripped",
+    "predecessor_symbols_resolved_in_vmlinux": true,
+    "runtime_callers": 0
   },
   "source_hashes": {
     "emi-service-gate-test.c": "6df8b00e69a67a0e4c064d84a50548873899f2a7a294dbd7ddc97f7c3f3a57b7",
@@ -128,8 +149,6 @@
     "emi-service-gate.h": "d8438cd2a57ae62db20e460113ad48a99e2a937738a7edcbdbd58b4587afd631"
   },
   "limitations": [
-    "Linux __KERNEL__ include branch and real arm64 object await Buildbox.",
-    "Proposal replay and Buildbox require the integrator's clean pushed commit.",
     "The backend callback is an injected seam, not a secure-service implementation.",
     "Partial byte overlap and concurrent calls are caller preconditions.",
     "Copied descriptors and decoded success do not establish reservation, policy or firmware authority.",

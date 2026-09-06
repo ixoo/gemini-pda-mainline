@@ -76,9 +76,9 @@ when every item in the cohort segment uses the same observed source and unit.
 
 ## Observations
 
-The contiguous ledger now contains eleven considered candidates: seven eligible
+The contiguous ledger now contains twelve considered candidates: eight eligible
 accepted offline items, one cohort-bootstrap exclusion, one device-session
-exclusion and two pre-dispatch tooling-contract exclusions. All seven accepted
+exclusion and two pre-dispatch tooling-contract exclusions. All eight accepted
 items missed first-review acceptance. The first two
 required escalation: the integration item exposed live-ledger fixture coupling,
 and the dynamic reserved-memory implementation needed corrected OF semantics,
@@ -109,6 +109,17 @@ missing start-after-end fixture. Two bounded repair passes closed those issues;
 the exact 13-patch Buildbox build then replayed, compiled and linked the real
 AArch64 object and validated/fetched the package. It selected no permission or
 runtime caller and did not escalate. Credits remain unavailable.
+
+Item eight compiled the one-attempt MT6797 EMI service gate. The first complete
+handoff review found refusal fixtures that could hide an unexpected callback
+and a verifier network access outside the frozen offline scope. Two bounded
+repairs replaced that path with live callback/storage snapshots, completed the
+state, alias, generation and inventory coverage, and documented the caller-held
+serialization, context-lifetime and partial-overlap preconditions. The exact
+fourteen-patch Buildbox build compiled and linked the AArch64 object with no
+runtime caller or effect path. This pre-publication scope-containment finding
+triggers the checkpoint below; it did not enter the accepted implementation.
+Credits remain unavailable.
 
 The proposed deterministic read-only firmware traversal tool is considered
 sequence ten but is not an accepted offline item. Two pre-dispatch contract
@@ -168,6 +179,27 @@ are unavailable throughout. The conclusion remains `too-small`: three items do
 not meet the five-comparable-item threshold for a settings experiment, and the
 misses arose from distinct contract, provenance and interface defects. No
 settings change is justified.
+
+## Post-item-eight scope-containment checkpoint
+
+Checkpoint `pilot-01-post-item-eight-scope-containment` closes accepted
+sequence 8 and considered sequence 12. It is triggered immediately by the
+offline-scope violation found in item eight's first complete review. The issue
+was confined to the verifier, removed before integration, and independently
+rechecked; no device, private-evidence or published runtime boundary was
+crossed.
+
+The EMI ABI, remap-fields, resource-layout and service-gate items form the
+four-item `mt6797-kernel-compile-helper-v1` comparison group. Their median
+elapsed time is 34.5556433833 minutes and median review/rework time is
+23.4864866834 minutes. First-review acceptance is 0/4; none escalated, and
+credits are unavailable throughout.
+
+The conclusion remains `too-small`. Four comparable items do not meet the
+five-item threshold for a settings experiment. The scope miss supports keeping
+the explicit offline constraint and review gate, both of which caught it; it
+does not yet identify a model, effort or concurrency setting that should
+change. The baseline route is retained.
 
 Creation of this loop remains excluded because its eligibility and timing
 contract did not exist before work began. The passive CONSYS ownership snapshot
