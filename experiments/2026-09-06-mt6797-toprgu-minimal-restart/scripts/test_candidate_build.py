@@ -271,6 +271,10 @@ class CandidateBuildTests(unittest.TestCase):
             "bin/reboot": Member(stat.S_IFREG | 0o755, 1, b"old-reboot"),
             "bin/usb-net": Member(stat.S_IFREG | 0o755, 1, b"removed-action"),
             "etc/foundation": Member(stat.S_IFREG | 0o644, 1, b"retained"),
+            # This retained foundation ELF contains an implementation symbol
+            # named ioctl; exact foundation bytes, not token scanning, govern it.
+            "bin/console-keymap-verify": Member(stat.S_IFREG | 0o755,
+                                                  1, b"\x7fELF\x02\x01ioctl"),
         }
         encoded = {}
 
@@ -318,6 +322,8 @@ class CandidateBuildTests(unittest.TestCase):
         members = parse(archive)
         self.assertEqual(members["bin/busybox"].data, baseline["bin/busybox"].data)
         self.assertEqual(members["etc/foundation"].data, b"retained")
+        self.assertEqual(members["bin/console-keymap-verify"].data,
+                         baseline["bin/console-keymap-verify"].data)
         self.assertNotIn("bin/usb-net", members)
         source_map = {"init": "init", "inittab": "etc/inittab", "usb-auth": "bin/usb-auth",
                       "console-status": "bin/console-status", "admin-shell": "bin/admin-shell",
@@ -335,6 +341,98 @@ class CandidateBuildTests(unittest.TestCase):
                          b"root:x:0:0:Administrator:/root:/bin/admin-shell\n")
         self.assertEqual(set(summary), set(members))
 
+    def test_action_token_closure_allows_exact_elf_and_rejects_non_elf_script(self):
+        @dataclass
+        class Member:
+            mode: int
+            nlink: int
+            data: bytes
+
+        foundation = b"synthetic-foundation-action-closure"
+        baseline = {
+            "init": Member(stat.S_IFREG | 0o755, 1, b"old-init"),
+            "bin/busybox": Member(stat.S_IFREG | 0o755, 1, b"\x7fELF\x02\x01busybox"),
+            "bin/reboot": Member(stat.S_IFREG | 0o755, 1, b"old-reboot"),
+            # Real foundation behavior includes an ELF symbol containing ioctl.
+            "bin/console-keymap-verify": Member(stat.S_IFREG | 0o755, 1,
+                                                  b"\x7fELF\x02\x01ioctl"),
+        }
+        userspace_names = ("dropbear", "dropbearkey", "dropbearconvert", "keyboard-observe",
+                           "kmsg-capture", "kmsg-seal")
+        userspace_bytes = {name: b"\x7fELF\x02\x01" + name.encode("ascii") for name in userspace_names}
+        credentials = {"authorized_keys": b"restricted-admin-key", "dropbear_host_key": b"host-key"}
+        input_id = "f" * 64
+        original_regular = C.regular
+        original_sha = C.sha
+
+        def fake_regular(path, *args):
+            path = Path(path)
+            if path == Path("foundation"):
+                return foundation
+            if path.parent == Path("userspace") and path.name in userspace_bytes:
+                return userspace_bytes[path.name]
+            return original_regular(path, *args)
+
+        def fake_sha(data):
+            if data == foundation:
+                return VALIDATOR.FOUNDATION_INITRAMFS_SHA256
+            return original_sha(data)
+
+        def codec(base_members):
+            encoded = {}
+
+            def encode(members):
+                rows = tuple((name, item.mode, item.nlink, item.data)
+                             for name, item in sorted(members.items()))
+                raw = repr(rows).encode("ascii")
+                encoded[raw] = dict(members)
+                return raw
+
+            def parse(raw):
+                return dict(base_members) if raw == foundation else dict(encoded[raw])
+
+            return parse, encode
+
+        with mock.patch.object(C, "regular", side_effect=fake_regular), \
+             mock.patch.object(C, "sha", side_effect=fake_sha), \
+             mock.patch.object(C, "validate_credentials", return_value=credentials), \
+             mock.patch.object(C, "load_newc_tools", side_effect=lambda _repo: codec(baseline)):
+            archive, summary = C.compose_initramfs(
+                VALIDATOR.REPO, Path("foundation"), Path("userspace"),
+                Path("credentials"), input_id)
+        self.assertIn("bin/console-keymap-verify", summary)
+        elf = b"\x7fELF\x02\x01ioctl"
+        self.assertEqual(summary["bin/console-keymap-verify"]["size"], len(elf))
+        self.assertEqual(summary["bin/console-keymap-verify"]["sha256"], C.sha(elf))
+
+        bad_baseline = dict(baseline)
+        bad_baseline["bin/legacy-action"] = Member(
+            stat.S_IFREG | 0o755, 1, b"#!/bin/sh\nioctl /dev/watchdog\n")
+        with mock.patch.object(C, "regular", side_effect=fake_regular), \
+             mock.patch.object(C, "sha", side_effect=fake_sha), \
+             mock.patch.object(C, "validate_credentials", return_value=credentials), \
+             mock.patch.object(C, "load_newc_tools", side_effect=lambda _repo: codec(bad_baseline)):
+            with self.assertRaisesRegex(ValueError, "forbidden runtime action"):
+                C.compose_initramfs(VALIDATOR.REPO, Path("foundation"), Path("userspace"),
+                                    Path("credentials"), input_id)
+
+        with mock.patch.object(VALIDATOR.C, "regular", side_effect=fake_regular), \
+             mock.patch.object(VALIDATOR.C, "sha", side_effect=fake_sha), \
+             mock.patch.object(VALIDATOR.C, "validate_credentials", return_value=credentials), \
+             mock.patch.object(VALIDATOR.C, "load_newc_tools", side_effect=lambda _repo: codec(baseline)):
+            archive, summary = VALIDATOR.derive_expected_initramfs(
+                Path("foundation"), Path("userspace"), Path("credentials"), input_id)
+        self.assertIn("bin/console-keymap-verify", summary)
+        self.assertEqual(summary["bin/console-keymap-verify"]["size"], len(elf))
+        self.assertEqual(summary["bin/console-keymap-verify"]["sha256"], C.sha(elf))
+
+        with mock.patch.object(VALIDATOR.C, "regular", side_effect=fake_regular), \
+             mock.patch.object(VALIDATOR.C, "sha", side_effect=fake_sha), \
+             mock.patch.object(VALIDATOR.C, "validate_credentials", return_value=credentials), \
+             mock.patch.object(VALIDATOR.C, "load_newc_tools", side_effect=lambda _repo: codec(bad_baseline)):
+            with self.assertRaisesRegex(ValueError, "forbidden runtime action"):
+                VALIDATOR.derive_expected_initramfs(
+                    Path("foundation"), Path("userspace"), Path("credentials"), input_id)
     def test_reserved_memory_checks_container_and_static_children(self):
         source = (HERE / "validate-dtb.py").read_text(encoding="utf-8")
         self.assertIn("reserved-memory properties changed", source)

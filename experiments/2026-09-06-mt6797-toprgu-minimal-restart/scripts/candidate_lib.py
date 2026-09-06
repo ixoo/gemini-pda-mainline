@@ -90,6 +90,17 @@ def require(condition: bool, reason: str) -> None:
         raise ValueError(reason)
 
 
+def is_elf(data: bytes) -> bool:
+    """Identify binary members whose exact bytes are checked separately."""
+    return data.startswith(b"\x7fELF")
+
+
+def is_untrusted_action_data(item) -> bool:
+    """Select executable non-ELF scripts for text-token action closure."""
+    return (stat.S_ISREG(item.mode) and bool(stat.S_IMODE(item.mode) & 0o111) and
+            not is_elf(item.data))
+
+
 def validate_source_pins(repo: Path) -> None:
     pins = {
         "patches/series-mt6797-toprgu-minimal-restart": SERIES_SHA256,
@@ -249,9 +260,9 @@ def compose_initramfs(repo: Path, parent: Path, userspace: Path, credentials: Pa
         members[name] = replace(template, mode=stat.S_IFREG | mode, data=data)
     # The baseline must not retain an additional userspace action owner.
     for name, item in members.items():
-        if stat.S_ISREG(item.mode) and name not in {"bin/busybox", "bin/reboot"}:
+        if name != "bin/reboot" and is_untrusted_action_data(item):
             require(not any(token in item.data for token in FORBIDDEN_TEXT), f"forbidden runtime action in {name}")
-        if stat.S_ISREG(item.mode) and stat.S_IMODE(item.mode) & 0o111:
+        if name != "bin/reboot" and is_untrusted_action_data(item):
             require(not any(token in item.data for token in OLD_EXECUTABLE_TEXT), f"old executable marker in {name}")
     first = encode(members)
     second = encode(parse(first))

@@ -85,6 +85,14 @@ This acceptance covers tooling only: private candidate construction, complete
 validation against the pinned private inputs, guarded deployment, physical
 selection, and runtime behavior remain separate gates.
 
+The first private construction invocation refused a noncanonical supplied DT
+identity before composition. The corrected invocation then refused because a
+retained exact ELF member's `ioctl` symbol was conservatively mistaken for
+effectful script text; no candidate was retained. The repaired classifier scans
+executable non-ELF members while exact ELF members remain bound byte-for-byte to
+the pinned foundation and userspace. Independent Sol and Astra review accepted
+that repair; construction must rerun from its clean published revision.
+
 The prior Buildbox attempt at exact commit
 `e70982c09a16a0bb8b152a0dfcada7db69d2a0bf` failed before applying 0543 because
 its first hunk expected stale source context. The corrected patch was replayed

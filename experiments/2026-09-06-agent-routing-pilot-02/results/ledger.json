@@ -56,12 +56,12 @@
       "result": {
         "started_at": "2026-09-06T09:38:26.611677Z",
         "review_ready_at": "2026-09-06T10:02:28.227927Z",
-        "accepted_at": "2026-09-06T12:25:30.814649Z",
+        "accepted_at": "2026-09-06T12:48:27Z",
         "timing_source": "observed UTC dispatch, first handoff and final-review timestamps",
-        "elapsed_minutes": 167.0700495333,
-        "review_rework_minutes": 143.0431120333,
+        "elapsed_minutes": 190.00647205,
+        "review_rework_minutes": 165.97953455,
         "first_review_accepted": false,
-        "rework_cycles": 8,
+        "rework_cycles": 9,
         "escalated": true,
         "escalation_reason": "repeated review found action-boundary attribution and durability gaps requiring a specialist safety review",
         "escalation_packet": {

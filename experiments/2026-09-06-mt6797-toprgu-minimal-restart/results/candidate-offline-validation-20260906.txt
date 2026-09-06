@@ -1,6 +1,9 @@
 experiment=2026-09-06-mt6797-toprgu-minimal-restart
-timestamp_utc=2026-09-06T12:25:30Z
-candidate_construction=not_run
+timestamp_utc=2026-09-06T12:48:27Z
+candidate_construction=attempted; no candidate retained
+construction_attempt_1=refusal; noncanonical supplied serviceability DT identity
+construction_attempt_2=refusal; executable ELF token misclassified by script closure
+post_repair_construction=pending clean published source
 device_access=none
 network_access=none
 private_key_bytes=not_read
@@ -9,8 +12,8 @@ integration_review=ACCEPT; gpt-5.6-sol medium; frozen staged preparation snapsho
 specialist_review=ACCEPT; gpt-6-astra medium; action-boundary review
 
 tests:
-  PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_candidate_build.py: PASS (12 tests)
-  PYTHONDONTWRITEBYTECODE=1 python3 -OO scripts/test_candidate_build.py: PASS (12 tests)
+  PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_candidate_build.py: PASS (13 tests)
+  PYTHONDONTWRITEBYTECODE=1 python3 -OO scripts/test_candidate_build.py: PASS (13 tests)
   PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_candidate.py: PASS (19 tests)
   PYTHONDONTWRITEBYTECODE=1 python3 -OO scripts/test_candidate.py: PASS (19 tests)
   PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate.py: PASS (10 refusal fixtures; 195 manifest profiles audited)

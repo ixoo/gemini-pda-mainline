@@ -86,10 +86,9 @@ def derive_expected_initramfs(foundation_initramfs: Path, userspace: Path,
         require(name not in members, f"initramfs member collision: {name}")
         members[name] = replace(template, mode=stat.S_IFREG | mode, data=data)
     for name, item in members.items():
-        if stat.S_ISREG(item.mode) and name not in {"bin/busybox", "bin/reboot"}:
+        if name != "bin/reboot" and C.is_untrusted_action_data(item):
             require(not any(token in item.data for token in C.FORBIDDEN_TEXT),
                     f"forbidden runtime action in {name}")
-        if stat.S_ISREG(item.mode) and stat.S_IMODE(item.mode) & 0o111:
             require(not any(token in item.data for token in C.OLD_EXECUTABLE_TEXT),
                     f"old executable marker in {name}")
     first = encode(members)
@@ -151,7 +150,7 @@ def validate_members(path: Path, manifest: dict, *, foundation_initramfs: Path,
             "entry marker wrapper contract missing")
     require(b"/bin/reboot\n" not in wrapper and b"Candidate AB" not in wrapper, "old reboot wrapper leaked")
     for name, member in members.items():
-        if not stat.S_ISREG(member.mode) or not stat.S_IMODE(member.mode) & 0o111 or member.data.startswith(b"\x7fELF"):
+        if not C.is_untrusted_action_data(member):
             continue
         require(not any(token in member.data for token in C.OLD_EXECUTABLE_TEXT), f"old executable marker: {name}")
         # Effectful applets remain in BusyBox; only the admitted shell scripts
