@@ -1,0 +1,488 @@
+From d05e704461888a6e3c31994aa16424f4d1b5fa39 Mon Sep 17 00:00:00 2001
+From: MT6797 binding experiment <nobody@example.invalid>
+Date: Sat, 5 Sep 2026 00:00:00 +0000
+Subject: [PATCH] wifi: mediatek: describe dynamic reserved memory declaration
+
+Retain a passive descriptor for a no-reg reserved-memory node only
+when its initialized record matches the exact DT declaration.
+Keep static reg validation, references and active-entry refusal.
+
+Internal experiment only; synthetic non-certifying author, no DCO.
+Assisted-by: LLM
+---
+ .../wireless/mediatek/mt6797/image-binding.c  | 373 +++++++++++++++++-
+ .../wireless/mediatek/mt6797/image-binding.h  |   8 +-
+ 2 files changed, 369 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/image-binding.c b/drivers/net/wireless/mediatek/mt6797/image-binding.c
+index f403db8..0fbeaba 100644
+--- a/drivers/net/wireless/mediatek/mt6797/image-binding.c
++++ b/drivers/net/wireless/mediatek/mt6797/image-binding.c
+@@ -17,12 +17,38 @@
+ #include <linux/vmalloc.h>
+ #endif
+ 
++struct mt6797_reserved_declaration {
++	const u8 *reg;
++	int reg_length;
++	int reg_present;
++	const u8 *size;
++	int size_length;
++	int size_present;
++	const u8 *alignment_raw;
++	int alignment_length;
++	int alignment_present;
++	const u8 *alloc_ranges;
++	int alloc_ranges_length;
++	int alloc_ranges_present;
++	unsigned int address_cells;
++	unsigned int size_cells;
++	u64 declared_size;
++	u64 alignment;
++	int dynamic;
++	int owned;
++};
++
++static int mt6797_reserved_declaration_capture(struct device_node *node,
++					       int address_cells, int size_cells,
++					       struct mt6797_reserved_declaration *declaration);
++
+ struct mt6797_reserved_snapshot {
+ 	struct device *dev;
+ 	struct device_node *consumer;
+ 	struct device_node *target;
+ 	const struct reserved_mem *rmem;
+ 	unsigned int index;
++	struct mt6797_reserved_declaration declaration;
+ 	struct mt6797_image_reserved_info info;
+ };
+ 
+@@ -45,6 +71,279 @@ struct mt6797_image_binding {
+ 	int first_error;
+ };
+ 
++static u32 mt6797_be32(const u8 *bytes)
++{
++	return ((u32)bytes[0] << 24) | ((u32)bytes[1] << 16) |
++	       ((u32)bytes[2] << 8) | bytes[3];
++}
++
++static int mt6797_read_cells(const u8 *bytes, int length,
++			     unsigned int cells, u64 *value)
++{
++	unsigned int i;
++
++	if (!bytes || !value || cells < 1 || cells > 2 ||
++	    length != (int)(cells * sizeof(u32)))
++		return -EINVAL;
++	*value = 0;
++	for (i = 0; i < cells; i++)
++		*value = (*value << 32) | mt6797_be32(bytes + i * sizeof(u32));
++	return 0;
++}
++
++struct mt6797_property_view {
++	const u8 *bytes;
++	int length;
++	int present;
++};
++
++static int mt6797_property_view_get(const struct device_node *node,
++				    const char *name,
++				    struct mt6797_property_view *view)
++{
++	const struct property *property;
++	int length = -1;
++
++	property = of_find_property(node, name, &length);
++	if (property &&
++	    (length < 0 || property->length < 0 || length != property->length ||
++	     (property->length > 0 && !property->value)))
++		return -EINVAL;
++	*view = (struct mt6797_property_view){
++		.bytes = property ? property->value : NULL,
++		.length = property ? property->length : 0,
++		.present = !!property,
++	};
++	return 0;
++}
++
++static int mt6797_property_equal(const struct mt6797_property_view *current,
++				 const u8 *saved, int saved_length,
++				 int saved_present)
++{
++	if (current->present != saved_present || current->length != saved_length)
++		return -ESTALE;
++	if (current->present && current->length &&
++	    memcmp(current->bytes, saved, (size_t)current->length))
++		return -ESTALE;
++	return 0;
++}
++
++static void mt6797_declaration_destroy(struct mt6797_reserved_declaration *declaration)
++{
++	if (!declaration->owned)
++		return;
++	kvfree(declaration->reg);
++	kvfree(declaration->size);
++	kvfree(declaration->alignment_raw);
++	kvfree(declaration->alloc_ranges);
++	*declaration = (struct mt6797_reserved_declaration){0};
++}
++
++static int mt6797_declaration_copy(struct mt6797_reserved_declaration *destination,
++				   const struct mt6797_reserved_declaration *source)
++{
++	*destination = *source;
++	destination->reg = NULL;
++	destination->size = NULL;
++	destination->alignment_raw = NULL;
++	destination->alloc_ranges = NULL;
++	destination->owned = 1;
++	if (source->reg_present && source->reg_length) {
++		destination->reg = kvmalloc((size_t)source->reg_length, GFP_KERNEL);
++		if (!destination->reg)
++			goto fail;
++		memcpy((void *)destination->reg, source->reg,
++		       (size_t)source->reg_length);
++	}
++	if (source->size_present && source->size_length) {
++		destination->size = kvmalloc((size_t)source->size_length,
++					     GFP_KERNEL);
++		if (!destination->size)
++			goto fail;
++		memcpy((void *)destination->size, source->size,
++		       (size_t)source->size_length);
++	}
++	if (source->alignment_present && source->alignment_length) {
++		destination->alignment_raw =
++			kvmalloc((size_t)source->alignment_length, GFP_KERNEL);
++		if (!destination->alignment_raw)
++			goto fail;
++		memcpy((void *)destination->alignment_raw, source->alignment_raw,
++		       (size_t)source->alignment_length);
++	}
++	if (source->alloc_ranges_present && source->alloc_ranges_length) {
++		destination->alloc_ranges =
++			kvmalloc((size_t)source->alloc_ranges_length, GFP_KERNEL);
++		if (!destination->alloc_ranges)
++			goto fail;
++		memcpy((void *)destination->alloc_ranges, source->alloc_ranges,
++		       (size_t)source->alloc_ranges_length);
++	}
++	return 0;
++fail:
++	mt6797_declaration_destroy(destination);
++	return -ENOMEM;
++}
++
++static int mt6797_declaration_equal(const struct device_node *node,
++				    const struct mt6797_reserved_declaration *saved)
++{
++	struct mt6797_reserved_declaration current = {0};
++	struct mt6797_property_view view;
++	int address_cells = of_n_addr_cells((struct device_node *)node);
++	int size_cells = of_n_size_cells((struct device_node *)node);
++	int error;
++
++	error = mt6797_reserved_declaration_capture((struct device_node *)node,
++						    address_cells, size_cells,
++						    &current);
++	if (error)
++		return error;
++	if (current.dynamic != saved->dynamic ||
++	    current.address_cells != saved->address_cells ||
++	    current.size_cells != saved->size_cells ||
++	    current.declared_size != saved->declared_size ||
++	    current.alignment_present != saved->alignment_present ||
++	    current.alignment != saved->alignment ||
++	    current.reg_present != saved->reg_present ||
++	    current.alloc_ranges_present != saved->alloc_ranges_present)
++		return -ESTALE;
++	view = (struct mt6797_property_view){
++		.bytes = current.reg,
++		.length = current.reg_length,
++		.present = current.reg_present,
++	};
++	error = mt6797_property_equal(&view, saved->reg, saved->reg_length,
++				      saved->reg_present);
++	if (error)
++		return error;
++	view = (struct mt6797_property_view){
++		.bytes = current.size,
++		.length = current.size_length,
++		.present = current.size_present,
++	};
++	error = mt6797_property_equal(&view, saved->size, saved->size_length,
++				      saved->size_present);
++	if (error)
++		return error;
++	view = (struct mt6797_property_view){
++		.bytes = current.alignment_raw,
++		.length = current.alignment_length,
++		.present = current.alignment_present,
++	};
++	error = mt6797_property_equal(&view, saved->alignment_raw,
++				      saved->alignment_length,
++				      saved->alignment_present);
++	if (error)
++		return error;
++	view = (struct mt6797_property_view){
++		.bytes = current.alloc_ranges,
++		.length = current.alloc_ranges_length,
++		.present = current.alloc_ranges_present,
++	};
++	return mt6797_property_equal(&view, saved->alloc_ranges,
++				     saved->alloc_ranges_length,
++				     saved->alloc_ranges_present);
++}
++
++/* Capture only the DT declaration. Property values are boot-lifetime borrowed
++ * views; the initial validated declaration is copied before publication and
++ * every revalidation compares current bytes and widths without allocation.
++ * This records initialized Linux state, never proof that memblock reserved it.
++ */
++static int mt6797_reserved_declaration_capture(struct device_node *node,
++					       int address_cells, int size_cells,
++					       struct mt6797_reserved_declaration *declaration)
++{
++	struct mt6797_property_view reg, size, alignment, ranges;
++	int count;
++	int error;
++	u64 value;
++
++	*declaration = (struct mt6797_reserved_declaration){
++		.address_cells = (unsigned int)address_cells,
++		.size_cells = (unsigned int)size_cells,
++	};
++	if (address_cells < 1 || address_cells > 2 || size_cells < 1 ||
++	    size_cells > 2)
++		return -EINVAL;
++	error = mt6797_property_view_get(node, "reg", &reg);
++	if (error)
++		return error;
++	error = mt6797_property_view_get(node, "size", &size);
++	if (error)
++		return error;
++	error = mt6797_property_view_get(node, "alignment", &alignment);
++	if (error)
++		return error;
++	error = mt6797_property_view_get(node, "alloc-ranges", &ranges);
++	if (error)
++		return error;
++	declaration->reg = reg.bytes;
++	declaration->reg_length = reg.length;
++	declaration->reg_present = reg.present;
++	declaration->size = size.bytes;
++	declaration->size_length = size.length;
++	declaration->size_present = size.present;
++	declaration->alignment_raw = alignment.bytes;
++	declaration->alignment_length = alignment.length;
++	declaration->alignment_present = alignment.present;
++	declaration->alloc_ranges = ranges.bytes;
++	declaration->alloc_ranges_length = ranges.length;
++	declaration->alloc_ranges_present = ranges.present;
++	if (declaration->reg_present) {
++		count = of_property_count_u32_elems(node, "reg");
++		if (count != address_cells + size_cells ||
++		    reg.length != count * (int)sizeof(u32) ||
++		    mt6797_read_cells(reg.bytes, address_cells * (int)sizeof(u32),
++				      (unsigned int)address_cells, &value) ||
++		    mt6797_read_cells(reg.bytes +
++				      (size_t)address_cells * sizeof(u32),
++				      size_cells * (int)sizeof(u32),
++				      (unsigned int)size_cells,
++				      &declaration->declared_size))
++			return -EINVAL;
++	} else {
++		count = of_property_count_u32_elems(node, "reg");
++		if (count >= 0 || address_cells != size_cells)
++			return -EINVAL;
++		declaration->dynamic = 1;
++		if (!size.present ||
++		    mt6797_read_cells(size.bytes, size.length,
++				      (unsigned int)size_cells,
++				      &declaration->declared_size) ||
++		    !declaration->declared_size)
++			return -EINVAL;
++	}
++	if (declaration->dynamic && declaration->alignment_present &&
++	    (mt6797_read_cells(alignment.bytes, alignment.length,
++				(unsigned int)size_cells, &declaration->alignment) ||
++	     !declaration->alignment))
++		return -EINVAL;
++	if (declaration->dynamic && declaration->alloc_ranges_present) {
++		unsigned int cells = (unsigned int)(address_cells + size_cells);
++		unsigned int offset;
++		u64 range_base, range_size;
++
++		if (!ranges.length || ranges.length % (int)(cells * sizeof(u32)))
++			return -EINVAL;
++		for (offset = 0; offset < (unsigned int)ranges.length;
++		     offset += cells * sizeof(u32)) {
++			if (mt6797_read_cells(ranges.bytes + offset,
++					      address_cells * (int)sizeof(u32),
++					      (unsigned int)address_cells, &range_base) ||
++			    mt6797_read_cells(ranges.bytes + offset +
++					      (size_t)address_cells * sizeof(u32),
++					      size_cells * (int)sizeof(u32),
++					      (unsigned int)size_cells, &range_size) ||
++			    !range_size || range_size - 1 > ~(u64)0 - range_base)
++				return -ERANGE;
++		}
++	}
++	return 0;
++}
++
+ /* Caller holds stable OF configuration during this descriptive resolution.
+  * The lookup is borrowed/name-matched, not an exclusive ownership operation.
+  */
+@@ -53,6 +352,7 @@ static int mt6797_reserved_resolve(struct mt6797_reserved_snapshot *snapshot,
+ {
+ 	struct device_node *target, *parent = NULL, *root = NULL;
+ 	struct resource boot = {0}, live = {0};
++	struct mt6797_reserved_declaration declaration;
+ 	struct reserved_mem *rmem;
+ 	u64 base, bytes, end;
+ 	int address_cells, size_cells, error = -EINVAL;
+@@ -90,11 +390,15 @@ static int mt6797_reserved_resolve(struct mt6797_reserved_snapshot *snapshot,
+ 	}
+ 	address_cells = of_n_addr_cells(target);
+ 	size_cells = of_n_size_cells(target);
+-	if (address_cells < 1 || address_cells > 2 ||
+-	    size_cells < 1 || size_cells > 2 ||
+-	    of_property_count_u32_elems(target, "reg") !=
+-						address_cells + size_cells)
++	error = mt6797_reserved_declaration_capture(target, address_cells,
++						    size_cells, &declaration);
++	if (error)
+ 		goto out;
++	if (snapshot->target) {
++		error = mt6797_declaration_equal(target, &snapshot->declaration);
++		if (error)
++			goto out;
++	}
+ 	rmem = of_reserved_mem_lookup(target);
+ 	if (!rmem) {
+ 		error = -ENODEV;
+@@ -113,6 +417,19 @@ static int mt6797_reserved_resolve(struct mt6797_reserved_snapshot *snapshot,
+ 	}
+ 	base = rmem->base;
+ 	bytes = rmem->size;
++	if (declaration.dynamic && bytes != declaration.declared_size) {
++		error = -ESTALE;
++		goto out;
++	}
++	if (declaration.dynamic && !base) {
++		error = -ERANGE;
++		goto out;
++	}
++	if (declaration.dynamic && declaration.alignment_present &&
++	    base % declaration.alignment) {
++		error = -ERANGE;
++		goto out;
++	}
+ 	if (bytes < SZ_1M || (base & (SZ_1M - 1)) ||
+ 	    base > 0xffffffffULL || SZ_1M - 1 > 0xffffffffULL - base ||
+ 	    bytes - 1 > ~(u64)0 - base) {
+@@ -122,18 +439,49 @@ static int mt6797_reserved_resolve(struct mt6797_reserved_snapshot *snapshot,
+ 	end = base + bytes - 1;
+ 	error = of_reserved_mem_region_to_resource(snapshot->consumer,
+ 						   snapshot->index, &boot);
+-	if (error)
+-		goto out;
+-	error = of_address_to_resource(target, 0, &live);
+ 	if (error)
+ 		goto out;
+ 	if (resource_type(&boot) != IORESOURCE_MEM ||
+-	    resource_type(&live) != IORESOURCE_MEM ||
+-	    boot.start != base || boot.end != end ||
+-	    live.start != base || live.end != end) {
++	    boot.start != base || boot.end != end) {
+ 		error = -ESTALE;
+ 		goto out;
+ 	}
++	if (!declaration.dynamic) {
++		error = of_address_to_resource(target, 0, &live);
++		if (error)
++			goto out;
++		if (resource_type(&live) != IORESOURCE_MEM ||
++		    live.start != base || live.end != end) {
++			error = -ESTALE;
++			goto out;
++		}
++	}
++	if (declaration.dynamic && declaration.alloc_ranges_present) {
++		unsigned int cells = declaration.address_cells + declaration.size_cells;
++		unsigned int offset;
++		int contained = 0;
++
++		for (offset = 0; offset < (unsigned int)declaration.alloc_ranges_length;
++		     offset += cells * sizeof(u32)) {
++			u64 range_base, range_size, range_end;
++
++			if (mt6797_read_cells(declaration.alloc_ranges + offset,
++					      (int)(declaration.address_cells * sizeof(u32)),
++					      declaration.address_cells, &range_base) ||
++			    mt6797_read_cells(declaration.alloc_ranges + offset +
++					      (size_t)declaration.address_cells * sizeof(u32),
++					      (int)(declaration.size_cells * sizeof(u32)),
++					      declaration.size_cells, &range_size))
++				continue;
++			range_end = range_base + range_size - 1;
++			if (base >= range_base && end <= range_end)
++				contained = 1;
++		}
++		if (!contained) {
++			error = -ERANGE;
++			goto out;
++		}
++	}
+ 	*info = (struct mt6797_image_reserved_info){
+ 		.start = base,
+ 		.end = end,
+@@ -143,6 +491,10 @@ static int mt6797_reserved_resolve(struct mt6797_reserved_snapshot *snapshot,
+ 		.wmt_end = base + SZ_1M - 1,
+ 	};
+ 	if (!snapshot->target) {
++		error = mt6797_declaration_copy(&snapshot->declaration,
++						&declaration);
++		if (error)
++			goto out;
+ 		snapshot->target = of_node_get(target);
+ 		snapshot->rmem = rmem;
+ 	}
+@@ -158,6 +510,7 @@ static void mt6797_reserved_put(struct mt6797_reserved_snapshot *snapshot)
+ {
+ 	if (!snapshot)
+ 		return;
++	mt6797_declaration_destroy(&snapshot->declaration);
+ 	of_node_put(snapshot->target);
+ 	of_node_put(snapshot->consumer);
+ 	put_device(snapshot->dev);
+diff --git a/drivers/net/wireless/mediatek/mt6797/image-binding.h b/drivers/net/wireless/mediatek/mt6797/image-binding.h
+index 146f9d1..ed634c5 100644
+--- a/drivers/net/wireless/mediatek/mt6797/image-binding.h
++++ b/drivers/net/wireless/mediatek/mt6797/image-binding.h
+@@ -13,7 +13,9 @@ struct mt6797_image_owner;
+ struct mt6797_image_binding;
+ struct device;
+ 
+-/* Inclusive boot-resource intervals; descriptive, never an access grant. */
++/* Inclusive initialized-record intervals; descriptive, never an access grant
++ * or proof that memblock reservation/no-map marking succeeded.
++ */
+ struct mt6797_image_reserved_info {
+ 	u64 generation;
+ 	u64 start;
+@@ -59,7 +61,9 @@ int mt6797_image_owner_free(struct mt6797_image_owner *owner);
+ /* Bind one boot memory-region descriptor only while the registry is idle.
+  * Hold caller device/OF configuration stable during each operation. Retained
+  * references keep objects alive, not drivers bound or OF properties immutable.
+- * No region callback, exclusive resource claim, mapping or hardware act occurs.
++ * A no-reg node is admitted only as a declaration matching its initialized
++ * reserved_mem record; no region callback, exclusive resource claim, mapping
++ * or hardware act occurs.
+  */
+ int mt6797_image_owner_bind_reserved(struct mt6797_image_owner *owner,
+ 				     struct device *dev, unsigned int index,

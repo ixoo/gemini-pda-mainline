@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "parent": "279c4879a9edceacc2df89debb80f01c79ff14c4",
+  "profile": "mt6797-hif-parser-compile",
+  "kernel_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "series": "patches/series-mt6797-provider-compile",
+  "predecessor": "proposals/0006-wifi-mediatek-describe-reserved-memory.patch",
+  "proposal": "proposals/0007-wifi-mediatek-describe-dynamic-reserved-memory.patch",
+  "source_patch": "experiments/2026-09-06-mt6797-dynamic-reserved-binding/0006-wifi-mediatek-describe-dynamic-reserved-memory.patch",
+  "patch_sha256": "d44a641d9fb2e2b03500977d47e188491e4e6fec4bdbe37dbd910f81648cea80",
+  "manifest_changed": false,
+  "configuration_changed": false,
+  "default_profiles_changed": false,
+  "device_tree_changed": false,
+  "build_status": "pending"
+}
