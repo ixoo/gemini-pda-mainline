@@ -1,0 +1,28 @@
+{
+  "status": "Pre-Buildbox integration review passed; exact build pending",
+  "frozen_parent": "f43a702c107e3685c92c4d275dc3547acf7302ce",
+  "linux_source": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "profile": "mt6797-hif-parser-compile",
+  "predecessor_series": "patches/series-mt6797-provider-compile",
+  "predecessor_series_sha256": "09c60922863e56594c17e22c0bf0d7363af3bab660f2d6aad2e5e7df3e4fac88",
+  "predecessor_series_entries": 12,
+  "append_after": "proposals/0009-wifi-mediatek-compile-remap-fields.patch",
+  "patch": "0010-wifi-mediatek-compile-resource-layout.patch",
+  "patch_sha256": "3266942a0b62e61feb525da07faef33e8767f89f7c90e9ff66c44716a3100136",
+  "kernel_delta": [
+    "drivers/net/wireless/mediatek/mt6797/Makefile",
+    "drivers/net/wireless/mediatek/mt6797/resource-layout.c",
+    "drivers/net/wireless/mediatek/mt6797/resource-layout.h"
+  ],
+  "object": "drivers/net/wireless/mediatek/mt6797/resource-layout.o",
+  "host_test": "src/resource-layout-test.c linked with separately compiled predecessor remap-fields.c",
+  "runtime_caller": "none; constructor is linked but unreferenced",
+  "hardware_access": "NONE",
+  "evidence_documents": {
+    "experiments/2026-09-05-mt6797-wifi-contract/OWNERSHIP.md": "5a7044e62fc5688ef7c14f53f536dbf6a18a7e64719dd0236ead39ab540d3435",
+    "experiments/2026-09-05-mt6797-wifi-contract/SHARED_OWNER_IMPLEMENTATION.md": "a71e51e2ff2676b63d21bbd8e83fc6af98c24e77d47f4fe541e60d11be1c1021",
+    "experiments/2026-09-06-mt6797-emi-domain-attribution/results/verdicts.json": "458bbd8b15b59dc40663315c8c305829fc1ca9df4d144a2b61166726daf8a63f"
+  },
+  "submission_ready": false,
+  "author_metadata": "Synthetic non-certifying experiment identity; no DCO sign-off"
+}

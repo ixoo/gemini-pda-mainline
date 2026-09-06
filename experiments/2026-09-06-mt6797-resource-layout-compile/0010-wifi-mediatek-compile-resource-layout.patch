@@ -1,0 +1,154 @@
+From 025d48a91e5dded267dcf8c90b2b4b8204bb744a Mon Sep 17 00:00:00 2001
+From: MT6797 resource-layout experiment <nobody@example.invalid>
+Date: Sun, 6 Sep 2026 00:00:00 +0000
+Subject: [PATCH] wifi: mediatek: compile reserved-resource layout bridge
+
+Compose the initialized reserved-memory description into checked
+remap and descriptive EMI ranges without selecting policy or
+adding a runtime caller or hardware effect.
+
+Internal experiment only; synthetic non-certifying author, no DCO.
+Assisted-by: LLM
+---
+ drivers/net/wireless/mediatek/mt6797/Makefile |  1 +
+ .../mediatek/mt6797/resource-layout.c         | 65 +++++++++++++++++++
+ .../mediatek/mt6797/resource-layout.h         | 49 ++++++++++++++
+ 3 files changed, 115 insertions(+)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/resource-layout.c
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/resource-layout.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Makefile b/drivers/net/wireless/mediatek/mt6797/Makefile
+index 1e1c7fe..4807b0b 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Makefile
++++ b/drivers/net/wireless/mediatek/mt6797/Makefile
+@@ -5,3 +5,4 @@ obj-y += image-plan.o
+ obj-y += image-binding.o
+ obj-y += emi-abi.o
+ obj-y += remap-fields.o
++obj-y += resource-layout.o
+diff --git a/drivers/net/wireless/mediatek/mt6797/resource-layout.c b/drivers/net/wireless/mediatek/mt6797/resource-layout.c
+new file mode 100644
+index 0000000..39173fb
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/resource-layout.c
+@@ -0,0 +1,65 @@
++// SPDX-License-Identifier: GPL-2.0-only
++#include "resource-layout.h"
++
++int mt6797_resource_layout_build(const struct mt6797_image_reserved_info *info,
++				 enum mt6797_emi_selector selector,
++				 struct mt6797_resource_layout *layout)
++{
++	unsigned int common_field;
++	int error;
++
++	if (!layout)
++		return -EINVAL;
++	if ((const void *)info == (const void *)layout) {
++		*layout = (struct mt6797_resource_layout){0};
++		return -EINVAL;
++	}
++	*layout = (struct mt6797_resource_layout){0};
++	if (!info)
++		return -EINVAL;
++	if (info->generation == 0 || info->start > info->end ||
++	    info->start > 0xffffffffffffffffULL - 0xfffffULL ||
++	    info->end - info->start < 0xfffffULL)
++		return -ERANGE;
++	if (info->wlan_start != info->start ||
++	    info->wlan_end != info->start + 0x7ffffULL ||
++	    info->wmt_start != info->start + 0x80000ULL ||
++	    info->wmt_end != info->start + 0xfffffULL)
++		return -ERANGE;
++	switch (selector) {
++	case MT6797_EMI_SELECTOR_BIT13_CLEAR:
++	case MT6797_EMI_SELECTOR_BIT13_SET:
++		break;
++	default:
++		return -EINVAL;
++	}
++	if (selector == MT6797_EMI_SELECTOR_BIT13_CLEAR &&
++	    info->start < 0x40000000ULL)
++		return -ERANGE;
++	error = mt6797_remap_encode_common(info->start, 1, &common_field);
++	if (error)
++		return error;
++	*layout = (struct mt6797_resource_layout){
++		.generation = info->generation,
++		.start = info->start,
++		.end = info->end,
++		.wlan_start = info->wlan_start,
++		.wlan_end = info->wlan_end,
++		.wmt_start = info->wmt_start,
++		.wmt_end = info->wmt_end,
++		.common_field = common_field,
++		.region18 = {
++			.start = info->wlan_start,
++			.end = info->wlan_end,
++			.selector = selector,
++			.region = 18,
++		},
++		.region19 = {
++			.start = info->wmt_start,
++			.end = info->wmt_end,
++			.selector = selector,
++			.region = 19,
++		},
++	};
++	return 0;
++}
+diff --git a/drivers/net/wireless/mediatek/mt6797/resource-layout.h b/drivers/net/wireless/mediatek/mt6797/resource-layout.h
+new file mode 100644
+index 0000000..c5c6782
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/resource-layout.h
+@@ -0,0 +1,49 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/* Pure composition of the initialized reserved-memory description. */
++#ifndef GEMINI_MT6797_RESOURCE_LAYOUT_H
++#define GEMINI_MT6797_RESOURCE_LAYOUT_H
++
++#ifdef __KERNEL__
++#include "emi-abi.h"
++#include "image-binding.h"
++#include "remap-fields.h"
++#else
++#include <assert.h>
++#include <errno.h>
++#include <stddef.h>
++typedef unsigned long long u64;
++#include "emi-abi.h"
++#include "remap-fields.h"
++struct mt6797_image_reserved_info {
++	u64 generation;
++	u64 start;
++	u64 end;
++	u64 wlan_start;
++	u64 wlan_end;
++	u64 wmt_start;
++	u64 wmt_end;
++};
++#endif
++
++static_assert(sizeof(u64) == 8, "resource layout requires 64-bit values");
++
++/* Descriptive ranges only; no permission or access-policy fields are present. */
++struct mt6797_resource_layout {
++	u64 generation;
++	u64 start;
++	u64 end;
++	u64 wlan_start;
++	u64 wlan_end;
++	u64 wmt_start;
++	u64 wmt_end;
++	unsigned int common_field;
++	struct mt6797_emi_owner_range region18;
++	struct mt6797_emi_owner_range region19;
++};
++
++/* Build the fixed first-MiB layout from an initialized, descriptive record. */
++int mt6797_resource_layout_build(const struct mt6797_image_reserved_info *info,
++				 enum mt6797_emi_selector selector,
++				 struct mt6797_resource_layout *layout);
++
++#endif
