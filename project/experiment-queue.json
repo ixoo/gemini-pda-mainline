@@ -80,14 +80,14 @@
     },
     "mt6797-toprgu-minimal-restart": {
       "workstream": "watchdog",
-      "preparation_state": "ready",
+      "preparation_state": "preparing",
       "device_state": "unselected",
       "owner": "MT6797 TOPRGU minimal restart diagnostic",
       "reviewer": "Project Planning",
       "device_custodian": null,
       "experiment": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/README.md",
       "session_packet": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/session-packet.json",
-      "candidate_record": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/results/candidate-readiness-20260906.txt",
+      "candidate_record": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/results/deployment-policy-20260906.txt",
       "readiness_record": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/CANDIDATE_WORK_ITEM.md",
       "dependencies": [
         {
@@ -97,7 +97,7 @@
         }
       ],
       "owner_task_id": null,
-      "readiness_note": "Two byte-identical private constructions and independent validation passed at source 8b0e8ff7. Guarded installer derivation passed. Deployment, readback, clean shutdown and physical selection remain pending."
+      "readiness_note": "Candidate 22edf533 remains independently validated. The prior installer was invalidated after its active-swap refusal. A TOPRGU-only exact RAM-zram exception is review-accepted but awaits clean publication and recorded rederivation; deployment and physical selection remain pending."
     }
   }
 }

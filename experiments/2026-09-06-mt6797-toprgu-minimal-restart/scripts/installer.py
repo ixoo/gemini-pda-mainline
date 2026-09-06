@@ -42,6 +42,55 @@ TARGET = "gemini@192.168.1.50"
 BOOT2_SIZE = 0x01000000
 SHA = re.compile(r"[0-9a-f]{64}")
 
+# The completed authenticated-baseline adapter remains immutable evidence.  The
+# TOPRGU deployment deliberately replaces only its historical staging-swap
+# predicate after verifying that exact adapter.  The owner accepts that a
+# credential-bearing tmpfs page may transiently enter this RAM-only zram; disk
+# backed swap, zram writeback, a used zram, and every other swap layout refuse.
+TOPRGU_SWAP_POLICY = r'''a53_no_swap() {
+    local swap_table row_count canonical node_identity sys_device disk_size
+    swap_table="$(cat -- /proc/swaps)" || return 1
+    printf '%s\n' "$swap_table" | awk '
+        NR == 1 {
+            if (NF != 5 || $1 != "Filename" || $2 != "Type" ||
+                $3 != "Size" || $4 != "Used" || $5 != "Priority") bad=1
+            next
+        }
+        NR == 2 {
+            if (NF != 5 || $1 != "/dev/block/zram0" || $2 != "partition" ||
+                $3 != "1930336" || $4 != "0" || $5 != "-1") bad=1
+            next
+        }
+        { bad=1 }
+        END { exit (bad || (NR != 1 && NR != 2)) }
+    ' || return 1
+    row_count="$(printf '%s\n' "$swap_table" | awk 'END {print NR}')" || return 1
+    if [[ "$row_count" == 1 ]]; then
+        [[ "$(cat -- /proc/swaps)" == "$swap_table" ]]
+        return
+    fi
+    [[ "$row_count" == 2 ]] || return 1
+    canonical="$(readlink -f -- /dev/block/zram0)" || return 1
+    [[ "$canonical" == /dev/zram0 ]] || return 1
+    node_identity="$(stat -Lc '%F %t:%T' -- "$canonical")" || return 1
+    [[ "$node_identity" == 'block special file fe:0' ]] || return 1
+    sys_device="$(cat -- /sys/class/block/zram0/dev)" || return 1
+    disk_size="$(cat -- /sys/class/block/zram0/disksize)" || return 1
+    [[ "$sys_device" == 254:0 && "$disk_size" == 1976668160 ]] || return 1
+    [[ ! -e /sys/class/block/zram0/backing_dev &&
+       ! -L /sys/class/block/zram0/backing_dev &&
+       ! -e /sys/block/zram0/backing_dev &&
+       ! -L /sys/block/zram0/backing_dev &&
+       ! -e /sys/class/block/zram0/writeback_limit_enable &&
+       ! -L /sys/class/block/zram0/writeback_limit_enable &&
+       ! -e /sys/block/zram0/writeback_limit_enable &&
+       ! -L /sys/block/zram0/writeback_limit_enable ]] || return 1
+    [[ "$(cat -- /proc/swaps)" == "$swap_table" ]]
+}'''
+
+BASELINE_SWAP_POLICY = r'''a53_no_swap() {
+    awk 'NR != 1 || NF != 5 || $1 != "Filename" || $2 != "Type" || $3 != "Size" || $4 != "Used" || $5 != "Priority" {bad=1} END {exit (bad || NR != 1)}' /proc/swaps
+}'''
 
 def digest(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
@@ -132,8 +181,37 @@ def derive(candidate: Path, foundation: Path, userspace: Path,
     # Verify the historical Python before executing it. Its derivation already
     # embeds the complete reviewed installer and guard sources named above.
     baseline = runpy.run_path(str(BASELINE_INSTALLER))
-    source = baseline["derive"](
-        baseline["pinned_sources"](), REPO, candidate, foundation, userspace)
+    baseline_derive = baseline["derive"]
+    baseline_globals = baseline_derive.__globals__
+    historical_library = baseline_globals["STAGE_LIBRARY"]
+    historical_stage_function = baseline_globals["STAGE_FUNCTION"]
+    require(historical_library.count(BASELINE_SWAP_POLICY) == 1,
+            "historical staging-swap policy changed")
+    active_library = historical_library.replace(BASELINE_SWAP_POLICY,
+                                                TOPRGU_SWAP_POLICY)
+    require(historical_stage_function.count(historical_library) == 1,
+            "historical staging function changed")
+    active_stage_function = historical_stage_function.replace(historical_library,
+                                                              active_library)
+    # The historical deriver reads these two immutable templates from its own
+    # execution globals.  Override them only for this synchronous derivation,
+    # and restore them even if a pin or text anchor refuses.
+    baseline_globals["STAGE_LIBRARY"] = active_library
+    baseline_globals["STAGE_FUNCTION"] = active_stage_function
+    try:
+        source = baseline_derive(
+            baseline["pinned_sources"](), REPO, candidate, foundation, userspace)
+    finally:
+        baseline_globals["STAGE_LIBRARY"] = historical_library
+        baseline_globals["STAGE_FUNCTION"] = historical_stage_function
+    require(source.count("a53_no_swap") == 8,
+            "derived staging-swap call inventory changed")
+    source = source.replace("a53_no_swap", "toprgu_staging_swap_policy")
+    source = replace_count(source, "stat swapon sync uname", "stat sync uname", 1,
+                           "unused swap utility requirement")
+    require("a53_no_swap" not in source and "swapoff" not in source and
+            "swapon" not in source,
+            "derived installer contains obsolete or mutating swap operation")
 
     new_validator = HERE / "scripts/validate-candidate.py"
     validator_sha = digest(regular(new_validator, 512 * 1024))

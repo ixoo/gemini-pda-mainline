@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-06-mt6797-toprgu-minimal-restart` |
-| Status | Private candidate validated; guarded deployment and device gates remain pending |
+| Status | Private candidate validated; revised installer accepted, publication/deployment pending |
 | Subsystem | MediaTek watchdog system restart |
 | Device variant | Existing named Gemini PDA; retail subvariant unconfirmed |
 | Date | 2026-09-06 |
@@ -63,7 +63,12 @@ candidate- and predecessor-bound guarded boot2 write/readback/shutdown
 executable; its default mode only validates that derivation. The derived
 installer refuses changed identity, active/mounted/held/swapped targets,
 unstable power, size or predecessor mismatches, and retains exactly one write,
-flush, independent full readback, then clean shutdown.
+flush, independent full readback, then clean shutdown. The completed baseline
+installer remains immutable. This active adapter may leave only the exact
+observed zero-use, RAM-only zram0 enabled while staging; it rejects every other
+swap layout or change, performs no swap operation, and preserves the separate
+target/parent active-swap guard. The owner explicitly accepts possible
+transient candidate-page residency in volatile zram.
 
 `scripts/session.py` is the pure one-attempt classifier. It admits only the
 candidate wrapper whose contract is `busybox reboot -n -f`, after at least 45
@@ -99,6 +104,16 @@ The candidate and locally validated installer identities are recorded in
 [`results/candidate-readiness-20260906.txt`](results/candidate-readiness-20260906.txt).
 This is construction evidence only; boot2 has not been written and no physical
 selection or runtime claim exists.
+
+The first guarded TOPRGU deployment preflight refused before staging because
+the then-current adapter required no active swap. A bounded reconciliation
+confirmed that boot2 remained at its admitted predecessor, no staging residue
+existed, and the sole active entry was unused zram with no persistent backing
+or writeback interface. The owner replaced the no-spill requirement with the
+RAM-only exception above and required that swap remain untouched. The previous
+installer digest in the candidate-readiness record is therefore historical;
+the revised policy and eventual clean-publication identity are tracked in
+[`results/deployment-policy-20260906.txt`](results/deployment-policy-20260906.txt).
 
 The prior Buildbox attempt at exact commit
 `e70982c09a16a0bb8b152a0dfcada7db69d2a0bf` failed before applying 0543 because

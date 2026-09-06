@@ -1,0 +1,46 @@
+experiment=2026-09-06-mt6797-toprgu-minimal-restart
+record=guarded-deployment-policy-transition
+date_utc=2026-09-06
+parent_commit=ea2038331018d1a0eee0865f56bf4fbcae742e5d
+state=review-accepted; clean publication and exact rederivation pending
+
+unchanged_candidate:
+  padded_sha256=22edf533734ac52e56f3291c90264359fec2eaccc79cd68acf28b20d9cb216e8
+  manifest_sha256=d3cd5d8a9f3b29b20ff58d05e2f8289c2d8ab54154c9e957b974b9f656b60871
+  expected_predecessor_sha256=a423ad63fbb97d0f3fc4726d3957e05d3951480996b754d839a89d80a1232821
+
+chronology:
+  first_local_execute=refused because the private evidence parent was absent; no transport
+  first_live_preflight=refused before staging or write on the historical no-active-swap policy
+  reconciliation=known-good Gemian unchanged; staging absent; boot2 predecessor unchanged
+  owner_decision=leave zram active and replace the no-spill staging rule
+
+observed_same_boot_policy_input:
+  swap_row=/dev/block/zram0 partition 1930336 0 -1
+  canonical_device=/dev/zram0
+  block_identity=254:0
+  disksize_bytes=1976668160
+  backing_dev_interfaces=absent
+  writeback_limit_interfaces=absent
+
+accepted_policy:
+  completed_baseline_installer=immutable and still source-pinned
+  admitted_swap_state=no active swap, or the exact observed zero-use RAM-only zram0 state
+  residual_risk=credential-bearing tmpfs pages may transiently enter volatile zram
+  swap_mutation=none; swapoff and swapon are absent
+  target_guard=boot2 and its whole parent must not be active swap
+  refusal=malformed, extra, used, differently sized, differently identified, backed, writeback-capable, or changed swap state
+  write_contract=one exact boot2 write; sync and flush; full-partition readback; clean shutdown; no reboot
+
+review:
+  sol_medium=accepted active-layer transformation and executable refusal fixtures
+  astra_medium=accepted bounded exception under the owner's stated transient-RAM risk acceptance
+  candidate_tests=21/21 normal and 21/21 optimized pass
+  historical_baseline_installer_tests=9/9 normal and 9/9 optimized pass
+  shared_boot2_guard_tests=18/18 normal and 18/18 optimized pass
+  private_derivation=pass; provisional installer sha256 fefa127a70c445bda449d346c55dba86209075f8b775f5a25ae5dd4ff65f8a74
+  generated_bash_syntax=pass
+  generated_shellcheck=pass
+
+No swap operation, candidate upload, partition write, shutdown, reboot, or
+physical selection occurred while preparing this policy transition.

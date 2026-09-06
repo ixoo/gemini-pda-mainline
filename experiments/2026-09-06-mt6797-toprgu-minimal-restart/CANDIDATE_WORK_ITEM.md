@@ -109,11 +109,17 @@
   host pin and native recovery-tool identities; a named custodian; and the
   complete guarded deployment contract. Deployment resolves logical `boot2`
   from the live GPT and refuses unless it is the exact writable target,
-  inactive, unmounted, holder-free, swap-free, distinct from root and its whole
-  parent, the expected current selection/predecessor, large enough, and on
-  stable power. It records the predecessor checksum, pads to the exact target
-  size, writes once, syncs/flushes, requires matching full-partition readback,
-  then shuts down cleanly without reboot. A preflight must prove the recovery
+  inactive, unmounted, holder-free, not itself or through its whole parent an
+  active swap, distinct from root, the expected current selection/predecessor,
+  large enough, and on stable power. Staging admits either no active swap or
+  the exact observed zero-use RAM-only `/dev/block/zram0` state; the latter is
+  bound to device 254:0, its exact size, and absence of persistent backing or
+  writeback interfaces. The owner accepts that tmpfs pages containing the
+  candidate credentials may transiently enter that volatile zram. No swap
+  operation is permitted, and any other or changed swap state refuses. The
+  installer records the predecessor checksum, pads to the exact target size,
+  writes once, syncs/flushes, requires matching full-partition readback, then
+  shuts down cleanly without reboot. A preflight must prove the recovery
   path/tool before the physical action.
 
   A later admitted session may spend one physical `boot2` selection and exactly
@@ -155,8 +161,10 @@
   validation, review and readiness classification may finish without a
   physical selection. Stop with a conditional/ready handoff; never install or
   select the candidate merely because preparation passes.
-- **Device readiness:** `candidate-validated`; guarded deployment, receipt
-  review and physical admission remain pending.
+- **Device readiness:** `candidate-validated`; the revised zram-preserving
+  installer is review-accepted but awaits a clean pushed publication and
+  refreshed derivation identity. Guarded deployment, receipt review and
+  physical admission remain pending.
   Any change to patch, profile, package, DT,
   initramfs, credentials, candidate, installer, collector, classifier, time
   bound, action budget or recovery tool invalidates readiness. The experiment
@@ -165,12 +173,15 @@
   artifact identity, test counts, rejected mutations, timestamps, private
   artifact locations described without secrets or personal absolute paths,
   known limitations, and an explicit statement that no device action occurred.
-- **State:** candidate, deployment and one-process session preparation tooling
+- **State:** candidate and one-process session preparation tooling
   accepted after independent Sol Medium integration review and Astra Medium
   action-boundary review. Exact clean published revision `8b0e8ff7...` produced
   two byte-identical private candidates and passed the independent validator;
-  the derived guarded installer also passed local validation. No deployment or
-  session admission exists, and no device or network action occurred.
+  those candidate bytes remain unchanged. The prior installer identity was
+  invalidated after its active-swap refusal; a TOPRGU-only RAM-zram exception
+  passed local validation and review but is not deployment-ready until its
+  clean publication and exact rederivation are recorded. No deployment or
+  session admission exists.
 - **Efficiency loop:** if this offline handoff is accepted, the primary task
   appends exactly one considered/accepted item to the active workflow ledger
   with observed timestamps, actual routes, first-review result, rework and

@@ -141,6 +141,76 @@ class SessionTests(unittest.TestCase):
 
 
 class InstallerTests(unittest.TestCase):
+    SWAP_HEADER = "Filename Type Size Used Priority\n"
+    ZRAM_ROW = "/dev/block/zram0 partition 1930336 0 -1\n"
+
+    def run_swap_policy(self, swaps: str, *, node_identity: str =
+                        "block special file fe:0", sys_device: str = "254:0\n",
+                        disk_size: str = "1976668160\n", backing: bool = False,
+                        dangling_backing: bool = False, writeback: bool = False,
+                        change_after_read: bool = False) -> int:
+        with tempfile.TemporaryDirectory(prefix="toprgu-swap-") as raw:
+            root = Path(raw).resolve()
+            (root / "proc").mkdir()
+            (root / "proc/swaps").write_text(swaps)
+            (root / "dev/block").mkdir(parents=True)
+            (root / "dev/zram0").write_bytes(b"")
+            (root / "dev/block/zram0").symlink_to("../zram0")
+            zram_class = root / "sys/class/block/zram0"
+            zram_block = root / "sys/block/zram0"
+            zram_class.mkdir(parents=True)
+            zram_block.mkdir(parents=True)
+            (zram_class / "dev").write_text(sys_device)
+            (zram_class / "disksize").write_text(disk_size)
+            if backing:
+                (zram_class / "backing_dev").write_text("8:0\n")
+            if dangling_backing:
+                (zram_class / "backing_dev").symlink_to("missing")
+            if writeback:
+                (zram_block / "writeback_limit_enable").write_text("1\n")
+
+            policy = installer.TOPRGU_SWAP_POLICY
+            policy = policy.replace("cat -- /proc/swaps",
+                                    "cat -- " + str(root / "proc/swaps"))
+            policy = policy.replace("readlink -f -- /dev/block/zram0",
+                                    "readlink -f -- " + str(root / "dev/block/zram0"))
+            policy = policy.replace('[[ "$canonical" == /dev/zram0 ]]',
+                                    '[[ "$canonical" == ' + str(root / "dev/zram0") + " ]]")
+            for live, fixture in {
+                    "/sys/class/block/zram0/dev": zram_class / "dev",
+                    "/sys/class/block/zram0/disksize": zram_class / "disksize",
+                    "/sys/class/block/zram0/backing_dev": zram_class / "backing_dev",
+                    "/sys/block/zram0/backing_dev": zram_block / "backing_dev",
+                    "/sys/class/block/zram0/writeback_limit_enable":
+                        zram_class / "writeback_limit_enable",
+                    "/sys/block/zram0/writeback_limit_enable":
+                        zram_block / "writeback_limit_enable"}.items():
+                policy = policy.replace(live, str(fixture))
+            policy = policy.replace("a53_no_swap", "toprgu_staging_swap_policy")
+            counter = root / "swap-reads"
+            changed = root / "changed-swaps"
+            changed.write_text(self.SWAP_HEADER +
+                               "/dev/block/zram0 partition 1930336 1 -1\n")
+            script = root / "policy.sh"
+            script.write_text(
+                "#!/bin/bash\nset -u\n" +
+                "stat() { printf '%s\\n' \"$NODE_IDENTITY\"; }\n" +
+                "cat() {\n"
+                "  local last=${!#}\n"
+                "  if [[ \"$CHANGE_AFTER_READ\" == 1 && \"$last\" == \"$SWAPS_PATH\" ]]; then\n"
+                "    if [[ -e \"$READ_COUNTER\" ]]; then command cat -- \"$CHANGED_SWAPS\"; else : >\"$READ_COUNTER\"; command cat \"$@\"; fi\n"
+                "  else command cat \"$@\"; fi\n"
+                "}\n" + policy + "\n"
+                "toprgu_staging_swap_policy\n")
+            result = subprocess.run(
+                ["bash", str(script)], check=False,
+                env={"PATH": "/usr/bin:/bin", "NODE_IDENTITY": node_identity,
+                     "CHANGE_AFTER_READ": "1" if change_after_read else "0",
+                     "SWAPS_PATH": str(root / "proc/swaps"),
+                     "READ_COUNTER": str(counter), "CHANGED_SWAPS": str(changed)},
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5)
+            return result.returncode
+
     def test_source_pins_and_single_write_closure_are_explicit(self):
         source = Path(installer.__file__).read_text()
         for token in ("EXPECTED_PREDECESSOR_SHA256", 'source.count(\'of="$target"\') == 1',
@@ -149,6 +219,43 @@ class InstallerTests(unittest.TestCase):
                       'cmp -s "$candidate" "$readback_tmp"',
                       "sudo -n systemctl poweroff"):
             self.assertIn(token, source)
+
+    def test_exact_ram_only_zram_swap_policy(self):
+        self.assertEqual(self.run_swap_policy(self.SWAP_HEADER), 0)
+        self.assertEqual(self.run_swap_policy(self.SWAP_HEADER + self.ZRAM_ROW), 0)
+        mutations = {
+            "used": self.ZRAM_ROW.replace(" 0 -1", " 1 -1"),
+            "extra": self.ZRAM_ROW + "/dev/zram1 partition 1 0 -2\n",
+            "path": self.ZRAM_ROW.replace("/dev/block/zram0", "/dev/zram0"),
+            "type": self.ZRAM_ROW.replace("partition", "file"),
+            "size": self.ZRAM_ROW.replace("1930336", "1930335"),
+            "priority": self.ZRAM_ROW.replace("-1", "-2"),
+        }
+        for label, rows in mutations.items():
+            with self.subTest(label=label):
+                self.assertNotEqual(self.run_swap_policy(self.SWAP_HEADER + rows), 0)
+        for label, arguments in {
+                "node-type": {"node_identity": "regular file fe:0"},
+                "node-number": {"node_identity": "block special file fe:1"},
+                "sys-device": {"sys_device": "254:1\n"},
+                "disk-size": {"disk_size": "1976668159\n"},
+                "backing": {"backing": True},
+                "dangling-backing": {"dangling_backing": True},
+                "writeback": {"writeback": True},
+                "changed": {"change_after_read": True}}.items():
+            with self.subTest(label=label):
+                self.assertNotEqual(
+                    self.run_swap_policy(self.SWAP_HEADER + self.ZRAM_ROW, **arguments), 0)
+
+    def test_active_adapter_preserves_historical_source_and_never_mutates_swap(self):
+        baseline = installer.BASELINE_INSTALLER.read_text()
+        self.assertEqual(hashlib.sha256(baseline.encode()).hexdigest(),
+                         installer.BASELINE_INSTALLER_SHA256)
+        source = Path(installer.__file__).read_text()
+        self.assertIn("toprgu_staging_swap_policy", source)
+        self.assertIn("BASELINE_SWAP_POLICY", source)
+        self.assertNotIn("swapoff", installer.TOPRGU_SWAP_POLICY)
+        self.assertNotIn("swapon", installer.TOPRGU_SWAP_POLICY)
 
     def test_deriver_rejects_malformed_predecessor_before_inputs(self):
         with self.assertRaisesRegex(ValueError, "predecessor"):
