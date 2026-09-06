@@ -205,13 +205,16 @@ The remaining preparation order is:
    missing EMI ownership must not become a success flag or skipped section.
    Use the [Wi-Fi contract](hardware/mt6797-wifi.md) and existing private captures.
    Host fixtures and compile-only adapters do not establish usable Wi-Fi. The
-   build-selected detector ioctl is now the established kernel-side producer of
-   `do_connectivity_driver_init` and returns its integer aggregate, but the
-   actual userspace issuer/value/order/return policy and a gen3 teardown join
-   remain unresolved. Resolve those from a separately pinned userspace
-   producer/consumer or an explicit teardown edge before promoting the lifecycle
-   scaffolding; configuration does not force the `0x6797` argument, and exit
-   order must not be inferred by reversing initialization.
+   build-selected detector ioctl is the established kernel-side producer of
+   `do_connectivity_driver_init` and returns its integer aggregate. The exact
+   retained loader statically supplies a property/query-derived normalized
+   scalar after cleanup, then logs and discards the init result; this vendor
+   compatibility path neither forces an actual runtime `0x6797` value nor
+   defines a mainline ABI. Before promoting the lifecycle scaffolding, design
+   the standard interface/error contract and resolve actual final linkage plus
+   an explicit gen3 teardown edge. Exit order must not be inferred by reversing
+   initialization, and the vendor WMT ioctl must not be copied merely to run the
+   retained loader.
 3. **Keyboard coverage:** finish coherent capture admission, finite owner key
    sequence, classification and complete private evidence export. Reuse the
    measured monitor and retain the full-duration timing obligation; inert binary

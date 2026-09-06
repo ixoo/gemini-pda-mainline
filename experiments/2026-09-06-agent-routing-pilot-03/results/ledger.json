@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 1,
-  "next_accepted_sequence": 2,
-  "next_considered_sequence": 2,
+  "accepted_count": 2,
+  "next_accepted_sequence": 3,
+  "next_considered_sequence": 5,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -71,6 +71,62 @@
         "credit_source": "unavailable",
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-06-mt6797-connectivity-producer-source-attribution/verdicts.json"
+      }
+    },
+    {
+      "considered_sequence": 2,
+      "candidate_id": "mt6797-wmt-loader-ioctl-static-attribution",
+      "disposition": "excluded",
+      "reason": "abandoned",
+      "note": "The admitted binary identity matched, but the first analysis tool automatically attempted a separate debug-info lookup outside the one-binary contract. The specialist stopped before batch 2; no partial attribution was accepted. A fresh amended contract must disable separate-debug lookup explicitly.",
+      "evidence": "experiments/2026-09-06-mt6797-wmt-loader-ioctl-static-attribution/README.md"
+    },
+    {
+      "considered_sequence": 3,
+      "candidate_id": "mt6797-wmt-loader-ioctl-static-attribution-v2",
+      "disposition": "excluded",
+      "reason": "abandoned",
+      "note": "The fresh no-debug run produced otherwise coherent evidence, but independent review rejected its batch-2 replay of an already selected routine interval because the frozen contract admitted only direct-edge-selected functions or literal/data regions. No v2 conclusion was accepted; v3 must rederive the result from one prospectively admitted interval without replay.",
+      "evidence": "experiments/2026-09-06-mt6797-wmt-loader-ioctl-static-attribution-v2/README.md"
+    },
+    {
+      "considered_sequence": 4,
+      "accepted_sequence": 2,
+      "candidate_id": "mt6797-wmt-loader-ioctl-static-attribution-v3",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "reasoning",
+      "risk_class": "hard-uncertainty",
+      "acceptance_contract": "experiments/2026-09-06-mt6797-wmt-loader-ioctl-static-attribution-v3/WORK_ITEM.md",
+      "review_comparison_group": "mt6797-wifi-owner-static-attribution",
+      "parent": "65f1b43333b727f0d5bbddf900cd38486a896e4d",
+      "owner_route": {
+        "role": "gemini_specialist",
+        "model": "gpt-6-astra",
+        "effort": "medium"
+      },
+      "review_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-06T19:34:45Z",
+        "review_ready_at": "2026-09-06T19:44:37Z",
+        "accepted_at": "2026-09-06T19:49:57Z",
+        "timing_source": "observed UTC dispatch, complete handoff and independent-review acceptance timestamps",
+        "elapsed_minutes": 15.2,
+        "review_rework_minutes": 5.3333333,
+        "first_review_accepted": true,
+        "rework_cycles": 0,
+        "escalated": false,
+        "escalation_reason": null,
+        "escalation_packet": null,
+        "review_failure_class": null,
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-06-mt6797-wmt-loader-ioctl-static-attribution-v3/verdicts.json"
       }
     }
   ],

@@ -1,0 +1,672 @@
+{
+  "schema_version": 1,
+  "budgets": {
+    "analysis_batches": 1,
+    "static_children_max": 8,
+    "controllers": 1,
+    "re_shell_sessions": 1,
+    "disassemblies": 1,
+    "replays": 0,
+    "code_bytes": 2496,
+    "literal_bytes": 44
+  },
+  "batch": {
+    "id": 1,
+    "declared_utc": "2026-09-06 19:35:52 UTC",
+    "environment": {
+      "DEBUGINFOD_URLS": ""
+    },
+    "binary": "system/vendor/bin/wmt_loader",
+    "expected_sha256": "446a1318e29c0515cde62c0a335ffb604adc0a955f990d009646e291330d11aa",
+    "static_children": [
+      [
+        "sha256sum",
+        "system/vendor/bin/wmt_loader"
+      ],
+      [
+        "sha256sum",
+        "--version"
+      ],
+      [
+        "aarch64-linux-gnu-objdump",
+        "--version"
+      ],
+      [
+        "readelf",
+        "--version"
+      ],
+      [
+        "readelf",
+        "-h",
+        "-SW",
+        "system/vendor/bin/wmt_loader"
+      ],
+      [
+        "aarch64-linux-gnu-objdump",
+        "-d",
+        "--no-show-raw-insn",
+        "--start-address=0xb10",
+        "--stop-address=0x14d0",
+        "system/vendor/bin/wmt_loader"
+      ]
+    ],
+    "controller_argv": [
+      "python3",
+      "-"
+    ],
+    "controller": "One in-memory controller checks hash first, rejects child diagnostics, selects non-debug ELF architecture/section metadata, derives CFG counts from the single fresh disassembly, and uses seek/read only for the two exact literal intervals. No raw output or database saved.",
+    "code_interval": {
+      "start": "0xb10",
+      "end_exclusive": "0x14d0",
+      "bytes": 2496
+    },
+    "literal_intervals": [
+      {
+        "start": "0x14d0",
+        "end_exclusive": "0x14df",
+        "bytes": 15
+      },
+      {
+        "start": "0x1510",
+        "end_exclusive": "0x152d",
+        "bytes": 29
+      }
+    ],
+    "stop": "Any mismatch/diagnostic/foreign-file evidence stops all remaining child tools. Exactly one batch; no second disassembly, replay or added byte interval."
+  },
+  "controller_receipt": {
+    "argv": [
+      "python3",
+      "-"
+    ],
+    "started_utc": "2026-09-06T19:36:48.546321+00:00",
+    "finished_utc": "2026-09-06T19:36:48.572426+00:00",
+    "binary_hash_matched": true,
+    "elf_interval_mapping_matched": true,
+    "literal_exact_extents_matched": true,
+    "instruction_interval_matched": true,
+    "saved_files": 0
+  },
+  "requests": [
+    {
+      "id": 1,
+      "args": [
+        "sha256sum",
+        "system/vendor/bin/wmt_loader"
+      ],
+      "started_utc": "2026-09-06T19:36:48.546381+00:00",
+      "finished_utc": "2026-09-06T19:36:48.549676+00:00",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout_sha256": "4b0fa9794a50042aea0445e6716691ac50e8ad5491d0c1a3d3b10976ab525061",
+      "stdout_bytes": 95,
+      "batch": 1,
+      "environment": {
+        "DEBUGINFOD_URLS": ""
+      },
+      "external_file_evidence": [],
+      "raw_output_retained": false
+    },
+    {
+      "id": 2,
+      "args": [
+        "sha256sum",
+        "--version"
+      ],
+      "started_utc": "2026-09-06T19:36:48.549854+00:00",
+      "finished_utc": "2026-09-06T19:36:48.550857+00:00",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout_sha256": "8dc478a505fe298766b14d095e5c7f0937c6439b57f8914b196c6409574e8c00",
+      "stdout_bytes": 341,
+      "batch": 1,
+      "environment": {
+        "DEBUGINFOD_URLS": ""
+      },
+      "external_file_evidence": [],
+      "raw_output_retained": false
+    },
+    {
+      "id": 3,
+      "args": [
+        "aarch64-linux-gnu-objdump",
+        "--version"
+      ],
+      "started_utc": "2026-09-06T19:36:48.550882+00:00",
+      "finished_utc": "2026-09-06T19:36:48.560885+00:00",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout_sha256": "8feb2cb2830955a0c282e6abca2b512dcf52cb9380e6b0263a481bf1c6349d8d",
+      "stdout_bytes": 288,
+      "batch": 1,
+      "environment": {
+        "DEBUGINFOD_URLS": ""
+      },
+      "external_file_evidence": [],
+      "raw_output_retained": false
+    },
+    {
+      "id": 4,
+      "args": [
+        "readelf",
+        "--version"
+      ],
+      "started_utc": "2026-09-06T19:36:48.560941+00:00",
+      "finished_utc": "2026-09-06T19:36:48.562106+00:00",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout_sha256": "6aca4321453ac381865f3d353ea7896b150c05026483cb9db0047eee6916723d",
+      "stdout_bytes": 288,
+      "batch": 1,
+      "environment": {
+        "DEBUGINFOD_URLS": ""
+      },
+      "external_file_evidence": [],
+      "raw_output_retained": false
+    },
+    {
+      "id": 5,
+      "args": [
+        "readelf",
+        "-h",
+        "-SW",
+        "system/vendor/bin/wmt_loader"
+      ],
+      "started_utc": "2026-09-06T19:36:48.562130+00:00",
+      "finished_utc": "2026-09-06T19:36:48.563297+00:00",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout_sha256": "b70075c350f2bc44ada0ebf120175d537ce2a4fb63bf1c19f621ce2bf2e9be83",
+      "stdout_bytes": 3708,
+      "batch": 1,
+      "environment": {
+        "DEBUGINFOD_URLS": ""
+      },
+      "external_file_evidence": [],
+      "raw_output_retained": false
+    },
+    {
+      "id": 6,
+      "args": [
+        "aarch64-linux-gnu-objdump",
+        "-d",
+        "--no-show-raw-insn",
+        "--start-address=0xb10",
+        "--stop-address=0x14d0",
+        "system/vendor/bin/wmt_loader"
+      ],
+      "started_utc": "2026-09-06T19:36:48.563719+00:00",
+      "finished_utc": "2026-09-06T19:36:48.570726+00:00",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout_sha256": "3807724c687f580fa7627ec4cf0a9653b61eab6f6c623b6f434fd7532acb4d07",
+      "stdout_bytes": 22848,
+      "batch": 1,
+      "environment": {
+        "DEBUGINFOD_URLS": ""
+      },
+      "external_file_evidence": [],
+      "raw_output_retained": false
+    }
+  ],
+  "literals": [
+    {
+      "start": "0x14d0",
+      "end_exclusive": "0x14df",
+      "bytes": 15,
+      "value": "/dev/wmtdetect"
+    },
+    {
+      "start": "0x1510",
+      "end_exclusive": "0x152d",
+      "bytes": 29,
+      "value": "persist.mtk.wcn.combo.chipid"
+    }
+  ],
+  "accounting": {
+    "analysis_batches": 1,
+    "static_children": 6,
+    "controllers": 1,
+    "re_shell_sessions": 1,
+    "disassemblies": 1,
+    "replays": 0,
+    "analyzed_function_regions": 1,
+    "code_intervals": 1,
+    "code_bytes": 2496,
+    "literal_intervals": 2,
+    "literal_bytes": 44,
+    "total_selected_bytes": 2540,
+    "instructions": 624,
+    "basic_blocks": 108,
+    "direct_call_sites": 62,
+    "ioctl_call_sites": 14,
+    "analysis_tool_diagnostics": 0,
+    "temporary_files": 0
+  },
+  "cfg": {
+    "interval": [
+      "0xb10",
+      "0x14d0"
+    ],
+    "counting_rule": "Basic-block leaders are routine start, direct branch targets within the selected interval, and addresses after branch/return instructions. Direct calls do not split a block.",
+    "basic_block_starts": [
+      "0xb10",
+      "0xb6c",
+      "0xb94",
+      "0xbcc",
+      "0xc20",
+      "0xc2c",
+      "0xc38",
+      "0xc44",
+      "0xc50",
+      "0xc5c",
+      "0xc68",
+      "0xc74",
+      "0xc80",
+      "0xc8c",
+      "0xc98",
+      "0xca4",
+      "0xcb0",
+      "0xcbc",
+      "0xcc8",
+      "0xcd4",
+      "0xce0",
+      "0xcec",
+      "0xcf8",
+      "0xd04",
+      "0xd10",
+      "0xd20",
+      "0xd28",
+      "0xd30",
+      "0xd38",
+      "0xd40",
+      "0xd48",
+      "0xd50",
+      "0xd58",
+      "0xd64",
+      "0xd6c",
+      "0xd78",
+      "0xd80",
+      "0xd8c",
+      "0xd94",
+      "0xd9c",
+      "0xda4",
+      "0xdb0",
+      "0xdb8",
+      "0xdc0",
+      "0xdc8",
+      "0xdd4",
+      "0xddc",
+      "0xde4",
+      "0xdec",
+      "0xdf8",
+      "0xe00",
+      "0xe10",
+      "0xe18",
+      "0xe70",
+      "0xea8",
+      "0xeb8",
+      "0xed4",
+      "0xee8",
+      "0xf30",
+      "0xf5c",
+      "0xf84",
+      "0xf8c",
+      "0xfc0",
+      "0xfd8",
+      "0xffc",
+      "0x1018",
+      "0x1020",
+      "0x103c",
+      "0x1050",
+      "0x1084",
+      "0x10d4",
+      "0x1108",
+      "0x112c",
+      "0x1134",
+      "0x11b0",
+      "0x11d8",
+      "0x11f8",
+      "0x1204",
+      "0x120c",
+      "0x1214",
+      "0x121c",
+      "0x1224",
+      "0x122c",
+      "0x1234",
+      "0x1240",
+      "0x124c",
+      "0x1268",
+      "0x127c",
+      "0x1298",
+      "0x12b8",
+      "0x12c0",
+      "0x12c8",
+      "0x12d4",
+      "0x12e0",
+      "0x12fc",
+      "0x1318",
+      "0x1340",
+      "0x1370",
+      "0x1384",
+      "0x13ac",
+      "0x13ec",
+      "0x1410",
+      "0x142c",
+      "0x1438",
+      "0x145c",
+      "0x1470",
+      "0x14a8",
+      "0x14cc"
+    ],
+    "direct_calls": [
+      {
+        "address": "0xb4c",
+        "target": "memset@plt"
+      },
+      {
+        "address": "0xb5c",
+        "target": "open@plt"
+      },
+      {
+        "address": "0xba8",
+        "target": "__android_log_print@plt"
+      },
+      {
+        "address": "0xbb0",
+        "target": "usleep@plt"
+      },
+      {
+        "address": "0xbbc",
+        "target": "open@plt"
+      },
+      {
+        "address": "0xbe4",
+        "target": "property_get@plt"
+      },
+      {
+        "address": "0xbf8",
+        "target": "strtoul@plt"
+      },
+      {
+        "address": "0xc18",
+        "target": "__android_log_print@plt"
+      },
+      {
+        "address": "0xe34",
+        "target": "__android_log_print@plt"
+      },
+      {
+        "address": "0xe5c",
+        "target": "__android_log_print@plt"
+      },
+      {
+        "address": "0xeb0",
+        "target": "ioctl@plt"
+      },
+      {
+        "address": "0xec8",
+        "target": "__android_log_print@plt"
+      },
+      {
+        "address": "0xee0",
+        "target": "ioctl@plt"
+      },
+      {
+        "address": "0xef8",
+        "target": "__android_log_print@plt"
+      },
+      {
+        "address": "0xf08",
+        "target": "ioctl@plt"
+      },
+      {
+        "address": "0xf28",
+        "target": "__android_log_print@plt"
+      },
+      {
+        "address": "0xf3c",
+        "target": "ioctl@plt"
+      },
+      {
+        "address": "0xf58",
+        "target": "__android_log_print@plt"
+      },
+      {
+        "address": "0xf64",
+        "target": "ioctl@plt"
+      },
+      {
+        "address": "0xf7c",
+        "target": "__android_log_print@plt"
+      },
+      {
+        "address": "0xf9c",
+        "target": "__android_log_print@plt"
+      },
+      {
+        "address": "0xfa8",
+        "target": "usleep@plt"
+      },
+      {
+        "address": "0xfe8",
+        "target": "memset@plt"
+      },
+      {
+        "address": "0xff4",
+        "target": "ioctl@plt"
+      },
+      {
+        "address": "0x1010",
+        "target": "__android_log_print@plt"
+      },
+      {
+        "address": "0x1048",
+        "target": "ioctl@plt"
+      },
+      {
+        "address": "0x1064",
+        "target": "__android_log_print@plt"
+      },
+      {
+        "address": "0x1078",
+        "target": "ioctl@plt"
+      },
+      {
+        "address": "0x109c",
+        "target": "__android_log_print@plt"
+      },
+      {
+        "address": "0x10b8",
+        "target": "__sprintf_chk@plt"
+      },
+      {
+        "address": "0x10c8",
+        "target": "property_set@plt"
+      },
+      {
+        "address": "0x10d4",
+        "target": "__errno@plt"
+      },
+      {
+        "address": "0x1100",
+        "target": "__android_log_print@plt"
+      },
+      {
+        "address": "0x1128",
+        "target": "__android_log_print@plt"
+      },
+      {
+        "address": "0x1140",
+        "target": "ioctl@plt"
+      },
+      {
+        "address": "0x1178",
+        "target": "__android_log_print@plt"
+      },
+      {
+        "address": "0x1184",
+        "target": "ioctl@plt"
+      },
+      {
+        "address": "0x11a4",
+        "target": "__android_log_print@plt"
+      },
+      {
+        "address": "0x11b8",
+        "target": "usleep@plt"
+      },
+      {
+        "address": "0x11d4",
+        "target": "__android_log_print@plt"
+      },
+      {
+        "address": "0x11e8",
+        "target": "ioctl@plt"
+      },
+      {
+        "address": "0x125c",
+        "target": "ioctl@plt"
+      },
+      {
+        "address": "0x12a4",
+        "target": "ioctl@plt"
+      },
+      {
+        "address": "0x12c8",
+        "target": "__android_log_print@plt"
+      },
+      {
+        "address": "0x12d4",
+        "target": "close@plt"
+      },
+      {
+        "address": "0x12f0",
+        "target": "chown@plt"
+      },
+      {
+        "address": "0x130c",
+        "target": "chown@plt"
+      },
+      {
+        "address": "0x1318",
+        "target": "__errno@plt"
+      },
+      {
+        "address": "0x1320",
+        "target": "strerror@plt"
+      },
+      {
+        "address": "0x133c",
+        "target": "__android_log_print@plt"
+      },
+      {
+        "address": "0x134c",
+        "target": "memset@plt"
+      },
+      {
+        "address": "0x1360",
+        "target": "property_get@plt"
+      },
+      {
+        "address": "0x137c",
+        "target": "strcmp@plt"
+      },
+      {
+        "address": "0x13a8",
+        "target": "__android_log_print@plt"
+      },
+      {
+        "address": "0x13c8",
+        "target": "__sprintf_chk@plt"
+      },
+      {
+        "address": "0x13d8",
+        "target": "property_set@plt"
+      },
+      {
+        "address": "0x1408",
+        "target": "__android_log_print@plt"
+      },
+      {
+        "address": "0x1428",
+        "target": "__android_log_print@plt"
+      },
+      {
+        "address": "0x1484",
+        "target": "__android_log_print@plt"
+      },
+      {
+        "address": "0x1498",
+        "target": "ioctl@plt"
+      },
+      {
+        "address": "0x14c4",
+        "target": "__android_log_print@plt"
+      },
+      {
+        "address": "0x14cc",
+        "target": "__stack_chk_fail@plt"
+      }
+    ],
+    "ioctl_sites": [
+      "0xeb0",
+      "0xee0",
+      "0xf08",
+      "0xf3c",
+      "0xf64",
+      "0xff4",
+      "0x1048",
+      "0x1078",
+      "0x1140",
+      "0x1184",
+      "0x11e8",
+      "0x125c",
+      "0x12a4",
+      "0x1498"
+    ]
+  },
+  "transport_note": "The approved RE-shell launcher emitted two host capability-check warnings before the controller (Rosetta detection unavailable); the existing VM shell opened successfully. These launcher messages neither concern binary analysis nor identify a separate input. All six static-tool children had zero diagnostics.",
+  "safety": {
+    "debug_server_urls": "",
+    "debug_or_unwind_options": false,
+    "build_id_or_debug_link_used": false,
+    "external_file_evidence": [],
+    "binary_execution": false,
+    "emulation": false,
+    "ioctl": false,
+    "network": false,
+    "device": false,
+    "live_process": false,
+    "raw_output_saved": false,
+    "prior_attempt_output_reused": false
+  },
+  "bounded_absences": [
+    {
+      "id": "no_init_retry",
+      "interval": [
+        "0x1240",
+        "0x14d0"
+      ],
+      "finding": "The selected local completion flow contains no branch back to cleanup/init; the earlier probe loop is separate."
+    },
+    {
+      "id": "no_init_status_propagation",
+      "interval": [
+        "0x1298",
+        "0x145c"
+      ],
+      "finding": "Init status feeds a logging choice and joins later work; the routine return instead uses a later property_set result."
+    },
+    {
+      "id": "no_process_caller_claim",
+      "finding": "Process startup and the dynamic ioctl implementation are outside the admitted routine; their conversions are not inferred."
+    }
+  ],
+  "stop": {
+    "closed": true,
+    "re_shell_closed": true,
+    "further_analysis_permitted": false,
+    "reason": "The one prospectively admitted batch is consumed; no replay, extra interval, binary or runtime observation is authorized."
+  }
+}

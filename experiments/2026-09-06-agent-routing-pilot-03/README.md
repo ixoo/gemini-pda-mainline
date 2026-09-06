@@ -27,9 +27,12 @@ or hardware authority.
 
 ## Current state
 
-The first accepted item is the bounded MT6797 connectivity-producer source
-attribution. Astra Medium resolved the kernel-side detector ioctl producer,
-aggregate return and registration split; Sol Medium accepted it on first review.
-Its externally supplied chip value and gen3 teardown join remain deliberately
-unresolved. One item is too early for a comparable-cohort checkpoint, so
-`baseline-01` remains unchanged.
+The first two accepted items are the bounded MT6797 connectivity-producer source
+attribution and the fresh single-batch `wmt_loader` static attribution. Astra
+Medium resolved the kernel-side detector producer/return/registration split and
+then the retained loader's local value/order/return path; Sol Medium accepted
+both final candidates on first review. Two earlier loader candidates are
+explicitly excluded: v1 crossed its one-binary tool boundary, and v2 replayed an
+interval not clearly admitted by its frozen contract. The fresh v3 candidate
+removed replay and reused neither attempt's raw output. Two accepted items are
+too early for a comparable-cohort checkpoint, so `baseline-01` remains unchanged.

@@ -1,0 +1,532 @@
+{
+  "schema_version": 1,
+  "budgets": {
+    "batches": 2,
+    "admitted_binaries": 1,
+    "static_tool_children": 14,
+    "ioctl_call_sites": 20,
+    "batch2_regions": 4,
+    "batch2_region_bytes": 4096
+  },
+  "batches": [
+    {
+      "id": 1,
+      "declared_utc": "2026-09-06 19:17:08 UTC",
+      "environment": {
+        "DEBUGINFOD_URLS": ""
+      },
+      "binary": "system/vendor/bin/wmt_loader",
+      "expected_sha256": "446a1318e29c0515cde62c0a335ffb604adc0a955f990d009646e291330d11aa",
+      "static_children": [
+        [
+          "sha256sum",
+          "system/vendor/bin/wmt_loader"
+        ],
+        [
+          "aarch64-linux-gnu-objdump",
+          "--version"
+        ],
+        [
+          "readelf",
+          "--version"
+        ],
+        [
+          "readelf",
+          "-h",
+          "-SW",
+          "system/vendor/bin/wmt_loader"
+        ],
+        [
+          "aarch64-linux-gnu-objdump",
+          "-d",
+          "--no-show-raw-insn",
+          "--start-address=0xb00",
+          "--stop-address=0x1200",
+          "system/vendor/bin/wmt_loader"
+        ]
+      ],
+      "controller": "Python 3: identity comparison, stderr refusal, exact /dev/wmtdetect NUL-terminated anchor matching and metadata receipt generation only. No debug/unwind option; no separate input or saved output.",
+      "allowed_interval": {
+        "start": "0xb00",
+        "end_exclusive": "0x1200",
+        "bytes": 1792
+      },
+      "stop": "Stop immediately on any stderr/tool external-file consultation or input mismatch; no later child invoked after refusal. All output is transient; retained receipts must be normalized/sanitized."
+    },
+    {
+      "id": 2,
+      "declared_utc": "2026-09-06 19:19:05 UTC",
+      "environment": {
+        "DEBUGINFOD_URLS": ""
+      },
+      "static_children": [
+        [
+          "aarch64-linux-gnu-objdump",
+          "-d",
+          "--no-show-raw-insn",
+          "--start-address=0xb10",
+          "--stop-address=0x1200",
+          "system/vendor/bin/wmt_loader"
+        ],
+        [
+          "aarch64-linux-gnu-objdump",
+          "-d",
+          "--no-show-raw-insn",
+          "--start-address=0x1200",
+          "--stop-address=0x14d0",
+          "system/vendor/bin/wmt_loader"
+        ],
+        [
+          "sha256sum",
+          "--version"
+        ]
+      ],
+      "regions": [
+        {
+          "start": "0xb10",
+          "end_exclusive": "0x1200",
+          "bytes": 1776,
+          "reason": "Revisit the already established containing routine to compute explicit basic-block/call-site accounting; no additional code selected."
+        },
+        {
+          "start": "0x1200",
+          "end_exclusive": "0x14d0",
+          "bytes": 720,
+          "reason": "Batch-1 fallthrough at 0x11fc and direct branch targets 0x1240 and 0x1470 require this continuation of the same routine for init, cleanup and fallback data flow."
+        },
+        {
+          "start": "0x1510",
+          "end_exclusive": "0x152d",
+          "bytes": 29,
+          "reason": "Batch-1 address construction at 0xbcc-0xbd0 and 0x10bc-0x10c0 directly names the chip property literal; inspect only this NUL-terminated data interval."
+        }
+      ],
+      "controller": "Python 3 with exact admitted binary SHA-256 recheck and zero stderr gate; transient disassembly parsed for CFG counts only, selected data decoded in memory. No other binary, debug, unwind, execution or saved outputs.",
+      "total_region_bytes": 2525,
+      "stop": "Two-batch boundary closes after these exact commands; no third source analysis or another file permitted."
+    }
+  ],
+  "requests": [
+    {
+      "id": 1,
+      "args": [
+        "sha256sum",
+        "system/vendor/bin/wmt_loader"
+      ],
+      "started_utc": "2026-09-06T19:17:31.293290+00:00",
+      "finished_utc": "2026-09-06T19:17:31.295719+00:00",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout_sha256": "4b0fa9794a50042aea0445e6716691ac50e8ad5491d0c1a3d3b10976ab525061",
+      "stdout_bytes": 95,
+      "batch": 1,
+      "environment": {
+        "DEBUGINFOD_URLS": ""
+      },
+      "external_file_evidence": [],
+      "retained_output": "identity/version/address/normalized metadata only; no raw tool output"
+    },
+    {
+      "id": 2,
+      "args": [
+        "aarch64-linux-gnu-objdump",
+        "--version"
+      ],
+      "started_utc": "2026-09-06T19:17:31.295818+00:00",
+      "finished_utc": "2026-09-06T19:17:31.300668+00:00",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout_sha256": "8feb2cb2830955a0c282e6abca2b512dcf52cb9380e6b0263a481bf1c6349d8d",
+      "stdout_bytes": 288,
+      "batch": 1,
+      "environment": {
+        "DEBUGINFOD_URLS": ""
+      },
+      "external_file_evidence": [],
+      "retained_output": "identity/version/address/normalized metadata only; no raw tool output"
+    },
+    {
+      "id": 3,
+      "args": [
+        "readelf",
+        "--version"
+      ],
+      "started_utc": "2026-09-06T19:17:31.300756+00:00",
+      "finished_utc": "2026-09-06T19:17:31.301738+00:00",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout_sha256": "6aca4321453ac381865f3d353ea7896b150c05026483cb9db0047eee6916723d",
+      "stdout_bytes": 288,
+      "batch": 1,
+      "environment": {
+        "DEBUGINFOD_URLS": ""
+      },
+      "external_file_evidence": [],
+      "retained_output": "identity/version/address/normalized metadata only; no raw tool output"
+    },
+    {
+      "id": 4,
+      "args": [
+        "readelf",
+        "-h",
+        "-SW",
+        "system/vendor/bin/wmt_loader"
+      ],
+      "started_utc": "2026-09-06T19:17:31.301782+00:00",
+      "finished_utc": "2026-09-06T19:17:31.302873+00:00",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout_sha256": "b70075c350f2bc44ada0ebf120175d537ce2a4fb63bf1c19f621ce2bf2e9be83",
+      "stdout_bytes": 3708,
+      "batch": 1,
+      "environment": {
+        "DEBUGINFOD_URLS": ""
+      },
+      "external_file_evidence": [],
+      "retained_output": "identity/version/address/normalized metadata only; no raw tool output"
+    },
+    {
+      "id": 5,
+      "args": [
+        "aarch64-linux-gnu-objdump",
+        "-d",
+        "--no-show-raw-insn",
+        "--start-address=0xb00",
+        "--stop-address=0x1200",
+        "system/vendor/bin/wmt_loader"
+      ],
+      "started_utc": "2026-09-06T19:17:31.302983+00:00",
+      "finished_utc": "2026-09-06T19:17:31.311431+00:00",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout_sha256": "65a7ffb5e0ef5c700f4aafa0a90aeea09412e3a160520ebb51d13b7277273b38",
+      "stdout_bytes": 16340,
+      "batch": 1,
+      "environment": {
+        "DEBUGINFOD_URLS": ""
+      },
+      "external_file_evidence": [],
+      "retained_output": "identity/version/address/normalized metadata only; no raw tool output"
+    },
+    {
+      "id": 6,
+      "args": [
+        "aarch64-linux-gnu-objdump",
+        "-d",
+        "--no-show-raw-insn",
+        "--start-address=0xb10",
+        "--stop-address=0x1200",
+        "system/vendor/bin/wmt_loader"
+      ],
+      "started_utc": "2026-09-06T19:19:05.221993+00:00",
+      "finished_utc": "2026-09-06T19:19:05.226553+00:00",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout_sha256": "26b3bb903e6a4ea4db58bae1ec3b060a8768b3c7a7b5a58d7ab5a6350b58d2f2",
+      "stdout_bytes": 16237,
+      "batch": 2,
+      "environment": {
+        "DEBUGINFOD_URLS": ""
+      },
+      "external_file_evidence": [],
+      "retained_output": "identity/version/address/normalized metadata only; no raw tool output"
+    },
+    {
+      "id": 7,
+      "args": [
+        "aarch64-linux-gnu-objdump",
+        "-d",
+        "--no-show-raw-insn",
+        "--start-address=0x1200",
+        "--stop-address=0x14d0",
+        "system/vendor/bin/wmt_loader"
+      ],
+      "started_utc": "2026-09-06T19:19:05.226667+00:00",
+      "finished_utc": "2026-09-06T19:19:05.231079+00:00",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout_sha256": "157e3d2408649bc415b6f9662a40e0977bcee457b50f53e27c6aa3d5038f04cc",
+      "stdout_bytes": 6743,
+      "batch": 2,
+      "environment": {
+        "DEBUGINFOD_URLS": ""
+      },
+      "external_file_evidence": [],
+      "retained_output": "identity/version/address/normalized metadata only; no raw tool output"
+    },
+    {
+      "id": 8,
+      "args": [
+        "sha256sum",
+        "--version"
+      ],
+      "started_utc": "2026-09-06T19:19:05.231278+00:00",
+      "finished_utc": "2026-09-06T19:19:05.232271+00:00",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout_sha256": "8dc478a505fe298766b14d095e5c7f0937c6439b57f8914b196c6409574e8c00",
+      "stdout_bytes": 341,
+      "batch": 2,
+      "environment": {
+        "DEBUGINFOD_URLS": ""
+      },
+      "external_file_evidence": [],
+      "retained_output": "identity/version/address/normalized metadata only; no raw tool output"
+    }
+  ],
+  "controller_receipts": [
+    {
+      "batch": 1,
+      "started_utc": "2026-09-06T19:17:31.293230+00:00",
+      "finished_utc": "2026-09-06T19:17:31.313291+00:00",
+      "binary_hash_matched": true,
+      "in_memory_actions": [
+        "exact /dev/wmtdetect NUL-terminated anchor match",
+        "static-tool receipt generation"
+      ],
+      "saved_files": 0
+    },
+    {
+      "batch": 2,
+      "started_utc": "2026-09-06T19:19:05.221956+00:00",
+      "finished_utc": "2026-09-06T19:19:05.233340+00:00",
+      "binary_hash_matched": true,
+      "in_memory_actions": [
+        "direct property literal at 0x1510 decoded within declared 29-byte interval",
+        "basic-block and ioctl-site accounting within selected routine",
+        "static-tool receipt generation"
+      ],
+      "saved_files": 0
+    }
+  ],
+  "counts": {
+    "batches": 2,
+    "admitted_binaries": 1,
+    "static_tool_children": 8,
+    "controller_invocations": 2,
+    "guest_shell_sessions": 1,
+    "analyzed_function_regions": 1,
+    "incidental_function_tail_fragments": 1,
+    "selected_basic_blocks": 108,
+    "incidental_partial_blocks": 1,
+    "selected_instructions": 624,
+    "incidental_instructions": 4,
+    "unique_ioctl_call_sites": 14,
+    "selected_direct_call_sites": 62,
+    "batch2_regions": 3,
+    "batch2_region_bytes": 2525,
+    "disassembly_bytes_across_requests": 4288,
+    "unique_disassembled_bytes": 2512,
+    "unique_literal_bytes": 44,
+    "tool_failures": 0,
+    "external_file_diagnostics": 0,
+    "temporary_files": 0
+  },
+  "cfg_accounting": {
+    "region": [
+      "0xb10",
+      "0x14d0"
+    ],
+    "instruction_count": 624,
+    "basic_block_definition": "split at branch targets and after conditional/unconditional branch or return; calls do not split blocks",
+    "basic_block_count": 108,
+    "basic_block_starts": [
+      "0xb10",
+      "0xb6c",
+      "0xb94",
+      "0xbcc",
+      "0xc20",
+      "0xc2c",
+      "0xc38",
+      "0xc44",
+      "0xc50",
+      "0xc5c",
+      "0xc68",
+      "0xc74",
+      "0xc80",
+      "0xc8c",
+      "0xc98",
+      "0xca4",
+      "0xcb0",
+      "0xcbc",
+      "0xcc8",
+      "0xcd4",
+      "0xce0",
+      "0xcec",
+      "0xcf8",
+      "0xd04",
+      "0xd10",
+      "0xd20",
+      "0xd28",
+      "0xd30",
+      "0xd38",
+      "0xd40",
+      "0xd48",
+      "0xd50",
+      "0xd58",
+      "0xd64",
+      "0xd6c",
+      "0xd78",
+      "0xd80",
+      "0xd8c",
+      "0xd94",
+      "0xd9c",
+      "0xda4",
+      "0xdb0",
+      "0xdb8",
+      "0xdc0",
+      "0xdc8",
+      "0xdd4",
+      "0xddc",
+      "0xde4",
+      "0xdec",
+      "0xdf8",
+      "0xe00",
+      "0xe10",
+      "0xe18",
+      "0xe70",
+      "0xea8",
+      "0xeb8",
+      "0xed4",
+      "0xee8",
+      "0xf30",
+      "0xf5c",
+      "0xf84",
+      "0xf8c",
+      "0xfc0",
+      "0xfd8",
+      "0xffc",
+      "0x1018",
+      "0x1020",
+      "0x103c",
+      "0x1050",
+      "0x1084",
+      "0x10d4",
+      "0x1108",
+      "0x112c",
+      "0x1134",
+      "0x11b0",
+      "0x11d8",
+      "0x11f8",
+      "0x1204",
+      "0x120c",
+      "0x1214",
+      "0x121c",
+      "0x1224",
+      "0x122c",
+      "0x1234",
+      "0x1240",
+      "0x124c",
+      "0x1268",
+      "0x127c",
+      "0x1298",
+      "0x12b8",
+      "0x12c0",
+      "0x12c8",
+      "0x12d4",
+      "0x12e0",
+      "0x12fc",
+      "0x1318",
+      "0x1340",
+      "0x1370",
+      "0x1384",
+      "0x13ac",
+      "0x13ec",
+      "0x1410",
+      "0x142c",
+      "0x1438",
+      "0x145c",
+      "0x1470",
+      "0x14a8",
+      "0x14cc"
+    ],
+    "direct_call_count": 62,
+    "ioctl_sites": [
+      "0xeb0",
+      "0xee0",
+      "0xf08",
+      "0xf3c",
+      "0xf64",
+      "0xff4",
+      "0x1048",
+      "0x1078",
+      "0x1140",
+      "0x1184",
+      "0x11e8",
+      "0x125c",
+      "0x12a4",
+      "0x1498"
+    ]
+  },
+  "incidental_boundary": {
+    "interval": [
+      "0xb00",
+      "0xb10"
+    ],
+    "bytes": 16,
+    "instructions": 4,
+    "partial_blocks": 1,
+    "description": "The permitted batch-1 lower boundary includes a preceding routine tail. It is counted but not used to infer an entry/caller relationship."
+  },
+  "selected_literals": [
+    {
+      "interval": [
+        "0x14d0",
+        "0x14df"
+      ],
+      "bytes": 15,
+      "semantic": "exact device path",
+      "value": "/dev/wmtdetect"
+    },
+    {
+      "interval": [
+        "0x1510",
+        "0x152d"
+      ],
+      "bytes": 29,
+      "semantic": "direct chip property key",
+      "value": "persist.mtk.wcn.combo.chipid"
+    }
+  ],
+  "repetition_reason": "Batch-2 reread of 0xb10..0x1200 computes closed routine control-flow accounting with the directly reached continuation; repeated byte volume and distinct call sites are counted separately.",
+  "safety": {
+    "debug_options_used": false,
+    "unwind_requested": false,
+    "debug_links_used": false,
+    "build_ids_used": false,
+    "debug_server_urls": "",
+    "external_file_evidence": [],
+    "binary_executed": false,
+    "ioctl_invoked": false,
+    "live_process_inspected": false,
+    "network_used": false,
+    "v1_output_reused": false,
+    "raw_output_retained": false
+  },
+  "stop": {
+    "analysis_closed": true,
+    "reason": "Two predeclared batches completed. No further binary analysis, another binary or runtime trace is authorized; RE shell closed."
+  },
+  "no_hits": [
+    {
+      "id": "no_init_retry",
+      "interval": [
+        "0x1240",
+        "0x14d0"
+      ],
+      "finding": "The complete selected post-cleanup/init control flow has no edge retrying init or cleanup. Earlier chip-detection retries are distinct."
+    },
+    {
+      "id": "no_init_result_return",
+      "interval": [
+        "0x1298",
+        "0x14d0"
+      ],
+      "finding": "Init return only selects a log branch; it is not propagated into the selected routine return. The later property_set return replaces the return register source."
+    },
+    {
+      "id": "entry_link_unestablished",
+      "finding": "No caller of the 0xb10 routine or process-startup/libc implementation was admitted; no process exit-status or libc errno-conversion conclusion."
+    }
+  ]
+}

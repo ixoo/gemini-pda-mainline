@@ -1,0 +1,357 @@
+{
+  "schema_version": 1,
+  "repository_parent": "65f1b43333b727f0d5bbddf900cd38486a896e4d",
+  "binary_sha256": "446a1318e29c0515cde62c0a335ffb604adc0a955f990d009646e291330d11aa",
+  "anchors": {
+    "device_literal": {
+      "start": "0x14d0",
+      "end_exclusive": "0x14df",
+      "semantic": "The exact selected NUL-terminated literal names /dev/wmtdetect."
+    },
+    "chip_literal": {
+      "start": "0x1510",
+      "end_exclusive": "0x152d",
+      "semantic": "The exact selected NUL-terminated literal names persist.mtk.wcn.combo.chipid."
+    },
+    "open_fd": {
+      "start": "0xb50",
+      "end_exclusive": "0xbcc",
+      "semantic": "The device literal is passed to open at 0xb5c with numeric flags 0x102. Returned descriptor is stored at 0x3008. Negative returns enter the sleep/open loop, whose repeated open site is 0xbbc and whose only exit test is descriptor nonnegativity."
+    },
+    "property_parse": {
+      "start": "0xbcc",
+      "end_exclusive": "0xc20",
+      "semantic": "property_get at 0xbe4 targets the chip-key literal and a stack buffer; strtoul at 0xbf8 parses that buffer with base 16 and null end pointer. The candidate is saved in x24. A zero property_get return takes fallback."
+    },
+    "property_acceptance": {
+      "start": "0xc20",
+      "end_exclusive": "0xe18",
+      "semantic": "Low-word comparisons accept the listed chip candidates; 0x6797 is compared at 0xda8 and 0x0279 at 0xdb8. A nonmatching list result takes fallback at 0xfd8. The request base 0x80047700 constructed at 0xbdc..0xbe0 is preserved across these branches."
+    },
+    "autok_property_gate": {
+      "start": "0xe60",
+      "end_exclusive": "0xe70",
+      "semantic": "The accepted-property path enters external probing only when candidate low word OR 2 equals 0x6632; otherwise it branches toward common cache-set/completion. Thus accepted 0x6797 and 0x0279 skip this autok path."
+    },
+    "property_probe": {
+      "start": "0xe70",
+      "end_exclusive": "0xfd8",
+      "semantic": "The external-property branch performs power-on, conditional external detection, chip query, autok if detection succeeded, and power-off. Autok result selects logging. A successful detect plus query -1 can repeat this probe with a counter initially 9, at most ten attempts; this loop is earlier than cleanup/init. The original property candidate is restored afterward."
+    },
+    "fallback": {
+      "start": "0xfd8",
+      "end_exclusive": "0x1084",
+      "semantic": "Missing/unrecognized property enters external power-on/detection. Power-on failure or nonzero detection takes the SoC query at 0x1078 (base+3), storing its result as candidate and clearing the external flag. Zero detection branches to 0x1470."
+    },
+    "external_query": {
+      "start": "0x1470",
+      "end_exclusive": "0x14a8",
+      "semantic": "External-detection success reaches GET_CHIP_ID at 0x1498 (base+0), saves its integer result as candidate and sets the external flag before joining at 0x1084."
+    },
+    "query_property_update": {
+      "start": "0x1084",
+      "end_exclusive": "0x1134",
+      "semantic": "The query-derived candidate is formatted and passed to property_set at 0x10c8 using the chip key. That return changes logging, not the candidate. Restored request base and the external flag control the following autok choice."
+    },
+    "fallback_autok": {
+      "start": "0x1134",
+      "end_exclusive": "0x11d8",
+      "semantic": "The external fallback branch issues autok at 0x1140 (base+8) with the candidate scalar, then power-off at 0x1184 (base+7). Their returns choose logs. A -1 query candidate takes a sleep/log path before joining common completion; the SoC-query path skips this region."
+    },
+    "cache_set": {
+      "start": "0x11d8",
+      "end_exclusive": "0x11ec",
+      "semantic": "SET_CHIP_ID at 0x11e8 uses request 0x40047701 and the original candidate low word. Its return does not gate subsequent normalization or initialization."
+    },
+    "normalization": {
+      "start": "0x11ec",
+      "end_exclusive": "0x1240",
+      "semantic": "Normalize 0x0321/0x0335/0x0337 to 0x6735, 0x0326 to 0x6755, 0x0551 to 0x6757 and 0x0279 to 0x6797. Other candidates copy through, with -1 taking the early failure path. In particular accepted 0x6797 remains unchanged."
+    },
+    "cleanup_gate": {
+      "start": "0x1240",
+      "end_exclusive": "0x1298",
+      "semantic": "Reload the stored descriptor; negative values skip cleanup/init. At 0x125c ioctl takes request base+5 and the normalized scalar. Only zero cleanup return branches to 0x1298; nonzero selects logging and skips module init."
+    },
+    "module_init": {
+      "start": "0x1298",
+      "end_exclusive": "0x12c8",
+      "semantic": "The call at 0x12a4 uses the retained descriptor, request base+4 = 0x80047704 and normalized candidate in the 32-bit third-argument register, zero-extending it as a scalar. Its return is tested for zero; nonzero selects error logging."
+    },
+    "init_zero": {
+      "start": "0x145c",
+      "end_exclusive": "0x1470",
+      "semantic": "The zero-init-result branch prepares success logging and joins the same continuation at 0x12c8."
+    },
+    "post_init": {
+      "start": "0x12c8",
+      "end_exclusive": "0x13dc",
+      "semantic": "After logging, the stored descriptor is closed if nonnegative and invalidated. Later operations reach a different property_set at 0x13d8. Init return does not gate this continuation. No unrelated property literals or callee bodies were read."
+    },
+    "routine_return": {
+      "start": "0x13dc",
+      "end_exclusive": "0x145c",
+      "semantic": "The later property_set result is saved at 0x13e4, survives the two logging branches and stack guard, and supplies this routine's return at 0x1438..0x1458. No process-entry caller is established."
+    },
+    "invalid_candidate": {
+      "start": "0x14a8",
+      "end_exclusive": "0x14d0",
+      "semantic": "Candidate -1 sets a local -1 return and joins the epilogue, bypassing cleanup/init and later property_set. A failed stack guard instead reaches its failure helper."
+    }
+  },
+  "inherited_source_citations": {
+    "detect_header_guard": {
+      "source_id": "detect_h",
+      "lines": [
+        37,
+        41
+      ],
+      "symbol": "MTK_WCN_REMOVE_KO definition"
+    },
+    "detect_commands": {
+      "source_id": "detect_h",
+      "lines": [
+        81,
+        90
+      ],
+      "symbol": "detector ioctl command macros"
+    },
+    "connection_declaration": {
+      "source_id": "conn_h",
+      "lines": [
+        15,
+        18
+      ],
+      "symbol": "integer chip argument and return declaration"
+    },
+    "detect_ioctl": {
+      "source_id": "wmt_detect",
+      "lines": [
+        83,
+        148
+      ],
+      "symbol": "wmt_detect_unlocked_ioctl"
+    }
+  },
+  "requests": [
+    {
+      "number": 0,
+      "symbol": "COMBO_IOCTL_GET_CHIP_ID",
+      "request": "0x80047700"
+    },
+    {
+      "number": 1,
+      "symbol": "COMBO_IOCTL_SET_CHIP_ID",
+      "request": "0x40047701"
+    },
+    {
+      "number": 2,
+      "symbol": "COMBO_IOCTL_EXT_CHIP_DETECT",
+      "request": "0x80047702"
+    },
+    {
+      "number": 3,
+      "symbol": "COMBO_IOCTL_GET_SOC_CHIP_ID",
+      "request": "0x80047703"
+    },
+    {
+      "number": 4,
+      "symbol": "COMBO_IOCTL_DO_MODULE_INIT",
+      "request": "0x80047704"
+    },
+    {
+      "number": 5,
+      "symbol": "COMBO_IOCTL_MODULE_CLEANUP",
+      "request": "0x80047705"
+    },
+    {
+      "number": 6,
+      "symbol": "COMBO_IOCTL_EXT_CHIP_PWR_ON",
+      "request": "0x80047706"
+    },
+    {
+      "number": 7,
+      "symbol": "COMBO_IOCTL_EXT_CHIP_PWR_OFF",
+      "request": "0x80047707"
+    },
+    {
+      "number": 8,
+      "symbol": "COMBO_IOCTL_DO_SDIO_AUDOK",
+      "request": "0x80047708"
+    }
+  ],
+  "state_model": {
+    "routine": "anonymous routine in [0xb10,0x14d0); not labeled main",
+    "device_path": "/dev/wmtdetect",
+    "open_sites": [
+      "0xb5c",
+      "0xbbc"
+    ],
+    "fd_storage": "0x3008",
+    "open_flags": "0x102",
+    "open_retry": "while descriptor negative; no local attempt limit",
+    "request_base": "0x80047700",
+    "init_site": "0x12a4",
+    "init_request": "0x80047704",
+    "cleanup_site": "0x125c",
+    "cleanup_request": "0x80047705",
+    "autok_sites": [
+      "0xf3c",
+      "0x1140"
+    ],
+    "autok_request": "0x80047708",
+    "third_argument": "normalized scalar low 32 bits zero-extended",
+    "third_argument_pointer": false,
+    "chip_property": "persist.mtk.wcn.combo.chipid",
+    "parse_base": 16,
+    "end_pointer_checked": false,
+    "candidate_origin": "recognized property low word, otherwise external GET_CHIP_ID or GET_SOC_CHIP_ID return",
+    "normalizations": {
+      "0x0321": "0x6735",
+      "0x0335": "0x6735",
+      "0x0337": "0x6735",
+      "0x0326": "0x6755",
+      "0x0551": "0x6757",
+      "0x0279": "0x6797"
+    },
+    "mt6797_condition": "0x6797 pass-through or conditional 0x0279 normalization; no unconditional platform constant",
+    "actual_runtime_candidate": null,
+    "cache_set_original_candidate": true,
+    "cache_set_return_gates_init": false,
+    "negative_fd_skips_init": true,
+    "invalid_minus_one_skips_init": true,
+    "cleanup_nonzero_skips_init": true,
+    "cleanup_retry": false,
+    "init_retry": false,
+    "init_result_use": "zero/nonzero logging choice; common continuation",
+    "init_result_propagated": false,
+    "init_result_gates_later_property": false,
+    "routine_result": "later property_set return at 0x13d8; early candidate -1 returns -1",
+    "libc_conversion": null,
+    "process_exit_status": null,
+    "autok_for_accepted_mt6797_property": false,
+    "autok_property_condition": "accepted 0x6630/0x6632 and successful external detection",
+    "property_probe_max_attempts": 10,
+    "autok_fallback_condition": "external-query branch, not SoC-query branch",
+    "autok_return_gates_init": false,
+    "order": [
+      "conditional probing/query/autok",
+      "original candidate cache set",
+      "normalization",
+      "cleanup",
+      "init if cleanup zero",
+      "descriptor close and later property handling"
+    ],
+    "mainline_contract": null
+  },
+  "predicates": {
+    "identity_fd": {
+      "verdict": "resolved",
+      "claim": "The fresh hash-matched ELF64 AArch64 input opens the selected /dev/wmtdetect path and carries the resulting stored descriptor into cleanup/init.",
+      "evidence": [
+        "device_literal",
+        "open_fd",
+        "cleanup_gate",
+        "module_init"
+      ],
+      "conditions": "The anonymous routine must be entered, and an open must eventually return nonnegative. Negative open results retry locally without a count limit; static reachability is not observed execution.",
+      "missing": "No missing local open-to-fd edge. Actual entry, device presence and runtime descriptor are not established by this static batch.",
+      "next_discriminator": "Do not run the loader or probe a device. Any actual execution or startup-caller claim needs separate authorization and evidence."
+    },
+    "init_request": {
+      "verdict": "resolved",
+      "claim": "At 0x12a4 the numeric request is 0x80047704, matching the pinned COMBO_IOCTL_DO_MODULE_INIT encoding.",
+      "evidence": [
+        "property_acceptance",
+        "normalization",
+        "cleanup_gate",
+        "module_init"
+      ],
+      "conditions": "The word uses AArch64 Linux read direction, size 4, type 0x77 and number 4. Candidate must not be -1, descriptor must be nonnegative and cleanup must return zero. The source predecessor's kernel build guard still applies.",
+      "missing": "No missing numeric construction or direct local-call edge. A live kernel's exact ABI and the external ioctl implementation were not observed.",
+      "next_discriminator": "Keep the compatibility comparison pinned to the accepted source predecessor; it does not authorize an executable probe or mainline ABI."
+    },
+    "scalar_origin": {
+      "verdict": "resolved",
+      "claim": "The third argument is a property/query-derived normalized scalar. 0x6797 is conditional pass-through or the mapped result of candidate 0x0279.",
+      "evidence": [
+        "chip_literal",
+        "property_parse",
+        "property_acceptance",
+        "fallback",
+        "external_query",
+        "query_property_update",
+        "normalization",
+        "module_init"
+      ],
+      "conditions": "Property buffer is parsed base 16 and its low word matched against the recognized list; missing/unrecognized values use a kernel-query return. The W-register argument assignment zero-extends the scalar. The read-encoded command does not make it a pointer.",
+      "missing": "No missing local origin or normalization edge. Actual property/query value, complete parse validation and libc overflow/error behavior remain unobserved.",
+      "next_discriminator": "A runtime value or external-library claim needs separately admitted evidence; no second batch, binary or trace is allowed here."
+    },
+    "local_return": {
+      "verdict": "resolved",
+      "claim": "Cleanup status gates init. Init status only chooses logging and is not propagated or retried; later property_set status supplies the ordinary routine return.",
+      "evidence": [
+        "cleanup_gate",
+        "module_init",
+        "init_zero",
+        "post_init",
+        "routine_return",
+        "invalid_candidate"
+      ],
+      "conditions": "Cleanup nonzero skips init. Both init-result branches join before close and later property operations. Candidate -1 has an early -1 return; external calls must return and the stack guard must pass for the shown ordinary epilogue.",
+      "missing": "No missing local return-use edge. Separate libc negative-result conversion and the process-entry caller remain unresolved, so no process exit-status claim is made.",
+      "next_discriminator": "Preserve the local-versus-process boundary. A different contract would be needed for external libc/startup behavior."
+    },
+    "command_order": {
+      "verdict": "resolved",
+      "claim": "Any selected autok precedes original-candidate cache set, normalization, cleanup and gated module init.",
+      "evidence": [
+        "autok_property_gate",
+        "property_probe",
+        "fallback",
+        "external_query",
+        "query_property_update",
+        "fallback_autok",
+        "cache_set",
+        "normalization",
+        "cleanup_gate",
+        "module_init"
+      ],
+      "conditions": "Recognized 0x6797/0x0279 property values skip autok. The recognized 0x6630/0x6632 branch conditionally probes/autocalibrates and can retry its probe up to ten times; fallback external query has another autok site, while SoC fallback skips it. Autok status affects logs, not the later init gate.",
+      "missing": "No missing relative local-order edge. Runtime branch choice, external effects and resource lifetime are outside the static claim. The early probe loop is not an init retry.",
+      "next_discriminator": "Do not translate the observed order into a safe executable protocol. A separate effects/ownership review is required before any hardware action."
+    },
+    "mainline_boundary": {
+      "verdict": "unresolved",
+      "claim": "This is exact retained-vendor compatibility evidence, not a designed mainline userspace ABI.",
+      "evidence": [
+        "cleanup_gate",
+        "module_init",
+        "normalization",
+        "routine_return"
+      ],
+      "conditions": "The batch establishes addresses and conditional local semantics in a private binary against pinned source commands only. No standard-subsystem interface design or upstream error/resource contract is part of the item.",
+      "missing": "A justified standard interface, ownership contract and reviewed error semantics are missing. Static binary reachability cannot supply them.",
+      "next_discriminator": "Use a separately scoped standard-interface design if required; do not expose the vendor WMT ABI merely to execute this loader."
+    }
+  },
+  "authority": {
+    "runtime_execution": false,
+    "successful_initialization": false,
+    "firmware_activity": false,
+    "radio_safety": false,
+    "device_action": false,
+    "binary_redistribution": false,
+    "vendor_code_reuse": false,
+    "vendor_abi_reuse": false,
+    "mainline_abi": false,
+    "hardware_support": false
+  },
+  "handoff": {
+    "resolved": "Five local predicates resolve conditionally; the standard mainline contract remains unresolved.",
+    "remaining": "Actual runtime values/effects, separate libc conversion, startup caller/process result and mainline design are not established.",
+    "attempts": "One fresh prospectively admitted batch: six static child invocations, one controller, one disassembly, two literal reads. No replay, expansion, analysis-tool diagnostic or temporary file.",
+    "next_discriminator": "Separate standard-interface or externally scoped conversion/caller evidence, if requested. The current batch budget is closed."
+  }
+}

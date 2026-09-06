@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "experiment": "2026-09-06-mt6797-wmt-loader-ioctl-static-attribution-v3",
+  "repository_parent": "65f1b43333b727f0d5bbddf900cd38486a896e4d",
+  "started_utc": "2026-09-06T19:34:45+00:00",
+  "binary": {
+    "logical_path": "system/vendor/bin/wmt_loader",
+    "sha256": "446a1318e29c0515cde62c0a335ffb604adc0a955f990d009646e291330d11aa",
+    "elf": {
+      "Class": "ELF64",
+      "Data": "2's complement, little endian",
+      "Type": "DYN (Shared object file)",
+      "Machine": "AArch64",
+      "Entry point address": "0xa74"
+    },
+    "sections": {
+      ".text": {
+        "virtual_address": "0xa20",
+        "file_offset": "0xa20",
+        "size_bytes": 2736
+      },
+      ".rodata": {
+        "virtual_address": "0x14d0",
+        "file_offset": "0x14d0",
+        "size_bytes": 936
+      },
+      ".data": {
+        "virtual_address": "0x3000",
+        "file_offset": "0x2000",
+        "size_bytes": 12
+      }
+    }
+  },
+  "tools": {
+    "controller": "3.12.3",
+    "sha256sum": "sha256sum (GNU coreutils) 9.4",
+    "aarch64-linux-gnu-objdump": "GNU objdump (GNU Binutils for Ubuntu) 2.42",
+    "readelf": "GNU readelf (GNU Binutils for Ubuntu) 2.42"
+  },
+  "tool_environment": {
+    "DEBUGINFOD_URLS": ""
+  },
+  "source_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+  "inherited_source_files": [
+    {
+      "source_id": "conn_h",
+      "path": "drivers/misc/mediatek/connectivity/common/common_detect/drv_init/inc/conn_drv_init.h",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_detect/drv_init/inc/conn_drv_init.h",
+      "sha256": "26ad92c3ea1cfb34e2943a569c2f11b7e0bf12728f71f98d2fa7a50f2b42a82c",
+      "git_blob_sha1": "971193eade9e9b5226f49cf0145809f0556f06e2",
+      "size": 741,
+      "line_count": 18
+    },
+    {
+      "source_id": "detect_h",
+      "path": "drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.h",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.h",
+      "sha256": "2f4964b6ec52bf3cd6ada45827f96bb66e5bd2090b12f9c19a0c58a859b89df9",
+      "git_blob_sha1": "3a59805c6ccfc8a281bbb1000be84a8415341f70",
+      "size": 4256,
+      "line_count": 120
+    },
+    {
+      "source_id": "wmt_detect",
+      "path": "drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.c",
+      "sha256": "5dcff637a689eb1de92b77a527ad4f51af35f8657db48e36e8dc2c3c379dc2a4",
+      "git_blob_sha1": "632cd1ecc4278c8e236fa3bcfc9129e636241d20",
+      "size": 9523,
+      "line_count": 400
+    }
+  ],
+  "local_inputs": [
+    {
+      "path": "experiments/2026-09-06-mt6797-connectivity-producer-source-attribution/inputs.json",
+      "sha256": "9893687d6bef1b80c0c6e6a0a87216635ddb6490609e58bbc25c838bda0d88a8"
+    },
+    {
+      "path": "experiments/2026-09-06-mt6797-connectivity-producer-source-attribution/search.json",
+      "sha256": "eee3545c527b8758048a7fd0b311f26923491c1241602d322ff2cf2dc275e029"
+    },
+    {
+      "path": "experiments/2026-09-06-mt6797-connectivity-producer-source-attribution/verdicts.json",
+      "sha256": "955ccc161572baa4c02c8c68bf6292159119eb6786e4237dcdc8db6196c4800b"
+    },
+    {
+      "path": "experiments/2026-09-06-mt6797-connectivity-producer-source-attribution/FREEZE.md",
+      "sha256": "e1a6f37c3bf6e8eeedd59592d9814671e4db6eb5571725b2e284bbd92d4d8517"
+    }
+  ],
+  "predecessor_validation": "All four accepted predecessor files freshly compared byte-for-byte against frozen parent commit; inherited source tuples/citations reused only from this accepted source predecessor.",
+  "prior_attempts": "V1/v2 supply excluded chronology and the v3 contract's prospective selection only; no prior raw/partial output or prior verdict is an evidentiary input.",
+  "rights": {
+    "private_binary": true,
+    "raw_bytes_retained": false,
+    "instruction_listing_retained": false,
+    "function_dump_retained": false,
+    "decompiler_output_retained": false,
+    "strings_corpus_retained": false,
+    "database_retained": false,
+    "private_paths_retained": false,
+    "binary_or_source_reuse_allowed": false,
+    "vendor_abi_reuse_allowed": false
+  }
+}
