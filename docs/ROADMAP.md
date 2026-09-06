@@ -214,10 +214,13 @@ The remaining preparation order is:
    [standard interface/error design](../experiments/2026-09-06-mt6797-mainline-connectivity-interface-design/README.md)
    made the first slice an effect-free passive CONSYS descriptor plus opaque
    WLAN client binding. That [accepted implementation](../experiments/2026-09-06-mt6797-consys-passive-boot/README.md)
-   is the next Buildbox and boot2 candidate; require attributable evidence that
-   it makes zero power, reset, remap, protection, firmware, radio and DMA calls
-   before admitting any effect-bearing implementation. Later lifecycle
-   work must still resolve actual final linkage plus an explicit gen3 teardown
+   passed Buildbox, guarded boot2 deployment and one authenticated runtime
+   observation: the client reached `BOUND` generation 1 with all seven effect
+   counters zero. Its boot and collection budgets are consumed; do not repeat
+   it or promote the result to usable Wi-Fi. Before another candidate, define
+   and validate shared CONSYS/EMI/AP-DMA ownership and an effect-bearing failure
+   lifetime, while later lifecycle work still resolves actual final linkage
+   plus an explicit gen3 teardown
    edge. The exact retained reconstructed ELF cannot supply the required ranges:
    all four target symbols have zero size and its synthesized `GLOBAL` binding
    does not prove original strength. Before further disassembly, admit and

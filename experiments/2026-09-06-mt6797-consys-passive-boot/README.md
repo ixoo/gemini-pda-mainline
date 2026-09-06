@@ -167,12 +167,37 @@ became unreachable. The sanitized receipt is
 [deployment-20260906.txt](results/deployment-20260906.txt). No reboot or
 physical boot selection occurred.
 
+## First passive runtime result
+
+The owner physically selected `boot2` once. One strict-host-key authenticated
+SSH connection then checked the candidate's exact init, logger, USB-auth and
+reboot-refusal identities before reading the existing bounded RAM log. The
+live release was `7.1.3-gemini-consys-passive` on AArch64 and the boot ID was
+new relative to deployment. The logger was still alive with no terminal status
+or exit record.
+
+The unique kernel record was `state=BOUND generation=1 client=wlan-passive`
+with power, reset, remap, protection, firmware, radio and DMA counters all
+zero. The pinned host classifier passed and preserved a mode-0600 private
+result. The sanitized [runtime record](results/runtime-20260906.txt) owns the
+exact identity and chronology. Both the one-boot and one-collection budgets are
+consumed. No retry, reboot, power command, firmware action or radio action was
+sent, and the device remains running this passive image pending owner-directed
+physical recovery.
+
+Independent Sol review accepted the sanitized runtime integration at
+`2026-09-06T23:22:44Z` after reproducing the collector, passive fixtures,
+private/public hash cross-checks and complete repository publication gate. The
+review made no usable-Wi-Fi or effect-bearing hardware claim.
+
 ## Handoff limits
 
 The patch deliberately stops at passive `BOUND`. It does not add power/reset
 ownership, MMIO or reserved-memory mapping, resource requests, firmware
 loading, AP-DMA, cfg80211/rfkill, radio activation, removal, suspend/resume,
-recovery or a Device Tree change. The exact candidate, collector and guarded
-installer packet are ready, and the exact image is installed with verified
-readback. The device is powered off. Physical boot selection remains the
-owner's action and hardware support remains unproven.
+recovery or a Device Tree change. The exact candidate passed its one admitted
+passive runtime observation; this proves only the effect-free binding and
+instrumentation path on the named device. It does not establish usable Wi-Fi or
+authorize an effect-bearing follow-up. The device remains on the passive image
+pending owner-directed physical recovery, and hardware support remains
+unproven.

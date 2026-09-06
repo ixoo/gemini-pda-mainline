@@ -37,7 +37,7 @@
     "git_diff_check": "pass",
     "kernel_buildbox": "pass: exact f9981eaf63381a558f77be251da4c2320cb4321b",
     "checkpatch": "pass: 0 errors; 4 non-blocking warnings; 3 style checks",
-    "device": "boot2 deployment verified; physical boot not run",
+    "device": "boot2 deployment and one passive runtime observation verified; device left running",
     "hardware_support": false
   },
   "integration_review": {
@@ -184,7 +184,37 @@
     "power": "1|100|Good|1",
     "readback_sha256": "08fc061475b4bd6bc274bef6cb61c6e0a1cb8d786c5be197b79dba006bebb1c2",
     "shutdown": "confirmed-unreachable",
-    "physical_boot_selection": false
+    "physical_boot_selection": true
+  },
+  "runtime": {
+    "completed_utc": "2026-09-06T23:17:42Z",
+    "record": "experiments/2026-09-06-mt6797-consys-passive-boot/results/runtime-20260906.txt",
+    "record_sha256": "9f2bb6115db0aae5aba69a1956c450fd029df63f9004e591781f4fa44ce5434a",
+    "candidate_sha256": "08fc061475b4bd6bc274bef6cb61c6e0a1cb8d786c5be197b79dba006bebb1c2",
+    "input_id": "f77eb7ee3c8f4024124be09a2e81df489093b5298b821ca9dce04ac2c106d12c",
+    "deployment_boot_id": "c1ecb2fc-e050-4531-9ad6-6e09aeebfa78",
+    "runtime_boot_id": "21bb3c59-c698-40cc-9405-084f50193842",
+    "release": "7.1.3-gemini-consys-passive",
+    "architecture": "aarch64",
+    "authenticated_connections": 1,
+    "automatic_retries": 0,
+    "logger_healthy": true,
+    "state": "BOUND",
+    "generation": 1,
+    "effect_counters": {
+      "power": 0,
+      "reset": 0,
+      "remap": 0,
+      "protection": 0,
+      "firmware": 0,
+      "radio": 0,
+      "dma": 0
+    },
+    "collector": "pass",
+    "independent_review": "accepted by Sol at 2026-09-06T23:22:44Z",
+    "budgets_consumed": ["physical-boot", "authenticated-collection"],
+    "device_left_running": true,
+    "hardware_support": false
   },
   "scope": {
     "runtime_support": false,
