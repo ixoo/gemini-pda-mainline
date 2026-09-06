@@ -1,0 +1,23 @@
+{
+  "status": "Host composition fixture accepted; integration pending",
+  "frozen_parent": "0550b911e2db3efd5482b96ee7782959ca3926d5",
+  "linux_source": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "profile": "mt6797-hif-parser-compile",
+  "predecessor_series": "patches/series-mt6797-provider-compile",
+  "predecessor_series_sha256": "ca6ec6118f91b609d841a3d77718ef2aea430f139092151c5c745c1ff4091246",
+  "predecessor_series_entries": 13,
+  "append_after": "proposals/0010-wifi-mediatek-compile-resource-layout.patch",
+  "patch": "0011-wifi-mediatek-compile-emi-service-gate.patch",
+  "patch_sha256": "3cd1c5c863e17dd13f0fbf4c53750484dd7fd442c2041218a336091c095849c2",
+  "kernel_delta": [
+    "drivers/net/wireless/mediatek/mt6797/Makefile",
+    "drivers/net/wireless/mediatek/mt6797/emi-service-gate.c",
+    "drivers/net/wireless/mediatek/mt6797/emi-service-gate.h"
+  ],
+  "object": "drivers/net/wireless/mediatek/mt6797/emi-service-gate.o",
+  "host_test": "src/emi-service-gate-test.c linked with separately compiled resource-layout, remap-fields and emi-abi predecessor objects",
+  "runtime_caller": "none; gate is linked but unreferenced",
+  "hardware_access": "NONE",
+  "submission_ready": false,
+  "author_metadata": "Synthetic non-certifying experiment identity; no DCO sign-off"
+}
