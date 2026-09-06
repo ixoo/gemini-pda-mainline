@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "state": "unresolved-symbol-range-gate",
+  "identity": {
+    "sha256": "cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162",
+    "class": "ELF64",
+    "endianness": "little",
+    "type": "EXEC",
+    "machine": "AArch64",
+    "release_family": "Linux version 3.18.41+",
+    "reconstructed": true
+  },
+  "tools": {"readelf": "GNU Binutils for Ubuntu 2.42", "python": "3.12.3", "pyelftools": "0.30", "capstone": "4.0.2"},
+  "symbols": [
+    {"name": "do_connectivity_driver_init", "entries": 1, "address": "ffffffc0006e3a70", "size": 0, "type": "FUNC", "binding": "GLOBAL", "visibility": "DEFAULT", "section_index": 1},
+    {"name": "do_wlan_drv_init", "entries": 1, "address": "ffffffc0006e3ed0", "size": 0, "type": "FUNC", "binding": "GLOBAL", "visibility": "DEFAULT", "section_index": 1},
+    {"name": "mtk_wcn_wlan_gen3_init", "entries": 1, "address": "ffffffc0007415a0", "size": 0, "type": "FUNC", "binding": "GLOBAL", "visibility": "DEFAULT", "section_index": 1},
+    {"name": "mtk_wcn_wlan_gen3_exit", "entries": 1, "address": "ffffffc000741898", "size": 0, "type": "FUNC", "binding": "GLOBAL", "visibility": "DEFAULT", "section_index": 1}
+  ],
+  "containing_section": {"name": ".kernel", "index": 1, "type": "PROGBITS", "address": "ffffffc000080000", "size": "13160c0", "flags": "WAX"},
+  "selected_functions": [],
+  "function_bodies_inspected": 0,
+  "whole_executable_branch_scans": 0,
+  "whole_elf_xref_scans": 0,
+  "direct_exit_call_count": null,
+  "direct_exit_callers": null,
+  "address_taken_edges": null,
+  "callback_registration_edges": null,
+  "predicates": {
+    "final_wlan_strength": "unresolved: reconstructed ELF records GLOBAL FUNC; original final-link strength is not established",
+    "direct_init_chain_and_returns": "unresolved: exact nonempty function ranges unavailable; no body decoded",
+    "every_direct_exit_call": "unresolved: enumeration not run after mandatory range/reconstruction stop",
+    "address_taken_and_owner": "unresolved: xref analysis not run after mandatory range/reconstruction stop",
+    "teardown": "unresolved: no linked teardown join or execution/quiescence evidence established"
+  },
+  "authority": {"runtime_execution": false, "resource_ownership": false, "safe_teardown": false, "firmware_success": false, "radio_admission": false, "device_action": false, "hardware_support": false},
+  "raw_evidence": {"label": "RE-VM private elf-metadata.txt", "sha256": "2a200291c917b3c21e13afc91453ad3e1edf486d59015adc28c103987f9154b5", "command": "readelf -h -S -W -s <retained-ELF>", "exported": false},
+  "environment": {"DEBUGINFOD_URLS": "", "DEBUGINFOD_PROGRESS": "0", "R2_CURL": "0", "LC_ALL": "C", "umask": "077", "network_lookup": false},
+  "escalation": {
+    "evidence": "All four unique required symbols have st_size=0 in a reconstructed monolithic WAX .kernel section.",
+    "attempts": "Location resolved by coordinator; repeated exact identity/header/release and symbol preflight only. Zero repair attempts and zero body/branch/xref scans.",
+    "unresolved_question": "What independently justified boundary and reconstruction provenance can establish exact function ranges and original binding strength for this retained ELF?",
+    "next_discriminator": "Review the retained reconstruction method and an explicitly admitted function-boundary rule or original sized-symbol evidence; update the contract before decoding bodies. Do not infer sizes from symbol proximity or strength from synthesized GLOBAL alone."
+  }
+}

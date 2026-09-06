@@ -218,8 +218,13 @@ The remaining preparation order is:
    it makes zero power, reset, remap, protection, firmware, radio and DMA calls
    before admitting any effect-bearing implementation. Later lifecycle
    work must still resolve actual final linkage plus an explicit gen3 teardown
-   edge. Exit order must not be inferred by reversing initialization, and the
-   vendor WMT ioctl must not be copied merely to run the retained loader.
+   edge. The exact retained reconstructed ELF cannot supply the required ranges:
+   all four target symbols have zero size and its synthesized `GLOBAL` binding
+   does not prove original strength. Before further disassembly, admit and
+   validate a reconstruction-provenance/function-boundary rule or obtain
+   original sized-symbol evidence; see the [bounded unresolved result](../experiments/2026-09-06-mt6797-wlan-final-linkage-teardown-attribution/README.md).
+   Exit order must not be inferred by reversing initialization, and the vendor
+   WMT ioctl must not be copied merely to run the retained loader.
 3. **Keyboard coverage:** finish coherent capture admission, finite owner key
    sequence, classification and complete private evidence export. Reuse the
    measured monitor and retain the full-duration timing obligation; inert binary

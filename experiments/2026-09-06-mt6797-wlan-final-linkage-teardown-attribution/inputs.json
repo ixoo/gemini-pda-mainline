@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "repository_parent": "1092104ac1aa06c7ef9d0144ad9429feefe53b23",
+  "source_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+  "elf_sha256": "cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162",
+  "identity_record_sha256": "b8e1ba26fad5338cc32b29ffe5cd9a1a9dece6e069dc88cc0acc12a7dc05b7f0",
+  "lifecycle": {
+    "inputs": "3e2b5c20a08cfd54d42a43587825aa65512cf012bb8b0b572a86e70cb5d4ef2b",
+    "verdicts": "618af79a8edc68e733efe37440d4714fe30853663c8e8c19957d869179b3a171",
+    "freeze": "1c9ee0bd6298166a82abf2bcfd463758ac12f307e9640e7f2e25792246f5c710"
+  },
+  "producer": {
+    "inputs": "9893687d6bef1b80c0c6e6a0a87216635ddb6490609e58bbc25c838bda0d88a8",
+    "verdicts": "955ccc161572baa4c02c8c68bf6292159119eb6786e4237dcdc8db6196c4800b",
+    "freeze": "e1a6f37c3bf6e8eeedd59592d9814671e4db6eb5571725b2e284bbd92d4d8517"
+  },
+  "required_symbols": ["do_connectivity_driver_init", "do_wlan_drv_init", "mtk_wcn_wlan_gen3_init", "mtk_wcn_wlan_gen3_exit"],
+  "function_budget": 8,
+  "elf_budget": 1,
+  "network_allowed": false,
+  "device_action_allowed": false
+}

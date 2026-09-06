@@ -53,3 +53,22 @@ required by concrete action-containment defects, not a measured route cost.
 The final Astra review was the existing required safety escalation and does not
 justify weakening or changing the default route. Credits remain unavailable.
 `baseline-01` remains unchanged.
+
+## Item-six publication checkpoint
+
+The sixth accepted item is a bounded retained-ELF linkage/teardown attribution
+owned by Astra Medium and reviewed by Sol Medium. Exact input identity passed,
+but every required reconstructed function symbol had zero size, so the owner
+correctly stopped before disassembly and returned an unresolved packet instead
+of inventing function boundaries or original linker strength. This is an
+accepted negative boundary, not a successful linkage or teardown attribution.
+
+The first review rejected a private-path-shaped mutation literal and a missing
+review-ready timestamp. One packet-only repair preserved the runtime privacy
+refusal without publishing the path shape and added the observed timestamp;
+normal and optimized fixtures and the complete publication gate then passed on
+independent review. This publication failure triggers an immediate checkpoint.
+The item is the only accepted unresolved reconstructed-symbol boundary audit in
+this cohort, so its comparison group is too small for a route change. The
+specialist stop was evidence-sensitive and correct; `baseline-01` remains
+unchanged and credits remain unavailable.

@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 5,
-  "next_accepted_sequence": 6,
-  "next_considered_sequence": 8,
+  "accepted_count": 6,
+  "next_accepted_sequence": 7,
+  "next_considered_sequence": 9,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -264,6 +264,54 @@
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-06-mt6797-consys-passive-boot/validation.json"
       }
+    },
+    {
+      "considered_sequence": 8,
+      "accepted_sequence": 6,
+      "candidate_id": "mt6797-wlan-final-linkage-teardown-attribution",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "reasoning",
+      "risk_class": "hard-uncertainty",
+      "acceptance_contract": "experiments/2026-09-06-mt6797-wlan-final-linkage-teardown-attribution/WORK_ITEM.md",
+      "review_comparison_group": "mt6797-wifi-owner-static-attribution",
+      "parent": "1092104ac1aa06c7ef9d0144ad9429feefe53b23",
+      "owner_route": {
+        "role": "gemini_specialist",
+        "model": "gpt-6-astra",
+        "effort": "medium"
+      },
+      "review_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-06T22:57:44Z",
+        "review_ready_at": "2026-09-06T23:05:18Z",
+        "accepted_at": "2026-09-06T23:09:23Z",
+        "timing_source": "observed UTC contract creation, complete handoff and independent-review acceptance timestamps",
+        "elapsed_minutes": 11.65,
+        "review_rework_minutes": 4.0833333,
+        "first_review_accepted": false,
+        "rework_cycles": 1,
+        "escalated": true,
+        "escalation_reason": "The exact retained reconstructed ELF exposed zero-sized symbols for all four required functions, so its original linkage strength and exact function ranges could not be established without an unadmitted boundary rule.",
+        "escalation_packet": {
+          "evidence": "experiments/2026-09-06-mt6797-wlan-final-linkage-teardown-attribution/analysis.json",
+          "attempts": [
+            "resolved the relocated retained ELF and independently repeated its exact checksum, architecture and release-family gates",
+            "stopped before body, branch or xref analysis when every required symbol reported zero size"
+          ],
+          "unresolved_question": "what independently justified reconstruction provenance and boundary rule can establish exact function ranges and original binding strength for this retained ELF",
+          "next_discriminating_check": "admit and validate a reconstruction-provenance/function-boundary rule or obtain original sized-symbol evidence before decoding target bodies"
+        },
+        "review_failure_class": "publication",
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-06-mt6797-wlan-final-linkage-teardown-attribution/VALIDATION.md"
+      }
     }
   ],
   "checkpoints": [
@@ -291,6 +339,20 @@
       ],
       "comparable_item_ids": [
         "mt6797-consys-passive-candidate-preparation"
+      ],
+      "conclusion": "no-change",
+      "evidence": "experiments/2026-09-06-agent-routing-pilot-03/README.md"
+    },
+    {
+      "id": "pilot-03-item-six-publication",
+      "after_accepted_sequence": 6,
+      "after_considered_sequence": 8,
+      "trigger": "early-signal",
+      "trigger_item_ids": [
+        "mt6797-wlan-final-linkage-teardown-attribution"
+      ],
+      "comparable_item_ids": [
+        "mt6797-wlan-final-linkage-teardown-attribution"
       ],
       "conclusion": "no-change",
       "evidence": "experiments/2026-09-06-agent-routing-pilot-03/README.md"
