@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "state": "blocked-parser-scope-conflict",
+  "identities_match": true,
+  "tool_version": "vmlinux-to-elf 1.3.6",
+  "python_version": "3.12.3",
+  "source_inventory": ["scripts/vmlinux_to_elf.py", "core/kallsyms.py", "core/elf_symbolizer.py", "utils/elf.py"],
+  "metadata_license_expression": "GPL-3.0-or-later",
+  "transformations": {
+    "name": {"behavior": "Token expansion preserves the original type-prefixed name; object name removes only the first type character. Duplicate names overwrite the name_to_symbol map, so target uniqueness was counted from the full list instead.", "source": "core/kallsyms.py", "lines": [1752, 1803]},
+    "address": {"behavior": "This run recovered absolute little-endian 64-bit addresses, without base-relative or absolute-percpu adjustment; symbolizer copies the parsed virtual address into st_value.", "sources": ["core/kallsyms.py:1496-1518,1685-1724", "core/elf_symbolizer.py:259-260"]},
+    "type_case": {"behavior": "u/v/w/U/V/W preserve their type enum and force is_global true. Other types normalize to uppercase enum while original character case sets is_global; original prefixed symbol_names remains available.", "source": "core/kallsyms.py", "lines": [1793, 1799]},
+    "elf_binding": {"behavior": "V/W emit WEAK; otherwise is_global selects GLOBAL versus LOCAL. Lowercase v/w therefore do not follow the uppercase V/W weak-emission branch. Emitted binding is a derived mapping, not untouched original ELF metadata.", "source": "core/elf_symbolizer.py", "lines": [270, 278]},
+    "elf_type": {"behavior": "TEXT and uppercase W emit FUNC; every other parsed type emits OBJECT. Original Kallsyms distinctions are therefore not losslessly represented by ELF type/binding alone.", "source": "core/elf_symbolizer.py", "lines": [262, 268]},
+    "size": {"behavior": "Fresh ctypes symbol entries initialize size to zero; symbolizer never assigns st_size. A new empty Elf64LittleEndianSymbolTableEntry returned zero in this run. No original function extent is recovered.", "sources": ["utils/elf.py:77-110,752-760", "core/elf_symbolizer.py:254-287"]},
+    "section": {"behavior": "Raw Image reconstruction creates a WAX .kernel region; nonabsolute symbols are associated by address and writer serializes that section index. These flags and section identities are synthetic. Interval checks require strict exclusive-end bounds even though find_section uses an inclusive upper test.", "sources": ["core/elf_symbolizer.py:109-160,280-285", "utils/elf.py:417-460,848-858"]},
+    "launcher_path": {"behavior": "CLI reads input, invokes decompressor, then ElfSymbolizer. This audit did not invoke that CLI or serialize a new ELF.", "source": "scripts/vmlinux_to_elf.py", "lines": [100, 113]}
+  },
+  "parser_observations": {
+    "invocation": "KallsymsFinder(Image, bit_size=64)",
+    "symbols_recovered_in_memory": 64417,
+    "whole_table_persisted": false,
+    "base_relative": false,
+    "absolute_percpu": false,
+    "is_64_bits": true,
+    "is_big_endian": false,
+    "uncompressed_kallsyms": false,
+    "addresses_offset": 13910016,
+    "names_offset": 14425856,
+    "token_table_offset": 15188480,
+    "token_index_offset": 15189504,
+    "warnings": 0,
+    "errors": 0,
+    "network_or_subprocess_attempts": 0,
+    "architecture_detector_called": true,
+    "strict_no_classification_condition_met": false,
+    "observations_admitted": false
+  },
+  "raw_evidence": {
+    "parser_log_sha256": "4a2361f8b2a0304792b3c2f52cbdad2d62a30a3fcffce00a43045622f345cd2f",
+    "bounded_metadata_sha256": "916e6800f236ddfb4741eb35fbc12575aabc9321004dcc82a2647446b2388a9e",
+    "location": "private mode-0700 RE-VM work child",
+    "exported": false
+  },
+  "predicates": {
+    "identities": "resolved: all frozen kernel/tool/predecessor identities match",
+    "transformations": "resolved from bounded pinned source inspection; original size and section metadata are not recovered",
+    "original_tuples_strength": "provisional: four unique T tuples observed; no strict-scope acceptance",
+    "aliases_neighbors": "provisional: four bounded neighborhoods observed with zero aliases; no strict-scope acceptance",
+    "intervals": "withheld: numeric predicates pass provisionally but parser invocation crossed the classification boundary",
+    "later_analysis": "blocked: a revised architecture-bypass parser invocation must be admitted before promoting envelopes"
+  },
+  "authority": {"instruction_analysis_admitted": false, "exact_function_ends": false, "call_return_or_xref_claim": false, "runtime_execution": false, "safe_teardown": false, "resource_ownership": false, "firmware_success": false, "radio_admission": false, "device_action": false, "hardware_support": false},
+  "escalation": {
+    "evidence": "KallsymsFinder constructor calls guess_architecture unconditionally at core/kallsyms.py:234. Lines 429-443 invoke ArchitectureDetector.guess on the image even with bit_size=64. The admitted source describes ISA-prologue signature detection at line 1377.",
+    "attempts": "One parser invocation; no reconstruction or repair attempt. No instruction disassembly or instruction bytes were output. Stopped when the internal architecture-classification path was confirmed.",
+    "unresolved_question": "How should the installed parser be invoked with frozen AArch64/little-endian identity while bypassing the forbidden architecture-classification path?",
+    "next_discriminator": "Explicitly admit a method-level invocation or in-memory override of guess_architecture using the frozen identity, without source expansion or a new ELF; then repeat bounded tuple checks under that revised contract."
+  }
+}

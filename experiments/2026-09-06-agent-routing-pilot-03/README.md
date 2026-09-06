@@ -72,3 +72,24 @@ The item is the only accepted unresolved reconstructed-symbol boundary audit in
 this cohort, so its comparison group is too small for a route change. The
 specialist stop was evidence-sensitive and correct; `baseline-01` remains
 unchanged and credits remain unavailable.
+
+## Excluded considered item nine
+
+The first reconstruction-provenance follow-up is excluded. Its exact inputs
+matched and the installed parser provisionally recovered the required bounded
+symbol neighborhoods, but source tracing then established that the parser
+constructor had unconditionally invoked architecture-signature classification.
+That effect contradicted the frozen no-classification method even though no
+instruction bytes or disassembly were published. The specialist stopped, kept
+all interval admissions false and did not pass the provisional result to later
+instruction analysis.
+
+The first independent review found only a publication-scanner-shaped refusal
+fixture and a missing review-ready timestamp; one packet repair resolved both
+without changing the stop or promoting evidence. The excluded attempt is not
+an accepted item and therefore does not supply a checkpoint comparison under
+the ledger schema. It is the first parser-method attempt in its comparison
+group and supplies no alternate-route measurement, so no routing change is
+justified. `baseline-01` remains unchanged and credits remain unavailable. A
+new work item must start from a prospectively frozen method that bypasses
+architecture guessing and cannot reuse this attempt's provisional tuples.

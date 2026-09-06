@@ -31,7 +31,7 @@
   "rolling_window_after_pilot": 10,
   "accepted_count": 6,
   "next_accepted_sequence": 7,
-  "next_considered_sequence": 9,
+  "next_considered_sequence": 10,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -312,6 +312,14 @@
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-06-mt6797-wlan-final-linkage-teardown-attribution/VALIDATION.md"
       }
+    },
+    {
+      "considered_sequence": 9,
+      "candidate_id": "vmlinux-to-elf-symbol-provenance",
+      "disposition": "excluded",
+      "reason": "abandoned",
+      "note": "All frozen identities matched and the specialist stopped without promoting provisional tuples after discovering that the installed parser unconditionally invoked architecture-signature classification despite the contract's strict prohibition. A fresh contract must bypass architecture guessing with the frozen AArch64 identity and must not reuse this run's provisional interval result.",
+      "evidence": "experiments/2026-09-06-vmlinux-to-elf-symbol-provenance/README.md"
     }
   ],
   "checkpoints": [

@@ -130,6 +130,7 @@
         "experiments/2026-09-06-mt6797-wlan-drv-init-lifecycle-source-attribution/",
         "experiments/2026-09-06-mt6797-connectivity-producer-source-attribution/",
         "experiments/2026-09-06-mt6797-wlan-final-linkage-teardown-attribution/",
+        "experiments/2026-09-06-vmlinux-to-elf-symbol-provenance/",
         "experiments/2026-09-06-mt6797-wmt-loader-ioctl-static-attribution-v3/",
         "experiments/2026-09-06-mt6797-mainline-connectivity-interface-design/",
         "experiments/2026-09-06-mt6797-consys-passive-boot/",
@@ -144,6 +145,7 @@
         "experiments/2026-09-06-mt6797-wlan-drv-init-lifecycle-source-attribution/README.md",
         "experiments/2026-09-06-mt6797-connectivity-producer-source-attribution/README.md",
         "experiments/2026-09-06-mt6797-wlan-final-linkage-teardown-attribution/README.md",
+        "experiments/2026-09-06-vmlinux-to-elf-symbol-provenance/README.md",
         "experiments/2026-09-06-mt6797-wmt-loader-ioctl-static-attribution-v3/README.md",
         "experiments/2026-09-06-mt6797-mainline-connectivity-interface-design/README.md",
         "experiments/2026-09-06-mt6797-consys-passive-boot/README.md"

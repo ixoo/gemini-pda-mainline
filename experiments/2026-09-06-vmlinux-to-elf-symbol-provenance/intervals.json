@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "state": "provisional-not-admitted",
+  "rule": "[target start, next distinct recovered symbol start)",
+  "exact_function_end_claim": false,
+  "region": {"name": ".kernel", "index": 1, "type": "PROGBITS", "flags": 7, "flags_are_synthetic": true, "start": "ffffffc000080000", "end_exclusive": "ffffffc0013960c0", "size": 20013248},
+  "targets": [
+    {"name": "do_connectivity_driver_init", "index": 24592, "address": "ffffffc0006e3a70", "type": "T", "matches": 1, "elf_address": "ffffffc0006e3a70", "aliases": [], "previous": {"index": 24591, "address": "ffffffc0006e3a10", "type": "W", "name": "do_ant_drv_init"}, "next": {"index": 24593, "address": "ffffffc0006e3be0", "type": "T", "name": "do_common_drv_init"}, "length": 368, "numeric_conditions_met": true, "admitted": false},
+    {"name": "do_wlan_drv_init", "index": 24597, "address": "ffffffc0006e3ed0", "type": "T", "matches": 1, "elf_address": "ffffffc0006e3ed0", "aliases": [], "previous": {"index": 24596, "address": "ffffffc0006e3e60", "type": "T", "name": "do_fm_drv_init"}, "next": {"index": 24598, "address": "ffffffc0006e3fe8", "type": "t", "name": "hci_stp_tx_thrd_func"}, "length": 280, "numeric_conditions_met": true, "admitted": false},
+    {"name": "mtk_wcn_wlan_gen3_init", "index": 25291, "address": "ffffffc0007415a0", "type": "T", "matches": 1, "elf_address": "ffffffc0007415a0", "aliases": [], "previous": {"index": 25290, "address": "ffffffc000741448", "type": "T", "name": "nicConfigProcSetCamCfgWrite"}, "next": {"index": 25292, "address": "ffffffc000741898", "type": "T", "name": "mtk_wcn_wlan_gen3_exit"}, "length": 760, "numeric_conditions_met": true, "admitted": false},
+    {"name": "mtk_wcn_wlan_gen3_exit", "index": 25292, "address": "ffffffc000741898", "type": "T", "matches": 1, "elf_address": "ffffffc000741898", "aliases": [], "previous": {"index": 25291, "address": "ffffffc0007415a0", "type": "T", "name": "mtk_wcn_wlan_gen3_init"}, "next": {"index": 25293, "address": "ffffffc000741938", "type": "t", "name": "kalMetCtrlWriteProcfs"}, "length": 160, "numeric_conditions_met": true, "admitted": false}
+  ],
+  "strength": "Observed original T distinguishes ordinary global text from W/w; this is not a claim based on reconstructed GLOBAL. Strict-scope admission remains withheld.",
+  "limitations": ["architecture-classification path was invoked internally", "padding, literal pools, aliases and tail sharing remain possible", "these envelopes are not exact function ends", "no call, return, xref, runtime or teardown inference"]
+}

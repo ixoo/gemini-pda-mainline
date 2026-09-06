@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "analysis_parent": "3ab35a2eced0081d6278f0ce76d2b310fe4570df",
+  "dispatch_head": "85fe579edc44266cec9ca3dc09127482f119d273",
+  "predecessor": {
+    "inputs.json": "89dd591276e93c58dee6f35a53eab3b8daa93dec565f71387a997adf1c3875a1",
+    "analysis.json": "d08406c637cc19c943c761b302d7591eeb99a334cd03ac0fdf69fb084046cd70",
+    "FREEZE.md": "c91f67779fe9a2c12c33a5b21ad4d46897824a14f0545a513265a39c71bc47b3",
+    "VALIDATION.md": "5937d2772d49ec578d540225b7517bcfc9510212b286ee32bc7eefe0941f4360"
+  },
+  "kernel": {
+    "compressed": "b53d191dc41d3f7364b0fa62b4bc920b1d013a1942b2e6b06727263fc56fcf4d",
+    "Image": "0570480c28bce1583636a240904df8da3af0b5e5b4bcc6254f5719b42bd723d0",
+    "vmlinux": "cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162",
+    "diagnostics": "3e58a3e5c2a43914558f761ccdf4488a9c49b869645b4152ad9b2ee05a2f10b8"
+  },
+  "tool": {
+    "distribution": "vmlinux-to-elf",
+    "version": "1.3.6",
+    "python": "3.12.3",
+    "launcher": "6140be2ee9638573c32b06e5c00ca387e647720b6c8434d123ede119ec11ca6b",
+    "script": "e3d2de8b5b7ac7ac4e8986369d7a034ae1bbae0af6e08b8d6e6c73c703cb3f15",
+    "kallsyms": "2bff550d9486e90782a4320cec7bc26b249ead5048f58839eec6578b52c06c2d",
+    "symbolizer": "13e79cf4dc37050547f22b65ad35070dceba17473df823c7311311c3fb9e1118",
+    "writer": "f974b1189155d2cea4773d378990e1b20be866f27719be0593fef3110c56891d",
+    "METADATA": "133b5a6b7fab8081a7c201f2fc63b8a2d7a215475c423c8fe3938aff6a708c43",
+    "RECORD": "ac8d68216a496f0f4dedede5e3ea0d72051bbab7983ab196189da05f5aebdc1f"
+  },
+  "targets": ["do_connectivity_driver_init", "do_wlan_drv_init", "mtk_wcn_wlan_gen3_init", "mtk_wcn_wlan_gen3_exit"],
+  "bounds": {"kernel_tuples": 1, "tool_distributions": 1, "targets": 4, "same_address_aliases_per_target": 4, "previous_distinct_per_target": 1, "next_distinct_per_target": 1, "instruction_decoding": false, "reconstruction": false, "network": false, "device": false}
+}

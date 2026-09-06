@@ -223,9 +223,14 @@ The remaining preparation order is:
    plus an explicit gen3 teardown
    edge. The exact retained reconstructed ELF cannot supply the required ranges:
    all four target symbols have zero size and its synthesized `GLOBAL` binding
-   does not prove original strength. Before further disassembly, admit and
-   validate a reconstruction-provenance/function-boundary rule or obtain
-   original sized-symbol evidence; see the [bounded unresolved result](../experiments/2026-09-06-mt6797-wlan-final-linkage-teardown-attribution/README.md).
+   does not prove original strength. The first reconstruction-provenance
+   attempt recovered provisional Kallsyms neighborhoods, but its parser
+   internally performed an unadmitted architecture-signature classification;
+   none of those intervals is an input to later analysis. Before further
+   disassembly, repeat the bounded tuple audit through an explicitly frozen
+   AArch64 parser method that prevents architecture guessing, or obtain
+   original sized-symbol evidence. See the [bounded unresolved result](../experiments/2026-09-06-mt6797-wlan-final-linkage-teardown-attribution/README.md)
+   and [excluded parser attempt](../experiments/2026-09-06-vmlinux-to-elf-symbol-provenance/README.md).
    Exit order must not be inferred by reversing initialization, and the vendor
    WMT ioctl must not be copied merely to run the retained loader.
 3. **Keyboard coverage:** finish coherent capture admission, finite owner key
