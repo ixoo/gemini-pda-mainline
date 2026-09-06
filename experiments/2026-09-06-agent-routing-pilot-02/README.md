@@ -22,3 +22,12 @@ one contiguous sequence local to this cohort. Rolling ten-item comparisons and
 five-item checkpoints follow
 [`project/WORKFLOW_IMPROVEMENT.md`](../../project/WORKFLOW_IMPROVEMENT.md).
 This record grants no build, publication, device or hardware authority.
+
+## Item-one early-signal checkpoint
+
+Accepted item 1, `mt6797-toprgu-authenticated-runtime-preparation`, triggered a
+safety-class checkpoint after review found and repaired action-boundary and
+durability defects. It is the cohort's only accepted item and has no comparable
+peer, so the checkpoint conclusion is `too-small`; baseline decision
+`baseline-01` remains unchanged. This checkpoint does not justify a settings
+change.

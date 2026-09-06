@@ -1,0 +1,26 @@
+#!/bin/busybox sh
+# SPDX-License-Identifier: MIT
+# The session generator admits this wrapper with one host-supplied boot ID.
+set -eu
+[ "$#" -eq 1 ] || exit 2
+expected_boot=$1
+case "$expected_boot" in
+  ????????-????-????-????-????????????) ;;
+  *) exit 2 ;;
+esac
+case "$expected_boot" in
+  *[!0-9a-f-]*) exit 2 ;;
+esac
+boot_id=$(/bin/busybox cat /proc/sys/kernel/random/boot_id) || exit 3
+[ "$boot_id" = "$expected_boot" ] || exit 3
+[ "$(/bin/busybox cat /run/a53/boot-id)" = "$boot_id" ] || exit 3
+[ ! -e /run/toprgu/restart-claimed ] || exit 4
+/bin/busybox mkdir /run/toprgu/restart-claimed || exit 4
+# Re-read both identities after the one-shot claim and immediately before the
+# marker and reboot.  A boot change after host sealing therefore reaches no
+# effectful wrapper action.
+boot_id=$(/bin/busybox cat /proc/sys/kernel/random/boot_id) || exit 3
+[ "$boot_id" = "$expected_boot" ] || exit 3
+[ "$(/bin/busybox cat /run/a53/boot-id)" = "$boot_id" ] || exit 3
+printf 'GEMINI_TOPRGU_V1 contract=toprgu-minimal-restart-v1 wrapper=busybox-reboot-n-f-v1 candidate=%s input_id=%s boot_id=%s phase=request count=1\n' '7.1.3-gemini-mt6797-toprgu-minimal-restart' 'INPUT_ID_PLACEHOLDER' "$boot_id" >/dev/kmsg
+exec /bin/busybox reboot -n -f

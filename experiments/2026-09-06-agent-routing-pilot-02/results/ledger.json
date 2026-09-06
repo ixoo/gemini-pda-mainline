@@ -29,10 +29,73 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 0,
-  "next_accepted_sequence": 1,
-  "next_considered_sequence": 1,
-  "considered_items": [],
-  "checkpoints": [],
+  "accepted_count": 1,
+  "next_accepted_sequence": 2,
+  "next_considered_sequence": 2,
+  "considered_items": [
+    {
+      "considered_sequence": 1,
+      "accepted_sequence": 1,
+      "candidate_id": "mt6797-toprgu-authenticated-runtime-preparation",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "implementation",
+      "risk_class": "hard-uncertainty",
+      "acceptance_contract": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/CANDIDATE_WORK_ITEM.md",
+      "parent": "e1553f472cb4a1c9ff0a193c0910cb83c26ddb1d",
+      "owner_route": {
+        "role": "gemini_implementer",
+        "model": "gpt-5.6-luna",
+        "effort": "high"
+      },
+      "review_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-06T09:38:26.611677Z",
+        "review_ready_at": "2026-09-06T10:02:28.227927Z",
+        "accepted_at": "2026-09-06T12:25:30.814649Z",
+        "timing_source": "observed UTC dispatch, first handoff and final-review timestamps",
+        "elapsed_minutes": 167.0700495333,
+        "review_rework_minutes": 143.0431120333,
+        "first_review_accepted": false,
+        "rework_cycles": 8,
+        "escalated": true,
+        "escalation_reason": "repeated review found action-boundary attribution and durability gaps requiring a specialist safety review",
+        "escalation_packet": {
+          "evidence": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/CANDIDATE_WORK_ITEM.md",
+          "attempts": [
+            "made selection consumption durable and published sealed evidence transactionally before the physical checkpoint",
+            "bound the restart action to the already sealed boot identity, exact runtime binaries and exact preserved log hashes in one authenticated request"
+          ],
+          "unresolved_question": "could any reset or boot-identity change between the evidence seal and wrapper invocation permit an action on an unsealed boot?",
+          "next_discriminating_check": "change the live boot identity after sealing and require refusal before wrapper invocation with consumed recovery-only classification"
+        },
+        "review_failure_class": "safety",
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/results/candidate-offline-validation-20260906.txt"
+      }
+    }
+  ],
+  "checkpoints": [
+    {
+      "id": "pilot-02-post-item-one-safety-repair",
+      "after_accepted_sequence": 1,
+      "after_considered_sequence": 1,
+      "trigger": "early-signal",
+      "trigger_item_ids": [
+        "mt6797-toprgu-authenticated-runtime-preparation"
+      ],
+      "comparable_item_ids": [
+        "mt6797-toprgu-authenticated-runtime-preparation"
+      ],
+      "conclusion": "too-small",
+      "evidence": "experiments/2026-09-06-agent-routing-pilot-02/README.md"
+    }
+  ],
   "settings_decisions": []
 }

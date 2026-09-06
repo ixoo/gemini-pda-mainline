@@ -1,0 +1,29 @@
+experiment=2026-09-06-mt6797-toprgu-minimal-restart
+timestamp_utc=2026-09-06T12:25:30Z
+candidate_construction=not_run
+device_access=none
+network_access=none
+private_key_bytes=not_read
+physical_admission=false
+integration_review=ACCEPT; gpt-5.6-sol medium; frozen staged preparation snapshot
+specialist_review=ACCEPT; gpt-6-astra medium; action-boundary review
+
+tests:
+  PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_candidate_build.py: PASS (12 tests)
+  PYTHONDONTWRITEBYTECODE=1 python3 -OO scripts/test_candidate_build.py: PASS (12 tests)
+  PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_candidate.py: PASS (19 tests)
+  PYTHONDONTWRITEBYTECODE=1 python3 -OO scripts/test_candidate.py: PASS (19 tests)
+  PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate.py: PASS (10 refusal fixtures; 195 manifest profiles audited)
+  python3 -m py_compile scripts/*.py: PASS
+  bash -n executable initramfs sources and scripts/build-serviceability-dtb.sh: PASS
+  shellcheck executable initramfs sources and scripts/build-serviceability-dtb.sh: PASS
+  ./scripts/check-repository: PASS; Linux-only kernel-artifact test skipped as designed
+  git diff --check: PASS
+
+source_pins:
+  current_tree_dt_transformer=550527d86331bd5eb037ba60e787dc7f132a136f005c89e8864c58721ed9dc7d
+  current_tree_dt_validator=332aa7baf063f817552c3394ef55c6448aa19c9703703fc6148475d9520b355a
+  authenticated_userspace_manifest=dfeb746505b7ad01423e91e952e76620f845b048ae2e8c5cf8a311e0d4443e60
+  recovery_known_hosts=d43262bd1f9c76d02eb633900f5e5502e2342d6c1b41586a2d7e524a2293768f
+
+classification=offline-preparation-accepted; candidate-and-device-gates-pending

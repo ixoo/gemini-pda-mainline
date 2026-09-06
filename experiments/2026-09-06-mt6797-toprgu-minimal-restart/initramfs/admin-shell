@@ -1,0 +1,8 @@
+#!/bin/busybox sh
+# SPDX-License-Identifier: MIT
+# shellcheck shell=dash
+export PATH=/bin
+# Do not install an effectful startup hook in the administrative shell.  The
+# only admitted restart path is the host-selected, no-argument wrapper.
+export PS1='GEMINI-TOPRGU-SSH# '
+exec /bin/busybox ash "$@"

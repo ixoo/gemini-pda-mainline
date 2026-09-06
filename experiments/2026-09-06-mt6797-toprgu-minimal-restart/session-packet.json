@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "experiment": "2026-09-06-mt6797-toprgu-minimal-restart",
+  "candidate_release": "7.1.3-gemini-mt6797-toprgu-minimal-restart",
+  "transport": {
+    "interface": "usb0",
+    "address": "10.15.19.82/24",
+    "port": 22,
+    "usb_deadline_seconds": 90,
+    "ssh_exchange_deadline_seconds": 15,
+    "host_verification": "strict pinned known_hosts; no trust-on-first-use",
+    "authentication": "one provisioned Ed25519 public key; password and forwarding refused"
+  },
+  "preselection_refusal": {
+    "offline_candidate_deployment_source_or_recovery_preflight_failure": "refusal; no physical action budget consumed"
+  },
+  "postselection": {
+    "selection_count": 1,
+    "stable_idle_seconds_minimum": 45,
+    "restart_request_count": 1,
+    "disconnect_reset_bound_seconds": 5,
+    "late_disconnect_seconds": "greater-than-5-and-less-than-25=inconclusive",
+    "timeout_reset_seconds": "25-through-40=inconclusive",
+    "no_reset_by_seconds": 40,
+    "automatic_reset_or_missing_identity": "inconclusive; preserve evidence and recover; no retry",
+    "runtime_identity_auth_serviceability_or_logger_failure": "inconclusive; selection consumed; no SSH retry; preserve evidence and recover only"
+  },
+  "markers": {
+    "wrapper_contract": "busybox-reboot-n-f-v1",
+    "entry": "GEMINI_TOPRGU_V1 contract=toprgu-minimal-restart-v1 wrapper=busybox-reboot-n-f-v1 candidate=<release> input_id=<input_id> boot_id=<mainline_boot_id> phase=entry",
+    "request": "GEMINI_TOPRGU_V1 contract=toprgu-minimal-restart-v1 wrapper=busybox-reboot-n-f-v1 candidate=<release> input_id=<input_id> boot_id=<mainline_boot_id> phase=request count=1",
+    "kernel_line": "reboot: Restarting system",
+    "order": "entry < request < kernel_line"
+  },
+  "input_binding": "input_id is the SHA-256 of the exact Image.gz, serviceability DTB, foundation initramfs, userspace SHA256SUMS, credential public/host files and published initramfs source digests; it is substituted into both markers and candidate.json",
+  "admission_binding": "private admission pins the exact clean pushed source commit, candidate and deployment receipt, predecessor, executor, classifier, candidate validator, deployment parser, session packet, base collector, recovery host pin, candidate host pin and administrator public key; custodian exclusivity and one observation are explicit",
+  "recovery": {
+    "known_hosts_sha256": "d43262bd1f9c76d02eb633900f5e5502e2342d6c1b41586a2d7e524a2293768f",
+    "collector_sha256": "9047084f3012aff47e23e56498d4bc0ae6f8fb7e4f15caec10abb6c15e9a9b3b",
+    "partition_inventory_tool_sha256": "306062ab82a4e0e173f241e1bfec72960057d67ac957319b378f80c5eaaedf08",
+    "device_key": "artifacts/credentials/gemini_ed25519 mode-0600; bytes not recorded",
+    "required_boot_id": "different from deployment OS and mainline",
+    "watchdog_boot_reason": "supporting evidence only"
+  },
+  "admitted_remote_command": "/bin/reboot <host-supplied-expected-mainline-boot-id>",
+  "physical_admission": false,
+  "device_action": "none"
+}

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-06-mt6797-toprgu-minimal-restart` |
-| Status | Buildbox-validated package; device readiness remains false |
+| Status | Offline candidate preparation accepted; private candidate and device gates remain pending |
 | Subsystem | MediaTek watchdog system restart |
 | Device variant | Existing named Gemini PDA; retail subvariant unconfirmed |
 | Date | 2026-09-06 |
@@ -46,6 +46,44 @@ targeted refusal-fixture checks. The result is recorded in
 The validator intentionally checks the frozen parent patch for the retained
 restart-path `WDT_MODE_AUTO_START`; it does not claim source replay, a build,
 hardware support, or a boot candidate.
+
+## Candidate preparation tooling
+
+The public preparation packet is now frozen in [`session-packet.json`](session-packet.json).
+`scripts/build-serviceability-dtb.sh` source-pins the current-tree transformer
+and replays it with the new package DT identity; `scripts/validate-dtb.py`
+independently checks the serviceability/resource and disabled-action closures.
+`scripts/build-candidate.py` and `scripts/validate-candidate.py` compose and
+audit the fetched authenticated userspace, fresh provisioned transport files,
+and Android-v0/LK payload. Generated candidates remain private below ignored
+`artifacts/` and are never installed by these tools.
+
+`scripts/installer.py` source-pins the reviewed installer and derives a private,
+candidate- and predecessor-bound guarded boot2 write/readback/shutdown
+executable; its default mode only validates that derivation. The derived
+installer refuses changed identity, active/mounted/held/swapped targets,
+unstable power, size or predecessor mismatches, and retains exactly one write,
+flush, independent full readback, then clean shutdown.
+
+`scripts/session.py` is the pure one-attempt classifier. It admits only the
+candidate wrapper whose contract is `busybox reboot -n -f`, after at least 45
+seconds of stable idle and a complete pre-action log seal. It requires one
+ordered, input- and mainline-boot-bound ramoops marker chain, SSH disconnect
+within five seconds, and changed-ID Gemian recovery. `scripts/run-session.py`
+is the default-dry-run executable envelope: it source-pins the accepted SSH,
+log-seal and recovery components, derives a strict-host recovery collector,
+arms that collector before the interactive physical-selection checkpoint, and
+owns the single request and final classification. Every post-selection failure
+consumes the attempt and permits preservation/recovery only. The offline tests
+exercise these refusal and state-machine branches without device, network,
+private-key, or boot-image access.
+
+The exact preparation snapshot passed independent Sol Medium integration review
+and Astra Medium action-boundary review. The final offline receipt is
+[`results/candidate-offline-validation-20260906.txt`](results/candidate-offline-validation-20260906.txt).
+This acceptance covers tooling only: private candidate construction, complete
+validation against the pinned private inputs, guarded deployment, physical
+selection, and runtime behavior remain separate gates.
 
 The prior Buildbox attempt at exact commit
 `e70982c09a16a0bb8b152a0dfcada7db69d2a0bf` failed before applying 0543 because
