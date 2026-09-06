@@ -5,10 +5,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-05-agent-routing-pilot-01` |
-| Status | running |
+| Status | complete; ten accepted offline items measured, baseline retained |
 | Subsystem | Project coordination and Codex routing settings |
 | Device variant | None; offline work only |
-| Date(s) | 2026-09-05 onward |
+| Date(s) | 2026-09-05 through 2026-09-06 |
 | Investigator(s) | Integration owner and assigned work-item owners/reviewers |
 | Tracking issue | None |
 
@@ -76,9 +76,9 @@ when every item in the cohort segment uses the same observed source and unit.
 
 ## Observations
 
-The contiguous ledger now contains thirteen considered candidates: nine eligible
+The contiguous ledger contains fourteen considered candidates: ten eligible
 accepted offline items, one cohort-bootstrap exclusion, one device-session
-exclusion and two pre-dispatch tooling-contract exclusions. All nine accepted
+exclusion and two pre-dispatch tooling-contract exclusions. All ten accepted
 items missed first-review acceptance. The first two
 required escalation: the integration item exposed live-ledger fixture coupling,
 and the dynamic reserved-memory implementation needed corrected OF semantics,
@@ -133,6 +133,18 @@ the 33 refusals meaningful, added a positive generic-CONSYS control and proved
 that WLAN promotion fails for its missing transaction attribution. No source
 body, private evidence, device action, VM or build entered the item. Credits
 remain unavailable.
+
+Item ten implemented the isolated MT6797 TOPRGU restart diagnostic on frozen
+parent `f7bc2c9a...`: ordinary restart retains the match-data auto-start bit,
+priority narrows from 255 to 130, and the start/adoption mutations are removed.
+The first complete review accepted the kernel delta and profile composition but
+found that two refusal fixtures tested generic structure rather than their
+named semantics, the new validator lacked SPDX metadata, and the integrated
+receipt was incomplete. Two bounded repairs added reason-specific semantic
+fixtures, frozen watchdog-patch identities and blob transitions, the license
+identifier, corrected prose, and complete artifact identities. Final review
+passed. No source replay, build or hardware action belongs to this accepted
+offline item; credits remain unavailable.
 
 The proposed deterministic read-only firmware traversal tool is considered
 sequence ten but is not an accepted offline item. Two pre-dispatch contract
@@ -236,6 +248,43 @@ misses have different immediate causes. The evidence supports keeping the
 semantic-review gate; it does not justify changing model, effort or concurrency
 settings. The baseline route remains in effect.
 
+## Post-item-ten publication checkpoint
+
+Checkpoint `pilot-01-post-item-ten-publication-repair` closes accepted sequence
+10 and considered sequence 14. It is triggered by the missing SPDX identifier
+found in item ten's first complete review. The defect was confined to an
+uncommitted offline validator, repaired before publication, and independently
+rechecked with normal and optimized execution. No source, build, device or
+private-evidence boundary was crossed.
+
+This single diagnostic-patch item is not a comparable settings cohort. The
+review gate detected and corrected the publication defect; changing model,
+effort or concurrency from one observation would not be evidence-based. The
+conclusion is `no-change`.
+
+## Item-ten cohort close
+
+Checkpoint `pilot-01-item-ten-close` formally closes ten accepted items and
+four excluded candidates across considered sequences 1 through 14. Across all
+ten accepted items, median elapsed time is 28.9102845667 minutes, median
+review/rework time is 18.4102845667 minutes, first-review acceptance is 0/10,
+and four items escalated for distinct reasons. These aggregate values describe
+the cohort but are not a like-work performance comparison.
+
+The largest comparable subgroup remains the four-item
+`mt6797-kernel-compile-helper-v1` group: median elapsed 34.5556433833 minutes,
+median review/rework 23.4864866834 minutes, first-review acceptance 0/4 and no
+escalations. The hard-reasoning group has three items: median elapsed 20.55
+minutes, median review/rework 9.6 minutes, first-review acceptance 0/3 and two
+different escalations. Every other acceptance shape has at most one item.
+Credits are unavailable throughout.
+
+No subgroup reaches the five-comparable-item threshold, and the defects do not
+identify one routing variable as causal. The cohort therefore closes with
+`no-change`: baseline route `baseline-01` remains effective. The successor is
+[pilot 02](../2026-09-06-agent-routing-pilot-02/README.md), which inherits that
+decision and begins a new rolling cohort.
+
 Creation of this loop remains excluded because its eligibility and timing
 contract did not exist before work began. The passive CONSYS ownership snapshot
 also remains excluded as a device session. The stopped tooling contract is an
@@ -261,19 +310,19 @@ each, so they are not used as performance comparators.
 
 ## Analysis
 
-The required interval review concludes `too-small`. The review misses justify
+The cohort-close review concludes `no-change`. The review misses justify
 continuing to measure precise acceptance defects, but do not establish that one
-model, effort or concurrency setting caused them. No safety, publication,
-provenance or scope-containment failure was accepted into the repository. A
-settings experiment still lacks the five comparable items required by policy.
+model, effort or concurrency setting caused them. Publication and
+scope-containment defects were caught and repaired before publication; no
+subgroup reaches the five-comparable-item threshold required for a settings
+experiment.
 
 ## Conclusion
 
-No settings change. The frozen baseline remains in effect while the cohort
-continues toward ten eligible accepted offline items.
+No settings change. Pilot 01 is complete at ten accepted offline items, and the
+frozen baseline remains in effect for pilot 02.
 
 ## Follow-up
 
-At cohort close, link the next numbered cohort and update only the effective
-decision and active pointer in `project/workflow-improvement.json`. Exact
-chronology, counts, exclusions and measurements remain in this experiment.
+Continue measurement in pilot 02. Exact pilot-01 chronology, counts, exclusions
+and measurements remain immutable in this experiment after publication.

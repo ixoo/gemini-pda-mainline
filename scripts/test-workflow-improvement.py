@@ -82,12 +82,22 @@ def accepted(pointer: dict, number: int, *, risk: str = "routine",
     }
 
 
+def active_cohort(pointer: dict) -> dict:
+    return next(cohort for cohort in pointer["cohorts"]
+                if cohort["id"] == pointer["active_cohort_id"])
+
+
 def add_items(pointer: dict, count: int) -> None:
-    ledger_path = ROOT / pointer["cohorts"][0]["ledger"]
+    ledger_path = ROOT / active_cohort(pointer)["ledger"]
     ledger = MODULE.load_json(ledger_path)
-    bootstrap = next(item for item in ledger["considered_items"]
-                     if item.get("candidate_id") == "workflow-loop-bootstrap")
-    ledger["considered_items"] = [copy.deepcopy(bootstrap)]
+    ledger["considered_items"] = [{
+        "considered_sequence": 1,
+        "candidate_id": "workflow-loop-bootstrap",
+        "disposition": "excluded",
+        "reason": "cohort-bootstrap",
+        "note": "Synthetic fixture bootstrap.",
+        "evidence": "project/WORKFLOW_IMPROVEMENT.md",
+    }]
     ledger["checkpoints"] = []
     ledger["settings_decisions"] = []
     ledger["considered_items"].extend(accepted(pointer, number) for number in range(1, count + 1))
@@ -95,14 +105,16 @@ def add_items(pointer: dict, count: int) -> None:
     ledger["next_accepted_sequence"] = count + 1
     ledger["next_considered_sequence"] = count + 2
     pointer["_test_ledger"] = ledger
+    pointer["_test_ledger_path"] = ledger_path.resolve()
 
 
 def use_test_ledger(pointer: dict):
     original = MODULE.load_json
     test_ledger = pointer.pop("_test_ledger")
+    test_ledger_path = pointer.pop("_test_ledger_path")
 
     def load(path: Path) -> dict:
-        if path.name == "ledger.json":
+        if path.resolve() == test_ledger_path:
             return test_ledger
         return original(path)
     MODULE.load_json = load
@@ -291,7 +303,7 @@ def main() -> None:
     first = decision(bad, ledger, "observing-one", state="observing")
     second = decision(bad, ledger, "observing-two", before=first["settings_after"])
     ledger["settings_decisions"] = [first, second]
-    rejected_call(lambda: MODULE.validate_ledger(bad["cohorts"][0], ledger),
+    rejected_call(lambda: MODULE.validate_ledger(active_cohort(bad), ledger),
                   "prior settings experiment remains observing")
 
     snapshot = MODULE.route_snapshot(pointer["effective_decision"])
@@ -316,8 +328,9 @@ def main() -> None:
     add_items(bad, 9)
     ledger = bad["_test_ledger"]
     checkpoint(ledger, 5)
-    bad["cohorts"][0]["state"] = "complete"
-    successor = copy.deepcopy(bad["cohorts"][0])
+    active = active_cohort(bad)
+    active["state"] = "complete"
+    successor = copy.deepcopy(active)
     successor.update({"id": "successor", "state": "collecting"})
     bad["cohorts"].append(successor)
     bad["active_cohort_id"] = "successor"

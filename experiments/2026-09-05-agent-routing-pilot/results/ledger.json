@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 9,
-  "next_accepted_sequence": 10,
-  "next_considered_sequence": 14,
+  "accepted_count": 10,
+  "next_accepted_sequence": 11,
+  "next_considered_sequence": 15,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -451,6 +451,46 @@
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-06-mt6797-emi-routing-source-sweep/README.md"
       }
+    },
+    {
+      "considered_sequence": 14,
+      "accepted_sequence": 10,
+      "candidate_id": "mt6797-toprgu-minimal-restart",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "implementation",
+      "risk_class": "cross-file",
+      "review_comparison_group": "mt6797-runtime-diagnostic-patch-v1",
+      "acceptance_contract": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/WORK_ITEM.md",
+      "parent": "f7bc2c9adc1210c58d2dc14e645336f9ae515f42",
+      "owner_route": {
+        "role": "gemini_implementer",
+        "model": "gpt-5.6-luna",
+        "effort": "high"
+      },
+      "review_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-06T08:24:29Z",
+        "review_ready_at": "2026-09-06T08:37:44Z",
+        "accepted_at": "2026-09-06T08:53:09Z",
+        "timing_source": "observed UTC dispatch, first complete handoff and final repair-2 review timestamps",
+        "elapsed_minutes": 28.6666666667,
+        "review_rework_minutes": 15.4166666667,
+        "first_review_accepted": false,
+        "rework_cycles": 2,
+        "escalated": false,
+        "escalation_reason": null,
+        "escalation_packet": null,
+        "review_failure_class": "publication",
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/results/offline-validation-20260906.txt"
+      }
     }
   ],
   "checkpoints": [
@@ -536,6 +576,43 @@
         "mt6797-emi-routing-primary-source-sweep"
       ],
       "conclusion": "too-small",
+      "evidence": "experiments/2026-09-05-agent-routing-pilot/README.md"
+    },
+    {
+      "id": "pilot-01-post-item-ten-publication-repair",
+      "after_accepted_sequence": 10,
+      "after_considered_sequence": 14,
+      "trigger": "early-signal",
+      "trigger_item_ids": [
+        "mt6797-toprgu-minimal-restart"
+      ],
+      "comparable_item_ids": [
+        "mt6797-toprgu-minimal-restart"
+      ],
+      "conclusion": "no-change",
+      "evidence": "experiments/2026-09-05-agent-routing-pilot/README.md"
+    },
+    {
+      "id": "pilot-01-item-ten-close",
+      "after_accepted_sequence": 10,
+      "after_considered_sequence": 14,
+      "trigger": "cohort-close",
+      "trigger_item_ids": [
+        "mt6797-toprgu-minimal-restart"
+      ],
+      "comparable_item_ids": [
+        "mt6797-infracfg-topic-first-ordering",
+        "mt6797-dynamic-reserved-binding",
+        "mt6797-emi-abi-kernel-compile",
+        "mt6797-remap-fields-kernel-compile",
+        "mt6797-emi-domain-attribution",
+        "mt6797-firmware-nvram-handler-attribution",
+        "mt6797-resource-layout-kernel-compile",
+        "mt6797-emi-service-gate-kernel-compile",
+        "mt6797-emi-routing-primary-source-sweep",
+        "mt6797-toprgu-minimal-restart"
+      ],
+      "conclusion": "no-change",
       "evidence": "experiments/2026-09-05-agent-routing-pilot/README.md"
     }
   ],

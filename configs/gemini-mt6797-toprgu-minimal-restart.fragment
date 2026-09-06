@@ -1,0 +1,2 @@
+# Offline diagnostic profile: identify the minimal MT6797 restart candidate.
+CONFIG_LOCALVERSION="-gemini-mt6797-toprgu-minimal-restart"

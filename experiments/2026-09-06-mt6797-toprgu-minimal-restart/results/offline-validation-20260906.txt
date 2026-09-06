@@ -1,0 +1,49 @@
+validation=mt6797-toprgu-minimal-restart
+generated_utc=2026-09-06T08:49:53Z
+parent_repository_commit=f7bc2c9adc1210c58d2dc14e645336f9ae515f42
+linux_version=7.1.3
+linux_source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patch_sha256=17fa5f4b1c478525298977c72c5bfa620fe1aa5aa46ce06743c6139d2983fa0d
+manifest_sha256=5a95bf063b986848c38be1685a073726d891792a80578cd03cbada92c3c8ad21
+canonical_series_sha256=53bc826019fc10610eac5dc0afc8166cc0e8ebe15f39e2eb676700f6c7c6203a
+experiment_series_sha256=1b475e2890f161b9cc9cf423dbaee0ee14224b53171936c9189df841f28f2997
+localversion_fragment_sha256=7fbb3db6ce8525e27aababd1aa8fb3794b98027821f683349c7b31a3b2616ffc
+profile_proposal_sha256=b678c5dd49fffdd21b555b8e5517864ef2592901c2eed30099fd418643545df7
+parent_series_entries=529
+experiment_series_entries=530
+manifest_profiles_audited=195
+semantic_fixtures=10
+result=PASS
+changed_paths=configs/gemini-mt6797-toprgu-minimal-restart.fragment
+changed_paths=experiments/2026-09-06-mt6797-toprgu-minimal-restart/README.md
+changed_paths=experiments/2026-09-06-mt6797-toprgu-minimal-restart/WORK_ITEM.md
+changed_paths=experiments/2026-09-06-mt6797-toprgu-minimal-restart/proposal.json
+changed_paths=experiments/2026-09-06-mt6797-toprgu-minimal-restart/results/offline-validation-20260906.txt
+changed_paths=experiments/2026-09-06-mt6797-toprgu-minimal-restart/scripts/validate.py
+changed_paths=patches/series-mt6797-toprgu-minimal-restart
+changed_paths=patches/v7.1.3/0543-watchdog-mtk-minimal-MT6797-restart.patch
+integrated_path=kernel/manifest.json
+integrated_path=patches/series
+fixture=priority-128 expected=SEMANTIC_MT6797_PRIORITY_130 observed=SEMANTIC_MT6797_PRIORITY_130 outcome=PASS
+fixture=priority-255 expected=SEMANTIC_MT6797_PRIORITY_130 observed=SEMANTIC_MT6797_PRIORITY_130 outcome=PASS
+fixture=lost-restart-auto-start expected=SEMANTIC_RESTART_AUTO_START_RETAINED observed=SEMANTIC_RESTART_AUTO_START_RETAINED outcome=PASS
+fixture=changed-non-mt6797-priority expected=FROZEN_SHA256:patches/v7.1.3/0087-watchdog-mtk-prioritize-MT6797-TOPRGU-restart.patch observed=FROZEN_SHA256:patches/v7.1.3/0087-watchdog-mtk-prioritize-MT6797-TOPRGU-restart.patch outcome=PASS
+fixture=mt6797-init-policy-branch expected=SEMANTIC_NO_MT6797_INIT_POLICY_BRANCH observed=SEMANTIC_NO_MT6797_INIT_POLICY_BRANCH outcome=PASS
+fixture=start-match-data-auto-start expected=SEMANTIC_NO_START_MATCH_AUTO_START observed=SEMANTIC_NO_START_MATCH_AUTO_START outcome=PASS
+fixture=frozen-recovery-chain expected=FROZEN_SHA256:patches/v7.1.3/0489-watchdog-mediatek-validate-recovery-owner-read-only.patch observed=FROZEN_SHA256:patches/v7.1.3/0489-watchdog-mediatek-validate-recovery-owner-read-only.patch outcome=PASS
+fixture=frozen-reset-controller-chain expected=FROZEN_SHA256:patches/v7.1.3/0090-watchdog-mtk-expose-MT6797-TOPRGU-resets.patch observed=FROZEN_SHA256:patches/v7.1.3/0090-watchdog-mtk-expose-MT6797-TOPRGU-resets.patch outcome=PASS
+fixture=frozen-recovery-kunit-chain expected=FROZEN_SHA256:patches/v7.1.3/0387-watchdog-mediatek-test-one-shot-recovery-takeover.patch observed=FROZEN_SHA256:patches/v7.1.3/0387-watchdog-mediatek-test-one-shot-recovery-takeover.patch outcome=PASS
+fixture=structural-envelope expected=STRUCTURE_PATH_SCOPE observed=STRUCTURE_PATH_SCOPE outcome=PASS
+checks=normal-validator PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate.py PASS
+checks=optimized-validator PYTHONDONTWRITEBYTECODE=1 python3 -OO scripts/validate.py PASS; output-identical
+checks=python-ast-json PYTHONDONTWRITEBYTECODE=1 python3 ast/json checks PASS
+checks=git-diff-check git diff --check PASS
+checks=bytecode-cache find scripts -name __pycache__ none
+patch_replay=NOT RUN (Linux source tree unavailable by contract)
+checkpatch=NOT RUN (scripts/checkpatch.pl absent in patch repository)
+kernel_build=NOT RUN (no Buildbox action in implementation scope)
+hardware_access=NONE
+device_action=NONE
+support_claim=NONE
+author_metadata=Synthetic non-certifying experiment identity; no DCO sign-off
+known_limit=Static patch semantics and profile inheritance are validated; exact source replay, compilation, and hardware equivalence remain later gates.

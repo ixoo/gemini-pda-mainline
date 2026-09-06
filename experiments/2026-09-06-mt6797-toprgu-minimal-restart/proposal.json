@@ -1,0 +1,40 @@
+{
+  "profile": "mt6797-toprgu-minimal-restart",
+  "base": "defconfig",
+  "patch_series": "patches/series-mt6797-toprgu-minimal-restart",
+  "parent_profile": "da921x-current-service-control",
+  "parent_series": "patches/series-before-v4-conversion-correction",
+  "fragments": [
+    "configs/gemini-handoff.fragment",
+    "configs/gemini-usbdiag.fragment",
+    "configs/gemini-clk-ignore-unused.fragment",
+    "configs/gemini-observability.fragment",
+    "configs/gemini-fbcon-rotation.fragment",
+    "configs/gemini-keyboard.fragment",
+    "configs/gemini-keyboard-wrrd.fragment",
+    "configs/gemini-keyboard-manual-reboot.fragment",
+    "configs/gemini-smp8.fragment",
+    "configs/gemini-a72-observer.fragment",
+    "configs/gemini-a72-observer-initcall-blacklist.fragment",
+    "configs/gemini-dvfsp-handoff-owner.fragment",
+    "configs/gemini-dvfsp-i2c6-consumer.fragment",
+    "configs/gemini-da921x-legacy-bind.fragment",
+    "configs/gemini-da921x-resource-only-provider.fragment",
+    "configs/gemini-da921x-provider-modules-control.fragment",
+    "configs/gemini-arm64-entry-ledger.fragment",
+    "configs/gemini-da921x-lk-clock-readonly-provider.fragment",
+    "configs/gemini-i2c6-firmware-writer-transaction-window.fragment",
+    "configs/gemini-da921x-same-value-write.fragment",
+    "configs/gemini-current-service-control.fragment",
+    "configs/gemini-mt6797-toprgu-minimal-restart.fragment"
+  ],
+  "kernel": {
+    "version": "7.1.3",
+    "sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc"
+  },
+  "patch": "v7.1.3/0543-watchdog-mtk-minimal-MT6797-restart.patch",
+  "hardware": "not accessed",
+  "build": "not run",
+  "author_metadata": "Synthetic non-certifying experiment identity; no DCO sign-off",
+  "submission_ready": false
+}
