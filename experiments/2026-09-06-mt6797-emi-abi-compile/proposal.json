@@ -1,5 +1,5 @@
 {
-  "status": "pre-Buildbox integration accepted; clean pushed build pending",
+  "status": "Buildbox compilation and object linkage accepted",
   "frozen_parent": "9e3851500113515392e97fb8d21bf83ed4c6f2a8",
   "linux_source": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
   "profile": "mt6797-hif-parser-compile",
@@ -17,6 +17,10 @@
   "runtime_caller": "none; linked object is intentionally unreferenced",
   "hardware_access": "NONE",
   "prebuild_integration_review": "PASS",
+  "buildbox_commit": "6e52fb732b1bcf3ffc936b8f9fdbd8d38089d9a2",
+  "buildbox_job": "6e52fb732b1bcf3ffc936b8f9fdbd8d38089d9a2-mt6797-hif-parser-compile-m0",
+  "package_inventory_sha256": "402f7d23d1b3ae76ecb9ac4d83749092ef863142807351d465711f6c997f6fb9",
+  "object_sha256": "c0fe41eb1248c7cce8b68497697e256c2bcd5a6daac17181909652fad7d68d2d",
   "submission_ready": false,
   "author_metadata": "Synthetic non-certifying experiment identity; no DCO sign-off"
 }

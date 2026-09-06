@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 2,
-  "next_accepted_sequence": 3,
-  "next_considered_sequence": 5,
+  "accepted_count": 3,
+  "next_accepted_sequence": 4,
+  "next_considered_sequence": 6,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -141,6 +141,45 @@
         "credit_source": "unavailable",
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-06-mt6797-dynamic-reserved-binding/README.md"
+      }
+    },
+    {
+      "considered_sequence": 5,
+      "accepted_sequence": 3,
+      "candidate_id": "mt6797-emi-abi-kernel-compile",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "implementation",
+      "risk_class": "cross-file",
+      "acceptance_contract": "experiments/2026-09-06-mt6797-emi-abi-compile/WORK_ITEM.md",
+      "parent": "9e3851500113515392e97fb8d21bf83ed4c6f2a8",
+      "owner_route": {
+        "role": "gemini_implementer",
+        "model": "gpt-5.6-luna",
+        "effort": "high"
+      },
+      "review_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-06T03:50:50Z",
+        "review_ready_at": "2026-09-06T03:59:23.709457Z",
+        "accepted_at": "2026-09-06T04:20:57.677206Z",
+        "timing_source": "observed UTC dispatch, first handoff and final-review timestamps",
+        "elapsed_minutes": 30.1279534333,
+        "review_rework_minutes": 21.56612915,
+        "first_review_accepted": false,
+        "rework_cycles": 2,
+        "escalated": false,
+        "escalation_reason": null,
+        "escalation_packet": null,
+        "review_failure_class": null,
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-06-mt6797-emi-abi-compile/BUILD_RESULT.md"
       }
     }
   ],

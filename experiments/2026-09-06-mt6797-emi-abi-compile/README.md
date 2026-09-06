@@ -18,6 +18,7 @@ with machine-readable metadata in [proposal.json](proposal.json) and
 proposal-series replay pass; only the intentionally synthetic missing-DCO and
 new-file/MAINTAINERS findings remain. The
 [pre-Buildbox integration review](INTEGRATION_REVIEW.md) accepts the exact
-shared-series selection. The arm64 Buildbox compile remains pending the clean
-pushed integration commit. This is compile evidence only, not Wi-Fi or hardware
-support.
+shared-series selection. The [Buildbox result](BUILD_RESULT.md) and bounded
+[object evidence](object-evidence.txt) now close that gate for exact repository
+commit `6e52fb732b1bcf3ffc936b8f9fdbd8d38089d9a2`. This is compile evidence only,
+not Wi-Fi or hardware support.

@@ -1,0 +1,48 @@
+collection_utc=2026-09-06T04:18:49Z
+repository_commit=6e52fb732b1bcf3ffc936b8f9fdbd8d38089d9a2
+buildbox_job=6e52fb732b1bcf3ffc936b8f9fdbd8d38089d9a2-mt6797-hif-parser-compile-m0
+profile=mt6797-hif-parser-compile
+object=drivers/net/wireless/mediatek/mt6797/emi-abi.o
+command_record=drivers/net/wireless/mediatek/mt6797/.emi-abi.o.cmd
+source=drivers/net/wireless/mediatek/mt6797/emi-abi.c
+header=drivers/net/wireless/mediatek/mt6797/emi-abi.h
+
+$ sha256sum "$object" "$command_record" "$source" "$header"
+c0fe41eb1248c7cce8b68497697e256c2bcd5a6daac17181909652fad7d68d2d  drivers/net/wireless/mediatek/mt6797/emi-abi.o
+8de4ed4f27ffb9e49fd33e1db36a50e473c314109fc2e3e3dc07f3f31b91384a  drivers/net/wireless/mediatek/mt6797/.emi-abi.o.cmd
+30a3b12a1f8ffeccef9e1e9ffa88c65a20fbdbb61134f70c369148e4b090c688  drivers/net/wireless/mediatek/mt6797/emi-abi.c
+332007a278e478e96a442d1beb4d39a30d3ca11f1a24e756107562c84dc0d93b  drivers/net/wireless/mediatek/mt6797/emi-abi.h
+
+$ readelf -h "$object" | grep -E "Class:|Data:|Type:|Machine:"
+  Class:                             ELF64
+  Data:                              2's complement, little endian
+  Type:                              REL (Relocatable file)
+  Machine:                           AArch64
+
+$ nm "$object" | grep " mt6797_emi_"
+00000000000000ec T mt6797_emi_decode_result
+0000000000000000 T mt6797_emi_prepare
+
+$ nm -u "$object"
+(no output)
+
+$ ar t drivers/net/wireless/mediatek/mt6797/built-in.a | grep "emi-abi.o"
+/workspace/gemini-pda/build/linux-7.3-rc1-mt6797-hif-parser-compile/drivers/net/wireless/mediatek/mt6797/emi-abi.o
+
+$ grep -R -n --include="*.c" --include="*.h" "mt6797_emi_prepare\|mt6797_emi_decode_result" drivers/net/wireless/mediatek/mt6797
+drivers/net/wireless/mediatek/mt6797/emi-abi.h:60:int mt6797_emi_prepare(const struct mt6797_emi_owner_range *owner,
+drivers/net/wireless/mediatek/mt6797/emi-abi.h:67:struct mt6797_emi_result mt6797_emi_decode_result(unsigned long long raw);
+drivers/net/wireless/mediatek/mt6797/emi-abi.c:4:int mt6797_emi_prepare(const struct mt6797_emi_owner_range *owner,
+drivers/net/wireless/mediatek/mt6797/emi-abi.c:45:struct mt6797_emi_result mt6797_emi_decode_result(unsigned long long raw)
+
+$ grep -o -- "-D__KERNEL__" "$command_record"
+-D__KERNEL__
+
+$ sed -n '1p' "$command_record"
+savedcmd_drivers/net/wireless/mediatek/mt6797/emi-abi.o := ccache aarch64-linux-gnu-gcc -Wp,-MMD,drivers/net/wireless/mediatek/mt6797/.emi-abi.o.d -nostdinc -I/workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-provider-compile-source/arch/arm64/include -I./arch/arm64/include/generated -I/workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-provider-compile-source/include -I./include -I/workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-provider-compile-source/arch/arm64/include/uapi -I./arch/arm64/include/generated/uapi -I/workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-provider-compile-source/include/uapi -I./include/generated/uapi -include /workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-provider-compile-source/include/linux/compiler-version.h -include /workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-provider-compile-source/include/linux/kconfig.h -include /workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-provider-compile-source/include/linux/compiler_types.h -D__KERNEL__ -mlittle-endian -DKASAN_SHADOW_SCALE_SHIFT= -fmacro-prefix-map=/workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-provider-compile-source/= -fshort-wchar -funsigned-char -fno-common -fno-PIE -fno-strict-aliasing -std=gnu11 -fms-extensions -mgeneral-regs-only -DCONFIG_CC_HAS_K_CONSTRAINT=1 -Wno-psabi -mabi=lp64 -fno-asynchronous-unwind-tables -fno-unwind-tables -mbranch-protection=none -Wa,-march=armv8.5-a -DARM64_ASM_ARCH='"armv8.5-a"' -DKASAN_SHADOW_SCALE_SHIFT= -fno-delete-null-pointer-checks -O2 -fno-allow-store-data-races -fno-stack-protector -fno-omit-frame-pointer -fno-optimize-sibling-calls -ftrivial-auto-var-init=zero -fno-stack-clash-protection -falign-functions=4 -fno-strict-overflow -fno-stack-check -fconserve-stack -fno-builtin-wcslen -Wall -Wextra -Wundef -Werror=implicit-function-declaration -Werror=implicit-int -Werror=return-type -Werror=strict-prototypes -Wno-format-security -Wno-trigraphs -Wno-frame-address -Wno-address-of-packed-member -Wmissing-declarations -Wmissing-prototypes -Wframe-larger-than=2048 -Wno-main -Wno-type-limits -Wno-dangling-pointer -Wvla-larger-than=1 -Wno-pointer-sign -Wcast-function-type -Wno-array-bounds -Wno-stringop-overflow -Wno-alloc-size-larger-than -Wimplicit-fallthrough=5 -Werror=date-time -Werror=incompatible-pointer-types -Werror=designated-init -Wenum-conversion -Wunused -Wno-unused-but-set-variable -Wno-unused-const-variable -Wno-packed-not-aligned -Wno-format-overflow -Wno-format-truncation -Wno-stringop-truncation -Wno-override-init -Wno-missing-field-initializers -Wno-shift-negative-value -Wno-maybe-uninitialized -Wno-sign-compare -Wno-unused-parameter -I/workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-provider-compile-source/drivers/net/wireless/mediatek/mt6797 -Idrivers/net/wireless/mediatek/mt6797 -DKBUILD_MODFILE='"drivers/net/wireless/mediatek/mt6797/emi-abi"' -DKBUILD_BASENAME='"emi_abi"' -DKBUILD_MODNAME='"emi_abi"' -D__KBUILD_MODNAME=emi_abi -c -o drivers/net/wireless/mediatek/mt6797/emi-abi.o /workspace/gemini-pda/src/linux-7.3-rc1-series-mt6797-provider-compile-source/drivers/net/wireless/mediatek/mt6797/emi-abi.c
+savedcmd_whitespace=normalized
+savedcmd_shell_token_count=103
+savedcmd_nul_joined_token_sha256=adefe26f3d126de27f01b7edb50b34315de8e781e3397cd34e26e2d8f3ddfa00
+
+Collection was read-only. Paths are Buildbox-managed source/build roots; no
+host path, credential, object byte stream or proprietary input is retained.
