@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 7,
-  "next_accepted_sequence": 8,
-  "next_considered_sequence": 9,
+  "accepted_count": 8,
+  "next_accepted_sequence": 9,
+  "next_considered_sequence": 11,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -351,6 +351,54 @@
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-06-mt6797-wlan-common-lifetime-source-attribution/verdicts.json"
       }
+    },
+    {
+      "considered_sequence": 9,
+      "candidate_id": "mt6797-toprgu-minimal-restart-runtime",
+      "disposition": "excluded",
+      "reason": "device-session",
+      "note": "The one boot2 selection, bounded authenticated preflight, private live-log preservation and changed-ID physical Gemian recovery are a device session; policy excludes it from accepted offline items.",
+      "evidence": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/results/runtime-20260906.txt"
+    },
+    {
+      "considered_sequence": 10,
+      "accepted_sequence": 8,
+      "candidate_id": "mt6797-wlan-builtin-lifecycle-source-attribution",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "reasoning",
+      "risk_class": "hard-uncertainty",
+      "acceptance_contract": "experiments/2026-09-06-mt6797-wlan-builtin-lifecycle-source-attribution/WORK_ITEM.md",
+      "review_comparison_group": "mt6797-wifi-owner-source-attribution",
+      "parent": "05e3e04afd0f00a6a2ed1fdb9a263af8c0fd1d0d",
+      "owner_route": {
+        "role": "gemini_specialist",
+        "model": "gpt-6-astra",
+        "effort": "medium"
+      },
+      "review_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-06T17:14:38Z",
+        "review_ready_at": "2026-09-06T17:27:54Z",
+        "accepted_at": "2026-09-06T17:40:55Z",
+        "timing_source": "observed UTC contract creation, first complete handoff and final-review timestamps",
+        "elapsed_minutes": 26.2833333,
+        "review_rework_minutes": 13.0166667,
+        "first_review_accepted": false,
+        "rework_cycles": 1,
+        "escalated": false,
+        "escalation_reason": null,
+        "escalation_packet": null,
+        "review_failure_class": "publication",
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-06-mt6797-wlan-builtin-lifecycle-source-attribution/verdicts.json"
+      }
     }
   ],
   "checkpoints": [
@@ -424,6 +472,24 @@
         "mt6797-consys-owner-source-attribution",
         "mt6797-emi-adapter-source-attribution",
         "mt6797-wlan-common-lifetime-source-attribution"
+      ],
+      "conclusion": "too-small",
+      "evidence": "experiments/2026-09-06-agent-routing-pilot-02/README.md"
+    },
+    {
+      "id": "pilot-02-post-item-eight-publication-integrity",
+      "after_accepted_sequence": 8,
+      "after_considered_sequence": 10,
+      "trigger": "early-signal",
+      "trigger_item_ids": [
+        "mt6797-wlan-common-lifetime-source-attribution",
+        "mt6797-wlan-builtin-lifecycle-source-attribution"
+      ],
+      "comparable_item_ids": [
+        "mt6797-consys-owner-source-attribution",
+        "mt6797-emi-adapter-source-attribution",
+        "mt6797-wlan-common-lifetime-source-attribution",
+        "mt6797-wlan-builtin-lifecycle-source-attribution"
       ],
       "conclusion": "too-small",
       "evidence": "experiments/2026-09-06-agent-routing-pilot-02/README.md"

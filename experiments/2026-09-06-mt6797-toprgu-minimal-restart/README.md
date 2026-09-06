@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-06-mt6797-toprgu-minimal-restart` |
-| Status | Candidate deployed and readback verified; waiting for owner physical boot2 selection |
+| Status | Runtime attempt consumed and inconclusive; changed-ID Gemian recovery confirmed |
 | Subsystem | MediaTek watchdog system restart |
 | Device variant | Existing named Gemini PDA; retail subvariant unconfirmed |
 | Date | 2026-09-06 |
@@ -129,9 +129,27 @@ installer's final local receipt check exposed a repository-root path defect only
 after those device steps had completed. The write was not repeated. The parser
 repair and regression fixture now accept the unchanged final private summary;
 the sanitized [deployment receipt](results/deployment-20260906.txt) records the
-exact identities and failure boundary. The candidate is installed and awaits
-the owner's one physical `boot2` selection. No physical selection or runtime
-TOPRGU result exists yet.
+exact identities and failure boundary. The candidate was installed for the
+owner's one physical `boot2` selection.
+
+## Runtime result
+
+The owner selected `boot2` before the prepared recovery collector was armed.
+One strict authenticated USB preflight nevertheless established the exact
+candidate release, boot identity, AArch64 execution, CPU0--7 online with
+CPU8--9 offline, a healthy logger and no userspace watchdog. It also found that
+the live ramoops module parameters did not match the admitted reserved-memory
+contract: `mem_address` and `mem_size` were both zero. The restart request was
+therefore not issued and the one selection was consumed as inconclusive.
+
+The available live kernel log was preserved once in private ignored storage;
+its sanitized identity is recorded with the other observations in
+[`results/runtime-20260906.txt`](results/runtime-20260906.txt). The owner then
+used the reviewed physical recovery path. One bounded authenticated LAN check
+confirmed changed-boot-ID Gemian `3.18.41+` on AArch64. This exact artifact must
+not be selected again. The next TOPRGU work is offline diagnosis of the
+candidate DT/ramoops composition; neither this result nor the recovery is a
+hardware-support claim.
 
 The prior Buildbox attempt at exact commit
 `e70982c09a16a0bb8b152a0dfcada7db69d2a0bf` failed before applying 0543 because

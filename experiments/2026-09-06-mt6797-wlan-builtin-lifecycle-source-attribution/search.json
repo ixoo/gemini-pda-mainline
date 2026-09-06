@@ -1,0 +1,628 @@
+{
+  "schema_version": 1,
+  "budgets": {
+    "batches": 3,
+    "new_regular_files": 12,
+    "contextual_rereads": 2
+  },
+  "batches": [
+    {
+      "id": 1,
+      "clock_sample_before_freeze": "2026-09-06 17:15:40 UTC",
+      "purpose": "Close common build/guard definitions and kernel __exit_p selection; discover only immediate common caller directory entries.",
+      "requests": [
+        {
+          "id": "connectivity_make",
+          "path": "drivers/misc/mediatek/connectivity/Makefile",
+          "kind": "raw"
+        },
+        {
+          "id": "common_make",
+          "path": "drivers/misc/mediatek/connectivity/common/Makefile",
+          "kind": "raw"
+        },
+        {
+          "id": "common_main_make",
+          "path": "drivers/misc/mediatek/connectivity/common/common_main/Makefile",
+          "kind": "raw"
+        },
+        {
+          "id": "wmt_core_h",
+          "path": "drivers/misc/mediatek/connectivity/common/common_main/include/wmt_core.h",
+          "kind": "raw"
+        },
+        {
+          "id": "wmt_func_h",
+          "path": "drivers/misc/mediatek/connectivity/common/common_main/include/wmt_func.h",
+          "kind": "raw"
+        },
+        {
+          "id": "init_h",
+          "path": "include/linux/init.h",
+          "kind": "raw"
+        },
+        {
+          "id": "common_inventory",
+          "path": "drivers/misc/mediatek/connectivity/common",
+          "kind": "contents"
+        }
+      ],
+      "read_policy": "Makefiles complete; header preprocessor definitions/includes and +/-4 lines only. Immediate directory metadata only; no repository tree traversal."
+    },
+    {
+      "id": 2,
+      "clock_sample_before_freeze": "2026-09-06 17:17:03 UTC",
+      "purpose": "Use the Makefile's actual core/include path to close Wi-Fi guard; inspect exact driver unregister/remove dispatch; select only immediate common_detect lifecycle producer files.",
+      "requests": [
+        {
+          "id": "wmt_core_h_actual",
+          "path": "drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_core.h",
+          "kind": "raw"
+        },
+        {
+          "id": "core_make",
+          "path": "drivers/misc/mediatek/connectivity/common/common_main/core/Makefile",
+          "kind": "raw"
+        },
+        {
+          "id": "platform_core",
+          "path": "drivers/base/platform.c",
+          "kind": "raw"
+        },
+        {
+          "id": "driver_core",
+          "path": "drivers/base/driver.c",
+          "kind": "raw"
+        },
+        {
+          "id": "bus_core",
+          "path": "drivers/base/bus.c",
+          "kind": "raw"
+        },
+        {
+          "id": "dd_core",
+          "path": "drivers/base/dd.c",
+          "kind": "raw"
+        },
+        {
+          "id": "detect_inventory",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect",
+          "kind": "contents"
+        }
+      ],
+      "read_policy": "Header definitions/includes with +/-4 context; core Makefile complete; driver-core exact function bodies selected by names (__platform_driver_register, platform_driver_unregister, platform_drv_remove, driver_unregister, bus_remove_driver, driver_detach, __device_release_driver, device_release_driver). common_detect immediate metadata only. No contextual reread of earlier functions."
+    },
+    {
+      "id": 3,
+      "clock_sample_before_freeze": "2026-09-06 17:18:43 UTC",
+      "purpose": "Last two new regular files: exact function guard header and detector build selection; inventory potential init producers and close platform bus initializer. Stop regardless of missing caller bodies.",
+      "requests": [
+        {
+          "id": "wmt_func_h_actual",
+          "path": "drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_func.h",
+          "kind": "raw"
+        },
+        {
+          "id": "detect_make",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect/Makefile",
+          "kind": "raw"
+        },
+        {
+          "id": "drv_init_inventory",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect/drv_init",
+          "kind": "contents"
+        },
+        {
+          "id": "platform_bus_initializer",
+          "source_id": "platform_core",
+          "path": "drivers/base/platform.c",
+          "kind": "raw"
+        }
+      ],
+      "read_policy": "Function header preprocessor definitions/includes +/-4 lines; detector Makefile complete; immediate drv_init directory metadata only; platform_bus_type initializer only (previously unread data, not a function reread). No further requests."
+    }
+  ],
+  "requests": [
+    {
+      "request_id": "connectivity_make",
+      "kind": "raw",
+      "path": "drivers/misc/mediatek/connectivity/Makefile",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/Makefile",
+      "batch": 1,
+      "started_utc": "2026-09-06T17:16:30.131519+00:00",
+      "status": 200,
+      "response_sha256": "bb1859427a3766912250a0c8b32cbe9cc8f4e44a623daa0a5876a4b2d63ed039",
+      "response_bytes": 1447,
+      "source_id": "connectivity_make",
+      "sha256": "bb1859427a3766912250a0c8b32cbe9cc8f4e44a623daa0a5876a4b2d63ed039",
+      "git_blob_sha1": "5b377dd48c2d5a14aa4bcf39fccf66cd74cb1521",
+      "size": 1447,
+      "line_count": 45,
+      "finished_utc": "2026-09-06T17:16:30.280882+00:00"
+    },
+    {
+      "request_id": "common_make",
+      "kind": "raw",
+      "path": "drivers/misc/mediatek/connectivity/common/Makefile",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/Makefile",
+      "batch": 1,
+      "started_utc": "2026-09-06T17:16:30.131665+00:00",
+      "status": 200,
+      "response_sha256": "26c2cab7990c92943fc4d62bda85d1aa8b7c6769e1e90554e7706ccede450124",
+      "response_bytes": 689,
+      "source_id": "common_make",
+      "sha256": "26c2cab7990c92943fc4d62bda85d1aa8b7c6769e1e90554e7706ccede450124",
+      "git_blob_sha1": "f6e7813d079c89d7afd47d543631ed50673543ed",
+      "size": 689,
+      "line_count": 21,
+      "finished_utc": "2026-09-06T17:16:30.280874+00:00"
+    },
+    {
+      "request_id": "common_main_make",
+      "kind": "raw",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/Makefile",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/Makefile",
+      "batch": 1,
+      "started_utc": "2026-09-06T17:16:30.134844+00:00",
+      "status": 200,
+      "response_sha256": "bfb5c9f3f0d44987cf0622ca15fea66f74ac68779453affae7ffa5f39e3985e1",
+      "response_bytes": 1871,
+      "source_id": "common_main_make",
+      "sha256": "bfb5c9f3f0d44987cf0622ca15fea66f74ac68779453affae7ffa5f39e3985e1",
+      "git_blob_sha1": "b35b39d94ecf39a04dbf5f6051a88e555294445f",
+      "size": 1871,
+      "line_count": 62,
+      "finished_utc": "2026-09-06T17:16:30.283609+00:00"
+    },
+    {
+      "request_id": "wmt_core_h",
+      "kind": "raw",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/include/wmt_core.h",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/include/wmt_core.h",
+      "batch": 1,
+      "started_utc": "2026-09-06T17:16:30.145056+00:00",
+      "status": "failed",
+      "error": "HTTP Error 404: Not Found",
+      "finished_utc": "2026-09-06T17:16:30.253510+00:00"
+    },
+    {
+      "request_id": "wmt_func_h",
+      "kind": "raw",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/include/wmt_func.h",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/include/wmt_func.h",
+      "batch": 1,
+      "started_utc": "2026-09-06T17:16:30.157468+00:00",
+      "status": "failed",
+      "error": "HTTP Error 404: Not Found",
+      "finished_utc": "2026-09-06T17:16:30.275606+00:00"
+    },
+    {
+      "request_id": "init_h",
+      "kind": "raw",
+      "path": "include/linux/init.h",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/include/linux/init.h",
+      "batch": 1,
+      "started_utc": "2026-09-06T17:16:30.176610+00:00",
+      "status": 200,
+      "response_sha256": "edc21b0c9dec0c191739d687ee45f5547e7aa687d8b3b7b69ef131acd0c550b3",
+      "response_bytes": 12114,
+      "source_id": "init_h",
+      "sha256": "edc21b0c9dec0c191739d687ee45f5547e7aa687d8b3b7b69ef131acd0c550b3",
+      "git_blob_sha1": "2df8e8dd10a483d55d723b6ac4875de807ab2044",
+      "size": 12114,
+      "line_count": 369,
+      "finished_utc": "2026-09-06T17:16:30.304483+00:00"
+    },
+    {
+      "request_id": "common_inventory",
+      "kind": "contents",
+      "path": "drivers/misc/mediatek/connectivity/common",
+      "url": "https://api.github.com/repos/lineage-geminipda/android_kernel_planet_mt6797/contents/drivers/misc/mediatek/connectivity/common?ref=c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "batch": 1,
+      "started_utc": "2026-09-06T17:16:30.172073+00:00",
+      "status": 200,
+      "response_sha256": "124a331c3dd0e63eb5a25ba02ae3f1bf7547c651c547d7afa494162995f30492",
+      "response_bytes": 3771,
+      "entries": [
+        {
+          "name": "Makefile",
+          "path": "drivers/misc/mediatek/connectivity/common/Makefile",
+          "type": "file",
+          "sha": "f6e7813d079c89d7afd47d543631ed50673543ed",
+          "size": 689
+        },
+        {
+          "name": "common_detect",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect",
+          "type": "dir",
+          "sha": "6e024bfb1a54dd1570b4574fc283821e6bb3291d",
+          "size": 0
+        },
+        {
+          "name": "common_main",
+          "path": "drivers/misc/mediatek/connectivity/common/common_main",
+          "type": "dir",
+          "sha": "d83e1faaedea55bb8e6b6873ae3dc4243e98b2ce",
+          "size": 0
+        }
+      ],
+      "finished_utc": "2026-09-06T17:16:30.411554+00:00"
+    },
+    {
+      "request_id": "wmt_core_h_actual",
+      "kind": "raw",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_core.h",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_core.h",
+      "batch": 2,
+      "started_utc": "2026-09-06T17:17:52.855219+00:00",
+      "status": 200,
+      "response_sha256": "da51f1389115bf5f0ee14d42c1a9d6d516097cdbae563e0fba0b63adf85d4094",
+      "response_bytes": 13831,
+      "source_id": "wmt_core_h_actual",
+      "sha256": "da51f1389115bf5f0ee14d42c1a9d6d516097cdbae563e0fba0b63adf85d4094",
+      "git_blob_sha1": "6bd19be487e04a93266677468b4c953b5b1a2300",
+      "size": 13831,
+      "line_count": 483,
+      "selection_hit": true,
+      "finished_utc": "2026-09-06T17:17:53.097314+00:00"
+    },
+    {
+      "request_id": "core_make",
+      "kind": "raw",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/Makefile",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/Makefile",
+      "batch": 2,
+      "started_utc": "2026-09-06T17:17:52.835772+00:00",
+      "status": 200,
+      "response_sha256": "eacdecec01dba667880d6ef333a3dabccbcdc235de46e7685d5f30cb6fc19f0f",
+      "response_bytes": 488,
+      "source_id": "core_make",
+      "sha256": "eacdecec01dba667880d6ef333a3dabccbcdc235de46e7685d5f30cb6fc19f0f",
+      "git_blob_sha1": "381083d9db2fc55dd34a7b5380cb6ce2d5ae3560",
+      "size": 488,
+      "line_count": 22,
+      "selection_hit": true,
+      "finished_utc": "2026-09-06T17:17:52.981959+00:00"
+    },
+    {
+      "request_id": "platform_core",
+      "kind": "raw",
+      "path": "drivers/base/platform.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/base/platform.c",
+      "batch": 2,
+      "started_utc": "2026-09-06T17:17:52.835835+00:00",
+      "status": 200,
+      "response_sha256": "ef9c389776a78eb8db3f80a6b8ab99e96efdd67cd142403af414fd7a50838a3e",
+      "response_bytes": 33741,
+      "source_id": "platform_core",
+      "sha256": "ef9c389776a78eb8db3f80a6b8ab99e96efdd67cd142403af414fd7a50838a3e",
+      "git_blob_sha1": "777c1bcabb965ab02507c5cf290573b8096e8c6a",
+      "size": 33741,
+      "line_count": 1347,
+      "selection_hit": true,
+      "finished_utc": "2026-09-06T17:17:52.979619+00:00"
+    },
+    {
+      "request_id": "driver_core",
+      "kind": "raw",
+      "path": "drivers/base/driver.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/base/driver.c",
+      "batch": 2,
+      "started_utc": "2026-09-06T17:17:52.882739+00:00",
+      "status": 200,
+      "response_sha256": "8d8eeb85ae151a2a2be48d1b1889b41f3b9ad36fe0e6597fa6acc8d6dcaf0217",
+      "response_bytes": 5744,
+      "source_id": "driver_core",
+      "sha256": "8d8eeb85ae151a2a2be48d1b1889b41f3b9ad36fe0e6597fa6acc8d6dcaf0217",
+      "git_blob_sha1": "9e29943e56cae1d18d9dfcf3564baf4f839f087a",
+      "size": 5744,
+      "line_count": 223,
+      "selection_hit": true,
+      "finished_utc": "2026-09-06T17:17:53.101549+00:00"
+    },
+    {
+      "request_id": "bus_core",
+      "kind": "raw",
+      "path": "drivers/base/bus.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/base/bus.c",
+      "batch": 2,
+      "started_utc": "2026-09-06T17:17:52.865511+00:00",
+      "status": 200,
+      "response_sha256": "78c215af7a7dbecdd14eb4f2575f5625dca17a707388de67077988f5afaf53b4",
+      "response_bytes": 32504,
+      "source_id": "bus_core",
+      "sha256": "78c215af7a7dbecdd14eb4f2575f5625dca17a707388de67077988f5afaf53b4",
+      "git_blob_sha1": "79bc203f51ef08511eff94661cc77fac163475d5",
+      "size": 32504,
+      "line_count": 1274,
+      "selection_hit": true,
+      "finished_utc": "2026-09-06T17:17:52.994799+00:00"
+    },
+    {
+      "request_id": "dd_core",
+      "kind": "raw",
+      "path": "drivers/base/dd.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/base/dd.c",
+      "batch": 2,
+      "started_utc": "2026-09-06T17:17:52.882739+00:00",
+      "status": 200,
+      "response_sha256": "abff4ab276c311464d0b13bc71a6e2690b44ba2fa84698eb08450ab5863a2def",
+      "response_bytes": 16954,
+      "source_id": "dd_core",
+      "sha256": "abff4ab276c311464d0b13bc71a6e2690b44ba2fa84698eb08450ab5863a2def",
+      "git_blob_sha1": "86f206c5d35d7f932c30f088de7c55044100027c",
+      "size": 16954,
+      "line_count": 606,
+      "selection_hit": true,
+      "finished_utc": "2026-09-06T17:17:53.157029+00:00"
+    },
+    {
+      "request_id": "detect_inventory",
+      "kind": "contents",
+      "path": "drivers/misc/mediatek/connectivity/common/common_detect",
+      "url": "https://api.github.com/repos/lineage-geminipda/android_kernel_planet_mt6797/contents/drivers/misc/mediatek/connectivity/common/common_detect?ref=c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "batch": 2,
+      "started_utc": "2026-09-06T17:17:52.836977+00:00",
+      "status": 200,
+      "response_sha256": "ee977739314be2e8a7213fb37d85184c9c12dfb9c8254da363de39574037b01c",
+      "response_bytes": 16008,
+      "entries": [
+        {
+          "name": "Makefile",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect/Makefile",
+          "type": "file",
+          "sha": "5284ec6a02e5ab686b53ffec4862a760c76f10d8",
+          "size": 1232
+        },
+        {
+          "name": "drv_init",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect/drv_init",
+          "type": "dir",
+          "sha": "ea0ee721236d4cfa097ad2d113a7b7bcf25f368c",
+          "size": 0
+        },
+        {
+          "name": "mtk_wcn_stub_alps.c",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect/mtk_wcn_stub_alps.c",
+          "type": "file",
+          "sha": "19b49f2de8b4fd6c50bbfcedff4ae94bb68be2ec",
+          "size": 18513
+        },
+        {
+          "name": "sdio_detect.c",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect/sdio_detect.c",
+          "type": "file",
+          "sha": "64ad3943b338c01848212eaa58a83078a2ba860f",
+          "size": 7642
+        },
+        {
+          "name": "sdio_detect.h",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect/sdio_detect.h",
+          "type": "file",
+          "sha": "3a0bff9def1b14a7664762ffc1baa1760c215521",
+          "size": 1359
+        },
+        {
+          "name": "wmt_detect.c",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.c",
+          "type": "file",
+          "sha": "632cd1ecc4278c8e236fa3bcfc9129e636241d20",
+          "size": 9523
+        },
+        {
+          "name": "wmt_detect.h",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.h",
+          "type": "file",
+          "sha": "3a59805c6ccfc8a281bbb1000be84a8415341f70",
+          "size": 4256
+        },
+        {
+          "name": "wmt_detect_pwr.c",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect_pwr.c",
+          "type": "file",
+          "sha": "1dcb7ed358bcfaf6f03d29f778832ba7e96db812",
+          "size": 7944
+        },
+        {
+          "name": "wmt_detect_pwr.h",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect_pwr.h",
+          "type": "file",
+          "sha": "32e661520fd0d09ac92244c950258df291cf695e",
+          "size": 1047
+        },
+        {
+          "name": "wmt_gpio.c",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect/wmt_gpio.c",
+          "type": "file",
+          "sha": "04e4087356e1b8c6a70f710502415a9fb6281b79",
+          "size": 9209
+        },
+        {
+          "name": "wmt_gpio.h",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect/wmt_gpio.h",
+          "type": "file",
+          "sha": "cd935bfddd994db05d18e6aaab3353633f0d8084",
+          "size": 3310
+        }
+      ],
+      "finished_utc": "2026-09-06T17:17:53.053371+00:00"
+    },
+    {
+      "request_id": "wmt_func_h_actual",
+      "kind": "raw",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_func.h",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_func.h",
+      "batch": 3,
+      "started_utc": "2026-09-06T17:19:27.702480+00:00",
+      "status": 200,
+      "response_sha256": "6150d7df15455a08fb58fd894ab6dfe0dd6805d01a4be0ee28731264e71e9f59",
+      "response_bytes": 4422,
+      "source_id": "wmt_func_h_actual",
+      "sha256": "6150d7df15455a08fb58fd894ab6dfe0dd6805d01a4be0ee28731264e71e9f59",
+      "git_blob_sha1": "053df3610b57e2660f713bf0626d26fa8189070f",
+      "size": 4422,
+      "line_count": 164,
+      "selection_hit": true,
+      "finished_utc": "2026-09-06T17:19:27.850230+00:00"
+    },
+    {
+      "request_id": "detect_make",
+      "kind": "raw",
+      "path": "drivers/misc/mediatek/connectivity/common/common_detect/Makefile",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_detect/Makefile",
+      "batch": 3,
+      "started_utc": "2026-09-06T17:19:27.719636+00:00",
+      "status": 200,
+      "response_sha256": "148d50c0e1a1f320519e1ad8ab918bd67501ea098111c1d4a6e21737f14d0f05",
+      "response_bytes": 1232,
+      "source_id": "detect_make",
+      "sha256": "148d50c0e1a1f320519e1ad8ab918bd67501ea098111c1d4a6e21737f14d0f05",
+      "git_blob_sha1": "5284ec6a02e5ab686b53ffec4862a760c76f10d8",
+      "size": 1232,
+      "line_count": 47,
+      "selection_hit": true,
+      "finished_utc": "2026-09-06T17:19:27.936019+00:00"
+    },
+    {
+      "request_id": "drv_init_inventory",
+      "kind": "contents",
+      "path": "drivers/misc/mediatek/connectivity/common/common_detect/drv_init",
+      "url": "https://api.github.com/repos/lineage-geminipda/android_kernel_planet_mt6797/contents/drivers/misc/mediatek/connectivity/common/common_detect/drv_init?ref=c5b0be85017ad0c599725e8273842efdbecdd88a",
+      "batch": 3,
+      "started_utc": "2026-09-06T17:19:27.731448+00:00",
+      "status": 200,
+      "response_sha256": "422aaa71489cf13098ad943b169e9c2104af958046e89daf6ad1e2a826e586d5",
+      "response_bytes": 13591,
+      "entries": [
+        {
+          "name": "Makefile",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect/drv_init/Makefile",
+          "type": "file",
+          "sha": "bb84384b9a24f2a083a6caad9411765b75ee1047",
+          "size": 590
+        },
+        {
+          "name": "ant_drv_init.c",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect/drv_init/ant_drv_init.c",
+          "type": "file",
+          "sha": "aa453f9397a47b9f72a73640b22764f6982a1fec",
+          "size": 1114
+        },
+        {
+          "name": "bluetooth_drv_init.c",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect/drv_init/bluetooth_drv_init.c",
+          "type": "file",
+          "sha": "8425750724a869745bccb62c09061dd22543b5ac",
+          "size": 1098
+        },
+        {
+          "name": "common_drv_init.c",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect/drv_init/common_drv_init.c",
+          "type": "file",
+          "sha": "8b358d3b346915c5b841c90665cfed8f9dd33f60",
+          "size": 1651
+        },
+        {
+          "name": "conn_drv_init.c",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect/drv_init/conn_drv_init.c",
+          "type": "file",
+          "sha": "8112d2a1d95e2cb37faf2e4558ec00138f3ff130",
+          "size": 2248
+        },
+        {
+          "name": "fm_drv_init.c",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect/drv_init/fm_drv_init.c",
+          "type": "file",
+          "sha": "069c1cf13bbaf7415b7ac9f0801f73a8b8fce9a6",
+          "size": 948
+        },
+        {
+          "name": "gps_drv_init.c",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect/drv_init/gps_drv_init.c",
+          "type": "file",
+          "sha": "6da1d70a3ca65b4e8b5adf327bec762216144728",
+          "size": 1078
+        },
+        {
+          "name": "inc",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect/drv_init/inc",
+          "type": "dir",
+          "sha": "9d8d7ebdf5c70f9c286c2b1a74c7ae9a3381f72d",
+          "size": 0
+        },
+        {
+          "name": "wlan_drv_init.c",
+          "path": "drivers/misc/mediatek/connectivity/common/common_detect/drv_init/wlan_drv_init.c",
+          "type": "file",
+          "sha": "5b0d039a4a4254040f589c78369e60ddc96e1d80",
+          "size": 1867
+        }
+      ],
+      "finished_utc": "2026-09-06T17:19:27.928338+00:00"
+    },
+    {
+      "request_id": "platform_bus_initializer",
+      "kind": "raw",
+      "path": "drivers/base/platform.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/base/platform.c",
+      "batch": 3,
+      "started_utc": "2026-09-06T17:19:27.707618+00:00",
+      "status": 200,
+      "response_sha256": "ef9c389776a78eb8db3f80a6b8ab99e96efdd67cd142403af414fd7a50838a3e",
+      "response_bytes": 33741,
+      "source_id": "platform_core",
+      "sha256": "ef9c389776a78eb8db3f80a6b8ab99e96efdd67cd142403af414fd7a50838a3e",
+      "git_blob_sha1": "777c1bcabb965ab02507c5cf290573b8096e8c6a",
+      "size": 33741,
+      "line_count": 1347,
+      "selection_hit": true,
+      "finished_utc": "2026-09-06T17:19:27.800006+00:00"
+    }
+  ],
+  "contextual_rereads": [],
+  "inherited_contexts": [
+    {
+      "source_id": "wmt_core",
+      "lines": [
+        48,
+        86
+      ],
+      "kind": "previously fetched include/table data",
+      "new_request": false
+    },
+    {
+      "source_id": "ahb",
+      "lines": [
+        201,
+        218
+      ],
+      "kind": "previously fetched driver initializer",
+      "new_request": false
+    }
+  ],
+  "counts": {
+    "network_requests": 18,
+    "raw_successes": 13,
+    "raw_failures": 2,
+    "directory_inventory_successes": 3,
+    "new_regular_files": 12,
+    "inherited_regular_files": 10,
+    "source_identity_tuples": 22,
+    "contextual_function_rereads": 0
+  },
+  "no_hits": [
+    {
+      "request_id": "wmt_core_h_actual",
+      "target": "CFG_FUNC_WIFI_SUPPORT definition",
+      "result": "absent from inspected preprocessor definitions; actual definition found in wmt_func_h_actual in batch 3"
+    }
+  ],
+  "stop": {
+    "reason": "three-batch-and-twelve-new-regular-file-budgets-exhausted",
+    "additional_source_reads_permitted": false,
+    "unresolved": [
+      "exact built-in initialization caller and downstream return handling",
+      "exact built-in exit caller/invocation"
+    ]
+  }
+}

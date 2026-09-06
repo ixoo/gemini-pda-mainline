@@ -3,8 +3,8 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": "mt6797-toprgu-minimal-restart",
-  "selection_note": "The exact TOPRGU candidate is installed in logical boot2 with matching full readback and confirmed clean shutdown. It is selected only for the owner's one physical boot2 selection; no automatic reboot or runtime action has occurred.",
+  "selected_item": null,
+  "selection_note": "The TOPRGU selection was consumed as inconclusive after its live ramoops identity failed the post-selection gate. No restart request was issued; changed-ID known-good Gemian recovery is confirmed. No device item is currently selected.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -80,11 +80,11 @@
     },
     "mt6797-toprgu-minimal-restart": {
       "workstream": "watchdog",
-      "preparation_state": "ready",
-      "device_state": "waiting-owner-boot",
+      "preparation_state": "stale",
+      "device_state": "complete",
       "owner": "MT6797 TOPRGU minimal restart diagnostic",
       "reviewer": "Project Planning",
-      "device_custodian": "MT6797 TOPRGU minimal restart diagnostic",
+      "device_custodian": null,
       "experiment": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/README.md",
       "session_packet": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/session-packet.json",
       "candidate_record": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/results/deployment-20260906.txt",
@@ -97,7 +97,7 @@
         }
       ],
       "owner_task_id": null,
-      "readiness_note": "Candidate 22edf533 remains independently validated. Installer 3e1afaef wrote logical boot2 once, synced/flushed it, matched the full readback and shut the known-good OS down. A post-device local parser-path defect was repaired and the preserved final receipt accepted without repeating the write. The owner must physically select boot2; no runtime action has occurred."
+      "readiness_note": "The candidate was selected once. Authenticated serviceability and logging passed, but live ramoops reported zero address and size, so no restart request was issued and the attempt is inconclusive. The owner physically recovered the device; one bounded authenticated check confirmed changed-ID Gemian 3.18.41+ on AArch64. The artifact is consumed and must not be retried; diagnose its DT/ramoops composition offline."
     }
   }
 }

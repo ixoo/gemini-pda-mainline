@@ -11,7 +11,7 @@
     "experiment_queue": "project/experiment-queue.json",
     "owner_away_policy": "Continue independent offline work; waiting-device items free worker slots. Readiness is not physical admission.",
     "integration_task_id": "01a06f5d-d1f6-7a01-a80a-7457a3c64676",
-    "execution_state": "paused-by-owner-after-final-device-test",
+    "execution_state": "active-owner-available",
     "pause_record": "experiments/2026-09-05-owner-away-experiment-preparation/emmc/PAUSE_SESSION_PREPARATION.json"
   },
   "active_device_experiment": null,
@@ -222,8 +222,8 @@
     }
   ],
   "device_handoff": {
-    "last_completed_experiment": "experiments/2026-09-05-mt6797-wifi-contract/SESSION.md",
-    "result": "experiments/2026-09-05-mt6797-wifi-contract/results/device-session.md",
+    "last_completed_experiment": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/README.md",
+    "result": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/results/runtime-20260906.txt",
     "queue": "project/experiment-queue.json",
     "authority": "Completed observation and consumed budget do not authorize a repeat or imply the device has been released; obtain custodian handoff before changing its session.",
     "next_inspection": {
@@ -235,12 +235,6 @@
       "policy": "docs/SAFETY.md#standing-gemian-inspection-authorization",
       "live_state": "Must be established by the assigned custodian; not inferred from this registry."
     },
-    "current_session": {
-      "owner": "MT6797 TOPRGU minimal restart diagnostic",
-      "task_id": null,
-      "state": "waiting-owner-boot",
-      "evidence": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/results/deployment-20260906.txt",
-      "scope": "Exact candidate 22edf533 is installed in logical boot2 with matching full readback and confirmed clean shutdown. The owner must physically select boot2 for the one-attempt TOPRGU session; no automatic reboot or runtime action has occurred."
-    }
+    "current_session": null
   }
 }

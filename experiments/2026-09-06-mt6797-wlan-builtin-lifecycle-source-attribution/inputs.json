@@ -1,0 +1,253 @@
+{
+  "schema_version": 1,
+  "experiment": "2026-09-06-mt6797-wlan-builtin-lifecycle-source-attribution",
+  "repository_parent": "05e3e04afd0f00a6a2ed1fdb9a263af8c0fd1d0d",
+  "source_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+  "source_repository": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797",
+  "source_files": [
+    {
+      "source_id": "ahb",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c",
+      "sha256": "d9b4e80fe98695284627e495ad640e39728ebe7df235df129f64d48e8a2e726b",
+      "git_blob_sha1": "2baa62315535274b0585b598346614c6307d320f",
+      "size": 49595,
+      "line_count": 1753
+    },
+    {
+      "source_id": "bus_core",
+      "path": "drivers/base/bus.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/base/bus.c",
+      "sha256": "78c215af7a7dbecdd14eb4f2575f5625dca17a707388de67077988f5afaf53b4",
+      "git_blob_sha1": "79bc203f51ef08511eff94661cc77fac163475d5",
+      "size": 32504,
+      "line_count": 1274
+    },
+    {
+      "source_id": "common_main_make",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/Makefile",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/Makefile",
+      "sha256": "bfb5c9f3f0d44987cf0622ca15fea66f74ac68779453affae7ffa5f39e3985e1",
+      "git_blob_sha1": "b35b39d94ecf39a04dbf5f6051a88e555294445f",
+      "size": 1871,
+      "line_count": 62
+    },
+    {
+      "source_id": "common_make",
+      "path": "drivers/misc/mediatek/connectivity/common/Makefile",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/Makefile",
+      "sha256": "26c2cab7990c92943fc4d62bda85d1aa8b7c6769e1e90554e7706ccede450124",
+      "git_blob_sha1": "f6e7813d079c89d7afd47d543631ed50673543ed",
+      "size": 689,
+      "line_count": 21
+    },
+    {
+      "source_id": "config",
+      "path": "arch/arm64/configs/lineage_gemini_defconfig",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/arch/arm64/configs/lineage_gemini_defconfig",
+      "sha256": "5f0018658a6e0858cbb730be427a379797afd9e2639a51e7f40d963b4e61115a",
+      "git_blob_sha1": "3346814fd2d65b519387caed4c3f5189ed25e9d3",
+      "size": 102819,
+      "line_count": 3770
+    },
+    {
+      "source_id": "connectivity_make",
+      "path": "drivers/misc/mediatek/connectivity/Makefile",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/Makefile",
+      "sha256": "bb1859427a3766912250a0c8b32cbe9cc8f4e44a623daa0a5876a4b2d63ed039",
+      "git_blob_sha1": "5b377dd48c2d5a14aa4bcf39fccf66cd74cb1521",
+      "size": 1447,
+      "line_count": 45
+    },
+    {
+      "source_id": "core_make",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/Makefile",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/Makefile",
+      "sha256": "eacdecec01dba667880d6ef333a3dabccbcdc235de46e7685d5f30cb6fc19f0f",
+      "git_blob_sha1": "381083d9db2fc55dd34a7b5380cb6ce2d5ae3560",
+      "size": 488,
+      "line_count": 22
+    },
+    {
+      "source_id": "dd_core",
+      "path": "drivers/base/dd.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/base/dd.c",
+      "sha256": "abff4ab276c311464d0b13bc71a6e2690b44ba2fa84698eb08450ab5863a2def",
+      "git_blob_sha1": "86f206c5d35d7f932c30f088de7c55044100027c",
+      "size": 16954,
+      "line_count": 606
+    },
+    {
+      "source_id": "detect_make",
+      "path": "drivers/misc/mediatek/connectivity/common/common_detect/Makefile",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_detect/Makefile",
+      "sha256": "148d50c0e1a1f320519e1ad8ab918bd67501ea098111c1d4a6e21737f14d0f05",
+      "git_blob_sha1": "5284ec6a02e5ab686b53ffec4862a760c76f10d8",
+      "size": 1232,
+      "line_count": 47
+    },
+    {
+      "source_id": "driver_core",
+      "path": "drivers/base/driver.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/base/driver.c",
+      "sha256": "8d8eeb85ae151a2a2be48d1b1889b41f3b9ad36fe0e6597fa6acc8d6dcaf0217",
+      "git_blob_sha1": "9e29943e56cae1d18d9dfcf3564baf4f839f087a",
+      "size": 5744,
+      "line_count": 223
+    },
+    {
+      "source_id": "gen3_config",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/config.h",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/config.h",
+      "sha256": "c773b8e5e07978d60565c2eeee976dae3e285ecb9152062fe3bb50b1358a1c32",
+      "git_blob_sha1": "e97dcc72f8f762ce003b4784c493ad3bd1bf9e34",
+      "size": 30266,
+      "line_count": 821
+    },
+    {
+      "source_id": "gen3_make",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/Makefile",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/Makefile",
+      "sha256": "5e099f94e6c79593a9210b97096646d2d8e2b0ddd7110a8870519b3dd5c49204",
+      "git_blob_sha1": "a1027c1d0c963d12b23473dc211d6e32c4ded32f",
+      "size": 6205,
+      "line_count": 225
+    },
+    {
+      "source_id": "gl_init",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c",
+      "sha256": "8a644f0c9f3e37c6f66654cf3aeecb8e5f4cd71405e67f79105da7c8f87a7665",
+      "git_blob_sha1": "9b62a50b7e6749157e97aa5ef17bf4699a78f1ce",
+      "size": 76036,
+      "line_count": 2543
+    },
+    {
+      "source_id": "hif_h",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h",
+      "sha256": "e9d18516cc49e6290203a827551ea7cb890af155d2ae9ddd0fd9ec03888fb87c",
+      "git_blob_sha1": "5eac33401b9158ba63ac44151765ca6affcc1882",
+      "size": 10855,
+      "line_count": 343
+    },
+    {
+      "source_id": "init_h",
+      "path": "include/linux/init.h",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/include/linux/init.h",
+      "sha256": "edc21b0c9dec0c191739d687ee45f5547e7aa687d8b3b7b69ef131acd0c550b3",
+      "git_blob_sha1": "2df8e8dd10a483d55d723b6ac4875de807ab2044",
+      "size": 12114,
+      "line_count": 369
+    },
+    {
+      "source_id": "platform_core",
+      "path": "drivers/base/platform.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/base/platform.c",
+      "sha256": "ef9c389776a78eb8db3f80a6b8ab99e96efdd67cd142403af414fd7a50838a3e",
+      "git_blob_sha1": "777c1bcabb965ab02507c5cf290573b8096e8c6a",
+      "size": 33741,
+      "line_count": 1347
+    },
+    {
+      "source_id": "wlan_make",
+      "path": "drivers/misc/mediatek/connectivity/wlan/Makefile",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/Makefile",
+      "sha256": "46185e00d63f9c29ee721781c9fd43b9f3e6f157f26d3610c60c63e00351fc33",
+      "git_blob_sha1": "94649acb330f21f5a75603e5b5fe6abba3df0190",
+      "size": 924,
+      "line_count": 35
+    },
+    {
+      "source_id": "wmt_core",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c",
+      "sha256": "e9f438c5c6033f0bf831347c69d656ec917b3e705648d3d27fb1b27409334f1e",
+      "git_blob_sha1": "cc17b778efcb6fab2f87484a1d09caf05e4b1227",
+      "size": 93721,
+      "line_count": 3016
+    },
+    {
+      "source_id": "wmt_core_h_actual",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_core.h",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_core.h",
+      "sha256": "da51f1389115bf5f0ee14d42c1a9d6d516097cdbae563e0fba0b63adf85d4094",
+      "git_blob_sha1": "6bd19be487e04a93266677468b4c953b5b1a2300",
+      "size": 13831,
+      "line_count": 483
+    },
+    {
+      "source_id": "wmt_exp",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_exp.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_exp.c",
+      "sha256": "9ee1dfe7f361c02d24b1c443d2e1ef13d7b054509feb2d5dfc00f2620a5d6b12",
+      "git_blob_sha1": "db7993b9233c2719d875f80d1f62d127a012400b",
+      "size": 20731,
+      "line_count": 734
+    },
+    {
+      "source_id": "wmt_func",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c",
+      "sha256": "c57079b29491338fa635dd36f550f3be53b4a2cee343b1dce1c9e4d365b4589d",
+      "git_blob_sha1": "b3d8d45250f7f8cdebbc53806aeac473139d9f4d",
+      "size": 20783,
+      "line_count": 762
+    },
+    {
+      "source_id": "wmt_func_h_actual",
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_func.h",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_func.h",
+      "sha256": "6150d7df15455a08fb58fd894ab6dfe0dd6805d01a4be0ee28731264e71e9f59",
+      "git_blob_sha1": "053df3610b57e2660f713bf0626d26fa8189070f",
+      "size": 4422,
+      "line_count": 164
+    }
+  ],
+  "inherited_source_ids": [
+    "ahb",
+    "config",
+    "gen3_config",
+    "gen3_make",
+    "gl_init",
+    "hif_h",
+    "wlan_make",
+    "wmt_core",
+    "wmt_exp",
+    "wmt_func"
+  ],
+  "counts": {
+    "network_requests": 18,
+    "raw_successes": 13,
+    "raw_failures": 2,
+    "directory_inventory_successes": 3,
+    "new_regular_files": 12,
+    "inherited_regular_files": 10,
+    "source_identity_tuples": 22,
+    "contextual_function_rereads": 0
+  },
+  "local_inputs": [
+    {
+      "path": "experiments/2026-09-06-mt6797-wlan-common-lifetime-source-attribution/FREEZE.md",
+      "sha256": "2f208177361a13afa0eb18ecf30e281d4b2500332d9f94970e2266c08addc673"
+    },
+    {
+      "path": "experiments/2026-09-06-mt6797-wlan-common-lifetime-source-attribution/inputs.json",
+      "sha256": "67b821b2f67c719c25b6ff10c41c9946b339e4cbead8e83dd28b90ca50377944"
+    },
+    {
+      "path": "experiments/2026-09-06-mt6797-wlan-common-lifetime-source-attribution/search.json",
+      "sha256": "a485f2eac7fe72002189aeff567bf7ee00af19bdba8a464d64178a4aa6df31b6"
+    },
+    {
+      "path": "experiments/2026-09-06-mt6797-wlan-common-lifetime-source-attribution/verdicts.json",
+      "sha256": "6d85c932a465d2756beb4411b80364e468a5ff56eade665448e566b581102e67"
+    }
+  ],
+  "rights": {
+    "source_study_only": true,
+    "source_bodies_retained": false,
+    "source_excerpts_in_artifacts": false,
+    "vendor_code_reusable": false
+  }
+}

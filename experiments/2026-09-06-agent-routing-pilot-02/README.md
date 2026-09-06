@@ -131,3 +131,33 @@ are comparable hard-uncertainty source-attribution reasoning tasks, but three
 items remain below the five-item evidence floor for a settings experiment. The
 checkpoint conclusion is `too-small`; baseline decision `baseline-01` remains
 unchanged and no settings decision is made.
+
+## Considered item nine
+
+`mt6797-toprgu-minimal-restart-runtime` records the one physical boot2
+selection, bounded authenticated serviceability check, private live-log
+preservation and changed-ID Gemian recovery. The ramoops identity mismatch
+made the attempt inconclusive before any restart request. This is a device
+session and is excluded from offline workflow measurement, so it changes no
+accepted-item or checkpoint count.
+
+## Item eight and early-signal checkpoint
+
+Accepted item 8, `mt6797-wlan-builtin-lifecycle-source-attribution`, resolves
+the literal Wi-Fi function guard, the built-in `__exit_p` expansion and the
+selected static unregister/remove dispatch. The outer built-in initialization
+and exit callers remain unresolved and must begin with a sequential read of the
+selected `drv_init/Makefile`; no runtime equivalence is inferred.
+
+First review accepted the source semantics and accounting but found that
+coordinated directory-inventory receipt edits and deletion of no-hit evidence
+escaped the verifier. It also rejected preselecting three caller files when a
+fourth inventory name remained possible. One bounded repair froze the complete
+request evidence, added coordinated-mutation refusals and made the next
+discriminator sequential. The second review accepted all 37 normal and
+optimized refusals.
+
+This repeats the publication-integrity signal. Items 4, 5, 7 and 8 are
+comparable hard-uncertainty source-attribution reasoning tasks, but four remain
+below the five-item evidence floor for a settings experiment. The checkpoint
+is `too-small`; baseline decision `baseline-01` remains unchanged.

@@ -1,0 +1,423 @@
+{
+  "schema_version": 1,
+  "repository_parent": "05e3e04afd0f00a6a2ed1fdb9a263af8c0fd1d0d",
+  "source_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+  "authority": {
+    "linux_owner_established": false,
+    "vendor_code_reusable": false,
+    "vendor_api_reusable": false,
+    "runtime_authority": false,
+    "device_action_allowed": false,
+    "hardware_support_claim": false,
+    "safe_reuse_established": false
+  },
+  "citations": {
+    "config": {
+      "source_id": "config",
+      "lines": [
+        1336,
+        1359
+      ],
+      "symbol": "MT6797 and Wi-Fi selection"
+    },
+    "wlan_make": {
+      "source_id": "wlan_make",
+      "lines": [
+        1,
+        35
+      ],
+      "symbol": "built-in/gen3 selection"
+    },
+    "gen3_make": {
+      "source_id": "gen3_make",
+      "lines": [
+        7,
+        20
+      ],
+      "symbol": "MT6797 macro"
+    },
+    "hif_select": {
+      "source_id": "gen3_make",
+      "lines": [
+        70,
+        97
+      ],
+      "symbol": "AHB include/object selection"
+    },
+    "hif_objects": {
+      "source_id": "gen3_make",
+      "lines": [
+        188,
+        197
+      ],
+      "symbol": "AHB objects"
+    },
+    "wmt_mode": {
+      "source_id": "gen3_config",
+      "lines": [
+        165,
+        167
+      ],
+      "symbol": "MTK_WCN_SINGLE_MODULE"
+    },
+    "platform_mode": {
+      "source_id": "hif_h",
+      "lines": [
+        25,
+        42
+      ],
+      "symbol": "CONF_HIF_DEV_MISC"
+    },
+    "platform_driver": {
+      "source_id": "ahb",
+      "lines": [
+        201,
+        217
+      ],
+      "symbol": "MtkPltmAhbDriver"
+    },
+    "init_exit": {
+      "source_id": "gl_init",
+      "lines": [
+        2441,
+        2536
+      ],
+      "symbol": "initWlan/exitWlan and built-in exports"
+    },
+    "bus_register": {
+      "source_id": "ahb",
+      "lines": [
+        240,
+        290
+      ],
+      "symbol": "glRegisterBus/glUnregisterBus"
+    },
+    "registration": {
+      "source_id": "ahb",
+      "lines": [
+        1596,
+        1642
+      ],
+      "symbol": "HifAhbPltmProbe/Remove"
+    },
+    "assignment": {
+      "source_id": "wmt_exp",
+      "lines": [
+        573,
+        611
+      ],
+      "symbol": "mtk_wcn_wmt_wlan_reg/unreg"
+    },
+    "wifi_table": {
+      "source_id": "wmt_core",
+      "lines": [
+        73,
+        77
+      ],
+      "symbol": "gpWmtFuncOps Wi-Fi guard"
+    },
+    "wifi_ops": {
+      "source_id": "wmt_func",
+      "lines": [
+        107,
+        116
+      ],
+      "symbol": "wmt_func_wifi_ops"
+    },
+    "connectivity_build": {
+      "source_id": "connectivity_make",
+      "lines": [
+        17,
+        35
+      ],
+      "symbol": "connectivity kernel-build selection"
+    },
+    "common_build": {
+      "source_id": "common_make",
+      "lines": [
+        20,
+        21
+      ],
+      "symbol": "common_main and common_detect"
+    },
+    "common_main_build": {
+      "source_id": "common_main_make",
+      "lines": [
+        1,
+        16
+      ],
+      "symbol": "common include paths"
+    },
+    "common_builtin": {
+      "source_id": "common_main_make",
+      "lines": [
+        53,
+        62
+      ],
+      "symbol": "CONFIG_MTK_COMBO=y objects"
+    },
+    "core_objects": {
+      "source_id": "core_make",
+      "lines": [
+        1,
+        10
+      ],
+      "symbol": "built-in WMT core and function objects"
+    },
+    "func_header": {
+      "source_id": "wmt_func_h_actual",
+      "lines": [
+        21,
+        26
+      ],
+      "symbol": "wmt_func header includes"
+    },
+    "wifi_guard": {
+      "source_id": "wmt_func_h_actual",
+      "lines": [
+        56,
+        60
+      ],
+      "symbol": "CFG_FUNC_WIFI_SUPPORT"
+    },
+    "wifi_declaration": {
+      "source_id": "wmt_func_h_actual",
+      "lines": [
+        145,
+        147
+      ],
+      "symbol": "wmt_func_wifi_ops declaration"
+    },
+    "core_include": {
+      "source_id": "wmt_core",
+      "lines": [
+        48,
+        54
+      ],
+      "symbol": "wmt_func.h inclusion before operations table"
+    },
+    "exit_macro": {
+      "source_id": "init_h",
+      "lines": [
+        363,
+        367
+      ],
+      "symbol": "__exit_p"
+    },
+    "module_init_macro": {
+      "source_id": "init_h",
+      "lines": [
+        276,
+        296
+      ],
+      "symbol": "built-in module_init/module_exit definitions"
+    },
+    "platform_registration": {
+      "source_id": "platform_core",
+      "lines": [
+        578,
+        591
+      ],
+      "symbol": "__platform_driver_register"
+    },
+    "platform_wrapper": {
+      "source_id": "platform_core",
+      "lines": [
+        552,
+        562
+      ],
+      "symbol": "platform_drv_remove"
+    },
+    "platform_unregister": {
+      "source_id": "platform_core",
+      "lines": [
+        598,
+        601
+      ],
+      "symbol": "platform_driver_unregister"
+    },
+    "platform_bus": {
+      "source_id": "platform_core",
+      "lines": [
+        1017,
+        1023
+      ],
+      "symbol": "platform_bus_type initializer"
+    },
+    "driver_unregister": {
+      "source_id": "driver_core",
+      "lines": [
+        187,
+        195
+      ],
+      "symbol": "driver_unregister"
+    },
+    "bus_remove": {
+      "source_id": "bus_core",
+      "lines": [
+        740,
+        755
+      ],
+      "symbol": "bus_remove_driver"
+    },
+    "driver_detach": {
+      "source_id": "dd_core",
+      "lines": [
+        578,
+        606
+      ],
+      "symbol": "driver_detach"
+    },
+    "device_release": {
+      "source_id": "dd_core",
+      "lines": [
+        521,
+        552
+      ],
+      "symbol": "__device_release_driver"
+    },
+    "detect_objects": {
+      "source_id": "detect_make",
+      "lines": [
+        21,
+        37
+      ],
+      "symbol": "selected SoC detector and drv_init directory"
+    },
+    "gen3_object_mode": {
+      "source_id": "gen3_make",
+      "lines": [
+        79,
+        81
+      ],
+      "symbol": "CONFIG_MTK_COMBO_WIFI object selection"
+    },
+    "hif_macro": {
+      "source_id": "gen3_config",
+      "lines": [
+        44,
+        56
+      ],
+      "symbol": "MTK_WCN_HIF_SDIO MT6797 branch"
+    }
+  },
+  "state_model": {
+    "selected_mode": "built-in non-MODULE",
+    "wifi_guard_value": 1,
+    "wifi_guard_is_config_test": false,
+    "wifi_table_entry": "wmt_func_wifi_ops",
+    "initWlan_direct_caller": "mtk_wcn_wlan_gen3_init",
+    "initWlan_return_observed_by_export": true,
+    "outer_builtin_init_caller": null,
+    "outer_builtin_init_return_handling": null,
+    "exitWlan_direct_caller": "mtk_wcn_wlan_gen3_exit",
+    "outer_builtin_exit_caller": null,
+    "builtin_exit_invoked": null,
+    "exit_p_result": "NULL",
+    "platform_remove_initial_value": "NULL",
+    "generic_driver_remove_initial_value": "NULL",
+    "platform_bus_remove_initial_value": "NULL",
+    "selected_static_unregister_dispatch_reaches_callback_clear": false,
+    "actual_runtime_callback_clear": null,
+    "wmt_wlan_unreg_body_clears_callbacks": true
+  },
+  "predicates": {
+    "wifi_guard_table": {
+      "verdict": "resolved",
+      "claim": "The selected wmt_func.h defines CFG_FUNC_WIFI_SUPPORT as literal 1 under #if 1. The WMT core table therefore selects the wmt_func_wifi_ops address, not NULL.",
+      "evidence": [
+        "config",
+        "connectivity_build",
+        "common_build",
+        "common_main_build",
+        "common_builtin",
+        "core_objects",
+        "func_header",
+        "wifi_guard",
+        "wifi_declaration",
+        "core_include",
+        "wifi_table",
+        "wifi_ops"
+      ],
+      "conditions": "Pinned selected kernel-build path with CONFIG_MTK_COMBO=y and the inspected include search path. The commented CONFIG_MTK_COMBO_WIFI expression is not the controlling condition. This resolves the guard and table compilation at source level, not full-image linkage, running binary equivalence or function execution.",
+      "missing": "No missing guard/table edge within this source boundary. Exact product build invocation and successful full-image construction were not tested.",
+      "next_discriminator": "Carry the literal guard value and selected table into later source reasoning; independently prove a full-image or runtime identity before making execution claims."
+    },
+    "builtin_init": {
+      "verdict": "unresolved",
+      "claim": "The gen3 built-in export mtk_wcn_wlan_gen3_init returns initWlan's result, and initWlan observes glRegisterBus status, but the outer selected caller/producer is not established.",
+      "evidence": [
+        "config",
+        "wlan_make",
+        "gen3_make",
+        "hif_select",
+        "hif_objects",
+        "init_exit",
+        "bus_register",
+        "detect_objects",
+        "gen3_object_mode",
+        "hif_macro"
+      ],
+      "conditions": "The selected WLAN makefile defines MTK_WCN_BUILT_IN_DRIVER; MT6797 selects the non-SDIO gen3 export. The alternate module_init(initWlan) branch is not the selected producer. Registration status is mapped to zero or -EIO by initWlan and returned by its direct export wrapper; no outer handling is inferred.",
+      "missing": "The three-batch/twelve-new-file limit was reached before inspecting drv_init/Makefile or its selected lifecycle sources. The inventory includes common_drv_init.c as well as wlan_drv_init.c and conn_drv_init.c; these directory entries are metadata, not caller selection evidence.",
+      "next_discriminator": "Under a new bounded contract, inspect common_detect/drv_init/Makefile first; then select only the lifecycle producer/caller sources demonstrated by its build selection and subsequent direct edges, including initialization return handling."
+    },
+    "builtin_exit": {
+      "verdict": "unresolved",
+      "claim": "The built-in export mtk_wcn_wlan_gen3_exit calls exitWlan, whose body calls glUnregisterBus; no outer selected caller or actual exit invocation is established.",
+      "evidence": [
+        "wlan_make",
+        "init_exit",
+        "bus_register",
+        "detect_objects",
+        "module_init_macro"
+      ],
+      "conditions": "The existing void export is a direct source caller, not proof of a registered teardown hook. The alternate module_exit(exitWlan) branch is excluded by the selected built-in-driver macro. Built-in and loadable-module lifecycles must not be conflated.",
+      "missing": "No outer caller body was selected before the file/batch limit. Metadata for the lifecycle directory does not show whether anyone calls the exit export.",
+      "next_discriminator": "In a separately frozen audit, inspect common_detect/drv_init/Makefile first, then only its demonstrated lifecycle producer/caller sources and subsequent direct edges. Report absent callers only within that corpus; do not infer an automatic built-in unload."
+    },
+    "builtin_exit_pointer": {
+      "verdict": "resolved",
+      "claim": "For the selected built-in, non-MODULE source configuration, __exit_p(HifAhbPltmRemove) expands to NULL and the AHB platform driver's remove field is NULL.",
+      "evidence": [
+        "config",
+        "wlan_make",
+        "gen3_make",
+        "hif_objects",
+        "platform_driver",
+        "exit_macro",
+        "gen3_object_mode"
+      ],
+      "conditions": "The inspected CONFIG_MTK_COMBO_WIFI=y objects are the built-in case, not a hypothetical external module build. init.h tests MODULE, not CONFIG_MODULES; general kernel module support does not select the nonnull branch for a built-in object. No build or active-image identity is claimed.",
+      "missing": "No missing macro/initializer edge for the stated non-MODULE conditional source result. Alternate build flags or an actual image would require separate identity evidence.",
+      "next_discriminator": "Use NULL for reasoning about this selected static driver initializer; do not transplant the loadable-module __exit_p(x)=x branch."
+    },
+    "unregister_clear_reachability": {
+      "verdict": "resolved",
+      "claim": "The selected static platform-driver unregister/remove dispatch cannot reach HifAhbPltmRemove or its call to mtk_wcn_wmt_wlan_unreg, independently of whether exitWlan is invoked.",
+      "evidence": [
+        "platform_driver",
+        "exit_macro",
+        "platform_registration",
+        "platform_bus",
+        "platform_unregister",
+        "driver_unregister",
+        "bus_remove",
+        "driver_detach",
+        "device_release",
+        "platform_wrapper",
+        "registration",
+        "assignment"
+      ],
+      "conditions": "The nested generic driver remove member starts zero. __platform_driver_register installs platform_drv_remove only when the platform remove is nonnull; it is NULL here. The platform bus initializer has no remove member. The detach path tries a bus remove first, otherwise a generic driver remove, so neither selected slot dispatches to the AHB callback-clear body. This excludes only this static remove dispatch, with no unproved pointer mutation; it is not a runtime observation or a global claim that callbacks can never be cleared elsewhere.",
+      "missing": "Actual exit invocation, other callers of callback clearing and any runtime pointer mutation or synchronization remain unestablished and outside this predicate.",
+      "next_discriminator": "Keep static dispatch reachability=false separate from runtime invocation=null. Any later invocation or synchronization proposal needs its own caller/state proof."
+    }
+  },
+  "escalation": {
+    "evidence": "Literal Wi-Fi guard and built-in NULL remove branch are joined; driver-core dispatch confirms the conditional callback-clear path is absent. Exact outer initialization and exit callers remain uninspected.",
+    "attempts": "Three predeclared batches; 18 network requests: 13 successful raw reads of 12 new regular files, two explicit 404s and three successful immediate-directory inventories. No contextual function reread, source repair or device attempt.",
+    "unresolved_question": "Which selected built-in producer calls the gen3 init/exit exports, and how does the init caller handle the returned registration error?",
+    "next_discriminating_check": "A new audit must inspect common_detect/drv_init/Makefile first, then select only lifecycle producer/caller sources demonstrated by that build selection and subsequent direct edges. Inventory names, including common_drv_init.c, do not establish callers. No additional source read under this work item."
+  }
+}
