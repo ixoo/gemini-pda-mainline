@@ -77,6 +77,17 @@ def comparison_tuple(item: dict) -> dict:
     }
 
 
+def review_signal_tuple(item: dict) -> dict:
+    """Group review signals without weakening settings-decision comparability."""
+    return {
+        "work_type": item["work_type"],
+        "risk_class": item["risk_class"],
+        "review_comparison_group": item.get("review_comparison_group",
+                                            item["acceptance_contract"]),
+        "review_route": item["review_route"],
+    }
+
+
 def flatten(value: object, prefix: str = "") -> dict[str, object]:
     if not isinstance(value, dict):
         return {prefix: value}
@@ -192,6 +203,10 @@ def validate_accepted(item: dict, expected_sequence: int) -> None:
         require(all(isinstance(route.get(key), str) and route[key]
                     for key in ("role", "model", "effort")),
                 f"{item_id}: incomplete {route_name}")
+    review_group = item.get("review_comparison_group")
+    require(review_group is None or
+            (isinstance(review_group, str) and review_group),
+            f"{item_id}: invalid review comparison group")
     result = item.get("result", {})
     require(isinstance(result.get("first_review_accepted"), bool),
             f"{item_id}: first_review_accepted must be boolean")
@@ -215,9 +230,9 @@ def validate_accepted(item: dict, expected_sequence: int) -> None:
         require(isinstance(reason, str) and reason, f"{item_id}: escalation reason is required")
         require(isinstance(packet, dict), f"{item_id}: escalation packet is required")
         repo_file(packet.get("evidence", ""), f"{item_id}: escalation evidence")
-        require(isinstance(packet.get("attempts"), list) and packet["attempts"] and
+        require(isinstance(packet.get("attempts"), list) and
                 all(isinstance(value, str) and value for value in packet["attempts"]),
-                f"{item_id}: escalation attempts are required")
+                f"{item_id}: escalation attempts must be a list of descriptions")
         for field in ("unresolved_question", "next_discriminating_check"):
             require(isinstance(packet.get(field), str) and packet[field],
                     f"{item_id}: escalation {field} is required")
@@ -410,7 +425,7 @@ def validate_ledger(cohort: dict, ledger: dict) -> tuple[
     last_by_comparison: dict[str, dict] = {}
     escalations: dict[tuple[str, str], dict] = {}
     for item in accepted_by_id.values():
-        key = json.dumps(comparison_tuple(item), sort_keys=True)
+        key = json.dumps(review_signal_tuple(item), sort_keys=True)
         result = item["result"]
         previous = last_by_comparison.get(key)
         if previous and not previous["result"]["first_review_accepted"] and \

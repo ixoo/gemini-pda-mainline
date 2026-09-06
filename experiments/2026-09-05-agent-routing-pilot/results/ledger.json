@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 5,
-  "next_accepted_sequence": 6,
-  "next_considered_sequence": 8,
+  "accepted_count": 6,
+  "next_accepted_sequence": 7,
+  "next_considered_sequence": 9,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -229,6 +229,7 @@
       "offline_eligible": true,
       "work_type": "reasoning",
       "risk_class": "hard-uncertainty",
+      "review_comparison_group": "hard-reasoning-verdict-receipt-v1",
       "acceptance_contract": "experiments/2026-09-06-mt6797-emi-domain-attribution/WORK_ITEM.md",
       "parent": "82405bb9eafb3af37cafb331e1bc0eaeb2518f3f",
       "owner_route": {
@@ -267,6 +268,51 @@
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-06-mt6797-emi-domain-attribution/README.md"
       }
+    },
+    {
+      "considered_sequence": 8,
+      "accepted_sequence": 6,
+      "candidate_id": "mt6797-firmware-nvram-handler-attribution",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "reasoning",
+      "risk_class": "hard-uncertainty",
+      "review_comparison_group": "hard-reasoning-verdict-receipt-v1",
+      "acceptance_contract": "experiments/2026-09-06-mt6797-firmware-nvram-handler-attribution/WORK_ITEM.md",
+      "parent": "f43a702c107e3685c92c4d275dc3547acf7302ce",
+      "owner_route": {
+        "role": "gemini_specialist",
+        "model": "gpt-6-astra",
+        "effort": "medium"
+      },
+      "review_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-06T05:41:02Z",
+        "review_ready_at": "2026-09-06T05:50:20Z",
+        "accepted_at": "2026-09-06T05:53:46Z",
+        "timing_source": "observed UTC work-contract, handoff and final-review timestamps",
+        "elapsed_minutes": 12.7333333333,
+        "review_rework_minutes": 3.4333333333,
+        "first_review_accepted": false,
+        "rework_cycles": 2,
+        "escalated": true,
+        "escalation_reason": "preflight proved that the permitted immutable scripts cannot implement either frozen deterministic traversal contract without a scope expansion",
+        "escalation_packet": {
+          "evidence": "experiments/2026-09-06-mt6797-firmware-nvram-handler-attribution/results/attribution.json",
+          "attempts": [],
+          "unresolved_question": "will a separately reviewed read-only deterministic traversal and verification tool be admitted?",
+          "next_discriminating_check": "freeze a concrete read-only tooling implementation with immutable candidate checks, exact traversal accounting and sanitized output before resuming either branch"
+        },
+        "review_failure_class": null,
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-06-mt6797-firmware-nvram-handler-attribution/README.md"
+      }
     }
   ],
   "checkpoints": [
@@ -281,6 +327,22 @@
       "comparable_item_ids": [
         "mt6797-emi-abi-kernel-compile",
         "mt6797-remap-fields-kernel-compile"
+      ],
+      "conclusion": "too-small",
+      "evidence": "experiments/2026-09-05-agent-routing-pilot/README.md"
+    },
+    {
+      "id": "pilot-01-post-item-six-review-misses",
+      "after_accepted_sequence": 6,
+      "after_considered_sequence": 8,
+      "trigger": "early-signal",
+      "trigger_item_ids": [
+        "mt6797-emi-domain-attribution",
+        "mt6797-firmware-nvram-handler-attribution"
+      ],
+      "comparable_item_ids": [
+        "mt6797-emi-domain-attribution",
+        "mt6797-firmware-nvram-handler-attribution"
       ],
       "conclusion": "too-small",
       "evidence": "experiments/2026-09-05-agent-routing-pilot/README.md"

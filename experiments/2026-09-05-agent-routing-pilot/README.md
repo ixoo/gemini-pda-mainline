@@ -76,9 +76,9 @@ when every item in the cohort segment uses the same observed source and unit.
 
 ## Observations
 
-The contiguous ledger now contains seven considered candidates: five eligible
+The contiguous ledger now contains eight considered candidates: six eligible
 accepted offline items, one cohort-bootstrap exclusion and one device-session
-exclusion. All five accepted items missed first-review acceptance. The first two
+exclusion. All six accepted items missed first-review acceptance. The first two
 required escalation: the integration item exposed live-ledger fixture coupling,
 and the dynamic reserved-memory implementation needed corrected OF semantics,
 owned declaration copies and static-path regression coverage. The next two
@@ -89,9 +89,43 @@ Item five was a hard-uncertainty source investigation. It retained four
 unresolved EMI routing/priority verdicts and blocked policy selection. Two
 verifier-boundary repairs still left mutable metadata and predicate gaps, so the
 required escalation added independent frozen metadata and 34 mutation-refusal
-fixtures before final Sol review accepted it. Credits are unavailable for all
-five items. No accepted measurement is inferred from model identity or elapsed
+fixtures before final Sol review accepted it.
+
+Item six was a separate hard-uncertainty retained-firmware attribution. Its
+preflight matched every frozen identity but proved that none of the five
+permitted immutable scripts implemented the new deterministic traversals. It
+therefore stopped both branches before an attempt, preserved null unmeasured
+counts and four unresolved verdicts, and escalated the exact missing read-only
+tooling contract. Two chronology-only review repairs aligned the work contract
+with the accepted stop receipt. Credits are unavailable for all six items. No
+accepted measurement is inferred from model identity or elapsed
 time.
+
+## Post-item-six early-signal checkpoint
+
+Checkpoint `pilot-01-post-item-six-review-misses` closes accepted sequence 6
+and considered sequence 8. Items five and six are consecutive
+hard-uncertainty reasoning handoffs with the same Astra Medium owner route,
+Sol Medium review route, conservative multi-verdict receipt, unresolved-result
+acceptance, offline verifier and mutation-refusal shape. Their work-contract
+paths differ because technical identities belong to separate experiments, but
+their acceptance checks are sufficiently similar for this early review. Both
+are assigned the explicit review-signal group
+`hard-reasoning-verdict-receipt-v1` and missed first-review acceptance. This
+group affects only early review signals; the stricter exact-contract tuple still
+governs settings decisions.
+
+The two-item comparison has median elapsed time 18.3833333333 minutes and
+median review/rework time 10.675 minutes. First-review acceptance is 0/2. Both
+items escalated, for different reasons: item five required stronger independent
+verifier freezing after repeated repair, while item six stopped before an
+analysis attempt because the admitted immutable tools could not implement the
+new method. Credits are unavailable for both.
+
+The conclusion remains `too-small`. The shared miss signal warrants preserving
+the precise failure classes and continuing measurement, but two technically
+different investigations do not support a route or settings change. No safety,
+publication, provenance or scope-containment failure was accepted.
 
 Creation of this loop remains excluded because its eligibility and timing
 contract did not exist before work began. The passive CONSYS ownership snapshot

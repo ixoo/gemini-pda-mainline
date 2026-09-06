@@ -171,6 +171,18 @@ def main() -> None:
 
     bad = copy.deepcopy(pointer)
     add_items(bad, 2)
+    for item in bad["_test_ledger"]["considered_items"][-2:]:
+        item["result"]["first_review_accepted"] = False
+        item["result"]["rework_cycles"] = 1
+        item["review_comparison_group"] = "hard-reasoning-verdict-receipt-v1"
+    bad["_test_ledger"]["considered_items"][-1]["acceptance_contract"] = \
+        "different-contract-v1"
+    original = use_test_ledger(bad)
+    rejected(bad, config, agents, "consecutive review misses")
+    MODULE.load_json = original
+
+    bad = copy.deepcopy(pointer)
+    add_items(bad, 2)
     ledger = bad["_test_ledger"]
     for item in ledger["considered_items"][-2:]:
         item["result"]["first_review_accepted"] = False
@@ -210,6 +222,21 @@ def main() -> None:
     result["escalation_packet"] = None
     original = use_test_ledger(bad)
     rejected(bad, config, agents, "escalation packet")
+    MODULE.load_json = original
+
+    bad = copy.deepcopy(pointer)
+    add_items(bad, 1)
+    result = bad["_test_ledger"]["considered_items"][-1]["result"]
+    result["escalated"] = True
+    result["escalation_reason"] = "preflight scope stop"
+    result["escalation_packet"] = {
+        "evidence": "project/WORKFLOW_IMPROVEMENT.md",
+        "attempts": "none",
+        "unresolved_question": "which tooling may be admitted?",
+        "next_discriminating_check": "review the tooling contract",
+    }
+    original = use_test_ledger(bad)
+    rejected(bad, config, agents, "attempts must be a list")
     MODULE.load_json = original
 
     bad = copy.deepcopy(pointer)
@@ -302,7 +329,7 @@ def main() -> None:
     bad_config["agents"]["max_concurrent_threads_per_session"] = 4
     rejected(pointer, bad_config, agents, "spawned-agent ceiling")
 
-    print("workflow_improvement_refusals=pass cases=15")
+    print("workflow_improvement_refusals=pass cases=17")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,272 @@
+{
+  "schema_version": 1,
+  "parent_commit": "f43a702c107e3685c92c4d275dc3547acf7302ce",
+  "contract": "WORK_ITEM.md",
+  "state": "global-stop",
+  "stop_reason": "required-scope-expansion",
+  "times": {
+    "contract_analysis_start_utc": "2026-09-06T05:41:02Z",
+    "observed_preflight_start_utc": "2026-09-06T05:41:33Z",
+    "preservation_complete_and_stop_recorded_utc": "2026-09-06T05:44:00Z"
+  },
+  "route": {
+    "owner_model": "gpt-6-astra",
+    "owner_effort": "medium",
+    "review_model": "gpt-5.6-sol",
+    "review_effort": "medium",
+    "credits": null,
+    "credit_source": "unavailable"
+  },
+  "inputs": [
+    {
+      "id": "mtke",
+      "path": "experiments/2026-09-05-mt6797-wifi-contract/results/firmware-mtke.json",
+      "sha256": "801a45dce0596675faaa67a693ca535b2256f687f4f9c7d25db9626ce681db0e",
+      "purpose": "Frozen whole firmware identity and structural section counts; not execution or pairing evidence.",
+      "rights": "Existing sanitized project record; reference only, no new external source or private corpus admitted."
+    },
+    {
+      "id": "mapping",
+      "path": "experiments/2026-09-05-mt6797-wifi-contract/FIRMWARE_EXECUTABLE_MAPPING.md",
+      "sha256": "f5689c16a79aa5d512da40b7f8309aa5b4941ecccc40494071e09d2435d609a8",
+      "purpose": "Frozen candidate mapping and prior decoder assumptions; not a new decoder run.",
+      "rights": "Existing sanitized project record; reference only, no new external source or private corpus admitted."
+    },
+    {
+      "id": "caller-path",
+      "path": "experiments/2026-09-05-mt6797-wifi-contract/FIRMWARE_NVRAM_PATH.md",
+      "sha256": "0ae5a47e5f5b728a0f350dacfa7aacc21a34ae1762815d72d79fd41e64320b6e",
+      "purpose": "Frozen local caller/reference hypotheses and prior bounded-flow limits.",
+      "rights": "Existing sanitized project record; reference only, no new external source or private corpus admitted."
+    },
+    {
+      "id": "call-target",
+      "path": "experiments/2026-09-05-mt6797-wifi-contract/FIRMWARE_NVRAM_CALL_TARGET.md",
+      "sha256": "1fa29b99340880c925a4c837ea10864c09ed936143a56247cc7ae491d03db40e",
+      "purpose": "Frozen conditional target candidate and prior target-prefix limitation.",
+      "rights": "Existing sanitized project record; reference only, no new external source or private corpus admitted."
+    },
+    {
+      "id": "calibration-boundary",
+      "path": "experiments/2026-09-05-mt6797-wifi-contract/FIRMWARE_CALIBRATION_BOUNDARY.md",
+      "sha256": "13c7ae780a6fef9c17d05c1ec0f70d0127c76fb48c2063cd1b46801cfd3eae29",
+      "purpose": "Frozen distinction between text references and firmware calibration semantics.",
+      "rights": "Existing sanitized project record; reference only, no new external source or private corpus admitted."
+    },
+    {
+      "id": "record-applicability",
+      "path": "experiments/2026-09-05-mt6797-wifi-contract/CALIBRATION_APPLICABILITY.md",
+      "sha256": "fe99c510f2291616257a33dbe3ace90ed3ba010bec2fb60a104d1ee853802c03",
+      "purpose": "Frozen local record applicability boundary; no new record/default inspection.",
+      "rights": "Existing sanitized project record; reference only, no new external source or private corpus admitted."
+    },
+    {
+      "id": "storage-provenance",
+      "path": "experiments/2026-09-05-mt6797-wifi-contract/PROVENANCE.md",
+      "sha256": "cc7fb7cbc162d9f3f3d6b8982faedd8557bfbfddc614ffede7090e9b39a842e1",
+      "purpose": "Frozen storage/producer limitations; no raw storage or producer-library access.",
+      "rights": "Existing sanitized project record; reference only, no new external source or private corpus admitted."
+    },
+    {
+      "id": "host-submission",
+      "path": "experiments/2026-09-05-mt6797-wifi-contract/NORMAL_COMMAND.md",
+      "sha256": "7cec7a6b00c8a499d32f6c16df4bbe1489a7a572035281c611424eaa27ceebf9",
+      "purpose": "Host framing/submission constraint only; not a firmware application receipt.",
+      "rights": "Existing sanitized project record; reference only, no new external source or private corpus admitted."
+    }
+  ],
+  "private_identity": {
+    "firmware": {
+      "sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+      "bytes": 411632,
+      "whole_file_hash_matches": true,
+      "whole_file_size_matches": true,
+      "rights": "Private retained firmware; analysis authorization is not redistribution permission."
+    },
+    "retained_analysis": {
+      "sha256": "140f2ab852c841774511861baaff543875da352060d5c44e0a1b3e52790b821b",
+      "regular_files": 21,
+      "aggregate_bytes": 1619222,
+      "hash_matches_before": true,
+      "hash_matches_after": true,
+      "count_matches_before": true,
+      "count_matches_after": true,
+      "size_matches_before": true,
+      "size_matches_after": true,
+      "canonicalization": "C-locale relative-path sorted regular-file sha256sum records, NUL sorting, no leading dot-slash, outer SHA-256.",
+      "rights": "Private retained analysis database, options, logs and tooling; no contents, paths or anchors published."
+    },
+    "import_log": {
+      "sha256": "ef4dde5d97b8b70a43a118fa1b9809d605560dd2675954b6ef14882278eaadbe",
+      "hash_matches_before": true,
+      "hash_matches_after": true,
+      "frozen_tool_version": "Ghidra 12.1.2",
+      "frozen_language": "NDS32:LE:32:default:default",
+      "version_language_basis": "Frozen import-log identity matched; no new import or decoder run.",
+      "rights": "Private retained import log; digest only."
+    },
+    "scripts": {
+      "sha256": "201a8e8241a5af6ed2555beb22c00bc1f75d38c83d40e3253c4f8c8533421ad9",
+      "count": 5,
+      "hash_matches_before": true,
+      "hash_matches_after": true,
+      "canonicalization": "SHA-256 of five content digests, lowercase hex each followed by LF, in the contract's fixed order.",
+      "rights": "Private locally retained analysis tooling; no source excerpts, anchors or code publication."
+    },
+    "section_window_identity_independently_verified": false,
+    "stored_option_presence_independently_verified": false,
+    "unperformed_checks_reason": "Stopped on required tooling scope expansion before opening the program or executing a permitted script. Matching whole-directory identity is not an independent semantic check of stored options or mapped windows."
+  },
+  "tooling_review": {
+    "scripts_inspected": 5,
+    "scripts_executed": 0,
+    "new_scripts_created_in_vm": 0,
+    "new_databases_created": 0,
+    "graph_nodes_measured": false,
+    "target_contract_tool_available": false,
+    "incoming_reachability_tool_available": false,
+    "findings": [
+      {
+        "evidence_class": "observed-tooling-fact",
+        "source_identity": "private_identity.scripts",
+        "fact": "The retained target checker inspects an at-most-eight-instruction prefix through the first control transfer; it does not reconstruct the requested complete target slice."
+      },
+      {
+        "evidence_class": "observed-tooling-fact",
+        "source_identity": "private_identity.scripts",
+        "fact": "The retained predecessor walks do not sort each predecessor set before enqueueing and do not implement the required count-at-dequeue, cap-node-not-expanded accounting."
+      },
+      {
+        "evidence_class": "observed-tooling-fact",
+        "source_identity": "private_identity.scripts",
+        "fact": "The retained target propagation selects one bounded path rather than joining all admitted predecessors; it has no requested incoming-dispatch enumeration or reference inventory."
+      },
+      {
+        "evidence_class": "observed-tooling-fact",
+        "source_identity": "private_identity.scripts",
+        "fact": "Some permitted scripts reconstruct anchors or write program options/mappings, so they cannot stand in for the new frozen-anchor inspection without additional reviewed tooling."
+      }
+    ]
+  },
+  "branches": [
+    {
+      "id": "target-contract",
+      "state": "not-started-global-stop",
+      "executed_attempt_count": 0,
+      "attempts": [],
+      "node_measurements": null,
+      "reference_measurements": null,
+      "unknown_transfers": null,
+      "cap_exhausted": null,
+      "queue_exhausted": null,
+      "planned_caps": {
+        "first_attempt_nodes": 4096,
+        "second_attempt_direct_references": 64
+      },
+      "reason": "No permitted script implements the required target slice/reference traversal; creating or modifying one would expand scope."
+    },
+    {
+      "id": "incoming-reachability",
+      "state": "not-started-global-stop",
+      "executed_attempt_count": 0,
+      "attempts": [],
+      "node_measurements": null,
+      "reference_measurements": null,
+      "unknown_transfers": null,
+      "cap_exhausted": null,
+      "queue_exhausted": null,
+      "planned_caps": {
+        "second_attempt_nodes": 16384
+      },
+      "reason": "No permitted script implements the requested caller/target incoming enumeration and deterministic predecessor propagation; creating or modifying one would expand scope."
+    }
+  ],
+  "verdicts": {
+    "target_contract": {
+      "verdict": "unresolved",
+      "evidence_class": "unresolved",
+      "citations": [
+        "call-target",
+        "private_identity.scripts",
+        "branches.target-contract"
+      ],
+      "entry_and_complete_slice_verified": false,
+      "input_shape_and_consumer_verified": false,
+      "missing_link": "No admitted complete target data/control slice was run.",
+      "next_discriminator": "Admit and freeze a read-only deterministic target-slice script with the contract's roots, ordering, cap and count semantics before a new attempt."
+    },
+    "incoming_reachability": {
+      "verdict": "unresolved",
+      "evidence_class": "unresolved",
+      "citations": [
+        "caller-path",
+        "private_identity.scripts",
+        "branches.incoming-reachability"
+      ],
+      "concrete_transfer_chain_verified": false,
+      "exhaustive_alternative_dispatch_verified": false,
+      "missing_link": "No admitted incoming-reference or predecessor-propagation attempt was run.",
+      "next_discriminator": "Admit and freeze a read-only deterministic incoming-reference/predecessor script that preserves the stored candidates and reports every required count."
+    },
+    "record_application": {
+      "verdict": "unresolved",
+      "evidence_class": "unresolved",
+      "citations": [
+        "host-submission",
+        "call-target",
+        "branches.target-contract",
+        "branches.incoming-reachability"
+      ],
+      "resolved_foundations": false,
+      "payload_to_consumer_def_use_verified": false,
+      "missing_link": "Both foundations remain unresolved and no payload-to-effect trace exists.",
+      "next_discriminator": "After both foundations resolve under separately admitted tooling, require a concrete def-use trace from the submitted payload to the selected consumer/effect."
+    },
+    "calibration_precedence": {
+      "verdict": "unresolved",
+      "evidence_class": "unresolved",
+      "citations": [
+        "calibration-boundary",
+        "record-applicability",
+        "branches.target-contract"
+      ],
+      "source_ordering_verified": false,
+      "same_predicate_conflict_verified": false,
+      "missing_link": "No concrete ordering among record, compiled-default and EFUSE sources was traced.",
+      "next_discriminator": "After an admitted target/application trace, inspect a concrete branch/data-flow ordering joining the three sources under explicitly stated predicates."
+    }
+  },
+  "assumptions": [
+    "Little-endian data ABI remains provisional.",
+    "Instruction decoding is the previously selected big-endian NDS32 model; no new decode ran.",
+    "Stored caller entry, reference anchor and conditional target remain hypotheses; values were not published or changed.",
+    "Unknown or encrypted transfers remain unknown."
+  ],
+  "boundaries": {
+    "policy_selection_allowed": false,
+    "runtime_claim_allowed": false,
+    "record_application_observed": false,
+    "hardware_support_claim": false,
+    "device_access_performed": false,
+    "firmware_execution_performed": false,
+    "radio_action_performed": false,
+    "decryption_performed": false,
+    "emulation_performed": false,
+    "private_material_published": false,
+    "new_firmware_semantic_interpretation_performed": false
+  },
+  "retention": {
+    "existing_private_state_preserved": true,
+    "post_directory_digest_matches_pre": true,
+    "private_files_added": 0,
+    "private_files_removed": 0,
+    "re_shell_closed": true
+  },
+  "escalation": {
+    "attempts_performed": 0,
+    "repairs_attempted": 0,
+    "evidence": "Exact existing script identity matched, but the five permitted implementations cannot perform the frozen traversal contract.",
+    "unresolved_question": "Will the integration owner admit and freeze the missing read-only deterministic verification/traversal tooling?",
+    "next_discriminating_check": "Review a concrete additional tooling contract, with implementation identity, immutable-anchor checks, exact traversal accounting and sanitized outputs, before any firmware branch runs."
+  }
+}
