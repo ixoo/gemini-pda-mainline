@@ -1,0 +1,143 @@
+From dcd67c14c39b82e75b5b2f67ed8d3aa3480618fc Mon Sep 17 00:00:00 2001
+From: MT6797 remap-fields experiment <nobody@example.invalid>
+Date: Sun, 6 Sep 2026 00:00:00 +0000
+Subject: [PATCH] wifi: mediatek: compile checked MT6797 remap fields
+
+Add pure checked encoders and expected-state masked replacements
+for the shared remap register as a separately compiled private
+object. No runtime caller, MMIO or hardware admission is supplied.
+
+Internal experiment only; synthetic non-certifying author, no DCO.
+Assisted-by: LLM
+---
+ drivers/net/wireless/mediatek/mt6797/Makefile |  1 +
+ .../wireless/mediatek/mt6797/remap-fields.c   | 57 +++++++++++++++++++
+ .../wireless/mediatek/mt6797/remap-fields.h   | 46 +++++++++++++++
+ 3 files changed, 104 insertions(+)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/remap-fields.c
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/remap-fields.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Makefile b/drivers/net/wireless/mediatek/mt6797/Makefile
+index 7a9b253..1e1c7fe 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Makefile
++++ b/drivers/net/wireless/mediatek/mt6797/Makefile
+@@ -4,3 +4,4 @@ obj-y += mtke.o crc-kernel.o
+ obj-y += image-plan.o
+ obj-y += image-binding.o
+ obj-y += emi-abi.o
++obj-y += remap-fields.o
+diff --git a/drivers/net/wireless/mediatek/mt6797/remap-fields.c b/drivers/net/wireless/mediatek/mt6797/remap-fields.c
+new file mode 100644
+index 0000000..36a89ae
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/remap-fields.c
+@@ -0,0 +1,57 @@
++// SPDX-License-Identifier: GPL-2.0-only
++#include "remap-fields.h"
++
++int mt6797_remap_encode_common(unsigned long long base,
++			       unsigned int enable, unsigned int *field)
++{
++	if (!field)
++		return -EINVAL;
++	*field = 0;
++	if (enable > 1 || base > 0xffffffffULL - 0xfffffULL ||
++	    base & 0xfffffULL)
++		return -ERANGE;
++	*field = (unsigned int)(base >> 20) | (enable * MT6797_REMAP_COMMON_ENABLE);
++	return 0;
++}
++
++int mt6797_remap_encode_wlan(unsigned long long base, unsigned int *field)
++{
++	if (!field)
++		return -EINVAL;
++	*field = 0;
++	if (base > 0xffffffffULL - 0xffffULL || base & 0xffffULL)
++		return -ERANGE;
++	*field = (unsigned int)base & MT6797_REMAP_WLAN_MASK;
++	return 0;
++}
++
++static int mt6797_remap_replace(unsigned int current, unsigned int expected,
++				unsigned int replacement, unsigned int mask,
++				unsigned int *next)
++{
++	if (!next)
++		return -EINVAL;
++	*next = 0;
++	if ((expected & ~mask) || (replacement & ~mask))
++		return -EINVAL;
++	if ((current & mask) != expected)
++		return -EAGAIN;
++	*next = (current & ~mask) | replacement;
++	return 0;
++}
++
++int mt6797_remap_replace_common(unsigned int current,
++				unsigned int expected, unsigned int replacement,
++				unsigned int *next)
++{
++	return mt6797_remap_replace(current, expected, replacement,
++				    MT6797_REMAP_COMMON_MASK, next);
++}
++
++int mt6797_remap_replace_wlan(unsigned int current,
++			      unsigned int expected, unsigned int replacement,
++			      unsigned int *next)
++{
++	return mt6797_remap_replace(current, expected, replacement,
++				    MT6797_REMAP_WLAN_MASK, next);
++}
+diff --git a/drivers/net/wireless/mediatek/mt6797/remap-fields.h b/drivers/net/wireless/mediatek/mt6797/remap-fields.h
+new file mode 100644
+index 0000000..21f6b32
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/remap-fields.h
+@@ -0,0 +1,46 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/* Pure checked field arithmetic for the shared MT6797 remap register. */
++#ifndef GEMINI_MT6797_REMAP_FIELDS_H
++#define GEMINI_MT6797_REMAP_FIELDS_H
++
++#ifdef __KERNEL__
++#include <linux/build_bug.h>
++#include <linux/errno.h>
++#include <linux/types.h>
++#else
++#include <assert.h>
++#include <errno.h>
++#include <stddef.h>
++#endif
++
++static_assert(sizeof(unsigned int) == 4,
++	      "remap fields require 32-bit unsigned int");
++static_assert(sizeof(int) == 4, "remap fields require 32-bit int");
++static_assert(sizeof(unsigned long long) == 8,
++	      "remap fields require 64-bit values");
++
++#define MT6797_REMAP_COMMON_BASE_MASK 0x00000fffU
++#define MT6797_REMAP_COMMON_ENABLE 0x00001000U
++#define MT6797_REMAP_COMMON_MASK 0x00001fffU
++#define MT6797_REMAP_WLAN_MASK 0xffff0000U
++
++/* Encode a 1 MiB-aligned base and explicit enable state for bits 12:0.
++ * The complete first MiB must remain in the 32-bit address space.
++ */
++int mt6797_remap_encode_common(unsigned long long base,
++			       unsigned int enable, unsigned int *field);
++
++/* Encode a 64 KiB-aligned base for the optional WLAN window in bits 31:16.
++ * The complete first 64 KiB must remain in the 32-bit address space.
++ */
++int mt6797_remap_encode_wlan(unsigned long long base, unsigned int *field);
++
++/* Replace only the owned field after proving the caller's expected state. */
++int mt6797_remap_replace_common(unsigned int current,
++				unsigned int expected, unsigned int replacement,
++				unsigned int *next);
++int mt6797_remap_replace_wlan(unsigned int current,
++			      unsigned int expected, unsigned int replacement,
++			      unsigned int *next);
++
++#endif

@@ -9,3 +9,4 @@ proposals/0005-wifi-mediatek-retain-private-image-bindings.patch
 proposals/0006-wifi-mediatek-describe-reserved-memory.patch
 proposals/0007-wifi-mediatek-describe-dynamic-reserved-memory.patch
 proposals/0008-wifi-mediatek-compile-emi-abi.patch
+proposals/0009-wifi-mediatek-compile-remap-fields.patch
