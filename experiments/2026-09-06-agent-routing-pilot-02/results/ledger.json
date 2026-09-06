@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 3,
-  "next_accepted_sequence": 4,
-  "next_considered_sequence": 5,
+  "accepted_count": 4,
+  "next_accepted_sequence": 5,
+  "next_considered_sequence": 6,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -182,6 +182,46 @@
         "credit_source": "unavailable",
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-06-mt6797-ordinary-transfer-bridge/validation.json"
+      }
+    },
+    {
+      "considered_sequence": 5,
+      "accepted_sequence": 4,
+      "candidate_id": "mt6797-consys-owner-source-attribution",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "reasoning",
+      "risk_class": "hard-uncertainty",
+      "acceptance_contract": "experiments/2026-09-06-mt6797-consys-owner-source-attribution/WORK_ITEM.md",
+      "review_comparison_group": "mt6797-wifi-owner-source-attribution",
+      "parent": "d56c4d8763d2b11f0521b945e890a9a108dbe16e",
+      "owner_route": {
+        "role": "gemini_specialist",
+        "model": "gpt-6-astra",
+        "effort": "medium"
+      },
+      "review_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-06T15:13:28Z",
+        "review_ready_at": "2026-09-06T15:29:11Z",
+        "accepted_at": "2026-09-06T15:33:32Z",
+        "timing_source": "observed UTC dispatch, file-complete handoff and final-review timestamps",
+        "elapsed_minutes": 20.0666667,
+        "review_rework_minutes": 4.35,
+        "first_review_accepted": true,
+        "rework_cycles": 0,
+        "escalated": false,
+        "escalation_reason": null,
+        "escalation_packet": null,
+        "review_failure_class": null,
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-06-mt6797-consys-owner-source-attribution/verdicts.json"
       }
     }
   ],

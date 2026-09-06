@@ -59,3 +59,13 @@ ownerless whole-image claim; implementation then required two bounded fixture
 repair cycles and one exact integration evidence correction before Sol
 acceptance. This hard-uncertainty Wi-Fi owner-boundary item is not comparable to
 the two TOPRGU items, so it triggers no routing checkpoint or settings change.
+
+## Item four
+
+Accepted item 4, `mt6797-consys-owner-source-attribution`, performs a bounded
+public-source ownership audit at the exact Planet revision. It resolves only
+the dynamic reserved-memory producer at an explicit allocation-API boundary;
+four power/reset, common handoff, remap and secure-EMI chains remain unresolved.
+The first complete handoff passed Sol review without rework. This source-
+attribution reasoning item has no comparable peer in the cohort, so it triggers
+no routing checkpoint or settings change.

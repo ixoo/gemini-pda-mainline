@@ -1,0 +1,324 @@
+{
+  "schema_version": 1,
+  "repository_parent": "d56c4d8763d2b11f0521b945e890a9a108dbe16e",
+  "source_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+  "authority": {
+    "linux_owner_established": false,
+    "vendor_code_reusable": false,
+    "vendor_api_reusable": false,
+    "policy_selected": false,
+    "runtime_authority": false,
+    "device_action_allowed": false,
+    "hardware_support_claim": false
+  },
+  "rights": {
+    "source_study_only": true,
+    "source_copy_permission": false,
+    "firmware_redistribution_permission": false
+  },
+  "interpretation": "Verdicts describe pinned public source only, not a live binary or an upstream provider. Unresolved is not contradicted. No incompatible complete chains were established.",
+  "reference_bound": "At most two direct references from the predeclared discovered anchors. No memblock internals or re-anchored architecture reconstruction. The coordinator retained the original bound and accepted allocation API effects only where size/base flow is explicit.",
+  "citations": {
+    "declaration": {
+      "source_id": "dt",
+      "lines": [
+        329,
+        335
+      ],
+      "symbol": "mediatek,consys-reserve-memory"
+    },
+    "allocator_dispatch": {
+      "source_id": "rmem",
+      "lines": [
+        217,
+        237
+      ],
+      "symbol": "fdt_init_reserved_mem"
+    },
+    "allocator_inputs": {
+      "source_id": "rmem",
+      "lines": [
+        95,
+        184
+      ],
+      "symbol": "__reserved_mem_alloc_size"
+    },
+    "allocator_effect": {
+      "source_id": "rmem",
+      "lines": [
+        31,
+        56
+      ],
+      "symbol": "early_init_dt_alloc_reserved_memory_arch"
+    },
+    "callback_dispatch": {
+      "source_id": "rmem",
+      "lines": [
+        193,
+        211
+      ],
+      "symbol": "__reserved_mem_init_node"
+    },
+    "callback": {
+      "source_id": "wmt_hw",
+      "lines": [
+        1065,
+        1072
+      ],
+      "symbol": "reserve_memory_consys_fn"
+    },
+    "power_entry": {
+      "source_id": "wmt_plat",
+      "lines": [
+        446,
+        474
+      ],
+      "symbol": "wmt_plat_pwr_ctrl"
+    },
+    "power_wrapper": {
+      "source_id": "wmt_hw",
+      "lines": [
+        797,
+        843
+      ],
+      "symbol": "mtk_wcn_consys_hw_pwr_on"
+    },
+    "power_effect_requests": {
+      "source_id": "wmt_hw",
+      "lines": [
+        328,
+        355
+      ],
+      "symbol": "mtk_wcn_consys_hw_reg_ctrl"
+    },
+    "reset_release": {
+      "source_id": "wmt_hw",
+      "lines": [
+        493,
+        496
+      ],
+      "symbol": "mtk_wcn_consys_hw_reg_ctrl"
+    },
+    "reg_return": {
+      "source_id": "wmt_hw",
+      "lines": [
+        754,
+        755
+      ],
+      "symbol": "mtk_wcn_consys_hw_reg_ctrl"
+    },
+    "probe_clock": {
+      "source_id": "wmt_hw",
+      "lines": [
+        226,
+        234
+      ],
+      "symbol": "mtk_wmt_probe"
+    },
+    "clock_effect_anchor": {
+      "source_id": "clock",
+      "lines": [
+        574,
+        586
+      ],
+      "symbol": "spm_mtcmos_ctrl_conn"
+    },
+    "firmware_caller": {
+      "source_id": "gl_init",
+      "lines": [
+        2043,
+        2058
+      ],
+      "symbol": "wlanProbe"
+    },
+    "firmware_lifetime": {
+      "source_id": "gl_kal",
+      "lines": [
+        361,
+        421
+      ],
+      "symbol": "kalFirmwareImageMapping"
+    },
+    "disabled_request_api": {
+      "source_id": "gl_kal",
+      "lines": [
+        425,
+        492
+      ],
+      "symbol": "kalFirmwareImageMapping"
+    },
+    "download_edge": {
+      "source_id": "wlan_lib",
+      "lines": [
+        433,
+        440
+      ],
+      "symbol": "wlanAdapterStart"
+    },
+    "callback_registration": {
+      "source_id": "ahb",
+      "lines": [
+        1613,
+        1624
+      ],
+      "symbol": "HifAhbPltmProbe"
+    },
+    "common_callback": {
+      "source_id": "wmt_func",
+      "lines": [
+        694,
+        726
+      ],
+      "symbol": "wmt_func_wifi_on"
+    },
+    "remap_init": {
+      "source_id": "wmt_hw",
+      "lines": [
+        1118,
+        1127
+      ],
+      "symbol": "mtk_wcn_consys_hw_init"
+    },
+    "remap_offset": {
+      "source_id": "wmt_h",
+      "lines": [
+        67,
+        74
+      ],
+      "symbol": "CONSYS_EMI_MAPPING_OFFSET"
+    },
+    "remap_write_macro": {
+      "source_id": "wmt_h",
+      "lines": [
+        99,
+        104
+      ],
+      "symbol": "CONSYS_REG_WRITE"
+    },
+    "remap_caller": {
+      "source_id": "wmt_plat",
+      "lines": [
+        350,
+        358
+      ],
+      "symbol": "wmt_plat_init"
+    },
+    "upper_remap": {
+      "source_id": "ahb",
+      "lines": [
+        1717,
+        1752
+      ],
+      "symbol": "glRemapConnsysAddr"
+    },
+    "region18_request": {
+      "source_id": "wlan_lib",
+      "lines": [
+        838,
+        887
+      ],
+      "symbol": "wlanImageDividDownload"
+    },
+    "region18_pack": {
+      "source_id": "emi_mpu",
+      "lines": [
+        1116,
+        1138
+      ],
+      "symbol": "emi_mpu_set_region_protection"
+    },
+    "adapter_declaration": {
+      "source_id": "emi_h",
+      "lines": [
+        297,
+        298
+      ],
+      "symbol": "mt_emi_mpu_set_region_protection"
+    },
+    "secure_macro": {
+      "source_id": "secure_h",
+      "lines": [
+        87,
+        94
+      ],
+      "symbol": "emi_mpu_smc_set"
+    }
+  },
+  "predicates": {
+    "dynamic_reservation_producer": {
+      "verdict": "resolved",
+      "claim": "The pinned generic reserved-memory allocator produces the dynamic reservation's base and size; the CONSYS early callback consumes its base rather than allocating it.",
+      "evidence": [
+        "declaration",
+        "allocator_dispatch",
+        "allocator_inputs",
+        "allocator_effect",
+        "callback_dispatch",
+        "callback"
+      ],
+      "boundary": "API-level source effect only. The declared 0x200000 size and alignment, no-map and [0x40000000,0xc0000000) allocation window reach the allocator; its returned base and the parsed size populate reserved_mem before the matching callback stores base in gConEmiPhyBase. Actual live base, successful runtime reservation, architecture override exclusion and memblock implementation are not established.",
+      "missing": "No missing edge for the selected allocator-API-level source claim; live execution and deeper allocator behavior remain outside scope.",
+      "next_discriminator": "For any runtime/provider proposal, independently establish the active implementation and actual allocated base/size without assuming this public source exactly matches Gemian."
+    },
+    "consys_power_reset_owner": {
+      "verdict": "unresolved",
+      "claim": "The common platform entry requests MT6797 CONSYS power/reset, with CCF clock and watchdog reset delegation visible, but the complete selected transition-authority chain is not established.",
+      "evidence": [
+        "power_entry",
+        "power_wrapper",
+        "power_effect_requests",
+        "reset_release",
+        "reg_return",
+        "probe_clock",
+        "clock_effect_anchor"
+      ],
+      "boundary": "The power wrapper refuses a zero EMI base with -1; platform control returns its selected wrapper result. Register control requests watchdog bit12 assertion/release and clk_prepare_enable on the probe-acquired conn clock, but ends with zero rather than propagating that clock result. Source call sites do not certify effect success.",
+      "missing": "The exact selected CCF dispatch from the acquired conn clock to the MT6797 power-domain implementation and its full reset/resource lifetime exceed the bounded chain. No runtime configuration equivalence has been proved.",
+      "next_discriminator": "A separately scoped source audit of the exact DT conn clock specifier and CCF registration/prepare dispatch, with an explicit sufficient hop budget, followed by watchdog effect/return attribution."
+    },
+    "wlan_to_common_handoff": {
+      "verdict": "unresolved",
+      "claim": "Firmware download has a local buffer lifetime and common-to-WLAN callback edges; no complete firmware-download-to-common ownership/lifetime handoff is established.",
+      "evidence": [
+        "firmware_caller",
+        "firmware_lifetime",
+        "disabled_request_api",
+        "download_edge",
+        "callback_registration",
+        "common_callback"
+      ],
+      "boundary": "wlanProbe maps the firmware, calls wlanAdapterStart, then unmaps it and maps failure to -EIO. The visible implementation uses a local buffer; a nearby request_firmware variant is under #if 0. WMT's Wi-Fi callback caller maps callback failure to -1 and a missing callback to -2, setting its Wi-Fi bit only on success. These are separate partial paths, not a proved retained common-provider reference.",
+      "missing": "The complete callback association, public WMT lifecycle and retained ownership through the precise download caller are not joined within the two-reference limit. The direction of the shown callback is common-to-WLAN, not evidence of the requested reverse edge.",
+      "next_discriminator": "A separately admitted audit focused on the WMT callback assignment and lifetime/state machine connecting the firmware caller to common-resource retention and cleanup."
+    },
+    "shared_remap_writer": {
+      "verdict": "unresolved",
+      "claim": "Common initialization calls a low-field OR writer and WLAN defines an upper-field remapper; the full caller/address chain to physical 0x10001340 is incomplete.",
+      "evidence": [
+        "remap_caller",
+        "remap_init",
+        "remap_offset",
+        "remap_write_macro",
+        "upper_remap"
+      ],
+      "boundary": "Common initialization ORs the old register with base bits31:20 shifted into bits11:0 plus bit12. It preserves every previously set bit and does not clear stale low address bits. WLAN's helper preserves low16 while replacing the upper field after a value check. This does not establish locking or compatible concurrent ownership.",
+      "missing": "The selected physical mapping of topckgen_base/confRegBaseAddr to 0x10000000/0x10001340 and an exact caller of the WLAN remap helper were not established by the inspected locators. Literal offset and helper effects alone do not meet acceptance.",
+      "next_discriminator": "A new narrowly frozen audit of the exact DT resource tuple, of_iomap index and confRegBaseAddr assignment plus one real glRemapConnsysAddr caller; keep masked ownership separate from synchronization."
+    },
+    "emi_region18_requester": {
+      "verdict": "unresolved",
+      "claim": "The WLAN divided downloader requests literal EMI region18 before and after copying, but its complete secure-adapter/raw-return chain is absent.",
+      "evidence": [
+        "region18_request",
+        "region18_pack",
+        "adapter_declaration",
+        "secure_macro"
+      ],
+      "boundary": "The downloader uses base through base+512KiB-1 with region18. The EMI wrapper places region masked to five bits into bits31:27, invokes mt_emi_mpu_set_region_protection under a lock, ignores that return, and unconditionally returns zero; the downloader also ignores the wrapper return. A secure-call macro exists, but no inspected definition connects that missing adapter to it.",
+      "missing": "The body of mt_emi_mpu_set_region_protection is not in the frozen file allowlist. Thus literal18 cannot be carried through the actual secure adapter to raw status within this corpus.",
+      "next_discriminator": "A separate frozen source inventory selecting exactly mt_emi_mpu_set_region_protection and its direct secure-call edge/return conversion. Do not infer secure success from the unconditional outer zero."
+    }
+  },
+  "contradictions": [],
+  "linux_inference": "A future common provider needs an explicit reservation lifetime, clock/reset ownership, shared-remap field coordination and status-bearing policy interface. This audit neither identifies an existing upstream provider nor selects its implementation or ABI."
+}
