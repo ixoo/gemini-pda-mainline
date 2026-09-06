@@ -128,6 +128,7 @@
         "experiments/2026-09-05-mt6797-wifi-contract/",
         "experiments/2026-09-06-mt6797-wifi-live-nvram-identity/",
         "experiments/2026-09-06-mt6797-wlan-drv-init-lifecycle-source-attribution/",
+        "experiments/2026-09-06-mt6797-connectivity-producer-source-attribution/",
         "Shared CONSYS/WMT and Wi-Fi firmware/HIF contract proposals"
       ],
       "evidence": [
@@ -136,7 +137,8 @@
         "docs/hardware/mt6797-wifi.md",
         "experiments/2026-09-05-mt6797-wifi-contract/README.md",
         "experiments/2026-09-06-mt6797-wifi-live-nvram-identity/README.md",
-        "experiments/2026-09-06-mt6797-wlan-drv-init-lifecycle-source-attribution/README.md"
+        "experiments/2026-09-06-mt6797-wlan-drv-init-lifecycle-source-attribution/README.md",
+        "experiments/2026-09-06-mt6797-connectivity-producer-source-attribution/README.md"
       ],
       "issue_urls": [
         "https://github.com/ixoo/gemini-pda-mainline/issues/25"

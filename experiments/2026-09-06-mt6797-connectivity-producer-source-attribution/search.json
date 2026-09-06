@@ -1,0 +1,205 @@
+{
+  "schema_version": 1,
+  "counts": {
+    "network_requests": 6,
+    "raw_successes": 6,
+    "raw_failures": 0,
+    "new_regular_files": 6,
+    "inherited_regular_files": 13,
+    "source_identity_tuples": 19,
+    "batches": 2,
+    "directory_inventories": 0,
+    "contextual_rereads": 0,
+    "no_hit_records": 4
+  },
+  "budgets": {
+    "batches": 2,
+    "new_regular_files": 7,
+    "directory_inventories": 1,
+    "contextual_rereads": 2
+  },
+  "preselection_revalidation": {
+    "result": "pass",
+    "method": "Direct predecessor four whole-file SHA-256 freezes checked; config and detect_make compared field-for-field against independently pinned builtin predecessor before batch 1 selection.",
+    "checked_before_batch": 1,
+    "source_ids": [
+      "config",
+      "detect_make"
+    ]
+  },
+  "batches": [
+    {
+      "batch": 1,
+      "declared_utc": "2026-09-06 18:54:25 UTC",
+      "files": [
+        "drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.c",
+        "drivers/misc/mediatek/connectivity/common/common_detect/mtk_wcn_stub_alps.c"
+      ],
+      "justification": "detect_make lines 27-36 selects wmt_detect.o and mtk_wcn_stub_alps.o with CONFIG_MTK_COMBO=y; complete selected detector/stub bodies only. GPIO, SDIO and power helpers not yet selected for body retrieval."
+    },
+    {
+      "batch": 2,
+      "declared_utc": "2026-09-06 18:55:25 UTC",
+      "files": [
+        "drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.h",
+        "drivers/misc/mediatek/connectivity/common/common_detect/drv_init/inc/conn_drv_init.h",
+        "drivers/misc/mediatek/connectivity/common/common_detect/sdio_detect.c",
+        "include/linux/module.h"
+      ],
+      "justification": "Batch 1 wmt_detect.c includes wmt_detect.h and conn_drv_init.h (Makefile include directory), names sdio_detect_exit for cleanup and module_init/module_exit registration. Stub explicitly includes linux/module.h; inspect these direct guard, chip argument declaration, cleanup and registration edges. No additional files will be followed."
+    }
+  ],
+  "requests": [
+    {
+      "request_id": "wmt_detect",
+      "kind": "raw",
+      "path": "drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.c",
+      "batch": 1,
+      "started_utc": "2026-09-06T18:54:25.345656+00:00",
+      "status": 200,
+      "response_sha256": "5dcff637a689eb1de92b77a527ad4f51af35f8657db48e36e8dc2c3c379dc2a4",
+      "response_bytes": 9523,
+      "source_id": "wmt_detect",
+      "sha256": "5dcff637a689eb1de92b77a527ad4f51af35f8657db48e36e8dc2c3c379dc2a4",
+      "git_blob_sha1": "632cd1ecc4278c8e236fa3bcfc9129e636241d20",
+      "size": 9523,
+      "line_count": 400,
+      "finished_utc": "2026-09-06T18:54:25.499485+00:00"
+    },
+    {
+      "request_id": "stub",
+      "kind": "raw",
+      "path": "drivers/misc/mediatek/connectivity/common/common_detect/mtk_wcn_stub_alps.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_detect/mtk_wcn_stub_alps.c",
+      "batch": 1,
+      "started_utc": "2026-09-06T18:54:25.499511+00:00",
+      "status": 200,
+      "response_sha256": "1882cefaccfb45eaddf8efbf8147fc29f9d2f83672a03cb9153d6159bb0b4aa0",
+      "response_bytes": 18513,
+      "source_id": "stub",
+      "sha256": "1882cefaccfb45eaddf8efbf8147fc29f9d2f83672a03cb9153d6159bb0b4aa0",
+      "git_blob_sha1": "19b49f2de8b4fd6c50bbfcedff4ae94bb68be2ec",
+      "size": 18513,
+      "line_count": 603,
+      "finished_utc": "2026-09-06T18:54:25.633566+00:00"
+    },
+    {
+      "request_id": "detect_h",
+      "kind": "raw",
+      "path": "drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.h",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.h",
+      "batch": 2,
+      "started_utc": "2026-09-06T18:55:26.068386+00:00",
+      "status": 200,
+      "response_sha256": "2f4964b6ec52bf3cd6ada45827f96bb66e5bd2090b12f9c19a0c58a859b89df9",
+      "response_bytes": 4256,
+      "source_id": "detect_h",
+      "sha256": "2f4964b6ec52bf3cd6ada45827f96bb66e5bd2090b12f9c19a0c58a859b89df9",
+      "git_blob_sha1": "3a59805c6ccfc8a281bbb1000be84a8415341f70",
+      "size": 4256,
+      "line_count": 120,
+      "finished_utc": "2026-09-06T18:55:26.410975+00:00"
+    },
+    {
+      "request_id": "conn_h",
+      "kind": "raw",
+      "path": "drivers/misc/mediatek/connectivity/common/common_detect/drv_init/inc/conn_drv_init.h",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_detect/drv_init/inc/conn_drv_init.h",
+      "batch": 2,
+      "started_utc": "2026-09-06T18:55:26.410997+00:00",
+      "status": 200,
+      "response_sha256": "26ad92c3ea1cfb34e2943a569c2f11b7e0bf12728f71f98d2fa7a50f2b42a82c",
+      "response_bytes": 741,
+      "source_id": "conn_h",
+      "sha256": "26ad92c3ea1cfb34e2943a569c2f11b7e0bf12728f71f98d2fa7a50f2b42a82c",
+      "git_blob_sha1": "971193eade9e9b5226f49cf0145809f0556f06e2",
+      "size": 741,
+      "line_count": 18,
+      "finished_utc": "2026-09-06T18:55:26.534962+00:00"
+    },
+    {
+      "request_id": "sdio_detect",
+      "kind": "raw",
+      "path": "drivers/misc/mediatek/connectivity/common/common_detect/sdio_detect.c",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_detect/sdio_detect.c",
+      "batch": 2,
+      "started_utc": "2026-09-06T18:55:26.534988+00:00",
+      "status": 200,
+      "response_sha256": "62aa85cf82777be34084ff2c9b5cb70f89627a4a9eb00dfa3d9719065a5afc48",
+      "response_bytes": 7642,
+      "source_id": "sdio_detect",
+      "sha256": "62aa85cf82777be34084ff2c9b5cb70f89627a4a9eb00dfa3d9719065a5afc48",
+      "git_blob_sha1": "64ad3943b338c01848212eaa58a83078a2ba860f",
+      "size": 7642,
+      "line_count": 281,
+      "finished_utc": "2026-09-06T18:55:26.923636+00:00"
+    },
+    {
+      "request_id": "module_h",
+      "kind": "raw",
+      "path": "include/linux/module.h",
+      "url": "https://raw.githubusercontent.com/lineage-geminipda/android_kernel_planet_mt6797/c5b0be85017ad0c599725e8273842efdbecdd88a/include/linux/module.h",
+      "batch": 2,
+      "started_utc": "2026-09-06T18:55:26.923661+00:00",
+      "status": 200,
+      "response_sha256": "26e0a9f0ae04bcb036520df814cc2af2f6fba15c87f05bc5a027dbcc26b11531",
+      "response_bytes": 18747,
+      "source_id": "module_h",
+      "sha256": "26e0a9f0ae04bcb036520df814cc2af2f6fba15c87f05bc5a027dbcc26b11531",
+      "git_blob_sha1": "18edb9660da07eb329e19a6f7391ee07145d3ed2",
+      "size": 18747,
+      "line_count": 667,
+      "finished_utc": "2026-09-06T18:55:27.063400+00:00"
+    }
+  ],
+  "contextual_rereads": [],
+  "inherited_context": "Previously inspected source anchors were reused from the immutable predecessor chain without network rereads. Connectivity/common Makefile and init.h identities are independently pinned via that chain.",
+  "no_hits": [
+    {
+      "id": "detector_no_gen3_exit",
+      "source_id": "wmt_detect",
+      "range": [
+        1,
+        400
+      ],
+      "query": "mtk_wcn_wlan_gen3_exit",
+      "result": "No reference in detector source; no repository-wide absence claimed."
+    },
+    {
+      "id": "sdio_no_gen3_exit",
+      "source_id": "sdio_detect",
+      "range": [
+        1,
+        281
+      ],
+      "query": "mtk_wcn_wlan_gen3_exit",
+      "result": "Complete fetched text symbol scan: no hit; cleanup body unregisters its SDIO driver, not an explicit gen3 exit reference."
+    },
+    {
+      "id": "sdio_no_connectivity_init",
+      "source_id": "sdio_detect",
+      "range": [
+        1,
+        281
+      ],
+      "query": "do_connectivity_driver_init",
+      "result": "Complete fetched text symbol scan: no hit."
+    },
+    {
+      "id": "module_header_no_registration_macro",
+      "source_id": "module_h",
+      "range": [
+        1,
+        667
+      ],
+      "query": "module_init/module_exit macro definition",
+      "result": "Complete symbol scan: module_init hits are comments/fields/helpers, no defining macro; module_exit has no hit. Definitions established instead by inherited init.h."
+    }
+  ],
+  "inspection_limits": "Batch 1 fetched both complete bodies. Tool presentation elided a small unrelated stub declaration region; no whole-stub no-hit claim is made. Producer and chip-cache anchors were visible in full. Batch 2 complete-byte symbol scans and selected function context are recorded; no whole-tree absence inferred.",
+  "stop": {
+    "additional_source_reads_permitted": false,
+    "reason": "Both predeclared batches consumed. Userspace ioctl producer/value/order and any actual gen3 exit join remain outside established source edges; do not broaden to repository-wide search."
+  }
+}

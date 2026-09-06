@@ -24,3 +24,12 @@ and early-signal checkpoints follow
 [`project/WORKFLOW_IMPROVEMENT.md`](../../project/WORKFLOW_IMPROVEMENT.md).
 This record changes no model, effort, concurrency, build, publication, device
 or hardware authority.
+
+## Current state
+
+The first accepted item is the bounded MT6797 connectivity-producer source
+attribution. Astra Medium resolved the kernel-side detector ioctl producer,
+aggregate return and registration split; Sol Medium accepted it on first review.
+Its externally supplied chip value and gen3 teardown join remain deliberately
+unresolved. One item is too early for a comparable-cohort checkpoint, so
+`baseline-01` remains unchanged.

@@ -1,0 +1,499 @@
+{
+  "schema_version": 1,
+  "repository_parent": "45b57d265252e8b9068038b84e53b68624f3bab1",
+  "source_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+  "authority": {
+    "runtime_equivalence": false,
+    "resource_ownership": false,
+    "firmware_success": false,
+    "radio_enablement": false,
+    "vendor_code_reusable": false,
+    "vendor_api_reusable": false,
+    "device_action_allowed": false,
+    "hardware_support_claim": false
+  },
+  "citations": {
+    "config": {
+      "source_id": "config",
+      "lines": [
+        1336,
+        1359
+      ],
+      "symbol": "MT6797 and Wi-Fi selection"
+    },
+    "wlan_make": {
+      "source_id": "wlan_make",
+      "lines": [
+        1,
+        35
+      ],
+      "symbol": "built-in/gen3 selection"
+    },
+    "gen3_object_mode": {
+      "source_id": "gen3_make",
+      "lines": [
+        79,
+        81
+      ],
+      "symbol": "CONFIG_MTK_COMBO_WIFI object selection"
+    },
+    "hif_macro": {
+      "source_id": "gen3_config",
+      "lines": [
+        44,
+        56
+      ],
+      "symbol": "MTK_WCN_HIF_SDIO MT6797 branch"
+    },
+    "init_exit": {
+      "source_id": "gl_init",
+      "lines": [
+        2441,
+        2536
+      ],
+      "symbol": "initWlan/exitWlan and built-in exports"
+    },
+    "detect_objects": {
+      "source_id": "detect_make",
+      "lines": [
+        21,
+        37
+      ],
+      "symbol": "selected SoC detector and drv_init directory"
+    },
+    "drv_build_guard": {
+      "source_id": "drv_make",
+      "lines": [
+        1,
+        12
+      ],
+      "symbol": "built-in guard and generation macro"
+    },
+    "drv_objects": {
+      "source_id": "drv_make",
+      "lines": [
+        14,
+        22
+      ],
+      "symbol": "literal object assignments"
+    },
+    "wlan_source": {
+      "source_id": "wlan_drv_init",
+      "lines": [
+        20,
+        74
+      ],
+      "symbol": "complete WLAN wrapper source region"
+    },
+    "wlan_char_init": {
+      "source_id": "wlan_drv_init",
+      "lines": [
+        24,
+        36
+      ],
+      "symbol": "do_wlan_drv_init character initialization"
+    },
+    "wlan_gen3_call": {
+      "source_id": "wlan_drv_init",
+      "lines": [
+        38,
+        50
+      ],
+      "symbol": "chip cases and gen3 integer accumulation"
+    },
+    "wlan_return": {
+      "source_id": "wlan_drv_init",
+      "lines": [
+        65,
+        74
+      ],
+      "symbol": "do_wlan_drv_init return"
+    },
+    "connection_weak": {
+      "source_id": "conn_drv_init",
+      "lines": [
+        29,
+        33
+      ],
+      "symbol": "weak fallback definition"
+    },
+    "connection_common": {
+      "source_id": "conn_drv_init",
+      "lines": [
+        41,
+        52
+      ],
+      "symbol": "common aggregate early return"
+    },
+    "connection_order": {
+      "source_id": "conn_drv_init",
+      "lines": [
+        54,
+        80
+      ],
+      "symbol": "remaining component call order and sum"
+    },
+    "common_order": {
+      "source_id": "common_drv_init",
+      "lines": [
+        25,
+        55
+      ],
+      "symbol": "common sequential initialization and sum"
+    },
+    "connection_corpus": {
+      "source_id": "conn_drv_init",
+      "lines": [
+        1,
+        80
+      ],
+      "symbol": "bounded complete connection source"
+    },
+    "common_corpus": {
+      "source_id": "common_drv_init",
+      "lines": [
+        1,
+        57
+      ],
+      "symbol": "bounded complete common source"
+    },
+    "connectivity_build": {
+      "source_id": "connectivity_make",
+      "lines": [
+        17,
+        35
+      ],
+      "symbol": "connectivity kernel-build selection"
+    },
+    "common_build": {
+      "source_id": "common_make",
+      "lines": [
+        20,
+        21
+      ],
+      "symbol": "common_main and common_detect"
+    },
+    "module_init_macro": {
+      "source_id": "init_h",
+      "lines": [
+        276,
+        296
+      ],
+      "symbol": "built-in module_init/module_exit definitions"
+    },
+    "initcall_level": {
+      "source_id": "init_h",
+      "lines": [
+        193,
+        233
+      ],
+      "symbol": "built-in initcall section and level mapping"
+    },
+    "detect_header_guard": {
+      "source_id": "detect_h",
+      "lines": [
+        37,
+        41
+      ],
+      "symbol": "MTK_WCN_REMOVE_KO definition"
+    },
+    "detect_commands": {
+      "source_id": "detect_h",
+      "lines": [
+        81,
+        90
+      ],
+      "symbol": "detector ioctl command macros"
+    },
+    "connection_declaration": {
+      "source_id": "conn_h",
+      "lines": [
+        15,
+        18
+      ],
+      "symbol": "integer chip argument and return declaration"
+    },
+    "detect_ioctl": {
+      "source_id": "wmt_detect",
+      "lines": [
+        83,
+        148
+      ],
+      "symbol": "wmt_detect_unlocked_ioctl"
+    },
+    "detect_compat": {
+      "source_id": "wmt_detect",
+      "lines": [
+        149,
+        168
+      ],
+      "symbol": "compat forwarding and file operations"
+    },
+    "detect_chip_get_set": {
+      "source_id": "wmt_detect",
+      "lines": [
+        89,
+        122
+      ],
+      "symbol": "separate chip query and setter commands"
+    },
+    "stub_chip_cache": {
+      "source_id": "stub",
+      "lines": [
+        424,
+        436
+      ],
+      "symbol": "chip cache query and setter"
+    },
+    "stub_chip_default": {
+      "source_id": "stub",
+      "lines": [
+        87,
+        87
+      ],
+      "symbol": "gConnectivityChipId initial value"
+    },
+    "detect_registration": {
+      "source_id": "wmt_detect",
+      "lines": [
+        297,
+        341
+      ],
+      "symbol": "wmt_detect_driver_init success path"
+    },
+    "detect_errors": {
+      "source_id": "wmt_detect",
+      "lines": [
+        343,
+        363
+      ],
+      "symbol": "detector registration error labels"
+    },
+    "detect_exit": {
+      "source_id": "wmt_detect",
+      "lines": [
+        365,
+        395
+      ],
+      "symbol": "detector exit and registration declarations"
+    },
+    "sdio_lifecycle": {
+      "source_id": "sdio_detect",
+      "lines": [
+        265,
+        281
+      ],
+      "symbol": "sdio_detect_init/exit"
+    },
+    "detect_chip_type": {
+      "source_id": "wmt_detect",
+      "lines": [
+        239,
+        257
+      ],
+      "symbol": "chip type classification rather than identity"
+    },
+    "detector_complete": {
+      "source_id": "wmt_detect",
+      "lines": [
+        1,
+        400
+      ],
+      "symbol": "bounded detector reference corpus"
+    },
+    "sdio_complete": {
+      "source_id": "sdio_detect",
+      "lines": [
+        1,
+        281
+      ],
+      "symbol": "bounded SDIO detector reference corpus"
+    },
+    "module_header_complete": {
+      "source_id": "module_h",
+      "lines": [
+        1,
+        667
+      ],
+      "symbol": "bounded module header scan"
+    }
+  },
+  "state_model": {
+    "selected_mode": "built-in",
+    "config_mtk_combo": "y",
+    "config_mtk_combo_wifi": "y",
+    "config_mtk_combo_chip": "CONSYS_6797",
+    "detector_obj_y_order": [
+      "mtk_wcn_stub_alps.o",
+      "wmt_gpio.o",
+      "wmt_detect.o",
+      "sdio_detect.o",
+      "wmt_detect_pwr.o",
+      "drv_init/"
+    ],
+    "batch1_selected_bodies": [
+      "wmt_detect.c",
+      "mtk_wcn_stub_alps.c"
+    ],
+    "remove_ko_guard": "KERNELRELEASE nonempty -> MTK_WCN_REMOVE_KERNEL_MODULE defined -> MTK_WCN_REMOVE_KO=1",
+    "soc_macro": "MTK_WCN_SOC_CHIP_SUPPORT",
+    "combo_macro_selected": false,
+    "direct_producer": "wmt_detect_unlocked_ioctl",
+    "init_command": "COMBO_IOCTL_DO_MODULE_INIT",
+    "init_command_encoding": "_IOR(WMT_DETECT_IOC_MAGIC, 4, int)",
+    "producer_argument": "unsigned long ioctl arg converted to int chip_id",
+    "argument_copied_from_user_pointer": false,
+    "argument_validated_as_mt6797": false,
+    "configured_chip_forces_ioctl_argument": false,
+    "actual_argument": null,
+    "actual_userspace_producer": null,
+    "chip_cache_used_for_init_argument": false,
+    "compat_argument_forwarding": "unchanged unsigned long arg; same handler",
+    "producer_return": "int connection aggregate assigned to int retval, then returned as long; compat returns long unchanged",
+    "producer_retry": false,
+    "producer_once_guard": false,
+    "producer_later_component_gating": false,
+    "common_nonzero_stops_connection_sequence": true,
+    "noncommon_failure_stops_connection_sequence": false,
+    "zero_aggregate_proves_all_success": false,
+    "detector_registration": "module_init(wmt_detect_driver_init) -> built-in device_initcall level 6",
+    "detector_registration_calls_connectivity_init": false,
+    "registration_order": [
+      "register_chrdev_region",
+      "cdev_init",
+      "cdev_add",
+      "class_create",
+      "device_create",
+      "sdio_detect_init"
+    ],
+    "registration_return": "0 after success path; early char-device setup failures return before SDIO init",
+    "sdio_register_result_handling": "sdio_detect_init logs sdio_register_driver result then returns 0; detector caller ignores this return",
+    "connectivity_invocation_requires": "later external COMBO_IOCTL_DO_MODULE_INIT request with selected guard",
+    "external_ioctl_order": null,
+    "connection_call_order": [
+      "common",
+      "Bluetooth",
+      "GPS",
+      "FM",
+      "WLAN",
+      "ANT"
+    ],
+    "wlan_call_order": [
+      "WMT-Wi-Fi character device",
+      "gen3 WLAN"
+    ],
+    "wlan_6797_branch_condition": "int chip_id == 0x6797, gen3 selected, WLAN config defined, common aggregate zero; intended ordinary wrapper linkage",
+    "final_link_selection_observed": false,
+    "cleanup_command": "COMBO_IOCTL_MODULE_CLEANUP",
+    "cleanup_direct_call": "sdio_detect_exit",
+    "cleanup_return": "sdio_detect_exit returns 0 after unregister; propagated as ioctl retval",
+    "detector_exit_automatic_builtin_unload": false,
+    "detector_exit_sdio_call_selected": false,
+    "detector_exit_combo_unregister_selected": false,
+    "gen3_exit_join": null,
+    "gen3_exit_invoked": null,
+    "gen3_exit_order": null
+  },
+  "predicates": {
+    "producer_corpus": {
+      "verdict": "resolved",
+      "claim": "The pinned Makefile selects detector and stub as built-in objects; two selected bodies locate the outer edge, and batch 2 follows only their direct header, registration and cleanup references.",
+      "evidence": [
+        "config",
+        "detect_objects",
+        "connectivity_build",
+        "common_build",
+        "detect_header_guard"
+      ],
+      "conditions": "CONFIG_MTK_COMBO=y and COMBO_CHIP=CONSYS_6797 select SoC support, not the external-combo macro. The nonempty KERNELRELEASE branch defines the removal-of-kernel-modules macro; its header mapping enables the ioctl init branch.",
+      "missing": "No missing selection edge for the two batch-1 bodies. This is a bounded producer corpus, not every selected object's complete implementation or a final-image link test.",
+      "next_discriminator": "Preserve pinned selection; any other producer requires its own build-selected direct edge, not a guessed filename or whole-tree search."
+    },
+    "direct_producer": {
+      "verdict": "resolved",
+      "claim": "wmt_detect_unlocked_ioctl directly calls do_connectivity_driver_init for COMBO_IOCTL_DO_MODULE_INIT when MTK_WCN_REMOVE_KO is true.",
+      "evidence": [
+        "detect_ioctl",
+        "detect_commands",
+        "detect_header_guard",
+        "connection_declaration",
+        "detect_compat"
+      ],
+      "conditions": "The file-operations table installs this handler and conditionally a CONFIG_COMPAT forwarding handler. The command macro is _IOR, but this branch passes the scalar arg directly without copy_from_user/dereference; no numeric command is executed here.",
+      "missing": "No missing direct kernel caller edge. The external program issuing the ioctl, its actual execution, and final linkage remain unobserved.",
+      "next_discriminator": "A separate pinned userspace-producer audit would be needed to identify an issuer. Do not execute an initialization ioctl as a read-only probe."
+    },
+    "chip_provenance": {
+      "verdict": "unresolved",
+      "claim": "The immediate chip argument comes from the external ioctl arg converted to int, not automatically from the configured CONSYS_6797 string, cache, or SoC query.",
+      "evidence": [
+        "detect_ioctl",
+        "connection_declaration",
+        "detect_chip_get_set",
+        "stub_chip_cache",
+        "stub_chip_default",
+        "wlan_gen3_call",
+        "detect_chip_type"
+      ],
+      "conditions": "For a representable arg of 0x6797, the established integer switch can select gen3 after the common gate; 0x6630 shares its case. The handler neither validates that value nor gets it from the separately exposed query/set commands. Out-of-range unsigned-long-to-int conversion is not treated as safe validation.",
+      "missing": "Actual caller-supplied value and how the userspace issuer obtains it are missing. Chip-type classification has a default SoC case and does not prove the exact chip identity.",
+      "next_discriminator": "Separately identify a pinned userspace ioctl issuer and its value-producing conditions; until then keep the actual 0x6797 branch conditional and do not infer it from platform naming."
+    },
+    "aggregate_consumer": {
+      "verdict": "resolved",
+      "claim": "The producer preserves the final connection integer aggregate as its ioctl return, widening int retval to long; compat returns that long unchanged.",
+      "evidence": [
+        "detect_ioctl",
+        "detect_compat",
+        "connection_common",
+        "connection_order",
+        "wlan_char_init",
+        "wlan_gen3_call"
+      ],
+      "conditions": "There is no retry, once-only guard, or later component call in this ioctl branch. Connection's existing internal common gate and later arithmetic sum remain unchanged. The numeric aggregate is returned, but individual error identities already lost through summation are not recovered.",
+      "missing": "No missing kernel-handler aggregate edge. The userspace consumer's interpretation, conversion to API-visible errno and retry policy have not been audited.",
+      "next_discriminator": "A separately scoped userspace producer/consumer audit must inspect return interpretation and retry before making end-to-end success claims."
+    },
+    "registration_order": {
+      "verdict": "resolved",
+      "claim": "Detector registration is a built-in level-6 device initcall. Its body creates the detector character interface before SDIO registration; it does not call connectivity initialization.",
+      "evidence": [
+        "detect_registration",
+        "detect_errors",
+        "detect_exit",
+        "module_init_macro",
+        "initcall_level",
+        "sdio_lifecycle",
+        "detect_ioctl",
+        "connection_order",
+        "wlan_char_init",
+        "wlan_gen3_call"
+      ],
+      "conditions": "On the successful path the order is chrdev region, cdev setup/add, class/device creation, then sdio_detect_init. That helper logs the SDIO registration result but returns zero; the detector ignores the helper result. External-combo platform registration is excluded by the pinned SoC build condition. Connectivity initialization instead needs the later explicit ioctl.",
+      "missing": "No missing local registration or sequencing edge. Relative order of userspace ioctls and other initcalls, character-interface reachability at runtime, and actual subsystem initialization remain unobserved.",
+      "next_discriminator": "Preserve the separate registration and ioctl phases. Establish external ordering from a separately pinned caller; Makefile object order or module naming cannot prove invocation."
+    },
+    "teardown_join": {
+      "verdict": "unresolved",
+      "claim": "The cleanup ioctl calls sdio_detect_exit, whose body unregisters its SDIO client driver; no explicit gen3 exit join is found in the detector or SDIO cleanup corpus.",
+      "evidence": [
+        "detect_ioctl",
+        "detect_exit",
+        "sdio_lifecycle",
+        "detector_complete",
+        "sdio_complete",
+        "init_exit",
+        "module_init_macro"
+      ],
+      "conditions": "The detector's module_exit declaration names only its detector exit function. Under the selected MTK_WCN_REMOVE_KO=1 its exit-body SDIO call is excluded; its combo platform-unregister branch is also excluded. Built-in module_exit does not establish an automatic unload. SDIO unregister may have core callbacks, but no transitive gen3 join is established here.",
+      "missing": "An actual invocation path to the inherited mtk_wcn_wlan_gen3_exit export remains missing. Bounded no-hits are not global absence or evidence of safe resource release.",
+      "next_discriminator": "Stop at the consumed two-batch boundary. A future admitted audit must supply a concrete teardown producer or callback edge and build selection; never infer teardown by reversing init order."
+    }
+  },
+  "escalation": {
+    "evidence": "Conditional detector ioctl producer and aggregate return are established. Detector registration is separate. Exact externally supplied chip value and a gen3 teardown join remain missing.",
+    "attempts": "Two predeclared batches, six successful raw requests and six new regular files; no failures, inventories, network contextual rereads, repairs, builds or device actions.",
+    "unresolved_question": "Which pinned external issuer supplies the ioctl chip value and ordering/return policy, and what explicit source edge invokes gen3 exit if any?",
+    "next_discriminating_check": "A separate userspace producer/consumer or direct teardown-edge contract. No remaining source reads under this item."
+  }
+}
