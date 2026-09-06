@@ -22,11 +22,15 @@ The host validation and frozen named-series byte/order audit pass. The series
 `patches/series-mt6797-provider-compile` has SHA-256
 `f28ab97bae1163a26d2be85cd459396baf005e916ba7708e12f2d823c547685f` and 11
 exact ordered entries; the two source evidence documents are pinned by hash in
-`inputs.json`. Exact replay on Linux and the Buildbox Linux compile remain
-integrator-owned gates. The expected Checkpatch findings are
-the synthetic missing DCO and new-file MAINTAINERS warning. The exact expected
-field is supplied by an existing owner/read observation; equality alone does
-not prove its provenance or exclude an external writer.
+`inputs.json`. The exact named series replayed on Buildbox, and Linux compile
+and package validation passed at commit
+`8af75b14cba55dcd1078ac74eb96b11e1656b79a`. The
+[build result](BUILD_RESULT.md) and [object evidence](object-evidence.txt)
+record the exact package, object, command, symbol and no-caller evidence. The
+expected Checkpatch findings are the synthetic missing DCO and new-file
+MAINTAINERS warning. The exact expected field is supplied by an existing
+owner/read observation; equality alone does not prove its provenance or exclude
+an external writer.
 
 This is compile evidence only and does not establish remap ownership, register
 state, serialization, readback, hardware behavior or Wi-Fi support.

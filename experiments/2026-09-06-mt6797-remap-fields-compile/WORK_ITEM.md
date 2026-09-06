@@ -67,10 +67,15 @@
 - **Handoff:** exact proposal patch and generated-source identities, exhaustive
   host test counts, Checkpatch limitations, replay result, Buildbox object and
   package evidence, and a source-tree proof that no runtime caller exists.
-- **State:** waiting-build. Implementation began at `2026-09-06T04:25:48Z`,
-  first became review-ready at `2026-09-06T04:36:03Z`, and passed repaired
-  pre-Buildbox integration review at `2026-09-06T04:42:18.834405Z` after one
-  provenance rework cycle.
-- **Efficiency loop:** if accepted, append exactly one accepted offline item to
-  the active workflow-improvement ledger with actual timing, routing, review,
-  rework/escalation and measured credits or explicit unavailability.
+- **State:** complete. Implementation began at `2026-09-06T04:25:48Z`, first
+  became review-ready at `2026-09-06T04:36:03Z`, and was accepted at
+  `2026-09-06T04:54:57.234148Z`. The first integration review accepted the
+  arithmetic/effect boundary but required the verifier to pin the complete
+  named predecessor series and evidence documents. That one bounded repair
+  passed. Commit `8af75b14` then passed exact-series Buildbox compilation and
+  package validation; the real AArch64 object defines all four helpers, has no
+  undefined symbols and has no caller. Sol Medium independently accepted the
+  frozen evidence.
+- **Efficiency loop:** recorded as accepted offline item 4 in the active
+  workflow-improvement ledger; measured credits were unavailable and were not
+  estimated.
