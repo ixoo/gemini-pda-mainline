@@ -54,9 +54,10 @@ or identity fails, collection stops and offline work continues.
 ## Result handoff
 
 The one permitted attempt was consumed and completed in 0.7 seconds with stable
-identity. The live DT confirmed a dynamic no-map `consys-reserve-memory` node
-without `reg`; `/proc/iomem` was unreadable, so the allocation base and extent
-remain unresolved. `18070000.consys` was bound to `mtk_wmt`, and the WLAN
+identity. The live DT confirmed a no-map `consys-reserve-memory` node without
+`reg`; this collector did not read its dynamic-allocation properties, and
+`/proc/iomem` was unreadable, so successful allocation, base and extent remain
+unresolved. `18070000.consys` was bound to `mtk_wmt`, and the WLAN
 cross-check `180f0000.wifi` was bound to `mt-wifi`. No state-changing interface
 was used and the device remains on Gemian. See `results/observation.json` for
 the complete sanitized result and exact executed-script hashes. No repeat is

@@ -76,12 +76,18 @@ when every item in the cohort segment uses the same observed source and unit.
 
 ## Observations
 
-The ledger contains one eligible accepted offline item. It missed first-review
-acceptance: integration corrected an evidence-link claim, then the first live
+The ledger contains two eligible accepted offline items. Both missed first-review
+acceptance. For the first, integration corrected an evidence-link claim, then the first live
 entry exposed fixture coupling in the dedicated workflow self-test. The bounded
 repair was escalated as a scope expansion and accepted after the validator and
 all fifteen refusal cases passed; no immediate safety, publication, provenance
 or scope-containment defect occurred.
+The second implemented a passive dynamic reserved-memory descriptor. Its first
+integration review found inaccurate OF missing-property semantics, a static
+mixed-cell regression and an insufficient borrowed-property lifetime premise.
+After escalation, owned declaration copies and faithful boundary fixtures closed
+those defects; the re-review accepted 52 predecessor binding checks, 32
+concurrency rounds and 72 reserved-memory checks. Credits remain unavailable.
 Creation of this loop remains explicitly excluded because its eligibility and
 timing contract did not exist before the work began. Existing routing remains
 the baseline; no optimization decision has been made.

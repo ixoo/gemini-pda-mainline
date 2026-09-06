@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 1,
-  "next_accepted_sequence": 2,
-  "next_considered_sequence": 4,
+  "accepted_count": 2,
+  "next_accepted_sequence": 3,
+  "next_considered_sequence": 5,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -95,6 +95,53 @@
       "reason": "device-session",
       "note": "The bounded preparation and one-shot live Gemian metadata collection form one device session, which policy excludes from accepted offline items.",
       "evidence": "experiments/2026-09-06-mt6797-consys-passive-ownership/README.md"
+    },
+    {
+      "considered_sequence": 4,
+      "accepted_sequence": 2,
+      "candidate_id": "mt6797-dynamic-reserved-binding",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "implementation",
+      "risk_class": "hard-uncertainty",
+      "acceptance_contract": "experiments/2026-09-06-mt6797-dynamic-reserved-binding/WORK_ITEM.md",
+      "parent": "066a81226a327f50c69548e00a06ed4252fcd51d",
+      "owner_route": {
+        "role": "gemini_implementer",
+        "model": "gpt-5.6-luna",
+        "effort": "high"
+      },
+      "review_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-06T02:10:16.884765Z",
+        "review_ready_at": "2026-09-06T02:40:25.133603Z",
+        "accepted_at": "2026-09-06T03:08:04.225646Z",
+        "timing_source": "observed UTC tool and handoff timestamps",
+        "elapsed_minutes": 57.7890146833,
+        "review_rework_minutes": 27.6515342167,
+        "first_review_accepted": false,
+        "rework_cycles": 1,
+        "escalated": true,
+        "escalation_reason": "first integration review found pinned OF presence semantics, static-width regression and declaration-lifetime gaps after two implementation repair iterations",
+        "escalation_packet": {
+          "evidence": "experiments/2026-09-06-mt6797-dynamic-reserved-binding/WORK_ITEM.md",
+          "attempts": [
+            "implemented the dynamic descriptor and repaired non-DCO Checkpatch diagnostics",
+            "ran the first complete integration review against pinned OF APIs and predecessor static behavior"
+          ],
+          "unresolved_question": "could the descriptor preserve exact mutable DT declaration identity without borrowed-pointer aliasing or a static-path regression?",
+          "next_discriminating_check": "pin OF property replacement lifetime, adopt owned declaration copies, and rerun faithful presence, allocation-failure and mixed-cell fixtures"
+        },
+        "review_failure_class": null,
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-06-mt6797-dynamic-reserved-binding/README.md"
+      }
     }
   ],
   "checkpoints": [],

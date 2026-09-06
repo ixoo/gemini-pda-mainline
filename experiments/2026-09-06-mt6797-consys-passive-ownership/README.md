@@ -80,7 +80,10 @@ The single admitted collection completed in 0.7 seconds with stable start/end
 identity. Root and reserved-memory address/size cell properties each decode to
 two cells; reserved-memory `ranges` is present and empty. The live
 `consys-reserve-memory` node has `no-map`, lacks `reusable`, and lacks `reg`, so
-it is a dynamic descriptor but does not expose its allocated base or extent.
+its live shape is consistent with the previously documented dynamic descriptor
+but does not expose an allocated base or extent. This collector did not read
+`size`, `alignment` or `alloc-ranges`, so this attempt alone does not establish
+valid dynamic-allocation inputs or successful allocation during the current boot.
 `/proc/iomem` was unreadable. The platform bus binds `18070000.consys` to
 `mtk_wmt` and, as an attribution cross-check, `180f0000.wifi` to `mt-wifi`.
 The observed `10001000.*` devices and `11000000.ap_dma` were unbound; every
@@ -94,10 +97,12 @@ result records hashes of the exact pre-fix scripts that executed.
 
 ## Analysis
 
-The observation corroborates a dynamic no-map connectivity reservation and
+The observation corroborates the live no-map, reg-less descriptor shape and
 identifies the two running vendor drivers that must inform a shared-manager
-boundary. It does not supply the live dynamic allocation, because `reg` is
-absent and `/proc/iomem` is unreadable. Missing platform resource files also
+boundary. Prior durable evidence owns the dynamic size/alignment/alloc-ranges
+claim; this attempt does not independently confirm those properties or a
+successful current-boot allocation. It does not supply the live allocation,
+because `reg` is absent and `/proc/iomem` is unreadable. Missing resource files also
 prevent a complete runtime resource map. These absences are inconclusive, not
 evidence of no allocation or exclusive ownership. Metadata cannot establish
 electrical ownership, firmware quiescence, safe MMIO access, remap contents,
@@ -106,9 +111,10 @@ MPU policy or DMA idleness.
 ## Conclusion
 
 The hypothesis is partially supported. Passive metadata confirms the live
-descriptor form and the `mtk_wmt`/`mt-wifi` bindings, but not the allocation's
-base or extent. The result narrows retained-source analysis of the shared
-manager; it does not admit any active connectivity operation.
+reg-less no-map node shape and the `mtk_wmt`/`mt-wifi` bindings, but not the
+allocation's existence, base or extent. The result narrows retained-source
+analysis of the shared manager; it does not admit any active connectivity
+operation.
 
 ## Follow-up
 

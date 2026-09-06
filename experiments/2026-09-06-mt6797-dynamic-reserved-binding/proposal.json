@@ -1,0 +1,15 @@
+{
+  "scope": "Passive dynamic Linux OF reserved-memory descriptor; active entry refused",
+  "frozen_parent": "066a81226a327f50c69548e00a06ed4252fcd51d",
+  "patch": "0006-wifi-mediatek-describe-dynamic-reserved-memory.patch",
+  "kernel_delta": ["drivers/net/wireless/mediatek/mt6797/image-binding.c", "drivers/net/wireless/mediatek/mt6797/image-binding.h"],
+  "static_path": "preserved",
+  "dynamic_contract": ["no reg", "equal address/size width 1 or 2", "nonzero size equals initialized record", "optional alignment", "alloc-ranges containment", "exact raw declaration revalidation"],
+  "effects": "none; begin always refuses",
+  "physical_reservation_proof": false,
+  "kernel_build": "PENDING; no Buildbox compilation performed",
+  "hardware_access": "NONE",
+  "review_ready": true,
+  "submission_ready": false,
+  "author_metadata": "Synthetic non-certifying experiment identity; no DCO sign-off"
+}

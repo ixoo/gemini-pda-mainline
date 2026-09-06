@@ -58,7 +58,7 @@
         "reusable": false
       }
     ],
-    "classification": "dynamic-no-map-descriptor-live-range-unresolved"
+    "classification": "reg-less-no-map-descriptor-live-range-unresolved"
   },
   "platform_devices": [
     {
@@ -129,12 +129,13 @@
   "result": {
     "classification": "inconclusive-live-range-confirmed-descriptor-and-bindings",
     "confirmed": [
-      "The running Gemian DT presents a dynamic no-map consys-reserve-memory node without a reg property.",
+      "The running Gemian DT presents a no-map consys-reserve-memory node without a reg property; this collection did not read size, alignment or alloc-ranges.",
       "The running Gemian kernel binds 18070000.consys to mtk_wmt.",
       "The WLAN attribution cross-check binds 180f0000.wifi to mt-wifi."
     ],
     "not_established": [
       "current reserved-memory base or extent",
+      "successful current-boot dynamic allocation",
       "exclusive firmware ownership or firmware quiescence",
       "safe active MMIO, reset, clock, power, DMA or firmware operation"
     ]

@@ -1,0 +1,50 @@
+{
+  "upstream_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "predecessor_commit": "066a81226a327f50c69548e00a06ed4252fcd51d",
+  "predecessor": {
+    "image-binding.c": {
+      "commit": "066a81226a327f50c69548e00a06ed4252fcd51d",
+      "path": "experiments/2026-09-05-mt6797-reserved-binding/src/image-binding.c",
+      "sha256": "1a4409afd38ddd3bcf79c4cf4a0f78c79fc0277892d3fc0735a50e10a490428e"
+    },
+    "image-binding.h": {
+      "commit": "066a81226a327f50c69548e00a06ed4252fcd51d",
+      "path": "experiments/2026-09-05-mt6797-reserved-binding/src/image-binding.h",
+      "sha256": "96e10dc350ea282b2c47e81c017ce406ae4af945c5ac127c3e77d153d48475b8"
+    }
+  },
+  "dependencies": {
+    "image-plan.c": {
+      "commit": "f9c13fe954cc8141de51b8f5c87c44632a1e3eea",
+      "path": "experiments/2026-09-05-mt6797-whole-image-plan/src/image-plan.c",
+      "sha256": "219d7efa892679fb5bfb8d215f8e306bc16da3a6a879d0c7ee57ff7c3934455e"
+    },
+    "image-plan.h": {
+      "commit": "f9c13fe954cc8141de51b8f5c87c44632a1e3eea",
+      "path": "experiments/2026-09-05-mt6797-whole-image-plan/src/image-plan.h",
+      "sha256": "425b137eb0d829218600b0e35a2c7268ff2aa4643923bdd148b8061bae33772e"
+    },
+    "mtke.c": {
+      "commit": "f9c13fe954cc8141de51b8f5c87c44632a1e3eea",
+      "path": "experiments/2026-09-05-mt6797-hif-parser-compile/src/mtke.c",
+      "sha256": "d468050e29e50d335565a80e8025703e3b09ca2bb399ba6957c7102463018f8b"
+    },
+    "mtke.h": {
+      "commit": "f9c13fe954cc8141de51b8f5c87c44632a1e3eea",
+      "path": "experiments/2026-09-05-mt6797-hif-parser-compile/src/mtke.h",
+      "sha256": "f410c0bbcd8f5bf131e9fac9b824a297c91b3f27e0861b8188891eb29ec91ff1"
+    }
+  },
+  "regression": {
+    "test-binding.c": {
+      "commit": "3c672049e7e3fb98825072fdb24399bffa574088",
+      "path": "experiments/2026-09-05-mt6797-image-binding/tests/test-binding.c",
+      "sha256": "a4bb5b71d9962ce07424d92f002796ed40efb81d050e6b4d87f5b86ab4d9b4e4"
+    }
+  },
+  "checkpatch": {
+    "checkpatch.pl": "2553cc1a601e70522e03fbce633d4e79fa5936f7f56a66de1899b7ddd247820a",
+    "spelling.txt": "4095d4a8810f115bae1b7c0d8a1946beb3435f6e22d9a48ac009bb024bad1e68",
+    "const_structs.checkpatch": "ea064f6916a74763468037494aeb270aae34b7c97617e84d424ca5b8733539b2"
+  }
+}

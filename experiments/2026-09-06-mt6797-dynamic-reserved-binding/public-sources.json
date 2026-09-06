@@ -1,0 +1,16 @@
+{
+  "linux_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "linux_files": [
+    {"path": "include/linux/of_reserved_mem.h", "sha256": "69227378eff05059a2f563c0e7685cbd8a0060fd6beb9822ce0be71378beb8b5"},
+    {"path": "drivers/of/of_reserved_mem.c", "sha256": "df750fd2023c11c41991c34cc6f1d40bcd53458c19492f15b23fa0e59e125d50"},
+    {"path": "include/linux/of.h", "sha256": "cef3c80f7b56a4e4e280780baf314f4b8495ccd0dd929ac08d6a08363f11ccbc"},
+    {"path": "drivers/of/base.c", "sha256": "c125b21edad7a562f4afa0863205afec403c628f95a762d3a33b984c027a1432"},
+    {"path": "drivers/of/address.c", "sha256": "5a1b2dda196fd29ef3326c15a696eafabb85d7b1894358c6ef9d75eaec519257"},
+    {"path": "drivers/of/dynamic.c", "sha256": "72a54e86d96d0ff79d751514db7d541ac9af2262e3049d2d93085f68a29e411a"}
+  ],
+  "dt_schema": {
+    "commit": "39602f98e049c34a3f95f70b84f1bfd80bc898a4",
+    "schema_sha256": "043a79ec515baf5632a4651f16d98a286fc81432c9bcde8eeaf1b9910a6f3e34"
+  },
+  "allocator_counterexample": "Pinned Linux allocator error path: memblock_mark_nomap failure can leave reserved_mem.base nonzero; lookup/resource conversion therefore describes initialized record state but does not certify physical reservation or no-map marking."
+}
