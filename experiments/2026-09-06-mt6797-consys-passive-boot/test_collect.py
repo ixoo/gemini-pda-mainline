@@ -43,8 +43,11 @@ def refuse(raw: bytes, text: str) -> None:
 
 
 def main() -> int:
-    check(M.EXPECTED_CANDIDATE == "" and M.EXPECTED_INPUT_ID == "",
-          "collector must remain disabled until the replacement is pinned")
+    check(M.EXPECTED_CANDIDATE ==
+          "08fc061475b4bd6bc274bef6cb61c6e0a1cb8d786c5be197b79dba006bebb1c2" and
+          M.EXPECTED_INPUT_ID ==
+          "f77eb7ee3c8f4024124be09a2e81df489093b5298b821ca9dce04ac2c106d12c",
+          "collector replacement candidate/input binding changed")
     result = M.classify(capture())
     check(result["state"] == "BOUND" and result["generation"] == 1 and
           all(value == 0 for value in result["effect_counters"].values()),

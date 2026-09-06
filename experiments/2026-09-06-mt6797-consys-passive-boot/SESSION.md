@@ -130,6 +130,31 @@ release gate. The collector pins are deliberately empty until the corrected
 candidate is rebuilt and reviewed. Physical admission, installation and boot
 selection remain false.
 
+## Refusal-wrapper candidate accepted for installer preparation
+
+The specialist-directed repair was committed and pushed as
+`f69ca07ff60c706d9592ec8368f21f8b629b7d9b`. A clean replay of the exact
+construction command produced:
+
+```text
+candidate=08fc061475b4bd6bc274bef6cb61c6e0a1cb8d786c5be197b79dba006bebb1c2
+input_id=f77eb7ee3c8f4024124be09a2e81df489093b5298b821ca9dce04ac2c106d12c
+initramfs_sha256=73acf4aa0f972a562c5166465cb205a9b0e4b9d273466c21223e374c4e436a1e
+raw_sha256=cbeab20db5993ff6ae7b9a94cfc1ecd0348dd2537b109051484ebde2592674c5
+padded_sha256=08fc061475b4bd6bc274bef6cb61c6e0a1cb8d786c5be197b79dba006bebb1c2
+raw_size=8853504 padded_size=16777216
+```
+
+The builder's internal validator and explicit normal/optimized validation pass.
+Independent newc inspection found zero stale executable identity hits,
+`bin/x-record` absent, and `bin/reboot` equal to the input-bound passive source
+with exactly one `exit 126` and no restart effect token. The candidate fixtures
+pass 19 cases in both modes and collector fixtures pass 24; the collector pins
+the exact candidate/input pair. Final specialist review accepted guarded
+installer preparation at `2026-09-06T22:34:23Z`. The acceptance does not grant
+device admission or establish hardware support. Physical admission,
+installation and boot selection remain false.
+
 ## Specialist-rejected corrected candidate
 
 The runtime-identity repair was committed and pushed as

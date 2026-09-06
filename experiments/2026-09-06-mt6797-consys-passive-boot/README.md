@@ -124,6 +124,18 @@ next repair replaces both serviceability scripts, removes `x-record`, and makes
 The collector pins are empty until another candidate passes review. Physical
 admission remains false and no device action was taken.
 
+The clean replay from specialist-directed repair
+`f69ca07ff60c706d9592ec8368f21f8b629b7d9b` produced candidate
+`08fc061475b4bd6bc274bef6cb61c6e0a1cb8d786c5be197b79dba006bebb1c2`
+with input identity
+`f77eb7ee3c8f4024124be09a2e81df489093b5298b821ca9dce04ac2c106d12c`.
+Independent inspection found no stale executable identities, no `x-record`, an
+exact refusal-only `bin/reboot`, and the passive release gate before USB auth.
+Normal/optimized replay and 19 candidate plus 24 collector cases pass; the
+collector pins this exact pair. Final specialist review accepted the candidate
+for guarded installer preparation at `2026-09-06T22:34:23Z`. This is not device
+admission or a hardware-support claim.
+
 ## Handoff limits
 
 The patch deliberately stops at passive `BOUND`. It does not add power/reset

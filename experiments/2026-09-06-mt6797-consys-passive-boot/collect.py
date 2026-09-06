@@ -16,8 +16,8 @@ MAX_INPUT = 64 * 1024
 RECORD = re.compile(r"^mt6797-consys-passive: state=BOUND generation=([1-9][0-9]*) client=wlan-passive power=0 reset=0 remap=0 protection=0 firmware=0 radio=0 dma=0$")
 UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
-EXPECTED_CANDIDATE = ""
-EXPECTED_INPUT_ID = ""
+EXPECTED_CANDIDATE = "08fc061475b4bd6bc274bef6cb61c6e0a1cb8d786c5be197b79dba006bebb1c2"
+EXPECTED_INPUT_ID = "f77eb7ee3c8f4024124be09a2e81df489093b5298b821ca9dce04ac2c106d12c"
 REPO = Path(__file__).resolve().parents[2]
 ARTIFACT_ROOT = REPO / "artifacts/consys-passive"
 OUTPUT_ROOT = ARTIFACT_ROOT / "evidence"

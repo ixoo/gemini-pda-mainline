@@ -17,9 +17,11 @@ if SPEC is None or SPEC.loader is None:
 V = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(V)
 CANDIDATE = (HERE.parents[1] / "artifacts/consys-passive/candidates/"
-             "candidate-159f7801657d36e10d4bb06cce089c46ba13dbcd03e34dcc99a4aa42c6ab1a08")
+             "candidate-08fc061475b4bd6bc274bef6cb61c6e0a1cb8d786c5be197b79dba006bebb1c2")
 REJECTED = (HERE.parents[1] / "artifacts/consys-passive/candidates/"
             "candidate-a487c5b33d100e75271d56b02535cb2b31f951d745090a54e5ee1287af4c800d")
+SPECIALIST_REJECTED = (HERE.parents[1] / "artifacts/consys-passive/candidates/"
+                       "candidate-159f7801657d36e10d4bb06cce089c46ba13dbcd03e34dcc99a4aa42c6ab1a08")
 
 
 def check(ok: bool, reason: str) -> None:
@@ -57,7 +59,13 @@ def main() -> int:
     cases = 2
     parse, _ = V.C.load_newc_tools(HERE.parents[1])
     current_members = parse((CANDIDATE / "initramfs.img").read_bytes())
-    refuse(lambda: V.validate_runtime_identities(current_members, manifest["input_id"]),
+    V.validate_runtime_identities(current_members, manifest["input_id"])
+    cases += 1
+    rejected_manifest = json.loads(
+        (SPECIALIST_REJECTED / "candidate.json").read_text(encoding="utf-8"))
+    rejected_members = parse((SPECIALIST_REJECTED / "initramfs.img").read_bytes())
+    refuse(lambda: V.validate_runtime_identities(rejected_members,
+                                                  rejected_manifest["input_id"]),
            "passive refusal-wrapper/runtime inventory")
     cases += 1
     stale_manifest = json.loads((REJECTED / "candidate.json").read_text(encoding="utf-8"))
@@ -74,18 +82,7 @@ def main() -> int:
     refuse(lambda: V.validate_runtime_identities(stale_focus, stale_manifest["input_id"]),
            "passive release gate")
     cases += 1
-    prospective = dict(current_members)
-    prospective.pop("bin/x-record")
-    for name, source in (("bin/admin-shell", "admin-shell"),
-                         ("bin/console-status", "console-status")):
-        prospective[name] = replace(prospective[name],
-                                    data=(HERE / "initramfs" / source).read_bytes())
-    refusal = (HERE / "initramfs/reboot-passive").read_bytes().replace(
-        b"INPUT_ID_PLACEHOLDER", manifest["input_id"].encode("ascii"))
-    prospective["bin/reboot"] = replace(prospective["bin/reboot"], data=refusal)
-    V.validate_runtime_identities(prospective, manifest["input_id"])
-    cases += 1
-    injected = dict(prospective)
+    injected = dict(current_members)
     injected["bin/usb-auth"] = replace(
         injected["bin/usb-auth"],
         data=injected["bin/usb-auth"].data + V.C.STALE_IDENTITY_TEXT[0])

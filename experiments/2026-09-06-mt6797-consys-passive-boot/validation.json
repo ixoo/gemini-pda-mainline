@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "experiment": "mt6797-consys-passive-boot",
-  "review_ready_utc": "2026-09-06T22:22:42Z",
+  "review_ready_utc": "2026-09-06T22:32:49Z",
   "parent_commit": "5ff87b372419e506a92a052db22da0dcfa13cb8b",
   "linux_source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
   "parent_profile": "mt6797-toprgu-minimal-restart",
@@ -123,17 +123,36 @@
     "admission": "rejected",
     "physical_admission": false
   },
+  "private_candidate": {
+    "directory": "artifacts/consys-passive/candidates/candidate-08fc061475b4bd6bc274bef6cb61c6e0a1cb8d786c5be197b79dba006bebb1c2",
+    "tooling_commit": "f69ca07ff60c706d9592ec8368f21f8b629b7d9b",
+    "release": "7.1.3-gemini-consys-passive",
+    "profile": "mt6797-consys-passive-boot",
+    "input_id": "f77eb7ee3c8f4024124be09a2e81df489093b5298b821ca9dce04ac2c106d12c",
+    "initramfs_sha256": "73acf4aa0f972a562c5166465cb205a9b0e4b9d273466c21223e374c4e436a1e",
+    "raw_sha256": "cbeab20db5993ff6ae7b9a94cfc1ecd0348dd2537b109051484ebde2592674c5",
+    "padded_sha256": "08fc061475b4bd6bc274bef6cb61c6e0a1cb8d786c5be197b79dba006bebb1c2",
+    "raw_size": 8853504,
+    "padded_size": 16777216,
+    "independent_replays": 2,
+    "validator_normal": "pass",
+    "validator_optimized": "pass",
+    "candidate_fixtures_normal": {"status": "pass", "cases": 19},
+    "candidate_fixtures_optimized": {"status": "pass", "cases": 19},
+    "independent_review": "accepted for guarded installer preparation at 2026-09-06T22:34:23Z; not device admission or hardware support",
+    "physical_admission": false
+  },
   "collector": {
     "path": "experiments/2026-09-06-mt6797-consys-passive-boot/collect.py",
     "fixtures": {
       "normal": {"status": "repair-fixtures-pass", "cases": 24},
       "optimized": {"status": "repair-fixtures-pass", "cases": 24}
     },
-    "candidate_sha256": null,
-    "input_id": null,
+    "candidate_sha256": "08fc061475b4bd6bc274bef6cb61c6e0a1cb8d786c5be197b79dba006bebb1c2",
+    "input_id": "f77eb7ee3c8f4024124be09a2e81df489093b5298b821ca9dce04ac2c106d12c",
     "device_action": false,
     "physical_admission": false,
-    "independent_review": "disabled pending replacement candidate"
+    "independent_review": "accepted for exact candidate/input collection at 2026-09-06T22:34:23Z; physical admission remains false"
   },
   "scope": {
     "runtime_support": false,
