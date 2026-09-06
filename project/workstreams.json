@@ -14,7 +14,7 @@
     "execution_state": "active-owner-available",
     "pause_record": "experiments/2026-09-05-owner-away-experiment-preparation/emmc/PAUSE_SESSION_PREPARATION.json"
   },
-  "active_device_experiment": null,
+  "active_device_experiment": "mt6797-consys-passive-boot",
   "workstreams": [
     {
       "id": "integration",
@@ -248,6 +248,12 @@
       "policy": "docs/SAFETY.md#standing-gemian-inspection-authorization",
       "live_state": "Must be established by the assigned custodian; not inferred from this registry."
     },
-    "current_session": null
+    "current_session": {
+      "owner": "Wi-Fi mainline support",
+      "task_id": "01a06f91-092d-71d0-acbe-4f38ccff2c56",
+      "state": "waiting-owner-boot",
+      "evidence": "experiments/2026-09-06-mt6797-consys-passive-boot/results/deployment-20260906.txt",
+      "scope": "Exact candidate 08fc0614 is installed in live-resolved logical boot2 with matching full readback and confirmed clean shutdown. The owner must physically select boot2 once; only one authenticated passive log collection follows and no automatic reboot is admitted."
+    }
   }
 }

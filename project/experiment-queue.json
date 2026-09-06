@@ -96,10 +96,10 @@
     "mt6797-consys-passive-boot": {
       "workstream": "wifi",
       "preparation_state": "ready",
-      "device_state": "selected",
+      "device_state": "waiting-owner-boot",
       "owner": "Wi-Fi mainline support",
       "reviewer": "Project Planning",
-      "device_custodian": "primary Codex task",
+      "device_custodian": "Wi-Fi mainline support",
       "experiment": "experiments/2026-09-06-mt6797-consys-passive-boot/README.md",
       "session_packet": "experiments/2026-09-06-mt6797-consys-passive-boot/SESSION.md",
       "candidate_record": "experiments/2026-09-06-mt6797-consys-passive-boot/validation.json",
