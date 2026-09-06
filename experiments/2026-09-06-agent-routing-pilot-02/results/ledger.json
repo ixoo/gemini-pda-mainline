@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 2,
-  "next_accepted_sequence": 3,
-  "next_considered_sequence": 4,
+  "accepted_count": 3,
+  "next_accepted_sequence": 4,
+  "next_considered_sequence": 5,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -135,6 +135,54 @@
       "reason": "device-session",
       "note": "The guarded boot2 write, full readback, shutdown and post-device receipt-path repair close one device deployment session; policy excludes device sessions from accepted offline items.",
       "evidence": "experiments/2026-09-06-mt6797-toprgu-minimal-restart/results/deployment-20260906.txt"
+    },
+    {
+      "considered_sequence": 4,
+      "accepted_sequence": 3,
+      "candidate_id": "mt6797-ordinary-transfer-bridge",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "implementation",
+      "risk_class": "hard-uncertainty",
+      "acceptance_contract": "experiments/2026-09-06-mt6797-ordinary-transfer-bridge/WORK_ITEM.md",
+      "review_comparison_group": "mt6797-wifi-owner-boundary-compile",
+      "parent": "9019c55e0779b0f12512f3bab5fc3a01561a7688",
+      "owner_route": {
+        "role": "gemini_implementer",
+        "model": "gpt-5.6-luna",
+        "effort": "high"
+      },
+      "review_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-06T14:09:47.282452Z",
+        "review_ready_at": "2026-09-06T14:26:04.058020Z",
+        "accepted_at": "2026-09-06T14:44:58Z",
+        "timing_source": "observed UTC dispatch, first handoff and final-review timestamps",
+        "elapsed_minutes": 35.1786258,
+        "review_rework_minutes": 18.899033,
+        "first_review_accepted": false,
+        "rework_cycles": 3,
+        "escalated": true,
+        "escalation_reason": "the first contract incorrectly required an ownerless lower-level helper to prove whole-image ownership and mixed-image refusal",
+        "escalation_packet": {
+          "evidence": "experiments/2026-09-06-mt6797-ordinary-transfer-bridge/WORK_ITEM.md",
+          "attempts": [
+            "moved ownership, whole-image admission, generation and exclusion to explicit caller obligations with zero production callers",
+            "completed two bounded fixture repair cycles and one exact integrator evidence correction after the final review rejection"
+          ],
+          "unresolved_question": "could a dormant ownerless ordinary-transfer bridge exist without weakening the future atomic owner boundary",
+          "next_discriminating_check": "require zero production callers and verify real HIF linkage plus absence of owner, START and EMI entry points in the exact Buildbox object"
+        },
+        "review_failure_class": null,
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-06-mt6797-ordinary-transfer-bridge/validation.json"
+      }
     }
   ],
   "checkpoints": [

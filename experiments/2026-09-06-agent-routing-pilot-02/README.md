@@ -49,3 +49,13 @@ guarded boot2 write, full readback, clean shutdown and the local receipt-path
 repair needed to validate the preserved final summary. It is excluded as a
 device session under the measurement policy, so accepted-item count and routing
 checkpoint state remain unchanged.
+
+## Item three
+
+Accepted item 3, `mt6797-ordinary-transfer-bridge`, implements and host-tests a
+dormant lower-level ordinary-section batch bridge with no production caller.
+An Astra pre-dispatch review corrected the first contract's impossible
+ownerless whole-image claim; implementation then required two bounded fixture
+repair cycles and one exact integration evidence correction before Sol
+acceptance. This hard-uncertainty Wi-Fi owner-boundary item is not comparable to
+the two TOPRGU items, so it triggers no routing checkpoint or settings change.

@@ -1,0 +1,21 @@
+{
+  "state": "review-ready",
+  "timestamp_utc": "2026-09-06T14:43:21Z",
+  "normal_and_optimized": "pass (2 builds, 9 host test functions)",
+  "asan_ubsan": "pass",
+  "checkpatch": "not run: pinned Linux source tree unavailable",
+  "source_sha256": {
+    "ordinary-transfer.c": "e1796a31bbc72f4a64ed3622cbf09ec43bf5e5a26459b01b3d2d29ab16a8f4a7",
+    "ordinary-transfer.h": "105d26971fde38eaecfb1342d0d6c105047796eed0c5145174a2d2cdb1fb64a5",
+    "ordinary-transfer-test.c": "ab1c4302fac3091661a7f6d742afc1481a67b09c61336fb8c73550fe12f9be76"
+  },
+  "generated_patch_sha256": "d4fb15f85e1e5642e4d068eabaf198f5e0d2d7e6c02e382baed02b76108db5ad",
+  "refusal_fixture_groups": 18,
+  "production_callers": 0,
+  "device_or_backend": "none",
+  "limitations": [
+    "Caller-held real owner, generation, power and whole-image obligations are not represented by this lower-level API.",
+    "Compile evidence cannot establish hardware support or usable Wi-Fi.",
+    "Synthetic host HIF callback is not hardware evidence."
+  ]
+}
