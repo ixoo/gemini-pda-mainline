@@ -305,6 +305,12 @@ measures. Review priorities weekly or when a decisive result changes a
 workstream's dependencies. Scheduled continuations are managed separately in
 the app and use this roadmap; the document itself is not a scheduler.
 
+For accepted offline work, use the event-driven
+[workflow improvement loop](../project/WORKFLOW_IMPROVEMENT.md). Its sanitized
+ledger measures first-review acceptance, rework, escalation and observed cost;
+it may propose a reversible future-task settings experiment but cannot reorder
+this roadmap, resume paused work or authorize a build or device session.
+
 ## A53 development-system release gate
 
 A53 integration proceeds independently of complete A72 suspend support. Start

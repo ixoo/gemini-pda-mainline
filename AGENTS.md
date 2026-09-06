@@ -117,10 +117,15 @@ configuration, safe tooling, hardware knowledge, and reproducible evidence.
   the current owner instruction authorizes continued autonomous progress.
   An explicit pause overrides owner-away continuation: stop new assignments and
   scheduled continuations, preserve pending unique evidence safely, and stop.
-- For the next ten accepted offline work items, record model/effort, escalation,
-  first-review acceptance, review/rework time and elapsed time. Record credits
-  only when measured; otherwise mark unavailable. Use this pilot to adjust
-  routing from observed results, never assumed savings.
+- For every accepted offline work item, follow
+  `project/WORKFLOW_IMPROVEMENT.md` and append its sanitized measurement to
+  the active experiment ledger referenced by
+  `project/workflow-improvement.json`. The first ten items form the pilot; then
+  close that cohort and retain rolling ten-item comparisons with five-item
+  checkpoints. Record credits only when measured; otherwise mark unavailable.
+  Change one setting at a time, predeclare its hypothesis and rollback, apply it
+  only to future work, and adjust routing from comparable observed results
+  rather than assumed savings.
 
 ## Progress while the owner is unavailable
 

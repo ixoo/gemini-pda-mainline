@@ -46,6 +46,9 @@ claims. Exact candidates, admission decisions and negative results live in
 [experiments](experiments/README.md). The [roadmap](docs/ROADMAP.md) owns the
 current work order and parallel delivery plan; the
 [workstream registry](project/workstreams.json) records responsibility and scope.
+The event-driven [workflow improvement loop](project/WORKFLOW_IMPROVEMENT.md)
+measures accepted offline handoffs and governs reversible routing/settings
+experiments without authorizing work or hardware activity.
 
 The project now separates safe development-system integration, A72/power
 research and upstream preparation. Independent display, connectivity and

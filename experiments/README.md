@@ -17,6 +17,10 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current repository audit
 
+- [2026-09-05 agent routing and workflow pilot 01](2026-09-05-agent-routing-pilot/README.md)
+  — records the first recurring cohort of accepted offline work-item routing,
+  review, escalation, timing and measured-cost evidence. It performs no build
+  or device action and grants no work authorization.
 - [2026-07-28 manifest profile-series invariant audit](2026-07-28-profile-series-invariant-audit/README.md)
   — records the current canonical-subsequence findings and enforcement
   boundary.

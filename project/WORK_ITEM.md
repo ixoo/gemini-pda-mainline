@@ -36,7 +36,10 @@ contract, not a new approval requirement or an alternative roadmap.
   artifact references and what evidence permits integration.
 - **State:** ready, active, waiting-build, waiting-device, waiting-upstream,
   blocked, review-ready or complete. State the external dependency when blocked.
-- **Efficiency pilot:** for the next ten accepted offline items, record
+- **Efficiency loop:** for each accepted offline item, append one entry to the
+  active experiment ledger named by the [workflow pointer](workflow-improvement.json)
+  under the
+  [improvement policy](WORKFLOW_IMPROVEMENT.md): actual owner/review route,
   first-review acceptance, escalation, elapsed time, review/rework time and
   measured credits (or unavailable). Do not estimate credits from model names.
 

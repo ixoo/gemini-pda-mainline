@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "purpose": "Pointer to the effective workflow decision and active measurement cohort; not a measurement ledger, scheduler, work authorization or performance ranking.",
+  "policy": "project/WORKFLOW_IMPROVEMENT.md",
+  "work_item_template": "project/WORK_ITEM.md",
+  "active_cohort_id": "2026-09-05-agent-routing-pilot-01",
+  "cohorts": [
+    {
+      "id": "2026-09-05-agent-routing-pilot-01",
+      "state": "collecting",
+      "record": "experiments/2026-09-05-agent-routing-pilot/README.md",
+      "ledger": "experiments/2026-09-05-agent-routing-pilot/results/ledger.json",
+      "baseline_commit": "63919a7ca33d1a0f5f6b5eaef9f33c58e79ec808",
+      "baseline_decision_id": "baseline-01"
+    }
+  ],
+  "effective_decision": {
+    "id": "baseline-01",
+    "state": "retained",
+    "source_type": "baseline",
+    "source_commit": "63919a7ca33d1a0f5f6b5eaef9f33c58e79ec808",
+    "source_cohort_id": null,
+    "source_decision_id": null,
+    "validated_runtime": "Codex desktop 0.153.4",
+    "incompatible_runtime": "standalone CLI 0.144.1",
+    "coordinator": {
+      "role": "gemini_reasoner",
+      "model": "gpt-5.6-sol",
+      "effort": "medium"
+    },
+    "executor": {
+      "role": "gemini_executor",
+      "model": "gpt-5.6-luna",
+      "effort": "medium"
+    },
+    "implementer": {
+      "role": "gemini_implementer",
+      "model": "gpt-5.6-luna",
+      "effort": "high"
+    },
+    "specialist": {
+      "role": "gemini_specialist",
+      "model": "gpt-6-astra",
+      "effort": "medium"
+    },
+    "normal_active_worker_items": 2,
+    "maximum_spawned_agent_threads_excluding_primary": 3
+  }
+}

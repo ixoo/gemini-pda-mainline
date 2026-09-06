@@ -200,7 +200,9 @@ def run_fixtures(root: Path) -> None:
                        "test-buildbox-preflight",
                        "test-kernel-package-publication",
                        "test-kernel-source-contract.py", "test-kernel-source-archive.py",
-                       "test-kernel-source-builder.py"):
+                       "test-kernel-source-builder.py",
+                       "validate-workflow-improvement.py",
+                       "test-workflow-improvement.py"):
             argv = [str(root / "scripts" / script)]
             if script.endswith(".py"):
                 argv.insert(0, sys.executable)
