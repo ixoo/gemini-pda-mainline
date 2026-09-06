@@ -76,10 +76,8 @@ draft image bytes independently. A controlled raw-payload mutation passed the
 draft validator after its self-reported hashes were recomputed, outputs were not
 confined, and refusal coverage was incomplete. The draft candidate and its
 `c395f6...` input identity are therefore not admissible. Repaired fixtures now
-exercise 14 candidate/container cases and 23 collector cases in both normal and
-optimized Python modes; a clean published construction and independent replay
-remain required. Physical admission, installation and boot selection remain
-false.
+exercise 14 candidate/container cases and 24 collector cases in both normal and
+optimized Python modes.
 
 The future passive session expressly forbids invoking `/bin/reboot`, the
 inherited TOPRGU wrapper, BusyBox `reboot`, `poweroff`, or any equivalent
@@ -95,6 +93,39 @@ The retained foundation input is:
 sha256=344d8a8464bee60764df467f166aa73eddfcbd4d362d835aa2d6895534c31c4b
 ```
 
-Exact construction and independent validation command lines will be frozen
-here after the repaired tools are committed, pushed and rerun from a clean
-`origin/main`. Candidate readiness remains false until that replay completes.
+The repair was committed and pushed as
+`03a6c69c45cbf0e114244b774ab40c80c10ea8f7`. From that exact clean
+`origin/main`, the following construction was run with `<repository>` set to
+this checkout and `<foundation-repository>` set to the retained private source
+checkout:
+
+```text
+python3 <repository>/experiments/2026-09-06-mt6797-consys-passive-boot/scripts/build-candidate.py \
+  --package <repository>/artifacts/buildbox/f9981eaf63381a558f77be251da4c2320cb4321b/linux-7.1.3-gemini-7c43a80cce28a15dc70306e3b8c225b537f1589eec4ac7411a46d422d705401c \
+  --foundation-initramfs <foundation-repository>/artifacts/mt6797-pwrap-reset-serviceability/candidate-mt6797-pwrap-reset-305230b1/gemini-pwrap-reset-serviceability-initramfs.img \
+  --userspace <repository>/artifacts/buildbox/e9c028005b88ef8536ecb58c095e8d172253fa12/userspace-dfeb746505b7ad01423e91e952e76620f845b048ae2e8c5cf8a311e0d4443e60 \
+  --credentials <repository>/artifacts/credentials/a53-auth \
+  --serviceability-dtb <repository>/artifacts/toprgu/candidates/candidate-22edf533734ac52e56f3291c90264359fec2eaccc79cd68acf28b20d9cb216e8/board.dtb
+```
+
+The builder ran its independent validator automatically. The same validator
+then passed explicitly in normal and optimized Python modes against:
+
+```text
+candidate=a487c5b33d100e75271d56b02535cb2b31f951d745090a54e5ee1287af4c800d
+input_id=499e71920d71129b964754e4b9af6b15d5f9e18b383e584725eae241e56c08be
+initramfs_sha256=184915b7a678657be41f8f116bc5403c501009e0f740aadaa8c797d81e73119d
+raw_sha256=1051ddd45bc70e1fb58e6a70fc256aedb3a755930f59731bf0ae62f781f6e1fb
+padded_sha256=a487c5b33d100e75271d56b02535cb2b31f951d745090a54e5ee1287af4c800d
+raw_size=8853504 padded_size=16777216
+```
+
+Independent runtime review rejected this second candidate because its composed
+`/init` retained the parent TOPRGU `uname -r` gate and would hold before
+`/bin/usb-auth &`. Its validator reproduced and accepted the same stale bytes.
+The replacement archive sources now use the exact passive release/marker and
+the validator scans every executable script for stale TOPRGU release/profile
+identities, while proving that authenticated USB follows the exact passive
+release gate. The collector pins are deliberately empty until the corrected
+candidate is rebuilt and reviewed. Physical admission, installation and boot
+selection remain false.

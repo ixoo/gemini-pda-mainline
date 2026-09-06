@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import importlib.util
 import json
 import os
 import re
@@ -14,6 +13,7 @@ import struct
 import subprocess
 import sys
 import zlib
+from dataclasses import replace
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent.parent
@@ -43,18 +43,74 @@ def require(ok: bool, reason: str) -> None:
         raise ValueError(reason)
 
 
-def parent_replay(foundation: Path, userspace: Path, credentials: Path,
-                  input_id: str) -> tuple[bytes, dict[str, dict[str, object]]]:
-    """Run the independent parent replay path with the new input identity."""
-    source = PARENT / "scripts/validate-candidate.py"
-    require(C.sha(C.regular(source, "parent replay validator")) ==
-            "de4199496f04110d018ba2d89bf747d495ee4106278bff1ac4ccdef114ce71d7",
-            "parent replay validator changed")
-    spec = importlib.util.spec_from_file_location("consys_parent_replay", source)
-    require(spec is not None and spec.loader is not None, "parent replay unavailable")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module.derive_expected_initramfs(foundation, userspace, credentials, input_id)
+def independent_replay(foundation: Path, userspace: Path, credentials: Path,
+                       input_id: str) -> tuple[bytes, dict[str, dict[str, object]]]:
+    """Reconstruct the archive independently from exact public/private inputs."""
+    require(re.fullmatch(r"[0-9a-f]{64}", input_id) is not None,
+            "candidate input identity missing")
+    baseline = C.regular(foundation, "foundation initramfs")
+    require(C.sha(baseline) == C.FOUNDATION_INITRAMFS_SHA256,
+            "foundation initramfs identity changed")
+    parse, encode = C.load_newc_tools(REPO)
+    original = parse(baseline)
+    require({"init", "bin/busybox", "bin/reboot"} <= set(original),
+            "foundation initramfs inventory incomplete")
+    members = {name: item for name, item in original.items() if name not in C.REMOVED}
+    template = members["bin/reboot"]
+    current = HERE / "initramfs"
+    parent = PARENT / "initramfs"
+    sources = {
+        "init": (current / "init", "init"),
+        "inittab": (parent / "inittab", "etc/inittab"),
+        "usb-auth": (parent / "usb-auth", "bin/usb-auth"),
+        "console-status": (parent / "console-status", "bin/console-status"),
+        "admin-shell": (parent / "admin-shell", "bin/admin-shell"),
+        "reboot-passive": (current / "reboot-passive", "bin/reboot"),
+    }
+    for source, (path, target) in sources.items():
+        data = C.regular(path, source)
+        require(C.sha(data) == C.PUBLIC_INIT_SOURCE_DIGESTS[source],
+                f"published init source changed: {source}")
+        if source in {"init", "reboot-passive"}:
+            require(data.count(b"INPUT_ID_PLACEHOLDER") == 1,
+                    "input marker placeholder missing")
+            data = data.replace(b"INPUT_ID_PLACEHOLDER", input_id.encode("ascii"))
+        if source != "reboot-passive":
+            require(not any(token in data for token in C.FORBIDDEN_TEXT),
+                    f"unsafe initramfs source: {source}")
+        require(not any(token in data for token in C.STALE_IDENTITY_TEXT),
+                f"stale TOPRGU identity in initramfs source: {source}")
+        members[target] = replace(template,
+                                  mode=stat.S_IFREG | (0o644 if source == "inittab" else 0o755),
+                                  data=data)
+    auth = C.validate_credentials(credentials)
+    for name, mode in (("root", stat.S_IFDIR | 0o700),
+                       ("root/.ssh", stat.S_IFDIR | 0o700),
+                       ("etc/dropbear", stat.S_IFDIR | 0o700)):
+        if name not in members:
+            members[name] = replace(template, mode=mode, nlink=2, data=b"")
+    additions = {
+        "bin/dropbear": (C.regular(userspace / "dropbear"), 0o755),
+        "bin/dropbearkey": (C.regular(userspace / "dropbearkey"), 0o755),
+        "bin/dropbearconvert": (C.regular(userspace / "dropbearconvert"), 0o755),
+        "bin/keyboard-observe": (C.regular(userspace / "keyboard-observe"), 0o755),
+        "bin/kmsg-capture": (C.regular(userspace / "kmsg-capture"), 0o755),
+        "bin/kmsg-seal": (C.regular(userspace / "kmsg-seal"), 0o755),
+        "etc/passwd": (b"root:x:0:0:Administrator:/root:/bin/admin-shell\n", 0o644),
+        "etc/group": (b"root:x:0:\n", 0o644),
+        "etc/shells": (b"/bin/admin-shell\n", 0o644),
+        "root/.ssh/authorized_keys": (auth["authorized_keys"], 0o600),
+        "etc/dropbear/host_key": (auth["dropbear_host_key"], 0o600),
+    }
+    for name, (data, mode) in additions.items():
+        require(name not in members, f"initramfs member collision: {name}")
+        members[name] = replace(template, mode=stat.S_IFREG | mode, data=data)
+    archive = encode(members)
+    require(archive == encode(parse(archive)), "independent initramfs serialization changed")
+    summary = {name: {"mode": oct(item.mode), "size": len(item.data),
+                      "sha256": C.sha(item.data)}
+               for name, item in sorted(members.items())}
+    return archive, summary
 
 
 def validate_candidate_path(candidate: Path) -> None:
@@ -112,21 +168,37 @@ def validate_dtb(candidate: Path, base_dtb: Path) -> None:
     ], check=True)
 
 
+def validate_runtime_identities(members: dict, input_id: str) -> None:
+    require("bin/reboot" in members and stat.S_IMODE(members["bin/reboot"].mode) == 0o755,
+            "inherited TOPRGU wrapper placement changed")
+    wrapper = members["bin/reboot"].data
+    init = members["init"].data
+    gate = b'[ "$(/bin/busybox uname -r)" = ' + C.RELEASE.encode("ascii") + b" ] || hold kernel-mismatch"
+    require(init.count(gate) == 1 and init.find(gate) < init.find(b"/bin/usb-auth &"),
+            "passive release gate does not admit authenticated USB")
+    require(init.count(b"GEMINI_CONSYS_PASSIVE_V1") == 1 and
+            init.count(b"candidate=" + C.RELEASE.encode("ascii")) == 1,
+            "passive entry marker identity changed")
+    require(wrapper.count(b"'" + input_id.encode("ascii") + b"'") == 1 and
+            wrapper.count(b"'" + C.RELEASE.encode("ascii") + b"'") == 1 and
+            wrapper.count(b"GEMINI_CONSYS_PASSIVE_V1") == 1 and
+            wrapper.count(b"exec /bin/busybox reboot -n -f") == 1,
+            "inherited wrapper passive identity changed")
+    for name, member in members.items():
+        if C.is_untrusted_action_data(member):
+            require(not any(token in member.data for token in C.STALE_IDENTITY_TEXT),
+                    f"stale TOPRGU executable identity: {name}")
+
+
 def validate_members(candidate: Path, manifest: dict, foundation: Path,
                      userspace: Path, credentials: Path) -> None:
-    expected, summary = parent_replay(foundation, userspace, credentials,
-                                      manifest["input_id"])
+    expected, summary = independent_replay(foundation, userspace, credentials,
+                                           manifest["input_id"])
     actual = C.regular(candidate / "initramfs.img", "initramfs")
     require(actual == expected, "initramfs differs from independent replay")
     require(manifest.get("members") == summary, "initramfs manifest metadata changed")
     parse, _ = C.load_newc_tools(REPO)
-    members = parse(actual)
-    require("bin/reboot" in members and stat.S_IMODE(members["bin/reboot"].mode) == 0o755,
-            "inherited TOPRGU wrapper placement changed")
-    wrapper = members["bin/reboot"].data
-    require(wrapper.count(b"'" + manifest["input_id"].encode("ascii") + b"'") == 1 and
-            wrapper.count(b"exec /bin/busybox reboot -n -f") == 1,
-            "inherited TOPRGU wrapper identity changed")
+    validate_runtime_identities(parse(actual), manifest["input_id"])
 
 
 def validate_container(candidate: Path, manifest: dict) -> None:
@@ -239,12 +311,23 @@ def validate(candidate: Path, package: Path, foundation: Path, userspace: Path,
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--candidate", type=Path, required=True)
-    parser.add_argument("--package", type=Path, required=True)
+    package_input = parser.add_mutually_exclusive_group(required=True)
+    package_input.add_argument("--package", type=Path)
+    package_input.add_argument("--base-dtb", type=Path)
     parser.add_argument("--foundation-initramfs", type=Path, required=True)
     parser.add_argument("--userspace", type=Path, required=True)
     parser.add_argument("--credentials", type=Path, required=True)
     args = parser.parse_args()
-    result = validate(args.candidate, args.package.resolve(strict=True),
+    if args.base_dtb is not None:
+        base_dtb = args.base_dtb.resolve(strict=True)
+        require(base_dtb.name == "mt6797-gemini-pda.dtb" and
+                base_dtb.parent.name == "mediatek" and
+                base_dtb.parent.parent.name == "dtbs",
+                "package base DTB path changed")
+        package = base_dtb.parents[2]
+    else:
+        package = args.package.resolve(strict=True)
+    result = validate(args.candidate, package,
                       args.foundation_initramfs.resolve(strict=True),
                       args.userspace.resolve(strict=True),
                       args.credentials.resolve(strict=True))

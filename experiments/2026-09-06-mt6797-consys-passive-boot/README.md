@@ -94,10 +94,22 @@ historical draft input identity was
 initramfs is `972d4d813539d98a60b1f7f6f38594d584fe560c619156760919b2001308b47f`,
 and its exact 16 MiB padded image is the directory identity above.
 
-That draft is not deployable. The repaired builder, validator and collector are
-under review; they pin the new series/profile inputs, replay every container
-payload and header field, and fix outputs below `artifacts/consys-passive/`.
-Physical admission remains false and no device action was taken.
+That draft is not deployable. The repaired builder, validator and collector were
+published at `03a6c69c45cbf0e114244b774ab40c80c10ea8f7`; they pin the
+new series/profile inputs, replay every container payload and header field, and
+fix outputs below `artifacts/consys-passive/`.
+
+The clean published replay produced candidate
+`a487c5b33d100e75271d56b02535cb2b31f951d745090a54e5ee1287af4c800d`
+with input identity
+`499e71920d71129b964754e4b9af6b15d5f9e18b383e584725eae241e56c08be`.
+Although its container validator passed, independent runtime review rejected
+it: `/init` still required the parent TOPRGU release and would hold before
+starting authenticated USB. The corrected builder and independent validator
+now use passive-specific init/wrapper sources and reject stale TOPRGU executable
+identities. The collector has empty candidate/input pins and therefore refuses
+all output until a corrected candidate is rebuilt and reviewed. Physical
+admission remains false and no device action was taken.
 
 ## Handoff limits
 

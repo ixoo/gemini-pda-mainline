@@ -16,6 +16,10 @@ MAX_INPUT = 64 * 1024
 RECORD = re.compile(r"^mt6797-consys-passive: state=BOUND generation=([1-9][0-9]*) client=wlan-passive power=0 reset=0 remap=0 protection=0 firmware=0 radio=0 dma=0$")
 UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
+# Empty until the corrected passive-specific initramfs candidate is rebuilt
+# and independently accepted. An empty pin makes every write refuse.
+EXPECTED_CANDIDATE = ""
+EXPECTED_INPUT_ID = ""
 REPO = Path(__file__).resolve().parents[2]
 ARTIFACT_ROOT = REPO / "artifacts/consys-passive"
 OUTPUT_ROOT = ARTIFACT_ROOT / "evidence"
@@ -51,19 +55,19 @@ def private_directory(path: Path) -> None:
             "output directory is not private")
 
 
-def write_result(result: dict, candidate: str, input_id: str,
-                 deployment_id: str) -> Path:
-    require(SHA256.fullmatch(candidate) is not None and
-            SHA256.fullmatch(input_id) is not None and
+def write_result(result: dict, deployment_id: str) -> Path:
+    require(SHA256.fullmatch(EXPECTED_CANDIDATE) is not None and
+            SHA256.fullmatch(EXPECTED_INPUT_ID) is not None and
             UUID.fullmatch(deployment_id) is not None,
-            "candidate/input/deployment binding is malformed")
+            "fixed candidate/input/deployment binding is malformed")
     private_directory(ARTIFACT_ROOT)
     private_directory(OUTPUT_ROOT)
-    candidate_root = OUTPUT_ROOT / ("candidate-" + candidate)
+    candidate_root = OUTPUT_ROOT / ("candidate-" + EXPECTED_CANDIDATE)
     private_directory(candidate_root)
     deployment_root = candidate_root / ("deployment-" + deployment_id)
     private_directory(deployment_root)
-    result.update({"candidate_sha256": candidate, "input_id": input_id,
+    result.update({"candidate_sha256": EXPECTED_CANDIDATE,
+                   "input_id": EXPECTED_INPUT_ID,
                    "deployment_id": deployment_id})
     path = deployment_root / ("boot-" + str(result["boot_id"]) + ".json")
     fd = path.open("x", encoding="utf-8")
@@ -74,11 +78,10 @@ def write_result(result: dict, candidate: str, input_id: str,
 
 def main() -> int:
     p=argparse.ArgumentParser(); p.add_argument("--input-log", type=Path, required=True)
-    p.add_argument("--candidate-sha256", required=True); p.add_argument("--input-id", required=True)
     p.add_argument("--deployment-id", required=True); a=p.parse_args()
     st=a.input_log.lstat(); require(stat.S_ISREG(st.st_mode) and not a.input_log.is_symlink() and st.st_nlink == 1 and st.st_size <= MAX_INPUT, "input log is unsafe")
     result=classify(a.input_log.read_bytes())
-    path=write_result(result, a.candidate_sha256, a.input_id, a.deployment_id)
+    path=write_result(result, a.deployment_id)
     print(f"classification=pass\nresult={path}")
     return 0
 if __name__ == "__main__": raise SystemExit(main())

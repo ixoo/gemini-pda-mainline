@@ -43,6 +43,8 @@ def refuse(raw: bytes, text: str) -> None:
 
 
 def main() -> int:
+    check(M.EXPECTED_CANDIDATE == "" and M.EXPECTED_INPUT_ID == "",
+          "collector must remain disabled until the corrected candidate is pinned")
     result = M.classify(capture())
     check(result["state"] == "BOUND" and result["generation"] == 1 and
           all(value == 0 for value in result["effect_counters"].values()),
@@ -78,6 +80,13 @@ def main() -> int:
     refuse(capture() + b"\xff", "ASCII")
     cases += 1
     refuse(b"x" * (M.MAX_INPUT + 1), "64 KiB")
+    cases += 1
+    try:
+        M.write_result(dict(result), "not-a-deployment")
+    except M.CollectionError as exc:
+        check("binding is malformed" in str(exc), "deployment refusal changed")
+    else:
+        raise AssertionError("accepted malformed deployment binding")
     cases += 1
     print(f"passive collector fixtures: PASS cases={cases}")
     return 0

@@ -16,7 +16,7 @@ if SPEC is None or SPEC.loader is None:
 V = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(V)
 CANDIDATE = (HERE.parents[1] / "artifacts/consys-passive/candidates/"
-             "candidate-d10528c86fbc1b0da5983a692d95b86562633882be7e1273bfa926627e8d9f0c")
+             "candidate-a487c5b33d100e75271d56b02535cb2b31f951d745090a54e5ee1287af4c800d")
 
 
 def check(ok: bool, reason: str) -> None:
@@ -52,6 +52,19 @@ def main() -> int:
     V.validate_manifest(manifest, CANDIDATE.name)
     V.validate_container(CANDIDATE, manifest)
     cases = 2
+    parse, _ = V.C.load_newc_tools(HERE.parents[1])
+    stale_members = parse((CANDIDATE / "initramfs.img").read_bytes())
+    refuse(lambda: V.validate_runtime_identities(stale_members, manifest["input_id"]),
+           "passive release gate")
+    cases += 1
+    init_source = (HERE / "initramfs/init").read_bytes()
+    gate = b'[ "$(/bin/busybox uname -r)" = 7.1.3-gemini-consys-passive ]'
+    check(init_source.count(gate) == 1 and
+          init_source.find(gate) < init_source.find(b"/bin/usb-auth &"),
+          "authenticated USB is not reachable after the passive uname gate")
+    check(not any(token in init_source for token in V.C.STALE_IDENTITY_TEXT),
+          "published init retains a stale TOPRGU identity")
+    cases += 1
 
     for key, value in (
         ("physical_admission", True), ("release", "wrong"),

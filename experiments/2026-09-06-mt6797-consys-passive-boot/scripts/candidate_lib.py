@@ -11,6 +11,7 @@ import re
 import stat
 import struct
 import subprocess
+from dataclasses import replace
 from pathlib import Path
 
 PARENT = Path(__file__).resolve().parents[2] / "2026-09-06-mt6797-toprgu-minimal-restart/scripts/candidate_lib.py"
@@ -41,7 +42,16 @@ REMOVED = _parent.REMOVED
 REQUIRED_USERSPACE = _parent.REQUIRED_USERSPACE
 FORBIDDEN_TEXT = _parent.FORBIDDEN_TEXT
 OLD_EXECUTABLE_TEXT = _parent.OLD_EXECUTABLE_TEXT
-PUBLIC_INIT_SOURCE_DIGESTS = _parent.PUBLIC_INIT_SOURCE_DIGESTS
+PUBLIC_INIT_SOURCE_DIGESTS = dict(_parent.PUBLIC_INIT_SOURCE_DIGESTS)
+PUBLIC_INIT_SOURCE_DIGESTS["init"] = "b4f2312a56143d7538f3e94bf83bfd70c2804db836195ccfbb7a07ba815757be"
+del PUBLIC_INIT_SOURCE_DIGESTS["reboot-toprgu"]
+PUBLIC_INIT_SOURCE_DIGESTS["reboot-passive"] = "fcfacfa8d1c9472f3a9b5b6ba8076274f6e898ceb2eadb731f8f628d13f49fcd"
+STALE_IDENTITY_TEXT = (
+    b"7.1.3-gemini-mt6797-toprgu-minimal-restart",
+    b"mt6797-toprgu-minimal-restart",
+    b"GEMINI_TOPRGU_V1",
+    b"contract=toprgu-minimal-restart-v1",
+)
 ARTIFACT_ROOT = Path(__file__).resolve().parents[3] / "artifacts/consys-passive"
 
 def sha(data: bytes) -> str: return hashlib.sha256(data).hexdigest()
@@ -59,6 +69,10 @@ def validate_source_pins(repo: Path) -> None:
         "configs/gemini-mt6797-consys-passive.fragment": PROFILE_FRAGMENT_SHA256,
         "experiments/2026-09-06-mt6797-toprgu-minimal-restart/scripts/validate-dtb.py":
             "77bcd71667c6ad82016494a40d5d8bb554b699897c00f63653efe4d515339246",
+        "experiments/2026-09-06-mt6797-consys-passive-boot/initramfs/init":
+            PUBLIC_INIT_SOURCE_DIGESTS["init"],
+        "experiments/2026-09-06-mt6797-consys-passive-boot/initramfs/reboot-passive":
+            PUBLIC_INIT_SOURCE_DIGESTS["reboot-passive"],
     }
     for relative, expected in pins.items():
         require(sha(regular(repo / relative, relative)) == expected,
@@ -104,7 +118,77 @@ def compute_input_id(image, dtb, foundation, userspace, credentials) -> str:
     return sha(json.dumps(material, sort_keys=True, separators=(",", ":")).encode("ascii"))
 
 def compose_initramfs(repo, foundation, userspace, credentials, input_id):
-    return _parent.compose_initramfs(repo, foundation, userspace, credentials, input_id)
+    require(re.fullmatch(r"[0-9a-f]{64}", input_id) is not None,
+            "input identity malformed")
+    parse, encode = load_newc_tools(repo)
+    baseline = parse(regular(foundation, "foundation initramfs"))
+    require({"init", "bin/busybox", "bin/reboot"} <= set(baseline),
+            "foundation initramfs inventory incomplete")
+    members = {name: item for name, item in baseline.items() if name not in REMOVED}
+    template = members["bin/reboot"]
+    current = repo / "experiments/2026-09-06-mt6797-consys-passive-boot/initramfs"
+    parent = repo / "experiments/2026-09-06-mt6797-toprgu-minimal-restart/initramfs"
+    sources = {
+        "init": (current / "init", "init"),
+        "inittab": (parent / "inittab", "etc/inittab"),
+        "usb-auth": (parent / "usb-auth", "bin/usb-auth"),
+        "console-status": (parent / "console-status", "bin/console-status"),
+        "admin-shell": (parent / "admin-shell", "bin/admin-shell"),
+        "reboot-passive": (current / "reboot-passive", "bin/reboot"),
+    }
+    for source, (path, target) in sources.items():
+        data = regular(path, source)
+        require(sha(data) == PUBLIC_INIT_SOURCE_DIGESTS[source],
+                f"published init source changed: {source}")
+        if source in {"init", "reboot-passive"}:
+            require(data.count(b"INPUT_ID_PLACEHOLDER") == 1,
+                    "input marker placeholder missing")
+            data = data.replace(b"INPUT_ID_PLACEHOLDER", input_id.encode("ascii"))
+        if source != "reboot-passive":
+            require(not any(token in data for token in FORBIDDEN_TEXT),
+                    f"unsafe initramfs source: {source}")
+        require(not any(token in data for token in STALE_IDENTITY_TEXT),
+                f"stale TOPRGU identity in initramfs source: {source}")
+        mode = 0o644 if source == "inittab" else 0o755
+        members[target] = replace(template, mode=stat.S_IFREG | mode, data=data)
+    auth = validate_credentials(credentials)
+    for name, mode in (("root", stat.S_IFDIR | 0o700),
+                       ("root/.ssh", stat.S_IFDIR | 0o700),
+                       ("etc/dropbear", stat.S_IFDIR | 0o700)):
+        if name not in members:
+            members[name] = replace(template, mode=mode, nlink=2, data=b"")
+    added = {
+        "bin/dropbear": (regular(userspace / "dropbear"), 0o755),
+        "bin/dropbearkey": (regular(userspace / "dropbearkey"), 0o755),
+        "bin/dropbearconvert": (regular(userspace / "dropbearconvert"), 0o755),
+        "bin/keyboard-observe": (regular(userspace / "keyboard-observe"), 0o755),
+        "bin/kmsg-capture": (regular(userspace / "kmsg-capture"), 0o755),
+        "bin/kmsg-seal": (regular(userspace / "kmsg-seal"), 0o755),
+        "etc/passwd": (b"root:x:0:0:Administrator:/root:/bin/admin-shell\n", 0o644),
+        "etc/group": (b"root:x:0:\n", 0o644),
+        "etc/shells": (b"/bin/admin-shell\n", 0o644),
+        "root/.ssh/authorized_keys": (auth["authorized_keys"], 0o600),
+        "etc/dropbear/host_key": (auth["dropbear_host_key"], 0o600),
+    }
+    for name, (data, mode) in added.items():
+        require(name not in members, f"initramfs member collision: {name}")
+        members[name] = replace(template, mode=stat.S_IFREG | mode, data=data)
+    for name, item in members.items():
+        if not is_untrusted_action_data(item):
+            continue
+        require(not any(token in item.data for token in STALE_IDENTITY_TEXT),
+                f"stale TOPRGU executable identity: {name}")
+        if name != "bin/reboot":
+            require(not any(token in item.data for token in FORBIDDEN_TEXT),
+                    f"forbidden runtime action in {name}")
+            require(not any(token in item.data for token in OLD_EXECUTABLE_TEXT),
+                    f"old executable marker in {name}")
+    first = encode(members)
+    require(first == encode(parse(first)), "initramfs serialization changed")
+    summary = {name: {"mode": oct(item.mode), "size": len(item.data),
+                      "sha256": sha(item.data)}
+               for name, item in sorted(members.items())}
+    return first, summary
 
 def validate_package(package: Path) -> None:
     require(sha(regular(package / "Image.gz")) == IMAGE_GZ_SHA256, "kernel Image.gz identity changed")
