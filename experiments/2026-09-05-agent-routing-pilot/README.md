@@ -76,9 +76,9 @@ when every item in the cohort segment uses the same observed source and unit.
 
 ## Observations
 
-The contiguous ledger now contains twelve considered candidates: eight eligible
+The contiguous ledger now contains thirteen considered candidates: nine eligible
 accepted offline items, one cohort-bootstrap exclusion, one device-session
-exclusion and two pre-dispatch tooling-contract exclusions. All eight accepted
+exclusion and two pre-dispatch tooling-contract exclusions. All nine accepted
 items missed first-review acceptance. The first two
 required escalation: the integration item exposed live-ledger fixture coupling,
 and the dynamic reserved-memory implementation needed corrected OF semantics,
@@ -120,6 +120,19 @@ fourteen-patch Buildbox build compiled and linked the AArch64 object with no
 runtime caller or effect path. This pre-publication scope-containment finding
 triggers the checkpoint below; it did not enter the accepted implementation.
 Credits remain unavailable.
+
+Item nine performed a bounded public-primary-source sweep for effective MT6797
+AP/CONSYS/WLAN EMI routing and overlapping-region arbitration. Three
+predeclared attempts used ten requests and retained metadata for two immutable
+MT8192 TF-A files, but found neither an exact MT6797 routing chain nor a
+compatible winner rule. The accepted verdict keeps AP, CONSYS, WLAN,
+arbitration, active-region applicability and policy selection unresolved. Its
+first review found that whole-record digests masked the semantic mutation
+guards and that the new verifier lacked its SPDX identifier. One repair made
+the 33 refusals meaningful, added a positive generic-CONSYS control and proved
+that WLAN promotion fails for its missing transaction attribution. No source
+body, private evidence, device action, VM or build entered the item. Credits
+remain unavailable.
 
 The proposed deterministic read-only firmware traversal tool is considered
 sequence ten but is not an accepted offline item. Two pre-dispatch contract
@@ -200,6 +213,28 @@ five-item threshold for a settings experiment. The scope miss supports keeping
 the explicit offline constraint and review gate, both of which caught it; it
 does not yet identify a model, effort or concurrency setting that should
 change. The baseline route is retained.
+
+## Post-item-nine reasoning-review checkpoint
+
+Checkpoint `pilot-01-post-item-nine-reasoning-review-misses` closes accepted
+sequence 9 and considered sequence 13. Items six and nine are consecutive in
+the `hard-reasoning-verdict-receipt-v1` comparison sequence and both missed
+first-review acceptance, so the policy requires another early review. Including
+item five, the three-item group shares hard-uncertainty reasoning, Astra Medium
+ownership, Sol Medium review, independently frozen source/attempt records,
+conservative multi-verdict receipts and offline semantic refusal checks.
+
+The group has median elapsed time 20.55 minutes and median review/rework time
+9.6 minutes. First-review acceptance is 0/3. Items five and six escalated for
+different verifier-boundary and missing-tooling reasons; item nine completed
+one bounded verifier repair without escalation. Credits are unavailable for all
+three.
+
+The conclusion remains `too-small`. Three related investigations do not meet
+the five-comparable-item threshold for a settings experiment, and their review
+misses have different immediate causes. The evidence supports keeping the
+semantic-review gate; it does not justify changing model, effort or concurrency
+settings. The baseline route remains in effect.
 
 Creation of this loop remains excluded because its eligibility and timing
 contract did not exist before work began. The passive CONSYS ownership snapshot

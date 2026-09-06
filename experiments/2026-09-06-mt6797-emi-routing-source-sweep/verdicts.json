@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "device_variant": "Gemini PDA / MT6797 (target only; no device observation)",
+  "routing": {
+    "ap": {
+      "verdict": "unresolved",
+      "effective_domain": null,
+      "transaction_to_assignment_chain_established": false,
+      "bridge_security_override_established": false,
+      "citations": [
+        "attempt:A1"
+      ],
+      "reason": "No admissible exact AP assignment-register lead. Labels, permission rows and port decoders cannot identify the effective AP domain."
+    },
+    "consys": {
+      "verdict": "unresolved",
+      "effective_domain": null,
+      "transaction_to_assignment_chain_established": false,
+      "bridge_security_override_established": false,
+      "citations": [
+        "attempt:A1"
+      ],
+      "reason": "No admissible exact CONSYS assignment-register lead. No generic CONSYS-to-D2 route established."
+    },
+    "wlan": {
+      "verdict": "unresolved",
+      "effective_domain": null,
+      "attributable_firmware_transaction_established": false,
+      "joined_to_exact_consys_master": false,
+      "citations": [
+        "attempt:A1"
+      ],
+      "reason": "No attributable WLAN fetch/data transaction joined to an exact CONSYS master and domain. Even a complete generic CONSYS-to-D2 chain would not resolve WLAN applicability."
+    }
+  },
+  "overlap": {
+    "verdict": "unresolved",
+    "priority_rule_established": false,
+    "winning_region_rule": null,
+    "rule_applicability_conditions": null,
+    "mt6797_compatibility_established": false,
+    "active_region_applicability_established": false,
+    "citations": [
+      "attempt:B1",
+      "attempt:B2",
+      "source:tfa-mt8192-emi-c",
+      "source:tfa-mt8192-emi-h"
+    ],
+    "observation": "The MT8192 source sets nested region spans but gives no explicit multiple-match winning rule or MT6797 compatibility statement.",
+    "inference": "Region numbering, setter call order and setter success cannot select the effective region; no MT6797 arbitration predicate resolves.",
+    "epoch_limit": "Public source cannot identify which regions are enabled and applicable during the target WLAN-loading epoch."
+  },
+  "policy_selection_allowed": false,
+  "device_action_allowed": false,
+  "hardware_support_claim": false,
+  "source_copy_allowed": false,
+  "stop": {
+    "routing": "A1 has no admissible exact symbol/register lead to follow under A2; branch stopped without spending the conditional second attempt.",
+    "overlap": "Two attempts exhausted; two files inspected without an exact MT6797 rule.",
+    "attempts": 3,
+    "requests": 10,
+    "new_primary_files": 2
+  },
+  "next_discriminators": {
+    "routing": "An attributable MT6797 AP and CONSYS master-assignment/bridge-security register contract, plus a WLAN fetch/data transaction explicitly joined to the same CONSYS master; obtain a primary immutable source before any live test.",
+    "overlap": "An exact MT6797 multiple-region match rule with applicability conditions; separately, a later admitted non-mutating epoch-attributable active-region observation is required. This sweep authorizes neither acquisition nor a device protocol."
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "parent_commit": "cf10a2f4a062c13b92b3a5a21e6a818db927d1b8",
+  "frozen_records": [
+    {
+      "path": "experiments/2026-09-06-mt6797-emi-domain-attribution/results/verdicts.json",
+      "sha256": "458bbd8b15b59dc40663315c8c305829fc1ca9df4d144a2b61166726daf8a63f",
+      "bytes": 4561
+    },
+    {
+      "path": "experiments/2026-09-05-mt6797-wifi-contract/RETAINED_EMI_SECURE_ABI.md",
+      "sha256": "8c4963c1d9e63b98bb7dcdad8ed41e442f1f6171e8c599869758f4984e7a7f06",
+      "bytes": 8912
+    },
+    {
+      "path": "experiments/2026-09-05-mt6797-wifi-contract/SHARED_OWNER_IMPLEMENTATION.md",
+      "sha256": "a71e51e2ff2676b63d21bbd8e83fc6af98c24e77d47f4fe541e60d11be1c1021",
+      "bytes": 20811
+    }
+  ],
+  "corpus": [
+    {
+      "id": "tfa-mt8192-emi-c",
+      "repository": "https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git",
+      "revision": "24ca0fa6ac4afa509a92e3a79bc855761619b6e5",
+      "path": "plat/mediatek/mt8192/drivers/emi_mpu/emi_mpu.c",
+      "url": "https://git.trustedfirmware.org/plugins/gitiles/TF-A/trusted-firmware-a.git/+/24ca0fa6ac4afa509a92e3a79bc855761619b6e5/plat/mediatek/mt8192/drivers/emi_mpu/emi_mpu.c?format=TEXT",
+      "sha256": "201f7a19ba54f574a20bc17b0a01bcfcbd411a661ffc47f3f3e94d69d21166eb",
+      "bytes": 3146,
+      "license": "BSD-3-Clause",
+      "rights": "public-primary-inspection-only; no source body retained or redistributed",
+      "license_locator": "lines 1-5",
+      "fetched_by": "B2:1",
+      "soc": "MT8192",
+      "mt6797_compatibility_established": false,
+      "observed_locators": [
+        "_emi_mpu_set_protection, lines 18-50",
+        "emi_mpu_init, lines 92-121"
+      ],
+      "observation": "Setter writes the selected region start/end/APC; initializer programs region 1 inside the region 2 address span. No explicit hardware winner rule or MT6797 applicability appears.",
+      "inference": "Neither setter order nor region identifiers justify an MT6797 arbitration or routing claim."
+    },
+    {
+      "id": "tfa-mt8192-emi-h",
+      "repository": "https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git",
+      "revision": "24ca0fa6ac4afa509a92e3a79bc855761619b6e5",
+      "path": "plat/mediatek/mt8192/drivers/emi_mpu/emi_mpu.h",
+      "url": "https://git.trustedfirmware.org/plugins/gitiles/TF-A/trusted-firmware-a.git/+/24ca0fa6ac4afa509a92e3a79bc855761619b6e5/plat/mediatek/mt8192/drivers/emi_mpu/emi_mpu.h?format=TEXT",
+      "sha256": "d5781374df318930a4c80bdccae6411869a8b9cd90c47d0abf473eed1c55f7f3",
+      "bytes": 3371,
+      "license": "BSD-3-Clause",
+      "rights": "public-primary-inspection-only; no source body retained or redistributed",
+      "license_locator": "lines 1-5",
+      "fetched_by": "B2:2",
+      "soc": "MT8192",
+      "mt6797_compatibility_established": false,
+      "observed_locators": [
+        "EMI_MPU_DOMAIN_NUM and EMI_MPU_REGION_NUM, lines 55-56",
+        "SET_ACCESS_PERMISSION, lines 62-89"
+      ],
+      "observation": "Defines 16 domains, 32 regions and per-domain permission packing. No explicit multiple-match winner rule or MT6797 applicability appears.",
+      "inference": "Neither setter order nor region identifiers justify an MT6797 arbitration or routing claim."
+    }
+  ],
+  "discovery_record": "search-attempts.json",
+  "retention": {
+    "source_bytes_in_git": false,
+    "source_bytes_on_disk": false,
+    "analysis": "Public files streamed into process memory only; whole decoded Gitiles file bytes hashed. No temporary source files created.",
+    "private_inputs_reopened": false,
+    "search_result_bodies_in_git": false
+  },
+  "limitations": [
+    "Search results are discovery, not hardware evidence; zero hits do not establish nonexistence.",
+    "Only two MT8192 files are new primary corpus; no MT6797 compatible rule was found.",
+    "Offline verifier checks frozen metadata and retained input bytes, not remote availability or truth."
+  ]
+}

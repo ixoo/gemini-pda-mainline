@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 8,
-  "next_accepted_sequence": 9,
-  "next_considered_sequence": 13,
+  "accepted_count": 9,
+  "next_accepted_sequence": 10,
+  "next_considered_sequence": 14,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -411,6 +411,46 @@
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-06-mt6797-emi-service-gate-compile/BUILD_RESULT.md"
       }
+    },
+    {
+      "considered_sequence": 13,
+      "accepted_sequence": 9,
+      "candidate_id": "mt6797-emi-routing-primary-source-sweep",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "reasoning",
+      "risk_class": "hard-uncertainty",
+      "review_comparison_group": "hard-reasoning-verdict-receipt-v1",
+      "acceptance_contract": "experiments/2026-09-06-mt6797-emi-routing-source-sweep/WORK_ITEM.md",
+      "parent": "cf10a2f4a062c13b92b3a5a21e6a818db927d1b8",
+      "owner_route": {
+        "role": "gemini_specialist",
+        "model": "gpt-6-astra",
+        "effort": "medium"
+      },
+      "review_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-06T07:47:42Z",
+        "review_ready_at": "2026-09-06T07:58:39Z",
+        "accepted_at": "2026-09-06T08:08:15Z",
+        "timing_source": "observed UTC work-contract, first handoff, repair and final-review timestamps",
+        "elapsed_minutes": 20.55,
+        "review_rework_minutes": 9.6,
+        "first_review_accepted": false,
+        "rework_cycles": 1,
+        "escalated": false,
+        "escalation_reason": null,
+        "escalation_packet": null,
+        "review_failure_class": null,
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-06-mt6797-emi-routing-source-sweep/README.md"
+      }
     }
   ],
   "checkpoints": [
@@ -477,6 +517,23 @@
         "mt6797-remap-fields-kernel-compile",
         "mt6797-resource-layout-kernel-compile",
         "mt6797-emi-service-gate-kernel-compile"
+      ],
+      "conclusion": "too-small",
+      "evidence": "experiments/2026-09-05-agent-routing-pilot/README.md"
+    },
+    {
+      "id": "pilot-01-post-item-nine-reasoning-review-misses",
+      "after_accepted_sequence": 9,
+      "after_considered_sequence": 13,
+      "trigger": "early-signal",
+      "trigger_item_ids": [
+        "mt6797-firmware-nvram-handler-attribution",
+        "mt6797-emi-routing-primary-source-sweep"
+      ],
+      "comparable_item_ids": [
+        "mt6797-emi-domain-attribution",
+        "mt6797-firmware-nvram-handler-attribution",
+        "mt6797-emi-routing-primary-source-sweep"
       ],
       "conclusion": "too-small",
       "evidence": "experiments/2026-09-05-agent-routing-pilot/README.md"
