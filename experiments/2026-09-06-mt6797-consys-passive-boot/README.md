@@ -59,8 +59,8 @@ emulate Linux, firmware, Wi-Fi, a device or hardware support.
 Executed in this handoff:
 
 ```text
-python3 experiments/2026-09-06-mt6797-consys-passive-boot/test_passive_boot.py    PASS cases=45
-python3 -O experiments/2026-09-06-mt6797-consys-passive-boot/test_passive_boot.py PASS cases=45
+python3 experiments/2026-09-06-mt6797-consys-passive-boot/test_passive_boot.py    PASS cases=46
+python3 -O experiments/2026-09-06-mt6797-consys-passive-boot/test_passive_boot.py PASS cases=46
 git apply --stat patches/v7.1.3/0544-soc-mediatek-add-MT6797-passive-CONSYS-boot-binding.patch PASS
 git diff --check PASS
 managed Linux 7.1.3 strict Checkpatch: 0 errors; 4 warnings; 3 checks

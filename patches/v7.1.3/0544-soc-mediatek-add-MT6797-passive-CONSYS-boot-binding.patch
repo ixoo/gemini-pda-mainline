@@ -70,6 +70,7 @@ index 0000000..f5e7a11
 + * for any effect-bearing operation and exports no client-facing symbol.
 + */
 +
++#include <linux/types.h>
 +#include <linux/byteorder/generic.h>
 +#include <linux/errno.h>
 +#include <linux/init.h>
@@ -79,7 +80,6 @@ index 0000000..f5e7a11
 +#include <linux/refcount.h>
 +#include <linux/sizes.h>
 +#include <linux/slab.h>
-+#include <linux/types.h>
 +
 +#define MT6797_CONSYS_COMPAT "mediatek,consys-reserve-memory"
 +#define MT6797_CONSYS_SIZE SZ_2M

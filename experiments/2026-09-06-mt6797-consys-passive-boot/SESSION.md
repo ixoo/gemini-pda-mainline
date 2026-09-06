@@ -22,13 +22,16 @@ independent `of_node_get(node)` reference, which the consuming iterator drops,
 while the caller retains and drops its original node reference once. The host
 fixture rejects the old direct-`node` iterator pattern.
 
-Focused fixtures passed in both interpreter modes with 45 cases each. The
+Focused fixtures passed in both interpreter modes with 46 cases each. The
 patch parses as a format-patch (`git apply --stat`) and the worktree diff is
 whitespace-clean. `./scripts/check-repository` passed its repository,
 publication, profile-series, workflow and privacy gates; it skipped only the
 documented Linux-only provenance/package checks. The exact patch SHA-256 is
-recorded in `validation.json` (`83eb8c176d6cfa6f3d4f343c1acfe396f34349600c74cf701932c95515e67cf6`);
-the fixture SHA-256 is `cdfa4319f5ea29f6ccd2bb27b16c00923502064d1fcf2d8327193d5ac1fba254`.
+recorded in `validation.json`; the fixture SHA-256 is recorded there as well.
+
+Buildbox repair 1 moved `linux/types.h` before the byte-order helper header
+after the compiler proved that the latter does not supply the kernel scalar
+types it consumes. The focused fixture now rejects the failed include order.
 
 Independent Sol review accepted the repaired handoff at
 `2026-09-06T21:03:32Z`. It verified the patch against the exact managed parent,

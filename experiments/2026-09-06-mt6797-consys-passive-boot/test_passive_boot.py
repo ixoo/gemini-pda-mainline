@@ -192,6 +192,10 @@ def run() -> int:
     cases += 2
 
     source = source_text()
+    check(source.index("#include <linux/types.h>") <
+          source.index("#include <linux/byteorder/generic.h>"),
+          "kernel types precede byteorder helpers")
+    cases += 1
     check("state=BOUND generation=%llu" in source, "stable success prefix")
     for field in ("power", "reset", "remap", "protection", "firmware", "radio", "dma"):
         check(re.search(rf"{field}=%u", source), f"log counter {field}")
