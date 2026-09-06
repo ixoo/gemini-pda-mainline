@@ -158,12 +158,21 @@ Sol re-review accepted the repaired deployment packet at
 `2026-09-06T22:45:23Z`. This admits the standing guarded `boot2` installation,
 not an automatic reboot, physical boot selection or hardware-support claim.
 
+The guarded installation completed from clean published commit `e95172cc`.
+The live GPT resolved logical `boot2` to `/dev/mmcblk0p30`, distinct from root
+`/dev/mmcblk0p29`; the exact predecessor, ownership and stable-power gates
+passed. The one write was synced and flushed, the full-partition readback
+matched candidate `08fc0614...1c2`, and the device then shut down cleanly and
+became unreachable. The sanitized receipt is
+[deployment-20260906.txt](results/deployment-20260906.txt). No reboot or
+physical boot selection occurred.
+
 ## Handoff limits
 
 The patch deliberately stops at passive `BOUND`. It does not add power/reset
 ownership, MMIO or reserved-memory mapping, resource requests, firmware
 loading, AP-DMA, cfg80211/rfkill, radio activation, removal, suspend/resume,
 recovery or a Device Tree change. The exact candidate, collector and guarded
-installer packet are ready. One standing-authorized `boot2` installation is
-admitted only while every live gate passes; physical boot selection remains
-the owner's action and hardware support remains unproven.
+installer packet are ready, and the exact image is installed with verified
+readback. The device is powered off. Physical boot selection remains the
+owner's action and hardware support remains unproven.

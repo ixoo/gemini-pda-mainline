@@ -177,7 +177,16 @@ target, size, writable-state, power, predecessor, single-write, flush and full
 readback gates. It skips an already matching partition and otherwise requests
 clean shutdown after verified evidence with `reboot=no`. Standing authorization
 admits that guarded `boot2` installation; it does not admit automatic reboot or
-physical boot selection. No device action has yet occurred in this record.
+physical boot selection.
+
+The installer ran from clean published commit `e95172cc` against confirmed
+Gemian `3.18.41+` on AArch64. Live GPT/ownership/power checks passed, logical
+`boot2` resolved to `/dev/mmcblk0p30` while root was `/dev/mmcblk0p29`, and the
+full predecessor matched `22edf533...16e8`. One write, sync and flush completed;
+the full readback matched `08fc0614...1c2`. The device then shut down cleanly,
+with `poweroff_ssh_rc=0`, confirmed unreachable and `reboot=no`. The deployment
+boot ID was `c1ecb2fc-e050-4531-9ad6-6e09aeebfa78`. No physical boot selection
+has occurred; the next action is exclusively the owner's boot2 selection.
 
 ## Specialist-rejected corrected candidate
 

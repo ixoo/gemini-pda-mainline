@@ -37,7 +37,7 @@
     "git_diff_check": "pass",
     "kernel_buildbox": "pass: exact f9981eaf63381a558f77be251da4c2320cb4321b",
     "checkpatch": "pass: 0 errors; 4 non-blocking warnings; 3 style checks",
-    "device": "not-run",
+    "device": "boot2 deployment verified; physical boot not run",
     "hardware_support": false
   },
   "integration_review": {
@@ -164,19 +164,32 @@
     "expected_predecessor_sha256": "22edf533734ac52e56f3291c90264359fec2eaccc79cd68acf28b20d9cb216e8",
     "derived_installer_sha256": "e0c8c9606f0d88093bde3802de03a2ac86f6f49dd8c4ea78bb92fc128f95fcd0",
     "write_inventory": 1,
-    "shutdown": "required-after-verified-readback",
+    "shutdown_policy": "required-after-verified-readback",
     "automatic_reboot": false,
     "fixtures_normal": {"status": "pass", "cases": 7},
     "fixtures_optimized": {"status": "pass", "cases": 7},
     "independent_review": "accepted after output-confinement repair at 2026-09-06T22:45:23Z",
     "installation_admitted": true,
     "boot_selection_admitted": false,
-    "device_action": false
+    "device_action": true,
+    "completed_utc": "2026-09-06T22:50:41Z",
+    "repository_commit": "e95172cc99e3f4f6b24c5fb004306eda83b5803e",
+    "receipt": "experiments/2026-09-06-mt6797-consys-passive-boot/results/deployment-20260906.txt",
+    "receipt_sha256": "e6b4c044892ca651f7068a46d0084874f028f0ed7e3ea2d2a598242bbe6a9f25",
+    "result": "write-synced-flushed-full-readback-verified",
+    "target_logical_name": "boot2",
+    "target": "/dev/mmcblk0p30",
+    "root": "/dev/mmcblk0p29",
+    "deployment_boot_id": "c1ecb2fc-e050-4531-9ad6-6e09aeebfa78",
+    "power": "1|100|Good|1",
+    "readback_sha256": "08fc061475b4bd6bc274bef6cb61c6e0a1cb8d786c5be197b79dba006bebb1c2",
+    "shutdown": "confirmed-unreachable",
+    "physical_boot_selection": false
   },
   "scope": {
     "runtime_support": false,
     "userspace_abi": false,
-    "device_action": false,
+    "device_action": true,
     "commit_or_push": true
   }
 }
