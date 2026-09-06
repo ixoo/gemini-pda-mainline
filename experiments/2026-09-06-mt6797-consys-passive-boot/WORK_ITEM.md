@@ -105,3 +105,26 @@
   active workflow cohort. Builds and device sessions are not accepted offline
   items.
 - **State:** active; bounded passive implementation authorized.
+
+## Compile escalation after two repairs
+
+- **Frozen input:** exact pushed revision
+  `b7d490a55cfe0f743a28ea2d54aed3a70989dbe4`, profile
+  `mt6797-consys-passive-boot`, and the managed Linux 7.1.3 source tree on
+  Buildbox. No device or candidate is in scope.
+- **Evidence:** build 1 failed because `linux/byteorder/generic.h` preceded
+  `linux/types.h`. Repair 1 reordered them and added an always-on fixture.
+  Build 2 then proved that including `linux/byteorder/generic.h` directly still
+  leaves the architecture `__cpu_to_*`/`__*_to_cpu` helpers undeclared under
+  `WERROR`.
+- **Unresolved question:** identify the canonical kernel header or narrower OF
+  decoding helper for this file, and determine whether changing only that
+  include/use exposes any latent compile or lifetime defect.
+- **Next discriminating check:** inspect current Linux 7.1.3 in-tree consumers
+  of `be32_to_cpu` and the relevant header layering, then compile only
+  `drivers/soc/mediatek/mt6797-consys-passive.o` with the profile's exact
+  output tree. Recommend one smallest patch; do not edit files, widen scope,
+  create a candidate, or access the device.
+- **Acceptance:** a reasoned include/API recommendation grounded in the frozen
+  source plus the exact focused compile result. Any new mapping, resource
+  owner, effect call, public ABI, or DT change is a rejection.

@@ -123,9 +123,18 @@ def release(client: Client) -> None:
 
 def source_text() -> str:
     text = PATCH.read_text(encoding="utf-8")
-    start = text.index("+// SPDX-License-Identifier: GPL-2.0-only")
-    end = text.index("\n-- \n", start)
-    return "\n".join(line[1:] for line in text[start:end].splitlines())
+    lines = text.splitlines()
+    start = next(index for index, line in enumerate(lines)
+                 if line.startswith("@@ -0,0 +1,"))
+    match = re.fullmatch(r"@@ -0,0 \+1,(\d+) @@", lines[start])
+    check(match is not None, "new-file hunk header")
+    payload = []
+    for line in lines[start + 1:]:
+        if not line.startswith("+"):
+            break
+        payload.append(line[1:])
+    check(len(payload) == int(match.group(1)), "new-file hunk extent")
+    return "\n".join(payload)
 
 
 def expect_refusal(name: str, reservation: Reservation) -> None:
@@ -192,10 +201,17 @@ def run() -> int:
     cases += 2
 
     source = source_text()
-    check(source.index("#include <linux/types.h>") <
-          source.index("#include <linux/byteorder/generic.h>"),
-          "kernel types precede byteorder helpers")
     cases += 1
+    check(source.index("#include <linux/types.h>") <
+          source.index("#include <asm/byteorder.h>"),
+          "kernel types precede byteorder helpers")
+    check("#include <linux/byteorder/generic.h>" not in source,
+          "generic byteorder is not included directly")
+    cases += 1
+    check("int length = 0;" in source, "missing property length initialization")
+    check(source.rstrip().endswith("late_initcall(mt6797_consys_passive_init);"),
+          "initcall is inside the applied new-file hunk")
+    cases += 2
     check("state=BOUND generation=%llu" in source, "stable success prefix")
     for field in ("power", "reset", "remap", "protection", "firmware", "radio", "dma"):
         check(re.search(rf"{field}=%u", source), f"log counter {field}")

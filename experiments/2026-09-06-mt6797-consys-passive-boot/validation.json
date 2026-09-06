@@ -7,7 +7,7 @@
   "parent_profile": "mt6797-toprgu-minimal-restart",
   "patch": {
     "path": "patches/v7.1.3/0544-soc-mediatek-add-MT6797-passive-CONSYS-boot-binding.patch",
-    "sha256": "47d8baf227bd80559b88e64f562c60722dac21e6ea0c3e194cc4a7177175183b",
+    "sha256": "456912288204873ea2f16646d485f39270f467203734eb8d78d20be85915834a",
     "preimages": {
       "drivers/soc/mediatek/Kconfig": "eecef65",
       "drivers/soc/mediatek/Makefile": "29b4525",
@@ -26,16 +26,16 @@
   },
   "fixtures": {
     "path": "experiments/2026-09-06-mt6797-consys-passive-boot/test_passive_boot.py",
-    "sha256": "dec5129d33d8cfdd7bb4a166654ce275227be5eae82b568110141d7fda045d63",
+    "sha256": "0ee1ed9ba41fe3c1289587488181ccee79a76bb844b478db0ff6c010a5e9a307",
     "assert_free_oracles": true,
     "mutation_refusals": 21,
-    "normal": {"status": "pass", "cases": 46},
-    "optimized": {"status": "pass", "cases": 46}
+    "normal": {"status": "pass", "cases": 49},
+    "optimized": {"status": "pass", "cases": 49}
   },
   "checks": {
     "git_apply_stat": "pass",
     "git_diff_check": "pass",
-    "kernel_buildbox": "repair-1-pending: initial compile exposed byteorder-before-types include order",
+    "kernel_buildbox": "escalated-repair-pending: two compiles exposed header layering and truncated initcall",
     "checkpatch": "pass: 0 errors; 4 non-blocking warnings; 3 style checks",
     "device": "not-run",
     "hardware_support": false
@@ -46,6 +46,17 @@
     "accepted_utc": "2026-09-06T21:03:32Z",
     "repairs": 1,
     "first_review_accepted": false
+  },
+  "compile_escalation": {
+    "route": "Astra Medium",
+    "status": "repair-accepted-by-sol-integration-review",
+    "completed_utc": "2026-09-06T21:19:33Z",
+    "accepted_utc": "2026-09-06T21:26:57Z",
+    "required_repairs": [
+      "use architecture byteorder wrapper",
+      "include late_initcall inside the new-file hunk",
+      "initialize missing-property length"
+    ]
   },
   "scope": {
     "runtime_support": false,

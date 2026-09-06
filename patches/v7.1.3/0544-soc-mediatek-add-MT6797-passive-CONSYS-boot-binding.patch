@@ -17,8 +17,8 @@ no DCO sign-off.  This does not establish Wi-Fi or hardware support.
 ---
  drivers/soc/mediatek/Kconfig                    |  13 ++
  drivers/soc/mediatek/Makefile                   |   1 +
- drivers/soc/mediatek/mt6797-consys-passive.c    | 233 +++++++++++++++++++++++
- 3 files changed, 247 insertions(+)
+ drivers/soc/mediatek/mt6797-consys-passive.c    | 235 ++++++++++++++++++++++++
+ 3 files changed, 249 insertions(+)
  create mode 100644 drivers/soc/mediatek/mt6797-consys-passive.c
 
 diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
@@ -58,10 +58,10 @@ index 29b4525..83bf1df 100644
  obj-$(CONFIG_MTK_MT6797_A72_RESTORE_EXECUTOR) += mt6797-a72-restore-executor.o
 diff --git a/drivers/soc/mediatek/mt6797-consys-passive.c b/drivers/soc/mediatek/mt6797-consys-passive.c
 new file mode 100644
-index 0000000..f5e7a11
+index 0000000..4410092
 --- /dev/null
 +++ b/drivers/soc/mediatek/mt6797-consys-passive.c
-@@ -0,0 +1,233 @@
+@@ -0,0 +1,235 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * Effect-free MT6797 CONSYS metadata observer and passive WLAN binding.
@@ -71,7 +71,7 @@ index 0000000..f5e7a11
 + */
 +
 +#include <linux/types.h>
-+#include <linux/byteorder/generic.h>
++#include <asm/byteorder.h>
 +#include <linux/errno.h>
 +#include <linux/init.h>
 +#include <linux/kernel.h>
@@ -147,7 +147,7 @@ index 0000000..f5e7a11
 +				const char *name, unsigned int cells, u64 *value)
 +{
 +	const __be32 *property;
-+	int length;
++	int length = 0;
 +
 +	property = of_get_property(node, name, &length);
 +	return mt6797_read_cells(property, length, cells, value);
