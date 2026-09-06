@@ -5,33 +5,30 @@ Subject: [PATCH] watchdog: mtk: narrow MT6797 restart diagnostic
 
 Keep the MT6797 firmware auto-start contract on the software restart path,
 but do not mutate it while adopting an already-running firmware watchdog or
-arming an ordinary watchdog.  Use restart priority 130, immediately ahead of
-the arm64 PSCI priority 129.
+arming an ordinary watchdog.  Use restart priority 130, immediately ahead
+of the arm64 PSCI priority 129.
 
 This is an experiment-only delta.  The reset-controller, boot-status,
-recovery-takeover, recovery-validation, and mutation-lock paths are unchanged.
+recovery-takeover, recovery-validation, and mutation-lock paths are
+unchanged.
 ---
  drivers/watchdog/mtk_wdt.c | 16 +++-------------
  1 file changed, 2 insertions(+), 14 deletions(-)
 
 diff --git a/drivers/watchdog/mtk_wdt.c b/drivers/watchdog/mtk_wdt.c
-index e7b26be..5d11c4a 100644
+index 9ee35ef..cf093ee 100644
 --- a/drivers/watchdog/mtk_wdt.c
 +++ b/drivers/watchdog/mtk_wdt.c
-@@ -108,11 +108,11 @@ static const struct mtk_wdt_data mt6795_data = {
- };
- 
- static const struct mtk_wdt_data mt6797_data = {
- 	.toprgu_sw_rst_num = MT6797_TOPRGU_SW_RST_NUM,
+@@ -144,7 +144,7 @@ static const struct mtk_wdt_data mt6797_data = {
  	.has_boot_status = true,
  	.recovery_takeover = true,
  	.use_auto_restart = true,
 -	.restart_priority = 255,
 +	.restart_priority = 130,
  };
- 
- static const struct mtk_wdt_data mt8195_data = {
-@@ -589,20 +589,10 @@ static void mtk_wdt_init(struct watchdog_device *wdt_dev)
+
+ static const struct mtk_wdt_data mt7986_data = {
+@@ -629,20 +629,10 @@ static void mtk_wdt_init(struct watchdog_device *wdt_dev)
  {
  	struct mtk_wdt_dev *mtk_wdt = watchdog_get_drvdata(wdt_dev);
  	void __iomem *wdt_base;
@@ -53,7 +50,8 @@ index e7b26be..5d11c4a 100644
  		set_bit(WDOG_HW_RUNNING, &wdt_dev->status);
  		mtk_wdt_set_timeout(wdt_dev, wdt_dev->timeout);
  	}
-@@ -626,7 +618,5 @@ static int mtk_wdt_start(struct watchdog_device *wdt_dev)
+@@ -686,8 +676,6 @@ static int mtk_wdt_start(struct watchdog_device *wdt_dev)
+ 		reg &= ~WDT_MODE_EXRST_EN;
  	if (mtk_wdt->reset_by_toprgu)
  		reg |= WDT_MODE_CNT_SEL;
 -	if (mtk_wdt->use_auto_restart)

@@ -20,7 +20,7 @@ CANONICAL = ROOT / "patches/series"
 MANIFEST = ROOT / "kernel/manifest.json"
 PROPOSAL = HERE / "proposal.json"
 FRAGMENT = ROOT / "configs/gemini-mt6797-toprgu-minimal-restart.fragment"
-OLD_BLOB = "e7b26be"
+EFFECTIVE_0543_PREIMAGE = "9ee35ef"
 
 FROZEN = {
     "patches/v7.1.3/0087-watchdog-mtk-prioritize-MT6797-TOPRGU-restart.patch": (
@@ -57,13 +57,16 @@ FROZEN = {
          "state.writes"),
     ),
 }
-INDEX_CHAIN = {
+# Historical 0489 keeps its declared metadata pair. Replaying it from its exact
+# managed preimage produces 9ee35ef, so 0543 pins that effective blob instead
+# of pretending the two independently validated index pairs are contiguous.
+DECLARED_INDEX_PAIRS = {
     "patches/v7.1.3/0303-watchdog-mtk-capture-raw-boot-status.patch": ("c20f921", "450f50e"),
     "patches/v7.1.3/0308-watchdog-mtk-expose-locked-reset-status.patch": ("450f50e", "21c47b9"),
     "patches/v7.1.3/0386-watchdog-mediatek-add-one-shot-recovery-takeover.patch": ("21c47b9", "f275de2"),
     "patches/v7.1.3/0387-watchdog-mediatek-test-one-shot-recovery-takeover.patch": ("f275de2", "693dc5a"),
-    "patches/v7.1.3/0489-watchdog-mediatek-validate-recovery-owner-read-only.patch": ("693dc5a", OLD_BLOB),
-    "patches/v7.1.3/0543-watchdog-mtk-minimal-MT6797-restart.patch": (OLD_BLOB, "5d11c4a"),
+    "patches/v7.1.3/0489-watchdog-mediatek-validate-recovery-owner-read-only.patch": ("693dc5a", "e7b26be"),
+    "patches/v7.1.3/0543-watchdog-mtk-minimal-MT6797-restart.patch": (EFFECTIVE_0543_PREIMAGE, "cf093ee"),
 }
 
 
@@ -118,7 +121,7 @@ def validate_frozen(frozen: dict[str, str] | None = None) -> None:
                f"FROZEN_SHA256:{relative}")
         for marker in markers:
             reject(marker in text, f"FROZEN_BEHAVIOR:{relative}:{marker}")
-    for relative, (old, new) in INDEX_CHAIN.items():
+    for relative, (old, new) in DECLARED_INDEX_PAIRS.items():
         text = PATCH.read_text() if relative.endswith("0543-watchdog-mtk-minimal-MT6797-restart.patch") else frozen[relative]
         reject(mtk_blob_pair(text) == (old, new), f"FROZEN_BLOB_CHAIN:{relative}")
     reject("diff --git a/drivers/watchdog/mtk_wdt.c" in frozen[
@@ -189,9 +192,9 @@ def structural_guards(patch: str) -> None:
     reject("mtk_wdt_init" in patch and "mtk_wdt_start" in patch,
            "STRUCTURE_LIFECYCLE_CONTEXT")
     reject(sum(line.startswith("@@ ") for line in patch.splitlines()) == 3 and
-           "@@ -108,11 +108,11" in patch and
-           "@@ -589,20 +589,10" in patch and
-           "@@ -626,7 +618,5" in patch,
+           "@@ -144,7 +144,7" in patch and
+           "@@ -629,20 +629,10" in patch and
+           "@@ -686,8 +676,6" in patch,
            "STRUCTURE_HUNK_PLACEMENT")
 
 

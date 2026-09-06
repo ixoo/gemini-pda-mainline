@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-06-mt6797-toprgu-minimal-restart` |
-| Status | complete offline; accepted after repair 2 at 2026-09-06T08:53:09Z |
+| Status | complete offline; applicability repair 2 accepted at 2026-09-06T09:22:50Z |
 | Subsystem | MediaTek watchdog system restart |
 | Device variant | Existing named Gemini PDA; retail subvariant unconfirmed |
 | Date | 2026-09-06 |
@@ -45,3 +45,10 @@ targeted refusal-fixture checks. The result is recorded in
 The validator intentionally checks the frozen parent patch for the retained
 restart-path `WDT_MODE_AUTO_START`; it does not claim source replay, a build,
 hardware support, or a boot candidate.
+
+The prior Buildbox attempt at exact commit
+`e70982c09a16a0bb8b152a0dfcada7db69d2a0bf` failed before applying 0543 because
+its first hunk expected stale source context. The corrected patch was replayed
+read-only against the effective single-file chain in a temporary Buildbox
+directory, proving preimage `9ee35ef` and postimage `cf093ee`; compilation
+remains deferred.

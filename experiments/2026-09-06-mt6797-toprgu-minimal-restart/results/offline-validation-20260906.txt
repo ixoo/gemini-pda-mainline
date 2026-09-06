@@ -1,9 +1,9 @@
 validation=mt6797-toprgu-minimal-restart
-generated_utc=2026-09-06T08:49:53Z
+generated_utc=2026-09-06T09:21:12Z
 parent_repository_commit=f7bc2c9adc1210c58d2dc14e645336f9ae515f42
 linux_version=7.1.3
 linux_source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
-patch_sha256=17fa5f4b1c478525298977c72c5bfa620fe1aa5aa46ce06743c6139d2983fa0d
+patch_sha256=6861cdb858ee02c8e02ec9102dc01ba03dd27221ac2e6fc3876cd3cd1a470835
 manifest_sha256=5a95bf063b986848c38be1685a073726d891792a80578cd03cbada92c3c8ad21
 canonical_series_sha256=53bc826019fc10610eac5dc0afc8166cc0e8ebe15f39e2eb676700f6c7c6203a
 experiment_series_sha256=1b475e2890f161b9cc9cf423dbaee0ee14224b53171936c9189df841f28f2997
@@ -39,9 +39,13 @@ checks=optimized-validator PYTHONDONTWRITEBYTECODE=1 python3 -OO scripts/validat
 checks=python-ast-json PYTHONDONTWRITEBYTECODE=1 python3 ast/json checks PASS
 checks=git-diff-check git diff --check PASS
 checks=bytecode-cache find scripts -name __pycache__ none
-patch_replay=NOT RUN (Linux source tree unavailable by contract)
-checkpatch=NOT RUN (scripts/checkpatch.pl absent in patch repository)
-kernel_build=NOT RUN (no Buildbox action in implementation scope)
+checks=effective-source-applicability reconstruct managed mtk_wdt.c through frozen 0489 then git apply --index --check 0543 PASS; temporary tree removed
+effective_preimage_blob_sha1=9ee35ef1da9b79910bb0e357d46f287614e1094f
+candidate_postimage_blob_sha1=cf093ee792ef1738c7fd7e1dc670b5b907e952ea
+patch_replay=PASS (single affected file replayed through frozen 0489 and 0543 in an isolated temporary Buildbox tree)
+full_series_replay=NOT RUN (canonical Buildbox rerun pending)
+checkpatch=RUN on Buildbox; expected Missing Signed-off-by for synthetic non-certifying experiment patch; no other errors or warnings
+kernel_build=NOT STARTED (Buildbox commit e70982c09a16a0bb8b152a0dfcada7db69d2a0bf failed while applying 0543 before compilation)
 hardware_access=NONE
 device_action=NONE
 support_claim=NONE

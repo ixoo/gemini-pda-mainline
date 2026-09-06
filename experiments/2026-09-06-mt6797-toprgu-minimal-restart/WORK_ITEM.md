@@ -91,11 +91,23 @@
   repository checks, known limits and review-ready UTC timestamp. No commit,
   push, build, device access or support-matrix change by the implementation
   owner.
-- **State:** complete offline; accepted after repair 2 at
-  `2026-09-06T08:53:09Z`. Repair 1 made the verifier semantic; repair 2 added
-  the root-owned manifest and canonical-series identities to the integrated
-  receipt. Source replay, Checkpatch, Buildbox compilation, device readiness
-  and hardware equivalence remain pending separate gates.
+- **Applicability chronology:** Buildbox exact commit
+  `e70982c09a16a0bb8b152a0dfcada7db69d2a0bf` fetched and applied the parent
+  series through 0540, then rejected 0543 at its first hunk in
+  `drivers/watchdog/mtk_wdt.c:108`. Read-only inspection of the exact managed
+  effective source showed `mt6797_data` at lines 142-148 followed by
+  `mt7986_data`, `mtk_wdt_init()` at line 628, and `mtk_wdt_start()` at line
+  669. Repair 2 reconstructed the effective file through 0489 in a temporary
+  Buildbox directory, proved preimage `9ee35ef` and postimage `cf093ee`, and
+  regenerated all three hunk locations. Historical patch 0489 retains its
+  frozen declared postimage `e7b26be`, but replay from its exact `693dc5a`
+  preimage produces effective blob `9ee35ef`; 0543 pins the replayed blob
+  without rewriting historical evidence. No source tree was copied, and the
+  temporary files were removed automatically.
+- **State:** complete offline; applicability repair 2 accepted at
+  `2026-09-06T09:22:50Z`. Earlier
+  semantic and identity repairs remain in the verifier. Buildbox compilation,
+  device readiness and hardware equivalence remain pending separate gates.
 - **Efficiency loop:** recorded as considered sequence 14 / accepted sequence
   10 with unchanged timing, first-review, rework and publication-failure
   measurements. The publication early-signal and item-ten close checkpoints
