@@ -78,6 +78,50 @@ configuration, safe tooling, hardware knowledge, and reproducible evidence.
   `From:` identity only when it has no synthetic sign-off and remains
   explicitly not submission-ready.
 
+## Model routing and bounded delegation
+
+- Use Sol Medium for coordination and ordinary integration review. Delegate
+  clearly specified execution to Luna Medium and bounded implementation to Luna
+  High. Use Sol Medium for design or cross-file reasoning; reserve Astra Medium
+  for a named hard uncertainty, conflicting evidence or novel hardware risk.
+- Project defaults and named roles live in `.codex/config.toml` and
+  `.codex/agents/`. Explicit task selections can override defaults; record the
+  selected model and effort in the work contract. For APIs without named roles,
+  pass model and effort explicitly. Use a concise fresh handoff when a full
+  history fork would force the parent's model. Do not resume paused tasks just
+  to change their model; apply the route on their next authorized dispatch.
+- These settings target the desktop runtime (validated with 0.153.4); the older
+  standalone CLI 0.144.1 cannot parse this agent configuration. Use a compatible
+  runtime. Defaults do not retroactively switch existing tasks and are not a
+  hard enforcement boundary for model overrides or judgment-based escalation.
+  Configuration behavior follows the official
+  [subagent documentation](https://learn.chatgpt.com/docs/agent-configuration/subagents).
+- Delegate independent bounded work when it can run alongside useful local
+  work. Normally use at most two workers; admit a third only for an independent
+  ready item with disjoint ownership. Do not create workers merely to fill slots.
+  Use tools directly for prescribed commands and simple checks.
+- Before dispatch, provide outcome, frozen inputs, owned scope, acceptance
+  checks, stop conditions and handoff using `project/WORK_ITEM.md`. One owner
+  integrates shared files; one named custodian controls all live device access.
+- Escalate after two failed repair attempts, or immediately when evidence
+  conflicts, acceptance is unclear or scope must change. Supply the evidence,
+  attempts, unresolved question and next discriminating check. Choose the tier
+  that fits the uncertainty without mandatory intermediate hops, then return
+  execution to the cheaper appropriate tier once the uncertainty is resolved.
+- Review according to risk: routine edits need focused checks; cross-file
+  behavior needs Sol review; novel hardware/resource ownership or unresolved
+  safety reasoning needs Astra review. Do not send every change to Astra.
+  Batch focused checks, then run required publication checks on the frozen
+  integration. This policy never waives repository validation requirements.
+- Finish the assigned outcome and handoff. Take adjacent roadmap work only when
+  the current owner instruction authorizes continued autonomous progress.
+  An explicit pause overrides owner-away continuation: stop new assignments and
+  scheduled continuations, preserve pending unique evidence safely, and stop.
+- For the next ten accepted offline work items, record model/effort, escalation,
+  first-review acceptance, review/rework time and elapsed time. Record credits
+  only when measured; otherwise mark unavailable. Use this pilot to adjust
+  routing from observed results, never assumed savings.
+
 ## Progress while the owner is unavailable
 
 - Owner absence blocks physical boot selection, not independent research,
