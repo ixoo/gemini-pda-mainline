@@ -45,7 +45,10 @@ Independent Sol review accepted the repaired handoff at
 including a clean application, Kconfig symbol correspondence and strict
 Checkpatch with zero errors, four non-blocking warnings and three style checks.
 
-Known limits: no kernel compilation, Kconfig merge, DT validation or Buildbox
-build was run. The parent integration agent must compile the integrated
-profile. No device, firmware, private capture, candidate, boot slot, commit or
-push was touched.
+Buildbox subsequently passed the exact integrated profile at pushed revision
+`f9981eaf63381a558f77be251da4c2320cb4321b`. It resolved release
+`7.1.3-gemini-consys-passive`, compiled the observer into the linked kernel and
+validated package inventory
+`7c43a80cce28a15dc70306e3b8c225b537f1589eec4ac7411a46d422d705401c`.
+The package is fetched below ignored artifacts. No device, firmware, private
+capture, candidate or boot slot was touched; physical readiness is still false.

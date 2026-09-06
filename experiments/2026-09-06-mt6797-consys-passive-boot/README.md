@@ -73,13 +73,14 @@ checks. Independent Sol review accepted them as non-blocking for this internal
 experiment; they remain upstream cleanup alongside real authorship and
 maintainer review.
 
-No kernel source was copied, and no Buildbox or VM build, device
-boot, candidate construction, commit, push or hardware access was performed
-by this implementation owner. The patch still requires integration against
-the frozen parent series, Kconfig closure, kernel compilation with warnings
-treated as errors and the repository gate before any candidate is
-considered. A successful compile would not establish Wi-Fi or hardware
-support.
+After the compile escalation and repaired integration, Buildbox applied all
+531 patches from exact clean pushed revision
+`f9981eaf63381a558f77be251da4c2320cb4321b`, compiled and linked the passive
+observer, and validated package inventory
+`7c43a80cce28a15dc70306e3b8c225b537f1589eec4ac7411a46d422d705401c`.
+The immutable facts are in [the Buildbox receipt](results/buildbox-f9981eaf.txt).
+No VM build, device boot, candidate construction or hardware access occurred.
+Compilation does not establish Wi-Fi or hardware support.
 
 ## Handoff limits
 
@@ -87,4 +88,5 @@ The patch deliberately stops at passive `BOUND`. It does not add power/reset
 ownership, MMIO or reserved-memory mapping, resource requests, firmware
 loading, AP-DMA, cfg80211/rfkill, radio activation, removal, suspend/resume,
 recovery or a Device Tree change. The device readiness state remains
-`preparing`; no physical action is admitted by this record.
+`preparing` pending an exact candidate, collector and independent packet
+review; no physical action is admitted by this record.
