@@ -227,10 +227,15 @@ The remaining preparation order is:
    attempt recovered provisional Kallsyms neighborhoods, but its parser
    internally performed an unadmitted architecture-signature classification;
    none of those intervals is an input to later analysis. Before further
-   disassembly, repeat the bounded tuple audit through an explicitly frozen
-   AArch64 parser method that prevents architecture guessing, or obtain
-   original sized-symbol evidence. See the [bounded unresolved result](../experiments/2026-09-06-mt6797-wlan-final-linkage-teardown-attribution/README.md)
-   and [excluded parser attempt](../experiments/2026-09-06-vmlinux-to-elf-symbol-provenance/README.md).
+   disassembly, audit the installed parser's mandatory bundled-metadata
+   database source, identity and read effects, then repeat the bounded tuple
+   audit through an explicitly frozen AArch64 parser method that prevents
+   architecture guessing; alternatively obtain original sized-symbol evidence.
+   The second preflight established the required AArch64 enum but stopped
+   before parser construction because its no-database contract conflicted with
+   an unconditional constructor query. See the [bounded unresolved result](../experiments/2026-09-06-mt6797-wlan-final-linkage-teardown-attribution/README.md),
+   [excluded parser attempt](../experiments/2026-09-06-vmlinux-to-elf-symbol-provenance/README.md)
+   and [database-gate stop](../experiments/2026-09-06-vmlinux-to-elf-symbol-provenance-v2/VALIDATION.md).
    Exit order must not be inferred by reversing initialization, and the vendor
    WMT ioctl must not be copied merely to run the retained loader.
 3. **Keyboard coverage:** finish coherent capture admission, finite owner key

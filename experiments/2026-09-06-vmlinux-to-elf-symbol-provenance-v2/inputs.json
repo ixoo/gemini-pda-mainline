@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "analysis_parent": "0052c6707011bb34b2061c8b45661a5ba05965f8",
+  "dispatch_head": "30ee66a7e884d3e3b9a260a305ee75c026a67d3c",
+  "excluded_predecessor": {
+    "inputs.json": "cc93d3e9627e31a60d66ebcea8211104a47663313b0015a5390612624f50bf4b",
+    "analysis.json": "18c4bf0b55a4cd00450b1eead755edf610e4050612191a3b7fdca968c4b36c12",
+    "intervals.json": "30ab9bb53bff6c144ba75b390220f0c036e9cbe8730d2fcb7c562955a659f23d",
+    "FREEZE.md": "5c2b89f699f2fdb051a85049410406110a272f609b137486df5f1deeb8d210a2",
+    "VALIDATION.md": "6b1caee83ef5503ce5e5affc9d6c4ae9193943114c10088b7ba6e3b16a27b7b3"
+  },
+  "accepted_elf_predecessor": {
+    "inputs.json": "89dd591276e93c58dee6f35a53eab3b8daa93dec565f71387a997adf1c3875a1",
+    "analysis.json": "d08406c637cc19c943c761b302d7591eeb99a334cd03ac0fdf69fb084046cd70",
+    "FREEZE.md": "c91f67779fe9a2c12c33a5b21ad4d46897824a14f0545a513265a39c71bc47b3",
+    "VALIDATION.md": "5937d2772d49ec578d540225b7517bcfc9510212b286ee32bc7eefe0941f4360"
+  },
+  "kernel": {
+    "Image.gz": "b53d191dc41d3f7364b0fa62b4bc920b1d013a1942b2e6b06727263fc56fcf4d",
+    "Image": "0570480c28bce1583636a240904df8da3af0b5e5b4bcc6254f5719b42bd723d0",
+    "vmlinux": "cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162",
+    "diagnostics": "3e58a3e5c2a43914558f761ccdf4488a9c49b869645b4152ad9b2ee05a2f10b8"
+  },
+  "tool": {
+    "distribution": "vmlinux-to-elf",
+    "version": "1.3.6",
+    "python": "3.12.3",
+    "launcher": "6140be2ee9638573c32b06e5c00ca387e647720b6c8434d123ede119ec11ca6b",
+    "script": "e3d2de8b5b7ac7ac4e8986369d7a034ae1bbae0af6e08b8d6e6c73c703cb3f15",
+    "kallsyms": "2bff550d9486e90782a4320cec7bc26b249ead5048f58839eec6578b52c06c2d",
+    "symbolizer": "13e79cf4dc37050547f22b65ad35070dceba17473df823c7311311c3fb9e1118",
+    "writer": "f974b1189155d2cea4773d378990e1b20be866f27719be0593fef3110c56891d",
+    "METADATA": "133b5a6b7fab8081a7c201f2fc63b8a2d7a215475c423c8fe3938aff6a708c43",
+    "RECORD": "ac8d68216a496f0f4dedede5e3ea0d72051bbab7983ab196189da05f5aebdc1f"
+  },
+  "frozen_architecture": {"elf_class": 64, "is_big_endian": false, "e_machine": 183},
+  "targets": ["do_connectivity_driver_init", "do_wlan_drv_init", "mtk_wcn_wlan_gen3_init", "mtk_wcn_wlan_gen3_exit"],
+  "bounds": {"kernel_tuples": 1, "tool_distributions": 1, "parser_constructions": 1, "targets": 4, "aliases_per_target": 4, "previous_distinct_per_target": 1, "next_distinct_per_target": 1, "prior_private_output": false, "source_expansion": false, "instruction_analysis": false, "reconstruction": false, "network": false, "database_lookup": false, "device": false}
+}

@@ -93,3 +93,20 @@ group and supplies no alternate-route measurement, so no routing change is
 justified. `baseline-01` remains unchanged and credits remain unavailable. A
 new work item must start from a prospectively frozen method that bypasses
 architecture guessing and cannot reuse this attempt's provisional tuples.
+
+## Excluded considered item ten
+
+The fresh AArch64-bypass source gate is also excluded before execution. It
+established from the pinned parser that `ArchitectureName.aarch64` is required,
+but also found that the unchanged constructor unconditionally queries the
+bundled kernel metadata database. That conflicts with v2's database prohibition
+and its rule allowing only the architecture override. The specialist stopped
+before parser import or construction, private-image content access, or any new
+target result; the previous provisional tuples remained unread and unused.
+
+This second excluded method does not change the accepted count or supply
+checkpoint evidence. It reveals a distinct unmodeled local dependency, not a
+route comparison or reason to weaken containment. `baseline-01` therefore
+remains unchanged and credits remain unavailable. The next contract must first
+identify the exact bundled database source, file identity, opening behavior and
+read effects before choosing whether to admit or bypass it.
