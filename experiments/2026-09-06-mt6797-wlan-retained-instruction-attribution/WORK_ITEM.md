@@ -32,7 +32,8 @@
   independent review. No implementation route is selected.
 - **Owned scope:** create only this experiment's `README.md`, `inputs.json`,
   `AMENDMENT.md`, `AMENDMENT-2.md`, `AMENDMENT-3.md`, `AMENDMENT-4.md`,
-  `AMENDMENT-5.md`, `AMENDMENT-6.md`, `AMENDMENT-7.md`, `PREFLIGHT.md`,
+  `AMENDMENT-5.md`, `AMENDMENT-6.md`, `AMENDMENT-7.md`, `AMENDMENT-8.md`,
+  `PREFLIGHT.md`,
   `bootstrap-refused.json`, `VALIDATION-REFUSED.md`, `bootstrap-v2.json`,
   the bootstrap-v2 refusal in `VALIDATION.md`, `bootstrap-v3.json`, the
   bootstrap-v3 refusal in `VALIDATION-FINAL.md`, `bootstrap-v4.json`, optional
@@ -61,9 +62,10 @@
   [AMENDMENT-4.md](AMENDMENT-4.md). The diagnostic chronology and sole exact
   baseline-map exception are constrained by [AMENDMENT-5.md](AMENDMENT-5.md)
   and [AMENDMENT-6.md](AMENDMENT-6.md); the exact complete-map execution budget
-  is constrained by [AMENDMENT-7.md](AMENDMENT-7.md). Syntax-checking the
-  frozen scripts is permitted before content; do not run them against another
-  binary.
+  is constrained by [AMENDMENT-7.md](AMENDMENT-7.md), and the single-process
+  decoder lifetime/private callback by [AMENDMENT-8.md](AMENDMENT-8.md).
+  Syntax-checking the frozen scripts is permitted before content; do not run
+  them against another binary.
 - **Execution guard:** install a child-process audit hook before private reads.
   Permit read-only opens of the exact retained ELF and exact frozen installed
   tool files only. Reject filesystem writes, socket/DNS, subprocess/shell,
