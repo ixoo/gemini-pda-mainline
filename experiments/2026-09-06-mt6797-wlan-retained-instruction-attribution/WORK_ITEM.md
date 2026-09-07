@@ -30,15 +30,21 @@
 - **Model route:** `gemini_specialist`, `gpt-6-astra`, medium for the named
   binary-control-flow uncertainty; `gemini_reasoner`, `gpt-5.6-sol`, medium for
   independent review. No implementation route is selected.
-- **Current bounded dispatch:** A30 contract-only recovery-status design at
-  `3a0b3ec2666cde9b147d8c090db714cab7fc4f40`.
+- **Current bounded dispatch:** A31 contract-only metadata-observer design at
+  `b35ffd6a63ae04add21d538870b359c342a74016`.
   Astra Medium `/root/runtime_identity_specialist` owns the attribution
   uncertainty and is prospective sole recovery custodian; Sol Medium reviews
-  and `/root` integrates. Only [AMENDMENT-30.md](AMENDMENT-30.md) and minimal
+  and `/root` integrates. Only [AMENDMENT-31.md](AMENDMENT-31.md) and minimal
   work-item/input updates are owned. The source and A29 remain immutable.
   No VM, run, result/verifier construction, private/device access, build,
-  network, commit or push is admitted now. One future metadata-only access
-  requires reviewed/published A30 and a separate exact-commit dispatch.
+  network, commit or push is admitted now. A31 replaces A30's unavailable
+  native-utility route with future source-frozen observer plumbing. A reviewed
+  and published explicit-command no-TTY/non-login transport successor is
+  required first; transport implementation, observer construction, independent
+  source review/publication and execution are separate dispatches.
+  Python startup reads are not metadata-only; observation permits only bounded
+  generated process metadata reads and no retained file content. No runtime
+  content-identity or exact-syscall attestation is claimed.
   A29's diagnostic budget is consumed; custody is unresolved. Prefix matches
   cannot authorize attribution, termination, deletion or custody closure.
   [A28](AMENDMENT-28.md) remains the faithful-prefix contract; post-exception
@@ -68,7 +74,7 @@
   `AMENDMENT-17.md`, `AMENDMENT-18.md`, `AMENDMENT-19.md`, `AMENDMENT-20.md`,
   `AMENDMENT-21.md`, `AMENDMENT-22.md`, `AMENDMENT-23.md`, `AMENDMENT-24.md`,
   `AMENDMENT-25.md`, `AMENDMENT-26.md`, `AMENDMENT-27.md`, `AMENDMENT-28.md`,
-  `AMENDMENT-29.md`, `AMENDMENT-30.md`,
+  `AMENDMENT-29.md`, `AMENDMENT-30.md`, `AMENDMENT-31.md`,
   `PREFLIGHT.md`,
   `bootstrap-refused.json`, `VALIDATION-REFUSED.md`, `bootstrap-v2.json`,
   the bootstrap-v2 refusal in `VALIDATION.md`, `bootstrap-v3.json`, the
@@ -260,12 +266,16 @@
 - **Efficiency loop:** if independently accepted, append one sanitized item to
   the active workflow cohort with actual routes/timestamps, first-review result,
   rework/escalation and measured credits or explicit unavailability.
-- **State:** A30 status-only design awaits independent review/publication and
-  a separate recovery dispatch. A29's single transport returned exit 1 and
+- **State:** A31 observer design awaits independent review/publication and
+  a separate transport-successor implementation dispatch before observer
+  source construction. The current re-shell login path is unavailable for
+  the observer. A30 command preparation refused
+  before access because its bounded native route was unproved. A29's single
+  transport returned exit 1 and
   no collector receipt; its diagnostic budget is conservatively consumed.
   Guest execution, retained capture existence and custody remain unresolved.
   The published A28 diagnostic source is unchanged and cannot be rerun.
-  A30's separate one-access observation budget is unconsumed and unadmitted;
+  The separate one-access/one-observer budget is unconsumed and unadmitted;
   every result leaves A29 custody unresolved. Amendment 27 remains historical
   reviewed design; its two generator attempts produced no candidate.
   V10 refused before private analysis; its sole admitted process
