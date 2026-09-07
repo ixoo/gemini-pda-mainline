@@ -1,6 +1,7 @@
 # Candidate R first-boot handoff
 
-Status: **installed and shut down; waiting for one owner boot2 selection**.
+Status: **fresh baseline complete and recovered to changed-ID Gemian; Candidate R
+is not currently active**.
 Device custodian: the primary integration coordinator.  No other live-device
 operation may overlap this handoff.
 
@@ -64,3 +65,26 @@ reader exclusion and the existing RAM logger.  Pass permits later review of the
 separate harmless disconnect proof.  Failure or inconclusive evidence stops and
 uses the reviewed preservation/recovery branch.  Neither disconnect proof nor
 the 20-case keyboard capture runs during this baseline.
+
+## First-boot result
+
+The owner selected boot2 once and reported the expected console readable without
+typing. Candidate R boot ID `0afb3800-7774-44bd-8d60-b020671085cd` passed the
+single baseline observation and the separate negative authentication checks.
+The RAM logger was terminal before export and its complete 121,102-byte log
+through the explicit seal was preserved.
+
+The one native recovery request emitted its exact complete request frame, but
+the SSH client reached the 14-second outer timeout before disconnect could be
+strictly witnessed. That phase is permanently inconclusive and was not retried.
+The device nevertheless returned immediately as changed-ID Gemian boot
+`50a09f7d-ca67-4d73-8c40-538de1e84c48`. The reviewed supplemental verifier
+accepted the exact timeout witness plus the changed-ID return for dependent
+preparation only; it does not claim orderly SSH disconnect or strict aggregate
+baseline success.
+
+Candidate R's fresh authenticated archive is now sufficient to prepare the
+separate harmless Dropbear disconnect proof. That proof still needs another
+guarded Candidate R installation, clean shutdown, and one owner boot2 selection.
+It opens no keyboard device and cannot produce a keyboard result. Only a passing
+same-boot proof may admit the later one-shot 20-case keyboard capture.

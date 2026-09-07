@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "candidate": "R",
+  "classification": "supplemental_authenticated_baseline_recovery_verified",
+  "candidate_sha256": "3290b867bc6cb2ecee42e6ca1436e1ae29613c074e7e45b3836ecb2905f3e07c",
+  "candidate_manifest_sha256": "62440fdee9267e26d6f90148609a7c2551fdb9d6a9f603da03f891638c65180d",
+  "baseline": {
+    "admission_id": "d10dcd8b-d67e-4311-ab7e-3f8c3078a88e",
+    "boot_id": "0afb3800-7774-44bd-8d60-b020671085cd",
+    "classification": "baseline-observation-only-pass",
+    "manifest_sha256": "1eae36f08f84befcfb3a42ed66b3683542f5c85f143303b400b4aff77bb76054",
+    "ssh_attempts": 1,
+    "elapsed_seconds": 1.181,
+    "owner_console_accepted": true
+  },
+  "authentication": {
+    "classification": "authentication-checks-pass",
+    "manifest_sha256": "9476815e532ae4055034eae971c92d537b5583bd6e4b7c9fb3120c9a1e35e8a2",
+    "wrong_key_refused": true,
+    "wrong_host_refused": true,
+    "fresh_positive_same_boot": true
+  },
+  "preservation": {
+    "classification": "complete-log-through-seal",
+    "manifest_sha256": "31206d84764c3a9748122967f7824e6b5fcd530d28b6950652f3af049b3d8e52",
+    "log_sha256": "dc9e44926043429879b48eb1bc582ec456595d6e68a089d8c347f1a141f24280",
+    "log_bytes": 121102,
+    "records": 1746,
+    "logger_terminal_before_export": true,
+    "preservation_complete": true
+  },
+  "recovery_request": {
+    "classification": "inconclusive",
+    "reason": "native request/SSH disconnect unconfirmed",
+    "manifest_sha256": "33367f5fdd4eeed3d5300ebc7b862eba958e227160dcd4a65805122c806a3dc9",
+    "exact_complete_frame": true,
+    "outer_timeout": true,
+    "elapsed_seconds": 14.075,
+    "repeated": false
+  },
+  "recovery_confirmation": {
+    "classification": "changed-ID-Gemian",
+    "boot_id": "50a09f7d-ca67-4d73-8c40-538de1e84c48",
+    "manifest_sha256": "74c1be1f26a6e2e686b03092e24e6e29683ee36aeae09c6903b9e9191d31c2e9"
+  },
+  "supplemental_verification": {
+    "classification": "supplemental-authenticated-baseline-recovery-verified",
+    "original_baseline_classification": "recovered-with-baseline-incomplete",
+    "orderly_ssh_disconnect_proven": false,
+    "owner_return_observed": true,
+    "changed_ID_Gemian": true,
+    "dependent_admission": false,
+    "network_access": "none"
+  },
+  "current_device_state": "known-good Gemian",
+  "disconnect_proof_consumed": false,
+  "keyboard_capture_consumed": false,
+  "hardware_support_claim": false
+}
