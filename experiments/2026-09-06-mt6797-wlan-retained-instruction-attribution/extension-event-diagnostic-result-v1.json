@@ -1,0 +1,166 @@
+{
+  "schema_version": 1,
+  "dispatch_commit": "18cd30203f996f28c1878e6d0472d36a0b516726",
+  "diagnostic_sha256": "f1c1777520598070d4500e75179d78e90cade6c63fa74a4a4c13fa3ca14bb5cd",
+  "source_sha256": "93c8e359ab643484a7399d8633e20096dd10dcad66db8d2493ba88c4d65267e3",
+  "runs": 1,
+  "private_analysis_consumed": false,
+  "receipt": {
+    "active_source_depth_final": 0,
+    "active_source_maximum_depth": 7,
+    "audit_fields": {
+      "meta_path": "absent",
+      "path": "absent",
+      "path_hooks": "absent"
+    },
+    "callback_invocations": 0,
+    "callback_present": false,
+    "candidate_events": 1,
+    "candidate_identity": null,
+    "completed_modules": 53,
+    "completed_utc": "2026-09-07T05:26:27.084384+00:00",
+    "engine_instances": 0,
+    "entered_modules": 56,
+    "event": {
+      "active_source": "elftools.dwarf.structs",
+      "filename": "/usr/lib/python3.12/lib-dynload/_queue.cpython-312-aarch64-linux-gnu.so",
+      "import_join": {
+        "resolution": "unresolved"
+      },
+      "module": "_queue",
+      "source_context": {
+        "line": 10,
+        "module": "elftools.dwarf.structs",
+        "resolution": "exact",
+        "source_sha256": "b7f4d190c9edd4a27a1a7700dc470ae9a8616fd87026e7176fa9f3e2c0c91347"
+      }
+    },
+    "event_sha256": "1f44854434c4d88a28f07834aff0629e5de462ee8cbbb3a6a6d3cd9245e56cf1",
+    "events": {
+      "cache_write_attempts": 0,
+      "native_requests": 1,
+      "network_attempts": 0,
+      "optional_requests": 0,
+      "process_attempts": 0,
+      "write_attempts": 0
+    },
+    "exact_signal_handler": true,
+    "failure_class": "post-stop-validation-refusal",
+    "mapping_checks": [
+      {
+        "nonexecuting_pseudo_rows": 13,
+        "nonexecuting_rows_equal_to_baseline": true,
+        "stage": "stdlib-baseline",
+        "vdso_full_row_equal": true
+      },
+      {
+        "nonexecuting_pseudo_rows": 13,
+        "nonexecuting_rows_equal_to_baseline": false,
+        "stage": "pre-import",
+        "vdso_full_row_equal": true
+      },
+      {
+        "nonexecuting_pseudo_rows": 14,
+        "nonexecuting_rows_equal_to_baseline": false,
+        "stage": "post-capstone",
+        "vdso_full_row_equal": true
+      },
+      {
+        "nonexecuting_pseudo_rows": 14,
+        "nonexecuting_rows_equal_to_baseline": false,
+        "stage": "pre-stdlib-resource",
+        "vdso_full_row_equal": true
+      },
+      {
+        "nonexecuting_pseudo_rows": 14,
+        "nonexecuting_rows_equal_to_baseline": false,
+        "stage": "post-stdlib-resource",
+        "vdso_full_row_equal": true
+      },
+      {
+        "nonexecuting_pseudo_rows": 14,
+        "nonexecuting_rows_equal_to_baseline": false,
+        "stage": "pre-page-reference",
+        "vdso_full_row_equal": true
+      },
+      {
+        "nonexecuting_pseudo_rows": 14,
+        "nonexecuting_rows_equal_to_baseline": false,
+        "stage": "post-page-reference",
+        "vdso_full_row_equal": true
+      },
+      {
+        "nonexecuting_pseudo_rows": 14,
+        "nonexecuting_rows_equal_to_baseline": false,
+        "stage": "resource-c-call",
+        "vdso_full_row_equal": true
+      }
+    ],
+    "method_present": false,
+    "module_budget": 77,
+    "package_inventory_counts": {
+      "capstone": {
+        "entries": 67,
+        "inert": 14,
+        "regular_files": 64,
+        "sources": 25,
+        "stat_only_bytecode": 25
+      },
+      "elftools": {
+        "entries": 117,
+        "inert": 0,
+        "regular_files": 104,
+        "sources": 52,
+        "stat_only_bytecode": 52
+      }
+    },
+    "page_reference": {
+      "count": 1,
+      "guard_events_unchanged": true,
+      "mapped_value": 30,
+      "mapping_unchanged": true,
+      "module_objects_unchanged": true,
+      "name": "SC_PAGE_SIZE",
+      "owner": "stdlib-page-size-reference",
+      "resource_events_unchanged": true,
+      "value": 4096
+    },
+    "post_stop_maps": null,
+    "private_reads": 0,
+    "propagation": {
+      "audit": 1,
+      "outer_import": 1,
+      "source": 3,
+      "wrapped_import": 8
+    },
+    "resource_counters": {
+      "cached_requests": 1,
+      "create_module": 1,
+      "exec_module": 1,
+      "extension_audit": 1,
+      "find_spec": 1,
+      "function_attempts": 1,
+      "function_exceptions": 0,
+      "function_returns": 1
+    },
+    "resource_state": "returned",
+    "restorations": {
+      "finder": true,
+      "import": true,
+      "native": true,
+      "path": true,
+      "profile": true,
+      "resource_create": true,
+      "resource_exec": true
+    },
+    "started_utc": "2026-09-07T05:26:26.581972+00:00",
+    "status": "refused",
+    "terminal_latch": true,
+    "validation_audit_counts": {
+      "candidate_open": 0,
+      "maps_open": 0,
+      "other": 0,
+      "profile_restore": 1
+    }
+  }
+}
