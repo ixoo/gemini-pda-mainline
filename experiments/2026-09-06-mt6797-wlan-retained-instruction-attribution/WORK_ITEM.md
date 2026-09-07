@@ -30,15 +30,18 @@
 - **Model route:** `gemini_specialist`, `gpt-6-astra`, medium for the named
   binary-control-flow uncertainty; `gemini_reasoner`, `gpt-5.6-sol`, medium for
   independent review. No implementation route is selected.
-- **Current bounded dispatch:** one v9 tools-preflight at
-  `9c2c63a302bc19639d032a8755eca2b3aa1564b3`. Astra Medium owns the exact
-  extension/bootstrap integration uncertainty; Sol Medium reviews and `/root`
-  integrates. Ownership is only `bootstrap-v9.json`, `bootstrap-v9-result.json`,
-  `VALIDATION-V9.md` and authorized `WORK_ITEM.md`/`inputs.json` state pins.
-  The source, output, counter and stop boundaries are defined in
-  [AMENDMENT-24.md](AMENDMENT-24.md), with its parsing boundary clarified by
-  [AMENDMENT-25.md](AMENDMENT-25.md). No method/private-analysis admission follows
-  from this narrower preflight, including on success.
+- **Current bounded dispatch:** prospective V10 contract design at
+  `3edf660c1ff2c47b8b5404cf261fbffd3e7cc71f`. Astra Medium owns the
+  tool-lifecycle/private-method integration uncertainty; Sol Medium reviews
+  and `/root` integrates. Ownership is only `AMENDMENT-26.md` and minimal
+  `WORK_ITEM.md`/`inputs.json` updates. No source/method construction, VM,
+  private execution, device, build, commit or push is admitted by this dispatch.
+  [AMENDMENT-26.md](AMENDMENT-26.md) prospectively replaces the stale V8
+  source/method chronology and multiple-read analysis route below, preserving
+  the original four-target outcome. V9's accepted
+  [AMENDMENT-24.md](AMENDMENT-24.md)/[AMENDMENT-25.md](AMENDMENT-25.md)
+  preflight remains closed. Future V10 construction/execution requires a new
+  bounded dispatch, exact freeze and independent static review.
 - **Owned scope:** create only this experiment's `README.md`, `inputs.json`,
   `AMENDMENT.md`, `AMENDMENT-2.md`, `AMENDMENT-3.md`, `AMENDMENT-4.md`,
   `AMENDMENT-5.md`, `AMENDMENT-6.md`, `AMENDMENT-7.md`, `AMENDMENT-8.md`,
@@ -46,7 +49,7 @@
   `AMENDMENT-13.md`, `AMENDMENT-14.md`, `AMENDMENT-15.md`, `AMENDMENT-16.md`,
   `AMENDMENT-17.md`, `AMENDMENT-18.md`, `AMENDMENT-19.md`, `AMENDMENT-20.md`,
   `AMENDMENT-21.md`, `AMENDMENT-22.md`, `AMENDMENT-23.md`, `AMENDMENT-24.md`,
-  `AMENDMENT-25.md`, `PREFLIGHT.md`,
+  `AMENDMENT-25.md`, `AMENDMENT-26.md`, `PREFLIGHT.md`,
   `bootstrap-refused.json`, `VALIDATION-REFUSED.md`, `bootstrap-v2.json`,
   the bootstrap-v2 refusal in `VALIDATION.md`, `bootstrap-v3.json`, the
   bootstrap-v3 refusal in `VALIDATION-FINAL.md`, `bootstrap-v4.json`, optional
@@ -237,5 +240,7 @@
   after its sole run passed all 20 outer and 12 queue stages. The one preflight
   budget is consumed and RE-VM custody is released. See
   [VALIDATION-V9.md](VALIDATION-V9.md). No method, callback or private read
-  occurred; private analysis remains unused and unadmitted. Further execution
-  requires a new prospective bounded contract and dispatch.
+  occurred; private analysis remains unused and unadmitted. Amendment 26 is
+  independently accepted and frozen as the prospective V10 design only; it
+  does not consume or dispatch an analysis run. Further source/method
+  construction and execution require separate bounded dispatches.
