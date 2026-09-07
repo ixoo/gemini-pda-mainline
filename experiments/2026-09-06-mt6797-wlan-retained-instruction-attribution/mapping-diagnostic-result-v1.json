@@ -1,0 +1,278 @@
+{
+  "schema_version": 1,
+  "dispatch_commit": "517fa080acd64e7a8b5eec25f13a510b329ff191",
+  "mapping_diagnostic_file_sha256": "8ebc7f226817e49786b0fde42e8980c0b7f17255637e500203e3984eaad32ad4",
+  "mapping_diagnostic_source_sha256": "29c8d2a902c268f70eb354b58d9c48299440568a34be77a63d54452ef5e3cbb8",
+  "bootstrap_v4_file_sha256": "1ebac170bd804fe0dd292240500c30ee5a56f7ff073d1ba0cac0c259f91defee",
+  "source_frozen_utc": "2026-09-07T02:54:28Z",
+  "controlling_contract_hashes_verified": 15,
+  "dependency_hashes_verified": 18,
+  "receipt": {
+    "addresses_retained": false,
+    "asset_opens_by_phase": {
+      "final-drift": 0,
+      "initial-inventory": 28,
+      "pre-import-drift": 28
+    },
+    "audit_counters": {
+      "cache_write_attempts": 0,
+      "native_requests": 0,
+      "network_attempts": 0,
+      "optional_requests": 0,
+      "process_attempts": 0,
+      "write_attempts": 0
+    },
+    "completed_utc": "2026-09-07T02:54:52.135401+00:00",
+    "decoder_modules_executed": 0,
+    "diagnostic_runs": 1,
+    "executable_rows": 1,
+    "full_parsed_snapshots_equal": true,
+    "full_snapshots_published_or_hashed": false,
+    "interpreter": {
+      "mode": 493,
+      "mtime_ns": 1781873160000000000,
+      "path": "/usr/bin/python3.12",
+      "sha256": "a7d56a8a764faf7bbf5c164055a48fd072be52287bdeb523a9e07b2042f4e7e1",
+      "size": 7845048
+    },
+    "mapping_exception_granted": false,
+    "new_file_backed_executable_mappings": 0,
+    "package_inventory_counts": {
+      "capstone": {
+        "entries": 67,
+        "inert": 14,
+        "regular_files": 64,
+        "sources": 25,
+        "stat_only_bytecode": 25
+      },
+      "elftools": {
+        "entries": 117,
+        "inert": 0,
+        "regular_files": 104,
+        "sources": 52,
+        "stat_only_bytecode": 52
+      }
+    },
+    "private_analysis_runs": 0,
+    "private_reads": 0,
+    "pseudo_anonymous_rows": 13,
+    "started_utc": "2026-09-07T02:54:52.084948+00:00",
+    "status": "diagnostic-complete-no-admission",
+    "tuples": [
+      {
+        "multiplicity": 1,
+        "tuple": {
+          "byte_length": 1048576,
+          "device": [
+            0,
+            0
+          ],
+          "executable": false,
+          "file_offset": "0x0",
+          "inode": 0,
+          "name": {
+            "class": "name_absent"
+          },
+          "permissions": "rw-p"
+        }
+      },
+      {
+        "multiplicity": 2,
+        "tuple": {
+          "byte_length": 12288,
+          "device": [
+            0,
+            0
+          ],
+          "executable": false,
+          "file_offset": "0x0",
+          "inode": 0,
+          "name": {
+            "class": "name_absent"
+          },
+          "permissions": "rw-p"
+        }
+      },
+      {
+        "multiplicity": 1,
+        "tuple": {
+          "byte_length": 1257472,
+          "device": [
+            0,
+            0
+          ],
+          "executable": false,
+          "file_offset": "0x0",
+          "inode": 0,
+          "name": {
+            "class": "name_absent"
+          },
+          "permissions": "rw-p"
+        }
+      },
+      {
+        "multiplicity": 1,
+        "tuple": {
+          "byte_length": 12697600,
+          "device": [
+            0,
+            0
+          ],
+          "executable": false,
+          "file_offset": "0x0",
+          "inode": 0,
+          "name": {
+            "class": "safe_label",
+            "label": "[heap]"
+          },
+          "permissions": "rw-p"
+        }
+      },
+      {
+        "multiplicity": 1,
+        "tuple": {
+          "byte_length": 135168,
+          "device": [
+            0,
+            0
+          ],
+          "executable": false,
+          "file_offset": "0x0",
+          "inode": 0,
+          "name": {
+            "class": "safe_label",
+            "label": "[stack]"
+          },
+          "permissions": "rw-p"
+        }
+      },
+      {
+        "multiplicity": 1,
+        "tuple": {
+          "byte_length": 24576,
+          "device": [
+            0,
+            0
+          ],
+          "executable": false,
+          "file_offset": "0x0",
+          "inode": 0,
+          "name": {
+            "class": "name_absent"
+          },
+          "permissions": "rw-p"
+        }
+      },
+      {
+        "multiplicity": 1,
+        "tuple": {
+          "byte_length": 3145728,
+          "device": [
+            0,
+            0
+          ],
+          "executable": false,
+          "file_offset": "0x0",
+          "inode": 0,
+          "name": {
+            "class": "name_absent"
+          },
+          "permissions": "rw-p"
+        }
+      },
+      {
+        "multiplicity": 1,
+        "tuple": {
+          "byte_length": 3547136,
+          "device": [
+            0,
+            0
+          ],
+          "executable": false,
+          "file_offset": "0x0",
+          "inode": 0,
+          "name": {
+            "class": "name_absent"
+          },
+          "permissions": "rw-p"
+        }
+      },
+      {
+        "multiplicity": 1,
+        "tuple": {
+          "byte_length": 4096,
+          "device": [
+            0,
+            0
+          ],
+          "executable": true,
+          "file_offset": "0x0",
+          "inode": 0,
+          "name": {
+            "class": "safe_label",
+            "label": "[vdso]"
+          },
+          "permissions": "r-xp"
+        }
+      },
+      {
+        "multiplicity": 1,
+        "tuple": {
+          "byte_length": 49152,
+          "device": [
+            0,
+            0
+          ],
+          "executable": false,
+          "file_offset": "0x0",
+          "inode": 0,
+          "name": {
+            "class": "name_absent"
+          },
+          "permissions": "rw-p"
+        }
+      },
+      {
+        "multiplicity": 1,
+        "tuple": {
+          "byte_length": 8192,
+          "device": [
+            0,
+            0
+          ],
+          "executable": false,
+          "file_offset": "0x0",
+          "inode": 0,
+          "name": {
+            "class": "name_absent"
+          },
+          "permissions": "rw-p"
+        }
+      },
+      {
+        "multiplicity": 1,
+        "tuple": {
+          "byte_length": 8192,
+          "device": [
+            0,
+            0
+          ],
+          "executable": false,
+          "file_offset": "0x0",
+          "inode": 0,
+          "name": {
+            "class": "safe_label",
+            "label": "[vvar]"
+          },
+          "permissions": "r--p"
+        }
+      }
+    ]
+  },
+  "limitations": [
+    "Guarded-process diagnostic only; not a pseudo-mapping admission.",
+    "The label and normalized tuple do not alone establish kernel provenance or stability across processes.",
+    "No decoder import, method freeze or private analysis was authorized or performed.",
+    "Bytecode identities are stat-only; inert assets contributed only to bounded hash/signature inventory."
+  ]
+}
