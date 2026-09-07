@@ -1,0 +1,271 @@
+{
+  "schema_version": 1,
+  "dispatch_commit": "06d55bc2601c4f898121eec5ab288ee6ef8fc456",
+  "dispatch_inputs_sha256": "14a232f79c7ce663fe9480a75216aa4856b878d2a9d6c8dccb46b5dd0ce6ecb0",
+  "diagnostic_sha256": "4fb9bb6880b1a7450c778b27c5d6eb30eceb1711243ebddd35986d7afd1fc3ac",
+  "source_sha256": "208a35fe5666258ef7541dfa1d885fe18e6e082420635c5a03d3e864c949c15e",
+  "runs": 1,
+  "private_analysis_consumed": false,
+  "metadata_receipt_sha256": "7dc81c311ff7402df50a55eae5ab88620e0da2ecf233827490ea7d187e4086fa",
+  "receipt": {
+    "audit_counts": {
+      "dynamic_load": 0,
+      "import": 0,
+      "mutation": 0,
+      "network": 0,
+      "open": 0,
+      "other": 0,
+      "process": 0
+    },
+    "audit_hook_active": true,
+    "callback_invocations": 0,
+    "candidate_content_opens": 0,
+    "completed_utc": "2026-09-07T05:50:36.382380+00:00",
+    "cross_pass_equal": true,
+    "engine_instances": 0,
+    "first_false_stage": null,
+    "missing": null,
+    "observations": [
+      {
+        "completed": true,
+        "components": [
+          {
+            "kind": "directory",
+            "path": "/",
+            "permissions": 493,
+            "symlink": false
+          },
+          {
+            "kind": "directory",
+            "path": "/usr",
+            "permissions": 493,
+            "symlink": false
+          },
+          {
+            "kind": "directory",
+            "path": "/usr/lib",
+            "permissions": 493,
+            "symlink": false
+          },
+          {
+            "kind": "directory",
+            "path": "/usr/lib/python3.12",
+            "permissions": 493,
+            "symlink": false
+          },
+          {
+            "kind": "directory",
+            "path": "/usr/lib/python3.12/lib-dynload",
+            "permissions": 493,
+            "symlink": false
+          },
+          {
+            "kind": "regular",
+            "path": "/usr/lib/python3.12/lib-dynload/_queue.cpython-312-aarch64-linux-gnu.so",
+            "permissions": 420,
+            "symlink": false
+          }
+        ],
+        "resolved_path": "/usr/lib/python3.12/lib-dynload/_queue.cpython-312-aarch64-linux-gnu.so",
+        "resolver": [
+          {
+            "kind": "directory",
+            "path": "/",
+            "permissions": 493,
+            "symlink": false
+          },
+          {
+            "kind": "directory",
+            "path": "/usr",
+            "permissions": 493,
+            "symlink": false
+          },
+          {
+            "kind": "directory",
+            "path": "/usr/lib",
+            "permissions": 493,
+            "symlink": false
+          },
+          {
+            "kind": "directory",
+            "path": "/usr/lib/python3.12",
+            "permissions": 493,
+            "symlink": false
+          },
+          {
+            "kind": "directory",
+            "path": "/usr/lib/python3.12/lib-dynload",
+            "permissions": 493,
+            "symlink": false
+          },
+          {
+            "kind": "regular",
+            "path": "/usr/lib/python3.12/lib-dynload/_queue.cpython-312-aarch64-linux-gnu.so",
+            "permissions": 420,
+            "symlink": false
+          }
+        ],
+        "symlinks": []
+      },
+      {
+        "completed": true,
+        "components": [
+          {
+            "kind": "directory",
+            "path": "/",
+            "permissions": 493,
+            "symlink": false
+          },
+          {
+            "kind": "directory",
+            "path": "/usr",
+            "permissions": 493,
+            "symlink": false
+          },
+          {
+            "kind": "directory",
+            "path": "/usr/lib",
+            "permissions": 493,
+            "symlink": false
+          },
+          {
+            "kind": "directory",
+            "path": "/usr/lib/python3.12",
+            "permissions": 493,
+            "symlink": false
+          },
+          {
+            "kind": "directory",
+            "path": "/usr/lib/python3.12/lib-dynload",
+            "permissions": 493,
+            "symlink": false
+          },
+          {
+            "kind": "regular",
+            "path": "/usr/lib/python3.12/lib-dynload/_queue.cpython-312-aarch64-linux-gnu.so",
+            "permissions": 420,
+            "symlink": false
+          }
+        ],
+        "resolved_path": "/usr/lib/python3.12/lib-dynload/_queue.cpython-312-aarch64-linux-gnu.so",
+        "resolver": [
+          {
+            "kind": "directory",
+            "path": "/",
+            "permissions": 493,
+            "symlink": false
+          },
+          {
+            "kind": "directory",
+            "path": "/usr",
+            "permissions": 493,
+            "symlink": false
+          },
+          {
+            "kind": "directory",
+            "path": "/usr/lib",
+            "permissions": 493,
+            "symlink": false
+          },
+          {
+            "kind": "directory",
+            "path": "/usr/lib/python3.12",
+            "permissions": 493,
+            "symlink": false
+          },
+          {
+            "kind": "directory",
+            "path": "/usr/lib/python3.12/lib-dynload",
+            "permissions": 493,
+            "symlink": false
+          },
+          {
+            "kind": "regular",
+            "path": "/usr/lib/python3.12/lib-dynload/_queue.cpython-312-aarch64-linux-gnu.so",
+            "permissions": 420,
+            "symlink": false
+          }
+        ],
+        "symlinks": []
+      }
+    ],
+    "operation_counts": {
+      "captured_snapshot_lstat": 2,
+      "passes": [
+        {
+          "component_lstat": 6,
+          "processed_components": 5,
+          "readlink": 0,
+          "resolution_lstat": 6,
+          "symlink_expansions": 0
+        },
+        {
+          "component_lstat": 6,
+          "processed_components": 5,
+          "readlink": 0,
+          "resolution_lstat": 6,
+          "symlink_expansions": 0
+        }
+      ],
+      "resolved_snapshot_lstat": 0,
+      "total_lstat": 26
+    },
+    "package_execution": false,
+    "predicates": [
+      {
+        "stage": 1,
+        "value": true
+      },
+      {
+        "stage": 2,
+        "value": true
+      },
+      {
+        "stage": 3,
+        "value": true
+      },
+      {
+        "stage": 4,
+        "value": true
+      },
+      {
+        "stage": 5,
+        "value": true
+      },
+      {
+        "stage": 6,
+        "value": true
+      }
+    ],
+    "private_reads": 0,
+    "refusal_reason": null,
+    "refusal_stage": null,
+    "schema_version": 1,
+    "snapshots": {
+      "captured": [
+        {
+          "ctime_ns": 1785067980603724344,
+          "device": 64769,
+          "inode": 8678,
+          "link_count": 1,
+          "mode": 33188,
+          "mtime_ns": 1781873160000000000,
+          "size": 68496
+        },
+        {
+          "ctime_ns": 1785067980603724344,
+          "device": 64769,
+          "inode": 8678,
+          "link_count": 1,
+          "mode": 33188,
+          "mtime_ns": 1781873160000000000,
+          "size": 68496
+        }
+      ],
+      "resolved": []
+    },
+    "started_utc": "2026-09-07T05:50:36.382211+00:00",
+    "status": "complete-positive",
+    "target": "/usr/lib/python3.12/lib-dynload/_queue.cpython-312-aarch64-linux-gnu.so"
+  }
+}

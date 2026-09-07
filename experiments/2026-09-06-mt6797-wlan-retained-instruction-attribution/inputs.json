@@ -9,7 +9,7 @@
     "source_dependencies_producer": "../2026-09-06-mt6797-connectivity-producer-source-attribution"
   },
   "controlling_contract": {
-    "WORK_ITEM.md": "b73e50c9919fddde0209507ddf1eb43bc89b3da90b990df95cf29061dbcc870e",
+    "WORK_ITEM.md": "2906008622434f594aac73b7bb62f6c80c06082f58a683a60e7908d651246d7c",
     "AMENDMENT.md": "36e8a93d9946f9f20593cf92a64cb7497ffff39b2dcb8bd5d97a937710e15409",
     "AMENDMENT-2.md": "e4bfa608ed6155cb9ad7b83add0c75ad64022ba99324ab4e2d3e18869fb1c8a1",
     "AMENDMENT-3.md": "faffaa9f4960ad9251458bd4551f565ff58e7abb9cdcf01703c3a8f54c8a852b",
@@ -67,7 +67,10 @@
     "VALIDATION-V8-REFUSED.md": "cbfcdbf9ecf81622cfa63aef381cc5da71720205596d5599f9ada351f58c2866",
     "extension-event-diagnostic-v1.json": "f1c1777520598070d4500e75179d78e90cade6c63fa74a4a4c13fa3ca14bb5cd",
     "extension-event-diagnostic-result-v1.json": "04e1fdfc801b5deb6a6da033a5fc9f79eabc0a9a56324c923397264ed98cfa82",
-    "EXTENSION-EVENT-DIAGNOSTIC.md": "3275ddb58ba1881e224e3612a96799c7e8ac8152d29d5555e83c112136ae589f"
+    "EXTENSION-EVENT-DIAGNOSTIC.md": "3275ddb58ba1881e224e3612a96799c7e8ac8152d29d5555e83c112136ae589f",
+    "extension-path-stat-diagnostic-v1.json": "4fb9bb6880b1a7450c778b27c5d6eb30eceb1711243ebddd35986d7afd1fc3ac",
+    "extension-path-stat-diagnostic-result-v1.json": "be64ee02da0daa61068e3dfdf25972d52b2bd70370183817583b632a2e5155dc",
+    "EXTENSION-PATH-STAT-DIAGNOSTIC.md": "adc23e65573404f0bca831cbc041c5f11b610379637f588da9f75257c0ff24e3"
   },
   "accepted_symbol_provenance": {
     "inputs.json": "c5dffb7323e7eb25626704d3310565b1ca9252e0dd9f349eff66ed04fc3d4e31",

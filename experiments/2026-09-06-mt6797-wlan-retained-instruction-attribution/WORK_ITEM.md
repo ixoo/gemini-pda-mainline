@@ -208,5 +208,8 @@
 - **Efficiency loop:** if independently accepted, append one sanitized item to
   the active workflow cohort with actual routes/timestamps, first-review result,
   rework/escalation and measured credits or explicit unavailability.
-- **State:** frozen for one offline exact-path stat-only diagnostic; no file
-  content, decoder-engine, private-content or device action.
+- **State:** Amendment 20 stat-only result is independently accepted and
+  closed; its single run is consumed. See
+  [the bounded handoff](EXTENSION-PATH-STAT-DIAGNOSTIC.md).
+  `/root/runtime_identity_specialist` released sole RE-VM custody. No further
+  file-content, decoder-engine, private-content or device action is admitted.
