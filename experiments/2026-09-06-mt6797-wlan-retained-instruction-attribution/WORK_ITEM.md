@@ -35,7 +35,7 @@
   `AMENDMENT-5.md`, `AMENDMENT-6.md`, `AMENDMENT-7.md`, `AMENDMENT-8.md`,
   `AMENDMENT-9.md`, `AMENDMENT-10.md`, `AMENDMENT-11.md`, `AMENDMENT-12.md`,
   `AMENDMENT-13.md`, `AMENDMENT-14.md`, `AMENDMENT-15.md`, `AMENDMENT-16.md`,
-  `PREFLIGHT.md`,
+  `AMENDMENT-17.md`, `PREFLIGHT.md`,
   `bootstrap-refused.json`, `VALIDATION-REFUSED.md`, `bootstrap-v2.json`,
   the bootstrap-v2 refusal in `VALIDATION.md`, `bootstrap-v3.json`, the
   bootstrap-v3 refusal in `VALIDATION-FINAL.md`, `bootstrap-v4.json`, optional
@@ -52,7 +52,8 @@
   `resource-callsite-diagnostic-result-v1.json`,
   `RESOURCE-CALLSITE-DIAGNOSTIC.md`, `resource-callsite-diagnostic-v2.json`,
   `resource-callsite-diagnostic-result-v2.json`,
-  `RESOURCE-CALLSITE-DIAGNOSTIC-2.md`, `method.json`, `analysis.json`, `edges.json`,
+  `RESOURCE-CALLSITE-DIAGNOSTIC-2.md`, `bootstrap-v8.json`, optional
+  `VALIDATION-V8-REFUSED.md`, `method.json`, `analysis.json`, `edges.json`,
   `FREEZE.md`, an assert-free normal/optimized verifier, final `README.md` and
   `VALIDATION-RESULT.md`.
   Raw outputs stay in a fresh
@@ -67,7 +68,7 @@
   origin, symlink, absent digest, dependency outside the installed environment
   or source/tool drift. Freeze the complete independently written collector,
   ELF mapper, raw AArch64 branch decoder and control-flow traversal source in
-  `bootstrap-v7.json` and `method.json`, with SHA-256 values, before the
+  `bootstrap-v8.json` and `method.json`, with SHA-256 values, before the
   chronology points required by [AMENDMENT.md](AMENDMENT.md) and
   [AMENDMENT-2.md](AMENDMENT-2.md), as superseded for package inventory by
   [AMENDMENT-3.md](AMENDMENT-3.md), as supplemented for pyelftools by
@@ -85,8 +86,10 @@
   The exact pre-call resource observer is constrained by
   [AMENDMENT-14.md](AMENDMENT-14.md), with its original package-caller handoff
   corrected by [AMENDMENT-15.md](AMENDMENT-15.md) and its v1 profile chronology
-  corrected by [AMENDMENT-16.md](AMENDMENT-16.md). Syntax-checking the frozen
-  scripts is permitted before content; do not run them against another binary.
+  corrected by [AMENDMENT-16.md](AMENDMENT-16.md). The sole exact
+  `resource.getpagesize` invocation is constrained by
+  [AMENDMENT-17.md](AMENDMENT-17.md). Syntax-checking the frozen scripts is
+  permitted before content; do not run them against another binary.
 - **Execution guard:** install a child-process audit hook before private reads.
   Permit read-only opens of the exact retained ELF and exact frozen installed
   tool files only. Reject filesystem writes, socket/DNS, subprocess/shell,
@@ -170,7 +173,7 @@
   flow; boundary fallthrough; unproved reachability; candidate-to-call
   promotion; omitted candidates; cap overflow; prior-output dependency;
   private bytes/paths; mutable expected digests; or runtime/resource/firmware/
-  radio authority. Freeze `bootstrap-v7.json`, then `method.json`, then the
+  radio authority. Freeze `bootstrap-v8.json`, then `method.json`, then the
   result JSON files, before
   writing the verifier. Normal and `-O` modes must use active checks and
   mutations covering identity, chronology, mapping, byte hashes, tool method,
@@ -196,5 +199,4 @@
 - **Efficiency loop:** if independently accepted, append one sanitized item to
   the active workflow cohort with actual routes/timestamps, first-review result,
   rework/escalation and measured credits or explicit unavailability.
-- **State:** frozen for one offline resource-callsite terminal diagnostic;
-  no decoder-engine, private-content or device action.
+- **State:** frozen for one offline specialist dispatch; no device action.

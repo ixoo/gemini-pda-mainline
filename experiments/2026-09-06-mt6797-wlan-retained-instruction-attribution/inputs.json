@@ -9,7 +9,7 @@
     "source_dependencies_producer": "../2026-09-06-mt6797-connectivity-producer-source-attribution"
   },
   "controlling_contract": {
-    "WORK_ITEM.md": "84df0c9cd63dde664dd2d682ba3fc39ddeafb03bc2840a156dd11a26ccea8f9c",
+    "WORK_ITEM.md": "188b3530cb89ef089a78aaa7c745f0b19eb5de5392750affb1d290db5be57346",
     "AMENDMENT.md": "36e8a93d9946f9f20593cf92a64cb7497ffff39b2dcb8bd5d97a937710e15409",
     "AMENDMENT-2.md": "e4bfa608ed6155cb9ad7b83add0c75ad64022ba99324ab4e2d3e18869fb1c8a1",
     "AMENDMENT-3.md": "faffaa9f4960ad9251458bd4551f565ff58e7abb9cdcf01703c3a8f54c8a852b",
@@ -26,6 +26,7 @@
     "AMENDMENT-14.md": "6de3ab817cfb651fd9d5405123d4b599133eb08901bebb9e6f54cac071f285dd",
     "AMENDMENT-15.md": "a5b092df3533ec844347458258f58cf94d57e2938581873733f2f78667d9d5bb",
     "AMENDMENT-16.md": "1ce2312d9a3c6eb375c1295ea4537d6c07095a8482b5c564d6d829fd28b31510",
+    "AMENDMENT-17.md": "64264363685e99e18babb280fe94d0d81d1514217dd8f19255379ac44311665a",
     "PREFLIGHT.md": "420fa321f7897d6fead65c5e7b2d6e4d53472f213218e55bf867d88e058008bf",
     "bootstrap-refused.json": "53adefdb21a8bc966930b14cedb0683f7ae0bb11c1184c2d5fc94cbf011aed42",
     "VALIDATION-REFUSED.md": "e9b2b9a0b946e983679068f4dcd7536715b05357a127b9f10073fd67311fba36",
@@ -55,7 +56,10 @@
     "VALIDATION-V7-REFUSED.md": "3e2b910ed1e2e4d1f4213d68172c9cdbf06f27f40fd975eacbf3ff56456b7f22",
     "resource-callsite-diagnostic-v1.json": "178a3f12cabfce91dabad67feb3a10fcd0e8b4fc5a36d585478a0af2aa794914",
     "resource-callsite-diagnostic-result-v1.json": "baccf01f941d959489747159f72443d153dc8e64c012e4362593108ee9ef7e27",
-    "RESOURCE-CALLSITE-DIAGNOSTIC.md": "b6fc7a8124a3b38bb2ac92133e8f2afe583b3283ab0eb2bade1f42ac608062bf"
+    "RESOURCE-CALLSITE-DIAGNOSTIC.md": "b6fc7a8124a3b38bb2ac92133e8f2afe583b3283ab0eb2bade1f42ac608062bf",
+    "resource-callsite-diagnostic-v2.json": "390b7c640f8980091f6d7f58dd81c6bf828f88a63101fff82058a36c0f2eb205",
+    "resource-callsite-diagnostic-result-v2.json": "fa92aaf9c089038267816c4503317b56a878bc6f588822b3f9bfc01f56c4aa74",
+    "RESOURCE-CALLSITE-DIAGNOSTIC-2.md": "ffbb617ee9ae58c3a8a859ebd548f50fba095ffc18182f682728302b43517388"
   },
   "accepted_symbol_provenance": {
     "inputs.json": "c5dffb7323e7eb25626704d3310565b1ca9252e0dd9f349eff66ed04fc3d4e31",
