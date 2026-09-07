@@ -35,7 +35,8 @@
   `AMENDMENT-5.md`, `AMENDMENT-6.md`, `AMENDMENT-7.md`, `AMENDMENT-8.md`,
   `AMENDMENT-9.md`, `AMENDMENT-10.md`, `AMENDMENT-11.md`, `AMENDMENT-12.md`,
   `AMENDMENT-13.md`, `AMENDMENT-14.md`, `AMENDMENT-15.md`, `AMENDMENT-16.md`,
-  `AMENDMENT-17.md`, `AMENDMENT-18.md`, `AMENDMENT-19.md`, `PREFLIGHT.md`,
+  `AMENDMENT-17.md`, `AMENDMENT-18.md`, `AMENDMENT-19.md`, `AMENDMENT-20.md`,
+  `PREFLIGHT.md`,
   `bootstrap-refused.json`, `VALIDATION-REFUSED.md`, `bootstrap-v2.json`,
   the bootstrap-v2 refusal in `VALIDATION.md`, `bootstrap-v3.json`, the
   bootstrap-v3 refusal in `VALIDATION-FINAL.md`, `bootstrap-v4.json`, optional
@@ -55,7 +56,9 @@
   `RESOURCE-CALLSITE-DIAGNOSTIC-2.md`, `bootstrap-v8.json`, optional
   `VALIDATION-V8-REFUSED.md`, `extension-event-diagnostic-v1.json`,
   `extension-event-diagnostic-result-v1.json`, `EXTENSION-EVENT-DIAGNOSTIC.md`,
-  `method.json`, `analysis.json`, `edges.json`,
+  `extension-path-stat-diagnostic-v1.json`,
+  `extension-path-stat-diagnostic-result-v1.json`,
+  `EXTENSION-PATH-STAT-DIAGNOSTIC.md`, `method.json`, `analysis.json`, `edges.json`,
   `FREEZE.md`, an assert-free normal/optimized verifier, final `README.md` and
   `VALIDATION-RESULT.md`.
   Raw outputs stay in a fresh
@@ -92,9 +95,10 @@
   `resource.getpagesize` invocation is constrained by
   [AMENDMENT-17.md](AMENDMENT-17.md), with its preflight/analysis method state
   clarified by [AMENDMENT-18.md](AMENDMENT-18.md). The first later refused
-  extension event is constrained by [AMENDMENT-19.md](AMENDMENT-19.md).
-  Syntax-checking the frozen scripts is permitted before content; do not run
-  them against another binary.
+  extension event is constrained by [AMENDMENT-19.md](AMENDMENT-19.md), with
+  its captured path's stat-only classification constrained by
+  [AMENDMENT-20.md](AMENDMENT-20.md). Syntax-checking the frozen scripts is
+  permitted before content; do not run them against another binary.
 - **Execution guard:** install a child-process audit hook before private reads.
   Permit read-only opens of the exact retained ELF and exact frozen installed
   tool files only. Reject filesystem writes, socket/DNS, subprocess/shell,
@@ -204,5 +208,5 @@
 - **Efficiency loop:** if independently accepted, append one sanitized item to
   the active workflow cohort with actual routes/timestamps, first-review result,
   rework/escalation and measured credits or explicit unavailability.
-- **State:** frozen for one offline first-extension terminal diagnostic; no
-  decoder-engine, private-content or device action.
+- **State:** frozen for one offline exact-path stat-only diagnostic; no file
+  content, decoder-engine, private-content or device action.
