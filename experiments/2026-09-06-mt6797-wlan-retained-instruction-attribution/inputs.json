@@ -3,7 +3,7 @@
   "analysis_parent": "e25df337406b52bc4da44aa428262a8123d8da21",
   "work_started_utc": "2026-09-07T01:36:36Z",
   "controlling_contract": {
-    "WORK_ITEM.md": "f8a01f4da440d153920569497f973abd42db666af52e8571aacf93446b347ad3",
+    "WORK_ITEM.md": "e82e47356de387ba7a5fc86b4efe5277b89747c6023493f3be5e0862d2ad3ed3",
     "AMENDMENT.md": "36e8a93d9946f9f20593cf92a64cb7497ffff39b2dcb8bd5d97a937710e15409",
     "AMENDMENT-2.md": "e4bfa608ed6155cb9ad7b83add0c75ad64022ba99324ab4e2d3e18869fb1c8a1",
     "AMENDMENT-3.md": "faffaa9f4960ad9251458bd4551f565ff58e7abb9cdcf01703c3a8f54c8a852b",
@@ -12,6 +12,7 @@
     "AMENDMENT-6.md": "1fd917137be476613d38d280b6da0187ed2940ed92fa34ec70aca4f2bbd5e6dc",
     "AMENDMENT-7.md": "d7d90bb3ba0cc44c95de282a43dabeba597986a6cc1c6e9cf8c4fdf2b507d341",
     "AMENDMENT-8.md": "8cc6131d4f86ece3c43c26d49148533446ac466ac4383cae7eb63478421f12b0",
+    "AMENDMENT-9.md": "5e8566f86951de42ef9a540f000ae091f6ff64c5a30dee357f114b6b6544f033",
     "PREFLIGHT.md": "420fa321f7897d6fead65c5e7b2d6e4d53472f213218e55bf867d88e058008bf",
     "bootstrap-refused.json": "53adefdb21a8bc966930b14cedb0683f7ae0bb11c1184c2d5fc94cbf011aed42",
     "VALIDATION-REFUSED.md": "e9b2b9a0b946e983679068f4dcd7536715b05357a127b9f10073fd67311fba36",
@@ -25,7 +26,9 @@
     "mapping-diagnostic-result-v1.json": "ae2146baefd5669dc46b1ce9f79392c6f93f5fdb8c4d992ed0a72a346769e352",
     "MAPPING-DIAGNOSTIC.md": "a43f66881d196bf06a30857ad127596eaa8ae2bffca1c4ca9dfab82e832b8a7c",
     "bootstrap-v5.json": "8098ad2af4fd320f1526bd8b975da29d686ec169f048e3d2b098338fc8de8656",
-    "VALIDATION-V5-REFUSED.md": "3f8324dbdc531062549f678b5df8102469fe5f2650d5fbb95fe6304de86b5c5e"
+    "VALIDATION-V5-REFUSED.md": "3f8324dbdc531062549f678b5df8102469fe5f2650d5fbb95fe6304de86b5c5e",
+    "bootstrap-v6.json": "94b876a01eef5d781499f0462b04a947f0ddd7742df8a6880e667a4745c390c4",
+    "VALIDATION-V6-REFUSED.md": "fee58be889fedc3bbbec0a5411593647fb71a9558863e47110fad63a9f604254"
   },
   "accepted_symbol_provenance": {
     "inputs.json": "c5dffb7323e7eb25626704d3310565b1ca9252e0dd9f349eff66ed04fc3d4e31",
