@@ -30,13 +30,23 @@
 - **Model route:** `gemini_specialist`, `gpt-6-astra`, medium for the named
   binary-control-flow uncertainty; `gemini_reasoner`, `gpt-5.6-sol`, medium for
   independent review. No implementation route is selected.
+- **Current bounded dispatch:** contract-only Amendment 24 design against
+  `d8ba3f43339482b52665cdcd5c45a62d778f64f4`. Astra Medium resolves the exact
+  extension/bootstrap integration boundary; Sol Medium reviews and `/root`
+  integrates. Current ownership is only `AMENDMENT-24.md` and minimal
+  `WORK_ITEM.md`/`inputs.json` updates, with no source construction or execution.
+  The separately dispatched future v9 tools-preflight and its precise source,
+  output, counter and stop boundaries are defined in
+  [AMENDMENT-24.md](AMENDMENT-24.md). No method/private-analysis admission follows
+  from this narrower preflight, including on success.
 - **Owned scope:** create only this experiment's `README.md`, `inputs.json`,
   `AMENDMENT.md`, `AMENDMENT-2.md`, `AMENDMENT-3.md`, `AMENDMENT-4.md`,
   `AMENDMENT-5.md`, `AMENDMENT-6.md`, `AMENDMENT-7.md`, `AMENDMENT-8.md`,
   `AMENDMENT-9.md`, `AMENDMENT-10.md`, `AMENDMENT-11.md`, `AMENDMENT-12.md`,
   `AMENDMENT-13.md`, `AMENDMENT-14.md`, `AMENDMENT-15.md`, `AMENDMENT-16.md`,
   `AMENDMENT-17.md`, `AMENDMENT-18.md`, `AMENDMENT-19.md`, `AMENDMENT-20.md`,
-  `AMENDMENT-21.md`, `AMENDMENT-22.md`, `AMENDMENT-23.md`, `PREFLIGHT.md`,
+  `AMENDMENT-21.md`, `AMENDMENT-22.md`, `AMENDMENT-23.md`, `AMENDMENT-24.md`,
+  `PREFLIGHT.md`,
   `bootstrap-refused.json`, `VALIDATION-REFUSED.md`, `bootstrap-v2.json`,
   the bootstrap-v2 refusal in `VALIDATION.md`, `bootstrap-v3.json`, the
   bootstrap-v3 refusal in `VALIDATION-FINAL.md`, `bootstrap-v4.json`, optional
@@ -64,6 +74,7 @@
   `extension-identity-diagnostic-result-v3.json`,
   `EXTENSION-IDENTITY-DIAGNOSTIC-3.md`, `extension-load-diagnostic-v1.json`,
   `extension-load-diagnostic-result-v1.json`, `EXTENSION-LOAD-DIAGNOSTIC.md`,
+  `bootstrap-v9.json`, `bootstrap-v9-result.json`, `VALIDATION-V9.md`,
   `method.json`, `analysis.json`, `edges.json`,
   `FREEZE.md`, an assert-free normal/optimized verifier, final `README.md` and
   `VALIDATION-RESULT.md`.
@@ -107,7 +118,9 @@
   gate is constrained by [AMENDMENT-21.md](AMENDMENT-21.md), with its
   direct-resolver correction constrained by
   [AMENDMENT-22.md](AMENDMENT-22.md). The exact standalone extension load route
-  is constrained by [AMENDMENT-23.md](AMENDMENT-23.md). Syntax-checking the
+  is constrained by [AMENDMENT-23.md](AMENDMENT-23.md); the prospective v9
+  tools-preflight is constrained by [AMENDMENT-24.md](AMENDMENT-24.md).
+  Syntax-checking the
   frozen scripts is permitted before content; do not run them against another
   binary.
 - **Execution guard:** install a child-process audit hook before private reads.
@@ -219,9 +232,8 @@
 - **Efficiency loop:** if independently accepted, append one sanitized item to
   the active workflow cohort with actual routes/timestamps, first-review result,
   rework/escalation and measured credits or explicit unavailability.
-- **State:** Amendment 23's exact standalone `_queue` load-route result is
-  independently accepted and closed after all twelve stages passed. The
-  diagnostic budget is consumed and RE-VM custody is released. See
-  [EXTENSION-LOAD-DIAGNOSTIC.md](EXTENSION-LOAD-DIAGNOSTIC.md); no package or
-  bootstrap admission, queue API call, decoder engine, private content or
-  device action is admitted.
+- **State:** Amendment 24 is independently accepted and frozen for one future
+  bounded v9 tools-preflight dispatch; no v9 source or run exists. The completed
+  Amendment 23 budget remains consumed and RE-VM custody released. This design
+  itself admits no package, engine, method, private-content or device action;
+  even a positive v9 preflight will not admit a method or private analysis.
