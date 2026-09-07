@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "analysis_parent": "cd9fbe8e0e8f7eda29b553ae131821d9facd8cf0",
+  "contract_dispatch_head": "cb7747a7c04eadf14af1dcc925cb362da6b7c3d5",
+  "contract_sha256": "3351a2b6222cf449a4111c0cd4e15cbd2d637f00abdd38698f63c971052eb4a4",
+  "work_started_utc": "2026-09-07T00:35:04Z",
+  "excluded_original": {
+    "inputs.json": "cc93d3e9627e31a60d66ebcea8211104a47663313b0015a5390612624f50bf4b",
+    "analysis.json": "18c4bf0b55a4cd00450b1eead755edf610e4050612191a3b7fdca968c4b36c12",
+    "intervals.json": "30ab9bb53bff6c144ba75b390220f0c036e9cbe8730d2fcb7c562955a659f23d",
+    "FREEZE.md": "5c2b89f699f2fdb051a85049410406110a272f609b137486df5f1deeb8d210a2",
+    "VALIDATION.md": "6b1caee83ef5503ce5e5affc9d6c4ae9193943114c10088b7ba6e3b16a27b7b3"
+  },
+  "excluded_architecture_bypass_v2": {
+    "WORK_ITEM.md": "0b8cd7c91db6fa52cfb940d9d51cde1ff1659e77243f3d82688731a65a25fcf8",
+    "inputs.json": "4a2d2f65bea8422a8fabe75e5927ed2a76454c12de53da9cf7aeeca9a445524b",
+    "VALIDATION.md": "3f6c864b95ab3afe9850ea18c41dbb91157dba674d32592851c7a52959c612ad"
+  },
+  "excluded_database_v1": {
+    "WORK_ITEM.md": "71fd7a672b362dd5ead4597da3c9c5070112c6b01cb18524e3fd67a0fb25d165",
+    "inputs.json": "13485ddf638a4544065e6f05a404aa8301f7c4bd2319ecdbea96cafea6e84758",
+    "VALIDATION.md": "364cc9ed5c031a5d97ae049321309efcbdf4eacf85c70e9a82a3d376edd5b882"
+  },
+  "accepted_database_v2": {
+    "inputs.json": "bb64c330fca2c2b3d48742d7897944d64a0f547d76d95ebc3e823f59411a914e",
+    "analysis.json": "deb75e89391a4e8c84e16d517975cea6dea3e73963c4e4e4c7be20a5fd2e44fa",
+    "inventory.json": "1f8da3d3ecb20a5c36e8a7deade2b12adeb4994793e2c46ce6daf9bf430862a3",
+    "FREEZE.md": "3c779807ed98a4a8941eee822b4826ba3f19688d13d44ca215c2b5f193effa35",
+    "VALIDATION.md": "ce7f51b7d5b44747b23e7d0f370d7d4da4787c8b9a3ed577b2baf4b7850e6a1b"
+  },
+  "zero_size_dependency": {
+    "inputs.json": "89dd591276e93c58dee6f35a53eab3b8daa93dec565f71387a997adf1c3875a1",
+    "analysis.json": "d08406c637cc19c943c761b302d7591eeb99a334cd03ac0fdf69fb084046cd70",
+    "FREEZE.md": "c91f67779fe9a2c12c33a5b21ad4d46897824a14f0545a513265a39c71bc47b3",
+    "VALIDATION.md": "5937d2772d49ec578d540225b7517bcfc9510212b286ee32bc7eefe0941f4360"
+  },
+  "kernel": {
+    "Image.gz": "b53d191dc41d3f7364b0fa62b4bc920b1d013a1942b2e6b06727263fc56fcf4d",
+    "Image": "0570480c28bce1583636a240904df8da3af0b5e5b4bcc6254f5719b42bd723d0",
+    "vmlinux": "cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162",
+    "diagnostics": "3e58a3e5c2a43914558f761ccdf4488a9c49b869645b4152ad9b2ee05a2f10b8"
+  },
+  "tool": {
+    "distribution": "vmlinux-to-elf",
+    "version": "1.3.6",
+    "python": "3.12.3",
+    "launcher": "6140be2ee9638573c32b06e5c00ca387e647720b6c8434d123ede119ec11ca6b",
+    "script": "e3d2de8b5b7ac7ac4e8986369d7a034ae1bbae0af6e08b8d6e6c73c703cb3f15",
+    "kallsyms_source": "2bff550d9486e90782a4320cec7bc26b249ead5048f58839eec6578b52c06c2d",
+    "symbolizer_source": "13e79cf4dc37050547f22b65ad35070dceba17473df823c7311311c3fb9e1118",
+    "writer_source": "f974b1189155d2cea4773d378990e1b20be866f27719be0593fef3110c56891d",
+    "METADATA": "133b5a6b7fab8081a7c201f2fc63b8a2d7a215475c423c8fe3938aff6a708c43",
+    "RECORD": "ac8d68216a496f0f4dedede5e3ea0d72051bbab7983ab196189da05f5aebdc1f"
+  },
+  "database_import_names": [
+    "KernelVersion",
+    "KernelRelevantFile",
+    "EMachineValue",
+    "ArchitectureEMachineLink",
+    "KnownArchitecture",
+    "DebianRelease"
+  ],
+  "targets": [
+    "do_connectivity_driver_init",
+    "do_wlan_drv_init",
+    "mtk_wcn_wlan_gen3_init",
+    "mtk_wcn_wlan_gen3_exit"
+  ],
+  "bounds": {
+    "kernel_tuples": 1,
+    "tool_distributions": 1,
+    "package_source_modules_max": 16,
+    "parser_constructions": 1,
+    "targets": 4,
+    "same_address_aliases_per_target": 4,
+    "previous_distinct_per_target": 1,
+    "next_distinct_per_target": 1,
+    "database_path_access": false,
+    "package_bytecode": false,
+    "dependency_source": false,
+    "prior_parser_output": false,
+    "instruction_decoding": false,
+    "reconstruction": false,
+    "network": false,
+    "device": false,
+    "build": false
+  }
+}
