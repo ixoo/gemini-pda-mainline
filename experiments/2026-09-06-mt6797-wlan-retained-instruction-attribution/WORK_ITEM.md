@@ -30,13 +30,12 @@
 - **Model route:** `gemini_specialist`, `gpt-6-astra`, medium for the named
   binary-control-flow uncertainty; `gemini_reasoner`, `gpt-5.6-sol`, medium for
   independent review. No implementation route is selected.
-- **Current bounded dispatch:** contract-only Amendment 25 clarification against
-  `c799d8b6faf682235c8299986db992382bde5fdf`. Astra Medium resolves the exact
-  public-metadata/analysis-parser boundary; Sol Medium reviews and `/root`
-  integrates. Current ownership is only `AMENDMENT-25.md` and minimal
-  `WORK_ITEM.md`/`inputs.json` updates, with no source construction or execution.
-  The separately dispatched future v9 tools-preflight and its precise source,
-  output, counter and stop boundaries are defined in
+- **Current bounded dispatch:** one v9 tools-preflight at
+  `9c2c63a302bc19639d032a8755eca2b3aa1564b3`. Astra Medium owns the exact
+  extension/bootstrap integration uncertainty; Sol Medium reviews and `/root`
+  integrates. Ownership is only `bootstrap-v9.json`, `bootstrap-v9-result.json`,
+  `VALIDATION-V9.md` and authorized `WORK_ITEM.md`/`inputs.json` state pins.
+  The source, output, counter and stop boundaries are defined in
   [AMENDMENT-24.md](AMENDMENT-24.md), with its parsing boundary clarified by
   [AMENDMENT-25.md](AMENDMENT-25.md). No method/private-analysis admission follows
   from this narrower preflight, including on success.
@@ -234,10 +233,9 @@
 - **Efficiency loop:** if independently accepted, append one sanitized item to
   the active workflow cohort with actual routes/timestamps, first-review result,
   rework/escalation and measured credits or explicit unavailability.
-- **State:** Amendment 25 is independently accepted and frozen after the v9
-  dispatch stopped on ambiguous parser wording before source construction or
-  execution. No v9 source or run exists; its one-run budget is unconsumed and
-  RE-VM custody unused/released. This clarification admits no package, engine,
-  method, private-content or device action. Future construction/execution
-  requires a separate bounded dispatch; even positive v9 preflight admits no
-  method/private analysis.
+- **State:** v9 `tools-preflight-only` is independently accepted and closed
+  after its sole run passed all 20 outer and 12 queue stages. The one preflight
+  budget is consumed and RE-VM custody is released. See
+  [VALIDATION-V9.md](VALIDATION-V9.md). No method, callback or private read
+  occurred; private analysis remains unused and unadmitted. Further execution
+  requires a new prospective bounded contract and dispatch.
