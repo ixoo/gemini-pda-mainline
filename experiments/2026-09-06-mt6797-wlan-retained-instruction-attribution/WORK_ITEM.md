@@ -35,7 +35,7 @@
   `AMENDMENT-5.md`, `AMENDMENT-6.md`, `AMENDMENT-7.md`, `AMENDMENT-8.md`,
   `AMENDMENT-9.md`, `AMENDMENT-10.md`, `AMENDMENT-11.md`, `AMENDMENT-12.md`,
   `AMENDMENT-13.md`, `AMENDMENT-14.md`, `AMENDMENT-15.md`, `AMENDMENT-16.md`,
-  `AMENDMENT-17.md`, `PREFLIGHT.md`,
+  `AMENDMENT-17.md`, `AMENDMENT-18.md`, `PREFLIGHT.md`,
   `bootstrap-refused.json`, `VALIDATION-REFUSED.md`, `bootstrap-v2.json`,
   the bootstrap-v2 refusal in `VALIDATION.md`, `bootstrap-v3.json`, the
   bootstrap-v3 refusal in `VALIDATION-FINAL.md`, `bootstrap-v4.json`, optional
@@ -88,8 +88,9 @@
   corrected by [AMENDMENT-15.md](AMENDMENT-15.md) and its v1 profile chronology
   corrected by [AMENDMENT-16.md](AMENDMENT-16.md). The sole exact
   `resource.getpagesize` invocation is constrained by
-  [AMENDMENT-17.md](AMENDMENT-17.md). Syntax-checking the frozen scripts is
-  permitted before content; do not run them against another binary.
+  [AMENDMENT-17.md](AMENDMENT-17.md), with its preflight/analysis method state
+  clarified by [AMENDMENT-18.md](AMENDMENT-18.md). Syntax-checking the frozen
+  scripts is permitted before content; do not run them against another binary.
 - **Execution guard:** install a child-process audit hook before private reads.
   Permit read-only opens of the exact retained ELF and exact frozen installed
   tool files only. Reject filesystem writes, socket/DNS, subprocess/shell,
