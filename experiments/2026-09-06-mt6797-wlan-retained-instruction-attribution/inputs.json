@@ -9,7 +9,7 @@
     "source_dependencies_producer": "../2026-09-06-mt6797-connectivity-producer-source-attribution"
   },
   "controlling_contract": {
-    "WORK_ITEM.md": "a774157a3be33cea1d3bb5654d8d27085f8574b422a8dc0e85e414c13843ec91",
+    "WORK_ITEM.md": "d864742c59ae5f3d6d2fbae631aa3a8bbe8a3b7a3e7642b1c2012c50376b5590",
     "AMENDMENT.md": "36e8a93d9946f9f20593cf92a64cb7497ffff39b2dcb8bd5d97a937710e15409",
     "AMENDMENT-2.md": "e4bfa608ed6155cb9ad7b83add0c75ad64022ba99324ab4e2d3e18869fb1c8a1",
     "AMENDMENT-3.md": "faffaa9f4960ad9251458bd4551f565ff58e7abb9cdcf01703c3a8f54c8a852b",
@@ -24,6 +24,7 @@
     "AMENDMENT-12.md": "6c3953ca5396dfd6b5a95692709212e4c8caa03f125ad5d5b789b9f173e5c897",
     "AMENDMENT-13.md": "92c1fb496c3bbb539ad74d131e1852b13882b5c3ec0d321e5a0ecb0d76aa8dbf",
     "AMENDMENT-14.md": "6de3ab817cfb651fd9d5405123d4b599133eb08901bebb9e6f54cac071f285dd",
+    "AMENDMENT-15.md": "a5b092df3533ec844347458258f58cf94d57e2938581873733f2f78667d9d5bb",
     "PREFLIGHT.md": "420fa321f7897d6fead65c5e7b2d6e4d53472f213218e55bf867d88e058008bf",
     "bootstrap-refused.json": "53adefdb21a8bc966930b14cedb0683f7ae0bb11c1184c2d5fc94cbf011aed42",
     "VALIDATION-REFUSED.md": "e9b2b9a0b946e983679068f4dcd7536715b05357a127b9f10073fd67311fba36",
@@ -50,7 +51,10 @@
     "mapping-diagnostic-result-v4.json": "9ded854da37d87d2c4bdf8a3f4850b47d3dfac4e0d3a1125d90b3f0eaf482a8a",
     "MAPPING-DIAGNOSTIC-4.md": "cf18d2190c1f2ace1171ecc27f1969e94878850439cb5ca51ef3f6623e771eb7",
     "bootstrap-v7.json": "d17ffd1ce29afa0be12c9a5feef209a9062032ab2170b344b2edb313d6ce76fa",
-    "VALIDATION-V7-REFUSED.md": "3e2b910ed1e2e4d1f4213d68172c9cdbf06f27f40fd975eacbf3ff56456b7f22"
+    "VALIDATION-V7-REFUSED.md": "3e2b910ed1e2e4d1f4213d68172c9cdbf06f27f40fd975eacbf3ff56456b7f22",
+    "resource-callsite-diagnostic-v1.json": "178a3f12cabfce91dabad67feb3a10fcd0e8b4fc5a36d585478a0af2aa794914",
+    "resource-callsite-diagnostic-result-v1.json": "baccf01f941d959489747159f72443d153dc8e64c012e4362593108ee9ef7e27",
+    "RESOURCE-CALLSITE-DIAGNOSTIC.md": "b6fc7a8124a3b38bb2ac92133e8f2afe583b3283ab0eb2bade1f42ac608062bf"
   },
   "accepted_symbol_provenance": {
     "inputs.json": "c5dffb7323e7eb25626704d3310565b1ca9252e0dd9f349eff66ed04fc3d4e31",

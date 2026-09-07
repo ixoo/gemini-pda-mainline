@@ -34,7 +34,7 @@
   `AMENDMENT.md`, `AMENDMENT-2.md`, `AMENDMENT-3.md`, `AMENDMENT-4.md`,
   `AMENDMENT-5.md`, `AMENDMENT-6.md`, `AMENDMENT-7.md`, `AMENDMENT-8.md`,
   `AMENDMENT-9.md`, `AMENDMENT-10.md`, `AMENDMENT-11.md`, `AMENDMENT-12.md`,
-  `AMENDMENT-13.md`, `AMENDMENT-14.md`, `PREFLIGHT.md`,
+  `AMENDMENT-13.md`, `AMENDMENT-14.md`, `AMENDMENT-15.md`, `PREFLIGHT.md`,
   `bootstrap-refused.json`, `VALIDATION-REFUSED.md`, `bootstrap-v2.json`,
   the bootstrap-v2 refusal in `VALIDATION.md`, `bootstrap-v3.json`, the
   bootstrap-v3 refusal in `VALIDATION-FINAL.md`, `bootstrap-v4.json`, optional
@@ -49,7 +49,9 @@
   `MAPPING-DIAGNOSTIC-4.md`, `bootstrap-v7.json`, optional
   `VALIDATION-V7-REFUSED.md`, `resource-callsite-diagnostic-v1.json`,
   `resource-callsite-diagnostic-result-v1.json`,
-  `RESOURCE-CALLSITE-DIAGNOSTIC.md`, `method.json`, `analysis.json`, `edges.json`,
+  `RESOURCE-CALLSITE-DIAGNOSTIC.md`, `resource-callsite-diagnostic-v2.json`,
+  `resource-callsite-diagnostic-result-v2.json`,
+  `RESOURCE-CALLSITE-DIAGNOSTIC-2.md`, `method.json`, `analysis.json`, `edges.json`,
   `FREEZE.md`, an assert-free normal/optimized verifier, final `README.md` and
   `VALIDATION-RESULT.md`.
   Raw outputs stay in a fresh
@@ -80,8 +82,9 @@
   constrained by [AMENDMENT-12.md](AMENDMENT-12.md), with the common pre-entry
   dual-inventory chronology clarified by [AMENDMENT-13.md](AMENDMENT-13.md).
   The exact pre-call resource observer is constrained by
-  [AMENDMENT-14.md](AMENDMENT-14.md). Syntax-checking the frozen scripts is
-  permitted before content; do not run them against another binary.
+  [AMENDMENT-14.md](AMENDMENT-14.md), with its original package-caller handoff
+  corrected by [AMENDMENT-15.md](AMENDMENT-15.md). Syntax-checking the frozen
+  scripts is permitted before content; do not run them against another binary.
 - **Execution guard:** install a child-process audit hook before private reads.
   Permit read-only opens of the exact retained ELF and exact frozen installed
   tool files only. Reject filesystem writes, socket/DNS, subprocess/shell,
