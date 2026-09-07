@@ -57,10 +57,41 @@ class PrerequisiteTests(unittest.TestCase):
                 'independent_export_connection': True},
             'process': {'monitor_terminal': True, 'monitor_reaped': True,
                 'observer_terminal': True, 'observer_reaped': True, 'late': False},
-            'preservation': {'members': {name: None for name in P['FILES']},
-                'complete_available_members': True, 'source_retained': True},
             'reader_release': {'monitor_absent': True, 'observer_absent': True,
                 'tty1_reader_absent': True, 'input_reader_absent': True, 'inventory_complete': True}}
+        status = {'schema': 'keyboard-monitor-v1', 'reason': 'cancelled', 'reaped': '1',
+            'identity_lost': '0', 'exit': '-1', 'signal': '9', 'cancel': '1', 'term_ms': '10',
+            'kill_ms': '90', 'reap_ms': '100', 'term_errno': '0', 'kill_errno': '0',
+            'late': '0', 'stdout_bytes': '18', 'stderr_bytes': '0', 'forwarded_bytes': '18'}
+        self.evidence = {'observer.stdout': b'fixture-child=123\n', 'observer.stderr': b'',
+            'monitor.status': ''.join(key+'='+value+'\n' for key,value in status.items()).encode(),
+            'outer-exit': b'2\n',
+            'disconnect-process.json': encode({'schema': 'keyboard-disconnect-transport-v1',
+                'classification': 'deliberate-client-disconnect', 'connections': 1, 'no_pty': True,
+                'marker_seen': True, 'stdin_complete': True, 'client_signal': 9,
+                'elapsed_milliseconds': 50}),
+            'export-process.json': encode({'exit_status': 0, 'reason': None, 'stdin_complete': True,
+                'stdout_bytes': 100, 'stderr_bytes': 0, 'elapsed_seconds': 1}),
+            'reader-scan.json': encode({'schema': 'keyboard-reader-release-v1',
+                'classification': 'passed', 'admission_id': self.ident, 'boot_id': self.boot,
+                'processes_scanned': 8, 'descriptors_scanned': 20, 'matches': []})}
+        self.disconnect['evidence'] = {name: sha(raw) for name,raw in self.evidence.items()}
+        self.disconnect['preservation'] = {'members': {name: sha(self.evidence[name]) for name in P['FILES']},
+            'complete_available_members': True, 'source_retained': True}
+        self.evidence_root = self.root/'disconnect'; self.evidence_root.mkdir(mode=0o700)
+        for name, raw in self.evidence.items():
+            path = self.evidence_root/name
+            path.write_bytes(raw); path.chmod(0o600)
+
+    def regular(self, path, limit):
+        raw = Path(path).read_bytes()
+        self.assertLessEqual(len(raw), limit)
+        return raw
+
+    def disconnect_verify(self, value):
+        raw = encode(value)
+        return P['disconnect'](raw, sha(raw), self.admission, self.candidate,
+            {'keyboard-disconnect-probe': '7'*64}, self.evidence_root, self.regular)
 
     def test_runtime_custody_disconnect_bindings_and_mutations(self):
         cases = [('runtime', self.runtime, P['runtime']), ('custody', self.custody, P['custody'])]
@@ -75,15 +106,14 @@ class PrerequisiteTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, label + ' receipt digest'):
                     verifier(raw, 'f'*64, self.admission, self.candidate)
         raw = encode(self.disconnect)
-        P['disconnect'](raw, sha(raw), self.admission, self.candidate,
-                        {'keyboard-disconnect-probe': '7'*64})
+        self.disconnect_verify(self.disconnect)
         changed = copy.deepcopy(self.disconnect); changed['classification'] = 'inconclusive'
         with self.assertRaisesRegex(ValueError, 'disconnect'):
             P['disconnect'](encode(changed), sha(encode(changed)), self.admission, self.candidate,
-                            {'keyboard-disconnect-probe': '7'*64})
+                            {'keyboard-disconnect-probe': '7'*64}, self.evidence_root, self.regular)
         with self.assertRaisesRegex(ValueError, 'disconnect receipt digest'):
             P['disconnect'](raw, 'f'*64, self.admission, self.candidate,
-                            {'keyboard-disconnect-probe': '7'*64})
+                            {'keyboard-disconnect-probe': '7'*64}, self.evidence_root, self.regular)
 
     def test_disconnect_each_decisive_boolean_refuses(self):
         for group, key in (('claim', 'retained'), ('transport', 'deliberate_disconnect'),
@@ -92,10 +122,53 @@ class PrerequisiteTests(unittest.TestCase):
                 ('reader_release', 'tty1_reader_absent'), ('reader_release', 'input_reader_absent')):
             changed = copy.deepcopy(self.disconnect)
             changed[group][key] = False
-            raw = encode(changed)
             with self.subTest(group=group, key=key), self.assertRaises(ValueError):
-                P['disconnect'](raw, sha(raw), self.admission, self.candidate,
-                                {'keyboard-disconnect-probe': '7'*64})
+                self.disconnect_verify(changed)
+
+    def test_disconnect_missing_null_or_mutated_raw_evidence_refuses(self):
+        changed = copy.deepcopy(self.disconnect)
+        changed['preservation']['members'] = {name: None for name in P['FILES']}
+        with self.assertRaises(ValueError):
+            self.disconnect_verify(changed)
+        path = self.evidence_root/'monitor.status'
+        path.write_bytes(path.read_bytes().replace(b'reaped=1', b'reaped=0'))
+        with self.assertRaisesRegex(ValueError, 'evidence inventory/digests'):
+            self.disconnect_verify(self.disconnect)
+
+    def test_disconnect_rehashed_contradictory_evidence_refuses(self):
+        mutations = {
+            'observer.stdout': b'',
+            'observer.stderr': b'unexpected\n',
+            'monitor.status': self.evidence['monitor.status'].replace(b'reaped=1', b'reaped=0'),
+            'monitor-late-times': self.evidence['monitor.status'].replace(
+                b'term_ms=10\nkill_ms=90', b'term_ms=600\nkill_ms=700'),
+            'outer-exit': b'0\n',
+            'disconnect-process.json': self.evidence['disconnect-process.json'].replace(
+                b'deliberate-client-disconnect', b'inconclusive'),
+            'export-process.json': self.evidence['export-process.json'].replace(
+                b'"exit_status": 0', b'"exit_status": 1'),
+            'reader-scan.json': self.evidence['reader-scan.json'].replace(b'"matches": []', b'"matches": ["pid"]')}
+        for name, raw in mutations.items():
+            with self.subTest(name=name):
+                evidence_name = 'monitor.status' if name == 'monitor-late-times' else name
+                path = self.evidence_root/evidence_name
+                original = path.read_bytes()
+                changed = copy.deepcopy(self.disconnect)
+                path.write_bytes(raw)
+                changed['evidence'][evidence_name] = sha(raw)
+                if evidence_name in P['FILES']:
+                    changed['preservation']['members'][evidence_name] = sha(raw)
+                try:
+                    with self.assertRaises(ValueError):
+                        self.disconnect_verify(changed)
+                finally:
+                    path.write_bytes(original)
+
+    def test_disconnect_missing_evidence_file_refuses(self):
+        path = self.evidence_root/'export-process.json'
+        path.unlink()
+        with self.assertRaises(FileNotFoundError):
+            self.disconnect_verify(self.disconnect)
 
     def test_duration_exact_tracked_receipt(self):
         raw = (HERE/'results/duration-6d8c9b18/receipt.json').read_bytes()

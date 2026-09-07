@@ -147,3 +147,17 @@ new checkpoint or settings decision. The owner has since prioritized the
 already-scoped keyboard device preparation, so no additional architecture audit
 is opened from these handoffs. `baseline-01` remains effective and credits are
 unavailable.
+
+## Accepted item eight
+
+The eighth accepted offline item audited the shortest safe route to the existing
+20-case keyboard observation. Sol confirmed that the exact authenticated
+baseline kernel, DT and configuration are adequate and found one concrete stop:
+four admission fields accepted hash-shaped placeholders without opening the
+referenced evidence, and no exact Dropbear disconnect result existed. The
+primary integrator accepted that bounded finding on first review and repaired
+the verifier separately; the audit itself performed no build or device action.
+
+This is the first item in the device-session-readiness comparison group, so it
+does not support a routing comparison or settings change. No interval or early
+signal fires. `baseline-01` remains effective and credits are unavailable.

@@ -1,0 +1,39 @@
+{
+  "schema": "keyboard-astra-session-review-v1",
+  "review_ready_utc": "2026-09-07T21:41:45Z",
+  "model": "gpt-6-astra",
+  "reasoning_effort": "medium",
+  "source_revision": "93e2b8526daa683c2ba848011fac757a398a13dd",
+  "decision": "accepted-bounded-offline-lifecycle-repair",
+  "session_admitted": false,
+  "package_identity": "0baad6b85ae68770b783245e2f1dcd7eeb4ef40d93c19e0b30e1f89f8adc3065",
+  "package_integrity": "passed-local-inventory-checksums-provenance-receipt-and-source-bindings",
+  "reviewed_state": "uncommitted bounded prerequisite repair on source_revision",
+  "reviewed_repair_sha256": {
+    "prerequisites.py": "e4b637e424f9feb4cf19a3f14ea6a852faabc9d87aa1e9af4b38909c9f29d30b",
+    "test-prerequisites.py": "44ce5afc6670fe9e14368e7fa98b42b1028f1ddb7a3001db0f92f4d1e504675e"
+  },
+  "original_counterexample_closed": true,
+  "timing_counterexample_closed": true,
+  "blocker": null,
+  "acceptance_scope": "Frozen offline lifecycle-verifier repair only; physical proof not yet required or claimed",
+  "repair_attempts": 2,
+  "next_discriminating_check": "Integrator handoff for separately reviewed physical proof protocol; no session admission from this offline acceptance",
+  "tests_run": [
+    {"test": "initial test-prerequisites.py", "result": "3 tests passed"},
+    {"test": "initial direct all-null disconnect fixture", "result": "accepted before repair; original defect reproduced"},
+    {"test": "initial check_package plus receipt member and six Git source-input hashes", "result": "passed; not rerun for uncommitted repair"},
+    {"test": "repair test-prerequisites.py", "result": "6 tests passed, including all-null refusal"},
+    {"test": "repair 1 rehashed impossible signal timing fixture", "result": "accepted; remaining defect reproduced before repair 2"},
+    {"test": "repair 2 test-prerequisites.py", "result": "6 tests passed"},
+    {"test": "repair 2 independent lifecycle matrix", "result": "two accepted branches and eight rehashed refusals passed, including exact 600/700/100 counterexample"}
+  ],
+  "not_run": ["device access", "Dropbear disconnect", "VT restoration", "evdev capture", "kernel build", "QEMU rerun", "remote publication revalidation"],
+  "remaining_risks": [
+    "scaled harmless probe must be alive at deliberate disconnect",
+    "harmless probe does not establish actual observer VT restoration",
+    "later session predicates remain outside bounded lifecycle repair acceptance"
+  ],
+  "hardware_support_claim": false,
+  "device_actions_authorized": false
+}

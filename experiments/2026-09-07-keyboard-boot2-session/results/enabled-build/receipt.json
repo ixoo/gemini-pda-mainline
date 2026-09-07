@@ -1,0 +1,46 @@
+{
+  "schema": "keyboard-enabled-build-result-v1",
+  "recorded_utc": "2026-09-07T21:29:09Z",
+  "source_revision": "93e2b8526daa683c2ba848011fac757a398a13dd",
+  "source_branch": "main",
+  "origin": "https://github.com/ixoo/gemini-pda-mainline.git",
+  "package_identity": "0baad6b85ae68770b783245e2f1dcd7eeb4ef40d93c19e0b30e1f89f8adc3065",
+  "package_relative_path": "artifacts/buildbox/93e2b8526daa683c2ba848011fac757a398a13dd/keyboard-monitor-enabled-0baad6b85ae68770b783245e2f1dcd7eeb4ef40d93c19e0b30e1f89f8adc3065",
+  "production_entry": "enabled-admission-v1",
+  "device_action": "none",
+  "members": {
+    "keyboard-monitor": {
+      "sha256": "4363a7d61d818bc443d5cfd76455ac38fc2cea35178d44a2dc81c229ff97b67f",
+      "bytes": 66672
+    },
+    "keyboard-disconnect-probe": {
+      "sha256": "560d00ab80040b90fead5d0a5b2672ed633f62599aa483ff0a33be0fa74d3681"
+    },
+    "manifest.json": "c47a382616922b2db66bf7ecfcae7a0dc86fe43e59f7584b12202661c60a97a1",
+    "provenance.txt": "86077eb017e3ca4502c689102c24b23d6732207e73b2b245e475043f0a86862a",
+    "fixture-tests.txt": "75df900a1841de28ca406261b57c04af5fa4d97a7c7fe29cd3be7f769836dbef",
+    "monitor.map": "0eb716c99b9fb7ae056990d152bec5fe25ecd6b343b256aa1f631585225e87a2",
+    "tool-inputs.txt": "1eaacf7097362275a08dce2d9476cc55c6f272302aee36240877c3246ac45801"
+  },
+  "source_inputs": {
+    "monitor.c": "eb74dc09f6086aa47a7520f323f18728ab232b338ed02056d5b26338db9e5047",
+    "monitor-fixture.c": "00b36d2f4c4b9cb9a65b6f8915eb973ce2c88f527e00dee1b53b058a64b2b1e4",
+    "build-monitor.sh": "476af77ed76dcc0c86b6684df1cff7fe151c2712a1e25bf4b446904b21c5f3cd",
+    "capture.py": "425a0ea05ab84683acf4d7195fe396c8da88c20b86516eef675d624ba014ce59",
+    "prerequisites.py": "9f44ba86436c08d29d110b9e1bd62aea9e7346017b4649dea67f5795b0bb26d4",
+    "buildbox_userspace.py": "2899448f1ad25ed5cc9bc5b4a6620359094fcbf5306c7504ccc0393e18a4421d"
+  },
+  "checks": {
+    "remote_publication_matches": true,
+    "remote_sha256sums_pass": true,
+    "remote_checkout_clean": true,
+    "remote_stage_absent": true,
+    "local_package_validator_pass": true,
+    "replicas_identical": true,
+    "static_aarch64": true,
+    "fixture_tests": "12 passed",
+    "kernel_build": false,
+    "device_access": false
+  },
+  "local_dispatch_log": "not-retained-after-disposable-clean-checkout-cleanup; immutable package, remote publication and bounded postflight retained"
+}

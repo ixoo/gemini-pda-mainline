@@ -193,8 +193,8 @@ follow the [transport reference](../experiments/2026-09-05-owner-away-experiment
 when a USB connection is absent. A relayed boot report does not replace live
 identity or establish that a different OS is unreachable.
 
-Complete the next admitted storage observation when the owner is available;
-keyboard capture preparation proceeds independently. Keep physical-start requests
+Complete the keyboard observation next when the owner is available; read-only
+storage preparation remains independent. Keep physical-start requests
 in Project Planning and require the selected candidate's verified deployment
 and clean-shutdown handoff. Wi-Fi progresses kernel integration and its shared
 resource/firmware contract in parallel, with physical observations chosen to
@@ -225,7 +225,12 @@ The remaining preparation order is:
    authenticated userspace, logging and reviewed recovery closure. Repair only
    an identified invalidated prerequisite; a similarly named newer profile is
    not a replacement for recorded inputs. Do not spend a boot on another marker.
-2. **Wi-Fi:** compile the connected transfer components through the actual Linux
+2. **Keyboard coverage:** finish the exact Dropbear disconnect proof, fresh
+   runtime/custody admission, finite owner key sequence, classification and
+   complete private evidence export. Reuse the measured monitor and exact enabled
+   Buildbox package; inert binary delivery alone is not a device test. Its runtime
+   gate needs the first baseline USB/console pass, not all ten cold boots.
+3. **Wi-Fi:** compile the connected transfer components through the actual Linux
    interfaces, then complete a validated whole-image plan and shared EMI/AP-DMA
    ownership. Identify the retained calibration record's producer, restoration
    path and board/firmware applicability before admitting the first mainline
@@ -265,11 +270,6 @@ The remaining preparation order is:
    and [accepted Kallsyms provenance](../experiments/2026-09-06-vmlinux-to-elf-symbol-provenance-v3/README.md).
    Exit order must not be inferred by reversing initialization, and the vendor
    WMT ioctl must not be copied merely to run the retained loader.
-3. **Keyboard coverage:** finish coherent capture admission, finite owner key
-   sequence, classification and complete private evidence export. Reuse the
-   measured monitor and retain the full-duration timing obligation; inert binary
-   delivery alone is not a device test. Its runtime gate needs the first baseline
-   USB/console pass, not all ten cold boots.
 4. **Read-only eMMC regression:** finish the fresh-session handoff against the
    actual OS/transport and execute the prepared bounded read when physical
    selection is available. Preserve prior inconclusive connections; a failed

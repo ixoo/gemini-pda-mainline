@@ -26,7 +26,9 @@ produces two byte-identical static ARM64 monitor replicas with
 disconnect probe compiled from the same lifecycle engine. The probe contains a
 built-in child and cannot open evdev or a VT; it is intended only to measure the
 exact candidate Dropbear/session disconnect and independent preservation path.
-Neither binary has been built at this checkpoint.
+Neither binary had been built at the initial source checkpoint. The subsequent
+[enabled Buildbox result](results/enabled-build/RESULT.md) froze both binaries
+without changing the monitor engine.
 
 The remaining blocker is now evidence, not a permissive code path: build and
 freeze the enabled package, then run and independently review one exact
@@ -47,3 +49,20 @@ Focused host validation passed:
 
 This is an offline source handoff only. It is not the missing disconnect result,
 an enabled package result, a keyboard observation or a device admission.
+
+## Specialist rejection and bounded repair
+
+The first Astra session-safety review rejected the initial verifier because its
+positive fixture allowed every preserved disconnect member to be null and the
+code trusted terminal/reap/reader summary booleans. The corrected verifier now
+requires seven mode-0600 raw evidence files, binds every digest, requires all
+four retained monitor members, parses the monitor lifecycle and outer exit, and
+parses the deliberate-disconnect, independent-export and bounded reader-scan
+process records. Rehashed contradictory evidence is rejected rather than merely
+detecting an unchanged receipt digest.
+
+After a second timing-order counterexample and repair, Astra accepted the frozen
+offline lifecycle-verifier contract. That acceptance does not change physical
+session admission. The original rejection, both repair rounds and exact accepted
+source hashes remain preserved in
+[`ASTRA_SESSION_REVIEW.md`](ASTRA_SESSION_REVIEW.md).

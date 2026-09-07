@@ -10,6 +10,7 @@ HERE = Path(__file__).resolve().parent
 DURATION = HERE / 'results/duration-6d8c9b18/receipt.json'
 SHA = re.compile(r'[0-9a-f]{64}')
 FILES = ('observer.stdout', 'observer.stderr', 'monitor.status', 'outer-exit')
+EVIDENCE = FILES + ('disconnect-process.json', 'export-process.json', 'reader-scan.json')
 
 
 def require(value, reason):
@@ -40,6 +41,20 @@ def decode(raw):
 
 def object_digest(value):
     return digest((json.dumps(value, indent=2, sort_keys=True) + '\n').encode())
+
+
+def fields(raw):
+    result = {}
+    try:
+        lines = raw.decode('ascii').splitlines()
+    except UnicodeDecodeError as error:
+        raise ValueError('keyboard prerequisite: non-ASCII status') from error
+    for line in lines:
+        key, separator, value = line.partition('=')
+        require(separator and key and key not in result and value == value.strip(),
+                'status framing')
+        result[key] = value
+    return result
 
 
 def duration(raw, expected, monitor_sha256):
@@ -113,12 +128,12 @@ def custody(raw, expected, admission, candidate):
     return value
 
 
-def disconnect(raw, expected, admission, candidate, package_pins):
+def disconnect(raw, expected, admission, candidate, package_pins, evidence_root, regular):
     require(digest(raw) == expected, 'disconnect receipt digest')
     value = decode(raw)
     require(set(value) == {'schema', 'classification', 'admission_id', 'boot_id',
         'candidate_sha256', 'server', 'monitor', 'claim', 'transport', 'process',
-        'preservation', 'reader_release'}, 'disconnect inventory')
+        'preservation', 'reader_release', 'evidence'}, 'disconnect inventory')
     server, monitor = value['server'], value['monitor']
     require(server == {'binary_sha256': candidate['members']['bin/dropbear']['sha256'],
         'admin_shell_sha256': candidate['members']['bin/admin-shell']['sha256'],
@@ -142,13 +157,68 @@ def disconnect(raw, expected, admission, candidate, package_pins):
     require(value['process'] == {'monitor_terminal': True, 'monitor_reaped': True,
         'observer_terminal': True, 'observer_reaped': True, 'late': False},
         'disconnect terminal state')
+    evidence = {}
+    for name in EVIDENCE:
+        evidence[name] = regular(Path(evidence_root)/name, 98304 if name.startswith('observer.') else 16384)
+    require(value['evidence'] == {name: digest(raw) for name, raw in evidence.items()},
+            'disconnect evidence inventory/digests')
     preservation = value['preservation']
     require(set(preservation) == {'members', 'complete_available_members', 'source_retained'} and
         set(preservation['members']) == set(FILES) and
-        all(member is None or isinstance(member, str) and SHA.fullmatch(member)
-            for member in preservation['members'].values()) and
+        all(preservation['members'][name] == digest(evidence[name]) for name in FILES) and
         preservation['complete_available_members'] is True and
         preservation['source_retained'] is True, 'disconnect preservation')
+    require(re.fullmatch(rb'fixture-child=[1-9][0-9]*\n', evidence['observer.stdout']) is not None and
+            evidence['observer.stderr'] == b'' and evidence['outer-exit'] == b'2\n',
+            'disconnect retained members')
+    status = fields(evidence['monitor.status'])
+    require(set(status) == {'schema', 'reason', 'reaped', 'identity_lost', 'exit', 'signal',
+        'cancel', 'term_ms', 'kill_ms', 'reap_ms', 'term_errno', 'kill_errno', 'late',
+        'stdout_bytes', 'stderr_bytes', 'forwarded_bytes'}, 'disconnect status inventory')
+    numeric = {}
+    for key in ('term_ms', 'kill_ms', 'reap_ms', 'stdout_bytes', 'stderr_bytes', 'forwarded_bytes'):
+        require(re.fullmatch(r'-1|0|[1-9][0-9]*', status[key]) is not None,
+                'disconnect status numeric field')
+        numeric[key] = int(status[key])
+    reason_cancel = ((status['reason'] == 'cancelled' and status['cancel'] == '1') or
+                     (status['reason'] == 'forward-close-or-stall' and status['cancel'] == '0'))
+    if status['signal'] == '1':
+        timing = numeric['term_ms'] == numeric['kill_ms'] == -1 and 0 <= numeric['reap_ms'] <= 500
+    else:
+        timing = (status['signal'] == '9' and 0 <= numeric['term_ms'] <= 300 and
+                  numeric['term_ms'] <= numeric['kill_ms'] <= 380 and
+                  numeric['kill_ms'] <= numeric['reap_ms'] <= 500)
+    require(status['schema'] == 'keyboard-monitor-v1' and reason_cancel and timing and
+        status['reason'] in ('cancelled', 'forward-close-or-stall') and
+        status['reaped'] == '1' and status['identity_lost'] == '0' and
+        status['exit'] == '-1' and status['signal'] in ('1', '9') and
+        status['cancel'] in ('0', '1') and status['term_errno'] == '0' and
+        status['kill_errno'] == '0' and status['late'] == '0' and
+        numeric['stderr_bytes'] == 0 and numeric['stdout_bytes'] == len(evidence['observer.stdout']) and
+        0 <= numeric['forwarded_bytes'] <= len(evidence['observer.stdout']),
+        'disconnect parsed lifecycle')
+    transport = decode(evidence['disconnect-process.json'])
+    require(transport == {'schema': 'keyboard-disconnect-transport-v1',
+        'classification': 'deliberate-client-disconnect', 'connections': 1, 'no_pty': True,
+        'marker_seen': True, 'stdin_complete': True, 'client_signal': 9,
+        'elapsed_milliseconds': transport.get('elapsed_milliseconds')} and
+        type(transport['elapsed_milliseconds']) is int and
+        0 <= transport['elapsed_milliseconds'] <= 2000, 'disconnect transport process')
+    exported = decode(evidence['export-process.json'])
+    require(set(exported) == {'exit_status', 'reason', 'stdin_complete', 'stdout_bytes',
+        'stderr_bytes', 'elapsed_seconds'} and exported['exit_status'] == 0 and
+        exported['reason'] is None and exported['stdin_complete'] is True and
+        type(exported['elapsed_seconds']) in (int, float) and
+        0 <= exported['elapsed_seconds'] <= 30 and exported['stderr_bytes'] == 0,
+        'disconnect export process')
+    scan = decode(evidence['reader-scan.json'])
+    require(scan == {'schema': 'keyboard-reader-release-v1', 'classification': 'passed',
+        'admission_id': admission['id'], 'boot_id': admission['boot_id'],
+        'processes_scanned': scan.get('processes_scanned'),
+        'descriptors_scanned': scan.get('descriptors_scanned'), 'matches': []} and
+        type(scan['processes_scanned']) is int and 0 <= scan['processes_scanned'] <= 512 and
+        type(scan['descriptors_scanned']) is int and 0 <= scan['descriptors_scanned'] <= 4096,
+        'disconnect reader scan')
     require(value['reader_release'] == {'monitor_absent': True, 'observer_absent': True,
         'tty1_reader_absent': True, 'input_reader_absent': True,
         'inventory_complete': True}, 'disconnect reader release')
@@ -162,9 +232,10 @@ def verify(admission, candidate, package_pins, regular, root):
     base = Path(root) / admission['id'] / 'prerequisites'
     runtime_raw = regular(base/'runtime.json', 65536)
     custody_raw = regular(base/'custody.json', 65536)
-    disconnect_raw = regular(base/'disconnect.json', 65536)
+    disconnect_root = base/'disconnect'
+    disconnect_raw = regular(disconnect_root/'receipt.json', 65536)
     return {'duration': duration(duration_raw, admission['full_duration_receipt_sha256'], monitor_sha),
         'runtime': runtime(runtime_raw, admission['runtime']['metadata_receipt_sha256'], admission, candidate),
         'custody': custody(custody_raw, admission['custody']['receipt_sha256'], admission, candidate),
         'disconnect': disconnect(disconnect_raw, admission['disconnect_receipt_sha256'], admission,
-                                 candidate, package_pins)}
+                                 candidate, package_pins, disconnect_root, regular)}

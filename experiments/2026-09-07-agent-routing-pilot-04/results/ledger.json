@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 7,
-  "next_accepted_sequence": 8,
-  "next_considered_sequence": 9,
+  "accepted_count": 8,
+  "next_accepted_sequence": 9,
+  "next_considered_sequence": 10,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -319,6 +319,46 @@
         "credit_source": "unavailable",
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-07-gemini-sensors-upstream-architecture/results/source-review.json"
+      }
+    },
+    {
+      "considered_sequence": 9,
+      "accepted_sequence": 8,
+      "candidate_id": "keyboard-boot2-direct-readiness",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "reasoning",
+      "risk_class": "cross-file",
+      "acceptance_contract": "experiments/2026-09-07-keyboard-boot2-session/WORK_ITEM.md",
+      "review_comparison_group": "gemini-device-session-readiness",
+      "parent": "fa29ac5949416774f3bb5b46e76b34e8e4d049f8",
+      "owner_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "review_route": {
+        "role": "primary-integration-reviewer",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-07T20:59:41Z",
+        "review_ready_at": "2026-09-07T21:09:17Z",
+        "accepted_at": "2026-09-07T21:25:44Z",
+        "timing_source": "observed UTC work-contract, completed audit handoff and exact integration-commit timestamps",
+        "elapsed_minutes": 26.05,
+        "review_rework_minutes": 16.45,
+        "first_review_accepted": true,
+        "rework_cycles": 0,
+        "escalated": false,
+        "escalation_reason": null,
+        "escalation_packet": null,
+        "review_failure_class": null,
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-07-keyboard-boot2-session/results/readiness.json"
       }
     }
   ],
