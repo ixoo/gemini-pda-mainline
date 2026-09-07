@@ -9,7 +9,8 @@
     "source_dependencies_producer": "../2026-09-06-mt6797-connectivity-producer-source-attribution"
   },
   "controlling_contract": {
-    "WORK_ITEM.md": "8de4931e20ff0492b5d5d9d627d96688694dfd437e5561bdbac7a4ebea59b9e0",
+    "WORK_ITEM.md": "0d6b9a727df2b527dcd360b6265760dbb3e6d3da26471f5a8cd6338f1b20f58d",
+    "AMENDMENT-29.md": "c1ae9b73e4311c7e4b5790c9b4befeaeb24bb51ef49b4c7dc4cffa899d16d46c",
     "AMENDMENT-28.md": "4c31045693257876985a4fe52f4b3df82e67dc6b5e103b08e5c17241be5c7a96",
     "AMENDMENT-27.md": "02b74714ee2d5d86f7a639ef0190c554ad91cf25110676af0ad778c7b3d77920",
     "bootstrap-v10-result.json": "3e0caa5234b3bd1842e70cab0626929ea0ed044b59960fc03da84411c13fb193",
@@ -148,6 +149,25 @@
     {"name": "mtk_wcn_wlan_gen3_exit", "start": "0xffffffc000741898", "end_exclusive": "0xffffffc000741938", "size": 160, "kallsyms_type": "T"}
   ],
   "diagnostic_candidate": {"amendment_28_sha256":"4c31045693257876985a4fe52f4b3df82e67dc6b5e103b08e5c17241be5c7a96","construction_dispatch_commit":"670b831b76225078aa3fa55b1accfe7ae9acae4a","container_bytes":502641,"container_hash_record":"inputs.json#/diagnostic_candidate/container_sha256","container_sha256":"f5ac57678dbc74bf36c5f11b3f45b72a12d8b156f3cf664f17bfb22ee39f700f","design_parent_commit":"7ab160dffddc334492de247405509e8b12864c2d","future_runs_remaining":1,"inherited_input_pin_count":110,"run_admitted":false,"source_bytes":261137,"source_hash_record":"inventory-diagnostic-v1.json#/source_sha256","source_mechanical_sha256":"bd42ce6c91e1733f2fd0e849fae43d090849453c89c4a6f302c714f04d1dd633","source_sha256":"4823099f6bd767a8e0a8e23e17aaddb744f1a8ab25da6ed1ce30d5f2500ae739","state":"source-frozen-awaiting-independent-review"},
+  "diagnostic_execution_design": {
+    "amendment": "AMENDMENT-29.md",
+    "design_parent_commit": "4d9ac686d2f4d6a415ca3c0062d905bd1f5f6f0c",
+    "design_parent_inputs_sha256": "dda058abb503b76b813a5d87ef3837b179c09540d3b83c92e6bf1fef1e6c9f8f",
+    "design_parent_work_item_sha256": "8de4931e20ff0492b5d5d9d627d96688694dfd437e5561bdbac7a4ebea59b9e0",
+    "state": "contract-only-awaiting-review-publication-and-dispatch",
+    "custodian": "/root/runtime_identity_specialist",
+    "model": "gpt-6-astra",
+    "reasoning_effort": "medium",
+    "review_model": "gpt-5.6-sol",
+    "review_reasoning_effort": "medium",
+    "argv": ["/usr/bin/python3.12", "-I", "-S", "-B", "-", "inventory-diagnostic"],
+    "stdin": "source-only",
+    "deadline_seconds": 180,
+    "process_budget": 1,
+    "runs_consumed": 0,
+    "run_admitted": false,
+    "vm_access_this_dispatch": false
+  },
 "bounds": {
     "elf_files": 1,
     "target_envelopes": 4,
