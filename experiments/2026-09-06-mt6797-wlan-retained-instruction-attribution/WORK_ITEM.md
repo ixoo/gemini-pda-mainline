@@ -30,27 +30,19 @@
 - **Model route:** `gemini_specialist`, `gpt-6-astra`, medium for the named
   binary-control-flow uncertainty; `gemini_reasoner`, `gpt-5.6-sol`, medium for
   independent review. No implementation route is selected.
-- **Current bounded dispatch:** A33 contract-only exact import-namespace design
-  at `af58842a9beb22972527f6bd7d26d8f2214b0608`.
-  Astra Medium `/root/runtime_identity_specialist` owns the closure uncertainty
-  and is prospective sole recovery custodian; Sol Medium independently reviews;
-  `/root` integrates and records workflow measurement. Only
-  [AMENDMENT-33.md](AMENDMENT-33.md), minimal work-item/input updates restored
-  from published A32, and removal of rejected untracked recovery-observer-v1.json
-  are owned. Preserve unrelated AGENTS.md changes. A33 records three rejected
-  construction identities, preserves A32 plus the live-link/deadline design,
-  and adds only built-in `_stat` and identity-checked `os.path` namespace alias
-  handling. No `os.path` import-event permission is added. Tagged CPython
-  v3.12.3 public-source research is explicitly authorized for this contract;
-  no other network, VM/private/device access, build, observer/source execution,
-  source/fixture/result/verifier construction, commit or push is admitted.
-  Further dependency/alias/event needs require immediate escalation. A33 design
-  review/publication, new source construction, independent source publication
-  and execution remain separate dispatches. There is no observer candidate.
-  Startup and native behavior are not content-identity/no-effect attestations.
-  A29 remains immutable, consumed and custody-unresolved; recovery access and
-  observer budgets remain unconsumed and unadmitted. Association is not
-  attribution or termination/deletion/closure authority.
+- **Current bounded dispatch:** owner-directed non-runnable closure at published
+  parent `a09c8dbe43b8059e67c6e529184055c2cb726e8e`. The exact blocked
+  source/container/checker identities, completed static-page digests, surviving
+  mutations and independent redundancy classification are preserved in
+  [RECOVERY-OBSERVER-CLOSURE.md](RECOVERY-OBSERVER-CLOSURE.md). The unaccepted
+  runnable container is removed. Do not create A34, reconstruct or run the
+  observer, or spend another repair/review cycle without a new owner decision.
+  A29 remains immutable, consumed and custody-unresolved, and that unresolved
+  custody is non-blocking for unrelated upstream work unless a future direct
+  upstream task proves otherwise. Recovery access and observer budgets remain
+  unconsumed and unadmitted. This closure adds no attribution, termination,
+  deletion, device or mutation authority. Work now returns to the highest-ready
+  upstream-facing item in [the roadmap](../../docs/ROADMAP.md).
 - **Closed V10 dispatch:** single execution at published clean
   `f1fef5e6bb83d2a2e85b33f9a97e9256b8b11a55`, with Astra Medium
   `/root/runtime_identity_specialist` as sole RE-VM custodian. Sol Medium
@@ -269,12 +261,13 @@
 - **Efficiency loop:** if independently accepted, append one sanitized item to
   the active workflow cohort with actual routes/timestamps, first-review result,
   rework/escalation and measured credits or explicit unavailability.
-- **State:** A33 exact import-namespace contract awaits independent review and
-  publication before separately dispatched new observer construction. Three
-  A32 source-only freezes were rejected; their identities/reasons are in A33
-  and the untracked rejected container is removed. No source candidate exists.
-  Published A32's descriptor-metadata design remains in force except A33's
-  narrow import-namespace supersession. A31 construction stopped
+- **State:** The retained-instruction recovery-observer/checker line is closed
+  without execution. The unaccepted final source/container/checker are removed;
+  only their hashes, bounded static outcomes and closure rationale are retained
+  in [RECOVERY-OBSERVER-CLOSURE.md](RECOVERY-OBSERVER-CLOSURE.md). Three earlier
+  A32 source-only freezes remain rejected in A33. No source candidate exists and
+  no further observer repair is selected. Published A32/A33 remain historical
+  design evidence only. A31 construction stopped
   on an unproved native path-buffer bound with no candidate file or execution.
   The required explicit-command transport is published; its zero-argument
   login path remains unavailable for this observer. A30 command preparation refused
