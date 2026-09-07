@@ -121,3 +121,29 @@ reasoning boundary, and three comparable items are below the five-item evidence
 minimum for a settings experiment. The specialist review caught each defect,
 so the checkpoint conclusion is `no-change`: `baseline-01` remains effective
 and credits are unavailable.
+
+## Accepted items six and seven
+
+The sixth accepted offline item refreshed local MT6797 CAMSYS/MJCSYS clock
+patches 0021/0022. Sol stopped before either topic: inspected current trees have
+no MT6797 camera/MJC provider or consumer, current SMI/IOMMU and media paths do
+not supply the missing consumer graph, and the one-based IDs versus descriptor
+array sizes leave a static provider-slot risk. Astra accepted that risk wording
+on first review because it does not claim a measured out-of-bounds failure.
+CAM and MJC remain separate, and no follow-up audit or code is admitted by the
+result.
+
+The seventh accepted offline item refreshed the disabled Gemini BMI160 patch
+and the distinct STK3310 boundary. Current IIO drivers remain possible reuse
+targets, but a normal probe can write state even after an informational unknown
+ID. The public record does not establish physical population/address, rail
+owners, interrupt/no-interrupt electrical contract or BMI package-to-chassis
+orientation. Sol therefore retained an exact stop; Astra accepted it on first
+review. Neither sensor is enabled and no I2C action is selected.
+
+Both extend the current-upstream architecture comparison group, but their
+first-review passes break the earlier consecutive-miss streak. They trigger no
+new checkpoint or settings decision. The owner has since prioritized the
+already-scoped keyboard device preparation, so no additional architecture audit
+is opened from these handoffs. `baseline-01` remains effective and credits are
+unavailable.

@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "review_ready_utc": "2026-09-07T20:47:53Z",
+  "accepted_utc": "2026-09-07T20:52:42Z",
+  "first_review_accepted": true,
+  "rework_cycles": 0,
+  "frozen_parent": "c8344011557b2369e8d15187a5969103108a2c18",
+  "verdict": {
+    "status": "exact_stop",
+    "cam_topic_admitted": false,
+    "mjc_topic_admitted": false,
+    "implementation_admitted": false,
+    "reason": "No inspected current tree provides an MT6797 CAMSYS or MJCSYS consumer, and the one-based clock IDs leave the provider-slot contract unresolved against the current helper allocation path.",
+    "next_discriminator": "A separately scoped current-upstream review of local patches 0023-0025 for the MT6797 SMI/IOMMU/DTS consumer boundary, plus an independently resolved clock-ID/provider-slot contract."
+  },
+  "local_inputs": [
+    {
+      "path": "patches/v7.1.3/0021-dt-bindings-clock-mediatek-add-MT6797-CAM-and-MJC.patch",
+      "sha256": "df7b724bfdd38301416a4e0474338a9f7ef8fbde882d3e27a39c22b7f12c8f05",
+      "disposition": "retain-local-split-and-redesign-after-prerequisites"
+    },
+    {
+      "path": "patches/v7.1.3/0022-clk-mediatek-add-MT6797-CAM-and-MJC-clocks.patch",
+      "sha256": "03dfe99596f00f1c406c36da968b9d53de2368008c26c8caebc62cb9a28eee26",
+      "disposition": "retain-local-no-provider-submission"
+    },
+    {
+      "path": "experiments/2026-07-13-camera-recovery/README.md",
+      "sha256": "050017875b353d95073f0e84e4aea6aa93e93d3fd6d193d2dfe89479899b6e08",
+      "use": "frozen sanitized July record only"
+    },
+    {
+      "path": "experiments/2026-07-13-camera-recovery/results/mt6797-camera-mainline-design.md",
+      "sha256": "bc53b7c292fd556395d8a9750776c30cde98252841ba5d1f3592108334f4dfca",
+      "use": "frozen sanitized design boundary only"
+    },
+    {
+      "path": "experiments/2026-07-13-camera-recovery/results/mt6797-camera-pipeline-contract.md",
+      "sha256": "ac7452eaa33f71474b23cbecd3a28d191dcc4d42c485fa052f71c6f457ede9d1",
+      "use": "frozen sanitized pipeline contract only"
+    }
+  ],
+  "refs": {
+    "mainline": {
+      "repository": "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
+      "ref": "refs/heads/master",
+      "revision": "28924df2a08f440c73991b83028032c901de2ae4",
+      "content_base": "https://raw.githubusercontent.com/torvalds/linux/28924df2a08f440c73991b83028032c901de2ae4/"
+    },
+    "clk_next": {
+      "repository": "https://git.kernel.org/pub/scm/linux/kernel/git/clk/linux.git",
+      "ref": "refs/heads/clk-next",
+      "revision": "91b1b8d437abe0cd83210d8f257b785a63047aa9",
+      "content_base": "https://git.kernel.org/pub/scm/linux/kernel/git/clk/linux.git/plain/"
+    },
+    "mediatek_for_next": {
+      "repository": "https://git.kernel.org/pub/scm/linux/kernel/git/mediatek/linux.git",
+      "ref": "refs/heads/for-next",
+      "revision": "f5be25e697e0362103625b1b197af126ae4ba5f7",
+      "content_base": "https://git.kernel.org/pub/scm/linux/kernel/git/mediatek/linux.git/plain/"
+    },
+    "official_v7_1_3": {
+      "repository": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git",
+      "tag": "v7.1.3",
+      "revision": "199c9959d3a9b53f346c221757fc7ac507fbac50",
+      "content_base": "https://raw.githubusercontent.com/gregkh/linux/199c9959d3a9b53f346c221757fc7ac507fbac50/"
+    }
+  },
+  "mainline_sources": [
+    ["MAINTAINERS", 927884, "1b6bd8418b8bbdcbce595c4648c10afaf23370e3de243a282dbc992798de3a84"],
+    ["Documentation/devicetree/bindings/clock/mediatek,syscon.yaml", 3194, "e3c3dcb457bb8177ecf1e6bb859c125f6d1fa7dad4a3176417416678cf953140"],
+    ["include/dt-bindings/clock/mt6797-clk.h", 8183, "73ef029a8a51216697d7384a360ac94b714a6fea83e5bd8c4e2a5f78f2a48a63"],
+    ["drivers/clk/mediatek/Kconfig", 34673, "6634c6e7c14ca9a72fc0a258ca9b8a575c53bc451919646feb644c7b9354c3c0"],
+    ["drivers/clk/mediatek/Makefile", 10756, "6af23f8e56cbb5e9fdda850fb8201f384053f89e8b3347aa8a6cd98239678b11"],
+    ["drivers/clk/mediatek/clk-mt6797.c", 23000, "eaad6324621679371f33bbb76e10bcb0d3374b1f2dbbd837323b3f9e8fee1534"],
+    ["drivers/clk/mediatek/clk-mt6797-img.c", 1432, "cb9e25f289cbbad70541a89734862ddf8d44f1b142dc10a1b6f58cf31ae52a10"],
+    ["drivers/clk/mediatek/clk-mt6765-cam.c", 1644, "8a5cc0d8af0e2fa3ec99d79180105d5aef134c3f84a97d74b8896af8859405a1"],
+    ["drivers/clk/mediatek/clk-mt6779-cam.c", 2008, "9d15d82a19d7455e3bd2a2fe1dfd605b473e30dac896a30a2f8a5f37ce73ccbe"],
+    ["drivers/clk/mediatek/clk-mtk.c", 16200, "e8a89dffaffedfce01489b0887fb425d64649d6fb841157bbcea5aac0fc93e59"],
+    ["drivers/clk/mediatek/clk-mtk.h", 7609, "67c603ab0a319e7672fba7f569a4e691fd8b3772b031427524d8da934198e6d9"],
+    ["drivers/clk/mediatek/clk-gate.c", 7403, "f7ce5febabcda46321b658c8bc00d747d50c09f9b7642313227153c8dbceef8b"],
+    ["arch/arm64/boot/dts/mediatek/mt6797.dtsi", 11331, "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83"],
+    ["drivers/pmdomain/mediatek/mtk-scpsys.c", 29139, "9ce2b2c95a38bc4c7b801aff9b7c26da2dc8ec2e3fd34199adaedf1db3007226"],
+    ["include/dt-bindings/power/mt6797-power.h", 721, "201e215b5f058fbb043c6f3503e8ab42c8caab0ae41a7b634024f88cef4c4034"],
+    ["Documentation/devicetree/bindings/power/mediatek,power-controller.yaml", 10328, "06def271693ef856cc420ceeea5099f3276713ae55ae87ef667e54596eff906c"],
+    ["Documentation/devicetree/bindings/memory-controllers/mediatek,smi-larb.yaml", 3613, "c3ee2b9246d4dc3bd3a246c51318b92adc88a884fd136d30a3bfe8358ca2f7d0"],
+    ["drivers/memory/mtk-smi.c", 33672, "6425b65c76b78b527faa3c1526f3282767ce44257b77a4936b32284d92e0ed8f"],
+    ["drivers/iommu/mtk_iommu.c", 61804, "9d2e5aa4806e7291df179cad50fe58aaf75e0cb5c92eae7eca63ecb3e33888e0"],
+    ["Documentation/devicetree/bindings/iommu/mediatek,iommu.yaml", 8126, "0d38a9838bd14eb56fe7df728e1f0ab69e64e794a74b43f86a3865ff22f0db0d"],
+    ["drivers/media/platform/mediatek/Kconfig", 354, "cb182c3514e52f4d8c3d3bdef9144654762d851fe1b37123b7e3aa6798f2136b"],
+    ["drivers/media/platform/mediatek/Makefile", 115, "518a7344a9f68a3ac0382af9ece4e3fd637f6091802aa6bc39d3ce0fac98d2dd"]
+  ],
+  "official_v7_1_3_sources": [
+    ["Documentation/devicetree/bindings/clock/mediatek,syscon.yaml", 3194, "e3c3dcb457bb8177ecf1e6bb859c125f6d1fa7dad4a3176417416678cf953140"],
+    ["include/dt-bindings/clock/mt6797-clk.h", 8183, "73ef029a8a51216697d7384a360ac94b714a6fea83e5bd8c4e2a5f78f2a48a63"],
+    ["drivers/clk/mediatek/Kconfig", 34351, "7fc2955a8c0eea257f9320641542929a97759485ffadde9f48c046f9783547ec"],
+    ["drivers/clk/mediatek/Makefile", 10694, "d4938ae54d40715d3cec345b5d4b441fcd8c28ea34d9f520a3a5b9b6205b5288"],
+    ["arch/arm64/boot/dts/mediatek/mt6797.dtsi", 11331, "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83"]
+  ],
+  "next_tree_sources": {
+    "clk_next": [
+      ["Documentation/devicetree/bindings/clock/mediatek,syscon.yaml", 3194, "e3c3dcb457bb8177ecf1e6bb859c125f6d1fa7dad4a3176417416678cf953140"],
+      ["include/dt-bindings/clock/mt6797-clk.h", 8183, "73ef029a8a51216697d7384a360ac94b714a6fea83e5bd8c4e2a5f78f2a48a63"],
+      ["drivers/clk/mediatek/Kconfig", 34688, "712eede24414e708c2b140e6860111b7f4f8f9f2ef356a2330286c3af1a2d351"],
+      ["drivers/clk/mediatek/Makefile", 10756, "6af23f8e56cbb5e9fdda850fb8201f384053f89e8b3347aa8a6cd98239678b11"]
+    ],
+    "mediatek_for_next": [
+      ["arch/arm64/boot/dts/mediatek/mt6797.dtsi", 11331, "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83"]
+    ]
+  },
+  "negative_lookups": [
+    {
+      "tree": "mainline",
+      "path": "drivers/clk/mediatek/clk-mt6797-cam.c",
+      "status": 404
+    },
+    {
+      "tree": "mainline",
+      "path": "drivers/clk/mediatek/clk-mt6797-mjc.c",
+      "status": 404
+    },
+    {
+      "tree": "clk_next",
+      "path": "drivers/clk/mediatek/clk-mt6797-cam.c",
+      "status": 404
+    },
+    {
+      "tree": "clk_next",
+      "path": "drivers/clk/mediatek/clk-mt6797-mjc.c",
+      "status": 404
+    },
+    {
+      "tree": "official_v7_1_3",
+      "path": "drivers/clk/mediatek/clk-mt6797-cam.c",
+      "status": 404
+    },
+    {
+      "tree": "official_v7_1_3",
+      "path": "drivers/clk/mediatek/clk-mt6797-mjc.c",
+      "status": 404
+    },
+    {
+      "tree": "mainline",
+      "paths": ["drivers/memory/mtk-smi.c", "drivers/iommu/mtk_iommu.c"],
+      "finding": "No MT6797 match or data entry occurs in either file."
+    },
+    {
+      "tree": "mainline",
+      "paths": ["drivers/media/platform/mediatek/Kconfig", "drivers/media/platform/mediatek/Makefile"],
+      "finding": "The current MediaTek media inventory has no camera ISP, SENINF or capture entry."
+    }
+  ],
+  "public_history": {
+    "queries": [
+      "site:lore.kernel.org mediatek,mt6797-camsys",
+      "site:lore.kernel.org CLK_CAM_CAMSV2 MT6797",
+      "site:lore.kernel.org mediatek,mt6797-mjcsys"
+    ],
+    "result": "No result located by the bounded exact-string searches; this is not proof of exhaustive historical absence."
+  },
+  "current_findings": {
+    "parents": "mm_sel, camtg_sel and mjc_sel are present in current MT6797 topckgen data",
+    "binding_and_ids": "The current syscon schema and MT6797 clock header omit CAMSYS and MJCSYS",
+    "providers": "No MT6797 CAMSYS or MJCSYS driver or Kconfig/Makefile entry is present in mainline or clk-next",
+    "soc_dts": "Mainline and MediaTek for-next MT6797 DTS contain img/mm/vdec/venc syscons but no CAMSYS or MJCSYS node",
+    "power_domains": "Current MT6797 ISP and MJC domains exist, but each uses CLK_NONE and consumes no proposed gate",
+    "smi_iommu": "Current MediaTek SMI and IOMMU drivers contain no MT6797 match/data entry",
+    "media_consumer": "Current MediaTek media inventory contains no camera ISP, SENINF or capture driver",
+    "imgsys": "The current IMGSYS provider exists; frozen project evidence associates it with a vendor camera graph, but no current MT6797 capture consumer exists",
+    "index_risk": "Local CAM IDs 1-7 with a seven-entry descriptor and MJC IDs 1-6 with a six-entry descriptor make the highest ID equal the slot allocation used by current mtk_clk_simple_probe; current clk-mt6797-img.c has the same pattern, which is risk evidence rather than precedent or runtime-failure proof"
+  },
+  "future_topic_boundaries": {
+    "cam": "Independent future binding/provider topic only after the SMI/IOMMU/DTS review supplies an accepted real consumer and the ID/provider-slot contract is resolved.",
+    "mjc": "Independent non-camera topic only after its own functional consumer and resource-lifetime contract exist.",
+    "removal": "Do not remove the combined local patches until both halves have accepted upstream equivalents, or replace them with separately ordered local patches retaining every still-required half and re-audit all manifest-selected series."
+  },
+  "authorship": {
+    "local_identity": "Gemini PDA Mainline Project <noreply@example.com>",
+    "local_signed_off_by": "Gemini PDA Mainline Project <noreply@example.com>",
+    "submission_state": "not submission-ready synthetic authorship and certification",
+    "rule": "Use the actual author for any rewrite and add a DCO sign-off only when that person can truthfully certify it."
+  },
+  "effects": {
+    "files_created": ["README.md", "results/source-review.json"],
+    "implementation": false,
+    "build": false,
+    "device_or_private_access": false,
+    "shared_files_changed": false,
+    "upstream_contact": false,
+    "hardware_support_claim": false
+  }
+}

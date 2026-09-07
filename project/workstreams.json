@@ -209,7 +209,8 @@
         "experiments/2026-07-12-connectivity-wmt-recovery/README.md",
         "experiments/2026-07-12-audio-afe-recovery/README.md",
         "experiments/2026-07-12-sensor-iio-recovery/README.md",
-        "experiments/2026-09-07-mt6797-audio-upstream-architecture/README.md"
+        "experiments/2026-09-07-mt6797-audio-upstream-architecture/README.md",
+        "experiments/2026-09-07-gemini-sensors-upstream-architecture/README.md"
       ],
       "issue_urls": [
         "https://github.com/ixoo/gemini-pda-mainline/issues/25",
@@ -228,6 +229,7 @@
       ],
       "evidence": [
         "experiments/2026-07-13-camera-recovery/README.md",
+        "experiments/2026-09-07-mt6797-camera-clock-upstream-architecture/README.md",
         "experiments/2026-09-07-mt6797-cellular-upstream-architecture/README.md",
         "docs/hardware/firmware.md"
       ],

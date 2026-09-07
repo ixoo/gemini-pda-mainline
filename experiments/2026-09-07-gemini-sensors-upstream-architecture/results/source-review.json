@@ -1,0 +1,204 @@
+{
+  "schema_version": 1,
+  "observed_at_utc": "2026-09-07T20:42:31Z",
+  "review_ready_utc": "2026-09-07T20:49:17Z",
+  "accepted_utc": "2026-09-07T20:52:42Z",
+  "first_review_accepted": true,
+  "rework_cycles": 0,
+  "repository_parent": "c8344011557b2369e8d15187a5969103108a2c18",
+  "method": "Read-only comparison of frozen project records with exact files from official public Linux, IIO and DT trees plus bounded lore history; no Linux tree retained and no build, VM, private material, device, I2C transaction or upstream contact.",
+  "frozen_inputs": [
+    { "path": "patches/v7.1.3/0052-arm64-dts-mediatek-add-disabled-Gemini-BMI160-candidate.patch", "size": 1844, "sha256": "d55ebcf56b8a573b98b97419ec35ba110bffba65e7f6ff594578818aad89e3d4" },
+    { "path": "experiments/2026-07-12-sensor-iio-recovery/README.md", "size": 17886, "sha256": "f046614df6455f4a233fb9d01ba91537114add4f0c6802a9e5f35ba2e197fe41" },
+    { "path": "experiments/2026-07-12-sensor-iio-recovery/results/stk3310-reuse-audit.txt", "size": 3033, "sha256": "ec035dca7befd4779b07d495ed66686c0ba5ac152a0ebb590a0327eaac2e091f" },
+    { "path": "experiments/2026-07-12-sensor-iio-recovery/results/hal-axis-contract.txt", "size": 6279, "sha256": "aa525f7a4e2f1e583dc356354c571fd8195f1097931ca9260db1f9a7352c926d" }
+  ],
+  "canonical_patch_position": {
+    "series_path": "patches/series",
+    "series_size": 37138,
+    "series_sha256": "bc59b97b7c1a5ac32d6d28de655b0e50dfdb949af7c8864875eb46dc6ebe34b3",
+    "line": 55,
+    "entry": "v7.1.3/0052-arm64-dts-mediatek-add-disabled-Gemini-BMI160-candidate.patch",
+    "predecessor": "v7.1.3/0051-regulator-add-Richtek-RT5735-VSEL0-support.patch",
+    "successor": "v7.1.3/0053-arm64-dts-mediatek-gemini-add-toprgu-watchdog-irq.patch",
+    "result": "canonical position verified at frozen parent; no series or profile changed"
+  },
+  "refs": {
+    "mainline": {
+      "repository": "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
+      "ref": "refs/heads/master",
+      "revision": "28924df2a08f440c73991b83028032c901de2ae4"
+    },
+    "iio_togreg": {
+      "repository": "https://git.kernel.org/pub/scm/linux/kernel/git/jic23/iio.git",
+      "ref": "refs/heads/togreg",
+      "revision": "309bd01041636b587bcb424b243640b448bd62f7"
+    },
+    "dt_for_next": {
+      "repository": "https://git.kernel.org/pub/scm/linux/kernel/git/krzk/linux-dt.git",
+      "ref": "refs/heads/for-next",
+      "revision": "6bd34d56818cc881a75c789ad6ce8ec4a1e32f3a"
+    }
+  },
+  "mainline_sources": [
+    { "path": "Documentation/devicetree/bindings/iio/imu/bosch,bmi160.yaml", "size": 2380, "sha256": "91163985f18028ebd979c1adcb72bcd351f012fb9a411519dc126ab0561dcd73" },
+    { "path": "Documentation/devicetree/bindings/iio/light/stk33xx.yaml", "size": 1215, "sha256": "da26973c53cc9ba3780d5f614f55a018677c2c781223f9bfdadfd2826ae50bf9" },
+    { "path": "Documentation/driver-api/iio/index.rst", "size": 220, "sha256": "1a7ccad5f9fb9bab7fafc8efdbc23438e8f9484d7828122e9dc27b73842ddfab" },
+    { "path": "MAINTAINERS", "size": 927884, "sha256": "1b6bd8418b8bbdcbce595c4648c10afaf23370e3de243a282dbc992798de3a84" },
+    { "path": "arch/arm64/boot/dts/mediatek/mt6797.dtsi", "size": 11331, "sha256": "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83" },
+    { "path": "drivers/iio/imu/bmi160/Kconfig", "size": 805, "sha256": "957f2a15793888fbfbdfb73a3a22d2193aeacc78d915c1726e0ae494d9371315" },
+    { "path": "drivers/iio/imu/bmi160/Makefile", "size": 196, "sha256": "af246f08ed65b9dfbf3d9304acc688e56d24d043e7c273398308221327d101e1" },
+    { "path": "drivers/iio/imu/bmi160/bmi160.h", "size": 956, "sha256": "bb225bfc0f772eeb0ec930a80693aa0b4f899267c165e1b151982477b660f536" },
+    { "path": "drivers/iio/imu/bmi160/bmi160_core.c", "size": 22639, "sha256": "9873fa8ef99ac7cf62168269b478e6147d82c727c8484cc2996a4fbc69508f0c" },
+    { "path": "drivers/iio/imu/bmi160/bmi160_i2c.c", "size": 2150, "sha256": "8a4fadbfdeb18b1df0a351626df0aff49b9e411f0c4961327ae6591b63142ee7" },
+    { "path": "drivers/iio/industrialio-core.c", "size": 60412, "sha256": "ffd4c134d69436d4168927a2959cb10c5491d59f54bf57d34b85489ac7a171a5" },
+    { "path": "drivers/iio/light/Kconfig", "size": 23139, "sha256": "1fbb25fd77b4182daaaf74765fb29b417c3d252fe05a47db240a2a3664efa849" },
+    { "path": "drivers/iio/light/stk3310.c", "size": 20517, "sha256": "0e7640c2bc732b53cfaa41209e9255c9c785362522f2db150071020003e2bade" },
+    { "path": "drivers/input/misc/Kconfig", "size": 30879, "sha256": "68d9ddcd85092a43401cde5f18889f2d82bb24e6a13cc03d517d05d893a0b506" },
+    { "path": "drivers/input/misc/Makefile", "size": 4801, "sha256": "53680283e40ac39dbb9db0d6a883529092987170daa4d4d5c3a0ce9baa654e47" },
+    { "path": "include/linux/iio/iio.h", "size": 40777, "sha256": "67b733bb6ecb54a0241d75c8c58d10d06eb92369f9e4efb95163120e367754c5" }
+  ],
+  "cross_tree_identity": [
+    {
+      "trees": ["mainline", "iio_togreg"],
+      "result": "byte-identical",
+      "paths": [
+        "Documentation/devicetree/bindings/iio/imu/bosch,bmi160.yaml",
+        "Documentation/devicetree/bindings/iio/light/stk33xx.yaml",
+        "drivers/iio/imu/bmi160/Kconfig",
+        "drivers/iio/imu/bmi160/Makefile",
+        "drivers/iio/imu/bmi160/bmi160.h",
+        "drivers/iio/imu/bmi160/bmi160_core.c",
+        "drivers/iio/imu/bmi160/bmi160_i2c.c",
+        "drivers/iio/light/stk3310.c"
+      ]
+    },
+    {
+      "trees": ["mainline", "dt_for_next"],
+      "result": "byte-identical",
+      "paths": ["arch/arm64/boot/dts/mediatek/mt6797.dtsi"]
+    }
+  ],
+  "board_tree_inventory": {
+    "mainline_listing_sha256": "08ea4c4d5bc5afc05f8194273322fed13b7c69473a2feab4f97e9fc79ea25672",
+    "dt_for_next_listing_sha256": "d39e7dbf1729a9fbcbecf3e916e158eab469f7670ff44423ae0ed1d79df93b72",
+    "mt6797_files_in_both": ["mt6797-evb.dts", "mt6797-x20-dev.dts", "mt6797.dtsi"],
+    "gemini_board_file": "absent"
+  },
+  "public_history": [
+    {
+      "message_id": "20240505-bmi120-v3-1-15cee3d0b2ef@gmail.com",
+      "subject": "[PATCH v3 1/2] iio: imu: bmi160: add support for bmi120",
+      "url": "https://lore.kernel.org/linux-iio/20240505-bmi120-v3-1-15cee3d0b2ef@gmail.com/",
+      "raw_size": 8910,
+      "raw_sha256": "fddca05b96bc02c12ba403186a529d8e90354374bc6af0399ae61cf72b3dc28e",
+      "relevance": "Shows the explicit compatible and chip-ID extension pattern for a related BMI160-family part."
+    },
+    {
+      "message_id": "20240727-stk3310-v4-1-02497b1407ba@disroot.org",
+      "subject": "[PATCH v4 1/3] iio: light: stk3310: relax chipid check warning",
+      "url": "https://lore.kernel.org/linux-iio/20240727-stk3310-v4-1-02497b1407ba@disroot.org/",
+      "raw_size": 4466,
+      "raw_sha256": "d87bbd04831aa2ed6636fbec23b9b3f4968f69fe30146ef58b2fbb24b37e8c24",
+      "relevance": "Documents that unknown compatible STK-family IDs intentionally log informationally and continue; probe success is not exact Gemini identity evidence."
+    }
+  ],
+  "patch_0052": {
+    "classification": "disabled_local_evidence_marker",
+    "upstream_ready": false,
+    "runtime_consumer": false,
+    "binding_shape": "bosch,bmi160, one reg value and an optional nine-string mount-matrix are allowed by the current binding",
+    "truthful_parts": [
+      "disabled status",
+      "one candidate rather than two legacy logical devices",
+      "no invented supply or interrupt",
+      "matrix exactly encodes the frozen direction-7 transformation"
+    ],
+    "unproved_parts": [
+      "physical BMI160/BMI120 identity",
+      "0x69 physical SDO-selected address",
+      "VDD and VDDIO rail source and lifetime",
+      "INT1/INT2 wiring and electrical mode or confirmed absence",
+      "package-to-Gemini chassis orientation"
+    ],
+    "reason_not_upstreamable": "The child and parent bus are disabled, the label describes a candidate, the Gemini base DTS is absent upstream, and identity/resources/orientation lack an attributable physical contract."
+  },
+  "identity_disposition": [
+    {
+      "device": "BMI160/BMI120 candidate",
+      "software_evidence": "strong BMI160-compatible legacy path",
+      "physical_identity": "unresolved",
+      "current_driver": "reuse after identity",
+      "safe_probe_boundary": "Normal probe is not read-only: it enables vdd/vddio, soft-resets, reads ID, and configures accel/gyro even after unknown-ID warning."
+    },
+    {
+      "device": "STK3310-family candidate",
+      "software_evidence": "strong STK33xx register-protocol overlap",
+      "physical_identity": "product/revision unresolved",
+      "current_driver": "reuse only with a matching explicit compatible",
+      "safe_probe_boundary": "Normal probe is not read-only: after reading 0x3e it enables ALS/proximity and proximity interrupt mode even for an unknown ID."
+    }
+  ],
+  "dependency_map": [
+    { "area": "base_board", "required": "Accepted Gemini DTS and enabled, validated I2C1 controller and pins." },
+    { "area": "identity_address", "required": "One physical BMI-family ID and responding 0x68/0x69 address; separately, exact STK product/revision from ID register 0x3e." },
+    { "area": "rails", "required": "VDD/VDDIO or STK rail source, voltage, sequencing and lifetime owner; distinguish controlled from already-on." },
+    { "area": "interrupt", "required": "Exact sensor pin, SoC pin, pinmux, polarity, edge/level, drive and wake contract, or explicit no-IRQ decision." },
+    { "area": "orientation", "required": "Physical package axes to documented chassis axes and the corresponding IIO matrix." },
+    { "area": "userspace", "required": "Standard IIO scale, timestamps and mount-matrix-aware consumption; fusion and legacy compatibility stay in userspace." }
+  ],
+  "verdict": {
+    "status": "exact_stop",
+    "implementation_admitted": false,
+    "patch_0052_submission_admitted": false,
+    "bmi160_board_node_admitted": false,
+    "stk3310_board_node_admitted": false,
+    "driver_or_binding_change_admitted": false,
+    "smallest_eventual_upstream_topic": "One Gemini BMI160 board-DTS consumer of the existing binding and driver, after the base board is upstream and exact identity, address, rails, IRQ/no-IRQ and physical orientation are attributable.",
+    "next_discriminator": "A source-pinned, independently redistributable Gemini BMI160 population/electrical record covering exact part and address, both rails and owners, interrupt wiring/electrical mode or absence, and package-to-chassis axes.",
+    "failure_result": "Missing or conflicting attribution retains the stop and admits no node or probe. No I2C action is selected by this review.",
+    "stk3310_order": "Separate later topic after exact product/revision, explicit compatible, rail lifetime and GPIO88/EINT11 electrical contract are proved."
+  },
+  "future_validation": {
+    "offline": ["dt_binding_check", "focused dtbs_check", "checkpatch", "Buildbox Image/DTB build"],
+    "bmi160_hardware": ["identity-first exact address", "one IIO device", "accel and gyro channels", "standard scale and timestamps", "matrix-applied static gravity on each chassis axis", "described IRQ delivery only if present", "rail behavior", "suspend/resume", "no duplicate logical device"],
+    "stk3310_hardware": ["identity-first product and revision", "light and proximity channels", "threshold behavior", "described IRQ only if present", "rail behavior", "suspend/resume"],
+    "insufficient_alone": ["compile", "DTB generation", "driver bind", "IIO enumeration"]
+  },
+  "upstream": {
+    "routes": ["IIO", "Devicetree", "ARM64 MediaTek board DTS"],
+    "binding_change": "Not needed for a genuine BMI160/BMI120 or an explicitly listed STK33xx part.",
+    "authorship": "Existing patch author/sign-off metadata was not recertified. The actual author must confirm any future DCO certification; no Tested-by or maintainer agreement exists.",
+    "local_patch_removal_condition": "Remove patch 0052 when accepted upstream Gemini DTS covers the same proved identity, address, orientation and resources; retire or replace it immediately if evidence disproves any field."
+  },
+  "validation_performed": [
+    "strict JSON parsing",
+    "four frozen parent hashes and sizes",
+    "sixteen mainline source hashes and sizes",
+    "nine cross-tree byte comparisons",
+    "canonical patches/series position",
+    "local Markdown links",
+    "whitespace checks",
+    "sensitive-data pattern scan"
+  ],
+  "limitations": [
+    "No public source reviewed here establishes the Gemini physical BOM or electrical wiring.",
+    "The frozen direction-7 translation is internally consistent but not a physical chassis-orientation test.",
+    "Bounded public-history searches are not proof that no older discussion exists.",
+    "Compilation cannot establish identity, rails, interrupt behavior, scale, axes, orientation or wake behavior."
+  ],
+  "effects": {
+    "kernel_source_edit": false,
+    "patch_edit": false,
+    "shared_file_edit": false,
+    "build": false,
+    "vm": false,
+    "private_material": false,
+    "device": false,
+    "i2c_transaction": false,
+    "rail_or_interrupt_action": false,
+    "sample": false,
+    "upstream_contact": false,
+    "hardware_support_claim": false
+  }
+}
