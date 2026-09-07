@@ -9,7 +9,7 @@
     "source_dependencies_producer": "../2026-09-06-mt6797-connectivity-producer-source-attribution"
   },
   "controlling_contract": {
-    "WORK_ITEM.md": "682ada4216471d18c1472187eefda85db2af767ff7a4e062df65262b20ca23fa",
+    "WORK_ITEM.md": "42a45bfb355e767b82ab773b227e7e3729598ad84afa98877b5f18217e9155e1",
     "AMENDMENT.md": "36e8a93d9946f9f20593cf92a64cb7497ffff39b2dcb8bd5d97a937710e15409",
     "AMENDMENT-2.md": "e4bfa608ed6155cb9ad7b83add0c75ad64022ba99324ab4e2d3e18869fb1c8a1",
     "AMENDMENT-3.md": "faffaa9f4960ad9251458bd4551f565ff58e7abb9cdcf01703c3a8f54c8a852b",
@@ -31,6 +31,7 @@
     "AMENDMENT-19.md": "d8e87ca79fe1584df853f33fffce89ce3f9a53641b3198148c3b29d220ad3172",
     "AMENDMENT-20.md": "07109ef4321df1f9c8e67505dbe7da089daa83a0850d2c5547bdf39f15bbcdc9",
     "AMENDMENT-21.md": "1eb196d3b05f641b81a4b883563d9bacb6f841fceb16cf10505eb3359f106b29",
+    "AMENDMENT-22.md": "3c694c757a48a6a64d51286ee34e1f9bc2a7c6136e90a877534f3cc0e785d787",
     "PREFLIGHT.md": "420fa321f7897d6fead65c5e7b2d6e4d53472f213218e55bf867d88e058008bf",
     "bootstrap-refused.json": "53adefdb21a8bc966930b14cedb0683f7ae0bb11c1184c2d5fc94cbf011aed42",
     "VALIDATION-REFUSED.md": "e9b2b9a0b946e983679068f4dcd7536715b05357a127b9f10073fd67311fba36",
