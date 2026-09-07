@@ -33,7 +33,7 @@
 - **Owned scope:** create only this experiment's `README.md`, `inputs.json`,
   `AMENDMENT.md`, `AMENDMENT-2.md`, `AMENDMENT-3.md`, `AMENDMENT-4.md`,
   `AMENDMENT-5.md`, `AMENDMENT-6.md`, `AMENDMENT-7.md`, `AMENDMENT-8.md`,
-  `AMENDMENT-9.md`, `AMENDMENT-10.md`, `PREFLIGHT.md`,
+  `AMENDMENT-9.md`, `AMENDMENT-10.md`, `AMENDMENT-11.md`, `PREFLIGHT.md`,
   `bootstrap-refused.json`, `VALIDATION-REFUSED.md`, `bootstrap-v2.json`,
   the bootstrap-v2 refusal in `VALIDATION.md`, `bootstrap-v3.json`, the
   bootstrap-v3 refusal in `VALIDATION-FINAL.md`, `bootstrap-v4.json`, optional
@@ -43,10 +43,12 @@
   `bootstrap-v6.json`, optional `VALIDATION-V6-REFUSED.md`,
   `mapping-diagnostic-v2.json`, `mapping-diagnostic-result-v2.json`,
   `MAPPING-DIAGNOSTIC-2.md`, `mapping-diagnostic-v3.json`,
-  `mapping-diagnostic-result-v3.json`, `MAPPING-DIAGNOSTIC-3.md`, a future
-  replacement bootstrap named by a reviewed mapping-delta decision,
-  `method.json`, `analysis.json`, `edges.json`, `FREEZE.md`, an assert-free
-  normal/optimized verifier, final `README.md` and `VALIDATION-RESULT.md`.
+  `mapping-diagnostic-result-v3.json`, `MAPPING-DIAGNOSTIC-3.md`,
+  `mapping-diagnostic-v4.json`, `mapping-diagnostic-result-v4.json`,
+  `MAPPING-DIAGNOSTIC-4.md`, a future replacement bootstrap named by a reviewed
+  mapping-delta decision, `method.json`, `analysis.json`, `edges.json`,
+  `FREEZE.md`, an assert-free normal/optimized verifier, final `README.md` and
+  `VALIDATION-RESULT.md`.
   Raw outputs stay in a fresh
   mode-0700 RE-VM child with mode-0600 files. Do not edit dependencies,
   hardware/support facts, roadmap, queue, workstreams, workflow ledger,
@@ -70,7 +72,8 @@
   decoder lifetime/private callback by [AMENDMENT-8.md](AMENDMENT-8.md).
   [AMENDMENT-9.md](AMENDMENT-9.md) constrains the diagnostic-only mapping-delta
   chronology, with the nonreentrant observer refinement in
-  [AMENDMENT-10.md](AMENDMENT-10.md). Syntax-checking the frozen scripts is
+  [AMENDMENT-10.md](AMENDMENT-10.md) and terminal first-delta rule in
+  [AMENDMENT-11.md](AMENDMENT-11.md). Syntax-checking the frozen scripts is
   permitted before content; do not run them against another binary.
 - **Execution guard:** install a child-process audit hook before private reads.
   Permit read-only opens of the exact retained ELF and exact frozen installed
@@ -182,5 +185,5 @@
 - **Efficiency loop:** if independently accepted, append one sanitized item to
   the active workflow cohort with actual routes/timestamps, first-review result,
   rework/escalation and measured credits or explicit unavailability.
-- **State:** frozen for one offline nonreentrant mapping-delta diagnostic
-  dispatch; no decoder-engine, private-content or device action.
+- **State:** frozen for one offline first-delta terminal diagnostic dispatch;
+  no decoder-engine, private-content or device action.
