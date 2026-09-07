@@ -60,7 +60,7 @@ class RoutingTests(unittest.TestCase):
                 calls.append('fetch')
 
             argv = ['buildbox_userspace.py', '--branch', branch]
-            if kind in ('keyboard-monitor', 'keyboard-duration'):
+            if kind in ('keyboard-monitor', 'keyboard-monitor-enabled', 'keyboard-duration'):
                 argv.append('--' + kind)
             if fetch_only:
                 argv += ['--fetch-only', revision, identity]
@@ -86,7 +86,7 @@ class RoutingTests(unittest.TestCase):
             self.assertFalse((root/'artifacts/buildbox'/revision/('.fetch-' + kind)).exists())
 
     def test_legacy_and_monitor_build_paths(self):
-        for kind in ('userspace', 'keyboard-monitor', 'keyboard-duration'):
+        for kind in ('userspace', 'keyboard-monitor', 'keyboard-monitor-enabled', 'keyboard-duration'):
             with self.subTest(kind=kind):
                 self.exercise(kind, False)
 
@@ -101,12 +101,14 @@ class RoutingTests(unittest.TestCase):
     def test_main_build_and_fetch(self):
         self.exercise('keyboard-monitor', False, 'main')
         self.exercise('keyboard-monitor', True, 'main')
+        self.exercise('keyboard-monitor-enabled', False, 'main')
+        self.exercise('keyboard-monitor-enabled', True, 'main')
         self.exercise('keyboard-duration', False, 'main')
         self.exercise('keyboard-duration', True, 'main')
 
     def test_remote_ref_drift_refuses_before_fetch(self):
         for branch in ('main', MODULE['BRANCH']):
-            for kind in ('userspace', 'keyboard-monitor', 'keyboard-duration'):
+            for kind in ('userspace', 'keyboard-monitor', 'keyboard-monitor-enabled', 'keyboard-duration'):
                 with self.subTest(branch=branch, kind=kind):
                     self.exercise(kind, False, branch, post_build_ref='b' * 40)
 
@@ -114,7 +116,7 @@ class RoutingTests(unittest.TestCase):
         self.exercise('keyboard-monitor', False, 'main', post_build_ref='')
 
     def test_fetch_only_never_builds_either_kind(self):
-        for kind in ('userspace', 'keyboard-monitor', 'keyboard-duration'):
+        for kind in ('userspace', 'keyboard-monitor', 'keyboard-monitor-enabled', 'keyboard-duration'):
             with self.subTest(kind=kind):
                 self.exercise(kind, True)
 

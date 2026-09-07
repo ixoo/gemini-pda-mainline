@@ -62,11 +62,13 @@ and userspace. No kernel or DT change is requested by this packet.
 The exact ARM64 observer is now retained in the validated baseline userspace
 package. The [capture/delivery decision](CAPTURE_DELIVERY_DECISION.md) records
 its identity, existing behavior and the minimum remaining lifecycle work.
-The frozen packet still lacks actual baseline/recovery results, current input
+The [prerequisite repair](../../2026-09-07-keyboard-boot2-session/PREREQUISITE_REPAIR.md)
+now rejects hash-shaped placeholders and prepares an explicit enabled Buildbox
+kind plus harmless disconnect probe. The frozen packet still lacks the actual
+enabled package, exact passing disconnect proof, current input
 identity/capabilities, reader exclusion, admitted launch/delivery evidence and
-combined session/power-duration review. Those are separate from the completed
-build and source review; neither conditional readiness nor physical admission
-is established.
+combined session/power-duration review. Neither conditional readiness nor
+physical admission is established.
 
 ## Frozen proposed observation protocol
 

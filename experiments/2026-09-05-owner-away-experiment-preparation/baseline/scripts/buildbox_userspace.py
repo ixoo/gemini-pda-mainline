@@ -27,7 +27,7 @@ umask 077
 revision=$1
 branch=$2
 kind=$3
-[[ $kind == userspace || $kind == keyboard-monitor || $kind == keyboard-duration ]]
+[[ $kind == userspace || $kind == keyboard-monitor || $kind == keyboard-monitor-enabled || $kind == keyboard-duration ]]
 [[ $revision =~ ^[0-9a-f]{40}$ && ( $branch == codex/a53-authenticated-baseline || $branch == main ) ]]
 root=/workspace/gemini-a53-userspace
 [[ ! -L $root ]]
@@ -55,8 +55,10 @@ if [[ ! -e $checkout ]]; then
 fi
 if [[ $kind == keyboard-duration ]]; then
   timeout --kill-after=10 1500 bash "$checkout/experiments/2026-09-05-owner-away-experiment-preparation/keyboard/build-monitor.sh" "$revision" "$root" keyboard-duration
-elif [[ $kind == keyboard-monitor ]]; then
-  timeout 1200 bash "$checkout/experiments/2026-09-05-owner-away-experiment-preparation/keyboard/build-monitor.sh" "$revision" "$root"
+elif [[ $kind == keyboard-monitor || $kind == keyboard-monitor-enabled ]]; then
+  extra=()
+  [[ $kind == keyboard-monitor ]] || extra=(keyboard-monitor-enabled)
+  timeout 1200 bash "$checkout/experiments/2026-09-05-owner-away-experiment-preparation/keyboard/build-monitor.sh" "$revision" "$root" "${extra[@]}"
 else
   bash "$checkout/experiments/2026-09-05-owner-away-experiment-preparation/baseline/scripts/build-userspace.sh" "$revision" "$root"
 fi
@@ -66,7 +68,7 @@ set -euo pipefail
 revision=$1
 identity=$2
 kind=$3
-[[ $kind == userspace || $kind == keyboard-monitor || $kind == keyboard-duration ]]
+[[ $kind == userspace || $kind == keyboard-monitor || $kind == keyboard-monitor-enabled || $kind == keyboard-duration ]]
 publication=published
 [[ $kind == userspace ]] || publication="$kind-published"
 [[ $revision =~ ^[0-9a-f]{40}$ && $identity =~ ^[0-9a-f]{64}$ ]]
@@ -104,7 +106,8 @@ def managed_dir(path):
 
 def clear_partial(stage):
     """Only this fixed managed name is disposable; never follow linked state."""
-    require(stage.name in ('.fetch-userspace', '.fetch-keyboard-monitor', '.fetch-keyboard-duration'), 'unexpected partial name')
+    require(stage.name in ('.fetch-userspace', '.fetch-keyboard-monitor', '.fetch-keyboard-monitor-enabled',
+                           '.fetch-keyboard-duration'), 'unexpected partial name')
     if not stage.exists() and not stage.is_symlink():
         return
     require(not stage.is_symlink() and stage.is_dir(), 'partial path type')
@@ -260,11 +263,15 @@ def main():
     kinds = parser.add_mutually_exclusive_group()
     kinds.add_argument('--keyboard-duration', action='store_true', help='one harmless production-duration fixture proof only')
     kinds.add_argument('--keyboard-monitor', action='store_true', help='build/fetch the disabled keyboard monitor only')
+    kinds.add_argument('--keyboard-monitor-enabled', action='store_true',
+                       help='build/fetch the explicitly enabled reviewed keyboard monitor')
     parser.add_argument('--branch', choices=(BRANCH, 'main'), default=BRANCH,
                         help='published source branch; defaults to existing worker branch')
     args = parser.parse_args()
     branch = args.branch
-    kind = 'keyboard-duration' if args.keyboard_duration else ('keyboard-monitor' if args.keyboard_monitor else 'userspace')
+    kind = ('keyboard-duration' if args.keyboard_duration else
+            ('keyboard-monitor-enabled' if args.keyboard_monitor_enabled else
+             ('keyboard-monitor' if args.keyboard_monitor else 'userspace')))
     os.umask(0o077)
     require(git('remote', 'get-url', 'origin') == ORIGIN, 'unexpected origin')
     if args.fetch_only:

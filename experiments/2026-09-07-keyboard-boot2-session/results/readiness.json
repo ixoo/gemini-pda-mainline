@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "review_ready_utc": "2026-09-07T21:09:17Z",
+  "frozen_parent": "fa29ac5949416774f3bb5b46e76b34e8e4d049f8",
+  "verdict": {
+    "status": "blocked",
+    "offline_ready": false,
+    "device_admitted": false,
+    "kernel_or_dt_change_required": false,
+    "single_blocker": "Prerequisite receipt fields are accepted as hash-shaped strings without semantic verification, and no exact passing Dropbear no-PTY disconnect receipt exists.",
+    "minimal_repair": "Add and fixture-test one bounded read-only prerequisite verifier, call it from capture.prepare before claims or transport, and obtain one separately reviewed exact target disconnect proof binding Dropbear, shell, monitor and enabled-package identities to terminal/reaped status, partial preservation, independent export and reader release."
+  },
+  "candidate_decision": {
+    "reuse_exact_baseline": true,
+    "raw_boot_sha256": "a25fe4cb907f4f3da2bf9f36fcf38b3fff7d8ba84adc37562fdcff2f1a422daf",
+    "candidate_manifest_sha256": "54b07f0c70e77fd1e34fde4fc1c929980f0d8c3410f0a97ce3f15ffec1a66179",
+    "basis": "Observed authenticated USB, readable tty1, exact map and matrix input on the unchanged baseline; supplemental changed-ID Gemian recovery permits dependent preparation only."
+  },
+  "protocol": {
+    "id": "keyboard-targeted-v1",
+    "state": "preparing",
+    "cases": 20,
+    "distinct_keycodes": 25,
+    "keycodes": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 18, 25, 28, 29, 30, 35, 38, 42, 54, 56, 103, 105, 106, 108, 125],
+    "edges": 142,
+    "presses": 71,
+    "idle_seconds": 2,
+    "step_seconds": 10,
+    "timed_seconds": 202,
+    "capture_sessions": 1,
+    "retries": 0,
+    "scope": "F1-F10, Home, Page Up, Page Down, End, left/right Shift, Ctrl-A release order, Alt-A, Fn release, and HELP plus Enter once; not full keyboard coverage."
+  },
+  "frozen_inputs": {
+    "capture.py": "4523aa18b30e18b4a99449b8f61ec410d6566ef54e6f09c774b97f621676a238",
+    "monitor.c": "eb74dc09f6086aa47a7520f323f18728ab232b338ed02056d5b26338db9e5047",
+    "build-monitor.sh": "26bc8132735c2619c85afceed461d452f82ca7c9118cddcf214352140c10cfca",
+    "protocol.json": "5dd8b42b00a60041a9d5cb85f586ce639af6b62172a5488d8c0b73a0ed764306",
+    "classify.py": "be55d4d816c4c0709bed44dd77057b404aa3baf15d23aa7be46e966c98aaefa9",
+    "duration_receipt": "a32fb3828de42ab5f214ea62b9ebf6df600ddeb64a67682907904f198204f9db",
+    "attended_outcome": "589cacb51b21e4ca7e9e790caf1aadb0b0bb5c2eebf70972ea017d19db36dc23",
+    "recovery_review": "bec1377df7135cf552eac0f299bfbd97e0fe6554ec030d820bd4d37f0e484aa6",
+    "foundation": "a32fcfb2dd8d8e446c202e3fd7af68342b93db5f642975c05685b470e4c0b994",
+    "queue": "8198768d4c994432b460c34cb4bc2cd46b907654734e9d9d3526d03e7c7b1449"
+  },
+  "readiness": {
+    "frozen_inputs": "pass",
+    "kernel_dt_config": "adequate_exact_reuse",
+    "baseline_observation": "pass",
+    "dependent_recovery_preparation": "pass_supplemental_only",
+    "protocol_counts": "pass",
+    "classifier_offline_tests": "pass",
+    "full_duration_fixture": "pass",
+    "one_shot_partial_preservation_design": "pass_offline",
+    "disconnect_semantic_validation": "missing",
+    "continuous_reader_ownership": "unproven",
+    "enabled_arm64_package": "missing",
+    "fresh_runtime_and_custody_receipts": "missing",
+    "queue_selection": "null",
+    "final_astra_review": "required"
+  },
+  "ceilings": {
+    "delivery_transport_seconds": 30,
+    "capture_transport_seconds": 240,
+    "export_transport_seconds": 30,
+    "observer_timed_seconds": 202,
+    "term_upper_ms": 210000,
+    "kill_upper_ms": 214000,
+    "reap_upper_ms": 215000,
+    "logger_lifetime_seconds": 600,
+    "monitor_binary_bytes": 131072,
+    "capture_bytes": 262144
+  },
+  "effects": {
+    "files_created": [
+      "READINESS_AUDIT.md",
+      "results/readiness.json"
+    ],
+    "code_or_shared_files_changed": false,
+    "build": false,
+    "device_or_private_raw_access": false,
+    "hardware_support_claim": false
+  },
+  "tests": {
+    "test_packet.py": "26 passed",
+    "render_protocol.py": "protocol header exact",
+    "python_compile": [
+      "capture.py",
+      "classify.py"
+    ],
+    "protocol_counts_recomputed": true,
+    "frozen_hashes_recomputed": true
+  },
+  "unresolved_risks": [
+    "Actual Dropbear transport-loss behavior and remote terminal/reap state are unproven.",
+    "Continuous input/tty reader exclusion is not authenticated by the current custody hash field.",
+    "Enabled ARM64 build, fresh runtime metadata, owner timing, stable power/custody, target evdev/VT behavior and attributable post-session recovery remain untested."
+  ]
+}

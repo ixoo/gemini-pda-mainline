@@ -12,6 +12,7 @@ HERE = Path(__file__).resolve().parent
 L = runpy.run_path(str(HERE / '../emmc/collect-emmc.py'))
 C, S = L['C'], L['S']
 K = runpy.run_path(str(HERE / 'classify.py'))
+P = runpy.run_path(str(HERE / 'prerequisites.py'))
 require = L['require']
 sha = L['sha']
 encode = L['json_bytes']
@@ -32,7 +33,7 @@ def source_identity():
     closure.update(dict(L['V']['SOURCE_PINS']))
     for name,value in closure.items():
         require(sha(C['regular'](L['REPO']/name,262144,private=False)) == value, 'imported closure drift')
-    direct = ('capture.py','monitor.c','delivery.py','classify.py','protocol.json',
+    direct = ('capture.py','prerequisites.py','monitor.c','delivery.py','classify.py','protocol.json',
               '../emmc/mainline_host.py','../baseline/scripts/buildbox_userspace.py')
     return {'local_and_direct':{name:sha(C['regular'](HERE/name,262144,private=False)) for name in direct},
             'emmc_launcher':launcher,'pinned_members':closure}
@@ -103,7 +104,10 @@ def prepare(admission, package):
     for key, value in runtime['resource_paths'].items():
         require(all(re.fullmatch(r'/sys/[A-Za-z0-9_./:@+-]+', p) and '..' not in Path(p).parts
                     for p in (key, value)), 'exact resource link')
-    return {'admission': admission, 'package': package, 'binary': binary, 'delivery_files':delivery_files,'dependency': dependency}
+    prerequisites = P['verify'](admission, candidate, package_pins, C['regular'], ROOT)
+    return {'admission': admission, 'package': package, 'binary': binary,
+            'delivery_files':delivery_files, 'dependency':dependency,
+            'prerequisites':prerequisites}
 
 
 def delivery_script(context):

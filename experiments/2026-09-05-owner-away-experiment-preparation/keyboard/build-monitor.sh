@@ -5,11 +5,11 @@ set -euo pipefail
 umask 077
 export LC_ALL=C SOURCE_DATE_EPOCH=0 PYTHONDONTWRITEBYTECODE=1 PYTHONOPTIMIZE=0
 unset CPATH C_INCLUDE_PATH CPLUS_INCLUDE_PATH LIBRARY_PATH COMPILER_PATH GCC_EXEC_PREFIX REALGCC CFLAGS CPPFLAGS LDFLAGS
-[[ $# == 2 || $# == 3 ]] || { echo 'usage: build-monitor.sh EXACT_REVISION MANAGED_ROOT [keyboard-monitor|keyboard-duration]' >&2; exit 2; }
+[[ $# == 2 || $# == 3 ]] || { echo 'usage: build-monitor.sh EXACT_REVISION MANAGED_ROOT [keyboard-monitor|keyboard-monitor-enabled|keyboard-duration]' >&2; exit 2; }
 revision=$1
 managed=$2
 kind=${3:-keyboard-monitor}
-[[ $kind == keyboard-monitor || $kind == keyboard-duration ]]
+[[ $kind == keyboard-monitor || $kind == keyboard-monitor-enabled || $kind == keyboard-duration ]]
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 repository=$(git -C "$here" rev-parse --show-toplevel)
 [[ $revision =~ ^[0-9a-f]{40}$ ]]
@@ -115,9 +115,17 @@ if [[ $kind == keyboard-duration ]]; then
   install -m 0600 /usr/share/doc/gcc-12-aarch64-linux-gnu/copyright "$stage/package/licenses/GCC-copyright"
   printf 'repository_commit=%s\nproduction_entry=none\ndevice_action=none\n' "$revision" >"$stage/package/provenance.txt"
 else
+production_entry=disabled
+entry=keyboard-monitor-disabled
+compile_entry=()
+if [[ $kind == keyboard-monitor-enabled ]]; then
+  production_entry=enabled-admission-v1
+  entry=keyboard-monitor
+  compile_entry=(-DKEYBOARD_MONITOR_ENABLED=1)
+fi
 for replica in one two; do
   mkdir "$stage/$replica"
-  timeout 60 "$compiler" -std=c11 -Os -static -ffunction-sections -fdata-sections \
+  timeout 60 "$compiler" -std=c11 -Os -static -ffunction-sections -fdata-sections "${compile_entry[@]}" \
     -Wall -Wextra -Werror "-ffile-prefix-map=$repository=." "-ffile-prefix-map=$stage=." \
     -Wl,--gc-sections,-u,keyboard_monitor_run "-Wl,-Map,$stage/$replica/monitor.map" \
     "$here/monitor.c" -o "$stage/$replica/monitor"
@@ -128,37 +136,52 @@ for replica in one two; do
   grep -q keyboard_monitor_run "$stage/$replica/monitor.map"
   aarch64-linux-gnu-strip --strip-all "$stage/$replica/monitor"
   [[ $(stat -c %s "$stage/$replica/monitor") -le 131072 ]]
+  if [[ $kind == keyboard-monitor-enabled ]]; then
+    timeout 60 "$compiler" -std=c11 -Os -static -ffunction-sections -fdata-sections \
+      -Wall -Wextra -Werror '-DFIXTURE_ROOT="/a53-keyboard-disconnect"' \
+      "-ffile-prefix-map=$repository=." "-ffile-prefix-map=$stage=." \
+      "$here/monitor-fixture.c" -Wl,--gc-sections -o "$stage/$replica/disconnect-probe"
+    aarch64-linux-gnu-readelf -h "$stage/$replica/disconnect-probe" | grep -q AArch64
+    if aarch64-linux-gnu-readelf -l "$stage/$replica/disconnect-probe" | grep -q INTERP; then exit 1; fi
+    aarch64-linux-gnu-strip --strip-all "$stage/$replica/disconnect-probe"
+    [[ $(stat -c %s "$stage/$replica/disconnect-probe") -le 131072 ]]
+  fi
 done
 cmp "$stage/one/monitor" "$stage/two/monitor"
+if [[ $kind == keyboard-monitor-enabled ]]; then
+  cmp "$stage/one/disconnect-probe" "$stage/two/disconnect-probe"
+  install -m 0700 "$stage/one/disconnect-probe" "$stage/package/keyboard-disconnect-probe"
+fi
 mkdir -m 0700 "$stage/fixtures"
 timeout 90 env MONITOR_TEST_WORK_ROOT="$stage/fixtures" MONITOR_TEST_CC="$compiler" \
   MONITOR_TEST_QEMU="$qemu" python3 "$here/test-monitor.py" >"$stage/tests.txt" 2>&1
-python3 - "$qemu" "$stage/one/monitor" <<'PY'
+python3 - "$qemu" "$stage/one/monitor" "$production_entry" <<'PY'
 import resource, subprocess, sys
 def limits():
     resource.setrlimit(resource.RLIMIT_FSIZE, (131072, 131072))
-p = subprocess.run(sys.argv[1:], capture_output=True, timeout=5, preexec_fn=limits)
-if (p.returncode, p.stdout, p.stderr) != (2, b'', b'refused: target-admission-disabled\n'):
-    raise SystemExit('full-engine production executable did not refuse exactly')
+p = subprocess.run(sys.argv[1:3], capture_output=True, timeout=5, preexec_fn=limits)
+expected = b'' if sys.argv[3] == 'enabled-admission-v1' else b'refused: target-admission-disabled\n'
+if (p.returncode, p.stdout, p.stderr) != (2, b'', expected):
+    raise SystemExit('full-engine production entry did not match selected state')
 PY
-install -m 0700 "$stage/one/monitor" "$stage/package/keyboard-monitor-disabled"
+install -m 0700 "$stage/one/monitor" "$stage/package/$entry"
 install -m 0600 "$stage/one/monitor.map" "$stage/package/monitor.map"
 install -m 0600 "$stage/tests.txt" "$stage/package/fixture-tests.txt"
 install -m 0600 "$musl/COPYRIGHT" "$stage/package/licenses/musl-COPYRIGHT"
 install -m 0600 "$repository/LICENSE" "$stage/package/licenses/repository-LICENSE"
 install -m 0600 /usr/share/doc/gcc-12-aarch64-linux-gnu/copyright "$stage/package/licenses/GCC-copyright"
-printf 'repository_commit=%s\nproduction_entry=disabled\ndevice_action=none\n' "$revision" >"$stage/package/provenance.txt"
-python3 - "$here" "$stage" "$revision" <<'PY'
+printf 'repository_commit=%s\nproduction_entry=%s\ndevice_action=none\n' "$revision" "$production_entry" >"$stage/package/provenance.txt"
+python3 - "$here" "$stage" "$revision" "$production_entry" "$entry" <<'PY'
 import hashlib, json, pathlib, sys
 here, stage = map(pathlib.Path, sys.argv[1:3])
 sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
 inputs = {p.name: sha(p) for p in [here/'monitor.c', here/'monitor-fixture.c', here/'test-monitor.py', here/'build-monitor.sh', stage/'musl.tar.gz']}
 library = {str(p.relative_to(stage/'musl-install')): sha(p) for p in sorted((stage/'musl-install').rglob('*')) if p.is_file()}
 result = {'revision': sys.argv[3], 'inputs': inputs, 'library_inputs': library,
-          'stripped_bytes': (stage/'package/keyboard-monitor-disabled').stat().st_size,
+          'stripped_bytes': (stage/'package'/sys.argv[5]).stat().st_size,
           'replicas_identical': True, 'full_engine_retained': True,
           'fixture_scope': 'scaled ARM64 Linux QEMU only; no evdev/VT or full-duration claim',
-          'production_entry': 'disabled', 'device_action': 'none'}
+          'production_entry': sys.argv[4], 'device_action': 'none'}
 (stage/'package/manifest.json').write_text(json.dumps(result, indent=2, sort_keys=True)+'\n')
 PY
 fi
