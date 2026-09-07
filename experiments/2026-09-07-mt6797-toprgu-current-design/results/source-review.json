@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "observed_at_utc": "2026-09-07T17:41:00Z",
+  "repository_parent": "bcfce71133dd70d80b60988000df0a8eb836df19",
+  "method": "Read-only exact-ref and individual-source review; no Linux tree retained, build, VM or device access.",
+  "refs": {
+    "mainline_master": "c297ed90fbba72d32b7759aae362b36d15b2db1f",
+    "linux_staging_watchdog_next": "b85ed7f7259b49077955e835ecc32b32b75053e8",
+    "linux_staging_master": "df2908090cda368b01ff43709f51890076c56157",
+    "mediatek_for_next": "f5be25e697e0362103625b1b197af126ae4ba5f7"
+  },
+  "sources": [
+    {
+      "tree": "mainline",
+      "path": "drivers/watchdog/mtk_wdt.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/c297ed90fbba72d32b7759aae362b36d15b2db1f/drivers/watchdog/mtk_wdt.c",
+      "sha256": "75980000791cad302a15451642a2ce5a2dbd7748b52f52942233d4705e1f3593"
+    },
+    {
+      "tree": "mainline",
+      "path": "drivers/firmware/psci/psci.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/c297ed90fbba72d32b7759aae362b36d15b2db1f/drivers/firmware/psci/psci.c",
+      "sha256": "310ec046e86d4eafbe326234c1998611eba9d83af6696589d75e5838a94d6a5c"
+    },
+    {
+      "tree": "mainline",
+      "path": "drivers/reset/core.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/c297ed90fbba72d32b7759aae362b36d15b2db1f/drivers/reset/core.c",
+      "sha256": "bb8683f8973883979481512a4f6e21deac741776dfb3370591bc611988c49762"
+    },
+    {
+      "tree": "mainline",
+      "path": "kernel/reboot.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/c297ed90fbba72d32b7759aae362b36d15b2db1f/kernel/reboot.c",
+      "sha256": "89cc837bfe61a690ea84920c9ca489a462dc28d97191d31212208f9365f2461d"
+    },
+    {
+      "tree": "mainline",
+      "path": "kernel/notifier.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/c297ed90fbba72d32b7759aae362b36d15b2db1f/kernel/notifier.c",
+      "sha256": "04dd85fc0c2a41d0072b28f58c1390d3add6054f03367b88b1403eb9766a14ab"
+    },
+    {
+      "tree": "mainline",
+      "path": "Documentation/devicetree/bindings/watchdog/mediatek,mtk-wdt.yaml",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/c297ed90fbba72d32b7759aae362b36d15b2db1f/Documentation/devicetree/bindings/watchdog/mediatek,mtk-wdt.yaml",
+      "sha256": "99d3401f93a450f9bc23eb2d2b2a06baf7308ff0d70628737c5362372e158249"
+    },
+    {
+      "tree": "mainline",
+      "path": "arch/arm64/boot/dts/mediatek/mt6797.dtsi",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/c297ed90fbba72d32b7759aae362b36d15b2db1f/arch/arm64/boot/dts/mediatek/mt6797.dtsi",
+      "sha256": "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83"
+    },
+    {
+      "tree": "mediatek-for-next",
+      "path": "drivers/watchdog/mtk_wdt.c",
+      "url": "https://git.kernel.org/pub/scm/linux/kernel/git/mediatek/linux.git/plain/drivers/watchdog/mtk_wdt.c?id=f5be25e697e0362103625b1b197af126ae4ba5f7",
+      "sha256": "6e8230dff7db590f16bdc83918220da48be57c8a594cd3f0917f4c0e0018da9b"
+    },
+    {
+      "tree": "linux-staging-watchdog-next",
+      "path": "drivers/watchdog/mtk_wdt.c",
+      "url": "https://git.kernel.org/pub/scm/linux/kernel/git/groeck/linux-staging.git/plain/drivers/watchdog/mtk_wdt.c?id=b85ed7f7259b49077955e835ecc32b32b75053e8",
+      "sha256": "58db5cf12a316532631c050adf00e8f6517e70d81a9b847d292491c0f2409b8d"
+    },
+    {
+      "tree": "public-downstream-reference",
+      "path": "drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c",
+      "url": "https://raw.githubusercontent.com/SHIFTPHONES/android_kernel_shift_mt6797/4c594e5fa5648dd9a8b8ccc5d609bb523f4799b7/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c",
+      "sha256": "2e285f4353a16aea587732341fc6f6099daf7b0671aa76258146328d9f11aaf8"
+    }
+  ],
+  "public_overlap": [
+    {
+      "topic": "explicit MediaTek watchdog compatibles",
+      "url": "https://lists.openwall.net/linux-kernel/2026/07/16/1686",
+      "sha256": "03ce67570b27703a9df45efe2378506a750b1d6ed3da2ebba76c5190628458b4"
+    },
+    {
+      "topic": "MT6589 and MT8167 watchdog reset support v4",
+      "message_id": "20260819101853.44681-1-l.scorcia@gmail.com",
+      "url": "https://lists.openwall.net/linux-kernel/2026/08/19/855",
+      "sha256": "dc8d214724d550bfe79b4b941fb4f1f0918f8a49a447bf896396d5ea59076a4a"
+    },
+    {
+      "topic": "fallback-layout review identifying MT6797 hazard",
+      "message_id": "xqnpukvhtezpqhwjnxbqeddiaqlro4m5yjukpplv5mjfxodlfp@ijaf2trst7p4",
+      "url": "https://lists.openwall.net/linux-kernel/2026/08/19/1675",
+      "sha256": "5c9448c763f5b5760cc71494b140e3c444bee3a121c2dc576bfe35d5270bd040"
+    }
+  ],
+  "retained_project_evidence": [
+    {
+      "path": "experiments/2026-09-05-mt6797-toprgu-upstream-preparation/README.md",
+      "sha256": "ef7ba5bdfa94c8ed6d4184cc9e0e49fb8a26e04787da26486ba215e11cbcaae4"
+    },
+    {
+      "path": "experiments/2026-09-05-mt6797-toprgu-upstream-preparation/results/source-review.json",
+      "sha256": "854a6e1364cae62343951832bd2b8cf3048f3fa6b86cacb9b0ecbf6ed37e02ce"
+    },
+    {
+      "path": "patches/v7.1.3/0081-watchdog-mtk-set-MT6797-auto-restart-mode.patch",
+      "sha256": "4a05513e1d4dd32b85f0860d85ce9223c0968d5c4748015c383ece6f1e6ff842"
+    },
+    {
+      "path": "patches/v7.1.3/0087-watchdog-mtk-prioritize-MT6797-TOPRGU-restart.patch",
+      "sha256": "81168e4cc12d9ffad7645f667c0211d8dff73b0dadda3ebd422f63378e411d56"
+    },
+    {
+      "path": "patches/v7.1.3/0090-watchdog-mtk-expose-MT6797-TOPRGU-resets.patch",
+      "sha256": "d7699b40087a7b830802d3c868e01f30f76fb92d12c54dc2f58d0ced1fdb245a"
+    },
+    {
+      "path": "experiments/2026-07-20-mt6797-kernel-restart-diagnostic/README.md",
+      "sha256": "fab8f22788dfc551cfef4b4323c613fc9ebb35cf8d03ce4162c4263531d1a453"
+    },
+    {
+      "path": "experiments/2026-07-20-mt6797-kernel-restart-diagnostic/results/runtime-candidate-ab-attempt-1-20260721.txt",
+      "sha256": "e5c09dc5cdf5942f15cd0e71153f8addc73ddc4502a69b0e9e3169de521376ee"
+    }
+  ],
+  "verdict": {
+    "implementation_admitted": false,
+    "bit4_policy": "unproven MT6797-wide; retain current behavior",
+    "restart_priority": 128,
+    "priority_130": "not admitted",
+    "priority_255": "not admitted",
+    "reason": "The evidence does not establish a universal firmware contract or locate the historical failure in PSCI.",
+    "next_discriminating_check": "Obtain a primary cross-firmware MT6797 bit-4 contract and an attributable failing-restart trace, then resolve both public overlaps on the authenticated submission base."
+  },
+  "effects": {
+    "kernel_source_edit": false,
+    "build": false,
+    "vm": false,
+    "device": false,
+    "upstream_contact": false
+  }
+}

@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 8,
-  "next_accepted_sequence": 9,
-  "next_considered_sequence": 14,
+  "accepted_count": 9,
+  "next_accepted_sequence": 10,
+  "next_considered_sequence": 15,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -423,6 +423,46 @@
         "credit_source": "unavailable",
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-06-vmlinux-to-elf-symbol-provenance-v3/analysis.json"
+      }
+    },
+    {
+      "considered_sequence": 14,
+      "accepted_sequence": 9,
+      "candidate_id": "mt6797-toprgu-current-policy-design",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "reasoning",
+      "risk_class": "hard-uncertainty",
+      "acceptance_contract": "experiments/2026-09-07-mt6797-toprgu-current-design/WORK_ITEM.md",
+      "review_comparison_group": "mt6797-toprgu-upstream-policy-design",
+      "parent": "bcfce71133dd70d80b60988000df0a8eb836df19",
+      "owner_route": {
+        "role": "gemini_specialist",
+        "model": "gpt-6-astra",
+        "effort": "medium"
+      },
+      "review_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-07T17:36:41Z",
+        "review_ready_at": "2026-09-07T17:40:05Z",
+        "accepted_at": "2026-09-07T17:54:39Z",
+        "timing_source": "observed UTC dispatch, first complete handoff and post-repair independent-review acceptance timestamps",
+        "elapsed_minutes": 17.9666667,
+        "review_rework_minutes": 14.5666667,
+        "first_review_accepted": false,
+        "rework_cycles": 1,
+        "escalated": false,
+        "escalation_reason": null,
+        "escalation_packet": null,
+        "review_failure_class": null,
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-07-mt6797-toprgu-current-design/results/source-review.json"
       }
     }
   ],

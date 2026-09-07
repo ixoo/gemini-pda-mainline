@@ -165,3 +165,24 @@ provenance-containment repairs, so they trigger an early checkpoint, but this is
 the only accepted item in its symbol-provenance comparison group and supplies no
 alternate-route measurement. `baseline-01` remains unchanged and credits remain
 unavailable.
+
+## Accepted item nine
+
+The ninth accepted item is a current-tree MT6797 TOPRGU restart-policy design
+owned by Astra Medium and reviewed by Sol Medium. Current mainline, MediaTek
+`for-next` and the inspected watchdog-next snapshot retain the relevant upstream
+behavior, while two distinct public topics overlap the match-data prerequisite.
+The specialist correctly refused implementation: downstream bit-4 convention
+and one historical Gemini restart do not establish an MT6797-wide firmware
+contract, and the earlier failed restart was not traced into PSCI. Priority 128
+therefore remains the only admitted current behavior; neither 130 nor 255 is
+selected.
+
+The first review accepted the technical verdict but rejected incomplete
+retained-evidence traceability. One documentation-only repair added direct links
+and exact hashes for the prior assessment, three historical patches and
+Candidate AB's experiment/result; the second review verified all seven and
+accepted the packet. This is the first item in its TOPRGU policy-design
+comparison group and triggers no interval or early-signal checkpoint. It
+supplies no alternate-route measurement, so `baseline-01` remains unchanged and
+credits remain unavailable.
