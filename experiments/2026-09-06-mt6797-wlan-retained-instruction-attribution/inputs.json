@@ -147,7 +147,8 @@
     {"name": "mtk_wcn_wlan_gen3_init", "start": "0xffffffc0007415a0", "end_exclusive": "0xffffffc000741898", "size": 760, "kallsyms_type": "T"},
     {"name": "mtk_wcn_wlan_gen3_exit", "start": "0xffffffc000741898", "end_exclusive": "0xffffffc000741938", "size": 160, "kallsyms_type": "T"}
   ],
-  "bounds": {
+  "diagnostic_candidate": {"amendment_28_sha256":"4c31045693257876985a4fe52f4b3df82e67dc6b5e103b08e5c17241be5c7a96","construction_dispatch_commit":"670b831b76225078aa3fa55b1accfe7ae9acae4a","container_bytes":502641,"container_hash_record":"inputs.json#/diagnostic_candidate/container_sha256","container_sha256":"f5ac57678dbc74bf36c5f11b3f45b72a12d8b156f3cf664f17bfb22ee39f700f","design_parent_commit":"7ab160dffddc334492de247405509e8b12864c2d","future_runs_remaining":1,"inherited_input_pin_count":110,"run_admitted":false,"source_bytes":261137,"source_hash_record":"inventory-diagnostic-v1.json#/source_sha256","source_mechanical_sha256":"bd42ce6c91e1733f2fd0e849fae43d090849453c89c4a6f302c714f04d1dd633","source_sha256":"4823099f6bd767a8e0a8e23e17aaddb744f1a8ab25da6ed1ce30d5f2500ae739","state":"source-frozen-awaiting-independent-review"},
+"bounds": {
     "elf_files": 1,
     "target_envelopes": 4,
     "target_bytes_total": 1568,
