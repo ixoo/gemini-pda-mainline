@@ -105,6 +105,42 @@ start_vm() {
   limactl start "${INSTANCE}"
 }
 
+require_noninteractive_shell_support() (
+  local version shell_help help_status help_size version_file version_status version_size
+
+  version_file="$(mktemp "${TMPDIR:-/tmp}/dev-vm-lima-version.XXXXXX")" || die "unable to create Lima version probe"
+  trap 'rm -f -- "${version_file}"' EXIT
+  trap 'rm -f -- "${version_file}"; exit 129' HUP
+  trap 'rm -f -- "${version_file}"; exit 130' INT
+  trap 'rm -f -- "${version_file}"; exit 143' TERM
+  set +e
+  limactl --version 2>/dev/null | head -c 65537 >"${version_file}"
+  version_status="${PIPESTATUS[0]}"
+  set -e
+  version_size="$(wc -c <"${version_file}")"
+  if ((version_size > 65536)); then
+    die "Lima version output exceeds the 65536-byte bound"
+  fi
+  [[ "${version_status}" -eq 0 ]] || die "unable to query Lima version"
+  version="$(<"${version_file}")"
+  [[ "${version}" == "limactl version 2.2.0" ]] || die "explicit re-shell requires Lima 2.2.0"
+  : >"${version_file}"
+  set +e
+  limactl shell --help 2>/dev/null | head -c 65537 >"${version_file}"
+  help_status="${PIPESTATUS[0]}"
+  set -e
+  help_size="$(wc -c <"${version_file}")"
+  if ((help_size > 65536)); then
+    die "Lima shell help output exceeds the 65536-byte bound"
+  fi
+  [[ "${help_status}" -eq 0 ]] || die "unable to query Lima shell help"
+  shell_help="$(<"${version_file}")"
+  rm -f -- "${version_file}"
+  trap - EXIT HUP INT TERM
+  [[ "${shell_help}" == *"--tty"* && "${shell_help}" == *"Set to false for automation"* ]] || \
+    die "explicit re-shell requires bounded Lima --tty=false support"
+)
+
 run_provisioning() {
   start_vm
   limactl shell --workdir=/tmp "${INSTANCE}" -- \
@@ -242,12 +278,40 @@ case "${COMMAND}" in
       bash -lc 'cd "$HOME" && exec "${SHELL:-/bin/bash}" -l'
     ;;
   re-shell)
+    if [[ "$#" -eq 0 ]]; then
+      require_lima
+      start_vm
+      # HOME and SHELL are expanded by the guest shell.
+      # shellcheck disable=SC2016
+      exec limactl shell --workdir=/tmp "${INSTANCE}" -- \
+        bash -lc 'test -d "$HOME/reverse-engineering/gemini-vendor" || { echo "vendor payload unavailable; run scripts/extract-device-userspace on the host" >&2; exit 1; }; cd "$HOME/reverse-engineering/gemini-vendor" && exec "${SHELL:-/bin/bash}" -l'
+    fi
+    [[ "$1" == "--" ]] || die "re-shell explicit form requires literal -- separator"
+    shift
+    [[ "$#" -gt 0 ]] || die "re-shell explicit form requires a command"
+    [[ "$1" == /* ]] || die "re-shell command must be an absolute path"
     require_lima
+    require_noninteractive_shell_support
     start_vm
-    # HOME and SHELL are expanded by the guest shell.
+    # The guest receives this literal script through limactl.
     # shellcheck disable=SC2016
-    exec limactl shell --workdir=/tmp "${INSTANCE}" -- \
-      bash -lc 'test -d "$HOME/reverse-engineering/gemini-vendor" || { echo "vendor payload unavailable; run scripts/extract-device-userspace on the host" >&2; exit 1; }; cd "$HOME/reverse-engineering/gemini-vendor" && exec "${SHELL:-/bin/bash}" -l'
+    exec limactl shell --tty=false --workdir=/tmp "${INSTANCE}" -- \
+      /bin/sh -c '
+        case "${HOME-}" in
+          /*) ;;
+          *) echo "error: guest home unavailable" >&2; exit 1 ;;
+        esac
+        test -d "$HOME/reverse-engineering/gemini-vendor" || { echo "error: vendor payload unavailable" >&2; exit 1; }
+        cd -P "$HOME/reverse-engineering/gemini-vendor" 2>/dev/null || { echo "error: vendor payload unavailable" >&2; exit 1; }
+        exec /usr/bin/env -i -- \
+          PATH=/usr/bin:/bin \
+          LC_ALL=C \
+          TZ=UTC \
+          PYTHONDONTWRITEBYTECODE=1 \
+          DEBUGINFOD_URLS= \
+          PIP_NO_INDEX=1 \
+          "$@"
+      ' re-shell "$@"
     ;;
   run)
     require_lima
