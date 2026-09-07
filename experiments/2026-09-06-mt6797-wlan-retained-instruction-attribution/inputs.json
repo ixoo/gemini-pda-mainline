@@ -3,18 +3,21 @@
   "analysis_parent": "e25df337406b52bc4da44aa428262a8123d8da21",
   "work_started_utc": "2026-09-07T01:36:36Z",
   "controlling_contract": {
-    "WORK_ITEM.md": "632a2b32c070d401db4cc8246776b515d52678a55c8c43b7a3298ad7ee6e2e82",
+    "WORK_ITEM.md": "9036fda67d49fe4a0893cdb9fbc92c44c70b2cc000099e7d2d4ea1332da87e81",
     "AMENDMENT.md": "36e8a93d9946f9f20593cf92a64cb7497ffff39b2dcb8bd5d97a937710e15409",
     "AMENDMENT-2.md": "e4bfa608ed6155cb9ad7b83add0c75ad64022ba99324ab4e2d3e18869fb1c8a1",
     "AMENDMENT-3.md": "faffaa9f4960ad9251458bd4551f565ff58e7abb9cdcf01703c3a8f54c8a852b",
     "AMENDMENT-4.md": "3c98293fff372bf25d02ec151b006dc389397729a5e0b46d00cd15f2068b2ade",
+    "AMENDMENT-5.md": "1ca9803d9214e2c0eb5aad4347c7d8b4761d3f44eeed153ba44310b1b312ee42",
     "PREFLIGHT.md": "420fa321f7897d6fead65c5e7b2d6e4d53472f213218e55bf867d88e058008bf",
     "bootstrap-refused.json": "53adefdb21a8bc966930b14cedb0683f7ae0bb11c1184c2d5fc94cbf011aed42",
     "VALIDATION-REFUSED.md": "e9b2b9a0b946e983679068f4dcd7536715b05357a127b9f10073fd67311fba36",
     "bootstrap-v2.json": "189f83ebac5fdb64e9450ccff5e4f508f5a546d91b3d6b613ce710f29bf44038",
     "VALIDATION.md": "890d91fc702334ec2ce95566cfb041e8e1970baa868aa251e2f632b5a9e5270a",
     "bootstrap-v3.json": "b523898001078f8db04b52235e3d3139a6f260ce584088b1c77695231f4c21cf",
-    "VALIDATION-FINAL.md": "0743fc1fb71c3d5595fa2bac9363cb2e14775a294639183002d092d0cc58b8a0"
+    "VALIDATION-FINAL.md": "0743fc1fb71c3d5595fa2bac9363cb2e14775a294639183002d092d0cc58b8a0",
+    "bootstrap-v4.json": "1ebac170bd804fe0dd292240500c30ee5a56f7ff073d1ba0cac0c259f91defee",
+    "VALIDATION-V4-REFUSED.md": "b1f0ee197fbea2ab60703e0562b636a9d6dbe38940df095184576abfd3db8682"
   },
   "accepted_symbol_provenance": {
     "inputs.json": "c5dffb7323e7eb25626704d3310565b1ca9252e0dd9f349eff66ed04fc3d4e31",
