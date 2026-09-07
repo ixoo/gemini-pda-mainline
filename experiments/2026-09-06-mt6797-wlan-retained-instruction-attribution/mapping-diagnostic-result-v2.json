@@ -1,0 +1,41 @@
+{
+  "schema_version": 2,
+  "dispatch_commit": "81078ebdfe89aebfe59b202f2356c5c72a19a784",
+  "diagnostic_file_sha256": "959f7fa92fd6dadbb54960aca276e1e4a912ece1d508306b5893d797e377a94d",
+  "diagnostic_source_sha256": "2d1646bb44d678eb0d069ecd25c425bb0acea992353b901c11c84635dc12e456",
+  "bootstrap_v6_sha256": "94b876a01eef5d781499f0462b04a947f0ddd7742df8a6880e667a4745c390c4",
+  "source_frozen_utc": "2026-09-07T03:33:45Z",
+  "controlling_hashes_verified": 26,
+  "dependency_hashes_verified": 18,
+  "diagnostic_runs": 1,
+  "receipt": {
+    "affected_files": 0,
+    "affected_mapping_rows": 0,
+    "completed_modules": 25,
+    "completed_utc": "2026-09-07T03:34:02.806271+00:00",
+    "entered_modules": 25,
+    "events": {
+      "cache_write_attempts": 0,
+      "native_requests": 1,
+      "network_attempts": 0,
+      "optional_requests": 0,
+      "process_attempts": 0,
+      "write_attempts": 0
+    },
+    "import_event_count": 143,
+    "private_reads": 0,
+    "reason": "maximum recursion depth exceeded",
+    "started_utc": "2026-09-07T03:34:02.619302+00:00",
+    "status": "refused",
+    "type": "RecursionError"
+  },
+  "accepted": false,
+  "mapping_delta_identified": false,
+  "private_analysis_runs": 0,
+  "limitations": [
+    "Import-observer recursion prevented completion; not a successful pyelftools import diagnostic.",
+    "No affected identities or mapping rows were retained; the original v6 delta remains unidentified.",
+    "The receipt does not identify the recursive request or establish a unique reentrancy cause.",
+    "No native mapping exception, method freeze or private-analysis admission is granted."
+  ]
+}
