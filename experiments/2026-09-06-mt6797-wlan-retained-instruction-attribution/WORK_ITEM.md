@@ -212,6 +212,9 @@
 - **Efficiency loop:** if independently accepted, append one sanitized item to
   the active workflow cohort with actual routes/timestamps, first-review result,
   rework/escalation and measured credits or explicit unavailability.
-- **State:** frozen for one offline Amendment 21 sequential pre-open/content
-  diagnostic; no package execution, decoder engine, private content or device
-  action.
+- **State:** Amendment 21 path-object wrapper refusal is independently accepted
+  and closed; its single run is consumed. See
+  [the bounded handoff](EXTENSION-IDENTITY-DIAGNOSTIC-2.md).
+  `/root/runtime_identity_specialist` released sole RE-VM custody. No retry,
+  file-content, package-execution, decoder-engine, private-content or device
+  action is admitted.

@@ -1,0 +1,154 @@
+{
+  "schema_version": 2,
+  "dispatch_commit": "1095538ba8c2b4197d0ea0d9879ed10e14a560f0",
+  "dispatch_inputs_sha256": "4cc512dc75088ef71646297150094066b75b9082699077ef630c7978e59bd0d4",
+  "diagnostic_sha256": "1b08a0f029287117ef07abf07e32cc02b0571628482cda8fcdeb200b6c8840e2",
+  "source_sha256": "23fee3dd87a083d4f35f065dd98a8d2ffcd8d93f12853bb1aa0af3bb791571f6",
+  "runs": 1,
+  "private_analysis_consumed": false,
+  "canonical_receipt_sha256": "759a3010fc3cd53f144adc87ec81bfea3878665fe5907eb56053f59aae104c26",
+  "receipt": {
+    "accepted_stat_result_sha256": "be64ee02da0daa61068e3dfdf25972d52b2bd70370183817583b632a2e5155dc",
+    "audit_counts": {
+      "candidate_open": 0,
+      "dynamic_load": 0,
+      "import": 0,
+      "maps_open": 0,
+      "mutation": 0,
+      "network": 0,
+      "other": 0,
+      "process": 0,
+      "write": 0
+    },
+    "audit_hook_active": true,
+    "callback_invocations": 0,
+    "candidate_absent": null,
+    "completed_utc": "2026-09-07T06:20:56.848437+00:00",
+    "content_gate_passed": false,
+    "engine_instances": 0,
+    "event_sha256": "1f44854434c4d88a28f07834aff0629e5de462ee8cbbb3a6a6d3cd9245e56cf1",
+    "identity": null,
+    "import_restored": false,
+    "maps_row_count": null,
+    "operation_counts": {
+      "candidate_read": 0,
+      "fstat": 0,
+      "maps_read": 0,
+      "post_lstat": 0,
+      "pre_lstat": 0
+    },
+    "package_execution": false,
+    "private_reads": 0,
+    "refusal_class": "latched-wrapper-reentry",
+    "schema_version": 1,
+    "stage_outcomes": [
+      {
+        "outcome": "refused",
+        "stage": "path-object"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "absolute"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "strict-resolve"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "final-symlink"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "first-lstat"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "kind"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "mode"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "size"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "second-lstat"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "import-restoration"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "candidate-open"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "opened-fstat"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "bounded-read"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "post-read-fstat"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "final-lstat"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "elf-header"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "program-headers"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "dynamic-table"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "string-table"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "needed-names"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "maps-open"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "maps-read"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "maps-parse"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "candidate-absence"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "final-audit"
+      }
+    ],
+    "started_utc": "2026-09-07T06:20:56.848397+00:00",
+    "status": "refused",
+    "terminal_stage": "path-object",
+    "wrapper": {
+      "count": 1,
+      "first_stage": "path-object"
+    }
+  }
+}
