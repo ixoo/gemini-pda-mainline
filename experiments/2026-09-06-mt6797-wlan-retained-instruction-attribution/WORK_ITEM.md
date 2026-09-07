@@ -30,18 +30,21 @@
 - **Model route:** `gemini_specialist`, `gpt-6-astra`, medium for the named
   binary-control-flow uncertainty; `gemini_reasoner`, `gpt-5.6-sol`, medium for
   independent review. No implementation route is selected.
-- **Current bounded dispatch:** prospective V10 contract design at
-  `3edf660c1ff2c47b8b5404cf261fbffd3e7cc71f`. Astra Medium owns the
+- **Current bounded dispatch:** V10 source-only construction and freeze at
+  `342438085bef1feb081b62961b3d4e8e1c7fb2fa`. Astra Medium owns the
   tool-lifecycle/private-method integration uncertainty; Sol Medium reviews
-  and `/root` integrates. Ownership is only `AMENDMENT-26.md` and minimal
-  `WORK_ITEM.md`/`inputs.json` updates. No source/method construction, VM,
-  private execution, device, build, commit or push is admitted by this dispatch.
+  and `/root` integrates. Ownership is only `bootstrap-v10.json`, `method.json`,
+  `FREEZE.md` and minimal `WORK_ITEM.md`/`inputs.json` updates. The exact inputs
+  frozen in [FREEZE.md](FREEZE.md) passed independent pre-run review and await
+  publication before any execution dispatch.
+  No VM, private execution/read, fixture execution, device, build, commit or
+  push is admitted by this dispatch; the future one-run budget is unconsumed.
   [AMENDMENT-26.md](AMENDMENT-26.md) prospectively replaces the stale V8
   source/method chronology and multiple-read analysis route below, preserving
   the original four-target outcome. V9's accepted
   [AMENDMENT-24.md](AMENDMENT-24.md)/[AMENDMENT-25.md](AMENDMENT-25.md)
-  preflight remains closed. Future V10 construction/execution requires a new
-  bounded dispatch, exact freeze and independent static review.
+  preflight remains closed. Future V10 execution requires a new bounded dispatch,
+  a named custodian and independent static review of this exact freeze.
 - **Owned scope:** create only this experiment's `README.md`, `inputs.json`,
   `AMENDMENT.md`, `AMENDMENT-2.md`, `AMENDMENT-3.md`, `AMENDMENT-4.md`,
   `AMENDMENT-5.md`, `AMENDMENT-6.md`, `AMENDMENT-7.md`, `AMENDMENT-8.md`,
@@ -78,6 +81,7 @@
   `EXTENSION-IDENTITY-DIAGNOSTIC-3.md`, `extension-load-diagnostic-v1.json`,
   `extension-load-diagnostic-result-v1.json`, `EXTENSION-LOAD-DIAGNOSTIC.md`,
   `bootstrap-v9.json`, `bootstrap-v9-result.json`, `VALIDATION-V9.md`,
+  `bootstrap-v10.json`,
   `method.json`, `analysis.json`, `edges.json`,
   `FREEZE.md`, an assert-free normal/optimized verifier, final `README.md` and
   `VALIDATION-RESULT.md`.
@@ -243,4 +247,7 @@
   occurred; private analysis remains unused and unadmitted. Amendment 26 is
   independently accepted and frozen as the prospective V10 design only; it
   does not consume or dispatch an analysis run. Further source/method
-  construction and execution require separate bounded dispatches.
+  construction and execution require separate bounded dispatches. The exact
+  V10 source/method freeze is independently accepted for publication only;
+  its one private-analysis run remains unconsumed and unadmitted until that
+  freeze is published and separately dispatched to a named custodian.
