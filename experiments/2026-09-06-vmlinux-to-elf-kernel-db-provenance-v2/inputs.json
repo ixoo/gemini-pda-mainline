@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "analysis_parent": "5b3dc98ffbaccd36e5f3acfd0c98ffe4dcadfd19",
+  "dispatch_head": "7639b6b5c7c7a52194c3f5a44af0f51965c6217f",
+  "excluded_predecessor": {
+    "WORK_ITEM.md": "71fd7a672b362dd5ead4597da3c9c5070112c6b01cb18524e3fd67a0fb25d165",
+    "inputs.json": "13485ddf638a4544065e6f05a404aa8301f7c4bd2319ecdbea96cafea6e84758",
+    "VALIDATION.md": "364cc9ed5c031a5d97ae049321309efcbdf4eacf85c70e9a82a3d376edd5b882"
+  },
+  "distribution": "vmlinux-to-elf",
+  "version": "1.3.6",
+  "python": "3.12.3",
+  "METADATA": "133b5a6b7fab8081a7c201f2fc63b8a2d7a215475c423c8fe3938aff6a708c43",
+  "RECORD": "ac8d68216a496f0f4dedede5e3ea0d72051bbab7983ab196189da05f5aebdc1f",
+  "kallsyms_source": "2bff550d9486e90782a4320cec7bc26b249ead5048f58839eec6578b52c06c2d",
+  "subtree": "vmlinux_to_elf/kernel_db/",
+  "excluded_cache": "vmlinux_to_elf/kernel_db/__pycache__/database.cpython-312.pyc",
+  "bounds": {"record_entries": 4, "excluded_cache_entries": 1, "verified_files": 3, "python_sources_max": 2, "data_files": 1, "sqlite_inspections_max": 1, "bytecode_read_or_hash": false, "package_import": false, "compile_package": false, "orm_query": false, "dependency_source": false, "private_kernel": false, "prior_parser_output": false, "row_values": false, "network": false, "device": false, "build": false}
+}

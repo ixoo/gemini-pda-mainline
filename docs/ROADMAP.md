@@ -238,10 +238,16 @@ The remaining preparation order is:
    before source or SQLite inspection because RECORD gives the generated
    Python cache entry neither a digest nor a size; a fresh audit must prevent
    that cache from being loaded and verify only hash-bearing source/data
-   entries. See the [bounded unresolved result](../experiments/2026-09-06-mt6797-wlan-final-linkage-teardown-attribution/README.md),
+   entries. The accepted source-only follow-up identified exact RECORD-backed
+   `database.py` and SQLite inputs and found no change during one immutable
+   metadata inspection. Ordinary import remains refused because it opens the
+   database without explicit read-only flags; a parser retry must use a
+   prospectively reviewed verified-source loader and read-only connection
+   adapter, or bypass the metadata import entirely. See the [bounded unresolved result](../experiments/2026-09-06-mt6797-wlan-final-linkage-teardown-attribution/README.md),
    [excluded parser attempt](../experiments/2026-09-06-vmlinux-to-elf-symbol-provenance/README.md)
    [database-gate stop](../experiments/2026-09-06-vmlinux-to-elf-symbol-provenance-v2/VALIDATION.md)
-   and [RECORD-completeness stop](../experiments/2026-09-06-vmlinux-to-elf-kernel-db-provenance/VALIDATION.md).
+   [RECORD-completeness stop](../experiments/2026-09-06-vmlinux-to-elf-kernel-db-provenance/VALIDATION.md)
+   and [accepted database boundary](../experiments/2026-09-06-vmlinux-to-elf-kernel-db-provenance-v2/README.md).
    Exit order must not be inferred by reversing initialization, and the vendor
    WMT ioctl must not be copied merely to run the retained loader.
 3. **Keyboard coverage:** finish coherent capture admission, finite owner key

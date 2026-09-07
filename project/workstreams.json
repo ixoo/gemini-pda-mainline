@@ -133,6 +133,7 @@
         "experiments/2026-09-06-vmlinux-to-elf-symbol-provenance/",
         "experiments/2026-09-06-vmlinux-to-elf-symbol-provenance-v2/",
         "experiments/2026-09-06-vmlinux-to-elf-kernel-db-provenance/",
+        "experiments/2026-09-06-vmlinux-to-elf-kernel-db-provenance-v2/",
         "experiments/2026-09-06-mt6797-wmt-loader-ioctl-static-attribution-v3/",
         "experiments/2026-09-06-mt6797-mainline-connectivity-interface-design/",
         "experiments/2026-09-06-mt6797-consys-passive-boot/",
@@ -150,6 +151,7 @@
         "experiments/2026-09-06-vmlinux-to-elf-symbol-provenance/README.md",
         "experiments/2026-09-06-vmlinux-to-elf-symbol-provenance-v2/VALIDATION.md",
         "experiments/2026-09-06-vmlinux-to-elf-kernel-db-provenance/VALIDATION.md",
+        "experiments/2026-09-06-vmlinux-to-elf-kernel-db-provenance-v2/README.md",
         "experiments/2026-09-06-mt6797-wmt-loader-ioctl-static-attribution-v3/README.md",
         "experiments/2026-09-06-mt6797-mainline-connectivity-interface-design/README.md",
         "experiments/2026-09-06-mt6797-consys-passive-boot/README.md"

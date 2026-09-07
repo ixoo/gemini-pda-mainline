@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "state": "review-ready-conditional-query-eligibility",
+  "source_trace": {
+    "KernelVersion_import": "core/kallsyms.py:20-26 imports models from vmlinux_to_elf.kernel_db.database",
+    "path": "kernel_db/database.py:19-20 takes dirname(realpath(__file__)) and resolves its database.sqlite3 child; the nonsymlink installed source directory identifies the one verified database",
+    "connection": "kernel_db/database.py:22 constructs SqliteDatabase(DB_PATH); line 107 calls db.connect() at import time",
+    "readonly_flags_pragmas": "No explicit read-only URI, immutable flag or query-only pragma is supplied by this package source",
+    "models": "Base.Meta binds every model to db and disables legacy table names at lines 25-28",
+    "schema_mutation": "No create_tables, migration, DDL execution or explicit write query appears in the complete 107-line database source or the selected metadata caller",
+    "acquisition": "No download, socket, subprocess or shell invocation appears in the selected source path. URL and suggested command fields are logged as text; they are not invoked",
+    "cleanup": "No explicit db.close() or connection cleanup is supplied by the selected module/caller",
+    "dependency_limit": "Peewee construction, connection defaults, SQL generation and model metaclass behavior were not inspected or executed; no generic ORM no-effect claim is made"
+  },
+  "queries": [
+    {"model": "KernelVersion", "table": "kernel_version", "source": "core/kallsyms.py:445-477; kernel_db/database.py:31-41", "selection": "First full version-string match, otherwise first major/minor version-string match; version_string is the primary key", "result": "Reads browse/download URL and release_date for logging and subsequent date comparison; no stored row was published"},
+    {"model": "KernelRelevantFile", "table": "kernel_relevant_file", "source": "core/kallsyms.py:480-490,518-533; kernel_db/database.py:75-81", "selection": "Selected kernel's relevant_files relation, first with null architecture_code, then matching architecture_code when extra_info is true", "result": "Logs file_name and optional vcs_browser_url; does not read/download referenced content"},
+    {"model": "EMachineValue", "table": "e_machine_value", "source": "core/kallsyms.py:492-501; kernel_db/database.py:44-46", "selection": "First matching elf_machine_int, with no explicit ordering; the integer field is indexed rather than a declared unique key", "result": "Reads elf_machine_str for logging and follows related architecture links; uniqueness of the selected integer is not assumed"},
+    {"model": "ArchitectureEMachineLink", "table": "architecture_e_machine_link", "source": "core/kallsyms.py:502-504; kernel_db/database.py:57-64", "selection": "Traverses arch_code_links from selected machine and each link's architecture foreign key", "result": "Joins the exact two model identities; composite primary key is architecture_id plus e_machine_id"},
+    {"model": "KnownArchitecture", "table": "known_architecture", "source": "core/kallsyms.py:503-516; kernel_db/database.py:49-54", "selection": "Foreign-key architecture from each machine link", "result": "Reads architecture_code and four class/endianness booleans for metadata logging and relevant-file filtering; does not assign parser architecture state"},
+    {"model": "DebianRelease", "table": "debian_release", "source": "core/kallsyms.py:534-556; kernel_db/database.py:100-104", "selection": "First release date not later than kernel release_date, ordered descending by release date; ties have no explicit secondary order", "result": "Logs a suggested environment command and descriptive fields without executing them"}
+  ],
+  "sqlite": {
+    "library_version": "3.45.1", "header_valid": true, "connections": 1,
+    "uri_mode": "ro", "immutable": true, "query_only": 1,
+    "user_version": 0, "journal_mode_observed": "delete",
+    "table_names": ["architecture_e_machine_link", "debian_release", "e_machine_value", "kernel_relevant_file", "kernel_supported_arch", "kernel_version", "kernel_version_dependency", "known_architecture"],
+    "index_count": 20, "view_count": 0,
+    "traced_models": {
+      "kernel_version": {"rows": 925, "columns": {"version_string": "TEXT primary key", "kernel_source": "TEXT", "browse_url": "TEXT nullable", "download_url": "TEXT", "git_commit": "TEXT nullable", "release_date": "DATETIME"}, "foreign_keys": []},
+      "kernel_relevant_file": {"rows": 136458, "columns": {"id": "INTEGER primary key", "release_id": "TEXT", "file_name": "TEXT", "architecture_code": "TEXT nullable", "vcs_browser_url": "TEXT nullable"}, "foreign_keys": ["release_id -> kernel_version.version_string"]},
+      "e_machine_value": {"rows": 60, "columns": {"elf_machine_str": "TEXT primary key", "elf_machine_int": "INTEGER"}, "foreign_keys": []},
+      "known_architecture": {"rows": 43, "columns": {"architecture_code": "TEXT primary key", "has_32bit_class": "INTEGER", "has_64bit_class": "INTEGER", "has_msb_class": "INTEGER", "has_lsb_class": "INTEGER"}, "foreign_keys": []},
+      "architecture_e_machine_link": {"rows": 63, "columns": {"architecture_id": "TEXT primary key part 1", "e_machine_id": "TEXT primary key part 2"}, "foreign_keys": ["e_machine_id -> e_machine_value.elf_machine_str", "architecture_id -> known_architecture.architecture_code"]},
+      "debian_release": {"rows": 18, "columns": {"docker_archive_name": "TEXT primary key", "debian_version_name": "TEXT", "debian_version_number": "TEXT", "debian_release_date": "DATE"}, "foreign_keys": []}
+    },
+    "foreign_key_actions": "NO ACTION for all inspected foreign keys",
+    "row_values_published": false, "package_orm_queries_executed": 0,
+    "before_after_files_equal": true, "distribution_file_names_unchanged": true,
+    "new_cache_journal_temp_files": 0,
+    "audit_raw_sha256": "77766fe6d9966013f44113b163cf66eea3de465aae7d0902ae23e2ad57666125"
+  },
+  "source_forcing": {
+    "ordinary_cache_discovery_allowed": false,
+    "proved_in_this_audit": false,
+    "fail_closed_future_method": [
+      "Start a fresh process with an empty private PYTHONPYCACHEPREFIX and PYTHONDONTWRITEBYTECODE=1/-B; require the prefix to remain empty",
+      "Install a fail-closed package loader before package import; reject every package module lacking an explicit source-path/hash whitelist entry",
+      "For each admitted module load the exact nonsymlink verified .py source bytes, hash them, and compile those bytes in memory; do not delegate get_code to ordinary cache-discovering loaders",
+      "Record module name, source-origin identity, source hash and that exact in-memory code object's use; assert every admitted package module followed that path and no installed .pyc was opened",
+      "Keep this audit's unverified pyc excluded; module-origin metadata alone and PYTHONDONTWRITEBYTECODE alone do not prove source use"
+    ],
+    "remaining_contract_requirement": "Freeze and review the loader and all required transitive package-source pins before execution. This audit does not authorize importing currently unpinned package modules"
+  },
+  "future_guards": [
+    "Freeze the exact three verified files, pinned Kallsyms source and every admitted package module before execution",
+    "Prove the package's actual connection is confined to the frozen database through immutable mode=ro and query_only; ordinary SqliteDatabase(DB_PATH) does not establish this",
+    "Prospectively admit and review any connection adapter needed to enforce read-only opening; refuse rather than silently allow the ordinary import-time db.connect path",
+    "Reject socket/DNS, subprocess/shell, filesystem writes and unexpected file opens; require zero attempts and no row-value publication",
+    "Require unchanged source/database hash, size, mode, mtime and no cache/journal/WAL/temp files before/after; close the connection explicitly",
+    "Keep architecture-detector bypass and any later parser method/interval contract separate; this audit grants no parser or device execution"
+  ],
+  "verdict": {
+    "static_query_eligible_for_future_guarded_contract": true,
+    "ordinary_package_import_readonly_proved": false,
+    "current_package_import_admitted": false,
+    "current_query_execution_admitted": false,
+    "decision": "Conditional eligibility only. Use a separately reviewed source-forcing/read-only connection contract; otherwise bypass the package import/metadata path. No dependency-source expansion is needed to state this refusal boundary"
+  },
+  "authority": {"bytecode_access": false, "package_import": false, "package_compilation": false, "parser_run": false, "orm_query": false, "private_kernel_access": false, "prior_parser_output_access": false, "dependency_source_expansion": false, "network": false, "device": false, "build": false, "instruction_analysis": false, "hardware_support": false},
+  "observed_network_or_subprocess_attempts": 0,
+  "raw_outputs_exported": false
+}

@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "record_entries": 4,
+  "verified_files": [
+    {"path": "vmlinux_to_elf/kernel_db/README.md", "role": "documentation", "sha256": "f92e6fb1c70ae00c0b76b89112d77469539e2687942b2f4bf7cce51904efa53d", "size": 157, "mode": "0o664", "mtime_ns": 1785068121754597634},
+    {"path": "vmlinux_to_elf/kernel_db/database.py", "role": "python-source", "sha256": "8e14a47f13dba742f48e3ec388e499a2255c395249bb54cdc8b309012d7ea5a8", "size": 2802, "mode": "0o664", "mtime_ns": 1785068121754597634},
+    {"path": "vmlinux_to_elf/kernel_db/database.sqlite3", "role": "sqlite-data", "sha256": "94a1c7d1c3859b8974e778a055f1d87a4cfd04a055e8a8de35f4b7bfc616d459", "size": 33501184, "mode": "0o664", "mtime_ns": 1785068121854600273}
+  ],
+  "excluded_files": [{"path": "vmlinux_to_elf/kernel_db/__pycache__/database.cpython-312.pyc", "digest_present": false, "size_present": false, "content_read_hashed_or_loaded": false}],
+  "all_paths_regular_nonsymlink_contained": true,
+  "all_verified_record_digests_sizes_match": true,
+  "verified_before_after_hash_size_mode_mtime_equal": true,
+  "distribution_file_names_unchanged": true,
+  "new_cache_journal_temp_files": 0,
+  "inventory_before_raw_sha256": "de8e546c5f1b26b2864077566e456c8608758ed4187b2b6cde8011db0afa2d5b"
+}
