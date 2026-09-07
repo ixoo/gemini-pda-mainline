@@ -92,6 +92,14 @@ when it can resolve a supported interface or measurement dependency. Unassigned 
 | Cellular and cameras | Identify upstream transport/pipeline feasibility and the irreducible blockers | Public interface, resource, licensing and existing-effort research | Shared-memory/crash isolation and radio or imaging-specific safety review before hardware work |
 | Standard boot and distribution | Define normal package/update/rollback consumption of the integration baseline | Packaging and retained-loader contract review | Reliable storage/recovery; loader replacement is separately admitted |
 
+The current [display architecture refresh](../experiments/2026-09-07-mt6797-display-upstream-architecture/README.md)
+found no local 0028–0044 subset with both a truthful current resource contract
+and a real consumer/test story. Display PWM is the smallest likely unlock, but
+the local one-handle evidence does not resolve upstream's mandatory `main` +
+`mm` clocks. Before any implementation, separately admit a bounded observation
+of consumer and parent clock identity, rate-source/gate ownership and MM-domain
+lifetime; missing attribution preserves the current two-clock contract.
+
 Wi-Fi is a first-class usable-system requirement and an active workstream,
 not deferred peripheral polish. Its owner defines the shared connectivity
 power/firmware interface with the integration owner; Bluetooth and GNSS must
@@ -227,9 +235,11 @@ The remaining preparation order is:
    execution and must not be resumed as another offline repair loop. A bounded
    [known-good Gemian observer check](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/README.md)
    also found no live kprobe or function-tracing path for the required lifetime
-   evidence. Next locate an already retained attributable successful
-   load/shutdown record, or review a distinct non-replayed observation mechanism
-   before any radio or hardware action. See the
+   evidence. A bounded [retained-evidence audit](../experiments/2026-09-07-mt6797-wifi-retained-lifetime-audit/README.md)
+   found no record that joins any required predicate to one successful WLAN
+   cycle. Next freeze and independently review a distinct non-replayed
+   observation mechanism, including its acquisition effects, shared ownership,
+   finite budget and recovery, before any radio or hardware action. See the
    [retained-ELF boundary](../experiments/2026-09-06-mt6797-wlan-final-linkage-teardown-attribution/README.md),
    [accepted database boundary](../experiments/2026-09-06-vmlinux-to-elf-kernel-db-provenance-v2/README.md)
    and [accepted Kallsyms provenance](../experiments/2026-09-06-vmlinux-to-elf-symbol-provenance-v3/README.md).

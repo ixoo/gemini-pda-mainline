@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "parent": "2af9532b3b1c1850cfa071a0f279154127a04db1",
+  "frozen_input_count": 7,
+  "records": [
+    {
+      "id": "architecture",
+      "path": "experiments/2026-09-07-mt6797-hif-upstream-architecture/README.md",
+      "evidence_class": "design",
+      "sha256": "39f15d2630184e5e918d53d53b00f1d4221b982292304efda32c2c4707c7baaf",
+      "size": 12096
+    },
+    {
+      "id": "architecture_receipt",
+      "path": "experiments/2026-09-07-mt6797-hif-upstream-architecture/results/source-review.json",
+      "evidence_class": "design",
+      "sha256": "1738744324d0a5cd1afc3beb598a401f1f9db1147a9d866cfd8790d61f608cb9",
+      "size": 8697
+    },
+    {
+      "id": "observer",
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/README.md",
+      "evidence_class": "runtime-capability",
+      "sha256": "aa9fb9c1cfd2db26ffcce1f80b74808fa81aaeceea10f62af7713e9da5f7e6a6",
+      "size": 3317
+    },
+    {
+      "id": "dma",
+      "path": "experiments/2026-09-05-mt6797-wifi-contract/HIF_DMA_CONTRACT.md",
+      "evidence_class": "source-static",
+      "sha256": "a29d7b34aaa3b8942c3fb751c24f0493c74f2ff245cf9d3ca1353b157b4e7dfc",
+      "size": 12272
+    },
+    {
+      "id": "spm_order",
+      "path": "experiments/2026-09-05-mt6797-wifi-contract/SPM_KEY_ORDER.md",
+      "evidence_class": "source-static",
+      "sha256": "730731f169dac016b8146b0d4cd05783cb7b63ced45658eb4454f8192f227f6e",
+      "size": 10217
+    },
+    {
+      "id": "spm_retained",
+      "path": "experiments/2026-09-05-mt6797-wifi-contract/RETAINED_SPM_ATTRIBUTION.md",
+      "evidence_class": "source-static",
+      "sha256": "9b7dca863dec9d979cf38827d5a3a196327e563e066f669b23e9aaf2c316075e",
+      "size": 8221
+    },
+    {
+      "id": "common_lifetime",
+      "path": "experiments/2026-09-06-mt6797-wlan-common-lifetime-source-attribution/README.md",
+      "evidence_class": "source-static",
+      "sha256": "d3a1955019680e3884d5a69ff89da6a9aa9f3e2fbcf344d65a8f68a241e8f470",
+      "size": 7140
+    },
+    {
+      "id": "connectivity",
+      "path": "experiments/2026-07-12-connectivity-wmt-recovery/README.md",
+      "evidence_class": "mixed-summary",
+      "sha256": "c49b99d50476f69a9051278dc2acd4f530b21780b8872eef32eb6bf366067882",
+      "size": 18069
+    },
+    {
+      "id": "runtime_summary",
+      "path": "experiments/2026-07-12-connectivity-wmt-recovery/results/runtime-summary.txt",
+      "evidence_class": "runtime-presence",
+      "sha256": "29224542b29eb2700e7d069d97312b64cd78b04372e36eabc9e775d0ced22678",
+      "size": 2784
+    },
+    {
+      "id": "runtime_rerun",
+      "path": "experiments/2026-07-12-connectivity-wmt-recovery/results/live-connectivity-rerun-20260713.txt",
+      "evidence_class": "runtime-presence",
+      "sha256": "6c67f9707885df020b4354ab17a53ee82c6182590b0fee225b3a24d7cb71a3e0",
+      "size": 3618
+    },
+    {
+      "id": "runtime_repeat",
+      "path": "experiments/2026-07-12-connectivity-wmt-recovery/results/live-connectivity-repeat-20260714.txt",
+      "evidence_class": "runtime-presence",
+      "sha256": "fbde2b9615c65dcf519e2acd1f93805643408ef9ce86382497f593e77607b575",
+      "size": 3516
+    },
+    {
+      "id": "runtime_postreboot",
+      "path": "experiments/2026-07-12-connectivity-wmt-recovery/results/live-connectivity-postreboot-20260714.txt",
+      "evidence_class": "runtime-presence",
+      "sha256": "210cf4a46590a98a8f61160fcaa2c6a72ee7b99dcb9983db32af407e0327b665",
+      "size": 3785
+    },
+    {
+      "id": "passive_runtime",
+      "path": "experiments/2026-09-06-mt6797-consys-passive-boot/results/runtime-20260906.txt",
+      "evidence_class": "runtime-passive",
+      "sha256": "9f2bb6115db0aae5aba69a1956c450fd029df63f9004e591781f4fa44ce5434a",
+      "size": 1100
+    },
+    {
+      "id": "hardware_summary",
+      "path": "docs/hardware/mt6797-wifi.md",
+      "evidence_class": "mixed-summary",
+      "sha256": "a21821d6cf62c42aee2f0cddaf61c8932057d7272b3c04ff4897cc0e41505754",
+      "size": 9048
+    },
+    {
+      "id": "hif_core",
+      "path": "experiments/2026-09-05-mt6797-wifi-hif-core/README.md",
+      "evidence_class": "fixture-proposal",
+      "sha256": "56174da2d72933344bbf100c92b89624d2234a8628bdb76c056009682c0db013",
+      "size": 5237
+    }
+  ]
+}

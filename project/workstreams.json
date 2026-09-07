@@ -140,6 +140,7 @@
         "experiments/2026-09-06-mt6797-consys-passive-boot/",
         "experiments/2026-09-07-mt6797-hif-upstream-architecture/",
         "experiments/2026-09-07-mt6797-wifi-observer-feasibility/",
+        "experiments/2026-09-07-mt6797-wifi-retained-lifetime-audit/",
         "Shared CONSYS/WMT and Wi-Fi firmware/HIF contract proposals"
       ],
       "evidence": [
@@ -160,7 +161,8 @@
         "experiments/2026-09-06-mt6797-mainline-connectivity-interface-design/README.md",
         "experiments/2026-09-06-mt6797-consys-passive-boot/README.md",
         "experiments/2026-09-07-mt6797-hif-upstream-architecture/README.md",
-        "experiments/2026-09-07-mt6797-wifi-observer-feasibility/README.md"
+        "experiments/2026-09-07-mt6797-wifi-observer-feasibility/README.md",
+        "experiments/2026-09-07-mt6797-wifi-retained-lifetime-audit/README.md"
       ],
       "issue_urls": [
         "https://github.com/ixoo/gemini-pda-mainline/issues/25"
@@ -176,13 +178,15 @@
       "id": "display",
       "title": "Display, touch and GPU",
       "owner": null,
-      "status": "ready",
+      "status": "active",
       "scope": [
-        "new display dependency investigation"
+        "experiments/2026-09-07-mt6797-display-upstream-architecture/",
+        "Current display dependency and ownership investigation"
       ],
       "evidence": [
         "experiments/2026-07-11-gemini-panel-recovery/README.md",
-        "experiments/2026-07-12-mt6797-gpu-panfrost-recovery/README.md"
+        "experiments/2026-07-12-mt6797-gpu-panfrost-recovery/README.md",
+        "experiments/2026-09-07-mt6797-display-upstream-architecture/README.md"
       ],
       "issue_urls": [
         "https://github.com/ixoo/gemini-pda-mainline/issues/18",
@@ -190,7 +194,8 @@
         "https://github.com/ixoo/gemini-pda-mainline/issues/21",
         "https://github.com/ixoo/gemini-pda-mainline/issues/24"
       ],
-      "dependencies": []
+      "dependencies": [],
+      "display_blocker": "No current display patch subset has both a truthful resource contract and a real consumer. The smallest likely display-PWM topic requires separately admitted clock-parent/rate/gate/MM-domain evidence; panel identity, bias silicon, reset equivalence and DSI/PHY rate remain unresolved."
     },
     {
       "id": "peripherals",

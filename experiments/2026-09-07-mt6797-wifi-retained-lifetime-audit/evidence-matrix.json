@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "verdict": "no-joined-retained-lifetime-evidence",
+  "accepted_predicates": 0,
+  "cycle_id": null,
+  "cycle_success": null,
+  "ordering_proved": false,
+  "predicates": [
+    {
+      "id": "dma_address_programming",
+      "verdict": "missing-runtime-join",
+      "observation": null,
+      "source_records": [
+        "dma"
+      ],
+      "existing": "Source names the low source/destination registers and unconditional ADDR2 bits; no DMA API address is joined to an executed transfer.",
+      "missing": "Mapped bus address, exact programmed source/destination and both ADDR2 values from the same successful transfer.",
+      "cycle_id": null,
+      "success_predicate": null
+    },
+    {
+      "id": "endpoint_progression",
+      "verdict": "missing-runtime-join",
+      "observation": null,
+      "source_records": [
+        "dma",
+        "runtime_repeat",
+        "runtime_postreboot"
+      ],
+      "existing": "Static HIF aperture and polling protocol; runtime HIF thread and BTIF counters are different observations.",
+      "missing": "HIF endpoint bus translation with ordered EN/INT_FLAG observations for that same transfer.",
+      "cycle_id": null,
+      "success_predicate": null
+    },
+    {
+      "id": "idle_before_release",
+      "verdict": "missing-runtime-join",
+      "observation": null,
+      "source_records": [
+        "dma",
+        "common_lifetime"
+      ],
+      "existing": "Static stop/timeout paths lack a guaranteed positive idle witness; no observed before-unmap ordering.",
+      "missing": "Positive channel-idle witness preceding unmap/release, attributable to the same transfer.",
+      "cycle_id": null,
+      "success_predicate": null
+    },
+    {
+      "id": "firmware_stop",
+      "verdict": "missing-runtime-join",
+      "observation": null,
+      "source_records": [
+        "common_lifetime",
+        "runtime_postreboot"
+      ],
+      "existing": "WMT fallback reports common firmware load success; no completed WLAN firmware-stop event or paired shutdown.",
+      "missing": "A named WLAN firmware-stop completion predicate and cycle join, not interface-down or module bookkeeping.",
+      "cycle_id": null,
+      "success_predicate": null
+    },
+    {
+      "id": "coherent_consys_off",
+      "verdict": "missing-runtime-join",
+      "observation": null,
+      "source_records": [
+        "spm_order",
+        "spm_retained",
+        "passive_runtime"
+      ],
+      "existing": "Source and retained static control flow put clock-disable before reset; passive mainline counters are zero.",
+      "missing": "Executed ordered protection/isolation/clock/reset/power-request and ACK effects for the same shutdown, with shared-client ownership.",
+      "cycle_id": null,
+      "success_predicate": null
+    }
+  ],
+  "contradictions": [
+    "Normal queued and late-registration source paths do not have uniform common-resource acquisition; source bookkeeping cannot prove an enduring lease.",
+    "Clock/reset ordering differs between vendor/static CONN evidence and the older upstream path; neither is a runtime equivalence proof."
+  ],
+  "negative_results": [
+    "No private text/log candidate matched the bounded inventory.",
+    "No inspected repository record joins WLAN load, DMA programming, idle, firmware stop and CONSYS OFF to one successful cycle.",
+    "The current Gemian standard kprobe/function-tracing path is absent in the accepted capability record."
+  ],
+  "transferable": [
+    "Observed Gemian WLAN/driver/HIF presence and common WMT fallback behavior remain their original bounded facts.",
+    "Static register/control-flow attribution and fixture results retain their original evidence class.",
+    "The passive mainline BOUND generation with zero effects remains a passive-binding result."
+  ],
+  "limitations": [
+    "No runtime lifecycle predicate is proved or partially promoted by source sequencing.",
+    "Successful common WMT patch loading is not proof of a WLAN image load/shutdown cycle.",
+    "BTIF DMA counters are not HIF AP-DMA completion witnesses.",
+    "A future normal-cycle observation alone cannot prove failed-operation retention or safe teardown.",
+    "No firmware redistribution, driver reuse, implementation, candidate or hardware-support admission follows."
+  ],
+  "next_discriminator": "Freeze and independently review one distinct non-replayed observation protocol capable of joining the five predicates to one successful WLAN load/shutdown cycle; define acquisition effects, shared ownership, finite budget and recovery before use. This audit selects no mechanism and does not reopen the owner-closed retained-instruction line.",
+  "effects": {
+    "live_device": false,
+    "radio_firmware_action": false,
+    "trace_debug_ioctl": false,
+    "register_access": false,
+    "private_binary_body": false,
+    "private_text_body": false,
+    "network_lookup": false,
+    "kernel_build": false,
+    "vm_configuration_mutation": false,
+    "private_evidence_mutation": false,
+    "analysis_database": false,
+    "closed_observer_resume": false,
+    "shared_repository_edit": false,
+    "support_claim": false
+  }
+}

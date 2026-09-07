@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "review_ready_utc": "2026-09-07T19:35:12Z",
+  "frozen_parent": "2af9532b3b1c1850cfa071a0f279154127a04db1",
+  "verdict": "stop-no-coherent-first-series",
+  "next_discriminator": "Through a separately frozen and reviewed acquisition protocol, capture one bounded attributable clock-and-power trace around an existing brightness transition and display suspend/resume. Identify display-PWM consumer-clock identities, complete parent ancestry, rate-source role, gate ownership and MM-domain lifetime. Two separately owned clocks reject patch 0044's optional-mm change; proven one-clock hardware plus separately accounted domain lifetime may admit a later small provider topic; inherited/parent enables or missing attribution are inconclusive and preserve mandatory main+mm. This record authorizes no trace, brightness, suspend or PWM-register action.",
+  "limits": {
+    "current_primary_source_binding_files": 39,
+    "current_primary_source_binding_file_cap": 40,
+    "public_message_pages": 0,
+    "public_message_page_cap": 20,
+    "public_project_pages": 1,
+    "local_patches": 17,
+    "local_patch_cap": 17,
+    "whole_tree_clone": false,
+    "device_or_private_evidence_access": false
+  },
+  "refs": {
+    "linux_mainline": {
+      "commit": "28924df2a08f440c73991b83028032c901de2ae4",
+      "resolved_from": "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
+      "content_base": "https://raw.githubusercontent.com/torvalds/linux/28924df2a08f440c73991b83028032c901de2ae4/"
+    },
+    "public_overlap": {
+      "repository": "https://github.com/bsg100/gemini-linux",
+      "commit": "e744a43f9d68cd3251dc0c9743ca41aac74853a8",
+      "content_base": "https://raw.githubusercontent.com/bsg100/gemini-linux/e744a43f9d68cd3251dc0c9743ca41aac74853a8/"
+    }
+  },
+  "frozen_project_inputs": [
+    {"path": "experiments/2026-07-11-gemini-panel-recovery/README.md", "sha256": "31d566248f3bcddcd6b31db1f3121628474b2c769777a13904a7210f09b3ff10"},
+    {"path": "experiments/2026-07-12-input-backlight-recovery/README.md", "sha256": "67a6dcea22135ba6b5f87995be6d11e196133a35fc02567608a89342693ca430"},
+    {"path": "experiments/2026-07-12-mt6797-display-mutex-recovery/README.md", "sha256": "02320df194edd35078ca8a2a1ec74f9688fd8af22fac3ca18859e73dedee3d99"},
+    {"path": "docs/hardware/mt6797-live-resource-map.md", "sha256": "f3f7a191e3e41d8e63f4658a437006b9d8b0e3d01a412a7f38b59f77c57f51b4"},
+    {"path": "docs/HARDWARE_SUPPORT.md", "sha256": "58cbc5e8d6bf1bda968260e0347f1deb65adc50562f59f79baef953bf69f5947"}
+  ],
+  "local_patches": [
+    {"number": 28, "sha256": "2e7cd718dc6f50ca45cb6f0980e27440b6872b4d021fc10c2db54ef789f5332d", "disposition": "retain"},
+    {"number": 29, "sha256": "13cc999701af741feeef9e5118c0e9305944557ae5857a207cb3b2cf4e2be1d3", "disposition": "adapt"},
+    {"number": 30, "sha256": "ca0321c0038a2306102c9189ee4df76f8768ec8601345eee5526d77f8ba2750b", "disposition": "hold"},
+    {"number": 31, "sha256": "6e0d0bdb9da84ea4f54b01602f76ee9720161c9dc00ff198f0925e2d466c86cd", "disposition": "adapt"},
+    {"number": 32, "sha256": "ff26e66d25e83ffaf1f73b9a4fc6f938bffabc560d7bd3b1f8d037e78a66156f", "disposition": "hold"},
+    {"number": 33, "sha256": "83e8dd899185d96478736470cae41ac2b083dd77362dd41d7fc6f8573c5e8c4a", "disposition": "split"},
+    {"number": 34, "sha256": "915355419e7aa346897a8ff6434eea992963da73071db7262e370dfb2ae5eafa", "disposition": "split"},
+    {"number": 35, "sha256": "7b0cab9c47051a93cb92eebcc00424cf7d0e9d0b8b3f9e43f8e282fa7a8178e1", "disposition": "split"},
+    {"number": 36, "sha256": "28edec9b8eea65c0d8a14a658e6cbeab012b75d04966d7b62de4b9a6d6cfd97a", "disposition": "split"},
+    {"number": 37, "sha256": "aed07ade3573ea76185bd6d2db5c81fc247854f6f99e93a51cb88704d2d2d343", "disposition": "split"},
+    {"number": 38, "sha256": "fba93eb175fbf20af14517b96e21ab4f9f1b57f58bd6072718b7e2672a666ceb", "disposition": "hold"},
+    {"number": 39, "sha256": "22d4d2975a185ddb867fe1c6bef9e0297cc868359639e067e1ed069c5a968c28", "disposition": "hold"},
+    {"number": 40, "sha256": "9101e48a6254dcd291a4bcb1ea91b0e6a245859d939c7640c3c0783fdeaa9d8d", "disposition": "hold"},
+    {"number": 41, "sha256": "65c6f722383ecfc51acaf80549c15c0a11bc9400ceaf04fa4e68ed8d1de8ca4c", "disposition": "superseded"},
+    {"number": 42, "sha256": "0f66798d6ffddbac37a39eaa38f80833e154d014002ae9a4758e7d168369e4ad", "disposition": "split"},
+    {"number": 43, "sha256": "3507a84bcc7c4c568b9c4d702859725a93eeb94956f66db5fa60f13a52d3c8e9", "disposition": "hold"},
+    {"number": 44, "sha256": "c5322ea67ef4dba4c66fe9e09180c55240e78800962b0022140f9fe261469bcc", "disposition": "hold"}
+  ],
+  "linux_files": [
+    ["MAINTAINERS", "1b6bd8418b8bbdcbce595c4648c10afaf23370e3de243a282dbc992798de3a84"],
+    ["Documentation/devicetree/bindings/soc/mediatek/mediatek,mutex.yaml", "56bd9b2951f00bf6c0fb573de09056aa7964cd54c5bb9c73161a28c4738bdf23"],
+    ["Documentation/devicetree/bindings/arm/mediatek/mediatek,mmsys.yaml", "52c3cd54f7b294def2341335f0cbcb7cb7a9d40d3f64c8f16d4462a08fb5d0d9"],
+    ["Documentation/devicetree/bindings/display/mediatek/mediatek,ovl.yaml", "97ad13346ae01918936e02914876f73ce9f7e484f4b72cd76def02b7264009aa"],
+    ["Documentation/devicetree/bindings/display/mediatek/mediatek,ovl-2l.yaml", "66999a8732f6ebc7cfad3e9b53638dc29db03040222bbf3c4d609c0c320819dc"],
+    ["Documentation/devicetree/bindings/display/mediatek/mediatek,rdma.yaml", "9aeb9ed1dad0b5d5b43b6d0d994c52b6805c0cf770a5701a778b4bca1e3c45fd"],
+    ["Documentation/devicetree/bindings/display/mediatek/mediatek,aal.yaml", "d8758641527e8113286dbcfb8996c7b72c9f1e8e6ca0b21ea9e30500bb0ce76f"],
+    ["Documentation/devicetree/bindings/display/mediatek/mediatek,ccorr.yaml", "cd4214c3efe778100bc68a9a12e4b1de57262cf222de115b5df41f86ffd66a4a"],
+    ["Documentation/devicetree/bindings/display/mediatek/mediatek,color.yaml", "4c30358596af84279d0f28a58984f2b4c44051fac5c6e0529c47f72a9e034eb7"],
+    ["Documentation/devicetree/bindings/display/mediatek/mediatek,dither.yaml", "9c3269bf75b20c2afbce6310554c8e6373ae17f145f1dc93e7062730629df125"],
+    ["Documentation/devicetree/bindings/display/mediatek/mediatek,gamma.yaml", "fe90bb0bd7177d077aeb46971a39d177688f9fa38d7b39621756ea4f3b89a6fe"],
+    ["Documentation/devicetree/bindings/display/mediatek/mediatek,od.yaml", "c26681acfcecd38db4b9447f8265260f5223cf1f96677a12ad4056ae56af85d2"],
+    ["Documentation/devicetree/bindings/display/mediatek/mediatek,ufoe.yaml", "fc987d00ddba06cb54253b75ef76498c8a5ec23a98b41376dab8c8fe8874ae71"],
+    ["Documentation/devicetree/bindings/display/mediatek/mediatek,dsi.yaml", "d4186b1c32ed07e6e428fabe5137e1be00d3a569eac0c4407a6f0e047783cb25"],
+    ["Documentation/devicetree/bindings/phy/mediatek,dsi-phy.yaml", "0ccb653c06c111a7a04afa490ca659d587935ed44c8989fa9174e08739527edc"],
+    ["Documentation/devicetree/bindings/pwm/mediatek,pwm-disp.yaml", "d1515e23b821111c514b88bff1c6109973605a0c56f47dcef19d77444471aa7f"],
+    ["Documentation/devicetree/bindings/display/panel/panel-common.yaml", "211453eed686435c44695fc23ed6fa8d04b7fa6b40ed70735a21bb34a263567b"],
+    ["drivers/soc/mediatek/mtk-mutex.c", "cbc3b85a4cd8bd4afe30fdae3bc14fcc25f99526cc07011ec31137e2ab8ef2af"],
+    ["drivers/soc/mediatek/mtk-mmsys.c", "a5a15a4c293da41e1ae248b41d32d58ecde82698c57213cb87515b7651ee6d3f"],
+    ["drivers/gpu/drm/mediatek/mtk_drm_drv.c", "1ea0f57933d22f72a7d8ac12ce8810ae3d6f7d742fb94a257382767d5fd1587e"],
+    ["drivers/gpu/drm/mediatek/mtk_disp_ovl.c", "9cdb63287b35b9babe126c446436e1b0f62bd87230cbbabe1fc60acfb43ed903"],
+    ["drivers/gpu/drm/mediatek/mtk_disp_rdma.c", "accb19352368a971d67937c4e0b97a17988f5136c22870aa72e69c5787dadd26"],
+    ["drivers/gpu/drm/mediatek/mtk_ddp_comp.c", "83af305b0b75139d822e0d45ca16d1f0429676a1c79c3d7087a80a548b47758f"],
+    ["drivers/gpu/drm/mediatek/mtk_disp_aal.c", "6d397de268d5b3e93de7fadbd7ed49be45469bca724e8515b1064b8aadaaa45d"],
+    ["drivers/gpu/drm/mediatek/mtk_disp_ccorr.c", "833026c8a7a24b50e8231a34b8b9667088ef03f880f8ca09ddf97fe6f7c3aeed"],
+    ["drivers/gpu/drm/mediatek/mtk_disp_color.c", "c0c6bf9320e17010264634ea6318fdb7596f42efbb2ca9fb6b628374ae6516c1"],
+    ["drivers/gpu/drm/mediatek/mtk_disp_gamma.c", "eb4f4eb6e09fe5f808d135bef97cabd205fbe6937b0e49e68d2686b616b23fc7"],
+    ["drivers/gpu/drm/mediatek/mtk_dsi.c", "a3cf5553fb745726015cc11cfc26f739088bf3d15919dbf5268c937124a774dd"],
+    ["drivers/phy/mediatek/phy-mtk-mipi-dsi.c", "e1c830469071eecced02913f6da9f06222f3d3de580017a531f67ee532fd46aa"],
+    ["drivers/phy/mediatek/phy-mtk-mipi-dsi.h", "d9b707930c1a2fbb97b815fce8407af7dd6fe7e858660ca33c058fa677b2bf5a"],
+    ["drivers/phy/mediatek/phy-mtk-mipi-dsi-mt8173.c", "5f4f3ce70aab3fe641dff1569feb9bdf916d48fd8f5b695ffbf25f2b22221f85"],
+    ["drivers/pwm/pwm-mtk-disp.c", "82028c4d99973a54eabba96e6be4dd9eeb9432f7997f34999bcc9f91957d2226"],
+    ["drivers/gpu/drm/panel/panel-novatek-nt36672e.c", "24b8b0b4184c7f25fd86fb06721cfe4a97af6476e2b9ce24297e86c7f11e70a3"],
+    ["arch/arm64/boot/dts/mediatek/mt6797.dtsi", "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83"]
+  ],
+  "public_overlap_files": [
+    ["patches/v6.6/drm/0001-drm-mediatek-add-mt6797-mmsys-ddp-path.patch", "eb60c9b355d90aa6712e3bf2cc47a9f6d28d335e08deecf5c4b5a3f181525990"],
+    ["patches/v6.6/drm/0002-drm-mediatek-add-mt6797-dsi-driver-data.patch", "3e44c439b8ae53c941dc907a87707a6235e38f60fbabfbd8b6f05e7ed2e59533"],
+    ["patches/v6.6/phy/0003-phy-mediatek-wire-in-mt6797-mipitx.patch", "82dc8d3154e6ce797fda7d56b6f9bb83223555ce912c8980133039d022d0c827"],
+    ["patches/v6.6/phy/0004-phy-mediatek-add-mt6797-mipitx-phy-driver.patch", "142e70600e3d4abb3072dd7b0f49540c137d6265895f4963e867207a4392d9b3"],
+    ["patches/v6.6/dts/0006-arm64-dts-mediatek-add-mt6797-display-nodes.patch", "7ee9ff9196731e06f7239d1f255c95a229811c6f05253c076d87b8d5cb744b9c"]
+  ],
+  "public_project_pages": [
+    {
+      "url": "https://github.com/bsg100/gemini-linux/blob/e744a43f9d68cd3251dc0c9743ca41aac74853a8/driver_ports.md",
+      "sha256": "85f6df430fd028b7a2a4b699a346eb8a2474534421376e59180c9f46c61dd105",
+      "finding": "The independent implementation overlaps DRM, DSI, MIPI-TX and DTS ownership, but explicitly remains compile-only and says its PLL calculation/timing requires hardware verification. Its documented display path and panel assumptions conflict with this repository's named-device evidence, so it is attribution and contradiction evidence, not an accepted upstream base. No public submission was located by the bounded exact-string searches."
+    }
+  ],
+  "current_absences": [
+    "No MT6797 compatible in the inspected display-mutex binding or driver.",
+    "No MT6797 compatible or driver data in the inspected OVL, OVL-2L, RDMA, fixed-function, DSI, MIPI-TX, panel, or display-PWM sources/bindings.",
+    "The current MT6797 MMSYS entry owns only clk-mt6797-mm; it has no routes or reset count, and current DRM has no MT6797 MMSYS match entry.",
+    "The current mt6797.dtsi has the MMSYS syscon/clock node but none of the inspected native display pipeline, mutex, DSI, MIPI-TX, or display-PWM nodes."
+  ],
+  "effects": {
+    "files_created": ["README.md", "results/source-review.json"],
+    "kernel_or_shared_files_changed": false,
+    "build_run": false,
+    "hardware_support_claimed": false,
+    "upstream_contacted": false
+  }
+}

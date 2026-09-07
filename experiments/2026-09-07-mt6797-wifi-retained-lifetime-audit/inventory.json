@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "repository_records": 15,
+  "repository_bytes": 109117,
+  "private": {
+    "method": "approved-re-shell-filename-stat-only",
+    "vm_already_running": true,
+    "inventory_entry_cap": 20000,
+    "entries_examined": 697,
+    "excluded_name": 20,
+    "nonregular": 25,
+    "other_metadata_only": 652,
+    "plausible_text_candidates": 0,
+    "selected_records": [],
+    "selected_count": 0,
+    "selected_bytes": 0,
+    "selection_cap_records": 30,
+    "selection_cap_bytes": 10485760,
+    "body_reads": 0,
+    "symlinks_followed": false,
+    "raw_output_created": false,
+    "raw_output_exported": false,
+    "scratch_children_created": 0,
+    "term_counts": null,
+    "stop": "no-plausible-text-candidate",
+    "selection_rule": "Regular filenames ending .log or .txt and containing dmesg, kernel, boot, wlan, wifi, connectivity, runtime or shutdown; exclude matching sensitive/category names and directories, and never follow symlinks.",
+    "excluded_terms": [
+      "credential",
+      "calibration",
+      "nvram",
+      "password",
+      "secret",
+      "private",
+      "userdata",
+      "partition",
+      "firmware",
+      "database",
+      "ghidra",
+      "radare",
+      ".ssh",
+      "key"
+    ]
+  },
+  "limitations": [
+    "Filename-based inventory only; not a MIME or content classification.",
+    "Pruned directories, nonmatching names and records outside the sole retained workspace remain unexamined.",
+    "No text candidate was selected, so there are no private selected hashes or term counts.",
+    "No raw private output existed; no guest scratch child was needed or created.",
+    "No assertion that all project-private stores or all possible filenames were exhausted."
+  ]
+}
