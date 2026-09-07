@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "observed_at_utc": "2026-09-07T18:09:54Z",
+  "repository_parent": "5aa5e7d93114155cdefe00bcf462db168cdd45fc",
+  "method": "Read-only current-tree ownership and interface review; exact refs and individual files fetched without retaining a Linux tree; no build, VM, private capture or device access.",
+  "refs": {
+    "mainline_master": "28924df2a08f440c73991b83028032c901de2ae4",
+    "net_next_main": "31f961de2f90fbf52eb2d4e15b3eeaa09f9b4fc2",
+    "wireless_next_main": "1b60ed34f712e9f606d80951f1586f4274ebadf1",
+    "mediatek_for_next": "f5be25e697e0362103625b1b197af126ae4ba5f7",
+    "dt_schema": "39602f98e049c34a3f95f70b84f1bfd80bc898a4"
+  },
+  "current_sources": [
+    {
+      "tree": "mainline",
+      "path": "MAINTAINERS",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/28924df2a08f440c73991b83028032c901de2ae4/MAINTAINERS",
+      "sha256": "1b6bd8418b8bbdcbce595c4648c10afaf23370e3de243a282dbc992798de3a84"
+    },
+    {
+      "tree": "mainline",
+      "path": "Documentation/devicetree/bindings/net/wireless/mediatek,mt76.yaml",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/28924df2a08f440c73991b83028032c901de2ae4/Documentation/devicetree/bindings/net/wireless/mediatek,mt76.yaml",
+      "sha256": "c26203cf93b48ed4c4cea6c05cfafcb2f12df2baeae1ad39724173ad9c2e5765"
+    },
+    {
+      "tree": "mainline",
+      "path": "drivers/net/wireless/mediatek/mt76/mt7915/soc.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/28924df2a08f440c73991b83028032c901de2ae4/drivers/net/wireless/mediatek/mt76/mt7915/soc.c",
+      "sha256": "414fb5ff8104ddb82b1beef1283ce63e8437620368b5c9e9840e02c348cd2445"
+    },
+    {
+      "tree": "mainline",
+      "path": "drivers/net/wireless/mediatek/mt76/sdio.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/28924df2a08f440c73991b83028032c901de2ae4/drivers/net/wireless/mediatek/mt76/sdio.c",
+      "sha256": "3de7ad4bbc1e58f1956a1cf17bd34903102e751690c7daa9c7f503b14a47b9c8"
+    },
+    {
+      "tree": "mainline",
+      "path": "drivers/net/wireless/mediatek/mt76/mt7603/soc.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/28924df2a08f440c73991b83028032c901de2ae4/drivers/net/wireless/mediatek/mt76/mt7603/soc.c",
+      "sha256": "4b0a6eac371cef2d7cf4a044d945337080cbf01b033f1a46ba08da4664d309cd"
+    },
+    {
+      "tree": "mainline",
+      "path": "drivers/dma/mediatek/mtk-uart-apdma.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/28924df2a08f440c73991b83028032c901de2ae4/drivers/dma/mediatek/mtk-uart-apdma.c",
+      "sha256": "6d27c0a204646ecefee5c084e3c1f57cf7d68e78cfcdbc0ef7b6917657291931"
+    },
+    {
+      "tree": "mainline",
+      "path": "Documentation/devicetree/bindings/dma/mediatek,uart-dma.yaml",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/28924df2a08f440c73991b83028032c901de2ae4/Documentation/devicetree/bindings/dma/mediatek,uart-dma.yaml",
+      "sha256": "ff03a671827a19fd1bf62e8594c51bffba309a8067ff977d7eda8f9a47214b10"
+    },
+    {
+      "tree": "mainline",
+      "path": "drivers/of/of_reserved_mem.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/28924df2a08f440c73991b83028032c901de2ae4/drivers/of/of_reserved_mem.c",
+      "sha256": "df750fd2023c11c41991c34cc6f1d40bcd53458c19492f15b23fa0e59e125d50"
+    },
+    {
+      "tree": "mainline",
+      "path": "Documentation/driver-api/firmware/request_firmware.rst",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/28924df2a08f440c73991b83028032c901de2ae4/Documentation/driver-api/firmware/request_firmware.rst",
+      "sha256": "dffeb11a70f9d70c6a07efb22871ffc8e08d89b2c80ffd8968c76371b51799ce"
+    },
+    {
+      "tree": "mainline",
+      "path": "Documentation/core-api/dma-api-howto.rst",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/28924df2a08f440c73991b83028032c901de2ae4/Documentation/core-api/dma-api-howto.rst",
+      "sha256": "92070ca3b5e150580c26d39be990b109053951a767fb3fd1d695aece478bbff2"
+    },
+    {
+      "tree": "mainline",
+      "path": "include/linux/platform_device.h",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/28924df2a08f440c73991b83028032c901de2ae4/include/linux/platform_device.h",
+      "sha256": "77f077c9aca8ddb0afe2689a5498fd34f8ef6c9c5855f9af8e2967aa81fc2b1d"
+    },
+    {
+      "tree": "mainline",
+      "path": "drivers/base/platform.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/28924df2a08f440c73991b83028032c901de2ae4/drivers/base/platform.c",
+      "sha256": "8f979e2aa2af1a5460acd99db7c6f214f61a36fb9045805bd046bd49affa5e5e"
+    },
+    {
+      "tree": "dt-schema",
+      "path": "dtschema/schemas/reserved-memory/reserved-memory.yaml",
+      "url": "https://raw.githubusercontent.com/devicetree-org/dt-schema/39602f98e049c34a3f95f70b84f1bfd80bc898a4/dtschema/schemas/reserved-memory/reserved-memory.yaml",
+      "sha256": "043a79ec515baf5632a4651f16d98a286fc81432c9bcde8eeaf1b9910a6f3e34"
+    }
+  ],
+  "frozen_project_inputs": [
+    {
+      "path": "experiments/2026-09-05-mt6797-wifi-hif-core/README.md",
+      "sha256": "56174da2d72933344bbf100c92b89624d2234a8628bdb76c056009682c0db013"
+    },
+    {
+      "path": "experiments/2026-09-05-mt6797-wifi-contract/HIF_DMA_CONTRACT.md",
+      "sha256": "a29d7b34aaa3b8942c3fb751c24f0493c74f2ff245cf9d3ca1353b157b4e7dfc"
+    },
+    {
+      "path": "experiments/2026-09-05-mt6797-wifi-contract/CONFIG_PHASE.md",
+      "sha256": "73b28bf8e1868873400d4b3095ada16f7ab2956094641c8592fa720bf08d23d1"
+    },
+    {
+      "path": "experiments/2026-09-06-mt6797-mainline-connectivity-interface-design/README.md",
+      "sha256": "be99ff85ffe45f8ce4e099cb575433268785cd56cd2cc4df25b6c3a7c2339812"
+    },
+    {
+      "path": "experiments/2026-09-06-mt6797-consys-passive-boot/README.md",
+      "sha256": "0ad9b0f33cd58168890ace43c65185a5d93b77ca6c674a6b589de63af30e82ed"
+    }
+  ],
+  "proposal_inputs": [
+    { "path": "patches/proposals/0001-wifi-mediatek-mt6797-private-hif-core.patch", "sha256": "199052ee662851fb4f1f5cc814a9a5e6d37535c84b6c360a18343a43404bc877" },
+    { "path": "patches/proposals/0002-wifi-mediatek-add-mtke-parser.patch", "sha256": "8d296e627ee5df81a52647b1c846f39b72b32c90212988f5057acc0322b6d512" },
+    { "path": "patches/proposals/0003-wifi-mediatek-prevalidate-image-plan.patch", "sha256": "76a93d441fe09db132bd1fbe03ebb0ad24d2743e0f0a72b100e08a62b6beb35c" },
+    { "path": "patches/proposals/0004-wifi-mediatek-execute-bounded-start.patch", "sha256": "5b1ed48e14c705d16b9cdcf87bf37854b6b8e64852342989164696dee0a87ca5" },
+    { "path": "patches/proposals/0005-wifi-mediatek-retain-private-image-bindings.patch", "sha256": "62edcead89a4ae6845208201ecc5bc320bb688d9a8d28d4a6f50107eec098c08" },
+    { "path": "patches/proposals/0006-wifi-mediatek-describe-reserved-memory.patch", "sha256": "2798d49d202edc441c775a78c06ec0d261169f426fdadb04cf6c5e052fba545c" },
+    { "path": "patches/proposals/0007-wifi-mediatek-describe-dynamic-reserved-memory.patch", "sha256": "684db9c82d60d42cfbb197ce9f52dd3899f76e1f7c29925554162a73d11aafd0" },
+    { "path": "patches/proposals/0008-wifi-mediatek-compile-emi-abi.patch", "sha256": "ac87496f89b81419bbf2219acf7f9f140fec14d3b4cf37075107f2afa2f396f9" },
+    { "path": "patches/proposals/0009-wifi-mediatek-compile-remap-fields.patch", "sha256": "84e6abef1139e744ecb59846b3fb3160b98ac50df4a59e058250a77b92d09cb6" },
+    { "path": "patches/proposals/0010-wifi-mediatek-compile-resource-layout.patch", "sha256": "3266942a0b62e61feb525da07faef33e8767f89f7c90e9ff66c44716a3100136" },
+    { "path": "patches/proposals/0011-wifi-mediatek-compile-emi-service-gate.patch", "sha256": "3cd1c5c863e17dd13f0fbf4c53750484dd7fd442c2041218a336091c095849c2" },
+    { "path": "patches/proposals/0012-wifi-mediatek-compile-ordinary-transfer-bridge.patch", "sha256": "b284bd19cbe1cc1d6810b53ba49936a5cb9b86cc22e8141397b647e69ce3d954" }
+  ],
+  "verdict": {
+    "implementation_admitted": false,
+    "first_upstream_series_admitted": false,
+    "reuse": "new MT6797 WLAN driver required unless runtime MAC evidence proves a narrower reusable mt76 core",
+    "reason": "No current proposal has both a safe proved effect lifetime and a useful cfg80211/mac80211 endpoint; a parser/passive-provider subset would be unused scaffolding.",
+    "next_discriminating_check": "Capture one admitted, already-successful, non-replayed firmware-load/shutdown cycle with exact DMA address/programming, positive idle, firmware stop and coherent CONSYS OFF evidence."
+  },
+  "effects": {
+    "kernel_source_edit": false,
+    "build": false,
+    "vm": false,
+    "private_capture": false,
+    "device": false,
+    "upstream_contact": false
+  }
+}

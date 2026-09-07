@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-06-agent-routing-pilot-03` |
-| Status | collecting |
+| Status | complete |
 | Subsystem | Project coordination and Codex routing settings |
 | Device variant | None; offline work only |
 | Date(s) | 2026-09-06 onward |
@@ -186,3 +186,32 @@ accepted the packet. This is the first item in its TOPRGU policy-design
 comparison group and triggers no interval or early-signal checkpoint. It
 supplies no alternate-route measurement, so `baseline-01` remains unchanged and
 credits remain unavailable.
+
+## Accepted item ten and cohort close
+
+The tenth accepted item is a current-tree upstream-architecture review of the
+compiled MT6797 HIF, MTKE, reserved-EMI and transfer proposals. Sol Medium
+compared mt76 platform, SDIO and CONNINFRA identities plus MediaTek UART APDMA
+against the retained MT6797 transport and resource contracts. It correctly
+stopped before implementation: none of the twelve proposals has both a proved
+effect lifetime and a useful cfg80211/mac80211 endpoint, while a parser or
+passive-provider subset would be unused scaffolding.
+
+Astra review accepted the stop but rejected ambiguous AP-DMA range notation
+and incomplete late-lifetime ownership. One documentation-only repair pinned
+the non-failable platform removal contract, superseded callable-consumer
+retention and added explicit failed-probe, consumer/provider detach, suspend,
+packet mapping and provider-code lifetime refusals. The post-repair review
+accepted the packet. This is the first item in its HIF upstream-architecture
+comparison group, supplies no alternate-route measurement and does not justify
+a settings change.
+
+The complete cohort contains fifteen considered candidates and ten accepted
+offline items. Across accepted items, median elapsed time is 18.8166667 minutes
+and median review/rework time is 4.7083333 minutes; first-review acceptance is
+4/10. Four items escalated for distinct hard-uncertainty or containment
+questions. The work types, owners, review routes and acceptance contracts are
+heterogeneous, so these figures are descriptive rather than a settings
+comparison. The item-ten close conclusion is `no-change`: `baseline-01`
+remains effective, no settings experiment is open, and rolling measurement
+continues in pilot 04.

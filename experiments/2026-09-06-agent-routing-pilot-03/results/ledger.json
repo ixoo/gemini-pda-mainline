@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 9,
-  "next_accepted_sequence": 10,
-  "next_considered_sequence": 15,
+  "accepted_count": 10,
+  "next_accepted_sequence": 11,
+  "next_considered_sequence": 16,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -464,6 +464,46 @@
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-07-mt6797-toprgu-current-design/results/source-review.json"
       }
+    },
+    {
+      "considered_sequence": 15,
+      "accepted_sequence": 10,
+      "candidate_id": "mt6797-hif-upstream-architecture",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "reasoning",
+      "risk_class": "hard-uncertainty",
+      "acceptance_contract": "experiments/2026-09-07-mt6797-hif-upstream-architecture/WORK_ITEM.md",
+      "review_comparison_group": "mt6797-hif-upstream-architecture",
+      "parent": "5aa5e7d93114155cdefe00bcf462db168cdd45fc",
+      "owner_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "review_route": {
+        "role": "gemini_specialist",
+        "model": "gpt-6-astra",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-07T18:02:59Z",
+        "review_ready_at": "2026-09-07T18:09:54Z",
+        "accepted_at": "2026-09-07T18:22:39Z",
+        "timing_source": "observed UTC dispatch, first complete design handoff and post-repair independent-review acceptance timestamps",
+        "elapsed_minutes": 19.6666667,
+        "review_rework_minutes": 12.75,
+        "first_review_accepted": false,
+        "rework_cycles": 1,
+        "escalated": false,
+        "escalation_reason": null,
+        "escalation_packet": null,
+        "review_failure_class": null,
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-07-mt6797-hif-upstream-architecture/results/source-review.json"
+      }
     }
   ],
   "checkpoints": [
@@ -519,6 +559,29 @@
       ],
       "comparable_item_ids": [
         "vmlinux-to-elf-symbol-provenance-v3"
+      ],
+      "conclusion": "no-change",
+      "evidence": "experiments/2026-09-06-agent-routing-pilot-03/README.md"
+    },
+    {
+      "id": "pilot-03-item-ten-close",
+      "after_accepted_sequence": 10,
+      "after_considered_sequence": 15,
+      "trigger": "cohort-close",
+      "trigger_item_ids": [
+        "mt6797-hif-upstream-architecture"
+      ],
+      "comparable_item_ids": [
+        "mt6797-connectivity-producer-source-attribution",
+        "mt6797-wmt-loader-ioctl-static-attribution-v3",
+        "mt6797-mainline-connectivity-interface-design",
+        "mt6797-consys-passive-boot",
+        "mt6797-consys-passive-candidate-preparation",
+        "mt6797-wlan-final-linkage-teardown-attribution",
+        "vmlinux-to-elf-kernel-db-provenance-v2",
+        "vmlinux-to-elf-symbol-provenance-v3",
+        "mt6797-toprgu-current-policy-design",
+        "mt6797-hif-upstream-architecture"
       ],
       "conclusion": "no-change",
       "evidence": "experiments/2026-09-06-agent-routing-pilot-03/README.md"
