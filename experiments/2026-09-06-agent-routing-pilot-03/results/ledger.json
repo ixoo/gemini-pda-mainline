@@ -31,7 +31,7 @@
   "rolling_window_after_pilot": 10,
   "accepted_count": 6,
   "next_accepted_sequence": 7,
-  "next_considered_sequence": 11,
+  "next_considered_sequence": 12,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -328,6 +328,14 @@
       "reason": "abandoned",
       "note": "The fresh source gate established the required ArchitectureName.aarch64 state but stopped before parser import or construction: the unchanged constructor unconditionally queries the bundled kernel metadata database, contradicting v2's database prohibition and single-override rule. No private image content or target result was produced. A later contract must first establish the local database source, identity and read effects.",
       "evidence": "experiments/2026-09-06-vmlinux-to-elf-symbol-provenance-v2/VALIDATION.md"
+    },
+    {
+      "considered_sequence": 11,
+      "candidate_id": "vmlinux-to-elf-kernel-db-provenance",
+      "disposition": "excluded",
+      "reason": "abandoned",
+      "note": "The RECORD preflight stopped before package source or SQLite inspection because the generated database bytecode entry has neither a RECORD digest nor size. No package/parser import or private-kernel access occurred. A fresh audit must explicitly exclude and prevent bytecode use while verifying every selected hash-bearing source/data entry.",
+      "evidence": "experiments/2026-09-06-vmlinux-to-elf-kernel-db-provenance/VALIDATION.md"
     }
   ],
   "checkpoints": [
