@@ -30,27 +30,27 @@
 - **Model route:** `gemini_specialist`, `gpt-6-astra`, medium for the named
   binary-control-flow uncertainty; `gemini_reasoner`, `gpt-5.6-sol`, medium for
   independent review. No implementation route is selected.
-- **Current bounded dispatch:** A32 contract-only descriptor-metadata design at
-  `a29d62e328a17c5aa72c549ae366df4df5be65ad`.
-  Astra Medium `/root/runtime_identity_specialist` owns the attribution
-  uncertainty and is prospective sole recovery custodian; Sol Medium reviews
-  and `/root` integrates. Only [AMENDMENT-32.md](AMENDMENT-32.md) and minimal
-  work-item/input updates are owned. The source and A29 remain immutable.
-  No VM, run, result/verifier construction, private/device access, build,
-  network, commit or push is admitted now. A32 replaces A31's unproved native
-  target-path buffer route with fixed-result descriptor-relative metadata;
-  only literal procfs cwd/fd target stat calls may follow symlinks. Identity
-  association is not attribution. The explicit-command no-TTY/non-login
-  transport is published at this parent. A32 review/publication, new observer
-  construction, independent source review/publication and execution remain
-  separate dispatches; the stopped in-memory A31 draft is not a candidate.
-  Python startup reads are not metadata-only; observation permits only bounded
-  generated process metadata reads and no retained file content. No runtime
-  content-identity or exact-syscall attestation is claimed.
-  A29's diagnostic budget is consumed; custody is unresolved. Prefix matches
-  cannot authorize attribution, termination, deletion or custody closure.
-  [A28](AMENDMENT-28.md) remains the faithful-prefix contract; post-exception
-  localization concerns only a new run, not the historical V10 failure.
+- **Current bounded dispatch:** A33 contract-only exact import-namespace design
+  at `af58842a9beb22972527f6bd7d26d8f2214b0608`.
+  Astra Medium `/root/runtime_identity_specialist` owns the closure uncertainty
+  and is prospective sole recovery custodian; Sol Medium independently reviews;
+  `/root` integrates and records workflow measurement. Only
+  [AMENDMENT-33.md](AMENDMENT-33.md), minimal work-item/input updates restored
+  from published A32, and removal of rejected untracked recovery-observer-v1.json
+  are owned. Preserve unrelated AGENTS.md changes. A33 records three rejected
+  construction identities, preserves A32 plus the live-link/deadline design,
+  and adds only built-in `_stat` and identity-checked `os.path` namespace alias
+  handling. No `os.path` import-event permission is added. Tagged CPython
+  v3.12.3 public-source research is explicitly authorized for this contract;
+  no other network, VM/private/device access, build, observer/source execution,
+  source/fixture/result/verifier construction, commit or push is admitted.
+  Further dependency/alias/event needs require immediate escalation. A33 design
+  review/publication, new source construction, independent source publication
+  and execution remain separate dispatches. There is no observer candidate.
+  Startup and native behavior are not content-identity/no-effect attestations.
+  A29 remains immutable, consumed and custody-unresolved; recovery access and
+  observer budgets remain unconsumed and unadmitted. Association is not
+  attribution or termination/deletion/closure authority.
 - **Closed V10 dispatch:** single execution at published clean
   `f1fef5e6bb83d2a2e85b33f9a97e9256b8b11a55`, with Astra Medium
   `/root/runtime_identity_specialist` as sole RE-VM custodian. Sol Medium
@@ -77,6 +77,7 @@
   `AMENDMENT-21.md`, `AMENDMENT-22.md`, `AMENDMENT-23.md`, `AMENDMENT-24.md`,
   `AMENDMENT-25.md`, `AMENDMENT-26.md`, `AMENDMENT-27.md`, `AMENDMENT-28.md`,
   `AMENDMENT-29.md`, `AMENDMENT-30.md`, `AMENDMENT-31.md`, `AMENDMENT-32.md`,
+  `AMENDMENT-33.md`,
   `PREFLIGHT.md`,
   `bootstrap-refused.json`, `VALIDATION-REFUSED.md`, `bootstrap-v2.json`,
   the bootstrap-v2 refusal in `VALIDATION.md`, `bootstrap-v3.json`, the
@@ -268,8 +269,12 @@
 - **Efficiency loop:** if independently accepted, append one sanitized item to
   the active workflow cohort with actual routes/timestamps, first-review result,
   rework/escalation and measured credits or explicit unavailability.
-- **State:** A32 descriptor-metadata design awaits independent review/publication
-  before separately dispatched observer construction. A31 construction stopped
+- **State:** A33 exact import-namespace contract awaits independent review and
+  publication before separately dispatched new observer construction. Three
+  A32 source-only freezes were rejected; their identities/reasons are in A33
+  and the untracked rejected container is removed. No source candidate exists.
+  Published A32's descriptor-metadata design remains in force except A33's
+  narrow import-namespace supersession. A31 construction stopped
   on an unproved native path-buffer bound with no candidate file or execution.
   The required explicit-command transport is published; its zero-argument
   login path remains unavailable for this observer. A30 command preparation refused
