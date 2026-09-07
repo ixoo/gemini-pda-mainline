@@ -31,8 +31,9 @@
   binary-control-flow uncertainty; `gemini_reasoner`, `gpt-5.6-sol`, medium for
   independent review. No implementation route is selected.
 - **Owned scope:** create only this experiment's `README.md`, `inputs.json`,
-  `method.json`, `analysis.json`, `edges.json`, `FREEZE.md`, an assert-free
-  normal/optimized verifier and `VALIDATION.md`. Raw outputs stay in a fresh
+  `AMENDMENT.md`, `bootstrap.json`, `method.json`, `analysis.json`, `edges.json`,
+  `FREEZE.md`, an assert-free normal/optimized verifier and `VALIDATION.md`.
+  Raw outputs stay in a fresh
   mode-0700 RE-VM child with mode-0600 files. Do not edit dependencies,
   hardware/support facts, roadmap, queue, workstreams, workflow ledger,
   configs, manifest, series or patches.
@@ -44,7 +45,8 @@
   origin, symlink, absent digest, dependency outside the installed environment
   or source/tool drift. Freeze the complete independently written collector,
   ELF mapper, raw AArch64 branch decoder and control-flow traversal source in
-  `method.json`, with SHA-256 values, before content. Syntax-checking the frozen
+  `bootstrap.json` and `method.json`, with SHA-256 values, before the chronology
+  points required by [AMENDMENT.md](AMENDMENT.md). Syntax-checking the frozen
   scripts is permitted before content; do not run them against another binary.
 - **Execution guard:** install a child-process audit hook before private reads.
   Permit read-only opens of the exact retained ELF and exact frozen installed
@@ -129,7 +131,8 @@
   flow; boundary fallthrough; unproved reachability; candidate-to-call
   promotion; omitted candidates; cap overflow; prior-output dependency;
   private bytes/paths; mutable expected digests; or runtime/resource/firmware/
-  radio authority. Freeze `method.json`, then the result JSON files, before
+  radio authority. Freeze `bootstrap.json`, then `method.json`, then the result
+  JSON files, before
   writing the verifier. Normal and `-O` modes must use active checks and
   mutations covering identity, chronology, mapping, byte hashes, tool method,
   decoder agreement, traversal, each edge/candidate, bounds and authority.

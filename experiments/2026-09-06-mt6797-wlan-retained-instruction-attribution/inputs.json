@@ -2,6 +2,11 @@
   "schema_version": 1,
   "analysis_parent": "e25df337406b52bc4da44aa428262a8123d8da21",
   "work_started_utc": "2026-09-07T01:36:36Z",
+  "controlling_contract": {
+    "WORK_ITEM.md": "15053516a4dada783add16c9d717cb748df0c46c63ea5f84823dc920ea9d0470",
+    "AMENDMENT.md": "a6bcd9de1fd587b1a313638e6f896c1bc554e189b400b6cb1a25f9c5218af90a",
+    "preflight_README.md": "420fa321f7897d6fead65c5e7b2d6e4d53472f213218e55bf867d88e058008bf"
+  },
   "accepted_symbol_provenance": {
     "inputs.json": "c5dffb7323e7eb25626704d3310565b1ca9252e0dd9f349eff66ed04fc3d4e31",
     "loader.json": "54763f55f63b12fd47e32931c13f6fe7f617d807a161da9f77e223abc4f43557",
