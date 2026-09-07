@@ -36,7 +36,7 @@
   `AMENDMENT-9.md`, `AMENDMENT-10.md`, `AMENDMENT-11.md`, `AMENDMENT-12.md`,
   `AMENDMENT-13.md`, `AMENDMENT-14.md`, `AMENDMENT-15.md`, `AMENDMENT-16.md`,
   `AMENDMENT-17.md`, `AMENDMENT-18.md`, `AMENDMENT-19.md`, `AMENDMENT-20.md`,
-  `PREFLIGHT.md`,
+  `AMENDMENT-21.md`, `PREFLIGHT.md`,
   `bootstrap-refused.json`, `VALIDATION-REFUSED.md`, `bootstrap-v2.json`,
   the bootstrap-v2 refusal in `VALIDATION.md`, `bootstrap-v3.json`, the
   bootstrap-v3 refusal in `VALIDATION-FINAL.md`, `bootstrap-v4.json`, optional
@@ -58,7 +58,9 @@
   `extension-event-diagnostic-result-v1.json`, `EXTENSION-EVENT-DIAGNOSTIC.md`,
   `extension-path-stat-diagnostic-v1.json`,
   `extension-path-stat-diagnostic-result-v1.json`,
-  `EXTENSION-PATH-STAT-DIAGNOSTIC.md`, `method.json`, `analysis.json`, `edges.json`,
+  `EXTENSION-PATH-STAT-DIAGNOSTIC.md`, `extension-identity-diagnostic-v2.json`,
+  `extension-identity-diagnostic-result-v2.json`,
+  `EXTENSION-IDENTITY-DIAGNOSTIC-2.md`, `method.json`, `analysis.json`, `edges.json`,
   `FREEZE.md`, an assert-free normal/optimized verifier, final `README.md` and
   `VALIDATION-RESULT.md`.
   Raw outputs stay in a fresh
@@ -97,8 +99,10 @@
   clarified by [AMENDMENT-18.md](AMENDMENT-18.md). The first later refused
   extension event is constrained by [AMENDMENT-19.md](AMENDMENT-19.md), with
   its captured path's stat-only classification constrained by
-  [AMENDMENT-20.md](AMENDMENT-20.md). Syntax-checking the frozen scripts is
-  permitted before content; do not run them against another binary.
+  [AMENDMENT-20.md](AMENDMENT-20.md). The stage-preserving sequential content
+  gate is constrained by [AMENDMENT-21.md](AMENDMENT-21.md). Syntax-checking
+  the frozen scripts is permitted before content; do not run them against
+  another binary.
 - **Execution guard:** install a child-process audit hook before private reads.
   Permit read-only opens of the exact retained ELF and exact frozen installed
   tool files only. Reject filesystem writes, socket/DNS, subprocess/shell,
@@ -208,8 +212,6 @@
 - **Efficiency loop:** if independently accepted, append one sanitized item to
   the active workflow cohort with actual routes/timestamps, first-review result,
   rework/escalation and measured credits or explicit unavailability.
-- **State:** Amendment 20 stat-only result is independently accepted and
-  closed; its single run is consumed. See
-  [the bounded handoff](EXTENSION-PATH-STAT-DIAGNOSTIC.md).
-  `/root/runtime_identity_specialist` released sole RE-VM custody. No further
-  file-content, decoder-engine, private-content or device action is admitted.
+- **State:** frozen for one offline Amendment 21 sequential pre-open/content
+  diagnostic; no package execution, decoder engine, private content or device
+  action.
