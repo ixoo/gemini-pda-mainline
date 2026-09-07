@@ -1,0 +1,492 @@
+{
+  "schema_version": 10,
+  "status": "refused",
+  "binding": {
+    "dispatch_commit": "f1fef5e6bb83d2a2e85b33f9a97e9256b8b11a55",
+    "dispatch_inputs_sha256": "56efd71170f662acdcef0be79ad1fd39c7cc9159a929976535c3684aec35d842",
+    "construction_dispatch_commit": "342438085bef1feb081b62961b3d4e8e1c7fb2fa",
+    "construction_inputs_sha256": "c4f1f32781a6c0012a84fdbc01a331f5963c65a8de3d31d581530922199e4c91",
+    "bootstrap_sha256": "4e599c07d3fad2aabc6982383dbbc92dc9796136f388263045e59593cfcc4d8c",
+    "bootstrap_source_sha256": "bd42ce6c91e1733f2fd0e849fae43d090849453c89c4a6f302c714f04d1dd633",
+    "method_sha256": "f85e00a2a2d0b64b9af7369be1ef6d564d5b28aa2dbd5d791f53f0dbd656ffe1",
+    "method_source_sha256": "d461847e4195f8f2aa5613d1f5345c8fffe74accffb92ee5f07c732cd24518eb",
+    "freeze_sha256": "ae6135ab45ffaf23c85af2df63bbd1ebc574d390e8362cabf1cd7d3db5a846fb",
+    "amendment_26_sha256": "0811ed99093f8dff908fdb496abfab214cc00380fb68d5001ea359341c28a187",
+    "accepted_v9_result_sha256": "334149f00090c18d6f51baf84d05d94844a15aece74da43aeb1282cf87b87fb3",
+    "accepted_intervals_sha256": "e44de0d978edbaaccc5f5d05afc5fc913bd691c2ab56e2e03c02edbc23ebef0c",
+    "private_elf_expected_sha256": "cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162"
+  },
+  "bootstrap_frozen_utc": "2026-09-07T09:07:05.938401Z",
+  "method_frozen_utc": "2026-09-07T09:10:03.722181Z",
+  "results_frozen_utc": "2026-09-07T09:32:39.040881+00:00",
+  "runs": 1,
+  "run_budget_consumed": true,
+  "private_content_read": false,
+  "analysis_accepted": false,
+  "custody": {
+    "custodian": "/root/runtime_identity_specialist",
+    "child_exited": true,
+    "re_shell_exited": true,
+    "released": true,
+    "released_before_results_freeze": true
+  },
+  "collector": {
+    "attempted": true,
+    "child_completed_utc": "2026-09-07T09:31:06.473461+00:00",
+    "child_exited": true,
+    "child_started_utc": "2026-09-07T09:31:06.385718+00:00",
+    "collector_completed_utc": "2026-09-07T09:31:06.475379+00:00",
+    "collector_started_utc": "2026-09-07T09:31:06.385620+00:00",
+    "directory_mode": "0o700",
+    "dispatch_commit": "f1fef5e6bb83d2a2e85b33f9a97e9256b8b11a55",
+    "exit_code": 2,
+    "logs": {
+      "stderr.log": {
+        "mode": "0o600",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size": 0
+      },
+      "stdout.json": {
+        "mode": "0o600",
+        "sha256": "7a3dabd9de0ae38c86b60ca2d8842b1a7a7139a02e51e06b06cf409b00ab515e",
+        "size": 7761
+      }
+    },
+    "method_sha256": "f85e00a2a2d0b64b9af7369be1ef6d564d5b28aa2dbd5d791f53f0dbd656ffe1",
+    "source_sha256": "bd42ce6c91e1733f2fd0e849fae43d090849453c89c4a6f302c714f04d1dd633",
+    "timed_out": false,
+    "timeout_seconds": 180,
+    "writer_broken_pipe": true,
+    "writer_bytes": 65536,
+    "writer_joined": true
+  },
+  "canonical_receipt_sha256": "0513ca82fe476206cf29463038bb706e288f2029f9490f2d19bc5eff9e953747",
+  "receipt": {
+    "accepted_queue_identity_result_sha256": "eac9d08935b88bb565d4bab87ed1d02699a79ac0f10bcc9198068a531ff66508",
+    "accepted_queue_load_result_sha256": "155ddb7da5d3872c69393723a342a456a268fd6e819b51357543e20976534a21",
+    "accepted_tool_identity_sha256": "4baaa1020f2d895a688c6675b5091aed77d63d3a9ad9103316c4dbb6e830b639",
+    "accepted_v9_result_sha256": "334149f00090c18d6f51baf84d05d94844a15aece74da43aeb1282cf87b87fb3",
+    "amendment_26_sha256": "0811ed99093f8dff908fdb496abfab214cc00380fb68d5001ea359341c28a187",
+    "analysis_accepted": false,
+    "analysis_counts": {
+      "address_candidates": 0,
+      "address_scans": 0,
+      "address_words": 0,
+      "basic_block_leaders": 0,
+      "bl_candidates": 0,
+      "bl_scans": 0,
+      "bl_words": 0,
+      "bytesio_closes": 0,
+      "bytesio_instances": 0,
+      "capstone_instructions": 0,
+      "capstone_requests": 0,
+      "elf_instances": 0,
+      "memory_read_bytes": 0,
+      "memory_reads": 0,
+      "memory_seeks": 0,
+      "memory_tells": 0,
+      "py_get_section": 0,
+      "py_num_sections": 0,
+      "py_num_symbols": 0,
+      "py_relocation_counts": 0,
+      "py_relocation_iterators": 0,
+      "py_relocation_kind_queries": 0,
+      "py_relocations": 0,
+      "py_symbol_iterators": 0,
+      "py_symbols": 0,
+      "raw_headers": 0,
+      "raw_program_headers": 0,
+      "raw_relocations": 0,
+      "raw_section_headers": 0,
+      "raw_symbols": 0,
+      "raw_target_decodes": 0,
+      "reachable_addresses": 0,
+      "reachable_calls": 0,
+      "relocation_candidates": 0,
+      "relocation_scans": 0,
+      "traversals": 0
+    },
+    "analysis_process_runs": 1,
+    "analysis_progress": {
+      "phase": null,
+      "target_index": null
+    },
+    "analysis_result": null,
+    "asset_opens_by_phase": {
+      "final-drift": 0,
+      "initial-inventory": 0,
+      "pre-analysis-drift": 0,
+      "pre-import-drift": 0
+    },
+    "binding": null,
+    "callback_count": 0,
+    "callback_present": false,
+    "completed_modules": 0,
+    "completed_utc": "2026-09-07T09:31:06.466116+00:00",
+    "construction_dispatch_commit": "342438085bef1feb081b62961b3d4e8e1c7fb2fa",
+    "construction_inputs_sha256": "c4f1f32781a6c0012a84fdbc01a331f5963c65a8de3d31d581530922199e4c91",
+    "engine_count": 0,
+    "entered_modules": 0,
+    "events": {
+      "cache_write_attempts": 0,
+      "native_requests": 0,
+      "network_attempts": 0,
+      "optional_requests": 0,
+      "process_attempts": 0,
+      "write_attempts": 0
+    },
+    "first_failure": {
+      "analysis_phase": null,
+      "analysis_target_index": null,
+      "candidate_read_ordinal": null,
+      "class": "validation-failure",
+      "map_stage": null,
+      "queue_stage": null,
+      "stage": "initial-inventory"
+    },
+    "map_counts": {
+      "open": 1,
+      "read": 1
+    },
+    "mapping_checks": [
+      {
+        "nonexecuting_pseudo_rows": 14,
+        "nonexecuting_rows_equal_to_baseline": true,
+        "stage": "stdlib-baseline",
+        "vdso_full_row_equal": true
+      }
+    ],
+    "method_counts": {
+      "callback_completed": 0,
+      "callback_constructions": 0,
+      "compile": 0,
+      "compile_audit": 0,
+      "exec": 0,
+      "exec_audit": 0,
+      "json_loads": 0,
+      "json_pair_hooks": 0,
+      "pipe_close": 0,
+      "pipe_fcntl": 0,
+      "pipe_fstat": 0,
+      "pipe_open_audit": 0,
+      "pipe_read": 0,
+      "private_close": 0,
+      "private_component_lstat": 0,
+      "private_final_lstat": 0,
+      "private_fstat": 0,
+      "private_hashes": 0,
+      "private_open_audit": 0,
+      "private_read": 0,
+      "private_read_completed": 0
+    },
+    "method_metadata": null,
+    "method_present": false,
+    "method_state_checks": [
+      {
+        "callback_count": 0,
+        "callback_present": false,
+        "callback_state": "absent",
+        "method_present": false,
+        "mode": "analysis",
+        "pipe_opens": 0,
+        "private_opens": 0,
+        "stage": "startup"
+      }
+    ],
+    "mode": "analysis",
+    "module_budget": null,
+    "package_inventory_counts": {},
+    "page_reference": null,
+    "page_value": null,
+    "private_cleanup": {
+      "method_pipe": {
+        "ok": null,
+        "state": "not-applicable"
+      },
+      "private_buffer": {
+        "ok": true,
+        "state": "attempted"
+      },
+      "private_descriptor": {
+        "ok": null,
+        "state": "not-applicable"
+      }
+    },
+    "private_equality": {
+      "final_buffer_sha256": false,
+      "final_lstat": false,
+      "initial_sha256": false,
+      "post_callback_fstat": false,
+      "post_read_fstat": false,
+      "pre_open_fstat": false
+    },
+    "private_input_size": null,
+    "private_reads": 0,
+    "profile_counts": {
+      "install": 0,
+      "rejected": 0,
+      "restore": 0
+    },
+    "queue_audit": {
+      "baseline_maps_open": 0,
+      "candidate_open": 0,
+      "discovery_import": 0,
+      "dynamic_load": 0,
+      "extension_import": 0,
+      "import_rejected": 0,
+      "mutation": 0,
+      "network": 0,
+      "other": 0,
+      "other_open": 0,
+      "post_maps_open": 0,
+      "process": 0,
+      "write": 0
+    },
+    "queue_counts": {
+      "cached_requests": 0,
+      "content_open": 0,
+      "content_open_audit": 0,
+      "content_read": 0,
+      "fstat": 0,
+      "lstat": 0,
+      "refused_events": 0
+    },
+    "queue_event_sha256": "1f44854434c4d88a28f07834aff0629e5de462ee8cbbb3a6a6d3cd9245e56cf1",
+    "queue_identity": null,
+    "queue_identity_reads_by_stage": {
+      "component-drift": 0,
+      "final": 0,
+      "post-analysis": 0,
+      "post-engine": 0,
+      "post-pyelftools": 0,
+      "pre-analysis": 0,
+      "resource-c-call": 0
+    },
+    "queue_import_restored": false,
+    "queue_map_row_counts": {
+      "baseline": null,
+      "post": null
+    },
+    "queue_search_presence": [],
+    "queue_stage_outcomes": [
+      {
+        "outcome": "not-evaluated",
+        "stage": "lexical"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "pre-lstat"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "baseline-maps"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "import-wrapper"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "import-restoration"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "import-audit"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "module-object"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "module-spec"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "post-lstat"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "post-maps"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "mapping-delta"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "final-counters"
+      }
+    ],
+    "queue_wrapper": {
+      "calls": 0,
+      "delegations": 0,
+      "rejections": 0
+    },
+    "resource_counters": {
+      "cached_requests": 0,
+      "create_module": 0,
+      "exec_module": 0,
+      "extension_audit": 0,
+      "find_spec": 0,
+      "function_attempts": 0,
+      "function_exceptions": 0,
+      "function_returns": 0
+    },
+    "resource_state": "none",
+    "restorations": {
+      "finder": {
+        "ok": true,
+        "state": "attempted"
+      },
+      "import": {
+        "ok": true,
+        "state": "attempted"
+      },
+      "native": {
+        "ok": null,
+        "state": "not-applicable"
+      },
+      "path": {
+        "ok": true,
+        "state": "attempted"
+      },
+      "profile": {
+        "ok": true,
+        "state": "attempted"
+      },
+      "resource_create": {
+        "ok": null,
+        "state": "not-applicable"
+      },
+      "resource_exec": {
+        "ok": null,
+        "state": "not-applicable"
+      }
+    },
+    "schema_version": 10,
+    "stage_outcomes": [
+      {
+        "outcome": "passed",
+        "stage": "startup"
+      },
+      {
+        "outcome": "refused",
+        "stage": "initial-inventory"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "pre-entry-static"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "pre-import-drift"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "capstone-import"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "capstone-closure"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "resource-preload"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "page-reference"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "queue-preload"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "pyelftools-import"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "pyelftools-identity"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "engine"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "post-engine"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "method-freeze"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "pre-analysis-drift"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "pre-analysis-maps"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "private-read"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "analysis-callback"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "post-analysis-integrity"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "post-analysis-maps"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "named-restoration"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "component-drift"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "final-tree-drift"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "final-maps"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "final-stdlib-drift"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "final-restoration"
+      },
+      {
+        "outcome": "not-evaluated",
+        "stage": "final-counters"
+      }
+    ],
+    "started_utc": "2026-09-07T09:31:06.434831+00:00",
+    "status": "refused",
+    "tool_identity": null
+  },
+  "authority": {
+    "device": false,
+    "runtime": false,
+    "firmware": false,
+    "radio": false,
+    "network": false,
+    "build": false,
+    "hardware_support": false,
+    "teardown_safety": false
+  }
+}

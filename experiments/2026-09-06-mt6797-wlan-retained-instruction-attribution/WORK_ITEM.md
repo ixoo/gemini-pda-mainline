@@ -30,21 +30,23 @@
 - **Model route:** `gemini_specialist`, `gpt-6-astra`, medium for the named
   binary-control-flow uncertainty; `gemini_reasoner`, `gpt-5.6-sol`, medium for
   independent review. No implementation route is selected.
-- **Current bounded dispatch:** V10 source-only construction and freeze at
-  `342438085bef1feb081b62961b3d4e8e1c7fb2fa`. Astra Medium owns the
-  tool-lifecycle/private-method integration uncertainty; Sol Medium reviews
-  and `/root` integrates. Ownership is only `bootstrap-v10.json`, `method.json`,
-  `FREEZE.md` and minimal `WORK_ITEM.md`/`inputs.json` updates. The exact inputs
-  frozen in [FREEZE.md](FREEZE.md) passed independent pre-run review and await
-  publication before any execution dispatch.
-  No VM, private execution/read, fixture execution, device, build, commit or
-  push is admitted by this dispatch; the future one-run budget is unconsumed.
+- **Current bounded dispatch:** single V10 execution at published clean
+  `f1fef5e6bb83d2a2e85b33f9a97e9256b8b11a55`, with Astra Medium
+  `/root/runtime_identity_specialist` as sole RE-VM custodian. Sol Medium
+  reviews and `/root` integrates. The exact [FREEZE.md](FREEZE.md) inputs were
+  executed once without modification. The run refused at `initial-inventory`
+  before package entry, method loading or private reading. Child and RE shell
+  exited; custody is released. Only the authorized sanitized result set,
+  public verifier, final records and state pins are execution-owned.
+  No retry, separately dispatched fixture or diagnostic probe, device, build,
+  network/acquisition, commit or push is admitted after refusal. The V10
+  process budget is consumed; see
+  [VALIDATION-RESULT.md](VALIDATION-RESULT.md).
   [AMENDMENT-26.md](AMENDMENT-26.md) prospectively replaces the stale V8
   source/method chronology and multiple-read analysis route below, preserving
   the original four-target outcome. V9's accepted
   [AMENDMENT-24.md](AMENDMENT-24.md)/[AMENDMENT-25.md](AMENDMENT-25.md)
-  preflight remains closed. Future V10 execution requires a new bounded dispatch,
-  a named custodian and independent static review of this exact freeze.
+  preflight remains closed. This consumed V10 freeze may not be rerun.
 - **Owned scope:** create only this experiment's `README.md`, `inputs.json`,
   `AMENDMENT.md`, `AMENDMENT-2.md`, `AMENDMENT-3.md`, `AMENDMENT-4.md`,
   `AMENDMENT-5.md`, `AMENDMENT-6.md`, `AMENDMENT-7.md`, `AMENDMENT-8.md`,
@@ -81,7 +83,7 @@
   `EXTENSION-IDENTITY-DIAGNOSTIC-3.md`, `extension-load-diagnostic-v1.json`,
   `extension-load-diagnostic-result-v1.json`, `EXTENSION-LOAD-DIAGNOSTIC.md`,
   `bootstrap-v9.json`, `bootstrap-v9-result.json`, `VALIDATION-V9.md`,
-  `bootstrap-v10.json`,
+  `bootstrap-v10.json`, `bootstrap-v10-result.json`, `verify-result.py`,
   `method.json`, `analysis.json`, `edges.json`,
   `FREEZE.md`, an assert-free normal/optimized verifier, final `README.md` and
   `VALIDATION-RESULT.md`.
@@ -240,14 +242,21 @@
 - **Efficiency loop:** if independently accepted, append one sanitized item to
   the active workflow cohort with actual routes/timestamps, first-review result,
   rework/escalation and measured credits or explicit unavailability.
-- **State:** v9 `tools-preflight-only` is independently accepted and closed
+- **State:** V10 refused before private analysis; its sole admitted process
+  budget is consumed and RE-VM custody is released. The sanitized refusal
+  records and assert-free verifier are independently accepted and closed;
+  normal and optimized verification each rejected 514 mutations across all 11
+  predeclared families.
+  No semantic edge/candidate or hardware claim is accepted. The exact failed
+  initial-inventory predicate remains unresolved; see the escalation packet in
+  [VALIDATION-RESULT.md](VALIDATION-RESULT.md). No further execution is admitted.
+  Historically, v9 `tools-preflight-only` was independently accepted and closed
   after its sole run passed all 20 outer and 12 queue stages. The one preflight
   budget is consumed and RE-VM custody is released. See
   [VALIDATION-V9.md](VALIDATION-V9.md). No method, callback or private read
-  occurred; private analysis remains unused and unadmitted. Amendment 26 is
+  occurred in V9. Amendment 26 was
   independently accepted and frozen as the prospective V10 design only; it
   does not consume or dispatch an analysis run. Further source/method
   construction and execution require separate bounded dispatches. The exact
-  V10 source/method freeze is independently accepted for publication only;
-  its one private-analysis run remains unconsumed and unadmitted until that
-  freeze is published and separately dispatched to a named custodian.
+  V10 source/method freeze was independently accepted, published and separately
+  dispatched once; the refusal above supersedes its former unconsumed state.

@@ -1,0 +1,62 @@
+{
+  "schema_version": 10,
+  "status": "not-evaluated-after-bootstrap-refusal",
+  "binding": {
+    "dispatch_commit": "f1fef5e6bb83d2a2e85b33f9a97e9256b8b11a55",
+    "dispatch_inputs_sha256": "56efd71170f662acdcef0be79ad1fd39c7cc9159a929976535c3684aec35d842",
+    "construction_dispatch_commit": "342438085bef1feb081b62961b3d4e8e1c7fb2fa",
+    "construction_inputs_sha256": "c4f1f32781a6c0012a84fdbc01a331f5963c65a8de3d31d581530922199e4c91",
+    "bootstrap_sha256": "4e599c07d3fad2aabc6982383dbbc92dc9796136f388263045e59593cfcc4d8c",
+    "bootstrap_source_sha256": "bd42ce6c91e1733f2fd0e849fae43d090849453c89c4a6f302c714f04d1dd633",
+    "method_sha256": "f85e00a2a2d0b64b9af7369be1ef6d564d5b28aa2dbd5d791f53f0dbd656ffe1",
+    "method_source_sha256": "d461847e4195f8f2aa5613d1f5345c8fffe74accffb92ee5f07c732cd24518eb",
+    "freeze_sha256": "ae6135ab45ffaf23c85af2df63bbd1ebc574d390e8362cabf1cd7d3db5a846fb",
+    "amendment_26_sha256": "0811ed99093f8dff908fdb496abfab214cc00380fb68d5001ea359341c28a187",
+    "accepted_v9_result_sha256": "334149f00090c18d6f51baf84d05d94844a15aece74da43aeb1282cf87b87fb3",
+    "accepted_intervals_sha256": "e44de0d978edbaaccc5f5d05afc5fc913bd691c2ab56e2e03c02edbc23ebef0c",
+    "private_elf_expected_sha256": "cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162"
+  },
+  "bootstrap_result_sha256": "3e0caa5234b3bd1842e70cab0626929ea0ed044b59960fc03da84411c13fb193",
+  "analysis_sha256": "7851369cee4966e0302ede5123da07c4e28f9e91b7bf14893984ed1d38293ff3",
+  "results_frozen_utc": "2026-09-07T09:32:39.040881+00:00",
+  "source_records": {
+    "bootstrap": "bootstrap-v10-result.json#/receipt/first_failure",
+    "analysis": "analysis.json"
+  },
+  "init_chain_edges": null,
+  "exit_direct_callees": null,
+  "traversal_complete": false,
+  "candidate_scans": {
+    "bl": {
+      "status": "not-evaluated",
+      "complete": false,
+      "count": null,
+      "candidates": null
+    },
+    "relocations": {
+      "status": "not-evaluated",
+      "complete": false,
+      "count": null,
+      "candidates": null
+    },
+    "address_words": {
+      "status": "not-evaluated",
+      "complete": false,
+      "count": null,
+      "candidates": null
+    }
+  },
+  "negative_absence_proved": false,
+  "reachable_call_proved": false,
+  "teardown_join_proved": false,
+  "authority": {
+    "device": false,
+    "runtime": false,
+    "firmware": false,
+    "radio": false,
+    "network": false,
+    "build": false,
+    "hardware_support": false,
+    "teardown_safety": false
+  }
+}

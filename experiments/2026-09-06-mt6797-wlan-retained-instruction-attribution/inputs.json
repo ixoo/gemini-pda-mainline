@@ -9,7 +9,13 @@
     "source_dependencies_producer": "../2026-09-06-mt6797-connectivity-producer-source-attribution"
   },
   "controlling_contract": {
-    "WORK_ITEM.md": "04f6b326802a3a02d322e464c8ff826d4f657d8e09f1ffa8c632d8c982a5d835",
+    "WORK_ITEM.md": "05f2204edea46d0161ddffe4f0fa2cb12883580eb0518f312e8693ab4b757f2e",
+    "bootstrap-v10-result.json": "3e0caa5234b3bd1842e70cab0626929ea0ed044b59960fc03da84411c13fb193",
+    "analysis.json": "7851369cee4966e0302ede5123da07c4e28f9e91b7bf14893984ed1d38293ff3",
+    "edges.json": "d9df19be8b727d623f29edbef6fbddca13a15e03a49a7175eb47162e48868d45",
+    "verify-result.py": "74ed48cf5a2214b3f4cd34dda11c4f603d0149dfa9ed85ac74c2fc0c5933864c",
+    "VALIDATION-RESULT.md": "e7e51748d9f3daa99e2df563eb4b4621cbed3caf4e9856cca1886902e59ce7a0",
+    "README.md": "a1f0a27897f0f202807c40351f91a7f960880e53c7ea3b898d6e494cc4c65b10",
     "bootstrap-v10.json": "4e599c07d3fad2aabc6982383dbbc92dc9796136f388263045e59593cfcc4d8c",
     "method.json": "f85e00a2a2d0b64b9af7369be1ef6d564d5b28aa2dbd5d791f53f0dbd656ffe1",
     "FREEZE.md": "ae6135ab45ffaf23c85af2df63bbd1ebc574d390e8362cabf1cd7d3db5a846fb",
