@@ -1,6 +1,6 @@
 # Candidate R first-boot handoff
 
-Status: **admitted for guarded installation and one fresh baseline boot only**.
+Status: **installed and shut down; waiting for one owner boot2 selection**.
 Device custodian: the primary integration coordinator.  No other live-device
 operation may overlap this handoff.
 
@@ -36,6 +36,17 @@ remove private staging; and request clean shutdown.  It must never reboot or
 substitute another partition.  A failed or indeterminate prerequisite stops
 before installation.  A confirmed deactivation followed by pre-install abort
 uses the single reviewed restoration path.
+
+The admitted prerequisite completed on Gemian boot
+`2b2a317f-94ff-43b3-a51f-2fa6c5ba0bf9`: both fresh samples passed, the unused
+zram entry was removed, and `MemAvailable` remained 3,118,748 KiB. The guarded
+installer then resolved boot2 as `/dev/mmcblk0p30`, distinct from root
+`/dev/mmcblk0p29`, and replaced predecessor
+`08fc061475b4bd6bc274bef6cb61c6e0a1cb8d786c5be197b79dba006bebb1c2`.
+Write, sync, flush and independent full readback matched Candidate R's padded
+digest. Private staging and readback were removed, the shutdown request was
+issued only after evidence flush, and the bounded follow-up found the device
+unreachable. No reboot or fresh predecessor backup occurred.
 
 ## Owner action after verified shutdown
 

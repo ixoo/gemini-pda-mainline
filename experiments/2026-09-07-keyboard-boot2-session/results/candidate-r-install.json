@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "recorded_utc": "2026-09-07T22:51:49Z",
+  "candidate": "R",
+  "classification": "write_synced_flushed_full_readback_verified_and_shutdown",
+  "prerequisite": {
+    "classification": "temporary_zram_deactivation_complete",
+    "same_boot": true,
+    "fresh_samples": 2,
+    "post_deactivation_swap_entries": 0,
+    "post_deactivation_mem_available_kib": 3118748
+  },
+  "deployment": {
+    "candidate_manifest_sha256": "62440fdee9267e26d6f90148609a7c2551fdb9d6a9f603da03f891638c65180d",
+    "candidate_sha256": "29f59c7f21a25b47d63d653857db9d7d0760d9a00f7193e098219699235f16f1",
+    "readback_sha256": "29f59c7f21a25b47d63d653857db9d7d0760d9a00f7193e098219699235f16f1",
+    "predecessor_sha256": "08fc061475b4bd6bc274bef6cb61c6e0a1cb8d786c5be197b79dba006bebb1c2",
+    "target_logical_name": "boot2",
+    "target": "/dev/mmcblk0p30",
+    "target_major_minor": "179:30",
+    "root": "/dev/mmcblk0p29",
+    "root_major_minor": "179:29",
+    "boot_id": "2b2a317f-94ff-43b3-a51f-2fa6c5ba0bf9",
+    "power": "external-present|battery-100|health-good|capacity-level-full",
+    "full_partition_bytes": 16777216,
+    "fresh_predecessor_backup": false,
+    "temporary_readback_removed": true,
+    "private_staging_removed": true,
+    "deployment_summary_sha256": "cd6fbcd7cca443b5960d067034cb440672e1405e1f19cea327168df879a3afa0"
+  },
+  "shutdown": {
+    "requested_after_evidence_flush": true,
+    "post_shutdown_reachability": "unreachable",
+    "reboot": false
+  },
+  "next_action": "owner_physically_selects_boot2_once",
+  "fresh_baseline_observed": false,
+  "disconnect_proof_consumed": false,
+  "keyboard_capture_consumed": false,
+  "hardware_support_claim": false
+}
