@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "repository_parent": "0593a6b9ed6b72fb9578ee8da2f38d14e86a7b23",
+  "target_class": "named Gemini PDA on known-good Gemian",
+  "custodian": "/root",
+  "method": "Authenticated read-only OS, sysfs, mount, kernel-config and tracing-capability queries; no trace buffer read or device-state mutation.",
+  "invocations": [
+    {
+      "sequence": 1,
+      "completed_at_utc": "2026-09-07T19:02:44Z",
+      "result": "pass",
+      "scope": "release, architecture, boot ID, root source and uptime"
+    },
+    {
+      "sequence": 2,
+      "completed_at_utc": "2026-09-07T19:03:05Z",
+      "result": "query-refused-after-partial-read",
+      "scope": "WLAN state then mount/tracing capability",
+      "reason": "Remote shell expanded an awk field under nounset; the command stopped after WLAN presence, state and driver and before completing mount metadata."
+    },
+    {
+      "sequence": 3,
+      "completed_at_utc": "2026-09-07T19:03:28Z",
+      "result": "pass",
+      "scope": "corrected WLAN, debugfs, tracefs, interface-permission and sysctl inventory"
+    },
+    {
+      "sequence": 4,
+      "completed_at_utc": "2026-09-07T19:04:16Z",
+      "result": "pass-with-local-shell-diagnostic",
+      "scope": "kernel configuration, root interface presence and available tracer",
+      "note": "Testing a redirected absent function-filter path emitted a local shell diagnostic; it did not access or mutate the device path."
+    },
+    {
+      "sequence": 5,
+      "observed_at_utc": "2026-09-07T19:04:16Z",
+      "completed_at_utc": "2026-09-07T19:04:25Z",
+      "result": "accepted-coherent-snapshot",
+      "scope": "all decision fields with boot-ID bracketing"
+    }
+  ],
+  "snapshot": {
+    "release": "3.18.41+",
+    "architecture": "aarch64",
+    "root_source": "/dev/mmcblk0p29",
+    "boot_id_before": "2b2a317f-94ff-43b3-a51f-2fa6c5ba0bf9",
+    "boot_id_after": "2b2a317f-94ff-43b3-a51f-2fa6c5ba0bf9",
+    "boot_id_stable": true,
+    "wlan0_present": true,
+    "wlan0_operstate": "up",
+    "wlan0_driver": "mt-wifi",
+    "debugfs_mounted": true,
+    "available_tracers": ["nop"],
+    "kprobe_events_present": false,
+    "function_filter_present": false,
+    "noninteractive_root_available": true,
+    "config": {
+      "CONFIG_KPROBES": false,
+      "CONFIG_KPROBE_EVENTS": false,
+      "CONFIG_FUNCTION_TRACER": false,
+      "CONFIG_FUNCTION_GRAPH_TRACER": false,
+      "CONFIG_DYNAMIC_FTRACE": false,
+      "CONFIG_FTRACE": true,
+      "CONFIG_EVENT_TRACING": true,
+      "CONFIG_DEBUG_INFO": true,
+      "CONFIG_IKCONFIG": true,
+      "CONFIG_IKCONFIG_PROC": true,
+      "CONFIG_MTK_COMBO": true
+    }
+  },
+  "verdict": {
+    "dynamic_function_observer_available": false,
+    "hif_lifetime_discriminator_satisfied": false,
+    "reason": "The running kernel exposes only the nop tracer and contains neither kprobe nor function-tracing support.",
+    "next_discriminating_check": "Locate already retained attributable successful load/shutdown evidence, or freeze and review a separately admitted non-replayed observation mechanism before any radio or hardware action."
+  },
+  "effects": {
+    "trace_state_changed": false,
+    "interface_state_changed": false,
+    "firmware_or_radio_action": false,
+    "module_action": false,
+    "register_or_debug_ioctl": false,
+    "partition_action": false,
+    "boot_or_reboot": false,
+    "private_capture_read": false
+  }
+}

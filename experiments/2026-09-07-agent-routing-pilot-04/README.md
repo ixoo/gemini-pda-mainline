@@ -41,3 +41,8 @@ for the exact public conversion revision and reset topic. Sol accepted the
 source-pinned stop on first review. This is the first item in its ordering
 readiness comparison group, so it triggers no checkpoint or settings change;
 `baseline-01` remains effective and credits are unavailable.
+
+The next considered candidate was a bounded read-only live Gemian tracing
+capability check. Its negative result is useful Wi-Fi evidence, but device
+preflights are not accepted offline items under the measurement policy. It is
+recorded as excluded considered sequence two and changes no routing setting.

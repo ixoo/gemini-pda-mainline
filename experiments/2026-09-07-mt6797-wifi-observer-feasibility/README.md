@@ -1,0 +1,66 @@
+# Experiment: known-good Gemian Wi-Fi observer feasibility
+
+## Verdict
+
+The running known-good Gemian kernel cannot provide the dynamic observation
+path required by the accepted MT6797 HIF lifetime discriminator. It has
+debugfs and event tracing, but its only available tracer is `nop`; kprobes,
+kprobe events, function tracing, function-graph tracing and dynamic ftrace are
+disabled. The corresponding live probe and function-filter interfaces are
+absent even with noninteractive root privilege.
+
+This is a capability stop, not evidence about WLAN teardown. It does not show
+that firmware stopped, DMA became idle, mappings were released, programmed
+addresses matched DMA API addresses, or CONSYS powered off coherently.
+
+The bounded scope is in [the work item](WORK_ITEM.md), and the complete
+sanitized chronology and coherent snapshot are in
+[the result](results/observer-feasibility.json).
+
+## Live boundary
+
+At `2026-09-07T19:04:16Z`, the named device was still running exact Gemian
+`3.18.41+` on AArch64 from `/dev/mmcblk0p29`. `wlan0` was present and `up`
+under `mt-wifi`. The boot ID matched before and after the snapshot. The query
+read only identity, sysfs links, mount/configuration metadata and tracer
+capability; it did not read a trace buffer or change tracing state.
+
+Five authenticated invocations occurred. The first established the known-good
+OS identity. The second stopped early after a shell-quoting error while reading
+mount metadata; it had already observed only WLAN presence, state and driver.
+The third corrected that read and established the absent interfaces. The fourth
+read configuration and privilege capability but emitted one harmless local
+shell diagnostic after testing an absent filter path. The fifth coherent
+snapshot repeated all decision fields with corrected quoting and stable boot
+identity. No retry changed device state or exercised WLAN.
+
+## Consequence
+
+Do not design a live kprobe/ftrace collector for this kernel, and do not treat
+static event-tracing support as an equivalent observer. The next HIF lifetime
+action requires either:
+
+1. an already retained, independently attributable successful load/shutdown
+   record containing the required DMA address/programming, endpoint,
+   channel-idle, firmware-stop and coherent-OFF evidence; or
+2. a separately admitted non-replayed observation mechanism whose acquisition
+   effects, radio action, recovery, ownership and finite budgets are reviewed
+   before use.
+
+An instrumented kernel or vendor debug interface is not selected merely because
+the current standard tracing path is absent. The owner-closed retained binary
+observer line remains closed.
+
+## Safety and limits
+
+The boot ID remained unchanged during the final coherent snapshot. No
+invocation issued a probe, tracer, event, module, interface, firmware, radio,
+register, power, partition, boot or reboot action. No private capture was
+accessed and no sensitive device or network identity is published. This result
+changes no support claim and admits no kernel implementation, candidate,
+deployment or upstream submission.
+
+Independent Astra Medium review accepted the capability stop at
+`2026-09-07T19:11:51Z` after one wording repair narrowed boot-ID continuity to
+the final bracketed snapshot. The review introduced no new device access or
+technical claim.

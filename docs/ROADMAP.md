@@ -222,14 +222,14 @@ The remaining preparation order is:
    lifetime, while later lifecycle work still resolves an explicit gen3
    teardown edge. The accepted no-database parser run establishes original
    ordinary-global `T` linkage for all four required wrapper/init/exit targets
-   and admits next-distinct-symbol inspection envelopes of 368, 280, 760 and
-   160 bytes. These are not exact function ends. The next offline item may use
-   only those conservative envelopes in a newly frozen, bounded AArch64
-   instruction-analysis contract to identify direct teardown/caller edges; it
-   must separately prove instruction bytes, decoding, control-flow containment
-   and all boundary-crossing behavior and must stop rather than infer through
-   padding, pools, aliases or tail sharing. Do not reuse either excluded parser
-   attempt or perform an ordinary metadata-database import. See the
+   and conservative next-distinct-symbol inspection envelopes. The later
+   retained-instruction observer/checker line is owner-closed without semantic
+   execution and must not be resumed as another offline repair loop. A bounded
+   [known-good Gemian observer check](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/README.md)
+   also found no live kprobe or function-tracing path for the required lifetime
+   evidence. Next locate an already retained attributable successful
+   load/shutdown record, or review a distinct non-replayed observation mechanism
+   before any radio or hardware action. See the
    [retained-ELF boundary](../experiments/2026-09-06-mt6797-wlan-final-linkage-teardown-attribution/README.md),
    [accepted database boundary](../experiments/2026-09-06-vmlinux-to-elf-kernel-db-provenance-v2/README.md)
    and [accepted Kallsyms provenance](../experiments/2026-09-06-vmlinux-to-elf-symbol-provenance-v3/README.md).

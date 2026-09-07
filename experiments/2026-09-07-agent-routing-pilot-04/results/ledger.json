@@ -31,7 +31,7 @@
   "rolling_window_after_pilot": 10,
   "accepted_count": 1,
   "next_accepted_sequence": 2,
-  "next_considered_sequence": 2,
+  "next_considered_sequence": 3,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -72,6 +72,14 @@
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-07-mt6797-infracfg-current-readiness/results/source-review.json"
       }
+    },
+    {
+      "considered_sequence": 2,
+      "candidate_id": "mt6797-wifi-observer-feasibility",
+      "disposition": "excluded",
+      "reason": "device-session",
+      "note": "The bounded read-only known-good Gemian capability check is technical evidence but is not an accepted offline work item and does not affect routing settings.",
+      "evidence": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/observer-feasibility.json"
     }
   ],
   "checkpoints": [],
