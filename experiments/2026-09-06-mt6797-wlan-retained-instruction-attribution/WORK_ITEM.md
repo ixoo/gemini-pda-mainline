@@ -30,18 +30,20 @@
 - **Model route:** `gemini_specialist`, `gpt-6-astra`, medium for the named
   binary-control-flow uncertainty; `gemini_reasoner`, `gpt-5.6-sol`, medium for
   independent review. No implementation route is selected.
-- **Current bounded dispatch:** A31 contract-only metadata-observer design at
-  `b35ffd6a63ae04add21d538870b359c342a74016`.
+- **Current bounded dispatch:** A32 contract-only descriptor-metadata design at
+  `a29d62e328a17c5aa72c549ae366df4df5be65ad`.
   Astra Medium `/root/runtime_identity_specialist` owns the attribution
   uncertainty and is prospective sole recovery custodian; Sol Medium reviews
-  and `/root` integrates. Only [AMENDMENT-31.md](AMENDMENT-31.md) and minimal
+  and `/root` integrates. Only [AMENDMENT-32.md](AMENDMENT-32.md) and minimal
   work-item/input updates are owned. The source and A29 remain immutable.
   No VM, run, result/verifier construction, private/device access, build,
-  network, commit or push is admitted now. A31 replaces A30's unavailable
-  native-utility route with future source-frozen observer plumbing. A reviewed
-  and published explicit-command no-TTY/non-login transport successor is
-  required first; transport implementation, observer construction, independent
-  source review/publication and execution are separate dispatches.
+  network, commit or push is admitted now. A32 replaces A31's unproved native
+  target-path buffer route with fixed-result descriptor-relative metadata;
+  only literal procfs cwd/fd target stat calls may follow symlinks. Identity
+  association is not attribution. The explicit-command no-TTY/non-login
+  transport is published at this parent. A32 review/publication, new observer
+  construction, independent source review/publication and execution remain
+  separate dispatches; the stopped in-memory A31 draft is not a candidate.
   Python startup reads are not metadata-only; observation permits only bounded
   generated process metadata reads and no retained file content. No runtime
   content-identity or exact-syscall attestation is claimed.
@@ -74,7 +76,7 @@
   `AMENDMENT-17.md`, `AMENDMENT-18.md`, `AMENDMENT-19.md`, `AMENDMENT-20.md`,
   `AMENDMENT-21.md`, `AMENDMENT-22.md`, `AMENDMENT-23.md`, `AMENDMENT-24.md`,
   `AMENDMENT-25.md`, `AMENDMENT-26.md`, `AMENDMENT-27.md`, `AMENDMENT-28.md`,
-  `AMENDMENT-29.md`, `AMENDMENT-30.md`, `AMENDMENT-31.md`,
+  `AMENDMENT-29.md`, `AMENDMENT-30.md`, `AMENDMENT-31.md`, `AMENDMENT-32.md`,
   `PREFLIGHT.md`,
   `bootstrap-refused.json`, `VALIDATION-REFUSED.md`, `bootstrap-v2.json`,
   the bootstrap-v2 refusal in `VALIDATION.md`, `bootstrap-v3.json`, the
@@ -266,10 +268,11 @@
 - **Efficiency loop:** if independently accepted, append one sanitized item to
   the active workflow cohort with actual routes/timestamps, first-review result,
   rework/escalation and measured credits or explicit unavailability.
-- **State:** A31 observer design awaits independent review/publication and
-  a separate transport-successor implementation dispatch before observer
-  source construction. The current re-shell login path is unavailable for
-  the observer. A30 command preparation refused
+- **State:** A32 descriptor-metadata design awaits independent review/publication
+  before separately dispatched observer construction. A31 construction stopped
+  on an unproved native path-buffer bound with no candidate file or execution.
+  The required explicit-command transport is published; its zero-argument
+  login path remains unavailable for this observer. A30 command preparation refused
   before access because its bounded native route was unproved. A29's single
   transport returned exit 1 and
   no collector receipt; its diagnostic budget is conservatively consumed.
