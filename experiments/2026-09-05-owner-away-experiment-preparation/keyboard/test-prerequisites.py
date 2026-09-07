@@ -145,12 +145,15 @@ class PrerequisiteTests(unittest.TestCase):
             'outer-exit': b'0\n',
             'disconnect-process.json': self.evidence['disconnect-process.json'].replace(
                 b'deliberate-client-disconnect', b'inconclusive'),
+            'disconnect-process-late': self.evidence['disconnect-process.json'].replace(
+                b'"elapsed_milliseconds": 50', b'"elapsed_milliseconds": 101'),
             'export-process.json': self.evidence['export-process.json'].replace(
                 b'"exit_status": 0', b'"exit_status": 1'),
             'reader-scan.json': self.evidence['reader-scan.json'].replace(b'"matches": []', b'"matches": ["pid"]')}
         for name, raw in mutations.items():
             with self.subTest(name=name):
-                evidence_name = 'monitor.status' if name == 'monitor-late-times' else name
+                evidence_name = {'monitor-late-times':'monitor.status',
+                    'disconnect-process-late':'disconnect-process.json'}.get(name,name)
                 path = self.evidence_root/evidence_name
                 original = path.read_bytes()
                 changed = copy.deepcopy(self.disconnect)

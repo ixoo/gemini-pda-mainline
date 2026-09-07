@@ -1,0 +1,22 @@
+{
+  "candidate_manifest_sha256": "54b07f0c70e77fd1e34fde4fc1c929980f0d8c3410f0a97ce3f15ffec1a66179",
+  "candidate_sha256": "a25fe4cb907f4f3da2bf9f36fcf38b3fff7d8ba84adc37562fdcff2f1a422daf",
+  "classification": "offline-tooling-ready-runtime-archive-missing",
+  "device_action": "none",
+  "disconnect_py_sha256": "9595b06a4821cfe155f8539037724e10e9a0e8bfa1beead9a5b90b2bdb4959db",
+  "enabled_package_identity": "0baad6b85ae68770b783245e2f1dcd7eeb4ef40d93c19e0b30e1f89f8adc3065",
+  "execution_enabled": false,
+  "monitor_sha256": "4363a7d61d818bc443d5cfd76455ac38fc2cea35178d44a2dc81c229ff97b67f",
+  "network_access": "none",
+  "probe_bytes": 66760,
+  "probe_sha256": "560d00ab80040b90fead5d0a5b2672ed633f62599aa483ff0a33be0fa74d3681",
+  "retries": 0,
+  "runtime_blocker": "exact authenticated baseline and recovery archive absent",
+  "schema": "keyboard-disconnect-tooling-v1",
+  "source_revision": "93e2b8526daa683c2ba848011fac757a398a13dd",
+  "test_counts": {
+    "capture": 6,
+    "disconnect": 6,
+    "prerequisites": 6
+  }
+}

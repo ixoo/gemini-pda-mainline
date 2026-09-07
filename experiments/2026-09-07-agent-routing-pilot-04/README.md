@@ -161,3 +161,34 @@ the verifier separately; the audit itself performed no build or device action.
 This is the first item in the device-session-readiness comparison group, so it
 does not support a routing comparison or settings change. No interval or early
 signal fires. `baseline-01` remains effective and credits are unavailable.
+
+## Accepted item nine
+
+The ninth accepted offline item implements the missing default-off Dropbear
+disconnect proof and semantic prerequisite validation for the keyboard session.
+The primary integrator retained one harmless no-PTY probe, deliberate local
+client termination, a second independent bounded export, exact process and
+descriptor exclusion, partial-evidence preservation and a source-bound receipt.
+No target connection or keyboard action occurred.
+
+Astra rejected four successive states: an impossible selected signal branch,
+a process scan that did not match the deployed command, an early-marker path
+that could discard useful partial output, and a selector-order race that could
+promote incomplete stdin after the marker. Each concrete counterexample was
+reproduced and repaired. The final review accepted the frozen offline state
+machine with six disconnect and six prerequisite tests, while leaving physical
+admission default-off and requiring fresh target evidence.
+
+This is the second item in the device-session-readiness comparison group, but
+the earlier item is a reasoning audit and this item is implementation with
+specialist review. The pair is not sufficiently comparable for a routing
+decision. The repeated repairs concern one work item rather than two
+consecutive comparable misses, so no early signal or interval checkpoint fires.
+`baseline-01` remains effective and credits are unavailable.
+
+The next considered candidate reconstructed a private authenticated boot image
+from retained inputs after the historical secret-bearing image was found
+absent. Candidate construction and its admission consultation are preparation
+for a device session, so they are excluded from accepted offline routing
+measurements. Their exact evidence remains with the keyboard experiment and
+does not change the settings decision.

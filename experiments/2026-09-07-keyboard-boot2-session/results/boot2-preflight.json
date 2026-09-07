@@ -1,0 +1,22 @@
+{
+  "active_root": "/dev/mmcblk0p29",
+  "boot2_holders": "none",
+  "boot2_mounted": false,
+  "boot2_read_only": false,
+  "boot2_sectors": 32768,
+  "boot2_sha256": "08fc061475b4bd6bc274bef6cb61c6e0a1cb8d786c5be197b79dba006bebb1c2",
+  "boot2_target": "/dev/mmcblk0p30",
+  "candidate_match": false,
+  "classification": "safe-read-pass-baseline-candidate-not-installed",
+  "expected_candidate_sha256": "a423ad63fbb97d0f3fc4726d3957e05d3951480996b754d839a89d80a1232821",
+  "external_power_online": true,
+  "gemian_boot_id": "2b2a317f-94ff-43b3-a51f-2fa6c5ba0bf9",
+  "kernel_release": "3.18.41+",
+  "observed_utc": "2026-09-07T22:27:13Z",
+  "partition_reads": 1,
+  "partition_writes": 0,
+  "power_stable": true,
+  "private_raw_sha256": "1234c76e3478e17150022aecd0881431a644f88b600421a2e764d0b873dcf1a6",
+  "schema": "keyboard-boot2-preflight-v1",
+  "script_sha256": "df33c28666cdd371e5e43664c8cd45eef315a00844fbe250c9017419a1d96193"
+}

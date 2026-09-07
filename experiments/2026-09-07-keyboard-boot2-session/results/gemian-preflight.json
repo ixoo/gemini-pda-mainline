@@ -1,0 +1,15 @@
+{
+  "authentication": "strict-existing-host-key-and-project-identity",
+  "boot_id": "2b2a317f-94ff-43b3-a51f-2fa6c5ba0bf9",
+  "classification": "known-good-gemian-identity-observed-command-tail-rejected",
+  "device_action": "bounded-read-only-identity",
+  "kernel_release": "3.18.41+",
+  "network_path": "known-good-gemian-lan",
+  "observed_utc": "2026-09-07T22:14:15Z",
+  "retries": 0,
+  "root_source": null,
+  "schema": "keyboard-gemian-preflight-v1",
+  "transport_exit": 2,
+  "transport_note": "The authenticated kernel and boot ID lines completed; a quoting error rejected the final root-source read. No second connection was made.",
+  "writes": 0
+}

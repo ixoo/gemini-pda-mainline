@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "recorded_utc": "2026-09-07T22:46:20Z",
+  "reviewer": {
+    "role": "gemini_specialist",
+    "model": "gpt-6-astra",
+    "effort": "medium"
+  },
+  "decision": "conditionally_admitted_for_one_guarded_install_and_fresh_baseline_boot",
+  "candidate_r": {
+    "raw_boot_sha256": "3290b867bc6cb2ecee42e6ca1436e1ae29613c074e7e45b3836ecb2905f3e07c",
+    "padded_sha256": "29f59c7f21a25b47d63d653857db9d7d0760d9a00f7193e098219699235f16f1",
+    "candidate_manifest_sha256": "62440fdee9267e26d6f90148609a7c2551fdb9d6a9f603da03f891638c65180d",
+    "installer_sha256": "a092f8ea091e04ffea75d406a60220a4bae5fa5808d359989a96eb6a2f7dc068"
+  },
+  "independent_checks": {
+    "candidate_hashes": "pass_seven",
+    "padding": "pass_exact_16777216_bytes",
+    "candidate_validator": "pass_47_members",
+    "installer_derivation": "pass",
+    "bash_syntax": "pass",
+    "shellcheck": "pass"
+  },
+  "historical_runtime_evidence_transferred": false,
+  "credential_only_difference": "inference_only",
+  "kernel_dt_identical_derivative_rule": "satisfied_by_new_durable_authenticated_observation_path",
+  "device_custodian": "primary_integration_coordinator",
+  "installation_budget": 1,
+  "fresh_baseline_boot_budget": 1,
+  "disconnect_proof_admitted": false,
+  "keyboard_capture_admitted": false,
+  "hardware_support_claim": false
+}

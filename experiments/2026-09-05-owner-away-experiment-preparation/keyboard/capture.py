@@ -33,7 +33,7 @@ def source_identity():
     closure.update(dict(L['V']['SOURCE_PINS']))
     for name,value in closure.items():
         require(sha(C['regular'](L['REPO']/name,262144,private=False)) == value, 'imported closure drift')
-    direct = ('capture.py','prerequisites.py','monitor.c','delivery.py','classify.py','protocol.json',
+    direct = ('capture.py','prerequisites.py','disconnect.py','monitor.c','delivery.py','classify.py','protocol.json',
               '../emmc/mainline_host.py','../baseline/scripts/buildbox_userspace.py')
     return {'local_and_direct':{name:sha(C['regular'](HERE/name,262144,private=False)) for name in direct},
             'emmc_launcher':launcher,'pinned_members':closure}

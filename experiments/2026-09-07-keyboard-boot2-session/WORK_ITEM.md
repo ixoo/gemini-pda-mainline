@@ -66,3 +66,49 @@
 - **State:** active at `2026-09-07T20:59:41Z`.
 - **Efficiency loop:** If accepted as an offline item, append its measured route
   and outcome to pilot 04. A later device session is excluded from that ledger.
+
+## Disconnect-tooling specialist review addendum
+
+- **Outcome:** Decide whether the default-off harmless disconnect tool is safe
+  to freeze for a later exact-candidate proof, or return the first concrete
+  process/transport/evidence defect and its minimal repair.
+- **Frozen inputs (repair 4):** `disconnect.py`
+  `9595b06a4821cfe155f8539037724e10e9a0e8bfa1beead9a5b90b2bdb4959db`,
+  `capture.py` `f33115f23c045191859d59f1cdb63d7353227e503832871103cbb734c5f62adb`,
+  `prerequisites.py`
+  `b86b69df7895ef9bd50f27b855c96456dccfb4dd083c1b2322a10c2ae0fc1839`,
+  unchanged `monitor.c`
+  `eb74dc09f6086aa47a7520f323f18728ab232b338ed02056d5b26338db9e5047`,
+  enabled package `0baad6b85ae68770b783245e2f1dcd7eeb4ef40d93c19e0b30e1f89f8adc3065`,
+  and [`DISCONNECT_PROTOCOL.md`](DISCONNECT_PROTOCOL.md).
+- **Repair 1:** The initial specialist review found that `wait` permitted a
+  source-consistent TERM-terminal child that the verifier intentionally did not
+  admit. The tool now selects the probe's existing `ignore` mode, making its
+  only accepted cleanup outcomes direct HUP or bounded TERM/KILL. The host
+  fixture accepts that exact forced-KILL branch and still rejects late timing.
+- **Repair 2:** The first re-review found the process scan named the package
+  member rather than the deployed `/a53-keyboard-disconnect/probe`. The scan now
+  rejects that exact command and `/proc/<pid>/exe` identity, including deleted
+  executable syntax and the fork child that retains the same executable.
+- **Repair 3:** Post-acceptance refusal hardening makes an early marker,
+  incomplete stdin or over-limit diagnostic return retained non-pass state
+  instead of raising inside the first runner. The independent export therefore
+  still runs whenever the bounded runner returns after a possible remote claim.
+- **Repair 4:** Specialist review of repair 3 found that a later ready stdin
+  event could change the final byte count after an early marker. Completeness is
+  now latched at marker observation, stdin is immediately unregistered/closed,
+  and no later event can promote the recorded non-pass.
+- **Ownership:** Astra Medium reviews only; the integrator owns all edits. The
+  reviewer is not alone in the checkout and must not revert other work or touch
+  the user's `AGENTS.md` change.
+- **Acceptance:** Prove the first connection cannot open evdev/VT, the marker is
+  live and command-complete before a bounded local process-group kill, remote
+  monitor/child cleanup and outer exit are attributable, the second connection
+  inventories and excludes readers before exact export, all unique partials are
+  retained, and semantic verification cannot accept contradictory raw evidence.
+- **Stop:** No device/network/build action, gate enablement, admission creation,
+  candidate reconstruction or shared-file edit. Stop at the first concrete
+  safety defect or accept only the frozen offline tool—not physical execution.
+- **Handoff:** Append a timestamped decision and exact reviewed hashes to
+  `ASTRA_SESSION_REVIEW.md` and update its JSON companion. State tests actually
+  run, remaining risks and the absent private-baseline blocker.

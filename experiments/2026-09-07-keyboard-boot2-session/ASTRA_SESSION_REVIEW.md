@@ -1,5 +1,199 @@
 # Keyboard session safety review
 
+## State-machine repair 4: accept the frozen offline runner repair
+
+Review time: `2026-09-07T22:24:56Z`. Decision: **accept this bounded
+state-machine repair for offline tooling only**. `disconnect.py` hash:
+`9595b06a4821cfe155f8539037724e10e9a0e8bfa1beead9a5b90b2bdb4959db`.
+All four frozen source hashes match; companions are unchanged.
+
+The runner now latches command completeness at marker observation, unregisters
+and closes stdin, kills the client group, and stops the current event batch.
+The returned `stdin_complete` is exclusively the latched value. The exact prior
+stdout-before-stdin selector counterexample now returns false, retains the
+marker, closes stdin and performs no post-marker write. Normal complete-input
+and deterministic unread-input cases also pass their expected tests.
+
+The runner still returns the early-marker result rather than raising for that
+condition, so `perform()` retains the process record and reaches independent
+export before rejecting the incomplete transport. Stream-completeness and empty
+stderr checks remain required on the success path. No acceptance weakening
+remains in this scoped ordering repair. The existing default-off gate and absent
+private-baseline blocker are unchanged; no physical proof is claimed.
+
+Tests actually run: six disconnect and six prerequisite tests (pass, including
+generated shell syntax/ShellCheck), four frozen hash checks (match), exact
+mocked selector-order regression (pass). No network, device or build actions;
+monitor/capture suites were not rerun by this reviewer. Handoff reached.
+This section supersedes the revision-3 rejection for the new frozen runner;
+all physical admission limits in the earlier offline acceptance still apply.
+
+## Post-acceptance hardening review 3: early-marker acceptance race
+
+Review time: `2026-09-07T22:22:15Z`. Decision: **reject the new runner revision**
+at a concrete acceptance weakening. Frozen `disconnect.py` hash:
+`fa208999699cebbbb269fd721b972e8d56dd3d80b277dfb48100dafd993ba7ca`;
+all four supplied hashes match. The previous accepted revision remains history,
+not approval of this changed source.
+
+The runner now kills on an early marker and returns instead of raising, which
+allows the independent export to be attempted. However, `stdin_complete` is
+computed from the final `sent` count rather than command completion **when the
+marker was observed**. The loop continues processing selected stdin events
+after the marker-triggered kill. A subsequent write can change the final count
+and erase the evidence that the marker was early.
+
+Deterministic host state-machine reproduction: use a selected-event batch with
+stdout first (exact marker while `sent=0`), then writable stdin accepting the
+remaining command. The mocked client returns SIGKILL termination and empty
+remaining streams. The actual runner returns `stdin_complete=true`,
+`marker_seen=true`, `client_signal=9`, `elapsed_milliseconds=0`,
+`_stderr_empty=true`, `_streams_complete=true`, classification
+`deliberate-client-disconnect`. These transport fields permit passage despite
+the required command-before-marker ordering being false. This is a scheduling
+counterexample, not an observed SSH or device result; SIGKILL invocation does
+not itself establish that pipe writes cannot succeed until process termination.
+
+Minimal repair: latch command completeness at marker observation, before the
+kill, and use that immutable fact in acceptance. Stop/unregister stdin there so
+no later selected write can improve the result. Preserve the existing early
+marker output and independent export behavior. Next discriminating check: the
+stdout-before-stdin event batch must remain non-passing even if a subsequent
+write could otherwise finish the command; normal complete-before-marker must
+still pass. No reviewer repair attempted; hand back this conflict immediately.
+
+Tests actually run: six disconnect tests and six prerequisite tests pass;
+four frozen hash checks match; deterministic selector-order counterexample
+reproduces the weakened acceptance. No network, device or build actions. The
+bounded stream prefix remains retained and the final success path checks both
+internal stream facts, but those properties do not repair the ordering defect.
+Private-baseline blocker and default-off gate remain unchanged. This section
+supersedes the current acceptance below for the new runner revision only.
+
+## Disconnect-tooling repair 2: accept offline tooling only
+
+Review time: `2026-09-07T22:17:40Z`. Decision: **accept the frozen default-off
+offline tool**, not a physical execution or session admission. All four frozen
+source hashes match. `disconnect.py` is
+`34c286bb92e326203ebf5cfebcf93d7561111467254686ba7a378322f0d3d952`;
+the unchanged companion hashes and package identity are in the JSON record.
+
+The deployed process-identity mismatch is closed: generated command predicates
+match the actual probe path and observer path, while executable predicates also
+cover the probe's forked child and deleted executable names. Host execution of
+the exact generated predicates passed six refusal cases and two controls. The
+earlier `ignore`-mode correction remains intact.
+
+The bounded source review establishes these offline properties:
+
+- The first command delivers the fixture-only binary, uses `ignore`, and names
+  no evdev/VT read path. The built-in child does not exec the keyboard observer.
+- SSH is no-PTY with pinned authentication and no multiplexing. The runner
+  requires the complete command to have entered client stdin before killing
+  the local client group on an exact marker; semantic acceptance requires a
+  marker-to-kill interval at most 100 ms and client SIGKILL termination.
+- The remote wrapper retains outer exit after waiting for the monitor. The
+  independent connection requires exit 2, scans bounded process/descriptor
+  inventories and exports four bounded retained members. No remote evidence
+  deletion is present. Local stream partials remain retained on refusal.
+- Receipt publication follows raw-evidence verification, including exact
+  retained bytes and the admitted terminal/reap lifecycle. Deadline,
+  contradictory, incomplete or failed evidence is not a passing proof.
+- Execution remains default-off before claims/transport. Source closure includes
+  the tool, and the baseline dependency is checked before any later transport.
+
+Tests actually run in this re-review: five disconnect tests (including generated
+shell syntax and ShellCheck) and six prerequisite tests, all pass; four source
+hash checks match; independent exact scan-predicate matrix passes. The owner's
+reported monitor/capture suites were not rerun by this reviewer. No network,
+device or build actions occurred. Tooling repair attempts reviewed: **2**.
+
+Remaining physical uncertainty is intentional: actual Dropbear disconnect
+delivery, child/monitor cleanup, inventory accessibility and resulting receipt
+must be observed in a separately admitted exact-candidate run. The local marker
+measurement is not itself a hardware liveness result. The exact private baseline
+archive is still absent; published summaries do not replace it. Acceptance does
+not authorize reconstructing that archive, enabling the gate, selecting a
+candidate or admitting capture. Handoff reached. This section supersedes the
+historical rejection decisions below.
+
+## Disconnect-tooling repair 1: process inventory identity mismatch
+
+Review time: `2026-09-07T22:14:42Z`. The mode repair closes the previous conflict:
+`first_script()` now selects `ignore`, whose child ignores TERM and matches the
+admitted HUP or forced-KILL outcomes. All four frozen source hashes match;
+`disconnect.py` is now
+`f7e9533816ca74e84bcca10b46f054389b1146780274bfa346523b3391099172`.
+
+Decision: **reject at the first further concrete defect**. `export_script()`
+rejects commands matching `*keyboard-disconnect-probe*|*keyboard-observe*`, but
+the actual launched monitor command is
+`/a53-keyboard-disconnect/probe /a53-keyboard-disconnect/run ignore`. Its forked
+built-in child retains that argv as well. The process-name exclusion therefore
+does not recognize the deployed probe it is intended to exclude. A host shell
+test of the exact extracted `case` predicate with the exact launched command
+returns success. The harmless child uses retained regular files, not evdev/VT,
+so the descriptor filter is not a substitute for matching its process identity.
+
+This does not assert that a process survived on hardware: retained outer-exit
+and reaped-status checks are separate evidence. It establishes that the promised
+independent process scan cannot enforce its surviving-probe rejection predicate.
+
+Minimal repair: match the exact deployed probe/monitor identities, including the
+built-in child retaining the monitor argv, rather than relying on the package
+member basename. Add host refusal fixtures for those identities and a nonmatching
+control. Next discriminating check: the exact current command must be rejected
+by the generated scan. Stop here; later proof predicates remain unapproved.
+
+Tests actually run: five disconnect tests and six prerequisite tests (pass),
+four frozen hash checks (match), exact scan predicate reproduction (incorrect
+acceptance confirmed). Tooling repair attempts reviewed: **1**. No device,
+network or build actions; private-baseline blocker remains unchanged. This
+section supersedes the current blocker below, preserving its history.
+
+## Disconnect-tooling review: source/lifecycle conflict
+
+Review time: `2026-09-07T22:10:57Z`. Decision: **reject offline tooling freeze
+at the first concrete conflict**. This reviews the new default-off tool under
+the work-item addendum, not another repair of the previously bounded verifier.
+All four supplied source hashes matched; the exact hashes and package identity
+are recorded in the companion JSON.
+
+`disconnect.py:first_script()` explicitly selects probe mode `wait`.
+`monitor.c` restores default signal dispositions in the child, and
+`monitor-fixture.c` ignores SIGTERM only in `ignore`/`late-signal` mode. Therefore
+monitor-only cancellation with a still-live `wait` child can legitimately send
+SIGTERM, reap signal 15 and retain `kill_ms=-1`. In contrast, the frozen
+`prerequisites.py` accepts only signal 1 with no monitor signals, or signal 9
+with ordered TERM/KILL. The first-connection source and accepted lifecycle
+branches conflict. This is a source-supported possible branch, not a claim
+about which signals the physical Dropbear session will deliver.
+
+Discriminating host check: change the positive retained-status fixture to
+`signal=15`, `kill_ms=-1`, retaining bounded `term_ms=10`, `reap_ms=100`, and
+recompute both status hashes. The verifier refuses `disconnect parsed
+lifecycle`. The five disconnect tests and six prerequisite tests pass but do
+not cover this selected-mode outcome.
+
+Minimal repair: explicitly align the selected harmless fixture mode and the
+permitted lifecycle outcomes. Either preserve `wait` and validate its bounded
+TERM-terminal branch, or deliberately choose a mode whose signal policy
+matches the intended forced-kill proof. Review that choice against the existing
+proof hypothesis; do not silently loosen signal checks. Add a source-consistent
+selected-mode acceptance fixture and contradictory timing refusals. Next
+discriminating check is host-only; no physical proof is needed to resolve this
+contract conflict. No repair attempted by this reviewer.
+
+The first-command source uses only the fixture probe, not the production evdev
+observer, and the execution gate is default-off. Review stops at this conflict:
+live-marker causality, process/descriptor exclusion, partial retention and
+later execution are **not approved**. The exact private baseline archive remains
+absent as documented in [the protocol](DISCONNECT_PROTOCOL.md); recovering it
+or separately reviewing a fresh chain is still necessary before any admission.
+No network, device, build, gate enablement or candidate reconstruction occurred.
+This section supersedes the current decision below, while retaining the earlier
+bounded lifecycle repair acceptance as history.
+
 ## Repair attempt 2: accept the bounded lifecycle repair
 
 Re-review time: `2026-09-07T21:41:45Z`. The frozen uncommitted verifier repair

@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 8,
-  "next_accepted_sequence": 9,
-  "next_considered_sequence": 10,
+  "accepted_count": 9,
+  "next_accepted_sequence": 10,
+  "next_considered_sequence": 12,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -360,6 +360,64 @@
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-07-keyboard-boot2-session/results/readiness.json"
       }
+    },
+    {
+      "considered_sequence": 10,
+      "accepted_sequence": 9,
+      "candidate_id": "keyboard-disconnect-prerequisite-tooling",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "implementation",
+      "risk_class": "hard-uncertainty",
+      "acceptance_contract": "experiments/2026-09-07-keyboard-boot2-session/WORK_ITEM.md",
+      "review_comparison_group": "gemini-device-session-readiness",
+      "parent": "93e2b8526daa683c2ba848011fac757a398a13dd",
+      "owner_route": {
+        "role": "primary-integration-implementer",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "review_route": {
+        "role": "gemini_specialist",
+        "model": "gpt-6-astra",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-07T21:25:44Z",
+        "review_ready_at": "2026-09-07T22:10:57Z",
+        "accepted_at": "2026-09-07T22:36:49Z",
+        "timing_source": "observed prior-audit acceptance, first specialist tooling review and integration acceptance timestamps",
+        "elapsed_minutes": 71.0833333,
+        "review_rework_minutes": 25.8666667,
+        "first_review_accepted": false,
+        "rework_cycles": 4,
+        "escalated": true,
+        "escalation_reason": "exact process-lifecycle, deployed-command identity and marker-ordering uncertainty",
+        "escalation_packet": {
+          "evidence": "experiments/2026-09-07-keyboard-boot2-session/ASTRA_SESSION_REVIEW.md",
+          "attempts": [
+            "aligned the harmless fixture signal policy with the accepted lifecycle",
+            "bound process scans to the actual deployed command and executable",
+            "preserved early-marker output for independent export and refusal",
+            "latched stdin completeness at marker observation and stopped later writes"
+          ],
+          "unresolved_question": "Can deliberate local SSH loss prove a terminal reaped remote monitor with complete retained partial evidence and no surviving input or tty reader?",
+          "next_discriminating_check": "Run one separately admitted harmless target disconnect proof against a fresh accepted authenticated baseline."
+        },
+        "review_failure_class": null,
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-07-keyboard-boot2-session/results/astra-session-review.json"
+      }
+    },
+    {
+      "considered_sequence": 11,
+      "candidate_id": "keyboard-candidate-r-reconstruction",
+      "disposition": "excluded",
+      "reason": "device-session",
+      "note": "The private deterministic candidate reconstruction and admission review are device-session preparation, not an accepted offline routing item.",
+      "evidence": "experiments/2026-09-07-keyboard-boot2-session/results/candidate-reconstruction.json"
     }
   ],
   "checkpoints": [

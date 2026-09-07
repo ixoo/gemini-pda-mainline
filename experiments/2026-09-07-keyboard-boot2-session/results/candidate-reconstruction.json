@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "recorded_utc": "2026-09-07T22:36:49Z",
+  "result": "exact_candidate_unavailable_new_candidate_validated",
+  "device_action": "none",
+  "historical_candidate": {
+    "raw_boot_sha256": "a25fe4cb907f4f3da2bf9f36fcf38b3fff7d8ba84adc37562fdcff2f1a422daf",
+    "padded_sha256": "a423ad63fbb97d0f3fc4726d3957e05d3951480996b754d839a89d80a1232821",
+    "initramfs_sha256": "a678c4051204754dbb8043b25d3f61e0e6b4936fc4c92bea012140b9b6687d7a",
+    "candidate_manifest_sha256": "54b07f0c70e77fd1e34fde4fc1c929980f0d8c3410f0a97ce3f15ffec1a66179",
+    "retained": false
+  },
+  "candidate_r": {
+    "private_directory": "candidate-3290b867bc6cb2ecee42e6ca1436e1ae29613c074e7e45b3836ecb2905f3e07c",
+    "raw_boot_sha256": "3290b867bc6cb2ecee42e6ca1436e1ae29613c074e7e45b3836ecb2905f3e07c",
+    "padded_sha256": "29f59c7f21a25b47d63d653857db9d7d0760d9a00f7193e098219699235f16f1",
+    "initramfs_sha256": "b258a9a5dc894ecbd330005ecab841225b320a3c2b82abe725f3833c874d74cd",
+    "candidate_manifest_sha256": "62440fdee9267e26d6f90148609a7c2551fdb9d6a9f603da03f891638c65180d",
+    "image_gzip_sha256": "6682b2f7d4843c9460576380f28eb14289620e74c7d9b1f0c70ae33eeed3d4e5",
+    "board_dtb_sha256": "e1e4eca289320533bad5c879e78055eaa86a295080b1154c13debe29ddd8ee4a",
+    "kernel_config_sha256": "194834d90eb2443f4b14ba8f2078ba16fe0c63f69088fcc8c063fe25af01c410",
+    "userspace_manifest_sha256": "dfeb746505b7ad01423e91e952e76620f845b048ae2e8c5cf8a311e0d4443e60",
+    "initramfs_members": 47,
+    "private_candidate_validation": "pass",
+    "installer_derivation": "pass",
+    "installer_sha256": "a092f8ea091e04ffea75d406a60220a4bae5fa5808d359989a96eb6a2f7dc068",
+    "runtime": "not_tested",
+    "physical_admission": "pending_independent_review"
+  },
+  "inference": "The credential bundle is the remaining identified variable, but an exact byte-level delta cannot be proven without the historical secret-bearing candidate.",
+  "old_runtime_evidence_transferred": false,
+  "kernel_or_dt_change": false,
+  "keyboard_capture_claim_consumed": false
+}

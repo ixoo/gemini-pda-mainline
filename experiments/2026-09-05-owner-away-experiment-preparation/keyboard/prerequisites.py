@@ -203,7 +203,7 @@ def disconnect(raw, expected, admission, candidate, package_pins, evidence_root,
         'marker_seen': True, 'stdin_complete': True, 'client_signal': 9,
         'elapsed_milliseconds': transport.get('elapsed_milliseconds')} and
         type(transport['elapsed_milliseconds']) is int and
-        0 <= transport['elapsed_milliseconds'] <= 2000, 'disconnect transport process')
+        0 <= transport['elapsed_milliseconds'] <= 100, 'disconnect transport process')
     exported = decode(evidence['export-process.json'])
     require(set(exported) == {'exit_status', 'reason', 'stdin_complete', 'stdout_bytes',
         'stderr_bytes', 'elapsed_seconds'} and exported['exit_status'] == 0 and
