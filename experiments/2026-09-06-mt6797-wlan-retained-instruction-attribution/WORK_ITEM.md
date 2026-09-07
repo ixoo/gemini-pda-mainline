@@ -30,7 +30,14 @@
 - **Model route:** `gemini_specialist`, `gpt-6-astra`, medium for the named
   binary-control-flow uncertainty; `gemini_reasoner`, `gpt-5.6-sol`, medium for
   independent review. No implementation route is selected.
-- **Current bounded dispatch:** single V10 execution at published clean
+- **Current bounded dispatch:** prospective no-private initial-inventory
+  diagnostic design at `aad053da8b19ff6ae6189f2f1ac5d4a61d02d3ce`.
+  Astra Medium owns the predicate/observation uncertainty; Sol Medium reviews
+  and `/root` integrates. Only [AMENDMENT-27.md](AMENDMENT-27.md) and minimal
+  work-item/input updates are owned. No source construction, VM, run, private
+  or device access, build, commit or push is admitted. Future construction
+  and the one diagnostic run each require a new bounded dispatch.
+- **Closed V10 dispatch:** single execution at published clean
   `f1fef5e6bb83d2a2e85b33f9a97e9256b8b11a55`, with Astra Medium
   `/root/runtime_identity_specialist` as sole RE-VM custodian. Sol Medium
   reviews and `/root` integrates. The exact [FREEZE.md](FREEZE.md) inputs were
@@ -54,7 +61,7 @@
   `AMENDMENT-13.md`, `AMENDMENT-14.md`, `AMENDMENT-15.md`, `AMENDMENT-16.md`,
   `AMENDMENT-17.md`, `AMENDMENT-18.md`, `AMENDMENT-19.md`, `AMENDMENT-20.md`,
   `AMENDMENT-21.md`, `AMENDMENT-22.md`, `AMENDMENT-23.md`, `AMENDMENT-24.md`,
-  `AMENDMENT-25.md`, `AMENDMENT-26.md`, `PREFLIGHT.md`,
+  `AMENDMENT-25.md`, `AMENDMENT-26.md`, `AMENDMENT-27.md`, `PREFLIGHT.md`,
   `bootstrap-refused.json`, `VALIDATION-REFUSED.md`, `bootstrap-v2.json`,
   the bootstrap-v2 refusal in `VALIDATION.md`, `bootstrap-v3.json`, the
   bootstrap-v3 refusal in `VALIDATION-FINAL.md`, `bootstrap-v4.json`, optional
@@ -84,6 +91,9 @@
   `extension-load-diagnostic-result-v1.json`, `EXTENSION-LOAD-DIAGNOSTIC.md`,
   `bootstrap-v9.json`, `bootstrap-v9-result.json`, `VALIDATION-V9.md`,
   `bootstrap-v10.json`, `bootstrap-v10-result.json`, `verify-result.py`,
+  future separately dispatched `inventory-diagnostic-v1.json`,
+  `inventory-diagnostic-result-v1.json`, `INVENTORY-DIAGNOSTIC.md`,
+  `verify-inventory-diagnostic.py`,
   `method.json`, `analysis.json`, `edges.json`,
   `FREEZE.md`, an assert-free normal/optimized verifier, final `README.md` and
   `VALIDATION-RESULT.md`.
@@ -242,7 +252,9 @@
 - **Efficiency loop:** if independently accepted, append one sanitized item to
   the active workflow cohort with actual routes/timestamps, first-review result,
   rework/escalation and measured credits or explicit unavailability.
-- **State:** V10 refused before private analysis; its sole admitted process
+- **State:** Amendment 27 is a prospective design awaiting independent review;
+  no diagnostic source or run exists. Its future one-run budget is unconsumed
+  and unadmitted. V10 refused before private analysis; its sole admitted process
   budget is consumed and RE-VM custody is released. The sanitized refusal
   records and assert-free verifier are independently accepted and closed;
   normal and optimized verification each rejected 514 mutations across all 11

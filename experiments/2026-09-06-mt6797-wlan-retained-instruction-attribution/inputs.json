@@ -9,7 +9,8 @@
     "source_dependencies_producer": "../2026-09-06-mt6797-connectivity-producer-source-attribution"
   },
   "controlling_contract": {
-    "WORK_ITEM.md": "05f2204edea46d0161ddffe4f0fa2cb12883580eb0518f312e8693ab4b757f2e",
+    "WORK_ITEM.md": "b135f2689aa974eb94753a163ec792c4d7246d0e34bce46aff671a206f22b308",
+    "AMENDMENT-27.md": "02b74714ee2d5d86f7a639ef0190c554ad91cf25110676af0ad778c7b3d77920",
     "bootstrap-v10-result.json": "3e0caa5234b3bd1842e70cab0626929ea0ed044b59960fc03da84411c13fb193",
     "analysis.json": "7851369cee4966e0302ede5123da07c4e28f9e91b7bf14893984ed1d38293ff3",
     "edges.json": "d9df19be8b727d623f29edbef6fbddca13a15e03a49a7175eb47162e48868d45",
