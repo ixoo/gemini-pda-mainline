@@ -9,7 +9,8 @@
     "source_dependencies_producer": "../2026-09-06-mt6797-connectivity-producer-source-attribution"
   },
   "controlling_contract": {
-    "WORK_ITEM.md": "0d6b9a727df2b527dcd360b6265760dbb3e6d3da26471f5a8cd6338f1b20f58d",
+    "WORK_ITEM.md": "e88c390b4a84e52211b0cc4427861eac9eaafc4c8cacd8346a3576f4995ff70b",
+    "AMENDMENT-30.md": "aed5e4cb8229ae8ddfedffe920b0064001568c5f77419e6d47705d13ae6ef11b",
     "AMENDMENT-29.md": "c1ae9b73e4311c7e4b5790c9b4befeaeb24bb51ef49b4c7dc4cffa899d16d46c",
     "AMENDMENT-28.md": "4c31045693257876985a4fe52f4b3df82e67dc6b5e103b08e5c17241be5c7a96",
     "AMENDMENT-27.md": "02b74714ee2d5d86f7a639ef0190c554ad91cf25110676af0ad778c7b3d77920",
@@ -166,6 +167,30 @@
     "process_budget": 1,
     "runs_consumed": 0,
     "run_admitted": false,
+    "vm_access_this_dispatch": false
+  },
+  "recovery_status_design": {
+    "amendment": "AMENDMENT-30.md",
+    "design_parent_commit": "3a0b3ec2666cde9b147d8c090db714cab7fc4f40",
+    "design_parent_inputs_sha256": "a19b24915828c1673693a83316ce0527751688acba089ee0873fbbd8f17f4681",
+    "design_parent_work_item_sha256": "0d6b9a727df2b527dcd360b6265760dbb3e6d3da26471f5a8cd6338f1b20f58d",
+    "state": "status-only-design-awaiting-review-publication-dispatch",
+    "custodian": "/root/runtime_identity_specialist",
+    "model": "gpt-6-astra",
+    "reasoning_effort": "medium",
+    "review_model": "gpt-5.6-sol",
+    "review_reasoning_effort": "medium",
+    "a29_transport_exit": 1,
+    "a29_collector_records": 0,
+    "a29_host_stderr_bytes": 645,
+    "a29_host_stderr_sha256": "d0847a45eceba5bd361c424ece087577656f01462b68af053e9a5d899824fdcb",
+    "a29_host_stderr_raw_retained": false,
+    "diagnostic_budget": {"attempts": 1, "consumed": true, "remaining": 0, "rerun_admitted": false},
+    "recovery_budget": {"attempts": 0, "consumed": false, "remaining": 1, "access_admitted": false},
+    "a29_custody": "unresolved",
+    "closure_admitted": false,
+    "termination_admitted": false,
+    "content_read_admitted": false,
     "vm_access_this_dispatch": false
   },
 "bounds": {

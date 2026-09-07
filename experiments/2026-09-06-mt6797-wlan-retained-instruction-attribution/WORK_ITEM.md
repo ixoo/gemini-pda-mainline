@@ -30,15 +30,17 @@
 - **Model route:** `gemini_specialist`, `gpt-6-astra`, medium for the named
   binary-control-flow uncertainty; `gemini_reasoner`, `gpt-5.6-sol`, medium for
   independent review. No implementation route is selected.
-- **Current bounded dispatch:** A29 contract-only execution/result design at
-  `4d9ac686d2f4d6a415ca3c0062d905bd1f5f6f0c`.
-  Astra Medium `/root/runtime_identity_specialist` owns the collector/evidence
-  uncertainty and is prospective sole RE-VM custodian; Sol Medium reviews and
-  `/root` integrates. Only [AMENDMENT-29.md](AMENDMENT-29.md) and minimal
-  work-item/input updates are owned. The published source remains immutable.
+- **Current bounded dispatch:** A30 contract-only recovery-status design at
+  `3a0b3ec2666cde9b147d8c090db714cab7fc4f40`.
+  Astra Medium `/root/runtime_identity_specialist` owns the attribution
+  uncertainty and is prospective sole recovery custodian; Sol Medium reviews
+  and `/root` integrates. Only [AMENDMENT-30.md](AMENDMENT-30.md) and minimal
+  work-item/input updates are owned. The source and A29 remain immutable.
   No VM, run, result/verifier construction, private/device access, build,
-  network, commit or push is admitted now. The one diagnostic run requires
-  reviewed/published A29 and a separate exact-commit execution dispatch.
+  network, commit or push is admitted now. One future metadata-only access
+  requires reviewed/published A30 and a separate exact-commit dispatch.
+  A29's diagnostic budget is consumed; custody is unresolved. Prefix matches
+  cannot authorize attribution, termination, deletion or custody closure.
   [A28](AMENDMENT-28.md) remains the faithful-prefix contract; post-exception
   localization concerns only a new run, not the historical V10 failure.
 - **Closed V10 dispatch:** single execution at published clean
@@ -66,7 +68,7 @@
   `AMENDMENT-17.md`, `AMENDMENT-18.md`, `AMENDMENT-19.md`, `AMENDMENT-20.md`,
   `AMENDMENT-21.md`, `AMENDMENT-22.md`, `AMENDMENT-23.md`, `AMENDMENT-24.md`,
   `AMENDMENT-25.md`, `AMENDMENT-26.md`, `AMENDMENT-27.md`, `AMENDMENT-28.md`,
-  `AMENDMENT-29.md`,
+  `AMENDMENT-29.md`, `AMENDMENT-30.md`,
   `PREFLIGHT.md`,
   `bootstrap-refused.json`, `VALIDATION-REFUSED.md`, `bootstrap-v2.json`,
   the bootstrap-v2 refusal in `VALIDATION.md`, `bootstrap-v3.json`, the
@@ -258,10 +260,14 @@
 - **Efficiency loop:** if independently accepted, append one sanitized item to
   the active workflow cohort with actual routes/timestamps, first-review result,
   rework/escalation and measured credits or explicit unavailability.
-- **State:** A29 is contract-only and awaiting independent review/publication.
-  The A28 diagnostic source is published and frozen; no diagnostic run exists.
-  Amendment 27 remains historical reviewed design; its two generator attempts
-  produced no candidate. The future one-run budget is unconsumed and unadmitted.
+- **State:** A30 status-only design awaits independent review/publication and
+  a separate recovery dispatch. A29's single transport returned exit 1 and
+  no collector receipt; its diagnostic budget is conservatively consumed.
+  Guest execution, retained capture existence and custody remain unresolved.
+  The published A28 diagnostic source is unchanged and cannot be rerun.
+  A30's separate one-access observation budget is unconsumed and unadmitted;
+  every result leaves A29 custody unresolved. Amendment 27 remains historical
+  reviewed design; its two generator attempts produced no candidate.
   V10 refused before private analysis; its sole admitted process
   budget is consumed and RE-VM custody is released. The sanitized refusal
   records and assert-free verifier are independently accepted and closed;
