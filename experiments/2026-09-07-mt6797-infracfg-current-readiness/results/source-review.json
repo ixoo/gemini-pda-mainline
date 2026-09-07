@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "observed_at_utc": "2026-09-07T18:42:00Z",
+  "repository_parent": "22d46e7c6681ab6850f7f026d3fa87b624b59aaa",
+  "method": "Read-only exact-ref, selected-source, public-archive and ordered patch-context assessment; no retained Linux tree, build, VM, device or upstream contact.",
+  "refs": {
+    "mainline_master": "28924df2a08f440c73991b83028032c901de2ae4",
+    "clk_next": "91b1b8d437abe0cd83210d8f257b785a63047aa9",
+    "mediatek_for_next": "f5be25e697e0362103625b1b197af126ae4ba5f7",
+    "linux_next_master": "944a035ecca915ae947905dcfb03f2b9dc6d032c"
+  },
+  "retrieval": {
+    "ref_remote_template": "https://git.kernel.org/pub/scm/linux/kernel/git/<tree>.git",
+    "mainline_source_template": "https://raw.githubusercontent.com/torvalds/linux/<revision>/<path>",
+    "integration_source_template": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/<tree>/+/<revision>/<path>?format=TEXT",
+    "integration_source_encoding": "base64 decoded before hashing",
+    "mainline_google_mirror_failures": "404 and timeout responses were not treated as source absence; immutable torvalds/linux GitHub raw files and directory inventories succeeded"
+  },
+  "common_source_bytes": [
+    { "path": "drivers/clk/mediatek/reset.c", "bytes": 4290, "sha256": "8c1cdf2ad881dc20659340cd7f0244b8ff1a1b6d1d7b4cd1e74946533adcee76" },
+    { "path": "drivers/clk/mediatek/reset.h", "bytes": 2198, "sha256": "0401a0df50c411faf95465b716691dbf8f1c369a6eedc2511d6694e68dc4f1b5" },
+    { "path": "drivers/clk/mediatek/clk-mt6797.c", "bytes": 23000, "sha256": "eaad6324621679371f33bbb76e10bcb0d3374b1f2dbbd837323b3f9e8fee1534" },
+    { "path": "drivers/clk/mediatek/clk-mtk.c", "bytes": 16200, "sha256": "e8a89dffaffedfce01489b0887fb425d64649d6fb841157bbcea5aac0fc93e59" },
+    { "path": "drivers/clk/mediatek/clk-mtk.h", "bytes": 7609, "sha256": "67c603ab0a319e7672fba7f569a4e691fd8b3772b031427524d8da934198e6d9" },
+    { "path": "Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml", "bytes": 2384, "sha256": "0610f891e326d1e0a7ce9ffe3ef0513ab229bf37eee8177de0999cac17157c6f" },
+    { "path": "arch/arm64/boot/dts/mediatek/mt6797.dtsi", "bytes": 11331, "sha256": "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83" }
+  ],
+  "tree_specific_source_bytes": {
+    "drivers/clk/mediatek/Kconfig": {
+      "mainline": { "bytes": 34673, "sha256": "6634c6e7c14ca9a72fc0a258ca9b8a575c53bc451919646feb644c7b9354c3c0" },
+      "clk_next": { "bytes": 34688, "sha256": "712eede24414e708c2b140e6860111b7f4f8f9f2ef356a2330286c3af1a2d351" },
+      "mediatek_for_next": { "bytes": 34351, "sha256": "7fc2955a8c0eea257f9320641542929a97759485ffadde9f48c046f9783547ec" },
+      "linux_next": { "bytes": 34688, "sha256": "712eede24414e708c2b140e6860111b7f4f8f9f2ef356a2330286c3af1a2d351", "matches": "clk_next" }
+    },
+    "drivers/clk/mediatek/Makefile": {
+      "mainline": { "bytes": 10756, "sha256": "6af23f8e56cbb5e9fdda850fb8201f384053f89e8b3347aa8a6cd98239678b11" },
+      "clk_next": { "bytes": 10756, "sha256": "6af23f8e56cbb5e9fdda850fb8201f384053f89e8b3347aa8a6cd98239678b11" },
+      "mediatek_for_next": { "bytes": 10694, "sha256": "d4938ae54d40715d3cec345b5d4b441fcd8c28ea34d9f520a3a5b9b6205b5288" },
+      "linux_next": { "bytes": 10756, "sha256": "6af23f8e56cbb5e9fdda850fb8201f384053f89e8b3347aa8a6cd98239678b11", "matches": "mainline_and_clk_next" }
+    },
+    "MAINTAINERS": {
+      "mainline": { "bytes": 927884, "sha256": "1b6bd8418b8bbdcbce595c4648c10afaf23370e3de243a282dbc992798de3a84" },
+      "clk_next": { "bytes": 928091, "sha256": "c9f85d60dcab471dc311a71529702d0efac74c145fbb0dc7518e0ed6c61ef9b5" },
+      "mediatek_for_next": { "bytes": 916147, "sha256": "6bc5dc04a7843773c2391fc3438dfeeeaac1b299e9d4fb332c93ec9bbd86670c" },
+      "linux_next": { "bytes": 931441, "sha256": "857393bd6892d9e8d37503dac737a2eb292a575696325e35824b906c6cedded8" }
+    }
+  },
+  "absent_paths_in_all_selected_trees": [
+    "drivers/clk/mediatek/reset-internal.h",
+    "drivers/clk/mediatek/reset-test.c",
+    "drivers/clk/mediatek/clk-mt6797-reset.h",
+    "drivers/clk/mediatek/clk-mt6797-reset-test.c",
+    "include/dt-bindings/reset/mt6797-resets.h"
+  ],
+  "public_overlap": [
+    {
+      "topic": "32-patch common probe/remove conversion cover",
+      "url": "https://lists.infradead.org/pipermail/linux-mediatek/2026-August/111247.html",
+      "bytes": 9105,
+      "sha256": "94cba5ca9b0e0a0295dc81d51f878336ef76b276535108e39a244400de8c7127"
+    },
+    {
+      "topic": "patch 18/32 converting MT6797",
+      "message_id": "20260803141659.559129-19-akkun11.open@gmail.com",
+      "url": "https://lists.infradead.org/pipermail/linux-mediatek/2026-August/111265.html",
+      "bytes": 9469,
+      "sha256": "24a70dea9023083d1ee04f4a3508c781eb42332f7458ef1f58900b4631a13c57"
+    },
+    {
+      "topic": "review requesting conversion rationale",
+      "url": "https://lists.infradead.org/pipermail/linux-mediatek/2026-August/111307.html",
+      "bytes": 3612,
+      "sha256": "b63aca3d1efbb8c22d6e46d9bf8fac915cf86abbebcba44c218d55ec8272bfa9"
+    },
+    {
+      "topic": "bounded August archive index",
+      "url": "https://lists.infradead.org/pipermail/linux-mediatek/2026-August/thread.html",
+      "bytes": 266361,
+      "sha256": "b7f16a30faaa1f37f6b46a8d9542cd5323adc8d17089eaeae95a550fce249df9"
+    },
+    {
+      "topic": "bounded September archive index",
+      "url": "https://lists.infradead.org/pipermail/linux-mediatek/2026-September/thread.html",
+      "bytes": 84502,
+      "sha256": "0c569917d89210ef84187a7b05fbb1b22d06a89a4c547fbf31630568fee05f9b"
+    }
+  ],
+  "frozen_local_inputs": [
+    { "path": "patches/series-mt6797-infracfg-revised-kunit", "sha256": "f8c50e8dd0a89b64c1e0405b16ffa3d9c6933b2e76d503a8456755c90b176b2a" },
+    { "path": "patches/upstream-4d7d9486/0001-clk-mediatek-reject-out-of-bank-SET-CLEAR-reset-IDs.patch", "sha256": "ab875a831822e1809619f0034f29f8c068af133012da196ba59a62977b884fd5" },
+    { "path": "patches/upstream-4d7d9486/0002-clk-mediatek-test-reset-translation-bounds.patch", "sha256": "211f2b95d24d7cb09085d99ade5bcd681254f55145e227920fd62b773f30d483" },
+    { "path": "patches/upstream-4d7d9486/0003-dt-bindings-reset-mediatek-add-MT6797-infracfg-reset.patch", "sha256": "0c8af0a97f42424830d5c6b59f9830a42d4212b728507ea6f433f7a8713fff25" },
+    { "path": "patches/upstream-4d7d9486/0004-clk-mediatek-add-MT6797-infracfg-SET-CLEAR-resets.patch", "sha256": "90a1d8aaff250e8b0086488138aec1527f535cde38aa2b6734c6b83344e41cc5" },
+    { "path": "patches/upstream-4d7d9486/0005-clk-mediatek-test-MT6797-infracfg-reset-mapping.patch", "sha256": "10961fd177b6584985c717a3cc99338571addeb5d898397b9bd4816e4a31c2cf" },
+    { "path": "patches/upstream-4d7d9486/0006-arm64-dts-mediatek-expose-MT6797-infracfg-resets.patch", "sha256": "d7ccee4f2e8e3ae78cce2405c761bc1c76f915423a8b9ea8cbf22785c2e2bfbe" },
+    { "path": "kernel/manifest.json", "sha256": "b200af7dda92e5c8a3495f74f0e66d24917ad445b0a4f65028053c7729bee208" },
+    { "path": "configs/mt6797-infracfg-upstream-kunit.fragment", "sha256": "f0ff5541bee623f722864b0f301ae555901921a274a431f24f592a31b8ffc088" },
+    { "path": "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/revised-topic/INTEGRATION.md", "sha256": "e322f80e979ece7645573042ef9be992ea37f08f3982a3c6a6045d0fe17eacf1" },
+    { "path": "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/revised-topic/SUBMISSION_READINESS.md", "sha256": "fab71a6cedeaa5a0bab1717204ea4a19a5ea411674e50707783896019358a308" },
+    { "path": "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/revised-topic/readiness-refresh.json", "sha256": "d98ce7d75fca59ecf4b825f0df120168766e25c299783ef07d862074fceee993" },
+    { "path": "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/SUBMISSION_READINESS.md", "sha256": "f2afefac37af05d920be9e5329101545a04ccad773611d1cd2c0f22f9529077d" },
+    { "path": "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/results/upstream-ordering-refresh-20260906.json", "sha256": "decbed5c0bc807e1f6b1e031686be3d904672bf57945f694082009e11882f747" },
+    { "path": "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/cleanup-proposal/README.md", "sha256": "039dc75fea473ba2c4a3258a6f92271426846891617a2a22d135a76a916bc966" },
+    { "path": "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/cleanup-proposal/GENERATION_RESULT.md", "sha256": "cbcbf3db62322092cea43e9e974d3cf4ef5373799e4b22ec97cb7b5e20822902" }
+  ],
+  "retained_cleanup_patch_digest": {
+    "source": "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/cleanup-proposal/results/generation-ebc146fa/SHA256SUMS",
+    "path_in_review_package": "0001-clk-mediatek-remove-provider-on-reset-registration-error.patch",
+    "sha256": "eabc1a33c23b4511a285bb2660376585f4e8332f2bca124ffab606e308ee9a62",
+    "note": "The patch bytes are retained in the ignored review package, not promoted into the active repository series."
+  },
+  "patch_context": {
+    "canonical_sequence_matches_all_four_selected_trees": true,
+    "current_mainline_minimal_touched_file_tree_git_apply": "all six patches applied in order",
+    "full_tree_replay": false,
+    "compile_or_schema_execution": false
+  },
+  "verdict": {
+    "implementation_admitted": false,
+    "status": "public-ordering-disposition-required",
+    "reason": "Public patch 18/32 removes the private MT6797 probe edited by local patch 4; tree absence and review feedback do not establish maintainer ordering.",
+    "next_discriminating_check": "Obtain an attributable clock/MediaTek maintainer ordering disposition tied to the exact public patch 18/32 revision and this reset topic."
+  },
+  "effects": {
+    "kernel_source_edit": false,
+    "build": false,
+    "vm": false,
+    "private_capture": false,
+    "device": false,
+    "upstream_contact": false
+  }
+}

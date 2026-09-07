@@ -4,9 +4,9 @@
   "topics": [
     {
       "id": "mt6797-infracfg-reset",
-      "status": "local-preparation",
+      "status": "ordering-disposition-required",
       "owner": "CPU 8-9 Astra",
-      "target": "Clock tree for reset implementation/tests/header, with MediaTek/reset/DT review; MediaTek tree for the independent SoC DTS declaration. Local ordering is explicitly topic-first because the inspected current trees lack the MT6797 common-probe conversion; maintainers and the conversion author still decide upstream ordering.",
+      "target": "Clock tree for reset implementation/tests/header, with MediaTek/reset/DT review; MediaTek tree for the independent SoC DTS declaration. Current mainline, clk-next, MediaTek for-next and linux-next still use the private MT6797 probe, and all six local patch contexts match uniquely in those trees, but public patch 18/32 removes that owner. Do not regenerate or build an outgoing rebase until clock/MediaTek maintainers select reset-first or conversion-first for the exact public revision.",
       "patches": [
         "patches/upstream-4d7d9486/0001-clk-mediatek-reject-out-of-bank-SET-CLEAR-reset-IDs.patch",
         "patches/upstream-4d7d9486/0002-clk-mediatek-test-reset-translation-bounds.patch",
@@ -22,10 +22,11 @@
         "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/SUBMISSION_READINESS.md",
         "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/revised-topic/README.md",
         "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/revised-topic/ATTEMPT_2.md",
-        "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/revised-topic/INTEGRATION.md"
+        "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/revised-topic/INTEGRATION.md",
+        "experiments/2026-09-07-mt6797-infracfg-current-readiness/README.md"
       ],
       "dependencies": [
-        "Coordinate ordering with the pending MT6797 common-probe conversion; adapt only provider integration if that conversion is selected first",
+        "Obtain an attributable clock/MediaTek maintainer ordering disposition for public patch 18/32 at Message-ID 20260803141659.559129-19-akkun11.open@gmail.com and this reset topic",
         "The separately implemented and locally validated common-helper cleanup is conditional and excluded from this topic; review it before any conversion-first adaptation",
         "Review final provider ordering and map consumer evidence to the exact final revision",
         "Actual authorship audit and truthful DCO certification before submission"
@@ -44,7 +45,7 @@
       "validation_profile": "mt6797-infracfg-revised-kunit",
       "admission": "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/BUILD_ADMISSION.md",
       "validation": {
-        "scope": "Revised application series: exact source/tree replay accepted; C/header/DTS/config bytes match the original tested topic. New profile has not been rebuilt or device-tested; see revised-topic/INTEGRATION.md.",
+        "scope": "Revised application series: exact old-base source/tree replay accepted; current textual contexts match four inspected integration trees, but public patch 18/32 overlaps provider ownership. No current-base rebase/build or device test is admitted pending maintainer ordering; see the 2026-09-07 current-readiness record.",
         "build": "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/BUILD_ADMISSION.md",
         "kunit": "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/QEMU_OFFLINE_ASSESSMENT.md",
         "schema": "experiments/2026-09-05-mt6797-infracfg-upstream-preparation/SCHEMA_INTEGRATION_REVIEW.md",
