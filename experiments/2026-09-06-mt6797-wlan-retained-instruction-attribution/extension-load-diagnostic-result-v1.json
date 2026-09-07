@@ -1,0 +1,174 @@
+{
+  "schema_version": 1,
+  "dispatch_commit": "a30bf554dd53bab50633306c988047b5ccd01fc1",
+  "dispatch_inputs_sha256": "b46f4901f72c1c0e4664db4eefc3462f36784353defade6c8fb54b681fc52ed6",
+  "diagnostic_sha256": "c43ec9e150c8f92d90ceef7907dbf9aa5a8dd52b9b75623ef1f1a933bcb4ea90",
+  "source_sha256": "faffb8c563ea015c74009dc0e68eed9bc07f7bc19fbdd5402bbe649ba9dead2f",
+  "runs": 1,
+  "private_analysis_consumed": false,
+  "canonical_receipt_sha256": "ddfd64d6f8182cbbab3f8a0912dd70b8b4f44a6903b280ebafd117fe5f62c6e7",
+  "receipt": {
+    "accepted_identity_result_sha256": "eac9d08935b88bb565d4bab87ed1d02699a79ac0f10bcc9198068a531ff66508",
+    "audit_counts": {
+      "baseline_maps_open": 1,
+      "candidate_open": 0,
+      "discovery_import": 1,
+      "dynamic_load": 0,
+      "extension_import": 1,
+      "import_rejected": 0,
+      "mutation": 0,
+      "network": 0,
+      "other": 0,
+      "other_open": 0,
+      "post_maps_open": 1,
+      "process": 0,
+      "write": 0
+    },
+    "audit_hook_active": true,
+    "callback_invocations": 0,
+    "candidate_content_reads": 0,
+    "candidate_content_sha256": "0ab94b7c54af74d78b85b00bea6527e4dffc56304625995b0016429defe8edba",
+    "completed_utc": "2026-09-07T07:03:14.401772+00:00",
+    "engine_instances": 0,
+    "event_sha256": "1f44854434c4d88a28f07834aff0629e5de462ee8cbbb3a6a6d3cd9245e56cf1",
+    "import_event_search_presence": [
+      {
+        "kind": "discovery",
+        "search_fields": [
+          "present",
+          "present",
+          "present"
+        ]
+      },
+      {
+        "kind": "extension",
+        "search_fields": [
+          "absent",
+          "absent",
+          "absent"
+        ]
+      }
+    ],
+    "import_restored": true,
+    "maps": {
+      "baseline": 48,
+      "candidate": [
+        {
+          "device_major": 253,
+          "device_minor": 1,
+          "file_offset": 0,
+          "inode": 8678,
+          "permissions": "r-xp"
+        },
+        {
+          "device_major": 253,
+          "device_minor": 1,
+          "file_offset": 16384,
+          "inode": 8678,
+          "permissions": "---p"
+        },
+        {
+          "device_major": 253,
+          "device_minor": 1,
+          "file_offset": 61440,
+          "inode": 8678,
+          "permissions": "r--p"
+        },
+        {
+          "device_major": 253,
+          "device_minor": 1,
+          "file_offset": 65536,
+          "inode": 8678,
+          "permissions": "rw-p"
+        }
+      ],
+      "post": 52
+    },
+    "module_identity": {
+      "exact_module_type": true,
+      "file_exact": true,
+      "name_exact": true,
+      "package_empty": true,
+      "sys_modules_same_object": true,
+      "type_name": "module",
+      "unique_sys_modules_object": true
+    },
+    "operation_counts": {
+      "baseline_maps_read": 1,
+      "post_lstat": 2,
+      "post_maps_read": 1,
+      "pre_lstat": 2
+    },
+    "package_execution": false,
+    "private_reads": 0,
+    "queue_api_calls": 0,
+    "refusal_class": null,
+    "schema_version": 1,
+    "spec_identity": {
+      "exact_loader_type": true,
+      "exact_spec_type": true,
+      "loader_shared": true,
+      "name_exact": true,
+      "origin_exact": true,
+      "unique_spec": true
+    },
+    "stage_outcomes": [
+      {
+        "outcome": "passed",
+        "stage": "lexical"
+      },
+      {
+        "outcome": "passed",
+        "stage": "pre-lstat"
+      },
+      {
+        "outcome": "passed",
+        "stage": "baseline-maps"
+      },
+      {
+        "outcome": "passed",
+        "stage": "import-wrapper"
+      },
+      {
+        "outcome": "passed",
+        "stage": "import-restoration"
+      },
+      {
+        "outcome": "passed",
+        "stage": "import-audit"
+      },
+      {
+        "outcome": "passed",
+        "stage": "module-object"
+      },
+      {
+        "outcome": "passed",
+        "stage": "module-spec"
+      },
+      {
+        "outcome": "passed",
+        "stage": "post-lstat"
+      },
+      {
+        "outcome": "passed",
+        "stage": "post-maps"
+      },
+      {
+        "outcome": "passed",
+        "stage": "mapping-delta"
+      },
+      {
+        "outcome": "passed",
+        "stage": "final-counters"
+      }
+    ],
+    "started_utc": "2026-09-07T07:03:14.400931+00:00",
+    "status": "complete-positive",
+    "terminal_stage": null,
+    "wrapper": {
+      "calls": 1,
+      "delegations": 1,
+      "rejections": 0
+    }
+  }
+}

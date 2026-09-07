@@ -9,7 +9,7 @@
     "source_dependencies_producer": "../2026-09-06-mt6797-connectivity-producer-source-attribution"
   },
   "controlling_contract": {
-    "WORK_ITEM.md": "c7764039aa9857948445a127847990f24a10ece394d64883882036a0b7402ae2",
+    "WORK_ITEM.md": "7502bca6a538a1ca4d7cb9a82799091337c852ea16eb63f9dec62dc3b5b80e7c",
     "AMENDMENT.md": "36e8a93d9946f9f20593cf92a64cb7497ffff39b2dcb8bd5d97a937710e15409",
     "AMENDMENT-2.md": "e4bfa608ed6155cb9ad7b83add0c75ad64022ba99324ab4e2d3e18869fb1c8a1",
     "AMENDMENT-3.md": "faffaa9f4960ad9251458bd4551f565ff58e7abb9cdcf01703c3a8f54c8a852b",
@@ -79,7 +79,10 @@
     "EXTENSION-IDENTITY-DIAGNOSTIC-2.md": "ecb6ca38566f53bfc43f296e72734ad346c3cb4467506d3508f19b91949f951c",
     "extension-identity-diagnostic-v3.json": "ed0070168a86e91da9c84c2d03d1617f21e2f333919bb32495419a6b77d2db81",
     "extension-identity-diagnostic-result-v3.json": "eac9d08935b88bb565d4bab87ed1d02699a79ac0f10bcc9198068a531ff66508",
-    "EXTENSION-IDENTITY-DIAGNOSTIC-3.md": "5d03c17567c17bad9a740214ff5b7aa6f59ee7d9da652f5a1e265d853e5c8eef"
+    "EXTENSION-IDENTITY-DIAGNOSTIC-3.md": "5d03c17567c17bad9a740214ff5b7aa6f59ee7d9da652f5a1e265d853e5c8eef",
+    "extension-load-diagnostic-v1.json": "c43ec9e150c8f92d90ceef7907dbf9aa5a8dd52b9b75623ef1f1a933bcb4ea90",
+    "extension-load-diagnostic-result-v1.json": "155ddb7da5d3872c69393723a342a456a268fd6e819b51357543e20976534a21",
+    "EXTENSION-LOAD-DIAGNOSTIC.md": "ad8a06a811cc4af51923a7c93feb3b02e4c380520b2085a5b18ac893914ec2dd"
   },
   "accepted_symbol_provenance": {
     "inputs.json": "c5dffb7323e7eb25626704d3310565b1ca9252e0dd9f349eff66ed04fc3d4e31",

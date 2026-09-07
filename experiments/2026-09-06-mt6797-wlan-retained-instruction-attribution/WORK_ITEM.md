@@ -219,6 +219,9 @@
 - **Efficiency loop:** if independently accepted, append one sanitized item to
   the active workflow cohort with actual routes/timestamps, first-review result,
   rework/escalation and measured credits or explicit unavailability.
-- **State:** frozen for one offline Amendment 23 exact standalone `_queue`
-  load-route diagnostic; no package execution, decoder engine, private content
-  or device action.
+- **State:** Amendment 23's exact standalone `_queue` load-route result is
+  independently accepted and closed after all twelve stages passed. The
+  diagnostic budget is consumed and RE-VM custody is released. See
+  [EXTENSION-LOAD-DIAGNOSTIC.md](EXTENSION-LOAD-DIAGNOSTIC.md); no package or
+  bootstrap admission, queue API call, decoder engine, private content or
+  device action is admitted.
