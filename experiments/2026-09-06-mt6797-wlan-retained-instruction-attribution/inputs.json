@@ -9,7 +9,7 @@
     "source_dependencies_producer": "../2026-09-06-mt6797-connectivity-producer-source-attribution"
   },
   "controlling_contract": {
-    "WORK_ITEM.md": "5f06278c6deae68422516d6fb839d6b0f9aac8d4d7db4d755e257878af2134bc",
+    "WORK_ITEM.md": "2d34fd5edd94adce1fad8ec550c2f7ead0de61403d873ecb5ab47dc07f638fe5",
     "AMENDMENT.md": "36e8a93d9946f9f20593cf92a64cb7497ffff39b2dcb8bd5d97a937710e15409",
     "AMENDMENT-2.md": "e4bfa608ed6155cb9ad7b83add0c75ad64022ba99324ab4e2d3e18869fb1c8a1",
     "AMENDMENT-3.md": "faffaa9f4960ad9251458bd4551f565ff58e7abb9cdcf01703c3a8f54c8a852b",
@@ -21,6 +21,7 @@
     "AMENDMENT-9.md": "5e8566f86951de42ef9a540f000ae091f6ff64c5a30dee357f114b6b6544f033",
     "AMENDMENT-10.md": "5fba24822a0a7d5e6ca8b78b491c40656e94d40ddfc1205c64e62b525420c5be",
     "AMENDMENT-11.md": "2f66e85c0b2d2c64cf412db075f7ed10ba2402af0a5fcbd4a2032b85367419a3",
+    "AMENDMENT-12.md": "6c3953ca5396dfd6b5a95692709212e4c8caa03f125ad5d5b789b9f173e5c897",
     "PREFLIGHT.md": "420fa321f7897d6fead65c5e7b2d6e4d53472f213218e55bf867d88e058008bf",
     "bootstrap-refused.json": "53adefdb21a8bc966930b14cedb0683f7ae0bb11c1184c2d5fc94cbf011aed42",
     "VALIDATION-REFUSED.md": "e9b2b9a0b946e983679068f4dcd7536715b05357a127b9f10073fd67311fba36",
@@ -42,7 +43,10 @@
     "MAPPING-DIAGNOSTIC-2.md": "49f05809234149732b8a9835415ef3478befb93ac47b4e33cabf20eafdf612f6",
     "mapping-diagnostic-v3.json": "d90eda1a2304668f237389f56345837dba3523db406c1827217f0fcaccbffaf9",
     "mapping-diagnostic-result-v3.json": "d7603f480a4bec276c6ecc123de63fa3674f2c08ef8ce9073c87c588b8b1174e",
-    "MAPPING-DIAGNOSTIC-3.md": "39e89cbe26b4b9e8b8ed97f2c1c70427780360cf4215a5b28d64788db20c891c"
+    "MAPPING-DIAGNOSTIC-3.md": "39e89cbe26b4b9e8b8ed97f2c1c70427780360cf4215a5b28d64788db20c891c",
+    "mapping-diagnostic-v4.json": "1091f345b4713bd15aecd668fde85df5c82db000bbd4c636ba8b851d03e78bd7",
+    "mapping-diagnostic-result-v4.json": "9ded854da37d87d2c4bdf8a3f4850b47d3dfac4e0d3a1125d90b3f0eaf482a8a",
+    "MAPPING-DIAGNOSTIC-4.md": "cf18d2190c1f2ace1171ecc27f1969e94878850439cb5ca51ef3f6623e771eb7"
   },
   "accepted_symbol_provenance": {
     "inputs.json": "c5dffb7323e7eb25626704d3310565b1ca9252e0dd9f349eff66ed04fc3d4e31",

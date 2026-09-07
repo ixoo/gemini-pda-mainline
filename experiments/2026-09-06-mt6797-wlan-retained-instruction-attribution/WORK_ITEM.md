@@ -33,7 +33,8 @@
 - **Owned scope:** create only this experiment's `README.md`, `inputs.json`,
   `AMENDMENT.md`, `AMENDMENT-2.md`, `AMENDMENT-3.md`, `AMENDMENT-4.md`,
   `AMENDMENT-5.md`, `AMENDMENT-6.md`, `AMENDMENT-7.md`, `AMENDMENT-8.md`,
-  `AMENDMENT-9.md`, `AMENDMENT-10.md`, `AMENDMENT-11.md`, `PREFLIGHT.md`,
+  `AMENDMENT-9.md`, `AMENDMENT-10.md`, `AMENDMENT-11.md`, `AMENDMENT-12.md`,
+  `PREFLIGHT.md`,
   `bootstrap-refused.json`, `VALIDATION-REFUSED.md`, `bootstrap-v2.json`,
   the bootstrap-v2 refusal in `VALIDATION.md`, `bootstrap-v3.json`, the
   bootstrap-v3 refusal in `VALIDATION-FINAL.md`, `bootstrap-v4.json`, optional
@@ -45,8 +46,8 @@
   `MAPPING-DIAGNOSTIC-2.md`, `mapping-diagnostic-v3.json`,
   `mapping-diagnostic-result-v3.json`, `MAPPING-DIAGNOSTIC-3.md`,
   `mapping-diagnostic-v4.json`, `mapping-diagnostic-result-v4.json`,
-  `MAPPING-DIAGNOSTIC-4.md`, a future replacement bootstrap named by a reviewed
-  mapping-delta decision, `method.json`, `analysis.json`, `edges.json`,
+  `MAPPING-DIAGNOSTIC-4.md`, `bootstrap-v7.json`, optional
+  `VALIDATION-V7-REFUSED.md`, `method.json`, `analysis.json`, `edges.json`,
   `FREEZE.md`, an assert-free normal/optimized verifier, final `README.md` and
   `VALIDATION-RESULT.md`.
   Raw outputs stay in a fresh
@@ -61,7 +62,7 @@
   origin, symlink, absent digest, dependency outside the installed environment
   or source/tool drift. Freeze the complete independently written collector,
   ELF mapper, raw AArch64 branch decoder and control-flow traversal source in
-  `bootstrap-v6.json` and `method.json`, with SHA-256 values, before the
+  `bootstrap-v7.json` and `method.json`, with SHA-256 values, before the
   chronology points required by [AMENDMENT.md](AMENDMENT.md) and
   [AMENDMENT-2.md](AMENDMENT-2.md), as superseded for package inventory by
   [AMENDMENT-3.md](AMENDMENT-3.md), as supplemented for pyelftools by
@@ -73,8 +74,9 @@
   [AMENDMENT-9.md](AMENDMENT-9.md) constrains the diagnostic-only mapping-delta
   chronology, with the nonreentrant observer refinement in
   [AMENDMENT-10.md](AMENDMENT-10.md) and terminal first-delta rule in
-  [AMENDMENT-11.md](AMENDMENT-11.md). Syntax-checking the frozen scripts is
-  permitted before content; do not run them against another binary.
+  [AMENDMENT-11.md](AMENDMENT-11.md). The exact standard-library extension is
+  constrained by [AMENDMENT-12.md](AMENDMENT-12.md). Syntax-checking the frozen
+  scripts is permitted before content; do not run them against another binary.
 - **Execution guard:** install a child-process audit hook before private reads.
   Permit read-only opens of the exact retained ELF and exact frozen installed
   tool files only. Reject filesystem writes, socket/DNS, subprocess/shell,
@@ -158,9 +160,8 @@
   flow; boundary fallthrough; unproved reachability; candidate-to-call
   promotion; omitted candidates; cap overflow; prior-output dependency;
   private bytes/paths; mutable expected digests; or runtime/resource/firmware/
-  radio authority. After a future reviewed mapping-delta decision, freeze its
-  named replacement bootstrap, then `method.json`, then the result JSON files,
-  before
+  radio authority. Freeze `bootstrap-v7.json`, then `method.json`, then the
+  result JSON files, before
   writing the verifier. Normal and `-O` modes must use active checks and
   mutations covering identity, chronology, mapping, byte hashes, tool method,
   decoder agreement, traversal, each edge/candidate, bounds and authority.
@@ -185,5 +186,4 @@
 - **Efficiency loop:** if independently accepted, append one sanitized item to
   the active workflow cohort with actual routes/timestamps, first-review result,
   rework/escalation and measured credits or explicit unavailability.
-- **State:** frozen for one offline first-delta terminal diagnostic dispatch;
-  no decoder-engine, private-content or device action.
+- **State:** frozen for one offline specialist dispatch; no device action.

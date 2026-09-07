@@ -1,0 +1,122 @@
+{
+  "schema_version": 4,
+  "dispatch_commit": "566d56d537acb218d34ffa88a039d9d2129426e6",
+  "diagnostic_file_sha256": "1091f345b4713bd15aecd668fde85df5c82db000bbd4c636ba8b851d03e78bd7",
+  "source_sha256": "c11ee59ac7d402d1ca0c3382ac272410bca85803493702484110bfe00794d0ca",
+  "execution_count": 1,
+  "receipt": {
+    "audit_counters": {
+      "cache_write_attempts": 0,
+      "native_requests": 1,
+      "network_attempts": 0,
+      "optional_requests": 0,
+      "process_attempts": 0,
+      "write_attempts": 0
+    },
+    "callback_invocations": 0,
+    "completed_modules": 27,
+    "completed_utc": "2026-09-07T04:00:26.184507+00:00",
+    "engine_instances": 0,
+    "entered_modules": 28,
+    "first_delta": {
+      "changes": [
+        {
+          "after": {
+            "identity": {
+              "mode": 420,
+              "mtime_ns": 1781873160000000000,
+              "path": "/usr/lib/python3.12/lib-dynload/resource.cpython-312-aarch64-linux-gnu.so",
+              "sha256": "2e1deb71ff45f48040851b25eb46d106baacbcd1804641105dce48f8ed278e44",
+              "size": 68288
+            },
+            "rows": [
+              {
+                "file_offset": "0x0",
+                "permissions": "r-xp"
+              },
+              {
+                "file_offset": "0x3000",
+                "permissions": "---p"
+              },
+              {
+                "file_offset": "0xf000",
+                "permissions": "r--p"
+              },
+              {
+                "file_offset": "0x10000",
+                "permissions": "rw-p"
+              }
+            ]
+          },
+          "before": null,
+          "class": "added"
+        }
+      ],
+      "event": {
+        "caller": "elftools.elf.elffile",
+        "fromlist": [],
+        "index": 16,
+        "level": 0,
+        "line": 16,
+        "parent_event": 1,
+        "requested": "resource",
+        "state": "completed"
+      },
+      "observation": "after-delegation",
+      "static_source_join": {
+        "column": 4,
+        "end_line": 16,
+        "line": 16,
+        "source": {
+          "mode": 420,
+          "mtime_ns": 1694043862000000000,
+          "path": "/usr/lib/python3/dist-packages/elftools/elf/elffile.py",
+          "sha256": "457c93c8be327cbce2a86869aa40d9067f12f7c33052730f7e1cbcccb99b9b54",
+          "size": 37150
+        },
+        "statement_kind": "Import",
+        "status": "unique"
+      }
+    },
+    "first_delta_sha256": "43a3612d6b1b5272528f0d8aa25d29ff8ed50f782f4d4ffa7e3ea1799e54fd67",
+    "import_event_count": 16,
+    "mapping_exception_granted": false,
+    "observer_import_audit_events": 0,
+    "observer_intervals": 31,
+    "private_reads": 0,
+    "propagation": {
+      "active-wrapper-unwind": true,
+      "first-observer": true,
+      "loader-after-exec": false,
+      "main-after-import": false,
+      "observer-entry": false,
+      "wrapper-after-delegation": false,
+      "wrapper-entry": false
+    },
+    "restorations": {
+      "finder": true,
+      "import": true,
+      "native": true,
+      "path": true
+    },
+    "started_utc": "2026-09-07T04:00:24.844487+00:00",
+    "status": "first-delta-diagnostic-complete-no-admission",
+    "terminal_latch": true,
+    "warm_proof": {
+      "baseline_module_count": 194,
+      "identical_file_mapping_dictionary": true,
+      "identical_full_pseudo_rows": true,
+      "module_objects_unchanged": true,
+      "native_and_prohibited_counters_unchanged": true,
+      "observer_import_audit_events": 0
+    }
+  },
+  "scope": {
+    "first_observation_not_causation": true,
+    "package_preflight_complete": false,
+    "mapping_admission": false,
+    "private_analysis_consumed": false,
+    "device_actions": 0,
+    "builds": 0
+  }
+}
