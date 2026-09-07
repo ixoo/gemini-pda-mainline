@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 3,
-  "next_accepted_sequence": 4,
-  "next_considered_sequence": 5,
+  "accepted_count": 5,
+  "next_accepted_sequence": 6,
+  "next_considered_sequence": 7,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -130,7 +130,7 @@
       "work_type": "reasoning",
       "risk_class": "hard-uncertainty",
       "acceptance_contract": "experiments/2026-09-07-mt6797-display-upstream-architecture/WORK_ITEM.md",
-      "review_comparison_group": "mt6797-display-current-upstream-architecture",
+      "review_comparison_group": "mt6797-current-upstream-architecture",
       "parent": "2af9532b3b1c1850cfa071a0f279154127a04db1",
       "owner_route": {
         "role": "gemini_reasoner",
@@ -160,8 +160,123 @@
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-07-mt6797-display-upstream-architecture/results/source-review.json"
       }
+    },
+    {
+      "considered_sequence": 5,
+      "accepted_sequence": 4,
+      "candidate_id": "mt6797-audio-upstream-architecture",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "reasoning",
+      "risk_class": "hard-uncertainty",
+      "acceptance_contract": "experiments/2026-09-07-mt6797-audio-upstream-architecture/WORK_ITEM.md",
+      "review_comparison_group": "mt6797-current-upstream-architecture",
+      "parent": "2f6a56e058c80dac1a53381fedab748b3a0048a6",
+      "owner_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "review_route": {
+        "role": "gemini_specialist",
+        "model": "gpt-6-astra",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-07T19:49:50Z",
+        "review_ready_at": "2026-09-07T20:05:15Z",
+        "accepted_at": "2026-09-07T20:15:58Z",
+        "timing_source": "observed UTC contract publication, first source-review handoff, required provenance repair and specialist acceptance timestamps",
+        "elapsed_minutes": 26.1333333,
+        "review_rework_minutes": 10.7166667,
+        "first_review_accepted": false,
+        "rework_cycles": 1,
+        "escalated": false,
+        "escalation_reason": null,
+        "escalation_packet": null,
+        "review_failure_class": null,
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-07-mt6797-audio-upstream-architecture/results/source-review.json"
+      }
+    },
+    {
+      "considered_sequence": 6,
+      "accepted_sequence": 5,
+      "candidate_id": "mt6797-cellular-upstream-architecture",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "reasoning",
+      "risk_class": "hard-uncertainty",
+      "acceptance_contract": "experiments/2026-09-07-mt6797-cellular-upstream-architecture/WORK_ITEM.md",
+      "review_comparison_group": "mt6797-current-upstream-architecture",
+      "parent": "2f6a56e058c80dac1a53381fedab748b3a0048a6",
+      "owner_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "review_route": {
+        "role": "gemini_specialist",
+        "model": "gpt-6-astra",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-07T19:49:50Z",
+        "review_ready_at": "2026-09-07T20:11:22Z",
+        "accepted_at": "2026-09-07T20:15:58Z",
+        "timing_source": "observed UTC contract publication, first source-review handoff, required discriminator repair and specialist acceptance timestamps",
+        "elapsed_minutes": 26.1333333,
+        "review_rework_minutes": 4.6,
+        "first_review_accepted": false,
+        "rework_cycles": 1,
+        "escalated": false,
+        "escalation_reason": null,
+        "escalation_packet": null,
+        "review_failure_class": null,
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-07-mt6797-cellular-upstream-architecture/results/source-review.json"
+      }
     }
   ],
-  "checkpoints": [],
+  "checkpoints": [
+    {
+      "id": "pilot-04-item-five-interval",
+      "after_accepted_sequence": 5,
+      "after_considered_sequence": 6,
+      "trigger": "interval",
+      "trigger_item_ids": [
+        "mt6797-cellular-upstream-architecture"
+      ],
+      "comparable_item_ids": [
+        "mt6797-display-upstream-architecture",
+        "mt6797-audio-upstream-architecture",
+        "mt6797-cellular-upstream-architecture"
+      ],
+      "conclusion": "no-change",
+      "evidence": "experiments/2026-09-07-agent-routing-pilot-04/README.md"
+    },
+    {
+      "id": "pilot-04-item-five-first-review-signal",
+      "after_accepted_sequence": 5,
+      "after_considered_sequence": 6,
+      "trigger": "early-signal",
+      "trigger_item_ids": [
+        "mt6797-display-upstream-architecture",
+        "mt6797-audio-upstream-architecture",
+        "mt6797-cellular-upstream-architecture"
+      ],
+      "comparable_item_ids": [
+        "mt6797-display-upstream-architecture",
+        "mt6797-audio-upstream-architecture",
+        "mt6797-cellular-upstream-architecture"
+      ],
+      "conclusion": "no-change",
+      "evidence": "experiments/2026-09-07-agent-routing-pilot-04/README.md"
+    }
+  ],
   "settings_decisions": []
 }

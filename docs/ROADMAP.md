@@ -100,6 +100,26 @@ the local one-handle evidence does not resolve upstream's mandatory `main` +
 of consumer and parent clock identity, rate-source/gate ownership and MM-domain
 lifetime; missing attribution preserves the current two-clock contract.
 
+The current [audio architecture refresh](../experiments/2026-09-07-mt6797-audio-upstream-architecture/README.md)
+identifies one smaller independent upstream topic: adapt local patch 0064 into
+a true MT6797 AFE text-to-YAML conversion, deleting the superseded text binding
+and preserving all eight ordered clock consumers. Only after that schema is
+accepted should patch 0045 be adapted as a disabled SoC-node follow-up with the
+current power-header include and unit-address ordering. Do not add or enable an
+MT6351 codec or machine card: the project's older package supplied the missing
+MFD parent/cell through local patches 0008/0010, while official current upstream
+does not, and Gemini's analog routes remain unestablished.
+
+The current [cellular architecture refresh](../experiments/2026-09-07-mt6797-cellular-upstream-architecture/README.md)
+confirms that generic WWAN ports and netdevs are reusable only above a future
+proved transport. PCIe `t7xx`, RPMsg-WWAN and the current MediaTek SCP remoteproc
+driver do not match MT6797's APB CLDMA/CCIF and shared-memory ownership. Admit no
+driver, binding or shared framing helper yet. The next cellular evidence item is
+one source-pinned MD1 reservation/protection handoff audit joining the selected
+boot configuration and active image/shared regions to AP/modem views,
+remap/EMI-MPU authority and lifetime release. Missing attribution preserves the
+stop; queue/DMA, framing/channel and full boot/crash teardown remain later gates.
+
 Wi-Fi is a first-class usable-system requirement and an active workstream,
 not deferred peripheral polish. Its owner defines the shared connectivity
 power/firmware interface with the integration owner; Bluetooth and GNSS must

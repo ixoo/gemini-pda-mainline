@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "review_ready_utc": "2026-09-07T20:12:34Z",
+  "accepted_utc": "2026-09-07T20:15:58Z",
+  "first_review_accepted": false,
+  "rework_cycles": 1,
+  "frozen_parent": "2f6a56e058c80dac1a53381fedab748b3a0048a6",
+  "verdict": "binding-conversion-first",
+  "recommendation": {
+    "first_topic": "Adapt patch 0064 into a pure text-to-dt-schema conversion for the already-upstream MT6797 AFE driver. Delete Documentation/devicetree/bindings/sound/mt6797-afe-pcm.txt in the same change, preserve all eight ordered clocks, and make no DTS or driver change.",
+    "following_topic": "Adapt patch 0045 only after the schema topic: add the missing mt6797-power.h include, place the disabled AFE node in unit-address order, and validate it against the accepted schema. Do not add or enable a codec or machine card.",
+    "runtime_support": false
+  },
+  "local_inputs": [
+    {
+      "path": "patches/v7.1.3/0008-dt-bindings-mfd-mediatek-add-MT6351-PMIC.patch",
+      "sha256": "6ebf2fd36968b23b1b8499f3881228114f13c50885b6aebfb3ff481a03286757",
+      "use": "adds MT6351 parent and child compatibles, including mediatek,mt6351-sound, to the locally patched v7.1.3 binding"
+    },
+    {
+      "path": "patches/v7.1.3/0010-mfd-mt6397-add-MT6351-core-and-interrupt-support.patch",
+      "sha256": "e6e6d7988745af64544b8fc695ebb2eb49620d575799ea65cb7c430d87069ae1",
+      "use": "adds the MT6351 parent match, core data and mt6351_devs table with its sound cell to the locally patched v7.1.3 package"
+    },
+    {
+      "path": "patches/v7.1.3/0045-arm64-dts-mediatek-mt6797-add-disabled-audio-afe.patch",
+      "sha256": "a07bcf53e3c1fcddfed58ef6ec74e59b664acf8916e6c2c5bcbef027bc29128e",
+      "disposition": "adapt-follow-up"
+    },
+    {
+      "path": "patches/v7.1.3/0064-dt-bindings-sound-mediatek-add-mt6797-afe.yaml.patch",
+      "sha256": "b5fc79ee89672106bcec8014f3fc973a4553671e95eae4537e99d0ce274d004d",
+      "disposition": "adapt-first-topic"
+    },
+    {
+      "path": "experiments/2026-07-12-audio-afe-recovery/README.md",
+      "sha256": "05ac5115903ea73105bcefe2064b0df4d32f6d0c325b89c082cf85197a07ad45",
+      "use": "frozen sanitized project record only; linked private evidence was not opened"
+    }
+  ],
+  "current_ref": {
+    "repository": "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
+    "commit": "28924df2a08f440c73991b83028032c901de2ae4",
+    "content_base": "https://raw.githubusercontent.com/torvalds/linux/28924df2a08f440c73991b83028032c901de2ae4/"
+  },
+  "official_v7_1_3": {
+    "repository": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git",
+    "tag": "v7.1.3",
+    "commit": "199c9959d3a9b53f346c221757fc7ac507fbac50",
+    "content_base": "https://raw.githubusercontent.com/gregkh/linux/199c9959d3a9b53f346c221757fc7ac507fbac50/",
+    "files": [
+      [
+        "Documentation/devicetree/bindings/mfd/mediatek,mt6397.yaml",
+        "a61b17c83146db12db3b5ff22cdb10779b65fa764042fc68321ad9bdba1bf2cc"
+      ],
+      [
+        "drivers/mfd/mt6397-core.c",
+        "3642c30bc125001b3e2ee3563900567e927dc04d963ef0b7f8e1d79a352c0ff6"
+      ]
+    ],
+    "finding": "The official stable v7.1.3 binding and MFD core omit MT6351. Local patches 0008 and 0010 introduce that support in the project package."
+  },
+  "provenance_reconciliation": {
+    "july_statement_scope": "The July audio experiment's mt6351_devs statement applies to its locally patched v7.1.3 package and remains valid historical evidence for that package.",
+    "local_additions": "Patch 0008 adds the MT6351 binding compatibles. Patch 0010 adds the MT6351 parent match, core data and mt6351_devs table, including the mt6351-sound cell.",
+    "upstream_comparison": "The inspected official stable v7.1.3 binding/core and pinned current-mainline binding/core omit those additions.",
+    "interpretation": "The current-mainline omission is provenance, not evidence of an upstream regression or removal."
+  },
+  "current_files": [
+    ["MAINTAINERS", "1b6bd8418b8bbdcbce595c4648c10afaf23370e3de243a282dbc992798de3a84"],
+    ["Documentation/devicetree/bindings/sound/mt6797-afe-pcm.txt", "3ee4a94768158f942bd1faadc3a260cafb252f9a7a8d1010951df9614bcef062"],
+    ["Documentation/devicetree/bindings/sound/mt6797-mt6351.txt", "2a4a8fcb3449d5701119ad203ffccf414b48b1a12d4fc05ab50aac06586719ad"],
+    ["Documentation/devicetree/bindings/sound/mediatek,mt6351-sound.yaml", "6753412958087551ba5ff5006da29014ac50809f3760b06a8301b8a894544c05"],
+    ["Documentation/devicetree/bindings/mfd/mediatek,mt6397.yaml", "291538ab8f66ca32eba6c1d8d1864b5e6146b57f53db32f7213b0c4f8ae0e9ca"],
+    ["Documentation/devicetree/bindings/sound/mediatek,mt8173-afe-pcm.yaml", "1e9bd48c4935da6ad8de991bc6d8fd65ee4c7394b7a402edb0afe13de6332931"],
+    ["Documentation/devicetree/bindings/sound/mediatek,mt8365-afe.yaml", "f146f213974f403106fba2c46f489f71f7cec0dfad8410be6190dfbd9739c14f"],
+    ["Documentation/devicetree/bindings/sound/sound-card-common.yaml", "2a9454e2fc48213149bc3d3f6a962c65de9d4123f28d1afe05f840381046163c"],
+    ["sound/soc/mediatek/Kconfig", "72aeed86a53a9bd06a6723d835439257495800678f3fc500eed4a0f981781778"],
+    ["sound/soc/mediatek/mt6797/mt6797-afe-pcm.c", "ed52674d150c7d49bcaace00b6742390ba37de89a96a1720bf2df62674169f84"],
+    ["sound/soc/mediatek/mt6797/mt6797-afe-clk.c", "0d1ec1ae44312c6eab43d7c0835307f6f3e9d622abe9ab79e1bb074b775438a0"],
+    ["sound/soc/mediatek/mt6797/mt6797-dai-adda.c", "1f8a3db8ef1bef3eb92f54a5dedae56ec635e855034f163a6c771e2bc01ea5dd"],
+    ["sound/soc/mediatek/mt6797/mt6797-mt6351.c", "61e3007631fdc0904d6725718e7afe71932de5bc697bdbc71583d8083f9bd179"],
+    ["sound/soc/mediatek/mt6797/mt6797-reg.h", "e726058dfdc8acc7e6384ef0f70a6ee8e39aae967cbb618e12390005f075b016"],
+    ["sound/soc/codecs/mt6351.c", "652bd3fafdd01c20191cb870398e73ee0d6c01f5d70df84701ac13e2e3c72822"],
+    ["drivers/mfd/mt6397-core.c", "957c88e5f6979f674002ef48471a817cb034d83e6ab38f912916bf678d768bb9"],
+    ["drivers/clk/mediatek/clk-mt6797.c", "eaad6324621679371f33bbb76e10bcb0d3374b1f2dbbd837323b3f9e8fee1534"],
+    ["drivers/pmdomain/mediatek/mtk-scpsys.c", "9ce2b2c95a38bc4c7b801aff9b7c26da2dc8ec2e3fd34199adaedf1db3007226"],
+    ["drivers/pmdomain/mediatek/mtk-pm-domains.c", "7c270b5541008e80eba016f0da0aea109af5e824d0d85549843c8810853b415c"],
+    ["include/dt-bindings/power/mt6797-power.h", "201e215b5f058fbb043c6f3503e8ab42c8caab0ae41a7b634024f88cef4c4034"],
+    ["arch/arm64/boot/dts/mediatek/mt6797.dtsi", "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83"]
+  ],
+  "history_inputs": [
+    {
+      "commit": "22d9f80904b4510296c133db15f8d3291292023b",
+      "url": "https://github.com/torvalds/linux/commit/22d9f80904b4510296c133db15f8d3291292023b.patch",
+      "sha256": "c8e75dac24b664a3d7c7ed0880aa5cd87f325658e34319f9271eb3b958117323",
+      "finding": "Kai Chieh Chuang introduced both MT6797 audio text bindings in 2018."
+    },
+    {
+      "commit": "bb90e0c91d375ec5db8a4f8cd2555900aea0725f",
+      "url": "https://github.com/torvalds/linux/commit/bb90e0c91d375ec5db8a4f8cd2555900aea0725f.patch",
+      "sha256": "e415624c95db9bc474da810aeb9209d2ade0be730ce4c4807b478893b1031ba5",
+      "finding": "The accepted MT8173 AFE conversion created the vendor-prefixed YAML file and deleted the legacy text file in the same patch."
+    }
+  ],
+  "negative_lookups": [
+    {
+      "path": "sound/soc/mediatek/mt6797/Kconfig",
+      "status": 404,
+      "meaning": "MT6797 selections live in the current central sound/soc/mediatek/Kconfig."
+    },
+    {
+      "path": "drivers/pmdomain/mediatek/mt6797-pm-domains.h",
+      "status": 404,
+      "meaning": "Current MT6797 AUDIO domain data remains in the legacy mtk-scpsys.c implementation."
+    },
+    {
+      "query": "bounded exact-string public search for mt6797-afe-pcm YAML and mediatek,mt6797-audio",
+      "result": "no mailing-list result located",
+      "meaning": "No overlap was found; this is not proof of universal absence."
+    }
+  ],
+  "current_findings": {
+    "afe_driver": "present and matches mediatek,mt6797-audio",
+    "afe_binding": "legacy text only",
+    "clock_contract": "seven clocks acquired by mt6797-afe-clk.c plus mtkaif_26m_clk acquired by the ADDA DAPM clock-supply widget",
+    "soc_dependencies": "all eight clock providers, the MT6797 AUDIO power-domain ID and its scpsys implementation are present",
+    "soc_dts_node": "absent",
+    "codec_driver": "present",
+    "machine_driver": "present and requires mediatek,platform plus mediatek,audio-codec phandles",
+    "mt6351_mfd_parent": "absent from official v7.1.3 and the inspected current MFD core and binding; present in the July experiment's locally patched v7.1.3 package through local patches 0008 and 0010, so current absence is not an upstream regression or removal",
+    "board_card_and_routes": "absent"
+  },
+  "authorship": {
+    "local_patch_from": "Julien Etienne <julien.etienne@gmail.com>",
+    "local_signed_off_by": "Julien Etienne <julien.etienne@gmail.com>",
+    "certification_state": "not independently certified by this review",
+    "submission_rule": "The adapted patches may retain that authorship and DCO only if Julien Etienne actually authored the adapted work and can truthfully make the certification; otherwise use the actual author and no invented sign-off. Credit the 2018 binding origin in the commit message."
+  },
+  "upstream_routes": {
+    "binding": "ASoC tree through Liam Girdwood and Mark Brown, linux-sound, with Devicetree binding review",
+    "soc_dts": "ARM/MediaTek SoC tree through Matthias Brugger and AngeloGioacchino Del Regno, linux-arm-kernel and linux-mediatek, after binding acceptance",
+    "codec_and_machine": "ASoC only after MT6351 MFD instantiation and board routing are independently ready"
+  },
+  "effects": {
+    "files_created": ["README.md", "results/source-review.json"],
+    "implementation": false,
+    "build": false,
+    "device_or_private_access": false,
+    "shared_files_changed": false,
+    "upstream_contact": false,
+    "hardware_support_claim": false
+  }
+}

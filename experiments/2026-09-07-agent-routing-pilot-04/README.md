@@ -73,7 +73,51 @@ inherited or MM-domain dependencies. One documentation repair made ancestry,
 rate-source, gate and domain attribution mandatory and preserves the two-clock
 contract on an inconclusive result.
 
-This is the first item in its display-architecture comparison group. Three
-accepted items remain heterogeneous and no two comparable items have
+This is the first item in the current-upstream architecture comparison group.
+Three accepted items remain heterogeneous and no two comparable items have
 consecutively missed first review, so no checkpoint or settings change fires;
 `baseline-01` remains effective and credits are unavailable.
+
+## Accepted item four
+
+The fourth accepted offline item refreshed the MT6797 AFE, codec, machine-card
+and binding path against current official Linux. Sol selected local patch 0064
+as a useful first topic only after adapting it into a true text-to-YAML binding
+conversion that deletes the legacy text file and preserves eight ordered clock
+consumers. Patch 0045 becomes a later disabled-DTS follow-up; codec/card
+enablement remains excluded.
+
+Astra rejected the first packet's unexplained conflict with the July
+`mt6351_devs` record. One documentation repair pinned local patches 0008/0010
+and established that the July package had added the MT6351 parent, cell and
+binding to its locally patched v7.1.3 base; official v7.1.3 and current upstream
+both omit them. The accepted result treats this as provenance, not an upstream
+removal, and does not change the selected audio topic.
+
+## Accepted item five and checkpoint
+
+The fifth accepted offline item compared the MT6797 CCCI/CLDMA/CCIF boundary
+with current WWAN, `t7xx`, RPMsg-WWAN and MediaTek SCP remoteproc sources. Sol
+correctly retained generic WWAN ports/netdevs only above a future proved lower
+transport: PCIe ownership, descriptor shape, endpoint identity and supported
+SCP compatibles do not match the frozen MT6797 platform evidence. The 16-byte
+CCCI structural resemblance is not treated as compatibility.
+
+Astra accepted those transport conclusions but rejected the proposed six-part
+lifecycle specification as an unbounded immediate discriminator. One repair
+made it the eventual implementation gate and selected only a source-pinned MD1
+reservation/protection handoff audit next. Missing image/shared-region,
+AP/modem-view, remap/EMI-MPU authority or lifetime attribution preserves the
+stop and admits no mapping, binding or driver.
+
+Accepted item five triggers the interval checkpoint. Display, audio and
+cellular are the comparable current-upstream architecture items: all use Sol
+Medium ownership, Astra Medium review, public source receipts and an exact
+topic-or-stop contract. Their median elapsed time is `26.1333333` minutes,
+median review/rework time is `4.6` minutes and first-review acceptance is `0/3`;
+none escalated. Audio and cellular also trigger the consecutive first-review
+miss signal. Each required repair addressed a different subsystem-specific
+reasoning boundary, and three comparable items are below the five-item evidence
+minimum for a settings experiment. The specialist review caught each defect,
+so the checkpoint conclusion is `no-change`: `baseline-01` remains effective
+and credits are unavailable.

@@ -1,0 +1,209 @@
+{
+  "schema_version": 1,
+  "observed_at_utc": "2026-09-07T20:06:04Z",
+  "review_ready_utc": "2026-09-07T20:14:05Z",
+  "accepted_utc": "2026-09-07T20:15:58Z",
+  "first_review_accepted": false,
+  "rework_cycles": 1,
+  "repository_parent": "2f6a56e058c80dac1a53381fedab748b3a0048a6",
+  "method": "Read-only comparison of frozen project records with exact files from current official public Linux trees and a bounded public mailing-list query; no Linux tree retained and no build, VM, private source, capture, firmware or device access.",
+  "frozen_project_inputs": [
+    {
+      "path": "experiments/2026-07-13-modem-ccci-recovery/README.md",
+      "size": 10757,
+      "sha256": "0c1788aaf3d43341ce2a19ade08568f4985af6579c27190b5328a03cdfa5fcae"
+    },
+    {
+      "path": "experiments/2026-07-13-modem-ccci-recovery/results/mt6797-ccci-mainline-contract.md",
+      "size": 9128,
+      "sha256": "97a822a3f5b4f8c2cab25c3b116a586959a09ff54b9f26f263aa753325f74313"
+    }
+  ],
+  "refs": {
+    "mainline": {
+      "repository": "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
+      "ref": "refs/heads/master",
+      "revision": "28924df2a08f440c73991b83028032c901de2ae4"
+    },
+    "net_next": {
+      "repository": "https://git.kernel.org/pub/scm/linux/kernel/git/netdev/net-next.git",
+      "ref": "refs/heads/main",
+      "revision": "31f961de2f90fbf52eb2d4e15b3eeaa09f9b4fc2"
+    },
+    "remoteproc_for_next": {
+      "repository": "https://git.kernel.org/pub/scm/linux/kernel/git/remoteproc/linux.git",
+      "ref": "refs/heads/for-next",
+      "revision": "70e14d5db3a01a44f6c3217bb3dda2dd5828a507"
+    }
+  },
+  "mainline_sources": [
+    { "path": "Documentation/devicetree/bindings/remoteproc/mtk,scp.yaml", "size": 6334, "sha256": "a0ace7d3e62c82261ed368bdc6761c37d55b2daf0cc10f6735fe7b76ceff6fef" },
+    { "path": "Documentation/networking/device_drivers/wwan/t7xx.rst", "size": 7339, "sha256": "a55059402615049ed990429aec563a21e3cdcdd891c19ee18dd1f4546a8fd7cf" },
+    { "path": "MAINTAINERS", "size": 927884, "sha256": "1b6bd8418b8bbdcbce595c4648c10afaf23370e3de243a282dbc992798de3a84" },
+    { "path": "arch/arm64/boot/dts/mediatek/mt6797.dtsi", "size": 11331, "sha256": "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83" },
+    { "path": "drivers/net/wwan/Kconfig", "size": 4249, "sha256": "d5faf361f8665f73f6b5f734d1071597863380d3abfc5a71ab1105056d60d85c" },
+    { "path": "drivers/net/wwan/Makefile", "size": 435, "sha256": "dd80a596b8454b1e09c18d01d46ac5abcba40057c339c07dfc9b7f2e612d8724" },
+    { "path": "drivers/net/wwan/rpmsg_wwan_ctrl.c", "size": 4318, "sha256": "13fad3803beedf4f93d2013f74d4c593714b9d8783c7fc415584e2b255f6ba90" },
+    { "path": "drivers/net/wwan/t7xx/Makefile", "size": 465, "sha256": "e46e876e9aac7e5d90e46770359fa2cd025da1960a7da4690937e145b413ee42" },
+    { "path": "drivers/net/wwan/t7xx/t7xx_cldma.c", "size": 8488, "sha256": "f9c772be47eaaa0c79889f16cc12b34fe4fe0f384c35e9ad82082cda48ae78e9" },
+    { "path": "drivers/net/wwan/t7xx/t7xx_cldma.h", "size": 5934, "sha256": "8012e9f7e3f7a7499eadfca2128db4c0ce8a4ecf4eed4eda0bd1d59a827a74fe" },
+    { "path": "drivers/net/wwan/t7xx/t7xx_hif_cldma.c", "size": 38235, "sha256": "061911b2d7aa8dcc30f4484d4947a5f4a4728ddc386d9d735fc4858c215e267c" },
+    { "path": "drivers/net/wwan/t7xx/t7xx_hif_cldma.h", "size": 3806, "sha256": "61aa0f517d0d95ed3741273e38a84b14e4bbda63663941174ab8355806c02950" },
+    { "path": "drivers/net/wwan/t7xx/t7xx_mhccif.c", "size": 3497, "sha256": "d363951400c70cfd58903fa00f10c49886c7c3e9b15c2ed899a8d473e251e3d3" },
+    { "path": "drivers/net/wwan/t7xx/t7xx_mhccif.h", "size": 1155, "sha256": "17178d180724882eb575f9b08bccbbf993115e13da6b332bb05671b730672311" },
+    { "path": "drivers/net/wwan/t7xx/t7xx_modem_ops.c", "size": 22887, "sha256": "f9ea5f4050d03ad96b5b8a874654b1fd1e7579a99e9a4ad73a8efef1968ecc1c" },
+    { "path": "drivers/net/wwan/t7xx/t7xx_netdev.c", "size": 12683, "sha256": "ee47018fd8a0edcc95512e4f1e7ba6768dbcacb7b28995cf98e2f2a3c114aa1e" },
+    { "path": "drivers/net/wwan/t7xx/t7xx_pci.c", "size": 24470, "sha256": "cc96758728863cdd3521d475adc630c8986ce12af98dbc914fa390e558a0a95a" },
+    { "path": "drivers/net/wwan/t7xx/t7xx_pci.h", "size": 4935, "sha256": "ccaebcd62c68bb0d99ed7b0f3dfb85daf650c76888d63e3d54395312daac4154" },
+    { "path": "drivers/net/wwan/t7xx/t7xx_port.h", "size": 4378, "sha256": "e9491a8a43fdd95285c42a8f67bce4badfdcf15c2593e07166d9a4749fc56dbc" },
+    { "path": "drivers/net/wwan/t7xx/t7xx_port_proxy.c", "size": 16699, "sha256": "2a218c90db4fa24b0ab06525ec11fff490b048b68b59c6a18264683df3ba9749" },
+    { "path": "drivers/net/wwan/t7xx/t7xx_port_proxy.h", "size": 3314, "sha256": "e253fa1ae8044995f99dfc840a886af66e0e42393fb8086e0accb7b8e05db225" },
+    { "path": "drivers/net/wwan/t7xx/t7xx_port_wwan.c", "size": 6328, "sha256": "50e7960fe671b1af293e2d1c8083c9e4239e71f863a8ae64fbf5c0f414e3bec4" },
+    { "path": "drivers/net/wwan/t7xx/t7xx_reg.h", "size": 13065, "sha256": "598469ccfbedb0ae7088594c554b5077cca5f8ee4d298cf94311820abbf79cff" },
+    { "path": "drivers/net/wwan/wwan_core.c", "size": 34376, "sha256": "542e3655944f9cf04c6d146ef7727ddd3b910c0e8896d6da34d13a7f1a3c06fc" },
+    { "path": "drivers/remoteproc/Kconfig", "size": 12485, "sha256": "983f5d53cee641626a505d74d62b43222207a7efa0100ca3246034a63c2a7cbd" },
+    { "path": "drivers/remoteproc/Makefile", "size": 1989, "sha256": "5ddae9b21fa812104c5c8e1d23d568a61acacde36e2a2f57a0a8f8f9647ac1b0" },
+    { "path": "drivers/remoteproc/mtk_scp.c", "size": 44764, "sha256": "99fd0a176029abb1c7e3efe0d5f0dde1e5a74fcd70672136080dccdf37bb0066" },
+    { "path": "drivers/soc/mediatek/Kconfig", "size": 2873, "sha256": "7e85e245ec98934226170f7d151df13dc5a3fe49240b009ab20f02b0c2400dcc" },
+    { "path": "drivers/soc/mediatek/Makefile", "size": 477, "sha256": "a7a4e5f6da219caffbc95d549d83811473e2fb012f0ee3eb5219da95df1ee0ac" },
+    { "path": "include/linux/wwan.h", "size": 6219, "sha256": "77f02cee70fbae531a45677c3f6eddaabd7d3951949f89218c293ed484a6303c" }
+  ],
+  "cross_tree_identity": [
+    {
+      "trees": ["mainline", "net_next"],
+      "result": "byte-identical",
+      "paths": [
+        "drivers/net/wwan/Kconfig",
+        "drivers/net/wwan/Makefile",
+        "drivers/net/wwan/rpmsg_wwan_ctrl.c",
+        "drivers/net/wwan/t7xx/t7xx_hif_cldma.h",
+        "drivers/net/wwan/t7xx/t7xx_netdev.c",
+        "drivers/net/wwan/t7xx/t7xx_pci.c",
+        "drivers/net/wwan/t7xx/t7xx_port_proxy.h",
+        "drivers/net/wwan/wwan_core.c",
+        "include/linux/wwan.h"
+      ]
+    },
+    {
+      "trees": ["mainline", "remoteproc_for_next"],
+      "result": "byte-identical",
+      "paths": [
+        "Documentation/devicetree/bindings/remoteproc/mtk,scp.yaml",
+        "drivers/remoteproc/Kconfig",
+        "drivers/remoteproc/Makefile",
+        "drivers/remoteproc/mtk_scp.c"
+      ]
+    }
+  ],
+  "public_history": {
+    "bounded_query": "lore.kernel.org subject searches for MT6797 with CCCI, CLDMA and modem terms plus a broader t7xx review",
+    "negative_result_scope": "No exact MT6797 CCCI/CLDMA submission appeared in the bounded subject queries; this is not an exhaustive historical absence claim.",
+    "t7xx_reference": {
+      "message_id": "20220506181310.2183829-5-ricardo.martinez@linux.intel.com",
+      "subject": "[PATCH net-next v8 04/14] net: wwan: t7xx: Add core components",
+      "url": "https://lore.kernel.org/netdev/20220506181310.2183829-5-ricardo.martinez@linux.intel.com/",
+      "raw_size": 67972,
+      "raw_sha256": "c2826231ef54edd6684fba4ce026cd35fd8beb5d2551cee8e2f4bfd1ab0e3acc"
+    }
+  },
+  "reuse_map": [
+    {
+      "component": "WWAN core ports and netdev registration",
+      "decision": "reuse",
+      "boundary": "Upper interface only; a proved MT6797 transport owns framing, channels, queues, firmware and hardware state."
+    },
+    {
+      "component": "rpmsg_wwan_ctrl",
+      "decision": "pattern_only",
+      "boundary": "Requires an existing RPMsg device and endpoint; neither is established for the MT6797 modem."
+    },
+    {
+      "component": "t7xx CCCI header",
+      "decision": "reassess_after_evidence",
+      "boundary": "The 16-byte width and third-word channel/sequence/assert layout resemble the frozen MT6797 contract, but full word semantics, byte order, channels and handshake behavior are not proved compatible."
+    },
+    {
+      "component": "t7xx PCI, CLDMA, MHCCIF, modem FSM and DPMAIF",
+      "decision": "do_not_reuse_as_mt6797_transport",
+      "boundary": "PCI probe/BAR/MSI-X/ATR and PM ownership, a 24-byte GPD, T7xx MHCCIF and DPMAIF do not match the frozen MT6797 APB CLDMA/CCIF contract with packed 16-byte descriptors."
+    },
+    {
+      "component": "MediaTek SCP remoteproc",
+      "decision": "not_a_match",
+      "boundary": "Current binding and match data cover MT8183, MT8186, MT8188, MT8192 and MT8195 SCPs, not an MT6797 cellular modem."
+    }
+  ],
+  "dependency_ownership": [
+    { "area": "firmware", "required": "Exact image identity and selection, authentication/placement owner, entry, boot acknowledgement, stop and crash behavior; redistribution rights remain separate." },
+    { "area": "reserved_memory", "required": "Bootloader reservation provider, exact placement/size/feature layout, no-map and lifetime ownership." },
+    { "area": "emi_mpu_remap", "required": "Secure/boot/kernel programming authority, preserved state, 32 MiB remap behavior, rollback and release." },
+    { "area": "power_reset_watchdog", "required": "Clock/reset ordering, watchdog acknowledgement, warm/cold transitions, failure retention, shutdown and removal." },
+    { "area": "ccif", "required": "Registers, IRQs, SRAM exchange, flow control, boot/normal/exception/shutdown states and ordering." },
+    { "area": "cldma", "required": "Descriptor bits, queue roles, DMA mask/address encoding, coherency, barriers, completion/idle witness, unmap and recovery." },
+    { "area": "ccci", "required": "All four word semantics, byte order, versions, lengths, channels, ACK mapping and queue selection." },
+    { "area": "userspace", "required": "Only independently verified services map to standard WWAN port types and netdev; private vendor char/ioctl ABI remains out of upstream UAPI." }
+  ],
+  "upstream": {
+    "future_routes": [
+      "Devicetree and ARM/MediaTek for any proved platform binding and resource owner",
+      "remoteproc only if the proved modem firmware lifecycle fits remoteproc",
+      "netdev/WWAN for standard control ports and data devices"
+    ],
+    "t7xx_role": "overlap reviewer, not presumed MT6797 platform-hardware owner",
+    "authorship": "No author identity, DCO certification, maintainer agreement or submission readiness established.",
+    "local_patch_removal_condition": "No local kernel patch exists. Any future temporary transport is removable only when an accepted upstream equivalent covers the same proved hardware identity, transport and lifetime contract."
+  },
+  "verdict": {
+    "status": "exact_stop",
+    "implementation_admitted": false,
+    "disabled_platform_driver_admitted": false,
+    "binding_admitted": false,
+    "common_helper_admitted": false,
+    "smallest_safe_topic": "Source-pinned architecture record only; code or binding would be unused or would freeze unproved resource/protocol assumptions.",
+    "eventual_implementation_gate": [
+      "firmware selection, bootloader reservations and image placement",
+      "EMI-MPU and remap ownership",
+      "power, clocks, reset and watchdog sequencing",
+      "CCIF boot, normal, exception and shutdown states",
+      "CLDMA descriptor bits, address width, DMA/cache/barrier rules and positive idle/completion witnesses",
+      "CCCI framing, channel/queue mapping and orderly/crash teardown"
+    ],
+    "next_discriminator": {
+      "audit": "Source-pinned MT6797 MD1 reservation-and-protection handoff",
+      "must_join": [
+        "selected boot configuration",
+        "exact modem image and shared-memory regions",
+        "active feature layout",
+        "AP and modem address views",
+        "remap and EMI-MPU programming authority",
+        "lifetime owner and release condition for every region and protection effect"
+      ],
+      "required_quality": "Each link must have attributable source evidence; names and offsets alone do not establish the handoff.",
+      "failure_result": "Missing or contradictory attribution retains the exact stop and admits no mapping, binding or platform driver."
+    },
+    "later_gates": [
+      "CLDMA queue and DMA completion contract",
+      "CCCI framing and channel mapping",
+      "full power and CCIF boot, orderly-shutdown and crash-teardown state machine"
+    ],
+    "reassessment_order": "Run only the reservation-and-protection audit next. If it passes, address the later transport lifecycle gates; only after the framing subset is proved and real callers exist, reassess a common 16-byte CCCI helper."
+  },
+  "limitations": [
+    "The bounded public-history query is not an exhaustive proof of historical absence.",
+    "Structural resemblance of CCCI-named headers is not wire-compatibility evidence.",
+    "No current-source review proves hardware behavior or firmware rights.",
+    "No build was run because no code changed and compilation cannot resolve missing protocol or ownership evidence."
+  ],
+  "effects": {
+    "kernel_source_edit": false,
+    "binding_edit": false,
+    "build": false,
+    "vm": false,
+    "private_source_or_capture": false,
+    "firmware_access": false,
+    "device": false,
+    "radio_action": false,
+    "upstream_contact": false,
+    "hardware_support_claim": false
+  }
+}
