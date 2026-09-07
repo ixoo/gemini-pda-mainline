@@ -1,0 +1,206 @@
+{
+  "schema_version": 3,
+  "dispatch_commit": "0e7faceb96b168380e8fe7c1b0062a79598f43eb",
+  "dispatch_inputs_sha256": "19e4d4ca7a252365e2d27fd482845a20234a832c755e5bc5a8c21ce372cdb167",
+  "diagnostic_sha256": "ed0070168a86e91da9c84c2d03d1617f21e2f333919bb32495419a6b77d2db81",
+  "source_sha256": "cb87b5e1d9ec80d26ae08c72686208f3ff673056e0c29095ee4d4a3cf48e838e",
+  "runs": 1,
+  "private_analysis_consumed": false,
+  "canonical_receipt_sha256": "b7d82b7cc4f5e39cc4091b33377c0b8b8045eb7f199ef7e308e98041309c2b18",
+  "receipt": {
+    "accepted_stat_result_sha256": "be64ee02da0daa61068e3dfdf25972d52b2bd70370183817583b632a2e5155dc",
+    "audit_counts": {
+      "candidate_open": 1,
+      "dynamic_load": 0,
+      "import": 0,
+      "maps_open": 1,
+      "mutation": 0,
+      "network": 0,
+      "other": 0,
+      "process": 0,
+      "write": 0
+    },
+    "audit_hook_active": true,
+    "callback_invocations": 0,
+    "candidate_absent": true,
+    "completed_utc": "2026-09-07T06:41:33.444151+00:00",
+    "content_gate_passed": true,
+    "engine_instances": 0,
+    "event_sha256": "1f44854434c4d88a28f07834aff0629e5de462ee8cbbb3a6a6d3cd9245e56cf1",
+    "identity": {
+      "elf": {
+        "class": 64,
+        "dynamic_entries_through_null": 20,
+        "endianness": "little",
+        "header_size": 64,
+        "machine": 183,
+        "program_header_count": 7,
+        "program_header_size": 56,
+        "string_table_size": 855,
+        "type": 3
+      },
+      "mode": 420,
+      "mtime_ns": 1781873160000000000,
+      "needed": [],
+      "path": "/usr/lib/python3.12/lib-dynload/_queue.cpython-312-aarch64-linux-gnu.so",
+      "sha256": "0ab94b7c54af74d78b85b00bea6527e4dffc56304625995b0016429defe8edba",
+      "size": 68496
+    },
+    "import_restored": true,
+    "maps_row_count": 49,
+    "metadata_counts": {
+      "captured_snapshot_lstat": 2,
+      "passes": [
+        {
+          "component_lstat": 6,
+          "processed_components": 5,
+          "readlink": 0,
+          "resolution_lstat": 6,
+          "symlink_expansions": 0
+        },
+        {
+          "component_lstat": 6,
+          "processed_components": 5,
+          "readlink": 0,
+          "resolution_lstat": 6,
+          "symlink_expansions": 0
+        }
+      ],
+      "resolved_snapshot_lstat": 0,
+      "total_lstat": 26
+    },
+    "metadata_cross_pass_equal": true,
+    "operation_counts": {
+      "candidate_read": 1,
+      "fstat": 2,
+      "maps_read": 1,
+      "post_lstat": 1
+    },
+    "package_execution": false,
+    "private_reads": 0,
+    "refusal_class": null,
+    "schema_version": 1,
+    "stable_missing_class": null,
+    "stage_outcomes": [
+      {
+        "outcome": "passed",
+        "stage": "lexical"
+      },
+      {
+        "outcome": "passed",
+        "stage": "pass1-component-walk"
+      },
+      {
+        "outcome": "passed",
+        "stage": "pass1-resolution"
+      },
+      {
+        "outcome": "passed",
+        "stage": "metadata-snapshots"
+      },
+      {
+        "outcome": "passed",
+        "stage": "pass2-component-walk"
+      },
+      {
+        "outcome": "passed",
+        "stage": "pass2-resolution"
+      },
+      {
+        "outcome": "passed",
+        "stage": "cross-pass-stability"
+      },
+      {
+        "outcome": "passed",
+        "stage": "canonicality"
+      },
+      {
+        "outcome": "passed",
+        "stage": "accepted-tuple"
+      },
+      {
+        "outcome": "passed",
+        "stage": "kind"
+      },
+      {
+        "outcome": "passed",
+        "stage": "mode"
+      },
+      {
+        "outcome": "passed",
+        "stage": "size"
+      },
+      {
+        "outcome": "passed",
+        "stage": "import-restoration"
+      },
+      {
+        "outcome": "passed",
+        "stage": "candidate-open"
+      },
+      {
+        "outcome": "passed",
+        "stage": "opened-fstat"
+      },
+      {
+        "outcome": "passed",
+        "stage": "bounded-read"
+      },
+      {
+        "outcome": "passed",
+        "stage": "post-read-fstat"
+      },
+      {
+        "outcome": "passed",
+        "stage": "final-lstat"
+      },
+      {
+        "outcome": "passed",
+        "stage": "elf-header"
+      },
+      {
+        "outcome": "passed",
+        "stage": "program-headers"
+      },
+      {
+        "outcome": "passed",
+        "stage": "dynamic-table"
+      },
+      {
+        "outcome": "passed",
+        "stage": "string-table"
+      },
+      {
+        "outcome": "passed",
+        "stage": "needed-names"
+      },
+      {
+        "outcome": "passed",
+        "stage": "maps-open"
+      },
+      {
+        "outcome": "passed",
+        "stage": "maps-read"
+      },
+      {
+        "outcome": "passed",
+        "stage": "maps-parse"
+      },
+      {
+        "outcome": "passed",
+        "stage": "candidate-absence"
+      },
+      {
+        "outcome": "passed",
+        "stage": "final-audit"
+      }
+    ],
+    "started_utc": "2026-09-07T06:41:33.443606+00:00",
+    "status": "complete-positive",
+    "terminal_stage": null,
+    "wrapper": {
+      "count": 0,
+      "first_stage": null
+    }
+  }
+}
