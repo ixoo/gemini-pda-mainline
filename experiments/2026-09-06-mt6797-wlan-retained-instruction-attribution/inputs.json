@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "analysis_parent": "e25df337406b52bc4da44aa428262a8123d8da21",
+  "work_started_utc": "2026-09-07T01:36:36Z",
+  "accepted_symbol_provenance": {
+    "inputs.json": "c5dffb7323e7eb25626704d3310565b1ca9252e0dd9f349eff66ed04fc3d4e31",
+    "loader.json": "54763f55f63b12fd47e32931c13f6fe7f617d807a161da9f77e223abc4f43557",
+    "method.json": "9b4ce1dfe5773c2264ebe302ea17b62fb502793589e05dc6243ac753adbdc51c",
+    "analysis.json": "e1ebec2e0080d70fd8e5e0d59801d20c874821f25f99c3a4e62d5effd35652ea",
+    "intervals.json": "e44de0d978edbaaccc5f5d05afc5fc913bd691c2ab56e2e03c02edbc23ebef0c",
+    "FREEZE.md": "e081cc3ddd62a1ac9d286880a4b629d02e6e38a174940b5b30fe52b682049653",
+    "VALIDATION.md": "96dbedf2b826225ae0e2bc47d1b675003307b4067e7b261535d156464f9d27c9",
+    "README.md": "8fd8499cfca08657d9999c9603dfeaf087367be4f94a38437acd619623a0c877"
+  },
+  "retained_elf_boundary": {
+    "inputs.json": "89dd591276e93c58dee6f35a53eab3b8daa93dec565f71387a997adf1c3875a1",
+    "analysis.json": "d08406c637cc19c943c761b302d7591eeb99a334cd03ac0fdf69fb084046cd70",
+    "FREEZE.md": "c91f67779fe9a2c12c33a5b21ad4d46897824a14f0545a513265a39c71bc47b3",
+    "VALIDATION.md": "5937d2772d49ec578d540225b7517bcfc9510212b286ee32bc7eefe0941f4360"
+  },
+  "source_dependencies": {
+    "lifecycle_inputs": "3e2b5c20a08cfd54d42a43587825aa65512cf012bb8b0b572a86e70cb5d4ef2b",
+    "lifecycle_verdicts": "618af79a8edc68e733efe37440d4714fe30853663c8e8c19957d869179b3a171",
+    "lifecycle_freeze": "1c9ee0bd6298166a82abf2bcfd463758ac12f307e9640e7f2e25792246f5c710",
+    "producer_inputs": "9893687d6bef1b80c0c6e6a0a87216635ddb6490609e58bbc25c838bda0d88a8",
+    "producer_verdicts": "955ccc161572baa4c02c8c68bf6292159119eb6786e4237dcdc8db6196c4800b",
+    "producer_freeze": "e1a6f37c3bf6e8eeedd59592d9814671e4db6eb5571725b2e284bbd92d4d8517"
+  },
+  "private_elf": {
+    "sha256": "cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162",
+    "class": "ELF64",
+    "endianness": "little",
+    "machine": "AArch64",
+    "type": "ET_EXEC",
+    "release_family": "Linux version 3.18.41+",
+    "section": {
+      "name": ".kernel",
+      "index": 1,
+      "address": "0xffffffc000080000",
+      "size": 20013248,
+      "type": "SHT_PROGBITS",
+      "flags": 7
+    }
+  },
+  "targets": [
+    {"name": "do_connectivity_driver_init", "start": "0xffffffc0006e3a70", "end_exclusive": "0xffffffc0006e3be0", "size": 368, "kallsyms_type": "T"},
+    {"name": "do_wlan_drv_init", "start": "0xffffffc0006e3ed0", "end_exclusive": "0xffffffc0006e3fe8", "size": 280, "kallsyms_type": "T"},
+    {"name": "mtk_wcn_wlan_gen3_init", "start": "0xffffffc0007415a0", "end_exclusive": "0xffffffc000741898", "size": 760, "kallsyms_type": "T"},
+    {"name": "mtk_wcn_wlan_gen3_exit", "start": "0xffffffc000741898", "end_exclusive": "0xffffffc000741938", "size": 160, "kallsyms_type": "T"}
+  ],
+  "bounds": {
+    "elf_files": 1,
+    "target_envelopes": 4,
+    "target_bytes_total": 1568,
+    "reachable_instructions_per_target": 512,
+    "basic_blocks_per_target": 128,
+    "published_reachable_calls": 16,
+    "whole_kernel_bl_scans": 1,
+    "relocation_scans": 1,
+    "allocated_address_word_scans": 1,
+    "exit_candidates_per_class": 8,
+    "additional_caller_bodies": 0,
+    "second_analysis_run": false,
+    "prior_raw_output": false,
+    "instruction_bytes_published": false,
+    "network": false,
+    "device": false,
+    "build": false
+  }
+}
